@@ -16,19 +16,19 @@ export function runPhase(t:number){const u=wrap(t,runTiming.step);let index=0;wh
 
 // One explicitly directed half-stride, mirrored for the opposite support.
 // Non-uniform keys describe compression, travel over the support, toe-off and flight.
-const height:Key[]=[[0,1.17,-.65],[.065,1.055,0],[.135,1.105,.95],[.23,1.215,1.05],[.295,1.28,0],[.355,1.23,-1.1],[.4,1.17,-.65]];
-const lean:Key[]=[[0,.27,.30],[.075,.32,0],[.16,.285,-.4],[.245,.25,0],[.315,.24,0],[.4,.27,.30]];
-const squash:Key[]=[[0,1,-.3],[.07,.957,0],[.18,1.01,.3],[.26,1.032,0],[.34,1.015,-.2],[.4,1,-.3]];
-const lateral:Key[]=[[0,-.012,-.35],[.09,-.070,0],[.19,-.045,.35],[.30,0,.2],[.4,.012,.35]];
-const hipYaw:Key[]=[[0,.12,-.1],[.09,.10,-.5],[.22,-.04,-.9],[.33,-.11,-.2],[.4,-.12,.1]];
-const hipRoll:Key[]=[[0,.018,.1],[.10,.045,0],[.22,.02,-.4],[.32,-.015,-.12],[.4,-.018,-.1]];
-const arm:Key[]=[[0,.68,.9],[.075,.76,0],[.19,.12,-6],[.29,-.70,-3],[.35,-.88,0],[.4,-.88,.6],[.48,-.73,3],[.59,-.14,5],[.70,.53,3],[.8,.68,.9]];
-const elbow:Key[]=[[0,-1.15,-.4],[.14,-.83,0],[.29,-1.39,-1],[.38,-1.47,0],[.53,-1.16,1],[.69,-1.05,0],[.8,-1.15,-.4]];
-const wrist:Key[]=[[0,.08,.3],[.14,.12,0],[.28,-.05,-.5],[.41,-.08,0],[.60,.01,.5],[.8,.08,.3]];
-const headLag:Key[]=[[0,.022,-.12],[.045,.014,-.25],[.105,-.018,0],[.22,.005,.16],[.31,.035,0],[.4,.022,-.12]];
-const rollFoot:Key[]=[[0,-.15,0],[.05,0,0],[.145,0,0],[.215,.30,7],[.27,.78,0]];
-const sideKeys:Key[]=[[0,0,0],[.27,0,0],[.44,.045,0],[.61,.015,-.2],[.8,0,0]];
-const poleKeys:Key[]=[[0,.12,0],[.27,.16,0],[.45,.32,0],[.62,.22,-.7],[.8,.12,0]];
+const height:Key[]=[[0,1.16,-.7],[.065,1.04,0],[.14,1.13,1.1],[.23,1.24,1.2],[.31,1.30,0],[.37,1.23,-1.2],[.4,1.16,-.7]];
+const lean:Key[]=[[0,.46,.4],[.075,.54,0],[.16,.50,-.4],[.245,.48,0],[.315,.43,-.3],[.4,.46,.4]];
+const squash:Key[]=[[0,1,-.4],[.07,.85,0],[.17,1.02,.6],[.26,1.10,.4],[.31,1.14,0],[.36,1.04,-.5],[.4,1,-.4]];
+const lateral:Key[]=[[0,-.02,-.5],[.085,-.078,0],[.19,-.05,.4],[.30,0,.3],[.4,.02,.5]];
+const hipYaw:Key[]=[[0,.22,-.2],[.09,.18,-.8],[.22,-.08,-1.2],[.33,-.20,-.3],[.4,-.22,.2]];
+const hipRoll:Key[]=[[0,.03,.15],[.10,.06,0],[.22,.03,-.6],[.32,-.02,-.2],[.4,-.03,-.15]];
+const arm:Key[]=[[0,1.15,1.2],[.08,1.25,0],[.22,.35,-7],[.33,-.85,-3.5],[.4,-1.15,0],[.48,-1.25,0],[.62,-.35,7],[.72,.85,3.5],[.8,1.15,1.2]];
+const elbow:Key[]=[[0,-1.65,-.3],[.10,-1.75,0],[.25,-1.10,2],[.38,-.55,0],[.48,-.50,0],[.62,-1.05,-2],[.74,-1.55,0],[.8,-1.65,-.3]];
+const wrist:Key[]=[[0,.15,.4],[.14,.22,0],[.28,-.08,-.6],[.41,-.12,0],[.60,.04,.6],[.8,.15,.4]];
+const headLag:Key[]=[[0,.03,-.2],[.05,.015,-.3],[.11,-.025,0],[.22,.01,.2],[.31,.045,0],[.4,.03,-.2]];
+const rollFoot:Key[]=[[0,-.18,0],[.045,0,0],[.14,0,0],[.21,.38,8],[.27,.92,0]];
+const sideKeys:Key[]=[[0,0,0],[.27,0,0],[.44,.055,0],[.61,.02,-.2],[.8,0,0]];
+const poleKeys:Key[]=[[0,.15,0],[.27,.22,0],[.45,.42,0],[.62,.28,-.8],[.8,.15,0]];
 const pitchQ=(angle:number)=>new T.Quaternion().setFromAxisAngle(new T.Vector3(1,0,0),angle);
 const ankleHeight=.10,heelZ=-.12,toeZ=.23;
 /** Relative to the physical root; planted reference is fixed in world/material coordinates. */
@@ -41,12 +41,12 @@ export function footTrack(t:number,side:number){
   ankle.z-=runTiming.speed*t;
  }else{
   // The toe-off and landing tangents match the planted foot in world space.
-  const q=pitchQ(.78),take=new T.Vector3(0,0,toeZ).sub(new T.Vector3(0,-ankleHeight,toeZ).applyQuaternion(q));
-  const land=new T.Vector3(0,0,heelZ).sub(new T.Vector3(0,-ankleHeight,heelZ).applyQuaternion(pitchQ(-.15)));
+  const q=pitchQ(.92),take=new T.Vector3(0,0,toeZ).sub(new T.Vector3(0,-ankleHeight,toeZ).applyQuaternion(q));
+  const land=new T.Vector3(0,0,heelZ).sub(new T.Vector3(0,-ankleHeight,heelZ).applyQuaternion(pitchQ(-.18)));
   const z0=runTiming.landing-runTiming.speed*.27+take.z,z1=runTiming.landing+land.z;
-  const z=curve([[.27,z0,-runTiming.speed],[.39,-.60,0],[.53,-.20,5.2],[.68,.48,.2],[.8,z1,-runTiming.speed]],u);
-  const y=curve([[.27,take.y,0],[.37,.48,2.2],[.45,.68,0],[.59,.39,-2.8],[.70,.18,-1.4],[.8,land.y,0]],u);
-  pitch=curve([[.27,.78,0],[.39,1.05,0],[.54,.42,-5],[.68,-.13,-.5],[.8,-.15,0]],u);
+  const z=curve([[.27,z0,-runTiming.speed],[.38,-.55,0],[.53,-.15,5.6],[.68,.44,.2],[.8,z1,-runTiming.speed]],u);
+  const y=curve([[.27,take.y,0],[.36,.52,2.5],[.46,.74,0],[.59,.42,-3.2],[.70,.18,-1.5],[.8,land.y,0]],u);
+  pitch=curve([[.27,.92,0],[.38,1.15,0],[.54,.45,-6],[.68,-.15,-.6],[.8,-.18,0]],u);
   ankle=new T.Vector3(side*(.24+curve(sideKeys,u)),y,z);
  }
  return {ankle,pitch,pole:side*curve(poleKeys,u),contact:u<=.27,age:u,plantZ,contactTime,pivot:pitch<0?'heel':'toe'};
@@ -56,9 +56,9 @@ export function evaluateRun(t:number,style:Style):RunFrame{
  const k=style==='contained'?{body:.75,arm:.84,stretch:.55}:style==='expressive'?{body:1.15,arm:1.12,stretch:1.35}:{body:1,arm:1,stretch:1};
  const l=footTrack(t,-1),r=footTrack(t,1),pitch=.055,hip=curve(hipYaw,half)*sign;
  const chestLean=.10+(curve(lean,half)-.10)*k.body;
- return {px:curve(lateral,half)*sign,py:curve(height,half),pz:0,pitch,yaw:hip,roll:curve(hipRoll,half)*sign,
-  lean:chestLean,twist:-hip*1.25,chestRoll:-curve(hipRoll,half)*sign*.7,squash:1+(curve(squash,half)-1)*k.stretch,
-  neck:-.025,head:-(chestLean+pitch)*.70+curve(headLag,half),look:hip*.18,headRoll:-curve(hipRoll,half)*sign*.2,
+ return {px:curve(lateral,half)*sign*k.body,py:curve(height,half),pz:0,pitch:.08,yaw:hip*k.body,roll:curve(hipRoll,half)*sign*k.body,
+  lean:chestLean,twist:-hip*1.35*k.body,chestRoll:-curve(hipRoll,half)*sign*.8*k.body,squash:1+(curve(squash,half)-1)*k.stretch,
+  neck:-.03,head:-(chestLean+.08)*.65+curve(headLag,half),look:hip*.2,headRoll:-curve(hipRoll,half)*sign*.25,
   left:curve(arm,full)*k.arm,right:curve(arm,wrap(t+.4,.8))*k.arm,elbowL:curve(elbow,full),elbowR:curve(elbow,wrap(t+.4,.8)),
   spreadL:-.14,spreadR:.14,handL:curve(wrist,wrap(t-.025,.8)),handR:curve(wrist,wrap(t+.375,.8)),
   lx:l.ankle.x,ly:l.ankle.y,lz:l.ankle.z,lp:l.pitch,lk:l.pole,rx:r.ankle.x,ry:r.ankle.y,rz:r.ankle.z,rp:r.pitch,rk:r.pole};
