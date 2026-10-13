@@ -10,8 +10,16 @@ export const TEST = {
   hp: 100, attack: 20, defense: 50, speed: 4, attackReference: 20,
   speedReference: 10, defenseMedian: 50, pushCoefficient: 2, pushDuration: .3,
   aiInterval: .85, aiRange: 3.3, contactStep: .1, epsilon: 1e-8,
-  cameraDistance: 13, cameraHeight: 9, cameraResponse: 8,
-  cameraYaw: Math.PI + .35, forwardTolerance: Math.PI / 8,
+  forwardTolerance: Math.PI / 8,
+};
+// Provisional feel tuning: base profile reaches speed in 67ms, brakes in 40ms.
+export const LOCOMOTION = { acceleration: 60, braking: 100, reversal: 140, turnRate: 4 * Math.PI, visualTurnRate: 5 * Math.PI };
+export const CAMERA = {
+  distance: 6.2, height: 2.2, lookHeight: 1.1, lookAhead: 1.8,
+  followResponse: 12, distanceResponse: 4, yawResponse: 2.5,
+  maxTurnRate: Math.PI / 4, deadZone: Math.PI / 9, movingDeadZone: Math.PI / 3, closeRange: 2.5,
+  initialYaw: Math.PI + .2, shoulder: .45, framingRange: 6, distanceScale: .35,
+  manualHold: 1.5, minDistance: 4.8, maxDistance: 16,
 };
 export interface Attributes { attack: number; defense: number; speed: number; hp: number }
 export const profiles: Record<string, Attributes> = {

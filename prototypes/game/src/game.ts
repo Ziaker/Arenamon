@@ -20,6 +20,7 @@ export class Game {
     for (const f of this.fighters) prepare(f, commands[f.id] ?? idle(), this.fighters, TEST.step);
     const actions = this.fighters.map(f => f.action);
     this.events.push(...integrate(this.fighters, TEST.step)); this.events = this.events.slice(-12);
+    for (const f of this.fighters) if (!f.action && !f.blend) f.locomotionVelocity = { ...f.velocity };
     for (const [index, f] of this.fighters.entries()) if (f.action === actions[index]) finish(f, TEST.step);
     this.tick++;
     if (this.fighters.some(f => f.hp <= 0)) { this.phase = 'result'; this.winner = this.fighters.find(f => f.hp > 0)?.id ?? null; }

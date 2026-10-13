@@ -1,4 +1,5 @@
-import { RULES, TEST } from './config';
+import { LOCOMOTION, RULES, TEST } from './config';
+import { approachVelocity } from './locomotion';
 import { Command, Fighter, nominalDistance } from './entity';
 import { angle, clamp, delta, direction, dodgeProgress, length, scale, smooth, sub, unit, vec } from './math';
 
@@ -7,6 +8,7 @@ export function prepare(f: Fighter, c: Command, fighters: Fighter[], dt: number)
   const target = fighters.find(t => t.id === c.target && t.hp > 0);
   const move = length(c.move) > 1 ? unit(c.move) : c.move;
   const desiredHeading = target ? angle(sub(target.position, f.position)) : length(move) ? angle(move) : f.facing;
+  f.desiredMove = { ...move }; f.combatHeading = desiredHeading;
   f.perfectCooldown = Math.max(0, f.perfectCooldown - dt);
   if (f.perfectLeft > 0) {
     f.perfectLeft = Math.max(0, f.perfectLeft - dt);
@@ -27,10 +29,11 @@ export function prepare(f: Fighter, c: Command, fighters: Fighter[], dt: number)
     if (c.guardPressed && f.perfectCooldown <= 0) { f.perfectLeft = RULES.perfect; f.perfectSucceeded = false; }
   }
   if (c.dodge && cancellable && !f.exhausted && f.stamina >= 1 - 1e-8) {
-    const heading = length(move) > .01 ? angle(move) : desiredHeading;
+    const dodgeMove = c.dodgeDirection ?? move;
+    const heading = length(dodgeMove) > .01 ? angle(dodgeMove) : desiredHeading;
     const from = f.action ? { ...f.velocity } : null;
     // Forward means aimed at selected opponent, or the body's heading when unlocked.
-    const frontal = Math.abs(delta(target ? desiredHeading : f.facing, heading)) < TEST.forwardTolerance;
+    const frontal = c.dodgeForward ?? (Math.abs(delta(target ? desiredHeading : f.facing, heading)) < TEST.forwardTolerance);
     f.action = { kind: 'dodge', elapsed: 0, startAngle: heading, heading, offensive: frontal, hits: new Set(), from };
     f.stamina = Math.max(0, f.stamina - 1); f.regenBase = f.stamina; f.regenAge = 0;
     f.exhausted = f.stamina < 1e-8; f.guard = false; f.guardSuppressed = c.guard;
@@ -42,16 +45,20 @@ export function prepare(f: Fighter, c: Command, fighters: Fighter[], dt: number)
       const max = Math.min(RULES.guardTurn, Math.sqrt(2 * RULES.guardAcceleration * Math.abs(diff)));
       f.angularSpeed = Math.min(max, f.angularSpeed + RULES.guardAcceleration * dt);
       f.facing += clamp(diff, -f.angularSpeed * dt, f.angularSpeed * dt);
-    } else { f.facing = desiredHeading; f.angularSpeed = 0; }
+    } else { f.facing += clamp(diff, -LOCOMOTION.turnRate * dt, LOCOMOTION.turnRate * dt); f.angularSpeed = 0; }
   }
   if (f.action) {
+    f.locomotionVelocity = vec();
     const a = f.action;
     if (a.kind === 'dodge') {
+      const steering = c.dodgeDirection ?? move;
       if (length(move) > .01) {
-        const desired = a.startAngle + clamp(delta(a.startAngle, angle(move)), -RULES.steerLimit, RULES.steerLimit);
+        const desired = a.startAngle + clamp(delta(a.startAngle, angle(steering)), -RULES.steerLimit, RULES.steerLimit);
         a.heading += clamp(delta(a.heading, desired), -RULES.steerRate * dt, RULES.steerRate * dt);
       }
-      f.facing = a.heading;
+      // Lateral evasion and facing are separate. Lock-on retains combat orientation.
+      const facingGoal = target ? desiredHeading : a.heading;
+      f.facing += clamp(delta(f.facing, facingGoal), -LOCOMOTION.turnRate * dt, LOCOMOTION.turnRate * dt);
       const speed = nominalDistance(f) * (dodgeProgress((a.elapsed + dt) / RULES.dodge) - dodgeProgress(a.elapsed / RULES.dodge)) / dt;
       f.velocity = scale(direction(a.heading), speed);
       if (a.from && a.elapsed < RULES.blend) {
@@ -66,7 +73,8 @@ export function prepare(f: Fighter, c: Command, fighters: Fighter[], dt: number)
     }
   } else {
     const speed = f.attributes.speed * (f.guard ? RULES.guardSpeed : 1) * (f.exhausted ? RULES.exhaustedSpeed : 1);
-    f.velocity = f.stun > 1e-8 ? vec() : scale(move, speed);
+    f.locomotionVelocity = f.stun > 1e-8 ? vec() : approachVelocity(f.locomotionVelocity, scale(move, speed), dt);
+    f.velocity = { ...f.locomotionVelocity };
     if (f.blend) {
       const t = smooth((f.blend.elapsed + dt) / RULES.blend);
       f.velocity = { x: f.blend.from.x * (1 - t) + f.velocity.x * t, z: f.blend.from.z * (1 - t) + f.velocity.z * t };
@@ -74,6 +82,7 @@ export function prepare(f: Fighter, c: Command, fighters: Fighter[], dt: number)
     }
     f.state = f.stun > 1e-8 ? 'guardStun' : f.guard ? 'guard' : f.push ? 'pushed' : length(move) ? 'moving' : 'neutral';
   }
+  f.visualFacing += clamp(delta(f.visualFacing, f.facing), -LOCOMOTION.visualTurnRate * dt, LOCOMOTION.visualTurnRate * dt);
 }
 export function finish(f: Fighter, dt: number) {
   if (f.action) {

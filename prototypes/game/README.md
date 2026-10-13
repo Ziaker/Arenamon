@@ -4,7 +4,15 @@ Abra `dist/arenamon-jogavel.html` por duplo clique. O arquivo inclui Three.js e 
 
 ## Execução e controles
 
-No menu, escolha IA inativa, defensiva, ofensiva ou combate e um perfil provisório de atributos. Inicie a partida. WASD move relativamente ao alvo fixado; Espaço inicia uma esquiva, com W/sem direção produzindo tackle frontal. A/D/S + Espaço esquivam para lados/trás. F mantido defende; um novo pressionamento pode abrir defesa perfeita. Tab alterna lock-on. Sem alvo, movimento usa o referencial da câmera e orienta o corpo. Botão direito arrastado gira a câmera; roda ajusta distância. Esc pausa, R reinicia e F3 mostra depuração. Ao perder foco ou ocultar a aba, o jogo pausa e limpa as entradas.
+No menu, escolha IA e perfil de atributos. A partida começa **sem lock-on**. Movimentação exclusivamente pelas setas. C + ↑ executa esquiva frontal/investida; C + ←/→ executa esquiva lateral; C + ↓ executa esquiva traseira. C sem seta avança para o alvo fixado; sem alvo, usa a orientação de combate atual do bloco. A/S/D/Z/X permanecem reservadas. W e Espaço também não movem nem atacam. F é defesa provisória; Tab fixa/solta o alvo; arraste com botão direito gira a câmera e roda ajusta distância. Esc pausa, R reinicia e F3 mostra depuração. Perder foco ou ocultar a aba pausa e limpa entradas.
+
+Sem lock-on, as setas usam a referência horizontal da câmera, e o corpo gira progressivamente para a intenção de movimento. Com lock-on, ↑/↓ avançam/recuam em relação ao alvo, e ←/→ deslocam lateralmente na tela mantendo a orientação para o adversário. Diagonais combinam o avanço/recuo com a lateralidade ortogonal de combate com velocidade perfeitamente normalizada e transição contínua. Para esquivas com C, a direção é explícita: ↑ + C investe (tackle), ↓ + C esquiva traseira e ←/→ + C esquiva lateral defensiva.
+
+A calibração `LOCOMOTION` define aceleração 60 m/s², frenagem 100 m/s², reversão 140 m/s² e giro comum até 720°/s. No perfil de 4 m/s, partida em aproximadamente 67 ms e parada em aproximadamente 42 ms, com menos de 9 cm residuais nos testes. Defesa conserva seus limites de giro aprovados. A velocidade de locomoção é independente da curva de esquiva e dos impulsos.
+
+A câmera de combate em terceira pessoa (`CAMERA`) é inspirada no padrão arena fighter (Naruto Ultimate Ninja Storm): mais baixa e próxima (altura 2,2 m, distância inicial 6,2 m, olhar a 1,1 m de altura e 1,8 m à frente com deslocamento lateral suave de ombro de 0,45 m). A âncora acompanha o jogador sem se fixar no ponto médio. Com alvo fixado, reenquadra suavemente a até 45°/s, com zona morta ampla durante locomoção (60°) para evitar giros bruscos na tela durante strafes laterais. Sem alvo, girar o corpo nunca gira a câmera. Câmera e gameplay atualizam a 120 Hz de forma desacoplada e determinística.
+
+**A movimentação reconstruída aguarda aprovação jogável do usuário.** Testes aprovados não significam aprovação da sensação de controle.
 
 O teste termina em zero HP, com resultado, reinício ou retorno ao menu. Essa condição de encerramento é provisória: o GDD não define vitória final. Os modos da IA podem ser trocados ao voltar ao menu.
 
@@ -18,9 +26,9 @@ O código ativo em `prototypes/placeholders` apenas renderizava dois blocos e c�
 
 Na raiz, use `npm ci` se necessário e `npm run verify`. Esse comando verifica TypeScript, gera ambos os HTMLs, testa o laboratório existente, executa cenários mecânicos determinísticos e joga pelo teclado/mouse no Edge com rede desabilitada. A dependência de Node/Edge existe para desenvolvimento e testes, não para quem recebe o HTML.
 
-Comandos específicos: `node prototypes/game/build.mjs`, `node prototypes/game/test.mjs`, `node prototypes/game/verify.mjs`. Os resultados e capturas ficam em `validation/`, ignorado pelo Git; o HTML em `dist/` também é gerado e ignorado. Os testes do navegador observam `window.__arenamon.snapshot()`, uma interface somente de leitura; não alteram HP, posições nem resultados para simular acertos.
+Comandos específicos: `node prototypes/game/build.mjs`, `node prototypes/game/test.mjs`, `node prototypes/game/locomotion.test.mjs` (após test.mjs), `node prototypes/game/verify.mjs`. Os resultados e capturas ficam em `validation/`, ignorado pelo Git; o HTML em `dist/` também é gerado e ignorado. Os testes do navegador observam `window.__arenamon.snapshot()`, uma interface somente de leitura; não alteram HP, posições nem resultados para simular acertos.
 
-Validação executada em 13/10/2026: `npm run verify` aprovado, com 19 cenários mecânicos, 16 cenários no navegador e regressão do visualizador anterior. Foram exercitados resultados de vitória e derrota usando controles do jogo. Nenhum erro de console ou pedido HTTP(S) foi registrado no HTML offline. Capturas de menu, impacto, bloqueio, resultado e layout estreito foram geradas; menu, impacto, bloqueio e layout estreito foram inspecionados visualmente. A inspeção adicional pelo navegador interativo do Codex não foi possível: sua política bloqueia URLs `file://`; o teste offline no Edge foi executado pelo pipeline autorizado.
+Validação executada em 13/10/2026: `npm run verify` aprovado, com 19 cenários mecânicos, 10 cenários de locomoção/câmera, 18 cenários no navegador e regressão do visualizador anterior. Foram exercitados resultados de vitória e derrota usando controles do jogo. Nenhum erro de console ou pedido HTTP(S) foi registrado no HTML offline. Capturas de menu, impacto, bloqueio, resultado e layout estreito foram geradas; menu, impacto, bloqueio e layout estreito foram inspecionados visualmente. A inspeção adicional pelo navegador interativo do Codex não foi possível: sua política bloqueia URLs `file://`; o teste offline no Edge foi executado pelo pipeline autorizado.
 
 ## Organização
 
@@ -34,7 +42,10 @@ Validação executada em 13/10/2026: `npm run verify` aprovado, com 19 cenários
 | combat.ts | Dano, defesa, eventos e empurrão por normal de contato |
 | ai.ts | Comportamento determinístico em quatro modos |
 | game.ts | Ciclo de partida e acumulador fixo de 120 Hz |
-| input.ts | Teclas mantidas/pressionadas/liberadas e referenciais |
+| input.ts | Leitura das teclas mantidas/pressionadas/liberadas |
+| commands.ts | Intenção direcional relativa à câmera/alvo, independente da malha |
+| locomotion.ts | Aceleração, frenagem e reversão configuráveis |
+| camera.ts | Acompanhamento fixo no tempo, independente da orientação visual |
 | view.ts | Arena, blocos substituíveis e câmera independente |
 | ui.ts / template.html | Menu, HUD, resultado, controles e depuração |
 | main.ts | Composição dos sistemas, pausa por foco e renderização |
@@ -51,7 +62,7 @@ Tackle: esquiva frontal ofensiva por todos os 400 ms, contato real entre caixas,
 
 Empurrão: `F = 0,6 × Ataque/Aref + 0,4 × velocidadeDeAproximação/Vref`; resistência `R = 0,5 × Defesa/(Defesa + mediana)`; distância `C × F × (1−R)`. A velocidade usada é a projeção relativa na normal antes da resolução. Contatos podem ser combinados por peso de aproximação, com fallback por centros e depois velocidade relativa. Não existe impulso aleatório quando não há direção confiável. Empurrão é deslocamento físico separado de guard stun e de dano.
 
-Calibração **provisória**, centralizada em `TEST`: arena 20 m, HP comum 100, dano de tackle igual a Ataque, referências Ataque 20/velocidade 10, mediana Defesa 50, C=2 m, empurrão de 300 ms com Smoothstep, tolerância frontal de 22,5°, perfis e parâmetros da IA/câmera. A mediana 50 corresponde aos três perfis de teste (35/50/80), não a um elenco final. Não há transferência adicional calibrada da velocidade do atacante; o contato sólido remove sua componente de aproximação e a esquiva ainda ativa retoma sua curva no próximo passo. Esse comportamento continua sujeito à decisão de design.
+Calibração **provisória**, centralizada em `TEST`: arena 20 m, HP comum 100, dano de tackle igual a Ataque, referências Ataque 20/velocidade 10, mediana Defesa 50, C=2 m, empurrão de 300 ms com Smoothstep, tolerância frontal de 22,5°, perfis e parâmetros da IA; locomoção e câmera em LOCOMOTION/CAMERA. A mediana 50 corresponde aos três perfis de teste (35/50/80), não a um elenco final. Não há transferência adicional calibrada da velocidade do atacante; o contato sólido remove sua componente de aproximação e a esquiva ainda ativa retoma sua curva no próximo passo. Esse comportamento continua sujeito à decisão de design.
 
 ## Estados e transições
 
@@ -59,7 +70,7 @@ Calibração **provisória**, centralizada em `TEST`: arena 20 m, HP comum 100, 
 | --- | --- | --- |
 | Livre / movimentação | Sem ação temporizada | Mover, orientar, defender ou esquivar |
 | Defesa | F mantido e acesso permitido | Movimento a 60%; soltar sai; esquiva cancela e exige soltar F antes de defender novamente |
-| Esquiva / tackle | Espaço com stamina e sem exaustão / 400 ms | Sem movimento comum; esterçamento limitado; encadear ou defender após 200 ms; dano vulnerável interrompe |
+| Esquiva / tackle | C com stamina e sem exaustão / 400 ms | Sem movimento comum; esterçamento limitado; encadear ou defender após 200 ms; dano vulnerável interrompe |
 | Guard stun | Bloqueio parcial / 200 ms | Bloqueia movimento comum; esquiva ou perfeita cancelam; soltar F remove proteção sem remover stun |
 | Recuo | Tackle bloqueado / 300 ms | Bloqueia movimento comum; defesa ou esquiva válida cancelam |
 | Empurrão | Impacto não perfeito / calibração de 300 ms | Deslocamento físico independente, sem hit stun inventado; movimento comum e defesa permitidos, esquiva remove impulso restante |
@@ -72,7 +83,7 @@ Recuperação é o término das ações temporizadas e retorno ao controle, sem 
 - Quatro movimentos equipados, seus cooldowns, buffer de ataques e hit stun/anti-stunlock aguardam definição dos movimentos; nenhum ataque genérico foi inventado.
 - Fórmula geral de dano, valores finais de atributos/HP, calibração de força e perda de impulso do atacante, duração/curva final de empurrão e vitória definitiva continuam pendentes no GDD.
 - Arena plana, caixas alinhadas aos eixos, sem contatos verticais/articulados, obstáculos complexos, rede ou multiplayer. As entidades e os pares de colisão são iteráveis, mas o fluxo jogável validado é 1 contra 1.
-- Câmera básica com órbita manual e enquadramento dos dois combatentes; não há sistema de oclusão para cenários complexos. Interface estreita é verificada, mas jogar exige teclado/mouse.
+- Câmera de acompanhamento com órbita manual; ao cruzar rapidamente para trás, o adversário pode sair temporariamente do quadro durante o reenquadramento limitado em velocidade. Não há sistema de oclusão para cenários complexos. Interface estreita é verificada, mas jogar exige teclado/mouse.
 - Não foi realizado teste humano de conforto prolongado. Testes de partida usam entradas reais no navegador e inspeção visual das capturas; ajustes de sensação de controle dependem da avaliação do usuário.
 
 ## Entrega e sincronização

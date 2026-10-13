@@ -4,7 +4,7 @@ import {build} from 'esbuild';
 import {mkdir,writeFile} from 'node:fs/promises';
 const root=new URL('.',import.meta.url);
 await mkdir(new URL('validation/',root),{recursive:true});
-await build({stdin:{contents:`export * from './src/game'; export * from './src/entity'; export * from './src/config'; export * from './src/math'; export * from './src/physics'; export * from './src/combat';`,resolveDir:fileURLToPath(root)},bundle:true,platform:'node',format:'esm',outfile:fileURLToPath(new URL('validation/simulation.mjs',root))});
+await build({stdin:{contents:`export * from './src/game'; export * from './src/entity'; export * from './src/config'; export * from './src/math'; export * from './src/physics'; export * from './src/combat'; export * from './src/commands'; export * from './src/camera'; export * from './src/locomotion';`,resolveDir:fileURLToPath(root)},bundle:true,platform:'node',format:'esm',outfile:fileURLToPath(new URL('validation/simulation.mjs',root))});
 const {Game,FixedClock,TEST,RULES,idle,vec,length,sub,invulnerable,offensive,contact,pushDistance,contactDirection,nominalDistance,strike}=await import(new URL('validation/simulation.mjs',root));
 const passed=[];
 const test=(name,fn)=>{fn();passed.push(name);console.log('PASS',name);};
@@ -13,7 +13,9 @@ const setup=()=>{const g=new Game();g.mode='inactive';g.reset();g.fighters[1].po
 const cmd=(move=vec(),extra={})=>({...idle(),move,...extra});
 const run=(g,n,c=idle(),enemy)=>{for(let i=0;i<n;i++)g.step(typeof c==='function'?c(i):c,enemy);};
 test('movement forward/lateral/diagonal normalized and release/reverse',()=>{
- for(const v of [vec(0,1),vec(1,0),vec(1,1)]){const g=setup(),p={...g.fighters[0].position};run(g,120,cmd(v));near(length(sub(g.fighters[0].position,p)),4);const stop={...g.fighters[0].position};run(g,12);near(length(sub(g.fighters[0].position,stop)),0);run(g,12,cmd(vec(-v.x,-v.z)));assert.ok(length(sub(g.fighters[0].position,stop))>.39);}
+ const distances=[];
+ for(const v of [vec(0,1),vec(1,0),vec(1,1)]){const g=setup(),p={...g.fighters[0].position};run(g,120,cmd(v));distances.push(length(sub(g.fighters[0].position,p)));assert.ok(distances.at(-1)>3.85&&distances.at(-1)<4);const stop={...g.fighters[0].position};run(g,12);assert.ok(length(sub(g.fighters[0].position,stop))<.09);near(length(g.fighters[0].velocity),0);run(g,12,cmd(vec(-v.x,-v.z)));assert.ok(length(sub(g.fighters[0].position,stop))>.2);}
+ near(distances[0],distances[1]);near(distances[0],distances[2]);
 });
 test('400ms dodge, 200ms immunity, 70/30 distance and no residual',()=>{
  const g=setup(),f=g.fighters[0],start={...f.position};g.step(cmd(vec(0,1),{dodge:true}));assert.ok(invulnerable(f));run(g,22);assert.ok(invulnerable(f));g.step();assert.ok(!invulnerable(f));near(length(sub(f.position,start)),nominalDistance(f)*.7);run(g,24);assert.equal(f.action,null);near(length(sub(f.position,start)),nominalDistance(f));const end={...f.position};run(g,10);near(length(sub(f.position,end)),0);
@@ -26,7 +28,7 @@ test('dodge chains only after 200ms and smooth reversal without added impulses',
  const g=setup(),f=g.fighters[0];g.step(cmd(vec(0,1),{dodge:true}));run(g,10);g.step(cmd(vec(0,-1),{dodge:true}));near(f.regenBase,2);run(g,12);g.step(cmd(vec(0,-1),{dodge:true}));near(f.regenBase,1);assert.ok(f.velocity.z>0);assert.ok(invulnerable(f));run(g,12);assert.ok(f.velocity.z<0);
 });
 test('three dodges exhaust; cubic regen waits 1s then takes 5s; defense stacks speed',()=>{
- const g=setup(),f=g.fighters[0];for(let i=0;i<3;i++){g.step(cmd(vec(1,0),{dodge:true}));run(g,47);}assert.ok(f.exhausted);g.step(cmd(vec(0,1),{dodge:true}));assert.equal(f.action,null);g.step(cmd(vec(0,1),{guard:true,guardPressed:true}));near(length(f.velocity),4*.42);run(g,190);assert.ok(f.stamina>0&&f.stamina<1);run(g,600);near(f.stamina,3);assert.ok(!f.exhausted);
+ const g=setup(),f=g.fighters[0];for(let i=0;i<3;i++){g.step(cmd(vec(1,0),{dodge:true}));run(g,47);}assert.ok(f.exhausted);g.step(cmd(vec(0,1),{dodge:true}));assert.equal(f.action,null);run(g,8,cmd(vec(0,1),{guard:true}));near(length(f.velocity),4*.42);run(g,182);assert.ok(f.stamina>0&&f.stamina<1);run(g,600);near(f.stamina,3);assert.ok(!f.exhausted);
 });
 test('walls slide and stable body contact: no penetration, tunnel or invalid velocity',()=>{
  const g=setup(),f=g.fighters[0];f.position=vec(9.4,-4);g.step(cmd(vec(1,1),{dodge:true}));run(g,47,cmd(vec(1,1)));near(f.position.x,9.5);assert.ok(f.position.z>-3);
@@ -68,7 +70,7 @@ test('AI inactive/defensive/offensive/combat act and recover over a repeatable m
  for(const mode of ['inactive','defensive','offensive','combat']){const g=new Game();g.reset();g.mode=mode;const start={...g.fighters[1].position};run(g,2400);if(mode==='inactive')assert.deepEqual(g.fighters[1].position,start);if(mode==='defensive')assert.ok(g.fighters[1].guard);if(mode==='offensive'||mode==='combat'){assert.equal(g.phase,'result');assert.equal(g.winner,1);assert.ok(g.events.some(e=>e.damage>0));}}
 });
 test('guard movement/rotation obey limits; dodge guard cancel only after 200ms',()=>{
- const g=setup(),f=g.fighters[0];g.fighters[1].position=vec(8,-4);const start=f.facing;g.step(cmd(vec(0,1),{guard:true,guardPressed:true,target:1}));near(length(f.velocity),2.4);assert.ok(Math.abs(f.facing-start)<=RULES.guardAcceleration*TEST.step**2+1e-8);
+ const g=setup(),f=g.fighters[0];g.fighters[1].position=vec(8,-4);const start=f.facing;g.step(cmd(vec(0,1),{guard:true,guardPressed:true,target:1}));assert.ok(length(f.velocity)>0&&length(f.velocity)<2.4);assert.ok(Math.abs(f.facing-start)<=RULES.guardAcceleration*TEST.step**2+1e-8);run(g,8,cmd(vec(0,1),{guard:true,target:1}));near(length(f.velocity),2.4);
  const d=setup(),p=d.fighters[0];d.step(cmd(vec(0,1),{dodge:true}));run(d,10,cmd(vec(),{guard:true}));assert.ok(p.action);run(d,14,cmd(vec(),{guard:true}));assert.equal(p.action,null);assert.ok(p.guard);assert.ok(p.blend);run(d,12,cmd(vec(),{guard:true}));near(length(p.velocity),0);
 });
 test('partial hits do not extend guard stun; release removes protection; dodge cancels stun',()=>{
