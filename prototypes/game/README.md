@@ -79,4 +79,4 @@ Recuperação é o término das ações temporizadas e retorno ao controle, sem 
 
 Arquivos novos: esta pasta (`src/`, scripts de build/testes, configuração TypeScript e documentação). Modificados fora dela: `package.json`, `README.md` e `prototypes/index.html`. Nenhum recurso proprietário é usado/importado. O GDD permanece inalterado.
 
-Sem remoto configurado, a entrega pode ter commit local, mas não há push, URL GitHub ou hash remoto para confirmar. A branch usada é `codex/jogavel-blocos`. O hash exato do commit deve ser consultado com `git rev-parse HEAD`; não se declara sincronização apenas por salvar o HTML.
+Atualização 13/10/2026: remoto privado `https://github.com/Ziaker/Arenamon` configurado como `origin`; `main` e `codex/jogavel-blocos` enviados. Cobertura do roadmap em `docs/ROADMAP_COBERTURA.md`. A branch usada é `codex/jogavel-blocos`. O hash exato do commit deve ser consultado com `git rev-parse HEAD`; não se declara sincronização apenas por salvar o HTML.
