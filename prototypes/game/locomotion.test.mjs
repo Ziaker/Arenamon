@@ -207,5 +207,54 @@ test('adversary crossing behind player retains perceptual lateral consistency an
   prevUr=ur.move;prevUl=ul.move;
  }
 });
+test('diagonal dodges (Up+Left+C, Up+Right+C, Down+Left+C, Down+Right+C) are defensive, match move, and never null or fallback under exact opposition',()=>{
+ // 1. Exact geometric opposition cases (k = -1 where F and R cancel in naive sum)
+ const exactOppositionCases=[
+  {desc:'target directly at screen-left, Up+Right+C',yaw:Math.PI,targetDir:'left',x:1,forward:1},
+  {desc:'target directly at screen-right, Up+Left+C',yaw:Math.PI,targetDir:'right',x:-1,forward:1},
+  {desc:'target directly at screen-right, Down+Right+C',yaw:Math.PI,targetDir:'right',x:1,forward:-1},
+  {desc:'target directly at screen-left, Down+Left+C',yaw:Math.PI,targetDir:'left',x:-1,forward:-1},
+ ];
+ for(const tc of exactOppositionCases){
+  const g=setup(),[p,e]=g.fighters;
+  const {right:camRight}=frame(tc.yaw);
+  const lateralScreen=tc.targetDir==='left'?scale(camRight,-1):camRight;
+  e.position=add(p.position,scale(lateralScreen,4));
+  const cmd=resolveCommand(buttons(tc.x,tc.forward,true),p,e,tc.yaw,true);
+  near(length(cmd.dodgeDirection),1);
+  near(length(cmd.move),1);
+  near(dot(cmd.dodgeDirection,cmd.move),1);
+  assert.equal(cmd.dodgeForward,false);
+  // Lateral component strictly honors the requested arrow (never inverted by enemy position)
+  const expectedLateral=scale(camRight,tc.x);
+  assert.ok(dot(cmd.dodgeDirection,expectedLateral)>=0.55,`${tc.desc}: lateral dot must be >= 0.55`);
+  g.step(cmd);
+  assert.equal(p.action.kind,'dodge');
+  assert.equal(p.action.offensive,false);
+  near(dot(direction(p.action.startAngle),cmd.dodgeDirection),1);
+ }
+
+ // 2. Comprehensive diagonal dodge sweep across 8 camera angles and 16 target angles
+ for(let cA=0;cA<8;cA++){
+  const yaw=cA*Math.PI/4;
+  for(let tA=0;tA<16;tA++){
+   const g=setup(),[p,e]=g.fighters;
+   e.position=add(p.position,scale(direction(tA*Math.PI/8),4.5));
+   for(const [x,forward] of [[-1,1],[1,1],[-1,-1],[1,-1]]){
+    const cmd=resolveCommand(buttons(x,forward,true),p,e,yaw,true);
+    near(length(cmd.dodgeDirection),1);
+    near(length(cmd.move),1);
+    near(dot(cmd.dodgeDirection,cmd.move),1);
+    assert.equal(cmd.dodgeForward,false);
+    const gSim=setup(),[pSim,eSim]=gSim.fighters;
+    eSim.position={...e.position};
+    gSim.step(cmd);
+    assert.equal(pSim.action.kind,'dodge');
+    assert.equal(pSim.action.offensive,false);
+    near(dot(direction(pSim.action.startAngle),cmd.dodgeDirection),1);
+   }
+  }
+ }
+});
 await writeFile(new URL('validation/locomotion.json',import.meta.url),JSON.stringify({passed},null,2));
 console.log(`${passed.length} locomotion/camera scenarios passed`);

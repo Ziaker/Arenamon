@@ -30,11 +30,29 @@ export function resolveCommand(buttons: Buttons, self: Fighter, target: Fighter,
     }
   }
 
-  const forward = locked ? targetForward : cameraForward;
+  /**
+   * Geometric Conflict Note:
+   * Combining target-relative forward navigation (advance/retreat toward lock-on target)
+   * with screen-relative lateral navigation (strafe along screen horizontal axis) inherently
+   * creates opposing intentions when the adversary is positioned perpendicular to camera-forward
+   * (e.g. directly to the screen's left or right).
+   * In such configurations:
+   *   - Advancing toward target (F) and strafing right (R) project onto opposite directions
+   *     along the screen horizontal axis (k = F · R < 0).
+   *   - No single 2D vector can simultaneously maximize pure target approach and pure screen strafe
+   *     when those vectors oppose each other.
+   *
+   * Deterministic Resolution:
+   * 1. Cardinals: pure forward/backward strictly tracks targetForward; pure strafe strictly tracks screenRight.
+   * 2. Diagonals: when k < 0, smooth transition toward the screen diagonal C prevents zero-vector cancellation
+   *    and maintains continuous normalized evasion along the requested lateral sign.
+   * 3. Dodge direction: strictly matches `move` whenever directional input is present, eliminating zero vectors
+   *    and preventing improper fallback to combatHeading/facing under opposing geometry.
+   */
   const noDirection = buttons.x === 0 && buttons.forward === 0;
   const dodgeDirection = noDirection
     ? (locked ? targetForward : direction(self.facing))
-    : unit(add(scale(forward, buttons.forward), scale(screenRight, buttons.x)));
+    : move;
 
   return {
     move,
