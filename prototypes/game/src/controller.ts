@@ -32,9 +32,8 @@ export function prepare(f: Fighter, c: Command, fighters: Fighter[], dt: number)
     const dodgeMove = c.dodgeDirection ?? move;
     const heading = length(dodgeMove) > .01 ? angle(dodgeMove) : desiredHeading;
     const from = f.action ? { ...f.velocity } : null;
-    // Forward means aimed at selected opponent, or the body's heading when unlocked.
-    const frontal = c.dodgeForward ?? (Math.abs(delta(target ? desiredHeading : f.facing, heading)) < TEST.forwardTolerance);
-    f.action = { kind: 'dodge', elapsed: 0, startAngle: heading, heading, offensive: frontal, hits: new Set(), from };
+    // All dodges are candidates for tackle impact; actual impact is governed by collision geometry and approach velocity.
+    f.action = { kind: 'dodge', elapsed: 0, startAngle: heading, heading, offensive: true, hits: new Set(), from };
     f.stamina = Math.max(0, f.stamina - 1); f.regenBase = f.stamina; f.regenAge = 0;
     f.exhausted = f.stamina < 1e-8; f.guard = false; f.guardSuppressed = c.guard;
     f.stun = 0; f.push = null; f.blend = null;

@@ -22,5 +22,5 @@ export function fighter(id: number, attributes: Attributes, position: Vec): Figh
     stun: 0, push: null, blend: null, contacts: 0 };
 }
 export const invulnerable = (f: Fighter) => f.action?.kind === 'dodge' && f.action.elapsed < RULES.invulnerable - 1e-8;
-export const offensive = (f: Fighter) => f.action?.kind === 'dodge' && f.action.offensive;
+export const offensive = (f: Fighter) => f.action?.kind === 'dodge';
 export const nominalDistance = (f: Fighter) => 2.5 * RULES.dodge * f.attributes.speed;

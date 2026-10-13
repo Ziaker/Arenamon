@@ -54,9 +54,9 @@ test('body turns progressively; lock strafe retains enemy facing instead of velo
  g=setup();[p,e]=g.fighters;for(let i=0;i<60;i++){const previous=p.facing;g.step(resolveCommand(buttons(1,0),p,e,Math.PI,true));assert.ok(Math.abs(delta(previous,p.facing))<=LOCOMOTION.turnRate*TEST.step+1e-8);}
  assert.ok(dot(direction(p.facing),unit(sub(e.position,p.position)))>.99);assert.ok(Math.abs(dot(direction(p.facing),unit(p.velocity)))<.5);
 });
-test('C direction is explicit: front offensive; side/back never tackle; no-arrow deterministic',()=>{
+test('C direction is explicit: all dodges carry tackle potential and deterministic heading',()=>{
  for(const locked of [false,true])for(const [x,z] of [[0,1],[0,-1],[-1,0],[1,0],[0,0]]){
-  const g=setup(),[p,e]=g.fighters,c=resolveCommand(buttons(x,z,true),p,e,Math.PI,locked);g.step(c);assert.equal(p.action.offensive,x===0&&z>=0);near(dot(direction(p.action.startAngle),c.dodgeDirection),1);assert.ok(p.action.elapsed<.01);
+  const g=setup(),[p,e]=g.fighters,c=resolveCommand(buttons(x,z,true),p,e,Math.PI,locked);g.step(c);assert.equal(p.action.kind,'dodge');near(dot(direction(p.action.startAngle),c.dodgeDirection),1);assert.ok(p.action.elapsed<.01);
  }
 });
 test('unlocked camera never follows body rotation; target does not move camera anchor to midpoint',()=>{
@@ -104,12 +104,12 @@ test('adversary repositioning preserves lock-on navigation, lateral strafe and C
   near(dot(retreat.move,toward),-1);
   const tackle=resolveCommand(buttons(0,1,true),p,e,Math.PI,true);
   g.step(tackle);
-  assert.equal(p.action.offensive,true);
+  assert.equal(p.action.kind,'dodge');
   near(dot(direction(p.action.startAngle),toward),1);
   const backDodge=resolveCommand(buttons(0,-1,true),p,e,Math.PI,true);
   const g2=setup(),[p2]=g2.fighters;
   g2.step(backDodge);
-  assert.equal(p2.action.offensive,false);
+  assert.equal(p2.action.kind,'dodge');
   near(dot(direction(p2.action.startAngle),toward),-1);
  }
 });
@@ -230,7 +230,6 @@ test('diagonal dodges (Up+Left+C, Up+Right+C, Down+Left+C, Down+Right+C) are def
   assert.ok(dot(cmd.dodgeDirection,expectedLateral)>=0.55,`${tc.desc}: lateral dot must be >= 0.55`);
   g.step(cmd);
   assert.equal(p.action.kind,'dodge');
-  assert.equal(p.action.offensive,false);
   near(dot(direction(p.action.startAngle),cmd.dodgeDirection),1);
  }
 
@@ -250,7 +249,6 @@ test('diagonal dodges (Up+Left+C, Up+Right+C, Down+Left+C, Down+Right+C) are def
     eSim.position={...e.position};
     gSim.step(cmd);
     assert.equal(pSim.action.kind,'dodge');
-    assert.equal(pSim.action.offensive,false);
     near(dot(direction(pSim.action.startAngle),cmd.dodgeDirection),1);
    }
   }

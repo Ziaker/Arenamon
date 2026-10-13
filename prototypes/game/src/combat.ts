@@ -15,8 +15,16 @@ export function contactDirection(normals: { normal: Vec; approach: number }[], a
   if (length(centers) > 1e-8) return unit(centers);
   return unit(sub(a.velocity, b.velocity));
 }
+export function isAttackApproach(attacker: Fighter, target: Fighter, normal: Vec): boolean {
+  if (attacker.action?.kind !== 'dodge') return false;
+  const dodgeDir = direction(attacker.action.heading);
+  const offset = sub(target.position, attacker.position);
+  const toTarget = length(offset) > 1e-6 ? unit(offset) : normal;
+  return dot(dodgeDir, toTarget) > 0.2 && dot(dodgeDir, normal) > -0.1;
+}
+
 export function strike(a: Fighter, b: Fighter, normal: Vec, relative: Vec): ContactEvent | null {
-  if (!offensive(a) || a.action!.hits.has(b.id) || b.hp <= 0) return null;
+  if (!isAttackApproach(a, b, normal) || a.action!.hits.has(b.id) || b.hp <= 0) return null;
   if (invulnerable(b)) return { attacker: a.id, target: b.id, result: 'invulnerable', damage: 0 };
   a.action!.hits.add(b.id);
   const protectedFront = b.guard && dot(direction(b.facing), unit(sub(a.position, b.position))) >= -1e-8;
