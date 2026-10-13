@@ -1,0 +1,5 @@
+import {build} from 'esbuild';
+import {writeFile,mkdir} from 'node:fs/promises';
+import vm from 'node:vm';
+const source=`import {anatomies} from './prototypes/placeholders/src/anatomy';import {createRig} from './prototypes/placeholders/src/rig';import {evaluate,apply} from './prototypes/placeholders/src/animation';import {states,duration} from './prototypes/placeholders/src/states';const r=createRig(anatomies[0]);export const data=states.filter(([s])=>s!=='run').flatMap(([s])=>[0,.17,.39,.71,1].map(u=>{const t=duration(s)*u;const p=evaluate(r,s,t,'stylized');apply(r,p,s,t);return {s,t,pose:p,matrices:r.meshes.map(m=>m.matrixWorld.toArray())};}));`;
+const b=await build({stdin:{contents:source,resolveDir:process.cwd()},bundle:true,write:false,format:'cjs',platform:'node'});const m={exports:{}};vm.runInNewContext(b.outputFiles[0].text,{module:m,exports:m.exports,console});await mkdir('prototypes/placeholders/validation/run',{recursive:true});await writeFile('prototypes/placeholders/validation/run/legacy-baseline.json',JSON.stringify(m.exports.data));

@@ -11,7 +11,7 @@ try{
  await page.context().setOffline(true);await page.goto(pathToFileURL(root+'dist/criaturas-laboratorio.html').href);await page.waitForFunction(()=>window.__lab?.getState().frame>3);
  const state=()=>page.evaluate(()=>window.__lab.getState());
  const sample=(s,t)=>page.evaluate(([s,t])=>window.__lab.sample(s,t),[s,t]);
- const initial=await state();assert.equal(initial.models.length,3);assert.deepEqual(initial.models.map(m=>m.legs),[2,2,4]);tests.push('Three models and distinct limb hierarchies');
+ const initial=await state();assert.equal(initial.models.length,1);assert.deepEqual(initial.models.map(m=>m.legs),[2]);tests.push('Only Impeto, two legs, no other characters');
  const durations={idle:3.2,walk:2.4,run:2.4,turn:1.2,guard:1.4,front:.4,side:.4,back:.4,recover:.65,prepare:.8,tackle:.4,hit:1,push:1,blocked:.3};
  for(const style of ['contained','stylized','expressive']){
   await page.selectOption('#style',style);
@@ -43,14 +43,14 @@ try{
  const styles={};for(const style of ['contained','stylized','expressive']){await page.selectOption('#style',style);await sample('tackle',.15);styles[style]=await state();await page.locator('.viewport-wrap').screenshot({path:out+`style-${style}.png`});}
  assert.deepEqual(styles.contained.physical,styles.expressive.physical);assert.notDeepEqual(styles.contained.poses,styles.expressive.poses);tests.push('Style changes poses, not physics');
  await page.selectOption('#style','stylized');await sample('hit',.15);const hit=(await state()).poses;await sample('push',.15);assert.notDeepEqual((await state()).poses,hit);
- for(const id of ['a','b','c','all']){await page.selectOption('#creature',id);assert.equal((await state()).selected,id);assert.equal(await page.locator('#labels>div').count(),id==='all'?3:1);}
- await sample('idle',.5);await page.screenshot({path:out+'comparison.png',fullPage:true});
+ assert.equal(await page.locator('#creature').count(),0);assert.equal(await page.locator('#labels>div').count(),1);
+ await sample('idle',.5);await page.screenshot({path:out+'impeto.png',fullPage:true});
  await page.click('#silhouette');assert.equal((await state()).silhouette,true);await page.locator('.viewport-wrap').screenshot({path:out+'silhouettes.png'});await page.click('#silhouette');
  await page.click('#joints');assert.equal((await state()).joints,true);await page.locator('.viewport-wrap').screenshot({path:out+'joints.png'});await page.click('#joints');
  for(const yaw of ['0','1.5707963267948966','3.141592653589793']){await page.click(`[data-view="${yaw}"]`);assert.equal((await state()).camera.yaw,Number(yaw));await page.locator('.viewport-wrap').screenshot({path:out+`angle-${yaw}.png`});}
  await page.click('#camera-reset');const yaw=(await state()).camera.yaw;const box=await page.locator('#viewport').boundingBox();await page.mouse.move(box.x+300,box.y+200);await page.mouse.down();await page.mouse.move(box.x+370,box.y+240);await page.mouse.up();assert.notEqual((await state()).camera.yaw,yaw);
  const distance=(await state()).camera.distance;await page.mouse.wheel(0,100);await page.waitForTimeout(100);assert.ok((await state()).camera.distance>distance);await page.click('#zoom-in');await page.click('#zoom-out');await page.click('#camera-reset');
- tests.push('Individual/all selectors; silhouette/joints toggles; camera presets, drag, wheel and zoom');
+ tests.push('Single character; silhouette/joints toggles; camera presets, drag, wheel and zoom');
  await sample('run',.2);await page.click('#play');await page.waitForTimeout(130);assert.ok((await state()).time>.2);await page.click('#play');const paused=(await state()).time;await page.waitForTimeout(100);assert.equal((await state()).time,paused);
  await page.click('#restart');await page.waitForTimeout(35);assert.equal((await state()).time,0);await page.click('#step');assert.ok(Math.abs((await state()).time-1/60)<1e-9);
  await page.locator('#scrub').fill('0.5');await page.locator('#scrub').dispatchEvent('input');assert.equal((await state()).time,1.2);
@@ -60,12 +60,12 @@ try{
  await page.click('#rest');assert.equal((await state()).rest,true);assert.equal((await state()).playing,false);
  const download=page.waitForEvent('download');await page.click('#capture');assert.ok((await download).suggestedFilename().endsWith('.png'));
  tests.push('Play/pause/restart/frame step/scrub/speed/loop/end stop/rest/PNG');
- const visual={a:{run:.15,side:.15,recover:.23,tackle:.15},b:{walk:.19,prepare:.45,hit:.08,blocked:.08},c:{idle:1.1,run:.3,front:.15,hit:.12}};
+ const visual={a:{run:.15,side:.15,recover:.23,tackle:.15}};
  for(const [id,actions] of Object.entries(visual)){
-  await page.selectOption('#creature',id);await page.click('[data-view="1.5707963267948966"]');
+  await page.click('[data-view="1.5707963267948966"]');
   for(const [s,t] of Object.entries(actions)){await sample(s,t);await page.locator('.viewport-wrap').screenshot({path:out+`${id}-${s}.png`});}
  }
- await page.selectOption('#creature','all');await page.click('#camera-reset');await sample('run',.15);await page.locator('.viewport-wrap').screenshot({path:out+'run-comparison.png'});
+ await page.click('#camera-reset');await sample('run',.15);await page.locator('.viewport-wrap').screenshot({path:out+'run-impeto.png'});
  await page.setViewportSize({width:390,height:844});await sample('idle',.5);assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await page.screenshot({path:out+'mobile.png',fullPage:true});tests.push('390 px layout without horizontal overflow');
  assert.deepEqual(errors,[]);assert.equal(requests.filter(u=>/^https?:/.test(u)).length,0);
  const html=await readFile(root+'dist/criaturas-laboratorio.html','utf8');assert.ok(!/<(?:script|img)[^>]+src\s*=|<link[^>]+href\s*=/i.test(html));
