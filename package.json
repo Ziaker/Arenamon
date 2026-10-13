@@ -1,0 +1,25 @@
+{
+  "name": "arenamon",
+  "version": "1.0.0",
+  "description": "Laboratórios offline do projeto Arenamon",
+  "scripts": {
+    "build": "node prototypes/placeholders/build.mjs",
+    "test": "npm run build && node prototypes/placeholders/verify.mjs",
+    "typecheck": "tsc --noEmit -p prototypes/placeholders/tsconfig.json",
+    "verify": "npm run typecheck && npm test"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "UNLICENSED",
+  "type": "commonjs",
+  "dependencies": {
+    "three": "^0.186.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.0",
+    "@types/three": "^0.186.0",
+    "esbuild": "^0.28.2",
+    "typescript": "^7.0.2"
+  },
+  "private": true
+}

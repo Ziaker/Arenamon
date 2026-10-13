@@ -1,0 +1,11 @@
+import {chromium} from '@playwright/test';
+import {pathToFileURL} from 'node:url';
+const browser=await chromium.launch({channel:'msedge',headless:true});
+const page=await browser.newPage({viewport:{width:1500,height:1100}});
+page.on('pageerror',e=>console.log('ERROR',e.message));
+await page.goto(pathToFileURL(process.cwd()+'/prototypes/placeholders/dist/criaturas-laboratorio.html').href);
+await page.waitForFunction(()=>window.__lab?.getState().frame>2);
+await page.evaluate(()=>window.__lab.sample('idle',.5));
+await page.screenshot({path:'prototypes/placeholders/validation/initial.png'});
+console.log(JSON.stringify(await page.evaluate(()=>window.__lab.getState())));
+await browser.close();
