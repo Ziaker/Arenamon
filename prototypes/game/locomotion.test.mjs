@@ -113,5 +113,99 @@ test('adversary repositioning preserves lock-on navigation, lateral strafe and C
   near(dot(direction(p2.action.startAngle),toward),-1);
  }
 });
+test('lateral transitions preserve direction and continuity across 8 enemy and 8 camera angles',()=>{
+ for(let tA=0;tA<8;tA++){
+  for(let cA=0;cA<8;cA++){
+   const g=setup(),[p,e]=g.fighters;
+   const yaw=cA*Math.PI/4,{right}=frame(yaw);
+   e.position=add(p.position,scale(direction(tA*Math.PI/4),5));
+
+   // Pure right movement and transitions
+   const r=resolveCommand(buttons(1,0),p,e,yaw,true);
+   near(dot(r.move,right),1);
+   near(length(r.move),1);
+
+   // Transition -> to Up+Right and back
+   const ur=resolveCommand(buttons(1,1),p,e,yaw,true);
+   near(length(ur.move),1);
+   assert.ok(dot(ur.move,right)>=0.55,'Up+Right lateral component must be positive');
+   const rBack1=resolveCommand(buttons(1,0),p,e,yaw,true);
+   assert.deepEqual(rBack1.move,r.move);
+
+   // Transition -> to Down+Right and back
+   const dr=resolveCommand(buttons(1,-1),p,e,yaw,true);
+   near(length(dr.move),1);
+   assert.ok(dot(dr.move,right)>=0.55,'Down+Right lateral component must be positive');
+   const rBack2=resolveCommand(buttons(1,0),p,e,yaw,true);
+   assert.deepEqual(rBack2.move,r.move);
+
+   // Pure left movement and transitions
+   const l=resolveCommand(buttons(-1,0),p,e,yaw,true);
+   near(dot(l.move,scale(right,-1)),1);
+   near(length(l.move),1);
+
+   // Transition <- to Up+Left and back
+   const ul=resolveCommand(buttons(-1,1),p,e,yaw,true);
+   near(length(ul.move),1);
+   assert.ok(dot(ul.move,scale(right,-1))>=0.55,'Up+Left lateral component must be positive');
+   const lBack1=resolveCommand(buttons(-1,0),p,e,yaw,true);
+   assert.deepEqual(lBack1.move,l.move);
+
+   // Transition <- to Down+Left and back
+   const dl=resolveCommand(buttons(-1,-1),p,e,yaw,true);
+   near(length(dl.move),1);
+   assert.ok(dot(dl.move,scale(right,-1))>=0.55,'Down+Left lateral component must be positive');
+   const lBack2=resolveCommand(buttons(-1,0),p,e,yaw,true);
+   assert.deepEqual(lBack2.move,l.move);
+
+   // Lateral to C+lateral dodge consistency
+   const dodgeR=resolveCommand(buttons(1,0,true),p,e,yaw,true);
+   near(dot(dodgeR.dodgeDirection,right),1);
+   assert.equal(dodgeR.dodgeForward,false);
+
+   const dodgeL=resolveCommand(buttons(-1,0,true),p,e,yaw,true);
+   near(dot(dodgeL.dodgeDirection,scale(right,-1)),1);
+   assert.equal(dodgeL.dodgeForward,false);
+  }
+ }
+});
+test('adversary crossing behind player retains perceptual lateral consistency and smooth diagonal progression',()=>{
+ const g=setup(),[p,e]=g.fighters,yaw=Math.PI,{right}=frame(yaw);
+ let prevUr=null,prevUl=null;
+ for(let i=0;i<=720;i++){
+  e.position=add(p.position,scale(direction(i*Math.PI/360),4));
+
+  // Pure lateral never inverts when enemy crosses behind
+  const r=resolveCommand(buttons(1,0),p,e,yaw,true);
+  near(dot(r.move,right),1);
+  const dr=resolveCommand(buttons(1,0,true),p,e,yaw,true);
+  near(dot(dr.dodgeDirection,right),1);
+
+  const l=resolveCommand(buttons(-1,0),p,e,yaw,true);
+  near(dot(l.move,scale(right,-1)),1);
+  const dl=resolveCommand(buttons(-1,0,true),p,e,yaw,true);
+  near(dot(dl.dodgeDirection,scale(right,-1)),1);
+
+  // Diagonals remain normalized and lateral dot >= 0.55
+  const ur=resolveCommand(buttons(1,1),p,e,yaw,true);
+  near(length(ur.move),1);
+  assert.ok(dot(ur.move,right)>=0.55);
+
+  const ul=resolveCommand(buttons(-1,1),p,e,yaw,true);
+  near(length(ul.move),1);
+  assert.ok(dot(ul.move,scale(right,-1))>=0.55);
+
+  // Smooth continuity with no angle jumps
+  if(prevUr){
+   const d=Math.abs(delta(angle(prevUr),angle(ur.move)));
+   assert.ok(d<0.05,`Angle jump ${d} at step ${i}`);
+  }
+  if(prevUl){
+   const d=Math.abs(delta(angle(prevUl),angle(ul.move)));
+   assert.ok(d<0.05,`Angle jump ${d} at step ${i}`);
+  }
+  prevUr=ur.move;prevUl=ul.move;
+ }
+});
 await writeFile(new URL('validation/locomotion.json',import.meta.url),JSON.stringify({passed},null,2));
 console.log(`${passed.length} locomotion/camera scenarios passed`);
