@@ -29,15 +29,18 @@ function commands(rand, game, id, hold) {
   c.guardPressed = c.guard && rand() < .3;return c;
 }
 
-const stats = {runs: 0, ticks: 0, events: {}, cancels: 0, buffered: 0, vaults: 0};
+const stats = {runs: 0, tactical: 0, ticks: 0, events: {}, cancels: 0, buffered: 0, vaults: 0};
 function run(seed) {
   resetConfig();const rand = rng(seed);perturb(rand);
-  const g = new Game({seed});g.mode = 'inactive';g.profile = ['balanced', 'agile', 'resistant'][seed % 3];g.enemyProfile = ['agile', 'resistant', 'balanced'][seed % 3];g.reset();
+  const tactical = Math.floor(seed / 104729) % 3 === 0;stats.tactical += tactical ? 1 : 0;
+  const g = new Game({seed});g.mode = tactical ? 'tactical' : 'inactive';g.profile = ['balanced', 'agile', 'resistant'][seed % 3];g.enemyProfile = ['agile', 'resistant', 'balanced'][seed % 3];g.reset();
   const hold = [null, null], hitsPerAction = new Map(), bound = C.test.arenaHalf - C.test.halfExtent + 1e-6;
   const fail = (t, msg, extra = '') => assert.fail(`semente ${seed}, passo ${t}: ${msg} ${extra}`);
   for (let t = 0; t < TICKS; t++) {
     const before = g.fighters.map(f => ({kind: f.action?.kind ?? null, action: f.action, invulnerable: isInvulnerable(f), hp: f.hp}));
-    g.step(commands(rand, g, 0, hold), commands(rand, g, 1, hold));
+    // Um terço das execuções usa a IA tática nos dois lados (comandos “inteligentes” em vez de aleatórios).
+    if (tactical) g.step(g.playerBrain.command(g.fighters[0], g.fighters[1], 'tactical', C.test.step));
+    else g.step(commands(rand, g, 0, hold), commands(rand, g, 1, hold));
     const after = g.fighters.map(f => ({kind: f.action?.kind ?? null, action: f.action}));
     for (const f of g.fighters) {
       for (const v of [f.position.x, f.position.z, f.velocity.x, f.velocity.z, f.stamina, f.hp, f.vaultHeight, f.flight?.y ?? 0]) if (!Number.isFinite(v)) fail(t, 'valor não finito', JSON.stringify(f.position));
@@ -78,7 +81,7 @@ for (let i = 1; i <= RUNS; i++) run(i * 104729);
 // Determinismo: a mesma semente (com os mesmos ajustes sorteados) reproduz o mesmo estado final.
 assert.equal(run(31337), run(31337), 'mesma semente, mesmo estado');
 resetConfig();
-console.log(`✓ ${stats.runs} execuções aleatórias · ${stats.ticks.toLocaleString('pt-BR')} passos · ${((Date.now() - t0) / 1000).toFixed(1)} s`);
+console.log(`✓ ${stats.runs} execuções aleatórias (${stats.tactical} com a IA tática nos dois lados) · ${stats.ticks.toLocaleString('pt-BR')} passos · ${((Date.now() - t0) / 1000).toFixed(1)} s`);
 console.log(`   eventos ${JSON.stringify(stats.events)} · C → X ${stats.cancels} · ações do buffer ${stats.buffered} · saltos ${stats.vaults}`);
 assert.ok(stats.cancels > 20 && stats.buffered > 20 && stats.vaults > 5 && stats.events.clash > 5, 'cobertura mínima: cancelamentos, buffer, saltos e clashes exercitados');
 console.log('Propriedades: sem NaN, dentro da arena, stamina/HP/altura na faixa, C sem dano, invulnerável sem dano, um contato por ação, clash = 30%, determinismo.');

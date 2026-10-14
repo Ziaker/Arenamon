@@ -44,10 +44,18 @@ try {
   const L = fn => page.evaluate(fn);
   assert.equal(await L(() => window.__lab.game.phase), 'menu');assert.equal(await page.isVisible('#menu'), true);
   step('abre offline no menu, sem erros');
+  // IA tática: padrão do adversário e da IA do jogador; estilo sorteado aparece nos dados ao vivo.
+  assert.equal(await page.inputValue('#mode'), 'tactical');assert.equal(await page.inputValue('#player-mode'), 'tactical');
+  await page.click('#start-center');await page.click('#arena-autoplay-toggle');await page.waitForTimeout(1500);
+  const live = await L(() => ({style: window.__lab.game.brain.t?.style?.label, blue: window.__lab.game.playerBrain.t?.style?.label, ticks: window.__lab.game.tick}));
+  assert.ok(live.style && live.blue && live.ticks > 100, JSON.stringify(live));
+  await page.click('[data-tool="overlays"]');assert.match(await page.textContent('#live-data'), new RegExp(`Estilo da IA[\\s\\S]*${live.blue}[\\s\\S]*${live.style}`));
+  await page.click('#arena-autoplay-toggle');await L(() => {window.__lab.togglePause(true);window.__lab.tuning.resetAll();window.__lab.tuning.markSaved('teste');});
+  step(`IA tática por padrão: estilos sorteados “${live.blue}” (azul) × “${live.style}” (vermelho), visíveis nos dados ao vivo`);
 
   // ---------- 6/10. Ajustador ----------
   await page.click('[data-tool="tuning"]');
-  assert.match(await page.textContent('#tune-counter'), /de 338 · \d+ ≠ jogo/);
+  assert.match(await page.textContent('#tune-counter'), /de 342 · \d+ ≠ jogo/);
   // Aba “X e C”: parâmetros independentes da esquiva, do tackle e do cancelamento.
   assert.equal(await page.locator('#tune-tabs [role=tab]').first().textContent(), 'X e C · 41');
   for (const id of ['#tune-actions-dodge-duration', '#tune-actions-tackle-duration', '#tune-actions-cancel-windowStart', '#tune-actions-cancel-invulnerability', '#tune-actions-buffer-window']) assert.ok(await page.isVisible(id), id);
@@ -145,7 +153,7 @@ try {
   await page.check('#seed-fixed');await page.fill('#seed', '42');await page.press('#seed', 'Tab');await page.click('[data-tool="match"]');await page.click('#start');assert.equal(await L(() => window.__lab.game.brain.seed), 42);
   assert.notEqual(await L(() => window.__lab.game.playerBrain.seed), 42);
   await page.click('[data-tool="tuning"]');await page.fill('#tune-search', 'personalidade');
-  assert.equal(await page.locator('#tune-list .tune-group').count(), 2);assert.equal(await page.locator('#tune-list .tune-control').count(), 14);await page.fill('#tune-search', '');
+  assert.equal(await page.locator('#tune-list .tune-group').count(), 2);assert.equal(await page.locator('#tune-list .tune-control').count(), 18);await page.fill('#tune-search', '');
   step(`aleatoriedade: sementes ${seeds.join(', ')} em três combates, semente fixa e personalidade separada para azul e vermelho`);
 
   // ---------- 8. Sobreposições ----------

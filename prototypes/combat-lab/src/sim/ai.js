@@ -8,10 +8,12 @@
 import {C} from './config.js';
 import {emptyCommand} from './entity.js';
 import {vec, add, scale, sub, dot, length, normalize, direction} from './math.js';
+import {tacticalCommand} from './tactics.js';
 
 export const AI_MODES = [
   ['inactive', 'Parado (dummy)'], ['defensive', 'Defensivo (v6)'], ['offensive', 'Ofensivo (v6)'], ['combat', 'Combate (v6)'],
   ['guard', 'Sempre defendendo'], ['evade', 'Sempre esquivando'], ['counter', 'Defende e contra-ataca'], ['random', 'Aleatório (semente fixa)'],
+  ['tactical', 'Tático (estratégico)'],
 ];
 
 /** O tackle do atacante aponta para o defensor? */
@@ -29,7 +31,7 @@ export function mulberry(state) {
 
 /** Personalidade neutra: reproduz exatamente a IA do v6. */
 export const NEUTRAL_PERSONALITY = {reaction: 0, reactionJitter: 0, mistake: 0, aggression: .5, variation: 0, hesitation: 0, evadeChance: .33};
-const STATE = ['cooldown', 'phase', 'wasGuard', 'orbitAge', 'orbitSign', 'rngState', 'hold', 'held', 'seed', 'threatAge', 'reactAt', 'misread', 'pause', 'orbitPeriod', 'rangeBias', 'wantsEvade'];
+const STATE = ['cooldown', 'phase', 'wasGuard', 'orbitAge', 'orbitSign', 'rngState', 'hold', 'held', 'seed', 'threatAge', 'reactAt', 'misread', 'pause', 'orbitPeriod', 'rangeBias', 'wantsEvade', 't'];
 
 export class Brain {
   /** side: 'aiRed' (adversário) ou 'aiBlue' (IA do jogador) escolhe a personalidade. */
@@ -37,15 +39,17 @@ export class Brain {
   reset() {
     this.cooldown = C.extras.ai.initialCooldown;this.phase = 0;this.wasGuard = false;this.orbitAge = 0;this.orbitSign = 1;this.rngState = this.seed >>> 0;this.hold = 0;this.held = null;
     this.threatAge = 0;this.reactAt = null;this.misread = false;this.pause = 0;this.orbitPeriod = null;this.rangeBias = 1;this.wantsEvade = false;
+    this.t = null; // estado da IA tática (tactics.js), recriado a cada partida
   }
   random() {const [v, next] = mulberry(this.rngState);this.rngState = next;return v;}
   personality() {return {...NEUTRAL_PERSONALITY, ...(C.extras[this.side] || {})};}
   /** Estado serializável (replay e cenários). */
   save() {return Object.fromEntries(STATE.map(k => [k, this[k]]));}
-  load(s) {Object.assign(this, s);}
+  load(s) {Object.assign(this, structuredClone(s));}
   command(self, target, mode, dt) {
     const A = C.extras.ai, P = this.personality(), c = emptyCommand();
     if (mode === 'inactive') {this.wasGuard = false;return c;}
+    if (mode === 'tactical') return tacticalCommand(this, self, target, dt, P);
     c.target = target.id;
     this.cooldown = Math.max(0, this.cooldown - dt);
     this.orbitAge += dt;

@@ -69,7 +69,7 @@ test('personalidade neutra reproduz o ritmo fixo do v6 (sem aleatoriedade)', () 
 test('equilíbrio IA × IA: determinístico, consistente e sem alterar a configuração', () => {
   const before = JSON.stringify(C), a = runBalance({matches: 6, seed: 3}), b = runBalance({matches: 6, seed: 3});
   assert.deepEqual(a, b);assert.equal(JSON.stringify(C), before);
-  assert.equal(a.sides[0].wins + a.sides[1].wins + a.timeouts, 6);assert.equal(balanceRows(a).length, 14);
+  assert.equal(a.sides[0].wins + a.sides[1].wins + a.timeouts, 6);assert.equal(balanceRows(a).length, 15);
   for (const s of a.sides) assert.ok(s.tackle > 0 && s.cancel <= s.tackle && s.damage >= 0);
   console.log(`   6 lutas: vitórias ${a.sides[0].wins}/${a.sides[1].wins}, ${a.timeouts} sem vencedor, média ${a.avgSeconds.toFixed(1)} s`);
 });

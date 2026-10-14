@@ -5,6 +5,7 @@ import {C, ROOT_KEYS, defaults, resetConfig} from '../sim/config.js';
 import {AI_MODES} from '../sim/ai.js';
 import {NAMES, SECTIONS, TOOLTIPS, KEY_HELP} from './tuning-meta.js';
 import {OFFICIAL} from './official.js';
+import {STYLES} from '../sim/tactics.js';
 import {actionMeta, OFFICIAL_MAP, migrateFlat, flatten} from './actions-meta.js';
 
 const $ = id => document.getElementById(id);
@@ -33,6 +34,7 @@ function range(key, value, path) {
   if (parent === 'extras.bindings') return {min: 0, max: C.extras.keyCodes.length - 1, step: 1, fmt: n => C.extras.keyCodes[n] ?? '?'};
   if (parent === 'extras.colors') return {min: 0, max: 255, step: 1, fmt: n => String(n)};
   if (parent === 'extras.gameModes') return key === 'enemyMode' ? {min: 0, max: AI_MODES.length - 1, step: 1, fmt: n => AI_MODES[n]?.[1] ?? '?'} : {min: 0, max: 2, step: 1, fmt: n => PROFILE_LABEL[n] ?? '?'};
+  if (key === 'style' && (parent === 'extras.aiRed' || parent === 'extras.aiBlue')) return {min: 0, max: STYLES.length, step: 1, fmt: n => n ? STYLES[n - 1].label : 'Sorteado por partida'};
   if (toggled(key)) return {min: 0, max: 1, step: 1, fmt: n => n ? 'Ligado' : 'Desligado'};
   if (RADIANS.includes(key)) {const max = key === 'initialYaw' ? 360 : /rate/i.test(key) || key === 'guardTurn' || key === 'guardAcceleration' ? 1440 : 180;return {min: 0, max: max * Math.PI / 180, step: Math.PI / 180, fmt: n => (n * 180 / Math.PI).toFixed(0) + '°'};}
   // Durações que podem vir das animações: até 4 s para caber clips longos.

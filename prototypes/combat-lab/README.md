@@ -67,11 +67,11 @@ A revisão de regras em relação ao GDD v0.1 está em [`docs/REVISAO_GDD_COMBAT
   - um contato por ação, e o clash custa 30%;
   - o resultado é determinístico.
 
-**Achado do equilíbrio (padrões atuais, 20 lutas, semente 1):**
-- As IAs no modo combate **nunca usam C**, e o clash domina: cerca de 10 por luta.
-- 9 de 20 lutas chegam aos 90 s sem vencedor.
+**Achado do equilíbrio (antes da IA tática, 20 lutas, semente 1):**
+- As IAs do v6 no modo combate **nunca usam C**, e o clash domina: cerca de 10 por luta.
+- 9 de 20 lutas chegavam aos 90 s sem vencedor.
 
-É uma limitação da IA, não das regras. A IA não foi alterada.
+A nova IA tática (abaixo) resolve isso.
 
 **Limitações conhecidas:**
 - Os valores (velocidades, janelas, 0,06 s e 0,18 s) são provisórios.
@@ -87,7 +87,7 @@ A revisão de regras em relação ao GDD v0.1 está em [`docs/REVISAO_GDD_COMBAT
 4. **Replay e passo a passo:** os últimos 12 s ficam gravados por estado completo. Use ◂/▸ (ou `,`/`.`) para andar um passo, clique na linha do tempo para voltar, retome a partir do passado (o futuro gravado é descartado) e use câmera lenta de 0,1× a 1×.
 5. **Cenários:** oito cenários roteirizados e repetíveis: tackle contra defesa, defesa perfeita, clash frontal, esquiva perfeita com contra-ataque, esquiva lateral, lançamento, knockback na parede e exaustão. Cada um mostra esperado × obtido, com o esperado calculado a partir dos ajustes atuais. Podem ser executados ao vivo ou todos de uma vez.
 6. **Ajustador reformulado:**
-   - Os 338 parâmetros ficam em 9 abas (a primeira é **X e C**), com busca.
+   - Os 342 parâmetros ficam em 9 abas (a primeira é **X e C**), com busca.
    - Filtros: alterados, ≠ jogo, só lab.
    - Desfazer/refazer, restaurar por grupo e botão “= jogo”.
    - Presets salvos neste navegador e comparação entre presets, padrão do laboratório e jogo.
@@ -102,6 +102,45 @@ A revisão de regras em relação ao GDD v0.1 está em [`docs/REVISAO_GDD_COMBAT
    - Gamepad: A tackle, B esquiva, LB/RB defesa, Y alvo, Start pausa.
    - Histórico de comandos estilo modo treino.
 10. **Levar ajustes ao jogo com segurança:** JSON versionado (v8, com `differencesFromGame`). A importação aceita v5 a v8, migrando os formatos antigos, e é validada e pré-visualizada antes de aplicar. Há relatório de diferenças em relação ao `config.ts`, aviso ao sair com ajustes não exportados e restauração da sessão anterior.
+
+## IA tática (`src/sim/tactics.js`)
+
+O modo **Tático (estratégico)** é o padrão do adversário e da IA do jogador. Os modos do v6 continuam disponíveis e idênticos (paridade 16/16).
+
+- **Estilos de luta sorteados a cada partida**, com traços que também variam de uma partida para outra:
+
+  | Estilo | Como luta |
+  |---|---|
+  | Agressor | Fica perto, ataca muito, choca |
+  | Contra-atacante | Isca, defesa perfeita e punição |
+  | Esquivador | C, salto e C → X pelo flanco |
+  | Paredão | Defende e pune |
+  | Oportunista | Explora a exaustão, a aterrissagem e o recuo |
+  | Imprevisível | Escolhe com grande variação |
+
+  Em Ajustes › IA, o "Estilo de luta" fixa um deles (0 = sorteado).
+- **Percepção humana:** o X do adversário só é percebido depois do tempo de reação, e às vezes há leitura errada. Por isso a IA defende principalmente **por antecipação**, e não por reflexo:
+  - aprende de que distância o adversário costuma atacar;
+  - fica logo fora dessa distância;
+  - quando precisa entrar nela, defende de antemão ou recua.
+- **Leitura e adaptação:** registra como o adversário responde aos X dela (defende, esquiva, choca ou apanha) e com que frequência ele ataca. Contra quem defende muito, troca o ataque direto por isca, C → X e paciência. A velocidade dessa adaptação é o parâmetro "Adaptação ao adversário".
+- **Respostas a cada ameaça, com tempo estimado até o contato:** defesa perfeita no tempo certo, defesa, esquiva lateral na invulnerabilidade (esquiva perfeita seguida de contra-ataque), salto por cima, clash ou recuo para o X passar curto.
+- **Punições:** recuo, X que passou curto, fim da esquiva, aterrissagem (chega no instante em que o adversário se levanta) e exaustão. Com o adversário no ar, espera perto do ponto de queda previsto.
+- **Estratégia:**
+  - X mira onde o adversário vai estar.
+  - Encurrala o adversário contra a parede.
+  - Guarda reserva de stamina para uma esquiva.
+  - Tentar ou não o golpe final depende do placar.
+  - Apanhar deixa a IA mais ousada ou mais cautelosa (humor).
+  - Lutas longas aumentam a pressão para atacar.
+
+**Resultados medidos** (`test/ai.test.mjs`, Equilíbrio IA × IA):
+- Contra a IA do v6, vence **cerca de 75–80%** com a personalidade do azul e 60–75% com a do vermelho, que é mais lenta e erra mais.
+- Tática × tática: os dois lados vencem em proporção parecida.
+- As lutas usam todas as mecânicas: em 40 lutas, cerca de 120 C → X, mais de 170 bloqueios, cerca de 45 defesas perfeitas, cerca de 16 esquivas perfeitas e saltos. O clash é raro.
+- Cerca de 20% das lutas táticas × táticas passam de 90 s: as duas defendem bem.
+- A distância de ataque aprendida contra o v6 converge para cerca de 2,8–3,4 m.
+- Contra quem só defende, a leitura de "defende" chega a 95%.
 
 ## Aleatoriedade das IAs
 
@@ -141,8 +180,9 @@ Os padrões são diferentes: o vermelho reage mais devagar e hesita mais; o azul
 
   O relatório fica em `validation/etapa-a-report.md` e `.json`, com o registro completo de cada cancelamento.
 - `node prototypes/combat-lab/test/properties.test.mjs [execuções] [passos]`: testes de propriedade em lote (padrão: 200 × 2.400 passos).
+- `node prototypes/combat-lab/test/ai.test.mjs`: IA tática (determinismo, replay, estilos, mecânicas, contra o v6, adaptação, percepção).
 - `node prototypes/combat-lab/test/gamepatch.test.mjs`: proposta de patch do config.ts (substituições, conflitos e `git apply --check`).
 - `node prototypes/combat-lab/test/sim.test.mjs`: 20 testes (inclui o equilíbrio IA × IA e a comparação A × B) (8 cenários, determinismo, replay por estado, telemetria, tabela de quadros, personalidade das IAs).
 - `node prototypes/combat-lab/test/local-character.mjs modelo.glb`: diagnóstico local do mapa de animações de um modelo seu (resultado em `validation/`).
 - `node prototypes/combat-lab/test/parity.mjs`: paridade passo a passo com o v6 local, no modo `V6_COMPAT` (opcional; só compara o comportamento antigo).
-- `node prototypes/combat-lab/verify.mjs`: 18 verificações (incluindo a gravação e a reprodução idêntica de partida, a aba X e C, a migração de JSON v6, C → X pelo teclado, o indicador e a homologação) no Edge offline, incluindo o GLB gerado pelo próprio Animation Studio com mapa de ações e eventos.
+- `node prototypes/combat-lab/verify.mjs`: 19 verificações (incluindo a IA tática por padrão, a gravação e a reprodução idêntica de partida, a aba X e C, a migração de JSON v6, C → X pelo teclado, o indicador e a homologação) no Edge offline, incluindo o GLB gerado pelo próprio Animation Studio com mapa de ações e eventos.
