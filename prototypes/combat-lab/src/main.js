@@ -119,21 +119,22 @@ function syncTuneState() {
   const dirty = tuning.dirty(), chip = $('tune-state'), isDefault = tuning.manifest.every(m => !tuning.changed(m));
   chip.dataset.state = dirty ? 'dirty' : isDefault ? 'clean' : 'saved';
   chip.querySelector('span').textContent = dirty ? 'Ajustes não exportados' : isDefault ? 'Ajustes padrão' : `Ajustes salvos (${tuning.savedLabel})`;
-  try {localStorage.setItem('arenamon-lab-session-v7', JSON.stringify(tuning.snapshotValues()));} catch {}
+  try {localStorage.setItem('arenamon-lab-session-v8', JSON.stringify(tuning.snapshotValues()));} catch {}
   renderGameDiff();
 }
 tuning.onChange(syncTuneState);
 window.addEventListener('beforeunload', e => {if (tuning.dirty()) {e.preventDefault();e.returnValue = '';}});
 // Ajustes da sessão anterior (somente neste navegador).
 try {
-  const prev = JSON.parse(localStorage.getItem('arenamon-lab-session-v7') || 'null');
-  const diff = prev ? tuning.manifest.filter(m => m.path in prev && Math.abs(prev[m.path] - m.initial) > 1e-9) : [];
+  const prev = JSON.parse(localStorage.getItem('arenamon-lab-session-v8') || localStorage.getItem('arenamon-lab-session-v7') || 'null');
+  const legacySession = prev ? tuning.preview(JSON.stringify({values: prev})) : null;
+  const diff = legacySession && !legacySession.error ? legacySession.changes.map(([path, value]) => ({path, value})) : [];
   if (diff.length) {
     const banner = document.createElement('div');banner.className = 'report warn';banner.id = 'session-banner';
     banner.innerHTML = `<p><b>Ajustes da sessão anterior encontrados</b> (${diff.length} diferenças do padrão), guardados neste navegador.</p><div class="row"><button type="button" id="session-restore">Restaurar</button><button type="button" id="session-discard">Descartar</button></div>`;
     document.querySelector('[data-section="tuning"]').prepend(banner);
-    $('session-restore').onclick = () => {tuning.commit(diff.map(m => [m.path, prev[m.path]]), 'Sessão anterior');banner.remove();};
-    $('session-discard').onclick = () => {banner.remove();try {localStorage.removeItem('arenamon-lab-session-v7');} catch {}};
+    $('session-restore').onclick = () => {tuning.commit(diff.map(m => [m.path, m.value]), 'Sessão anterior');banner.remove();};
+    $('session-discard').onclick = () => {banner.remove();try {localStorage.removeItem('arenamon-lab-session-v7');localStorage.removeItem('arenamon-lab-session-v8');} catch {}};
   }
 } catch {}
 const difficulty = {
@@ -145,14 +146,16 @@ for (const b of document.querySelectorAll('[data-difficulty]')) b.onclick = () =
 
 // ---------- Exportar ----------
 function download(text, name) {const url = URL.createObjectURL(new Blob([text], {type: 'application/json'})), a = document.createElement('a');a.href = url;a.download = name;a.click();setTimeout(() => URL.revokeObjectURL(url), 2000);}
-$('export-json').onclick = () => {download(JSON.stringify(tuning.exportData(), null, 2), 'arenamon-calibracao-v7.json');tuning.markSaved('JSON exportado');$('import-result').innerHTML = '<p class="ok">JSON enviado para Downloads. O navegador não confirma a gravação: verifique o arquivo.</p>';};
+$('export-json').onclick = () => {download(JSON.stringify(tuning.exportData(), null, 2), 'arenamon-calibracao-v8.json');tuning.markSaved('JSON exportado');$('import-result').innerHTML = '<p class="ok">JSON enviado para Downloads. O navegador não confirma a gravação: verifique o arquivo.</p>';};
 $('copy-json').onclick = async () => {try {await navigator.clipboard.writeText(JSON.stringify(tuning.exportData(), null, 2));$('import-result').innerHTML = '<p class="ok">JSON copiado.</p>';} catch {$('import-text').value = JSON.stringify(tuning.exportData(), null, 2);$('import-text').select();$('import-result').innerHTML = '<p class="warn">Sem acesso à área de transferência: o JSON está na caixa abaixo, selecionado.</p>';}};
 $('import-file').onchange = async () => {const f = $('import-file').files[0];if (f) $('import-text').value = await f.text();$('import-preview').click();};
 $('import-preview').onclick = () => {
   const p = tuning.preview($('import-text').value);
   if (p.error) {$('import-result').innerHTML = `<p class="bad">${escape(p.error)}</p>`;return;}
-  if (!p.changes.length) {$('import-result').innerHTML = '<p class="ok">O JSON é igual aos ajustes atuais.</p>';return;}
-  $('import-result').innerHTML = `<p>${p.changes.length} parâmetros mudariam (schema ${escape(p.schema)}, versão ${escape(p.version)}):</p><table><tr><th>Parâmetro</th><th>Atual</th><th>JSON</th></tr>${p.changes.slice(0, 40).map(([path, v]) => {const m = tuning.byPath.get(path);return `<tr><td title="${path}">${escape(m.label)}</td><td>${m.fmt(pathGet(C, path))}</td><td>${m.fmt(v)}</td></tr>`;}).join('')}</table>${p.changes.length > 40 ? '<p class="hint">…</p>' : ''}<button type="button" class="primary" id="import-apply">Aplicar ${p.changes.length} ajustes</button>`;
+  const notes = (p.migrated?.length ? `<p class="warn"><b>Migração de ${p.migrated.length} campos:</b></p><table><tr><th>Origem</th><th>Destino</th><th>Valor</th></tr>${p.migrated.map(x => `<tr><td>${escape(x.from)}</td><td>${escape(x.to)}</td><td>${escape(x.value)}</td></tr>`).join('')}</table>` : '') +
+    (p.ignored?.length ? `<p class="warn"><b>${p.ignored.length} campos não reconhecidos (não serão aplicados):</b> ${escape(p.ignored.join(', '))}</p>` : '');
+  if (!p.changes.length) {$('import-result').innerHTML = '<p class="ok">Nenhum ajuste efetivo necessário.</p>' + notes;return;}
+  $('import-result').innerHTML = notes + `<p>${p.changes.length} parâmetros mudariam (schema ${escape(p.schema)}, versão ${escape(p.version)}):</p><table><tr><th>Parâmetro</th><th>Atual</th><th>JSON</th></tr>${p.changes.slice(0, 40).map(([path, v]) => {const m = tuning.byPath.get(path);return `<tr><td title="${path}">${escape(m.label)}</td><td>${m.fmt(pathGet(C, path))}</td><td>${m.fmt(v)}</td></tr>`;}).join('')}</table>${p.changes.length > 40 ? '<p class="hint">…</p>' : ''}<button type="button" class="primary" id="import-apply">Aplicar ${p.changes.length} ajustes</button>`;
   $('import-apply').onclick = () => {const n = tuning.applyChanges(p.changes, 'JSON importado');$('import-result').innerHTML = `<p class="ok">${n} ajustes aplicados (Ctrl+Z desfaz).</p>`;};
 };
 $('reset-all').onclick = () => tuning.resetAll();
@@ -232,7 +235,7 @@ function ruleSource() {const id = Number($('char-sync-source').value);return ui.
 function syncRuleDurations() {
   if (Character.options.syncRules) {
     const ch = ruleSource();
-    const changes = ch ? Object.entries(ch.ruleDurations()).map(([path, {value}]) => {const m = tuning.byPath.get(path);return [path, Math.max(m.min, Math.min(m.max, value))];}) : [];
+    const changes = ch ? Object.entries(ch.ruleDurations()).filter(([path]) => tuning.byPath.has(path)).map(([path, {value}]) => {const m = tuning.byPath.get(path);return [path, Math.max(m.min, Math.min(m.max, value))];}) : [];
     if (changes.length) tuning.commit(changes, 'Durações das animações');
   }
   renderRuleDurations();renderStudioEvents();
@@ -241,7 +244,7 @@ function renderRuleDurations() {
   const ch = ruleSource(), box = $('char-durations');
   if (!ch) {box.innerHTML = '<p class="hint">Carregue um personagem para usar as durações das animações.</p>';return;}
   const rows = Object.entries(ch.ruleDurations());
-  box.innerHTML = rows.length ? `<table><tr><th>Regra</th><th>Animação</th><th>Clip ÷ velocidade</th><th>No jogo agora</th></tr>${rows.map(([path, {value, from}]) => {const m = tuning.byPath.get(path);return `<tr><td>${escape(m.label)}</td><td>${escape(from)}</td><td>${value.toFixed(3)} s</td><td>${m.fmt(pathGet(C, path))}</td></tr>`;}).join('')}</table>${Character.options.syncRules ? '<p class="ok">Sincronizado: mudar a animação ou a velocidade atualiza as regras (Ctrl+Z desfaz).</p>' : ''}` : '<p class="hint">Nenhuma ação com duração definida tem animação própria (tackle, dodge_forward, blocked, guard_impact, land/recover).</p>';
+  box.innerHTML = rows.length ? `<table><tr><th>Regra</th><th>Animação</th><th>Clip ÷ velocidade</th><th>No jogo agora</th></tr>${rows.map(([path, {value, from}]) => {const m = tuning.byPath.get(path);if (!m) return '';return `<tr><td>${escape(m.label)}</td><td>${escape(from)}</td><td>${value.toFixed(3)} s</td><td>${m.fmt(pathGet(C, path))}</td></tr>`;}).join('')}</table>${Character.options.syncRules ? '<p class="ok">Sincronizado: mudar a animação ou a velocidade atualiza as regras (Ctrl+Z desfaz).</p>' : ''}` : '<p class="hint">Nenhuma ação com duração definida tem animação própria (tackle, dodge_forward, blocked, guard_impact, land/recover).</p>';
 }
 function renderStudioEvents() {
   const parts = [];
