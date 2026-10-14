@@ -54,7 +54,7 @@ test('body turns progressively; lock strafe retains enemy facing instead of velo
  g=setup();[p,e]=g.fighters;for(let i=0;i<60;i++){const previous=p.facing;g.step(resolveCommand(buttons(1,0),p,e,Math.PI,true));assert.ok(Math.abs(delta(previous,p.facing))<=LOCOMOTION.turnRate*TEST.step+1e-8);}
  assert.ok(dot(direction(p.facing),unit(sub(e.position,p.position)))>.99);assert.ok(Math.abs(dot(direction(p.facing),unit(p.velocity)))<.5);
 });
-test('C direction is explicit: all dodges carry tackle potential and deterministic heading',()=>{
+test('C direction is explicit: dodges use the commanded deterministic heading (Etapa A: C is never offensive)',()=>{
  for(const locked of [false,true])for(const [x,z] of [[0,1],[0,-1],[-1,0],[1,0],[0,0]]){
   const g=setup(),[p,e]=g.fighters,c=resolveCommand(buttons(x,z,true),p,e,Math.PI,locked);g.step(c);assert.equal(p.action.kind,'dodge');near(dot(direction(p.action.startAngle),c.dodgeDirection),1);assert.ok(p.action.elapsed<.01);
  }
