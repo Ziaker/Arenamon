@@ -96,7 +96,7 @@ function updateMarkers() {
     if(j)m.position.copy(worldFromRoot(j.p));
     const selected=name===S.selected;
     m.material.color.set(selected?0xffd17d:name.startsWith('Left')?0x54d9ee:name.startsWith('Right')?0xff7796:0xbff36a);
-    m.scale.setScalar(selected?1.45:1);
+    m.scale.setScalar((m.userData.markerRadius || 0.025) * (selected ? 1.45 : 1));
     m.visible=active()&&$('rg-markers').checked;
   }
   helper.visible=active()&&$('rg-markers').checked&&!!S.selected;
@@ -107,7 +107,7 @@ function rebuildMarkers() {
   const bounds=modelBounds(E.model), radius=Math.max(.01,Math.max(...bounds.size)*.016);
   for(const j of joints()) {
     const mat=new T.MeshBasicMaterial({color:0x54d9ee,depthTest:false,transparent:true,opacity:.95});
-    const m=new T.Mesh(geo,mat);m.name='RigMarker_'+j.name;m.userData.rigJoint=j.name;
+    const m=new T.Mesh(geo,mat);m.name='RigMarker_'+j.name;m.userData.rigJoint=j.name;m.userData.markerRadius=radius;
     m.scale.setScalar(radius);m.renderOrder=9999;m.frustumCulled=false;
     E.scene.add(m);S.markers.set(j.name,m);
   }
