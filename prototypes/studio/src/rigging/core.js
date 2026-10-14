@@ -14,11 +14,11 @@ let jointSequence = 0;
 const newJointId = () => `joint-${Date.now().toString(36)}-${(++jointSequence).toString(36)}`;
 
 export function ensureJointIds(draft) {
-  const used = new Set();
+  const used = new Set((draft?.joints || []).map(j=>typeof j.id==='string'&&j.id.trim()?j.id:null).filter(Boolean));
   for (const joint of draft?.joints || []) {
-    let id = typeof joint.id === 'string' && joint.id.trim() ? joint.id : newJointId();
-    while (used.has(id)) id = newJointId();
-    joint.id = id;used.add(id);
+    if(typeof joint.id !== 'string' || !joint.id.trim()){
+      let id=newJointId();while(used.has(id))id=newJointId();joint.id=id;used.add(id);
+    }
     if (!Array.isArray(joint.q) || joint.q.length !== 4 || !joint.q.every(Number.isFinite)) joint.q = [0,0,0,1];
   }
   return draft;
@@ -157,11 +157,20 @@ export function auditRig(root) {
 
 export function validateDraft(draft,bounds) {
   if(draft?.schema!=='arenamon-rig'||!Array.isArray(draft.joints))throw Error('JSON de rig inválido: esperado schema arenamon-rig e joints.');
+  const version=draft.version??1;if(version!==1&&version!==2)throw Error('Versão de rig não suportada: '+version+'. Use JSON v1 ou v2.');
   if(draft.joints.length<2||draft.joints.length>200)throw Error('O rig precisa de 2 a 200 pontos.');
-  ensureJointIds(draft);const map=new Map(), ids=new Set();
+  const ids=new Set();
+  for(const j of draft.joints){
+    const hasId=typeof j.id==='string'&&!!j.id.trim();
+    if(version===2&&!hasId)throw Error('ID obrigatório no JSON v2: '+(j.name||'(sem nome)'));
+    if(hasId&&ids.has(j.id))throw Error('ID de osso duplicado: '+j.id);if(hasId)ids.add(j.id);
+    const hasQuaternion=Array.isArray(j.q)&&j.q.length===4&&j.q.every(Number.isFinite);
+    if(version===2&&!hasQuaternion)throw Error('Quaternion obrigatório e finito no JSON v2: '+(j.name||'(sem nome)'));
+    if(j.q!==undefined&&!hasQuaternion)throw Error('Quaternion inválido: '+(j.name||'(sem nome)'));
+  }
+  ensureJointIds(draft);const map=new Map();
   for(const j of draft.joints) {
     if(typeof j.name!=='string'||!j.name.trim()||map.has(j.name)||!isFinitePoint(j.p))throw Error('Osso duplicado/inválido: '+j.name);
-    if(ids.has(j.id))throw Error('ID de osso duplicado: '+j.id);ids.add(j.id);
     if(j.p.some(x=>Math.abs(x)>1e6))throw Error('Coordenada fora de limite: '+j.name);
     map.set(j.name,j);
   }
@@ -254,8 +263,8 @@ export function bindDraftToModel(root,draft,{smoothness=.13,maxVertices=250000}=
           closest.push({i:bi,score});
         }
         closest.sort((a,b)=>b.score-a.score);
-        const best=closest.slice(0,4), norm=best.reduce((v,c)=>v+c.score,0);
-        for(let k=0;k<4;k++){indices[vi*4+k]=best[k].i;weights[vi*4+k]=best[k].score/norm;}
+        const best=closest.slice(0,4), norm=best.reduce((v,c)=>v+c.score,0), fallback=best[0];
+        for(let k=0;k<4;k++){const influence=best[k];indices[vi*4+k]=(influence||fallback).i;weights[vi*4+k]=influence?influence.score/norm:0;}
       }
       geom.setAttribute('skinIndex',new T.Uint16BufferAttribute(indices,4));
       geom.setAttribute('skinWeight',new T.Float32BufferAttribute(weights,4));
@@ -280,9 +289,15 @@ export function bindDraftToModel(root,draft,{smoothness=.13,maxVertices=250000}=
   }
 }
 
+export function syncRigMetadata(root,base=root.userData?.arenamonRig||{}) {
+  const joints=currentJoints(root).map(j=>({id:j.id,name:j.name,parent:j.parent,p:[...j.p],q:[...j.q]}));
+  const metadata={...structuredClone(base||{}),schema:'arenamon-rig',version:2,joints};
+  root.userData.arenamonRig=metadata;return metadata;
+}
+
 export function exportCoordinates(root, draft=null) {
   const bounds=modelBounds(root), audit=auditRig(root);
-  return {schema:'arenamon-rig',version:1,space:'model-root',createdAt:new Date().toISOString(),
+  return {schema:'arenamon-rig',version:2,space:'model-root',createdAt:new Date().toISOString(),
     coordinatesUnit:'unidades do modelo (não pressupõe metros)',bounds,
     joints:draft?.joints?.length ? draft.joints.map(j=>({id:j.id,name:j.name,parent:j.parent,p:[...j.p],q:[...(j.q||[0,0,0,1])]})) : currentJoints(root).map(j=>({id:j.id,name:j.name,parent:j.parent,p:j.p,local:j.local,q:j.q,world:j.world,uuid:j.uuid})),
     audit};

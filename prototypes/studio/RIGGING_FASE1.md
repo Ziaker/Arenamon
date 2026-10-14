@@ -61,6 +61,13 @@ A aba oferece **Exportar coordenadas JSON** e **Importar coordenadas JSON**. O a
 
 O JSON exportado traz também `bounds`, `audit`, coordenadas locais/mundo para rigs existentes e identificação do modelo.
 
+### Compatibilidade do contrato
+
+- **Leitura v1:** continua aceita. Como v1 não exigia `id` nem `q`, o Studio atribui IDs estáveis e quaternion identidade somente na cópia em memória antes de editar ou vincular.
+- **Leitura v2:** é estrita. Cada articulação precisa de `id` único e não vazio e de `q` com quatro números finitos. IDs duplicados, versões desconhecidas e quaternions inválidos são recusados, sem correção silenciosa.
+- **Escrita:** novos rascunhos, metadados de GLB e JSON de coordenadas são emitidos em v2. A versão declarada corresponde aos campos efetivamente gravados.
+- O upgrade em memória não muda o arquivo v1 de origem. Ele só passa a v2 quando o usuário exporta ou salva novamente pelo Studio.
+
 O usuário pode anexar esse JSON a uma conversa para auditoria osso por osso, e reimportar o arquivo corrigido. A importação em modelos já rigados altera posições dos ossos correspondentes, **não substitui nomes, topologia ou pesos**. Em malhas sem rig, restaura o rascunho de pontos.
 
 Não importamos arbitrariamente novos esqueletos por JSON em malhas já vinculadas.
@@ -84,10 +91,11 @@ Não importamos arbitrariamente novos esqueletos por JSON em malhas já vinculad
 
 ## Testes
 
-- `node prototypes/studio/test/rigging.test.mjs` — geometria, simetria, validação, atributos skinned, pesos e deformação.
-- `node prototypes/studio/test/rigging.browser.mjs` — interface, edições, undo/redo, pesos, teste de flexão, GLB roundtrip, telemetria, rigs existentes e layout responsivo.
+- `node prototypes/studio/test/rigging.test.mjs` — geometria, simetria, JSON v1/v2, IDs duplicados, skinning com 2/3/20 ossos, pesos e deformação.
+- `node prototypes/studio/test/rigging.browser.mjs` — interface, edições, metadados durante Undo/Redo, operações estruturais, GLB roundtrip, telemetria, rigs existentes e layout responsivo.
 - `node prototypes/studio/test/ops.test.mjs` e `node prototypes/studio/verify.mjs` — regressões pré-existentes, mantidas.
 - `npm run build` gera `prototypes/studio/dist/arenamon-animation-studio.html` único e offline.
+- `npm run verify` reproduz localmente o mesmo comando obrigatório do workflow `.github/workflows/arenamon-studio-rigging.yml`. O CI publica o HTML e os relatórios de `prototypes/studio/validation/` como artefato por 14 dias, inclusive em falhas.
 
 Os modelos proprietários devem ficar no disco local do usuário. Não commitar arquivos Pokémon, FBX ou GLB privados.
 

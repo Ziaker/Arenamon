@@ -86,13 +86,15 @@ try {
   const rig=await page.evaluate(()=>{
     let meshes=[],bones=0;window.__importer.model.traverse(o=>{if(o.isMesh)meshes.push({skin:o.isSkinnedMesh,
       count:o.skeleton?.bones.length||0,n:o.geometry.attributes.position.count});if(o.isBone)bones++;});
-    return {meshes,bones,draft:!!window.__studioRig.draft,dirty:window.__studioProject.dirty};
+    return {meshes,bones,draft:!!window.__studioRig.draft,dirty:window.__studioProject.dirty,meta:structuredClone(window.__importer.model.userData.arenamonRig)};
   });
   assert.equal(rig.meshes.length,1);assert.equal(rig.meshes[0].skin,true);
   assert.equal(rig.meshes[0].count,20);assert.equal(rig.bones,20);assert.equal(rig.draft,false);assert.equal(rig.dirty,true);
   await page.evaluate(()=>window.__studioEditor.history.undo());assert.equal(await page.evaluate(()=>!!window.__studioRig.draft),true,'desfazer bind restaura rascunho');
   assert.equal(await page.evaluate(()=>!!window.__importer.model.getObjectByName('CreatureBody').isSkinnedMesh),false);
+  assert.equal(await page.evaluate(()=>window.__importer.model.userData.arenamonRig),undefined,'desfazer bind remove metadados do skin');
   await page.evaluate(()=>window.__studioEditor.history.redo());assert.equal(await page.evaluate(()=>window.__importer.model.getObjectByName('CreatureBody').isSkinnedMesh),true,'refazer bind restaura skin');
+  assert.deepEqual(await page.evaluate(()=>window.__importer.model.userData.arenamonRig),rig.meta,'refazer bind restaura metadados idênticos');
   mark('Vinculação da malha é uma transação reversível no histórico');
   await page.click('#rg-audit');
   assert.match(await page.textContent('#rg-report'),/Sem inconsistências estruturais detectadas/);
@@ -100,13 +102,26 @@ try {
   // A mesma edição estrutural funciona depois do bind e mantém os índices do skin reversíveis.
   await page.selectOption('#rg-bone',await page.evaluate(()=>window.__studioRig.exportCoordinates().joints.find(j=>j.name==='LeftElbow').id));
   await page.click('#rg-add');assert.equal(await page.evaluate(()=>window.__importer.model.getObjectByName('CreatureBody').skeleton.bones.length),21);
+  assert.equal(await page.evaluate(()=>window.__importer.model.userData.arenamonRig.joints.length),21);
   const boundId=await page.evaluate(()=>window.__studioRig.selectedId);await page.fill('#rg-name','LeftClaw');await page.click('#rg-rename');assert.equal(await page.evaluate(()=>window.__studioRig.selectedId),boundId);
+  assert.equal(await page.evaluate(()=>window.__importer.model.userData.arenamonRig.joints.find(j=>j.id===window.__studioRig.selectedId).name),'LeftClaw');
   await page.selectOption('#rg-parent-select',await page.evaluate(()=>window.__studioRig.exportCoordinates().joints.find(j=>j.name==='Hips').id));
+  assert.equal(await page.evaluate(()=>window.__importer.model.userData.arenamonRig.joints.find(j=>j.id===window.__studioRig.selectedId).parent),'Hips');
   await page.click('#rg-delete');assert.equal(await page.evaluate(()=>window.__importer.model.getObjectByName('CreatureBody').skeleton.bones.length),20);
+  assert.equal(await page.evaluate(id=>window.__importer.model.userData.arenamonRig.joints.some(j=>j.id===id),boundId),false);
   await page.evaluate(()=>window.__studioEditor.history.undo());assert.equal(await page.evaluate(()=>window.__importer.model.getObjectByName('CreatureBody').skeleton.bones.length),21);
   for(let i=0;i<3;i++)await page.evaluate(()=>window.__studioEditor.history.undo());
   assert.equal(await page.evaluate(()=>window.__importer.model.getObjectByName('CreatureBody').skeleton.bones.length),20);
   mark('Estrutura de rig já vinculado preserva skin e também desfaz criação, nome, pai e exclusão');
+  // Mudança estrutural deve sobreviver ao GLB junto com seus metadados e depois ser desfeita localmente.
+  await page.selectOption('#rg-bone',await page.evaluate(()=>window.__studioRig.exportCoordinates().joints.find(j=>j.name==='LeftWrist').id));
+  const wristId=await page.evaluate(()=>window.__studioRig.selectedId);await page.fill('#rg-name','LeftHandRoot');await page.click('#rg-rename');
+  await page.selectOption('#rg-parent-select',await page.evaluate(()=>window.__studioRig.exportCoordinates().joints.find(j=>j.name==='Hips').id));
+  const structuralRoundtrip=await page.evaluate(async id=>{const E=window.__importer,bytes=await E.exportGLB({unlit:false,noTextures:false}),parsed=await E.parse(new File([bytes],'estrutura.glb',{type:'model/gltf-binary'}));let meta=null;parsed.scene.traverse(o=>{meta ||= o.userData.arenamonRig||null;});const bone=parsed.scene.getObjectByName('LeftHandRoot');return {id,parent:bone.parent?.name,metaJoint:meta?.joints.find(j=>j.id===id),bones:parsed.scene.getObjectByName('CreatureBody').skeleton.bones.length};},wristId);
+  assert.equal(structuralRoundtrip.parent,'Hips');assert.equal(structuralRoundtrip.metaJoint.name,'LeftHandRoot');assert.equal(structuralRoundtrip.metaJoint.parent,'Hips');assert.equal(structuralRoundtrip.bones,20);
+  await page.evaluate(()=>window.__studioEditor.history.undo());await page.evaluate(()=>window.__studioEditor.history.undo());
+  assert.ok(await page.evaluate(()=>!!window.__importer.model.getObjectByName('LeftWrist')));
+  mark('GLB estrutural reimportado preserva nome, pai, ID e metadados; Undo restaura o original');
   await page.selectOption('#rg-bone','LeftElbow');
   await page.fill('#rg-pose','35');
   const angle=await page.evaluate(()=>window.__importer.model.getObjectByName('LeftElbow').rotation.x);

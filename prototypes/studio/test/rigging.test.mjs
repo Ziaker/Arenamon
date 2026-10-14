@@ -38,8 +38,20 @@ test('edição estrutural mantém IDs estáveis e hierarquia válida',()=>{
 test('detecta ossos duplicados, valores não finitos, pai ausente e ciclos',()=>{
   const b=modelBounds(fixture()),d=makeTemplate(b);
   assert.throws(()=>validateDraft({...d,joints:[...d.joints,{...d.joints[0]}]},b),/duplicado/);
+  assert.throws(()=>validateDraft({...d,joints:d.joints.map((j,i)=>({...j,id:i===1?d.joints[0].id:j.id}))},b),/ID de osso duplicado/);
   assert.throws(()=>validateDraft({...d,joints:d.joints.map((j,i)=>i?j:{...j,p:[NaN,0,0]})},b),/inválido/);
   assert.throws(()=>validateDraft({...d,joints:d.joints.map((j,i)=>i?j:{...j,parent:'Head'})},b),/Ciclo/);
+});
+test('contrato JSON aceita v1 legado e valida v2 estritamente',()=>{
+  const v1={schema:'arenamon-rig',version:1,joints:[
+    {name:'Root',parent:null,p:[0,0,0]},
+    {name:'Tip',parent:'Root',p:[0,1,0]},
+  ]};
+  assert.equal(validateDraft(v1),true);assert.ok(v1.joints.every(j=>j.id&&j.q?.length===4),'v1 é normalizado em memória');
+  const v2={schema:'arenamon-rig',version:2,joints:v1.joints.map(j=>({...j}))};assert.equal(validateDraft(v2),true);
+  assert.throws(()=>validateDraft({...v2,joints:v2.joints.map((j,i)=>i?j:{...j,id:undefined})}),/ID.*v2/i);
+  assert.throws(()=>validateDraft({...v2,joints:v2.joints.map((j,i)=>i?j:{...j,q:undefined})}),/quaternion.*v2/i);
+  assert.throws(()=>validateDraft({...v2,version:3}),/versão.*não suportada/i);
 });
 test('geração cria SkinnedMesh real com 20 bones, index/pesos normalizados',()=>{
   const root=fixture(),d=makeTemplate(modelBounds(root)),r=bindDraftToModel(root,d);
@@ -58,6 +70,14 @@ test('geração cria SkinnedMesh real com 20 bones, index/pesos normalizados',()
   assert.equal(collectBones(root).length,20);
   assert.equal(currentJoints(root).length,20);
   assert.equal(exportCoordinates(root).joints.length,20);
+  assert.equal(exportCoordinates(root).version,2);
+});
+for(const boneCount of [2,3])test(`skinning funciona com ${boneCount} ossos e completa slots vazios`,()=>{
+  const root=fixture(),joints=Array.from({length:boneCount},(_,i)=>({id:'joint-'+i,name:'Bone'+i,parent:i?'Bone'+(i-1):null,p:[0,i,0],q:[0,0,0,1]}));
+  const result=bindDraftToModel(root,{schema:'arenamon-rig',version:2,space:'model-root',joints}),mesh=result.replacements[0].mesh;
+  const ids=mesh.geometry.getAttribute('skinIndex'),weights=mesh.geometry.getAttribute('skinWeight');assert.equal(mesh.skeleton.bones.length,boneCount);
+  for(let i=0;i<weights.count;i++){let sum=0;for(let k=0;k<4;k++){assert.ok(ids.getComponent(i,k)<boneCount);const weight=weights.getComponent(i,k);assert.ok(Number.isFinite(weight));sum+=weight;if(k>=boneCount)assert.equal(weight,0);}assert.ok(Math.abs(sum-1)<1e-5);}
+  assert.equal(auditRig(root).meshes[0].invalidWeights,0);
 });
 test('skin reage a rotação do cotovelo sem deslocar a hierarquia',()=>{
   const root=fixture(),r=bindDraftToModel(root,makeTemplate(modelBounds(root)));

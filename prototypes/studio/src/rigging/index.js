@@ -4,7 +4,8 @@ import * as T from 'three';
 import {TransformControls} from 'three/addons/controls/TransformControls.js';
 import {modelBounds, makeTemplate, collectBones, currentJoints, auditRig,
   validateDraft, applyMirror, bindDraftToModel, exportCoordinates, ensureJointIds,
-  addDraftJoint, renameDraftJoint, reparentDraftJoint, removeDraftJoint, uniqueJointName} from './core.js';
+  addDraftJoint, renameDraftJoint, reparentDraftJoint, removeDraftJoint, uniqueJointName,
+  syncRigMetadata} from './core.js';
 
 const $=id=>document.getElementById(id), E=window.__importer;
 const S={draft:null,selected:null,markers:new Map(),rigBones:new Map(),lastAudit:null,
@@ -60,7 +61,7 @@ function restoredDraft(root) {
   });
   const b=modelBounds(root);
   copy.bounds={min:b.min,max:b.max,size:b.size};
-  validateDraft(copy,b);
+  validateDraft(copy,b);copy.version=2;
   return copy;
 }
 
@@ -227,7 +228,7 @@ function applyPositions(positions,{emit=true}={}) {
     }
   }
   if(S.draft)E.model.userData.arenamonRigDraft=structuredClone(S.draft);
-  if(!S.draft&&emit)E.commitRig({reason:'editar posições do rig',emitDirty:false});
+  if(!S.draft&&emit){E.commitRig({reason:'editar posições do rig',emitDirty:false});syncRigMetadata(E.model);}
   updateMarkers();
   if(S.selected){const point=selectedPoint();for(const [id,v] of [['rg-x',point[0]],['rg-y',point[1]],['rg-z',point[2]]])$(id).value=fmt(v);renderTelemetry();}
 }
@@ -256,7 +257,7 @@ function onNumeric() {
   commitPosition(p,before,'Definir coordenadas');
 }
 function orientationSnapshot(){const j=selectedJoint(),bone=findBone(j?.id);return j?{[j.id]:S.draft?[...(j.q||[0,0,0,1])]:bone.quaternion.toArray()}:{};}
-function applyOrientations(values,{emit=true}={}){for(const [id,q] of Object.entries(values)){const j=joint(id);if(!j)continue;if(S.draft)j.q=[...q];else findBone(id)?.quaternion.fromArray(q);}if(S.draft)E.model.userData.arenamonRigDraft=structuredClone(S.draft);else if(emit)E.commitRig({reason:'rotacionar osso',emitDirty:false});E.model.updateMatrixWorld(true);updateMarkers();renderTelemetry();}
+function applyOrientations(values,{emit=true}={}){for(const [id,q] of Object.entries(values)){const j=joint(id);if(!j)continue;if(S.draft)j.q=[...q];else findBone(id)?.quaternion.fromArray(q);}if(S.draft)E.model.userData.arenamonRigDraft=structuredClone(S.draft);else if(emit){E.commitRig({reason:'rotacionar osso',emitDirty:false});syncRigMetadata(E.model);}E.model.updateMatrixWorld(true);updateMarkers();renderTelemetry();}
 function commitOrientation(q,before){const j=selectedJoint(),after={[j.id]:q};if(near(after[j.id],before[j.id])){applyOrientations(before);return;}const command={label:'Rotacionar osso · '+j.name,redo(){applyOrientations(after);},undo(){applyOrientations(before);}};const history=window.__studioEditor?.history;if(history)history.run(command);else{command.redo();mark(command.label);}}
 function applyDraftState(state,selectedId){S.draft=structuredClone(state);ensureJointIds(S.draft);E.model.userData.arenamonRigDraft=structuredClone(S.draft);S.selected=joint(selectedId)?.id||S.draft.joints[0]?.id;rebuildMarkers();render();refreshAudit();}
 function draftTransaction(label,mutate){
@@ -265,7 +266,7 @@ function draftTransaction(label,mutate){
   const history=window.__studioEditor?.history;if(history)history.run(command);else{command.redo();mark(label);}
 }
 function commitBound(label,redo,undo){
-  const command={label,redo(){clearPose();redo();indexBones();E.commitRig({reason:label,emitDirty:false});rebuildMarkers();render();refreshAudit();},undo(){clearPose();undo();indexBones();E.commitRig({reason:'desfazer '+label,emitDirty:false});rebuildMarkers();render();refreshAudit();}};
+  const command={label,redo(){clearPose();redo();indexBones();E.commitRig({reason:label,emitDirty:false});syncRigMetadata(E.model);rebuildMarkers();render();refreshAudit();},undo(){clearPose();undo();indexBones();E.commitRig({reason:'desfazer '+label,emitDirty:false});syncRigMetadata(E.model);rebuildMarkers();render();refreshAudit();}};
   const history=window.__studioEditor?.history;if(history)history.run(command);else{command.redo();mark(label);}
 }
 function addBoneToSkeletons(bone,add){
@@ -315,9 +316,9 @@ function onBind() {
   if(!window.confirm(message))return;
   clearPose();E.enterRigRest();
   try{
-    const draft=structuredClone(S.draft),smoothness=Number($('rg-smooth').value);let result=null;
-    const redo=()=>{if(!result)result=bindDraftToModel(E.model,draft,{smoothness});else{for(const p of result.replacements){p.parent.add(p.mesh);p.old.removeFromParent();}for(const b of result.bones.filter(b=>!b.parent))E.model.add(b);}delete E.model.userData.arenamonRigDraft;E.commitRig({replacements:result.replacements,reason:'vincular rig',emitDirty:false});S.draft=null;indexBones();S.selected=result.bones[0]?.userData.arenamonJointId||result.bones[0]?.uuid;rebuildMarkers();refreshAudit();render();};
-    const undo=()=>{for(const p of result.replacements){p.parent.add(p.old);p.mesh.removeFromParent();}for(const b of result.bones)if(b.parent===E.model)b.removeFromParent();E.commitRig({replacements:result.replacements.map(p=>({old:p.mesh,mesh:p.old})),reason:'desfazer vínculo',emitDirty:false});S.draft=structuredClone(draft);E.model.userData.arenamonRigDraft=structuredClone(draft);indexBones();S.selected=draft.joints[0].id;rebuildMarkers();refreshAudit();render();};
+    const draft=structuredClone(S.draft),smoothness=Number($('rg-smooth').value),previousRig=E.model.userData.arenamonRig?structuredClone(E.model.userData.arenamonRig):null;let result=null,boundMetadata=null;
+    const redo=()=>{if(!result)result=bindDraftToModel(E.model,draft,{smoothness});else{for(const p of result.replacements){p.parent.add(p.mesh);p.old.removeFromParent();}for(const b of result.bones.filter(b=>!b.parent))E.model.add(b);E.model.userData.arenamonRig=structuredClone(boundMetadata);}delete E.model.userData.arenamonRigDraft;E.commitRig({replacements:result.replacements,reason:'vincular rig',emitDirty:false});boundMetadata=structuredClone(syncRigMetadata(E.model,E.model.userData.arenamonRig));S.draft=null;indexBones();S.selected=result.bones[0]?.userData.arenamonJointId||result.bones[0]?.uuid;rebuildMarkers();refreshAudit();render();};
+    const undo=()=>{for(const p of result.replacements){p.parent.add(p.old);p.mesh.removeFromParent();}for(const b of result.bones)if(b.parent===E.model)b.removeFromParent();E.commitRig({replacements:result.replacements.map(p=>({old:p.mesh,mesh:p.old})),reason:'desfazer vínculo',emitDirty:false});if(previousRig)E.model.userData.arenamonRig=structuredClone(previousRig);else delete E.model.userData.arenamonRig;S.draft=structuredClone(draft);E.model.userData.arenamonRigDraft=structuredClone(draft);indexBones();S.selected=draft.joints[0].id;rebuildMarkers();refreshAudit();render();};
     const command={label:'Vincular malha ao rig',redo,undo},history=window.__studioEditor?.history;if(history)history.run(command);else{redo();mark(command.label);}
     status('Rig vinculado: '+result.bones.length+' ossos, '+result.vertices+' vértices. A operação pode ser desfeita/refeita.','ok');
   }catch(e){console.error(e);status('Falha ao vincular: '+e.message,'warn');}

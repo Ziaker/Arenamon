@@ -4,6 +4,13 @@ on:
   push:
     branches:
       - feat/studio-rigging-fase1-gpt6
+      - codex/rig-editor-*
+  pull_request:
+    paths:
+      - '.github/workflows/arenamon-studio-rigging.yml'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'prototypes/studio/**'
   workflow_dispatch:
 
 permissions:
@@ -21,16 +28,12 @@ jobs:
           cache: npm
       - name: Install
         run: npm ci
-      - name: Build offline Studio
-        run: node prototypes/studio/build.mjs
-      - name: Rigging unit tests
-        run: node prototypes/studio/test/rigging.test.mjs
-      - name: Rigging browser integration test
-        run: node prototypes/studio/test/rigging.browser.mjs
-      - name: Studio existing unit tests
-        run: node prototypes/studio/test/ops.test.mjs
-      - name: Studio existing browser regressions
-        run: node prototypes/studio/verify.mjs
+      - name: Runtime versions
+        run: |
+          node --version
+          npm --version
+      - name: Repository verification
+        run: npm run verify
       - name: Upload HTML and validation
         if: always()
         uses: actions/upload-artifact@v4
