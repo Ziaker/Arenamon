@@ -88,10 +88,10 @@ window.__arenamonStudioUX={navigate,showTools,showExport,closeTools,closeExport}
 'use strict';
 const grip=document.querySelector('.v6-resize'),expand=document.getElementById('v6-wide-toggle');if(!grip||!expand)return;
 const root=document.documentElement;
-let width=560,drag=false,raf=0;
-const limits=()=>({min:400,max:Math.max(400,Math.min(830,innerWidth-620))});
-const enable=()=>innerWidth>1200;
-function resize(w,persist=true){const {min,max}=limits();width=Math.min(max,Math.max(min,Math.round(w)));root.style.setProperty('--v6-organizer',width+'px');grip.setAttribute('aria-valuenow',String(width));grip.setAttribute('aria-valuetext',width+' pixels');expand.textContent=width>=690?'↔ Reduzir':'↔ Ampliar';expand.title='Alternar entre uma coluna mais compacta e uma mais larga';if(persist)try{localStorage.setItem('arenamon-studio-panel-width-v6',String(width))}catch{}
+let width=520,drag=false,raf=0;
+const limits=()=>({min:300,max:Math.max(300,Math.min(830,innerWidth-560))});
+const enable=()=>innerWidth>1100;
+function resize(w,persist=true){const {min,max}=limits();width=Math.min(max,Math.max(min,Math.round(w)));root.style.setProperty('--v6-organizer',width+'px');grip.setAttribute('aria-valuenow',String(width));grip.setAttribute('aria-valuetext',width+' pixels');expand.textContent=width>=600?'↔ Reduzir':'↔ Ampliar';expand.title='Alternar entre uma coluna mais compacta e uma mais larga';if(persist)try{localStorage.setItem('arenamon-studio-panel-width-v6',String(width))}catch{}
  if(!raf)raf=requestAnimationFrame(()=>{raf=0;window.dispatchEvent(new Event('resize'))})
 }
 try{const stored=Number(localStorage.getItem('arenamon-studio-panel-width-v6'));if(Number.isFinite(stored)&&stored>0)width=stored}catch{}
@@ -101,6 +101,6 @@ grip.addEventListener('pointermove',e=>{if(!drag)return;resize(window.innerWidth
 function end(){drag=false;grip.classList.remove('dragging');document.body.classList.remove('v6-resizing')}
 grip.addEventListener('pointerup',end);grip.addEventListener('pointercancel',end);
 grip.addEventListener('keydown',e=>{if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();resize(width+(e.key==='ArrowLeft'?-30:30))}else if(e.key==='Home'){e.preventDefault();resize(400)}else if(e.key==='End'){e.preventDefault();resize(limits().max)}});
-expand.addEventListener('click',()=>resize(width>=690?500:750));
+expand.addEventListener('click',()=>resize(width>=600?420:700));
 window.addEventListener('resize',()=>{if(enable())resize(width,false)});
 })();

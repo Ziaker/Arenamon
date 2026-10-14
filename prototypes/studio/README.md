@@ -1,4 +1,4 @@
-# Arenamon Animation Studio (v7 · Fase 1)
+# Arenamon Animation Studio (v7 · Fase 1 + reformulação da interface)
 
 Editor de animações esqueléticas no navegador, construído sobre o Studio v6. Gere com `npm run build` e abra
 `dist/arenamon-animation-studio.html` por duplo clique: o HTML contém Three.js, FBXLoader, GLTFLoader e
@@ -17,14 +17,31 @@ Não havia fonte correspondente no repositório. A Fase 1 transformou esse HTML 
 | `src/legacy/*.js` | Scripts V3–V6 do HTML, quase literais. As alterações estão marcadas com “Fase 1”. |
 | `src/editor/*` | Novo: modelo não destrutivo, histórico, timeline, ferramentas, comparação. |
 
+## Interface
+
+- **Barra superior:** modelo carregado, animação selecionada, estado de salvamento, desfazer/refazer, **Salvar** e **Exportar**.
+- **Barra de ferramentas (esquerda):** Projeto, Aparência, Cenário, Câmera, Movimento, Inspeção e Exportar abrem uma ferramenta por vez no painel lateral. Clicar no ícone ativo, ou em ⟨, recolhe o painel. O painel pode ser redimensionado pela divisória (arraste ou setas do teclado).
+- **Animações / Editar:** mostram ou ocultam a biblioteca (direita) e a timeline (embaixo).
+- O botão **Foco** (menu “Mais” do visualizador) recolhe as duas laterais.
+- No tablet (≤ 1100 px), os painéis aparecem sobrepostos ao visualizador, um de cada vez. No celular (≤ 700 px), a barra de ferramentas fica embaixo e os painéis abrem como folhas.
+- Cada controle da v6 foi movido, com o mesmo id e handler, para uma única ferramenta. O antigo painel “Seu projeto”, a gaveta “Ajustes” e o diálogo de exportação deixaram de existir como superfícies separadas. Os atalhos do visualizador (câmera, grid, visão do jogo) continuam sincronizados com as abas Câmera e Cenário.
+
+## Salvar, sair e recuperar
+
+- **Salvar projeto** grava um `.arenamon.glb` completo: materiais originais, animações editadas, organização, eventos e root motion. Reabra-o como modelo para continuar. O **GLB final** e o **JSON** ficam em Exportar e não contam como salvar o projeto.
+- O estado “Projeto salvo” só aparece depois que o arquivo é gravado pelo seletor do navegador (File System Access API). Cancelar o seletor ou uma falha de gravação mantêm “Alterações não salvas”. Sem essa API, o arquivo vai para Downloads e o estado mostra “baixado · não verificado”.
+- **Marcam alterações:** importar modelos e animações, renomear, organizar e associar, edições da timeline (todas as que entram no desfazer), favoritos, marcadores, loop A–B e câmeras salvas. Reproduzir, mover a câmera, trocar de aba ou mudar preferências de prévia (grid, cores, câmera ativa) não marcam.
+- **Ao substituir o modelo** com alterações pendentes, o Studio pergunta: Cancelar, Sair sem salvar ou Salvar projeto. Ao fechar ou recarregar a aba, aparece o aviso nativo do navegador.
+- **Recuperação local:** com alterações pendentes, depois de 4 s sem novas edições, o projeto completo é gravado no IndexedDB deste navegador. Nada é enviado a servidores. O limite é de 80 MB, e a cópia não é gravada se faltar cota. Na próxima abertura, o painel Projeto oferece Recuperar ou Descartar. A cópia é apagada ao salvar o projeto ou ao escolher “Sair sem salvar”.
+
 ## Uso rápido
 
-1. Importe o personagem e as animações. Nomes genéricos (`mixamo.com`, `Take 001`) passam a usar o nome do arquivo.
+1. Em **Projeto**, importe o personagem e as animações. Nomes genéricos (`mixamo.com`, `Take 001`) passam a usar o nome do arquivo.
 2. Escolha a animação na barra da timeline. Arraste na régua para navegar. Use ←/→ para avançar quadro a quadro.
 3. Em **✂ Recortar**, arraste na faixa *Trecho* ou use I/O. Depois clique em **Criar clipe com o trecho**.
-4. Exporte o GLB. Ele também funciona como arquivo de projeto: reimporte-o para continuar.
+4. Use **Salvar** para guardar o projeto e **Exportar › GLB final** para levar ao jogo.
 
-Atalhos: Espaço reproduz · ←/→ quadro · Home/End · I/O marcam o trecho · Ctrl+Z / Ctrl+Y (ou Ctrl+Shift+Z) · Delete remove o evento selecionado · Ctrl+roda dá zoom na timeline.
+Atalhos: Ctrl+S salva · Espaço reproduz · ←/→ quadro · Home/End · I/O marcam o trecho · Ctrl+Z / Ctrl+Y (ou Ctrl+Shift+Z) · Delete remove o evento selecionado · Ctrl+roda dá zoom na timeline.
 
 ## Ferramentas da Fase 1
 
@@ -81,3 +98,5 @@ reaplique `rootMotion.original`. Esse dado serve para medir ou calibrar, não pa
 - `node prototypes/studio/verify.mjs` testa no Edge headless, offline, um rig sintético no estilo Mixamo. O fluxo inclui importação com nomes duplicados, timeline, recorte de 0,4 s, eventos nos quadros 8/22, versão in-place, tempo/loop/restaurar com undo/redo, drag & drop, comparação e regressões do v6. Em seguida, exporta o GLB, reimporta e confirma que recorte, eventos, in-place, nomes, associações, hierarquia e skinning foram preservados.
 - `ARENAMON_LOCAL_MODEL=…glb node prototypes/studio/verify.mjs` acrescenta um modelo local. Os resultados ficam em `validation/`, que é ignorado pelo Git.
 - `node prototypes/studio/test/local-shot.mjs modelo.glb [índice]` gera capturas locais do editor.
+- `node prototypes/studio/test/shots.mjs` e `node prototypes/studio/test/smoke.mjs nome largura altura` geram as capturas de comparação com o rig sintético.
+- O `verify.mjs` usa um seletor de arquivos simulado para testar gravação, cancelamento e falha, além de layout, abas, painéis, aviso de saída e recuperação.

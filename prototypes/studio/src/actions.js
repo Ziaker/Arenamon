@@ -25,7 +25,7 @@ export function alternativeTarget(name) {
   return specific.length === 1 ? specific[0] : null;
 }
 
-export function createActionEditor({getClips, onRename, status, extra = () => ({})}) {
+export function createActionEditor({getClips, onRename, onChange = () => {}, status, extra = () => ({})}) {
   const $ = id => document.getElementById(id);
   let assignments = new Map();
   const rows = new Map();
@@ -35,7 +35,7 @@ export function createActionEditor({getClips, onRename, status, extra = () => ({
     const select = document.createElement('select');select.id = `action-${id}`;
     const hint = document.createElement('small');
     row.append(title, select, hint);$('action-list').append(row);rows.set(id, {select, hint});
-    select.onchange = () => {assignments.set(id, getClips()[Number(select.value)] || null);refresh();};
+    select.onchange = () => {assignments.set(id, getClips()[Number(select.value)] || null);refresh();onChange('associar ação');};
   }
   function reference(clip) {
     const index = getClips().indexOf(clip);
@@ -94,6 +94,7 @@ export function createActionEditor({getClips, onRename, status, extra = () => ({
     clip.name = name;onRename();refresh();status(`Animação renomeada para “${name}”. Exporte novamente o GLB e o JSON juntos.`);
   };
   $('clip-name').onkeydown = event => {if (event.key === 'Enter') $('rename-clip').click();};
+  $('alt-chance').addEventListener('change', () => onChange('chance de alternativa'));
   function uniqueNames() {
     const used = new Set();
     getClips().forEach(clip => {const base = clip.name.trim() || 'Animação';let name = base, suffix = 2;while (used.has(name.toLowerCase())) name = `${base} (${suffix++})`;clip.name = name;used.add(name.toLowerCase());});

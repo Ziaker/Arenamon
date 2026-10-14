@@ -11,7 +11,7 @@ const E = window.__importer;
 const fmt = (x, d = 3) => x.toLocaleString('pt-BR', {minimumFractionDigits: d, maximumFractionDigits: d});
 const toast = msg => {const n = $('toast');if (!n) return;n.textContent = msg;n.classList.add('show');clearTimeout(toast.timer);toast.timer = setTimeout(() => n.classList.remove('show'), 2600);};
 
-const history = createHistory({onChange: s => {
+const history = createHistory({onEdit: c => window.__studioProject?.markDirty(c.label), onChange: s => {
   $('ed-undo').disabled = !s.canUndo;$('ed-redo').disabled = !s.canRedo;
   $('ed-undo').title = s.canUndo ? `Desfazer: ${s.undoLabel} (Ctrl+Z)` : 'Nada para desfazer';
   $('ed-redo').title = s.canRedo ? `Refazer: ${s.redoLabel} (Ctrl+Y)` : 'Nada para refazer';
@@ -66,7 +66,7 @@ function applyHeight() {
   stage.style.setProperty('--ed-dock-h', Math.min(h, Math.max(bar + 6, stage.clientHeight - 140)) + 'px');
   dock.classList.toggle('ed-collapsed', ui.collapsed);$('ed-collapse').setAttribute('aria-expanded', String(!ui.collapsed));$('ed-collapse').textContent = ui.collapsed ? '▴' : '▾';
   try {localStorage.setItem('arenamon-studio-timeline-h', String(ui.height));localStorage.setItem('arenamon-studio-timeline-collapsed', ui.collapsed ? '1' : '0');} catch {}
-  timeline.invalidate();
+  timeline.invalidate();window.__studioLayout?.syncTimeline(ui.collapsed);
 }
 {
   const grip = $('ed-grip');let start = null;
@@ -76,7 +76,8 @@ function applyHeight() {
   grip.addEventListener('dblclick', () => {ui.collapsed = !ui.collapsed;applyHeight();});
   grip.addEventListener('keydown', e => {if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {e.preventDefault();ui.collapsed = false;ui.height = Math.max(110, ui.height + (e.key === 'ArrowUp' ? 20 : -20));applyHeight();}});
   $('ed-collapse').onclick = () => {ui.collapsed = !ui.collapsed;applyHeight();};
-  new ResizeObserver(() => applyHeight()).observe(stage);
+  // A barra pode quebrar em várias linhas: remede quando o palco ou a própria barra mudam de tamanho.
+  const ro = new ResizeObserver(() => applyHeight());ro.observe(stage);ro.observe(dock.querySelector('.ed-bar'));
 }
 function openTool(name, {keep = false} = {}) {
   if (ui.tool === name && !keep) name = null;
@@ -303,7 +304,7 @@ window.addEventListener('keydown', e => {
 
 // ---------- Sincronização com o motor ----------
 function renderAll() {
-  const c = clip();$('ed-empty').hidden = !!c;timeline.range = range();
+  const c = clip();$('ed-empty').hidden = !!c;dock.classList.toggle('no-clip', !c);timeline.range = range();
   renderTrim();renderTime();renderEvents();renderRoot();renderCompare();timeline.invalidate();
 }
 E.on('modelInstalled', () => {history.clear();ui.selectedEvent = null;ui.rootChoice = null;});
@@ -328,6 +329,7 @@ function manifest() {
 function beforeExport() {for (const c of E.clips) {const d = meta(c);d.fps = ui.fps;for (const e of d.events) e.frame = Math.round(e.time * ui.fps);}}
 window.__studioEditor = {
   manifest, beforeExport, frameStep, openTool, history, store, timeline,
+  setCollapsed(v) {ui.collapsed = !!v;applyHeight();}, get collapsed() {return ui.collapsed;},
   setRange, trimToNew, trimHere, setSpeed, setDuration, loopClose, addEvent, updateEvent, removeEvent, applyRoot, analysis: () => clip() && analysis(clip()),
   undo: () => history.undo(), redo: () => history.redo(), get fps() {return ui.fps;}, set fps(v) {$('ed-fps').value = String(v);$('ed-fps').onchange();},
 };

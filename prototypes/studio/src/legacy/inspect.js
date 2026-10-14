@@ -30,7 +30,7 @@ function setBackground(){if($('v4-background-on').checked)scene.background=new T
 function setFov(value){camera.fov=clamp(Number(value)||40,20,100);camera.updateProjectionMatrix();$('v4-fov-val').textContent=camera.fov+'°'}
 function setOrbit(){const on=$('v4-orbit').checked;controls.autoRotate=on;controls.autoRotateSpeed=clamp(Number($('v4-orbit-speed').value)||1.5,.1,6);if(on){V3.setCameraSelect('free');status('Câmera livre em órbita automática')}}
 function bookmark(index,save){
- if(save){state.cameraSlots[index]={position:camera.position.toArray(),target:controls.target.toArray(),fov:camera.fov};status('Câmera '+(index+1)+' salva');toast('Posição da câmera salva no slot '+(index+1))}
+ if(save){state.cameraSlots[index]={position:camera.position.toArray(),target:controls.target.toArray(),fov:camera.fov};window.__studioProject?.markDirty('câmera salva');status('Câmera '+(index+1)+' salva');toast('Posição da câmera salva no slot '+(index+1))}
  else {const data=state.cameraSlots[index];if(!data)return toast('Nenhuma câmera salva no slot '+(index+1));V3.setCameraSelect('free');camera.position.fromArray(data.position);controls.target.fromArray(data.target);setFov(data.fov);$('v4-fov').value=String(data.fov);controls.update();status('Câmera '+(index+1)+' restaurada')}
  renderCameraSlots()
 }
@@ -51,7 +51,7 @@ function decorateLibrary(){
  const parent=$('clip-library');if(!parent)return;
  const wrappers=[...parent.children].filter(x=>x.querySelector('.clip-card[data-clip]'));
  for(const wrap of wrappers){const card=wrap.querySelector('.clip-card[data-clip]'),i=Number(card.dataset.clip);if(!card.querySelector('.v4-fav')){
-  const btn=document.createElement('button');btn.className='v4-fav';btn.type='button';btn.title='Marcar/desmarcar como favorita';btn.setAttribute('aria-label','Favoritar '+safeName(E.clips[i]?.name));btn.addEventListener('click',ev=>{ev.preventDefault();ev.stopPropagation();state.favorites.has(i)?state.favorites.delete(i):state.favorites.add(i);decorateLibrary()});card.append(btn)
+  const btn=document.createElement('button');btn.className='v4-fav';btn.type='button';btn.title='Marcar/desmarcar como favorita';btn.setAttribute('aria-label','Favoritar '+safeName(E.clips[i]?.name));btn.addEventListener('click',ev=>{ev.preventDefault();ev.stopPropagation();state.favorites.has(i)?state.favorites.delete(i):state.favorites.add(i);decorateLibrary();window.__studioProject?.markDirty('favoritos')});card.append(btn)
  }
  const star=card.querySelector('.v4-fav');star.textContent=state.favorites.has(i)?'★':'☆';star.setAttribute('aria-pressed',String(state.favorites.has(i)));
  wrap.hidden=!!$('v4-only-favorites').checked&&!state.favorites.has(i)
@@ -77,14 +77,14 @@ function updateAB(){const x=currentAB(),on=$('v4-ab-on');on.checked=!!x.active;c
 function setAB(point){const i=getSelected(),clip=E.selectedClip;if(!clip)return toast('Selecione uma animação');let x=state.ab[i]||{a:null,b:null,active:false};const t=clamp(currentTime(),0,clip.duration||0);
  if(point==='a'){x.a=t;if(x.b!=null&&x.b<=x.a)x.b=null}
  if(point==='b'){if(x.a==null){toast('Defina o início A primeiro');return}if(t<=x.a+.001){toast('B deve estar depois de A');return}x.b=t}
- state.ab[i]=x;updateAB();status(point.toUpperCase()+' marcado em '+t.toFixed(2)+'s')}
+ state.ab[i]=x;updateAB();window.__studioProject?.markDirty('loop A–B');status(point.toUpperCase()+' marcado em '+t.toFixed(2)+'s')}
 function renderMarkers(){const el=$('v4-markers');el.replaceChildren();const rows=clipEntry(state.markers,getSelected())||[];
  if(!rows.length){const text=document.createElement('span');text.className='v4-loop-note';text.textContent='Sem marcadores';el.append(text);return}
  for(const m of rows){const row=document.createElement('span');row.className='v4-marker';const goto=document.createElement('button');goto.type='button';goto.className='v4-marker-jump';goto.textContent='◇ '+m.time.toFixed(2)+'s · '+m.name;goto.title='Ir para este momento';goto.onclick=()=>{pause();seek(m.time);status('Pose: '+m.name)};
- const del=document.createElement('button');del.type='button';del.className='v4-marker-delete';del.textContent='×';del.title='Excluir marcador';del.onclick=()=>{state.markers[getSelected()]=rows.filter(x=>x!==m);renderMarkers()};row.append(goto,del);el.append(row)}
+ const del=document.createElement('button');del.type='button';del.className='v4-marker-delete';del.textContent='×';del.title='Excluir marcador';del.onclick=()=>{state.markers[getSelected()]=rows.filter(x=>x!==m);renderMarkers();window.__studioProject?.markDirty('marcador')};row.append(goto,del);el.append(row)}
 }
 function addMarker(){const c=E.selectedClip;if(!c)return toast('Selecione uma animação para marcar');const key=getSelected();const rows=state.markers[key]||[];const t=clamp(currentTime(),0,c.duration||0),name=$('v4-marker-name').value.trim()||'Pose '+(rows.length+1);
- rows.push({time:t,name:safeName(name)});rows.sort((a,b)=>a.time-b.time);state.markers[key]=rows;$('v4-marker-name').value='';renderMarkers();status('Marcador: '+name)}
+ rows.push({time:t,name:safeName(name)});rows.sort((a,b)=>a.time-b.time);state.markers[key]=rows;$('v4-marker-name').value='';renderMarkers();window.__studioProject?.markDirty('marcador');status('Marcador: '+name)}
 function screenshot(){if(!E.model)return toast('Importe um personagem primeiro');try{const r=E.renderer,canvas=r.domElement;if(!canvas.width||!canvas.height)throw Error('Canvas sem tamanho');
  if(!V3.render?.(0))r.render(E.scene,E.camera);const data=canvas.toDataURL('image/png');if(data.length<200)throw Error('Imagem PNG vazia');const a=document.createElement('a');const name=(E.selectedClip?.sourceFile||'arenamon').replace(/\.[^.]+$/,'').replace(/[^a-zA-Z0-9_-]/g,'_');a.download='arenamon-'+name+'-pose.png';a.href=data;a.click();toast('Captura PNG salva');
  }catch(error){console.warn(error);toast('Falha na captura PNG: '+error.message)}}
@@ -125,8 +125,8 @@ for(const id of ['v4-orbit','v4-orbit-speed'])$(id).addEventListener('input',set
 for(const id of ['v4-clip-sort','v4-only-favorites'])$(id).addEventListener('change',decorateLibrary);
 new MutationObserver(()=>queueMicrotask(decorateLibrary)).observe($('clip-library'),{childList:true,subtree:false});
 $('clip').addEventListener('change',()=>{state.lastClip=-1;updateClipOptions()});
-$('v4-ab-on').addEventListener('change',()=>{const i=getSelected();const ab=state.ab[i]||{a:null,b:null,active:false};if($('v4-ab-on').checked&&!(Number.isFinite(ab.a)&&Number.isFinite(ab.b)&&ab.b>ab.a)){toast('Marque A e B antes de ativar o loop');$('v4-ab-on').checked=false;return}ab.active=$('v4-ab-on').checked;state.ab[i]=ab;updateAB()});
-$('v4-ab-a').onclick=()=>setAB('a');$('v4-ab-b').onclick=()=>setAB('b');$('v4-ab-clear').onclick=()=>{delete state.ab[getSelected()];updateAB()};
+$('v4-ab-on').addEventListener('change',()=>{const i=getSelected();const ab=state.ab[i]||{a:null,b:null,active:false};if($('v4-ab-on').checked&&!(Number.isFinite(ab.a)&&Number.isFinite(ab.b)&&ab.b>ab.a)){toast('Marque A e B antes de ativar o loop');$('v4-ab-on').checked=false;return}ab.active=$('v4-ab-on').checked;state.ab[i]=ab;updateAB();window.__studioProject?.markDirty('loop A–B')});
+$('v4-ab-a').onclick=()=>setAB('a');$('v4-ab-b').onclick=()=>setAB('b');$('v4-ab-clear').onclick=()=>{delete state.ab[getSelected()];updateAB();window.__studioProject?.markDirty('loop A–B')};
 $('v4-marker-add').onclick=addMarker;$('v4-marker-name').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addMarker()}});
 $('v4-screenshot').onclick=screenshot;$('v4-focus').onclick=focusMode;
 window.addEventListener('keydown',e=>{const a=document.activeElement;if(a&&['INPUT','SELECT','TEXTAREA'].includes(a.tagName))return;if(e.ctrlKey||e.metaKey||e.altKey)return;
@@ -139,5 +139,5 @@ window.addEventListener('keydown',e=>{const a=document.activeElement;if(a&&['INP
 renderCameraSlots();setFov($('v4-fov').value);setBackground();updateClipOptions();
 // Fase 1: favoritos, A–B e marcadores são indexados por posição; remover um clipe derivado desloca os índices.
 function onClipRemoved(index){const shift=obj=>{const out={};for(const [k,v] of Object.entries(obj)){const j=+k;if(j<index)out[j]=v;else if(j>index)out[j-1]=v}return out};state.favorites=new Set([...state.favorites].filter(i=>i!==index).map(i=>i>index?i-1:i));state.ab=shift(state.ab);state.markers=shift(state.markers);state.lastClip=-1}
-window.__studioV4={onClipRemoved,markers:()=>state.markers,restore,updateClipOptions,onSceneLoaded,decorateLibrary,renderMetadata,bookmark,seek,addMarker,getFavorites:()=>new Set(state.favorites),toggleFavorite:(i)=>{state.favorites.has(i)?state.favorites.delete(i):state.favorites.add(i);decorateLibrary()}};
+window.__studioV4={onClipRemoved,markers:()=>state.markers,restore,updateClipOptions,onSceneLoaded,decorateLibrary,renderMetadata,bookmark,seek,addMarker,getFavorites:()=>new Set(state.favorites),toggleFavorite:(i)=>{state.favorites.has(i)?state.favorites.delete(i):state.favorites.add(i);decorateLibrary();window.__studioProject?.markDirty('favoritos')}};
 })();

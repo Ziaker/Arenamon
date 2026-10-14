@@ -18,11 +18,11 @@ const controls = new OrbitControls(camera, renderer.domElement), lights = new T.
 lights.add(new T.HemisphereLight(0xffffff, 0x566477, 2));const key = new T.DirectionalLight(0xffffff, 2);key.position.set(3, 5, 4);lights.add(key);
 let model, mixer, clips = [], playing = true, originals = new Map(), rest = new Map(), materialIds = new Map(), busy = false;
 const palette = ['#829bb8', '#bc987d', '#819f91', '#9b8ead', '#b6ad7e', '#829fa9'];
-const listeners = {clipsChanged: new Set(), clipEdited: new Set(), modelInstalled: new Set(), selected: new Set(), tick: new Set(), playing: new Set()};
+const listeners = {clipsChanged: new Set(), clipEdited: new Set(), modelInstalled: new Set(), installed: new Set(), selected: new Set(), tick: new Set(), playing: new Set(), dirty: new Set()};
 const emit = (name, ...args) => {for (const fn of listeners[name]) fn(...args);};
 function status(message) {$('status').textContent = message;}
 const actionEditor = createActionEditor({
-  getClips: () => clips, onRename: updateClips, status,
+  getClips: () => clips, onRename: () => {updateClips();emit('dirty', 'renomear animação');}, onChange: reason => emit('dirty', reason), status,
   extra: () => ({
     organization: window.__arenamonOrganization?.manifest() || null,
     preview: window.__studioV3?.serialize?.() || null,
@@ -98,6 +98,7 @@ async function install(root, animations, sourceFile) {
   await new Promise(resolve => requestAnimationFrame(() => {renderer.render(scene, camera);requestAnimationFrame(resolve);}));
   $('export').disabled = false;$('frame').disabled = false;setPlaying(playing);
   status(`Modelo carregado. ${clips.length} animações. Texturas externas não são carregadas; use GLB com recursos embutidos.`);
+  emit('installed', savedManifest || null, sourceFile);
 }
 function normalize(name) {return name.replace(/^mixamorig[:_]?/i, '').replace(/[^a-z0-9]/gi, '').toLowerCase();}
 function nodeIndex(root) {const nodes = new Map();root.traverse(o => {const name = normalize(o.name);if (!nodes.has(name)) nodes.set(name, []);nodes.get(name).push(o);});return nodes;}
@@ -113,7 +114,7 @@ function append(animations, sourceFile) {
   const additions = animations.map(clip => {const result = clip.clone();result.tracks = result.tracks.map(track => bindTrack(track, nodes, true));return result;});
   additions.forEach((clip, index) => {if (sourceFile) {clip.name = clipName(clip, sourceFile, index, animations.length);clip.sourceFile = sourceFile;}});
   clips.push(...additions);actionEditor.uniqueNames();updateClips();$('clip').value = String(clips.length - additions.length);selectClip();actionEditor.refresh();
-  window.__arenamonOrganization?.refresh();window.__studioV3?.onClipsChanged?.();emit('clipsChanged');return additions.length;
+  window.__arenamonOrganization?.refresh();window.__studioV3?.onClipsChanged?.();emit('clipsChanged');emit('dirty', 'animações adicionadas');return additions.length;
 }
 // ---- API de edição (Fase 1) ----
 function uniqueName(base) {const used = new Set(clips.map(c => c.name.toLowerCase()));let name = base, n = 2;while (used.has(name.toLowerCase())) name = `${base} (${n++})`;return name;}
@@ -147,27 +148,26 @@ function setPlaying(value) {
   const action = currentAction();if (playing && action && action.loop === T.LoopOnce && action.time >= action.getClip().duration - 1e-4) action.reset().play();
   emit('playing', playing);
 }
-async function exportGLB() {
+// Opções explícitas: o projeto salva sempre com materiais originais; o GLB final usa as opções de Exportar.
+async function exportGLB({unlit = $('unlit').checked, noTextures = $('noTextures').checked} = {}) {
   if (!model) throw Error('Importe um modelo primeiro.');
   // Clone skeletons and export the original local transforms, never the live animated pose.
   const root = clone(model), source = [], target = [];model.traverse(o => source.push(o));root.traverse(o => target.push(o));const uuidMap = new Map();
   source.forEach((o, i) => {const c = target[i], r = rest.get(o.uuid);uuidMap.set(o.uuid, c.uuid);if (r) {c.position.copy(r.position);c.quaternion.copy(r.quaternion);c.scale.copy(r.scale);c.matrix.copy(r.matrix);}if (o.isMesh) c.material = originals.get(o.uuid);});
   window.__studioEditor?.beforeExport?.();
   const exportedClips = clips.map(clip => {const c = clip.clone();c.tracks.forEach(t => {const dot = t.name.indexOf('.'), id = t.name.slice(0, dot);if (uuidMap.has(id)) t.name = uuidMap.get(id) + t.name.slice(dot);});return c;});
-  root.userData.arenamonActions = actionEditor.manifest();materials(root, $('unlit').checked, $('noTextures').checked);root.updateMatrixWorld(true);
+  root.userData.arenamonActions = actionEditor.manifest();materials(root, unlit, noTextures);root.updateMatrixWorld(true);
   try {return await new GLTFExporter().parseAsync(root, {binary: true, animations: exportedClips, onlyVisible: false});} finally {root.traverse(o => {if (o.isMesh) [].concat(o.material).forEach(m => m.dispose());});}
 }
-function download(data, name, type) {const url = URL.createObjectURL(new Blob([data], {type})), a = document.createElement('a');a.href = url;a.download = name;a.click();setTimeout(() => URL.revokeObjectURL(url), 1000);}
 async function task(fn) {if (busy) return;busy = true;try {await fn();} catch (e) {status(e.message);console.error(e);} finally {busy = false;}}
 $('model').onclick = () => {$('model').value = '';};
-$('model').onchange = () => task(async () => {const f = $('model').files[0];if (!f) return;status(`Lendo ${f.name}…`);const data = await parse(f);await install(data.scene, data.animations, f.name);});
+// Substituir o modelo descarta o projeto atual: pergunta antes quando há alterações não salvas.
+$('model').onchange = () => task(async () => {const f = $('model').files[0];if (!f) return;if (!(await (window.__studioProject?.guardDiscard?.() ?? true))) {status('Importação cancelada. O projeto atual foi mantido.');$('model').value = '';return;}status(`Lendo ${f.name}…`);const data = await parse(f);await install(data.scene, data.animations, f.name);});
 $('animations').onchange = () => task(async () => {for (const f of $('animations').files) {const data = await parse(f);const count = append(data.animations, f.name);status(`${count} animações anexadas de ${f.name}. Total: ${clips.length}.`);}});
 for (const id of ['textures', 'lighting', 'palette', 'color']) $(id).onchange = () => {for (const k of ['textures', 'lighting']) $(k + 'Label').textContent = (k === 'textures' ? 'Texturas' : 'Iluminação') + ': ' + ($(k).checked ? 'ON' : 'OFF');refresh();};
 $('color').addEventListener('input', () => {$('palette').value = 'global';refresh();window.__arenamonOrganization?.updateAppearance();});
 $('clip').onchange = selectClip;$('play').onclick = () => setPlaying(!playing);
 $('frame').onclick = () => task(async () => {frameModel();renderer.render(scene, camera);});
-$('export-json').onclick = () => {const data = actionEditor.manifest();download(JSON.stringify(data, null, 2), 'arenamon-actions.json', 'application/json');status(`JSON exportado. ${data.missingActions.length} ações pendentes. ${data.warnings.length} avisos nos extras.`);};
-$('export').onclick = () => task(async () => {const data = await exportGLB();download(data, 'arenamon-prototipo.glb', 'model/gltf-binary');status(`GLB exportado · ${clips.length} animações · ${$('noTextures').checked ? 'sem texturas' : 'texturas permitidas'} · ${$('unlit').checked ? 'unlit' : 'iluminado'}.`);});
 new ResizeObserver(() => {const w = view.clientWidth, h = view.clientHeight;if (w < 1 || h < 1) return;renderer.setSize(w, h, false);camera.aspect = w / h;camera.updateProjectionMatrix();}).observe(view);
 const clock = new T.Clock();
 renderer.setAnimationLoop(() => {
@@ -177,7 +177,7 @@ renderer.setAnimationLoop(() => {
 });
 const on = (name, fn) => {listeners[name].add(fn);return () => listeners[name].delete(fn);};
 window.__importer = {
-  install, append, exportGLB, parse, T, refresh, addClip, removeClip, clipChanged, seek, setPlaying, on, status, frameModel,
+  install, append, exportGLB, parse, T, refresh, manifest: () => actionEditor.manifest(), addClip, removeClip, clipChanged, seek, setPlaying, on, status, frameModel,
   get model() {return model;}, get clips() {return clips;}, get mixer() {return mixer;}, get scene() {return scene;}, get camera() {return camera;},
   get controls() {return controls;}, get renderer() {return renderer;}, get playing() {return playing;},
   get selectedIndex() {return selectedIndex();}, get selectedClip() {return clips[selectedIndex()] || null;}, get selectedAction() {return currentAction();},

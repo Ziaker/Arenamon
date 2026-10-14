@@ -1,4 +1,4 @@
-// Teste de navegador do Animation Studio (Fase 1): edição real → exportação GLB → reimportação.
+// Teste de navegador do Animation Studio: layout por ferramentas, salvar/sair, edição real → exportação GLB → reimportação.
 // Uso: node prototypes/studio/verify.mjs   (requer `npm run build` antes)
 // Opcional: ARENAMON_LOCAL_MODEL=caminho.glb verifica também um modelo local (nunca versionado).
 import {chromium} from '@playwright/test';
@@ -15,10 +15,32 @@ await mkdir(out, {recursive: true});
 const browser = await chromium.launch({channel: 'msedge', headless: true});
 try {
   const page = await browser.newPage({viewport: {width: 1500, height: 960}, acceptDownloads: true});
+  await page.addInitScript(() => {
+    window.__picker = {mode: 'ok', files: []};
+    window.showSaveFilePicker = async opts => {
+      const mode = window.__picker.mode;if (mode === 'cancel') throw new DOMException('Cancelado pelo usuário', 'AbortError');
+      return {name: opts.suggestedName, async createWritable() {
+        if (mode === 'fail') throw new Error('disco cheio (simulado)');const chunks = [];
+        return {write: async b => {chunks.push(b);}, close: async () => {window.__picker.files.push({name: opts.suggestedName, blob: new Blob(chunks)});}};
+      }};
+    };
+  });
+  const dialogs = [];page.on('dialog', d => {dialogs.push(d.type());d.type() === 'beforeunload' ? (page.__acceptUnload ? d.accept() : d.dismiss()) : d.dismiss();});
+  // Copia para o disco o último arquivo “gravado” pelo seletor simulado.
+  const lastSaved = async path => {const b64 = await page.evaluate(async () => {const f = window.__picker.files.at(-1);const u = new Uint8Array(await f.blob.arrayBuffer());let s = '';for (let i = 0; i < u.length; i += 32768) s += String.fromCharCode(...u.subarray(i, i + 32768));return btoa(s);});await writeFile(path, Buffer.from(b64, 'base64'));return path;};
+  const saveState = () => page.getAttribute('#st-save', 'data-state');
+  const reloadAttempt = async () => {const n = dialogs.length;await page.evaluate(() => location.reload()).catch(() => {});await page.waitForTimeout(600);return dialogs.length > n;};
   page.on('pageerror', e => report.errors.push(e.message));page.on('console', m => {if (m.type() === 'error') report.errors.push(m.text());});
   page.on('request', r => {if (/^https?:/.test(r.url())) report.network.push(r.url());});
   await page.context().setOffline(true);
   await page.goto(pathToFileURL(root + 'dist/arenamon-animation-studio.html').href);await page.waitForFunction(() => window.__studioEditor && window.__importer);
+
+  // ---------- Projeto novo: sem alterações, sem aviso ao sair ----------
+  assert.equal(await saveState(), 'clean');assert.equal(await page.textContent('#st-save-text'), 'Nenhum projeto');
+  await page.click('[data-panel="appearance"]');await page.click('[data-panel="project"]'); // gesto do usuário (exigido pelo beforeunload)
+  assert.equal(await reloadAttempt(), false, 'sem aviso sem alterações');await page.waitForFunction(() => window.__studioEditor && window.__importer);
+  assert.equal(await page.isVisible('#st-panel'), true);
+  step('projeto novo: estado “Nenhum projeto” e recarregar sem aviso');
 
   // ---------- Regressão: estado inicial da v6 ----------
   assert.equal(await page.isChecked('#textures'), true, 'Texturas ON inicialmente');assert.equal(await page.isChecked('#lighting'), true, 'Iluminação ON inicialmente');
@@ -35,6 +57,54 @@ try {
   let names = await page.evaluate(() => window.__importer.clips.map(c => c.name));
   assert.deepEqual(names, ['sintetico.glb · 1', 'sintetico.glb · 2', 'sintetico.glb · 3', 'dup.fbx', 'dup.fbx · 1', 'dup.fbx · 2']);
   step('importação: modelo + 3 arquivos de animação (nomes duplicados, durações 0,5–4 s)', names);
+  assert.equal(await saveState(), 'dirty', 'importar marca alterações');
+  assert.match(await page.textContent('#st-clip-chip'), /sintetico\.glb · 1|dup\.fbx/);
+
+  // ---------- Layout: ferramentas, painéis e redimensionamento ----------
+  const width = sel => page.evaluate(s => document.querySelector(s).getBoundingClientRect().width, sel);
+  const canvasMatches = () => page.evaluate(() => {const v = document.getElementById('view'), c = v.querySelector('canvas');return Math.abs(c.getBoundingClientRect().width - v.clientWidth) < 2 && Math.abs(c.width / devicePixelRatio - v.clientWidth) < 2;});
+  const SECTIONS = {project: '#model-drop', appearance: '#color', scene: '#lab-grid', camera: '#lab-camera', motion: '#lab-root-mode', inspect: '#v4-skeleton', export: '#export'};
+  const modelId = await page.evaluate(() => window.__importer.model.uuid);
+  for (const [panel, control] of Object.entries(SECTIONS)) {
+    await page.click(`[data-panel="${panel}"]`);
+    if (!(await page.isVisible('#st-panel'))) await page.click(`[data-panel="${panel}"]`);
+    const visible = await page.evaluate(() => [...document.querySelectorAll('[data-section]')].filter(s => !s.hidden && s.offsetParent).map(s => s.dataset.section));
+    assert.deepEqual(visible, [panel], 'somente a aba ativa: ' + panel);assert.equal(await page.isVisible(control), true, control + ' visível em ' + panel);
+    for (const [other, c] of Object.entries(SECTIONS)) if (other !== panel) assert.equal(await page.isVisible(c), false, c + ' oculto em ' + panel);
+  }
+  assert.equal(await page.evaluate(() => window.__importer.model.uuid), modelId, 'trocar de aba não recarrega o modelo');
+  // Aparência e câmera sincronizadas entre o painel e os atalhos do visualizador.
+  await page.click('[data-panel="camera"]');await page.selectOption('#lab-camera', 'game');assert.equal(await page.inputValue('#lab-quick-camera'), 'game');
+  await page.selectOption('#lab-quick-camera', 'free');assert.equal(await page.inputValue('#lab-camera'), 'free');
+  assert.equal(await saveState(), 'dirty');
+  // Recolher/reabrir e redimensionar a esquerda.
+  const stageOpen = await width('.stage');await page.click('#st-panel-close');await page.waitForTimeout(80);
+  assert.equal(await page.isVisible('#st-panel'), false);const stageClosed = await width('.stage');assert.ok(stageClosed > stageOpen + 200, 'visualizador ganha o espaço');
+  await page.waitForTimeout(80);assert.ok(await canvasMatches(), 'canvas acompanha o novo tamanho');
+  assert.equal(await page.evaluate(() => window.__importer.playing), true, 'a animação continua ao recolher');
+  await page.click('[data-panel="project"]');assert.equal(await page.isVisible('#model-drop'), true, 'reabre pela barra');
+  const left0 = await width('#st-panel'), grip = await page.locator('#st-left-grip').boundingBox();
+  await page.mouse.move(grip.x + 3, grip.y + grip.height / 2);await page.mouse.down();await page.mouse.move(grip.x + 83, grip.y + grip.height / 2, {steps: 5});await page.mouse.up();
+  assert.ok(Math.abs(await width('#st-panel') - (left0 + 80)) < 3, 'arrastar ajusta a largura esquerda');
+  await page.focus('#st-left-grip');await page.keyboard.press('ArrowLeft');assert.ok(Math.abs(await width('#st-panel') - (left0 + 56)) < 3);
+  // Direita: redimensionar, recolher e reabrir; ambos fechados.
+  const right0 = await width('.organizer');await page.focus('.v6-resize');await page.keyboard.press('ArrowLeft');await page.keyboard.press('ArrowLeft');
+  assert.ok(Math.abs(await width('.organizer') - (right0 - 60)) < 3, 'redimensionar direita');
+  await page.click('#st-library-close');assert.equal(await page.isVisible('.organizer'), false);
+  await page.click('#st-panel-close');const both = await width('.stage');assert.ok(both > 1500 - 74 - 2, 'ambos fechados: quase toda a tela para o visualizador (' + both + ')');
+  await page.waitForTimeout(80);assert.ok(await canvasMatches());
+  await page.click('#st-toggle-library');assert.equal(await page.isVisible('.organizer'), true);
+  // Timeline: recolher e abrir pela barra.
+  await page.click('#st-toggle-timeline');assert.equal(await page.isVisible('#ed-canvas'), false);await page.click('#st-toggle-timeline');assert.equal(await page.isVisible('#ed-canvas'), true);
+  // Modo foco recolhe as duas laterais e restaura.
+  const focus = async () => {if (!(await page.evaluate(() => document.querySelector('.view-more').open))) await page.click('.view-more summary');await page.click('#v4-focus');};
+  await focus();assert.equal(await page.isVisible('.organizer'), false);
+  await focus();assert.equal(await page.isVisible('.organizer'), true);
+  // Estado preservado na sessão.
+  await page.click('[data-panel="inspect"]');
+  assert.deepEqual(await page.evaluate(() => [sessionStorage.getItem('st-panel'), sessionStorage.getItem('st-left-open'), sessionStorage.getItem('st-right-open')]), ['inspect', '1', '1']);
+  await page.click('[data-panel="project"]');
+  step('layout: abas exclusivas, painéis recolhíveis e redimensionáveis, foco, timeline, canvas e estado da sessão');
   // Renomeia pela interface da v6.
   await page.click('#v6-rename-options summary');
   for (const [i, name] of [[0, 'idle'], [1, 'run'], [2, 'tackle']]) {await page.selectOption('#clip', String(i));await page.fill('#clip-name', name);await page.click('#rename-clip');}
@@ -142,30 +212,42 @@ try {
   step('comparação: original × editada, A × B (lado a lado, sobreposição, independente) e tipos da V3');
 
   // ---------- Regressão v6 ----------
-  await page.click('#quick-textures');assert.equal(await page.isChecked('#textures'), false);await page.click('#quick-textures');
-  await page.click('#quick-lighting');assert.equal(await page.isChecked('#lighting'), false);await page.click('#quick-lighting');
+  await page.click('[data-panel="appearance"]');
+  await page.click('#textures');assert.equal(await page.isChecked('#textures'), false);assert.equal(await page.textContent('#texturesLabel'), 'Texturas: OFF');await page.click('#textures');
+  await page.click('#lighting');assert.equal(await page.isChecked('#lighting'), false);await page.click('#lighting');
   await page.locator('#color').evaluate(el => {el.value = '#ff0000';el.dispatchEvent(new Event('input', {bubbles: true}));});
   assert.equal(await page.inputValue('#palette'), 'global');assert.equal(await page.evaluate(() => window.__importer.model.getObjectByName('Body').material.color.getHexString()), 'ff0000');
-  await page.selectOption('#palette', 'palette');await page.dispatchEvent('#palette', 'change');
-  const before = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--v6-organizer'));
-  await page.focus('.v6-resize');await page.keyboard.press('ArrowLeft');
-  assert.notEqual(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--v6-organizer')), before, 'painel redimensionável');
-  await page.click('#lab-quick-grid');await page.click('#lab-quick-grid');
-  await page.click('#open-tools');await page.click('[data-tool-panel="camera"]');await page.check('#lab-dummy');await page.selectOption('#lab-camera', 'game');
-  await page.click('[data-tool-panel="scene"]');await page.selectOption('#lab-root-mode', 'original');await page.click('#tools-done');
+  await page.selectOption('#palette', 'palette');
+  await page.click('#lab-quick-grid');assert.equal(await page.isChecked('#lab-grid'), false);await page.click('#lab-quick-grid');
+  await page.click('[data-panel="scene"]');await page.check('#lab-dummy');assert.equal(await page.evaluate(() => window.__importer.scene.children.find(o => o.name === 'Arenamon Studio · Alvo técnico').visible), true);
+  await page.click('[data-panel="camera"]');await page.selectOption('#lab-camera', 'lock');await page.click('#lab-preset');assert.equal(await page.inputValue('#lab-camera'), 'game');
+  await page.click('[data-panel="motion"]');await page.selectOption('#lab-root-mode', 'original');
+  await page.click('[data-panel="inspect"]');await page.check('#v4-skeleton');await page.uncheck('#v4-skeleton');
   await page.selectOption('#lab-quick-camera', 'free');await page.click('#play');assert.equal(await page.evaluate(() => window.__importer.playing), true);
   await page.click('#play');assert.equal(await page.evaluate(() => window.__importer.playing), false);
-  step('regressão: texturas/luz, pintura global, painel, grid, dummy, câmeras, root mode, reprodução');
+  step('regressão: texturas/luz, pintura global, grid, dummy, câmeras, root mode, inspeção, reprodução (nas abas)');
 
   // ---------- Exportação ----------
   const tackleAt = await page.evaluate(() => window.__importer.clips[2].userData.arenamon.events.map(e => e.type));
   assert.deepEqual(tackleAt, ['hitbox_on', 'recovery_start']);
-  await page.click('#open-export');
-  let pending = page.waitForEvent('download');await page.click('#export-json');const jsonPath = out + 'actions.json';await (await pending).saveAs(jsonPath);
+  await page.click('#st-top-export');assert.equal(await page.isVisible('#export'), true, 'Exportar abre a aba');
+  await page.evaluate(() => {window.__picker.mode = 'ok';});await page.click('#export-json');await page.waitForFunction(() => document.getElementById('st-export-result').dataset.state === 'ok');
+  const jsonPath = await lastSaved(out + 'actions.json');
   const manifest = JSON.parse(await readFile(jsonPath, 'utf8'));assert.equal(manifest.animationEditor.schemaVersion, 1);
   assert.deepEqual(manifest.animationEditor.clips[2].events.map(e => [e.type, e.frame]), [['hitbox_on', 8], ['recovery_start', 22]]);
-  pending = page.waitForEvent('download');await page.click('#export');const glbPath = out + 'studio-roundtrip.glb';await (await pending).saveAs(glbPath);
-  await page.click('#close-export');
+  // GLB final: cancelar, falhar e gravar. Nenhum deles marca o projeto como salvo.
+  for (const [mode, expected] of [['cancel', 'canceled'], ['fail', 'error'], ['ok', 'ok']]) {
+    await page.evaluate(m => {window.__picker.mode = m;document.getElementById('st-export-result').dataset.state = '';}, mode);await page.click('#export');
+    await page.waitForFunction(x => document.getElementById('st-export-result').dataset.state === x, expected);assert.equal(await saveState(), 'dirty', 'exportar o GLB final não equivale a salvar o projeto');
+  }
+  assert.match(await page.textContent('#st-export-result'), /gravado.*continua com alterações não salvas/);
+  const glbPath = await lastSaved(out + 'studio-roundtrip.glb');
+  // Sem a File System Access API: download comum, indicado como não verificado.
+  await page.evaluate(() => {window.__keepPicker = window.showSaveFilePicker;delete window.showSaveFilePicker;});
+  let pending = page.waitForEvent('download');await page.click('#export-json');await (await pending).saveAs(out + 'actions-download.json');
+  await page.waitForFunction(() => /não verificado/.test(document.getElementById('st-export-result').textContent));
+  await page.evaluate(() => {window.showSaveFilePicker = window.__keepPicker;});
+  step('exportação: GLB final e JSON gravados, cancelados, com falha e por download; estado do projeto preservado');
   const doc = glbJson(await readFile(glbPath));
   const exportedNames = doc.animations.map(a => a.name);const expected = await page.evaluate(() => window.__importer.clips.map(c => c.name));
   assert.deepEqual(exportedNames, expected);assert.ok(doc.skins?.length, 'skin exportado');
@@ -176,8 +258,28 @@ try {
 
   // ---------- Reimportação ----------
   const originalSkin = await page.evaluate(() => {const m = window.__importer.model.getObjectByName('Body');return {bones: m.skeleton.bones.map(b => b.name), parents: m.skeleton.bones.map(b => b.parent?.name), vertices: m.geometry.attributes.position.count};});
-  await page.setInputFiles('#model', glbPath);
-  await page.waitForFunction(n => window.__importer.clips.length === n && document.getElementById('status').textContent.startsWith('Modelo carregado'), expected.length);
+  // Aviso ao sair: recarregar mostra o aviso nativo; cancelar mantém o trabalho.
+  assert.equal(await reloadAttempt(), true, 'beforeunload com alterações');assert.equal(await page.evaluate(() => window.__importer?.clips.length), expected.length, 'cancelar a saída mantém o trabalho');
+  // Substituir o modelo: diálogo interno. Cancelar mantém tudo.
+  const uuidBefore = await page.evaluate(() => window.__importer.model.uuid);
+  await page.setInputFiles('#model', glbPath);await page.waitForSelector('#st-confirm:not([hidden])');
+  assert.equal(await page.textContent('#st-confirm-title'), 'Alterações não salvas');await page.click('[data-answer="cancel"]');await page.waitForTimeout(150);
+  assert.equal(await page.evaluate(() => window.__importer.model.uuid), uuidBefore, 'cancelar mantém o projeto');assert.equal(await saveState(), 'dirty');
+  // Salvar projeto pelo diálogo: falha → continua; depois grava e substitui.
+  await page.evaluate(() => {window.__picker.mode = 'fail';});await page.setInputFiles('#model', glbPath);await page.waitForSelector('#st-confirm:not([hidden])');await page.click('[data-answer="save"]');
+  await page.waitForFunction(() => document.getElementById('st-save').dataset.state === 'error');assert.equal(await page.evaluate(() => window.__importer.model.uuid), uuidBefore, 'falha ao salvar não descarta');
+  await page.evaluate(() => {window.__picker.mode = 'cancel';});await page.click('#st-top-save');await page.waitForTimeout(150);assert.equal(await saveState(), 'dirty', 'cancelar o salvamento mantém “não salvo”');
+  await page.evaluate(() => {window.__picker.mode = 'ok';});await page.click('#st-top-save');await page.waitForFunction(() => document.getElementById('st-save').dataset.state === 'saved');
+  assert.match(await page.textContent('#st-save-text'), /Projeto salvo às/);const projectPath = await lastSaved(out + 'projeto.arenamon.glb');
+  assert.match(await page.evaluate(() => window.__picker.files.at(-1).name), /\.arenamon\.glb$/);
+  assert.equal(await reloadAttempt(), false, 'sem aviso depois de salvar');await page.waitForFunction(() => window.__importer && window.__studioEditor);
+  step('salvar/sair: beforeunload, diálogo (cancelar, salvar com falha), salvar cancelado, salvo e recarregar sem aviso');
+  // Projeto reaberto do arquivo: começa sem alterações. Depois, Sair sem salvar substitui pelo GLB final.
+  await page.setInputFiles('#model', projectPath);await page.waitForFunction(n => window.__importer.clips.length === n && document.getElementById('status').textContent.startsWith('Modelo carregado'), expected.length);
+  assert.equal(await saveState(), 'clean', 'projeto aberto de arquivo');
+  await page.evaluate(() => window.__studioEditor.setSpeed(150));assert.equal(await saveState(), 'dirty');
+  await page.setInputFiles('#model', glbPath);await page.waitForSelector('#st-confirm:not([hidden])');await page.click('[data-answer="discard"]');
+  await page.waitForFunction(n => window.__importer.clips.length === n && document.getElementById('status').textContent.startsWith('Modelo carregado') && window.__importer.clips[0].duration === 2, expected.length);
   const re = await page.evaluate(({trimmedIndex, inplaceIndex}) => {
     const E = window.__importer, T = E.T, clips = E.clips, body = E.model.getObjectByName('Body'), hips = E.model.getObjectByName('mixamorigHips'), head = E.model.getObjectByName('mixamorigHead');
     const tr = clips[trimmedIndex], ip = clips[inplaceIndex], hp = ip.tracks.find(t => t.name === hips.uuid + '.position').values;let spreadX = 0, spreadZ = 0;
@@ -202,22 +304,48 @@ try {
   await page.selectOption('#clip', String(trimmedIndex));await page.click('[data-tool="events"]');assert.equal(await page.locator('.ed-event').count(), 2);
   step('reimportação: recorte, eventos, in-place, nomes, associações, hierarquia e skinning preservados', re);
 
+  // ---------- Recuperação local após fechar sem salvar ----------
+  await page.evaluate(() => {window.__importer.selectIndex(0);window.__studioEditor.setSpeed(200);});assert.equal(await saveState(), 'dirty');
+  await page.waitForFunction(() => /cópia neste navegador/.test(document.getElementById('st-info-recovery').textContent), null, {timeout: 20000});
+  page.__acceptUnload = true;await page.evaluate(() => location.reload());await page.waitForFunction(() => window.__importer && window.__studioEditor);page.__acceptUnload = false;
+  assert.ok(dialogs.includes('beforeunload'));
+  await page.waitForSelector('#st-recovery:not([hidden])');assert.match(await page.textContent('#st-recovery-text'), /animações/);
+  await page.click('#st-recovery-open');await page.waitForFunction(n => window.__importer.clips.length === n, expected.length);
+  await page.waitForFunction(() => document.getElementById('st-save').dataset.state === 'dirty' && /recuperada/.test(document.getElementById('st-save').title + document.getElementById('st-info-state').textContent));
+  assert.equal(await page.evaluate(() => window.__importer.clips[0].duration), 1, 'edição recuperada');assert.equal(await page.isVisible('#st-recovery'), false);
+  assert.equal(await page.evaluate(n => window.__importer.clips[n].userData.arenamon.events.length, trimmedIndex), 2);
+  await page.evaluate(() => window.__studioProject.clearRecovery());
+  step('recuperação local: cópia gravada no IndexedDB, oferecida após recarregar e restaurada com as edições');
+
   // Preview visível (pixels diferentes do fundo).
   await page.click('[data-tool="events"]');await page.selectOption('#lab-quick-camera', 'free');await page.click('#frame');await page.waitForTimeout(200);
   const png = (await page.locator('#view canvas').screenshot()).toString('base64');
   const visible = await page.evaluate(async png => {const img = new Image();img.src = 'data:image/png;base64,' + png;await img.decode();const c = document.createElement('canvas');c.width = img.width;c.height = img.height;const g = c.getContext('2d');g.drawImage(img, 0, 0);const d = g.getImageData(0, 0, c.width, c.height).data;let n = 0;for (let i = 0; i < d.length; i += 4) if (d[i] > 120 && d[i + 1] < 140) n++;return n / (c.width * c.height);}, png);
   assert.ok(visible > .003, 'personagem visível no preview: ' + visible);
   await page.screenshot({path: out + 'studio.png'});
-  for (const viewport of [{width: 1920, height: 1000}, {width: 1100, height: 800}, {width: 390, height: 844}]) {
-    await page.setViewportSize(viewport);await page.waitForTimeout(150);
+  for (const viewport of [{width: 1920, height: 1000}, {width: 1024, height: 768}, {width: 390, height: 844}]) {
+    await page.setViewportSize(viewport);await page.waitForTimeout(200);
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'sem rolagem horizontal em ' + viewport.width);
-    await page.screenshot({path: out + `studio-${viewport.width}.png`});await page.locator('.stage').screenshot({path: out + `stage-${viewport.width}.png`});
+    assert.equal(await page.isVisible('#st-rail'), true, 'barra de ferramentas em ' + viewport.width);
+    if (viewport.width < 1100) {
+      // Painéis sobrepostos: um de cada vez; tocar no visualizador fecha.
+      await page.click('[data-panel="appearance"]');assert.equal(await page.isVisible('#color'), true);assert.equal(await page.isVisible('.organizer'), false);
+      await page.screenshot({path: out + `after-${viewport.width}-panel.png`});
+      await page.click('#st-toggle-library');assert.equal(await page.isVisible('#st-panel'), false);assert.equal(await page.isVisible('.organizer'), true);
+      await page.screenshot({path: out + `after-${viewport.width}-library.png`});
+      await page.click('#st-library-close');
+    }
+    await page.waitForTimeout(80);assert.ok(await canvasMatches(), 'canvas em ' + viewport.width);
+    await page.screenshot({path: out + `after-${viewport.width}.png`});
   }
-  step('preview visível e layout sem rolagem horizontal (1920, 1100, 390 px)');
+  await page.setViewportSize({width: 1500, height: 960});
+  step('preview visível; desktop, tablet e celular sem rolagem horizontal, com painéis sobrepostos no tablet/celular');
 
   if (process.env.ARENAMON_LOCAL_MODEL) {
     await page.setViewportSize({width: 1500, height: 960});
-    await page.setInputFiles('#model', process.env.ARENAMON_LOCAL_MODEL);await page.waitForFunction(() => document.getElementById('status').textContent.startsWith('Modelo carregado'), null, {timeout: 60000});
+    const prevModel = await page.evaluate(() => window.__importer.model?.uuid);await page.setInputFiles('#model', process.env.ARENAMON_LOCAL_MODEL);
+    await page.waitForSelector('#st-confirm:not([hidden])', {timeout: 5000}).then(() => page.click('[data-answer="discard"]')).catch(() => {});
+    await page.waitForFunction(id => window.__importer.model?.uuid !== id && document.getElementById('status').textContent.startsWith('Modelo carregado'), prevModel, {timeout: 60000});
     const local = await page.evaluate(async () => {
       const E = window.__importer, ed = window.__studioEditor, n = E.clips.length;if (!n) return {clips: 0};
       E.selectIndex(0);const d = E.selectedClip.duration;ed.setRange({start: d * .25, end: d * .5});ed.trimToNew();
@@ -225,8 +353,9 @@ try {
       return {clips: n, after: E.clips.length, trimmed: E.clips[n].duration, root: !!root};
     });
     if (!local.clips) step('modelo local sem animações: importado; edição não aplicável', local);else {
-    pending = page.waitForEvent('download');await page.click('#open-export');await page.click('#export');await (await pending).saveAs(out + 'local-roundtrip.glb');await page.click('#close-export');
-    await page.setInputFiles('#model', out + 'local-roundtrip.glb');await page.waitForFunction(n => window.__importer.clips.length === n, local.after, {timeout: 60000});
+    await page.click('#st-top-export');await page.evaluate(() => {window.__picker.mode = 'ok';document.getElementById('st-export-result').dataset.state = '';});await page.click('#export');
+    await page.waitForFunction(() => document.getElementById('st-export-result').dataset.state === 'ok', null, {timeout: 60000});await lastSaved(out + 'local-roundtrip.glb');
+    await page.setInputFiles('#model', out + 'local-roundtrip.glb');await page.waitForSelector('#st-confirm:not([hidden])');await page.click('[data-answer="discard"]');await page.waitForFunction(n => window.__importer.clips.length === n, local.after, {timeout: 60000});
     step('modelo local: recorte, root motion, exportação e reimportação', local);}
   }
   assert.deepEqual(report.errors, []);assert.deepEqual(report.network, []);
