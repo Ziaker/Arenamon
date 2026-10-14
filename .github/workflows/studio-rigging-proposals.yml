@@ -28,17 +28,14 @@ jobs:
         run: npm ci
       - name: Build proposals
         run: node prototypes/studio/proposals/build.mjs
-      - name: Configure Edge for CI software rendering
-        shell: pwsh
-        run: pwsh prototypes/studio/proposals/setup-ci-edge.ps1
+      - name: Configure Playwright for CI software rendering
+        run: node prototypes/studio/proposals/patch-ci.js
       - name: Run cross-validation with Codex core 7323b48
         run: node prototypes/studio/proposals/test-codex-cross.mjs
       - name: Run proposal automated tests
         run: node prototypes/studio/proposals/test-proposals.mjs
       - name: Verify repository status
-        run: |
-          Stop-Process -Name msedge,chrome,chromium -Force -ErrorAction SilentlyContinue
-          npm run verify
+        run: npm run verify
       - name: Upload proposal artifacts and screenshots
         if: always()
         uses: actions/upload-artifact@v4
