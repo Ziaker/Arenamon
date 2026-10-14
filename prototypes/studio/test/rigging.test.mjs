@@ -10,6 +10,14 @@ function fixture(){
   const geo=new T.BoxGeometry(2,3,.9,4,6,3),mesh=new T.Mesh(geo,new T.MeshStandardMaterial());
   mesh.name='CreatureBody';mesh.position.y=1.5;root.add(mesh);return root;
 }
+function multiMeshFixture(){
+  const root=new T.Group();root.name='StudioRigMultiMeshTest';root.position.set(-2,1,4);root.scale.setScalar(.75);
+  const body=new T.Mesh(new T.BoxGeometry(2.4,3.2,1,5,7,2),new T.MeshStandardMaterial());
+  body.name='CreatureBody';body.position.set(-.2,1.6,0);root.add(body);
+  const shell=new T.Mesh(new T.SphereGeometry(.7,9,6),new T.MeshStandardMaterial());
+  shell.name='CreatureShell';shell.position.set(.65,2.15,.35);root.add(shell);
+  return root;
+}
 test('bounding no espaço da raiz independe de offset/escala do modelo',()=>{
   const b=modelBounds(fixture());assert.ok(Math.abs(b.size[0]-2)<1e-8);
   assert.ok(Math.abs(b.size[1]-3)<1e-8);assert.ok(b.vertices>0);
@@ -71,6 +79,44 @@ test('geração cria SkinnedMesh real com 20 bones, index/pesos normalizados',()
   assert.equal(currentJoints(root).length,20);
   assert.equal(exportCoordinates(root).joints.length,20);
   assert.equal(exportCoordinates(root).version,2);
+});
+test('vincula duas malhas independentes sem perder geometria e audita ambas',()=>{
+  const root=multiMeshFixture(),source=new Map();
+  root.traverse(o=>{if(o.isMesh){o.geometry.computeBoundingBox();source.set(o.name,{
+    vertices:o.geometry.getAttribute('position').count,
+    positions:Array.from(o.geometry.getAttribute('position').array),
+    indices:o.geometry.index?Array.from(o.geometry.index.array):null,
+    position:o.position.toArray(),
+    size:o.geometry.boundingBox.getSize(new T.Vector3()).toArray(),
+  });}});
+  assert.equal(source.size,2);assert.notEqual(source.get('CreatureBody').vertices,source.get('CreatureShell').vertices);
+  assert.notDeepEqual(source.get('CreatureBody').position,source.get('CreatureShell').position);
+  assert.notDeepEqual(source.get('CreatureBody').size,source.get('CreatureShell').size);
+  const result=bindDraftToModel(root,makeTemplate(modelBounds(root)));
+  assert.equal(result.replacements.length,2);assert.equal(result.vertices,[...source.values()].reduce((n,m)=>n+m.vertices,0));
+  for(const {mesh} of result.replacements){
+    const before=source.get(mesh.name),positions=mesh.geometry.getAttribute('position');
+    assert.ok(mesh.isSkinnedMesh);assert.equal(mesh.skeleton,result.skeleton,'ambas usam o mesmo esqueleto');
+    assert.deepEqual(mesh.position.toArray(),before.position);
+    assert.equal(positions.count,before.vertices);assert.deepEqual(Array.from(positions.array),before.positions);
+    assert.deepEqual(mesh.geometry.index?Array.from(mesh.geometry.index.array):null,before.indices);
+    const ids=mesh.geometry.getAttribute('skinIndex'),weights=mesh.geometry.getAttribute('skinWeight');
+    assert.equal(ids.count,before.vertices);assert.equal(weights.count,before.vertices);
+    for(let i=0;i<weights.count;i++){
+      let sum=0;for(let k=0;k<4;k++){
+        const id=ids.getComponent(i,k),weight=weights.getComponent(i,k);
+        assert.ok(Number.isInteger(id)&&id>=0&&id<result.bones.length,'índice de osso válido');
+        assert.ok(Number.isFinite(weight)&&weight>=0&&weight<=1,'peso finito dentro do intervalo');sum+=weight;
+      }
+      assert.ok(Math.abs(sum-1)<1e-5,'pesos normalizados por vértice');
+    }
+  }
+  const audit=auditRig(root);assert.equal(audit.skinnedMeshes,2);assert.equal(audit.meshes.length,2);
+  for(const [name,before] of source){
+    const mesh=audit.meshes.find(m=>m.name===name);assert.ok(mesh,'auditoria inclui '+name);
+    assert.equal(mesh.vertices,before.vertices);assert.equal(mesh.skinned,true);assert.equal(mesh.bones,result.bones.length);
+    assert.equal(mesh.invalidWeights,0);assert.equal(mesh.zeroWeights,0);
+  }
 });
 for(const boneCount of [2,3])test(`skinning funciona com ${boneCount} ossos e completa slots vazios`,()=>{
   const root=fixture(),joints=Array.from({length:boneCount},(_,i)=>({id:'joint-'+i,name:'Bone'+i,parent:i?'Bone'+(i-1):null,p:[0,i,0],q:[0,0,0,1]}));
