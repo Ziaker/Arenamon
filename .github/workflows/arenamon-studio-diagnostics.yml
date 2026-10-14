@@ -33,8 +33,6 @@ jobs:
         run: node prototypes/studio/test/rigging.browser.mjs
       - name: Editor unitarios anteriores
         run: node prototypes/studio/test/ops.test.mjs
-      - name: Studio regressao completa
-        run: node prototypes/studio/verify.mjs
       - name: Arquivo de teste e evidencias
         if: always()
         uses: actions/upload-artifact@v4
@@ -45,3 +43,5 @@ jobs:
             prototypes/studio/validation/
           if-no-files-found: warn
           retention-days: 14
+      - name: Studio regressao completa
+        run: node prototypes/studio/verify.mjs
