@@ -165,7 +165,7 @@ function render() {
   if(!visible.some(j=>j.name===S.selected))S.selected=visible[0]?.name||null;
   const nSkin=skinned(), nBones=collectBones(E.model).length;
   $('rg-build').hidden=nSkin>0;
-  $('rg-bind').disabled=!S.draft?.joints.length||nSkin>0;
+  $('rg-bind').disabled=!S.draft?.joints.length||nSkin>0||E.clips.length>0;
   $('rg-template').disabled=nSkin>0;
   $('rg-pose-card').hidden=nSkin===0;
   $('rg-apply').disabled=!S.selected;
@@ -246,6 +246,7 @@ function onTemplate() {
 }
 function onBind() {
   if(!E.model||!S.draft)return;
+  if(E.clips.length){status('Vinculação bloqueada: remova as animações do arquivo sem rig primeiro. Converter malhas em SkinnedMesh mudaria UUIDs e quebraria os tracks existentes.','warn');return;}
   const message='Vincular agora '+S.draft.joints.length+' ossos às malhas usando pesos iniciais automáticos?\n\nO skinning é real e exportável, mas os pesos podem precisar de correções. A operação é estrutural e limpará o histórico de desfazer. Salve uma cópia do GLB original antes.';
   if(!window.confirm(message))return;
   clearPose();E.enterRigRest();
