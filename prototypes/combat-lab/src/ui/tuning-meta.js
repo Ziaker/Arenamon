@@ -15,8 +15,11 @@ export const NAMES={
  forward:'Mover para cima',back:'Mover para baixo',left:'Mover à esquerda',right:'Mover à direita',tackle:'Tecla de tackle',dodgeKey:'Tecla de esquiva',defend:'Tecla de defesa',lock:'Tecla de lock-on',pause:'Tecla de pausa',restart:'Tecla de reinício',debug:'Tecla de depuração'
  };
 export const SECTIONS=[
-  ['Regras de ação e stamina','rules',['dodge','tackleDuration','invulnerable','steerLimit','steerRate','recoil','recoilFraction','blend','guardStun','perfect','perfectCooldown','staminaMax','regenDelay','regenTime','guardSpeed','exhaustedSpeed','guardTurn','guardAcceleration']],
-  ['Knockback e clash','rules',['launchGravity','launchUp','launchHorizontal','launchDrag','clashFraction','clashUp','clashHorizontal','landingRecovery','wallRestitution','dodgeVaultHeight']],
+  ['Esquiva C','actions.dodge',null],
+  ['Tackle X','actions.tackle',null],
+  ['Cancelamento C → X','actions.cancel',null],
+  ['Defesa e stamina','rules',['recoil','recoilFraction','blend','guardStun','perfect','perfectCooldown','staminaMax','regenDelay','regenTime','guardSpeed','exhaustedSpeed','guardTurn','guardAcceleration']],
+  ['Knockback e clash','rules',['launchGravity','launchUp','launchHorizontal','launchDrag','clashFraction','clashUp','clashHorizontal','landingRecovery','wallRestitution']],
   ['Combate e colisões','extras.combat',null],
   ['Atributos: equilibrado','profiles.balanced',null],
   ['Atributos: ágil','profiles.agile',null],
@@ -34,8 +37,8 @@ export const SECTIONS=[
   ['Cores: canais RGB individuais','extras.colors',null],
   ['Modos de jogo','extras.gameModes',null],
   ['Teclas: índices configuráveis','extras.bindings',null],
-  ['Ativar ou desativar sistemas','extras.toggles',null]
- ];
+  ['Ativar ou desativar sistemas','extras.toggles',null],
+];
 export const TOOLTIPS={
  "tackleDuration":"Duração total do tackle X, em segundos. A distância percorrida acompanha a duração (2,5 × duração × velocidade). No v6, X usava a mesma duração da esquiva C.",
  "reaction":"Atraso mínimo, em segundos, até a IA perceber um tackle vindo na sua direção. 0 = reação instantânea, como no v6.",
