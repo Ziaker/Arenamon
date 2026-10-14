@@ -54,6 +54,13 @@
    <div class="rg-data st-card">
     <h3>Telemetria do osso</h3><pre id="rg-telemetry">—</pre>
    </div>
+   <div class="st-card" id="rg-pose-card">
+    <h3>Teste temporário da deformação</h3>
+    <div class="rg-field"><label for="rg-pose-axis">Eixo de flexão</label><select id="rg-pose-axis"><option value="x">X — frente/trás</option><option value="y">Y — torção</option><option value="z">Z — lateral</option></select></div>
+    <div class="rg-field"><label for="rg-pose">Rotação de teste (não é salva)</label><input id="rg-pose" type="range" min="-90" max="90" step="1" value="0"><output id="rg-pose-out">0°</output></div>
+    <button type="button" class="btn btn-soft st-wide" id="rg-pose-reset">Restaurar pose de repouso</button>
+    <p class="st-hint">Dobre a articulação para verificar se a malha acompanha o osso. Volte a 0° antes de mover ou salvar o rig.</p>
+   </div>
    <div class="st-card" id="rg-build">
     <h3>Criar rig para malha sem esqueleto</h3>
     <p class="st-hint">Gera <b>20 articulações</b>, incluindo quatro por braço: clavícula, ombro, cotovelo e punho. Posição inicial aproximada — ajuste ao formato do personagem antes de vincular pesos.</p>
