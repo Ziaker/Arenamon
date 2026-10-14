@@ -7,7 +7,7 @@ import {Recorder} from './sim/telemetry.js';
 import {ReplayBuffer} from './sim/replay.js';
 import {SCENARIOS, prepareScenario, runScenario} from './sim/scenarios.js';
 import {View, OVERLAYS} from './view/view.js';
-import {Character, loadStudioFile, STATE_ACTIONS, studioWindows, compareWindows} from './view/characters.js';
+import {Character, loadStudioFile, ACTION_IDS, STATE_LABELS, studioWindows, compareWindows} from './view/characters.js';
 import {Hud} from './ui/hud.js';
 import {Input} from './ui/input.js';
 import {createTuning, escape, pathGet} from './ui/tuning.js';
@@ -29,7 +29,9 @@ const input = new Input(canvas, code => {
 // ---------- Partida ----------
 function resetViewAndLogs() {view.reset(game.fighters[0]);recorder.clear();replay.clear();pushReplay();dock.invalidate();clock.reset();}
 function startMatch() {
-  abortScenario();game.profile = $('profile').value;game.enemyProfile = $('enemy-profile').value;game.mode = $('mode').value;
+  abortScenario();
+  if (!$('seed-fixed').checked) $('seed').value = String(1 + Math.floor(Math.random() * 99999));
+  applySeed();game.profile = $('profile').value;game.enemyProfile = $('enemy-profile').value;game.mode = $('mode').value;
   game.reset();ui.paused = false;input.clear();input.locked = false;resetViewAndLogs();canvas.focus();syncButtons();
 }
 function togglePause(force) {
@@ -178,37 +180,76 @@ function renderCharacters() {
   const box = $('char-slots');box.replaceChildren();
   for (const id of [0, 1]) {
     const slot = document.createElement('div');slot.className = 'char-slot';const src = ui.sources[id], ch = ui.characters[id];
-    slot.innerHTML = `<h4>${id ? 'Vermelho' : 'Azul'}</h4><p class="hint">${src ? `${escape(src.name)} · ${src.animations.length} animações${src.manifest ? ' · mapa de ações do Studio' : ' · sem mapa do Studio (associação por nome)'}` : 'Usando bloco.'}</p>
+    slot.innerHTML = `<h4>${id ? 'Vermelho' : 'Azul'}</h4><p class="hint">${src ? `${escape(src.name)} · ${src.animations.length} animações${src.manifest ? ' · mapa de ações do Studio' : ' · associação por nome'}` : 'Usando bloco.'}</p>
       <div class="row"><label class="wide-file"><input type="file" accept=".glb" aria-label="GLB do ${id ? 'vermelho' : 'azul'}"></label>${id && ui.sources[0] ? '<button type="button" data-same>Usar o do azul</button>' : ''}${src ? '<button type="button" data-remove>Remover</button>' : ''}</div>`;
     slot.querySelector('input').onchange = async e => {const f = e.target.files[0];if (!f) return;try {setCharacter(id, await loadStudioFile(f));} catch (err) {slot.querySelector('.hint').textContent = 'Erro: ' + err.message;}};
     slot.querySelector('[data-same]')?.addEventListener('click', () => setCharacter(1, ui.sources[0]));
     slot.querySelector('[data-remove]')?.addEventListener('click', () => setCharacter(id, null));
     if (ch) {
-      const table = document.createElement('table');const options = ['<option value="">—</option>', ...ch.clips.map((c, i) => `<option value="${i}">${escape(c.name)}</option>`)].join('');
-      for (const action of [...new Set(Object.values(STATE_ACTIONS).map(list => list[0]))]) {
-        const tr = document.createElement('tr');tr.innerHTML = `<td>${action}</td><td><select>${options}</select></td>`;const sel = tr.querySelector('select');sel.value = ch.mapping[action] ?? '';
-        sel.onchange = () => {if (sel.value === '') delete ch.mapping[action];else ch.mapping[action] = Number(sel.value);ch.current = null;renderStudioEvents();};table.append(tr);
+      const live = document.createElement('p');live.className = 'hint char-live';live.dataset.char = id;slot.append(live);
+      const missing = ch.missingStates();
+      if (missing.length) {const m = document.createElement('p');m.className = 'warn';m.textContent = `Sem animação própria (usa “parado”): ${missing.map(k => STATE_LABELS[k]).join(', ')}.`;slot.append(m);}
+      const table = document.createElement('table');table.innerHTML = '<tr><th>Ação</th><th>Animação</th><th>Velocidade</th></tr>';
+      const options = ['<option value="">—</option>', ...ch.clips.map((c, i) => `<option value="${i}">${escape(c.name)} · ${c.duration.toFixed(2)} s</option>`)].join('');
+      for (const action of ACTION_IDS) {
+        const tr = document.createElement('tr');tr.dataset.action = action;
+        tr.innerHTML = `<td>${action}</td><td><select aria-label="Animação de ${action}">${options}</select></td><td class="speed"><input type="range" min="0.25" max="3" step="0.05" aria-label="Velocidade de ${action}"><output></output></td>`;
+        const sel = tr.querySelector('select'), range = tr.querySelector('input'), out = tr.querySelector('output');
+        sel.value = ch.mapping[action] ?? '';range.value = ch.speeds[action] ?? 1;out.textContent = `${Number(range.value).toFixed(2)}×`;range.disabled = sel.value === '';
+        sel.onchange = () => {if (sel.value === '') delete ch.mapping[action];else ch.mapping[action] = Number(sel.value);ch.current = null;renderCharacters();syncRuleDurations();};
+        range.oninput = () => {ch.speeds[action] = Number(range.value);out.textContent = `${Number(range.value).toFixed(2)}×`;};
+        range.onchange = () => syncRuleDurations();
+        table.append(tr);
       }
       slot.append(table);
     }
     box.append(slot);
   }
-  renderStudioEvents();
+  renderStudioEvents();renderRuleDurations();
 }
 function setCharacter(id, source) {
   ui.characters[id]?.dispose();ui.characters[id] = null;ui.sources[id] = source;
   if (source) {const ch = new Character(source, {tint: id === 1 && ui.sources[0] === source ? '#ff5a4a' : null});view.scene.add(ch.root);ui.characters[id] = ch;}
-  view.setCharacter(id, ui.characters[id]);renderCharacters();dock.invalidate();
+  view.setCharacter(id, ui.characters[id]);renderCharacters();syncRuleDurations();dock.invalidate();
+}
+/** Animação tocando agora em cada personagem (atualizado ~10×/s). */
+function renderCharacterLive() {
+  for (const el of document.querySelectorAll('.char-live')) {
+    const ch = ui.characters[Number(el.dataset.char)];if (!ch?.current) {el.textContent = '';continue;}
+    el.innerHTML = `Agora: <b>${escape(STATE_LABELS[ch.current.key] || ch.current.key)}</b> → ${escape(ch.current.id)} (“${escape(ch.clips[ch.current.index].name)}”, ${ch.speedOf(ch.current.id).toFixed(2)}×)`;
+    for (const tr of el.parentElement.querySelectorAll('tr[data-action]')) tr.classList.toggle('playing', tr.dataset.action === ch.current.id);
+  }
 }
 $('char-lock-root').onchange = e => {Character.options.lockRoot = e.target.checked;};$('char-fit').onchange = e => {Character.options.fit = e.target.checked;};
 $('char-fade').onchange = e => {Character.options.fade = Math.max(0, Number(e.target.value) || 0);};
+$('char-speed').oninput = e => {Character.options.speed = Number(e.target.value) || 1;$('char-speed-out').textContent = `${Character.options.speed.toFixed(2)}×`;};
+$('char-speed').onchange = () => syncRuleDurations();
+$('char-sync').onchange = e => {Character.options.syncRules = e.target.checked;syncRuleDurations();};
+$('char-sync-source').onchange = () => syncRuleDurations();
+/** Personagem cujas animações definem as regras (o escolhido; se não houver, o outro). */
+function ruleSource() {const id = Number($('char-sync-source').value);return ui.characters[id] || ui.characters[1 - id];}
+/** Durações das ações vindas das animações (duração do clip ÷ velocidade), aplicadas às regras com desfazer. */
+function syncRuleDurations() {
+  if (Character.options.syncRules) {
+    const ch = ruleSource();
+    const changes = ch ? Object.entries(ch.ruleDurations()).map(([path, {value}]) => {const m = tuning.byPath.get(path);return [path, Math.max(m.min, Math.min(m.max, value))];}) : [];
+    if (changes.length) tuning.commit(changes, 'Durações das animações');
+  }
+  renderRuleDurations();renderStudioEvents();
+}
+function renderRuleDurations() {
+  const ch = ruleSource(), box = $('char-durations');
+  if (!ch) {box.innerHTML = '<p class="hint">Carregue um personagem para usar as durações das animações.</p>';return;}
+  const rows = Object.entries(ch.ruleDurations());
+  box.innerHTML = rows.length ? `<table><tr><th>Regra</th><th>Animação</th><th>Clip ÷ velocidade</th><th>No jogo agora</th></tr>${rows.map(([path, {value, from}]) => {const m = tuning.byPath.get(path);return `<tr><td>${escape(m.label)}</td><td>${escape(from)}</td><td>${value.toFixed(3)} s</td><td>${m.fmt(pathGet(C, path))}</td></tr>`;}).join('')}</table>${Character.options.syncRules ? '<p class="ok">Sincronizado: mudar a animação ou a velocidade atualiza as regras (Ctrl+Z desfaz).</p>' : ''}` : '<p class="hint">Nenhuma ação com duração definida tem animação própria (tackle, dodge_forward, blocked, guard_impact, land/recover).</p>';
+}
 function renderStudioEvents() {
   const parts = [];
   for (const id of [0, 1]) {
     const ch = ui.characters[id];if (!ch) continue;
     for (const r of compareWindows(ch)) {
       if (r.missing) {parts.push(`<p class="warn">${id ? 'Vermelho' : 'Azul'} · ${r.action}: nenhuma animação associada.</p>`);continue;}
-      parts.push(`<p><b>${id ? 'Vermelho' : 'Azul'} · ${r.action}</b> — “${escape(r.clip)}”, ${r.events} eventos, reescalado ×${r.scale.toFixed(2)} para ${(C.rules.dodge * 1000).toFixed(0)} ms.</p>`);
+      parts.push(`<p><b>${id ? 'Vermelho' : 'Azul'} · ${r.action}</b> — “${escape(r.clip)}”, ${r.events} eventos, reescalado ×${r.scale.toFixed(2)} para ${(r.duration * 1000).toFixed(0)} ms.</p>`);
       parts.push(r.rows.length ? `<table><tr><th>Janela</th><th>Studio</th><th>Jogo</th><th>Diferença</th></tr>${r.rows.map(x => `<tr><td class="${x.ok ? 'ok' : 'warn'}">${x.ok ? '✓' : '≠'} ${escape(x.label)}</td><td>${escape(x.studio)}</td><td>${escape(x.game)}</td><td>${escape(x.note)}</td></tr>`).join('')}</table>` : '<p class="hint">Sem eventos de combate nesta animação.</p>');
       if (r.impact != null) parts.push(`<p class="hint">Impacto marcado no Studio: ${(r.impact * 1000).toFixed(0)} ms. O contato real de cada golpe aparece em Linha do tempo › Golpes (“Contato na ação”).</p>`);
     }
@@ -222,7 +263,8 @@ $('player-mode').replaceChildren(...AI_MODES.filter(([id]) => id !== 'inactive')
 $('mode').onchange = () => {game.mode = $('mode').value;C.extras.gameModes.enemyMode = AI_MODES.findIndex(([id]) => id === game.mode);game.brain.reset();syncButtons();};
 $('profile').onchange = () => {C.extras.gameModes.playerProfile = ['balanced', 'agile', 'resistant'].indexOf($('profile').value);};
 $('player-mode').onchange = () => {ui.playerMode = $('player-mode').value;game.playerBrain.reset();};
-$('seed').onchange = () => {const s = Math.max(1, Math.round(Number($('seed').value) || 1));game.brain.seed = s;game.playerBrain.seed = s + 1;game.brain.reset();game.playerBrain.reset();};
+function applySeed() {const s = Math.max(1, Math.round(Number($('seed').value) || 1));game.brain.seed = s;game.playerBrain.seed = s + 7919;game.brain.reset();game.playerBrain.reset();}
+$('seed').onchange = () => {$('seed-fixed').checked = true;applySeed();};
 $('show-history').onchange = e => {$('input-history').hidden = !e.target.checked;};
 function renderHistory() {$('input-history').innerHTML = input.history.map(h => `<li><b>${escape(h.label)}</b><span>${h.frames}</span></li>`).join('');$('pad-status').textContent = input.padName ? `Gamepad: ${input.padName}` : 'Nenhum gamepad conectado. Pressione um botão do controle para ativá-lo.';}
 
@@ -273,7 +315,7 @@ function frame(now) {
   hud.render(game, ui.fps, {locked: input.locked, paused: ui.paused && game.phase !== 'menu', replay: back ? `−${back} passos (${(back * C.test.step * 1000).toFixed(0)} ms) · ▶ retoma daqui` : 'último passo · , e . avançam/voltam', playerAI: !!C.extras.toggles.enablePlayerAI});
   $('rp-readout').textContent = `passo ${game.tick}${back ? ` · −${(back * C.test.step).toFixed(2)} s` : ''}${clock.timeScale !== 1 ? ` · ${clock.timeScale}×` : ''}`;
   dock.render();
-  if ((uiTimer += dt) > .1) {uiTimer = 0;renderLive();renderHistory();}
+  if ((uiTimer += dt) > .1) {uiTimer = 0;renderLive();renderHistory();renderCharacterLive();}
   ui.frame++;requestAnimationFrame(frame);
 }
 applyConfig();renderScenarios();renderCharacters();syncTuneState();openTool('match');syncButtons();

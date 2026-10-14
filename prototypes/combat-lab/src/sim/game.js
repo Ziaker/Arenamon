@@ -8,7 +8,7 @@ import {vec} from './math.js';
 
 export class Game {
   constructor({seed = 1} = {}) {
-    this.brain = new Brain(seed);this.playerBrain = new Brain(seed + 1);
+    this.brain = new Brain(seed, 'aiRed');this.playerBrain = new Brain(seed + 1, 'aiBlue');
     this.mode = 'combat';this.profile = 'balanced';this.enemyProfile = 'balanced';
     this.reset();this.phase = 'menu';
   }

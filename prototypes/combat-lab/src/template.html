@@ -78,6 +78,12 @@
      <label class="check"><input type="checkbox" id="char-lock-root" checked> Travar o deslocamento da raiz (evita aplicar movimento duas vezes)</label>
      <label class="check"><input type="checkbox" id="char-fit" checked> Ajustar a altura ao colisor (1,3 m)</label>
      <label class="field">Transição entre animações (s)<input type="number" id="char-fade" min="0" max="1" step="0.02" value="0.1"></label>
+     <label class="field">Velocidade geral das animações <output id="char-speed-out">1.00×</output><input type="range" id="char-speed" min="0.25" max="3" step="0.05" value="1"></label>
+     <h3>Durações das animações no jogo</h3>
+     <label class="check"><input type="checkbox" id="char-sync"> As durações das animações definem as regras (tackle, esquiva, recuo, guard stun, aterrissagem e invulnerabilidade marcada no Studio)</label>
+     <label class="field">Personagem de referência<select id="char-sync-source"><option value="0">Azul</option><option value="1">Vermelho</option></select></label>
+     <div id="char-durations" class="report"></div>
+     <p class="hint">Sem sincronizar, cada animação é esticada para caber na duração da ação do jogo e a velocidade só acelera o clip dentro dela. As regras valem para os dois lutadores.</p>
      <h3>Eventos do Studio × jogo</h3>
      <p class="hint">Compara as janelas marcadas no Studio (hitbox, invulnerabilidade, recuperação) com as janelas reais da simulação. Apenas visualização: nenhuma regra é alterada.</p>
      <div id="studio-events" class="report"></div>
@@ -85,7 +91,10 @@
     <section data-section="controls" hidden>
      <p class="hint">O comportamento do adversário fica em <b>Partida</b>.</p>
      <label class="field">IA do jogador quando 🤖 ligado<select id="player-mode"></select></label>
-     <label class="field">Semente do modo aleatório<input type="number" id="seed" min="1" step="1" value="1"></label>
+     <h3>Aleatoriedade</h3>
+     <p class="hint">Cada IA tem personalidade própria (reação, erros, agressividade, variação e hesitação) em <b>Ajustes › IA</b>. A semente define a sequência sorteada: a mesma semente repete a mesma luta.</p>
+     <label class="field">Semente<input type="number" id="seed" min="1" step="1" value="1"></label>
+     <label class="check"><input type="checkbox" id="seed-fixed"> Semente fixa (sem marcar, cada combate sorteia uma nova)</label>
      <h3>Dificuldade da IA</h3>
      <div class="seg wide" role="group" aria-label="Dificuldade"><button type="button" data-difficulty="easy">Fácil</button><button type="button" data-difficulty="normal">Normal (v6)</button><button type="button" data-difficulty="hard">Difícil</button></div>
      <p class="hint">Os presets mudam alcance, intervalo de ataque, reação e ciclo de esquiva da IA (aba Ajustes › IA), com desfazer.</p>

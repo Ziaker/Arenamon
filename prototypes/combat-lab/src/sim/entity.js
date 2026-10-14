@@ -11,8 +11,10 @@ export function createFighter(id, attributes, position) {
 export const emptyCommand = () => ({move: vec(), dodge: false, tackle: false, guard: false, guardPressed: false, target: null});
 export const isInvulnerable = f => !!C.extras.toggles.enableInvulnerability && (f.action?.kind === 'dodge' || f.action?.kind === 'tackle') && f.action.elapsed < C.rules.invulnerable - 1e-8;
 export const isOffensive = f => f.action?.kind === 'tackle';
-/** Distância nominal de X/C: 2,5 × duração × velocidade. */
-export const nominalDistance = f => 2.5 * C.rules.dodge * f.attributes.speed;
+/** Duração de uma ação X/C: o tackle tem duração própria; a esquiva usa `dodge`. */
+export const actionDuration = kind => kind === 'tackle' ? C.rules.tackleDuration ?? C.rules.dodge : C.rules.dodge;
+/** Distância nominal de X/C: 2,5 × duração × velocidade (sem tipo: a da esquiva, como no v6). */
+export const nominalDistance = (f, kind = 'dodge') => 2.5 * actionDuration(kind) * f.attributes.speed;
 /** Pode iniciar X/C/defesa agora: mesma regra de cancelamento do controlador (recuo e guard stun são canceláveis). */
 export const canAct = f => f.hp > 0 && !f.flight && f.knockRecovery <= 0 && (!f.action || f.action.kind === 'recoil' || f.action.elapsed >= C.rules.invulnerable - 1e-8);
 /** Livre para se mover: sem ação, sem guard stun, no chão e sem recuperação de queda. */

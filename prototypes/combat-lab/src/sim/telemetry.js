@@ -1,7 +1,7 @@
 // Telemetria por passo e dados de quadros (frame data).
 // Unidade: passo de simulação (120 Hz por padrão; 1 passo = 8,33 ms). Os relatórios mostram passos e ms.
 import {C} from './config.js';
-import {canAct, canMove, isInvulnerable} from './entity.js';
+import {canAct, canMove, isInvulnerable, actionDuration} from './entity.js';
 import {length} from './math.js';
 
 export const ms = ticks => ticks * C.test.step * 1000;
@@ -60,7 +60,7 @@ export class Recorder {
 export function frameTable() {
   const s = C.test.step, R = C.rules, X = C.extras.combat, n = x => Math.round(x / s);
   return [
-    {action: 'Tackle (X)', total: n(R.dodge), active: `1–${n(R.dodge)}`, invulnerable: C.extras.toggles.enableInvulnerability ? `1–${n(R.invulnerable)}` : '—', cancel: `a partir de ${n(R.invulnerable) + 1}`, cost: X.actionCost},
+    {action: 'Tackle (X)', total: n(actionDuration('tackle')), active: `1–${n(actionDuration('tackle'))}`, invulnerable: C.extras.toggles.enableInvulnerability ? `1–${n(R.invulnerable)}` : '—', cancel: `a partir de ${n(R.invulnerable) + 1}`, cost: X.actionCost},
     {action: 'Esquiva (C)', total: n(R.dodge), active: '—', invulnerable: C.extras.toggles.enableInvulnerability ? `1–${n(R.invulnerable)}` : '—', cancel: `a partir de ${n(R.invulnerable) + 1}`, cost: X.actionCost},
     {action: 'Recuo (bloqueado)', total: n(R.recoil), active: '—', invulnerable: '—', cancel: 'imediato', cost: 0},
     {action: 'Guard stun', total: n(R.guardStun), active: '—', invulnerable: '—', cancel: 'esquiva ou defesa perfeita', cost: 0},

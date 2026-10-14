@@ -3,7 +3,8 @@
 // O jogo oficial (prototypes/game/src/config.ts) é lido por ui/official.js apenas para comparação.
 
 export function defaults() {
-  const rules = {dodge: .4, invulnerable: .2, steerLimit: Math.PI / 6, steerRate: Math.PI, recoil: .3, recoilFraction: .15, blend: .1, guardStun: .2,
+  // tackleDuration: duração do tackle (X). No v6, X e C usavam a mesma duração (`dodge`); com valores iguais o resultado é idêntico.
+  const rules = {dodge: .4, tackleDuration: .4, invulnerable: .2, steerLimit: Math.PI / 6, steerRate: Math.PI, recoil: .3, recoilFraction: .15, blend: .1, guardStun: .2,
     launchGravity: 17.5, launchUp: 7.3, launchHorizontal: 11, launchDrag: 1.15, dodgeVaultHeight: 2.2, clashFraction: .3, clashUp: 8.1, clashHorizontal: 12,
     landingRecovery: .19, wallRestitution: .28, perfect: .2, perfectCooldown: 2, staminaMax: 3, regenDelay: 1, regenTime: 5, guardSpeed: .6,
     exhaustedSpeed: .7, guardTurn: 3 * Math.PI, guardAcceleration: 15 * Math.PI};
@@ -25,6 +26,9 @@ export function defaults() {
     ai: {initialCooldown: .6, orbitChangePeriod: 1.7, threatAlignment: .3, threatDistance: 4.8, defensiveRetreatDistance: 2.4, defensiveRetreatStrength: .5,
       reactiveRetreatStrength: .2, approachDistance: 3, retreatDistance: 1.35, retreatStrength: .65, strafeStrength: .72, wallPrediction: .8, wallMargin: 1,
       attackRange: 3.35, combatAttackCooldown: 1.1, lowStaminaThreshold: .95, lowStaminaDistance: 2.5, lowStaminaRetreat: .7, evadeCycle: 3, evadeCycleIndex: 2},
+    // Personalidade de cada IA. Reação/erros/variação/hesitação 0 e agressividade 0,5 = IA exata do v6.
+    aiRed: {reaction: .16, reactionJitter: .14, mistake: .16, aggression: .45, variation: .45, hesitation: .3, evadeChance: .35},
+    aiBlue: {reaction: .1, reactionJitter: .12, mistake: .1, aggression: .62, variation: .4, hesitation: .15, evadeChance: .5},
     cameraExtra: {idleAlignDelay: .85, idleAlignSpeed: 1.5, unlockedTurnMultiplier: 1.2, verticalFollow: 7, flightZoomFactor: .18, flightHeightFactor: .42,
       flightLookFactor: .40, orbitSensitivity: .006, wheelSensitivity: .01, fov: 48, nearClip: .1, farClip: 100, lockTargetBias: .28, lockBiasLimit: 4.7,
       framingSeparationFactor: .45, framingPadding: 1.2, cameraShakeAmount: .12, cameraShakeDecay: 10},

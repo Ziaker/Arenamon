@@ -42,7 +42,26 @@ test('telemetria: vantagem de quadros no bloqueio', () => {
   assert.equal(r.recorder.actions.filter(a => a.fighter === 0 && a.kind === 'tackle').length, 1);
 });
 test('tabela de quadros reflete a configuração', () => {
-  const before = frameTable()[0].total;C.rules.dodge = .5;assert.equal(frameTable()[0].total, 60);resetConfig();assert.equal(frameTable()[0].total, before);
+  const before = frameTable()[0].total;C.rules.tackleDuration = .5;assert.equal(frameTable()[0].total, 60);assert.equal(frameTable()[1].total, 48);resetConfig();assert.equal(frameTable()[0].total, before);
   assert.deepEqual(JSON.parse(JSON.stringify(C)), JSON.parse(JSON.stringify(defaults())));
+});
+function aiDuel(seed, ticks = 120 * 60) {
+  const g = new Game({seed});g.mode = 'combat';g.reset();const hits = [];
+  for (let t = 0; t < ticks; t++) {g.step(g.playerBrain.command(g.fighters[0], g.fighters[1], 'combat', C.test.step));hits.push(...g.lastStepEvents.map(e => `${e.tick}:${e.attacker}:${e.result}`));if (g.phase === 'result') g.reset();}
+  return hits;
+}
+test('personalidade: lutas variam por semente e se repetem com a mesma semente', () => {
+  const a = aiDuel(11), b = aiDuel(11), c = aiDuel(12);assert.deepEqual(a, b);assert.notDeepEqual(a, c);
+  console.log(`   semente 11: ${a.length} contatos · semente 12: ${c.length} contatos`);
+});
+test('personalidade: azul e vermelho decidem de forma diferente', () => {
+  const hits = aiDuel(5), byBlue = hits.filter(h => h.split(':')[1] === '0').length;
+  console.log(`   contatos iniciados: azul ${byBlue}, vermelho ${hits.length - byBlue}`);assert.notEqual(byBlue, hits.length - byBlue);
+});
+test('personalidade neutra reproduz o ritmo fixo do v6 (sem aleatoriedade)', () => {
+  const saved = structuredClone([C.extras.aiRed, C.extras.aiBlue]);
+  for (const k of ['aiRed', 'aiBlue']) Object.assign(C.extras[k], {reaction: 0, reactionJitter: 0, mistake: 0, aggression: .5, variation: 0, hesitation: 0});
+  assert.deepEqual(aiDuel(1, 2400), aiDuel(99, 2400), 'sem aleatoriedade, a semente não muda nada');
+  Object.assign(C.extras.aiRed, saved[0]);Object.assign(C.extras.aiBlue, saved[1]);
 });
 console.log(`\n${passed} testes da simulação aprovados.`);

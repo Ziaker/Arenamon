@@ -1,5 +1,10 @@
-// IA determinística. Os quatro modos do v6 (inactive, defensive, offensive, combat) são reproduzidos sem
-// alterações; os modos de dummy do laboratório (guard, evade, counter, random) foram acrescentados.
+// IA determinística por semente. Os quatro modos do v6 (inactive, defensive, offensive, combat) são reproduzidos
+// sem alterações quando a personalidade está neutra; os modos de dummy do laboratório foram acrescentados.
+//
+// Personalidade (extras.aiRed / extras.aiBlue): tempo de reação, erros de leitura e de oportunidade,
+// agressividade, variação de ritmo e hesitação. Tudo é sorteado pelo gerador da própria IA: a mesma
+// semente reproduz a mesma luta (replay e cenários continuam determinísticos), mas cada lutador e cada
+// semente lutam de forma diferente.
 import {C} from './config.js';
 import {emptyCommand} from './entity.js';
 import {vec, add, scale, sub, dot, length, normalize, direction} from './math.js';
@@ -22,25 +27,44 @@ export function mulberry(state) {
   return [((t ^ (t >>> 14)) >>> 0) / 4294967296, a];
 }
 
+/** Personalidade neutra: reproduz exatamente a IA do v6. */
+export const NEUTRAL_PERSONALITY = {reaction: 0, reactionJitter: 0, mistake: 0, aggression: .5, variation: 0, hesitation: 0, evadeChance: .33};
+const STATE = ['cooldown', 'phase', 'wasGuard', 'orbitAge', 'orbitSign', 'rngState', 'hold', 'held', 'seed', 'threatAge', 'reactAt', 'misread', 'pause', 'orbitPeriod', 'rangeBias', 'wantsEvade'];
+
 export class Brain {
-  constructor(seed = 1) {this.seed = seed;this.reset();}
-  reset() {this.cooldown = C.extras.ai.initialCooldown;this.phase = 0;this.wasGuard = false;this.orbitAge = 0;this.orbitSign = 1;this.rngState = this.seed >>> 0;this.hold = 0;this.held = null;}
+  /** side: 'aiRed' (adversário) ou 'aiBlue' (IA do jogador) escolhe a personalidade. */
+  constructor(seed = 1, side = 'aiRed') {this.seed = seed;this.side = side;this.reset();}
+  reset() {
+    this.cooldown = C.extras.ai.initialCooldown;this.phase = 0;this.wasGuard = false;this.orbitAge = 0;this.orbitSign = 1;this.rngState = this.seed >>> 0;this.hold = 0;this.held = null;
+    this.threatAge = 0;this.reactAt = null;this.misread = false;this.pause = 0;this.orbitPeriod = null;this.rangeBias = 1;this.wantsEvade = false;
+  }
   random() {const [v, next] = mulberry(this.rngState);this.rngState = next;return v;}
+  personality() {return {...NEUTRAL_PERSONALITY, ...(C.extras[this.side] || {})};}
   /** Estado serializável (replay e cenários). */
-  save() {const {cooldown, phase, wasGuard, orbitAge, orbitSign, rngState, hold, held, seed} = this;return {cooldown, phase, wasGuard, orbitAge, orbitSign, rngState, hold, held, seed};}
+  save() {return Object.fromEntries(STATE.map(k => [k, this[k]]));}
   load(s) {Object.assign(this, s);}
   command(self, target, mode, dt) {
-    const A = C.extras.ai, c = emptyCommand();
+    const A = C.extras.ai, P = this.personality(), c = emptyCommand();
     if (mode === 'inactive') {this.wasGuard = false;return c;}
     c.target = target.id;
     this.cooldown = Math.max(0, this.cooldown - dt);
     this.orbitAge += dt;
-    if (this.orbitAge > A.orbitChangePeriod) {this.orbitAge -= A.orbitChangePeriod;this.orbitSign *= -1;}
+    const period = this.orbitPeriod ?? A.orbitChangePeriod;
+    if (this.orbitAge > period) {
+      this.orbitAge -= period;this.orbitSign *= -1;
+      // Variação: o próximo período de troca de lado e a distância preferida mudam a cada troca.
+      if (P.variation > 0) {this.orbitPeriod = A.orbitChangePeriod * (1 + P.variation * (2 * this.random() - 1));this.rangeBias = 1 + P.variation * .35 * (2 * this.random() - 1);}
+    }
     const difference = sub(target.position, self.position), distance = length(difference);
     const forward = length(difference) > 1e-7 ? normalize(difference) : direction(self.facing);
     const side = vec(forward.z * this.orbitSign, -forward.x * this.orbitSign);
     const threatNear = threatens(target, self) && distance < A.threatDistance;
-    const threat = !!C.extras.toggles.enableAIReactive && mode === 'combat' && threatNear;
+    let threat = !!C.extras.toggles.enableAIReactive && mode === 'combat' && threatNear;
+    // Tempo de reação e leitura errada: a ameaça só é percebida depois de um atraso sorteado.
+    if (threat) {
+      if (this.reactAt === null) {this.reactAt = P.reaction + (P.reactionJitter > 0 ? this.random() * P.reactionJitter : 0);this.misread = P.mistake > 0 && this.random() < P.mistake;this.wantsEvade = P.variation > 0 && this.random() < P.evadeChance;}
+      this.threatAge += dt;if (this.threatAge < this.reactAt - 1e-9 || this.misread) threat = false;
+    } else {this.threatAge = 0;this.reactAt = null;this.misread = false;}
     const canDash = !self.exhausted && self.stamina >= C.extras.combat.actionCost && self.knockRecovery <= 0 && !self.flight && !self.action;
     if (mode === 'guard') {c.guard = true;}
     else if (mode === 'evade') {
@@ -63,23 +87,36 @@ export class Brain {
       c.move = distance < A.defensiveRetreatDistance ? scale(forward, -A.defensiveRetreatStrength) : vec();
     } else if (threat) {
       const predict = dot(direction(target.action.heading), forward);
-      if (canDash && this.phase % A.evadeCycle === A.evadeCycleIndex && this.cooldown <= 0) {c.move = side;c.dodge = true;this.cooldown = C.test.aiInterval;this.phase++;}
+      // Sem variação: ciclo fixo do v6. Com variação: esquiva ou defesa sorteadas pela preferência de esquiva.
+      const evade = P.variation > 0 ? this.wantsEvade : this.phase % A.evadeCycle === A.evadeCycleIndex;
+      if (canDash && evade && this.cooldown <= 0) {c.move = side;c.dodge = true;this.cooldown = C.test.aiInterval * this.rhythm(P);this.phase++;}
       else {c.guard = true;c.move = predict > 0 ? scale(forward, -A.reactiveRetreatStrength) : vec();}
     } else {
-      if (distance > A.approachDistance) c.move = forward;
-      else if (distance < A.retreatDistance) c.move = scale(forward, -A.retreatStrength);
+      if (distance > A.approachDistance * this.rangeBias) c.move = forward;
+      else if (distance < A.retreatDistance * this.rangeBias) c.move = scale(forward, -A.retreatStrength);
       else if (mode === 'combat') c.move = scale(side, A.strafeStrength);
       // Evita encostar na parede enquanto circula.
       const future = add(self.position, scale(c.move, A.wallPrediction));
       if (Math.abs(future.x) > C.test.arenaHalf - A.wallMargin || Math.abs(future.z) > C.test.arenaHalf - A.wallMargin) {this.orbitSign *= -1;c.move = forward;}
-      if (C.extras.toggles.enableAIAttack && distance <= A.attackRange && this.cooldown <= 0 && canDash && !target.flight) {
-        c.move = forward;c.tackle = true;
-        this.cooldown = mode === 'combat' ? A.combatAttackCooldown : C.test.aiInterval;
-        this.phase++;
+      const reach = A.attackRange * (.75 + .5 * P.aggression) * this.rangeBias;
+      if (C.extras.toggles.enableAIAttack && distance <= reach && this.cooldown <= 0 && canDash && !target.flight) {
+        if (P.mistake > 0 && this.random() < P.mistake * .5) this.cooldown = .15 + this.random() * .35; // deixou passar a oportunidade
+        else {
+          c.move = forward;c.tackle = true;
+          this.cooldown = (mode === 'combat' ? A.combatAttackCooldown : C.test.aiInterval) * this.rhythm(P);
+          this.phase++;
+        }
       }
       if (self.stamina < A.lowStaminaThreshold && distance < A.lowStaminaDistance && !c.tackle) c.move = scale(forward, -A.lowStaminaRetreat);
+    }
+    // Hesitação: de vez em quando para por um instante (não cancela tackle, esquiva nem defesa).
+    if (P.hesitation > 0 && (mode === 'combat' || mode === 'offensive' || mode === 'defensive')) {
+      if (this.pause > 0) {this.pause -= dt;if (!c.tackle && !c.dodge) c.move = vec();}
+      else if (this.random() < P.hesitation * dt) this.pause = .12 + this.random() * .3;
     }
     c.guardPressed = c.guard && !this.wasGuard;this.wasGuard = c.guard;
     return c;
   }
+  /** Multiplicador do intervalo entre ações: agressividade encurta; variação sorteia ±. */
+  rhythm(P) {return (P.variation > 0 ? 1 + P.variation * (2 * this.random() - 1) : 1) / (.5 + P.aggression);}
 }

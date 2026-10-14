@@ -2,7 +2,7 @@
 // técnicas do laboratório (hitboxes por estado, normais de contato, vetor e arco de lançamento, alcance).
 import * as T from 'three';
 import {C, rgb} from '../sim/config.js';
-import {isInvulnerable, isOffensive, nominalDistance} from '../sim/entity.js';
+import {isInvulnerable, isOffensive, nominalDistance, actionDuration} from '../sim/entity.js';
 import {direction} from '../sim/math.js';
 import {CameraRig} from './rig.js';
 
@@ -92,7 +92,7 @@ export class View {
       const arrow = this.arrows[f.id];arrow.position.set(f.position.x + Math.sin(f.visualFacing) * V.arrowOffset, V.arrowHeight + alt, f.position.z + Math.cos(f.visualFacing) * V.arrowOffset);
       arrow.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), new T.Vector3(Math.sin(f.visualFacing), 0, Math.cos(f.visualFacing)));arrow.scale.set(V.arrowRadius / .16, V.arrowLength / .42, V.arrowRadius / .16);
       arrow.material.color.setHex(f.guard ? rgb('arrowGuard') : rgb('arrow'));
-      character?.update(f, paused ? 0 : dt, alt);
+      character?.update(f, paused ? 0 : dt, alt, events);
     }
     if (!paused) for (let j = this.effects.length - 1; j >= 0; j--) {
       const e = this.effects[j];e.age += Math.min(dt, .05);const p = Math.min(1, e.age / e.duration);
@@ -130,7 +130,7 @@ export class View {
       }
       const attacking = f.action?.kind === 'tackle' || f.action?.kind === 'dodge';
       if ((O.attackVectors || C.extras.toggles.showAttackVectors) && attacking) {
-        const d = direction(f.action.heading), travel = nominalDistance(f) * (f.action.speedMultiplier ?? 1), left = travel * Math.max(0, 1 - f.action.elapsed / C.rules.dodge);
+        const d = direction(f.action.heading), travel = nominalDistance(f, f.action.kind) * (f.action.speedMultiplier ?? 1), left = travel * Math.max(0, 1 - f.action.elapsed / actionDuration(f.action.kind));
         const bar = new T.Mesh(new T.BoxGeometry(C.extras.fx.attackVectorWidth, .04, Math.max(.01, left)), new T.MeshBasicMaterial({color: f.action.kind === 'tackle' ? 0xffb64e : 0x61ebba, transparent: true, opacity: .68, depthTest: false}));
         bar.position.set(f.position.x + d.x * left / 2, .085 + alt, f.position.z + d.z * left / 2);bar.rotation.y = f.action.heading;bar.renderOrder = 900;this.overlayGroup.add(bar);
       }
@@ -139,7 +139,7 @@ export class View {
         const open = Math.acos(Math.max(-1, Math.min(1, C.extras.combat.guardFrontAlignment)));
         this.ring(f.position.x, f.position.z, 1.1, STATE_COLORS.guard, f.facing - open, f.facing + open, .05);
       }
-      if (O.reach && f.hp > 0) this.ring(f.position.x, f.position.z, nominalDistance(f), f.id ? 0xff8a8a : 0x8ac4ff);
+      if (O.reach && f.hp > 0) this.ring(f.position.x, f.position.z, nominalDistance(f, 'tackle'), f.id ? 0xff8a8a : 0x8ac4ff);
       if (O.launchArcs && f.flight) this.line(predictFlight(f), 0x9db4ff);
     }
     for (let i = this.normals.length - 1; i >= 0; i--) {

@@ -43,6 +43,27 @@ O porto é verificado por `test/parity.mjs`. O teste executa o v6 original e est
    - Histórico de comandos estilo modo treino.
 10. **Levar ajustes ao jogo com segurança:** JSON versionado (v7, com `differencesFromGame`). A importação aceita v5, v6 e v7 e é validada e pré-visualizada antes de aplicar. Há relatório de diferenças em relação ao `config.ts`, aviso ao sair com ajustes não exportados e restauração da sessão anterior.
 
+## Aleatoriedade das IAs
+
+Cada IA tem personalidade própria, editável em **Ajustes › IA**:
+- **Tempo de reação:** atraso mínimo mais uma variação sorteada.
+- **Chance de erro:** não reagir a um tackle ou deixar passar uma oportunidade de ataque.
+- **Agressividade:** alcance e intervalo entre ataques.
+- **Variação de ritmo:** intervalos, troca de lado e distância preferida sorteados.
+- **Hesitação:** pausas curtas.
+- **Preferência por esquivar.**
+
+Os padrões são diferentes: o vermelho reage mais devagar e hesita mais; o azul é mais agressivo e prefere esquivar. Cada combate sorteia uma semente nova; marque “Semente fixa” em Controles para repetir uma luta. Dentro de uma luta, tudo continua determinístico (replay e cenários exatos). Com a personalidade neutra (zeros e agressividade 0,5), a IA é exatamente a do v6; o teste de paridade usa essa configuração.
+
+## Animações dos personagens
+
+- **Associação por nome:** sem o mapa do Studio, as animações são associadas por nome com sinônimos em inglês e português (ex.: `guard` → defesa, `front`/`side`/`back` → esquivas, `push` → lançado, `recover` → levantar, `turn` → girar no lugar).
+- **Estados novos:** girar no lugar, entrar/sair da defesa, defesa perfeita e recuperação após exaustão.
+- **Estados sem animação:** o painel lista os estados que ainda caem em “parado” e mostra a animação tocando agora.
+- **Velocidade:** cada ação tem um slider (0,25× a 3×), e há um slider geral.
+- **Durações no jogo:** com “As durações das animações definem as regras”, as durações do tackle (X, agora separado da esquiva), da esquiva, do recuo, do guard stun e da aterrissagem passam a ser *duração do clip ÷ velocidade*. A invulnerabilidade vem dos eventos marcados no Studio na esquiva. Aplica com desfazer e aparece como ≠ jogo nos Ajustes.
+- **Sem sincronizar:** o clip é esticado para caber na ação, e a velocidade acelera o clip dentro dela.
+
 ## Achados da telemetria (para avaliação)
 
 - **Bloqueio:** a vantagem **para agir** é 0. O recuo do atacante e o guard stun do defensor são canceláveis desde o primeiro passo. A vantagem **para se mover** é −12 passos (100 ms) para o atacante: recuo de 36 passos contra 24 de guard stun.
@@ -50,6 +71,7 @@ O porto é verificado por `test/parity.mjs`. O teste executa o v6 original e est
 
 ## Testes
 
-- `node prototypes/combat-lab/test/sim.test.mjs`: 15 testes (8 cenários, determinismo, replay por estado, telemetria, tabela de quadros).
+- `node prototypes/combat-lab/test/sim.test.mjs`: 18 testes (8 cenários, determinismo, replay por estado, telemetria, tabela de quadros, personalidade das IAs).
+- `node prototypes/combat-lab/test/local-character.mjs modelo.glb`: diagnóstico local do mapa de animações de um modelo seu (resultado em `validation/`).
 - `node prototypes/combat-lab/test/parity.mjs`: paridade passo a passo com o v6 local (opcional).
-- `node prototypes/combat-lab/verify.mjs`: 13 verificações no Edge offline, incluindo o GLB gerado pelo próprio Animation Studio com mapa de ações e eventos.
+- `node prototypes/combat-lab/verify.mjs`: 15 verificações no Edge offline, incluindo o GLB gerado pelo próprio Animation Studio com mapa de ações e eventos.

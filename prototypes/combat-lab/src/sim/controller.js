@@ -1,7 +1,7 @@
 // Controle de cada lutador por passo fixo: stamina, defesa, X/C (tackle/esquiva), salto, recuo e locomoção.
 // Porto fiel do v6; a ordem das operações foi mantida para que a simulação seja idêntica.
 import {C} from './config.js';
-import {nominalDistance} from './entity.js';
+import {nominalDistance, actionDuration} from './entity.js';
 import {vec, add, scale, sub, dot, length, normalize, clamp, angleOf, direction, angleDelta, smoothstep, dodgeCurve} from './math.js';
 
 /** Aceleração/frenagem/reversão da locomoção comum. */
@@ -76,7 +76,8 @@ export function updateFighter(f, cmd, fighters, dt) {
       }
       const facingGoal = target ? desiredHeading : action.heading;
       f.facing += clamp(angleDelta(f.facing, facingGoal), -C.locomotion.turnRate * dt, C.locomotion.turnRate * dt);
-      const speed = nominalDistance(f) * (action.speedMultiplier ?? 1) * (dodgeCurve((action.elapsed + dt) / R.dodge) - dodgeCurve(action.elapsed / R.dodge)) / dt;
+      const D = actionDuration(action.kind);
+      const speed = nominalDistance(f, action.kind) * (action.speedMultiplier ?? 1) * (dodgeCurve((action.elapsed + dt) / D) - dodgeCurve(action.elapsed / D)) / dt;
       f.velocity = scale(direction(action.heading), speed);
       if (action.from && action.elapsed < R.blend) {
         const blend = smoothstep((action.elapsed + dt) / R.blend);
@@ -109,7 +110,7 @@ export function updateFighter(f, cmd, fighters, dt) {
 export function advanceAction(f, dt) {
   if (!f.action) return;
   f.action.elapsed += dt;
-  const duration = f.action.kind === 'recoil' ? C.rules.recoil : C.rules.dodge;
+  const duration = f.action.kind === 'recoil' ? C.rules.recoil : actionDuration(f.action.kind);
   if (f.action.elapsed >= duration - 1e-8) {
     const wasExhausted = f.exhausted && (f.action.kind === 'dodge' || f.action.kind === 'tackle');
     f.action = null;f.velocity = vec();f.vaultHeight = 0;f.state = f.hp <= 0 ? 'defeated' : 'neutral';

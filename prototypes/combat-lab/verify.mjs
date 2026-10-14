@@ -47,7 +47,7 @@ try {
 
   // ---------- 6/10. Ajustador ----------
   await page.click('[data-tool="tuning"]');
-  assert.match(await page.textContent('#tune-counter'), /de 295 · 10 ≠ jogo/);
+  assert.match(await page.textContent('#tune-counter'), /de 310 · 10 ≠ jogo/);
   await page.fill('#tune-search', 'gravidade');assert.ok(await page.locator('.tune-control').count() >= 1);
   await page.fill('#tune-search', '');await page.click('[data-filter="experimental"]');const exp = await page.locator('.tune-control').count();assert.equal(exp, 10);
   const arena = page.locator('#tune-test-arenaHalf');await arena.focus();await page.keyboard.press('ArrowLeft');
@@ -128,6 +128,15 @@ try {
   assert.ok(await L(() => window.__lab.recorder.actions.some(a => a.fighter === 0 && a.kind === 'dodge')), 'botão B do gamepad executa esquiva');
   assert.match(await page.textContent('#pad-status'), /Gamepad de teste/);await L(() => {window.__padOn = false;});
   step('controles: modos de IA/semente, dificuldade com desfazer, histórico de comandos e gamepad (simulado)');
+  // Aleatoriedade: semente nova a cada combate (se não fixa); personalidade própria de cada IA nos Ajustes.
+  await page.click('[data-tool="controls"]');await page.uncheck('#seed-fixed');
+  const seeds = [];for (let i = 0; i < 3; i++) {await page.click('[data-tool="match"]');await page.click('#start');seeds.push(await L(() => window.__lab.game.brain.seed));await page.click('[data-tool="controls"]');}
+  assert.equal(new Set(seeds).size, 3, 'cada combate sorteia uma semente');
+  await page.check('#seed-fixed');await page.fill('#seed', '42');await page.press('#seed', 'Tab');await page.click('[data-tool="match"]');await page.click('#start');assert.equal(await L(() => window.__lab.game.brain.seed), 42);
+  assert.notEqual(await L(() => window.__lab.game.playerBrain.seed), 42);
+  await page.click('[data-tool="tuning"]');await page.fill('#tune-search', 'personalidade');
+  assert.equal(await page.locator('#tune-list .tune-group').count(), 2);assert.equal(await page.locator('#tune-list .tune-control').count(), 14);await page.fill('#tune-search', '');
+  step(`aleatoriedade: sementes ${seeds.join(', ')} em três combates, semente fixa e personalidade separada para azul e vermelho`);
 
   // ---------- 8. Sobreposições ----------
   await page.click('[data-tool="overlays"]');for (const box of await page.locator('[data-overlay]').all()) await box.check();
@@ -154,6 +163,24 @@ try {
   assert.equal(anim.key, 'tackle');assert.equal(anim.clip, 'tackle');assert.ok(Math.abs(anim.time - anim.progress * anim.d) < .2, 'animação sincronizada com a ação');
   await page.waitForTimeout(400);await page.screenshot({path: out + 'personagens.png'});
   step('personagens do Studio: mapa de ações, animação sincronizada com o tackle, cópia tingida no vermelho e eventos Studio × jogo');
+  // Velocidade por animação e durações das animações como regras.
+  await page.click('[data-tool="characters"]');
+  const idleRange = page.locator('.char-slot').nth(0).locator('tr[data-action="idle"] input[type=range]');
+  await idleRange.fill('2');assert.equal(await L(() => window.__lab.ui.characters[0].speedOf('idle')), 2);
+  await page.locator('#char-speed').fill('1.5');assert.equal(await L(() => window.__lab.ui.characters[0].speedOf('idle')), 3);await page.locator('#char-speed').fill('1');
+  await page.check('#char-sync');
+  const synced = await L(() => [window.__lab.C.rules.tackleDuration, window.__lab.C.rules.dodge, window.__lab.C.rules.invulnerable]);
+  assert.deepEqual(synced, [3, 1, .2], 'tackle = clip de 3 s, esquiva = clip de 1 s; invulnerabilidade mantida (a esquiva não tem eventos)');
+  const tackleRange = page.locator('.char-slot').nth(0).locator('tr[data-action="tackle"] input[type=range]');await tackleRange.fill('2');await tackleRange.dispatchEvent('change');
+  assert.equal(await L(() => window.__lab.C.rules.tackleDuration), 1.5, 'velocidade 2× → tackle de 1,5 s');
+  assert.ok((await page.textContent('#char-durations')).includes('Duração do tackle (X)tackle1.500 s'), 'tabela de durações');
+  await page.click('[data-tool="match"]');await page.click('#start');await page.locator('canvas').first().focus();await page.keyboard.press('KeyX');await page.waitForTimeout(800);
+  assert.equal(await L(() => window.__lab.game.fighters[0].action?.kind), 'tackle', 'o tackle agora dura 1,5 s no jogo');
+  const sync = await L(() => {const c = window.__lab.ui.characters[0], f = window.__lab.game.fighters[0];return {t: c.current.action.time, expected: f.action.elapsed / window.__lab.C.rules.tackleDuration * c.current.action.getClip().duration};});
+  assert.ok(Math.abs(sync.t - sync.expected) < .15, 'clip inteiro dentro da ação');
+  await L(() => window.__lab.tuning.undo());assert.equal(await L(() => window.__lab.C.rules.tackleDuration), 3);
+  await page.click('[data-tool="characters"]');await page.uncheck('#char-sync');await L(() => {window.__lab.tuning.resetAll();});
+  step('animações: velocidade por ação e geral; durações das animações definem tackle/esquiva/invulnerabilidade no jogo (com desfazer)');
 
   // Compatibilidade e layout.
   const snap = await L(() => window.__arenamon.snapshot());assert.equal(snap.fighters.length, 2);assert.ok(await L(() => window.__arenaLive.rules === window.__lab.C.rules));

@@ -1,7 +1,7 @@
 // Metadados do ajustador extraídos do laboratório v6 (nomes, seções e explicações dos parâmetros).
 // Dados apenas: a lógica de faixas e rótulos está em tuning.js.
 export const NAMES={
- dodge:'Duração X/C',invulnerable:'Invulnerabilidade inicial',steerLimit:'Limite de mudança de direção',steerRate:'Velocidade do esterçamento',recoil:'Duração do recuo ao defender',recoilFraction:'Distância do recuo',blend:'Suavização entre ações',guardStun:'Atordoamento após bloqueio',launchGravity:'Gravidade de lançamento',launchUp:'Força vertical do impacto',launchHorizontal:'Força horizontal do impacto',launchDrag:'Arrasto no voo',dodgeVaultHeight:'Altura do salto C',clashFraction:'Dano de clash (%)',clashUp:'Força vertical do clash',clashHorizontal:'Força horizontal do clash',landingRecovery:'Recuperação após aterrissar',wallRestitution:'Rebote na parede',perfect:'Janela da defesa perfeita',perfectCooldown:'Recarga da defesa perfeita',staminaMax:'Stamina máxima',regenDelay:'Atraso para regenerar',regenTime:'Tempo de regeneração',guardSpeed:'Velocidade defendendo (%)',exhaustedSpeed:'Velocidade exausto (%)',guardTurn:'Velocidade máxima de giro defendendo',guardAcceleration:'Aceleração do giro defendendo',
+ dodge:'Duração da esquiva (C)',tackleDuration:'Duração do tackle (X)',reaction:'Tempo de reação',reactionJitter:'Variação do tempo de reação',mistake:'Chance de erro',aggression:'Agressividade',variation:'Variação de ritmo',hesitation:'Hesitação (por segundo)',evadeChance:'Preferência por esquivar',invulnerable:'Invulnerabilidade inicial',steerLimit:'Limite de mudança de direção',steerRate:'Velocidade do esterçamento',recoil:'Duração do recuo ao defender',recoilFraction:'Distância do recuo',blend:'Suavização entre ações',guardStun:'Atordoamento após bloqueio',launchGravity:'Gravidade de lançamento',launchUp:'Força vertical do impacto',launchHorizontal:'Força horizontal do impacto',launchDrag:'Arrasto no voo',dodgeVaultHeight:'Altura do salto C',clashFraction:'Dano de clash (%)',clashUp:'Força vertical do clash',clashHorizontal:'Força horizontal do clash',landingRecovery:'Recuperação após aterrissar',wallRestitution:'Rebote na parede',perfect:'Janela da defesa perfeita',perfectCooldown:'Recarga da defesa perfeita',staminaMax:'Stamina máxima',regenDelay:'Atraso para regenerar',regenTime:'Tempo de regeneração',guardSpeed:'Velocidade defendendo (%)',exhaustedSpeed:'Velocidade exausto (%)',guardTurn:'Velocidade máxima de giro defendendo',guardAcceleration:'Aceleração do giro defendendo',
  step:'Intervalo de simulação',maxFrame:'Maior quadro admitido',arenaHalf:'Metade do lado da arena',halfExtent:'Meia largura do colisor',hp:'Vida máxima base',attack:'Ataque base',defense:'Defesa base',speed:'Velocidade base',attackReference:'Referência de ataque',speedReference:'Referência de velocidade',defenseMedian:'Mediana de defesa',pushCoefficient:'Coeficiente legado de empurrão',pushDuration:'Duração do empurrão legado',aiInterval:'Intervalo padrão de IA',aiRange:'Distância padrão da IA',contactStep:'Tamanho máximo de subpasso',epsilon:'Tolerância de contato',forwardTolerance:'Tolerância frontal legada',
  acceleration:'Aceleração do movimento',braking:'Frenagem',reversal:'Aceleração de reversão',turnRate:'Giro do personagem',visualTurnRate:'Giro do indicador visual',
  distance:'Distância inicial',height:'Altura da câmera',lookHeight:'Altura do ponto focal',lookAhead:'Antecipação do olhar',followResponse:'Resposta ao acompanhar',distanceResponse:'Resposta do zoom',yawResponse:'Resposta de rotação',maxTurnRate:'Giro máximo da câmera',deadZone:'Zona morta da mira',movingDeadZone:'Zona morta em movimento',closeRange:'Alvo muito próximo',initialYaw:'Ângulo inicial da câmera',shoulder:'Deslocamento de ombro',framingRange:'Distância de enquadramento',distanceScale:'Zoom por separação',manualHold:'Tempo de órbita manual',minDistance:'Distância mínima da câmera',maxDistance:'Distância máxima da câmera',
@@ -15,7 +15,7 @@ export const NAMES={
  forward:'Mover para cima',back:'Mover para baixo',left:'Mover à esquerda',right:'Mover à direita',tackle:'Tecla de tackle',dodgeKey:'Tecla de esquiva',defend:'Tecla de defesa',lock:'Tecla de lock-on',pause:'Tecla de pausa',restart:'Tecla de reinício',debug:'Tecla de depuração'
  };
 export const SECTIONS=[
-  ['Regras de ação e stamina','rules',['dodge','invulnerable','steerLimit','steerRate','recoil','recoilFraction','blend','guardStun','perfect','perfectCooldown','staminaMax','regenDelay','regenTime','guardSpeed','exhaustedSpeed','guardTurn','guardAcceleration']],
+  ['Regras de ação e stamina','rules',['dodge','tackleDuration','invulnerable','steerLimit','steerRate','recoil','recoilFraction','blend','guardStun','perfect','perfectCooldown','staminaMax','regenDelay','regenTime','guardSpeed','exhaustedSpeed','guardTurn','guardAcceleration']],
   ['Knockback e clash','rules',['launchGravity','launchUp','launchHorizontal','launchDrag','clashFraction','clashUp','clashHorizontal','landingRecovery','wallRestitution','dodgeVaultHeight']],
   ['Combate e colisões','extras.combat',null],
   ['Atributos: equilibrado','profiles.balanced',null],
@@ -25,6 +25,8 @@ export const SECTIONS=[
   ['Câmera','camera',null],
   ['Câmera: ajustes avançados','extras.cameraExtra',null],
   ['IA: estratégia e decisões','extras.ai',null],
+  ['IA: personalidade do vermelho','extras.aiRed',null],
+  ['IA: personalidade do azul (IA jogador)','extras.aiBlue',null],
   ['Arena e simulação','test',null],
   ['Renderizador e personagens','extras.visual',null],
   ['Efeitos e feedback','extras.fx',null],
@@ -35,6 +37,14 @@ export const SECTIONS=[
   ['Ativar ou desativar sistemas','extras.toggles',null]
  ];
 export const TOOLTIPS={
+ "tackleDuration":"Duração total do tackle X, em segundos. A distância percorrida acompanha a duração (2,5 × duração × velocidade). No v6, X usava a mesma duração da esquiva C.",
+ "reaction":"Atraso mínimo, em segundos, até a IA perceber um tackle vindo na sua direção. 0 = reação instantânea, como no v6.",
+ "reactionJitter":"Atraso extra sorteado a cada ameaça (de 0 até este valor). Torna as reações irregulares.",
+ "mistake":"Chance de ler errado uma ameaça (não reagir) e de deixar passar uma oportunidade de ataque. 0 = IA perfeita do v6.",
+ "aggression":"0,5 = ritmo do v6. Valores maiores atacam de mais longe e com intervalos menores; menores esperam mais e atacam de mais perto.",
+ "variation":"Quanto o ritmo varia: intervalos entre ações, troca de lado ao circular e distância preferida passam a ser sorteados. 0 = fixos (v6).",
+ "hesitation":"Chance por segundo de parar de se mover por um instante (0,12–0,42 s). Não cancela ataques, esquivas nem defesa.",
+ "evadeChance":"Com variação ligada: chance de esquivar (em vez de defender) ao perceber um tackle. Sem variação, vale o ciclo fixo do v6.",
  "clashHitstop":"Tempo de pausa física no choque X×X; aumenta a sensação de impacto sem variar o dano.",
  "impactHitstop":"Tempo de pausa física nos impactos comuns, defesas perfeitas e esquivas perfeitas.",
  "counterWindow":"Tempo para executar um X fortalecido após esquivar perfeitamente de um tackle.",
@@ -59,7 +69,7 @@ export const TOOLTIPS={
  "enableHitstop":"Habilita pausa de simulação extremamente curta ao ocorrer impacto ou clash.",
  "enableCounterBonus":"Habilita oportunidade de X fortalecido depois de esquiva/defesa perfeita.",
  "enableLandingSkid":"Habilita a perda gradual de velocidade horizontal após aterrissar no chão.",
- "dodge": "Duração total, em segundos, do deslocamento iniciado por X (tackle) ou C (esquiva). Aumentar prolonga o movimento; reduzir o torna mais rápido, com efeitos na distância percorrida.",
+ "dodge": "Duração total, em segundos, da esquiva C (o tackle X tem duração própria). Aumentar prolonga o movimento; reduzir o torna mais rápido, com efeitos na distância percorrida.",
  "invulnerable": "Tempo inicial, em segundos, durante o qual um tackle/esquiva pode ficar invulnerável, se a opção de invulnerabilidade estiver ativada. Não altera a duração total da ação.",
  "steerLimit": "Ângulo máximo de correção da trajetória durante uma ação X/C, medido a partir da direção em que ela começou. Valor alto permite curvar mais a investida.",
  "steerRate": "Velocidade máxima de giro da trajetória de X/C ao receber novos comandos, em radianos por segundo. Valor maior torna o ajuste no ar/avanço mais rápido.",
