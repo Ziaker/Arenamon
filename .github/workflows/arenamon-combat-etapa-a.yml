@@ -1,0 +1,43 @@
+name: Arenamon Combat Etapa A
+
+on:
+  push:
+    branches:
+      - feat/combat-core-etapa-a-gpt6
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: windows-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Instalar dependencias
+        run: npm ci
+      - name: Gerar todos os prototipos offline
+        run: npm run build
+      - name: Testes de simulacao existentes
+        run: node prototypes/combat-lab/test/sim.test.mjs
+      - name: Testes dedicados da Etapa A
+        run: node prototypes/combat-lab/test/etapa-a.test.mjs
+      - name: Verificacao browser do laboratorio
+        run: node prototypes/combat-lab/verify.mjs
+      - name: Verificacao geral do repositorio
+        run: npm run verify
+      - name: Arquivos de teste e HTML jogavel
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: arenamon-combate-etapa-a
+          path: |
+            prototypes/combat-lab/dist/arenamon-combate-laboratorio.html
+            prototypes/combat-lab/validation/
+          if-no-files-found: warn
+          retention-days: 14
