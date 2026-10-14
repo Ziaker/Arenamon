@@ -38,12 +38,49 @@ Status de cada item:
 ## 3. Pendências (Etapa B em diante; não implementadas)
 
 - **Fórmula de empurrão do GDD:** 60% Ataque e 40% velocidade de impacto, com resistência da Defesa R(D) = 0,5·D/(D+Dmed). A Etapa A **mantém o lançamento aéreo** atual (provisório). A Etapa B vai propor uma reconciliação entre Ataque, velocidade relativa e Defesa com esse lançamento. O empurrão no chão não substitui o lançamento sem aprovação.
-- **Jogo oficial ainda com as regras antigas.** Em `prototypes/game` não existe X separado. `C` inicia uma única ação, `kind: 'dodge'`, sempre ofensiva: toda esquiva é o tackle. Por isso `RULES.dodge`, `invulnerable`, `steerLimit` e `steerRate` valem para as duas coisas, e o custo é fixo em 1.
-  - Separar a duração do tackle no jogo, portanto, não é só um campo novo no `config.ts`. Exige levar o núcleo da Etapa A ao jogo: X como ação própria, C sem dano, C → X, parâmetros separados, clash de 30% e as regras de recuo e guard stun.
-  - Isso aguarda autorização explícita, numa tarefa própria e sem merge na `main`.
+- **Jogo oficial:** a migração foi autorizada e feita na branch `feat/game-etapa-a` (seção 5). Aguarda a avaliação jogável do responsável.
 - Os valores dos sliders são do v6 ou provisórios e precisam de ajuste jogável.
 
 ## 4. Compatibilidade
 
 - O modo `V6_COMPAT` (`src/sim/config.js`) reproduz o v6 passo a passo: 16 execuções e 76.800 passos idênticos. Ele serve só para comparação e não substitui os testes do comportamento novo.
 - Os JSONs v5, v6 e v7 são migrados na importação com um relatório dos campos convertidos e ignorados. Exemplo: `rules.dodge` vira `actions.dodge.duration` e `actions.tackle.duration`.
+
+## 5. Aplicação ao jogo oficial (`prototypes/game`, branch `feat/game-etapa-a`)
+
+Autorizada pelo responsável em 14/10/2026: migração integral das regras mecânicas da Etapa A, em branch própria e sem merge na `main`. **Aguarda avaliação jogável.**
+
+**Levado ao jogo:**
+- X e C como ações independentes (`ACTIONS` em `src/config.ts`), com os valores que o jogo já usava;
+- C → X, inclusive no ar;
+- regras de recuo e guard stun;
+- defesa sem deslocar o defensor;
+- defesa perfeita e esquiva perfeita com contra-ataque;
+- clash de 30%;
+- salto de C;
+- buffer de entrada;
+- X nas 8 direções pela tecla **X**.
+
+**Comportamentos do jogo que mudaram por causa da Etapa A:**
+- **C deixou de ser ofensiva.** Antes, toda esquiva era o tackle.
+- **A defesa parcial deixou de empurrar o defensor.** A Etapa A e o item 2.3 pedem defensor sem deslocamento; a fórmula de empurrão continua a mesma e vale para o impacto e o clash.
+- **O evento "invulnerável" sai uma vez por tackle,** pela regra de um contato por ação. Antes podia se repetir a cada passo de contato.
+- **A tecla X deixou de ser reservada** e passou a ser o tackle. A/S/D/Z continuam reservadas.
+
+**Diferenças que continuam em relação ao laboratório, por restrição ou por decisão:**
+
+| Tema | Laboratório (Etapa A) | Jogo | Motivo |
+|---|---|---|---|
+| Resposta física ao impacto | lançamento aéreo, hitstop e recuperação ao aterrissar | empurrão no chão do GDD (60/40 + Defesa), sem hitstop | Não mudar a fórmula de empurrão nem fazer a Etapa B |
+| Clash | 30%, os dois lançados para trás e para cima | 30%, os dois empurrados para trás no chão (mesmo empurrão do GDD) | O jogo não tem lançamento aéreo; adicioná-lo seria Etapa B |
+| Tecla de defesa | D | F | Controle já existente no jogo, preservado |
+| Invulnerabilidade de X no C → X | padrão "resto de C", com slider para comparar "nenhuma" e "janela de X" | fixa em "resto de C" (o padrão aprovado) | O jogo não recebe os controles de ajuste |
+| Recuperação após ação exausta | sim (do v6) | não | Não faz parte da Etapa A |
+| Ajustador, replay, IA tática, sobreposições | sim | não | Fora do escopo da migração |
+| Arena e velocidade base | 32 m e 4,8 m/s (valores do v6) | 20 m e 4 m/s | Valores do jogo, preservados |
+
+**Testes:**
+- `prototypes/game/etapa-a.test.mjs`: 16 cenários e 124 verificações "esperado × obtido".
+- `prototypes/game/test.mjs`: 20 cenários, atualizados para X e C.
+- `prototypes/game/locomotion.test.mjs`: 15 cenários.
+- `prototypes/game/verify.mjs`: 21 cenários no Edge pelo teclado real. Entre eles: X nas 8 direções, C saltando sem dano e C → X.
