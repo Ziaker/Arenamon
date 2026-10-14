@@ -38,6 +38,12 @@ try {
   page.on('pageerror', e => report.errors.push(e.message));page.on('console', m => {if (m.type() === 'error') report.errors.push(m.text());});
   page.on('request', r => {if (/^https?:/.test(r.url())) report.network.push(r.url());});
   const dialogs = [];page.on('dialog', d => {dialogs.push(d.type());d.type() === 'beforeunload' && page.__acceptUnload ? d.accept() : d.dismiss();});
+  // Em runners GitHub Actions não há GPU dedicada. Reduzimos a resolução REAL do canvas,
+  // sem alterar os sliders de gameplay, e limitamos a taxa de atualização do WebGL.
+  await page.addInitScript(() => {
+    Object.defineProperty(window, 'devicePixelRatio', {get: () => .5, configurable: true});
+    window.requestAnimationFrame = callback => window.setTimeout(() => callback(performance.now()), 70);
+  });
   await page.context().setOffline(true);
   const url = pathToFileURL(root + 'dist/arenamon-combate-laboratorio.html').href;
   await page.goto(url);await page.waitForFunction(() => window.__lab);
@@ -49,7 +55,7 @@ try {
     nav: document.querySelectorAll('[data-tool]').length, tool: !!document.querySelector('[data-tool="tuning"]'),
     bodyLength: document.body?.innerHTML.length, ready: document.readyState, lab: !!window.__lab}));
   console.log('DIAG DOM inicial:', JSON.stringify(diag));
-  await page.screenshot({path: out + 'laboratorio-abertura.png'});
+  // Evitar screenshot antes dos testes: software WebGL no CI pode bloquear renderização.
 
   // ---------- 6/10. Ajustador ----------
   await page.click('[data-tool="tuning"]');
