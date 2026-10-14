@@ -22,11 +22,34 @@ export class ViewportManager {
     // Câmera ortográfica dedicada para projeções técnicas ortogonais (Quad-View)
     this.orthoCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.01, 100);
 
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
+    const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+    const glQuery = urlParams?.get('gl');
+    let isSoftware = glQuery === 'lite';
+    if (!isSoftware && glQuery !== 'full' && typeof document !== 'undefined') {
+      try {
+        const testCanvas = document.createElement('canvas');
+        const gl = testCanvas.getContext('webgl') || testCanvas.getContext('experimental-webgl');
+        const dbg = gl?.getExtension('WEBGL_debug_renderer_info');
+        const rdr = dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : '';
+        isSoftware = /swiftshader|llvmpipe|softpipe|microsoft basic render|\bwarp\b/i.test(rdr);
+      } catch {}
+    }
+    this.isSoftwareGL = isSoftware;
+    if (this.isSoftwareGL && typeof document !== 'undefined') {
+      document.documentElement.classList.add('gl-lite');
+    }
+
+    this.renderer = new THREE.WebGLRenderer({
+      antialias: !this.isSoftwareGL,
+      alpha: false,
+      powerPreference: this.isSoftwareGL ? 'low-power' : 'high-performance'
+    });
     this.renderer.setSize(width, height);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.setPixelRatio(this.isSoftwareGL ? 0.5 : Math.min(window.devicePixelRatio || 1, 2));
+    this.renderer.shadowMap.enabled = !this.isSoftwareGL;
+    if (!this.isSoftwareGL) {
+      this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    }
     container.appendChild(this.renderer.domElement);
 
     // Orbit Controls
@@ -82,10 +105,12 @@ export class ViewportManager {
 
     const dirLight = new THREE.DirectionalLight(0xffffff, 1.3);
     dirLight.position.set(4, 7, 5);
-    dirLight.castShadow = true;
-    dirLight.shadow.mapSize.width = 2048;
-    dirLight.shadow.mapSize.height = 2048;
-    dirLight.shadow.bias = -0.0005;
+    if (!this.isSoftwareGL) {
+      dirLight.castShadow = true;
+      dirLight.shadow.mapSize.width = 1024;
+      dirLight.shadow.mapSize.height = 1024;
+      dirLight.shadow.bias = -0.0005;
+    }
     this.scene.add(dirLight);
 
     const fillLight = new THREE.DirectionalLight(0x54d9ee, 0.55);
@@ -111,7 +136,9 @@ export class ViewportManager {
     const floor = new THREE.Mesh(floorGeo, floorMat);
     floor.rotation.x = -Math.PI / 2;
     floor.position.y = -0.002;
-    floor.receiveShadow = true;
+    if (!this.isSoftwareGL) {
+      floor.receiveShadow = true;
+    }
     this.scene.add(floor);
   }
 
@@ -565,7 +592,13 @@ export class ViewportManager {
     this.multiViewActive = enabled;
   }
 
-  render() {
+  render(now) {
+    if (this.isSoftwareGL && now && now - (this.lastDrawTime || 0) < 33) {
+      this.animId = requestAnimationFrame(this.render);
+      return;
+    }
+    this.lastDrawTime = now;
+
     this.controls.update();
 
     if (!this.multiViewActive) {

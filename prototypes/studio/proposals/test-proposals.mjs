@@ -9,23 +9,24 @@ const dir = resolve('prototypes/studio/proposals');
 const screenshotsDir = resolve('prototypes/studio/proposals/screenshots');
 
 async function launchBrowser() {
+  const commonArgs = ['--disable-gpu-sandbox', '--use-angle=swiftshader', '--no-sandbox'];
   try {
     return await chromium.launch({
+      channel: 'msedge',
       headless: true,
-      args: ['--disable-gpu-sandbox', '--use-angle=swiftshader', '--no-sandbox']
+      args: commonArgs
     });
   } catch {
     try {
       return await chromium.launch({
-        channel: 'msedge',
         headless: true,
-        args: ['--disable-gpu-sandbox', '--use-angle=swiftshader']
+        args: commonArgs
       });
     } catch {
       return await chromium.launch({
         channel: 'chrome',
         headless: true,
-        args: ['--disable-gpu-sandbox', '--use-angle=swiftshader']
+        args: commonArgs
       });
     }
   }
@@ -35,7 +36,7 @@ async function runWithFreshBrowser(testName, testFn) {
   console.log(`\n--- Testando ${testName} ---`);
   const browser = await launchBrowser();
   try {
-    const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, acceptDownloads: true });
     await context.setOffline(true);
     const page = await context.newPage();
     page.setDefaultTimeout(60000);
@@ -60,7 +61,7 @@ async function runTests() {
   // TESTE 1: PROPOSTA A (Rigging Workspace)
   // =============================================================
   await runWithFreshBrowser('PROPOSTA A (Rigging Workspace)', async (page, errors) => {
-    await page.goto(pathToFileURL(resolve(dir, 'proposta-a.html')).href);
+    await page.goto(pathToFileURL(resolve(dir, 'proposta-a.html')).href + '?gl=lite');
     await page.waitForSelector('#viewport-3d canvas', { timeout: 60000 });
     await page.waitForFunction(() => !!window.__rigStudio);
 
@@ -570,6 +571,7 @@ async function runTests() {
 
       // 1.6 Prioridade 5: Identificação clara dos controles demonstrativos (Fase 2)
       console.log('  -> Testando identificação transparente dos controles demonstrativos...');
+      await page.click('[data-tab="weights"]');
       const badgeWarningCount = await page.locator('#tab-pane-weights .badge-warning').count();
       assert.ok(badgeWarningCount >= 1, 'Crachá de [Protótipo Visual — Fase 2] presente nos controles de pincel');
 
@@ -618,7 +620,7 @@ async function runTests() {
     // TESTE 2: PROPOSTA B (Guided Rigging)
     // =============================================================
     await runWithFreshBrowser('PROPOSTA B (Guided Rigging)', async (page, errors) => {
-      await page.goto(pathToFileURL(resolve(dir, 'proposta-b.html')).href);
+      await page.goto(pathToFileURL(resolve(dir, 'proposta-b.html')).href + '?gl=lite');
       await page.waitForSelector('#viewport-3d canvas', { timeout: 60000 });
       await page.waitForFunction(() => !!window.__rigStudio);
 
@@ -694,7 +696,7 @@ async function runTests() {
     // TESTE 3: PROPOSTA C (Hybrid Rigging Studio)
     // =============================================================
     await runWithFreshBrowser('PROPOSTA C (Hybrid Rigging Studio)', async (page, errors) => {
-      await page.goto(pathToFileURL(resolve(dir, 'proposta-c.html')).href);
+      await page.goto(pathToFileURL(resolve(dir, 'proposta-c.html')).href + '?gl=lite');
       await page.waitForSelector('#viewport-3d canvas', { timeout: 60000 });
       await page.waitForFunction(() => !!window.__rigStudio);
 

@@ -245,9 +245,10 @@ Foi implementada uma suíte automatizada de validação cruzada direta (`test-co
 1. **Workflow Dedicado às Propostas (`studio-rigging-proposals.yml`)**:
    - Dispara em `push` e `pull_request` nas branches `feat/studio-rigging-ui-proposals` e `integration/**`.
    - Executa a compilação offline das três propostas (`build.mjs`), a validação cruzada direta com o núcleo do Codex (`test-codex-cross.mjs`), os testes automatizados Playwright (`test-proposals.mjs`) e `npm run verify`, publicando os HTMLs e capturas como artefatos de build.
-2. **Resolução de Timeout no Runner Windows (Isolamento de Páginas e Contextos)**:
-   - No runner Windows Server 2025 com rasterização por software (SwiftShader), a reutilização contínua de uma única página entre as propostas acumulava contextos WebGL e animações Three.js em segundo plano, levando a timeout durante a navegação final para `index.html`.
-   - A execução foi arquitetada na função `runWithPage(browser, testName, testFn)`, que instancia e destrói um `BrowserContext` e `Page` dedicados para cada proposta e para o portal. Essa limpeza estrita de ciclo de vida e liberação de GPU/DOM permite que `index.html` carregue e renderize de imediato (<500ms).
+2. **Resolução de Saturação de CPU no Runner Windows (Isolamento de Processos e Modo Software GL)**:
+   - No runner Windows Server 2025 com rasterização por software (SwiftShader), o motor Three.js executando animações contínuas, mapas de sombra 2048x2048 e filtros CSS `backdrop-filter` saturava os 2 vCPUs da máquina virtual, ocasionando degradação temporal e atrasos nas checagens de ponteiro do Playwright.
+   - **Isolamento de Processos de Navegador**: A suíte agora utiliza `runWithFreshBrowser(testName, testFn)`, instanciando e finalizando completamente o processo do navegador para cada teste, garantindo limpeza integral de pipelines gráficos, memória de textura e threads auxiliares entre as propostas.
+   - **Modo Leve em Software GL (`gl-lite`)**: O `ViewportManager` detecta dinamicamente renderizadores por software (SwiftShader, llvmpipe, WARP) e o parâmetro `?gl=lite`. Nesse modo, o renderizador desativa MSAA, desativa cálculos de sombra dinâmicos em tempo real, reduz a resolução interna para 50%, desativa `backdrop-filter` e limita a taxa de desenho a 30 FPS, permitindo que a suíte completa rode em segundos sem degradação.
 3. **Preservação do Workflow Principal do Codex/Claude (`arenamon-studio-rigging.yml`)**:
    - O pipeline existente permanece dedicado à branch `feat/studio-rigging-fase1-gpt6`.
    - Não há interferência entre os ambientes de CI.

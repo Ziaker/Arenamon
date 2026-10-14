@@ -539,3 +539,9 @@ input[type="range"]::-webkit-slider-thumb {
   box-shadow: var(--shadow);
   padding: 24px;
 }
+
+/* Modo leve sem GPU (Three.js software GL / SwiftShader): o desfoque de fundo sobre canvas animado satura a CPU em CI */
+html.gl-lite *, html.gl-lite *::before, html.gl-lite *::after {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
