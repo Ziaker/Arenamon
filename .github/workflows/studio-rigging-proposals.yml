@@ -33,7 +33,9 @@ jobs:
       - name: Run proposal automated tests
         run: node prototypes/studio/proposals/test-proposals.mjs
       - name: Verify repository status
-        run: npm run verify
+        run: |
+          Stop-Process -Name msedge,chrome,chromium -Force -ErrorAction SilentlyContinue
+          npm run verify
       - name: Upload proposal artifacts and screenshots
         if: always()
         uses: actions/upload-artifact@v4

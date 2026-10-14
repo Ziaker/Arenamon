@@ -12,13 +12,13 @@ async function launchBrowser() {
   const commonArgs = ['--disable-gpu-sandbox', '--use-angle=swiftshader', '--no-sandbox'];
   try {
     return await chromium.launch({
-      channel: 'msedge',
       headless: true,
       args: commonArgs
     });
   } catch {
     try {
       return await chromium.launch({
+        channel: 'msedge',
         headless: true,
         args: commonArgs
       });
