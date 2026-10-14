@@ -1,0 +1,12 @@
+<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Arenamon · Importador de protótipos</title>
+<style>*{box-sizing:border-box}body{margin:0;background:#19212c;color:#e7edf5;font:15px system-ui}main{display:grid;grid-template-columns:310px 1fr;height:100vh}aside{padding:22px;overflow:auto;background:#111923}h1{font-size:22px}label,button,select{display:block;margin:14px 0}input[type=file]{width:100%;margin-top:8px}button,select{padding:10px;background:#293b50;color:white;border:1px solid #526378;border-radius:6px;width:100%}label input[type=checkbox]{margin-right:8px}p{line-height:1.5;color:#b5c3d2}#view{min-width:0;min-height:0}canvas{display:block}#status{white-space:pre-wrap} @media(max-width:650px){main{grid-template-columns:1fr;height:auto}#view{height:60vh}}</style>
+<main><aside><h1>Arenamon</h1><p>Laboratório de protótipos · FBX / GLB<br>Modo protótipo ativo por padrão.</p>
+<label>Importar modelo<input id="model" type="file" accept=".fbx,.glb"></label>
+<label>Anexar animações (rig compatível)<input id="animations" type="file" accept=".fbx,.glb" multiple></label>
+<label><input id="textures" type="checkbox"><span id="texturesLabel">Texturas: OFF</span></label>
+<label><input id="lighting" type="checkbox"><span id="lightingLabel">Iluminação: OFF</span></label>
+<label>Cores<select id="palette"><option value="palette">Paleta por material original</option><option value="global">Cor global</option></select></label>
+<label>Cor global <input id="color" type="color" value="#829bb8"></label>
+<label>Animação<select id="clip"><option>Sem animações</option></select></label><button id="play">Pausar / retomar</button>
+<label><input id="noTextures" type="checkbox" checked>Exportar sem texturas</label><label><input id="unlit" type="checkbox" checked>Exportar unlit</label><button id="export" disabled>Exportar GLB</button>
+<p>Arraste para orbitar. Use a roda para aproximar. Animações externas exigem os mesmos ossos e pose de referência; não há retarget automático.</p><p id="status" role="status">Importe um modelo para começar. Nenhum arquivo é enviado à rede.</p></aside><div id="view"></div></main><script>/*__BUNDLE__*/</script></html>
