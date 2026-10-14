@@ -10,20 +10,51 @@ const $ = id => document.getElementById(id);
 export const pathGet = (root, path) => path.split('.').reduce((a, k) => a?.[k], root);
 export const pathSet = (root, path, value) => {const keys = path.split('.'), last = keys.pop();const obj = keys.reduce((a, k) => a?.[k], root);if (!obj || !(last in obj)) return false;obj[last] = value;return true;};
 const TABS = [
-  ['Combate', ['Regras de ação e stamina', 'Knockback e clash', 'Combate e colisões']],
+  ['Ações X/C', ['Esquiva C', 'Tackle X', 'Cancelamento C → X']],
+  ['Combate', ['Defesa e stamina', 'Knockback e clash', 'Combate e colisões']],
   ['Atributos', ['Atributos: equilibrado', 'Atributos: ágil', 'Atributos: resistente']],
   ['Movimento', ['Movimento']], ['Câmera', ['Câmera', 'Câmera: ajustes avançados']], ['IA', ['IA: estratégia e decisões', 'IA: personalidade do vermelho', 'IA: personalidade do azul (IA jogador)']], ['Arena', ['Arena e simulação']],
   ['Visual', ['Renderizador e personagens', 'Efeitos e feedback', 'HUD e visualização', 'Cores: canais RGB individuais']],
   ['Sistemas', ['Ativar ou desativar sistemas', 'Modos de jogo', 'Teclas: índices configuráveis']],
 ];
 const COLOR_NAMES = {player: 'Jogador azul', enemy: 'Adversário vermelho', floor: 'Piso', wall: 'Paredes', background: 'Fundo', gridMajor: 'Grid principal', gridMinor: 'Grid secundário', impact: 'Impacto', clash: 'Clash', landing: 'Poeira ao aterrissar', partial: 'Defesa parcial', perfect: 'Defesa perfeita', invulnerable: 'Invulnerabilidade', shadow: 'Sombra', arrow: 'Seta frontal', arrowGuard: 'Seta defendendo', defeated: 'Derrotado', glowGuard: 'Brilho da defesa', glowInvuln: 'Brilho da invulnerabilidade', glowRecoil: 'Brilho de recuo', glowTackle: 'Brilho de tackle'};
-const SAFE_MIN = {'rules.dodge': .05, 'rules.tackleDuration': .05, 'rules.recoil': .05, 'rules.regenTime': .1, 'rules.launchGravity': .5, 'rules.staminaMax': .1, 'test.contactStep': .01, 'test.halfExtent': .1, 'test.attackReference': .01, 'test.speedReference': .01,
+const SAFE_MIN = {'actions.dodge.duration': .05, 'actions.tackle.duration': .05, 'rules.recoil': .05, 'rules.regenTime': .1, 'rules.launchGravity': .5, 'rules.staminaMax': .1, 'test.contactStep': .01, 'test.halfExtent': .1, 'test.attackReference': .01, 'test.speedReference': .01,
   'test.defenseMedian': .01, 'camera.minDistance': .1, 'camera.maxDistance': .2, 'extras.cameraExtra.nearClip': .01, 'extras.combat.launchAttackReference': .01, 'extras.ai.evadeCycle': 1, 'extras.fx.impactDuration': .02,
   'extras.fx.clashDuration': .02, 'extras.visual.bodyWidth': .1, 'extras.visual.bodyHeight': .1, 'extras.visual.bodyDepth': .1, 'profiles.balanced.hp': 1, 'profiles.agile.hp': 1, 'profiles.resistant.hp': 1, 'test.hp': 1};
 const RADIANS = ['steerLimit', 'steerRate', 'guardTurn', 'guardAcceleration', 'turnRate', 'visualTurnRate', 'maxTurnRate', 'deadZone', 'movingDeadZone', 'initialYaw', 'forwardTolerance'];
 const INTEGERS = ['staminaMax', 'hp', 'attack', 'defense', 'attackReference', 'speedReference', 'defenseMedian', 'contactProjectionPasses', 'impactCount', 'clashCount', 'landingCount', 'evadeCycle', 'evadeCycleIndex', 'noticeFontSize', 'clashNoticeFontSize', 'debugFontSize', 'footerFontSize'];
 const toggled = key => key.startsWith('enable') || ['fxVisible', 'hudVisible', 'debugVisible', 'showHitboxes', 'showAttackVectors'].includes(key);
 const PROFILE_LABEL = ['Equilibrado', 'Ágil', 'Resistente'];
+const ACTION_NAMES = {duration:'Duração', cost:'Custo de stamina', invulnerable:'Invulnerabilidade', distance:'Multiplicador de distância', curveStart:'Curva inicial de velocidade', steerLimit:'Limite de esterçamento', steerRate:'Taxa de esterçamento', blend:'Transição de velocidade', chainAfter:'Encadeamento a partir de', recovery:'Recuperação adicional', fromGuard:'Pode sair da defesa', fromRecoil:'Pode sair do recuo', fromGuardStun:'Pode sair do guard stun', vaultHeight:'Altura do salto', vaultReachBonus:'Alcance extra para salto', vaultForwardMin:'Distância mínima para salto', vaultLateralWidth:'Largura de detecção do salto', perfectEvadeStamina:'Bônus por esquiva perfeita', counterWindow:'Janela de contra-ataque', counterSpeed:'Velocidade do contra-ataque', dodgeToTackle:'Permitir C → X', windowStart:'Início da janela C → X', windowEnd:'Fim da janela C → X', transition:'Transição C → X', velocityInfluence:'Velocidade anterior mantida', airDescent:'Tempo de descida aérea', invulnerability:'Proteção após C → X'};
+const ACTION_HELP = {
+  duration:'Duração desta ação em segundos. Independente da duração da outra ação.',
+  cost:'Stamina consumida ao iniciar esta ação. No cancelamento C → X, os dois custos são pagos.',
+  invulnerable:'Tempo inicial de invulnerabilidade exclusivo desta ação, limitado à sua duração.',
+  distance:'Multiplicador do deslocamento: velocidade base do lutador × duração da ação × este valor.',
+  curveStart:'Inclinação inicial da curva normalizada de deslocamento. 1,6 reproduz a curva do v6.',
+  steerLimit:'Limite angular a partir da direção inicial desta ação.',
+  steerRate:'Velocidade máxima de correção de trajetória desta ação.',
+  blend:'Tempo para mesclar a velocidade anterior com a velocidade desta ação.',
+  chainAfter:'Instante, desde o início desta ação, em que encadeamentos comuns podem ocorrer. C → X tem janela própria.',
+  recovery:'Recuperação adicional após o término natural desta ação.',
+  fromGuard:'Determina se esta ação pode ser iniciada enquanto D está ativo.',
+  fromRecoil:'Determina se esta ação pode interromper o recuo após bloqueio. X desativado por padrão.',
+  fromGuardStun:'Permite iniciar esta ação enquanto o guard stun ainda estiver ativo. Para X, o pedido pode ficar em buffer.',
+  vaultHeight:'Elevação máxima da esquiva C ao cruzar a trajetória do adversário.',
+  vaultReachBonus:'Margem adicional do teste geométrico de salto da esquiva C.',
+  vaultForwardMin:'Distância mínima adiante do lutador para habilitar o salto da esquiva.',
+  vaultLateralWidth:'Separação lateral máxima para reconhecer adversário no caminho do salto.',
+  perfectEvadeStamina:'Stamina devolvida após esquiva perfeita legítima, não herdada por X.',
+  counterWindow:'Janela disponível para um X fortalecido após esquiva perfeita.',
+  counterSpeed:'Multiplicador de velocidade do X fortalecido por contra-ataque.',
+  dodgeToTackle:'Liga a conversão da esquiva C em tackle X durante a janela própria.',
+  windowStart:'Tempo mínimo desde o início de C para aceitar X. Zero permite cancelar imediatamente.',
+  windowEnd:'Tempo máximo desde o início de C para aceitar X.',
+  transition:'Tempo de suavização da velocidade no C → X.',
+  velocityInfluence:'Fração da velocidade atual de C preservada no início de X.',
+  airDescent:'Duração da descida gradual ao converter o salto de C em X.',
+  invulnerability:'0: apenas restante de C; 1: nenhuma; 2: janela inteira de X (somente experimento).',
+};
 
 /** Faixa, passo e formato de cada parâmetro (regras do ajustador v6). */
 function range(key, value, path) {
@@ -31,6 +62,15 @@ function range(key, value, path) {
   if (parent === 'extras.bindings') return {min: 0, max: C.extras.keyCodes.length - 1, step: 1, fmt: n => C.extras.keyCodes[n] ?? '?'};
   if (parent === 'extras.colors') return {min: 0, max: 255, step: 1, fmt: n => String(n)};
   if (parent === 'extras.gameModes') return key === 'enemyMode' ? {min: 0, max: AI_MODES.length - 1, step: 1, fmt: n => AI_MODES[n]?.[1] ?? '?'} : {min: 0, max: 2, step: 1, fmt: n => PROFILE_LABEL[n] ?? '?'};
+  if (parent.startsWith('actions.')) {
+    if (['fromGuard', 'fromRecoil', 'fromGuardStun', 'dodgeToTackle'].includes(key)) return {min: 0, max: 1, step: 1, fmt: n => n ? 'Sim' : 'Não'};
+    if (key === 'invulnerability') return {min: 0, max: 2, step: 1, fmt: n => ['Restante de C', 'Nenhuma', 'Completa de X'][n] || '?'};
+    if (['duration','invulnerable','blend','chainAfter','recovery','windowStart','windowEnd','transition','airDescent','counterWindow'].includes(key)) return {min: key === 'duration' ? .05 : 0, max: 4, step: .01, fmt: n => n.toFixed(2) + ' s'};
+    if (['distance', 'cost', 'vaultHeight','vaultReachBonus','vaultForwardMin','vaultLateralWidth'].includes(key)) return {min: 0, max: key === 'distance' ? 10 : key === 'cost' ? 12 : 8, step: .05, fmt: n => n.toFixed(2)};
+    if (key === 'curveStart') return {min: 0, max: 2.0, step: .01, fmt: n => n.toFixed(2)};
+    if (['velocityInfluence','counterSpeed'].includes(key)) return {min: 0, max: 2, step: .01, fmt: n => n.toFixed(2) + '×'};
+    if (key === 'perfectEvadeStamina') return {min: 0, max: 4, step: .05, fmt: n => n.toFixed(2)};
+  }
   if (toggled(key)) return {min: 0, max: 1, step: 1, fmt: n => n ? 'Ligado' : 'Desligado'};
   if (RADIANS.includes(key)) {const max = key === 'initialYaw' ? 360 : /rate/i.test(key) || key === 'guardTurn' || key === 'guardAcceleration' ? 1440 : 180;return {min: 0, max: max * Math.PI / 180, step: Math.PI / 180, fmt: n => (n * 180 / Math.PI).toFixed(0) + '°'};}
   // Durações que podem vir das animações: até 4 s para caber clips longos.
@@ -57,6 +97,7 @@ function help(path, label) {
   const parts = path.split('.'), key = parts.at(-1);
   if (path.startsWith('extras.colors.')) return `Canal ${({R: 'vermelho', G: 'verde', B: 'azul'})[key.slice(-1)]} (0–255) da cor “${label}”. Não modifica a física.`;
   if (path.startsWith('extras.bindings.')) return `Tecla física que executa ${KEY_HELP[key] || key}. Evite atribuir a mesma tecla a comandos diferentes.`;
+  if (path.startsWith('actions.')) return ACTION_HELP[key] || 'Parâmetro exclusivo desta ação.';
   if (path.startsWith('profiles.')) return `Perfil ${({balanced: 'equilibrado', agile: 'ágil', resistant: 'resistente'})[parts[1]]}: ${({attack: 'dano base de um tackle sem defesa; também influencia a força do lançamento.', defense: 'resistência legada a empurrões; não torna invulnerável.', speed: 'velocidade ao caminhar e referência da distância nominal de X/C.', hp: 'vida máxima.'})[key]}`;
   if (path === 'extras.gameModes.enemyMode') return 'Comportamento do adversário vermelho. Inclui os quatro modos do v6 e os modos de dummy do laboratório.';
   return TOOLTIPS[key] || 'Parâmetro do laboratório.';
@@ -77,7 +118,7 @@ export function createTuning({apply}) {
       const v = root[key];if (typeof v !== 'number') continue;
       const path = rootPath + '.' + key, r = range(key, v, path);
       r.min = Math.max(r.min, SAFE_MIN[path] ?? -Infinity);r.min = Math.min(r.min, v);r.max = Math.max(r.max, v);
-      const label = path.startsWith('extras.colors.') ? (COLOR_NAMES[key.slice(0, -1)] || key) + ' · ' + ({R: 'Vermelho', G: 'Verde', B: 'Azul'})[key.slice(-1)] : path === 'extras.bindings.dodge' ? 'Tecla de esquiva (C)' : NAMES[key] || key;
+      const label = path.startsWith('actions.') ? (ACTION_NAMES[key] || key) : path.startsWith('extras.colors.') ? (COLOR_NAMES[key.slice(0, -1)] || key) + ' · ' + ({R: 'Vermelho', G: 'Verde', B: 'Azul'})[key.slice(-1)] : path === 'extras.bindings.dodge' ? 'Tecla de esquiva (C)' : NAMES[key] || key;
       manifest.push({section, path, key, label, help: help(path, label), initial: pathGet(base, path), official: officialValue(path), ...r});
     }
   }
@@ -163,8 +204,8 @@ export function createTuning({apply}) {
   $('tune-list').addEventListener('scroll', hideTip, {passive: true});
 
   // ---------- Presets (guardados neste navegador) ----------
-  const KEY = 'arenamon-lab-presets-v7';
-  const loadPresets = () => {try {return JSON.parse(localStorage.getItem(KEY) || '[]');} catch {return [];}};
+  const KEY = 'arenamon-lab-presets-v7'; // formato v7 preservado; presets legados são migrados ao carregar
+  const loadPresets = () => {try {const list = JSON.parse(localStorage.getItem(KEY) || '[]');return Array.isArray(list) ? list.map(p => ({...p, values:migrateLegacyValues(p.values || {}).values})) : [];} catch {return [];} };
   const savePresets = list => {try {localStorage.setItem(KEY, JSON.stringify(list));return true;} catch {return false;}};
   function renderPresets() {
     const list = loadPresets(), box = $('preset-list');box.replaceChildren();
@@ -192,20 +233,65 @@ export function createTuning({apply}) {
   // ---------- JSON ----------
   function exportData() {
     const values = Object.fromEntries(ROOT_KEYS.map(k => [k, structuredClone(C[k])]));
-    return {schema: 'arenamon-tuning', version: 7, source: 'arenamon-combate-laboratorio-v7.html', createdAt: new Date().toISOString(), values,
+    return {schema: 'arenamon-tuning', version: 8, source: 'arenamon-combate-laboratorio-etapa-a.html', createdAt: new Date().toISOString(), values,
       changedFromLabDefaults: manifest.filter(changed).map(m => ({path: m.path, lab: m.initial, value: pathGet(C, m.path)})),
       differencesFromGame: manifest.filter(m => status(m) === 'experimental').map(m => ({path: m.path, game: m.official, lab: pathGet(C, m.path)})),
       labOnlyParameters: manifest.filter(m => m.official === undefined).length,
       note: 'Valores do laboratório. Nada é aplicado ao jogo automaticamente; use differencesFromGame para decidir o que levar ao config.ts.'};
   }
-  /** Valida sem aplicar. Aceita JSON v5/v6 ({values}) e v7. */
+  // Migração explícita: preserva valores legados, mas nunca sobrescreve novos parâmetros explícitos.
+  // Cada campo antigo que era compartilhado é copiado para C e X e registrado no relatório.
+  const LEGACY = [
+    ['rules.dodge',['actions.dodge.duration','actions.tackle.duration']],
+    ['rules.tackleDuration',['actions.tackle.duration']],
+    ['rules.invulnerable',['actions.dodge.invulnerable','actions.tackle.invulnerable']],
+    ['rules.steerLimit',['actions.dodge.steerLimit','actions.tackle.steerLimit']],
+    ['rules.steerRate',['actions.dodge.steerRate','actions.tackle.steerRate']],
+    ['rules.blend',['actions.dodge.blend','actions.tackle.blend']],
+    ['extras.combat.actionCost',['actions.dodge.cost','actions.tackle.cost']],
+    ['rules.dodgeVaultHeight',['actions.dodge.vaultHeight']],
+    ['extras.combat.vaultReachBonus',['actions.dodge.vaultReachBonus']],
+    ['extras.combat.vaultForwardMin',['actions.dodge.vaultForwardMin']],
+    ['extras.combat.vaultLateralWidth',['actions.dodge.vaultLateralWidth']],
+    ['extras.combat.perfectEvadeStamina',['actions.dodge.perfectEvadeStamina']],
+    ['extras.combat.counterWindow',['actions.dodge.counterWindow']],
+    ['extras.combat.counterSpeed',['actions.tackle.counterSpeed']],
+  ];
+  function migrateLegacyValues(values) {
+    const flat = {};const flatten = (node, prefix = '') => {
+      for (const [key, value] of Object.entries(node)) {
+        const path = prefix ? prefix + '.' + key : key;
+        if (value && typeof value === 'object' && !Array.isArray(value)) flatten(value, path);
+        else flat[path] = value;
+      }
+    };
+    flatten(values);
+    const migrated = [], ignored = [], explicit = new Set(Object.keys(flat));
+    for (const [old, news] of LEGACY) {
+      if (!(old in flat)) continue;
+      for (const path of news) if (!explicit.has(path)) {
+        // rules.tackleDuration tem precedência sobre a duração compartilhada.
+        if (old === 'rules.dodge' && path === 'actions.tackle.duration' && 'rules.tackleDuration' in flat) continue;
+        flat[path] = flat[old];migrated.push({from: old, to: path, value: flat[old]});
+      }
+    }
+    for (const path of Object.keys(flat)) if (!byPath.has(path) && !LEGACY.some(([old]) => old === path) && !['schema','version','source'].includes(path)) ignored.push(path);
+    return {values: flat, migrated, ignored};
+  }
+  /** Valida sem aplicar; v5/v6/v7 são convertidos para actions.*, v8 é nativo. */
   function preview(raw) {
     let data;try {data = JSON.parse(raw);} catch (e) {return {error: 'JSON inválido: ' + e.message};}
-    const values = data?.values ?? data;if (!values || typeof values !== 'object' || Array.isArray(values)) return {error: 'Objeto de configurações não encontrado.'};
+    const values = data?.values ?? data;
+    if (!values || typeof values !== 'object' || Array.isArray(values)) return {error: 'Objeto de configurações não encontrado.'};
+    const {values: flat, migrated, ignored} = migrateLegacyValues(values);
     const changes = [], invalid = [];
-    for (const m of manifest) {const v = pathGet(values, m.path);if (v === undefined) continue;if (typeof v !== 'number' || !Number.isFinite(v) || v < m.min - 1e-8 || v > m.max + 1e-8) {invalid.push(`${m.path} = ${v}`);continue;}if (!same(v, pathGet(C, m.path))) changes.push([m.path, v]);}
-    if (invalid.length) return {error: `Valores inválidos ou fora da faixa (${invalid.length}): ${invalid.slice(0, 5).join(', ')}${invalid.length > 5 ? '…' : ''}`};
-    return {changes, schema: data.schema || 'v5/v6', version: data.version ?? '—'};
+    for (const m of manifest) {
+      const v = flat[m.path];if (v === undefined) continue;
+      if (typeof v !== 'number' || !Number.isFinite(v) || v < m.min - 1e-8 || v > m.max + 1e-8) {invalid.push(`${m.path} = ${v}`);continue;}
+      if (!same(v, pathGet(C, m.path))) changes.push([m.path, v]);
+    }
+    if (invalid.length) return {error: `Valores inválidos ou fora da faixa (${invalid.length}): ${invalid.slice(0,5).join(', ')}${invalid.length > 5 ? '…' : ''}`, migrated, ignored};
+    return {changes, migrated, ignored, schema: data.schema || 'legado', version: data.version ?? '—'};
   }
   function apply_(changes, label) {const n = commit(changes, label);markSaved(label);return n;}
   function resetAll() {commit(manifest.map(m => [m.path, m.initial]), 'Restaurar todos os padrões');}
