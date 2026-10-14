@@ -48,6 +48,16 @@ async function runWithFreshBrowser(testName, testFn) {
       if (m.type() === 'error') errors.push(m.text());
     });
 
+    await page.addInitScript(() => {
+      // Intercepta a.click() para evitar agendamento de navegação blob pendente no CDP do Chromium headless
+      HTMLAnchorElement.prototype.click = function() {
+        window.__lastAnchorClick = { href: this.href, download: this.download };
+      };
+    });
+
+    const origClick = page.click.bind(page);
+    page.click = (selector, options = {}) => origClick(selector, { noWaitAfter: true, ...options });
+
     await testFn(page, errors);
   } finally {
     await browser.close();

@@ -593,7 +593,8 @@ export class ViewportManager {
   }
 
   render(now) {
-    if (this.isSoftwareGL && now && now - (this.lastDrawTime || 0) < 33) {
+    const minFrameDelta = this.multiViewActive ? 66 : 50;
+    if (this.isSoftwareGL && now && now - (this.lastDrawTime || 0) < minFrameDelta) {
       this.animId = requestAnimationFrame(this.render);
       return;
     }
