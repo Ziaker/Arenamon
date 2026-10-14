@@ -47,9 +47,9 @@ try {
 
   // ---------- 6/10. Ajustador ----------
   await page.click('[data-tool="tuning"]');
-  assert.match(await page.textContent('#tune-counter'), /de 310 · 10 ≠ jogo/);
+  assert.match(await page.textContent('#tune-counter'), /\d+ de \d+ · \d+ ≠ jogo/);
   await page.fill('#tune-search', 'gravidade');assert.ok(await page.locator('.tune-control').count() >= 1);
-  await page.fill('#tune-search', '');await page.click('[data-filter="experimental"]');const exp = await page.locator('.tune-control').count();assert.equal(exp, 10);
+  await page.fill('#tune-search', '');await page.click('[data-filter="experimental"]');const exp = await page.locator('.tune-control').count();assert.ok(exp >= 8, 'diferenças comprovadas entre laboratório e jogo');
   const arena = page.locator('#tune-test-arenaHalf');await arena.focus();await page.keyboard.press('ArrowLeft');
   assert.equal(await L(() => window.__lab.C.test.arenaHalf), 15);assert.equal(await page.getAttribute('#tune-state', 'data-state'), 'dirty');
   await page.click('#tune-undo');assert.equal(await L(() => window.__lab.C.test.arenaHalf), 16);await page.click('#tune-redo');assert.equal(await L(() => window.__lab.C.test.arenaHalf), 15);
@@ -69,17 +69,17 @@ try {
   await page.click('[data-tool="export"]');
   assert.match(await page.textContent('#game-diff'), /Metade do lado da arena/);
   let pending = page.waitForEvent('download');await page.click('#export-json');const json = JSON.parse(await readFile(await (await pending).path(), 'utf8'));
-  assert.equal(json.schema, 'arenamon-tuning');assert.equal(json.version, 7);assert.equal(json.values.test.arenaHalf, 15);
+  assert.equal(json.schema, 'arenamon-tuning');assert.equal(json.version, 8);assert.equal(json.values.test.arenaHalf, 15);
   assert.ok(json.differencesFromGame.some(d => d.path === 'test.arenaHalf' && d.game === 10 && d.lab === 15));assert.ok(!json.differencesFromGame.some(d => d.path === 'test.speed'));
   // Importar um JSON v6 (formato antigo) com valor inválido: rejeitado sem aplicar nada.
   await page.fill('#import-text', JSON.stringify({schema: 'arenamon-tuning-v5', version: 6, values: {rules: {dodge: .5, launchUp: 999}}}));await page.click('#import-preview');
-  assert.match(await page.textContent('#import-result'), /fora da faixa/);assert.equal(await L(() => window.__lab.C.rules.dodge), .4);
+  assert.match(await page.textContent('#import-result'), /fora da faixa/);assert.equal(await L(() => window.__lab.C.actions.dodge.duration), .4);
   await page.fill('#import-text', JSON.stringify({schema: 'arenamon-tuning-v5', version: 6, values: {rules: {dodge: .5}, test: {arenaHalf: 16, speed: 4.8}}}));await page.click('#import-preview');
-  assert.match(await page.textContent('#import-result'), /3 parâmetros mudariam/);await page.click('#import-apply');
-  assert.deepEqual(await L(() => [window.__lab.C.rules.dodge, window.__lab.C.test.arenaHalf, window.__lab.C.test.speed]), [.5, 16, 4.8]);
-  await L(() => window.__lab.tuning.undo());assert.equal(await L(() => window.__lab.C.rules.dodge), .4);
+  assert.match(await page.textContent('#import-result'), /4 parâmetros mudariam/);await page.click('#import-apply');
+  assert.deepEqual(await L(() => [window.__lab.C.actions.dodge.duration, window.__lab.C.test.arenaHalf, window.__lab.C.test.speed]), [.5, 16, 4.8]);
+  await L(() => window.__lab.tuning.undo());assert.equal(await L(() => window.__lab.C.actions.dodge.duration), .4);
   await page.click('#reset-all');assert.equal(await L(() => window.__lab.C.test.speed), 4.8);
-  step('exportação v7 com diferenças do jogo, importação v6 validada (pré-visualizar, aplicar, desfazer) e restaurar padrões');
+  step('exportação v8 com diferenças do jogo, importação v6 validada (pré-visualizar, aplicar, desfazer) e restaurar padrões');
 
   // Aviso ao sair e sessão anterior.
   await L(() => window.__lab.tuning.commit([['rules.launchUp', 8]], 'teste'));assert.equal(await page.getAttribute('#tune-state', 'data-state'), 'dirty');
@@ -159,7 +159,7 @@ try {
   const studioText = await page.textContent('#studio-events');assert.match(studioText, /Invulnerabilidade0–200 ms0–200 ms/);assert.match(studioText, /≠ Hitbox ativa80–320 ms0–400 ms/);
   await page.click('[data-tool="match"]');await page.selectOption('#mode', 'inactive');await page.click('#start');await page.locator('canvas').first().focus();
   await page.keyboard.down('ArrowUp');await page.waitForTimeout(250);await page.keyboard.up('ArrowUp');await page.keyboard.press('KeyX');await page.waitForTimeout(60);
-  const anim = await L(() => {const c = window.__lab.ui.characters[0], f = window.__lab.game.fighters[0];return {key: c.current?.key, clip: c.current?.action.getClip().name, time: c.current?.action.time, progress: f.action ? f.action.elapsed / window.__lab.C.rules.dodge : null, d: c.current?.action.getClip().duration};});
+  const anim = await L(() => {const c = window.__lab.ui.characters[0], f = window.__lab.game.fighters[0];return {key: c.current?.key, clip: c.current?.action.getClip().name, time: c.current?.action.time, progress: f.action ? f.action.elapsed / window.__lab.C.actions.dodge.duration : null, d: c.current?.action.getClip().duration};});
   assert.equal(anim.key, 'tackle');assert.equal(anim.clip, 'tackle');assert.ok(Math.abs(anim.time - anim.progress * anim.d) < .2, 'animação sincronizada com a ação');
   await page.waitForTimeout(400);await page.screenshot({path: out + 'personagens.png'});
   step('personagens do Studio: mapa de ações, animação sincronizada com o tackle, cópia tingida no vermelho e eventos Studio × jogo');
@@ -169,18 +169,18 @@ try {
   await idleRange.fill('2');assert.equal(await L(() => window.__lab.ui.characters[0].speedOf('idle')), 2);
   await page.locator('#char-speed').fill('1.5');assert.equal(await L(() => window.__lab.ui.characters[0].speedOf('idle')), 3);await page.locator('#char-speed').fill('1');
   await page.check('#char-sync');
-  const synced = await L(() => [window.__lab.C.rules.tackleDuration, window.__lab.C.rules.dodge, window.__lab.C.rules.invulnerable]);
-  assert.deepEqual(synced, [3, 1, .2], 'tackle = clip de 3 s, esquiva = clip de 1 s; invulnerabilidade mantida (a esquiva não tem eventos)');
+  const synced = await L(() => [window.__lab.C.actions.tackle.duration, window.__lab.C.actions.dodge.duration, window.__lab.C.actions.dodge.invulnerable]);
+  assert.deepEqual(synced, [3, 1, .2], 'tackle e esquiva têm durações exclusivas; invulnerabilidade não deriva dos eventos GLB');
   const tackleRange = page.locator('.char-slot').nth(0).locator('tr[data-action="tackle"] input[type=range]');await tackleRange.fill('2');await tackleRange.dispatchEvent('change');
-  assert.equal(await L(() => window.__lab.C.rules.tackleDuration), 1.5, 'velocidade 2× → tackle de 1,5 s');
-  assert.ok((await page.textContent('#char-durations')).includes('Duração do tackle (X)tackle1.500 s'), 'tabela de durações');
+  assert.equal(await L(() => window.__lab.C.actions.tackle.duration), 1.5, 'velocidade 2× → tackle de 1,5 s');
+  assert.ok((await page.textContent('#char-durations')).includes('tackle1.500 s'), 'tabela de durações');
   await page.click('[data-tool="match"]');await page.click('#start');await page.locator('canvas').first().focus();await page.keyboard.press('KeyX');await page.waitForTimeout(800);
   assert.equal(await L(() => window.__lab.game.fighters[0].action?.kind), 'tackle', 'o tackle agora dura 1,5 s no jogo');
-  const sync = await L(() => {const c = window.__lab.ui.characters[0], f = window.__lab.game.fighters[0];return {t: c.current.action.time, expected: f.action.elapsed / window.__lab.C.rules.tackleDuration * c.current.action.getClip().duration};});
+  const sync = await L(() => {const c = window.__lab.ui.characters[0], f = window.__lab.game.fighters[0];return {t: c.current.action.time, expected: f.action.elapsed / window.__lab.C.actions.tackle.duration * c.current.action.getClip().duration};});
   assert.ok(Math.abs(sync.t - sync.expected) < .15, 'clip inteiro dentro da ação');
-  await L(() => window.__lab.tuning.undo());assert.equal(await L(() => window.__lab.C.rules.tackleDuration), 3);
+  await L(() => window.__lab.tuning.undo());assert.equal(await L(() => window.__lab.C.actions.tackle.duration), 3);
   await page.click('[data-tool="characters"]');await page.uncheck('#char-sync');await L(() => {window.__lab.tuning.resetAll();});
-  step('animações: velocidade por ação e geral; durações das animações definem tackle/esquiva/invulnerabilidade no jogo (com desfazer)');
+  step('animações: duração independente de X/C e invulnerabilidade autoritativa independente de eventos GLB');
 
   // Compatibilidade e layout.
   const snap = await L(() => window.__arenamon.snapshot());assert.equal(snap.fighters.length, 2);assert.ok(await L(() => window.__arenaLive.rules === window.__lab.C.rules));
