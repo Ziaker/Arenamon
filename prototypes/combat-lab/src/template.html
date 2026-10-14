@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Arenamon · Laboratório de Combate v7</title>
+<style>/*__CSS__*/</style>
+</head>
+<body>
+<div class="lab">
+ <header class="top">
+  <div class="brand"><span class="logo">A</span><strong>ARENAMON <em>LAB</em></strong><small>Combate · v7</small></div>
+  <div class="top-info"><span class="chip" id="phase" title="Fase da partida e estado do alvo"></span><span class="chip ai" id="ai-chip" title="Modo da IA do adversário"></span><span class="chip dirty" id="tune-state" data-state="clean" title="Ajustes alterados em relação ao último preset salvo ou JSON exportado"><i></i><span>Ajustes padrão</span></span></div>
+  <div class="top-actions">
+   <button type="button" id="pause" title="Pausar / continuar (Esc)">❚❚ Pausar</button>
+   <button type="button" id="restart-top" title="Reiniciar a partida (R)">↺ Reiniciar</button>
+   <button type="button" id="arena-hitboxes-toggle" role="switch" aria-checked="false" title="Mostrar os colisores físicos (coloridos pelo estado) e as trajetórias de X/C">▧ Hitboxes</button>
+   <button type="button" id="arena-autoplay-toggle" role="switch" aria-checked="false" title="IA controla o jogador azul (IA × IA)">🤖 IA jogador</button>
+   <button type="button" id="camera-reset" title="Reposicionar a câmera atrás do jogador">◎ Câmera</button>
+   <button type="button" id="debug-toggle" title="Depuração (F3)">F3</button>
+  </div>
+ </header>
+ <div class="body">
+  <nav class="rail" aria-label="Ferramentas" role="tablist">
+   <button type="button" role="tab" data-tool="match" title="Partida: perfis, início e regras ativas"><i>⚔</i><span>Partida</span></button>
+   <button type="button" role="tab" data-tool="scenarios" title="Cenários de teste repetíveis com esperado × obtido"><i>◎</i><span>Cenários</span></button>
+   <button type="button" role="tab" data-tool="tuning" title="Ajustes: todos os parâmetros, por grupo"><i>⚙</i><span>Ajustes</span></button>
+   <button type="button" role="tab" data-tool="overlays" title="Hitboxes, normais, lançamento e alcance"><i>▧</i><span>Visualizar</span></button>
+   <button type="button" role="tab" data-tool="characters" title="Personagens e animações do Studio; eventos de combate"><i>♙</i><span>Personagens</span></button>
+   <button type="button" role="tab" data-tool="controls" title="Dummy, IA, dificuldade, gamepad e histórico de comandos"><i>🎮</i><span>Controles</span></button>
+   <button type="button" role="tab" data-tool="export" title="Exportar/importar ajustes e relatório de diferenças para o jogo"><i>↗</i><span>Exportar</span></button>
+   <span class="rail-spacer"></span>
+   <button type="button" id="dock-toggle" title="Mostrar/recolher a linha do tempo"><i>⏱</i><span>Timeline</span></button>
+  </nav>
+  <aside class="panel" id="panel" hidden>
+   <header class="panel-head"><h2 id="panel-title"></h2><button type="button" class="icon" id="panel-close" title="Recolher painel" aria-label="Recolher painel">⟨</button></header>
+   <div class="panel-body">
+    <section data-section="match">
+     <p class="hint">Combate em blocos com as regras do laboratório v6. Os valores podem divergir do jogo oficial: veja a aba Exportar.</p>
+     <label class="field">Perfil do jogador (azul)<select id="profile"><option value="balanced">Equilibrado</option><option value="agile">Ágil</option><option value="resistant">Resistente</option></select></label>
+     <label class="field">Perfil do adversário (vermelho)<select id="enemy-profile"><option value="balanced">Equilibrado</option><option value="agile">Ágil</option><option value="resistant">Resistente</option></select></label>
+     <label class="field">Comportamento do adversário<select id="mode"></select></label>
+     <button type="button" class="primary wide" id="start">▶ Iniciar combate</button>
+     <h3>Controles</h3>
+     <p class="keys">↑↓←→ mover · <b>X</b> tackle · <b>C</b> esquiva (salta sobre o rival no caminho) · <b>D</b> defender · <b>Tab</b> fixar alvo · <b>Esc</b> pausar · <b>R</b> reiniciar · botão direito/roda: câmera. Gamepad: A tackle, B esquiva, LB/RB defesa, Y alvo.</p>
+     <p class="hint">Pausado: ◂/▸ na linha do tempo (ou , e .) voltam e avançam um passo de simulação. Os últimos 12 s ficam gravados.</p>
+    </section>
+    <section data-section="scenarios" hidden>
+     <p class="hint">Cada cenário começa sempre do mesmo jeito, com comandos roteirizados para os dois lutadores, e termina com <b>esperado × obtido</b> calculado a partir dos ajustes atuais.</p>
+     <div id="scenario-list"></div>
+     <button type="button" class="wide" id="scenario-all" title="Executa todos sem animação e mostra o relatório">Executar todos (instantâneo)</button>
+     <div id="scenario-report" class="report" aria-live="polite"></div>
+    </section>
+    <section data-section="tuning" hidden>
+     <div class="tune-tools">
+      <input type="search" id="tune-search" placeholder="Buscar parâmetro…" aria-label="Buscar parâmetro">
+      <div class="seg" role="group" aria-label="Filtro"><button type="button" data-filter="all" aria-pressed="true">Todos</button><button type="button" data-filter="changed" aria-pressed="false" title="Diferentes do padrão do laboratório">Alterados</button><button type="button" data-filter="experimental" aria-pressed="false" title="Diferentes do jogo oficial (config.ts)">≠ jogo</button><button type="button" data-filter="lab" aria-pressed="false" title="Não existem no jogo oficial">Só lab</button></div>
+      <div class="row"><button type="button" id="tune-undo" disabled title="Desfazer ajuste (Ctrl+Z)">↶</button><button type="button" id="tune-redo" disabled title="Refazer ajuste (Ctrl+Y)">↷</button><span id="tune-counter" class="muted"></span></div>
+     </div>
+     <div class="tabs" id="tune-tabs" role="tablist"></div>
+     <div id="tune-list"></div>
+     <h3>Presets</h3>
+     <div class="row"><input type="text" id="preset-name" placeholder="Nome do preset" maxlength="60"><button type="button" id="preset-save">Salvar</button></div>
+     <div id="preset-list"></div>
+     <div class="row"><select id="preset-a" aria-label="Preset A"></select><span>×</span><select id="preset-b" aria-label="Preset B"></select><button type="button" id="preset-compare">Comparar</button></div>
+     <div id="preset-diff" class="report"></div>
+    </section>
+    <section data-section="overlays" hidden>
+     <p class="hint">Sobreposições técnicas desenhadas por cima da arena. Não alteram a simulação.</p>
+     <div id="overlay-list"></div>
+     <h3>Dados ao vivo</h3>
+     <dl class="live" id="live-data"></dl>
+    </section>
+    <section data-section="characters" hidden>
+     <p class="hint">Carregue o <b>.glb</b> exportado pelo Animation Studio. As ações associadas no Studio viram as animações de cada estado do combate. A posição continua vindo da física.</p>
+     <div id="char-slots"></div>
+     <label class="check"><input type="checkbox" id="char-lock-root" checked> Travar o deslocamento da raiz (evita aplicar movimento duas vezes)</label>
+     <label class="check"><input type="checkbox" id="char-fit" checked> Ajustar a altura ao colisor (1,3 m)</label>
+     <label class="field">Transição entre animações (s)<input type="number" id="char-fade" min="0" max="1" step="0.02" value="0.1"></label>
+     <h3>Eventos do Studio × jogo</h3>
+     <p class="hint">Compara as janelas marcadas no Studio (hitbox, invulnerabilidade, recuperação) com as janelas reais da simulação. Apenas visualização: nenhuma regra é alterada.</p>
+     <div id="studio-events" class="report"></div>
+    </section>
+    <section data-section="controls" hidden>
+     <p class="hint">O comportamento do adversário fica em <b>Partida</b>.</p>
+     <label class="field">IA do jogador quando 🤖 ligado<select id="player-mode"></select></label>
+     <label class="field">Semente do modo aleatório<input type="number" id="seed" min="1" step="1" value="1"></label>
+     <h3>Dificuldade da IA</h3>
+     <div class="seg wide" role="group" aria-label="Dificuldade"><button type="button" data-difficulty="easy">Fácil</button><button type="button" data-difficulty="normal">Normal (v6)</button><button type="button" data-difficulty="hard">Difícil</button></div>
+     <p class="hint">Os presets mudam alcance, intervalo de ataque, reação e ciclo de esquiva da IA (aba Ajustes › IA), com desfazer.</p>
+     <h3>Entrada</h3>
+     <label class="check"><input type="checkbox" id="show-history" checked> Mostrar histórico de comandos</label>
+     <p class="hint" id="pad-status">Nenhum gamepad conectado.</p>
+    </section>
+    <section data-section="export" hidden>
+     <p class="hint">O laboratório nunca altera o jogo. Use o relatório para decidir o que levar ao <code>config.ts</code>.</p>
+     <div class="row"><button type="button" class="primary" id="export-json">↓ Exportar ajustes (JSON)</button><button type="button" id="copy-json">Copiar</button></div>
+     <label class="field">Importar JSON (v5, v6 ou v7)<textarea id="import-text" rows="5" placeholder="Cole aqui ou escolha um arquivo"></textarea></label>
+     <div class="row"><input type="file" id="import-file" accept=".json,application/json"><button type="button" id="import-preview">Pré-visualizar</button></div>
+     <div id="import-result" class="report"></div>
+     <h3>Diferenças em relação ao jogo oficial</h3>
+     <div id="game-diff" class="report"></div>
+     <button type="button" class="wide" id="reset-all">Restaurar todos os padrões do laboratório</button>
+    </section>
+   </div>
+  </aside>
+  <main class="stage">
+   <canvas tabindex="0" aria-label="Arena 3D. Setas movem, X tackle, C esquiva, D defesa."></canvas>
+   <header id="hud-root">
+    <div class="fighter"><strong id="name0">JOGADOR · AZUL</strong><meter id="hp0" min="0" max="1" value="1" aria-label="Vida jogador"></meter><meter id="stamina0" class="sta" min="0" max="1" value="1" aria-label="Stamina jogador"></meter><span id="state0"></span></div>
+    <div class="fighter enemy"><strong>ADVERSÁRIO · VERMELHO</strong><meter id="hp1" min="0" max="1" value="1" aria-label="Vida adversário"></meter><meter id="stamina1" class="sta" min="0" max="1" value="1" aria-label="Stamina adversário"></meter><span id="state1"></span></div>
+   </header>
+   <div id="impact-notice" aria-live="polite" hidden></div>
+   <div id="replay-badge" hidden>PAUSADO · <span id="replay-text"></span></div>
+   <ol id="input-history" aria-label="Histórico de comandos"></ol>
+   <pre id="debug" hidden></pre>
+   <div id="contact"></div>
+   <section id="menu" class="card-screen"><div class="card"><h1>Laboratório de combate</h1><p>Escolha perfis e comportamento em <b>Partida</b>, ou rode um <b>Cenário</b>.</p><button type="button" class="primary" id="start-center">▶ Iniciar combate</button></div></section>
+   <section id="overlay" class="card-screen" hidden><div class="card"><h1 id="overlay-title"></h1><button type="button" id="resume" hidden>Continuar</button><button type="button" id="restart">Reiniciar partida</button><button type="button" id="back">Voltar ao menu</button></div></section>
+   <p id="fatal" hidden>WebGL indisponível neste navegador.</p>
+  </main>
+ </div>
+ <section class="dock" id="dock">
+  <div class="dock-bar">
+   <button type="button" id="rp-back" title="Voltar um passo (,)">◂</button>
+   <button type="button" id="rp-play" title="Pausar / continuar (Esc)">❚❚</button>
+   <button type="button" id="rp-fwd" title="Avançar um passo (.)">▸</button>
+   <button type="button" id="rp-live" title="Voltar ao tempo real">● Ao vivo</button>
+   <label title="Câmera lenta: escala do tempo da simulação">Tempo <select id="rp-speed"><option value="0.1">0,1×</option><option value="0.25">0,25×</option><option value="0.5">0,5×</option><option value="1" selected>1×</option></select></label>
+   <span class="readout" id="rp-readout">passo 0</span>
+   <div class="seg" role="tablist" aria-label="Vista"><button type="button" data-dock="timeline" aria-pressed="true">Linha do tempo</button><button type="button" data-dock="hits" aria-pressed="false">Golpes</button><button type="button" data-dock="frames" aria-pressed="false">Quadros</button></div>
+  </div>
+  <div class="dock-body">
+   <canvas id="timeline" aria-label="Linha do tempo: estados, ações, invulnerabilidade, stamina e golpes dos últimos segundos. Clique para voltar a um passo."></canvas>
+   <div id="hit-log" class="table-wrap" hidden></div>
+   <div id="frame-table" class="table-wrap" hidden></div>
+  </div>
+ </section>
+</div>
+<div id="help-tip" role="tooltip" hidden></div>
+<script>/*__BUNDLE__*/</script>
+</body>
+</html>
