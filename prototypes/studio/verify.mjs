@@ -53,9 +53,9 @@ try {
   page.on('pageerror', e => report.errors.push(e.message));page.on('console', m => {if (m.type() === 'error') report.errors.push(m.text());});
   page.on('request', r => {if (/^https?:/.test(r.url())) report.network.push(r.url());});
   await page.context().setOffline(true);
-  await page.goto(pathToFileURL(root + 'dist/arenamon-animation-studio.html').href);await page.waitForFunction(() => window.__studioEditor && window.__importer);
+  await page.goto(pathToFileURL(root + 'dist/arenamon-animation-studio.html').href + (process.env.STUDIO_VERIFY_QUERY || ''));await page.waitForFunction(() => window.__studioEditor && window.__importer);
   report.perf.renderer = await page.evaluate(() => {const gl = window.__importer.renderer.getContext(), ext = gl.getExtension('WEBGL_debug_renderer_info');return ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER);});
-  console.log('WebGL:', report.perf.renderer);stepStart = Date.now();
+  report.perf.quality = await page.evaluate(() => window.__studioGL);console.log('WebGL:', report.perf.renderer, '· modo', report.perf.quality?.mode);stepStart = Date.now();
 
   // ---------- Projeto novo: sem alterações, sem aviso ao sair ----------
   assert.equal(await saveState(), 'clean');assert.equal(await page.textContent('#st-save-text'), 'Nenhum projeto');

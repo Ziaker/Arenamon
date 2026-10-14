@@ -9,10 +9,11 @@ import {GLTFExporter} from 'three/addons/exporters/GLTFExporter.js';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {clone} from 'three/addons/utils/SkeletonUtils.js';
 import {createActionEditor} from './actions.js';
+import {GL_QUALITY} from './gl-quality.js';
 
 const $ = id => document.getElementById(id), scene = new T.Scene(), view = $('view');
 scene.background = new T.Color('#19212c');
-const camera = new T.PerspectiveCamera(40, 1, .001, 100000), renderer = new T.WebGLRenderer({antialias: true});
+const camera = new T.PerspectiveCamera(40, 1, .001, 100000), renderer = new T.WebGLRenderer({antialias: GL_QUALITY.antialias});
 renderer.toneMapping = T.NoToneMapping;renderer.shadowMap.enabled = false;view.appendChild(renderer.domElement);
 const controls = new OrbitControls(camera, renderer.domElement), lights = new T.Group();
 lights.add(new T.HemisphereLight(0xffffff, 0x566477, 2));const key = new T.DirectionalLight(0xffffff, 2);key.position.set(3, 5, 4);lights.add(key);

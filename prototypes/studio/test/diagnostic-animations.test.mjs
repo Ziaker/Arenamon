@@ -115,4 +115,40 @@ test('parâmetros e presets inválidos são rejeitados',()=>{
   assert.throws(()=>generateDiagnosticClip(root,{},'inexistente',.5),/Preset/);
   assert.throws(()=>generateDiagnosticClip(root,{},'walk',.5,{fps:120}),/FPS/);
 });
+test('as oito animações: ids exatos, ligação real no AnimationMixer e poses de início/fim',()=>{
+  assert.deepEqual(PRESETS.map(p=>p.id),['isolate','idle','walk','run','squat','tackle','dodge','guard']);
+  const cyclic=new Set(['idle','walk','run']);
+  for(const p of PRESETS){
+    const {root,bones}=createRoot(),rest=new Map(bones.map(b=>[b.uuid,b.quaternion.clone()]));
+    const {clip,report}=generateDiagnosticClip(root,{},p.id,.65);
+    // Todas as trilhas se ligam a ossos reais (nenhuma ligação órfã no mixer).
+    const mixer=new T.AnimationMixer(root),action=mixer.clipAction(clip);action.play();
+    const bound=action._propertyBindings.filter(b=>b.binding.node).length;
+    assert.equal(bound,clip.tracks.length,p.id+': trilhas sem osso');
+    // No meio do clipe, só os ossos mapeados se movem; a raiz e os não mapeados ficam no repouso.
+    mixer.setTime(p.duration*.5);
+    const animated=new Set(clip.tracks.map(t=>t.name.split('.')[0]));
+    for(const b of bones)if(!animated.has(b.uuid))assert.ok(b.quaternion.angleTo(rest.get(b.uuid))<1e-9,p.id+': '+b.name+' mexeu sem trilha');
+    assert.ok(bones.some(b=>animated.has(b.uuid)&&b.quaternion.angleTo(rest.get(b.uuid))>1e-4)||p.id==='isolate',p.id+': nada se moveu no meio');
+    // Movimentos não cíclicos começam e terminam exatamente na pose de repouso (sem salto ao entrar/sair).
+    if(!cyclic.has(p.id))for(const t of clip.tracks){
+      const r=rest.get(t.name.split('.')[0]),q=i=>new T.Quaternion().fromArray(t.values,i);
+      assert.ok(q(0).angleTo(r)<1e-5&&q(t.values.length-4).angleTo(r)<1e-5,p.id+': não começa/termina no repouso');
+    }
+    assert.equal(report.generatedTrackCount,clip.tracks.length);mixer.stopAllAction();
+  }
+});
+test('inspeção osso por osso: no máximo um osso fora do repouso em cada instante',()=>{
+  const {root,bones}=createRoot(),rest=new Map(bones.map(b=>[b.uuid,b.quaternion.clone()]));
+  const {clip}=generateDiagnosticClip(root,{},'isolate',1),mixer=new T.AnimationMixer(root);mixer.clipAction(clip).play();
+  const seen=new Set();
+  for(let i=0;i<=240;i++){
+    mixer.setTime(clip.duration*i/240);
+    // 0,01 rad ≈ 0,6°: na troca de osso, a interpolação entre quadros (24 fps) deixa os dois abaixo de 0,25° por um quadro.
+    const moving=bones.filter(b=>b.quaternion.angleTo(rest.get(b.uuid))>.01);
+    assert.ok(moving.length<=1,'dois ossos ao mesmo tempo em '+(clip.duration*i/240).toFixed(2)+' s');
+    for(const b of moving)seen.add(b.name);
+  }
+  assert.ok(seen.size>=12,'inspeção percorreu '+seen.size+' ossos');
+});
 console.log('\nDiagnósticos: '+n+' testes unitários aprovados.');

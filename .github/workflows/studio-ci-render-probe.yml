@@ -22,14 +22,14 @@ jobs:
           cache: npm
       - run: npm ci
       - run: node prototypes/studio/build.mjs
-      - name: A - CSS original, operacoes lentas e quadros
+      - name: A - modo completo forcado (comportamento anterior), ate o layout
         env:
           STUDIO_VERIFY_UNTIL: 'layout:'
           STUDIO_VERIFY_SLOW_MS: '1000'
+          STUDIO_VERIFY_QUERY: '?gl=full'
         run: node prototypes/studio/verify.mjs
-      - name: C - canvas WebGL fora da composicao (visibility hidden)
+      - name: D - deteccao automatica (sem GPU = modo leve), ate o layout
         env:
           STUDIO_VERIFY_UNTIL: 'layout:'
           STUDIO_VERIFY_SLOW_MS: '1000'
-          STUDIO_VERIFY_CSS: '#view canvas{visibility:hidden!important}'
         run: node prototypes/studio/verify.mjs

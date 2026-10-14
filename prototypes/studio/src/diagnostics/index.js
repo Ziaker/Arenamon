@@ -80,8 +80,12 @@ function produce(preview=false) {
     E.enterRigRest();
     const {clip,report}=generateDiagnosticClip(E.model,STATE.overrides,STATE.preset,STATE.intensity);
     const before=E.clips.length;
-    const index=E.addClip(clip,{select:true});
-    if(E.clips.length!==before+1)throw Error('Não foi possível adicionar o clipe.');
+    // Como toda criação de clipe no Studio, entra no histórico do editor (Ctrl+Z remove, Ctrl+Y recria).
+    const history=window.__studioEditor?.history,
+      command={label:'Criar “'+clip.name+'”',clip,redo(){E.addClip(clip,{select:true});},undo(){E.removeClip(clip);}};
+    if(history)history.run(command);else command.redo();
+    const index=E.clips.indexOf(clip);
+    if(E.clips.length!==before+1||index<0)throw Error('Não foi possível adicionar o clipe.');
     window.__studioProject?.markDirty('adicionar animação genérica de diagnóstico');
     status('Clipe criado: '+clip.name+'. '+clip.tracks.length+
       ' trilhas reais. '+(report.missingRequired.length?
