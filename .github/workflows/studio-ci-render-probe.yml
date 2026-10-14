@@ -1,10 +1,8 @@
 name: Studio CI render probe
 
-# Experimento A/B no executor real (sem GPU): mesma etapa de layout do verify com e sem backdrop-filter.
+# Experimento A/B no executor real (sem GPU): etapa de layout do verify no modo completo forçado x modo leve automático.
 on:
-  push:
-    branches:
-      - fix/studio-diagnostic-ci
+  # Só manual: reproduz as medições do relatório RELATORIO_CI_E_INTEGRACAO_DIAGNOSTICO.md.
   workflow_dispatch:
 
 permissions:
