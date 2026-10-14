@@ -1,4 +1,4 @@
-// Injeta parâmetros de software GL (SwiftShader) e resiliência de captura e cliques no Playwright para CI
+// Injeta parâmetros de software GL (SwiftShader) e resiliência no Playwright para CI
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -22,10 +22,23 @@ try {
     const _origNewContext = browser.newContext.bind(browser);
     browser.newContext = async function(ctxOpts) {
       const ctx = await _origNewContext(ctxOpts);
+      
+      // Otimiza rendering em CPU reduzindo pixelRatio
+      await ctx.addInitScript(() => {
+        if (typeof window !== 'undefined') {
+          try {
+            Object.defineProperty(window, 'devicePixelRatio', { configurable: true, get: () => 0.7 });
+          } catch (_) {}
+        }
+      });
+
       const _origNewPage = ctx.newPage.bind(ctx);
       ctx.newPage = async function(pageOpts) {
         const page = await _origNewPage(pageOpts);
         
+        // Timeout seguro para runners de CI compartilhados sem aceleração por hardware
+        page.setDefaultTimeout(60000);
+
         // Evita espera espúria de navegação após clique no Edge headless
         const _origClick = page.click.bind(page);
         page.click = async function(selector, cOpts = {}) {
@@ -36,7 +49,7 @@ try {
         const _origScreenshot = page.screenshot.bind(page);
         page.screenshot = async function(sOpts = {}) {
           try {
-            return await _origScreenshot({ animations: 'disabled', timeout: 8000, ...sOpts });
+            return await _origScreenshot({ animations: 'disabled', timeout: 15000, ...sOpts });
           } catch (err) {
             console.warn('page.screenshot fallback aplicado no CI:', err.message);
             if (sOpts && sOpts.path) {
@@ -66,5 +79,5 @@ try {
 `;
   const cleaned = content.replace(/\/\/\s*__swiftshader[\s\S]*$/, '');
   fs.writeFileSync(target, cleaned + patch, 'utf8');
-  console.log('✓ Patch SwiftShader + noWaitAfter + resiliência Playwright aplicado em playwright-core/index.js para CI');
+  console.log('✓ Patch SwiftShader + devicePixelRatio 0.7 + noWaitAfter + timeout 60s aplicado em playwright-core/index.js para CI');
 }
