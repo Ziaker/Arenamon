@@ -250,22 +250,24 @@ As capturas de alta resolução encontram-se salvas na pasta `prototypes/studio/
 - **Causa Raiz**: Ao desativar o mapa de calor, o código deletava incondicionalmente o atributo `color` e desligava `vertexColors`, o que corrompia as cores de modelos GLB que já continham cores de vértice pré-existentes.
 - **Solução Implementada**: Antes de aplicar as cores do mapa de calor, o sistema salva o buffer original (`geometry.attributes.color.clone()`) e o estado de `material.vertexColors` em `userData`. Ao desligar o heatmap, o buffer original e o estado do material são integralmente restaurados. Malhas sem cores originais têm o atributo removido de forma limpa.
 
-### 8. Validação Estrita de Schema e Preservação de Dados Schema v2
+### 8. Validação Canônica Estrita de Schema v2 e Persistência em SkinnedMesh
 - **Aprimoramentos**:
-  - Rejeição imediata de arquivos cujo `schema !== 'arenamon-rig'` ou cuja `version` seja diferente de `1` ou `2`.
-  - Suporte total de leitura e correspondência de articulações prioritariamente por `id`/`uuid` (com fallback por `name`).
-  - Preservação de identificadores persistentes e rotações em quaternion (`q: [x, y, z, w]`) nas estruturas de dados em memória e no histórico (Undo/Redo).
-  - Suporte à emissão de payloads v2 com `bridge.exportJSON({ version: 2 })`.
-  - Alinhamento aos contratos do núcleo estabilizado pelo Codex na branch `codex/rig-editor-stabilization` (commit `7323b48`).
+  - **Validação Canônica Estrita no Import**: Alinhada integralmente ao método `validateDraft` do commit `7323b48` do Codex. Rejeita com erro impeditivo imediato qualquer JSON que possua ID ausente em articulação no v2, IDs duplicados, quaternions ausentes ou não-finitos no v2, ciclos na hierarquia esquelética, coordenadas fora de limite (|p| > 1.000.000) ou ausência/multiplicidade de ossos raiz.
+  - **Garantia de Exportação v2 Estritamente Válida**: O método `exportJSON({ version: 2 })` assegura que todas as articulações possuam IDs únicos gerados e quaternions de 4 números finitos, executando `validateDraftStructure(coords)` antes de emitir o payload, prevenindo qualquer exportação de esqueleto incompleto.
+  - **Persistência Completa em Modelos com SkinnedMesh Ativo (`isSkinned() === true`)**:
+    - Instâncias reais de `THREE.Bone` persistem identificadores em `bone.userData.arenamonJointId` e rotações em `bone.quaternion`.
+    - Metadados do modelo são mantidos em `model.userData.arenamonRig` com `version: 2`.
+    - Ao importar dados em modelos já com pele ativa, as posições, identificadores persistentes e quaternions são aplicados diretamente nos ossos reais e nos metadados.
+    - O histórico de **Undo / Redo** restaura simetricamente tanto a geometria quanto os campos `userData.arenamonJointId`, `bone.quaternion` e `model.userData.arenamonRig`.
 
 ### 9. Testes Ponta a Ponta com Eventos Reais de Mouse no Canvas
 - Os testes automatizados em `test-proposals.mjs` agora incluem o ciclo completo com eventos reais de mouse via Playwright (`page.mouse.move`, `page.mouse.down`, `page.mouse.move`, `page.mouse.up`) direcionados às coordenadas projetadas dos manipuladores de eixo do `TransformControls`.
 - Comprova a detecção de hover no eixo, ativação do dragging, deslocamento de coordenadas no modelo e reversão exata após comando de Undo.
 
-### 10. Auditoria do Ambiente de Integração Contínua (CI)
-- Os runners do GitHub Actions executam sobre **Windows Server 2025** (e não `ubuntu-latest`).
-- Os timeouts de 30s ocorridos em execuções anteriores durante testes em `#lighting` e `[data-panel="project"]` continuam sob investigação do Claude. A conjectura sobre transições CSS causando atrasos não possui evidência comprovada.
-- Os arquivos de CI e o motor central permanecem inalterados por este agente.
+### 10. Integração Contínua (CI) Dedicada
+- Criado o workflow `.github/workflows/studio-rigging-proposals.yml`, dedicado à branch `feat/studio-rigging-ui-proposals` no GitHub Actions.
+- O pipeline compila offline as três propostas, executa a suíte de validação funcional Playwright com testes de persistência em SkinnedMesh e executa `npm run verify`, publicando os HTMLs e capturas como artefatos de build.
+- O workflow principal `arenamon-studio-rigging.yml` e o motor central do Codex permanecem preservados e isolados.
 
 ### 11. Preservação de Stash Local
 - O stash `stash@{0}: On fix/arena-movement-camera: local-wip-fix-arena-movement-camera-template` foi conferido e permanece intocado e preservado.

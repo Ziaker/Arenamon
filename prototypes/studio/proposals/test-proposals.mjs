@@ -9,12 +9,27 @@ const dir = resolve('prototypes/studio/proposals');
 const screenshotsDir = resolve('prototypes/studio/proposals/screenshots');
 
 async function runTests() {
-  console.log('Iniciando bateria de validação funcional e de estados nos protótipos de rigging...');
-  const browser = await chromium.launch({
-    channel: 'msedge',
-    headless: true,
-    args: ['--disable-gpu-sandbox', '--use-angle=swiftshader']
-  });
+  let browser;
+  try {
+    browser = await chromium.launch({
+      headless: true,
+      args: ['--disable-gpu-sandbox', '--use-angle=swiftshader', '--no-sandbox']
+    });
+  } catch {
+    try {
+      browser = await chromium.launch({
+        channel: 'msedge',
+        headless: true,
+        args: ['--disable-gpu-sandbox', '--use-angle=swiftshader']
+      });
+    } catch {
+      browser = await chromium.launch({
+        channel: 'chrome',
+        headless: true,
+        args: ['--disable-gpu-sandbox', '--use-angle=swiftshader']
+      });
+    }
+  }
 
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
   page.on('dialog', d => d.accept());
@@ -283,14 +298,15 @@ async function runTests() {
   assert.equal(restoredColorState.unpaintedMeshesCleaned, true, 'Malhas sem cores originais tiveram atributo color e vertexColors removidos');
   console.log('✓ Prioridade 3 Aprovada: Heatmap em modelos multi-malha validado com preservação não-destrutiva de cores GLB');
 
-  // 1.5 Prioridade 4: Validação e relatório da importação JSON e compatibilidade Schema v2
-  console.log('  -> Testando validação e relatório estruturado de importação JSON...');
-  // Teste 4.1: JSON corrompido / inválido
+  // 1.5 Prioridade 4: Validação canônica estrita do Codex (commit 7323b48) e compatibilidade Schema v2
+  console.log('  -> Testando validação canônica estrita de importação JSON (idêntica ao commit 7323b48 do Codex)...');
+
+  // Teste 4.1: JSON corrompido ou sem array joints
   const invalidReport = await page.evaluate(() => {
     return window.__rigStudio.bridge.validateAndImportJSON('{ "corrompido": true }');
   });
   assert.equal(invalidReport.success, false, 'Importação rejeitou JSON sem array joints');
-  assert.ok(invalidReport.errors.length > 0, 'Relatório contém lista de erros impeditivos');
+  assert.ok(invalidReport.errors.some(e => e.includes('esperado schema arenamon-rig e joints')), 'Erro canônico para formato sem schema/joints');
 
   // Teste 4.2: Rejeição estrita de schema desconhecido
   const unknownSchemaReport = await page.evaluate(() => {
@@ -301,7 +317,7 @@ async function runTests() {
     });
   });
   assert.equal(unknownSchemaReport.success, false, 'Importação rejeitou schema desconhecido');
-  assert.ok(unknownSchemaReport.errors.some(e => e.includes('Schema não reconhecido')), 'Erro explicou rejeição de schema');
+  assert.ok(unknownSchemaReport.errors.some(e => e.includes('esperado schema arenamon-rig e joints')), 'Erro canônico rejeitou schema inválido');
 
   // Teste 4.3: Rejeição estrita de versão de schema não suportada
   const unsupportedVersionReport = await page.evaluate(() => {
@@ -312,77 +328,216 @@ async function runTests() {
     });
   });
   assert.equal(unsupportedVersionReport.success, false, 'Importação rejeitou versão 99 não suportada');
-  assert.ok(unsupportedVersionReport.errors.some(e => e.includes('Versão de schema não suportada')), 'Erro explicou versão não suportada');
+  assert.ok(unsupportedVersionReport.errors.some(e => e.includes('Versão de rig não suportada: 99')), 'Erro canônico explicou versão não suportada');
 
-  // Teste 4.4: JSON com nomes duplicados
-  const duplicateReport = await page.evaluate(() => {
-    return window.__rigStudio.bridge.validateAndImportJSON({
-      joints: [
-        { name: 'Spine', p: [0, 1, 0] },
-        { name: 'Spine', p: [0, 1.2, 0] }
-      ]
-    });
-  });
-  assert.ok(duplicateReport.invalid.some(inv => inv.reason.includes('duplicad')), 'Detectou e rejeitou nome de articulação duplicado');
-
-  // Teste 4.5: Importação compatível com Schema v2 (matching por ID e preservação de quaternion q)
-  const v2ImportReport = await page.evaluate(() => {
+  // Teste 4.4: Rejeição estrita de ID ausente no JSON v2
+  const missingIdV2Report = await page.evaluate(() => {
     return window.__rigStudio.bridge.validateAndImportJSON({
       schema: 'arenamon-rig',
       version: 2,
       joints: [
-        { id: 'uuid-spine-001', name: 'Spine', p: [0, 1.55, 0.06], q: [0, 0, 0, 1] }
+        { name: 'Hips', parent: null, p: [0, 0, 0], q: [0, 0, 0, 1] },
+        { id: 'j-spine', name: 'Spine', parent: 'Hips', p: [0, 1, 0], q: [0, 0, 0, 1] }
       ]
     });
   });
-  assert.equal(v2ImportReport.success, true, 'Importação de schema v2 concluída com sucesso');
-  assert.ok(v2ImportReport.warnings.some(w => w.includes('schema v2')), 'Aviso contextual sobre v2 exibido');
+  assert.equal(missingIdV2Report.success, false, 'Rejeitou rig v2 com ID ausente');
+  assert.ok(missingIdV2Report.errors.some(e => e.includes('ID obrigatório no JSON v2: Hips')), 'Erro canônico: ID obrigatório no JSON v2');
 
-  const spineAfterV2 = await page.evaluate(() => {
+  // Teste 4.5: Rejeição estrita de ID duplicado no JSON v2
+  const duplicateIdV2Report = await page.evaluate(() => {
+    return window.__rigStudio.bridge.validateAndImportJSON({
+      schema: 'arenamon-rig',
+      version: 2,
+      joints: [
+        { id: 'dup-id', name: 'Hips', parent: null, p: [0, 0, 0], q: [0, 0, 0, 1] },
+        { id: 'dup-id', name: 'Spine', parent: 'Hips', p: [0, 1, 0], q: [0, 0, 0, 1] }
+      ]
+    });
+  });
+  assert.equal(duplicateIdV2Report.success, false, 'Rejeitou rig v2 com IDs duplicados');
+  assert.ok(duplicateIdV2Report.errors.some(e => e.includes('ID de osso duplicado: dup-id')), 'Erro canônico: ID de osso duplicado');
+
+  // Teste 4.6: Rejeição estrita de quaternion inválido/ausente no JSON v2
+  const invalidQuatV2Report = await page.evaluate(() => {
+    return window.__rigStudio.bridge.validateAndImportJSON({
+      schema: 'arenamon-rig',
+      version: 2,
+      joints: [
+        { id: 'j-hips', name: 'Hips', parent: null, p: [0, 0, 0], q: [0, 0, 0, 1] },
+        { id: 'j-spine', name: 'Spine', parent: 'Hips', p: [0, 1, 0], q: [0, 0, 0] }
+      ]
+    });
+  });
+  assert.equal(invalidQuatV2Report.success, false, 'Rejeitou rig v2 com quaternion inválido');
+  assert.ok(invalidQuatV2Report.errors.some(e => e.includes('Quaternion obrigatório e finito no JSON v2: Spine')), 'Erro canônico: Quaternion obrigatório e finito');
+
+  // Teste 4.7: Rejeição estrita de ciclo na hierarquia
+  const cycleReport = await page.evaluate(() => {
+    return window.__rigStudio.bridge.validateAndImportJSON({
+      schema: 'arenamon-rig',
+      version: 2,
+      joints: [
+        { id: 'j-hips', name: 'Hips', parent: 'Spine', p: [0, 0, 0], q: [0, 0, 0, 1] },
+        { id: 'j-spine', name: 'Spine', parent: 'Hips', p: [0, 1, 0], q: [0, 0, 0, 1] }
+      ]
+    });
+  });
+  assert.equal(cycleReport.success, false, 'Rejeitou rig v2 com ciclo na hierarquia');
+  assert.ok(cycleReport.errors.some(e => e.includes('Ciclo no esqueleto') || e.includes('raiz')), 'Erro canônico: Ciclo no esqueleto');
+
+  // Teste 4.8: Rejeição estrita de múltiplas raízes
+  const multiRootReport = await page.evaluate(() => {
+    return window.__rigStudio.bridge.validateAndImportJSON({
+      schema: 'arenamon-rig',
+      version: 2,
+      joints: [
+        { id: 'j-root1', name: 'Hips1', parent: null, p: [0, 0, 0], q: [0, 0, 0, 1] },
+        { id: 'j-root2', name: 'Hips2', parent: null, p: [0, 1, 0], q: [0, 0, 0, 1] }
+      ]
+    });
+  });
+  assert.equal(multiRootReport.success, false, 'Rejeitou rig v2 com múltiplas raízes');
+  assert.ok(multiRootReport.errors.some(e => e.includes('O esqueleto precisa de exatamente um osso raiz.')), 'Erro canônico: exatamente um osso raiz');
+
+  // Teste 4.9: Rejeição estrita de coordenadas fora de limite (|p| > 1e6)
+  const outOfBoundsReport = await page.evaluate(() => {
+    return window.__rigStudio.bridge.validateAndImportJSON({
+      schema: 'arenamon-rig',
+      version: 2,
+      joints: [
+        { id: 'j-hips', name: 'Hips', parent: null, p: [0, 0, 0], q: [0, 0, 0, 1] },
+        { id: 'j-spine', name: 'Spine', parent: 'Hips', p: [5000000, 0, 0], q: [0, 0, 0, 1] }
+      ]
+    });
+  });
+  assert.equal(outOfBoundsReport.success, false, 'Rejeitou coordenada fora dos limites');
+  assert.ok(outOfBoundsReport.errors.some(e => e.includes('Coordenada fora de limite: Spine')), 'Erro canônico: Coordenada fora de limite');
+
+  // Teste 4.10: Exportação estrita de v2 do rascunho com validação canônica garantida
+  const draftV2Export = await page.evaluate(() => window.__rigStudio.bridge.exportJSON({ version: 2 }));
+  assert.equal(draftV2Export.version, 2, 'ExportJSON gerou versão 2');
+  assert.equal(draftV2Export.joints.length, 20, 'ExportJSON v2 conteve todas as 20 articulações');
+  const allJointsValidV2 = draftV2Export.joints.every(j => {
+    return typeof j.id === 'string' && j.id.trim() &&
+           Array.isArray(j.q) && j.q.length === 4 && j.q.every(Number.isFinite);
+  });
+  assert.equal(allJointsValidV2, true, 'Todas as 20 articulações possuem ID único e quaternion finito de 4 componentes');
+
+  // Teste 4.11: Importação de rig v2 no rascunho com matching e Undo/Redo simétrico
+  const importedV2Payload = structuredClone(draftV2Export);
+  const spineTarget = importedV2Payload.joints.find(j => j.name === 'Spine');
+  spineTarget.id = 'uuid-spine-imported-v2';
+  spineTarget.p[1] += 0.15;
+  spineTarget.q = [0, 0.7071, 0, 0.7071];
+
+  const validV2ImportRes = await page.evaluate((payload) => {
+    return window.__rigStudio.bridge.validateAndImportJSON(payload);
+  }, importedV2Payload);
+
+  assert.equal(validV2ImportRes.success, true, 'Importação de rig v2 válido concluída');
+  assert.equal(validV2ImportRes.appliedCount, 20, 'Todas as 20 articulações atualizadas no rascunho');
+
+  const spineInDraftAfterImport = await page.evaluate(() => {
     const j = window.__rigStudio.bridge.getJoint('Spine');
     return { id: j.id, p: j.p, q: j.q };
   });
-  assert.equal(spineAfterV2.id, 'uuid-spine-001', 'Identificador persistente id preservado no osso');
-  assert.equal(spineAfterV2.q[3], 1, 'Orientação de quaternion q preservada');
+  assert.equal(spineInDraftAfterImport.id, 'uuid-spine-imported-v2', 'ID v2 persistido no rascunho');
+  assert.ok(Math.abs(spineInDraftAfterImport.q[1] - 0.7071) < 1e-3, 'Quaternion v2 persistido no rascunho');
 
-  // Teste 4.6: Exportação preserva formato v2 quando requerido
-  const v2Export = await page.evaluate(() => window.__rigStudio.bridge.exportJSON({ version: 2 }));
-  assert.equal(v2Export.version, 2, 'ExportJSON gerou arquivo com schema version 2');
-  const exportedSpine = v2Export.joints.find(j => j.name === 'Spine');
-  assert.equal(exportedSpine.id, 'uuid-spine-001', 'Export v2 preservou ID persistente da articulação');
-  assert.ok(Array.isArray(exportedSpine.q), 'Export v2 preservou quaternion q');
-
-  // Desfaz a importação v2
+  // Testa Desfazer da importação v2 no rascunho
   await page.click('#btn-undo');
-
-  // Teste 4.7: JSON com coordenada fora dos limites de segurança
-  const outOfBoundsReport = await page.evaluate(() => {
-    return window.__rigStudio.bridge.validateAndImportJSON({
-      joints: [{ name: 'Spine', p: [5000000, 0, 0] }]
-    });
+  const spineInDraftAfterUndo = await page.evaluate(() => {
+    const j = window.__rigStudio.bridge.getJoint('Spine');
+    return { id: j.id, p: j.p, q: j.q };
   });
-  assert.ok(outOfBoundsReport.invalid.some(inv => inv.reason.includes('limite')), 'Detectou coordenada fora dos limites permitidos');
+  assert.notEqual(spineInDraftAfterUndo.id, 'uuid-spine-imported-v2', 'Undo restaurou ID prévio');
+  assert.equal(spineInDraftAfterUndo.q[1], 0, 'Undo restaurou quaternion neutro prévio');
 
-  // Teste 4.8: JSON válido com coordenadas
-  const validImportResult = await page.evaluate(() => {
-    const current = window.__rigStudio.bridge.getJoints();
-    const modified = current.map(j => ({
-      name: j.name,
-      p: [j.p[0] + 0.05, j.p[1] + 0.05, j.p[2] + 0.05]
-    }));
-    const report = window.__rigStudio.bridge.validateAndImportJSON({ joints: modified });
-    window.__rigStudio.viewport.updateJointPositions();
-    window.__rigStudio.viewport.updateBoneConnectors();
-    window.__rigStudio.renderSelection();
-    return report;
+  // 1.5.B Teste de persistência real em SkinnedMesh (ossos THREE.Bone e model.userData.arenamonRig)
+  console.log('  -> Testando persistência real em SkinnedMesh, THREE.Bone e Undo/Redo...');
+  await page.evaluate(() => {
+    window.__rigStudio.bridge.bindSkin();
   });
+  const isSkinnedActive = await page.evaluate(() => window.__rigStudio.bridge.isSkinned());
+  assert.equal(isSkinnedActive, true, 'Modelo com malha ativa vinculado (isSkinned === true)');
 
-  assert.equal(validImportResult.success, true, 'Importação de coordenadas válidas concluída');
-  assert.equal(validImportResult.appliedCount, 20, 'Exatamente 20 articulações foram atualizadas');
+  const bonesHaveIds = await page.evaluate(() => {
+    const bones = window.__rigStudio.bridge.getBones();
+    const allHaveId = bones.every(b => typeof b.userData.arenamonJointId === 'string' && b.userData.arenamonJointId.trim());
+    const metadataRig = window.__rigStudio.bridge.model.userData.arenamonRig;
+    const metadataValid = metadataRig && metadataRig.schema === 'arenamon-rig' && metadataRig.version === 2 && Array.isArray(metadataRig.joints);
+    return { allHaveId, bonesCount: bones.length, metadataValid, metadataJointsCount: metadataRig?.joints?.length };
+  });
+  assert.equal(bonesHaveIds.allHaveId, true, 'Todos os ossos THREE.Bone receberam userData.arenamonJointId');
+  assert.equal(bonesHaveIds.metadataValid, true, 'model.userData.arenamonRig inicializado e sincronizado com schema v2');
+  assert.equal(bonesHaveIds.bonesCount, bonesHaveIds.metadataJointsCount, 'Metadados contêm contagem exata de articulações vinculadas');
 
-  // Desfaz a importação JSON em 1 clique
+  // Exportação v2 do modelo com SkinnedMesh
+  const skinnedV2Export = await page.evaluate(() => window.__rigStudio.bridge.exportJSON({ version: 2 }));
+  assert.equal(skinnedV2Export.version, 2, 'ExportJSON v2 a partir de SkinnedMesh tem version 2');
+  assert.equal(skinnedV2Export.joints.length, bonesHaveIds.bonesCount, 'Export contém todos os ossos do SkinnedMesh');
+
+  // Modifica e importa JSON v2 diretamente no modelo com pele ativa
+  const modifiedSkinnedPayload = structuredClone(skinnedV2Export);
+  const skinnedSpineJ = modifiedSkinnedPayload.joints.find(j => j.name === 'Spine');
+  const prevSkinnedSpineId = skinnedSpineJ.id;
+  skinnedSpineJ.id = 'skinned-spine-persistent-v2';
+  skinnedSpineJ.p[1] += 0.25;
+  skinnedSpineJ.q = [0, 0.7071, 0, 0.7071];
+
+  const skinnedImportRes = await page.evaluate((payload) => {
+    return window.__rigStudio.bridge.validateAndImportJSON(payload);
+  }, modifiedSkinnedPayload);
+  assert.equal(skinnedImportRes.success, true, 'Importação em SkinnedMesh bem-sucedida');
+
+  const boneStateAfterImport = await page.evaluate(() => {
+    const bone = window.__rigStudio.bridge.getBoneObject('Spine');
+    const metaJoint = window.__rigStudio.bridge.model.userData.arenamonRig.joints.find(j => j.name === 'Spine');
+    return {
+      boneJointId: bone.userData.arenamonJointId,
+      boneQuatY: bone.quaternion.y,
+      metaJointId: metaJoint.id,
+      metaQuatY: metaJoint.q[1]
+    };
+  });
+  assert.equal(boneStateAfterImport.boneJointId, 'skinned-spine-persistent-v2', 'THREE.Bone.userData.arenamonJointId persistido');
+  assert.ok(Math.abs(boneStateAfterImport.boneQuatY - 0.7071) < 1e-3, 'THREE.Bone.quaternion persistido');
+  assert.equal(boneStateAfterImport.metaJointId, 'skinned-spine-persistent-v2', 'model.userData.arenamonRig atualizado com novo ID');
+  assert.ok(Math.abs(boneStateAfterImport.metaQuatY - 0.7071) < 1e-3, 'model.userData.arenamonRig atualizado com novo quaternion');
+
+  // Testa Undo no SkinnedMesh
   await page.click('#btn-undo');
-  console.log('✓ Prioridade 4 Aprovada: Relatório e validação de importação JSON operacionais com suporte a schema v2');
+  const boneStateAfterUndo = await page.evaluate(() => {
+    const bone = window.__rigStudio.bridge.getBoneObject('Spine');
+    const metaJoint = window.__rigStudio.bridge.model.userData.arenamonRig.joints.find(j => j.name === 'Spine');
+    return {
+      boneJointId: bone.userData.arenamonJointId,
+      boneQuatY: bone.quaternion.y,
+      metaJointId: metaJoint.id,
+      metaQuatY: metaJoint.q[1]
+    };
+  });
+  assert.equal(boneStateAfterUndo.boneJointId, prevSkinnedSpineId, 'Undo restaurou userData.arenamonJointId anterior no THREE.Bone');
+  assert.ok(Math.abs(boneStateAfterUndo.boneQuatY) < 1e-4, 'Undo restaurou quaternion anterior no THREE.Bone');
+  assert.equal(boneStateAfterUndo.metaJointId, prevSkinnedSpineId, 'Undo restaurou ID nos metadados model.userData.arenamonRig');
+  assert.ok(Math.abs(boneStateAfterUndo.metaQuatY) < 1e-4, 'Undo restaurou quaternion nos metadados');
+
+  // Testa Redo no SkinnedMesh
+  await page.click('#btn-redo');
+  const boneStateAfterRedo = await page.evaluate(() => {
+    const bone = window.__rigStudio.bridge.getBoneObject('Spine');
+    return {
+      boneJointId: bone.userData.arenamonJointId,
+      boneQuatY: bone.quaternion.y
+    };
+  });
+  assert.equal(boneStateAfterRedo.boneJointId, 'skinned-spine-persistent-v2', 'Redo re-aplicou ID no THREE.Bone');
+  assert.ok(Math.abs(boneStateAfterRedo.boneQuatY - 0.7071) < 1e-3, 'Redo re-aplicou quaternion no THREE.Bone');
+
+  // Deixa o estado limpo
+  await page.click('#btn-undo');
+  console.log('✓ Prioridade 4 Aprovada: Validação canônica estrita do Codex, export v2 garantido e persistência em SkinnedMesh com Undo/Redo comprovados!');
 
   // 1.6 Prioridade 5: Identificação clara dos controles demonstrativos (Fase 2)
   console.log('  -> Testando identificação transparente dos controles demonstrativos...');

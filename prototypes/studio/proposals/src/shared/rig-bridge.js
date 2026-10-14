@@ -22,17 +22,95 @@ export const QUADRUPED_STYLIZATION_BONES_3 = [
   'Jaw', 'LeftHorn', 'RightHorn'
 ];
 
+let jointSequence = 0;
+export const newJointId = () => `joint-${Date.now().toString(36)}-${(++jointSequence).toString(36)}`;
+
+export function ensureJointIds(draft) {
+  if (!draft || !Array.isArray(draft.joints)) return draft;
+  const used = new Set(draft.joints.map(j => typeof j.id === 'string' && j.id.trim() ? j.id : null).filter(Boolean));
+  for (const joint of draft.joints) {
+    if (typeof joint.id !== 'string' || !joint.id.trim()) {
+      let id = newJointId();
+      while (used.has(id)) id = newJointId();
+      joint.id = id;
+      used.add(id);
+    }
+    if (!Array.isArray(joint.q) || joint.q.length !== 4 || !joint.q.every(Number.isFinite)) {
+      joint.q = [0, 0, 0, 1];
+    }
+  }
+  return draft;
+}
+
+/**
+ * Validador estrito de conformidade com o Schema arenamon-rig (v1 e v2),
+ * idêntico às regras canônicas do núcleo do Codex (commit 7323b48).
+ */
+export function validateDraftStructure(draft) {
+  if (!draft || draft.schema !== 'arenamon-rig' || !Array.isArray(draft.joints)) {
+    throw new Error('JSON de rig inválido: esperado schema arenamon-rig e joints.');
+  }
+  const version = draft.version ?? 1;
+  if (version !== 1 && version !== 2) {
+    throw new Error('Versão de rig não suportada: ' + version + '. Use JSON v1 ou v2.');
+  }
+  if (draft.joints.length < 2 || draft.joints.length > 200) {
+    throw new Error('O rig precisa de 2 a 200 pontos.');
+  }
+  const ids = new Set();
+  for (const j of draft.joints) {
+    const hasId = typeof j.id === 'string' && !!j.id.trim();
+    if (version === 2 && !hasId) {
+      throw new Error('ID obrigatório no JSON v2: ' + (j.name || '(sem nome)'));
+    }
+    if (hasId && ids.has(j.id)) {
+      throw new Error('ID de osso duplicado: ' + j.id);
+    }
+    if (hasId) ids.add(j.id);
+    const hasQuaternion = Array.isArray(j.q) && j.q.length === 4 && j.q.every(n => typeof n === 'number' && Number.isFinite(n));
+    if (version === 2 && !hasQuaternion) {
+      throw new Error('Quaternion obrigatório e finito no JSON v2: ' + (j.name || '(sem nome)'));
+    }
+    if (j.q !== undefined && !hasQuaternion) {
+      throw new Error('Quaternion inválido: ' + (j.name || '(sem nome)'));
+    }
+  }
+  const map = new Map();
+  for (const j of draft.joints) {
+    if (typeof j.name !== 'string' || !j.name.trim() || map.has(j.name)) {
+      throw new Error('Osso duplicado/inválido: ' + j.name);
+    }
+    if (!Array.isArray(j.p) || j.p.length !== 3 || !j.p.every(n => typeof n === 'number' && Number.isFinite(n))) {
+      throw new Error('Coordenadas inválidas: ' + j.name);
+    }
+    if (j.p.some(x => Math.abs(x) > 1e6)) {
+      throw new Error('Coordenada fora de limite: ' + j.name);
+    }
+    map.set(j.name, j);
+  }
+  for (const j of draft.joints) {
+    if (j.parent != null && !map.has(j.parent)) {
+      throw new Error('Pai não encontrado para ' + j.name + ': ' + j.parent);
+    }
+    let p = j.parent;
+    const seen = new Set([j.name]);
+    while (p) {
+      if (seen.has(p)) throw new Error('Ciclo no esqueleto: ' + j.name);
+      seen.add(p);
+      p = map.get(p)?.parent;
+    }
+  }
+  const roots = draft.joints.filter(j => j.parent == null);
+  if (roots.length !== 1) {
+    throw new Error('O esqueleto precisa de exatamente um osso raiz.');
+  }
+  return true;
+}
+
 /**
  * Gera o template de criatura quadrúpede suportando explicitamente:
  * 1. Variante Estilizada (27 articulações): 24 base + 3 estilização (Jaw, LeftHorn, RightHorn).
  * 2. Variante Base de Locomoção (24 articulações puras): sem apêndices estilizados.
- *
- * RESOLUÇÃO DA INCONSISTÊNCIA 24 vs 27:
- * A discrepância histórica em que um template nomeado '24' gerava 27 juntas foi resolvida
- * sem redefinir ou descartar unilateralmente os ossos:
- * - Ao selecionar a criatura estilizada completa, são geradas 27 juntas e declaredCount é 27.
- * - Ao selecionar a locomoção quadrúpede base, são geradas 24 juntas e declaredCount é 24.
- * Ambos os esquemas são válidos e alternáveis pelo usuário na interface.
  */
 export function makeCreatureTemplate(bounds, { includeStylization = true } = {}) {
   const [xmin, ymin, zmin] = bounds.min;
@@ -86,9 +164,9 @@ export function makeCreatureTemplate(bounds, { includeStylization = true } = {})
   const declaredCount = includeStylization ? 27 : 24;
   const templateType = includeStylization ? CREATURE_QUADRUPED_27 : CREATURE_QUADRUPED_24;
 
-  return {
+  const tpl = {
     schema: 'arenamon-rig',
-    version: 1,
+    version: 2,
     space: 'model-root',
     mode: 'draft',
     templateType,
@@ -113,6 +191,8 @@ export function makeCreatureTemplate(bounds, { includeStylization = true } = {})
       size: bounds.size.map(n => Math.round(n * 1000) / 1000)
     }
   };
+
+  return ensureJointIds(tpl);
 }
 
 export class RiggingBridge {
@@ -175,6 +255,8 @@ export class RiggingBridge {
         this.initTemplate(this.activeTemplateType);
       } else {
         this.draft = null;
+        this.ensureSkinnedBonesIds();
+        this.syncModelRigMetadata();
         const bones = this.getBones();
         if (bones.length > 0) {
           this.selectedJointName = bones[0].name;
@@ -186,6 +268,48 @@ export class RiggingBridge {
       this.selectedJointName = null;
     }
     this.notify();
+  }
+
+  ensureSkinnedBonesIds() {
+    if (!this.model) return;
+    const used = new Set();
+    const bones = this.getBones();
+    for (const b of bones) {
+      if (typeof b.userData.arenamonJointId === 'string' && b.userData.arenamonJointId.trim()) {
+        used.add(b.userData.arenamonJointId);
+      }
+    }
+    for (const b of bones) {
+      if (typeof b.userData.arenamonJointId !== 'string' || !b.userData.arenamonJointId.trim()) {
+        let id = newJointId();
+        while (used.has(id)) id = newJointId();
+        b.userData.arenamonJointId = id;
+        used.add(id);
+      }
+    }
+  }
+
+  syncModelRigMetadata() {
+    if (!this.model || !this.isSkinned()) return null;
+    const joints = this.getJoints().map(j => {
+      const bone = this.getBoneObject(j.name);
+      return {
+        id: bone?.userData?.arenamonJointId || j.id || j.uuid || newJointId(),
+        name: j.name,
+        parent: j.parent,
+        p: [...j.p],
+        q: bone ? [bone.quaternion.x, bone.quaternion.y, bone.quaternion.z, bone.quaternion.w] : (j.q || [0, 0, 0, 1])
+      };
+    });
+    const base = this.model.userData?.arenamonRig || {};
+    const metadata = {
+      ...structuredClone(base),
+      schema: 'arenamon-rig',
+      version: 2,
+      joints
+    };
+    this.model.userData.arenamonRig = metadata;
+    return metadata;
   }
 
   isSkinned() {
@@ -207,7 +331,17 @@ export class RiggingBridge {
       return this.draft.joints;
     }
     if (this.model) {
-      return currentJoints(this.model);
+      const joints = currentJoints(this.model);
+      return joints.map(j => {
+        const bone = this.getBoneObject(j.name);
+        const id = bone?.userData?.arenamonJointId || j.id || j.uuid;
+        const q = bone ? [bone.quaternion.x, bone.quaternion.y, bone.quaternion.z, bone.quaternion.w] : (j.q || [0, 0, 0, 1]);
+        return {
+          ...j,
+          id,
+          q
+        };
+      });
     }
     return [];
   }
@@ -275,6 +409,7 @@ export class RiggingBridge {
       this.draft = makeTemplate(bounds);
       this.draft.templateType = HUMANOID_TEMPLATE_20;
     }
+    ensureJointIds(this.draft);
     this.selectedJointName = this.draft.joints[0]?.name || null;
     this.refreshAudit();
     this.notify();
@@ -367,6 +502,9 @@ export class RiggingBridge {
           bone.updateMatrixWorld(true);
         }
       }
+    }
+    if (this.isSkinned()) {
+      this.syncModelRigMetadata();
     }
   }
 
@@ -466,20 +604,37 @@ export class RiggingBridge {
       for (const item of cmd.changes) {
         reverseChanges.set(item.name, { to: [...item.from] });
         if (cmd.type === 'import-coordinates') {
-          const joint = this.getJoint(item.name);
-          if (joint) {
-            if (item.fromId !== undefined) {
-              if (item.fromId) joint.id = item.fromId;
-              else delete joint.id;
+          if (this.draft) {
+            const joint = this.getJoint(item.name);
+            if (joint) {
+              if (item.fromId !== undefined) {
+                if (item.fromId) joint.id = item.fromId;
+                else delete joint.id;
+              }
+              if (item.fromQ !== undefined) {
+                if (item.fromQ) joint.q = [...item.fromQ];
+                else delete joint.q;
+              }
             }
-            if (item.fromQ !== undefined) {
-              if (item.fromQ) joint.q = [...item.fromQ];
-              else delete joint.q;
+          } else if (this.isSkinned()) {
+            const bone = this.getBoneObject(item.name);
+            if (bone) {
+              if (item.fromId !== undefined) {
+                bone.userData.arenamonJointId = item.fromId;
+              }
+              if (item.fromQ) {
+                bone.quaternion.set(item.fromQ[0], item.fromQ[1], item.fromQ[2], item.fromQ[3]);
+                bone.updateMatrixWorld(true);
+                this.restBaseQuaternions.set(bone.name, bone.quaternion.clone());
+              }
             }
           }
         }
       }
       this.applyPositionChanges(reverseChanges);
+      if (this.isSkinned()) {
+        this.syncModelRigMetadata();
+      }
       this.redoStack.push(cmd);
       this.refreshAudit();
       this.notify();
@@ -496,20 +651,37 @@ export class RiggingBridge {
       for (const item of cmd.changes) {
         applyChanges.set(item.name, { to: [...item.to] });
         if (cmd.type === 'import-coordinates') {
-          const joint = this.getJoint(item.name);
-          if (joint) {
-            if (item.toId !== undefined) {
-              if (item.toId) joint.id = item.toId;
-              else delete joint.id;
+          if (this.draft) {
+            const joint = this.getJoint(item.name);
+            if (joint) {
+              if (item.toId !== undefined) {
+                if (item.toId) joint.id = item.toId;
+                else delete joint.id;
+              }
+              if (item.toQ !== undefined) {
+                if (item.toQ) joint.q = [...item.toQ];
+                else delete joint.q;
+              }
             }
-            if (item.toQ !== undefined) {
-              if (item.toQ) joint.q = [...item.toQ];
-              else delete joint.q;
+          } else if (this.isSkinned()) {
+            const bone = this.getBoneObject(item.name);
+            if (bone) {
+              if (item.toId !== undefined) {
+                bone.userData.arenamonJointId = item.toId;
+              }
+              if (item.toQ) {
+                bone.quaternion.set(item.toQ[0], item.toQ[1], item.toQ[2], item.toQ[3]);
+                bone.updateMatrixWorld(true);
+                this.restBaseQuaternions.set(bone.name, bone.quaternion.clone());
+              }
             }
           }
         }
       }
       this.applyPositionChanges(applyChanges);
+      if (this.isSkinned()) {
+        this.syncModelRigMetadata();
+      }
       this.historyStack.push(cmd);
       this.refreshAudit();
       this.notify();
@@ -720,7 +892,21 @@ export class RiggingBridge {
     if (!this.model || !this.draft) {
       throw new Error('Não há rascunho de rig ativo para vincular.');
     }
+    const draftJoints = this.draft.joints.map(j => ({ ...j }));
     const result = bindDraftToModel(this.model, this.draft, { smoothness });
+
+    // Transfere identificadores e orientações canônicas para os ossos criados
+    for (const j of draftJoints) {
+      const bone = this.getBoneObject(j.name);
+      if (bone) {
+        bone.userData.arenamonJointId = j.id || newJointId();
+        if (Array.isArray(j.q) && j.q.length === 4 && j.q.every(Number.isFinite)) {
+          bone.quaternion.set(j.q[0], j.q[1], j.q[2], j.q[3]);
+          bone.updateMatrixWorld(true);
+        }
+      }
+    }
+    this.syncModelRigMetadata();
     this.draft = null;
     this.historyStack = [];
     this.redoStack = [];
@@ -739,14 +925,34 @@ export class RiggingBridge {
     const requestedV2 = version === 2 || this.draft?.version === 2;
     if (requestedV2) {
       coords.version = 2;
+      const assignedIds = new Set();
       coords.joints = coords.joints.map(j => {
         const existing = this.getJoint(j.name);
-        const enriched = { ...j };
-        if (existing?.id) enriched.id = existing.id;
-        else if (existing?.uuid) enriched.id = existing.uuid;
-        if (existing?.q) enriched.q = [...existing.q];
-        return enriched;
+        const bone = this.getBoneObject(j.name);
+        let id = bone?.userData?.arenamonJointId || existing?.id;
+        if (typeof id !== 'string' || !id.trim() || assignedIds.has(id)) {
+          let fresh = newJointId();
+          while (assignedIds.has(fresh)) fresh = newJointId();
+          id = fresh;
+        }
+        assignedIds.add(id);
+
+        let q = [0, 0, 0, 1];
+        if (bone && bone.quaternion) {
+          q = [bone.quaternion.x, bone.quaternion.y, bone.quaternion.z, bone.quaternion.w];
+        } else if (Array.isArray(existing?.q) && existing.q.length === 4 && existing.q.every(Number.isFinite)) {
+          q = [...existing.q];
+        }
+
+        return {
+          ...j,
+          id,
+          q
+        };
       });
+
+      // Validação estrita canônica: garante que nenhum esqueleto inválido seja emitido
+      validateDraftStructure(coords);
     }
     return coords;
   }
@@ -787,58 +993,27 @@ export class RiggingBridge {
       };
     }
 
-    // Rejeição estrita de schemas desconhecidos
-    if (data.schema && data.schema !== 'arenamon-rig') {
+    // Validação estrutural canônica estrita idêntica ao Codex (commit 7323b48)
+    try {
+      validateDraftStructure(data);
+    } catch (structuralError) {
       return {
         success: false,
-        errors: [`Schema não reconhecido: "${data.schema}". O sistema aceita exclusivamente o schema "arenamon-rig".`],
+        errors: [structuralError.message],
         warnings: [],
         appliedCount: 0,
-        totalInFile: Array.isArray(data.joints) ? data.joints.length : 0,
+        totalInFile: Array.isArray(data?.joints) ? data.joints.length : 0,
         totalInRig: this.getJoints().length,
         matched: [],
         missing: [],
         unknown: [],
-        invalid: []
+        invalid: [{ reason: structuralError.message }]
       };
     }
 
-    // Rejeição estrita de versões de schema não suportadas
-    if (data.version !== undefined && data.version !== 1 && data.version !== 2) {
-      return {
-        success: false,
-        errors: [`Versão de schema não suportada: "${data.version}". As versões compatíveis são 1 e 2.`],
-        warnings: [],
-        appliedCount: 0,
-        totalInFile: Array.isArray(data.joints) ? data.joints.length : 0,
-        totalInRig: this.getJoints().length,
-        matched: [],
-        missing: [],
-        unknown: [],
-        invalid: []
-      };
-    }
-
-    if (!Array.isArray(data.joints)) {
-      return {
-        success: false,
-        errors: ['Formato incompatível: o arquivo deve conter a propriedade "joints" com uma lista de articulações.'],
-        warnings: [],
-        appliedCount: 0,
-        totalInFile: 0,
-        totalInRig: this.getJoints().length,
-        matched: [],
-        missing: [],
-        unknown: [],
-        invalid: []
-      };
-    }
-
-    const errors = [];
     const warnings = [];
-
     if (data.version === 2) {
-      warnings.push('Compatibilidade de schema v2: Arquivo gerado sob schema "arenamon-rig" versão 2. Identificadores persistentes (id/uuid) e orientações de rotação (q) foram importados e preservados no rascunho.');
+      warnings.push('Compatibilidade de schema v2: Arquivo gerado sob schema "arenamon-rig" versão 2. Identificadores persistentes e orientações de rotação (q) validados e sincronizados.');
     }
 
     const currentJoints = this.getJoints();
@@ -852,49 +1027,11 @@ export class RiggingBridge {
     const matched = [];
     const unknown = [];
     const invalid = [];
-    const fileJointKeys = new Set();
     const fileMatchedTargets = new Set();
 
     for (const item of data.joints) {
-      if (!item || typeof item !== 'object') {
-        invalid.push({ item, reason: 'Entrada inválida na lista de articulações' });
-        continue;
-      }
-
-      const jointId = item.id || item.uuid || null;
-      const jointName = item.name || (jointId && currentById.has(jointId) ? currentById.get(jointId).name : null);
-
-      if (!jointName && !jointId) {
-        invalid.push({ item, reason: 'Entrada sem identificador ou nome de articulação' });
-        continue;
-      }
-
-      const dedupeKey = jointId ? `id:${jointId}` : `name:${jointName}`;
-      if (fileJointKeys.has(dedupeKey)) {
-        invalid.push({ name: jointName || jointId, reason: `Articulação duplicada no arquivo JSON ("${jointName || jointId}")` });
-        continue;
-      }
-      fileJointKeys.add(dedupeKey);
-
-      if (!Array.isArray(item.p) || item.p.length !== 3 || !item.p.every(n => typeof n === 'number' && Number.isFinite(n))) {
-        invalid.push({ name: jointName || jointId, reason: 'Coordenadas inválidas (esperado array p de 3 números finitos)' });
-        continue;
-      }
-
-      if (item.p.some(n => Math.abs(n) > 1e6)) {
-        invalid.push({ name: jointName || jointId, reason: 'Coordenada fora do limite de segurança (|coord| > 1.000.000)' });
-        continue;
-      }
-
-      // Validação de quaternion para schema v2
-      let validQuaternion = null;
-      if (item.q !== undefined) {
-        if (Array.isArray(item.q) && item.q.length === 4 && item.q.every(n => typeof n === 'number' && Number.isFinite(n))) {
-          validQuaternion = [...item.q];
-        } else {
-          warnings.push(`Orientação de quaternion (q) inválida na articulação "${jointName || jointId}"; quaternion descartado.`);
-        }
-      }
+      const jointId = item.id || null;
+      const jointName = item.name || null;
 
       // Correspondência: primeiro por ID (schema v2), fallback por Nome (schema v1)
       let targetJoint = null;
@@ -916,7 +1053,7 @@ export class RiggingBridge {
           name: targetJoint.name,
           p: item.p,
           id: jointId || targetJoint.id || null,
-          q: validQuaternion !== null ? validQuaternion : (targetJoint.q ? [...targetJoint.q] : null)
+          q: item.q ? [...item.q] : (targetJoint.q ? [...targetJoint.q] : null)
         });
       } else {
         unknown.push(jointName || jointId);
@@ -926,10 +1063,9 @@ export class RiggingBridge {
     const missing = currentJoints.filter(j => !fileMatchedTargets.has(j.name)).map(j => j.name);
 
     if (matched.length === 0) {
-      errors.push(`Nenhuma articulação do arquivo coincide com o modelo ativo (${currentJoints.length} articulações esperadas).`);
       return {
         success: false,
-        errors,
+        errors: [`Nenhuma articulação do arquivo coincide com o modelo ativo (${currentJoints.length} articulações esperadas).`],
         warnings,
         appliedCount: 0,
         totalInFile: data.joints.length,
@@ -942,7 +1078,7 @@ export class RiggingBridge {
     }
 
     if (invalid.length > 0) {
-      warnings.push(`${invalid.length} articulação(ões) continham dados inválidos ou conflitantes e foram ignoradas.`);
+      warnings.push(`${invalid.length} articulação(ões) continham conflitos e foram ignoradas.`);
     }
 
     if (missing.length > 0) {
@@ -957,18 +1093,33 @@ export class RiggingBridge {
     const changes = [];
     for (const m of matched) {
       const cur = m.target;
+      const bone = this.getBoneObject(cur.name);
+      const fromId = bone?.userData?.arenamonJointId || cur.id || null;
+      const toId = m.id || fromId;
+      const fromQ = bone ? [bone.quaternion.x, bone.quaternion.y, bone.quaternion.z, bone.quaternion.w] : (cur.q ? [...cur.q] : null);
+      const toQ = m.q ? [...m.q] : fromQ;
+
       changes.push({
         name: cur.name,
         from: [...cur.p],
         to: [...m.p],
-        fromId: cur.id || null,
-        toId: m.id || cur.id || null,
-        fromQ: cur.q ? [...cur.q] : null,
-        toQ: m.q ? [...m.q] : null
+        fromId,
+        toId,
+        fromQ,
+        toQ
       });
 
-      if (m.id) cur.id = m.id;
-      if (m.q) cur.q = [...m.q];
+      if (this.draft) {
+        if (m.id) cur.id = m.id;
+        if (m.q) cur.q = [...m.q];
+      } else if (this.isSkinned() && bone) {
+        if (toId) bone.userData.arenamonJointId = toId;
+        if (m.q) {
+          bone.quaternion.set(m.q[0], m.q[1], m.q[2], m.q[3]);
+          bone.updateMatrixWorld(true);
+          this.restBaseQuaternions.set(bone.name, bone.quaternion.clone());
+        }
+      }
     }
 
     this.pushHistory({
@@ -982,6 +1133,9 @@ export class RiggingBridge {
       applyMap.set(c.name, { to: c.to });
     }
     this.applyPositionChanges(applyMap);
+    if (this.isSkinned()) {
+      this.syncModelRigMetadata();
+    }
     this.refreshAudit();
     this.notify();
 

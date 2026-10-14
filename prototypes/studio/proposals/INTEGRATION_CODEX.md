@@ -74,19 +74,21 @@ export interface JointInfluenceMetrics {
   active: boolean;
 }
 
-/** Schema de persistência JSON do Rig */
+/** Schema de persistência JSON do Rig (compatível com v1 e v2 canônico) */
 export interface ArenamonRigJSON {
   schema: 'arenamon-rig';
-  version: 1;
+  version: 1 | 2;
   space: 'model-root';
   createdAt: string;
   modelName: string;
   templateType: string;
   bounds: ModelBounds;
   joints: Array<{
+    id?: string;
     name: string;
     parent: string | null;
     p: [number, number, number];
+    q?: [number, number, number, number];
     local?: [number, number, number];
     world?: [number, number, number];
   }>;
@@ -185,16 +187,27 @@ A inconsistência foi resolvida sem descartar os apêndices estilizados e sem fo
 
 ---
 
-## 5. Compatibilidade com o Schema v2, Rejeição Estrita e Estabilização do Codex
+## 5. Compatibilidade Canônica com o Schema v2 e Persistência em SkinnedMesh
 
-### Status de Compatibilidade com o Editor Estrutural v2:
+### Status de Compatibilidade com o Núcleo Estabilizado do Codex (commit 7323b48):
 > [!IMPORTANT]
-> O núcleo técnico do Codex na branch `codex/rig-editor-stabilization` (commit `7323b48`) introduziu melhorias e o schema versão 2 (`schema: 'arenamon-rig'`, `version: 2`), com suporte a identificadores persistentes (`id`/`uuid`) e orientações em quaternion (`q: [x, y, z, w]`).
-> A camada adaptadora `RiggingBridge` agora oferece **compatibilidade bidirecional com o Schema v2**:
-> 1. **Correspondência por Identificador**: Ao importar um JSON de rig, a correspondência entre articulações prioriza o identificador persistente (`id`/`uuid`) e utiliza o `name` como fallback seguro.
-> 2. **Preservação de Orientação e IDs**: Propriedades da v2 como `id` e quaternions `q: [x, y, z, w]` são preservadas durante a importação, mantidas nas estruturas de draft e restauradas no ciclo de histórico (Undo/Redo).
-> 3. **Exportação Estendida**: O método `exportJSON({ version: 2 })` exporta a estrutura enriquecida com `version: 2`, `id` persistente e `q` preservado.
-> 4. **Rejeição Estrita de Schemas e Versões Inválidas**: O importador rejeita explicitamente qualquer arquivo cujo campo `schema` divirja de `'arenamon-rig'`, bem como qualquer `version` diferente de 1 ou 2.
+> O núcleo técnico do Codex na branch `codex/rig-editor-stabilization` (commit `7323b48`) introduziu o schema versão 2 (`schema: 'arenamon-rig'`, `version: 2`), com suporte a identificadores persistentes (`id`/`uuid`) e orientações em quaternion (`q: [x, y, z, w]`).
+> A camada adaptadora `RiggingBridge` agora implementa **compatibilidade canônica integral com o Schema v2**:
+> 1. **Validação Estrutural Canônica Idêntica ao Codex**: A importação de JSON executa a função canônica `validateDraftStructure(data)`, rejeitando com erro impeditivo imediato:
+>    - Schemas desconhecidos ou formatos sem o array `joints` (`JSON de rig inválido: esperado schema arenamon-rig e joints.`);
+>    - Versões não suportadas (`Versão de rig não suportada: X. Use JSON v1 ou v2.`);
+>    - Articulações sem `id` no JSON v2 (`ID obrigatório no JSON v2: <nome>`);
+>    - IDs duplicados (`ID de osso duplicado: <id>`);
+>    - Quaternions ausentes ou não-finitos no JSON v2 (`Quaternion obrigatório e finito no JSON v2: <nome>`);
+>    - Ciclos na hierarquia (`Ciclo no esqueleto: <nome>`);
+>    - Esqueletos sem raiz ou com raízes múltiplas (`O esqueleto precisa de exatamente um osso raiz.`);
+>    - Coordenadas ausentes ou fora do limite de segurança (`Coordenada fora de limite: <nome>`).
+> 2. **Garantia de Exportação v2 Estritamente Válida**: O método `exportJSON({ version: 2 })` assegura que 100% das articulações contenham identificadores únicos gerados via `newJointId()` e quaternions finitos `[x, y, z, w]`, validando o payload completo com `validateDraftStructure(coords)` antes de emitir o arquivo.
+> 3. **Persistência Real em Modelos com SkinnedMesh Ativo (`isSkinned() === true`)**:
+>    - Ao vincular (`bindSkin`) ou carregar um modelo já com pele, cada instância real de `THREE.Bone` recebe `bone.userData.arenamonJointId` e seu `bone.quaternion`.
+>    - O modelo Three.js mantém metadados canônicos em `model.userData.arenamonRig` com `version: 2`.
+>    - A importação de coordenadas ou transformações diretamente em modelos com pele ativa atualiza em tempo real `bone.position`, `bone.userData.arenamonJointId`, `bone.quaternion` e `model.userData.arenamonRig`.
+>    - O ciclo de histórico (**Undo / Redo**) restaura simetricamente tanto as transformações espaciais quanto o `userData.arenamonJointId`, `quaternion` e metadados nos ossos reais.
 
 ### 5.1. Proteção Não-Destrutiva de Cores de Vértices (Heatmap Multi-Malha):
 Ao desativar a visualização térmica de pesos (`setHeatmap(false)`), o sistema não destrói mais as cores pré-existentes de malhas importadas (por exemplo, GLBs com vertex colors):
@@ -214,16 +227,16 @@ A suíte Playwright (`test-proposals.mjs`) foi expandida para além das chamadas
 
 ---
 
-## 6. Auditoria do Ambiente de Integração Contínua (CI)
+## 6. Integração Contínua (CI) e Isolamento de Responsabilidades
 
-1. **Ambiente Real do Runner**:
-   - As execuções do GitHub Actions operam sobre runners **Windows Server 2025** (e não `ubuntu-latest`).
-2. **Natureza dos Timeouts**:
-   - Os registros de falha anteriores documentam timeouts do Playwright superiores a 30 segundos ao interagir com `#lighting` e `[data-panel="project"]`.
-   - A hipótese anterior sugerindo que atrasos de transições CSS seriam a causa primária **não foi comprovada** e é considerada especulativa.
-3. **Limites de Responsabilidade**:
-   - Os testes de CI e o ambiente do GitHub Actions permanecem sob responsabilidade do Claude.
-   - Nenhuma alteração foi introduzida em arquivos de CI ou configurações de pipelines nesta entrega.
+1. **Workflow Dedicado às Propostas (`studio-rigging-proposals.yml`)**:
+   - Criado em `.github/workflows/studio-rigging-proposals.yml` para disparar em `push` e `pull_request` na branch `feat/studio-rigging-ui-proposals`.
+   - Executa a compilação offline das três propostas, a suíte completa de testes automatizados Playwright e `npm run verify`, publicando os HTMLs e capturas como artefatos de build.
+2. **Preservação do Workflow Principal do Codex/Claude (`arenamon-studio-rigging.yml`)**:
+   - O pipeline existente permanece intacto e dedicado à branch `feat/studio-rigging-fase1-gpt6`.
+   - Não há interferência entre os ambientes de CI.
+3. **Ambiente dos Runners**:
+   - Os runners do GitHub Actions executam sobre **Windows Server 2025**. O lançador do Playwright em `test-proposals.mjs` foi desenhado com estratégia de fallback multicanais (`chromium` nativo -> `msedge` -> `chrome`), assegurando execução resiliente em ambientes locais e de CI.
 
 ---
 
