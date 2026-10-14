@@ -62,8 +62,8 @@ export const SCENARIOS = [
     checks: ({log}) => {
       const e = events(log, 'perfectDodge')[0];
       return [check('Esquiva perfeita registrada', e, 'perfectDodge', log.events[0]?.result ?? 'nenhum'), check('Sem dano no azul', log.damageTaken[0] === 0, 0, log.damageTaken[0]),
-        check('Stamina devolvida', !e || log.staminaBonus >= C.extras.combat.perfectEvadeStamina - 1e-6, `+${fmt(C.extras.combat.perfectEvadeStamina)}`, `+${fmt(log.staminaBonus)}`),
-        check('X fortalecido no contra-ataque', !C.extras.toggles.enableCounterBonus || log.counterSpeed > 1, `× ${fmt(C.extras.combat.counterSpeed)}`, `× ${fmt(log.counterSpeed)}`)];
+        check('Stamina devolvida', !e || log.staminaBonus >= C.actions.dodge.perfectEvadeStamina - 1e-6, `+${fmt(C.actions.dodge.perfectEvadeStamina)}`, `+${fmt(log.staminaBonus)}`),
+        check('X fortalecido no contra-ataque', !C.extras.toggles.enableCounterBonus || log.counterSpeed > 1, `× ${fmt(C.actions.tackle.counterSpeed)}`, `× ${fmt(log.counterSpeed)}`)];
     },
   },
   {
@@ -103,7 +103,7 @@ export const SCENARIOS = [
     positions: [vec(0, -6), vec(0, 6)], ticks: 260, setup: g => {face(g.fighters[0], 0);face(g.fighters[1], Math.PI);},
     script: (t) => [[5, 60, 115, 170].includes(t) ? cmd({move: vec(1, 0), dodge: true, dodgeDirection: vec(1, 0)}) : cmd(), cmd()],
     checks: ({log}) => {
-      const n = Math.floor(C.rules.staminaMax / C.extras.combat.actionCost + 1e-9);
+      const n = Math.floor(C.rules.staminaMax / C.actions.dodge.cost + 1e-9);
       return [check('Ações aceitas', log.actionsStarted[0] === Math.min(4, n), Math.min(4, n), log.actionsStarted[0]),
         check('Fica exausto', n >= 4 || log.wasExhausted[0], n >= 4 ? 'não se aplica' : 'sim', log.wasExhausted[0] ? 'sim' : 'não'),
         check('Recuperação extra ao esgotar (passos)', n >= 4 || near(log.exhaustTicks[0], C.extras.combat.exhaustRecovery / C.test.step, 2), `${fmt(C.extras.combat.exhaustRecovery / C.test.step)} ± 2`, log.exhaustTicks[0])];

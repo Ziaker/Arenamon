@@ -3,9 +3,10 @@
 // O jogo oficial (prototypes/game/src/config.ts) é lido por ui/official.js apenas para comparação.
 
 export function defaults() {
-  // tackleDuration: duração do tackle (X). No v6, X e C usavam a mesma duração (`dodge`); com valores iguais o resultado é idêntico.
-  const rules = {dodge: .4, tackleDuration: .4, invulnerable: .2, steerLimit: Math.PI / 6, steerRate: Math.PI, recoil: .3, recoilFraction: .15, blend: .1, guardStun: .2,
-    launchGravity: 17.5, launchUp: 7.3, launchHorizontal: 11, launchDrag: 1.15, dodgeVaultHeight: 2.2, clashFraction: .3, clashUp: 8.1, clashHorizontal: 12,
+  // Regras gerais. Os parâmetros próprios de C (esquiva) e X (tackle) ficam em `actions`.
+  // blend: dissipação da velocidade quando a DEFESA cancela uma esquiva/tackle (GDD 7.3: 100 ms).
+  const rules = {recoil: .3, recoilFraction: .15, blend: .1, guardStun: .2,
+    launchGravity: 17.5, launchUp: 7.3, launchHorizontal: 11, launchDrag: 1.15, clashFraction: .3, clashUp: 8.1, clashHorizontal: 12,
     landingRecovery: .19, wallRestitution: .28, perfect: .2, perfectCooldown: 2, staminaMax: 3, regenDelay: 1, regenTime: 5, guardSpeed: .6,
     exhaustedSpeed: .7, guardTurn: 3 * Math.PI, guardAcceleration: 15 * Math.PI};
   const test = {step: 1 / 120, maxFrame: .1, arenaHalf: 16, halfExtent: .5, hp: 100, attack: 20, defense: 50, speed: 4.8, attackReference: 20,
@@ -18,11 +19,11 @@ export function defaults() {
   const profilesLab = {balanced: {attack: test.attack, defense: test.defense, speed: test.speed, hp: test.hp},
     agile: {attack: 16, defense: 35, speed: 6, hp: test.hp}, resistant: {attack: 24, defense: 80, speed: 4.08, hp: test.hp}};
   const extras = {
-    combat: {actionCost: 1, vaultReachBonus: .7, vaultForwardMin: .1, vaultLateralWidth: 1.15, vaultCollisionHeight: 1.3, tackleTargetAlignment: .15,
+    combat: {vaultCollisionHeight: 1.3, tackleTargetAlignment: .15,
       tackleNormalAlignment: 0, tackleClosingSpeed: .06, clashFacingAlignment: .2, clashClosingSpeed: .06, guardFrontAlignment: 0, guardDamageMultiplier: .5,
       launchAttackBase: .85, launchAttackWeight: .15, launchAttackReference: 20, launchClosingCap: 2, launchClosingMultiplier: .1, launchNormalWeight: .75,
-      launchCenterWeight: .25, contactProjectionPasses: 4, clashHitstop: .085, impactHitstop: .035, counterWindow: .55, perfectGuardCounterWindow: .70,
-      counterSpeed: 1.18, perfectEvadeStamina: .20, exhaustRecovery: .15, guardRegenFactor: .70, landingSkidFraction: .34, landingSkidDrag: 8, landingSkidMin: .08},
+      launchCenterWeight: .25, contactProjectionPasses: 4, clashHitstop: .085, impactHitstop: .035, perfectGuardCounterWindow: .70,
+      exhaustRecovery: .15, guardRegenFactor: .70, landingSkidFraction: .34, landingSkidDrag: 8, landingSkidMin: .08},
     ai: {initialCooldown: .6, orbitChangePeriod: 1.7, threatAlignment: .3, threatDistance: 4.8, defensiveRetreatDistance: 2.4, defensiveRetreatStrength: .5,
       reactiveRetreatStrength: .2, approachDistance: 3, retreatDistance: 1.35, retreatStrength: .65, strafeStrength: .72, wallPrediction: .8, wallMargin: 1,
       attackRange: 3.35, combatAttackCooldown: 1.1, lowStaminaThreshold: .95, lowStaminaDistance: 2.5, lowStaminaRetreat: .7, evadeCycle: 3, evadeCycleIndex: 2},
@@ -56,12 +57,31 @@ export function defaults() {
       'KeyE', 'KeyF', 'KeyW', 'KeyT', 'ShiftLeft', 'ShiftRight', 'Enter', 'Numpad0', 'Numpad1', 'Numpad2', 'Numpad3', 'Numpad4', 'Numpad5', 'Numpad6',
       'Numpad7', 'Numpad8', 'Numpad9'],
   };
-  return {rules, test, locomotion, camera, profiles: profilesLab, extras};
+  // Ações independentes. Cada uma lê SOMENTE o próprio bloco: mudar C não muda X e vice-versa.
+  // Valores iniciais = os do v6 (referência de migração; não são padrões aprovados).
+  const common = () => ({duration: .4, cost: 1, invulnerable: .2, distance: 2.5, curveStart: 1.6, steerLimit: Math.PI / 6, steerRate: Math.PI, blend: .1, chainAfter: .2, recovery: 0, fromGuard: 1});
+  const actions = {
+    // C — esquiva defensiva. Nunca causa dano. Salta sobre o rival quando a trajetória o atravessa.
+    dodge: {...common(), fromRecoil: 1, fromGuardStun: 1, vaultHeight: 2.2, vaultReachBonus: .7, vaultForwardMin: .1, vaultLateralWidth: 1.15, perfectEvadeStamina: .2, counterWindow: .55},
+    // X — tackle ofensivo, em qualquer direção. GDD 8.2: sem ataque durante o recuo; GDD 5: durante guard stun o ataque é guardado até o stun acabar.
+    tackle: {...common(), fromRecoil: 0, fromGuardStun: 0, counterSpeed: 1.18},
+    // Cancelamento C → X (sistema próprio, independente da janela genérica de encadeamento).
+    // invulnerability: 0 = mantém só o restante da invulnerabilidade de C; 1 = nenhuma; 2 = janela completa de X.
+    cancel: {dodgeToTackle: 1, windowStart: 0, windowEnd: .4, transition: .06, velocityInfluence: .5, airDescent: .18, invulnerability: 0},
+  };
+  return {rules, test, locomotion, camera, profiles: profilesLab, extras, actions};
 }
 
 /** Configuração viva compartilhada pela simulação, visualização e ajustador. */
 export const C = defaults();
-export const ROOT_KEYS = ['rules', 'test', 'locomotion', 'camera', 'profiles', 'extras'];
+export const ROOT_KEYS = ['rules', 'test', 'locomotion', 'camera', 'profiles', 'extras', 'actions'];
+/**
+ * Ajustes que reproduzem o comportamento do laboratório v6 (usado no teste de paridade). Diferenças do padrão:
+ * no v6 o tackle podia sair do recuo e do guard stun imediatamente, e C → X seguia a janela genérica (após 200 ms,
+ * com a velocidade inteira, nova invulnerabilidade completa e retorno instantâneo ao chão).
+ */
+export const V6_COMPAT = {'actions.tackle.fromRecoil': 1, 'actions.tackle.fromGuardStun': 1, 'actions.cancel.windowStart': .2, 'actions.cancel.windowEnd': .4,
+  'actions.cancel.transition': .1, 'actions.cancel.velocityInfluence': 1, 'actions.cancel.airDescent': 0, 'actions.cancel.invulnerability': 2};
 /** Restaura os padrões do laboratório (mantendo a identidade dos objetos, que outros módulos guardam). */
 export function resetConfig(values = defaults()) {
   for (const key of ROOT_KEYS) deepAssign(C[key], values[key]);

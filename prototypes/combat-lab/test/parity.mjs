@@ -23,6 +23,7 @@ try {
     const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
     // O v6 não tem personalidade: a comparação usa a personalidade neutra (que reproduz a IA do v6).
     for (const k of ['aiRed', 'aiBlue']) Object.assign(lab.C.extras[k], {reaction: 0, reactionJitter: 0, mistake: 0, aggression: .5, variation: 0, hesitation: 0});
+    for (const [path, v] of Object.entries(lab.V6_COMPAT)) {const k = path.split('.'), last = k.pop();k.reduce((o, x) => o[x], lab.C)[last] = v;}
     function run(seed, ticks, {enemyAI = false, mode = 'combat', profile = 'balanced'} = {}) {
       let s = seed >>> 0;const rand = () => {s = (s * 1664525 + 1013904223) >>> 0;return s / 4294967296;};
       live.game.profile = profile;live.game.mode = mode;live.game.reset();live.game.brain.reset();

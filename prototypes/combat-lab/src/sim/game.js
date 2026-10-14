@@ -1,7 +1,7 @@
 // Ciclo de partida de passo fixo (120 Hz), igual ao v6, mais estado serializável para replay e cenários.
 import {C} from './config.js';
 import {Brain} from './ai.js';
-import {createFighter, emptyCommand} from './entity.js';
+import {createFighter, emptyCommand, isInvulnerable} from './entity.js';
 import {updateFighter, advanceAction} from './controller.js';
 import {stepPhysics} from './physics.js';
 import {vec} from './math.js';
@@ -48,7 +48,7 @@ export class Game {
   snapshot() {
     return {phase: this.phase, tick: this.tick, winner: this.winner, mode: this.mode, hitstop: this.hitstop, events: this.events,
       fighters: this.fighters.map(f => ({...f, action: f.action ? {...f.action, hits: [...f.action.hits]} : null,
-        invulnerable: (f.action?.kind === 'dodge' || f.action?.kind === 'tackle') && f.action.elapsed < C.rules.invulnerable - 1e-8, offensive: f.action?.kind === 'tackle'}))};
+        invulnerable: isInvulnerable(f), offensive: f.action?.kind === 'tackle'}))};
   }
   /** Estado completo e independente (structuredClone preserva os Sets de acertos). */
   save() {

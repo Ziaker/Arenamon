@@ -14,5 +14,11 @@ export const direction = angle => vec(Math.sin(angle), Math.cos(angle));
 /** Menor diferença angular de a até b. */
 export const angleDelta = (a, b) => Math.atan2(Math.sin(b - a), Math.cos(b - a));
 export const smoothstep = t => (t = clamp(t, 0, 1), t * t * (3 - 2 * t));
-/** Curva nominal da esquiva/tackle: p(u) = 1,6u − 0,2u² − 0,4u³. */
+/** Curva nominal do v6: p(u) = 1,6u − 0,2u² − 0,4u³. */
 export const dodgeCurve = t => (t = clamp(t, 0, 1), 1.6 * t - .2 * t * t - .4 * t * t * t);
+/**
+ * Curva de deslocamento de uma ação, definida pela velocidade inicial relativa a (1 a 3):
+ * p(u) = a·u + (3 − 2a)·u² + (a − 2)·u³, com p(0) = 0, p(1) = 1 e velocidade zero no fim (sem impulso residual).
+ * a = 1,6 é a curva do v6 (70% da distância na primeira metade, GDD 7.2) e usa os coeficientes literais.
+ */
+export const actionCurve = (t, a) => a === 1.6 ? dodgeCurve(t) : (t = clamp(t, 0, 1), a * t + (3 - 2 * a) * t * t + (a - 2) * t * t * t);

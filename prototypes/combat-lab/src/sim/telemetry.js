@@ -1,7 +1,7 @@
 // Telemetria por passo e dados de quadros (frame data).
 // Unidade: passo de simulação (120 Hz por padrão; 1 passo = 8,33 ms). Os relatórios mostram passos e ms.
 import {C} from './config.js';
-import {canAct, canMove, isInvulnerable, actionDuration} from './entity.js';
+import {canAct, canMove, isInvulnerable, invulnerableWindow} from './entity.js';
 import {length} from './math.js';
 
 export const ms = ticks => ticks * C.test.step * 1000;
@@ -31,7 +31,7 @@ export class Recorder {
       const open = this.open[id], action = f.action;
       if (open && open.ref !== action) {open.end = tick;this.open[id] = null;}
       if (action && (!this.open[id])) {
-        const seg = {fighter: id, kind: action.kind, start: tick - 1, end: null, ref: action, vault: !!action.vault, counter: (action.speedMultiplier ?? 1) > 1, invulnerableUntil: action.kind === 'recoil' ? null : tick - 1 + Math.round(C.rules.invulnerable / C.test.step), hit: null};
+        const seg = {fighter: id, kind: action.kind, start: tick - 1, end: null, ref: action, vault: !!action.vault, counter: (action.speedMultiplier ?? 1) > 1, invulnerableUntil: action.kind === 'recoil' ? null : tick - 1 + Math.round(invulnerableWindow(action) / C.test.step), hit: null, fromCancel: !!action.fromCancel};
         this.actions.push(seg);this.open[id] = seg;if (this.actions.length > 400) this.actions.shift();
       }
     });
@@ -58,12 +58,15 @@ export class Recorder {
 
 /** Quadros nominais de cada ação a partir da configuração atual (independem da partida). */
 export function frameTable() {
-  const s = C.test.step, R = C.rules, X = C.extras.combat, n = x => Math.round(x / s);
+  const s = C.test.step, R = C.rules, A = C.actions, n = x => Math.round(x / s), on = C.extras.toggles.enableInvulnerability;
+  const row = (label, p, active) => ({action: label, total: n(p.duration), active, invulnerable: on && p.invulnerable > 0 ? `1–${n(p.invulnerable)}` : '—', cancel: `a partir de ${n(p.chainAfter) + 1}`, cost: p.cost});
+  const c = A.cancel;
   return [
-    {action: 'Tackle (X)', total: n(actionDuration('tackle')), active: `1–${n(actionDuration('tackle'))}`, invulnerable: C.extras.toggles.enableInvulnerability ? `1–${n(R.invulnerable)}` : '—', cancel: `a partir de ${n(R.invulnerable) + 1}`, cost: X.actionCost},
-    {action: 'Esquiva (C)', total: n(R.dodge), active: '—', invulnerable: C.extras.toggles.enableInvulnerability ? `1–${n(R.invulnerable)}` : '—', cancel: `a partir de ${n(R.invulnerable) + 1}`, cost: X.actionCost},
-    {action: 'Recuo (bloqueado)', total: n(R.recoil), active: '—', invulnerable: '—', cancel: 'imediato', cost: 0},
-    {action: 'Guard stun', total: n(R.guardStun), active: '—', invulnerable: '—', cancel: 'esquiva ou defesa perfeita', cost: 0},
+    row('Tackle (X)', A.tackle, `1–${n(A.tackle.duration)}`),
+    row('Esquiva (C)', A.dodge, '—'),
+    {action: 'Cancelamento C → X', total: '—', active: '—', invulnerable: ['resto de C', 'nenhuma', 'janela de X'][c.invulnerability] ?? '—', cancel: c.dodgeToTackle ? `passos ${n(c.windowStart) + 1}–${n(c.windowEnd)} de C` : 'desligado', cost: A.tackle.cost},
+    {action: 'Recuo (bloqueado)', total: n(R.recoil), active: '—', invulnerable: '—', cancel: A.tackle.fromRecoil ? 'X, C e defesa' : 'C e defesa (X não)', cost: 0},
+    {action: 'Guard stun', total: n(R.guardStun), active: '—', invulnerable: '—', cancel: A.tackle.fromGuardStun ? 'C, X e defesa perfeita' : 'C e defesa perfeita; X fica guardado', cost: 0},
     {action: 'Defesa perfeita (janela)', total: n(R.perfect), active: '—', invulnerable: '—', cancel: '—', cost: 0},
     {action: 'Recuperação ao aterrissar', total: n(R.landingRecovery), active: '—', invulnerable: '—', cancel: '—', cost: 0},
     {action: 'Tempo no ar (lançamento)', total: n(2 * R.launchUp / R.launchGravity), active: '—', invulnerable: '—', cancel: '—', cost: 0},

@@ -65,10 +65,12 @@ export class Brain {
       if (this.reactAt === null) {this.reactAt = P.reaction + (P.reactionJitter > 0 ? this.random() * P.reactionJitter : 0);this.misread = P.mistake > 0 && this.random() < P.mistake;this.wantsEvade = P.variation > 0 && this.random() < P.evadeChance;}
       this.threatAge += dt;if (this.threatAge < this.reactAt - 1e-9 || this.misread) threat = false;
     } else {this.threatAge = 0;this.reactAt = null;this.misread = false;}
-    const canDash = !self.exhausted && self.stamina >= C.extras.combat.actionCost && self.knockRecovery <= 0 && !self.flight && !self.action;
+    // Cada ação tem custo próprio: a IA só tenta X ou C quando tem stamina para aquela ação.
+    const ready = kind => !self.exhausted && self.stamina >= C.actions[kind].cost && self.knockRecovery <= 0 && !self.flight && !self.action;
+    const canDash = ready('tackle'), canDodge = ready('dodge');
     if (mode === 'guard') {c.guard = true;}
     else if (mode === 'evade') {
-      if (threatNear && canDash) {c.move = side;c.dodge = true;}
+      if (threatNear && canDodge) {c.move = side;c.dodge = true;}
     } else if (mode === 'counter') {
       if (self.counterWindow > 0 && canDash) {c.move = forward;c.tackle = true;} else c.guard = true;
     } else if (mode === 'random') {
@@ -81,7 +83,7 @@ export class Brain {
       const h = this.held;
       c.move = h === 'approach' ? forward : h === 'strafe' ? side : h === 'retreat' ? scale(forward, -1) : vec();
       c.guard = h === 'guard';
-      if ((h === 'tackle' || h === 'dodge') && canDash && this.cooldown <= 0) {c[h] = true;c.move = h === 'tackle' ? forward : side;this.cooldown = A.combatAttackCooldown;this.held = null;}
+      if ((h === 'tackle' ? canDash : h === 'dodge' && canDodge) && this.cooldown <= 0) {c[h] = true;c.move = h === 'tackle' ? forward : side;this.cooldown = A.combatAttackCooldown;this.held = null;}
     } else if (mode === 'defensive') {
       c.guard = true;
       c.move = distance < A.defensiveRetreatDistance ? scale(forward, -A.defensiveRetreatStrength) : vec();
@@ -89,7 +91,7 @@ export class Brain {
       const predict = dot(direction(target.action.heading), forward);
       // Sem variação: ciclo fixo do v6. Com variação: esquiva ou defesa sorteadas pela preferência de esquiva.
       const evade = P.variation > 0 ? this.wantsEvade : this.phase % A.evadeCycle === A.evadeCycleIndex;
-      if (canDash && evade && this.cooldown <= 0) {c.move = side;c.dodge = true;this.cooldown = C.test.aiInterval * this.rhythm(P);this.phase++;}
+      if (canDodge && evade && this.cooldown <= 0) {c.move = side;c.dodge = true;this.cooldown = C.test.aiInterval * this.rhythm(P);this.phase++;}
       else {c.guard = true;c.move = predict > 0 ? scale(forward, -A.reactiveRetreatStrength) : vec();}
     } else {
       if (distance > A.approachDistance * this.rangeBias) c.move = forward;

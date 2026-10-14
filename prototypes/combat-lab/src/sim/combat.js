@@ -37,12 +37,14 @@ export function resolveHit(attacker, defender, normal, relative) {
   if (!tackleConnects(attacker, defender, normal, relative) || attacker.action.hits.has(defender.id) || defender.hp <= 0) return null;
   if (isInvulnerable(defender)) {
     attacker.action.hits.add(defender.id);
+    // Esquiva perfeita: só a esquiva C (não um tackle que herdou invulnerabilidade de C) concede o bônus, uma vez por tackle.
     if (defender.action?.kind === 'dodge' && T.enableCounterBonus) {
-      defender.counterWindow = Math.max(defender.counterWindow, X.counterWindow);
-      if (X.perfectEvadeStamina > 0) {
-        defender.stamina = Math.min(R.staminaMax, defender.stamina + X.perfectEvadeStamina);
+      const D = C.actions.dodge;
+      defender.counterWindow = Math.max(defender.counterWindow, D.counterWindow);
+      if (D.perfectEvadeStamina > 0) {
+        defender.stamina = Math.min(R.staminaMax, defender.stamina + D.perfectEvadeStamina);
         defender.regenBase = defender.stamina;defender.regenAge = 0;
-        if (defender.stamina >= X.actionCost) defender.exhausted = false;
+        if (defender.stamina >= D.cost) defender.exhausted = false;
       }
       return {attacker: attacker.id, target: defender.id, result: 'perfectDodge', damage: 0, normal: {...normal}};
     }
