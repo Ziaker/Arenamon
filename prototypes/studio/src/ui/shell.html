@@ -61,6 +61,27 @@
     <button type="button" class="btn btn-soft st-wide" id="rg-pose-reset">Restaurar pose de repouso</button>
     <p class="st-hint">Dobre a articulação para verificar se a malha acompanha o osso. Volte a 0° antes de mover ou salvar o rig.</p>
    </div>
+   <div class="st-card" id="rg-diagnostic">
+    <h3>Animações genéricas para testar o rig</h3>
+    <p class="st-hint">Crie movimentos demonstrativos para verificar ombros, cotovelos, pernas, cabeça e deformações. <b>Não são animações finais de combate.</b> Os clipes gerados entram na biblioteca e não substituem os originais.</p>
+    <div class="rg-field"><label for="rg-diag-preset">Movimento de teste</label><select id="rg-diag-preset"></select></div>
+    <p class="st-hint" id="rg-diag-description">Selecione um movimento.</p>
+    <div class="rg-field"><label for="rg-diag-intensity">Intensidade do movimento</label>
+     <input id="rg-diag-intensity" type="range" min="0.1" max="1.3" step="0.05" value="0.65">
+     <output id="rg-diag-intensity-value">65%</output>
+    </div>
+    <details class="st-more" id="rg-diag-mapping"><summary>Mapeamento dos ossos (editável)</summary>
+     <p class="st-hint">O Studio tenta reconhecer os nomes do esqueleto. Ajuste manualmente quando a anatomia ou os nomes forem diferentes. Não há reposicionamento automático de ossos.</p>
+     <div id="rg-diag-map-list"></div>
+     <button type="button" class="btn btn-soft" id="rg-diag-reset-map">Reconhecer novamente</button>
+    </details>
+    <pre id="rg-diag-report" class="rg-report" aria-live="polite">Carregue um personagem já rigado para gerar os movimentos.</pre>
+    <div class="st-row">
+      <button type="button" class="btn btn-soft" id="rg-diag-add">Adicionar à biblioteca</button>
+      <button type="button" class="btn btn-primary" id="rg-diag-preview">Gerar e assistir</button>
+    </div>
+    <p class="st-hint">Cada clipe é criado localmente sobre a pose de repouso e não contém deslocamento de raiz, dano, hitboxes ou invulnerabilidade. A visualização abre a área Projeto/Animações.</p>
+   </div>
    <div class="st-card" id="rg-build">
     <h3>Criar rig para malha sem esqueleto</h3>
     <p class="st-hint">Gera <b>20 articulações</b>, incluindo quatro por braço: clavícula, ombro, cotovelo e punho. Posição inicial aproximada — ajuste ao formato do personagem antes de vincular pesos.</p>
