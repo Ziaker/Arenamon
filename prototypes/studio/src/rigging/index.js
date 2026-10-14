@@ -23,7 +23,7 @@ const array=p=>[p.x,p.y,p.z];
 const near=(a,b)=>a?.length===b?.length&&a.every((n,i)=>Math.abs(n-b[i])<1e-7);
 const safe=(s)=>String(s??'').slice(0,200);
 const skinned=()=>{let n=0;E.model?.traverse(o=>{if(o.isSkinnedMesh)n++;});return n;};
-function status(message,severity='normal'){const box=$('rg-state');box.textContent=message;box.dataset.status=severity;E.status(message.replace(/\n/g,' · '));}
+function status(message,severity='normal'){const box=$('rg-state');box.textContent=message;box.dataset.status=severity;}
 function mark(reason){E.model && window.__studioProject?.markDirty(reason);}
 function hideMarkers() {TC.detach();helper.visible=false;for(const m of S.markers.values())m.visible=false;}
 function disposeMarkers() {
