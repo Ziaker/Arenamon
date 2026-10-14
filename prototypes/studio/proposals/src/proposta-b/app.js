@@ -2,7 +2,7 @@
 // Assistente visual passo a passo que conduz o usuário pela preparação,
 // posicionamento, simetria, skinning e testes de deformação.
 import * as THREE from 'three';
-import { RiggingBridge, HUMANOID_TEMPLATE_20, CREATURE_QUADRUPED_24 } from '../shared/rig-bridge.js';
+import { RiggingBridge, HUMANOID_TEMPLATE_20, CREATURE_QUADRUPED_24, CREATURE_QUADRUPED_27 } from '../shared/rig-bridge.js';
 import { createProceduralBiped, createProceduralQuadruped, parseGLBFile } from '../shared/models.js';
 import { ViewportManager } from '../shared/three-setup.js';
 
@@ -18,7 +18,11 @@ class PropostaBGuided {
     this.viewport = new ViewportManager({
       container: this.container,
       bridge: this.bridge,
-      onSelectJoint: (name) => this.onJointSelected(name)
+      onSelectJoint: (name) => this.onJointSelected(name),
+      onJointTransform: (name) => {
+        this.updatePaperDoll();
+        this.updateStepContent();
+      }
     });
 
     this.initDOM();
@@ -30,10 +34,10 @@ class PropostaBGuided {
   }
 
   loadCharacter(type) {
-    if (type === CREATURE_QUADRUPED_24) {
+    if (type === CREATURE_QUADRUPED_27 || type === CREATURE_QUADRUPED_24) {
       const model = createProceduralQuadruped();
       this.viewport.loadModel(model);
-      this.bridge.initTemplate(CREATURE_QUADRUPED_24);
+      this.bridge.initTemplate(type);
     } else {
       const model = createProceduralBiped();
       this.viewport.loadModel(model);
@@ -69,6 +73,30 @@ class PropostaBGuided {
       this.viewport.updateBoneConnectors();
       this.updatePaperDoll();
       this.updateStepContent();
+    });
+
+    // Atalhos globais de teclado (Ctrl+Z, Ctrl+Y, Ctrl+Shift+Z)
+    window.addEventListener('keydown', (e) => {
+      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z')) {
+        e.preventDefault();
+        if (e.shiftKey) {
+          this.bridge.redo();
+        } else {
+          this.bridge.undo();
+        }
+        this.viewport.updateJointPositions();
+        this.viewport.updateBoneConnectors();
+        this.updatePaperDoll();
+        this.updateStepContent();
+      } else if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || e.key === 'Y')) {
+        e.preventDefault();
+        this.bridge.redo();
+        this.viewport.updateJointPositions();
+        this.viewport.updateBoneConnectors();
+        this.updatePaperDoll();
+        this.updateStepContent();
+      }
     });
 
     document.getElementById('btn-close-import-modal')?.addEventListener('click', () => this.hideReportModal());
@@ -227,8 +255,9 @@ class PropostaBGuided {
       <div class="guide-step-card">
         <h4 style="margin-bottom:8px;">Tipo de Criatura</h4>
         <select id="step1-model-select" style="width:100%;margin-bottom:10px;">
-          <option value="humanoid-20" ${this.bridge.activeTemplateType === HUMANOID_TEMPLATE_20 ? 'selected' : ''}>Bípede Estilizado (Humanoide 20 ossos)</option>
-          <option value="creature-quadruped-24" ${this.bridge.activeTemplateType === CREATURE_QUADRUPED_24 ? 'selected' : ''}>Quadrúpede Estilizado (Besta com Cauda 24 ossos)</option>
+          <option value="humanoid-20" ${this.bridge.activeTemplateType === HUMANOID_TEMPLATE_20 ? 'selected' : ''}>Bípede Estilizado (Humanoide 20 articulações)</option>
+          <option value="creature-quadruped-27" ${this.bridge.activeTemplateType === CREATURE_QUADRUPED_27 ? 'selected' : ''}>Besta Quadrúpede (27 articulações — com Chifres/Mandíbula)</option>
+          <option value="creature-quadruped-24" ${this.bridge.activeTemplateType === CREATURE_QUADRUPED_24 ? 'selected' : ''}>Quadrúpede Base (24 articulações — Locomoção Padrão)</option>
           <option value="upload">Carregar arquivo GLB do disco...</option>
         </select>
         <input type="file" id="step1-file-input" accept=".glb,.gltf" style="display:none">
@@ -239,10 +268,15 @@ class PropostaBGuided {
           <div>Profundidade: <strong style="color:var(--text);">${bounds.size[2].toFixed(2)}m</strong></div>
         </div>
 
-        ${this.bridge.activeTemplateType === CREATURE_QUADRUPED_24 ? `
+        ${this.bridge.activeTemplateType === CREATURE_QUADRUPED_27 ? `
           <div class="divergence-banner" style="margin-top:10px;">
-            <strong>ℹ Divergência 24 vs 27 Articulações:</strong>
-            Template quadrúpede com <strong>27 articulações instanciadas</strong> (24 base + 3 estilização: Jaw, LeftHorn, RightHorn). Divergência documentada para homologação do usuário.
+            <strong>✓ Besta Quadrúpede (27 Articulações):</strong>
+            Template com <strong>27 articulações instanciadas</strong> (24 de locomoção base + 3 de estilização de monstro: Jaw, LeftHorn, RightHorn). Contagem declarada e instanciada em conformidade (27).
+          </div>
+        ` : this.bridge.activeTemplateType === CREATURE_QUADRUPED_24 ? `
+          <div class="divergence-banner" style="margin-top:10px;">
+            <strong>✓ Quadrúpede Base (24 Articulações):</strong>
+            Template de locomoção padrão com <strong>24 articulações puras</strong> (sem apêndices faciais/chifres). Contagem declarada e instanciada em conformidade (24).
           </div>
         ` : ''}
       </div>

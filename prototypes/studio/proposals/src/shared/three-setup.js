@@ -4,10 +4,11 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
 
 export class ViewportManager {
-  constructor({ container, bridge, onSelectJoint }) {
+  constructor({ container, bridge, onSelectJoint, onJointTransform = null }) {
     this.container = container;
     this.bridge = bridge;
     this.onSelectJoint = onSelectJoint;
+    this.onJointTransform = onJointTransform;
 
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x0c1424);
@@ -134,6 +135,9 @@ export class ViewportManager {
           this.bridge.commitDrag(selected);
           this.updateJointPositions();
           this.updateBoneConnectors();
+          if (typeof this.onJointTransform === 'function') {
+            this.onJointTransform(selected);
+          }
         }
       }
     });
@@ -144,7 +148,22 @@ export class ViewportManager {
       if (selected && marker && this.bridge.model) {
         const localPos = this.bridge.model.worldToLocal(marker.position.clone());
         this.bridge.setJointPosition(selected, [localPos.x, localPos.y, localPos.z], { recordHistory: false });
+
+        // Se simetria estiver ativa, sincroniza a posição do companheiro no 3D em tempo real
+        const companion = this.bridge.getSymmetricCompanion(selected);
+        if (this.bridge.symmetryEnabled && companion && this.markersMap.has(companion)) {
+          const compJoint = this.bridge.getJoint(companion);
+          if (compJoint) {
+            const compLocal = new THREE.Vector3(...compJoint.p);
+            const compWorld = this.bridge.model.localToWorld(compLocal.clone());
+            this.markersMap.get(companion).position.copy(compWorld);
+          }
+        }
+
         this.updateBoneConnectors();
+        if (typeof this.onJointTransform === 'function') {
+          this.onJointTransform(selected);
+        }
       }
     });
 
@@ -265,6 +284,14 @@ export class ViewportManager {
 
         const isIsolated = this.bridge.isolatedJointChain && !this.bridge.isolatedJointChain.has(name);
         marker.visible = this.showMarkers && !isIsolated;
+      }
+    }
+
+    // Garante que o gizmo do TransformControls acompanhe o marcador após atualização de posição (ex: Undo / Redo / Inputs)
+    if (this.bridge.selectedJointName && this.markersMap.has(this.bridge.selectedJointName)) {
+      const selMarker = this.markersMap.get(this.bridge.selectedJointName);
+      if (this.transformControls.object === selMarker && this.transformHelper) {
+        this.transformHelper.updateMatrixWorld(true);
       }
     }
   }
@@ -404,13 +431,14 @@ export class ViewportManager {
     if (active) {
       this.updateHeatmap();
     } else {
-      // Restaura cor original do material
+      // Restaura cor original do material em todas as malhas (suporta arrays de materiais)
       this.bridge.model.traverse(o => {
         if (o.isMesh && o.geometry?.attributes?.color) {
           o.geometry.deleteAttribute('color');
           if (o.material) {
-            o.material.vertexColors = false;
-            o.material.needsUpdate = true;
+            const setMat = m => { if (m) { m.vertexColors = false; m.needsUpdate = true; } };
+            if (Array.isArray(o.material)) o.material.forEach(setMat);
+            else setMat(o.material);
           }
         }
       });
@@ -427,8 +455,9 @@ export class ViewportManager {
         if (colors) {
           o.geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
           if (o.material) {
-            o.material.vertexColors = true;
-            o.material.needsUpdate = true;
+            const setMat = m => { if (m) { m.vertexColors = true; m.needsUpdate = true; } };
+            if (Array.isArray(o.material)) o.material.forEach(setMat);
+            else setMat(o.material);
           }
         }
       }

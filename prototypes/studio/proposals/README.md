@@ -207,40 +207,50 @@ As capturas de alta resolução encontram-se salvas na pasta `prototypes/studio/
 ## 7. Resolução das Prioridades de Auditoria e Correções Funcionais
 
 ### 1. Undo/Redo no Manipulador 3D (TransformControls)
-- **Causa Raiz**: O evento `objectChange` atualizava a posição do osso em tempo real durante o arrasto. Ao soltar o mouse (`dragging-changed` com `value = false`), a posição atual era idêntica à já registrada no draft, fazendo com que a gravação no histórico fosse ignorada por idempotência (`isSame === true`).
-- **Solução Implementada**: Implementado o ciclo `beginDrag(name)` no início do clique e `commitDrag(name)` ao soltar. O snapshot anterior ao movimento é preservado e comparado com a coordenada final, gerando exatamente um comando reversível `{ type: 'move-joint', changes }` com restauração exata no Desfazer (Undo) e Refazer (Redo).
+- **Causa Raiz**: O evento `objectChange` atualizava a posição do osso em tempo real durante o arrasto. Ao soltar o mouse (`dragging-changed` com `value = false`), a posição atual já havia sido mutada no draft, fazendo com que a gravação no histórico fosse ignorada por idempotência (`isSame === true`).
+- **Solução Implementada**:
+  - Implementado o ciclo `beginDrag(name)` no início do clique e `commitDrag(name)` ao soltar. O snapshot anterior ao movimento é preservado e comparado com a coordenada final, gerando exatamente um comando reversível `{ type: 'move-joint', changes }`.
+  - Adicionada sincronização em tempo real via `onJointTransform`, permitindo que os campos de entrada de coordenadas no inspetor atualizem simultaneamente com o arrasto visual do gizmo.
+  - Sincronização em tempo real do marcador simétrico oposto quando a simetria X-Mirror está habilitada.
+  - Atualização forçada da matriz de mundo do gizmo (`transformControls.updateMatrixWorld(true)`) em `updateJointPositions()`, garantindo que ações de Undo, Redo e edição por teclado reposicionem imediatamente o manipulador 3D.
+  - Adicionados atalhos globais de teclado (`Ctrl+Z`, `Ctrl+Y`, `Ctrl+Shift+Z`) nas três propostas.
 
-### 2. Divergência: 24 Ossos Declarados vs 27 Articulações Construídas
-- **Constatação**: O esqueleto padrão de locomoção quadrúpede é composto por **24 ossos**:
-  - Coluna e Cabeça: 5 (`Hips`, `SpineBack`, `SpineChest`, `Neck`, `Head`)
-  - Cauda: 3 (`Tail1`, `Tail2`, `Tail3`)
-  - 4 Patas: 16 (4 patas × 4 articulações: Shoulder/Hip, Knee, Ankle, Paw)
-- **Articulações Extras**: O template inclui 3 ossos de estilização de monstro: `Jaw` (mandíbula), `LeftHorn` e `RightHorn` (chifres), totalizando **27 articulações**.
-- **Tratamento**: As 27 articulações foram mantidas ativas sem descarte silencioso. A interface agora exibe um aviso claro (`divergence-banner`) informando a composição exata (24 base + 3 estilização) e os metadados `divergenceInfo` documentam a estrutura para decisão do usuário entre padronizar em 27 ou isolar o core de 24.
+### 2. Resolução da Inconsistência: 24 Ossos Declarados vs 27 Articulações Geradas
+- **Investigação Anatômica**:
+  - O esqueleto motor padrão para locomoção quadrúpede pura possui **24 ossos** (Coluna e Cabeça: 5, Cauda: 3, 4 Patas: 16).
+  - O template estilizado de criatura adicionou 3 articulações de estilização facial/monstro: `Jaw` (mandíbula), `LeftHorn` e `RightHorn` (chifres), totalizando **27 articulações**.
+- **Resolução Sem Redefinição Unilateral**:
+  - Em vez de forçar silenciosamente o descarte de 3 juntas ou alterar a anatomia das criaturas, `makeCreatureTemplate` foi aprimorado para oferecer suporte explícito a ambas as configurações:
+    1. **Besta Quadrúpede Estilizada (`creature-quadruped-27`)**: 27 articulações instanciadas (`declaredCount: 27`, `actualCount: 27`).
+    2. **Quadrúpede Base de Locomoção (`creature-quadruped-24`)**: 24 articulações instanciadas (`declaredCount: 24`, `actualCount: 24`).
+  - O menu de seleção das três propostas expõe ambas as opções de forma clara, eliminando a contradição entre a quantidade prometida e a quantidade construída.
 
 ### 3. Aplicação do Heatmap em Modelos com Múltiplas Malhas
 - **Causa Raiz**: O heatmap original calculava um único buffer de cores na primeira malha encontrada e tentava aplicá-lo em todas as malhas percorridas pelo `traverse`, gerando corrupção ou quebra de `BufferAttribute` quando malhas tinham contagens de vértices diferentes.
-- **Solução Implementada**: A função `getMeshHeatmapColors(mesh, boneName)` agora itera sobre cada malha individualmente, alocando um `Float32Array(count * 3)` exclusivo para a geometria de cada malha e calculando a distância euclidiana ou os pesos de skeleton correspondentes no espaço local de cada nó.
+- **Solução Implementada**: A função `getMeshHeatmapColors(mesh, boneName)` agora itera sobre cada malha individualmente, alocando um `Float32Array(count * 3)` exclusivo para a geometria de cada malha. Adicionalmente, `setHeatmap` e `updateHeatmap` agora suportam geometrias compostas e arrays de materiais (`Array.isArray(o.material)`), restaurando perfeitamente os materiais ao desativar o heatmap.
 
 ### 4. Validação e Relatório Estruturado de Importação JSON
-- **Melhoria**: A importação foi centralizada em `bridge.validateAndImportJSON(data)`, que executa:
-  - Verificação de sintaxe e presença do array `joints`.
-  - Validação de integridade numérica dos vetores `[x, y, z]`.
-  - Mapeamento categorizado: articulações coincidentes (`matched`), ausentes no arquivo (`missing`), desconhecidas (`unknown`) e inválidas (`invalid`).
-  - Gravação de comando único de Undo (`type: 'import-coordinates'`), permitindo reverter uma importação inteira com um único clique.
-  - Exibição de relatório visual em modal nas três propostas.
+- **Aprimoramentos**:
+  - Centralizada em `bridge.validateAndImportJSON(data)` com verificação estrita de sintaxe e presença de `joints`.
+  - Detecção e descarte preventivo de articulações com nomes duplicados no payload importado.
+  - Detecção de schema `version: 2`, emitindo aviso diagnóstico explícito sobre campos estendidos não suportados pelo núcleo v1.
+  - Validação de limites numéricos seguros (`|coordenada| > 1.000.000`).
+  - Gravação de comando atômico de Undo (`type: 'import-coordinates'`), permitindo reverter uma importação inteira com um único clique ou via `Ctrl+Z`.
 
 ### 5. Identificação Clara de Controles Demonstrativos (Fase 2)
-- **Melhoria**: Ferramentas de pincel manual de peso (Raio, Força, Suavização) e o botão `Normalizar Pesos` foram explicitamente rotulados com a badge `<span class="badge badge-warning">Protótipo Visual — Fase 2</span>` e banners informativos, deixando claro que se tratam de protótipos de UX para a Fase 2 do Codex, mantendo o heatmap e o auto-skinning volumétrico 100% ativos.
+- **Transparência de Interface**:
+  - Ferramentas de pincel manual de peso (Raio, Força, Suavização) e o botão `Normalizar Pesos` foram explicitamente rotulados com a badge `<span class="badge badge-warning">Protótipo Visual — Fase 2</span>` e banners informativos.
+  - Clicar em normalização de pesos abre diálogo informativo esclarecendo que a mutação direta de buffers de vértice é um requisito da Fase 2 estrutural do Codex, enquanto o mapa térmico analítico e o auto-skinning volumétrico permanecem 100% operacionais.
 
-### 6. Ampliação dos Testes Automatizados (Playwright)
-- **Verificação**: A suíte `test-proposals.mjs` foi ampliada para inspecionar estados internos reais via `window.__rigStudio`:
-  - Movimento do gizmo → verificação de histórico → acionamento de Undo → restauração com tolerância `< 1e-5`.
-  - Multi-mesh heatmap → verificação de contagem de vértices e `vertexColors` em cada malha filha.
-  - JSON inválido → verificação de rejeição e relatório de erro.
-  - JSON válido → verificação de aplicação em lote e reversão por Undo.
-  - Template quadrúpede → verificação de 27 articulações e visibilidade do banner de divergência.
+### 6. Estado Real de Compatibilidade com Schema v2 e Delimitação do Núcleo
+- O `RiggingBridge` opera estritamente sobre o **núcleo da Fase 1** (`prototypes/studio/src/rigging/core.js`), compatível com o Schema v1.
+- A compatibilidade com o editor estrutural v2 e a garantia contra IDs duplicados no nível do grafo ósseo dependem da entrega estrutural da Fase 2 sob responsabilidade do Codex e **não são consideradas concluídas nesta etapa**.
 
-### 7. Preservação de Stash Local
-- O stash `stash@{0}: On fix/arena-movement-camera: local-wip-fix-arena-movement-camera-template` foi inspecionado e permanece rigorosamente intacto e não aplicado.
+### 7. Auditoria do Ambiente de Integração Contínua (CI)
+- Os runners do GitHub Actions executam sobre **Windows Server 2025** (e não `ubuntu-latest`).
+- Os timeouts de 30s ocorridos em execuções anteriores durante testes em `#lighting` e `[data-panel="project"]` continuam sob investigação do Claude. A conjectura sobre transições CSS causando atrasos não possui evidência comprovada.
+- Os arquivos de CI e o motor central permanecem inalterados por este agente.
+
+### 8. Preservação de Stash Local
+- O stash `stash@{0}: On fix/arena-movement-camera: local-wip-fix-arena-movement-camera-template` foi conferido e permanece intocado e preservado.
 

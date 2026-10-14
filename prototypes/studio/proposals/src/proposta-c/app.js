@@ -1,7 +1,7 @@
 // PROPOSTA C — Hybrid Rigging Studio
 // Combinação inteligente de fluxo guiado para iniciantes e ferramentas avançadas sob demanda.
 import * as THREE from 'three';
-import { RiggingBridge, HUMANOID_TEMPLATE_20, CREATURE_QUADRUPED_24 } from '../shared/rig-bridge.js';
+import { RiggingBridge, HUMANOID_TEMPLATE_20, CREATURE_QUADRUPED_24, CREATURE_QUADRUPED_27 } from '../shared/rig-bridge.js';
 import { createProceduralBiped, createProceduralQuadruped, parseGLBFile } from '../shared/models.js';
 import { ViewportManager } from '../shared/three-setup.js';
 
@@ -17,7 +17,11 @@ class PropostaCHybrid {
     this.viewport = new ViewportManager({
       container: this.container,
       bridge: this.bridge,
-      onSelectJoint: (name) => this.onJointSelected(name)
+      onSelectJoint: (name) => this.onJointSelected(name),
+      onJointTransform: (name) => {
+        this.renderSelection();
+        this.renderBreadcrumbs();
+      }
     });
 
     this.initDOM();
@@ -29,10 +33,10 @@ class PropostaCHybrid {
   }
 
   loadCharacter(type) {
-    if (type === CREATURE_QUADRUPED_24) {
+    if (type === CREATURE_QUADRUPED_27 || type === CREATURE_QUADRUPED_24) {
       const model = createProceduralQuadruped();
       this.viewport.loadModel(model);
-      this.bridge.initTemplate(CREATURE_QUADRUPED_24);
+      this.bridge.initTemplate(type);
     } else {
       const model = createProceduralBiped();
       this.viewport.loadModel(model);
@@ -47,12 +51,20 @@ class PropostaCHybrid {
   updateDivergenceCallout(type) {
     const divBox = document.getElementById('hybrid-divergence-callout');
     if (!divBox) return;
-    if (type === CREATURE_QUADRUPED_24) {
+    if (type === CREATURE_QUADRUPED_27) {
       divBox.style.display = 'block';
       divBox.innerHTML = `
         <div class="divergence-banner">
-          <strong>ℹ Divergência 24 vs 27 Articulações:</strong>
-          Template quadrúpede com <strong>27 articulações instanciadas</strong> (24 base + 3 estilização: Jaw, LeftHorn, RightHorn). Divergência documentada para homologação do usuário.
+          <strong>✓ Besta Quadrúpede (27 Articulações):</strong>
+          Template instanciado com <strong>27 articulações</strong> (24 de locomoção padrão + 3 de estilização de monstro: Jaw, LeftHorn, RightHorn). Contagem declarada e instanciada em conformidade (27).
+        </div>
+      `;
+    } else if (type === CREATURE_QUADRUPED_24) {
+      divBox.style.display = 'block';
+      divBox.innerHTML = `
+        <div class="divergence-banner">
+          <strong>✓ Quadrúpede Base (24 Articulações):</strong>
+          Template de locomoção padrão com <strong>24 articulações puras</strong> (sem mandíbula ou chifres). Contagem declarada e instanciada em conformidade (24).
         </div>
       `;
     } else {
@@ -186,6 +198,28 @@ class PropostaCHybrid {
       this.viewport.updateJointPositions();
       this.viewport.updateBoneConnectors();
       this.renderSelection();
+    });
+
+    // Atalhos globais de teclado (Ctrl+Z, Ctrl+Y, Ctrl+Shift+Z)
+    window.addEventListener('keydown', (e) => {
+      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z')) {
+        e.preventDefault();
+        if (e.shiftKey) {
+          this.bridge.redo();
+        } else {
+          this.bridge.undo();
+        }
+        this.viewport.updateJointPositions();
+        this.viewport.updateBoneConnectors();
+        this.renderSelection();
+      } else if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || e.key === 'Y')) {
+        e.preventDefault();
+        this.bridge.redo();
+        this.viewport.updateJointPositions();
+        this.viewport.updateBoneConnectors();
+        this.renderSelection();
+      }
     });
 
     // Busca

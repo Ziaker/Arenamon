@@ -5,6 +5,7 @@ import { modelBounds, makeTemplate, collectBones, currentJoints, auditRig, valid
 
 export const HUMANOID_TEMPLATE_20 = 'humanoid-20';
 export const CREATURE_QUADRUPED_24 = 'creature-quadruped-24';
+export const CREATURE_QUADRUPED_27 = 'creature-quadruped-27';
 
 // Decomposição anatômica do template quadrúpede:
 // 24 ossos base (coluna 5 + cauda 3 + 4 membros 16) vs 3 articulações de estilização facial/chifres
@@ -22,16 +23,18 @@ export const QUADRUPED_STYLIZATION_BONES_3 = [
 ];
 
 /**
- * Gera um template de criatura quadrúpede com cauda e chifres
- * para demonstrar suporte a anatomias não-humanoides.
+ * Gera o template de criatura quadrúpede suportando explicitamente:
+ * 1. Variante Estilizada (27 articulações): 24 base + 3 estilização (Jaw, LeftHorn, RightHorn).
+ * 2. Variante Base de Locomoção (24 articulações puras): sem apêndices estilizados.
  *
- * NOTA DE AUDITORIA (Divergência 24 vs 27):
- * O identificador nominal declara '24 ossos' (padrão esquelético de quadrúpedes),
- * mas a implementação constrói 27 articulações (24 base + 3 de estilização de monstro:
- * Jaw, LeftHorn, RightHorn). Todas as 27 articulações foram preservadas integralmente
- * sem descarte silencioso para homologação deliberada do usuário.
+ * RESOLUÇÃO DA INCONSISTÊNCIA 24 vs 27:
+ * A discrepância histórica em que um template nomeado '24' gerava 27 juntas foi resolvida
+ * sem redefinir ou descartar unilateralmente os ossos:
+ * - Ao selecionar a criatura estilizada completa, são geradas 27 juntas e declaredCount é 27.
+ * - Ao selecionar a locomoção quadrúpede base, são geradas 24 juntas e declaredCount é 24.
+ * Ambos os esquemas são válidos e alternáveis pelo usuário na interface.
  */
-export function makeCreatureTemplate(bounds) {
+export function makeCreatureTemplate(bounds, { includeStylization = true } = {}) {
   const [xmin, ymin, zmin] = bounds.min;
   const [width, height, depth] = bounds.size;
   const midX = (xmin + bounds.max[0]) / 2;
@@ -47,17 +50,24 @@ export function makeCreatureTemplate(bounds) {
     { name: 'SpineChest', parent: 'SpineBack', p: [midX, py(0.62), pz(0.18)] },
     { name: 'Neck', parent: 'SpineChest', p: [midX, py(0.72), pz(0.38)] },
     { name: 'Head', parent: 'Neck', p: [midX, py(0.82), pz(0.55)] },
-    { name: 'Jaw', parent: 'Head', p: [midX, py(0.74), pz(0.65)] },
-    // Chifres
-    { name: 'LeftHorn', parent: 'Head', p: [px(-1, 0.22), py(0.95), pz(0.48)] },
-    { name: 'RightHorn', parent: 'Head', p: [px(1, 0.22), py(0.95), pz(0.48)] },
-    // Cauda
-    { name: 'Tail1', parent: 'Hips', p: [midX, py(0.48), pz(-0.45)] },
-    { name: 'Tail2', parent: 'Tail1', p: [midX, py(0.42), pz(-0.68)] },
-    { name: 'Tail3', parent: 'Tail2', p: [midX, py(0.38), pz(-0.90)] },
   ];
 
-  // Patas dianteiras
+  if (includeStylization) {
+    joints.push(
+      { name: 'Jaw', parent: 'Head', p: [midX, py(0.74), pz(0.65)] },
+      { name: 'LeftHorn', parent: 'Head', p: [px(-1, 0.22), py(0.95), pz(0.48)] },
+      { name: 'RightHorn', parent: 'Head', p: [px(1, 0.22), py(0.95), pz(0.48)] }
+    );
+  }
+
+  // Cauda
+  joints.push(
+    { name: 'Tail1', parent: 'Hips', p: [midX, py(0.48), pz(-0.45)] },
+    { name: 'Tail2', parent: 'Tail1', p: [midX, py(0.42), pz(-0.68)] },
+    { name: 'Tail3', parent: 'Tail2', p: [midX, py(0.38), pz(-0.90)] }
+  );
+
+  // Patas dianteiras e traseiras
   for (const [label, side] of [['Left', -1], ['Right', 1]]) {
     joints.push(
       { name: label + 'Shoulder', parent: 'SpineChest', p: [px(side, 0.28), py(0.58), pz(0.22)] },
@@ -72,19 +82,29 @@ export function makeCreatureTemplate(bounds) {
     );
   }
 
+  const actualCount = joints.length;
+  const declaredCount = includeStylization ? 27 : 24;
+  const templateType = includeStylization ? CREATURE_QUADRUPED_27 : CREATURE_QUADRUPED_24;
+
   return {
     schema: 'arenamon-rig',
     version: 1,
     space: 'model-root',
     mode: 'draft',
-    templateType: CREATURE_QUADRUPED_24,
-    source: 'template quadrúpede estilizado (24 base + 3 estilização: Jaw, LeftHorn, RightHorn = 27 articulações)',
+    templateType,
+    source: includeStylization
+      ? 'template criatura quadrúpede estilizada (27 articulações: 24 base + 3 estilização)'
+      : 'template quadrúpede base de locomoção (24 articulações)',
     divergenceInfo: {
-      declaredCount: 24,
-      actualCount: 27,
+      declaredCount,
+      actualCount,
+      status: 'resolved',
       baseBones: QUADRUPED_BASE_BONES_24,
       stylizationBones: QUADRUPED_STYLIZATION_BONES_3,
-      note: 'Divergência técnica: o template é nomeado historicamente como 24 pontos, mas a implementação instancia 27 articulações (inclui mandíbula e chifres estilizados). Mantidas as 27 para homologação do usuário.'
+      stylizationIncluded: includeStylization,
+      note: includeStylization
+        ? 'Template de criatura estilizada com 27 articulações (24 base + mandíbula e chifres). Contagem declarada e instanciada em conformidade (27).'
+        : 'Template quadrúpede base com 24 articulações de locomoção (sem apêndices). Contagem declarada e instanciada em conformidade (24).'
     },
     joints,
     bounds: {
@@ -247,8 +267,10 @@ export class RiggingBridge {
     if (!this.model || this.isSkinned()) return;
     this.activeTemplateType = templateType;
     const bounds = modelBounds(this.model);
-    if (templateType === CREATURE_QUADRUPED_24) {
-      this.draft = makeCreatureTemplate(bounds);
+    if (templateType === CREATURE_QUADRUPED_27) {
+      this.draft = makeCreatureTemplate(bounds, { includeStylization: true });
+    } else if (templateType === CREATURE_QUADRUPED_24) {
+      this.draft = makeCreatureTemplate(bounds, { includeStylization: false });
     } else {
       this.draft = makeTemplate(bounds);
       this.draft.templateType = HUMANOID_TEMPLATE_20;
@@ -256,6 +278,12 @@ export class RiggingBridge {
     this.selectedJointName = this.draft.joints[0]?.name || null;
     this.refreshAudit();
     this.notify();
+  }
+
+  setQuadrupedStylization(include) {
+    if (!this.draft || (this.activeTemplateType !== CREATURE_QUADRUPED_24 && this.activeTemplateType !== CREATURE_QUADRUPED_27)) return;
+    const targetType = include ? CREATURE_QUADRUPED_27 : CREATURE_QUADRUPED_24;
+    this.initTemplate(targetType);
   }
 
   selectJoint(name) {
@@ -735,10 +763,15 @@ export class RiggingBridge {
       };
     }
 
-    const currentJoints = this.getJoints();
-    const currentMap = new Map(currentJoints.map(j => [j.name, j]));
     const errors = [];
     const warnings = [];
+
+    if (data.version === 2) {
+      warnings.push('Aviso de compatibilidade de schema: Arquivo gerado sob schema "arenamon-rig" versão 2. O RiggingBridge atual opera sobre o núcleo técnico v1. Propriedades estendidas da v2 (matrizes de amarração, uuids ou flags avançadas) foram ignoradas ou convertidas para coordenadas model-root.');
+    }
+
+    const currentJoints = this.getJoints();
+    const currentMap = new Map(currentJoints.map(j => [j.name, j]));
 
     const matched = [];
     const unknown = [];
@@ -751,10 +784,19 @@ export class RiggingBridge {
         continue;
       }
 
+      if (fileJointNames.has(item.name)) {
+        invalid.push({ name: item.name, reason: `Nome de articulação duplicado no arquivo JSON ("${item.name}")` });
+        continue;
+      }
       fileJointNames.add(item.name);
 
       if (!Array.isArray(item.p) || item.p.length !== 3 || !item.p.every(n => typeof n === 'number' && Number.isFinite(n))) {
         invalid.push({ name: item.name, reason: 'Coordenadas inválidas (esperado array de 3 números finitos)' });
+        continue;
+      }
+
+      if (item.p.some(n => Math.abs(n) > 1e6)) {
+        invalid.push({ name: item.name, reason: 'Coordenada fora do limite de segurança (|coord| > 1.000.000)' });
         continue;
       }
 

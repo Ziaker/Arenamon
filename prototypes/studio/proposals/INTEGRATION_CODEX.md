@@ -162,43 +162,76 @@ A camada adaptadora consome diretamente as funções já estabelecidas e testada
 
 ---
 
-## 4. Auditoria da Divergência: 24 Ossos Declarados vs 27 Articulações Construídas
+## 4. Resolução da Inconsistência: 24 Ossos Declarados vs 27 Articulações Construídas
 
-Durante a auditoria da anatomia quadrúpede (`makeCreatureTemplate`), foi identificada uma divergência entre a nomenclatura declarada e a estrutura instanciada:
+Durante a auditoria da anatomia quadrúpede (`makeCreatureTemplate`), foi identificada uma contradição numérica entre o identificador histórico (`creature-quadruped-24`) e o esqueleto instanciado (27 juntas).
 
-- **Identificador Nominal**: `creature-quadruped-24` ("Template Quadrúpede 24 pontos").
-- **Articulações Reais Construídas**: **27 articulações**.
-
-### Decomposição Anatômica:
+### A. Investigação Anatômica:
 | Grupo Anatômico | Articulações Instanciadas | Quantidade | Classificação |
 | :--- | :--- | :--- | :--- |
 | **Coluna e Cabeça** | `Hips`, `SpineBack`, `SpineChest`, `Neck`, `Head` | 5 | Base Quadrúpede |
 | **Cauda Segmentada** | `Tail1`, `Tail2`, `Tail3` | 3 | Base Quadrúpede |
 | **Patas Dianteiras** | `Left/RightShoulder`, `Left/RightFrontKnee`, `Left/RightFrontAnkle`, `Left/RightPaw` | 8 | Base Quadrúpede |
 | **Patas Traseiras** | `Left/RightHip`, `Left/RightBackKnee`, `Left/RightBackAnkle`, `Left/RightBackPaw` | 8 | Base Quadrúpede |
-| **Subtotal Base** | *Esqueleto motor padrão para locomoção quadrúpede* | **24** | **Padrão 24** |
-| **Estilização Facial / Monstros** | `Jaw` (mandíbula), `LeftHorn`, `RightHorn` (chifres) | 3 | Adicional Criatura |
-| **Total Instanciado** | *Esqueleto completo de besta fantástica* | **27** | **Expandido 27** |
+| **Subtotal Base (Locomoção)** | *Esqueleto motor padrão para locomoção quadrúpede pura* | **24** | **Padrão 24** |
+| **Estilização Facial / Monstros** | `Jaw` (mandíbula articulada), `LeftHorn`, `RightHorn` (chifres) | 3 | Adicional Criatura |
+| **Total Instanciado** | *Esqueleto completo de besta fantástica estilizada* | **27** | **Expandido 27** |
 
-### Opções para Deliberação do Usuário / Fase 2 Codex:
-- **Opção A (Padronizar em 27 ossos)**: Reconhecer oficialmente o template como `creature-quadruped-27`, preservando chifres e mandíbula para criaturas fantásticas do Arenamon.
-- **Opção B (Núcleo estrito de 24 ossos + anexo cosmético)**: Manter o core de locomoção em 24 ossos (`Head` sem filhos faciais) e tratar `Jaw` e `Horns` como cadeia opcional de estilização anexável.
-- **Decisão nos Protótipos**: Todas as 27 articulações foram mantidas ativas sem descarte silencioso, e a divergência foi sinalizada na interface e metadados (`divergenceInfo`).
+### B. Resolução Técnica (Sem Redefinição Unilateral):
+A inconsistência foi resolvida sem descartar os apêndices estilizados e sem forçar uma escolha unilateral sobre o template:
+1. **Variante Criatura Estilizada (`creature-quadruped-27`)**: Instancia todas as 27 articulações (24 base + mandíbula e chifres). Nesta variante, `declaredCount === 27` e `actualCount === 27`.
+2. **Variante Quadrúpede Base (`creature-quadruped-24`)**: Instancia exclusivamente as 24 articulações essenciais de locomoção. Nesta variante, `declaredCount === 24` e `actualCount === 24`.
+3. **Controle na Interface**: Todas as três propostas oferecem a seleção explícita entre as duas variantes no menu de modelos, garantindo total conformidade entre a quantidade anunciada e a quantidade gerada em cena.
 
 ---
 
-## 5. Recomendações e Próximos Passos para o Codex (Fase 2)
+## 5. Incompatibilidades Reais com o Schema v2 e Estado do Núcleo
 
-Para a implementação subsequente das ferramentas avançadas de rigging, recomenda-se que o Codex disponibilize as seguintes APIs complementares:
+A integração atual do `RiggingBridge` opera exclusivamente sobre as funções do **núcleo da Fase 1** (`prototypes/studio/src/rigging/core.js`), adotando o contrato **Schema v1** (`schema: 'arenamon-rig'`, `version: 1`).
 
-1. **Buffer Mutation API (Pintura de Pesos Manual)**:
-   - Endpoint: `applyWeightBrush(mesh, boneIndex, brushCenter, radius, strength, mode: 'add' | 'smooth' | 'replace')`
-   - Permite que o pincel da UI altere os buffers `skinWeight` diretamente no GPU/CPU sem recriar o `SkinnedMesh`.
+### Status de Compatibilidade com o Editor Estrutural v2:
+> [!IMPORTANT]
+> A compatibilidade com o editor estrutural v2 do Codex e a proteção contra IDs duplicados no motor **NÃO estão concluídas**. O núcleo v2 é de responsabilidade técnica do Codex e permanece em desenvolvimento na branch de engenharia estrutural.
+
+### Diferenças Técnicas e Incompatibilidades Conhecidas:
+1. **Identificadores Únicos vs Nomes de Juntas**:
+   - *Schema v1*: Indexa articulações unicamente por string `name`.
+   - *Schema v2*: Propõe identificadores persistentes (`id` / `uuid`) para permitir renomeações sem corrupção topológica.
+2. **Tratamento de IDs Duplicados**:
+   - *Núcleo v1*: `validateDraft` lança erro genérico em colisões de nome, mas estruturas intermediárias não impedem a duplicação durante certas mutações.
+   - *Camada de UI das Propostas*: A função `validateAndImportJSON` filtra e rejeita preventivamente entradas duplicadas no payload JSON importado, mas a garantia no nível do grafo ósseo depende do núcleo v2 do Codex.
+3. **Espaço de Coordenadas e Matrizes de Amarração**:
+   - *Schema v1*: Coordenadas `p: [x, y, z]` relativas à raiz do modelo (`model-root`).
+   - *Schema v2*: Projeta inclusão de matrizes de amarração (`bindMatrix`), quaternions de orientação de repouso e offsets ósseos locais.
+4. **Mutabilidade dos Buffers de Pesos**:
+   - *Núcleo v1*: Atributos `skinIndex` e `skinWeight` são gerados volumetricamente de forma estática por `bindDraftToModel`.
+   - *Schema v2 / Fase 2*: Exigirá APIs de mutação de buffer para o pincel manual de pintura de pesos (ver Seção 7).
+
+---
+
+## 6. Auditoria do Ambiente de Integração Contínua (CI)
+
+1. **Ambiente Real do Runner**:
+   - As execuções do GitHub Actions operam sobre runners **Windows Server 2025** (e não `ubuntu-latest`).
+2. **Natureza dos Timeouts**:
+   - Os registros de falha anteriores documentam timeouts do Playwright superiores a 30 segundos ao interagir com `#lighting` e `[data-panel="project"]`.
+   - A hipótese anterior sugerindo que atrasos de transições CSS seriam a causa primária **não foi comprovada** e é considerada especulativa.
+3. **Limites de Responsabilidade**:
+   - Os testes de CI e o ambiente do GitHub Actions permanecem sob responsabilidade do Claude.
+   - Nenhuma alteração foi introduzida em arquivos de CI ou configurações de pipelines nesta entrega.
+
+---
+
+## 7. Recomendações e Próximos Passos para o Codex (Fase 2)
+
+Para a entrega estrutural da Fase 2, recomenda-se que o Codex forneça:
+
+1. **Buffer Mutation API (Pintura Manual de Pesos)**:
+   - `applyWeightBrush(mesh, boneIndex, brushCenter, radius, strength, mode: 'add' | 'smooth' | 'replace')`
 2. **Normalizador Rápido de Pesos**:
-   - Endpoint: `normalizeSkinWeights(mesh, targetBoneIndex?)`
-   - Normaliza as 4 influências por vértice para garantir que a soma seja rigorosamente 1.0.
+   - `normalizeSkinWeights(mesh, targetBoneIndex?)`
 3. **Two-Bone Analytical IK Solver**:
-   - Endpoint: `solveTwoBoneIK(rootBone, midBone, endEffectorBone, targetPosition, poleVector)`
-   - Para manipulação direta das patas e mãos no teste de pose.
-4. **Bone Reparenting / Topology Editor**:
-   - Endpoints: `addBone(name, parent, position)`, `removeBone(name)`, `reparentBone(name, newParent)`.
+   - `solveTwoBoneIK(rootBone, midBone, endEffectorBone, targetPosition, poleVector)`
+4. **Topology & Reparenting Editor**:
+   - `addBone(name, parent, position)`, `removeBone(name)`, `reparentBone(name, newParent)` com verificação estrita de aciclicidade e IDs únicos.
+

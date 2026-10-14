@@ -43,33 +43,48 @@ async function runTests() {
   assert.equal(await page.textContent('#inspector-title'), 'Spine');
   console.log('✓ Seleção na árvore de hierarquia atualizou o inspetor');
 
-  // 1.2 Prioridade 1: Simulação real de arrasto de Gizmo 3D e registro de Undo/Redo
-  console.log('  -> Testando arrasto 3D e histórico de Undo/Redo...');
+  // 1.2 Prioridade 1: Simulação real de arrasto de Gizmo 3D, Undo/Redo e atalhos de teclado
+  console.log('  -> Testando arrasto 3D, histórico de Undo/Redo e atalhos de teclado...');
   const initialSpineP = await page.evaluate(() => {
     const j = window.__rigStudio.bridge.getJoint('Spine');
     return [...j.p];
   });
+  const initialMarkerWorld = await page.evaluate(() => {
+    const m = window.__rigStudio.viewport.markersMap.get('Spine');
+    return [m.position.x, m.position.y, m.position.z];
+  });
 
-  // Executa arrasto de gizmo via ciclo beginDrag -> setJointPosition -> commitDrag
+  // Executa arrasto de gizmo via ciclo com sincronização de evento e inputs
   await page.evaluate(() => {
     const bridge = window.__rigStudio.bridge;
+    const viewport = window.__rigStudio.viewport;
     bridge.beginDrag('Spine');
     bridge.setJointPosition('Spine', [0.15, 1.35, 0.08], { recordHistory: false });
+    viewport.updateJointPositions();
+    viewport.updateBoneConnectors();
+    if (typeof viewport.onJointTransform === 'function') {
+      viewport.onJointTransform('Spine');
+    }
     bridge.commitDrag('Spine');
-    window.__rigStudio.viewport.updateJointPositions();
-    window.__rigStudio.viewport.updateBoneConnectors();
-    window.__rigStudio.renderSelection();
   });
 
   const historyLenAfterDrag = await page.evaluate(() => window.__rigStudio.bridge.historyStack.length);
   assert.equal(historyLenAfterDrag, 1, 'Arrasto de gizmo gerou exatamente 1 comando no histórico');
   assert.equal(await page.isDisabled('#btn-undo'), false, 'Botão Undo foi habilitado após o arrasto');
 
+  // Comprova que os campos numéricos do Inspetor sincronizaram com o arrasto em tempo real
   const draggedCoordX = parseFloat(await page.inputValue('#coord-x'));
-  assert.ok(Math.abs(draggedCoordX - 0.15) < 1e-4, 'Coordenada X no inspetor reflete a posição arrastada');
+  assert.ok(Math.abs(draggedCoordX - 0.15) < 1e-4, 'Coordenada X no inspetor sincronizou em tempo real');
 
-  // Clica no botão Desfazer (Undo)
-  await page.click('#btn-undo');
+  // Comprova que o marcador no 3D moveu para a nova posição no mundo
+  const movedMarkerWorld = await page.evaluate(() => {
+    const m = window.__rigStudio.viewport.markersMap.get('Spine');
+    return [m.position.x, m.position.y, m.position.z];
+  });
+  assert.ok(Math.abs(movedMarkerWorld[0] - initialMarkerWorld[0]) > 0.05, 'Marcador 3D deslocou no espaço de mundo');
+
+  // Testa Desfazer via atalho de teclado (Control+Z)
+  await page.keyboard.press('Control+z');
   const restoredSpineP = await page.evaluate(() => {
     const j = window.__rigStudio.bridge.getJoint('Spine');
     return [...j.p];
@@ -79,37 +94,62 @@ async function runTests() {
     Math.abs(restoredSpineP[0] - initialSpineP[0]) < 1e-5 &&
     Math.abs(restoredSpineP[1] - initialSpineP[1]) < 1e-5 &&
     Math.abs(restoredSpineP[2] - initialSpineP[2]) < 1e-5,
-    'Undo restaurou com precisão cirúrgica a coordenada anterior ao arrasto'
+    'Undo restaurou com precisão cirúrgica (< 1e-5) a coordenada no data model'
   );
+
+  const restoredInputX = parseFloat(await page.inputValue('#coord-x'));
+  assert.ok(Math.abs(restoredInputX - initialSpineP[0]) < 1e-4, 'Input do inspetor restaurou a coordenada pré-arrasto');
+
+  const restoredMarkerWorld = await page.evaluate(() => {
+    const m = window.__rigStudio.viewport.markersMap.get('Spine');
+    return [m.position.x, m.position.y, m.position.z];
+  });
+  assert.ok(Math.abs(restoredMarkerWorld[0] - initialMarkerWorld[0]) < 1e-5, 'Posição do marcador 3D restaurada no mundo');
   assert.equal(await page.isDisabled('#btn-redo'), false, 'Botão Redo habilitado após Undo');
 
-  // Clica em Refazer (Redo)
-  await page.click('#btn-redo');
+  // Testa Refazer via atalho de teclado (Control+Y)
+  await page.keyboard.press('Control+y');
   const redoneSpineP = await page.evaluate(() => window.__rigStudio.bridge.getJoint('Spine').p);
   assert.ok(Math.abs(redoneSpineP[0] - 0.15) < 1e-4, 'Redo reaplicou a posição arrastada');
 
-  // Retorna para o estado limpo
+  // Retorna para o estado limpo via clique no botão Undo
   await page.click('#btn-undo');
   console.log('✓ Prioridade 1 Aprovada: Undo/Redo no manipulador 3D validado com restauração exata de coordenadas');
 
-  // 1.3 Prioridade 2: Divergência 24 vs 27 ossos no Quadrúpede
-  console.log('  -> Testando divergência de template quadrúpede (24 declarados vs 27 reais)...');
+  // 1.3 Prioridade 2: Resolução da inconsistência 24 vs 27 ossos no Quadrúpede
+  console.log('  -> Testando resolução da inconsistência 24 vs 27 ossos...');
+
+  // Teste 2.1: Variante Besta Quadrúpede (27 articulações)
+  await page.selectOption('#model-select', 'creature-quadruped-27');
+  await page.waitForTimeout(300);
+
+  const quad27Count = await page.evaluate(() => window.__rigStudio.bridge.getJoints().length);
+  const quad27Declared = await page.evaluate(() => window.__rigStudio.bridge.draft.divergenceInfo.declaredCount);
+  assert.equal(quad27Count, 27, 'Variante criatura 27 instancia exatamente 27 articulações');
+  assert.equal(quad27Declared, 27, 'declaredCount coincide exatamente com actualCount (27)');
+
+  const banner27Visible = await page.isVisible('#divergence-callout .divergence-banner');
+  assert.ok(banner27Visible, 'Banner explicativo da variante 27 exibido no painel');
+  const banner27Text = await page.textContent('#divergence-callout');
+  assert.ok(banner27Text.includes('27 articulações'), 'Banner destaca 27 articulações');
+  assert.ok(await page.locator('.tree-row[data-joint-name="Jaw"]').count(), 'Articulação Jaw presente na variante 27');
+  assert.ok(await page.locator('.tree-row[data-joint-name="LeftHorn"]').count(), 'Articulação LeftHorn presente na variante 27');
+  assert.ok(await page.locator('.tree-row[data-joint-name="Tail3"]').count(), 'Cauda segmentada (Tail3) presente');
+
+  // Teste 2.2: Variante Quadrúpede Base (24 articulações puras de locomoção)
   await page.selectOption('#model-select', 'creature-quadruped-24');
   await page.waitForTimeout(300);
 
-  const quadJointsCount = await page.evaluate(() => window.__rigStudio.bridge.getJoints().length);
-  assert.equal(quadJointsCount, 27, 'Template quadrúpede instancia 27 articulações');
+  const quad24Count = await page.evaluate(() => window.__rigStudio.bridge.getJoints().length);
+  const quad24Declared = await page.evaluate(() => window.__rigStudio.bridge.draft.divergenceInfo.declaredCount);
+  assert.equal(quad24Count, 24, 'Variante base 24 instancia exatamente 24 articulações');
+  assert.equal(quad24Declared, 24, 'declaredCount coincide exatamente com actualCount (24)');
+  assert.equal(await page.locator('.tree-row[data-joint-name="Jaw"]').count(), 0, 'Jaw ausente no template puro 24');
+  assert.equal(await page.locator('.tree-row[data-joint-name="LeftHorn"]').count(), 0, 'LeftHorn ausente no template puro 24');
 
-  const divergenceVisible = await page.isVisible('#divergence-callout .divergence-banner');
-  assert.ok(divergenceVisible, 'Banner explicativo da divergência 24 vs 27 exibido no painel');
-
-  const divergenceText = await page.textContent('#divergence-callout');
-  assert.ok(divergenceText.includes('27 articulações instanciadas'), 'Texto do banner esclarece as 27 articulações');
-  assert.ok(divergenceText.includes('24 base'), 'Texto esclarece os 24 ossos base');
-  assert.ok(await page.locator('.tree-row[data-joint-name="Jaw"]').count(), 'Articulação Jaw presente');
-  assert.ok(await page.locator('.tree-row[data-joint-name="LeftHorn"]').count(), 'Articulação LeftHorn presente');
-  assert.ok(await page.locator('.tree-row[data-joint-name="Tail3"]').count(), 'Cauda segmentada (Tail3) presente');
-  console.log('✓ Prioridade 2 Aprovada: Divergência 24 vs 27 documentada sem descartes silenciosos');
+  const banner24Text = await page.textContent('#divergence-callout');
+  assert.ok(banner24Text.includes('24 articulações puras'), 'Banner confirma variante de 24 articulações puras');
+  console.log('✓ Prioridade 2 Aprovada: Inconsistência 24 vs 27 resolvida sem redefinição unilateral de template');
 
   // Retorna para o bípede para os próximos testes
   await page.selectOption('#model-select', 'humanoid-20');
@@ -169,7 +209,36 @@ async function runTests() {
   assert.equal(invalidReport.success, false, 'Importação rejeitou JSON sem array joints');
   assert.ok(invalidReport.errors.length > 0, 'Relatório contém lista de erros impeditivos');
 
-  // Teste 4.2: JSON válido com coordenadas
+  // Teste 4.2: JSON com nomes duplicados
+  const duplicateReport = await page.evaluate(() => {
+    return window.__rigStudio.bridge.validateAndImportJSON({
+      joints: [
+        { name: 'Spine', p: [0, 1, 0] },
+        { name: 'Spine', p: [0, 1.2, 0] }
+      ]
+    });
+  });
+  assert.ok(duplicateReport.invalid.some(inv => inv.reason.includes('duplicado')), 'Detectou e rejeitou nome de articulação duplicado');
+
+  // Teste 4.3: JSON declarando schema versão 2
+  const v2Report = await page.evaluate(() => {
+    return window.__rigStudio.bridge.validateAndImportJSON({
+      schema: 'arenamon-rig',
+      version: 2,
+      joints: [{ name: 'Spine', p: [0, 1, 0] }]
+    });
+  });
+  assert.ok(v2Report.warnings.some(w => w.includes('versão 2')), 'Emitiu aviso de compatibilidade com schema v2');
+
+  // Teste 4.4: JSON com coordenada fora dos limites de segurança
+  const outOfBoundsReport = await page.evaluate(() => {
+    return window.__rigStudio.bridge.validateAndImportJSON({
+      joints: [{ name: 'Spine', p: [5000000, 0, 0] }]
+    });
+  });
+  assert.ok(outOfBoundsReport.invalid.some(inv => inv.reason.includes('limite')), 'Detectou coordenada fora dos limites permitidos');
+
+  // Teste 4.5: JSON válido com coordenadas
   const validImportResult = await page.evaluate(() => {
     const current = window.__rigStudio.bridge.getJoints();
     const modified = current.map(j => ({
@@ -231,10 +300,15 @@ async function runTests() {
   assert.ok(await page.locator('#btn-undo').count(), 'Botão Undo presente no topo do Guided Rigging');
   assert.ok(await page.locator('#btn-redo').count(), 'Botão Redo presente no topo do Guided Rigging');
 
-  // 2.2 Navega para Etapa 1 e verifica template quadrúpede
+  // 2.2 Navega para Etapa 1 e testa variantes 27 e 24 do template quadrúpede
+  await page.selectOption('#step1-model-select', 'creature-quadruped-27');
+  await page.waitForTimeout(300);
+  assert.equal(await page.evaluate(() => window.__rigStudio.bridge.getJoints().length), 27, 'Variante 27 na Proposta B tem 27 juntas');
+  assert.ok(await page.isVisible('.divergence-banner'), 'Banner de variante 27 exibido na Etapa 1');
+
   await page.selectOption('#step1-model-select', 'creature-quadruped-24');
   await page.waitForTimeout(300);
-  assert.ok(await page.isVisible('.divergence-banner'), 'Divergência 24/27 exibida na Etapa 1');
+  assert.equal(await page.evaluate(() => window.__rigStudio.bridge.getJoints().length), 24, 'Variante 24 na Proposta B tem 24 juntas');
 
   // Retorna para bípede
   await page.selectOption('#step1-model-select', 'humanoid-20');
@@ -247,7 +321,7 @@ async function runTests() {
   assert.ok(await page.textContent('#assistant-step-content').then(t => t.includes('LeftElbow')));
   console.log('✓ Seleção pelo Paper Doll 2D na Etapa 2 validada');
 
-  // 2.4 Testa Undo na Proposta B
+  // 2.4 Testa Undo na Proposta B via atalho de teclado
   await page.evaluate(() => {
     const bridge = window.__rigStudio.bridge;
     bridge.beginDrag('LeftElbow');
@@ -255,7 +329,7 @@ async function runTests() {
     bridge.commitDrag('LeftElbow');
   });
   assert.equal(await page.isDisabled('#btn-undo'), false, 'Undo habilitado após movimento na Proposta B');
-  await page.click('#btn-undo');
+  await page.keyboard.press('Control+z');
 
   // 2.5 Etapa 3: Simetria
   await page.click('.step-card[data-step="3"]');
@@ -299,10 +373,14 @@ async function runTests() {
   assert.ok(await page.textContent('#viewport-breadcrumbs').then(t => t.includes('LeftShoulder')));
   console.log('✓ Linhagem anatômica nos breadcrumbs validada');
 
-  // 3.3 Divergência 24/27 na Proposta C
+  // 3.3 Variantes 27 e 24 na Proposta C
+  await page.selectOption('#hybrid-model-select', 'creature-quadruped-27');
+  await page.waitForTimeout(300);
+  assert.equal(await page.evaluate(() => window.__rigStudio.bridge.getJoints().length), 27, 'Proposta C variante 27 tem 27 juntas');
+
   await page.selectOption('#hybrid-model-select', 'creature-quadruped-24');
   await page.waitForTimeout(300);
-  assert.ok(await page.isVisible('#hybrid-divergence-callout .divergence-banner'), 'Divergência 24/27 exibida no dock da Proposta C');
+  assert.equal(await page.evaluate(() => window.__rigStudio.bridge.getJoints().length), 24, 'Proposta C variante 24 tem 24 juntas');
 
   await page.selectOption('#hybrid-model-select', 'humanoid-20');
   await page.waitForTimeout(300);
