@@ -4,6 +4,8 @@ Documento de revisão do `GDD_Pokemon_Arena_Fighter_v0_1.docx`. **Não substitui
 
 Implementação: `prototypes/combat-lab` (branch `feat/combat-core-etapa-a`). O jogo oficial (`prototypes/game`) **não foi alterado**.
 
+> **Etapa A aprovada pelo responsável em 14/10/2026**, após avaliação jogável no laboratório. Os itens marcados como "Provisório" fazem parte do que foi aprovado; os **valores** continuam ajustáveis. A aprovação vale para o laboratório: o jogo oficial só muda numa tarefa própria, autorizada à parte (ver seção 3).
+
 Status de cada item:
 - **Decidido:** decisão explícita do responsável.
 - **Alinhado ao GDD:** correção para seguir o GDD v0.1.
@@ -36,7 +38,9 @@ Status de cada item:
 ## 3. Pendências (Etapa B em diante; não implementadas)
 
 - **Fórmula de empurrão do GDD:** 60% Ataque e 40% velocidade de impacto, com resistência da Defesa R(D) = 0,5·D/(D+Dmed). A Etapa A **mantém o lançamento aéreo** atual (provisório). A Etapa B vai propor uma reconciliação entre Ataque, velocidade relativa e Defesa com esse lançamento. O empurrão no chão não substitui o lançamento sem aprovação.
-- O jogo oficial ainda usa as regras antigas (parâmetros compartilhados). A migração depende da aprovação jogável.
+- **Jogo oficial ainda com as regras antigas.** Em `prototypes/game` não existe X separado. `C` inicia uma única ação, `kind: 'dodge'`, sempre ofensiva: toda esquiva é o tackle. Por isso `RULES.dodge`, `invulnerable`, `steerLimit` e `steerRate` valem para as duas coisas, e o custo é fixo em 1.
+  - Separar a duração do tackle no jogo, portanto, não é só um campo novo no `config.ts`. Exige levar o núcleo da Etapa A ao jogo: X como ação própria, C sem dano, C → X, parâmetros separados, clash de 30% e as regras de recuo e guard stun.
+  - Isso aguarda autorização explícita, numa tarefa própria e sem merge na `main`.
 - Os valores dos sliders são do v6 ou provisórios e precisam de ajuste jogável.
 
 ## 4. Compatibilidade
