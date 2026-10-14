@@ -23,7 +23,7 @@ O porto é verificado por `test/parity.mjs`. O teste executa o v6 original e est
 
 A revisão de regras em relação ao GDD v0.1 está em [`docs/REVISAO_GDD_COMBATE.md`](../../docs/REVISAO_GDD_COMBATE.md).
 
-- **X (tackle) e C (esquiva) independentes:** a aba **X e C** do ajustador tem 40 parâmetros em `actions.dodge`, `actions.tackle` e `actions.cancel`:
+- **X (tackle) e C (esquiva) independentes:** a aba **X e C** do ajustador tem 41 parâmetros em `actions.dodge`, `actions.tackle`, `actions.cancel` e `actions.buffer`:
   - duração, custo, invulnerabilidade, distância, arrancada da curva, esterçamento (limite e taxa);
   - transição de velocidade, encadeamento, recuperação;
   - permissões a partir da defesa, do recuo e do guard stun.
@@ -40,6 +40,12 @@ A revisão de regras em relação ao GDD v0.1 está em [`docs/REVISAO_GDD_COMBAT
 - **Migração de JSON:** os formatos v5 a v7 são convertidos na importação, com uma tabela "campo antigo → novo" e a lista dos campos não reconhecidos. A exportação é v8.
 - **Animações:** com sincronização, as durações dos clips definem só `actions.*.duration`, o recuo, o guard stun e a aterrissagem. As janelas de eventos do Studio (invulnerabilidade, hitbox) **nunca** alteram as regras.
 
+### Ferramentas de avaliação
+
+- **Buffer de entrada** (`actions.buffer.window`, padrão 100 ms; 0 = desligado, como no v6). X ou C apertados um pouco antes da hora ficam guardados e saem no primeiro passo permitido. Isso vale para o fim do encadeamento, a abertura da janela C → X e o fim do recuo ou da aterrissagem. Vale o pedido mais recente, e um toque em D descarta o pedido. Nos dados ao vivo, a ação aparece como "(buffer)".
+- **Indicador da janela C → X** (Visualizar, ligado por padrão). Durante C, uma faixa no chão mostra o estado do cancelamento: cinza com a janela fechada, verde com X disponível (o arco encolhe com o tempo restante) e vermelha sem stamina para X. O ponto acima do lutador mostra o comando guardado no buffer.
+- **Homologação** (nova aba): checklist de 17 itens para a sua avaliação jogável. Cada item recebe aprovado, reprovado ou pendente, com observação. Fica salvo no navegador, sai no JSON exportado (`homologation`) e pode ser baixado em Markdown. Testes automáticos não preenchem esta lista.
+
 **Limitações conhecidas:**
 - Os valores (velocidades, janelas, 0,06 s e 0,18 s) são provisórios.
 - O lançamento aéreo continua no lugar da fórmula de empurrão do GDD; a reconciliação fica para a Etapa B.
@@ -54,7 +60,7 @@ A revisão de regras em relação ao GDD v0.1 está em [`docs/REVISAO_GDD_COMBAT
 4. **Replay e passo a passo:** os últimos 12 s ficam gravados por estado completo. Use ◂/▸ (ou `,`/`.`) para andar um passo, clique na linha do tempo para voltar, retome a partir do passado (o futuro gravado é descartado) e use câmera lenta de 0,1× a 1×.
 5. **Cenários:** oito cenários roteirizados e repetíveis: tackle contra defesa, defesa perfeita, clash frontal, esquiva perfeita com contra-ataque, esquiva lateral, lançamento, knockback na parede e exaustão. Cada um mostra esperado × obtido, com o esperado calculado a partir dos ajustes atuais. Podem ser executados ao vivo ou todos de uma vez.
 6. **Ajustador reformulado:**
-   - Os 337 parâmetros ficam em 9 abas (a primeira é **X e C**), com busca.
+   - Os 338 parâmetros ficam em 9 abas (a primeira é **X e C**), com busca.
    - Filtros: alterados, ≠ jogo, só lab.
    - Desfazer/refazer, restaurar por grupo e botão “= jogo”.
    - Presets salvos neste navegador e comparação entre presets, padrão do laboratório e jogo.
@@ -98,16 +104,16 @@ Os padrões são diferentes: o vermelho reage mais devagar e hesita mais; o azul
 
 ## Testes
 
-- `node prototypes/combat-lab/test/core.test.mjs`: 19 testes da Etapa A com 161 verificações "esperado × obtido":
+- `node prototypes/combat-lab/test/core.test.mjs`: 20 testes da Etapa A com 167 verificações "esperado × obtido":
   - X e C nas 8 direções, com e sem lock-on;
   - C → X no início, durante e após a invulnerabilidade, no ar, sem stamina, fora da janela e desligado;
   - esquiva perfeita + C → X;
   - independência dos parâmetros;
   - clash (frontal, diagonal, sem colisão, se afastando, parede, ataques diferentes, stamina baixa);
-  - defesa, recuo, guard stun, stamina e migração.
+  - defesa, recuo, guard stun, stamina, buffer de entrada e migração.
 
   O relatório fica em `validation/etapa-a-report.md` e `.json`, com o registro completo de cada cancelamento.
 - `node prototypes/combat-lab/test/sim.test.mjs`: 18 testes (8 cenários, determinismo, replay por estado, telemetria, tabela de quadros, personalidade das IAs).
 - `node prototypes/combat-lab/test/local-character.mjs modelo.glb`: diagnóstico local do mapa de animações de um modelo seu (resultado em `validation/`).
 - `node prototypes/combat-lab/test/parity.mjs`: paridade passo a passo com o v6 local, no modo `V6_COMPAT` (opcional; só compara o comportamento antigo).
-- `node prototypes/combat-lab/verify.mjs`: 16 verificações (incluindo a aba X e C, a migração de JSON v6 e C → X pelo teclado) no Edge offline, incluindo o GLB gerado pelo próprio Animation Studio com mapa de ações e eventos.
+- `node prototypes/combat-lab/verify.mjs`: 17 verificações (incluindo a aba X e C, a migração de JSON v6, C → X pelo teclado, o indicador e a homologação) no Edge offline, incluindo o GLB gerado pelo próprio Animation Studio com mapa de ações e eventos.

@@ -37,7 +37,7 @@ try {
   });
   page.on('pageerror', e => report.errors.push(e.message));page.on('console', m => {if (m.type() === 'error') report.errors.push(m.text());});
   page.on('request', r => {if (/^https?:/.test(r.url())) report.network.push(r.url());});
-  const dialogs = [];page.on('dialog', d => {dialogs.push(d.type());d.type() === 'beforeunload' && page.__acceptUnload ? d.accept() : d.dismiss();});
+  const dialogs = [];page.on('dialog', d => {dialogs.push(d.type());(d.type() === 'beforeunload' && page.__acceptUnload) || (d.type() === 'confirm' && page.__acceptConfirm) ? d.accept() : d.dismiss();});
   await page.context().setOffline(true);
   const url = pathToFileURL(root + 'dist/arenamon-combate-laboratorio.html').href;
   await page.goto(url);await page.waitForFunction(() => window.__lab);
@@ -47,10 +47,10 @@ try {
 
   // ---------- 6/10. Ajustador ----------
   await page.click('[data-tool="tuning"]');
-  assert.match(await page.textContent('#tune-counter'), /de 337 · \d+ ≠ jogo/);
+  assert.match(await page.textContent('#tune-counter'), /de 338 · \d+ ≠ jogo/);
   // Aba “X e C”: parâmetros independentes da esquiva, do tackle e do cancelamento.
-  assert.equal(await page.locator('#tune-tabs [role=tab]').first().textContent(), 'X e C · 40');
-  for (const id of ['#tune-actions-dodge-duration', '#tune-actions-tackle-duration', '#tune-actions-cancel-windowStart', '#tune-actions-cancel-invulnerability']) assert.ok(await page.isVisible(id), id);
+  assert.equal(await page.locator('#tune-tabs [role=tab]').first().textContent(), 'X e C · 41');
+  for (const id of ['#tune-actions-dodge-duration', '#tune-actions-tackle-duration', '#tune-actions-cancel-windowStart', '#tune-actions-cancel-invulnerability', '#tune-actions-buffer-window']) assert.ok(await page.isVisible(id), id);
   assert.match(await page.textContent('#tune-list'), /Esquiva \(C\)[\s\S]*Tackle \(X\)[\s\S]*Cancelamento C → X/);
   await page.locator('#tune-actions-tackle-duration').fill('0.5');await page.locator('#tune-actions-tackle-duration').dispatchEvent('change');
   assert.deepEqual(await L(() => [window.__lab.C.actions.tackle.duration, window.__lab.C.actions.dodge.duration]), [.5, .4], 'slider de X não altera C');
@@ -76,7 +76,7 @@ try {
   await page.click('[data-tool="export"]');
   assert.match(await page.textContent('#game-diff'), /Metade do lado da arena/);
   let pending = page.waitForEvent('download');await page.click('#export-json');const json = JSON.parse(await readFile(await (await pending).path(), 'utf8'));
-  assert.equal(json.schema, 'arenamon-tuning');assert.equal(json.version, 8);assert.ok(json.values.actions.dodge && json.values.actions.tackle && json.values.actions.cancel);assert.equal(json.values.test.arenaHalf, 15);
+  assert.equal(json.schema, 'arenamon-tuning');assert.equal(json.version, 8);assert.equal(json.homologation.summary.total, 17);assert.ok(json.values.actions.dodge && json.values.actions.tackle && json.values.actions.cancel);assert.equal(json.values.test.arenaHalf, 15);
   assert.ok(json.differencesFromGame.some(d => d.path === 'test.arenaHalf' && d.game === 10 && d.lab === 15));assert.ok(!json.differencesFromGame.some(d => d.path === 'test.speed'));
   // Importar um JSON v6 (formato antigo) com valor inválido: rejeitado sem aplicar nada.
   await page.fill('#import-text', JSON.stringify({schema: 'arenamon-tuning-v5', version: 6, values: {rules: {dodge: .5, launchUp: 999}}}));await page.click('#import-preview');
@@ -168,9 +168,27 @@ try {
   await page.waitForTimeout(250);await page.keyboard.up('ArrowUp');
   const cx = await L(() => {const t = window.__lab.cxTrace, i = t.findIndex(s => s.kind === 'tackle');return {i, prev: t[i - 1], at: t[i]};});
   assert.ok(cx.i > 0 && cx.prev.kind === 'dodge' && cx.at.fromCancel, 'X começou a partir da esquiva');
+  assert.equal(await L(() => window.__lab.view.overlays.cancelWindow), true, 'indicador da janela C → X ligado por padrão');
   assert.ok(Math.abs(cx.at.stamina - 1) < 1e-6, `stamina 3 − C − X = 1 (obtido ${cx.at.stamina})`);
   await L(() => {delete window.__lab.game.step;});
-  step('cancelamento C → X pelo teclado: X nasce da esquiva e cobra C e X uma vez cada');
+  // Indicador: durante C o anel da janela é desenhado; com o buffer, um X antecipado aparece como ponto.
+  const ring = await L(() => {const g = window.__lab.game, f = g.fighters[0];f.action = {kind: 'dodge', elapsed: .05, heading: 0, startAngle: 0, hits: new Set(), offensive: false, vault: false, from: null};f.inputBuffer = {kind: 'tackle', move: {x: 0, z: 1}, age: 0};
+    window.__lab.view.drawOverlays(g.fighters, 0);const n = window.__lab.view.overlayGroup.children.length;f.action = null;f.inputBuffer = null;return n;});
+  assert.ok(ring >= 2, `anel da janela C → X e ponto do buffer desenhados (${ring} objetos)`);
+  step('cancelamento C → X pelo teclado (X nasce da esquiva e cobra C e X uma vez cada), indicador da janela e do buffer');
+  // ---------- Homologação jogável ----------
+  await page.click('[data-tool="homolog"]');assert.equal(await page.locator('#homolog-list li[data-item]').count(), 17);
+  await page.locator('li[data-item="cxAir"] input[value="ok"]').check();await page.locator('li[data-item="clash"] input[value="fail"]').check();
+  await page.locator('li[data-item="clash"] input[type=text]').fill('lançamento alto demais');await page.locator('li[data-item="clash"] input[type=text]').dispatchEvent('change');
+  assert.match(await page.textContent('#homolog-summary'), /1 aprovados · 1 reprovados · 15 pendentes/);
+  page.__acceptUnload = true;await L(() => location.reload());await page.waitForFunction(() => window.__lab);page.__acceptUnload = false;
+  await page.click('[data-tool="homolog"]');assert.match(await page.textContent('#homolog-summary'), /1 aprovados · 1 reprovados/);
+  assert.equal(await page.locator('li[data-item="clash"] input[type=text]').inputValue(), 'lançamento alto demais');
+  await page.click('[data-tool="export"]');pending = page.waitForEvent('download');await page.click('#export-json');
+  const withH = JSON.parse(await readFile(await (await pending).path(), 'utf8'));assert.deepEqual([withH.homologation.summary.ok, withH.homologation.summary.fail], [1, 1]);
+  assert.equal(withH.homologation.items.find(i => i.id === 'clash').note, 'lançamento alto demais');
+  await page.click('[data-tool="homolog"]');page.__acceptConfirm = true;await page.click('#homolog-clear');page.__acceptConfirm = false;assert.match(await page.textContent('#homolog-summary'), /0 aprovados · 0 reprovados · 17 pendentes/);
+  step('homologação jogável: 17 itens, aprovado/reprovado com observação, salva ao recarregar e exportada no JSON');
 
   // ---------- 2/3. Personagem do Studio e eventos ----------
   await page.click('[data-tool="characters"]');await page.locator('.char-slot').nth(0).locator('input[type=file]').setInputFiles(out + 'personagem-studio.glb');

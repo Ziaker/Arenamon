@@ -13,6 +13,7 @@ export const OVERLAYS = [
   ['guardArcs', 'Arco de defesa', 'Semicírculo frontal coberto pela defesa (ângulo válido configurável em “Ângulo válido para defesa”).'],
   ['contactNormals', 'Normais de contato', 'Setas no ponto de cada impacto, clash ou bloqueio recentes, na direção da normal usada pela física.'],
   ['launchArcs', 'Arco de lançamento previsto', 'Trajetória balística prevista de quem está no ar, com gravidade, arrasto e rebote nas paredes.'],
+  ['cancelWindow', 'Janela do C → X e buffer', 'Durante a esquiva, anel no chão: cinza = janela do cancelamento ainda fechada; verde = X disponível (o arco mostra o tempo restante); vermelho = janela aberta, mas sem stamina para X. Ponto amarelo acima do lutador = comando guardado no buffer.'],
   ['reach', 'Alcance de X/C', 'Anel com a distância nominal de tackle/esquiva de cada lutador (2,5 × duração × velocidade).'],
 ];
 
@@ -21,7 +22,7 @@ export class View {
     const X = C.extras;
     this.canvas = canvas;this.scene = new T.Scene();this.camera = new T.PerspectiveCamera(X.cameraExtra.fov, 1, X.cameraExtra.nearClip, X.cameraExtra.farClip);this.rig = new CameraRig();
     this.meshes = [];this.arrows = [];this.shadows = [];this.effects = [];this.seenEvents = new WeakSet();this.airborneSeen = [];this.invulnerableFx = new Map();this.cameraShake = 0;
-    this.overlays = Object.fromEntries(OVERLAYS.map(([k]) => [k, false]));this.characters = [];this.debug = [];this.normals = [];
+    this.overlays = Object.fromEntries(OVERLAYS.map(([k]) => [k, k === 'cancelWindow']));this.characters = [];this.debug = [];this.normals = [];
     this.renderer = new T.WebGLRenderer({canvas, antialias: true});this.renderer.setPixelRatio(Math.min(devicePixelRatio, X.visual.renderPixelRatio));
     this.scene.background = new T.Color(rgb('background'));this.ambientLight = new T.HemisphereLight(0xffffff, 0x65707b, X.visual.ambientLightIntensity);this.scene.add(this.ambientLight);
     this.directionalLight = new T.DirectionalLight(0xffffff, X.visual.directionalIntensity);this.directionalLight.position.set(X.visual.lightX, X.visual.lightY, X.visual.lightZ);this.scene.add(this.directionalLight);
@@ -138,6 +139,21 @@ export class View {
         // Ângulo válido: dot(frente, direção do atacante) ≥ alinhamento → meia abertura = acos(alinhamento).
         const open = Math.acos(Math.max(-1, Math.min(1, C.extras.combat.guardFrontAlignment)));
         this.ring(f.position.x, f.position.z, 1.1, STATE_COLORS.guard, f.facing - open, f.facing + open, .05);
+      }
+      if (O.cancelWindow && f.hp > 0) {
+        const K = C.actions.cancel;
+        if (f.action?.kind === 'dodge' && K.dodgeToTackle) {
+          const t = f.action.elapsed, open = t >= K.windowStart - 1e-8 && t <= K.windowEnd + 1e-8, afford = !f.exhausted && f.stamina >= C.actions.tackle.cost - 1e-8;
+          const span = Math.max(1e-6, K.windowEnd - K.windowStart), left = open ? Math.max(0, (K.windowEnd - t) / span) : 1;
+          const color = !open ? 0x8a94a6 : afford ? 0x5dff9a : 0xff5a5a;
+          // Faixa plana (RingGeometry no plano XZ), centrada na frente do lutador; o arco encolhe com o tempo restante da janela.
+          const band = new T.Mesh(new T.RingGeometry(1.05, 1.3, 64, 1, f.facing - Math.PI / 2 - Math.PI * left, Math.PI * 2 * left), new T.MeshBasicMaterial({color, transparent: true, opacity: .75, side: T.DoubleSide, depthTest: false, depthWrite: false}));
+          band.rotation.x = -Math.PI / 2;band.position.set(f.position.x, .04 + alt, f.position.z);band.renderOrder = 901;this.overlayGroup.add(band);
+        }
+        if (f.inputBuffer) {
+          const dot = new T.Mesh(new T.SphereGeometry(.13, 10, 8), new T.MeshBasicMaterial({color: f.inputBuffer.kind === 'tackle' ? 0xffd34d : 0x9dffd8, transparent: true, opacity: .9, depthTest: false}));
+          dot.position.set(f.position.x, V.bodyHeight + .45 + alt, f.position.z);dot.renderOrder = 901;this.overlayGroup.add(dot);
+        }
       }
       if (O.reach && f.hp > 0) this.ring(f.position.x, f.position.z, nominalDistance(f, 'tackle'), f.id ? 0xff8a8a : 0x8ac4ff);
       if (O.launchArcs && f.flight) this.line(predictFlight(f), 0x9db4ff);

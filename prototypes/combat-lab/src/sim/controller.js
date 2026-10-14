@@ -35,6 +35,10 @@ export function startPermission(f, kind) {
 
 export function updateFighter(f, cmd, fighters, dt) {
   const R = C.rules, X = C.extras, T = X.toggles, A = C.actions;
+  // Buffer de entrada: o pedido mais recente de X ou C vale por actions.buffer.window, mesmo no ar ou na aterrissagem.
+  const requested = cmd.tackle && T.enableTackle ? 'tackle' : cmd.dodge && T.enableDodge ? 'dodge' : null;
+  if (f.inputBuffer) {f.inputBuffer.age += dt;if (f.inputBuffer.age > A.buffer.window + 1e-8 || cmd.guardPressed) f.inputBuffer = null;}
+  if (requested && A.buffer.window > 0) {const m = length(cmd.move) > 1 ? normalize(cmd.move) : cmd.move;f.inputBuffer = {kind: requested, move: {...m}, dodgeDirection: cmd.dodgeDirection && {...cmd.dodgeDirection}, age: 0};}
   if (f.flight) {f.action = null;f.push = null;f.guard = false;f.vaultHeight = 0;f.velocity = vec();f.locomotionVelocity = vec();f.bufferedTackle = null;f.state = 'airborne';return;}
   if (f.knockRecovery > 0) {f.knockRecovery = Math.max(0, f.knockRecovery - dt);f.vaultHeight = 0;f.velocity = vec();f.locomotionVelocity = vec();f.action = null;f.guard = false;f.bufferedTackle = null;f.state = 'landing';return;}
   if (f.hp <= 0) {f.state = 'defeated';f.velocity = vec();f.action = null;f.push = null;f.vaultHeight = 0;f.bufferedTackle = null;return;}
@@ -61,13 +65,14 @@ export function updateFighter(f, cmd, fighters, dt) {
     if (cmd.guardPressed && f.perfectCooldown <= 0) {f.perfectLeft = R.perfect;f.perfectSucceeded = false;}
   }
   // Pedido de ação: X tem prioridade se as duas teclas chegarem no mesmo passo (como no v6).
-  let kind = cmd.tackle && T.enableTackle ? 'tackle' : cmd.dodge && T.enableDodge ? 'dodge' : null, dirs = {move, dodgeDirection: cmd.dodgeDirection};
+  let kind = requested, dirs = {move, dodgeDirection: cmd.dodgeDirection}, fromBuffer = false;
+  if (!kind && f.inputBuffer) {kind = f.inputBuffer.kind;dirs = {move: f.inputBuffer.move, dodgeDirection: f.inputBuffer.dodgeDirection};fromBuffer = true;}
   // Tackle guardado durante o guard stun: sai assim que o stun termina (GDD 5: só o último pedido é mantido).
   if (!kind && f.bufferedTackle && f.stun <= 1e-8 && !f.action) {kind = 'tackle';dirs = f.bufferedTackle;f.bufferedTackle = null;}
   if (kind) {
     const p = actionParams(kind), permission = startPermission(f, kind), affordable = !f.exhausted && f.stamina >= p.cost - 1e-8;
-    if (permission.buffer) f.bufferedTackle = {move: {...dirs.move}, dodgeDirection: dirs.dodgeDirection && {...dirs.dodgeDirection}};
-    else if (permission.ok && affordable) startAction(f, kind, dirs, fighters, desiredHeading, permission.viaCancel, cmd.guard);
+    if (permission.buffer) {f.bufferedTackle = {move: {...dirs.move}, dodgeDirection: dirs.dodgeDirection && {...dirs.dodgeDirection}};f.inputBuffer = null;}
+    else if (permission.ok && affordable) {startAction(f, kind, dirs, fighters, desiredHeading, permission.viaCancel, cmd.guard);if (fromBuffer) f.action.buffered = true;}
     // Sem permissão ou sem stamina: a ação atual continua intacta (inclusive a esquiva, no caso de C → X).
   }
   if (!f.action) {
@@ -157,7 +162,7 @@ function startAction(f, kind, dirs, fighters, desiredHeading, viaCancel, guardHe
   // O custo de C já gasto continua gasto; X cobra o próprio custo.
   f.stamina = Math.max(0, f.stamina - p.cost);f.regenBase = f.stamina;f.regenAge = 0;
   f.exhausted = f.stamina < 1e-8;f.guard = false;f.guardSuppressed = guardHeld;
-  f.stun = 0;f.push = null;f.blend = null;f.vaultHeight = liftStart;f.bufferedTackle = null;
+  f.stun = 0;f.push = null;f.blend = null;f.vaultHeight = liftStart;f.bufferedTackle = null;f.inputBuffer = null;
 }
 
 /** Avança o relógio da ação e a encerra ao fim da duração própria. */

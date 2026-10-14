@@ -161,8 +161,8 @@ test('C → X com stamina insuficiente: a esquiva continua intacta', () => {
   expect('C → X', 'sem dano', c.row.dano === 0, 0, c.row.dano);
 });
 test('C → X fora da janela ou desligado não interrompe a esquiva', () => {
-  C.actions.cancel.windowStart = .1;C.actions.cancel.windowEnd = .2;
-  let c = cancelCase('fora da janela (50 ms, janela 100–200 ms)', 6);
+  C.actions.cancel.windowStart = .1;C.actions.cancel.windowEnd = .2;C.actions.buffer.window = 0;
+  let c = cancelCase('fora da janela (50 ms, janela 100–200 ms, sem buffer)', 6);
   expect('C → X', 'antes da janela: X ignorado', !c.S.some(s => s.kind === 'tackle'), 'sem X', c.S.some(s => s.kind === 'tackle') ? 'X' : 'sem X');
   resetConfig();C.actions.cancel.dodgeToTackle = 0;
   c = cancelCase('desligado', 30);
@@ -180,6 +180,32 @@ test('esquiva perfeita seguida de C → X: bônus aplicados uma única vez', () 
   const action = g.fighters[0].action;void action;
   expect('Esquiva perfeita + C → X', 'stamina: 3 − C + bônus − X', Math.abs(r.samples[30][0].stamina - (3 - C.actions.dodge.cost + C.actions.dodge.perfectEvadeStamina - C.actions.tackle.cost)) < 1e-6,
     3 - C.actions.dodge.cost + C.actions.dodge.perfectEvadeStamina - C.actions.tackle.cost, r.samples[30][0].stamina);
+});
+
+// ---------- Buffer de entrada ----------
+test('buffer de entrada: X antecipado sai no primeiro passo permitido; expira e pode ser desligado', () => {
+  const B = C.actions.buffer.window, step = STEP();
+  // X 50 ms antes da janela C → X (100–200 ms): sai exatamente quando a janela abre.
+  C.actions.cancel.windowStart = .1;C.actions.cancel.windowEnd = .2;
+  let c = cancelCase('buffer: X 50 ms antes da janela', 6), first = c.S.findIndex(s => s.kind === 'tackle');
+  expect('Buffer de entrada', 'X 50 ms antes da janela C → X sai na abertura', first === 2 + Math.round(.1 / step), 2 + Math.round(.1 / step), first);
+  expect('Buffer de entrada', 'stamina cobrada uma vez', Math.abs(c.S[first].stamina - 1) < 1e-6, 1, c.S[first].stamina);
+  // Pedido mais antigo que a janela do buffer: perdido.
+  C.actions.cancel.windowStart = .2;C.actions.cancel.windowEnd = .4;c = cancelCase('buffer: X 150 ms antes da janela (expira)', 6);
+  expect('Buffer de entrada', `X ${(.2 - 6 * step) * 1000 | 0} ms antes expira (buffer ${B * 1000} ms)`, !c.S.some(s => s.kind === 'tackle'), 'sem X', c.S.some(s => s.kind === 'tackle') ? 'X' : 'sem X');
+  // C apertado durante o próprio tackle antes do encadeamento (200 ms): sai no passo em que o encadeamento abre.
+  resetConfig();
+  const g = setup({p1: vec(14, 14)}), r = run(g, 80, t => [t === 2 ? cmd({move: vec(1, 0), tackle: true}) : t === 2 + 18 ? cmd({move: vec(0, 1), dodge: true, dodgeDirection: vec(0, 1)}) : cmd(), cmd()]);
+  const dodgeAt = r.samples.findIndex(s => s[0].kind === 'dodge');
+  expect('Buffer de entrada', 'C 50 ms antes do fim do encadeamento do X sai quando ele abre', Math.abs(dodgeAt - (2 + Math.round(C.actions.tackle.chainAfter / step))) <= 1, 2 + Math.round(C.actions.tackle.chainAfter / step), dodgeAt);
+  // Desligado: comportamento antigo (pedido perdido).
+  C.actions.buffer.window = 0;
+  const g2 = setup({p1: vec(14, 14)}), r2 = run(g2, 80, t => [t === 2 ? cmd({move: vec(1, 0), tackle: true}) : t === 2 + 18 ? cmd({move: vec(0, 1), dodge: true, dodgeDirection: vec(0, 1)}) : cmd(), cmd()]);
+  expect('Buffer de entrada', 'buffer desligado: C antecipado é perdido', !r2.samples.some(s => s[0].kind === 'dodge'), 'sem C', r2.samples.some(s => s[0].kind === 'dodge') ? 'C' : 'sem C');
+  // Um toque em D descarta o pedido guardado.
+  resetConfig();
+  const g3 = setup({p1: vec(14, 14)}), r3 = run(g3, 80, t => [t === 2 ? cmd({move: vec(1, 0), tackle: true}) : t === 20 ? cmd({move: vec(0, 1), dodge: true, dodgeDirection: vec(0, 1)}) : t === 22 ? cmd({guard: true, guardPressed: true}) : cmd(), cmd()]);
+  expect('Buffer de entrada', 'toque em D descarta o pedido guardado', !r3.samples.some(s => s[0].kind === 'dodge'), 'sem C', r3.samples.some(s => s[0].kind === 'dodge') ? 'C' : 'sem C');
 });
 
 // ---------- Independência dos parâmetros ----------

@@ -30,6 +30,7 @@
    <button type="button" role="tab" data-tool="characters" title="Personagens e animações do Studio; eventos de combate"><i>♙</i><span>Personagens</span></button>
    <button type="button" role="tab" data-tool="controls" title="Dummy, IA, dificuldade, gamepad e histórico de comandos"><i>🎮</i><span>Controles</span></button>
    <button type="button" role="tab" data-tool="export" title="Exportar/importar ajustes e relatório de diferenças para o jogo"><i>↗</i><span>Exportar</span></button>
+   <button type="button" role="tab" data-tool="homolog" title="Checklist da sua avaliação jogável (aprovado/reprovado/observação)"><i>✔</i><span>Homologação</span></button>
    <span class="rail-spacer"></span>
    <button type="button" id="dock-toggle" title="Mostrar/recolher a linha do tempo"><i>⏱</i><span>Timeline</span></button>
   </nav>
@@ -102,6 +103,7 @@
      <label class="check"><input type="checkbox" id="show-history" checked> Mostrar histórico de comandos</label>
      <p class="hint" id="pad-status">Nenhum gamepad conectado.</p>
     </section>
+    <section data-section="homolog" hidden><div id="homolog-list"></div></section>
     <section data-section="export" hidden>
      <p class="hint">O laboratório nunca altera o jogo. Use o relatório para decidir o que levar ao <code>config.ts</code>.</p>
      <div class="row"><button type="button" class="primary" id="export-json">↓ Exportar ajustes (JSON)</button><button type="button" id="copy-json">Copiar</button></div>

@@ -7,7 +7,7 @@ export function createFighter(id, attributes, position) {
     combatHeading: id ? Math.PI : 0, visualFacing: id ? Math.PI : 0, angularSpeed: 0, hp: attributes.hp, stamina: C.rules.staminaMax, exhausted: false,
     regenAge: 0, regenBase: C.rules.staminaMax, state: 'neutral', action: null, guard: false, guardSuppressed: false, perfectLeft: 0, perfectCooldown: 0,
     perfectSucceeded: false, stun: 0, push: null, blend: null, contacts: 0, flight: null, knockRecovery: 0, vaultHeight: 0, counterWindow: 0, landingSlide: null,
-    bufferedTackle: null};
+    bufferedTackle: null, inputBuffer: null};
 }
 export const emptyCommand = () => ({move: vec(), dodge: false, tackle: false, guard: false, guardPressed: false, target: null});
 /** Parâmetros próprios de uma ação X/C (C.actions.dodge ou C.actions.tackle). */

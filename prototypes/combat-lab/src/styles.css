@@ -73,3 +73,6 @@ button[aria-pressed=true],button[aria-checked=true],button.active{background:#1b
 @media(max-width:760px){:root{--rail:58px;--panel-w:calc(100vw - 58px);--dock-h:190px}.top-actions{flex:1;min-width:0;overflow-x:auto;scrollbar-width:none}.top-actions button{padding:4px 7px;font-size:11px}.brand small,.top-info{display:none}.fighter{min-width:0;max-width:48%}#input-history{display:none}.readout{min-width:0}}
 .char-slot td.speed{display:flex;align-items:center;gap:4px;min-width:120px}.char-slot td.speed input{width:80px}.char-slot td.speed output{font:11px ui-monospace,monospace;color:#8de4d1;min-width:38px}.char-slot tr.playing td:first-child{color:var(--amber);font-weight:700}.char-slot th{font-size:10.5px;color:var(--muted);text-align:left}
 #input-history:empty{display:none}
+.homolog{list-style:none;padding:0;margin:0;display:grid;gap:8px}.homolog li{border:1px solid var(--line,#2a3442);border-radius:8px;padding:8px;display:grid;gap:6px}
+.homolog li[data-status=ok]{border-color:#3fbf7f}.homolog li[data-status=fail]{border-color:#e05a5a}.homolog input[type=text]{width:100%}
+.homolog .pill{display:inline-flex;gap:4px;align-items:center;margin-right:10px;font-size:12px}

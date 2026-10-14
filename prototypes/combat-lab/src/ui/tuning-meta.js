@@ -18,6 +18,7 @@ export const SECTIONS=[
   ['Esquiva (C)','actions.dodge',null],
   ['Tackle (X)','actions.tackle',null],
   ['Cancelamento C → X','actions.cancel',null],
+  ['Buffer de entrada','actions.buffer',null],
   ['Regras gerais, defesa e stamina','rules',['recoil','recoilFraction','blend','guardStun','perfect','perfectCooldown','staminaMax','regenDelay','regenTime','guardSpeed','exhaustedSpeed','guardTurn','guardAcceleration']],
   ['Knockback e clash','rules',['launchGravity','launchUp','launchHorizontal','launchDrag','clashFraction','clashUp','clashHorizontal','landingRecovery','wallRestitution']],
   ['Combate e colisões','extras.combat',null],

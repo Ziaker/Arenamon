@@ -22,6 +22,7 @@ Status de cada item:
 | 1.6 | — | O C → X no ar parte da altura atual e desce em `actions.cancel.airDescent` (0,18 s), sem teletransporte. A velocidade é contínua: a transição suave de 0,06 s parte da velocidade inteira de C. | Provisório (valores) |
 | 1.7 | O clash (tackle contra tackle) não tem dano definido. | Cada lutador recebe **30% do dano que o tackle do adversário causaria** (`rules.clashFraction`). Os dois são lançados para trás e para cima. | Decidido |
 | 1.8 | A esquiva salta sobre o adversário. | C só salta quando a trajetória cruza o adversário. As outras esquivas ficam no chão. | Provisório |
+| 1.9 | — | **Buffer de entrada:** X ou C pedidos até 100 ms antes de serem permitidos saem no primeiro passo permitido. Não permite nada que já não fosse permitido: só antecipa a entrada. Um toque em D descarta o pedido (`actions.buffer.window`; 0 desliga). | Provisório |
 
 ## 2. Correções alinhadas ao GDD v0.1
 

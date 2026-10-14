@@ -41,9 +41,14 @@ const CANCEL = {
   invulnerability: ['Invulnerabilidade de X no cancelamento', 'Padrão: só o tempo que restava da invulnerabilidade de C (sem janela nova). Alternativas para comparação: nenhuma, ou a janela completa de X.', {min: 0, max: 2, step: 1, fmt: n => ['Resto de C', 'Nenhuma', 'Janela completa de X'][n] ?? '?'}],
 };
 
+const BUFFER = {
+  window: ['Janela do buffer de entrada', 'X ou C apertados até este tempo antes de serem permitidos (fim do encadeamento, abertura da janela C → X, fim do recuo ou da aterrissagem) ficam guardados e saem no primeiro passo permitido. Vale o pedido mais recente; um toque em D descarta. 0 = desligado (v6).', {min: 0, max: .3, step: .01, fmt: n => n ? (n * 1000).toFixed(0) + ' ms' : 'Desligado'}],
+};
+
 /** Rótulo, explicação e faixa de um caminho actions.* (ou null). */
 export function actionMeta(path) {
   const [root, kind, key] = path.split('.');if (root !== 'actions') return null;
+  if (kind === 'buffer') {const m = BUFFER[key];return m && {label: m[0], help: m[1], range: {...m[2]}};}
   if (kind === 'cancel') {const m = CANCEL[key];return m && {label: m[0], help: m[1], range: {...m[2]}};}
   const m = COMMON[key] || (kind === 'dodge' ? DODGE : TACKLE)[key];if (!m) return null;
   return {label: `${m[0]} · ${kind === 'dodge' ? 'C' : 'X'}`, help: m[1](WHO[kind]), range: {...m[2]}};
