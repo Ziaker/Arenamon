@@ -86,7 +86,8 @@ try {
     const parse=await E.parse(new File([bytes],'teste-rig.arenamon.glb',{type:'model/gltf-binary'}));
     let mesh=0,bones=0,skinned=0,names=[];
     parse.scene.traverse(o=>{if(o.isMesh){mesh++;if(o.isSkinnedMesh){skinned++;bones=o.skeleton.bones.length;names=o.skeleton.bones.map(b=>b.name);}}});
-    return {size:bytes.byteLength,mesh,skinned,bones,names,meta:parse.scene.userData.arenamonRig?.autoWeights};
+    let meta=null;parse.scene.traverse(o=>{meta ||= o.userData.arenamonRig?.autoWeights||null;});
+    return {size:bytes.byteLength,mesh,skinned,bones,names,meta};
   });
   assert.ok(result.size>1000);assert.equal(result.skinned,1);assert.equal(result.bones,20);
   assert.ok(result.names.includes('LeftClavicle'));assert.equal(result.meta.method,'segment-proximity');
