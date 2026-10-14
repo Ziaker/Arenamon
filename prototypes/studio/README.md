@@ -1,4 +1,4 @@
-# Arenamon Animation Studio (v7 · Fase 1 + reformulação da interface)
+# Arenamon Animation Studio (v7 · Fase 1 + interface + Rigging experimental)
 
 Editor de animações esqueléticas no navegador, construído sobre o Studio v6. Gere com `npm run build` e abra
 `dist/arenamon-animation-studio.html` por duplo clique: o HTML contém Three.js, FBXLoader, GLTFLoader e
@@ -20,11 +20,15 @@ Não havia fonte correspondente no repositório. A Fase 1 transformou esse HTML 
 ## Interface
 
 - **Barra superior:** modelo carregado, animação selecionada, estado de salvamento, desfazer/refazer, **Salvar** e **Exportar**.
-- **Barra de ferramentas (esquerda):** Projeto, Aparência, Cenário, Câmera, Movimento, Inspeção e Exportar abrem uma ferramenta por vez no painel lateral. Clicar no ícone ativo, ou em ⟨, recolhe o painel. O painel pode ser redimensionado pela divisória (arraste ou setas do teclado).
+- **Barra de ferramentas (esquerda):** Projeto, **Rigging**, Aparência, Cenário, Câmera, Movimento, Inspeção e Exportar abrem uma ferramenta por vez no painel lateral. Clicar no ícone ativo, ou em ⟨, recolhe o painel. O painel pode ser redimensionado pela divisória (arraste ou setas do teclado).
 - **Animações / Editar:** mostram ou ocultam a biblioteca (direita) e a timeline (embaixo).
 - O botão **Foco** (menu “Mais” do visualizador) recolhe as duas laterais.
 - No tablet (≤ 1100 px), os painéis aparecem sobrepostos ao visualizador, um de cada vez. No celular (≤ 700 px), a barra de ferramentas fica embaixo e os painéis abrem como folhas.
 - Cada controle da v6 foi movido, com o mesmo id e handler, para uma única ferramenta. O antigo painel “Seu projeto”, a gaveta “Ajustes” e o diálogo de exportação deixaram de existir como superfícies separadas. Os atalhos do visualizador (câmera, grid, visão do jogo) continuam sincronizados com as abas Câmera e Cenário.
+
+## Rigging — preparação antes da animação
+
+A aba **Rigging** tem dois fluxos: editar/validar os ossos de um personagem já rigado, ou criar **20 pontos ósseos guiados** para uma malha sem rig e gerar pesos iniciais por proximidade aos segmentos. Inclui simetria Left/Right, edição no visualizador por marcadores, coordenadas locais/mundo, comprimento entre bones, vértices influenciados, diagnóstico de pesos e exportação/importação JSON. A geometria é realmente convertida em `SkinnedMesh`, e o GLB pode ser reimportado. O cálculo automático **não garante anatomia ou pesos profissionais**; pintura manual de pesos e templates não humanoides são objetivos futuros. Veja [RIGGING_FASE1.md](RIGGING_FASE1.md).
 
 ## Salvar, sair e recuperar
 
@@ -36,7 +40,7 @@ Não havia fonte correspondente no repositório. A Fase 1 transformou esse HTML 
 
 ## Uso rápido
 
-1. Em **Projeto**, importe o personagem e as animações. Nomes genéricos (`mixamo.com`, `Take 001`) passam a usar o nome do arquivo.
+1. Em **Projeto**, importe o personagem. Se ele não tem esqueleto, use **Rigging** para criar um rig inicial e vincular a malha; se já é rigado, ajuste as posições e verifique o skin. Depois anexe as animações. Nomes genéricos (`mixamo.com`, `Take 001`) passam a usar o nome do arquivo.
 2. Escolha a animação na barra da timeline. Arraste na régua para navegar. Use ←/→ para avançar quadro a quadro.
 3. Em **✂ Recortar**, arraste na faixa *Trecho* ou use I/O. Depois clique em **Criar clipe com o trecho**.
 4. Use **Salvar** para guardar o projeto e **Exportar › GLB final** para levar ao jogo.
@@ -58,7 +62,7 @@ Atalhos: Ctrl+S salva · Espaço reproduz · ←/→ quadro · Home/End · I/O m
 - Ao entrar na biblioteca, cada clipe tem uma cópia da fonte guardada em memória (`store.source`).
 - As edições nunca alteram arrays de tracks. Cada operação gera tracks novos e o histórico guarda referências aos estados antes/depois.
 - Versões derivadas são clipes novos, com `derivedFrom`, adicionados ao fim da lista. Clipes importados não podem ser excluídos.
-- O esqueleto, o skinning e a hierarquia nunca são editados. A exportação continua a clonar o modelo e restaurar a pose de repouso.
+- As operações de **edição de clipes** não alteram o esqueleto, skinning ou hierarquia. A nova aba **Rigging** é uma ferramenta separada: ela pode editar a pose de repouso ou criar um skin inicial, com confirmação antes da conversão estrutural. Consulte [RIGGING_FASE1.md](RIGGING_FASE1.md). A exportação continua a clonar o modelo e restaurar a pose de repouso atualizada.
 
 ## Dados exportados
 
