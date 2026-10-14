@@ -95,7 +95,7 @@ Não importamos arbitrariamente novos esqueletos por JSON em malhas já vinculad
 - `node prototypes/studio/test/rigging.browser.mjs` — interface, edições, metadados durante Undo/Redo, operações estruturais, GLB roundtrip, telemetria, rigs existentes e layout responsivo.
 - `node prototypes/studio/test/ops.test.mjs` e `node prototypes/studio/verify.mjs` — regressões pré-existentes, mantidas.
 - `npm run build` gera `prototypes/studio/dist/arenamon-animation-studio.html` único e offline.
-- `npm run verify` reproduz localmente o mesmo comando obrigatório do workflow `.github/workflows/arenamon-studio-rigging.yml`. O CI publica o HTML e os relatórios de `prototypes/studio/validation/` como artefato por 14 dias, inclusive em falhas.
+- `npm run verify` executa a verificação integral do repositório. `npm run verify:studio-rigging` reproduz exatamente o workflow `.github/workflows/arenamon-studio-rigging.yml`, incluindo typecheck, build e todas as regressões do Studio. O CI publica o HTML e os relatórios de `prototypes/studio/validation/` como artefato por 14 dias, inclusive em falhas.
 
 Os modelos proprietários devem ficar no disco local do usuário. Não commitar arquivos Pokémon, FBX ou GLB privados.
 
