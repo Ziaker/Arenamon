@@ -124,3 +124,6 @@ body.st7 .organizer{container-type:inline-size}
 @container (max-width:420px){.v6-board{grid-template-columns:minmax(0,1fr)!important;overflow:visible!important}}
 .st-panel-body input[type=color]{width:52px!important;height:34px;padding:2px;flex:none}
 body.st7 .stage-welcome .orbit-art{display:none}
+
+/* Modo leve sem GPU (gl-quality.js): o desfoque de fundo sobre o canvas animado é caro demais em software. */
+html.gl-lite *,html.gl-lite *::before,html.gl-lite *::after{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}

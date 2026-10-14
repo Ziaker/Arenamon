@@ -62,7 +62,7 @@ try {
 
   // ---------- Layout: ferramentas, painéis e redimensionamento ----------
   const width = sel => page.evaluate(s => document.querySelector(s).getBoundingClientRect().width, sel);
-  const canvasMatches = () => page.evaluate(() => {const v = document.getElementById('view'), c = v.querySelector('canvas');return Math.abs(c.getBoundingClientRect().width - v.clientWidth) < 2 && Math.abs(c.width / devicePixelRatio - v.clientWidth) < 2;});
+  const canvasMatches = () => page.evaluate(() => {const v = document.getElementById('view'), c = v.querySelector('canvas');return Math.abs(c.getBoundingClientRect().width - v.clientWidth) < 2 && Math.abs(c.width / window.__importer.renderer.getPixelRatio() - v.clientWidth) < 2;});
   const SECTIONS = {project: '#model-drop', appearance: '#color', scene: '#lab-grid', camera: '#lab-camera', motion: '#lab-root-mode', inspect: '#v4-skeleton', export: '#export'};
   const modelId = await page.evaluate(() => window.__importer.model.uuid);
   for (const [panel, control] of Object.entries(SECTIONS)) {
