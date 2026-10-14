@@ -11,14 +11,14 @@ npm ci
 npm run verify
 ```
 
-Depois do build, abra `prototypes/index.html` para ver o catálogo ou abra diretamente `prototypes/placeholders/dist/criaturas-laboratorio.html`. Os HTMLs gerados funcionam offline, via duplo clique, sem servidor local.
+Depois do build, abra `prototypes/game/dist/arenamon-jogavel.html` para jogar, ou `prototypes/index.html` para ver o catálogo. Os HTMLs gerados funcionam offline, via duplo clique, sem servidor local. As regras, controles, arquitetura, testes e parâmetros provisórios do jogo estão em [prototypes/game/README.md](prototypes/game/README.md).
 
 ## Protótipos disponíveis
 
 | Versão | Laboratório | Situação |
 | --- | --- | --- |
-| 1.0.0 | Animação e movimentos de três monstros placeholder | Disponível e testado offline |
-| — | Combate | Aguardando protótipo aprovado para distribuição |
+| 1.0.0 | Visualizador anterior de dois blocos | Preservado e testado offline |
+| Protótipo 1 | Combate jogável com blocos, IA e fluxo de partida | Avaliação local; parâmetros provisórios identificados |
 | — | Arena | Aguardando protótipo aprovado para distribuição |
 
 O índice não aponta para modelos ou recursos extraídos de jogos. GitHub Pages não deve ser ativado até que a conta confirme suporte adequado ao repositório privado e que todo o conteúdo publicado tenha licença verificada.
@@ -55,7 +55,7 @@ npm test
 npm run verify
 ```
 
-O teste confirma os três modelos procedurais, estados de animação e movimento, regras físicas demonstrativas, controles de câmera, layout móvel e ausência de requisições externas.
+Os testes confirmam o visualizador anterior e o novo combate: movimento, física, esquiva, defesa, tackle, stamina, IA, fluxo de partida e controles no navegador. A suíte verifica `file://` com rede desabilitada, ausência de requisições externas e erros de console. A fonte modular do jogo fica em `prototypes/game/src/`; artefatos gerados e capturas não são versionados.
 
 ## Versão e sincronização
 

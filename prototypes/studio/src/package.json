@@ -1,0 +1,5 @@
+{
+  "private": true,
+  "type": "module",
+  "description": "Fontes ES modules do Animation Studio (permite testes unitários em Node)."
+}

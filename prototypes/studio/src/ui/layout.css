@@ -1,0 +1,126 @@
+/* Arenamon Studio v7 — layout por ferramentas. Sobrepõe a grade da v6 em todas as larguras. */
+:root{--st-rail:74px;--st-left:320px;--st-grip:6px}
+body.st7 .studio{height:100dvh!important;min-height:0!important;overflow:hidden!important;display:flex!important;flex-direction:column!important}
+body.st7 .topbar{height:56px!important;min-height:56px!important;padding:0 14px!important;gap:12px!important;flex:none}
+body.st7 .topbar .brand small{display:none}
+body.st7 .topbar .brand strong{font-size:15px}
+body.st7 .topbar .brand-logo{width:34px;height:34px}
+body.st7 .header-actions{display:flex;align-items:center;gap:8px;margin-left:auto;flex:none}
+body.st7 .header-actions>*{flex:none}
+body.st7 .header-help{min-height:34px}
+/* Informações permanentes: modelo, animação e estado de salvamento. */
+.st-topinfo{display:flex;align-items:center;gap:8px;min-width:0;flex:1 1 auto;overflow:hidden}
+.st-topinfo .project-badge{min-width:0;flex:0 1 auto}
+.st-topinfo .pill{max-width:min(24vw,280px)!important;padding:6px 11px!important;font-size:12px!important}
+.st-clip-chip{min-width:0;max-width:min(22vw,260px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px;color:#ffe2b4;background:#2a2417;border:1px solid #ffd18c33;border-radius:999px;padding:6px 11px}
+.st-save{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;font-size:12px;color:var(--muted);padding:6px 10px;border-radius:999px;border:1px solid #ffffff14;background:#101a2a}
+.st-save i{width:8px;height:8px;border-radius:50%;background:#6c7d92;flex:none}
+.st-save[data-state=dirty]{color:#ffd18c;border-color:#ffd18c40}.st-save[data-state=dirty] i{background:#ffb35c;box-shadow:0 0 10px #ffb35c}
+.st-save[data-state=saving] i{background:#54d9ee;animation:st-pulse .8s infinite alternate}
+.st-save[data-state=saved]{color:#bff36a}.st-save[data-state=saved] i{background:#bff36a}
+.st-save[data-state=downloaded]{color:#cfe8a6}.st-save[data-state=downloaded] i{background:#9ccf5a}
+.st-save[data-state=error]{color:#ff9aa2;border-color:#ff6b7a55}.st-save[data-state=error] i{background:#ff5f6d}
+@keyframes st-pulse{to{opacity:.3}}
+.st-top-actions{display:flex;gap:8px;align-items:center}
+.st-top-save{min-height:34px;padding:6px 14px}
+body.st7 .header-export{min-height:36px}
+/* Grade principal: barra · painel · divisória · visualizador · divisória · biblioteca. */
+body.st7 .workspace{display:grid!important;flex:1 1 auto!important;min-height:0!important;height:auto!important;gap:0!important;
+ grid-template-columns:var(--st-rail) var(--st-left) var(--st-grip) minmax(0,1fr) 8px var(--v6-organizer,520px)!important;grid-template-rows:minmax(0,1fr)!important}
+body.st7.st-left-closed .workspace{grid-template-columns:var(--st-rail) 0 0 minmax(0,1fr) 8px var(--v6-organizer,520px)!important}
+body.st7.st-right-closed .workspace{grid-template-columns:var(--st-rail) var(--st-left) var(--st-grip) minmax(0,1fr) 0 0!important}
+body.st7.st-left-closed.st-right-closed .workspace{grid-template-columns:var(--st-rail) 0 0 minmax(0,1fr) 0 0!important}
+body.st7 .st-rail{grid-column:1;grid-row:1}
+body.st7 .st-panel{grid-column:2;grid-row:1}
+body.st7 .st-grip{grid-column:3;grid-row:1}
+body.st7 .stage{grid-column:4!important;grid-row:1!important;height:auto!important;min-height:0!important;max-height:none!important;order:0!important}
+body.st7 .v6-resize{grid-column:5!important;grid-row:1!important;display:block!important}
+body.st7 .organizer{grid-column:6!important;grid-row:1!important;height:auto!important;min-height:0!important;max-height:none!important;overflow:auto!important;min-width:0!important;display:block!important}
+body.st7.st-left-closed .st-panel,body.st7.st-left-closed .st-grip{display:none}
+body.st7.st-right-closed .organizer,body.st7.st-right-closed .v6-resize{display:none!important}
+body.st7 aside.rail[hidden],body.st7 [hidden]{display:none!important}
+body.st-resizing{cursor:col-resize;user-select:none}
+/* Barra de ferramentas. */
+.st-rail{display:flex;flex-direction:column;justify-content:space-between;gap:10px;padding:8px 6px;background:#0b1321;border-right:1px solid var(--edge);overflow:auto;scrollbar-width:none}
+.st-rail-group{display:flex;flex-direction:column;gap:4px}
+.st-rail-areas{border-top:1px solid #ffffff12;padding-top:8px}
+.st-rail button{display:flex;flex-direction:column;align-items:center;gap:2px;width:100%;padding:7px 2px;border:1px solid transparent;border-radius:10px;background:transparent;color:#9fb3cc;font-size:10px;font-weight:650;line-height:1.1}
+.st-rail button i{font-style:normal;font-size:17px;line-height:1.1}
+.st-rail button:hover{background:#16243a;color:#e4efff}
+.st-rail button.active{background:#173447;border-color:#54d9ee66;color:#e9fdff;box-shadow:inset 3px 0 var(--cyan)}
+/* Painel da ferramenta ativa. */
+.st-panel{display:flex;flex-direction:column;min-width:0;min-height:0;background:#101929;border-right:1px solid var(--edge)}
+.st-panel-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 14px 10px;border-bottom:1px solid #ffffff10}
+.st-panel-head h2{font-size:16px}
+.st-icon-btn{min-width:32px;min-height:32px;border-radius:9px;border:1px solid #8fb2d838;background:#15233a;color:var(--text);font-size:15px}
+.st-icon-btn:hover{background:#21375a}
+.st-panel-body{flex:1;min-height:0;overflow:auto;padding:12px 14px 28px;scrollbar-width:thin;scrollbar-color:#3a506b transparent}
+.st-panel-body h3{margin:16px 0 8px;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:#a9c0da}
+.st-panel-body section>h3:first-child,.st-panel-body section>.st-slot:first-child>*:first-child{margin-top:0}
+.st-panel-body .panel,.st-panel-body .project-card{margin:0;padding:0;border:0;background:none;box-shadow:none}
+.st-panel-body .lab-field,.st-panel-body .lab-check,.st-panel-body .v4-check,.st-panel-body .toggle-row{margin:6px 0}
+.st-panel-body .lab-inline{display:grid;grid-template-columns:1fr 1fr;gap:8px}.st-panel-body .lab-inline.three{grid-template-columns:1fr 1fr 1fr}
+.st-panel-body .lab-btns{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.st-panel-body .btn,.st-panel-body button.btn{width:100%}
+.st-panel-body #export,.st-panel-body #export-json{margin-top:8px}
+.st-card{margin-top:16px;padding:12px;border:1px solid #ffffff14;border-radius:12px;background:#0d1626}
+.st-card h3{margin-top:0!important}
+.st-card dl{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;margin:0 0 10px;font-size:12px}
+.st-card dt{color:var(--muted)}.st-card dd{margin:0;overflow-wrap:anywhere}
+.st-hint{font-size:11.5px;color:var(--muted);line-height:1.5;margin:8px 0}
+.st-link{background:none;border:0;padding:0;color:var(--cyan);text-decoration:underline;cursor:pointer;font:inherit}
+.st-wide{width:100%}
+.st-more{margin:8px 0;border:1px solid #ffffff12;border-radius:10px;padding:0 10px}
+.st-more summary{cursor:pointer;padding:9px 0;font-size:12px;color:#b9cde4}
+.st-more[open]{padding-bottom:8px}
+.st-row{display:flex;gap:8px}.st-row>*{flex:1}
+.st-recovery{padding:12px;border:1px solid #ffb35c66;border-radius:12px;background:#2a2213;margin-bottom:14px}
+.st-recovery p{font-size:12px;margin:6px 0 10px}
+.st-result{font-size:12px;margin-top:12px;color:#cfe0f5}.st-result[data-state=error]{color:#ff9aa2}.st-result[data-state=canceled]{color:var(--muted)}.st-result[data-state=ok]{color:#bff36a}
+.st-needs-model{margin:20px 0;color:var(--muted);font-size:13px}
+.st-grip{cursor:col-resize;background:transparent;position:relative}
+.st-grip::after{content:'';position:absolute;top:50%;left:1px;width:4px;height:44px;margin-top:-22px;border-radius:3px;background:#8fb2d840}
+.st-grip:hover::after,.st-grip:focus-visible::after{background:var(--cyan)}
+/* Biblioteca: o cabeçalho ganha o botão de recolher. */
+body.st7 .v6-organizer-header{display:flex;align-items:flex-start;gap:8px}
+body.st7 .v6-organizer-header .v6-header-title{flex:1;min-width:0}
+/* Diálogo de confirmação. */
+.st-modal{position:fixed;inset:0;z-index:100;display:grid;place-items:center;background:#030812b8;padding:16px}
+.st-modal-card{width:min(470px,100%);background:#121e31;border:1px solid #8fb2d84d;border-radius:16px;padding:22px;box-shadow:var(--shadow)}
+.st-modal-card h2{font-size:18px;margin-bottom:8px}
+.st-modal-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px;margin-top:18px}
+.st-modal-actions .btn{width:auto;min-height:38px;padding:8px 14px}
+.st-danger{background:#3a1820;border:1px solid #ff6b7a77;color:#ffd6da}
+.ed-dock.no-clip .ed-tools{display:none}
+/* Tablet: painéis sobrepostos ao visualizador (um de cada vez). */
+@media(max-width:1100px){
+ body.st7 .workspace,body.st7.st-left-closed .workspace,body.st7.st-right-closed .workspace,body.st7.st-left-closed.st-right-closed .workspace{grid-template-columns:var(--st-rail) minmax(0,1fr)!important;position:relative}
+ body.st7 .stage{grid-column:2!important}
+ body.st7 .st-grip,body.st7 .v6-resize{display:none!important}
+ body.st7 .st-panel{position:absolute;z-index:30;left:var(--st-rail);top:0;bottom:0;width:min(360px,calc(100vw - var(--st-rail) - 24px));box-shadow:16px 0 40px #0009}
+ body.st7 .organizer{position:absolute;z-index:30;right:0;top:0;bottom:0;width:min(460px,calc(100vw - var(--st-rail) - 24px))!important;box-shadow:-16px 0 40px #0009}
+ body.st7 .stage{z-index:auto!important}
+ /* Sem posição na grade: o bloco de contenção passa a ser a área de trabalho inteira. */
+ body.st7 .st-panel,body.st7 .organizer{grid-column:auto!important;grid-row:auto!important}
+ body.st7 .st-panel,body.st7 .organizer{z-index:60!important}
+ body.st7 .st-topinfo .project-badge{display:inline-flex!important}
+}
+/* Celular: barra de ferramentas embaixo, painéis em folha sobre o visualizador. */
+@media(max-width:700px){
+ :root{--st-rail:0px}
+ body.st7 .topbar{height:52px!important;min-height:52px!important;padding:0 10px!important}
+ body.st7 .topbar .brand strong,body.st7 .st-topinfo .project-badge,body.st7 .st-clip-chip,body.st7 .header-help,body.st7 .ed-history{display:none!important}
+ .st-save span{display:none}.st-save{padding:8px}
+ .st-top-save{padding:6px 10px}
+ body.st7 .workspace,body.st7.st-left-closed .workspace,body.st7.st-right-closed .workspace,body.st7.st-left-closed.st-right-closed .workspace{grid-template-columns:minmax(0,1fr)!important;grid-template-rows:minmax(0,1fr) auto!important}
+ body.st7 .stage{grid-column:1!important;grid-row:1!important}
+ body.st7 .st-rail{grid-column:1;grid-row:2;flex-direction:row;justify-content:flex-start;gap:4px;padding:4px 6px;border-right:0;border-top:1px solid var(--edge);overflow-x:auto}
+ .st-rail-group{flex-direction:row}.st-rail-areas{border-top:0;border-left:1px solid #ffffff12;padding:0 0 0 4px}
+ .st-rail button{width:62px;flex:none}
+ body.st7 .st-panel,body.st7 .organizer{left:0!important;right:0!important;width:auto!important;top:auto!important;bottom:58px!important;height:70%!important;border-radius:16px 16px 0 0;border:1px solid var(--edge)}
+}
+/* Biblioteca estreita: as colunas “Seus clipes” e “Destinos” ficam empilhadas. */
+body.st7 .organizer{container-type:inline-size}
+@container (max-width:420px){.v6-board{grid-template-columns:minmax(0,1fr)!important;overflow:visible!important}}
+.st-panel-body input[type=color]{width:52px!important;height:34px;padding:2px;flex:none}
+body.st7 .stage-welcome .orbit-art{display:none}
