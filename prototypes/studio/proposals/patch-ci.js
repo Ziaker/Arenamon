@@ -15,10 +15,7 @@ try {
       '--use-angle=swiftshader',
       '--disable-gpu-sandbox',
       '--no-sandbox',
-      '--disable-gpu-vsync',
-      '--run-all-compositor-stages-before-draw',
-      '--disable-background-timer-throttling',
-      '--disable-renderer-backgrounding'
+      '--disable-dev-shm-usage'
     ];
     const args = Array.isArray(opts.args) ? [...opts.args, ...extraArgs] : extraArgs;
     const browser = await _origLaunch({ ...opts, args });
@@ -31,7 +28,7 @@ try {
         const _origScreenshot = page.screenshot.bind(page);
         page.screenshot = async function(sOpts = {}) {
           try {
-            return await _origScreenshot({ animations: 'disabled', timeout: 10000, ...sOpts });
+            return await _origScreenshot({ animations: 'disabled', timeout: 5000, ...sOpts });
           } catch (err) {
             console.warn('page.screenshot fallback aplicado no CI:', err.message);
             if (sOpts && sOpts.path) {
