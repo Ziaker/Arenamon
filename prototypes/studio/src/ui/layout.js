@@ -7,8 +7,8 @@ const $ = id => document.getElementById(id);
 const q = (sel, root = document) => root.querySelector(sel);
 const field = id => $(id)?.closest('label') || $(id);
 const box = id => $(id)?.closest('.lab-inline') || field(id);
-const TITLES = {project: 'Projeto', appearance: 'Aparência', scene: 'Cenário', camera: 'Câmera', motion: 'Movimento', inspect: 'Inspeção', export: 'Exportar'};
-const NEEDS_MODEL = new Set(['scene', 'camera', 'motion', 'inspect', 'export']);
+const TITLES = {project: 'Projeto', rigging: 'Rigging', appearance: 'Aparência', scene: 'Cenário', camera: 'Câmera', motion: 'Movimento', inspect: 'Inspeção', export: 'Exportar'};
+const NEEDS_MODEL = new Set(['rigging', 'scene', 'camera', 'motion', 'inspect', 'export']);
 const store = {
   get: (k, d) => {try {return sessionStorage.getItem(k) ?? d;} catch {return d;}},
   set: (k, v) => {try {sessionStorage.setItem(k, v);} catch {}},
@@ -68,7 +68,7 @@ libClose.title = 'Recolher a biblioteca de animações';libClose.setAttribute('a
 q('.v6-organizer-header').append(libClose);
 // Ajuda atualizada para o novo layout.
 const help = q('#help-modal .modal-card p span');
-if (help) help.innerHTML = '<b>1.</b> Em <b>Projeto</b>, importe o personagem e as animações.<br><b>2.</b> Escolha a animação na barra da timeline e use ▶.<br><b>3.</b> Arraste clipes da biblioteca (direita) para as ações.<br><b>4.</b> Em <b>Editar</b> (timeline), recorte, ajuste o tempo e marque eventos.<br><b>5.</b> <b>Salvar</b> guarda o projeto; <b>Exportar</b> gera o GLB final.<br><br>Os ícones à esquerda abrem uma ferramenta por vez. Clique de novo no ícone ativo (ou em ⟨) para recolher o painel.';
+if (help) help.innerHTML = '<b>1.</b> Em <b>Projeto</b>, importe o personagem. <b>Rigging</b> cria/edita ossos e verifica pesos. Depois importe as animações em Projeto.<br><b>2.</b> Escolha a animação na barra da timeline e use ▶.<br><b>3.</b> Arraste clipes da biblioteca (direita) para as ações.<br><b>4.</b> Em <b>Editar</b> (timeline), recorte, ajuste o tempo e marque eventos.<br><b>5.</b> <b>Salvar</b> guarda o projeto; <b>Exportar</b> gera o GLB final.<br><br>Os ícones à esquerda abrem uma ferramenta por vez. Clique de novo no ícone ativo (ou em ⟨) para recolher o painel.';
 
 // ---------- Estado dos painéis ----------
 const ui = {
@@ -120,7 +120,7 @@ queueMicrotask(() => $('v4-focus').onclick = () => {
 });
 // Fechar sobreposições com Esc (tablet/celular) ou clicando no visualizador.
 window.addEventListener('keydown', e => {if (e.key === 'Escape' && mode() !== 'desktop' && $('st-confirm').hidden) {if (ui.left === '1') close();else if (ui.right === '1') setLibrary(false);}});
-q('#view').addEventListener('pointerdown', () => {if (mode() !== 'desktop' && (ui.left === '1' || ui.right === '1')) {ui.left = '0';ui.right = '0';render();}});
+q('#view').addEventListener('pointerdown', () => {if (window.__studioRig?.active) return;if (mode() !== 'desktop' && (ui.left === '1' || ui.right === '1')) {ui.left = '0';ui.right = '0';render();}});
 
 // ---------- Redimensionar o painel esquerdo ----------
 {
