@@ -6,6 +6,15 @@ Aba **Telemetria** do Animation Studio. É uma bancada para inspecionar um rig, 
 - **Branch:** `feat/studio-rig-workbench`.
 - **Propostas A, B e C:** continuam intocadas em `feat/studio-rigging-ui-proposals`, aguardando a sua avaliação.
 
+## Demonstração
+
+Sem modelo carregado, a aba mostra **Carregar demonstração**. O botão monta um personagem sintético complexo, sem recursos proprietários, pelo fluxo real do Codex:
+- 6 malhas independentes;
+- template humanoide de 20 ossos;
+- cotovelo direito 0,134 fora do espelho;
+- skin;
+- um clipe com uma trilha órfã.
+
 ## Fluxo
 
 **Inspecionar → Diagnosticar → Corrigir → Comparar → Aplicar → Validar**
@@ -157,9 +166,10 @@ Isto completa a bancada sem contornos.
 | Comando | O que cobre |
 |---|---|
 | `node prototypes/studio/test/workbench.test.mjs` | 10 testes com o motor real do Codex: telemetria, pesos, simetria, trilhas órfãs, seleção, validação estrutural, simulação e rejeições do Codex, prévia de bind e conversão de coordenadas |
-| `node prototypes/studio/test/workbench.browser.mjs` | 16 verificações no Edge, offline, com interação real (cliques, teclado, clique no 3D, área de transferência, download) |
+| `node prototypes/studio/test/workbench.browser.mjs` | 17 verificações no Edge, offline, com interação real (cliques, teclado, clique no 3D, área de transferência, download) |
 
-Os 16 cenários de navegador:
+Os 17 cenários de navegador:
+0. estado vazio e demonstração;
 1. personagem com 6 malhas, com rig e skin feitos pelos botões do Codex;
 2. visão geral, com animação pausada;
 3. clique na árvore mostra os dados completos do osso;
@@ -178,3 +188,20 @@ Os 16 cenários de navegador:
 16. celular (390 px).
 
 As capturas ficam em `validation/workbench-*.png`.
+
+## CI (estado verificado em 14/10/2026)
+
+- **Esta branch (`Arenamon Studio Rig Workbench`):** todas as suítes do Studio passam no executor `windows-latest` sem GPU, pelo `npm run verify:studio-workbench`:
+
+  | Suíte | Resultado |
+  |---|---|
+  | Editor (unitários) | 18 |
+  | Rigging do Codex (unitários) | 12 |
+  | Workbench (unitários) | 10 |
+  | Rigging do Codex (navegador) | 17 |
+  | Workbench (navegador) | 17 |
+  | `verify` do Studio | 20 |
+
+  A etapa de layout do `verify` do Studio estourava 30 s. A causa é a composição do canvas WebGL em software, medida em `fix/studio-diagnostic-ci`; a correção (modo leve só sem GPU) foi portada em commit próprio.
+- **`npm run verify` completo:** falha no executor sem GPU **fora do Studio**, já na primeira suíte (`prototypes/placeholders/verify.mjs`, timeout do Playwright). Não foi alterado: fora do escopo desta entrega.
+- **`feat/studio-rigging-ui-proposals` (`ae39c73`, última execução):** todas as etapas do Studio passam (build, validação cruzada com o Codex e testes das propostas). A falha está no passo "Verify repository status", em `prototypes/game/verify.mjs:35` (direção das setas da câmera do jogo), fora do Studio. Não alterei essa branch nem esses testes.

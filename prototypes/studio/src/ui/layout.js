@@ -8,7 +8,8 @@ const q = (sel, root = document) => root.querySelector(sel);
 const field = id => $(id)?.closest('label') || $(id);
 const box = id => $(id)?.closest('.lab-inline') || field(id);
 const TITLES = {project: 'Projeto', rigging: 'Rigging', workbench: 'Telemetria do rig', appearance: 'Aparência', scene: 'Cenário', camera: 'Câmera', motion: 'Movimento', inspect: 'Inspeção', export: 'Exportar'};
-const NEEDS_MODEL = new Set(['rigging', 'workbench', 'scene', 'camera', 'motion', 'inspect', 'export']);
+// A Telemetria mostra o próprio estado vazio (com a demonstração), então não entra aqui.
+const NEEDS_MODEL = new Set(['rigging', 'scene', 'camera', 'motion', 'inspect', 'export']);
 const store = {
   get: (k, d) => {try {return sessionStorage.getItem(k) ?? d;} catch {return d;}},
   set: (k, v) => {try {sessionStorage.setItem(k, v);} catch {}},

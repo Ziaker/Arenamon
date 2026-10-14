@@ -28,7 +28,7 @@ Cada operação pode ter um campo "note" explicando o motivo. Não invente ossos
 export const EXAMPLE_PATCH = {schema: 'arenamon-rig-patch', version: 1, space: 'model-root', description: 'Exemplo: espelhar o cotovelo esquerdo no direito',
   ops: [{op: 'mirror', joint: 'LeftElbow', note: 'Corrige a assimetria do cotovelo direito'}]};
 
-export function mountWorkbench(container, {engine, viewer, layout = null}) {
+export function mountWorkbench(container, {engine, viewer, layout = null, loadDemo = null}) {
   const S = {step: 'inspect', telemetry: null, selected: null, mesh: null, filter: '', advanced: false, collapsed: new Set(), patchText: '', validation: null, dry: null, applied: null, baseline: null, checked: new Set()};
   container.innerHTML = `<div class="wb" id="wb-root">
     <header class="wb-head">
@@ -134,7 +134,12 @@ export function mountWorkbench(container, {engine, viewer, layout = null}) {
 
   // 1. Inspecionar: visão geral, articulação selecionada, malhas e camadas visuais.
   function inspect() {
-    const t = S.telemetry, p = panel('inspect');if (!t) {p.innerHTML = '<p class="wb-hint">Carregue um modelo em Projeto para gerar a telemetria.</p>';return;}
+    const t = S.telemetry, p = panel('inspect');
+    if (!t) {
+      p.innerHTML = card('Nenhum modelo', `<p>Importe um personagem em <b>Projeto</b> para gerar a telemetria.</p>${loadDemo ? '<p>Ou carregue a demonstração: personagem sintético com 6 malhas independentes, rig humanoide e skin criados pelo motor do Codex, com um cotovelo assimétrico e uma trilha de animação órfã.</p><button type="button" class="btn btn-primary" id="wb-demo">Carregar demonstração</button>' : ''}`);
+      if (loadDemo) $('wb-demo').onclick = async () => {$('wb-demo').disabled = true;try {await loadDemo();} catch (e) {toast('Demonstração falhou: ' + e.message, 'warn');}};
+      return;
+    }
     const s = t.summary, j = joint(S.selected);
     const overview = `<div class="wb-metrics">${[['Ossos', s.bones], ['Malhas', `${s.skinnedMeshes}/${s.meshes} com skin`], ['Vértices', s.vertices], ['Articulações com aviso', s.jointsWithWarnings, s.jointsWithWarnings ? 'warn' : ''],
       ['Pesos inválidos', s.invalidWeights, s.invalidWeights ? 'warn' : ''], ['Vértices sem influência', s.verticesWithoutInfluence, s.verticesWithoutInfluence ? 'warn' : ''], ['Trilhas órfãs', s.orphanTracks, s.orphanTracks ? 'warn' : ''], ['Skinning', STATE_LABEL[t.model.state]]]

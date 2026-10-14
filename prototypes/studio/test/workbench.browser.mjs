@@ -23,6 +23,12 @@ try {
   const W = (fn, arg) => page.evaluate(fn, arg), state = () => W(() => {const s = window.__studioWorkbench.panel.state;return {step: s.step, selected: s.selected, checked: s.checked, applied: s.applied, ok: s.validation?.ok, t: s.telemetry && {summary: s.telemetry.summary, state: s.telemetry.model.state, joints: s.telemetry.joints.map(j => ({id: j.id, name: j.name, p: j.p, parent: j.parent, sym: j.symmetry?.mirrorDistance ?? null}))}};});
   const jointBy = (s, name) => s.t.joints.find(j => j.name === name);
 
+  // ---------- Estado vazio e demonstração (fluxo real do Codex) ----------
+  await page.click('[data-panel="workbench"]');assert.match(await page.textContent('[data-panel-step="inspect"]'), /Nenhum modelo/);
+  await page.click('#wb-demo');await page.waitForFunction(() => window.__studioWorkbench.panel.state.telemetry?.model.state === 'vinculado', null, {timeout: 30000});
+  const demo = await W(() => window.__studioWorkbench.panel.state.telemetry.summary);assert.equal(demo.bones, 20);assert.equal(demo.meshes, 6);assert.equal(demo.orphanTracks, 1);
+  mark('Estado vazio com “Carregar demonstração”: personagem complexo montado pelo fluxo real do Codex');
+
   // ---------- Personagem: 6 malhas independentes, rig e skin criados pelo motor do Codex ----------
   await W(async () => {
     const E = window.__importer, T = E.T, root = new T.Group();root.name = 'WorkbenchCharacter';
@@ -40,7 +46,7 @@ try {
   mark('Personagem com 6 malhas independentes: template, assimetria e skin feitos pelo Rigging do Codex');
 
   // ---------- Inspecionar ----------
-  await page.click('[data-panel="workbench"]');await page.waitForFunction(() => window.__studioWorkbench.active && window.__studioWorkbench.panel.state.telemetry);
+  await page.click('[data-panel="workbench"]');await page.waitForFunction(() => window.__studioWorkbench.active && window.__studioWorkbench.panel.state.telemetry?.model.state === 'vinculado' && window.__studioWorkbench.panel.state.telemetry.summary.orphanTracks === 1);
   let s = await state();
   assert.equal(s.t.state, 'vinculado');assert.equal(s.t.summary.bones, 20);assert.equal(s.t.summary.meshes, 6);assert.equal(s.t.summary.orphanTracks, 1);
   assert.match(await page.textContent('[data-metric="Trilhas órfãs"]'), /1/);assert.match(await page.textContent('#wb-state'), /Rig vinculado/);
