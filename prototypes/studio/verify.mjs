@@ -9,12 +9,28 @@ import assert from 'node:assert/strict';
 const root = fileURLToPath(new URL('.', import.meta.url)), out = root + 'validation/';
 const fixture = await readFile(new URL('test/fixture.js', import.meta.url), 'utf8');
 const glbJson = bytes => JSON.parse(bytes.subarray(20, 20 + bytes.readUInt32LE(12)).toString());
-const report = {steps: [], errors: [], network: []};
-const step = (name, data = true) => {report.steps.push({name, result: data});console.log('✓', name);};
+const report = {steps: [], errors: [], network: [], perf: {renderer: null, steps: [], longTasks: []}};
+// Desempenho: tempo de cada etapa e tarefas longas da página (> 50 ms). Em executores sem GPU (CI), o WebGL roda em
+// software e a página pode bloquear a thread principal; isso aparece aqui em vez de virar um timeout sem explicação.
+let stepStart = Date.now(), onStep = null;
+const step = (name, data = true) => {const ms = Date.now() - stepStart;stepStart = Date.now();report.steps.push({name, result: data});report.perf.steps.push({name, ms, end: stepStart});console.log('✓', name, `(${(ms / 1000).toFixed(1)} s)`);onStep?.();};
+const withTimeout = (promise, ms) => Promise.race([promise, new Promise(resolve => setTimeout(() => resolve(null), ms))]);
 await mkdir(out, {recursive: true});
 const browser = await chromium.launch({channel: 'msedge', headless: true});
 try {
   const page = await browser.newPage({viewport: {width: 1500, height: 960}, acceptDownloads: true});
+  await page.addInitScript(() => {
+    window.__perfLongTasks = [];
+    try {new PerformanceObserver(list => {for (const e of list.getEntries()) window.__perfLongTasks.push([Math.round(performance.timeOrigin + e.startTime), Math.round(e.duration)]);}).observe({type: 'longtask', buffered: true});} catch {/* sem suporte */}
+  });
+  // Coleta as tarefas longas (com limite de tempo: se a página estiver bloqueada, a coleta não pode travar o teste).
+  const collectPerf = async () => {const lt = await withTimeout(page.evaluate(() => window.__perfLongTasks.splice(0)).catch(() => null), 5000);if (lt) report.perf.longTasks.push(...lt);};
+  onStep = () => {collectPerf();}; // coleta a cada etapa (recarregar a página zera o registro dela)
+  const perfSummary = () => {
+    const tasks = report.perf.longTasks, top = [...tasks].sort((a, b) => b[1] - a[1]).slice(0, 8);
+    const where = t => report.perf.steps.find(st => st.end >= t)?.name ?? '(etapa em andamento)';
+    return {renderer: report.perf.renderer, longTasks: tasks.length, totalMs: tasks.reduce((a, t) => a + t[1], 0), top: top.map(([t, d]) => `${d} ms em “${where(t)}”`)};
+  };
   await page.addInitScript(() => {
     window.__picker = {mode: 'ok', files: []};
     window.showSaveFilePicker = async opts => {
@@ -34,6 +50,8 @@ try {
   page.on('request', r => {if (/^https?:/.test(r.url())) report.network.push(r.url());});
   await page.context().setOffline(true);
   await page.goto(pathToFileURL(root + 'dist/arenamon-animation-studio.html').href);await page.waitForFunction(() => window.__studioEditor && window.__importer);
+  report.perf.renderer = await page.evaluate(() => {const gl = window.__importer.renderer.getContext(), ext = gl.getExtension('WEBGL_debug_renderer_info');return ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER);});
+  console.log('WebGL:', report.perf.renderer);stepStart = Date.now();
 
   // ---------- Projeto novo: sem alterações, sem aviso ao sair ----------
   assert.equal(await saveState(), 'clean');assert.equal(await page.textContent('#st-save-text'), 'Nenhum projeto');
@@ -359,6 +377,17 @@ try {
     step('modelo local: recorte, root motion, exportação e reimportação', local);}
   }
   assert.deepEqual(report.errors, []);assert.deepEqual(report.network, []);
+  await collectPerf();report.perf.summary = perfSummary();
   await writeFile(out + 'report.json', JSON.stringify(report, null, 2));
+  console.log(`Tarefas longas: ${report.perf.summary.longTasks} (${(report.perf.summary.totalMs / 1000).toFixed(1)} s no total); maiores: ${report.perf.summary.top.slice(0, 3).join('; ') || 'nenhuma'}`);
   console.log(`\nAnimation Studio: ${report.steps.length} verificações de navegador aprovadas.`);
+} catch (e) {
+  // Falha: registra onde a página gastou tempo antes de encerrar (útil para timeouts no CI).
+  try {const pages = browser.contexts().flatMap(c => c.pages());if (pages[0]) {const lt = await withTimeout(pages[0].evaluate(() => window.__perfLongTasks.splice(0)).catch(() => null), 5000);if (lt) report.perf.longTasks.push(...lt);else report.perf.blocked = 'a página não respondeu em 5 s (thread principal bloqueada)';}} catch {/* página fechada */}
+  report.perf.steps.push({name: '(falhou aqui)', ms: Date.now() - stepStart, end: Date.now()});
+  const tasks = report.perf.longTasks, top = [...tasks].sort((a, b) => b[1] - a[1]).slice(0, 8);
+  report.perf.failure = {error: String(e.message || e).split('\n')[0], blocked: report.perf.blocked ?? null, longTasks: tasks.length, totalMs: tasks.reduce((a, t) => a + t[1], 0), top};
+  await writeFile(out + 'report.json', JSON.stringify(report, null, 2)).catch(() => {});
+  console.error('Desempenho na falha:', JSON.stringify({renderer: report.perf.renderer, ...report.perf.failure}));
+  throw e;
 } finally {await browser.close();}

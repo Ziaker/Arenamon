@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feat/studio-diagnostic-animations-gpt6
+      - fix/studio-diagnostic-ci
   workflow_dispatch:
 
 permissions:
