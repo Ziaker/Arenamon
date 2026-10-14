@@ -24,12 +24,31 @@ try{
  for(const id of ['textures','lighting']){await page.check('#'+id);await page.uncheck('#'+id);}
  await page.selectOption('#palette','global');await page.selectOption('#palette','palette');
  await mkdir(root+'validation',{recursive:true});
+ // Exercise renaming and exported action references through the actual UI.
+ await page.selectOption('#clip','1');await page.fill('#clip-name','idle');await page.click('#rename-clip');
+ assert.equal(await page.evaluate(()=>window.__importer.clips[1].name),'walk');
+ await page.fill('#clip-name','  ');await page.click('#rename-clip');assert.equal(await page.evaluate(()=>window.__importer.clips[1].name),'walk');
+ await page.fill('#clip-name','alt tackle');await page.click('#rename-clip');
+ await page.selectOption('#action-idle','0');await page.selectOption('#action-tackle','2');await page.selectOption('#action-extra_1','1');
+ assert.match(await page.locator('#action-progress').textContent(),/2\/23/);
+ await page.fill('#alt-chance','35');
+ async function downloadMap(name){const pending=page.waitForEvent('download');await page.click('#export-json');const path=root+'validation/'+name;await(await pending).saveAs(path);return JSON.parse(await readFile(path,'utf8'));}
+ let mapping=await downloadMap('actions.json');assert.equal(mapping.actions.idle.clipName,'idle');assert.equal(mapping.extras.extra_1.alternativeFor,'tackle');assert.equal(mapping.randomAlternatives.probability,.35);assert.equal(mapping.missingActions.length,21);assert.deepEqual(mapping.warnings,[]);
+ // Exact phrase matching must distinguish directions, block phases and ambiguous names.
+ for(const [name,target] of [['alt walk back','walk_back'],['alt dodge left','dodge_left'],['alt block end','block_end'],['alt blocked','blocked'],['alt move 4','move_4'],['alt tackle alt hit',null],['tackle alternative',null]]){
+ await page.fill('#clip-name',name);await page.click('#rename-clip');mapping=await downloadMap('variant.json');assert.equal(mapping.extras.extra_1.alternativeFor,target);
+ }
+ assert.ok(mapping.warnings.length);await page.fill('#clip-name','alt tackle');await page.click('#rename-clip');
+ await page.selectOption('#clip','2');await page.fill('#clip-name','Tackle principal');await page.click('#rename-clip');mapping=await downloadMap('actions.json');assert.equal(mapping.actions.tackle.clipName,'Tackle principal');
  async function download(name){const pending=page.waitForEvent('download');await page.click('#export');const d=await pending;const path=root+'validation/'+name;await d.saveAs(path);return {path,doc:json(await readFile(path))};}
  function check(doc,count){assert.equal(doc.animations.length,count);assert.ok(!doc.textures?.length);assert.ok(!doc.images?.length);assert.ok(doc.materials.every(m=>m.extensions?.KHR_materials_unlit));assert.ok(!doc.extensionsUsed?.includes('KHR_lights_punctual'));assert.ok(doc.skins.length);assert.ok(doc.meshes.some(m=>m.primitives.every(p=>p.attributes.JOINTS_0!==undefined&&p.attributes.WEIGHTS_0!==undefined)));}
  const fixture=await download('fixture.glb');check(fixture.doc,3);
+ assert.deepEqual(fixture.doc.animations.map(a=>a.name),['idle','alt tackle','Tackle principal']);
  await page.setInputFiles('#model',fixture.path);await page.waitForFunction(()=>window.__importer.clips.length===3&&window.__importer.model.getObjectByName('Body')?.material.isMeshBasicMaterial);
+ await page.waitForFunction(()=>document.getElementById('action-extra_1').value==='1');assert.deepEqual(await downloadMap('restored-actions.json'),mapping);
+ await page.screenshot({path:root+'validation/actions.png'});
  const deform=await page.evaluate(()=>{const {T,model,clips}=window.__importer,mesh=model.getObjectByName('Body'),mixer=new T.AnimationMixer(model);mixer.clipAction(clips[0]).play();mixer.setTime(0);model.updateMatrixWorld(true);mesh.skeleton.update();const a=mesh.getVertexPosition(0,new T.Vector3()).toArray();mixer.setTime(.5);model.updateMatrixWorld(true);mesh.skeleton.update();const b=mesh.getVertexPosition(0,new T.Vector3()).toArray();return {a,b};});assert.notDeepEqual(deform.a,deform.b);
- const report={synthetic:{animations:3,noTextures:true,unlit:true,skinningDeforms:true},errors,network};
+ const report={synthetic:{animations:3,noTextures:true,unlit:true,skinningDeforms:true},actionEditor:{rename:true,duplicateAndEmptyRejected:true,actions:23,extras:4,jsonReferences:true,alternativeNames:true,glbRoundtrip:true},errors,network};
  if(process.env.ARENAMON_LOCAL_MODEL){const source=process.env.ARENAMON_LOCAL_MODEL,sourceBytes=await readFile(source),original=json(sourceBytes);await page.setInputFiles('#model',source);await page.waitForFunction(n=>window.__importer.clips.length===n,original.animations.length);const result=await download('local-prototype.glb'),resultBytes=await readFile(result.path);check(result.doc,original.animations.length);
  assert.deepEqual(result.doc.animations.map(a=>a.name),original.animations.map(a=>a.name));assert.deepEqual(result.doc.skins.map(s=>s.joints.map(i=>result.doc.nodes[i].name)),original.skins.map(s=>s.joints.map(i=>original.nodes[i].name)));
  const hierarchy=doc=>doc.nodes.filter(n=>doc.skins.some(s=>s.joints.includes(doc.nodes.indexOf(n)))).map(n=>[n.name,(n.children||[]).map(i=>doc.nodes[i].name)]);assert.deepEqual(hierarchy(result.doc),hierarchy(original));

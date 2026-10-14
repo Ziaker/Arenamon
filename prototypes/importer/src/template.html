@@ -1,5 +1,6 @@
 <!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Arenamon · Importador de protótipos</title>
 <style>*{box-sizing:border-box}body{margin:0;background:#19212c;color:#e7edf5;font:15px system-ui}main{display:grid;grid-template-columns:310px 1fr;height:100vh}aside{padding:22px;overflow:auto;background:#111923}h1{font-size:22px}label,button,select{display:block;margin:14px 0}input[type=file]{width:100%;margin-top:8px}button,select{padding:10px;background:#293b50;color:white;border:1px solid #526378;border-radius:6px;width:100%}label input[type=checkbox]{margin-right:8px}p{line-height:1.5;color:#b5c3d2}#view{min-width:0;min-height:0}canvas{display:block}#status{white-space:pre-wrap} @media(max-width:650px){main{grid-template-columns:1fr;height:auto}#view{height:60vh}}</style>
+<style>input[type=text],input[type=number]{display:block;width:100%;padding:10px;margin-top:8px;background:#19212c;color:#e7edf5;border:1px solid #526378;border-radius:6px}small{display:block;color:#b5c3d2}summary{cursor:pointer;font-weight:600;padding:12px 0}#action-list label{border-bottom:1px solid #293b50;padding-bottom:12px}#action-list select{margin:8px 0}#action-warnings{white-space:pre-wrap;color:#ffd59b}button:disabled{opacity:.5}#view{position:sticky;top:0;height:100vh}#status{padding:10px;background:#19212c} @media(max-width:650px){#view{height:60vh;position:static}}</style>
 <main><aside><h1>Arenamon</h1><p>Laboratório de protótipos · FBX / GLB<br>Modo protótipo ativo por padrão.</p>
 <label>Importar modelo<input id="model" type="file" accept=".fbx,.glb"></label>
 <label>Anexar animações (rig compatível)<input id="animations" type="file" accept=".fbx,.glb" multiple></label>
@@ -8,5 +9,16 @@
 <label>Cores<select id="palette"><option value="palette">Paleta por material original</option><option value="global">Cor global</option></select></label>
 <label>Cor global <input id="color" type="color" value="#829bb8"></label>
 <label>Animação<select id="clip"><option>Sem animações</option></select></label><button id="play">Pausar / retomar</button>
+<label>Nome da animação selecionada<input id="clip-name" type="text" disabled></label><button id="rename-clip" disabled>Renomear animação</button>
+<details open><summary>Ações do personagem</summary>
+<p id="action-progress" aria-live="polite"></p>
+<p>Associe cada ação a um clip. Downed é a recuperação no chão após knockback. Pendências podem ser exportadas como vazias.</p>
+<div id="action-list"></div>
+<p>Extras são opcionais. Nomeie o clip com <strong>alt + ação</strong>: “alt tackle”, “alt walk back”, “alt move 1”. Depois associe a extra 1–4. Nomes sem ação reconhecida serão sinalizados.</p>
+<label>Chance de usar uma alternativa (%)<input id="alt-chance" type="number" min="0" max="100" step="1" value="20"></label>
+<p>Ao iniciar a ação, o jogo poderá sortear uma alternativa entre os extras correspondentes. O JSON descreve essa regra; o visualizador não implementa o combate nem altera o jogo.</p>
+<p id="action-warnings" role="status"></p>
+</details>
 <label><input id="noTextures" type="checkbox" checked>Exportar sem texturas</label><label><input id="unlit" type="checkbox" checked>Exportar unlit</label><button id="export" disabled>Exportar GLB</button>
+<button id="export-json" disabled>Exportar ações (JSON)</button><p>Exporte GLB e JSON após terminar de renomear e associar. As associações também ficam salvas no GLB e são restauradas ao reimportá-lo aqui.</p>
 <p>Arraste para orbitar. Use a roda para aproximar. Animações externas exigem os mesmos ossos e pose de referência; não há retarget automático.</p><p id="status" role="status">Importe um modelo para começar. Nenhum arquivo é enviado à rede.</p></aside><div id="view"></div></main><script>/*__BUNDLE__*/</script></html>

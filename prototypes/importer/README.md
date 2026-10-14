@@ -1,5 +1,19 @@
 # Importador de protótipos
 
+## Nomes e ações
+
+Selecione um clip, edite seu nome e clique em **Renomear animação**. Nomes vazios ou repetidos são rejeitados. Na importação, nomes duplicados recebem sufixos numéricos para que as referências sejam inequívocas. Renomear não altera os tracks nem o rig.
+
+A lista **Ações do personagem** contém 23 ações e quatro extras opcionais. Cada ação pode apontar para qualquer clip; o mesmo clip pode atender várias ações. O contador mostra o que já foi associado e os campos vazios continuam pendentes. `downed` representa a recuperação no chão após knockback. Reimportar um GLB exportado aqui restaura o mapeamento salvo; importar outro modelo começa um novo mapeamento.
+
+Exporte **GLB** e **ações (JSON)** ao terminar. Os nomes do JSON são os mesmos gravados nas animações do GLB, e os índices são baseados em zero. O arquivo `arenamon-actions.json` usa `schemaVersion: 1`, com `actions` (referência `{clipIndex, clipName}` ou `null`), `extras`, catálogo `clips`, `missingActions` e `warnings`. O mesmo documento fica em `extras.arenamonActions` no nó raiz exportado do GLB.
+
+Nos extras, nomes como `alt tackle`, `alt walk back`, `alt dodge left` e `alt move 1` definem `alternativeFor`. Espaços, hífens e underscores são equivalentes. Nomes ambíguos ou sem ação reconhecida geram aviso e `alternativeFor: null`; não se tornam candidatos. Extras sem ação principal associada também geram aviso.
+
+`randomAlternatives` descreve a regra para o consumidor do JSON: ao iniciar a ação, aplicar `probability` (padrão 0,20, ajustável de 0 a 100% na interface), escolher uniformemente entre clips extras distintos correspondentes e usar a animação principal quando não houver alternativa válida ou o sorteio não a selecionar. Associar o mesmo clip em dois extras não aumenta seu peso. A integração dessa regra no jogo é responsabilidade do consumidor; este laboratório exporta a configuração e não modifica o combate.
+
+Os testes de navegador cobrem renomeação, nomes inválidos, associação, interpretação dos extras, exportação JSON, correspondência dos nomes no GLB e restauração do mapeamento ao reimportar.
+
 Execute `npm run build` e abra `dist/importador-prototipo.html` por duplo clique. O HTML contém Three.js, FBXLoader, GLTFLoader e GLTFExporter e funciona offline. Não contém modelos embutidos.
 
 Importe um FBX ou GLB rigado, depois selecione um ou vários arquivos para anexar animações. As animações internas são preservadas. Animações externas são associadas por nome (incluindo a variação de prefixo `mixamorig`), sem modificar ossos, hierarquia ou pesos. Isso exige rigs e poses de referência compatíveis; não converte automaticamente um rig arbitrário em Mixamo. Um arquivo com um alvo desconhecido é rejeitado sem anexar parcialmente seus clips.
