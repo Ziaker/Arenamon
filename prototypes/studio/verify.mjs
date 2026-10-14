@@ -84,7 +84,7 @@ try {
 
   // ---------- Layout: ferramentas, painéis e redimensionamento ----------
   const width = sel => page.evaluate(s => document.querySelector(s).getBoundingClientRect().width, sel);
-  const canvasMatches = () => page.evaluate(() => {const v = document.getElementById('view'), c = v.querySelector('canvas');return Math.abs(c.getBoundingClientRect().width - v.clientWidth) < 2 && Math.abs(c.width / devicePixelRatio - v.clientWidth) < 2;});
+  const canvasMatches = () => page.evaluate(() => {const v = document.getElementById('view'), c = v.querySelector('canvas');return Math.abs(c.getBoundingClientRect().width - v.clientWidth) < 2 && Math.abs(c.width / window.__importer.renderer.getPixelRatio() - v.clientWidth) < 2;});
   if (process.env.STUDIO_VERIFY_SLOW_MS) console.log('  [quadros]', JSON.stringify(await page.evaluate(() => new Promise(r => {const t = [];const f = n => {t.push(n);if (t.length < 15) requestAnimationFrame(f);else r({médiaMs: Math.round((t.at(-1) - t[0]) / 14), piorMs: Math.round(Math.max(...t.slice(1).map((x, i) => x - t[i])))});};requestAnimationFrame(f);}))));
   const SECTIONS = {project: '#model-drop', appearance: '#color', scene: '#lab-grid', camera: '#lab-camera', motion: '#lab-root-mode', inspect: '#v4-skeleton', export: '#export'};
   const modelId = await page.evaluate(() => window.__importer.model.uuid);

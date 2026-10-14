@@ -14,7 +14,7 @@ import {GL_QUALITY} from './gl-quality.js';
 const $ = id => document.getElementById(id), scene = new T.Scene(), view = $('view');
 scene.background = new T.Color('#19212c');
 const camera = new T.PerspectiveCamera(40, 1, .001, 100000), renderer = new T.WebGLRenderer({antialias: GL_QUALITY.antialias});
-renderer.toneMapping = T.NoToneMapping;renderer.shadowMap.enabled = false;view.appendChild(renderer.domElement);
+renderer.setPixelRatio(GL_QUALITY.pixelRatio);renderer.toneMapping = T.NoToneMapping;renderer.shadowMap.enabled = false;view.appendChild(renderer.domElement);
 const controls = new OrbitControls(camera, renderer.domElement), lights = new T.Group();
 lights.add(new T.HemisphereLight(0xffffff, 0x566477, 2));const key = new T.DirectionalLight(0xffffff, 2);key.position.set(3, 5, 4);lights.add(key);
 let model, mixer, clips = [], playing = true, originals = new Map(), rest = new Map(), materialIds = new Map(), busy = false;
@@ -210,10 +210,15 @@ $('clip').onchange = selectClip;$('play').onclick = () => setPlaying(!playing);
 $('frame').onclick = () => task(async () => {frameModel();renderer.render(scene, camera);});
 new ResizeObserver(() => {const w = view.clientWidth, h = view.clientHeight;if (w < 1 || h < 1) return;renderer.setSize(w, h, false);camera.aspect = w / h;camera.updateProjectionMatrix();}).observe(view);
 const clock = new T.Clock();
-renderer.setAnimationLoop(() => {
+// Modo leve (sem GPU, ver gl-quality.js): limita os quadros desenhados; o tempo pulado é acumulado e entregue ao
+// próximo desenho, então animação, comparação e câmera continuam no tempo real.
+let drawPending = 0, lastDraw = -Infinity;
+renderer.setAnimationLoop(now => {
   const dt = Math.min(clock.getDelta(), .1);if (playing) mixer?.update(dt);controls.update();
   emit('tick', dt);window.__studioV3?.onTick?.(dt);
-  if (!window.__studioV3?.render?.(dt)) renderer.render(scene, camera);
+  drawPending += dt;if (GL_QUALITY.maxFps && now - lastDraw < 1000 / GL_QUALITY.maxFps - 1) return;
+  const elapsed = Math.min(drawPending, .1);drawPending = 0;lastDraw = now;
+  if (!window.__studioV3?.render?.(elapsed)) renderer.render(scene, camera);
 });
 const on = (name, fn) => {listeners[name].add(fn);return () => listeners[name].delete(fn);};
 window.__importer = {
