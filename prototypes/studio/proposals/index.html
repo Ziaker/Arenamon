@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Arenamon Animation Studio — Redesign de Rigging (Comparador de Propostas)</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #080e1c;
+      --layer: #101929;
+      --panel: #132034;
+      --surface: #182840;
+      --edge: rgba(170, 201, 240, 0.14);
+      --text: #edf4ff;
+      --muted: #92a9c7;
+      --cyan: #54d9ee;
+      --violet: #9b84ff;
+      --lime: #bff36a;
+      --amber: #ffd18c;
+      --rose: #ff7796;
+      --shadow: 0 20px 60px rgba(3, 8, 22, 0.7);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: radial-gradient(ellipse at 50% 0%, #172c4a 0%, var(--bg) 70%);
+      color: var(--text);
+      font: 14px/1.55 Inter, system-ui, -apple-system, sans-serif;
+      padding: 40px 24px;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    header {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+    .eyebrow {
+      color: var(--cyan);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    h1 {
+      font-size: clamp(28px, 4vw, 42px);
+      font-weight: 850;
+      letter-spacing: -0.02em;
+      margin-bottom: 12px;
+    }
+    .lead {
+      color: var(--muted);
+      font-size: 16px;
+      max-width: 740px;
+      margin: 0 auto;
+    }
+    .proposals-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 24px;
+      margin-bottom: 48px;
+    }
+    .proposal-card {
+      background: linear-gradient(145deg, #162438, #10192a);
+      border: 1px solid var(--edge);
+      border-radius: 18px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: var(--shadow);
+      transition: all 0.2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .proposal-card:hover {
+      border-color: var(--cyan);
+      transform: translateY(-3px);
+      box-shadow: 0 24px 70px rgba(84, 217, 238, 0.18);
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 9px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 750;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 12px;
+      width: fit-content;
+    }
+    .badge-a { background: rgba(84, 217, 238, 0.15); color: var(--cyan); border: 1px solid rgba(84, 217, 238, 0.35); }
+    .badge-b { background: rgba(191, 243, 106, 0.15); color: var(--lime); border: 1px solid rgba(191, 243, 106, 0.35); }
+    .badge-c { background: rgba(155, 132, 255, 0.15); color: var(--violet); border: 1px solid rgba(155, 132, 255, 0.35); }
+
+    .card-title {
+      font-size: 20px;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+    .card-philosophy {
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 18px;
+      flex: 1;
+    }
+    .feature-list {
+      list-style: none;
+      margin-bottom: 22px;
+      font-size: 12px;
+      color: #c7def4;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+    .feature-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 7px;
+    }
+    .feature-list li::before {
+      content: "✓";
+      color: var(--cyan);
+      font-weight: 800;
+    }
+    .launch-btn {
+      display: block;
+      width: 100%;
+      text-align: center;
+      padding: 12px 18px;
+      border-radius: 10px;
+      text-decoration: none;
+      font-weight: 750;
+      font-size: 13px;
+      transition: all 0.15s ease;
+    }
+    .btn-a { background: linear-gradient(115deg, #54d9ee, #4578dd); color: #071626; }
+    .btn-b { background: linear-gradient(115deg, #bff36a, #48bb78); color: #0b2413; }
+    .btn-c { background: linear-gradient(115deg, #9b84ff, #54d9ee); color: #0e122b; }
+    .launch-btn:hover {
+      filter: brightness(1.15);
+      transform: scale(1.02);
+    }
+    .comparison-section {
+      background: var(--panel);
+      border: 1px solid var(--edge);
+      border-radius: 18px;
+      padding: 32px;
+      margin-bottom: 40px;
+    }
+    .comparison-section h2 {
+      font-size: 22px;
+      margin-bottom: 16px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-top: 16px;
+    }
+    th, td {
+      padding: 12px 14px;
+      text-align: left;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    th {
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="eyebrow">Arenamon Animation Studio · Rigging Suite</div>
+      <h1>Redesign Funcional da Área de Rigging</h1>
+      <p class="lead">
+        Três propostas visuais interativas e navegáveis offline para avaliação comparativa.
+        Cada protótipo apresenta fluxos, organização de tela e paradigmas de usabilidade genuinamente distintos.
+      </p>
+    </header>
+
+    <div class="proposals-grid">
+      <!-- Proposta A -->
+      <article class="proposal-card">
+        <span class="badge badge-a">Proposta A</span>
+        <h2 class="card-title">Rigging Workspace</h2>
+        <p class="card-philosophy">
+          Ambiente de trabalho estilo DCC / Software 3D profissional (Blender/Maya). Ideal para animadores experientes que desejam acesso instantâneo a todos os controles em um layout clássico de 3 colunas.
+        </p>
+        <ul class="feature-list">
+          <li>Hierarquia em árvore completa com busca e seleção de cadeia</li>
+          <li>Visualizador central com Quad-View (4 vistas simultâneas)</li>
+          <li>Inspetor contextual detalhado com coordenadas e espelhamento</li>
+          <li>Abas dedicadas para Weight Painting e Teste de Deformação</li>
+          <li>Suporte a criaturas quadrúpedes com cauda e bípede estilizado</li>
+        </ul>
+        <a href="proposta-a.html" class="launch-btn btn-a">Abrir Proposta A (Workspace) →</a>
+      </article>
+
+      <!-- Proposta B -->
+      <article class="proposal-card">
+        <span class="badge badge-b">Proposta B</span>
+        <h2 class="card-title">Guided Rigging</h2>
+        <p class="card-philosophy">
+          Assistente passo a passo inspirado em AccuRIG e Mixamo. Conduz o usuário através de 5 etapas claras e guiadas, eliminando complexidade e garantindo conformidade anatômica com salvaguardas.
+        </p>
+        <ul class="feature-list">
+          <li>Stepper visual de 5 etapas (Anatomia → Articulações → Simetria → Skinning → Validação)</li>
+          <li>Mini-mapa 2D interativo (Paper Doll) para seleção anatômica rápida</li>
+          <li>Enquadramento de câmera automático para cada grupo muscular</li>
+          <li>Checklists didáticos em linguagem natural e auto-espelhamento</li>
+          <li>Foco guiado sem sobrecarga de botões simultâneos</li>
+        </ul>
+        <a href="proposta-b.html" class="launch-btn btn-b">Abrir Proposta B (Guided) →</a>
+      </article>
+
+      <!-- Proposta C -->
+      <article class="proposal-card">
+        <span class="badge badge-c">Proposta C</span>
+        <h2 class="card-title">Hybrid Rigging Studio</h2>
+        <p class="card-philosophy">
+          Conceito adaptativo moderno (estilo Control Rig Unreal / Figma). Alterna entre Roteiro Assistido e Modo Estúdio Livre com gavetas retráteis e canvas 3D cinematográfico quase sem bordas.
+        </p>
+        <ul class="feature-list">
+          <li>Alternador instantâneo entre Modo Guiado e Modo Estúdio Livre</li>
+          <li>Viewport expandido com painéis retráteis (Dock Left/Right)</li>
+          <li>Breadcrumbs de linhagem 3D interativos (Arenamon › Hips › Spine...)</li>
+          <li>Inspetor com sugestões automáticas "Quick-Fix" (correção em 1 clique)</li>
+          <li>Bancada inferior retrátil para testes de flexão e mapa de calor</li>
+        </ul>
+        <a href="proposta-c.html" class="launch-btn btn-c">Abrir Proposta C (Hybrid) →</a>
+      </article>
+    </div>
+
+    <!-- Tabela Comparativa de Capacidades -->
+    <section class="comparison-section">
+      <h2>Comparativo das Propostas</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Recurso / Capacidade</th>
+            <th>Proposta A (Workspace)</th>
+            <th>Proposta B (Guided)</th>
+            <th>Proposta C (Hybrid Studio)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Público Alvo</strong></td>
+            <td>Animadores experientes e artistas 3D</td>
+            <td>Iniciantes e produção rápida de personagens</td>
+            <td>Equipes mistas (iniciante ao avançado)</td>
+          </tr>
+          <tr>
+            <td><strong>Paradigma de Layout</strong></td>
+            <td>3 colunas fixas densas (DAW / DCC)</td>
+            <td>Assistente guiado passo a passo (Wizard)</td>
+            <td>Canvas imersivo com gavetas flutuantes</td>
+          </tr>
+          <tr>
+            <td><strong>Navegação Anatômica</strong></td>
+            <td>Árvore de nós expansível + busca</td>
+            <td>Mini-mapa 2D (Paper Doll) + botões Anterior/Próximo</td>
+            <td>Breadcrumbs contextuais + árvore retrátil</td>
+          </tr>
+          <tr>
+            <td><strong>Múltiplas Vistas 3D</strong></td>
+            <td>Simultânea Quad-View (4 quadrantes)</td>
+            <td>Presets rápidos de câmera com foco inteligente</td>
+            <td>Quad-View flutuante e presets rápidos</td>
+          </tr>
+          <tr>
+            <td><strong>Suporte a Criaturas</strong></td>
+            <td>Bípede (20 ossos) e Quadrúpede (24 ossos)</td>
+            <td>Seleção de template no Passo 1</td>
+            <td>Alternância instantânea de anatomia</td>
+          </tr>
+          <tr>
+            <td><strong>Weight Painting</strong></td>
+            <td>Aba dedicada com heatmap e sliders de pincel</td>
+            <td>Heatmap no Passo 4 integrado ao bind</td>
+            <td>Heatmap toggle na bancada inferior retrátil</td>
+          </tr>
+          <tr>
+            <td><strong>Diagnósticos / Auditoria</strong></td>
+            <td>Painel técnico completo com avisos</td>
+            <td>Checklist didático com termos amigáveis</td>
+            <td>Sugestões ativas Quick-Fix de 1 clique</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Documentação Técnica da Camada de Integração Codex -->
+    <section class="comparison-section">
+      <h2>Camada de Integração Técnica (Contrato com o Codex)</h2>
+      <p style="color:var(--muted);font-size:13px;line-height:1.6;margin-bottom:14px;">
+        Nenhum dos protótipos modifica os algoritmos internos do Codex. A interface comunica-se através da classe adaptadora
+        <code>RiggingBridge</code>, que consome as funções exportadas por <code>core.js</code>:
+      </p>
+      <ul style="color:#c7def4;font-size:12px;display:flex;flex-direction:column;gap:6px;padding-left:18px;">
+        <li><code>getJoints() / getHierarchyTree()</code>: extração não-destrutiva de articulações e topologia</li>
+        <li><code>setJointPosition(name, p)</code>: aplicação de translação com espelhamento automático e registro no histórico</li>
+        <li><code>bindSkin({smoothness})</code>: execução estrutural de skinning gerando SkinnedMesh e skeleton</li>
+        <li><code>getVertexHeatmapColors(name)</code>: cálculo de influência por vértice para projeção de gradiente térmico</li>
+        <li><code>setDeformRotation(name, axis, angle)</code>: flexão temporária preservando a pose de repouso registrada</li>
+        <li><code>exportJSON() / importJSON()</code>: serialização determinística conforme schema <code>arenamon-rig</code></li>
+      </ul>
+    </section>
+  </div>
+</body>
+</html>

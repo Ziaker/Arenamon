@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Arenamon Studio — Hybrid Rigging Studio (Proposta C)</title>
+  <!--__STYLES__-->
+</head>
+<body>
+  <div class="hybrid-app">
+    <!-- Topbar com Alternador de Modo Guiado / Estúdio -->
+    <header class="topbar">
+      <div class="brand-section">
+        <div class="logo-icon">★</div>
+        <div class="brand-title">
+          Arenamon Studio
+          <small>Proposta C — Hybrid Rigging Studio (Adaptativo)</small>
+        </div>
+      </div>
+
+      <!-- Mode Switcher Central & Toggles de Painel -->
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="mode-switch-group">
+          <button class="mode-switch-btn active" data-mode="guided">Modo Guiado</button>
+          <button class="mode-switch-btn" data-mode="studio">Modo Estúdio Livre</button>
+        </div>
+        <button class="btn-mini btn-soft" id="btn-toggle-dock-left" title="Mostrar/ocultar painel esquerdo">◧ Hierarquia</button>
+        <button class="btn-mini btn-soft" id="btn-toggle-dock-right" title="Mostrar/ocultar inspetor">◨ Inspetor</button>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:10px;">
+        <select id="hybrid-model-select" style="min-width:160px;font-size:11px;">
+          <option value="humanoid-20">Golem (20 ossos)</option>
+          <option value="creature-quadruped-24">Besta (24 ossos)</option>
+          <option value="upload">Carregar GLB...</option>
+        </select>
+        <input type="file" id="hybrid-file-input" accept=".glb,.gltf" style="display:none">
+
+        <button class="btn-mini btn-soft" id="btn-undo" title="Desfazer" disabled>↶</button>
+        <button class="btn-mini btn-soft" id="btn-redo" title="Refazer" disabled>↷</button>
+        <button class="btn-mini btn-soft" id="btn-export-json">Exportar JSON</button>
+        <button class="btn-mini btn-primary" id="btn-bind-skin">Vincular Skin</button>
+      </div>
+    </header>
+
+    <!-- Área Principal com Viewport Central e Docks Deslizantes -->
+    <main class="hybrid-main-area">
+      <!-- Breadcrumbs Interativos de Linhagem no Topo do Viewport -->
+      <nav class="viewport-breadcrumbs" id="viewport-breadcrumbs">
+        <span class="crumb-item active">Arenamon</span>
+      </nav>
+
+      <!-- Viewport 3D Canvas -->
+      <section class="hybrid-viewport" id="viewport-3d">
+        <!-- HUD de Ferramentas de Câmera -->
+        <div class="viewport-hud hud-top-left" style="top:56px;left:334px;">
+          <div class="hud-group" style="background:rgba(13,23,40,0.85);backdrop-filter:blur(12px);border:1px solid var(--edge);border-radius:9px;padding:3px;">
+            <button class="hud-btn active" data-view="persp">Persp</button>
+            <button class="hud-btn" data-view="front">Frente</button>
+            <button class="hud-btn" data-view="side">Lateral</button>
+            <button class="hud-btn" data-view="top">Topo</button>
+          </div>
+          <button class="hud-btn" id="btn-quad-view">Quad-View</button>
+          <button class="hud-btn" id="btn-frame-joint">⌖ Focar</button>
+          <button class="hud-btn active" id="btn-toggle-xray">Raio-X</button>
+        </div>
+      </section>
+
+      <!-- Dock Esquerda (Hierarquia e Roteiro) -->
+      <aside class="hybrid-dock dock-left" id="dock-left">
+        <div class="pane-header">
+          <h3 id="mode-indicator-text">Hierarquia & Estrutura</h3>
+          <span class="badge badge-cyan">Rig</span>
+        </div>
+
+        <div class="search-box">
+          <input type="search" id="hybrid-search" placeholder="Filtrar articulações...">
+        </div>
+
+        <div class="tree-container" id="hybrid-tree"></div>
+
+        <div class="guided-only" style="padding:10px 14px;border-top:1px solid var(--edge);background:rgba(84,217,238,0.06);">
+          <div style="font-size:11px;font-weight:700;color:var(--cyan);margin-bottom:4px;">Roteiro Inteligente</div>
+          <p style="font-size:10px;color:var(--muted);line-height:1.4;margin:0;">
+            Ajuste primeiro a coluna e cabeça, depois os membros superiores e finalize nas pernas.
+          </p>
+        </div>
+      </aside>
+
+      <!-- Dock Direita (Inspetor Inteligente + Quick-Fix) -->
+      <aside class="hybrid-dock dock-right" id="dock-right">
+        <div class="pane-header">
+          <h3 id="hybrid-joint-title">Articulação</h3>
+          <span class="badge badge-lime">Inspetor</span>
+        </div>
+
+        <div class="pane-content">
+          <div class="inspector-card">
+            <h4>Parente & Origem</h4>
+            <div class="data-row">
+              <span class="data-label">Osso Pai</span>
+              <span class="data-value" id="hybrid-joint-parent">—</span>
+            </div>
+          </div>
+
+          <div class="inspector-card">
+            <h4>Coordenadas XYZ</h4>
+            <div class="coord-grid">
+              <div class="coord-cell">
+                <span>X</span>
+                <input type="number" id="hybrid-coord-x" step="0.01">
+              </div>
+              <div class="coord-cell">
+                <span>Y</span>
+                <input type="number" id="hybrid-coord-y" step="0.01">
+              </div>
+              <div class="coord-cell">
+                <span>Z</span>
+                <input type="number" id="hybrid-coord-z" step="0.01">
+              </div>
+            </div>
+          </div>
+
+          <!-- Sugestões de Ação Rápida (Quick-Fix) -->
+          <div id="quick-fix-area"></div>
+        </div>
+      </aside>
+
+      <!-- Dock Inferior: Bancada de Deformação & Pesos -->
+      <div class="dock-bottom" id="dock-bottom">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <button class="btn-mini btn-soft" id="btn-dock-heatmap">♨ Mapa de Calor (Heatmap)</button>
+          <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);">
+            Opacidade:
+            <input type="range" id="mesh-opacity" min="0.05" max="1" step="0.05" value="0.92" style="width:80px;">
+            <span id="mesh-opacity-val" style="font-variant-numeric:tabular-nums;color:var(--text);">92%</span>
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:11px;color:var(--muted);">Teste de Flexão Rápida:</span>
+          <input type="range" id="dock-pose-slider" min="-90" max="90" step="1" value="0" style="width:130px;">
+          <span id="dock-pose-readout" style="font-size:11px;font-weight:750;color:var(--cyan);min-width:32px;">0°</span>
+          <button class="btn-mini btn-soft" id="btn-dock-rest-pose">↺ Rest Pose</button>
+        </div>
+      </div>
+    </main>
+  </div>
+  <!--__SCRIPTS__-->
+</body>
+</html>

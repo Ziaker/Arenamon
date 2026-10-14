@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Arenamon Studio — Guided Rigging (Proposta B)</title>
+  <!--__STYLES__-->
+</head>
+<body>
+  <div class="guided-app">
+    <!-- Topbar -->
+    <header class="topbar">
+      <div class="brand-section">
+        <div class="logo-icon">♧</div>
+        <div class="brand-title">
+          Arenamon Studio
+          <small>Proposta B — Assistente Visual Guiado (AccuRIG Style)</small>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span class="badge badge-lime">Modo Assistente Ativo</span>
+      </div>
+    </header>
+
+    <!-- Stepper Superior Horizontal de 5 Etapas -->
+    <nav class="guided-stepper-bar">
+      <div class="step-card active" data-step="1">
+        <div class="step-number">1</div>
+        <div class="step-info">
+          <span class="step-title">Anatomia</span>
+          <span class="step-desc">Template base</span>
+        </div>
+      </div>
+      <span class="step-arrow">→</span>
+
+      <div class="step-card" data-step="2">
+        <div class="step-number">2</div>
+        <div class="step-info">
+          <span class="step-title">Articulações</span>
+          <span class="step-desc">Posição 3D</span>
+        </div>
+      </div>
+      <span class="step-arrow">→</span>
+
+      <div class="step-card" data-step="3">
+        <div class="step-number">3</div>
+        <div class="step-info">
+          <span class="step-title">Simetria</span>
+          <span class="step-desc">Eixo sagital</span>
+        </div>
+      </div>
+      <span class="step-arrow">→</span>
+
+      <div class="step-card" data-step="4">
+        <div class="step-number">4</div>
+        <div class="step-info">
+          <span class="step-title">Skinning</span>
+          <span class="step-desc">Vínculo e pesos</span>
+        </div>
+      </div>
+      <span class="step-arrow">→</span>
+
+      <div class="step-card" data-step="5">
+        <div class="step-number">5</div>
+        <div class="step-info">
+          <span class="step-title">Validação</span>
+          <span class="step-desc">Teste de flexão</span>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Layout Principal: Assistente Esquerdo + Viewport Amplo -->
+    <main class="guided-layout">
+      <!-- Painel do Assistente Guiado -->
+      <aside class="guided-assistant-pane">
+        <div class="assistant-header">
+          <span class="badge badge-cyan" id="assistant-step-badge">Etapa 1 de 5</span>
+          <h2 style="font-size:16px;font-weight:800;color:#fff;margin:6px 0 2px;" id="assistant-step-title">Preparação & Template</h2>
+          <p style="font-size:11px;color:var(--muted);margin:0;" id="assistant-step-desc">Configure o modelo base.</p>
+        </div>
+
+        <div class="assistant-body" id="assistant-step-content">
+          <!-- Conteúdo gerado dinamicamente via JS de acordo com a etapa -->
+        </div>
+
+        <div class="assistant-footer">
+          <button class="btn-soft" id="btn-prev-step" style="flex:1;" disabled>← Voltar</button>
+          <button class="btn-primary" id="btn-next-step" style="flex:1;">Próxima Etapa →</button>
+        </div>
+      </aside>
+
+      <!-- Viewport 3D -->
+      <section class="workspace-viewport-container" id="viewport-3d">
+        <!-- HUD Superior: Presets de Câmera -->
+        <div class="viewport-hud hud-top-left">
+          <div class="hud-group" style="background:rgba(13,23,40,0.85);backdrop-filter:blur(12px);border:1px solid var(--edge);border-radius:9px;padding:3px;">
+            <button class="hud-btn active" data-view="persp">Persp</button>
+            <button class="hud-btn" data-view="front">Frente</button>
+            <button class="hud-btn" data-view="side">Lateral</button>
+            <button class="hud-btn" data-view="top">Topo</button>
+          </div>
+        </div>
+
+        <div class="viewport-hud hud-top-right">
+          <button class="hud-btn" id="btn-frame-joint">⌖ Enquadrar Articulação</button>
+          <button class="hud-btn active" id="btn-toggle-xray">Modo Raio-X</button>
+        </div>
+
+        <!-- HUD Inferior -->
+        <div class="viewport-hud hud-bottom-bar">
+          <div style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted);">
+            Opacidade da Malha:
+            <input type="range" id="mesh-opacity" min="0.05" max="1" step="0.05" value="0.92" style="width:110px;">
+            <span id="mesh-opacity-val" style="color:var(--text);font-variant-numeric:tabular-nums;">92%</span>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+  <!--__SCRIPTS__-->
+</body>
+</html>

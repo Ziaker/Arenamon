@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Arenamon Studio — Rigging Workspace (Proposta A)</title>
+  <!--__STYLES__-->
+</head>
+<body>
+  <div class="workspace-app">
+    <!-- Topbar -->
+    <header class="topbar">
+      <div class="brand-section">
+        <div class="logo-icon">◈</div>
+        <div class="brand-title">
+          Arenamon Studio
+          <small>Proposta A — Rigging Workspace Profissional</small>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:10px;">
+        <label style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px;">
+          Personagem:
+          <select id="model-select" style="min-width:180px;">
+            <option value="humanoid-20">Golem Bípede (20 ossos)</option>
+            <option value="creature-quadruped-24">Besta Quadrúpede (24 ossos)</option>
+            <option value="upload">Carregar arquivo GLB...</option>
+          </select>
+        </label>
+        <input type="file" id="file-input" accept=".glb,.gltf" style="display:none">
+
+        <button class="btn-mini btn-soft" id="btn-undo" title="Desfazer (Ctrl+Z)" disabled>↶ Desfazer</button>
+        <button class="btn-mini btn-soft" id="btn-redo" title="Refazer (Ctrl+Y)" disabled>↷ Refazer</button>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:8px;">
+        <button class="btn-mini btn-soft" id="btn-export-json">Exportar JSON</button>
+        <button class="btn-mini btn-soft" id="btn-import-json">Importar JSON</button>
+        <button class="btn-mini btn-primary" id="btn-bind-skin">Vincular Skin</button>
+      </div>
+    </header>
+
+    <!-- Layout 3 Colunas -->
+    <main class="workspace-layout">
+      <!-- Coluna Esquerda: Hierarquia & Diagnóstico -->
+      <aside class="workspace-sidebar-left">
+        <div class="pane-header">
+          <h3><span> árvore de ossos</span></h3>
+          <span class="badge badge-cyan" id="bone-count-badge">Estrutura</span>
+        </div>
+
+        <div class="search-box">
+          <input type="search" id="bone-search" placeholder="Filtrar por nome...">
+          <div class="action-bar">
+            <button class="btn-mini btn-soft" id="btn-select-chain" title="Seleciona o osso e todos os seus filhos">Cadeia</button>
+            <button class="btn-mini btn-soft" id="btn-clear-isolation" title="Limpa o isolamento de visualização">Restaurar Todos</button>
+          </div>
+        </div>
+
+        <div class="tree-container" id="tree-view"></div>
+
+        <!-- Auditoria e Telemetria -->
+        <div class="pane-content" style="flex:0 0 auto;max-height:180px;border-top:1px solid var(--edge);padding:10px 14px;">
+          <h4 style="font-size:10px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Auditoria Estrutural</h4>
+          <div id="audit-summary" style="font-size:11px;color:#c7def4;margin-bottom:6px;"></div>
+          <div id="audit-warnings" style="font-size:10px;max-height:80px;overflow-y:auto;"></div>
+        </div>
+      </aside>
+
+      <!-- Coluna Central: Viewport 3D -->
+      <section class="workspace-viewport-container" id="viewport-3d">
+        <!-- HUD Superior: Câmeras e Vistas -->
+        <div class="viewport-hud hud-top-left">
+          <div class="hud-group" style="background:rgba(13,23,40,0.85);backdrop-filter:blur(12px);border:1px solid var(--edge);border-radius:9px;padding:3px;">
+            <button class="hud-btn active" data-view="persp">Persp</button>
+            <button class="hud-btn" data-view="front">Frente</button>
+            <button class="hud-btn" data-view="side">Lateral</button>
+            <button class="hud-btn" data-view="top">Topo</button>
+            <button class="hud-btn" data-view="back">Trás</button>
+          </div>
+          <button class="hud-btn" id="btn-quad-view" title="Alternar visualização em 4 quadrantes">Quad-View</button>
+        </div>
+
+        <div class="viewport-hud hud-top-right">
+          <button class="hud-btn" id="btn-frame-joint" title="Centralizar e aproximar a câmera na articulação selecionada">⌖ Enquadrar</button>
+          <button class="hud-btn active" id="btn-toggle-xray" title="Alternar visualização Raio-X">Raio-X</button>
+          <button class="hud-btn active" id="btn-toggle-markers" title="Mostrar/ocultar esferas de articulação">Pontos</button>
+          <button class="hud-btn active" id="btn-toggle-bones" title="Mostrar/ocultar cones ósseos">Ossos</button>
+        </div>
+
+        <!-- HUD Inferior: Transparência e Simetria -->
+        <div class="viewport-hud hud-bottom-bar">
+          <div style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted);">
+            Opacidade:
+            <input type="range" id="mesh-opacity" min="0.05" max="1" step="0.05" value="0.92" style="width:90px;">
+            <span id="mesh-opacity-val" style="font-variant-numeric:tabular-nums;color:var(--text);min-width:32px;">92%</span>
+          </div>
+
+          <div style="width:1px;height:16px;background:var(--edge);margin:0 4px;"></div>
+
+          <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text);cursor:pointer;">
+            <input type="checkbox" id="chk-symmetry" checked style="accent-color:var(--cyan);">
+            Simetria X-Mirror
+          </label>
+        </div>
+      </section>
+
+      <!-- Coluna Direita: Inspetor Contextual & Ferramentas -->
+      <aside class="workspace-sidebar-right">
+        <nav class="tab-nav">
+          <button class="tab-btn active" data-tab="inspector">Articulação</button>
+          <button class="tab-btn" data-tab="weights">Pesos (Skin)</button>
+          <button class="tab-btn" data-tab="deform">Flexão / Pose</button>
+        </nav>
+
+        <!-- Aba 1: Inspetor de Articulação -->
+        <div class="pane-content" id="tab-pane-inspector">
+          <div class="inspector-card">
+            <h4>Identificação</h4>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+              <strong style="font-size:14px;color:var(--cyan);" id="inspector-title">—</strong>
+              <button class="btn-mini btn-soft" id="btn-mirror-joint">⇄ Espelhar L/R</button>
+            </div>
+            <div class="data-row">
+              <span class="data-label">Osso Pai</span>
+              <span class="data-value" id="inspector-parent">—</span>
+            </div>
+            <div class="data-row">
+              <span class="data-label">Comprimento</span>
+              <span class="data-value" id="inspector-length">—</span>
+            </div>
+            <div class="data-row" style="flex-direction:column;align-items:flex-start;gap:4px;">
+              <span class="data-label">Articulações Filhas:</span>
+              <div id="inspector-children" style="display:flex;flex-wrap:wrap;gap:4px;"></div>
+            </div>
+          </div>
+
+          <div class="inspector-card">
+            <h4>Coordenadas (Espaço da Raiz)</h4>
+            <div class="coord-grid">
+              <div class="coord-cell">
+                <span>Eixo X</span>
+                <input type="number" id="coord-x" step="0.01">
+              </div>
+              <div class="coord-cell">
+                <span>Eixo Y</span>
+                <input type="number" id="coord-y" step="0.01">
+              </div>
+              <div class="coord-cell">
+                <span>Eixo Z</span>
+                <input type="number" id="coord-z" step="0.01">
+              </div>
+            </div>
+            <small style="font-size:10px;color:var(--muted);display:block;margin-top:6px;">
+              * Valores medidos em relação à raiz local do modelo 3D.
+            </small>
+          </div>
+
+          <div class="inspector-card">
+            <h4>Influência na Malha</h4>
+            <div class="data-row">
+              <span class="data-label">Vértices Afetados</span>
+              <span class="data-value" id="weight-vertex-count">0</span>
+            </div>
+            <div class="data-row">
+              <span class="data-label">Peso Médio</span>
+              <span class="data-value" id="weight-avg">0.000</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Aba 2: Weight Painting Studio -->
+        <div class="pane-content" id="tab-pane-weights" hidden>
+          <div class="inspector-card">
+            <h4>Modo Heatmap</h4>
+            <button class="btn-soft" id="btn-toggle-heatmap" style="width:100%;margin-bottom:10px;">
+              ♨ Ativar Mapa de Calor no 3D
+            </button>
+            <div class="heatmap-legend">
+              <span>0%</span>
+              <div class="heat-gradient-bar"></div>
+              <span>100%</span>
+            </div>
+          </div>
+
+          <div class="inspector-card">
+            <h4>Articulação Alvo</h4>
+            <div style="font-size:13px;font-weight:750;color:var(--lime);margin-bottom:8px;" id="weight-target-bone">—</div>
+            <p style="font-size:11px;color:var(--muted);line-height:1.4;">
+              O mapa térmico projeta a intensidade de controle do osso ativo sobre os vértices do personagem.
+            </p>
+          </div>
+
+          <div class="inspector-card">
+            <h4>Ferramentas do Pincel</h4>
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <label style="font-size:11px;display:flex;justify-content:space-between;">
+                <span>Raio do Pincel</span>
+                <input type="range" min="0.05" max="1" step="0.05" value="0.3" style="width:140px;">
+              </label>
+              <label style="font-size:11px;display:flex;justify-content:space-between;">
+                <span>Intensidade / Força</span>
+                <input type="range" min="0.05" max="1" step="0.05" value="0.5" style="width:140px;">
+              </label>
+              <label style="font-size:11px;display:flex;justify-content:space-between;">
+                <span>Suavização</span>
+                <input type="range" min="0.05" max="1" step="0.05" value="0.13" style="width:140px;">
+              </label>
+            </div>
+            <button class="btn-soft" id="btn-normalize-weights" style="width:100%;margin-top:12px;">
+              Normalizar Pesos da Malha
+            </button>
+          </div>
+        </div>
+
+        <!-- Aba 3: Teste de Deformação & Flexão -->
+        <div class="pane-content" id="tab-pane-deform" hidden>
+          <div class="inspector-card">
+            <h4>Dobra Temporária</h4>
+            <div style="display:flex;gap:8px;margin-bottom:10px;">
+              <select id="pose-axis-select" style="flex:1;">
+                <option value="x">Eixo X (Frente / Trás)</option>
+                <option value="y">Eixo Y (Torção)</option>
+                <option value="z">Eixo Z (Lateral)</option>
+              </select>
+              <span id="pose-angle-readout" style="min-width:40px;font-weight:750;display:flex;align-items:center;justify-content:center;color:var(--cyan);">0°</span>
+            </div>
+            <input type="range" id="pose-angle-slider" min="-90" max="90" step="1" value="0" style="width:100%;">
+            <button class="btn-soft" id="btn-reset-pose" style="width:100%;margin-top:12px;">
+              Restaurar Pose de Repouso (0°)
+            </button>
+          </div>
+
+          <div class="inspector-card">
+            <h4>Poses de Teste Rápido</h4>
+            <div class="preset-pose-grid">
+              <button class="btn-soft" data-preset-pose="tpose">T-Pose Neutra</button>
+              <button class="btn-soft" data-preset-pose="elbow45">Dobra Braços 45°</button>
+              <button class="btn-soft" data-preset-pose="twist30">Torção Tronco 30°</button>
+              <button class="btn-soft" data-preset-pose="crouch">Agachamento</button>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </main>
+  </div>
+  <!--__SCRIPTS__-->
+</body>
+</html>
