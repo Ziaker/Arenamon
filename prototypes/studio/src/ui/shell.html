@@ -2,6 +2,7 @@
  <div class="st-rail-group" role="tablist" aria-label="Painel de ferramentas">
   <button type="button" role="tab" data-panel="project" aria-selected="false" title="Projeto: importar personagem e animações, salvar e recuperar"><i aria-hidden="true">◈</i><span>Projeto</span></button>
   <button type="button" role="tab" data-panel="rigging" aria-selected="false" title="Rigging: criar e editar ossos, pesos iniciais e telemetria de coordenadas"><i aria-hidden="true">♧</i><span>Rigging</span></button>
+  <button type="button" role="tab" data-panel="workbench" aria-selected="false" title="Telemetria do rig: inspecionar, diagnosticar, corrigir por patch JSON, comparar e validar"><i aria-hidden="true">⌖</i><span>Telemetria</span></button>
   <button type="button" role="tab" data-panel="appearance" aria-selected="false" title="Aparência: texturas, iluminação, cor global e fundo"><i aria-hidden="true">◐</i><span>Aparência</span></button>
   <button type="button" role="tab" data-panel="scene" aria-selected="false" title="Cenário: grid, chão, eixos e dummy"><i aria-hidden="true">▦</i><span>Cenário</span></button>
   <button type="button" role="tab" data-panel="camera" aria-selected="false" title="Câmera: presets, câmera do jogo, FOV e posições salvas"><i aria-hidden="true">◉</i><span>Câmera</span></button>
@@ -91,6 +92,7 @@
    <input type="file" id="rg-file" accept=".json,application/json" hidden>
    <pre class="rg-report" id="rg-report" aria-live="polite">Nenhuma auditoria realizada.</pre>
   </section>
+  <section data-section="workbench" aria-label="Telemetria do rig" hidden><div id="wb-host"></div></section>
   <section data-section="appearance" aria-label="Aparência" hidden>
    <h3>Visualização</h3><div class="st-slot" data-slot="toggles"></div>
    <h3>Cor</h3><div class="st-slot" data-slot="paint"></div>
