@@ -43,6 +43,12 @@
      <label class="field">Perfil do adversário (vermelho)<select id="enemy-profile"><option value="balanced">Equilibrado</option><option value="agile">Ágil</option><option value="resistant">Resistente</option></select></label>
      <label class="field">Comportamento do adversário<select id="mode"></select></label>
      <button type="button" class="primary wide" id="start">▶ Iniciar combate</button>
+     <h3>Gravação da partida</h3>
+     <p class="hint">Toda partida é gravada (semente, perfis, ajustes e as entradas do azul). Reproduza com os ajustes da gravação para repetir a luta exatamente, ou com os ajustes atuais para repetir as mesmas entradas em outra configuração.</p>
+     <div class="row"><button type="button" id="rec-save" disabled>↓ Salvar gravação</button><span id="rec-status" class="muted"></span></div>
+     <label class="field">Reproduzir gravação (.json)<input type="file" id="rec-file" accept=".json,application/json"></label>
+     <label class="field">Ajustes na reprodução<select id="rec-values"><option value="recorded">Os da gravação (repete a luta exatamente)</option><option value="current">Os atuais (mesmas entradas, outra configuração)</option></select></label>
+     <div id="rec-result" class="report" aria-live="polite"></div>
      <h3>Controles</h3>
      <p class="keys">↑↓←→ mover · <b>X</b> tackle (qualquer direção) · <b>C</b> esquiva (salta sobre o rival no caminho; X durante C = cancelamento C → X) · <b>D</b> defender · <b>Tab</b> fixar alvo · <b>Esc</b> pausar · <b>R</b> reiniciar · botão direito/roda: câmera. Gamepad: A tackle, B esquiva, LB/RB defesa, Y alvo.</p>
      <p class="hint">Pausado: ◂/▸ na linha do tempo (ou , e .) voltam e avançam um passo de simulação. Os últimos 12 s ficam gravados.</p>
@@ -52,6 +58,11 @@
      <div id="scenario-list"></div>
      <button type="button" class="wide" id="scenario-all" title="Executa todos sem animação e mostra o relatório">Executar todos (instantâneo)</button>
      <div id="scenario-report" class="report" aria-live="polite"></div>
+     <h3>Equilíbrio IA × IA</h3>
+     <p class="hint">Lutas rápidas, sem animação, com os ajustes atuais e os perfis da aba Partida. Mostra se um ajuste fez alguma mecânica dominar.</p>
+     <div class="row"><label class="field">Lutas<input type="number" id="balance-matches" min="1" max="200" value="20"></label><label class="field">Semente<input type="number" id="balance-seed" min="1" value="1"></label></div>
+     <button type="button" class="wide" id="balance-run">Medir equilíbrio</button>
+     <div id="balance-report" class="report" aria-live="polite"></div>
     </section>
     <section data-section="tuning" hidden>
      <div class="tune-tools">

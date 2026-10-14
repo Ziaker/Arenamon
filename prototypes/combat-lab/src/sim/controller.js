@@ -132,6 +132,16 @@ export function updateFighter(f, cmd, fighters, dt) {
   f.visualFacing += clamp(angleDelta(f.visualFacing, f.facing), -C.locomotion.visualTurnRate * dt, C.locomotion.visualTurnRate * dt);
 }
 
+/** C nesta direção atravessaria um adversário (e portanto saltaria)? Usado pela esquiva e pela prévia de trajetória. */
+export function wouldVault(f, heading, fighters) {
+  const A = C.actions, v = direction(heading), maxTravel = nominalDistance(f, 'dodge') + A.dodge.vaultReachBonus;
+  return fighters.some(other => {
+    if (other.id === f.id || other.hp <= 0) return false;
+    const delta = sub(other.position, f.position), ahead = dot(delta, v), lateral = length(sub(delta, scale(v, ahead)));
+    return ahead > A.dodge.vaultForwardMin && ahead < maxTravel && lateral < A.dodge.vaultLateralWidth;
+  });
+}
+
 /** Inicia X ou C. No cancelamento C → X, preserva velocidade, altura e invulnerabilidade de forma controlada. */
 function startAction(f, kind, dirs, fighters, desiredHeading, viaCancel, guardHeld) {
   const A = C.actions, p = A[kind], T = C.extras.toggles, prev = f.action;
@@ -146,12 +156,7 @@ function startAction(f, kind, dirs, fighters, desiredHeading, viaCancel, guardHe
     if (f.vaultHeight > 0) {liftStart = f.vaultHeight;liftTime = c.airDescent;}
   }
   // C só salta quando o caminho atravessa de fato um adversário; as demais esquivas ficam baixas.
-  const v = direction(heading), maxTravel = nominalDistance(f, 'dodge') + A.dodge.vaultReachBonus;
-  const vault = !!T.enableVault && kind === 'dodge' && fighters.some(other => {
-    if (other.id === f.id || other.hp <= 0) return false;
-    const delta = sub(other.position, f.position), ahead = dot(delta, v), lateral = length(sub(delta, scale(v, ahead)));
-    return ahead > A.dodge.vaultForwardMin && ahead < maxTravel && lateral < A.dodge.vaultLateralWidth;
-  });
+  const vault = !!T.enableVault && kind === 'dodge' && wouldVault(f, heading, fighters);
   const countered = kind === 'tackle' && f.counterWindow > 0 && T.enableCounterBonus;
   f.action = {kind, elapsed: 0, startAngle: heading, heading, offensive: kind === 'tackle', vault, hits: new Set(), from, speedMultiplier: countered ? A.tackle.counterSpeed : 1};
   if (blendTime !== undefined) f.action.blendTime = blendTime;

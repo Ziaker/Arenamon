@@ -189,6 +189,21 @@ try {
   assert.equal(withH.homologation.items.find(i => i.id === 'clash').note, 'lançamento alto demais');
   await page.click('[data-tool="homolog"]');page.__acceptConfirm = true;await page.click('#homolog-clear');page.__acceptConfirm = false;assert.match(await page.textContent('#homolog-summary'), /0 aprovados · 0 reprovados · 17 pendentes/);
   step('homologação jogável: 17 itens, aprovado/reprovado com observação, salva ao recarregar e exportada no JSON');
+  // ---------- Gravação e reprodução de partida ----------
+  await page.click('[data-tool="controls"]');await page.click('[data-tool="match"]');await page.selectOption('#mode', 'combat');
+  await page.click('#arena-autoplay-toggle');await page.click('#start');await page.waitForTimeout(2500);
+  const recorded = await L(() => {window.__lab.togglePause(true);const g = window.__lab.game;return {ticks: window.__labRecording.matchRec.ticks, tick: g.tick, fighters: JSON.stringify(g.fighters)};});
+  assert.ok(recorded.ticks > 100 && recorded.ticks === recorded.tick, `gravou ${recorded.ticks} passos`);
+  pending = page.waitForEvent('download');await page.click('#rec-save');const recPath = await (await pending).path();
+  const recJson = JSON.parse(await readFile(recPath, 'utf8'));assert.equal(recJson.schema, 'arenamon-match');assert.equal(recJson.ticks, recorded.ticks);assert.ok(recJson.commands.length < recorded.ticks, 'comandos comprimidos');
+  await page.click('#arena-autoplay-toggle');await L(() => window.__lab.tuning.commit([['rules.launchUp', 9]], 'muda algo antes de reproduzir'));
+  await page.selectOption('#rec-values', 'recorded');await page.setInputFiles('#rec-file', recPath);
+  await page.waitForFunction(() => window.__labRecording.ui.playback?.ended, null, {timeout: 20000});
+  const replayed = await L(() => ({tick: window.__lab.game.tick, fighters: JSON.stringify(window.__lab.game.fighters), launchUp: window.__lab.C.rules.launchUp}));
+  assert.equal(replayed.launchUp, recJson.values['rules.launchUp'], 'ajustes da gravação restaurados');assert.equal(replayed.tick, recorded.tick);assert.equal(replayed.fighters, recorded.fighters, 'reprodução idêntica à partida gravada');
+  assert.match(await page.textContent('#rec-result'), /Fim da gravação/);
+  await L(() => {window.__lab.tuning.resetAll();});
+  step(`gravação de partida: ${recorded.ticks} passos IA × IA salvos (comprimidos em ${recJson.commands.length} trechos) e reproduzidos com estado final idêntico`);
 
   // ---------- 2/3. Personagem do Studio e eventos ----------
   await page.click('[data-tool="characters"]');await page.locator('.char-slot').nth(0).locator('input[type=file]').setInputFiles(out + 'personagem-studio.glb');

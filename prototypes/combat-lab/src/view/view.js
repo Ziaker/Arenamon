@@ -3,7 +3,8 @@
 import * as T from 'three';
 import {C, rgb} from '../sim/config.js';
 import {isInvulnerable, isOffensive, nominalDistance, actionDuration} from '../sim/entity.js';
-import {direction} from '../sim/math.js';
+import {direction, length, angleOf} from '../sim/math.js';
+import {wouldVault} from '../sim/controller.js';
 import {CameraRig} from './rig.js';
 
 const STATE_COLORS = {invulnerable: 0x58e6ff, tackle: 0xffa040, dodge: 0x61ebba, guard: 0xffe066, guardStun: 0xffb347, recoil: 0xc77dff, airborne: 0x9db4ff, landing: 0x7f93b8, defeated: 0x56616a};
@@ -14,6 +15,7 @@ export const OVERLAYS = [
   ['contactNormals', 'Normais de contato', 'Setas no ponto de cada impacto, clash ou bloqueio recentes, na direção da normal usada pela física.'],
   ['launchArcs', 'Arco de lançamento previsto', 'Trajetória balística prevista de quem está no ar, com gravidade, arrasto e rebote nas paredes.'],
   ['cancelWindow', 'Janela do C → X e buffer', 'Durante a esquiva, anel no chão: cinza = janela do cancelamento ainda fechada; verde = X disponível (o arco mostra o tempo restante); vermelho = janela aberta, mas sem stamina para X. Ponto amarelo acima do lutador = comando guardado no buffer.'],
+  ['preview', 'Prévia de X e C (azul)', 'Com o azul livre, mostra no chão para onde X (laranja) e C (verde) iriam na direção atual das setas (ou da frente, parado). Um arco sobre a linha verde indica que C saltaria sobre o rival.'],
   ['reach', 'Alcance de X/C', 'Anel com a distância nominal de tackle/esquiva de cada lutador (2,5 × duração × velocidade).'],
 ];
 
@@ -120,7 +122,7 @@ export class View {
   }
   ring(x, z, radius, color, from = 0, to = Math.PI * 2, y = .03) {const pts = [];for (let i = 0; i <= 48; i++) {const a = from + (to - from) * i / 48;pts.push([x + Math.sin(a) * radius, y, z + Math.cos(a) * radius]);}return this.line(pts, color, .75);}
   drawOverlays(fighters, dt) {
-    this.clearOverlays();const O = this.overlays, V = C.extras.visual, half = C.test.halfExtent;
+    this.clearOverlays();this.lastFighters = fighters;const O = this.overlays, V = C.extras.visual, half = C.test.halfExtent;
     const legacy = !!C.extras.toggles.showHitboxes;
     for (const f of fighters) {
       const alt = (f.flight?.y ?? 0) + (f.vaultHeight ?? 0);
@@ -154,6 +156,14 @@ export class View {
           const dot = new T.Mesh(new T.SphereGeometry(.13, 10, 8), new T.MeshBasicMaterial({color: f.inputBuffer.kind === 'tackle' ? 0xffd34d : 0x9dffd8, transparent: true, opacity: .9, depthTest: false}));
           dot.position.set(f.position.x, V.bodyHeight + .45 + alt, f.position.z);dot.renderOrder = 901;this.overlayGroup.add(dot);
         }
+      }
+      if (O.preview && f.id === 0 && f.hp > 0 && !f.action && !f.flight && f.knockRecovery <= 0) {
+        const heading = length(f.desiredMove ?? {x: 0, z: 0}) > .01 ? angleOf(f.desiredMove) : f.combatHeading ?? f.facing, d = direction(heading);
+        const x = nominalDistance(f, 'tackle'), c = nominalDistance(f, 'dodge'), side = {x: -d.z * .12, z: d.x * .12};
+        this.line([[f.position.x + side.x, .06, f.position.z + side.z], [f.position.x + side.x + d.x * x, .06, f.position.z + side.z + d.z * x]], 0xffa040, .85);
+        const vault = !!C.extras.toggles.enableVault && wouldVault(f, heading, this.lastFighters ?? []);
+        if (vault) {const pts = [];for (let i = 0; i <= 24; i++) {const u = i / 24;pts.push([f.position.x - side.x + d.x * c * u, .06 + C.actions.dodge.vaultHeight * Math.sin(Math.PI * u), f.position.z - side.z + d.z * c * u]);}this.line(pts, 0x61ebba, .9);}
+        else this.line([[f.position.x - side.x, .06, f.position.z - side.z], [f.position.x - side.x + d.x * c, .06, f.position.z - side.z + d.z * c]], 0x61ebba, .85);
       }
       if (O.reach && f.hp > 0) this.ring(f.position.x, f.position.z, nominalDistance(f, 'tackle'), f.id ? 0xff8a8a : 0x8ac4ff);
       if (O.launchArcs && f.flight) this.line(predictFlight(f), 0x9db4ff);

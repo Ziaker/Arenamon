@@ -13,6 +13,9 @@ import {Input} from './ui/input.js';
 import {createTuning, escape, pathGet} from './ui/tuning.js';
 import {createDock} from './ui/dock.js';
 import {createHomologation} from './ui/homologation.js';
+import {runBalance, balanceRows} from './sim/balance.js';
+import {MatchRecording, parseRecording} from './sim/recording.js';
+import {emptyCommand} from './sim/entity.js';
 import {length, sub, dot} from './sim/math.js';
 
 const $ = id => document.getElementById(id);
@@ -20,7 +23,8 @@ const canvas = document.querySelector('.stage canvas');
 const game = new Game(), clock = new FixedClock(), hud = new Hud(), recorder = new Recorder(), replay = new ReplayBuffer();
 let view;
 try {view = new View(canvas);} catch (e) {$('fatal').hidden = false;throw e;}
-const ui = {paused: false, scenario: null, playerMode: 'combat', lastResult: null, fps: 60, characters: [null, null], sources: [null, null], frame: 0};
+const matchRec = new MatchRecording();
+const ui = {playback: null, paused: false, scenario: null, playerMode: 'combat', lastResult: null, fps: 60, characters: [null, null], sources: [null, null], frame: 0};
 const input = new Input(canvas, code => {
   if (code === keyFor('pause')) togglePause();
   if (code === keyFor('restart') && game.phase !== 'menu') startMatch();
@@ -29,16 +33,18 @@ const input = new Input(canvas, code => {
 
 // ---------- Partida ----------
 function resetViewAndLogs() {view.reset(game.fighters[0]);recorder.clear();replay.clear();pushReplay();dock.invalidate();clock.reset();}
-function startMatch() {
-  abortScenario();
-  if (!$('seed-fixed').checked) $('seed').value = String(1 + Math.floor(Math.random() * 99999));
+function startMatch({playback = null} = {}) {
+  abortScenario();ui.playback = playback;
+  if (!playback && !$('seed-fixed').checked) $('seed').value = String(1 + Math.floor(Math.random() * 99999));
   applySeed();game.profile = $('profile').value;game.enemyProfile = $('enemy-profile').value;game.mode = $('mode').value;
   game.reset();ui.paused = false;input.clear();input.locked = false;resetViewAndLogs();canvas.focus();syncButtons();
+  matchRec.start({seed: Number($('seed').value), profile: game.profile, enemyProfile: game.enemyProfile, mode: game.mode, values: tuning.snapshotValues()});renderRecStatus();
 }
 function togglePause(force) {
   if (game.phase === 'menu') return;
   const next = force ?? !ui.paused;
-  if (!next && !replay.atEnd) {recorder.truncate(game.tick);} // retoma a partir do ponto do replay: o futuro gravado é descartado
+  if (!next && !replay.atEnd) {recorder.truncate(game.tick);matchRec.truncate(game.tick);} // retoma a partir do ponto do replay: o futuro gravado é descartado
+  if (!next && ui.playback?.ended) ui.playback = null;
   ui.paused = next;input.clear();syncButtons();
 }
 function pushReplay() {replay.push({tick: game.tick, game: game.save(), rig: view.rig.save()});}
@@ -56,12 +62,19 @@ function stepOnce() {
     if (ui.scenario.done) finishScenario();
     return;
   }
-  const c0 = playerCommand();game.step(c0);view.rig.step(game.fighters[0], game.fighters[1], input.locked, C.test.step);
+  let c0;
+  if (ui.playback) {
+    // Fim da gravação: para no último passo gravado (inclusive os passos restantes deste mesmo quadro).
+    if (ui.playback.ended) return;
+    c0 = ui.playback.commands[game.tick] ?? emptyCommand();
+    if (game.tick >= ui.playback.commands.length) {ui.playback.ended = true;togglePause(true);$('rec-result').innerHTML = '<p class="ok">Fim da gravação: a partida ficou pausada no último passo gravado.</p>';return;}
+  } else c0 = playerCommand();
+  const tickBefore = game.tick;game.step(c0);if (game.tick > tickBefore) matchRec.record(tickBefore, c0);view.rig.step(game.fighters[0], game.fighters[1], input.locked, C.test.step);
   recorder.record(game);pushReplay();
 }
 function stepFrames(delta) {
   if (game.phase === 'menu') return;
-  togglePause(true);
+  togglePause(true);if (delta > 0 && ui.playback?.ended) ui.playback = null;
   if (delta < 0) loadFrame(replay.step(-1));
   else if (!replay.atEnd) loadFrame(replay.step(1));
   else if (game.phase === 'playing' || game.phase === 'finishing') {stepOnce();}
@@ -95,6 +108,30 @@ function finishScenario() {
   const result = ui.scenario.finish();ui.lastResult = result;ui.scenario = null;ui.paused = true;
   $('scenario-report').innerHTML = reportHtml([result]) + '<p class="hint">Use ◂/▸ e a linha do tempo para inspecionar o cenário passo a passo.</p>';renderScenarios();syncButtons();
 }
+function renderRecStatus() {
+  $('rec-save').disabled = !matchRec.ticks;
+  $('rec-status').textContent = ui.playback && !ui.playback.ended ? `Reproduzindo: passo ${game.tick} de ${ui.playback.commands.length}` : matchRec.ticks ? `${matchRec.ticks} passos gravados (${(matchRec.ticks * C.test.step).toFixed(1)} s)` : 'Nenhuma partida gravada.';
+}
+$('rec-save').onclick = () => {download(JSON.stringify(matchRec.toJSON()), `arenamon-partida-${matchRec.meta.seed}.json`);};
+$('rec-file').onchange = async e => {
+  const file = e.target.files[0];if (!file) return;const parsed = parseRecording(await file.text());e.target.value = '';
+  if (parsed.error) {$('rec-result').innerHTML = `<p class="warn">${escape(parsed.error)}</p>`;return;}
+  const {data, commands} = parsed;
+  if ($('rec-values').value === 'recorded') {
+    const changes = Object.entries(data.values || {}).filter(([path, v]) => tuning.byPath.has(path) && pathGet(C, path) !== v);
+    if (changes.length) tuning.commit(changes, 'ajustes da gravação');
+  }
+  $('seed').value = String(data.seed);$('seed-fixed').checked = true;$('profile').value = data.profile;$('enemy-profile').value = data.enemyProfile;$('mode').value = data.mode;
+  startMatch({playback: {commands, source: file.name}});
+  $('rec-result').innerHTML = `<p class="ok">Reproduzindo ${escape(file.name)}: ${commands.length} passos, semente ${data.seed}, ${$('rec-values').value === 'recorded' ? 'ajustes da gravação (Ctrl+Z desfaz)' : 'ajustes atuais'}.</p>`;
+};
+window.__labRecording = {matchRec, parseRecording, ui};
+$('balance-run').onclick = () => {
+  const matches = Math.max(1, Math.min(200, Number($('balance-matches').value) || 20)), seed = Math.max(1, Number($('balance-seed').value) || 1);
+  const t0 = performance.now(), r = runBalance({matches, seed, profile: $('profile').value, enemyProfile: $('enemy-profile').value});window.__lab.lastBalance = r;
+  $('balance-report').innerHTML = `<p>${r.matches} lutas · ${((performance.now() - t0) / 1000).toFixed(1)} s · duração média ${r.avgSeconds.toFixed(1)} s (${r.minSeconds.toFixed(1)}–${r.maxSeconds.toFixed(1)}) · ${r.timeouts ? `<span class="warn">${r.timeouts} sem vencedor em 90 s</span>` : 'todas com vencedor'}</p>
+    <table><tr><th></th><th>Azul</th><th>Vermelho</th></tr>${balanceRows(r).map(([k, a, b]) => `<tr><td>${escape(k)}</td><td>${a}</td><td>${b}</td></tr>`).join('')}</table>`;
+};
 $('scenario-all').onclick = () => {
   abortScenario();const results = SCENARIOS.map(def => runScenario(def));const ok = results.filter(r => r.ok).length;
   $('scenario-report').innerHTML = `<p class="${ok === results.length ? 'ok' : 'bad'}"><b>${ok} de ${results.length} cenários aprovados</b> com os ajustes atuais.</p>` + reportHtml(results);
@@ -320,7 +357,7 @@ function frame(now) {
   hud.render(game, ui.fps, {locked: input.locked, paused: ui.paused && game.phase !== 'menu', replay: back ? `−${back} passos (${(back * C.test.step * 1000).toFixed(0)} ms) · ▶ retoma daqui` : 'último passo · , e . avançam/voltam', playerAI: !!C.extras.toggles.enablePlayerAI});
   $('rp-readout').textContent = `passo ${game.tick}${back ? ` · −${(back * C.test.step).toFixed(2)} s` : ''}${clock.timeScale !== 1 ? ` · ${clock.timeScale}×` : ''}`;
   dock.render();
-  if ((uiTimer += dt) > .1) {uiTimer = 0;renderLive();renderHistory();renderCharacterLive();}
+  if ((uiTimer += dt) > .1) {uiTimer = 0;renderLive();renderHistory();renderCharacterLive();renderRecStatus();}
   ui.frame++;requestAnimationFrame(frame);
 }
 applyConfig();renderScenarios();renderCharacters();syncTuneState();openTool('match');syncButtons();

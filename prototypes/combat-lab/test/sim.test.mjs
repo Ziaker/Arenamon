@@ -5,6 +5,7 @@ import {C, resetConfig, defaults} from '../src/sim/config.js';
 import {SCENARIOS, runScenario} from '../src/sim/scenarios.js';
 import {Recorder, frameTable} from '../src/sim/telemetry.js';
 import {ReplayBuffer} from '../src/sim/replay.js';
+import {runBalance, balanceRows} from '../src/sim/balance.js';
 let passed = 0;const test = (name, fn) => {fn();passed++;console.log('✓', name);};
 
 for (const def of SCENARIOS) test(`cenário “${def.name}”`, () => {
@@ -63,5 +64,12 @@ test('personalidade neutra reproduz o ritmo fixo do v6 (sem aleatoriedade)', () 
   for (const k of ['aiRed', 'aiBlue']) Object.assign(C.extras[k], {reaction: 0, reactionJitter: 0, mistake: 0, aggression: .5, variation: 0, hesitation: 0});
   assert.deepEqual(aiDuel(1, 2400), aiDuel(99, 2400), 'sem aleatoriedade, a semente não muda nada');
   Object.assign(C.extras.aiRed, saved[0]);Object.assign(C.extras.aiBlue, saved[1]);
+});
+test('equilíbrio IA × IA: determinístico, consistente e sem alterar a configuração', () => {
+  const before = JSON.stringify(C), a = runBalance({matches: 6, seed: 3}), b = runBalance({matches: 6, seed: 3});
+  assert.deepEqual(a, b);assert.equal(JSON.stringify(C), before);
+  assert.equal(a.sides[0].wins + a.sides[1].wins + a.timeouts, 6);assert.equal(balanceRows(a).length, 14);
+  for (const s of a.sides) assert.ok(s.tackle > 0 && s.cancel <= s.tackle && s.damage >= 0);
+  console.log(`   6 lutas: vitórias ${a.sides[0].wins}/${a.sides[1].wins}, ${a.timeouts} sem vencedor, média ${a.avgSeconds.toFixed(1)} s`);
 });
 console.log(`\n${passed} testes da simulação aprovados.`);
