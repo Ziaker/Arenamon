@@ -465,6 +465,19 @@ export class RiggingBridge {
       const reverseChanges = new Map();
       for (const item of cmd.changes) {
         reverseChanges.set(item.name, { to: [...item.from] });
+        if (cmd.type === 'import-coordinates') {
+          const joint = this.getJoint(item.name);
+          if (joint) {
+            if (item.fromId !== undefined) {
+              if (item.fromId) joint.id = item.fromId;
+              else delete joint.id;
+            }
+            if (item.fromQ !== undefined) {
+              if (item.fromQ) joint.q = [...item.fromQ];
+              else delete joint.q;
+            }
+          }
+        }
       }
       this.applyPositionChanges(reverseChanges);
       this.redoStack.push(cmd);
@@ -482,6 +495,19 @@ export class RiggingBridge {
       const applyChanges = new Map();
       for (const item of cmd.changes) {
         applyChanges.set(item.name, { to: [...item.to] });
+        if (cmd.type === 'import-coordinates') {
+          const joint = this.getJoint(item.name);
+          if (joint) {
+            if (item.toId !== undefined) {
+              if (item.toId) joint.id = item.toId;
+              else delete joint.id;
+            }
+            if (item.toQ !== undefined) {
+              if (item.toQ) joint.q = [...item.toQ];
+              else delete joint.q;
+            }
+          }
+        }
       }
       this.applyPositionChanges(applyChanges);
       this.historyStack.push(cmd);
@@ -704,11 +730,24 @@ export class RiggingBridge {
     return result;
   }
 
-  exportJSON() {
+  exportJSON({ version = 1 } = {}) {
     if (!this.model) throw new Error('Nenhum modelo carregado.');
     const coords = exportCoordinates(this.model, this.draft);
     coords.modelName = this.model.name || 'ArenamonCharacter';
     coords.templateType = this.activeTemplateType;
+
+    const requestedV2 = version === 2 || this.draft?.version === 2;
+    if (requestedV2) {
+      coords.version = 2;
+      coords.joints = coords.joints.map(j => {
+        const existing = this.getJoint(j.name);
+        const enriched = { ...j };
+        if (existing?.id) enriched.id = existing.id;
+        else if (existing?.uuid) enriched.id = existing.uuid;
+        if (existing?.q) enriched.q = [...existing.q];
+        return enriched;
+      });
+    }
     return coords;
   }
 
@@ -748,6 +787,38 @@ export class RiggingBridge {
       };
     }
 
+    // Rejeição estrita de schemas desconhecidos
+    if (data.schema && data.schema !== 'arenamon-rig') {
+      return {
+        success: false,
+        errors: [`Schema não reconhecido: "${data.schema}". O sistema aceita exclusivamente o schema "arenamon-rig".`],
+        warnings: [],
+        appliedCount: 0,
+        totalInFile: Array.isArray(data.joints) ? data.joints.length : 0,
+        totalInRig: this.getJoints().length,
+        matched: [],
+        missing: [],
+        unknown: [],
+        invalid: []
+      };
+    }
+
+    // Rejeição estrita de versões de schema não suportadas
+    if (data.version !== undefined && data.version !== 1 && data.version !== 2) {
+      return {
+        success: false,
+        errors: [`Versão de schema não suportada: "${data.version}". As versões compatíveis são 1 e 2.`],
+        warnings: [],
+        appliedCount: 0,
+        totalInFile: Array.isArray(data.joints) ? data.joints.length : 0,
+        totalInRig: this.getJoints().length,
+        matched: [],
+        missing: [],
+        unknown: [],
+        invalid: []
+      };
+    }
+
     if (!Array.isArray(data.joints)) {
       return {
         success: false,
@@ -767,47 +838,92 @@ export class RiggingBridge {
     const warnings = [];
 
     if (data.version === 2) {
-      warnings.push('Aviso de compatibilidade de schema: Arquivo gerado sob schema "arenamon-rig" versão 2. O RiggingBridge atual opera sobre o núcleo técnico v1. Propriedades estendidas da v2 (matrizes de amarração, uuids ou flags avançadas) foram ignoradas ou convertidas para coordenadas model-root.');
+      warnings.push('Compatibilidade de schema v2: Arquivo gerado sob schema "arenamon-rig" versão 2. Identificadores persistentes (id/uuid) e orientações de rotação (q) foram importados e preservados no rascunho.');
     }
 
     const currentJoints = this.getJoints();
-    const currentMap = new Map(currentJoints.map(j => [j.name, j]));
+    const currentByName = new Map(currentJoints.map(j => [j.name, j]));
+    const currentById = new Map();
+    for (const j of currentJoints) {
+      if (j.id) currentById.set(j.id, j);
+      if (j.uuid) currentById.set(j.uuid, j);
+    }
 
     const matched = [];
     const unknown = [];
     const invalid = [];
-    const fileJointNames = new Set();
+    const fileJointKeys = new Set();
+    const fileMatchedTargets = new Set();
 
     for (const item of data.joints) {
-      if (!item || typeof item !== 'object' || !item.name) {
-        invalid.push({ item, reason: 'Entrada sem nome de articulação' });
+      if (!item || typeof item !== 'object') {
+        invalid.push({ item, reason: 'Entrada inválida na lista de articulações' });
         continue;
       }
 
-      if (fileJointNames.has(item.name)) {
-        invalid.push({ name: item.name, reason: `Nome de articulação duplicado no arquivo JSON ("${item.name}")` });
+      const jointId = item.id || item.uuid || null;
+      const jointName = item.name || (jointId && currentById.has(jointId) ? currentById.get(jointId).name : null);
+
+      if (!jointName && !jointId) {
+        invalid.push({ item, reason: 'Entrada sem identificador ou nome de articulação' });
         continue;
       }
-      fileJointNames.add(item.name);
+
+      const dedupeKey = jointId ? `id:${jointId}` : `name:${jointName}`;
+      if (fileJointKeys.has(dedupeKey)) {
+        invalid.push({ name: jointName || jointId, reason: `Articulação duplicada no arquivo JSON ("${jointName || jointId}")` });
+        continue;
+      }
+      fileJointKeys.add(dedupeKey);
 
       if (!Array.isArray(item.p) || item.p.length !== 3 || !item.p.every(n => typeof n === 'number' && Number.isFinite(n))) {
-        invalid.push({ name: item.name, reason: 'Coordenadas inválidas (esperado array de 3 números finitos)' });
+        invalid.push({ name: jointName || jointId, reason: 'Coordenadas inválidas (esperado array p de 3 números finitos)' });
         continue;
       }
 
       if (item.p.some(n => Math.abs(n) > 1e6)) {
-        invalid.push({ name: item.name, reason: 'Coordenada fora do limite de segurança (|coord| > 1.000.000)' });
+        invalid.push({ name: jointName || jointId, reason: 'Coordenada fora do limite de segurança (|coord| > 1.000.000)' });
         continue;
       }
 
-      if (currentMap.has(item.name)) {
-        matched.push({ name: item.name, p: item.p });
+      // Validação de quaternion para schema v2
+      let validQuaternion = null;
+      if (item.q !== undefined) {
+        if (Array.isArray(item.q) && item.q.length === 4 && item.q.every(n => typeof n === 'number' && Number.isFinite(n))) {
+          validQuaternion = [...item.q];
+        } else {
+          warnings.push(`Orientação de quaternion (q) inválida na articulação "${jointName || jointId}"; quaternion descartado.`);
+        }
+      }
+
+      // Correspondência: primeiro por ID (schema v2), fallback por Nome (schema v1)
+      let targetJoint = null;
+      if (jointId && currentById.has(jointId)) {
+        targetJoint = currentById.get(jointId);
+      } else if (jointName && currentByName.has(jointName)) {
+        targetJoint = currentByName.get(jointName);
+      }
+
+      if (targetJoint) {
+        if (fileMatchedTargets.has(targetJoint.name)) {
+          invalid.push({ name: jointName || jointId, reason: `Conflito de identificação: múltiplas entradas apontam para a mesma articulação "${targetJoint.name}"` });
+          continue;
+        }
+        fileMatchedTargets.add(targetJoint.name);
+
+        matched.push({
+          target: targetJoint,
+          name: targetJoint.name,
+          p: item.p,
+          id: jointId || targetJoint.id || null,
+          q: validQuaternion !== null ? validQuaternion : (targetJoint.q ? [...targetJoint.q] : null)
+        });
       } else {
-        unknown.push(item.name);
+        unknown.push(jointName || jointId);
       }
     }
 
-    const missing = currentJoints.filter(j => !fileJointNames.has(j.name)).map(j => j.name);
+    const missing = currentJoints.filter(j => !fileMatchedTargets.has(j.name)).map(j => j.name);
 
     if (matched.length === 0) {
       errors.push(`Nenhuma articulação do arquivo coincide com o modelo ativo (${currentJoints.length} articulações esperadas).`);
@@ -826,7 +942,7 @@ export class RiggingBridge {
     }
 
     if (invalid.length > 0) {
-      warnings.push(`${invalid.length} articulação(ões) continham coordenadas inválidas e foram ignoradas.`);
+      warnings.push(`${invalid.length} articulação(ões) continham dados inválidos ou conflitantes e foram ignoradas.`);
     }
 
     if (missing.length > 0) {
@@ -840,12 +956,19 @@ export class RiggingBridge {
     // Aplica alterações e grava histórico de Undo
     const changes = [];
     for (const m of matched) {
-      const cur = currentMap.get(m.name);
+      const cur = m.target;
       changes.push({
-        name: m.name,
+        name: cur.name,
         from: [...cur.p],
-        to: [...m.p]
+        to: [...m.p],
+        fromId: cur.id || null,
+        toId: m.id || cur.id || null,
+        fromQ: cur.q ? [...cur.q] : null,
+        toQ: m.q ? [...m.q] : null
       });
+
+      if (m.id) cur.id = m.id;
+      if (m.q) cur.q = [...m.q];
     }
 
     this.pushHistory({

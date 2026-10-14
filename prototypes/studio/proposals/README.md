@@ -242,15 +242,31 @@ As capturas de alta resolução encontram-se salvas na pasta `prototypes/studio/
   - Ferramentas de pincel manual de peso (Raio, Força, Suavização) e o botão `Normalizar Pesos` foram explicitamente rotulados com a badge `<span class="badge badge-warning">Protótipo Visual — Fase 2</span>` e banners informativos.
   - Clicar em normalização de pesos abre diálogo informativo esclarecendo que a mutação direta de buffers de vértice é um requisito da Fase 2 estrutural do Codex, enquanto o mapa térmico analítico e o auto-skinning volumétrico permanecem 100% operacionais.
 
-### 6. Estado Real de Compatibilidade com Schema v2 e Delimitação do Núcleo
-- O `RiggingBridge` opera estritamente sobre o **núcleo da Fase 1** (`prototypes/studio/src/rigging/core.js`), compatível com o Schema v1.
-- A compatibilidade com o editor estrutural v2 e a garantia contra IDs duplicados no nível do grafo ósseo dependem da entrega estrutural da Fase 2 sob responsabilidade do Codex e **não são consideradas concluídas nesta etapa**.
+### 6. Câmeras Ortográficas Dedicadas no Modo Quad-View
+- **Causa Raiz**: O modo Quad-View utilizava a clonagem de `PerspectiveCamera`, o que mantinha distorção de perspectiva nas vistas técnicas (Frontal, Lateral e Superior).
+- **Solução Implementada**: Substituída por instâncias dedicadas de `THREE.OrthographicCamera` com frustum proporcional à caixa delimitadora e aspecto de cada quadrante. Para a vista Superior (Top View), o vetor superior foi explicitamente definido como `up.set(0, 0, -1)`, eliminando singularidades de alinhamento com a direção de visão.
 
-### 7. Auditoria do Ambiente de Integração Contínua (CI)
+### 7. Preservação Não-Destrutiva de Cores de Vértice (Heatmap)
+- **Causa Raiz**: Ao desativar o mapa de calor, o código deletava incondicionalmente o atributo `color` e desligava `vertexColors`, o que corrompia as cores de modelos GLB que já continham cores de vértice pré-existentes.
+- **Solução Implementada**: Antes de aplicar as cores do mapa de calor, o sistema salva o buffer original (`geometry.attributes.color.clone()`) e o estado de `material.vertexColors` em `userData`. Ao desligar o heatmap, o buffer original e o estado do material são integralmente restaurados. Malhas sem cores originais têm o atributo removido de forma limpa.
+
+### 8. Validação Estrita de Schema e Preservação de Dados Schema v2
+- **Aprimoramentos**:
+  - Rejeição imediata de arquivos cujo `schema !== 'arenamon-rig'` ou cuja `version` seja diferente de `1` ou `2`.
+  - Suporte total de leitura e correspondência de articulações prioritariamente por `id`/`uuid` (com fallback por `name`).
+  - Preservação de identificadores persistentes e rotações em quaternion (`q: [x, y, z, w]`) nas estruturas de dados em memória e no histórico (Undo/Redo).
+  - Suporte à emissão de payloads v2 com `bridge.exportJSON({ version: 2 })`.
+  - Alinhamento aos contratos do núcleo estabilizado pelo Codex na branch `codex/rig-editor-stabilization` (commit `7323b48`).
+
+### 9. Testes Ponta a Ponta com Eventos Reais de Mouse no Canvas
+- Os testes automatizados em `test-proposals.mjs` agora incluem o ciclo completo com eventos reais de mouse via Playwright (`page.mouse.move`, `page.mouse.down`, `page.mouse.move`, `page.mouse.up`) direcionados às coordenadas projetadas dos manipuladores de eixo do `TransformControls`.
+- Comprova a detecção de hover no eixo, ativação do dragging, deslocamento de coordenadas no modelo e reversão exata após comando de Undo.
+
+### 10. Auditoria do Ambiente de Integração Contínua (CI)
 - Os runners do GitHub Actions executam sobre **Windows Server 2025** (e não `ubuntu-latest`).
 - Os timeouts de 30s ocorridos em execuções anteriores durante testes em `#lighting` e `[data-panel="project"]` continuam sob investigação do Claude. A conjectura sobre transições CSS causando atrasos não possui evidência comprovada.
 - Os arquivos de CI e o motor central permanecem inalterados por este agente.
 
-### 8. Preservação de Stash Local
+### 11. Preservação de Stash Local
 - O stash `stash@{0}: On fix/arena-movement-camera: local-wip-fix-arena-movement-camera-template` foi conferido e permanece intocado e preservado.
 

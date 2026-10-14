@@ -19,6 +19,9 @@ export class ViewportManager {
     this.camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
     this.camera.position.set(2.4, 2.0, 3.2);
 
+    // Câmera ortográfica dedicada para projeções técnicas ortogonais (Quad-View)
+    this.orthoCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.01, 100);
+
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
     this.renderer.setSize(width, height);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -431,15 +434,38 @@ export class ViewportManager {
     if (active) {
       this.updateHeatmap();
     } else {
-      // Restaura cor original do material em todas as malhas (suporta arrays de materiais)
+      // Restaura cor original de todas as malhas sem destruir cores de vértices pré-existentes no GLB
       this.bridge.model.traverse(o => {
-        if (o.isMesh && o.geometry?.attributes?.color) {
-          o.geometry.deleteAttribute('color');
-          if (o.material) {
-            const setMat = m => { if (m) { m.vertexColors = false; m.needsUpdate = true; } };
-            if (Array.isArray(o.material)) o.material.forEach(setMat);
-            else setMat(o.material);
+        if (o.isMesh) {
+          if (o.userData.__hasOriginalVertexColors) {
+            if (o.userData.__origVertexColorAttribute) {
+              o.geometry.setAttribute('color', o.userData.__origVertexColorAttribute.clone());
+              o.geometry.attributes.color.needsUpdate = true;
+            }
+          } else {
+            if (o.geometry?.attributes?.color) {
+              o.geometry.deleteAttribute('color');
+            }
           }
+
+          if (o.material) {
+            const restoreMat = m => {
+              if (m) {
+                if (m.userData.__origVertexColors !== undefined) {
+                  m.vertexColors = m.userData.__origVertexColors;
+                  delete m.userData.__origVertexColors;
+                } else if (!o.userData.__hasOriginalVertexColors) {
+                  m.vertexColors = false;
+                }
+                m.needsUpdate = true;
+              }
+            };
+            if (Array.isArray(o.material)) o.material.forEach(restoreMat);
+            else restoreMat(o.material);
+          }
+
+          delete o.userData.__hasOriginalVertexColors;
+          delete o.userData.__origVertexColorAttribute;
         }
       });
     }
@@ -451,6 +477,27 @@ export class ViewportManager {
 
     this.bridge.model.traverse(o => {
       if (o.isMesh && o.geometry?.attributes?.position) {
+        // Se ainda não salvou o estado original dos vértices desta malha, salva agora antes de mutar
+        if (o.userData.__hasOriginalVertexColors === undefined) {
+          if (o.geometry.attributes.color) {
+            o.userData.__hasOriginalVertexColors = true;
+            o.userData.__origVertexColorAttribute = o.geometry.attributes.color.clone();
+          } else {
+            o.userData.__hasOriginalVertexColors = false;
+            o.userData.__origVertexColorAttribute = null;
+          }
+
+          if (o.material) {
+            const cacheMat = m => {
+              if (m && m.userData.__origVertexColors === undefined) {
+                m.userData.__origVertexColors = !!m.vertexColors;
+              }
+            };
+            if (Array.isArray(o.material)) o.material.forEach(cacheMat);
+            else cacheMat(o.material);
+          }
+        }
+
         const colors = this.bridge.getMeshHeatmapColors(o, this.bridge.selectedJointName);
         if (colors) {
           o.geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
@@ -539,32 +586,50 @@ export class ViewportManager {
       this.renderer.setScissor(0, halfH, halfW, halfH);
       this.renderer.render(this.scene, this.camera);
 
-      // Câmera auxiliar ortogonal para vistas técnicas
+      // Câmera ortográfica técnica para vistas ortográficas puras (Frontal, Lateral, Superior)
       const bounds = this.bridge.getModelBounds();
       const center = new THREE.Vector3(...bounds.center);
-      const dist = Math.max(...bounds.size) * 2.2;
-      const orthoCam = this.camera.clone();
+      const maxDim = Math.max(...bounds.size, 1);
+      const dist = maxDim * 2.5;
 
-      // Quadrante 2 (Top-Right): Frontal
-      orthoCam.position.set(center.x, center.y, center.z + dist);
-      orthoCam.lookAt(center);
+      const aspect = halfW / halfH;
+      const frustumHeight = maxDim * 1.5;
+      const frustumWidth = frustumHeight * aspect;
+
+      if (!this.orthoCam || !this.orthoCam.isOrthographicCamera) {
+        this.orthoCam = new THREE.OrthographicCamera();
+      }
+      this.orthoCam.left = -frustumWidth / 2;
+      this.orthoCam.right = frustumWidth / 2;
+      this.orthoCam.top = frustumHeight / 2;
+      this.orthoCam.bottom = -frustumHeight / 2;
+      this.orthoCam.near = 0.01;
+      this.orthoCam.far = dist * 4;
+      this.orthoCam.updateProjectionMatrix();
+
+      // Quadrante 2 (Top-Right): Frontal (+Z para -Z)
+      this.orthoCam.up.set(0, 1, 0);
+      this.orthoCam.position.set(center.x, center.y, center.z + dist);
+      this.orthoCam.lookAt(center);
       this.renderer.setViewport(halfW, halfH, halfW, halfH);
       this.renderer.setScissor(halfW, halfH, halfW, halfH);
-      this.renderer.render(this.scene, orthoCam);
+      this.renderer.render(this.scene, this.orthoCam);
 
-      // Quadrante 3 (Bottom-Left): Lateral
-      orthoCam.position.set(center.x + dist, center.y, center.z);
-      orthoCam.lookAt(center);
+      // Quadrante 3 (Bottom-Left): Lateral (+X para -X)
+      this.orthoCam.up.set(0, 1, 0);
+      this.orthoCam.position.set(center.x + dist, center.y, center.z);
+      this.orthoCam.lookAt(center);
       this.renderer.setViewport(0, 0, halfW, halfH);
       this.renderer.setScissor(0, 0, halfW, halfH);
-      this.renderer.render(this.scene, orthoCam);
+      this.renderer.render(this.scene, this.orthoCam);
 
-      // Quadrante 4 (Bottom-Right): Superior
-      orthoCam.position.set(center.x, center.y + dist, center.z + 0.001);
-      orthoCam.lookAt(center);
+      // Quadrante 4 (Bottom-Right): Superior (+Y para -Y, olhando de cima com up = (0, 0, -1))
+      this.orthoCam.up.set(0, 0, -1);
+      this.orthoCam.position.set(center.x, center.y + dist, center.z);
+      this.orthoCam.lookAt(center);
       this.renderer.setViewport(halfW, 0, halfW, halfH);
       this.renderer.setScissor(halfW, 0, halfW, halfH);
-      this.renderer.render(this.scene, orthoCam);
+      this.renderer.render(this.scene, this.orthoCam);
     }
 
     this.animId = requestAnimationFrame(this.render);

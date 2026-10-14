@@ -185,27 +185,32 @@ A inconsistência foi resolvida sem descartar os apêndices estilizados e sem fo
 
 ---
 
-## 5. Incompatibilidades Reais com o Schema v2 e Estado do Núcleo
-
-A integração atual do `RiggingBridge` opera exclusivamente sobre as funções do **núcleo da Fase 1** (`prototypes/studio/src/rigging/core.js`), adotando o contrato **Schema v1** (`schema: 'arenamon-rig'`, `version: 1`).
+## 5. Compatibilidade com o Schema v2, Rejeição Estrita e Estabilização do Codex
 
 ### Status de Compatibilidade com o Editor Estrutural v2:
 > [!IMPORTANT]
-> A compatibilidade com o editor estrutural v2 do Codex e a proteção contra IDs duplicados no motor **NÃO estão concluídas**. O núcleo v2 é de responsabilidade técnica do Codex e permanece em desenvolvimento na branch de engenharia estrutural.
+> O núcleo técnico do Codex na branch `codex/rig-editor-stabilization` (commit `7323b48`) introduziu melhorias e o schema versão 2 (`schema: 'arenamon-rig'`, `version: 2`), com suporte a identificadores persistentes (`id`/`uuid`) e orientações em quaternion (`q: [x, y, z, w]`).
+> A camada adaptadora `RiggingBridge` agora oferece **compatibilidade bidirecional com o Schema v2**:
+> 1. **Correspondência por Identificador**: Ao importar um JSON de rig, a correspondência entre articulações prioriza o identificador persistente (`id`/`uuid`) e utiliza o `name` como fallback seguro.
+> 2. **Preservação de Orientação e IDs**: Propriedades da v2 como `id` e quaternions `q: [x, y, z, w]` são preservadas durante a importação, mantidas nas estruturas de draft e restauradas no ciclo de histórico (Undo/Redo).
+> 3. **Exportação Estendida**: O método `exportJSON({ version: 2 })` exporta a estrutura enriquecida com `version: 2`, `id` persistente e `q` preservado.
+> 4. **Rejeição Estrita de Schemas e Versões Inválidas**: O importador rejeita explicitamente qualquer arquivo cujo campo `schema` divirja de `'arenamon-rig'`, bem como qualquer `version` diferente de 1 ou 2.
 
-### Diferenças Técnicas e Incompatibilidades Conhecidas:
-1. **Identificadores Únicos vs Nomes de Juntas**:
-   - *Schema v1*: Indexa articulações unicamente por string `name`.
-   - *Schema v2*: Propõe identificadores persistentes (`id` / `uuid`) para permitir renomeações sem corrupção topológica.
-2. **Tratamento de IDs Duplicados**:
-   - *Núcleo v1*: `validateDraft` lança erro genérico em colisões de nome, mas estruturas intermediárias não impedem a duplicação durante certas mutações.
-   - *Camada de UI das Propostas*: A função `validateAndImportJSON` filtra e rejeita preventivamente entradas duplicadas no payload JSON importado, mas a garantia no nível do grafo ósseo depende do núcleo v2 do Codex.
-3. **Espaço de Coordenadas e Matrizes de Amarração**:
-   - *Schema v1*: Coordenadas `p: [x, y, z]` relativas à raiz do modelo (`model-root`).
-   - *Schema v2*: Projeta inclusão de matrizes de amarração (`bindMatrix`), quaternions de orientação de repouso e offsets ósseos locais.
-4. **Mutabilidade dos Buffers de Pesos**:
-   - *Núcleo v1*: Atributos `skinIndex` e `skinWeight` são gerados volumetricamente de forma estática por `bindDraftToModel`.
-   - *Schema v2 / Fase 2*: Exigirá APIs de mutação de buffer para o pincel manual de pintura de pesos (ver Seção 7).
+### 5.1. Proteção Não-Destrutiva de Cores de Vértices (Heatmap Multi-Malha):
+Ao desativar a visualização térmica de pesos (`setHeatmap(false)`), o sistema não destrói mais as cores pré-existentes de malhas importadas (por exemplo, GLBs com vertex colors):
+- Malhas que já possuíam atributo `color` têm seu buffer e sinalizador de material (`vertexColors = true`) preservados em backup (`userData.__origVertexColorAttribute`) e integralmente restaurados.
+- Malhas sem cores originais têm o atributo temporário removido e `vertexColors` restaurado para `false`.
+
+### 5.2. Câmeras Técnicas Ortográficas no Modo Quad-View:
+O modo Quad-View não clona mais a `PerspectiveCamera`:
+- Utiliza uma instância dedicada de `THREE.OrthographicCamera` (`viewport.orthoCam`).
+- O frustum (left, right, top, bottom) é dimensionado analiticamente a partir das dimensões da caixa delimitadora do modelo (`modelBounds`) e da proporção de aspecto de cada quadrante.
+- O quadrante Superior (Top View) define explicitamente o vetor superior como `up.set(0, 0, -1)`, eliminando bloqueio de gimbal e singularidades na renderização em projeção paralela estrita.
+
+### 5.3. Testes Ponta a Ponta com Eventos Reais de Mouse no Canvas:
+A suíte Playwright (`test-proposals.mjs`) foi expandida para além das chamadas programáticas:
+- Exercita eventos reais de ponteiro (`page.mouse.move`, `page.mouse.down`, `page.mouse.move`, `page.mouse.up`) sobre os manipuladores de eixo do `TransformControls` no canvas WebGL.
+- Comprova a ativação do estado `dragging`, a emissão de `dragging-changed`, o deslocamento de coordenadas 3D em tempo real, o registro de histórico atômico e a restauração perfeita pelo Undo.
 
 ---
 
