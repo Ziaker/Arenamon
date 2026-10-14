@@ -108,6 +108,15 @@ try {
   await page.evaluate(p=>window.__studioRig.applyJoint('mixamorigHead',[p[0],p[1]+.06,p[2]]),baseline);
   const changed=await page.evaluate(()=>window.__studioRig.exportCoordinates().joints.find(j=>j.name==='mixamorigHead').p);
   assert.ok(Math.abs(changed[1]-baseline[1]-.06)<.001);
+  const editedRoundtrip=await page.evaluate(async()=>{
+    const E=window.__importer,bytes=await E.exportGLB({unlit:false,noTextures:false});
+    const parsed=await E.parse(new File([bytes],'editado.glb',{type:'model/gltf-binary'}));
+    parsed.scene.updateMatrixWorld(true);
+    const head=parsed.scene.getObjectByName('mixamorigHead');
+    return parsed.scene.worldToLocal(head.getWorldPosition(new E.T.Vector3())).toArray();
+  });
+  assert.ok(Math.abs(editedRoundtrip[1]-changed[1])<.001,'posição editada deve sobreviver ao GLB');
+  mark('Coordenada editada de osso existente persiste na exportação/reimportação');
   await page.evaluate(()=>window.__studioEditor.history.undo());
   const reverted=await page.evaluate(()=>window.__studioRig.exportCoordinates().joints.find(j=>j.name==='mixamorigHead').p);
   assert.ok(Math.abs(reverted[1]-baseline[1])<.001);
@@ -121,6 +130,27 @@ try {
     assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),'layout horizontal em '+vp.width);
   }
   mark('Layout da aba respeita tablet e celular');
+  // Salvamento de um rascunho sem skin: GLB pode aninhar extras no primeiro nó.
+  await page.setViewportSize({width:1440,height:900});
+  await page.evaluate(async()=>{
+    const E=window.__importer,T=E.T,root=new T.Group();
+    root.name='DraftPersist';root.position.set(.2,0,.1);root.scale.setScalar(.8);
+    const mesh=new T.Mesh(new T.BoxGeometry(1,2,.7),new T.MeshStandardMaterial());
+    mesh.name='DraftBody';mesh.position.y=1;root.add(mesh);
+    await E.install(root,[],'draft.glb');
+  });
+  if(!await page.evaluate(()=>window.__studioRig.active))await page.click('[data-panel=rigging]');
+  await page.click('#rg-template');
+  const draftBefore=await page.evaluate(()=>window.__studioRig.draft.joints.find(j=>j.name==='LeftElbow').p);
+  await page.evaluate(async()=>{
+    const E=window.__importer,bytes=await E.exportGLB({unlit:false,noTextures:false});
+    const parsed=await E.parse(new File([bytes],'draft-restaurado.glb',{type:'model/gltf-binary'}));
+    await E.install(parsed.scene,parsed.animations,'draft-restaurado.glb');
+  });
+  const draftAfter=await page.evaluate(()=>window.__studioRig.draft?.joints.find(j=>j.name==='LeftElbow').p);
+  assert.ok(draftAfter&&draftAfter.length===3,'rascunho recuperado');
+  assert.ok(Math.abs(draftBefore[0]*.8+.2-draftAfter[0])<.01,'coordenadas convertidas com hierarquia');
+  mark('Rascunho de rig salvo em GLB reabre e conserva pontos após mudança de raiz');
   assert.deepEqual(report.requests,[]);assert.deepEqual(report.errors,[]);
   await writeFile(out+'rigging-browser.json',JSON.stringify(report,null,2));
   console.log('\nRigging Studio: '+report.tests.length+' verificações de navegador aprovadas.');
