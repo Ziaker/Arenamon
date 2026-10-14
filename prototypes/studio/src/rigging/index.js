@@ -7,7 +7,7 @@ import {modelBounds, makeTemplate, collectBones, currentJoints, auditRig,
 
 const $=id=>document.getElementById(id), E=window.__importer;
 const S={draft:null,selected:null,markers:new Map(),rigBones:new Map(),lastAudit:null,
-  lastModel:null,wasActive:false,dragging:false,dragBefore:null,poseBone:null,poseBase:null,
+  lastModel:null,wasActive:false,playBefore:false,dragging:false,dragBefore:null,poseBone:null,poseBase:null,
   poseAngle:0,suppress:false};
 const geo=new T.SphereGeometry(1,12,8);
 const ray=new T.Raycaster(),mouse=new T.Vector2(),world=new T.Vector3();
@@ -22,7 +22,6 @@ const vector=a=>new T.Vector3(a[0],a[1],a[2]);
 const array=p=>[p.x,p.y,p.z];
 const near=(a,b)=>a?.length===b?.length&&a.every((n,i)=>Math.abs(n-b[i])<1e-7);
 const safe=(s)=>String(s??'').slice(0,200);
-const hasSkin=()=>!!E.model&&!!collectBones(E.model).length&&!!E.model.getObjectByProperty('__none__','x'); // overridden below
 const skinned=()=>{let n=0;E.model?.traverse(o=>{if(o.isSkinnedMesh)n++;});return n;};
 function status(message,severity='normal'){const box=$('rg-state');box.textContent=message;box.dataset.status=severity;E.status(message.replace(/\n/g,' · '));}
 function mark(reason){E.model && window.__studioProject?.markDirty(reason);}
@@ -61,7 +60,18 @@ function prepareRig() {
 function resetOnInstall(){
   clearPose();disposeMarkers();S.rigBones.clear();S.draft=null;S.selected=null;
   S.lastAudit=null;S.lastModel=E.model;S.wasActive=false;
-  if(E.model)prepareRig();
+  if(E.model){
+    if(active()){S.playBefore=E.playing;prepareRig();S.wasActive=true;}
+    else {
+      S.rigBones=new Map(collectBones(E.model).map(b=>[b.name,b]));
+      if(!skinned()&&E.model.userData?.arenamonRigDraft?.schema==='arenamon-rig'){
+        try{validateDraft(E.model.userData.arenamonRigDraft,modelBounds(E.model));
+          S.draft=structuredClone(E.model.userData.arenamonRigDraft);}catch(e){console.warn(e);}
+      }
+      S.selected=S.draft?.joints[0]?.name||collectBones(E.model)[0]?.name||null;
+      render();
+    }
+  }
 }
 
 function updateMarkers() {
@@ -223,11 +233,13 @@ function onTemplate() {
 }
 function onBind() {
   if(!E.model||!S.draft)return;
-  const message='Vincular agora '+S.draft.joints.length+' ossos às malhas usando pesos iniciais automáticos?\n\nO skinning é real e exportável, mas os pesos podem precisar de correções. A operação não é desfeita pelo histórico; salve uma cópia do GLB original antes.';
+  const message='Vincular agora '+S.draft.joints.length+' ossos às malhas usando pesos iniciais automáticos?\n\nO skinning é real e exportável, mas os pesos podem precisar de correções. A operação é estrutural e limpará o histórico de desfazer. Salve uma cópia do GLB original antes.';
   if(!window.confirm(message))return;
   clearPose();E.enterRigRest();
   try{
     const result=bindDraftToModel(E.model,S.draft,{smoothness:Number($('rg-smooth').value)});
+    // Não permitir que Undo de pontos anteriores seja aplicado incorretamente a um skin já vinculado.
+    window.__studioEditor?.history?.clear();
     delete E.model.userData.arenamonRigDraft;
     E.commitRig({replacements:result.replacements,reason:'criar rig com skinning e '+result.bones.length+' ossos'});
     S.draft=null;S.rigBones=new Map(collectBones(E.model).map(b=>[b.name,b]));S.selected=result.bones[0]?.name||null;
@@ -330,8 +342,8 @@ TC.addEventListener('objectChange',()=>{
 // Ativação da aba: pausa animações para editar bind rest, sem alterar clipes/keys.
 E.on('tick',()=>{
   const now=active();
-  if(now&&!S.wasActive&&E.model){S.wasActive=true;prepareRig();}
-  else if(!now&&S.wasActive){S.wasActive=false;clearPose();hideMarkers();E.controls.enabled=true;}
+  if(now&&!S.wasActive&&E.model){S.playBefore=E.playing;S.wasActive=true;prepareRig();}
+  else if(!now&&S.wasActive){S.wasActive=false;clearPose();hideMarkers();E.controls.enabled=true;if(E.clips.length){E.selectIndex(E.selectedIndex);E.setPlaying(S.playBefore);}}
   if(now&&!S.dragging&&E.model){updateMarkers();}
 });
 $('rg-pose-card').hidden=true;
