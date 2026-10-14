@@ -51,15 +51,22 @@ try {
  mark('Caminhada real adicionada à biblioteca sem apagar os três clipes existentes');
  // Edição de mapeamento manual e outro preset.
  await page.locator('#rg-diag-mapping summary').evaluate(el=>el.click());
- const before=await page.evaluate(()=>window.__studioDiagnostics.mapping.lElbow);
- assert.ok(before);
+ const head=await page.evaluate(()=>{
+   const b=window.__importer.model.getObjectByName('mixamorigHead');
+   const id=b.uuid;b.name='CabecaCriaturaNaoPadrao';
+   window.__studioDiagnostics.refresh();
+   return id;
+ });
+ assert.equal(await page.evaluate(()=>window.__studioDiagnostics.mapping.head),undefined);
  await page.evaluate(uuid=>{
-   const select=document.querySelector('[data-role="lElbow"]');select.value=uuid;select.dispatchEvent(new Event('change',{bubbles:true}));
- },before);
+   const select=document.querySelector('[data-role="head"]');
+   select.value=uuid;select.dispatchEvent(new Event('change',{bubbles:true}));
+ },head);
+ assert.equal(await page.evaluate(()=>window.__studioDiagnostics.mapping.head),head);
  await page.selectOption('#rg-diag-preset','tackle');
  const r=await page.evaluate(()=>window.__studioDiagnostics.currentReport);
  assert.ok(r.available.length>=1);
- mark('Remapeamento por UUID e detecção das articulações ausentes');
+ mark('Remapeamento manual por UUID com nome atípico e aviso de articulações ausentes');
  await page.evaluate(()=>window.__studioDiagnostics.generate('guard',.4));
  const remains=await page.evaluate(()=>window.__importer.clips.length);
  assert.equal(remains,4,'geração sem adicionar não altera biblioteca');
