@@ -151,12 +151,10 @@ export class Character {
   ruleDurations() {
     const out = {}, own = id => this.mapping[id] != null ? this.clips[this.mapping[id]].duration / this.speedOf(id) : null;
     const set = (path, v, from) => {if (v && Number.isFinite(v)) out[path] = {value: Math.round(v * 1000) / 1000, from};};
-    set('rules.tackleDuration', own('tackle'), 'tackle');set('rules.dodge', own('dodge_forward'), 'dodge_forward');
+    set('actions.tackle.duration', own('tackle'), 'tackle');set('actions.dodge.duration', own('dodge_forward'), 'dodge_forward');
     set('rules.recoil', own('blocked'), 'blocked');set('rules.guardStun', own('guard_impact'), 'guard_impact');
     set('rules.landingRecovery', own('land') ?? own('recover'), this.mapping.land != null ? 'land' : 'recover');
-    // Invulnerabilidade: janela marcada no Studio na animação de esquiva, se houver.
-    const i = this.mapping.dodge_forward;
-    if (i != null) {const ev = this.source.eventsByClip[i] || [], s0 = ev.find(e => e.type === 'invulnerable_start'), s1 = ev.find(e => e.type === 'invulnerable_end');if (s0 && s1 && s1.time > s0.time) set('rules.invulnerable', (s1.time - s0.time) / this.speedOf('dodge_forward'), 'dodge_forward (eventos)');}
+    // Eventos de invulnerabilidade do GLB servem apenas à comparação visual; nunca reescrevem a simulação.
     return out;
   }
   dispose() {this.mixer.stopAllAction();this.mixer.uncacheRoot(this.root);this.root.removeFromParent();}
@@ -194,8 +192,8 @@ export function studioWindows(character, actionId) {
 }
 /** Janelas reais da simulação para tackle e esquiva. */
 export function gameWindows(kind) {
-  const R = C.rules, inv = C.extras.toggles.enableInvulnerability ? [0, R.invulnerable] : null;
-  return kind === 'tackle' ? {hitbox: [0, actionDuration('tackle')], invulnerable: inv, recovery: R.invulnerable} : {hitbox: null, invulnerable: inv, recovery: R.invulnerable};
+  const p = C.actions[kind], inv = C.extras.toggles.enableInvulnerability ? [0, Math.min(p.invulnerable, p.duration)] : null;
+  return kind === 'tackle' ? {hitbox: [0, actionDuration('tackle')], invulnerable: inv, recovery: p.chainAfter} : {hitbox: null, invulnerable: inv, recovery: p.chainAfter};
 }
 export function compareWindows(character) {
   const rows = [];const ms = s => (s * 1000).toFixed(0);
