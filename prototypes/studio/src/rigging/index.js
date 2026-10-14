@@ -43,15 +43,31 @@ function joint(name){return joints().find(j=>j.name===name)||null;}
 function selectedPoint(){return joint(S.selected)?.p||null;}
 function rootPointFromWorld(w){return array(E.model.worldToLocal(w.clone()));}
 function worldFromRoot(p){return E.model.localToWorld(vector(p));}
+// Um GLB reimportado pode conter os metadados no primeiro nó, não na Scene do GLTFLoader.
+function restoredDraft(root) {
+  let hit=null;
+  root.traverse(o=>{if(!hit&&o.userData?.arenamonRigDraft?.schema==='arenamon-rig')hit={node:o,draft:o.userData.arenamonRigDraft};});
+  if(!hit)return null;
+  const copy=structuredClone(hit.draft);
+  // As coordenadas são do nó onde foram salvas; converte para a raiz atual do modelo.
+  root.updateMatrixWorld(true);
+  copy.joints=copy.joints.map(j=>{
+    const local=vector(j.p), world=hit.node.localToWorld(local);
+    return {...j,p:array(root.worldToLocal(world))};
+  });
+  const b=modelBounds(root);
+  copy.bounds={min:b.min,max:b.max,size:b.size};
+  validateDraft(copy,b);
+  return copy;
+}
+
 function prepareRig() {
   if(!E.model)return;
   E.enterRigRest();
   S.rigBones=new Map(collectBones(E.model).map(b=>[b.name,b]));
   if(skinned())S.draft=null;
-  else if(!S.draft&&E.model.userData?.arenamonRigDraft?.schema==='arenamon-rig') {
-    try {validateDraft(E.model.userData.arenamonRigDraft,modelBounds(E.model));
-      S.draft=structuredClone(E.model.userData.arenamonRigDraft);
-    } catch(e){console.warn('Rig em rascunho ignorado:',e.message);}
+  else if(!S.draft) {
+    try {S.draft=restoredDraft(E.model);} catch(e){console.warn('Rig em rascunho ignorado:',e.message);}
   }
   if(S.draft?.joints.length)S.selected=S.draft.joints.some(j=>j.name===S.selected)?S.selected:S.draft.joints[0].name;
   else {const bones=collectBones(E.model);S.selected=bones.some(b=>b.name===S.selected)?S.selected:(bones[0]?.name||null);}
@@ -64,10 +80,7 @@ function resetOnInstall(){
     if(active()){S.playBefore=E.playing;prepareRig();S.wasActive=true;}
     else {
       S.rigBones=new Map(collectBones(E.model).map(b=>[b.name,b]));
-      if(!skinned()&&E.model.userData?.arenamonRigDraft?.schema==='arenamon-rig'){
-        try{validateDraft(E.model.userData.arenamonRigDraft,modelBounds(E.model));
-          S.draft=structuredClone(E.model.userData.arenamonRigDraft);}catch(e){console.warn(e);}
-      }
+      if(!skinned()){try{S.draft=restoredDraft(E.model);}catch(e){console.warn(e);}}
       S.selected=S.draft?.joints[0]?.name||collectBones(E.model)[0]?.name||null;
       render();
     }
