@@ -1,0 +1,47 @@
+name: Arenamon Studio Diagnostic Animations
+
+on:
+  push:
+    branches:
+      - feat/studio-diagnostic-animations-gpt6
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnostics:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Instalar dependencias
+        run: npm ci
+      - name: Compilar HTML unico offline
+        run: node prototypes/studio/build.mjs
+      - name: Unitarios de animacoes diagnosticas
+        run: node prototypes/studio/test/diagnostic-animations.test.mjs
+      - name: Navegador de animacoes diagnosticas
+        run: node prototypes/studio/test/diagnostic-animations.browser.mjs
+      - name: Rigging unitarios anteriores
+        run: node prototypes/studio/test/rigging.test.mjs
+      - name: Rigging navegador anterior
+        run: node prototypes/studio/test/rigging.browser.mjs
+      - name: Editor unitarios anteriores
+        run: node prototypes/studio/test/ops.test.mjs
+      - name: Studio regressao completa
+        run: node prototypes/studio/verify.mjs
+      - name: Arquivo de teste e evidencias
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: arenamon-studio-diagnostics
+          path: |
+            prototypes/studio/dist/arenamon-animation-studio.html
+            prototypes/studio/validation/
+          if-no-files-found: warn
+          retention-days: 14
