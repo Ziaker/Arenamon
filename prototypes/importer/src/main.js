@@ -33,12 +33,28 @@ async function parse(file){
 }
 function selectClip(){mixer?.stopAllAction();if(clips[+$('clip').value])mixer.clipAction(clips[+$('clip').value]).reset().play();actionEditor.selected();}
 function updateClips(){const selected=$('clip').value;$('clip').replaceChildren(...clips.map((c,i)=>new Option(c.name||`Animação ${i+1}`,String(i))));$('clip').value=selected||'0';if(!$('clip').value&&clips.length)$('clip').value='0';selectClip();}
-function install(root,animations){
+function frameModel(){
+ if(!model)return;
+ model.updateMatrixWorld(true);
+ model.traverse(o=>{if(o.isSkinnedMesh){o.skeleton.update();o.computeBoundingBox();o.computeBoundingSphere();}});
+ const box=new T.Box3().setFromObject(model),center=box.getCenter(new T.Vector3()),size=box.getSize(new T.Vector3());
+ if(box.isEmpty()||!Number.isFinite(size.length()))throw Error('Não foi possível enquadrar a malha deste arquivo.');
+ const radius=Math.max(size.length()/2,.001),angle=Math.atan(Math.tan(T.MathUtils.degToRad(camera.fov/2))*Math.min(camera.aspect,1)),distance=radius/Math.sin(angle)*1.15;
+ controls.target.copy(center);camera.position.copy(center).add(new T.Vector3(.7,.4,1.2).normalize().multiplyScalar(distance));
+ camera.near=Math.max(radius/1000,.00001);camera.far=distance+radius*100;camera.updateProjectionMatrix();controls.update();
+}
+async function install(root,animations){
+ let meshCount=0;root.traverse(o=>{if(o.isMesh&&o.geometry.attributes.position?.count)meshCount++;});
+ if(!meshCount)throw Error('Este arquivo não contém malha. Importe primeiro o personagem com “With Skin”; use “Anexar animações” para arquivos “Without Skin”.');
+ status('Preparando o preview…');$('export').disabled=true;$('frame').disabled=true;
  mixer?.stopAllAction();disposePreview();if(model){model.removeFromParent();const resources=new Set();model.traverse(o=>{if(o.isMesh){resources.add(o.geometry);for(const m of [].concat(originals.get(o.uuid))){resources.add(m);for(const v of Object.values(m))if(v?.isTexture)resources.add(v);}}});resources.forEach(r=>r.dispose());}
  model=root;clips=animations;originals=new Map();rest=new Map();materialIds=new Map();const remove=[];
  root.traverse(o=>{if(o.isLight){remove.push(o);return;}rest.set(o.uuid,{position:o.position.clone(),quaternion:o.quaternion.clone(),scale:o.scale.clone(),matrix:o.matrix.clone()});if(o.isMesh){originals.set(o.uuid,o.material);for(const m of [].concat(o.material))if(!materialIds.has(m))materialIds.set(m,materialIds.size);}});remove.forEach(o=>o.removeFromParent());
  let savedActions=root.userData.arenamonActions;root.traverse(o=>{savedActions??=o.userData.arenamonActions;});actionEditor.reset(savedActions);scene.add(root);mixer=new T.AnimationMixer(root);refresh();root.updateMatrixWorld(true);
- const box=new T.Box3().setFromObject(root),center=box.getCenter(new T.Vector3()),size=Math.max(box.getSize(new T.Vector3()).length(),.1);controls.target.copy(center);camera.position.copy(center).add(new T.Vector3(size*.7,size*.4,size*1.2));camera.far=Math.max(size*100,1000);camera.updateProjectionMatrix();controls.update();updateClips();$('export').disabled=false;
+ updateClips();mixer.update(0);frameModel();
+ await renderer.compileAsync(scene,camera);
+ await new Promise(resolve=>requestAnimationFrame(()=>{renderer.render(scene,camera);requestAnimationFrame(resolve);}));
+ $('export').disabled=false;$('frame').disabled=false;
  status(`Modelo carregado. ${clips.length} animações. Texturas externas não são carregadas; use GLB com recursos embutidos.`);
 }
 function normalize(name){return name.replace(/^mixamorig[:_]?/i,'').replace(/[^a-z0-9]/gi,'').toLowerCase();}
@@ -57,12 +73,14 @@ async function exportGLB(){
  try{return await new GLTFExporter().parseAsync(root,{binary:true,animations:exportedClips,onlyVisible:false});}finally{root.traverse(o=>{if(o.isMesh)[].concat(o.material).forEach(m=>m.dispose());});}
 }
 async function task(fn){if(busy)return;busy=true;try{await fn();}catch(e){status(e.message);console.error(e);}finally{busy=false;}}
-$('model').onchange=()=>task(async()=>{const f=$('model').files[0];if(!f)return;const data=await parse(f);install(data.scene,data.animations);});
+$('model').onclick=()=>{$('model').value='';};
+$('model').onchange=()=>task(async()=>{const f=$('model').files[0];if(!f)return;status(`Lendo ${f.name}…`);const data=await parse(f);await install(data.scene,data.animations);});
 $('animations').onchange=()=>task(async()=>{for(const f of $('animations').files){const data=await parse(f);const count=append(data.animations);status(`${count} animações anexadas de ${f.name}. Total: ${clips.length}.`);}});
 for(const id of ['textures','lighting','palette','color'])$(id).onchange=()=>{for(const key of ['textures','lighting'])$(key+'Label').textContent=(key==='textures'?'Texturas':'Iluminação')+': '+($(key).checked?'ON':'OFF');refresh();};
 $('clip').onchange=selectClip;$('play').onclick=()=>{playing=!playing;};
+$('frame').onclick=()=>task(async()=>{frameModel();renderer.render(scene,camera);});
 $('export-json').onclick=()=>{const data=actionEditor.manifest(),url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download='arenamon-actions.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);status(`JSON exportado. ${data.missingActions.length} ações pendentes. ${data.warnings.length} avisos nos extras.`);};
 $('export').onclick=()=>task(async()=>{const data=await exportGLB(),url=URL.createObjectURL(new Blob([data],{type:'model/gltf-binary'})),a=document.createElement('a');a.href=url;a.download='arenamon-prototipo.glb';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);status(`GLB exportado · ${clips.length} animações · ${$('noTextures').checked?'sem texturas':'texturas permitidas'} · ${$('unlit').checked?'unlit':'iluminado'}.`);});
-new ResizeObserver(()=>{const w=view.clientWidth,h=view.clientHeight;renderer.setSize(w,h);camera.aspect=w/h;camera.updateProjectionMatrix();}).observe(view);
+new ResizeObserver(()=>{const w=view.clientWidth,h=view.clientHeight;if(w<1||h<1)return;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}).observe(view);
 const clock=new T.Clock();renderer.setAnimationLoop(()=>{const dt=Math.min(clock.getDelta(),.1);if(playing)mixer?.update(dt);controls.update();renderer.render(scene,camera);});
 window.__importer={install,append,exportGLB,parse,get model(){return model;},get clips(){return clips;},T,refresh};

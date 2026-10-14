@@ -10,17 +10,24 @@ try{
  const page=await browser.newPage({viewport:{width:1200,height:850}}),errors=[],network=[];
  page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{if(/^https?:/.test(r.url()))network.push(r.url());});
  await page.context().setOffline(true);await page.goto(pathToFileURL(root+'dist/importador-prototipo.html').href);await page.waitForFunction(()=>window.__importer);
- await page.evaluate(()=>{
+ await page.evaluate(async()=>{
  const {T,install,append}=window.__importer,root=new T.Group(),bone=new T.Bone();bone.name='Hips';root.add(bone);
  const geometry=new T.BoxGeometry(),n=geometry.attributes.position.count;
  geometry.setAttribute('skinIndex',new T.Uint16BufferAttribute(new Uint16Array(n*4),4));const weights=new Float32Array(n*4);for(let i=0;i<n;i++)weights[i*4]=1;geometry.setAttribute('skinWeight',new T.Float32BufferAttribute(weights,4));
  const tex=new T.DataTexture(new Uint8Array([255,0,0,255]),1,1);tex.needsUpdate=true;
  const material=new T.MeshStandardMaterial({map:tex,normalMap:tex,roughnessMap:tex,metalnessMap:tex,emissiveMap:tex,alphaMap:tex});const mesh=new T.SkinnedMesh(geometry,material);mesh.name='Body';root.add(mesh);mesh.bind(new T.Skeleton([bone]));root.add(new T.PointLight());
- install(root,[new T.AnimationClip('idle',1,[new T.VectorKeyframeTrack('Hips.position',[0,1],[0,0,0,0,1,0])])]);
+ await install(root,[new T.AnimationClip('idle',1,[new T.VectorKeyframeTrack('Hips.position',[0,1],[0,0,0,0,1,0])])]);
  append([new T.AnimationClip('walk',1,[new T.QuaternionKeyframeTrack('mixamorigHips.quaternion',[0,1],[0,0,0,1,0,0,0.70710678,0.70710678])])]);
  append([new T.AnimationClip('run',1,[new T.VectorKeyframeTrack('Hips.position',[0,1],[0,0,0,1,0,0])])]);
  let rejected=false;try{append([new T.AnimationClip('invalid',1,[new T.VectorKeyframeTrack('Unknown.position',[0,1],[0,0,0,0,0,0])])]);}catch{rejected=true;}if(!rejected||window.__importer.clips.length!==3)throw Error('Incompatible rig not rejected atomically');
  });
+ async function assertVisible(){
+ const png=(await page.locator('canvas').screenshot()).toString('base64');
+ const visible=await page.evaluate(async png=>{const img=new Image();img.src='data:image/png;base64,'+png;await img.decode();const canvas=document.createElement('canvas');canvas.width=img.width;canvas.height=img.height;const ctx=canvas.getContext('2d');ctx.drawImage(img,0,0);const data=ctx.getImageData(0,0,canvas.width,canvas.height).data;let count=0;for(let i=0;i<data.length;i+=4)if(Math.abs(data[i]-25)+Math.abs(data[i+1]-33)+Math.abs(data[i+2]-44)>60)count++;return count/(canvas.width*canvas.height);},png);
+ assert.ok(visible>.01,`Preview vazio: fração visível ${visible}`);
+ }
+ await assertVisible();
+ await page.evaluate(async()=>{const {install,T,model}=window.__importer;let rejected=false;try{await install(new T.Group(),[]);}catch(e){rejected=e.message.includes('With Skin');}if(!rejected||window.__importer.model!==model)throw Error('Importação sem malha deve preservar o modelo atual');});
  for(const id of ['textures','lighting']){await page.check('#'+id);await page.uncheck('#'+id);}
  await page.selectOption('#palette','global');await page.selectOption('#palette','palette');
  await mkdir(root+'validation',{recursive:true});
@@ -48,7 +55,14 @@ try{
  await page.waitForFunction(()=>document.getElementById('action-extra_1').value==='1');assert.deepEqual(await downloadMap('restored-actions.json'),mapping);
  await page.screenshot({path:root+'validation/actions.png'});
  const deform=await page.evaluate(()=>{const {T,model,clips}=window.__importer,mesh=model.getObjectByName('Body'),mixer=new T.AnimationMixer(model);mixer.clipAction(clips[0]).play();mixer.setTime(0);model.updateMatrixWorld(true);mesh.skeleton.update();const a=mesh.getVertexPosition(0,new T.Vector3()).toArray();mixer.setTime(.5);model.updateMatrixWorld(true);mesh.skeleton.update();const b=mesh.getVertexPosition(0,new T.Vector3()).toArray();return {a,b};});assert.notDeepEqual(deform.a,deform.b);
- const report={synthetic:{animations:3,noTextures:true,unlit:true,skinningDeforms:true},actionEditor:{rename:true,duplicateAndEmptyRejected:true,actions:23,extras:4,jsonReferences:true,alternativeNames:true,glbRoundtrip:true},errors,network};
+ const report={synthetic:{animations:3,noTextures:true,unlit:true,skinningDeforms:true},preview:{visiblePixels:true,missingMeshRejected:true},actionEditor:{rename:true,duplicateAndEmptyRejected:true,actions:23,extras:4,jsonReferences:true,alternativeNames:true,glbRoundtrip:true},errors,network};
+ if(process.env.ARENAMON_LOCAL_FBX){
+ const previous=await page.evaluate(()=>window.__importer.model.uuid);await page.setInputFiles('#model',process.env.ARENAMON_LOCAL_FBX);
+ await page.waitForFunction(id=>window.__importer.model.uuid!==id&&!document.getElementById('frame').disabled&&document.getElementById('status').textContent.startsWith('Modelo carregado'),previous);
+ await assertVisible();await page.click('#frame');await assertVisible();
+ for(const viewport of [{width:1850,height:930},{width:390,height:844}]){await page.setViewportSize(viewport);await page.click('#frame');await assertVisible();assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));}
+ await page.setViewportSize({width:1200,height:850});await page.click('#frame');report.preview.localFBX=true;
+ }
  if(process.env.ARENAMON_LOCAL_MODEL){const source=process.env.ARENAMON_LOCAL_MODEL,sourceBytes=await readFile(source),original=json(sourceBytes);await page.setInputFiles('#model',source);await page.waitForFunction(n=>window.__importer.clips.length===n,original.animations.length);const result=await download('local-prototype.glb'),resultBytes=await readFile(result.path);check(result.doc,original.animations.length);
  assert.deepEqual(result.doc.animations.map(a=>a.name),original.animations.map(a=>a.name));assert.deepEqual(result.doc.skins.map(s=>s.joints.map(i=>result.doc.nodes[i].name)),original.skins.map(s=>s.joints.map(i=>original.nodes[i].name)));
  const hierarchy=doc=>doc.nodes.filter(n=>doc.skins.some(s=>s.joints.includes(doc.nodes.indexOf(n)))).map(n=>[n.name,(n.children||[]).map(i=>doc.nodes[i].name)]);assert.deepEqual(hierarchy(result.doc),hierarchy(original));

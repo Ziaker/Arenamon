@@ -1,5 +1,9 @@
 # Importador de protótipos
 
+O estado de importação aparece junto ao seletor de modelo. O carregamento só é confirmado após preparar os materiais e desenhar o preview. **Enquadrar modelo** recalcula a câmera a partir da pose atual. Arquivos sem malha (por exemplo, Mixamo Without Skin) são rejeitados no campo de modelo sem remover o personagem já aberto; use o campo de anexação para eles.
+
+Os testes verificam pixels visíveis no preview. Defina `ARENAMON_LOCAL_FBX` ao executar `node prototypes/importer/verify.mjs` para verificar também um FBX local, o reenquadramento e o layout em janelas larga e estreita. Nenhum modelo local é incluído no repositório.
+
 ## Nomes e ações
 
 Selecione um clip, edite seu nome e clique em **Renomear animação**. Nomes vazios ou repetidos são rejeitados. Na importação, nomes duplicados recebem sufixos numéricos para que as referências sejam inequívocas. Renomear não altera os tracks nem o rig.
