@@ -140,7 +140,8 @@ try {
     await E.install(root,[],'draft.glb');
   });
   if(!await page.evaluate(()=>window.__studioRig.active))await page.click('[data-panel=rigging]');
-  await page.click('#rg-template');
+  await page.locator('#rg-template').evaluate(el=>el.click()); // DOM click evita espera de navegação espúria em file:// no Edge CI.
+  await page.waitForFunction(()=>window.__studioRig.draft?.joints.length===20);
   const draftBefore=await page.evaluate(()=>window.__studioRig.draft.joints.find(j=>j.name==='LeftElbow').p);
   await page.evaluate(async()=>{
     const E=window.__importer,bytes=await E.exportGLB({unlit:false,noTextures:false});
