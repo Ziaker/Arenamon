@@ -30,6 +30,16 @@ Não havia fonte correspondente no repositório. A Fase 1 transformou esse HTML 
 
 A aba **Rigging** tem dois fluxos: editar/validar os ossos de um personagem já rigado, ou criar **20 pontos ósseos guiados** para uma malha sem rig e gerar pesos iniciais por proximidade aos segmentos. Inclui simetria Left/Right, edição no visualizador por marcadores, coordenadas locais/mundo, comprimento entre bones, vértices influenciados, diagnóstico de pesos e exportação/importação JSON. A geometria é realmente convertida em `SkinnedMesh`, e o GLB pode ser reimportado. O cálculo automático **não garante anatomia ou pesos profissionais**; pintura manual de pesos e templates não humanoides são objetivos futuros. Veja [RIGGING_FASE1.md](RIGGING_FASE1.md).
 
+## Animações genéricas para teste do Rigging
+
+Na aba **Rigging**, o grupo **Animações genéricas para testar o rig** oferece oito movimentos procedurais: inspeção osso por osso, idle, caminhada, corrida, agachamento, investida, esquiva e defesa. Eles ajudam a detectar falhas de pesos e de orientação em personagens humanoides e semihumanoides.
+
+A interface reconhece nomes conhecidos (como Mixamo) e os ossos do template guiado. Para esqueletos com nomes atípicos, disponibiliza **mapeamento manual por articulação**, intensidade ajustável e relatório de articulações ausentes.
+
+**Adicionar à biblioteca** gera um `AnimationClip` separado sem apagar animações anteriores; **Gerar e assistir** também abre a prévia. Os movimentos são marcados como **DIAGNÓSTICO**, apenas para testar deformações, **sem root motion, física de combate ou eventos de hitbox**.
+
+Veja [DIAGNOSTIC_ANIMATIONS.md](DIAGNOSTIC_ANIMATIONS.md) para limitações, procedimentos e testes.
+
 ## Salvar, sair e recuperar
 
 - **Salvar projeto** grava um `.arenamon.glb` completo: materiais originais, animações editadas, organização, eventos e root motion. Reabra-o como modelo para continuar. O **GLB final** e o **JSON** ficam em Exportar e não contam como salvar o projeto.
