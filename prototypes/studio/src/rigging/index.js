@@ -286,7 +286,7 @@ async function importJSON(file) {
 function pose() {
   if(!active()||S.draft||!S.selected)return;
   const b=findBone(S.selected);if(!b)return;
-  if(S.poseBone!==b){clearPose();S.poseBone=b;S.poseBase=b.quaternion.clone();}
+  if(S.poseBone!==b){if(S.poseBone&&S.poseBase)S.poseBone.quaternion.copy(S.poseBase);S.poseBone=b;S.poseBase=b.quaternion.clone();S.poseAngle=0;}
   const a=T.MathUtils.degToRad(Number($('rg-pose').value)||0);
   const axis=new T.Vector3(...(['x','y','z'].map(k=>k===$('rg-pose-axis').value?1:0)));
   b.quaternion.copy(S.poseBase).multiply(new T.Quaternion().setFromAxisAngle(axis,a));
