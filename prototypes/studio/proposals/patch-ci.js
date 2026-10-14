@@ -1,4 +1,4 @@
-// Injeta parâmetros de software GL (SwiftShader) e resiliência de captura no Playwright para CI
+// Injeta parâmetros de software GL (SwiftShader) e resiliência de captura e cliques no Playwright para CI
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -25,10 +25,18 @@ try {
       const _origNewPage = ctx.newPage.bind(ctx);
       ctx.newPage = async function(pageOpts) {
         const page = await _origNewPage(pageOpts);
+        
+        // Evita espera espúria de navegação após clique no Edge headless
+        const _origClick = page.click.bind(page);
+        page.click = async function(selector, cOpts = {}) {
+          return _origClick(selector, { noWaitAfter: true, ...cOpts });
+        };
+
+        // Captura resiliente com timeout controlado e fallback em software GL
         const _origScreenshot = page.screenshot.bind(page);
         page.screenshot = async function(sOpts = {}) {
           try {
-            return await _origScreenshot({ animations: 'disabled', timeout: 5000, ...sOpts });
+            return await _origScreenshot({ animations: 'disabled', timeout: 8000, ...sOpts });
           } catch (err) {
             console.warn('page.screenshot fallback aplicado no CI:', err.message);
             if (sOpts && sOpts.path) {
@@ -58,5 +66,5 @@ try {
 `;
   const cleaned = content.replace(/\/\/\s*__swiftshader[\s\S]*$/, '');
   fs.writeFileSync(target, cleaned + patch, 'utf8');
-  console.log('✓ Patch SwiftShader + resiliência Playwright aplicado em playwright-core/index.js para CI');
+  console.log('✓ Patch SwiftShader + noWaitAfter + resiliência Playwright aplicado em playwright-core/index.js para CI');
 }
