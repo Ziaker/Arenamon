@@ -18,7 +18,7 @@ const controls = new OrbitControls(camera, renderer.domElement), lights = new T.
 lights.add(new T.HemisphereLight(0xffffff, 0x566477, 2));const key = new T.DirectionalLight(0xffffff, 2);key.position.set(3, 5, 4);lights.add(key);
 let model, mixer, clips = [], playing = true, originals = new Map(), rest = new Map(), materialIds = new Map(), busy = false;
 const palette = ['#829bb8', '#bc987d', '#819f91', '#9b8ead', '#b6ad7e', '#829fa9'];
-const listeners = {clipsChanged: new Set(), clipEdited: new Set(), modelInstalled: new Set(), installed: new Set(), selected: new Set(), tick: new Set(), playing: new Set(), dirty: new Set()};
+const listeners = {clipsChanged: new Set(), clipEdited: new Set(), modelInstalled: new Set(), installed: new Set(), selected: new Set(), tick: new Set(), playing: new Set(), dirty: new Set(), rigChanged: new Set()};
 const emit = (name, ...args) => {for (const fn of listeners[name]) fn(...args);};
 function status(message) {$('status').textContent = message;}
 const actionEditor = createActionEditor({
@@ -116,6 +116,45 @@ function append(animations, sourceFile) {
   clips.push(...additions);actionEditor.uniqueNames();updateClips();$('clip').value = String(clips.length - additions.length);selectClip();actionEditor.refresh();
   window.__arenamonOrganization?.refresh();window.__studioV3?.onClipsChanged?.();emit('clipsChanged');emit('dirty', 'animações adicionadas');return additions.length;
 }
+
+// ---------- Rigging: API do motor para preservar exportação e materiais ----------
+function enterRigRest() {
+  if (!model) return;
+  setPlaying(false);mixer?.stopAllAction();
+  model.traverse(o => {
+    if (!o.isBone) return;
+    const r=rest.get(o.uuid);if (!r) return;
+    o.position.copy(r.position);o.quaternion.copy(r.quaternion);o.scale.copy(r.scale);
+    o.updateMatrix();
+  });
+  model.updateMatrixWorld(true);
+  emit('rigChanged', 'rest');
+}
+function commitRig({replacements=[],reason='posicionamento dos ossos',emitDirty=true}={}) {
+  if(!model)return;
+  // A malha previamente exibida usa material temporário de visualização.
+  for(const pair of replacements) {
+    const material=originals.get(pair.old.uuid)||pair.old.material;
+    originals.delete(pair.old.uuid);rest.delete(pair.old.uuid);
+    originals.set(pair.mesh.uuid,material);
+    for(const m of [].concat(material||[])) if(!materialIds.has(m))materialIds.set(m,materialIds.size);
+  }
+  model.updateMatrixWorld(true);
+  const unique = new Set();
+  model.traverse(o => {
+    if(o.isBone || o.isSkinnedMesh || replacements.some(p=>p.mesh===o)) {
+      o.updateMatrix();rest.set(o.uuid,{position:o.position.clone(),quaternion:o.quaternion.clone(),
+        scale:o.scale.clone(),matrix:o.matrix.clone()});
+    }
+    if(o.isSkinnedMesh && o.skeleton && !unique.has(o.skeleton)){
+      unique.add(o.skeleton);o.skeleton.calculateInverses();o.skeleton.update();
+    }
+  });
+  refresh();model.updateMatrixWorld(true);
+  window.__studioV4?.onSceneLoaded?.();emit('rigChanged',reason);
+  if(emitDirty)emit('dirty',reason);
+}
+
 // ---- API de edição (Fase 1) ----
 function uniqueName(base) {const used = new Set(clips.map(c => c.name.toLowerCase()));let name = base, n = 2;while (used.has(name.toLowerCase())) name = `${base} (${n++})`;return name;}
 function addClip(clip, {select = true} = {}) {
@@ -177,7 +216,7 @@ renderer.setAnimationLoop(() => {
 });
 const on = (name, fn) => {listeners[name].add(fn);return () => listeners[name].delete(fn);};
 window.__importer = {
-  install, append, exportGLB, parse, T, refresh, manifest: () => actionEditor.manifest(), addClip, removeClip, clipChanged, seek, setPlaying, on, status, frameModel,
+  install, append, exportGLB, parse, T, refresh, enterRigRest, commitRig, manifest: () => actionEditor.manifest(), addClip, removeClip, clipChanged, seek, setPlaying, on, status, frameModel,
   get model() {return model;}, get clips() {return clips;}, get mixer() {return mixer;}, get scene() {return scene;}, get camera() {return camera;},
   get controls() {return controls;}, get renderer() {return renderer;}, get playing() {return playing;},
   get selectedIndex() {return selectedIndex();}, get selectedClip() {return clips[selectedIndex()] || null;}, get selectedAction() {return currentAction();},
