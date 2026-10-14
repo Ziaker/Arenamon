@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import * as T from 'three';
 import {modelBounds,makeTemplate,validateDraft,applyMirror,bindDraftToModel,
-  collectBones,currentJoints,auditRig,exportCoordinates} from '../src/rigging/core.js';
+  collectBones,currentJoints,auditRig,exportCoordinates,addDraftJoint,renameDraftJoint,
+  reparentDraftJoint,removeDraftJoint} from '../src/rigging/core.js';
 let pass=0;
 const test=(name,run)=>{run();pass++;console.log('✓ '+name);};
 function fixture(){
@@ -26,6 +27,13 @@ test('simetria reflete X conservando Y/Z',()=>{
   const r=applyMirror(d,'LeftElbow'),cx=(d.bounds.min[0]+d.bounds.max[0])/2;
   assert.ok(Math.abs(r.p[0]-(2*cx-l.p[0]))<1e-8);
   assert.equal(r.p[1],l.p[1]);assert.equal(r.p[2],l.p[2]);
+});
+test('edição estrutural mantém IDs estáveis e hierarquia válida',()=>{
+  const d=makeTemplate(modelBounds(fixture())),hips=d.joints.find(j=>j.name==='Hips'),id=hips.id;
+  const tail=addDraftJoint(d,{name:'Tail',parent:id});assert.ok(tail.id);assert.equal(tail.parent,'Hips');
+  renameDraftJoint(d,id,'Pelvis');assert.equal(hips.id,id);assert.equal(tail.parent,'Pelvis');
+  reparentDraftJoint(d,tail.id,d.joints.find(j=>j.name==='Spine').id);assert.equal(tail.parent,'Spine');
+  removeDraftJoint(d,tail.id);assert.equal(d.joints.some(j=>j.id===tail.id),false);validateDraft(d);
 });
 test('detecta ossos duplicados, valores não finitos, pai ausente e ciclos',()=>{
   const b=modelBounds(fixture()),d=makeTemplate(b);

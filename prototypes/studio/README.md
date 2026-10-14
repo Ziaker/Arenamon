@@ -28,7 +28,7 @@ Não havia fonte correspondente no repositório. A Fase 1 transformou esse HTML 
 
 ## Rigging — preparação antes da animação
 
-A aba **Rigging** tem dois fluxos: editar/validar os ossos de um personagem já rigado, ou criar **20 pontos ósseos guiados** para uma malha sem rig e gerar pesos iniciais por proximidade aos segmentos. Inclui simetria Left/Right, edição no visualizador por marcadores, coordenadas locais/mundo, comprimento entre bones, vértices influenciados, diagnóstico de pesos e exportação/importação JSON. A geometria é realmente convertida em `SkinnedMesh`, e o GLB pode ser reimportado. O cálculo automático **não garante anatomia ou pesos profissionais**; pintura manual de pesos e templates não humanoides são objetivos futuros. Veja [RIGGING_FASE1.md](RIGGING_FASE1.md).
+A aba **Rigging** tem dois fluxos: editar/validar os ossos de um personagem já rigado, ou criar **20 pontos ósseos guiados** para uma malha sem rig e gerar pesos iniciais por proximidade aos segmentos. A topologia é editável: criar, duplicar, renomear, excluir e reparentear ossos usa IDs estáveis e histórico. A árvore sincronizada, vistas ortográficas, etiquetas, foco, raio X, transparência e manipulador com mover/rotacionar, local/global, snapping, precisão e bloqueio de eixos ajudam no posicionamento. O bind é uma transação reversível e a geometria convertida em `SkinnedMesh` pode ser reimportada do GLB. O cálculo automático **não garante anatomia ou pesos profissionais**; pintura manual de pesos e templates não humanoides continuam como objetivos futuros. Veja [RIGGING_FASE1.md](RIGGING_FASE1.md).
 
 ## Salvar, sair e recuperar
 

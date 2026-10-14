@@ -1,6 +1,6 @@
 # Arenamon Animation Studio — Rigging, primeira entrega funcional
 
-**Situação:** implementação experimental em branch isolada `feat/studio-rigging-fase1-gpt6`. A funcionalidade precisa de avaliação com personagens reais antes da homologação. Não fazer merge na `main` sem autorização.
+**Situação:** editor estrutural experimental na branch isolada `codex/rig-editor-fase1`, construído sobre `feat/studio-rigging-fase1-gpt6`. A funcionalidade precisa de avaliação com personagens reais antes da homologação. Não fazer merge na `main` sem autorização.
 
 ## Local na interface
 
@@ -11,12 +11,13 @@ A ferramenta **Rigging** fica na barra de ferramentas **depois de Projeto e ante
 1. Em **Projeto**, importe FBX ou GLB com a malha, sem skinning.
 2. Abra **Rigging** e clique em **Criar/renovar pontos guiados**.
 3. O modelo recebe um rascunho editável de **20 posições ósseas**. Não é aplicado skin nem deformação ainda.
-4. Selecione um marcador clicando no visualizador ou no seletor. Edite em X/Y/Z ou arraste o manipulador; use simetria para os pares Left/Right. O sistema calcula a posição **relativa à raiz do modelo**, sem confundir coordenadas da tela com coordenadas 3D.
-5. Ajuste clavículas, ombros, cotovelos, punhos, quadris, joelhos, tornozelos, pés, coluna, pescoço e cabeça. O template é uma aproximação, não uma posição anatômica perfeita.
-6. Clique em **Vincular malha aos ossos (skin)** e confirme o aviso de operação estrutural.
-7. O sistema cria `THREE.SkinnedMesh`, `THREE.Bone`, `THREE.Skeleton`, `skinIndex` e `skinWeight`, com até quatro influências por vértice. A distribuição inicial usa a distância dos vértices aos segmentos entre ossos, com suavização ajustável.
-8. Use **Teste temporário da deformação** para rotacionar cada articulação. Retorne a 0°, verifique as regiões de dobra e salve o projeto GLB.
-9. Exporte e reimporte o GLB para confirmar que skin e hierarquia foram preservados. Anexe/importa animações no Studio **depois** de preparar o rig.
+4. Selecione um marcador clicando no visualizador, seletor ou árvore hierárquica. Crie, duplique, renomeie, exclua ou troque o pai de qualquer osso. Cada articulação recebe um ID estável que não muda quando o nome é editado.
+5. Edite em X/Y/Z ou arraste o manipulador; alterne mover/rotacionar, local/global, snapping, precisão e bloqueio de eixos. Use simetria para os pares Left/Right. O sistema calcula a posição **relativa à raiz do modelo**, sem confundir coordenadas da tela com coordenadas 3D.
+6. Use as vistas ortográficas frontal, traseira, esquerda, direita e superior, foco na articulação, transparência e raio X para posicionar pontos dentro da malha. Os marcadores mantêm tamanho visual legível durante o zoom e exibem etiquetas.
+7. Ajuste o template à anatomia do personagem e clique em **Vincular malha aos ossos (skin)**.
+8. O sistema cria `THREE.SkinnedMesh`, `THREE.Bone`, `THREE.Skeleton`, `skinIndex` e `skinWeight`, com até quatro influências por vértice. A distribuição inicial usa a distância dos vértices aos segmentos entre ossos, com suavização ajustável.
+9. O bind inteiro é uma transação: **Desfazer** restaura a malha estática e o rascunho; **Refazer** recoloca o mesmo skin sem recalcular ou perder os IDs.
+10. Use **Teste temporário da deformação**, exporte e reimporte o GLB para confirmar que skin e hierarquia foram preservados. Anexe/importa animações no Studio **depois** de preparar o rig.
 
 A vinculação é bloqueada se o modelo sem rig contiver clipes importados: trocar `Mesh` por `SkinnedMesh` troca UUIDs e invalidaria trilhas ligadas à malha. Importe um modelo limpo para essa etapa.
 
@@ -49,11 +50,11 @@ A aba oferece **Exportar coordenadas JSON** e **Importar coordenadas JSON**. O a
 ```json
 {
   "schema": "arenamon-rig",
-  "version": 1,
+  "version": 2,
   "space": "model-root",
   "joints": [
-    {"name": "Hips", "parent": null, "p": [0, 1.2, 0]},
-    {"name": "Spine", "parent": "Hips", "p": [0, 1.7, 0]}
+    {"id": "joint-…", "name": "Hips", "parent": null, "p": [0, 1.2, 0], "q": [0, 0, 0, 1]},
+    {"id": "joint-…", "name": "Spine", "parent": "Hips", "p": [0, 1.7, 0], "q": [0, 0, 0, 1]}
   ]
 }
 ```
@@ -68,15 +69,15 @@ Não importamos arbitrariamente novos esqueletos por JSON em malhas já vinculad
 
 - **Salvar projeto** e **Exportar GLB** preservam o skinning criado e as poses de repouso capturadas.
 - Um rascunho anterior ao bind também é armazenado como `userData.arenamonRigDraft` no GLB do projeto; ao reabrir, o Studio tenta localizar o nó onde os metadados foram salvos e converte as coordenadas à nova raiz do modelo.
-- Alterar posições (inclusive simetria) entra no histórico. A etapa de **gerar o skin é estrutural e intencionalmente NÃO tem undo**; após vinculá-lo o histórico de undo anterior é limpo para evitar operações de rascunho aplicadas em ossos de outra estrutura. Faça uma cópia antes.
+- Alterações de posição/orientação, criação, duplicação, nome, hierarquia e exclusão entram no histórico. A etapa de **gerar o skin também tem Undo/Redo transacional** e conserva o histórico do rascunho.
 - Mudanças de rig chamam o mecanismo existente de alterações não salvas, salvamento e recuperação local.
 - Marcadores, helper e teste de rotação são recursos de visualização e **não são exportados**.
 
 ## Limitações desta primeira entrega
 
-1. Pesos são automáticos e básicos; **não há pintura manual de pesos**, mapas de influência, IK, retargeting automático, controles para acrescentar/remover ossos ou geração automática de anatomia de criaturas não humanas.
-2. O template de 20 ossos é configurável em posição, mas a sua topologia é fixa nesta etapa. Personagens com membros extraordinários precisarão de topologias personalizadas numa fase posterior.
-3. Rig importado com nomes de ossos duplicados ou hierarquias com múltiplas raízes exige análise especial; a ferramenta avisa casos diagnosticados, mas a edição por nome e a importação JSON não são ideais para essas estruturas.
+1. Pesos são automáticos e básicos; **não há pintura manual de pesos**, mapas de influência, IK, retargeting automático ou geração automática de anatomia de criaturas não humanas.
+2. O template inicial continua humanoide, mas sua topologia agora é livre: caudas, orelhas, asas, dedos e membros adicionais podem ser criados manualmente.
+3. Rig importado com nomes duplicados ou múltiplas raízes exige análise especial. A seleção da interface usa IDs estáveis, mas a compatibilidade por nome de animações/JSON ainda pode ser ambígua.
 4. O modo de preview de flexão gira temporariamente um osso para inspecionar pesos; não cria animação nem keyframes.
 5. Testes com um rig sintético não provam que deformações dos modelos proprietários são satisfatórias.
 6. Limite de segurança da vinculação automática: 250.000 vértices. Verificação do GLB exportado depende do formato suportado por `GLTFExporter`.
@@ -92,4 +93,4 @@ Os modelos proprietários devem ficar no disco local do usuário. Não commitar 
 
 ## Próximas fases recomendadas
 
-Após avaliar esta entrega no browser, priorizar: edição manual de pesos com pincel e heatmap; criação/exclusão/reparenting de ossos; convenção esquerda/direita configurável; ferramentas de checagem de simetria e comprimento; templates paramétricos para criaturas; IK de mãos/pés; importação/retargeting de clips Mixamo; validação de deformação com animações reais.
+Após avaliar esta entrega no browser, priorizar: edição manual de pesos com pincel e heatmap; convenção esquerda/direita configurável; ferramentas de checagem de simetria e comprimento; templates paramétricos para criaturas; IK de mãos/pés; importação/retargeting de clips Mixamo; validação de deformação com animações reais.

@@ -10,6 +10,26 @@ const tidy = (v) => v.map(round);
 const nameOf = (o) => o.name || o.uuid;
 const isFinitePoint = (v) => Array.isArray(v) && v.length === 3 && v.every(Number.isFinite);
 const sidePair = (name) => name.startsWith('Left') ? 'Right' + name.slice(4) : name.startsWith('Right') ? 'Left' + name.slice(5) : null;
+let jointSequence = 0;
+const newJointId = () => `joint-${Date.now().toString(36)}-${(++jointSequence).toString(36)}`;
+
+export function ensureJointIds(draft) {
+  const used = new Set();
+  for (const joint of draft?.joints || []) {
+    let id = typeof joint.id === 'string' && joint.id.trim() ? joint.id : newJointId();
+    while (used.has(id)) id = newJointId();
+    joint.id = id;used.add(id);
+    if (!Array.isArray(joint.q) || joint.q.length !== 4 || !joint.q.every(Number.isFinite)) joint.q = [0,0,0,1];
+  }
+  return draft;
+}
+
+export function uniqueJointName(draft, requested='Bone') {
+  const base=String(requested||'Bone').trim()||'Bone', used=new Set(draft.joints.map(j=>j.name.toLowerCase()));
+  if(!used.has(base.toLowerCase()))return base;
+  let n=2;while(used.has(`${base}.${String(n).padStart(3,'0')}`.toLowerCase()))n++;
+  return `${base}.${String(n).padStart(3,'0')}`;
+}
 
 export function modelBounds(root) {
   root.updateMatrixWorld(true);
@@ -59,9 +79,9 @@ export function makeTemplate(bounds) {
       {name:label+'Foot',parent:label+'Ankle',p:[px(side,.20),py(.045),pz(.20)]},
     );
   }
-  return {schema:'arenamon-rig',version:1,space:'model-root',mode:'draft',joints,
+  return ensureJointIds({schema:'arenamon-rig',version:2,space:'model-root',mode:'draft',joints,
     source:'template humanoid 20 pontos — aproximado, exige ajustes anatômicos',
-    bounds:{min:tidy(bounds.min),max:tidy(bounds.max),size:tidy(bounds.size)}};
+    bounds:{min:tidy(bounds.min),max:tidy(bounds.max),size:tidy(bounds.size)}});
 }
 
 export function collectBones(root) {
@@ -79,8 +99,8 @@ export function currentJoints(root) {
   const inverse = root.matrixWorld.clone().invert();
   return collectBones(root).map(b => {
     const p = b.getWorldPosition(new T.Vector3()).applyMatrix4(inverse);
-    return {name:nameOf(b),uuid:b.uuid,parent:b.parent?.isBone ? nameOf(b.parent) : null,
-      p:arr(p),local:arr(b.position),
+    return {id:b.userData.arenamonJointId||b.uuid,name:nameOf(b),uuid:b.uuid,parent:b.parent?.isBone ? nameOf(b.parent) : null,
+      p:arr(p),local:arr(b.position),q:[b.quaternion.x,b.quaternion.y,b.quaternion.z,b.quaternion.w],
       world:arr(b.getWorldPosition(new T.Vector3()))};
   });
 }
@@ -138,9 +158,10 @@ export function auditRig(root) {
 export function validateDraft(draft,bounds) {
   if(draft?.schema!=='arenamon-rig'||!Array.isArray(draft.joints))throw Error('JSON de rig inválido: esperado schema arenamon-rig e joints.');
   if(draft.joints.length<2||draft.joints.length>200)throw Error('O rig precisa de 2 a 200 pontos.');
-  const map=new Map();
+  ensureJointIds(draft);const map=new Map(), ids=new Set();
   for(const j of draft.joints) {
     if(typeof j.name!=='string'||!j.name.trim()||map.has(j.name)||!isFinitePoint(j.p))throw Error('Osso duplicado/inválido: '+j.name);
+    if(ids.has(j.id))throw Error('ID de osso duplicado: '+j.id);ids.add(j.id);
     if(j.p.some(x=>Math.abs(x)>1e6))throw Error('Coordenada fora de limite: '+j.name);
     map.set(j.name,j);
   }
@@ -152,6 +173,36 @@ export function validateDraft(draft,bounds) {
   const roots=draft.joints.filter(j=>j.parent==null);
   if(roots.length!==1)throw Error('O esqueleto precisa de exatamente um osso raiz.');
   return true;
+}
+
+export function addDraftJoint(draft,{name='Bone',parent=null,p=null,q=[0,0,0,1]}={}) {
+  ensureJointIds(draft);const parentJoint=parent?draft.joints.find(j=>j.id===parent||j.name===parent):null;
+  if(parent&&!parentJoint)throw Error('Pai não encontrado: '+parent);
+  const base=parentJoint?.p||draft.joints[0]?.p||[0,0,0];
+  const joint={id:newJointId(),name:uniqueJointName(draft,name),parent:parentJoint?.name||null,
+    p:p?[...p]:[base[0],base[1]+.1,base[2]],q:[...q]};
+  draft.joints.push(joint);validateDraft(draft);return joint;
+}
+
+export function renameDraftJoint(draft,id,name) {
+  ensureJointIds(draft);const joint=draft.joints.find(j=>j.id===id||j.name===id);if(!joint)throw Error('Osso não encontrado.');
+  const next=String(name||'').trim();if(!next)throw Error('Informe um nome para o osso.');
+  if(draft.joints.some(j=>j!==joint&&j.name.toLowerCase()===next.toLowerCase()))throw Error('Já existe um osso chamado '+next+'.');
+  const before=joint.name;joint.name=next;for(const child of draft.joints)if(child.parent===before)child.parent=next;
+  validateDraft(draft);return joint;
+}
+
+export function reparentDraftJoint(draft,id,parent=null) {
+  ensureJointIds(draft);const joint=draft.joints.find(j=>j.id===id||j.name===id),next=parent?draft.joints.find(j=>j.id===parent||j.name===parent):null;
+  if(!joint||parent&&!next)throw Error('Osso ou pai não encontrado.');if(next===joint)throw Error('Um osso não pode ser pai de si mesmo.');
+  joint.parent=next?.name||null;validateDraft(draft);return joint;
+}
+
+export function removeDraftJoint(draft,id) {
+  ensureJointIds(draft);const joint=draft.joints.find(j=>j.id===id||j.name===id);if(!joint)throw Error('Osso não encontrado.');
+  if(draft.joints.length<=2)throw Error('O rig precisa manter pelo menos dois ossos.');
+  for(const child of draft.joints)if(child.parent===joint.name)child.parent=joint.parent;
+  draft.joints.splice(draft.joints.indexOf(joint),1);validateDraft(draft);return joint;
 }
 
 export function applyMirror(draft,name) {
@@ -174,7 +225,7 @@ export function bindDraftToModel(root,draft,{smoothness=.13,maxVertices=250000}=
   const count=meshList.reduce((s,o)=>s+(o.geometry.attributes.position?.count||0),0);
   if(count>maxVertices)throw Error('Modelo com '+count+' vértices; limite de segurança '+maxVertices+'. Simplifique antes de vincular.');
   const map=new Map(), bones=[];
-  for(const j of draft.joints){const bone=new T.Bone();bone.name=j.name;map.set(j.name,bone);bones.push(bone);}
+  for(const j of draft.joints){const bone=new T.Bone();bone.name=j.name;bone.userData.arenamonJointId=j.id;bone.quaternion.fromArray(j.q||[0,0,0,1]);map.set(j.name,bone);bones.push(bone);}
   for(const j of draft.joints){
     const bone=map.get(j.name), parent=j.parent?map.get(j.parent):root;
     const origin=j.parent?draft.joints.find(p=>p.name===j.parent).p:[0,0,0];
@@ -216,10 +267,10 @@ export function bindDraftToModel(root,draft,{smoothness=.13,maxVertices=250000}=
       // Preserva a hierarquia da malha, incluindo transformações e root.ModelTransform.
       const parent=mesh.parent;parent.add(skin);skin.updateMatrixWorld(true);
       skin.bind(skeleton,skin.matrixWorld.clone());
-      replacements.push({old:mesh,mesh:skin});
+      replacements.push({old:mesh,mesh:skin,parent});
     }
     for(const pair of replacements) pair.old.removeFromParent();
-    root.userData.arenamonRig={schema:'arenamon-rig',version:1,origin:'guided-template',joints:draft.joints.map(j=>({name:j.name,parent:j.parent,p:tidy(j.p)})),
+    root.userData.arenamonRig={schema:'arenamon-rig',version:2,origin:'guided-template',joints:draft.joints.map(j=>({id:j.id,name:j.name,parent:j.parent,p:tidy(j.p),q:[...(j.q||[0,0,0,1])]})),
       autoWeights:{method:'segment-proximity',smoothness,topInfluences:4},units:'model-local'};
     return {bones, skeleton, replacements,vertices:count};
   } catch(e) {
@@ -233,6 +284,6 @@ export function exportCoordinates(root, draft=null) {
   const bounds=modelBounds(root), audit=auditRig(root);
   return {schema:'arenamon-rig',version:1,space:'model-root',createdAt:new Date().toISOString(),
     coordinatesUnit:'unidades do modelo (não pressupõe metros)',bounds,
-    joints:draft?.joints?.length ? draft.joints.map(j=>({name:j.name,parent:j.parent,p:[...j.p]})) : currentJoints(root).map(j=>({name:j.name,parent:j.parent,p:j.p,local:j.local,world:j.world,uuid:j.uuid})),
+    joints:draft?.joints?.length ? draft.joints.map(j=>({id:j.id,name:j.name,parent:j.parent,p:[...j.p],q:[...(j.q||[0,0,0,1])]})) : currentJoints(root).map(j=>({id:j.id,name:j.name,parent:j.parent,p:j.p,local:j.local,q:j.q,world:j.world,uuid:j.uuid})),
     audit};
 }

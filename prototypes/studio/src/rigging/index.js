@@ -3,12 +3,13 @@
 import * as T from 'three';
 import {TransformControls} from 'three/addons/controls/TransformControls.js';
 import {modelBounds, makeTemplate, collectBones, currentJoints, auditRig,
-  validateDraft, applyMirror, bindDraftToModel, exportCoordinates} from './core.js';
+  validateDraft, applyMirror, bindDraftToModel, exportCoordinates, ensureJointIds,
+  addDraftJoint, renameDraftJoint, reparentDraftJoint, removeDraftJoint, uniqueJointName} from './core.js';
 
 const $=id=>document.getElementById(id), E=window.__importer;
 const S={draft:null,selected:null,markers:new Map(),rigBones:new Map(),lastAudit:null,
   lastModel:null,wasActive:false,playBefore:false,dragging:false,dragBefore:null,poseBone:null,poseBase:null,
-  poseAngle:0,suppress:false};
+  poseAngle:0,suppress:false,mode:'translate',materialState:new Map(),labels:new Map(),view:'perspective'};
 const geo=new T.SphereGeometry(1,12,8);
 const ray=new T.Raycaster(),mouse=new T.Vector2(),world=new T.Vector3();
 const TC=new TransformControls(E.camera,E.renderer.domElement);
@@ -17,7 +18,7 @@ const helper=TC.getHelper();helper.name='Arenamon Rigging · Manipulador (soment
 E.scene.add(helper);helper.visible=false;
 
 const active=()=>!!E.model&&window.__studioLayout?.panel==='rigging'&&window.__studioLayout?.leftOpen;
-const fmt=n=>Number(n).toFixed(5);
+const fmt=n=>Number(n).toFixed(Number($('rg-precision')?.value)||5);
 const vector=a=>new T.Vector3(a[0],a[1],a[2]);
 const array=p=>[p.x,p.y,p.z];
 const near=(a,b)=>a?.length===b?.length&&a.every((n,i)=>Math.abs(n-b[i])<1e-7);
@@ -28,19 +29,21 @@ function mark(reason){E.model && window.__studioProject?.markDirty(reason);}
 function hideMarkers() {TC.detach();helper.visible=false;for(const m of S.markers.values())m.visible=false;}
 function disposeMarkers() {
   TC.detach();for(const m of S.markers.values()){m.removeFromParent();m.material.dispose();}
-  S.markers.clear();
+  S.markers.clear();for(const label of S.labels.values())label.remove();S.labels.clear();
 }
 function clearPose() {
   if(S.poseBone&&S.poseBase){S.poseBone.quaternion.copy(S.poseBase);S.poseBone.updateMatrixWorld(true);}
   S.poseBone=null;S.poseBase=null;S.poseAngle=0;$('rg-pose').value='0';$('rg-pose-out').textContent='0°';
 }
 function joints() {
-  if(S.draft)return S.draft.joints;
+  if(S.draft)return ensureJointIds(S.draft).joints;
   return currentJoints(E.model);
 }
-function findBone(name) {return S.rigBones.get(name)||null;}
-function joint(name){return joints().find(j=>j.name===name)||null;}
-function selectedPoint(){return joint(S.selected)?.p||null;}
+function indexBones(){S.rigBones=new Map();for(const b of collectBones(E.model)){S.rigBones.set(b.uuid,b);S.rigBones.set(b.name,b);if(b.userData.arenamonJointId)S.rigBones.set(b.userData.arenamonJointId,b);}}
+function findBone(ref) {return S.rigBones.get(ref)||S.rigBones.get(joint(ref)?.name)||null;}
+function joint(ref){return joints().find(j=>j.id===ref||j.name===ref||j.uuid===ref)||null;}
+function selectedJoint(){return joint(S.selected);}
+function selectedPoint(){return selectedJoint()?.p||null;}
 function rootPointFromWorld(w){return array(E.model.worldToLocal(w.clone()));}
 function worldFromRoot(p){return E.model.localToWorld(vector(p));}
 // Um GLB reimportado pode conter os metadados no primeiro nó, não na Scene do GLTFLoader.
@@ -64,24 +67,24 @@ function restoredDraft(root) {
 function prepareRig() {
   if(!E.model)return;
   E.enterRigRest();
-  S.rigBones=new Map(collectBones(E.model).map(b=>[b.name,b]));
+  indexBones();
   if(skinned())S.draft=null;
   else if(!S.draft) {
     try {S.draft=restoredDraft(E.model);} catch(e){console.warn('Rig em rascunho ignorado:',e.message);}
   }
-  if(S.draft?.joints.length)S.selected=S.draft.joints.some(j=>j.name===S.selected)?S.selected:S.draft.joints[0].name;
-  else {const bones=collectBones(E.model);S.selected=bones.some(b=>b.name===S.selected)?S.selected:(bones[0]?.name||null);}
-  rebuildMarkers();render();
+  if(S.draft?.joints.length)S.selected=joint(S.selected)?.id||S.draft.joints[0].id;
+  else {const list=currentJoints(E.model);S.selected=joint(S.selected)?.id||(list[0]?.id||null);}
+  rebuildMarkers();render();setView(S.view);updateRigMaterials();
 }
 function resetOnInstall(){
-  clearPose();disposeMarkers();S.rigBones.clear();S.draft=null;S.selected=null;
+  clearPose();disposeMarkers();S.rigBones.clear();S.draft=null;S.selected=null;S.materialState.clear();
   S.lastAudit=null;S.lastModel=E.model;S.wasActive=false;
   if(E.model){
     if(active()){S.playBefore=E.playing;prepareRig();S.wasActive=true;}
     else {
-      S.rigBones=new Map(collectBones(E.model).map(b=>[b.name,b]));
+      indexBones();
       if(!skinned()){try{S.draft=restoredDraft(E.model);}catch(e){console.warn(e);}}
-      S.selected=S.draft?.joints[0]?.name||collectBones(E.model)[0]?.name||null;
+      S.selected=S.draft?.joints[0]?.id||collectBones(E.model)[0]?.uuid||null;
       render();
     }
   }
@@ -90,14 +93,17 @@ function resetOnInstall(){
 function updateMarkers() {
   if(!E.model)return;
   E.model.updateMatrixWorld(true);
-  for(const [name,m] of S.markers) {
-    if(S.dragging&&S.selected===name)continue;
-    const j=joint(name);
-    if(j)m.position.copy(worldFromRoot(j.p));
-    const selected=name===S.selected;
+  for(const [id,m] of S.markers) {
+    if(S.dragging&&S.selected===id)continue;
+    const j=joint(id);
+    if(!j){m.visible=false;const stale=S.labels.get(id);if(stale)stale.hidden=true;continue;}
+    m.position.copy(worldFromRoot(j.p));const bone=findBone(j.id);if(S.draft)m.quaternion.copy(E.model.getWorldQuaternion(new T.Quaternion())).multiply(new T.Quaternion().fromArray(j.q||[0,0,0,1]));else if(bone)bone.getWorldQuaternion(m.quaternion);
+    const selected=id===S.selected,name=j?.name||'';
     m.material.color.set(selected?0xffd17d:name.startsWith('Left')?0x54d9ee:name.startsWith('Right')?0xff7796:0xbff36a);
-    m.scale.setScalar((m.userData.markerRadius || 0.025) * (selected ? 1.45 : 1));
+    const distance=E.camera.position.distanceTo(m.position),constant=Math.max(.5,Math.min(2.5,distance/(m.userData.baseDistance||distance)));
+    m.scale.setScalar((m.userData.markerRadius || 0.025) * constant * (selected ? 1.45 : 1));
     m.visible=active()&&$('rg-markers').checked;
+    const label=S.labels.get(id);if(label){const projected=m.position.clone().project(E.camera),rect=E.renderer.domElement.getBoundingClientRect(),inside=projected.z>-1&&projected.z<1&&m.visible;label.hidden=!inside;if(inside){label.style.left=((projected.x+1)*.5*rect.width)+'px';label.style.top=((-projected.y+1)*.5*rect.height)+'px';label.textContent=j.name;}}
   }
   helper.visible=active()&&$('rg-markers').checked&&!!S.selected;
   if(!helper.visible)TC.detach();
@@ -106,10 +112,11 @@ function rebuildMarkers() {
   disposeMarkers();if(!E.model)return;
   const bounds=modelBounds(E.model), radius=Math.max(.01,Math.max(...bounds.size)*.016);
   for(const j of joints()) {
-    const mat=new T.MeshBasicMaterial({color:0x54d9ee,depthTest:false,transparent:true,opacity:.95});
-    const m=new T.Mesh(geo,mat);m.name='RigMarker_'+j.name;m.userData.rigJoint=j.name;m.userData.markerRadius=radius;
+    const mat=new T.MeshBasicMaterial({color:0x54d9ee,depthTest:!$('rg-xray').checked,transparent:true,opacity:.95});
+    const m=new T.Mesh(geo,mat);m.name='RigMarker_'+j.name;m.userData.rigJoint=j.id;m.userData.markerRadius=radius;
     m.scale.setScalar(radius);m.renderOrder=9999;m.frustumCulled=false;
-    E.scene.add(m);S.markers.set(j.name,m);
+    E.scene.add(m);m.position.copy(worldFromRoot(j.p));m.userData.baseDistance=E.camera.position.distanceTo(m.position)||1;S.markers.set(j.id,m);
+    const label=document.createElement('span');label.className='rg-joint-label';label.textContent=j.name;$('view').append(label);S.labels.set(j.id,label);
   }
   updateMarkers();attach();
 }
@@ -117,13 +124,14 @@ function attach() {
   TC.detach();const marker=S.markers.get(S.selected);
   if(marker&&active()&&$('rg-markers').checked){TC.attach(marker);helper.visible=true;}
 }
-function select(name) {
-  if(!name||!joint(name))return;
-  clearPose();S.selected=name;
-  $('rg-bone').value=name;const q=joint(name);
+function select(ref) {
+  const q=joint(ref);if(!q)return;
+  clearPose();S.selected=q.id;
+  $('rg-bone').value=q.id;
   for(const [id,v] of [['rg-x',q.p[0]],['rg-y',q.p[1]],['rg-z',q.p[2]]])$(id).value=fmt(v);
-  $('rg-parent').textContent=q.parent||'raiz do modelo';
-  updateMarkers();attach();renderTelemetry();
+  $('rg-name').value=q.name;$('rg-parent').textContent=q.parent||'raiz do modelo';
+  $('rg-parent-select').value=joint(q.parent)?.id||'';
+  updateMarkers();attach();renderTelemetry();renderTree();
 }
 function renderTelemetry() {
   if(!E.model||!S.selected){$('rg-telemetry').textContent='Nenhum osso selecionado.';return;}
@@ -157,12 +165,24 @@ function renderTelemetry() {
     'Bind inverse: '+inv];
   $('rg-telemetry').textContent=lines.join('\n');
 }
+function renderTree(){
+  const root=$('rg-tree');if(!root)return;const list=joints(),byParent=new Map();
+  for(const j of list){const key=j.parent||'';if(!byParent.has(key))byParent.set(key,[]);byParent.get(key).push(j);}
+  const rows=[];const visit=(parent,depth)=>{for(const j of byParent.get(parent)||[]){
+    const row=document.createElement('div');row.className='rg-tree-row';row.role='treeitem';row.tabIndex=0;row.dataset.id=j.id;
+    row.dataset.side=j.name.startsWith('Left')?'left':j.name.startsWith('Right')?'right':'center';row.ariaSelected=String(j.id===S.selected);row.style.paddingLeft=(6+depth*14)+'px';
+    const dot=document.createElement('span');dot.className='rg-tree-dot';const name=document.createElement('span');name.textContent=j.name;const kids=document.createElement('small');kids.textContent=(byParent.get(j.name)||[]).length||'';
+    row.append(dot,name,kids);row.onclick=()=>select(j.id);row.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();select(j.id);}};rows.push(row);visit(j.name,depth+1);
+  }};visit('',0);root.replaceChildren(...rows);
+}
 function render() {
   if(!E.model){status('Importe um FBX ou GLB em Projeto para começar.');return;}
   const list=joints(), search=$('rg-search').value.trim().toLowerCase();
   const visible=list.filter(j=>!search||(j.name+' '+(j.parent||'')).toLowerCase().includes(search));
-  $('rg-bone').replaceChildren(...visible.map(j=>new Option(j.name,j.name)));
-  if(!visible.some(j=>j.name===S.selected))S.selected=visible[0]?.name||null;
+  $('rg-bone').replaceChildren(...visible.map(j=>new Option(j.name,j.id)));
+  if(!visible.some(j=>j.id===S.selected))S.selected=visible[0]?.id||null;
+  const chosen=selectedJoint();$('rg-parent-select').replaceChildren(new Option('Raiz do modelo',''),...list.filter(j=>j.id!==S.selected).map(j=>new Option(j.name,j.id)));
+  $('rg-parent-select').value=joint(chosen?.parent)?.id||'';renderTree();
   const nSkin=skinned(), nBones=collectBones(E.model).length;
   $('rg-build').hidden=nSkin>0;
   $('rg-bind').disabled=!S.draft?.joints.length||nSkin>0||E.clips.length>0;
@@ -175,7 +195,7 @@ function render() {
   else if(S.draft)status('Rascunho com '+S.draft.joints.length+' pontos · sem skinning. Ajuste e depois clique em Vincular malha.','warn');
   else if(nBones)status(nBones+' ossos soltos, sem skin. Para evitar destruir a hierarquia, faça cópia antes de gerar novo rig.','warn');
   else status('Malha sem rig. Crie os 20 pontos guiados, ajuste por vista e depois gere o skin.','warn');
-  if(S.selected)select(S.selected);else {TC.detach();$('rg-telemetry').textContent='—';}
+  if(S.selected)select(S.selected);else {TC.detach();$('rg-telemetry').textContent='—';renderTree();}
   if(S.lastAudit)renderAudit(S.lastAudit);
 }
 function renderAudit(a) {
@@ -189,10 +209,10 @@ function renderAudit(a) {
 }
 function refreshAudit() {if(!E.model)return;try{S.lastAudit=auditRig(E.model);renderAudit(S.lastAudit);}catch(e){$('rg-report').textContent='Erro na auditoria: '+e.message;}}
 function selectedSnapshot() {
-  const names=[S.selected];
-  const pair=S.selected?.startsWith('Left')?'Right'+S.selected.slice(4):S.selected?.startsWith('Right')?'Left'+S.selected.slice(5):null;
-  if(pair&&$('rg-mirror').checked&&joint(pair))names.push(pair);
-  return Object.fromEntries(names.map(n=>[n,[...joint(n).p]]));
+  const selected=selectedJoint(),ids=[selected?.id].filter(Boolean),name=selected?.name||'';
+  const pair=name.startsWith('Left')?'Right'+name.slice(4):name.startsWith('Right')?'Left'+name.slice(5):null;
+  if(pair&&$('rg-mirror').checked&&joint(pair))ids.push(joint(pair).id);
+  return Object.fromEntries(ids.map(id=>[id,[...joint(id).p]]));
 }
 function applyPositions(positions,{emit=true}={}) {
   if(!E.model)return;
@@ -214,15 +234,16 @@ function applyPositions(positions,{emit=true}={}) {
 function commitPosition(p,before=selectedSnapshot(),label='Mover articulação') {
   if(!S.selected||p.some(n=>!Number.isFinite(n)||Math.abs(n)>1e6)){status('Coordenada inválida: use números finitos.','warn');return;}
   const after={[S.selected]:p};
-  const companion=S.selected.startsWith('Left')?'Right'+S.selected.slice(4):S.selected.startsWith('Right')?'Left'+S.selected.slice(5):null;
+  const selected=selectedJoint(),name=selected?.name||'';
+  const companion=name.startsWith('Left')?'Right'+name.slice(4):name.startsWith('Right')?'Left'+name.slice(5):null;
   if($('rg-mirror').checked&&companion&&joint(companion)) {
     const bounds=modelBounds(E.model);
-    after[companion]=[2*bounds.center[0]-p[0],p[1],p[2]];
+    after[joint(companion).id]=[2*bounds.center[0]-p[0],p[1],p[2]];
   }
   const changed=Object.keys(after).some(k=>!near(after[k],before[k]));
   if(!changed){applyPositions(before,{emit:false});return;}
   const history=window.__studioEditor?.history;
-  const command={label:label+' · '+S.selected,
+  const command={label:label+' · '+(selected?.name||''),
     redo(){clearPose();applyPositions(after);},undo(){clearPose();applyPositions(before);}};
   if(history)history.run(command);else {command.redo();mark(label);}
   refreshAudit();
@@ -234,31 +255,71 @@ function onNumeric() {
   const before=selectedSnapshot();
   commitPosition(p,before,'Definir coordenadas');
 }
+function orientationSnapshot(){const j=selectedJoint(),bone=findBone(j?.id);return j?{[j.id]:S.draft?[...(j.q||[0,0,0,1])]:bone.quaternion.toArray()}:{};}
+function applyOrientations(values,{emit=true}={}){for(const [id,q] of Object.entries(values)){const j=joint(id);if(!j)continue;if(S.draft)j.q=[...q];else findBone(id)?.quaternion.fromArray(q);}if(S.draft)E.model.userData.arenamonRigDraft=structuredClone(S.draft);else if(emit)E.commitRig({reason:'rotacionar osso',emitDirty:false});E.model.updateMatrixWorld(true);updateMarkers();renderTelemetry();}
+function commitOrientation(q,before){const j=selectedJoint(),after={[j.id]:q};if(near(after[j.id],before[j.id])){applyOrientations(before);return;}const command={label:'Rotacionar osso · '+j.name,redo(){applyOrientations(after);},undo(){applyOrientations(before);}};const history=window.__studioEditor?.history;if(history)history.run(command);else{command.redo();mark(command.label);}}
+function applyDraftState(state,selectedId){S.draft=structuredClone(state);ensureJointIds(S.draft);E.model.userData.arenamonRigDraft=structuredClone(S.draft);S.selected=joint(selectedId)?.id||S.draft.joints[0]?.id;rebuildMarkers();render();refreshAudit();}
+function draftTransaction(label,mutate){
+  const before=structuredClone(S.draft),beforeSelected=S.selected,after=structuredClone(S.draft);const selected=mutate(after)||beforeSelected;validateDraft(after,modelBounds(E.model));
+  const command={label,redo(){applyDraftState(after,selected);},undo(){applyDraftState(before,beforeSelected);}};
+  const history=window.__studioEditor?.history;if(history)history.run(command);else{command.redo();mark(label);}
+}
+function commitBound(label,redo,undo){
+  const command={label,redo(){clearPose();redo();indexBones();E.commitRig({reason:label,emitDirty:false});rebuildMarkers();render();refreshAudit();},undo(){clearPose();undo();indexBones();E.commitRig({reason:'desfazer '+label,emitDirty:false});rebuildMarkers();render();refreshAudit();}};
+  const history=window.__studioEditor?.history;if(history)history.run(command);else{command.redo();mark(label);}
+}
+function addBoneToSkeletons(bone,add){
+  const seen=new Set();E.model.traverse(o=>{if(!o.isSkinnedMesh||!o.skeleton||seen.has(o.skeleton))return;seen.add(o.skeleton);const s=o.skeleton,i=s.bones.indexOf(bone);if(add&&i<0){s.bones.push(bone);s.boneInverses.push(new T.Matrix4());}else if(!add&&i>=0){s.bones.splice(i,1);s.boneInverses.splice(i,1);}s.calculateInverses();});
+}
+function createStructuralBone({duplicate=false}={}){
+  const selected=selectedJoint();if(!selected)return;
+  if(S.draft){draftTransaction(duplicate?'Duplicar osso':'Criar osso',draft=>{const src=draft.joints.find(j=>j.id===selected.id),parent=duplicate?(src.parent?draft.joints.find(j=>j.name===src.parent)?.id:null):src.id;const made=addDraftJoint(draft,{name:duplicate?src.name:'Bone',parent,p:duplicate?[src.p[0]+.05,src.p[1],src.p[2]]:null,q:src.q});return made.id;});return;}
+  const source=findBone(selected.id),parent=duplicate?(source.parent?.isBone?source.parent:E.model):source,bone=new T.Bone();bone.name=uniqueJointName({joints:joints()},duplicate?source.name:'Bone');bone.userData.arenamonJointId=`joint-${T.MathUtils.generateUUID()}`;bone.position.set(duplicate ? .05 : 0,.1,0);
+  commitBound(duplicate?'Duplicar osso':'Criar osso',()=>{parent.add(bone);addBoneToSkeletons(bone,true);S.selected=bone.userData.arenamonJointId;},()=>{bone.removeFromParent();addBoneToSkeletons(bone,false);S.selected=selected.id;});
+}
+function renameSelected(){
+  const selected=selectedJoint(),next=$('rg-name').value.trim();if(!selected||!next)return;
+  if(S.draft){try{draftTransaction('Renomear osso',draft=>{renameDraftJoint(draft,selected.id,next);return selected.id;});}catch(e){status(e.message,'warn');}return;}
+  const bone=findBone(selected.id),before=bone.name;if(before===next)return;if(collectBones(E.model).some(b=>b!==bone&&b.name.toLowerCase()===next.toLowerCase())){status('Já existe um osso chamado '+next+'.','warn');return;}
+  commitBound('Renomear osso',()=>{bone.name=next;S.selected=selected.id;},()=>{bone.name=before;S.selected=selected.id;});
+}
+function reparentSelected(){
+  const selected=selectedJoint(),targetId=$('rg-parent-select').value,target=targetId?joint(targetId):null;if(!selected)return;
+  if(S.draft){try{draftTransaction('Alterar hierarquia',draft=>{reparentDraftJoint(draft,selected.id,targetId||null);return selected.id;});}catch(e){status(e.message,'warn');}return;}
+  const bone=findBone(selected.id),parent=target?findBone(target.id):E.model,old=bone.parent;if(parent===bone||function(){let p=parent;while(p){if(p===bone)return true;p=p.parent;}return false;}()){status('Essa hierarquia criaria um ciclo.','warn');return;}
+  commitBound('Alterar hierarquia',()=>parent.attach(bone),()=>old.attach(bone));
+}
+function deleteSelected(){
+  const selected=selectedJoint();if(!selected)return;if(!window.confirm('Excluir “'+selected.name+'”? Os filhos serão ligados ao pai anterior.'))return;
+  if(S.draft){try{draftTransaction('Excluir osso',draft=>{const j=draft.joints.find(x=>x.id===selected.id),fallback=j.parent?draft.joints.find(x=>x.name===j.parent)?.id:null;removeDraftJoint(draft,selected.id);return fallback||draft.joints[0].id;});}catch(e){status(e.message,'warn');}return;}
+  const bone=findBone(selected.id),oldParent=bone.parent,parent=oldParent?.isBone?oldParent:E.model,children=bone.children.filter(c=>c.isBone),meshStates=[],skeletonStates=[];
+  E.model.traverse(o=>{if(!o.isSkinnedMesh||!o.skeleton)return;const idx=o.skeleton.bones.indexOf(bone);if(idx<0)return;const originalParentIndex=Math.max(0,o.skeleton.bones.indexOf(parent)),parentIndex=originalParentIndex>idx?originalParentIndex-1:originalParentIndex;meshStates.push({mesh:o,idx,parentIndex,skinIndex:o.geometry.getAttribute('skinIndex').clone(),skinWeight:o.geometry.getAttribute('skinWeight').clone()});if(!skeletonStates.some(x=>x.s===o.skeleton))skeletonStates.push({s:o.skeleton,idx,inverse:o.skeleton.boneInverses[idx]});});
+  if(!skeletonStates.length){status('O osso não pertence a nenhuma skin.','warn');return;}
+  const redo=()=>{for(const c of children)parent.attach(c);bone.removeFromParent();for(const x of meshStates){const a=x.mesh.geometry.getAttribute('skinIndex');for(let i=0;i<a.count;i++)for(let k=0;k<4;k++){const v=a.getComponent(i,k);a.setComponent(i,k,v===x.idx?x.parentIndex:v>x.idx?v-1:v);}a.needsUpdate=true;}for(const x of skeletonStates){x.s.bones.splice(x.idx,1);x.s.boneInverses.splice(x.idx,1);x.s.calculateInverses();}S.selected=parent.userData.arenamonJointId||parent.uuid;};
+  const undo=()=>{oldParent.add(bone);for(const c of children)bone.attach(c);for(const x of skeletonStates){x.s.bones.splice(x.idx,0,bone);x.s.boneInverses.splice(x.idx,0,x.inverse);x.s.calculateInverses();}for(const x of meshStates){x.mesh.geometry.setAttribute('skinIndex',x.skinIndex.clone());x.mesh.geometry.setAttribute('skinWeight',x.skinWeight.clone());}S.selected=bone.userData.arenamonJointId||bone.uuid;};
+  commitBound('Excluir osso',redo,undo);
+}
 function onTemplate() {
   if(!E.model||skinned())return;
   if(collectBones(E.model).length){
     status('Este modelo contém ossos existentes sem skin. A ferramenta automática não substitui sua hierarquia; importe uma malha limpa ou vincule no software de origem.','warn');return;
   }
-  clearPose();
-  const draft=makeTemplate(modelBounds(E.model));
-  S.draft=draft;E.model.userData.arenamonRigDraft=structuredClone(draft);
-  S.selected=draft.joints[0].name;rebuildMarkers();render();mark('criar pontos de rigging');
+  clearPose();const next=makeTemplate(modelBounds(E.model)),previous=S.draft?structuredClone(S.draft):null,previousSelected=S.selected;
+  const command={label:S.draft?'Renovar template de rigging':'Criar template de rigging',redo(){applyDraftState(next,next.joints[0].id);},undo(){if(previous)applyDraftState(previous,previousSelected);else{S.draft=null;delete E.model.userData.arenamonRigDraft;S.selected=null;rebuildMarkers();render();}}};
+  const history=window.__studioEditor?.history;if(history)history.run(command);else{command.redo();mark(command.label);}
 }
 function onBind() {
   if(!E.model||!S.draft)return;
   if(E.clips.length){status('Vinculação bloqueada: remova as animações do arquivo sem rig primeiro. Converter malhas em SkinnedMesh mudaria UUIDs e quebraria os tracks existentes.','warn');return;}
-  const message='Vincular agora '+S.draft.joints.length+' ossos às malhas usando pesos iniciais automáticos?\n\nO skinning é real e exportável, mas os pesos podem precisar de correções. A operação é estrutural e limpará o histórico de desfazer. Salve uma cópia do GLB original antes.';
+  const message='Vincular agora '+S.draft.joints.length+' ossos às malhas usando pesos iniciais automáticos?\n\nO skinning é real e exportável, mas os pesos podem precisar de correções. A operação entra no histórico e pode ser desfeita com segurança.';
   if(!window.confirm(message))return;
   clearPose();E.enterRigRest();
   try{
-    const result=bindDraftToModel(E.model,S.draft,{smoothness:Number($('rg-smooth').value)});
-    // Não permitir que Undo de pontos anteriores seja aplicado incorretamente a um skin já vinculado.
-    window.__studioEditor?.history?.clear();
-    delete E.model.userData.arenamonRigDraft;
-    E.commitRig({replacements:result.replacements,reason:'criar rig com skinning e '+result.bones.length+' ossos'});
-    S.draft=null;S.rigBones=new Map(collectBones(E.model).map(b=>[b.name,b]));S.selected=result.bones[0]?.name||null;
-    rebuildMarkers();refreshAudit();render();
-    status('Rig vinculado: '+result.bones.length+' ossos, '+result.vertices+' vértices. Salve projeto e teste articulações/GLB.','ok');
+    const draft=structuredClone(S.draft),smoothness=Number($('rg-smooth').value);let result=null;
+    const redo=()=>{if(!result)result=bindDraftToModel(E.model,draft,{smoothness});else{for(const p of result.replacements){p.parent.add(p.mesh);p.old.removeFromParent();}for(const b of result.bones.filter(b=>!b.parent))E.model.add(b);}delete E.model.userData.arenamonRigDraft;E.commitRig({replacements:result.replacements,reason:'vincular rig',emitDirty:false});S.draft=null;indexBones();S.selected=result.bones[0]?.userData.arenamonJointId||result.bones[0]?.uuid;rebuildMarkers();refreshAudit();render();};
+    const undo=()=>{for(const p of result.replacements){p.parent.add(p.old);p.mesh.removeFromParent();}for(const b of result.bones)if(b.parent===E.model)b.removeFromParent();E.commitRig({replacements:result.replacements.map(p=>({old:p.mesh,mesh:p.old})),reason:'desfazer vínculo',emitDirty:false});S.draft=structuredClone(draft);E.model.userData.arenamonRigDraft=structuredClone(draft);indexBones();S.selected=draft.joints[0].id;rebuildMarkers();refreshAudit();render();};
+    const command={label:'Vincular malha ao rig',redo,undo},history=window.__studioEditor?.history;if(history)history.run(command);else{redo();mark(command.label);}
+    status('Rig vinculado: '+result.bones.length+' ossos, '+result.vertices+' vértices. A operação pode ser desfeita/refeita.','ok');
   }catch(e){console.error(e);status('Falha ao vincular: '+e.message,'warn');}
 }
 function exportJSON() {
@@ -289,11 +350,11 @@ async function importJSON(file) {
     rebuildMarkers();refreshAudit();render();
     status('Coordenadas importadas e aplicadas a '+data.joints.length+' ossos. Verifique deformações.','ok');
   }else if(!collectBones(E.model).length){
-    S.draft={schema:'arenamon-rig',version:1,space:'model-root',mode:'draft',
-      joints:data.joints.map(j=>({name:j.name,parent:j.parent,p:[...j.p]})),
-      bounds:data.bounds?.min?{min:data.bounds.min,max:data.bounds.max,size:data.bounds.size}:modelBounds(E.model)};
+    S.draft=ensureJointIds({schema:'arenamon-rig',version:2,space:'model-root',mode:'draft',
+      joints:data.joints.map(j=>({id:j.id,name:j.name,parent:j.parent,p:[...j.p],q:[...(j.q||[0,0,0,1])]})),
+      bounds:data.bounds?.min?{min:data.bounds.min,max:data.bounds.max,size:data.bounds.size}:modelBounds(E.model)});
     E.model.userData.arenamonRigDraft=structuredClone(S.draft);
-    S.selected=S.draft.joints[0].name;rebuildMarkers();render();mark('importar coordenadas rig');
+    S.selected=S.draft.joints[0].id;rebuildMarkers();render();mark('importar coordenadas rig');
     status('Rascunho de '+S.draft.joints.length+' pontos carregado; ainda precisa vincular os pesos.','ok');
   }else status('Este modelo já tem ossos não vinculados. Importar não pode substituir sua hierarquia.','warn');
 }
@@ -306,6 +367,17 @@ function pose() {
   b.quaternion.copy(S.poseBase).multiply(new T.Quaternion().setFromAxisAngle(axis,a));
   b.updateMatrixWorld(true);S.poseAngle=a;$('rg-pose-out').textContent=Number($('rg-pose').value)+'°';
 }
+function setTransformMode(mode){S.mode=mode;TC.setMode(mode);$('rg-mode-move').ariaPressed=String(mode==='translate');$('rg-mode-rotate').ariaPressed=String(mode==='rotate');}
+function updateTransformSettings(){TC.setSpace($('rg-space').value);const move=Number($('rg-snap-move').value),rotate=Number($('rg-snap-rotate').value);TC.setTranslationSnap(move>0?move:null);TC.setRotationSnap(rotate>0?T.MathUtils.degToRad(rotate):null);TC.showX=$('rg-axis-x').checked;TC.showY=$('rg-axis-y').checked;TC.showZ=$('rg-axis-z').checked;for(const id of ['rg-x','rg-y','rg-z'])$(id).step=10**-(Number($('rg-precision').value)||3);}
+function updateRigMaterials(){
+  if(!E.model)return;const transparent=$('rg-transparent').checked,xray=$('rg-xray').checked;
+  E.model.traverse(o=>{if(!o.isMesh)return;for(const m of [].concat(o.material)){if(!S.materialState.has(m))S.materialState.set(m,{transparent:m.transparent,opacity:m.opacity,depthTest:m.depthTest});const base=S.materialState.get(m);m.transparent=transparent||base.transparent;m.opacity=transparent ? .24 : base.opacity;m.depthTest=xray?false:base.depthTest;m.needsUpdate=true;}});
+  for(const marker of S.markers.values()){marker.material.depthTest=!xray;marker.material.needsUpdate=true;}
+  $('view').classList.toggle('rg-xray-active',xray);
+}
+function restoreRigMaterials(){for(const [m,base] of S.materialState){m.transparent=base.transparent;m.opacity=base.opacity;m.depthTest=base.depthTest;m.needsUpdate=true;}S.materialState.clear();$('view').classList.remove('rg-xray-active');}
+function setView(name){S.view=name;E.setRigView(name);TC.camera=E.camera;for(const b of document.querySelectorAll('[data-rg-view]'))b.ariaPressed=String(b.dataset.rgView===name);updateMarkers();}
+function focusSelected(){const p=selectedPoint();if(!p)return;const target=worldFromRoot(p),offset=E.camera.position.clone().sub(E.controls.target);E.controls.target.copy(target);if(E.camera.isPerspectiveCamera)E.camera.position.copy(target).add(offset.setLength(Math.max(offset.length()*.45,.1)));E.controls.update();}
 // ---------- Eventos ----------
 E.on('installed',resetOnInstall);
 E.on('rigChanged',()=>{if(active()&&!S.dragging)updateMarkers();});
@@ -320,6 +392,12 @@ $('rg-bone').onchange=()=>select($('rg-bone').value);
 $('rg-search').oninput=()=>render();
 $('rg-apply').onclick=onNumeric;
 $('rg-reset-joint').onclick=()=>S.selected&&select(S.selected);
+$('rg-add').onclick=()=>createStructuralBone();$('rg-duplicate').onclick=()=>createStructuralBone({duplicate:true});$('rg-rename').onclick=renameSelected;$('rg-delete').onclick=deleteSelected;$('rg-parent-select').onchange=reparentSelected;
+$('rg-mode-move').onclick=()=>setTransformMode('translate');$('rg-mode-rotate').onclick=()=>setTransformMode('rotate');
+for(const id of ['rg-space','rg-snap-move','rg-snap-rotate','rg-axis-x','rg-axis-y','rg-axis-z'])$(id).onchange=updateTransformSettings;
+$('rg-precision').onchange=()=>{updateTransformSettings();S.selected&&select(S.selected);};
+for(const b of document.querySelectorAll('[data-rg-view]'))b.onclick=()=>setView(b.dataset.rgView);$('rg-focus').onclick=focusSelected;
+$('rg-xray').onchange=updateRigMaterials;$('rg-transparent').onchange=updateRigMaterials;
 $('rg-markers').onchange=()=>{updateMarkers();attach();};
 $('rg-smooth').oninput=()=>$('rg-smooth-out').textContent=Number($('rg-smooth').value).toFixed(2);
 $('rg-pose').oninput=pose;
@@ -335,35 +413,36 @@ E.renderer.domElement.addEventListener('pointerdown',e=>{
 });
 TC.addEventListener('dragging-changed',e=>{
   S.dragging=!!e.value;E.controls.enabled=!e.value;
-  if(S.dragging){clearPose();S.dragBefore=selectedSnapshot();}
+  if(S.dragging){clearPose();S.dragBefore=S.mode==='rotate'?{kind:'rotate',value:orientationSnapshot()}:{kind:'translate',value:selectedSnapshot()};}
   else if(S.dragBefore){
-    const p=selectedPoint();
-    const final=S.markers.get(S.selected)?.position.clone();
-    if(final&&p)commitPosition(rootPointFromWorld(final),S.dragBefore,'Arrastar marcador');
+    const marker=S.markers.get(S.selected);
+    if(S.dragBefore.kind==='rotate'&&marker){const parentQ=(S.draft?E.model:findBone(S.selected)?.parent).getWorldQuaternion(new T.Quaternion());const local=parentQ.invert().multiply(marker.quaternion).normalize().toArray();commitOrientation(local,S.dragBefore.value);}
+    else {const p=selectedPoint(),final=marker?.position.clone();if(final&&p)commitPosition(rootPointFromWorld(final),S.dragBefore.value,'Arrastar marcador');}
     S.dragBefore=null;updateMarkers();attach();
   }
 });
 TC.addEventListener('objectChange',()=>{
   if(!S.dragging||!S.selected)return;
   const marker=S.markers.get(S.selected);if(!marker)return;
+  if(S.mode==='rotate'){const parentQ=(S.draft?E.model:findBone(S.selected)?.parent).getWorldQuaternion(new T.Quaternion());applyOrientations({[S.selected]:parentQ.invert().multiply(marker.quaternion).normalize().toArray()},{emit:false});return;}
   const p=rootPointFromWorld(marker.position);
   // Atualiza visualmente, mas não grava histórico até soltar o manipulador.
   const after={[S.selected]:p};
-  const pair=S.selected.startsWith('Left')?'Right'+S.selected.slice(4):S.selected.startsWith('Right')?'Left'+S.selected.slice(5):null;
-  if(pair&&$('rg-mirror').checked&&joint(pair)){const c=modelBounds(E.model).center[0];after[pair]=[2*c-p[0],p[1],p[2]];}
+  const name=selectedJoint()?.name||'',pair=name.startsWith('Left')?'Right'+name.slice(4):name.startsWith('Right')?'Left'+name.slice(5):null;
+  if(pair&&$('rg-mirror').checked&&joint(pair)){const c=modelBounds(E.model).center[0];after[joint(pair).id]=[2*c-p[0],p[1],p[2]];}
   applyPositions(after,{emit:false});updateMarkers();renderTelemetry();
 });
 // Ativação da aba: pausa animações para editar bind rest, sem alterar clipes/keys.
 E.on('tick',()=>{
   const now=active();
   if(now&&!S.wasActive&&E.model){S.playBefore=E.playing;S.wasActive=true;prepareRig();}
-  else if(!now&&S.wasActive){S.wasActive=false;clearPose();hideMarkers();E.controls.enabled=true;if(E.clips.length){E.selectIndex(E.selectedIndex);E.setPlaying(S.playBefore);}}
+  else if(!now&&S.wasActive){S.wasActive=false;clearPose();hideMarkers();restoreRigMaterials();E.setRigView('perspective');TC.camera=E.camera;E.controls.enabled=true;if(E.clips.length){E.selectIndex(E.selectedIndex);E.setPlaying(S.playBefore);}}
   if(now&&!S.dragging&&E.model){updateMarkers();}
 });
 $('rg-pose-card').hidden=true;
 window.__studioRig={
   get active(){return active();},get draft(){return S.draft;},
-  get selected(){return S.selected;},select,refreshAudit,exportCoordinates:()=>exportCoordinates(E.model,S.draft),
+  get selected(){return selectedJoint()?.name||null;},get selectedId(){return S.selected;},select,refreshAudit,exportCoordinates:()=>exportCoordinates(E.model,S.draft),
   applyJoint(name,p){if(!joint(name))throw Error('Osso não encontrado: '+name);select(name);commitPosition(p,selectedSnapshot(),'Editar coordenada via API');},
-  createTemplate:onTemplate,bind:onBind,render,
+  createTemplate:onTemplate,bind:onBind,render,addBone:()=>createStructuralBone(),duplicateBone:()=>createStructuralBone({duplicate:true}),renameBone:renameSelected,reparentBone:reparentSelected,deleteBone:deleteSelected,setView,
 };

@@ -43,6 +43,27 @@ try {
   assert.equal(draft.n,20);assert.equal(draft.selected,'Hips');
   assert.equal(await page.locator('#rg-bone option').count(),20);
   mark('Template guiado tem 20 bones e campos numéricos X/Y/Z');
+  // Estrutura, árvore e IDs estáveis.
+  const hipsId=await page.evaluate(()=>window.__studioRig.selectedId);
+  await page.click('#rg-add');assert.equal(await page.locator('#rg-tree .rg-tree-row').count(),21);
+  const childId=await page.evaluate(()=>window.__studioRig.selectedId);assert.notEqual(childId,hipsId);
+  await page.fill('#rg-name','TailBase');await page.click('#rg-rename');
+  assert.equal(await page.evaluate(()=>window.__studioRig.selectedId),childId,'renomear preserva ID');
+  assert.equal(await page.inputValue('#rg-name'),'TailBase');
+  await page.selectOption('#rg-parent-select',await page.evaluate(()=>window.__studioRig.draft.joints.find(j=>j.name==='Spine').id));
+  assert.equal(await page.evaluate(()=>window.__studioRig.draft.joints.find(j=>j.id===window.__studioRig.selectedId).parent),'Spine');
+  await page.click('#rg-duplicate');assert.equal(await page.locator('#rg-tree .rg-tree-row').count(),22);
+  await page.click('#rg-delete');assert.equal(await page.locator('#rg-tree .rg-tree-row').count(),21);
+  for(let i=0;i<5;i++)await page.evaluate(()=>window.__studioEditor.history.undo());
+  assert.equal(await page.locator('#rg-tree .rg-tree-row').count(),20);assert.equal(await page.evaluate(()=>window.__studioRig.selected),'Hips');
+  mark('Criar, duplicar, renomear, reparentear e excluir ossos usam IDs estáveis e Undo/Redo');
+  // Vistas anatômicas e inspeção visual.
+  await page.click('[data-rg-view=front]');assert.equal(await page.evaluate(()=>window.__importer.camera.isOrthographicCamera),true);
+  await page.check('#rg-transparent');assert.ok(await page.evaluate(()=>window.__importer.model.getObjectByName('CreatureBody').material.opacity<.3));
+  await page.check('#rg-xray');assert.equal(await page.evaluate(()=>window.__importer.model.getObjectByName('CreatureBody').material.depthTest),false);
+  await page.click('[data-rg-view=perspective]');assert.equal(await page.evaluate(()=>window.__importer.camera.isPerspectiveCamera),true);
+  await page.uncheck('#rg-transparent');await page.uncheck('#rg-xray');
+  mark('Vistas ortográficas, perspectiva, transparência e raio X funcionam no preview');
   // Verificar telemetria e simetria.
   await page.selectOption('#rg-bone','LeftElbow');
   const before=await page.evaluate(()=>window.__studioRig.draft.joints.find(j=>j.name==='LeftElbow').p);
@@ -69,9 +90,23 @@ try {
   });
   assert.equal(rig.meshes.length,1);assert.equal(rig.meshes[0].skin,true);
   assert.equal(rig.meshes[0].count,20);assert.equal(rig.bones,20);assert.equal(rig.draft,false);assert.equal(rig.dirty,true);
+  await page.evaluate(()=>window.__studioEditor.history.undo());assert.equal(await page.evaluate(()=>!!window.__studioRig.draft),true,'desfazer bind restaura rascunho');
+  assert.equal(await page.evaluate(()=>!!window.__importer.model.getObjectByName('CreatureBody').isSkinnedMesh),false);
+  await page.evaluate(()=>window.__studioEditor.history.redo());assert.equal(await page.evaluate(()=>window.__importer.model.getObjectByName('CreatureBody').isSkinnedMesh),true,'refazer bind restaura skin');
+  mark('Vinculação da malha é uma transação reversível no histórico');
   await page.click('#rg-audit');
   assert.match(await page.textContent('#rg-report'),/Sem inconsistências estruturais detectadas/);
   mark('Bind cria skin real (20 ossos) e auditoria de pesos normalizados sem erro');
+  // A mesma edição estrutural funciona depois do bind e mantém os índices do skin reversíveis.
+  await page.selectOption('#rg-bone',await page.evaluate(()=>window.__studioRig.exportCoordinates().joints.find(j=>j.name==='LeftElbow').id));
+  await page.click('#rg-add');assert.equal(await page.evaluate(()=>window.__importer.model.getObjectByName('CreatureBody').skeleton.bones.length),21);
+  const boundId=await page.evaluate(()=>window.__studioRig.selectedId);await page.fill('#rg-name','LeftClaw');await page.click('#rg-rename');assert.equal(await page.evaluate(()=>window.__studioRig.selectedId),boundId);
+  await page.selectOption('#rg-parent-select',await page.evaluate(()=>window.__studioRig.exportCoordinates().joints.find(j=>j.name==='Hips').id));
+  await page.click('#rg-delete');assert.equal(await page.evaluate(()=>window.__importer.model.getObjectByName('CreatureBody').skeleton.bones.length),20);
+  await page.evaluate(()=>window.__studioEditor.history.undo());assert.equal(await page.evaluate(()=>window.__importer.model.getObjectByName('CreatureBody').skeleton.bones.length),21);
+  for(let i=0;i<3;i++)await page.evaluate(()=>window.__studioEditor.history.undo());
+  assert.equal(await page.evaluate(()=>window.__importer.model.getObjectByName('CreatureBody').skeleton.bones.length),20);
+  mark('Estrutura de rig já vinculado preserva skin e também desfaz criação, nome, pai e exclusão');
   await page.selectOption('#rg-bone','LeftElbow');
   await page.fill('#rg-pose','35');
   const angle=await page.evaluate(()=>window.__importer.model.getObjectByName('LeftElbow').rotation.x);

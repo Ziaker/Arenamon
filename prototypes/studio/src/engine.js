@@ -12,7 +12,10 @@ import {createActionEditor} from './actions.js';
 
 const $ = id => document.getElementById(id), scene = new T.Scene(), view = $('view');
 scene.background = new T.Color('#19212c');
-const camera = new T.PerspectiveCamera(40, 1, .001, 100000), renderer = new T.WebGLRenderer({antialias: true});
+const perspectiveCamera = new T.PerspectiveCamera(40, 1, .001, 100000);
+const orthographicCamera = new T.OrthographicCamera(-1,1,1,-1,.001,100000);
+let camera = perspectiveCamera, orthoHeight = 2;
+const renderer = new T.WebGLRenderer({antialias: true});
 renderer.toneMapping = T.NoToneMapping;renderer.shadowMap.enabled = false;view.appendChild(renderer.domElement);
 const controls = new OrbitControls(camera, renderer.domElement), lights = new T.Group();
 lights.add(new T.HemisphereLight(0xffffff, 0x566477, 2));const key = new T.DirectionalLight(0xffffff, 2);key.position.set(3, 5, 4);lights.add(key);
@@ -66,9 +69,27 @@ function frameModel() {
   model.traverse(o => {if (o.isSkinnedMesh) {o.skeleton.update();o.computeBoundingBox();o.computeBoundingSphere();}});
   const box = new T.Box3().setFromObject(model), center = box.getCenter(new T.Vector3()), size = box.getSize(new T.Vector3());
   if (box.isEmpty() || !Number.isFinite(size.length())) throw Error('Não foi possível enquadrar a malha deste arquivo.');
-  const radius = Math.max(size.length() / 2, .001), angle = Math.atan(Math.tan(T.MathUtils.degToRad(camera.fov / 2)) * Math.min(camera.aspect, 1)), distance = radius / Math.sin(angle) * 1.15;
-  controls.target.copy(center);camera.position.copy(center).add(new T.Vector3(.7, .4, 1.2).normalize().multiplyScalar(distance));
+  const radius = Math.max(size.length() / 2, .001), distance=radius*3;
+  controls.target.copy(center);
+  if(camera.isOrthographicCamera){orthoHeight=radius*2.35;updateCameraProjection();camera.position.copy(center).add(new T.Vector3(.7,.4,1.2).normalize().multiplyScalar(distance));}
+  else {const angle = Math.atan(Math.tan(T.MathUtils.degToRad(camera.fov / 2)) * Math.min(camera.aspect, 1));camera.position.copy(center).add(new T.Vector3(.7, .4, 1.2).normalize().multiplyScalar(radius / Math.sin(angle) * 1.15));}
   camera.near = Math.max(radius / 1000, .00001);camera.far = distance + radius * 100;camera.updateProjectionMatrix();controls.update();
+}
+function updateCameraProjection(){
+  const aspect=Math.max(view.clientWidth,1)/Math.max(view.clientHeight,1);
+  if(camera.isPerspectiveCamera)camera.aspect=aspect;
+  else {camera.left=-orthoHeight*aspect/2;camera.right=orthoHeight*aspect/2;camera.top=orthoHeight/2;camera.bottom=-orthoHeight/2;}
+  camera.updateProjectionMatrix();
+}
+function setRigView(viewName='perspective'){
+  if(!model)return;
+  model.updateMatrixWorld(true);const box=new T.Box3().setFromObject(model),center=box.getCenter(new T.Vector3()),size=box.getSize(new T.Vector3());
+  const radius=Math.max(size.length()/2,.001),directions={front:[0,0,1],back:[0,0,-1],left:[-1,0,0],right:[1,0,0],top:[0,1,0]};
+  if(viewName==='perspective'){camera=perspectiveCamera;controls.object=camera;frameModel();return;}
+  camera=orthographicCamera;camera.zoom=1;controls.object=camera;orthoHeight=radius*2.35;updateCameraProjection();
+  const dir=new T.Vector3(...(directions[viewName]||directions.front));camera.position.copy(center).addScaledVector(dir,radius*4);
+  if(viewName==='top')camera.up.set(0,0,-1);else camera.up.set(0,1,0);
+  camera.near=Math.max(radius/1000,.00001);camera.far=radius*100;controls.target.copy(center);camera.lookAt(center);controls.update();
 }
 // Nomes genéricos (Mixamo “mixamo.com”, “Take 001”, “animation_0”…) são trocados pelo nome do arquivo; nomes reais são mantidos.
 const GENERIC = /^(mixamo\.com|take[ _]?\d*|animation([ _]?\d+)?|clip([ _]?\d+)?|default|anim|armature\|.*|)$/i;
@@ -207,7 +228,7 @@ for (const id of ['textures', 'lighting', 'palette', 'color']) $(id).onchange = 
 $('color').addEventListener('input', () => {$('palette').value = 'global';refresh();window.__arenamonOrganization?.updateAppearance();});
 $('clip').onchange = selectClip;$('play').onclick = () => setPlaying(!playing);
 $('frame').onclick = () => task(async () => {frameModel();renderer.render(scene, camera);});
-new ResizeObserver(() => {const w = view.clientWidth, h = view.clientHeight;if (w < 1 || h < 1) return;renderer.setSize(w, h, false);camera.aspect = w / h;camera.updateProjectionMatrix();}).observe(view);
+new ResizeObserver(() => {const w = view.clientWidth, h = view.clientHeight;if (w < 1 || h < 1) return;renderer.setSize(w, h, false);updateCameraProjection();}).observe(view);
 const clock = new T.Clock();
 renderer.setAnimationLoop(() => {
   const dt = Math.min(clock.getDelta(), .1);if (playing) mixer?.update(dt);controls.update();
@@ -216,7 +237,7 @@ renderer.setAnimationLoop(() => {
 });
 const on = (name, fn) => {listeners[name].add(fn);return () => listeners[name].delete(fn);};
 window.__importer = {
-  install, append, exportGLB, parse, T, refresh, enterRigRest, commitRig, manifest: () => actionEditor.manifest(), addClip, removeClip, clipChanged, seek, setPlaying, on, status, frameModel,
+  install, append, exportGLB, parse, T, refresh, enterRigRest, commitRig, setRigView, manifest: () => actionEditor.manifest(), addClip, removeClip, clipChanged, seek, setPlaying, on, status, frameModel,
   get model() {return model;}, get clips() {return clips;}, get mixer() {return mixer;}, get scene() {return scene;}, get camera() {return camera;},
   get controls() {return controls;}, get renderer() {return renderer;}, get playing() {return playing;},
   get selectedIndex() {return selectedIndex();}, get selectedClip() {return clips[selectedIndex()] || null;}, get selectedAction() {return currentAction();},
