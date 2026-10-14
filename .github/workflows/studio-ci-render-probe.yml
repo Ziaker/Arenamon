@@ -22,12 +22,14 @@ jobs:
           cache: npm
       - run: npm ci
       - run: node prototypes/studio/build.mjs
-      - name: A - CSS original (ate o layout)
+      - name: A - CSS original, operacoes lentas e quadros
         env:
           STUDIO_VERIFY_UNTIL: 'layout:'
+          STUDIO_VERIFY_SLOW_MS: '1000'
         run: node prototypes/studio/verify.mjs
-      - name: B - sem backdrop-filter (ate o layout)
+      - name: C - canvas WebGL fora da composicao (visibility hidden)
         env:
           STUDIO_VERIFY_UNTIL: 'layout:'
-          STUDIO_VERIFY_CSS: '*,*::before,*::after{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}'
+          STUDIO_VERIFY_SLOW_MS: '1000'
+          STUDIO_VERIFY_CSS: '#view canvas{visibility:hidden!important}'
         run: node prototypes/studio/verify.mjs

@@ -20,6 +20,8 @@ const browser = await chromium.launch({channel: 'msedge', headless: true});
 try {
   const page = await browser.newPage({viewport: {width: 1500, height: 960}, acceptDownloads: true});
   // Diagnóstico de CI (opcional): STUDIO_VERIFY_CSS injeta CSS em todas as páginas; STUDIO_VERIFY_UNTIL encerra após a etapa indicada.
+  // STUDIO_VERIFY_SLOW_MS: registra operações do Playwright mais lentas que o limite (diagnóstico de CI).
+  if (process.env.STUDIO_VERIFY_SLOW_MS) for (const m of ['click', 'evaluate', 'isVisible', 'fill', 'selectOption', 'focus', 'getAttribute', 'textContent', 'inputValue', 'waitForTimeout']) {const o = page[m].bind(page), lim = Number(process.env.STUDIO_VERIFY_SLOW_MS);page[m] = async (...x) => {const t = Date.now();try {return await o(...x);} finally {const d = Date.now() - t;if (d > lim) console.log(`  [lento] ${m}(${typeof x[0] === 'string' ? x[0] : 'fn'}) ${d} ms`);}};}
   if (process.env.STUDIO_VERIFY_CSS) await page.addInitScript(css => {document.addEventListener('DOMContentLoaded', () => {const st = document.createElement('style');st.textContent = css;document.head.append(st);});}, process.env.STUDIO_VERIFY_CSS);
   await page.addInitScript(() => {
     window.__perfLongTasks = [];
@@ -83,6 +85,7 @@ try {
   // ---------- Layout: ferramentas, painéis e redimensionamento ----------
   const width = sel => page.evaluate(s => document.querySelector(s).getBoundingClientRect().width, sel);
   const canvasMatches = () => page.evaluate(() => {const v = document.getElementById('view'), c = v.querySelector('canvas');return Math.abs(c.getBoundingClientRect().width - v.clientWidth) < 2 && Math.abs(c.width / devicePixelRatio - v.clientWidth) < 2;});
+  if (process.env.STUDIO_VERIFY_SLOW_MS) console.log('  [quadros]', JSON.stringify(await page.evaluate(() => new Promise(r => {const t = [];const f = n => {t.push(n);if (t.length < 15) requestAnimationFrame(f);else r({médiaMs: Math.round((t.at(-1) - t[0]) / 14), piorMs: Math.round(Math.max(...t.slice(1).map((x, i) => x - t[i])))});};requestAnimationFrame(f);}))));
   const SECTIONS = {project: '#model-drop', appearance: '#color', scene: '#lab-grid', camera: '#lab-camera', motion: '#lab-root-mode', inspect: '#v4-skeleton', export: '#export'};
   const modelId = await page.evaluate(() => window.__importer.model.uuid);
   for (const [panel, control] of Object.entries(SECTIONS)) {
