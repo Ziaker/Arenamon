@@ -25,6 +25,7 @@ class PropostaCHybrid {
 
     this.loadCharacter(HUMANOID_TEMPLATE_20);
     this.setMode('guided');
+    window.__rigStudio = this;
   }
 
   loadCharacter(type) {
@@ -37,9 +38,27 @@ class PropostaCHybrid {
       this.viewport.loadModel(model);
       this.bridge.initTemplate(HUMANOID_TEMPLATE_20);
     }
+    this.updateDivergenceCallout(type);
     this.renderHierarchy();
     this.renderSelection();
     this.renderBreadcrumbs();
+  }
+
+  updateDivergenceCallout(type) {
+    const divBox = document.getElementById('hybrid-divergence-callout');
+    if (!divBox) return;
+    if (type === CREATURE_QUADRUPED_24) {
+      divBox.style.display = 'block';
+      divBox.innerHTML = `
+        <div class="divergence-banner">
+          <strong>ℹ Divergência 24 vs 27 Articulações:</strong>
+          Template quadrúpede com <strong>27 articulações instanciadas</strong> (24 base + 3 estilização: Jaw, LeftHorn, RightHorn). Divergência documentada para homologação do usuário.
+        </div>
+      `;
+    } else {
+      divBox.style.display = 'none';
+      divBox.innerHTML = '';
+    }
   }
 
   initDOM() {
@@ -182,6 +201,59 @@ class PropostaCHybrid {
       a.download = `arenamon-hybrid-rig-${this.bridge.activeTemplateType}.json`;
       a.click();
       URL.revokeObjectURL(url);
+    });
+
+    document.getElementById('btn-close-import-modal')?.addEventListener('click', () => this.hideReportModal());
+    document.getElementById('btn-ok-import-modal')?.addEventListener('click', () => this.hideReportModal());
+
+    document.getElementById('btn-import-json')?.addEventListener('click', () => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.json';
+      input.onchange = async () => {
+        const file = input.files?.[0];
+        if (file) {
+          try {
+            const text = await file.text();
+            const report = this.bridge.validateAndImportJSON(text);
+            if (report.success) {
+              this.viewport.updateJointPositions();
+              this.viewport.updateBoneConnectors();
+              this.renderSelection();
+              this.renderBreadcrumbs();
+
+              let body = `
+                <div style="margin-bottom:10px;">
+                  <span class="badge badge-lime">Validação Aprovada</span>
+                  <div style="margin-top:8px;"><strong>${report.appliedCount} de ${report.totalInRig}</strong> articulações aplicadas com sucesso a partir de <strong>${file.name}</strong>.</div>
+                </div>
+              `;
+              if (report.missing.length > 0) {
+                body += `<div style="font-size:11px;color:var(--amber);margin-top:6px;">Articulações ausentes no arquivo (${report.missing.length}, mantiveram posições originais):<br><span style="font-family:var(--font-mono);">${report.missing.join(', ')}</span></div>`;
+              }
+              if (report.unknown.length > 0) {
+                body += `<div style="font-size:11px;color:var(--muted);margin-top:6px;">Articulações ignoradas: ${report.unknown.join(', ')}</div>`;
+              }
+              body += `<div style="font-size:11px;color:var(--muted);margin-top:10px;border-top:1px solid var(--edge);padding-top:6px;">Dica: você pode reverter toda a importação clicando em <strong>Desfazer (Undo)</strong>.</div>`;
+              this.showReportModal('Relatório de Importação JSON', body);
+            } else {
+              let body = `
+                <div style="margin-bottom:10px;">
+                  <span class="badge badge-rose">Falha na Validação</span>
+                  <div style="margin-top:8px;color:#ff99aa;">O arquivo não pôde ser aplicado:</div>
+                  <ul style="margin:8px 0 8px 18px;color:#ffb3c1;">
+                    ${report.errors.map(e => `<li>${e}</li>`).join('')}
+                  </ul>
+                </div>
+              `;
+              this.showReportModal('Falha na Importação JSON', body);
+            }
+          } catch (err) {
+            this.showReportModal('Erro de Leitura', `<div style="color:var(--rose);">Erro ao ler arquivo: ${err.message}</div>`);
+          }
+        }
+      };
+      input.click();
     });
 
     document.getElementById('btn-bind-skin').addEventListener('click', () => {
@@ -398,6 +470,19 @@ class PropostaCHybrid {
   onBridgeStateChange(state) {
     document.getElementById('btn-undo').disabled = !state.canUndo;
     document.getElementById('btn-redo').disabled = !state.canRedo;
+  }
+
+  showReportModal(title, htmlContent) {
+    const modal = document.getElementById('import-report-modal');
+    if (!modal) return;
+    document.getElementById('import-report-title').textContent = title;
+    document.getElementById('import-report-content').innerHTML = htmlContent;
+    modal.style.display = 'flex';
+  }
+
+  hideReportModal() {
+    const modal = document.getElementById('import-report-modal');
+    if (modal) modal.style.display = 'none';
   }
 }
 

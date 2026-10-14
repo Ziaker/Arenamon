@@ -127,6 +127,20 @@ export function createProceduralBiped() {
   body.receiveShadow = true;
   root.add(body);
 
+  // Elemento secundário (múltiplas malhas para demonstrar suporte a multi-mesh)
+  const coreGeo = new THREE.OctahedronGeometry(0.16, 0);
+  const coreMat = new THREE.MeshStandardMaterial({
+    color: 0x54d9ee,
+    roughness: 0.2,
+    metalness: 0.8,
+    emissive: 0x113355
+  });
+  const coreMesh = new THREE.Mesh(coreGeo, coreMat);
+  coreMesh.name = 'Golem_PowerCore';
+  coreMesh.position.set(0, 1.50, 0.25);
+  coreMesh.castShadow = true;
+  root.add(coreMesh);
+
   return root;
 }
 
@@ -272,6 +286,19 @@ export function createProceduralQuadruped() {
   body.castShadow = true;
   body.receiveShadow = true;
   root.add(body);
+
+  // Malha secundária (olhos estilizados) para demonstrar suporte a múltiplas malhas
+  const eyePartGeo = new THREE.BoxGeometry(0.12, 0.08, 0.16);
+  const eyePartMat = new THREE.MeshStandardMaterial({
+    color: 0xffd17d,
+    roughness: 0.1,
+    metalness: 0.5,
+    emissive: 0x442200
+  });
+  const eyesMesh = new THREE.Mesh(eyePartGeo, eyePartMat);
+  eyesMesh.name = 'Beast_EyesMesh';
+  eyesMesh.position.set(0, 1.52, 1.12);
+  root.add(eyesMesh);
 
   return root;
 }

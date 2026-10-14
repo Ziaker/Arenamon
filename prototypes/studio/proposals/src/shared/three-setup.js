@@ -114,16 +114,26 @@ export class ViewportManager {
   setupEvents() {
     window.addEventListener('resize', () => this.resize());
 
-    // Bloqueia órbita ao arrastar gizmo
+    // Bloqueia órbita ao arrastar gizmo e registra início/fim para Undo/Redo
     this.transformControls.addEventListener('dragging-changed', (e) => {
       this.controls.enabled = !e.value;
-      if (!e.value) {
-        // Ao soltar gizmo, confirma a posição
-        const selected = this.bridge.selectedJointName;
-        const marker = this.markersMap.get(selected);
-        if (selected && marker && this.bridge.model) {
-          const localPos = this.bridge.model.worldToLocal(marker.position.clone());
-          this.bridge.setJointPosition(selected, [localPos.x, localPos.y, localPos.z], { recordHistory: true });
+      const selected = this.bridge.selectedJointName;
+      if (e.value) {
+        // Início do arrasto: grava estado inicial do osso e par simétrico
+        if (selected) {
+          this.bridge.beginDrag(selected);
+        }
+      } else {
+        // Fim do arrasto: sincroniza posição final e gera comando de histórico
+        if (selected) {
+          const marker = this.markersMap.get(selected);
+          if (marker && this.bridge.model) {
+            const localPos = this.bridge.model.worldToLocal(marker.position.clone());
+            this.bridge.setJointPosition(selected, [localPos.x, localPos.y, localPos.z], { recordHistory: false });
+          }
+          this.bridge.commitDrag(selected);
+          this.updateJointPositions();
+          this.updateBoneConnectors();
         }
       }
     });
@@ -409,15 +419,17 @@ export class ViewportManager {
 
   updateHeatmap() {
     if (!this.bridge.model || !this.bridge.selectedJointName) return;
-    const colors = this.bridge.getVertexHeatmapColors(this.bridge.selectedJointName);
-    if (!colors) return;
+    this.bridge.model.updateMatrixWorld(true);
 
     this.bridge.model.traverse(o => {
       if (o.isMesh && o.geometry?.attributes?.position) {
-        o.geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-        if (o.material) {
-          o.material.vertexColors = true;
-          o.material.needsUpdate = true;
+        const colors = this.bridge.getMeshHeatmapColors(o, this.bridge.selectedJointName);
+        if (colors) {
+          o.geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+          if (o.material) {
+            o.material.vertexColors = true;
+            o.material.needsUpdate = true;
+          }
         }
       }
     });

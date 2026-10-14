@@ -39,6 +39,7 @@
         <button class="btn-mini btn-soft" id="btn-undo" title="Desfazer" disabled>↶</button>
         <button class="btn-mini btn-soft" id="btn-redo" title="Refazer" disabled>↷</button>
         <button class="btn-mini btn-soft" id="btn-export-json">Exportar JSON</button>
+        <button class="btn-mini btn-soft" id="btn-import-json">Importar JSON</button>
         <button class="btn-mini btn-primary" id="btn-bind-skin">Vincular Skin</button>
       </div>
     </header>
@@ -76,6 +77,8 @@
         <div class="search-box">
           <input type="search" id="hybrid-search" placeholder="Filtrar articulações...">
         </div>
+
+        <div id="hybrid-divergence-callout" style="display:none;padding:0 14px;"></div>
 
         <div class="tree-container" id="hybrid-tree"></div>
 
@@ -130,6 +133,7 @@
       <div class="dock-bottom" id="dock-bottom">
         <div style="display:flex;align-items:center;gap:12px;">
           <button class="btn-mini btn-soft" id="btn-dock-heatmap">♨ Mapa de Calor (Heatmap)</button>
+          <span class="badge badge-warning" style="font-size:9px;">Pintura Manual: Fase 2</span>
           <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);">
             Opacidade:
             <input type="range" id="mesh-opacity" min="0.05" max="1" step="0.05" value="0.92" style="width:80px;">
@@ -146,6 +150,21 @@
       </div>
     </main>
   </div>
+
+  <!-- Modal de Validação de Importação JSON -->
+  <div id="import-report-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <h4 id="import-report-title" style="color:var(--cyan);font-size:15px;">Relatório de Importação JSON</h4>
+        <button class="btn-mini btn-soft" id="btn-close-import-modal">✕</button>
+      </div>
+      <div id="import-report-content" style="font-size:12px;line-height:1.5;"></div>
+      <div style="display:flex;justify-content:flex-end;margin-top:16px;">
+        <button class="btn-primary" id="btn-ok-import-modal">Fechar</button>
+      </div>
+    </div>
+  </div>
+
   <!--__SCRIPTS__-->
 </body>
 </html>

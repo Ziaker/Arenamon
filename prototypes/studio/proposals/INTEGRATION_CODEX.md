@@ -162,7 +162,32 @@ A camada adaptadora consome diretamente as funções já estabelecidas e testada
 
 ---
 
-## 4. Recomendações e Próximos Passos para o Codex (Fase 2)
+## 4. Auditoria da Divergência: 24 Ossos Declarados vs 27 Articulações Construídas
+
+Durante a auditoria da anatomia quadrúpede (`makeCreatureTemplate`), foi identificada uma divergência entre a nomenclatura declarada e a estrutura instanciada:
+
+- **Identificador Nominal**: `creature-quadruped-24` ("Template Quadrúpede 24 pontos").
+- **Articulações Reais Construídas**: **27 articulações**.
+
+### Decomposição Anatômica:
+| Grupo Anatômico | Articulações Instanciadas | Quantidade | Classificação |
+| :--- | :--- | :--- | :--- |
+| **Coluna e Cabeça** | `Hips`, `SpineBack`, `SpineChest`, `Neck`, `Head` | 5 | Base Quadrúpede |
+| **Cauda Segmentada** | `Tail1`, `Tail2`, `Tail3` | 3 | Base Quadrúpede |
+| **Patas Dianteiras** | `Left/RightShoulder`, `Left/RightFrontKnee`, `Left/RightFrontAnkle`, `Left/RightPaw` | 8 | Base Quadrúpede |
+| **Patas Traseiras** | `Left/RightHip`, `Left/RightBackKnee`, `Left/RightBackAnkle`, `Left/RightBackPaw` | 8 | Base Quadrúpede |
+| **Subtotal Base** | *Esqueleto motor padrão para locomoção quadrúpede* | **24** | **Padrão 24** |
+| **Estilização Facial / Monstros** | `Jaw` (mandíbula), `LeftHorn`, `RightHorn` (chifres) | 3 | Adicional Criatura |
+| **Total Instanciado** | *Esqueleto completo de besta fantástica* | **27** | **Expandido 27** |
+
+### Opções para Deliberação do Usuário / Fase 2 Codex:
+- **Opção A (Padronizar em 27 ossos)**: Reconhecer oficialmente o template como `creature-quadruped-27`, preservando chifres e mandíbula para criaturas fantásticas do Arenamon.
+- **Opção B (Núcleo estrito de 24 ossos + anexo cosmético)**: Manter o core de locomoção em 24 ossos (`Head` sem filhos faciais) e tratar `Jaw` e `Horns` como cadeia opcional de estilização anexável.
+- **Decisão nos Protótipos**: Todas as 27 articulações foram mantidas ativas sem descarte silencioso, e a divergência foi sinalizada na interface e metadados (`divergenceInfo`).
+
+---
+
+## 5. Recomendações e Próximos Passos para o Codex (Fase 2)
 
 Para a implementação subsequente das ferramentas avançadas de rigging, recomenda-se que o Codex disponibilize as seguintes APIs complementares:
 

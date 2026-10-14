@@ -194,6 +194,68 @@ input[type="range"]::-webkit-slider-thumb {
   border-color: rgba(255, 119, 150, 0.35);
 }
 
+.badge-warning {
+  background: rgba(255, 180, 50, 0.18);
+  color: #ffb84d;
+  border-color: rgba(255, 180, 50, 0.45);
+}
+
+.demo-banner {
+  background: rgba(255, 180, 50, 0.08);
+  border: 1px dashed rgba(255, 180, 50, 0.35);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 11px;
+  color: #ffd899;
+  line-height: 1.4;
+  margin-bottom: 10px;
+}
+
+.demo-banner strong {
+  display: block;
+  margin-bottom: 2px;
+  color: #ffb84d;
+  font-size: 11px;
+}
+
+.divergence-banner {
+  background: rgba(155, 132, 255, 0.12);
+  border: 1px solid rgba(155, 132, 255, 0.35);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 11px;
+  color: #d8cfff;
+  line-height: 1.4;
+  margin: 8px 0;
+}
+
+.divergence-banner strong {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--violet);
+}
+
+.import-report-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  margin: 10px 0;
+}
+
+.import-report-table th, .import-report-table td {
+  padding: 5px 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  text-align: left;
+}
+
+.import-report-table th {
+  color: var(--muted);
+}
+
+.import-report-table td {
+  font-family: var(--font-mono);
+}
+
 /* Topbar Global */
 .topbar {
   height: 54px;

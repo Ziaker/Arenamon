@@ -201,3 +201,46 @@ As capturas de alta resolução encontram-se salvas na pasta `prototypes/studio/
 - `proposta-b.png`: Assistente visual guiado na Etapa 5 (Validação), com botões rápidos de teste de dobra e Golem Bípede.
 - `proposta-c.png`: Studio Híbrido com modo assistido ativo, breadcrumbs 3D no topo, gavetas flutuantes e quick-fix de simetria.
 - `propostas-portal.png`: Portal comparativo com tabela de recursos e botões de lançamento.
+
+---
+
+## 7. Resolução das Prioridades de Auditoria e Correções Funcionais
+
+### 1. Undo/Redo no Manipulador 3D (TransformControls)
+- **Causa Raiz**: O evento `objectChange` atualizava a posição do osso em tempo real durante o arrasto. Ao soltar o mouse (`dragging-changed` com `value = false`), a posição atual era idêntica à já registrada no draft, fazendo com que a gravação no histórico fosse ignorada por idempotência (`isSame === true`).
+- **Solução Implementada**: Implementado o ciclo `beginDrag(name)` no início do clique e `commitDrag(name)` ao soltar. O snapshot anterior ao movimento é preservado e comparado com a coordenada final, gerando exatamente um comando reversível `{ type: 'move-joint', changes }` com restauração exata no Desfazer (Undo) e Refazer (Redo).
+
+### 2. Divergência: 24 Ossos Declarados vs 27 Articulações Construídas
+- **Constatação**: O esqueleto padrão de locomoção quadrúpede é composto por **24 ossos**:
+  - Coluna e Cabeça: 5 (`Hips`, `SpineBack`, `SpineChest`, `Neck`, `Head`)
+  - Cauda: 3 (`Tail1`, `Tail2`, `Tail3`)
+  - 4 Patas: 16 (4 patas × 4 articulações: Shoulder/Hip, Knee, Ankle, Paw)
+- **Articulações Extras**: O template inclui 3 ossos de estilização de monstro: `Jaw` (mandíbula), `LeftHorn` e `RightHorn` (chifres), totalizando **27 articulações**.
+- **Tratamento**: As 27 articulações foram mantidas ativas sem descarte silencioso. A interface agora exibe um aviso claro (`divergence-banner`) informando a composição exata (24 base + 3 estilização) e os metadados `divergenceInfo` documentam a estrutura para decisão do usuário entre padronizar em 27 ou isolar o core de 24.
+
+### 3. Aplicação do Heatmap em Modelos com Múltiplas Malhas
+- **Causa Raiz**: O heatmap original calculava um único buffer de cores na primeira malha encontrada e tentava aplicá-lo em todas as malhas percorridas pelo `traverse`, gerando corrupção ou quebra de `BufferAttribute` quando malhas tinham contagens de vértices diferentes.
+- **Solução Implementada**: A função `getMeshHeatmapColors(mesh, boneName)` agora itera sobre cada malha individualmente, alocando um `Float32Array(count * 3)` exclusivo para a geometria de cada malha e calculando a distância euclidiana ou os pesos de skeleton correspondentes no espaço local de cada nó.
+
+### 4. Validação e Relatório Estruturado de Importação JSON
+- **Melhoria**: A importação foi centralizada em `bridge.validateAndImportJSON(data)`, que executa:
+  - Verificação de sintaxe e presença do array `joints`.
+  - Validação de integridade numérica dos vetores `[x, y, z]`.
+  - Mapeamento categorizado: articulações coincidentes (`matched`), ausentes no arquivo (`missing`), desconhecidas (`unknown`) e inválidas (`invalid`).
+  - Gravação de comando único de Undo (`type: 'import-coordinates'`), permitindo reverter uma importação inteira com um único clique.
+  - Exibição de relatório visual em modal nas três propostas.
+
+### 5. Identificação Clara de Controles Demonstrativos (Fase 2)
+- **Melhoria**: Ferramentas de pincel manual de peso (Raio, Força, Suavização) e o botão `Normalizar Pesos` foram explicitamente rotulados com a badge `<span class="badge badge-warning">Protótipo Visual — Fase 2</span>` e banners informativos, deixando claro que se tratam de protótipos de UX para a Fase 2 do Codex, mantendo o heatmap e o auto-skinning volumétrico 100% ativos.
+
+### 6. Ampliação dos Testes Automatizados (Playwright)
+- **Verificação**: A suíte `test-proposals.mjs` foi ampliada para inspecionar estados internos reais via `window.__rigStudio`:
+  - Movimento do gizmo → verificação de histórico → acionamento de Undo → restauração com tolerância `< 1e-5`.
+  - Multi-mesh heatmap → verificação de contagem de vértices e `vertexColors` em cada malha filha.
+  - JSON inválido → verificação de rejeição e relatório de erro.
+  - JSON válido → verificação de aplicação em lote e reversão por Undo.
+  - Template quadrúpede → verificação de 27 articulações e visibilidade do banner de divergência.
+
+### 7. Preservação de Stash Local
+- O stash `stash@{0}: On fix/arena-movement-camera: local-wip-fix-arena-movement-camera-template` foi inspecionado e permanece rigorosamente intacto e não aplicado.
+

@@ -26,6 +26,7 @@ class PropostaBGuided {
 
     this.loadCharacter(HUMANOID_TEMPLATE_20);
     this.goToStep(1);
+    window.__rigStudio = this;
   }
 
   loadCharacter(type) {
@@ -53,6 +54,26 @@ class PropostaBGuided {
   }
 
   bindEvents() {
+    // Undo / Redo
+    document.getElementById('btn-undo')?.addEventListener('click', () => {
+      this.bridge.undo();
+      this.viewport.updateJointPositions();
+      this.viewport.updateBoneConnectors();
+      this.updatePaperDoll();
+      this.updateStepContent();
+    });
+
+    document.getElementById('btn-redo')?.addEventListener('click', () => {
+      this.bridge.redo();
+      this.viewport.updateJointPositions();
+      this.viewport.updateBoneConnectors();
+      this.updatePaperDoll();
+      this.updateStepContent();
+    });
+
+    document.getElementById('btn-close-import-modal')?.addEventListener('click', () => this.hideReportModal());
+    document.getElementById('btn-ok-import-modal')?.addEventListener('click', () => this.hideReportModal());
+
     // Stepper superior
     this.stepCards.forEach(card => {
       card.addEventListener('click', () => {
@@ -217,6 +238,13 @@ class PropostaBGuided {
           <div>Largura: <strong style="color:var(--text);">${bounds.size[0].toFixed(2)}m</strong></div>
           <div>Profundidade: <strong style="color:var(--text);">${bounds.size[2].toFixed(2)}m</strong></div>
         </div>
+
+        ${this.bridge.activeTemplateType === CREATURE_QUADRUPED_24 ? `
+          <div class="divergence-banner" style="margin-top:10px;">
+            <strong>ℹ Divergência 24 vs 27 Articulações:</strong>
+            Template quadrúpede com <strong>27 articulações instanciadas</strong> (24 base + 3 estilização: Jaw, LeftHorn, RightHorn). Divergência documentada para homologação do usuário.
+          </div>
+        ` : ''}
       </div>
 
       <div class="guide-tip">
@@ -449,7 +477,14 @@ class PropostaBGuided {
       </div>
 
       <div class="guide-step-card">
-        <h4 style="margin-bottom:8px;">Mapa de Calor da Articulação</h4>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <h4>Mapa de Calor da Articulação</h4>
+          <span class="badge badge-warning">Protótipo Visual — Fase 2</span>
+        </div>
+        <div class="demo-banner">
+          <strong>✦ Mapa Térmico Ativo (Fase 1) / Pintura Manual (Fase 2):</strong>
+          A visualização térmica (Heatmap) projeta os pesos em tempo real. A edição manual com pincéis será introduzida na Fase 2 do Codex.
+        </div>
         <p style="font-size:11px;color:var(--muted);margin-bottom:10px;">
           Clique em qualquer osso para inspecionar os pesos térmicos na malha.
         </p>
@@ -503,13 +538,18 @@ class PropostaBGuided {
       </div>
 
       <div class="guide-step-card">
-        <h4 style="margin-bottom:8px;">Homologação & Exportação</h4>
+        <h4 style="margin-bottom:8px;">Homologação & Intercâmbio JSON</h4>
         <p style="font-size:11px;color:var(--muted);margin-bottom:12px;">
-          Salve o arquivo JSON de coordenadas para auditoria ou importação no Studio.
+          Salve o arquivo JSON de coordenadas para auditoria ou importe poses salvas.
         </p>
-        <button class="btn-success" id="step5-btn-export" style="width:100%;">
-          ↓ Exportar Coordenadas JSON
-        </button>
+        <div style="display:flex;gap:6px;">
+          <button class="btn-success" id="step5-btn-export" style="flex:1;">
+            ↓ Exportar JSON
+          </button>
+          <button class="btn-soft" id="step5-btn-import" style="flex:1;">
+            ↑ Importar JSON
+          </button>
+        </div>
       </div>
     `;
 
@@ -552,6 +592,55 @@ class PropostaBGuided {
       a.click();
       URL.revokeObjectURL(url);
     });
+
+    document.getElementById('step5-btn-import')?.addEventListener('click', () => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.json';
+      input.onchange = async () => {
+        const file = input.files?.[0];
+        if (file) {
+          try {
+            const text = await file.text();
+            const report = this.bridge.validateAndImportJSON(text);
+            if (report.success) {
+              this.viewport.updateJointPositions();
+              this.viewport.updateBoneConnectors();
+              this.updatePaperDoll();
+
+              let body = `
+                <div style="margin-bottom:10px;">
+                  <span class="badge badge-lime">Validação Aprovada</span>
+                  <div style="margin-top:8px;"><strong>${report.appliedCount} de ${report.totalInRig}</strong> articulações aplicadas com sucesso a partir de <strong>${file.name}</strong>.</div>
+                </div>
+              `;
+              if (report.missing.length > 0) {
+                body += `<div style="font-size:11px;color:var(--amber);margin-top:6px;">Articulações ausentes no arquivo (${report.missing.length}, mantiveram posições originais):<br><span style="font-family:var(--font-mono);">${report.missing.join(', ')}</span></div>`;
+              }
+              if (report.unknown.length > 0) {
+                body += `<div style="font-size:11px;color:var(--muted);margin-top:6px;">Articulações ignoradas: ${report.unknown.join(', ')}</div>`;
+              }
+              body += `<div style="font-size:11px;color:var(--muted);margin-top:10px;border-top:1px solid var(--edge);padding-top:6px;">Dica: você pode reverter toda a importação clicando em <strong>Desfazer</strong>.</div>`;
+              this.showReportModal('Relatório de Importação JSON', body);
+            } else {
+              let body = `
+                <div style="margin-bottom:10px;">
+                  <span class="badge badge-rose">Falha na Validação</span>
+                  <div style="margin-top:8px;color:#ff99aa;">O arquivo não pôde ser aplicado:</div>
+                  <ul style="margin:8px 0 8px 18px;color:#ffb3c1;">
+                    ${report.errors.map(e => `<li>${e}</li>`).join('')}
+                  </ul>
+                </div>
+              `;
+              this.showReportModal('Falha na Importação JSON', body);
+            }
+          } catch (err) {
+            this.showReportModal('Erro de Leitura', `<div style="color:var(--rose);">Erro ao ler arquivo: ${err.message}</div>`);
+          }
+        }
+      };
+      input.click();
+    });
   }
 
   updatePaperDoll() {
@@ -572,7 +661,24 @@ class PropostaBGuided {
   }
 
   onBridgeStateChange(state) {
+    const undoBtn = document.getElementById('btn-undo');
+    const redoBtn = document.getElementById('btn-redo');
+    if (undoBtn) undoBtn.disabled = !state.canUndo;
+    if (redoBtn) redoBtn.disabled = !state.canRedo;
     this.updatePaperDoll();
+  }
+
+  showReportModal(title, htmlContent) {
+    const modal = document.getElementById('import-report-modal');
+    if (!modal) return;
+    document.getElementById('import-report-title').textContent = title;
+    document.getElementById('import-report-content').innerHTML = htmlContent;
+    modal.style.display = 'flex';
+  }
+
+  hideReportModal() {
+    const modal = document.getElementById('import-report-modal');
+    if (modal) modal.style.display = 'none';
   }
 }
 

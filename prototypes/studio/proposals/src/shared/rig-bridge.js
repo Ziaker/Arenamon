@@ -6,9 +6,30 @@ import { modelBounds, makeTemplate, collectBones, currentJoints, auditRig, valid
 export const HUMANOID_TEMPLATE_20 = 'humanoid-20';
 export const CREATURE_QUADRUPED_24 = 'creature-quadruped-24';
 
+// Decomposição anatômica do template quadrúpede:
+// 24 ossos base (coluna 5 + cauda 3 + 4 membros 16) vs 3 articulações de estilização facial/chifres
+export const QUADRUPED_BASE_BONES_24 = [
+  'Hips', 'SpineBack', 'SpineChest', 'Neck', 'Head',
+  'Tail1', 'Tail2', 'Tail3',
+  'LeftShoulder', 'LeftFrontKnee', 'LeftFrontAnkle', 'LeftPaw',
+  'RightShoulder', 'RightFrontKnee', 'RightFrontAnkle', 'RightPaw',
+  'LeftHip', 'LeftBackKnee', 'LeftBackAnkle', 'LeftBackPaw',
+  'RightHip', 'RightBackKnee', 'RightBackAnkle', 'RightBackPaw'
+];
+
+export const QUADRUPED_STYLIZATION_BONES_3 = [
+  'Jaw', 'LeftHorn', 'RightHorn'
+];
+
 /**
  * Gera um template de criatura quadrúpede com cauda e chifres
  * para demonstrar suporte a anatomias não-humanoides.
+ *
+ * NOTA DE AUDITORIA (Divergência 24 vs 27):
+ * O identificador nominal declara '24 ossos' (padrão esquelético de quadrúpedes),
+ * mas a implementação constrói 27 articulações (24 base + 3 de estilização de monstro:
+ * Jaw, LeftHorn, RightHorn). Todas as 27 articulações foram preservadas integralmente
+ * sem descarte silencioso para homologação deliberada do usuário.
  */
 export function makeCreatureTemplate(bounds) {
   const [xmin, ymin, zmin] = bounds.min;
@@ -57,7 +78,14 @@ export function makeCreatureTemplate(bounds) {
     space: 'model-root',
     mode: 'draft',
     templateType: CREATURE_QUADRUPED_24,
-    source: 'template quadrúpede 24 pontos — anatomia estilizada',
+    source: 'template quadrúpede estilizado (24 base + 3 estilização: Jaw, LeftHorn, RightHorn = 27 articulações)',
+    divergenceInfo: {
+      declaredCount: 24,
+      actualCount: 27,
+      baseBones: QUADRUPED_BASE_BONES_24,
+      stylizationBones: QUADRUPED_STYLIZATION_BONES_3,
+      note: 'Divergência técnica: o template é nomeado historicamente como 24 pontos, mas a implementação instancia 27 articulações (inclui mandíbula e chifres estilizados). Mantidas as 27 para homologação do usuário.'
+    },
     joints,
     bounds: {
       min: bounds.min.map(n => Math.round(n * 1000) / 1000),
@@ -336,6 +364,67 @@ export class RiggingBridge {
     this.setJointPosition(companion, mirroredPos);
   }
 
+  beginDrag(name) {
+    if (!name) return;
+    const joint = this.getJoint(name);
+    if (!joint) return;
+
+    this.dragSession = {
+      name,
+      startPositions: new Map()
+    };
+    this.dragSession.startPositions.set(name, [...joint.p]);
+
+    const companion = this.getSymmetricCompanion(name);
+    if (this.symmetryEnabled && companion && this.getJoint(companion)) {
+      this.dragSession.startPositions.set(companion, [...this.getJoint(companion).p]);
+    }
+  }
+
+  commitDrag(name) {
+    if (!this.dragSession) return false;
+    const session = this.dragSession;
+    this.dragSession = null;
+
+    const joint = this.getJoint(session.name);
+    if (!joint) return false;
+
+    const initialPos = session.startPositions.get(session.name);
+    if (!initialPos) return false;
+
+    const moved = initialPos.some((coord, idx) => Math.abs(coord - joint.p[idx]) > 1e-5);
+    if (!moved) return false;
+
+    const changes = [];
+    changes.push({
+      name: session.name,
+      from: [...initialPos],
+      to: [...joint.p]
+    });
+
+    const companion = this.getSymmetricCompanion(session.name);
+    if (this.symmetryEnabled && companion && session.startPositions.has(companion)) {
+      const compJoint = this.getJoint(companion);
+      if (compJoint) {
+        changes.push({
+          name: companion,
+          from: [...session.startPositions.get(companion)],
+          to: [...compJoint.p]
+        });
+      }
+    }
+
+    this.pushHistory({
+      type: 'move-joint',
+      source: 'gizmo-drag',
+      changes
+    });
+
+    this.refreshAudit();
+    this.notify();
+    return true;
+  }
+
   pushHistory(command) {
     this.historyStack.push(command);
     this.redoStack = [];
@@ -344,10 +433,10 @@ export class RiggingBridge {
   undo() {
     if (!this.historyStack.length) return false;
     const cmd = this.historyStack.pop();
-    if (cmd.type === 'move-joint') {
+    if (cmd.type === 'move-joint' || cmd.type === 'import-coordinates') {
       const reverseChanges = new Map();
       for (const item of cmd.changes) {
-        reverseChanges.set(item.name, { to: item.from });
+        reverseChanges.set(item.name, { to: [...item.from] });
       }
       this.applyPositionChanges(reverseChanges);
       this.redoStack.push(cmd);
@@ -361,10 +450,10 @@ export class RiggingBridge {
   redo() {
     if (!this.redoStack.length) return false;
     const cmd = this.redoStack.pop();
-    if (cmd.type === 'move-joint') {
+    if (cmd.type === 'move-joint' || cmd.type === 'import-coordinates') {
       const applyChanges = new Map();
       for (const item of cmd.changes) {
-        applyChanges.set(item.name, { to: item.to });
+        applyChanges.set(item.name, { to: [...item.to] });
       }
       this.applyPositionChanges(applyChanges);
       this.historyStack.push(cmd);
@@ -471,23 +560,17 @@ export class RiggingBridge {
     };
   }
 
-  getVertexHeatmapColors(boneName) {
-    if (!this.model || !boneName) return null;
+  getMeshHeatmapColors(mesh, boneName) {
+    if (!mesh || !mesh.geometry || !mesh.geometry.attributes.position || !boneName) return null;
+    const geom = mesh.geometry;
+    const count = geom.attributes.position.count;
+    const colors = new Float32Array(count * 3);
     const bone = this.getBoneObject(boneName);
     const boneJoint = this.getJoint(boneName);
-    if (!bone && !boneJoint) return null;
 
-    // Se skinned, utiliza os pesos do skeleton
-    let skinnedMesh = null;
-    this.model.traverse(o => {
-      if (!skinnedMesh && o.isSkinnedMesh) skinnedMesh = o;
-    });
-
-    if (skinnedMesh && bone) {
-      const geom = skinnedMesh.geometry;
-      const count = geom.attributes.position.count;
-      const colors = new Float32Array(count * 3);
-      const boneIndex = skinnedMesh.skeleton.bones.indexOf(bone);
+    // Se skinnedMesh com skeleton válido
+    if (mesh.isSkinnedMesh && mesh.skeleton && bone) {
+      const boneIndex = mesh.skeleton.bones.indexOf(bone);
       const ids = geom.getAttribute('skinIndex');
       const ws = geom.getAttribute('skinWeight');
 
@@ -501,41 +584,54 @@ export class RiggingBridge {
             }
           }
         }
-        const color = this.weightToColor(weight);
-        colors[i * 3] = color.r;
-        colors[i * 3 + 1] = color.g;
-        colors[i * 3 + 2] = color.b;
+        const col = this.weightToColor(weight);
+        colors[i * 3] = col.r;
+        colors[i * 3 + 1] = col.g;
+        colors[i * 3 + 2] = col.b;
       }
       return colors;
     }
 
-    // Se em rascunho (draft), gera aproximação por proximidade ao segmento
-    let geomMesh = null;
-    this.model.traverse(o => {
-      if (!geomMesh && o.isMesh && o.geometry?.attributes?.position) geomMesh = o;
-    });
-    if (geomMesh && boneJoint) {
-      const geom = geomMesh.geometry;
-      const count = geom.attributes.position.count;
-      const colors = new Float32Array(count * 3);
+    // Se em rascunho (draft) ou malha estática, calcula influência por distância euclidiana precisa
+    if (boneJoint && this.model) {
       const posAttr = geom.attributes.position;
-      const jointPos = new THREE.Vector3(...boneJoint.p);
+      const jointLocal = new THREE.Vector3(...boneJoint.p);
+      const jointWorld = this.model.localToWorld(jointLocal.clone());
       const v = new THREE.Vector3();
       const bounds = this.getModelBounds();
       const maxDim = Math.max(...bounds.size);
 
       for (let i = 0; i < count; i++) {
         v.fromBufferAttribute(posAttr, i);
-        const dist = v.distanceTo(jointPos);
+        mesh.localToWorld(v); // converte vértice específico da malha para o espaço de mundo
+        const dist = v.distanceTo(jointWorld);
         const normDist = Math.max(0, 1 - dist / (maxDim * 0.35));
-        const color = this.weightToColor(normDist * normDist);
-        colors[i * 3] = color.r;
-        colors[i * 3 + 1] = color.g;
-        colors[i * 3 + 2] = color.b;
+        const weight = normDist * normDist;
+        const col = this.weightToColor(weight);
+        colors[i * 3] = col.r;
+        colors[i * 3 + 1] = col.g;
+        colors[i * 3 + 2] = col.b;
       }
       return colors;
     }
-    return null;
+
+    const zeroColor = this.weightToColor(0);
+    for (let i = 0; i < count; i++) {
+      colors[i * 3] = zeroColor.r;
+      colors[i * 3 + 1] = zeroColor.g;
+      colors[i * 3 + 2] = zeroColor.b;
+    }
+    return colors;
+  }
+
+  getVertexHeatmapColors(boneName) {
+    if (!this.model || !boneName) return null;
+    let firstMesh = null;
+    this.model.traverse(o => {
+      if (!firstMesh && o.isMesh && o.geometry?.attributes?.position) firstMesh = o;
+    });
+    if (!firstMesh) return null;
+    return this.getMeshHeatmapColors(firstMesh, boneName);
   }
 
   weightToColor(weight) {
@@ -586,5 +682,155 @@ export class RiggingBridge {
     coords.modelName = this.model.name || 'ArenamonCharacter';
     coords.templateType = this.activeTemplateType;
     return coords;
+  }
+
+  validateAndImportJSON(jsonData) {
+    let data = jsonData;
+    if (typeof data === 'string') {
+      try {
+        data = JSON.parse(data);
+      } catch (err) {
+        return {
+          success: false,
+          errors: ['Arquivo JSON inválido ou corrompido: ' + err.message],
+          warnings: [],
+          appliedCount: 0,
+          totalInFile: 0,
+          totalInRig: this.getJoints().length,
+          matched: [],
+          missing: [],
+          unknown: [],
+          invalid: []
+        };
+      }
+    }
+
+    if (!data || typeof data !== 'object') {
+      return {
+        success: false,
+        errors: ['O conteúdo informado não é um objeto JSON válido.'],
+        warnings: [],
+        appliedCount: 0,
+        totalInFile: 0,
+        totalInRig: this.getJoints().length,
+        matched: [],
+        missing: [],
+        unknown: [],
+        invalid: []
+      };
+    }
+
+    if (!Array.isArray(data.joints)) {
+      return {
+        success: false,
+        errors: ['Formato incompatível: o arquivo deve conter a propriedade "joints" com uma lista de articulações.'],
+        warnings: [],
+        appliedCount: 0,
+        totalInFile: 0,
+        totalInRig: this.getJoints().length,
+        matched: [],
+        missing: [],
+        unknown: [],
+        invalid: []
+      };
+    }
+
+    const currentJoints = this.getJoints();
+    const currentMap = new Map(currentJoints.map(j => [j.name, j]));
+    const errors = [];
+    const warnings = [];
+
+    const matched = [];
+    const unknown = [];
+    const invalid = [];
+    const fileJointNames = new Set();
+
+    for (const item of data.joints) {
+      if (!item || typeof item !== 'object' || !item.name) {
+        invalid.push({ item, reason: 'Entrada sem nome de articulação' });
+        continue;
+      }
+
+      fileJointNames.add(item.name);
+
+      if (!Array.isArray(item.p) || item.p.length !== 3 || !item.p.every(n => typeof n === 'number' && Number.isFinite(n))) {
+        invalid.push({ name: item.name, reason: 'Coordenadas inválidas (esperado array de 3 números finitos)' });
+        continue;
+      }
+
+      if (currentMap.has(item.name)) {
+        matched.push({ name: item.name, p: item.p });
+      } else {
+        unknown.push(item.name);
+      }
+    }
+
+    const missing = currentJoints.filter(j => !fileJointNames.has(j.name)).map(j => j.name);
+
+    if (matched.length === 0) {
+      errors.push(`Nenhuma articulação do arquivo coincide com o modelo ativo (${currentJoints.length} articulações esperadas).`);
+      return {
+        success: false,
+        errors,
+        warnings,
+        appliedCount: 0,
+        totalInFile: data.joints.length,
+        totalInRig: currentJoints.length,
+        matched: [],
+        missing,
+        unknown,
+        invalid
+      };
+    }
+
+    if (invalid.length > 0) {
+      warnings.push(`${invalid.length} articulação(ões) continham coordenadas inválidas e foram ignoradas.`);
+    }
+
+    if (missing.length > 0) {
+      warnings.push(`${missing.length} articulação(ões) do esqueleto atual não constam no arquivo e mantiveram suas posições originais.`);
+    }
+
+    if (unknown.length > 0) {
+      warnings.push(`${unknown.length} articulação(ões) do arquivo não existem no esqueleto atual e foram desconsideradas.`);
+    }
+
+    // Aplica alterações e grava histórico de Undo
+    const changes = [];
+    for (const m of matched) {
+      const cur = currentMap.get(m.name);
+      changes.push({
+        name: m.name,
+        from: [...cur.p],
+        to: [...m.p]
+      });
+    }
+
+    this.pushHistory({
+      type: 'import-coordinates',
+      source: 'json-import',
+      changes
+    });
+
+    const applyMap = new Map();
+    for (const c of changes) {
+      applyMap.set(c.name, { to: c.to });
+    }
+    this.applyPositionChanges(applyMap);
+    this.refreshAudit();
+    this.notify();
+
+    return {
+      success: true,
+      errors: [],
+      warnings,
+      appliedCount: matched.length,
+      totalInFile: data.joints.length,
+      totalInRig: currentJoints.length,
+      matched: matched.map(m => m.name),
+      missing,
+      unknown,
+      invalid
+    };
   }
 }
