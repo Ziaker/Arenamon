@@ -80,8 +80,8 @@ export function currentJoints(root) {
   return collectBones(root).map(b => {
     const p = b.getWorldPosition(new T.Vector3()).applyMatrix4(inverse);
     return {name:nameOf(b),uuid:b.uuid,parent:b.parent?.isBone ? nameOf(b.parent) : null,
-      p:tidy(arr(p)),local:tidy(arr(b.position)),
-      world:tidy(arr(b.getWorldPosition(new T.Vector3())))};
+      p:arr(p),local:arr(b.position),
+      world:arr(b.getWorldPosition(new T.Vector3()))};
   });
 }
 
@@ -233,6 +233,6 @@ export function exportCoordinates(root, draft=null) {
   const bounds=modelBounds(root), audit=auditRig(root);
   return {schema:'arenamon-rig',version:1,space:'model-root',createdAt:new Date().toISOString(),
     coordinatesUnit:'unidades do modelo (não pressupõe metros)',bounds,
-    joints:draft?.joints?.length ? draft.joints.map(j=>({name:j.name,parent:j.parent,p:tidy(j.p)})) : currentJoints(root).map(j=>({name:j.name,parent:j.parent,p:j.p,local:j.local,world:j.world,uuid:j.uuid})),
+    joints:draft?.joints?.length ? draft.joints.map(j=>({name:j.name,parent:j.parent,p:[...j.p]})) : currentJoints(root).map(j=>({name:j.name,parent:j.parent,p:j.p,local:j.local,world:j.world,uuid:j.uuid})),
     audit};
 }
