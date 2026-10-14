@@ -916,14 +916,24 @@ export class RiggingBridge {
     return result;
   }
 
-  exportJSON({ version = 1 } = {}) {
+  exportJSON({ version = null } = {}) {
     if (!this.model) throw new Error('Nenhum modelo carregado.');
     const coords = exportCoordinates(this.model, this.draft);
     coords.modelName = this.model.name || 'ArenamonCharacter';
     coords.templateType = this.activeTemplateType;
 
-    const requestedV2 = version === 2 || this.draft?.version === 2;
-    if (requestedV2) {
+    const modelRigVersion = this.model.userData?.arenamonRig?.version;
+    const draftVersion = this.draft?.version;
+
+    // Determina se a exportação deve ser no Schema v2:
+    // 1. Se version === 2 -> forçado v2.
+    // 2. Se version === 1 -> forçado v1.
+    // 3. Se version for null/undefined (chamada padrão da UI sem argumentos):
+    //    emite v2 por padrão se draft for v2, se model.userData.arenamonRig for v2,
+    //    se o modelo estiver skinned (isSkinned()), ou como padrão do estúdio.
+    const isV2 = version === 2 || (version !== 1 && (draftVersion === 2 || modelRigVersion === 2 || this.isSkinned() || this.draft != null || version == null));
+
+    if (isV2) {
       coords.version = 2;
       const assignedIds = new Set();
       coords.joints = coords.joints.map(j => {

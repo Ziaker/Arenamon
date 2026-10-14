@@ -4,9 +4,11 @@ on:
   push:
     branches:
       - feat/studio-rigging-ui-proposals
+      - 'integration/**'
   pull_request:
     branches:
       - feat/studio-rigging-ui-proposals
+      - 'integration/**'
   workflow_dispatch:
 
 permissions:
@@ -26,6 +28,8 @@ jobs:
         run: npm ci
       - name: Build proposals
         run: node prototypes/studio/proposals/build.mjs
+      - name: Run cross-validation with Codex core 7323b48
+        run: node prototypes/studio/proposals/test-codex-cross.mjs
       - name: Run proposal automated tests
         run: node prototypes/studio/proposals/test-proposals.mjs
       - name: Verify repository status

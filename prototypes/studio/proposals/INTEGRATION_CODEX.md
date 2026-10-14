@@ -225,18 +225,32 @@ A suíte Playwright (`test-proposals.mjs`) foi expandida para além das chamadas
 - Exercita eventos reais de ponteiro (`page.mouse.move`, `page.mouse.down`, `page.mouse.move`, `page.mouse.up`) sobre os manipuladores de eixo do `TransformControls` no canvas WebGL.
 - Comprova a ativação do estado `dragging`, a emissão de `dragging-changed`, o deslocamento de coordenadas 3D em tempo real, o registro de histórico atômico e a restauração perfeita pelo Undo.
 
+### 5.4. Exportação via Botões Reais da UI e Preservação de Schema v2 Pós-Bind:
+Anteriormente, o método `exportJSON()` assumia `version: 1` por padrão quando invocado sem argumentos pelos botões visuais da interface (`#btn-export-json` ou `#step5-btn-export`). Como o método `bindSkin()` limpava `this.draft` para `null`, a exportação padrão retornava inadvertidamente a um rascunho v1 sem IDs e quaternions, apesar dos metadados estarem em v2:
+- O `exportJSON({ version = null } = {})` foi aprimorado para detectar dinamicamente a presença de metadados v2 (`model.userData.arenamonRig.version === 2`), estado atado (`isSkinned() === true`) ou rascunho v2 (`draft.version === 2`).
+- Quando não especificado, o método preserva e exporta automaticamente Schema v2 estrito com IDs únicos em cada articulação e quaternions unitários finitos.
+- As três propostas expõem `window.__lastExportedJSON` nos tratadores de clique, permitindo que a suíte Playwright clique fisicamente nos botões da interface após `bindSkin()` e certifique a validade estrutural v2 emitida.
+
+### 5.5. Bateria de Teste Cruzado com o Núcleo Real do Codex (`7323b48`):
+Foi implementada uma suíte automatizada de validação cruzada direta (`test-codex-cross.mjs`), que importa diretamente o arquivo de núcleo de rigging do commit `7323b48` (`prototypes/studio/proposals/test-codex-core-7323b48.js`), extraído fielmente da branch `codex/rig-editor-stabilization`:
+- **Validação Direta de Rigs da UI**: O `CodexCore.validateDraft` valida diretamente todos os templates e rascunhos produzidos pelo `RiggingBridge` (Humanoid-20, Quadrúpede-27, Quadrúpede-24 e esqueleto derivado de `SkinnedMesh`).
+- **Importação de Mutações Topológicas**: Rascunhos gerados e mutados pelo motor do Codex são importados pelo `RiggingBridge` e sincronizados com a árvore Three.js.
+- **Equivalência de Metadados**: Comprova que `RiggingBridge.syncRigMetadata` e `CodexCore.syncRigMetadata` produzem metadados `model.userData.arenamonRig` com estrutura, tipos e campos idênticos.
+- **Matriz de Rejeição Canônica**: Casos de erro (IDs ausentes, IDs duplicados, quaternions inválidos/não-finitos, ciclos na hierarquia, múltiplas raízes, coordenadas fora de limite) disparam mensagens de erro 100% idênticas entre o Codex e a UI.
+
 ---
 
-## 6. Integração Contínua (CI) e Isolamento de Responsabilidades
+## 6. Integração Contínua (CI), Isolamento de Contexto e Ambientes
 
 1. **Workflow Dedicado às Propostas (`studio-rigging-proposals.yml`)**:
-   - Criado em `.github/workflows/studio-rigging-proposals.yml` para disparar em `push` e `pull_request` na branch `feat/studio-rigging-ui-proposals`.
-   - Executa a compilação offline das três propostas, a suíte completa de testes automatizados Playwright e `npm run verify`, publicando os HTMLs e capturas como artefatos de build.
-2. **Preservação do Workflow Principal do Codex/Claude (`arenamon-studio-rigging.yml`)**:
-   - O pipeline existente permanece intacto e dedicado à branch `feat/studio-rigging-fase1-gpt6`.
+   - Dispara em `push` e `pull_request` nas branches `feat/studio-rigging-ui-proposals` e `integration/**`.
+   - Executa a compilação offline das três propostas (`build.mjs`), a validação cruzada direta com o núcleo do Codex (`test-codex-cross.mjs`), os testes automatizados Playwright (`test-proposals.mjs`) e `npm run verify`, publicando os HTMLs e capturas como artefatos de build.
+2. **Resolução de Timeout no Runner Windows (Isolamento de Páginas e Contextos)**:
+   - No runner Windows Server 2025 com rasterização por software (SwiftShader), a reutilização contínua de uma única página entre as propostas acumulava contextos WebGL e animações Three.js em segundo plano, levando a timeout durante a navegação final para `index.html`.
+   - A execução foi arquitetada na função `runWithPage(browser, testName, testFn)`, que instancia e destrói um `BrowserContext` e `Page` dedicados para cada proposta e para o portal. Essa limpeza estrita de ciclo de vida e liberação de GPU/DOM permite que `index.html` carregue e renderize de imediato (<500ms).
+3. **Preservação do Workflow Principal do Codex/Claude (`arenamon-studio-rigging.yml`)**:
+   - O pipeline existente permanece dedicado à branch `feat/studio-rigging-fase1-gpt6`.
    - Não há interferência entre os ambientes de CI.
-3. **Ambiente dos Runners**:
-   - Os runners do GitHub Actions executam sobre **Windows Server 2025**. O lançador do Playwright em `test-proposals.mjs` foi desenhado com estratégia de fallback multicanais (`chromium` nativo -> `msedge` -> `chrome`), assegurando execução resiliente em ambientes locais e de CI.
 
 ---
 
