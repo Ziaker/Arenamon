@@ -41,7 +41,7 @@ button[aria-pressed=true],button[aria-checked=true],button.active{background:#1b
 .tune-control{padding:8px 10px;border-bottom:1px solid #ffffff0c}.tune-control:last-child{border-bottom:0}.tune-control.changed{background:#1d2a1a}
 .tune-top{display:flex;align-items:center;gap:6px}.tune-top label{flex:1;font-size:12px;font-weight:600}.tune-value{font:600 12px ui-monospace,Consolas,monospace;color:#8de4d1;white-space:nowrap}
 .tune-help{width:22px;height:22px;min-height:0!important;padding:0!important;border-radius:50%;font-size:11px;font-weight:800;cursor:help;flex:none}
-.badge{font-size:10px;padding:1px 6px;border-radius:999px;border:1px solid;white-space:nowrap}.badge.official{color:#9fe58a;border-color:#9fe58a66}.badge.experimental{color:var(--amber);border-color:#ffcf7d66}.badge.lab{color:#9db4ff;border-color:#9db4ff55}
+.badge{font-size:10px;padding:1px 6px;border-radius:999px;border:1px solid;white-space:nowrap}.badge.official{color:#9fe58a;border-color:#9fe58a66}.badge.experimental{color:var(--amber);border-color:#ffcf7d66}.badge.labonly{color:#9db4ff;border-color:#9db4ff55}
 .tune-control input[type=range]{width:100%;accent-color:var(--cyan);margin:4px 0 0}
 .tune-bottom{display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:10.5px;color:#7f97ab}.tune-bottom button{font-size:10.5px;min-height:22px;padding:0 7px;background:none}
 #help-tip{position:fixed;z-index:100;max-width:330px;background:#eaf7fa;color:#142638;padding:10px 12px;border-radius:9px;box-shadow:0 12px 35px #000a;font-size:12px;pointer-events:none}#help-tip strong{display:block}#help-tip code{display:block;margin-top:5px;font-size:10px;color:#385b70}

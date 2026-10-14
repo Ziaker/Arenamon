@@ -42,7 +42,7 @@ test('telemetria: vantagem de quadros no bloqueio', () => {
   assert.equal(r.recorder.actions.filter(a => a.fighter === 0 && a.kind === 'tackle').length, 1);
 });
 test('tabela de quadros reflete a configuração', () => {
-  const before = frameTable()[0].total;C.rules.tackleDuration = .5;assert.equal(frameTable()[0].total, 60);assert.equal(frameTable()[1].total, 48);resetConfig();assert.equal(frameTable()[0].total, before);
+  const before = frameTable()[0].total;C.actions.tackle.duration = .5;assert.equal(frameTable()[0].total, 60);assert.equal(frameTable()[1].total, 48);resetConfig();assert.equal(frameTable()[0].total, before);
   assert.deepEqual(JSON.parse(JSON.stringify(C)), JSON.parse(JSON.stringify(defaults())));
 });
 function aiDuel(seed, ticks = 120 * 60) {

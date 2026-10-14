@@ -1,4 +1,4 @@
-# Arenamon · Laboratório de combate v7
+# Arenamon · Laboratório de combate (Etapa A)
 
 Gere com `npm run build` e abra `dist/arenamon-combate-laboratorio.html` por duplo clique (offline, sem modelos embutidos).
 
@@ -19,7 +19,34 @@ O porto é verificado por `test/parity.mjs`. O teste executa o v6 original e est
 | `src/view/` | Three.js: arena, blocos, efeitos, sobreposições técnicas, câmera e personagens do Studio. |
 | `src/ui/` | HUD, entrada (teclado/gamepad), ajustador, doca da linha do tempo e referência ao `config.ts`. |
 
-## As dez melhorias
+## Etapa A: núcleo X/C (em avaliação, não homologado)
+
+A revisão de regras em relação ao GDD v0.1 está em [`docs/REVISAO_GDD_COMBATE.md`](../../docs/REVISAO_GDD_COMBATE.md).
+
+- **X (tackle) e C (esquiva) independentes:** a aba **X e C** do ajustador tem 40 parâmetros em `actions.dodge`, `actions.tackle` e `actions.cancel`:
+  - duração, custo, invulnerabilidade, distância, arrancada da curva, esterçamento (limite e taxa);
+  - transição de velocidade, encadeamento, recuperação;
+  - permissões a partir da defesa, do recuo e do guard stun.
+- **X em 8 direções:** o impacto depende da trajetória real, não da orientação do corpo. Cada ação acerta cada alvo uma vez. **C** nunca causa dano e só salta quando cruza o adversário.
+- **Cancelamento C → X:**
+  - A janela é configurável e começa no primeiro passo por padrão.
+  - C fica pago e X cobra o próprio custo. Sem stamina, a esquiva continua.
+  - A direção é a pedida; sem direção, X segue a de C.
+  - A velocidade é contínua, com transição de 0,06 s.
+  - No ar, X parte da altura atual e desce em 0,18 s.
+  - A invulnerabilidade de X é só o resto da de C. O slider "Invulnerabilidade no cancelamento" compara com "nenhuma" e "janela completa de X".
+- **Clash:** cada lutador recebe 30% do dano do tackle do outro, e os dois são lançados para trás e para cima.
+- **Recuo e guard stun (GDD):** X não sai durante o recuo (C e D saem). X pedido no guard stun fica guardado e sai quando o stun termina.
+- **Migração de JSON:** os formatos v5 a v7 são convertidos na importação, com uma tabela "campo antigo → novo" e a lista dos campos não reconhecidos. A exportação é v8.
+- **Animações:** com sincronização, as durações dos clips definem só `actions.*.duration`, o recuo, o guard stun e a aterrissagem. As janelas de eventos do Studio (invulnerabilidade, hitbox) **nunca** alteram as regras.
+
+**Limitações conhecidas:**
+- Os valores (velocidades, janelas, 0,06 s e 0,18 s) são provisórios.
+- O lançamento aéreo continua no lugar da fórmula de empurrão do GDD; a reconciliação fica para a Etapa B.
+- O jogo oficial não foi alterado.
+- Os testes automáticos não equivalem a aprovação jogável.
+
+## As dez melhorias (v7)
 
 1. **Fontes versionadas:** módulos legíveis, build reproduzível, paridade exata com o v6 e testes.
 2. **Personagens do Studio** (aba Personagens): carregue o `.glb` exportado pelo Animation Studio. O mapa de ações do Studio associa cada estado da simulação a uma animação; também dá para associar por nome ou manualmente. O tempo das animações com duração definida (tackle, esquiva, recuo, guard stun, voo e aterrissagem) é calculado a partir do estado da simulação, então acompanha a física inclusive no replay. Opções: travar o deslocamento da raiz, ajustar a altura ao colisor, duração da transição e cópia tingida para o vermelho.
@@ -27,7 +54,7 @@ O porto é verificado por `test/parity.mjs`. O teste executa o v6 original e est
 4. **Replay e passo a passo:** os últimos 12 s ficam gravados por estado completo. Use ◂/▸ (ou `,`/`.`) para andar um passo, clique na linha do tempo para voltar, retome a partir do passado (o futuro gravado é descartado) e use câmera lenta de 0,1× a 1×.
 5. **Cenários:** oito cenários roteirizados e repetíveis: tackle contra defesa, defesa perfeita, clash frontal, esquiva perfeita com contra-ataque, esquiva lateral, lançamento, knockback na parede e exaustão. Cada um mostra esperado × obtido, com o esperado calculado a partir dos ajustes atuais. Podem ser executados ao vivo ou todos de uma vez.
 6. **Ajustador reformulado:**
-   - Os 295 parâmetros ficam em 8 abas, com busca.
+   - Os 337 parâmetros ficam em 9 abas (a primeira é **X e C**), com busca.
    - Filtros: alterados, ≠ jogo, só lab.
    - Desfazer/refazer, restaurar por grupo e botão “= jogo”.
    - Presets salvos neste navegador e comparação entre presets, padrão do laboratório e jogo.
@@ -41,7 +68,7 @@ O porto é verificado por `test/parity.mjs`. O teste executa o v6 original e est
    - IA do jogador configurável e presets de dificuldade.
    - Gamepad: A tackle, B esquiva, LB/RB defesa, Y alvo, Start pausa.
    - Histórico de comandos estilo modo treino.
-10. **Levar ajustes ao jogo com segurança:** JSON versionado (v7, com `differencesFromGame`). A importação aceita v5, v6 e v7 e é validada e pré-visualizada antes de aplicar. Há relatório de diferenças em relação ao `config.ts`, aviso ao sair com ajustes não exportados e restauração da sessão anterior.
+10. **Levar ajustes ao jogo com segurança:** JSON versionado (v8, com `differencesFromGame`). A importação aceita v5 a v8, migrando os formatos antigos, e é validada e pré-visualizada antes de aplicar. Há relatório de diferenças em relação ao `config.ts`, aviso ao sair com ajustes não exportados e restauração da sessão anterior.
 
 ## Aleatoriedade das IAs
 
@@ -61,7 +88,7 @@ Os padrões são diferentes: o vermelho reage mais devagar e hesita mais; o azul
 - **Estados novos:** girar no lugar, entrar/sair da defesa, defesa perfeita e recuperação após exaustão.
 - **Estados sem animação:** o painel lista os estados que ainda caem em “parado” e mostra a animação tocando agora.
 - **Velocidade:** cada ação tem um slider (0,25× a 3×), e há um slider geral.
-- **Durações no jogo:** com “As durações das animações definem as regras”, as durações do tackle (X, agora separado da esquiva), da esquiva, do recuo, do guard stun e da aterrissagem passam a ser *duração do clip ÷ velocidade*. A invulnerabilidade vem dos eventos marcados no Studio na esquiva. Aplica com desfazer e aparece como ≠ jogo nos Ajustes.
+- **Durações no jogo:** com “As durações das animações definem as regras”, as durações do tackle (X, agora separado da esquiva), da esquiva, do recuo, do guard stun e da aterrissagem passam a ser *duração do clip ÷ velocidade*. As janelas de invulnerabilidade e de hitbox nunca vêm do GLB. Aplica com desfazer e aparece como ≠ jogo nos Ajustes.
 - **Sem sincronizar:** o clip é esticado para caber na ação, e a velocidade acelera o clip dentro dela.
 
 ## Achados da telemetria (para avaliação)
@@ -71,7 +98,16 @@ Os padrões são diferentes: o vermelho reage mais devagar e hesita mais; o azul
 
 ## Testes
 
+- `node prototypes/combat-lab/test/core.test.mjs`: 19 testes da Etapa A com 161 verificações "esperado × obtido":
+  - X e C nas 8 direções, com e sem lock-on;
+  - C → X no início, durante e após a invulnerabilidade, no ar, sem stamina, fora da janela e desligado;
+  - esquiva perfeita + C → X;
+  - independência dos parâmetros;
+  - clash (frontal, diagonal, sem colisão, se afastando, parede, ataques diferentes, stamina baixa);
+  - defesa, recuo, guard stun, stamina e migração.
+
+  O relatório fica em `validation/etapa-a-report.md` e `.json`, com o registro completo de cada cancelamento.
 - `node prototypes/combat-lab/test/sim.test.mjs`: 18 testes (8 cenários, determinismo, replay por estado, telemetria, tabela de quadros, personalidade das IAs).
 - `node prototypes/combat-lab/test/local-character.mjs modelo.glb`: diagnóstico local do mapa de animações de um modelo seu (resultado em `validation/`).
-- `node prototypes/combat-lab/test/parity.mjs`: paridade passo a passo com o v6 local (opcional).
-- `node prototypes/combat-lab/verify.mjs`: 15 verificações no Edge offline, incluindo o GLB gerado pelo próprio Animation Studio com mapa de ações e eventos.
+- `node prototypes/combat-lab/test/parity.mjs`: paridade passo a passo com o v6 local, no modo `V6_COMPAT` (opcional; só compara o comportamento antigo).
+- `node prototypes/combat-lab/verify.mjs`: 16 verificações (incluindo a aba X e C, a migração de JSON v6 e C → X pelo teclado) no Edge offline, incluindo o GLB gerado pelo próprio Animation Studio com mapa de ações e eventos.

@@ -55,11 +55,13 @@ export function updateFighter(f, cmd, fighters, dt) {
   if (cmd.guard && T.enableDefense && !f.guardSuppressed && open) {
     if (f.action && (f.action.kind === 'dodge' || f.action.kind === 'tackle')) f.blend = {from: {...f.velocity}, elapsed: 0};
     if (f.action?.kind === 'recoil') {f.velocity = vec();f.blend = null;}
-    f.action = null;f.vaultHeight = 0;f.guard = true;f.bufferedTackle = null;
+    f.action = null;f.vaultHeight = 0;f.guard = true;
+    // Segurar D não apaga o X guardado no guard stun; só um novo toque em D substitui o pedido (GDD 5: vale o último).
+    if (cmd.guardPressed) f.bufferedTackle = null;
     if (cmd.guardPressed && f.perfectCooldown <= 0) {f.perfectLeft = R.perfect;f.perfectSucceeded = false;}
   }
   // Pedido de ação: X tem prioridade se as duas teclas chegarem no mesmo passo (como no v6).
-  let kind = cmd.tackle && T.enableTackle ? 'tackle' : cmd.dodge && T.enableDodge ? 'dodge' : null, dirs = cmd;
+  let kind = cmd.tackle && T.enableTackle ? 'tackle' : cmd.dodge && T.enableDodge ? 'dodge' : null, dirs = {move, dodgeDirection: cmd.dodgeDirection};
   // Tackle guardado durante o guard stun: sai assim que o stun termina (GDD 5: só o último pedido é mantido).
   if (!kind && f.bufferedTackle && f.stun <= 1e-8 && !f.action) {kind = 'tackle';dirs = f.bufferedTackle;f.bufferedTackle = null;}
   if (kind) {

@@ -15,8 +15,11 @@ export const NAMES={
  forward:'Mover para cima',back:'Mover para baixo',left:'Mover à esquerda',right:'Mover à direita',tackle:'Tecla de tackle',dodgeKey:'Tecla de esquiva',defend:'Tecla de defesa',lock:'Tecla de lock-on',pause:'Tecla de pausa',restart:'Tecla de reinício',debug:'Tecla de depuração'
  };
 export const SECTIONS=[
-  ['Regras de ação e stamina','rules',['dodge','tackleDuration','invulnerable','steerLimit','steerRate','recoil','recoilFraction','blend','guardStun','perfect','perfectCooldown','staminaMax','regenDelay','regenTime','guardSpeed','exhaustedSpeed','guardTurn','guardAcceleration']],
-  ['Knockback e clash','rules',['launchGravity','launchUp','launchHorizontal','launchDrag','clashFraction','clashUp','clashHorizontal','landingRecovery','wallRestitution','dodgeVaultHeight']],
+  ['Esquiva (C)','actions.dodge',null],
+  ['Tackle (X)','actions.tackle',null],
+  ['Cancelamento C → X','actions.cancel',null],
+  ['Regras gerais, defesa e stamina','rules',['recoil','recoilFraction','blend','guardStun','perfect','perfectCooldown','staminaMax','regenDelay','regenTime','guardSpeed','exhaustedSpeed','guardTurn','guardAcceleration']],
+  ['Knockback e clash','rules',['launchGravity','launchUp','launchHorizontal','launchDrag','clashFraction','clashUp','clashHorizontal','landingRecovery','wallRestitution']],
   ['Combate e colisões','extras.combat',null],
   ['Atributos: equilibrado','profiles.balanced',null],
   ['Atributos: ágil','profiles.agile',null],

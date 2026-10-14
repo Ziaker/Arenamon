@@ -1,4 +1,4 @@
-// Teste de navegador do laboratório de combate v7 (Edge, sem rede).
+// Teste de navegador do laboratório de combate (Etapa A) (Edge, sem rede).
 // Uso: node prototypes/combat-lab/verify.mjs (requer `npm run build`: usa também o HTML do Animation Studio
 // para gerar um GLB de personagem com mapa de ações e eventos de combate).
 import {chromium} from '@playwright/test';
@@ -47,7 +47,14 @@ try {
 
   // ---------- 6/10. Ajustador ----------
   await page.click('[data-tool="tuning"]');
-  assert.match(await page.textContent('#tune-counter'), /de 310 · 10 ≠ jogo/);
+  assert.match(await page.textContent('#tune-counter'), /de 337 · \d+ ≠ jogo/);
+  // Aba “X e C”: parâmetros independentes da esquiva, do tackle e do cancelamento.
+  assert.equal(await page.locator('#tune-tabs [role=tab]').first().textContent(), 'X e C · 40');
+  for (const id of ['#tune-actions-dodge-duration', '#tune-actions-tackle-duration', '#tune-actions-cancel-windowStart', '#tune-actions-cancel-invulnerability']) assert.ok(await page.isVisible(id), id);
+  assert.match(await page.textContent('#tune-list'), /Esquiva \(C\)[\s\S]*Tackle \(X\)[\s\S]*Cancelamento C → X/);
+  await page.locator('#tune-actions-tackle-duration').fill('0.5');await page.locator('#tune-actions-tackle-duration').dispatchEvent('change');
+  assert.deepEqual(await L(() => [window.__lab.C.actions.tackle.duration, window.__lab.C.actions.dodge.duration]), [.5, .4], 'slider de X não altera C');
+  await L(() => window.__lab.tuning.undo());
   await page.fill('#tune-search', 'gravidade');assert.ok(await page.locator('.tune-control').count() >= 1);
   await page.fill('#tune-search', '');await page.click('[data-filter="experimental"]');const exp = await page.locator('.tune-control').count();assert.equal(exp, 10);
   const arena = page.locator('#tune-test-arenaHalf');await arena.focus();await page.keyboard.press('ArrowLeft');
@@ -69,17 +76,20 @@ try {
   await page.click('[data-tool="export"]');
   assert.match(await page.textContent('#game-diff'), /Metade do lado da arena/);
   let pending = page.waitForEvent('download');await page.click('#export-json');const json = JSON.parse(await readFile(await (await pending).path(), 'utf8'));
-  assert.equal(json.schema, 'arenamon-tuning');assert.equal(json.version, 7);assert.equal(json.values.test.arenaHalf, 15);
+  assert.equal(json.schema, 'arenamon-tuning');assert.equal(json.version, 8);assert.ok(json.values.actions.dodge && json.values.actions.tackle && json.values.actions.cancel);assert.equal(json.values.test.arenaHalf, 15);
   assert.ok(json.differencesFromGame.some(d => d.path === 'test.arenaHalf' && d.game === 10 && d.lab === 15));assert.ok(!json.differencesFromGame.some(d => d.path === 'test.speed'));
   // Importar um JSON v6 (formato antigo) com valor inválido: rejeitado sem aplicar nada.
   await page.fill('#import-text', JSON.stringify({schema: 'arenamon-tuning-v5', version: 6, values: {rules: {dodge: .5, launchUp: 999}}}));await page.click('#import-preview');
-  assert.match(await page.textContent('#import-result'), /fora da faixa/);assert.equal(await L(() => window.__lab.C.rules.dodge), .4);
+  assert.match(await page.textContent('#import-result'), /fora da faixa/);assert.equal(await L(() => window.__lab.C.actions.dodge.duration), .4);
   await page.fill('#import-text', JSON.stringify({schema: 'arenamon-tuning-v5', version: 6, values: {rules: {dodge: .5}, test: {arenaHalf: 16, speed: 4.8}}}));await page.click('#import-preview');
-  assert.match(await page.textContent('#import-result'), /3 parâmetros mudariam/);await page.click('#import-apply');
-  assert.deepEqual(await L(() => [window.__lab.C.rules.dodge, window.__lab.C.test.arenaHalf, window.__lab.C.test.speed]), [.5, 16, 4.8]);
-  await L(() => window.__lab.tuning.undo());assert.equal(await L(() => window.__lab.C.rules.dodge), .4);
+  // rules.dodge (v6) vira as durações de C e de X, com relatório de migração.
+  const importText = await page.textContent('#import-result');
+  assert.match(importText, /Migração de formato antigo/);assert.match(importText, /rules\.dodge/);assert.match(importText, /actions\.tackle\.duration/);assert.match(importText, /4 parâmetros mudariam/);
+  await page.click('#import-apply');
+  assert.deepEqual(await L(() => [window.__lab.C.actions.dodge.duration, window.__lab.C.actions.tackle.duration, window.__lab.C.test.arenaHalf, window.__lab.C.test.speed]), [.5, .5, 16, 4.8]);
+  await L(() => window.__lab.tuning.undo());assert.equal(await L(() => window.__lab.C.actions.dodge.duration), .4);
   await page.click('#reset-all');assert.equal(await L(() => window.__lab.C.test.speed), 4.8);
-  step('exportação v7 com diferenças do jogo, importação v6 validada (pré-visualizar, aplicar, desfazer) e restaurar padrões');
+  step('exportação v8 com diferenças do jogo, importação v6 migrada e validada (pré-visualizar, aplicar, desfazer) e restaurar padrões');
 
   // Aviso ao sair e sessão anterior.
   await L(() => window.__lab.tuning.commit([['rules.launchUp', 8]], 'teste'));assert.equal(await page.getAttribute('#tune-state', 'data-state'), 'dirty');
@@ -149,7 +159,18 @@ try {
   // ---------- 7. Telemetria ----------
   await page.click('[data-dock="hits"]');assert.match(await page.textContent('#hit-log'), /Impacto/);
   await page.click('[data-dock="frames"]');assert.match(await page.textContent('#frame-table'), /Tackle \(X\)48/);await page.click('[data-dock="timeline"]');
-  step('telemetria: registro de golpes com vantagem de quadros e tabela de quadros');
+  assert.match(await page.textContent('#frame-table'), /C → X/);
+  step('telemetria: registro de golpes com vantagem de quadros e tabela de quadros (com linha C → X)');
+  // C → X pelo teclado: C e, 100 ms depois, X; o tackle nasce do cancelamento e cobra o próprio custo.
+  await page.click('[data-tool="controls"]');  await page.click('[data-tool="match"]');await page.selectOption('#mode', 'inactive');await page.click('#start');await page.locator('canvas').first().focus();
+  await L(() => {window.__lab.cxTrace = [];const g = window.__lab.game, step = g.step.bind(g);g.step = (...a) => {const r = step(...a), f = g.fighters[0];window.__lab.cxTrace.push({kind: f.action?.kind ?? null, fromCancel: !!f.action?.fromCancel, stamina: f.stamina});return r;};});
+  await page.keyboard.down('ArrowLeft');await page.keyboard.press('KeyC');await page.waitForTimeout(100);await page.keyboard.down('ArrowUp');await page.keyboard.up('ArrowLeft');await page.keyboard.press('KeyX');
+  await page.waitForTimeout(250);await page.keyboard.up('ArrowUp');
+  const cx = await L(() => {const t = window.__lab.cxTrace, i = t.findIndex(s => s.kind === 'tackle');return {i, prev: t[i - 1], at: t[i]};});
+  assert.ok(cx.i > 0 && cx.prev.kind === 'dodge' && cx.at.fromCancel, 'X começou a partir da esquiva');
+  assert.ok(Math.abs(cx.at.stamina - 1) < 1e-6, `stamina 3 − C − X = 1 (obtido ${cx.at.stamina})`);
+  await L(() => {delete window.__lab.game.step;});
+  step('cancelamento C → X pelo teclado: X nasce da esquiva e cobra C e X uma vez cada');
 
   // ---------- 2/3. Personagem do Studio e eventos ----------
   await page.click('[data-tool="characters"]');await page.locator('.char-slot').nth(0).locator('input[type=file]').setInputFiles(out + 'personagem-studio.glb');
@@ -159,7 +180,7 @@ try {
   const studioText = await page.textContent('#studio-events');assert.match(studioText, /Invulnerabilidade0–200 ms0–200 ms/);assert.match(studioText, /≠ Hitbox ativa80–320 ms0–400 ms/);
   await page.click('[data-tool="match"]');await page.selectOption('#mode', 'inactive');await page.click('#start');await page.locator('canvas').first().focus();
   await page.keyboard.down('ArrowUp');await page.waitForTimeout(250);await page.keyboard.up('ArrowUp');await page.keyboard.press('KeyX');await page.waitForTimeout(60);
-  const anim = await L(() => {const c = window.__lab.ui.characters[0], f = window.__lab.game.fighters[0];return {key: c.current?.key, clip: c.current?.action.getClip().name, time: c.current?.action.time, progress: f.action ? f.action.elapsed / window.__lab.C.rules.dodge : null, d: c.current?.action.getClip().duration};});
+  const anim = await L(() => {const c = window.__lab.ui.characters[0], f = window.__lab.game.fighters[0];return {key: c.current?.key, clip: c.current?.action.getClip().name, time: c.current?.action.time, progress: f.action ? f.action.elapsed / window.__lab.C.actions.tackle.duration : null, d: c.current?.action.getClip().duration};});
   assert.equal(anim.key, 'tackle');assert.equal(anim.clip, 'tackle');assert.ok(Math.abs(anim.time - anim.progress * anim.d) < .2, 'animação sincronizada com a ação');
   await page.waitForTimeout(400);await page.screenshot({path: out + 'personagens.png'});
   step('personagens do Studio: mapa de ações, animação sincronizada com o tackle, cópia tingida no vermelho e eventos Studio × jogo');
@@ -169,18 +190,18 @@ try {
   await idleRange.fill('2');assert.equal(await L(() => window.__lab.ui.characters[0].speedOf('idle')), 2);
   await page.locator('#char-speed').fill('1.5');assert.equal(await L(() => window.__lab.ui.characters[0].speedOf('idle')), 3);await page.locator('#char-speed').fill('1');
   await page.check('#char-sync');
-  const synced = await L(() => [window.__lab.C.rules.tackleDuration, window.__lab.C.rules.dodge, window.__lab.C.rules.invulnerable]);
-  assert.deepEqual(synced, [3, 1, .2], 'tackle = clip de 3 s, esquiva = clip de 1 s; invulnerabilidade mantida (a esquiva não tem eventos)');
+  const synced = await L(() => [window.__lab.C.actions.tackle.duration, window.__lab.C.actions.dodge.duration, window.__lab.C.actions.dodge.invulnerable, window.__lab.C.actions.tackle.invulnerable]);
+  assert.deepEqual(synced, [3, 1, .2, .2], 'tackle = clip de 3 s, esquiva = clip de 1 s; janelas de invulnerabilidade nunca vêm do GLB');
   const tackleRange = page.locator('.char-slot').nth(0).locator('tr[data-action="tackle"] input[type=range]');await tackleRange.fill('2');await tackleRange.dispatchEvent('change');
-  assert.equal(await L(() => window.__lab.C.rules.tackleDuration), 1.5, 'velocidade 2× → tackle de 1,5 s');
-  assert.ok((await page.textContent('#char-durations')).includes('Duração do tackle (X)tackle1.500 s'), 'tabela de durações');
+  assert.equal(await L(() => window.__lab.C.actions.tackle.duration), 1.5, 'velocidade 2× → tackle de 1,5 s');
+  assert.ok((await page.textContent('#char-durations')).includes('Duração · Xtackle1.500 s'), 'tabela de durações');
   await page.click('[data-tool="match"]');await page.click('#start');await page.locator('canvas').first().focus();await page.keyboard.press('KeyX');await page.waitForTimeout(800);
   assert.equal(await L(() => window.__lab.game.fighters[0].action?.kind), 'tackle', 'o tackle agora dura 1,5 s no jogo');
-  const sync = await L(() => {const c = window.__lab.ui.characters[0], f = window.__lab.game.fighters[0];return {t: c.current.action.time, expected: f.action.elapsed / window.__lab.C.rules.tackleDuration * c.current.action.getClip().duration};});
+  const sync = await L(() => {const c = window.__lab.ui.characters[0], f = window.__lab.game.fighters[0];return {t: c.current.action.time, expected: f.action.elapsed / window.__lab.C.actions.tackle.duration * c.current.action.getClip().duration};});
   assert.ok(Math.abs(sync.t - sync.expected) < .15, 'clip inteiro dentro da ação');
-  await L(() => window.__lab.tuning.undo());assert.equal(await L(() => window.__lab.C.rules.tackleDuration), 3);
+  await L(() => window.__lab.tuning.undo());assert.equal(await L(() => window.__lab.C.actions.tackle.duration), 3);
   await page.click('[data-tool="characters"]');await page.uncheck('#char-sync');await L(() => {window.__lab.tuning.resetAll();});
-  step('animações: velocidade por ação e geral; durações das animações definem tackle/esquiva/invulnerabilidade no jogo (com desfazer)');
+  step('animações: velocidade por ação e geral; durações das animações definem as durações de X e C (janelas nunca vêm do GLB) (com desfazer)');
 
   // Compatibilidade e layout.
   const snap = await L(() => window.__arenamon.snapshot());assert.equal(snap.fighters.length, 2);assert.ok(await L(() => window.__arenaLive.rules === window.__lab.C.rules));

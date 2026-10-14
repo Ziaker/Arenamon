@@ -43,7 +43,7 @@
      <label class="field">Comportamento do adversário<select id="mode"></select></label>
      <button type="button" class="primary wide" id="start">▶ Iniciar combate</button>
      <h3>Controles</h3>
-     <p class="keys">↑↓←→ mover · <b>X</b> tackle · <b>C</b> esquiva (salta sobre o rival no caminho) · <b>D</b> defender · <b>Tab</b> fixar alvo · <b>Esc</b> pausar · <b>R</b> reiniciar · botão direito/roda: câmera. Gamepad: A tackle, B esquiva, LB/RB defesa, Y alvo.</p>
+     <p class="keys">↑↓←→ mover · <b>X</b> tackle (qualquer direção) · <b>C</b> esquiva (salta sobre o rival no caminho; X durante C = cancelamento C → X) · <b>D</b> defender · <b>Tab</b> fixar alvo · <b>Esc</b> pausar · <b>R</b> reiniciar · botão direito/roda: câmera. Gamepad: A tackle, B esquiva, LB/RB defesa, Y alvo.</p>
      <p class="hint">Pausado: ◂/▸ na linha do tempo (ou , e .) voltam e avançam um passo de simulação. Os últimos 12 s ficam gravados.</p>
     </section>
     <section data-section="scenarios" hidden>
@@ -80,7 +80,7 @@
      <label class="field">Transição entre animações (s)<input type="number" id="char-fade" min="0" max="1" step="0.02" value="0.1"></label>
      <label class="field">Velocidade geral das animações <output id="char-speed-out">1.00×</output><input type="range" id="char-speed" min="0.25" max="3" step="0.05" value="1"></label>
      <h3>Durações das animações no jogo</h3>
-     <label class="check"><input type="checkbox" id="char-sync"> As durações das animações definem as regras (tackle, esquiva, recuo, guard stun, aterrissagem e invulnerabilidade marcada no Studio)</label>
+     <label class="check"><input type="checkbox" id="char-sync"> As durações das animações definem as durações das ações (tackle, esquiva, recuo, guard stun e aterrissagem). As janelas de eventos do Studio nunca alteram as regras</label>
      <label class="field">Personagem de referência<select id="char-sync-source"><option value="0">Azul</option><option value="1">Vermelho</option></select></label>
      <div id="char-durations" class="report"></div>
      <p class="hint">Sem sincronizar, cada animação é esticada para caber na duração da ação do jogo e a velocidade só acelera o clip dentro dela. As regras valem para os dois lutadores.</p>
@@ -105,7 +105,7 @@
     <section data-section="export" hidden>
      <p class="hint">O laboratório nunca altera o jogo. Use o relatório para decidir o que levar ao <code>config.ts</code>.</p>
      <div class="row"><button type="button" class="primary" id="export-json">↓ Exportar ajustes (JSON)</button><button type="button" id="copy-json">Copiar</button></div>
-     <label class="field">Importar JSON (v5, v6 ou v7)<textarea id="import-text" rows="5" placeholder="Cole aqui ou escolha um arquivo"></textarea></label>
+     <label class="field">Importar JSON (v5 a v8; formatos antigos são migrados com relatório)<textarea id="import-text" rows="5" placeholder="Cole aqui ou escolha um arquivo"></textarea></label>
      <div class="row"><input type="file" id="import-file" accept=".json,application/json"><button type="button" id="import-preview">Pré-visualizar</button></div>
      <div id="import-result" class="report"></div>
      <h3>Diferenças em relação ao jogo oficial</h3>

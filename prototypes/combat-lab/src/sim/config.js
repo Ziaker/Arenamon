@@ -67,7 +67,7 @@ export function defaults() {
     tackle: {...common(), fromRecoil: 0, fromGuardStun: 0, counterSpeed: 1.18},
     // Cancelamento C → X (sistema próprio, independente da janela genérica de encadeamento).
     // invulnerability: 0 = mantém só o restante da invulnerabilidade de C; 1 = nenhuma; 2 = janela completa de X.
-    cancel: {dodgeToTackle: 1, windowStart: 0, windowEnd: .4, transition: .06, velocityInfluence: .5, airDescent: .18, invulnerability: 0},
+    cancel: {dodgeToTackle: 1, windowStart: 0, windowEnd: .4, transition: .06, velocityInfluence: 1, airDescent: .18, invulnerability: 0},
   };
   return {rules, test, locomotion, camera, profiles: profilesLab, extras, actions};
 }

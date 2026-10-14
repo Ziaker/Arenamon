@@ -5,12 +5,14 @@ import {C, ROOT_KEYS, defaults, resetConfig} from '../sim/config.js';
 import {AI_MODES} from '../sim/ai.js';
 import {NAMES, SECTIONS, TOOLTIPS, KEY_HELP} from './tuning-meta.js';
 import {OFFICIAL} from './official.js';
+import {actionMeta, OFFICIAL_MAP, migrateFlat, flatten} from './actions-meta.js';
 
 const $ = id => document.getElementById(id);
 export const pathGet = (root, path) => path.split('.').reduce((a, k) => a?.[k], root);
 export const pathSet = (root, path, value) => {const keys = path.split('.'), last = keys.pop();const obj = keys.reduce((a, k) => a?.[k], root);if (!obj || !(last in obj)) return false;obj[last] = value;return true;};
 const TABS = [
-  ['Combate', ['Regras de ação e stamina', 'Knockback e clash', 'Combate e colisões']],
+  ['X e C', ['Esquiva (C)', 'Tackle (X)', 'Cancelamento C → X']],
+  ['Combate', ['Regras gerais, defesa e stamina', 'Knockback e clash', 'Combate e colisões']],
   ['Atributos', ['Atributos: equilibrado', 'Atributos: ágil', 'Atributos: resistente']],
   ['Movimento', ['Movimento']], ['Câmera', ['Câmera', 'Câmera: ajustes avançados']], ['IA', ['IA: estratégia e decisões', 'IA: personalidade do vermelho', 'IA: personalidade do azul (IA jogador)']], ['Arena', ['Arena e simulação']],
   ['Visual', ['Renderizador e personagens', 'Efeitos e feedback', 'HUD e visualização', 'Cores: canais RGB individuais']],
@@ -34,7 +36,7 @@ function range(key, value, path) {
   if (toggled(key)) return {min: 0, max: 1, step: 1, fmt: n => n ? 'Ligado' : 'Desligado'};
   if (RADIANS.includes(key)) {const max = key === 'initialYaw' ? 360 : /rate/i.test(key) || key === 'guardTurn' || key === 'guardAcceleration' ? 1440 : 180;return {min: 0, max: max * Math.PI / 180, step: Math.PI / 180, fmt: n => (n * 180 / Math.PI).toFixed(0) + '°'};}
   // Durações que podem vir das animações: até 4 s para caber clips longos.
-  if (['dodge', 'tackleDuration', 'recoil', 'guardStun', 'landingRecovery', 'invulnerable'].includes(key) && path.startsWith('rules.')) return {min: 0, max: 4, step: .01, fmt: n => n.toFixed(2) + ' s'};
+  if (['recoil', 'guardStun', 'landingRecovery'].includes(key) && path.startsWith('rules.')) return {min: 0, max: 4, step: .01, fmt: n => n.toFixed(2) + ' s'};
   if (key === 'epsilon') return {min: 0, max: .000001, step: .000000001, fmt: n => n.toExponential(2)};
   if (key === 'step') return {min: 1 / 240, max: 1 / 30, step: 1 / 24000, fmt: n => (1000 * n).toFixed(2) + ' ms'};
   if (key === 'arenaHalf') return {min: 6, max: 100, step: 1, fmt: n => (n * 2) + ' × ' + (n * 2) + ' m'};
@@ -63,6 +65,7 @@ function help(path, label) {
 }
 /** Valor do jogo oficial para um caminho (ou undefined se o parâmetro não existe no jogo). */
 export function officialValue(path) {
+  if (OFFICIAL_MAP[path]) return pathGet(OFFICIAL, OFFICIAL_MAP[path]);
   const [root, ...rest] = path.split('.');
   if (root === 'extras') return undefined;
   return pathGet(OFFICIAL[root], rest.join('.'));
@@ -75,10 +78,10 @@ export function createTuning({apply}) {
     const root = pathGet(C, rootPath);
     for (const key of subset ?? Object.keys(root)) {
       const v = root[key];if (typeof v !== 'number') continue;
-      const path = rootPath + '.' + key, r = range(key, v, path);
+      const path = rootPath + '.' + key, am = actionMeta(path), r = am ? am.range : range(key, v, path);
       r.min = Math.max(r.min, SAFE_MIN[path] ?? -Infinity);r.min = Math.min(r.min, v);r.max = Math.max(r.max, v);
-      const label = path.startsWith('extras.colors.') ? (COLOR_NAMES[key.slice(0, -1)] || key) + ' · ' + ({R: 'Vermelho', G: 'Verde', B: 'Azul'})[key.slice(-1)] : path === 'extras.bindings.dodge' ? 'Tecla de esquiva (C)' : NAMES[key] || key;
-      manifest.push({section, path, key, label, help: help(path, label), initial: pathGet(base, path), official: officialValue(path), ...r});
+      const label = am ? am.label : path.startsWith('extras.colors.') ? (COLOR_NAMES[key.slice(0, -1)] || key) + ' · ' + ({R: 'Vermelho', G: 'Verde', B: 'Azul'})[key.slice(-1)] : path === 'extras.bindings.dodge' ? 'Tecla de esquiva (C)' : NAMES[key] || key;
+      manifest.push({section, path, key, label, help: am ? am.help : help(path, label), initial: pathGet(base, path), official: officialValue(path), ...r});
     }
   }
   const byPath = new Map(manifest.map(m => [m.path, m]));
@@ -141,7 +144,7 @@ export function createTuning({apply}) {
     const id = 'tune-' + m.path.replaceAll('.', '-'), label = document.createElement('label');label.htmlFor = id;label.textContent = m.label;
     const q = document.createElement('button');q.type = 'button';q.className = 'tune-help';q.textContent = '?';q.setAttribute('aria-label', 'Explicação: ' + m.label);
     q.onpointerenter = () => showTip(m, q);q.onpointerleave = hideTip;q.onfocus = () => showTip(m, q);q.onblur = hideTip;
-    const st = status(m), badge = document.createElement('span');badge.className = 'badge ' + st;
+    const st = status(m), badge = document.createElement('span');badge.className = 'badge ' + (st === 'lab' ? 'labonly' : st);
     badge.textContent = st === 'official' ? 'jogo' : st === 'experimental' ? '≠ jogo' : 'lab';
     badge.title = st === 'official' ? 'Igual ao config.ts do jogo' : st === 'experimental' ? `Difere do jogo (jogo: ${m.fmt(m.official)})` : 'Existe só no laboratório';
     const value = document.createElement('span');value.className = 'tune-value';value.textContent = m.fmt(v);
@@ -164,7 +167,8 @@ export function createTuning({apply}) {
 
   // ---------- Presets (guardados neste navegador) ----------
   const KEY = 'arenamon-lab-presets-v7';
-  const loadPresets = () => {try {return JSON.parse(localStorage.getItem(KEY) || '[]');} catch {return [];}};
+  const known = () => new Set(manifest.map(m => m.path));
+  const loadPresets = () => {try {return JSON.parse(localStorage.getItem(KEY) || '[]').map(p => ({...p, values: migrateFlat(p.values || {}, known()).values}));} catch {return [];}};
   const savePresets = list => {try {localStorage.setItem(KEY, JSON.stringify(list));return true;} catch {return false;}};
   function renderPresets() {
     const list = loadPresets(), box = $('preset-list');box.replaceChildren();
@@ -192,26 +196,27 @@ export function createTuning({apply}) {
   // ---------- JSON ----------
   function exportData() {
     const values = Object.fromEntries(ROOT_KEYS.map(k => [k, structuredClone(C[k])]));
-    return {schema: 'arenamon-tuning', version: 7, source: 'arenamon-combate-laboratorio-v7.html', createdAt: new Date().toISOString(), values,
+    return {schema: 'arenamon-tuning', version: 8, source: 'arenamon-combate-laboratorio (Etapa A)', createdAt: new Date().toISOString(), values,
       changedFromLabDefaults: manifest.filter(changed).map(m => ({path: m.path, lab: m.initial, value: pathGet(C, m.path)})),
       differencesFromGame: manifest.filter(m => status(m) === 'experimental').map(m => ({path: m.path, game: m.official, lab: pathGet(C, m.path)})),
       labOnlyParameters: manifest.filter(m => m.official === undefined).length,
       note: 'Valores do laboratório. Nada é aplicado ao jogo automaticamente; use differencesFromGame para decidir o que levar ao config.ts.'};
   }
-  /** Valida sem aplicar. Aceita JSON v5/v6 ({values}) e v7. */
+  /** Valida sem aplicar. Aceita JSON v5/v6 ({values}), v7 e v8; formatos antigos são migrados com relatório. */
   function preview(raw) {
     let data;try {data = JSON.parse(raw);} catch (e) {return {error: 'JSON inválido: ' + e.message};}
-    const values = data?.values ?? data;if (!values || typeof values !== 'object' || Array.isArray(values)) return {error: 'Objeto de configurações não encontrado.'};
+    const nested = data?.values ?? data;if (!nested || typeof nested !== 'object' || Array.isArray(nested)) return {error: 'Objeto de configurações não encontrado.'};
+    const migration = migrateFlat(flatten(nested), known()), values = migration.values;
     const changes = [], invalid = [];
-    for (const m of manifest) {const v = pathGet(values, m.path);if (v === undefined) continue;if (typeof v !== 'number' || !Number.isFinite(v) || v < m.min - 1e-8 || v > m.max + 1e-8) {invalid.push(`${m.path} = ${v}`);continue;}if (!same(v, pathGet(C, m.path))) changes.push([m.path, v]);}
+    for (const m of manifest) {const v = values[m.path];if (v === undefined) continue;if (typeof v !== 'number' || !Number.isFinite(v) || v < m.min - 1e-8 || v > m.max + 1e-8) {invalid.push(`${m.path} = ${v}`);continue;}if (!same(v, pathGet(C, m.path))) changes.push([m.path, v]);}
     if (invalid.length) return {error: `Valores inválidos ou fora da faixa (${invalid.length}): ${invalid.slice(0, 5).join(', ')}${invalid.length > 5 ? '…' : ''}`};
-    return {changes, schema: data.schema || 'v5/v6', version: data.version ?? '—'};
+    return {changes, schema: data.schema || 'v5/v6', version: data.version ?? '—', converted: migration.converted, ignored: migration.ignored};
   }
   function apply_(changes, label) {const n = commit(changes, label);markSaved(label);return n;}
   function resetAll() {commit(manifest.map(m => [m.path, m.initial]), 'Restaurar todos os padrões');}
   render();renderPresets();
   return {manifest, byPath, commit, undo, redo, render, renderPresets, exportData, preview, applyChanges: apply_, resetAll, markSaved, dirty, status, changed,
-    onChange: fn => state.listeners.add(fn), get savedLabel() {return state.savedLabel;}, snapshotValues, officialValue};
+    onChange: fn => state.listeners.add(fn), get savedLabel() {return state.savedLabel;}, snapshotValues, officialValue, migrate: flat => migrateFlat(flat, known())};
 }
 export const escape = s => String(s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'})[c]);
 export {resetConfig};
