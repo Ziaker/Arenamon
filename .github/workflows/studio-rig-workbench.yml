@@ -1,0 +1,39 @@
+name: Arenamon Studio Rig Workbench
+
+# Suítes do Studio (rigging do Codex + Workbench). O `npm run verify` completo também roda, mas uma falha fora do
+# Studio não esconde o resultado das suítes do Studio (ver WORKBENCH.md e o relatório da entrega).
+on:
+  push:
+    branches:
+      - feat/studio-rig-workbench
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  workbench:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Suites do Studio (rigging + workbench + verify do Studio)
+        run: npm run verify:studio-workbench
+      - name: Evidencias
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: arenamon-studio-rig-workbench
+          path: |
+            prototypes/studio/dist/arenamon-animation-studio.html
+            prototypes/studio/validation/
+          retention-days: 14
+          if-no-files-found: warn
+      - name: Verificacao completa do repositorio
+        if: always()
+        run: npm run verify
