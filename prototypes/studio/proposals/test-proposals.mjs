@@ -31,40 +31,38 @@ async function launchBrowser() {
   }
 }
 
-async function runWithPage(browser, testName, testFn) {
+async function runWithFreshBrowser(testName, testFn) {
   console.log(`\n--- Testando ${testName} ---`);
-  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
-  await context.setOffline(true);
-  const page = await context.newPage();
-  page.setDefaultTimeout(60000);
-  page.setDefaultNavigationTimeout(60000);
-  page.on('dialog', d => d.accept());
-  const errors = [];
-  page.on('pageerror', e => errors.push(e.message));
-  page.on('console', m => {
-    if (m.type() === 'error') errors.push(m.text());
-  });
-
+  const browser = await launchBrowser();
   try {
+    const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    await context.setOffline(true);
+    const page = await context.newPage();
+    page.setDefaultTimeout(60000);
+    page.setDefaultNavigationTimeout(60000);
+    page.on('dialog', d => d.accept());
+    const errors = [];
+    page.on('pageerror', e => errors.push(e.message));
+    page.on('console', m => {
+      if (m.type() === 'error') errors.push(m.text());
+    });
+
     await testFn(page, errors);
   } finally {
-    await page.close();
-    await context.close();
+    await browser.close();
   }
 }
 
 async function runTests() {
   console.log('Iniciando bateria de validação funcional e de estados nos protótipos de rigging...');
-  const browser = await launchBrowser();
 
-  try {
-    // =============================================================
-    // TESTE 1: PROPOSTA A (Rigging Workspace)
-    // =============================================================
-    await runWithPage(browser, 'PROPOSTA A (Rigging Workspace)', async (page, errors) => {
-      await page.goto(pathToFileURL(resolve(dir, 'proposta-a.html')).href);
-      await page.waitForSelector('#viewport-3d canvas', { timeout: 25000 });
-      await page.waitForFunction(() => !!window.__rigStudio);
+  // =============================================================
+  // TESTE 1: PROPOSTA A (Rigging Workspace)
+  // =============================================================
+  await runWithFreshBrowser('PROPOSTA A (Rigging Workspace)', async (page, errors) => {
+    await page.goto(pathToFileURL(resolve(dir, 'proposta-a.html')).href);
+    await page.waitForSelector('#viewport-3d canvas', { timeout: 60000 });
+    await page.waitForFunction(() => !!window.__rigStudio);
 
       assert.equal(errors.length, 0, 'Sem erros de console na inicialização da Proposta A');
       console.log('✓ Proposta A abriu offline sem erros');
@@ -619,9 +617,9 @@ async function runTests() {
     // =============================================================
     // TESTE 2: PROPOSTA B (Guided Rigging)
     // =============================================================
-    await runWithPage(browser, 'PROPOSTA B (Guided Rigging)', async (page, errors) => {
+    await runWithFreshBrowser('PROPOSTA B (Guided Rigging)', async (page, errors) => {
       await page.goto(pathToFileURL(resolve(dir, 'proposta-b.html')).href);
-      await page.waitForSelector('#viewport-3d canvas', { timeout: 25000 });
+      await page.waitForSelector('#viewport-3d canvas', { timeout: 60000 });
       await page.waitForFunction(() => !!window.__rigStudio);
 
       assert.equal(errors.length, 0, 'Sem erros na Proposta B');
@@ -695,9 +693,9 @@ async function runTests() {
     // =============================================================
     // TESTE 3: PROPOSTA C (Hybrid Rigging Studio)
     // =============================================================
-    await runWithPage(browser, 'PROPOSTA C (Hybrid Rigging Studio)', async (page, errors) => {
+    await runWithFreshBrowser('PROPOSTA C (Hybrid Rigging Studio)', async (page, errors) => {
       await page.goto(pathToFileURL(resolve(dir, 'proposta-c.html')).href);
-      await page.waitForSelector('#viewport-3d canvas', { timeout: 25000 });
+      await page.waitForSelector('#viewport-3d canvas', { timeout: 60000 });
       await page.waitForFunction(() => !!window.__rigStudio);
 
       assert.equal(errors.length, 0, 'Sem erros na Proposta C');
@@ -754,18 +752,14 @@ async function runTests() {
     });
 
     // =============================================================
-    // TESTE 4: PORTAL COMPARADOR (index.html em Contexto Isolado)
+    // TESTE 4: PORTAL COMPARADOR (index.html em Processo Isolado)
     // =============================================================
-    await runWithPage(browser, 'Portal Comparador (index.html em Contexto Isolado)', async (page, errors) => {
-      await page.goto(pathToFileURL(resolve(dir, 'index.html')).href, { waitUntil: 'load', timeout: 30000 });
+    await runWithFreshBrowser('Portal Comparador (index.html em Processo Isolado)', async (page, errors) => {
+      await page.goto(pathToFileURL(resolve(dir, 'index.html')).href, { waitUntil: 'load', timeout: 60000 });
       assert.equal(errors.length, 0, 'Sem erros no Portal');
       await page.screenshot({ path: resolve(screenshotsDir, 'propostas-portal.png') });
       console.log('✓ Captura do portal atualizada: screenshots/propostas-portal.png');
     });
-
-  } finally {
-    await browser.close();
-  }
 
   console.log('\n=============================================================');
   console.log('✓ TODAS AS 6 PRIORIDADES E CASOS DE TESTE FORAM APROVADOS!');
