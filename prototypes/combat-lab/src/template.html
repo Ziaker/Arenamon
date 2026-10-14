@@ -63,6 +63,12 @@
      <div class="row"><label class="field">Lutas<input type="number" id="balance-matches" min="1" max="200" value="20"></label><label class="field">Semente<input type="number" id="balance-seed" min="1" value="1"></label></div>
      <button type="button" class="wide" id="balance-run">Medir equilíbrio</button>
      <div id="balance-report" class="report" aria-live="polite"></div>
+     <h3>Comparar A × B</h3>
+     <p class="hint">Executa a mesma situação com dois conjuntos de ajustes (atuais, padrão do laboratório, jogo oficial ou presets salvos) e mostra os resultados lado a lado. A configuração atual não muda.</p>
+     <div class="row"><label class="field">A<select id="comp-a"></select></label><label class="field">B<select id="comp-b"></select></label></div>
+     <label class="field">Situação<select id="comp-source"><option value="scenarios">Todos os cenários roteirizados</option><option value="match">Gravação da partida atual (mesmas entradas do azul)</option></select></label>
+     <button type="button" class="wide" id="comp-run">Comparar</button>
+     <div id="comp-report" class="report" aria-live="polite"></div>
     </section>
     <section data-section="tuning" hidden>
      <div class="tune-tools">
@@ -123,6 +129,11 @@
      <div id="import-result" class="report"></div>
      <h3>Diferenças em relação ao jogo oficial</h3>
      <div id="game-diff" class="report"></div>
+     <h3>Proposta para o config.ts do jogo</h3>
+     <p class="hint">Gera um diff para revisão (aplicável com <code>git apply</code>). O laboratório nunca altera o jogo. Conflitos, como durações diferentes de X e C (no jogo ainda são um valor só), e parâmetros sem equivalente ficam de fora e são listados.</p>
+     <label class="check"><input type="checkbox" id="patch-defaults"><span>Incluir as diferenças padrão do laboratório (arena, velocidade, câmera…), não só o que você ajustou</span></label>
+     <button type="button" id="patch-generate">Gerar proposta</button>
+     <div id="patch-result" class="report" aria-live="polite"></div>
      <button type="button" class="wide" id="reset-all">Restaurar todos os padrões do laboratório</button>
     </section>
    </div>

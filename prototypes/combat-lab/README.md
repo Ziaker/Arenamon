@@ -50,6 +50,16 @@ A revisão de regras em relação ao GDD v0.1 está em [`docs/REVISAO_GDD_COMBAT
   - com os ajustes da gravação: repete a luta exatamente;
   - com os ajustes atuais: as mesmas entradas em outra configuração, com o vermelho reagindo de novo pela IA.
 - **Equilíbrio IA × IA** (Cenários). N lutas rápidas com os ajustes atuais e os perfis da aba Partida. Mostra vitórias, duração, X, C, C → X, buffer, saltos, contatos, clashes, esquivas perfeitas, dano e exaustão por lutador.
+- **Comparar A × B** (Cenários). Roda a mesma situação com dois conjuntos de ajustes, sem renderização, e mostra os resultados lado a lado. Os conjuntos podem ser os ajustes atuais, o padrão do laboratório, o jogo oficial ou presets salvos. A situação pode ser:
+  - todos os cenários roteirizados: esperado × obtido de cada lado, mais as medições que diferem;
+  - a gravação da partida atual: vencedor, HP, stamina, dano, contatos, C → X e buffer.
+
+  A configuração atual não muda.
+- **Proposta para o config.ts do jogo** (Exportar). Gera um diff unificado aplicável com `git apply`, com a tabela "jogo × proposto × origem".
+  - Por padrão entra só o que você ajustou. Uma opção inclui também as diferenças padrão do laboratório.
+  - **Conflitos ficam de fora e são listados.** Exemplo: X e C com durações diferentes, que no jogo ainda são um valor só (`rules.dodge`).
+  - Parâmetros sem equivalente no jogo também ficam de fora e são listados.
+  - O laboratório nunca altera o jogo. `test/gamepatch.test.mjs` confere o diff com `git apply --check`, sem aplicar.
 - **Testes de propriedade** (`test/properties.test.mjs`). São 200 lutas aleatórias, com ajustes de X/C, cancelamento e buffer sorteados (cerca de 485 mil passos, 2 s). Cada passo verifica regras que nunca podem falhar:
   - nada de NaN, e todos ficam dentro da arena;
   - stamina, HP e altura ficam na faixa;
@@ -131,7 +141,8 @@ Os padrões são diferentes: o vermelho reage mais devagar e hesita mais; o azul
 
   O relatório fica em `validation/etapa-a-report.md` e `.json`, com o registro completo de cada cancelamento.
 - `node prototypes/combat-lab/test/properties.test.mjs [execuções] [passos]`: testes de propriedade em lote (padrão: 200 × 2.400 passos).
-- `node prototypes/combat-lab/test/sim.test.mjs`: 19 testes (inclui o equilíbrio IA × IA) (8 cenários, determinismo, replay por estado, telemetria, tabela de quadros, personalidade das IAs).
+- `node prototypes/combat-lab/test/gamepatch.test.mjs`: proposta de patch do config.ts (substituições, conflitos e `git apply --check`).
+- `node prototypes/combat-lab/test/sim.test.mjs`: 20 testes (inclui o equilíbrio IA × IA e a comparação A × B) (8 cenários, determinismo, replay por estado, telemetria, tabela de quadros, personalidade das IAs).
 - `node prototypes/combat-lab/test/local-character.mjs modelo.glb`: diagnóstico local do mapa de animações de um modelo seu (resultado em `validation/`).
 - `node prototypes/combat-lab/test/parity.mjs`: paridade passo a passo com o v6 local, no modo `V6_COMPAT` (opcional; só compara o comportamento antigo).
 - `node prototypes/combat-lab/verify.mjs`: 18 verificações (incluindo a gravação e a reprodução idêntica de partida, a aba X e C, a migração de JSON v6, C → X pelo teclado, o indicador e a homologação) no Edge offline, incluindo o GLB gerado pelo próprio Animation Studio com mapa de ações e eventos.

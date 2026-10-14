@@ -6,6 +6,7 @@ import {SCENARIOS, runScenario} from '../src/sim/scenarios.js';
 import {Recorder, frameTable} from '../src/sim/telemetry.js';
 import {ReplayBuffer} from '../src/sim/replay.js';
 import {runBalance, balanceRows} from '../src/sim/balance.js';
+import {compareScenarios, compareMatch, replayMatch} from '../src/sim/compare.js';
 let passed = 0;const test = (name, fn) => {fn();passed++;console.log('✓', name);};
 
 for (const def of SCENARIOS) test(`cenário “${def.name}”`, () => {
@@ -71,5 +72,14 @@ test('equilíbrio IA × IA: determinístico, consistente e sem alterar a configu
   assert.equal(a.sides[0].wins + a.sides[1].wins + a.timeouts, 6);assert.equal(balanceRows(a).length, 14);
   for (const s of a.sides) assert.ok(s.tackle > 0 && s.cancel <= s.tackle && s.damage >= 0);
   console.log(`   6 lutas: vitórias ${a.sides[0].wins}/${a.sides[1].wins}, ${a.timeouts} sem vencedor, média ${a.avgSeconds.toFixed(1)} s`);
+});
+test('comparação A × B: gravação reproduzida igual à partida original; configuração restaurada', () => {
+  const g = new Game();g.brain.seed = 21;g.playerBrain.seed = 21 + 7919;g.brain.reset();g.playerBrain.reset();g.mode = 'combat';g.reset();const commands = [];
+  for (let t = 0; t < 1500 && g.phase !== 'result'; t++) {const c = g.playerBrain.command(g.fighters[0], g.fighters[1], 'combat', C.test.step);const before = g.tick;g.step(c);if (g.tick > before) commands[before] = structuredClone(c);}
+  const meta = {seed: 21, profile: 'balanced', enemyProfile: 'balanced', mode: 'combat'}, before = JSON.stringify(C);
+  assert.equal(replayMatch(meta, commands).fighters, JSON.stringify(g.fighters), 'mesma gravação, mesmos ajustes → mesmo estado');
+  const r = compareMatch({}, {'rules.clashFraction': .6}, meta, commands);assert.equal(r.a.fighters, JSON.stringify(g.fighters));assert.equal(r.rows.length, 12);
+  const sc = compareScenarios({}, {'actions.tackle.duration': .6});assert.equal(sc.length, SCENARIOS.length);assert.ok(sc.every(x => x.okA));assert.ok(sc.some(x => x.diffs.length));
+  assert.equal(JSON.stringify(C), before, 'configuração restaurada');
 });
 console.log(`\n${passed} testes da simulação aprovados.`);

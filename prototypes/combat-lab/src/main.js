@@ -14,8 +14,13 @@ import {createTuning, escape, pathGet} from './ui/tuning.js';
 import {createDock} from './ui/dock.js';
 import {createHomologation} from './ui/homologation.js';
 import {runBalance, balanceRows} from './sim/balance.js';
+import {compareScenarios, compareMatch} from './sim/compare.js';
 import {MatchRecording, parseRecording} from './sim/recording.js';
 import {emptyCommand} from './sim/entity.js';
+import {patchConfigTs, unifiedDiff, collectChanges} from './ui/gamepatch.js';
+import {OFFICIAL_MAP} from './ui/actions-meta.js';
+/* global __GAME_CONFIG_TS__ */
+const GAME_CONFIG_TS = typeof __GAME_CONFIG_TS__ === 'string' ? __GAME_CONFIG_TS__ : '';
 import {length, sub, dot} from './sim/math.js';
 
 const $ = id => document.getElementById(id);
@@ -126,6 +131,42 @@ $('rec-file').onchange = async e => {
   $('rec-result').innerHTML = `<p class="ok">Reproduzindo ${escape(file.name)}: ${commands.length} passos, semente ${data.seed}, ${$('rec-values').value === 'recorded' ? 'ajustes da gravação (Ctrl+Z desfaz)' : 'ajustes atuais'}.</p>`;
 };
 window.__labRecording = {matchRec, parseRecording, ui};
+/** Caminho equivalente no config.ts do jogo (ou null para parâmetros só do laboratório). */
+const gamePathOf = m => typeof m.official !== 'number' ? null : OFFICIAL_MAP[m.path] ?? (m.path.startsWith('extras.') ? null : m.path);
+function gamePatch(includeDefaults) {
+  const all = tuning.manifest.map(m => ({path: m.path, label: m.label, gamePath: gamePathOf(m), value: pathGet(C, m.path), official: m.official, initial: m.initial})).filter(e => e.gamePath && typeof e.value === 'number');
+  const picked = new Set(all.filter(e => includeDefaults ? Math.abs(e.value - e.official) > 1e-12 : Math.abs(e.value - e.initial) > 1e-12).map(e => e.gamePath));
+  const {changes, conflicts} = collectChanges(all.filter(e => picked.has(e.gamePath)));
+  const result = patchConfigTs(GAME_CONFIG_TS, changes);
+  return {...result, conflicts, diff: unifiedDiff(GAME_CONFIG_TS, result.text)};
+}
+$('patch-generate').onclick = () => {
+  if (!GAME_CONFIG_TS) {$('patch-result').innerHTML = '<p class="warn">O texto do config.ts não está neste build.</p>';return;}
+  const p = gamePatch($('patch-defaults').checked);window.__lab.lastPatch = p;
+  const label = path => escape(tuning.byPath.get(path)?.label ?? path);
+  $('patch-result').innerHTML = (p.applied.length ? `<p>${p.applied.length} valor(es) mudariam no jogo:</p><table><tr><th>config.ts</th><th>Jogo</th><th>Proposto</th><th>Origem</th></tr>${p.applied.map(a => `<tr><td><code>${a.gamePath}</code></td><td>${escape(a.before)}</td><td class="warn">${escape(a.after)}</td><td>${a.from.map(label).join('<br>')}</td></tr>`).join('')}</table>` : '<p class="ok">Nenhum valor do jogo mudaria.</p>')
+    + (p.conflicts.length ? `<p class="warn"><b>Conflitos (fora da proposta):</b></p><ul>${p.conflicts.map(c => `<li><code>${c.gamePath}</code>: ${c.list.map(e => `${label(e.path)} = ${+e.value.toFixed(4)}`).join(' · ')}</li>`).join('')}</ul>` : '')
+    + (p.skipped.length ? `<p class="warn">Sem equivalente no config.ts: ${p.skipped.map(s => `<code>${s.gamePath}</code>`).join(', ')}</p>` : '')
+    + (p.diff ? `<pre class="diff">${escape(p.diff)}</pre><div class="row"><button type="button" id="patch-download">↓ Baixar .patch</button><button type="button" id="patch-copy">Copiar diff</button></div>` : '');
+  if (p.diff) {
+    $('patch-download').onclick = () => download(p.diff, 'config-ts-proposta.patch');
+    $('patch-copy').onclick = async () => {try {await navigator.clipboard.writeText(p.diff);} catch {/* sem área de transferência: o diff continua visível */}};
+  }
+};
+function syncCompareOptions() {
+  for (const id of ['comp-a', 'comp-b']) {const sel = $(id), prev = sel.value;sel.innerHTML = $('preset-a').innerHTML;sel.value = [...sel.options].some(o => o.value === prev) ? prev : id === 'comp-a' ? '__current' : '__lab';}
+}
+$('comp-run').onclick = () => {
+  syncCompareOptions();const ida = $('comp-a').value, idb = $('comp-b').value, A = tuning.valuesOf(ida), B = tuning.valuesOf(idb), name = id => escape($('comp-a').querySelector(`option[value="${CSS.escape(id)}"]`)?.textContent ?? id);
+  if ($('comp-source').value === 'match') {
+    if (!matchRec.ticks) {$('comp-report').innerHTML = '<p class="warn">Nenhuma partida gravada: jogue uma partida (aba Partida) e volte aqui.</p>';return;}
+    const r = compareMatch(A, B, matchRec.meta, matchRec.commands);window.__lab.lastCompare = r;
+    $('comp-report').innerHTML = `<p>${matchRec.ticks} passos gravados (semente ${matchRec.meta.seed}). O vermelho reage de novo pela IA em cada lado.</p><table><tr><th></th><th>A · ${name(ida)}</th><th>B · ${name(idb)}</th></tr>${r.rows.map(([k, a, b]) => `<tr><td>${escape(k)}</td><td>${a}</td><td class="${String(a) !== String(b) ? 'warn' : ''}">${b}</td></tr>`).join('')}</table>`;
+    return;
+  }
+  const rows = compareScenarios(A, B);window.__lab.lastCompare = rows;
+  $('comp-report').innerHTML = `<table><tr><th>Cenário</th><th>A · ${name(ida)}</th><th>B · ${name(idb)}</th></tr>${rows.map(r => `<tr><td><b>${escape(r.name)}</b>${r.diffs.map(d => `<br><small>${escape(d.label)}</small>`).join('')}</td><td>${r.okA ? '✓' : '✗'}${r.diffs.map(d => `<br><small>${escape(String(d.a))}</small>`).join('')}</td><td class="${r.okA !== r.okB ? 'warn' : ''}">${r.okB ? '✓' : '✗'}${r.diffs.map(d => `<br><small>${escape(String(d.b))}</small>`).join('')}</td></tr>`).join('')}</table><p class="hint">✓/✗ = esperado × obtido de cada cenário com aqueles ajustes; abaixo, só as medições que diferem entre A e B.</p>`;
+};
 $('balance-run').onclick = () => {
   const matches = Math.max(1, Math.min(200, Number($('balance-matches').value) || 20)), seed = Math.max(1, Number($('balance-seed').value) || 1);
   const t0 = performance.now(), r = runBalance({matches, seed, profile: $('profile').value, enemyProfile: $('enemy-profile').value});window.__lab.lastBalance = r;
@@ -330,6 +371,7 @@ function openTool(tool) {
   for (const b of document.querySelectorAll('[data-tool]')) b.classList.toggle('active', !same && b.dataset.tool === tool);
   for (const s of document.querySelectorAll('[data-section]')) s.hidden = s.dataset.section !== tool;$('panel-title').textContent = TITLES[tool];
   if (tool === 'homolog') homologation.render();
+  if (tool === 'scenarios') {tuning.renderPresets();syncCompareOptions();}
   if (tool === 'export') renderGameDiff();if (tool === 'tuning') tuning.render();
 }
 for (const b of document.querySelectorAll('[data-tool]')) b.onclick = () => openTool(b.dataset.tool);

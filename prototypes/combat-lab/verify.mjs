@@ -203,7 +203,18 @@ try {
   assert.equal(replayed.launchUp, recJson.values['rules.launchUp'], 'ajustes da gravação restaurados');assert.equal(replayed.tick, recorded.tick);assert.equal(replayed.fighters, recorded.fighters, 'reprodução idêntica à partida gravada');
   assert.match(await page.textContent('#rec-result'), /Fim da gravação/);
   await L(() => {window.__lab.tuning.resetAll();});
-  step(`gravação de partida: ${recorded.ticks} passos IA × IA salvos (comprimidos em ${recJson.commands.length} trechos) e reproduzidos com estado final idêntico`);
+  // Comparação A × B com a gravação e com os cenários.
+  await page.click('[data-tool="scenarios"]');await page.selectOption('#comp-a', '__current');await page.selectOption('#comp-b', '__game');
+  await page.selectOption('#comp-source', 'match');await page.click('#comp-run');assert.match(await page.textContent('#comp-report'), /passos gravados[\s\S]*Vencedor/);
+  await page.selectOption('#comp-source', 'scenarios');await page.click('#comp-run');assert.equal(await page.locator('#comp-report tr').count(), 9);
+  // Proposta de patch: X e C com durações diferentes = conflito; iguais = muda rules.dodge.
+  await L(() => window.__lab.tuning.commit([['actions.dodge.duration', .5]], 'teste patch'));await page.click('[data-tool="export"]');await page.click('#patch-generate');
+  assert.match(await page.textContent('#patch-result'), /Conflitos[\s\S]*rules\.dodge/);
+  await L(() => window.__lab.tuning.commit([['actions.tackle.duration', .5]], 'teste patch'));await page.click('#patch-generate');
+  assert.match(await page.textContent('#patch-result pre.diff'), /\+  dodge: \.5, invulnerable/);
+  pending = page.waitForEvent('download');await page.click('#patch-download');assert.match(await readFile(await (await pending).path(), 'utf8'), /^diff --git a\/prototypes\/game\/src\/config\.ts/);
+  await L(() => {window.__lab.tuning.resetAll();});
+  step(`gravação de partida: ${recorded.ticks} passos IA × IA salvos (comprimidos em ${recJson.commands.length} trechos) e reproduzidos com estado final idêntico; comparação A × B (gravação e cenários) e proposta de patch do config.ts com conflito X/C`);
 
   // ---------- 2/3. Personagem do Studio e eventos ----------
   await page.click('[data-tool="characters"]');await page.locator('.char-slot').nth(0).locator('input[type=file]').setInputFiles(out + 'personagem-studio.glb');
