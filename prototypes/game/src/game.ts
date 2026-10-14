@@ -1,6 +1,6 @@
-import { profiles, RULES, TEST } from './config';
+import { profiles, TEST } from './config';
 import { Brain, Mode } from './ai';
-import { Command, Fighter, fighter, idle } from './entity';
+import { Command, Fighter, fighter, idle, invulnerable, offensive } from './entity';
 import { ContactEvent } from './combat';
 import { prepare, finish } from './controller';
 import { integrate } from './physics';
@@ -28,8 +28,7 @@ export class Game {
   snapshot() {
     return { phase: this.phase, tick: this.tick, winner: this.winner, mode: this.mode, events: this.events,
       fighters: this.fighters.map(f => ({ ...f, action: f.action ? { ...f.action, hits: [...f.action.hits] } : null,
-        invulnerable: f.action?.kind === 'dodge' && f.action.elapsed < RULES.invulnerable - 1e-8,
-        offensive: f.action?.kind === 'dodge' && f.action.offensive })) };
+        invulnerable: invulnerable(f), offensive: offensive(f) })) };
   }
 }
 export class FixedClock {

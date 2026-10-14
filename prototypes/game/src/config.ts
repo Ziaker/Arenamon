@@ -21,6 +21,28 @@ export const CAMERA = {
   initialYaw: Math.PI + .2, shoulder: .45, framingRange: 6, distanceScale: .35,
   manualHold: 1.5, minDistance: 4.8, maxDistance: 16,
 };
+// Etapa A (aprovada em 14/10/2026; referência: prototypes/combat-lab, branch feat/combat-core-etapa-a).
+// X (tackle) e C (esquiva) são ações independentes; cada uma lê só o próprio bloco. Os valores iniciais são os mesmos
+// que o jogo já usava para a esquiva-investida única (RULES), então o balanceamento não muda.
+export type ActionKind = 'dodge' | 'tackle';
+const common = () => ({ duration: RULES.dodge, cost: 1, invulnerable: RULES.invulnerable, distance: 2.5, curveStart: 1.6,
+  steerLimit: RULES.steerLimit, steerRate: RULES.steerRate, blend: RULES.blend, chainAfter: RULES.invulnerable, recovery: 0, fromGuard: true });
+export const ACTIONS = {
+  // C — esquiva defensiva: nunca causa dano; salta sobre o adversário só quando a trajetória o atravessa.
+  dodge: { ...common(), fromRecoil: true, fromGuardStun: true, vaultHeight: 2.2, vaultReachBonus: .7, vaultForwardMin: .1, vaultLateralWidth: 1.15,
+    vaultCollisionHeight: 1.3, perfectEvadeStamina: .2, counterWindow: .55 },
+  // X — tackle ofensivo em qualquer direção. GDD 8.2: sem ataque durante o recuo; GDD 5: no guard stun o X fica guardado.
+  tackle: { ...common(), fromRecoil: false, fromGuardStun: false, counterSpeed: 1.18 },
+  // Cancelamento C → X: janela própria (desde o 1º passo), velocidade contínua, X cobra o próprio custo;
+  // invulnerabilidade de X = só o resto da de C; no ar, X desce da altura atual sem teletransporte.
+  cancel: { dodgeToTackle: true, windowStart: 0, windowEnd: .4, transition: .06, velocityInfluence: 1, airDescent: .18 },
+  // X ou C pedidos até 100 ms antes de serem permitidos saem no primeiro passo permitido (0 desliga).
+  buffer: { window: .1 },
+  // X contra X: cada um recebe 30% do dano do tackle do outro e é empurrado para trás (empurrão do GDD, inalterado).
+  clash: { fraction: .3, facingAlignment: .2, closingSpeed: .06 },
+  // Defesa perfeita também abre a janela de contra-ataque (o X seguinte é mais rápido e vai mais longe).
+  perfectGuardCounterWindow: .7,
+};
 export interface Attributes { attack: number; defense: number; speed: number; hp: number }
 export const profiles: Record<string, Attributes> = {
   balanced: { attack: TEST.attack, defense: TEST.defense, speed: TEST.speed, hp: TEST.hp },

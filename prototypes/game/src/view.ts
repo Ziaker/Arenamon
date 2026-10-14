@@ -35,10 +35,11 @@ export class View {
         this.arrows[f.id] = arrow; this.scene.add(arrow);
       }
       const mesh = this.meshes[f.id], material = mesh.material as T.MeshStandardMaterial;
-      mesh.position.set(f.position.x, .65, f.position.z);
+      // Altura do salto da esquiva C (e da descida de um C → X no ar).
+      mesh.position.set(f.position.x, .65 + f.vaultHeight, f.position.z);
       material.color.setHex(f.hp <= 0 ? 0x56616a : f.id ? 0xf2514b : 0x3589ff);
       material.emissive.setHex(invulnerable(f) ? 0x385b55 : f.guard ? 0x585126 : f.state === 'recoil' ? 0x603047 : offensive(f) ? 0x522600 : 0);
-      const arrow = this.arrows[f.id]; arrow.position.set(f.position.x + Math.sin(f.visualFacing) * .2, 1.48, f.position.z + Math.cos(f.visualFacing) * .2);
+      const arrow = this.arrows[f.id]; arrow.position.set(f.position.x + Math.sin(f.visualFacing) * .2, 1.48 + f.vaultHeight, f.position.z + Math.cos(f.visualFacing) * .2);
       arrow.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), new T.Vector3(Math.sin(f.visualFacing), 0, Math.cos(f.visualFacing)));
       (arrow.material as T.MeshBasicMaterial).color.setHex(f.guard ? 0xffe064 : 0xffffff);
     }

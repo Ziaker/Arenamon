@@ -1,7 +1,8 @@
 import { Command, Fighter } from './entity';
 import { Vec, add, clamp, direction, dot, length, scale, smooth, sub, unit, vec } from './math';
 
-export interface Buttons { x: number; forward: number; dodge: boolean; guard: boolean; guardPressed: boolean }
+// dodge = C (esquiva), tackle = X (investida). As duas usam a mesma direção explícita (8 direções).
+export interface Buttons { x: number; forward: number; dodge: boolean; tackle?: boolean; guard: boolean; guardPressed: boolean }
 // This is a snapshot of the horizontal camera reference, never a visual mesh rotation.
 export function resolveCommand(buttons: Buttons, self: Fighter, target: Fighter, yaw: number, locked: boolean): Command {
   const cameraForward = direction(yaw + Math.PI), screenRight = vec(-cameraForward.z, cameraForward.x);
@@ -58,6 +59,7 @@ export function resolveCommand(buttons: Buttons, self: Fighter, target: Fighter,
     move,
     target: locked ? target.id : null,
     dodge: buttons.dodge,
+    tackle: !!buttons.tackle,
     guard: buttons.guard,
     guardPressed: buttons.guardPressed,
     dodgeDirection,

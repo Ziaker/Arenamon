@@ -22,7 +22,7 @@ export class Input {
     const c = resolveCommand({
       x: Number(this.held.has('ArrowRight')) - Number(this.held.has('ArrowLeft')),
       forward: Number(this.held.has('ArrowUp')) - Number(this.held.has('ArrowDown')),
-      dodge: this.pressed.has('KeyC'), guard: this.held.has('KeyF'), guardPressed: this.pressed.has('KeyF'),
+      dodge: this.pressed.has('KeyC'), tackle: this.pressed.has('KeyX'), guard: this.held.has('KeyF'), guardPressed: this.pressed.has('KeyF'),
     }, self, target, cameraYaw, this.locked);
     this.pressed.clear(); return c;
   }

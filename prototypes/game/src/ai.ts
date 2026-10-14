@@ -4,12 +4,12 @@ import { direction, dot, length, scale, sub, unit, vec } from './math';
 export type Mode = 'inactive' | 'defensive' | 'offensive' | 'combat';
 
 /**
- * Evaluates whether an attacker in a dodge action is actively trajectory-bound to hit defender.
+ * Evaluates whether an attacker in a tackle (X) is actively trajectory-bound to hit defender.
  * Recognizes incoming tackles from any direction (front, back, sides, diagonals)
  * regardless of visual body facing.
  */
 export function threatens(attacker: Fighter, defender: Fighter): boolean {
-  if (attacker.action?.kind !== 'dodge') return false;
+  if (attacker.action?.kind !== 'tackle') return false;
   const offset = sub(defender.position, attacker.position);
   if (length(offset) < 1e-6) return true;
   const dirToDefender = unit(offset);
@@ -35,7 +35,8 @@ export class Brain {
           this.cooldown = TEST.aiInterval; this.phase++;
         } else c.guard = true;
       } else if (distance <= TEST.aiRange && this.cooldown <= 0 && !self.action && self.stun <= 0) {
-        c.move = forward; c.dodge = true; this.cooldown = TEST.aiInterval; this.phase++;
+        // Etapa A: o ataque é o tackle X; a esquiva lateral (C) acima continua sendo a evasão.
+        c.move = forward; c.tackle = true; this.cooldown = TEST.aiInterval; this.phase++;
       }
     }
     c.guardPressed = c.guard && !this.wasGuard; this.wasGuard = c.guard;

@@ -1,6 +1,6 @@
-import { TEST } from './config';
+import { ACTIONS, TEST } from './config';
 import { Fighter } from './entity';
-import { ContactEvent, strike } from './combat';
+import { ContactEvent, clash, clashPossible, strike } from './combat';
 import { Vec, add, clamp, dot, length, scale, smooth, sub, vec } from './math';
 export function wall(f: Fighter) {
   const bound = TEST.arenaHalf - TEST.halfExtent;
@@ -39,12 +39,17 @@ export function integrate(fighters: Fighter[], dt: number): ContactEvent[] {
       for (let i = 0; i < fighters.length; i++) for (let j = i + 1; j < fighters.length; j++) {
         const a = fighters[i], b = fighters[j], c = contact(a, b);
         if (!c || a.hp <= 0 || b.hp <= 0) continue;
+        // Salto de C: acima da altura de atravessamento o colisor não toca o de quem está no chão.
+        if (Math.max(a.vaultHeight, b.vaultHeight) > ACTIONS.dodge.vaultCollisionHeight) continue;
         if (pass === 0) {
           a.contacts++; b.contacts++;
           const relative = sub(add(a.velocity, pushVel.get(a.id)!), add(b.velocity, pushVel.get(b.id)!));
-          const ea = strike(a, b, c.normal, relative);
-          const eb = strike(b, a, scale(c.normal, -1), scale(relative, -1));
-          if (ea) events.push(ea); if (eb) events.push(eb);
+          if (clashPossible(a, b, c.normal, relative)) events.push(...clash(a, b, c.normal, relative));
+          else {
+            const ea = strike(a, b, c.normal, relative);
+            const eb = strike(b, a, scale(c.normal, -1), scale(relative, -1));
+            if (ea) events.push(ea); if (eb) events.push(eb);
+          }
         }
         // Distribute penetration according to available space at arena limits.
         const bound = TEST.arenaHalf - TEST.halfExtent;

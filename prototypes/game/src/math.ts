@@ -13,3 +13,6 @@ export const delta = (a: number, b: number) => Math.atan2(Math.sin(b - a), Math.
 export const smooth = (u: number) => { u = clamp(u, 0, 1); return u * u * (3 - 2 * u); };
 // Integral: 0→1, 70% at halfway, continuous decreasing speed, zero terminal speed.
 export const dodgeProgress = (u: number) => { u = clamp(u, 0, 1); return 1.6 * u - .2 * u * u - .4 * u * u * u; };
+// Curva de ação com arrancada a (velocidade inicial relativa): p(u) = a·u + (3−2a)·u² + (a−2)·u³, termina parada.
+// a = 1,6 é exatamente dodgeProgress (curva aprovada do jogo).
+export const actionCurve = (u: number, a: number) => { if (a === 1.6) return dodgeProgress(u); u = clamp(u, 0, 1); return a * u + (3 - 2 * a) * u * u + (a - 2) * u * u * u; };
