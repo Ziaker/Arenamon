@@ -44,6 +44,12 @@ try {
   const L = fn => page.evaluate(fn);
   assert.equal(await L(() => window.__lab.game.phase), 'menu');assert.equal(await page.isVisible('#menu'), true);
   step('abre offline no menu, sem erros');
+  // Diagnóstico da navegação antes de procurar a aba Ajustes. Útil em CI/Edge headless.
+  const diag = await page.evaluate(() => ({url: location.href, title: document.title,
+    nav: document.querySelectorAll('[data-tool]').length, tool: !!document.querySelector('[data-tool="tuning"]'),
+    bodyLength: document.body?.innerHTML.length, ready: document.readyState, lab: !!window.__lab}));
+  console.log('DIAG DOM inicial:', JSON.stringify(diag));
+  await page.screenshot({path: out + 'laboratorio-abertura.png'});
 
   // ---------- 6/10. Ajustador ----------
   await page.click('[data-tool="tuning"]');
