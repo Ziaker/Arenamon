@@ -1,0 +1,765 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Arenamon — Central de Testes e Relatórios</title>
+  <style>
+    :root {
+      --bg: #090d14;
+      --surface: #101722;
+      --surface-card: #151f2e;
+      --surface-hover: #1c2a3d;
+      --border: #24354a;
+      --border-focus: #3b5373;
+      --text-main: #f0f6fc;
+      --text-muted: #8b9bb0;
+      --primary: #38bdf8;
+      --primary-glow: rgba(56, 189, 248, 0.15);
+      --success: #34d399;
+      --success-glow: rgba(52, 211, 153, 0.15);
+      --warning: #fbbf24;
+      --accent: #818cf8;
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: radial-gradient(circle at 50% 0%, #152238 0%, var(--bg) 60%);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      min-height: 100vh;
+      line-height: 1.5;
+      padding: 32px 20px 80px;
+    }
+    .container {
+      max-width: 1180px;
+      margin: 0 auto;
+    }
+    header {
+      margin-bottom: 28px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 24px;
+    }
+    .nav-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.9rem;
+      padding: 6px 12px;
+      background: var(--primary-glow);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: var(--radius-sm);
+      transition: all 0.2s;
+    }
+    .back-link:hover {
+      background: rgba(56, 189, 248, 0.25);
+      transform: translateX(-2px);
+    }
+    .badge-offline {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--success-glow);
+      border: 1px solid rgba(52, 211, 153, 0.3);
+      color: var(--success);
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+    .badge-offline::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      background: var(--success);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--success);
+    }
+    h1 {
+      font-size: clamp(1.8rem, 4vw, 2.6rem);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+      background: linear-gradient(135deg, #ffffff 30%, var(--primary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 1.05rem;
+      max-width: 850px;
+    }
+    
+    /* Notice banner */
+    .notice-card {
+      background: rgba(56, 189, 248, 0.08);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: var(--radius-md);
+      padding: 16px 20px;
+      margin-bottom: 28px;
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+    }
+    .notice-icon {
+      font-size: 1.4rem;
+      line-height: 1;
+    }
+    .notice-text {
+      font-size: 0.92rem;
+      color: #c9d8ea;
+    }
+    .notice-text strong {
+      color: var(--primary);
+    }
+    
+    /* Metrics bar */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+    .metric-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 18px;
+      text-align: center;
+    }
+    .metric-value {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--success);
+      line-height: 1.1;
+      margin-bottom: 4px;
+    }
+    .metric-label {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 600;
+    }
+
+    /* Filters & Search */
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .filter-btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .filter-btn:hover {
+      border-color: var(--border-focus);
+      color: var(--text-main);
+    }
+    .filter-btn.active {
+      background: var(--primary);
+      color: #06111e;
+      border-color: var(--primary);
+    }
+    .search-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 8px 14px;
+      color: var(--text-main);
+      font-size: 0.9rem;
+      width: min(280px, 100%);
+      outline: none;
+    }
+    .search-box:focus {
+      border-color: var(--primary);
+    }
+
+    /* Suite Cards */
+    .suites-list {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    .suite-card {
+      background: var(--surface-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 22px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .suite-card:hover {
+      border-color: var(--border-focus);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    .suite-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
+      gap: 12px;
+    }
+    .suite-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 4px;
+    }
+    .tag-group {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .tag {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: var(--surface-hover);
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+    }
+    .tag.success {
+      background: var(--success-glow);
+      color: var(--success);
+      border-color: rgba(52, 211, 153, 0.3);
+    }
+    .tag.primary {
+      background: var(--primary-glow);
+      color: var(--primary);
+      border-color: rgba(56, 189, 248, 0.3);
+    }
+    .tag.accent {
+      background: rgba(129, 140, 248, 0.15);
+      color: var(--accent);
+      border-color: rgba(129, 140, 248, 0.3);
+    }
+    .suite-desc {
+      color: var(--text-muted);
+      font-size: 0.94rem;
+      margin-bottom: 16px;
+    }
+    
+    /* Code & Command boxes */
+    .cmd-box {
+      background: #080d14;
+      border: 1px solid #1a2838;
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.88rem;
+      color: #38bdf8;
+      overflow-x: auto;
+    }
+    .copy-btn {
+      background: #172436;
+      border: 1px solid #283e58;
+      color: #cadbee;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+    .copy-btn:hover {
+      background: var(--primary);
+      color: #06111e;
+    }
+
+    /* Verification output details */
+    .details-box {
+      background: #0b111a;
+      border: 1px solid #1a2838;
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      font-size: 0.86rem;
+      color: #abbdd1;
+      margin-top: 10px;
+    }
+    .details-box summary {
+      cursor: pointer;
+      font-weight: 600;
+      color: var(--primary);
+      outline: none;
+    }
+    .details-box pre {
+      margin-top: 10px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.82rem;
+      color: #34d399;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    /* Evidence thumbs */
+    .evidence-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 14px;
+      flex-wrap: wrap;
+    }
+    .evidence-thumb {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #121d2b;
+      border: 1px solid var(--border);
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      font-size: 0.8rem;
+      color: #cbd7e6;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    .evidence-thumb:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+      transform: translateY(-2px);
+    }
+
+    /* Modal viewer for screenshots */
+    #image-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      z-index: 9999;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+    #image-modal.active { display: flex; }
+    #modal-img {
+      max-width: 90vw;
+      max-height: 85vh;
+      border-radius: var(--radius-md);
+      box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+      border: 1px solid var(--border);
+    }
+    #modal-close {
+      position: absolute;
+      top: 24px;
+      right: 28px;
+      background: #1e293b;
+      color: #fff;
+      border: none;
+      font-size: 1.8rem;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    footer {
+      margin-top: 48px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.88rem;
+      border-top: 1px solid var(--border);
+      padding-top: 24px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <div class="nav-top">
+        <a href="ABRIR_ARENAMON.html" class="back-link">← Voltar à Central Arenamon</a>
+        <span class="badge-offline">Verificação 100% Offline</span>
+      </div>
+      <h1>Central de Testes e Relatórios</h1>
+      <p class="subtitle">
+        Catálogo completo das suítes de validação automatizada do Arenamon: física, locomoção, câmera, Action Editor, núcleo de Rigging do Codex, interoperabilidade v2 e propostas visuais.
+      </p>
+    </header>
+
+    <div class="notice-card">
+      <div class="notice-icon">⚙️</div>
+      <div class="notice-text">
+        <strong>Execução Técnica via Terminal:</strong> Testes automatizados executam verificações reais de código e navegador através de <strong>Node.js</strong> e <strong>Playwright</strong> com Microsoft Edge. Eles não rodam diretamente dentro de um arquivo HTML estático. Utilize os comandos abaixo no seu PowerShell ou terminal preferido.
+      </div>
+    </div>
+
+    <!-- Metrics -->
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-value">100%</div>
+        <div class="metric-label">Taxa de Aprovação</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-value">8</div>
+        <div class="metric-label">Suítes de Teste</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-value">110+</div>
+        <div class="metric-label">Cenários Verificados</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-value">Zero</div>
+        <div class="metric-label">Dependências de Rede</div>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="toolbar">
+      <div class="filters">
+        <button class="filter-btn active" data-filter="all">Todas as Suítes</button>
+        <button class="filter-btn" data-filter="jogo">Jogo Principal</button>
+        <button class="filter-btn" data-filter="studio">Animation Studio</button>
+        <button class="filter-btn" data-filter="rigging">Rigging & Codex</button>
+        <button class="filter-btn" data-filter="proposals">Propostas Visuais</button>
+        <button class="filter-btn" data-filter="placeholders">Base & Importador</button>
+      </div>
+      <input type="text" class="search-box" id="search-input" placeholder="Filtrar por nome ou comando...">
+    </div>
+
+    <!-- Suites list -->
+    <div class="suites-list" id="suites-list">
+
+      <!-- SUÍTE 1: VERIFICAÇÃO GERAL -->
+      <article class="suite-card" data-category="all jogo studio rigging">
+        <div class="suite-header">
+          <div>
+            <h2 class="suite-title">Verificação Completa do Repositório (All-in-One)</h2>
+            <div class="tag-group">
+              <span class="tag success">✓ 100% Aprovado</span>
+              <span class="tag primary">npm run verify</span>
+              <span class="tag">TypeScript + Build + Testes</span>
+            </div>
+          </div>
+        </div>
+        <p class="suite-desc">
+          Executa a validação oficial do repositório: checagem estática de tipos TypeScript, compilação de todos os bundles HTML e execução sequencial de todas as 10 suítes de testes unitários e de navegador.
+        </p>
+        <div class="cmd-box">
+          <code>npm run verify</code>
+          <button class="copy-btn" onclick="copyCmd('npm run verify', this)">Copiar Comando</button>
+        </div>
+        <details class="details-box">
+          <summary>Ver último resultado do console (Verificação Integral)</summary>
+          <pre>> arenamon@1.0.0 verify
+> npm run typecheck && npm test
+
+20 mechanical scenarios passed
+15 locomotion/camera scenarios passed
+PASS: 18 browser scenarios, file:// offline, no errors or external requests.
+18 testes unitários aprovados. (Animation Studio Ops)
+Rigging: 7 testes unitários aprovados. (Codex Core)
+Animation Studio: 20 verificações de navegador aprovadas.
+Rigging Studio: 12 verificações de navegador aprovadas.
+PASS: dois blocos, cores, câmera, layout, file:// offline, sem erros.</pre>
+        </details>
+      </article>
+
+      <!-- SUÍTE 2: TESTE CRUZADO CODEX CORE 7323b48 -->
+      <article class="suite-card" data-category="rigging proposals">
+        <div class="suite-header">
+          <div>
+            <h2 class="suite-title">Teste Cruzado Direto com o Núcleo Codex (commit 7323b48)</h2>
+            <div class="tag-group">
+              <span class="tag success">✓ 100% Aprovado</span>
+              <span class="tag accent">Interoperabilidade v2</span>
+              <span class="tag">RiggingBridge ⇄ CodexCore</span>
+            </div>
+          </div>
+        </div>
+        <p class="suite-desc">
+          Comprova compatibilidade estrita entre as interfaces visuais de rigging e o núcleo estrutural corrigido do Codex (commit 7323b48). Valida esqueletos Humanoid-20, Quadrúpede-24/27 e SkinnedMesh, mutações topológicas de rascunhos, equivalência de metadados userData.arenamonRig e matriz canônica de 6 erros.
+        </p>
+        <div class="cmd-box">
+          <code>node prototypes/studio/proposals/test-codex-cross.mjs</code>
+          <button class="copy-btn" onclick="copyCmd('node prototypes/studio/proposals/test-codex-cross.mjs', this)">Copiar Comando</button>
+        </div>
+        <details class="details-box">
+          <summary>Ver resultado detalhado da matriz canônica</summary>
+          <pre>--- Cenário 1: Validação direta pelo Codex 7323b48 de exports do RiggingBridge ---
+✓ 1.1 Codex 7323b48 validou esqueleto Humanoid-20 emitido pela UI
+✓ 1.2 Codex 7323b48 validou esqueleto Quadrúpede-27 emitido pela UI
+✓ 1.3 Codex 7323b48 validou esqueleto Quadrúpede-24 emitido pela UI
+✓ 1.4 Codex 7323b48 validou esqueleto de SkinnedMesh emitido pela UI após bindSkin
+--- Cenário 2: Importação pelo RiggingBridge de rigs do Codex ---
+✓ 2.1 RiggingBridge importou rascunho com mutações topológicas do Codex
+--- Cenário 3: Equivalência de Metadados userData.arenamonRig ---
+✓ 3.1 Metadados coincidem exatamente com syncRigMetadata do Codex 7323b48
+--- Cenário 4: Matriz de rejeição canônica ---
+✓ 4.1 ID ausente | ✓ 4.2 ID duplicado | ✓ 4.3 Quaternion inválido | ✓ 4.4 Ciclo | ✓ 4.5 Múltiplas raízes</pre>
+        </details>
+      </article>
+
+      <!-- SUÍTE 3: TESTES DAS PROPOSTAS VISUAIS DE RIGGING -->
+      <article class="suite-card" data-category="proposals rigging">
+        <div class="suite-header">
+          <div>
+            <h2 class="suite-title">Testes Funcionais e de Estado das Propostas A, B e C</h2>
+            <div class="tag-group">
+              <span class="tag success">✓ 6 Prioridades Aprovadas</span>
+              <span class="tag primary">Playwright Edge</span>
+              <span class="tag">Tempo: ~19s</span>
+            </div>
+          </div>
+        </div>
+        <p class="suite-desc">
+          Validação automatizada no Edge das 6 prioridades técnicas: arrasto real de mouse no Gizmo 3D com Undo/Redo exato, coexistência dos templates 24 e 27 articulações, heatmap em modelos com múltiplas malhas com preservação não-destrutiva de cores, clique no botão real da UI (#btn-export-json) pós-bind gerando Schema v2 e portal comparador isolado.
+        </p>
+        <div class="cmd-box">
+          <code>node prototypes/studio/proposals/test-proposals.mjs</code>
+          <button class="copy-btn" onclick="copyCmd('node prototypes/studio/proposals/test-proposals.mjs', this)">Copiar Comando</button>
+        </div>
+        <div class="evidence-row">
+          <span style="font-size: 0.8rem; color: var(--text-muted); align-self: center;">Evidências geradas:</span>
+          <a href="#" class="evidence-thumb" onclick="openModal('prototypes/studio/proposals/screenshots/proposta-a.png'); return false;">🖼️ Captura Proposta A</a>
+          <a href="#" class="evidence-thumb" onclick="openModal('prototypes/studio/proposals/screenshots/proposta-b.png'); return false;">🖼️ Captura Proposta B</a>
+          <a href="#" class="evidence-thumb" onclick="openModal('prototypes/studio/proposals/screenshots/proposta-c.png'); return false;">🖼️ Captura Proposta C</a>
+          <a href="#" class="evidence-thumb" onclick="openModal('prototypes/studio/proposals/screenshots/propostas-portal.png'); return false;">🖼️ Portal Comparador</a>
+        </div>
+      </article>
+
+      <!-- SUÍTE 4: TESTES MECÂNICOS DO JOGO -->
+      <article class="suite-card" data-category="jogo">
+        <div class="suite-header">
+          <div>
+            <h2 class="suite-title">Testes Mecânicos da Arena de Combate (20 Cenários)</h2>
+            <div class="tag-group">
+              <span class="tag success">✓ 20 Aprovados</span>
+              <span class="tag">prototypes/game/test.mjs</span>
+            </div>
+          </div>
+        </div>
+        <p class="suite-desc">
+          Valida a matemática discreta da simulação física: normalização de movimento em 8 direções, esquiva de 400ms com 200ms de invulnerabilidade e custo de stamina, guarda parcial e perfeita (com 2s de cooldown após falha), fórmula assintótica de empurrão (60% ataque / 40% velocidade) e determinismo temporal a 30, 60 e 144 Hz.
+        </p>
+        <div class="cmd-box">
+          <code>node prototypes/game/test.mjs</code>
+          <button class="copy-btn" onclick="copyCmd('node prototypes/game/test.mjs', this)">Copiar Comando</button>
+        </div>
+      </article>
+
+      <!-- SUÍTE 5: TESTES DE LOCOMOÇÃO E CÂMERA -->
+      <article class="suite-card" data-category="jogo">
+        <div class="suite-header">
+          <div>
+            <h2 class="suite-title">Testes de Locomoção e Câmera Orbital (15 Cenários)</h2>
+            <div class="tag-group">
+              <span class="tag success">✓ 15 Aprovados</span>
+              <span class="tag">prototypes/game/locomotion.test.mjs</span>
+            </div>
+          </div>
+        </div>
+        <p class="suite-desc">
+          Verifica a base ortonormal da câmera em 12 ângulos orbitais, manutenção de strafe lateral relativo à tela durante cruzamento de alvos em órbita, aceleração curta sem inércia residual, continuidade angular e esquivas diagonais defensivas.
+        </p>
+        <div class="cmd-box">
+          <code>node prototypes/game/locomotion.test.mjs</code>
+          <button class="copy-btn" onclick="copyCmd('node prototypes/game/locomotion.test.mjs', this)">Copiar Comando</button>
+        </div>
+      </article>
+
+      <!-- SUÍTE 6: VERIFICAÇÃO DO JOGO EM NAVEGADOR -->
+      <article class="suite-card" data-category="jogo">
+        <div class="suite-header">
+          <div>
+            <h2 class="suite-title">Cenários Interativos do Jogo no Edge (18 Cenários)</h2>
+            <div class="tag-group">
+              <span class="tag success">✓ 18 Aprovados</span>
+              <span class="tag primary">Playwright Edge</span>
+              <span class="tag">prototypes/game/verify.mjs</span>
+            </div>
+          </div>
+        </div>
+        <p class="suite-desc">
+          Executa a partida jogável real via Playwright: inicialização offline em file:// sem requisições de rede, teste de teclas reservadas, movimentação por setas, acionamento de guarda por tecla, lock-on híbrido por Tab, arrasto e zoom de câmera por mouse, colisão física com perda de HP e tela de vitória/derrota.
+        </p>
+        <div class="cmd-box">
+          <code>node prototypes/game/verify.mjs</code>
+          <button class="copy-btn" onclick="copyCmd('node prototypes/game/verify.mjs', this)">Copiar Comando</button>
+        </div>
+        <div class="evidence-row">
+          <span style="font-size: 0.8rem; color: var(--text-muted); align-self: center;">Evidências do jogo:</span>
+          <a href="#" class="evidence-thumb" onclick="openModal('prototypes/game/validation/menu.png'); return false;">🖼️ Menu Inicial</a>
+          <a href="#" class="evidence-thumb" onclick="openModal('prototypes/game/validation/impact.png'); return false;">🖼️ Impacto e Dano</a>
+          <a href="#" class="evidence-thumb" onclick="openModal('prototypes/game/validation/block.png'); return false;">🖼️ Guarda Bloqueada</a>
+          <a href="#" class="evidence-thumb" onclick="openModal('prototypes/game/validation/result.png'); return false;">🖼️ Vitória / Derrota</a>
+        </div>
+      </article>
+
+      <!-- SUÍTE 7: ANIMATION STUDIO & ACTION EDITOR -->
+      <article class="suite-card" data-category="studio">
+        <div class="suite-header">
+          <div>
+            <h2 class="suite-title">Operações e Usabilidade do Animation Studio</h2>
+            <div class="tag-group">
+              <span class="tag success">✓ 38 Verificações Aprovadas</span>
+              <span class="tag">18 Unitários + 20 Navegador</span>
+            </div>
+          </div>
+        </div>
+        <p class="suite-desc">
+          Cobre o editor de ações e a interface geral do studio: recorte temporal de 0.4s com interpolação limpa, alteração de velocidade, descarte de eventos fora da janela, fechamento de loop, extração de root motion in-place, roundtrip de arquivos GLB, comparação A x B e restauração local via IndexedDB.
+        </p>
+        <div class="cmd-box">
+          <code>node prototypes/studio/test/ops.test.mjs; node prototypes/studio/verify.mjs</code>
+          <button class="copy-btn" onclick="copyCmd('node prototypes/studio/test/ops.test.mjs; node prototypes/studio/verify.mjs', this)">Copiar Comando</button>
+        </div>
+      </article>
+
+      <!-- SUÍTE 8: NÚCLEO E STUDIO DE RIGGING (CODEX) -->
+      <article class="suite-card" data-category="studio rigging">
+        <div class="suite-header">
+          <div>
+            <h2 class="suite-title">Núcleo Técnico e Navegador de Rigging (Codex)</h2>
+            <div class="tag-group">
+              <span class="tag success">✓ 19 Verificações Aprovadas</span>
+              <span class="tag">7 Unitários + 12 Navegador</span>
+            </div>
+          </div>
+        </div>
+        <p class="suite-desc">
+          Testa a criação estrutural de esqueleto de 20 articulações, simetria bilateral, detecção de nomes duplicados, criação de SkinnedMesh real com normalização de pesos, rotação de cotovelo sem deslocamento indevido de hierarquia, edição de bind pose e preservação de metadados em exportação GLB.
+        </p>
+        <div class="cmd-box">
+          <code>node prototypes/studio/test/rigging.test.mjs; node prototypes/studio/test/rigging.browser.mjs</code>
+          <button class="copy-btn" onclick="copyCmd('node prototypes/studio/test/rigging.test.mjs; node prototypes/studio/test/rigging.browser.mjs', this)">Copiar Comando</button>
+        </div>
+      </article>
+
+      <!-- SUÍTE 9: BASE & IMPORTADOR -->
+      <article class="suite-card" data-category="placeholders">
+        <div class="suite-header">
+          <div>
+            <h2 class="suite-title">Laboratório Base de Blocos e Importador de Protótipos</h2>
+            <div class="tag-group">
+              <span class="tag success">✓ Aprovados</span>
+              <span class="tag">prototypes/placeholders/verify.mjs</span>
+            </div>
+          </div>
+        </div>
+        <p class="suite-desc">
+          Garante a integridade do visualizador geométrico base (dois blocos, azul e vermelho, órbita e responsividade) e do importador de malhas sintéticas unlit sem texturas proprietárias.
+        </p>
+        <div class="cmd-box">
+          <code>node prototypes/placeholders/verify.mjs; node prototypes/importer/verify.mjs</code>
+          <button class="copy-btn" onclick="copyCmd('node prototypes/placeholders/verify.mjs; node prototypes/importer/verify.mjs', this)">Copiar Comando</button>
+        </div>
+        <div class="evidence-row">
+          <span style="font-size: 0.8rem; color: var(--text-muted); align-self: center;">Evidência:</span>
+          <a href="#" class="evidence-thumb" onclick="openModal('prototypes/placeholders/validation/blocks.png'); return false;">🖼️ Dois Blocos Base</a>
+        </div>
+      </article>
+
+    </div>
+
+    <footer>
+      Arenamon — Central de Testes e Relatórios · Projeto modular e independente · Documentação atualizada em 14/10/2026
+    </footer>
+  </div>
+
+  <!-- Modal for viewing screenshots -->
+  <div id="image-modal" onclick="closeModal()">
+    <button id="modal-close" onclick="closeModal()">×</button>
+    <img id="modal-img" src="" alt="Evidência de Teste" onclick="event.stopPropagation()">
+  </div>
+
+  <script>
+    // Copy command helper
+    function copyCmd(text, btn) {
+      navigator.clipboard.writeText(text).then(() => {
+        const orig = btn.textContent;
+        btn.textContent = "✓ Copiado!";
+        btn.style.background = "#34d399";
+        btn.style.color = "#06111e";
+        setTimeout(() => {
+          btn.textContent = orig;
+          btn.style.background = "";
+          btn.style.color = "";
+        }, 1800);
+      }).catch(() => {
+        prompt("Copie o comando:", text);
+      });
+    }
+
+    // Modal helper
+    function openModal(src) {
+      const modal = document.getElementById('image-modal');
+      const img = document.getElementById('modal-img');
+      img.src = src;
+      modal.classList.add('active');
+    }
+    function closeModal() {
+      document.getElementById('image-modal').classList.remove('active');
+    }
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') closeModal();
+    });
+
+    // Filter and search logic
+    const filterBtns = document.querySelectorAll('.filter-btn');
+    const searchInput = document.getElementById('search-input');
+    const cards = document.querySelectorAll('.suite-card');
+
+    function applyFilters() {
+      const activeFilter = document.querySelector('.filter-btn.active').dataset.filter;
+      const searchVal = searchInput.value.toLowerCase().trim();
+
+      cards.forEach(card => {
+        const cat = card.dataset.category || "";
+        const text = card.textContent.toLowerCase();
+        const matchesCategory = activeFilter === 'all' || cat.includes(activeFilter);
+        const matchesSearch = !searchVal || text.includes(searchVal);
+
+        if (matchesCategory && matchesSearch) {
+          card.style.display = 'block';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+    }
+
+    filterBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        filterBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        applyFilters();
+      });
+    });
+
+    searchInput.addEventListener('input', applyFilters);
+  </script>
+</body>
+</html>

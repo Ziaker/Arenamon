@@ -22,16 +22,6 @@ try {
     const _origNewContext = browser.newContext.bind(browser);
     browser.newContext = async function(ctxOpts) {
       const ctx = await _origNewContext(ctxOpts);
-      
-      // Otimiza rendering em CPU reduzindo pixelRatio
-      await ctx.addInitScript(() => {
-        if (typeof window !== 'undefined') {
-          try {
-            Object.defineProperty(window, 'devicePixelRatio', { configurable: true, get: () => 0.7 });
-          } catch (_) {}
-        }
-      });
-
       const _origNewPage = ctx.newPage.bind(ctx);
       ctx.newPage = async function(pageOpts) {
         const page = await _origNewPage(pageOpts);
@@ -79,5 +69,5 @@ try {
 `;
   const cleaned = content.replace(/\/\/\s*__swiftshader[\s\S]*$/, '');
   fs.writeFileSync(target, cleaned + patch, 'utf8');
-  console.log('✓ Patch SwiftShader + devicePixelRatio 0.7 + noWaitAfter + timeout 60s aplicado em playwright-core/index.js para CI');
+  console.log('✓ Patch SwiftShader + noWaitAfter + timeout 60s aplicado em playwright-core/index.js para CI');
 }

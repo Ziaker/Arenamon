@@ -1,0 +1,771 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Arenamon — Central de Controle & Ambientes</title>
+  <style>
+    :root {
+      --bg: #070b12;
+      --bg-surface: #0e1522;
+      --bg-card: #131d2e;
+      --bg-card-hover: #19273d;
+      --border: #23344a;
+      --border-highlight: #3b5373;
+      --text: #f0f6fc;
+      --text-muted: #8ca0ba;
+      --primary: #38bdf8;
+      --primary-glow: rgba(56, 189, 248, 0.18);
+      --success: #34d399;
+      --success-glow: rgba(52, 211, 153, 0.18);
+      --warning: #fbbf24;
+      --accent: #a78bfa;
+      --accent-glow: rgba(167, 139, 250, 0.18);
+      --danger: #f87171;
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 22px;
+      --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.35);
+      --shadow-hover: 0 10px 32px rgba(0, 0, 0, 0.5);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: radial-gradient(circle at 50% 0%, #15243d 0%, var(--bg) 65%);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      min-height: 100vh;
+      line-height: 1.55;
+      padding: 36px 20px 90px;
+    }
+    .wrapper {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    header {
+      margin-bottom: 32px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+      position: relative;
+    }
+    .top-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .pill-live {
+      background: var(--success-glow);
+      color: var(--success);
+      border: 1px solid rgba(52, 211, 153, 0.35);
+    }
+    .pill-live::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      background: var(--success);
+      border-radius: 50%;
+      box-shadow: 0 0 10px var(--success);
+    }
+    .pill-offline {
+      background: var(--primary-glow);
+      color: var(--primary);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+    }
+    .hero-title {
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      margin-bottom: 10px;
+      background: linear-gradient(135deg, #ffffff 40%, var(--primary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero-subtitle {
+      font-size: 1.12rem;
+      color: var(--text-muted);
+      max-width: 880px;
+    }
+
+    /* Fast Nav Sticky */
+    .fast-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 24px 0 32px;
+      background: rgba(14, 21, 34, 0.7);
+      backdrop-filter: blur(8px);
+      padding: 10px 14px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+      position: sticky;
+      top: 14px;
+      z-index: 100;
+    }
+    .nav-btn {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.88rem;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: var(--radius-sm);
+      transition: all 0.2s;
+    }
+    .nav-btn:hover {
+      background: var(--bg-card-hover);
+      color: var(--text);
+    }
+    .nav-btn.primary {
+      background: var(--primary-glow);
+      color: var(--primary);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+
+    /* Section Headings */
+    .section-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin: 40px 0 20px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(35, 52, 74, 0.5);
+    }
+    .section-title {
+      font-size: 1.55rem;
+      font-weight: 800;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .section-badge {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* Grid Layouts */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+      gap: 20px;
+    }
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+    }
+
+    /* Cards */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 26px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: var(--shadow-card);
+      transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+    .card:hover {
+      transform: translateY(-3px);
+      border-color: var(--border-highlight);
+      box-shadow: var(--shadow-hover);
+    }
+    .card-highlight {
+      border-color: rgba(56, 189, 248, 0.4);
+      background: linear-gradient(160deg, #162438 0%, var(--bg-card) 60%);
+    }
+    .card-highlight-accent {
+      border-color: rgba(167, 139, 250, 0.4);
+      background: linear-gradient(160deg, #1f1d38 0%, var(--bg-card) 60%);
+    }
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 14px;
+      gap: 12px;
+    }
+    .card-tag {
+      font-size: 0.74rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 4px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--bg-surface);
+      color: var(--text-muted);
+    }
+    .card-tag.game {
+      background: rgba(56, 189, 248, 0.15);
+      border-color: rgba(56, 189, 248, 0.35);
+      color: var(--primary);
+    }
+    .card-tag.studio {
+      background: rgba(52, 211, 153, 0.15);
+      border-color: rgba(52, 211, 153, 0.35);
+      color: var(--success);
+    }
+    .card-tag.proposals {
+      background: rgba(167, 139, 250, 0.15);
+      border-color: rgba(167, 139, 250, 0.35);
+      color: var(--accent);
+    }
+    .card-tag.warning {
+      background: rgba(251, 191, 36, 0.15);
+      border-color: rgba(251, 191, 36, 0.35);
+      color: var(--warning);
+    }
+    .card-tag.experimental {
+      background: rgba(248, 113, 113, 0.15);
+      border-color: rgba(248, 113, 113, 0.35);
+      color: var(--danger);
+    }
+    .card-h2 {
+      font-size: 1.45rem;
+      font-weight: 800;
+      color: #ffffff;
+      margin-bottom: 8px;
+    }
+    .card-desc {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      flex: 1;
+      margin-bottom: 20px;
+    }
+    .feature-list {
+      list-style: none;
+      margin-bottom: 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      font-size: 0.88rem;
+      color: #c0d1e5;
+    }
+    .feature-list li {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .feature-list li::before {
+      content: "•";
+      color: var(--primary);
+      font-size: 1.2rem;
+      line-height: 1;
+    }
+
+    /* Action Buttons */
+    .btn-action {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 13px 20px;
+      border-radius: var(--radius-md);
+      font-weight: 800;
+      font-size: 0.95rem;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }
+    .btn-primary {
+      background: var(--primary);
+      color: #06111e;
+      box-shadow: 0 4px 14px rgba(56, 189, 248, 0.35);
+    }
+    .btn-primary:hover {
+      background: #50c7fc;
+      transform: scale(1.02);
+    }
+    .btn-success {
+      background: var(--success);
+      color: #06111e;
+      box-shadow: 0 4px 14px rgba(52, 211, 153, 0.35);
+    }
+    .btn-success:hover {
+      background: #4ae0a9;
+      transform: scale(1.02);
+    }
+    .btn-accent {
+      background: var(--accent);
+      color: #0e0d1f;
+      box-shadow: 0 4px 14px rgba(167, 139, 250, 0.35);
+    }
+    .btn-accent:hover {
+      background: #b59ffa;
+      transform: scale(1.02);
+    }
+    .btn-secondary {
+      background: var(--bg-surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--border-highlight);
+    }
+    .btn-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    /* Thumbnail preview */
+    .card-thumb {
+      width: 100%;
+      height: 140px;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      margin-bottom: 16px;
+      border: 1px solid var(--border);
+      background: #080d14;
+    }
+    .card-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.3s;
+    }
+    .card:hover .card-thumb img {
+      transform: scale(1.04);
+    }
+
+    /* Instruction Box */
+    .inst-box {
+      background: #090e16;
+      border: 1px solid #1c2b3d;
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      font-size: 0.85rem;
+      color: #9cb1ca;
+      margin-top: 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    /* Documentation list */
+    .doc-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 14px;
+    }
+    .doc-item {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      text-decoration: none;
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      transition: all 0.2s;
+    }
+    .doc-item:hover {
+      border-color: var(--primary);
+      transform: translateY(-2px);
+      background: var(--bg-card);
+    }
+    .doc-item-title {
+      font-weight: 700;
+      color: var(--primary);
+      font-size: 0.95rem;
+    }
+    .doc-item-desc {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+    }
+
+    footer {
+      margin-top: 60px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.88rem;
+      border-top: 1px solid var(--border);
+      padding-top: 28px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="wrapper">
+    <!-- Header -->
+    <header>
+      <div class="top-meta">
+        <span class="pill pill-live">Ambientes Prontos para Uso</span>
+        <span class="pill pill-offline">100% Offline · file://</span>
+      </div>
+      <h1 class="hero-title">Arenamon — Central de Ambientes</h1>
+      <p class="hero-subtitle">
+        Acesso rápido em um clique a todos os módulos, protótipos jogáveis, estúdios de animação e rigging, laboratórios e relatórios de verificação do projeto Arenamon.
+      </p>
+    </header>
+
+    <!-- Fast Nav -->
+    <nav class="fast-nav" aria-label="Navegação rápida">
+      <a href="#jogo" class="nav-btn primary">🎮 Jogo Principal</a>
+      <a href="#studio" class="nav-btn">🎬 Animation Studio</a>
+      <a href="#propostas" class="nav-btn">🦴 Propostas de Rigging</a>
+      <a href="#combate" class="nav-btn">⚔️ Laboratório de Combate</a>
+      <a href="#ferramentas" class="nav-btn">🛠️ Ferramentas & Base</a>
+      <a href="#testes" class="nav-btn">📊 Central de Testes</a>
+      <a href="#docs" class="nav-btn">📚 Documentação</a>
+    </nav>
+
+    <!-- 1. JOGO PRINCIPAL -->
+    <section id="jogo">
+      <div class="section-head">
+        <h2 class="section-title"><span>🎮</span> Jogo Principal (Arenamon Combate)</h2>
+        <span class="section-badge">Protótipo Jogável Offline</span>
+      </div>
+
+      <div class="card card-highlight">
+        <div class="card-top">
+          <span class="card-tag game">Etapa A Aprovada · 569 KB</span>
+          <span style="font-size: 0.85rem; color: var(--success); font-weight: 700;">✓ Pronto para Jogar</span>
+        </div>
+        <h3 class="card-h2">Arenamon — Combate 3D em Arena</h3>
+        <p class="card-desc">
+          Protótipo principal jogável com física tridimensional, movimentação em 8 direções, esquiva defensiva, tackle ofensivo com colisão de volumes, guarda com absorção e adversário controlado pelo computador. Sem dependência de internet ou servidor.
+        </p>
+
+        <ul class="feature-list">
+          <li><strong>Controles:</strong> Setas para mover, <code>C</code> para esquiva/tackle, <code>F</code> para guarda ativa, <code>Tab</code> para alternar lock-on híbrido, <code>R</code> para restaurar câmera.</li>
+          <li><strong>Modos de IA do Adversário:</strong> Inativo (treino de alvo), Defensivo (bloqueio reativo) e Ofensivo (investidas ativas).</li>
+          <li><strong>Câmera Orbital:</strong> Botão direito do mouse para girar órbita 360°, roda do mouse para zoom in/out.</li>
+          <li><strong>Telemetria ao Vivo:</strong> Painel de debug integrado com exibição de FPS (120 Hz), stamina, HP e vetor de visão.</li>
+        </ul>
+
+        <div class="btn-row">
+          <a href="prototypes/game/dist/arenamon-jogavel.html" class="btn-action btn-primary">
+            ▶️ Abrir Jogo no Navegador
+          </a>
+          <a href="prototypes/game/README.md" class="btn-action btn-secondary">
+            📖 Ler Controles e Arquitetura
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. ANIMATION STUDIO & RIGGING -->
+    <section id="studio">
+      <div class="section-head">
+        <h2 class="section-title"><span>🎬</span> Animation Studio & Rigging Studio</h2>
+        <span class="section-badge">Produção e Edição de Clipes</span>
+      </div>
+
+      <div class="grid-2">
+        <!-- Studio Oficial -->
+        <div class="card card-highlight">
+          <div class="card-top">
+            <span class="card-tag studio">Studio Integrado · 1.1 MB</span>
+            <span style="font-size: 0.82rem; color: var(--success); font-weight: 700;">✓ Totalmente Funcional</span>
+          </div>
+          <h3 class="card-h2">Animation Studio Oficial</h3>
+          <p class="card-desc">
+            Estúdio completo para manipulação de animações e rigging. Inclui timeline interativa, recorte temporal não-destrutivo com interpolação, controle de velocidade e fechamento de loops, extração de root motion in-place e eventos de combate.
+          </p>
+          <ul class="feature-list">
+            <li><strong>Action Editor:</strong> Organização de clipes por drag & drop e comparação lado a lado (A x B).</li>
+            <li><strong>Rigging Integrado:</strong> Aba dedicada com esqueleto guiado de 20 ossos (Mixamo), espelhamento bilateral e teste de flexão.</li>
+            <li><strong>Importação e Exportação:</strong> Gera e lê arquivos GLB com metadados <code>arenamonRig</code> intactos.</li>
+          </ul>
+          <a href="prototypes/studio/dist/arenamon-animation-studio.html" class="btn-action btn-success">
+            🎬 Abrir Animation Studio
+          </a>
+        </div>
+
+        <!-- Documentação e Regressões -->
+        <div class="card">
+          <div class="card-top">
+            <span class="card-tag">Documentação Técnica</span>
+          </div>
+          <h3 class="card-h2">Núcleo Estrutural e Arquitetura</h3>
+          <p class="card-desc">
+            O núcleo de Rigging do Animation Studio é desenvolvido em parceria com o Codex. Todas as operações matemáticas de cálculo de matrizes inversas de bind e normalização de pesos seguem rigorosos critérios de estabilidade.
+          </p>
+          <ul class="feature-list">
+            <li><strong>7 Testes Unitários de Rigging:</strong> Validam esqueleto, hierarquia acíclica e pesos.</li>
+            <li><strong>12 Verificações de Navegador:</strong> Testam edição de rascunhos, bind pose e flexão.</li>
+            <li><strong>Documentação Oficial:</strong> Especificação de fases e roadmap técnico do estúdio.</li>
+          </ul>
+          <div class="btn-row">
+            <a href="prototypes/studio/README.md" class="btn-action btn-secondary">
+              📖 Manual do Studio
+            </a>
+            <a href="prototypes/studio/RIGGING_FASE1.md" class="btn-action btn-secondary">
+              🦴 Especificação Rigging
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. PROTÓTIPOS VISUAIS DE RIGGING -->
+    <section id="propostas">
+      <div class="section-head">
+        <h2 class="section-title"><span>🦴</span> Propostas Visuais de Rigging Studio</h2>
+        <span class="section-badge">3 Direções Criativas · Aguardando Homologação</span>
+      </div>
+
+      <div style="background: rgba(167, 139, 250, 0.08); border: 1px solid rgba(167, 139, 250, 0.3); border-radius: var(--radius-md); padding: 14px 18px; margin-bottom: 20px; font-size: 0.9rem; color: #d6ccfa;">
+        ℹ️ <strong>Status Experimental:</strong> Estas três propostas visuais foram desenvolvidas pelo Antigravity para renovar a interface do Rigging Studio. As três opções estão concluídas, testadas e 100% compatíveis com o Schema v2 do Codex, aguardando a decisão e homologação do usuário.
+      </div>
+
+      <!-- Portal comparador link -->
+      <div style="margin-bottom: 20px;">
+        <a href="prototypes/studio/proposals/index.html" class="btn-action btn-accent" style="display: flex; font-size: 1.05rem;">
+          ⚖️ Abrir Portal Comparador Interativo (Ver as 3 Propostas Lado a Lado)
+        </a>
+      </div>
+
+      <div class="grid-3">
+        <!-- Proposta A -->
+        <div class="card card-highlight-accent">
+          <div class="card-thumb">
+            <img src="prototypes/studio/proposals/screenshots/proposta-a.png" alt="Proposta A Preview">
+          </div>
+          <div class="card-top">
+            <span class="card-tag proposals">Proposta A</span>
+            <span class="card-tag">Pro Workspace</span>
+          </div>
+          <h3 class="card-h2">Rigging Workspace</h3>
+          <p class="card-desc">
+            Inspirada em softwares 3D consagrados (Blender, Maya). Interface técnica completa com Quad-View (3 vistas ortográficas + 1 perspectiva), manipulador 3D (Gizmo de translação) e árvore de hierarquia com filtros anatômicos.
+          </p>
+          <a href="prototypes/studio/proposals/proposta-a.html" class="btn-action btn-secondary">
+            Abrir Proposta A
+          </a>
+        </div>
+
+        <!-- Proposta B -->
+        <div class="card card-highlight-accent">
+          <div class="card-thumb">
+            <img src="prototypes/studio/proposals/screenshots/proposta-b.png" alt="Proposta B Preview">
+          </div>
+          <div class="card-top">
+            <span class="card-tag proposals">Proposta B</span>
+            <span class="card-tag">Guided Wizard</span>
+          </div>
+          <h3 class="card-h2">Guided Rigging</h3>
+          <p class="card-desc">
+            Inspirada na facilidade do AccuRIG. Processo passo a passo em 5 etapas guiadas, incluindo Paper Doll 2D ilustrativo, posicionamento assistido de marcadores e auto-bind direto para criadores não-técnicos.
+          </p>
+          <a href="prototypes/studio/proposals/proposta-b.html" class="btn-action btn-secondary">
+            Abrir Proposta B
+          </a>
+        </div>
+
+        <!-- Proposta C -->
+        <div class="card card-highlight-accent">
+          <div class="card-thumb">
+            <img src="prototypes/studio/proposals/screenshots/proposta-c.png" alt="Proposta C Preview">
+          </div>
+          <div class="card-top">
+            <span class="card-tag proposals">Proposta C</span>
+            <span class="card-tag">Híbrido Moderno</span>
+          </div>
+          <h3 class="card-h2">Hybrid Rigging Studio</h3>
+          <p class="card-desc">
+            Canvas 3D amplo e desobstruído com alternância instantânea entre Modo Guiado (passo a passo para montagem) e Modo Livre (ajuste fino com manipulador), barras contextuais e linhagem anatômica (breadcrumbs).
+          </p>
+          <a href="prototypes/studio/proposals/proposta-c.html" class="btn-action btn-secondary">
+            Abrir Proposta C
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. LABORATÓRIO DE COMBATE -->
+    <section id="combate">
+      <div class="section-head">
+        <h2 class="section-title"><span>⚔️</span> Laboratório de Combate (Etapa A)</h2>
+        <span class="section-badge">Branch feat/combat-core-etapa-a</span>
+      </div>
+
+      <div class="card">
+        <div class="card-top">
+          <span class="card-tag warning">Aprovado pelo Responsável em 14/10/2026</span>
+          <span class="card-tag">Calibração & IA Tática</span>
+        </div>
+        <h3 class="card-h2">Laboratório de Calibração e Regras de Combate</h3>
+        <p class="card-desc">
+          Ambiente de testes especializado que gerou a especificação da Etapa A do combate. Permite simulação determinística passo a passo, IA tática com 6 estilos estratégicos (Agressor, Contra-atacante, etc.), ajuste de variáveis em tempo real e exportação de patch Git para <code>config.ts</code>.
+        </p>
+
+        <ul class="feature-list">
+          <li><strong>Regras Aprovadas:</strong> Separação estrita de X (Tackle em 8 direções) e C (Esquiva sem dano), cancelamento C → X, clash de 30% e defesa sem deslocamento.</li>
+          <li><strong>Ferramenta A x B:</strong> Compara dois conjuntos de parâmetros lado a lado sob os mesmos cenários de luta.</li>
+        </ul>
+
+        <div class="inst-box">
+          # Para experimentar este laboratório em sua branch dedicada no terminal:
+          git checkout feat/combat-core-etapa-a
+          node prototypes/combat-lab/build.mjs
+          # O arquivo será gerado em prototypes/combat-lab/dist/laboratorio-combate.html
+        </div>
+
+        <div style="margin-top: 18px;">
+          <a href="docs/REVISAO_GDD_COMBATE.md" class="btn-action btn-secondary">
+            📖 Consultar Documento Oficial da Revisão do GDD (Etapa A)
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. FERRAMENTAS DIAGNÓSTICAS & BASE -->
+    <section id="ferramentas">
+      <div class="section-head">
+        <h2 class="section-title"><span>🛠️</span> Ferramentas, Diagnósticos & Base</h2>
+        <span class="section-badge">Utilitários e Validações de Malha</span>
+      </div>
+
+      <div class="grid-3">
+        <!-- Visualizador de Blocos Base -->
+        <div class="card">
+          <div class="card-top">
+            <span class="card-tag">Base 1.0.0</span>
+          </div>
+          <h3 class="card-h2">Visualizador de Blocos</h3>
+          <p class="card-desc">
+            Visualizador inicial seguro do projeto: dois blocos sólidos (jogador azul, inimigo vermelho), iluminação de palco e câmera orbital. Totalmente seguro para distribuição pública.
+          </p>
+          <a href="prototypes/placeholders/dist/criaturas-laboratorio.html" class="btn-action btn-secondary">
+            Abrir Visualizador Base
+          </a>
+        </div>
+
+        <!-- Importador de Protótipos -->
+        <div class="card">
+          <div class="card-top">
+            <span class="card-tag">Conversor FBX/GLB</span>
+          </div>
+          <h3 class="card-h2">Importador de Modelos</h3>
+          <p class="card-desc">
+            Ferramenta para importação de malhas 3D sintéticas ou de teste, descarte de texturas para modo unlit (flat colors) e exportação de GLB limpo sem assets proprietários.
+          </p>
+          <a href="prototypes/importer/dist/importador-prototipo.html" class="btn-action btn-secondary">
+            Abrir Importador
+          </a>
+        </div>
+
+        <!-- Diagnóstico Croagunk -->
+        <div class="card">
+          <div class="card-top">
+            <span class="card-tag experimental">Diagnóstico Local</span>
+          </div>
+          <h3 class="card-h2">Diagnóstico Pokkén</h3>
+          <p class="card-desc">
+            Laboratório local de diagnóstico de deformação de vértices e esqueleto (abertura de mandíbula, expansão de bochechas e agachamento profundo).
+          </p>
+          <a href="prototypes/croagunk/dist/croagunk-laboratorio.html" class="btn-action btn-secondary">
+            Abrir Diagnóstico
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. CENTRAL DE TESTES -->
+    <section id="testes">
+      <div class="section-head">
+        <h2 class="section-title"><span>📊</span> Central de Testes e Relatórios</h2>
+        <span class="section-badge">100% de Sucesso Comprovado</span>
+      </div>
+
+      <div class="card card-highlight">
+        <div class="card-top">
+          <span class="card-tag studio">Matriz de Verificação Integrada</span>
+          <span style="font-size: 0.85rem; color: var(--success); font-weight: 700;">✓ 8 Suítes Verificadas</span>
+        </div>
+        <h3 class="card-h2">Central Interativa de Testes Automatizados</h3>
+        <p class="card-desc">
+          Consulte o catálogo interativo completo contendo o status de execução de mais de 110 cenários mecânicos, testes de física, locomoção, timeline do studio, núcleo técnico do Codex, interoperabilidade v2 e capturas de tela das evidências.
+        </p>
+
+        <div class="btn-row" style="margin-bottom: 16px;">
+          <a href="TESTES_ARENAMON.html" class="btn-action btn-primary">
+            📋 Abrir Central Interativa de Testes (TESTES_ARENAMON.html)
+          </a>
+          <a href="docs/CENTRAL_DE_TESTES.md" class="btn-action btn-secondary">
+            📄 Ler Documentação em Markdown
+          </a>
+        </div>
+
+        <div class="inst-box">
+          # Para rodar toda a suíte de testes com validação TypeScript via PowerShell:
+          npm run verify
+        </div>
+      </div>
+    </section>
+
+    <!-- 7. CENTRAL DE DOCUMENTAÇÃO -->
+    <section id="docs">
+      <div class="section-head">
+        <h2 class="section-title"><span>📚</span> Central de Documentação</h2>
+        <span class="section-badge">Fontes Oficiais da Verdade</span>
+      </div>
+
+      <div class="doc-grid">
+        <a href="docs/MAPA_REPOSITORIO.md" class="doc-item">
+          <span class="doc-item-title">🗺️ Mapa do Repositório</span>
+          <span class="doc-item-desc">Árvore estrutural antes e depois, localização de arquivos e decisões de design de diretórios.</span>
+        </a>
+        <a href="docs/CENTRAL_DE_TESTES.md" class="doc-item">
+          <span class="doc-item-title">📊 Central de Testes</span>
+          <span class="doc-item-desc">Matriz técnica detalhada com objetivos, comandos, códigos e relatórios.</span>
+        </a>
+        <a href="docs/STATUS_PROJETOS_E_BRANCHES.md" class="doc-item">
+          <span class="doc-item-title">📈 Status das Branches</span>
+          <span class="doc-item-desc">Situação exata de cada branch paralela, itens aprovados e roadmap seguro.</span>
+        </a>
+        <a href="docs/GUIA_COLABORACAO_AGENTES.md" class="doc-item">
+          <span class="doc-item-title">🤝 Guia de Agentes</span>
+          <span class="doc-item-desc">Instruções para Codex, Claude e Antigravity colaborarem sem conflitos.</span>
+        </a>
+        <a href="docs/REVISAO_GDD_COMBATE.md" class="doc-item">
+          <span class="doc-item-title">⚔️ Revisão GDD Combate</span>
+          <span class="doc-item-desc">Decisões aprovadas da Etapa A de combate (ações X e C, cancelamentos, clash).</span>
+        </a>
+        <a href="docs/ROSTER.md" class="doc-item">
+          <span class="doc-item-title">📋 Roster de Personagens</span>
+          <span class="doc-item-desc">Lista e especificações de atributos físicos e mecânicos dos lutadores.</span>
+        </a>
+        <a href="AGENTS.md" class="doc-item">
+          <span class="doc-item-title">🛡️ Protocolo AGENTS.md</span>
+          <span class="doc-item-desc">Regras de versionamento Git e restrições legais sobre recursos proprietários.</span>
+        </a>
+        <a href="README.md" class="doc-item">
+          <span class="doc-item-title">📖 README Principal</span>
+          <span class="doc-item-desc">Guia inicial do projeto, requisitos de ambiente e comandos de compilação.</span>
+        </a>
+      </div>
+    </section>
+
+    <footer>
+      Arenamon — Central de Controle & Ambientes · Arquitetura offline modular · Outubro de 2026
+    </footer>
+  </div>
+
+</body>
+</html>
