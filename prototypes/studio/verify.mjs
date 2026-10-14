@@ -13,12 +13,14 @@ const report = {steps: [], errors: [], network: [], perf: {renderer: null, steps
 // Desempenho: tempo de cada etapa e tarefas longas da página (> 50 ms). Em executores sem GPU (CI), o WebGL roda em
 // software e a página pode bloquear a thread principal; isso aparece aqui em vez de virar um timeout sem explicação.
 let stepStart = Date.now(), onStep = null;
-const step = (name, data = true) => {const ms = Date.now() - stepStart;stepStart = Date.now();report.steps.push({name, result: data});report.perf.steps.push({name, ms, end: stepStart});console.log('✓', name, `(${(ms / 1000).toFixed(1)} s)`);onStep?.();};
+const step = (name, data = true) => {const ms = Date.now() - stepStart;stepStart = Date.now();report.steps.push({name, result: data});report.perf.steps.push({name, ms, end: stepStart});console.log('✓', name, `(${(ms / 1000).toFixed(1)} s)`);onStep?.();if (process.env.STUDIO_VERIFY_UNTIL && name.startsWith(process.env.STUDIO_VERIFY_UNTIL)) {console.log('Encerrado após a etapa pedida (STUDIO_VERIFY_UNTIL).');process.exit(0);}};
 const withTimeout = (promise, ms) => Promise.race([promise, new Promise(resolve => setTimeout(() => resolve(null), ms))]);
 await mkdir(out, {recursive: true});
 const browser = await chromium.launch({channel: 'msedge', headless: true});
 try {
   const page = await browser.newPage({viewport: {width: 1500, height: 960}, acceptDownloads: true});
+  // Diagnóstico de CI (opcional): STUDIO_VERIFY_CSS injeta CSS em todas as páginas; STUDIO_VERIFY_UNTIL encerra após a etapa indicada.
+  if (process.env.STUDIO_VERIFY_CSS) await page.addInitScript(css => {document.addEventListener('DOMContentLoaded', () => {const st = document.createElement('style');st.textContent = css;document.head.append(st);});}, process.env.STUDIO_VERIFY_CSS);
   await page.addInitScript(() => {
     window.__perfLongTasks = [];
     try {new PerformanceObserver(list => {for (const e of list.getEntries()) window.__perfLongTasks.push([Math.round(performance.timeOrigin + e.startTime), Math.round(e.duration)]);}).observe({type: 'longtask', buffered: true});} catch {/* sem suporte */}

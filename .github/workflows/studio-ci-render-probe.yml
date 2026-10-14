@@ -1,0 +1,33 @@
+name: Studio CI render probe
+
+# Experimento A/B no executor real (sem GPU): mesma etapa de layout do verify com e sem backdrop-filter.
+on:
+  push:
+    branches:
+      - fix/studio-diagnostic-ci
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: node prototypes/studio/build.mjs
+      - name: A - CSS original (ate o layout)
+        env:
+          STUDIO_VERIFY_UNTIL: 'layout:'
+        run: node prototypes/studio/verify.mjs
+      - name: B - sem backdrop-filter (ate o layout)
+        env:
+          STUDIO_VERIFY_UNTIL: 'layout:'
+          STUDIO_VERIFY_CSS: '*,*::before,*::after{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}'
+        run: node prototypes/studio/verify.mjs
