@@ -80,6 +80,7 @@ try {
 const essentialFiles = [
   'ABRIR_ARENAMON.html',
   'HTMLS_ARENAMON.html',
+  'JOGAR_ARENAMON.html',
   'TESTES_ARENAMON.html',
   'AGENTS.md',
   'package.json',
@@ -99,7 +100,8 @@ for (const file of essentialFiles) {
 
 // 5. Verificar builds compilados essenciais
 const distArtifacts = [
-  { name: 'Jogo Jogável', path: 'prototypes/game/dist/arenamon-jogavel.html' },
+  { name: 'Arenamon Combate', path: 'prototypes/combat-lab/dist/arenamon-combate-laboratorio.html' },
+  { name: 'Protótipo legado de blocos', path: 'prototypes/game/dist/arenamon-jogavel.html' },
   { name: 'Animation Studio', path: 'prototypes/studio/dist/arenamon-animation-studio.html' },
   { name: 'Propostas de Rigging', path: 'prototypes/studio/proposals/index.html' },
   { name: 'Importador', path: 'prototypes/importer/dist/importador-prototipo.html' },

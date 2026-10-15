@@ -12,6 +12,7 @@ O **Arenamon** é composto por aplicações independentes e modulares desenvolvi
 Arenamon/
 ├── ABRIR_ARENAMON.html           # Central de Acesso Rápido a todos os Ambientes (Duplo Clique)
 ├── HTMLS_ARENAMON.html           # Índice compacto dos HTMLs mais usados
+├── JOGAR_ARENAMON.html           # Atalho estável para o jogo correto
 ├── TESTES_ARENAMON.html          # Central Interativa de Testes, Comandos e Evidências
 ├── README.md                     # Visão geral do projeto e guia inicial
 ├── AGENTS.md                     # Protocolo obrigatório de colaboração entre agentes
@@ -34,7 +35,7 @@ Arenamon/
 ├── prototypes/                   # Aplicações, Protótipos e Ambientes Funcionais
 │   ├── index.html                # Catálogo clássico de protótipos
 │   │
-│   ├── game/                     # 1. JOGO PRINCIPAL (Arenamon Combate Jogável)
+│   ├── game/                     # Protótipo legado de blocos; não é o jogo atual
 │   │   ├── dist/                 # Artefatos compilados para o navegador
 │   │   │   └── arenamon-jogavel.html  # Jogo completo offline (569 KB)
 │   │   ├── src/                  # Código-fonte TypeScript (lógica, arena, física, IA)
@@ -116,11 +117,11 @@ Para garantir **estabilidade absoluta** e não quebrar o trabalho paralelo dos o
 
 | O que você procura? | Caminho de Execução (Browser) | Código-Fonte / Testes | Documentação |
 |---|---|---|---|
-| **Jogar o Protótipo Principal** | `prototypes/game/dist/arenamon-jogavel.html` | `prototypes/game/src/` | `prototypes/game/README.md` |
+| **Jogar Arenamon** | `prototypes/combat-lab/dist/arenamon-combate-laboratorio.html` | `prototypes/combat-lab/src/` | `docs/REVISAO_GDD_COMBATE.md` |
 | **Animation Studio** | `prototypes/studio/dist/arenamon-animation-studio.html` | `prototypes/studio/src/` | `prototypes/studio/README.md` |
 | **Rigging Studio (Integrado)** | Aba "Rigging" em `arenamon-animation-studio.html` | `prototypes/studio/src/rigging/` | `prototypes/studio/RIGGING_FASE1.md` |
 | **Propostas de Rigging (A/B/C)**| `prototypes/studio/proposals/index.html` | `prototypes/studio/proposals/` | `prototypes/studio/proposals/README.md` |
-| **Laboratório de Combate** | Branch `feat/combat-core-etapa-a` | `prototypes/combat-lab/` | `docs/REVISAO_GDD_COMBATE.md` |
+| **Protótipo antigo de blocos** | `prototypes/game/dist/arenamon-jogavel.html` | `prototypes/game/src/` | `prototypes/game/README.md` |
 | **Importador de Modelos** | `prototypes/importer/dist/importador-prototipo.html` | `prototypes/importer/src/` | `prototypes/importer/README.md` |
 | **Visualizador de Blocos** | `prototypes/placeholders/dist/criaturas-laboratorio.html`| `prototypes/placeholders/src/`| `prototypes/placeholders/README.md`|
 | **Matriz de Testes** | `TESTES_ARENAMON.html` | `test*.mjs` em cada pasta | `docs/CENTRAL_DE_TESTES.md` |

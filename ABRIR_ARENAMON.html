@@ -438,32 +438,32 @@
     <section id="jogo">
       <div class="section-head">
         <h2 class="section-title"><span>🎮</span> Jogo Principal (Arenamon Combate)</h2>
-        <span class="section-badge">Protótipo Jogável Offline</span>
+        <span class="section-badge">Jogo Atual · Laboratório de Combate</span>
       </div>
 
       <div class="card card-highlight">
         <div class="card-top">
-          <span class="card-tag game">Etapa A Aprovada · 569 KB</span>
+          <span class="card-tag game">Build atual do combate</span>
           <span style="font-size: 0.85rem; color: var(--success); font-weight: 700;">✓ Pronto para Jogar</span>
         </div>
-        <h3 class="card-h2">Arenamon — Combate 3D em Arena</h3>
+        <h3 class="card-h2">Arenamon — Laboratório de Combate Jogável</h3>
         <p class="card-desc">
-          Protótipo principal jogável com física tridimensional, movimentação em 8 direções, esquiva defensiva, tackle ofensivo com colisão de volumes, guarda com absorção e adversário controlado pelo computador. Sem dependência de internet ou servidor.
+          Esta é a versão jogável correta do Arenamon: personagens importáveis, combate tridimensional, IAs configuráveis, tackle, esquiva, defesa, clash, hitboxes e ferramentas de calibração.
         </p>
 
         <ul class="feature-list">
-          <li><strong>Controles:</strong> Setas para mover, <code>C</code> para esquiva/tackle, <code>F</code> para guarda ativa, <code>Tab</code> para alternar lock-on híbrido, <code>R</code> para restaurar câmera.</li>
-          <li><strong>Modos de IA do Adversário:</strong> Inativo (treino de alvo), Defensivo (bloqueio reativo) e Ofensivo (investidas ativas).</li>
-          <li><strong>Câmera Orbital:</strong> Botão direito do mouse para girar órbita 360°, roda do mouse para zoom in/out.</li>
-          <li><strong>Telemetria ao Vivo:</strong> Painel de debug integrado com exibição de FPS (120 Hz), stamina, HP e vetor de visão.</li>
+          <li><strong>Ações:</strong> X para tackle ofensivo, C para esquiva defensiva e D para defesa.</li>
+          <li><strong>Combate:</strong> IAs variadas, clash, lançamento, stamina, defesa perfeita e esquiva perfeita.</li>
+          <li><strong>Personagens:</strong> importação de GLB e controle de velocidade das animações.</li>
+          <li><strong>Calibração:</strong> parâmetros, presets, replay, cenários e exportação JSON.</li>
         </ul>
 
         <div class="btn-row">
-          <a href="prototypes/game/dist/arenamon-jogavel.html" class="btn-action btn-primary">
-            ▶️ Abrir Jogo no Navegador
+          <a href="JOGAR_ARENAMON.html" class="btn-action btn-primary">
+            ▶️ Abrir Arenamon Combate
           </a>
-          <a href="prototypes/game/README.md" class="btn-action btn-secondary">
-            📖 Ler Controles e Arquitetura
+          <a href="docs/REVISAO_GDD_COMBATE.md" class="btn-action btn-secondary">
+            📖 Ler regras do combate
           </a>
         </div>
       </div>
@@ -624,10 +624,13 @@
           # Para experimentar este laboratório em sua branch dedicada no terminal:
           git checkout feat/combat-core-etapa-a
           node prototypes/combat-lab/build.mjs
-          # O arquivo será gerado em prototypes/combat-lab/dist/laboratorio-combate.html
+          # O arquivo será gerado em prototypes/combat-lab/dist/arenamon-combate-laboratorio.html
         </div>
 
         <div style="margin-top: 18px;">
+          <a href="JOGAR_ARENAMON.html" class="btn-action btn-primary" style="margin-bottom: 10px;">
+            ▶️ Abrir o jogo / laboratório
+          </a>
           <a href="docs/REVISAO_GDD_COMBATE.md" class="btn-action btn-secondary">
             📖 Consultar Documento Oficial da Revisão do GDD (Etapa A)
           </a>

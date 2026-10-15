@@ -1,0 +1,185 @@
+// Controle de cada lutador por passo fixo: stamina, defesa, X (tackle) e C (esquiva), cancelamento C → X,
+// salto da esquiva, recuo e locomoção.
+//
+// X e C são ações independentes: cada uma lê somente o próprio bloco de parâmetros (C.actions.tackle ou
+// C.actions.dodge). As transições entre ações seguem estas regras, nesta ordem:
+//   • C → X: sistema próprio (C.actions.cancel), com janela própria; não depende da janela genérica.
+//   • Recuo → nova ação: permitido conforme `fromRecoil` da ação pedida (GDD 8.2: sem tackle durante o recuo).
+//   • Guard stun → X: conforme `fromGuardStun`; com 0 o pedido fica guardado e o tackle sai quando o stun acaba (GDD 5).
+//   • Demais encadeamentos (C → C, X → C, X → X e defesa): janela genérica `chainAfter` da ação em curso (GDD 7.3/7.4).
+// Com os ajustes V6_COMPAT (config.js) o resultado é idêntico ao laboratório v6 (teste de paridade).
+import {C} from './config.js';
+import {nominalDistance, actionParams, invulnerableWindow, chainOpen} from './entity.js';
+import {vec, add, scale, sub, dot, length, normalize, clamp, angleOf, direction, angleDelta, smoothstep, actionCurve} from './math.js';
+
+/** Aceleração/frenagem/reversão da locomoção comum. */
+export function approachVelocity(current, desired, dt) {
+  const L = C.locomotion, delta = sub(desired, current), dist = length(delta);
+  const rate = length(desired) < 1e-8 ? L.braking : dot(current, desired) < 0 ? L.reversal : L.acceleration;
+  return dist <= rate * dt ? {...desired} : add(current, scale(delta, rate * dt / dist));
+}
+
+/** A ação `kind` pode começar agora? Devolve {ok, viaCancel, buffer}. */
+export function startPermission(f, kind) {
+  const A = C.actions, cur = f.action, p = A[kind];
+  if (f.guard && !p.fromGuard) return {ok: false};
+  if (cur?.kind === 'dodge' && kind === 'tackle') {
+    // C → X: só a janela própria decide (inclusive dentro dos primeiros 200 ms).
+    const c = A.cancel;return {ok: !!c.dodgeToTackle && cur.elapsed >= c.windowStart - 1e-8 && cur.elapsed <= c.windowEnd + 1e-8, viaCancel: true};
+  }
+  if (cur?.kind === 'recoil') return {ok: !!p.fromRecoil};
+  if (cur) return {ok: chainOpen(f)};
+  if (f.stun > 1e-8 && !p.fromGuardStun) return {ok: false, buffer: kind === 'tackle'};
+  return {ok: true};
+}
+
+export function updateFighter(f, cmd, fighters, dt) {
+  const R = C.rules, X = C.extras, T = X.toggles, A = C.actions;
+  // Buffer de entrada: o pedido mais recente de X ou C vale por actions.buffer.window, mesmo no ar ou na aterrissagem.
+  const requested = cmd.tackle && T.enableTackle ? 'tackle' : cmd.dodge && T.enableDodge ? 'dodge' : null;
+  if (f.inputBuffer) {f.inputBuffer.age += dt;if (f.inputBuffer.age > A.buffer.window + 1e-8 || cmd.guardPressed) f.inputBuffer = null;}
+  if (requested && A.buffer.window > 0) {const m = length(cmd.move) > 1 ? normalize(cmd.move) : cmd.move;f.inputBuffer = {kind: requested, move: {...m}, dodgeDirection: cmd.dodgeDirection && {...cmd.dodgeDirection}, age: 0};}
+  if (f.flight) {f.action = null;f.push = null;f.guard = false;f.vaultHeight = 0;f.velocity = vec();f.locomotionVelocity = vec();f.bufferedTackle = null;f.state = 'airborne';return;}
+  if (f.knockRecovery > 0) {f.knockRecovery = Math.max(0, f.knockRecovery - dt);f.vaultHeight = 0;f.velocity = vec();f.locomotionVelocity = vec();f.action = null;f.guard = false;f.bufferedTackle = null;f.state = 'landing';return;}
+  if (f.hp <= 0) {f.state = 'defeated';f.velocity = vec();f.action = null;f.push = null;f.vaultHeight = 0;f.bufferedTackle = null;return;}
+  const target = fighters.find(o => o.id === cmd.target && o.hp > 0);
+  const move = length(cmd.move) > 1 ? normalize(cmd.move) : cmd.move;
+  const desiredHeading = target ? angleOf(sub(target.position, f.position)) : length(move) > 0 ? angleOf(move) : f.facing;
+  f.desiredMove = {...move};f.combatHeading = desiredHeading;
+  f.perfectCooldown = Math.max(0, f.perfectCooldown - dt);
+  if (f.perfectLeft > 0) {f.perfectLeft = Math.max(0, f.perfectLeft - dt);if (f.perfectLeft < 1e-8 && !f.perfectSucceeded) f.perfectCooldown = R.perfectCooldown;}
+  f.stun = Math.max(0, f.stun - dt);
+  f.counterWindow = Math.max(0, f.counterWindow - dt);
+  f.regenAge += dt * (f.guard ? X.combat.guardRegenFactor : 1);
+  const regen = clamp((f.regenAge - R.regenDelay) / R.regenTime, 0, 1);
+  f.stamina = f.regenBase + (R.staminaMax - f.regenBase) * regen ** 3;
+  if (f.stamina >= R.staminaMax - 1e-8) {f.stamina = R.staminaMax;f.exhausted = false;}
+  if (!cmd.guard || !T.enableDefense) {f.guard = false;f.guardSuppressed = false;}
+  const open = chainOpen(f);
+  if (cmd.guard && T.enableDefense && !f.guardSuppressed && open) {
+    if (f.action && (f.action.kind === 'dodge' || f.action.kind === 'tackle')) f.blend = {from: {...f.velocity}, elapsed: 0};
+    if (f.action?.kind === 'recoil') {f.velocity = vec();f.blend = null;}
+    f.action = null;f.vaultHeight = 0;f.guard = true;
+    // Segurar D não apaga o X guardado no guard stun; só um novo toque em D substitui o pedido (GDD 5: vale o último).
+    if (cmd.guardPressed) f.bufferedTackle = null;
+    if (cmd.guardPressed && f.perfectCooldown <= 0) {f.perfectLeft = R.perfect;f.perfectSucceeded = false;}
+  }
+  // Pedido de ação: X tem prioridade se as duas teclas chegarem no mesmo passo (como no v6).
+  let kind = requested, dirs = {move, dodgeDirection: cmd.dodgeDirection}, fromBuffer = false;
+  if (!kind && f.inputBuffer) {kind = f.inputBuffer.kind;dirs = {move: f.inputBuffer.move, dodgeDirection: f.inputBuffer.dodgeDirection};fromBuffer = true;}
+  // Tackle guardado durante o guard stun: sai assim que o stun termina (GDD 5: só o último pedido é mantido).
+  if (!kind && f.bufferedTackle && f.stun <= 1e-8 && !f.action) {kind = 'tackle';dirs = f.bufferedTackle;f.bufferedTackle = null;}
+  if (kind) {
+    const p = actionParams(kind), permission = startPermission(f, kind), affordable = !f.exhausted && f.stamina >= p.cost - 1e-8;
+    if (permission.buffer) {f.bufferedTackle = {move: {...dirs.move}, dodgeDirection: dirs.dodgeDirection && {...dirs.dodgeDirection}};f.inputBuffer = null;}
+    else if (permission.ok && affordable) {startAction(f, kind, dirs, fighters, desiredHeading, permission.viaCancel, cmd.guard);if (fromBuffer) f.action.buffered = true;}
+    // Sem permissão ou sem stamina: a ação atual continua intacta (inclusive a esquiva, no caso de C → X).
+  }
+  if (!f.action) {
+    f.vaultHeight = 0;
+    const diff = angleDelta(f.facing, desiredHeading);
+    if (f.guard && target) {
+      const max = Math.min(R.guardTurn, Math.sqrt(2 * R.guardAcceleration * Math.abs(diff)));
+      f.angularSpeed = Math.min(max, f.angularSpeed + R.guardAcceleration * dt);
+      f.facing += clamp(diff, -f.angularSpeed * dt, f.angularSpeed * dt);
+    } else {f.facing += clamp(diff, -C.locomotion.turnRate * dt, C.locomotion.turnRate * dt);f.angularSpeed = 0;}
+  }
+  if (f.action) {
+    f.locomotionVelocity = vec();
+    const action = f.action;
+    if (action.kind === 'dodge' || action.kind === 'tackle') {
+      const p = A[action.kind], steering = cmd.dodgeDirection ?? move;
+      if (length(move) > .01) {
+        const desired = action.startAngle + clamp(angleDelta(action.startAngle, angleOf(steering)), -p.steerLimit, p.steerLimit);
+        action.heading += clamp(angleDelta(action.heading, desired), -p.steerRate * dt, p.steerRate * dt);
+      }
+      // O corpo pode olhar para o alvo; a trajetória da ação segue `heading`, independente da orientação.
+      const facingGoal = target ? desiredHeading : action.heading;
+      f.facing += clamp(angleDelta(f.facing, facingGoal), -C.locomotion.turnRate * dt, C.locomotion.turnRate * dt);
+      const D = p.duration;
+      const speed = nominalDistance(f, action.kind) * (action.speedMultiplier ?? 1) * (actionCurve((action.elapsed + dt) / D, p.curveStart) - actionCurve(action.elapsed / D, p.curveStart)) / dt;
+      f.velocity = scale(direction(action.heading), speed);
+      const blendTime = action.blendTime ?? p.blend;
+      if (action.from && blendTime > 0 && action.elapsed < blendTime) {
+        const blend = smoothstep((action.elapsed + dt) / blendTime);
+        f.velocity = {x: action.from.x * (1 - blend) + f.velocity.x * blend, z: action.from.z * (1 - blend) + f.velocity.z * blend};
+      }
+      if (action.kind === 'dodge') {
+        // C com salto: arco aéreo contínuo de decolagem e pouso, na duração da esquiva.
+        f.vaultHeight = action.vault ? A.dodge.vaultHeight * Math.sin(Math.PI * clamp((action.elapsed + dt) / A.dodge.duration, 0, 1)) : 0;
+      } else {
+        // X vindo de um salto (C → X no ar): desce suavemente da altura em que estava, sem teletransporte.
+        f.vaultHeight = action.liftStart > 0 ? (action.liftTime > 0 ? action.liftStart * (1 - smoothstep((action.elapsed + dt) / action.liftTime)) : 0) : 0;
+      }
+      f.state = action.kind;
+    } else {
+      f.vaultHeight = 0;
+      const distance = nominalDistance(f) * R.recoilFraction;
+      const step = smoothstep((action.elapsed + dt) / R.recoil) - smoothstep(action.elapsed / R.recoil);
+      f.velocity = scale(direction(action.heading), distance * step / dt);f.state = 'recoil';
+    }
+  } else {
+    const speed = f.attributes.speed * (f.guard ? R.guardSpeed : 1) * (f.exhausted ? R.exhaustedSpeed : 1);
+    f.locomotionVelocity = f.stun > 1e-8 ? vec() : approachVelocity(f.locomotionVelocity, scale(move, speed), dt);
+    f.velocity = {...f.locomotionVelocity};
+    if (f.blend) {
+      const amount = smoothstep((f.blend.elapsed + dt) / R.blend);
+      f.velocity = {x: f.blend.from.x * (1 - amount) + f.velocity.x * amount, z: f.blend.from.z * (1 - amount) + f.velocity.z * amount};
+      f.blend.elapsed += dt;if (f.blend.elapsed >= R.blend - 1e-8) f.blend = null;
+    }
+    f.state = f.stun > 1e-8 ? 'guardStun' : f.guard ? 'guard' : f.push ? 'pushed' : length(move) ? 'moving' : 'neutral';
+  }
+  f.visualFacing += clamp(angleDelta(f.visualFacing, f.facing), -C.locomotion.visualTurnRate * dt, C.locomotion.visualTurnRate * dt);
+}
+
+/** C nesta direção atravessaria um adversário (e portanto saltaria)? Usado pela esquiva e pela prévia de trajetória. */
+export function wouldVault(f, heading, fighters) {
+  const A = C.actions, v = direction(heading), maxTravel = nominalDistance(f, 'dodge') + A.dodge.vaultReachBonus;
+  return fighters.some(other => {
+    if (other.id === f.id || other.hp <= 0) return false;
+    const delta = sub(other.position, f.position), ahead = dot(delta, v), lateral = length(sub(delta, scale(v, ahead)));
+    return ahead > A.dodge.vaultForwardMin && ahead < maxTravel && lateral < A.dodge.vaultLateralWidth;
+  });
+}
+
+/** Inicia X ou C. No cancelamento C → X, preserva velocidade, altura e invulnerabilidade de forma controlada. */
+function startAction(f, kind, dirs, fighters, desiredHeading, viaCancel, guardHeld) {
+  const A = C.actions, p = A[kind], T = C.extras.toggles, prev = f.action;
+  const requested = dirs.dodgeDirection ?? dirs.move;
+  // C → X sem nova direção: continua na direção da esquiva (continuidade determinística).
+  const heading = viaCancel && length(dirs.move) <= .01 ? prev.heading : length(requested) > .01 ? angleOf(requested) : desiredHeading;
+  let from = f.action ? {...f.velocity} : null, blendTime, invulnerableFor, liftStart = 0, liftTime = 0;
+  if (viaCancel) {
+    const c = A.cancel;from = scale(f.velocity, c.velocityInfluence);blendTime = c.transition;
+    // A invulnerabilidade de C não vira invulnerabilidade extra de X.
+    invulnerableFor = c.invulnerability === 1 ? 0 : c.invulnerability === 2 ? undefined : Math.max(0, invulnerableWindow(prev) - prev.elapsed);
+    if (f.vaultHeight > 0) {liftStart = f.vaultHeight;liftTime = c.airDescent;}
+  }
+  // C só salta quando o caminho atravessa de fato um adversário; as demais esquivas ficam baixas.
+  const vault = !!T.enableVault && kind === 'dodge' && wouldVault(f, heading, fighters);
+  const countered = kind === 'tackle' && f.counterWindow > 0 && T.enableCounterBonus;
+  f.action = {kind, elapsed: 0, startAngle: heading, heading, offensive: kind === 'tackle', vault, hits: new Set(), from, speedMultiplier: countered ? A.tackle.counterSpeed : 1};
+  if (blendTime !== undefined) f.action.blendTime = blendTime;
+  if (invulnerableFor !== undefined) f.action.invulnerableFor = invulnerableFor;
+  if (liftStart > 0) {f.action.liftStart = liftStart;f.action.liftTime = liftTime;f.action.fromCancel = true;}
+  if (viaCancel) f.action.fromCancel = true;
+  if (countered) f.counterWindow = 0;
+  // O custo de C já gasto continua gasto; X cobra o próprio custo.
+  f.stamina = Math.max(0, f.stamina - p.cost);f.regenBase = f.stamina;f.regenAge = 0;
+  f.exhausted = f.stamina < 1e-8;f.guard = false;f.guardSuppressed = guardHeld;
+  f.stun = 0;f.push = null;f.blend = null;f.vaultHeight = liftStart;f.bufferedTackle = null;f.inputBuffer = null;
+}
+
+/** Avança o relógio da ação e a encerra ao fim da duração própria. */
+export function advanceAction(f, dt) {
+  if (!f.action) return;
+  f.action.elapsed += dt;
+  const kind = f.action.kind, duration = kind === 'recoil' ? C.rules.recoil : C.actions[kind].duration;
+  if (f.action.elapsed >= duration - 1e-8) {
+    const wasExhausted = f.exhausted && (kind === 'dodge' || kind === 'tackle');
+    f.action = null;f.velocity = vec();f.vaultHeight = 0;f.state = f.hp <= 0 ? 'defeated' : 'neutral';
+    if (wasExhausted && f.hp > 0) f.knockRecovery = Math.max(f.knockRecovery, C.extras.combat.exhaustRecovery);
+    const recovery = kind === 'recoil' ? 0 : C.actions[kind].recovery;
+    if (recovery > 0 && f.hp > 0) f.knockRecovery = Math.max(f.knockRecovery, recovery);
+  }
+}
