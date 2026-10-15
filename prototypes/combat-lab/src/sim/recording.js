@@ -15,13 +15,15 @@ export function unpackCommands(runs) {
 
 export class MatchRecording {
   constructor() {this.meta = null;this.commands = [];}
-  start(meta) {this.meta = {...meta, startedAt: new Date().toISOString()};this.commands = [];}
+  start(meta) {this.meta = {...meta, startedAt: new Date().toISOString()};this.commands = [];this.commands1 = [];}
   /** Comando usado no passo `tick` (o índice é o passo, então retomar do passado apaga o futuro). */
-  record(tick, command) {if (!this.meta) return;this.commands.length = tick;this.commands[tick] = structuredClone(command);}
-  truncate(tick) {if (this.commands.length > tick) this.commands.length = tick;}
+  /** command1: comando do vermelho quando ele é controlado manualmente (senão a IA decide de novo na reprodução). */
+  record(tick, command, command1) {if (!this.meta) return;this.commands.length = tick;this.commands[tick] = structuredClone(command);this.commands1 ??= [];this.commands1.length = tick;this.commands1[tick] = command1 ? structuredClone(command1) : null;}
+  truncate(tick) {if (this.commands.length > tick) this.commands.length = tick;if (this.commands1?.length > tick) this.commands1.length = tick;}
   get ticks() {return this.commands.length;}
   toJSON() {
-    return {schema: MATCH_SCHEMA, version: 1, ...this.meta, ticks: this.commands.length, commands: packCommands(this.commands.map(c => c ?? null))};
+    const manual = this.commands1?.some(Boolean);
+    return {schema: MATCH_SCHEMA, version: 1, ...this.meta, ticks: this.commands.length, commands: packCommands(this.commands.map(c => c ?? null)), ...(manual ? {commands1: packCommands(Array.from({length: this.commands.length}, (_, i) => this.commands1[i] ?? null))} : {})};
   }
 }
 
@@ -31,5 +33,5 @@ export function parseRecording(raw) {
   if (data?.schema !== MATCH_SCHEMA || !Array.isArray(data.commands)) return {error: 'Não é uma gravação de partida do laboratório.'};
   const commands = unpackCommands(data.commands);
   if (commands.length !== data.ticks) return {error: `Gravação incompleta: ${commands.length} de ${data.ticks} passos.`};
-  return {data, commands};
+  return {data, commands, commands1: data.commands1 ? unpackCommands(data.commands1) : null};
 }

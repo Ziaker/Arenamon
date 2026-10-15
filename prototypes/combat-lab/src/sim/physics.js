@@ -4,18 +4,20 @@ import {C} from './config.js';
 import {clashPossible, clash, resolveHit} from './combat.js';
 import {vec, add, scale, sub, dot, length, normalize, clamp, direction, smoothstep} from './math.js';
 
+/** Componente vertical do rebote: multiplica a velocidade vertical atual e soma um impulso para cima. */
+function wallVertical(f) {const R = C.rules;f.flight.vy = f.flight.vy * R.wallBounceVertical + R.wallBounceUp;}
 /** Mantém o lutador dentro da arena; em voo, rebate na parede conforme a restituição. */
 export function clampToArena(f) {
   const bound = C.test.arenaHalf - C.test.halfExtent, bounce = C.extras.toggles.enableWallBounce;
   const x = clamp(f.position.x, -bound, bound), z = clamp(f.position.z, -bound, bound);
   if (x !== f.position.x) {
     f.contacts++;
-    if (f.flight) {f.flight.horizontal.x = bounce ? -f.flight.horizontal.x * C.rules.wallRestitution : 0;f.velocity.x = f.flight.horizontal.x;}
+    if (f.flight) {f.flight.horizontal.x = bounce ? -f.flight.horizontal.x * C.rules.wallRestitution : 0;f.velocity.x = f.flight.horizontal.x;if (bounce) wallVertical(f);}
     else f.velocity.x = 0;
   }
   if (z !== f.position.z) {
     f.contacts++;
-    if (f.flight) {f.flight.horizontal.z = bounce ? -f.flight.horizontal.z * C.rules.wallRestitution : 0;f.velocity.z = f.flight.horizontal.z;}
+    if (f.flight) {f.flight.horizontal.z = bounce ? -f.flight.horizontal.z * C.rules.wallRestitution : 0;f.velocity.z = f.flight.horizontal.z;if (bounce) wallVertical(f);}
     else f.velocity.z = 0;
   }
   f.position = vec(x, z);
@@ -39,7 +41,7 @@ export function stepPhysics(fighters, dt) {
         // Evento real de colisão com o solo (usado pelos efeitos visuais): velocidade vertical e horizontal no contato.
         f.lastLanding = {n: (f.lastLanding?.n ?? 0) + 1, vertical: Math.max(0, -flight.vy), horizontal: length(flight.horizontal), x: f.position.x, z: f.position.z};
         f.landingSlide = T.enableLandingSkid ? {velocity: scale(flight.horizontal, X.landingSkidFraction)} : null;
-        f.flight = null;f.velocity = vec();f.knockRecovery = R.landingRecovery;
+        f.flight = null;f.velocity = vec();f.knockRecovery = R.landingRecovery;f.recoveryFrom = null;
         f.state = f.hp <= 0 ? 'defeated' : 'landing';
       } else {f.velocity = {...flight.horizontal};f.state = 'airborne';}
     }
@@ -66,6 +68,8 @@ export function stepPhysics(fighters, dt) {
         const a = fighters[ai], b = fighters[bi];
         // Sobreposição no ar é ignorada: o colisor de quem está acima não toca o de quem está no chão.
         if (Math.max(a.flight?.y ?? 0, a.vaultHeight ?? 0) > X.vaultCollisionHeight || Math.max(b.flight?.y ?? 0, b.vaultHeight ?? 0) > X.vaultCollisionHeight) continue;
+        // Pulo físico por cima do rival: os dois não se tocam até o pouso.
+        if (a.action?.jump?.over === b.id || b.action?.jump?.over === a.id) continue;
         const contact = overlap(a, b);
         if (!contact) continue;
         if (pass === 0) {

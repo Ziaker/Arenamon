@@ -34,6 +34,8 @@ let view;
 try {view = new View(canvas);} catch (e) {$('fatal').hidden = false;throw e;}
 const matchRec = new MatchRecording();
 const ui = {playback: null, paused: false, scenario: null, playerMode: 'tactical', lastResult: null, fps: 60, characters: [null, null], sources: [null, null], frame: 0};
+// Vermelho no controle manual (Partida › Controle manual do vermelho): teclas e gamepad próprios.
+const input2 = new Input(canvas, () => {}, {slot: 1});
 const input = new Input(canvas, code => {
   if (code === keyFor('pause')) togglePause();
   if (code === keyFor('restart') && game.phase !== 'menu') startMatch();
@@ -78,7 +80,8 @@ function stepOnce() {
     c0 = ui.playback.commands[game.tick] ?? emptyCommand();
     if (game.tick >= ui.playback.commands.length) {ui.playback.ended = true;togglePause(true);$('rec-result').innerHTML = '<p class="ok">Fim da gravação: a partida ficou pausada no último passo gravado.</p>';return;}
   } else c0 = playerCommand();
-  const tickBefore = game.tick;game.step(c0);if (game.tick > tickBefore) matchRec.record(tickBefore, c0);view.rig.step(game.fighters[0], game.fighters[1], input.locked, C.test.step);
+  const c1 = ui.playback ? ui.playback.commands1?.[game.tick] ?? undefined : C.extras.toggles.enemyManual ? input2.command(game.fighters[1], game.fighters[0], view.rig.yaw, game.tick) : undefined;
+  const tickBefore = game.tick;game.step(c0, c1 ?? undefined);if (game.tick > tickBefore) matchRec.record(tickBefore, c0, c1);view.rig.step(game.fighters[0], game.fighters[1], input.locked, C.test.step);
   recorder.record(game);pushReplay();
 }
 function stepFrames(delta) {
@@ -131,7 +134,7 @@ $('rec-file').onchange = async e => {
     if (changes.length) tuning.commit(changes, 'ajustes da gravação');
   }
   $('seed').value = String(data.seed);$('seed-fixed').checked = true;$('profile').value = data.profile;$('enemy-profile').value = data.enemyProfile;$('mode').value = data.mode;
-  startMatch({playback: {commands, source: file.name}});
+  startMatch({playback: {commands, commands1: parsed.commands1, source: file.name}});
   $('rec-result').innerHTML = `<p class="ok">Reproduzindo ${escape(file.name)}: ${commands.length} passos, semente ${data.seed}, ${$('rec-values').value === 'recorded' ? 'ajustes da gravação (Ctrl+Z desfaz)' : 'ajustes atuais'}.</p>`;
 };
 window.__labRecording = {matchRec, parseRecording, ui};
@@ -347,7 +350,7 @@ window.addEventListener('keydown', e => {
   if (typing) return;
   if (e.key === ',') {e.preventDefault();stepFrames(-1);}else if (e.key === '.') {e.preventDefault();stepFrames(1);}
 });
-window.addEventListener('blur', () => {input.clear();});
+window.addEventListener('blur', () => {input.clear();input2.clear();});
 document.addEventListener('visibilitychange', () => {if (document.hidden && game.phase === 'playing') togglePause(true);});
 const dock = createDock({recorder, getCursorTick: () => game.tick, onSeek: seekTick,
   studioWindowsFor: id => {const ch = ui.characters[id];if (!ch) return null;return {tackle: studioWindows(ch, 'tackle'), dodge: studioWindows(ch, 'dodge_forward')};}});
@@ -355,8 +358,9 @@ const dock = createDock({recorder, getCursorTick: () => game.tick, onSeek: seekT
 // ---------- Overhaul: Visualizar, Partida, Controles e propostas de HUD ----------
 const hudProposals = new HudProposals($('hud-proposals'));
 const visualPanel = createVisualPanel({tuning, view, game, $, hud: hudProposals, download});
-$('enemy-ai-control').append(tuning.controlFor('extras.toggles.enableEnemyAI'));
+$('enemy-ai-control').append(tuning.controlFor('extras.toggles.enableEnemyAI'), tuning.controlFor('extras.toggles.enemyManual'));
 $('bindings-controls').append(...tuning.sectionControls('Teclas: índices configuráveis'));
+$('bindings2-controls').append(...tuning.sectionControls('Teclas do vermelho (controle manual)'));
 /** Grupos estáticos com mais de dois controles ganham botão ▼ (recolher/expandir). */
 function foldStaticSections() {
   for (const section of document.querySelectorAll('.panel-body section[data-section]')) {

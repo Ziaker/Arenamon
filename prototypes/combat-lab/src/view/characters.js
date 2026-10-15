@@ -106,9 +106,16 @@ export class Character {
   /** Compatibilidade com o v7: primeira variante de cada ação. */
   get mapping() {return Object.fromEntries(Object.entries(this.variants).filter(([, v]) => v.length).map(([id, v]) => [id, v[0]]));}
   variantsOf(id) {return (this.variants[id] || []).filter(i => this.clips[i] && this.clipInfo[i]?.compatible);}
-  addVariant(id, index) {if (!this.clipInfo[index]?.compatible) return false;const list = this.variants[id] ??= [];if (!list.includes(index)) list.push(index);this.current = null;this.save();return true;}
-  removeVariant(id, index) {this.variants[id] = (this.variants[id] || []).filter(i => i !== index);if (!this.variants[id].length) delete this.variants[id];this.current = null;this.save();}
-  moveVariant(id, index, delta) {const l = this.variants[id] || [], i = l.indexOf(index), j = i + delta;if (i < 0 || j < 0 || j >= l.length) return;[l[i], l[j]] = [l[j], l[i]];this.save();}
+  addVariant(id, index) {if (!this.clipInfo[index]?.compatible) return false;const list = this.variants[id] ??= [];if (!list.includes(index)) list.push(index);this.resetVisual();this.save();return true;}
+  removeVariant(id, index) {this.variants[id] = (this.variants[id] || []).filter(i => i !== index);if (!this.variants[id].length) delete this.variants[id];this.resetVisual();this.save();}
+  /** Troca a variante principal (posição 0) de um estado. */
+  setPrimary(id, index) {if (index === null) {delete this.variants[id];} else {if (!this.clipInfo[index]?.compatible) return false;const rest = (this.variants[id] || []).filter(i => i !== index);this.variants[id] = [index, ...rest];}this.resetVisual();this.save();return true;}
+  /**
+   * Para e descarta todas as ações do mixer (atual e camadas). Antes, trocar uma associação só esquecia a ação atual,
+   * que continuava tocando com peso 1 misturada a todas as outras (“forçando” uma pose).
+   */
+  resetVisual() {for (const l of [...this.layers, this.current].filter(Boolean)) {l.action.stop();this.mixer.uncacheAction(l.clip);}this.layers = [];this.current = null;this.stableLoco = null;}
+  moveVariant(id, index, delta) {const l = this.variants[id] || [], i = l.indexOf(index), j = i + delta;if (i < 0 || j < 0 || j >= l.length) return;[l[i], l[j]] = [l[j], l[i]];this.resetVisual();this.save();}
   storeKey() {return STORE + (this.source.name || 'sem-nome');}
   save() {
     if (!this.persist) return;
@@ -160,6 +167,7 @@ export class Character {
   stateKey(f) {
     if (f.hp <= 0 && !f.flight) return 'defeated';
     if (f.flight) return 'airborne';
+    if (f.state === 'landing' && f.recoveryFrom && this.current && ACTION_KEYS.has(this.current.key)) return this.current.key;
     if (f.state === 'landing') return this.clock - this.lastFlight < 1.5 ? 'landing' : 'recover';
     if (f.action?.kind === 'tackle') return 'tackle';
     if (f.action?.kind === 'dodge') {
@@ -170,7 +178,8 @@ export class Character {
     }
     if (f.action?.kind === 'recoil') return 'recoil';
     if (f.state === 'guardStun') return 'guardStun';
-    if (f.guard) return 'guard';
+    if (f.guard) {this.guardSeenAt = this.clock;return 'guard';}
+    if (this.current?.key === 'guard' && this.clock - (this.guardSeenAt ?? -Infinity) < Character.options.guardHold * .6 && !f.action) return 'guard';
     if (f.sprinting) return 'sprint';
     const speed = length(f.velocity), walk = f.attributes.speed;
     // Freios: só quando a física está realmente desacelerando (e só se houver animação própria; senão, locomoção normal).
@@ -201,6 +210,8 @@ export class Character {
   progress(f, key) {
     const R = C.rules;
     if (key === 'tackle') return f.action ? f.action.elapsed / actionDuration('tackle') : 1;
+    // Pulo físico: o clipe de salto acompanha o tempo de voo balístico (2·impulso ÷ gravidade).
+    if (key === 'vault' && f.action?.jump) return f.action.elapsed / Math.max(.05, 2 * C.actions.dodge.vaultUp / Math.max(.1, C.actions.dodge.vaultGravity));
     if (key.startsWith('dodge') || key === 'vault') return f.action ? f.action.elapsed / actionDuration('dodge') : 1;
     if (key === 'recoil') return f.action ? f.action.elapsed / R.recoil : 1;
     if (key === 'guardStun') return 1 - f.stun / Math.max(1e-6, R.guardStun);
@@ -332,7 +343,13 @@ export class Character {
     this.groundCache.set(index, curve);return curve;
   }
   /** Pré-calcula as curvas de apoio em segundo plano (um clipe por vez), para a luta nunca pagar esse custo. */
-  warmGround(delay = 40) {let i = 0;const next = () => {if (this.disposed || i >= this.clips.length) return;this.groundCurve(i++);this.warmTimer = setTimeout(next, delay);};this.warmTimer = setTimeout(next, delay);}
+  warmGround(delay = 60) {
+    // Só os clipes associados a estados (os demais calculam na primeira vez que tocarem), em momentos ociosos do navegador.
+    const queue = [...new Set(Object.values(this.variants).flat())].filter(i => !this.groundCache.has(i));
+    const idle = typeof requestIdleCallback === 'function' ? fn => requestIdleCallback(fn, {timeout: 1500}) : fn => setTimeout(fn, delay);
+    const next = () => {if (this.disposed || !queue.length) return;this.groundCurve(queue.shift());this.warmTimer = setTimeout(() => idle(next), delay);};
+    this.warmTimer = setTimeout(() => idle(next), delay);
+  }
   /** Ponto mais baixo do clipe no instante t (interpolado); clipGround(index) = mínimo do clipe inteiro. */
   groundAt(index, t) {const c = this.groundCurve(index), d = this.clips[index].duration || 1, x = Math.max(0, Math.min(1, t / d)) * (c.length - 1), i = Math.min(c.length - 2, Math.floor(x));return c[i] + (c[i + 1] - c[i]) * (x - i);}
   clipGround(index) {return Math.min(...this.groundCurve(index));}

@@ -13,11 +13,22 @@ const fmt = v => typeof v === 'number' ? (Math.abs(v) >= 100 ? v.toFixed(0) : v.
 const check = (label, ok, expected, actual) => ({label, ok: !!ok, expected: fmt(expected), actual: fmt(actual)});
 const near = (a, b, tol) => Math.abs(a - b) <= tol;
 const events = (log, result) => log.events.filter(e => e.result === result);
+// Esquiva perfeita: diagonal para dentro do tackle (encosta na invulnerabilidade e sai pela lateral, livre para contra-atacar).
+const PERFECT_DODGE_DIR = (() => {const v = [.45, .9], d = Math.hypot(...v);return vec(v[0] / d, v[1] / d);})();
+/** Tempo estimado até o tackle de `a` tocar `d` (∞ sem tackle em curso ou se afastando). */
+function timeToContact(a, d) {
+  if (a.action?.kind !== 'tackle') return Infinity;
+  const dx = d.position.x - a.position.x, dz = d.position.z - a.position.z, dist = Math.hypot(dx, dz) || 1, gap = dist - 2 * C.test.halfExtent;
+  const closing = (a.velocity.x * dx + a.velocity.z * dz) / dist - (d.velocity.x * dx + d.velocity.z * dz) / dist;
+  return closing > .5 ? Math.max(0, gap) / closing : Infinity;
+}
+/** Passos suficientes para uma ação completa, recuperação, voo e aterrissagem com os ajustes atuais. */
+const enough = (extra = 0) => Math.ceil((C.actions.tackle.duration + C.actions.tackle.recovery + C.actions.dodge.duration + C.actions.dodge.recovery + 2 * Math.max(C.rules.launchUp, C.rules.clashUp) / C.rules.launchGravity + C.rules.landingRecovery + C.rules.recoil + C.rules.guardStun + extra) / C.test.step) + 60;
 
 export const SCENARIOS = [
   {
     id: 'guard-partial', name: 'Tackle contra defesa', description: 'O vermelho defende parado (janela perfeita já encerrada); o azul investe de frente.',
-    positions: [vec(0, -2.4), vec(0, 0)], ticks: 130, setup: g => {face(g.fighters[0], 0);face(g.fighters[1], Math.PI);},
+    positions: [vec(0, -2.4), vec(0, 0)], ticks: () => enough(), setup: g => {face(g.fighters[0], 0);face(g.fighters[1], Math.PI);},
     script: (t, g) => [t === 40 ? cmd({move: vec(0, 1), tackle: true, target: 1}) : cmd({target: 1}), cmd({guard: true, guardPressed: t === 0, target: 0})],
     checks: ({log, start}) => {
       const e = events(log, 'partial')[0], after = log.afterHit;
@@ -30,8 +41,10 @@ export const SCENARIOS = [
   },
   {
     id: 'guard-perfect', name: 'Defesa perfeita', description: 'O vermelho aperta D pouco antes do contato, dentro da janela perfeita.',
-    positions: [vec(0, -2.4), vec(0, 0)], ticks: 110, setup: g => {face(g.fighters[0], 0);face(g.fighters[1], Math.PI);},
-    script: (t) => [t === 40 ? cmd({move: vec(0, 1), tackle: true, target: 1}) : cmd({target: 1}), cmd({guard: t >= 38, guardPressed: t === 38, target: 0})],
+    positions: [vec(0, -2.4), vec(0, 0)], ticks: () => enough(), setup: g => {face(g.fighters[0], 0);face(g.fighters[1], Math.PI);},
+    // Adaptativo: o vermelho aperta D quando faltar menos de metade da janela perfeita para o contato (vale para qualquer duração/curva do tackle).
+    script: (t, g, s) => {const [a, d] = g.fighters, press = !s.pressed && timeToContact(a, d) <= C.rules.perfect * .5;if (press) s.pressed = t;
+      return [t === 10 ? cmd({move: vec(0, 1), tackle: true, target: 1}) : cmd({target: 1}), cmd({guard: s.pressed !== undefined, guardPressed: press, target: 0})];},
     checks: ({log, game}) => {
       const e = events(log, 'perfect')[0];
       return [check('Resultado do contato', e, 'perfect', log.events[0]?.result ?? 'nenhum'), check('Sem dano', e && e.damage === 0, 0, e?.damage ?? '—'),
@@ -40,7 +53,7 @@ export const SCENARIOS = [
   },
   {
     id: 'clash', name: 'Clash frontal', description: 'Os dois investem ao mesmo tempo, um contra o outro.',
-    positions: [vec(0, -1.6), vec(0, 1.6)], ticks: 240, setup: g => {face(g.fighters[0], 0);face(g.fighters[1], Math.PI);},
+    positions: [vec(0, -1.6), vec(0, 1.6)], ticks: () => enough(), setup: g => {face(g.fighters[0], 0);face(g.fighters[1], Math.PI);},
     script: (t) => [t === 10 ? cmd({move: vec(0, 1), tackle: true, target: 1}) : cmd({target: 1}), t === 10 ? cmd({move: vec(0, -1), tackle: true, target: 0}) : cmd({target: 0})],
     checks: ({log, game}) => {
       const c = events(log, 'clash'), dmg = C.profiles.balanced.attack * C.rules.clashFraction;
@@ -52,11 +65,15 @@ export const SCENARIOS = [
   },
   {
     id: 'perfect-dodge', name: 'Esquiva perfeita e contra-ataque', description: 'O azul esquiva para dentro do tackle no início da invulnerabilidade e responde com X fortalecido.',
-    positions: [vec(0, -2.4), vec(0, 0)], ticks: 160, overrides: {'extras.toggles.enableVault': 0}, setup: g => {face(g.fighters[0], 0);face(g.fighters[1], Math.PI);},
-    script: (t, g) => {
-      const p = g.fighters[0];
-      const counter = t > 50 && p.counterWindow > 0 && !p.action;
-      return [t === 12 ? cmd({move: vec(0, 1), dodge: true, dodgeDirection: vec(0, 1), target: 1}) : counter ? cmd({move: toward(p.position, g.fighters[1].position), tackle: true, target: 1}) : cmd({target: 1}),
+    positions: [vec(0, -2.4), vec(0, 0)], ticks: () => enough(), overrides: {'extras.toggles.enableVault': 0}, setup: g => {face(g.fighters[0], 0);face(g.fighters[1], Math.PI);},
+    // Adaptativo: o azul esquiva quando o contato estiver a menos de metade da invulnerabilidade e contra-ataca assim que a janela abre
+    // (durante a esquiva, se a regra permitir C → X depois de esquiva perfeita; senão, ao terminar).
+    script: (t, g, s) => {
+      const [p, r] = g.fighters, dodge = !s.dodged && timeToContact(r, p) <= C.actions.dodge.invulnerable * .5;if (dodge) s.dodged = t;
+      // Contra-ataque assim que o tackle do vermelho passou pelo azul (de frente para um tackle em curso o resultado seria clash).
+      const passed = r.action?.kind !== 'tackle' || (Math.sin(r.action.heading) * (p.position.x - r.position.x) + Math.cos(r.action.heading) * (p.position.z - r.position.z)) < 0;
+      const canCounter = p.counterWindow > 0 && passed && (!p.action || (p.action.kind === 'dodge' && C.actions.cancel.perfectAnytime)) && !s.countered;if (canCounter) s.countered = t;
+      return [dodge ? cmd({move: PERFECT_DODGE_DIR, dodge: true, dodgeDirection: PERFECT_DODGE_DIR, target: 1}) : canCounter ? cmd({move: toward(p.position, r.position), tackle: true, target: 1}) : cmd({target: 1}),
         t === 10 ? cmd({move: vec(0, -1), tackle: true, target: 0}) : cmd({target: 0})];
     },
     checks: ({log}) => {
@@ -68,13 +85,13 @@ export const SCENARIOS = [
   },
   {
     id: 'sidestep', name: 'Esquiva lateral no último instante', description: 'O azul sai para o lado logo depois de o vermelho investir.',
-    positions: [vec(0, -2.6), vec(0, 0)], ticks: 120, setup: g => {face(g.fighters[0], 0);face(g.fighters[1], Math.PI);},
+    positions: [vec(0, -2.6), vec(0, 0)], ticks: () => enough(), setup: g => {face(g.fighters[0], 0);face(g.fighters[1], Math.PI);},
     script: (t) => [t === 13 ? cmd({move: vec(1, 0), dodge: true, dodgeDirection: vec(1, 0), target: 1}) : cmd({target: 1}), t === 10 ? cmd({move: vec(0, -1), tackle: true, target: 0}) : cmd({target: 0})],
     checks: ({log}) => [check('Nenhum impacto recebido', !events(log, 'impact').length, 0, events(log, 'impact').length), check('Sem dano no azul', log.damageTaken[0] === 0, 0, log.damageTaken[0])],
   },
   {
     id: 'launch', name: 'Lançamento em campo aberto', description: 'Tackle limpo em um adversário parado; mede tempo no ar e recuperação.',
-    positions: [vec(0, -2.4), vec(0, 0)], ticks: 260, setup: g => {face(g.fighters[0], 0);face(g.fighters[1], Math.PI);},
+    positions: [vec(0, -2.4), vec(0, 0)], ticks: () => enough(), setup: g => {face(g.fighters[0], 0);face(g.fighters[1], Math.PI);},
     script: (t) => [t === 10 ? cmd({move: vec(0, 1), tackle: true, target: 1}) : cmd({target: 1}), cmd({target: 0})],
     checks: ({log}) => {
       const e = events(log, 'impact')[0], air = 2 * C.rules.launchUp / C.rules.launchGravity / C.test.step;
@@ -88,8 +105,10 @@ export const SCENARIOS = [
   },
   {
     id: 'wall', name: 'Knockback contra a parede', description: 'O vermelho é lançado na direção da parede e deve ricochetear para dentro da arena.',
-    positions: [vec(0, 0), vec(0, 2.4)], ticks: 260,
-    setup: g => {const h = C.test.arenaHalf;g.fighters[0].position = vec(0, h - 4);g.fighters[1].position = vec(0, h - 1.6);face(g.fighters[0], 0);face(g.fighters[1], Math.PI);},
+    positions: [vec(0, 0), vec(0, 2.4)], ticks: () => enough(),
+    // Adaptativo: o vermelho perto da parede e o azul a uma distância que o tackle alcança com os ajustes atuais.
+    setup: g => {const h = C.test.arenaHalf - C.test.halfExtent, zr = h - .9, reach = 2 * C.test.halfExtent + Math.min(1.4, .45 * C.actions.tackle.distance * (C.actions.tackle.distanceReference || C.actions.tackle.duration) * C.profiles.balanced.speed);
+      g.fighters[0].position = vec(0, zr - reach);g.fighters[1].position = vec(0, zr);face(g.fighters[0], 0);face(g.fighters[1], Math.PI);},
     script: (t) => [t === 10 ? cmd({move: vec(0, 1), tackle: true, target: 1}) : cmd({target: 1}), cmd({target: 0})],
     checks: ({log, game}) => {
       const bound = C.test.arenaHalf - C.test.halfExtent, z = game.fighters[1].position.z;
@@ -100,13 +119,13 @@ export const SCENARIOS = [
   },
   {
     id: 'exhaustion', name: 'Exaustão de stamina', description: 'O azul faz três esquivas seguidas e tenta uma quarta.',
-    positions: [vec(0, -6), vec(0, 6)], ticks: 260, setup: g => {face(g.fighters[0], 0);face(g.fighters[1], Math.PI);},
-    script: (t) => [[5, 60, 115, 170].includes(t) ? cmd({move: vec(1, 0), dodge: true, dodgeDirection: vec(1, 0)}) : cmd(), cmd()],
+    positions: [vec(0, -6), vec(0, 6)], ticks: () => 4 * Math.ceil((C.actions.dodge.duration + C.actions.dodge.recovery + C.extras.combat.exhaustRecovery + .1) / C.test.step) + 60, setup: g => {face(g.fighters[0], 0);face(g.fighters[1], Math.PI);},
+    script: (t, g, s) => {const p = g.fighters[0], go = (s.n ?? 0) < 4 && !p.action && p.knockRecovery <= 0 && t - (s.last ?? -99) > 4;if (go) {s.n = (s.n ?? 0) + 1;s.last = t;}return [go ? cmd({move: vec(1, 0), dodge: true, dodgeDirection: vec(1, 0)}) : cmd(), cmd()];},
     checks: ({log}) => {
-      const n = Math.floor(C.rules.staminaMax / C.actions.dodge.cost + 1e-9);
+      const n = Math.floor(C.rules.staminaMax / C.actions.dodge.cost + 1e-9), exhaustsAt = C.rules.exhaustMode === 1 ? n : (Math.abs(C.rules.staminaMax - n * C.actions.dodge.cost) < 1e-9 ? n : Infinity);
       return [check('Ações aceitas', log.actionsStarted[0] === Math.min(4, n), Math.min(4, n), log.actionsStarted[0]),
-        check('Fica exausto', n >= 4 || log.wasExhausted[0], n >= 4 ? 'não se aplica' : 'sim', log.wasExhausted[0] ? 'sim' : 'não'),
-        check('Recuperação extra ao esgotar (passos)', n >= 4 || near(log.exhaustTicks[0], C.extras.combat.exhaustRecovery / C.test.step, 2), `${fmt(C.extras.combat.exhaustRecovery / C.test.step)} ± 2`, log.exhaustTicks[0])];
+        check('Fica exausto', exhaustsAt > 4 || log.wasExhausted[0], exhaustsAt > 4 ? 'não se aplica' : 'sim', log.wasExhausted[0] ? 'sim' : 'não'),
+        check('Recuperação extra ao esgotar (passos)', exhaustsAt > 4 || near(log.exhaustTicks[0], (C.extras.combat.exhaustRecovery + n * 0) / C.test.step, 2 + Math.ceil(n * C.actions.dodge.recovery / C.test.step)), `${fmt(C.extras.combat.exhaustRecovery / C.test.step)} ± 2`, log.exhaustTicks[0])];
     },
   },
 ];
@@ -122,10 +141,10 @@ export function prepareScenario(def, game) {
   const start = structuredClone(game.fighters.map(f => ({x: f.position.x, z: f.position.z, hp: f.hp, stamina: f.stamina})));
   const log = {events: [], hitstopTicks: 0, afterHit: null, maxCounter: [0, 0], flew: [false, false], damageTaken: [0, 0], staminaBonus: 0, counterSpeed: 1, airTicks: [0, 0], landingTicks: [0, 0],
     wallHits: [0, 0], bounced: false, actionsStarted: [0, 0], wasExhausted: [false, false], exhaustTicks: [0, 0], maxZ: -Infinity};
-  let t = 0, lastAction = [null, null];
+  let t = 0, lastAction = [null, null];const scratch = {}, total = typeof def.ticks === 'function' ? def.ticks() : def.ticks;
   return {
-    get tick() {return t;}, get done() {return t >= def.ticks;},
-    commands() {return def.script(t, game);},
+    get tick() {return t;}, get done() {return t >= total;}, get total() {return total;},
+    commands() {return def.script(t, game, scratch);},
     /** Chamado depois de cada passo: atualiza o registro do cenário. */
     observe() {
       for (const e of game.lastStepEvents) {
@@ -143,7 +162,10 @@ export function prepareScenario(def, game) {
       if (game.frozen) log.hitstopTicks++;
       log.staminaBefore = game.fighters[0].stamina;
       const enemy = game.fighters[1], bound = C.test.arenaHalf - C.test.halfExtent;
-      if (enemy.flight) {if (Math.abs(enemy.position.z) >= bound - 1e-9 || Math.abs(enemy.position.x) >= bound - 1e-9) log.wallHits[1]++;if (enemy.flight.horizontal.z < 0 && log.wallHits[1]) log.bounced = true;}
+      // Toque na parede: velocidade horizontal do voo invertida (com subpassos a posição volta para dentro no mesmo passo).
+      if (enemy.flight) {const hz = enemy.flight.horizontal.z, hx = enemy.flight.horizontal.x, ph = log.prevH;
+        if ((ph && ((ph.z > .05 && hz < 0) || (ph.x > .05 && hx < 0) || (ph.x < -.05 && hx > 0))) || Math.abs(enemy.position.z) >= bound - 1e-9 || Math.abs(enemy.position.x) >= bound - 1e-9) log.wallHits[1]++;
+        if (hz < 0 && log.wallHits[1]) log.bounced = true;log.prevH = {x: hx, z: hz};} else log.prevH = null;
       t++;
     },
     finish() {

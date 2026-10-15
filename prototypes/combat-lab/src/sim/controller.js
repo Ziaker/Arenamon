@@ -26,6 +26,14 @@ export function locomotionParams(f) {
 /** Velocidade máxima de caminhada do lutador agora (defesa e exaustão reduzem). */
 export const walkSpeed = f => f.attributes.speed * (f.guard ? C.rules.guardSpeed : 1) * (f.exhausted ? C.rules.exhaustedSpeed : 1);
 
+/**
+ * Stamina esgotada: abaixo do menor custo de X e C (exhaustMode 1) ou exatamente zero (0, Etapa A).
+ * Com máximos fracionários (ex.: 5,1 e custo 1) a stamina nunca chega a zero; agora a exaustão ocorre ao sobrar menos que uma ação.
+ */
+export function isDepleted(stamina) {
+  const A = C.actions, min = Math.min(A.dodge.cost, A.tackle.cost);
+  return C.rules.exhaustMode === 1 && min > 1e-8 ? stamina < min - 1e-8 : stamina < 1e-8;
+}
 /** Giro com aceleração angular (modelo 1) ou com velocidade constante (v6). */
 function turnToward(f, goal, dt) {
   const L = C.locomotion, diff = angleDelta(f.facing, goal);
@@ -36,20 +44,39 @@ function turnToward(f, goal, dt) {
   if (Math.abs(step) >= Math.abs(diff) && Math.sign(step) === Math.sign(diff)) {f.facing = goal;f.turnVelocity = 0;} else f.facing += step;
 }
 
+/**
+ * Janela do cancelamento C → X, em segundos da esquiva: [início, fim].
+ * windowMode 1: só nos últimos `fromEnd` segundos da esquiva; 0: início e fim absolutos (Etapa A).
+ */
+export function cancelWindow() {
+  const c = C.actions.cancel, d = C.actions.dodge.duration;
+  return c.windowMode === 1 ? [Math.max(0, d - c.fromEnd), d] : [c.windowStart, c.windowEnd];
+}
 /** A ação `kind` pode começar agora? Devolve {ok, viaCancel, buffer}. */
 export function startPermission(f, kind) {
   const A = C.actions, cur = f.action, p = A[kind];
   if (f.guard && !p.fromGuard) return {ok: false};
   if (cur?.kind === 'dodge' && kind === 'tackle') {
-    // C → X: só a janela própria decide (inclusive dentro dos primeiros 200 ms).
-    const c = A.cancel;return {ok: !!c.dodgeToTackle && cur.elapsed >= c.windowStart - 1e-8 && cur.elapsed <= c.windowEnd + 1e-8, viaCancel: true};
+    // C → X: só na janela (por padrão, o fim da esquiva). Depois de uma esquiva perfeita, a qualquer momento.
+    const c = A.cancel, [w0, w1] = cancelWindow(), perfect = c.perfectAnytime && f.counterWindow > 0;
+    return {ok: !!c.dodgeToTackle && (perfect || (cur.elapsed >= w0 - 1e-8 && cur.elapsed <= w1 + 1e-8)), viaCancel: true};
   }
+  // X não cancela o próprio X (selfCancel 0) e C só cancela C nos últimos selfCancelFromEnd segundos.
+  if (cur?.kind === 'tackle' && kind === 'tackle' && !A.tackle.selfCancel) return {ok: false};
+  if (cur?.kind === 'dodge' && kind === 'dodge' && cur.elapsed < A.dodge.duration - A.dodge.selfCancelFromEnd - 1e-8) return {ok: false};
   if (cur?.kind === 'recoil') return {ok: !!p.fromRecoil};
   if (cur) return {ok: chainOpen(f)};
   if (f.stun > 1e-8 && !p.fromGuardStun) return {ok: false, buffer: kind === 'tackle'};
   return {ok: true};
 }
 
+/** Guarda X ou C pedidos durante o hitstop no buffer de entrada (antes eram descartados). */
+export function bufferDuringHitstop(f, cmd) {
+  const T = C.extras.toggles, A = C.actions, kind = cmd.tackle && T.enableTackle ? 'tackle' : cmd.dodge && T.enableDodge ? 'dodge' : null;
+  if (!kind || f.hp <= 0) return;
+  const m = length(cmd.move) > 1 ? normalize(cmd.move) : cmd.move;
+  f.inputBuffer = {kind, move: {...m}, dodgeDirection: cmd.dodgeDirection && {...cmd.dodgeDirection}, age: -Math.max(0, A.buffer.window > 0 ? 0 : 1e9), hitstop: true};
+}
 export function updateFighter(f, cmd, fighters, dt) {
   const R = C.rules, X = C.extras, T = X.toggles, A = C.actions;
   // Buffer de entrada: o pedido mais recente de X ou C vale por actions.buffer.window, mesmo no ar ou na aterrissagem.
@@ -57,7 +84,7 @@ export function updateFighter(f, cmd, fighters, dt) {
   if (f.inputBuffer) {f.inputBuffer.age += dt;if (f.inputBuffer.age > A.buffer.window + 1e-8 || cmd.guardPressed) f.inputBuffer = null;}
   if (requested && A.buffer.window > 0) {const m = length(cmd.move) > 1 ? normalize(cmd.move) : cmd.move;f.inputBuffer = {kind: requested, move: {...m}, dodgeDirection: cmd.dodgeDirection && {...cmd.dodgeDirection}, age: 0};}
   if (f.flight) {f.action = null;f.push = null;f.guard = false;f.vaultHeight = 0;f.velocity = vec();f.locomotionVelocity = vec();f.bufferedTackle = null;f.state = 'airborne';return;}
-  if (f.knockRecovery > 0) {f.knockRecovery = Math.max(0, f.knockRecovery - dt);f.vaultHeight = 0;f.velocity = vec();f.locomotionVelocity = vec();f.action = null;f.guard = false;f.bufferedTackle = null;f.state = 'landing';return;}
+  if (f.knockRecovery > 0) {f.knockRecovery = Math.max(0, f.knockRecovery - dt);if (f.knockRecovery <= 0) f.recoveryFrom = null;f.vaultHeight = 0;f.velocity = vec();f.locomotionVelocity = vec();f.action = null;f.guard = false;f.bufferedTackle = null;f.state = 'landing';return;}
   if (f.hp <= 0) {f.state = 'defeated';f.velocity = vec();f.action = null;f.push = null;f.vaultHeight = 0;f.bufferedTackle = null;return;}
   const target = fighters.find(o => o.id === cmd.target && o.hp > 0);
   const move = length(cmd.move) > 1 ? normalize(cmd.move) : cmd.move;
@@ -74,12 +101,14 @@ export function updateFighter(f, cmd, fighters, dt) {
   f.regenAge += dt * (f.guard ? X.combat.guardRegenFactor : 1);
   const regen = clamp((f.regenAge - R.regenDelay) / R.regenTime, 0, 1);
   f.stamina = f.regenBase + (R.staminaMax - f.regenBase) * regen ** 3;
-  if (f.sprinting && f.stamina <= 1e-8) {f.stamina = 0;f.regenBase = 0;f.exhausted = true;}
+  if (f.sprinting && isDepleted(f.stamina)) {f.exhausted = true;}
   if (f.stamina >= R.staminaMax - 1e-8) {f.stamina = R.staminaMax;f.exhausted = false;}
   f.staminaTrend = (f.stamina - staminaBefore) / dt;
   if (!cmd.dodgeHeld) f.sprintArmed = false;
   if (!cmd.guard || !T.enableDefense) {f.guard = false;f.guardSuppressed = false;}
-  const open = chainOpen(f);
+  // Defesa durante o tackle: só com “Defesa cancela o tackle” ligado, ou com um toque de defesa perfeita disponível.
+  const tackleGuard = f.action?.kind !== 'tackle' || A.tackle.guardCancel || (A.tackle.perfectGuardCancel && cmd.guardPressed && f.perfectCooldown <= 0);
+  const open = chainOpen(f) && tackleGuard;
   if (cmd.guard && T.enableDefense && !f.guardSuppressed && open) {
     if (f.action && (f.action.kind === 'dodge' || f.action.kind === 'tackle')) f.blend = {from: {...f.velocity}, elapsed: 0};
     if (f.action?.kind === 'recoil') {f.velocity = vec();f.blend = null;}
@@ -96,7 +125,7 @@ export function updateFighter(f, cmd, fighters, dt) {
   if (kind) {
     const p = actionParams(kind), permission = startPermission(f, kind), affordable = !f.exhausted && f.stamina >= p.cost - 1e-8;
     if (permission.buffer) {f.bufferedTackle = {move: {...dirs.move}, dodgeDirection: dirs.dodgeDirection && {...dirs.dodgeDirection}};f.inputBuffer = null;}
-    else if (permission.ok && affordable) {startAction(f, kind, dirs, fighters, desiredHeading, permission.viaCancel, cmd.guard);if (fromBuffer) f.action.buffered = true;}
+    else if (permission.ok && affordable) {startAction(f, kind, dirs, fighters, desiredHeading, permission.viaCancel, cmd.guard, !!target && !!cmd.locked);if (fromBuffer) f.action.buffered = true;}
     // Sem permissão ou sem stamina: a ação atual continua intacta (inclusive a esquiva, no caso de C → X).
   }
   // Esquiva → sprint: C ainda pressionado, com direção, a partir de entryFraction da esquiva (ou logo depois dela).
@@ -111,7 +140,7 @@ export function updateFighter(f, cmd, fighters, dt) {
   // Orientação do corpo: separada da locomoção. Com lock-on, olha para o alvo conforme lockFacing (a mira continua no alvo).
   const lockedFace = target && (L.model !== 1 || L.lockFacing === 1 || (L.lockFacing === 2 && (length(move) <= .01 || f.guard)));
   // Sprint sempre olha para onde corre (a animação de sprint serve às 8 direções girando o corpo).
-  const faceGoal = f.sprinting && length(move) > 0 ? angleOf(move) : lockedFace ? desiredHeading : length(move) > 0 ? angleOf(move) : f.facing;
+  const faceGoal = f.sprinting && length(move) > 0 && !(target && L.lockFacing === 1) ? angleOf(move) : lockedFace ? desiredHeading : length(move) > 0 ? angleOf(move) : f.facing;
   f.faceGoal = faceGoal; // meta de orientação (a animação escolhe frente/lado/trás por ela, não pelo giro em curso)
   if (!f.action) {
     f.vaultHeight = 0;
@@ -126,8 +155,9 @@ export function updateFighter(f, cmd, fighters, dt) {
     f.locomotionVelocity = vec();f.sprintCarry = false;
     const action = f.action;
     if (action.kind === 'dodge' || action.kind === 'tackle') {
-      const p = A[action.kind], steering = cmd.dodgeDirection ?? move;
-      if (length(move) > .01) {
+      const p = A[action.kind], homing = action.kind === 'tackle' && target && cmd.locked && L.lockTackleHoming;
+      const steering = homing ? sub(target.position, f.position) : cmd.dodgeDirection ?? move;
+      if (length(move) > .01 || homing) {
         const desired = action.startAngle + clamp(angleDelta(action.startAngle, angleOf(steering)), -p.steerLimit, p.steerLimit);
         action.heading += clamp(angleDelta(action.heading, desired), -p.steerRate * dt, p.steerRate * dt);
       }
@@ -150,8 +180,16 @@ export function updateFighter(f, cmd, fighters, dt) {
         f.velocity = {x: action.from.x * (1 - blend) + f.velocity.x * blend, z: action.from.z * (1 - blend) + f.velocity.z * blend};
       }
       action.traveled = (action.traveled ?? 0) + Math.max(0, dot(f.velocity, direction(action.heading))) * dt;
-      if (action.kind === 'dodge') {
-        // C com salto: arco aéreo contínuo de decolagem e pouso, na duração da esquiva.
+      if (action.kind === 'dodge' && action.jump) {
+        // Pulo físico: altura integrada pela gravidade; deslocamento horizontal constante na direção do salto.
+        const J = action.jump, g = A.dodge.vaultGravity;
+        J.y += J.vy * dt - .5 * g * dt * dt;J.vy -= g * dt;
+        f.velocity = scale(direction(action.heading), A.dodge.vaultHorizontal);
+        if (action.from && (action.blendTime ?? p.blend) > 0 && action.elapsed < (action.blendTime ?? p.blend)) {const b = smoothstep((action.elapsed + dt) / (action.blendTime ?? p.blend));f.velocity = {x: action.from.x * (1 - b) + f.velocity.x * b, z: action.from.z * (1 - b) + f.velocity.z * b};}
+        f.vaultHeight = Math.max(0, J.y);
+        if (J.y <= 0 && action.elapsed > dt) J.landed = true;
+      } else if (action.kind === 'dodge') {
+        // C com salto (Etapa A): arco aéreo contínuo de decolagem e pouso, na duração da esquiva.
         f.vaultHeight = action.vault ? A.dodge.vaultHeight * Math.sin(Math.PI * clamp((action.elapsed + dt) / A.dodge.duration, 0, 1)) : 0;
       } else {
         // X vindo de um salto (C → X no ar): desce suavemente da altura em que estava, sem teletransporte.
@@ -186,9 +224,12 @@ export function updateFighter(f, cmd, fighters, dt) {
   f.visualFacing += clamp(angleDelta(f.visualFacing, f.facing), -C.locomotion.visualTurnRate * dt, C.locomotion.visualTurnRate * dt);
 }
 
+/** Rival por cima do qual a esquiva salta (o contato entre os dois é ignorado até o pouso). */
+function vaultTarget(f, heading, fighters) {const v = direction(heading);let best = null, bestD = Infinity;for (const o of fighters) {if (o.id === f.id || o.hp <= 0) continue;const d = dot(sub(o.position, f.position), v);if (d > 0 && d < bestD) {bestD = d;best = o.id;}}return best;}
 /** C nesta direção atravessaria um adversário (e portanto saltaria)? Usado pela esquiva e pela prévia de trajetória. */
 export function wouldVault(f, heading, fighters) {
-  const A = C.actions, v = direction(heading), maxTravel = nominalDistance(f, 'dodge') + A.dodge.vaultReachBonus;
+  const A = C.actions, v = direction(heading), D = A.dodge;
+  const travel = D.vaultPhysics ? D.vaultHorizontal * 2 * D.vaultUp / Math.max(.1, D.vaultGravity) : nominalDistance(f, 'dodge'), maxTravel = travel + D.vaultReachBonus;
   return fighters.some(other => {
     if (other.id === f.id || other.hp <= 0) return false;
     const delta = sub(other.position, f.position), ahead = dot(delta, v), lateral = length(sub(delta, scale(v, ahead)));
@@ -197,11 +238,13 @@ export function wouldVault(f, heading, fighters) {
 }
 
 /** Inicia X ou C. No cancelamento C → X, preserva velocidade, altura e invulnerabilidade de forma controlada. */
-function startAction(f, kind, dirs, fighters, desiredHeading, viaCancel, guardHeld) {
+function startAction(f, kind, dirs, fighters, desiredHeading, viaCancel, guardHeld, locked = false) {
   const A = C.actions, p = A[kind], T = C.extras.toggles, prev = f.action;
   const requested = dirs.dodgeDirection ?? dirs.move;
+  // Lock-on: o tackle sempre parte rumo ao oponente (mesmo com ↓ ou C → X). Sem lock-on, vale a direção pedida.
+  const homing = kind === 'tackle' && locked && C.locomotion.lockTackleHoming;
   // C → X sem nova direção: continua na direção da esquiva (continuidade determinística).
-  const heading = viaCancel && length(dirs.move) <= .01 ? prev.heading : length(requested) > .01 ? angleOf(requested) : desiredHeading;
+  const heading = homing ? desiredHeading : viaCancel && length(dirs.move) <= .01 ? prev.heading : length(requested) > .01 ? angleOf(requested) : desiredHeading;
   // Curva em fases: sempre parte da velocidade atual (a curva começa parada; sem a mistura a velocidade saltaria).
   let from = f.action || p.profile === 1 ? {...f.velocity} : null, blendTime, invulnerableFor, liftStart = 0, liftTime = 0;
   if (viaCancel) {
@@ -214,6 +257,8 @@ function startAction(f, kind, dirs, fighters, desiredHeading, viaCancel, guardHe
   const vault = !!T.enableVault && kind === 'dodge' && wouldVault(f, heading, fighters);
   const countered = kind === 'tackle' && f.counterWindow > 0 && T.enableCounterBonus;
   f.action = {kind, elapsed: 0, startAngle: heading, heading, offensive: kind === 'tackle', vault, hits: new Set(), from, speedMultiplier: countered ? A.tackle.counterSpeed : 1};
+  // Salto sobre o rival: pulo balístico (impulso vertical, gravidade e velocidade horizontal próprias).
+  if (vault && A.dodge.vaultPhysics) f.action.jump = {y: 0, vy: A.dodge.vaultUp, over: vaultTarget(f, heading, fighters)};
   if (blendTime !== undefined) f.action.blendTime = blendTime;
   if (invulnerableFor !== undefined) f.action.invulnerableFor = invulnerableFor;
   if (liftStart > 0) {f.action.liftStart = liftStart;f.action.liftTime = liftTime;f.action.fromCancel = true;}
@@ -221,7 +266,7 @@ function startAction(f, kind, dirs, fighters, desiredHeading, viaCancel, guardHe
   if (countered) f.counterWindow = 0;
   // O custo de C já gasto continua gasto; X cobra o próprio custo.
   f.stamina = Math.max(0, f.stamina - p.cost);f.regenBase = f.stamina;f.regenAge = 0;
-  f.exhausted = f.stamina < 1e-8;f.guard = false;f.guardSuppressed = guardHeld;
+  f.exhausted = isDepleted(f.stamina);f.guard = false;f.guardSuppressed = guardHeld;
   f.stun = 0;f.push = null;f.blend = null;f.vaultHeight = liftStart;f.bufferedTackle = null;f.inputBuffer = null;
   f.sprinting = false;f.sprintCarry = false;f.sprintArmed = kind === 'dodge';
 }
@@ -231,11 +276,15 @@ export function advanceAction(f, dt) {
   if (!f.action) return;
   f.action.elapsed += dt;
   const kind = f.action.kind, duration = kind === 'recoil' ? C.rules.recoil : C.actions[kind].duration;
-  if (f.action.elapsed >= duration - 1e-8) {
+  // O pulo físico termina ao tocar o chão (a duração da esquiva não o corta no ar).
+  const done = f.action.jump ? f.action.jump.landed : f.action.elapsed >= duration - 1e-8;
+  if (done) {
     const wasExhausted = f.exhausted && (kind === 'dodge' || kind === 'tackle');
     f.action = null;f.velocity = vec();f.vaultHeight = 0;f.state = f.hp <= 0 ? 'defeated' : 'neutral';
     if (wasExhausted && f.hp > 0) f.knockRecovery = Math.max(f.knockRecovery, C.extras.combat.exhaustRecovery);
     const recovery = kind === 'recoil' ? 0 : C.actions[kind].recovery;
     if (recovery > 0 && f.hp > 0) f.knockRecovery = Math.max(f.knockRecovery, recovery);
+    // A animação segura a pose final da ação durante essa recuperação (não troca para “levantar”).
+    f.recoveryFrom = f.knockRecovery > 0 && kind !== 'recoil' ? kind : null;
   }
 }

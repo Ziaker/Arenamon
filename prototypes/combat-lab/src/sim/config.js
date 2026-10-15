@@ -8,7 +8,9 @@ export function defaults() {
   const rules = {recoil: .3, recoilFraction: .15, blend: .1, guardStun: .2,
     launchGravity: 17.5, launchUp: 7.3, launchHorizontal: 11, launchDrag: 1.15, clashFraction: .3, clashUp: 8.1, clashHorizontal: 12,
     landingRecovery: .19, wallRestitution: .28, perfect: .2, perfectCooldown: 2, staminaMax: 3, regenDelay: 1, regenTime: 5, guardSpeed: .6,
-    exhaustedSpeed: .7, guardTurn: 3 * Math.PI, guardAcceleration: 15 * Math.PI};
+    exhaustedSpeed: .7, guardTurn: 3 * Math.PI, guardAcceleration: 15 * Math.PI,
+    // exhaustMode 1: exausto quando sobra menos que o menor custo de X/C (0 = só em zero, Etapa A). Rebote na parede: vertical.
+    exhaustMode: 1, wallBounceVertical: 1, wallBounceUp: 0};
   const test = {step: 1 / 120, maxFrame: .1, arenaHalf: 16, halfExtent: .5, hp: 100, attack: 20, defense: 50, speed: 4.8, attackReference: 20,
     speedReference: 10, defenseMedian: 50, pushCoefficient: 2, pushDuration: .3, aiInterval: .85, aiRange: 3.3, contactStep: .1, epsilon: 1e-8,
     forwardTolerance: Math.PI / 8};
@@ -18,7 +20,7 @@ export function defaults() {
   // alvo; 2 = para o alvo parado/defendendo e para onde anda em movimento.
   const locomotion = {acceleration: 26, braking: 22, reversal: 38, turnRate: 4 * Math.PI, visualTurnRate: 5 * Math.PI,
     model: 1, accelCurve: .45, brakeCurve: .35, friction: .8, turnGrip: 34, residualSpeed: .25, turnAcceleration: 90,
-    moveFrame: 0, frameLatch: 1, lockFacing: 2, stopThreshold: .55};
+    moveFrame: 0, frameLatch: 1, lockFacing: 2, stopThreshold: .55, lockTackleHoming: 1};
   const camera = {distance: 6.2, height: 2.2, lookHeight: 1.1, lookAhead: 1.8, followResponse: 12, distanceResponse: 5, yawResponse: 3.0,
     maxTurnRate: Math.PI / 2.6, deadZone: Math.PI / 9, movingDeadZone: Math.PI / 3, closeRange: 1.3, initialYaw: Math.PI + .2, shoulder: .45,
     framingRange: 6, distanceScale: .35, manualHold: 1.5, minDistance: 4.8, maxDistance: 24};
@@ -52,8 +54,10 @@ export function defaults() {
     gameModes: {enemyMode: 8, playerProfile: 0},
     toggles: {enableTackle: 1, enableDodge: 1, enableDefense: 1, enableClash: 1, enableInvulnerability: 1, enableLaunch: 1, enableVault: 1, enableWallBounce: 1,
       enableAIAttack: 1, enableAIReactive: 1, enableCameraFollow: 1, enableCameraRecenter: 1, enablePlayerAI: 0, showHitboxes: 0, showAttackVectors: 0,
-      enableHitstop: 1, enableCounterBonus: 1, enableLandingSkid: 1, enableEnemyAI: 1, enableSprint: 1},
+      enableHitstop: 1, enableCounterBonus: 1, enableLandingSkid: 1, enableEnemyAI: 1, enableSprint: 1, enemyManual: 0},
     bindings: {forward: 0, back: 1, left: 2, right: 3, tackle: 4, dodge: 5, defend: 6, lock: 7, pause: 8, restart: 9, debug: 10},
+    // Teclas do vermelho no controle manual (índices em keyCodes): I/J/K/L movem, U tackle, O esquiva, P defesa, Y alvo.
+    bindings2: {forward: 33, back: 35, left: 34, right: 36, tackle: 37, dodge: 38, defend: 39, lock: 40},
     colors: {playerR: 53, playerG: 137, playerB: 255, enemyR: 242, enemyG: 81, enemyB: 75, floorR: 96, floorG: 109, floorB: 116, wallR: 202, wallG: 212, wallB: 219,
       backgroundR: 32, backgroundG: 43, backgroundB: 53, gridMajorR: 196, gridMajorG: 209, gridMajorB: 217, gridMinorR: 133, gridMinorG: 147, gridMinorB: 156,
       impactR: 255, impactG: 179, impactB: 97, clashR: 255, clashG: 229, clashB: 141, landingR: 180, landingG: 193, landingB: 203,
@@ -63,7 +67,7 @@ export function defaults() {
       glowInvulnR: 49, glowInvulnG: 91, glowInvulnB: 88, glowRecoilR: 96, glowRecoilG: 48, glowRecoilB: 71, glowTackleR: 107, glowTackleG: 54, glowTackleB: 4},
     keyCodes: ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyX', 'KeyC', 'KeyD', 'Tab', 'Escape', 'KeyR', 'F3', 'KeyA', 'KeyS', 'KeyZ', 'Space', 'KeyQ',
       'KeyE', 'KeyF', 'KeyW', 'KeyT', 'ShiftLeft', 'ShiftRight', 'Enter', 'Numpad0', 'Numpad1', 'Numpad2', 'Numpad3', 'Numpad4', 'Numpad5', 'Numpad6',
-      'Numpad7', 'Numpad8', 'Numpad9'],
+      'Numpad7', 'Numpad8', 'Numpad9', 'KeyI', 'KeyJ', 'KeyK', 'KeyL', 'KeyU', 'KeyO', 'KeyP', 'KeyY', 'KeyH', 'KeyG', 'KeyB', 'KeyN', 'KeyM', 'KeyV', 'Digit1', 'Digit2', 'Digit3', 'Digit4'],
   };
   // Ações independentes. Cada uma lê SOMENTE o próprio bloco: mudar C não muda X e vice-versa.
   // Valores iniciais = os do v6 (referência de migração; não são padrões aprovados).
@@ -76,16 +80,21 @@ export function defaults() {
   const actions = {
     // C — esquiva defensiva. Nunca causa dano. Salta sobre o rival quando a trajetória o atravessa.
     dodge: {...common(), fromRecoil: 1, fromGuardStun: 1, vaultHeight: 2.2, vaultReachBonus: .7, vaultForwardMin: .1, vaultLateralWidth: 1.15, perfectEvadeStamina: .2, counterWindow: .55,
-      prepTime: .06, impulseTime: .14, decelStart: .55, recoveryTime: .12, prepSpeed: .45, travelEnd: .7},
+      prepTime: .06, impulseTime: .14, decelStart: .55, recoveryTime: .12, prepSpeed: .45, travelEnd: .7,
+      // C só cancela C nos últimos selfCancelFromEnd segundos. Salto sobre o rival como pulo físico (impulso, gravidade, horizontal).
+      selfCancelFromEnd: .1, vaultPhysics: 1, vaultUp: 9, vaultGravity: 40, vaultHorizontal: 11},
     // X — tackle ofensivo, em qualquer direção. GDD 8.2: sem ataque durante o recuo; GDD 5: durante guard stun o ataque é guardado até o stun acabar.
     tackle: {...common(), fromRecoil: 0, fromGuardStun: 0, counterSpeed: 1.18,
-      prepTime: .06, impulseTime: .1, decelStart: .5, recoveryTime: .08, prepSpeed: .5, travelEnd: .55},
+      prepTime: .06, impulseTime: .1, decelStart: .5, recoveryTime: .08, prepSpeed: .5, travelEnd: .55,
+      // X não cancela X; a defesa só cancela o tackle com o toggle (desligado) ou com um toque de defesa perfeita.
+      selfCancel: 0, guardCancel: 0, perfectGuardCancel: 1},
     // Sprint: C mantido pressionado depois da esquiva. entryFraction: fração da esquiva a partir da qual, com C ainda
     // pressionado e uma direção, a esquiva vira sprint (1 = só ao terminar). Consome stamina por segundo.
     sprint: {speedMultiplier: 1.55, acceleration: 16, braking: 12, turnGrip: 20, staminaDrain: .55, minStamina: .2, entryFraction: .7, exhaustedStop: 1},
     // Cancelamento C → X (sistema próprio, independente da janela genérica de encadeamento).
     // invulnerability: 0 = mantém só o restante da invulnerabilidade de C; 1 = nenhuma; 2 = janela completa de X.
-    cancel: {dodgeToTackle: 1, windowStart: 0, windowEnd: .4, transition: .06, velocityInfluence: 1, airDescent: .18, invulnerability: 0},
+    // windowMode 1: C → X só nos últimos fromEnd segundos da esquiva (0 = início/fim absolutos); depois de esquiva perfeita, a qualquer momento.
+    cancel: {dodgeToTackle: 1, windowStart: 0, windowEnd: .4, transition: .06, velocityInfluence: 1, airDescent: .18, invulnerability: 0, windowMode: 1, fromEnd: .15, perfectAnytime: 1},
     // Buffer de entrada: X ou C pedidos cedo demais ficam guardados por este tempo e saem assim que permitidos (0 = desligado).
     buffer: {window: .1},
   };
@@ -106,7 +115,7 @@ export function vfxDefaults() {
     sprint: {enabled: 1, variant: 0, density: 1, length: 1.1, speed: 9, spread: .5, intensity: 1, opacity: .55, color: 0xd8f4ff, frequency: 28},
     block: {enabled: 1, variant: 1, size: 1, opacity: .75, duration: .3, color: 0x73caff, intensity: 1, count: 10, expansion: 1},
     perfect: {enabled: 1, variant: 0, intensity: 1.3, duration: .55, scale: 1.2, count: 26, wave: 2.4, glow: 1.6, color: 0x9dffd2, color2: 0xffffff, fade: 1.4, flash: .55, freeze: .07},
-    ground: {enabled: 1, variant: 0, radius: 1.3, density: 1, duration: .55, intensity: 1, speed: 3.5, opacity: .85, particleSize: .22, elevation: .5, color: 0xe6edf2, minImpact: 2},
+    ground: {enabled: 1, variant: 0, radius: 1.3, density: 1, duration: .55, intensity: 1, speed: 3.5, opacity: .85, particleSize: .22, elevation: .5, color: 0xe6edf2, minImpact: 2, mixA: 1, mixB: .8, mixC: .6},
     clash: {enabled: 1, variant: 0, scale: 1.2, duration: .6, intensity: 1.3, count: 30, color: 0xffe58d, color2: 0xff7a3c, radius: 1.6, speed: 7, glow: 1.6},
     exhaust: {enabled: 1, variant: 0, target: 0, count: 5, fallSpeed: 1.1, spread: .55, size: .26, opacity: .85, glow: 1, startHeight: 2.1, interval: .14, color: 0x4fa3ff},
     regen: {enabled: 1, variant: 0, count: 3, frequency: 7, speed: 1.2, height: 1.8, intensity: 1, size: .28, opacity: .8, spread: .5, color: 0xffd34d, scaleWithRate: 1},
@@ -140,13 +149,19 @@ export const ETAPA_A_MOTION = {'locomotion.model': 0, 'locomotion.acceleration':
   'locomotion.frameLatch': 0, 'locomotion.lockFacing': 1, 'actions.dodge.profile': 0, 'actions.tackle.profile': 0, 'actions.dodge.distanceReference': 0,
   'actions.tackle.distanceReference': 0, 'extras.ai.moveSmoothing': 0, 'extras.ai.minDirectionHold': 0, 'extras.toggles.enableSprint': 0};
 /**
+ * Regras de cancelamento, exaustão e salto da Etapa A (antes das correções de 15/10/2026): X cancela X e é cancelado pela
+ * defesa após chainAfter, C → X desde o início da esquiva, C cancela C após chainAfter, exaustão só em zero, salto em arco fixo.
+ */
+export const ETAPA_A_RULES = {'actions.tackle.selfCancel': 1, 'actions.tackle.guardCancel': 1, 'actions.dodge.selfCancelFromEnd': 99, 'actions.dodge.vaultPhysics': 0,
+  'actions.cancel.windowMode': 0, 'actions.cancel.perfectAnytime': 0, 'rules.exhaustMode': 0, 'locomotion.lockTackleHoming': 0};
+/**
  * Ajustes que reproduzem o comportamento do laboratório v6 (usado no teste de paridade). Diferenças do padrão:
  * no v6 o tackle podia sair do recuo e do guard stun imediatamente, e C → X seguia a janela genérica (após 200 ms,
  * com a velocidade inteira, nova invulnerabilidade completa e retorno instantâneo ao chão).
  */
 export const V6_COMPAT = {'actions.tackle.fromRecoil': 1, 'actions.tackle.fromGuardStun': 1, 'actions.cancel.windowStart': .2, 'actions.cancel.windowEnd': .4,
   'actions.cancel.transition': .1, 'actions.cancel.velocityInfluence': 1, 'actions.cancel.airDescent': 0, 'actions.cancel.invulnerability': 2, 'actions.buffer.window': 0,
-  ...ETAPA_A_MOTION};
+  ...ETAPA_A_MOTION, ...ETAPA_A_RULES};
 /** Restaura os padrões do laboratório (mantendo a identidade dos objetos, que outros módulos guardam). */
 export function resetConfig(values = defaults()) {
   for (const key of ROOT_KEYS) deepAssign(C[key], values[key]);
@@ -158,4 +173,6 @@ function deepAssign(target, source) {
   }
 }
 export const keyFor = name => C.extras.keyCodes[C.extras.bindings[name]];
+/** Tecla do vermelho no controle manual. */
+export const keyFor2 = name => C.extras.keyCodes[C.extras.bindings2[name]];
 export const rgb = base => {const c = C.extras.colors;return ((c[base + 'R'] | 0) << 16) | ((c[base + 'G'] | 0) << 8) | (c[base + 'B'] | 0);};

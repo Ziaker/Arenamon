@@ -3,6 +3,7 @@
 import {C} from './config.js';
 import {canAct, canMove, isInvulnerable, invulnerableWindow} from './entity.js';
 import {length} from './math.js';
+import {cancelWindow} from './controller.js';
 
 export const ms = ticks => ticks * C.test.step * 1000;
 
@@ -67,7 +68,7 @@ export function frameTable() {
   return [
     row('Tackle (X)', A.tackle, `1–${n(A.tackle.duration)}`),
     row('Esquiva (C)', A.dodge, '—'),
-    {action: 'Cancelamento C → X', total: '—', active: '—', invulnerable: ['resto de C', 'nenhuma', 'janela de X'][c.invulnerability] ?? '—', cancel: c.dodgeToTackle ? `passos ${n(c.windowStart) + 1}–${n(c.windowEnd)} de C` : 'desligado', cost: A.tackle.cost},
+    {action: 'Cancelamento C → X', total: '—', active: '—', invulnerable: ['resto de C', 'nenhuma', 'janela de X'][c.invulnerability] ?? '—', cancel: c.dodgeToTackle ? `passos ${n(cancelWindow()[0]) + 1}–${n(cancelWindow()[1])} de C` : 'desligado', cost: A.tackle.cost},
     {action: 'Recuo (bloqueado)', total: n(R.recoil), active: '—', invulnerable: '—', cancel: A.tackle.fromRecoil ? 'X, C e defesa' : 'C e defesa (X não)', cost: 0},
     {action: 'Guard stun', total: n(R.guardStun), active: '—', invulnerable: '—', cancel: A.tackle.fromGuardStun ? 'C, X e defesa perfeita' : 'C e defesa perfeita; X fica guardado', cost: 0},
     {action: 'Defesa perfeita (janela)', total: n(R.perfect), active: '—', invulnerable: '—', cancel: '—', cost: 0},

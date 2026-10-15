@@ -79,9 +79,9 @@ const same = (a, b) => Math.abs(a - b) <= 1e-9 * Math.max(1, Math.abs(a), Math.a
 /** Seções do overhaul fora do catálogo original: sprint (Ajustes) e efeitos, sombras, HUD e tremores (Visualizar). */
 export const EXTRA_SECTIONS = [['Sprint (C mantido)', 'actions.sprint', null], ['VFX · geral', 'vfx.master', null],
   ...VFX_TYPES.map(([type, label]) => [`VFX · ${label}`, `vfx.${type}`, null]), ['Tremor · geral', 'vfx.shakeMaster', null], ...SHAKE_EVENTS.map(([key, label]) => [`Tremor · ${label}`, `vfx.${key}`, null]),
-  ['Sombras', 'display.shadow', null], ['HUD', 'display.hud', null], ['Altura visual', 'display.grounding', null], ['Indicador da janela C → X', 'display.cancelRing', null]];
+  ['Teclas do vermelho (controle manual)', 'extras.bindings2', null], ['Sombras', 'display.shadow', null], ['HUD', 'display.hud', null], ['Altura visual', 'display.grounding', null], ['Indicador da janela C → X', 'display.cancelRing', null]];
 /** Parâmetros mostrados em outras abas (sem duplicar controles no Ajustes). */
-const ELSEWHERE = new Set(['extras.toggles.enableEnemyAI', 'extras.visual.shadowMin', 'extras.visual.shadowHeightFade']);
+const ELSEWHERE = new Set(['extras.toggles.enableEnemyAI', 'extras.toggles.enemyManual', 'extras.visual.shadowMin', 'extras.visual.shadowHeightFade']);
 export function createTuning({apply}) {
   const base = defaults(), manifest = [];
   for (const [section, rootPath, subset] of [...SECTIONS, ...EXTRA_SECTIONS]) {

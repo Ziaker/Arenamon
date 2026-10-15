@@ -93,7 +93,8 @@ function reversal(label, file, {sprint = false, locked = false, diag = false} = 
   return {rows, before, stepsToZero, dv, lim};
 }
 test('inversão direita → esquerda caminhando: velocidade atravessa zero progressivamente', () => reversal('Inversão (caminhada)', 'inversao-caminhada'));
-test('inversão durante o sprint', () => reversal('Inversão (sprint)', 'inversao-sprint', {sprint: true}));
+// Stamina ampla: o sprint termina ao sobrar menos que o custo de uma ação (exaustão), o que encerraria a inversão no meio.
+test('inversão durante o sprint', () => {C.rules.staminaMax = 8;reversal('Inversão (sprint)', 'inversao-sprint', {sprint: true});});
 test('inversão diagonal (movimento diagonal normalizado)', () => {
   const r = reversal('Inversão (diagonal)', 'inversao-diagonal', {diag: true});
   check('Inversão (diagonal)', 'diagonal não é mais rápida que o eixo', r.before <= C.profiles.balanced.speed + 1e-6, `≤ ${C.profiles.balanced.speed}`, r.before);
@@ -243,8 +244,9 @@ test('sprint: C → manter C → sprint; consome stamina; soltar C desacelera; e
   // Exaustão: sprint até zerar a stamina.
   resetConfig();C.actions.sprint.staminaDrain = 1.5;const g2 = arena({p0: vec(-14, 0)});const f2 = g2.fighters[0];
   const rows2 = trace(g2, 500, t => {const c = cmd({move: right, dodgeHeld: true});if (t === 2) {c.dodge = true;c.dodgeDirection = right;}return [c, cmd()];});
-  const ex = rows2.findIndex(r => r.stamina <= 1e-9 && r.t > .1);
-  check('Sprint', 'stamina zerada encerra o sprint e deixa exausto', ex > 0 && !rows2[ex + 1].sprint && f2.exhausted !== undefined, 'sprint encerrado', `passo ${ex}, sprint depois: ${rows2[ex + 1]?.sprint}`);
+  // Exaustão: stamina abaixo do menor custo de X/C encerra o sprint.
+  const ex = rows2.findIndex((r, i) => i > 0 && rows2[i - 1].sprint && !r.sprint);
+  check('Sprint', 'stamina esgotada (abaixo do custo de uma ação) encerra o sprint e deixa exausto', ex > 0 && rows2[ex].stamina < Math.min(C.actions.dodge.cost, C.actions.tackle.cost) + .02 && f2.exhausted, 'sprint encerrado e exausto', `passo ${ex}, stamina ${rows2[ex]?.stamina.toFixed(2)}, exausto ${f2.exhausted}`);
   const slow = Math.hypot(rows2[ex + 90].vx, rows2[ex + 90].vz);
   check('Sprint', 'após a exaustão anda na velocidade de exausto', Math.abs(slow - f2.attributes.speed * C.rules.exhaustedSpeed) < .05 || !f2.exhausted, `${(f2.attributes.speed * C.rules.exhaustedSpeed).toFixed(2)} m/s`, slow);
 });
