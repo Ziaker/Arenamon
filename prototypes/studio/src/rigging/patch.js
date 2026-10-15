@@ -23,7 +23,7 @@ const newPatchJointId = () => `joint-p${Date.now().toString(36)}-${(++patchSeq).
 // -------------------------------------------------------------
 // 1. Snapshot e Rollback Atômico
 // -------------------------------------------------------------
-export function takeRigSnapshot(root) {
+export function takeRigSnapshot(root, options = {}) {
   root.updateMatrixWorld(true);
   const bones = collectBones(root);
   const boneStates = bones.map((b) => ({
@@ -58,7 +58,8 @@ export function takeRigSnapshot(root) {
   });
 
   const metadata = root.userData?.arenamonRig ? structuredClone(root.userData.arenamonRig) : null;
-  const draft = root.userData?.arenamonRigDraft ? structuredClone(root.userData.arenamonRigDraft) : null;
+  const draftSource = options.draft || root.userData?.arenamonRigDraft;
+  const draft = draftSource ? structuredClone(draftSource) : null;
 
   return {
     timestamp: Date.now(),
@@ -69,7 +70,7 @@ export function takeRigSnapshot(root) {
   };
 }
 
-export function restoreRigSnapshot(root, snapshot) {
+export function restoreRigSnapshot(root, snapshot, options = {}) {
   if (!snapshot) return;
 
   // 1. Restaurar metadados
@@ -80,8 +81,16 @@ export function restoreRigSnapshot(root, snapshot) {
   }
   if (snapshot.draft) {
     root.userData.arenamonRigDraft = structuredClone(snapshot.draft);
+    if (options.draft) {
+      options.draft.joints = structuredClone(snapshot.draft.joints);
+      if (snapshot.draft.bounds) options.draft.bounds = structuredClone(snapshot.draft.bounds);
+      options.draft.version = snapshot.draft.version;
+    }
   } else {
     delete root.userData.arenamonRigDraft;
+    if (options.draft) {
+      delete options.draft.joints;
+    }
   }
 
   // 2. Restaurar ossos
@@ -175,8 +184,45 @@ export function restoreRigSnapshot(root, snapshot) {
 // -------------------------------------------------------------
 // 2. Validação e Simulação Pre-Flight (Dry Run)
 // -------------------------------------------------------------
+// Campos por operação canônica. Tipos: ref (ID/nome), refOrNull, name, vec3, quat, int, influences, side, bool, meshOpt.
+export const PATCH_OPERATIONS = Object.freeze({
+  setBonePosition: {required: {jointId: 'ref', position: 'vec3'}, optional: {space: 'space'}},
+  setBoneQuaternion: {required: {jointId: 'ref', quaternion: 'quat'}, optional: {}},
+  moveBone: {required: {jointId: 'ref', delta: 'vec3'}, optional: {space: 'space'}},
+  mirrorBone: {required: {jointId: 'ref'}, optional: {symmetryCenter: 'number'}},
+  correctSymmetry: {required: {}, optional: {referenceSide: 'side'}},
+  renameJoint: {required: {jointId: 'ref', newName: 'name'}, optional: {}},
+  createBone: {required: {name: 'name'}, optional: {id: 'ref', parent: 'refOrNull', position: 'vec3', quaternion: 'quat'}},
+  deleteBone: {required: {jointId: 'ref'}, optional: {reparentChildren: 'bool'}},
+  reparentBone: {required: {jointId: 'ref'}, optional: {newParentJointId: 'refOrNull'}},
+  recomputeBindMatrices: {required: {}, optional: {}},
+  normalizeSkinWeights: {required: {}, optional: {meshName: 'refOrNull'}},
+  modifyVertexWeights: {required: {meshName: 'ref', vertexIndex: 'int', influences: 'influences'}, optional: {}}
+});
+
+const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
+const isVec = (v, n) => Array.isArray(v) && v.length === n && v.every(isNum);
+function checkField(type, v) {
+  switch (type) {
+    case 'ref': return typeof v === 'string' && v.trim() ? null : 'esperado ID ou nome de osso/malha';
+    case 'refOrNull': return v === null || (typeof v === 'string' && v.trim()) ? null : 'esperado ID, nome ou null';
+    case 'name': return typeof v === 'string' && v.trim() && v.length <= 80 ? null : 'esperado nome com 1 a 80 caracteres';
+    case 'vec3': return isVec(v, 3) && v.every((x) => Math.abs(x) <= 1e6) ? null : 'esperado [x,y,z] finito dentro de ±1e6';
+    case 'quat': return isVec(v, 4) && Math.abs(Math.hypot(...v) - 1) <= 1e-3 ? null : 'esperado quaternion [x,y,z,w] normalizado';
+    case 'int': return Number.isInteger(v) && v >= 0 ? null : 'esperado inteiro ≥ 0';
+    case 'number': return isNum(v) ? null : 'esperado número finito';
+    case 'bool': return typeof v === 'boolean' ? null : 'esperado booleano';
+    case 'space': return v === 'model-root' || v === 'local' ? null : 'esperado "model-root" ou "local"';
+    case 'side': return v === 'Left' || v === 'Right' ? null : 'esperado "Left" ou "Right"';
+    case 'influences':
+      return Array.isArray(v) && v.length >= 1 && v.length <= 4 && v.every((i) => i && typeof i.jointId === 'string' && isNum(i.weight) && i.weight >= 0 && i.weight <= 1)
+        ? null : 'esperado 1 a 4 itens {jointId, weight ∈ [0,1]}';
+    default: return 'tipo desconhecido';
+  }
+}
+
 export function validatePatch(patch) {
-  if (!patch || typeof patch !== 'object') {
+  if (!patch || typeof patch !== 'object' || Array.isArray(patch)) {
     throw new Error('Patch inválido: esperado objeto JSON.');
   }
   if (patch.schema !== 'arenamon-rig-patch') {
@@ -185,38 +231,64 @@ export function validatePatch(patch) {
   if (patch.version !== 1) {
     throw new Error(`Versão de patch não suportada: ${patch.version}. Use versão 1.`);
   }
+  if (!Array.isArray(patch.operations) && Array.isArray(patch.ops)) {
+    throw new Error('Patch no formato da Workbench (campo "ops"). Converta explicitamente com migrateWorkbenchPatch() antes de validar/aplicar.');
+  }
   if (!Array.isArray(patch.operations)) {
     throw new Error('Patch inválido: o campo "operations" deve ser um array.');
   }
-
-  const supportedOps = new Set([
-    'setBonePosition',
-    'setBoneQuaternion',
-    'moveBone',
-    'setRestPose',
-    'mirrorBone',
-    'correctSymmetry',
-    'renameJoint',
-    'createBone',
-    'deleteBone',
-    'reparentBone',
-    'recomputeBindMatrices',
-    'recomputeSkinningWeights',
-    'normalizeSkinWeights',
-    'modifyVertexWeights'
-  ]);
-
-  for (let i = 0; i < patch.operations.length; i++) {
-    const op = patch.operations[i];
-    if (!op || typeof op !== 'object' || typeof op.op !== 'string') {
-      throw new Error(`Operação no índice ${i} inválida: esperado objeto com campo "op".`);
+  const errors = [];
+  patch.operations.forEach((op, i) => {
+    const at = `operations[${i}]`;
+    if (!op || typeof op !== 'object' || typeof op.op !== 'string') return errors.push(`${at}: esperado objeto com campo "op".`);
+    const spec = PATCH_OPERATIONS[op.op];
+    if (!spec) return errors.push(`${at}: operação não reconhecida "${op.op}".`);
+    for (const [k, t] of Object.entries(spec.required)) {
+      if (op[k] === undefined) errors.push(`${at}.${k}: campo obrigatório em ${op.op}.`);
+      else { const e = checkField(t, op[k]); if (e) errors.push(`${at}.${k}: ${e}.`); }
     }
-    if (!supportedOps.has(op.op)) {
-      throw new Error(`Operação não reconhecida no índice ${i}: "${op.op}".`);
+    for (const [k, t] of Object.entries(spec.optional)) {
+      if (op[k] !== undefined) { const e = checkField(t, op[k]); if (e) errors.push(`${at}.${k}: ${e}.`); }
     }
-  }
-
+    const known = new Set(['op', 'note', ...Object.keys(spec.required), ...Object.keys(spec.optional)]);
+    for (const k of Object.keys(op)) if (!known.has(k)) errors.push(`${at}.${k}: campo desconhecido em ${op.op}.`);
+  });
+  if (errors.length) throw new Error('Patch inválido:\n- ' + errors.join('\n- '));
   return true;
+}
+
+// Migração explícita do formato da Workbench (schema igual, campo "ops" e nomes curtos) para o formato canônico.
+// Nunca é aplicada implicitamente: o chamador decide converter e recebe a lista do que mudou.
+const WORKBENCH_MAP = {
+  setPosition: (o) => ({op: 'setBonePosition', jointId: o.joint, space: 'model-root', position: o.p}),
+  translate: (o) => ({op: 'moveBone', jointId: o.joint, space: 'model-root', delta: o.delta}),
+  setRotation: (o) => ({op: 'setBoneQuaternion', jointId: o.joint, quaternion: o.q}),
+  rename: (o) => ({op: 'renameJoint', jointId: o.joint, newName: o.name}),
+  reparent: (o) => ({op: 'reparentBone', jointId: o.joint, newParentJointId: o.parent}),
+  addJoint: (o) => ({op: 'createBone', name: o.name, parent: o.parent, position: o.p, ...(o.q ? {quaternion: o.q} : {})}),
+  removeJoint: (o) => ({op: 'deleteBone', jointId: o.joint, reparentChildren: true}),
+  mirror: (o) => ({op: 'mirrorBone', jointId: o.joint})
+};
+export function migrateWorkbenchPatch(input) {
+  const patch = typeof input === 'string' ? JSON.parse(input) : input;
+  if (!patch || patch.schema !== 'arenamon-rig-patch' || patch.version !== 1 || !Array.isArray(patch.ops)) {
+    throw new Error('migrateWorkbenchPatch: esperado {schema:"arenamon-rig-patch", version:1, ops:[...]}.');
+  }
+  if (patch.space !== undefined && patch.space !== 'model-root') throw new Error('migrateWorkbenchPatch: só o espaço "model-root" existe na Workbench.');
+  const changes = [];
+  const operations = patch.ops.map((o, i) => {
+    const fn = WORKBENCH_MAP[o?.op];
+    if (!fn) throw new Error(`migrateWorkbenchPatch: ops[${i}] operação "${o?.op}" sem equivalente canônico.`);
+    const out = fn(o);
+    if (o.note !== undefined) out.note = o.note;
+    for (const k of Object.keys(out)) if (out[k] === undefined) delete out[k];
+    changes.push(`ops[${i}].${o.op} → operations[${i}].${out.op}`);
+    return out;
+  });
+  const migrated = {schema: 'arenamon-rig-patch', version: 1, ...(patch.description ? {description: patch.description} : {}), operations,
+    migratedFrom: {format: 'workbench-ops', changes}};
+  validatePatch(migrated);
+  return migrated;
 }
 
 export function simulateRigPatch(root, patch, options = {}) {
@@ -397,7 +469,7 @@ export function applyRigPatch(root, patch, options = {}) {
   }
 
   // Capturar snapshot para rollback atômico e Undo
-  const preSnapshot = takeRigSnapshot(root);
+  const preSnapshot = takeRigSnapshot(root, options);
   const undoStack = options.undoStack || null;
 
   root.updateMatrixWorld(true);
@@ -423,7 +495,7 @@ export function applyRigPatch(root, patch, options = {}) {
   }
 
   const isSkinned = Boolean(collectBones(root).length > 0 && root.userData?.arenamonRig);
-  const draft = root.userData?.arenamonRigDraft || (root.userData?.arenamonRig?.mode === 'draft' ? root.userData.arenamonRig : null);
+  const draft = options.draft || root.userData?.arenamonRigDraft || (root.userData?.arenamonRig?.mode === 'draft' ? root.userData.arenamonRig : null);
 
   try {
     for (const op of patch.operations) {
@@ -739,15 +811,20 @@ export function applyRigPatch(root, patch, options = {}) {
       }
     });
 
-    syncRigMetadata(root);
+    if (isSkinned) {
+      syncRigMetadata(root);
+    }
+    if (draft) {
+      root.userData.arenamonRigDraft = structuredClone(draft);
+    }
 
     // Snapshot pós-operação para suporte a Undo/Redo
-    const postSnapshot = takeRigSnapshot(root);
+    const postSnapshot = takeRigSnapshot(root, options);
     if (undoStack && typeof undoStack.push === 'function') {
       undoStack.push({
         name: `Rig Patch (${patch.operations.length} ops)`,
-        undo: () => restoreRigSnapshot(root, preSnapshot),
-        redo: () => restoreRigSnapshot(root, postSnapshot)
+        undo: () => restoreRigSnapshot(root, preSnapshot, options),
+        redo: () => restoreRigSnapshot(root, postSnapshot, options)
       });
     }
 
@@ -760,7 +837,7 @@ export function applyRigPatch(root, patch, options = {}) {
     };
   } catch (err) {
     // ATOMIC ROLLBACK: Reverter integralmente em caso de qualquer exceção
-    restoreRigSnapshot(root, preSnapshot);
+    restoreRigSnapshot(root, preSnapshot, options);
     throw new Error(`Falha durante a execução do Rig Patch. Rollback atômico executado. Causa: ${err.message}`);
   }
 }
@@ -864,14 +941,14 @@ export class RigController {
   }
 
   apply(patch) {
-    const preSnapshot = takeRigSnapshot(this.root);
+    const preSnapshot = takeRigSnapshot(this.root, this.options);
     const result = applyRigPatch(this.root, patch, this.options);
-    const postSnapshot = takeRigSnapshot(this.root);
+    const postSnapshot = takeRigSnapshot(this.root, this.options);
 
     this.undoStack.push({
       name: `Patch (${patch.operations?.length || 1} ops)`,
-      undo: () => restoreRigSnapshot(this.root, preSnapshot),
-      redo: () => restoreRigSnapshot(this.root, postSnapshot)
+      undo: () => restoreRigSnapshot(this.root, preSnapshot, this.options),
+      redo: () => restoreRigSnapshot(this.root, postSnapshot, this.options)
     });
     this.redoStack = []; // limpar redo ao aplicar nova ação
     return result;

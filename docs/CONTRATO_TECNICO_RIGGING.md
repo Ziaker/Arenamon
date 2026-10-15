@@ -294,3 +294,95 @@ const patch = window.__studioRig.createPatchBuilder()
 
 window.__studioRig.applyPatch(patch);
 ```
+
+---
+
+## 6. Migração do Formato da Workbench (`migrateWorkbenchPatch`)
+
+### 6.1 Histórico e Incompatibilidade
+A Workbench de prototipagem utilizava um formato preliminar baseado em `schema: 'workbench-rig-patch'` com chave `ops` e nomenclaturas abreviadas (`type: 'move'`, `bone: '...'`).
+Para garantir determinismo, integridade de tipos e atomicidade, o contrato canônico do Animation Studio adota estritamente `schema: 'arenamon-rig-patch'`, versão 1, com chave `operations` e `jointId`. Patches legados não migrados são rejeitados com erro explícito.
+
+### 6.2 Tabela de Conversão
+
+| Workbench (Legado) | Rig Patch Canônico (`arenamon-rig-patch` v1) | Notas |
+| :--- | :--- | :--- |
+| `schema: "workbench-rig-patch"` | `schema: "arenamon-rig-patch"` | Obrigatório |
+| `ops: [...]` | `operations: [...]` | Array de operações |
+| `type: "move"`, `bone: B`, `delta: D` | `op: "moveBone"`, `jointId: B`, `delta: D` | `space` padrão `'model-root'` |
+| `type: "setPosition"`, `bone: B`, `pos: P` | `op: "setBonePosition"`, `jointId: B`, `position: P` | `space` padrão `'model-root'` |
+| `type: "rename"`, `bone: B`, `name: N` | `op: "renameJoint"`, `jointId: B`, `newName: N` | Atualiza referências filhas |
+| `type: "create"`, `name: N`, `p: P` | `op: "createBone"`, `name: N`, `position: P` | Suporta `id` e `parent` |
+| `type: "delete"`, `bone: B` | `op: "deleteBone"`, `jointId: B` | `reparentChildren: true` |
+| `type: "reparent"`, `bone: B`, `parent: P` | `op: "reparentBone"`, `jointId: B`, `newParentJointId: P` | |
+| `type: "mirror"`, `bone: B` | `op: "mirrorBone"`, `jointId: B` | Espelhamento bilateral |
+
+### 6.3 Função Utilitária de Migração
+```javascript
+import { migrateWorkbenchPatch } from './src/rigging/patch.js';
+
+const legacyWorkbenchPatch = {
+  schema: 'workbench-rig-patch',
+  version: 1,
+  ops: [
+    { type: 'move', bone: 'Hips', delta: [0, 0.2, 0] },
+    { type: 'rename', bone: 'Head', name: 'Cranium' }
+  ]
+};
+
+// Conversão segura e tipada para o formato canônico
+const canonicalPatch = migrateWorkbenchPatch(legacyWorkbenchPatch);
+window.__studioRig.applyPatch(canonicalPatch);
+```
+
+---
+
+## 7. Algoritmos de Pesos de Skinning e Comprovação
+
+O Animation Studio disponibiliza dois algoritmos de pesagem automática na vinculação de malhas (`bindDraftToModel`), selecionáveis via interface (`#rg-weights`) ou API:
+
+1. **`segment-proximity` (Padrão Legado):**
+   - Proximidade linear ao segmento entre articulações pai e filho.
+   - Cálculo leve e compatibilidade regressiva com modelos e workflows prévios.
+2. **`capsule-falloff` (Algoritmo Aprimorado):**
+   - Utiliza modelo volumétrico de cápsula óssea com decaimento exponencial relativo ao comprimento do segmento.
+   - Previne vértices com peso zero em geometrias complexas e multi-malha, suavizando deformações em cotovelos, joelhos e articulações da coluna.
+
+### Comprovação do Algoritmo nos Metadados
+Ao executar a vinculação, o algoritmo utilizado é persistido explicitamente no `userData.arenamonRig` de cada modelo e no retorno da operação:
+```javascript
+// Exemplo de metadados gravados na raiz do modelo:
+{
+  "schema": "arenamon-rig",
+  "version": 2,
+  "autoWeights": {
+    "method": "capsule-falloff", // ou "segment-proximity"
+    "smoothness": 0.15,
+    "calculatedAt": "2026-10-14T23:55:00.000Z"
+  },
+  "joints": [ ... ]
+}
+```
+
+---
+
+## 8. Escopo Anatômico e Limitações do Auto-Rig
+
+> [!IMPORTANT]
+> **Princípio de Honestidade Técnica:** Não existe "auto-rig universal". O sistema do Arenamon não reivindica capacidade de gerar esqueletos adequados para qualquer malha arbitrária sem restrições.
+
+### Morfologias Suportadas e Comprovadas
+1. **Humanoide 20 Ossos (`generateHumanoidDraft`):**
+   - Proporções padrão (estilo realista/heróico) e chibi.
+   - Adequado para bípedes antropomórficos com cabeça, tronco, 2 braços e 2 pernas.
+2. **Quadrúpede 24 Ossos (`generateQuadrupedDraft` com `boneCount: 24`):**
+   - Estrutura simétrica com cintura pélvica, cintura escapular genérica, coluna torácica/lombar, pescoço, cabeça e 4 patas (coxa/braço, canela/antebraço, pata).
+3. **Quadrúpede 27 Ossos (`generateQuadrupedDraft` com `boneCount: 27`):**
+   - Inclui escápulas (`LeftScapula`, `RightScapula`) e âncoras torácicas especializadas para criaturas carnívoras e quadrúpedes robustos que demandam maior liberdade de ombro.
+4. **Cadeias Paramétricas de Cauda:**
+   - Adicionáveis opcionalmente (`withTail: true`) com múltiplos segmentos ajustáveis.
+
+### Limitações Explícitas
+- **Morfologias Não-Padrão:** Criaturas serpentinas puras, artrópodes multicelulares (aranhas, centopeias), seres amorfos ou com asas adicionais **não** utilizam auto-rig automático puro.
+- **Ajuste Assistido:** Para modelos fora do padrão humanoide/quadrúpede, deve-se utilizar `fitDraftToLandmarks` com marcos anatômicos declarados ou construir o esqueleto declarativamente via `RigPatchBuilder`.
+

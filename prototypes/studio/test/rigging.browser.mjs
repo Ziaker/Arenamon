@@ -210,22 +210,132 @@ try {
   assert.equal(telemetry.identification.totalBones, 20);
   mark('Telemetria programática no browser gera schema v1 com identificação e transformações');
 
+  // Teste de aplicação via applyPatch, Ctrl+Z, Ctrl+Y e persistência no histórico real do editor
+  const hipsYBefore = await page.evaluate(() => {
+    const b = window.__importer.model.getObjectByName('Hips') || window.__studioRig.draft?.joints.find(j=>j.name==='Hips');
+    return b.position ? b.position.y : b.p[1];
+  });
+
   const patchResult = await page.evaluate(() => {
     return window.__studioRig.applyPatch({
       schema: 'arenamon-rig-patch',
       version: 1,
       operations: [
-        { op: 'moveBone', jointId: 'Hips', space: 'local', delta: [0, 0.1, 0] }
+        { op: 'moveBone', jointId: 'Hips', space: 'local', delta: [0, 0.25, 0] }
       ]
     });
   });
   assert.equal(patchResult.success, true);
   mark('Rig Patch programático aplica mutação no modelo carregado via window.__studioRig');
 
+  const hipsYAfterPatch = await page.evaluate(() => {
+    const b = window.__importer.model.getObjectByName('Hips') || window.__studioRig.draft?.joints.find(j=>j.name==='Hips');
+    return b.position ? b.position.y : b.p[1];
+  });
+  assert.ok(Math.abs(hipsYAfterPatch - (hipsYBefore + 0.25)) < 1e-4, 'Hips deslocado por 0.25');
+
+  // Testar Ctrl+Z real disparado pelo teclado
+  await page.keyboard.press('Control+z');
+  const hipsYAfterUndo = await page.evaluate(() => {
+    const b = window.__importer.model.getObjectByName('Hips') || window.__studioRig.draft?.joints.find(j=>j.name==='Hips');
+    return b.position ? b.position.y : b.p[1];
+  });
+  assert.ok(Math.abs(hipsYAfterUndo - hipsYBefore) < 1e-4, 'Ctrl+Z reverteu a posição exata de Hips');
+  mark('Ctrl+Z desfaz o Rig Patch através do histórico window.__studioEditor.history');
+
+  // Testar Ctrl+Y real disparado pelo teclado
+  await page.keyboard.press('Control+y');
+  const hipsYAfterRedo = await page.evaluate(() => {
+    const b = window.__importer.model.getObjectByName('Hips') || window.__studioRig.draft?.joints.find(j=>j.name==='Hips');
+    return b.position ? b.position.y : b.p[1];
+  });
+  assert.ok(Math.abs(hipsYAfterRedo - hipsYAfterPatch) < 1e-4, 'Ctrl+Y refez a aplicação do Rig Patch');
+  mark('Ctrl+Y refaz o Rig Patch sem executar o comando duas vezes');
+
+  // Testar rollback atômico na UI ao passar patch inválido
+  const rollbackPass = await page.evaluate(() => {
+    const preY = window.__studioRig.draft?.joints.find(j=>j.name==='Hips').p[1];
+    let threw = false;
+    try {
+      window.__studioRig.applyPatch({
+        schema: 'arenamon-rig-patch',
+        version: 1,
+        operations: [
+          { op: 'moveBone', jointId: 'Hips', space: 'local', delta: [0, 0.5, 0] },
+          { op: 'setBonePosition', jointId: 'InexistentJointShouldFail', position: [0, 0, 0] }
+        ]
+      });
+    } catch (e) {
+      threw = true;
+    }
+    const postY = window.__studioRig.draft?.joints.find(j=>j.name==='Hips').p[1];
+    return threw && Math.abs(preY - postY) < 1e-4;
+  });
+  assert.ok(rollbackPass, 'Rollback atômico manteve o modelo íntegro após erro de patch');
+  mark('Rollback atômico em falha de patch não deixa o esqueleto em estado parcial');
+
+  // Testar exportação e reimportação GLB confirmando persistência do rig modificado por patch
+  const glbRoundtripPass = await page.evaluate(async () => {
+    const E = window.__importer;
+    const bytes = await E.exportGLB({unlit: false, noTextures: false});
+    const parsed = await E.parse(new File([bytes], 'patch-persisted.glb', {type: 'model/gltf-binary'}));
+    let meta = null;
+    parsed.scene.traverse(o => { meta ||= o.userData.arenamonRig || o.userData.arenamonRigDraft || null; });
+    const hipsJoint = meta?.joints?.find(j => j.name === 'Hips');
+    return {
+      hasMetadata: Boolean(meta),
+      hipsY: hipsJoint?.p[1]
+    };
+  });
+  assert.ok(glbRoundtripPass.hasMetadata, 'Metadados persistiram no GLB após patch');
+  assert.ok(Math.abs(glbRoundtripPass.hipsY - hipsYAfterRedo) < 1e-3, 'Posição modificada persiste no GLB exportado');
+  mark('Patch persiste com metadados e coordenadas no GLB exportado');
+
+  // Testar Auto-Rig Avançado gerando templates
   const autoRigQuad = await page.evaluate(() => window.__studioRig.generateAutoRig('quadruped'));
   assert.equal(autoRigQuad.schema, 'arenamon-rig');
   assert.equal(autoRigQuad.joints.length, 24);
   mark('Auto-Rig avançado gera template quadrúpede de 24 ossos via window.__studioRig');
+
+  const autoRigQuad27 = await page.evaluate(() => window.__studioRig.generateAutoRig('quadruped-27'));
+  assert.equal(autoRigQuad27.joints.length, 27);
+  mark('Auto-Rig avançado gera template quadrúpede de 27 ossos com escápulas via window.__studioRig');
+
+  // Testar bind com novo algoritmo selecionável em modelo multi-malha
+  await page.evaluate(async () => {
+    const E = window.__importer, T = E.T, root = new T.Group();
+    root.name = 'MultiMeshBindTest';
+    const b1 = new T.Mesh(new T.BoxGeometry(1.5, 2.5, 0.8), new T.MeshStandardMaterial());
+    b1.name = 'TorsoMesh'; b1.position.y = 1.25; root.add(b1);
+    const b2 = new T.Mesh(new T.SphereGeometry(0.6, 8, 8), new T.MeshStandardMaterial());
+    b2.name = 'HeadMesh'; b2.position.y = 2.9; root.add(b2);
+    await E.install(root, [], 'multi-mesh.glb');
+  });
+  if (!await page.evaluate(() => window.__studioRig.active)) await page.click('[data-panel=rigging]');
+  await page.locator('#rg-template').evaluate(el => el.click());
+  await page.waitForFunction(() => window.__studioRig.draft?.joints.length === 20);
+
+  // Selecionar algoritmo capsule-falloff no DOM
+  await page.selectOption('#rg-weights', 'capsule-falloff');
+
+  await page.locator('#rg-bind').evaluate(el => el.click());
+  await page.waitForFunction(() => !window.__studioRig.draft);
+
+  const multiMeshAudit = await page.evaluate(() => {
+    const audit = window.__studioRig.inspectRig();
+    const meta = window.__importer.model.userData.arenamonRig;
+    return {
+      skinnedCount: audit.identification.skinnedMeshCount,
+      method: meta?.autoWeights?.method,
+      torsoSkinned: audit.identification.meshes.find(m => m.name === 'TorsoMesh')?.skinned,
+      headSkinned: audit.identification.meshes.find(m => m.name === 'HeadMesh')?.skinned
+    };
+  });
+  assert.equal(multiMeshAudit.skinnedCount, 2, 'Ambas as malhas foram vinculadas');
+  assert.equal(multiMeshAudit.torsoSkinned, true);
+  assert.equal(multiMeshAudit.headSkinned, true);
+  assert.equal(multiMeshAudit.method, 'capsule-falloff', 'Algoritmo capsule-falloff registrado no userData');
+  mark('Bind vincula múltiplas malhas independentes usando o algoritmo capsule-falloff selecionável');
 
   assert.deepEqual(report.requests,[]);assert.deepEqual(report.errors,[]);
   await writeFile(out+'rigging-browser.json',JSON.stringify(report,null,2));

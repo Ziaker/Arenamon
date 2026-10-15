@@ -1,0 +1,47 @@
+name: Arenamon Studio Telemetry Auto-Rig CI
+
+on:
+  push:
+    branches:
+      - feat/studio-rig-telemetry-autorig
+  pull_request:
+    branches:
+      - feat/studio-rig-telemetry-autorig
+    paths:
+      - '.github/workflows/arenamon-studio-telemetry-autorig.yml'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'prototypes/studio/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  telemetry-autorig-ci:
+    runs-on: windows-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Runtime info
+        run: |
+          node --version
+          npm --version
+      - name: Full studio rigging & telemetry verification suite
+        run: npm run verify:studio-rigging
+      - name: Upload studio artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: arenamon-studio-telemetry-autorig-artifacts
+          path: |
+            prototypes/studio/dist/arenamon-animation-studio.html
+            prototypes/studio/validation/
+          retention-days: 14
+          if-no-files-found: warn
