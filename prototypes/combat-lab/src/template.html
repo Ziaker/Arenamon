@@ -87,6 +87,11 @@
      <div class="row"><label class="field">Lutas<input type="number" id="balance-matches" min="1" max="200" value="20"></label><label class="field">Semente<input type="number" id="balance-seed" min="1" value="1"></label></div>
      <button type="button" class="wide" id="balance-run">Medir equilíbrio</button>
      <div id="balance-report" class="report" aria-live="polite"></div>
+     <h3>Avaliação da IA: anterior × revisada</h3>
+     <p class="hint">As duas versões da IA tática jogam as mesmas lutas (mesmas sementes) contra a IA anterior. A revisão em uso no jogo fica em Ajustes › IA.</p>
+     <div class="row"><label class="field">Lutas<input type="number" id="aieval-matches" min="4" max="400" value="60"></label><label class="field">Semente<input type="number" id="aieval-seed" min="1" value="1"></label><label class="field">Estilo<select id="aieval-style"></select></label></div>
+     <div class="row"><button type="button" class="wide" id="aieval-run">Comparar IAs</button><button type="button" id="aieval-export">↓ Relatório (JSON)</button></div>
+     <div id="aieval-report" class="report" aria-live="polite"></div>
      <h3>Comparar A × B</h3>
      <p class="hint">Executa a mesma situação com dois conjuntos de ajustes (atuais, padrão do laboratório, jogo oficial ou presets salvos) e mostra os resultados lado a lado. A configuração atual não muda.</p>
      <div class="row"><label class="field">A<select id="comp-a"></select></label><label class="field">B<select id="comp-b"></select></label></div>
@@ -211,6 +216,10 @@
      <div class="row"><button type="button" class="primary" id="ws-export">↓ Exportar Workspace Completo (ZIP)</button></div>
      <label class="field">Importar Workspace Completo (.zip)<input type="file" id="ws-import-file" accept=".zip,application/zip"></label>
      <div id="ws-import-result" class="report" aria-live="polite"></div>
+     <h3>Relatórios e pastas do projeto</h3>
+     <p class="hint">Os relatórios exportados (gravador de movimento, diagnóstico, treino, benchmark, avaliação da IA e telemetria de animação) abrem no painel externo, um HTML complementar e opcional.</p>
+     <div class="row"><a class="btn-link" id="reports-link" href="arenamon-painel-relatorios.html" target="_blank" rel="noopener">Abrir painel de relatórios ↗</a></div>
+     <div id="pf-panel"></div>
      <h3>Ajustes em JSON</h3>
      <p class="hint">O laboratório nunca altera o jogo. Use o relatório para decidir o que levar ao <code>config.ts</code>.</p>
      <div class="row"><button type="button" class="primary" id="export-json">↓ Exportar ajustes (JSON)</button><button type="button" id="copy-json">Copiar</button></div>

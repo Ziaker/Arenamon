@@ -48,6 +48,7 @@ const SPRINT = {
   exhaustedStop: ['Stamina zerada encerra o sprint', 'Ao zerar a stamina o sprint termina com o freio do sprint e o lutador fica exausto (regra da stamina).', toggle],
 };
 const AI = {
+  revision: ['Revisão da IA tática', 'Revisada: só pede ações que o motor aceitaria agora (mesma regra do jogador), estima se o X alcança antes de atacar, evita ficar exausta, usa sprint para encurtar distância e aproveita contra-ataques. Anterior: IA tática de 15/10/2026 (para comparação).', select(['Anterior (15/10/2026)', 'Revisada'])],
   moveSmoothing: ['Suavização da intenção de movimento (IA)', 'Giro máximo (rad/s) da direção que a IA envia ao controlador. Contra giros instantâneos e zigue-zague; ataques e respostas a ameaças passam direto. 0 = intenções cruas (v6).', R(0, 40, .5, n => n ? n.toFixed(1) + ' rad/s' : 'desligada')],
   minDirectionHold: ['Retenção contra zigue-zague (IA)', 'Tempo mínimo antes de a IA voltar à direção anterior logo depois de mudar.', R(0, .6, .01, sec)],
 };

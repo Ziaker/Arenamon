@@ -208,3 +208,5 @@ pre.diff{max-height:240px;overflow:auto;font-size:11px;background:#0b1118;paddin
 .vfx-bar{display:flex;flex-direction:column;gap:6px;margin:4px 0 8px}.vfx-simple{display:flex;flex-direction:column;gap:6px}[data-vfx-mode=advanced]:not([hidden]){display:flex;flex-direction:column}
 .vfx-simple-row{border:1px solid var(--line);border-radius:10px;background:#0f1a26;padding:4px 6px}.vfx-simple-head{display:flex;align-items:center;gap:6px;padding:2px 4px}.vfx-simple-head b{flex:1;font-size:12.5px}.vfx-simple-head button{min-height:24px;padding:1px 8px;font-size:11px}
 .vfx-simple-row .tune-control{padding:4px 6px}.vfx-simple-row .tune-bottom{display:none}
+.btn-link{display:inline-flex;align-items:center;background:var(--field);border:1px solid var(--line);border-radius:8px;padding:6px 10px;color:var(--text);text-decoration:none;font-size:13px}.btn-link:hover{border-color:#4d6b85}
+.pf-area table{width:100%;font-size:12px}.pf-area td{padding:3px 4px;border-bottom:1px solid #ffffff10}.pf-area td:last-child{text-align:right;white-space:nowrap}.pf-area button{min-height:24px;padding:1px 7px;font-size:11px}

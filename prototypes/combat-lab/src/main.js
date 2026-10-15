@@ -31,6 +31,8 @@ import {createMovementPanel} from './ui/movement-panel.js';
 import {createDiagnostics, createWindowsOverlay} from './ui/diagnostics-panel.js';
 import {createTrainingPanel} from './ui/training-panel.js';
 import {createPerfPanel} from './ui/perf-panel.js';
+import {createAiEvalPanel} from './ui/ai-eval-panel.js';
+import {createProjectFiles} from './ui/project-files.js';
 /* global __GAME_CONFIG_TS__ */
 const GAME_CONFIG_TS = typeof __GAME_CONFIG_TS__ === 'string' ? __GAME_CONFIG_TS__ : '';
 import {length, sub, dot} from './sim/math.js';
@@ -435,6 +437,7 @@ $('win-controls').append(...tuning.sectionControls('Janelas de combate'));
 const training = createTrainingPanel({$, game, ui, clock, download, toast: e => diagnostics.toast(e),
   start: trainer => {abortScenario();restorePlaybackValues();ui.playback = null;trainer.start(game);ui.paused = false;input.clear();input.locked = false;resetViewAndLogs();matchRec.start({seed: trainer.seed, profile: game.profile, enemyProfile: game.enemyProfile, mode: 'training', values: tuning.snapshotValues()});syncButtons();canvas.focus();},
   stop: () => {game.phase = 'menu';}});
+const aiEval = createAiEvalPanel({$, download});
 // Medidor de desempenho, perfis gráficos e benchmark (IA × IA com semente fixa no laço real).
 let benchRestore = null;
 const perfPanel = createPerfPanel({$, view, game, tuning, ui, download, getWs: () => wsRef.ws,
@@ -551,7 +554,21 @@ async function bootWorkspace() {
   let last = '';
   setInterval(() => {const snap = {ui: collectUi(), match: collectMatch(), animOptions: collectAnim()}, key = JSON.stringify(snap);if (key !== last) {if (last) {ws.doc.ui = snap.ui;ws.doc.match = snap.match;ws.doc.animOptions = snap.animOptions;ws.touch();}last = key;}}, 500);
   if (ws.notes.length) $('ws-status-line')?.insertAdjacentHTML('afterend', `<p class="hint warn" id="ws-notes">${ws.notes.map(escape).join('<br>')}</p>`);
+  // Pastas do projeto (servidor local opcional ou pasta autorizada no navegador).
+  projectFiles = createProjectFiles({$, ui, presets: presets.api, wsUI, charPanel, reportsOf});
+  if (window.__ARENAMON_DEV__) $('reports-link').href = '/relatorios';
   return {ws, store, wsUI, restored};
+}
+let projectFiles = null;
+/** Relatórios já gerados nesta sessão (para gravar nas pastas do projeto). */
+function reportsOf() {
+  const out = [];
+  if (movement.last) out.push({name: 'movimento', kind: 'movement-comparison', data: movement.report()});
+  if (diagnostics.log.length) out.push({name: 'diagnostico-comandos', kind: 'command-diagnostics', data: diagnostics.exportData()});
+  if (training.trainer?.attempts.length) out.push({name: 'treino', kind: 'perfect-training', data: training.exportData()});
+  if (perfPanel.lastBench) out.push({name: 'benchmark', kind: 'performance-benchmark', data: perfPanel.lastBench});
+  if (aiEval.last) out.push({name: 'avaliacao-ia', kind: 'ai-evaluation', data: aiEval.last});
+  return out;
 }
 
 // ---------- Interfaces para testes e compatibilidade com o v6 ----------
@@ -559,6 +576,6 @@ window.__arenamon = {snapshot: () => ({...game.snapshot(), frame: ui.frame, came
 window.__arenaLive = {rules: C.rules, test: C.test, locomotion: C.locomotion, camera: C.camera, profiles: C.profiles, extras: C.extras, game, view, input, clock, reset: startMatch, apply: applyConfig};
 // window.__lab só aparece depois da restauração do workspace (os testes esperam por ele).
 bootWorkspace().catch(e => {console.error('workspace:', e);ui.workspaceError = e.message;return null;}).then(boot => {
-  window.__lab = {C, game, view, hudProposals, presets, movement, playSequence, diagnostics, training, perf: perfPanel, visualPanel, recorder, replay, tuning, ui, startMatch, startScenario: id => startScenario(SCENARIOS.find(s => s.id === id)), stepFrames, seekTick, goLive, togglePause, setCharacter, loadStudioFile, SCENARIOS, runScenario,
+  window.__lab = {C, game, view, hudProposals, presets, movement, playSequence, diagnostics, training, perf: perfPanel, aiEval, projectFiles, reportsOf, visualPanel, recorder, replay, tuning, ui, startMatch, startScenario: id => startScenario(SCENARIOS.find(s => s.id === id)), stepFrames, seekTick, goLive, togglePause, setCharacter, loadStudioFile, SCENARIOS, runScenario,
     ws: boot?.ws ?? null, store: boot?.store ?? null, wsUI: boot?.wsUI ?? null, workspaceBoot: boot};
 });

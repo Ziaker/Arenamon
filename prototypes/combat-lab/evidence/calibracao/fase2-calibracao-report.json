@@ -1,0 +1,198 @@
+{
+ "date": "2026-10-15T13:51:20.695Z",
+ "failures": 0,
+ "report": [
+  {
+   "group": "Simples",
+   "label": "modo simples é o padrão e mostra 10–20 controles",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Simples",
+   "label": "“Aceleração” edita o parâmetro oficial (sem cópia)",
+   "ok": true,
+   "detail": "locomotion.acceleration"
+  },
+  {
+   "group": "Simples",
+   "label": "controle de conjunto edita exatamente os parâmetros que lista",
+   "ok": true,
+   "detail": "locomotion.accelCurve,locomotion.brakeCurve,locomotion.residualSpeed"
+  },
+  {
+   "group": "Simples",
+   "label": "desfazer (Ctrl+Z) volta os valores",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Avançado",
+   "label": "modo avançado mostra todos os parâmetros",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Simples",
+   "label": "ajuste individual no avançado aparece no controle de conjunto como divergente (sem estado próprio)",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Presets",
+   "label": "mostra quantos parâmetros mudarão antes de aplicar",
+   "ok": true,
+   "detail": "32 parâmetro(s) serão alterados:Locomoção (aceleração, frenagem, inércia, giro):"
+  },
+  {
+   "group": "Presets",
+   "label": "aplicar “Pesado” muda só locomoção, sprint, curvas de X/C e transições (nunca VFX/HUD/câmera/regras)",
+   "ok": true,
+   "detail": "32 parâmetros"
+  },
+  {
+   "group": "Presets",
+   "label": "“Restaurar estado anterior” volta tudo",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Presets",
+   "label": "duplicar cria um preset editável",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Presets",
+   "label": "renomear",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Presets",
+   "label": "salvar como novo preset por categoria (nome, versão, data, só a categoria escolhida)",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Presets",
+   "label": "comparar dois presets",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Presets",
+   "label": "medir a sensação (sequência padrão) de A e B",
+   "ok": true,
+   "detail": "Tempo até a velocidade de caminhada (95%)0.15 s0.333 sInversão: tempo até velocidade zero0.075 s0.217 sInversão: tempo até 95% no novo sentido0.233 s0.55 s"
+  },
+  {
+   "group": "A × B",
+   "label": "indicador discreto na arena: PRESET A",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "A × B",
+   "label": "tecla B troca para o preset B sem reiniciar a partida",
+   "ok": true,
+   "detail": "{\"acc\":15,\"ticks\":2}"
+  },
+  {
+   "group": "A × B",
+   "label": "sem teletransporte, sem mudar stamina/vida, sem reiniciar animação",
+   "ok": true,
+   "detail": "{\"dpos\":\"0.077\",\"transições\":[2,2]}"
+  },
+  {
+   "group": "A × B",
+   "label": "troca no meio do tackle: locomoção muda na hora, curva de X fica para o fim da ação",
+   "ok": true,
+   "detail": "{\"before\":0.1,\"after\":0.1,\"pending\":14,\"acc\":40,\"stamina\":[2,2],\"badge\":\"PRESET A Storm-like · 14 parâmetro(s) aguardam o fim da ação\"}"
+  },
+  {
+   "group": "A × B",
+   "label": "parâmetros adiados aplicados no primeiro passo seguro",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "A × B",
+   "label": "stamina não é escrita pela troca",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "A × B",
+   "label": "encerrar mantendo B (com desfazer)",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "A × B",
+   "label": "Ctrl+Z volta ao estado anterior à comparação",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Gravador",
+   "label": "grava comandos no tempo de simulação",
+   "ok": true,
+   "detail": "{\"n\":2,\"last\":276,\"sel\":\"rec-mv9lk4rr\"}"
+  },
+  {
+   "group": "Gravador",
+   "label": "reexecução determinística e condições equivalentes declaradas",
+   "ok": true,
+   "detail": "Gravação 10:51:09 · mesmo estado inicial, semente 27075 e 276 comandos · 13 ms · reexecução idêntica (determinística)Condições equivalentes:"
+  },
+  {
+   "group": "Gravador",
+   "label": "medidas: distância, velocidades, frenagem, inversão, X/C, stamina, colisões, transições de animação",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Gráficos",
+   "label": "6 gráficos + faixa de estados, com legenda e marcadores",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Gráficos",
+   "label": "hover com cruz e tooltip (valores de A e B)",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Exportação",
+   "label": "CSV por passo com A e B",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Exportação",
+   "label": "relatório JSON versionado (schema, versão, métricas, marcadores, amostras)",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Gravador",
+   "label": "reprodução na arena com o preset A e volta dos valores ao terminar",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Geral",
+   "label": "sem erros no console",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Persistência",
+   "label": "presets do usuário, sequências gravadas e modo do ajustador restaurados",
+   "ok": true,
+   "detail": ""
+  }
+ ]
+}

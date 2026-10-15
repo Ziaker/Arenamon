@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Arenamon · Painel de Relatórios</title>
+<style>/*__CSS__*/</style>
+</head>
+<body>
+<div class="app">
+ <header class="top"><span class="logo">A</span><strong>ARENAMON <em>RELATÓRIOS</em></strong><small>Complemento do laboratório de combate · offline</small></header>
+ <div class="body">
+  <aside class="side">
+   <label class="drop" id="drop">Arraste relatórios JSON aqui<br><small>ou</small><br><span class="btn">Escolher arquivos<input type="file" id="files" accept=".json,application/json" multiple hidden></span></label>
+   <p class="hint">Lê os relatórios exportados pelo laboratório (gravador de movimento, diagnóstico de comandos, treino, benchmark, avaliação da IA e telemetria de animação). Não acessa nenhuma partida em execução.</p>
+   <ol id="list" class="list"></ol>
+  </aside>
+  <main id="main" class="main"><div class="empty"><h1>Painel de relatórios</h1><p>Abra um ou mais relatórios exportados pelo laboratório. Os dados ficam só neste navegador.</p></div></main>
+ </div>
+</div>
+<script>/*__BUNDLE__*/</script>
+</body>
+</html>
