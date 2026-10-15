@@ -110,7 +110,8 @@ export function updateFighter(f, cmd, fighters, dt) {
   }
   // Orientação do corpo: separada da locomoção. Com lock-on, olha para o alvo conforme lockFacing (a mira continua no alvo).
   const lockedFace = target && (L.model !== 1 || L.lockFacing === 1 || (L.lockFacing === 2 && (length(move) <= .01 || f.guard)));
-  const faceGoal = lockedFace ? desiredHeading : length(move) > 0 ? angleOf(move) : f.facing;
+  // Sprint sempre olha para onde corre (a animação de sprint serve às 8 direções girando o corpo).
+  const faceGoal = f.sprinting && length(move) > 0 ? angleOf(move) : lockedFace ? desiredHeading : length(move) > 0 ? angleOf(move) : f.facing;
   if (!f.action) {
     f.vaultHeight = 0;
     const diff = angleDelta(f.facing, desiredHeading);

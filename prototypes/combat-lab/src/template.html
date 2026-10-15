@@ -93,15 +93,24 @@
     <section data-section="characters" hidden>
      <p class="hint">Carregue o <b>.glb</b> exportado pelo Animation Studio. As ações associadas no Studio viram as animações de cada estado do combate. A posição continua vindo da física.</p>
      <div id="char-slots"></div>
-     <label class="check"><input type="checkbox" id="char-lock-root" checked> Travar o deslocamento da raiz (evita aplicar movimento duas vezes)</label>
+     <h3>Opções gerais das animações</h3>
+     <label class="check"><input type="checkbox" id="char-lock-root" checked disabled> Deslocamento da raiz sempre controlado pela física (as animações nunca movem o personagem no mundo)</label>
      <label class="check"><input type="checkbox" id="char-fit" checked> Ajustar a altura ao colisor (1,3 m)</label>
-     <label class="field">Transição entre animações (s)<input type="number" id="char-fade" min="0" max="1" step="0.02" value="0.1"></label>
+     <label class="field">Transição suave entre estados <output id="char-fade-out">0.18 s</output><input type="range" id="char-fade" min="0.02" max="0.6" step="0.01" value="0.18"></label>
+     <label class="field">Transição de entrada em X, C e reações <output id="char-action-fade-out">0.07 s</output><input type="range" id="char-action-fade" min="0.02" max="0.3" step="0.01" value="0.07"></label>
+     <label class="field">Estabilidade da locomoção (histerese) <output id="char-hold-out">0.10 s</output><input type="range" id="char-hold" min="0" max="0.4" step="0.01" value="0.1"></label>
      <label class="field">Velocidade geral das animações <output id="char-speed-out">1.00×</output><input type="range" id="char-speed" min="0.25" max="3" step="0.05" value="1"></label>
      <h3>Durações das animações no jogo</h3>
-     <label class="check"><input type="checkbox" id="char-sync"> As durações das animações definem as durações das ações (tackle, esquiva, recuo, guard stun e aterrissagem). As janelas de eventos do Studio nunca alteram as regras</label>
+     <label class="check"><input type="checkbox" id="char-sync"> As durações das animações definem SOMENTE as durações das ações (tackle, esquiva, recuo, guard stun e aterrissagem). A distância nominal de X e C não muda; as janelas de eventos do Studio nunca alteram as regras</label>
      <label class="field">Personagem de referência<select id="char-sync-source"><option value="0">Azul</option><option value="1">Vermelho</option></select></label>
      <div id="char-durations" class="report"></div>
-     <p class="hint">Sem sincronizar, cada animação é esticada para caber na duração da ação do jogo e a velocidade só acelera o clip dentro dela. As regras valem para os dois lutadores.</p>
+     <p class="hint">Sem sincronizar, a ação respeita a duração configurada e o clipe é esticado para acompanhá-la. Com sincronização, a duração do clipe (÷ velocidade) define a duração da ação e a física distribui a mesma distância nesse tempo. A troca de animação nunca muda velocidade nem distância.</p>
+     <h3>Testar todas as animações do GLB</h3>
+     <p class="hint">Prévia puramente visual: reproduz o clipe inteiro, mesmo sem estado associado. Não muda movimento, dano, colisão ou regras.</p>
+     <label class="field">Personagem<select id="char-preview-slot"><option value="0">Azul</option><option value="1">Vermelho</option></select></label>
+     <label class="field">Animação<select id="char-preview-clip"></select></label>
+     <div class="row"><button type="button" id="char-preview-play">▶ Reproduzir clipe inteiro</button><button type="button" id="char-preview-stop">■ Parar prévia</button></div>
+     <p class="hint" id="char-preview-info"></p>
      <h3>Eventos do Studio × jogo</h3>
      <p class="hint">Compara as janelas marcadas no Studio (hitbox, invulnerabilidade, recuperação) com as janelas reais da simulação. Apenas visualização: nenhuma regra é alterada.</p>
      <div id="studio-events" class="report"></div>

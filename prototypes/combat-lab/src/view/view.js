@@ -67,7 +67,7 @@ export class View {
   }
   /** Personagem 3D opcional por lutador (characters.js). Quando presente, o bloco fica oculto. */
   setCharacter(id, character) {this.characters[id] = character;}
-  draw(fighters, events = [], dt = 1 / 60, {paused = false} = {}) {
+  draw(fighters, events = [], dt = 1 / 60, {paused = false, tick = 0, sources = [], realDt = dt} = {}) {
     const X = C.extras, V = X.visual, F = X.fx;
     for (const event of events) {
       if (this.seenEvents.has(event)) continue;this.seenEvents.add(event);
@@ -95,7 +95,8 @@ export class View {
       const arrow = this.arrows[f.id];arrow.position.set(f.position.x + Math.sin(f.visualFacing) * V.arrowOffset, V.arrowHeight + alt, f.position.z + Math.cos(f.visualFacing) * V.arrowOffset);
       arrow.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), new T.Vector3(Math.sin(f.visualFacing), 0, Math.cos(f.visualFacing)));arrow.scale.set(V.arrowRadius / .16, V.arrowLength / .42, V.arrowRadius / .16);
       arrow.material.color.setHex(f.guard ? rgb('arrowGuard') : rgb('arrow'));
-      character?.update(f, paused ? 0 : dt, alt, events);
+      // A prévia de animação continua tocando com a partida pausada.
+      character?.update(f, paused ? (character.preview ? realDt : 0) : dt, alt, events, {tick, source: sources[f.id]});
     }
     if (!paused) for (let j = this.effects.length - 1; j >= 0; j--) {
       const e = this.effects[j];e.age += Math.min(dt, .05);const p = Math.min(1, e.age / e.duration);
