@@ -6,6 +6,9 @@ import {modelBounds, makeTemplate, collectBones, currentJoints, auditRig,
   validateDraft, applyMirror, bindDraftToModel, exportCoordinates, ensureJointIds,
   addDraftJoint, renameDraftJoint, reparentDraftJoint, removeDraftJoint, uniqueJointName,
   syncRigMetadata} from './core.js';
+import {inspectRig, exportTelemetryJSON} from './telemetry.js';
+import {simulateRigPatch, applyRigPatch, RigPatchBuilder, RigController, validatePatch} from './patch.js';
+import {analyzeGeometry, generateHumanoidDraft, generateQuadrupedDraft, fitDraftToLandmarks, regenerateRegion, computeEnhancedSkinningWeights} from './autorig.js';
 
 const $=id=>document.getElementById(id), E=window.__importer;
 const S={draft:null,selected:null,markers:new Map(),rigBones:new Map(),lastAudit:null,
@@ -446,4 +449,40 @@ window.__studioRig={
   get selected(){return selectedJoint()?.name||null;},get selectedId(){return S.selected;},select,refreshAudit,exportCoordinates:()=>exportCoordinates(E.model,S.draft),
   applyJoint(name,p){if(!joint(name))throw Error('Osso não encontrado: '+name);select(name);commitPosition(p,selectedSnapshot(),'Editar coordenada via API');},
   createTemplate:onTemplate,bind:onBind,render,addBone:()=>createStructuralBone(),duplicateBone:()=>createStructuralBone({duplicate:true}),renameBone:renameSelected,reparentBone:reparentSelected,deleteBone:deleteSelected,setView,
+  inspectRig: (options = {}) => inspectRig(E.model, { draft: S.draft, clips: E.clips, ...options }),
+  exportTelemetryJSON: (options = {}) => exportTelemetryJSON(E.model, { draft: S.draft, clips: E.clips, ...options }),
+  simulatePatch: (patch, options = {}) => simulateRigPatch(E.model, patch, { draft: S.draft, clips: E.clips, ...options }),
+  applyPatch: (patch, options = {}) => {
+    const res = applyRigPatch(E.model, patch, {
+      draft: S.draft,
+      clips: E.clips,
+      undoStack: {
+        push: (entry) => {
+          if (window.__studioHistory) {
+            window.__studioHistory.push({
+              name: entry.name,
+              undo: entry.undo,
+              redo: entry.redo
+            });
+          }
+          mark(entry.name);
+        }
+      },
+      ...options
+    });
+    if (E.model) {
+      prepareRig();
+    }
+    return res;
+  },
+  analyzeGeometry: (options = {}) => analyzeGeometry(E.model, options),
+  generateAutoRig: (type = 'humanoid', options = {}) => {
+    const b = modelBounds(E.model);
+    const analysis = analyzeGeometry(E.model, options);
+    if (type === 'quadruped' || type === 'quadruped-24') return generateQuadrupedDraft(b, analysis, { boneCount: 24, ...options });
+    if (type === 'quadruped-27') return generateQuadrupedDraft(b, analysis, { boneCount: 27, ...options });
+    return generateHumanoidDraft(b, analysis, options);
+  },
+  createController: (options = {}) => new RigController(E.model, { draft: S.draft, clips: E.clips, ...options }),
+  createPatchBuilder: (targetModel = null) => new RigPatchBuilder(targetModel)
 };

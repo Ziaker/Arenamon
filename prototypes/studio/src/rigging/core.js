@@ -302,3 +302,7 @@ export function exportCoordinates(root, draft=null) {
     joints:draft?.joints?.length ? draft.joints.map(j=>({id:j.id,name:j.name,parent:j.parent,p:[...j.p],q:[...(j.q||[0,0,0,1])]})) : currentJoints(root).map(j=>({id:j.id,name:j.name,parent:j.parent,p:j.p,local:j.local,q:j.q,world:j.world,uuid:j.uuid})),
     audit};
 }
+
+export * from './telemetry.js';
+export * from './patch.js';
+export * from './autorig.js';
