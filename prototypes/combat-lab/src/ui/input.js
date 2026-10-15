@@ -17,7 +17,7 @@ export function toCommand(intent, self, target, cameraYaw, locked) {
   } else move = vec();
   const still = intent.x === 0 && intent.forward === 0, dodgeDirection = still ? (locked ? forwardToTarget : direction(self.facing)) : move;
   // locked: o comando vem do lock-on do jogador (o tackle persegue o alvo). A IA mira por conta própria.
-  return {move, target: locked ? target.id : null, locked: !!locked, dodge: intent.dodge, dodgeHeld: !!intent.dodgeHeld, tackle: intent.tackle, guard: intent.guard, guardPressed: intent.guardPressed, dodgeDirection,
+  return {move, target: locked ? target.id : null, locked: !!locked, dodge: intent.dodge, dodgeHeld: !!intent.dodgeHeld, tackle: intent.tackle, guard: intent.guard, guardPressed: intent.guardPressed, dodgeDirection, skill: intent.skill ?? null,
     dodgeForward: still || (intent.forward > 0 && intent.x === 0)};
 }
 
@@ -28,8 +28,9 @@ export function latchFrame(state, intent, cameraYaw) {
   return state.latchYaw;
 }
 
-// Mapeamento padrão de gamepad (Xbox/Standard): A = tackle, B = esquiva, RB/LB = defesa, Y = alvo, Start = pausa.
-const PAD = {tackle: 0, dodge: 1, lock: 3, defendR: 5, defendL: 4, pause: 9, restart: 8};
+// Mapeamento padrão de gamepad (Xbox/Standard): A = tackle, B = esquiva, RB/LB = defesa, Y = alvo, Start = pausa;
+// movimentos especiais: X = slot 1, RT = slot 2, LT = slot 3, clique do analógico direito = slot 4.
+const PAD = {tackle: 0, dodge: 1, lock: 3, defendR: 5, defendL: 4, pause: 9, restart: 8, skills: [2, 7, 6, 11]};
 
 export class Input {
   /** slot 0: jogador (teclas de bindings, 1º gamepad, atalhos); slot 1: vermelho no controle manual (bindings2, 2º gamepad). */
@@ -56,7 +57,7 @@ export class Input {
     let x = p.axes[0] || 0, y = -(p.axes[1] || 0);if (Math.hypot(x, y) < .3) {x = 0;y = 0;}
     if (b(14)) x = -1;if (b(15)) x = 1;if (b(12)) y = 1;if (b(13)) y = -1;
     const intent = {x: Math.sign(Math.round(x)), forward: Math.sign(Math.round(y)), tackle: edge(PAD.tackle), dodge: edge(PAD.dodge), dodgeHeld: b(PAD.dodge), guard: b(PAD.defendR) || b(PAD.defendL),
-      guardPressed: edge(PAD.defendR) || edge(PAD.defendL)};
+      guardPressed: edge(PAD.defendR) || edge(PAD.defendL), skill: (i => i < 0 ? null : i)(PAD.skills.findIndex(edge))};
     if (edge(PAD.lock)) this.locked = !this.locked;
     if (!this.slot) {if (edge(PAD.pause)) this.shortcut(keyFor('pause'));if (edge(PAD.restart)) this.shortcut(keyFor('restart'));}
     this.padPrev = p.buttons.map(btn => btn.pressed);
@@ -64,9 +65,10 @@ export class Input {
   }
   command(self, target, cameraYaw, tick) {
     const k = name => this.held.has(this.key(name)), pk = name => this.pressed.has(this.key(name));
-    const keyIntent = {x: Number(k('right')) - Number(k('left')), forward: Number(k('forward')) - Number(k('back')), dodge: pk('dodge'), dodgeHeld: k('dodge'), tackle: pk('tackle'), guard: k('defend'), guardPressed: pk('defend')};
+    const skillKey = ['skill1', 'skill2', 'skill3', 'skill4'].findIndex(pk);
+    const keyIntent = {x: Number(k('right')) - Number(k('left')), forward: Number(k('forward')) - Number(k('back')), dodge: pk('dodge'), dodgeHeld: k('dodge'), tackle: pk('tackle'), guard: k('defend'), guardPressed: pk('defend'), skill: skillKey < 0 ? null : skillKey};
     const p = this.pad();
-    const intent = p ? {x: keyIntent.x || p.x, forward: keyIntent.forward || p.forward, dodge: keyIntent.dodge || p.dodge, dodgeHeld: keyIntent.dodgeHeld || p.dodgeHeld, tackle: keyIntent.tackle || p.tackle, guard: keyIntent.guard || p.guard, guardPressed: keyIntent.guardPressed || p.guardPressed} : keyIntent;
+    const intent = p ? {x: keyIntent.x || p.x, forward: keyIntent.forward || p.forward, dodge: keyIntent.dodge || p.dodge, dodgeHeld: keyIntent.dodgeHeld || p.dodgeHeld, tackle: keyIntent.tackle || p.tackle, guard: keyIntent.guard || p.guard, guardPressed: keyIntent.guardPressed || p.guardPressed, skill: keyIntent.skill ?? p.skill} : keyIntent;
     this.record(intent, tick);
     const c = toCommand(intent, self, target, this.frameYaw(intent, cameraYaw), this.locked);this.pressed.clear();return c;
   }
@@ -79,9 +81,9 @@ export class Input {
   /** Histórico estilo modo treino: cada mudança de intenção, com a duração em quadros. */
   record(intent, tick) {
     const arrows = {'1,0': '↑', '-1,0': '↓', '0,-1': '←', '0,1': '→', '1,-1': '↖', '1,1': '↗', '-1,-1': '↙', '-1,1': '↘'}[`${intent.forward},${intent.x}`] || '·';
-    const label = arrows + (intent.guard ? ' D' : '') + (intent.tackle ? ' X' : '') + (intent.dodge ? ' C' : '');
+    const label = arrows + (intent.guard ? ' D' : '') + (intent.tackle ? ' X' : '') + (intent.dodge ? ' C' : '') + (intent.skill != null ? ` M${intent.skill + 1}` : '');
     const last = this.history[0];
-    if (last && last.label === label && !intent.tackle && !intent.dodge) {last.frames++;return;}
+    if (last && last.label === label && !intent.tackle && !intent.dodge && intent.skill == null) {last.frames++;return;}
     this.history.unshift({label, frames: 1, tick});if (this.history.length > 14) this.history.pop();
   }
 }

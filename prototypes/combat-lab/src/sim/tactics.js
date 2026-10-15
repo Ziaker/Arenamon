@@ -19,7 +19,7 @@ import {emptyCommand, nominalDistance} from './entity.js';
 import {vec, add, scale, sub, dot, length, normalize, direction, clamp} from './math.js';
 import {actionProgress} from './motion.js';
 import {cancelWindow, isDepleted, startPermission} from './controller.js';
-import {chainOpen} from './entity.js';
+import {chainOpen, actionSpec} from './entity.js';
 
 /** Estilos de luta: alcance preferido, gosto por cada ação e disciplina. Valores de 0 a 1, salvo indicação. */
 export const STYLES = [
@@ -147,7 +147,7 @@ export function tacticalCommand(brain, self, target, dt, P) {
     if (!F.reach) return true;
     // Se o rival está numa ação (ex.: o X que acabamos de esquivar), ele para quando ela termina: a previsão usa só o tempo
     // que resta da ação dele, pela metade (a curva desacelera), em vez de extrapolar a velocidade de pico.
-    const mid = A.tackle.duration * .5, oa = target.action, horizon = oa && oa.kind !== 'recoil' ? Math.min(mid, Math.max(0, C.actions[oa.kind].duration - oa.elapsed) * .5) : mid;
+    const mid = A.tackle.duration * .5, oa = target.action, horizon = oa && oa.kind !== 'recoil' ? Math.min(mid, Math.max(0, actionSpec(oa).duration - oa.elapsed) * .5) : mid;
     const p = add(target.position, scale(target.velocity, horizon)), d = length(sub(p, self.position));
     return d <= contactDistance() + nominalDistance(self, 'tackle') * (self.counterWindow > 0 ? A.tackle.counterSpeed : 1) * .92;
   };
@@ -259,7 +259,7 @@ export function tacticalCommand(brain, self, target, dt, P) {
 
   // ---------- 5. Execução da intenção ----------
   // Zona de perigo: a distância de onde o adversário costuma atacar (aprendida), se ele puder atacar agora.
-  const oppFree = (!target.action || target.action.elapsed >= C.actions[target.action.kind === 'recoil' ? 'tackle' : target.action.kind].chainAfter) && target.action?.kind !== 'recoil';
+  const oppFree = (!target.action || target.action.elapsed >= (target.action.kind === 'recoil' ? C.actions.tackle.chainAfter : actionSpec(target.action).chainAfter)) && target.action?.kind !== 'recoil';
   const oppCanAttack = oppFree && !target.exhausted && target.stamina >= A.tackle.cost - 1e-6 && !target.flight && target.knockRecovery <= 0 && target.stun <= 1e-8;
   const dangerDist = (t.model.attackDist ?? oppReach * .7) + .35;
   const want = Math.max(myReach * (S.range + t.rangeDrift * .5), S.range > .8 ? dangerDist + .3 : 0), wallAware = s => safeSide(self, forward, s);

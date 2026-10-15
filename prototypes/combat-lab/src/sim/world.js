@@ -1,0 +1,192 @@
+// Mundo de combate: entidades criadas por movimentos (projéteis, barreiras, paredes e áreas — explosões, pulsos
+// radiais e zonas persistentes). Infraestrutura sem conteúdo: nenhuma entidade existe até um movimento criá-la.
+//
+// Princípios (os mesmos do resto do motor):
+//   • passo fixo e determinístico, ordem estável (criação), sem aleatoriedade própria;
+//   • estado em dados simples (`game.world`), clonável por structuredClone: save/load, replay e cenários funcionam;
+//   • acertos passam por UMA função (`applyHit`) que respeita invulnerabilidade, defesa frontal, defesa perfeita,
+//     guard stun, modificadores de status e lançamento — as mesmas regras do tackle;
+//   • sem entidades, nada muda no motor (verificado nos testes de regressão).
+//
+// Formas: 'circle' (raio) e 'box' (meias-medidas hx, hz, girada por `angle`). Altura: `y` (base) e `height`.
+import {C} from './config.js';
+import {isInvulnerable} from './entity.js';
+import {launch} from './combat.js';
+import {applyStatus, stat} from './status.js';
+import {vec, add, sub, scale, dot, length, normalize, direction} from './math.js';
+
+export const ENTITY_KINDS = ['projectile', 'barrier', 'wall', 'area'];
+export const createWorld = () => ({entities: [], nextId: 1});
+const fighterHeight = () => C.extras.visual.bodyHeight;
+const altOf = f => (f.flight?.y ?? 0) + (f.vaultHeight ?? 0);
+
+// ---------- Geometria ----------
+/** Ponto do contorno da forma mais próximo de p (plano XZ) e distância. */
+export function closestOnShape(e, p) {
+  if (e.shape === 'box') {
+    const c = Math.cos(e.angle ?? 0), s = Math.sin(e.angle ?? 0), d = sub(p, e.pos);
+    // Eixos locais: x' = (cos, -sin), z' = (sin, cos) — rumo 0 = +Z, como o resto do motor.
+    const lx = d.x * c - d.z * s, lz = d.x * s + d.z * c, qx = Math.max(-e.hx, Math.min(e.hx, lx)), qz = Math.max(-e.hz, Math.min(e.hz, lz));
+    const inside = Math.abs(lx) <= e.hx && Math.abs(lz) <= e.hz;
+    const q = vec(e.pos.x + qx * c + qz * s, e.pos.z - qx * s + qz * c);
+    return {point: q, distance: inside ? -Math.min(e.hx - Math.abs(lx), e.hz - Math.abs(lz)) : length(sub(p, q)), inside};
+  }
+  const d = sub(p, e.pos), l = length(d);
+  return {point: l > 1e-9 ? add(e.pos, scale(d, e.radius / l)) : add(e.pos, vec(e.radius, 0)), distance: l - e.radius, inside: l < e.radius};
+}
+/** Círculo (centro p, raio r) toca a forma? */
+const circleTouches = (e, p, r) => closestOnShape(e, p).distance <= r;
+/** Sobreposição vertical entre [a0, a1] e [b0, b1]. */
+const vOverlap = (a0, a1, b0, b1) => a0 <= b1 && b0 <= a1;
+
+// ---------- Criação ----------
+export const DEFAULTS = {
+  projectile: {shape: 'circle', radius: .25, y: .65, height: 0, speed: 12, life: 2, pierce: 1, blockedBy: ['barrier', 'wall'], hitsOwner: false},
+  barrier: {shape: 'box', hx: .9, hz: .15, y: 0, height: 1.8, life: 3, hp: Infinity, blocksProjectiles: true, blocksFighters: false, blocksOwner: false},
+  wall: {shape: 'box', hx: 1.5, hz: .3, y: 0, height: 2.2, life: Infinity, blocksProjectiles: true, blocksFighters: true},
+  area: {shape: 'circle', radius: 2, y: 0, height: 2, life: .3, grow: 0, pulses: 1, interval: 0, falloff: 'none', affectsOwner: false, follow: false},
+};
+/** Valida um modelo de entidade (lança erro legível). */
+export function validateEntity(t) {
+  if (!ENTITY_KINDS.includes(t?.kind)) throw new Error(`entidade de tipo desconhecido (${t?.kind})`);
+  if (t.shape && !['circle', 'box'].includes(t.shape)) throw new Error(`forma desconhecida (${t.shape})`);
+  if (t.hit && t.hit.damage !== undefined && !(t.hit.damage >= 0)) throw new Error('dano inválido');
+  return true;
+}
+/**
+ * Cria uma entidade. `t` traz o tipo e os campos do modelo; posição e direção já resolvidas (ver moves.js, que converte
+ * posições relativas ao lutador). Respeita o limite de entidades (C.world.maxEntities): acima dele, recusa com evento.
+ */
+export function spawn(world, t, events = []) {
+  validateEntity(t);
+  if (world.entities.length >= C.world.maxEntities) {events.push({result: 'spawnRefused', attacker: t.owner ?? null, target: null, damage: 0, kind: t.kind});return null;}
+  const e = structuredClone({...DEFAULTS[t.kind], ...t});
+  e.id = world.nextId++;e.age = 0;e.hitLog = [];e.pulsesDone = 0;e.pos = {...(t.pos ?? vec())};e.dir = t.dir ? normalize(t.dir) : direction(t.angle ?? 0);
+  if (e.kind === 'projectile') e.vel = scale(e.dir, e.speed);
+  if (e.kind === 'area') {e.baseRadius = e.radius;if (e.grow > 0) e.radius = e.startRadius ?? 0;}
+  world.entities.push(e);events.push({result: 'spawn', attacker: e.owner ?? null, target: null, damage: 0, entity: e.id, kind: e.kind});
+  return e;
+}
+
+// ---------- Acerto (função única, regras do tackle) ----------
+/**
+ * Resolve um acerto de entidade em `target`. hit: {damage, knockback: {horizontal, vertical}, guardable (padrão true),
+ * ignoreInvulnerability, statuses: [def], hitstop}. normal: direção do empurrão (da fonte para o alvo).
+ * Ordem: invulnerável → defesa frontal (perfeita: sem dano; comum: dano × guardDamageMultiplier e guard stun) → acerto
+ * (dano com modificadores, lançamento ou recuperação, status). Devolve o evento.
+ */
+export function applyHit(game, ownerId, target, hit, normal, info = {}) {
+  const R = C.rules, X = C.extras.combat, T = C.extras.toggles, owner = ownerId == null ? null : game.fighters[ownerId];
+  const base = {attacker: ownerId, target: target.id, normal: {...normal}, entity: info.entity ?? null, source: info.source ?? 'world'};
+  if (target.hp <= 0) return null;
+  if (!hit.ignoreInvulnerability && isInvulnerable(target)) return {...base, result: 'invulnerable', damage: 0};
+  const attack = owner ? stat(owner, 'attack', 1) : 1, scaleK = info.scale ?? 1;
+  const guardable = hit.guardable !== false && T.enableDefense, from = info.origin ?? sub(target.position, scale(normal, 1));
+  const protectedFront = guardable && target.guard && dot(direction(target.facing), normalize(sub(from, target.position))) >= X.guardFrontAlignment;
+  const perfect = protectedFront && target.perfectLeft > 1e-8;
+  const raw = (hit.damage ?? 0) * attack * scaleK, damage = perfect ? 0 : raw * (protectedFront ? X.guardDamageMultiplier : 1) * stat(target, 'damageTaken', 1);
+  target.hp = Math.max(0, target.hp - damage);
+  let launchInfo = null;
+  if (protectedFront) {
+    target.velocity = vec();target.locomotionVelocity = vec();
+    if (perfect) {target.perfectSucceeded = true;target.stun = 0;if (T.enableCounterBonus) target.counterWindow = Math.max(target.counterWindow, X.perfectGuardCounterWindow);}
+    else if (target.stun <= 1e-8 && hit.guardStun !== 0) target.stun = hit.guardStun ?? R.guardStun;
+  } else {
+    const kb = hit.knockback, k = stat(target, 'knockbackTaken', 1) * scaleK;
+    if (kb && (kb.horizontal > 0 || kb.vertical > 0) && T.enableLaunch) {const dir = length(normal) > 1e-7 ? normalize(normal) : vec(0, 1);launch(target, dir, (kb.horizontal ?? 0) * k, (kb.vertical ?? 0) * k);launchInfo = {direction: dir, horizontal: (kb.horizontal ?? 0) * k, vertical: (kb.vertical ?? 0) * k};}
+    else if (hit.flinch) {target.action = null;target.knockRecovery = Math.max(target.knockRecovery, hit.flinch);}
+    for (const s of hit.statuses || []) applyStatus(target, s, {source: ownerId});
+    target.counterWindow = 0;
+  }
+  if (target.hp === 0) {target.guard = false;target.guardSuppressed = true;}
+  return {...base, result: perfect ? 'perfect' : protectedFront ? 'partial' : 'impact', damage, launch: launchInfo};
+}
+
+// ---------- Paredes e barreiras contra lutadores (chamado pela física, a cada subpasso) ----------
+/** Empurra o lutador para fora das formas sólidas (paredes; barreiras com blocksFighters). Sem formas, nada acontece. */
+export function collideFighter(world, f) {
+  if (!world?.entities.length) return 0;let contacts = 0;
+  const r = C.test.halfExtent, alt = altOf(f), h = fighterHeight();
+  for (const e of world.entities) {
+    const solid = e.kind === 'wall' ? e.blocksFighters : e.kind === 'barrier' && e.blocksFighters && (e.blocksOwner || e.owner !== f.id);
+    if (!solid || !vOverlap(alt, alt + h, e.y, e.y + e.height)) continue;
+    const c = closestOnShape(e, f.position);if (c.distance >= r) continue;
+    // Normal de saída: do ponto mais próximo para o centro (dentro da forma, pelo eixo de menor penetração).
+    let n = sub(f.position, c.point);if (length(n) < 1e-9 || c.inside) n = sub(f.position, e.pos);if (length(n) < 1e-9) n = vec(0, 1);n = normalize(n);
+    f.position = add(c.inside ? c.point : f.position, scale(n, c.inside ? r : r - c.distance));
+    const into = dot(f.velocity, n);if (into < 0) f.velocity = sub(f.velocity, scale(n, into));
+    if (f.flight) {const hv = dot(f.flight.horizontal, n);if (hv < 0) f.flight.horizontal = sub(f.flight.horizontal, scale(n, (1 + C.rules.wallRestitution) * hv));}
+    if (f.locomotionVelocity) {const lv = dot(f.locomotionVelocity, n);if (lv < 0) f.locomotionVelocity = sub(f.locomotionVelocity, scale(n, lv));}
+    f.contacts++;contacts++;
+  }
+  return contacts;
+}
+
+// ---------- Passo do mundo ----------
+const blocks = (b, p) => (b.kind === 'wall' && b.blocksProjectiles) || (b.kind === 'barrier' && b.blocksProjectiles && (b.blocksOwner || b.owner !== p.owner));
+/** Avança as entidades em dt; devolve os eventos (acertos, bloqueios, explosões, expirações). */
+export function stepWorld(game, dt) {
+  const world = game.world, events = [];
+  if (!world?.entities.length) return events;
+  const spawnLater = [];
+  for (const e of [...world.entities]) {
+    if (e.dead) continue;
+    e.age += dt;
+    if (e.kind === 'projectile') stepProjectile(game, e, dt, events, spawnLater);
+    else if (e.kind === 'area') stepArea(game, e, dt, events);
+    if (!e.dead && e.age >= e.life - 1e-9) {e.dead = true;events.push({result: 'expire', attacker: e.owner ?? null, target: null, damage: 0, entity: e.id, kind: e.kind});if (e.onExpire) spawnLater.push(at(e.onExpire, e));}
+  }
+  world.entities = world.entities.filter(e => !e.dead);
+  for (const t of spawnLater) spawn(world, t, events);
+  return events;
+}
+/** Modelo derivado de outra entidade (ex.: explosão no ponto do impacto), herdando dono e posição. */
+const at = (template, src, pos = src.pos) => ({owner: src.owner, ...template, pos: {...pos}, dir: template.dir ?? src.dir});
+
+function stepProjectile(game, p, dt, events, spawnLater) {
+  // Subpassos curtos (sem atravessar alvos finos): mesmo critério da física (contactStep).
+  const travel = length(p.vel) * dt, steps = Math.max(1, Math.ceil(travel / C.test.contactStep));
+  if (p.gravity) p.vy = (p.vy ?? 0) - p.gravity * dt;
+  for (let s = 0; s < steps && !p.dead; s++) {
+    p.pos = add(p.pos, scale(p.vel, dt / steps));if (p.gravity) {p.y = Math.max(0, p.y + (p.vy ?? 0) * dt / steps);if (p.y <= 0 && p.vy < 0) {p.dead = true;events.push({result: 'groundHit', attacker: p.owner ?? null, target: null, damage: 0, entity: p.id, kind: 'projectile'});if (p.onHit) spawnLater.push(at(p.onHit, p));return;}}
+    const half = C.test.arenaHalf;
+    if (Math.abs(p.pos.x) > half || Math.abs(p.pos.z) > half) {p.dead = true;events.push({result: 'arenaHit', attacker: p.owner ?? null, target: null, damage: 0, entity: p.id, kind: 'projectile'});if (p.onHit) spawnLater.push(at(p.onHit, p));return;}
+    // Barreiras e paredes primeiro: o que está na frente bloqueia.
+    for (const b of game.world.entities) {
+      if (b === p || b.dead || !p.blockedBy.includes(b.kind) || !blocks(b, p) || !vOverlap(p.y - p.radius, p.y + p.radius, b.y, b.y + b.height) || !circleTouches(b, p.pos, p.radius)) continue;
+      p.dead = true;
+      if (b.kind === 'barrier' && Number.isFinite(b.hp)) {b.hp -= p.hit?.damage ?? 0;if (b.hp <= 0) {b.dead = true;events.push({result: 'barrierBroken', attacker: p.owner ?? null, target: b.owner ?? null, damage: 0, entity: b.id, kind: 'barrier'});}}
+      events.push({result: 'blocked', attacker: p.owner ?? null, target: b.owner ?? null, damage: 0, entity: p.id, by: b.id, kind: b.kind});
+      if (p.onHit) spawnLater.push(at(p.onHit, p));return;
+    }
+    for (const f of game.fighters) {
+      if (f.hp <= 0 || (f.id === p.owner && !p.hitsOwner) || p.hitLog.includes(f.id)) continue;
+      const alt = altOf(f), box = {shape: 'box', pos: f.position, hx: C.test.halfExtent, hz: C.test.halfExtent, angle: 0};
+      if (!vOverlap(p.y - p.radius, p.y + p.radius, alt, alt + fighterHeight()) || !circleTouches(box, p.pos, p.radius)) continue;
+      p.hitLog.push(f.id);
+      const ev = applyHit(game, p.owner, f, p.hit || {}, normalize(p.vel), {entity: p.id, origin: sub(f.position, scale(normalize(p.vel), 1))});
+      if (ev) events.push(ev);
+      if (p.hitLog.length >= p.pierce || ev?.result === 'partial' || ev?.result === 'perfect') {p.dead = true;if (p.onHit) spawnLater.push(at(p.onHit, p));return;}
+    }
+  }
+}
+function stepArea(game, a, dt, events) {
+  if (a.follow && a.owner != null) a.pos = {...game.fighters[a.owner].position};
+  if (a.grow > 0) a.radius = a.baseRadius * Math.min(1, a.age / a.grow) + (a.startRadius ?? 0) * Math.max(0, 1 - a.age / a.grow);
+  // Pulsos: o primeiro no instante da criação; os seguintes a cada `interval` (0 = um só). Cada alvo é atingido no máximo uma vez por pulso.
+  const due = a.interval > 0 ? Math.min(a.pulses, 1 + Math.floor((a.age - dt + 1e-9) / a.interval)) : Math.min(a.pulses, 1);
+  while (a.pulsesDone < due) {
+    a.pulsesDone++;
+    if (!a.hit) continue;
+    for (const f of game.fighters) {
+      if (f.hp <= 0 || (f.id === a.owner && !a.affectsOwner)) continue;
+      const alt = altOf(f);if (!vOverlap(alt, alt + fighterHeight(), a.y, a.y + a.height)) continue;
+      const box = {shape: 'box', pos: f.position, hx: C.test.halfExtent, hz: C.test.halfExtent, angle: 0};
+      const c = closestOnShape(box, a.pos), dist = Math.max(0, c.inside ? 0 : c.distance);if (dist > a.radius) continue;
+      // Efeito radial: empurra do centro para fora; a intensidade cai com a distância conforme `falloff`.
+      const k = a.falloff === 'linear' ? Math.max(0, 1 - dist / Math.max(1e-6, a.radius)) : 1, away = sub(f.position, a.pos);
+      const ev = applyHit(game, a.owner, f, a.hit, length(away) > 1e-6 ? normalize(away) : direction(f.facing + Math.PI), {entity: a.id, scale: k, origin: a.pos});
+      if (ev) events.push({...ev, pulse: a.pulsesDone});
+    }
+  }
+}

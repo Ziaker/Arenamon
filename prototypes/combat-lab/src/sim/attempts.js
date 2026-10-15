@@ -16,7 +16,7 @@ export function report(f, entry) {
   sink(f, {fighter: f.id, state: f.state, action: a?.kind ?? null, actionElapsed: a ? +a.elapsed.toFixed(4) : null, stamina: +f.stamina.toFixed(4), ...entry});
 }
 
-const KIND = {tackle: 'X', dodge: 'C', guard: 'Defesa', perfectGuard: 'Defesa perfeita', sprint: 'Sprint', cancel: 'C → X'};
+const KIND = {tackle: 'X', dodge: 'C', guard: 'Defesa', perfectGuard: 'Defesa perfeita', sprint: 'Sprint', cancel: 'C → X', skill: 'Movimento'};
 const ms = s => `${Math.round(s * 1000)} ms`, n2 = v => Number(v).toFixed(2).replace('.', ',');
 /** Motivos (código → frase). Cada código corresponde a uma condição avaliada no controlador. */
 export const REASONS = {
@@ -38,11 +38,16 @@ export const REASONS = {
   tackleNoGuard: () => 'a defesa não cancela o tackle (só um toque de defesa perfeita disponível)',
   perfectCooldown: d => `defesa perfeita em recarga (${ms(d.left)} restantes)`,
   sprintStamina: d => `stamina abaixo do mínimo do sprint (${n2(d.value)} / ${n2(d.required)})`,
+  noMove: d => `nenhum movimento equipado no slot ${(d.slot ?? 0) + 1}`,
+  cooldown: d => `em recarga (${ms(d.left)} restantes)`,
+  silenced: () => 'impedido de usar movimentos (efeito de status)',
+  stunned: () => 'atordoado (efeito de status)',
+  disarmed: () => 'impedido de usar o tackle (efeito de status)',
 };
 const RESULT = {denied: 'ignorado', buffered: 'guardado no buffer', expired: 'buffer expirou', executed: 'executado', partial: 'executado'};
 /** Frase curta: “X ignorado: stamina insuficiente (0,60 / 1,00)”. */
 export function describe(e) {
-  const k = e.kind === 'tackle' && e.viaCancel ? KIND.cancel : KIND[e.kind] ?? e.kind;
+  const k = e.kind === 'tackle' && e.viaCancel ? KIND.cancel : e.kind === 'skill' ? `Movimento ${(e.slot ?? 0) + 1}${e.move ? ` (${e.move})` : ''}` : KIND[e.kind] ?? e.kind;
   if (e.result === 'executed') return `${k} executado${e.fromBuffer ? ' (do buffer)' : ''}${e.viaCancel && e.kind === 'tackle' ? '' : ''}${e.note ? ` · ${e.note}` : ''}`;
   const why = e.reason ? (REASONS[e.reason]?.(e.detail || {}) ?? e.reason) : '';
   if (e.kind === 'tackle' && e.viaCancel && e.result === 'denied') return `C → X negado: ${why}`;
