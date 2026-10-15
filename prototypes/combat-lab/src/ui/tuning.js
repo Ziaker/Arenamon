@@ -259,7 +259,8 @@ export function createTuning({apply}) {
   function resetAll() {commit(manifest.map(m => [m.path, m.initial]), 'Restaurar todos os padrões');}
   render();renderPresets();
   return {manifest, byPath, commit, undo, redo, render, controlFor, sectionControls, renderPresets, exportData, preview, applyChanges: apply_, resetAll, markSaved, dirty, status, changed,
-    onChange: fn => state.listeners.add(fn), get savedLabel() {return state.savedLabel;}, snapshotValues, officialValue, valuesOf, migrate: flat => migrateFlat(flat, known())};
+    onChange: fn => state.listeners.add(fn), get savedLabel() {return state.savedLabel;}, snapshotValues, officialValue, valuesOf, migrate: flat => migrateFlat(flat, known()),
+    presets: {list: loadPresets, saveAll: list => {const ok = savePresets(list);renderPresets();return ok;}}};
 }
 export const escape = s => String(s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'})[c]);
 export {resetConfig};

@@ -21,7 +21,11 @@ export function fold(title, key, body, {open = false, count = null} = {}) {
   box.setOpen = set;return box;
 }
 
-export function createCharacterPanel({ui, view, $, onCharactersChanged}) {
+/**
+ * hooks (opcionais, instalados pelo workspace): loadModel(id, file) → carrega e persiste o GLB; useSame(); remove(id);
+ * importAnimation(id, ch, file) → {report, message}; slotExtras(id, el) → acrescenta controles ao slot.
+ */
+export function createCharacterPanel({ui, view, $, onCharactersChanged, hooks = {}}) {
   function setCharacter(id, source) {
     ui.characters[id]?.dispose();ui.characters[id] = null;ui.sources[id] = source;
     if (source) {const ch = new Character(source, {tint: id === 1 && (ui.sources[0] === source || ui.sources[0]?.name === source.name) ? '#ff5a4a' : null, slot: id});view.scene.add(ch.root);ui.characters[id] = ch;ch.warmGround();}
@@ -36,18 +40,25 @@ export function createCharacterPanel({ui, view, $, onCharactersChanged}) {
     const el = document.createElement('div');el.className = 'char-slot';const src = ui.sources[id], ch = ui.characters[id];
     el.innerHTML = `<h4>${id ? 'Vermelho' : 'Azul'}</h4><p class="hint">${src ? `${escape(src.name)} · ${ch.clips.length} clipes${src.manifest ? ' · mapa de ações do Studio' : ' · associação por nome'}` : 'Usando bloco.'}</p>
       <div class="row"><label class="wide-file"><input type="file" accept=".glb" data-model aria-label="GLB do ${id ? 'vermelho' : 'azul'}"></label>${id && ui.sources[0] ? '<button type="button" data-same>Usar o do azul</button>' : ''}${src ? '<button type="button" data-remove>Remover</button>' : ''}</div>`;
-    el.querySelector('[data-model]').onchange = async e => {const f = e.target.files[0];if (!f) return;try {setCharacter(id, await loadStudioFile(f));} catch (err) {el.querySelector('.hint').textContent = 'Erro: ' + err.message;}};
-    el.querySelector('[data-same]')?.addEventListener('click', () => setCharacter(1, ui.sources[0]));
-    el.querySelector('[data-remove]')?.addEventListener('click', () => setCharacter(id, null));
+    el.querySelector('[data-model]').onchange = async e => {
+      const f = e.target.files[0];if (!f) return;e.target.value = '';
+      try {if (hooks.loadModel) await hooks.loadModel(id, f);else setCharacter(id, await loadStudioFile(f));} catch (err) {const h = $('char-slots').querySelectorAll('.char-slot')[id]?.querySelector('.hint');if (h) h.textContent = 'Erro: ' + err.message;}
+    };
+    el.querySelector('[data-same]')?.addEventListener('click', () => hooks.useSame ? hooks.useSame() : setCharacter(1, ui.sources[0]));
+    el.querySelector('[data-remove]')?.addEventListener('click', () => hooks.remove ? hooks.remove(id) : setCharacter(id, null));
+    hooks.slotExtras?.(id, el);
     if (!ch) return el;
     // Importar clipes para a biblioteca (não cria blocos novos: os clipes ficam disponíveis para qualquer estado).
     const imp = document.createElement('div');imp.className = 'row';
     imp.innerHTML = `<label class="import-anim">+ Importar animação para biblioteca<input type="file" accept=".glb,.gltf" data-import hidden></label><span class="muted" data-import-result></span>`;
     imp.querySelector('[data-import]').onchange = async e => {
-      const f = e.target.files[0];if (!f) return;const out = imp.querySelector('[data-import-result]');
-      try {const rep = ch.importClips(await loadAnimationFile(f));ch.warmGround();render();const ok = rep.filter(r => r.compatible).length;
+      const f = e.target.files[0];if (!f) return;e.target.value = '';const out = imp.querySelector('[data-import-result]');
+      try {
+        const done = hooks.importAnimation ? await hooks.importAnimation(id, ch, f) : {report: ch.importClips(await loadAnimationFile(f))};
+        const rep = done.report;if (!rep) {out.textContent = done.message || '';return;}
+        ch.warmGround();render();const ok = rep.filter(r => r.compatible).length;
         ui.lastImport = rep;el.dispatchEvent(new CustomEvent('imported', {bubbles: true, detail: rep}));
-        $('char-slots').querySelectorAll('.char-slot')[id].querySelector('[data-import-result]').textContent = `${ok} de ${rep.length} clipe(s) compatível(is) adicionados à biblioteca${rep.length > ok ? ` · ${rep.length - ok} incompatível(is): ${rep.filter(r => !r.compatible).map(r => r.name).join(', ')}` : ''}.`;
+        $('char-slots').querySelectorAll('.char-slot')[id].querySelector('[data-import-result]').textContent = `${ok} de ${rep.length} clipe(s) compatível(is) adicionados à biblioteca${rep.length > ok ? ` · ${rep.length - ok} incompatível(is): ${rep.filter(r => !r.compatible).map(r => r.name).join(', ')}` : ''}.${done.message ? ' ' + done.message : ''}`;
       } catch (err) {out.textContent = 'Erro: ' + err.message;}
     };
     el.append(imp);

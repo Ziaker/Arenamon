@@ -101,13 +101,22 @@ try {
   await page.click('[data-tool="tuning"]');await page.click('#reset-all');await page.click('[data-tool="export"]');assert.equal(await L(() => window.__lab.C.test.speed), 4.8);
   step('exportação v8 com diferenças do jogo, importação v6 migrada e validada (pré-visualizar, aplicar, desfazer) e restaurar padrões');
 
-  // Aviso ao sair e sessão anterior.
+  // Aviso ao sair e sessão anterior. Com o workspace persistente, o aviso nativo de “não exportado” é uma preferência
+  // (Exportar › Workspace); a restauração da sessão é automática (com desfazer) ou por aviso, conforme a preferência.
+  await openTab('export');await page.check('#ws-warn-close');
   await L(() => window.__lab.tuning.commit([['rules.launchUp', 8]], 'teste'));assert.equal(await page.getAttribute('#tune-state', 'data-state'), 'dirty');
+  await L(() => window.__lab.ws.saveNow());
   page.__acceptUnload = true;await L(() => location.reload());await page.waitForFunction(() => window.__lab);page.__acceptUnload = false;
-  assert.ok(dialogs.includes('beforeunload'), 'aviso nativo ao recarregar com ajustes não exportados');
-  await page.click('[data-tool="tuning"]');await page.waitForSelector('#session-banner');await page.click('#session-restore');assert.equal(await L(() => window.__lab.C.rules.launchUp), 8);
-  await L(() => {window.__lab.tuning.resetAll();window.__lab.tuning.markSaved('teste');});
-  step('aviso de ajustes não exportados ao recarregar e restauração da sessão anterior');
+  assert.ok(dialogs.includes('beforeunload'), 'aviso nativo ao recarregar com ajustes não exportados (preferência ligada)');
+  assert.equal(await L(() => window.__lab.C.rules.launchUp), 8, 'sessão anterior restaurada automaticamente');
+  await openTab('tuning');await page.waitForSelector('#session-banner #session-undo');
+  await openTab('export');await page.uncheck('#ws-auto-session');await page.uncheck('#ws-warn-close');await L(() => window.__lab.ws.saveNow());
+  await L(() => location.reload());await page.waitForFunction(() => window.__lab);
+  assert.equal(await L(() => window.__lab.C.rules.launchUp), 7.3, 'sem restauração automática: começa no padrão');
+  await openTab('tuning');await page.waitForSelector('#session-banner');await page.click('#session-restore');assert.equal(await L(() => window.__lab.C.rules.launchUp), 8);
+  await openTab('export');await page.check('#ws-auto-session');
+  await L(() => {window.__lab.tuning.resetAll();window.__lab.tuning.markSaved('teste');});await L(() => window.__lab.ws.saveNow());
+  step('aviso de ajustes não exportados (preferência) e restauração da sessão anterior (automática e por aviso)');
 
   // ---------- 5. Cenários ----------
   await page.click('[data-tool="scenarios"]');await page.click('#scenario-all');

@@ -11,7 +11,7 @@
 <div class="lab">
  <header class="top">
   <div class="brand"><span class="logo">A</span><strong>ARENAMON <em>LAB</em></strong><small>Combate · v7</small></div>
-  <div class="top-info"><span class="chip" id="phase" title="Fase da partida e estado do alvo"></span><span class="chip ai" id="ai-chip" title="Modo da IA do adversário"></span><span class="chip dirty" id="tune-state" data-state="clean" title="Ajustes alterados em relação ao último preset salvo ou JSON exportado"><i></i><span>Ajustes padrão</span></span></div>
+  <div class="top-info"><span class="chip" id="phase" title="Fase da partida e estado do alvo"></span><span class="chip ai" id="ai-chip" title="Modo da IA do adversário"></span><span class="chip dirty" id="tune-state" data-state="clean" title="Ajustes alterados em relação ao último preset salvo ou JSON exportado"><i></i><span>Ajustes padrão</span></span><span class="chip ws" id="ws-chip" data-state="ok" title="Workspace persistente"><i></i><span>Workspace</span></span></div>
   <div class="top-actions">
    <button type="button" id="pause" title="Pausar / continuar (Esc)">❚❚ Pausar</button>
    <button type="button" id="restart-top" title="Reiniciar a partida (R)">↺ Reiniciar</button>
@@ -92,6 +92,10 @@
      <div id="preset-list"></div>
      <div class="row"><select id="preset-a" aria-label="Preset A"></select><span>×</span><select id="preset-b" aria-label="Preset B"></select><button type="button" id="preset-compare">Comparar</button></div>
      <div id="preset-diff" class="report"></div>
+     <h3>Histórico de calibrações</h3>
+     <p class="hint">Pontos de calibração guardados no workspace (sobrevivem ao fechar o laboratório e vão no backup). Restaurar pode ser desfeito com Ctrl+Z.</p>
+     <div class="row"><input type="text" id="calib-name" placeholder="Nome do ponto de calibração" maxlength="80"><button type="button" id="calib-save">Salvar ponto</button></div>
+     <div id="calib-list"></div>
      <button type="button" class="wide" id="reset-all">Restaurar todos os padrões do laboratório</button>
     </section>
     <section data-section="overlays" hidden>
@@ -104,6 +108,9 @@
     <section data-section="characters" hidden>
      <p class="hint">Carregue o <b>.glb</b> exportado pelo Animation Studio. As ações associadas no Studio viram as animações de cada estado do combate. A posição continua vindo da física.</p>
      <div id="char-slots"></div>
+     <h3>Armazenamento dos modelos e animações</h3>
+     <p class="hint">Os GLBs ficam salvos neste navegador, identificados pelo conteúdo (SHA-256), não pelo nome. Nada é excluído sem você pedir.</p>
+     <div id="ws-storage" class="report"></div>
      <h3>Opções gerais das animações</h3>
      <label class="check"><input type="checkbox" id="char-lock-root" checked disabled> Deslocamento da raiz sempre controlado pela física (as animações nunca movem o personagem no mundo)</label>
      <label class="check"><input type="checkbox" id="char-fit" checked> Ajustar a altura ao colisor (1,3 m)</label>
@@ -141,6 +148,19 @@
     </section>
     <section data-section="homolog" hidden><div id="homolog-list"></div></section>
     <section data-section="export" hidden>
+     <h3>Workspace</h3>
+     <p class="hint">Ajustes, presets, preferências, última partida, modelos, animações, associações e offsets são salvos automaticamente neste navegador e restaurados ao abrir.</p>
+     <p class="hint" id="ws-status-line"></p>
+     <label class="check"><input type="checkbox" id="ws-auto-session"> Restaurar automaticamente ajustes, preferências e a última partida ao abrir</label>
+     <label class="check"><input type="checkbox" id="ws-warn-close"> Avisar ao fechar com ajustes não exportados em JSON (mesmo com o workspace salvo)</label>
+     <div class="row"><button type="button" id="ws-save-now">Salvar agora</button></div>
+     <h3>Backup completo do workspace</h3>
+     <p class="hint">Pacote ZIP portátil (manifesto versionado, configuração, presets, calibrações, homologação, modelos e animações) para levar a outro navegador ou computador. A importação valida tudo e mostra uma prévia antes de mudar qualquer coisa.</p>
+     <label class="check"><input type="checkbox" id="ws-export-all"> Incluir também os arquivos armazenados que não estão em uso</label>
+     <div class="row"><button type="button" class="primary" id="ws-export">↓ Exportar Workspace Completo (ZIP)</button></div>
+     <label class="field">Importar Workspace Completo (.zip)<input type="file" id="ws-import-file" accept=".zip,application/zip"></label>
+     <div id="ws-import-result" class="report" aria-live="polite"></div>
+     <h3>Ajustes em JSON</h3>
      <p class="hint">O laboratório nunca altera o jogo. Use o relatório para decidir o que levar ao <code>config.ts</code>.</p>
      <div class="row"><button type="button" class="primary" id="export-json">↓ Exportar ajustes (JSON)</button><button type="button" id="copy-json">Copiar</button></div>
      <label class="field">Importar JSON (v5 a v8; formatos antigos são migrados com relatório)<textarea id="import-text" rows="5" placeholder="Cole aqui ou escolha um arquivo"></textarea></label>

@@ -23,6 +23,9 @@ import {MatchRecording, parseRecording} from './sim/recording.js';
 import {emptyCommand} from './sim/entity.js';
 import {patchConfigTs, unifiedDiff, collectChanges} from './ui/gamepatch.js';
 import {OFFICIAL_MAP} from './ui/actions-meta.js';
+import {openStore} from './workspace/store.js';
+import {Workspace} from './workspace/workspace.js';
+import {createWorkspaceUI} from './ui/workspace-panel.js';
 /* global __GAME_CONFIG_TS__ */
 const GAME_CONFIG_TS = typeof __GAME_CONFIG_TS__ === 'string' ? __GAME_CONFIG_TS__ : '';
 import {length, sub, dot} from './sim/math.js';
@@ -206,23 +209,43 @@ function syncTuneState() {
   const dirty = tuning.dirty(), chip = $('tune-state'), isDefault = tuning.manifest.every(m => !tuning.changed(m));
   chip.dataset.state = dirty ? 'dirty' : isDefault ? 'clean' : 'saved';
   chip.querySelector('span').textContent = dirty ? 'Ajustes não exportados' : isDefault ? 'Ajustes padrão' : `Ajustes salvos (${tuning.savedLabel})`;
-  try {localStorage.setItem('arenamon-lab-session-v7', JSON.stringify(tuning.snapshotValues()));} catch {}
+  const values = tuning.snapshotValues();
+  // Cópia no formato v7 (compatibilidade): só depois de o workspace ler a sessão anterior, para não sobrescrevê-la ao abrir.
+  if (wsRef.ws) try {localStorage.setItem('arenamon-lab-session-v7', JSON.stringify(values));} catch {}
+  wsRef.ws?.set('tuning', {values, at: new Date().toISOString()});wsRef.ui?.renderCalibrations();
   renderGameDiff();
 }
 tuning.onChange(syncTuneState);
-window.addEventListener('beforeunload', e => {if (tuning.dirty()) {e.preventDefault();e.returnValue = '';}});
-// Ajustes da sessão anterior (somente neste navegador).
-try {
-  const stored = JSON.parse(localStorage.getItem('arenamon-lab-session-v7') || 'null'), prev = stored ? tuning.migrate(stored).values : null;
-  const diff = prev ? tuning.manifest.filter(m => m.path in prev && Math.abs(prev[m.path] - m.initial) > 1e-9) : [];
-  if (diff.length) {
-    const banner = document.createElement('div');banner.className = 'report warn';banner.id = 'session-banner';
-    banner.innerHTML = `<p><b>Ajustes da sessão anterior encontrados</b> (${diff.length} diferenças do padrão), guardados neste navegador.</p><div class="row"><button type="button" id="session-restore">Restaurar</button><button type="button" id="session-discard">Descartar</button></div>`;
+const wsRef = {ws: null, ui: null, store: null};
+// Aviso ao fechar: sempre que o workspace não conseguiu salvar (ou só existe na memória); com a preferência ligada,
+// também quando há ajustes não exportados em JSON (comportamento anterior).
+window.addEventListener('beforeunload', e => {
+  const ws = wsRef.ws, unsafe = !ws || ws.status.state === 'error' || ws.store.kind === 'memory';
+  if (ws?.status.pending) ws.saveNow();
+  if (tuning.dirty() && (unsafe || ws.doc.prefs.warnOnClose)) {e.preventDefault();e.returnValue = '';}
+});
+for (const ev of ['pagehide', 'visibilitychange']) window.addEventListener(ev, () => {if ((ev === 'pagehide' || document.hidden) && wsRef.ws?.status.pending) wsRef.ws.saveNow();});
+/** Ajustes da sessão anterior: restaurados automaticamente (com desfazer) ou oferecidos num aviso, conforme a preferência. */
+function sessionBanner(prevValues, {auto}) {
+  const prev = tuning.migrate(prevValues).values;
+  const diff = tuning.manifest.filter(m => m.path in prev && typeof prev[m.path] === 'number' && Math.abs(prev[m.path] - pathGet(C, m.path)) > 1e-9);
+  if (!diff.length) return 0;
+  const banner = document.createElement('div');banner.className = 'report warn';banner.id = 'session-banner';
+  const clampTo = m => Math.max(m.min, Math.min(m.max, prev[m.path]));
+  if (auto) {
+    tuning.commit(diff.map(m => [m.path, clampTo(m)]), 'Sessão anterior');tuning.markSaved('sessão anterior');
+    banner.innerHTML = `<p><b>Sessão anterior restaurada</b> automaticamente (${diff.length} ajustes).</p><div class="row"><button type="button" id="session-undo">Desfazer restauração</button><button type="button" id="session-ok">OK</button></div>`;
     document.querySelector('[data-section="tuning"]').prepend(banner);
-    $('session-restore').onclick = () => {tuning.commit(diff.map(m => [m.path, prev[m.path]]), 'Sessão anterior');banner.remove();};
+    $('session-undo').onclick = () => {tuning.commit(diff.map(m => [m.path, m.initial]), 'Desfazer sessão anterior');banner.remove();};
+    $('session-ok').onclick = () => banner.remove();
+  } else {
+    banner.innerHTML = `<p><b>Ajustes da sessão anterior encontrados</b> (${diff.length} diferenças), guardados neste navegador.</p><div class="row"><button type="button" id="session-restore">Restaurar</button><button type="button" id="session-discard">Descartar</button></div>`;
+    document.querySelector('[data-section="tuning"]').prepend(banner);
+    $('session-restore').onclick = () => {tuning.commit(diff.map(m => [m.path, clampTo(m)]), 'Sessão anterior');banner.remove();};
     $('session-discard').onclick = () => {banner.remove();try {localStorage.removeItem('arenamon-lab-session-v7');} catch {}};
   }
-} catch {}
+  return diff.length;
+}
 const difficulty = {
   easy: {attackRange: 2.6, combatAttackCooldown: 1.8, initialCooldown: 1.2, threatDistance: 3.2, evadeCycle: 5, evadeCycleIndex: 2, reactiveRetreatStrength: .1},
   normal: Object.fromEntries(Object.entries(defaults().extras.ai).filter(([k]) => ['attackRange', 'combatAttackCooldown', 'initialCooldown', 'threatDistance', 'evadeCycle', 'evadeCycleIndex', 'reactiveRetreatStrength'].includes(k))),
@@ -231,10 +254,10 @@ const difficulty = {
 for (const b of document.querySelectorAll('[data-difficulty]')) b.onclick = () => {tuning.commit(Object.entries(difficulty[b.dataset.difficulty]).map(([k, v]) => ['extras.ai.' + k, v]), 'Dificuldade ' + b.textContent);game.brain.reset();};
 
 // ---------- Exportar ----------
-function download(text, name) {const url = URL.createObjectURL(new Blob([text], {type: 'application/json'})), a = document.createElement('a');a.href = url;a.download = name;a.click();setTimeout(() => URL.revokeObjectURL(url), 2000);}
+function download(data, name, type = 'application/json') {const url = URL.createObjectURL(new Blob([data], {type})), a = document.createElement('a');a.href = url;a.download = name;a.click();setTimeout(() => URL.revokeObjectURL(url), 4000);}
 const homologation = createHomologation($('homolog-list'));
 const exportAll = () => ({...tuning.exportData(), homologation: homologation.exportData()});
-$('export-json').onclick = () => {download(JSON.stringify(exportAll(), null, 2), 'arenamon-calibracao-v8.json');tuning.markSaved('JSON exportado');$('import-result').innerHTML = '<p class="ok">JSON enviado para Downloads. O navegador não confirma a gravação: verifique o arquivo.</p>';};
+$('export-json').onclick = () => {download(JSON.stringify(exportAll(), null, 2), 'arenamon-calibracao-v8.json');tuning.markSaved('JSON exportado');wsRef.ui?.saveCalibration('JSON exportado', 'auto');$('import-result').innerHTML = '<p class="ok">JSON enviado para Downloads. O navegador não confirma a gravação: verifique o arquivo.</p>';};
 $('copy-json').onclick = async () => {try {await navigator.clipboard.writeText(JSON.stringify(exportAll(), null, 2));$('import-result').innerHTML = '<p class="ok">JSON copiado.</p>';} catch {$('import-text').value = JSON.stringify(exportAll(), null, 2);$('import-text').select();$('import-result').innerHTML = '<p class="warn">Sem acesso à área de transferência: o JSON está na caixa abaixo, selecionado.</p>';}};
 $('import-file').onchange = async () => {const f = $('import-file').files[0];if (f) $('import-text').value = await f.text();$('import-preview').click();};
 $('import-preview').onclick = () => {
@@ -266,7 +289,9 @@ function renderLive() {
 }
 
 // ---------- Personagens ----------
-const charPanel = createCharacterPanel({ui, view, $, onCharactersChanged: () => {syncRuleDurations();dock.invalidate();}});
+// Ganchos do workspace (persistência dos GLBs e das animações importadas), instalados quando o armazenamento abre.
+const charHooks = {};
+const charPanel = createCharacterPanel({ui, view, $, hooks: charHooks, onCharactersChanged: () => {syncRuleDurations();dock.invalidate();}});
 const renderCharacters = () => {charPanel.render();renderStudioEvents();renderRuleDurations();};
 const setCharacter = (id, source) => charPanel.setCharacter(id, source);
 const renderCharacterLive = () => charPanel.live();
@@ -395,7 +420,71 @@ function frame(now) {
 applyConfig();renderScenarios();renderCharacters();syncTuneState();openTool('match');syncButtons();
 requestAnimationFrame(frame);
 
+// ---------- Workspace persistente: preferências de interface, última partida e opções de animação ----------
+function collectUi() {
+  const pressed = document.querySelector('[data-dock][aria-pressed="true"]');
+  return {tool: $('panel').hidden ? null : $('panel').dataset.tool, dockCollapsed: $('dock').classList.contains('collapsed'), dockView: pressed?.dataset.dock ?? 'timeline', timeScale: $('rp-speed').value,
+    overlays: {...view.overlays}, showHistory: $('show-history').checked, charSyncSource: $('char-sync-source').value, previewSlot: $('char-preview-slot').value};
+}
+const collectMatch = () => ({enemyProfile: $('enemy-profile').value, playerMode: $('player-mode').value, seed: $('seed').value, seedFixed: $('seed-fixed').checked, recValues: $('rec-values').value});
+const collectAnim = () => {const o = Character.options;return {fit: o.fit, fade: o.fade, actionFade: o.actionFade, locomotionHold: o.locomotionHold, speed: o.speed, syncRules: o.syncRules};};
+const fire = (id, type = 'change') => $(id).dispatchEvent(new Event(type, {bubbles: true}));
+/** Reaplica preferências de interface, última partida e opções de animação gravadas no workspace. */
+function applyDocUi(doc) {
+  const u = doc.ui || {}, m = doc.match, a = doc.animOptions;
+  if (m) {
+    if ([...$('enemy-profile').options].some(o => o.value === m.enemyProfile)) $('enemy-profile').value = m.enemyProfile;
+    if ([...$('player-mode').options].some(o => o.value === m.playerMode)) {$('player-mode').value = m.playerMode;fire('player-mode');}
+    $('seed-fixed').checked = !!m.seedFixed;if (m.seed) {$('seed').value = String(m.seed);applySeed();}
+    if (m.recValues) $('rec-values').value = m.recValues;
+  }
+  if (a) {
+    $('char-fit').checked = a.fit !== false;fire('char-fit');
+    for (const [id, key] of [['char-fade', 'fade'], ['char-action-fade', 'actionFade'], ['char-hold', 'locomotionHold'], ['char-speed', 'speed']]) if (typeof a[key] === 'number') {$(id).value = String(a[key]);fire(id, 'input');}
+    $('char-sync').checked = !!a.syncRules;Character.options.syncRules = !!a.syncRules;
+  }
+  if (u.overlays) for (const [k, v] of Object.entries(u.overlays)) if (k in view.overlays) {view.overlays[k] = !!v;const box = document.querySelector(`[data-overlay="${k}"]`);if (box) box.checked = !!v;}
+  if (u.timeScale) {$('rp-speed').value = u.timeScale;clock.timeScale = Number(u.timeScale) || 1;}
+  if (typeof u.showHistory === 'boolean') {$('show-history').checked = u.showHistory;$('input-history').hidden = !u.showHistory;}
+  if (u.charSyncSource) $('char-sync-source').value = u.charSyncSource;
+  if (u.previewSlot) $('char-preview-slot').value = u.previewSlot;
+  if (typeof u.dockCollapsed === 'boolean' && u.dockCollapsed !== $('dock').classList.contains('collapsed')) $('dock-toggle').click();
+  if (u.dockView) document.querySelector(`[data-dock="${u.dockView}"]`)?.click();
+  if (u.tool === null) $('panel-close').click();else if (u.tool && TITLES[u.tool] && ($('panel').hidden || $('panel').dataset.tool !== u.tool)) openTool(u.tool);
+}
+const collectApp = () => ({name: 'arenamon-combate-laboratorio', build: document.title, userAgent: navigator.userAgent});
+
+async function bootWorkspace() {
+  const store = await openStore();let ls = null;try {ls = localStorage;} catch {ls = null;}
+  const ws = await Workspace.open(store, {ls});wsRef.store = store;
+  const wsUI = createWorkspaceUI({ws, store, ui, tuning, $, download, presets: tuning.presets, homologation, applyDocUi, collectApp, onCharactersChanged: () => {syncRuleDurations();dock.invalidate();}});
+  Object.assign(charHooks, wsUI.hooks);wsUI.setPanel(charPanel);
+  await ws.batch(async () => {
+    if (ws.doc.prefs.autoRestoreSession) applyDocUi(ws.doc);
+    if (ws.doc.tuning?.values) ui.sessionRestored = sessionBanner(ws.doc.tuning.values, {auto: !!ws.doc.prefs.autoRestoreSession});
+  });
+  wsRef.ws = ws;wsRef.ui = wsUI;wsUI.bind();
+  // Modelos: restauração automática por slot (o vermelho reaproveita o modelo do azul quando é o mesmo arquivo).
+  const S = ws.doc.slots, restored = [];
+  for (const slot of [0, 1]) {
+    const s = S[slot];if (!s.autoRestore || !s.active || !s.modelId) continue;
+    if (slot === 1 && S[0].modelId === s.modelId && ui.characters[0]?.source.assetId === s.modelId) {await wsUI.useSame();restored.push(slot);continue;}
+    if ((await wsUI.reopen(slot, {auto: true})).ok) restored.push(slot);
+  }
+  ui.workspaceNotes = ws.notes;
+  if (ws.fresh || ws.notes.length) ws.touch();
+  // Preferências de interface, partida e animação: gravadas quando mudam (verificação leve a cada 0,5 s).
+  let last = '';
+  setInterval(() => {const snap = {ui: collectUi(), match: collectMatch(), animOptions: collectAnim()}, key = JSON.stringify(snap);if (key !== last) {if (last) {ws.doc.ui = snap.ui;ws.doc.match = snap.match;ws.doc.animOptions = snap.animOptions;ws.touch();}last = key;}}, 500);
+  if (ws.notes.length) $('ws-status-line')?.insertAdjacentHTML('afterend', `<p class="hint warn" id="ws-notes">${ws.notes.map(escape).join('<br>')}</p>`);
+  return {ws, store, wsUI, restored};
+}
+
 // ---------- Interfaces para testes e compatibilidade com o v6 ----------
 window.__arenamon = {snapshot: () => ({...game.snapshot(), frame: ui.frame, camera: view.rig.snapshot(), locked: input.locked, hitboxDebug: !!C.extras.toggles.showHitboxes, playerAI: !!C.extras.toggles.enablePlayerAI})};
 window.__arenaLive = {rules: C.rules, test: C.test, locomotion: C.locomotion, camera: C.camera, profiles: C.profiles, extras: C.extras, game, view, input, clock, reset: startMatch, apply: applyConfig};
-window.__lab = {C, game, view, hudProposals, visualPanel, recorder, replay, tuning, ui, startMatch, startScenario: id => startScenario(SCENARIOS.find(s => s.id === id)), stepFrames, seekTick, goLive, togglePause, setCharacter, loadStudioFile, SCENARIOS, runScenario};
+// window.__lab só aparece depois da restauração do workspace (os testes esperam por ele).
+bootWorkspace().catch(e => {console.error('workspace:', e);ui.workspaceError = e.message;return null;}).then(boot => {
+  window.__lab = {C, game, view, hudProposals, visualPanel, recorder, replay, tuning, ui, startMatch, startScenario: id => startScenario(SCENARIOS.find(s => s.id === id)), stepFrames, seekTick, goLive, togglePause, setCharacter, loadStudioFile, SCENARIOS, runScenario,
+    ws: boot?.ws ?? null, store: boot?.store ?? null, wsUI: boot?.wsUI ?? null, workspaceBoot: boot};
+});

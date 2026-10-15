@@ -117,16 +117,23 @@ export class Character {
   resetVisual() {for (const l of [...this.layers, this.current].filter(Boolean)) {l.action.stop();this.mixer.uncacheAction(l.clip);}this.layers = [];this.current = null;this.stableLoco = null;}
   moveVariant(id, index, delta) {const l = this.variants[id] || [], i = l.indexOf(index), j = i + delta;if (i < 0 || j < 0 || j >= l.length) return;[l[i], l[j]] = [l[j], l[i]];this.resetVisual();this.save();}
   storeKey() {return STORE + (this.source.name || 'sem-nome');}
+  /** Associações, velocidades e offsets em formato portátil (clipes por nome). */
+  stateData() {
+    const byName = i => this.clips[i]?.name;
+    return {variants: Object.fromEntries(Object.entries(this.variants).map(([id, l]) => [id, l.map(byName).filter(Boolean)])), speeds: {...this.speeds},
+      clipOffsets: Object.fromEntries(Object.entries(this.clipOffsets).map(([i, v]) => [byName(i), v]).filter(([k]) => k)), visualOffset: this.visualOffset, autoGround: this.autoGround};
+  }
   save() {
     if (!this.persist) return;
-    const byName = i => this.clips[i]?.name;
-    const data = {variants: Object.fromEntries(Object.entries(this.variants).map(([id, l]) => [id, l.map(byName).filter(Boolean)])), speeds: this.speeds,
-      clipOffsets: Object.fromEntries(Object.entries(this.clipOffsets).map(([i, v]) => [byName(i), v]).filter(([k]) => k)), visualOffset: this.visualOffset, autoGround: this.autoGround};
+    const data = this.stateData();
+    // Com workspace: estado por modelo (SHA-256 do GLB). Sem ele (testes, navegador sem armazenamento): por nome, como antes.
+    if (Character.stateStore && this.source.assetId) {Character.stateStore.set(this, data);return;}
     try {localStorage.setItem(this.storeKey(), JSON.stringify(data));} catch {/* armazenamento indisponível: associações valem só nesta sessão */}
   }
   restore() {
     if (!this.persist) return;let data = null;
-    try {data = JSON.parse(localStorage.getItem(this.storeKey()) || 'null');} catch {data = null;}
+    if (Character.stateStore && this.source.assetId) data = Character.stateStore.get(this);
+    else try {data = JSON.parse(localStorage.getItem(this.storeKey()) || 'null');} catch {data = null;}
     if (!data) return;
     const idx = name => this.clips.findIndex(c => c.name === name);
     this.missingAssociations = [];
@@ -382,6 +389,8 @@ export class Character {
 }
 // fade: transição entre estados comuns; actionFade: entrada em X/C e reações de combate (curta, para prevalecer).
 Character.options = {lockRoot: true, fit: true, fade: .18, actionFade: .07, speed: 1, syncRules: false, locomotionHold: .1, guardHold: .25};
+/** Armazenamento das associações por modelo (instalado pelo workspace): {get(character), set(character, data)}. */
+Character.stateStore = null;
 
 /** Variantes iniciais: manifesto do Studio; depois nomes exatos; depois palavras contidas no nome. */
 export function autoVariants(source) {

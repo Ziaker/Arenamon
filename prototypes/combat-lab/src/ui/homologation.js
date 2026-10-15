@@ -60,5 +60,7 @@ export function createHomologation(root, onChange = () => {}) {
   /** Para o JSON exportado: situação de cada item, com título. */
   const exportData = () => ({summary: summary(), items: ITEMS.map(([id, title]) => ({id, title, ...entry(id)}))});
   render();
-  return {render, summary, markdown, exportData, set: (id, status, note = '') => {data[id] = {status, note};save();render();}};
+  /** Substitui a avaliação pela de um backup (formato de exportData). */
+  const importData = d => {data = {};for (const it of d?.items || []) if (ITEMS.some(([id]) => id === it.id)) data[it.id] = {status: it.status || 'pending', note: it.note || '', ...(it.at ? {at: it.at} : {})};save();render();};
+  return {render, summary, markdown, exportData, importData, set: (id, status, note = '') => {data[id] = {status, note};save();render();}};
 }
