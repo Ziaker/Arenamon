@@ -1,0 +1,71 @@
+/* Arenamon Studio · Fase 1 — timeline e ferramentas de edição contextuais. */
+.stage{--ed-dock-h:210px}
+.stage #view{height:auto!important;bottom:var(--ed-dock-h)!important}
+.stage .stage-welcome{bottom:var(--ed-dock-h)!important}
+.stage .stage-bottom{bottom:calc(var(--ed-dock-h) + 10px)!important}
+.stage .stage-bottom .transport[hidden],.stage [hidden]{display:none!important}
+body.ed-resizing{cursor:ns-resize;user-select:none}
+.ed-dock{position:absolute;z-index:5;left:0;right:0;bottom:0;height:var(--ed-dock-h);display:flex;flex-direction:column;background:#0a111cf7;border-top:1px solid #8fb2d82a;box-shadow:0 -10px 30px #0006;color:var(--text,#edf4ff);font-size:12px}
+.ed-grip{flex:none;height:7px;cursor:ns-resize;position:relative}
+.ed-grip::after{content:'';position:absolute;left:50%;top:2px;width:44px;height:3px;margin-left:-22px;border-radius:3px;background:#8fb2d84d}
+.ed-grip:hover::after,.ed-grip:focus-visible::after{background:var(--cyan,#54d9ee)}
+.ed-bar{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:2px 10px 7px}
+.ed-group{display:flex;align-items:center;gap:4px}
+.ed-dock button,.ed-dock select,.ed-dock input[type=number],.ed-dock input[type=text]{background:#15233a;border:1px solid #8fb2d838;border-radius:8px;color:var(--text,#edf4ff);min-height:30px;padding:4px 9px;font-size:12px}
+.ed-dock button:hover:not(:disabled){background:#21375a;border-color:#8fb2d870}
+.ed-dock button[aria-pressed=true]{background:#1f4b5c;border-color:var(--cyan,#54d9ee);color:#e9fdff}
+.ed-transport button{min-width:32px;padding:4px 6px}
+.ed-transport #play{min-width:108px;font-weight:700;background:#204a3a;border-color:#6be0a666}
+.ed-readout{display:flex;flex-direction:column;line-height:1.15;min-width:104px;font-variant-numeric:tabular-nums}
+.ed-readout strong{font-size:14px;color:#ffd18c}.ed-readout small{color:var(--muted,#92a9c7);font-size:10.5px}
+.ed-clip{min-width:0;flex:1 1 160px}.ed-clip label{display:none}
+.ed-clip select{flex:1;min-width:120px;max-width:340px}
+.ed-opts{gap:8px}.ed-opts label,.ed-inline{display:flex;align-items:center;gap:5px;color:var(--muted,#92a9c7);font-size:11px;margin:0}
+.ed-tools{display:flex;gap:4px;flex-wrap:wrap}
+.ed-tools button{font-weight:650;padding:4px 8px}
+.ed-zoom{position:absolute;z-index:2;left:4px;top:3px;display:flex;gap:2px}.ed-dock .ed-zoom button{min-height:20px;min-width:26px;padding:0 4px;font-size:12px;line-height:1;border-radius:6px}
+.ed-collapse{margin-left:auto}
+.ed-main{flex:1;min-height:0;display:flex;border-top:1px solid #ffffff10}
+.ed-collapsed .ed-main,.ed-collapsed .ed-tools{display:none}
+.ed-canvas-wrap{flex:1;min-width:0;position:relative}
+#ed-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:crosshair;touch-action:none}
+.ed-empty{position:absolute;inset:auto 0 12px 0;text-align:center;color:var(--muted,#92a9c7);font-size:12px;pointer-events:none;margin:0}
+.ed-panel{flex:none;width:350px;max-width:46%;overflow:auto;border-left:1px solid #ffffff14;background:#0d1626;padding:10px 14px 18px;scrollbar-width:thin}
+.ed-panel header{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
+.ed-panel h3{font-size:13px}.ed-panel h4{margin:12px 0 4px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#a9c0da}
+.ed-panel p{margin:6px 0;font-size:11.5px;line-height:1.45}
+.ed-close{min-height:26px!important;padding:2px 8px!important}
+.ed-row{display:flex;gap:6px;align-items:flex-end;margin:6px 0;flex-wrap:wrap}
+.ed-row label{display:flex;flex-direction:column;gap:3px;flex:1;min-width:90px;font-size:11px;color:var(--muted,#92a9c7)}
+.ed-row input,.ed-row select{width:100%}
+.ed-buttons button{flex:1}
+.ed-field{display:flex;flex-direction:column;gap:3px;margin:7px 0;font-size:11px;color:var(--muted,#92a9c7)}
+.ed-field output{color:var(--text,#edf4ff);font-weight:700}
+.ed-check{display:flex;align-items:center;gap:7px;margin:6px 0;font-size:11.5px}
+.ed-primary,.ed-panel>section>button{width:100%;margin-top:6px}
+.ed-dock .ed-primary{background:var(--lime,#bff36a);border-color:var(--lime,#bff36a);color:#122010;font-weight:800}
+.ed-dock .ed-primary:hover:not(:disabled){background:#d2ff8c}
+.ed-dock .ed-primary-mini{background:#2b4a1f;border-color:#bff36a66;white-space:nowrap}
+.ed-hint,.ed-note{color:var(--muted,#92a9c7)}.ed-note{font-size:10.5px!important;border-left:2px solid #4c6688;padding-left:8px}
+.ed-info{color:#cfe0f5}.ed-warn{white-space:pre-wrap;color:#ffc98a}
+.ed-panel kbd{background:#1b2b45;border:1px solid #ffffff25;border-radius:4px;padding:0 4px;font-size:10px}
+.ed-event-list{display:grid;gap:6px;margin-top:6px}
+.ed-event{display:grid;grid-template-columns:1fr 58px 10px 30px 30px;gap:4px;align-items:center;padding:6px;border:1px solid #ffffff14;border-left:4px solid var(--c);border-radius:8px;background:#111c2e}
+.ed-event.selected{border-color:var(--c);background:#16263d}
+.ed-event input[type=text]{grid-column:1/-1}
+.ed-event button{padding:2px!important;min-height:28px}
+.ed-frame-label{font-size:10px;color:var(--muted,#92a9c7)}
+.ed-empty-list{color:var(--muted,#92a9c7)}
+.ed-chips{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0}
+.ed-chip{background:#13233a;border:1px solid #54d9ee33;border-radius:999px;padding:2px 8px;font-size:10.5px;font-variant-numeric:tabular-nums}
+.ed-graph{width:100%;height:84px;border-radius:8px;border:1px solid #ffffff12;display:block}
+.ed-legend{display:flex;gap:12px;font-size:10px!important;color:var(--muted,#92a9c7)}.ed-legend span::before{content:'';display:inline-block;width:9px;height:3px;margin-right:4px;vertical-align:middle;background:var(--c)}
+.ed-history{display:flex;gap:4px}
+.ed-history button{min-width:36px;min-height:34px;border-radius:9px;background:#18263c;border:1px solid #8fb2d838;color:var(--text,#edf4ff);font-size:16px}
+.ed-history button:disabled{opacity:.35}
+.stage .lab-compare-label{bottom:auto}
+@media(max-width:900px){
+ .ed-panel{position:absolute;right:0;top:auto;bottom:0;height:calc(100% - 40px);width:min(100%,360px);max-width:100%;z-index:3;box-shadow:-8px 0 24px #0008}
+ .ed-dock{font-size:11px}
+}
+@media(max-width:690px){.ed-bar{position:relative;padding-right:48px}.ed-collapse{position:absolute;right:10px;top:2px}.ed-tools{overflow-x:auto;flex-wrap:nowrap;max-width:100%}.ed-tools button{white-space:nowrap}.ed-readout{min-width:84px}}

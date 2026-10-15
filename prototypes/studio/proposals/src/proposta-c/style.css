@@ -1,0 +1,172 @@
+/* Proposta C — Hybrid Rigging Studio Styles */
+.hybrid-app {
+  display: flex;
+  flex-direction: column;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+/* Modo Switcher no Topo */
+.mode-switch-group {
+  display: flex;
+  background: #111e30;
+  border: 1px solid var(--edge);
+  border-radius: 999px;
+  padding: 3px;
+  gap: 2px;
+}
+
+.mode-switch-btn {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 750;
+  padding: 5px 12px;
+  border-radius: 999px;
+  transition: all 0.16s ease;
+}
+
+.mode-switch-btn.active {
+  background: linear-gradient(115deg, var(--cyan), #6899f8);
+  color: #061527;
+  box-shadow: 0 2px 10px rgba(84, 217, 238, 0.3);
+}
+
+/* Layout Adaptativo */
+.hybrid-main-area {
+  position: relative;
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.hybrid-viewport {
+  flex: 1;
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  background: radial-gradient(circle at center, #172844 0%, #070d18 80%);
+}
+
+/* Painéis Deslizantes / Gavetas Retráteis */
+.hybrid-dock {
+  background: rgba(14, 23, 38, 0.94);
+  backdrop-filter: blur(16px);
+  border-color: var(--edge);
+  box-shadow: var(--shadow);
+  z-index: 12;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
+  overflow: hidden;
+}
+
+/* Dock Esquerda (Hierarquia / Guia) */
+.dock-left {
+  position: absolute;
+  top: 14px;
+  bottom: 14px;
+  left: 14px;
+  width: 310px;
+  border: 1px solid var(--edge);
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+}
+
+.dock-left.collapsed {
+  transform: translateX(-340px);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Dock Direita (Inspetor Inteligente com Quick-Fix) */
+.dock-right {
+  position: absolute;
+  top: 14px;
+  bottom: 14px;
+  right: 14px;
+  width: 320px;
+  border: 1px solid var(--edge);
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+}
+
+.dock-right.collapsed {
+  transform: translateX(350px);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Breadcrumbs de Navegação 3D no Topo do Viewport */
+.viewport-breadcrumbs {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(10, 18, 32, 0.88);
+  border: 1px solid var(--edge);
+  backdrop-filter: blur(14px);
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 11px;
+  color: var(--muted);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+}
+
+.crumb-item {
+  color: #c7def4;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.crumb-item:hover {
+  color: var(--cyan);
+}
+
+.crumb-item.active {
+  color: var(--cyan);
+  font-weight: 800;
+}
+
+/* Gaveta Inferior (Bancada de Deformação e Pesos) */
+.dock-bottom {
+  position: absolute;
+  bottom: 14px;
+  left: 334px;
+  right: 344px;
+  background: rgba(14, 23, 38, 0.94);
+  border: 1px solid var(--edge);
+  backdrop-filter: blur(16px);
+  border-radius: 14px;
+  padding: 10px 16px;
+  z-index: 11;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  box-shadow: var(--shadow);
+  transition: all 0.25s ease;
+}
+
+/* Quick-Fix Card */
+.quick-fix-card {
+  background: rgba(255, 209, 140, 0.08);
+  border: 1px solid rgba(255, 209, 140, 0.25);
+  border-radius: 9px;
+  padding: 10px;
+  margin-top: 10px;
+}
+
+.quick-fix-card h5 {
+  font-size: 11px;
+  color: var(--amber);
+  margin-bottom: 4px;
+}

@@ -1,0 +1,411 @@
+// Personagens do Animation Studio no laboratório: máquina de estados de animação.
+//
+// O .glb exportado pelo Studio traz o mapa de ações (extras.arenamonActions) e, em cada animação, os eventos de
+// combate (extras.arenamon). Sem mapa, as animações são associadas por nome (sinônimos em inglês e português).
+//
+// Regras da máquina de estados (auditoria do overhaul):
+//   • Um clipe só (re)começa ao ENTRAR num estado: troca de estado, nova ação (tackle/esquiva novos, detectados
+//     pelo tempo da ação que recomeça) ou transição curta. Detectar o mesmo estado em quadros seguidos nunca reinicia.
+//   • Cada estado aceita várias animações (variantes). Na entrada, uma variante é sorteada com semente
+//     determinística (lutador, estado, passo da simulação): o replay repete a mesma escolha.
+//   • Transições usam camadas com fade; ações (X/C) têm fade próprio, curto, para prevalecerem visualmente.
+//   • Locomoção tem histerese (parado/andar/correr/laterais) contra oscilações de poucos quadros.
+//   • A posição vem só da física: o deslocamento horizontal da raiz do GLB é descartado (sem root motion).
+//   • O tempo das animações com duração definida (tackle, esquiva, recuo, guard stun, voo, aterrissagem) vem do
+//     estado da simulação (o clipe é esticado para a duração da ação), inclusive no replay.
+//   • Telemetria: cada entrada registra animação iniciada/substituída, tempo e porcentagem tocados, motivo,
+//     estados anterior e seguinte e origem (jogador, IA, combate ou sistema).
+import * as T from 'three';
+import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import {clone} from 'three/addons/utils/SkeletonUtils.js';
+import {C} from '../sim/config.js';
+import {actionDuration} from '../sim/entity.js';
+import {angleOf, angleDelta, length} from '../sim/math.js';
+import {mulberry} from '../sim/ai.js';
+
+/** Ordem de preferência por estado (a primeira ação com animação associada é usada). */
+export const STATE_ACTIONS = {
+  neutral: ['idle'], turn: ['turn', 'idle'], walk: ['walk', 'run', 'idle'], run: ['run', 'walk', 'idle'], walk_back: ['walk_back', 'walk', 'idle'],
+  walk_left: ['walk_left', 'strafe_left', 'walk', 'idle'], walk_right: ['walk_right', 'strafe_right', 'walk', 'idle'],
+  sprint: ['sprint', 'run', 'walk', 'idle'], walk_stop: ['walk_stop'], sprint_stop: ['sprint_stop', 'walk_stop'],
+  guard_enter: ['block_start', 'block', 'idle'], guard: ['block', 'block_start', 'idle'], guard_exit: ['block_end', 'idle'], guard_hit: ['guard_impact', 'blocked', 'block', 'idle'],
+  guardStun: ['guard_impact', 'blocked', 'block', 'idle'], tackle: ['tackle', 'run', 'idle'],
+  dodge_forward: ['dodge_forward', 'dodge_left', 'jump', 'idle'], dodge_back: ['dodge_back', 'dodge_forward', 'idle'], dodge_left: ['dodge_left', 'dodge_forward', 'idle'],
+  dodge_right: ['dodge_right', 'dodge_left', 'dodge_forward', 'idle'], vault: ['jump', 'dodge_forward', 'idle'], recoil: ['blocked', 'hit', 'idle'],
+  airborne: ['knockback', 'fall', 'hit', 'idle'], landing: ['land', 'recover', 'downed', 'idle'], recover: ['recover', 'land', 'idle'], defeated: ['death', 'downed', 'idle'], pushed: ['hit', 'idle'],
+};
+export const STATE_LABELS = {neutral: 'Parado', turn: 'Girando no lugar', walk: 'Andando', run: 'Correndo', walk_back: 'Recuando', walk_left: 'Lateral esquerda', walk_right: 'Lateral direita',
+  sprint: 'Sprint', walk_stop: 'Freio da caminhada', sprint_stop: 'Freio do sprint',
+  guard_enter: 'Entrando na defesa', guard: 'Defendendo', guard_exit: 'Saindo da defesa', guard_hit: 'Defesa perfeita', guardStun: 'Guard stun', tackle: 'Tackle', dodge_forward: 'Esquiva frontal',
+  dodge_back: 'Esquiva traseira', dodge_left: 'Esquiva esquerda', dodge_right: 'Esquiva direita', vault: 'Salto sobre o rival', recoil: 'Recuo (bloqueado)', airborne: 'Lançado',
+  landing: 'Aterrissando', recover: 'Recuperando (exausto)', defeated: 'Derrotado', pushed: 'Empurrado', __preview: 'Prévia'};
+/** Blocos de animação listados no painel (cada um serve a um ou mais estados e aceita várias variantes). */
+export const ACTION_IDS = ['idle', 'turn', 'walk', 'run', 'sprint', 'walk_stop', 'sprint_stop', 'walk_back', 'walk_left', 'walk_right', 'block_start', 'block', 'block_end', 'guard_impact', 'blocked', 'tackle',
+  'dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'jump', 'hit', 'knockback', 'fall', 'land', 'recover', 'downed', 'death'];
+// Sinônimos para associar por nome quando o arquivo não traz o mapa do Studio.
+const ALIASES = {
+  idle: ['idle', 'parado', 'stand', 'breathing idle', 'breath'], turn: ['turn', 'girar', 'turn in place'], walk: ['walk', 'walking', 'andar', 'caminhar'], run: ['run', 'running', 'correr'],
+  sprint: ['sprint', 'sprinting', 'fast run', 'dash run'], walk_stop: ['walk stop', 'walking stop', 'walk to stop', 'stop walking', 'freio'], sprint_stop: ['run stop', 'sprint stop', 'run to stop', 'running stop'],
+  walk_back: ['walk back', 'walking backward', 'walk backward', 'backward walk', 'back walk', 'recuar'], walk_left: ['walk left', 'left strafe', 'strafe left', 'left walk'], walk_right: ['walk right', 'right strafe', 'strafe right', 'right walk'],
+  block_start: ['block start', 'guard start', 'block idle start'], block: ['block', 'guard', 'defend', 'defesa', 'blocking'], block_end: ['block end', 'guard end'],
+  guard_impact: ['guard impact', 'block hit', 'block impact', 'guard hit'], blocked: ['blocked', 'recoil', 'bounce', 'rebote'],
+  tackle: ['tackle', 'dash attack', 'charge', 'attack', 'investida'], dodge_forward: ['dodge forward', 'dodge', 'front', 'roll forward', 'forward roll', 'esquiva'],
+  dodge_back: ['dodge back', 'back', 'backstep', 'roll back'], dodge_left: ['dodge left', 'side', 'left', 'roll left'], dodge_right: ['dodge right', 'side', 'right', 'roll right'],
+  jump: ['jump', 'vault', 'salto', 'pulo'], hit: ['hit', 'hurt', 'damage', 'impact', 'dano'], knockback: ['knockback', 'knock back', 'push', 'launched', 'fly', 'lancado'],
+  fall: ['fall', 'falling', 'queda'], land: ['land', 'landing', 'aterrissar'], recover: ['recover', 'get up', 'getup', 'stand up', 'levantar'], downed: ['downed', 'down', 'caido'],
+  death: ['death', 'die', 'dying', 'dead', 'ko', 'derrota'],
+};
+const TIMED = new Set(['tackle', 'dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'vault', 'recoil', 'guardStun', 'airborne', 'landing', 'recover', 'defeated']);
+const TRANSIENT = new Set(['guard_enter', 'guard_exit', 'guard_hit']);
+/** Tocam uma vez a partir da entrada e seguram a última pose (não repetem em laço). */
+const ONE_SHOT = new Set([...TRANSIENT, 'walk_stop', 'sprint_stop', '__preview']);
+const LOCOMOTION = new Set(['neutral', 'turn', 'walk', 'run', 'walk_back', 'walk_left', 'walk_right']);
+const ACTION_KEYS = new Set(['tackle', 'dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'vault']);
+const COMBAT_KEYS = new Set(['airborne', 'landing', 'recover', 'guardStun', 'recoil', 'defeated', 'pushed', 'guard_hit']);
+
+export async function loadStudioFile(file) {
+  const data = await file.arrayBuffer(), gltf = await new GLTFLoader().parseAsync(data, '');
+  let manifest = null;gltf.scene.traverse(o => {manifest ??= o.userData?.arenamonActions;});
+  let meshes = 0;gltf.scene.traverse(o => {if (o.isMesh) meshes++;});
+  if (!meshes) throw Error('O arquivo não contém malha.');
+  if (!gltf.animations.length) throw Error('O arquivo não contém animações.');
+  return {name: file.name, scene: gltf.scene, animations: gltf.animations, manifest, eventsByClip: gltf.animations.map(c => c.userData?.arenamon?.events || [])};
+}
+/** Lê só as animações de um .glb (importação para a biblioteca). */
+export async function loadAnimationFile(file) {
+  const gltf = await new GLTFLoader().parseAsync(await file.arrayBuffer(), '');
+  if (!gltf.animations.length) throw Error('O arquivo não contém animações.');
+  return {name: file.name, animations: gltf.animations};
+}
+
+/** Nome de osso normalizado (sem prefixos de exportador como “mixamorig:”), para compatibilidade entre arquivos. */
+export const boneKey = name => String(name).toLowerCase().replace(/^.*[:|]/, '').replace(/^mixamorig\d*/, '').replace(/^(armature|rig|skeleton)[_.]?/, '').replace(/[^a-z0-9]/g, '');
+const hash = (...parts) => {let h = 2166136261;for (const ch of parts.join('|')) {h ^= ch.charCodeAt(0);h = Math.imul(h, 16777619);}return h >>> 0;};
+const STORE = 'arenamon-lab-anim-v1:';
+
+export class Character {
+  constructor(source, {tint = null, slot = 0, persist = true} = {}) {
+    this.source = source;this.slot = slot;this.persist = persist;
+    this.root = clone(source.scene);this.mixer = new T.AnimationMixer(this.root);
+    this.clips = source.animations.slice();this.clipInfo = this.clips.map(c => ({name: c.name, origin: 'glb', compatible: true, coverage: 1}));
+    this.variants = autoVariants(source);this.speeds = {};this.clipOffsets = {};this.visualOffset = 0;this.autoGround = true;
+    this.current = null;this.layers = [];this.fade = 0;this.timer = 0;this.clock = 0;this.flightV0 = 0;this.wasFlying = false;this.lastFlight = -Infinity;
+    this.transient = null;this.wasGuard = false;this.seenEvents = new WeakSet();this.statesSeen = new Set();this.preview = null;this.visualFreeze = 0;
+    this.stableLoco = null;this.locoCandidate = null;this.locoCandidateAt = 0;this.prevAction = null;this.actionSerial = 0;this.log = [];this.transitions = 0;this.restartsAvoided = 0;
+    this.groundCache = new Map();this.groundOffset = 0;
+    this.root.traverse(o => {if (o.isMesh) {o.frustumCulled = false;o.castShadow = false;if (tint) {const mats = [].concat(o.material).map(m => {const c = m.clone();c.color?.lerp(new T.Color(tint), .35);return c;});o.material = Array.isArray(o.material) ? mats : mats[0];}}});
+    this.root.updateMatrixWorld(true);
+    const box = new T.Box3().setFromObject(this.root);this.restHeight = Math.max(1e-3, box.max.y - box.min.y);this.restMinY = box.min.y;
+    this.hips = null;this.root.traverse(o => {if (!this.hips && o.isBone && /hip|pelvis|root/i.test(o.name)) this.hips = o;});
+    if (!this.hips) this.root.traverse(o => {if (!this.hips && o.isBone) this.hips = o;});
+    this.hipsRest = this.hips?.position.clone();
+    this.bones = new Map();this.root.traverse(o => {if (o.isBone) this.bones.set(boneKey(o.name), o.name);});
+    this.restore();
+  }
+  // ---------- Associações (persistidas por nome de clipe neste navegador) ----------
+  /** Compatibilidade com o v7: primeira variante de cada ação. */
+  get mapping() {return Object.fromEntries(Object.entries(this.variants).filter(([, v]) => v.length).map(([id, v]) => [id, v[0]]));}
+  variantsOf(id) {return (this.variants[id] || []).filter(i => this.clips[i] && this.clipInfo[i]?.compatible);}
+  addVariant(id, index) {if (!this.clipInfo[index]?.compatible) return false;const list = this.variants[id] ??= [];if (!list.includes(index)) list.push(index);this.current = null;this.save();return true;}
+  removeVariant(id, index) {this.variants[id] = (this.variants[id] || []).filter(i => i !== index);if (!this.variants[id].length) delete this.variants[id];this.current = null;this.save();}
+  moveVariant(id, index, delta) {const l = this.variants[id] || [], i = l.indexOf(index), j = i + delta;if (i < 0 || j < 0 || j >= l.length) return;[l[i], l[j]] = [l[j], l[i]];this.save();}
+  storeKey() {return STORE + (this.source.name || 'sem-nome');}
+  save() {
+    if (!this.persist) return;
+    const byName = i => this.clips[i]?.name;
+    const data = {variants: Object.fromEntries(Object.entries(this.variants).map(([id, l]) => [id, l.map(byName).filter(Boolean)])), speeds: this.speeds,
+      clipOffsets: Object.fromEntries(Object.entries(this.clipOffsets).map(([i, v]) => [byName(i), v]).filter(([k]) => k)), visualOffset: this.visualOffset, autoGround: this.autoGround};
+    try {localStorage.setItem(this.storeKey(), JSON.stringify(data));} catch {/* armazenamento indisponível: associações valem só nesta sessão */}
+  }
+  restore() {
+    if (!this.persist) return;let data = null;
+    try {data = JSON.parse(localStorage.getItem(this.storeKey()) || 'null');} catch {data = null;}
+    if (!data) return;
+    const idx = name => this.clips.findIndex(c => c.name === name);
+    this.missingAssociations = [];
+    for (const [id, names] of Object.entries(data.variants || {})) {
+      const list = names.map(n => {const i = idx(n);if (i < 0) this.missingAssociations.push(`${id}: ${n}`);return i;}).filter(i => i >= 0);
+      if (list.length) this.variants[id] = list;else if (names.length === 0) delete this.variants[id];
+    }
+    Object.assign(this.speeds, data.speeds || {});
+    for (const [n, v] of Object.entries(data.clipOffsets || {})) {const i = idx(n);if (i >= 0) this.clipOffsets[i] = v;}
+    if (typeof data.visualOffset === 'number') this.visualOffset = data.visualOffset;if (typeof data.autoGround === 'boolean') this.autoGround = data.autoGround;
+  }
+  /** Importa clipes para a biblioteca, verificando os ossos referenciados. Devolve o relatório por clipe. */
+  importClips(file) {
+    const report = [];
+    for (const clip of file.animations) {
+      const c = clip.clone();let found = 0, total = 0;const renamed = [];
+      c.tracks = c.tracks.filter(tr => {
+        const dot = tr.name.lastIndexOf('.'), node = tr.name.slice(0, dot), prop = tr.name.slice(dot);total++;
+        const target = this.root.getObjectByName(node) ? node : this.bones.get(boneKey(node));
+        if (!target) return false;found++;if (target !== node) renamed.push(node);tr.name = target + prop;return true;
+      });
+      const coverage = total ? found / total : 0, compatible = coverage >= .6 && c.tracks.length > 0;
+      let name = `${c.name || 'clip'} [${file.name}]`, n = 2;while (this.clips.some(x => x.name === name)) name = `${c.name} [${file.name}] (${n++})`;c.name = name;
+      this.clips.push(c);this.clipInfo.push({name, origin: file.name, compatible, coverage, renamed: renamed.length});
+      report.push({name, compatible, coverage, tracks: c.tracks.length, renamed: renamed.length});
+    }
+    this.restore();return report;
+  }
+  speedOf(id) {return (Character.options.speed || 1) * (this.speeds[id] ?? 1);}
+  /** Ação associada a um estado (primeira da ordem de preferência com variantes). */
+  actionFor(stateKey) {for (const id of STATE_ACTIONS[stateKey] || ['idle']) if (this.variantsOf(id).length) return id;return null;}
+  /** Compatibilidade: primeira variante do estado. */
+  clipFor(stateKey) {const id = this.actionFor(stateKey);return id ? {id, index: this.variantsOf(id)[0]} : null;}
+  /** Sorteio determinístico da variante na entrada do estado (mesmo lutador, estado e passo → mesma escolha). */
+  pickVariant(id, seed) {const list = this.variantsOf(id);if (list.length <= 1) return list[0];const [r] = mulberry(seed);return list[Math.floor(r * list.length)];}
+  missingStates() {return Object.keys(STATE_ACTIONS).filter(k => k !== 'neutral' && !TRANSIENT.has(k) && !['walk_stop', 'sprint_stop'].includes(k) && (this.actionFor(k) ?? 'idle') === 'idle');}
+  // ---------- Estado visual ----------
+  stateKey(f) {
+    if (f.hp <= 0 && !f.flight) return 'defeated';
+    if (f.flight) return 'airborne';
+    if (f.state === 'landing') return this.clock - this.lastFlight < 1.5 ? 'landing' : 'recover';
+    if (f.action?.kind === 'tackle') return 'tackle';
+    if (f.action?.kind === 'dodge') {
+      if (f.action.vault) return 'vault';
+      // Direção da esquiva decidida na entrada e mantida até o fim (o corpo pode girar durante a esquiva).
+      if (this.dodgeAction !== this.actionSerial) {const rel = angleDelta(f.facing, f.action.heading);this.dodgeAction = this.actionSerial;this.dodgeKey = Math.abs(rel) < Math.PI / 4 ? 'dodge_forward' : Math.abs(rel) > 3 * Math.PI / 4 ? 'dodge_back' : rel > 0 ? 'dodge_left' : 'dodge_right';}
+      return this.dodgeKey;
+    }
+    if (f.action?.kind === 'recoil') return 'recoil';
+    if (f.state === 'guardStun') return 'guardStun';
+    if (f.guard) return 'guard';
+    if (f.sprinting) return 'sprint';
+    const speed = length(f.velocity), walk = f.attributes.speed;
+    // Freios: só quando a física está realmente desacelerando (e só se houver animação própria; senão, locomoção normal).
+    if (f.locoPhase === 'sprintStop' && speed > walk * .5 && this.actionFor('sprint_stop')) return 'sprint_stop';
+    if ((f.locoPhase === 'brake' || f.locoPhase === 'reverse') && speed > walk * C.locomotion.stopThreshold && this.actionFor('walk_stop')) return 'walk_stop';
+    if (this.current?.key === 'walk_stop' || this.current?.key === 'sprint_stop') {
+      // Mantém o freio até a desaceleração acabar (evita trocar no meio da animação por oscilação da fase).
+      if ((f.locoPhase === 'brake' || f.locoPhase === 'reverse' || f.locoPhase === 'sprintStop') && speed > .3) return this.current.key;
+    }
+    if (speed < .15) return Math.abs(angleDelta(f.visualFacing, f.facing)) > .2 ? 'turn' : 'neutral';
+    const rel = angleDelta(f.facing, angleOf(f.velocity));
+    if (Math.abs(rel) > 3 * Math.PI / 4) return 'walk_back';
+    if (Math.abs(rel) > Math.PI / 4) return rel > 0 ? 'walk_left' : 'walk_right';
+    // Histerese andar/correr: sobe aos 62% da velocidade, desce aos 52%.
+    const wasRun = this.stableLoco === 'run';return speed > walk * (wasRun ? .52 : .62) ? 'run' : 'walk';
+  }
+  /** Histerese da locomoção: um estado de locomoção novo só vale depois de estável por locomotionHold segundos. */
+  smoothLocomotion(key) {
+    if (!LOCOMOTION.has(key)) {this.locoCandidate = null;this.stableLoco = null;return key;}
+    if (this.stableLoco === null || !LOCOMOTION.has(this.current?.key)) {this.stableLoco = key;this.locoCandidate = key;this.locoCandidateAt = this.clock;return key;}
+    if (this.locoCandidate !== key) {this.locoCandidate = key;this.locoCandidateAt = this.clock;}
+    if (key !== this.stableLoco && this.clock - this.locoCandidateAt >= Character.options.locomotionHold) this.stableLoco = key;
+    return this.stableLoco;
+  }
+  /** Progresso 0..1 dos estados com duração definida pela simulação. */
+  progress(f, key) {
+    const R = C.rules;
+    if (key === 'tackle') return f.action ? f.action.elapsed / actionDuration('tackle') : 1;
+    if (key.startsWith('dodge') || key === 'vault') return f.action ? f.action.elapsed / actionDuration('dodge') : 1;
+    if (key === 'recoil') return f.action ? f.action.elapsed / R.recoil : 1;
+    if (key === 'guardStun') return 1 - f.stun / Math.max(1e-6, R.guardStun);
+    if (key === 'landing') return 1 - f.knockRecovery / Math.max(1e-6, R.landingRecovery);
+    if (key === 'recover') return 1 - f.knockRecovery / Math.max(1e-6, C.extras.combat.exhaustRecovery);
+    if (key === 'airborne') return this.flightV0 > 0 ? Math.min(1, Math.max(0, (this.flightV0 - f.flight.vy) / (2 * this.flightV0))) : 0;
+    if (key === 'defeated') return Math.min(1, this.timer / 1.2);
+    return 0;
+  }
+  /** Transições curtas: entrar/sair da defesa e defesa perfeita. */
+  transients(f, events) {
+    for (const e of events) if (!this.seenEvents.has(e)) {this.seenEvents.add(e);if (e.target === f.id && e.result === 'perfect') this.startTransient('guard_hit');}
+    // Defesa ligada/desligada em poucos quadros (comum na IA) não reinicia entrar/sair da defesa:
+    // entrada logo depois de uma saída (ou saída de uma defesa curta) segue direto, só com o fade.
+    const hold = Character.options.guardHold;
+    if (f.guard && !this.wasGuard && !f.action) {if (this.clock - (this.guardOffAt ?? -Infinity) >= hold) this.startTransient('guard_enter');else if (this.transient?.key === 'guard_exit') this.transient = null;this.guardOnAt = this.clock;}
+    if (!f.guard && this.wasGuard && !f.action && f.state !== 'guardStun') {if (this.clock - (this.guardOnAt ?? -Infinity) >= hold) this.startTransient('guard_exit');else if (this.transient?.key === 'guard_enter') this.transient = null;this.guardOffAt = this.clock;}
+    this.wasGuard = f.guard;
+    if (this.transient && (f.action || f.flight || f.state === 'guardStun' || f.state === 'landing' || f.hp <= 0 || this.clock >= this.transient.until)) this.transient = null;
+  }
+  startTransient(key) {
+    const id = this.actionFor(key);if (!id || id !== STATE_ACTIONS[key][0]) return;
+    this.transient = {key, until: this.clock + (this.clips[this.variantsOf(id)[0]].duration || .2) / this.speedOf(id), serial: ++this.actionSerial};
+  }
+  // ---------- Prévia (só visual) ----------
+  startPreview(index) {if (!Number.isInteger(index) || !this.clips[index]) return false;this.preview = {index, started: this.clock, serial: ++this.actionSerial};return true;}
+  stopPreview() {this.preview = null;}
+  /** Ação X/C nova? (o tempo da ação recomeça ou o tipo muda; robusto a replays que clonam o estado). */
+  trackAction(f) {
+    const a = f.action, p = this.prevAction;
+    if (a && (!p || p.kind !== a.kind || a.elapsed < p.elapsed - 1e-9 || (a.fromCancel && !p.fromCancel))) this.actionSerial++;
+    this.prevAction = a ? {kind: a.kind, elapsed: a.elapsed, fromCancel: !!a.fromCancel} : null;
+    if (a && (a.kind === 'tackle' || a.kind === 'dodge')) this.lastActionSeen = {kind: a.kind, elapsed: a.elapsed};
+  }
+  /**
+   * Atualiza a pose. ctx: {tick, source: 'jogador'|'IA'} para o sorteio determinístico e a telemetria.
+   * dt = 0 (pausa) mantém a pose.
+   */
+  update(f, dt, alt, events = [], ctx = {}) {
+    const opt = Character.options;this.clock += dt;if (dt > 0) this.lastDt = dt;
+    if (this.visualFreeze > 0) {this.visualFreeze = Math.max(0, this.visualFreeze - dt);dt = 0;}
+    if (f.flight && !this.wasFlying) this.flightV0 = f.flight.vy + C.rules.launchGravity * C.test.step;
+    if (f.flight) this.lastFlight = this.clock;this.wasFlying = !!f.flight;
+    this.trackAction(f);this.transients(f, events);
+    let p = this.preview;if (p && this.clock - p.started >= (this.clips[p.index]?.duration || 0) / Math.max(.05, opt.speed)) {this.preview = null;p = null;}
+    const raw = p ? '__preview' : this.transient?.key ?? this.stateKey(f), key = p ? raw : this.smoothLocomotion(raw);
+    this.statesSeen.add(key);
+    // Identidade da entrada: estado + número da ação/transição (X, C, transição curta ou prévia).
+    const serial = p ? p.serial : this.transient ? this.transient.serial : ACTION_KEYS.has(key) ? this.actionSerial : 0;
+    const entry = `${key}#${serial}`;
+    if (!this.current || this.current.entry !== entry) {
+      const id = p ? 'preview' : this.actionFor(key);
+      if (id) {
+        const index = p ? p.index : this.pickVariant(id, hash(this.slot, key, ctx.tick ?? Math.round(this.clock * 120), serial));
+        this.enter(key, id, index, entry, f, ctx);
+      } else if (this.current) this.current.entry = entry;
+    } else if (this.current.key !== key) this.current.key = key;
+    this.blend(f, dt, key, p);
+    this.place(f, alt, dt);
+  }
+  /** Entra num estado: a animação atual vira camada de fade e a nova começa do zero (registro na telemetria). */
+  enter(key, id, index, entry, f, ctx) {
+    const prev = this.current;
+    if (prev && prev.index === index && LOCOMOTION.has(prev.key) && LOCOMOTION.has(key)) {
+      // Mesmo clipe servindo a outro estado de locomoção (ex.: andar → correr com o mesmo clipe): continua sem reiniciar.
+      prev.entry = entry;prev.key = key;prev.id = id;this.restartsAvoided++;return;
+    }
+    if (prev) {prev.fadeStart = this.clock;prev.fadeFrom = prev.weight;this.layers.push(prev);}
+    const clip = this.clips[index].clone(), action = this.mixer.clipAction(clip);
+    action.reset().play();action.paused = true;action.enabled = true;action.setEffectiveWeight(prev ? 0 : 1);
+    this.current = {key, id, index, clip, action, entry, started: this.clock, weight: prev ? 0 : 1, fade: ACTION_KEYS.has(key) || COMBAT_KEYS.has(key) ? Character.options.actionFade : Character.options.fade};
+    this.fade = 0;this.timer = 0;this.transitions++;
+    // Telemetria da troca.
+    const d = prev ? prev.clip.duration || 1 : 1, played = prev ? prev.action.time : 0, pct = prev ? Math.min(1, played / d) : 0;
+    const source = key === '__preview' ? 'prévia' : COMBAT_KEYS.has(key) || f.flight ? 'combate' : ACTION_KEYS.has(key) || key === 'guard' || key === 'guard_enter' || LOCOMOTION.has(key) || key === 'sprint' ? (ctx.source || 'jogador') : 'sistema';
+    // Fim de X/C: concluída se o último tempo visto + um quadro alcança a duração; senão foi cancelada (defesa, sprint…).
+    const seen = this.lastActionSeen, natural = !!seen && seen.elapsed + (this.lastDt || 0) * 1.05 + C.test.step >= actionDuration(seen.kind) - 1e-6;
+    const reason = key === '__preview' ? 'prévia manual' : COMBAT_KEYS.has(key) ? 'reação de combate' : prev && ACTION_KEYS.has(prev.key) && !ACTION_KEYS.has(key) && !f.action ? (natural ? 'ação concluída' : key === 'sprint' ? 'esquiva → sprint' : 'ação cancelada (defesa)')
+      : f.action?.fromCancel && key === 'tackle' ? 'cancelamento C → X' : ACTION_KEYS.has(key) ? (prev?.key === key ? 'nova ação (mesmo estado)' : 'nova ação')
+      : COMBAT_KEYS.has(key) ? 'reação de combate' : key === 'sprint' ? 'sprint' : key.endsWith('_stop') ? 'freio físico' : TRANSIENT.has(key) ? 'transição curta' : LOCOMOTION.has(key) ? 'locomoção' : key;
+    // Fim natural de ação não conta como interrupção (a última amostra pode cair um quadro antes do fim).
+    const interrupted = prev && (TIMED.has(prev.key) || ONE_SHOT.has(prev.key)) && pct < .95 && reason !== 'ação concluída';
+    this.log.push({t: +this.clock.toFixed(3), tick: ctx.tick ?? null, from: prev?.key ?? null, to: key, clipFrom: prev ? this.clips[prev.index]?.name : null, clipTo: this.clips[index].name,
+      variant: this.variantsOf(id).indexOf(index) + 1, variants: this.variantsOf(id).length, playedSeconds: +played.toFixed(3), playedPct: +(pct * 100).toFixed(1), reason, interrupted: !!interrupted, source});
+    if (this.log.length > 400) this.log.shift();
+  }
+  /** Tempo das camadas e da animação atual; fade por peso. */
+  blend(f, dt, key, p) {
+    const fadeOf = layer => Math.max(.02, layer?.fade ?? Character.options.fade);
+    let old = 0;
+    for (const layer of this.layers) {
+      const k = Math.max(0, Math.min(1, (this.clock - layer.fadeStart) / fadeOf(this.current)));layer.weight = layer.fadeFrom * (1 - k);
+      if (layer.weight <= 1e-4) {layer.action.stop();this.mixer.uncacheAction(layer.clip);layer.dead = true;continue;}
+      const a = layer.action, d = layer.clip.duration || 1;
+      a.time = ONE_SHOT.has(layer.key) || TIMED.has(layer.key) ? Math.min(d, a.time + dt * this.speedOf(layer.id)) : (a.time + dt * this.speedOf(layer.id)) % d;
+      a.setEffectiveWeight(layer.weight);old += layer.weight;
+    }
+    this.layers = this.layers.filter(l => !l.dead);
+    this.fade += dt;this.timer += dt;
+    if (this.current) {
+      const a = this.current.action, d = this.current.clip.duration || 1, s = this.speedOf(this.current.id);
+      this.current.weight = Math.max(0, 1 - Math.min(1, old));a.setEffectiveWeight(this.current.weight);
+      if (p) a.time = Math.min(d, (this.clock - p.started) * Character.options.speed);
+      else if (ONE_SHOT.has(this.current.key)) a.time = Math.min(d, (this.clock - this.current.started) * s);
+      else if (TIMED.has(this.current.key)) a.time = Math.min(d, Math.max(0, this.progress(f, this.current.key)) * d);
+      else a.time = (a.time + dt * s) % d;
+    }
+    this.mixer.update(0);
+    // Sem root motion: o deslocamento horizontal da raiz do GLB é descartado (a posição vem da física).
+    if (this.hips && this.hipsRest) {this.hips.position.x = this.hipsRest.x;this.hips.position.z = this.hipsRest.z;}
+  }
+  /** Altura do pé mais baixo de um clipe (amostrado, em espaço da raiz sem escala). Cálculo preguiçoso com cache. */
+  clipGround(index) {
+    if (this.groundCache.has(index)) return this.groundCache.get(index);
+    const probe = this.probe ??= (() => {const r = clone(this.source.scene);return {root: r, mixer: new T.AnimationMixer(r), meshes: (() => {const m = [];r.traverse(o => {if (o.isSkinnedMesh) m.push(o);});return m;})()};})();
+    let min = Infinity;
+    if (probe.meshes.length) {
+      const clip = this.clips[index], action = probe.mixer.clipAction(clip);action.play();const box = new T.Box3();
+      for (let i = 0; i <= 8; i++) {
+        action.time = (clip.duration || 0) * i / 8;probe.mixer.update(0);probe.root.updateMatrixWorld(true);
+        for (const m of probe.meshes) {m.computeBoundingBox();box.copy(m.boundingBox).applyMatrix4(m.matrixWorld);min = Math.min(min, box.min.y);}
+      }
+      action.stop();probe.mixer.uncacheAction(clip);
+    }
+    const value = Number.isFinite(min) ? min : this.restMinY;this.groundCache.set(index, value);return value;
+  }
+  /** Posição, escala e orientação. Altura visual independente da física: o colisor e a sombra não se movem. */
+  place(f, alt, dt) {
+    const opt = Character.options, scale = opt.fit ? C.extras.visual.bodyHeight / this.restHeight : 1;
+    let ground = this.restMinY;
+    if (this.autoGround && C.display.grounding.autoGround && this.current) {
+      // Média ponderada pelos pesos das camadas: sem saltos de altura nas transições.
+      let w = this.current.weight, acc = this.clipGround(this.current.index) * w;
+      for (const l of this.layers) {acc += this.clipGround(l.index) * l.weight;w += l.weight;}
+      ground = w > 0 ? acc / w : ground;
+    }
+    const manual = (this.current ? this.clipOffsets[this.current.index] ?? 0 : 0) + this.visualOffset + (C.display.grounding.visualOffset || 0);
+    const target = -ground * scale + manual;
+    this.groundOffset += (target - this.groundOffset) * (dt > 0 ? 1 - Math.exp(-dt / .06) : 1);
+    this.root.scale.setScalar(scale);this.root.position.set(f.position.x, alt + this.groundOffset, f.position.z);this.root.rotation.set(0, f.visualFacing, 0);
+  }
+  /** Durações das regras derivadas dos clipes (primeira variante ÷ velocidade). Só ações com animação própria. */
+  ruleDurations() {
+    const out = {}, own = id => {const i = this.variantsOf(id)[0];return i != null ? this.clips[i].duration / this.speedOf(id) : null;};
+    const set = (path, v, from) => {if (v && Number.isFinite(v)) out[path] = {value: Math.round(v * 1000) / 1000, from};};
+    set('actions.tackle.duration', own('tackle'), 'tackle');set('actions.dodge.duration', own('dodge_forward'), 'dodge_forward');
+    set('rules.recoil', own('blocked'), 'blocked');set('rules.guardStun', own('guard_impact'), 'guard_impact');
+    set('rules.landingRecovery', own('land') ?? own('recover'), this.variantsOf('land').length ? 'land' : 'recover');
+    // As janelas marcadas no Studio (hitbox, invulnerabilidade) servem só para comparação: nunca alteram as regras.
+    return out;
+  }
+  dispose() {this.mixer.stopAllAction();this.mixer.uncacheRoot(this.root);this.root.removeFromParent();}
+}
+// fade: transição entre estados comuns; actionFade: entrada em X/C e reações de combate (curta, para prevalecer).
+Character.options = {lockRoot: true, fit: true, fade: .18, actionFade: .07, speed: 1, syncRules: false, locomotionHold: .1, guardHold: .25};
+
+/** Variantes iniciais: manifesto do Studio; depois nomes exatos; depois palavras contidas no nome. */
+export function autoVariants(source) {
+  const map = autoMapping(source);return Object.fromEntries(Object.entries(map).map(([id, i]) => [id, [i]]));
+}
+export function autoMapping(source) {
+  const map = {}, clips = source.animations, norm = s => ` ${s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\.fbx\b/g, '').replace(/[^a-z0-9]+/g, ' ').trim()} `;
+  for (const [id, ref] of Object.entries(source.manifest?.actions || {})) if (ref && clips[ref.clipIndex]?.name === ref.clipName) map[id] = ref.clipIndex;
+  const names = clips.map(c => norm(c.name));
+  for (const pass of ['exact', 'contains']) for (const id of ACTION_IDS) {
+    if (map[id] != null) continue;
+    for (const alias of ALIASES[id] || [id.replaceAll('_', ' ')]) {
+      const a = ` ${alias} `, used = new Set(Object.values(map)), i = names.findIndex((n, k) => pass === 'exact' ? n === a : n.includes(a) && !used.has(k));
+      if (i >= 0) {map[id] = i;break;}
+    }
+  }
+  return map;
+}
+
+// ---------- Eventos do Studio × janelas da simulação ----------
+const pick = (events, type) => events.filter(e => e.type === type).map(e => e.time).sort((a, b) => a - b);
+/** Janelas do Studio, em segundos da AÇÃO do jogo (o clip é reescalado para a duração da ação). */
+export function studioWindows(character, actionId) {
+  const i = character.variantsOf(actionId)[0];if (i == null) return null;
+  const clip = character.clips[i], events = character.source.eventsByClip[i] || [], d = clip.duration || 1, s = actionDuration(actionId === 'tackle' ? 'tackle' : 'dodge') / d;
+  const on = pick(events, 'hitbox_on'), off = pick(events, 'hitbox_off'), inv0 = pick(events, 'invulnerable_start'), inv1 = pick(events, 'invulnerable_end');
+  return {clip: clip.name, clipDuration: d, scale: s, events: events.length,
+    hitbox: on.length ? [on[0] * s, (off.find(t => t > on[0]) ?? d) * s] : null,
+    invulnerable: inv0.length ? [inv0[0] * s, (inv1.find(t => t > inv0[0]) ?? d) * s] : null,
+    impact: pick(events, 'impact')[0] != null ? pick(events, 'impact')[0] * s : null,
+    recovery: pick(events, 'recovery_start')[0] != null ? pick(events, 'recovery_start')[0] * s : null};
+}
+/** Janelas reais da simulação para tackle e esquiva. */
+export function gameWindows(kind) {
+  const p = C.actions[kind], inv = C.extras.toggles.enableInvulnerability && p.invulnerable > 0 ? [0, p.invulnerable] : null;
+  return {hitbox: kind === 'tackle' ? [0, p.duration] : null, invulnerable: inv, recovery: p.chainAfter};
+}
+export function compareWindows(character) {
+  const rows = [];const ms = s => (s * 1000).toFixed(0);
+  for (const [actionId, kind] of [['tackle', 'tackle'], ['dodge_forward', 'dodge']]) {
+    const st = studioWindows(character, actionId);if (!st) {rows.push({action: actionId, missing: true});continue;}
+    const g = gameWindows(kind);
+    const cmp = (label, a, b) => {
+      if (!a && !b) return null;
+      if (!a) return {label, studio: 'não marcado', game: `${ms(b[0])}–${ms(b[1])} ms`, ok: false, note: 'O Studio não marca esta janela.'};
+      if (!b) return {label, studio: `${ms(a[0])}–${ms(a[1])} ms`, game: 'não existe', ok: false, note: 'O jogo não tem esta janela nesta ação.'};
+      const d0 = a[0] - b[0], d1 = a[1] - b[1], tol = C.test.step * 1.01;
+      return {label, studio: `${ms(a[0])}–${ms(a[1])} ms`, game: `${ms(b[0])}–${ms(b[1])} ms`, ok: Math.abs(d0) <= tol && Math.abs(d1) <= tol, note: `início ${d0 >= 0 ? '+' : ''}${ms(d0)} ms · fim ${d1 >= 0 ? '+' : ''}${ms(d1)} ms`};
+    };
+    const out = [cmp('Hitbox ativa', st.hitbox, g.hitbox), cmp('Invulnerabilidade', st.invulnerable, g.invulnerable)].filter(Boolean);
+    if (st.recovery != null) out.push({label: 'Início da recuperação', studio: `${ms(st.recovery)} ms`, game: `cancelável aos ${ms(g.recovery)} ms`, ok: Math.abs(st.recovery - g.recovery) <= C.test.step * 1.01, note: ''});
+    rows.push({action: actionId, clip: st.clip, events: st.events, scale: st.scale, impact: st.impact, rows: out, duration: actionDuration(kind)});
+  }
+  return rows;
+}

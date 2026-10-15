@@ -2,80 +2,107 @@
 
 Arenamon é um projeto experimental de combate 3D em arena. Este repositório privado é a fonte de verdade para o código, a documentação e os protótipos cuja distribuição foi autorizada. As decisões de design continuam registradas no GDD e não devem ser alteradas sem autorização.
 
-## Começar
+---
 
-Requisitos: Node.js 20 ou superior, npm e Microsoft Edge (usado pelos testes automatizados).
+## 🚀 Como Começar Imediatamente
+
+Para abrir e utilizar qualquer módulo, protótipo ou teste sem precisar de terminal ou servidor web, basta abrir o arquivo central de acesso por **duplo clique no navegador**:
+
+👉 **[`ABRIR_ARENAMON.html`](ABRIR_ARENAMON.html)**
+
+Esse arquivo funciona 100% offline via protocolo `file://` e oferece atalhos diretos para:
+- **Arenamon Combate Jogável** (`prototypes/game/dist/arenamon-jogavel.html`)
+- **Animation Studio & Rigging Studio** (`prototypes/studio/dist/arenamon-animation-studio.html`)
+- **Propostas Visuais de Rigging (A, B e C)** (`prototypes/studio/proposals/index.html`)
+- **Central Interativa de Testes** ([`TESTES_ARENAMON.html`](TESTES_ARENAMON.html))
+- **Laboratórios de Importação e Diagnóstico**
+- **Documentação Unificada** em `docs/`
+
+---
+
+## 🛠️ Ambiente de Desenvolvimento e Testes
+
+Requisitos: Node.js 20 ou superior, npm e Microsoft Edge (usado pelos testes automatizados Playwright).
 
 ```powershell
 npm ci
 npm run verify
 ```
 
-Depois do build, abra `prototypes/index.html` para ver o catálogo ou abra diretamente `prototypes/placeholders/dist/criaturas-laboratorio.html`. Os HTMLs gerados funcionam offline, via duplo clique, sem servidor local.
+### Comandos de Compilação e Verificação
+```powershell
+npm run build     # Gera todos os bundles HTML offline independentes
+npm run typecheck # Validação estática de tipos TypeScript
+npm test          # Executa todas as suítes de testes unitários e de navegador
+npm run verify    # Executa typecheck + test de ponta a ponta
+```
 
-## Protótipos disponíveis
+Para detalhes de cada comando e seus objetivos, consulte a **[Central de Testes](docs/CENTRAL_DE_TESTES.md)** ou abra **[`TESTES_ARENAMON.html`](TESTES_ARENAMON.html)**.
 
-| Versão | Laboratório | Situação |
-| --- | --- | --- |
-| 1.0.0 | Animação e movimentos de três monstros placeholder | Disponível e testado offline |
-| — | Combate | Aguardando protótipo aprovado para distribuição |
-| — | Arena | Aguardando protótipo aprovado para distribuição |
+---
 
-O índice não aponta para modelos ou recursos extraídos de jogos. GitHub Pages não deve ser ativado até que a conta confirme suporte adequado ao repositório privado e que todo o conteúdo publicado tenha licença verificada.
+## 📁 Estrutura de Diretórios e Documentação
 
-## Estrutura versionada
+O repositório foi organizado de forma segura e não-destrutiva, preservando a modularidade do código e evitando conflitos com branches ativas:
 
 ```text
 Arenamon/
-├── AGENTS.md                  # Protocolo de trabalho para Codex e Antigravity
-├── docs/
-│   ├── GDD_Pokemon_Arena_Fighter_v0_1.docx
-│   ├── ROSTER.md
-│   └── relatorio-auditoria-rig-croagunk.md
-├── prototypes/
-│   ├── index.html             # Catálogo local das demonstrações
-│   └── placeholders/
-│       ├── src/               # TypeScript e template do laboratório seguro
-│       ├── build.mjs          # Gera o HTML offline
-│       ├── verify.mjs         # Testes funcionais e visuais
-│       └── dist/              # Gerado localmente; não versionado
-├── package.json
-├── package-lock.json
-└── tsconfig.json
+├── ABRIR_ARENAMON.html           # Central de Acesso Rápido a todos os Ambientes
+├── TESTES_ARENAMON.html          # Central Interativa de Testes, Comandos e Evidências
+├── README.md                     # Este guia inicial
+├── AGENTS.md                     # Protocolo obrigatório de colaboração entre agentes
+├── package.json                  # Scripts e dependências
+│
+├── docs/                         # Documentação Central Unificada
+│   ├── MAPA_REPOSITORIO.md       # Mapa estrutural e justificativa das pastas
+│   ├── CENTRAL_DE_TESTES.md      # Catálogo e matriz técnica completa de testes
+│   ├── STATUS_PROJETOS_E_BRANCHES.md # Status das branches paralelas e roadmap
+│   ├── GUIA_COLABORACAO_AGENTES.md   # Guia prático de trabalho para agentes
+│   ├── REVISAO_GDD_COMBATE.md    # Revisão do GDD de Combate (Etapa A aprovada)
+│   ├── ROSTER.md                 # Roster e atributos dos lutadores
+│   └── GDD_Pokemon_Arena_Fighter_v0_1.docx # Game Design Document original
+│
+├── prototypes/                   # Aplicações e Ambientes Funcionais
+│   ├── game/                     # Jogo principal jogável em arena 3D
+│   ├── studio/                   # Animation Studio e Rigging Studio integrado
+│   │   └── proposals/            # Três propostas visuais independentes de Rigging
+│   ├── placeholders/             # Laboratório base com dois blocos geométricos
+│   ├── importer/                 # Importador e conversor de modelos FBX/GLB
+│   └── croagunk/                 # Laboratório local de diagnóstico de deformação
+│
+└── .github/workflows/            # Workflows de Integração Contínua (CI)
 ```
 
-Existem ainda, apenas na pasta local, modelos e laboratórios de pesquisa relacionados a personagens e jogos proprietários. Eles são preservados no disco, mas bloqueados pelo `.gitignore` e não fazem parte do repositório.
+---
 
-## Gerar e testar os HTMLs offline
+## 📌 Status dos Ambientes e Protótipos
 
-```powershell
-npm run build
-npm run typecheck
-npm test
-npm run verify
-```
+| Ambiente | Localização Principal | Situação |
+|---|---|---|
+| **Arenamon Jogável** | `prototypes/game/dist/arenamon-jogavel.html` | Jogável offline · Etapa A aprovada |
+| **Animation Studio** | `prototypes/studio/dist/arenamon-animation-studio.html` | Totalmente operacional · V6 + Rigging |
+| **Propostas de Rigging** | `prototypes/studio/proposals/index.html` | 3 opções funcionais · Aguarda homologação |
+| **Laboratório de Combate**| Branch `feat/combat-core-etapa-a` | Calibração A x B · Aprovado em 14/10/2026 |
+| **Visualizador de Blocos**| `prototypes/placeholders/dist/criaturas-laboratorio.html` | Base segura de blocos geométricos 1.0.0 |
+| **Importador de Modelos** | `prototypes/importer/dist/importador-prototipo.html` | Conversão flat color sem assets restritos |
 
-O teste confirma os três modelos procedurais, estados de animação e movimento, regras físicas demonstrativas, controles de câmera, layout móvel e ausência de requisições externas.
+---
 
-## Versão e sincronização
+## 🤝 Protocolo de Colaboração e Versão
 
-A versão do pacote está em `package.json`. Para ver exatamente qual revisão está em uso:
+Codex, Claude, Antigravity e qualquer colaborador humano devem seguir as regras de **[`AGENTS.md`](AGENTS.md)** e **[`docs/GUIA_COLABORACAO_AGENTES.md`](docs/GUIA_COLABORACAO_AGENTES.md)**:
 
-```powershell
-git branch --show-current
-git rev-parse HEAD
-git status --short --branch
-```
+1. Nunca altere a `main` diretamente e nunca use `git push --force`.
+2. Verifique o Git (`git status`, `git remote -v`, `git fetch origin`, `git stash list`) antes de editar.
+3. Preserve todos os stashes locais existentes.
+4. Execute `npm run verify` antes de submeter qualquer alteração.
+5. Confirme a sincronização comparando `git rev-parse HEAD` com `git rev-parse origin/<sua-branch>`.
 
-Codex e Antigravity devem seguir o protocolo de `AGENTS.md`: verificar o Git antes de editar, preservar mudanças alheias, usar branch quando houver trabalho paralelo, executar `npm run verify`, criar um commit descritivo, enviar ao `origin` e confirmar que o commit local coincide com o remoto. Salvar um arquivo não equivale a sincronizá-lo.
+---
 
-## Política de recursos
+## ⚖️ Política de Recursos e Conteúdo Restrito
 
-- Não versionar modelos, texturas, animações, áudio ou dados extraídos de Pokkén Tournament/DX, Pokémon Scarlet/Violet ou qualquer outro jogo proprietário.
-- Não contornar o `.gitignore` com `git add -f`.
-- Antes de adicionar um recurso binário, registrar sua autoria, origem e licença de redistribuição.
-- Manter recursos próprios ou legitimamente redistribuíveis, junto da respectiva licença.
-- Tratar todo item sem licença comprovada como local e restrito.
-
-O código deste projeto está marcado como `UNLICENSED`; nenhuma permissão pública de reutilização é concedida.
-
+- **Modelos e recursos extraídos de franquias ou jogos proprietários** (como Pokkén Tournament ou Pokémon) permanecem **estritamente no ambiente local**, bloqueados pelo `.gitignore`.
+- Nunca utilize `git add -f` para forçar a inclusão desses arquivos.
+- Todo recurso binário versionado deve possuir autoria comprovada ou licença explícita de redistribuição.
+- O código deste projeto está marcado como `UNLICENSED`; nenhuma permissão pública de reutilização é concedida.

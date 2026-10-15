@@ -1,0 +1,160 @@
+{
+  "createdAt": "2026-10-15T07:54:13.359Z",
+  "checks": [
+    {
+      "label": "tackle com 1 variante automática",
+      "ok": true,
+      "detail": "[3]"
+    },
+    {
+      "label": "tackle com 3 variantes",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "sprint, walk_stop e sprint_stop associados",
+      "ok": true,
+      "detail": "{\"idle\":0,\"walk\":1,\"run\":2,\"sprint\":10,\"walk_stop\":11,\"sprint_stop\":12,\"dodge_forward\":6,\"dodge_back\":9,\"dodge_left\":7,\"dodge_right\":8,\"tackle\":3}"
+    },
+    {
+      "label": "tackle: uma única entrada",
+      "ok": true,
+      "detail": "1 entradas"
+    },
+    {
+      "label": "tackle: termina a 97.9% do clipe",
+      "ok": true,
+      "detail": "{\"t\":0.567,\"tick\":68,\"from\":\"tackle\",\"to\":\"neutral\",\"clipFrom\":\"Tackle A\",\"clipTo\":\"Idle\",\"variant\":1,\"variants\":1,\"playedSeconds\":0.881,\"playedPct\":97.9,\"reason\":\"ação concluída\",\"interrupted\":false,\"source\":\"jogador\"}"
+    },
+    {
+      "label": "tackle: tempo do clipe só avança",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "dodge: uma única entrada",
+      "ok": true,
+      "detail": "1 entradas"
+    },
+    {
+      "label": "dodge: termina a 97.9% do clipe",
+      "ok": true,
+      "detail": "{\"t\":0.567,\"tick\":68,\"from\":\"dodge_forward\",\"to\":\"neutral\",\"clipFrom\":\"Dodge Forward\",\"clipTo\":\"Idle\",\"variant\":1,\"variants\":1,\"playedSeconds\":0.588,\"playedPct\":97.9,\"reason\":\"ação concluída\",\"interrupted\":false,\"source\":\"jogador\"}"
+    },
+    {
+      "label": "dodge: tempo do clipe só avança",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "uma entrada por tackle",
+      "ok": true,
+      "detail": "30"
+    },
+    {
+      "label": "as 3 variantes aparecem",
+      "ok": true,
+      "detail": "Tackle A, Tackle C, Tackle B"
+    },
+    {
+      "label": "variante fixa durante a reprodução",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "sorteio determinístico (replay escolhe as mesmas variantes)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "X depois de C registrado como cancelamento",
+      "ok": true,
+      "detail": "{\"t\":0.192,\"tick\":23,\"from\":\"dodge_forward\",\"to\":\"tackle\",\"clipFrom\":\"Dodge Forward\",\"clipTo\":\"Tackle A\",\"variant\":1,\"variants\":1,\"playedSeconds\":0.15,\"playedPct\":25,\"reason\":\"cancelamento C → X\",\"interrupted\":true,\"source\":\"jogador\"}"
+    },
+    {
+      "label": "a esquiva aparece como interrompida (legítimo)",
+      "ok": true,
+      "detail": "25%"
+    },
+    {
+      "label": "sequência esquiva → sprint",
+      "ok": true,
+      "detail": "walk → dodge_forward → sprint → sprint_stop → run → walk_stop → neutral → walk_right → run"
+    },
+    {
+      "label": "sprint → freio do sprint ao soltar C",
+      "ok": true,
+      "detail": "walk → dodge_forward → sprint → sprint_stop → run → walk_stop → neutral → walk_right → run"
+    },
+    {
+      "label": "freio entra só com desaceleração real",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "entra em walk_stop na inversão",
+      "ok": true,
+      "detail": "walk → run → walk_stop → neutral → walk_right → run"
+    },
+    {
+      "label": "volta à locomoção no novo sentido",
+      "ok": true,
+      "detail": "run"
+    },
+    {
+      "label": "poucas trocas andar/correr",
+      "ok": true,
+      "detail": "1 trocas"
+    },
+    {
+      "label": "clipes existentes preservados",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "compatível (ossos com prefixo diferente)",
+      "ok": true,
+      "detail": "{\"name\":\"Spin [extra.glb]\",\"compatible\":true,\"coverage\":1,\"tracks\":1,\"renamed\":1}"
+    },
+    {
+      "label": "incompatível sinalizado",
+      "ok": true,
+      "detail": "{\"name\":\"Alien [extra.glb]\",\"compatible\":false,\"coverage\":0,\"tracks\":0,\"renamed\":0}"
+    },
+    {
+      "label": "clipe importado pode ser usado em vários estados",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "clipe incompatível não pode ser associado",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "clipe agachado tem o ponto mais baixo abaixo do da pose normal",
+      "ok": true,
+      "detail": "-0.300 × -0.000"
+    },
+    {
+      "label": "compensação automática levanta o modelo",
+      "ok": true,
+      "detail": "0.244"
+    },
+    {
+      "label": "offset manual soma à altura visual",
+      "ok": true,
+      "detail": "0.2000"
+    },
+    {
+      "label": "posição física inalterada",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "quadril sem deslocamento X/Z",
+      "ok": true,
+      "detail": ""
+    }
+  ]
+}

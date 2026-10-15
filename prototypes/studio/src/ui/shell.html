@@ -1,0 +1,129 @@
+<nav class="st-rail" id="st-rail" aria-label="Ferramentas">
+ <div class="st-rail-group" role="tablist" aria-label="Painel de ferramentas">
+  <button type="button" role="tab" data-panel="project" aria-selected="false" title="Projeto: importar personagem e animações, salvar e recuperar"><i aria-hidden="true">◈</i><span>Projeto</span></button>
+  <button type="button" role="tab" data-panel="rigging" aria-selected="false" title="Rigging: criar e editar ossos, pesos iniciais e telemetria de coordenadas"><i aria-hidden="true">♧</i><span>Rigging</span></button>
+  <button type="button" role="tab" data-panel="appearance" aria-selected="false" title="Aparência: texturas, iluminação, cor global e fundo"><i aria-hidden="true">◐</i><span>Aparência</span></button>
+  <button type="button" role="tab" data-panel="scene" aria-selected="false" title="Cenário: grid, chão, eixos e dummy"><i aria-hidden="true">▦</i><span>Cenário</span></button>
+  <button type="button" role="tab" data-panel="camera" aria-selected="false" title="Câmera: presets, câmera do jogo, FOV e posições salvas"><i aria-hidden="true">◉</i><span>Câmera</span></button>
+  <button type="button" role="tab" data-panel="motion" aria-selected="false" title="Movimento: prévia de root motion, trajetória, loop A–B e marcadores"><i aria-hidden="true">➤</i><span>Movimento</span></button>
+  <button type="button" role="tab" data-panel="inspect" aria-selected="false" title="Inspeção: esqueleto, wireframe, malhas, volume e dados técnicos"><i aria-hidden="true">✧</i><span>Inspeção</span></button>
+  <button type="button" role="tab" data-panel="export" aria-selected="false" title="Exportar: GLB final e JSON de ações"><i aria-hidden="true">↗</i><span>Exportar</span></button>
+ </div>
+ <div class="st-rail-group st-rail-areas" aria-label="Áreas">
+  <button type="button" id="st-toggle-library" aria-pressed="true" title="Mostrar/ocultar a biblioteca de animações (direita)"><i aria-hidden="true">☰</i><span>Animações</span></button>
+  <button type="button" id="st-toggle-timeline" aria-pressed="true" title="Mostrar/recolher a timeline de edição (embaixo)"><i aria-hidden="true">⏱</i><span>Editar</span></button>
+ </div>
+</nav>
+<aside class="st-panel" id="st-panel" aria-label="Ferramenta ativa">
+ <header class="st-panel-head"><div><small class="micro-label" id="st-panel-kicker">FERRAMENTA</small><h2 id="st-panel-title">Projeto</h2></div><button type="button" class="st-icon-btn" id="st-panel-close" title="Recolher painel (o modelo e as configurações são mantidos)" aria-label="Recolher painel">⟨</button></header>
+ <div class="st-panel-body">
+  <section data-section="project" aria-label="Projeto">
+   <div class="st-recovery" id="st-recovery" hidden>
+    <strong>Sessão não salva encontrada</strong>
+    <p id="st-recovery-text"></p>
+    <div class="st-row"><button type="button" class="btn btn-primary" id="st-recovery-open">Recuperar</button><button type="button" class="btn btn-soft" id="st-recovery-discard">Descartar</button></div>
+   </div>
+   <div class="st-slot" data-slot="import"></div>
+   <div class="st-card st-project-info">
+    <h3>Arquivo de projeto</h3>
+    <dl><dt>Personagem</dt><dd id="st-info-model">—</dd><dt>Animações</dt><dd id="st-info-clips">0</dd><dt>Estado</dt><dd id="st-info-state">Sem alterações</dd><dt>Recuperação local</dt><dd id="st-info-recovery">—</dd></dl>
+    <button type="button" class="btn btn-primary st-wide" id="st-save-project" disabled title="Salva um GLB completo (materiais originais, animações editadas, organização, eventos e root motion). Reabra-o aqui para continuar.">Salvar projeto</button>
+    <p class="st-hint">O projeto é um <b>.arenamon.glb</b> com tudo o que você fez. Para continuar depois, importe esse arquivo como modelo.</p>
+    <div class="st-slot" data-slot="import-json"></div>
+   </div>
+   <div class="st-slot" data-slot="guide"></div>
+   <div class="st-slot" data-slot="foot"></div>
+  </section>
+  <section data-section="rigging" aria-label="Rigging" hidden>
+   <p class="st-hint">Antes das animações: posicione ossos com precisão, espelhe lados e confira vínculos de skinning. As coordenadas abaixo são do <b>espaço local da raiz do modelo</b>, não valores de tela.</p>
+   <div class="rg-state st-card" id="rg-state" role="status">Importe um personagem em Projeto.</div>
+   <div class="st-row"><button type="button" class="btn btn-soft" id="rg-rest">Pose de repouso</button><button type="button" class="btn btn-soft" id="rg-audit">Verificar rig</button></div>
+   <h3>Ossos e posições</h3>
+   <div class="rg-field"><label for="rg-search">Procurar osso</label><input type="search" id="rg-search" placeholder="Ex.: Clavicle, Elbow, Knee…" autocomplete="off"></div>
+   <div class="rg-field"><label for="rg-bone">Articulação selecionada</label><select id="rg-bone"></select></div>
+   <div class="rg-field"><label for="rg-parent">Pai na hierarquia</label><output id="rg-parent">—</output></div>
+   <div class="rg-coordinates" aria-label="Coordenadas do osso na raiz do modelo">
+    <label>X<input type="number" id="rg-x" step="0.001" inputmode="decimal"></label>
+    <label>Y<input type="number" id="rg-y" step="0.001" inputmode="decimal"></label>
+    <label>Z<input type="number" id="rg-z" step="0.001" inputmode="decimal"></label>
+   </div>
+   <div class="st-row"><button type="button" class="btn btn-primary" id="rg-apply">Aplicar posição</button><button type="button" class="btn btn-soft" id="rg-reset-joint">Reverter campos</button></div>
+   <label class="rg-check"><input type="checkbox" id="rg-mirror" checked> Espelhar o lado oposto (Left ↔ Right)</label>
+   <label class="rg-check"><input type="checkbox" id="rg-markers" checked> Mostrar marcadores 3D e manipulador</label>
+   <p class="st-hint">Clique num marcador sobre o modelo para selecionar, ou mova o manipulador no visualizador. As alterações nos ossos vinculados são feitas na pose de repouso; teste as deformações depois.</p>
+   <div class="rg-data st-card">
+    <h3>Telemetria do osso</h3><pre id="rg-telemetry">—</pre>
+   </div>
+   <div class="st-card" id="rg-pose-card">
+    <h3>Teste temporário da deformação</h3>
+    <div class="rg-field"><label for="rg-pose-axis">Eixo de flexão</label><select id="rg-pose-axis"><option value="x">X — frente/trás</option><option value="y">Y — torção</option><option value="z">Z — lateral</option></select></div>
+    <div class="rg-field"><label for="rg-pose">Rotação de teste (não é salva)</label><input id="rg-pose" type="range" min="-90" max="90" step="1" value="0"><output id="rg-pose-out">0°</output></div>
+    <button type="button" class="btn btn-soft st-wide" id="rg-pose-reset">Restaurar pose de repouso</button>
+    <p class="st-hint">Dobre a articulação para verificar se a malha acompanha o osso. Volte a 0° antes de mover ou salvar o rig.</p>
+   </div>
+   <div class="st-card" id="rg-build">
+    <h3>Criar rig para malha sem esqueleto</h3>
+    <p class="st-hint">Gera <b>20 articulações</b>, incluindo quatro por braço: clavícula, ombro, cotovelo e punho. Posição inicial aproximada — ajuste ao formato do personagem antes de vincular pesos.</p>
+    <button type="button" class="btn btn-soft st-wide" id="rg-template">Criar/renovar pontos guiados</button>
+    <div class="rg-field"><label for="rg-smooth">Suavização dos pesos iniciais</label><input id="rg-smooth" type="range" min="0.03" max="0.5" step="0.01" value="0.13"><output id="rg-smooth-out">0.13</output></div>
+    <button type="button" class="btn btn-primary st-wide" id="rg-bind">Vincular malha aos ossos (skin)</button>
+    <p class="st-hint">Pesos automáticos por proximidade são provisórios. A operação modifica a malha do projeto; mantenha uma cópia do original para comparar.</p>
+   </div>
+   <h3>Diagnóstico e arquivos</h3>
+   <div class="st-row"><button type="button" class="btn btn-soft" id="rg-export">Exportar coordenadas JSON</button><button type="button" class="btn btn-soft" id="rg-import">Importar coordenadas JSON</button></div>
+   <input type="file" id="rg-file" accept=".json,application/json" hidden>
+   <pre class="rg-report" id="rg-report" aria-live="polite">Nenhuma auditoria realizada.</pre>
+  </section>
+  <section data-section="appearance" aria-label="Aparência" hidden>
+   <h3>Visualização</h3><div class="st-slot" data-slot="toggles"></div>
+   <h3>Cor</h3><div class="st-slot" data-slot="paint"></div>
+   <h3>Fundo</h3><div class="st-slot" data-slot="background"></div>
+   <p class="st-hint">A aparência afeta só a prévia. As opções do GLB final ficam em Exportar.</p>
+  </section>
+  <section data-section="scene" aria-label="Cenário" hidden>
+   <h3>Grid e chão</h3><div class="st-slot" data-slot="grid"></div>
+   <details class="st-more"><summary>Posição, tamanho e rotação</summary><div class="st-slot" data-slot="grid-advanced"></div></details>
+   <h3>Alvo de referência</h3><div class="st-slot" data-slot="dummy"></div>
+  </section>
+  <section data-section="camera" aria-label="Câmera" hidden>
+   <h3>Modo</h3><div class="st-slot" data-slot="camera-mode"></div>
+   <details class="st-more"><summary>Distância, altura e suavização</summary><div class="st-slot" data-slot="camera-advanced"></div></details>
+   <h3>Lente e órbita</h3><div class="st-slot" data-slot="lens"></div>
+   <h3>Posições salvas</h3><div class="st-slot" data-slot="camera-slots"></div>
+  </section>
+  <section data-section="motion" aria-label="Movimento" hidden>
+   <h3>Root motion na prévia</h3><div class="st-slot" data-slot="root-preview"></div>
+   <p class="st-hint">Para criar uma versão in-place exportável, use <button type="button" class="st-link" id="st-open-root-tool">Editar › Root motion</button>.</p>
+   <h3>Trajetória</h3><div class="st-slot" data-slot="trajectory"></div>
+   <h3>Repetição A–B e marcadores</h3><div class="st-slot" data-slot="playback"></div>
+  </section>
+  <section data-section="inspect" aria-label="Inspeção" hidden>
+   <h3>Sobreposições</h3><div class="st-slot" data-slot="overlays"></div>
+   <h3>Malhas</h3><div class="st-slot" data-slot="mesh"></div>
+   <h3>Pés e chão</h3><div class="st-slot" data-slot="feet"></div>
+   <h3>Dados técnicos do clipe</h3><div class="st-slot" data-slot="metadata"></div>
+  </section>
+  <section data-section="export" aria-label="Exportar" hidden>
+   <p class="st-hint">O <b>GLB final</b> vai para o jogo. O <b>JSON</b> traz os nomes, categorias, ações, eventos e root motion. Para continuar a edição depois, use <b>Salvar projeto</b> em Projeto.</p>
+   <div class="st-slot" data-slot="export"></div>
+   <p class="st-result" id="st-export-result" role="status"></p>
+  </section>
+  <p class="st-needs-model" id="st-needs-model" hidden>Importe um personagem em <button type="button" class="st-link" data-goto="project">Projeto</button> para usar esta ferramenta.</p>
+ </div>
+</aside>
+<div class="st-grip" id="st-left-grip" role="separator" aria-orientation="vertical" aria-label="Largura do painel de ferramentas" tabindex="0" title="Arraste para ajustar a largura · setas do teclado também funcionam"></div>
+<div class="st-topinfo" id="st-topinfo">
+ <span class="st-clip-chip" id="st-clip-chip" title="Animação selecionada">Nenhuma animação</span>
+ <span class="st-save" id="st-save" data-state="clean" role="status" aria-live="polite"><i aria-hidden="true"></i><span id="st-save-text">Sem alterações</span></span>
+</div>
+<div class="st-top-actions" id="st-top-actions">
+ <button type="button" class="btn btn-soft st-top-save" id="st-top-save" disabled title="Salvar projeto (Ctrl+S)">Salvar</button>
+ <button type="button" class="header-export" id="st-top-export" title="Abrir as opções de exportação">Exportar <span aria-hidden="true">↗</span></button>
+</div>
+<div class="st-modal" id="st-confirm" hidden role="dialog" aria-modal="true" aria-labelledby="st-confirm-title" aria-describedby="st-confirm-text">
+ <div class="st-modal-card">
+  <h2 id="st-confirm-title">Alterações não salvas</h2>
+  <p id="st-confirm-text">Você fez alterações neste projeto que ainda não foram salvas. Deseja sair sem salvar?</p>
+  <div class="st-modal-actions"><button type="button" class="btn btn-soft" data-answer="cancel">Cancelar</button><button type="button" class="btn st-danger" data-answer="discard">Sair sem salvar</button><button type="button" class="btn btn-primary" data-answer="save">Salvar projeto</button></div>
+ </div>
+</div>
