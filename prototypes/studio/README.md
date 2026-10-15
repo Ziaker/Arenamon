@@ -2,7 +2,9 @@
 
 Editor de animações esqueléticas no navegador, construído sobre o Studio v6. Gere com `npm run build` e abra
 `dist/arenamon-animation-studio.html` por duplo clique: o HTML contém Three.js, FBXLoader, GLTFLoader e
-GLTFExporter e funciona offline. Nenhum modelo é embutido.
+GLTFExporter e funciona offline. Nenhum modelo do usuário é embutido pelo build.
+
+> A biblioteca real acrescentada nesta branch incorpora dois GLBs CC0 da Quaternius (personagem demonstrativo e variantes in-place/root-motion). Por isso, o HTML desta edição contém ativos legais de demonstração e continua sem qualquer dependência de rede. Consulte [ANIMATION_LIBRARY.md](ANIMATION_LIBRARY.md) e a proveniência em `assets/animation-library/`.
 
 ## Origem do código
 
@@ -39,6 +41,10 @@ A interface reconhece nomes conhecidos (como Mixamo) e os ossos do template guia
 **Adicionar à biblioteca** gera um `AnimationClip` separado sem apagar animações anteriores; **Gerar e assistir** também abre a prévia. Os movimentos são marcados como **DIAGNÓSTICO**, apenas para testar deformações, **sem root motion, física de combate ou eventos de hitbox**.
 
 Veja [DIAGNOSTIC_ANIMATIONS.md](DIAGNOSTIC_ANIMATIONS.md) para limitações, procedimentos e testes.
+
+## Biblioteca de animações reais CC0
+
+A ferramenta **Biblioteca** é independente dos oito diagnósticos. Ela oferece 20 movimentos reais curados da Quaternius Universal Animation Library Standard v3.0, mostra licença, fonte, duração, amostras, loop, root motion e compatibilidade, e inclui um personagem demonstrativo CC0. A prévia não suja o projeto; **Adicionar ao projeto** cria um clipe retargeted real, editável e desfazível. Mapeamentos incompatíveis são bloqueados e podem ser ajustados manualmente. Veja [ANIMATION_LIBRARY.md](ANIMATION_LIBRARY.md).
 
 ## Salvar, sair e recuperar
 

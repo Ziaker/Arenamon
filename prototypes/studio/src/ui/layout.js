@@ -7,7 +7,7 @@ const $ = id => document.getElementById(id);
 const q = (sel, root = document) => root.querySelector(sel);
 const field = id => $(id)?.closest('label') || $(id);
 const box = id => $(id)?.closest('.lab-inline') || field(id);
-const TITLES = {project: 'Projeto', rigging: 'Rigging', appearance: 'Aparência', scene: 'Cenário', camera: 'Câmera', motion: 'Movimento', inspect: 'Inspeção', export: 'Exportar'};
+const TITLES = {project: 'Projeto', rigging: 'Rigging', library: 'Biblioteca real', appearance: 'Aparência', scene: 'Cenário', camera: 'Câmera', motion: 'Movimento', inspect: 'Inspeção', export: 'Exportar'};
 const NEEDS_MODEL = new Set(['rigging', 'scene', 'camera', 'motion', 'inspect', 'export']);
 const store = {
   get: (k, d) => {try {return sessionStorage.getItem(k) ?? d;} catch {return d;}},

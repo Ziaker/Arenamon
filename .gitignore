@@ -38,6 +38,10 @@ temp/
 *.dae
 *.fbx
 *.obj
+# Únicas exceções 3D redistribuíveis: Quaternius UAL Standard v3.0, CC0,
+# com licença e hashes em prototypes/studio/ANIMATION_LIBRARY.md.
+!prototypes/studio/assets/animation-library/quaternius-ual1-v3/UAL1_Standard.glb
+!prototypes/studio/assets/animation-library/quaternius-ual1-v3/UAL1_Standard_RM.glb
 chars/
 prototypes/croagunk/
 validation/

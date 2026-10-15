@@ -2,6 +2,7 @@
  <div class="st-rail-group" role="tablist" aria-label="Painel de ferramentas">
   <button type="button" role="tab" data-panel="project" aria-selected="false" title="Projeto: importar personagem e animações, salvar e recuperar"><i aria-hidden="true">◈</i><span>Projeto</span></button>
   <button type="button" role="tab" data-panel="rigging" aria-selected="false" title="Rigging: criar e editar ossos, pesos iniciais e telemetria de coordenadas"><i aria-hidden="true">♧</i><span>Rigging</span></button>
+  <button type="button" role="tab" data-panel="library" aria-selected="false" title="Biblioteca real: movimentos CC0, prévia, compatibilidade e retarget"><i aria-hidden="true">♫</i><span>Biblioteca</span></button>
   <button type="button" role="tab" data-panel="appearance" aria-selected="false" title="Aparência: texturas, iluminação, cor global e fundo"><i aria-hidden="true">◐</i><span>Aparência</span></button>
   <button type="button" role="tab" data-panel="scene" aria-selected="false" title="Cenário: grid, chão, eixos e dummy"><i aria-hidden="true">▦</i><span>Cenário</span></button>
   <button type="button" role="tab" data-panel="camera" aria-selected="false" title="Câmera: presets, câmera do jogo, FOV e posições salvas"><i aria-hidden="true">◉</i><span>Câmera</span></button>
@@ -94,6 +95,20 @@
    <div class="st-row"><button type="button" class="btn btn-soft" id="rg-export">Exportar coordenadas JSON</button><button type="button" class="btn btn-soft" id="rg-import">Importar coordenadas JSON</button></div>
    <input type="file" id="rg-file" accept=".json,application/json" hidden>
    <pre class="rg-report" id="rg-report" aria-live="polite">Nenhuma auditoria realizada.</pre>
+  </section>
+  <section data-section="library" aria-label="Biblioteca de animações reais" hidden>
+   <p class="st-hint">Movimentos 3D reais e redistribuíveis. A prévia é temporária; <b>Adicionar ao projeto</b> cria um AnimationClip editável e desfazível.</p>
+   <div class="st-card al-license"><h3>Fonte verificada</h3><p class="st-hint"><b>Quaternius · Universal Animation Library Standard v3.0</b><br>CC0 1.0 · GLB · rig humanoide universal · 30 FPS. Arquivos obtidos da página oficial.</p></div>
+   <div class="al-toolbar"><input id="al-search" type="search" placeholder="Buscar movimento…" aria-label="Buscar movimento"><select id="al-category" aria-label="Filtrar categoria"></select></div>
+   <div id="al-list" class="al-list" role="listbox" aria-label="Animações disponíveis"></div><p id="al-empty" class="st-hint" hidden>Nenhum movimento neste filtro.</p>
+   <div class="st-card"><h3 id="al-name">Movimento</h3><p class="st-hint" id="al-description"></p><dl class="al-meta" id="al-meta"></dl>
+    <label class="rg-check"><input type="checkbox" id="al-root"> Usar variante com root motion</label>
+    <p class="st-hint">O deslocamento é copiado apenas para a raiz e pode ser removido depois em Editar › Root motion. A física do jogo continua autoritativa.</p>
+   </div>
+   <pre id="al-status" class="al-compat" data-kind="warn" aria-live="polite">Importe um personagem rigado.</pre>
+   <details class="st-more" id="al-mapping" hidden><summary>Mapeamento manual de ossos</summary><p class="st-hint">Use somente quando o reconhecimento por nome e aliases não for suficiente. O Studio preserva o esqueleto do personagem.</p><div class="al-map" id="al-map"></div><button type="button" class="btn btn-soft" id="al-reset-map">Voltar ao reconhecimento automático</button></details>
+   <div class="al-actions"><button type="button" class="btn btn-soft" id="al-preview" disabled>Prévia temporária</button><button type="button" class="btn btn-primary" id="al-add" disabled>Adicionar ao projeto</button><button type="button" class="btn btn-soft al-demo" id="al-demo">Abrir demonstração CC0</button></div>
+   <p class="st-hint">A compatibilidade é avaliada por clipe. Movimentos de exemplo não são automaticamente aprovados para o gameplay Arenamon.</p>
   </section>
   <section data-section="appearance" aria-label="Aparência" hidden>
    <h3>Visualização</h3><div class="st-slot" data-slot="toggles"></div>
