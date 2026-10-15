@@ -109,7 +109,7 @@ export function vfxDefaults() {
     ground: {enabled: 1, variant: 0, radius: 1.3, density: 1, duration: .55, intensity: 1, speed: 3.5, opacity: .85, particleSize: .22, elevation: .5, color: 0xe6edf2, minImpact: 2},
     clash: {enabled: 1, variant: 0, scale: 1.2, duration: .6, intensity: 1.3, count: 30, color: 0xffe58d, color2: 0xff7a3c, radius: 1.6, speed: 7, glow: 1.6},
     exhaust: {enabled: 1, variant: 0, target: 0, count: 5, fallSpeed: 1.1, spread: .55, size: .26, opacity: .85, glow: 1, startHeight: 2.1, interval: .14, color: 0x4fa3ff},
-    regen: {enabled: 1, variant: 0, count: 3, frequency: 7, speed: 1.2, height: 1.8, intensity: 1, size: .2, opacity: .8, spread: .5, color: 0xffd34d, scaleWithRate: 1},
+    regen: {enabled: 1, variant: 0, count: 3, frequency: 7, speed: 1.2, height: 1.8, intensity: 1, size: .28, opacity: .8, spread: .5, color: 0xffd34d, scaleWithRate: 1},
     shakeMaster: {enabled: 1},
     shakeGuard: shake(.05, .16, 0), shakeHit: shake(.12, .28, 0), shakeGround: shake(.09, .3, 1), shakePerfect: shake(.1, .3, 2), shakeClash: shake(.18, .42, 1),
   };

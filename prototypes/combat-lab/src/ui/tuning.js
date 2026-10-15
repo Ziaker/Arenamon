@@ -146,7 +146,9 @@ export function createTuning({apply}) {
       list.append(group);
     }
     if (!total) {const p = document.createElement('p');p.className = 'hint';p.textContent = 'Nenhum parâmetro neste filtro.';list.append(p);}
-    $('tune-counter').textContent = `${total} de ${manifest.length} · ${manifest.filter(m => status(m) === 'experimental').length} ≠ jogo`;
+    // Conta só o que esta aba mostra (efeitos, sombras, HUD, câmera e teclas ficam em outras abas).
+    const here = manifest.filter(m => TABS.some(([, s]) => s.includes(m.section)) && !ELSEWHERE.has(m.path));
+    $('tune-counter').textContent = `${total} de ${here.length} · ${here.filter(m => status(m) === 'experimental').length} ≠ jogo`;
     $('tune-undo').disabled = !state.undo.length;$('tune-redo').disabled = !state.redo.length;
     $('tune-undo').title = state.undo.length ? 'Desfazer: ' + state.undo.at(-1).label : 'Nada para desfazer';$('tune-redo').title = state.redo.length ? 'Refazer: ' + state.redo.at(-1).label : 'Nada para refazer';
   }
@@ -167,7 +169,9 @@ export function createTuning({apply}) {
     const reset = document.createElement('button');reset.type = 'button';reset.textContent = '↺ lab';reset.title = 'Padrão do laboratório: ' + m.fmt(m.initial);reset.disabled = !changed(m);reset.onclick = () => commit([[m.path, m.initial]], 'Restaurar ' + m.label);
     actions.append(reset);
     if (st === 'experimental') {const g = document.createElement('button');g.type = 'button';g.textContent = '= jogo';g.title = 'Usar o valor do jogo: ' + m.fmt(m.official);g.onclick = () => commit([[m.path, m.official]], 'Valor do jogo: ' + m.label);actions.append(g);}
-    bottom.append(code, actions);row.append(top, slider, bottom);return row;
+    bottom.append(code, actions);
+    // Liga/desliga fica na mesma linha do rótulo (mais compacto).
+    if (m.kind === 'toggle') {top.prepend(slider);row.append(top, bottom);row.classList.add('is-toggle');} else row.append(top, slider, bottom);return row;
   }
   /** Campo do parâmetro conforme o tipo; mudanças entram no histórico (desfazer/refazer). */
   function input(m, id, value) {

@@ -112,6 +112,7 @@ export function updateFighter(f, cmd, fighters, dt) {
   const lockedFace = target && (L.model !== 1 || L.lockFacing === 1 || (L.lockFacing === 2 && (length(move) <= .01 || f.guard)));
   // Sprint sempre olha para onde corre (a animação de sprint serve às 8 direções girando o corpo).
   const faceGoal = f.sprinting && length(move) > 0 ? angleOf(move) : lockedFace ? desiredHeading : length(move) > 0 ? angleOf(move) : f.facing;
+  f.faceGoal = faceGoal; // meta de orientação (a animação escolhe frente/lado/trás por ela, não pelo giro em curso)
   if (!f.action) {
     f.vaultHeight = 0;
     const diff = angleDelta(f.facing, desiredHeading);

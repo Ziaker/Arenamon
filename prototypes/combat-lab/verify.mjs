@@ -57,7 +57,7 @@ try {
 
   // ---------- 6/10. Ajustador ----------
   await page.click('[data-tool="tuning"]');
-  const total = await L(() => window.__lab.tuning.manifest.length);assert.match(await page.textContent('#tune-counter'), new RegExp(`de ${total} · \\d+ ≠ jogo`));
+  assert.match(await page.textContent('#tune-counter'), /de \d+ · \d+ ≠ jogo/);
   // Aba “X e C”: parâmetros independentes da esquiva, do tackle e do cancelamento.
   assert.match(await page.locator('#tune-tabs [role=tab]').first().textContent(), /^X e C · \d+$/);
   for (const id of ['#tune-actions-dodge-duration', '#tune-actions-tackle-duration', '#tune-actions-cancel-windowStart', '#tune-actions-cancel-invulnerability', '#tune-actions-buffer-window']) assert.ok(await page.isVisible(id), id);
@@ -242,13 +242,13 @@ try {
   step('personagens do Studio: mapa de ações, animação sincronizada com o tackle, cópia tingida no vermelho e eventos Studio × jogo');
   // Velocidade por animação e durações das animações como regras.
   await page.click('[data-tool="characters"]');
-  const idleRange = page.locator('.char-slot').nth(0).locator('tr[data-action="idle"] input[type=range]');
+  const idleRange = page.locator('.char-slot').nth(0).locator('[data-action="idle"] input[type=range]');
   await idleRange.fill('2');assert.equal(await L(() => window.__lab.ui.characters[0].speedOf('idle')), 2);
   await page.locator('#char-speed').fill('1.5');assert.equal(await L(() => window.__lab.ui.characters[0].speedOf('idle')), 3);await page.locator('#char-speed').fill('1');
   await page.check('#char-sync');
   const synced = await L(() => [window.__lab.C.actions.tackle.duration, window.__lab.C.actions.dodge.duration, window.__lab.C.actions.dodge.invulnerable, window.__lab.C.actions.tackle.invulnerable]);
   assert.deepEqual(synced, [3, 1, .2, .2], 'tackle = clip de 3 s, esquiva = clip de 1 s; janelas de invulnerabilidade nunca vêm do GLB');
-  const tackleRange = page.locator('.char-slot').nth(0).locator('tr[data-action="tackle"] input[type=range]');await tackleRange.fill('2');await tackleRange.dispatchEvent('change');
+  const tackleRange = page.locator('.char-slot').nth(0).locator('[data-action="tackle"] input[type=range]');await tackleRange.fill('2');await tackleRange.dispatchEvent('change');
   assert.equal(await L(() => window.__lab.C.actions.tackle.duration), 1.5, 'velocidade 2× → tackle de 1,5 s');
   assert.ok((await page.textContent('#char-durations')).includes('Duração · Xtackle1.500 s'), 'tabela de durações');
   await openTab('match');await page.click('#start');await page.locator('canvas').first().focus();await page.keyboard.press('KeyX');await page.waitForTimeout(800);

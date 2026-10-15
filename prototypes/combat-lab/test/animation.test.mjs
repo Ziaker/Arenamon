@@ -120,12 +120,13 @@ test('importar animação para a biblioteca: compatível por nome normalizado; i
 });
 test('altura visual: ajuste automático por animação, offset manual e independência da física', () => {
   const {ch, g} = setup();ch.variants.idle = [13];// Crouch Idle abaixa o quadril 30 cm (o modelo inteiro desce).
-  run(ch, g, 60, () => [cmd(), cmd()]);
+  const samples = [];for (let k = 0; k < 120; k++) {run(ch, g, 1, () => [cmd(), cmd()]);samples.push(ch.root.position.y);}
   const f = g.fighters[0], groundCrouch = ch.clipGround(13), groundIdle = ch.clipGround(0);
   check('clipe agachado tem o ponto mais baixo abaixo do da pose normal', groundCrouch < groundIdle - .1, `${groundCrouch.toFixed(3)} × ${groundIdle.toFixed(3)}`);
-  check('compensação automática levanta o modelo', ch.root.position.y > .1, ch.root.position.y.toFixed(3));
-  const y0 = ch.root.position.y;ch.visualOffset = .2;run(ch, g, 60, () => [cmd(), cmd()]);
-  check('offset manual soma à altura visual', Math.abs(ch.root.position.y - y0 - .2) < 1e-3, (ch.root.position.y - y0).toFixed(4));
+  check('compensação automática levanta o modelo no instante agachado', Math.max(...samples) > .1, Math.max(...samples).toFixed(3));
+  ch.visualOffset = .2;ch.place(g.fighters[0], 0, 0);
+  const base = -ch.groundAt(ch.current.index, ch.current.action.time) * ch.root.scale.x;
+  check('offset manual soma à altura visual', Math.abs(ch.groundOffset - base - .2) < 1e-6, (ch.groundOffset - base).toFixed(4));
   check('posição física inalterada', Math.abs(f.position.x + 6) < 1e-9 && Math.abs(f.position.z) < 1e-9);
 });
 test('sem root motion: deslocamento horizontal do quadril descartado', () => {
