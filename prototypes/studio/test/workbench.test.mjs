@@ -53,8 +53,8 @@ test('seleção para a IA: recorte do objeto oficial (mesmo schema) por ID ou no
 test('patch canônico: erros com caminho, validatePatch oficial e JSON inválido com linha', () => {
   const bad = parsePatch(P([{op: 'setBonePosition', jointId: 'Hips', position: [0, 'x', 0]}, {op: 'girar'}, {op: 'setBoneQuaternion', jointId: 'Hips', quaternion: [0, 0, 0, 2]}, {op: 'renameJoint', jointId: 'Head', newName: 'H', extra: 1}]));
   assert.equal(bad.ok, false);
-  assert.deepEqual(bad.errors.map(e => e.path), ['(validatePatch oficial)', 'operations[0].position', 'operations[2].quaternion', 'operations[3].extra']);
-  assert.match(bad.errors[0].message, /girar/);
+  assert.deepEqual(bad.errors.map(e => e.path), ['operations[0].position', 'operations[1]', 'operations[2].quaternion', 'operations[3].extra'], 'caminhos vindos do validatePatch oficial');
+  assert.match(bad.errors[1].message, /girar/);
   assert.match(parsePatch('{ "schema": ').errors[0].message, /JSON inválido/);
   assert.match(parsePatch({schema: 'outro', version: 2, operations: []}).errors[0].message, /Schema inválido/);
   assert.match(parsePatch({schema: 'arenamon-rig-patch', version: 1, ops: [], operations: []}).errors[0].message, /ao mesmo tempo/);
@@ -113,22 +113,19 @@ test('patch anterior com reparent: a migração preserva a posição na raiz (re
 });
 test('limites comprovados da API oficial ficam bloqueados com o motivo (nada é aplicado em silêncio)', () => {
   const {root, engine, H, ids} = studio(), a = rigFingerprint(root);
-  for (const op of [{op: 'deleteBone', jointId: ids().Spine}, {op: 'setRestPose', jointId: ids().Head}, {op: 'recomputeSkinningWeights'}]) {
-    const r = engine.apply(P([op]));assert.equal(r.ok, false, op.op);assert.equal(r.stage, 'pendente');assert.equal(r.errors[0].message, `${op.op}: ${OP_LIMITS[op.op].all || OP_LIMITS[op.op].bound}`);
-  }
+  const del = engine.apply(P([{op: 'deleteBone', jointId: ids().Spine}]));assert.equal(del.ok, false);assert.equal(del.stage, 'pendente');assert.equal(del.errors[0].message, `deleteBone: ${OP_LIMITS.deleteBone.bound}`);
+  // Desde 249e34b a própria validação oficial recusa as operações que applyRigPatch não executava.
+  for (const op of [{op: 'setRestPose', jointId: ids().Head}, {op: 'recomputeSkinningWeights'}]) {const r = engine.apply(P([op]));assert.equal(r.ok, false);assert.equal(r.stage, 'estrutura');assert.match(r.errors[0].message, /não reconhecida/);}
   assert.equal(rigFingerprint(root), a);assert.equal(H.state().canUndo, false);
   const miss = engine.validate(P([{op: 'mirrorBone', jointId: 'Fantasma'}]));assert.equal(miss.stage, 'simulateRigPatch');assert.equal(miss.errors[0].path, 'operations[0]');
 });
-test('evidência dos defeitos bloqueados: deleteBone desloca pesos e setRestPose não faz nada (API oficial direta)', () => {
+test('evidência do defeito bloqueado: deleteBone desloca pesos (API oficial direta, 249e34b)', () => {
   const {root} = buildWorkbenchCharacter(T, core), id = name => core.currentJoints(root).find(j => j.name === name).id;
   const inf = () => {const t = core.inspectRig(root), s = {};for (const m of t.skinning.meshes) for (const [k, v] of Object.entries(m.influencesPerBone)) s[k] = (s[k] || 0) + v;return s;};
   const before = inf();
   core.applyRigPatch(root, P([{op: 'deleteBone', jointId: id('Spine')}]));
   assert.equal(inf().Head, before.Neck, 'os vértices do Neck passam para o Head: skinIndex não foi remapeado');assert.notEqual(inf().Head, before.Head);
-  const {root: r2} = buildWorkbenchCharacter(T, core), fp = rigFingerprint(r2);
-  assert.equal(core.applyRigPatch(r2, P([{op: 'setRestPose', jointId: core.currentJoints(r2)[3].id, position: [0, 3, 0]}])).success, true);
-  const rig = s => {const o = JSON.parse(s);return JSON.stringify([o.bones, o.meshes]);};
-  assert.equal(rig(rigFingerprint(r2)), rig(fp), 'setRestPose: success=true e ossos, pesos e matrizes não mudam (só a re-sincronização dos metadados)');
+  assert.throws(() => core.validatePatch(P([{op: 'setRestPose', jointId: 'Head'}])), /não reconhecida/, 'corrigido em 249e34b: setRestPose deixou de ser aceita');
 });
 for (const profile of PROFILES) test(`auto-rig ${profile.label}: proposta → patch → bind (sem vértices sem peso) → undo/redo`, () => {
   const {root, engine, H} = studio({bind: false}), clean = rigFingerprint(root);

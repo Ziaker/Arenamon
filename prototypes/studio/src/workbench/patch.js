@@ -5,36 +5,18 @@
 // 1. Lê o JSON (erro de sintaxe com número da linha).
 // 2. Migra EXPLICITAMENTE o formato anterior da Workbench (`ops`: setPosition, translate, …) para `operations`,
 //    devolvendo um relatório linha a linha que a interface mostra antes de qualquer validação.
-// 3. Confere o patch com `validatePatch` oficial e complementa com a checagem de campos (tipos e caminhos como
-//    `operations[2].position`), que o validador oficial não faz.
-// 4. Marca operações que a API oficial aceita mas que não funcionam no estado atual do rig (ver OP_LIMITS).
+// 3. Confere o patch com `validatePatch` oficial (desde 249e34b ele valida cada campo e aponta o caminho, como
+//    `operations[2].position`); a Workbench só converte a mensagem em itens {path, message} para a interface.
+// 4. Marca operações que a API aceita mas que não funcionam no estado atual do rig (ver OP_LIMITS).
+// A migração daqui preserva a posição na raiz em `reparent`/`addJoint`; `migrateWorkbenchPatch` oficial não preserva.
 import {validatePatch} from '../rigging/patch.js';
 
 export const PATCH_SCHEMA = 'arenamon-rig-patch';
-/** Campos de cada operação canônica. `ref` = ID persistente (jointId) ou nome do osso. */
-export const OP_FIELDS = {
-  setBonePosition: {required: {jointId: 'ref', position: 'vec3'}, optional: {space: 'space'}},
-  moveBone: {required: {jointId: 'ref', delta: 'vec3'}, optional: {space: 'space'}},
-  setBoneQuaternion: {required: {jointId: 'ref', quaternion: 'quat'}},
-  renameJoint: {required: {jointId: 'ref', newName: 'name'}},
-  createBone: {required: {name: 'name'}, optional: {id: 'name', parent: 'refOrNull', position: 'vec3', quaternion: 'quat'}},
-  deleteBone: {required: {jointId: 'ref'}, optional: {reparentChildren: 'bool'}},
-  reparentBone: {required: {jointId: 'ref', newParentJointId: 'refOrNull'}},
-  mirrorBone: {required: {jointId: 'ref'}, optional: {symmetryCenter: 'number'}},
-  correctSymmetry: {required: {}, optional: {referenceSide: 'side'}},
-  recomputeBindMatrices: {required: {}},
-  normalizeSkinWeights: {required: {}, optional: {meshName: 'name'}},
-  modifyVertexWeights: {required: {meshName: 'name', vertexIndex: 'index', influences: 'influences'}},
-  setRestPose: {required: {jointId: 'ref'}, optional: {position: 'vec3', quaternion: 'quat'}},
-  recomputeSkinningWeights: {required: {}},
-};
 /**
- * Limites comprovados da API oficial (56b01a5) — ver testes `workbench-official` e WORKBENCH.md.
+ * Limites comprovados da API oficial (249e34b) — ver test/workbench.test.mjs e WORKBENCH.md.
  * `all`: bloqueada em qualquer estado. `bound`: bloqueada em rig vinculado. `draft`: bloqueada em rascunho/proposta.
  */
 export const OP_LIMITS = {
-  setRestPose: {all: 'a API oficial aceita setRestPose na validação, mas applyRigPatch não a executa (o rig não muda).'},
-  recomputeSkinningWeights: {all: 'a API oficial aceita recomputeSkinningWeights na validação, mas applyRigPatch não a executa.'},
   deleteBone: {bound: 'em rig vinculado, deleteBone da API oficial remove o osso da paleta sem remapear skinIndex: os pesos dos ossos seguintes passam a apontar para o osso errado. Exclua pela aba Rigging ou antes do bind.'},
   mirrorBone: {draft: 'em rascunho, mirrorBone da API oficial não altera o ponto (só atua em ossos reais).'},
   correctSymmetry: {draft: 'em rascunho, correctSymmetry da API oficial não altera os pontos (só atua em ossos reais).'},
@@ -42,8 +24,6 @@ export const OP_LIMITS = {
   normalizeSkinWeights: {draft: 'rascunho ainda sem skin: não há pesos.'},
   modifyVertexWeights: {draft: 'rascunho ainda sem skin: não há pesos.'},
 };
-const finite = v => typeof v === 'number' && Number.isFinite(v);
-const isVec = (v, n) => Array.isArray(v) && v.length === n && v.every(finite);
 const findJoint = (joints, ref) => joints.find(j => j.id === ref) || joints.find(j => j.name === ref) || null;
 
 /** Formato anterior da Workbench (campo `ops`). Usado só pela migração. */
@@ -110,34 +90,14 @@ export function parsePatch(input, {joints = []} = {}) {
     if (m.errors.length) return {ok: false, errors: m.errors, patch: null, migration};
     patch = m.patch;
   }
-  const errors = [], err = (path, message) => errors.push({path, message});
-  try {validatePatch(patch);} catch (e) {err('(validatePatch oficial)', e.message);}
-  if (Array.isArray(patch.operations) && !patch.operations.length) err('operations', 'Esperado pelo menos uma operação.');
-  if (Array.isArray(patch.operations)) patch.operations.forEach((o, i) => {
-    const at = `operations[${i}]`, spec = o && OP_FIELDS[o.op];if (!spec) return;
-    const check = (key, type, required) => {
-      const v = o[key];
-      if (v === undefined) {if (required) err(`${at}.${key}`, `Campo obrigatório em ${o.op}.`);return;}
-      const bad = m => err(`${at}.${key}`, m);
-      if (type === 'ref' && !(typeof v === 'string' && v.trim())) bad('Esperado o ID persistente (jointId) ou o nome de um osso.');
-      if (type === 'refOrNull' && !(v === null || (typeof v === 'string' && v.trim()))) bad('Esperado o ID ou o nome de um osso, ou null.');
-      if (type === 'name' && !(typeof v === 'string' && v.trim() && v.length <= 80)) bad('Esperado um texto com 1 a 80 caracteres.');
-      if (type === 'vec3' && !isVec(v, 3)) bad('Esperado um array de 3 números finitos [x, y, z].');
-      if (type === 'vec3' && isVec(v, 3) && v.some(x => Math.abs(x) > 1e6)) bad('Coordenada fora do limite (±1e6).');
-      if (type === 'quat' && !isVec(v, 4)) bad('Esperado um quaternion [x, y, z, w] com 4 números finitos.');
-      if (type === 'quat' && isVec(v, 4) && Math.abs(Math.hypot(...v) - 1) > 1e-3) bad(`Quaternion não normalizado (norma ${Math.hypot(...v).toFixed(4)}).`);
-      if (type === 'space' && !['model-root', 'local'].includes(v)) bad('Esperado "model-root" ou "local".');
-      if (type === 'side' && !['Left', 'Right'].includes(v)) bad('Esperado "Left" ou "Right".');
-      if (type === 'bool' && typeof v !== 'boolean') bad('Esperado true ou false.');
-      if (type === 'number' && !finite(v)) bad('Esperado um número finito.');
-      if (type === 'index' && !(Number.isInteger(v) && v >= 0)) bad('Esperado um índice inteiro ≥ 0.');
-      if (type === 'influences' && !(Array.isArray(v) && v.length <= 4 && v.every(x => x && typeof x.jointId === 'string' && finite(x.weight)))) bad('Esperado até 4 itens {jointId, weight}.');
-    };
-    for (const [k, t] of Object.entries(spec.required)) check(k, t, true);
-    for (const [k, t] of Object.entries(spec.optional || {})) check(k, t, false);
-    const known = new Set(['op', 'note', ...Object.keys(spec.required), ...Object.keys(spec.optional || {})]);
-    for (const k of Object.keys(o)) if (!known.has(k)) err(`${at}.${k}`, `Campo desconhecido em ${o.op}.`);
-  });
+  const errors = [];
+  try {validatePatch(patch);} catch (e) {
+    // A mensagem oficial tem uma linha "- operations[0].position: esperado …" por erro: um item por linha.
+    const lines = e.message.split('\n').filter(l => l.startsWith('- '));
+    if (lines.length) for (const l of lines) {const m = /^- ([^:]+): (.*)$/.exec(l);errors.push(m ? {path: m[1], message: m[2]} : {path: '(validatePatch)', message: l.slice(2)});}
+    else errors.push({path: '(validatePatch)', message: e.message});
+  }
+  if (Array.isArray(patch.operations) && !patch.operations.length) errors.push({path: 'operations', message: 'Esperado pelo menos uma operação.'});
   return {ok: !errors.length, errors, patch, migration};
 }
 

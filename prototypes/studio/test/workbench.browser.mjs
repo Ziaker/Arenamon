@@ -234,8 +234,9 @@ try {
     return {success: res.success, moved: Math.abs(after[1] - head.modelRoot.position[1]) > 1e-6, historyChanged: H.state().undoLabel !== label, bonesSame: JSON.stringify(b0.bones) === JSON.stringify(f1.bones), inversesSame: JSON.stringify(b0.meshes.map(m => m[4])) === JSON.stringify(f1.meshes.map(m => m[4])), hasStudioHistory: typeof window.__studioHistory};
   });
   evidence.studioRigApplyPatch = wrapper;
-  assert.equal(wrapper.success, true);assert.equal(wrapper.moved, false, 'evidência: a mudança some (prepareRig → enterRigRest)');assert.equal(wrapper.historyChanged, false, 'evidência: sem entrada no histórico');
-  mark(`Evidência do defeito do wrapper oficial: success=true, osso não mudou, sem histórico, matrizes de bind ${wrapper.inversesSame ? 'iguais' : 'recalculadas na pose descartada'}`);
+  assert.equal(wrapper.success, true);assert.equal(wrapper.historyChanged, true, 'corrigido em 249e34b: a aplicação entra no histórico');assert.equal(wrapper.moved, false, 'ainda em 249e34b: num rig vinculado a mudança some (prepareRig → enterRigRest sem commitRig)');
+  await W(() => window.__studioEditor.history.undo());
+  mark(`Wrapper oficial (249e34b): entra no histórico, mas num rig vinculado o osso não muda; matrizes de bind ${wrapper.inversesSame ? 'iguais' : 'recalculadas na pose descartada'}`);
 
   // ---------- Tela pequena ----------
   await page.setViewportSize({width: 390, height: 844});await W(() => window.__studioLayout.open('workbench'));await page.waitForTimeout(200);
