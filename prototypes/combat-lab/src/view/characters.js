@@ -19,7 +19,7 @@ import * as T from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {clone} from 'three/addons/utils/SkeletonUtils.js';
 import {C} from '../sim/config.js';
-import {actionDuration} from '../sim/entity.js';
+import {actionDuration, actionSpec} from '../sim/entity.js';
 import {angleOf, angleDelta, length} from '../sim/math.js';
 import {mulberry} from '../sim/ai.js';
 import {sniffFormat} from './validate.js';
@@ -33,16 +33,19 @@ export const STATE_ACTIONS = {
   guardStun: ['guard_impact', 'blocked', 'block', 'idle'], tackle: ['tackle', 'run', 'idle'],
   dodge_forward: ['dodge_forward', 'dodge_left', 'jump', 'idle'], dodge_back: ['dodge_back', 'dodge_forward', 'idle'], dodge_left: ['dodge_left', 'dodge_forward', 'idle'],
   dodge_right: ['dodge_right', 'dodge_left', 'dodge_forward', 'idle'], vault: ['jump', 'dodge_forward', 'idle'], recoil: ['blocked', 'hit', 'idle'],
+  // Movimentos especiais por slot (o Studio já exporta move_1…move_4 no mapa de ações); sem clipe próprio, usa o do tackle.
+  move_1: ['move_1', 'tackle', 'idle'], move_2: ['move_2', 'tackle', 'idle'], move_3: ['move_3', 'tackle', 'idle'], move_4: ['move_4', 'tackle', 'idle'],
   airborne: ['knockback', 'fall', 'hit', 'idle'], landing: ['land', 'recover', 'downed', 'idle'], recover: ['recover', 'land', 'idle'], defeated: ['death', 'downed', 'idle'], pushed: ['hit', 'idle'],
 };
 export const STATE_LABELS = {neutral: 'Parado', turn: 'Girando no lugar', walk: 'Andando', run: 'Correndo', walk_back: 'Recuando', walk_left: 'Lateral esquerda', walk_right: 'Lateral direita',
   sprint: 'Sprint', walk_stop: 'Freio da caminhada', sprint_stop: 'Freio do sprint',
   guard_enter: 'Entrando na defesa', guard: 'Defendendo', guard_exit: 'Saindo da defesa', guard_hit: 'Defesa perfeita', guardStun: 'Guard stun', tackle: 'Tackle', dodge_forward: 'Esquiva frontal',
   dodge_back: 'Esquiva traseira', dodge_left: 'Esquiva esquerda', dodge_right: 'Esquiva direita', vault: 'Salto sobre o rival', recoil: 'Recuo (bloqueado)', airborne: 'Lançado',
-  landing: 'Aterrissando', recover: 'Recuperando (exausto)', defeated: 'Derrotado', pushed: 'Empurrado', __preview: 'Prévia'};
+  landing: 'Aterrissando', recover: 'Recuperando (exausto)', defeated: 'Derrotado', pushed: 'Empurrado', __preview: 'Prévia',
+  move_1: 'Movimento 1', move_2: 'Movimento 2', move_3: 'Movimento 3', move_4: 'Movimento 4'};
 /** Blocos de animação listados no painel (cada um serve a um ou mais estados e aceita várias variantes). */
 export const ACTION_IDS = ['idle', 'turn', 'walk', 'run', 'sprint', 'walk_stop', 'sprint_stop', 'walk_back', 'walk_left', 'walk_right', 'block_start', 'block', 'block_end', 'guard_impact', 'blocked', 'tackle',
-  'dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'jump', 'hit', 'knockback', 'fall', 'land', 'recover', 'downed', 'death'];
+  'dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'jump', 'hit', 'knockback', 'fall', 'land', 'recover', 'downed', 'death', 'move_1', 'move_2', 'move_3', 'move_4'];
 // Sinônimos para associar por nome quando o arquivo não traz o mapa do Studio.
 const ALIASES = {
   idle: ['idle', 'parado', 'stand', 'breathing idle', 'breath'], turn: ['turn', 'girar', 'turn in place'], walk: ['walk', 'walking', 'andar', 'caminhar'], run: ['run', 'running', 'correr'],
@@ -55,13 +58,15 @@ const ALIASES = {
   jump: ['jump', 'vault', 'salto', 'pulo'], hit: ['hit', 'hurt', 'damage', 'impact', 'dano'], knockback: ['knockback', 'knock back', 'push', 'launched', 'fly', 'lancado'],
   fall: ['fall', 'falling', 'queda'], land: ['land', 'landing', 'aterrissar'], recover: ['recover', 'get up', 'getup', 'stand up', 'levantar'], downed: ['downed', 'down', 'caido'],
   death: ['death', 'die', 'dying', 'dead', 'ko', 'derrota'],
+  move_1: ['move 1', 'golpe 1', 'special 1', 'skill 1'], move_2: ['move 2', 'golpe 2', 'special 2', 'skill 2'], move_3: ['move 3', 'golpe 3', 'special 3', 'skill 3'], move_4: ['move 4', 'golpe 4', 'special 4', 'skill 4'],
 };
-const TIMED = new Set(['tackle', 'dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'vault', 'recoil', 'guardStun', 'airborne', 'landing', 'recover', 'defeated']);
+const MOVE_KEYS = ['move_1', 'move_2', 'move_3', 'move_4'];
+const TIMED = new Set(['tackle', 'dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'vault', 'recoil', 'guardStun', 'airborne', 'landing', 'recover', 'defeated', ...MOVE_KEYS]);
 const TRANSIENT = new Set(['guard_enter', 'guard_exit', 'guard_hit']);
 /** Tocam uma vez a partir da entrada e seguram a última pose (não repetem em laço). */
 const ONE_SHOT = new Set([...TRANSIENT, 'walk_stop', 'sprint_stop', '__preview']);
 const LOCOMOTION = new Set(['neutral', 'turn', 'walk', 'run', 'walk_back', 'walk_left', 'walk_right']);
-const ACTION_KEYS = new Set(['tackle', 'dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'vault']);
+const ACTION_KEYS = new Set(['tackle', 'dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'vault', ...MOVE_KEYS]);
 const COMBAT_KEYS = new Set(['airborne', 'landing', 'recover', 'guardStun', 'recoil', 'defeated', 'pushed', 'guard_hit']);
 
 /** Recusa cedo (com motivo legível) o que não é GLB 2.0/glTF, antes de entregar ao carregador. */
@@ -185,6 +190,7 @@ export class Character {
     if (f.state === 'landing' && f.recoveryFrom && this.current && ACTION_KEYS.has(this.current.key)) return this.current.key;
     if (f.state === 'landing') return this.clock - this.lastFlight < 1.5 ? 'landing' : 'recover';
     if (f.action?.kind === 'tackle') return 'tackle';
+    if (f.action?.kind === 'move') return MOVE_KEYS[Math.max(0, Math.min(3, f.action.slot ?? 0))];
     if (f.action?.kind === 'dodge') {
       if (f.action.vault) return 'vault';
       // Direção da esquiva decidida na entrada e mantida até o fim (o corpo pode girar durante a esquiva).
@@ -225,6 +231,7 @@ export class Character {
   progress(f, key) {
     const R = C.rules;
     if (key === 'tackle') return f.action ? f.action.elapsed / actionDuration('tackle') : 1;
+    if (MOVE_KEYS.includes(key)) return f.action?.kind === 'move' ? f.action.elapsed / Math.max(1e-6, actionSpec(f.action).duration) : 1;
     // Pulo físico: o clipe de salto acompanha o tempo de voo balístico (2·impulso ÷ gravidade).
     if (key === 'vault' && f.action?.jump) return f.action.elapsed / Math.max(.05, 2 * C.actions.dodge.vaultUp / Math.max(.1, C.actions.dodge.vaultGravity));
     if (key.startsWith('dodge') || key === 'vault') return f.action ? f.action.elapsed / actionDuration('dodge') : 1;

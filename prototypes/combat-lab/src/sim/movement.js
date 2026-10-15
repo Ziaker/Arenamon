@@ -4,7 +4,7 @@
 // Tempo sempre em passos de simulação (determinístico); segundos = passo × C.test.step.
 import {C} from './config.js';
 import {Game} from './game.js';
-import {emptyCommand} from './entity.js';
+import {emptyCommand, actionSpec} from './entity.js';
 import {vec, length, dot, sub} from './math.js';
 import {withValues} from './compare.js';
 import {packCommands, unpackCommands} from './recording.js';
@@ -93,8 +93,8 @@ export function runSequence(seq, {values = {}, fighter = 0, animProbe = null} = 
       if (f.stamina < prevStamina - 1e-12) staminaUsed += prevStamina - f.stamina;
       // Ações (início/fim, interrupção) e sprint.
       if (f.action !== prevAction) {
-        if (open) {open.end = t;open.duration = (t - open.start) * s;open.distance = length(sub(f.position, open.from));const full = open.kind === 'recoil' ? C.rules.recoil : C.actions[open.kind]?.duration;open.interrupted = full ? open.duration < full - 1.5 * s : false;mark(t, open.kind + 'End', `Fim ${label(open.kind)}${open.interrupted ? ' (interrompido)' : ''}`);if (open.interrupted) mark(t, 'interrupt', `${label(open.kind)} interrompido`);actions.push(open);open = null;}
-        if (f.action) {open = {kind: f.action.kind, start: t, from: {...f.position}, fromCancel: !!f.action.fromCancel};mark(t, f.action.kind + 'Start', `Início ${label(f.action.kind)}${f.action.fromCancel ? ' (C → X)' : ''}`);}
+        if (open) {open.end = t;open.duration = (t - open.start) * s;open.distance = length(sub(f.position, open.from));const full = open.spec?.duration;open.interrupted = full ? open.duration < full - 1.5 * s : false;mark(t, open.kind + 'End', `Fim ${label(open.kind)}${open.interrupted ? ' (interrompido)' : ''}`);if (open.interrupted) mark(t, 'interrupt', `${label(open.kind)} interrompido`);actions.push(open);open = null;}
+        if (f.action) {open = {kind: f.action.kind, spec: actionSpec(f.action), start: t, from: {...f.position}, fromCancel: !!f.action.fromCancel};mark(t, f.action.kind + 'Start', `Início ${label(f.action.kind)}${f.action.fromCancel ? ' (C → X)' : ''}`);}
         prevAction = f.action;
       } else if (open && f.action) open.distance = length(sub(f.position, open.from));
       if (f.sprinting !== prevSprint) {mark(t, f.sprinting ? 'sprintStart' : 'sprintEnd', f.sprinting ? 'Início do sprint' : 'Fim do sprint');prevSprint = f.sprinting;}

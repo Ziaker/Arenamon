@@ -9,7 +9,9 @@
 //   • Demais encadeamentos (C → C, X → C, X → X e defesa): janela genérica `chainAfter` da ação em curso (GDD 7.3/7.4).
 // Com os ajustes V6_COMPAT (config.js) o resultado é idêntico ao laboratório v6 (teste de paridade).
 import {C} from './config.js';
-import {nominalDistance, actionParams, invulnerableWindow, chainOpen} from './entity.js';
+import {nominalDistance, actionParams, invulnerableWindow, chainOpen, actionSpec} from './entity.js';
+import {stat, hasFlag} from './status.js';
+import {moveInSlot, getMove} from './moves.js';
 import {vec, add, scale, sub, dot, length, normalize, clamp, angleOf, direction, angleDelta, smoothstep, actionCurve} from './math.js';
 import {legacyApproach, locomotionStep} from './locomotion.js';
 import {actionProgress} from './motion.js';
@@ -25,7 +27,9 @@ export function locomotionParams(f) {
     : {acceleration: L.acceleration, braking: L.braking, reversal: L.reversal, turnGrip: L.turnGrip, accelCurve: L.accelCurve, brakeCurve: L.brakeCurve, friction: L.friction, residualSpeed: L.residualSpeed, overspeedBraking: f.sprintCarry ? S.braking : L.braking};
 }
 /** Velocidade máxima de caminhada do lutador agora (defesa e exaustão reduzem). */
-export const walkSpeed = f => f.attributes.speed * (f.guard ? C.rules.guardSpeed : 1) * (f.exhausted ? C.rules.exhaustedSpeed : 1);
+export const walkSpeed = f => stat(f, 'speed', f.attributes.speed) * (f.guard ? C.rules.guardSpeed : 1) * (f.exhausted ? C.rules.exhaustedSpeed : 1);
+/** Custo de stamina de uma ação com o modificador de status (sem status: o próprio custo). */
+export const costOf = (f, cost) => stat(f, 'staminaCost', cost);
 
 /**
  * Stamina esgotada: abaixo do menor custo de X e C (exhaustMode 1) ou exatamente zero (0, Etapa A).
@@ -70,7 +74,7 @@ export function startPermission(f, kind) {
   if (cur?.kind === 'tackle' && kind === 'tackle' && !A.tackle.selfCancel) return {ok: false, reason: 'selfCancelX'};
   if (cur?.kind === 'dodge' && kind === 'dodge' && cur.elapsed < A.dodge.duration - A.dodge.selfCancelFromEnd - 1e-8) return {ok: false, reason: 'selfCancelC', detail: {elapsed: cur.elapsed, from: A.dodge.duration - A.dodge.selfCancelFromEnd, window: A.dodge.selfCancelFromEnd}};
   if (cur?.kind === 'recoil') return p.fromRecoil ? {ok: true} : {ok: false, reason: 'recoil', detail: {left: Math.max(0, C.rules.recoil - cur.elapsed)}};
-  if (cur) {const open = chainOpen(f);return open ? {ok: true} : {ok: false, reason: 'chain', detail: {left: Math.max(0, A[cur.kind].chainAfter - cur.elapsed)}};}
+  if (cur) {const open = chainOpen(f);return open ? {ok: true} : {ok: false, reason: 'chain', detail: {left: Math.max(0, actionSpec(cur).chainAfter - cur.elapsed)}};}
   if (f.stun > 1e-8 && !p.fromGuardStun) return {ok: false, buffer: kind === 'tackle', reason: 'guardStun', detail: {left: f.stun}};
   return {ok: true};
 }
@@ -123,7 +127,7 @@ export function updateFighter(f, cmd, fighters, dt) {
   const staminaBefore = f.stamina;
   // Sprint: consumo contínuo; a regeneração fica suspensa enquanto ele dura.
   if (f.sprinting) {f.regenBase = Math.max(0, f.stamina - A.sprint.staminaDrain * dt);f.regenAge = 0;}
-  f.regenAge += dt * (f.guard ? X.combat.guardRegenFactor : 1);
+  f.regenAge += dt * (f.guard ? X.combat.guardRegenFactor : 1) * stat(f, 'staminaRegen', 1);
   const regen = clamp((f.regenAge - R.regenDelay) / R.regenTime, 0, 1);
   f.stamina = f.regenBase + (R.staminaMax - f.regenBase) * regen ** 3;
   if (f.sprinting && isDepleted(f.stamina)) {f.exhausted = true;}
@@ -138,7 +142,7 @@ export function updateFighter(f, cmd, fighters, dt) {
     if (!f.guardSuppressed && open) {
       report(f, {kind: 'guard', result: 'executed', note: f.action ? `cancela ${f.action.kind === 'tackle' ? 'o tackle' : f.action.kind === 'dodge' ? 'a esquiva' : 'o recuo'}` : undefined});
       report(f, f.perfectCooldown <= 0 ? {kind: 'perfectGuard', result: 'executed', note: `janela de ${Math.round(R.perfect * 1000)} ms aberta`} : {kind: 'perfectGuard', result: 'denied', reason: 'perfectCooldown', detail: {left: f.perfectCooldown}});
-    } else if (!f.guardSuppressed) report(f, {kind: 'guard', result: 'denied', ...(!tackleGuard ? {reason: 'tackleNoGuard'} : {reason: 'chain', detail: {left: Math.max(0, A[f.action.kind].chainAfter - f.action.elapsed)}})});
+    } else if (!f.guardSuppressed) report(f, {kind: 'guard', result: 'denied', ...(!tackleGuard ? {reason: 'tackleNoGuard'} : {reason: 'chain', detail: {left: Math.max(0, actionSpec(f.action).chainAfter - f.action.elapsed)}})});
   }
   if (cmd.guard && T.enableDefense && !f.guardSuppressed && open) {
     if (f.action && (f.action.kind === 'dodge' || f.action.kind === 'tackle')) f.blend = {from: {...f.velocity}, elapsed: 0};
@@ -154,7 +158,8 @@ export function updateFighter(f, cmd, fighters, dt) {
   // Tackle guardado durante o guard stun: sai assim que o stun termina (GDD 5: só o último pedido é mantido).
   if (!kind && f.bufferedTackle && f.stun <= 1e-8 && !f.action) {kind = 'tackle';dirs = f.bufferedTackle;f.bufferedTackle = null;}
   if (kind) {
-    const p = actionParams(kind), permission = startPermission(f, kind), affordable = !f.exhausted && f.stamina >= p.cost - 1e-8;
+    const p = actionParams(kind), disarmed = kind === 'tackle' && (hasFlag(f, 'disarmed') || hasFlag(f, 'stunned')), stunnedC = kind === 'dodge' && hasFlag(f, 'stunned');
+    const permission = disarmed || stunnedC ? {ok: false, reason: disarmed && !hasFlag(f, 'stunned') ? 'disarmed' : 'stunned'} : startPermission(f, kind), affordable = !f.exhausted && f.stamina >= costOf(f, p.cost) - 1e-8;
     const fresh = kind === requested && !fromBuffer, fromStun = !requested && !fromBuffer;
     if (permission.buffer) {f.bufferedTackle = {move: {...dirs.move}, dodgeDirection: dirs.dodgeDirection && {...dirs.dodgeDirection}};f.inputBuffer = null;if (diag && fresh) report(f, {kind, result: 'buffered', reason: permission.reason, detail: permission.detail, note: 'sai quando o guard stun acabar'});}
     else if (permission.ok && affordable) {
@@ -166,6 +171,12 @@ export function updateFighter(f, cmd, fighters, dt) {
       if (f.inputBuffer && fromBuffer) lastBufferReason.set(f.inputBuffer, why);
       if (fresh) {if (f.inputBuffer) lastBufferReason.set(f.inputBuffer, why);report(f, {kind, result: f.inputBuffer ? 'buffered' : 'denied', viaCancel: !!permission.viaCancel, ...why});}
     }
+  }
+  // Movimento especial (slot): X/C pedidos no mesmo passo têm prioridade. Mesmo controlador, stamina e diagnóstico.
+  if (!kind && cmd.skill != null && f.hp > 0) {
+    const def = moveInSlot(f, cmd.skill), perm = movePermission(f, def, cmd.skill);
+    if (perm.ok) startMove(f, def, cmd.skill, {move, dodgeDirection: cmd.dodgeDirection}, desiredHeading, !!target, cmd.guard);
+    if (diag) report(f, {kind: 'skill', slot: cmd.skill, move: def?.id ?? null, result: perm.ok ? 'executed' : 'denied', reason: perm.reason, detail: perm.detail});
   }
   // Esquiva → sprint: C ainda pressionado, com direção, a partir de entryFraction da esquiva (ou logo depois dela).
   const S = A.sprint, L = C.locomotion;
@@ -198,7 +209,8 @@ export function updateFighter(f, cmd, fighters, dt) {
   if (f.action) {
     f.locomotionVelocity = vec();f.sprintCarry = false;
     const action = f.action;
-    if (action.kind === 'dodge' || action.kind === 'tackle') {
+    if (action.kind === 'move') updateMove(f, action, target, cmd, dt);
+    else if (action.kind === 'dodge' || action.kind === 'tackle') {
       const p = A[action.kind], homing = action.kind === 'tackle' && target && cmd.locked && L.lockTackleHoming;
       const steering = homing ? sub(target.position, f.position) : cmd.dodgeDirection ?? move;
       if (length(move) > .01 || homing) {
@@ -248,7 +260,8 @@ export function updateFighter(f, cmd, fighters, dt) {
     }
   } else {
     const walk = walkSpeed(f), vMax = f.sprinting ? f.attributes.speed * S.speedMultiplier : walk, before = f.locomotionVelocity;
-    if (f.stun > 1e-8) {f.locomotionVelocity = vec();f.locoPhase = 'stun';f.desiredVelocity = vec();}
+    if (f.stun > 1e-8 || hasFlag(f, 'stunned')) {f.locomotionVelocity = vec();f.locoPhase = 'stun';f.desiredVelocity = vec();}
+    else if (hasFlag(f, 'rooted')) {const r = locomotionStep(f.locomotionVelocity, vec(), walk, locomotionParams(f), dt);f.locomotionVelocity = r.velocity;f.desiredVelocity = vec();f.locoPhase = 'rooted';}
     else if (L.model !== 1) {f.locomotionVelocity = approachVelocity(f.locomotionVelocity, scale(move, walk), dt);f.desiredVelocity = scale(move, walk);f.locoPhase = length(move) ? 'legacy' : 'idle';}
     else {
       const r = locomotionStep(f.locomotionVelocity, move, vMax, locomotionParams(f), dt);
@@ -309,7 +322,7 @@ function startAction(f, kind, dirs, fighters, desiredHeading, viaCancel, guardHe
   if (viaCancel) f.action.fromCancel = true;
   if (countered) f.counterWindow = 0;
   // O custo de C já gasto continua gasto; X cobra o próprio custo.
-  f.stamina = Math.max(0, f.stamina - p.cost);f.regenBase = f.stamina;f.regenAge = 0;
+  f.stamina = Math.max(0, f.stamina - costOf(f, p.cost));f.regenBase = f.stamina;f.regenAge = 0;
   f.exhausted = isDepleted(f.stamina);f.guard = false;f.guardSuppressed = guardHeld;
   f.stun = 0;f.push = null;f.blend = null;f.vaultHeight = liftStart;f.bufferedTackle = null;f.inputBuffer = null;
   f.sprinting = false;f.sprintCarry = false;f.sprintArmed = kind === 'dodge';
@@ -319,16 +332,67 @@ function startAction(f, kind, dirs, fighters, desiredHeading, viaCancel, guardHe
 export function advanceAction(f, dt) {
   if (!f.action) return;
   f.action.elapsed += dt;
-  const kind = f.action.kind, duration = kind === 'recoil' ? C.rules.recoil : C.actions[kind].duration;
+  const kind = f.action.kind, spec = actionSpec(f.action), duration = spec.duration;
   // O pulo físico termina ao tocar o chão (a duração da esquiva não o corta no ar).
   const done = f.action.jump ? f.action.jump.landed : f.action.elapsed >= duration - 1e-8;
   if (done) {
     const wasExhausted = f.exhausted && (kind === 'dodge' || kind === 'tackle');
     f.action = null;f.velocity = vec();f.vaultHeight = 0;f.state = f.hp <= 0 ? 'defeated' : 'neutral';
     if (wasExhausted && f.hp > 0) f.knockRecovery = Math.max(f.knockRecovery, C.extras.combat.exhaustRecovery);
-    const recovery = kind === 'recoil' ? 0 : C.actions[kind].recovery;
+    const recovery = spec.recovery;
     if (recovery > 0 && f.hp > 0) f.knockRecovery = Math.max(f.knockRecovery, recovery);
     // A animação segura a pose final da ação durante essa recuperação (não troca para “levantar”).
-    f.recoveryFrom = f.knockRecovery > 0 && kind !== 'recoil' ? kind : null;
+    f.recoveryFrom = f.knockRecovery > 0 && kind !== 'recoil' && kind !== 'move' ? kind : null;
   }
+}
+
+// ---------- Movimentos especiais ----------
+/**
+ * O movimento do slot pode começar agora? Mesmas regras gerais de X e C: lutador livre ou ação em curso já
+ * encadeável (ou listada em cancelFrom), defesa e guard stun conforme a definição, recarga, status e stamina.
+ */
+export function movePermission(f, def, slot = null) {
+  if (!def) return {ok: false, reason: 'noMove', detail: {slot}};
+  if (hasFlag(f, 'stunned')) return {ok: false, reason: 'stunned'};
+  if (hasFlag(f, 'silenced')) return {ok: false, reason: 'silenced'};
+  const cd = f.moveCooldowns?.[def.id] ?? 0;if (cd > 1e-8) return {ok: false, reason: 'cooldown', detail: {left: cd}};
+  if (f.guard && def.fromGuard === false) return {ok: false, reason: 'guardBlocks'};
+  const cur = f.action;
+  if (cur && !(def.cancelFrom || []).includes(cur.kind)) {
+    if (cur.kind === 'recoil') return {ok: false, reason: 'recoil', detail: {left: Math.max(0, C.rules.recoil - cur.elapsed)}};
+    if (!chainOpen(f)) return {ok: false, reason: 'chain', detail: {left: Math.max(0, actionSpec(cur).chainAfter - cur.elapsed)}};
+  }
+  if (f.stun > 1e-8 && !def.fromGuardStun) return {ok: false, reason: 'guardStun', detail: {left: f.stun}};
+  const cost = costOf(f, def.cost ?? 1);
+  if (f.exhausted && cost > 0) return {ok: false, reason: 'exhausted', detail: {value: f.stamina, refill: C.rules.staminaMax}};
+  if (f.stamina < cost - 1e-8) return {ok: false, reason: 'stamina', detail: {value: f.stamina, required: cost}};
+  return {ok: true};
+}
+/** Inicia o movimento: cobra a stamina, inicia a recarga e agenda a linha do tempo (disparada em updateMove). */
+function startMove(f, def, slot, dirs, desiredHeading, hasTarget, guardHeld) {
+  const aim = def.aim ?? 'target', inputDir = dirs.dodgeDirection ?? dirs.move;
+  const heading = aim === 'facing' ? f.facing : aim === 'input' && length(inputDir) > .01 ? angleOf(inputDir) : hasTarget || length(inputDir) <= .01 ? desiredHeading : angleOf(inputDir);
+  f.action = {kind: 'move', move: def.id, slot, elapsed: 0, startAngle: heading, heading, offensive: false, hits: new Set(), fired: [], from: {...f.velocity}};
+  const cost = costOf(f, def.cost ?? 1);f.stamina = Math.max(0, f.stamina - cost);f.regenBase = f.stamina;f.regenAge = 0;f.exhausted = isDepleted(f.stamina);
+  if (def.cooldown > 0) (f.moveCooldowns ??= {})[def.id] = def.cooldown;
+  f.guard = false;f.guardSuppressed = guardHeld;f.push = null;f.blend = null;f.vaultHeight = 0;f.bufferedTackle = null;f.inputBuffer = null;f.sprinting = false;f.sprintCarry = false;
+}
+/** Um passo do movimento em curso: deslocamento (motion), orientação e efeitos da linha do tempo que vencem neste passo. */
+function updateMove(f, action, target, cmd, dt) {
+  const def = getMove(action.move);if (!def) {f.velocity = vec();return;}
+  const m = def.motion ?? {type: 'none'};
+  if (m.type === 'dash' && m.distance) {
+    // Deslocamento suave entre start e end (s): mesma distância qualquer que seja o passo.
+    const t0 = m.start ?? 0, t1 = m.end ?? def.duration, prog = t => smoothstep(clamp((t - t0) / Math.max(1e-6, t1 - t0), 0, 1));
+    f.velocity = scale(direction(action.heading), m.distance * (prog(action.elapsed + dt) - prog(action.elapsed)) / dt);
+  } else if (m.type === 'root') f.velocity = vec();
+  else {const from = action.from ?? vec(), k = Math.exp(-12 * dt);f.velocity = scale(from, k);action.from = {...f.velocity};}
+  turnToward(f, target && def.aim !== 'facing' ? angleOf(sub(target.position, f.position)) : action.heading, dt);
+  (def.timeline || []).forEach((ev, i) => {if (!action.fired.includes(i) && ev.at <= action.elapsed + dt + 1e-9) {action.fired.push(i);(f.moveFx ??= []).push({index: i, move: def.id, heading: action.heading});}});
+  f.state = 'move';
+}
+/** Recargas dos movimentos (chamado por passo; a taxa pode vir de status). */
+export function tickCooldowns(f, dt) {
+  const cds = f.moveCooldowns;if (!cds) return;const rate = stat(f, 'cooldownRate', 1);
+  for (const id of Object.keys(cds)) {cds[id] = Math.max(0, cds[id] - dt * rate);if (cds[id] <= 0) delete cds[id];}
 }

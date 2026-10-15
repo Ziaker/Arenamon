@@ -7,6 +7,7 @@ import {direction, length, angleOf} from '../sim/math.js';
 import {wouldVault, cancelWindow} from '../sim/controller.js';
 import {CameraRig} from './rig.js';
 import {VfxSystem} from './vfx.js';
+import {WorldView} from './world-view.js';
 import {phaseAt} from '../sim/motion.js';
 
 const STATE_COLORS = {invulnerable: 0x58e6ff, tackle: 0xffa040, dodge: 0x61ebba, guard: 0xffe066, guardStun: 0xffb347, recoil: 0xc77dff, airborne: 0x9db4ff, landing: 0x7f93b8, defeated: 0x56616a};
@@ -38,6 +39,7 @@ export class View {
     this.legacySeen = new WeakSet();
     this.vfx = new VfxSystem(this.scene, {flashEl: document.getElementById('vfx-flash'), canvas});
     this.overlayGroup = new T.Group();this.overlayGroup.renderOrder = 900;this.scene.add(this.overlayGroup);
+    this.worldView = new WorldView(this.scene);
     let dragging = false, previous = 0;
     canvas.addEventListener('contextmenu', e => e.preventDefault());
     canvas.addEventListener('pointerdown', e => {if (e.button === 2) {dragging = true;previous = e.clientX;canvas.setPointerCapture(e.pointerId);}});
@@ -111,7 +113,7 @@ export class View {
     }
     return sh;
   }
-  draw(fighters, events = [], dt = 1 / 60, {paused = false, tick = 0, sources = [], realDt = dt} = {}) {
+  draw(fighters, events = [], dt = 1 / 60, {paused = false, tick = 0, sources = [], realDt = dt, world = null} = {}) {
     const X = C.extras, V = X.visual, S = C.display.shadow, G = C.display.grounding, now = () => performance.now(), tm = this.timings = {anim: 0, vfx: 0, render: 0, overlays: 0};let t0;
     for (const event of events) {
       if (this.seenEvents.has(event)) continue;this.seenEvents.add(event);
@@ -148,7 +150,7 @@ export class View {
       // A prévia de animação continua tocando com a partida pausada.
       t0 = now();character?.update(f, paused ? (character.preview ? realDt : 0) : dt, alt, events, {tick, source: sources[f.id]});tm.anim += now() - t0;
     }
-    t0 = now();this.drawOverlays(fighters, paused ? 0 : dt);tm.overlays = now() - t0;
+    t0 = now();this.drawOverlays(fighters, paused ? 0 : dt);this.worldView.update(world);tm.overlays = now() - t0;
     if (!this.rig.initialized) this.rig.reset(fighters[0]);
     const pose = this.rig.pose();
     this.camera.position.set(pose.position.x, pose.height, pose.position.z);this.camera.lookAt(pose.lookAt.x, pose.lookHeight, pose.lookAt.z);this.camera.updateMatrixWorld();

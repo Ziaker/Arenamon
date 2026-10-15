@@ -3,11 +3,12 @@
 import * as T from 'three';
 import {C} from '../sim/config.js';
 import {setAttemptSink, describe, condition} from '../sim/attempts.js';
-import {isInvulnerable, invulnerableWindow} from '../sim/entity.js';
+import {isInvulnerable, invulnerableWindow, actionSpec} from '../sim/entity.js';
 import {cancelWindow} from '../sim/controller.js';
+import {getMove} from '../sim/moves.js';
 import {escape} from './tuning.js';
 
-const KIND = {tackle: 'X', dodge: 'C', guard: 'D', perfectGuard: 'D perfeita', sprint: 'Sprint'};
+const KIND = {tackle: 'X', dodge: 'C', guard: 'D', perfectGuard: 'D perfeita', sprint: 'Sprint', skill: 'Movimento'};
 const RES = {denied: 'negado', buffered: 'buffer', expired: 'expirou', executed: 'executado'};
 
 export function createDiagnostics({$, game, tuning, download}) {
@@ -56,7 +57,7 @@ const WINDOW_DEFS = [
     if (perfect) return [f.counterWindow, Math.max(f.counterWindow, .01), 'aberta (esquiva perfeita)'];
     return t < w0 ? [w0 - t, w0, 'abre em', true] : t <= w1 ? [w1 - t, Math.max(1e-3, w1 - w0)] : null;
   }],
-  ['chain', 'Encadear', '#ffcf7d', f => f.action && f.action.kind !== 'recoil' && f.action.elapsed < C.actions[f.action.kind].chainAfter ? [C.actions[f.action.kind].chainAfter - f.action.elapsed, C.actions[f.action.kind].chainAfter, 'bloqueado', true] : null],
+  ['chain', 'Encadear', '#ffcf7d', f => {if (!f.action || f.action.kind === 'recoil') return null;const ca = actionSpec(f.action).chainAfter;return f.action.elapsed < ca ? [ca - f.action.elapsed, ca, 'bloqueado', true] : null;}],
   ['recovery', 'Recuperação', '#9db4ff', (f, s) => f.knockRecovery > 0 ? [f.knockRecovery, s.maxRecovery = Math.max(s.maxRecovery && s.recovering ? s.maxRecovery : 0, f.knockRecovery)] : null],
   ['guardStun', 'Guard stun', '#ffb347', f => f.stun > 1e-8 ? [f.stun, C.rules.guardStun] : null],
   ['recoil', 'Recuo', '#c77dff', f => f.action?.kind === 'recoil' ? [Math.max(0, C.rules.recoil - f.action.elapsed), C.rules.recoil] : null],
@@ -74,6 +75,9 @@ export function activeWindows(f, game, memo = {}) {
     if (key === 'recovery') memo.recovering = !!r;if (key === 'counter') memo.counter = !!r;
     if (r) out.push({key, label: r[2] ?? label, name: label, color, left: r[0], total: r[1], waiting: !!r[3]});
   }
+  // Buffs/debuffs (tempo restante de cada status) e recargas dos movimentos especiais.
+  if (W.statuses) for (const s of f.statuses || []) out.push({key: 'status', label: `${s.id}${s.stacks > 1 ? ` ×${s.stacks}` : ''}`, name: s.id, color: s.tags?.includes('debuff') ? '#ff7a7a' : '#9fe58a', left: s.remaining, total: s.duration});
+  if (W.cooldowns) for (const [id, left] of Object.entries(f.moveCooldowns || {})) out.push({key: 'cooldown', label: `↻ ${id}`, name: id, color: '#8a94a6', left, total: Math.max(left, getMove(id)?.cooldown ?? left), waiting: true});
   if (W.hitstop && game.hitstop > 0) out.push({key: 'hitstop', label: 'Hitstop', name: 'Hitstop', color: '#ffffff', left: game.hitstop, total: Math.max(game.hitstop, C.extras.combat.clashHitstop)});
   return out;
 }

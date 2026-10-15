@@ -7,7 +7,7 @@ import {validateModel, validateAnimations} from '../view/validate.js';
 const ACTION_LABELS = {idle: 'Parado', turn: 'Girar no lugar', walk: 'Andar', run: 'Correr', sprint: 'Sprint (8 direções)', walk_stop: 'Freio da caminhada', sprint_stop: 'Freio do sprint',
   walk_back: 'Andar para trás', walk_left: 'Lateral esquerda', walk_right: 'Lateral direita', block_start: 'Entrar na defesa', block: 'Defesa', block_end: 'Sair da defesa',
   guard_impact: 'Impacto na defesa', blocked: 'Recuo (bloqueado)', tackle: 'Tackle (X)', dodge_forward: 'Esquiva frontal', dodge_back: 'Esquiva traseira', dodge_left: 'Esquiva esquerda',
-  dodge_right: 'Esquiva direita', jump: 'Salto', hit: 'Dano', knockback: 'Lançado', fall: 'Queda', land: 'Aterrissar', recover: 'Levantar', downed: 'Caído', death: 'Derrota'};
+  dodge_right: 'Esquiva direita', jump: 'Salto', hit: 'Dano', knockback: 'Lançado', fall: 'Queda', land: 'Aterrissar', recover: 'Levantar', downed: 'Caído', death: 'Derrota', move_1: 'Movimento 1', move_2: 'Movimento 2', move_3: 'Movimento 3', move_4: 'Movimento 4'};
 
 /** Seção recolhível com botão ▼ (estado lembrado por chave). */
 const openState = new Map();

@@ -2,6 +2,7 @@
 // e separação de colisores AABB. Detecta clash/impacto no primeiro passe de contato.
 import {C} from './config.js';
 import {clashPossible, clash, resolveHit} from './combat.js';
+import {collideFighter} from './world.js';
 import {vec, add, scale, sub, dot, length, normalize, clamp, direction, smoothstep} from './math.js';
 
 /** Componente vertical do rebote: multiplica a velocidade vertical atual e soma um impulso para cima. */
@@ -27,7 +28,7 @@ export function overlap(a, b) {
   const T = C.test, dx = b.position.x - a.position.x, dz = b.position.z - a.position.z, sx = 2 * T.halfExtent - Math.abs(dx), sz = 2 * T.halfExtent - Math.abs(dz);
   return sx < -T.epsilon || sz < -T.epsilon ? null : sx < sz ? {normal: vec(dx >= 0 ? 1 : -1, 0), depth: Math.max(0, sx)} : {normal: vec(0, dz >= 0 ? 1 : -1), depth: Math.max(0, sz)};
 }
-export function stepPhysics(fighters, dt) {
+export function stepPhysics(fighters, dt, world = null) {
   const R = C.rules, X = C.extras.combat, T = C.extras.toggles, events = [], pushVel = new Map();
   for (const f of fighters) {
     f.contacts = 0;
@@ -62,6 +63,8 @@ export function stepPhysics(fighters, dt) {
       if (f.hp <= 0 && !f.flight) continue;
       f.position = add(f.position, scale(add(f.velocity, pushVel.get(f.id)), dt / steps));
       clampToArena(f);
+      // Paredes e barreiras sólidas criadas por movimentos (sem elas, nada muda).
+      if (world?.entities.length) {collideFighter(world, f);clampToArena(f);}
     }
     for (let pass = 0; pass < X.contactProjectionPasses; pass++) {
       for (let ai = 0; ai < fighters.length; ai++) for (let bi = ai + 1; bi < fighters.length; bi++) {

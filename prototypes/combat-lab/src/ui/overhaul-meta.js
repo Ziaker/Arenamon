@@ -126,6 +126,8 @@ const WIN = {
   perfect: ['Janela da defesa perfeita', 'Tempo restante da janela perfeita aberta pelo toque em D.', toggle], perfectCooldown: ['Recarga da defesa perfeita', 'Tempo até poder abrir outra janela perfeita.', toggle],
   counter: ['Janela de contra-ataque', 'Tempo restante do bônus de contra-ataque (após esquiva ou defesa perfeita).', toggle], buffer: ['Buffer de entrada', 'Comando X/C guardado e tempo até expirar.', toggle],
   hitstop: ['Hitstop', 'Congelamento de impacto (global).', toggle],
+  statuses: ['Buffs e debuffs', 'Tempo restante de cada efeito de status do lutador (verde: buff; vermelho: debuff).', toggle],
+  cooldowns: ['Recargas dos movimentos', 'Tempo até cada movimento especial poder ser usado de novo.', toggle],
 };
 const RULES2 = {
   exhaustMode: ['Quando fica exausto', 'Abaixo do menor custo: ao sobrar menos stamina que a ação mais barata (X ou C), o lutador fica exausto até recuperar toda a stamina. Só em zero: regra da Etapa A (com máximos fracionários, ex.: 5,1, nunca acontecia).', select(['Só em zero (Etapa A)', 'Abaixo do menor custo de X/C'])],
@@ -160,7 +162,7 @@ export function overhaulMeta(path) {
   if (root === 'rules' && RULES2[key]) return out(...RULES2[key]);
   // Teclas (jogador e vermelho): seleção pela tecla física.
   if (parts[1] === 'bindings' || parts[1] === 'bindings2') {
-    const names = {forward: 'Mover para cima', back: 'Mover para baixo', left: 'Mover à esquerda', right: 'Mover à direita', tackle: 'Tackle (X)', dodge: 'Esquiva (C) — segure para sprint', defend: 'Defesa (D)', lock: 'Fixar alvo', pause: 'Pausar', restart: 'Reiniciar', debug: 'Depuração'};
+    const names = {forward: 'Mover para cima', back: 'Mover para baixo', left: 'Mover à esquerda', right: 'Mover à direita', tackle: 'Tackle (X)', dodge: 'Esquiva (C) — segure para sprint', defend: 'Defesa (D)', lock: 'Fixar alvo', pause: 'Pausar', restart: 'Reiniciar', debug: 'Depuração', skill1: 'Movimento especial 1', skill2: 'Movimento especial 2', skill3: 'Movimento especial 3', skill4: 'Movimento especial 4'};
     const codes = C.extras.keyCodes, who = parts[1] === 'bindings2' ? 'Vermelho · ' : '';
     return out(who + (names[key] || key), `Tecla física de “${names[key] || key}”${who ? ' do vermelho no controle manual' : ''}. Evite repetir a mesma tecla em comandos diferentes.`, select(codes.map(c => c.replace(/^Key/, '').replace(/^Digit/, '').replace('Arrow', 'Seta '))));
   }

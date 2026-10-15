@@ -53,7 +53,7 @@ try {
   check('Controle manual', 'tecla L move o vermelho (IA ignorada)', Math.hypot(r1.x - r0.x, r1.z - r0.z) > .8, `${Math.hypot(r1.x - r0.x, r1.z - r0.z).toFixed(2)} m`);
   await L(() => new Promise(done => {const c = document.querySelector('.stage canvas'), key = (t, code) => c.dispatchEvent(new KeyboardEvent(t, {code, bubbles: true}));key('keydown', 'KeyU');key('keyup', 'KeyU');setTimeout(done, 120);}));
   check('Controle manual', 'tecla U faz o tackle do vermelho', await L(() => window.__lab.recorder.actions.some(a => a.fighter === 1 && a.kind === 'tackle')));
-  check('Controle manual', 'teclas do vermelho configuráveis na aba Controles', await L(() => document.querySelectorAll('#bindings2-controls [data-path^="extras.bindings2."]').length === 8));
+  check('Controle manual', 'teclas do vermelho configuráveis na aba Controles', await L(() => document.querySelectorAll('#bindings2-controls [data-path^="extras.bindings2."]').length === 12)); // 8 comandos + 4 slots de movimentos especiais
   await L(() => window.__lab.tuning.commit([['extras.toggles.enemyManual', 0]], 'manual off'));
 
   // ---------- Sprint pelo teclado ----------
