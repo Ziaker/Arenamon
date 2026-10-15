@@ -85,6 +85,7 @@
     <p class="st-hint">Gera <b>20 articulações</b>, incluindo quatro por braço: clavícula, ombro, cotovelo e punho. Posição inicial aproximada — ajuste ao formato do personagem antes de vincular pesos.</p>
     <button type="button" class="btn btn-soft st-wide" id="rg-template">Criar/renovar pontos guiados</button>
     <div class="rg-field"><label for="rg-smooth">Suavização dos pesos iniciais</label><input id="rg-smooth" type="range" min="0.03" max="0.5" step="0.01" value="0.13"><output id="rg-smooth-out">0.13</output></div>
+     <div class="rg-field"><label for="rg-weights">Algoritmo de pesos iniciais</label><select id="rg-weights"><option value="segment-proximity" selected>Proximidade de segmento (legado)</option><option value="capsule-falloff">Cápsula com decaimento gaussiano</option></select></div>
     <button type="button" class="btn btn-primary st-wide" id="rg-bind">Vincular malha aos ossos (skin)</button>
     <p class="st-hint">Pesos automáticos por proximidade são provisórios. A operação modifica a malha do projeto; mantenha uma cópia do original para comparar.</p>
    </div>

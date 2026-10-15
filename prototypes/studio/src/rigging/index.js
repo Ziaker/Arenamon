@@ -7,7 +7,7 @@ import {modelBounds, makeTemplate, collectBones, currentJoints, auditRig,
   addDraftJoint, renameDraftJoint, reparentDraftJoint, removeDraftJoint, uniqueJointName,
   syncRigMetadata} from './core.js';
 import {inspectRig, exportTelemetryJSON} from './telemetry.js';
-import {simulateRigPatch, applyRigPatch, RigPatchBuilder, RigController, validatePatch} from './patch.js';
+import {simulateRigPatch, applyRigPatch, RigPatchBuilder, RigController, validatePatch, takeRigSnapshot, restoreRigSnapshot} from './patch.js';
 import {analyzeGeometry, generateHumanoidDraft, generateQuadrupedDraft, fitDraftToLandmarks, regenerateRegion, computeEnhancedSkinningWeights} from './autorig.js';
 
 const $=id=>document.getElementById(id), E=window.__importer;
@@ -319,11 +319,11 @@ function onBind() {
   if(!window.confirm(message))return;
   clearPose();E.enterRigRest();
   try{
-    const draft=structuredClone(S.draft),smoothness=Number($('rg-smooth').value),previousRig=E.model.userData.arenamonRig?structuredClone(E.model.userData.arenamonRig):null;let result=null,boundMetadata=null;
-    const redo=()=>{if(!result)result=bindDraftToModel(E.model,draft,{smoothness});else{for(const p of result.replacements){p.parent.add(p.mesh);p.old.removeFromParent();}for(const b of result.bones.filter(b=>!b.parent))E.model.add(b);E.model.userData.arenamonRig=structuredClone(boundMetadata);}delete E.model.userData.arenamonRigDraft;E.commitRig({replacements:result.replacements,reason:'vincular rig',emitDirty:false});boundMetadata=structuredClone(syncRigMetadata(E.model,E.model.userData.arenamonRig));S.draft=null;indexBones();S.selected=result.bones[0]?.userData.arenamonJointId||result.bones[0]?.uuid;rebuildMarkers();refreshAudit();render();};
+    const draft=structuredClone(S.draft),smoothness=Number($('rg-smooth').value),weights=$('rg-weights')?.value||'segment-proximity',previousRig=E.model.userData.arenamonRig?structuredClone(E.model.userData.arenamonRig):null;let result=null,boundMetadata=null;
+    const redo=()=>{if(!result)result=bindDraftToModel(E.model,draft,{smoothness,weights});else{for(const p of result.replacements){p.parent.add(p.mesh);p.old.removeFromParent();}for(const b of result.bones.filter(b=>!b.parent))E.model.add(b);E.model.userData.arenamonRig=structuredClone(boundMetadata);}delete E.model.userData.arenamonRigDraft;E.commitRig({replacements:result.replacements,reason:'vincular rig',emitDirty:false});boundMetadata=structuredClone(syncRigMetadata(E.model,E.model.userData.arenamonRig));S.draft=null;indexBones();S.selected=result.bones[0]?.userData.arenamonJointId||result.bones[0]?.uuid;rebuildMarkers();refreshAudit();render();};
     const undo=()=>{for(const p of result.replacements){p.parent.add(p.old);p.mesh.removeFromParent();}for(const b of result.bones)if(b.parent===E.model)b.removeFromParent();E.commitRig({replacements:result.replacements.map(p=>({old:p.mesh,mesh:p.old})),reason:'desfazer vínculo',emitDirty:false});if(previousRig)E.model.userData.arenamonRig=structuredClone(previousRig);else delete E.model.userData.arenamonRig;S.draft=structuredClone(draft);E.model.userData.arenamonRigDraft=structuredClone(draft);indexBones();S.selected=draft.joints[0].id;rebuildMarkers();refreshAudit();render();};
-    const command={label:'Vincular malha ao rig',redo,undo},history=window.__studioEditor?.history;if(history)history.run(command);else{redo();mark(command.label);}
-    status('Rig vinculado: '+result.bones.length+' ossos, '+result.vertices+' vértices. A operação pode ser desfeita/refeita.','ok');
+    const command={label:'Vincular malha ao rig ('+weights+')',redo,undo},history=window.__studioEditor?.history;if(history)history.run(command);else{redo();mark(command.label);}
+    status('Rig vinculado ('+weights+'): '+result.bones.length+' ossos, '+result.vertices+' vértices. A operação pode ser desfeita/refeita.','ok');
   }catch(e){console.error(e);status('Falha ao vincular: '+e.message,'warn');}
 }
 function exportJSON() {
@@ -453,25 +453,64 @@ window.__studioRig={
   exportTelemetryJSON: (options = {}) => exportTelemetryJSON(E.model, { draft: S.draft, clips: E.clips, ...options }),
   simulatePatch: (patch, options = {}) => simulateRigPatch(E.model, patch, { draft: S.draft, clips: E.clips, ...options }),
   applyPatch: (patch, options = {}) => {
-    const res = applyRigPatch(E.model, patch, {
+    let res = null;
+    let preSnapshot = null;
+    let postSnapshot = null;
+    const history = window.__studioEditor?.history;
+    const label = `Rig Patch (${patch.operations?.length || patch.ops?.length || 1} ops)`;
+    const patchOptions = {
       draft: S.draft,
       clips: E.clips,
-      undoStack: {
-        push: (entry) => {
-          if (window.__studioHistory) {
-            window.__studioHistory.push({
-              name: entry.name,
-              undo: entry.undo,
-              redo: entry.redo
-            });
-          }
-          mark(entry.name);
-        }
-      },
       ...options
-    });
-    if (E.model) {
-      prepareRig();
+    };
+
+    const execute = () => {
+      preSnapshot = takeRigSnapshot(E.model, patchOptions);
+      res = applyRigPatch(E.model, patch, patchOptions);
+      if (S.draft && E.model) {
+        E.model.userData.arenamonRigDraft = structuredClone(S.draft);
+      }
+      postSnapshot = takeRigSnapshot(E.model, patchOptions);
+      if (E.model) prepareRig();
+      return res;
+    };
+
+    if (history) {
+      // Executa via history.run() uma única vez
+      history.run({
+        label,
+        redo: () => {
+          if (postSnapshot) {
+            restoreRigSnapshot(E.model, postSnapshot, patchOptions);
+            if (postSnapshot.draft) {
+              if (!S.draft) S.draft = structuredClone(postSnapshot.draft);
+              else S.draft.joints = structuredClone(postSnapshot.draft.joints);
+              if (E.model) E.model.userData.arenamonRigDraft = structuredClone(postSnapshot.draft);
+            } else if (postSnapshot.metadata) {
+              S.draft = null;
+            }
+            if (E.model) prepareRig();
+          } else {
+            execute();
+          }
+        },
+        undo: () => {
+          if (preSnapshot) {
+            restoreRigSnapshot(E.model, preSnapshot, patchOptions);
+            if (preSnapshot.draft) {
+              if (!S.draft) S.draft = structuredClone(preSnapshot.draft);
+              else S.draft.joints = structuredClone(preSnapshot.draft.joints);
+              if (E.model) E.model.userData.arenamonRigDraft = structuredClone(preSnapshot.draft);
+            } else if (preSnapshot.metadata) {
+              S.draft = null;
+            }
+            if (E.model) prepareRig();
+          }
+        }
+      });
+    } else {
+      execute();
+      mark(label);
     }
     return res;
   },

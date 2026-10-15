@@ -224,8 +224,10 @@ export function applyMirror(draft,name) {
 
 // Cria skin REAL por influência geométrica dos segmentos ósseos.
 // O algoritmo é um ponto de partida; malhas complexas exigem inspeção e pintura manual de pesos.
-export function bindDraftToModel(root,draft,{smoothness=.13,maxVertices=250000}={}) {
+export const WEIGHT_ALGORITHMS=Object.freeze(['segment-proximity','capsule-falloff']);
+export function bindDraftToModel(root,draft,{smoothness=.13,maxVertices=250000,weights='segment-proximity'}={}) {
   const bounds=modelBounds(root);validateDraft(draft,bounds);
+  if(!WEIGHT_ALGORITHMS.includes(weights))throw Error('Algoritmo de pesos desconhecido: '+weights+'. Use '+WEIGHT_ALGORITHMS.join(' ou ')+'.');
   if(!Number.isFinite(smoothness)||smoothness<=0||smoothness>2)throw Error('Suavização inválida.');
   const meshList=[];root.traverse(o=>{if(o.isMesh)meshList.push(o);});
   if(meshList.some(o=>o.isSkinnedMesh))throw Error('Já existe skinning neste personagem. Edite o rig existente, sem sobrescrever pesos originais.');
@@ -243,6 +245,7 @@ export function bindDraftToModel(root,draft,{smoothness=.13,maxVertices=250000}=
   }
   root.updateMatrixWorld(true);
   const skeleton=new T.Skeleton(bones), positions=draft.joints.map(j=>v3(j.p));
+  const parentPos=draft.joints.map(j=>{const pj=j.parent?draft.joints.find(x=>x.name===j.parent):null;return pj?v3(pj.p):null;});
   const sigma=Math.max(bounds.size[1],bounds.size[0],bounds.size[2]) * smoothness;
   const rootInverse=root.matrixWorld.clone().invert(), replacements=[];
   try {
@@ -250,24 +253,28 @@ export function bindDraftToModel(root,draft,{smoothness=.13,maxVertices=250000}=
       const geom=mesh.geometry.clone(), pos=geom.getAttribute('position');
       if(!pos)throw Error('Malha sem posições: '+nameOf(mesh));
       const meshToRoot=rootInverse.clone().multiply(mesh.matrixWorld);
-      const indices=new Uint16Array(pos.count*4),weights=new Float32Array(pos.count*4);
-      const p=new T.Vector3();
+      const indices=new Uint16Array(pos.count*4),weightsArr=new Float32Array(pos.count*4);
+      const p=new T.Vector3(), d2s=new Float64Array(bones.length);
       for(let vi=0;vi<pos.count;vi++) {
         p.fromBufferAttribute(pos,vi).applyMatrix4(meshToRoot);
+        let dmin=Infinity;
+        for(let bi=0;bi<bones.length;bi++){
+          const d2=parentPos[bi]?segmentDistanceSquared(p,parentPos[bi],positions[bi]):p.distanceToSquared(positions[bi]);
+          d2s[bi]=d2;if(d2<dmin)dmin=d2;
+        }
         const closest=[];
         for(let bi=0;bi<bones.length;bi++){
-          const parent=draft.joints[bi].parent;
-          const pj=parent?draft.joints.find(j=>j.name===parent):null;
-          const d2=pj?segmentDistanceSquared(p,v3(pj.p),positions[bi]):p.distanceToSquared(positions[bi]);
-          const score=1/(d2+sigma*sigma*.04);
+          // Legado: inverso do quadrado da distância. Cápsula: gaussiana relativa ao segmento mais próximo
+          // (relativa evita underflow quando o vértice está longe de todos os ossos).
+          const score=weights==='capsule-falloff'?Math.exp(-(d2s[bi]-dmin)/(2*sigma*sigma)):1/(d2s[bi]+sigma*sigma*.04);
           closest.push({i:bi,score});
         }
         closest.sort((a,b)=>b.score-a.score);
         const best=closest.slice(0,4), norm=best.reduce((v,c)=>v+c.score,0), fallback=best[0];
-        for(let k=0;k<4;k++){const influence=best[k];indices[vi*4+k]=(influence||fallback).i;weights[vi*4+k]=influence?influence.score/norm:0;}
+        for(let k=0;k<4;k++){const influence=best[k];indices[vi*4+k]=(influence||fallback).i;weightsArr[vi*4+k]=influence?influence.score/norm:0;}
       }
       geom.setAttribute('skinIndex',new T.Uint16BufferAttribute(indices,4));
-      geom.setAttribute('skinWeight',new T.Float32BufferAttribute(weights,4));
+      geom.setAttribute('skinWeight',new T.Float32BufferAttribute(weightsArr,4));
       const skin=new T.SkinnedMesh(geom,mesh.material);
       skin.name=mesh.name;skin.position.copy(mesh.position);skin.quaternion.copy(mesh.quaternion);
       skin.scale.copy(mesh.scale);skin.visible=mesh.visible;skin.renderOrder=mesh.renderOrder;
@@ -280,8 +287,8 @@ export function bindDraftToModel(root,draft,{smoothness=.13,maxVertices=250000}=
     }
     for(const pair of replacements) pair.old.removeFromParent();
     root.userData.arenamonRig={schema:'arenamon-rig',version:2,origin:'guided-template',joints:draft.joints.map(j=>({id:j.id,name:j.name,parent:j.parent,p:tidy(j.p),q:[...(j.q||[0,0,0,1])]})),
-      autoWeights:{method:'segment-proximity',smoothness,topInfluences:4},units:'model-local'};
-    return {bones, skeleton, replacements,vertices:count};
+      autoWeights:{method:weights,smoothness,topInfluences:4},units:'model-local'};
+    return {bones, skeleton, replacements,vertices:count,weightsAlgorithm:weights};
   } catch(e) {
     for(const pair of replacements){pair.mesh.removeFromParent();pair.mesh.geometry.dispose();}
     for(const b of bones) b.removeFromParent();
