@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import {mkdirSync, writeFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {Game} from '../src/sim/game.js';
-import {C, resetConfig, defaults, ETAPA_A_MOTION} from '../src/sim/config.js';
+import {C, resetConfig, defaults, ETAPA_A_MOTION, ETAPA_A_RULES} from '../src/sim/config.js';
 import {isInvulnerable} from '../src/sim/entity.js';
 import {toCommand} from '../src/ui/input.js';
 import {migrateFlat, flatten} from '../src/ui/actions-meta.js';
@@ -19,7 +19,9 @@ const fmt = v => typeof v === 'number' ? (Math.abs(v) >= 100 ? v.toFixed(1) : +v
 function expect(group, label, ok, expected, actual) {report.push({group, label, ok: !!ok, expected: fmt(expected), actual: fmt(actual)});assert.ok(ok, `${group} · ${label}: esperado ${expected}, obtido ${actual}`);}
 /** Movimento da Etapa A (locomoção linear, setas relativas ao alvo, curva polinomial): para verificações que medem aquela curva ou aqueles tempos. */
 function legacyMotion() {for (const [p, v] of Object.entries(ETAPA_A_MOTION)) {const k = p.split('.'), last = k.pop();k.reduce((o, x) => o[x], C)[last] = v;}}
-function test(name, fn) {resetConfig();fn();passed++;console.log('✓', name);}
+/** As verificações deste arquivo documentam as regras aprovadas da Etapa A; as regras novas têm testes próprios (rules.test.mjs). */
+function etapaARules() {for (const [p, v] of Object.entries(ETAPA_A_RULES)) {const k = p.split('.'), last = k.pop();k.reduce((o, x) => o[x], C)[last] = v;}}
+function test(name, fn) {resetConfig();etapaARules();fn();passed++;console.log('✓', name);}
 const cmd = (o = {}) => ({move: vec(), dodge: false, tackle: false, guard: false, guardPressed: false, target: null, ...o});
 const DIRS = [['frente', 0, 1], ['trás', 0, -1], ['esquerda', 1, 0], ['direita', -1, 0], ['frente-esquerda', 1, 1], ['frente-direita', -1, 1], ['trás-esquerda', 1, -1], ['trás-direita', -1, -1]]
   .map(([name, x, z]) => ({name, d: normalize(vec(x, z))}));
@@ -222,7 +224,7 @@ test('parâmetros de C e X são independentes', () => {
   g = setup({p1: vec(14, 14)});r = run(g, 100, t => [t === 2 ? cmd({move: vec(1, 0), tackle: true}) : cmd(), cmd()]);
   expect('Independência', 'duração de X continua 0,4 s (47 amostras + passo final)', r.samples.filter(s => s[0].kind === 'tackle').length === 47, 47, r.samples.filter(s => s[0].kind === 'tackle').length);
   expect('Independência', 'custo de X = 2', Math.abs(r.samples[3][0].stamina - 1) < 1e-9, 1, r.samples[3][0].stamina);
-  resetConfig();legacyMotion();C.actions.tackle.steerLimit = 0;C.actions.tackle.curveStart = 3;C.actions.dodge.distance = 1;
+  resetConfig();etapaARules();legacyMotion();C.actions.tackle.steerLimit = 0;C.actions.tackle.curveStart = 3;C.actions.dodge.distance = 1;
   g = setup({p1: vec(14, 14)});r = run(g, 70, t => [t === 2 ? cmd({move: vec(1, 0), dodge: true, dodgeDirection: vec(1, 0)}) : t > 2 ? cmd({move: vec(1, 1)}) : cmd(), cmd()]);
   const endOf = (r, kind) => r.samples.find((s, i) => i > 2 && s[0].kind !== kind)[0];const dodgeEnd = endOf(r, 'dodge');
   expect('Independência', 'distância de C = 1 × 0,4 × 4,8', Math.abs(Math.hypot(dodgeEnd.x, dodgeEnd.z) - 1.92) < .2, '≈ 1,92 m (com esterçamento de C intacto)', Math.hypot(dodgeEnd.x, dodgeEnd.z));

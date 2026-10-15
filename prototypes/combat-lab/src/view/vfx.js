@@ -14,9 +14,9 @@ export const VFX_TYPES = [
   ['hit', 'Impacto (hit)', ['A · Impacto radial', 'B · Estrela estilizada', 'C · Ondas de choque']],
   ['dodge', 'Speedlines da esquiva', ['A · Rastros direcionais', 'B · Cortes de velocidade', 'C · Fantasmas cinéticos']],
   ['sprint', 'Speedlines do sprint', ['A · Fluxo contínuo', 'B · Trilhas de energia', 'C · Túnel cinético localizado']],
-  ['block', 'Bloqueio normal', ['A · Faíscas defensivas', 'B · Escudo translúcido', 'C · Onda de absorção']],
+  ['block', 'Bloqueio normal', ['A · Faíscas defensivas', 'B · Escudo translúcido', 'C · Onda de absorção', 'D · Escudo hexagonal']],
   ['perfect', 'Bloqueio perfeito', ['A · Explosão de contra-impacto', 'B · Ruptura temporal', 'C · Deflexão monumental']],
-  ['ground', 'Colisão com o chão (knockback)', ['A · Explosão de poeira', 'B · Anel de impacto', 'C · Impacto fragmentado']],
+  ['ground', 'Colisão com o chão (knockback)', ['A · Explosão de poeira', 'B · Anel de impacto', 'C · Impacto fragmentado', 'D · Combinado (A + B + C)']],
   ['clash', 'Clash entre tackles', ['A · Explosão central simétrica', 'B · Cruzamento de energia', 'C · Compressão e liberação']],
   ['exhaust', 'Exaustão (indicadores azuis)', ['A · Cachoeira de setas', 'B · Chuva de fragmentos', 'C · Cascata enfraquecida']],
   ['regen', 'Regeneração de stamina (amarelo)', ['A · Setas ascendentes', 'B · Linhas energéticas', 'C · Pulsos de recuperação']],
@@ -190,8 +190,10 @@ export class VfxSystem {
   fire(type, ctx, reason) {
     if (!this.enabled(type)) {this.record(type, `${reason} · desligado`);return;}
     this.record(type, reason);const v = C.vfx[type].variant | 0;
-    ({hit: [this.hitA, this.hitB, this.hitC], block: [this.blockA, this.blockB, this.blockC], perfect: [this.perfectA, this.perfectB, this.perfectC],
-      ground: [this.groundA, this.groundB, this.groundC], clash: [this.clashA, this.clashB, this.clashC]})[type][v].call(this, C.vfx[type], ctx);
+    ({hit: [this.hitA, this.hitB, this.hitC], block: [this.blockA, this.blockB, this.blockC, this.blockD], perfect: [this.perfectA, this.perfectB, this.perfectC],
+      ground: [this.groundA, this.groundB, this.groundC, this.groundD], clash: [this.clashA, this.clashB, this.clashC]})[type][v].call(this, C.vfx[type], ctx);
+    // Bloqueio: brilho de contato sempre voltado para a câmera, para o feedback nunca sumir (escudos planos podem ficar de perfil).
+    if (type === 'block' && v !== 0) {const p = this.frontOf(ctx.pos, ctx.n, .5), c = C.vfx.block;this.spawn({x: p.x, y: .8, z: p.z, life: c.duration * .4, w: .55 * c.size, cell: 'spark', color: c.color, glow: 1.3 * c.intensity, alpha: c.opacity, grow: .6 * c.expansion, fade: 1.5});}
   }
   /** Efeitos contínuos (esquiva, sprint, exaustão, regeneração): emissão por intervalo, por lutador. */
   stream(type, f, dt, ctx) {
@@ -280,6 +282,12 @@ export class VfxSystem {
   }
   // ---------- BLOCK ----------
   frontOf(pos, n, d = .55) {return {x: pos.x - n.x * d, z: pos.z - n.z * d};}
+  /** Normal de escudos planos: entre a direção do ataque e a câmera (visível de qualquer ângulo, ainda virado para o golpe). */
+  shieldAxis(p, n) {
+    let ax = -n.x, az = -n.z;
+    if (this.camera) {const cx = this.camera.position.x - p.x, cz = this.camera.position.z - p.z, d = Math.hypot(cx, cz) || 1;ax = ax * .5 + cx / d * .5;az = az * .5 + cz / d * .5;const l = Math.hypot(ax, az) || 1;ax /= l;az /= l;}
+    return {ax, ay: 0, az};
+  }
   blockA(c, {pos, n}) { // Faíscas no ponto de contato, voltando contra o atacante.
     const p = this.frontOf(pos, n), y = .8, cnt = Math.round(c.count * c.intensity);
     this.spawn({x: p.x, y, z: p.z, life: c.duration * .5, w: .5 * c.size, cell: 'spark', color: c.color, glow: 1.5 * c.intensity, alpha: c.opacity, grow: c.expansion});
@@ -287,14 +295,23 @@ export class VfxSystem {
   }
   blockB(c, {pos, n}) { // Escudo translúcido curvo na frente do defensor, virado para o ataque.
     const p = this.frontOf(pos, n, .5);
-    this.spawn({x: p.x, y: .75, z: p.z, life: c.duration, w: 1.5 * c.size, h: 1.3 * c.size, cell: 'arc', mode: 'plane', ax: -n.x, ay: 0, az: -n.z, color: c.color, glow: 1.2 * c.intensity, alpha: c.opacity, alphaCurve: k => k < .15 ? k / .15 : Math.pow(1 - (k - .15) / .85, 1.5), sizeCurve: k => 1 + .15 * c.expansion * k});
-    this.spawn({x: p.x, y: .75, z: p.z, life: c.duration * .6, w: 1.1 * c.size, h: 1 * c.size, cell: 'hex', mode: 'plane', ax: -n.x, ay: 0, az: -n.z, color: 0xffffff, glow: .8 * c.intensity, alpha: c.opacity * .45, fade: 2});
+    const sa = this.shieldAxis(p, n);
+    this.spawn({x: p.x, y: .75, z: p.z, life: c.duration, w: 1.5 * c.size, h: 1.3 * c.size, cell: 'arc', mode: 'plane', ...sa, color: c.color, glow: 1.2 * c.intensity, alpha: c.opacity, alphaCurve: k => k < .15 ? k / .15 : Math.pow(1 - (k - .15) / .85, 1.5), sizeCurve: k => 1 + .15 * c.expansion * k});
+    this.spawn({x: p.x, y: .75, z: p.z, life: c.duration * .6, w: 1.1 * c.size, h: 1 * c.size, cell: 'hex', mode: 'plane', ...sa, color: 0xffffff, glow: .8 * c.intensity, alpha: c.opacity * .45, fade: 2});
     for (let k = 0; k < Math.round(c.count * .4); k++) this.spawn({x: p.x + rand(-.4, .4) * n.z, y: rand(.3, 1.2), z: p.z - rand(-.4, .4) * n.x, vx: -n.x * 1.5, vz: -n.z * 1.5, drag: 4, life: c.duration * .8, w: .06, cell: 'dot', color: c.color, glow: 1.5, alpha: c.opacity, fade: 1.5});
   }
   blockC(c, {pos, n}) { // Onda de absorção: ondas curtas propagando sobre uma barreira momentânea.
-    const p = this.frontOf(pos, n, .5);
-    this.spawn({x: p.x, y: .75, z: p.z, life: c.duration, w: 1.3 * c.size, h: 1.2 * c.size, cell: 'hex', mode: 'plane', ax: -n.x, ay: 0, az: -n.z, color: c.color, glow: c.intensity, alpha: c.opacity * .55, fade: 1.5});
-    for (let k = 0; k < 3 + Math.round(c.count / 10); k++) this.spawn({x: p.x, y: .75, z: p.z, delay: k * c.duration * .14, life: c.duration * .7, w: .35 * c.size, cell: 'ring', mode: 'plane', ax: -n.x, ay: 0, az: -n.z, color: c.color, glow: 1.4 * c.intensity, alpha: c.opacity, fade: 1.2, sizeCurve: k2 => 1 + ease.outCubic(k2) * 3 * c.expansion});
+    const p = this.frontOf(pos, n, .5), sa = this.shieldAxis(p, n);
+    this.spawn({x: p.x, y: .75, z: p.z, life: c.duration, w: 1.3 * c.size, h: 1.2 * c.size, cell: 'hex', mode: 'plane', ...sa, color: c.color, glow: c.intensity, alpha: c.opacity * .55, fade: 1.5});
+    for (let k = 0; k < 3 + Math.round(c.count / 10); k++) this.spawn({x: p.x, y: .75, z: p.z, delay: k * c.duration * .14, life: c.duration * .7, w: .35 * c.size, cell: 'ring', mode: 'plane', ...sa, color: c.color, glow: 1.4 * c.intensity, alpha: c.opacity, fade: 1.2, sizeCurve: k2 => 1 + ease.outCubic(k2) * 3 * c.expansion});
+  }
+  blockD(c, {pos, n}) { // Escudo hexagonal: colmeia de células que acendem do ponto de contato para fora.
+    const p = this.frontOf(pos, n, .55), sa = this.shieldAxis(p, n), side = {x: sa.az, z: -sa.ax}, s = .26 * c.size, rings = Math.max(1, Math.min(4, Math.round(c.count / 4)));
+    for (let q = -rings; q <= rings; q++) for (let r = Math.max(-rings, -q - rings); r <= Math.min(rings, -q + rings); r++) {
+      const hx = s * 1.5 * q, hy = s * Math.sqrt(3) * (r + q / 2), dist = (Math.abs(q) + Math.abs(r) + Math.abs(-q - r)) / 2;
+      this.spawn({x: p.x + side.x * hx, y: .8 + hy, z: p.z + side.z * hx, delay: dist * .045 / Math.max(.2, c.expansion), life: c.duration * (1 - dist * .08), w: s * 1.9, h: s * 1.9, cell: 'hex', mode: 'plane', ...sa, color: c.color, glow: (1.6 - dist * .25) * c.intensity, alpha: c.opacity, alphaCurve: k => k < .2 ? k / .2 : Math.pow(1 - (k - .2) / .8, 1.3), sizeCurve: k => .7 + .3 * Math.min(1, k * 4)});
+    }
+    this.spawn({x: p.x, y: .8, z: p.z, life: c.duration * .35, w: .7 * c.size, cell: 'star4', color: 0xffffff, glow: 1.5 * c.intensity, alpha: c.opacity, grow: .8, fade: 1.6});
   }
   // ---------- PERFECT ----------
   perfectA(c, {pos, n}) { // Flash intenso → anel de choque → partículas.
@@ -322,8 +339,9 @@ export class VfxSystem {
   }
   perfectC(c, {pos, n}) { // Deflexão monumental: escudo angular aparece, comprime e libera uma explosão estilizada.
     const p = this.frontOf(pos, n, .55), y = .8, S = c.scale, D = c.duration, release = D * .38;
-    this.spawn({x: p.x, y, z: p.z, life: release + .05, w: 1.7 * S, h: 1.7 * S, cell: 'hex', mode: 'plane', ax: -n.x, ay: 0, az: -n.z, color: c.color, glow: c.glow, alpha: 1, alphaCurve: k => Math.min(1, k * 5), sizeCurve: k => k < .55 ? 1 + .25 * ease.outCubic(k / .55) : 1.25 - .55 * ease.inOut((k - .55) / .45)});
-    this.spawn({x: p.x, y, z: p.z, life: release, w: 2 * S, h: 1.6 * S, cell: 'arc', mode: 'plane', ax: -n.x, ay: 0, az: -n.z, color: c.color2, glow: c.glow * .8, alpha: .7, fade: .8});
+    const sa = this.shieldAxis(p, n);
+    this.spawn({x: p.x, y, z: p.z, life: release + .05, w: 1.7 * S, h: 1.7 * S, cell: 'hex', mode: 'plane', ...sa, color: c.color, glow: c.glow, alpha: 1, alphaCurve: k => Math.min(1, k * 5), sizeCurve: k => k < .55 ? 1 + .25 * ease.outCubic(k / .55) : 1.25 - .55 * ease.inOut((k - .55) / .45)});
+    this.spawn({x: p.x, y, z: p.z, life: release, w: 2 * S, h: 1.6 * S, cell: 'arc', mode: 'plane', ...sa, color: c.color2, glow: c.glow * .8, alpha: .7, fade: .8});
     this.after(release, () => {
       this.screenFlash(p, y, c.flash * c.intensity, c.color2, D * .3);
       this.spawn({x: p.x, y, z: p.z, life: D * .6, w: .6 * S, cell: 'shock', color: c.color2, glow: c.glow * 1.3, alpha: 1, fade: c.fade, sizeCurve: k => 1 + ease.outCubic(k) * c.wave * 2.5});
@@ -342,6 +360,10 @@ export class VfxSystem {
     for (let k = 0; k < 2; k++) this.spawn({x: pos.x, y: .025 + k * .005, z: pos.z, delay: k * .07, life: c.duration, w: .4 * c.radius, mode: 'ground', cell: k ? 'shock' : 'ring', color: c.color, glow: .9 + .4 * I, alpha: c.opacity, fade: 1.2, sizeCurve: k2 => 1 + ease.outCubic(k2) * c.speed * 1.4 * (.6 + .4 * power)});
     this.spawn({x: pos.x, y: .02, z: pos.z, life: c.duration * 3.5, w: 1.2 * c.radius * (.7 + .3 * power), mode: 'ground', cell: 'crack', color: 0x1a2028, alpha: c.opacity * .8, additive: false, fade: 2.5, rot: rand(0, 6)});
     for (let k = 0; k < Math.round(8 * c.density); k++) {const a = rand(0, Math.PI * 2);this.spawn({x: pos.x, y: .05, z: pos.z, vx: Math.cos(a) * c.speed * 1.2, vy: c.elevation * rand(.5, 1.5), vz: Math.sin(a) * c.speed * 1.2, gravity: 10, drag: 2, life: c.duration, w: c.particleSize * .4, cell: 'dot', color: c.color, glow: 1.2, alpha: c.opacity, fade: 1.4});}
+  }
+  groundD(c, ctx) { // Combinado: poeira (A), anel (B) e estilhaços (C), cada um com o próprio peso.
+    const part = mix => ({...c, intensity: c.intensity * mix, density: c.density * mix, opacity: c.opacity * Math.min(1, mix)});
+    if (c.mixA > 0) this.groundA(part(c.mixA), ctx);if (c.mixB > 0) this.groundB(part(c.mixB), ctx);if (c.mixC > 0) this.groundC(part(c.mixC), ctx);
   }
   groundC(c, {pos, power}) { // Impacto fragmentado: estilhaços geométricos + energia concentrada no ponto.
     const I = c.intensity * power;

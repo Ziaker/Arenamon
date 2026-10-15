@@ -1,6 +1,7 @@
 // Metadados dos parâmetros do overhaul: locomoção contínua, curva em fases de X/C, sprint, IA, efeitos visuais,
 // sombras, HUD, altura visual e tremor de câmera. kind: 'range' (padrão), 'select', 'toggle' ou 'color'.
 import {VFX_TYPES, SHAKE_PROFILES} from '../view/vfx.js';
+import {C} from '../sim/config.js';
 
 const sec = n => n.toFixed(2) + ' s', mps2 = n => n.toFixed(1) + ' m/s²', x = n => n.toFixed(2) + '×', pct = n => (n * 100).toFixed(0) + '%', m = n => n.toFixed(2) + ' m', num = n => n.toFixed(2);
 const onOff = n => n ? 'Ligado' : 'Desligado';
@@ -22,7 +23,8 @@ const LOCO = {
   turnAcceleration: ['Aceleração angular do giro', 'Quão rápido o corpo começa e termina de girar (rad/s²). O giro máximo continua sendo “Giro do personagem”.', R(1, 400, 1, n => n.toFixed(0) + ' rad/s²')],
   moveFrame: ['Referencial das setas com lock-on', 'Câmera: o lock-on cuida só da câmera, da orientação e da mira (movimento livre). Alvo (v6): ↑ sempre rumo ao alvo.', select(['Câmera (livre)', 'Alvo (v6)'])],
   frameLatch: ['Travar o referencial enquanto a seta é mantida', 'Lê o ângulo da câmera quando a direção pressionada muda e o mantém. Evita que a câmera girando encurve a trajetória (órbita involuntária).', toggle],
-  lockFacing: ['Orientação do corpo com lock-on', 'Para onde o corpo olha com alvo fixado. Híbrido: para o alvo parado/defendendo e para onde anda em movimento.', select(['Para onde anda', 'Sempre para o alvo', 'Híbrido'])],
+  lockFacing: ['Orientação do corpo com lock-on', 'Para onde o corpo olha com alvo fixado. “Sempre para o alvo” vale também no sprint e nas ações, independente da animação. Híbrido: para o alvo parado/defendendo e para onde anda em movimento.', select(['Para onde anda', 'Sempre para o alvo (inclusive sprint e ações)', 'Híbrido'])],
+  lockTackleHoming: ['Lock-on: tackle sempre rumo ao oponente', 'Com alvo fixado, o tackle parte e corrige a trajetória rumo ao oponente, mesmo segurando ↓ ou vindo de C → X. Vale para o controle do jogador (a IA mira por conta própria).', toggle],
   stopThreshold: ['Limiar das animações de freio', 'Fração da velocidade de caminhada acima da qual uma frenagem real toca o “Freio da caminhada”.', R(0, 1, .01, pct)],
 };
 const PHASES = {
@@ -52,6 +54,7 @@ const AI = {
 const TOGGLES = {
   enableEnemyAI: ['IA do oponente', 'Desligada: o vermelho fica na arena como boneco, recebendo dano, colisões e reações físicas, sem tomar decisões.', toggle],
   enableSprint: ['Permitir sprint (C mantido)', 'Liga o sprint depois da esquiva com C pressionado.', toggle],
+  enemyManual: ['Controle manual do vermelho', 'Ligado: o vermelho é controlado pelo teclado (teclas configuráveis em Controles; padrão I J K L, U tackle, O esquiva, P defesa, Y alvo) ou pelo segundo gamepad. A IA dele é ignorada.', toggle],
 };
 // ---------- VFX ----------
 const VFX_PARAMS = {
@@ -61,7 +64,7 @@ const VFX_PARAMS = {
   spread: ['Dispersão / abertura', R(0, 2, .01, m)], interval: ['Intervalo', R(.005, .4, .005, sec)], density: ['Densidade', R(.1, 4, .01, x)], frequency: ['Frequência', R(1, 80, 1, n => n + '/s')],
   expansion: ['Expansão', R(0, 3, .01, x)], scale: ['Escala', R(.2, 3, .01, x)], wave: ['Tamanho da onda', R(.2, 6, .01, m)], flash: ['Intensidade do flash', R(0, 1, .01, pct)],
   freeze: ['Congelamento visual (só poses e efeito)', R(0, .25, .005, n => (n * 1000).toFixed(0) + ' ms')], radius: ['Raio', R(.2, 4, .01, m)], particleSize: ['Tamanho das partículas', R(.02, 1, .01, m)],
-  elevation: ['Elevação', R(0, 3, .01, x)], minImpact: ['Impacto mínimo para disparar', R(0, 15, .1, n => n.toFixed(1) + ' m/s')], fallSpeed: ['Velocidade de queda', R(.1, 6, .01, n => n.toFixed(2) + ' m/s')],
+  elevation: ['Elevação', R(0, 3, .01, x)], mixA: ['Combinado (D): poeira (A)', R(0, 2, .01, x)], mixB: ['Combinado (D): anel (B)', R(0, 2, .01, x)], mixC: ['Combinado (D): estilhaços (C)', R(0, 2, .01, x)], minImpact: ['Impacto mínimo para disparar', R(0, 15, .1, n => n.toFixed(1) + ' m/s')], fallSpeed: ['Velocidade de queda', R(.1, 6, .01, n => n.toFixed(2) + ' m/s')],
   startHeight: ['Altura inicial', R(.3, 4, .01, m)], height: ['Altura', R(.3, 4, .01, m)], scaleWithRate: ['Intensidade acompanha a taxa de recuperação', toggle],
   target: ['Mostrar em', select(['Adversário', 'Ambos', 'Jogador'])], enabled: ['Ligado', toggle], variant: ['Variante', null],
   maxParticles: ['Limite de partículas simultâneas', R(100, 4000, 50, n => String(n))], debugLog: ['Registrar motivo de cada disparo', toggle], legacy: ['Efeitos legados do v6 (partículas em caixa e tremor antigo)', toggle],
@@ -73,6 +76,7 @@ const VFX_HELP = {
   target: 'A exaustão é o estado real da simulação (stamina esgotada), não “stamina baixa”.',
   scaleWithRate: 'Liga: mais partículas quando a regeneração está mais rápida (curva da simulação).',
   limit: 'Deslocamento máximo somado de todos os tremores ativos.',
+  mixA: 'Peso da poeira (componente A) na variante D. 0 = sem esse componente.', mixB: 'Peso do anel (componente B) na variante D. 0 = sem esse componente.', mixC: 'Peso dos estilhaços (componente C) na variante D. 0 = sem esse componente.',
 };
 const SHADOW = {
   style: ['Estilo da sombra', 'A: quadrada (compatibilidade). B: círculo simples. C: círculo suave com gradiente radial.', select(['A · Quadrada (atual)', 'B · Círculo simples', 'C · Círculo suave'])],
@@ -98,6 +102,29 @@ const RING = {
   width: ['Largura do indicador C → X', 'Só desenho.', R(.02, 1, .01, m)], opacity: ['Opacidade do indicador C → X', 'Só desenho.', R(0, 1, .01, pct)],
 };
 
+const RULES2 = {
+  exhaustMode: ['Quando fica exausto', 'Abaixo do menor custo: ao sobrar menos stamina que a ação mais barata (X ou C), o lutador fica exausto até recuperar toda a stamina. Só em zero: regra da Etapa A (com máximos fracionários, ex.: 5,1, nunca acontecia).', select(['Só em zero (Etapa A)', 'Abaixo do menor custo de X/C'])],
+  wallRestitution: ['Rebote na parede: horizontal', 'Fração da velocidade horizontal devolvida ao bater na parede durante o voo (0 = gruda, 1 = rebote total).', R(0, 2, .01, x)],
+  wallBounceVertical: ['Rebote na parede: vertical (× velocidade vertical)', 'Multiplica a velocidade vertical no momento do choque com a parede (1 = mantém, 0 = zera, negativo inverte).', R(-1, 2, .01, x)],
+  wallBounceUp: ['Rebote na parede: impulso vertical', 'Velocidade para cima somada ao bater na parede durante o voo.', R(0, 20, .1, n => n.toFixed(1) + ' m/s')],
+};
+const TACKLE2 = {
+  selfCancel: ['X pode cancelar o próprio X', 'Desligado: um novo X durante o tackle é ignorado (o tackle vai até o fim).', toggle],
+  guardCancel: ['Defesa cancela o tackle', 'Ligado: segurar D depois de “Encadear outra ação após” interrompe o tackle. Desligado (padrão): o tackle vai até o fim.', toggle],
+  perfectGuardCancel: ['Toque de defesa perfeita cancela o tackle', 'Mesmo com “Defesa cancela o tackle” desligado, um toque em D com a defesa perfeita disponível interrompe o tackle e abre a janela perfeita.', toggle],
+};
+const DODGE2 = {
+  selfCancelFromEnd: ['C só cancela C nos últimos', 'Uma nova esquiva durante a esquiva só sai nestes últimos segundos dela.', R(0, 1.5, .01, sec)],
+  vaultPhysics: ['Salto sobre o rival como pulo físico', 'Ligado: o salto é balístico (impulso vertical, gravidade e velocidade horizontal próprias) e termina ao tocar o chão. Desligado: arco fixo na duração da esquiva (Etapa A, usa “Altura do salto”).', toggle],
+  vaultUp: ['Salto: impulso vertical', 'Velocidade vertical inicial do pulo sobre o rival.', R(0, 30, .1, n => n.toFixed(1) + ' m/s')],
+  vaultGravity: ['Salto: gravidade', 'Gravidade aplicada ao pulo sobre o rival (maior = pulo mais curto e rápido).', R(1, 150, .5, mps2)],
+  vaultHorizontal: ['Salto: velocidade horizontal', 'Velocidade horizontal constante durante o pulo, na direção da esquiva.', R(0, 30, .1, n => n.toFixed(1) + ' m/s')],
+};
+const CANCEL2 = {
+  windowMode: ['Janela do C → X', 'Últimos segundos: X só sai no fim da esquiva (ver abaixo). Absoluta: usa “Início da janela” e “Fim da janela” (Etapa A).', select(['Início e fim absolutos (Etapa A)', 'Últimos segundos da esquiva'])],
+  fromEnd: ['C → X: últimos segundos da esquiva', 'Com a janela nos últimos segundos, X pode interromper a esquiva só neste trecho final.', R(0, 1.5, .01, sec)],
+  perfectAnytime: ['C → X a qualquer momento após esquiva perfeita', 'Depois de uma esquiva perfeita (com a janela de contra-ataque aberta), X pode sair em qualquer momento da esquiva.', toggle],
+};
 /** Metadado de um caminho do overhaul (ou null). */
 export function overhaulMeta(path) {
   const parts = path.split('.'), key = parts.at(-1), root = parts[0];
@@ -105,6 +132,16 @@ export function overhaulMeta(path) {
   if (root === 'locomotion' && LOCO[key]) return out(...LOCO[key]);
   if (root === 'actions' && (parts[1] === 'dodge' || parts[1] === 'tackle') && PHASES[key]) {const [l, h, r] = PHASES[key];return out(`${l} · ${parts[1] === 'dodge' ? 'C' : 'X'}`, h, r);}
   if (root === 'actions' && parts[1] === 'sprint' && SPRINT[key]) return out(...SPRINT[key]);
+  if (root === 'rules' && RULES2[key]) return out(...RULES2[key]);
+  // Teclas (jogador e vermelho): seleção pela tecla física.
+  if (parts[1] === 'bindings' || parts[1] === 'bindings2') {
+    const names = {forward: 'Mover para cima', back: 'Mover para baixo', left: 'Mover à esquerda', right: 'Mover à direita', tackle: 'Tackle (X)', dodge: 'Esquiva (C) — segure para sprint', defend: 'Defesa (D)', lock: 'Fixar alvo', pause: 'Pausar', restart: 'Reiniciar', debug: 'Depuração'};
+    const codes = C.extras.keyCodes, who = parts[1] === 'bindings2' ? 'Vermelho · ' : '';
+    return out(who + (names[key] || key), `Tecla física de “${names[key] || key}”${who ? ' do vermelho no controle manual' : ''}. Evite repetir a mesma tecla em comandos diferentes.`, select(codes.map(c => c.replace(/^Key/, '').replace(/^Digit/, '').replace('Arrow', 'Seta '))));
+  }
+  if (root === 'actions' && parts[1] === 'tackle' && TACKLE2[key]) {const [l, h, r] = TACKLE2[key];return out(l + ' · X', h, r);}
+  if (root === 'actions' && parts[1] === 'dodge' && DODGE2[key]) {const [l, h, r] = DODGE2[key];return out(l + ' · C', h, r);}
+  if (root === 'actions' && parts[1] === 'cancel' && CANCEL2[key]) return out(...CANCEL2[key]);
   if (path.startsWith('extras.ai.') && AI[key]) return out(...AI[key]);
   if (path.startsWith('extras.toggles.') && TOGGLES[key]) return out(...TOGGLES[key]);
   if (root === 'display') {const table = {shadow: SHADOW, hud: HUD, grounding: GROUND, cancelRing: RING}[parts[1]];if (table?.[key]) return out(...table[key]);return null;}

@@ -18,6 +18,7 @@ import {C} from './config.js';
 import {emptyCommand, nominalDistance} from './entity.js';
 import {vec, add, scale, sub, dot, length, normalize, direction, clamp} from './math.js';
 import {actionProgress} from './motion.js';
+import {cancelWindow, isDepleted} from './controller.js';
 
 /** Estilos de luta: alcance preferido, gosto por cada ação e disciplina. Valores de 0 a 1, salvo indicação. */
 export const STYLES = [
@@ -85,7 +86,12 @@ export function tacticalCommand(brain, self, target, dt, P) {
   const myReach = contactDistance() + nominalDistance(self, 'tackle') * (.55 + .3 * S.range), oppReach = contactDistance() + nominalDistance(target, 'tackle') * .85;
   const affordTackle = !self.exhausted && self.stamina >= A.tackle.cost - 1e-6, affordDodge = !self.exhausted && self.stamina >= A.dodge.cost - 1e-6;
   const free = !self.action && self.knockRecovery <= 0 && !self.flight;
-  const canDash = free && affordTackle, canDodge = free && affordDodge;
+  // Evita gastar a última ação e ficar exausto, salvo em oportunidade clara (finalização, rival vulnerável, contra-ataque).
+  const opening = target.hp <= self.attributes.attack * 1.05 || self.counterWindow > 0 || target.knockRecovery > 0 || !!target.flight;
+  const keepsStamina = !isDepleted(self.stamina - A.tackle.cost) || opening || S.reserve < .2;
+  const canDash = free && affordTackle && keepsStamina, canDodge = free && affordDodge;
+  // Esquiva reativa que deixaria exausto vale menos: defender costuma ser melhor.
+  const dodgeKeeps = isDepleted(self.stamina - A.dodge.cost) ? .3 : 1;
   const chaos = S.chaos ? .5 + brain.random() : 1;
 
   // ---------- Humor e placar ----------
@@ -96,7 +102,8 @@ export function tacticalCommand(brain, self, target, dt, P) {
   const urgency = clamp((t.time - 15) / 35, 0, 1) * .9;
   const boldness = clamp((P.aggression ?? .5) + .35 * t.mood - .5 * lead + (target.exhausted ? .3 : 0) + urgency, 0, 1.6);
   // Disciplina de stamina: C → X custa C + X; sobra a reserva do estilo para uma esquiva defensiva.
-  const flankBudget = A.dodge.cost + A.tackle.cost + S.reserve * .6 * A.dodge.cost;
+  // Orçamento do C → X pelo flanco: com a exaustão abaixo do menor custo, sobra uma ação para não ficar exausto.
+  const flankBudget = A.dodge.cost + A.tackle.cost + (C.rules.exhaustMode === 1 ? Math.min(A.dodge.cost, A.tackle.cost) * (1 - .5 * (1 - S.reserve)) : 0) + S.reserve * .6 * A.dodge.cost;
 
   // ---------- Percepção das ações do adversário ----------
   const oppKind = target.action?.kind ?? (target.guard ? 'guard' : null), restarted = oppKind && oppKind === t.oppKind && (target.action?.elapsed ?? 0) < t.oppElapsed - 1e-9;
@@ -130,7 +137,7 @@ export function tacticalCommand(brain, self, target, dt, P) {
 
   // ---------- 1. Durante a própria esquiva: C → X planejado ou contra-ataque ----------
   if (self.action?.kind === 'dodge') {
-    const K = A.cancel, el = self.action.elapsed, cancelOpen = K.dodgeToTackle && el >= K.windowStart && el <= K.windowEnd && affordTackle;
+    const K = A.cancel, el = self.action.elapsed, [w0, w1] = cancelWindow(), cancelOpen = K.dodgeToTackle && ((K.perfectAnytime && self.counterWindow > 0) || (el >= w0 && el <= w1)) && affordTackle;
     if (cancelOpen && (self.counterWindow > 0 || (t.plan?.cancelAt !== undefined && el >= t.plan.cancelAt)) && distance < myReach + 1.2 && !target.flight) {attack();t.plan = null;}
     t.wasDodging = true;
     return finish(brain, c);
@@ -148,7 +155,7 @@ export function tacticalCommand(brain, self, target, dt, P) {
       if (!inc.reaches) th.response = 'whiff';
       else th.response = pick(brain, [
         [S.guard * (perfectReady ? S.perfect : .3) * 1.2, 'perfectGuard'], [S.guard * (1 - .5 * S.perfect), 'guard'],
-        [canDodge || affordDodge ? S.dodge * (.6 + S.perfect) : 0, 'sidestep'], [canDodge || affordDodge ? S.dodge * .35 * chaos : 0, 'vault'],
+        [canDodge || affordDodge ? S.dodge * (.6 + S.perfect) * dodgeKeeps : 0, 'sidestep'], [canDodge || affordDodge ? S.dodge * .35 * chaos * dodgeKeeps : 0, 'vault'],
         [canDash || affordTackle ? S.clash * (self.attributes.attack >= target.attributes.attack ? 1.2 : .7) * (lead < 0 ? 1.3 : .8) * (1 + m.hit) : 0, 'clash'],
         [.15 * (1 - S.guard), 'backstep'],
       ]);
@@ -166,7 +173,7 @@ export function tacticalCommand(brain, self, target, dt, P) {
         const dir = r === 'vault' ? forward : sideOf(safeSide(self, forward, t.orbit));
         c.dodge = true;c.move = dir;c.dodgeDirection = dir;
         // Planeja o C → X: sai da esquiva no flanco do adversário.
-        if (brain.random() < S.cancel) t.plan = {cancelAt: A.cancel.windowStart + (.12 + .2 * brain.random()) * (A.cancel.windowEnd - A.cancel.windowStart)};
+        if (brain.random() < S.cancel) {const [w0, w1] = cancelWindow();t.plan = {cancelAt: w0 + (.12 + .2 * brain.random()) * (w1 - w0)};}
       } else if (!canDodge && inc.tte < .25) c.guard = true;
     } else if (r === 'clash') {if (canDash && inc.tte < .3) attack(forward);else c.guard = !canDash && !affordTackle;}
     else if (r === 'backstep') c.move = scale(forward, -1);
@@ -229,10 +236,10 @@ export function tacticalCommand(brain, self, target, dt, P) {
       break;
     case 'flank': {
       // C para o lado (ou por cima do rival, se ele estiver encostado) e cancela em X no flanco.
-      if (canDodge && distance <= myReach + .3) {
+      if (canDodge && keepsStamina && distance <= myReach + .3) {
         const s = wallAware(t.orbit), dir = normalize(add(scale(forward, .35), sideOf(s)));
         c.dodge = true;c.move = dir;c.dodgeDirection = dir;
-        t.plan = {cancelAt: A.cancel.windowStart + (.15 + .35 * brain.random()) * (A.cancel.windowEnd - A.cancel.windowStart)};t.intentUntil = t.time;
+        {const [w0, w1] = cancelWindow();t.plan = {cancelAt: w0 + (.15 + .35 * brain.random()) * (w1 - w0)};}t.intentUntil = t.time;
       } else c.move = forward;
       break;
     }
@@ -256,7 +263,7 @@ export function tacticalCommand(brain, self, target, dt, P) {
       const toCenter = normalize(sub(vec(), target.position)), s = dot(sideOf(1), toCenter) > 0 ? 1 : -1;
       c.move = normalize(add(scale(sideOf(s), .8), scale(forward, distance > want ? .6 : -.2)));break;
     }
-    case 'feintDodge': if (canDodge) {const dir = scale(forward, -1);c.dodge = true;c.move = dir;c.dodgeDirection = dir;t.intentUntil = t.time;} break;
+    case 'feintDodge': if (canDodge && keepsStamina) {const dir = scale(forward, -1);c.dodge = true;c.move = dir;c.dodgeDirection = dir;t.intentUntil = t.time;} break;
   }
   // Antecipação: dentro da zona de perigo sem estar atacando, defende de antemão ou recua para a borda.
   const committing = c.tackle || c.dodge || t.intent === 'attack' || t.intent === 'flank' || (t.intent === 'bait' && t.baitPhase === 1);

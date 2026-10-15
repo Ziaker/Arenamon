@@ -250,3 +250,29 @@ Grupos com mais de dois itens têm ▼. Os parâmetros de câmera e sombra saír
 - **Atraso ao começar a andar**: a histerese da locomoção valia também para sair do repouso (cerca de 0,1 s parado). Agora sair do repouso e parar são imediatos.
 - **Andar de lado no arranque**: frente, lado ou trás eram escolhidos pelo giro em curso. Agora usam a meta de orientação.
 - **Contador do Ajustes**: contava também os controles de VFX de outra aba. Os controles liga/desliga ficaram na mesma linha do rótulo.
+
+## 10. Segunda rodada de correções (15/10/2026)
+
+Reproduzidas com a calibração e a gravação de partida enviadas (`arenamon-calibracao-v8.json`, `arenamon-partida-11358.json`).
+
+| Pedido | O que mudou |
+|---|---|
+| Rebote na parede | Novos sliders em Ajustes › Combate › Knockback: "horizontal" (a antiga restituição), "vertical (× velocidade vertical)" e "impulso vertical". |
+| Salto sobre o rival | Virou um pulo físico: impulso vertical, gravidade e velocidade horizontal próprias (sliders em X e C), e termina ao tocar o chão. Durante o salto, o contato com o rival saltado é ignorado. O arco antigo continua disponível como opção. |
+| Controlar o vermelho | "Controle manual do vermelho" na aba Partida. Teclas configuráveis na aba Controles (padrão I J K L, U tackle, O esquiva, P defesa, Y alvo) e 2º gamepad. A gravação de partida guarda também os comandos do vermelho. |
+| Cancelamentos | X não cancela X. A defesa não cancela o tackle (toggle desligado por padrão), exceto um toque de defesa perfeita (opção ligada). C → X só nos últimos 0,15 s da esquiva, ou a qualquer momento depois de uma esquiva perfeita. C só cancela C nos últimos 0,1 s. Todos têm sliders/toggles; o modo da Etapa A segue disponível. |
+| Lock-on e tackle | Com alvo fixado, o tackle sempre parte e corrige a trajetória rumo ao oponente (inclusive com ↓ e C → X). |
+| Defesa sem efeito | O disparo acontecia (12 de 12 bloqueios), mas os escudos planos ficavam de perfil para a câmera conforme a direção do golpe. Agora o escudo se inclina para a câmera, e há sempre um brilho de contato. |
+| Bloqueio D | Escudo hexagonal: uma colmeia que acende a partir do contato. |
+| Cenários | Agora são adaptativos: a defesa perfeita e a esquiva perfeita usam o tempo até o contato, o contra-ataque espera o tackle passar, a parede e o voo se ajustam aos ajustes atuais. Os 8 passam no padrão e com a calibração enviada (teste automático). |
+| Defeito encontrado nos cenários | X apertado durante o hitstop era descartado. Agora vai para o buffer de entrada. |
+| Corpo sempre virado para o oponente | "Sempre para o alvo" vale também no sprint e nas ações. |
+| Chão D | Combinado: poeira (A), anel (B) e estilhaços (C), com um peso para cada um. |
+| Exaustão nunca acontecia | Ela exigia stamina exatamente zero, e com máximo 5,1 e custo 1 sobravam 0,07. Agora o lutador fica exausto quando sobra menos que o custo da ação mais barata. A IA tática passou a poupar a última ação. |
+| Aba de animações confusa | Uma linha por estado: clipe principal e ▶. Variantes e velocidade abrem em ▸. |
+| Tackle trocando de animação | Na gravação, 13 de 24 tackles eram cortados pela defesa. Agora a defesa não corta o tackle, e a recuperação depois do X/C segura a pose final em vez de tocar "levantar". |
+| Animações quebrando ao trocar nas opções | Trocar uma associação deixava a animação antiga tocando no mixer, misturada às outras. Agora todas as ações são paradas e descartadas. A defesa visual ganhou histerese. |
+
+Testes: `rules.test.mjs` (novo, 10 testes, inclusive os cenários com calibração longa), `core` (fixado nas regras da Etapa A), `sim`, `properties`, `ai`, `locomotion`, `animation`, `verify.mjs` (19 etapas) e `overhaul.browser` (116/116).
+
+Ressalva: com a exaustão mais frequente, o vermelho tático (reação mais lenta, mais erros) empata com a IA do v6 (cerca de 50%); o azul tático vence 80%. O desempenho continua medido só com GL por software.

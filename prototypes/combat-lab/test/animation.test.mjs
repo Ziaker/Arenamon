@@ -80,7 +80,7 @@ test('dois tackles seguidos reiniciam o clipe (nova ação legítima); variante 
 });
 test('cancelamento C → X: transição legítima registrada, com o motivo', () => {
   const {ch, g} = setup();
-  run(ch, g, 120, t => [t === 10 ? cmd({move: vec(1, 0), dodge: true, dodgeDirection: vec(1, 0)}) : t === 22 ? cmd({move: vec(1, 0), tackle: true}) : cmd(), cmd()]);
+  run(ch, g, 120, t => [t === 10 ? cmd({move: vec(1, 0), dodge: true, dodgeDirection: vec(1, 0)}) : t === 10 + Math.round((C.actions.dodge.duration - .08) / C.test.step) ? cmd({move: vec(1, 0), tackle: true}) : cmd(), cmd()]);
   const tk = entries(ch, 'tackle')[0];
   check('X depois de C registrado como cancelamento', tk?.reason === 'cancelamento C → X' && tk.from === 'dodge_forward', JSON.stringify(tk));
   check('a esquiva aparece como interrompida (legítimo)', tk.interrupted === true && tk.playedPct < 95, `${tk.playedPct}%`);

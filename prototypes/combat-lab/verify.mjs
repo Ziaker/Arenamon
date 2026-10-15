@@ -176,7 +176,9 @@ try {
   await L(() => {window.__lab.cxTrace = [];const g = window.__lab.game, step = g.step.bind(g);g.step = (...a) => {const r = step(...a), f = g.fighters[0];window.__lab.cxTrace.push({kind: f.action?.kind ?? null, fromCancel: !!f.action?.fromCancel, stamina: f.stamina});return r;};});
   // Teclas disparadas dentro da página: C, e assim que a esquiva começa, ↑ + X (independe do tempo de quadro do GL por software).
   await L(() => new Promise(done => {const canvas = document.querySelector('.stage canvas'), key = (type, code) => canvas.dispatchEvent(new KeyboardEvent(type, {code, bubbles: true}));key('keydown', 'ArrowLeft');key('keydown', 'KeyC');key('keyup', 'KeyC');
-    const wait = () => {if (window.__lab.game.fighters[0].action?.kind === 'dodge') {key('keydown', 'ArrowUp');key('keyup', 'ArrowLeft');key('keydown', 'KeyX');key('keyup', 'KeyX');done();} else requestAnimationFrame(wait);};wait();}));
+    const wait = () => {const f0 = window.__lab.game.fighters[0], K = window.__lab.C.actions.cancel, D = window.__lab.C.actions.dodge;
+    // A janela do C → X fica no fim da esquiva (regra de 15/10/2026): o X sai assim que ela abre.
+    if (f0.action?.kind === 'dodge' && f0.action.elapsed >= (K.windowMode === 1 ? D.duration - K.fromEnd : K.windowStart) + .01) {key('keydown', 'ArrowUp');key('keyup', 'ArrowLeft');key('keydown', 'KeyX');key('keyup', 'KeyX');done();} else requestAnimationFrame(wait);};wait();}));
   await page.waitForTimeout(250);await L(() => document.querySelector('.stage canvas').dispatchEvent(new KeyboardEvent('keyup', {code: 'ArrowUp', bubbles: true})));
   const cx = await L(() => {const t = window.__lab.cxTrace, i = t.findIndex(s => s.kind === 'tackle');return {i, prev: t[i - 1], at: t[i]};});
   assert.ok(cx.i > 0 && cx.prev.kind === 'dodge' && cx.at.fromCancel, 'X começou a partir da esquiva ' + JSON.stringify({cx, kinds: [...new Set((await L(() => window.__lab.cxTrace)).map(s => s.kind))]}));
@@ -242,6 +244,8 @@ try {
   step('personagens do Studio: mapa de ações, animação sincronizada com o tackle, cópia tingida no vermelho e eventos Studio × jogo');
   // Velocidade por animação e durações das animações como regras.
   await page.click('[data-tool="characters"]');
+  // Velocidade por estado fica no painel “▸” de cada estado.
+  for (const a of ['idle', 'tackle']) await page.evaluate(a => {const b = document.querySelectorAll('.char-slot')[0].querySelector(`[data-action="${a}"] [data-more]`);if (b.getAttribute('aria-expanded') !== 'true') b.click();}, a);
   const idleRange = page.locator('.char-slot').nth(0).locator('[data-action="idle"] input[type=range]');
   await idleRange.fill('2');assert.equal(await L(() => window.__lab.ui.characters[0].speedOf('idle')), 2);
   await page.locator('#char-speed').fill('1.5');assert.equal(await L(() => window.__lab.ui.characters[0].speedOf('idle')), 3);await page.locator('#char-speed').fill('1');

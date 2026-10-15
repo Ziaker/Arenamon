@@ -4,7 +4,7 @@ import * as T from 'three';
 import {C, rgb} from '../sim/config.js';
 import {isInvulnerable, isOffensive, nominalDistance, actionDuration} from '../sim/entity.js';
 import {direction, length, angleOf} from '../sim/math.js';
-import {wouldVault} from '../sim/controller.js';
+import {wouldVault, cancelWindow} from '../sim/controller.js';
 import {CameraRig} from './rig.js';
 import {VfxSystem} from './vfx.js';
 import {phaseAt} from '../sim/motion.js';
@@ -196,8 +196,8 @@ export class View {
       if (O.cancelWindow && f.hp > 0) {
         const K = C.actions.cancel;
         if (f.action?.kind === 'dodge' && K.dodgeToTackle) {
-          const t = f.action.elapsed, open = t >= K.windowStart - 1e-8 && t <= K.windowEnd + 1e-8, afford = !f.exhausted && f.stamina >= C.actions.tackle.cost - 1e-8;
-          const span = Math.max(1e-6, K.windowEnd - K.windowStart), left = open ? Math.max(0, (K.windowEnd - t) / span) : 1;
+          const [w0, w1] = cancelWindow(), t = f.action.elapsed, open = (K.perfectAnytime && f.counterWindow > 0) || (t >= w0 - 1e-8 && t <= w1 + 1e-8), afford = !f.exhausted && f.stamina >= C.actions.tackle.cost - 1e-8;
+          const span = Math.max(1e-6, w1 - w0), left = open ? Math.max(0, Math.min(1, (w1 - t) / span)) : 1;
           const color = !open ? 0x8a94a6 : afford ? 0x5dff9a : 0xff5a5a;
           // Faixa plana (RingGeometry no plano XZ), centrada na frente do lutador; o arco encolhe com o tempo restante da janela.
           const band = new T.Mesh(new T.RingGeometry(C.display.cancelRing.inner, C.display.cancelRing.inner + C.display.cancelRing.width, 64, 1, f.facing - Math.PI / 2 - Math.PI * left, Math.PI * 2 * left), new T.MeshBasicMaterial({color, transparent: true, opacity: C.display.cancelRing.opacity, side: T.DoubleSide, depthTest: false, depthWrite: false}));
@@ -237,8 +237,9 @@ export function predictFlight(f, dt = 1 / 120) {
     pts.push([x, y + .65, z]);
     y += vy * dt - .5 * R.launchGravity * dt * dt;vy -= R.launchGravity * dt;const k = Math.exp(-R.launchDrag * dt);hx *= k;hz *= k;
     x += hx * dt;z += hz * dt;
-    if (Math.abs(x) > bound) {x = Math.sign(x) * bound;hx = C.extras.toggles.enableWallBounce ? -hx * R.wallRestitution : 0;}
-    if (Math.abs(z) > bound) {z = Math.sign(z) * bound;hz = C.extras.toggles.enableWallBounce ? -hz * R.wallRestitution : 0;}
+    const wb = C.extras.toggles.enableWallBounce;
+    if (Math.abs(x) > bound) {x = Math.sign(x) * bound;hx = wb ? -hx * R.wallRestitution : 0;if (wb) vy = vy * R.wallBounceVertical + R.wallBounceUp;}
+    if (Math.abs(z) > bound) {z = Math.sign(z) * bound;hz = wb ? -hz * R.wallRestitution : 0;if (wb) vy = vy * R.wallBounceVertical + R.wallBounceUp;}
     if (y <= 0) {pts.push([x, .65, z]);break;}
   }
   return pts;

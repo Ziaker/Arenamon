@@ -9,7 +9,7 @@ export function createFighter(id, attributes, position) {
     perfectSucceeded: false, stun: 0, push: null, blend: null, contacts: 0, flight: null, knockRecovery: 0, vaultHeight: 0, counterWindow: 0, landingSlide: null,
     bufferedTackle: null, inputBuffer: null,
     // Locomoção contínua: fase (accel/cruise/brake/reverse/turn/overspeed), sprint e telemetria do último passo.
-    turnVelocity: 0, sprinting: false, sprintCarry: false, locoPhase: 'idle', desiredVelocity: vec(), appliedAccel: vec(), inputDir: vec(), staminaTrend: 0, lastLanding: null, faceGoal: id ? Math.PI : 0};
+    turnVelocity: 0, sprinting: false, sprintCarry: false, locoPhase: 'idle', desiredVelocity: vec(), appliedAccel: vec(), inputDir: vec(), staminaTrend: 0, lastLanding: null, faceGoal: id ? Math.PI : 0, recoveryFrom: null};
 }
 export const emptyCommand = () => ({move: vec(), dodge: false, dodgeHeld: false, tackle: false, guard: false, guardPressed: false, target: null});
 /** Parâmetros próprios de uma ação X/C (C.actions.dodge ou C.actions.tackle). */

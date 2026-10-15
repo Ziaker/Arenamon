@@ -68,29 +68,35 @@ export function createCharacterPanel({ui, view, $, onCharactersChanged}) {
     return fold('Altura visual e apoio no chão', `h${id}`, body, {open: true});
   }
   function statesBox(id, ch) {
-    // Um bloco por estado (empilhado): nome e velocidade em cima, variantes em linhas inteiras, “+ adicionar” embaixo.
+    // Uma linha por estado: clipe principal (menu) e prévia. Variantes extras e velocidade só abrem em “▸”.
     const body = document.createElement('div');body.className = 'state-list';
-    const options = ['<option value="">+ adicionar variante…</option>', ...ch.clips.map((c, i) => `<option value="${i}" ${ch.clipInfo[i].compatible ? '' : 'disabled'}>${escape(c.name)} · ${c.duration.toFixed(2)} s${ch.clipInfo[i].compatible ? '' : ' (incompatível)'}</option>`)].join('');
+    const clipOptions = sel => ['<option value="">— sem animação própria —</option>', ...ch.clips.map((c, i) => `<option value="${i}" ${ch.clipInfo[i].compatible ? '' : 'disabled'} ${i === sel ? 'selected' : ''}>${escape(c.name)} · ${c.duration.toFixed(2)} s</option>`)].join('');
     for (const action of ACTION_IDS) {
-      const row = document.createElement('div');row.className = 'state-row';row.dataset.action = action;const list = ch.variantsOf(action);
-      row.innerHTML = `<div class="state-head"><b title="${action}">${escape(ACTION_LABELS[action] || action)}</b><span class="muted">${list.length ? `${list.length} variante${list.length > 1 ? 's' : ''}` : 'sem animação'}</span><label class="state-speed" title="Velocidade de ${escape(action)}"><input type="range" min="0.25" max="3" step="0.05" aria-label="Velocidade de ${action}"><output></output></label></div><div class="chips"></div><select aria-label="Adicionar variante a ${action}">${options}</select>`;
-      const chips = row.querySelector('.chips');
-      list.forEach((index, k) => {
-        const chip = document.createElement('div');chip.className = 'chip-variant';
-        const name = document.createElement('span');name.className = 'chip-name';name.innerHTML = `<b>${String.fromCharCode(65 + k)}</b> ${escape(ch.clips[index].name)}`;name.title = ch.clips[index].name;chip.append(name);
-        const mk = (label, title, fn, dis = false) => {const b = document.createElement('button');b.type = 'button';b.textContent = label;b.title = title;b.disabled = dis;b.onclick = fn;chip.append(b);};
-        mk('▶', 'Prévia desta variante', () => {ch.startPreview(index);});mk('▲', 'Subir', () => {ch.moveVariant(action, index, -1);render();}, k === 0);
-        mk('▼', 'Descer', () => {ch.moveVariant(action, index, 1);render();}, k === list.length - 1);mk('✕', 'Remover associação', () => {ch.removeVariant(action, index);render();onCharactersChanged();});
-        chips.append(chip);
-      });
-      const sel = row.querySelector('select');sel.onchange = () => {if (sel.value !== '' && ch.addVariant(action, Number(sel.value))) {render();onCharactersChanged();}};
-      const range = row.querySelector('input'), out = row.querySelector('output');range.value = ch.speeds[action] ?? 1;out.textContent = `${Number(range.value).toFixed(2)}×`;range.disabled = !list.length;
-      range.oninput = () => {ch.speeds[action] = Number(range.value);out.textContent = `${Number(range.value).toFixed(2)}×`;};range.onchange = () => {ch.save();onCharactersChanged();};
+      const list = ch.variantsOf(action), row = document.createElement('div');row.className = 'state-row';row.dataset.action = action;
+      const extra = list.length > 1 ? ` +${list.length - 1}` : '';
+      row.innerHTML = `<div class="state-line"><b title="${action}">${escape(ACTION_LABELS[action] || action)}</b><select data-primary aria-label="Animação de ${action}">${clipOptions(list[0] ?? -1)}</select><button type="button" data-play title="Prévia" ${list.length ? '' : 'disabled'}>▶</button><button type="button" data-more title="Variantes e velocidade" aria-expanded="false">▸${extra}</button></div><div class="state-more" hidden></div>`;
+      row.querySelector('[data-primary]').onchange = e => {ch.setPrimary(action, e.target.value === '' ? null : Number(e.target.value));render();onCharactersChanged();};
+      row.querySelector('[data-play]').onclick = () => {if (list.length) ch.startPreview(list[0]);};
+      const more = row.querySelector('.state-more'), btn = row.querySelector('[data-more]'), key = `${id}:${action}`;
+      const fill = () => {
+        more.innerHTML = `<p class="hint">Variantes sorteadas a cada execução (a principal é a A). O sorteio é feito na entrada do estado e o replay repete a escolha.</p><div class="chips"></div><select data-add aria-label="Adicionar variante">${['<option value="">+ adicionar variante…</option>', ...ch.clips.map((c, i) => `<option value="${i}" ${ch.clipInfo[i].compatible && !list.includes(i) ? '' : 'disabled'}>${escape(c.name)}</option>`)].join('')}</select><label class="state-speed">Velocidade <input type="range" min="0.25" max="3" step="0.05" value="${ch.speeds[action] ?? 1}" ${list.length ? '' : 'disabled'} aria-label="Velocidade de ${action}"><output>${(ch.speeds[action] ?? 1).toFixed(2)}×</output></label>`;
+        const chips = more.querySelector('.chips');
+        list.forEach((index, k) => {
+          const chip = document.createElement('div');chip.className = 'chip-variant';
+          const name = document.createElement('span');name.className = 'chip-name';name.innerHTML = `<b>${String.fromCharCode(65 + k)}</b> ${escape(ch.clips[index].name)}`;name.title = ch.clips[index].name;chip.append(name);
+          const mk = (label, title, fn, dis = false) => {const b = document.createElement('button');b.type = 'button';b.textContent = label;b.title = title;b.disabled = dis;b.onclick = fn;chip.append(b);};
+          mk('▶', 'Prévia', () => ch.startPreview(index));mk('▲', 'Subir (A = principal)', () => {ch.moveVariant(action, index, -1);render();onCharactersChanged();}, k === 0);
+          mk('▼', 'Descer', () => {ch.moveVariant(action, index, 1);render();onCharactersChanged();}, k === list.length - 1);mk('✕', 'Remover', () => {ch.removeVariant(action, index);render();onCharactersChanged();});
+          chips.append(chip);
+        });
+        more.querySelector('[data-add]').onchange = e => {if (e.target.value !== '' && ch.addVariant(action, Number(e.target.value))) {render();onCharactersChanged();}};
+        const r = more.querySelector('input'), o = more.querySelector('output');r.oninput = () => {ch.speeds[action] = Number(r.value);o.textContent = `${Number(r.value).toFixed(2)}×`;};r.onchange = () => {ch.save();onCharactersChanged();};
+      };
+      const set = open => {openState.set(key, open);more.hidden = !open;btn.setAttribute('aria-expanded', String(open));btn.textContent = (open ? '▾' : '▸') + extra;if (open) fill();};
+      btn.onclick = () => set(more.hidden);if (openState.get(key)) set(true);
       body.append(row);
     }
-    const hint = document.createElement('p');hint.className = 'hint';hint.textContent = 'A variante é sorteada na entrada do estado, com semente determinística (o replay repete a escolha), e nunca troca durante a reprodução. Com a sincronização ligada, a primeira variante define a duração da ação; as demais são esticadas para a mesma duração.';
-    body.append(hint);
-    return fold('Blocos de animação (estados)', `s${id}`, body, {open: true, count: `${ACTION_IDS.length} estados`});
+    return fold('Animação de cada estado', `s${id}`, body, {open: true, count: `${ACTION_IDS.length} estados`});
   }
   function libraryBox(id, ch) {
     const body = document.createElement('div');body.className = 'clip-list';

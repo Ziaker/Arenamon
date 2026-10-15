@@ -2,10 +2,11 @@
 import {C} from './config.js';
 import {Brain} from './ai.js';
 import {createFighter, emptyCommand, isInvulnerable} from './entity.js';
-import {updateFighter, advanceAction} from './controller.js';
+import {updateFighter, advanceAction, bufferDuringHitstop} from './controller.js';
 import {stepPhysics} from './physics.js';
 import {vec} from './math.js';
 
+const finishingNow = g => g.phase === 'finishing';
 export class Game {
   constructor({seed = 1} = {}) {
     this.brain = new Brain(seed, 'aiRed');this.playerBrain = new Brain(seed + 1, 'aiBlue');
@@ -23,7 +24,11 @@ export class Game {
     this.lastStepEvents = [];this.frozen = false;
     if (this.phase !== 'playing' && this.phase !== 'finishing') return;
     // Hitstop: o passo conta no relógio, mas a simulação fica congelada.
-    if (this.hitstop > 0) {this.hitstop = Math.max(0, this.hitstop - C.test.step);this.tick++;this.frozen = true;return;}
+    if (this.hitstop > 0) {
+      // Congelado, mas X/C apertados agora ficam no buffer e saem no primeiro passo depois do hitstop.
+      const cmds = finishingNow(this) ? [] : [cmd0, cmd1 ?? emptyCommand()];this.fighters.forEach((f, i) => cmds[i] && bufferDuringHitstop(f, cmds[i]));
+      this.hitstop = Math.max(0, this.hitstop - C.test.step);this.tick++;this.frozen = true;return;
+    }
     const finishing = this.phase === 'finishing';
     // IA do oponente desligada: o vermelho fica como boneco (recebe dano, colisões e reações físicas, sem decidir nada).
     const enemy = () => C.extras.toggles.enableEnemyAI ? this.brain.command(this.fighters[1], this.fighters[0], this.mode, C.test.step) : emptyCommand();
