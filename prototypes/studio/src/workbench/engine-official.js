@@ -79,7 +79,8 @@ export function createOfficialEngine({importer = () => globalThis.__importer, ri
   const view = (t = official()) => toView(t, {state: state(), clips: namedClips()});
   const telemetry = ({select} = {}) => select ? selectTelemetry(official(), select) : view();
   const current = () => view().joints.map(j => ({id: j.id, name: j.name, p: j.p}));
-  const notify = reason => {try {onChange(reason);} catch (e) {console.warn(e);}};
+  const listeners = new Set([onChange]);
+  const notify = reason => {for (const fn of listeners) try {fn(reason);} catch (e) {console.warn(e);}};
   // commitRig atualiza o mapa de repouso do Studio, mas também recalcula as matrizes de bind a partir da pose. Depois de
   // restaurar um snapshot (undo/redo), as matrizes corretas são as do snapshot — num GLB importado elas diferem do
   // recálculo na última casa decimal. Por isso são preservadas em volta do commitRig.
@@ -107,9 +108,9 @@ export function createOfficialEngine({importer = () => globalThis.__importer, ri
     const k = kind();
     if (!k) return {ok: false, stage: 'estado', errors: [{path: '(estado)', message: 'O modelo ainda não tem rig: gere uma proposta no auto-rig.'}], patch: parsed.patch, migration: parsed.migration};
     const blocked = blockedOperations(parsed.patch, k);
-    if (k === 'draft' && S.proposal) parsed.patch.operations.forEach((o, i) => {
+    if (S.locked.size) parsed.patch.operations.forEach((o, i) => {
       const j = o.jointId && current().find(x => x.id === o.jointId || x.name === o.jointId);
-      if (j && POSITIONAL.has(o.op) && S.locked.has(j.id)) blocked.push({path: `operations[${i}]`, message: `${o.op}: o osso ${j.name} está travado na proposta.`});
+      if (j && POSITIONAL.has(o.op) && S.locked.has(j.id)) blocked.push({path: `operations[${i}]`, message: `${o.op}: o osso ${j.name} está travado.`});
     });
     if (blocked.length) return {ok: false, stage: 'pendente', errors: blocked, patch: parsed.patch, migration: parsed.migration};
     let simulation;
@@ -186,12 +187,22 @@ export function createOfficialEngine({importer = () => globalThis.__importer, ri
   }
   const canPropose = () => ['sem-rig', 'rascunho', 'proposta'].includes(state());
   function analysis() {return S.analysis = analyzeGeometry(model());}
-  function generate(profileId) {
+  /** Perfil sugerido pela análise geométrica oficial (proporções de quadrúpede ou de bípede). */
+  function suggestProfile() {const an = analysis();return {profile: an.proportions?.isQuadrupedCandidate ? 'quadruped-24' : 'humanoid-20', quadruped: !!an.proportions?.isQuadrupedCandidate, symmetry: an.symmetry || null};}
+  /** Gera a proposta; com `fit`, já a ajusta aos marcos estimados (cabeça, pescoço, pelve) na mesma ação. */
+  function generate(profileId, {fit = false} = {}) {
     const p = PROFILES.find(x => x.id === profileId);if (!p?.available) throw Error('Perfil indisponível: ' + profileId);
     if (!canPropose()) throw Error('O modelo já tem ossos; a proposta automática só vale para malhas sem rig.');
     const b = modelBounds(model()), an = analysis();
-    const draft = ensureJointIds(p.kind === 'quadruped' ? generateQuadrupedDraft(b, an, {boneCount: p.boneCount}) : generateHumanoidDraft(b, an));
+    let draft = ensureJointIds(p.kind === 'quadruped' ? generateQuadrupedDraft(b, an, {boneCount: p.boneCount}) : generateHumanoidDraft(b, an));
     validateDraft(structuredClone(draft), b);
+    if (fit) {
+      const landmarks = {};
+      for (const [region, name] of Object.entries(LANDMARKS)) {const c = an.candidateRegions?.[region]?.estimatedCenter;if (c && draft.joints.some(j => j.name === name)) landmarks[name] = c;}
+      const fitted = fitDraftToLandmarks(structuredClone(draft), landmarks, {lockedJoints: []}).draft;
+      try {validateDraft(structuredClone(fitted), b);draft = ensureJointIds(fitted);} catch {/* marcos fora do rascunho válido: mantém a proposta gerada */}
+    }
+    S.locked = new Set();
     setProposal(draft, `Auto-rig: ${p.label}`, {profile: p.id});
     return draft;
   }
@@ -199,8 +210,9 @@ export function createOfficialEngine({importer = () => globalThis.__importer, ri
     if (state() !== 'rascunho') throw Error('Não há rascunho da aba Rigging para editar.');
     setProposal(ensureJointIds(structuredClone(R().draft)), 'Editar rascunho na Workbench', {profile: 'rigging'});
   }
+  /** Trava um ponto: patches, ajuste aos marcos, regeneração e simetria não o movem (proposta ou rig vinculado). */
   function toggleLock(id) {
-    if (!S.proposal?.joints.some(j => j.id === id)) throw Error('Travas valem para pontos da proposta do auto-rig.');
+    if (!current().some(j => j.id === id)) throw Error('Osso inexistente: ' + id);
     S.locked.has(id) ? S.locked.delete(id) : S.locked.add(id);notify('trava');
   }
   const lockedNames = () => S.proposal.joints.filter(j => S.locked.has(j.id)).map(j => j.name);
@@ -224,20 +236,20 @@ export function createOfficialEngine({importer = () => globalThis.__importer, ri
   }
   function discard() {if (S.proposal) setProposal(null, 'Descartar proposta do auto-rig', {profile: null});}
   /** Vincula a proposta com o bind oficial; desfazer devolve o modelo e a proposta (mesma transação da aba Rigging). */
-  function bind() {
+  function bind({weights = $('rg-weights')?.value || 'segment-proximity', smoothness = Number($('rg-smooth')?.value) || .13} = {}) {
     if (!S.proposal) throw Error('Gere uma proposta antes.');
     if (namedClips().length) throw Error('Remova as animações antes do bind (mesma regra da aba Rigging).');
-    const root = model(), draft = structuredClone(S.proposal), profile = S.profile, locked = [...S.locked], smoothness = Number($('rg-smooth')?.value) || .13;
+    const root = model(), draft = structuredClone(S.proposal), profile = S.profile, locked = [...S.locked];
     const previousRig = root.userData.arenamonRig ? structuredClone(root.userData.arenamonRig) : null, previousDraft = root.userData.arenamonRigDraft ? structuredClone(root.userData.arenamonRigDraft) : null;
     let result = null, bound = null;
-    const command = {label: 'Vincular proposta do auto-rig',
+    const command = {label: `Vincular proposta do auto-rig (${weights})`,
       redo() {
-        if (!result) result = bindDraftToModel(root, structuredClone(draft), {smoothness});
+        if (!result) result = bindDraftToModel(root, structuredClone(draft), {smoothness, weights});
         else {for (const p of result.replacements) {p.parent.add(p.mesh);p.old.removeFromParent();}for (const b of result.bones.filter(b => !b.parent)) root.add(b);root.userData.arenamonRig = structuredClone(bound);}
         delete root.userData.arenamonRigDraft;
         E().commitRig({replacements: result.replacements, reason: 'vincular proposta do auto-rig', emitDirty: false});
         bound = structuredClone(syncRigMetadata(root, root.userData.arenamonRig));
-        S.proposal = null;S.locked = new Set();notify('bind');
+        S.proposal = null;S.locked = new Set(locked);notify('bind');
       },
       undo() {
         for (const p of result.replacements) {p.parent.add(p.old);p.mesh.removeFromParent();}
@@ -254,13 +266,13 @@ export function createOfficialEngine({importer = () => globalThis.__importer, ri
   }
 
   return {
-    id: 'official-56b01a5', available, state, kind, telemetry, official, validate, dryRun, apply, bindPreview, current,
+    id: 'official-249e34b', subscribe: fn => {listeners.add(fn);return () => listeners.delete(fn);}, available, state, kind, telemetry, official, validate, dryRun, apply, bindPreview, current,
     patchFromRigJSON: rigJSON => patchFromRigJSON(rigJSON, current()),
     select: id => R()?.select(id), selectedId: () => R()?.selectedId,
     undo: () => history()?.undo(), redo: () => history()?.redo(), historyState: () => history()?.state(),
     reset() {S.proposal = null;S.profile = null;S.locked = new Set();S.analysis = null;},
     autoRig: {
-      profiles: PROFILES, regions: REGIONS, generate, adoptDraft, toggleLock, regenerate, fitLandmarks, discard, bind, canPropose, analysis,
+      profiles: PROFILES, regions: REGIONS, suggestProfile, generate, adoptDraft, toggleLock, regenerate, fitLandmarks, discard, bind, canPropose, analysis,
       get proposal() {return S.proposal;}, get profile() {return S.profile;}, get locked() {return [...S.locked];},
       /** Confiança por REGIÃO informada por analyzeGeometry (a API não informa incerteza por ponto). */
       get regionConfidence() {const c = S.analysis?.candidateRegions;return c ? Object.entries(c).filter(([, r]) => r && typeof r.confidence === 'number').map(([name, r]) => ({region: name, confidence: r.confidence, estimated: !!r.isEstimated})) : null;},

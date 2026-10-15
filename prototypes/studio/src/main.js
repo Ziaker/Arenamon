@@ -13,3 +13,4 @@ import './rigging/index.js';
 import './workbench/index.js';
 import './library/index.js';
 import './ui/view-bar.js';
+import './guided/index.js';

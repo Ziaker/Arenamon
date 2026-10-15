@@ -11,6 +11,8 @@ const mark=s=>{report.tests.push(s);console.log('✓ '+s);};
 const browser=await chromium.launch({channel:'msedge',headless:true,args:['--disable-gpu-sandbox','--use-angle=swiftshader']});
 try {
   const page=await browser.newPage({viewport:{width:1440,height:900}});
+  // Desde o Rigging guiado (Proposta B), este painel completo fica no “Modo avançado”; esta suíte testa esse painel.
+  await page.addInitScript(()=>{try{localStorage.setItem('arenamon.rigging.mode','advanced');}catch{}});
   page.on('dialog',d=>d.accept());
   page.on('pageerror',e=>report.errors.push(e.message));
   page.on('console',m=>{if(m.type()==='error')report.errors.push(m.text());});

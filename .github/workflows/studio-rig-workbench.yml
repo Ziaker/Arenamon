@@ -9,6 +9,7 @@ on:
       - integration/workbench-telemetry-autorig
       - feat/studio-cc0-animation-library
       - fix/studio-usabilidade-viewer
+      - feat/studio-rigging-guiado
   workflow_dispatch:
 
 permissions:

@@ -26,6 +26,9 @@ try {
 
   // 1. Nomes dos ossos.
   await page.click('[data-panel="rigging"]');await page.waitForFunction(() => window.__studioRig.active);await page.waitForTimeout(200);
+  assert.deepEqual(await labels(), [], 'no Assistente (padrão) os nomes do painel avançado não aparecem');
+  // Os nomes por osso são do painel completo, no Modo avançado.
+  await page.click('[data-mode="advanced"]');await page.waitForTimeout(200);
   let shown = await labels();assert.equal(shown.length, 1, 'só o osso selecionado: ' + shown);assert.equal(shown[0], await W(() => window.__studioRig.selected));
   await page.selectOption('#rg-label-mode', 'all');await page.waitForTimeout(150);assert.equal((await labels()).length, 20);
   await page.selectOption('#rg-label-mode', 'none');await page.waitForTimeout(150);assert.equal((await labels()).length, 0);
@@ -34,7 +37,7 @@ try {
   await page.mouse.move(900, 450);await page.mouse.down();await page.mouse.move(700, 400, {steps: 8});await page.mouse.up();await page.waitForTimeout(200);
   assert.deepEqual(await labels(), [], 'fora do Rigging nenhum nome fica na tela (antes: 20 congelados)');
   await page.click('[data-panel="project"]');await page.waitForTimeout(200);assert.deepEqual(await labels(), []);
-  await page.click('[data-panel="rigging"]');await page.selectOption('#rg-label-mode', 'selected');
+  await W(() => window.__studioLayout.open('rigging'));await page.selectOption('#rg-label-mode', 'selected');await page.click('[data-mode="guided"]');
   mark('Nomes dos ossos: só o selecionado (padrão), todos ou nenhum; ao sair do Rigging nenhum fica na tela');
 
   // 2. Vistas centralizadas.

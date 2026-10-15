@@ -15,6 +15,8 @@ try {
   const context = await browser.newContext({viewport: {width: 1500, height: 940}, acceptDownloads: true});
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
   const page = await context.newPage();
+  // O personagem desta suíte é montado pelos botões do painel completo do Rigging (“Modo avançado” do Rigging guiado).
+  await page.addInitScript(() => {try {localStorage.setItem('arenamon.rigging.mode', 'advanced');} catch {/* sem armazenamento */}});
   page.on('dialog', d => d.accept());page.on('pageerror', e => errors.push(e.message));
   page.on('console', m => {if (m.type() === 'error') errors.push(m.text());});page.on('request', r => {if (/^https?:/i.test(r.url())) requests.push(r.url());});
   await page.context().setOffline(true);
