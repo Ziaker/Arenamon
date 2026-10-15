@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Arenamon — Abrir HTMLs</title>
+  <style>
+    :root{color-scheme:dark;--bg:#070b12;--card:#121b29;--line:#26384f;--text:#edf6ff;--muted:#96aac1;--blue:#38bdf8;--green:#34d399;--violet:#a78bfa;--amber:#fbbf24}
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at 50% 0,#142843 0,var(--bg) 60%);color:var(--text);font:16px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;padding:28px}
+    main{max-width:1080px;margin:auto}header{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;margin-bottom:26px}h1{font-size:clamp(1.9rem,5vw,3.2rem);margin:0 0 8px}p{color:var(--muted);margin:0}.back{color:var(--blue);text-decoration:none;font-weight:700;white-space:nowrap}
+    .notice{border:1px solid rgba(56,189,248,.35);background:rgba(56,189,248,.08);border-radius:14px;padding:14px 18px;margin-bottom:22px;color:#cbeeff}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px}.card{display:flex;flex-direction:column;min-height:190px;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px;box-shadow:0 8px 25px rgba(0,0,0,.25)}.card h2{margin:9px 0 7px;font-size:1.25rem}.card p{flex:1;font-size:.92rem}.tag{font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--green)}
+    .open{display:block;margin-top:18px;padding:12px 14px;border-radius:11px;background:var(--blue);color:#04111d;text-align:center;text-decoration:none;font-weight:850}.studio .open{background:var(--green)}.rig .open{background:var(--violet)}.tools .open{background:var(--amber)}
+    details{margin-top:28px;border:1px solid var(--line);border-radius:16px;background:#0d1521;padding:4px 18px}summary{cursor:pointer;padding:15px 0;font-weight:800}.links{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;padding:0 0 18px}.links a{color:#c9eaff;text-decoration:none;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:#111d2c}.links a:hover,.open:hover{filter:brightness(1.12);transform:translateY(-1px)}
+    footer{margin-top:28px;color:var(--muted);font-size:.85rem;text-align:center}@media(max-width:620px){body{padding:18px}header{display:block}.back{display:inline-block;margin-top:14px}.card{min-height:170px}}
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div><h1>HTMLs do Arenamon</h1><p>Abra os ambientes importantes diretamente. Todos funcionam localmente pela pasta oficial.</p></div>
+      <a class="back" href="ABRIR_ARENAMON.html">Central completa →</a>
+    </header>
+    <div class="notice"><strong>Dica:</strong> fixe este arquivo nos favoritos ou crie um atalho dele na Área de Trabalho. Não mova o HTML para fora da pasta Arenamon, pois os links são relativos.</div>
+    <section class="grid" aria-label="Ambientes principais">
+      <article class="card"><span class="tag">Jogar</span><h2>Jogo principal</h2><p>Protótipo de combate 3D offline.</p><a class="open" href="prototypes/game/dist/arenamon-jogavel.html">Abrir jogo</a></article>
+      <article class="card studio"><span class="tag">Criar</span><h2>Animation Studio</h2><p>Importação, animações, timeline, exportação e ferramentas de rigging.</p><a class="open" href="prototypes/studio/dist/arenamon-animation-studio.html">Abrir Studio</a></article>
+      <article class="card rig"><span class="tag">Comparar</span><h2>Propostas de Rigging</h2><p>Portal das propostas A, B e C.</p><a class="open" href="prototypes/studio/proposals/index.html">Abrir propostas</a></article>
+      <article class="card tools"><span class="tag">Converter</span><h2>Importador</h2><p>Importação e preparação de modelos GLB/FBX.</p><a class="open" href="prototypes/importer/dist/importador-prototipo.html">Abrir importador</a></article>
+      <article class="card"><span class="tag">Testar</span><h2>Laboratório base</h2><p>Visualizador seguro com criaturas geométricas.</p><a class="open" href="prototypes/placeholders/dist/criaturas-laboratorio.html">Abrir laboratório</a></article>
+      <article class="card studio"><span class="tag">Verificar</span><h2>Central de testes</h2><p>Comandos, cobertura e evidências de validação.</p><a class="open" href="TESTES_ARENAMON.html">Abrir testes</a></article>
+    </section>
+    <details>
+      <summary>Mais HTMLs e diagnósticos</summary>
+      <div class="links">
+        <a href="prototypes/index.html">Catálogo clássico de protótipos</a>
+        <a href="prototypes/studio/proposals/proposta-a.html">Rigging — proposta A</a>
+        <a href="prototypes/studio/proposals/proposta-b.html">Rigging — proposta B</a>
+        <a href="prototypes/studio/proposals/proposta-c.html">Rigging — proposta C</a>
+        <a href="prototypes/croagunk/dist/croagunk-laboratorio.html">Diagnóstico local de personagem</a>
+        <a href="ABRIR_ARENAMON.html">Central completa e documentação</a>
+      </div>
+    </details>
+    <footer>Caminho oficial: C:\Users\zerke\OneDrive\Área de Trabalho\Arenamon</footer>
+  </main>
+</body>
+</html>

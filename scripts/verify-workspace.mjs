@@ -79,6 +79,7 @@ try {
 // 4. Verificar arquivos essenciais de acesso na raiz oficial
 const essentialFiles = [
   'ABRIR_ARENAMON.html',
+  'HTMLS_ARENAMON.html',
   'TESTES_ARENAMON.html',
   'AGENTS.md',
   'package.json',

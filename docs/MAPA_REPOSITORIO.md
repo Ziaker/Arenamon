@@ -11,6 +11,7 @@ O **Arenamon** é composto por aplicações independentes e modulares desenvolvi
 ```text
 Arenamon/
 ├── ABRIR_ARENAMON.html           # Central de Acesso Rápido a todos os Ambientes (Duplo Clique)
+├── HTMLS_ARENAMON.html           # Índice compacto dos HTMLs mais usados
 ├── TESTES_ARENAMON.html          # Central Interativa de Testes, Comandos e Evidências
 ├── README.md                     # Visão geral do projeto e guia inicial
 ├── AGENTS.md                     # Protocolo obrigatório de colaboração entre agentes
