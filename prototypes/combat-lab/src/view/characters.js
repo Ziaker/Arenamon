@@ -388,7 +388,9 @@ export class Character {
   dispose() {this.disposed = true;clearTimeout(this.warmTimer);this.mixer.stopAllAction();this.mixer.uncacheRoot(this.root);this.root.removeFromParent();}
 }
 // fade: transição entre estados comuns; actionFade: entrada em X/C e reações de combate (curta, para prevalecer).
-Character.options = {lockRoot: true, fit: true, fade: .18, actionFade: .07, speed: 1, syncRules: false, locomotionHold: .1, guardHold: .25};
+// fade, actionFade, locomotionHold e speed são os parâmetros oficiais C.display.animation (ajustador, presets, desfazer).
+Character.options = {lockRoot: true, fit: true, syncRules: false, guardHold: .25};
+for (const key of ['fade', 'actionFade', 'locomotionHold', 'speed']) Object.defineProperty(Character.options, key, {enumerable: true, get: () => C.display.animation[key], set: v => {C.display.animation[key] = v;}});
 /** Armazenamento das associações por modelo (instalado pelo workspace): {get(character), set(character, data)}. */
 Character.stateStore = null;
 

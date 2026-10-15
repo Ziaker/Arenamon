@@ -79,7 +79,7 @@ const same = (a, b) => Math.abs(a - b) <= 1e-9 * Math.max(1, Math.abs(a), Math.a
 /** Seções do overhaul fora do catálogo original: sprint (Ajustes) e efeitos, sombras, HUD e tremores (Visualizar). */
 export const EXTRA_SECTIONS = [['Sprint (C mantido)', 'actions.sprint', null], ['VFX · geral', 'vfx.master', null],
   ...VFX_TYPES.map(([type, label]) => [`VFX · ${label}`, `vfx.${type}`, null]), ['Tremor · geral', 'vfx.shakeMaster', null], ...SHAKE_EVENTS.map(([key, label]) => [`Tremor · ${label}`, `vfx.${key}`, null]),
-  ['Teclas do vermelho (controle manual)', 'extras.bindings2', null], ['Sombras', 'display.shadow', null], ['HUD', 'display.hud', null], ['Altura visual', 'display.grounding', null], ['Indicador da janela C → X', 'display.cancelRing', null]];
+  ['Teclas do vermelho (controle manual)', 'extras.bindings2', null], ['Sombras', 'display.shadow', null], ['HUD', 'display.hud', null], ['Altura visual', 'display.grounding', null], ['Indicador da janela C → X', 'display.cancelRing', null], ['Animação: transições', 'display.animation', null]];
 /** Parâmetros mostrados em outras abas (sem duplicar controles no Ajustes). */
 const ELSEWHERE = new Set(['extras.toggles.enableEnemyAI', 'extras.toggles.enemyManual', 'extras.visual.shadowMin', 'extras.visual.shadowHeightFade']);
 export function createTuning({apply}) {
@@ -108,6 +108,8 @@ export function createTuning({apply}) {
     state.undo.push({label, changes: real});state.redo.length = 0;if (state.undo.length > 300) state.undo.shift();
     apply();render();emit();return real.length;
   }
+  /** Aplica valores sem entrada no histórico (troca A × B durante a partida); o desfazer continua intacto. */
+  function setTransient(changes) {let n = 0;for (const [p, v] of changes) if (!same(pathGet(C, p), v) && pathSet(C, p, v)) n++;if (n) {apply();render();emit();}return n;}
   function undo() {const e = state.undo.pop();if (!e) return;for (const [p, before] of e.changes) pathSet(C, p, before);state.redo.push(e);apply();render();emit();}
   function redo() {const e = state.redo.pop();if (!e) return;for (const [p, , after] of e.changes) pathSet(C, p, after);state.undo.push(e);apply();render();emit();}
   const dirty = () => manifest.some(m => !same(pathGet(C, m.path), state.saved[m.path]));
@@ -208,33 +210,10 @@ export function createTuning({apply}) {
   $('tune-undo').onclick = undo;$('tune-redo').onclick = redo;
   $('tune-list').addEventListener('scroll', hideTip, {passive: true});
 
-  // ---------- Presets (guardados neste navegador) ----------
-  const KEY = 'arenamon-lab-presets-v7';
+  // Presets: ui/presets-panel.js (biblioteca com presets de sensação, categorias, versões e comparação).
   const known = () => new Set(manifest.map(m => m.path));
-  const loadPresets = () => {try {return JSON.parse(localStorage.getItem(KEY) || '[]').map(p => ({...p, values: migrateFlat(p.values || {}, known()).values}));} catch {return [];}};
-  const savePresets = list => {try {localStorage.setItem(KEY, JSON.stringify(list));return true;} catch {return false;}};
-  function renderPresets() {
-    const list = loadPresets(), box = $('preset-list');box.replaceChildren();
-    if (!list.length) {const p = document.createElement('p');p.className = 'hint';p.textContent = 'Nenhum preset salvo. Os presets ficam neste navegador; exporte o JSON para guardar um arquivo.';box.append(p);}
-    for (const p of list) {
-      const row = document.createElement('div');row.className = 'preset';const name = document.createElement('span');name.textContent = `${p.name} · ${Object.keys(p.values).length} valores · ${new Date(p.savedAt).toLocaleString('pt-BR')}`;
-      const load = document.createElement('button');load.type = 'button';load.textContent = 'Carregar';load.onclick = () => {commit(Object.entries(p.values).filter(([k]) => byPath.has(k)), 'Preset ' + p.name);markSaved('preset ' + p.name);};
-      const del = document.createElement('button');del.type = 'button';del.textContent = '×';del.title = 'Excluir preset';del.onclick = () => {savePresets(loadPresets().filter(x => x.name !== p.name));renderPresets();};
-      row.append(name, load, del);box.append(row);
-    }
-    for (const id of ['preset-a', 'preset-b']) {const sel = $(id), prev = sel.value;sel.replaceChildren(new Option('Ajustes atuais', '__current'), new Option('Padrão do laboratório', '__lab'), new Option('Jogo oficial', '__game'), ...list.map(p => new Option(p.name, p.name)));sel.value = [...sel.options].some(o => o.value === prev) ? prev : id === 'preset-a' ? '__current' : '__lab';}
-  }
-  $('preset-save').onclick = () => {
-    const name = $('preset-name').value.trim();if (!name) {$('preset-name').focus();return;}
-    const list = loadPresets().filter(p => p.name !== name);list.push({name, savedAt: Date.now(), values: snapshotValues()});
-    if (!savePresets(list)) {$('preset-diff').textContent = 'Não foi possível salvar: armazenamento do navegador indisponível.';return;}
-    $('preset-name').value = '';markSaved('preset ' + name);renderPresets();
-  };
-  const valuesOf = id => id === '__current' ? snapshotValues() : id === '__lab' ? Object.fromEntries(manifest.map(m => [m.path, m.initial])) : id === '__game' ? Object.fromEntries(manifest.filter(m => m.official !== undefined).map(m => [m.path, m.official])) : loadPresets().find(p => p.name === id)?.values || {};
-  $('preset-compare').onclick = () => {
-    const a = valuesOf($('preset-a').value), b = valuesOf($('preset-b').value), rows = manifest.filter(m => m.path in a && m.path in b && !same(a[m.path], b[m.path]));
-    $('preset-diff').innerHTML = rows.length ? `<table><tr><th>Parâmetro</th><th>A</th><th>B</th></tr>${rows.map(m => `<tr><td title="${m.path}">${escape(m.label)}</td><td>${m.fmt(a[m.path])}</td><td>${m.fmt(b[m.path])}</td></tr>`).join('')}</table>` : '<p class="ok">Nenhuma diferença nos parâmetros em comum.</p>';
-  };
+  /** Valores de referência para comparações: atuais, padrão do laboratório ou jogo oficial (presets: presets-panel). */
+  const valuesOf = id => id === '__current' ? snapshotValues() : id === '__lab' ? Object.fromEntries(manifest.map(m => [m.path, m.initial])) : id === '__game' ? Object.fromEntries(manifest.filter(m => m.official !== undefined).map(m => [m.path, m.official])) : {};
 
   // ---------- JSON ----------
   function exportData() {
@@ -257,10 +236,9 @@ export function createTuning({apply}) {
   }
   function apply_(changes, label) {const n = commit(changes, label);markSaved(label);return n;}
   function resetAll() {commit(manifest.map(m => [m.path, m.initial]), 'Restaurar todos os padrões');}
-  render();renderPresets();
-  return {manifest, byPath, commit, undo, redo, render, controlFor, sectionControls, renderPresets, exportData, preview, applyChanges: apply_, resetAll, markSaved, dirty, status, changed,
-    onChange: fn => state.listeners.add(fn), get savedLabel() {return state.savedLabel;}, snapshotValues, officialValue, valuesOf, migrate: flat => migrateFlat(flat, known()),
-    presets: {list: loadPresets, saveAll: list => {const ok = savePresets(list);renderPresets();return ok;}}};
+  render();
+  return {manifest, byPath, commit, setTransient, undo, redo, render, controlFor, sectionControls, exportData, preview, applyChanges: apply_, resetAll, markSaved, dirty, status, changed,
+    onChange: fn => state.listeners.add(fn), get savedLabel() {return state.savedLabel;}, snapshotValues, officialValue, valuesOf, migrate: flat => migrateFlat(flat, known())};
 }
 export const escape = s => String(s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'})[c]);
 export {resetConfig};

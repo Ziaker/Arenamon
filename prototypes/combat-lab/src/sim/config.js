@@ -135,6 +135,8 @@ export function displayDefaults() {
     grounding: {autoGround: 1, visualOffset: 0},
     // Indicador da janela C → X (apenas desenho; a regra é por tempo, ver docs).
     cancelRing: {inner: 1.05, width: .25, opacity: .75},
+    // Transições da máquina de estados de animação (Personagens). Só visual: não mudam tempos, física ou regras.
+    animation: {fade: .18, actionFade: .07, locomotionHold: .1, speed: 1},
   };
 }
 

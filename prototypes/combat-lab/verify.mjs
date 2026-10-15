@@ -56,7 +56,7 @@ try {
   step(`IA tática por padrão: estilos sorteados “${live.blue}” (azul) × “${live.style}” (vermelho), visíveis nos dados ao vivo`);
 
   // ---------- 6/10. Ajustador ----------
-  await page.click('[data-tool="tuning"]');
+  await page.click('[data-tool="tuning"]');await page.click('[data-tune-mode-btn="advanced"]'); // ajustador completo (o modo simples é o padrão)
   assert.match(await page.textContent('#tune-counter'), /de \d+ · \d+ ≠ jogo/);
   // Aba “X e C”: parâmetros independentes da esquiva, do tackle e do cancelamento.
   assert.match(await page.locator('#tune-tabs [role=tab]').first().textContent(), /^X e C · \d+$/);
@@ -76,7 +76,7 @@ try {
   await page.click('[data-filter="changed"]');assert.equal(await page.locator('.tune-control.changed').count(), 2);
   await page.click('[data-filter="all"]');
   // Presets e comparação.
-  await page.fill('#preset-name', 'Teste A');await page.click('#preset-save');assert.equal(await page.getAttribute('#tune-state', 'data-state'), 'saved');
+  await page.locator('details.save-preset summary').click();await page.fill('#preset-name', 'Teste A');await page.click('#preset-save');assert.equal(await page.getAttribute('#tune-state', 'data-state'), 'saved');
   await page.selectOption('#preset-a', 'Teste A');await page.selectOption('#preset-b', '__lab');await page.click('#preset-compare');
   assert.equal(await page.locator('#preset-diff tr').count(), 3);
   await page.selectOption('#preset-b', '__game');await page.click('#preset-compare');assert.ok(await page.locator('#preset-diff tr').count() > 3);
@@ -163,7 +163,7 @@ try {
   assert.equal(new Set(seeds).size, 3, 'cada combate sorteia uma semente');
   await page.check('#seed-fixed');await page.fill('#seed', '42');await page.press('#seed', 'Tab');await openTab('match');await page.click('#start');assert.equal(await L(() => window.__lab.game.brain.seed), 42);
   assert.notEqual(await L(() => window.__lab.game.playerBrain.seed), 42);
-  await page.click('[data-tool="tuning"]');await page.fill('#tune-search', 'personalidade');
+  await page.click('[data-tool="tuning"]');await page.click('[data-tune-mode-btn="advanced"]');await page.fill('#tune-search', 'personalidade');
   assert.equal(await page.locator('#tune-list .tune-group').count(), 2);assert.equal(await page.locator('#tune-list .tune-control').count(), 18);await page.fill('#tune-search', '');
   step(`aleatoriedade: sementes ${seeds.join(', ')} em três combates, semente fixa e personalidade separada para azul e vermelho`);
 
