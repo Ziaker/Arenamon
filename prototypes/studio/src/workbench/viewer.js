@@ -1,6 +1,7 @@
 // Camada visual da Workbench no visualizador 3D do Studio: esqueleto sobreposto, eixos do osso selecionado, simetria,
 // heatmap REAL de pesos (atributos skinIndex/skinWeight), vértices sem influência, esqueleto proposto (antes/depois)
-// e seleção de ossos por clique. Só desenha dados recebidos da telemetria; não calcula indicadores próprios.
+// e seleção de ossos por clique. Posições vêm da telemetria oficial (inspectRig); heatmap e pontos sem peso são só
+// visualização dos atributos brutos do modelo — nenhum número exibido na interface é calculado aqui.
 import * as T from 'three';
 
 const COLORS = {bone: 0x6ec3ff, selected: 0xffd34d, warning: 0xff5d6c, modified: 0xff9a3d, ghost: 0xff9a3d, symmetry: 0x9aa7b8, unweighted: 0xff3355};
@@ -12,6 +13,7 @@ export function createWorkbenchViewer({importer = () => window.__importer, onPic
   const material = (color, opacity = 1) => new T.MeshBasicMaterial({color, transparent: opacity < 1, opacity, depthTest: false, depthWrite: false});
   const lineMaterial = (color, opacity = .9) => new T.LineBasicMaterial({color, transparent: true, opacity, depthTest: false});
   const toWorld = p => E().model.localToWorld(new T.Vector3(...p));
+  const boneOf = id => {let hit = null;E().model?.traverse(o => {if (!hit && o.isBone && (o.userData?.arenamonJointId === id || o.uuid === id)) hit = o;});return hit;};
   function clear() {for (const o of [...group.children]) {group.remove(o);o.traverse(x => {x.geometry?.dispose();if (x.material && !x.material.userData.shared) x.material.dispose();});}S.spheres.clear();}
   function ensureAttached() {if (!S.attached && E()?.scene) {E().scene.add(group);S.attached = true;}}
   function radius() {const s = S.telemetry?.model.bounds.size || [1, 1, 1];return Math.max(.004, Math.hypot(...s) * .011);}
@@ -36,7 +38,7 @@ export function createWorkbenchViewer({importer = () => window.__importer, onPic
     if (sel && S.options.axes) {
       // Eixos de orientação: matriz mundial real do osso (rig vinculado) ou rotação do rascunho na raiz.
       const axes = new T.AxesHelper(radius() * 7);axes.material.depthTest = false;axes.renderOrder = 953;
-      const bone = sel.uuid ? E().model.getObjectByProperty('uuid', sel.uuid) : null;
+      const bone = S.telemetry.model.state === 'vinculado' || S.telemetry.model.state === 'ossos-sem-skin' ? boneOf(sel.id) : null;
       if (bone) {bone.updateMatrixWorld(true);bone.matrixWorld.decompose(axes.position, axes.quaternion, axes.scale);axes.scale.setScalar(1);}
       else {axes.position.copy(toWorld(sel.p));axes.quaternion.copy(E().model.getWorldQuaternion(new T.Quaternion()).multiply(new T.Quaternion(...sel.q)));}
       group.add(axes);
@@ -47,13 +49,13 @@ export function createWorkbenchViewer({importer = () => window.__importer, onPic
       const l = new T.LineSegments(new T.BufferGeometry().setFromPoints(pts), lineMaterial(COLORS.symmetry, .7));l.renderOrder = 951;group.add(l);
     }
     if (S.options.problems) {
-      // Vértices sem influência (amostra informada pela telemetria, por malha).
+      // Vértices sem influência: até 500 por malha, lidos dos atributos de skin (a contagem exibida é a de inspectRig).
       const pts = [];
-      for (const m of t.meshes) {
-        const mesh = m.uuid && E().model.getObjectByProperty('uuid', m.uuid);if (!mesh || !m.unweightedVertexSample?.length) continue;
-        const pos = mesh.geometry.getAttribute('position');mesh.updateMatrixWorld(true);
-        for (const i of m.unweightedVertexSample) pts.push(new T.Vector3().fromBufferAttribute(pos, i).applyMatrix4(mesh.matrixWorld));
-      }
+      E().model.traverse(mesh => {
+        if (!mesh.isSkinnedMesh) return;const pos = mesh.geometry.getAttribute('position'), ws = mesh.geometry.getAttribute('skinWeight');if (!pos || !ws) return;
+        mesh.updateMatrixWorld(true);let n = 0;
+        for (let i = 0; i < pos.count && n < 500; i++) {let w = 0;for (let k = 0; k < 4; k++) w += ws.getComponent(i, k);if (w < .001) {pts.push(new T.Vector3().fromBufferAttribute(pos, i).applyMatrix4(mesh.matrixWorld));n++;}}
+      });
       if (pts.length) {const p = new T.Points(new T.BufferGeometry().setFromPoints(pts), new T.PointsMaterial({color: COLORS.unweighted, size: radius() * 1.4, depthTest: false}));p.renderOrder = 954;group.add(p);}
     }
     applyHeatmap();
@@ -64,7 +66,7 @@ export function createWorkbenchViewer({importer = () => window.__importer, onPic
     E().model?.traverse(o => {
       if (!o.isSkinnedMesh || !o.skeleton) return;
       if (!want) {const h = S.heat.get(o);if (h) {o.material = h.material;o.geometry.deleteAttribute('color');if (h.color) o.geometry.setAttribute('color', h.color);S.heat.delete(o);}return;}
-      const sel = S.telemetry.joints.find(j => j.id === S.selected), index = o.skeleton.bones.findIndex(b => b.uuid === sel?.uuid);
+      const sel = S.telemetry.joints.find(j => j.id === S.selected), index = o.skeleton.bones.findIndex(b => b.userData?.arenamonJointId === sel?.id || b.uuid === sel?.id);
       if (!S.heat.has(o)) S.heat.set(o, {material: o.material, color: o.geometry.getAttribute('color') || null});
       const ids = o.geometry.getAttribute('skinIndex'), ws = o.geometry.getAttribute('skinWeight'), n = o.geometry.getAttribute('position').count, c = new Float32Array(n * 3);
       for (let v = 0; v < n; v++) {

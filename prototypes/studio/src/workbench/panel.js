@@ -2,34 +2,39 @@
 // um motor (contrato em WORKBENCH.md) e um visualizador. Pode ser montado no Studio ou na proposta A/B/C escolhida.
 // Fluxo por tarefas: Inspecionar → Diagnosticar → Corrigir → Comparar → Aplicar → Validar.
 const STEPS = [['inspect', 'Inspecionar'], ['diagnose', 'Diagnosticar'], ['fix', 'Corrigir'], ['compare', 'Comparar'], ['apply', 'Aplicar'], ['validate', 'Validar']];
-const STATE_LABEL = {'sem-modelo': 'Nenhum modelo', 'sem-rig': 'Malha sem rig', 'rascunho': 'Rascunho de rig (sem skin)', 'ossos-sem-skin': 'Ossos sem skin', 'vinculado': 'Rig vinculado (skin)'};
+const STATE_LABEL = {'sem-modelo': 'Nenhum modelo', 'sem-rig': 'Malha sem rig', 'rascunho': 'Rascunho de rig (sem skin)', 'proposta': 'Proposta do auto-rig (sem skin)', 'ossos-sem-skin': 'Ossos sem skin', 'vinculado': 'Rig vinculado (skin)'};
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
 const num = (v, d = 4) => v === null || v === undefined ? '—' : Number(v).toFixed(d).replace(/\.?0+$/, m => m.includes('.') ? '' : m) || '0';
 const vec = (a, d = 4) => a ? '[' + a.map(v => num(v, d)).join(', ') + ']' : '—';
 const OP_TEXT = {
-  setPosition: o => `Mover ${o.joint} para ${vec(o.p)}`, translate: o => `Deslocar ${o.joint} por ${vec(o.delta)}`, setRotation: o => `Rotação de ${o.joint} → ${vec(o.q)}`,
-  rename: o => `Renomear ${o.joint} para “${o.name}”`, reparent: o => `Pai de ${o.joint} → ${o.parent ?? 'raiz'}`, addJoint: o => `Criar “${o.name}” sob ${o.parent ?? 'raiz'} em ${vec(o.p)}`,
-  removeJoint: o => `Excluir ${o.joint}`, mirror: o => `Espelhar ${o.joint} no lado oposto`,
+  setBonePosition: o => `Mover ${o.jointId} para ${vec(o.position)}${o.space === 'local' ? ' (local)' : ''}`, moveBone: o => `Deslocar ${o.jointId} por ${vec(o.delta)}${o.space === 'local' ? ' (local)' : ''}`,
+  setBoneQuaternion: o => `Rotação de repouso de ${o.jointId} → ${vec(o.quaternion)}`, renameJoint: o => `Renomear ${o.jointId} para “${o.newName}”`,
+  reparentBone: o => `Pai de ${o.jointId} → ${o.newParentJointId ?? 'raiz'} (mantém a posição local)`, createBone: o => `Criar “${o.name}” sob ${o.parent ?? 'raiz'}${o.position ? ' em ' + vec(o.position) : ''}`,
+  deleteBone: o => `Excluir ${o.jointId}`, mirrorBone: o => `Espelhar ${o.jointId} no lado oposto`, correctSymmetry: o => `Corrigir simetria a partir do lado ${o.referenceSide || 'Left'}`,
+  recomputeBindMatrices: () => 'Recalcular matrizes de bind', normalizeSkinWeights: o => `Normalizar pesos${o.meshName ? ' de ' + o.meshName : ''}`,
+  modifyVertexWeights: o => `Pesos do vértice ${o.vertexIndex} de ${o.meshName}`, setRestPose: o => `Pose de repouso de ${o.jointId}`, recomputeSkinningWeights: () => 'Recalcular pesos',
 };
 export const AI_PROMPT = `Você vai corrigir o esqueleto (rig) de um personagem 3D.
-Abaixo está a telemetria completa gerada pelo Arenamon Studio (schema arenamon-rig-telemetry).
-Coordenadas estão no espaço da raiz do modelo (model-root). Refira-se aos ossos pelo "id".
-Responda SOMENTE com um JSON no formato:
-{"schema":"arenamon-rig-patch","version":1,"space":"model-root","description":"…","ops":[ … ]}
+Abaixo está a telemetria oficial gerada pelo Arenamon Studio (inspectRig, schema arenamon-rig-telemetry v1).
+Posições de "modelRoot" estão no espaço da raiz do modelo. Refira-se aos ossos pelo "id" (jointId persistente).
+Responda SOMENTE com um JSON no formato canônico:
+{"schema":"arenamon-rig-patch","version":1,"description":"…","operations":[ … ]}
 Operações aceitas:
-- {"op":"setPosition","joint":"<id>","p":[x,y,z]}
-- {"op":"translate","joint":"<id>","delta":[dx,dy,dz]}
-- {"op":"mirror","joint":"<id do lado Left>"}  (copia para o lado Right, espelhado)
-- {"op":"rename","joint":"<id>","name":"NovoNome"}
-- {"op":"reparent","joint":"<id>","parent":"<id do novo pai>"}
-- {"op":"addJoint","name":"Nome","parent":"<id>","p":[x,y,z]}
-- {"op":"removeJoint","joint":"<id>"}
+- {"op":"setBonePosition","jointId":"<id>","position":[x,y,z],"space":"model-root"}
+- {"op":"moveBone","jointId":"<id>","delta":[dx,dy,dz],"space":"model-root"}
+- {"op":"setBoneQuaternion","jointId":"<id>","quaternion":[x,y,z,w]}  (rotação local de repouso)
+- {"op":"mirrorBone","jointId":"<id>"}  (copia a posição para o par Left/Right, espelhada)
+- {"op":"correctSymmetry","referenceSide":"Left"}
+- {"op":"renameJoint","jointId":"<id>","newName":"NovoNome"}
+- {"op":"reparentBone","jointId":"<id>","newParentJointId":"<id do novo pai>"}  (mantém a posição LOCAL)
+- {"op":"createBone","name":"Nome","parent":"<id>","position":[x,y,z]}  (num rig com skin, position é LOCAL ao pai)
+- {"op":"normalizeSkinWeights"}
 Cada operação pode ter um campo "note" explicando o motivo. Não invente ossos que não existem.`;
-export const EXAMPLE_PATCH = {schema: 'arenamon-rig-patch', version: 1, space: 'model-root', description: 'Exemplo: espelhar o cotovelo esquerdo no direito',
-  ops: [{op: 'mirror', joint: 'LeftElbow', note: 'Corrige a assimetria do cotovelo direito'}]};
+export const EXAMPLE_PATCH = {schema: 'arenamon-rig-patch', version: 1, description: 'Exemplo: espelhar o cotovelo esquerdo no direito',
+  operations: [{op: 'mirrorBone', jointId: 'LeftElbow', note: 'Corrige a assimetria do cotovelo direito'}]};
 
 export function mountWorkbench(container, {engine, viewer, layout = null, loadDemo = null}) {
-  const S = {step: 'inspect', telemetry: null, selected: null, mesh: null, filter: '', advanced: false, collapsed: new Set(), patchText: '', validation: null, dry: null, applied: null, baseline: null, checked: new Set()};
+  const S = {step: 'inspect', telemetry: null, selected: null, mesh: null, filter: '', advanced: false, collapsed: new Set(), patchText: '', validation: null, dry: null, applied: null, baseline: null, checked: new Set(), profile: 'humanoid-20'};
   container.innerHTML = `<div class="wb" id="wb-root">
     <header class="wb-head">
       <div class="wb-head-row"><span class="wb-chip" id="wb-state" role="status">—</span>
@@ -118,7 +123,7 @@ export function mountWorkbench(container, {engine, viewer, layout = null, loadDe
     if (layout?.setLibrary) {if (on) {libraryBefore = layout.rightOpen;layout.setLibrary(false);} else if (libraryBefore) layout.setLibrary(true);}
     layout?.render?.();
   };
-  $('wb-refresh').onclick = () => {refresh();toast('Telemetria gerada novamente pelo motor do Codex.');};
+  $('wb-refresh').onclick = () => {refresh();toast('Telemetria gerada novamente pela API oficial (inspectRig).');};
 
   function render() {
     const t = S.telemetry;$('wb-state').textContent = t ? `${STATE_LABEL[t.model.state] || t.model.state} · ${t.summary.bones} ossos · ${t.summary.meshes} malhas` : STATE_LABEL['sem-modelo'];
@@ -140,47 +145,52 @@ export function mountWorkbench(container, {engine, viewer, layout = null, loadDe
       if (loadDemo) $('wb-demo').onclick = async () => {$('wb-demo').disabled = true;try {await loadDemo();} catch (e) {toast('Demonstração falhou: ' + e.message, 'warn');}};
       return;
     }
-    const s = t.summary, j = joint(S.selected);
-    const overview = `<div class="wb-metrics">${[['Ossos', s.bones], ['Malhas', `${s.skinnedMeshes}/${s.meshes} com skin`], ['Vértices', s.vertices], ['Articulações com aviso', s.jointsWithWarnings, s.jointsWithWarnings ? 'warn' : ''],
-      ['Pesos inválidos', s.invalidWeights, s.invalidWeights ? 'warn' : ''], ['Vértices sem influência', s.verticesWithoutInfluence, s.verticesWithoutInfluence ? 'warn' : ''], ['Trilhas órfãs', s.orphanTracks, s.orphanTracks ? 'warn' : ''], ['Skinning', STATE_LABEL[t.model.state]]]
+    const s = t.summary, j = joint(S.selected), auto = engine.autoRig, locked = auto?.locked || [];
+    const overview = `<div class="wb-metrics">${[['Ossos', s.bones], ['Malhas', `${s.skinnedMeshes}/${s.meshes} com skin`], ['Vértices', s.vertices], ['Ossos citados em avisos', s.jointsWithWarnings, s.jointsWithWarnings ? 'warn' : ''],
+      ['Vértices não normalizados', s.unnormalizedVertices, s.unnormalizedVertices ? 'warn' : ''], ['Vértices sem influência', s.verticesWithoutInfluence, s.verticesWithoutInfluence ? 'warn' : ''], ['Trilhas órfãs', s.orphanTracks, s.orphanTracks ? 'warn' : ''],
+      ['Assimetria máxima', num(s.maxAsymmetry), s.maxAsymmetry ? 'warn' : ''], ['Fora da geometria', s.outsideBounds, s.outsideBounds ? 'warn' : ''], ['Skinning', STATE_LABEL[t.model.state]]]
       .map(([k, v, c]) => `<div class="wb-metric ${c || ''}" data-metric="${esc(k)}"><span>${k}</span><b>${esc(v)}</b></div>`).join('')}</div>`;
-    const detail = j ? kv([['Nome', `<b>${esc(j.name)}</b>`], ['ID persistente', `<code>${esc(j.id)}</code>`], ['Osso pai', j.parent ? `<button type="button" class="wb-link" data-go="${esc(j.parentId)}">${esc(j.parent)}</button>` : 'raiz do modelo'],
+    const detail = j ? kv([['Nome', `<b>${esc(j.name)}</b>${locked.includes(j.id) ? ' <span class="wb-badge">travado</span>' : ''}`], ['ID persistente', `<code>${esc(j.id)}</code>`], ['Osso pai', j.parent ? `<button type="button" class="wb-link" data-go="${esc(j.parentId)}">${esc(j.parent)}</button>` : 'raiz do modelo'],
       ['Filhos', j.children.length ? j.children.map(c => `<button type="button" class="wb-link" data-go="${esc(c)}">${esc(joint(c)?.name)}</button>`).join(' ') : '—'],
-      ['Posição local', vec(j.local)], ['Relativa à raiz', vec(j.p)], ['Global (mundo)', vec(j.world)], ['Quaternion', vec(j.q, 5)], ['Comprimento do segmento', num(j.segmentLength)],
-      ['Influência', j.influence ? `${j.influence.vertices ?? 0} vértices${j.influence.meshes.length ? ' · ' + j.influence.meshes.map(m => `${esc(m.mesh)}: ${m.vertices} (máx. ${num(m.maxWeight, 3)})`).join(', ') : ''}` : 'sem skin'],
-      ['Simetria', j.symmetry ? `${esc(j.symmetry.pairName)}${j.symmetry.mirrorDistance !== null ? ` · diferença ao espelho ${num(j.symmetry.mirrorDistance)}` : ''}` : '—'],
+      ['Posição local', vec(j.local)], ['Relativa à raiz', vec(j.p)], ['Global (mundo)', vec(j.world)], ['Quaternion local', vec(j.q, 5)], ['Comprimento do segmento', num(j.segmentLength)],
+      ['Influência', j.influence ? `${j.influence.vertices} vértices${j.influence.meshes.length ? ' · ' + j.influence.meshes.map(m => `${esc(m.mesh)}: ${m.vertices}`).join(', ') : ''}` : 'sem skin'],
+      ['Simetria', j.symmetry ? `${esc(j.symmetry.pairName)} · assimetria ${num(j.symmetry.asymmetryDelta)}${j.symmetry.isSymmetric ? '' : ' <span class="wb-badge warn">assimétrico</span>'}` : '—'],
+      ['Fora da geometria', j.outsideBounds ? `excede ${num(j.outsideBounds.distanceExceeded)}` : '—'],
       ['Avisos', j.warnings.length ? `<ul class="wb-warn">${j.warnings.map(w => `<li>${esc(w)}</li>`).join('')}</ul>` : 'nenhum'],
-      ...(S.advanced ? [['UUID', `<code>${esc(j.uuid ?? '—')}</code>`], ['Matriz de bind inversa', j.bindInverse ? `<code class="wb-matrix">${j.bindInverse.map(v => num(v, 4)).join(' ')}</code>` : '—']] : [])]) : '<p class="wb-hint">Selecione um osso.</p>';
+      ...(S.advanced ? [['Matriz de bind inversa', j.bindInverse ? `<code class="wb-matrix">${j.bindInverse.map(v => num(v, 4)).join(' ')}</code>` : '—']] : [])])
+      + (t.model.state === 'proposta' ? `<div class="wb-row"><button type="button" class="btn btn-soft" id="wb-lock" aria-pressed="${locked.includes(j.id)}">${locked.includes(j.id) ? '🔓 Destravar ponto' : '🔒 Travar ponto'}</button></div>` : '') : '<p class="wb-hint">Selecione um osso.</p>';
     const meshes = t.meshes.map((m, i) => `<button type="button" class="wb-mesh${S.mesh === i ? ' selected' : ''}" data-mesh="${i}"><b>${esc(m.name)}</b><span>${m.vertices} vért. · ${m.skinned ? `${m.bones} ossos` : 'sem skin'}${m.zeroWeights ? ` · <em class="warn">${m.zeroWeights} sem influência</em>` : ''}</span></button>`).join('');
     const m = t.meshes[S.mesh];
-    const meshDetail = m ? kv([['Vértices', m.vertices], ['Skin', m.skinned ? 'sim' : 'não'], ['Ossos que a influenciam', m.influencingBones?.length ? m.influencingBones.slice().sort((a, b) => b.vertices - a.vertices).map(b => {const jj = t.joints.find(x => x.uuid === b.uuid);return `${esc(jj?.name || b.uuid)} (${b.vertices})`;}).join(', ') : '—'],
-      ['Influências por vértice (0–4)', m.influencesPerVertex ? m.influencesPerVertex.join(' / ') : '—'], ['Peso dominante por vértice (0–1, 10 faixas)', m.dominantWeightHistogram ? histogram(m.dominantWeightHistogram) : '—'],
-      ['Vértices sem influência', m.zeroWeights], ['Pesos inválidos', m.invalidWeights], ['Ossos sem uso nesta malha', m.unused]]) : '<p class="wb-hint">Escolha uma malha para ver a distribuição de pesos.</p>';
+    const meshDetail = m ? kv([['Vértices', m.vertices], ['Tipo', esc(m.type)], ['Ossos que a influenciam (vértices)', m.influencesPerBone ? Object.entries(m.influencesPerBone).filter(([, v]) => v).sort((a, b) => b[1] - a[1]).map(([n, v]) => `${esc(n)} (${v})`).join(', ') || '—' : '—'],
+      ['Pesos', m.weightStats ? `mín. não nulo ${num(m.weightStats.minNonZero)} · máx. ${num(m.weightStats.max)} · influências por vértice ${num(m.weightStats.avgInfluencesPerVertex, 2)} (máx. ${m.weightStats.maxInfluencesPerVertex})` : '—'],
+      ['Vértices sem influência', m.zeroWeights ?? '—'], ['Vértices não normalizados', m.unnormalized ?? '—'], ['Ossos da paleta sem uso nesta malha', m.uninfluencedBones.length ? m.uninfluencedBones.map(esc).join(', ') : '—'],
+      ['Avisos de deformação', m.deformationWarnings.length ? m.deformationWarnings.map(esc).join('<br>') : '—']]) : '<p class="wb-hint">Escolha uma malha para ver a distribuição de pesos.</p>';
     const o = viewer?.options || {};
     const layers = `<div class="wb-layers">${[['skeleton', 'Esqueleto'], ['axes', 'Eixos do osso'], ['symmetry', 'Simetria'], ['heatmap', 'Heatmap de pesos'], ['problems', 'Regiões problemáticas']]
       .map(([k, l]) => `<label class="wb-check"><input type="checkbox" data-layer="${k}" ${o[k] ? 'checked' : ''}${k === 'heatmap' && t.model.state !== 'vinculado' ? ' disabled' : ''}> ${l}</label>`).join('')}</div>`;
     p.innerHTML = overview + card('Articulação', detail) + card('Malhas independentes', `<div class="wb-meshes">${meshes}</div>${meshDetail}`) + card('Visualização', layers)
-      + (S.advanced ? card('JSON da articulação', pre(j)) : '');
+      + `<p class="wb-hint">${esc(t.notes || '')}</p>` + (S.advanced ? card('JSON da articulação (telemetria oficial)', pre({hierarchy: t.official.identification.hierarchy.find(h => h.id === j?.id), transforms: t.official.transforms.bones.find(b => b.id === j?.id)})) : '');
+    const lock = $('wb-lock');if (lock) lock.onclick = () => {try {auto.toggleLock(j.id);} catch (e) {toast(e.message, 'warn');}refresh();};
   }
-  const histogram = h => {const max = Math.max(1, ...h);return `<span class="wb-hist" role="img" aria-label="${h.join(', ')}">${h.map((v, i) => `<i style="--h:${(v / max * 100).toFixed(1)}%" title="${(i / 10).toFixed(1)}–${((i + 1) / 10).toFixed(1)}: ${v}"></i>`).join('')}</span>`;};
 
   // 2. Diagnosticar: avisos, simetria, animações e saída para a IA.
   function diagnose() {
     const t = S.telemetry, p = panel('diagnose');if (!t) {p.innerHTML = '<p class="wb-hint">Sem telemetria.</p>';return;}
-    const asym = t.joints.filter(j => j.symmetry?.mirrorDistance > 0).sort((a, b) => b.symmetry.mirrorDistance - a.symmetry.mirrorDistance);
+    const asym = t.symmetry.pairs.filter(pr => !pr.isSymmetric).sort((a, b) => b.asymmetryDelta - a.asymmetryDelta);
     p.innerHTML = card('Para a IA', `<p>Copie a telemetria, cole numa conversa com uma IA e peça um <b>Rig Patch JSON</b>. Depois cole a resposta em <b>Corrigir</b>.</p>
       <div class="wb-row"><button type="button" class="btn btn-primary" id="wb-copy-ai">Copiar para IA (instruções + telemetria)</button><button type="button" class="btn btn-soft" id="wb-copy-json">Copiar JSON completo</button>
       <button type="button" class="btn btn-soft" id="wb-copy-sel" ${S.checked.size || S.selected ? '' : 'disabled'}>Copiar seleção (${S.checked.size || (S.selected ? 1 : 0)} ${S.checked.size === 1 || (!S.checked.size && S.selected) ? 'osso' : 'ossos'})</button>
       <button type="button" class="btn btn-soft" id="wb-export">↓ Exportar JSON</button></div>
       <p class="wb-hint">A seleção usa os ossos marcados na árvore (Espaço ou caixa de seleção); sem marcas, o osso selecionado.</p>`)
-      + card(`Avisos do motor (${t.warnings.length})`, t.warnings.length ? `<ul class="wb-warn">${t.warnings.map(w => `<li>${esc(w)}</li>`).join('')}</ul>` : '<p>Nenhum aviso do auditRig.</p>')
-      + card('Assimetria (diferença ao espelho, medida com applyMirror do Codex)', asym.length ? `<table class="wb-table"><tr><th>Par</th><th>Diferença</th></tr>${asym.map(j => `<tr><td><button type="button" class="wb-link" data-go="${esc(j.id)}">${esc(j.name)}</button> ↔ ${esc(j.symmetry.pairName)}</td><td>${num(j.symmetry.mirrorDistance)}</td></tr>`).join('')}</table>` : '<p>Todos os pares Left/Right coincidem com o espelho.</p>')
-      + card('Compatibilidade com animações', t.animations.length ? `<table class="wb-table"><tr><th>Clipe</th><th>Trilhas ligadas</th><th>Órfãs</th></tr>${t.animations.map(a => `<tr><td>${esc(a.name)}</td><td>${a.boundTracks}/${a.tracks}</td><td class="${a.orphanTracks.length ? 'warn' : ''}">${a.orphanTracks.map(esc).join('<br>') || '—'}</td></tr>`).join('')}</table>` : '<p>Nenhuma animação carregada.</p>')
-      + (S.advanced ? card('Telemetria completa', pre(t)) : '');
-    $('wb-copy-ai').onclick = () => copy(AI_PROMPT + '\n\n' + JSON.stringify(t, null, 2), 'Instruções e telemetria copiadas.');
-    $('wb-copy-json').onclick = () => copy(JSON.stringify(t, null, 2), 'Telemetria completa copiada.');
+      + card(`Avisos do motor (${t.warnings.length})`, t.warnings.length ? `<ul class="wb-warn">${t.warnings.map(w => `<li>${esc(w)}</li>`).join('')}</ul>` : '<p>Nenhum aviso de inspectRig.</p>')
+      + card(`Assimetria (inspectRig · plano ${esc(t.symmetry.plane)}, centro x = ${num(t.symmetry.centerPlaneX)})`, asym.length ? `<table class="wb-table" id="wb-asym"><tr><th>Par</th><th>Assimetria</th></tr>${asym.map(pr => `<tr><td><button type="button" class="wb-link" data-go="${esc(pr.leftId)}">${esc(pr.leftName)}</button> ↔ <button type="button" class="wb-link" data-go="${esc(pr.rightId)}">${esc(pr.rightName)}</button></td><td>${num(pr.asymmetryDelta)}</td></tr>`).join('')}</table>` : '<p>Todos os pares Left/Right são simétricos.</p>')
+      + card('Compatibilidade com animações', t.animations.length ? `<table class="wb-table"><tr><th>Clipe</th><th>Trilhas</th><th>Órfãs (inspectRig)</th></tr>${t.animations.map(a => `<tr><td>${esc(a.name)}</td><td>${a.tracks}</td><td class="${a.orphanTracks.length ? 'warn' : ''}">${a.orphanTracks.map(esc).join('<br>') || '—'}</td></tr>`).join('')}</table>` : '<p>Nenhuma animação carregada.</p>')
+      + (S.advanced ? card('Telemetria oficial completa', pre(t.official)) : '');
+    const full = () => JSON.stringify(engine.official(), null, 2);
+    $('wb-copy-ai').onclick = () => copy(AI_PROMPT + '\n\n' + full(), 'Instruções e telemetria oficial copiadas.');
+    $('wb-copy-json').onclick = () => copy(full(), 'Telemetria oficial completa copiada.');
     $('wb-copy-sel').onclick = () => {const ids = S.checked.size ? [...S.checked] : [S.selected];copy(JSON.stringify(engine.telemetry({select: ids}), null, 2), `Telemetria de ${ids.length} osso(s) copiada.`);};
-    $('wb-export').onclick = () => download(JSON.stringify(engine.telemetry(), null, 2), `${(t.model.name || 'rig').replace(/[^\w.-]+/g, '_')}.telemetria.json`);
+    $('wb-export').onclick = () => download(full(), `${(t.model.name || 'rig').replace(/[^\w.-]+/g, '_')}.telemetria.json`);
   }
   async function copy(text, msg) {
     S.lastCopy = text;
@@ -191,47 +201,63 @@ export function mountWorkbench(container, {engine, viewer, layout = null, loadDe
 
   // 3. Corrigir: auto-rig assistido, editor de patch e importação.
   function fix() {
-    const t = S.telemetry, p = panel('fix'), auto = engine.autoRig, st = t?.model.state;
-    const autoCard = auto ? card('Auto-rig assistido', `<p>Estado: <b>${esc(STATE_LABEL[st] || '—')}</b>.</p>
-      <div class="wb-row"><label class="rg-field">Perfil anatômico<select id="wb-profile">${auto.profiles.map(pr => `<option value="${pr.id}" ${pr.available ? '' : 'disabled'}>${esc(pr.label)}${pr.available ? '' : ' — aguarda o Codex'}</option>`).join('')}</select></label></div>
-      <div class="wb-row"><button type="button" class="btn btn-soft" id="wb-auto-template" ${st === 'vinculado' ? 'disabled title="O modelo já tem skin"' : ''}>Gerar proposta de esqueleto</button>
+    const t = S.telemetry, p = panel('fix'), auto = engine.autoRig, st = t?.model.state, prop = st === 'proposta';
+    const conf = auto?.regionConfidence, hasTail = !!auto?.proposal?.joints.some(j => j.name.startsWith('Tail'));
+    const autoCard = auto ? card('Auto-rig assistido (API oficial)', `<p>Estado: <b>${esc(STATE_LABEL[st] || '—')}</b>${prop && auto.profile ? ` · perfil <code>${esc(auto.profile)}</code>` : ''}.</p>
+      <div class="wb-row"><label class="rg-field">Perfil anatômico<select id="wb-profile">${auto.profiles.map(pr => `<option value="${pr.id}" ${pr.available ? '' : 'disabled'} ${S.profile === pr.id ? 'selected' : ''}>${esc(pr.label)}</option>`).join('')}</select></label></div>
+      <div class="wb-row"><button type="button" class="btn btn-soft" id="wb-auto-template" ${auto.canPropose() ? '' : 'disabled title="O modelo já tem ossos"'}>${prop ? 'Gerar nova proposta' : 'Gerar proposta de esqueleto'}</button>
+      ${st === 'rascunho' ? '<button type="button" class="btn btn-soft" id="wb-auto-adopt">Editar este rascunho na Workbench</button>' : ''}
       <button type="button" class="btn btn-soft" id="wb-auto-import">Importar coordenadas JSON</button>
-      <button type="button" class="btn btn-primary" id="wb-auto-bind" ${st === 'rascunho' ? '' : 'disabled'}>Aplicar skinning (bind)</button>
-      <button type="button" class="btn btn-soft" id="wb-auto-test" ${st === 'vinculado' ? '' : 'disabled'}>Testar deformações</button></div>
-      <p class="wb-hint"><b>Incerteza do posicionamento:</b> o motor atual (template humanoide do Codex) <b>não informa a incerteza de cada ponto</b>; trate todos os pontos como aproximados e confira-os no visualizador.</p>
-      <div class="wb-row wb-experimental"><button type="button" class="btn btn-soft" disabled>Regenerar região</button><button type="button" class="btn btn-soft" disabled>Fixar ossos</button>
-      <span class="wb-badge">Experimental · aguarda API do auto-rig aprimorado do Codex</span></div>
-      <p class="wb-hint">Corrija pontos selecionando o osso na árvore e usando um patch (abaixo) ou os controles manuais da aba Rigging. Desfazer funciona em todas as etapas.</p>`) : '';
+      <button type="button" class="btn btn-primary" id="wb-auto-bind" ${prop ? '' : 'disabled'}>Aplicar skinning (bind)</button>
+      <button type="button" class="btn btn-soft" id="wb-auto-test" ${st === 'vinculado' ? '' : 'disabled'}>Testar deformações</button>
+      ${prop ? '<button type="button" class="btn btn-soft" id="wb-auto-discard">Descartar proposta</button>' : ''}</div>
+      ${prop ? `<div class="wb-row"><label class="rg-field">Regenerar região<select id="wb-region">${auto.regions.map(r => `<option value="${r.id}" ${r.available ? '' : 'disabled'}>${esc(r.label)}${r.available ? '' : ' — API não implementa'}</option>`).join('')}</select></label>
+      <button type="button" class="btn btn-soft" id="wb-auto-regen" ${hasTail ? '' : 'disabled title="A proposta não tem cauda"'}>Regenerar</button>
+      <button type="button" class="btn btn-soft" id="wb-auto-fit">Ajustar aos marcos estimados</button>
+      <span class="wb-hint">Travados: <b id="wb-locked-count">${auto.locked.length}</b> (selecione um ponto e use “Travar ponto” em Inspecionar).</span></div>` : ''}
+      <p class="wb-hint"><b>Incerteza:</b> ${conf ? `a API informa confiança por <b>região</b>, não por ponto — ${conf.map(c => `${esc(c.region)} ${num(c.confidence, 2)}${c.estimated ? ' (estimada)' : ''}`).join(' · ')}` : 'gere uma proposta para ver a confiança por região informada por analyzeGeometry; a API não informa incerteza por ponto'}. Confira os pontos no visualizador.</p>
+      <p class="wb-hint">Regenerar só funciona para a cauda (única região implementada por regenerateRegion). Desfazer funciona em todas as etapas.</p>`) : '';
     const v = S.validation;
-    const validation = !v ? '' : v.ok ? `<div class="wb-ok" id="wb-valid">✓ Patch válido para o motor do Codex (${v.patch.ops.length} operações).${v.preexisting ? `<br><small>Observação: o rig atual já não passa na validação de rascunho do Codex (${esc(v.preexisting)}); o ensaio real em Comparar decide.</small>` : ''}</div>
-      <ol class="wb-ops">${v.patch.ops.map((o, i) => `<li>${esc(OP_TEXT[o.op](o))}${o.note ? ` <small>— ${esc(o.note)}</small>` : ''}</li>`).join('')}</ol>`
+    const migration = v?.migration ? `<div class="wb-card wb-migration" id="wb-migration"><h4>Migração do formato anterior (ops → operations)</h4><p class="wb-hint">O patch usa o formato anterior da Workbench. Ele foi convertido explicitamente para o contrato canônico; confira antes de comparar.</p>
+      <table class="wb-table"><tr><th>Anterior</th><th>Canônico</th><th>Observação</th></tr>${v.migration.report.map(r => `<tr><td><code>${esc(r.from)}</code></td><td>${r.to.map(x => `<code>${esc(x)}</code>`).join('<br>')}</td><td>${esc(r.note || '')}</td></tr>`).join('')}</table>
+      ${v.patch ? '<button type="button" class="btn btn-soft" id="wb-use-migrated">Substituir no editor pelo patch canônico</button>' : ''}</div>` : '';
+    const validation = !v ? '' : v.ok ? `<div class="wb-ok" id="wb-valid">✓ Patch válido para a API oficial (validatePatch + simulateRigPatch, ${v.patch.operations.length} operações).</div>
+      <ol class="wb-ops">${v.patch.operations.map(o => `<li>${esc(OP_TEXT[o.op]?.(o) ?? o.op)}${o.note ? ` <small>— ${esc(o.note)}</small>` : ''}</li>`).join('')}</ol>
+      ${v.simulation.warnings.length ? `<ul class="wb-warn">${v.simulation.warnings.map(w => `<li>${esc(w)}</li>`).join('')}</ul>` : ''}`
       : `<div class="wb-error" id="wb-invalid" role="alert"><b>${v.stage === 'pendente' ? 'Não aplicável hoje' : 'Patch inválido'} (${esc(v.stage)}):</b><ul>${v.errors.map(e => `<li><code>${esc(e.path)}</code> ${esc(e.message)}</li>`).join('')}</ul></div>`;
     p.innerHTML = autoCard + card('Rig Patch JSON', `<label class="wb-label" for="wb-patch">Cole a resposta da IA ou importe um arquivo. Ctrl+Enter valida.</label>
       <textarea id="wb-patch" class="wb-editor" spellcheck="false" rows="12" aria-describedby="wb-patch-help">${esc(S.patchText)}</textarea>
-      <p class="wb-hint" id="wb-patch-help">Formato: <code>{"schema":"arenamon-rig-patch","version":1,"space":"model-root","ops":[…]}</code>. Rotação de repouso (<code>setRotation</code>) aparece como pendente: o motor do Codex ainda não a expõe.</p>
+      <p class="wb-hint" id="wb-patch-help">Formato canônico: <code>{"schema":"arenamon-rig-patch","version":1,"operations":[…]}</code>. Patches anteriores com <code>"ops"</code> são migrados explicitamente, com relatório.</p>
       <div class="wb-row"><button type="button" class="btn btn-soft" id="wb-validate">Verificar comandos</button><button type="button" class="btn btn-primary" id="wb-to-compare" ${v?.ok ? '' : 'disabled'}>Comparar antes/depois →</button>
-      <label class="btn btn-soft wb-file">Importar arquivo<input type="file" id="wb-patch-file" accept=".json,application/json" hidden></label><button type="button" class="btn btn-soft" id="wb-example">Exemplo</button></div>${validation}`);
+      <label class="btn btn-soft wb-file">Importar arquivo<input type="file" id="wb-patch-file" accept=".json,application/json" hidden></label><button type="button" class="btn btn-soft" id="wb-example">Exemplo</button></div>${migration}${validation}`);
+    const um = $('wb-use-migrated');if (um) um.onclick = () => {const {patch} = S.validation;S.patchText = $('wb-patch').value = JSON.stringify(patch, null, 2);runValidate();toast('Patch canônico no editor.');};
     const area = $('wb-patch');area.oninput = () => {S.patchText = area.value;if (S.validation) {S.validation = null;fix();area.focus();area.setSelectionRange(area.value.length, area.value.length);}};
     area.onkeydown = e => {if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {e.preventDefault();runValidate();}};
     $('wb-validate').onclick = runValidate;$('wb-to-compare').onclick = () => {goto('compare');runDry();};
     $('wb-example').onclick = () => {S.patchText = JSON.stringify(EXAMPLE_PATCH, null, 2);S.validation = null;fix();};
     $('wb-patch-file').onchange = async e => {const f = e.target.files[0];if (!f) return;await loadPatchText(await f.text());e.target.value = '';};
     if (auto) {
-      $('wb-auto-template').onclick = () => {auto.createTemplate();refresh();toast('Proposta de esqueleto gerada pelo motor do Codex (humanoide, 20 pontos).');};
-      $('wb-auto-bind').onclick = () => {auto.bind();refresh();};
-      $('wb-auto-test').onclick = () => {layout?.open('rigging');toast('Teste de deformação: use “Rotação de teste” na aba Rigging (não altera o rig).');};
+      const act = (fn, ok) => {try {const r = fn();refresh();if (ok) toast(typeof ok === 'function' ? ok(r) : ok);} catch (e) {toast(e.message, 'warn');}};
+      $('wb-profile').onchange = e => {S.profile = e.target.value;};
+      $('wb-auto-template').onclick = () => {const id = $('wb-profile').value;S.profile = id;act(() => auto.generate(id), d => `Proposta gerada pela API oficial: ${d.joints.length} pontos (${id}). Nada foi vinculado ainda.`);};
+      const adopt = $('wb-auto-adopt');if (adopt) adopt.onclick = () => act(() => auto.adoptDraft(), 'Rascunho copiado para a Workbench como proposta.');
+      $('wb-auto-bind').onclick = () => act(() => auto.bind(), r => `Skin vinculado: ${r.replacements.length} malhas, ${r.bones.length} ossos. Ctrl+Z desfaz.`);
+      $('wb-auto-test').onclick = () => {auto.testDeformation();toast('Teste de deformação: use “Rotação de teste” na aba Rigging (não altera o rig).');};
+      const discard = $('wb-auto-discard');if (discard) discard.onclick = () => act(() => auto.discard(), 'Proposta descartada.');
+      const regen = $('wb-auto-regen');if (regen) regen.onclick = () => act(() => auto.regenerate($('wb-region').value), 'Região regenerada pela API oficial (pontos travados preservados).');
+      const fit = $('wb-auto-fit');if (fit) fit.onclick = () => act(() => auto.fitLandmarks(), r => `Ajuste aos marcos: ${r.modified.length ? r.modified.join(', ') : 'nenhum ponto alterado'} (travados preservados).`);
       $('wb-auto-import').onclick = () => {const i = document.createElement('input');i.type = 'file';i.accept = '.json,application/json';i.onchange = async () => {if (i.files[0]) await loadPatchText(await i.files[0].text());};i.click();};
     }
   }
-  /** Aceita Rig Patch ou JSON de coordenadas do Codex (convertido em setPosition). */
+  /** Aceita Rig Patch (canônico ou anterior) ou JSON de coordenadas do Codex (convertido em setBonePosition). */
   async function loadPatchText(text) {
     let data = null;try {data = JSON.parse(text);} catch {/* a validação mostra a linha do erro */}
-    if (data?.schema === 'arenamon-rig') {try {text = JSON.stringify(engine.patchFromRigJSON(data), null, 2);toast('Coordenadas convertidas em patch de setPosition.');} catch (e) {toast(e.message, 'warn');}}
+    if (data?.schema === 'arenamon-rig') {try {text = JSON.stringify(engine.patchFromRigJSON(data), null, 2);toast('Coordenadas convertidas em patch canônico de setBonePosition.');} catch (e) {toast(e.message, 'warn');}}
     S.patchText = text;S.validation = null;goto('fix');runValidate();
   }
   function runValidate() {S.patchText = $('wb-patch')?.value ?? S.patchText;try {S.validation = engine.validate(S.patchText);} catch (e) {S.validation = {ok: false, stage: 'motor', errors: [{path: '(motor)', message: e.message}]};}fix();}
 
-  // 4. Comparar: ensaio REAL com o motor do Codex (aplica, mede, desfaz).
+  // 4. Comparar: ensaio REAL com a API oficial (applyRigPatch, inspectRig, undo da própria transação).
   function runDry() {
     try {S.dry = engine.dryRun(S.patchText);} catch (e) {S.dry = {ok: false, stage: 'ensaio', errors: [{path: '(ensaio)', message: e.message}]};}
     if (S.dry.ok) {viewer?.setTelemetry(S.telemetry);viewer?.setComparison(S.dry.after, S.dry.changes.map(c => c.id));}
@@ -245,12 +271,14 @@ export function mountWorkbench(container, {engine, viewer, layout = null, loadDe
       <td>${c.moved !== undefined ? `${num(c.moved)}<br><small>${vec(c.pBefore, 3)} → ${vec(c.pAfter, 3)}</small>` : '—'}</td><td>${c.rotatedDeg !== undefined ? num(c.rotatedDeg, 2) + '°' : '—'}</td>
       <td>${c.nameBefore ? `${esc(c.nameBefore)} → ${esc(c.name)}` : ''}${c.parentAfter !== undefined && c.kind === 'changed' ? `pai: ${esc(c.parentBefore ?? 'raiz')} → ${esc(c.parentAfter ?? 'raiz')}` : ''}</td></tr>`).join('');
     const o = viewer?.options || {};
-    p.innerHTML = `<p class="wb-ok">Ensaio real com o motor do Codex: aplicado, medido e desfeito; o rig atual não foi alterado.</p>`
+    const sim = d.simulation.diff, simList = [['adicionados', sim.bonesAdded], ['removidos', sim.bonesRemoved], ['movidos', sim.bonesMoved], ['rotacionados', sim.bonesRotated], ['renomeados', sim.bonesRenamed], ['com novo pai', sim.bonesReparented]].filter(([, l]) => l.length);
+    p.innerHTML = `<p class="wb-ok" id="wb-dry-ok">${d.kind === 'draft' ? 'Ensaio com applyRigPatch oficial numa cópia do rascunho: o rascunho atual não foi alterado.' : 'Ensaio real com applyRigPatch oficial: aplicado, medido com inspectRig e desfeito pela própria entrada de undo; ossos, pesos, matrizes e metadados conferidos — o rig atual não foi alterado.'}</p>`
+      + card('Previsão de simulateRigPatch', `<p>${simList.map(([k, l]) => `${l.length} ${k}`).join(' · ') || 'nenhuma mudança estrutural prevista'}${sim.skinningImpacted ? ' · <b>afeta o skinning</b>' : ''}</p>${d.simulation.warnings.length ? `<ul class="wb-warn">${d.simulation.warnings.map(w => `<li>${esc(w)}</li>`).join('')}</ul>` : ''}`)
       + card(`Ossos alterados (${d.changes.length})`, d.changes.length ? `<table class="wb-table" id="wb-changes"><tr><th>Osso</th><th>Δ posição</th><th>Δ rotação</th><th>Nome / hierarquia</th></tr>${rows}</table>` : '<p>O patch não altera nenhum osso.</p>')
       + card('Avisos', `<p><b>Resolvidos (${d.warnings.resolved.length}):</b></p><ul class="wb-ok-list">${d.warnings.resolved.map(w => `<li>${esc(w)}</li>`).join('') || '<li>—</li>'}</ul><p><b>Novos (${d.warnings.added.length}):</b></p><ul class="wb-warn">${d.warnings.added.map(w => `<li>${esc(w)}</li>`).join('') || '<li>—</li>'}</ul>`)
-      + card('Pesos', d.influence.length ? `<table class="wb-table"><tr><th>Osso</th><th>Vértices influenciados</th></tr>${d.influence.map(c => `<tr><td>${esc(c.name)}</td><td>${c.before ?? '—'} → ${c.after ?? '—'}</td></tr>`).join('')}</table>` : `<p>${S.telemetry?.model.state === 'vinculado' ? 'O patch não muda os pesos do skin (o motor recalcula só o bind).' : 'Sem skin ainda.'}</p>${S.telemetry?.model.state === 'rascunho' ? '<button type="button" class="btn btn-soft" id="wb-bind-preview">Prever pesos após o bind (bind real em cópias)</button><div id="wb-bind-result"></div>' : ''}`)
+      + card('Pesos', d.influence.length ? `<table class="wb-table"><tr><th>Osso</th><th>Vértices influenciados</th></tr>${d.influence.map(c => `<tr><td>${esc(c.name)}</td><td>${c.before ?? '—'} → ${c.after ?? '—'}</td></tr>`).join('')}</table>` : `<p>${S.telemetry?.model.state === 'vinculado' ? 'O patch não muda os vértices influenciados por osso (inspectRig).' : 'Sem skin ainda.'}</p>${d.kind === 'draft' ? '<button type="button" class="btn btn-soft" id="wb-bind-preview">Prever pesos após o bind (bind oficial em cópias)</button><div id="wb-bind-result"></div>' : ''}`)
       + card('Visualizador', `<div class="wb-layers"><label class="wb-check"><input type="checkbox" data-layer="original" ${o.original ? 'checked' : ''}> Esqueleto original</label><label class="wb-check"><input type="checkbox" data-layer="ghost" ${o.ghost ? 'checked' : ''}> Esqueleto proposto (laranja)</label></div>`)
-      + `<div class="wb-row wb-confirm"><button type="button" class="btn btn-primary" id="wb-apply">Aplicar correção</button><button type="button" class="btn btn-soft" id="wb-cancel">Cancelar</button></div>`;
+      + `<div class="wb-row wb-confirm"><button type="button" class="btn btn-primary" id="wb-apply" ${S.telemetry?.model.state === 'rascunho' ? 'disabled' : ''}>Aplicar correção</button>${S.telemetry?.model.state === 'rascunho' ? '<p class="wb-hint">A API oficial não sincroniza o rascunho da aba Rigging: use “Editar este rascunho na Workbench” em Corrigir para aplicar aqui.</p>' : ''}<button type="button" class="btn btn-soft" id="wb-cancel">Cancelar</button></div>`;
     $('wb-apply').onclick = applyPatch;$('wb-cancel').onclick = () => {S.dry = null;viewer?.setComparison(null);goto('fix');toast('Comparação cancelada; nada foi alterado.');};
     const bp = $('wb-bind-preview');if (bp) bp.onclick = () => {const r = engine.bindPreview(S.patchText);$('wb-bind-result').innerHTML = r.ok ? `<table class="wb-table"><tr><th>Osso</th><th>Vértices (bind atual → bind corrigido)</th></tr>${r.influence.map(c => `<tr><td>${esc(c.name)}</td><td>${c.before} → ${c.after}</td></tr>`).join('') || '<tr><td colspan=2>Sem diferença</td></tr>'}</table><p>Avisos novos: ${r.warnings.added.length} · resolvidos: ${r.warnings.resolved.length}</p>` : `<p class="wb-error">${esc(r.errors[0].message)}</p>`;};
   }
@@ -273,12 +301,12 @@ export function mountWorkbench(container, {engine, viewer, layout = null, loadDe
   function validate() {
     const p = panel('validate'), a = S.applied?.before || S.baseline, b = S.telemetry;
     if (!a || !b) {p.innerHTML = '<p class="wb-hint">Gere a telemetria e aplique uma correção para validar.</p>';return;}
-    const keys = ['bones', 'meshes', 'vertices', 'jointsWithWarnings', 'invalidWeights', 'verticesWithoutInfluence', 'orphanTracks', 'warnings'];
-    const labels = {bones: 'Ossos', meshes: 'Malhas', vertices: 'Vértices', jointsWithWarnings: 'Articulações com aviso', invalidWeights: 'Pesos inválidos', verticesWithoutInfluence: 'Vértices sem influência', orphanTracks: 'Trilhas órfãs', warnings: 'Avisos'};
+    const keys = ['bones', 'meshes', 'vertices', 'jointsWithWarnings', 'unnormalizedVertices', 'verticesWithoutInfluence', 'orphanTracks', 'warnings', 'maxAsymmetry', 'outsideBounds'];
+    const labels = {bones: 'Ossos', meshes: 'Malhas', vertices: 'Vértices', jointsWithWarnings: 'Ossos citados em avisos', unnormalizedVertices: 'Vértices não normalizados', verticesWithoutInfluence: 'Vértices sem influência', orphanTracks: 'Trilhas órfãs', warnings: 'Avisos', maxAsymmetry: 'Assimetria máxima', outsideBounds: 'Ossos fora da geometria'};
     const wa = new Set(a.warnings), wb = new Set(b.warnings);
-    const asym = j => j.symmetry?.mirrorDistance ?? null, asymRows = b.joints.filter(j => asym(j) !== null).map(j => {const old = a.joints.find(x => x.id === j.id);return old && asym(old) !== asym(j) ? `<tr><td>${esc(j.name)}</td><td>${num(asym(old))} → ${num(asym(j))}</td></tr>` : '';}).join('');
+    const asymRows = b.symmetry.pairs.map(pr => {const old = a.symmetry.pairs.find(x => x.leftId === pr.leftId && x.rightId === pr.rightId);return old && old.asymmetryDelta !== pr.asymmetryDelta ? `<tr><td>${esc(pr.leftName)} ↔ ${esc(pr.rightName)}</td><td>${num(old.asymmetryDelta)} → ${num(pr.asymmetryDelta)}</td></tr>` : '';}).join('');
     p.innerHTML = `<div class="wb-row"><button type="button" class="btn btn-soft" id="wb-revalidate">↻ Gerar nova telemetria</button></div>`
-      + card('Métricas (antes → agora)', `<table class="wb-table" id="wb-metric-diff">${keys.map(k => `<tr class="${a.summary[k] !== b.summary[k] ? 'changed' : ''}"><td>${labels[k]}</td><td>${a.summary[k]} → <b>${b.summary[k]}</b></td></tr>`).join('')}</table>`)
+      + card('Métricas (antes → agora)', `<table class="wb-table" id="wb-metric-diff">${keys.map(k => `<tr class="${a.summary[k] !== b.summary[k] ? 'changed' : ''}"><td>${labels[k]}</td><td>${esc(a.summary[k])} → <b>${esc(b.summary[k])}</b></td></tr>`).join('')}</table>`)
       + card('Assimetria alterada', asymRows ? `<table class="wb-table">${asymRows}</table>` : '<p>Sem mudança.</p>')
       + card('Avisos', `<p>Resolvidos: ${[...wa].filter(w => !wb.has(w)).map(esc).join('; ') || '—'}</p><p>Novos: ${[...wb].filter(w => !wa.has(w)).map(esc).join('; ') || '—'}</p>`);
     $('wb-revalidate').onclick = () => {refresh();toast('Nova telemetria gerada.');};

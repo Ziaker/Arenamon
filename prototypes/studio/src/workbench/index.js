@@ -1,9 +1,9 @@
 // Montagem da Rigging Telemetry Workbench no Animation Studio (aba “Telemetria”).
-// O componente (panel.js + viewer.js) não depende do layout do Studio; aqui só o ligamos ao motor real do Codex
-// (engine-codex.js), ao visualizador 3D e à ativação da aba.
+// O componente (panel.js + viewer.js) não depende do layout do Studio; aqui só o ligamos à API oficial de rigging
+// (engine-official.js), ao visualizador 3D e à ativação da aba.
 import {mountWorkbench} from './panel.js';
 import {createWorkbenchViewer} from './viewer.js';
-import {createCodexEngine} from './engine-codex.js';
+import {createOfficialEngine, rigFingerprint} from './engine-official.js';
 import {injectWorkbenchStyles} from './styles.js';
 
 const E = window.__importer, host = document.getElementById('wb-host');
@@ -31,8 +31,9 @@ async function loadDemo() {
 }
 if (E && host) {
   injectWorkbenchStyles();
-  const engine = createCodexEngine();
   let panel = null;
+  // Mudanças na proposta do auto-rig (que ainda não é rig do modelo) também geram telemetria nova.
+  const engine = createOfficialEngine({onChange: () => later()});
   const viewer = createWorkbenchViewer({onPick: id => panel?.pickFromViewer(id)});
   panel = mountWorkbench(host, {engine, viewer, layout: window.__studioLayout, loadDemo});
   const active = () => window.__studioLayout?.panel === 'workbench' && window.__studioLayout?.leftOpen && !!E.model;
@@ -47,6 +48,7 @@ if (E && host) {
   });
   // Mudanças no rig (patch, desfazer, edições na aba Rigging) geram telemetria nova, uma vez por quadro.
   const later = () => {if (!wasActive || pending) return;pending = requestAnimationFrame(() => {pending = 0;panel.refresh();});};
-  E.on('rigChanged', reason => {if (reason !== 'rest') later();});E.on('installed', () => {if (wasActive) panel.refresh({keepBaseline: false});});
-  window.__studioWorkbench = {panel, engine, viewer, loadDemo, get active() {return active();}};
+  E.on('rigChanged', reason => {if (reason !== 'rest') later();});E.on('installed', () => {engine.reset();if (wasActive) panel.refresh({keepBaseline: false});});
+  // fingerprint: ossos, pesos, matrizes de bind e metadados do modelo (usado pelos testes de ponta a ponta).
+  window.__studioWorkbench = {panel, engine, viewer, loadDemo, fingerprint: () => E.model ? rigFingerprint(E.model) : null, get active() {return active();}};
 }
