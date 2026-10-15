@@ -30,7 +30,7 @@ const safe=(s)=>String(s??'').slice(0,200);
 const skinned=()=>{let n=0;E.model?.traverse(o=>{if(o.isSkinnedMesh)n++;});return n;};
 function status(message,severity='normal'){const box=$('rg-state');box.textContent=message;box.dataset.status=severity;}
 function mark(reason){E.model && window.__studioProject?.markDirty(reason);}
-function hideMarkers() {TC.detach();helper.visible=false;for(const m of S.markers.values())m.visible=false;}
+function hideMarkers() {TC.detach();helper.visible=false;for(const m of S.markers.values())m.visible=false;for(const l of S.labels.values())l.hidden=true;}
 function disposeMarkers() {
   TC.detach();for(const m of S.markers.values()){m.removeFromParent();m.material.dispose();}
   S.markers.clear();for(const label of S.labels.values())label.remove();S.labels.clear();
@@ -107,7 +107,7 @@ function updateMarkers() {
     const distance=E.camera.position.distanceTo(m.position),constant=Math.max(.5,Math.min(2.5,distance/(m.userData.baseDistance||distance)));
     m.scale.setScalar((m.userData.markerRadius || 0.025) * constant * (selected ? 1.45 : 1));
     m.visible=active()&&$('rg-markers').checked;
-    const label=S.labels.get(id);if(label){const projected=m.position.clone().project(E.camera),rect=E.renderer.domElement.getBoundingClientRect(),inside=projected.z>-1&&projected.z<1&&m.visible;label.hidden=!inside;if(inside){label.style.left=((projected.x+1)*.5*rect.width)+'px';label.style.top=((-projected.y+1)*.5*rect.height)+'px';label.textContent=j.name;}}
+    const label=S.labels.get(id);if(label){const projected=m.position.clone().project(E.camera),rect=E.renderer.domElement.getBoundingClientRect(),mode=$('rg-label-mode')?.value||'selected',inside=projected.z>-1&&projected.z<1&&m.visible&&(mode==='all'||(mode==='selected'&&selected));label.hidden=!inside;if(inside){label.style.left=((projected.x+1)*.5*rect.width)+'px';label.style.top=((-projected.y+1)*.5*rect.height)+'px';label.textContent=j.name;}}
   }
   helper.visible=active()&&$('rg-markers').checked&&!!S.selected;
   if(!helper.visible)TC.detach();

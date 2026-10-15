@@ -55,6 +55,8 @@ node prototypes/studio/tools/extract-cc0-animations.mjs caminho/RobotExpressive.
 
 ## Uso no Studio
 
+**Para ver uma animação:** clique em **▶ Ver** ao lado dela. Ela toca no personagem na hora, em ciclo, e entra na lista de animações. Ver de novo não duplica, e Ctrl+Z a remove. Use as vistas **Frente**, **Costas**, **Esq.**, **Dir.**, **Topo** e **3D** da barra do visualizador para olhar de cada lado.
+
 1. Importe um personagem humanoide com esqueleto. Se ele não tiver rig, use **Rigging** → template → **Vincular**.
 
    Para testar sem arquivo, clique em **Criar manequim de teste**: ele cria um personagem sintético com rig e skin pela aba Rigging.

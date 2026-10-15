@@ -164,7 +164,8 @@ function onTick(dt){
 function presetOn(){
  $('lab-grid').checked=true;$('lab-floor').checked=true;$('lab-axes').checked=false;$('lab-root-mode').value='rotation';st.rootMode='rotation';
  $('textures').checked=true;$('lighting').checked=true;$('textures').dispatchEvent(new Event('change'));
- $('lab-dummy').checked=true;setCameraSelect('game');setCompare(false);updateScene();$('lab-preset').classList.add('active')
+ // O alvo de referência não liga sozinho: ele bloqueava a visão do personagem na câmera do jogo (botão "Alvo" na barra).
+ setCameraSelect('game');setCompare(false);updateScene();$('lab-preset').classList.add('active')
 }
 function compareRender(dt){if(!st.compare||!st.ready)return false;
  if(window.__studioCompare?.handles(st.compareType))return window.__studioCompare.render(dt);

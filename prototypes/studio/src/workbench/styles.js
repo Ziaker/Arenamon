@@ -14,6 +14,7 @@ export const WORKBENCH_CSS = `
 .wb-steps button:focus-visible,.wb-node:focus-visible,.wb-link:focus-visible{outline:2px solid var(--wb-accent);outline-offset:1px}
 .wb-body{display:grid;grid-template-columns:minmax(150px,38%) minmax(0,1fr);gap:10px;min-width:0}
 .wb-tree-pane{display:flex;flex-direction:column;gap:6px;min-width:0}
+.wb-tree-pane input[type=search]{min-height:34px;padding:0 10px;border-radius:8px;border:1px solid #5c789655;background:#0a1324;color:#e6f2ff;font:inherit;font-size:12px}.wb-tree-pane input[type=search]::placeholder{color:#7892ad}
 .wb-tree{border:1px solid var(--wb-line);border-radius:9px;max-height:min(56vh,520px);overflow:auto;padding:4px 0}
 .wb-node{display:flex;align-items:center;gap:4px;padding:3px 6px 3px calc(6px + var(--depth)*12px);cursor:pointer;white-space:nowrap;border-left:3px solid transparent}
 .wb-node:hover{background:#ffffff0d}.wb-node.selected{background:#6ec3ff26;border-left-color:var(--wb-accent)}.wb-node.warn .wb-name{color:#ffb3ba}

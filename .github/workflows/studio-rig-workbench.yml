@@ -8,6 +8,7 @@ on:
       - feat/studio-rig-workbench
       - integration/workbench-telemetry-autorig
       - feat/studio-cc0-animation-library
+      - fix/studio-usabilidade-viewer
   workflow_dispatch:
 
 permissions:

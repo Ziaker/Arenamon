@@ -129,6 +129,8 @@ Fica em **Corrigir**, quando a malha não tem ossos. A proposta gerada vive na W
   4. as matrizes de bind do snapshot são preservadas em volta do `commitRig`, que as recalcularia a partir da pose. Num GLB reimportado, o recálculo difere na última casa decimal.
 - **Rascunhos:** o `applyRigPatch` oficial roda num `Group` vazio que carrega uma cópia do rascunho em `userData.arenamonRigDraft`. O modelo não é tocado e o resultado passa por `validateDraft`. Em `createBone`, o `parent` é convertido de ID para nome (veja o defeito 6).
 
+**Trilhas órfãs:** o Studio religa cada trilha ao nó pelo UUID (`<uuid>.quaternion`), e `inspectRig` procura o nó pelo nome. Por isso o adaptador traduz os UUIDs de volta para nomes antes de chamar a API. Antes dessa tradução, um personagem Mixamo com 39 clipes acusava 1563 trilhas órfãs falsas (`test/usability.browser.mjs`).
+
 ## Defeitos encontrados na API oficial (56b01a5), para o agente responsável
 
 Nenhum foi corrigido aqui: o núcleo de produção dele não foi modificado. Cada item tem um teste de evidência em `test/workbench.test.mjs` ou em `test/workbench.browser.mjs`.

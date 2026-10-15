@@ -6,8 +6,10 @@ import {retargetClip, inspectTarget, buildSourceSkeleton} from './retarget.js';
 const E = window.__importer, section = document.querySelector('[data-section="project"]');
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
 const CSS = `.lib-list{display:grid;gap:4px;margin:8px 0;max-height:260px;overflow:auto}
-.lib-item{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:8px;background:#ffffff08;font-size:12px;cursor:pointer}
-.lib-item span{flex:1}.lib-item small{opacity:.7}.lib-badge{font-size:10px;padding:1px 6px;border-radius:999px;background:#5ad1b833;color:#8ff0d8}
+.lib-item{display:flex;align-items:center;gap:8px;padding:4px 6px 4px 8px;border-radius:8px;background:#ffffff08;font-size:12px}
+.lib-item label{display:flex;align-items:center;gap:8px;flex:1;cursor:pointer}.lib-item label span{flex:1}
+.lib-play{min-height:28px;padding:0 10px;border-radius:7px;border:1px solid #80e5ec88;background:#16324a;color:#dff9ff;font-weight:800;font-size:11px;cursor:pointer}
+.lib-play[aria-pressed=true]{background:#80e5ec;color:#102033}.lib-item small{opacity:.7}.lib-badge{font-size:10px;padding:1px 6px;border-radius:999px;background:#5ad1b833;color:#8ff0d8}
 .lib-credit{font-size:11px;opacity:.8;line-height:1.45}.lib-state{font-size:12px;margin:6px 0}.lib-state.warn{color:#ffb4a2}.lib-state.ok{color:#8ff0d8}`;
 
 if (E && section) {
@@ -19,8 +21,9 @@ if (E && section) {
     Origem: <a href="${esc(src.url)}" target="_blank" rel="noopener">three.js @ ${esc(src.commit.slice(0, 7))}</a> · SHA-256 ${esc(src.sha256.slice(0, 12))}…</p>
     <p class="lib-state" id="lib-state" role="status">Importe um personagem humanoide com esqueleto.</p>
     <div class="st-row"><button type="button" class="btn btn-soft" id="lib-all">Selecionar todas</button><button type="button" class="btn btn-soft" id="lib-demo">Criar manequim de teste</button></div>
-    <div class="lib-list" id="lib-list" role="group" aria-label="Animações da biblioteca">${library.clips.map(c => `<label class="lib-item"><input type="checkbox" data-lib="${esc(c.name)}"><span>${esc(c.name)}</span>${c.loop ? '<span class="lib-badge">ciclo</span>' : ''}<small>${c.duration.toFixed(2)} s</small></label>`).join('')}</div>
+    <div class="lib-list" id="lib-list" role="group" aria-label="Animações da biblioteca">${library.clips.map(c => `<div class="lib-item"><label><input type="checkbox" data-lib="${esc(c.name)}"><span>${esc(c.name)}</span>${c.loop ? '<span class="lib-badge">ciclo</span>' : ''}<small>${c.duration.toFixed(2)} s</small></label><button type="button" class="lib-play" data-play="${esc(c.name)}" aria-pressed="false" title="Tocar ${esc(c.name)} no personagem agora">▶ Ver</button></div>`).join('')}</div>
     <button type="button" class="btn btn-primary st-wide" id="lib-add" disabled>Adicionar ao personagem</button>
+    <p class="st-hint"><b>▶ Ver</b> toca a animação no personagem na hora (ela entra na lista de animações; Ctrl+Z tira). Marque várias e use <b>Adicionar</b> para trazer de uma vez.</p>
     <p class="st-hint">O retarget gira cada osso do personagem como o osso equivalente da origem (raiz, coluna, pescoço, cabeça, clavículas, braços, antebraços, coxas e canelas), proporcional à altura. Mãos, pés e dedos ficam na pose de repouso.</p>`;
   (section.querySelector('.st-project-info') || section.lastElementChild).after(card);
   const $ = id => card.querySelector('#' + id);
@@ -31,7 +34,7 @@ if (E && section) {
     if (!E.model) {st.className = 'lib-state';st.textContent = 'Importe um personagem humanoide com esqueleto, ou crie o manequim de teste.';}
     else if (!target.ok) {st.className = 'lib-state warn';st.textContent = `Este personagem não tem ossos para: ${target.missing.join(', ')}. Crie o rig na aba Rigging (template humanoide) e vincule a malha.`;}
     else {st.className = 'lib-state ok';st.textContent = `Compatível: ${Object.keys(target.roles).length} ossos mapeados (${target.roles.root} → raiz, ${target.roles['upperArm.L']} → braço esquerdo…).`;}
-    $('lib-add').disabled = !(target?.ok && selected.size);$('lib-add').textContent = selected.size ? `Adicionar ao personagem (${selected.size})` : 'Adicionar ao personagem';
+    $('lib-add').disabled = !(target?.ok && selected.size);for (const b of card.querySelectorAll('[data-play]')) b.disabled = !target?.ok;$('lib-add').textContent = selected.size ? `Adicionar ao personagem (${selected.size})` : 'Adicionar ao personagem';
   }
   $('lib-list').addEventListener('change', e => {const n = e.target.dataset.lib;if (!n) return;e.target.checked ? selected.add(n) : selected.delete(n);refresh();});
   $('lib-all').onclick = () => {const all = selected.size < library.clips.length;for (const i of card.querySelectorAll('[data-lib]')) {i.checked = all;all ? selected.add(i.dataset.lib) : selected.delete(i.dataset.lib);}refresh();};
@@ -51,7 +54,16 @@ if (E && section) {
     window.__studioProject?.markDirty?.('animações da biblioteca CC0');
     return added;
   }
-  $('lib-add').onclick = () => {try {const added = add();$('lib-state').className = 'lib-state ok';$('lib-state').textContent = `${added.length} animação(ões) adicionadas à lista. Ctrl+Z desfaz.`;} catch (e) {$('lib-state').className = 'lib-state warn';$('lib-state').textContent = e.message;}};
+  /** Ver: toca a animação no personagem (converte e adiciona se ainda não estiver na lista). */
+  function play(name) {
+    let clip = E.clips.find(c => c.userData?.library === src.id && c.userData?.sourceClip === name);
+    if (!clip) clip = add([name])[0];
+    E.selectIndex(E.clips.indexOf(clip));E.seek?.(0);E.setPlaying(true);
+    for (const b of card.querySelectorAll('[data-play]')) b.setAttribute('aria-pressed', String(b.dataset.play === name));
+    return clip;
+  }
+  $('lib-list').addEventListener('click', e => {const b = e.target.closest('[data-play]');if (!b) return;try {play(b.dataset.play);$('lib-state').className = 'lib-state ok';$('lib-state').textContent = `Tocando ${b.dataset.play} no personagem.`;} catch (err) {$('lib-state').className = 'lib-state warn';$('lib-state').textContent = err.message;}});
+  $('lib-add').onclick = () => {try {const added = add();E.selectIndex(E.clips.indexOf(added[0]));E.setPlaying(true);$('lib-state').className = 'lib-state ok';$('lib-state').textContent = `${added.length} animação(ões) adicionadas à lista. Ctrl+Z desfaz.`;} catch (e) {$('lib-state').className = 'lib-state warn';$('lib-state').textContent = e.message;}};
   /** Manequim sintético (sem recursos externos) com rig e skin feitos pela aba Rigging, para testar a biblioteca. */
   async function demo() {
     const T = E.T, root = new T.Group();root.name = 'ManequimBiblioteca';
@@ -68,5 +80,5 @@ if (E && section) {
   $('lib-demo').onclick = async () => {$('lib-demo').disabled = true;try {await demo();} catch (e) {$('lib-state').textContent = 'Manequim falhou: ' + e.message;} finally {$('lib-demo').disabled = false;}};
   E.on('installed', refresh);E.on('rigChanged', r => {if (r !== 'rest') refresh();});
   refresh();
-  window.__studioLibrary = {library, add, demo, refresh, get selected() {return [...selected];}};
+  window.__studioLibrary = {library, add, play, demo, refresh, get selected() {return [...selected];}};
 }

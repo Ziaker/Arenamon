@@ -67,10 +67,16 @@ export function createOfficialEngine({importer = () => globalThis.__importer, ri
   const available = () => !!(model() && R());
   /** 'proposta' = rascunho gerado pelo auto-rig da Workbench, ainda não vinculado. */
   const state = () => S.proposal ? 'proposta' : rigState(model(), R()?.draft);
+  // O Studio religa cada trilha ao nó pelo UUID ("<uuid>.quaternion"); inspectRig procura pelo NOME do nó. Sem esta
+  // tradução, toda trilha válida apareceria como órfã (ex.: 1563 "órfãs" num personagem Mixamo com 39 clipes).
+  const namedClips = () => {
+    const names = new Map();model()?.traverse(o => names.set(o.uuid, o.name));
+    return (E()?.clips || []).map(c => ({name: c.name, duration: c.duration, tracks: c.tracks.map(t => {const i = t.name.indexOf('.'), head = t.name.slice(0, i);return {name: names.has(head) ? names.get(head) + t.name.slice(i) : t.name};})}));
+  };
   const draftNow = () => S.proposal || R()?.draft || null;
   const kind = () => ({vinculado: 'bound', 'ossos-sem-skin': 'bound', proposta: 'draft', rascunho: 'draft'})[state()] || null;
-  const official = (opts = {}) => inspectRig(model(), {draft: state() === 'vinculado' || state() === 'ossos-sem-skin' ? null : draftNow(), clips: E().clips, ...opts});
-  const view = (t = official()) => toView(t, {state: state(), clips: E().clips});
+  const official = (opts = {}) => inspectRig(model(), {draft: state() === 'vinculado' || state() === 'ossos-sem-skin' ? null : draftNow(), clips: namedClips(), ...opts});
+  const view = (t = official()) => toView(t, {state: state(), clips: namedClips()});
   const telemetry = ({select} = {}) => select ? selectTelemetry(official(), select) : view();
   const current = () => view().joints.map(j => ({id: j.id, name: j.name, p: j.p}));
   const notify = reason => {try {onChange(reason);} catch (e) {console.warn(e);}};
@@ -107,7 +113,7 @@ export function createOfficialEngine({importer = () => globalThis.__importer, ri
     });
     if (blocked.length) return {ok: false, stage: 'pendente', errors: blocked, patch: parsed.patch, migration: parsed.migration};
     let simulation;
-    try {simulation = simulateRigPatch(model(), parsed.patch, {draft: k === 'draft' ? draftNow() : null, clips: E().clips});}
+    try {simulation = simulateRigPatch(model(), parsed.patch, {draft: k === 'draft' ? draftNow() : null, clips: namedClips()});}
     catch (e) {return {ok: false, stage: 'simulateRigPatch', errors: [{path: '(simulateRigPatch)', message: e.message}], patch: parsed.patch, migration: parsed.migration};}
     if (!simulation.valid) return {ok: false, stage: 'simulateRigPatch', errors: simulation.errors.map(m => ({path: /\[Op (\d+)/.exec(m) ? `operations[${/\[Op (\d+)/.exec(m)[1]}]` : '(simulação)', message: m})), patch: parsed.patch, migration: parsed.migration, simulation};
     const cycle = hierarchyCycle(parsed.patch, current(), view().joints);
@@ -122,12 +128,12 @@ export function createOfficialEngine({importer = () => globalThis.__importer, ri
     let after, draftAfter = null;
     if (v.kind === 'draft') {
       try {draftAfter = applyToDraft(draftNow(), v.patch);} catch (e) {return {...v, ok: false, stage: 'applyRigPatch (rascunho)', errors: [{path: '(motor oficial)', message: e.message}]};}
-      after = toView(inspectRig(root, {draft: draftAfter, clips: E().clips}), {state: state(), clips: E().clips});
+      after = toView(inspectRig(root, {draft: draftAfter, clips: namedClips()}), {state: state(), clips: namedClips()});
     } else {
       E().enterRigRest();
       const stack = [];
       try {
-        applyRigPatch(root, v.patch, {clips: E().clips, undoStack: {push: e => stack.push(e)}});
+        applyRigPatch(root, v.patch, {clips: namedClips(), undoStack: {push: e => stack.push(e)}});
         after = view();
       } catch (e) {return {...v, ok: false, stage: 'applyRigPatch', errors: [{path: '(motor oficial)', message: e.message}]};}
       finally {if (stack[0]) stack[0].undo();}
@@ -149,7 +155,7 @@ export function createOfficialEngine({importer = () => globalThis.__importer, ri
     const command = {label,
       redo() {
         E().enterRigRest();
-        if (!entry) {const stack = [];result = applyRigPatch(root, v.patch, {clips: E().clips, undoStack: {push: e => stack.push(e)}});if (stack.length !== 1) throw Error(`applyRigPatch empilhou ${stack.length} entradas.`);entry = stack[0];}
+        if (!entry) {const stack = [];result = applyRigPatch(root, v.patch, {clips: namedClips(), undoStack: {push: e => stack.push(e)}});if (stack.length !== 1) throw Error(`applyRigPatch empilhou ${stack.length} entradas.`);entry = stack[0];}
         else entry.redo();
         syncStudio(label);
       },
@@ -165,7 +171,7 @@ export function createOfficialEngine({importer = () => globalThis.__importer, ri
   function bindPreview(input) {
     const v = validate(input);if (!v.ok) return v;
     if (v.kind !== 'draft') return {ok: false, errors: [{path: '(estado)', message: 'Prévia de pesos só se aplica a um rascunho ainda não vinculado.'}]};
-    const bindCopy = draft => {const c = model().clone(true);c.traverse(o => {if (o.isMesh) o.geometry = o.geometry.clone();});bindDraftToModel(c, structuredClone(draft));return toView(inspectRig(c, {clips: E().clips}), {state: 'vinculado', clips: E().clips});};
+    const bindCopy = draft => {const c = model().clone(true);c.traverse(o => {if (o.isMesh) o.geometry = o.geometry.clone();});bindDraftToModel(c, structuredClone(draft));return toView(inspectRig(c, {clips: namedClips()}), {state: 'vinculado', clips: namedClips()});};
     const before = bindCopy(draftNow()), after = bindCopy(applyToDraft(draftNow(), v.patch));
     return {ok: true, before, after, warnings: warningDiff(before, after), influence: influenceDiff(before, after)};
   }
@@ -220,7 +226,7 @@ export function createOfficialEngine({importer = () => globalThis.__importer, ri
   /** Vincula a proposta com o bind oficial; desfazer devolve o modelo e a proposta (mesma transação da aba Rigging). */
   function bind() {
     if (!S.proposal) throw Error('Gere uma proposta antes.');
-    if (E().clips.length) throw Error('Remova as animações antes do bind (mesma regra da aba Rigging).');
+    if (namedClips().length) throw Error('Remova as animações antes do bind (mesma regra da aba Rigging).');
     const root = model(), draft = structuredClone(S.proposal), profile = S.profile, locked = [...S.locked], smoothness = Number($('rg-smooth')?.value) || .13;
     const previousRig = root.userData.arenamonRig ? structuredClone(root.userData.arenamonRig) : null, previousDraft = root.userData.arenamonRigDraft ? structuredClone(root.userData.arenamonRigDraft) : null;
     let result = null, bound = null;
