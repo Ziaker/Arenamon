@@ -17,7 +17,7 @@ export class Hud {
     $('phase').textContent = `${paused ? 'Pausado' : phase} · alvo ${locked ? 'fixado' : 'livre'}${playerAI ? ' · IA × IA' : ''}`;
     $('ai-chip').textContent = 'Vermelho: ' + (AI_MODES.find(([id]) => id === game.mode)?.[1] || game.mode);
     for (const f of game.fighters) {
-      $(`hp${f.id}`).value = f.hp / f.attributes.hp;$(`stamina${f.id}`).value = f.stamina / C.rules.staminaMax;
+      $(`hp${f.id}`).value = f.hp / f.attributes.hp;$(`stamina${f.id}`).value = f.stamina / C.rules.staminaMax;$(`stamina${f.id}`).classList.toggle("exhausted", !!f.exhausted);
       $(`state${f.id}`).textContent = `${Math.ceil(f.hp)} HP · ${STATE_NAMES[f.state] || f.state}${f.exhausted ? ' · Exausto' : ''}${f.counterWindow > 0 ? ' · Contra-ataque' : ''}`;
     }
     const s = game.events.at(-1), notice = $('impact-notice');

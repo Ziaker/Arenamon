@@ -6,6 +6,8 @@ import {isInvulnerable, isOffensive, nominalDistance, actionDuration} from '../s
 import {direction, length, angleOf} from '../sim/math.js';
 import {wouldVault} from '../sim/controller.js';
 import {CameraRig} from './rig.js';
+import {VfxSystem} from './vfx.js';
+import {phaseAt} from '../sim/motion.js';
 
 const STATE_COLORS = {invulnerable: 0x58e6ff, tackle: 0xffa040, dodge: 0x61ebba, guard: 0xffe066, guardStun: 0xffb347, recoil: 0xc77dff, airborne: 0x9db4ff, landing: 0x7f93b8, defeated: 0x56616a};
 export const OVERLAYS = [
@@ -33,6 +35,8 @@ export class View {
     for (const [x, z, w, d] of [[-16, 0, .15, 32], [16, 0, .15, 32], [0, -16, 32, .15], [0, 16, 32, .15]]) {
       const wall = new T.Mesh(new T.BoxGeometry(w, X.visual.wallHeight, d), new T.MeshStandardMaterial({color: rgb('wall')}));wall.position.set(x, .175, z);this.scene.add(wall);this.walls.push(wall);
     }
+    this.legacySeen = new WeakSet();
+    this.vfx = new VfxSystem(this.scene, {flashEl: document.getElementById('vfx-flash'), canvas});
     this.overlayGroup = new T.Group();this.overlayGroup.renderOrder = 900;this.scene.add(this.overlayGroup);
     let dragging = false, previous = 0;
     canvas.addEventListener('contextmenu', e => e.preventDefault());
@@ -53,7 +57,11 @@ export class View {
     this.ambientLight.intensity = V.ambientLightIntensity;this.directionalLight.intensity = V.directionalIntensity;this.directionalLight.position.set(V.lightX, V.lightY, V.lightZ);
     this.renderer.setPixelRatio(Math.min(devicePixelRatio, V.renderPixelRatio));
   }
-  reset(player) {this.rig.reset(player);for (const e of this.effects) {this.scene.remove(e.mesh);e.mesh.geometry.dispose();e.mesh.material.dispose();}this.effects = [];this.seenEvents = new WeakSet();this.airborneSeen = [];this.invulnerableFx.clear();this.cameraShake = 0;this.normals = [];}
+  reset(player) {
+    this.rig.reset(player);this.seenEvents = new WeakSet();this.legacySeen = new WeakSet();this.cameraShake = 0;for (const e of this.effects) {this.scene.remove(e.mesh);e.mesh.geometry.dispose();e.mesh.material.dispose();}this.effects = [];this.airborneSeen = [];this.invulnerableFx.clear();this.normals = [];this.vfx.reset();
+    if (this.canvas) this.canvas.style.filter = '';
+  }
+  /** Efeitos legados do v6 (partículas em caixa e tremor antigo). Só com “Efeitos legados” ligado em Visualizar. */
   spawnBurst(pos, type) {
     const F = C.extras.fx;if (!C.extras.hud.fxVisible) return;
     const colors = {perfectDodge: rgb('perfect'), impact: rgb('impact'), clash: rgb('clash'), partial: rgb('partial'), perfect: rgb('perfect'), invulnerable: rgb('invulnerable'), landing: rgb('landing')};
@@ -65,53 +73,95 @@ export class View {
       this.effects.push({mesh, age: 0, duration: type === 'clash' ? F.clashDuration : F.impactDuration, dx, dz, x: pos.x, z: pos.z});
     }
   }
-  /** Personagem 3D opcional por lutador (characters.js). Quando presente, o bloco fica oculto. */
-  setCharacter(id, character) {this.characters[id] = character;}
-  draw(fighters, events = [], dt = 1 / 60, {paused = false, tick = 0, sources = [], realDt = dt} = {}) {
-    const X = C.extras, V = X.visual, F = X.fx;
+  updateLegacy(fighters, events, dt) {
+    const X = C.extras, F = X.fx, on = !!C.vfx.master.legacy;
     for (const event of events) {
-      if (this.seenEvents.has(event)) continue;this.seenEvents.add(event);
-      const attacker = fighters[event.attacker], target = fighters[event.target];if (!attacker || !target) continue;
-      if (event.normal && (event.result !== 'clash' || event.attacker === 0)) this.normals.push({x: (attacker.position.x + target.position.x) / 2, z: (attacker.position.z + target.position.z) / 2, n: event.normal, result: event.result, age: 0, launch: event.launch});
-      if (event.result === 'clash' && event.attacker !== 0) continue;
+      if (!on || this.legacySeen.has(event)) continue;this.legacySeen.add(event);
+      const attacker = fighters[event.attacker], target = fighters[event.target];if (!attacker || !target || (event.result === 'clash' && event.attacker !== 0)) continue;
       if (event.result === 'invulnerable') {const key = `${event.attacker}:${event.target}`, now = performance.now();if (now - (this.invulnerableFx.get(key) ?? -Infinity) < F.invulnRepeatDelay) continue;this.invulnerableFx.set(key, now);}
       if (event.result === 'clash' || event.result === 'impact' || event.result === 'perfect') this.cameraShake = Math.max(this.cameraShake, event.result === 'clash' ? 1 : .45);
       this.spawnBurst(event.result === 'clash' ? {x: (attacker.position.x + target.position.x) / 2, z: (attacker.position.z + target.position.z) / 2} : target.position, event.result);
     }
-    for (const f of fighters) {
-      const flying = !!f.flight;if (this.airborneSeen[f.id] && !flying && f.state === 'landing') this.spawnBurst(f.position, 'landing');this.airborneSeen[f.id] = flying;
-      if (!this.meshes[f.id]) {
-        const body = new T.Mesh(new T.BoxGeometry(1, 1, 1), new T.MeshStandardMaterial({color: f.id ? rgb('enemy') : rgb('player')}));this.meshes[f.id] = body;this.scene.add(body);
-        const arrow = new T.Mesh(new T.ConeGeometry(.16, .42, 3), new T.MeshBasicMaterial({color: rgb('arrow')}));this.arrows[f.id] = arrow;this.scene.add(arrow);
-        const shadow = new T.Mesh(new T.BoxGeometry(1, .015, 1), new T.MeshStandardMaterial({color: rgb('shadow'), roughness: 1}));this.shadows[f.id] = shadow;this.scene.add(shadow);
-      }
-      const body = this.meshes[f.id], alt = (f.flight?.y ?? 0) + (f.vaultHeight ?? 0), character = this.characters[f.id];
-      body.visible = !character;this.arrows[f.id].visible = !character;
-      body.position.set(f.position.x, V.bodyHeight / 2 + alt, f.position.z);
-      body.scale.set(V.bodyWidth, f.state === 'landing' ? V.bodyHeight * V.landingScale : f.guard ? V.bodyHeight * V.guardScale : V.bodyHeight, V.bodyDepth);
-      const shadow = this.shadows[f.id];shadow.position.set(f.position.x, .012, f.position.z);const size = Math.max(V.shadowMin, 1 - alt * V.shadowHeightFade);shadow.scale.set(size, 1, size);shadow.material.color.setHex(rgb('shadow'));
-      body.material.color.setHex(f.hp <= 0 ? rgb('defeated') : f.id ? rgb('enemy') : rgb('player'));
-      body.material.emissive.setHex(f.guard ? rgb('glowGuard') : isInvulnerable(f) ? rgb('glowInvuln') : f.state === 'recoil' ? rgb('glowRecoil') : isOffensive(f) ? rgb('glowTackle') : 0);
-      const arrow = this.arrows[f.id];arrow.position.set(f.position.x + Math.sin(f.visualFacing) * V.arrowOffset, V.arrowHeight + alt, f.position.z + Math.cos(f.visualFacing) * V.arrowOffset);
-      arrow.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), new T.Vector3(Math.sin(f.visualFacing), 0, Math.cos(f.visualFacing)));arrow.scale.set(V.arrowRadius / .16, V.arrowLength / .42, V.arrowRadius / .16);
-      arrow.material.color.setHex(f.guard ? rgb('arrowGuard') : rgb('arrow'));
-      // A prévia de animação continua tocando com a partida pausada.
-      character?.update(f, paused ? (character.preview ? realDt : 0) : dt, alt, events, {tick, source: sources[f.id]});
-    }
-    if (!paused) for (let j = this.effects.length - 1; j >= 0; j--) {
+    for (const f of fighters) {const flying = !!f.flight;if (on && this.airborneSeen[f.id] && !flying && f.state === 'landing') this.spawnBurst(f.position, 'landing');this.airborneSeen[f.id] = flying;}
+    for (let j = this.effects.length - 1; j >= 0; j--) {
       const e = this.effects[j];e.age += Math.min(dt, .05);const p = Math.min(1, e.age / e.duration);
       e.mesh.material.opacity = Math.max(0, (1 - p) * F.particleOpacity);
       e.mesh.position.set(e.x + e.dx * (p * F.particleTravel + F.particleInitialTravel), F.particleHeightFromGround + Math.sin(p * Math.PI) * F.particleRise, e.z + e.dz * (p * F.particleTravel + F.particleInitialTravel));
       e.mesh.scale.set(1, 1, 1 + p * F.particleStretch);
       if (p >= 1) {this.scene.remove(e.mesh);e.mesh.geometry.dispose();e.mesh.material.dispose();this.effects.splice(j, 1);}
     }
+    this.cameraShake *= Math.exp(-X.cameraExtra.cameraShakeDecay * Math.min(dt, .05));
+    const phase = performance.now() * .045, a = on ? this.cameraShake * X.cameraExtra.cameraShakeAmount : 0;
+    return {x: Math.sin(phase * 2.1) * a, y: Math.sin(phase * 1.5) * a * .45, z: Math.cos(phase * 1.9) * a};
+  }
+  /** Personagem 3D opcional por lutador (characters.js). Quando presente, o bloco fica oculto. */
+  setCharacter(id, character) {this.characters[id] = character;}
+  /** Sombra no estilo escolhido (A quadrada, B círculo, C círculo suave). Sempre na posição física, rente ao chão. */
+  shadowFor(f) {
+    const S = C.display.shadow, style = S.style | 0, key = style === 2 ? `soft${Math.round(S.softness * 20)}` : style === 1 ? 'circle' : 'box';
+    let sh = this.shadows[f.id];
+    if (!sh || sh.userData.key !== key) {
+      if (sh) {this.scene.remove(sh);sh.geometry.dispose();sh.material.dispose();}
+      if (style === 0) sh = new T.Mesh(new T.BoxGeometry(1, .015, 1), new T.MeshBasicMaterial({color: rgb('shadow'), transparent: true, depthWrite: false}));
+      else {
+        const geo = style === 1 ? new T.CircleGeometry(.5, 48) : new T.PlaneGeometry(1, 1);geo.rotateX(-Math.PI / 2);
+        sh = new T.Mesh(geo, new T.MeshBasicMaterial({color: rgb('shadow'), transparent: true, depthWrite: false, map: style === 2 ? softShadowTexture(S.softness) : null}));
+      }
+      sh.userData.key = key;sh.renderOrder = 1;this.shadows[f.id] = sh;this.scene.add(sh);
+    }
+    return sh;
+  }
+  draw(fighters, events = [], dt = 1 / 60, {paused = false, tick = 0, sources = [], realDt = dt} = {}) {
+    const X = C.extras, V = X.visual, S = C.display.shadow, G = C.display.grounding;
+    for (const event of events) {
+      if (this.seenEvents.has(event)) continue;this.seenEvents.add(event);
+      const attacker = fighters[event.attacker], target = fighters[event.target];if (!attacker || !target) continue;
+      if (event.normal && (event.result !== 'clash' || event.attacker === 0)) this.normals.push({x: (attacker.position.x + target.position.x) / 2, z: (attacker.position.z + target.position.z) / 2, n: event.normal, result: event.result, age: 0, launch: event.launch});
+    }
+    for (const f of fighters) {
+      if (!this.meshes[f.id]) {
+        const body = new T.Mesh(new T.BoxGeometry(1, 1, 1), new T.MeshStandardMaterial({color: f.id ? rgb('enemy') : rgb('player')}));this.meshes[f.id] = body;this.scene.add(body);
+        const arrow = new T.Mesh(new T.ConeGeometry(.16, .42, 3), new T.MeshBasicMaterial({color: rgb('arrow')}));this.arrows[f.id] = arrow;this.scene.add(arrow);
+      }
+      const body = this.meshes[f.id], alt = (f.flight?.y ?? 0) + (f.vaultHeight ?? 0), character = this.characters[f.id];
+      body.visible = !character;this.arrows[f.id].visible = !character;
+      // Bloco: compressão e alongamento seguindo as fases físicas de X/C (preparação comprime, impulso alonga).
+      let squash = 1;
+      if (f.action && (f.action.kind === 'tackle' || f.action.kind === 'dodge')) {
+        const p = C.actions[f.action.kind], u = f.action.elapsed / p.duration, phase = p.profile === 1 ? phaseAt(u, p) : '';
+        squash = phase === 'preparação' ? .86 : phase === 'impulso' ? 1.08 : phase === 'deslocamento' ? 1.04 : phase === 'desaceleração' ? .96 : 1;
+      }
+      const vis = G.visualOffset || 0, wide = Math.sqrt(2 - squash);
+      body.position.set(f.position.x, V.bodyHeight / 2 * squash + alt + vis, f.position.z);
+      body.scale.set(V.bodyWidth * wide, (f.state === 'landing' ? V.bodyHeight * V.landingScale : f.guard ? V.bodyHeight * V.guardScale : V.bodyHeight) * squash, V.bodyDepth * wide);
+      // Sombra: posição física (independente da altura visual), atenuada pela altura do lutador.
+      const shadow = this.shadowFor(f), fade = Math.max(V.shadowMin, 1 - alt * V.shadowHeightFade), style = S.style | 0;
+      shadow.position.set(f.position.x + S.offsetX, .012, f.position.z + S.offsetZ);
+      const size = (style === 0 ? 1 : S.radius * 2) * fade;
+      shadow.scale.set(size * S.scaleX * (style === 0 ? V.bodyWidth : 1), 1, size * S.scaleZ * (style === 0 ? V.bodyDepth : 1));
+      shadow.material.color.setHex(rgb('shadow'));shadow.material.opacity = Math.min(1, (style === 0 ? 1 : S.opacity * fade) * S.intensity);
+      body.material.color.setHex(f.hp <= 0 ? rgb('defeated') : f.id ? rgb('enemy') : rgb('player'));
+      body.material.emissive.setHex(f.guard ? rgb('glowGuard') : isInvulnerable(f) ? rgb('glowInvuln') : f.state === 'recoil' ? rgb('glowRecoil') : isOffensive(f) ? rgb('glowTackle') : 0);
+      const arrow = this.arrows[f.id];arrow.position.set(f.position.x + Math.sin(f.visualFacing) * V.arrowOffset, V.arrowHeight + alt + vis, f.position.z + Math.cos(f.visualFacing) * V.arrowOffset);
+      arrow.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), new T.Vector3(Math.sin(f.visualFacing), 0, Math.cos(f.visualFacing)));arrow.scale.set(V.arrowRadius / .16, V.arrowLength / .42, V.arrowRadius / .16);
+      arrow.material.color.setHex(f.guard ? rgb('arrowGuard') : rgb('arrow'));
+      // A prévia de animação continua tocando com a partida pausada.
+      character?.update(f, paused ? (character.preview ? realDt : 0) : dt, alt, events, {tick, source: sources[f.id]});
+    }
     this.drawOverlays(fighters, paused ? 0 : dt);
     if (!this.rig.initialized) this.rig.reset(fighters[0]);
     const pose = this.rig.pose();
-    if (!paused) this.cameraShake *= Math.exp(-X.cameraExtra.cameraShakeDecay * Math.min(dt, .05));
-    const phase = performance.now() * .045, shake = this.cameraShake * X.cameraExtra.cameraShakeAmount;
-    this.camera.position.set(pose.position.x + Math.sin(phase * 2.1) * shake, pose.height + Math.sin(phase * 1.5) * shake * .45, pose.position.z + Math.cos(phase * 1.9) * shake);
-    this.camera.lookAt(pose.lookAt.x, pose.lookHeight, pose.lookAt.z);
+    this.camera.position.set(pose.position.x, pose.height, pose.position.z);this.camera.lookAt(pose.lookAt.x, pose.lookHeight, pose.lookAt.z);this.camera.updateMatrixWorld();
+    // Efeitos depois da câmera (o flash de tela projeta o ponto do impacto). Pausado: dt = 0, os efeitos congelam.
+    this.vfx.update(fighters, events, paused ? 0 : Math.min(dt, .05), {characters: this.characters, camera: this.camera});
+    const legacy = this.updateLegacy(fighters, events, paused ? 0 : dt);
+    const fxOn = !!X.hud.fxVisible && !!this.vfx.atlas;this.vfx.add.mesh.visible = fxOn;this.vfx.norm.mesh.visible = fxOn;
+    // Tremor: deslocamento visual temporário aplicado DEPOIS da pose do rig (o rig, o yaw e a entrada não mudam).
+    const sh = this.vfx.shakeOffset(paused ? 0 : Math.min(dt, .05), this.camera);sh.x += legacy.x;sh.y += legacy.y;sh.z += legacy.z;this.lastShake = sh;
+    if (sh.x || sh.y || sh.z || sh.roll) {
+      this.camera.position.set(pose.position.x + sh.x, pose.height + sh.y, pose.position.z + sh.z);
+      this.camera.lookAt(pose.lookAt.x + sh.x * .5, pose.lookHeight + sh.y * .5, pose.lookAt.z + sh.z * .5);this.camera.rotateZ(sh.roll);
+    }
     const w = this.canvas.clientWidth, h = this.canvas.clientHeight;
     if (w > 0 && h > 0) {this.renderer.setSize(w, h, false);this.camera.aspect = w / h;this.camera.updateProjectionMatrix();this.renderer.render(this.scene, this.camera);}
   }
@@ -150,7 +200,7 @@ export class View {
           const span = Math.max(1e-6, K.windowEnd - K.windowStart), left = open ? Math.max(0, (K.windowEnd - t) / span) : 1;
           const color = !open ? 0x8a94a6 : afford ? 0x5dff9a : 0xff5a5a;
           // Faixa plana (RingGeometry no plano XZ), centrada na frente do lutador; o arco encolhe com o tempo restante da janela.
-          const band = new T.Mesh(new T.RingGeometry(1.05, 1.3, 64, 1, f.facing - Math.PI / 2 - Math.PI * left, Math.PI * 2 * left), new T.MeshBasicMaterial({color, transparent: true, opacity: .75, side: T.DoubleSide, depthTest: false, depthWrite: false}));
+          const band = new T.Mesh(new T.RingGeometry(C.display.cancelRing.inner, C.display.cancelRing.inner + C.display.cancelRing.width, 64, 1, f.facing - Math.PI / 2 - Math.PI * left, Math.PI * 2 * left), new T.MeshBasicMaterial({color, transparent: true, opacity: C.display.cancelRing.opacity, side: T.DoubleSide, depthTest: false, depthWrite: false}));
           band.rotation.x = -Math.PI / 2;band.position.set(f.position.x, .04 + alt, f.position.z);band.renderOrder = 901;this.overlayGroup.add(band);
         }
         if (f.inputBuffer) {
@@ -192,4 +242,13 @@ export function predictFlight(f, dt = 1 / 120) {
     if (y <= 0) {pts.push([x, .65, z]);break;}
   }
   return pts;
+}
+
+/** Textura radial da sombra suave (C): núcleo opaco e borda que se dissipa conforme a suavidade. */
+const softCache = new Map();
+function softShadowTexture(softness) {
+  const k = Math.round(softness * 20) / 20;if (softCache.has(k)) return softCache.get(k);
+  const cv = document.createElement('canvas');cv.width = cv.height = 128;const g = cv.getContext('2d'), gr = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+  const core = Math.max(0, .75 - k * .7);gr.addColorStop(0, 'rgba(255,255,255,1)');gr.addColorStop(core, 'rgba(255,255,255,.95)');gr.addColorStop(Math.min(.99, core + (1 - core) * .55), 'rgba(255,255,255,.35)');gr.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = gr;g.fillRect(0, 0, 128, 128);const t = new T.CanvasTexture(cv);softCache.set(k, t);return t;
 }

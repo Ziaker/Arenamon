@@ -99,13 +99,14 @@ export function defaults() {
 export function vfxDefaults() {
   const shake = (amplitude, duration, profile, enabled = 1) => ({enabled, profile, amplitude, duration, frequency: 26, damping: 7, angular: .6, intensity: 1, limit: .45});
   return {
-    master: {enabled: 1, maxParticles: 1400, debugLog: 1},
-    hit: {enabled: 1, variant: 0, size: 1, duration: .38, count: 18, intensity: 1, speed: 6, opacity: .95, color: 0xffb361, glow: 1.2, fade: 1.6},
+    // legacy: liga também as partículas e o tremor antigos do v6 (parâmetros de Ajustes › Visual › Efeitos e feedback).
+    master: {enabled: 1, maxParticles: 1400, debugLog: 1, legacy: 0},
+    hit: {enabled: 1, variant: 0, size: 1.3, duration: .38, count: 18, intensity: 1, speed: 6, opacity: .95, color: 0xffb361, glow: 1.2, fade: 1.6},
     dodge: {enabled: 1, variant: 0, count: 6, length: 1.4, duration: .22, width: .07, opacity: .7, spread: .45, interval: .025, intensity: 1, color: 0x9dffd8},
     sprint: {enabled: 1, variant: 0, density: 1, length: 1.1, speed: 9, spread: .5, intensity: 1, opacity: .55, color: 0xd8f4ff, frequency: 28},
     block: {enabled: 1, variant: 1, size: 1, opacity: .75, duration: .3, color: 0x73caff, intensity: 1, count: 10, expansion: 1},
     perfect: {enabled: 1, variant: 0, intensity: 1.3, duration: .55, scale: 1.2, count: 26, wave: 2.4, glow: 1.6, color: 0x9dffd2, color2: 0xffffff, fade: 1.4, flash: .55, freeze: .07},
-    ground: {enabled: 1, variant: 0, radius: 1.3, density: 1, duration: .55, intensity: 1, speed: 3.5, opacity: .7, particleSize: .22, elevation: .5, color: 0xb4c1cb, minImpact: 2},
+    ground: {enabled: 1, variant: 0, radius: 1.3, density: 1, duration: .55, intensity: 1, speed: 3.5, opacity: .85, particleSize: .22, elevation: .5, color: 0xe6edf2, minImpact: 2},
     clash: {enabled: 1, variant: 0, scale: 1.2, duration: .6, intensity: 1.3, count: 30, color: 0xffe58d, color2: 0xff7a3c, radius: 1.6, speed: 7, glow: 1.6},
     exhaust: {enabled: 1, variant: 0, target: 0, count: 5, fallSpeed: 1.1, spread: .55, size: .26, opacity: .85, glow: 1, startHeight: 2.1, interval: .14, color: 0x4fa3ff},
     regen: {enabled: 1, variant: 0, count: 3, frequency: 7, speed: 1.2, height: 1.8, intensity: 1, size: .2, opacity: .8, spread: .5, color: 0xffd34d, scaleWithRate: 1},
@@ -118,7 +119,7 @@ export function vfxDefaults() {
 export function displayDefaults() {
   return {
     // style: 0 = quadrada (compatibilidade), 1 = círculo simples, 2 = círculo suave (gradiente radial).
-    shadow: {style: 2, opacity: .55, radius: .62, scaleX: 1, scaleZ: 1, softness: .6, offsetX: 0, offsetZ: 0, intensity: 1, heightFade: .16, minScale: .3},
+    shadow: {style: 2, opacity: .55, radius: .62, scaleX: 1, scaleZ: 1, softness: .6, offsetX: 0, offsetZ: 0, intensity: 1},
     // proposal: 0 = HUD atual, 1 = A (Arcade Vector), 2 = B (Combat Halo), 3 = C (Tactical Combat). Cooldowns: só demonstração.
     hud: {proposal: 0, scale: 1, demoCooldowns: 1, demoAuto: 1, demoDuration: 4, damageDelay: .45},
     // Altura visual: deslocamento do modelo/bloco sem mover o colisor nem a sombra.

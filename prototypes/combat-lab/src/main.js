@@ -10,6 +10,8 @@ import {SCENARIOS, prepareScenario, runScenario} from './sim/scenarios.js';
 import {View, OVERLAYS} from './view/view.js';
 import {Character, loadStudioFile, studioWindows, compareWindows} from './view/characters.js';
 import {createCharacterPanel} from './ui/characters-panel.js';
+import {createVisualPanel} from './ui/visual-panel.js';
+import {HudProposals} from './ui/hud-proposals.js';
 import {Hud} from './ui/hud.js';
 import {Input} from './ui/input.js';
 import {createTuning, escape, pathGet} from './ui/tuning.js';
@@ -190,7 +192,8 @@ function applyConfig() {
     if (profile) {const oldHP = f.attributes.hp;f.attributes = {...profile};if (profile.hp !== oldHP) f.hp = Math.min(profile.hp, Math.max(0, f.hp + (profile.hp - oldHP)));}
     f.stamina = Math.min(C.rules.staminaMax, f.stamina);f.regenBase = Math.min(C.rules.staminaMax, f.regenBase);
   }
-  $('hud-root').hidden = !X.hud.hudVisible;hud.debug = !!X.hud.debugVisible;
+  // HUD atual só quando nenhuma proposta (A/B/C) está em avaliação: nunca dois HUDs ao mesmo tempo.
+  $('hud-root').hidden = !X.hud.hudVisible || (C.display.hud.proposal | 0) !== 0;hud.debug = !!X.hud.debugVisible;
   const mode = AI_MODES[X.gameModes.enemyMode | 0]?.[0] || 'combat';$('mode').value = mode;game.mode = mode;
   const profile = ['balanced', 'agile', 'resistant'][X.gameModes.playerProfile | 0] || 'balanced';$('profile').value = profile;game.profile = profile;
   syncButtons();
@@ -349,6 +352,27 @@ document.addEventListener('visibilitychange', () => {if (document.hidden && game
 const dock = createDock({recorder, getCursorTick: () => game.tick, onSeek: seekTick,
   studioWindowsFor: id => {const ch = ui.characters[id];if (!ch) return null;return {tackle: studioWindows(ch, 'tackle'), dodge: studioWindows(ch, 'dodge_forward')};}});
 
+// ---------- Overhaul: Visualizar, Partida, Controles e propostas de HUD ----------
+const hudProposals = new HudProposals($('hud-proposals'));
+const visualPanel = createVisualPanel({tuning, view, game, $, hud: hudProposals, download});
+$('enemy-ai-control').append(tuning.controlFor('extras.toggles.enableEnemyAI'));
+$('bindings-controls').append(...tuning.sectionControls('Teclas: índices configuráveis'));
+/** Grupos estáticos com mais de dois controles ganham botão ▼ (recolher/expandir). */
+function foldStaticSections() {
+  for (const section of document.querySelectorAll('.panel-body section[data-section]')) {
+    for (const h of [...section.children].filter(el => el.tagName === 'H3')) {
+      if (h.querySelector('.fold-btn')) continue;
+      const items = [];for (let el = h.nextElementSibling; el && el.tagName !== 'H3'; el = el.nextElementSibling) items.push(el);
+      const count = items.reduce((n, el) => n + (el.matches('input,select,button,textarea') ? 1 : 0) + el.querySelectorAll('input,select,button,textarea').length, 0);
+      if (count <= 2) continue;
+      const body = document.createElement('div');body.className = 'fold-body';items.forEach(el => body.append(el));h.after(body);h.classList.add('static-fold');
+      const b = document.createElement('button');b.type = 'button';b.className = 'fold-btn';const set = open => {body.hidden = !open;b.textContent = open ? '▼' : '▶';b.setAttribute('aria-expanded', String(open));b.title = (open ? 'Recolher ' : 'Expandir ') + h.textContent.trim();};
+      b.onclick = () => set(body.hidden);set(true);h.append(b);
+    }
+  }
+}
+foldStaticSections();
+
 // ---------- Laço principal ----------
 let last = performance.now(), uiTimer = 0;
 function frame(now) {
@@ -360,8 +384,8 @@ function frame(now) {
   const back = replay.length ? (replay.length - 1 - replay.cursor) : 0;
   hud.render(game, ui.fps, {locked: input.locked, paused: ui.paused && game.phase !== 'menu', replay: back ? `−${back} passos (${(back * C.test.step * 1000).toFixed(0)} ms) · ▶ retoma daqui` : 'último passo · , e . avançam/voltam', playerAI: !!C.extras.toggles.enablePlayerAI});
   $('rp-readout').textContent = `passo ${game.tick}${back ? ` · −${(back * C.test.step).toFixed(2)} s` : ''}${clock.timeScale !== 1 ? ` · ${clock.timeScale}×` : ''}`;
-  dock.render();
-  if ((uiTimer += dt) > .1) {uiTimer = 0;renderLive();renderHistory();renderCharacterLive();renderRecStatus();}
+  dock.render();hudProposals.render(game, live ? dt * clock.timeScale : 0);
+  if ((uiTimer += dt) > .1) {uiTimer = 0;renderLive();renderHistory();renderCharacterLive();renderRecStatus();visualPanel.live();}
   ui.frame++;requestAnimationFrame(frame);
 }
 applyConfig();renderScenarios();renderCharacters();syncTuneState();openTool('match');syncButtons();
@@ -370,4 +394,4 @@ requestAnimationFrame(frame);
 // ---------- Interfaces para testes e compatibilidade com o v6 ----------
 window.__arenamon = {snapshot: () => ({...game.snapshot(), frame: ui.frame, camera: view.rig.snapshot(), locked: input.locked, hitboxDebug: !!C.extras.toggles.showHitboxes, playerAI: !!C.extras.toggles.enablePlayerAI})};
 window.__arenaLive = {rules: C.rules, test: C.test, locomotion: C.locomotion, camera: C.camera, profiles: C.profiles, extras: C.extras, game, view, input, clock, reset: startMatch, apply: applyConfig};
-window.__lab = {C, game, view, recorder, replay, tuning, ui, startMatch, startScenario: id => startScenario(SCENARIOS.find(s => s.id === id)), stepFrames, seekTick, goLive, togglePause, setCharacter, loadStudioFile, SCENARIOS, runScenario};
+window.__lab = {C, game, view, hudProposals, visualPanel, recorder, replay, tuning, ui, startMatch, startScenario: id => startScenario(SCENARIOS.find(s => s.id === id)), stepFrames, seekTick, goLive, togglePause, setCharacter, loadStudioFile, SCENARIOS, runScenario};

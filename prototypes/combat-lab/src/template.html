@@ -42,7 +42,16 @@
      <label class="field">Perfil do jogador (azul)<select id="profile"><option value="balanced">Equilibrado</option><option value="agile">Ágil</option><option value="resistant">Resistente</option></select></label>
      <label class="field">Perfil do adversário (vermelho)<select id="enemy-profile"><option value="balanced">Equilibrado</option><option value="agile">Ágil</option><option value="resistant">Resistente</option></select></label>
      <label class="field">Comportamento do adversário<select id="mode"></select></label>
+     <div id="enemy-ai-control"></div>
+     <label class="field">IA do jogador quando 🤖 ligado<select id="player-mode"></select></label>
      <button type="button" class="primary wide" id="start">▶ Iniciar combate</button>
+     <h3>Aleatoriedade</h3>
+     <p class="hint">Cada IA tem personalidade própria (reação, erros, agressividade, variação e hesitação) em <b>Ajustes › IA</b>. A semente define a sequência sorteada: a mesma semente repete a mesma luta.</p>
+     <label class="field">Semente<input type="number" id="seed" min="1" step="1" value="1"></label>
+     <label class="check"><input type="checkbox" id="seed-fixed"> Semente fixa (sem marcar, cada combate sorteia uma nova)</label>
+     <h3>Dificuldade da IA</h3>
+     <div class="seg wide" role="group" aria-label="Dificuldade"><button type="button" data-difficulty="easy">Fácil</button><button type="button" data-difficulty="normal">Normal (v6)</button><button type="button" data-difficulty="hard">Difícil</button></div>
+     <p class="hint">Os presets mudam alcance, intervalo de ataque, reação e ciclo de esquiva da IA (aba Ajustes › IA), com desfazer.</p>
      <h3>Gravação da partida</h3>
      <p class="hint">Toda partida é gravada (semente, perfis, ajustes e as entradas do azul). Reproduza com os ajustes da gravação para repetir a luta exatamente, ou com os ajustes atuais para repetir as mesmas entradas em outra configuração.</p>
      <div class="row"><button type="button" id="rec-save" disabled>↓ Salvar gravação</button><span id="rec-status" class="muted"></span></div>
@@ -50,7 +59,7 @@
      <label class="field">Ajustes na reprodução<select id="rec-values"><option value="recorded">Os da gravação (repete a luta exatamente)</option><option value="current">Os atuais (mesmas entradas, outra configuração)</option></select></label>
      <div id="rec-result" class="report" aria-live="polite"></div>
      <h3>Controles</h3>
-     <p class="keys">↑↓←→ mover · <b>X</b> tackle (qualquer direção) · <b>C</b> esquiva (salta sobre o rival no caminho; X durante C = cancelamento C → X) · <b>D</b> defender · <b>Tab</b> fixar alvo · <b>Esc</b> pausar · <b>R</b> reiniciar · botão direito/roda: câmera. Gamepad: A tackle, B esquiva, LB/RB defesa, Y alvo.</p>
+     <p class="keys">↑↓←→ mover · <b>X</b> tackle (qualquer direção) · <b>C</b> esquiva (salta sobre o rival no caminho; X durante C = cancelamento C → X; segure C com uma direção = sprint) · <b>D</b> defender · <b>Tab</b> fixar alvo · <b>Esc</b> pausar · <b>R</b> reiniciar · botão direito/roda: câmera. Gamepad: A tackle, B esquiva, LB/RB defesa, Y alvo.</p>
      <p class="hint">Pausado: ◂/▸ na linha do tempo (ou , e .) voltam e avançam um passo de simulação. Os últimos 12 s ficam gravados.</p>
     </section>
     <section data-section="scenarios" hidden>
@@ -83,10 +92,12 @@
      <div id="preset-list"></div>
      <div class="row"><select id="preset-a" aria-label="Preset A"></select><span>×</span><select id="preset-b" aria-label="Preset B"></select><button type="button" id="preset-compare">Comparar</button></div>
      <div id="preset-diff" class="report"></div>
+     <button type="button" class="wide" id="reset-all">Restaurar todos os padrões do laboratório</button>
     </section>
     <section data-section="overlays" hidden>
      <p class="hint">Sobreposições técnicas desenhadas por cima da arena. Não alteram a simulação.</p>
      <div id="overlay-list"></div>
+     <div id="visual-panel"></div>
      <h3>Dados ao vivo</h3>
      <dl class="live" id="live-data"></dl>
     </section>
@@ -116,18 +127,14 @@
      <div id="studio-events" class="report"></div>
     </section>
     <section data-section="controls" hidden>
-     <p class="hint">O comportamento do adversário fica em <b>Partida</b>.</p>
-     <label class="field">IA do jogador quando 🤖 ligado<select id="player-mode"></select></label>
-     <h3>Aleatoriedade</h3>
-     <p class="hint">Cada IA tem personalidade própria (reação, erros, agressividade, variação e hesitação) em <b>Ajustes › IA</b>. A semente define a sequência sorteada: a mesma semente repete a mesma luta.</p>
-     <label class="field">Semente<input type="number" id="seed" min="1" step="1" value="1"></label>
-     <label class="check"><input type="checkbox" id="seed-fixed"> Semente fixa (sem marcar, cada combate sorteia uma nova)</label>
-     <h3>Dificuldade da IA</h3>
-     <div class="seg wide" role="group" aria-label="Dificuldade"><button type="button" data-difficulty="easy">Fácil</button><button type="button" data-difficulty="normal">Normal (v6)</button><button type="button" data-difficulty="hard">Difícil</button></div>
-     <p class="hint">Os presets mudam alcance, intervalo de ataque, reação e ciclo de esquiva da IA (aba Ajustes › IA), com desfazer.</p>
-     <h3>Entrada</h3>
-     <label class="check"><input type="checkbox" id="show-history" checked> Mostrar histórico de comandos</label>
+     <p class="hint">Teclado, gamepad e configuração de entrada. Perfis, IA e semente ficam em <b>Partida</b>.</p>
+     <h3>Teclas</h3>
+     <div id="bindings-controls"></div>
+     <h3>Gamepad</h3>
+     <p class="keys">A tackle · B esquiva (segure para sprint) · LB/RB defesa · Y alvo · Start pausa.</p>
      <p class="hint" id="pad-status">Nenhum gamepad conectado.</p>
+     <h3>Histórico de entrada</h3>
+     <label class="check"><input type="checkbox" id="show-history" checked> Mostrar histórico de comandos</label>
     </section>
     <section data-section="homolog" hidden><div id="homolog-list"></div></section>
     <section data-section="export" hidden>
@@ -143,12 +150,13 @@
      <label class="check"><input type="checkbox" id="patch-defaults"><span>Incluir as diferenças padrão do laboratório (arena, velocidade, câmera…), não só o que você ajustou</span></label>
      <button type="button" id="patch-generate">Gerar proposta</button>
      <div id="patch-result" class="report" aria-live="polite"></div>
-     <button type="button" class="wide" id="reset-all">Restaurar todos os padrões do laboratório</button>
     </section>
    </div>
   </aside>
   <main class="stage">
-   <canvas tabindex="0" aria-label="Arena 3D. Setas movem, X tackle, C esquiva, D defesa."></canvas>
+   <canvas tabindex="0" aria-label="Arena 3D. Setas movem, X tackle, C esquiva (segure para sprint), D defesa."></canvas>
+   <div id="vfx-flash"></div>
+   <div id="hud-proposals" class="hudp" hidden></div>
    <header id="hud-root">
     <div class="fighter"><strong id="name0">JOGADOR · AZUL</strong><meter id="hp0" min="0" max="1" value="1" aria-label="Vida jogador"></meter><meter id="stamina0" class="sta" min="0" max="1" value="1" aria-label="Stamina jogador"></meter><span id="state0"></span></div>
     <div class="fighter enemy"><strong>ADVERSÁRIO · VERMELHO</strong><meter id="hp1" min="0" max="1" value="1" aria-label="Vida adversário"></meter><meter id="stamina1" class="sta" min="0" max="1" value="1" aria-label="Stamina adversário"></meter><span id="state1"></span></div>

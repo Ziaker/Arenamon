@@ -7,17 +7,19 @@ import {NAMES, SECTIONS, TOOLTIPS, KEY_HELP} from './tuning-meta.js';
 import {OFFICIAL} from './official.js';
 import {STYLES} from '../sim/tactics.js';
 import {actionMeta, OFFICIAL_MAP, migrateFlat, flatten} from './actions-meta.js';
+import {overhaulMeta} from './overhaul-meta.js';
+import {VFX_TYPES, SHAKE_EVENTS} from '../view/vfx.js';
 
 const $ = id => document.getElementById(id);
 export const pathGet = (root, path) => path.split('.').reduce((a, k) => a?.[k], root);
 export const pathSet = (root, path, value) => {const keys = path.split('.'), last = keys.pop();const obj = keys.reduce((a, k) => a?.[k], root);if (!obj || !(last in obj)) return false;obj[last] = value;return true;};
 const TABS = [
-  ['X e C', ['Esquiva (C)', 'Tackle (X)', 'Cancelamento C → X', 'Buffer de entrada']],
+  ['X e C', ['Esquiva (C)', 'Tackle (X)', 'Sprint (C mantido)', 'Cancelamento C → X', 'Buffer de entrada']],
   ['Combate', ['Regras gerais, defesa e stamina', 'Knockback e clash', 'Combate e colisões']],
   ['Atributos', ['Atributos: equilibrado', 'Atributos: ágil', 'Atributos: resistente']],
-  ['Movimento', ['Movimento']], ['Câmera', ['Câmera', 'Câmera: ajustes avançados']], ['IA', ['IA: estratégia e decisões', 'IA: personalidade do vermelho', 'IA: personalidade do azul (IA jogador)']], ['Arena', ['Arena e simulação']],
+  ['Movimento', ['Movimento']], ['IA', ['IA: estratégia e decisões', 'IA: personalidade do vermelho', 'IA: personalidade do azul (IA jogador)']], ['Arena', ['Arena e simulação']],
   ['Visual', ['Renderizador e personagens', 'Efeitos e feedback', 'HUD e visualização', 'Cores: canais RGB individuais']],
-  ['Sistemas', ['Ativar ou desativar sistemas', 'Modos de jogo', 'Teclas: índices configuráveis']],
+  ['Sistemas', ['Ativar ou desativar sistemas', 'Modos de jogo']],
 ];
 const COLOR_NAMES = {player: 'Jogador azul', enemy: 'Adversário vermelho', floor: 'Piso', wall: 'Paredes', background: 'Fundo', gridMajor: 'Grid principal', gridMinor: 'Grid secundário', impact: 'Impacto', clash: 'Clash', landing: 'Poeira ao aterrissar', partial: 'Defesa parcial', perfect: 'Defesa perfeita', invulnerable: 'Invulnerabilidade', shadow: 'Sombra', arrow: 'Seta frontal', arrowGuard: 'Seta defendendo', defeated: 'Derrotado', glowGuard: 'Brilho da defesa', glowInvuln: 'Brilho da invulnerabilidade', glowRecoil: 'Brilho de recuo', glowTackle: 'Brilho de tackle'};
 const SAFE_MIN = {'rules.dodge': .05, 'rules.tackleDuration': .05, 'rules.recoil': .05, 'rules.regenTime': .1, 'rules.launchGravity': .5, 'rules.staminaMax': .1, 'test.contactStep': .01, 'test.halfExtent': .1, 'test.attackReference': .01, 'test.speedReference': .01,
@@ -74,20 +76,26 @@ export function officialValue(path) {
 }
 const same = (a, b) => Math.abs(a - b) <= 1e-9 * Math.max(1, Math.abs(a), Math.abs(b));
 
+/** Seções do overhaul fora do catálogo original: sprint (Ajustes) e efeitos, sombras, HUD e tremores (Visualizar). */
+export const EXTRA_SECTIONS = [['Sprint (C mantido)', 'actions.sprint', null], ['VFX · geral', 'vfx.master', null],
+  ...VFX_TYPES.map(([type, label]) => [`VFX · ${label}`, `vfx.${type}`, null]), ['Tremor · geral', 'vfx.shakeMaster', null], ...SHAKE_EVENTS.map(([key, label]) => [`Tremor · ${label}`, `vfx.${key}`, null]),
+  ['Sombras', 'display.shadow', null], ['HUD', 'display.hud', null], ['Altura visual', 'display.grounding', null], ['Indicador da janela C → X', 'display.cancelRing', null]];
+/** Parâmetros mostrados em outras abas (sem duplicar controles no Ajustes). */
+const ELSEWHERE = new Set(['extras.toggles.enableEnemyAI', 'extras.visual.shadowMin', 'extras.visual.shadowHeightFade']);
 export function createTuning({apply}) {
   const base = defaults(), manifest = [];
-  for (const [section, rootPath, subset] of SECTIONS) {
+  for (const [section, rootPath, subset] of [...SECTIONS, ...EXTRA_SECTIONS]) {
     const root = pathGet(C, rootPath);
     for (const key of subset ?? Object.keys(root)) {
       const v = root[key];if (typeof v !== 'number') continue;
-      const path = rootPath + '.' + key, am = actionMeta(path), r = am ? am.range : range(key, v, path);
+      const path = rootPath + '.' + key, am = overhaulMeta(path) || actionMeta(path), r = am ? am.range : range(key, v, path);
       r.min = Math.max(r.min, SAFE_MIN[path] ?? -Infinity);r.min = Math.min(r.min, v);r.max = Math.max(r.max, v);
       const label = am ? am.label : path.startsWith('extras.colors.') ? (COLOR_NAMES[key.slice(0, -1)] || key) + ' · ' + ({R: 'Vermelho', G: 'Verde', B: 'Azul'})[key.slice(-1)] : path === 'extras.bindings.dodge' ? 'Tecla de esquiva (C)' : NAMES[key] || key;
       manifest.push({section, path, key, label, help: am ? am.help : help(path, label), initial: pathGet(base, path), official: officialValue(path), ...r});
     }
   }
   const byPath = new Map(manifest.map(m => [m.path, m]));
-  const state = {tab: TABS[0][0], filter: 'all', undo: [], redo: [], saved: snapshotValues(), savedLabel: 'padrão', listeners: new Set()};
+  const state = {tab: TABS[0][0], filter: 'all', undo: [], redo: [], saved: snapshotValues(), savedLabel: 'padrão', listeners: new Set(), folds: new Map(), external: new Set()};
   function snapshotValues() {return Object.fromEntries(manifest.map(m => [m.path, pathGet(C, m.path)]));}
   const status = m => {const v = pathGet(C, m.path);return m.official === undefined ? 'lab' : same(v, m.official) ? 'official' : 'experimental';};
   const changed = m => !same(pathGet(C, m.path), m.initial);
@@ -117,6 +125,7 @@ export function createTuning({apply}) {
     }
   }
   function visible(m) {
+    if (ELSEWHERE.has(m.path)) return false;
     const q = $('tune-search').value.trim().toLowerCase();
     if (q && !(m.label + ' ' + m.path + ' ' + m.help + ' ' + m.section).toLowerCase().includes(q)) return false;
     return state.filter === 'all' || (state.filter === 'changed' ? changed(m) : status(m) === state.filter);
@@ -131,8 +140,9 @@ export function createTuning({apply}) {
       const head = document.createElement('header');const title = document.createElement('span');title.textContent = section;
       const reset = document.createElement('button');reset.type = 'button';reset.textContent = '↺ grupo';reset.title = 'Restaurar este grupo aos padrões do laboratório';
       reset.onclick = () => commit(members.map(m => [m.path, m.initial]), 'Restaurar ' + section);
-      head.append(title, reset);group.append(head);
-      for (const m of members) group.append(control(m));
+      const body = document.createElement('div');body.className = 'tune-body';for (const m of members) body.append(control(m));
+      if (members.length > 2) {const fold = document.createElement('button');fold.type = 'button';fold.className = 'fold-btn';const set = open => {state.folds.set(section, open);body.hidden = !open;fold.textContent = open ? '▼' : '▶';fold.title = (open ? 'Recolher ' : 'Expandir ') + section;fold.setAttribute('aria-expanded', String(open));};fold.onclick = () => set(body.hidden);set(state.folds.get(section) ?? true);head.prepend(fold);}
+      head.append(title, reset);group.append(head, body);
       list.append(group);
     }
     if (!total) {const p = document.createElement('p');p.className = 'hint';p.textContent = 'Nenhum parâmetro neste filtro.';list.append(p);}
@@ -143,7 +153,7 @@ export function createTuning({apply}) {
   function control(m) {
     const v = pathGet(C, m.path), row = document.createElement('div');row.className = 'tune-control' + (changed(m) ? ' changed' : '');
     const top = document.createElement('div');top.className = 'tune-top';
-    const id = 'tune-' + m.path.replaceAll('.', '-'), label = document.createElement('label');label.htmlFor = id;label.textContent = m.label;
+    const id = (state.renderingExternal ? 'ext-' : 'tune-') + m.path.replaceAll('.', '-'), label = document.createElement('label');label.htmlFor = id;label.textContent = m.label;
     const q = document.createElement('button');q.type = 'button';q.className = 'tune-help';q.textContent = '?';q.setAttribute('aria-label', 'Explicação: ' + m.label);
     q.onpointerenter = () => showTip(m, q);q.onpointerleave = hideTip;q.onfocus = () => showTip(m, q);q.onblur = hideTip;
     const st = status(m), badge = document.createElement('span');badge.className = 'badge ' + (st === 'lab' ? 'labonly' : st);
@@ -151,10 +161,7 @@ export function createTuning({apply}) {
     badge.title = st === 'official' ? 'Igual ao config.ts do jogo' : st === 'experimental' ? `Difere do jogo (jogo: ${m.fmt(m.official)})` : 'Existe só no laboratório';
     const value = document.createElement('span');value.className = 'tune-value';value.textContent = m.fmt(v);
     top.append(label, q, badge, value);
-    const slider = document.createElement('input');slider.type = 'range';slider.id = id;slider.min = m.min;slider.max = m.max;slider.step = m.step;slider.value = v;slider.setAttribute('aria-describedby', id + '-d');
-    let before = null;
-    slider.addEventListener('input', () => {if (before === null) before = pathGet(C, m.path);const n = Math.max(m.min, Math.min(m.max, Number(slider.value)));pathSet(C, m.path, n);value.textContent = m.fmt(n);apply();});
-    slider.addEventListener('change', () => {const after = pathGet(C, m.path);if (before !== null && !same(before, after)) {pathSet(C, m.path, before);commit([[m.path, after]], m.label);}before = null;});
+    const slider = input(m, id, value);slider.setAttribute('aria-describedby', id + '-d');
     const bottom = document.createElement('div');bottom.className = 'tune-bottom';const code = document.createElement('span');code.id = id + '-d';code.textContent = m.path;
     const actions = document.createElement('span');
     const reset = document.createElement('button');reset.type = 'button';reset.textContent = '↺ lab';reset.title = 'Padrão do laboratório: ' + m.fmt(m.initial);reset.disabled = !changed(m);reset.onclick = () => commit([[m.path, m.initial]], 'Restaurar ' + m.label);
@@ -162,6 +169,36 @@ export function createTuning({apply}) {
     if (st === 'experimental') {const g = document.createElement('button');g.type = 'button';g.textContent = '= jogo';g.title = 'Usar o valor do jogo: ' + m.fmt(m.official);g.onclick = () => commit([[m.path, m.official]], 'Valor do jogo: ' + m.label);actions.append(g);}
     bottom.append(code, actions);row.append(top, slider, bottom);return row;
   }
+  /** Campo do parâmetro conforme o tipo; mudanças entram no histórico (desfazer/refazer). */
+  function input(m, id, value) {
+    const v = pathGet(C, m.path);let el;
+    if (m.kind === 'select') {el = document.createElement('select');m.options.forEach((o, i) => el.append(new Option(o, String(i))));el.value = String(Math.round(v));el.onchange = () => commit([[m.path, Number(el.value)]], m.label);}
+    else if (m.kind === 'toggle') {el = document.createElement('input');el.type = 'checkbox';el.className = 'tune-toggle';el.checked = !!v;el.onchange = () => commit([[m.path, el.checked ? 1 : 0]], m.label);}
+    else if (m.kind === 'color') {el = document.createElement('input');el.type = 'color';el.value = m.fmt(v);el.oninput = () => {pathSet(C, m.path, parseInt(el.value.slice(1), 16));value.textContent = el.value;apply();};el.onchange = () => {const after = parseInt(el.value.slice(1), 16);pathSet(C, m.path, state.colorBefore ?? after);commit([[m.path, after]], m.label);state.colorBefore = undefined;};el.onfocus = () => {state.colorBefore = pathGet(C, m.path);};}
+    else {
+      el = document.createElement('input');el.type = 'range';el.min = m.min;el.max = m.max;el.step = m.step;el.value = v;let before = null;
+      el.addEventListener('input', () => {if (before === null) before = pathGet(C, m.path);const n = Math.max(m.min, Math.min(m.max, Number(el.value)));pathSet(C, m.path, n);value.textContent = m.fmt(n);apply();});
+      el.addEventListener('change', () => {const after = pathGet(C, m.path);if (before !== null && !same(before, after)) {pathSet(C, m.path, before);commit([[m.path, after]], m.label);}before = null;});
+    }
+    el.id = id;el.dataset.path = m.path;return el;
+  }
+  /** Controle de um parâmetro para outras abas (Visualizar, Partida, Controles). Atualiza sozinho em desfazer/presets. */
+  /** Controles de uma seção inteira (para outras abas). */
+  function sectionControls(section) {return manifest.filter(m => m.section === section && !ELSEWHERE.has(m.path)).map(m => controlFor(m.path));}
+  function controlFor(path) {
+    const m = byPath.get(path);if (!m) throw new Error('parâmetro inexistente: ' + path);
+    state.renderingExternal = true;const row = control(m);state.renderingExternal = false;row.classList.add('external');state.external.add({row, m});return row;
+  }
+  function refreshExternal() {
+    for (const e of [...state.external]) {
+      if (!e.row.isConnected) {state.external.delete(e);continue;}
+      const v = pathGet(C, e.m.path), el = e.row.querySelector('[data-path]'), out = e.row.querySelector('.tune-value');
+      if (document.activeElement === el && e.m.kind !== 'select') continue;
+      if (e.m.kind === 'toggle') el.checked = !!v;else if (e.m.kind === 'color') el.value = e.m.fmt(v);else el.value = String(e.m.kind === 'select' ? Math.round(v) : v);
+      out.textContent = e.m.fmt(v);e.row.classList.toggle('changed', changed(e.m));
+    }
+  }
+  state.listeners.add(refreshExternal);
   $('tune-search').addEventListener('input', () => {hideTip();render();});
   for (const b of document.querySelectorAll('[data-filter]')) b.onclick = () => {state.filter = b.dataset.filter;for (const x of document.querySelectorAll('[data-filter]')) x.setAttribute('aria-pressed', String(x === b));render();};
   $('tune-undo').onclick = undo;$('tune-redo').onclick = redo;
@@ -198,7 +235,7 @@ export function createTuning({apply}) {
   // ---------- JSON ----------
   function exportData() {
     const values = Object.fromEntries(ROOT_KEYS.map(k => [k, structuredClone(C[k])]));
-    return {schema: 'arenamon-tuning', version: 8, source: 'arenamon-combate-laboratorio (Etapa A)', createdAt: new Date().toISOString(), values,
+    return {schema: 'arenamon-tuning', version: 9, source: 'arenamon-combate-laboratorio (overhaul)', createdAt: new Date().toISOString(), values,
       changedFromLabDefaults: manifest.filter(changed).map(m => ({path: m.path, lab: m.initial, value: pathGet(C, m.path)})),
       differencesFromGame: manifest.filter(m => status(m) === 'experimental').map(m => ({path: m.path, game: m.official, lab: pathGet(C, m.path)})),
       labOnlyParameters: manifest.filter(m => m.official === undefined).length,
@@ -217,7 +254,7 @@ export function createTuning({apply}) {
   function apply_(changes, label) {const n = commit(changes, label);markSaved(label);return n;}
   function resetAll() {commit(manifest.map(m => [m.path, m.initial]), 'Restaurar todos os padrões');}
   render();renderPresets();
-  return {manifest, byPath, commit, undo, redo, render, renderPresets, exportData, preview, applyChanges: apply_, resetAll, markSaved, dirty, status, changed,
+  return {manifest, byPath, commit, undo, redo, render, controlFor, sectionControls, renderPresets, exportData, preview, applyChanges: apply_, resetAll, markSaved, dirty, status, changed,
     onChange: fn => state.listeners.add(fn), get savedLabel() {return state.savedLabel;}, snapshotValues, officialValue, valuesOf, migrate: flat => migrateFlat(flat, known())};
 }
 export const escape = s => String(s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'})[c]);
