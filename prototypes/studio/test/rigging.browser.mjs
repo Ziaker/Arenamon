@@ -202,6 +202,31 @@ try {
   assert.ok(draftAfter&&draftAfter.length===3,'rascunho recuperado');
   assert.ok(Math.abs(draftBefore[0]*.8+.2-draftAfter[0])<.01,'coordenadas convertidas com hierarquia');
   mark('Rascunho de rig salvo em GLB reabre e conserva pontos após mudança de raiz');
+
+  // Telemetria programática e Rig Patch na sessão do browser
+  const telemetry = await page.evaluate(() => window.__studioRig.inspectRig());
+  assert.equal(telemetry.schema, 'arenamon-rig-telemetry');
+  assert.equal(telemetry.version, 1);
+  assert.equal(telemetry.identification.totalBones, 20);
+  mark('Telemetria programática no browser gera schema v1 com identificação e transformações');
+
+  const patchResult = await page.evaluate(() => {
+    return window.__studioRig.applyPatch({
+      schema: 'arenamon-rig-patch',
+      version: 1,
+      operations: [
+        { op: 'moveBone', jointId: 'Hips', space: 'local', delta: [0, 0.1, 0] }
+      ]
+    });
+  });
+  assert.equal(patchResult.success, true);
+  mark('Rig Patch programático aplica mutação no modelo carregado via window.__studioRig');
+
+  const autoRigQuad = await page.evaluate(() => window.__studioRig.generateAutoRig('quadruped'));
+  assert.equal(autoRigQuad.schema, 'arenamon-rig');
+  assert.equal(autoRigQuad.joints.length, 24);
+  mark('Auto-Rig avançado gera template quadrúpede de 24 ossos via window.__studioRig');
+
   assert.deepEqual(report.requests,[]);assert.deepEqual(report.errors,[]);
   await writeFile(out+'rigging-browser.json',JSON.stringify(report,null,2));
   console.log('\nRigging Studio: '+report.tests.length+' verificações de navegador aprovadas.');
