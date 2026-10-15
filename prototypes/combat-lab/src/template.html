@@ -11,7 +11,7 @@
 <div class="lab">
  <header class="top">
   <div class="brand"><span class="logo">A</span><strong>ARENAMON <em>LAB</em></strong><small>Combate · v7</small></div>
-  <div class="top-info"><span class="chip" id="phase" title="Fase da partida e estado do alvo"></span><span class="chip ai" id="ai-chip" title="Modo da IA do adversário"></span><span class="chip dirty" id="tune-state" data-state="clean" title="Ajustes alterados em relação ao último preset salvo ou JSON exportado"><i></i><span>Ajustes padrão</span></span></div>
+  <div class="top-info"><span class="chip" id="phase" title="Fase da partida e estado do alvo"></span><span class="chip ai" id="ai-chip" title="Modo da IA do adversário"></span><span class="chip dirty" id="tune-state" data-state="clean" title="Ajustes alterados em relação ao último preset salvo ou JSON exportado"><i></i><span>Ajustes padrão</span></span><span class="chip ws" id="ws-chip" data-state="ok" title="Workspace persistente"><i></i><span>Workspace</span></span></div>
   <div class="top-actions">
    <button type="button" id="pause" title="Pausar / continuar (Esc)">❚❚ Pausar</button>
    <button type="button" id="restart-top" title="Reiniciar a partida (R)">↺ Reiniciar</button>
@@ -67,11 +67,31 @@
      <div id="scenario-list"></div>
      <button type="button" class="wide" id="scenario-all" title="Executa todos sem animação e mostra o relatório">Executar todos (instantâneo)</button>
      <div id="scenario-report" class="report" aria-live="polite"></div>
+     <h3>Gravador de movimento</h3>
+     <p class="hint">Grave alguns segundos jogando (ou use a sequência padrão) e reexecute quantas vezes quiser: mesmo estado inicial, mesma semente e mesmos comandos, com os parâmetros de A e de B. Mede e desenha velocidade, aceleração, posição, distância, stamina e estados.</p>
+     <label class="field">Sequência<select id="mv-seq"></select></label>
+     <div class="row"><button type="button" id="mv-rec">● Gravar da partida</button><button type="button" id="mv-play" title="Reproduz na arena com os parâmetros de A">▶ Ver na arena (A)</button><button type="button" id="mv-del">Excluir</button></div>
+     <div class="row"><button type="button" id="mv-export-seq">↓ Sequência</button><label class="file-btn">↑ Sequência<input type="file" id="mv-import" accept=".json,application/json" hidden></label></div>
+     <p class="hint" id="mv-status"></p>
+     <div class="row"><label class="field">A<select id="mv-a"></select></label><label class="field">B<select id="mv-b"></select></label></div>
+     <button type="button" class="wide primary" id="mv-run">Medir e comparar</button>
+     <div id="mv-report" class="report" aria-live="polite"></div>
+     <div class="row"><button type="button" id="mv-graphs">📈 Abrir gráficos</button><button type="button" id="mv-csv">↓ CSV</button><button type="button" id="mv-json">↓ Relatório JSON</button></div>
+     <h3>Treino de defesa e esquiva perfeitas</h3>
+     <div class="row"><label class="field">Treinar<select id="train-mode"></select></label><label class="field">Ataque do vermelho<select id="train-attack"></select></label></div>
+     <div class="row"><label class="field">Intervalo (s)<input type="number" id="train-interval" min="0.5" max="10" step="0.1" value="2"></label><label class="field">Semente<input type="number" id="train-seed" min="1" value="1"></label><label class="field">Velocidade<select id="train-speed"><option value="0.25">0,25×</option><option value="0.5">0,5×</option><option value="1" selected>1×</option></select></label></div>
+     <div class="row"><button type="button" class="primary" id="train-start">▶ Iniciar treino</button><button type="button" id="train-restart" title="Recomeça com a mesma semente (zera o placar)">↺ Reinício rápido</button><button type="button" id="train-export">↓ Histórico (JSON)</button></div>
+     <div id="train-report" class="report" aria-live="polite"></div>
      <h3>Equilíbrio IA × IA</h3>
      <p class="hint">Lutas rápidas, sem animação, com os ajustes atuais e os perfis da aba Partida. Mostra se um ajuste fez alguma mecânica dominar.</p>
      <div class="row"><label class="field">Lutas<input type="number" id="balance-matches" min="1" max="200" value="20"></label><label class="field">Semente<input type="number" id="balance-seed" min="1" value="1"></label></div>
      <button type="button" class="wide" id="balance-run">Medir equilíbrio</button>
      <div id="balance-report" class="report" aria-live="polite"></div>
+     <h3>Avaliação da IA: anterior × revisada</h3>
+     <p class="hint">As duas versões da IA tática jogam as mesmas lutas (mesmas sementes) contra a IA anterior. A revisão em uso no jogo fica em Ajustes › IA.</p>
+     <div class="row"><label class="field">Lutas<input type="number" id="aieval-matches" min="4" max="400" value="60"></label><label class="field">Semente<input type="number" id="aieval-seed" min="1" value="1"></label><label class="field">Estilo<select id="aieval-style"></select></label></div>
+     <div class="row"><button type="button" class="wide" id="aieval-run">Comparar IAs</button><button type="button" id="aieval-export">↓ Relatório (JSON)</button></div>
+     <div id="aieval-report" class="report" aria-live="polite"></div>
      <h3>Comparar A × B</h3>
      <p class="hint">Executa a mesma situação com dois conjuntos de ajustes (atuais, padrão do laboratório, jogo oficial ou presets salvos) e mostra os resultados lado a lado. A configuração atual não muda.</p>
      <div class="row"><label class="field">A<select id="comp-a"></select></label><label class="field">B<select id="comp-b"></select></label></div>
@@ -80,30 +100,71 @@
      <div id="comp-report" class="report" aria-live="polite"></div>
     </section>
     <section data-section="tuning" hidden>
-     <div class="tune-tools">
-      <input type="search" id="tune-search" placeholder="Buscar parâmetro…" aria-label="Buscar parâmetro">
-      <div class="seg" role="group" aria-label="Filtro"><button type="button" data-filter="all" aria-pressed="true">Todos</button><button type="button" data-filter="changed" aria-pressed="false" title="Diferentes do padrão do laboratório">Alterados</button><button type="button" data-filter="experimental" aria-pressed="false" title="Diferentes do jogo oficial (config.ts)">≠ jogo</button><button type="button" data-filter="lab" aria-pressed="false" title="Não existem no jogo oficial">Só lab</button></div>
-      <div class="row"><button type="button" id="tune-undo" disabled title="Desfazer ajuste (Ctrl+Z)">↶</button><button type="button" id="tune-redo" disabled title="Refazer ajuste (Ctrl+Y)">↷</button><span id="tune-counter" class="muted"></span></div>
-     </div>
-     <div class="tabs" id="tune-tabs" role="tablist"></div>
-     <div id="tune-list"></div>
+     <div class="seg wide" role="group" aria-label="Modo do ajustador" id="tune-mode"><button type="button" data-tune-mode-btn="simple" aria-pressed="true" title="Presets, ~16 controles de alto impacto e comparação jogável">Modo simples</button><button type="button" data-tune-mode-btn="advanced" aria-pressed="false" title="Todos os parâmetros do laboratório, por grupo">Modo avançado</button></div>
      <h3>Presets</h3>
-     <div class="row"><input type="text" id="preset-name" placeholder="Nome do preset" maxlength="60"><button type="button" id="preset-save">Salvar</button></div>
+     <p class="hint">Presets de sensação mudam só locomoção, sprint, curvas de X/C e transições de animação: nunca VFX, HUD, câmera ou regras. Os iniciais são propostas para avaliação, não valores aprovados.</p>
+     <div class="row"><select id="preset-select" aria-label="Preset selecionado" class="grow"></select></div>
+     <div id="preset-info" class="report"></div>
+     <div class="row"><button type="button" class="primary" id="preset-apply">Aplicar…</button><button type="button" id="preset-dup">Duplicar</button><button type="button" id="preset-update" title="Grava os ajustes atuais neste preset (nova versão)">Atualizar com os atuais</button><button type="button" id="preset-delete">Excluir</button><button type="button" id="preset-revert" title="Volta os parâmetros alterados pelo último preset aplicado">↶ Restaurar estado anterior</button></div>
+     <div id="preset-plan" class="report" aria-live="polite"></div>
      <div id="preset-list"></div>
-     <div class="row"><select id="preset-a" aria-label="Preset A"></select><span>×</span><select id="preset-b" aria-label="Preset B"></select><button type="button" id="preset-compare">Comparar</button></div>
+     <details class="save-preset"><summary>Salvar ajustes atuais como novo preset</summary>
+      <div class="row"><input type="text" id="preset-name" placeholder="Nome do preset" maxlength="60"><button type="button" id="preset-save">Salvar</button></div>
+      <label class="field">Descrição<textarea id="preset-desc" rows="2" placeholder="O que este preset busca (opcional)"></textarea></label>
+      <div class="row"><label class="pill"><input type="radio" name="preset-scope" value="full" checked> Completo (todos os parâmetros)</label><label class="pill"><input type="radio" name="preset-scope" value="partial"> Só categorias</label></div>
+      <div id="preset-cats"></div>
+     </details>
+     <h4>Comparar presets</h4>
+     <div class="row"><select id="preset-a" aria-label="Preset A"></select><span>×</span><select id="preset-b" aria-label="Preset B"></select><button type="button" id="preset-compare">Comparar</button><button type="button" id="preset-measure" title="Mede a sensação com a sequência padrão de movimento">Medir</button></div>
      <div id="preset-diff" class="report"></div>
+     <h3>Parâmetros</h3>
+     <div data-tune-mode="simple">
+      <p class="hint"><b>Calibração principal.</b> Controles de alto impacto. Cada um edita os parâmetros oficiais do laboratório (listados abaixo dele); o modo avançado mostra os mesmos valores.</p>
+      <div id="simple-controls"></div>
+     </div>
+     <div data-tune-mode="advanced" hidden>
+      <p class="hint"><b>Todos os parâmetros</b>, por grupo, com busca e filtros.</p>
+      <div class="tune-tools">
+       <input type="search" id="tune-search" placeholder="Buscar parâmetro…" aria-label="Buscar parâmetro">
+       <div class="seg" role="group" aria-label="Filtro"><button type="button" data-filter="all" aria-pressed="true">Todos</button><button type="button" data-filter="changed" aria-pressed="false" title="Diferentes do padrão do laboratório">Alterados</button><button type="button" data-filter="experimental" aria-pressed="false" title="Diferentes do jogo oficial (config.ts)">≠ jogo</button><button type="button" data-filter="lab" aria-pressed="false" title="Não existem no jogo oficial">Só lab</button></div>
+       <div class="row"><button type="button" id="tune-undo" disabled title="Desfazer ajuste (Ctrl+Z)">↶</button><button type="button" id="tune-redo" disabled title="Refazer ajuste (Ctrl+Y)">↷</button><span id="tune-counter" class="muted"></span></div>
+      </div>
+      <div class="tabs" id="tune-tabs" role="tablist"></div>
+      <div id="tune-list"></div>
+     </div>
+     <h3>Comparação jogável A × B</h3>
+     <p class="hint">Jogue alternando dois presets sem reiniciar a partida. Parâmetros que afetam uma ação em curso só trocam quando ela termina.</p>
+     <div class="row"><label class="field">A<select id="ab-a"></select></label><label class="field">B<select id="ab-b"></select></label></div>
+     <button type="button" class="wide" id="ab-start">▶ Ativar comparação jogável</button>
+     <div class="row" id="ab-keep" hidden><span class="muted">Encerrar mantendo:</span><button type="button" data-ab-keep="A">A</button><button type="button" data-ab-keep="B">B</button><button type="button" data-ab-keep="baseline">Estado anterior</button></div>
+     <div id="ab-status" class="report" aria-live="polite"></div>
+     <h3>Histórico de calibrações</h3>
+     <p class="hint">Pontos de calibração guardados no workspace (sobrevivem ao fechar o laboratório e vão no backup). Restaurar pode ser desfeito com Ctrl+Z.</p>
+     <div class="row"><input type="text" id="calib-name" placeholder="Nome do ponto de calibração" maxlength="80"><button type="button" id="calib-save">Salvar ponto</button></div>
+     <div id="calib-list"></div>
      <button type="button" class="wide" id="reset-all">Restaurar todos os padrões do laboratório</button>
     </section>
     <section data-section="overlays" hidden>
      <p class="hint">Sobreposições técnicas desenhadas por cima da arena. Não alteram a simulação.</p>
      <div id="overlay-list"></div>
      <div id="visual-panel"></div>
+     <h3>Desempenho</h3>
+     <div id="perf-panel"></div>
+     <h3>Janelas de combate</h3>
+     <p class="hint">Barras temporárias acima dos lutadores com o tempo restante de cada janela, lidas do estado real da simulação (nenhum temporizador próprio).</p>
+     <div id="win-controls"></div>
+     <h3>Diagnóstico de comandos</h3>
+     <p class="hint">Por que um comando não saiu: o motivo é a própria condição avaliada pelo motor no passo do comando.</p>
+     <div id="diag-panel"></div>
      <h3>Dados ao vivo</h3>
      <dl class="live" id="live-data"></dl>
     </section>
     <section data-section="characters" hidden>
      <p class="hint">Carregue o <b>.glb</b> exportado pelo Animation Studio. As ações associadas no Studio viram as animações de cada estado do combate. A posição continua vindo da física.</p>
      <div id="char-slots"></div>
+     <h3>Armazenamento dos modelos e animações</h3>
+     <p class="hint">Os GLBs ficam salvos neste navegador, identificados pelo conteúdo (SHA-256), não pelo nome. Nada é excluído sem você pedir.</p>
+     <div id="ws-storage" class="report"></div>
      <h3>Opções gerais das animações</h3>
      <label class="check"><input type="checkbox" id="char-lock-root" checked disabled> Deslocamento da raiz sempre controlado pela física (as animações nunca movem o personagem no mundo)</label>
      <label class="check"><input type="checkbox" id="char-fit" checked> Ajustar a altura ao colisor (1,3 m)</label>
@@ -136,11 +197,30 @@
      <h3>Gamepad</h3>
      <p class="keys">A tackle · B esquiva (segure para sprint) · LB/RB defesa · Y alvo · Start pausa.</p>
      <p class="hint" id="pad-status">Nenhum gamepad conectado.</p>
+     <h3>Atalhos do laboratório</h3>
+     <label class="field">Trocar A × B na comparação jogável<select id="ab-key"></select></label>
      <h3>Histórico de entrada</h3>
      <label class="check"><input type="checkbox" id="show-history" checked> Mostrar histórico de comandos</label>
     </section>
     <section data-section="homolog" hidden><div id="homolog-list"></div></section>
     <section data-section="export" hidden>
+     <h3>Workspace</h3>
+     <p class="hint">Ajustes, presets, preferências, última partida, modelos, animações, associações e offsets são salvos automaticamente neste navegador e restaurados ao abrir.</p>
+     <p class="hint" id="ws-status-line"></p>
+     <label class="check"><input type="checkbox" id="ws-auto-session"> Restaurar automaticamente ajustes, preferências e a última partida ao abrir</label>
+     <label class="check"><input type="checkbox" id="ws-warn-close"> Avisar ao fechar com ajustes não exportados em JSON (mesmo com o workspace salvo)</label>
+     <div class="row"><button type="button" id="ws-save-now">Salvar agora</button></div>
+     <h3>Backup completo do workspace</h3>
+     <p class="hint">Pacote ZIP portátil (manifesto versionado, configuração, presets, calibrações, homologação, modelos e animações) para levar a outro navegador ou computador. A importação valida tudo e mostra uma prévia antes de mudar qualquer coisa.</p>
+     <label class="check"><input type="checkbox" id="ws-export-all"> Incluir também os arquivos armazenados que não estão em uso</label>
+     <div class="row"><button type="button" class="primary" id="ws-export">↓ Exportar Workspace Completo (ZIP)</button></div>
+     <label class="field">Importar Workspace Completo (.zip)<input type="file" id="ws-import-file" accept=".zip,application/zip"></label>
+     <div id="ws-import-result" class="report" aria-live="polite"></div>
+     <h3>Relatórios e pastas do projeto</h3>
+     <p class="hint">Os relatórios exportados (gravador de movimento, diagnóstico, treino, benchmark, avaliação da IA e telemetria de animação) abrem no painel externo, um HTML complementar e opcional.</p>
+     <div class="row"><a class="btn-link" id="reports-link" href="arenamon-painel-relatorios.html" target="_blank" rel="noopener">Abrir painel de relatórios ↗</a></div>
+     <div id="pf-panel"></div>
+     <h3>Ajustes em JSON</h3>
      <p class="hint">O laboratório nunca altera o jogo. Use o relatório para decidir o que levar ao <code>config.ts</code>.</p>
      <div class="row"><button type="button" class="primary" id="export-json">↓ Exportar ajustes (JSON)</button><button type="button" id="copy-json">Copiar</button></div>
      <label class="field">Importar JSON (v5 a v8; formatos antigos são migrados com relatório)<textarea id="import-text" rows="5" placeholder="Cole aqui ou escolha um arquivo"></textarea></label>
@@ -165,6 +245,11 @@
     <div class="fighter enemy"><strong>ADVERSÁRIO · VERMELHO</strong><meter id="hp1" min="0" max="1" value="1" aria-label="Vida adversário"></meter><meter id="stamina1" class="sta" min="0" max="1" value="1" aria-label="Stamina adversário"></meter><span id="state1"></span></div>
    </header>
    <div id="impact-notice" aria-live="polite" hidden></div>
+   <div id="ab-badge" hidden aria-live="polite"></div>
+   <div id="win-overlay" aria-hidden="true"></div>
+   <div id="perf-overlay" hidden></div>
+   <div id="deny-toast" hidden role="status"></div>
+   <section id="graphs" hidden aria-label="Gráficos do gravador de movimento"><header><b>Gráficos de movimento</b><div id="graphs-markers" class="row"></div><button type="button" id="graphs-close" class="icon" aria-label="Fechar gráficos">✕</button></header><div id="graphs-body"></div></section>
    <div id="replay-badge" hidden>PAUSADO · <span id="replay-text"></span></div>
    <ol id="input-history" aria-label="Histórico de comandos"></ol>
    <pre id="debug" hidden></pre>

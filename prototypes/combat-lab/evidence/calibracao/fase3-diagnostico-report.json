@@ -1,0 +1,132 @@
+{
+ "date": "2026-10-15T13:51:44.692Z",
+ "failures": 0,
+ "report": [
+  {
+   "group": "Negados",
+   "label": "aviso curto na arena com o motivo do motor",
+   "ok": true,
+   "detail": "X guardado no buffer: stamina insuficiente (0,40 / 1,00)"
+  },
+  {
+   "group": "Negados",
+   "label": "o aviso some sozinho",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Negados",
+   "label": "histórico detalhado na aba Visualizar (comando, motivo, estado, atual × exigido)",
+   "ok": true,
+   "detail": "2.99AX (C→X) · bufferC → X guardado no buffer: fora da janela de cancelamento (fechou há 33 ms)dodge 433 ms433 ms (janela 250–400 ms) | 2.09AC · bufferC guardado no buffer: stamina insuficiente (0,42 / 1,00)neutral0.42 / 1.00 | 0.27AX · expirouX buffer expirou: stamina insuficiente (0,40 / 1,00)neutral0.40 / 1.00"
+  },
+  {
+   "group": "Negados",
+   "label": "dados exportáveis em relatório versionado",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Negados",
+   "label": "reexecuções sem renderização não poluem o histórico",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Janelas",
+   "label": "durante a esquiva: invulnerabilidade, C → X e encadear com o tempo real restante",
+   "ok": true,
+   "detail": "{\"win\":[[\"invulnerable\",\"167\"],[\"cancel\",\"217\"],[\"chain\",\"167\"]],\"st\":{\"elapsed\":0.03333333333333333,\"inv\":0.2}}"
+  },
+  {
+   "group": "Janelas",
+   "label": "selecionar janelas, escala e opacidade",
+   "ok": true,
+   "detail": "{\"rows\":[\"cancel\",\"chain\"],\"op\":\"0.5\",\"sc\":\"1.4\"}"
+  },
+  {
+   "group": "Janelas",
+   "label": "mostrar só o jogador",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Janelas",
+   "label": "ocultar tudo",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Treino",
+   "label": "D a 10 passos do impacto: defesa perfeita, “dentro da janela”",
+   "ok": true,
+   "detail": "{\"result\":\"perfect\",\"timing\":\"inside\",\"text\":\"Defesa executada dentro da janela (impacto 83 ms depois do comando; margem 117 ms).\",\"success\":true}"
+  },
+  {
+   "group": "Treino",
+   "label": "D 40 passos antes: defesa comum, “N ms antes da janela perfeita”",
+   "ok": true,
+   "detail": "Defesa executada 142 ms antes da janela perfeita."
+  },
+  {
+   "group": "Treino",
+   "label": "placar, precisão média e histórico de tentativas",
+   "ok": true,
+   "detail": "2 de 3 defesas perfeitas (67%) · erro médio até a janela 47 ms · janela 200 ms\n      #Ataq"
+  },
+  {
+   "group": "Treino",
+   "label": "histórico exportável (relatório versionado)",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Treino",
+   "label": "encerrar treino",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Validador",
+   "label": "modelo do Studio: veredito e itens verificados (formato, malhas, skinning, clipes)",
+   "ok": true,
+   "detail": "Compatível com ressalvas: Formato: GLB 2.0 · 20 KB | 1 malha(s), 1 com skinning, 4 osso(s) | animações associadas a estados que não existem no laboratório: strafe_left, strafe_right, tackle_back, move_1, move_2, move_3, move_4 | há clipes com root motion horizontal (neutralizado)"
+  },
+  {
+   "group": "Validador",
+   "label": "animações do mesmo rig: Compatível",
+   "ok": true,
+   "detail": "Compatível: Formato: GLB 2.0 · 20 KB | rig: 4 de 4 ossos do arquivo existem no modelo (100%)"
+  },
+  {
+   "group": "Validador",
+   "label": "rig diferente: Incompatível, com ossos ausentes listados",
+   "ok": true,
+   "detail": "Formato: GLB 2.0 · 20 KB | rig: 0 de 4 ossos do arquivo existem no modelo (0%) — rig ou skinning diferentes | 3 de 3 clipe(s) incompatível(is) (serão importados desabilitados, sem descartar)"
+  },
+  {
+   "group": "Validador",
+   "label": "nada descartado: clipes incompatíveis ficam na biblioteca, desabilitados",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Validador",
+   "label": "relatórios visíveis no slot, com prévia por clipe",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Validador",
+   "label": "formato não suportado recusado com motivo claro (FBX)",
+   "ok": true,
+   "detail": "Erro: Formato não suportado: FBX não é suportado: converta para GLB (ex.: no Animation Studio ou no Blender)."
+  },
+  {
+   "group": "Geral",
+   "label": "sem erros no console",
+   "ok": true,
+   "detail": ""
+  }
+ ]
+}

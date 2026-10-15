@@ -23,6 +23,16 @@ import {MatchRecording, parseRecording} from './sim/recording.js';
 import {emptyCommand} from './sim/entity.js';
 import {patchConfigTs, unifiedDiff, collectChanges} from './ui/gamepatch.js';
 import {OFFICIAL_MAP} from './ui/actions-meta.js';
+import {openStore} from './workspace/store.js';
+import {Workspace} from './workspace/workspace.js';
+import {createWorkspaceUI} from './ui/workspace-panel.js';
+import {createPresetsPanel} from './ui/presets-panel.js';
+import {createMovementPanel} from './ui/movement-panel.js';
+import {createDiagnostics, createWindowsOverlay} from './ui/diagnostics-panel.js';
+import {createTrainingPanel} from './ui/training-panel.js';
+import {createPerfPanel} from './ui/perf-panel.js';
+import {createAiEvalPanel} from './ui/ai-eval-panel.js';
+import {createProjectFiles} from './ui/project-files.js';
 /* global __GAME_CONFIG_TS__ */
 const GAME_CONFIG_TS = typeof __GAME_CONFIG_TS__ === 'string' ? __GAME_CONFIG_TS__ : '';
 import {length, sub, dot} from './sim/math.js';
@@ -33,19 +43,22 @@ const game = new Game(), clock = new FixedClock(), hud = new Hud(), recorder = n
 let view;
 try {view = new View(canvas);} catch (e) {$('fatal').hidden = false;throw e;}
 const matchRec = new MatchRecording();
+/** Workspace persistente (preenchido quando o armazenamento abre; ver bootWorkspace). */
+const wsRef = {ws: null, ui: null, store: null};
 const ui = {playback: null, paused: false, scenario: null, playerMode: 'tactical', lastResult: null, fps: 60, characters: [null, null], sources: [null, null], frame: 0};
 // Vermelho no controle manual (Partida › Controle manual do vermelho): teclas e gamepad próprios.
 const input2 = new Input(canvas, () => {}, {slot: 1});
 const input = new Input(canvas, code => {
   if (code === keyFor('pause')) togglePause();
-  if (code === keyFor('restart') && game.phase !== 'menu') startMatch();
+  if (code === keyFor('restart') && game.phase !== 'menu') {if (ui.training) training.begin();else startMatch();}
   if (code === keyFor('debug')) {hud.debug = !hud.debug;C.extras.hud.debugVisible = Number(hud.debug);}
 });
 
 // ---------- Partida ----------
 function resetViewAndLogs() {view.reset(game.fighters[0]);recorder.clear();replay.clear();pushReplay();dock.invalidate();clock.reset();}
 function startMatch({playback = null} = {}) {
-  abortScenario();ui.playback = playback;
+  if (ui.training) {training.end();}
+  abortScenario();restorePlaybackValues();ui.playback = playback;
   if (!playback && !$('seed-fixed').checked) $('seed').value = String(1 + Math.floor(Math.random() * 99999));
   applySeed();game.profile = $('profile').value;game.enemyProfile = $('enemy-profile').value;game.mode = $('mode').value;
   game.reset();ui.paused = false;input.clear();input.locked = false;resetViewAndLogs();canvas.focus();syncButtons();
@@ -78,10 +91,11 @@ function stepOnce() {
     // Fim da gravação: para no último passo gravado (inclusive os passos restantes deste mesmo quadro).
     if (ui.playback.ended) return;
     c0 = ui.playback.commands[game.tick] ?? emptyCommand();
-    if (game.tick >= ui.playback.commands.length) {ui.playback.ended = true;togglePause(true);$('rec-result').innerHTML = '<p class="ok">Fim da gravação: a partida ficou pausada no último passo gravado.</p>';return;}
+    if (game.tick >= ui.playback.commands.length) {ui.playback.ended = true;ui.playback.onEnd?.();togglePause(true);$('rec-result').innerHTML = '<p class="ok">Fim da gravação: a partida ficou pausada no último passo gravado.</p>';return;}
   } else c0 = playerCommand();
-  const c1 = ui.playback ? ui.playback.commands1?.[game.tick] ?? undefined : C.extras.toggles.enemyManual ? input2.command(game.fighters[1], game.fighters[0], view.rig.yaw, game.tick) : undefined;
-  const tickBefore = game.tick;game.step(c0, c1 ?? undefined);if (game.tick > tickBefore) matchRec.record(tickBefore, c0, c1);view.rig.step(game.fighters[0], game.fighters[1], input.locked, C.test.step);
+  const c1 = ui.training && !ui.playback ? ui.training.enemyCommand(game) : ui.playback ? ui.playback.commands1?.[game.tick] ?? undefined : C.extras.toggles.enemyManual ? input2.command(game.fighters[1], game.fighters[0], view.rig.yaw, game.tick) : undefined;
+  presets.ab.beforeStep(game);
+  const tickBefore = game.tick;game.step(c0, c1 ?? undefined);if (game.tick > tickBefore) {matchRec.record(tickBefore, c0, c1);if (!ui.playback) movement.onStep(c0, game.lastCommands?.[1]);if (ui.training) training.afterStep(c0);}view.rig.step(game.fighters[0], game.fighters[1], input.locked, C.test.step);
   recorder.record(game);pushReplay();
 }
 function stepFrames(delta) {
@@ -97,6 +111,25 @@ function seekTick(tick) {
   loadFrame(replay.seek(lo));
 }
 function goLive() {if (!replay.length) return;loadFrame(replay.seek(replay.length - 1));togglePause(false);}
+
+// ---------- Gravador de movimento ----------
+/** Parâmetros aplicados só durante a reprodução de uma sequência na arena (voltam ao terminar ou ao reiniciar). */
+let playbackRestore = null;
+function restorePlaybackValues() {if (playbackRestore) {tuning.setTransient(playbackRestore);playbackRestore = null;}}
+/** Reproduz uma sequência na arena com o mesmo motor: estado inicial, semente e comandos gravados. */
+function playSequence(seq, preset) {
+  abortScenario();restorePlaybackValues();
+  if (preset?.values) {playbackRestore = Object.keys(preset.values).map(p => [p, pathGet(C, p)]);tuning.setTransient(Object.entries(preset.values));}
+  game.profile = seq.profile || 'balanced';game.enemyProfile = seq.enemyProfile || 'balanced';
+  if (seq.initial) {game.load(seq.initial);game.phase = 'playing';for (const f of game.fighters) {const p = C.profiles[f.id ? game.enemyProfile : game.profile];if (p) f.attributes = {...p};}}
+  else {game.reset({positions: seq.positions.map(p => ({x: p.x, z: p.z}))});game.fighters.forEach((f, i) => {const a = seq.facing?.[i];if (a !== undefined) {f.facing = a;f.visualFacing = a;f.combatHeading = a;f.faceGoal = a;}});}
+  ui.paused = false;input.clear();input.locked = true;resetViewAndLogs();
+  const commands = [], commands1 = [], off = game.tick;
+  seq.commands.forEach((c, i) => {commands[off + i] = c;commands1[off + i] = seq.enemy === 'still' ? emptyCommand() : seq.commands1?.[i] ?? emptyCommand();});
+  ui.playback = {commands, commands1, source: seq.label, onEnd: restorePlaybackValues};
+  matchRec.start({seed: seq.seed, profile: game.profile, enemyProfile: game.enemyProfile, mode: game.mode, values: tuning.snapshotValues()});
+  $('rec-result').innerHTML = `<p class="ok">Reproduzindo a sequência “${escape(seq.label)}”${preset ? ` com ${escape(preset.name)}` : ''}.</p>`;syncButtons();canvas.focus();
+}
 
 // ---------- Cenários ----------
 function renderScenarios() {
@@ -161,10 +194,10 @@ $('patch-generate').onclick = () => {
   }
 };
 function syncCompareOptions() {
-  for (const id of ['comp-a', 'comp-b']) {const sel = $(id), prev = sel.value;sel.innerHTML = $('preset-a').innerHTML;sel.value = [...sel.options].some(o => o.value === prev) ? prev : id === 'comp-a' ? '__current' : '__lab';}
+  presets.render();for (const id of ['comp-a', 'comp-b']) {const sel = $(id), prev = sel.value;sel.innerHTML = $('preset-a').innerHTML;sel.value = [...sel.options].some(o => o.value === prev) ? prev : id === 'comp-a' ? '__current' : '__lab';}
 }
 $('comp-run').onclick = () => {
-  syncCompareOptions();const ida = $('comp-a').value, idb = $('comp-b').value, A = tuning.valuesOf(ida), B = tuning.valuesOf(idb), name = id => escape($('comp-a').querySelector(`option[value="${CSS.escape(id)}"]`)?.textContent ?? id);
+  syncCompareOptions();const ida = $('comp-a').value, idb = $('comp-b').value, A = presets.valuesOf(ida), B = presets.valuesOf(idb), name = id => escape($('comp-a').querySelector(`option[value="${CSS.escape(id)}"]`)?.textContent ?? id);
   if ($('comp-source').value === 'match') {
     if (!matchRec.ticks) {$('comp-report').innerHTML = '<p class="warn">Nenhuma partida gravada: jogue uma partida (aba Partida) e volte aqui.</p>';return;}
     const r = compareMatch(A, B, matchRec.meta, matchRec.commands);window.__lab.lastCompare = r;
@@ -202,27 +235,49 @@ function applyConfig() {
   syncButtons();
 }
 const tuning = createTuning({apply: applyConfig});
+// Presets (sensação, completos e por categoria), calibração simplificada, modo simples/avançado e A × B jogável.
+const presets = createPresetsPanel({tuning, $, game, download: (...a) => download(...a)});
+const movement = createMovementPanel({$, game, ui, presets, tuning, download: (...a) => download(...a), playSequence: (...a) => playSequence(...a), getWs: () => wsRef.ws});
 function syncTuneState() {
   const dirty = tuning.dirty(), chip = $('tune-state'), isDefault = tuning.manifest.every(m => !tuning.changed(m));
   chip.dataset.state = dirty ? 'dirty' : isDefault ? 'clean' : 'saved';
   chip.querySelector('span').textContent = dirty ? 'Ajustes não exportados' : isDefault ? 'Ajustes padrão' : `Ajustes salvos (${tuning.savedLabel})`;
-  try {localStorage.setItem('arenamon-lab-session-v7', JSON.stringify(tuning.snapshotValues()));} catch {}
+  const values = tuning.snapshotValues();
+  // Cópia no formato v7 (compatibilidade): só depois de o workspace ler a sessão anterior, para não sobrescrevê-la ao abrir.
+  if (wsRef.ws) try {localStorage.setItem('arenamon-lab-session-v7', JSON.stringify(values));} catch {}
+  wsRef.ws?.set('tuning', {values, at: new Date().toISOString()});wsRef.ui?.renderCalibrations();
   renderGameDiff();
 }
 tuning.onChange(syncTuneState);
-window.addEventListener('beforeunload', e => {if (tuning.dirty()) {e.preventDefault();e.returnValue = '';}});
-// Ajustes da sessão anterior (somente neste navegador).
-try {
-  const stored = JSON.parse(localStorage.getItem('arenamon-lab-session-v7') || 'null'), prev = stored ? tuning.migrate(stored).values : null;
-  const diff = prev ? tuning.manifest.filter(m => m.path in prev && Math.abs(prev[m.path] - m.initial) > 1e-9) : [];
-  if (diff.length) {
-    const banner = document.createElement('div');banner.className = 'report warn';banner.id = 'session-banner';
-    banner.innerHTML = `<p><b>Ajustes da sessão anterior encontrados</b> (${diff.length} diferenças do padrão), guardados neste navegador.</p><div class="row"><button type="button" id="session-restore">Restaurar</button><button type="button" id="session-discard">Descartar</button></div>`;
+// Aviso ao fechar: sempre que o workspace não conseguiu salvar (ou só existe na memória); com a preferência ligada,
+// também quando há ajustes não exportados em JSON (comportamento anterior).
+window.addEventListener('beforeunload', e => {
+  const ws = wsRef.ws, unsafe = !ws || ws.status.state === 'error' || ws.store.kind === 'memory';
+  if (ws?.status.pending) ws.saveNow();
+  if (tuning.dirty() && (unsafe || ws.doc.prefs.warnOnClose)) {e.preventDefault();e.returnValue = '';}
+});
+for (const ev of ['pagehide', 'visibilitychange']) window.addEventListener(ev, () => {if ((ev === 'pagehide' || document.hidden) && wsRef.ws?.status.pending) wsRef.ws.saveNow();});
+/** Ajustes da sessão anterior: restaurados automaticamente (com desfazer) ou oferecidos num aviso, conforme a preferência. */
+function sessionBanner(prevValues, {auto}) {
+  const prev = tuning.migrate(prevValues).values;
+  const diff = tuning.manifest.filter(m => m.path in prev && typeof prev[m.path] === 'number' && Math.abs(prev[m.path] - pathGet(C, m.path)) > 1e-9);
+  if (!diff.length) return 0;
+  const banner = document.createElement('div');banner.className = 'report warn';banner.id = 'session-banner';
+  const clampTo = m => Math.max(m.min, Math.min(m.max, prev[m.path]));
+  if (auto) {
+    tuning.commit(diff.map(m => [m.path, clampTo(m)]), 'Sessão anterior');tuning.markSaved('sessão anterior');
+    banner.innerHTML = `<p><b>Sessão anterior restaurada</b> automaticamente (${diff.length} ajustes).</p><div class="row"><button type="button" id="session-undo">Desfazer restauração</button><button type="button" id="session-ok">OK</button></div>`;
     document.querySelector('[data-section="tuning"]').prepend(banner);
-    $('session-restore').onclick = () => {tuning.commit(diff.map(m => [m.path, prev[m.path]]), 'Sessão anterior');banner.remove();};
+    $('session-undo').onclick = () => {tuning.commit(diff.map(m => [m.path, m.initial]), 'Desfazer sessão anterior');banner.remove();};
+    $('session-ok').onclick = () => banner.remove();
+  } else {
+    banner.innerHTML = `<p><b>Ajustes da sessão anterior encontrados</b> (${diff.length} diferenças), guardados neste navegador.</p><div class="row"><button type="button" id="session-restore">Restaurar</button><button type="button" id="session-discard">Descartar</button></div>`;
+    document.querySelector('[data-section="tuning"]').prepend(banner);
+    $('session-restore').onclick = () => {tuning.commit(diff.map(m => [m.path, clampTo(m)]), 'Sessão anterior');banner.remove();};
     $('session-discard').onclick = () => {banner.remove();try {localStorage.removeItem('arenamon-lab-session-v7');} catch {}};
   }
-} catch {}
+  return diff.length;
+}
 const difficulty = {
   easy: {attackRange: 2.6, combatAttackCooldown: 1.8, initialCooldown: 1.2, threatDistance: 3.2, evadeCycle: 5, evadeCycleIndex: 2, reactiveRetreatStrength: .1},
   normal: Object.fromEntries(Object.entries(defaults().extras.ai).filter(([k]) => ['attackRange', 'combatAttackCooldown', 'initialCooldown', 'threatDistance', 'evadeCycle', 'evadeCycleIndex', 'reactiveRetreatStrength'].includes(k))),
@@ -231,10 +286,10 @@ const difficulty = {
 for (const b of document.querySelectorAll('[data-difficulty]')) b.onclick = () => {tuning.commit(Object.entries(difficulty[b.dataset.difficulty]).map(([k, v]) => ['extras.ai.' + k, v]), 'Dificuldade ' + b.textContent);game.brain.reset();};
 
 // ---------- Exportar ----------
-function download(text, name) {const url = URL.createObjectURL(new Blob([text], {type: 'application/json'})), a = document.createElement('a');a.href = url;a.download = name;a.click();setTimeout(() => URL.revokeObjectURL(url), 2000);}
+function download(data, name, type = 'application/json') {const url = URL.createObjectURL(new Blob([data], {type})), a = document.createElement('a');a.href = url;a.download = name;a.click();setTimeout(() => URL.revokeObjectURL(url), 4000);}
 const homologation = createHomologation($('homolog-list'));
 const exportAll = () => ({...tuning.exportData(), homologation: homologation.exportData()});
-$('export-json').onclick = () => {download(JSON.stringify(exportAll(), null, 2), 'arenamon-calibracao-v8.json');tuning.markSaved('JSON exportado');$('import-result').innerHTML = '<p class="ok">JSON enviado para Downloads. O navegador não confirma a gravação: verifique o arquivo.</p>';};
+$('export-json').onclick = () => {download(JSON.stringify(exportAll(), null, 2), 'arenamon-calibracao-v8.json');tuning.markSaved('JSON exportado');wsRef.ui?.saveCalibration('JSON exportado', 'auto');$('import-result').innerHTML = '<p class="ok">JSON enviado para Downloads. O navegador não confirma a gravação: verifique o arquivo.</p>';};
 $('copy-json').onclick = async () => {try {await navigator.clipboard.writeText(JSON.stringify(exportAll(), null, 2));$('import-result').innerHTML = '<p class="ok">JSON copiado.</p>';} catch {$('import-text').value = JSON.stringify(exportAll(), null, 2);$('import-text').select();$('import-result').innerHTML = '<p class="warn">Sem acesso à área de transferência: o JSON está na caixa abaixo, selecionado.</p>';}};
 $('import-file').onchange = async () => {const f = $('import-file').files[0];if (f) $('import-text').value = await f.text();$('import-preview').click();};
 $('import-preview').onclick = () => {
@@ -266,14 +321,23 @@ function renderLive() {
 }
 
 // ---------- Personagens ----------
-const charPanel = createCharacterPanel({ui, view, $, onCharactersChanged: () => {syncRuleDurations();dock.invalidate();}});
+// Ganchos do workspace (persistência dos GLBs e das animações importadas), instalados quando o armazenamento abre.
+const charHooks = {};
+const charPanel = createCharacterPanel({ui, view, $, hooks: charHooks, onCharactersChanged: () => {syncRuleDurations();dock.invalidate();}});
 const renderCharacters = () => {charPanel.render();renderStudioEvents();renderRuleDurations();};
 const setCharacter = (id, source) => charPanel.setCharacter(id, source);
 const renderCharacterLive = () => charPanel.live();
 $('char-fit').onchange = e => {Character.options.fit = e.target.checked;};
-for (const [id, key, out] of [['char-fade', 'fade', 'char-fade-out'], ['char-action-fade', 'actionFade', 'char-action-fade-out'], ['char-hold', 'locomotionHold', 'char-hold-out']]) $(id).oninput = e => {Character.options[key] = Number(e.target.value);$(out).textContent = `${Number(e.target.value).toFixed(2)} s`;};
-$('char-speed').oninput = e => {Character.options.speed = Number(e.target.value) || 1;$('char-speed-out').textContent = `${Character.options.speed.toFixed(2)}×`;};
-$('char-speed').onchange = () => syncRuleDurations();
+/** Sliders da aba Personagens: editam os parâmetros oficiais display.animation.* (desfazer, presets, workspace, exportação). */
+const secs = v => `${v.toFixed(2)} s`;
+const ANIM_SLIDERS = [['char-fade', 'fade', 'char-fade-out', secs], ['char-action-fade', 'actionFade', 'char-action-fade-out', secs], ['char-hold', 'locomotionHold', 'char-hold-out', secs], ['char-speed', 'speed', 'char-speed-out', v => `${v.toFixed(2)}×`]];
+for (const [id, key, out, fmt] of ANIM_SLIDERS) {
+  const path = 'display.animation.' + key;let before = null;
+  $(id).oninput = e => {if (before === null) before = C.display.animation[key];C.display.animation[key] = Number(e.target.value) || (key === 'speed' ? 1 : 0);$(out).textContent = fmt(C.display.animation[key]);};
+  $(id).onchange = () => {const after = C.display.animation[key];if (before !== null && before !== after) {C.display.animation[key] = before;tuning.commit([[path, after]], tuning.byPath.get(path).label);}before = null;if (key === 'speed') syncRuleDurations();};
+}
+function refreshAnimSliders() {for (const [id, key, out, fmt] of ANIM_SLIDERS) {if (document.activeElement !== $(id)) $(id).value = String(C.display.animation[key]);$(out).textContent = fmt(C.display.animation[key]);}}
+tuning.onChange(refreshAnimSliders);
 $('char-sync').onchange = e => {Character.options.syncRules = e.target.checked;syncRuleDurations();};
 $('char-sync-source').onchange = () => syncRuleDurations();
 /** Personagem cujas animações definem as regras (o escolhido; se não houver, o outro). */
@@ -308,6 +372,12 @@ function renderStudioEvents() {
 }
 
 // ---------- Controles ----------
+// Atalho da troca A × B: qualquer tecla que não seja usada pelo jogador (avisa se coincidir).
+{
+  const codes = [...new Set(['KeyB', 'KeyN', 'KeyM', 'KeyV', 'KeyG', 'KeyH', 'Digit1', 'Digit2', 'Digit3', 'Digit4', 'Backquote', 'F2', 'F4', ...C.extras.keyCodes])];
+  $('ab-key').replaceChildren(...codes.map(c => new Option(c.replace(/^Key/, '').replace(/^Digit/, '').replace('Arrow', 'Seta '), c)));$('ab-key').value = presets.abKey;
+  $('ab-key').onchange = e => {const code = e.target.value, used = Object.entries(C.extras.bindings).find(([, i]) => C.extras.keyCodes[i] === code);presets.setABKey(code);$('ab-key').title = used ? `Atenção: ${code} também é a tecla de “${used[0]}”` : '';if (used) $('ab-key').setCustomValidity?.('tecla em uso');};
+}
 $('mode').replaceChildren(...AI_MODES.map(([id, label]) => new Option(label, id)));$('mode').value = game.mode;
 $('player-mode').replaceChildren(...AI_MODES.filter(([id]) => id !== 'inactive').map(([id, label]) => new Option(label, id)));$('player-mode').value = ui.playerMode;
 $('mode').onchange = () => {game.mode = $('mode').value;C.extras.gameModes.enemyMode = AI_MODES.findIndex(([id]) => id === game.mode);game.brain.reset();syncButtons();};
@@ -339,7 +409,8 @@ function openTool(tool) {
   for (const b of document.querySelectorAll('[data-tool]')) b.classList.toggle('active', !same && b.dataset.tool === tool);
   for (const s of document.querySelectorAll('[data-section]')) s.hidden = s.dataset.section !== tool;$('panel-title').textContent = TITLES[tool];
   if (tool === 'homolog') homologation.render();
-  if (tool === 'scenarios') {tuning.renderPresets();syncCompareOptions();}
+  if (tool === 'scenarios') {syncCompareOptions();movement.render();}
+  if (tool === 'tuning') presets.render();
   if (tool === 'export') renderGameDiff();if (tool === 'tuning') tuning.render();
 }
 for (const b of document.querySelectorAll('[data-tool]')) b.onclick = () => openTool(b.dataset.tool);
@@ -349,6 +420,7 @@ window.addEventListener('keydown', e => {
   if ((e.ctrlKey || e.metaKey) && !typing) {const k = e.key.toLowerCase();if (k === 'z' && !e.shiftKey) {e.preventDefault();tuning.undo();}else if (k === 'y' || (k === 'z' && e.shiftKey)) {e.preventDefault();tuning.redo();}return;}
   if (typing) return;
   if (e.key === ',') {e.preventDefault();stepFrames(-1);}else if (e.key === '.') {e.preventDefault();stepFrames(1);}
+  else if (e.code === presets.abKey && presets.ab.active && !e.repeat) {e.preventDefault();presets.toggleAB();}
 });
 window.addEventListener('blur', () => {input.clear();input2.clear();});
 document.addEventListener('visibilitychange', () => {if (document.hidden && game.phase === 'playing') togglePause(true);});
@@ -357,6 +429,29 @@ const dock = createDock({recorder, getCursorTick: () => game.tick, onSeek: seekT
 
 // ---------- Overhaul: Visualizar, Partida, Controles e propostas de HUD ----------
 const hudProposals = new HudProposals($('hud-proposals'));
+// Diagnóstico de comandos (relato do controlador) e indicadores das janelas de combate (estado real da simulação).
+const diagnostics = createDiagnostics({$, game, tuning, download});
+const windowsOverlay = createWindowsOverlay({root: $('win-overlay'), view, game});
+$('win-controls').append(...tuning.sectionControls('Janelas de combate'));
+// Treino de defesa/esquiva perfeitas: o vermelho segue o roteiro do treino; tudo cronometrado em passos de simulação.
+const training = createTrainingPanel({$, game, ui, clock, download, toast: e => diagnostics.toast(e),
+  start: trainer => {abortScenario();restorePlaybackValues();ui.playback = null;trainer.start(game);ui.paused = false;input.clear();input.locked = false;resetViewAndLogs();matchRec.start({seed: trainer.seed, profile: game.profile, enemyProfile: game.enemyProfile, mode: 'training', values: tuning.snapshotValues()});syncButtons();canvas.focus();},
+  stop: () => {game.phase = 'menu';}});
+const aiEval = createAiEvalPanel({$, download});
+// Medidor de desempenho, perfis gráficos e benchmark (IA × IA com semente fixa no laço real).
+let benchRestore = null;
+const perfPanel = createPerfPanel({$, view, game, tuning, ui, download, getWs: () => wsRef.ws,
+  startBench: ({seed, characters}) => {
+    if (!benchRestore) benchRestore = {toggles: [['extras.toggles.enablePlayerAI', C.extras.toggles.enablePlayerAI], ['extras.toggles.enableEnemyAI', C.extras.toggles.enableEnemyAI], ['extras.toggles.enemyManual', C.extras.toggles.enemyManual]], mode: $('mode').value, playerMode: ui.playerMode, seed: $('seed').value, fixed: $('seed-fixed').checked};
+    tuning.setTransient([['extras.toggles.enablePlayerAI', 1], ['extras.toggles.enableEnemyAI', 1], ['extras.toggles.enemyManual', 0]]);ui.playerMode = 'tactical';
+    $('mode').value = 'tactical';$('seed').value = String(seed);$('seed-fixed').checked = true;startMatch();
+    const red = ui.characters[1];if (red) {red.root.visible = characters === 2;view.setCharacter(1, characters === 2 ? red : null);}
+  },
+  endBench: () => {
+    const red = ui.characters[1];if (red) {red.root.visible = true;view.setCharacter(1, red);}
+    if (benchRestore) {tuning.setTransient(benchRestore.toggles);$('mode').value = benchRestore.mode;game.mode = benchRestore.mode;ui.playerMode = benchRestore.playerMode;$('seed').value = benchRestore.seed;$('seed-fixed').checked = benchRestore.fixed;benchRestore = null;}
+    game.phase = 'menu';
+  }});
 const visualPanel = createVisualPanel({tuning, view, game, $, hud: hudProposals, download});
 $('enemy-ai-control').append(tuning.controlFor('extras.toggles.enableEnemyAI'), tuning.controlFor('extras.toggles.enemyManual'));
 $('bindings-controls').append(...tuning.sectionControls('Teclas: índices configuráveis'));
@@ -382,20 +477,105 @@ let last = performance.now(), uiTimer = 0;
 function frame(now) {
   const dt = Math.max(0, (now - last) / 1000);last = now;
   const live = !ui.paused && (game.phase === 'playing' || game.phase === 'finishing');
-  if (live) clock.advance(dt, stepOnce);else clock.reset();
+  const tSim = performance.now();let steps = 0;
+  if (live) clock.advance(dt, () => {steps++;stepOnce();});else clock.reset();
+  const simMs = performance.now() - tSim;
   ui.fps += (1 / Math.max(.001, dt) - ui.fps) * C.extras.hud.fpsSmoothing;
   view.draw(game.fighters, game.events, live ? dt * clock.timeScale : 0, {paused: !live, realDt: dt, tick: game.tick, sources: [C.extras.toggles.enablePlayerAI || ui.scenario ? 'IA' : 'jogador', 'IA']});
   const back = replay.length ? (replay.length - 1 - replay.cursor) : 0;
   hud.render(game, ui.fps, {locked: input.locked, paused: ui.paused && game.phase !== 'menu', replay: back ? `−${back} passos (${(back * C.test.step * 1000).toFixed(0)} ms) · ▶ retoma daqui` : 'último passo · , e . avançam/voltam', playerAI: !!C.extras.toggles.enablePlayerAI});
   $('rp-readout').textContent = `passo ${game.tick}${back ? ` · −${(back * C.test.step).toFixed(2)} s` : ''}${clock.timeScale !== 1 ? ` · ${clock.timeScale}×` : ''}`;
-  dock.render();hudProposals.render(game, live ? dt * clock.timeScale : 0);
-  if ((uiTimer += dt) > .1) {uiTimer = 0;renderLive();renderHistory();renderCharacterLive();renderRecStatus();visualPanel.live();}
+  dock.render();hudProposals.render(game, live ? dt * clock.timeScale : 0);windowsOverlay.update();perfPanel.frame({frameMs: dt * 1000, simMs, steps});
+  if ((uiTimer += dt) > .1) {uiTimer = 0;renderLive();renderHistory();renderCharacterLive();renderRecStatus();visualPanel.live();diagnostics.live();perfPanel.live();}
   ui.frame++;requestAnimationFrame(frame);
 }
 applyConfig();renderScenarios();renderCharacters();syncTuneState();openTool('match');syncButtons();
 requestAnimationFrame(frame);
 
+// ---------- Workspace persistente: preferências de interface, última partida e opções de animação ----------
+function collectUi() {
+  const pressed = document.querySelector('[data-dock][aria-pressed="true"]');
+  return {tool: $('panel').hidden ? null : $('panel').dataset.tool, dockCollapsed: $('dock').classList.contains('collapsed'), dockView: pressed?.dataset.dock ?? 'timeline', timeScale: $('rp-speed').value,
+    overlays: {...view.overlays}, showHistory: $('show-history').checked, charSyncSource: $('char-sync-source').value, previewSlot: $('char-preview-slot').value, tuneMode: presets.mode, abKey: presets.abKey, vfxMode: visualPanel.vfxMode};
+}
+const collectMatch = () => ({enemyProfile: $('enemy-profile').value, playerMode: $('player-mode').value, seed: $('seed').value, seedFixed: $('seed-fixed').checked, recValues: $('rec-values').value});
+const collectAnim = () => {const o = Character.options;return {fit: o.fit, fade: o.fade, actionFade: o.actionFade, locomotionHold: o.locomotionHold, speed: o.speed, syncRules: o.syncRules};};
+const fire = (id, type = 'change') => $(id).dispatchEvent(new Event(type, {bubbles: true}));
+/** Reaplica preferências de interface, última partida e opções de animação gravadas no workspace. */
+function applyDocUi(doc) {
+  const u = doc.ui || {}, m = doc.match, a = doc.animOptions;
+  if (m) {
+    if ([...$('enemy-profile').options].some(o => o.value === m.enemyProfile)) $('enemy-profile').value = m.enemyProfile;
+    if ([...$('player-mode').options].some(o => o.value === m.playerMode)) {$('player-mode').value = m.playerMode;fire('player-mode');}
+    $('seed-fixed').checked = !!m.seedFixed;if (m.seed) {$('seed').value = String(m.seed);applySeed();}
+    if (m.recValues) $('rec-values').value = m.recValues;
+  }
+  if (a) {
+    $('char-fit').checked = a.fit !== false;fire('char-fit');
+    // Workspaces da fase 1 guardavam as transições aqui; agora são parâmetros do ajustador (restaurados com os ajustes).
+    if (!doc.tuning?.values || !('display.animation.fade' in doc.tuning.values)) for (const key of ['fade', 'actionFade', 'locomotionHold', 'speed']) if (typeof a[key] === 'number') C.display.animation[key] = a[key];
+    refreshAnimSliders();
+    $('char-sync').checked = !!a.syncRules;Character.options.syncRules = !!a.syncRules;
+  }
+  if (u.overlays) for (const [k, v] of Object.entries(u.overlays)) if (k in view.overlays) {view.overlays[k] = !!v;const box = document.querySelector(`[data-overlay="${k}"]`);if (box) box.checked = !!v;}
+  if (u.timeScale) {$('rp-speed').value = u.timeScale;clock.timeScale = Number(u.timeScale) || 1;}
+  if (typeof u.showHistory === 'boolean') {$('show-history').checked = u.showHistory;$('input-history').hidden = !u.showHistory;}
+  if (u.charSyncSource) $('char-sync-source').value = u.charSyncSource;
+  if (u.tuneMode) presets.setMode(u.tuneMode);
+  if (u.vfxMode) visualPanel.setMode(u.vfxMode);
+  if (u.abKey) {presets.setABKey(u.abKey);$('ab-key').value = u.abKey;}
+  if (u.previewSlot) $('char-preview-slot').value = u.previewSlot;
+  if (typeof u.dockCollapsed === 'boolean' && u.dockCollapsed !== $('dock').classList.contains('collapsed')) $('dock-toggle').click();
+  if (u.dockView) document.querySelector(`[data-dock="${u.dockView}"]`)?.click();
+  if (u.tool === null) $('panel-close').click();else if (u.tool && TITLES[u.tool] && ($('panel').hidden || $('panel').dataset.tool !== u.tool)) openTool(u.tool);
+}
+const collectApp = () => ({name: 'arenamon-combate-laboratorio', build: document.title, userAgent: navigator.userAgent});
+
+async function bootWorkspace() {
+  const store = await openStore();let ls = null;try {ls = localStorage;} catch {ls = null;}
+  const ws = await Workspace.open(store, {ls});wsRef.store = store;
+  const wsUI = createWorkspaceUI({ws, store, ui, tuning, $, download, presets: presets.api, homologation, applyDocUi, collectApp, onCharactersChanged: () => {syncRuleDurations();dock.invalidate();}});
+  Object.assign(charHooks, wsUI.hooks);wsUI.setPanel(charPanel);presets.attachWorkspace(ws);
+  await ws.batch(async () => {
+    if (ws.doc.prefs.autoRestoreSession) applyDocUi(ws.doc);
+    if (ws.doc.tuning?.values) ui.sessionRestored = sessionBanner(ws.doc.tuning.values, {auto: !!ws.doc.prefs.autoRestoreSession});
+  });
+  wsRef.ws = ws;wsRef.ui = wsUI;wsUI.bind();
+  // Modelos: restauração automática por slot (o vermelho reaproveita o modelo do azul quando é o mesmo arquivo).
+  const S = ws.doc.slots, restored = [];
+  for (const slot of [0, 1]) {
+    const s = S[slot];if (!s.autoRestore || !s.active || !s.modelId) continue;
+    if (slot === 1 && S[0].modelId === s.modelId && ui.characters[0]?.source.assetId === s.modelId) {await wsUI.useSame();restored.push(slot);continue;}
+    if ((await wsUI.reopen(slot, {auto: true})).ok) restored.push(slot);
+  }
+  ui.workspaceNotes = ws.notes;
+  if (ws.fresh || ws.notes.length) ws.touch();
+  // Preferências de interface, partida e animação: gravadas quando mudam (verificação leve a cada 0,5 s).
+  let last = '';
+  setInterval(() => {const snap = {ui: collectUi(), match: collectMatch(), animOptions: collectAnim()}, key = JSON.stringify(snap);if (key !== last) {if (last) {ws.doc.ui = snap.ui;ws.doc.match = snap.match;ws.doc.animOptions = snap.animOptions;ws.touch();}last = key;}}, 500);
+  if (ws.notes.length) $('ws-status-line')?.insertAdjacentHTML('afterend', `<p class="hint warn" id="ws-notes">${ws.notes.map(escape).join('<br>')}</p>`);
+  // Pastas do projeto (servidor local opcional ou pasta autorizada no navegador).
+  projectFiles = createProjectFiles({$, ui, presets: presets.api, wsUI, charPanel, reportsOf});
+  if (window.__ARENAMON_DEV__) $('reports-link').href = '/relatorios';
+  return {ws, store, wsUI, restored};
+}
+let projectFiles = null;
+/** Relatórios já gerados nesta sessão (para gravar nas pastas do projeto). */
+function reportsOf() {
+  const out = [];
+  if (movement.last) out.push({name: 'movimento', kind: 'movement-comparison', data: movement.report()});
+  if (diagnostics.log.length) out.push({name: 'diagnostico-comandos', kind: 'command-diagnostics', data: diagnostics.exportData()});
+  if (training.trainer?.attempts.length) out.push({name: 'treino', kind: 'perfect-training', data: training.exportData()});
+  if (perfPanel.lastBench) out.push({name: 'benchmark', kind: 'performance-benchmark', data: perfPanel.lastBench});
+  if (aiEval.last) out.push({name: 'avaliacao-ia', kind: 'ai-evaluation', data: aiEval.last});
+  return out;
+}
+
 // ---------- Interfaces para testes e compatibilidade com o v6 ----------
 window.__arenamon = {snapshot: () => ({...game.snapshot(), frame: ui.frame, camera: view.rig.snapshot(), locked: input.locked, hitboxDebug: !!C.extras.toggles.showHitboxes, playerAI: !!C.extras.toggles.enablePlayerAI})};
 window.__arenaLive = {rules: C.rules, test: C.test, locomotion: C.locomotion, camera: C.camera, profiles: C.profiles, extras: C.extras, game, view, input, clock, reset: startMatch, apply: applyConfig};
-window.__lab = {C, game, view, hudProposals, visualPanel, recorder, replay, tuning, ui, startMatch, startScenario: id => startScenario(SCENARIOS.find(s => s.id === id)), stepFrames, seekTick, goLive, togglePause, setCharacter, loadStudioFile, SCENARIOS, runScenario};
+// window.__lab só aparece depois da restauração do workspace (os testes esperam por ele).
+bootWorkspace().catch(e => {console.error('workspace:', e);ui.workspaceError = e.message;return null;}).then(boot => {
+  window.__lab = {C, game, view, hudProposals, presets, movement, playSequence, diagnostics, training, perf: perfPanel, aiEval, projectFiles, reportsOf, visualPanel, recorder, replay, tuning, ui, startMatch, startScenario: id => startScenario(SCENARIOS.find(s => s.id === id)), stepFrames, seekTick, goLive, togglePause, setCharacter, loadStudioFile, SCENARIOS, runScenario,
+    ws: boot?.ws ?? null, store: boot?.store ?? null, wsUI: boot?.wsUI ?? null, workspaceBoot: boot};
+});

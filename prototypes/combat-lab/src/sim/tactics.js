@@ -18,7 +18,8 @@ import {C} from './config.js';
 import {emptyCommand, nominalDistance} from './entity.js';
 import {vec, add, scale, sub, dot, length, normalize, direction, clamp} from './math.js';
 import {actionProgress} from './motion.js';
-import {cancelWindow, isDepleted} from './controller.js';
+import {cancelWindow, isDepleted, startPermission} from './controller.js';
+import {chainOpen} from './entity.js';
 
 /** Estilos de luta: alcance preferido, gosto por cada ação e disciplina. Valores de 0 a 1, salvo indicação. */
 export const STYLES = [
@@ -87,9 +88,14 @@ export function tacticalCommand(brain, self, target, dt, P) {
   const affordTackle = !self.exhausted && self.stamina >= A.tackle.cost - 1e-6, affordDodge = !self.exhausted && self.stamina >= A.dodge.cost - 1e-6;
   const free = !self.action && self.knockRecovery <= 0 && !self.flight;
   // Evita gastar a última ação e ficar exausto, salvo em oportunidade clara (finalização, rival vulnerável, contra-ataque).
-  const opening = target.hp <= self.attributes.attack * 1.05 || self.counterWindow > 0 || target.knockRecovery > 0 || !!target.flight;
-  const keepsStamina = !isDepleted(self.stamina - A.tackle.cost) || opening || S.reserve < .2;
-  const canDash = free && affordTackle && keepsStamina, canDodge = free && affordDodge;
+  // Revisão 1: só a finalização ou o contra-ataque justificam ficar exausto (punir a queda do rival não vale ~6 s exausto).
+  const opening = target.hp <= self.attributes.attack * 1.05 || self.counterWindow > 0 || (!featuresOf(brain).stamina && (target.knockRecovery > 0 || !!target.flight));
+  const F = featuresOf(brain);
+  // Revisão 1: nunca se deixa exaurir por escolha própria (só em oportunidade clara), qualquer que seja o estilo.
+  const keepsStamina = !isDepleted(self.stamina - A.tackle.cost) || opening || (!F.stamina && S.reserve < .2);
+  // Revisão 1: a esquiva também não exaure por escolha (a defesa é gratuita e sempre disponível).
+  const keepsDodge = !F.dodgeStamina || !isDepleted(self.stamina - A.dodge.cost) || opening;
+  const canDash = free && affordTackle && keepsStamina, canDodge = free && affordDodge && keepsDodge;
   // Esquiva reativa que deixaria exausto vale menos: defender costuma ser melhor.
   const dodgeKeeps = isDepleted(self.stamina - A.dodge.cost) ? .3 : 1;
   const chaos = S.chaos ? .5 + brain.random() : 1;
@@ -132,19 +138,35 @@ export function tacticalCommand(brain, self, target, dt, P) {
 
   // Direção do X: mira onde o adversário vai estar (antecipa o movimento dele).
   const lead_t = clamp(distance / 14, 0, .25), aim = normalize(sub(add(target.position, scale(target.velocity, lead_t)), self.position));
-  const attack = (dir = aim) => {c.move = dir;c.tackle = true;c.dodgeDirection = dir;t.myAttack = {at: t.time, read: null};brain.cooldown = .25 + (1 - boldness) * .5 * brain.random();};
+  const attack = (dir = aim, why = 'outro') => {c.move = dir;c.tackle = true;c.dodgeDirection = dir;t.myAttack = {at: t.time, read: null};t.why = why;brain.cooldown = .25 + (1 - boldness) * .5 * brain.random();};
+  /**
+   * Revisão 1: o X só sai se deve alcançar o adversário — posição dele no meio do tackle (velocidade atual) dentro do
+   * deslocamento nominal (mais o contato). Evita gastar stamina em X que não tocam ninguém.
+   */
+  const reaches = () => {
+    if (!F.reach) return true;
+    // Se o rival está numa ação (ex.: o X que acabamos de esquivar), ele para quando ela termina: a previsão usa só o tempo
+    // que resta da ação dele, pela metade (a curva desacelera), em vez de extrapolar a velocidade de pico.
+    const mid = A.tackle.duration * .5, oa = target.action, horizon = oa && oa.kind !== 'recoil' ? Math.min(mid, Math.max(0, C.actions[oa.kind].duration - oa.elapsed) * .5) : mid;
+    const p = add(target.position, scale(target.velocity, horizon)), d = length(sub(p, self.position));
+    return d <= contactDistance() + nominalDistance(self, 'tackle') * (self.counterWindow > 0 ? A.tackle.counterSpeed : 1) * .92;
+  };
   const sideOf = s => vec(forward.z * s, -forward.x * s);
 
   // ---------- 1. Durante a própria esquiva: C → X planejado ou contra-ataque ----------
   if (self.action?.kind === 'dodge') {
-    const K = A.cancel, el = self.action.elapsed, [w0, w1] = cancelWindow(), cancelOpen = K.dodgeToTackle && ((K.perfectAnytime && self.counterWindow > 0) || (el >= w0 && el <= w1)) && affordTackle;
-    if (cancelOpen && (self.counterWindow > 0 || (t.plan?.cancelAt !== undefined && el >= t.plan.cancelAt)) && distance < myReach + 1.2 && !target.flight) {attack();t.plan = null;}
+    // Revisão 1: esquiva que inicia um sprint: mantém C e a direção até o sprint começar.
+    if (t.sprinting && F.sprint) {c.move = forward;c.dodgeHeld = true;t.wasDodging = true;return finish(brain, c, self, target);}
+    const K = A.cancel, el = self.action.elapsed, [w0, w1] = cancelWindow(), cancelOpen = K.dodgeToTackle && ((K.perfectAnytime && self.counterWindow > 0) || (el >= w0 && el <= w1)) && affordTackle
+      && (!F.stamina || self.counterWindow > 0 || !isDepleted(self.stamina - A.tackle.cost)) && reaches();
+    if (cancelOpen && (self.counterWindow > 0 || (t.plan?.cancelAt !== undefined && el >= t.plan.cancelAt)) && distance < myReach + (self.counterWindow > 0 && F.counter ? 1.5 : 1.2) && !target.flight) {attack(aim, 'cancel');t.plan = null;}
     t.wasDodging = true;
-    return finish(brain, c);
+    return finish(brain, c, self, target);
   }
-  if (t.wasDodging) {t.wasDodging = false;t.plan = null;}
+  if (t.wasDodging) {t.wasDodging = false;t.plan = null;if (!self.sprinting) t.sprinting = false;}
   // Contra-ataque fortalecido depois de esquiva ou defesa perfeita.
-  if (self.counterWindow > 0 && canDash && distance < myReach + 1.5 && brain.random() < .35 + .6 * S.punish) {attack();return finish(brain, c);}
+  // Revisão 1: a janela de contra-ataque (esquiva ou defesa perfeita) é sempre aproveitada quando o X alcança.
+  if (self.counterWindow > 0 && canDash && distance < myReach + 1.5 && (F.counter ? reaches() : brain.random() < .35 + .6 * S.punish)) {attack(aim, 'counter');return finish(brain, c, self, target);}
 
   // ---------- 2. Ameaça percebida ----------
   const inc = incoming(self, target), th = t.threat;
@@ -175,29 +197,41 @@ export function tacticalCommand(brain, self, target, dt, P) {
         // Planeja o C → X: sai da esquiva no flanco do adversário.
         if (brain.random() < S.cancel) {const [w0, w1] = cancelWindow();t.plan = {cancelAt: w0 + (.12 + .2 * brain.random()) * (w1 - w0)};}
       } else if (!canDodge && inc.tte < .25) c.guard = true;
-    } else if (r === 'clash') {if (canDash && inc.tte < .3) attack(forward);else c.guard = !canDash && !affordTackle;}
+    } else if (r === 'clash') {if (canDash && inc.tte < .3) attack(forward, 'clash');else c.guard = !canDash && !affordTackle;}
     else if (r === 'backstep') c.move = scale(forward, -1);
-    return finish(brain, c);
+    return finish(brain, c, self, target);
   }
   if (inc && inc.reaches && th && th.misread && inc.tte < .08 && S.guard > .6 && brain.random() < .3) c.guard = true; // reflexo tardio
 
   // ---------- 3. Punições ----------
   const oppAct = target.action?.kind;
-  const punish = (cond, prob) => cond && canDash && brain.cooldown <= 0 && brain.random() < prob * (.4 + .6 * S.punish);
-  if (punish(oppAct === 'recoil' && distance < myReach, .5)) {attack();return finish(brain, c);}
-  if (punish(oppAct === 'tackle' && !inc?.reaches && target.action.elapsed > A.tackle.duration * .55 && distance < myReach, .35)) {attack();return finish(brain, c);}
-  if (punish(oppAct === 'dodge' && target.action.elapsed > A.dodge.duration * .6 && distance < myReach, .3)) {attack();return finish(brain, c);}
+  const punish = (cond, prob) => cond && canDash && brain.cooldown <= 0 && reaches() && brain.random() < prob * (.4 + .6 * S.punish);
+  if (punish(oppAct === 'recoil' && distance < myReach, .5)) {attack(aim, 'punishRecoil');return finish(brain, c, self, target);}
+  if (punish(oppAct === 'tackle' && !inc?.reaches && target.action.elapsed > A.tackle.duration * .55 && distance < myReach, .35)) {attack(aim, 'punishWhiff');return finish(brain, c, self, target);}
+  if (punish(oppAct === 'dodge' && target.action.elapsed > A.dodge.duration * .6 && distance < myReach, .3)) {attack(aim, 'punishDodge');return finish(brain, c, self, target);}
   if (target.knockRecovery > 0 && !target.flight) {
     // Chega no tempo exato em que o adversário se levanta.
     const arrive = Math.max(0, distance - contactDistance()) / Math.max(4, nominalDistance(self, 'tackle') / A.tackle.duration);
-    if (canDash && target.knockRecovery <= arrive + .03 && distance < myReach && brain.random() < .25 + .6 * S.punish) {attack();return finish(brain, c);}
-    c.move = distance > myReach * .8 ? forward : vec();return finish(brain, c);
+    if (canDash && target.knockRecovery <= arrive + .03 && distance < myReach && brain.random() < .25 + .6 * S.punish) {attack(aim, 'punishLanding');return finish(brain, c, self, target);}
+    c.move = distance > myReach * .8 ? forward : vec();return finish(brain, c, self, target);
   }
   if (target.flight) {
     // Espera perto do ponto de queda previsto, fora do alcance imediato.
     const land = add(target.position, scale(target.flight.horizontal, Math.max(0, 2 * target.flight.vy / C.rules.launchGravity) * .7));
     const want = add(land, scale(normalize(sub(self.position, land)), myReach * .75)), go = sub(want, self.position);
-    c.move = length(go) > .3 ? normalize(go) : vec();return finish(brain, c);
+    c.move = length(go) > .3 ? normalize(go) : vec();return finish(brain, c, self, target);
+  }
+
+  // ---------- Sprint (revisão 1): encurta distância longa sem gastar a reserva ----------
+  if (F.sprint && C.extras.toggles.enableSprint) {
+    const S2 = A.sprint, budget = A.dodge.cost + A.tackle.cost + S2.staminaDrain * .8 + .2;
+    if (self.sprinting || (t.sprinting && self.action?.kind === 'dodge')) {
+      if (distance > myReach + 1.2 && self.stamina > A.tackle.cost + .25 && !oppAttackingNow(target)) {c.move = forward;c.dodgeHeld = true;return finish(brain, c, self, target);}
+      t.sprinting = false;
+    } else if (t.sprinting) t.sprinting = false;
+    else if (free && distance > myReach + 1.5 && self.stamina >= budget && !self.exhausted && brain.cooldown <= 0 && !target.flight) {
+      t.sprinting = true;c.move = forward;c.dodge = true;c.dodgeHeld = true;c.dodgeDirection = forward;return finish(brain, c, self, target);
+    }
   }
 
   // ---------- 4. Escolha de intenção (a cada "pensamento") ----------
@@ -231,7 +265,7 @@ export function tacticalCommand(brain, self, target, dt, P) {
   const want = Math.max(myReach * (S.range + t.rangeDrift * .5), S.range > .8 ? dangerDist + .3 : 0), wallAware = s => safeSide(self, forward, s);
   switch (t.intent) {
     case 'attack':
-      if (canDash && distance <= myReach && brain.cooldown <= 0) {attack();t.intentUntil = t.time;}
+      if (canDash && distance <= myReach && brain.cooldown <= 0 && reaches()) {attack(aim, 'intent');t.intentUntil = t.time;}
       else c.move = forward;
       break;
     case 'flank': {
@@ -284,10 +318,40 @@ export function tacticalCommand(brain, self, target, dt, P) {
     if (brain.pause > 0) {brain.pause -= dt;c.move = vec();}
     else if (brain.random() < P.hesitation * dt * .6) brain.pause = .08 + brain.random() * .25;
   }
-  return finish(brain, c);
+  return finish(brain, c, self, target);
 }
 
-function finish(brain, c) {
+const oppAttackingNow = target => target.action?.kind === 'tackle';
+/** Revisão em uso por esta IA (a avaliação pode fixar por lado; senão, o ajuste global extras.ai.revision). */
+export const revisionOf = brain => (brain.revisionOverride ?? C.extras.ai.revision) | 0;
+/** Melhorias da revisão 1 (todas ligadas na revisão 1; a avaliação pode ligar uma a uma para medir o efeito). */
+export const REVISION_FEATURES = ['validate', 'reach', 'stamina', 'counter', 'sprint', 'dodgeStamina'];
+/**
+ * Medido (400 lutas por variante contra a IA anterior, sementes fixas): “stamina” (nunca se exaurir por escolha) derrubou a
+ * taxa de vitória de ~56% para ~34% — ficar passiva perde mais do que a exaustão custa —, por isso fica DESLIGADA na
+ * revisão 1 (continua disponível para avaliação). As demais não pioraram e melhoram as métricas de uso das mecânicas.
+ */
+export const REVISION_1 = {validate: true, reach: true, stamina: false, counter: true, sprint: true, dodgeStamina: false};
+export const featuresOf = brain => brain.revFeatures ?? (revisionOf(brain) >= 1 ? REVISION_1 : Object.fromEntries(REVISION_FEATURES.map(k => [k, false])));
+/**
+ * Fecha o comando. Revisão 1: só pede o que o motor aceitaria agora — usa a MESMA função de permissão do controlador
+ * (startPermission) e a mesma condição de stamina —, então a IA não gasta tentativas em ações negadas e não segura
+ * D no próprio tackle. Não dá vantagem: é a regra do jogador aplicada antes de apertar o botão.
+ */
+function finish(brain, c, self = null, target = null) {
   if (length(c.move) > 1) c.move = normalize(c.move);
+  if (self && featuresOf(brain).validate) {
+    const unavailable = !!self.flight || self.knockRecovery > 0 || self.hp <= 0;
+    const allowed = kind => {if (unavailable) return false;const p = startPermission(self, kind), afford = !self.exhausted && self.stamina >= C.actions[kind].cost - 1e-8;return p.ok && afford;};
+    // X/C que o motor guardaria no buffer (sai assim que permitido) continuam valendo: só cai o pedido sem efeito.
+    const buffered = C.actions.buffer.window > 0 && self.hp > 0;
+    if (c.tackle && !allowed('tackle') && !buffered) c.tackle = false;
+    if (c.dodge && !allowed('dodge') && !buffered) {c.dodge = false;if (brain.t) brain.t.sprinting = false;}
+    // Defesa no próprio tackle só vale com o toque de defesa perfeita disponível (regra do controlador); fora isso, nada.
+    const T = C.actions.tackle, tackleGuard = self.action?.kind !== 'tackle' || T.guardCancel || (T.perfectGuardCancel && self.perfectCooldown <= 0);
+    if (c.guard && !tackleGuard) c.guard = false;
+    // Defesa perfeita em recarga: segurar D (sem soltar e apertar de novo) — o toque não abriria a janela.
+    if (c.guard && !brain.wasGuard && self.perfectCooldown > 0 && self.guard) c.guard = true;
+  }
   c.guardPressed = c.guard && !brain.wasGuard;brain.wasGuard = c.guard;return c;
 }

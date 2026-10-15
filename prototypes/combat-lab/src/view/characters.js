@@ -22,6 +22,7 @@ import {C} from '../sim/config.js';
 import {actionDuration} from '../sim/entity.js';
 import {angleOf, angleDelta, length} from '../sim/math.js';
 import {mulberry} from '../sim/ai.js';
+import {sniffFormat} from './validate.js';
 
 /** Ordem de preferência por estado (a primeira ação com animação associada é usada). */
 export const STATE_ACTIONS = {
@@ -63,19 +64,26 @@ const LOCOMOTION = new Set(['neutral', 'turn', 'walk', 'run', 'walk_back', 'walk
 const ACTION_KEYS = new Set(['tackle', 'dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'vault']);
 const COMBAT_KEYS = new Set(['airborne', 'landing', 'recover', 'guardStun', 'recoil', 'defeated', 'pushed', 'guard_hit']);
 
+/** Recusa cedo (com motivo legível) o que não é GLB 2.0/glTF, antes de entregar ao carregador. */
+async function readGltf(file) {
+  const data = await file.arrayBuffer(), fmt = sniffFormat(data);
+  if (!fmt.ok) throw Error(`Formato não suportado: ${fmt.text}.`);
+  if (fmt.truncated) throw Error('Arquivo GLB truncado (tamanho declarado maior que o arquivo).');
+  return {data, gltf: await new GLTFLoader().parseAsync(data, '')};
+}
 export async function loadStudioFile(file) {
-  const data = await file.arrayBuffer(), gltf = await new GLTFLoader().parseAsync(data, '');
+  const {data, gltf} = await readGltf(file);
   let manifest = null;gltf.scene.traverse(o => {manifest ??= o.userData?.arenamonActions;});
   let meshes = 0;gltf.scene.traverse(o => {if (o.isMesh) meshes++;});
   if (!meshes) throw Error('O arquivo não contém malha.');
   if (!gltf.animations.length) throw Error('O arquivo não contém animações.');
-  return {name: file.name, scene: gltf.scene, animations: gltf.animations, manifest, eventsByClip: gltf.animations.map(c => c.userData?.arenamon?.events || [])};
+  return {name: file.name, scene: gltf.scene, animations: gltf.animations, manifest, eventsByClip: gltf.animations.map(c => c.userData?.arenamon?.events || []), bytes: data};
 }
 /** Lê só as animações de um .glb (importação para a biblioteca). */
 export async function loadAnimationFile(file) {
-  const gltf = await new GLTFLoader().parseAsync(await file.arrayBuffer(), '');
+  const {data: bytes, gltf} = await readGltf(file);
   if (!gltf.animations.length) throw Error('O arquivo não contém animações.');
-  return {name: file.name, animations: gltf.animations};
+  return {name: file.name, animations: gltf.animations, scene: gltf.scene, bytes};
 }
 
 /** Nome de osso normalizado (sem prefixos de exportador como “mixamorig:”), para compatibilidade entre arquivos. */
@@ -117,16 +125,23 @@ export class Character {
   resetVisual() {for (const l of [...this.layers, this.current].filter(Boolean)) {l.action.stop();this.mixer.uncacheAction(l.clip);}this.layers = [];this.current = null;this.stableLoco = null;}
   moveVariant(id, index, delta) {const l = this.variants[id] || [], i = l.indexOf(index), j = i + delta;if (i < 0 || j < 0 || j >= l.length) return;[l[i], l[j]] = [l[j], l[i]];this.resetVisual();this.save();}
   storeKey() {return STORE + (this.source.name || 'sem-nome');}
+  /** Associações, velocidades e offsets em formato portátil (clipes por nome). */
+  stateData() {
+    const byName = i => this.clips[i]?.name;
+    return {variants: Object.fromEntries(Object.entries(this.variants).map(([id, l]) => [id, l.map(byName).filter(Boolean)])), speeds: {...this.speeds},
+      clipOffsets: Object.fromEntries(Object.entries(this.clipOffsets).map(([i, v]) => [byName(i), v]).filter(([k]) => k)), visualOffset: this.visualOffset, autoGround: this.autoGround};
+  }
   save() {
     if (!this.persist) return;
-    const byName = i => this.clips[i]?.name;
-    const data = {variants: Object.fromEntries(Object.entries(this.variants).map(([id, l]) => [id, l.map(byName).filter(Boolean)])), speeds: this.speeds,
-      clipOffsets: Object.fromEntries(Object.entries(this.clipOffsets).map(([i, v]) => [byName(i), v]).filter(([k]) => k)), visualOffset: this.visualOffset, autoGround: this.autoGround};
+    const data = this.stateData();
+    // Com workspace: estado por modelo (SHA-256 do GLB). Sem ele (testes, navegador sem armazenamento): por nome, como antes.
+    if (Character.stateStore && this.source.assetId) {Character.stateStore.set(this, data);return;}
     try {localStorage.setItem(this.storeKey(), JSON.stringify(data));} catch {/* armazenamento indisponível: associações valem só nesta sessão */}
   }
   restore() {
     if (!this.persist) return;let data = null;
-    try {data = JSON.parse(localStorage.getItem(this.storeKey()) || 'null');} catch {data = null;}
+    if (Character.stateStore && this.source.assetId) data = Character.stateStore.get(this);
+    else try {data = JSON.parse(localStorage.getItem(this.storeKey()) || 'null');} catch {data = null;}
     if (!data) return;
     const idx = name => this.clips.findIndex(c => c.name === name);
     this.missingAssociations = [];
@@ -353,14 +368,25 @@ export class Character {
   /** Ponto mais baixo do clipe no instante t (interpolado); clipGround(index) = mínimo do clipe inteiro. */
   groundAt(index, t) {const c = this.groundCurve(index), d = this.clips[index].duration || 1, x = Math.max(0, Math.min(1, t / d)) * (c.length - 1), i = Math.min(c.length - 2, Math.floor(x));return c[i] + (c[i + 1] - c[i]) * (x - i);}
   clipGround(index) {return Math.min(...this.groundCurve(index));}
+  /**
+   * Versão para o quadro: se a curva do clipe ainda não foi calculada, usa a pose de repouso e agenda o cálculo fora do
+   * quadro (antes era síncrono e travava a luta por dezenas a centenas de ms na primeira vez que um clipe tocava;
+   * medido pelo medidor de desempenho). A altura converge suavemente quando a curva fica pronta.
+   */
+  groundAtFrame(index, t) {
+    if (this.groundCache.has(index)) return this.groundAt(index, t);
+    this.groundPending ??= new Set();
+    if (!this.groundPending.has(index)) {this.groundPending.add(index);const run = () => {if (this.disposed) return;this.groundCurve(index);this.groundPending.delete(index);};typeof requestIdleCallback === 'function' ? requestIdleCallback(run, {timeout: 400}) : setTimeout(run, 0);}
+    return this.restMinY;
+  }
   /** Posição, escala e orientação. Altura visual independente da física: o colisor e a sombra não se movem. */
   place(f, alt, dt) {
     const opt = Character.options, scale = opt.fit ? C.extras.visual.bodyHeight / this.restHeight : 1;
     let ground = this.restMinY;
     if (this.autoGround && C.display.grounding.autoGround && this.current) {
       // Média ponderada pelos pesos das camadas: sem saltos de altura nas transições.
-      let w = this.current.weight, acc = this.groundAt(this.current.index, this.current.action.time) * w;
-      for (const l of this.layers) {acc += this.groundAt(l.index, l.action.time) * l.weight;w += l.weight;}
+      let w = this.current.weight, acc = this.groundAtFrame(this.current.index, this.current.action.time) * w;
+      for (const l of this.layers) {acc += this.groundAtFrame(l.index, l.action.time) * l.weight;w += l.weight;}
       ground = w > 0 ? acc / w : ground;
     }
     const manual = (this.current ? this.clipOffsets[this.current.index] ?? 0 : 0) + this.visualOffset + (C.display.grounding.visualOffset || 0);
@@ -381,7 +407,11 @@ export class Character {
   dispose() {this.disposed = true;clearTimeout(this.warmTimer);this.mixer.stopAllAction();this.mixer.uncacheRoot(this.root);this.root.removeFromParent();}
 }
 // fade: transição entre estados comuns; actionFade: entrada em X/C e reações de combate (curta, para prevalecer).
-Character.options = {lockRoot: true, fit: true, fade: .18, actionFade: .07, speed: 1, syncRules: false, locomotionHold: .1, guardHold: .25};
+// fade, actionFade, locomotionHold e speed são os parâmetros oficiais C.display.animation (ajustador, presets, desfazer).
+Character.options = {lockRoot: true, fit: true, syncRules: false, guardHold: .25};
+for (const key of ['fade', 'actionFade', 'locomotionHold', 'speed']) Object.defineProperty(Character.options, key, {enumerable: true, get: () => C.display.animation[key], set: v => {C.display.animation[key] = v;}});
+/** Armazenamento das associações por modelo (instalado pelo workspace): {get(character), set(character, data)}. */
+Character.stateStore = null;
 
 /** Variantes iniciais: manifesto do Studio; depois nomes exatos; depois palavras contidas no nome. */
 export function autoVariants(source) {

@@ -1,0 +1,265 @@
+{
+ "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36 Edg/155.0.0.0",
+ "date": "2026-10-15T13:51:04.183Z",
+ "failures": 0,
+ "report": [
+  {
+   "group": "Armazenamento",
+   "label": "IndexedDB funciona em file:// no Edge (gravação testada)",
+   "ok": true,
+   "detail": "indexeddb"
+  },
+  {
+   "group": "Modelo",
+   "label": "GLB salvo e identificado pelo SHA-256",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Animações",
+   "label": "clipes do arquivo extra importados para a biblioteca",
+   "ok": true,
+   "detail": "guarda [animacoes-extra.glb], freio [animacoes-extra.glb], golpe [animacoes-extra.glb]"
+  },
+  {
+   "group": "Animações",
+   "label": "importação salva no workspace (vinculada ao modelo)",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Animações",
+   "label": "reimportar o mesmo conteúdo não duplica clipes",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Modelo",
+   "label": "vermelho com o mesmo modelo recebe as animações importadas",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Workspace",
+   "label": "gravação confirmada pela transação (estado “saved”)",
+   "ok": true,
+   "detail": "{\"state\":\"saved\",\"at\":1792072243249,\"error\":null,\"pending\":false}"
+  },
+  {
+   "group": "Workspace",
+   "label": "indicador na barra superior",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Reabrir",
+   "label": "modelo azul e vermelho restaurados automaticamente",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Reabrir",
+   "label": "clipes importados presentes, na mesma ordem",
+   "ok": true,
+   "detail": "6"
+  },
+  {
+   "group": "Reabrir",
+   "label": "associações, variantes, velocidades e offsets idênticos",
+   "ok": true,
+   "detail": "[\"golpe [animacoes-extra.glb]\",\"tackle\"]"
+  },
+  {
+   "group": "Reabrir",
+   "label": "ajustes físicos/combate/VFX restaurados",
+   "ok": true,
+   "detail": "{\"rules.recoil\":0.42,\"actions.tackle.duration\":0.47,\"locomotion.acceleration\":31,\"vfx.hit.variant\":2}"
+  },
+  {
+   "group": "Reabrir",
+   "label": "preferências (aba, sobreposições, câmera lenta, semente, transição) restauradas",
+   "ok": true,
+   "detail": "{\"tool\":\"tuning\",\"open\":true,\"hurtboxes\":true,\"timeScale\":\"0.5\",\"seed\":\"4321\",\"seedFixed\":true,\"fade\":\"0.31\"}"
+  },
+  {
+   "group": "Reabrir",
+   "label": "histórico de calibrações preservado",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Reabrir",
+   "label": "aviso de sessão restaurada com desfazer",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Reabrir",
+   "label": "sem erros no console",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Último modelo",
+   "label": "botão “Reabrir último modelo utilizado” aparece após remover",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Último modelo",
+   "label": "reabre do armazenamento com as animações",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Último modelo",
+   "label": "restauração automática independente por slot (azul sim, vermelho não)",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Último modelo",
+   "label": "vermelho oferece reabrir o último modelo",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Backup",
+   "label": "ZIP exportado",
+   "ok": true,
+   "detail": "94 KB"
+  },
+  {
+   "group": "Backup",
+   "label": "perfil limpo começa sem modelos",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Backup",
+   "label": "prévia antes de aplicar (nada muda sem confirmação)",
+   "ok": true,
+   "detail": "workspace-backup.zip · pacote v1 de 2026-10-15 13:50 ConteúdoNo pacote Ajustes5 parâmetro(s) diferentes dos "
+  },
+  {
+   "group": "Backup",
+   "label": "referências validadas na prévia",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Backup",
+   "label": "modelos, clipes e associações idênticos após restaurar em sessão limpa",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Backup",
+   "label": "ajustes e preferências idênticos",
+   "ok": true,
+   "detail": "{\"tool\":\"tuning\",\"open\":true,\"hurtboxes\":true,\"timeScale\":\"0.5\",\"seed\":\"4321\",\"seedFixed\":true,\"fade\":\"0.31\"}"
+  },
+  {
+   "group": "Backup",
+   "label": "calibrações importadas + ponto automático “Antes da importação”",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Backup",
+   "label": "workspace importado sobrevive ao reabrir",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Backup",
+   "label": "pacote adulterado recusado com explicação",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Integridade",
+   "label": "GLB corrompido no armazenamento não é carregado",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Integridade",
+   "label": "motivo claro e convite para selecionar de novo",
+   "ok": true,
+   "detail": "Restauração automática falhou “personagem-studio.glb”: “personagem-studio.glb” está corrompido (SHA-256 não confere). Selecione o arquivo de novo."
+  },
+  {
+   "group": "Integridade",
+   "label": "selecionar de novo regrava a cópia danificada e recupera animações e associações",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Exclusão",
+   "label": "cancelar a confirmação não exclui nada",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Fallback",
+   "label": "sem IndexedDB: cai para localStorage e explica",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Fallback",
+   "label": "modelo funciona e o aviso diz que vale só nesta aba",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Cota",
+   "label": "cota esgotada: modelo usável, mas avisa que NÃO foi salvo",
+   "ok": true,
+   "detail": "Modelo carregado, mas NÃO salvo: Espaço de armazenamento do navegador esgotado ao gravar o arquivo “personagem-studio.glb”. Libere espaço em Personagens › Armazenamento ou exporte um backup."
+  },
+  {
+   "group": "Cota",
+   "label": "nenhum arquivo registrado como salvo",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Cota",
+   "label": "documento não gravado: estado “error”, indicador vermelho, sem “salvo”",
+   "ok": true,
+   "detail": "Espaço de armazenamento do navegador esgotado ao gravar “workspace”. Libere espaço em Personagens › Armazenamento ou exporte um backup."
+  },
+  {
+   "group": "Migração",
+   "label": "ajustes da sessão v7 (incluindo campo v6) migrados e restaurados",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Migração",
+   "label": "nota de migração visível",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Migração",
+   "label": "associações gravadas por nome de arquivo adotadas pelo SHA-256 do modelo",
+   "ok": true,
+   "detail": "{\"walk\":[\"tackle\"],\"speed\":1.7,\"from\":\"personagem-studio.glb\"}"
+  },
+  {
+   "group": "GLB real",
+   "label": "modelo grande salvo e restaurado ao reabrir",
+   "ok": true,
+   "detail": "3.4 MB, 38 clipes, carregar+salvar 454 ms, reabrir até pronto 1116 ms"
+  },
+  {
+   "group": "GLB real",
+   "label": "espaço ocupado informado",
+   "ok": true,
+   "detail": "3540916 bytes"
+  }
+ ]
+}

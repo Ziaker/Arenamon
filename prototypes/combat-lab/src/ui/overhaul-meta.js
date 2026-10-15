@@ -48,6 +48,7 @@ const SPRINT = {
   exhaustedStop: ['Stamina zerada encerra o sprint', 'Ao zerar a stamina o sprint termina com o freio do sprint e o lutador fica exausto (regra da stamina).', toggle],
 };
 const AI = {
+  revision: ['Revisão da IA tática', 'Revisada: só pede ações que o motor aceitaria agora (mesma regra do jogador), estima se o X alcança antes de atacar, evita ficar exausta, usa sprint para encurtar distância e aproveita contra-ataques. Anterior: IA tática de 15/10/2026 (para comparação).', select(['Anterior (15/10/2026)', 'Revisada'])],
   moveSmoothing: ['Suavização da intenção de movimento (IA)', 'Giro máximo (rad/s) da direção que a IA envia ao controlador. Contra giros instantâneos e zigue-zague; ataques e respostas a ameaças passam direto. 0 = intenções cruas (v6).', R(0, 40, .5, n => n ? n.toFixed(1) + ' rad/s' : 'desligada')],
   minDirectionHold: ['Retenção contra zigue-zague (IA)', 'Tempo mínimo antes de a IA voltar à direção anterior logo depois de mudar.', R(0, .6, .01, sec)],
 };
@@ -102,6 +103,30 @@ const RING = {
   width: ['Largura do indicador C → X', 'Só desenho.', R(.02, 1, .01, m)], opacity: ['Opacidade do indicador C → X', 'Só desenho.', R(0, 1, .01, pct)],
 };
 
+const ANIM = {
+  fade: ['Transição suave entre estados', 'Tempo de mistura (fade) entre estados comuns da animação. Só visual.', R(.02, .6, .01, sec)],
+  actionFade: ['Transição de entrada em X, C e reações', 'Fade curto para as ações e reações prevalecerem visualmente. Só visual.', R(.02, .3, .01, sec)],
+  locomotionHold: ['Estabilidade da locomoção (histerese)', 'Tempo mínimo de um estado de locomoção antes de trocar (contra oscilação). Só visual.', R(0, .4, .01, sec)],
+  speed: ['Velocidade geral das animações', 'Multiplica a velocidade de todos os clipes. Com “durações das animações definem as ações”, muda também as durações (regra explícita na aba Personagens).', R(.25, 3, .05, x)],
+};
+const DIAG = {
+  toast: ['Aviso curto na arena', 'Mostra por um instante, acima da arena, por que um comando não saiu (mesmo motivo avaliado pelo motor).', select(['Desligado', 'Só o jogador (azul)', 'Ambos'])],
+  toastMs: ['Duração do aviso', 'Tempo em tela do aviso de comando negado.', R(300, 5000, 50, n => n + ' ms')],
+  logExecuted: ['Registrar também comandos executados', 'O histórico passa a listar X, C, defesa e defesa perfeita executados (útil para cronometrar).', toggle],
+};
+const PERF = {overlay: ['Medidor compacto na arena', 'Mostra FPS, tempos de quadro, CPU por etapa, GPU (se disponível), draw calls e partículas no canto da arena.', toggle]};
+const WIN = {
+  mode: ['Indicadores de janelas de combate', 'Barras acima dos lutadores com o tempo restante de cada janela, lidas do estado real da simulação.', select(['Desligados', 'Só o jogador (azul)', 'Ambos'])],
+  scale: ['Escala dos indicadores', 'Tamanho das barras.', R(.5, 2, .05, x)], opacity: ['Opacidade dos indicadores', 'Transparência das barras.', R(.2, 1, .05, pct)],
+  invulnerable: ['Invulnerabilidade', 'Tempo restante da invulnerabilidade de X/C (incluindo a herdada no C → X).', toggle],
+  cancel: ['Janela C → X', 'Durante a esquiva: quando o cancelamento abre e quanto falta para fechar.', toggle],
+  chain: ['Encadear outra ação', 'Até quando a ação em curso ainda não pode ser substituída (janela genérica).', toggle],
+  recovery: ['Recuperação', 'Recuperação ao aterrissar, por exaustão ou depois da ação (o equivalente a “hit stun” deste motor: voo + recuperação).', toggle],
+  guardStun: ['Guard stun', 'Tempo restante do guard stun.', toggle], recoil: ['Recuo', 'Tempo restante do recuo (tackle bloqueado).', toggle],
+  perfect: ['Janela da defesa perfeita', 'Tempo restante da janela perfeita aberta pelo toque em D.', toggle], perfectCooldown: ['Recarga da defesa perfeita', 'Tempo até poder abrir outra janela perfeita.', toggle],
+  counter: ['Janela de contra-ataque', 'Tempo restante do bônus de contra-ataque (após esquiva ou defesa perfeita).', toggle], buffer: ['Buffer de entrada', 'Comando X/C guardado e tempo até expirar.', toggle],
+  hitstop: ['Hitstop', 'Congelamento de impacto (global).', toggle],
+};
 const RULES2 = {
   exhaustMode: ['Quando fica exausto', 'Abaixo do menor custo: ao sobrar menos stamina que a ação mais barata (X ou C), o lutador fica exausto até recuperar toda a stamina. Só em zero: regra da Etapa A (com máximos fracionários, ex.: 5,1, nunca acontecia).', select(['Só em zero (Etapa A)', 'Abaixo do menor custo de X/C'])],
   wallRestitution: ['Rebote na parede: horizontal', 'Fração da velocidade horizontal devolvida ao bater na parede durante o voo (0 = gruda, 1 = rebote total).', R(0, 2, .01, x)],
@@ -144,7 +169,7 @@ export function overhaulMeta(path) {
   if (root === 'actions' && parts[1] === 'cancel' && CANCEL2[key]) return out(...CANCEL2[key]);
   if (path.startsWith('extras.ai.') && AI[key]) return out(...AI[key]);
   if (path.startsWith('extras.toggles.') && TOGGLES[key]) return out(...TOGGLES[key]);
-  if (root === 'display') {const table = {shadow: SHADOW, hud: HUD, grounding: GROUND, cancelRing: RING}[parts[1]];if (table?.[key]) return out(...table[key]);return null;}
+  if (root === 'display') {const table = {shadow: SHADOW, hud: HUD, grounding: GROUND, cancelRing: RING, animation: ANIM, diagnostics: DIAG, windows: WIN, perf: PERF}[parts[1]];if (table?.[key]) return out(...table[key]);return null;}
   if (root === 'vfx') {
     const type = parts[1], def = VFX_TYPES.find(t => t[0] === type);
     if (key === 'variant' && def) return out('Variante', 'Três alternativas visuais realmente diferentes.', select(def[2]));

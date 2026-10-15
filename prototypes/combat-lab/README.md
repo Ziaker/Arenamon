@@ -2,6 +2,16 @@
 
 Gere com `npm run build` e abra `dist/arenamon-combate-laboratorio.html` por duplo clique (offline, sem modelos embutidos).
 
+## Ambiente de calibração (workspace, presets, A × B, gravador, diagnóstico, desempenho, IA)
+
+O relatório técnico está em [`CALIBRACAO.md`](CALIBRACAO.md). Em resumo:
+
+- **Workspace persistente:** modelos, animações, associações, ajustes e preferências restaurados ao abrir (IndexedDB, identificados por SHA-256), além do backup completo em ZIP com prévia.
+- **Presets de sensação** (Storm-like, Etapa A, Pesado), **calibração simplificada** com 16 controles, **A × B jogável** por tecla e **gravador de movimento** determinístico com gráficos.
+- **Diagnóstico de comandos negados** (o próprio motor diz o motivo), **janelas de combate** acima dos lutadores, **treino de defesa e esquiva perfeitas** e **validador de modelos e animações**.
+- **Medidor de desempenho**, benchmark reproduzível, perfis gráficos e VFX simples/avançado.
+- **IA revisada** (a anterior continua selecionável), **servidor local opcional** (`npm run dev:combat-lab`) e **painel de relatórios** (`dist/arenamon-painel-relatorios.html`).
+
 ## Overhaul (movimento, animação, VFX e HUD)
 
 O relatório técnico completo está em [`OVERHAUL.md`](OVERHAUL.md). Em resumo:

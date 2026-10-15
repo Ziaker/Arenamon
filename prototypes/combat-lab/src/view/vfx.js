@@ -127,6 +127,8 @@ export class VfxSystem {
     scene.add(this.add.mesh, this.norm.mesh);
     this.log = [];this.timers = [];this.emit = new Map();this.shakes = [];this.ghosts = [];this.stats = {spawned: 0, peak: 0};
     this.seenEvents = new WeakSet();this.landings = [];this.prevPos = [];this.prevStamina = [];this.flash = null;this.freezeUntil = 0;
+    // Custo por tipo (medidor de desempenho e filtro “mais caros”): partículas criadas e disparos.
+    this.stats.byType = {};this.stats.firesByType = {};this.emitting = null;
   }
   get cfg() {return C.vfx;}
   enabled(type) {return !!C.vfx.master.enabled && !!C.vfx[type]?.enabled;}
@@ -138,7 +140,7 @@ export class VfxSystem {
     const p = {age: -(o.delay || 0), life: Math.max(.02, o.life ?? .4), x: o.x, y: o.y ?? 0, z: o.z, vx: o.vx || 0, vy: o.vy || 0, vz: o.vz || 0, gravity: o.gravity, drag: o.drag, floor: o.floor,
       w: o.w ?? .3, h: o.h ?? o.w ?? .3, grow: o.grow, sizeCurve: o.sizeCurve, stretchCurve: o.stretchCurve, alphaCurve: o.alphaCurve, fade: o.fade, alpha: o.alpha ?? 1,
       r: Math.min(4, c.r * glow), g: Math.min(4, c.g * glow), b: Math.min(4, c.b * glow), cell: CELLS[o.cell ?? 'dot'], mode: MODE[o.mode ?? 'billboard'], rot: o.rot ?? 0, spin: o.spin, ax: o.ax, ay: o.ay, az: o.az, follow: o.follow};
-    (o.additive === false ? this.norm : this.add).add(p);this.stats.spawned++;
+    (o.additive === false ? this.norm : this.add).add(p);this.stats.spawned++;if (this.emitting) this.stats.byType[this.emitting] = (this.stats.byType[this.emitting] ?? 0) + 1;
   }
   after(delay, fn) {this.timers.push({at: this.time + delay, fn});}
   reset() {this.add.clear();this.norm.clear();this.timers = [];this.shakes = [];this.emit.clear();this.flash = null;for (const g of this.ghosts) g.obj.visible = false;}
@@ -189,11 +191,12 @@ export class VfxSystem {
   /** Efeito pontual (hit, bloqueios, chão, clash): respeita toggle e variante, registra o motivo. */
   fire(type, ctx, reason) {
     if (!this.enabled(type)) {this.record(type, `${reason} · desligado`);return;}
-    this.record(type, reason);const v = C.vfx[type].variant | 0;
+    this.record(type, reason);const v = C.vfx[type].variant | 0;this.emitting = type;this.stats.firesByType[type] = (this.stats.firesByType[type] ?? 0) + 1;
     ({hit: [this.hitA, this.hitB, this.hitC], block: [this.blockA, this.blockB, this.blockC, this.blockD], perfect: [this.perfectA, this.perfectB, this.perfectC],
       ground: [this.groundA, this.groundB, this.groundC, this.groundD], clash: [this.clashA, this.clashB, this.clashC]})[type][v].call(this, C.vfx[type], ctx);
     // Bloqueio: brilho de contato sempre voltado para a câmera, para o feedback nunca sumir (escudos planos podem ficar de perfil).
     if (type === 'block' && v !== 0) {const p = this.frontOf(ctx.pos, ctx.n, .5), c = C.vfx.block;this.spawn({x: p.x, y: .8, z: p.z, life: c.duration * .4, w: .55 * c.size, cell: 'spark', color: c.color, glow: 1.3 * c.intensity, alpha: c.opacity, grow: .6 * c.expansion, fade: 1.5});}
+    this.emitting = null;
   }
   /** Efeitos contínuos (esquiva, sprint, exaustão, regeneração): emissão por intervalo, por lutador. */
   stream(type, f, dt, ctx) {
@@ -201,7 +204,7 @@ export class VfxSystem {
     let s = this.emit.get(key);if (!s) {s = {acc: 0, t: 0, n: 0};this.emit.set(key, s);this.record(type, ({dodge: 'esquiva em curso', sprint: 'sprint em curso', exhaust: 'lutador exausto', regen: 'stamina regenerando'})[type] + ` (${ctx.i ? 'vermelho' : 'azul'})`);}
     const interval = type === 'dodge' ? cfg.interval : type === 'sprint' ? 1 / Math.max(.5, cfg.frequency * cfg.density) : type === 'exhaust' ? cfg.interval : 1 / Math.max(.5, cfg.frequency);
     s.acc += dt;s.t += dt;
-    while (s.acc >= interval) {s.acc -= interval;s.n++;({dodge: [this.dodgeA, this.dodgeB, this.dodgeC], sprint: [this.sprintA, this.sprintB, this.sprintC], exhaust: [this.exhaustA, this.exhaustB, this.exhaustC], regen: [this.regenA, this.regenB, this.regenC]})[type][cfg.variant | 0].call(this, cfg, f, ctx, s);}
+    while (s.acc >= interval) {s.acc -= interval;s.n++;this.emitting = type;this.stats.firesByType[type] = (this.stats.firesByType[type] ?? 0) + 1;({dodge: [this.dodgeA, this.dodgeB, this.dodgeC], sprint: [this.sprintA, this.sprintB, this.sprintC], exhaust: [this.exhaustA, this.exhaustB, this.exhaustC], regen: [this.regenA, this.regenB, this.regenC]})[type][cfg.variant | 0].call(this, cfg, f, ctx, s);this.emitting = null;}
   }
   // ---------- Prévia ----------
   /** Dispara o efeito perto do lutador azul (ou mostra a emissão contínua por 1,6 s). */

@@ -1,0 +1,114 @@
+{
+ "date": "2026-10-15T14:33:11.797Z",
+ "failures": 0,
+ "report": [
+  {
+   "group": "Servidor local",
+   "label": "pastas do projeto disponíveis (5 áreas)",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Servidor local",
+   "label": "link do painel de relatórios aponta para o servidor",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Pastas",
+   "label": "presets do usuário gravados como JSON na pasta do projeto",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Pastas",
+   "label": "preset carregado de volta da pasta",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Pastas",
+   "label": "modelos de chars/ abertos pelo mesmo carregamento (com motivo claro quando não servem)",
+   "ok": true,
+   "detail": "croagunk/croagunk-pokken.glb: croagunk/croagunk-pokken.glb: O arquivo não contém animações. | croagunk/croagunk-rigged.glb: croagunk-rigged.glb carregado no azul (e salvo no workspace). | croagunk/croagunk-rigged-anterior.glb: croagunk-rigged-anterior.glb carregado no azul (e salvo no workspace). | drowzee/drowzee.glb: drowzee/drowzee.glb: O arquivo não contém animações."
+  },
+  {
+   "group": "IA",
+   "label": "avaliação anterior × revisada pela interface",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Pastas",
+   "label": "relatórios persistentes gravados em validation/reports",
+   "ok": true,
+   "detail": "avaliacao-ia-2026-10-15-14-33-08.json, diagnostico-comandos-2026-10-15-14-33-08.json, movimento-2026-10-15-14-33-08.json"
+  },
+  {
+   "group": "Servidor local",
+   "label": "painel de relatórios servido em /relatorios",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Geral",
+   "label": "sem erros no console (servidor local)",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Painel",
+   "label": "reconhece cada tipo de relatório e recusa inválidos/versões futuras",
+   "ok": true,
+   "detail": "[\"ai-evaluation\",\"command-diagnostics\",\"movement-comparison\",\"performance-benchmark\",\"movement-comparison\",\"“invalido.json” não é um relatório do laboratório.\",\"Relatório v99 (este painel lê até v1). Atualize o painel.\"]"
+  },
+  {
+   "group": "Painel",
+   "label": "ai-evaluation: renderizado",
+   "ok": true,
+   "detail": "Avaliação da IA"
+  },
+  {
+   "group": "Painel",
+   "label": "command-diagnostics: renderizado",
+   "ok": true,
+   "detail": "Diagnóstico de comandos"
+  },
+  {
+   "group": "Painel",
+   "label": "movimento: medidas e gráficos (sem acessar a partida)",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Painel",
+   "label": "performance-benchmark: renderizado",
+   "ok": true,
+   "detail": "Benchmark de desempenho"
+  },
+  {
+   "group": "Painel",
+   "label": "movimento: medidas e gráficos (sem acessar a partida)",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Geral",
+   "label": "sem erros no console (painel offline)",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "group": "Offline",
+   "label": "sem servidor: explica o modo, oferece escolher pasta e mantém o workspace",
+   "ok": true,
+   "detail": "Indisponível neste modo: o HTML aberto por arquivo não lê pastas sozinho. Use o servidor local opcional (npm run dev:com"
+  },
+  {
+   "group": "Offline",
+   "label": "link do painel de relatórios relativo ao HTML",
+   "ok": true,
+   "detail": ""
+  }
+ ]
+}

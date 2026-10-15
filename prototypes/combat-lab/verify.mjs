@@ -56,7 +56,7 @@ try {
   step(`IA tática por padrão: estilos sorteados “${live.blue}” (azul) × “${live.style}” (vermelho), visíveis nos dados ao vivo`);
 
   // ---------- 6/10. Ajustador ----------
-  await page.click('[data-tool="tuning"]');
+  await page.click('[data-tool="tuning"]');await page.click('[data-tune-mode-btn="advanced"]'); // ajustador completo (o modo simples é o padrão)
   assert.match(await page.textContent('#tune-counter'), /de \d+ · \d+ ≠ jogo/);
   // Aba “X e C”: parâmetros independentes da esquiva, do tackle e do cancelamento.
   assert.match(await page.locator('#tune-tabs [role=tab]').first().textContent(), /^X e C · \d+$/);
@@ -76,7 +76,7 @@ try {
   await page.click('[data-filter="changed"]');assert.equal(await page.locator('.tune-control.changed').count(), 2);
   await page.click('[data-filter="all"]');
   // Presets e comparação.
-  await page.fill('#preset-name', 'Teste A');await page.click('#preset-save');assert.equal(await page.getAttribute('#tune-state', 'data-state'), 'saved');
+  await page.locator('details.save-preset summary').click();await page.fill('#preset-name', 'Teste A');await page.click('#preset-save');assert.equal(await page.getAttribute('#tune-state', 'data-state'), 'saved');
   await page.selectOption('#preset-a', 'Teste A');await page.selectOption('#preset-b', '__lab');await page.click('#preset-compare');
   assert.equal(await page.locator('#preset-diff tr').count(), 3);
   await page.selectOption('#preset-b', '__game');await page.click('#preset-compare');assert.ok(await page.locator('#preset-diff tr').count() > 3);
@@ -101,13 +101,22 @@ try {
   await page.click('[data-tool="tuning"]');await page.click('#reset-all');await page.click('[data-tool="export"]');assert.equal(await L(() => window.__lab.C.test.speed), 4.8);
   step('exportação v8 com diferenças do jogo, importação v6 migrada e validada (pré-visualizar, aplicar, desfazer) e restaurar padrões');
 
-  // Aviso ao sair e sessão anterior.
+  // Aviso ao sair e sessão anterior. Com o workspace persistente, o aviso nativo de “não exportado” é uma preferência
+  // (Exportar › Workspace); a restauração da sessão é automática (com desfazer) ou por aviso, conforme a preferência.
+  await openTab('export');await page.check('#ws-warn-close');
   await L(() => window.__lab.tuning.commit([['rules.launchUp', 8]], 'teste'));assert.equal(await page.getAttribute('#tune-state', 'data-state'), 'dirty');
+  await L(() => window.__lab.ws.saveNow());
   page.__acceptUnload = true;await L(() => location.reload());await page.waitForFunction(() => window.__lab);page.__acceptUnload = false;
-  assert.ok(dialogs.includes('beforeunload'), 'aviso nativo ao recarregar com ajustes não exportados');
-  await page.click('[data-tool="tuning"]');await page.waitForSelector('#session-banner');await page.click('#session-restore');assert.equal(await L(() => window.__lab.C.rules.launchUp), 8);
-  await L(() => {window.__lab.tuning.resetAll();window.__lab.tuning.markSaved('teste');});
-  step('aviso de ajustes não exportados ao recarregar e restauração da sessão anterior');
+  assert.ok(dialogs.includes('beforeunload'), 'aviso nativo ao recarregar com ajustes não exportados (preferência ligada)');
+  assert.equal(await L(() => window.__lab.C.rules.launchUp), 8, 'sessão anterior restaurada automaticamente');
+  await openTab('tuning');await page.waitForSelector('#session-banner #session-undo');
+  await openTab('export');await page.uncheck('#ws-auto-session');await page.uncheck('#ws-warn-close');await L(() => window.__lab.ws.saveNow());
+  await L(() => location.reload());await page.waitForFunction(() => window.__lab);
+  assert.equal(await L(() => window.__lab.C.rules.launchUp), 7.3, 'sem restauração automática: começa no padrão');
+  await openTab('tuning');await page.waitForSelector('#session-banner');await page.click('#session-restore');assert.equal(await L(() => window.__lab.C.rules.launchUp), 8);
+  await openTab('export');await page.check('#ws-auto-session');
+  await L(() => {window.__lab.tuning.resetAll();window.__lab.tuning.markSaved('teste');});await L(() => window.__lab.ws.saveNow());
+  step('aviso de ajustes não exportados (preferência) e restauração da sessão anterior (automática e por aviso)');
 
   // ---------- 5. Cenários ----------
   await page.click('[data-tool="scenarios"]');await page.click('#scenario-all');
@@ -154,7 +163,7 @@ try {
   assert.equal(new Set(seeds).size, 3, 'cada combate sorteia uma semente');
   await page.check('#seed-fixed');await page.fill('#seed', '42');await page.press('#seed', 'Tab');await openTab('match');await page.click('#start');assert.equal(await L(() => window.__lab.game.brain.seed), 42);
   assert.notEqual(await L(() => window.__lab.game.playerBrain.seed), 42);
-  await page.click('[data-tool="tuning"]');await page.fill('#tune-search', 'personalidade');
+  await page.click('[data-tool="tuning"]');await page.click('[data-tune-mode-btn="advanced"]');await page.fill('#tune-search', 'personalidade');
   assert.equal(await page.locator('#tune-list .tune-group').count(), 2);assert.equal(await page.locator('#tune-list .tune-control').count(), 18);await page.fill('#tune-search', '');
   step(`aleatoriedade: sementes ${seeds.join(', ')} em três combates, semente fixa e personalidade separada para azul e vermelho`);
 
@@ -204,12 +213,13 @@ try {
   await page.click('[data-tool="homolog"]');page.__acceptConfirm = true;await page.click('#homolog-clear');page.__acceptConfirm = false;assert.match(await page.textContent('#homolog-summary'), /0 aprovados · 0 reprovados · 17 pendentes/);
   step('homologação jogável: 17 itens, aprovado/reprovado com observação, salva ao recarregar e exportada no JSON');
   // ---------- Gravação e reprodução de partida ----------
-  await openTab('controls');await openTab('match');await page.selectOption('#mode', 'combat');
+  // O workspace restaura a última configuração de partida (o azul ficou em “aleatório” antes do recarregamento): fixa o modo tático.
+  await openTab('controls');await openTab('match');await page.selectOption('#mode', 'combat');await page.selectOption('#player-mode', 'tactical');
   await page.click('#arena-autoplay-toggle');await page.click('#start');await page.waitForTimeout(2500);
   const recorded = await L(() => {window.__lab.togglePause(true);const g = window.__lab.game;return {ticks: window.__labRecording.matchRec.ticks, tick: g.tick, fighters: JSON.stringify(g.fighters)};});
   assert.ok(recorded.ticks > 100 && recorded.ticks === recorded.tick, `gravou ${recorded.ticks} passos`);
   pending = page.waitForEvent('download');await page.click('#rec-save');const recPath = await (await pending).path();
-  const recJson = JSON.parse(await readFile(recPath, 'utf8'));assert.equal(recJson.schema, 'arenamon-match');assert.equal(recJson.ticks, recorded.ticks);assert.ok(recJson.commands.length < recorded.ticks, 'comandos comprimidos');
+  const recJson = JSON.parse(await readFile(recPath, 'utf8'));assert.equal(recJson.schema, 'arenamon-match');assert.equal(recJson.ticks, recorded.ticks);assert.ok(recJson.commands.length < recorded.ticks, `comandos comprimidos (${recJson.commands.length} grupos para ${recorded.ticks} passos; modo ${await page.inputValue('#player-mode')}; ${JSON.stringify(recJson.commands.slice(0, 3)).slice(0, 400)})`);
   await page.click('#arena-autoplay-toggle');await L(() => window.__lab.tuning.commit([['rules.launchUp', 9]], 'muda algo antes de reproduzir'));
   await page.selectOption('#rec-values', 'recorded');await page.setInputFiles('#rec-file', recPath);
   await page.waitForFunction(() => window.__labRecording.ui.playback?.ended, null, {timeout: 20000});

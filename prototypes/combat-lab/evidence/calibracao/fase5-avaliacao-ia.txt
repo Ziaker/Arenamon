@@ -1,0 +1,14 @@
+anterior × anterior: azul 55.5% · X 3252 (sem contato 39%) · negadas 4114 · exausto 13.5 s/luta · sprints 0 · contra-ataques 69/213 · esq. perfeitas 108
+revisada × anterior: azul 52.8% · X 3126 (sem contato 37%) · negadas 2717 · exausto 13.2 s/luta · sprints 72 · contra-ataques 64/196 · esq. perfeitas 105
+estilo 1 (ambos) · revisada × anterior: azul 52.8% · X 3203 (sem contato 40%) · negadas 2301 · exausto 20.2 s/luta · sprints 86 · contra-ataques 33/130 · esq. perfeitas 31
+estilo 2 (ambos) · revisada × anterior: azul 51.0% · X 3089 (sem contato 32%) · negadas 3132 · exausto 11.3 s/luta · sprints 21 · contra-ataques 97/269 · esq. perfeitas 152
+estilo 3 (ambos) · revisada × anterior: azul 57.0% · X 3250 (sem contato 44%) · negadas 1621 · exausto 13.7 s/luta · sprints 30 · contra-ataques 52/303 · esq. perfeitas 217
+estilo 4 (ambos) · revisada × anterior: azul 51.0% · X 2846 (sem contato 28%) · negadas 2831 · exausto 7.8 s/luta · sprints 10 · contra-ataques 78/161 · esq. perfeitas 51
+estilo 5 (ambos) · revisada × anterior: azul 54.8% · X 3189 (sem contato 38%) · negadas 2744 · exausto 11.2 s/luta · sprints 23 · contra-ataques 51/208 · esq. perfeitas 119
+estilo 6 (ambos) · revisada × anterior: azul 50.5% · X 3290 (sem contato 38%) · negadas 3830 · exausto 13.4 s/luta · sprints 107 · contra-ataques 78/230 · esq. perfeitas 107
+estilo 1 (ambos) · anterior × anterior: azul 56.5% · X 3320 (sem contato 43%) · negadas 3251 · exausto 19.9 s/luta · sprints 0 · contra-ataques 27/112 · esq. perfeitas 22
+estilo 2 (ambos) · anterior × anterior: azul 52.5% · X 3112 (sem contato 34%) · negadas 4479 · exausto 11.6 s/luta · sprints 0 · contra-ataques 82/295 · esq. perfeitas 181
+estilo 3 (ambos) · anterior × anterior: azul 58.0% · X 3331 (sem contato 43%) · negadas 2295 · exausto 13.7 s/luta · sprints 0 · contra-ataques 49/302 · esq. perfeitas 216
+estilo 4 (ambos) · anterior × anterior: azul 51.3% · X 2901 (sem contato 29%) · negadas 4171 · exausto 8.2 s/luta · sprints 0 · contra-ataques 75/155 · esq. perfeitas 59
+estilo 5 (ambos) · anterior × anterior: azul 55.0% · X 3249 (sem contato 39%) · negadas 4342 · exausto 11.4 s/luta · sprints 0 · contra-ataques 50/214 · esq. perfeitas 133
+estilo 6 (ambos) · anterior × anterior: azul 52.0% · X 3373 (sem contato 38%) · negadas 5999 · exausto 12.8 s/luta · sprints 0 · contra-ataques 60/213 · esq. perfeitas 97

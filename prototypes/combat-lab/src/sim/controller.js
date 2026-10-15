@@ -13,6 +13,7 @@ import {nominalDistance, actionParams, invulnerableWindow, chainOpen} from './en
 import {vec, add, scale, sub, dot, length, normalize, clamp, angleOf, direction, angleDelta, smoothstep, actionCurve} from './math.js';
 import {legacyApproach, locomotionStep} from './locomotion.js';
 import {actionProgress} from './motion.js';
+import {report, attemptsActive} from './attempts.js';
 
 /** Aceleração/frenagem/reversão da locomoção comum no modelo do v6 (mantido para compatibilidade). */
 export function approachVelocity(current, desired, dt) {return legacyApproach(current, desired, C.locomotion, dt);}
@@ -52,28 +53,37 @@ export function cancelWindow() {
   const c = C.actions.cancel, d = C.actions.dodge.duration;
   return c.windowMode === 1 ? [Math.max(0, d - c.fromEnd), d] : [c.windowStart, c.windowEnd];
 }
-/** A ação `kind` pode começar agora? Devolve {ok, viaCancel, buffer}. */
+/**
+ * A ação `kind` pode começar agora? Devolve {ok, viaCancel, buffer} e, quando negada, `reason` e `detail` — a própria
+ * condição que decidiu (usados pelo diagnóstico de comandos; a decisão é exatamente a mesma).
+ */
 export function startPermission(f, kind) {
   const A = C.actions, cur = f.action, p = A[kind];
-  if (f.guard && !p.fromGuard) return {ok: false};
+  if (f.guard && !p.fromGuard) return {ok: false, reason: 'guardBlocks'};
   if (cur?.kind === 'dodge' && kind === 'tackle') {
     // C → X: só na janela (por padrão, o fim da esquiva). Depois de uma esquiva perfeita, a qualquer momento.
     const c = A.cancel, [w0, w1] = cancelWindow(), perfect = c.perfectAnytime && f.counterWindow > 0;
-    return {ok: !!c.dodgeToTackle && (perfect || (cur.elapsed >= w0 - 1e-8 && cur.elapsed <= w1 + 1e-8)), viaCancel: true};
+    const inWindow = cur.elapsed >= w0 - 1e-8 && cur.elapsed <= w1 + 1e-8, ok = !!c.dodgeToTackle && (perfect || inWindow);
+    return {ok, viaCancel: true, ...(ok ? {} : c.dodgeToTackle ? {reason: 'cancelWindow', detail: {elapsed: cur.elapsed, open: [w0, w1]}} : {reason: 'cancelDisabled'})};
   }
   // X não cancela o próprio X (selfCancel 0) e C só cancela C nos últimos selfCancelFromEnd segundos.
-  if (cur?.kind === 'tackle' && kind === 'tackle' && !A.tackle.selfCancel) return {ok: false};
-  if (cur?.kind === 'dodge' && kind === 'dodge' && cur.elapsed < A.dodge.duration - A.dodge.selfCancelFromEnd - 1e-8) return {ok: false};
-  if (cur?.kind === 'recoil') return {ok: !!p.fromRecoil};
-  if (cur) return {ok: chainOpen(f)};
-  if (f.stun > 1e-8 && !p.fromGuardStun) return {ok: false, buffer: kind === 'tackle'};
+  if (cur?.kind === 'tackle' && kind === 'tackle' && !A.tackle.selfCancel) return {ok: false, reason: 'selfCancelX'};
+  if (cur?.kind === 'dodge' && kind === 'dodge' && cur.elapsed < A.dodge.duration - A.dodge.selfCancelFromEnd - 1e-8) return {ok: false, reason: 'selfCancelC', detail: {elapsed: cur.elapsed, from: A.dodge.duration - A.dodge.selfCancelFromEnd, window: A.dodge.selfCancelFromEnd}};
+  if (cur?.kind === 'recoil') return p.fromRecoil ? {ok: true} : {ok: false, reason: 'recoil', detail: {left: Math.max(0, C.rules.recoil - cur.elapsed)}};
+  if (cur) {const open = chainOpen(f);return open ? {ok: true} : {ok: false, reason: 'chain', detail: {left: Math.max(0, A[cur.kind].chainAfter - cur.elapsed)}};}
+  if (f.stun > 1e-8 && !p.fromGuardStun) return {ok: false, buffer: kind === 'tackle', reason: 'guardStun', detail: {left: f.stun}};
   return {ok: true};
 }
+/** Motivo da falta de stamina (mesma condição de `affordable` em updateFighter). */
+const staminaReason = (f, p) => f.exhausted ? {reason: 'exhausted', detail: {value: f.stamina, refill: C.rules.staminaMax}} : {reason: 'stamina', detail: {value: f.stamina, required: p.cost}};
 
+// Memória só do diagnóstico (fora do estado do lutador: não entra em save/replay nem altera a simulação).
+const lastBufferReason = new WeakMap(), sprintDenied = new WeakSet();
 /** Guarda X ou C pedidos durante o hitstop no buffer de entrada (antes eram descartados). */
 export function bufferDuringHitstop(f, cmd) {
   const T = C.extras.toggles, A = C.actions, kind = cmd.tackle && T.enableTackle ? 'tackle' : cmd.dodge && T.enableDodge ? 'dodge' : null;
   if (!kind || f.hp <= 0) return;
+  report(f, {kind, result: 'buffered', reason: 'hitstop'});
   const m = length(cmd.move) > 1 ? normalize(cmd.move) : cmd.move;
   f.inputBuffer = {kind, move: {...m}, dodgeDirection: cmd.dodgeDirection && {...cmd.dodgeDirection}, age: -Math.max(0, A.buffer.window > 0 ? 0 : 1e9), hitstop: true};
 }
@@ -81,8 +91,23 @@ export function updateFighter(f, cmd, fighters, dt) {
   const R = C.rules, X = C.extras, T = X.toggles, A = C.actions;
   // Buffer de entrada: o pedido mais recente de X ou C vale por actions.buffer.window, mesmo no ar ou na aterrissagem.
   const requested = cmd.tackle && T.enableTackle ? 'tackle' : cmd.dodge && T.enableDodge ? 'dodge' : null;
-  if (f.inputBuffer) {f.inputBuffer.age += dt;if (f.inputBuffer.age > A.buffer.window + 1e-8 || cmd.guardPressed) f.inputBuffer = null;}
+  const diag = attemptsActive();
+  if (diag) {
+    if (cmd.tackle && !T.enableTackle) report(f, {kind: 'tackle', result: 'denied', reason: 'disabled'});
+    if (cmd.dodge && !T.enableDodge && !(cmd.tackle && T.enableTackle)) report(f, {kind: 'dodge', result: 'denied', reason: 'disabled'});
+    if (cmd.guardPressed && !T.enableDefense) report(f, {kind: 'guard', result: 'denied', reason: 'disabled'});
+  }
+  if (f.inputBuffer) {
+    f.inputBuffer.age += dt;
+    if (f.inputBuffer.age > A.buffer.window + 1e-8 || cmd.guardPressed) {if (diag && !requested) report(f, {kind: f.inputBuffer.kind, result: 'expired', ...(f.inputBuffer.age > A.buffer.window + 1e-8 ? lastBufferReason.get(f.inputBuffer) ?? {} : {note: 'substituído pela defesa'})});f.inputBuffer = null;}
+  }
   if (requested && A.buffer.window > 0) {const m = length(cmd.move) > 1 ? normalize(cmd.move) : cmd.move;f.inputBuffer = {kind: requested, move: {...m}, dodgeDirection: cmd.dodgeDirection && {...cmd.dodgeDirection}, age: 0};}
+  // Comandos novos com o lutador indisponível: o motivo é a própria condição que encerra o passo abaixo.
+  if (diag && (requested || cmd.guardPressed) && (f.flight || f.knockRecovery > 0 || f.hp <= 0)) {
+    const why = f.flight ? {reason: 'airborne'} : f.knockRecovery > 0 ? {reason: 'recovery', detail: {left: f.knockRecovery}} : {reason: 'defeated'};
+    if (requested) report(f, {kind: requested, result: A.buffer.window > 0 && f.hp > 0 ? 'buffered' : 'denied', ...why});
+    if (cmd.guardPressed && T.enableDefense) report(f, {kind: 'guard', result: 'denied', ...why});
+  }
   if (f.flight) {f.action = null;f.push = null;f.guard = false;f.vaultHeight = 0;f.velocity = vec();f.locomotionVelocity = vec();f.bufferedTackle = null;f.state = 'airborne';return;}
   if (f.knockRecovery > 0) {f.knockRecovery = Math.max(0, f.knockRecovery - dt);if (f.knockRecovery <= 0) f.recoveryFrom = null;f.vaultHeight = 0;f.velocity = vec();f.locomotionVelocity = vec();f.action = null;f.guard = false;f.bufferedTackle = null;f.state = 'landing';return;}
   if (f.hp <= 0) {f.state = 'defeated';f.velocity = vec();f.action = null;f.push = null;f.vaultHeight = 0;f.bufferedTackle = null;return;}
@@ -109,6 +134,12 @@ export function updateFighter(f, cmd, fighters, dt) {
   // Defesa durante o tackle: só com “Defesa cancela o tackle” ligado, ou com um toque de defesa perfeita disponível.
   const tackleGuard = f.action?.kind !== 'tackle' || A.tackle.guardCancel || (A.tackle.perfectGuardCancel && cmd.guardPressed && f.perfectCooldown <= 0);
   const open = chainOpen(f) && tackleGuard;
+  if (diag && cmd.guardPressed && T.enableDefense) {
+    if (!f.guardSuppressed && open) {
+      report(f, {kind: 'guard', result: 'executed', note: f.action ? `cancela ${f.action.kind === 'tackle' ? 'o tackle' : f.action.kind === 'dodge' ? 'a esquiva' : 'o recuo'}` : undefined});
+      report(f, f.perfectCooldown <= 0 ? {kind: 'perfectGuard', result: 'executed', note: `janela de ${Math.round(R.perfect * 1000)} ms aberta`} : {kind: 'perfectGuard', result: 'denied', reason: 'perfectCooldown', detail: {left: f.perfectCooldown}});
+    } else if (!f.guardSuppressed) report(f, {kind: 'guard', result: 'denied', ...(!tackleGuard ? {reason: 'tackleNoGuard'} : {reason: 'chain', detail: {left: Math.max(0, A[f.action.kind].chainAfter - f.action.elapsed)}})});
+  }
   if (cmd.guard && T.enableDefense && !f.guardSuppressed && open) {
     if (f.action && (f.action.kind === 'dodge' || f.action.kind === 'tackle')) f.blend = {from: {...f.velocity}, elapsed: 0};
     if (f.action?.kind === 'recoil') {f.velocity = vec();f.blend = null;}
@@ -124,13 +155,26 @@ export function updateFighter(f, cmd, fighters, dt) {
   if (!kind && f.bufferedTackle && f.stun <= 1e-8 && !f.action) {kind = 'tackle';dirs = f.bufferedTackle;f.bufferedTackle = null;}
   if (kind) {
     const p = actionParams(kind), permission = startPermission(f, kind), affordable = !f.exhausted && f.stamina >= p.cost - 1e-8;
-    if (permission.buffer) {f.bufferedTackle = {move: {...dirs.move}, dodgeDirection: dirs.dodgeDirection && {...dirs.dodgeDirection}};f.inputBuffer = null;}
-    else if (permission.ok && affordable) {startAction(f, kind, dirs, fighters, desiredHeading, permission.viaCancel, cmd.guard, !!target && !!cmd.locked);if (fromBuffer) f.action.buffered = true;}
-    // Sem permissão ou sem stamina: a ação atual continua intacta (inclusive a esquiva, no caso de C → X).
+    const fresh = kind === requested && !fromBuffer, fromStun = !requested && !fromBuffer;
+    if (permission.buffer) {f.bufferedTackle = {move: {...dirs.move}, dodgeDirection: dirs.dodgeDirection && {...dirs.dodgeDirection}};f.inputBuffer = null;if (diag && fresh) report(f, {kind, result: 'buffered', reason: permission.reason, detail: permission.detail, note: 'sai quando o guard stun acabar'});}
+    else if (permission.ok && affordable) {
+      const via = permission.viaCancel;startAction(f, kind, dirs, fighters, desiredHeading, via, cmd.guard, !!target && !!cmd.locked);if (fromBuffer) f.action.buffered = true;
+      if (diag) report(f, {kind, result: 'executed', viaCancel: !!via, fromBuffer, note: fromStun ? 'guardado durante o guard stun' : undefined});
+    } else if (diag) {
+      // Sem permissão ou sem stamina: a ação atual continua intacta (inclusive a esquiva, no caso de C → X).
+      const why = !permission.ok ? {reason: permission.reason, detail: permission.detail} : staminaReason(f, p);
+      if (f.inputBuffer && fromBuffer) lastBufferReason.set(f.inputBuffer, why);
+      if (fresh) {if (f.inputBuffer) lastBufferReason.set(f.inputBuffer, why);report(f, {kind, result: f.inputBuffer ? 'buffered' : 'denied', viaCancel: !!permission.viaCancel, ...why});}
+    }
   }
   // Esquiva → sprint: C ainda pressionado, com direção, a partir de entryFraction da esquiva (ou logo depois dela).
   const S = A.sprint, L = C.locomotion;
   const sprintReady = !!T.enableSprint && cmd.dodgeHeld && f.sprintArmed && length(move) > .01 && !f.guard && !f.exhausted && f.stamina >= S.minStamina - 1e-8 && f.stun <= 1e-8;
+  // Sprint pedido (C mantido com direção no ponto de entrada) e recusado por stamina: relatado uma vez por esquiva.
+  if (diag && !sprintReady && T.enableSprint && cmd.dodgeHeld && f.sprintArmed && length(move) > .01 && f.action?.kind === 'dodge' && !f.action.vault && !sprintDenied.has(f.action)
+    && f.action.elapsed >= S.entryFraction * A.dodge.duration - 1e-8 && (f.exhausted || f.stamina < S.minStamina - 1e-8)) {
+    sprintDenied.add(f.action);report(f, {kind: 'sprint', result: 'denied', ...(f.exhausted ? {reason: 'exhausted', detail: {value: f.stamina, refill: R.staminaMax}} : {reason: 'sprintStamina', detail: {value: f.stamina, required: S.minStamina}})});
+  }
   if (sprintReady && f.action?.kind === 'dodge' && !f.action.vault && f.action.elapsed >= S.entryFraction * A.dodge.duration - 1e-8) {
     f.locomotionVelocity = {...f.velocity};f.action = null;f.vaultHeight = 0;f.sprinting = true;f.sprintCarry = false;
   } else if (sprintReady && !f.action && !f.sprinting) {f.sprinting = true;f.sprintCarry = false;}

@@ -112,7 +112,7 @@ export class View {
     return sh;
   }
   draw(fighters, events = [], dt = 1 / 60, {paused = false, tick = 0, sources = [], realDt = dt} = {}) {
-    const X = C.extras, V = X.visual, S = C.display.shadow, G = C.display.grounding;
+    const X = C.extras, V = X.visual, S = C.display.shadow, G = C.display.grounding, now = () => performance.now(), tm = this.timings = {anim: 0, vfx: 0, render: 0, overlays: 0};let t0;
     for (const event of events) {
       if (this.seenEvents.has(event)) continue;this.seenEvents.add(event);
       const attacker = fighters[event.attacker], target = fighters[event.target];if (!attacker || !target) continue;
@@ -146,14 +146,14 @@ export class View {
       arrow.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), new T.Vector3(Math.sin(f.visualFacing), 0, Math.cos(f.visualFacing)));arrow.scale.set(V.arrowRadius / .16, V.arrowLength / .42, V.arrowRadius / .16);
       arrow.material.color.setHex(f.guard ? rgb('arrowGuard') : rgb('arrow'));
       // A prévia de animação continua tocando com a partida pausada.
-      character?.update(f, paused ? (character.preview ? realDt : 0) : dt, alt, events, {tick, source: sources[f.id]});
+      t0 = now();character?.update(f, paused ? (character.preview ? realDt : 0) : dt, alt, events, {tick, source: sources[f.id]});tm.anim += now() - t0;
     }
-    this.drawOverlays(fighters, paused ? 0 : dt);
+    t0 = now();this.drawOverlays(fighters, paused ? 0 : dt);tm.overlays = now() - t0;
     if (!this.rig.initialized) this.rig.reset(fighters[0]);
     const pose = this.rig.pose();
     this.camera.position.set(pose.position.x, pose.height, pose.position.z);this.camera.lookAt(pose.lookAt.x, pose.lookHeight, pose.lookAt.z);this.camera.updateMatrixWorld();
     // Efeitos depois da câmera (o flash de tela projeta o ponto do impacto). Pausado: dt = 0, os efeitos congelam.
-    this.vfx.update(fighters, events, paused ? 0 : Math.min(dt, .05), {characters: this.characters, camera: this.camera});
+    t0 = now();this.vfx.update(fighters, events, paused ? 0 : Math.min(dt, .05), {characters: this.characters, camera: this.camera});tm.vfx = now() - t0;
     const legacy = this.updateLegacy(fighters, events, paused ? 0 : dt);
     const fxOn = !!X.hud.fxVisible && !!this.vfx.atlas;this.vfx.add.mesh.visible = fxOn;this.vfx.norm.mesh.visible = fxOn;
     // Tremor: deslocamento visual temporário aplicado DEPOIS da pose do rig (o rig, o yaw e a entrada não mudam).
@@ -163,7 +163,11 @@ export class View {
       this.camera.lookAt(pose.lookAt.x + sh.x * .5, pose.lookHeight + sh.y * .5, pose.lookAt.z + sh.z * .5);this.camera.rotateZ(sh.roll);
     }
     const w = this.canvas.clientWidth, h = this.canvas.clientHeight;
-    if (w > 0 && h > 0) {this.renderer.setSize(w, h, false);this.camera.aspect = w / h;this.camera.updateProjectionMatrix();this.renderer.render(this.scene, this.camera);}
+    if (w > 0 && h > 0) {
+      this.renderer.setSize(w, h, false);this.camera.aspect = w / h;this.camera.updateProjectionMatrix();
+      // Tempo de CPU do envio ao WebGL (não é tempo de GPU); o tempo de GPU, quando há suporte, vem da consulta de tempo.
+      this.gpuTimer?.begin();t0 = now();this.renderer.render(this.scene, this.camera);tm.render = now() - t0;this.gpuTimer?.end();
+    }
   }
   // ---------- Sobreposições técnicas (recriadas a cada quadro em um grupo próprio; materiais/geometrias descartados) ----------
   clearOverlays() {for (const o of [...this.overlayGroup.children]) {this.overlayGroup.remove(o);o.geometry?.dispose();o.material?.dispose();}}

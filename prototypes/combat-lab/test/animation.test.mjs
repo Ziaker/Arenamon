@@ -120,6 +120,7 @@ test('importar animação para a biblioteca: compatível por nome normalizado; i
 });
 test('altura visual: ajuste automático por animação, offset manual e independência da física', () => {
   const {ch, g} = setup();ch.variants.idle = [13];// Crouch Idle abaixa o quadril 30 cm (o modelo inteiro desce).
+  ch.groundCurve(13);ch.groundCurve(0);// curvas pré-calculadas, como faz warmGround (no quadro o cálculo é adiado)
   const samples = [];for (let k = 0; k < 120; k++) {run(ch, g, 1, () => [cmd(), cmd()]);samples.push(ch.root.position.y);}
   const f = g.fighters[0], groundCrouch = ch.clipGround(13), groundIdle = ch.clipGround(0);
   check('clipe agachado tem o ponto mais baixo abaixo do da pose normal', groundCrouch < groundIdle - .1, `${groundCrouch.toFixed(3)} × ${groundIdle.toFixed(3)}`);
