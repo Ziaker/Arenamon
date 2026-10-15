@@ -7,6 +7,7 @@ on:
     branches:
       - feat/studio-rig-workbench
       - integration/workbench-telemetry-autorig
+      - feat/studio-cc0-animation-library
   workflow_dispatch:
 
 permissions:

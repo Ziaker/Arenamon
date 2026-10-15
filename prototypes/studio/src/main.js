@@ -11,3 +11,4 @@ import './editor/index.js';
 import './ui/project.js';
 import './rigging/index.js';
 import './workbench/index.js';
+import './library/index.js';
