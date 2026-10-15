@@ -31,7 +31,7 @@ export function mulberry(state) {
 
 /** Personalidade neutra: reproduz exatamente a IA do v6. */
 export const NEUTRAL_PERSONALITY = {reaction: 0, reactionJitter: 0, mistake: 0, aggression: .5, variation: 0, hesitation: 0, evadeChance: .33};
-const STATE = ['cooldown', 'phase', 'wasGuard', 'orbitAge', 'orbitSign', 'rngState', 'hold', 'held', 'seed', 'threatAge', 'reactAt', 'misread', 'pause', 'orbitPeriod', 'rangeBias', 'wantsEvade', 't'];
+const STATE = ['cooldown', 'phase', 'wasGuard', 'orbitAge', 'orbitSign', 'rngState', 'hold', 'held', 'seed', 'threatAge', 'reactAt', 'misread', 'pause', 'orbitPeriod', 'rangeBias', 'wantsEvade', 't', 'moveIntent', 'intentAge', 'lastTurnFrom'];
 
 export class Brain {
   /** side: 'aiRed' (adversário) ou 'aiBlue' (IA do jogador) escolhe a personalidade. */
@@ -39,6 +39,7 @@ export class Brain {
   reset() {
     this.cooldown = C.extras.ai.initialCooldown;this.phase = 0;this.wasGuard = false;this.orbitAge = 0;this.orbitSign = 1;this.rngState = this.seed >>> 0;this.hold = 0;this.held = null;
     this.threatAge = 0;this.reactAt = null;this.misread = false;this.pause = 0;this.orbitPeriod = null;this.rangeBias = 1;this.wantsEvade = false;
+    this.moveIntent = null;this.intentAge = 0;this.lastTurnFrom = null;
     this.t = null; // estado da IA tática (tactics.js), recriado a cada partida
   }
   random() {const [v, next] = mulberry(this.rngState);this.rngState = next;return v;}
@@ -46,7 +47,33 @@ export class Brain {
   /** Estado serializável (replay e cenários). */
   save() {return Object.fromEntries(STATE.map(k => [k, this[k]]));}
   load(s) {Object.assign(this, structuredClone(s));}
-  command(self, target, mode, dt) {
+  /** Intenção de movimento enviada ao mesmo controlador do jogador, suavizada contra giros instantâneos e zigue-zague. */
+  command(self, target, mode, dt) {return this.smooth(this.decide(self, target, mode, dt), dt, target);}
+  smooth(c, dt, target) {
+    const A = C.extras.ai, rate = A.moveSmoothing ?? 0;
+    if (rate <= 0) return c;
+    const prev = this.moveIntent ?? vec(), want = c.move, wl = length(want), pl = length(prev);
+    this.intentAge = (this.intentAge ?? 0) + dt;
+    // Ataques e esquivas usam a direção pedida, sem suavização (as regras de mira não mudam).
+    // Respostas a ameaças (tackle do adversário em curso ou defesa) também passam direto: a suavização é só da locomoção livre.
+    if (c.tackle || c.dodge || c.guard || target?.action?.kind === 'tackle') {this.moveIntent = {...want};this.intentAge = 0;return c;}
+    let dir = want;
+    const ang = v => Math.atan2(v.x, v.z), gap = (a, b) => Math.abs(Math.atan2(Math.sin(b - a), Math.cos(b - a)));
+    if (wl > 1e-6 && pl > 1e-6) {
+      const a = ang(prev), b = ang(want), diff = Math.atan2(Math.sin(b - a), Math.cos(b - a));
+      // Zigue-zague: voltar à direção anterior logo depois de mudar fica retido por minDirectionHold.
+      const flipBack = this.lastTurnFrom && gap(b, ang(this.lastTurnFrom)) < .6 && Math.abs(diff) > .6 && this.intentAge < (A.minDirectionHold ?? 0);
+      if (flipBack) dir = prev;
+      // Inversões intencionais (recuar, isca) passam inteiras: a física já as torna graduais (frenagem e reversão).
+      else if (Math.abs(diff) > 2.4) {dir = want;this.lastTurnFrom = {...prev};this.intentAge = 0;}
+      else {
+        const turn = Math.max(-rate * dt, Math.min(rate * dt, diff));dir = scale(direction(a + turn), wl);
+        if (Math.abs(diff) > .6) {if (this.intentAge > .05) this.lastTurnFrom = {...prev};this.intentAge = 0;}
+      }
+    } else if (wl > 1e-6 || pl > 1e-6) this.intentAge = 0;
+    this.moveIntent = {...dir};c.move = dir;return c;
+  }
+  decide(self, target, mode, dt) {
     const A = C.extras.ai, P = this.personality(), c = emptyCommand();
     if (mode === 'inactive') {this.wasGuard = false;return c;}
     if (mode === 'tactical') return tacticalCommand(this, self, target, dt, P);

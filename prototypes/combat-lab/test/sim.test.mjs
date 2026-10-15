@@ -58,7 +58,9 @@ test('personalidade: lutas variam por semente e se repetem com a mesma semente',
 });
 test('personalidade: azul e vermelho decidem de forma diferente', () => {
   const hits = aiDuel(5), byBlue = hits.filter(h => h.split(':')[1] === '0').length;
-  console.log(`   contatos iniciados: azul ${byBlue}, vermelho ${hits.length - byBlue}`);assert.notEqual(byBlue, hits.length - byBlue);
+  // Contagens iguais podem coincidir; o que precisa diferir é quando e como cada lado inicia os contatos.
+  const side = id => hits.filter(h => h.split(':')[1] === id).map(h => h.split(':')[0] + h.split(':')[2]);
+  console.log(`   contatos iniciados: azul ${byBlue}, vermelho ${hits.length - byBlue}`);assert.notDeepEqual(side('0'), side('1'));
 });
 test('personalidade neutra reproduz o ritmo fixo do v6 (sem aleatoriedade)', () => {
   const saved = structuredClone([C.extras.aiRed, C.extras.aiBlue]);

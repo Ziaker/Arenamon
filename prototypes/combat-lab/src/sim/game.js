@@ -25,7 +25,9 @@ export class Game {
     // Hitstop: o passo conta no relógio, mas a simulação fica congelada.
     if (this.hitstop > 0) {this.hitstop = Math.max(0, this.hitstop - C.test.step);this.tick++;this.frozen = true;return;}
     const finishing = this.phase === 'finishing';
-    const commands = finishing ? [emptyCommand(), emptyCommand()] : [cmd0, cmd1 ?? this.brain.command(this.fighters[1], this.fighters[0], this.mode, C.test.step)];
+    // IA do oponente desligada: o vermelho fica como boneco (recebe dano, colisões e reações físicas, sem decidir nada).
+    const enemy = () => C.extras.toggles.enableEnemyAI ? this.brain.command(this.fighters[1], this.fighters[0], this.mode, C.test.step) : emptyCommand();
+    const commands = finishing ? [emptyCommand(), emptyCommand()] : [cmd0, cmd1 ?? enemy()];
     this.lastCommands = commands;
     for (const f of this.fighters) updateFighter(f, commands[f.id] ?? emptyCommand(), this.fighters, C.test.step);
     const actions = this.fighters.map(f => f.action);

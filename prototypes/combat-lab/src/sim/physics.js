@@ -36,6 +36,8 @@ export function stepPhysics(fighters, dt) {
       flight.vy -= R.launchGravity * dt;
       flight.horizontal = scale(flight.horizontal, Math.exp(-R.launchDrag * dt));
       if (flight.y <= 0) {
+        // Evento real de colisão com o solo (usado pelos efeitos visuais): velocidade vertical e horizontal no contato.
+        f.lastLanding = {n: (f.lastLanding?.n ?? 0) + 1, vertical: Math.max(0, -flight.vy), horizontal: length(flight.horizontal), x: f.position.x, z: f.position.z};
         f.landingSlide = T.enableLandingSkid ? {velocity: scale(flight.horizontal, X.landingSkidFraction)} : null;
         f.flight = null;f.velocity = vec();f.knockRecovery = R.landingRecovery;
         f.state = f.hp <= 0 ? 'defeated' : 'landing';

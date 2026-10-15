@@ -11,12 +11,29 @@
 import {C} from './config.js';
 import {nominalDistance, actionParams, invulnerableWindow, chainOpen} from './entity.js';
 import {vec, add, scale, sub, dot, length, normalize, clamp, angleOf, direction, angleDelta, smoothstep, actionCurve} from './math.js';
+import {legacyApproach, locomotionStep} from './locomotion.js';
+import {actionProgress} from './motion.js';
 
-/** Aceleração/frenagem/reversão da locomoção comum. */
-export function approachVelocity(current, desired, dt) {
-  const L = C.locomotion, delta = sub(desired, current), dist = length(delta);
-  const rate = length(desired) < 1e-8 ? L.braking : dot(current, desired) < 0 ? L.reversal : L.acceleration;
-  return dist <= rate * dt ? {...desired} : add(current, scale(delta, rate * dt / dist));
+/** Aceleração/frenagem/reversão da locomoção comum no modelo do v6 (mantido para compatibilidade). */
+export function approachVelocity(current, desired, dt) {return legacyApproach(current, desired, C.locomotion, dt);}
+
+/** Parâmetros efetivos da locomoção (caminhada ou sprint) para o passo atual. */
+export function locomotionParams(f) {
+  const L = C.locomotion, S = C.actions.sprint;
+  return f.sprinting ? {acceleration: S.acceleration, braking: S.braking, reversal: L.reversal, turnGrip: S.turnGrip, accelCurve: L.accelCurve, brakeCurve: L.brakeCurve, friction: L.friction, residualSpeed: L.residualSpeed, overspeedBraking: S.braking}
+    : {acceleration: L.acceleration, braking: L.braking, reversal: L.reversal, turnGrip: L.turnGrip, accelCurve: L.accelCurve, brakeCurve: L.brakeCurve, friction: L.friction, residualSpeed: L.residualSpeed, overspeedBraking: f.sprintCarry ? S.braking : L.braking};
+}
+/** Velocidade máxima de caminhada do lutador agora (defesa e exaustão reduzem). */
+export const walkSpeed = f => f.attributes.speed * (f.guard ? C.rules.guardSpeed : 1) * (f.exhausted ? C.rules.exhaustedSpeed : 1);
+
+/** Giro com aceleração angular (modelo 1) ou com velocidade constante (v6). */
+function turnToward(f, goal, dt) {
+  const L = C.locomotion, diff = angleDelta(f.facing, goal);
+  if (L.model !== 1 || L.turnAcceleration <= 0) {f.facing += clamp(diff, -L.turnRate * dt, L.turnRate * dt);f.turnVelocity = 0;return;}
+  const want = Math.sign(diff) * Math.min(L.turnRate, Math.sqrt(2 * L.turnAcceleration * Math.abs(diff)));
+  f.turnVelocity += clamp(want - f.turnVelocity, -L.turnAcceleration * dt, L.turnAcceleration * dt);
+  const step = f.turnVelocity * dt;
+  if (Math.abs(step) >= Math.abs(diff) && Math.sign(step) === Math.sign(diff)) {f.facing = goal;f.turnVelocity = 0;} else f.facing += step;
 }
 
 /** A ação `kind` pode começar agora? Devolve {ok, viaCancel, buffer}. */
@@ -44,16 +61,23 @@ export function updateFighter(f, cmd, fighters, dt) {
   if (f.hp <= 0) {f.state = 'defeated';f.velocity = vec();f.action = null;f.push = null;f.vaultHeight = 0;f.bufferedTackle = null;return;}
   const target = fighters.find(o => o.id === cmd.target && o.hp > 0);
   const move = length(cmd.move) > 1 ? normalize(cmd.move) : cmd.move;
+  // Mira (ataques sem direção, prévia): o alvo, se houver. Orientação do corpo: ver faceGoal abaixo.
   const desiredHeading = target ? angleOf(sub(target.position, f.position)) : length(move) > 0 ? angleOf(move) : f.facing;
-  f.desiredMove = {...move};f.combatHeading = desiredHeading;
+  f.desiredMove = {...move};f.combatHeading = desiredHeading;f.inputDir = {...move};
   f.perfectCooldown = Math.max(0, f.perfectCooldown - dt);
   if (f.perfectLeft > 0) {f.perfectLeft = Math.max(0, f.perfectLeft - dt);if (f.perfectLeft < 1e-8 && !f.perfectSucceeded) f.perfectCooldown = R.perfectCooldown;}
   f.stun = Math.max(0, f.stun - dt);
   f.counterWindow = Math.max(0, f.counterWindow - dt);
+  const staminaBefore = f.stamina;
+  // Sprint: consumo contínuo; a regeneração fica suspensa enquanto ele dura.
+  if (f.sprinting) {f.regenBase = Math.max(0, f.stamina - A.sprint.staminaDrain * dt);f.regenAge = 0;}
   f.regenAge += dt * (f.guard ? X.combat.guardRegenFactor : 1);
   const regen = clamp((f.regenAge - R.regenDelay) / R.regenTime, 0, 1);
   f.stamina = f.regenBase + (R.staminaMax - f.regenBase) * regen ** 3;
+  if (f.sprinting && f.stamina <= 1e-8) {f.stamina = 0;f.regenBase = 0;f.exhausted = true;}
   if (f.stamina >= R.staminaMax - 1e-8) {f.stamina = R.staminaMax;f.exhausted = false;}
+  f.staminaTrend = (f.stamina - staminaBefore) / dt;
+  if (!cmd.dodgeHeld) f.sprintArmed = false;
   if (!cmd.guard || !T.enableDefense) {f.guard = false;f.guardSuppressed = false;}
   const open = chainOpen(f);
   if (cmd.guard && T.enableDefense && !f.guardSuppressed && open) {
@@ -75,17 +99,29 @@ export function updateFighter(f, cmd, fighters, dt) {
     else if (permission.ok && affordable) {startAction(f, kind, dirs, fighters, desiredHeading, permission.viaCancel, cmd.guard);if (fromBuffer) f.action.buffered = true;}
     // Sem permissão ou sem stamina: a ação atual continua intacta (inclusive a esquiva, no caso de C → X).
   }
+  // Esquiva → sprint: C ainda pressionado, com direção, a partir de entryFraction da esquiva (ou logo depois dela).
+  const S = A.sprint, L = C.locomotion;
+  const sprintReady = !!T.enableSprint && cmd.dodgeHeld && f.sprintArmed && length(move) > .01 && !f.guard && !f.exhausted && f.stamina >= S.minStamina - 1e-8 && f.stun <= 1e-8;
+  if (sprintReady && f.action?.kind === 'dodge' && !f.action.vault && f.action.elapsed >= S.entryFraction * A.dodge.duration - 1e-8) {
+    f.locomotionVelocity = {...f.velocity};f.action = null;f.vaultHeight = 0;f.sprinting = true;f.sprintCarry = false;
+  } else if (sprintReady && !f.action && !f.sprinting) {f.sprinting = true;f.sprintCarry = false;}
+  if (f.sprinting && (!cmd.dodgeHeld || length(move) <= .01 || f.guard || f.exhausted || f.stamina <= 1e-8 || f.action || f.stun > 1e-8 || !T.enableSprint)) {
+    f.sprinting = false;f.sprintCarry = !f.action;f.sprintArmed = false;
+  }
+  // Orientação do corpo: separada da locomoção. Com lock-on, olha para o alvo conforme lockFacing (a mira continua no alvo).
+  const lockedFace = target && (L.model !== 1 || L.lockFacing === 1 || (L.lockFacing === 2 && (length(move) <= .01 || f.guard)));
+  const faceGoal = lockedFace ? desiredHeading : length(move) > 0 ? angleOf(move) : f.facing;
   if (!f.action) {
     f.vaultHeight = 0;
     const diff = angleDelta(f.facing, desiredHeading);
     if (f.guard && target) {
       const max = Math.min(R.guardTurn, Math.sqrt(2 * R.guardAcceleration * Math.abs(diff)));
       f.angularSpeed = Math.min(max, f.angularSpeed + R.guardAcceleration * dt);
-      f.facing += clamp(diff, -f.angularSpeed * dt, f.angularSpeed * dt);
-    } else {f.facing += clamp(diff, -C.locomotion.turnRate * dt, C.locomotion.turnRate * dt);f.angularSpeed = 0;}
+      f.facing += clamp(diff, -f.angularSpeed * dt, f.angularSpeed * dt);f.turnVelocity = 0;
+    } else {turnToward(f, faceGoal, dt);f.angularSpeed = 0;}
   }
   if (f.action) {
-    f.locomotionVelocity = vec();
+    f.locomotionVelocity = vec();f.sprintCarry = false;
     const action = f.action;
     if (action.kind === 'dodge' || action.kind === 'tackle') {
       const p = A[action.kind], steering = cmd.dodgeDirection ?? move;
@@ -94,16 +130,24 @@ export function updateFighter(f, cmd, fighters, dt) {
         action.heading += clamp(angleDelta(action.heading, desired), -p.steerRate * dt, p.steerRate * dt);
       }
       // O corpo pode olhar para o alvo; a trajetória da ação segue `heading`, independente da orientação.
-      const facingGoal = target ? desiredHeading : action.heading;
-      f.facing += clamp(angleDelta(f.facing, facingGoal), -C.locomotion.turnRate * dt, C.locomotion.turnRate * dt);
-      const D = p.duration;
-      const speed = nominalDistance(f, action.kind) * (action.speedMultiplier ?? 1) * (actionCurve((action.elapsed + dt) / D, p.curveStart) - actionCurve(action.elapsed / D, p.curveStart)) / dt;
+      // No modelo novo, o tackle olha para a própria trajetória (exceto lockFacing = 1) e a esquiva olha para o alvo.
+      const facingGoal = target && (L.model !== 1 || action.kind === 'dodge' || L.lockFacing === 1) ? desiredHeading : action.heading;
+      turnToward(f, facingGoal, dt);
+      const D = p.duration, u0 = action.elapsed / D, u1 = (action.elapsed + dt) / D, nominal = nominalDistance(f, action.kind) * (action.speedMultiplier ?? 1);
+      let speed;
+      if (p.profile === 1) {
+        // Integração com correção: o restante da distância (pretendida, sem contar colisões) é distribuído pelo restante
+        // da curva. A mistura de entrada com a velocidade anterior não encurta nem alonga a ação.
+        const rem = 1 - actionProgress(p, u0), left = Math.max(0, nominal - (action.traveled ?? 0));
+        speed = rem > 1e-9 ? left * (actionProgress(p, u1) - actionProgress(p, u0)) / rem / dt : 0;
+      } else speed = nominal * (actionProgress(p, u1) - actionProgress(p, u0)) / dt;
       f.velocity = scale(direction(action.heading), speed);
       const blendTime = action.blendTime ?? p.blend;
       if (action.from && blendTime > 0 && action.elapsed < blendTime) {
         const blend = smoothstep((action.elapsed + dt) / blendTime);
         f.velocity = {x: action.from.x * (1 - blend) + f.velocity.x * blend, z: action.from.z * (1 - blend) + f.velocity.z * blend};
       }
+      action.traveled = (action.traveled ?? 0) + Math.max(0, dot(f.velocity, direction(action.heading))) * dt;
       if (action.kind === 'dodge') {
         // C com salto: arco aéreo contínuo de decolagem e pouso, na duração da esquiva.
         f.vaultHeight = action.vault ? A.dodge.vaultHeight * Math.sin(Math.PI * clamp((action.elapsed + dt) / A.dodge.duration, 0, 1)) : 0;
@@ -119,8 +163,16 @@ export function updateFighter(f, cmd, fighters, dt) {
       f.velocity = scale(direction(action.heading), distance * step / dt);f.state = 'recoil';
     }
   } else {
-    const speed = f.attributes.speed * (f.guard ? R.guardSpeed : 1) * (f.exhausted ? R.exhaustedSpeed : 1);
-    f.locomotionVelocity = f.stun > 1e-8 ? vec() : approachVelocity(f.locomotionVelocity, scale(move, speed), dt);
+    const walk = walkSpeed(f), vMax = f.sprinting ? f.attributes.speed * S.speedMultiplier : walk, before = f.locomotionVelocity;
+    if (f.stun > 1e-8) {f.locomotionVelocity = vec();f.locoPhase = 'stun';f.desiredVelocity = vec();}
+    else if (L.model !== 1) {f.locomotionVelocity = approachVelocity(f.locomotionVelocity, scale(move, walk), dt);f.desiredVelocity = scale(move, walk);f.locoPhase = length(move) ? 'legacy' : 'idle';}
+    else {
+      const r = locomotionStep(f.locomotionVelocity, move, vMax, locomotionParams(f), dt);
+      f.locomotionVelocity = r.velocity;f.desiredVelocity = r.desired;
+      if (f.sprintCarry && length(r.velocity) <= walk + 1e-3) f.sprintCarry = false;
+      f.locoPhase = f.sprinting ? 'sprint' : f.sprintCarry ? 'sprintStop' : r.phase;
+    }
+    f.appliedAccel = scale(sub(f.locomotionVelocity, before), 1 / dt);
     f.velocity = {...f.locomotionVelocity};
     if (f.blend) {
       const amount = smoothstep((f.blend.elapsed + dt) / R.blend);
@@ -148,7 +200,8 @@ function startAction(f, kind, dirs, fighters, desiredHeading, viaCancel, guardHe
   const requested = dirs.dodgeDirection ?? dirs.move;
   // C → X sem nova direção: continua na direção da esquiva (continuidade determinística).
   const heading = viaCancel && length(dirs.move) <= .01 ? prev.heading : length(requested) > .01 ? angleOf(requested) : desiredHeading;
-  let from = f.action ? {...f.velocity} : null, blendTime, invulnerableFor, liftStart = 0, liftTime = 0;
+  // Curva em fases: sempre parte da velocidade atual (a curva começa parada; sem a mistura a velocidade saltaria).
+  let from = f.action || p.profile === 1 ? {...f.velocity} : null, blendTime, invulnerableFor, liftStart = 0, liftTime = 0;
   if (viaCancel) {
     const c = A.cancel;from = scale(f.velocity, c.velocityInfluence);blendTime = c.transition;
     // A invulnerabilidade de C não vira invulnerabilidade extra de X.
@@ -168,6 +221,7 @@ function startAction(f, kind, dirs, fighters, desiredHeading, viaCancel, guardHe
   f.stamina = Math.max(0, f.stamina - p.cost);f.regenBase = f.stamina;f.regenAge = 0;
   f.exhausted = f.stamina < 1e-8;f.guard = false;f.guardSuppressed = guardHeld;
   f.stun = 0;f.push = null;f.blend = null;f.vaultHeight = liftStart;f.bufferedTackle = null;f.inputBuffer = null;
+  f.sprinting = false;f.sprintCarry = false;f.sprintArmed = kind === 'dodge';
 }
 
 /** Avança o relógio da ação e a encerra ao fim da duração própria. */

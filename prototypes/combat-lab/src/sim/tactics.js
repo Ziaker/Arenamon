@@ -16,7 +16,8 @@
 // O estado fica em `brain.t`, um objeto simples (serializável para replay e cenários).
 import {C} from './config.js';
 import {emptyCommand, nominalDistance} from './entity.js';
-import {vec, add, scale, sub, dot, length, normalize, direction, actionCurve, clamp} from './math.js';
+import {vec, add, scale, sub, dot, length, normalize, direction, clamp} from './math.js';
+import {actionProgress} from './motion.js';
 
 /** Estilos de luta: alcance preferido, gosto por cada ação e disciplina. Valores de 0 a 1, salvo indicação. */
 export const STYLES = [
@@ -61,7 +62,7 @@ function incoming(self, target) {
   const X = C.actions.tackle, toSelf = sub(self.position, target.position), d = length(toSelf);
   const along = d > 1e-6 ? dot(direction(a.heading), normalize(toSelf)) : 1;
   if (along < C.extras.ai.threatAlignment) return null;
-  const u = clamp(a.elapsed / X.duration, 0, 1), left = nominalDistance(target, 'tackle') * (a.speedMultiplier ?? 1) * (1 - actionCurve(u, X.curveStart));
+  const u = clamp(a.elapsed / X.duration, 0, 1), left = nominalDistance(target, 'tackle') * (a.speedMultiplier ?? 1) * (1 - actionProgress(X, u));
   const lateral = Math.sqrt(Math.max(0, d * d - (d * along) ** 2)), gap = d - contactDistance();
   const reaches = left * along + .15 >= gap && lateral < contactDistance() + .2;
   const closing = Math.max(.5, dot(sub(target.velocity, self.velocity), d > 1e-6 ? normalize(toSelf) : vec(0, 1)));

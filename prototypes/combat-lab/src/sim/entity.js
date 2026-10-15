@@ -7,15 +7,20 @@ export function createFighter(id, attributes, position) {
     combatHeading: id ? Math.PI : 0, visualFacing: id ? Math.PI : 0, angularSpeed: 0, hp: attributes.hp, stamina: C.rules.staminaMax, exhausted: false,
     regenAge: 0, regenBase: C.rules.staminaMax, state: 'neutral', action: null, guard: false, guardSuppressed: false, perfectLeft: 0, perfectCooldown: 0,
     perfectSucceeded: false, stun: 0, push: null, blend: null, contacts: 0, flight: null, knockRecovery: 0, vaultHeight: 0, counterWindow: 0, landingSlide: null,
-    bufferedTackle: null, inputBuffer: null};
+    bufferedTackle: null, inputBuffer: null,
+    // Locomoção contínua: fase (accel/cruise/brake/reverse/turn/overspeed), sprint e telemetria do último passo.
+    turnVelocity: 0, sprinting: false, sprintCarry: false, locoPhase: 'idle', desiredVelocity: vec(), appliedAccel: vec(), inputDir: vec(), staminaTrend: 0, lastLanding: null};
 }
-export const emptyCommand = () => ({move: vec(), dodge: false, tackle: false, guard: false, guardPressed: false, target: null});
+export const emptyCommand = () => ({move: vec(), dodge: false, dodgeHeld: false, tackle: false, guard: false, guardPressed: false, target: null});
 /** Parâmetros próprios de uma ação X/C (C.actions.dodge ou C.actions.tackle). */
 export const actionParams = kind => C.actions[kind];
 /** Duração de uma ação: esquiva e tackle têm durações independentes; recuo usa as regras gerais. */
 export const actionDuration = kind => kind === 'recoil' ? C.rules.recoil : C.actions[kind].duration;
-/** Distância nominal: multiplicador próprio × duração própria × velocidade do lutador (GDD 7.2: 2,5 × 400 ms). */
-export const nominalDistance = (f, kind = 'dodge') => C.actions[kind].distance * C.actions[kind].duration * f.attributes.speed;
+/**
+ * Distância nominal: multiplicador próprio × tempo de referência × velocidade do lutador (GDD 7.2: 2,5 × 400 ms).
+ * Com distanceReference = 0 o tempo de referência é a própria duração (Etapa A: a distância acompanhava a duração).
+ */
+export const nominalDistance = (f, kind = 'dodge') => {const p = C.actions[kind];return p.distance * (p.distanceReference > 0 ? p.distanceReference : p.duration) * f.attributes.speed;};
 /** Invulnerável agora? Janela própria da ação (ou a herdada no cancelamento C → X). */
 export const invulnerableWindow = action => action.invulnerableFor ?? C.actions[action.kind].invulnerable;
 export const isInvulnerable = f => !!C.extras.toggles.enableInvulnerability && (f.action?.kind === 'dodge' || f.action?.kind === 'tackle') && f.action.elapsed < invulnerableWindow(f.action) - 1e-8;

@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import {mkdirSync, writeFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {Game} from '../src/sim/game.js';
-import {C, resetConfig, defaults} from '../src/sim/config.js';
+import {C, resetConfig, defaults, ETAPA_A_MOTION} from '../src/sim/config.js';
 import {isInvulnerable} from '../src/sim/entity.js';
 import {toCommand} from '../src/ui/input.js';
 import {migrateFlat, flatten} from '../src/ui/actions-meta.js';
@@ -17,6 +17,8 @@ const report = [];let passed = 0;
 const fmt = v => typeof v === 'number' ? (Math.abs(v) >= 100 ? v.toFixed(1) : +v.toFixed(4)) : v;
 /** Registra uma verificação esperado × obtido e falha o teste se não bater. */
 function expect(group, label, ok, expected, actual) {report.push({group, label, ok: !!ok, expected: fmt(expected), actual: fmt(actual)});assert.ok(ok, `${group} · ${label}: esperado ${expected}, obtido ${actual}`);}
+/** Movimento da Etapa A (locomoção linear, setas relativas ao alvo, curva polinomial): para verificações que medem aquela curva ou aqueles tempos. */
+function legacyMotion() {for (const [p, v] of Object.entries(ETAPA_A_MOTION)) {const k = p.split('.'), last = k.pop();k.reduce((o, x) => o[x], C)[last] = v;}}
 function test(name, fn) {resetConfig();fn();passed++;console.log('✓', name);}
 const cmd = (o = {}) => ({move: vec(), dodge: false, tackle: false, guard: false, guardPressed: false, target: null, ...o});
 const DIRS = [['frente', 0, 1], ['trás', 0, -1], ['esquerda', 1, 0], ['direita', -1, 0], ['frente-esquerda', 1, 1], ['frente-direita', -1, 1], ['trás-esquerda', 1, -1], ['trás-direita', -1, -1]]
@@ -58,7 +60,8 @@ test('tackle X atinge nas 8 direções com lock-on (direção relativa ao alvo)'
     expect('Tackle 8 direções (lock-on)', `${name}: um impacto`, hits.length === 1 && hits[0].result === 'impact', 'impact ×1', hits.map(h => h.result).join(',') || 'nenhum');
   }
 });
-test('tackle X pelo teclado com lock-on: ↑ investe contra um alvo que está ATRÁS do corpo', () => {
+test('tackle X pelo teclado com lock-on: ↑ investe contra um alvo que está ATRÁS do corpo (referencial do alvo, Etapa A)', () => {
+  legacyMotion();
   const g = setup({p1: vec(0, -2.2), face0: 0});
   const r = run(g, 60, (t, game) => {const [a, b] = game.fighters;const c = toCommand({x: 0, forward: 1, tackle: t === 2, dodge: false, guard: false, guardPressed: false}, a, b, Math.PI, true);return [c, cmd()];});
   const hits = hitsOn(r.events, 1);expect('Entrada real', 'alvo atrás · ↑ + X com lock-on', hits.length === 1, 'impact ×1', hits.length);
@@ -125,7 +128,8 @@ test('C → X no início, durante e após a invulnerabilidade da esquiva', () =>
     expect('C → X', `${label}: a esquiva não registra dano`, !c.r.events.some(e => e.attacker === 0 && c.S[e.tick]?.kind === 'dodge'), 0, 0);
   }
 });
-test('C → X: transição de velocidade suave (sem pico artificial)', () => {
+test('C → X: transição de velocidade suave (sem pico artificial) — curva polinomial da Etapa A', () => {
+  legacyMotion();
   const c = cancelCase('continuidade de velocidade (150 ms)', 18);
   // Referência: um X iniciado do repouso salta de 0 à velocidade inicial em um passo; no cancelamento o salto deve ser menor.
   const g = setup({p1: vec(0, 2.6)}), r = run(g, 10, t => [t === 2 ? cmd({move: vec(0, 1), tackle: true}) : cmd(), cmd()]);
@@ -218,7 +222,7 @@ test('parâmetros de C e X são independentes', () => {
   g = setup({p1: vec(14, 14)});r = run(g, 100, t => [t === 2 ? cmd({move: vec(1, 0), tackle: true}) : cmd(), cmd()]);
   expect('Independência', 'duração de X continua 0,4 s (47 amostras + passo final)', r.samples.filter(s => s[0].kind === 'tackle').length === 47, 47, r.samples.filter(s => s[0].kind === 'tackle').length);
   expect('Independência', 'custo de X = 2', Math.abs(r.samples[3][0].stamina - 1) < 1e-9, 1, r.samples[3][0].stamina);
-  resetConfig();C.actions.tackle.steerLimit = 0;C.actions.tackle.curveStart = 3;C.actions.dodge.distance = 1;
+  resetConfig();legacyMotion();C.actions.tackle.steerLimit = 0;C.actions.tackle.curveStart = 3;C.actions.dodge.distance = 1;
   g = setup({p1: vec(14, 14)});r = run(g, 70, t => [t === 2 ? cmd({move: vec(1, 0), dodge: true, dodgeDirection: vec(1, 0)}) : t > 2 ? cmd({move: vec(1, 1)}) : cmd(), cmd()]);
   const endOf = (r, kind) => r.samples.find((s, i) => i > 2 && s[0].kind !== kind)[0];const dodgeEnd = endOf(r, 'dodge');
   expect('Independência', 'distância de C = 1 × 0,4 × 4,8', Math.abs(Math.hypot(dodgeEnd.x, dodgeEnd.z) - 1.92) < .2, '≈ 1,92 m (com esterçamento de C intacto)', Math.hypot(dodgeEnd.x, dodgeEnd.z));
@@ -260,7 +264,8 @@ test('um impacto por alvo por ação, mesmo com contato prolongado', () => {
 });
 
 // ---------- Defesa e recuo ----------
-test('defesa: não desloca o defensor; recuo bloqueia X mas permite C e D; X guardado no guard stun', () => {
+test('defesa: não desloca o defensor; recuo bloqueia X mas permite C e D; X guardado no guard stun (tempos da Etapa A)', () => {
+  legacyMotion();
   const g = setup({p0: vec(0, -2.4), p1: vec(0, 0)});
   const start = {...g.fighters[1].position};
   const r = run(g, 140, t => [t === 40 ? cmd({move: vec(0, 1), tackle: true, target: 1}) : t === 52 ? cmd({tackle: true, target: 1, move: vec(0, 1)}) : cmd({target: 1}),
