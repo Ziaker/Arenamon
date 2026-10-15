@@ -25,6 +25,7 @@ Thumbs.db
 .vscode/
 .codex/
 .agents/
+.worktrees/
 *.tsbuildinfo
 dist/
 build/

@@ -22,9 +22,13 @@ Arenamon/
 │   ├── CENTRAL_DE_TESTES.md      # Catálogo completo e matriz de testes
 │   ├── STATUS_PROJETOS_E_BRANCHES.md # Estado das branches paralelas e roadmap
 │   ├── GUIA_COLABORACAO_AGENTES.md   # Guia rápido de colaboração sem conflitos
+│   ├── CONTRATO_TECNICO_RIGGING.md   # Contrato canônico de telemetria, patch e auto-rig
 │   ├── REVISAO_GDD_COMBATE.md    # Revisão do GDD de Combate (Etapa A aprovada)
 │   ├── ROSTER.md                 # Personagens e atributos planejados
 │   └── GDD_Pokemon_Arena_Fighter_v0_1.docx # Game Design Document original
+│
+├── scripts/                      # Scripts Utilitários de Governança
+│   └── verify-workspace.mjs      # Verificação de workspace oficial (npm run verify:workspace)
 │
 ├── prototypes/                   # Aplicações, Protótipos e Ambientes Funcionais
 │   ├── index.html                # Catálogo clássico de protótipos
