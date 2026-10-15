@@ -368,14 +368,25 @@ export class Character {
   /** Ponto mais baixo do clipe no instante t (interpolado); clipGround(index) = mínimo do clipe inteiro. */
   groundAt(index, t) {const c = this.groundCurve(index), d = this.clips[index].duration || 1, x = Math.max(0, Math.min(1, t / d)) * (c.length - 1), i = Math.min(c.length - 2, Math.floor(x));return c[i] + (c[i + 1] - c[i]) * (x - i);}
   clipGround(index) {return Math.min(...this.groundCurve(index));}
+  /**
+   * Versão para o quadro: se a curva do clipe ainda não foi calculada, usa a pose de repouso e agenda o cálculo fora do
+   * quadro (antes era síncrono e travava a luta por dezenas a centenas de ms na primeira vez que um clipe tocava;
+   * medido pelo medidor de desempenho). A altura converge suavemente quando a curva fica pronta.
+   */
+  groundAtFrame(index, t) {
+    if (this.groundCache.has(index)) return this.groundAt(index, t);
+    this.groundPending ??= new Set();
+    if (!this.groundPending.has(index)) {this.groundPending.add(index);const run = () => {if (this.disposed) return;this.groundCurve(index);this.groundPending.delete(index);};typeof requestIdleCallback === 'function' ? requestIdleCallback(run, {timeout: 400}) : setTimeout(run, 0);}
+    return this.restMinY;
+  }
   /** Posição, escala e orientação. Altura visual independente da física: o colisor e a sombra não se movem. */
   place(f, alt, dt) {
     const opt = Character.options, scale = opt.fit ? C.extras.visual.bodyHeight / this.restHeight : 1;
     let ground = this.restMinY;
     if (this.autoGround && C.display.grounding.autoGround && this.current) {
       // Média ponderada pelos pesos das camadas: sem saltos de altura nas transições.
-      let w = this.current.weight, acc = this.groundAt(this.current.index, this.current.action.time) * w;
-      for (const l of this.layers) {acc += this.groundAt(l.index, l.action.time) * l.weight;w += l.weight;}
+      let w = this.current.weight, acc = this.groundAtFrame(this.current.index, this.current.action.time) * w;
+      for (const l of this.layers) {acc += this.groundAtFrame(l.index, l.action.time) * l.weight;w += l.weight;}
       ground = w > 0 ? acc / w : ground;
     }
     const manual = (this.current ? this.clipOffsets[this.current.index] ?? 0 : 0) + this.visualOffset + (C.display.grounding.visualOffset || 0);

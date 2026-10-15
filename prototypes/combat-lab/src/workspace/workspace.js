@@ -19,7 +19,7 @@ export function emptyDoc() {
     prefs: {autoRestoreSession: 1, warnOnClose: 0},
     tuning: null, animOptions: null, ui: {}, match: null,
     slots: [{modelId: null, name: null, autoRestore: 1}, {modelId: null, name: null, autoRestore: 1}],
-    models: {}, calibrations: [], legacyModels: {}, sequences: [], extra: {}};
+    models: {}, calibrations: [], legacyModels: {}, sequences: [], benchmarks: [], extra: {}};
 }
 
 /** Normaliza um documento lido (versões futuras são recusadas; campos ausentes ganham o padrão). */
@@ -32,7 +32,7 @@ export function migrateDoc(raw) {
   doc.slots = [0, 1].map(i => ({...base.slots[i], ...(raw.slots?.[i] || {})}));
   doc.models = raw.models && typeof raw.models === 'object' ? raw.models : {};
   doc.calibrations = Array.isArray(raw.calibrations) ? raw.calibrations.slice(-MAX_CALIBRATIONS) : [];
-  doc.legacyModels = raw.legacyModels || {};doc.sequences = Array.isArray(raw.sequences) ? raw.sequences : [];
+  doc.legacyModels = raw.legacyModels || {};doc.sequences = Array.isArray(raw.sequences) ? raw.sequences : [];doc.benchmarks = Array.isArray(raw.benchmarks) ? raw.benchmarks : [];
   return {doc, notes};
 }
 

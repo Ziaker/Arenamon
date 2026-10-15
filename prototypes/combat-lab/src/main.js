@@ -30,6 +30,7 @@ import {createPresetsPanel} from './ui/presets-panel.js';
 import {createMovementPanel} from './ui/movement-panel.js';
 import {createDiagnostics, createWindowsOverlay} from './ui/diagnostics-panel.js';
 import {createTrainingPanel} from './ui/training-panel.js';
+import {createPerfPanel} from './ui/perf-panel.js';
 /* global __GAME_CONFIG_TS__ */
 const GAME_CONFIG_TS = typeof __GAME_CONFIG_TS__ === 'string' ? __GAME_CONFIG_TS__ : '';
 import {length, sub, dot} from './sim/math.js';
@@ -434,6 +435,20 @@ $('win-controls').append(...tuning.sectionControls('Janelas de combate'));
 const training = createTrainingPanel({$, game, ui, clock, download, toast: e => diagnostics.toast(e),
   start: trainer => {abortScenario();restorePlaybackValues();ui.playback = null;trainer.start(game);ui.paused = false;input.clear();input.locked = false;resetViewAndLogs();matchRec.start({seed: trainer.seed, profile: game.profile, enemyProfile: game.enemyProfile, mode: 'training', values: tuning.snapshotValues()});syncButtons();canvas.focus();},
   stop: () => {game.phase = 'menu';}});
+// Medidor de desempenho, perfis gráficos e benchmark (IA × IA com semente fixa no laço real).
+let benchRestore = null;
+const perfPanel = createPerfPanel({$, view, game, tuning, ui, download, getWs: () => wsRef.ws,
+  startBench: ({seed, characters}) => {
+    if (!benchRestore) benchRestore = {toggles: [['extras.toggles.enablePlayerAI', C.extras.toggles.enablePlayerAI], ['extras.toggles.enableEnemyAI', C.extras.toggles.enableEnemyAI], ['extras.toggles.enemyManual', C.extras.toggles.enemyManual]], mode: $('mode').value, playerMode: ui.playerMode, seed: $('seed').value, fixed: $('seed-fixed').checked};
+    tuning.setTransient([['extras.toggles.enablePlayerAI', 1], ['extras.toggles.enableEnemyAI', 1], ['extras.toggles.enemyManual', 0]]);ui.playerMode = 'tactical';
+    $('mode').value = 'tactical';$('seed').value = String(seed);$('seed-fixed').checked = true;startMatch();
+    const red = ui.characters[1];if (red) {red.root.visible = characters === 2;view.setCharacter(1, characters === 2 ? red : null);}
+  },
+  endBench: () => {
+    const red = ui.characters[1];if (red) {red.root.visible = true;view.setCharacter(1, red);}
+    if (benchRestore) {tuning.setTransient(benchRestore.toggles);$('mode').value = benchRestore.mode;game.mode = benchRestore.mode;ui.playerMode = benchRestore.playerMode;$('seed').value = benchRestore.seed;$('seed-fixed').checked = benchRestore.fixed;benchRestore = null;}
+    game.phase = 'menu';
+  }});
 const visualPanel = createVisualPanel({tuning, view, game, $, hud: hudProposals, download});
 $('enemy-ai-control').append(tuning.controlFor('extras.toggles.enableEnemyAI'), tuning.controlFor('extras.toggles.enemyManual'));
 $('bindings-controls').append(...tuning.sectionControls('Teclas: índices configuráveis'));
@@ -459,14 +474,16 @@ let last = performance.now(), uiTimer = 0;
 function frame(now) {
   const dt = Math.max(0, (now - last) / 1000);last = now;
   const live = !ui.paused && (game.phase === 'playing' || game.phase === 'finishing');
-  if (live) clock.advance(dt, stepOnce);else clock.reset();
+  const tSim = performance.now();let steps = 0;
+  if (live) clock.advance(dt, () => {steps++;stepOnce();});else clock.reset();
+  const simMs = performance.now() - tSim;
   ui.fps += (1 / Math.max(.001, dt) - ui.fps) * C.extras.hud.fpsSmoothing;
   view.draw(game.fighters, game.events, live ? dt * clock.timeScale : 0, {paused: !live, realDt: dt, tick: game.tick, sources: [C.extras.toggles.enablePlayerAI || ui.scenario ? 'IA' : 'jogador', 'IA']});
   const back = replay.length ? (replay.length - 1 - replay.cursor) : 0;
   hud.render(game, ui.fps, {locked: input.locked, paused: ui.paused && game.phase !== 'menu', replay: back ? `−${back} passos (${(back * C.test.step * 1000).toFixed(0)} ms) · ▶ retoma daqui` : 'último passo · , e . avançam/voltam', playerAI: !!C.extras.toggles.enablePlayerAI});
   $('rp-readout').textContent = `passo ${game.tick}${back ? ` · −${(back * C.test.step).toFixed(2)} s` : ''}${clock.timeScale !== 1 ? ` · ${clock.timeScale}×` : ''}`;
-  dock.render();hudProposals.render(game, live ? dt * clock.timeScale : 0);windowsOverlay.update();
-  if ((uiTimer += dt) > .1) {uiTimer = 0;renderLive();renderHistory();renderCharacterLive();renderRecStatus();visualPanel.live();diagnostics.live();}
+  dock.render();hudProposals.render(game, live ? dt * clock.timeScale : 0);windowsOverlay.update();perfPanel.frame({frameMs: dt * 1000, simMs, steps});
+  if ((uiTimer += dt) > .1) {uiTimer = 0;renderLive();renderHistory();renderCharacterLive();renderRecStatus();visualPanel.live();diagnostics.live();perfPanel.live();}
   ui.frame++;requestAnimationFrame(frame);
 }
 applyConfig();renderScenarios();renderCharacters();syncTuneState();openTool('match');syncButtons();
@@ -476,7 +493,7 @@ requestAnimationFrame(frame);
 function collectUi() {
   const pressed = document.querySelector('[data-dock][aria-pressed="true"]');
   return {tool: $('panel').hidden ? null : $('panel').dataset.tool, dockCollapsed: $('dock').classList.contains('collapsed'), dockView: pressed?.dataset.dock ?? 'timeline', timeScale: $('rp-speed').value,
-    overlays: {...view.overlays}, showHistory: $('show-history').checked, charSyncSource: $('char-sync-source').value, previewSlot: $('char-preview-slot').value, tuneMode: presets.mode, abKey: presets.abKey};
+    overlays: {...view.overlays}, showHistory: $('show-history').checked, charSyncSource: $('char-sync-source').value, previewSlot: $('char-preview-slot').value, tuneMode: presets.mode, abKey: presets.abKey, vfxMode: visualPanel.vfxMode};
 }
 const collectMatch = () => ({enemyProfile: $('enemy-profile').value, playerMode: $('player-mode').value, seed: $('seed').value, seedFixed: $('seed-fixed').checked, recValues: $('rec-values').value});
 const collectAnim = () => {const o = Character.options;return {fit: o.fit, fade: o.fade, actionFade: o.actionFade, locomotionHold: o.locomotionHold, speed: o.speed, syncRules: o.syncRules};};
@@ -502,6 +519,7 @@ function applyDocUi(doc) {
   if (typeof u.showHistory === 'boolean') {$('show-history').checked = u.showHistory;$('input-history').hidden = !u.showHistory;}
   if (u.charSyncSource) $('char-sync-source').value = u.charSyncSource;
   if (u.tuneMode) presets.setMode(u.tuneMode);
+  if (u.vfxMode) visualPanel.setMode(u.vfxMode);
   if (u.abKey) {presets.setABKey(u.abKey);$('ab-key').value = u.abKey;}
   if (u.previewSlot) $('char-preview-slot').value = u.previewSlot;
   if (typeof u.dockCollapsed === 'boolean' && u.dockCollapsed !== $('dock').classList.contains('collapsed')) $('dock-toggle').click();
@@ -541,6 +559,6 @@ window.__arenamon = {snapshot: () => ({...game.snapshot(), frame: ui.frame, came
 window.__arenaLive = {rules: C.rules, test: C.test, locomotion: C.locomotion, camera: C.camera, profiles: C.profiles, extras: C.extras, game, view, input, clock, reset: startMatch, apply: applyConfig};
 // window.__lab só aparece depois da restauração do workspace (os testes esperam por ele).
 bootWorkspace().catch(e => {console.error('workspace:', e);ui.workspaceError = e.message;return null;}).then(boot => {
-  window.__lab = {C, game, view, hudProposals, presets, movement, playSequence, diagnostics, training, visualPanel, recorder, replay, tuning, ui, startMatch, startScenario: id => startScenario(SCENARIOS.find(s => s.id === id)), stepFrames, seekTick, goLive, togglePause, setCharacter, loadStudioFile, SCENARIOS, runScenario,
+  window.__lab = {C, game, view, hudProposals, presets, movement, playSequence, diagnostics, training, perf: perfPanel, visualPanel, recorder, replay, tuning, ui, startMatch, startScenario: id => startScenario(SCENARIOS.find(s => s.id === id)), stepFrames, seekTick, goLive, togglePause, setCharacter, loadStudioFile, SCENARIOS, runScenario,
     ws: boot?.ws ?? null, store: boot?.store ?? null, wsUI: boot?.wsUI ?? null, workspaceBoot: boot};
 });

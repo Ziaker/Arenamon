@@ -79,7 +79,7 @@ const same = (a, b) => Math.abs(a - b) <= 1e-9 * Math.max(1, Math.abs(a), Math.a
 /** Seções do overhaul fora do catálogo original: sprint (Ajustes) e efeitos, sombras, HUD e tremores (Visualizar). */
 export const EXTRA_SECTIONS = [['Sprint (C mantido)', 'actions.sprint', null], ['VFX · geral', 'vfx.master', null],
   ...VFX_TYPES.map(([type, label]) => [`VFX · ${label}`, `vfx.${type}`, null]), ['Tremor · geral', 'vfx.shakeMaster', null], ...SHAKE_EVENTS.map(([key, label]) => [`Tremor · ${label}`, `vfx.${key}`, null]),
-  ['Teclas do vermelho (controle manual)', 'extras.bindings2', null], ['Sombras', 'display.shadow', null], ['HUD', 'display.hud', null], ['Altura visual', 'display.grounding', null], ['Indicador da janela C → X', 'display.cancelRing', null], ['Animação: transições', 'display.animation', null], ['Diagnóstico de comandos', 'display.diagnostics', null], ['Janelas de combate', 'display.windows', null]];
+  ['Teclas do vermelho (controle manual)', 'extras.bindings2', null], ['Sombras', 'display.shadow', null], ['HUD', 'display.hud', null], ['Altura visual', 'display.grounding', null], ['Indicador da janela C → X', 'display.cancelRing', null], ['Animação: transições', 'display.animation', null], ['Diagnóstico de comandos', 'display.diagnostics', null], ['Janelas de combate', 'display.windows', null], ['Medidor de desempenho', 'display.perf', null]];
 /** Parâmetros mostrados em outras abas (sem duplicar controles no Ajustes). */
 const ELSEWHERE = new Set(['extras.toggles.enableEnemyAI', 'extras.toggles.enemyManual', 'extras.visual.shadowMin', 'extras.visual.shadowHeightFade']);
 export function createTuning({apply}) {
@@ -157,7 +157,9 @@ export function createTuning({apply}) {
   function control(m) {
     const v = pathGet(C, m.path), row = document.createElement('div');row.className = 'tune-control' + (changed(m) ? ' changed' : '');
     const top = document.createElement('div');top.className = 'tune-top';
-    const id = (state.renderingExternal ? 'ext-' : 'tune-') + m.path.replaceAll('.', '-'), label = document.createElement('label');label.htmlFor = id;label.textContent = m.label;
+    // Um mesmo parâmetro pode aparecer em mais de um lugar (ex.: VFX simples e avançado): ids únicos, mesmo valor.
+    let id = (state.renderingExternal ? 'ext-' : 'tune-') + m.path.replaceAll('.', '-');if (state.renderingExternal) {const base = id;for (let k = 2; document.getElementById(id); k++) id = `${base}-${k}`;}
+    const label = document.createElement('label');label.htmlFor = id;label.textContent = m.label;
     const q = document.createElement('button');q.type = 'button';q.className = 'tune-help';q.textContent = '?';q.setAttribute('aria-label', 'Explicação: ' + m.label);
     q.onpointerenter = () => showTip(m, q);q.onpointerleave = hideTip;q.onfocus = () => showTip(m, q);q.onblur = hideTip;
     const st = status(m), badge = document.createElement('span');badge.className = 'badge ' + (st === 'lab' ? 'labonly' : st);

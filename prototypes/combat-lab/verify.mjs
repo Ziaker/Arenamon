@@ -213,12 +213,13 @@ try {
   await page.click('[data-tool="homolog"]');page.__acceptConfirm = true;await page.click('#homolog-clear');page.__acceptConfirm = false;assert.match(await page.textContent('#homolog-summary'), /0 aprovados · 0 reprovados · 17 pendentes/);
   step('homologação jogável: 17 itens, aprovado/reprovado com observação, salva ao recarregar e exportada no JSON');
   // ---------- Gravação e reprodução de partida ----------
-  await openTab('controls');await openTab('match');await page.selectOption('#mode', 'combat');
+  // O workspace restaura a última configuração de partida (o azul ficou em “aleatório” antes do recarregamento): fixa o modo tático.
+  await openTab('controls');await openTab('match');await page.selectOption('#mode', 'combat');await page.selectOption('#player-mode', 'tactical');
   await page.click('#arena-autoplay-toggle');await page.click('#start');await page.waitForTimeout(2500);
   const recorded = await L(() => {window.__lab.togglePause(true);const g = window.__lab.game;return {ticks: window.__labRecording.matchRec.ticks, tick: g.tick, fighters: JSON.stringify(g.fighters)};});
   assert.ok(recorded.ticks > 100 && recorded.ticks === recorded.tick, `gravou ${recorded.ticks} passos`);
   pending = page.waitForEvent('download');await page.click('#rec-save');const recPath = await (await pending).path();
-  const recJson = JSON.parse(await readFile(recPath, 'utf8'));assert.equal(recJson.schema, 'arenamon-match');assert.equal(recJson.ticks, recorded.ticks);assert.ok(recJson.commands.length < recorded.ticks, 'comandos comprimidos');
+  const recJson = JSON.parse(await readFile(recPath, 'utf8'));assert.equal(recJson.schema, 'arenamon-match');assert.equal(recJson.ticks, recorded.ticks);assert.ok(recJson.commands.length < recorded.ticks, `comandos comprimidos (${recJson.commands.length} grupos para ${recorded.ticks} passos; modo ${await page.inputValue('#player-mode')}; ${JSON.stringify(recJson.commands.slice(0, 3)).slice(0, 400)})`);
   await page.click('#arena-autoplay-toggle');await L(() => window.__lab.tuning.commit([['rules.launchUp', 9]], 'muda algo antes de reproduzir'));
   await page.selectOption('#rec-values', 'recorded');await page.setInputFiles('#rec-file', recPath);
   await page.waitForFunction(() => window.__labRecording.ui.playback?.ended, null, {timeout: 20000});

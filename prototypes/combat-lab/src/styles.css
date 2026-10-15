@@ -204,3 +204,7 @@ pre.diff{max-height:240px;overflow:auto;font-size:11px;background:#0b1118;paddin
 #deny-toast[data-kind=ok]{border-color:#9fe58a99;background:#14261ae6;color:#d8ffd0}#deny-toast[data-kind=train]{border-color:#ffcf7d99;background:#2b2416e6;color:#ffe9c0}
 .badge.val-ok{color:#9fe58a;border-color:#9fe58a66}.badge.val-warn{color:var(--amber);border-color:#ffcf7d66}.badge.val-bad{color:var(--red);border-color:#ff7a7a66}
 .val-report{border-top:1px dashed #ffffff14;padding-top:4px;margin-top:4px;font-size:11.5px}.val-report:first-child{border-top:0}.val-issues{margin:2px 0 4px 16px;padding:0}.val-report table{width:100%}.val-report summary{cursor:pointer;color:#a9c0da}
+#perf-overlay{position:absolute;right:14px;bottom:44px;z-index:5;background:#0b141ee0;border:1px solid #ffffff22;border-radius:9px;padding:6px 10px;font:11px/1.45 ui-monospace,Consolas,monospace;color:#cfe2f2;pointer-events:none;max-width:420px}#perf-overlay b{color:#eef5fb;font-size:12px}
+.vfx-bar{display:flex;flex-direction:column;gap:6px;margin:4px 0 8px}.vfx-simple{display:flex;flex-direction:column;gap:6px}[data-vfx-mode=advanced]:not([hidden]){display:flex;flex-direction:column}
+.vfx-simple-row{border:1px solid var(--line);border-radius:10px;background:#0f1a26;padding:4px 6px}.vfx-simple-head{display:flex;align-items:center;gap:6px;padding:2px 4px}.vfx-simple-head b{flex:1;font-size:12.5px}.vfx-simple-head button{min-height:24px;padding:1px 8px;font-size:11px}
+.vfx-simple-row .tune-control{padding:4px 6px}.vfx-simple-row .tune-bottom{display:none}

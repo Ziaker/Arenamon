@@ -113,6 +113,7 @@ const DIAG = {
   toastMs: ['Duração do aviso', 'Tempo em tela do aviso de comando negado.', R(300, 5000, 50, n => n + ' ms')],
   logExecuted: ['Registrar também comandos executados', 'O histórico passa a listar X, C, defesa e defesa perfeita executados (útil para cronometrar).', toggle],
 };
+const PERF = {overlay: ['Medidor compacto na arena', 'Mostra FPS, tempos de quadro, CPU por etapa, GPU (se disponível), draw calls e partículas no canto da arena.', toggle]};
 const WIN = {
   mode: ['Indicadores de janelas de combate', 'Barras acima dos lutadores com o tempo restante de cada janela, lidas do estado real da simulação.', select(['Desligados', 'Só o jogador (azul)', 'Ambos'])],
   scale: ['Escala dos indicadores', 'Tamanho das barras.', R(.5, 2, .05, x)], opacity: ['Opacidade dos indicadores', 'Transparência das barras.', R(.2, 1, .05, pct)],
@@ -167,7 +168,7 @@ export function overhaulMeta(path) {
   if (root === 'actions' && parts[1] === 'cancel' && CANCEL2[key]) return out(...CANCEL2[key]);
   if (path.startsWith('extras.ai.') && AI[key]) return out(...AI[key]);
   if (path.startsWith('extras.toggles.') && TOGGLES[key]) return out(...TOGGLES[key]);
-  if (root === 'display') {const table = {shadow: SHADOW, hud: HUD, grounding: GROUND, cancelRing: RING, animation: ANIM, diagnostics: DIAG, windows: WIN}[parts[1]];if (table?.[key]) return out(...table[key]);return null;}
+  if (root === 'display') {const table = {shadow: SHADOW, hud: HUD, grounding: GROUND, cancelRing: RING, animation: ANIM, diagnostics: DIAG, windows: WIN, perf: PERF}[parts[1]];if (table?.[key]) return out(...table[key]);return null;}
   if (root === 'vfx') {
     const type = parts[1], def = VFX_TYPES.find(t => t[0] === type);
     if (key === 'variant' && def) return out('Variante', 'Três alternativas visuais realmente diferentes.', select(def[2]));
