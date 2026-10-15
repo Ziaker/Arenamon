@@ -2,6 +2,7 @@
 // prévia, altura visual e telemetria da máquina de estados de animação.
 import {Character, loadStudioFile, loadAnimationFile, ACTION_IDS, STATE_LABELS} from '../view/characters.js';
 import {escape} from './tuning.js';
+import {validateModel, validateAnimations} from '../view/validate.js';
 
 const ACTION_LABELS = {idle: 'Parado', turn: 'Girar no lugar', walk: 'Andar', run: 'Correr', sprint: 'Sprint (8 direções)', walk_stop: 'Freio da caminhada', sprint_stop: 'Freio do sprint',
   walk_back: 'Andar para trás', walk_left: 'Lateral esquerda', walk_right: 'Lateral direita', block_start: 'Entrar na defesa', block: 'Defesa', block_end: 'Sair da defesa',
@@ -28,7 +29,7 @@ export function fold(title, key, body, {open = false, count = null} = {}) {
 export function createCharacterPanel({ui, view, $, onCharactersChanged, hooks = {}}) {
   function setCharacter(id, source) {
     ui.characters[id]?.dispose();ui.characters[id] = null;ui.sources[id] = source;
-    if (source) {const ch = new Character(source, {tint: id === 1 && (ui.sources[0] === source || ui.sources[0]?.name === source.name) ? '#ff5a4a' : null, slot: id});view.scene.add(ch.root);ui.characters[id] = ch;ch.warmGround();}
+    if (source) {const ch = new Character(source, {tint: id === 1 && (ui.sources[0] === source || ui.sources[0]?.name === source.name) ? '#ff5a4a' : null, slot: id});view.scene.add(ch.root);ui.characters[id] = ch;ch.warmGround();ch.validation = validateModel(source, ch, source.bytes);ch.importValidations = [];}
     view.setCharacter(id, ui.characters[id]);render();onCharactersChanged();
   }
   function render() {
@@ -54,7 +55,7 @@ export function createCharacterPanel({ui, view, $, onCharactersChanged, hooks = 
     imp.querySelector('[data-import]').onchange = async e => {
       const f = e.target.files[0];if (!f) return;e.target.value = '';const out = imp.querySelector('[data-import-result]');
       try {
-        const done = hooks.importAnimation ? await hooks.importAnimation(id, ch, f) : {report: ch.importClips(await loadAnimationFile(f))};
+        const done = hooks.importAnimation ? await hooks.importAnimation(id, ch, f) : await (async () => {const anim = await loadAnimationFile(f), validation = validateAnimations(anim, ch, anim.bytes);(ch.importValidations ??= []).push(validation);return {report: ch.importClips(anim), validation};})();
         const rep = done.report;if (!rep) {out.textContent = done.message || '';return;}
         ch.warmGround();render();const ok = rep.filter(r => r.compatible).length;
         ui.lastImport = rep;el.dispatchEvent(new CustomEvent('imported', {bubbles: true, detail: rep}));
@@ -66,8 +67,23 @@ export function createCharacterPanel({ui, view, $, onCharactersChanged, hooks = 
     if (ch.missingAssociations?.length) {const w = document.createElement('p');w.className = 'warn';w.textContent = `Associações salvas sem clipe (reimporte): ${ch.missingAssociations.join(', ')}.`;el.append(w);}
     const missing = ch.missingStates();
     if (missing.length) {const m = document.createElement('p');m.className = 'warn';m.textContent = `Sem animação própria (usa “parado”): ${missing.map(k => STATE_LABELS[k]).join(', ')}.`;el.append(m);}
-    el.append(heightBox(id, ch), statesBox(id, ch), libraryBox(id, ch), telemetryBox(id, ch));
+    el.append(validationBox(id, ch), heightBox(id, ch), statesBox(id, ch), libraryBox(id, ch), telemetryBox(id, ch));
     return el;
+  }
+  /** Validação do modelo e das animações importadas: veredito, ressalvas e detalhe por clipe (com prévia). */
+  function validationBox(id, ch) {
+    const body = document.createElement('div');body.className = 'validation';
+    const reportHtml = (r, open) => {
+      const cls = ['ok', 'warn', 'bad'][r.verdict];
+      return `<div class="val-report" data-kind="${r.kind}"><p><span class="badge val-${cls}">${r.label}</span> <b>${escape(r.name)}</b>${r.kind === 'animations' ? ' (importação)' : ''}</p>
+        <ul class="val-issues">${r.issues.filter(i => i.level !== 'ok' || r.kind === 'model').map(i => `<li class="${i.level === 'bad' ? 'bad' : i.level === 'warn' ? 'warn' : 'muted'}">${escape(i.text)}</li>`).join('')}</ul>
+        <details${open ? ' open' : ''}><summary>${r.clips.length} clipe(s)</summary><table>${r.clips.map(c => {const idx = ch.clips.findIndex(x => x.name === c.name || x.name.startsWith(c.name + ' ['));return `<tr><td><span class="badge val-${['ok', 'warn', 'bad'][c.verdict]}">${['ok', '!', '✗'][c.verdict]}</span> ${escape(c.name)}<br><small class="muted">${c.duration.toFixed(2)} s · ${c.tracks} trilhas · ${(c.coverage * 100).toFixed(0)}%${c.issues.length ? ' · ' + c.issues.map(i => escape(i.text)).join(' · ') : ''}</small></td><td>${idx >= 0 ? `<button type="button" data-val-preview="${idx}" title="Prévia antes de associar">▶</button>` : ''}</td></tr>`;}).join('')}</table></details></div>`;
+    };
+    const reps = [...(ch.importValidations || [])].reverse();
+    body.innerHTML = (ch.validation ? reportHtml(ch.validation, false) : '') + reps.map(r => reportHtml(r, false)).join('');
+    for (const b of body.querySelectorAll('[data-val-preview]')) b.onclick = () => ch.startPreview(Number(b.dataset.valPreview));
+    const v = Math.max(ch.validation?.verdict ?? 0, ...reps.slice(0, 1).map(r => r.verdict));
+    return fold('Validação do modelo e das animações', `v${id}`, body, {open: v > 0, count: ['Compatível', 'com ressalvas', 'Incompatível'][v]});
   }
   function heightBox(id, ch) {
     const body = document.createElement('div');

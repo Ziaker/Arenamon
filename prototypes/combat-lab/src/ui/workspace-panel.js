@@ -6,6 +6,7 @@ import {storeAsset, loadAsset, storageUsage, formatBytes} from '../workspace/sto
 import {sha256} from '../workspace/hash.js';
 import {buildPackage, readPackage, unresolvedRefs, installPackageAssets} from '../workspace/workspace.js';
 import {escape} from './tuning.js';
+import {validateAnimations, validateModel} from '../view/validate.js';
 
 const SLOT = ['azul', 'vermelho'];
 const fileFrom = (bytes, name) => new File([bytes], name, {type: 'model/gltf-binary'});
@@ -33,14 +34,14 @@ export function createWorkspaceUI(ctx) {
       if (ch.importedAssets?.has(imp.id)) continue;
       const r = await loadAsset(store, imp.id);
       if (r.error) {problems.push(`${imp.name}: ${r.message}`);continue;}
-      try {ch.importClips(await loadAnimationFile(fileFrom(r.bytes, imp.name)));(ch.importedAssets ??= new Set()).add(imp.id);} catch (e) {problems.push(`${imp.name}: ${e.message}`);}
+      try {const anim = await loadAnimationFile(fileFrom(r.bytes, imp.name));(ch.importValidations ??= []).push(validateAnimations(anim, ch, anim.bytes));ch.importClips(anim);(ch.importedAssets ??= new Set()).add(imp.id);} catch (e) {problems.push(`${imp.name}: ${e.message}`);}
     }
     if (problems.length) ch.importProblems = problems;
     ch.warmGround();return problems;
   }
   async function install(slot, source) {
     panel.setCharacter(slot, source);
-    const problems = await applyImports(slot);panel.render();ctx.onCharactersChanged?.();
+    const problems = await applyImports(slot);const ch = ui.characters[slot];if (ch) ch.validation = validateModel(ch.source, ch, ch.source.bytes);panel.render();ctx.onCharactersChanged?.();
     return problems;
   }
 
@@ -81,7 +82,7 @@ export function createWorkspaceUI(ctx) {
   async function importAnimation(slot, ch, file) {
     const bytes = await file.arrayBuffer(), id = await sha256(bytes), modelId = ch.source.assetId;
     if (modelId && ws.doc.models[modelId]?.imports?.some(i => i.id === id) && ch.importedAssets?.has(id)) return {report: null, message: `“${file.name}” já foi importado para este modelo (mesmo conteúdo, SHA-256 ${id.slice(0, 10)}…). Nada foi duplicado.`};
-    const anim = await loadAnimationFile(file);
+    const anim = await loadAnimationFile(file), validation = validateAnimations(anim, ch, anim.bytes);(ch.importValidations ??= []).push(validation);
     const report = ch.importClips(anim);(ch.importedAssets ??= new Set()).add(id);
     // O outro slot com o mesmo modelo recebe os mesmos clipes (mesmos nomes, mesmas associações).
     const other = ui.characters[1 - slot];if (other && other !== ch && modelId && other.source.assetId === modelId && !other.importedAssets?.has(id)) {other.importClips(await loadAnimationFile(fileFrom(bytes, file.name)));(other.importedAssets ??= new Set()).add(id);other.warmGround();}
@@ -92,7 +93,7 @@ export function createWorkspaceUI(ctx) {
       catch (e) {message = `NÃO salva: ${e.message}`;}
     }
     ch.lastImportReport = report;renderStorage();
-    return {report, message};
+    return {report, message: `Validação: ${validation.label}. ${message}`, validation};
   }
 
   /** Controles extras de cada slot: reabrir último modelo e restauração automática. */

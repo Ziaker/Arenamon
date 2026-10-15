@@ -28,6 +28,8 @@ import {Workspace} from './workspace/workspace.js';
 import {createWorkspaceUI} from './ui/workspace-panel.js';
 import {createPresetsPanel} from './ui/presets-panel.js';
 import {createMovementPanel} from './ui/movement-panel.js';
+import {createDiagnostics, createWindowsOverlay} from './ui/diagnostics-panel.js';
+import {createTrainingPanel} from './ui/training-panel.js';
 /* global __GAME_CONFIG_TS__ */
 const GAME_CONFIG_TS = typeof __GAME_CONFIG_TS__ === 'string' ? __GAME_CONFIG_TS__ : '';
 import {length, sub, dot} from './sim/math.js';
@@ -45,13 +47,14 @@ const ui = {playback: null, paused: false, scenario: null, playerMode: 'tactical
 const input2 = new Input(canvas, () => {}, {slot: 1});
 const input = new Input(canvas, code => {
   if (code === keyFor('pause')) togglePause();
-  if (code === keyFor('restart') && game.phase !== 'menu') startMatch();
+  if (code === keyFor('restart') && game.phase !== 'menu') {if (ui.training) training.begin();else startMatch();}
   if (code === keyFor('debug')) {hud.debug = !hud.debug;C.extras.hud.debugVisible = Number(hud.debug);}
 });
 
 // ---------- Partida ----------
 function resetViewAndLogs() {view.reset(game.fighters[0]);recorder.clear();replay.clear();pushReplay();dock.invalidate();clock.reset();}
 function startMatch({playback = null} = {}) {
+  if (ui.training) {training.end();}
   abortScenario();restorePlaybackValues();ui.playback = playback;
   if (!playback && !$('seed-fixed').checked) $('seed').value = String(1 + Math.floor(Math.random() * 99999));
   applySeed();game.profile = $('profile').value;game.enemyProfile = $('enemy-profile').value;game.mode = $('mode').value;
@@ -87,9 +90,9 @@ function stepOnce() {
     c0 = ui.playback.commands[game.tick] ?? emptyCommand();
     if (game.tick >= ui.playback.commands.length) {ui.playback.ended = true;ui.playback.onEnd?.();togglePause(true);$('rec-result').innerHTML = '<p class="ok">Fim da gravação: a partida ficou pausada no último passo gravado.</p>';return;}
   } else c0 = playerCommand();
-  const c1 = ui.playback ? ui.playback.commands1?.[game.tick] ?? undefined : C.extras.toggles.enemyManual ? input2.command(game.fighters[1], game.fighters[0], view.rig.yaw, game.tick) : undefined;
+  const c1 = ui.training && !ui.playback ? ui.training.enemyCommand(game) : ui.playback ? ui.playback.commands1?.[game.tick] ?? undefined : C.extras.toggles.enemyManual ? input2.command(game.fighters[1], game.fighters[0], view.rig.yaw, game.tick) : undefined;
   presets.ab.beforeStep(game);
-  const tickBefore = game.tick;game.step(c0, c1 ?? undefined);if (game.tick > tickBefore) {matchRec.record(tickBefore, c0, c1);if (!ui.playback) movement.onStep(c0, game.lastCommands?.[1]);}view.rig.step(game.fighters[0], game.fighters[1], input.locked, C.test.step);
+  const tickBefore = game.tick;game.step(c0, c1 ?? undefined);if (game.tick > tickBefore) {matchRec.record(tickBefore, c0, c1);if (!ui.playback) movement.onStep(c0, game.lastCommands?.[1]);if (ui.training) training.afterStep(c0);}view.rig.step(game.fighters[0], game.fighters[1], input.locked, C.test.step);
   recorder.record(game);pushReplay();
 }
 function stepFrames(delta) {
@@ -423,6 +426,14 @@ const dock = createDock({recorder, getCursorTick: () => game.tick, onSeek: seekT
 
 // ---------- Overhaul: Visualizar, Partida, Controles e propostas de HUD ----------
 const hudProposals = new HudProposals($('hud-proposals'));
+// Diagnóstico de comandos (relato do controlador) e indicadores das janelas de combate (estado real da simulação).
+const diagnostics = createDiagnostics({$, game, tuning, download});
+const windowsOverlay = createWindowsOverlay({root: $('win-overlay'), view, game});
+$('win-controls').append(...tuning.sectionControls('Janelas de combate'));
+// Treino de defesa/esquiva perfeitas: o vermelho segue o roteiro do treino; tudo cronometrado em passos de simulação.
+const training = createTrainingPanel({$, game, ui, clock, download, toast: e => diagnostics.toast(e),
+  start: trainer => {abortScenario();restorePlaybackValues();ui.playback = null;trainer.start(game);ui.paused = false;input.clear();input.locked = false;resetViewAndLogs();matchRec.start({seed: trainer.seed, profile: game.profile, enemyProfile: game.enemyProfile, mode: 'training', values: tuning.snapshotValues()});syncButtons();canvas.focus();},
+  stop: () => {game.phase = 'menu';}});
 const visualPanel = createVisualPanel({tuning, view, game, $, hud: hudProposals, download});
 $('enemy-ai-control').append(tuning.controlFor('extras.toggles.enableEnemyAI'), tuning.controlFor('extras.toggles.enemyManual'));
 $('bindings-controls').append(...tuning.sectionControls('Teclas: índices configuráveis'));
@@ -454,8 +465,8 @@ function frame(now) {
   const back = replay.length ? (replay.length - 1 - replay.cursor) : 0;
   hud.render(game, ui.fps, {locked: input.locked, paused: ui.paused && game.phase !== 'menu', replay: back ? `−${back} passos (${(back * C.test.step * 1000).toFixed(0)} ms) · ▶ retoma daqui` : 'último passo · , e . avançam/voltam', playerAI: !!C.extras.toggles.enablePlayerAI});
   $('rp-readout').textContent = `passo ${game.tick}${back ? ` · −${(back * C.test.step).toFixed(2)} s` : ''}${clock.timeScale !== 1 ? ` · ${clock.timeScale}×` : ''}`;
-  dock.render();hudProposals.render(game, live ? dt * clock.timeScale : 0);
-  if ((uiTimer += dt) > .1) {uiTimer = 0;renderLive();renderHistory();renderCharacterLive();renderRecStatus();visualPanel.live();}
+  dock.render();hudProposals.render(game, live ? dt * clock.timeScale : 0);windowsOverlay.update();
+  if ((uiTimer += dt) > .1) {uiTimer = 0;renderLive();renderHistory();renderCharacterLive();renderRecStatus();visualPanel.live();diagnostics.live();}
   ui.frame++;requestAnimationFrame(frame);
 }
 applyConfig();renderScenarios();renderCharacters();syncTuneState();openTool('match');syncButtons();
@@ -530,6 +541,6 @@ window.__arenamon = {snapshot: () => ({...game.snapshot(), frame: ui.frame, came
 window.__arenaLive = {rules: C.rules, test: C.test, locomotion: C.locomotion, camera: C.camera, profiles: C.profiles, extras: C.extras, game, view, input, clock, reset: startMatch, apply: applyConfig};
 // window.__lab só aparece depois da restauração do workspace (os testes esperam por ele).
 bootWorkspace().catch(e => {console.error('workspace:', e);ui.workspaceError = e.message;return null;}).then(boot => {
-  window.__lab = {C, game, view, hudProposals, presets, movement, playSequence, visualPanel, recorder, replay, tuning, ui, startMatch, startScenario: id => startScenario(SCENARIOS.find(s => s.id === id)), stepFrames, seekTick, goLive, togglePause, setCharacter, loadStudioFile, SCENARIOS, runScenario,
+  window.__lab = {C, game, view, hudProposals, presets, movement, playSequence, diagnostics, training, visualPanel, recorder, replay, tuning, ui, startMatch, startScenario: id => startScenario(SCENARIOS.find(s => s.id === id)), stepFrames, seekTick, goLive, togglePause, setCharacter, loadStudioFile, SCENARIOS, runScenario,
     ws: boot?.ws ?? null, store: boot?.store ?? null, wsUI: boot?.wsUI ?? null, workspaceBoot: boot};
 });

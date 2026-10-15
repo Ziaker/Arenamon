@@ -22,6 +22,7 @@ import {C} from '../sim/config.js';
 import {actionDuration} from '../sim/entity.js';
 import {angleOf, angleDelta, length} from '../sim/math.js';
 import {mulberry} from '../sim/ai.js';
+import {sniffFormat} from './validate.js';
 
 /** Ordem de preferência por estado (a primeira ação com animação associada é usada). */
 export const STATE_ACTIONS = {
@@ -63,19 +64,26 @@ const LOCOMOTION = new Set(['neutral', 'turn', 'walk', 'run', 'walk_back', 'walk
 const ACTION_KEYS = new Set(['tackle', 'dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'vault']);
 const COMBAT_KEYS = new Set(['airborne', 'landing', 'recover', 'guardStun', 'recoil', 'defeated', 'pushed', 'guard_hit']);
 
+/** Recusa cedo (com motivo legível) o que não é GLB 2.0/glTF, antes de entregar ao carregador. */
+async function readGltf(file) {
+  const data = await file.arrayBuffer(), fmt = sniffFormat(data);
+  if (!fmt.ok) throw Error(`Formato não suportado: ${fmt.text}.`);
+  if (fmt.truncated) throw Error('Arquivo GLB truncado (tamanho declarado maior que o arquivo).');
+  return {data, gltf: await new GLTFLoader().parseAsync(data, '')};
+}
 export async function loadStudioFile(file) {
-  const data = await file.arrayBuffer(), gltf = await new GLTFLoader().parseAsync(data, '');
+  const {data, gltf} = await readGltf(file);
   let manifest = null;gltf.scene.traverse(o => {manifest ??= o.userData?.arenamonActions;});
   let meshes = 0;gltf.scene.traverse(o => {if (o.isMesh) meshes++;});
   if (!meshes) throw Error('O arquivo não contém malha.');
   if (!gltf.animations.length) throw Error('O arquivo não contém animações.');
-  return {name: file.name, scene: gltf.scene, animations: gltf.animations, manifest, eventsByClip: gltf.animations.map(c => c.userData?.arenamon?.events || [])};
+  return {name: file.name, scene: gltf.scene, animations: gltf.animations, manifest, eventsByClip: gltf.animations.map(c => c.userData?.arenamon?.events || []), bytes: data};
 }
 /** Lê só as animações de um .glb (importação para a biblioteca). */
 export async function loadAnimationFile(file) {
-  const gltf = await new GLTFLoader().parseAsync(await file.arrayBuffer(), '');
+  const {data: bytes, gltf} = await readGltf(file);
   if (!gltf.animations.length) throw Error('O arquivo não contém animações.');
-  return {name: file.name, animations: gltf.animations};
+  return {name: file.name, animations: gltf.animations, scene: gltf.scene, bytes};
 }
 
 /** Nome de osso normalizado (sem prefixos de exportador como “mixamorig:”), para compatibilidade entre arquivos. */

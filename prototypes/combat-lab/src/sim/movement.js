@@ -8,6 +8,7 @@ import {emptyCommand} from './entity.js';
 import {vec, length, dot, sub} from './math.js';
 import {withValues} from './compare.js';
 import {packCommands, unpackCommands} from './recording.js';
+import {withAttemptSink, describe} from './attempts.js';
 
 export const SEQ_SCHEMA = 'arenamon-movement-sequence', SEQ_VERSION = 1;
 const cmd = (o = {}) => ({...emptyCommand(), ...o});
@@ -69,7 +70,9 @@ function prepare(seq) {
  * Determinístico: mesmos comandos + mesmo estado inicial + mesmos valores ⇒ mesmos números.
  */
 export function runSequence(seq, {values = {}, fighter = 0, animProbe = null} = {}) {
-  return withValues(values, () => {
+  const attempts = [];let tickNow = 0;
+  // Diagnóstico de comandos da própria execução (mesmo relato do controlador; não altera a simulação).
+  return withValues(values, () => withAttemptSink((f, e) => attempts.push({...e, tick: tickNow, t: +(tickNow * C.test.step).toFixed(4), text: describe(e)}), () => {
     const g = prepare(seq), s = C.test.step, f0 = () => g.fighters[fighter];
     const samples = [], markers = [], events = [], actions = [], denied = [];
     let dist = 0, prevPos = {...f0().position}, prevVel = {...f0().velocity}, prevInput = null, lastInput = null, reverse = null, staminaUsed = 0, prevStamina = f0().stamina;
@@ -77,7 +80,8 @@ export function runSequence(seq, {values = {}, fighter = 0, animProbe = null} = 
     const mark = (t, type, label) => markers.push({tick: t, t: +(t * s).toFixed(4), type, label});
     for (let t = 0; t < seq.commands.length; t++) {
       const c0 = seq.commands[t] ?? emptyCommand(), c1 = seq.enemy === 'still' ? emptyCommand() : seq.commands1?.[t] ?? emptyCommand();
-      g.step(c0, c1);
+      tickNow = t;const nAttempts = attempts.length;g.step(c0, c1);
+      for (const a of attempts.slice(nAttempts)) if (a.fighter === fighter && a.result === 'denied') {denied.push(a);mark(t, 'denied', a.text);}
       const f = f0(), mv = c0.move && length(c0.move) > .01 ? c0.move : null;
       // Comando de inversão: direção pedida oposta à última direção pedida.
       if (mv && lastInput && dot(mv, lastInput) < -.5) {mark(t, 'reverse', 'Comando de inversão');reverse = {tick: t, dir: {...mv}, crossed: null, full: null};}
@@ -97,15 +101,14 @@ export function runSequence(seq, {values = {}, fighter = 0, animProbe = null} = 
       if (f.state !== prevState) {stateChanges++;prevState = f.state;}
       for (const e of g.lastStepEvents) {events.push({tick: t, result: e.result, attacker: e.attacker, target: e.target});collisions++;mark(t, 'collision', `Contato: ${e.result}`);}
       if (f.contacts > 0 && !g.lastStepEvents.length) {/* contato físico sem evento de combate (parede ou empurrão) */}
-      for (const d of f.deniedLog?.splice(0) ?? []) denied.push({...d, tick: t});
       let animKey = null;if (animProbe) animKey = animProbe(f, g, t);
       samples.push({tick: t, t: +(t * s).toFixed(4), x: f.position.x, z: f.position.z, vx: f.velocity.x, vz: f.velocity.z, speed: length(f.velocity), ax: acc.x, az: acc.z, accel: Math.hypot(acc.x, acc.z),
         dist, stamina: f.stamina, state: f.state, action: f.action?.kind ?? null, loco: f.locoPhase, sprint: !!f.sprinting, exhausted: !!f.exhausted, ix: c0.move?.x ?? 0, iz: c0.move?.z ?? 0, anim: animKey});
       prevPos = {...f.position};prevVel = {...f.velocity};prevStamina = f.stamina;void prevInput;
     }
     if (open) {open.end = seq.commands.length;open.duration = (open.end - open.start) * s;actions.push(open);}
-    return {samples, markers, events, actions, denied, metrics: metricsOf(samples, actions, markers, {staminaUsed, collisions, stateChanges, reverse, step: s, walk: g.fighters[fighter].attributes.speed}), finalState: JSON.stringify(g.fighters)};
-  });
+    return {samples, markers, events, actions, denied, attempts, metrics: metricsOf(samples, actions, markers, {staminaUsed, collisions, stateChanges, reverse, step: s, walk: g.fighters[fighter].attributes.speed}), finalState: JSON.stringify(g.fighters)};
+  }));
 }
 const label = k => ({tackle: 'do tackle (X)', dodge: 'da esquiva (C)', recoil: 'do recuo'})[k] ?? k;
 

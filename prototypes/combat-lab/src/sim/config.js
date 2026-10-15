@@ -137,6 +137,10 @@ export function displayDefaults() {
     cancelRing: {inner: 1.05, width: .25, opacity: .75},
     // Transições da máquina de estados de animação (Personagens). Só visual: não mudam tempos, física ou regras.
     animation: {fade: .18, actionFade: .07, locomotionHold: .1, speed: 1},
+    // Diagnóstico de comandos (só apresentação): aviso na arena 0 = desligado, 1 = só o jogador, 2 = ambos.
+    diagnostics: {toast: 1, toastMs: 1400, logExecuted: 0},
+    // Indicadores das janelas de combate acima dos lutadores (tempos lidos da simulação). mode: 0 desligado, 1 jogador, 2 ambos.
+    windows: {mode: 0, scale: 1, opacity: .9, invulnerable: 1, cancel: 1, chain: 1, recovery: 1, guardStun: 1, recoil: 1, perfect: 1, perfectCooldown: 1, counter: 1, buffer: 1, hitstop: 0},
   };
 }
 
