@@ -181,7 +181,7 @@ export class Character {
       if ((f.locoPhase === 'brake' || f.locoPhase === 'reverse' || f.locoPhase === 'sprintStop') && speed > .3) return this.current.key;
     }
     if (speed < .15) return Math.abs(angleDelta(f.visualFacing, f.facing)) > .2 ? 'turn' : 'neutral';
-    const rel = angleDelta(f.facing, angleOf(f.velocity));
+    const rel = angleDelta(f.faceGoal ?? f.facing, angleOf(f.velocity));
     if (Math.abs(rel) > 3 * Math.PI / 4) return 'walk_back';
     if (Math.abs(rel) > Math.PI / 4) return rel > 0 ? 'walk_left' : 'walk_right';
     // Histerese andar/correr: sobe aos 62% da velocidade, desce aos 52%.
@@ -192,6 +192,8 @@ export class Character {
     if (!LOCOMOTION.has(key)) {this.locoCandidate = null;this.stableLoco = null;return key;}
     if (this.stableLoco === null || !LOCOMOTION.has(this.current?.key)) {this.stableLoco = key;this.locoCandidate = key;this.locoCandidateAt = this.clock;return key;}
     if (this.locoCandidate !== key) {this.locoCandidate = key;this.locoCandidateAt = this.clock;}
+    // Sair do repouso ou parar é imediato; a histerese vale só entre estados em movimento (andar, correr, laterais).
+    if ((this.stableLoco === 'neutral' || this.stableLoco === 'turn') !== (key === 'neutral' || key === 'turn')) {this.stableLoco = key;return key;}
     if (key !== this.stableLoco && this.clock - this.locoCandidateAt >= Character.options.locomotionHold) this.stableLoco = key;
     return this.stableLoco;
   }
@@ -310,29 +312,38 @@ export class Character {
     // Sem root motion: o deslocamento horizontal da raiz do GLB é descartado (a posição vem da física).
     if (this.hips && this.hipsRest) {this.hips.position.x = this.hipsRest.x;this.hips.position.z = this.hipsRest.z;}
   }
-  /** Altura do pé mais baixo de um clipe (amostrado, em espaço da raiz sem escala). Cálculo preguiçoso com cache. */
-  clipGround(index) {
+  /**
+   * Curva do ponto mais baixo da malha ao longo do clipe (17 amostras, espaço da raiz sem escala), com cache.
+   * Usada pelo apoio no chão: em cada instante, a pose daquele momento fica apoiada no solo.
+   */
+  groundCurve(index) {
     if (this.groundCache.has(index)) return this.groundCache.get(index);
-    const probe = this.probe ??= (() => {const r = clone(this.source.scene);return {root: r, mixer: new T.AnimationMixer(r), meshes: (() => {const m = [];r.traverse(o => {if (o.isSkinnedMesh) m.push(o);});return m;})()};})();
-    let min = Infinity;
+    const probe = this.probe ??= (() => {const r = clone(this.source.scene);const m = [];r.traverse(o => {if (o.isSkinnedMesh) m.push(o);});return {root: r, mixer: new T.AnimationMixer(r), meshes: m};})();
+    const N = 16, curve = new Float64Array(N + 1).fill(this.restMinY);
     if (probe.meshes.length) {
       const clip = this.clips[index], action = probe.mixer.clipAction(clip);action.play();const box = new T.Box3();
-      for (let i = 0; i <= 8; i++) {
-        action.time = (clip.duration || 0) * i / 8;probe.mixer.update(0);probe.root.updateMatrixWorld(true);
+      for (let i = 0; i <= N; i++) {
+        action.time = (clip.duration || 0) * i / N;probe.mixer.update(0);probe.root.updateMatrixWorld(true);let min = Infinity;
         for (const m of probe.meshes) {m.computeBoundingBox();box.copy(m.boundingBox).applyMatrix4(m.matrixWorld);min = Math.min(min, box.min.y);}
+        if (Number.isFinite(min)) curve[i] = min;
       }
       action.stop();probe.mixer.uncacheAction(clip);
     }
-    const value = Number.isFinite(min) ? min : this.restMinY;this.groundCache.set(index, value);return value;
+    this.groundCache.set(index, curve);return curve;
   }
+  /** Pré-calcula as curvas de apoio em segundo plano (um clipe por vez), para a luta nunca pagar esse custo. */
+  warmGround(delay = 40) {let i = 0;const next = () => {if (this.disposed || i >= this.clips.length) return;this.groundCurve(i++);this.warmTimer = setTimeout(next, delay);};this.warmTimer = setTimeout(next, delay);}
+  /** Ponto mais baixo do clipe no instante t (interpolado); clipGround(index) = mínimo do clipe inteiro. */
+  groundAt(index, t) {const c = this.groundCurve(index), d = this.clips[index].duration || 1, x = Math.max(0, Math.min(1, t / d)) * (c.length - 1), i = Math.min(c.length - 2, Math.floor(x));return c[i] + (c[i + 1] - c[i]) * (x - i);}
+  clipGround(index) {return Math.min(...this.groundCurve(index));}
   /** Posição, escala e orientação. Altura visual independente da física: o colisor e a sombra não se movem. */
   place(f, alt, dt) {
     const opt = Character.options, scale = opt.fit ? C.extras.visual.bodyHeight / this.restHeight : 1;
     let ground = this.restMinY;
     if (this.autoGround && C.display.grounding.autoGround && this.current) {
       // Média ponderada pelos pesos das camadas: sem saltos de altura nas transições.
-      let w = this.current.weight, acc = this.clipGround(this.current.index) * w;
-      for (const l of this.layers) {acc += this.clipGround(l.index) * l.weight;w += l.weight;}
+      let w = this.current.weight, acc = this.groundAt(this.current.index, this.current.action.time) * w;
+      for (const l of this.layers) {acc += this.groundAt(l.index, l.action.time) * l.weight;w += l.weight;}
       ground = w > 0 ? acc / w : ground;
     }
     const manual = (this.current ? this.clipOffsets[this.current.index] ?? 0 : 0) + this.visualOffset + (C.display.grounding.visualOffset || 0);
@@ -350,7 +361,7 @@ export class Character {
     // As janelas marcadas no Studio (hitbox, invulnerabilidade) servem só para comparação: nunca alteram as regras.
     return out;
   }
-  dispose() {this.mixer.stopAllAction();this.mixer.uncacheRoot(this.root);this.root.removeFromParent();}
+  dispose() {this.disposed = true;clearTimeout(this.warmTimer);this.mixer.stopAllAction();this.mixer.uncacheRoot(this.root);this.root.removeFromParent();}
 }
 // fade: transição entre estados comuns; actionFade: entrada em X/C e reações de combate (curta, para prevalecer).
 Character.options = {lockRoot: true, fit: true, fade: .18, actionFade: .07, speed: 1, syncRules: false, locomotionHold: .1, guardHold: .25};

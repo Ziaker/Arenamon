@@ -157,3 +157,23 @@ pre.diff{max-height:240px;overflow:auto;font-size:11px;background:#0b1118;paddin
 /* Propostas não cobrem o rodapé de contato nem o histórico de entrada. */
 .hudp-a .cds{bottom:calc(30px*var(--s))}.hudp-b .b-player{bottom:calc(40px*var(--s))}.hudp-c .c-actions{bottom:calc(30px*var(--s))}
 .stage:has(.hudp-b:not([hidden])) #input-history{left:auto;right:12px}
+/* Telemetria de animação dentro do painel (não usa .table-wrap, que é absoluto na linha do tempo). */
+.anim-log{max-height:260px;overflow:auto;margin-top:6px}.anim-log table{width:100%;border-collapse:collapse;font-size:11px}.anim-log td,.anim-log th{padding:2px 4px;border-bottom:1px solid #ffffff10;vertical-align:top}
+.anim-log tr.warn td{color:var(--amber)}
+.field input[type=range]{width:100%;accent-color:var(--cyan);background:none;border:0;padding:0;min-height:0}
+.field output{color:#8de4d1;font:600 12px ui-monospace,Consolas,monospace}
+.variants{width:100%;table-layout:fixed;font-size:11.5px}.variants td:first-child{width:28%}.variants td.speed{width:24%}.variants td.speed input{width:100%}
+.char-slot table{max-width:100%}.char-slot td,.char-slot th{overflow-wrap:anywhere}
+/* Personagens: estados e biblioteca em blocos empilhados (cabem no painel estreito). */
+.state-list,.clip-list{display:flex;flex-direction:column;gap:6px}
+.state-row,.clip-row{border:1px solid #2c4559;border-radius:8px;padding:6px 7px;background:#0c1620}.state-row.playing{border-color:var(--lime);box-shadow:inset 3px 0 var(--lime)}
+.state-head,.clip-head{display:flex;align-items:center;gap:6px;min-width:0}.state-head b{font-size:12px;white-space:nowrap}.state-head .muted{font-size:10.5px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.state-speed{display:flex;align-items:center;gap:4px;width:42%;flex:none}.state-speed input{flex:1;min-width:0;accent-color:var(--cyan)}.state-speed output{font:600 10.5px ui-monospace,Consolas,monospace;color:#8de4d1;width:38px;text-align:right}
+.state-row .chips{margin:5px 0 4px}.state-row select{width:100%;font-size:11px;min-height:26px}
+.chip-variant{display:flex;align-items:center;gap:3px;width:100%;min-width:0}.chip-name{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px}
+.clip-head button{min-height:22px!important;padding:0 7px!important;font-size:10px}.clip-meta{font-size:10.5px;margin:2px 0}.clip-offset{display:flex;flex-direction:column;font-size:10.5px;color:var(--muted)}.clip-offset input{accent-color:var(--cyan);width:100%}.clip-offset output{color:#8de4d1}
+/* Controles nas abas Visualizar/Partida/Controles: sem selo “lab” repetido, mais compactos. */
+.tune-control.external{padding:6px 8px}.tune-control.external .badge{display:none}.tune-control.external .tune-bottom{justify-content:flex-end;min-height:0}
+.tune-control.is-toggle .tune-top{gap:8px}.tune-control.is-toggle .tune-toggle{margin:0}.tune-control.is-toggle .tune-bottom{margin-top:-2px}
+.log-row{display:flex;gap:6px;padding:3px 0;border-bottom:1px solid #ffffff0f;font-size:11px;min-width:0}.log-row.warn b{color:var(--amber)}
+.log-t{flex:none;width:38px;color:var(--muted);font-variant-numeric:tabular-nums}.log-main{flex:1;min-width:0;display:flex;flex-direction:column}.log-main b{font-weight:600}.log-main small{color:#9fb4c6;overflow-wrap:anywhere}

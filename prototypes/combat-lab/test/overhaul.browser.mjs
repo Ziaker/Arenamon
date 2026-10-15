@@ -132,8 +132,10 @@ try {
     for (let i = 0; i < 12; i++) {await page.waitForTimeout(250);await page.screenshot({path: out + `frames/luta-${String(i).padStart(2, '0')}.png`, clip: stage});}
     await page.waitForTimeout(6000);
     const anim = await L(() => window.__lab.ui.characters.map(ch => ({transitions: ch.transitions, restartsAvoided: ch.restartsAvoided, log: ch.log.slice(), feet: ch.root.position.y})));
-    const recActions = await L(() => window.__lab.recorder.actions.filter(a => a.kind === 'tackle' || a.kind === 'dodge').length);
-    const entries = anim.flatMap(a => a.log), actionEntries = entries.filter(e => ['tackle', 'dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'vault'].includes(e.to));
+    // Mesma janela: o gravador só tem a partida atual; a telemetria de animação acumula as anteriores (o passo recomeça).
+    const win = await L(() => {const s = window.__lab.recorder.samples;return {from: s[0]?.tick ?? 0, to: s.at(-1)?.tick ?? 0, n: window.__lab.recorder.actions.filter(a => a.kind === 'tackle' || a.kind === 'dodge').length};});
+    const recActions = win.n, current = anim.map(a => a.log.slice(a.log.findLastIndex((e, k) => k > 0 && e.tick < a.log[k - 1].tick) + 1 || 0).filter(e => e.tick >= win.from && e.tick <= win.to));
+    const entries = anim.flatMap(a => a.log), actionEntries = current.flat().filter(e => ['tackle', 'dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'vault'].includes(e.to));
     const finished = entries.filter(e => e.reason === 'ação concluída');
     check('Animação (GLB)', 'uma entrada de animação por ação X/C (sem reinício por detecção repetida)', actionEntries.length <= recActions && actionEntries.length > 0, `${actionEntries.length} entradas para ${recActions} ações`);
     // A última amostra visível pode cair até um quadro antes do fim (GL por software ≈ 60 ms por quadro): tolerância de 2 quadros.

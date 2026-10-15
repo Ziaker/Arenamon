@@ -240,3 +240,13 @@ Grupos com mais de dois itens têm ▼. Os parâmetros de câmera e sombra saír
 - As animações importadas e as associações ficam salvas por nome neste navegador. Clipes importados precisam ser reimportados a cada sessão (o arquivo não é guardado).
 - O círculo de reativação do tackle depende da sua decisão (seção 3).
 - O GLB `drowzee` foi usado só localmente. Ele não foi adicionado ao Git; algumas capturas de evidência o mostram.
+
+## 9. Correções após a primeira avaliação (15/10/2026)
+
+- **Telemetria de animação espalhada pelo painel**: usava a classe `table-wrap` da linha do tempo (posição absoluta). Agora é uma lista compacta, contida no painel.
+- **Variantes ilegíveis** (nomes de clipe com uma letra por linha): a tabela de estados e a biblioteca viraram blocos empilhados.
+- **Exaustão e regeneração sobrepostas** no mesmo lutador, com cores somadas (rosa e cinza): durante a exaustão, só o indicador azul aparece; setas e símbolos agora usam mistura normal, mantendo o azul e o amarelo.
+- **Modelo flutuando em alguns clipes**: o apoio no chão usava o ponto mais baixo do clipe inteiro (no tackle, 20 cm). Agora usa a curva por instante, e as curvas são pré-calculadas em segundo plano ao carregar o modelo.
+- **Atraso ao começar a andar**: a histerese da locomoção valia também para sair do repouso (cerca de 0,1 s parado). Agora sair do repouso e parar são imediatos.
+- **Andar de lado no arranque**: frente, lado ou trás eram escolhidos pelo giro em curso. Agora usam a meta de orientação.
+- **Contador do Ajustes**: contava também os controles de VFX de outra aba. Os controles liga/desliga ficaram na mesma linha do rótulo.
