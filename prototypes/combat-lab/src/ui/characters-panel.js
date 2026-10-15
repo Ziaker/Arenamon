@@ -90,7 +90,7 @@ export function createCharacterPanel({ui, view, $, onCharactersChanged}) {
     body.append(table);
     const hint = document.createElement('p');hint.className = 'hint';hint.textContent = 'A variante é sorteada na entrada do estado, com semente determinística (o replay repete a escolha), e nunca troca durante a reprodução. Com a sincronização ligada, a primeira variante define a duração da ação; as demais são esticadas para a mesma duração.';
     body.append(hint);
-    return fold('Blocos de animação (estados)', `s${id}`, body, {count: `${ACTION_IDS.length} estados`});
+    return fold('Blocos de animação (estados)', `s${id}`, body, {open: true, count: `${ACTION_IDS.length} estados`});
   }
   function libraryBox(id, ch) {
     const body = document.createElement('div');const table = document.createElement('table');

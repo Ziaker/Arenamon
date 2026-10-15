@@ -1,6 +1,20 @@
-# Arenamon · Laboratório de combate (Etapa A)
+# Arenamon · Laboratório de combate (Etapa A + overhaul)
 
 Gere com `npm run build` e abra `dist/arenamon-combate-laboratorio.html` por duplo clique (offline, sem modelos embutidos).
+
+## Overhaul (movimento, animação, VFX e HUD)
+
+O relatório técnico completo está em [`OVERHAUL.md`](OVERHAUL.md). Em resumo:
+
+- **Locomoção contínua** (`src/sim/locomotion.js`): aceleração com curva, frenagem com atrito, inversão que atravessa zero, aderência lateral e giro com aceleração angular. Todos os parâmetros têm sliders (Ajustes › Movimento). O modelo do v6 continua disponível para comparação.
+- **X e C em fases** (`src/sim/motion.js`): preparação, impulso, deslocamento, desaceleração e recuperação, com a distância nominal preservada e independente da duração (inclusive com a sincronização de clipes).
+- **Sprint**: C mantido depois da esquiva, com consumo de stamina e frenagem própria.
+- **Lock-on separado do movimento**: as setas continuam relativas à câmera, com o referencial travado enquanto a seta é mantida. O lock-on cuida da câmera, da orientação e da mira.
+- **IA** com intenções suavizadas, enviadas ao mesmo controlador do jogador. O oponente pode ser desligado em Partida.
+- **Animação** (`src/view/characters.js`): máquina de estados sem reinícios indevidos, várias variantes por estado sorteadas na entrada (determinístico), importação de clipes para a biblioteca, estados Sprint, Freio da caminhada e Freio do sprint, altura visual automática e telemetria.
+- **VFX** (`src/view/vfx.js`): 9 tipos × 3 variantes, com sliders, prévia, preset e registro do motivo de cada disparo, além de tremor de câmera em 3 perfis e sombras A/B/C.
+- **HUD**: propostas A (Arcade Vector), B (Combat Halo) e C (Tactical Combat), alternáveis e sem escolha definitiva. Os cooldowns são só demonstração.
+- Testes: `test/locomotion.test.mjs`, `test/animation.test.mjs` e `test/overhaul.browser.mjs` (navegador, com o GLB local opcional).
 
 ## Origem
 

@@ -231,13 +231,14 @@ export class Character {
     const a = f.action, p = this.prevAction;
     if (a && (!p || p.kind !== a.kind || a.elapsed < p.elapsed - 1e-9 || (a.fromCancel && !p.fromCancel))) this.actionSerial++;
     this.prevAction = a ? {kind: a.kind, elapsed: a.elapsed, fromCancel: !!a.fromCancel} : null;
+    if (a && (a.kind === 'tackle' || a.kind === 'dodge')) this.lastActionSeen = {kind: a.kind, elapsed: a.elapsed};
   }
   /**
    * Atualiza a pose. ctx: {tick, source: 'jogador'|'IA'} para o sorteio determinístico e a telemetria.
    * dt = 0 (pausa) mantém a pose.
    */
   update(f, dt, alt, events = [], ctx = {}) {
-    const opt = Character.options;this.clock += dt;
+    const opt = Character.options;this.clock += dt;if (dt > 0) this.lastDt = dt;
     if (this.visualFreeze > 0) {this.visualFreeze = Math.max(0, this.visualFreeze - dt);dt = 0;}
     if (f.flight && !this.wasFlying) this.flightV0 = f.flight.vy + C.rules.launchGravity * C.test.step;
     if (f.flight) this.lastFlight = this.clock;this.wasFlying = !!f.flight;
@@ -273,7 +274,9 @@ export class Character {
     // Telemetria da troca.
     const d = prev ? prev.clip.duration || 1 : 1, played = prev ? prev.action.time : 0, pct = prev ? Math.min(1, played / d) : 0;
     const source = key === '__preview' ? 'prévia' : COMBAT_KEYS.has(key) || f.flight ? 'combate' : ACTION_KEYS.has(key) || key === 'guard' || key === 'guard_enter' || LOCOMOTION.has(key) || key === 'sprint' ? (ctx.source || 'jogador') : 'sistema';
-    const reason = key === '__preview' ? 'prévia manual' : COMBAT_KEYS.has(key) ? 'reação de combate' : prev && ACTION_KEYS.has(prev.key) && !ACTION_KEYS.has(key) && !f.action ? 'ação concluída'
+    // Fim de X/C: concluída se o último tempo visto + um quadro alcança a duração; senão foi cancelada (defesa, sprint…).
+    const seen = this.lastActionSeen, natural = !!seen && seen.elapsed + (this.lastDt || 0) * 1.05 + C.test.step >= actionDuration(seen.kind) - 1e-6;
+    const reason = key === '__preview' ? 'prévia manual' : COMBAT_KEYS.has(key) ? 'reação de combate' : prev && ACTION_KEYS.has(prev.key) && !ACTION_KEYS.has(key) && !f.action ? (natural ? 'ação concluída' : key === 'sprint' ? 'esquiva → sprint' : 'ação cancelada (defesa)')
       : f.action?.fromCancel && key === 'tackle' ? 'cancelamento C → X' : ACTION_KEYS.has(key) ? (prev?.key === key ? 'nova ação (mesmo estado)' : 'nova ação')
       : COMBAT_KEYS.has(key) ? 'reação de combate' : key === 'sprint' ? 'sprint' : key.endsWith('_stop') ? 'freio físico' : TRANSIENT.has(key) ? 'transição curta' : LOCOMOTION.has(key) ? 'locomoção' : key;
     // Fim natural de ação não conta como interrupção (a última amostra pode cair um quadro antes do fim).

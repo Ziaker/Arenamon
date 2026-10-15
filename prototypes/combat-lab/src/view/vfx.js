@@ -172,12 +172,13 @@ export class VfxSystem {
       const alt = (f.flight?.y ?? 0) + (f.vaultHeight ?? 0);
       if (f.action?.kind === 'dodge') this.stream('dodge', f, dt, {alt, dx, dz, i});
       else this.emit.delete(`dodge${i}`);
-      if (f.sprinting || (this.previewUntil?.sprint > this.time && i === 0)) this.stream('sprint', f, dt, {alt, dx, dz, i});
+      if (f.sprinting || (this.previewUntil?.sprint > this.time && i === 0)) this.stream('sprint', f, dt, {alt, dx, dz, i});else this.emit.delete('sprint' + i);
       const ex = C.vfx.exhaust, exTarget = ex.target === 1 || (ex.target === 0 ? i === 1 : i === 0);
-      if ((f.exhausted && exTarget && f.hp > 0) || (this.previewUntil?.exhaust > this.time && i === 0)) this.stream('exhaust', f, dt, {alt, dx, dz, i});
+      if ((f.exhausted && exTarget && f.hp > 0) || (this.previewUntil?.exhaust > this.time && i === 0)) this.stream('exhaust', f, dt, {alt, dx, dz, i});else this.emit.delete('exhaust' + i);
       // Regeneração real: stamina subindo, não cheia, sem sprint (a curva da simulação define a taxa).
       const regenRate = f.staminaTrend ?? 0, regenOn = regenRate > 1e-4 && f.stamina < C.rules.staminaMax - 1e-6 && !f.sprinting && f.hp > 0;
       if (regenOn || (this.previewUntil?.regen > this.time && i === 0)) this.stream('regen', f, dt, {alt, dx, dz, i, rate: regenOn ? regenRate : C.rules.staminaMax / C.rules.regenTime});
+      else this.emit.delete('regen' + i);
     });
     this.syncFollowers(fighters);
     for (const t of this.timers.filter(t => t.at <= this.time)) t.fn();this.timers = this.timers.filter(t => t.at > this.time);
@@ -454,6 +455,7 @@ export class VfxSystem {
   }
   /** Deslocamento {x,y,z} e rotação (roll) da câmera neste quadro, somando os tremores ativos (limitado). */
   shakeOffset(dt, camera) {
+    if (!C.vfx.shakeMaster.enabled) {this.shakes = [];return {x: 0, y: 0, z: 0, roll: 0};}
     let x = 0, y = 0, z = 0, roll = 0, limit = 0;
     for (const s of this.shakes) {
       const c = C.vfx[s.key];s.t += dt;if (s.t > c.duration) {s.dead = true;continue;}

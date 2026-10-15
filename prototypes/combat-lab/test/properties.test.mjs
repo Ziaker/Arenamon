@@ -47,7 +47,10 @@ function run(seed) {
       if (Math.abs(f.position.x) > bound || Math.abs(f.position.z) > bound) fail(t, `lutador ${f.id} fora da arena`, JSON.stringify(f.position));
       if (f.stamina < -1e-9 || f.stamina > C.rules.staminaMax + 1e-9) fail(t, `stamina fora de [0, máx]: ${f.stamina}`);
       if (f.hp < 0 || f.hp > f.attributes.hp) fail(t, `HP fora da faixa: ${f.hp}`);
-      if (Math.hypot(f.velocity.x, f.velocity.z) > 80) fail(t, `velocidade absurda: ${Math.hypot(f.velocity.x, f.velocity.z)}`);
+      // Limite proporcional à configuração sorteada: a distância nominal é fixa (tempo de referência), então ações
+      // curtas são mais rápidas; o pico da curva em fases fica abaixo de ~3× a velocidade média.
+      const vmax = Math.max(80, ...['dodge', 'tackle'].map(k => 3.2 * C.actions[k].distance * (C.actions[k].distanceReference || C.actions[k].duration) * 6 * C.actions.tackle.counterSpeed / C.actions[k].duration));
+      if (Math.hypot(f.velocity.x, f.velocity.z) > vmax) fail(t, `velocidade absurda: ${Math.hypot(f.velocity.x, f.velocity.z)} (limite ${vmax.toFixed(1)})`);
       if (f.vaultHeight < -1e-9 || f.vaultHeight > C.actions.dodge.vaultHeight + 1e-6) fail(t, `altura de salto fora da faixa: ${f.vaultHeight}`);
       if (f.action?.fromCancel && f.action.kind === 'tackle' && f.action.elapsed <= C.test.step + 1e-9) stats.cancels++;
       if (f.action?.buffered && f.action.elapsed <= C.test.step + 1e-9) stats.buffered++;
