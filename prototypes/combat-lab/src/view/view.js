@@ -159,7 +159,7 @@ export class View {
       // A prévia de animação continua tocando com a partida pausada.
       t0 = now();character?.update(f, paused ? (character.preview ? realDt : 0) : dt, alt, events, {tick, source: sources[f.id]});tm.anim += now() - t0;
     }
-    t0 = now();this.drawOverlays(fighters, paused ? 0 : dt);this.worldView.update(world, {fighters, events, dt: paused ? 0 : dt});tm.overlays = now() - t0;
+    t0 = now();this.drawOverlays(fighters, paused ? 0 : dt);this.worldView.update(world, {fighters, events, dt: paused ? 0 : dt, skipBeams: this.useNewVfx});tm.overlays = now() - t0;
     if (!this.rig.initialized) this.rig.reset(fighters[0]);
     const pose = this.rig.pose();
     this.camera.position.set(pose.position.x, pose.height, pose.position.z);this.camera.lookAt(pose.lookAt.x, pose.lookHeight, pose.lookAt.z);this.camera.updateMatrixWorld();
@@ -168,10 +168,11 @@ export class View {
     let rt = null;
     if (this.useNewVfx) {
       // Novo runtime declarativo (renderizador ativo). O legado fica inativo.
-      t0 = now();rt = this.vfxRuntime.update(fighters, events, vfxDt, {characters: this.characters, camera: this.camera, paused, tick});tm.vfx = now() - t0;
+      t0 = now();rt = this.vfxRuntime.update(fighters, events, vfxDt, {characters: this.characters, camera: this.camera, paused, tick, world});tm.vfx = now() - t0;
     } else {
       // Renderizador legado (fallback). O novo runtime permanece inativo.
       t0 = now();this.vfx.update(fighters, events, vfxDt, {characters: this.characters, camera: this.camera});tm.vfx = now() - t0;
+      this.vfxRuntime.beamRenderer?.reset();
     }
     const legacy = this.updateLegacy(fighters, events, paused ? 0 : dt);
     const fxOn = !!X.hud.fxVisible;
@@ -179,6 +180,7 @@ export class View {
     const newOn = fxOn && this.useNewVfx && !!this.vfxRuntime.atlas;
     this.vfx.add.mesh.visible = legacyOn; this.vfx.norm.mesh.visible = legacyOn;
     this.vfxRuntime.add.mesh.visible = newOn; this.vfxRuntime.norm.mesh.visible = newOn;
+    if (this.vfxRuntime.beamRenderer) this.vfxRuntime.beamRenderer.group.visible = newOn;
     // Tremor: vem do sistema ativo (legado ou novo). Nunca altera o rig nem a entrada.
     let sh;
     if (this.useNewVfx && rt && rt.camera) {

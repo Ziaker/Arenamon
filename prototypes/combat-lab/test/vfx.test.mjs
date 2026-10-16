@@ -15,6 +15,7 @@ import {PresetManager, PRESET_SCHEMA, PRESET_SCHEMA_VERSION} from '../src/view/v
 import {VfxRuntime} from '../src/view/vfx/runtime.js';
 import {registerAllEffects} from '../src/view/vfx/index.js';
 import {buildClashC} from '../src/view/vfx/effects/clash.js';
+import {BeamRenderer, BEAM_PL_COLORS} from '../src/view/vfx/beam-renderer.js';
 import * as T from 'three';
 import {Game} from '../src/sim/game.js';
 import {C, resetConfig} from '../src/sim/config.js';
@@ -683,6 +684,199 @@ test('ciclo: exaustão/regeneração determinística após reset (relógio zerad
   };
   const {first, second} = makeCount();
   assert.equal(first, second, 'mesma quantidade de partículas de exaustão antes e depois do reset');
+});
+
+// ============ BEAM RENDERER (LASER DA ARENA) ============
+
+test('beam: BeamRenderer inicializa sem erros e instancia grupos e malhas', () => {
+  const scene = new T.Scene();
+  const renderer = new BeamRenderer(scene, {maxBeams: 2, maxSegments: 4, quality: 'medium'});
+  assert.equal(renderer.beams.length, 2);
+  assert.equal(renderer.beams[0].segments.length, 4);
+  assert.ok(renderer.group.children.length >= 2);
+  renderer.dispose();
+});
+
+test('beam: núcleo físico (coreMesh) é incondicional e nunca é suprimido, mesmo em Low', () => {
+  const scene = new T.Scene();
+  const renderer = new BeamRenderer(scene, {quality: 'low'});
+  const fakeWorld = {
+    entities: [{
+      id: 1, kind: 'beam', y: 0.8, pl: 1, dead: false,
+      segments: [{a: {x: 0, z: 0}, b: {x: 5, z: 0}, pl: 1}]
+    }]
+  };
+  renderer.update(fakeWorld, 0.016);
+  const seg0 = renderer.beams[0].segments[0];
+  assert.equal(seg0.coreMesh.visible, true, 'núcleo físico deve estar visível');
+  assert.equal(seg0.coreMat.opacity, 0.95);
+  renderer.dispose();
+});
+
+test('beam: halo aditivo adapta cor pelo Power Level (PL1, PL2, PL3)', () => {
+  const scene = new T.Scene();
+  const renderer = new BeamRenderer(scene, {quality: 'high'});
+  const fakeWorld = {
+    entities: [{
+      id: 1, kind: 'beam', y: 0.8, pl: 1, dead: false,
+      segments: [{a: {x: 0, z: 0}, b: {x: 5, z: 0}, pl: 1}]
+    }]
+  };
+  // PL1 -> Ciano
+  renderer.update(fakeWorld, 0.016);
+  assert.equal(renderer.beams[0].segments[0].haloMat.color.getHex(), BEAM_PL_COLORS[1].halo);
+  // PL2 -> Dourado / Âmbar
+  fakeWorld.entities[0].pl = 2;
+  fakeWorld.entities[0].segments[0].pl = 2;
+  renderer.update(fakeWorld, 0.016);
+  assert.equal(renderer.beams[0].segments[0].haloMat.color.getHex(), BEAM_PL_COLORS[2].halo);
+  // PL3 -> Magenta
+  fakeWorld.entities[0].pl = 3;
+  fakeWorld.entities[0].segments[0].pl = 3;
+  renderer.update(fakeWorld, 0.016);
+  assert.equal(renderer.beams[0].segments[0].haloMat.color.getHex(), BEAM_PL_COLORS[3].halo);
+  renderer.dispose();
+});
+
+test('beam: acessibilidade noFlash oculta muzzle e flare sem suprimir núcleo', () => {
+  const scene = new T.Scene();
+  const renderer = new BeamRenderer(scene);
+  renderer.setConfig({noFlash: true});
+  const fakeWorld = {
+    entities: [{
+      id: 1, kind: 'beam', y: 0.8, pl: 1, dead: false,
+      segments: [{a: {x: 0, z: 0}, b: {x: 5, z: 0}, pl: 1}]
+    }]
+  };
+  renderer.update(fakeWorld, 0.016);
+  assert.equal(renderer.beams[0].muzzleMesh.visible, false, 'muzzle oculto com noFlash');
+  assert.equal(renderer.beams[0].segments[0].flareMesh.visible, false, 'flare oculto com noFlash');
+  assert.equal(renderer.beams[0].segments[0].coreMesh.visible, true, 'núcleo permanece visível');
+  renderer.dispose();
+});
+
+test('beam: compensação frontal amplia halo e núcleo quando alinhado com a câmera', () => {
+  const scene = new T.Scene();
+  const renderer = new BeamRenderer(scene);
+  const camera = new T.PerspectiveCamera(60, 1, 0.1, 100);
+  camera.position.set(0, 0.8, 10);
+  const fakeWorld = {
+    entities: [{
+      id: 1, kind: 'beam', y: 0.8, pl: 1, dead: false,
+      segments: [{a: {x: 0, z: 0}, b: {x: 0, z: 5}, pl: 1}]
+    }]
+  };
+  renderer.update(fakeWorld, 0.016, {camera});
+  const seg0 = renderer.beams[0].segments[0];
+  assert.ok(seg0.coreMesh.scale.x > renderer.config.coreWidth1);
+  renderer.dispose();
+});
+
+test('beam: reset e dispose limpam malhas e feixes ativos', () => {
+  const scene = new T.Scene();
+  const renderer = new BeamRenderer(scene);
+  const fakeWorld = {
+    entities: [{
+      id: 1, kind: 'beam', y: 0.8, pl: 1, dead: false,
+      segments: [{a: {x: 0, z: 0}, b: {x: 5, z: 0}, pl: 1}]
+    }]
+  };
+  renderer.update(fakeWorld, 0.016);
+  assert.equal(renderer.beams[0].beamGroup.visible, true);
+  renderer.reset();
+  assert.equal(renderer.beams[0].beamGroup.visible, false);
+  renderer.dispose();
+  assert.equal(renderer.beams.length, 0);
+});
+
+// ============ VARIANTES A/B/C ============
+
+test('variantes: defesa parcial (block) possui variantes A, B e C funcionais', () => {
+  const rt = makeRuntime();
+  const ctx = {position: {x: 0, y: 0, z: 0}, normal: {x: 0, y: 0, z: 1}};
+  const defs = rt.registry.list().filter(d => d.trigger === 'partial');
+  assert.ok(defs.some(d => d.variant === 0), 'variante A de block existe');
+  assert.ok(defs.some(d => d.variant === 1), 'variante B de block existe');
+  assert.ok(defs.some(d => d.variant === 2), 'variante C de block existe');
+  for (const def of defs) {
+    const parts = def.build(ctx, 0.42);
+    assert.ok(parts && parts.length > 0, `variante ${def.variant} de block produz partículas`);
+  }
+});
+
+test('variantes: defesa perfeita (perfect) possui variantes A, B e C funcionais', () => {
+  const rt = makeRuntime();
+  const ctx = {position: {x: 0, y: 0, z: 0}, normal: {x: 0, y: 0, z: 1}};
+  const defs = rt.registry.list().filter(d => d.trigger === 'perfect');
+  assert.ok(defs.some(d => d.variant === 0), 'variante A de perfect existe');
+  assert.ok(defs.some(d => d.variant === 1), 'variante B de perfect existe');
+  assert.ok(defs.some(d => d.variant === 2), 'variante C de perfect existe');
+  for (const def of defs) {
+    const parts = def.build(ctx, 0.42);
+    assert.ok(parts && parts.length > 0, `variante ${def.variant} de perfect produz partículas`);
+  }
+});
+
+test('variantes: aterrissagem (landing) possui variantes A, B e C funcionais', () => {
+  const rt = makeRuntime();
+  const ctx = {position: {x: 0, y: 0, z: 0}, normal: {x: 0, y: 1, z: 0}};
+  const defs = rt.registry.list().filter(d => d.trigger === 'ground');
+  assert.ok(defs.some(d => d.variant === 0), 'variante A de ground existe');
+  assert.ok(defs.some(d => d.variant === 1), 'variante B de ground existe');
+  assert.ok(defs.some(d => d.variant === 2), 'variante C de ground existe');
+  for (const def of defs) {
+    const parts = def.build(ctx, 0.42);
+    assert.ok(parts && parts.length > 0, `variante ${def.variant} de ground produz partículas`);
+  }
+});
+
+test('variantes: esquiva e sprint possuem variantes A, B e C funcionais', () => {
+  const rt = makeRuntime();
+  const ctx = {position: {x: 0, y: 0, z: 0}, direction: {x: 1, y: 0, z: 0}};
+  const dodges = rt.registry.list().filter(d => d.trigger === 'dodge');
+  const sprints = rt.registry.list().filter(d => d.trigger === 'sprint');
+  assert.equal(dodges.length, 3, '3 variantes de esquiva');
+  assert.equal(sprints.length, 3, '3 variantes de sprint');
+  for (const d of [...dodges, ...sprints]) {
+    const parts = d.build(ctx, 0.5);
+    assert.ok(parts && parts.length > 0, `efeito ${d.id} var ${d.variant} produz partículas`);
+  }
+});
+
+test('variantes: exaustão e regeneração possuem variantes A, B e C funcionais', () => {
+  const rt = makeRuntime();
+  const ctx = {position: {x: 0, y: 0, z: 0}};
+  const exhausts = rt.registry.list().filter(d => d.id === 'status:exhaust');
+  const regens = rt.registry.list().filter(d => d.id === 'status:regen');
+  assert.equal(exhausts.length, 3, '3 variantes de exhaust');
+  assert.equal(regens.length, 3, '3 variantes de regen');
+  for (const d of [...exhausts, ...regens]) {
+    const parts = d.build(ctx, 0.5);
+    assert.ok(parts && parts.length > 0, `efeito ${d.id} var ${d.variant} produz partículas`);
+  }
+});
+
+test('variantes: runtime.setVariant altera a variante disparada pelo evento visual', () => {
+  const rt = makeRuntime();
+  rt.setVariant('hit', 2);
+  const ev = [{tick: 10, attacker: 0, target: 1, result: 'impact', damage: 20, normal: {x: 0, y: 0, z: 1}}];
+  rt.update(fighters, ev, 0.016, {tick: 10});
+  const active = [...rt.activeEffects.values()];
+  assert.ok(active.length > 0);
+  assert.equal(active[0].effectDef.variant, 2, 'deve disparar a variante 2 (C)');
+});
+
+test('runtime: update repassa world para o BeamRenderer e contabiliza beamsActive', () => {
+  const rt = makeRuntime();
+  const fakeWorld = {
+    entities: [{
+      id: 1, kind: 'beam', y: 0.8, pl: 1, dead: false,
+      segments: [{a: {x: 0, z: 0}, b: {x: 5, z: 0}, pl: 1}]
+    }]
+  };
+  rt.update(fighters, [], 0.016, {tick: 20, world: fakeWorld});
+  assert.equal(rt.stats.beamsActive, 1, '1 feixe ativo registrado');
+  assert.equal(rt.beamRenderer.beams[0].beamGroup.visible, true);
 });
 
 console.log(`\n${passed} testes de VFX aprovados.`);

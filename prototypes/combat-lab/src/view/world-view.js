@@ -44,12 +44,16 @@ export class WorldView {
     const mesh = new T.Mesh(geo, new T.MeshBasicMaterial({color, transparent: true, opacity: .85, depthWrite: false, side: T.DoubleSide}));
     mesh.position.set(x, y, z);mesh.renderOrder = 802;this.group.add(mesh);this.rings.push({mesh, age: 0, life, size});
   }
-  update(world, {fighters = [], events = [], dt = 0} = {}) {
+  update(world, {fighters = [], events = [], dt = 0, skipBeams = false} = {}) {
     this.time += dt;
     const alive = new Set();
     for (const e of world?.entities ?? []) {
       alive.add(e.id);const m = this.meshes.get(e.id) ?? this.make(e);
       if (e.kind === 'beam') {
+        if (skipBeams) {
+          m.children.forEach(s => { s.visible = false; });
+          continue;
+        }
         m.children.forEach((s, i) => {
           const g = e.segments?.[i];s.visible = !!g;if (!g) return;
           const dx = g.b.x - g.a.x, dz = g.b.z - g.a.z, len = Math.hypot(dx, dz), w = Math.max(.05, (e.width ?? .04) * 2);

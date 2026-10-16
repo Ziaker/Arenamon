@@ -58,6 +58,56 @@ export function createVisualPanel({tuning, view, game, $, hud, download}) {
     root.replaceChildren();
     const h = (t, hint) => {const e = document.createElement('h3');e.textContent = t;root.append(e);if (hint) {const p = document.createElement('p');p.className = 'hint';p.textContent = hint;root.append(p);}};
     h('Efeitos visuais (VFX)', 'Cada efeito tem variantes visuais diferentes, liga/desliga, parâmetros próprios, prévia e preset. Só aparência: nada aqui muda regras, tempos da simulação, invulnerabilidade ou cooldowns.');
+    // Seletor de Renderizador VFX e Controles do Laser
+    const renderModeBox = document.createElement('div');
+    renderModeBox.className = 'vfx-runtime-toggle-box';
+    renderModeBox.style.cssText = 'background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.14);border-radius:6px;padding:10px 12px;margin:8px 0 14px;';
+    renderModeBox.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px;">
+        <span style="font-weight:600;font-size:0.95rem;">Renderizador Ativo de VFX & Laser</span>
+        <div class="seg" role="group" aria-label="Renderizador de VFX">
+          <button type="button" data-vfx-runtime-btn="legacy" ${!view.useNewVfx ? 'aria-pressed="true"' : 'aria-pressed="false"'}>Legado (v6 Fallback)</button>
+          <button type="button" data-vfx-runtime-btn="new" ${view.useNewVfx ? 'aria-pressed="true"' : 'aria-pressed="false"'}>Novo VfxRuntime (Declarativo + Laser)</button>
+        </div>
+      </div>
+      <p class="hint" style="margin:0 0 8px 0;" id="vfx-runtime-hint">
+        ${view.useNewVfx ? 'Ativo: VfxRuntime com instanciamento único, BeamRenderer dedicado (núcleo incondicional, halo aditivo) e variantes A/B/C.' : 'Ativo: renderizador legado. O novo sistema está em repouso como fallback seguro.'}
+      </p>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <span class="muted" style="font-size:0.85rem;">Prévia do Laser Dedicado:</span>
+        <button type="button" data-laser-preview="1">▶ Laser PL1 (Ciano)</button>
+        <button type="button" data-laser-preview="2">▶ Laser PL2 (Dourado)</button>
+        <button type="button" data-laser-preview="3">▶ Laser PL3 (Magenta)</button>
+      </div>
+    `;
+    root.append(renderModeBox);
+    const updateVfxModeButtons = () => {
+      const legBtn = renderModeBox.querySelector('[data-vfx-runtime-btn="legacy"]');
+      const newBtn = renderModeBox.querySelector('[data-vfx-runtime-btn="new"]');
+      const hint = renderModeBox.querySelector('#vfx-runtime-hint');
+      if (legBtn) legBtn.setAttribute('aria-pressed', String(!view.useNewVfx));
+      if (newBtn) newBtn.setAttribute('aria-pressed', String(view.useNewVfx));
+      if (hint) {
+        hint.textContent = view.useNewVfx
+          ? 'Ativo: VfxRuntime com instanciamento único, BeamRenderer dedicado (núcleo incondicional, halo aditivo) e variantes A/B/C.'
+          : 'Ativo: renderizador legado. O novo sistema está em repouso como fallback seguro.';
+      }
+    };
+    renderModeBox.querySelector('[data-vfx-runtime-btn="legacy"]')?.addEventListener('click', () => {
+      view.useNewVfx = false;
+      updateVfxModeButtons();
+    });
+    renderModeBox.querySelector('[data-vfx-runtime-btn="new"]')?.addEventListener('click', () => {
+      view.useNewVfx = true;
+      updateVfxModeButtons();
+    });
+    for (const b of renderModeBox.querySelectorAll('[data-laser-preview]')) {
+      b.onclick = () => {
+        const pl = Number(b.dataset.laserPreview) || 1;
+        view.vfxRuntime.beamRenderer?.setConfig({pl});
+        view.vfxRuntime.preview('laser', game.fighters);
+      };
+    }
     // Modo simples (toggle, variante, intensidade principal, prévia) e avançado (todos os parâmetros). Mesmos parâmetros.
     const bar = document.createElement('div');bar.className = 'vfx-bar';
     bar.innerHTML = `<div class="seg wide" role="group" aria-label="Modo dos efeitos"><button type="button" data-vfx-mode-btn="simple">Simples</button><button type="button" data-vfx-mode-btn="advanced">Avançado</button></div>
@@ -67,7 +117,12 @@ export function createVisualPanel({tuning, view, game, $, hud, download}) {
     for (const [type, label] of VFX_TYPES) {
       const row = document.createElement('div');row.className = 'vfx-simple-row';row.dataset.vfxType = type;
       const head = document.createElement('div');head.className = 'vfx-simple-head';head.innerHTML = `<b>${escape(label)}</b><span class="muted" data-cost></span>`;
-      const pv = document.createElement('button');pv.type = 'button';pv.textContent = '▶';pv.title = 'Prévia';pv.dataset.preview = `vfx.${type}`;pv.onclick = () => view.vfx.preview(type, game.fighters);
+      const pv = document.createElement('button');pv.type = 'button';pv.textContent = '▶';pv.title = 'Prévia';pv.dataset.preview = `vfx.${type}`;
+      pv.onclick = () => {
+        view.vfxRuntime.setVariant(type, C.vfx[type]?.variant || 0);
+        if (view.useNewVfx) view.vfxRuntime.preview(type, game.fighters);
+        else view.vfx.preview(type, game.fighters);
+      };
       const adv = document.createElement('button');adv.type = 'button';adv.textContent = 'Avançado ▸';adv.title = 'Todos os parâmetros deste efeito';adv.onclick = () => {setMode('advanced');const g = root.querySelector(`[data-group="vfx-${type}"]`);g?.setOpen?.(true);g?.scrollIntoView({block: 'start'});};
       head.append(pv, adv);row.append(head, ...[`vfx.${type}.enabled`, `vfx.${type}.variant`, `vfx.${type}.${MAIN[type]}`].map(p => tuning.controlFor(p)));simple.append(row);
     }
@@ -75,7 +130,11 @@ export function createVisualPanel({tuning, view, game, $, hud, download}) {
     const advanced = document.createElement('div');advanced.dataset.vfxMode = 'advanced';
     advanced.append(group('Geral dos efeitos', 'vfx-master', tuning.sectionControls('VFX · geral')));
     for (const [type, label] of VFX_TYPES) {
-      const rows = tuning.sectionControls(`VFX · ${label}`), g = group(label, `vfx-${type}`, rows, [actions(`vfx.${type}`, label, () => vfxDefaults()[type], () => view.vfx.preview(type, game.fighters))]);
+      const rows = tuning.sectionControls(`VFX · ${label}`), g = group(label, `vfx-${type}`, rows, [actions(`vfx.${type}`, label, () => vfxDefaults()[type], () => {
+        view.vfxRuntime.setVariant(type, C.vfx[type]?.variant || 0);
+        if (view.useNewVfx) view.vfxRuntime.preview(type, game.fighters);
+        else view.vfx.preview(type, game.fighters);
+      })]);
       g.dataset.vfxType = type;advanced.append(g);
     }
     root.append(advanced);
@@ -105,10 +164,19 @@ export function createVisualPanel({tuning, view, game, $, hud, download}) {
   }
   function live() {
     const box = $('vfx-debug');if (!box || box.closest('[hidden]')) return;
-    const v = view.vfx, rows = v.log.slice(-18).reverse();
-    box.innerHTML = `<p class="muted">${v.stats.active ?? 0} partículas ativas · pico ${v.stats.peak} · ${v.stats.spawned} criadas · limite ${C.vfx.master.maxParticles}</p><table><tr><th>t</th><th>Efeito</th><th>Var.</th><th>Motivo do disparo</th></tr>${rows.map(e => `<tr><td>${e.t.toFixed(2)}</td><td>${escape(e.effect)}</td><td>${e.variant}</td><td>${escape(e.reason)}</td></tr>`).join('')}</table>`;
+    const v = view.useNewVfx ? view.vfxRuntime : view.vfx;
+    const rows = v.log ? v.log.slice(-18).reverse() : [];
+    const beams = view.useNewVfx ? ` · ${v.stats.beamsActive ?? 0} lasers ativos` : '';
+    box.innerHTML = `<p class="muted">${v.stats.active ?? 0} partículas ativas · pico ${v.stats.peak} · ${v.stats.spawned} criadas${beams} · limite ${C.vfx.master.maxParticles}</p><table><tr><th>t</th><th>Efeito</th><th>Var.</th><th>Motivo do disparo</th></tr>${rows.map(e => `<tr><td>${e.t.toFixed(2)}</td><td>${escape(e.effect)}</td><td>${e.variant}</td><td>${escape(e.action || e.reason)}</td></tr>`).join('')}</table>`;
   }
   render();
-  tuning.onChange(() => {if (state.filter !== 'all') setFilter(state.filter);});
+  tuning.onChange(() => {
+    if (state.filter !== 'all') setFilter(state.filter);
+    for (const [t] of VFX_TYPES) {
+      if (C.vfx[t] && C.vfx[t].variant != null) {
+        view.vfxRuntime.setVariant(t, C.vfx[t].variant);
+      }
+    }
+  });
   return {render, live, setMode, setFilter, get vfxMode() {return state.mode;}};
 }

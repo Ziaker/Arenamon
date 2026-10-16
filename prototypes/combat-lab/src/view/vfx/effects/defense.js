@@ -72,6 +72,7 @@ export function buildBlockB(ctx, seed, intensity = 1) {
   const {position, normal, camera} = ctx;
   const p = frontOf(position, normal, 0.5);
   const sa = shieldAxis(p, normal, camera);
+  const rnd = lcg(seed);
   const parts = [];
   parts.push(particle({cell: CELL.arc, mode: MODE.plane, x: p.x, y: 0.75, z: p.z,
     life: 0.3, w: 1.5, h: 1.3, rot: 0,
@@ -123,8 +124,98 @@ export function buildPerfectA(ctx, seed, intensity = 1) {
   return parts;
 }
 
-export const BUILD_BLOCK = [buildBlockA, buildBlockB];
-export const BUILD_PERFECT = [buildPerfectA];
+// --- Bloqueio parcial (variant 2): onda de absorção concêntrica ---
+export function buildBlockC(ctx, seed, intensity = 1) {
+  const {position, normal, camera} = ctx;
+  const p = frontOf(position, normal, 0.48);
+  const sa = shieldAxis(p, normal, camera);
+  const rnd = lcg(seed);
+  const parts = [];
+  // Ondas concêntricas no plano da defesa
+  for (let k = 0; k < 2; k++) {
+    parts.push(particle({cell: CELL.shock, mode: MODE.plane, x: p.x, y: 0.75, z: p.z,
+      delay: k * 0.06, life: 0.28, w: 0.8, h: 0.8,
+      ax: sa.ax, ay: sa.ay, az: sa.az,
+      color: PARTIAL_COLOR, alpha: 0.85,
+      sizeCurve: k2 => 1 + easeOutCubic(k2) * 2.2 * intensity, additive: true}));
+  }
+  const cnt = Math.round(8 * intensity);
+  for (let k = 0; k < cnt; k++) {
+    const a = (k / cnt) * Math.PI * 2 + rnd() * 0.4;
+    parts.push(particle({cell: CELL.spark, mode: MODE.billboard,
+      x: p.x + Math.cos(a) * 0.25, y: 0.75 + Math.sin(a) * 0.25, z: p.z,
+      vx: Math.cos(a) * 2.5 * intensity, vy: Math.sin(a) * 2.5 * intensity, vz: -normal.z * 1.5,
+      drag: 5, life: 0.24, w: 0.07,
+      color: PARTIAL_COLOR, alpha: 0.8, fade: 1.6, additive: true}));
+  }
+  return parts;
+}
+
+// --- Defesa perfeita (variant 1): ruptura temporal com ondas lentas e afterimage ---
+export function buildPerfectB(ctx, seed, intensity = 1) {
+  const {position, normal, camera} = ctx;
+  const p = frontOf(position, normal, 0.4);
+  const rnd = lcg(seed);
+  const parts = [];
+  // Flash suave central
+  parts.push(particle({cell: CELL.star4, mode: MODE.billboard, x: p.x, y: 0.8, z: p.z,
+    life: 0.55 * 0.5, w: 2.1, color: PERFECT_COLOR2, alpha: 0.95, grow: 0.8, fade: 1.2, rot: rnd() * Math.PI, additive: true}));
+  // Onda temporal lenta e cristalina
+  parts.push(particle({cell: CELL.shock, mode: MODE.billboard, x: p.x, y: 0.8, z: p.z,
+    life: 0.55 * 1.1, w: 0.75, color: PERFECT_COLOR, alpha: 0.9, fade: 1.1,
+    sizeCurve: k => 1 + easeOutCubic(k) * 3.8 * intensity, additive: true}));
+  parts.push(particle({cell: CELL.ring, mode: MODE.ground, x: position.x, y: 0.03, z: position.z,
+    life: 0.55 * 1.2, w: 0.9, color: PERFECT_COLOR2, alpha: 0.8, fade: 1.2,
+    sizeCurve: k => 1 + easeOutCubic(k) * 3.2, additive: true}));
+  const cnt = Math.round(20 * intensity);
+  for (let k = 0; k < cnt; k++) {
+    const a = rnd() * Math.PI * 2, sp = (2.5 + rnd() * 3.5) * intensity;
+    parts.push(particle({cell: CELL.spark, mode: MODE.billboard,
+      x: p.x, y: 0.8, z: p.z,
+      vx: Math.cos(a) * sp, vy: (rnd() - 0.3) * sp, vz: Math.sin(a) * sp,
+      drag: 2.5, life: 0.55 * (0.8 + rnd() * 0.4), w: 0.08,
+      color: k % 2 ? PERFECT_COLOR : PERFECT_COLOR2, alpha: 0.9, fade: 1.3, additive: true}));
+  }
+  return parts;
+}
+
+// --- Defesa perfeita (variant 2): deflexão monumental com escudo angular e dispersão colossal ---
+export function buildPerfectC(ctx, seed, intensity = 1) {
+  const {position, normal, camera} = ctx;
+  const p = frontOf(position, normal, 0.5);
+  const sa = shieldAxis(p, normal, camera);
+  const rnd = lcg(seed);
+  const parts = [];
+  // Escudo colossal frontal
+  parts.push(particle({cell: CELL.arc, mode: MODE.plane, x: p.x, y: 0.85, z: p.z,
+    life: 0.55 * 0.8, w: 2.4, h: 2.1,
+    ax: sa.ax, ay: sa.ay, az: sa.az,
+    color: PERFECT_COLOR, alpha: 0.9,
+    sizeCurve: k => 1 + 0.2 * k, additive: true}));
+  parts.push(particle({cell: CELL.hex, mode: MODE.plane, x: p.x, y: 0.85, z: p.z,
+    life: 0.55 * 0.6, w: 1.8, h: 1.6,
+    ax: sa.ax, ay: sa.ay, az: sa.az,
+    color: PERFECT_COLOR2, alpha: 0.8, grow: 0.3, additive: true}));
+  // Anel de chão colossal
+  parts.push(particle({cell: CELL.ring, mode: MODE.ground, x: position.x, y: 0.03, z: position.z,
+    life: 0.55 * 1.3, w: 1.1, color: PERFECT_COLOR, alpha: 0.95, fade: 1.5,
+    sizeCurve: k => 1 + easeOutCubic(k) * 4.5 * intensity, additive: true}));
+  // Enxame radial de streaks
+  const cnt = Math.round(32 * intensity);
+  for (let k = 0; k < cnt; k++) {
+    const a = rnd() * Math.PI * 2, e = -0.3 + rnd() * 1.4, sp = (5 + rnd() * 6) * intensity;
+    parts.push(particle({cell: CELL.streak, mode: MODE.axis,
+      x: p.x, y: 0.85, z: p.z,
+      vx: Math.cos(a) * Math.cos(e) * sp, vy: Math.sin(e) * sp, vz: Math.sin(a) * Math.cos(e) * sp,
+      drag: 3.2, life: 0.55 * (0.6 + rnd() * 0.5), w: 0.1, h: 0.6,
+      ax: Math.cos(a), ay: Math.sin(e), az: Math.sin(a),
+      color: k % 3 ? PERFECT_COLOR : PERFECT_COLOR2, alpha: 1, fade: 1.5, additive: true}));
+  }
+  return parts;
+}
+
+export const BUILD_BLOCK = [buildBlockA, buildBlockB, buildBlockC];
+export const BUILD_PERFECT = [buildPerfectA, buildPerfectB, buildPerfectC];
 
 export const DEFENSE_DEFS = [
   {
@@ -162,6 +253,23 @@ export const DEFENSE_DEFS = [
     build: buildBlockB,
   },
   {
+    id: 'defense:block',
+    version: '1.2',
+    trigger: 'partial',
+    conditions: [],
+    priority: 60,
+    anchor: 'contact',
+    duration: 0.3,
+    seed: true,
+    variant: 2,
+    quality: 'medium',
+    limits: {particles: 28},
+    aggregation: 'none',
+    replay: 'full',
+    family: 'defense',
+    build: buildBlockC,
+  },
+  {
     id: 'defense:perfect',
     version: '1.0',
     trigger: 'perfect',
@@ -177,5 +285,39 @@ export const DEFENSE_DEFS = [
     replay: 'full',
     family: 'defense',
     build: buildPerfectA,
+  },
+  {
+    id: 'defense:perfect',
+    version: '1.1',
+    trigger: 'perfect',
+    conditions: [],
+    priority: 80,
+    anchor: 'contact',
+    duration: 0.55,
+    seed: true,
+    variant: 1,
+    quality: 'medium',
+    limits: {particles: 36, lights: 1},
+    aggregation: 'none',
+    replay: 'full',
+    family: 'defense',
+    build: buildPerfectB,
+  },
+  {
+    id: 'defense:perfect',
+    version: '1.2',
+    trigger: 'perfect',
+    conditions: [],
+    priority: 80,
+    anchor: 'contact',
+    duration: 0.55,
+    seed: true,
+    variant: 2,
+    quality: 'medium',
+    limits: {particles: 48, lights: 1},
+    aggregation: 'none',
+    replay: 'full',
+    family: 'defense',
+    build: buildPerfectC,
   },
 ];

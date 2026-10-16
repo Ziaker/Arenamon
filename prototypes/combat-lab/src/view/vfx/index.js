@@ -4,6 +4,7 @@
 // substituto progressivo do sistema anterior (VfxSystem), mantendo este como fallback.
 
 export {VfxRuntime} from './runtime.js';
+export {BeamRenderer, BEAM_DEFAULTS, BEAM_PL_COLORS} from './beam-renderer.js';
 export {EffectRegistry} from './registry.js';
 import {EffectRegistry} from './registry.js';
 export {Scheduler, PHASES} from './scheduler.js';

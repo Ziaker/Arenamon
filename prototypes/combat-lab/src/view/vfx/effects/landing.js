@@ -22,63 +22,121 @@ function lcg(seed) {
   return () => { s = (s * 1664525 + 1013904223) >>> 0; return (s >>> 0) / 4294967296; };
 }
 
-// buildLanding(ctx, seed, power): power = intensidade (vertical speed normalizada).
-export function buildLanding(ctx, seed, power = 1) {
+// --- Variante A: poeira e fumaça volumosa ---
+export function buildLandingA(ctx, seed, power = 1) {
   const {position} = ctx;
   const rnd = lcg(seed);
   const I = Math.max(0, Math.min(2, power));
   const parts = [];
-  const cnt = Math.round(10 * I * (0.6 + 0.4 * I));
+  const cnt = Math.round(14 * I * (0.6 + 0.4 * I));
   for (let k = 0; k < cnt; k++) {
-    const a = (k / cnt) * Math.PI * 2 + (rnd() - 0.5) * 0.4;
-    const sp = 3.5 * (0.6 + rnd() * 0.6) * (0.6 + 0.4 * I);
+    const a = (k / cnt) * Math.PI * 2 + (rnd() - 0.5) * 0.5;
+    const sp = 4.0 * (0.6 + rnd() * 0.6) * (0.6 + 0.4 * I);
     parts.push(particle({cell: CELL.smoke, mode: MODE.billboard, additive: false,
       x: position.x, y: 0.15, z: position.z,
-      vx: Math.cos(a) * sp, vy: (0.2 + rnd() * 0.6) * 0.5, vz: Math.sin(a) * sp,
-      drag: 3.2, life: 0.55 * (0.8 + rnd() * 0.5),
-      w: 0.66 * 3 * 1.3 * I, color: LANDING_COLOR, alpha: 0.85, grow: 1.4, fade: 1.3,
-      rot: rnd() * Math.PI * 2, spin: -1 + rnd() * 2}));
+      vx: Math.cos(a) * sp, vy: (0.3 + rnd() * 0.7) * 0.6, vz: Math.sin(a) * sp,
+      drag: 3.0, life: 0.55 * (0.9 + rnd() * 0.5),
+      w: 0.8 * 3 * 1.2 * I, color: LANDING_COLOR, alpha: 0.85, grow: 1.6, fade: 1.3,
+      rot: rnd() * Math.PI * 2, spin: -1.5 + rnd() * 3}));
   }
-  for (let k = 0; k < Math.round(cnt * 0.8); k++) {
-    const a = rnd() * Math.PI * 2;
-    const sp = 3.5 * (0.4 + rnd() * 0.8);
-    parts.push(particle({cell: CELL.chunk, mode: MODE.billboard, additive: false,
-      x: position.x, y: 0.1, z: position.z,
-      vx: Math.cos(a) * sp, vy: (1 + rnd() * 3) * 0.5 * I, vz: Math.sin(a) * sp,
-      gravity: 14, floor: 0.03,
-      life: 0.55 * 1.4, w: 0.22 * 0.5,
-      color: LANDING_COLOR, alpha: 0.85, fade: 2,
-      rot: rnd() * Math.PI * 2, spin: -8 + rnd() * 16}));
-  }
-  // Anel de impacto no chão.
-  for (let k = 0; k < 2; k++) {
-    parts.push(particle({cell: k ? CELL.shock : CELL.ring, mode: MODE.ground,
-      x: position.x, y: 0.025 + k * 0.005, z: position.z, delay: k * 0.07, life: 0.55,
-      w: 0.4 * 1.3, color: LANDING_COLOR, alpha: 0.85, fade: 1.2,
-      sizeCurve: k2 => 1 + easeOutCubic(k2) * 3.5 * 1.4 * (0.6 + 0.4 * I), additive: false}));
-  }
-  // Marca temporária no chão (crack).
-  parts.push(particle({cell: CELL.crack, mode: MODE.ground, x: position.x, y: 0.02, z: position.z,
-    life: 0.55 * 3.5, w: 1.56 * 1.3 * (0.7 + 0.3 * I),
-    color: 0x1a2028, alpha: 0.68, additive: false, fade: 2.5, rot: rnd() * Math.PI * 2}));
   return parts;
 }
 
-export const LANDING_DEFS = [{
-  id: 'landing:ground',
-  version: '1.0',
-  trigger: 'ground',
-  conditions: [],
-  priority: 40,
-  anchor: 'ground',
-  duration: 0.55,
-  seed: true,
-  variant: 0,
-  quality: 'medium',
-  limits: {particles: 32, rings: 2, decals: 2},
-  aggregation: 'stack',
-  maxStack: 3,
-  replay: 'full',
-  family: 'landing',
-  build: buildLanding,
-}];
+// --- Variante B: anel rente ao solo com ondas de choque e decalque ---
+export function buildLandingB(ctx, seed, power = 1) {
+  const {position} = ctx;
+  const rnd = lcg(seed);
+  const I = Math.max(0, Math.min(2, power));
+  const parts = [];
+  for (let k = 0; k < 2; k++) {
+    parts.push(particle({cell: k ? CELL.shock : CELL.ring, mode: MODE.ground,
+      x: position.x, y: 0.025 + k * 0.005, z: position.z, delay: k * 0.07, life: 0.55,
+      w: 0.5 * 1.4, color: LANDING_COLOR, alpha: 0.9, fade: 1.2,
+      sizeCurve: k2 => 1 + easeOutCubic(k2) * 4.2 * (0.6 + 0.4 * I), additive: false}));
+  }
+  parts.push(particle({cell: CELL.crack, mode: MODE.ground, x: position.x, y: 0.02, z: position.z,
+    life: 0.55 * 3.5, w: 1.8 * (0.7 + 0.3 * I),
+    color: 0x1a2028, alpha: 0.75, additive: false, fade: 2.2, rot: rnd() * Math.PI * 2}));
+  return parts;
+}
+
+// --- Variante C: fragmentos e estilhaços geométricos ricocheteando ---
+export function buildLandingC(ctx, seed, power = 1) {
+  const {position} = ctx;
+  const rnd = lcg(seed);
+  const I = Math.max(0, Math.min(2, power));
+  const parts = [];
+  const cnt = Math.round(18 * I * (0.6 + 0.4 * I));
+  for (let k = 0; k < cnt; k++) {
+    const a = rnd() * Math.PI * 2;
+    const sp = 4.5 * (0.5 + rnd() * 0.8);
+    parts.push(particle({cell: k % 2 ? CELL.chunk : CELL.shard, mode: MODE.billboard, additive: false,
+      x: position.x, y: 0.1, z: position.z,
+      vx: Math.cos(a) * sp, vy: (1.5 + rnd() * 3.5) * 0.6 * I, vz: Math.sin(a) * sp,
+      gravity: 16, floor: 0.03,
+      life: 0.55 * 1.5, w: 0.18 + rnd() * 0.12,
+      color: LANDING_COLOR, alpha: 0.9, fade: 1.8,
+      rot: rnd() * Math.PI * 2, spin: -10 + rnd() * 20}));
+  }
+  return parts;
+}
+
+export const buildLanding = buildLandingA;
+export const BUILD_LANDING = [buildLandingA, buildLandingB, buildLandingC];
+
+export const LANDING_DEFS = [
+  {
+    id: 'landing:ground',
+    version: '1.0',
+    trigger: 'ground',
+    conditions: [],
+    priority: 40,
+    anchor: 'ground',
+    duration: 0.55,
+    seed: true,
+    variant: 0,
+    quality: 'medium',
+    limits: {particles: 32, rings: 2, decals: 2},
+    aggregation: 'stack',
+    maxStack: 3,
+    replay: 'full',
+    family: 'landing',
+    build: buildLandingA,
+  },
+  {
+    id: 'landing:ground',
+    version: '1.1',
+    trigger: 'ground',
+    conditions: [],
+    priority: 40,
+    anchor: 'ground',
+    duration: 0.55,
+    seed: true,
+    variant: 1,
+    quality: 'medium',
+    limits: {particles: 16, rings: 3, decals: 2},
+    aggregation: 'stack',
+    maxStack: 3,
+    replay: 'full',
+    family: 'landing',
+    build: buildLandingB,
+  },
+  {
+    id: 'landing:ground',
+    version: '1.2',
+    trigger: 'ground',
+    conditions: [],
+    priority: 40,
+    anchor: 'ground',
+    duration: 0.55,
+    seed: true,
+    variant: 2,
+    quality: 'medium',
+    limits: {particles: 36, rings: 1, decals: 1},
+    aggregation: 'stack',
+    maxStack: 3,
+    replay: 'full',
+    family: 'landing',
+    build: buildLandingC,
+  },
+];
