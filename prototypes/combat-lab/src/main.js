@@ -330,7 +330,15 @@ function renderLive() {
 // ---------- Personagens ----------
 // Ganchos do workspace (persistência dos GLBs e das animações importadas), instalados quando o armazenamento abre.
 const charHooks = {};
-const charPanel = createCharacterPanel({ui, view, $, hooks: charHooks, onCharactersChanged: () => {syncRuleDurations();dock.invalidate();}});
+/** Associa explicitamente à simulação (Game) as janelas de combate validadas dos personagens carregados. */
+function syncCharacterCombatWindows() {
+  for (const id of [0, 1]) {
+    const ch = ui.characters[id];
+    game.setCombatWindows(id, ch ? ch.getAllCombatWindows() : null);
+  }
+}
+const charPanel = createCharacterPanel({ui, view, $, hooks: charHooks, onCharactersChanged: () => {syncCharacterCombatWindows();syncRuleDurations();dock.invalidate();}});
+syncCharacterCombatWindows();
 const renderCharacters = () => {charPanel.render();renderStudioEvents();renderRuleDurations();};
 const setCharacter = (id, source) => charPanel.setCharacter(id, source);
 const renderCharacterLive = () => charPanel.live();
@@ -553,7 +561,7 @@ const collectApp = () => ({name: 'arenamon-combate-laboratorio', build: document
 async function bootWorkspace() {
   const store = await openStore();let ls = null;try {ls = localStorage;} catch {ls = null;}
   const ws = await Workspace.open(store, {ls});wsRef.store = store;
-  const wsUI = createWorkspaceUI({ws, store, ui, tuning, $, download, presets: presets.api, homologation, applyDocUi, collectApp, onCharactersChanged: () => {syncRuleDurations();dock.invalidate();}});
+  const wsUI = createWorkspaceUI({ws, store, ui, tuning, $, download, presets: presets.api, homologation, applyDocUi, collectApp, onCharactersChanged: () => {syncCharacterCombatWindows();syncRuleDurations();dock.invalidate();}});
   Object.assign(charHooks, wsUI.hooks);wsUI.setPanel(charPanel);presets.attachWorkspace(ws);
   await ws.batch(async () => {
     if (ws.doc.prefs.autoRestoreSession) applyDocUi(ws.doc);

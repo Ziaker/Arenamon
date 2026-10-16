@@ -22,6 +22,7 @@ import {C} from '../sim/config.js';
 import {actionDuration, actionSpec} from '../sim/entity.js';
 import {angleOf, angleDelta, length} from '../sim/math.js';
 import {mulberry} from '../sim/ai.js';
+import {fromGlbEvents, extractClipDuration} from '../sim/animation-combat-windows.js';
 import {sniffFormat} from './validate.js';
 
 /** Ordem de preferência por estado (a primeira ação com animação associada é usada). */
@@ -268,9 +269,34 @@ export class Character {
     this.prevAction = a ? {kind: a.kind, elapsed: a.elapsed, fromCancel: !!a.fromCancel} : null;
     if (a && (a.kind === 'tackle' || a.kind === 'dodge')) this.lastActionSeen = {kind: a.kind, elapsed: a.elapsed};
   }
+  /** Extrai e valida o contrato AnimationCombatWindows para a ação a partir dos eventos do clipe. */
+  getCombatWindows(actionId) {
+    const variants = this.variantsOf(actionId);
+    if (!variants?.length) return null;
+    const clipIdx = variants[0];
+    const clip = this.clips[clipIdx];
+    const rawEvents = this.source?.eventsByClip?.[clipIdx] || [];
+    const clipDuration = extractClipDuration(clip);
+    const actionDur = actionDuration(actionId === 'tackle' ? 'tackle' : 'dodge');
+    return fromGlbEvents(rawEvents, {
+      clipDurationSeconds: clipDuration,
+      actionDurationSeconds: actionDur,
+      actionId,
+      clipName: clip?.name,
+      characterId: this.source?.name || 'character'
+    });
+  }
+  /** Extrai o mapa de janelas de combate para todas as ações suportadas do personagem. */
+  getAllCombatWindows() {
+    return {
+      tackle: this.getCombatWindows('tackle'),
+      dodge: this.getCombatWindows('dodge_forward')
+    };
+  }
   /**
    * Atualiza a pose. ctx: {tick, source: 'jogador'|'IA'} para o sorteio determinístico e a telemetria.
    * dt = 0 (pausa) mantém a pose.
+   * SOMENTE VISUAL: nunca modifica o estado autoritativo do lutador.
    */
   update(f, dt, alt, events = [], ctx = {}) {
     const opt = Character.options;this.clock += dt;if (dt > 0) this.lastDt = dt;

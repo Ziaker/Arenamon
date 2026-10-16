@@ -321,7 +321,10 @@ function startAction(f, kind, dirs, fighters, desiredHeading, viaCancel, guardHe
   // C só salta quando o caminho atravessa de fato um adversário; as demais esquivas ficam baixas.
   const vault = !!T.enableVault && kind === 'dodge' && wouldVault(f, heading, fighters);
   const countered = kind === 'tackle' && f.counterWindow > 0 && T.enableCounterBonus;
-  f.action = {kind, elapsed: 0, startAngle: heading, heading, offensive: kind === 'tackle', vault, hits: new Set(), from, speedMultiplier: countered ? A.tackle.counterSpeed : 1};
+  const combatWindows = f.combatWindows?.[kind] || C.combatWindows?.[kind] || null;
+  f.action = {kind, elapsed: 0, startAngle: heading, heading, offensive: kind === 'tackle', vault, hits: new Set(), from, speedMultiplier: countered ? A.tackle.counterSpeed : 1,
+    combatWindows: combatWindows ? structuredClone(combatWindows) : null,
+    hitWindows: combatWindows?.activeWindows?.length ? combatWindows.activeWindows.map(() => new Set()) : []};
   // Salto sobre o rival: pulo balístico (impulso vertical, gravidade e velocidade horizontal próprias).
   if (vault && A.dodge.vaultPhysics) f.action.jump = {y: 0, vy: A.dodge.vaultUp, over: vaultTarget(f, heading, fighters)};
   if (blendTime !== undefined) f.action.blendTime = blendTime;

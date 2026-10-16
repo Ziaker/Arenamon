@@ -1,7 +1,7 @@
 // Ciclo de partida de passo fixo (120 Hz), igual ao v6, mais estado serializável para replay e cenários.
 import {C} from './config.js';
 import {Brain} from './ai.js';
-import {createFighter, emptyCommand, isInvulnerable} from './entity.js';
+import {createFighter, emptyCommand, isInvulnerable, isOffensive} from './entity.js';
 import {updateFighter, advanceAction, bufferDuringHitstop, tickCooldowns, isDepleted} from './controller.js';
 import {getEffect} from './move-effects.js';
 import {createWorld, stepWorld, spawn} from './world.js';
@@ -18,13 +18,17 @@ export class Game {
     this.brain.getWorld = this.playerBrain.getWorld = () => this.world;
     // Movimentos equipados por lutador (ids registrados em moves.js); mantidos entre partidas.
     this.loadouts = [[], []];
+    this.combatWindows = [null, null];
     this.mode = 'combat';this.profile = 'balanced';this.enemyProfile = 'balanced';
     this.reset();this.phase = 'menu';
   }
   reset({positions = [vec(0, -4), vec(0, 2)]} = {}) {
     this.fighters = [createFighter(0, C.profiles[this.profile] || C.profiles.balanced, {...positions[0]}), createFighter(1, C.profiles[this.enemyProfile] || C.profiles.balanced, {...positions[1]})];
     this.brain.reset();this.playerBrain.reset();
-    this.fighters.forEach((f, i) => {f.loadout = [...(this.loadouts[i] || [])];});
+    this.fighters.forEach((f, i) => {
+      f.loadout = [...(this.loadouts[i] || [])];
+      f.combatWindows = this.combatWindows?.[i] ? structuredClone(this.combatWindows[i]) : null;
+    });
     this.world = createWorld();
     this.tick = 0;this.events = [];this.winner = null;this.hitstop = 0;this.phase = 'playing';this.lastStepEvents = [];
   }
@@ -102,23 +106,38 @@ export class Game {
   }
   /** Equipa movimentos registrados num lutador (vale a partir de agora e nas próximas partidas). */
   setLoadout(id, ids) {this.loadouts[id] = setLoadout(this.fighters[id], ids);return this.loadouts[id];}
+  /** Associa janelas de combate da animação ao lutador (tackle, dodge, etc.). */
+  setCombatWindows(id, windows) {
+    this.combatWindows ??= [null, null];
+    this.combatWindows[id] = windows ? structuredClone(windows) : null;
+    if (this.fighters?.[id]) this.fighters[id].combatWindows = this.combatWindows[id];
+  }
   /** Visão para o HUD e para testes (mesma forma do v6). */
   snapshot() {
     return {phase: this.phase, tick: this.tick, winner: this.winner, mode: this.mode, hitstop: this.hitstop, events: this.events,
-      fighters: this.fighters.map(f => ({...f, action: f.action ? {...f.action, hits: [...f.action.hits]} : null,
-        invulnerable: isInvulnerable(f), offensive: f.action?.kind === 'tackle'}))};
+      fighters: this.fighters.map(f => ({...f, action: f.action ? {...f.action, hits: [...f.action.hits], hitWindows: f.action.hitWindows ? f.action.hitWindows.map(s => [...s]) : null} : null,
+        invulnerable: isInvulnerable(f), offensive: isOffensive(f)}))};
   }
   /** Estado completo e independente (structuredClone preserva os Sets de acertos). */
   save() {
     return structuredClone({fighters: this.fighters, tick: this.tick, events: this.events, winner: this.winner, hitstop: this.hitstop, phase: this.phase, world: this.world ?? createWorld(), loadouts: this.loadouts,
-      brain: this.brain.save(), playerBrain: this.playerBrain.save(), lastStepEvents: this.lastStepEvents});
+      combatWindows: this.combatWindows, brain: this.brain.save(), playerBrain: this.playerBrain.save(), lastStepEvents: this.lastStepEvents});
   }
   load(state) {
     const s = structuredClone(state);
     this.fighters = s.fighters;this.tick = s.tick;this.events = s.events;this.winner = s.winner;this.hitstop = s.hitstop;this.phase = s.phase;
     this.brain.load(s.brain);this.playerBrain.load(s.playerBrain);this.lastStepEvents = s.lastStepEvents || [];
     this.world = s.world ?? createWorld();if (s.loadouts) this.loadouts = s.loadouts;
-    for (const f of this.fighters) {f.statuses ??= [];f.moveCooldowns ??= {};f.loadout ??= [];f.moveFx ??= [];f.charge ??= null;f.moveRecovery ??= 0;f.skillBuffer ??= null;f.moveEvents ??= [];f.counterStagger ??= 0;}
+    this.combatWindows = s.combatWindows ? structuredClone(s.combatWindows) : [null, null];
+    for (const f of this.fighters) {
+      f.statuses ??= [];f.moveCooldowns ??= {};f.loadout ??= [];f.moveFx ??= [];
+      f.charge ??= null;f.moveRecovery ??= 0;f.skillBuffer ??= null;f.moveEvents ??= [];f.counterStagger ??= 0;
+      if (!s.combatWindows) f.combatWindows = null;
+    }
+    for (let i = 0; i < this.fighters.length; i++) {
+      if (this.combatWindows?.[i]) this.fighters[i].combatWindows = structuredClone(this.combatWindows[i]);
+      else this.fighters[i].combatWindows = null;
+    }
   }
 }
 
