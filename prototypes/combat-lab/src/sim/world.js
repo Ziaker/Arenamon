@@ -11,7 +11,8 @@
 //
 // Formas: 'circle' (raio) e 'box' (meias-medidas hx, hz, girada por `angle`). Altura: `y` (base) e `height`.
 import {C} from './config.js';
-import {isInvulnerable} from './entity.js';
+import {isInvulnerable, nominalDistance} from './entity.js';
+import {sweepBox, segmentHitsVolume} from './geometry.js';
 import {launch} from './combat.js';
 import {applyStatus, stat} from './status.js';
 import {vec, add, sub, scale, dot, length, normalize, direction} from './math.js';
@@ -106,13 +107,14 @@ export function applyHit(game, ownerId, target, hit, normal, info = {}) {
 
 // ---------- Paredes e barreiras contra lutadores (chamado pela física, a cada subpasso) ----------
 /** Empurra o lutador para fora das formas sólidas (paredes; barreiras com blocksFighters). Sem formas, nada acontece. */
-export function collideFighter(world, f) {
+export function collideFighter(world, f, events = null) {
   if (!world?.entities.length) return 0;let contacts = 0;
   const r = C.test.halfExtent, alt = altOf(f), h = fighterHeight();
   for (const e of world.entities) {
     const solid = e.kind === 'wall' ? e.blocksFighters : e.kind === 'barrier' && e.blocksFighters && (e.blocksOwner || e.owner !== f.id);
     if (!solid || !vOverlap(alt, alt + h, e.y, e.y + e.height)) continue;
     const c = closestOnShape(e, f.position);if (c.distance >= r) continue;
+    if (e.breakableByTackle && f.action?.kind === 'tackle' && !e.dead) {breakByTackle(e, f, events);continue;}
     // Normal de saída: do ponto mais próximo para o centro (dentro da forma, pelo eixo de menor penetração).
     let n = sub(f.position, c.point);if (length(n) < 1e-9 || c.inside) n = sub(f.position, e.pos);if (length(n) < 1e-9) n = vec(0, 1);n = normalize(n);
     f.position = add(c.inside ? c.point : f.position, scale(n, c.inside ? r : r - c.distance));
@@ -125,7 +127,7 @@ export function collideFighter(world, f) {
 }
 
 // ---------- Passo do mundo ----------
-const blocks = (b, p) => (b.kind === 'wall' && b.blocksProjectiles) || (b.kind === 'barrier' && b.blocksProjectiles && (b.blocksOwner || b.owner !== p.owner));
+const blocks = (b, p) => (b.kind === 'wall' && b.blocksProjectiles) || (b.kind === 'barrier' && !b.reflect && b.blocksProjectiles && (b.blocksOwner || b.owner !== p.owner));   // barreiras refletoras: ver reflectPass
 /** Avança as entidades em dt; devolve os eventos (acertos, bloqueios, explosões, expirações). */
 export function stepWorld(game, dt) {
   const world = game.world, events = [];
@@ -150,7 +152,8 @@ function stepProjectile(game, p, dt, events, spawnLater) {
   const travel = length(p.vel) * dt, steps = Math.max(1, Math.ceil(travel / C.test.contactStep));
   if (p.gravity) p.vy = (p.vy ?? 0) - p.gravity * dt;
   for (let s = 0; s < steps && !p.dead; s++) {
-    p.pos = add(p.pos, scale(p.vel, dt / steps));if (p.gravity) {p.y = Math.max(0, p.y + (p.vy ?? 0) * dt / steps);if (p.y <= 0 && p.vy < 0) {p.dead = true;events.push({result: 'groundHit', attacker: p.owner ?? null, target: null, damage: 0, entity: p.id, kind: 'projectile'});if (p.onHit) spawnLater.push(at(p.onHit, p));return;}}
+    const from = {...p.pos};p.pos = add(p.pos, scale(p.vel, dt / steps));if (p.gravity) {p.y = Math.max(0, p.y + (p.vy ?? 0) * dt / steps);if (p.y <= 0 && p.vy < 0) {p.dead = true;events.push({result: 'groundHit', attacker: p.owner ?? null, target: null, damage: 0, entity: p.id, kind: 'projectile'});if (p.onHit) spawnLater.push(at(p.onHit, p));return;}}
+    if (!reflectPass(game, p, from, events)) return;
     const half = C.test.arenaHalf;
     if (Math.abs(p.pos.x) > half || Math.abs(p.pos.z) > half) {p.dead = true;events.push({result: 'arenaHit', attacker: p.owner ?? null, target: null, damage: 0, entity: p.id, kind: 'projectile'});if (p.onHit) spawnLater.push(at(p.onHit, p));return;}
     // Barreiras e paredes primeiro: o que está na frente bloqueia.
@@ -179,16 +182,91 @@ function stepArea(game, a, dt, events) {
   const due = a.interval > 0 ? Math.min(a.pulses, 1 + Math.floor((a.age - dt + 1e-9) / a.interval)) : Math.min(a.pulses, 1);
   while (a.pulsesDone < due) {
     a.pulsesDone++;
-    if (!a.hit) continue;
-    for (const f of game.fighters) {
+    const shields = a.explosion ? game.world.entities.filter(e => e.shields && !e.dead) : [];
+    if (a.hit) for (const f of game.fighters) {
       if (f.hp <= 0 || (f.id === a.owner && !a.affectsOwner)) continue;
       const alt = altOf(f);if (!vOverlap(alt, alt + fighterHeight(), a.y, a.y + a.height)) continue;
       const box = {shape: 'box', pos: f.position, hx: C.test.halfExtent, hz: C.test.halfExtent, angle: 0};
       const c = closestOnShape(box, a.pos), dist = Math.max(0, c.inside ? 0 : c.distance);if (dist > a.radius) continue;
+      const shield = shields.length ? shieldedFromBlast(a, f, shields) : null;
+      if (shield) {events.push({result: 'shielded', attacker: a.owner ?? null, target: f.id, damage: 0, entity: a.id, by: shield.id, pulse: a.pulsesDone});continue;}
       // Efeito radial: empurra do centro para fora; a intensidade cai com a distância conforme `falloff`.
       const k = a.falloff === 'linear' ? Math.max(0, 1 - dist / Math.max(1e-6, a.radius)) : 1, away = sub(f.position, a.pos);
       const ev = applyHit(game, a.owner, f, a.hit, length(away) > 1e-6 ? normalize(away) : direction(f.facing + Math.PI), {entity: a.id, scale: k, origin: a.pos});
       if (ev) events.push({...ev, pulse: a.pulsesDone});
     }
+    if (a.explosion) breakBarriers(game, a, events);
   }
 }
+
+// ---------- Barreiras refletoras (Reflect) ----------
+/**
+ * Reflexão especular de projéteis em barreiras com \`reflect\` (Reflect). Varre o segmento do subpasso e resolve os contatos em
+ * ORDEM FÍSICA (M30.6; empate: ordem de criação). Superfície: primeira atingida (M7.7); frente e bordas refletem — a borda pela
+ * própria normal, mesmo vindo de trás (M13.3, M30.5) —; entrar pelo verso atravessa e ignora essa barreira até sair do volume
+ * dela. PL superior destrói a barreira e é neutralizado; PL igual ou inferior é refletido (M18.8, M19.2, M19.3). Quem reflete
+ * passa a ser o dono (M2.7), o homing é cancelado (M12.6), o dano é recalculado com o Ataque do refletor (M17.3, M30.1) e o PL é
+ * conservado (M19.7). Salvaguarda contra ciclo degenerado (M17.2): acima de \`maxReflections\` por passo a reflexão é suspensa
+ * naquele passo e o projétil segue. Devolve false se o projétil foi neutralizado.
+ */
+function reflectPass(game, p, from, events) {
+  const bars = game.world.entities.filter(b => b.reflect && !b.dead);
+  if (!bars.length) return true;
+  if (p.through?.length) p.through = p.through.filter(id => bars.some(b => b.id === id && circleTouches(b, p.pos, p.radius)));
+  let a = from;
+  for (let guard = 0; guard < 512; guard++) {
+    const end = p.pos;let best = /** @type {any} */ (null);
+    for (const bar of bars) {
+      if (bar.dead || p.through?.includes(bar.id) || !vOverlap(p.y - p.radius, p.y + p.radius, bar.y, bar.y + bar.height)) continue;
+      const h = sweepBox(bar, a, end, p.radius, bar.captured?.tieTolerance ?? .001);
+      if (!h) continue;
+      if ('inside' in h) {(p.through ??= []).push(bar.id);continue;}     // já dentro do volume: imune a essa barreira até sair
+      if (!best || h.t < best.t - 1e-12) best = {...h, bar};
+    }
+    if (!best) return true;
+    const bar = best.bar;
+    if (best.face === 'back') {(p.through ??= []).push(bar.id);continue;}
+    if ((p.pl ?? 1) > (bar.pl ?? 1)) {
+      bar.dead = true;p.dead = true;
+      events.push({result: 'barrierBroken', attacker: p.owner ?? null, target: bar.owner ?? null, damage: 0, entity: bar.id, kind: 'barrier', by: 'pl'});
+      events.push({result: 'neutralized', attacker: p.owner ?? null, target: bar.owner ?? null, damage: 0, entity: p.id, by: bar.id, kind: 'projectile'});
+      return false;
+    }
+    if (p.reflectTick !== game.tick) {p.reflectTick = game.tick;p.reflectCount = 0;}
+    if (++p.reflectCount > (bar.captured?.maxReflections ?? 16)) {
+      if (p.reflectCount === (bar.captured?.maxReflections ?? 16) + 1) events.push({result: 'reflectCycle', attacker: p.owner ?? null, target: null, damage: 0, entity: p.id, kind: 'projectile'});
+      return true;
+    }
+    const n = best.normal, nv = sub(p.vel, scale(n, 2 * dot(p.vel, n))), rest = (1 - best.t) * best.len, previous = p.owner;
+    const dir = normalize(nv);
+    a = add(best.point, scale(n, 1e-7));
+    p.vel = nv;p.dir = dir;p.pos = add(a, scale(dir, rest));
+    p.origin ??= previous;p.owner = bar.owner;p.hitLog = [];p.homing = null;
+    if (p.captured?.attackFraction != null) {const o = game.fighters[bar.owner];if (o) p.hit = {...p.hit, damage: p.captured.attackFraction * o.attributes.attack};}
+    events.push({result: 'reflected', attacker: bar.owner ?? null, target: previous ?? null, damage: 0, entity: p.id, by: bar.id, face: best.face, kind: 'projectile'});
+  }
+  return true;
+}
+/** O lutador está protegido desta explosão? O segmento 3D do centro da explosão ao centro do corpo cruza o volume de alguma barreira protetora (M30.7). */
+function shieldedFromBlast(a, f, shields) {
+  const p0 = {x: a.pos.x, z: a.pos.z, y: a.y + a.height / 2}, p1 = {x: f.position.x, z: f.position.z, y: altOf(f) + fighterHeight() / 2};
+  const hit = shields.find(b => segmentHitsVolume(b, b.y, b.height, p0, p1));
+  return hit ?? null;
+}
+/** Explosão destrói as barreiras vulneráveis que seu volume alcança (M14.5, M14.7); a proteção já foi avaliada antes (M30.6, item 4). */
+function breakBarriers(game, a, events) {
+  for (const b of game.world.entities) {
+    if (b.dead || !b.breakableByBlast || !vOverlap(a.y, a.y + a.height, b.y, b.y + b.height) || closestOnShape(b, a.pos).distance > a.radius) continue;
+    b.dead = true;events.push({result: 'barrierBroken', attacker: a.owner ?? null, target: b.owner ?? null, damage: 0, entity: b.id, kind: 'barrier', by: 'explosion'});
+  }
+}
+/** Tackle contra barreira vulnerável: destrói (qualquer PL, frente, verso ou borda, inclusive a própria) e o atacante recua e fica em stagger (M14.3, M14.4, M19.9). */
+function breakByTackle(e, f, events) {
+  e.dead = true;
+  const cap = e.captured ?? {}, away = scale(direction(f.action.heading), -1);
+  f.action = null;f.velocity = vec();f.locomotionVelocity = vec();f.blend = null;f.vaultHeight = 0;
+  f.push = {direction: away, distance: nominalDistance(f, 'tackle') * (cap.tackleRecoil ?? .15), elapsed: 0};
+  f.knockRecovery = Math.max(f.knockRecovery, cap.tackleStagger ?? .25);
+  events?.push({result: 'barrierBroken', attacker: f.id, target: e.owner ?? null, damage: 0, entity: e.id, kind: 'barrier', by: 'tackle'});
+}
+

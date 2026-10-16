@@ -113,6 +113,26 @@ Um movimento com `charge: {max}` é **segurar para carregar, soltar para executa
 
 **Eventos:** `chargeStart`, `chargeRelease`, `chargeCancel`, `chargeInterrupt`, `cooldownBoost`, `moveFailed`. **Testes:** `test/charge.test.mjs`.
 
+## Reflect — Fase 2 (primeiro Move real)
+
+**Registrado no bootstrap do laboratório** (`main.js` → `registerStandardMoves()`, D2); **nenhum slot vem equipado** (opt-in: `__lab.moves.equipStandard(0)` ou `game.setLoadout(0, ['reflect'])`). Tecla padrão **A** (slot 1). Definição e efeito em `sim/moves/reflect.js`; reflexão, destruição e proteção em `sim/world.js`; geometria em `sim/geometry.js`; valores provisórios em `C.world.reflect` (M30.10).
+
+| Regra | Valor |
+|---|---|
+| Custo / recarga | 1 de stamina ao iniciar / 8 s a partir da soltura; recarga acelerável |
+| Tamanho | largura 1,5×–3× e altura 1,5×–2,5× das dimensões **lógicas** (largura/profundidade = 2 × `halfExtent`, altura = `bodyHeight`, M30.4), crescendo **linearmente** com a carga (curva provisória); espessura 0,10 m |
+| Posição | à frente, a 50% da profundidade do personagem; base no chão; orientação congelada ao soltar |
+| Duração | 4 s + tempo carregado (4–8 s); Power Level = nível da carga (PL1–PL3) |
+| Falta de espaço | encolhe até o maior retângulo válido (mínimo 1,5×); sem espaço, **falha**: devolve a stamina, sem recarga (arena, paredes e lutadores contam) |
+| Colisão com projéteis | varredura de segmento; primeira superfície atingida; **frente e bordas refletem** (borda pela própria normal, mesmo vindo de trás); **pelo verso atravessa** e ignora a barreira até sair do volume; empate: frente > borda > verso (M30.5) |
+| Ao refletir | o refletor vira o dono; homing cancelado; PL conservado; dano recalculado com o Ataque do refletor (`captured.attackFraction × Ataque`, M30.1); no máximo 16 reflexões do mesmo projétil por passo (salvaguarda, M17.2) |
+| PL | projétil de PL ≤ barreira reflete; PL superior **destrói** a barreira e é neutralizado (sem explosão) |
+| Tackle | destrói a barreira (qualquer PL, frente/verso/borda, inclusive a própria); o atacante recua (`tackleRecoil` 15% do deslocamento nominal) e fica em stagger de 0,25 s |
+| Explosões | entidades `area` com `explosion: true` destroem as barreiras que alcançam; quem está com o **segmento 3D do centro da explosão ao centro do corpo** cruzando uma barreira fica **protegido** daquela explosão (inclusive o dono; mesmo que a barreira seja destruída por ela, M30.6/M30.7) |
+| Sólida | bloqueia os dois lutadores (deslizam pelas laterais); o Dodge pode passar por cima se a trajetória permitir |
+
+**Contrato M28.4:** a barreira guarda `captured` (tolerância de empate, limite de reflexões, recuo e stagger do Tackle, dimensões) e nunca mais lê `C.world.reflect`. **Eventos:** `reflected`, `neutralized`, `barrierBroken` (`by`: `pl`, `tackle`, `explosion`), `shielded`, `reflectCycle`, `moveFailed`. **Testes:** `test/reflect.test.mjs`. **Ainda não:** prévia visual e VFX (Fase 6), laser (Fase 7), clash/counter entre Moves (Fase 4), uso pela IA (Fase 5).
+
 ## Garantias verificadas (`test/moves.test.mjs`)
 
 - O registro está vazio, e nenhum código do laboratório registra movimentos.

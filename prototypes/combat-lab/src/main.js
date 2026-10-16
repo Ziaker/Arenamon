@@ -34,9 +34,13 @@ import {createPerfPanel} from './ui/perf-panel.js';
 import {createAiEvalPanel} from './ui/ai-eval-panel.js';
 import {createProjectFiles} from './ui/project-files.js';
 import * as Moves from './sim/moves.js';
+import {registerStandardMoves, STANDARD_MOVE_IDS} from './sim/moves/standard.js';
 /* global __GAME_CONFIG_TS__ */
 const GAME_CONFIG_TS = typeof __GAME_CONFIG_TS__ === 'string' ? __GAME_CONFIG_TS__ : '';
 import {length, sub, dot} from './sim/math.js';
+
+// Moves padrão (D2): registrados aqui, no bootstrap do laboratório, nunca no núcleo da simulação. Registrar não equipa nenhum slot.
+registerStandardMoves();
 
 const $ = id => document.getElementById(id);
 const canvas = document.querySelector('.stage canvas');
@@ -578,6 +582,6 @@ window.__arenaLive = {rules: C.rules, test: C.test, locomotion: C.locomotion, ca
 // window.__lab só aparece depois da restauração do workspace (os testes esperam por ele).
 bootWorkspace().catch(e => {console.error('workspace:', e);ui.workspaceError = e.message;return null;}).then(boot => {
   // API dos movimentos especiais (registro vazio): registerMove, listMoves, validateMove; equipar com setLoadout.
-  window.__lab = {moves: {...Moves, setLoadout: (id, ids) => game.setLoadout(id, ids)}, C, game, view, hudProposals, presets, movement, playSequence, diagnostics, training, perf: perfPanel, aiEval, projectFiles, reportsOf, visualPanel, recorder, replay, tuning, ui, startMatch, startScenario: id => startScenario(SCENARIOS.find(s => s.id === id)), stepFrames, seekTick, goLive, togglePause, setCharacter, loadStudioFile, SCENARIOS, runScenario,
+  window.__lab = {moves: {...Moves, setLoadout: (id, ids) => game.setLoadout(id, ids), standard: STANDARD_MOVE_IDS, equipStandard: id => game.setLoadout(id, STANDARD_MOVE_IDS)}, C, game, view, hudProposals, presets, movement, playSequence, diagnostics, training, perf: perfPanel, aiEval, projectFiles, reportsOf, visualPanel, recorder, replay, tuning, ui, startMatch, startScenario: id => startScenario(SCENARIOS.find(s => s.id === id)), stepFrames, seekTick, goLive, togglePause, setCharacter, loadStudioFile, SCENARIOS, runScenario,
     ws: boot?.ws ?? null, store: boot?.store ?? null, wsUI: boot?.wsUI ?? null, workspaceBoot: boot};
 });

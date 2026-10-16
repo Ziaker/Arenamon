@@ -8,6 +8,8 @@
 // ajustar um slider durante a carga não altera aquele uso, só os próximos.
 import {C} from './config.js';
 
+/** Congela um objeto simples recursivamente. */
+const deepFreeze = (/** @type {any} */ o) => {for (const v of Object.values(o)) if (v && typeof v === 'object') deepFreeze(v);return Object.freeze(o);};
 /** Campos de `def.charge` que podem substituir os valores compartilhados de `C.world.charge`. */
 export const CHARGE_OVERRIDES = ['moveSlow', 'turnSlow', 'dodgeCancelAfter', 'interruptCooldownFactor', 'recovery', 'bufferWindow', 'boostStaminaPerSecond', 'boostStep'];
 
@@ -18,7 +20,7 @@ export const CHARGE_OVERRIDES = ['moveSlow', 'turnSlow', 'dodgeCancelAfter', 'in
  */
 export function chargeParams(def) {
   const base = C.world.charge, over = def.charge ?? {}, step = C.test.step;
-  /** @type {Record<string, number>} */
+  /** @type {Record<string, any>} */
   const p = {};
   for (const k of CHARGE_OVERRIDES) p[k] = over[k] ?? base[k];
   p.max = over.max ?? 4;
@@ -28,6 +30,9 @@ export function chargeParams(def) {
   p.dodgeLockTicks = Math.round(p.dodgeCancelAfter / step);
   p.bufferTicks = Math.round(p.bufferWindow / step);
   p.recoveryTicks = Math.round(p.recovery / step);
+  // Referências lógicas do corpo (M30.4) e, se a definição nomear um grupo (ex.: 'reflect'), uma cópia congelada dele (M28.4).
+  p.body = Object.freeze({halfExtent: C.test.halfExtent, height: C.extras.visual.bodyHeight});
+  if (over.group) p.group = deepFreeze(structuredClone(C.world[over.group]));
   return Object.freeze(p);
 }
 
