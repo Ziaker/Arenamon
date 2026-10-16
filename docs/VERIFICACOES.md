@@ -40,6 +40,10 @@ Executado e aprovado em worktree temporário: `npm run typecheck`; `npm run test
 
 Executado e aprovado em worktree temporário: `npm run typecheck`; `npm run test:combat-lab:unit` completo (inclui `psyshock.test` 15 verificações); `npm run test:combat-lab:browser` completo (inclui `moves.browser` 6/6: Reflect (A) e Psyshock (S) pelo teclado real, offline, sem erros); `npm run check:offline`; impressão digital de lutas IA × IA **idêntica** à da base. Achados corrigidos no caminho: teto de knockback com erro de ponto flutuante (0,3+0,3+0,3 ≠ 0,9) e pedras refletidas colidindo com o resto da própria execução (M8.1: pedras do mesmo Psyshock nunca colidem). **Não executado:** `verify:workspace`/`verify` completo (worktree), paridade v6 (arquivo ausente), **aprovação visual/jogável (é sua, M28.9)**.
 
+### Fase 4 dos Moves — PL, Clash e Counter (2026-10-16, branch `feat/moves-fase4-pl` sobre `main` @ `24aaef4`)
+
+Executado e aprovado em worktree temporário: `npm run typecheck`; `npm run test:combat-lab:unit` completo (inclui `pl.test` 7 verificações); `npm run test:combat-lab:browser` completo; `npm run check:offline`; impressão digital de lutas IA × IA **idêntica** à da base. **Intermitência registrada:** na primeira passada da suíte de navegador, `overhaul.browser` reprovou 1 de 116 (“Animação (GLB) · ações concluídas tocam até o fim (tolerância de 2 quadros)”); reexecutado 3 vezes e depois a suíte inteira, passou sempre (verificação sensível ao tempo de quadro; causa raiz não investigada; nada de animação foi alterado). **Limite desta fase:** Clash de áreas/explosões ofensivas entre si e defesas herdadas com PL dependem de Moves que ainda não existem; a leitura adotada para pedra × Tackle (Clash em PL1; Counter neutraliza o Tackle em PL ≥ 2) é provisória — a especificação não define o destino do Tackle numa disputa. **Não executado:** `verify:workspace`/`verify` completo (worktree), paridade v6 (arquivo ausente), aprovação jogável (sua).
+
 ### NÃO executado / pendente
 
 - `npm run verify:workspace`: **recusa worktrees por desenho** (exige o checkout oficial). Deve ser rodado na pasta oficial quando ela estiver livre.

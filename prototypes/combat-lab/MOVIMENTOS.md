@@ -151,6 +151,21 @@ Registrado no bootstrap (como o Reflect), **sem slot equipado por padrão**; tec
 
 **Provisórios documentados:** o 0,8ⁿ conta impactos e defesas comuns (não defesa perfeita nem invulnerabilidade); o Ataque usado é o **atributo-base** (P13); o teto de knockback conta só o horizontal e só impactos com lançamento (P14); distribuição uniforme dos sorteios (P15). **Eventos:** `spawn`, `impact`/`partial`, `reflected`, `stoneClash`, `groundHit`, `moveFailed`. **Testes:** `test/psyshock.test.mjs` e `test/moves.browser.mjs`. **Ainda não:** formação visual das pedras durante a carga, VFX e gesto da mão (Fase 6), clash/counter com Reflect de PL diferente em outros Moves (Fase 4), uso pela IA (Fase 5).
 
+## Power Level, Clash e Counter — Fase 4
+
+O PL pertence à **execução** do Move (M18.4): Reflect e Psyshock recebem PL1–PL3 pela carga e as entidades herdam esse nível. **Tackle: PL1 fixo** (M21.1). Disputas implementadas, só entre entidades marcadas como disputáveis (`clashable`):
+
+| Disputa | Resultado |
+|---|---|
+| Pedra × Reflect | PL ≤ barreira: refletida; PL > barreira: a barreira é destruída e a pedra neutralizada (Fase 2) |
+| Pedra × Tackle em curso (fora da invulnerabilidade) | PL1: **Clash** — só a pedra se despedaça, o Tackle segue. PL ≥ 2: **Counter** — a pedra vence e segue; o Tackle fica **neutralizado** (não conecta mais nesta ação, nem destrói barreira) e a pedra atinge o corpo do derrotado |
+| Pedra × pedra (donos diferentes, execuções diferentes) | PL igual: as duas se destroem; PL superior vence e continua; só as envolvidas somem |
+| Tackle × Reflect | o Tackle destrói em qualquer PL (M19.9) |
+
+**Counter Stagger** (M20.8, M21.4–M21.7): 0,2 s (`C.world.psyshock.counterStagger`, capturado nas pedras), só quando o ataque **vencedor atinge o corpo** do derrotado (disputa à distância não machuca); não acumula nem reinicia enquanto ativo; interrompe o Charge pela regra comum. **Eventos:** `tackleClash`, `counter`, `counterStagger`, `stoneClash`; eventos de acerto e reflexão trazem o `pl`.
+
+**Não aplicável aos dois primeiros Moves (decisão a tomar quando houver Moves ofensivos de área):** Clash entre áreas e projétil × explosão (M22.2–M22.4), neutralização local × integral (M22.3), defesas herdadas com PL (M21.8) e elegibilidade configurável por Move (M18.6).
+
 ## Garantias verificadas (`test/moves.test.mjs`)
 
 - O registro está vazio, e nenhum código do laboratório registra movimentos.

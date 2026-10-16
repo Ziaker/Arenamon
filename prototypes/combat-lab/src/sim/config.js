@@ -108,7 +108,7 @@ export function defaults() {
     // reflect: valores iniciais PROVISÓRIOS do Reflect (M30.10); largura/altura em múltiplos das dimensões lógicas do motor (M30.4); crescimento linear com a carga.
     reflect: {widthMin: 1.5, widthMax: 3, heightMin: 1.5, heightMax: 2.5, thickness: .1, gapFraction: .5, durationBase: 4, tackleRecoil: .15, tackleStagger: .25, supportTolerance: .25, tieTolerance: .001, maxReflections: 16},
     // psyshock: valores iniciais PROVISÓRIOS do Psyshock (M30.10): pedras (3 a 8, +1 por 0,8 s), velocidade sorteada por pedra (D4), homing 0,3 s a 180°/s, leque de 20° sem alvo, busca de espaço de 3 m, dano 0,2 × Ataque, fator 0,8 por acerto no mesmo alvo, knockback 0,3 m/s por pedra com teto de 0,9 m/s por alvo.
-    psyshock: {minStones: 3, maxStones: 8, stoneSeconds: .8, speedMin: 10, speedMax: 14, homingSeconds: .3, homingRate: 180, fanAngle: 20, searchRange: 3, searchStep: .25, arc: 120, ringMin: .8, ringMax: 1.1, heightMin: .35, heightMax: 1.1, scaleMin: .7, scaleMax: 1.3, radius: .2, damageFraction: .2, successiveFactor: .8, knockbackPerStone: .3, knockbackCap: .9, followInertia: .15}};
+    psyshock: {minStones: 3, maxStones: 8, stoneSeconds: .8, speedMin: 10, speedMax: 14, homingSeconds: .3, homingRate: 180, fanAngle: 20, searchRange: 3, searchStep: .25, arc: 120, ringMin: .8, ringMax: 1.1, heightMin: .35, heightMax: 1.1, scaleMin: .7, scaleMax: 1.3, radius: .2, damageFraction: .2, successiveFactor: .8, knockbackPerStone: .3, knockbackCap: .9, followInertia: .15, counterStagger: .2}};
   return {rules, test, locomotion, camera, profiles: profilesLab, extras, actions, vfx: vfxDefaults(), display: displayDefaults(), world};
 }
 

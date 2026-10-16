@@ -116,7 +116,7 @@ export class Game {
     this.fighters = s.fighters;this.tick = s.tick;this.events = s.events;this.winner = s.winner;this.hitstop = s.hitstop;this.phase = s.phase;
     this.brain.load(s.brain);this.playerBrain.load(s.playerBrain);this.lastStepEvents = s.lastStepEvents || [];
     this.world = s.world ?? createWorld();if (s.loadouts) this.loadouts = s.loadouts;
-    for (const f of this.fighters) {f.statuses ??= [];f.moveCooldowns ??= {};f.loadout ??= [];f.moveFx ??= [];f.charge ??= null;f.moveRecovery ??= 0;f.skillBuffer ??= null;f.moveEvents ??= [];}
+    for (const f of this.fighters) {f.statuses ??= [];f.moveCooldowns ??= {};f.loadout ??= [];f.moveFx ??= [];f.charge ??= null;f.moveRecovery ??= 0;f.skillBuffer ??= null;f.moveEvents ??= [];f.counterStagger ??= 0;}
   }
 }
 

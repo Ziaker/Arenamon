@@ -91,7 +91,7 @@ export function psyshockEffect(/** @type {any} */ game, /** @type {any} */ f, /*
     spawn(game.world, {
       kind: 'projectile', owner: f.id, pos: {x: s.x, z: s.z}, y: s.y, radius: G.radius, dir, speed: hSpeed, vy, life: Infinity, pierce: 1, blockedBy: ['barrier', 'wall'],
       hit: {damage: base, knockback: {horizontal: G.knockbackPerStone, vertical: 0}}, pl: ch.level, clashable: true, exec: execId, homing, visualScale: s.scale,
-      captured: {attackFraction: G.damageFraction, successiveFactor: G.successiveFactor, knockbackCap: G.knockbackCap, knockbackPerStone: G.knockbackPerStone, level: ch.level, move: def.id, speed},
+      captured: {attackFraction: G.damageFraction, successiveFactor: G.successiveFactor, knockbackCap: G.knockbackCap, knockbackPerStone: G.knockbackPerStone, counterStagger: G.counterStagger, level: ch.level, move: def.id, speed},
     }, fx.events ?? []);
   }
   return {ok: true};
