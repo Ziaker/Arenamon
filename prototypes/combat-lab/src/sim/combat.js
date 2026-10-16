@@ -28,7 +28,7 @@ export function clash(a, b, normal) {
 /** O tackle do atacante conecta no defensor, dado a normal e a velocidade relativa do contato? */
 export function tackleConnects(attacker, defender, normal, relative) {
   const X = C.extras.combat;
-  if (attacker.action?.kind !== 'tackle' || attacker.flight || defender.flight) return false;
+  if (attacker.action?.kind !== 'tackle' || attacker.action.neutralized || attacker.flight || defender.flight) return false;   // neutralizado por um Counter de PL superior: não conecta mais nesta ação
   const dir = direction(attacker.action.heading), off = sub(defender.position, attacker.position);
   const towards = length(off) > 1e-6 ? normalize(off) : normal;
   return dot(dir, towards) > X.tackleTargetAlignment && dot(dir, normal) > X.tackleNormalAlignment && dot(relative, normal) > X.tackleClosingSpeed;

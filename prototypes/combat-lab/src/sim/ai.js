@@ -9,6 +9,7 @@ import {C} from './config.js';
 import {emptyCommand} from './entity.js';
 import {vec, add, scale, sub, dot, length, normalize, direction} from './math.js';
 import {tacticalCommand} from './tactics.js';
+import {movesCommand} from './ai-moves.js';
 
 export const AI_MODES = [
   ['inactive', 'Parado (dummy)'], ['defensive', 'Defensivo (v6)'], ['offensive', 'Ofensivo (v6)'], ['combat', 'Combate (v6)'],
@@ -76,7 +77,7 @@ export class Brain {
   decide(self, target, mode, dt) {
     const A = C.extras.ai, P = this.personality(), c = emptyCommand();
     if (mode === 'inactive') {this.wasGuard = false;return c;}
-    if (mode === 'tactical') return tacticalCommand(this, self, target, dt, P);
+    if (mode === 'tactical') return movesCommand(this, self, target, tacticalCommand(this, self, target, dt, P));   // Moves equipados: mesmas regras do jogador (ai-moves.js)
     c.target = target.id;
     this.cooldown = Math.max(0, this.cooldown - dt);
     this.orbitAge += dt;

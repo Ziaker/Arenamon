@@ -24,6 +24,7 @@ export class Recorder {
     this.samples.push(sample);if (this.samples.length > this.capacity) this.samples.shift();
     // Eventos primeiro: o segmento aberto ainda é a ação que causou o contato (antes de virar recuo).
     for (const e of game.lastStepEvents || []) {
+      if (e.target == null) continue;   // eventos do mundo e dos Moves sem alvo (criação, expiração, início de carga…) não são contatos entre lutadores
       const seg = this.open[e.attacker];
       const hit = {tick: e.tick ?? tick - 1, result: e.result, attacker: e.attacker, target: e.target, damage: e.damage, actionTick: seg ? (e.tick ?? tick - 1) - seg.start : null,
         attackerFree: null, targetFree: null, advantage: null, attackerMove: null, targetMove: null, moveAdvantage: null, launch: e.launch || null};

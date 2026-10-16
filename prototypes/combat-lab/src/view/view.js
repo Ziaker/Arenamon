@@ -159,7 +159,7 @@ export class View {
       // A prévia de animação continua tocando com a partida pausada.
       t0 = now();character?.update(f, paused ? (character.preview ? realDt : 0) : dt, alt, events, {tick, source: sources[f.id]});tm.anim += now() - t0;
     }
-    t0 = now();this.drawOverlays(fighters, paused ? 0 : dt);this.worldView.update(world);tm.overlays = now() - t0;
+    t0 = now();this.drawOverlays(fighters, paused ? 0 : dt);this.worldView.update(world, {fighters, events, dt: paused ? 0 : dt});tm.overlays = now() - t0;
     if (!this.rig.initialized) this.rig.reset(fighters[0]);
     const pose = this.rig.pose();
     this.camera.position.set(pose.position.x, pose.height, pose.position.z);this.camera.lookAt(pose.lookAt.x, pose.lookHeight, pose.lookAt.z);this.camera.updateMatrixWorld();
