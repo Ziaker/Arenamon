@@ -1,3 +1,4 @@
+// @ts-check
 // Efeitos de status (buffs e debuffs). Infraestrutura sem conteúdo: nenhum status vem predefinido — cada movimento
 // (futuro) descreve o próprio efeito ao aplicá-lo. Tudo é dado simples dentro do lutador (`f.statuses`), então entra
 // em save/load, replay e cenários sem código extra, e é determinístico (passo fixo).
@@ -29,7 +30,10 @@ export const FLAGS = {
 };
 const STACKING = ['refresh', 'stack', 'independent', 'ignore'];
 
-/** Valida a descrição de um status (lança erro com motivo legível). */
+/**
+ * Valida a descrição de um status (lança erro com motivo legível).
+ * @param {import('./types').StatusDef} s
+ */
 export function validateStatus(s) {
   if (!s || typeof s.id !== 'string' || !s.id) throw new Error('status sem id');
   if (!(s.duration > 0)) throw new Error(`status ${s.id}: duração deve ser > 0`);
@@ -40,7 +44,13 @@ export function validateStatus(s) {
   return true;
 }
 
-/** Aplica um status a `f`. Devolve a instância (nova ou renovada) ou null (ignorado). */
+/**
+ * Aplica um status a `f`. Devolve a instância (nova ou renovada) ou null (ignorado).
+ * @param {any} f lutador (ver entity.js)
+ * @param {import('./types').StatusDef} def
+ * @param {{source?: number | null}} [opts]
+ * @returns {import('./types').StatusInstance | null}
+ */
 export function applyStatus(f, def, {source = null} = {}) {
   validateStatus(def);
   f.statuses ??= [];

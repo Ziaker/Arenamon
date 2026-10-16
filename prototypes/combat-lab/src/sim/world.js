@@ -1,3 +1,4 @@
+// @ts-check
 // Mundo de combate: entidades criadas por movimentos (projéteis, barreiras, paredes e áreas — explosões, pulsos
 // radiais e zonas persistentes). Infraestrutura sem conteúdo: nenhuma entidade existe até um movimento criá-la.
 //
@@ -86,6 +87,7 @@ export function applyHit(game, ownerId, target, hit, normal, info = {}) {
   const perfect = protectedFront && target.perfectLeft > 1e-8;
   const raw = (hit.damage ?? 0) * attack * scaleK, damage = perfect ? 0 : raw * (protectedFront ? X.guardDamageMultiplier : 1) * stat(target, 'damageTaken', 1);
   target.hp = Math.max(0, target.hp - damage);
+  /** @type {{direction: import("./types").Vec, horizontal: number, vertical: number} | null} */
   let launchInfo = null;
   if (protectedFront) {
     target.velocity = vec();target.locomotionVelocity = vec();

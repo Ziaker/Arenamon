@@ -82,7 +82,7 @@ Arenamon/
 | **Arenamon Jogável** | `prototypes/game/dist/arenamon-jogavel.html` | Jogável offline · Etapa A aprovada |
 | **Animation Studio** | `prototypes/studio/dist/arenamon-animation-studio.html` | Totalmente operacional · V6 + Rigging |
 | **Propostas de Rigging** | `prototypes/studio/proposals/index.html` | 3 opções funcionais · Aguarda homologação |
-| **Laboratório de Combate**| Branch `feat/combat-core-etapa-a` | Calibração A x B · Aprovado em 14/10/2026 |
+| **Laboratório de Combate**| `prototypes/combat-lab/` (na `main`) | Calibração A x B · Etapa A aprovada em 14/10/2026 |
 | **Visualizador de Blocos**| `prototypes/placeholders/dist/criaturas-laboratorio.html` | Base segura de blocos geométricos 1.0.0 |
 | **Importador de Modelos** | `prototypes/importer/dist/importador-prototipo.html` | Conversão flat color sem assets restritos |
 
