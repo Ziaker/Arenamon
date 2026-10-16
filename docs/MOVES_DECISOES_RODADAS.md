@@ -357,7 +357,7 @@ Ambiguidades:
 - *Resolvida:* a proibição genérica de segundo Move tem exceção explícita para aceleração de cooldown (M17.8).
 - *Aberta:* defesa nos primeiros 0,2 s de carga é diferente do Dodge; o controle deve distinguir as duas entradas.
 - *Aberta:* botão ainda pressionado ao terminar o cooldown deve ser formalizado.
-- *Aberta:* prioridade entre eventos no mesmo passo (soltar Move, defesa, Dodge) precisa ser determinística (ver P9).
+- *Aberta:* prioridade entre eventos no mesmo passo (soltar Move, defesa, Dodge) precisa ser determinística (ver P9). **→ Resolvida por M30.9** (defesa → X/C → soltar o Move).
 
 ### Rodada 17 — Motor de reflexão, dano e propriedade
 **Procedência declarada: H**
@@ -672,6 +672,13 @@ Notas do arquivista sobre M30.8 (não são decisões):
 - **Nova ambiguidade P15 (Baixa):** detalhes do sorteio não decididos — distribuição (uniforme na caixa?), repetição de pontos entre pedras, e qual fluxo de aleatoriedade (próprio, derivado da semente da partida e da execução, para não perturbar a IA nem o replay). Valores/algoritmos iniciais serão provisórios na implementação.
 - Reprodutibilidade: o sorteio acontece **uma vez, no disparo**, e o resultado é guardado nas pedras (coerente com M28.4/M30.1); o mesmo estado e a mesma semente devem dar os mesmos pontos (save/load e replay).
 - Não substitui a ambiguidade de R8 sobre a distribuição das **posições das pedras ao redor do lançador** (visual), que continua aberta.
+
+- **M30.9** *A* — **P9 resolvida.** Ordem das entradas no **mesmo passo**: **defesa → X/C → soltar o Move** (igual ao controlador atual). **Defesa** e **C (após 0,2 s de carga)** cancelam o Charge **antes** da soltura; **C antes de 0,2 s é negado e a soltura dispara**. Opção não escolhida: B (soltar o Move primeiro).
+
+Notas do arquivista sobre M30.9 (não são decisões):
+- Auditoria do controlador em 2026-10-16 (`controller.js`, `updateFighter`): estados indisponíveis → defesa (D) cancela a ação atual → pedido de X/C (X tem prioridade sobre C, como no v6; depois buffer e tackle guardado) → movimento especial de slot (só se nenhum X/C foi pedido) → sprint/orientação. M30.9 acrescenta a soltura do Charge **depois** de X/C.
+- Consequência: defesa e soltura no mesmo passo cancelam o Charge com a penalidade de cancelamento (stamina mantida, cooldown de 4 s, M16.1). O Tackle segue indisponível durante o Charge (M15.2).
+- A mensagem do diretor trouxe a regra completa; a observação “X/C” inclui o X apenas no sentido da ordem existente (X antes de C). Detalhes de X durante Charge seguem M15.2.
 ---
 
 ## 4. Especificação vigente — Reflect
@@ -723,7 +730,7 @@ Busca posições alternativas próximas e à frente. Esgotada a busca dentro do 
 
 **6.1 Movimentação e carregamento.** Reflect e Psyshock: redução de 25% na velocidade linear e angular durante a carga, normal imediatamente ao soltar; não começam no ar; interrompem se perderem o apoio; sem carregamentos simultâneos.
 
-**6.2 Defesa, Dodge e Tackle.** Defesa cancela Charge quando disponível. Dodge pode cancelar Charge após 0,2 s. Tackle não pode ser ativado durante Charge. Um Move pode ser armazenado nos últimos 0,15 s do deslocamento principal do Dodge e começar quando esse deslocamento terminar, mesmo durante a recuperação final permitida.
+**6.2 Defesa, Dodge e Tackle.** Ordem no mesmo passo (M30.9): defesa → X/C → soltar o Move. Defesa cancela Charge quando disponível. Dodge pode cancelar Charge após 0,2 s. Tackle não pode ser ativado durante Charge. Um Move pode ser armazenado nos últimos 0,15 s do deslocamento principal do Dodge e começar quando esse deslocamento terminar, mesmo durante a recuperação final permitida.
 
 **6.3 Interrupções.** Hit stun, knockback e lançamento podem interromper Charge. A interrupção mantém a stamina gasta e inicia metade do cooldown normal. Cancelamento voluntário segue a mesma penalidade. Nenhuma interrupção única aplica penalidade múltipla.
 
@@ -787,7 +794,7 @@ Nenhuma delas foi resolvida por quem publicou este arquivo. Valores experimentai
 - **P6 — Reflexão × Power Level (RESOLVIDA em 2026-10-16 por M30.6).** Decisão: ordem física do contato; empate por ordem de criação; barreira destruída não é vista pelos contatos seguintes do passo; quem estava atrás no instante da explosão segue protegido dela.
 - **P7 — Explosões e região protegida (RESOLVIDA em 2026-10-16 por M30.7).** Decisão: protegido se o segmento 3D do centro da explosão ao centro do corpo cruza o volume de alguma barreira Reflect (qualquer personagem, basta uma barreira, vale mesmo se a barreira for destruída pela explosão).
 - **P8 — Parâmetros numéricos de calibração (Baixa).** Sem valores aprovados: tolerância de desnível; alcance da busca de posições das pedras; dispersão do leque; inércia telecinética; magnitude do recuo de Tackle após destruir Reflect; tolerâncias de colisão e de ciclos degenerados; instante de início do VFX de expiração.
-- **P9 — Estados de entrada e ordenação de comandos (Média).** Soltar Move, pressionar defesa e ativar Dodge no mesmo passo exigem ordem determinística e testável; a regra existente do jogo não deve ser substituída sem auditoria.
+- **P9 — Estados de entrada e ordenação de comandos (RESOLVIDA em 2026-10-16 por M30.9).** Decisão: defesa → X/C → soltar o Move no mesmo passo, igual ao controlador atual; C só cancela o Charge após 0,2 s.
 - **P10 — Arquitetura do repositório (Alta antes da implementação).** Auditar o que já existe, quais partes estão em JavaScript, como os Moves são registrados, os estados do controlador, as entidades físicas, a execução de testes e a produção do HTML offline. Não há autorização para reconstruir do zero. *(Auditoria parcial feita em 16/10/2026 pelo Claude Code; resultados em documentação separada, quando publicada.)*
 - **P11 — Integridade documental das Rodadas 1–12 (Alta antes de declarar completude).** Conteúdo recuperado por síntese; requer conferência com a fonte original.
 - **P12 — Aprovações globais da Rodada 29 (Baixa).** Interpretação razoável, mas deve constar como aprovação global, não como respostas individuais.
@@ -854,3 +861,4 @@ Moves específicos do tipo Status; buffs e debuffs; fórmulas de regeneração a
 - **2026-10-16 — Rodada 30 (cont.):** M30.6 (P6 resolvida: prioridade de eventos no mesmo passo). P7 segue aberta (geometria da região protegida).
 - **2026-10-16 — Rodada 30 (cont.):** M30.7 (P7 resolvida: geometria da região protegida contra explosões).
 - **2026-10-16 — Rodada 30 (cont.):** M30.8 (P5 resolvida: pontos de mira sorteados por semente na caixa lógica do alvo); P15 criada como subquestão.
+- **2026-10-16 — Rodada 30 (cont.):** M30.9 (P9 resolvida: ordem das entradas no mesmo passo).
