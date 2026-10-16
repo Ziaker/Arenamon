@@ -35,6 +35,13 @@ try {
     return {charging: !!f.charge, barrier: b ? {owner: b.owner, pl: b.pl, width: +(b.hx * 2).toFixed(2), height: +b.height.toFixed(2), life: +b.life.toFixed(2)} : null, cooldown: +(f.moveCooldowns.reflect ?? 0).toFixed(2)};});
   check('soltar A materializa a barreira (dono, PL, tamanho e duração) e inicia a recarga', !after.charging && after.barrier && after.barrier.owner === 0 && after.barrier.life > 4 && after.cooldown > 7, JSON.stringify(after));
   await page.screenshot({path: out + 'barreira.png'});
+  // Psyshock no slot 2 (tecla S): segurar e soltar dispara as pedras (sem alvo travado: leque frontal).
+  await L(() => {const f = window.__lab.game.fighters[0];f.moveRecovery = 0;});
+  await key('KeyS', true);await page.waitForTimeout(700);await key('KeyS', false);await page.waitForTimeout(120);
+  const stones = await L(() => {const g = window.__lab.game, f = g.fighters[0], s = g.world.entities.filter(e => e.kind === 'projectile' && e.exec != null);
+    return {n: s.length, pl: [...new Set(s.map(e => e.pl))], owner: [...new Set(s.map(e => e.owner))], cooldown: +(f.moveCooldowns.psyshock ?? 0).toFixed(2), failed: false};});
+  check('segurar e soltar S (teclado real) dispara as pedras do Psyshock', stones.n >= 3 && stones.owner.length === 1 && stones.owner[0] === 0 && stones.cooldown > 7, JSON.stringify(stones));
+  await page.screenshot({path: out + 'pedras.png'});
   check('sem requisições de rede e sem erros no console', network.length === 0 && errors.length === 0, [...network, ...errors].join(' | '));
 } finally {
   writeFileSync(out + 'report.json', JSON.stringify({date: new Date().toISOString(), failures, report}, null, 1));
