@@ -74,8 +74,11 @@ export class Scheduler {
         }
       }
     }
-    // Fase 4: cancel — remover instâncias finalizadas ou canceladas.
+    // Fase 4: cancel — devolve as instâncias finalizadas/canceladas para que o
+    // runtime libere orçamento e recursos exatamente uma vez.
+    const removed = this._instances.filter(inst => inst.done || inst.cancelled);
     this._instances = this._instances.filter(inst => !(inst.done || inst.cancelled));
+    return removed;
   }
   // Cancela uma instância específica (ex: trocar personagem, desativar VFX).
   cancel(instanceId) {

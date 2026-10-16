@@ -8,7 +8,7 @@ import {Scheduler} from './scheduler.js';
 import {Budget, QUALITY_LIMITS} from './budget.js';
 import {CameraFeedback} from './camera-feedback.js';
 import {VfxTelemetry} from './telemetry.js';
-import {adaptSimEvent, freezeVisualEvent, QUALITY} from './contract.js';
+import {adaptSimEvent, freezeVisualEvent, eventSeed, QUALITY} from './contract.js';
 
 const VERT = `
 attribute vec3 iPos; attribute vec3 iAxis; attribute vec2 iSize; attribute vec4 iColor; attribute vec3 iMisc;
@@ -42,8 +42,8 @@ const CELLS = {dot: 0, streak: 1, star4: 2, ring: 3, arrowDown: 4, diamond: 5, s
 const MODES = {billboard: 0, ground: 1, axis: 2, plane: 3};
 
 class ParticleBatch {
-  constructor(capacity, blending, atlas) {
-    this.capacity = capacity; this.p = [];
+  constructor(capacity, blending, atlas, pool = null) {
+    this.capacity = capacity; this.p = []; this.pool = pool;
     const quad = new T.PlaneGeometry(1, 1), g = new T.InstancedBufferGeometry();
     g.index = quad.index; g.setAttribute('position', quad.attributes.position); g.setAttribute('uv', quad.attributes.uv);
     const attr = (name, size) => { const a = new T.InstancedBufferAttribute(new Float32Array(capacity * size), size); a.setUsage(T.DynamicDrawUsage); g.setAttribute(name, a); return a; };
@@ -53,11 +53,11 @@ class ParticleBatch {
       transparent: true, depthWrite: false, depthTest: blending !== T.AdditiveBlending, blending});
     this.mesh = new T.Mesh(g, this.material); this.mesh.frustumCulled = false; this.mesh.renderOrder = 950; this.mesh.visible = !!atlas;
   }
-  add(p) { if (this.p.length >= this.capacity) this.p.shift(); this.p.push(p); }
+  add(p) { if (this.p.length >= this.capacity) { const dropped = this.p.shift(); if (dropped) this.pool?.releaseParticle(dropped); } this.p.push(p); }
   update(dt) {
     const keep = [];
     for (const p of this.p) {
-      p.age += dt; if (p.age < 0) { keep.push(p); continue; } if (p.age >= p.life) continue;
+      p.age += dt; if (p.age < 0) { keep.push(p); continue; } if (p.age >= p.life) { this.pool?.releaseParticle(p); continue; }
       const k = p.age / p.life;
       if (p.follow) { p.x += p.follow.dx; p.z += p.follow.dz; }
       p.vy -= (p.gravity || 0) * dt; const drag = Math.exp(-(p.drag || 0) * dt);
@@ -150,8 +150,8 @@ export class VfxRuntime {
     this.budget = new Budget({quality, limits: QUALITY_LIMITS[quality]});
     this.telemetry = new VfxTelemetry();
     this.cameraFeedback = new CameraFeedback({canvas, flashEl});
-    this.add = new ParticleBatch(maxParticles, T.AdditiveBlending, this.atlas);
-    this.norm = new ParticleBatch(1024, T.NormalBlending, this.atlas);
+    this.add = new ParticleBatch(maxParticles, T.AdditiveBlending, this.atlas, this.pools);
+    this.norm = new ParticleBatch(1024, T.NormalBlending, this.atlas, this.pools);
     scene.add(this.add.mesh, this.norm.mesh);
     this.activeEffects = new Map(); // instanceId → {effectDef, ctx, cost, spawned, releaseCb, releaseAt}
     this.stats = {spawned: 0, peak: 0, active: 0, firesByType: {}, byType: {}};
@@ -205,9 +205,9 @@ export class VfxRuntime {
     // 3. Efeitos contínuos por estado (exaustão, regeneração, invulnerabilidade).
     this.handleContinuous(fighters, characters, frameDt);
     // 4. Executar o scheduler (fases: spawn → sustain → decay → cancel).
-    this.scheduler.tick(frameDt);
+    const removed = this.scheduler.tick(frameDt);
     // 5. Processar instâncias do scheduler: emitir partículas no spawn, liberar no done/cancel.
-    this.processInstances(fighters, characters, frameDt);
+    this.processInstances(fighters, characters, frameDt, removed);
     // 6. Atualizar lotes de partículas.
     const nAdd = this.add.update(frameDt);
     const nNorm = this.norm.update(frameDt);
@@ -270,7 +270,7 @@ export class VfxRuntime {
     }
     const instId = this.scheduler.schedule(def, ctx);
     if (instId === null) { this.budget.release(cost); return null; }
-    this.activeEffects.set(instId, {effectDef: def, ctx, cost, spawned: false, releaseCb: null, releaseAt: 0});
+    this.activeEffects.set(instId, {effectDef: def, ctx, cost, spawned: false, onRelease: null, releaseAt: 0});
     this.stats.firesByType[def.id] = (this.stats.firesByType[def.id] || 0) + 1;
     this.recordLog(def, ev, 'disparado');
     return instId;
@@ -294,9 +294,12 @@ export class VfxRuntime {
         const interval = stateId === 'status:exhaust' ? 0.14 : 0.2;
         if (acc >= interval) {
           this.contAcc.set(key, 0);
-          const seed = (this.time * 1000 + i * 97 + Date.now() % 1000) | 0;
+          this.contSeq = (this.contSeq || 0) + 1;
+          const tick = Math.floor(this.time * 120);
+          const base = Math.floor(eventSeed(tick, i, i, stateId.split(':')[1], f.position) * 4294967296) >>> 0;
+          const seed = ((base * 31 + this.contSeq) >>> 0) / 4294967296;
           const ev = {
-            tick: Math.floor(this.time * 120), eventId: `cont:${stateId}:${i}:${seed}`,
+            tick, eventId: `cont:${stateId}:${i}:${seed}`,
             type: stateId.split(':')[1], position: {...f.position}, normal: {x: 0, y: 1, z: 0},
             direction: {x: 0, y: 1, z: 0}, damage: 0, closingSpeed: 0, launch: null,
             surface: null, seed, attacker: i, target: i, anchor: def.anchor,
@@ -308,37 +311,31 @@ export class VfxRuntime {
       }
     }
   }
-  processInstances(fighters, characters, dt) {
-    // Chamadas pendentes de liberação diferida (clashC onRelease).
-    const pendingRelease = [];
+  processInstances(fighters, characters, dt, removedInstances = []) {
+    const removedIds = new Set(removedInstances.map(i => i.instanceId));
     for (const [instId, entry] of this.activeEffects) {
       const inst = this.scheduler.instances.find(x => x.instanceId === instId);
-      if (!inst) continue;
+      const removed = removedIds.has(instId);
+      if (!inst && !removed) continue;
       // Na primeira vez que a instância é vista, emitir partículas (fase spawn).
-      if (!entry.spawned) {
+      if (!entry.spawned && inst) {
         this.spawnInstanceParticles(entry, inst);
         entry.spawned = true;
       }
-      // Liberação diferida (onRelease após 'hold' segundos).
-      if (entry.releaseCb && inst.age >= entry.releaseAt && !entry.released) {
-        pendingRelease.push([instId, entry]);
+      // Liberação diferida (onRelease após 'hold' segundos, ex: Clash C).
+      if (entry.onRelease && inst && inst.age >= entry.releaseAt && !entry.released) {
+        try { this.emitParts(entry.onRelease(entry.ctx, entry.ctx.seed), entry); } catch (e) {}
         entry.released = true;
       }
-      // Quando a instância termina, liberar orçamento e remover.
-      if (inst.phase === 'cancel' || inst.done) {
+      // Instância finalizada/cancelada: libera orçamento, execução onRelease pendente e remove.
+      if (removed) {
         this.budget.release(entry.cost);
-        // Emitir partículas de liberação diferida se houver.
-        if (entry.releaseCb && !entry.released) {
-          try { const parts = entry.releaseCb(entry.ctx, entry.ctx.seed); this.emitParts(parts, entry); } catch (e) {}
+        if (entry.onRelease && !entry.released) {
+          try { this.emitParts(entry.onRelease(entry.ctx, entry.ctx.seed), entry); } catch (e) {}
+          entry.released = true;
         }
         this.activeEffects.delete(instId);
       }
-    }
-    for (const [instId, entry] of pendingRelease) {
-      try {
-        const parts = entry.releaseCb(entry.ctx, entry.ctx.seed);
-        this.emitParts(parts, entry);
-      } catch (e) {}
     }
   }
   spawnInstanceParticles(entry, inst) {
@@ -370,7 +367,8 @@ export class VfxRuntime {
   reset() {
     this.scheduler.clear(); this.activeEffects.clear();
     this.pools.clearAll(); this.add.clear(); this.norm.clear();
-    this.contAcc.clear(); this.cameraFeedback.reset();
+    this.budget.reset(); this.contAcc.clear(); this.contSeq = 0;
+    this.cameraFeedback.reset();
     this.stats = {spawned: 0, peak: 0, active: 0, firesByType: {}, byType: {}};
     this.log = [];
   }

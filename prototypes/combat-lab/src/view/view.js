@@ -166,8 +166,12 @@ export class View {
     // Efeitos depois da câmera (o flash de tela projeta o ponto do impacto). Pausado: dt = 0, os efeitos congelam.
     const vfxDt = paused ? 0 : Math.min(dt, 0.05);
     t0 = now();this.vfx.update(fighters, events, vfxDt, {characters: this.characters, camera: this.camera});tm.vfx = now() - t0;
-    // Novo runtime declarativo (atualizado a cada quadro; renderiza apenas quando useNewVfx for true).
-    t0 = now();const rt = this.vfxRuntime.update(fighters, events, vfxDt, {characters: this.characters, camera: this.camera, paused, tick});tm.vfx += now() - t0;
+    // Novo runtime declarativo (só processa/renderiza quando useNewVfx for true;
+    // caso contrário permanece inativo como fallback pronto para ativação).
+    let rt = null;
+    if (this.useNewVfx) {
+      t0 = now();rt = this.vfxRuntime.update(fighters, events, vfxDt, {characters: this.characters, camera: this.camera, paused, tick});tm.vfx += now() - t0;
+    }
     const legacy = this.updateLegacy(fighters, events, paused ? 0 : dt);
     const fxOn = !!X.hud.fxVisible;
     const legacyOn = fxOn && !this.useNewVfx && !!this.vfx.atlas;
