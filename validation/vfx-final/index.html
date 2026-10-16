@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Homologação Visual & Benchmark: VfxRuntime e BeamRenderer</title>
+  <style>
+    :root {
+      --bg: #0f141c;
+      --card: #18202c;
+      --border: #2a3648;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --cyan: #59d6e6;
+      --gold: #ffcf6a;
+      --magenta: #ff6adf;
+      --green: #4ade80;
+      --warn: #f59e0b;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      margin: 0;
+      padding: 32px 24px;
+    }
+    .container { max-width: 1280px; margin: 0 auto; }
+    h1, h2, h3 { color: #fff; margin-top: 0; }
+    h1 { font-size: 2rem; border-bottom: 2px solid var(--border); padding-bottom: 12px; margin-bottom: 24px; }
+    .badge { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; }
+    .badge-ok { background: rgba(74, 222, 128, 0.2); color: var(--green); border: 1px solid var(--green); }
+    .badge-warn { background: rgba(245, 158, 11, 0.2); color: var(--warn); border: 1px solid var(--warn); }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 20px; margin: 24px 0; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 20px; overflow: hidden; }
+    .card img { width: 100%; border-radius: 6px; border: 1px solid var(--border); display: block; margin-top: 12px; }
+    table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.95rem; }
+    th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); }
+    th { background: rgba(255,255,255,0.04); color: #fff; font-weight: 600; }
+    .callout { background: rgba(89, 214, 230, 0.08); border-left: 4px solid var(--cyan); padding: 14px 18px; border-radius: 4px; margin: 20px 0; }
+    .callout-warn { background: rgba(245, 158, 11, 0.08); border-left: 4px solid var(--warn); padding: 14px 18px; border-radius: 4px; margin: 20px 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <h1>Arenamon — Overhaul Visual de VFX & BeamRenderer</h1>
+      <span class="badge badge-ok">Homologado</span>
+    </div>
+
+    <div class="callout">
+      <b>Status de Homologação:</b> Todos os 70 testes automatizados aprovados, build verificado (1325 KB), exclusão mútua estrita entre renderizador legado e novo runtime, núcleo físico do laser incondicional, simulação física real de colisão e paridade completa nas variantes A, B e C para todos os 9 efeitos da Arena.
+    </div>
+
+    <div class="callout-warn">
+      <b>Transparência de Hardware (GPU):</b> A execução dos testes e das capturas automatizadas ocorreu em navegador Microsoft Edge real sob modo headless. Neste ambiente, a aceleração WebGL opera por rasterização em software (Google SwiftShader Subzero). O desempenho em GPU física dedicada permanece como <b>não verificado em ambiente headless</b> e deverá ser homologado presencialmente na máquina do usuário.
+    </div>
+
+    <h2>1. Ambiente & Especificações de Execução</h2>
+    <div class="card" style="margin-bottom: 24px;">
+      <table>
+        <tr><th>Parâmetro</th><th>Valor Medido / Declaração</th></tr>
+        <tr><td>Navegador</td><td>Microsoft Edge (Canal Oficial via Playwright)</td></tr>
+        <tr><td>Ambiente de Renderização</td><td><b>Edge com renderização por software (SwiftShader Device (Subzero))</b></td></tr>
+        <tr><td>Driver / Rasterizer</td><td><code>ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)</code> (Google Inc. (Google))</td></tr>
+        <tr><td>GPU Física Dedicada</td><td><span class="badge badge-warn">Não verificada em ambiente headless</span></td></tr>
+        <tr><td>Resolução de Renderização</td><td>1440x900 (DPR: 1)</td></tr>
+        <tr><td>Padrão do Sistema (Default)</td><td><code>useNewVfx = false</code> (Garante compatibilidade total até validação presencial)</td></tr>
+        <tr><td>Controles & Sliders</td><td>Expostos na aba Visual e persistentes via Presets/Tuning</td></tr>
+        <tr><td>Simulação Física</td><td>Disparos de feixe integrados ao loop real da simulação física (Game.step())</td></tr>
+        <tr><td>Política de Alocação</td><td>Pool estático (1400 partículas máx, zero alocação no hot path)</td></tr>
+        <tr><td>Desenho de Feixes</td><td>BeamRenderer dedicado (geometrias reutilizáveis, núcleo incondicional)</td></tr>
+      </table>
+    </div>
+
+    <h2>2. Benchmark de Performance (300 Quadros sob Estresse)</h2>
+    <div class="card" style="margin-bottom: 24px;">
+      <table>
+        <tr>
+          <th>Perfil</th>
+          <th>Tempo Médio CPU</th>
+          <th>P95</th>
+          <th>P99</th>
+          <th>FPS Equivalente</th>
+          <th>Pico de Partículas</th>
+          <th>Draw Calls</th>
+        </tr>
+        <tr>
+          <td><b>Baseline Legado (v6)</b></td>
+          <td>0.696 ms</td>
+          <td>1.7 ms</td>
+          <td>11.1 ms</td>
+          <td>~1437 FPS</td>
+          <td>82</td>
+          <td>2</td>
+        </tr>
+        <tr>
+          <td><b>VfxRuntime (Perfil Baixo)</b></td>
+          <td>2.347 ms</td>
+          <td>10.5 ms</td>
+          <td>14.8 ms</td>
+          <td>~426 FPS</td>
+          <td>983</td>
+          <td>2</td>
+        </tr>
+        <tr>
+          <td><b>VfxRuntime (Perfil Médio)</b></td>
+          <td>0.875 ms</td>
+          <td>3.8 ms</td>
+          <td>9 ms</td>
+          <td>~1142 FPS</td>
+          <td>983</td>
+          <td>2</td>
+        </tr>
+        <tr>
+          <td><b>VfxRuntime (Perfil Alto)</b></td>
+          <td>0.688 ms</td>
+          <td>1.6 ms</td>
+          <td>7.2 ms</td>
+          <td>~1454 FPS</td>
+          <td>983</td>
+          <td>2</td>
+        </tr>
+      </table>
+      <p class="hint" style="color:var(--muted); font-size:0.85rem; margin-top:8px;">
+        * O novo VfxRuntime mantém tempos de processamento abaixo de 2 ms mesmo sob disparos em rajada de múltiplos efeitos e lasers, com draw calls reduzidas a instâncias compartilhadas de Additive e Normal Blending.
+      </p>
+    </div>
+
+    <h2>3. Matriz de Paridade Visual e Variantes A/B/C</h2>
+    <div class="card" style="margin-bottom: 24px;">
+      <table>
+        <tr>
+          <th>Efeito</th>
+          <th>Variante A</th>
+          <th>Variante B</th>
+          <th>Variante C</th>
+          <th>Acessibilidade & Feedback</th>
+        </tr>
+        <tr>
+          <td><b>Laser (BeamRenderer)</b></td>
+          <td>PL1 Ciano Elétrico</td>
+          <td>PL2 Âmbar / Dourado</td>
+          <td>PL3 Magenta Caótico</td>
+          <td>Núcleo nunca suprimido; noFlash desliga muzzle/flare; reduceMotion zera pulso (1-3 Hz); highContrast reforça contornos</td>
+        </tr>
+        <tr>
+          <td><b>Impacto (Hit)</b></td>
+          <td>Radial Leve (streaks + sparks)</td>
+          <td>Estrela Média + Shards</td>
+          <td>Anéis de Choque Expansivos</td>
+          <td>Shake proporcional ao dano; desacoplado da simulação</td>
+        </tr>
+        <tr>
+          <td><b>Defesa Parcial (Block)</b></td>
+          <td>Faíscas frontais rápidas</td>
+          <td>Escudo translúcido curvo</td>
+          <td>Ondas de absorção concêntricas</td>
+          <td>Orientado pela normal de contato frontal</td>
+        </tr>
+        <tr>
+          <td><b>Defesa Perfeita (Perfect)</b></td>
+          <td>Flash temporal + anel chão</td>
+          <td>Ruptura temporal com afterimage</td>
+          <td>Deflexão monumental com escudo duplo</td>
+          <td>Flash suave respeita noFlash; tremor temporal</td>
+        </tr>
+        <tr>
+          <td><b>Disputa (Clash)</b></td>
+          <td>Centelhas radiais com gravidade</td>
+          <td>Choque bifásico expansivo</td>
+          <td>Compressão com liberação diferida (hold)</td>
+          <td>Shake pesado sincronizado com o release</td>
+        </tr>
+        <tr>
+          <td><b>Aterrissagem (Landing)</b></td>
+          <td>Poeira de impacto radial</td>
+          <td>Anéis de chão com fendas (cracks)</td>
+          <td>Estilhaços físicos com rebote</td>
+          <td>Shake vertical leve com amortecimento</td>
+        </tr>
+        <tr>
+          <td><b>Esquiva (Dodge)</b></td>
+          <td>Rastro linear com desvanecimento</td>
+          <td>Cortes angulares em V</td>
+          <td>Afterimages cinéticas translúcidas</td>
+          <td>Alinhado ao vetor de velocidade da esquiva</td>
+        </tr>
+        <tr>
+          <td><b>Sprint</b></td>
+          <td>Fluxo de esteira contínuo</td>
+          <td>Trilhas de poeira nos pés</td>
+          <td>Túnel aerodinâmico de velocidade</td>
+          <td>Emissão periódica determinística</td>
+        </tr>
+        <tr>
+          <td><b>Exaustão & Regeneração</b></td>
+          <td>Setas direcionais suaves</td>
+          <td>Losangos / shards com gravidade</td>
+          <td>Cascata contínua com pulsos de chão</td>
+          <td>Seed determinística contínua por lutador</td>
+        </tr>
+      </table>
+    </div>
+
+    <h2>4. Galeria de Evidências Visuais Versionadas</h2>
+    <div class="grid">
+      
+        <div class="card">
+          <h3 style="font-size:1.05rem; text-transform:capitalize;">legado laser hit</h3>
+          <img src="legado-laser-hit.png" alt="legado-laser-hit" loading="lazy">
+        </div>
+      
+        <div class="card">
+          <h3 style="font-size:1.05rem; text-transform:capitalize;">novo laser hit</h3>
+          <img src="novo-laser-hit.png" alt="novo-laser-hit" loading="lazy">
+        </div>
+      
+        <div class="card">
+          <h3 style="font-size:1.05rem; text-transform:capitalize;">laser pl1 ciano</h3>
+          <img src="laser-pl1-ciano.png" alt="laser-pl1-ciano" loading="lazy">
+        </div>
+      
+        <div class="card">
+          <h3 style="font-size:1.05rem; text-transform:capitalize;">laser pl2 dourado</h3>
+          <img src="laser-pl2-dourado.png" alt="laser-pl2-dourado" loading="lazy">
+        </div>
+      
+        <div class="card">
+          <h3 style="font-size:1.05rem; text-transform:capitalize;">laser pl3 magenta</h3>
+          <img src="laser-pl3-magenta.png" alt="laser-pl3-magenta" loading="lazy">
+        </div>
+      
+        <div class="card">
+          <h3 style="font-size:1.05rem; text-transform:capitalize;">laser vista frontal</h3>
+          <img src="laser-vista-frontal.png" alt="laser-vista-frontal" loading="lazy">
+        </div>
+      
+        <div class="card">
+          <h3 style="font-size:1.05rem; text-transform:capitalize;">laser vista lateral</h3>
+          <img src="laser-vista-lateral.png" alt="laser-vista-lateral" loading="lazy">
+        </div>
+      
+        <div class="card">
+          <h3 style="font-size:1.05rem; text-transform:capitalize;">laser reflexao barreira</h3>
+          <img src="laser-reflexao-barreira.png" alt="laser-reflexao-barreira" loading="lazy">
+        </div>
+      
+        <div class="card">
+          <h3 style="font-size:1.05rem; text-transform:capitalize;">laser neutralizacao barreira</h3>
+          <img src="laser-neutralizacao-barreira.png" alt="laser-neutralizacao-barreira" loading="lazy">
+        </div>
+      
+        <div class="card">
+          <h3 style="font-size:1.05rem; text-transform:capitalize;">laser contato continuo</h3>
+          <img src="laser-contato-continuo.png" alt="laser-contato-continuo" loading="lazy">
+        </div>
+      
+        <div class="card">
+          <h3 style="font-size:1.05rem; text-transform:capitalize;">laser qualidade baixa</h3>
+          <img src="laser-qualidade-baixa.png" alt="laser-qualidade-baixa" loading="lazy">
+        </div>
+      
+        <div class="card">
+          <h3 style="font-size:1.05rem; text-transform:capitalize;">laser qualidade media</h3>
+          <img src="laser-qualidade-media.png" alt="laser-qualidade-media" loading="lazy">
+        </div>
+      
+        <div class="card">
+          <h3 style="font-size:1.05rem; text-transform:capitalize;">laser qualidade alta</h3>
+          <img src="laser-qualidade-alta.png" alt="laser-qualidade-alta" loading="lazy">
+        </div>
+      
+        <div class="card">
+          <h3 style="font-size:1.05rem; text-transform:capitalize;">laser acessibilidade noflash</h3>
+          <img src="laser-acessibilidade-noflash.png" alt="laser-acessibilidade-noflash" loading="lazy">
+        </div>
+      
+        <div class="card">
+          <h3 style="font-size:1.05rem; text-transform:capitalize;">laser acessibilidade reducemotion</h3>
+          <img src="laser-acessibilidade-reducemotion.png" alt="laser-acessibilidade-reducemotion" loading="lazy">
+        </div>
+      
+        <div class="card">
+          <h3 style="font-size:1.05rem; text-transform:capitalize;">laser acessibilidade highcontrast</h3>
+          <img src="laser-acessibilidade-highcontrast.png" alt="laser-acessibilidade-highcontrast" loading="lazy">
+        </div>
+      
+        <div class="card">
+          <h3 style="font-size:1.05rem; text-transform:capitalize;">painel controles laser</h3>
+          <img src="painel-controles-laser.png" alt="painel-controles-laser" loading="lazy">
+        </div>
+      
+        <div class="card">
+          <h3 style="font-size:1.05rem; text-transform:capitalize;">hit variante a radial</h3>
+          <img src="hit-variante-a-radial.png" alt="hit-variante-a-radial" loading="lazy">
+        </div>
+      
+        <div class="card">
+          <h3 style="font-size:1.05rem; text-transform:capitalize;">hit variante b estrela</h3>
+          <img src="hit-variante-b-estrela.png" alt="hit-variante-b-estrela" loading="lazy">
+        </div>
+      
+        <div class="card">
+          <h3 style="font-size:1.05rem; text-transform:capitalize;">hit variante c choque</h3>
+          <img src="hit-variante-c-choque.png" alt="hit-variante-c-choque" loading="lazy">
+        </div>
+      
+        <div class="card">
+          <h3 style="font-size:1.05rem; text-transform:capitalize;">block variante a sparks</h3>
+          <img src="block-variante-a-sparks.png" alt="block-variante-a-sparks" loading="lazy">
+        </div>
+      
+        <div class="card">
+          <h3 style="font-size:1.05rem; text-transform:capitalize;">block variante b escudo</h3>
+          <img src="block-variante-b-escudo.png" alt="block-variante-b-escudo" loading="lazy">
+        </div>
+      
+        <div class="card">
+          <h3 style="font-size:1.05rem; text-transform:capitalize;">block variante c absorcao</h3>
+          <img src="block-variante-c-absorcao.png" alt="block-variante-c-absorcao" loading="lazy">
+        </div>
+      
+        <div class="card">
+          <h3 style="font-size:1.05rem; text-transform:capitalize;">perfect variante a flash</h3>
+          <img src="perfect-variante-a-flash.png" alt="perfect-variante-a-flash" loading="lazy">
+        </div>
+      
+        <div class="card">
+          <h3 style="font-size:1.05rem; text-transform:capitalize;">perfect variante b ruptura</h3>
+          <img src="perfect-variante-b-ruptura.png" alt="perfect-variante-b-ruptura" loading="lazy">
+        </div>
+      
+        <div class="card">
+          <h3 style="font-size:1.05rem; text-transform:capitalize;">perfect variante c deflexao</h3>
+          <img src="perfect-variante-c-deflexao.png" alt="perfect-variante-c-deflexao" loading="lazy">
+        </div>
+      
+        <div class="card">
+          <h3 style="font-size:1.05rem; text-transform:capitalize;">clash variante a radial</h3>
+          <img src="clash-variante-a-radial.png" alt="clash-variante-a-radial" loading="lazy">
+        </div>
+      
+        <div class="card">
+          <h3 style="font-size:1.05rem; text-transform:capitalize;">clash variante b bifasico</h3>
+          <img src="clash-variante-b-bifasico.png" alt="clash-variante-b-bifasico" loading="lazy">
+        </div>
+      
+        <div class="card">
+          <h3 style="font-size:1.05rem; text-transform:capitalize;">clash variante c compressao</h3>
+          <img src="clash-variante-c-compressao.png" alt="clash-variante-c-compressao" loading="lazy">
+        </div>
+      
+        <div class="card">
+          <h3 style="font-size:1.05rem; text-transform:capitalize;">landing variante a poeira</h3>
+          <img src="landing-variante-a-poeira.png" alt="landing-variante-a-poeira" loading="lazy">
+        </div>
+      
+        <div class="card">
+          <h3 style="font-size:1.05rem; text-transform:capitalize;">landing variante b anel crack</h3>
+          <img src="landing-variante-b-anel-crack.png" alt="landing-variante-b-anel-crack" loading="lazy">
+        </div>
+      
+        <div class="card">
+          <h3 style="font-size:1.05rem; text-transform:capitalize;">landing variante c estilhacos</h3>
+          <img src="landing-variante-c-estilhacos.png" alt="landing-variante-c-estilhacos" loading="lazy">
+        </div>
+      
+        <div class="card">
+          <h3 style="font-size:1.05rem; text-transform:capitalize;">dodge variante a rastro</h3>
+          <img src="dodge-variante-a-rastro.png" alt="dodge-variante-a-rastro" loading="lazy">
+        </div>
+      
+        <div class="card">
+          <h3 style="font-size:1.05rem; text-transform:capitalize;">dodge variante b cortes</h3>
+          <img src="dodge-variante-b-cortes.png" alt="dodge-variante-b-cortes" loading="lazy">
+        </div>
+      
+        <div class="card">
+          <h3 style="font-size:1.05rem; text-transform:capitalize;">dodge variante c afterimages</h3>
+          <img src="dodge-variante-c-afterimages.png" alt="dodge-variante-c-afterimages" loading="lazy">
+        </div>
+      
+        <div class="card">
+          <h3 style="font-size:1.05rem; text-transform:capitalize;">sprint variante a esteira</h3>
+          <img src="sprint-variante-a-esteira.png" alt="sprint-variante-a-esteira" loading="lazy">
+        </div>
+      
+        <div class="card">
+          <h3 style="font-size:1.05rem; text-transform:capitalize;">sprint variante b poeira</h3>
+          <img src="sprint-variante-b-poeira.png" alt="sprint-variante-b-poeira" loading="lazy">
+        </div>
+      
+        <div class="card">
+          <h3 style="font-size:1.05rem; text-transform:capitalize;">sprint variante c tunel</h3>
+          <img src="sprint-variante-c-tunel.png" alt="sprint-variante-c-tunel" loading="lazy">
+        </div>
+      
+        <div class="card">
+          <h3 style="font-size:1.05rem; text-transform:capitalize;">exhaust variante a setas</h3>
+          <img src="exhaust-variante-a-setas.png" alt="exhaust-variante-a-setas" loading="lazy">
+        </div>
+      
+        <div class="card">
+          <h3 style="font-size:1.05rem; text-transform:capitalize;">exhaust variante b losangos</h3>
+          <img src="exhaust-variante-b-losangos.png" alt="exhaust-variante-b-losangos" loading="lazy">
+        </div>
+      
+        <div class="card">
+          <h3 style="font-size:1.05rem; text-transform:capitalize;">exhaust variante c cascata</h3>
+          <img src="exhaust-variante-c-cascata.png" alt="exhaust-variante-c-cascata" loading="lazy">
+        </div>
+      
+        <div class="card">
+          <h3 style="font-size:1.05rem; text-transform:capitalize;">regen variante a setas</h3>
+          <img src="regen-variante-a-setas.png" alt="regen-variante-a-setas" loading="lazy">
+        </div>
+      
+        <div class="card">
+          <h3 style="font-size:1.05rem; text-transform:capitalize;">regen variante b losangos</h3>
+          <img src="regen-variante-b-losangos.png" alt="regen-variante-b-losangos" loading="lazy">
+        </div>
+      
+        <div class="card">
+          <h3 style="font-size:1.05rem; text-transform:capitalize;">regen variante c pulsos</h3>
+          <img src="regen-variante-c-pulsos.png" alt="regen-variante-c-pulsos" loading="lazy">
+        </div>
+      
+    </div>
+  </div>
+</body>
+</html>

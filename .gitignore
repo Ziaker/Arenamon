@@ -41,7 +41,11 @@ temp/
 *.obj
 chars/
 prototypes/croagunk/
-validation/
+**/validation/
+!/validation/
+/validation/*
+!/validation/vfx-final/
+!/validation/vfx-final/**
 *.webm
 *.mp4
 

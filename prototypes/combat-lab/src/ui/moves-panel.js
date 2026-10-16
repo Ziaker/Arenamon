@@ -97,6 +97,18 @@ export function createMovesPanel({$, game, download}) {
     spawn(game.world, {kind: 'beam', owner: 1, pos: {x: r.position.x + dx / d * .7, z: r.position.z + dz / d * .7}, dir: {x: dx / d, z: dz / d}, life: 4, pl, turn, length: C.world.beam.length, maxSegments: C.world.beam.maxSegments, interval: C.world.beam.interval, hit: {damage: C.world.beam.damage}}, game.lastStepEvents);
     return true;
   }
+  /** Cenários de reflexão e neutralização em tempo real na simulação ativa */
+  function testLaserScene(kind) {
+    if (game.phase !== 'playing') game.startMatch?.('center');
+    if (kind === 'reflect') {
+      spawn(game.world, {kind: 'wall', reflect: true, owner: 0, pos: {x: 0, z: 0}, height: 2.2, hx: 2.5, hz: 0.1, angle: 0, life: 8, age: 0, pl: 1}, game.lastStepEvents);
+      spawn(game.world, {kind: 'beam', owner: 1, pos: {x: 0, z: 5}, dir: {x: 0, z: -1}, life: 4, pl: 1, length: 24, maxSegments: 8, interval: 0.25, hit: {damage: 2}}, game.lastStepEvents);
+    } else if (kind === 'neutralize') {
+      spawn(game.world, {kind: 'wall', reflect: true, owner: 0, pos: {x: 0, z: 0}, height: 2.2, hx: 2.5, hz: 0.1, angle: 0, life: 8, age: 0, pl: 1}, game.lastStepEvents);
+      spawn(game.world, {kind: 'beam', owner: 1, pos: {x: 0, z: 5}, dir: {x: 0, z: -1}, life: 4, pl: 3, length: 24, maxSegments: 8, interval: 0.25, hit: {damage: 2}}, game.lastStepEvents);
+    }
+    return true;
+  }
   function emitExplosion() {
     if (game.phase !== 'playing') return false;
     spawn(game.world, {kind: 'area', explosion: true, owner: 1, affectsOwner: true, pos: {x: 0, z: 0}, radius: 4, y: 0, height: 3, life: .25, pulses: 1, falloff: 'linear', pl: 2, hit: {damage: 10, knockback: {horizontal: 5, vertical: 4}}}, game.lastStepEvents);
@@ -116,10 +128,21 @@ export function createMovesPanel({$, game, download}) {
       <h3>Equipar</h3>
       <div class="row"><b>Jogador (azul)</b><label><input type="checkbox" data-equip="0.reflect" ${eq0.reflect ? 'checked' : ''}> Reflect</label><label><input type="checkbox" data-equip="0.psyshock" ${eq0.psyshock ? 'checked' : ''}> Psyshock</label></div>
       <div class="row"><b>Adversário (vermelho)</b><label><input type="checkbox" data-equip="1.reflect" ${eq1.reflect ? 'checked' : ''}> Reflect</label><label><input type="checkbox" data-equip="1.psyshock" ${eq1.psyshock ? 'checked' : ''}> Psyshock</label><span class="muted">usa a IA tática</span></div>
-      <h3>Emissores técnicos (na partida)</h3>
+      <h3>Emissores técnicos & Laser (Simulação Física Real)</h3>
       <div class="row"><button type="button" data-emit="1">Projétil hostil PL1</button><button type="button" data-emit="2">PL2</button><button type="button" data-emit="3">PL3</button><button type="button" data-emit="boom">Explosão no centro (PL2)</button></div>
-      <div class="row"><button type="button" data-laser="1">Laser PL1</button><button type="button" data-laser="2">PL2</button><button type="button" data-laser="3">PL3</button><button type="button" data-laser="sweep">Laser giratório (PL1)</button></div>
-      <p class="hint">O projétil e o laser (4 s, contínuo, dano a cada 0,25 s) saem do vermelho rumo ao azul: use para testar o Reflect, a reflexão em cadeia e o Counter. A explosão destrói barreiras alcançadas; quem está atrás de uma barreira fica protegido.</p>
+      <div class="row">
+        <b>Laser real:</b>
+        <button type="button" data-laser="1">Laser Real PL1 (Ciano)</button>
+        <button type="button" data-laser="2">Laser Real PL2 (Dourado)</button>
+        <button type="button" data-laser="3">Laser Real PL3 (Magenta)</button>
+        <button type="button" data-laser="sweep">Laser Giratório (Sweep)</button>
+      </div>
+      <div class="row" style="margin-top:6px;">
+        <b>Cenários de Laser Real:</b>
+        <button type="button" data-laser-scene="reflect">▶ Testar Reflexão: Laser PL1 × Reflect</button>
+        <button type="button" data-laser-scene="neutralize">▶ Testar Neutralização: Laser PL3 × Reflect PL1</button>
+      </div>
+      <p class="hint">Os feixes acima são gerados na simulação ativa (física real, dano, colisões, reflexão em barreiras e neutralização), consumidos em tempo real pelo novo BeamRenderer com exclusão mútua do renderizador legado.</p>
       <h3>Cenários técnicos</h3>
       <div class="row"><button type="button" id="mvp-run">▶ Executar todos</button><button type="button" id="mvp-export" ${results ? '' : 'disabled'}>↓ JSON</button></div>
       <div id="mvp-results">${scen}</div>
@@ -134,6 +157,7 @@ export function createMovesPanel({$, game, download}) {
     for (const s of root.querySelectorAll('[data-hom-note]')) s.onchange = () => {homolog[s.dataset.homNote] = {...homolog[s.dataset.homNote], n: s.value};saveHomolog(homolog);};
     for (const c of root.querySelectorAll('[data-equip]')) c.onchange = () => {const [id, kind] = c.dataset.equip.split('.');setEquip(Number(id), kind, c.checked);};
     for (const b of root.querySelectorAll('[data-laser]')) b.onclick = () => {const k = b.dataset.laser;(k === 'sweep' ? emitLaser(1, .8) : emitLaser(Number(k)));};
+    for (const b of root.querySelectorAll('[data-laser-scene]')) b.onclick = () => testLaserScene(b.dataset.laserScene);
     for (const b of root.querySelectorAll('[data-emit]')) b.onclick = () => {const k = b.dataset.emit;(k === 'boom' ? emitExplosion() : emitProjectile(Number(k)));};
     $('mvp-run').onclick = () => {results = runMoveScenarios();render();};
     $('mvp-export').onclick = () => results && download(JSON.stringify({schema: 'arenamon-lab-report', version: 1, kind: 'moves-scenarios', createdAt: new Date().toISOString(), step: C.test.step, scenarios: results, homologation: MOVES_HOMOLOG.map((t, i) => ({item: t, verdict: homolog[i]?.v || 'pendente', note: homolog[i]?.n || ''}))}, null, 1), 'arenamon-cenarios-moves.json');

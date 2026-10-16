@@ -2,6 +2,7 @@
 // indicador da janela C → X e depuração dos disparos de VFX. Todos os controles são do ajustador (desfazer,
 // presets e exportação); nenhum altera regras de combate.
 import {C, vfxDefaults, displayDefaults} from '../sim/config.js';
+import {spawn} from '../sim/world.js';
 import {VFX_TYPES, SHAKE_EVENTS} from '../view/vfx.js';
 import {fold} from './characters-panel.js';
 import {escape} from './tuning.js';
@@ -74,10 +75,18 @@ export function createVisualPanel({tuning, view, game, $, hud, download}) {
         ${view.useNewVfx ? 'Ativo: VfxRuntime com instanciamento único, BeamRenderer dedicado (núcleo incondicional, halo aditivo) e variantes A/B/C.' : 'Ativo: renderizador legado. O novo sistema está em repouso como fallback seguro.'}
       </p>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-        <span class="muted" style="font-size:0.85rem;">Prévia do Laser Dedicado:</span>
+        <span class="muted" style="font-size:0.85rem;">Prévia Rápida:</span>
         <button type="button" data-laser-preview="1">▶ Laser PL1 (Ciano)</button>
         <button type="button" data-laser-preview="2">▶ Laser PL2 (Dourado)</button>
         <button type="button" data-laser-preview="3">▶ Laser PL3 (Magenta)</button>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px;">
+        <span class="muted" style="font-size:0.85rem;">Simulação Física Real (Dano e Colisão):</span>
+        <button type="button" data-sim-laser="1">⚡ Laser Real PL1</button>
+        <button type="button" data-sim-laser="2">⚡ Laser Real PL2</button>
+        <button type="button" data-sim-laser="3">⚡ Laser Real PL3</button>
+        <button type="button" data-sim-scene="reflect">⚡ Testar Reflexão Real</button>
+        <button type="button" data-sim-scene="neutralize">⚡ Testar Neutralização Real</button>
       </div>
     `;
     root.append(renderModeBox);
@@ -108,6 +117,32 @@ export function createVisualPanel({tuning, view, game, $, hud, download}) {
         view.vfxRuntime.preview('laser', game.fighters);
       };
     }
+    for (const b of renderModeBox.querySelectorAll('[data-sim-laser]')) {
+      b.onclick = () => {
+        const pl = Number(b.dataset.simLaser) || 1;
+        if (game.phase !== 'playing') game.startMatch?.('center');
+        const [blue, red] = game.fighters;
+        const dx = blue.position.x - red.position.x, dz = blue.position.z - red.position.z, d = Math.hypot(dx, dz) || 1;
+        spawn(game.world, {
+          kind: 'beam', owner: 1, pos: {x: red.position.x + dx / d * .7, z: red.position.z + dz / d * .7},
+          dir: {x: dx / d, z: dz / d}, life: 4, pl, length: 24, maxSegments: 8, interval: 0.25,
+          hit: {damage: 2}
+        }, game.lastStepEvents);
+      };
+    }
+    for (const b of renderModeBox.querySelectorAll('[data-sim-scene]')) {
+      b.onclick = () => {
+        const sc = b.dataset.simScene;
+        if (game.phase !== 'playing') game.startMatch?.('center');
+        if (sc === 'reflect') {
+          spawn(game.world, {kind: 'wall', reflect: true, owner: 0, pos: {x: 0, z: 0}, height: 2.2, hx: 2.5, hz: 0.1, angle: 0, life: 8, age: 0, pl: 1}, game.lastStepEvents);
+          spawn(game.world, {kind: 'beam', owner: 1, pos: {x: 0, z: 5}, dir: {x: 0, z: -1}, life: 4, pl: 1, length: 24, maxSegments: 8, interval: 0.25, hit: {damage: 2}}, game.lastStepEvents);
+        } else if (sc === 'neutralize') {
+          spawn(game.world, {kind: 'wall', reflect: true, owner: 0, pos: {x: 0, z: 0}, height: 2.2, hx: 2.5, hz: 0.1, angle: 0, life: 8, age: 0, pl: 1}, game.lastStepEvents);
+          spawn(game.world, {kind: 'beam', owner: 1, pos: {x: 0, z: 5}, dir: {x: 0, z: -1}, life: 4, pl: 3, length: 24, maxSegments: 8, interval: 0.25, hit: {damage: 2}}, game.lastStepEvents);
+        }
+      };
+    }
     // Modo simples (toggle, variante, intensidade principal, prévia) e avançado (todos os parâmetros). Mesmos parâmetros.
     const bar = document.createElement('div');bar.className = 'vfx-bar';
     bar.innerHTML = `<div class="seg wide" role="group" aria-label="Modo dos efeitos"><button type="button" data-vfx-mode-btn="simple">Simples</button><button type="button" data-vfx-mode-btn="advanced">Avançado</button></div>
@@ -129,6 +164,8 @@ export function createVisualPanel({tuning, view, game, $, hud, download}) {
     root.append(simple);
     const advanced = document.createElement('div');advanced.dataset.vfxMode = 'advanced';
     advanced.append(group('Geral dos efeitos', 'vfx-master', tuning.sectionControls('VFX · geral')));
+    const laserRows = tuning.sectionControls('VFX · Laser da Arena (BeamRenderer)');
+    advanced.append(group('Laser da Arena (BeamRenderer)', 'vfx-laser', laserRows, [actions('vfx.laser', 'Laser da Arena', () => vfxDefaults().laser, () => view.vfxRuntime.preview('laser', game.fighters))], true));
     for (const [type, label] of VFX_TYPES) {
       const rows = tuning.sectionControls(`VFX · ${label}`), g = group(label, `vfx-${type}`, rows, [actions(`vfx.${type}`, label, () => vfxDefaults()[type], () => {
         view.vfxRuntime.setVariant(type, C.vfx[type]?.variant || 0);
@@ -176,6 +213,10 @@ export function createVisualPanel({tuning, view, game, $, hud, download}) {
       if (C.vfx[t] && C.vfx[t].variant != null) {
         view.vfxRuntime.setVariant(t, C.vfx[t].variant);
       }
+    }
+    if (C.vfx.laser && view.vfxRuntime.beamRenderer) {
+      view.vfxRuntime.beamRenderer.setConfig(C.vfx.laser);
+      view.vfxRuntime.beamRenderer.setQuality(['low', 'medium', 'high'][C.vfx.laser.quality] || 'medium');
     }
   });
   return {render, live, setMode, setFilter, get vfxMode() {return state.mode;}};

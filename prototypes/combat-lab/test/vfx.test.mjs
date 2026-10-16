@@ -19,6 +19,8 @@ import {BeamRenderer, BEAM_PL_COLORS} from '../src/view/vfx/beam-renderer.js';
 import * as T from 'three';
 import {Game} from '../src/sim/game.js';
 import {C, resetConfig} from '../src/sim/config.js';
+import {WorldView} from '../src/view/world-view.js';
+import {spawn} from '../src/sim/world.js';
 
 let passed = 0;
 const test = (name, fn) => {fn(); passed++; console.log('✓', name);};
@@ -877,6 +879,163 @@ test('runtime: update repassa world para o BeamRenderer e contabiliza beamsActiv
   rt.update(fighters, [], 0.016, {tick: 20, world: fakeWorld});
   assert.equal(rt.stats.beamsActive, 1, '1 feixe ativo registrado');
   assert.equal(rt.beamRenderer.beams[0].beamGroup.visible, true);
+});
+
+test('beam: binding de controles C.vfx.laser sincroniza com BeamRenderer.setConfig()', () => {
+  const scene = new T.Scene();
+  const renderer = new BeamRenderer(scene);
+  const cfg = C.vfx.laser;
+  assert.ok(cfg, 'C.vfx.laser deve existir na configuração');
+  assert.equal(typeof cfg.coreWidth1, 'number');
+  assert.equal(typeof cfg.intensity, 'number');
+  assert.equal(typeof cfg.pulseFreq, 'number');
+  renderer.setConfig({
+    coreWidth1: 0.22,
+    intensity: 1.8,
+    pulseFreq: 2.5,
+    noFlash: true,
+    reduceMotion: true,
+    highContrast: true
+  });
+  assert.equal(renderer.config.coreWidth1, 0.22);
+  assert.equal(renderer.config.intensity, 1.8);
+  assert.equal(renderer.config.pulseFreq, 2.5);
+  assert.equal(renderer.config.noFlash, true);
+  assert.equal(renderer.config.reduceMotion, true);
+  assert.equal(renderer.config.highContrast, true);
+  renderer.dispose();
+});
+
+test('beam: serialização e restauração de parâmetros via snapshot JSON', () => {
+  const scene = new T.Scene();
+  const renderer = new BeamRenderer(scene);
+  const original = JSON.parse(JSON.stringify(C.vfx.laser));
+  const modified = {...original, coreWidth1: 0.25, haloWidth3: 1.1, pulseFreq: 2.8};
+  const serialized = JSON.stringify(modified);
+  const restored = JSON.parse(serialized);
+  renderer.setConfig(restored);
+  assert.equal(renderer.config.coreWidth1, 0.25);
+  assert.equal(renderer.config.haloWidth3, 1.1);
+  assert.equal(renderer.config.pulseFreq, 2.8);
+  renderer.dispose();
+});
+
+test('beam: acessibilidade reduceMotion e highContrast ajustam animação e opacidades', () => {
+  const scene = new T.Scene();
+  const renderer = new BeamRenderer(scene);
+  renderer.setConfig({reduceMotion: true, highContrast: true});
+  const fakeWorld = {
+    entities: [{
+      id: 1, kind: 'beam', y: 0.8, pl: 1, dead: false,
+      segments: [{a: {x: 0, z: 0}, b: {x: 5, z: 0}, pl: 1}]
+    }]
+  };
+  renderer.update(fakeWorld, 0.016);
+  const seg0 = renderer.beams[0].segments[0];
+  assert.equal(seg0.coreMat.opacity, 0.95);
+  assert.ok(seg0.coreMesh.scale.x > renderer.config.coreWidth1, 'highContrast amplia largura do núcleo');
+  renderer.dispose();
+});
+
+test('beam: troca de qualidade (low, medium, high) ajusta visibilidade de halos', () => {
+  const scene = new T.Scene();
+  const renderer = new BeamRenderer(scene, {quality: 'medium'});
+  const fakeWorld = {
+    entities: [{
+      id: 1, kind: 'beam', y: 0.8, pl: 1, dead: false,
+      segments: [
+        {a: {x: 0, z: 0}, b: {x: 5, z: 0}, pl: 1},
+        {a: {x: 5, z: 0}, b: {x: 10, z: 0}, pl: 1}
+      ]
+    }]
+  };
+  renderer.setQuality('medium');
+  renderer.update(fakeWorld, 0.016);
+  assert.equal(renderer.beams[0].segments[0].haloMesh.visible, true);
+  assert.equal(renderer.beams[0].segments[1].haloMesh.visible, true);
+  renderer.setQuality('low');
+  renderer.update(fakeWorld, 0.016);
+  assert.equal(renderer.beams[0].segments[0].haloMesh.visible, true, 'halo do primeiro segmento mantido');
+  assert.equal(renderer.beams[0].segments[1].haloMesh.visible, false, 'halo do segundo segmento ocultado em Low');
+  renderer.dispose();
+});
+
+test('beam: reset durante feixe ativo oculta e limpa grupos sem referências órfãs', () => {
+  const scene = new T.Scene();
+  const renderer = new BeamRenderer(scene);
+  const fakeWorld = {
+    entities: [{
+      id: 1, kind: 'beam', y: 0.8, pl: 2, dead: false,
+      segments: [{a: {x: 0, z: 0}, b: {x: 8, z: 0}, pl: 2}]
+    }]
+  };
+  renderer.update(fakeWorld, 0.016);
+  assert.equal(renderer.beams[0].beamGroup.visible, true);
+  assert.equal(renderer.beams[0].segments[0].coreMesh.visible, true);
+  renderer.reset();
+  assert.equal(renderer.beams[0].beamGroup.visible, false);
+  renderer.update(fakeWorld, 0.016);
+  assert.equal(renderer.beams[0].beamGroup.visible, true);
+  renderer.dispose();
+});
+
+test('beam: reflexão e neutralização ativam sinalizadores visuais e flare', () => {
+  const scene = new T.Scene();
+  const renderer = new BeamRenderer(scene);
+  renderer.setConfig({reflectionActive: 1, neutralizeActive: 1});
+  const fakeWorld = {
+    entities: [{
+      id: 1, kind: 'beam', y: 0.8, pl: 2, dead: false,
+      segments: [
+        {a: {x: 0, z: 0}, b: {x: 3, z: 0}, pl: 2, by: 10},
+        {a: {x: 3, z: 0}, b: {x: 6, z: 0}, pl: 2, neutralized: true}
+      ]
+    }]
+  };
+  renderer.update(fakeWorld, 0.016);
+  const seg0 = renderer.beams[0].segments[0];
+  const seg1 = renderer.beams[0].segments[1];
+  assert.equal(seg0.flareMesh.visible, true, 'flare visível na reflexão');
+  assert.equal(seg1.coreMat.color.getHex(), 0xd0d0d0, 'núcleo cinza esbranquiçado quando neutralizado');
+  assert.equal(seg1.coreMat.opacity, 0.35, 'opacidade reduzida quando neutralizado');
+  renderer.dispose();
+});
+
+test('beam: exclusão mútua entre WorldView e BeamRenderer (skipBeams=true)', () => {
+  const scene = new T.Scene();
+  const wv = new WorldView(scene);
+  const fakeWorld = {
+    entities: [{
+      id: 10, kind: 'beam', y: 0.8, pl: 1, dead: false,
+      segments: [{a: {x: 0, z: 0}, b: {x: 5, z: 0}, pl: 1}]
+    }]
+  };
+  wv.update(fakeWorld, {dt: 0.016, skipBeams: false});
+  const beamMesh = wv.meshes.get(10);
+  assert.ok(beamMesh, 'malha criada no worldView');
+  assert.equal(beamMesh.children[0].visible, true, 'feixe legado visível no worldView');
+  wv.update(fakeWorld, {dt: 0.016, skipBeams: true});
+  assert.equal(beamMesh.children[0].visible, false, 'feixe legado oculto no worldView sob novo VFX');
+});
+
+test('beam: gatilho experimental com simulação física real (Game.step() e Beam entity)', () => {
+  const game = new Game();
+  game.reset();
+  const scene = new T.Scene();
+  const renderer = new BeamRenderer(scene);
+  const b = spawn(game.world, {
+    kind: 'beam', owner: 1, pos: {x: 0, z: 5}, dir: {x: 0, z: -1},
+    life: 4, pl: 2, length: 20, maxSegments: 8, interval: 0.25,
+    hit: {damage: 5}
+  });
+  assert.ok(b, 'entidade beam spawnada');
+  game.step();
+  assert.ok(b.segments.length > 0, 'simulação física gerou segmentos de feixe');
+  renderer.update(game.world, 0.016);
+  assert.equal(renderer.beams[0].entityId, b.id);
+  assert.equal(renderer.beams[0].beamGroup.visible, true);
+  assert.equal(renderer.beams[0].segments[0].coreMesh.visible, true);
+  renderer.dispose();
 });
 
 console.log(`\n${passed} testes de VFX aprovados.`);

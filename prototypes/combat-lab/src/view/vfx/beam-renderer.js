@@ -139,7 +139,7 @@ export class BeamRenderer {
         segments.push({coreMesh, haloMesh, flareMesh, coreMat, haloMat, flareMat});
       }
 
-      this.beams.push({beamGroup, muzzleMesh, muzzleMat, segments});
+      this.beams.push({beamGroup, muzzleMesh, muzzleMat, segments, entityId: null});
     }
 
     this.config = {...BEAM_DEFAULTS};
@@ -155,6 +155,7 @@ export class BeamRenderer {
 
   reset() {
     for (const b of this.beams) {
+      b.entityId = null;
       b.beamGroup.visible = false;
       b.muzzleMesh.visible = false;
       for (const s of b.segments) {
@@ -189,6 +190,7 @@ export class BeamRenderer {
 
     // Ocultar feixes extras
     for (let b = activeCount; b < this.maxBeams; b++) {
+      this.beams[b].entityId = null;
       this.beams[b].beamGroup.visible = false;
     }
 
@@ -202,6 +204,7 @@ export class BeamRenderer {
     for (let bIdx = 0; bIdx < activeCount; bIdx++) {
       const e = beamEntities[bIdx];
       const slot = this.beams[bIdx];
+      slot.entityId = e.id;
       slot.beamGroup.visible = true;
 
       const segments = e.segments || [];
@@ -284,6 +287,12 @@ export class BeamRenderer {
         sSlot.coreMesh.scale.set(curCoreW, curCoreW, len);
 
         if (seg.neutralized) {
+          if (cfg.neutralizeActive === 0) {
+            sSlot.coreMesh.visible = false;
+            sSlot.haloMesh.visible = false;
+            sSlot.flareMesh.visible = false;
+            continue;
+          }
           sSlot.coreMat.color.setHex(0xd0d0d0);
           sSlot.coreMat.opacity = 0.35;
         } else {
@@ -292,17 +301,18 @@ export class BeamRenderer {
         }
 
         // --- Halo (Glow): desativado somente em Low extremo ou suprimido ---
-        const allowHalo = this.quality !== 'low' || sIdx < 3;
+        const isLow = this.quality === 'low' || cfg.quality === 0;
+        const allowHalo = !isLow || sIdx === 0;
         sSlot.haloMesh.visible = allowHalo;
         if (allowHalo) {
           sSlot.haloMesh.position.set(midX, e.y, midZ);
           sSlot.haloMesh.rotation.y = Math.atan2(dx, dz);
-          const curHaloW = haloW * pulseFactor * cameraComp;
+          const curHaloW = haloW * pulseFactor * cameraComp * (cfg.intensity || 1.0);
           sSlot.haloMesh.scale.set(curHaloW, curHaloW, len);
 
           if (seg.neutralized) {
             sSlot.haloMat.color.setHex(0x888888);
-            sSlot.haloMat.opacity = 0.2;
+            sSlot.haloMat.opacity = 0.15;
           } else {
             // Se o trecho tiver dono próprio (reflexão), usar a cor do dono
             const segOwnerCol = seg.pl ? (BEAM_PL_COLORS[Math.min(3, seg.pl)] || col) : col;
@@ -311,10 +321,16 @@ export class BeamRenderer {
           }
         }
 
-        // --- Ponto de Contato / Flare Final ---
+        // --- Ponto de Contato / Flare Final / Reflexão ---
         const isLastSegment = sIdx === maxSeg - 1;
-        const hasContact = isLastSegment || seg.by != null || seg.neutralized;
-        sSlot.flareMesh.visible = hasContact && !cfg.noFlash;
+        const isReflectionNode = seg.by != null;
+        let showFlare = false;
+        if (isLastSegment || seg.neutralized) {
+          showFlare = true;
+        } else if (isReflectionNode) {
+          showFlare = cfg.reflectionActive !== 0;
+        }
+        sSlot.flareMesh.visible = showFlare && !cfg.noFlash;
 
         if (sSlot.flareMesh.visible) {
           sSlot.flareMesh.position.set(b.x, e.y, b.z);
@@ -325,7 +341,7 @@ export class BeamRenderer {
           sSlot.flareMat.opacity = seg.neutralized ? 0.5 : 0.85;
 
           // Spray contínuo de centelhas no ponto de impacto
-          if (particleBatch && !cfg.reduceMotion && this.quality !== 'low') {
+          if (particleBatch && !cfg.reduceMotion && !isLow && (cfg.sparksPerSecond || 0) > 0) {
             this.sparkAcc += frameDt * cfg.sparksPerSecond;
             while (this.sparkAcc >= 1.0) {
               this.sparkAcc -= 1.0;

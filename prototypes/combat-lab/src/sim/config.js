@@ -132,6 +132,15 @@ export function vfxDefaults() {
     clash: {enabled: 1, variant: 0, scale: 1.2, duration: .6, intensity: 1.3, count: 30, color: 0xffe58d, color2: 0xff7a3c, radius: 1.6, speed: 7, glow: 1.6},
     exhaust: {enabled: 1, variant: 0, target: 0, count: 5, fallSpeed: 1.1, spread: .55, size: .26, opacity: .85, glow: 1, startHeight: 2.1, interval: .14, color: 0x4fa3ff},
     regen: {enabled: 1, variant: 0, count: 3, frequency: 7, speed: 1.2, height: 1.8, intensity: 1, size: .28, opacity: .8, spread: .5, color: 0xffd34d, scaleWithRate: 1},
+    laser: {
+      enabled: 1, pl: 1,
+      coreWidth1: 0.04, coreWidth2: 0.065, coreWidth3: 0.095, coreOpacity: 0.95,
+      haloWidth1: 0.15, haloWidth2: 0.24, haloWidth3: 0.38, haloOpacity: 0.65,
+      intensity: 1.2, pulseFreq: 2.0, flowSpeed: 24,
+      muzzleSize: 0.28, contactSize: 0.35, sparksPerSecond: 20,
+      dynamicLight: 1, reflectionActive: 1, neutralizeActive: 1,
+      quality: 1, noFlash: 0, reduceMotion: 0, highContrast: 0,
+    },
     shakeMaster: {enabled: 1},
     shakeGuard: shake(.05, .16, 0), shakeHit: shake(.12, .28, 0), shakeGround: shake(.09, .3, 1), shakePerfect: shake(.1, .3, 2), shakeClash: shake(.18, .42, 1),
   };
