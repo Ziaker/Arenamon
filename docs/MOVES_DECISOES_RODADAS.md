@@ -679,6 +679,24 @@ Notas do arquivista sobre M30.9 (não são decisões):
 - Auditoria do controlador em 2026-10-16 (`controller.js`, `updateFighter`): estados indisponíveis → defesa (D) cancela a ação atual → pedido de X/C (X tem prioridade sobre C, como no v6; depois buffer e tackle guardado) → movimento especial de slot (só se nenhum X/C foi pedido) → sprint/orientação. M30.9 acrescenta a soltura do Charge **depois** de X/C.
 - Consequência: defesa e soltura no mesmo passo cancelam o Charge com a penalidade de cancelamento (stamina mantida, cooldown de 4 s, M16.1). O Tackle segue indisponível durante o Charge (M15.2).
 - A mensagem do diretor trouxe a regra completa; a observação “X/C” inclui o X apenas no sentido da ordem existente (X antes de C). Detalhes de X durante Charge seguem M15.2.
+
+- **M30.10** — **P8 tratada: valores iniciais PROVISÓRIOS.** O diretor aprovou a tabela abaixo **como ponto de partida, configurável e não definitiva**. **Nenhum destes valores é decisão de design aprovada como final**; todos devem ser parâmetros ajustáveis e identificados como provisórios na interface e no código.
+
+| Item | Valor inicial provisório | Referência |
+|---|---|---|
+| Tolerância de desnível do apoio do Reflect | 0,25 m | M27.2 |
+| Alcance da busca de posições livres para as pedras, à frente | 3,0 m | M27.3 |
+| Leque sem lock-on | 20° no total (±10°), pedras em ângulos iguais | M26s.6 |
+| Inércia telecinética das pedras que seguem o lançador | suavização exponencial, tempo característico ≈ 0,15 s | M11.3 |
+| Recuo curto do Tackle ao destruir o Reflect | reaproveitar o recuo atual do Tackle (`rules.recoil` 0,3 s e `recoilFraction` 15%); stagger de 0,25 s já aprovado | M14.3 |
+| Tolerância de empate geométrico | 1 mm | M30.5 |
+| Salvaguarda contra ciclo degenerado de reflexão | até 16 reflexões do mesmo projétil no mesmo passo; acima disso a reflexão é suspensa naquele passo e o projétil segue (**não limita** reflexões em jogo, M4.10) | M17.2 |
+| Início do VFX de expiração do Reflect | último 1,0 s da duração (só visual) | M10.7 |
+| Marcos de PL | PL2 em 2,0 s e PL3 em 4,0 s, comparados por **contagem de passos** (240 e 480 a 1/120 s), não em segundos de ponto flutuante | M19.1 |
+
+Notas do arquivista sobre M30.10 (não são decisões):
+- A mensagem do diretor que registrou esta aprovação chegou truncada em “Registre como M30”; o registro como **M30.10** segue a sequência.
+- A tolerância de passos para os marcos de PL é regra técnica de implementação, não valor ajustável.
 ---
 
 ## 4. Especificação vigente — Reflect
@@ -793,11 +811,13 @@ Nenhuma delas foi resolvida por quem publicou este arquivo. Valores experimentai
 - **P15 — Detalhes do sorteio dos pontos de mira (Baixa, nova).** Distribuição, repetição de pontos e fluxo de aleatoriedade. Não decididos.
 - **P6 — Reflexão × Power Level (RESOLVIDA em 2026-10-16 por M30.6).** Decisão: ordem física do contato; empate por ordem de criação; barreira destruída não é vista pelos contatos seguintes do passo; quem estava atrás no instante da explosão segue protegido dela.
 - **P7 — Explosões e região protegida (RESOLVIDA em 2026-10-16 por M30.7).** Decisão: protegido se o segmento 3D do centro da explosão ao centro do corpo cruza o volume de alguma barreira Reflect (qualquer personagem, basta uma barreira, vale mesmo se a barreira for destruída pela explosão).
-- **P8 — Parâmetros numéricos de calibração (Baixa).** Sem valores aprovados: tolerância de desnível; alcance da busca de posições das pedras; dispersão do leque; inércia telecinética; magnitude do recuo de Tackle após destruir Reflect; tolerâncias de colisão e de ciclos degenerados; instante de início do VFX de expiração.
+- **P8 — Parâmetros numéricos de calibração (VALORES PROVISÓRIOS aprovados em 2026-10-16, M30.10).** Valores iniciais configuráveis e não definitivos; ver tabela em M30.10.
 - **P9 — Estados de entrada e ordenação de comandos (RESOLVIDA em 2026-10-16 por M30.9).** Decisão: defesa → X/C → soltar o Move no mesmo passo, igual ao controlador atual; C só cancela o Charge após 0,2 s.
-- **P10 — Arquitetura do repositório (Alta antes da implementação).** Auditar o que já existe, quais partes estão em JavaScript, como os Moves são registrados, os estados do controlador, as entidades físicas, a execução de testes e a produção do HTML offline. Não há autorização para reconstruir do zero. *(Auditoria parcial feita em 16/10/2026 pelo Claude Code; resultados em documentação separada, quando publicada.)*
+- **P10 — Arquitetura do repositório (Alta antes da implementação).** Auditar o que já existe, quais partes estão em JavaScript, como os Moves são registrados, os estados do controlador, as entidades físicas, a execução de testes e a produção do HTML offline. Não há autorização para reconstruir do zero. *(Auditoria parcial feita em 16/10/2026 pelo Claude Code; resultados em `docs/INDICE_MODULOS.md` e `docs/PROPOSTA_REFATORACAO_ESTADO_GLOBAL.md`. Permanece como lembrete de revisão antes de implementar.)*
 - **P11 — Integridade documental das Rodadas 1–12 (Alta antes de declarar completude).** Conteúdo recuperado por síntese; requer conferência com a fonte original.
 - **P12 — Aprovações globais da Rodada 29 (Baixa).** Interpretação razoável, mas deve constar como aprovação global, não como respostas individuais.
+
+**Resumo do estado das pendências em 2026-10-16:** resolvidas P1, P2, P3, P4, P5, P6, P7, P9 (M30.1, M30.4, M30.5, M30.3, M30.8, M30.6, M30.7, M30.9); P8 com valores provisórios aprovados (M30.10). **Abertas:** P11 (Alta; exige a transcrição original das Rodadas 1–12) e as subquestões de implementação P13, P14 e P15 (Baixas). P10 e P12 são informativas.
 
 ## 12. Não bloqueiam os dois primeiros Moves
 
@@ -862,3 +882,4 @@ Moves específicos do tipo Status; buffs e debuffs; fórmulas de regeneração a
 - **2026-10-16 — Rodada 30 (cont.):** M30.7 (P7 resolvida: geometria da região protegida contra explosões).
 - **2026-10-16 — Rodada 30 (cont.):** M30.8 (P5 resolvida: pontos de mira sorteados por semente na caixa lógica do alvo); P15 criada como subquestão.
 - **2026-10-16 — Rodada 30 (cont.):** M30.9 (P9 resolvida: ordem das entradas no mesmo passo).
+- **2026-10-16 — Rodada 30 (cont.):** M30.10 (P8: valores iniciais provisórios aprovados como ponto de partida). Resumo das pendências abertas adicionado à seção 11.
