@@ -359,6 +359,7 @@ export function advanceAction(f, dt) {
  * O movimento do slot pode começar agora? Mesmas regras gerais de X e C: lutador livre ou ação em curso já
  * encadeável (ou listada em cancelFrom), defesa e guard stun conforme a definição, recarga, status e stamina.
  */
+/** @param {any} f @param {any} def @param {number | null} [slot] */
 export function movePermission(f, def, slot = null) {
   if (!def) return {ok: false, reason: 'noMove', detail: {slot}};
   if (hasFlag(f, 'stunned')) return {ok: false, reason: 'stunned'};

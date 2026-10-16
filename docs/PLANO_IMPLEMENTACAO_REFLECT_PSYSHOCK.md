@@ -84,7 +84,7 @@ Convenções: **T** = testes; **R** = riscos; **A** = critério de aceite. Toda 
 - **Arquivos:** `sim/tactics.js` (hoje **não** usa movimentos), `sim/ai.js`, `sim/ai-eval.js`, testes `ai.test`/`ai-eval.test` (não podem regredir) + novo `ai-moves.test.mjs`.
 - **R:** **médio** — mudar a IA pode alterar o equilíbrio (a IA revisada já foi calibrada). *Mitigação:* comportamento novo só com Moves equipados; sem Moves, `ai-eval` idêntico.
 
-### Fase 6 — Laboratório: HUD, ajustes, cenários (M)
+### Fase 6 — Laboratório: HUD, ajustes, cenários (M) — **ENTREGUE tecnicamente (PR da Fase 6); a aprovação visual/jogável é do diretor**
 - **O que:** HUD real dos slots (hoje as propostas A/B/C usam cooldowns de demonstração), sliders dos parâmetros de `C.moves` com marca “provisório”, cenários repetíveis (Reflect/Psyshock/Tackle, PL1–3, falta de espaço), overlays técnicos opcionais (desligados), pausa/passo/seed (já existem), controle alternável e IA no não controlado (M28.2: parcialmente existe), documentação (`MOVIMENTOS.md`, `INDICE_MODULOS.md`).
 - **Arquivos:** `ui/{hud,hud-proposals,tuning,tuning-meta,presets-panel}.js`, `sim/scenarios.js`, `main.js`, `test/*.browser.mjs`.
 - **A:** testes de navegador novos; **homologação jogável por você** (checklist existente em `ui/homologation.js`).

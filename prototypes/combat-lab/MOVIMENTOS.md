@@ -179,6 +179,16 @@ A IA tática (`sim/ai-moves.js`) usa Reflect e Psyshock **só quando equipados**
 
 Decisões (momento, Move, motivo, PL) ficam em `brain.t.mv.log` (telemetria opcional, serializável com o resto do estado da IA). A IA lê o mundo por `brain.getWorld()`, função ligada pelo `Game` que **não** entra no estado salvo. **Provisório:** pesos e limiares das decisões (calibráveis; sem medição de equilíbrio com Moves — `ai-eval` só mede sem Moves). **Testes:** `test/ai-moves.test.mjs`.
 
+## Interface do laboratório — Fase 6
+
+**Aba Moves** (`ui/moves-panel.js`): equipar Reflect (A) e Psyshock (S) para o jogador e o vermelho (vêm **desligados**; valem já na partida atual); **emissores técnicos** (projétil hostil PL1/PL2/PL3 do vermelho rumo ao azul; explosão no centro, PL2); **10 cenários técnicos** repetíveis (`sim/scenarios-moves.js`, duelo isolado, semente fixa, ajustes atuais, esperado × obtido, exportável em JSON); **parâmetros** de `C.world.charge/reflect/psyshock` com tooltip, formato e marca **aprovado** × **provisório**, botão ↺ por parâmetro e restaurar todos (valem para os **próximos usos**, M28.4); **avaliação jogável dos Moves** (10 itens, aprovado/reprovado/observação, salva no navegador e no JSON — é a aprovação **sua**, M28.9).
+
+**HUD dos slots** (`ui/moves-hud.js`, `sim/move-state.js`): para cada lutador com Moves, tecla, nome e estado real — pronto, carregando (% e PL com a cor do nível), recarga, recuperação ou bloqueado **com o motivo do motor** (a tela usa as mesmas permissões do controlador). **Aviso discreto** quando um Move falha (ex.: “Reflect: sem espaço — stamina devolvida, sem recarga”). O aviso de contato da arena e a linha de contato passaram a entender os eventos novos (reflexão, barreira destruída, Counter, stagger, proteção).
+
+**Visual** (`view/world-view.js`): barreira e pedras coloridas pelo PL (PL1 ciano, PL2 âmbar, PL3 magenta), barreira com contorno e piscar no último segundo, **prévia** da barreira durante a carga (verde se cabe, vermelha se faltar espaço), pedras que se formam ao redor de quem carrega o Psyshock (3 + 1 a cada 0,8 s) e **anéis de impacto** nos eventos. É representação mínima e **provisória**; animações do personagem, gesto da mão e VFX definitivos dependem da sua avaliação e dos modelos.
+
+**Fica fora desta fase:** lasers e seus emissores (Fase 7), overlays técnicos específicos dos Moves além dos já existentes em Visualizar, persistência dos equipamentos no workspace (equipar vale na sessão).
+
 ## Garantias verificadas (`test/moves.test.mjs`)
 
 - O registro está vazio, e nenhum código do laboratório registra movimentos.
