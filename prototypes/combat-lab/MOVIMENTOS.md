@@ -133,6 +133,24 @@ Um movimento com `charge: {max}` é **segurar para carregar, soltar para executa
 
 **Contrato M28.4:** a barreira guarda `captured` (tolerância de empate, limite de reflexões, recuo e stagger do Tackle, dimensões) e nunca mais lê `C.world.reflect`. **Eventos:** `reflected`, `neutralized`, `barrierBroken` (`by`: `pl`, `tackle`, `explosion`), `shielded`, `reflectCycle`, `moveFailed`. **Testes:** `test/reflect.test.mjs`. **Ainda não:** prévia visual e VFX (Fase 6), laser (Fase 7), clash/counter entre Moves (Fase 4), uso pela IA (Fase 5).
 
+## Psyshock — Fase 3 (segundo Move real)
+
+Registrado no bootstrap (como o Reflect), **sem slot equipado por padrão**; tecla padrão **S** (slot 2). Definição e efeito em `sim/moves/psyshock.js`; voo, homing, acertos por alvo e colisão entre pedras em `sim/world.js`; sorteios em `sim/moves/rng.js`; valores provisórios em `C.world.psyshock` (M30.10), capturados ao apertar o botão (M28.4).
+
+| Regra | Valor |
+|---|---|
+| Pedras | 3 iniciais, +1 a cada 0,8 s de carga (contagem de passos), 8 no máximo; disparam **todas juntas** na soltura |
+| Igualdade (M30.2) | todas as pedras da execução têm o **mesmo PL** (nível da carga), o **mesmo dano-base** (0,2 × Ataque do lançador, gravado no disparo, M30.1) e a mesma física; tamanho e altura visuais variam sem efeito |
+| Velocidade | sorteada por pedra entre 10 e 14 m/s (D4); sorteios determinísticos por passo, lutador e execução |
+| Posição de partida | arco à frente do lançador (anéis e alturas sorteados); se um ponto não está livre, busca à frente até 3 m (M27.3); sem espaço para todas, **falha** (stamina devolvida, sem recarga, M29.3) |
+| Com alvo travado | cada pedra mira um ponto **sorteado dentro da caixa lógica do alvo** (M30.8) e faz homing de 0,3 s a no máximo 180°/s; perder o alvo (derrota) encerra o homing; **reflexão** o cancela |
+| Sem alvo | leque frontal discreto de 20°, espaçamento igual, sem homing |
+| Acertos | cada pedra atinge o primeiro lutador e se despedaça; dano × **0,8ⁿ** (n = acertos que causaram dano no mesmo alvo na mesma execução, aplicado no impacto); knockback de 0,3 m/s por pedra com teto de **0,9 m/s por alvo e execução** (M30.3); defesa, defesa perfeita e i-frames valem por pedra |
+| Pedras entre si | do **mesmo** Psyshock nunca colidem (mesmo refletidas); de donos diferentes: PL igual → as duas somem; PL superior vence e continua |
+| Reflexão | pelo Reflect (barreira) conforme a Fase 2: dono troca, dano recalculado com o Ataque do refletor, PL conservado |
+
+**Provisórios documentados:** o 0,8ⁿ conta impactos e defesas comuns (não defesa perfeita nem invulnerabilidade); o Ataque usado é o **atributo-base** (P13); o teto de knockback conta só o horizontal e só impactos com lançamento (P14); distribuição uniforme dos sorteios (P15). **Eventos:** `spawn`, `impact`/`partial`, `reflected`, `stoneClash`, `groundHit`, `moveFailed`. **Testes:** `test/psyshock.test.mjs` e `test/moves.browser.mjs`. **Ainda não:** formação visual das pedras durante a carga, VFX e gesto da mão (Fase 6), clash/counter com Reflect de PL diferente em outros Moves (Fase 4), uso pela IA (Fase 5).
+
 ## Garantias verificadas (`test/moves.test.mjs`)
 
 - O registro está vazio, e nenhum código do laboratório registra movimentos.

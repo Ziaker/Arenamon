@@ -31,7 +31,7 @@
 | `locomotion.js` · `motion.js` | Caminhada/sprint/frenagem · curva em fases de X e C | `locomotion` |
 | `combat.js` · `physics.js` | Contatos ofensivos (lançamento, clash, defesa) · física, subpassos, arena | `core`, `properties` |
 | `world.js` · `geometry.js` | Entidades criadas por movimentos (projétil, barreira, parede, área); `applyHit` único; **reflexão** (`reflectPass`), Tackle×barreira, explosão×barreira · retângulos orientados e varredura de segmento | `moves`, `reflect` |
-| `moves/reflect.js` · `moves/standard.js` | Definição e efeito do Reflect · registro dos Moves padrão (chamado só pelo bootstrap, D2) | `reflect` |
+| `moves/reflect.js` · `moves/psyshock.js` · `moves/rng.js` · `moves/standard.js` | Definição e efeito do Reflect · do Psyshock · sorteios determinísticos · registro dos Moves padrão (chamado só pelo bootstrap, D2) | `reflect`, `psyshock` |
 | `charge.js` · `move-effects.js` | Parâmetros capturados, PL por carga, aceleração de recarga (puro) · manipuladores nomeados de efeitos de Move | `charge` |
 | `moves.js` | Registro de movimentos (vazio), validação, `setLoadout`, posicionamento relativo | `moves`, `moves-contract` (contrato M28.4, caracterização), `moves-order` (ordem das entradas) |
 | `status.js` | Buffs/debuffs (`applyStatus`, `modifier`, `tickStatuses`) | `moves` |

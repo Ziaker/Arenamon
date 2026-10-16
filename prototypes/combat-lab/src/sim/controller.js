@@ -489,7 +489,7 @@ function stepCharge(f, cmd) {
   const ch = f.charge, def = getMove(ch.move);
   if (!def) {f.charge = null;return;}
   if (ch.ticks > 0 && !cmd.skillHeld?.[ch.slot]) {
-    const level = chargeLevel(ch.ticks, ch.params), rel = {ticks: ch.ticks, seconds: ch.ticks * ch.params.step, level, params: ch.params, cost: ch.cost, slot: ch.slot, failed: false};
+    const level = chargeLevel(ch.ticks, ch.params), rel = {ticks: ch.ticks, seconds: ch.ticks * ch.params.step, level, params: ch.params, cost: ch.cost, slot: ch.slot, failed: false, lock: cmd.target ?? null};   // lock: alvo travado no instante da soltura (mira do Psyshock)
     f.charge = null;
     // Recarga na materialização/disparo (M2.4/M2.5) e recuperação (M26s.8); o jogo desfaz as duas se o efeito falhar (M13.7, M29.3).
     if (def.cooldown > 0) (f.moveCooldowns ??= {})[def.id] = def.cooldown;

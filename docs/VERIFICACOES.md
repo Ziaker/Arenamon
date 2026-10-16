@@ -36,6 +36,10 @@ Executado e aprovado em worktree temporário: `npm run typecheck`; `npm run test
 
 Executado e aprovado em worktree temporário: `npm run typecheck`; `npm run test:combat-lab:unit` completo (inclui `reflect.test` 16 verificações; `moves.test` agora garante que só `moves/standard.js` registra e só `main.js` chama `registerStandardMoves()`); `npm run test:combat-lab:browser` completo (verify 19/19, overhaul 116/116, workspace 43/43, calibration 32/32, diagnostics 21/21, perf 23/23, tools 18/18, **moves 5/5 novo**: teclado real A, offline, sem erros); `npm run check:offline`; impressão digital de lutas IA × IA **idêntica** à da base (sem Moves a partida não muda). **Defeito real encontrado só no navegador e corrigido:** a telemetria tratava todo evento como contato entre lutadores e quebrava com eventos sem alvo (início de carga, criação de entidades); agora ignora eventos sem alvo. **Não executado:** `verify:workspace`/`verify` completo (worktree), navegadores de jogo/studio/importador/placeholders (nada mudou), paridade v6 (arquivo ausente), **aprovação visual/jogável do Reflect (é sua, M28.9)**.
 
+### Fase 3 dos Moves — Psyshock (2026-10-16, branch `feat/moves-fase3-psyshock` sobre `main` @ `264de2f`)
+
+Executado e aprovado em worktree temporário: `npm run typecheck`; `npm run test:combat-lab:unit` completo (inclui `psyshock.test` 15 verificações); `npm run test:combat-lab:browser` completo (inclui `moves.browser` 6/6: Reflect (A) e Psyshock (S) pelo teclado real, offline, sem erros); `npm run check:offline`; impressão digital de lutas IA × IA **idêntica** à da base. Achados corrigidos no caminho: teto de knockback com erro de ponto flutuante (0,3+0,3+0,3 ≠ 0,9) e pedras refletidas colidindo com o resto da própria execução (M8.1: pedras do mesmo Psyshock nunca colidem). **Não executado:** `verify:workspace`/`verify` completo (worktree), paridade v6 (arquivo ausente), **aprovação visual/jogável (é sua, M28.9)**.
+
 ### NÃO executado / pendente
 
 - `npm run verify:workspace`: **recusa worktrees por desenho** (exige o checkout oficial). Deve ser rodado na pasta oficial quando ela estiver livre.

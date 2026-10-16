@@ -15,7 +15,7 @@ import {isInvulnerable, nominalDistance} from './entity.js';
 import {sweepBox, segmentHitsVolume} from './geometry.js';
 import {launch} from './combat.js';
 import {applyStatus, stat} from './status.js';
-import {vec, add, sub, scale, dot, length, normalize, direction} from './math.js';
+import {vec, add, sub, scale, dot, length, normalize, direction, angleOf, angleDelta, clamp} from './math.js';
 
 export const ENTITY_KINDS = ['projectile', 'barrier', 'wall', 'area'];
 export const createWorld = () => ({entities: [], nextId: 1});
@@ -140,7 +140,9 @@ export function stepWorld(game, dt) {
     else if (e.kind === 'area') stepArea(game, e, dt, events);
     if (!e.dead && e.age >= e.life - 1e-9) {e.dead = true;events.push({result: 'expire', attacker: e.owner ?? null, target: null, damage: 0, entity: e.id, kind: e.kind});if (e.onExpire) spawnLater.push(at(e.onExpire, e));}
   }
+  clashStones(world, events);
   world.entities = world.entities.filter(e => !e.dead);
+  pruneExecutions(world);
   for (const t of spawnLater) spawn(world, t, events);
   return events;
 }
@@ -148,11 +150,13 @@ export function stepWorld(game, dt) {
 const at = (template, src, pos = src.pos) => ({owner: src.owner, ...template, pos: {...pos}, dir: template.dir ?? src.dir});
 
 function stepProjectile(game, p, dt, events, spawnLater) {
+  if (p.homing) homingStep(game, p, dt);
   // Subpassos curtos (sem atravessar alvos finos): mesmo critério da física (contactStep).
   const travel = length(p.vel) * dt, steps = Math.max(1, Math.ceil(travel / C.test.contactStep));
   if (p.gravity) p.vy = (p.vy ?? 0) - p.gravity * dt;
   for (let s = 0; s < steps && !p.dead; s++) {
     const from = {...p.pos};p.pos = add(p.pos, scale(p.vel, dt / steps));if (p.gravity) {p.y = Math.max(0, p.y + (p.vy ?? 0) * dt / steps);if (p.y <= 0 && p.vy < 0) {p.dead = true;events.push({result: 'groundHit', attacker: p.owner ?? null, target: null, damage: 0, entity: p.id, kind: 'projectile'});if (p.onHit) spawnLater.push(at(p.onHit, p));return;}}
+    if (!p.gravity && p.vy) {p.y += p.vy * dt / steps;if (p.y <= 0 && p.vy < 0) {p.dead = true;events.push({result: 'groundHit', attacker: p.owner ?? null, target: null, damage: 0, entity: p.id, kind: 'projectile'});return;}}   // voo inclinado sem gravidade (pedras com alvo travado)
     if (!reflectPass(game, p, from, events)) return;
     const half = C.test.arenaHalf;
     if (Math.abs(p.pos.x) > half || Math.abs(p.pos.z) > half) {p.dead = true;events.push({result: 'arenaHit', attacker: p.owner ?? null, target: null, damage: 0, entity: p.id, kind: 'projectile'});if (p.onHit) spawnLater.push(at(p.onHit, p));return;}
@@ -169,7 +173,9 @@ function stepProjectile(game, p, dt, events, spawnLater) {
       const alt = altOf(f), box = {shape: 'box', pos: f.position, hx: C.test.halfExtent, hz: C.test.halfExtent, angle: 0};
       if (!vOverlap(p.y - p.radius, p.y + p.radius, alt, alt + fighterHeight()) || !circleTouches(box, p.pos, p.radius)) continue;
       p.hitLog.push(f.id);
-      const ev = applyHit(game, p.owner, f, p.hit || {}, normalize(p.vel), {entity: p.id, origin: sub(f.position, scale(normalize(p.vel), 1))});
+      const hit = p.exec != null ? execHit(game.world, p, f) : (p.hit || {});
+      const ev = applyHit(game, p.owner, f, hit, normalize(p.vel), {entity: p.id, origin: sub(f.position, scale(normalize(p.vel), 1))});
+      if (p.exec != null) execRecord(game.world, p, f, ev, hit);
       if (ev) events.push(ev);
       if (p.hitLog.length >= p.pierce || ev?.result === 'partial' || ev?.result === 'perfect') {p.dead = true;if (p.onHit) spawnLater.push(at(p.onHit, p));return;}
     }
@@ -197,6 +203,55 @@ function stepArea(game, a, dt, events) {
     }
     if (a.explosion) breakBarriers(game, a, events);
   }
+}
+
+// ---------- Pedras do Psyshock: homing, acertos por alvo e colisão entre pedras ----------
+/** Homing limitado (M10.2, M12.1): nos primeiros 0,3 s a direção horizontal gira no máximo \`rate\` rad/s rumo ao ponto de mira sorteado. Perder o alvo para sempre encerra o homing preservando a direção (M27.5). */
+function homingStep(game, p, dt) {
+  const h = p.homing, t = game.fighters[h.target];
+  if (!t || t.hp <= 0 || h.ticks <= 0) {p.homing = null;return;}
+  h.ticks--;
+  const dx = t.position.x + h.offset.x - p.pos.x, dz = t.position.z + h.offset.z - p.pos.z, speed = length(p.vel);
+  if (speed < 1e-9) return;
+  const cur = angleOf(p.vel), turn = clamp(angleDelta(cur, angleOf({x: dx, z: dz})), -h.rate * dt, h.rate * dt), next = cur + turn;
+  p.vel = {x: Math.sin(next) * speed, z: Math.cos(next) * speed};p.dir = normalize(p.vel);
+  const left = Math.max(dt, Math.hypot(dx, dz) / speed);                       // tempo restante até o ponto de mira: ajusta a subida/descida para chegar à altura sorteada
+  p.vy = (altOf(t) + h.offset.y - p.y) / left;
+}
+/** Dados de acerto desta pedra no alvo: dano × fator^n (n acertos anteriores da MESMA execução no mesmo alvo, M6.3) e knockback limitado ao teto por alvo e execução (M30.3). */
+function execHit(world, p, f) {
+  const x = world.exec?.[p.exec], base = p.hit || {}, n = x?.hits?.[f.id] ?? 0, used = x?.kb?.[f.id] ?? 0, c = p.captured ?? {};
+  const out = {...base, damage: (base.damage ?? 0) * (c.successiveFactor ?? 1) ** n};
+  if (base.knockback) {
+    const room = (c.knockbackCap ?? Infinity) - used, h = room > 1e-9 ? Math.min(base.knockback.horizontal ?? 0, room) : 0;   // tolerância: 0,3 + 0,3 + 0,3 não é exatamente 0,9 em ponto flutuante
+    out.knockback = h > 0 ? {...base.knockback, horizontal: h} : undefined;
+  }
+  return out;
+}
+/** Registra o acerto que causou dano (impacto ou defesa comum): conta para o fator 0,8ⁿ; só o impacto com lançamento consome o teto de knockback. */
+function execRecord(world, p, f, ev, hit) {
+  const x = world.exec?.[p.exec];
+  if (!x || !ev || (ev.result !== 'impact' && ev.result !== 'partial')) return;
+  x.hits[f.id] = (x.hits[f.id] ?? 0) + 1;
+  if (ev.result === 'impact' && hit.knockback) x.kb[f.id] = (x.kb[f.id] ?? 0) + hit.knockback.horizontal;
+}
+/** Pedras de donos diferentes que se tocam (pedras do MESMO Psyshock nunca colidem entre si, mesmo depois de refletidas, M8.1): PL igual → as duas se destroem; PL superior vence e continua (M8.2, M19.4, M20.1). Só as envolvidas somem. */
+function clashStones(world, events) {
+  const s = world.entities.filter(e => e.kind === 'projectile' && e.clashable && !e.dead);
+  for (let i = 0; i < s.length; i++) for (let j = i + 1; j < s.length; j++) {
+    const a = s[i], b = s[j];
+    if (a.dead || b.dead || a.owner === b.owner || (a.exec != null && a.exec === b.exec) || Math.abs(a.y - b.y) > a.radius + b.radius || length(sub(a.pos, b.pos)) > a.radius + b.radius) continue;
+    const pa = a.pl ?? 1, pb = b.pl ?? 1;
+    if (pa >= pb) b.dead = true;
+    if (pb >= pa) a.dead = true;
+    events.push({result: 'stoneClash', attacker: a.owner ?? null, target: b.owner ?? null, damage: 0, entity: a.id, other: b.id, winner: pa === pb ? null : pa > pb ? a.id : b.id});
+  }
+}
+/** Descarta as execuções sem nenhuma pedra viva. */
+function pruneExecutions(world) {
+  if (!world.exec) return;
+  const live = new Set(world.entities.filter(e => e.exec != null).map(e => String(e.exec)));
+  for (const k of Object.keys(world.exec)) if (!live.has(k)) delete world.exec[k];
 }
 
 // ---------- Barreiras refletoras (Reflect) ----------
