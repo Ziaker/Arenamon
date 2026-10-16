@@ -31,7 +31,7 @@
 | `locomotion.js` · `motion.js` | Caminhada/sprint/frenagem · curva em fases de X e C | `locomotion` |
 | `combat.js` · `physics.js` | Contatos ofensivos (lançamento, clash, defesa) · física, subpassos, arena | `core`, `properties` |
 | `world.js` | Entidades criadas por movimentos (projétil, barreira, parede, área); `applyHit` único | `moves` |
-| `moves.js` | Registro de movimentos (vazio), validação, `setLoadout`, posicionamento relativo | `moves` |
+| `moves.js` | Registro de movimentos (vazio), validação, `setLoadout`, posicionamento relativo | `moves`, `moves-contract` (contrato M28.4, caracterização), `moves-order` (ordem das entradas) |
 | `status.js` | Buffs/debuffs (`applyStatus`, `modifier`, `tickStatuses`) | `moves` |
 | `ai.js` · `tactics.js` · `ai-eval.js` | IA do v6 (paridade) · IA tática · avaliação com sementes fixas | `ai`, `ai-eval` |
 | `scenarios.js` · `compare.js` · `ab-switch.js` · `balance.js` · `training.js` · `movement.js` · `attempts.js` | Cenários repetíveis, comparação A×B, métricas, treino, gravador de movimento, diagnóstico de comandos | `calibration`, `training`, `diagnostics` |

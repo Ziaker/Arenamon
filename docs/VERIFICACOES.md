@@ -24,6 +24,10 @@ Este arquivo separa **o que foi efetivamente executado** do que **permanece pend
 
 `npm run measure:sim` (2 execuções): simulação ≈ 7 µs/passo com IA × IA e ≈ 4,5 µs sem a IA do azul, contra 8 333 µs de orçamento a 120 Hz — ver `DESEMPENHO_BASELINE.md`. Não mede GPU/render.
 
+### Fase 0 dos Moves (2026-10-16, `main` @ `badedde`, branch `test/moves-fase0-contrato`)
+
+Executado e aprovado em worktree temporário: `npm run typecheck` (sem erros) e `npm run test:combat-lab:unit` completo (~2 min), incluindo os dois testes novos de caracterização (`moves-contract` 4 verificações; `moves-order` 4 verificações). **Não executado:** testes de navegador, `check:offline` e `verify` completo (nenhum código de jogo, HTML ou `dist` foi alterado nesta fase; só testes, `package.json` e documentação). Resultado-chave: **11 de 12** leituras de `C` testadas ainda alteram entidades já criadas — ver `docs/MOVES_TEST_MATRIX.md`.
+
 ### NÃO executado / pendente
 
 - `npm run verify:workspace`: **recusa worktrees por desenho** (exige o checkout oficial). Deve ser rodado na pasta oficial quando ela estiver livre.
