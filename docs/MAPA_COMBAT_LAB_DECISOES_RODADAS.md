@@ -2,7 +2,7 @@
 
 > **Documento oficial de planejamento em andamento.** Arquivo único a ser atualizado a cada nova rodada solicitada pelo usuário. Não é especificação final nem autorização para implementar.
 >
-> **Status:** Rodadas 1–11 respondidas e registradas (**152 respostas aprovadas**). Rodada 11 aprovada integralmente (9 respostas) e auditoria de pendências atualizada. **Diretriz vigente posterior à Rodada 9:** desconsiderar integralmente gamepad no planejamento do mapa; preservar referências antigas só por rastreabilidade, sem exigir decisão nem teste para esse dispositivo.
+> **Status:** Rodadas 1–11 respondidas e registradas (**152 respostas aprovadas**). Rodada 11 aprovada integralmente (9 respostas), auditoria de pendências atualizada e especificação técnica V1 acrescentada sem implementação. **Diretriz vigente posterior à Rodada 9:** desconsiderar integralmente gamepad no planejamento do mapa; preservar referências antigas só por rastreabilidade, sem exigir decisão nem teste para esse dispositivo.
 > **Fonte de verdade das decisões:** respostas do usuário na conversa ChatGPT sobre o mapa do Arenamon. Opções rejeitadas e sugestões do assistente **não** são requisitos aprovados.
 > **Repositório:** https://github.com/Ziaker/Arenamon · **Escopo:** apenas laboratório de combate `prototypes/combat-lab/`.
 > **Referência do código inspecionado antes da criação:** `main` @ `a16904bd395b982225fe1eed9f87e59bc1a65421` (2026-10-15). Não significa que essas features já tenham sido implementadas.
@@ -1102,6 +1102,168 @@ Resposta aprovada: **D — Todas essas ferramentas, individualmente ativáveis o
 
 
 
+## Especificação técnica consolidada — V1 de planejamento (SEM IMPLEMENTAÇÃO)
+
+> **Escopo deste capítulo.** Tradução operacional das 152 decisões aprovadas nas Rodadas 1–11. A resposta mais recente do usuário prevalece quando há refinamento ou substituição. Os registros numerados acima são a fonte primária. Os rótulos [APROVADO], [PROPOSTA TÉCNICA] e [LACUNA] têm significados distintos. Este capítulo não autoriza modificar código nem mudar outras regras do combate.
+>
+> **Base da inspeção técnica remota:** main de Ziaker/Arenamon no commit b8aeec6e8b6794894c010b9a8f194bf48615bb7f, consultada antes desta especificação. Foram examinados módulos de simulação, física, mundo, status, IA, ajustes, câmera e entrada do laboratório de combate. Isso **não equivale** a executar ou testar o projeto localmente. Revalidar a main e o checkout oficial antes de qualquer futura implementação.
+
+### A. Contrato de escopo e arquitetura
+
+**[APROVADO]** Transformar o mapa técnico do laboratório de combate em arena **circular** de raio **50 m** (diâmetro **100 m**), sem temas visuais definitivos, contendo **4 destrutíveis, 4 obstáculos indestrutíveis e 2 plataformas** inicialmente. Quantidades/tamanhos/posicionamento seguem parâmetros que o usuário aprovou como configuráveis. A implementação não pode alterar silenciosamente mecânicas de esquiva, ataques, cooldowns ou status fora dos pontos de integração expressamente aprovados. O gamepad foi **excluído do escopo deste trabalho** por ordem posterior, mantendo somente o pulo por **Espaço** no teclado. [R1, R3.3–R3.5, diretriz posterior a R9]
+
+**[APROVADO]** Meta: **60 FPS em 1080p** e simulação física de passo fixo **120 Hz**, sujeita a teste em hardware explicitamente identificado em relatório. Exige testes de regressão, IA, navegador, HUD, seeds, replay/save e desempenho; não exige novos testes específicos de gamepad no escopo do mapa. [R9.15–R9.16]
+
+**[PROPOSTA TÉCNICA]** Construir componentes da arena e das mecânicas novas sem transformar o registro de aprovação em uma autorização para refazer o sistema de combate. Garantir estado serializável e parâmetros editáveis. Aplicar decisões aprovadas sem inventar variáveis numéricas para os parâmetros que o usuário definiu como configuráveis.
+
+### B. Cenário, spawns e colisão
+
+**[APROVADO]**
+- Borda circular com barreira invisível e indicação visual discreta. Força, rebote e dano por impactos dos lutadores na borda configuráveis. Projéteis ricocheteiam na borda segundo direção e propriedades físicas. [R3.1–R3.2, R11.7]
+- Quatro destrutíveis iniciais geométricos, **30 HP** inicialmente cada, com valores individuais editáveis. Recebem dano de movimentos e impactos; resistências separadas em contato físico, projétil, área e colisão ambiental; bônus de Ataque do lutador afeta objetos. [R1.3–R1.6, R3.3–R3.7, R5.14, R9.10–R9.11]
+- Quatro indestrutíveis de formatos mistos (caixas, cilindros e pilares), posicionados aleatoriamente. Bloqueiam corpos/ataques, oferecem cobertura e rebotes coerentes com a normal e intensidade do impacto. [R1.7–R1.8, R3.11–R3.12]
+- Duas plataformas sólidas em todas as faces, com topo de **3 × 3 m**, a alturas **1 m** e **1,5 m**. Personagens podem pousar fisicamente nelas, combater e caminhar até cair. Obstáculos baixos adicionais podem ser ultrapassados por salto físico. [R1.9, R2.9–R2.11, R7.4–R7.6/R7.14/R7.16]
+- Lutadores iniciam em dois pontos opostos **sorteados** e válidos, com separação equilibrada. Objetos/itens/plataformas respeitam ausência de sobreposição inválida, segurança dos spawns e caminhos acessíveis. Para ponto inválido, localizar sistematicamente a posição válida mais próxima; se nenhuma existir, **adiar** a geração até mudança do cenário, sem aceitar uma posição inválida. [R3.13, R9.12, R10.6/R10.9, R11.1]
+- Lutadores, golpes corpo a corpo, projéteis e áreas respeitam **volumes reais tridimensionais**, inclusive alturas e plataformas; um golpe não alcança um alvo separado verticalmente se sua hitbox não o tocar. [R7.11–R7.13]
+
+**[PROPOSTA TÉCNICA]** Expor uma consulta única de colisão/ocupação 3D para a simulação, geração de itens, IA e depuração. Em particular, não substituir todas as consultas físicas por distância plana no eixo XZ. A escolha de estrutura de navegação, algoritmo de busca e representação geométrica ainda não foi feita pelo usuário.
+
+### C. Salto, lançamento e aterrissagem
+
+**[APROVADO]** Salto normal iniciado pela tecla **Espaço**, somente em estado livre/caminhando/correndo, sem gasto de stamina, sem i-frames e sem ataque/defesa durante o salto normal. Altura inicial **2 m**, gravidade relacionada à gravidade existente porém ajustável de forma independente; **um salto normal por sequência aérea**, podendo movimentos especiais conceder outros. Intervalo de novo salto: **0,25 s após aterrissar**. Recuperação ao pousar é configurável independentemente; valor inicial não aprovado. [R2.1–R2.8, R7.1–R7.2/R7.8–R7.9]
+
+**[APROVADO]** Preservar **exatamente** a velocidade horizontal na decolagem, sem redirecioná-la em voo. Caminhar para fora de plataforma causa queda balística com a velocidade horizontal anterior. Lutadores lançados também podem aterrissar fisicamente nas plataformas. Coletar estágio de Velocidade em voo não altera a trajetória já iniciada, afetando as próximas ações. [R2.3, R7.7/R7.10/R7.14, R10.10]
+
+**[LACUNA CONTROLADA]** A expressão “apenas movimentar-se” de R2.7 deve ser lida em conjunto com R2.3 e R7.7: não pressupor direção horizontal aérea adicional. O mecanismo já existente de vault na esquiva não foi explicitamente aprovado para substituição. Se a integração do salto exigir mudança de um comportamento anterior, relatar o conflito específico em vez de redefinir a esquiva por conta própria.
+
+### D. Destruição, impacto, respawn e drops
+
+**[APROVADO]** Ataques com alcance/volume correto causam dano a objetos; explosões atingem objetos dentro de seu volume tridimensional, e projétil que destrói objeto bloqueador é **consumido** no impacto. [R1.5, R8.7–R8.8]
+
+**[APROVADO]** Lutador lançado que atinge objeto destrutível danifica o objeto de acordo com **velocidade horizontal relativa**, e também recebe dano proporcional à velocidade relativa do choque. Se o impacto destrói o objeto, o impulso daquele contato permanece interrompido, mesmo que o colisor desapareça depois. [R3.7, R7.15, R10.7–R10.8]
+
+**[APROVADO]** Destrutíveis reaparecem **15–30 s** após serem destruídos, em **outra posição válida**, após mostrar **prévia translúcida** antes de se tornarem sólidos. Efeitos de destruição são selecionáveis. [R3.8–R3.9, R6.5–R6.6, R11.9]
+
+**[APROVADO]** Destruição pode liberar consumíveis com probabilidade, quantidade e recompensa configuráveis. Drop surge **no local da destruição** e **cai fisicamente** até superfície válida. Drops podem temporariamente exceder o máximo de quatro itens que bloqueia novas gerações regulares. [R1.12, R3.10, R4.11, R5.16, R11.6]
+
+**[APROVADO]** Derrota causada por choque ambiental é atribuída ao **último adversário que causou dano recentemente**. [R11.2]
+
+**[LACUNA]** A palavra “recentemente” não possui duração definida; nem todos os multiplicadores de resistência de objetos receberam valor padrão. Esses aspectos são parâmetros a documentar/medir na fase técnica; não declaralos como decisões numéricas aprovadas.
+
+### E. Consumíveis, spawn, coleta e timers
+
+**[APROVADO]**
+- Sete tipos: cura de HP, recuperação imediata de stamina, evolução de Ataque, Defesa, Stamina máxima, redução de Cooldown e Velocidade. Na geração regular, tipos com **probabilidade igual**. Cores, formas e símbolos próprios. [R4.1–R4.2/R4.7, R5.12, R6.8]
+- **Dois itens iniciais** sorteados independentemente, inclusive com repetição de tipo, sem impor equidistância entre os lutadores; apenas restrições de posição válida. Gerar regularmente a intervalos aleatórios de **20–40 s**. Duração de cada item no chão/plataforma: **15 s** sem coleta. Quando houver **quatro ou mais itens**, suspender a geração regular; reiniciar o contador quando surgir vaga. Drops de destruição podem exceder esse limite e continuam sujeitos a seus ciclos próprios. [R4.4–R4.6, R6.1–R6.4/R6.7, R10.9]
+- Itens surgem no piso ou nas plataformas, acessíveis. Coleta automática em **qualquer estado** do lutador por **distância esférica tridimensional**. Em disputa simultânea, primeiro a entrar no raio ganha, com desempate determinístico. Lutador derrotado (**HP igual a zero**) não coleta nem revive por coleta. [R4.3/R4.8–R4.9, R5.13/R5.15, R10.5, R11.5]
+- Cura normal de **20 HP**, recuperação imediata de **2 pontos de stamina**, sempre respeitando a capacidade atual. Cura com HP previamente cheio concede escudo. Cura que começou com HP parcial e ultrapassa o máximo converte **somente o excedente numérico** em pontos de escudo. [R9.1–R9.2, R11.4]
+- Timers de itens, reaparecimento e escudos ficam **congelados durante pausas, hitstop e após definição do vencedor**. [R9.13, R11.8]
+
+**[PROPOSTA TÉCNICA]** Separar o relógio de geração regular do de drops, e guardar IDs, tick, posição, tipo, origem e estado dos itens. O snapshot/replay precisa incluir o estado do gerador pseudoaleatório. Garantir que a contagem de itens bloqueie geração regular quando drops temporários elevarem o total a quatro ou mais.
+
+### F. Progressão por estágios permanentes na luta
+
+**[APROVADO]** Cada personagem pode manter **quatro estágios em cada uma das cinco categorias**, somando no máximo **20 melhorias**, zeradas ao fim da luta. Os estágios de coleta não têm duração temporária. [R4-observação, R5.1–R5.3]
+
+| Atributo | Regra de evolução aprovada | Referência |
+| --- | --- | --- |
+| Ataque | +10% por estágio, até +40%; dano aos destrutíveis recebe o bônus | R5.5/R5.14 |
+| Defesa | −10 pontos percentuais de dano e empurrão por estágio, até −40 p.p.; mitigação adicional aplicada **depois** da Defesa básica, sem dano negativo | R6.11/R10.3 |
+| Stamina máxima | +1 à capacidade por estágio e +1 simultâneo à stamina atual, sem passar do novo máximo | R5.4/R6.9–R6.10 |
+| Cooldown | Redução de 10% da duração por estágio, até 40%, somente para cooldown iniciado após a coleta; recarga em curso não muda | R5.8/R6.13 |
+| Velocidade | +5% por estágio, até +20%, à locomoção e distância/velocidade da esquiva; não altera impulso de voo existente | R6.12/R10.10 |
+
+**[APROVADO]** Quando o item pertence a categoria já no estágio 4, ele se converte em cura igual à de HP comum. Com todas as cinco categorias no estágio máximo e **HP cheio**, o benefício especial repetível é **stamina imediata**. Se **HP e stamina estão ambos cheios**, esse benefício se converte em escudo dentro do teto aprovado como configurável. [R5.10, R6.14/R6.16, R9.8–R9.9, R10.4]
+
+**[LACUNA]** A recuperação especial de stamina não recebeu quantidade numérica exclusiva, distinta da recuperação normal de dois pontos. Não afirmar que é preenchimento total sem aprovação. Regeneração de stamina não é uma sexta categoria de estágio.
+
+**[PROPOSTA TÉCNICA]** Representar estágios em estrutura serializável própria, separada dos status temporários. O sistema atual em status.js exige duração positiva; não simular permanência de estágios usando duração artificialmente enorme. Calcular corretamente o teto de stamina por personagem e combinar modificadores existentes sem alterar suas regras fora de escopo.
+
+### G. Escudo e sequência de cálculo de dano
+
+**[APROVADO]**
+1. Item elegível de cura com HP cheio concede proteção inicial de **40 pontos de dano**, com duração **10 segundos**.
+2. Coleta adicional elegível soma proteção restante **até teto configurável** e **renova os 10 segundos completos**.
+3. Escudo intercepta **todo dano ao HP**, inclusive status periódico e impacto ambiental, absorvendo **dano bruto antes da Defesa**.
+4. Se um dano supera a capacidade do escudo, consumir essa capacidade; **somente o excedente** passa à mitigação básica da Defesa e depois à redução adicional dos estágios, com mínimo de zero.
+5. Escudo não impede **empurrões nem lançamentos**; a resposta cinética permanece sujeita às próprias regras aprovadas.
+6. Quando a cura inicia abaixo do HP máximo e o ultrapassa, somente o excesso numérico vira escudo. [R9.3–R9.7, R10.1–R10.2, R11.3–R11.4]
+
+**[LACUNA]** Teto de proteção acumulada foi determinado como **configurável**, não com valor inicial numérico aprovado. Não inventar teto nas afirmações de design.
+
+**[PROPOSTA TÉCNICA]** Canalizar dano direto, dano periódico e dano ambiental ao mesmo pipeline testável de cálculo para garantir que nenhuma dessas fontes ignore o escudo. Na hipótese de invulnerabilidade, respeitar as regras existentes do movimento; não declarar a invulnerabilidade alterada por este documento.
+
+### H. IA, câmera, interface e telemetria
+
+**[APROVADO]**
+- IA usa planejamento de caminhos e replanejamento após mudança dos objetos, reconhece cobertura/linha de visão, planeja subida/descida e perseguição nas plataformas, e disputa itens avaliando utilidade, distância e risco. Pode atacar destrutíveis **oportunisticamente** se próximos, sem deslocar toda sua estratégia para farm de itens. [R2.12, R4.15, R8.1–R8.5]
+- Lock-on preserva alvo temporariamente durante oclusão e então desativa; o valor da tolerância temporal continua indefinido. [R8.6]
+- Câmera torna objetos temporariamente transparentes quando ocultam o personagem, faz ajuste de altura para enquadrar adversário e acompanha distância entre os dois com afastamento automático. [R8.9–R8.11]
+- Consumíveis têm indicadores flutuantes a médias distâncias; HUD da progressão é **configurável**, inclusive opção de ocultar estágios. Ferramentas de depuração individualmente ativáveis: hitboxes/colisores/volumes de coleta, decisões de IA, geração/destruição/buffs, seed, posições e falhas. [R8.12–R8.13/R8.16]
+- Nova aba **Mapa** com grupos de arena, objetos, plataformas, consumíveis e progressão. Mudanças visuais aplicam-se **imediatamente**; alterações estruturais e de geração só passam a valer **na próxima luta**. [R8.14–R8.15]
+
+**[PROPOSTA TÉCNICA]** Assegurar fonte comum de acessibilidade, colisão e oclusão ao planejamento da IA e à simulação. Manter indicação clara na aba Mapa do parâmetro efetivo da luta e do parâmetro editado que só terá efeito no próximo reset.
+
+### I. Pontos de integração verificados na main — ainda NÃO implementados
+
+| Código inspecionado | Observação constatada | Trabalho futuro sugerido, sem aprovação para executar |
+| --- | --- | --- |
+| sim/game.js | Passo fixo, ciclo de luta, reset, snapshot, pipeline de física/mundo/status | Integrar clocks de mapa, itens, progressão e escudo sem romper ordem de eventos ou replay |
+| sim/physics.js | Limites físicos cartesianos ligados a arenaHalf, simplificação de altitude | Arena circular, plataformas e contatos tridimensionais reais |
+| sim/world.js | Entidades projectile, barrier, wall, area | Destrutíveis, obstáculos persistentes, drops, colisão ambiental e respawn |
+| sim/status.js | Status periódicos e temporários, exigência de duration positivo | Não converter estágios permanentes em status temporários; integrar dano periódico ao escudo |
+| sim/ai.js e sim/tactics.js | Trechos de decisão de borda por limites quadrados | Navegação, caminhos e previsão de colisão com limite circular e obstáculos dinâmicos |
+| view/rig.js | Rig acompanha câmera e já tem zoom e foco em lutadores | Adicionar oclusão com transparência e enquadramento vertical |
+| ui/tuning.js | Catálogo, abas, ajustes e presets | Aba Mapa e estado de configurações visuais imediatas versus estruturais futuras |
+| ui/input.js | Entradas existentes de teclado e outras ações | Inserir salto por Espaço sem mudar demais comandos ou reabrir dispositivos fora de escopo |
+
+**[PROPOSTA TÉCNICA]** Antes de escrever código, nova auditoria de diferenças entre main remota e pasta local oficial é mandatória. Nenhuma das linhas desta tabela constitui evidência de feature nova já funcional.
+
+### J. Matriz mínima de aceitação e regressão — testes A REALIZAR
+
+| ID | Cenário | Condição observável exigida |
+| --- | --- | --- |
+| MAP-T01 | Geração da arena | Raio 50 m e limite circular; sinalização visual e física coerentes |
+| MAP-T02 | Seeds repetidas | Mesma seed e estado inicial geram mesmas posições, categorias e sequência de eventos |
+| MAP-T03 | Conteúdo inicial | 4 destrutíveis, 4 indestrutíveis, 2 plataformas, 2 itens e 2 lutadores opostos, todos válidos |
+| MAP-T04 | Geração sem espaço | Ponto mais próximo válido usado; ausência total de espaço adia criação sem sobreposição |
+| MAP-T05 | Colisão em alturas diferentes | Só volumes 3D que se tocam produzem dano/contato |
+| MAP-T06 | Salto e borda de plataforma | Salto 2 m, impulso aéreo preservado, queda balística, pouso físico e intervalo 0,25 s |
+| MAP-T07 | Dano contra destrutível | HP/categorias respeitados, bônus Ataque aplicado, projétil consumido ao destruir bloqueador |
+| MAP-T08 | Impacto do lutador com destrutível | Danos a objeto/lutador, impulso interrompido mesmo após quebra do objeto |
+| MAP-T09 | Respawn | Tempo 15–30 s, nova posição válida, prévia translúcida antes do colisor sólido |
+| MAP-T10 | Drop em altura | Nascimento na posição de quebra e queda física até superfície válida |
+| MAP-T11 | Capacidade de geração regular | Suspende com 4+ itens inclusive drops excedentes; retorna quando abre vaga |
+| MAP-T12 | Coleta por disputa | Volume esférico 3D; desempate determinístico; KO não recebe item |
+| MAP-T13 | Vinte estágios máximos | Quatro por categoria; sem status artificial de duração; zeram ao fim da luta |
+| MAP-T14 | Buffs no momento da coleta | Cooldown já em andamento e velocidade aérea já em curso não mudam |
+| MAP-T15 | Cura parcial com excedente | HP respeita máximo e apenas pontos excedentes viram escudo |
+| MAP-T16 | Escudo contra golpes, DOT e ambiente | Dano bruto passa pelo escudo, excedente é mitigado pela Defesa, impulso não bloqueado |
+| MAP-T17 | Escudo reaplicado | Capacidade somada até teto configurável; tempo retorna a 10 s |
+| MAP-T18 | Progressão total e stamina cheia | Recuperação especial de stamina; se cheia, conversão em escudo |
+| MAP-T19 | Pausa, hitstop e fim de luta | Temporizadores de escudo, itens e reaparecimento não avançam |
+| MAP-T20 | IA e cenários dinâmicos | Desvia, usa cobertura, itens e plataformas, recalcula após alterações de objetos |
+| MAP-T21 | Câmera e HUD | Transparência de oclusores, foco vertical, zoom por distância e indicadores configuráveis |
+| MAP-T22 | Ajustes na mesma luta | Visual muda imediatamente; estrutura/geração só no próximo início |
+| MAP-T23 | Save e replay | Estado de RNG, itens, estágios, escudo, objetos e timers preservado e reprodutível |
+| MAP-T24 | Desempenho | Medição real de FPS/frametimes em 1080p, simulação 120 Hz, hardware de referência registrado |
+
+**Nota de honestidade:** os 24 itens acima são *casos previstos* de validação. **Nenhum deles foi executado** para esta especificação. Aprovação de requisito não equivale a prova de qualidade, implementação ou desempenho.
+
+### K. Plano técnico de execução futuro (PROPOSTA, NÃO AUTORIZADO)
+
+1. Auditar checkout local oficial, status Git, diferenças para main e invariantes/testes já existentes; não sobrescrever alterações paralelas.
+2. Construir camada geométrica circular, colisões 3D reais, plataformas e validação de posições. Testar antes de introduzir consumíveis.
+3. Integrar objetos persistentes, destruição, reaparecimento e drops; registrar eventos determinísticos.
+4. Introduzir pulo independente com Espaço, preservar vault/esquiva preexistentes, aterrissagem física e gravidade parametrizável.
+5. Integrar itens, geração, coleta esférica, estágios permanentes, stamina, cura e conversão de itens no máximo.
+6. Centralizar o pipeline de escudos, dano periódico/ambiental, Defesa, empurrão e atribuição de derrota.
+7. Integrar IA adaptativa, câmera, HUD e aba Mapa com separação de parâmetros efetivos/pendentes.
+8. Executar matriz MAP-T01–T24, regressão do combate anterior, testes no navegador e medição de FPS/frametime no hardware escolhido; documentar resultados reais, falhas e desvios antes de solicitar aprovação.
+
+**Não bloquear a especificação por lacunas numéricas em parâmetros já declarados configuráveis.** Não atribuir valor oficial ao intervalo “recentemente” da R11.2, ao teto de escudo ou ao multiplicador inicial de resistência sem decisão. Se a implementação revelar uma divergência de comportamento que não pode ser resolvida a partir das escolhas anteriores, trazer **somente essa divergência** ao usuário, sem reiniciar questionários ou alterar decisões silenciosamente.
+
+
 ## Changelog do registro
 
 - **Criação inicial:** Rodadas 1–8 completas (117 perguntas e escolhas), texto de observação da R4, Rodada 9 pendente (16 perguntas e todas as alternativas), índice de decisões, substituições e pendências. Nenhum código alterado por esta documentação.
@@ -1117,3 +1279,5 @@ Resposta aprovada: **D — Todas essas ferramentas, individualmente ativáveis o
 - **Preparação da Rodada 11:** nove perguntas ainda não respondidas registradas no mesmo arquivo após auditoria de redundância; cada uma vinculada a IDs anteriores para explicar a diferença. Rodadas 1–10 preservadas, total de decisões aprovadas continua 143. Não implica autorização para implementação.
 
 - **Rodada 11 aprovada:** 9 decisões (R11.1–R11.9) incorporadas, total **152 respostas aprovadas**; alternativas originais preservadas e auditoria de pendências classificada. Rodadas 1–10 inalteradas no texto de perguntas/respostas. R11.2 mantém termo «recentemente» sem número inventado. Nenhum código alterado.
+
+- **Especificação técnica V1 (2026-10-16):** síntese das 152 respostas aprovadas, separando decisões, propostas técnicas e lacunas; mapeamento de módulos reais, matriz de 24 casos de aceitação e plano futuro, sem alterar código ou decisões de rodada. Inspeção da main em b8aeec6e8b6794894c010b9a8f194bf48615bb7f.
