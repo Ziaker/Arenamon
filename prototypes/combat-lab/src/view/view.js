@@ -9,6 +9,8 @@ import {CameraRig} from './rig.js';
 import {VfxSystem} from './vfx.js';
 import {WorldView} from './world-view.js';
 import {phaseAt} from '../sim/motion.js';
+// Novo sistema de VFX declarativo (ativado ao lado do legado durante a migração).
+import {VfxRuntime, registerAllEffects} from './vfx/index.js';
 
 const STATE_COLORS = {invulnerable: 0x58e6ff, tackle: 0xffa040, dodge: 0x61ebba, guard: 0xffe066, guardStun: 0xffb347, recoil: 0xc77dff, airborne: 0x9db4ff, landing: 0x7f93b8, defeated: 0x56616a};
 export const OVERLAYS = [
@@ -38,6 +40,12 @@ export class View {
     }
     this.legacySeen = new WeakSet();
     this.vfx = new VfxSystem(this.scene, {flashEl: document.getElementById('vfx-flash'), canvas});
+    // Novo runtime de VFX declarativo. Registra todas as famílias de efeito.
+    // Por enquanto o legado (this.vfx) permanece como renderizador ativo; o novo
+    // runtime está disponível em this.vfxRuntime para migração efeito a efeito.
+    this.vfxRuntime = new VfxRuntime(this.scene, {camera: this.camera, canvas, flashEl: document.getElementById('vfx-flash'), quality: 'medium'});
+    registerAllEffects(this.vfxRuntime);
+    this.useNewVfx = false; // trocar para true quando o novo sistema estiver em paridade
     this.overlayGroup = new T.Group();this.overlayGroup.renderOrder = 900;this.scene.add(this.overlayGroup);
     this.worldView = new WorldView(this.scene);
     let dragging = false, previous = 0;
@@ -62,6 +70,7 @@ export class View {
   reset(player) {
     this.rig.reset(player);this.seenEvents = new WeakSet();this.legacySeen = new WeakSet();this.cameraShake = 0;for (const e of this.effects) {this.scene.remove(e.mesh);e.mesh.geometry.dispose();e.mesh.material.dispose();}this.effects = [];this.airborneSeen = [];this.invulnerableFx.clear();this.normals = [];this.vfx.reset();
     if (this.canvas) this.canvas.style.filter = '';
+    this.vfxRuntime.reset();
   }
   /** Efeitos legados do v6 (partículas em caixa e tremor antigo). Só com “Efeitos legados” ligado em Visualizar. */
   spawnBurst(pos, type) {
@@ -155,11 +164,31 @@ export class View {
     const pose = this.rig.pose();
     this.camera.position.set(pose.position.x, pose.height, pose.position.z);this.camera.lookAt(pose.lookAt.x, pose.lookHeight, pose.lookAt.z);this.camera.updateMatrixWorld();
     // Efeitos depois da câmera (o flash de tela projeta o ponto do impacto). Pausado: dt = 0, os efeitos congelam.
-    t0 = now();this.vfx.update(fighters, events, paused ? 0 : Math.min(dt, .05), {characters: this.characters, camera: this.camera});tm.vfx = now() - t0;
+    const vfxDt = paused ? 0 : Math.min(dt, 0.05);
+    let rt = null;
+    if (this.useNewVfx) {
+      // Novo runtime declarativo (renderizador ativo). O legado fica inativo.
+      t0 = now();rt = this.vfxRuntime.update(fighters, events, vfxDt, {characters: this.characters, camera: this.camera, paused, tick});tm.vfx = now() - t0;
+    } else {
+      // Renderizador legado (fallback). O novo runtime permanece inativo.
+      t0 = now();this.vfx.update(fighters, events, vfxDt, {characters: this.characters, camera: this.camera});tm.vfx = now() - t0;
+    }
     const legacy = this.updateLegacy(fighters, events, paused ? 0 : dt);
-    const fxOn = !!X.hud.fxVisible && !!this.vfx.atlas;this.vfx.add.mesh.visible = fxOn;this.vfx.norm.mesh.visible = fxOn;
-    // Tremor: deslocamento visual temporário aplicado DEPOIS da pose do rig (o rig, o yaw e a entrada não mudam).
-    const sh = this.vfx.shakeOffset(paused ? 0 : Math.min(dt, .05), this.camera);sh.x += legacy.x;sh.y += legacy.y;sh.z += legacy.z;this.lastShake = sh;
+    const fxOn = !!X.hud.fxVisible;
+    const legacyOn = fxOn && !this.useNewVfx && !!this.vfx.atlas;
+    const newOn = fxOn && this.useNewVfx && !!this.vfxRuntime.atlas;
+    this.vfx.add.mesh.visible = legacyOn; this.vfx.norm.mesh.visible = legacyOn;
+    this.vfxRuntime.add.mesh.visible = newOn; this.vfxRuntime.norm.mesh.visible = newOn;
+    // Tremor: vem do sistema ativo (legado ou novo). Nunca altera o rig nem a entrada.
+    let sh;
+    if (this.useNewVfx && rt && rt.camera) {
+      sh = rt.camera;
+      sh.x += legacy.x; sh.y += legacy.y; sh.z += legacy.z;
+    } else {
+      sh = this.vfx.shakeOffset(vfxDt, this.camera);
+      sh.x += legacy.x; sh.y += legacy.y; sh.z += legacy.z;
+    }
+    this.lastShake = sh;
     if (sh.x || sh.y || sh.z || sh.roll) {
       this.camera.position.set(pose.position.x + sh.x, pose.height + sh.y, pose.position.z + sh.z);
       this.camera.lookAt(pose.lookAt.x + sh.x * .5, pose.lookHeight + sh.y * .5, pose.lookAt.z + sh.z * .5);this.camera.rotateZ(sh.roll);
