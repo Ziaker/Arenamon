@@ -1,6 +1,6 @@
 # Plano de implementação — Reflect e Psyshock no laboratório de combate
 
-> **Status: PROPOSTA para aprovação do diretor. Nenhum código foi escrito.** Este plano só vale depois de aprovado (inteiro ou por fase).
+> **Status: PLANO APROVADO em 2026-10-16 (decisões D1–D7 conforme as recomendações; aprovação por fase, D7).** Fase 0 entregue em PR próprio (testes de caracterização, sem alterar código de jogo); **Fases 1–7 aguardam aprovação individual.**
 > **Fonte das regras:** `docs/MOVES_DECISOES_RODADAS.md` (IDs `M<rodada>.<item>`; Rodada 30 = decisões de 16/10/2026). Este plano não cria regras novas: onde falta decisão, aparece como **Decisão pendente (Dn)**.
 > **Base de código lida em 2026-10-16 (`main` @ `a822df7`):** `sim/{moves,world,status,controller,entity,game,config,recording,physics}.js`, `ui/input.js`, `view/world-view.js`, `test/moves.test.mjs`. **Não lidos a fundo:** `tactics.js`/`ai.js` (apenas buscado uso de movimentos: nenhum), `vfx.js`, painéis de `ui/`, `scenarios.js`. Onde isso afeta o plano, está marcado.
 > **Escopo:** laboratório (`prototypes/combat-lab/`). O jogo oficial (`prototypes/game`) **não** é tocado (porte exige autorização separada).
@@ -35,19 +35,19 @@ Regra a cumprir: *sliders valem para usos posteriores; entidades já criadas man
 
 | ID | Pergunta | Recomendação |
 |---|---|---|
-| **D1** | O `MoveParams` é capturado **no início do uso** (ao apertar) ou **na materialização/disparo**? (M28.4 diz “usos posteriores”.) | **Início do uso**: um slider mexido durante os 4 s de carga não muda aquele uso. |
-| **D2** | **Onde registrar** Reflect e Psyshock? O teste `moves.test` garante “registro vazio ao carregar o motor”. | Registrar no **bootstrap do laboratório** (`main.js` → `registerStandardMoves()`), **não** no núcleo `sim/`. Os testes do núcleo continuam com registro vazio; testes novos registram explicitamente. |
-| **D3** | Teclas padrão: hoje `skill1–4` = `1,2,3,4`; M1.1/M16.6 pedem **A e S** (e D, Z reservadas). `KeyD` hoje é a **defesa** do laboratório (M2.1 manda Shift). | Mudar só `skill1=A` e `skill2=S` agora (livres hoje). **Não** mexer na defesa (D) até existir o 3º slot. |
-| **D4** | Velocidade de cada pedra: “10–14 m/s” — **uniforme sorteada por pedra** (semente) ou valor único por execução? (M5.5 não diz.) | Sorteio uniforme **por pedra**, provisório e configurável (P15-like). |
-| **D5** | **Lasers e emissores técnicos** (M3.5, M17.5–7, M20.6, M28.3) são uma entidade nova (`beam`) e muito trabalho. | **Fase 7 separada**, depois dos dois Moves validados. Reflect é entregue já refletindo projéteis. |
-| **D6** | Subquestões abertas **P13** (Ataque base × efetivo), **P14** (pedra refletida no teto; vertical), **P15** (sorteio dos pontos). | Implementar com **padrão provisório identificado** (base; conta na execução original; só horizontal; uniforme na caixa) e registrar cada um como M31.x quando você decidir. |
-| **D7** | Aprovação **por fase** (merge de cada PR só com seu OK) ou do plano inteiro? | Por fase. |
+| **D1** | O `MoveParams` é capturado **no início do uso** (ao apertar) ou **na materialização/disparo**? (M28.4 diz “usos posteriores”.) | **Início do uso**: um slider mexido durante os 4 s de carga não muda aquele uso. **APROVADA (2026-10-16).** |
+| **D2** | **Onde registrar** Reflect e Psyshock? O teste `moves.test` garante “registro vazio ao carregar o motor”. | Registrar no **bootstrap do laboratório** (`main.js` → `registerStandardMoves()`), **não** no núcleo `sim/`. Os testes do núcleo continuam com registro vazio; testes novos registram explicitamente. **APROVADA (2026-10-16).** |
+| **D3** | Teclas padrão: hoje `skill1–4` = `1,2,3,4`; M1.1/M16.6 pedem **A e S** (e D, Z reservadas). `KeyD` hoje é a **defesa** do laboratório (M2.1 manda Shift). | Mudar só `skill1=A` e `skill2=S` agora (livres hoje). **Não** mexer na defesa (D) até existir o 3º slot. **APROVADA (2026-10-16).** |
+| **D4** | Velocidade de cada pedra: “10–14 m/s” — **uniforme sorteada por pedra** (semente) ou valor único por execução? (M5.5 não diz.) | Sorteio uniforme **por pedra**, provisório e configurável (P15-like). **APROVADA (2026-10-16).** |
+| **D5** | **Lasers e emissores técnicos** (M3.5, M17.5–7, M20.6, M28.3) são uma entidade nova (`beam`) e muito trabalho. | **Fase 7 separada**, depois dos dois Moves validados. Reflect é entregue já refletindo projéteis. **APROVADA (2026-10-16).** |
+| **D6** | Subquestões abertas **P13** (Ataque base × efetivo), **P14** (pedra refletida no teto; vertical), **P15** (sorteio dos pontos). | Implementar com **padrão provisório identificado** (base; conta na execução original; só horizontal; uniforme na caixa) e registrar cada um como M31.x quando você decidir. **APROVADA (2026-10-16).** |
+| **D7** | Aprovação **por fase** (merge de cada PR só com seu OK) ou do plano inteiro? | Por fase. **APROVADA (2026-10-16).** |
 
 ## 4. Fases
 
 Convenções: **T** = testes; **R** = riscos; **A** = critério de aceite. Toda fase roda `npm run typecheck`, `npm run test:combat-lab:unit`, `npm run test:combat-lab:browser` (quando toca UI/HTML), `npm run check:offline` e confirma que **sem Moves equipados a partida é idêntica à atual** (teste de regressão por estado). Tamanhos relativos: **P** pequeno, **M** médio, **G** grande — **não medidos** (estimativa por leitura de código).
 
-### Fase 0 — Travar o comportamento atual (P, sem mudar código de jogo)
+### Fase 0 — Travar o comportamento atual (P, sem mudar código de jogo) — **ENTREGUE (PR da Fase 0)**
 - **Arquivos:** `test/` (novos): `moves-contract.test.mjs` (“slider mid-flight”: hoje **deve revelar** quais leituras de `C` afetam entidades vivas — resultado documentado, não corrigido), `moves-order.test.mjs` (ordem defesa → X/C → Move atual, base de M30.9). `package.json` (inclui no `test:combat-lab:unit` e em `test`).
 - **A:** testes passam no estado atual; relatório do que o contrato M28.4 exige corrigir.
 - **R:** baixo (só testes). **Reversível:** sim.
