@@ -70,4 +70,4 @@ Detalhes e proposta de tratamento: [PROPOSTA_REFATORACAO_ESTADO_GLOBAL.md](PROPO
 | `prototypes/importer/` · `placeholders/` | Importador de modelos · laboratório de blocos | `verify.mjs` (navegador) |
 | `scripts/` | `verify-workspace.mjs` (governança do checkout), `check-offline.mjs` (varredura estática) | `check-offline.test.mjs` |
 
-Estado dos testes e do que foi (ou não) executado: [VERIFICACOES.md](VERIFICACOES.md).
+Estado dos testes e do que foi (ou não) executado: [VERIFICACOES.md](VERIFICACOES.md). Linha de base de desempenho da simulação (`npm run measure:sim`): [DESEMPENHO_BASELINE.md](DESEMPENHO_BASELINE.md).
