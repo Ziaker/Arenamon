@@ -84,7 +84,7 @@ export class Game {
   }
   /** Executa o efeito nomeado de um evento da linha do tempo; falha (`ok: false`) desfaz custo, recarga e recuperação do Charge. */
   runEffect(f, def, ev, fx, events) {
-    const handler = getEffect(ev.effect), res = handler ? handler(this, f, def, {...fx, event: ev}) : {ok: false, reason: 'effectMissing', detail: {effect: ev.effect}};
+    const handler = getEffect(ev.effect), res = handler ? handler(this, f, def, {...fx, event: ev, events}) : {ok: false, reason: 'effectMissing', detail: {effect: ev.effect}};
     if (res?.ok === false) this.failMove(f, def, fx, res, events);
   }
   /** Falha de execução (M13.7, M29.3): devolve a stamina, remove recarga e recuperação, avisa com motivo. Uma vez por soltura. */

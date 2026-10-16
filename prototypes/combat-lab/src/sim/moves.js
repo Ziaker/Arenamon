@@ -40,6 +40,7 @@ export function validateMove(def) {
   if (def.charge) {
     if (typeof def.charge !== 'object') fail('charge deve ser um objeto');
     if (def.charge.max !== undefined && !(def.charge.max > 0)) fail('charge.max deve ser > 0');
+    if (def.charge.group !== undefined && !(C.world[def.charge.group] && typeof C.world[def.charge.group] === 'object')) fail(`charge.group desconhecido (${def.charge.group})`);
     for (const k of CHARGE_OVERRIDES) if (def.charge[k] !== undefined && !(def.charge[k] >= 0)) fail(`charge.${k} inválido`);
   }
   if (def.cooldownBoost !== undefined && typeof def.cooldownBoost !== 'boolean') fail('cooldownBoost deve ser booleano');

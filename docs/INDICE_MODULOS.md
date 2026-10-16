@@ -30,7 +30,8 @@
 | `controller.js` | Ações por lutador: stamina, defesa, X (tackle), C (esquiva), cancelamentos, **movimentos** (`movePermission`, `startMove`, `updateMove`) e **Charge** (`chargePermission`, `startCharge`, `cancelCharge`, `stepCharge`) | `core`, `rules`, `moves`, `properties` |
 | `locomotion.js` · `motion.js` | Caminhada/sprint/frenagem · curva em fases de X e C | `locomotion` |
 | `combat.js` · `physics.js` | Contatos ofensivos (lançamento, clash, defesa) · física, subpassos, arena | `core`, `properties` |
-| `world.js` | Entidades criadas por movimentos (projétil, barreira, parede, área); `applyHit` único | `moves` |
+| `world.js` · `geometry.js` | Entidades criadas por movimentos (projétil, barreira, parede, área); `applyHit` único; **reflexão** (`reflectPass`), Tackle×barreira, explosão×barreira · retângulos orientados e varredura de segmento | `moves`, `reflect` |
+| `moves/reflect.js` · `moves/standard.js` | Definição e efeito do Reflect · registro dos Moves padrão (chamado só pelo bootstrap, D2) | `reflect` |
 | `charge.js` · `move-effects.js` | Parâmetros capturados, PL por carga, aceleração de recarga (puro) · manipuladores nomeados de efeitos de Move | `charge` |
 | `moves.js` | Registro de movimentos (vazio), validação, `setLoadout`, posicionamento relativo | `moves`, `moves-contract` (contrato M28.4, caracterização), `moves-order` (ordem das entradas) |
 | `status.js` | Buffs/debuffs (`applyStatus`, `modifier`, `tickStatuses`) | `moves` |
