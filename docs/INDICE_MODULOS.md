@@ -32,6 +32,7 @@
 | `combat.js` · `physics.js` | Contatos ofensivos (lançamento, clash, defesa) · física, subpassos, arena | `core`, `properties` |
 | `world.js` · `geometry.js` | Entidades criadas por movimentos (projétil, barreira, parede, área); `applyHit` único; **reflexão** (`reflectPass`), Tackle×barreira, explosão×barreira · retângulos orientados e varredura de segmento | `moves`, `reflect` |
 | `move-state.js` · `scenarios-moves.js` · `ui/moves-panel.js` · `ui/moves-hud.js` · `view/world-view.js` | Estado dos slots (mesmas permissões do controlador) · cenários técnicos dos Moves · aba Moves · HUD dos slots · desenho das entidades, prévia, orbes e anéis | `moves-ui`, `moves-ui.browser` |
+| `beam.js` | Traçado do laser: segmentos, reflexão em cadeia, troca de dono, neutralização por PL, parada em parede/corpo/arena (sem DOM) | `beam` |
 | `moves/reflect.js` · `moves/psyshock.js` · `moves/rng.js` · `moves/standard.js` | Definição e efeito do Reflect · do Psyshock · sorteios determinísticos · registro dos Moves padrão (chamado só pelo bootstrap, D2) | `reflect`, `psyshock` |
 | `charge.js` · `move-effects.js` | Parâmetros capturados, PL por carga, aceleração de recarga (puro) · manipuladores nomeados de efeitos de Move | `charge` |
 | `moves.js` | Registro de movimentos (vazio), validação, `setLoadout`, posicionamento relativo | `moves`, `moves-contract` (contrato M28.4, caracterização), `moves-order` (ordem das entradas) |

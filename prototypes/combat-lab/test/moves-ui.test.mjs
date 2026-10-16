@@ -45,7 +45,7 @@ ok('estado dos slots: pronto, carregando (% e PL), recarga, recuperação e bloq
 ok('a tela usa as mesmas permissões do controlador (sem apoio no chão: bloqueado)');
 {
   resetConfig(defaults());const all = runMoveScenarios();
-  assert.equal(all.length, MOVE_SCENARIOS.length);assert.equal(all.length, 10);
+  assert.equal(all.length, MOVE_SCENARIOS.length);assert.equal(all.length, 12);
   const bad = all.flatMap(s => s.rows.filter(r => !r.ok).map(r => `${s.name}: ${r.what} (${r.expected} × ${r.got})`));
   assert.deepEqual(bad, [], 'todos os cenários passam com os padrões');
   assert.ok(all.every(s => s.rows.length >= 1 && s.rows.every(r => r.expected !== undefined && r.got !== undefined)));
@@ -53,7 +53,7 @@ ok('a tela usa as mesmas permissões do controlador (sem apoio no chão: bloquea
   // mesma entrada, mesmo resultado (semente fixa)
   assert.equal(JSON.stringify(runMoveScenarios()), JSON.stringify(all), 'cenários repetíveis');
 }
-ok('10 cenários técnicos passam com os padrões, devolvem esperado × obtido e são repetíveis');
+ok('12 cenários técnicos passam com os padrões, devolvem esperado × obtido e são repetíveis');
 {
   resetConfig(defaults());C.world.reflect.widthMax = 2;C.world.psyshock.successiveFactor = .5;C.world.psyshock.maxStones = 6;
   const all = runMoveScenarios(), bad = all.flatMap(s => s.rows.filter(r => !r.ok).map(r => `${s.name}: ${r.what} (${r.expected} × ${r.got})`));

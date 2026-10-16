@@ -89,7 +89,7 @@ Convenções: **T** = testes; **R** = riscos; **A** = critério de aceite. Toda 
 - **Arquivos:** `ui/{hud,hud-proposals,tuning,tuning-meta,presets-panel}.js`, `sim/scenarios.js`, `main.js`, `test/*.browser.mjs`.
 - **A:** testes de navegador novos; **homologação jogável por você** (checklist existente em `ui/homologation.js`).
 
-### Fase 7 — Lasers e emissores técnicos (G, opcional)
+### Fase 7 — Lasers e emissores técnicos (G, opcional) — **ENTREGUE tecnicamente (PR da Fase 7); a aprovação visual/jogável é do diretor**
 - Nova entidade `beam` com reflexão contínua, segmentos, mudança de dono e recálculo ao sumir a barreira (M17.5–7, M20.6) e emissores de laser/explosão de teste (M28.3). **Só após as Fases 1–6 aprovadas.**
 
 ## 5. Matriz mínima regra → teste (resumo)

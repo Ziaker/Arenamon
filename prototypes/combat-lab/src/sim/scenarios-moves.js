@@ -107,6 +107,25 @@ export const MOVE_SCENARIOS = [
     }
     return out;
   }},
+  {id: 'laser-reflect', name: 'Laser × Reflect: reflexão contínua, troca de dono e sem a barreira', run() {
+    const g = duel();cast(g, 0, 2);const bar = g.world.entities.find((/** @type {any} */ e) => e.reflect);
+    const b = spawn(g.world, {kind: 'beam', owner: 1, pos: {x: 0, z: 2.5}, dir: {x: 0, z: -1}, life: 4, pl: 1, length: C.world.beam.length, maxSegments: C.world.beam.maxSegments, interval: C.world.beam.interval, hit: {damage: C.world.beam.damage}}, []);
+    const ev = steps(g, 60), refl = ev.filter(e => e.result === 'reflected'), seg2 = b.segments[1];
+    const hurt = 100 - g.fighters[1].hp, hits = ev.filter(e => e.result === 'impact');
+    const out = [row('o feixe reflete pela frente e anuncia UMA vez', '1 × reflected (frente)', `${refl.length} × reflected${refl[0] ? ` (${refl[0].face})` : ''}`, refl.length === 1 && refl[0].face === 'front'),
+      row('2 segmentos; o segundo pertence ao refletor (azul)', '2 segmentos, dono 0', `${b.segments.length} segmentos, dono ${seg2?.owner}`, b.segments.length === 2 && seg2?.owner === 0),
+      row('o lançador (vermelho) leva o dano; o azul protegido não', 'vermelho ferido, azul intacto', `vermelho −${r2(hurt)}, azul −${r2(100 - g.fighters[0].hp)}`, hurt > 0 && g.fighters[0].hp === 100 && hits.every(e => e.target === 1 && e.attacker === 0))];
+    bar.dead = true;steps(g, 2);
+    out.push(row('sem a barreira o feixe recalcula e segue reto até o azul', '1 segmento, dono 1', `${b.segments.length} segmento(s), dono ${b.segments[0]?.owner}`, b.segments.length === 1 && b.segments[0].owner === 1));
+    return out;
+  }},
+  {id: 'laser-pl', name: 'Laser × Reflect: PL superior neutraliza só o segmento', run() {
+    const g = duel();cast(g, 0, 2);const bar = g.world.entities.find((/** @type {any} */ e) => e.reflect);
+    const b = spawn(g.world, {kind: 'beam', owner: 1, pos: {x: 0, z: 2.5}, dir: {x: 0, z: -1}, life: 4, pl: 3, length: C.world.beam.length, maxSegments: C.world.beam.maxSegments, interval: C.world.beam.interval, hit: {damage: C.world.beam.damage}}, []);
+    const ev = steps(g, 40);
+    return [row('barreira de PL1 contra laser de PL3', 'barreira destruída, 1 neutralização', `barreira ${bar?.dead ? 'destruída' : 'intacta'}, ${ev.filter(e => e.result === 'neutralized').length} neutralização(ões)`, !!bar?.dead && ev.filter(e => e.result === 'neutralized').length === 1),
+      row('a fonte continua e emite de novo no passo seguinte', 'laser vivo e azul ferido', `laser ${b.dead ? 'encerrado' : 'vivo'}, azul −${r2(100 - g.fighters[0].hp)}`, !b.dead && g.fighters[0].hp < 100)];
+  }},
 ];
 /** Executa cenários (todos ou os ids dados); devolve {id, name, rows, ok}. */
 export function runMoveScenarios(/** @type {string[] | null} */ ids = null) {

@@ -31,7 +31,7 @@ try {
   await page.click('[data-reset="reflect.thickness"]');check('o botão ↺ restaura o padrão', await L(() => window.__lab.C.world.reflect.thickness) === 0.1);
   await page.click('#mvp-run');await page.waitForSelector('#mvp-results details');
   const scen = await L(() => [...document.querySelectorAll('#mvp-results summary')].map(s => [s.textContent.trim(), s.classList.contains('ok')]));
-  check('os 10 cenários técnicos passam (esperado × obtido)', scen.length === 10 && scen.every(s => s[1]), scen.filter(s => !s[1]).map(s => s[0]).join(' | '));
+  check('os 12 cenários técnicos passam (esperado × obtido)', scen.length === 12 && scen.every(s => s[1]), scen.filter(s => !s[1]).map(s => s[0]).join(' | '));
   await page.screenshot({path: out + 'cenarios.png'});
   const dl = page.waitForEvent('download');await page.click('#mvp-export');const file = await (await dl).path();check('exporta os cenários em JSON versionado', !!file);
 
@@ -54,6 +54,12 @@ try {
   await L(() => {window.__lab.game.fighters[0].moveRecovery = 0;});await tab('moves');await page.click('[data-emit="1"]');await L(() => {document.getElementById('panel').hidden = true;});await page.waitForTimeout(450);
   check('o projétil hostil é refletido (evento e anel de impacto visível)', await L(() => window.__lab.game.events.some(e => e.result === 'reflected')) && await L(() => window.__lab.view.worldView.rings.length > 0));
   await page.screenshot({path: out + 'reflexao.png'});
+  await tab('moves');check('a aba Moves tem os emissores de laser (PL1–PL3 e giratório) e os parâmetros do laser', await page.locator('#moves-panel [data-laser]').count() === 4 && await page.locator('#moves-panel [data-p^="beam."]').count() === 4);
+  await page.click('[data-laser="2"]');await L(() => {document.getElementById('panel').hidden = true;});await page.waitForTimeout(400);
+  const lz = await L(() => {const e = window.__lab.game.world.entities.find(x => x.kind === 'beam'), m = e && window.__lab.view.worldView.meshes.get(e.id);return e ? {segs: e.segments.length, pl: e.pl, shown: m ? m.children.filter(c => c.visible).length : 0} : null;});
+  check('o laser técnico nasce no mundo e é desenhado (um paralelepípedo por segmento)', !!lz && lz.segs >= 1 && lz.pl === 2 && lz.shown === lz.segs, JSON.stringify(lz));
+  await page.screenshot({path: out + 'laser.png'});
+  await L(() => {const w = window.__lab.game.world;w.entities = w.entities.filter(x => x.kind !== 'beam');});
   await L(() => {const f = window.__lab.game.fighters[0];f.moveRecovery = 0;});
   await key('KeyS', true);await page.waitForTimeout(1700);
   const orbs = await L(() => window.__lab.view.worldView.orbs[0].filter(o => o.visible).length);check('as pedras se formam ao redor de quem carrega o Psyshock (3 + 1 a cada 0,8 s)', orbs >= 4, `${orbs} pedras`);

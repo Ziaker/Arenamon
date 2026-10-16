@@ -29,7 +29,7 @@
 | 4 PL / Clash / Counter | M18.4–M18.8, M19.1–M19.9, M20.1–M20.2, M20.4, M20.8–M20.9, M21.1, M21.3–M21.7, M21.9, M22.5 | `test/pl.test.mjs` (7 verificações) + `reflect`/`psyshock` | **entregue (Fase 4) para Reflect, Psyshock e Tackle**; **não aplicável ainda:** M18.1–M18.3, M18.6, M20.3, M20.5–M20.7 (Status/Trick/Fields genéricos), M21.2 (empates múltiplos: ordem de criação), M21.8, M22.1–M22.4, M22.6–M22.9 (áreas/explosivos ofensivos); M9.5 é da Fase 2 |
 | 5 IA | M15.7–M15.8, M27.6, seção 8 do registro | `test/ai-moves.test.mjs` (8 verificações; + `ai`, `ai-eval` sem regressão) | **entregue (Fase 5)** — equilíbrio com Moves **não medido**; modelo de decisão (heurística por pesos) provisório |
 | 6 Laboratório | M16.7, M27.7–M27.8, M28.2–M28.3, M28.5–M28.9 | `test/moves-ui.test.mjs` (5), `test/moves-ui.browser.mjs` (16, capturas em `validation/moves-ui/`) | **entregue (Fase 6) tecnicamente**; **visual/jogável: aprovação do diretor** (checklist na aba Moves). Pendente: overlays técnicos específicos (M28.7), laser/emissor de laser (Fase 7), formação/gesto definitivos |
-| 7 Lasers (opcional) | M3.5, M9.6, M17.5–M17.7, M20.6 | `test/beam.test.mjs` | planejado |
+| 7 Lasers | M3.5, M9.6, M17.5–M17.7, M20.6, M28.3 | `test/beam.test.mjs` (11), cenários `laser-reflect` e `laser-pl` (`sim/scenarios-moves.js`), `moves-ui.browser` (emissores e desenho) | **entregue tecnicamente (Fase 7)**; **visual/jogável: aprovação do diretor**. Aberto: Counter/stagger de laser, laser disparado por lutador (nenhum Move cria laser ainda) |
 
 ## Regras sem teste automatizável (decisão ou calibração)
 
