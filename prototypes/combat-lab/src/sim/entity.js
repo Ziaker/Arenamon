@@ -12,7 +12,7 @@ export function createFighter(id, attributes, position) {
     // Locomoção contínua: fase (accel/cruise/brake/reverse/turn/overspeed), sprint e telemetria do último passo.
     turnVelocity: 0, sprinting: false, sprintCarry: false, locoPhase: 'idle', desiredVelocity: vec(), appliedAccel: vec(), inputDir: vec(), staminaTrend: 0, lastLanding: null, faceGoal: id ? Math.PI : 0, recoveryFrom: null,
     // Movimentos especiais e status (vazios até existirem movimentos): slots equipados, recargas, buffs/debuffs, efeitos a disparar.
-    loadout: [], moveCooldowns: {}, statuses: [], moveFx: []};
+    loadout: [], moveCooldowns: {}, statuses: [], moveFx: [], combatWindows: null};
 }
 // skill: índice do slot de movimento especial pedido neste passo (null = nenhum).
 export const emptyCommand = () => ({move: vec(), dodge: false, dodgeHeld: false, tackle: false, guard: false, guardPressed: false, target: null, skill: null});
@@ -32,10 +32,41 @@ export function actionSpec(action) {
  */
 export const nominalDistance = (f, kind = 'dodge') => {const p = C.actions[kind];return p.distance * (p.distanceReference > 0 ? p.distanceReference : p.duration) * f.attributes.speed;};
 /** Invulnerável agora? Janela própria da ação (ou a herdada no cancelamento C → X). */
-export const invulnerableWindow = action => action.invulnerableFor ?? (action.kind === 'move' ? moveSpec(action).invulnerable : C.actions[action.kind].invulnerable);
-export const isInvulnerable = f => !!C.extras.toggles.enableInvulnerability && ((f.action?.kind === 'dodge' || f.action?.kind === 'tackle') && f.action.elapsed < invulnerableWindow(f.action) - 1e-8
-  || (f.action?.kind === 'move' && (() => {const s = moveSpec(f.action);return f.action.elapsed >= s.invulnerableFrom - 1e-8 && f.action.elapsed < s.invulnerable - 1e-8;})()));
-export const isOffensive = f => f.action?.kind === 'tackle';
+export const invulnerableWindow = action => {
+  if (action?.invulnerableFor !== undefined) return action.invulnerableFor;
+  if (action?.kind === 'move') return moveSpec(action).invulnerable;
+  if (C.extras?.toggles?.enableAnimationCombatWindows && action?.combatWindows?.invulnerabilityWindows?.length) {
+    const stepSec = C.test?.step || (1 / 120);
+    return action.combatWindows.invulnerabilityWindows[0][1] * stepSec;
+  }
+  return C.actions[action?.kind]?.invulnerable ?? 0;
+};
+export function isInvulnerable(f) {
+  if (!C.extras?.toggles?.enableInvulnerability || !f?.action) return false;
+  if (f.action.invulnerableFor === 0) return false;
+  const kind = f.action.kind;
+  if (C.extras.toggles.enableAnimationCombatWindows && f.action.combatWindows?.invulnerabilityWindows) {
+    if (f.action.invulnerableFor !== undefined) {
+      return f.action.elapsed < f.action.invulnerableFor - 1e-8;
+    }
+    const stepSec = C.test?.step || (1 / 120);
+    const curStep = Math.round((f.action.elapsed ?? 0) / stepSec);
+    return f.action.combatWindows.invulnerabilityWindows.some(([s, e]) => curStep >= s && curStep < e);
+  }
+  return ((kind === 'dodge' || kind === 'tackle') && f.action.elapsed < invulnerableWindow(f.action) - 1e-8
+    || (kind === 'move' && (() => {const s = moveSpec(f.action);return f.action.elapsed >= s.invulnerableFrom - 1e-8 && f.action.elapsed < s.invulnerable - 1e-8;})()));
+}
+export function isOffensive(f) {
+  if (!f?.action || f.action.kind !== 'tackle') return false;
+  if (!C.extras?.toggles?.enableAnimationCombatWindows || !f.action.combatWindows) {
+    return true;
+  }
+  const stepSec = C.test?.step || (1 / 120);
+  const curStep = Math.round((f.action.elapsed ?? 0) / stepSec);
+  const windows = f.action.combatWindows.activeWindows;
+  if (!Array.isArray(windows)) return true;
+  return windows.some(([s, e]) => curStep >= s && curStep < e);
+}
 /** Janela genérica de encadeamento: a ação atual já pode ser substituída por outra (ou pela defesa)? */
 export const chainOpen = f => !f.action || f.action.kind === 'recoil' || f.action.elapsed >= actionSpec(f.action).chainAfter - 1e-8;
 /** Pode iniciar X/C/defesa agora (telemetria de vantagem): no chão, sem recuperação e com a janela de encadeamento aberta. */

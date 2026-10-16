@@ -1,6 +1,6 @@
 // Resolução de contatos ofensivos: lançamento, clash, invulnerabilidade, defesa parcial/perfeita.
 import {C} from './config.js';
-import {isInvulnerable} from './entity.js';
+import {isInvulnerable, isOffensive} from './entity.js';
 import {stat} from './status.js';
 import {vec, add, scale, sub, dot, length, normalize, angleOf, direction} from './math.js';
 
@@ -14,6 +14,7 @@ export function launch(f, away, horizontal, vertical) {
 export function clashPossible(a, b, normal, relative) {
   const X = C.extras.combat;
   if (!C.extras.toggles.enableClash || a.action?.kind !== 'tackle' || b.action?.kind !== 'tackle' || a.flight || b.flight) return false;
+  if (C.extras.toggles.enableAnimationCombatWindows && (!isOffensive(a) || !isOffensive(b))) return false;
   return dot(direction(a.action.heading), normal) > X.clashFacingAlignment && dot(direction(b.action.heading), normal) < -X.clashFacingAlignment && dot(relative, normal) > X.clashClosingSpeed;
 }
 /** X contra X: os dois recebem dano e são lançados em direções opostas (ignora invulnerabilidade). */
@@ -35,9 +36,30 @@ export function tackleConnects(attacker, defender, normal, relative) {
 /** Resolve um tackle conectado. Devolve o evento ou null. */
 export function resolveHit(attacker, defender, normal, relative) {
   const R = C.rules, X = C.extras.combat, T = C.extras.toggles;
-  if (!tackleConnects(attacker, defender, normal, relative) || attacker.action.hits.has(defender.id) || defender.hp <= 0) return null;
+  if (!tackleConnects(attacker, defender, normal, relative) || defender.hp <= 0) return null;
+
+  // Verificação de janelas ativas e multi-hit (quando o toggle estiver ativo e a ação tiver contrato)
+  let windowIdx = -1;
+  if (T.enableAnimationCombatWindows && attacker.action?.combatWindows) {
+    const stepSec = C.test?.step || (1 / 120);
+    const attackerStep = Math.round((attacker.action.elapsed ?? 0) / stepSec);
+    const activeWindows = attacker.action.combatWindows.activeWindows || [];
+    windowIdx = activeWindows.findIndex(([s, e]) => attackerStep >= s && attackerStep < e);
+    // Fora de janela ativa (startup ou recuperação): não conecta
+    if (windowIdx === -1) return null;
+
+    // Multi-hit: verifica se este defensor já foi atingido nesta janela ativa específica
+    attacker.action.hitWindows ??= [];
+    attacker.action.hitWindows[windowIdx] ??= new Set();
+    if (attacker.action.hitWindows[windowIdx].has(defender.id)) return null;
+  } else {
+    // Modo legado: tackle conecta uma única vez durante toda a sua duração
+    if (attacker.action.hits.has(defender.id)) return null;
+  }
+
   if (isInvulnerable(defender)) {
     attacker.action.hits.add(defender.id);
+    if (windowIdx >= 0) attacker.action.hitWindows[windowIdx].add(defender.id);
     // Esquiva perfeita: só a esquiva C (não um tackle que herdou invulnerabilidade de C) concede o bônus, uma vez por tackle.
     if (defender.action?.kind === 'dodge' && T.enableCounterBonus) {
       const D = C.actions.dodge;
@@ -52,6 +74,7 @@ export function resolveHit(attacker, defender, normal, relative) {
     return {attacker: attacker.id, target: defender.id, result: 'invulnerable', damage: 0, normal: {...normal}};
   }
   attacker.action.hits.add(defender.id);
+  if (windowIdx >= 0) attacker.action.hitWindows[windowIdx].add(defender.id);
   const protectedFront = defender.guard && dot(direction(defender.facing), normalize(sub(attacker.position, defender.position))) >= X.guardFrontAlignment;
   const perfect = protectedFront && defender.perfectLeft > 1e-8;
   const attack = stat(attacker, 'attack', attacker.attributes.attack), damage = perfect ? 0 : attack * (protectedFront ? X.guardDamageMultiplier : 1) * stat(defender, 'damageTaken', 1);
