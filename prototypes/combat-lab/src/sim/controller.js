@@ -406,7 +406,10 @@ function updateMove(f, action, target, cmd, dt) {
 // mesmo passo (M30.9): defesa → X/C → soltar o Move. Regras: M7.1–M7.9, M13.7, M15.1–M15.4, M16.1–M16.8, M17.8, M26s.8, M27.1, M27.4.
 /** Fim do deslocamento principal da esquiva (a partir daqui um Move pode começar, M15.5): depois da desaceleração, antes da recuperação final. */
 const dodgeMainEnd = () => C.actions.dodge.duration * (1 - C.actions.dodge.recoveryTime);
-/** O movimento de carga do slot pode começar agora? Mesmos motivos de movePermission, mais apoio no chão, esquiva e recuperação. */
+/**
+ * O movimento de carga do slot pode começar agora? Mesmos motivos de movePermission, mais apoio no chão, esquiva e recuperação.
+ * @param {any} f @param {any} def @param {number | null} [slot]
+ */
 export function chargePermission(f, def, slot = null) {
   if (!def) return {ok: false, reason: 'noMove', detail: {slot}};
   if (hasFlag(f, 'stunned')) return {ok: false, reason: 'stunned'};

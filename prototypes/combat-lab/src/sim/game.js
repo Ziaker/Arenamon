@@ -14,6 +14,8 @@ const finishingNow = g => g.phase === 'finishing';
 export class Game {
   constructor({seed = 1} = {}) {
     this.brain = new Brain(seed, 'aiRed');this.playerBrain = new Brain(seed + 1, 'aiBlue');
+    // A IA lê o mundo (projéteis e barreiras) só por esta função: ela não entra no estado salvo e sempre aponta para o mundo atual.
+    this.brain.getWorld = this.playerBrain.getWorld = () => this.world;
     // Movimentos equipados por lutador (ids registrados em moves.js); mantidos entre partidas.
     this.loadouts = [[], []];
     this.mode = 'combat';this.profile = 'balanced';this.enemyProfile = 'balanced';

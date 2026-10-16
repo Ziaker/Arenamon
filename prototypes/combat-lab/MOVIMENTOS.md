@@ -166,6 +166,19 @@ O PL pertence à **execução** do Move (M18.4): Reflect e Psyshock recebem PL1�
 
 **Não aplicável aos dois primeiros Moves (decisão a tomar quando houver Moves ofensivos de área):** Clash entre áreas e projétil × explosão (M22.2–M22.4), neutralização local × integral (M22.3), defesas herdadas com PL (M21.8) e elegibilidade configurável por Move (M18.6).
 
+## IA com Moves — Fase 5
+
+A IA tática (`sim/ai-moves.js`) usa Reflect e Psyshock **só quando equipados**, pelos mesmos campos de comando do jogador (`skill`, `skillHeld`) e **só pede o que o motor aceitaria agora** (mesma função de permissão: stamina, recarga, recuperação, apoio no chão, esquiva/defesa). Sem Moves equipados nada muda (nenhum sorteio consumido; luta idêntica à anterior).
+
+| Situação | O que a IA faz |
+|---|---|
+| Projétil hostil a caminho | **Reflect reativo**: só carrega se der tempo de chegar a um PL ≥ o do projétil (senão uma barreira de PL menor seria destruída); caso contrário defende (D) em cima da hora |
+| Adversário longe, caminho livre, stamina ≥ 2 | **Psyshock** com probabilidade pelo estilo (`attack`) e pela distância; PL1/PL2/PL3 sorteados conforme o estilo (`reserve`, `bait`) e a distância; trava o alvo (homing) |
+| Barreira refletora do adversário na linha | **Tackle** para destruí-la quando está a menos de 3,2 m (em vez de atirar contra ela) |
+| Projétil imediato durante uma carga | defende (cancela a carga, como um jogador faria) |
+
+Decisões (momento, Move, motivo, PL) ficam em `brain.t.mv.log` (telemetria opcional, serializável com o resto do estado da IA). A IA lê o mundo por `brain.getWorld()`, função ligada pelo `Game` que **não** entra no estado salvo. **Provisório:** pesos e limiares das decisões (calibráveis; sem medição de equilíbrio com Moves — `ai-eval` só mede sem Moves). **Testes:** `test/ai-moves.test.mjs`.
+
 ## Garantias verificadas (`test/moves.test.mjs`)
 
 - O registro está vazio, e nenhum código do laboratório registra movimentos.
