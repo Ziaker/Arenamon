@@ -165,12 +165,13 @@ export class View {
     this.camera.position.set(pose.position.x, pose.height, pose.position.z);this.camera.lookAt(pose.lookAt.x, pose.lookHeight, pose.lookAt.z);this.camera.updateMatrixWorld();
     // Efeitos depois da câmera (o flash de tela projeta o ponto do impacto). Pausado: dt = 0, os efeitos congelam.
     const vfxDt = paused ? 0 : Math.min(dt, 0.05);
-    t0 = now();this.vfx.update(fighters, events, vfxDt, {characters: this.characters, camera: this.camera});tm.vfx = now() - t0;
-    // Novo runtime declarativo (só processa/renderiza quando useNewVfx for true;
-    // caso contrário permanece inativo como fallback pronto para ativação).
     let rt = null;
     if (this.useNewVfx) {
-      t0 = now();rt = this.vfxRuntime.update(fighters, events, vfxDt, {characters: this.characters, camera: this.camera, paused, tick});tm.vfx += now() - t0;
+      // Novo runtime declarativo (renderizador ativo). O legado fica inativo.
+      t0 = now();rt = this.vfxRuntime.update(fighters, events, vfxDt, {characters: this.characters, camera: this.camera, paused, tick});tm.vfx = now() - t0;
+    } else {
+      // Renderizador legado (fallback). O novo runtime permanece inativo.
+      t0 = now();this.vfx.update(fighters, events, vfxDt, {characters: this.characters, camera: this.camera});tm.vfx = now() - t0;
     }
     const legacy = this.updateLegacy(fighters, events, paused ? 0 : dt);
     const fxOn = !!X.hud.fxVisible;

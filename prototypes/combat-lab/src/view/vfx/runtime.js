@@ -189,7 +189,7 @@ export class VfxRuntime {
     if (!this.enabled) {
       this.pools.clearAll(); this.activeEffects.clear(); this.scheduler.clear();
       this.add.clear(); this.norm.clear();
-      this.cameraFeedback.reset(); this.contAcc.clear();
+      this.budget.reset(); this.cameraFeedback.reset(); this.contAcc.clear();
       return;
     }
     const frameDt = paused ? 0 : Math.min(dt, 0.05);
@@ -367,7 +367,7 @@ export class VfxRuntime {
   reset() {
     this.scheduler.clear(); this.activeEffects.clear();
     this.pools.clearAll(); this.add.clear(); this.norm.clear();
-    this.budget.reset(); this.contAcc.clear(); this.contSeq = 0;
+    this.budget.reset(); this.contAcc.clear(); this.contSeq = 0; this.time = 0;
     this.cameraFeedback.reset();
     this.stats = {spawned: 0, peak: 0, active: 0, firesByType: {}, byType: {}};
     this.log = [];
