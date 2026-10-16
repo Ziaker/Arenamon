@@ -48,6 +48,10 @@ Executado e aprovado em worktree temporário: `npm run typecheck`; `npm run test
 
 Executado e aprovado em worktree temporário: `npm run typecheck`; `npm run test:combat-lab:unit` completo (inclui `ai-moves.test` 8 verificações; `ai` e `ai-eval` inalterados); `npm run test:combat-lab:browser` completo; `npm run check:offline`; impressão digital de lutas IA × IA **idêntica** à da base (sem Moves a IA não muda). **Testes de navegador intermitentes corrigidos (só testes):** `overhaul.browser` (tolerância de quadro passou de 2 para 3 quadros: um quadro lento no meio reprovava 1 de 116) e `workspace.browser` (seletor `[data-tool="characters"]` casava também o painel aberto; agora abre a aba só se preciso). Depois disso a suíte inteira passou. **Não medido:** equilíbrio e taxa de vitória com Moves (pesos provisórios), desempenho no navegador. **Não executado:** `verify:workspace`/`verify` completo (worktree), paridade v6 (arquivo ausente), aprovação jogável (sua).
 
+### Fase 6 dos Moves — Laboratório (2026-10-16, branch `feat/moves-fase6-lab` sobre `main` @ `baf6394`)
+
+Executado e aprovado em worktree temporário: `npm run typecheck`; `npm run test:combat-lab:unit` completo (inclui `moves-ui.test` 5 verificações); `npm run test:combat-lab:browser` completo (inclui `moves-ui.browser` 16/16: aba Moves, HUD, prévia, reflexão com anel, pedras, aviso de falha, offline, sem erros; **capturas inspecionadas** em `validation/moves-ui/`); `npm run check:offline`; impressão digital IA × IA idêntica à da base. **Não medido:** desempenho de render com muitas entidades/VFX em GPU real. **Não executado:** `verify:workspace`/`verify` completo (worktree), paridade v6 (arquivo ausente). **Pendente (sua):** avaliação jogável e visual — checklist de 10 itens na aba Moves.
+
 ### NÃO executado / pendente
 
 - `npm run verify:workspace`: **recusa worktrees por desenho** (exige o checkout oficial). Deve ser rodado na pasta oficial quando ela estiver livre.
