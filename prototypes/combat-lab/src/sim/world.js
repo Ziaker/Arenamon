@@ -1,3 +1,4 @@
+// @ts-check
 // Mundo de combate: entidades criadas por movimentos (projéteis, barreiras, paredes e áreas — explosões, pulsos
 // radiais e zonas persistentes). Infraestrutura sem conteúdo: nenhuma entidade existe até um movimento criá-la.
 //
@@ -10,12 +11,14 @@
 //
 // Formas: 'circle' (raio) e 'box' (meias-medidas hx, hz, girada por `angle`). Altura: `y` (base) e `height`.
 import {C} from './config.js';
-import {isInvulnerable} from './entity.js';
+import {isInvulnerable, nominalDistance} from './entity.js';
+import {sweepBox, segmentHitsVolume} from './geometry.js';
 import {launch} from './combat.js';
+import {traceBeam} from './beam.js';
 import {applyStatus, stat} from './status.js';
-import {vec, add, sub, scale, dot, length, normalize, direction} from './math.js';
+import {vec, add, sub, scale, dot, length, normalize, direction, angleOf, angleDelta, clamp} from './math.js';
 
-export const ENTITY_KINDS = ['projectile', 'barrier', 'wall', 'area'];
+export const ENTITY_KINDS = ['projectile', 'barrier', 'wall', 'area', 'beam'];
 export const createWorld = () => ({entities: [], nextId: 1});
 const fighterHeight = () => C.extras.visual.bodyHeight;
 const altOf = f => (f.flight?.y ?? 0) + (f.vaultHeight ?? 0);
@@ -44,6 +47,7 @@ export const DEFAULTS = {
   projectile: {shape: 'circle', radius: .25, y: .65, height: 0, speed: 12, life: 2, pierce: 1, blockedBy: ['barrier', 'wall'], hitsOwner: false},
   barrier: {shape: 'box', hx: .9, hz: .15, y: 0, height: 1.8, life: 3, hp: Infinity, blocksProjectiles: true, blocksFighters: false, blocksOwner: false},
   wall: {shape: 'box', hx: 1.5, hz: .3, y: 0, height: 2.2, life: Infinity, blocksProjectiles: true, blocksFighters: true},
+  beam: {y: .9, life: 2, length: 24, width: .04, pl: 1, interval: .25, turn: 0, hitsOwner: false, hit: {damage: 0}},
   area: {shape: 'circle', radius: 2, y: 0, height: 2, life: .3, grow: 0, pulses: 1, interval: 0, falloff: 'none', affectsOwner: false, follow: false},
 };
 /** Valida um modelo de entidade (lança erro legível). */
@@ -63,6 +67,7 @@ export function spawn(world, t, events = []) {
   const e = structuredClone({...DEFAULTS[t.kind], ...t});
   e.id = world.nextId++;e.age = 0;e.hitLog = [];e.pulsesDone = 0;e.pos = {...(t.pos ?? vec())};e.dir = t.dir ? normalize(t.dir) : direction(t.angle ?? 0);
   if (e.kind === 'projectile') e.vel = scale(e.dir, e.speed);
+  if (e.kind === 'beam') {e.nextHit = {};e.segments = [];e.contacts = [];e.maxSegments ??= C.world.beam.maxSegments;}
   if (e.kind === 'area') {e.baseRadius = e.radius;if (e.grow > 0) e.radius = e.startRadius ?? 0;}
   world.entities.push(e);events.push({result: 'spawn', attacker: e.owner ?? null, target: null, damage: 0, entity: e.id, kind: e.kind});
   return e;
@@ -77,7 +82,7 @@ export function spawn(world, t, events = []) {
  */
 export function applyHit(game, ownerId, target, hit, normal, info = {}) {
   const R = C.rules, X = C.extras.combat, T = C.extras.toggles, owner = ownerId == null ? null : game.fighters[ownerId];
-  const base = {attacker: ownerId, target: target.id, normal: {...normal}, entity: info.entity ?? null, source: info.source ?? 'world'};
+  const base = {attacker: ownerId, target: target.id, normal: {...normal}, entity: info.entity ?? null, source: info.source ?? 'world', pl: info.pl ?? null};
   if (target.hp <= 0) return null;
   if (!hit.ignoreInvulnerability && isInvulnerable(target)) return {...base, result: 'invulnerable', damage: 0};
   const attack = owner ? stat(owner, 'attack', 1) : 1, scaleK = info.scale ?? 1;
@@ -86,6 +91,7 @@ export function applyHit(game, ownerId, target, hit, normal, info = {}) {
   const perfect = protectedFront && target.perfectLeft > 1e-8;
   const raw = (hit.damage ?? 0) * attack * scaleK, damage = perfect ? 0 : raw * (protectedFront ? X.guardDamageMultiplier : 1) * stat(target, 'damageTaken', 1);
   target.hp = Math.max(0, target.hp - damage);
+  /** @type {{direction: import("./types").Vec, horizontal: number, vertical: number} | null} */
   let launchInfo = null;
   if (protectedFront) {
     target.velocity = vec();target.locomotionVelocity = vec();
@@ -104,13 +110,14 @@ export function applyHit(game, ownerId, target, hit, normal, info = {}) {
 
 // ---------- Paredes e barreiras contra lutadores (chamado pela física, a cada subpasso) ----------
 /** Empurra o lutador para fora das formas sólidas (paredes; barreiras com blocksFighters). Sem formas, nada acontece. */
-export function collideFighter(world, f) {
+export function collideFighter(world, f, events = null) {
   if (!world?.entities.length) return 0;let contacts = 0;
   const r = C.test.halfExtent, alt = altOf(f), h = fighterHeight();
   for (const e of world.entities) {
     const solid = e.kind === 'wall' ? e.blocksFighters : e.kind === 'barrier' && e.blocksFighters && (e.blocksOwner || e.owner !== f.id);
     if (!solid || !vOverlap(alt, alt + h, e.y, e.y + e.height)) continue;
     const c = closestOnShape(e, f.position);if (c.distance >= r) continue;
+    if (e.breakableByTackle && f.action?.kind === 'tackle' && !f.action.neutralized && !e.dead) {breakByTackle(e, f, events);continue;}
     // Normal de saída: do ponto mais próximo para o centro (dentro da forma, pelo eixo de menor penetração).
     let n = sub(f.position, c.point);if (length(n) < 1e-9 || c.inside) n = sub(f.position, e.pos);if (length(n) < 1e-9) n = vec(0, 1);n = normalize(n);
     f.position = add(c.inside ? c.point : f.position, scale(n, c.inside ? r : r - c.distance));
@@ -123,7 +130,7 @@ export function collideFighter(world, f) {
 }
 
 // ---------- Passo do mundo ----------
-const blocks = (b, p) => (b.kind === 'wall' && b.blocksProjectiles) || (b.kind === 'barrier' && b.blocksProjectiles && (b.blocksOwner || b.owner !== p.owner));
+const blocks = (b, p) => (b.kind === 'wall' && b.blocksProjectiles) || (b.kind === 'barrier' && !b.reflect && b.blocksProjectiles && (b.blocksOwner || b.owner !== p.owner));   // barreiras refletoras: ver reflectPass
 /** Avança as entidades em dt; devolve os eventos (acertos, bloqueios, explosões, expirações). */
 export function stepWorld(game, dt) {
   const world = game.world, events = [];
@@ -134,9 +141,12 @@ export function stepWorld(game, dt) {
     e.age += dt;
     if (e.kind === 'projectile') stepProjectile(game, e, dt, events, spawnLater);
     else if (e.kind === 'area') stepArea(game, e, dt, events);
+    else if (e.kind === 'beam') stepBeam(game, e, dt, events);
     if (!e.dead && e.age >= e.life - 1e-9) {e.dead = true;events.push({result: 'expire', attacker: e.owner ?? null, target: null, damage: 0, entity: e.id, kind: e.kind});if (e.onExpire) spawnLater.push(at(e.onExpire, e));}
   }
+  clashStones(world, events);
   world.entities = world.entities.filter(e => !e.dead);
+  pruneExecutions(world);
   for (const t of spawnLater) spawn(world, t, events);
   return events;
 }
@@ -144,11 +154,14 @@ export function stepWorld(game, dt) {
 const at = (template, src, pos = src.pos) => ({owner: src.owner, ...template, pos: {...pos}, dir: template.dir ?? src.dir});
 
 function stepProjectile(game, p, dt, events, spawnLater) {
+  if (p.homing) homingStep(game, p, dt);
   // Subpassos curtos (sem atravessar alvos finos): mesmo critério da física (contactStep).
   const travel = length(p.vel) * dt, steps = Math.max(1, Math.ceil(travel / C.test.contactStep));
   if (p.gravity) p.vy = (p.vy ?? 0) - p.gravity * dt;
   for (let s = 0; s < steps && !p.dead; s++) {
-    p.pos = add(p.pos, scale(p.vel, dt / steps));if (p.gravity) {p.y = Math.max(0, p.y + (p.vy ?? 0) * dt / steps);if (p.y <= 0 && p.vy < 0) {p.dead = true;events.push({result: 'groundHit', attacker: p.owner ?? null, target: null, damage: 0, entity: p.id, kind: 'projectile'});if (p.onHit) spawnLater.push(at(p.onHit, p));return;}}
+    const from = {...p.pos};p.pos = add(p.pos, scale(p.vel, dt / steps));if (p.gravity) {p.y = Math.max(0, p.y + (p.vy ?? 0) * dt / steps);if (p.y <= 0 && p.vy < 0) {p.dead = true;events.push({result: 'groundHit', attacker: p.owner ?? null, target: null, damage: 0, entity: p.id, kind: 'projectile'});if (p.onHit) spawnLater.push(at(p.onHit, p));return;}}
+    if (!p.gravity && p.vy) {p.y += p.vy * dt / steps;if (p.y <= 0 && p.vy < 0) {p.dead = true;events.push({result: 'groundHit', attacker: p.owner ?? null, target: null, damage: 0, entity: p.id, kind: 'projectile'});return;}}   // voo inclinado sem gravidade (pedras com alvo travado)
+    if (!reflectPass(game, p, from, events)) return;
     const half = C.test.arenaHalf;
     if (Math.abs(p.pos.x) > half || Math.abs(p.pos.z) > half) {p.dead = true;events.push({result: 'arenaHit', attacker: p.owner ?? null, target: null, damage: 0, entity: p.id, kind: 'projectile'});if (p.onHit) spawnLater.push(at(p.onHit, p));return;}
     // Barreiras e paredes primeiro: o que está na frente bloqueia.
@@ -163,11 +176,31 @@ function stepProjectile(game, p, dt, events, spawnLater) {
       if (f.hp <= 0 || (f.id === p.owner && !p.hitsOwner) || p.hitLog.includes(f.id)) continue;
       const alt = altOf(f), box = {shape: 'box', pos: f.position, hx: C.test.halfExtent, hz: C.test.halfExtent, angle: 0};
       if (!vOverlap(p.y - p.radius, p.y + p.radius, alt, alt + fighterHeight()) || !circleTouches(box, p.pos, p.radius)) continue;
+      if (p.clashable && f.action?.kind === 'tackle' && !f.action.neutralized && !isInvulnerable(f) && tackleDispute(p, f, events)) return;   // disputa de PL contra o Tackle em curso
       p.hitLog.push(f.id);
-      const ev = applyHit(game, p.owner, f, p.hit || {}, normalize(p.vel), {entity: p.id, origin: sub(f.position, scale(normalize(p.vel), 1))});
+      const hit = p.exec != null ? execHit(game.world, p, f) : (p.hit || {});
+      const ev = applyHit(game, p.owner, f, hit, normalize(p.vel), {entity: p.id, origin: sub(f.position, scale(normalize(p.vel), 1)), pl: p.pl});
+      if (p.exec != null) execRecord(game.world, p, f, ev, hit);
       if (ev) events.push(ev);
+      if (ev && p.counterWon && p.defeated?.includes(f.id) && (ev.result === 'impact' || ev.result === 'partial')) applyCounterStagger(f, p.captured?.counterStagger ?? 0, events, p.owner ?? null);
       if (p.hitLog.length >= p.pierce || ev?.result === 'partial' || ev?.result === 'perfect') {p.dead = true;if (p.onHit) spawnLater.push(at(p.onHit, p));return;}
     }
+  }
+}
+/**
+ * Feixe contínuo: recalcula os segmentos (reflexões, troca de dono, barreira que some) e aplica o dano a cada `interval` por alvo, pelo
+ * mesmo `applyHit` dos demais acertos. O dano do trecho usa `captured.attackFraction × Ataque do dono do trecho` quando existir (M17.6); senão `hit.damage × Ataque`.
+ */
+function stepBeam(game, e, dt, events) {
+  if (e.turn) {const d = angleOf(e.dir) + e.turn * dt;e.dir = direction(d);}
+  const {segments, hits} = traceBeam(game, e, events);e.segments = segments;
+  for (const h of hits) {
+    if ((e.nextHit[h.target] ?? 0) > e.age + 1e-9) continue;
+    e.nextHit[h.target] = e.age + e.interval;
+    const f = game.fighters[h.target], seg = segments[h.seg], dir = normalize(sub(seg.b, seg.a)), o = h.owner != null ? game.fighters[h.owner] : null;
+    const hit = e.captured?.attackFraction != null && o ? {...e.hit, damage: e.captured.attackFraction * o.attributes.attack} : e.hit;
+    const ev = applyHit(game, h.owner, f, hit, dir, {entity: e.id, source: 'laser', origin: seg.a, pl: seg.pl});
+    if (ev) events.push({...ev, seg: h.seg, kind: 'beam'});
   }
 }
 function stepArea(game, a, dt, events) {
@@ -177,16 +210,172 @@ function stepArea(game, a, dt, events) {
   const due = a.interval > 0 ? Math.min(a.pulses, 1 + Math.floor((a.age - dt + 1e-9) / a.interval)) : Math.min(a.pulses, 1);
   while (a.pulsesDone < due) {
     a.pulsesDone++;
-    if (!a.hit) continue;
-    for (const f of game.fighters) {
+    const shields = a.explosion ? game.world.entities.filter(e => e.shields && !e.dead) : [];
+    if (a.hit) for (const f of game.fighters) {
       if (f.hp <= 0 || (f.id === a.owner && !a.affectsOwner)) continue;
       const alt = altOf(f);if (!vOverlap(alt, alt + fighterHeight(), a.y, a.y + a.height)) continue;
       const box = {shape: 'box', pos: f.position, hx: C.test.halfExtent, hz: C.test.halfExtent, angle: 0};
       const c = closestOnShape(box, a.pos), dist = Math.max(0, c.inside ? 0 : c.distance);if (dist > a.radius) continue;
+      const shield = shields.length ? shieldedFromBlast(a, f, shields) : null;
+      if (shield) {events.push({result: 'shielded', attacker: a.owner ?? null, target: f.id, damage: 0, entity: a.id, by: shield.id, pulse: a.pulsesDone});continue;}
       // Efeito radial: empurra do centro para fora; a intensidade cai com a distância conforme `falloff`.
       const k = a.falloff === 'linear' ? Math.max(0, 1 - dist / Math.max(1e-6, a.radius)) : 1, away = sub(f.position, a.pos);
       const ev = applyHit(game, a.owner, f, a.hit, length(away) > 1e-6 ? normalize(away) : direction(f.facing + Math.PI), {entity: a.id, scale: k, origin: a.pos});
       if (ev) events.push({...ev, pulse: a.pulsesDone});
     }
+    if (a.explosion) breakBarriers(game, a, events);
   }
 }
+
+// ---------- Power Level: disputas e Counter Stagger ----------
+/** PL do Tackle: fixo em 1 (M21.1). */
+export const TACKLE_PL = 1;
+/**
+ * Counter Stagger (M20.8, M21.4–M21.7): o derrotado fica em stagger de \`seconds\` quando o ataque vencedor atinge o seu CORPO. Não acumula nem
+ * reinicia o stagger ativo; interrompe o Charge pela regra comum (recuperação > 0). Devolve true se aplicou.
+ */
+export function applyCounterStagger(f, seconds, events, by = null) {
+  if ((f.counterStagger ?? 0) > 1e-9 || !(seconds > 0)) return false;
+  f.counterStagger = seconds;f.knockRecovery = Math.max(f.knockRecovery, seconds);
+  events?.push({result: 'counterStagger', attacker: by, target: f.id, damage: 0, seconds});
+  return true;
+}
+/**
+ * Disputa entre uma pedra (PL próprio) e um Tackle em curso (PL1), antes de o corpo ser atingido (M20.2, M21.3). PL igual → Clash: a pedra
+ * se despedaça e o Tackle segue. PL superior → Counter: a pedra vence e segue; o Tackle fica neutralizado (não machuca mais ninguém nesta
+ * ação) e, ao atingir o corpo do derrotado, o Counter Stagger se aplica. Devolve true se a pedra foi destruída.
+ */
+function tackleDispute(p, f, events) {
+  const pl = p.pl ?? 1;
+  if (pl <= TACKLE_PL) {
+    p.dead = true;
+    events.push({result: 'tackleClash', attacker: f.id, target: p.owner ?? null, damage: 0, entity: p.id, pl, other: TACKLE_PL, kind: 'projectile'});
+    return true;
+  }
+  f.action.neutralized = true;p.counterWon = true;(p.defeated ??= []).push(f.id);
+  events.push({result: 'counter', attacker: p.owner ?? null, target: f.id, damage: 0, entity: p.id, pl, other: TACKLE_PL, kind: 'projectile'});
+  return false;
+}
+
+// ---------- Pedras do Psyshock: homing, acertos por alvo e colisão entre pedras ----------
+/** Homing limitado (M10.2, M12.1): nos primeiros 0,3 s a direção horizontal gira no máximo \`rate\` rad/s rumo ao ponto de mira sorteado. Perder o alvo para sempre encerra o homing preservando a direção (M27.5). */
+function homingStep(game, p, dt) {
+  const h = p.homing, t = game.fighters[h.target];
+  if (!t || t.hp <= 0 || h.ticks <= 0) {p.homing = null;return;}
+  h.ticks--;
+  const dx = t.position.x + h.offset.x - p.pos.x, dz = t.position.z + h.offset.z - p.pos.z, speed = length(p.vel);
+  if (speed < 1e-9) return;
+  const cur = angleOf(p.vel), turn = clamp(angleDelta(cur, angleOf({x: dx, z: dz})), -h.rate * dt, h.rate * dt), next = cur + turn;
+  p.vel = {x: Math.sin(next) * speed, z: Math.cos(next) * speed};p.dir = normalize(p.vel);
+  const left = Math.max(dt, Math.hypot(dx, dz) / speed);                       // tempo restante até o ponto de mira: ajusta a subida/descida para chegar à altura sorteada
+  p.vy = (altOf(t) + h.offset.y - p.y) / left;
+}
+/** Dados de acerto desta pedra no alvo: dano × fator^n (n acertos anteriores da MESMA execução no mesmo alvo, M6.3) e knockback limitado ao teto por alvo e execução (M30.3). */
+function execHit(world, p, f) {
+  const x = world.exec?.[p.exec], base = p.hit || {}, n = x?.hits?.[f.id] ?? 0, used = x?.kb?.[f.id] ?? 0, c = p.captured ?? {};
+  const out = {...base, damage: (base.damage ?? 0) * (c.successiveFactor ?? 1) ** n};
+  if (base.knockback) {
+    const room = (c.knockbackCap ?? Infinity) - used, h = room > 1e-9 ? Math.min(base.knockback.horizontal ?? 0, room) : 0;   // tolerância: 0,3 + 0,3 + 0,3 não é exatamente 0,9 em ponto flutuante
+    out.knockback = h > 0 ? {...base.knockback, horizontal: h} : undefined;
+  }
+  return out;
+}
+/** Registra o acerto que causou dano (impacto ou defesa comum): conta para o fator 0,8ⁿ; só o impacto com lançamento consome o teto de knockback. */
+function execRecord(world, p, f, ev, hit) {
+  const x = world.exec?.[p.exec];
+  if (!x || !ev || (ev.result !== 'impact' && ev.result !== 'partial')) return;
+  x.hits[f.id] = (x.hits[f.id] ?? 0) + 1;
+  if (ev.result === 'impact' && hit.knockback) x.kb[f.id] = (x.kb[f.id] ?? 0) + hit.knockback.horizontal;
+}
+/** Pedras de donos diferentes que se tocam (pedras do MESMO Psyshock nunca colidem entre si, mesmo depois de refletidas, M8.1): PL igual → as duas se destroem; PL superior vence e continua (M8.2, M19.4, M20.1). Só as envolvidas somem. */
+function clashStones(world, events) {
+  const s = world.entities.filter(e => e.kind === 'projectile' && e.clashable && !e.dead);
+  for (let i = 0; i < s.length; i++) for (let j = i + 1; j < s.length; j++) {
+    const a = s[i], b = s[j];
+    if (a.dead || b.dead || a.owner === b.owner || (a.exec != null && a.exec === b.exec) || Math.abs(a.y - b.y) > a.radius + b.radius || length(sub(a.pos, b.pos)) > a.radius + b.radius) continue;
+    const pa = a.pl ?? 1, pb = b.pl ?? 1;
+    if (pa >= pb) b.dead = true;
+    if (pb >= pa) a.dead = true;
+    // Counter: a pedra vencedora continua e, se depois atingir o CORPO do dono da derrotada, aplica o Counter Stagger (M20.8, M21.4); disputa distante não machuca ninguém.
+    if (pa > pb) {a.counterWon = true;(a.defeated ??= []).push(b.owner);} else if (pb > pa) {b.counterWon = true;(b.defeated ??= []).push(a.owner);}
+    events.push({result: pa === pb ? 'stoneClash' : 'counter', attacker: a.owner ?? null, target: b.owner ?? null, damage: 0, entity: a.id, other: b.id, pl: pa, otherPl: pb, winner: pa === pb ? null : pa > pb ? a.id : b.id});
+  }
+}
+/** Descarta as execuções sem nenhuma pedra viva. */
+function pruneExecutions(world) {
+  if (!world.exec) return;
+  const live = new Set(world.entities.filter(e => e.exec != null).map(e => String(e.exec)));
+  for (const k of Object.keys(world.exec)) if (!live.has(k)) delete world.exec[k];
+}
+
+// ---------- Barreiras refletoras (Reflect) ----------
+/**
+ * Reflexão especular de projéteis em barreiras com \`reflect\` (Reflect). Varre o segmento do subpasso e resolve os contatos em
+ * ORDEM FÍSICA (M30.6; empate: ordem de criação). Superfície: primeira atingida (M7.7); frente e bordas refletem — a borda pela
+ * própria normal, mesmo vindo de trás (M13.3, M30.5) —; entrar pelo verso atravessa e ignora essa barreira até sair do volume
+ * dela. PL superior destrói a barreira e é neutralizado; PL igual ou inferior é refletido (M18.8, M19.2, M19.3). Quem reflete
+ * passa a ser o dono (M2.7), o homing é cancelado (M12.6), o dano é recalculado com o Ataque do refletor (M17.3, M30.1) e o PL é
+ * conservado (M19.7). Salvaguarda contra ciclo degenerado (M17.2): acima de \`maxReflections\` por passo a reflexão é suspensa
+ * naquele passo e o projétil segue. Devolve false se o projétil foi neutralizado.
+ */
+function reflectPass(game, p, from, events) {
+  const bars = game.world.entities.filter(b => b.reflect && !b.dead);
+  if (!bars.length) return true;
+  if (p.through?.length) p.through = p.through.filter(id => bars.some(b => b.id === id && circleTouches(b, p.pos, p.radius)));
+  let a = from;
+  for (let guard = 0; guard < 512; guard++) {
+    const end = p.pos;let best = /** @type {any} */ (null);
+    for (const bar of bars) {
+      if (bar.dead || p.through?.includes(bar.id) || !vOverlap(p.y - p.radius, p.y + p.radius, bar.y, bar.y + bar.height)) continue;
+      const h = sweepBox(bar, a, end, p.radius, bar.captured?.tieTolerance ?? .001);
+      if (!h) continue;
+      if ('inside' in h) {(p.through ??= []).push(bar.id);continue;}     // já dentro do volume: imune a essa barreira até sair
+      if (!best || h.t < best.t - 1e-12) best = {...h, bar};
+    }
+    if (!best) return true;
+    const bar = best.bar;
+    if (best.face === 'back') {(p.through ??= []).push(bar.id);continue;}
+    if ((p.pl ?? 1) > (bar.pl ?? 1)) {
+      bar.dead = true;p.dead = true;
+      events.push({result: 'barrierBroken', attacker: p.owner ?? null, target: bar.owner ?? null, damage: 0, entity: bar.id, kind: 'barrier', by: 'pl'});
+      events.push({result: 'neutralized', attacker: p.owner ?? null, target: bar.owner ?? null, damage: 0, entity: p.id, by: bar.id, kind: 'projectile'});
+      return false;
+    }
+    if (p.reflectTick !== game.tick) {p.reflectTick = game.tick;p.reflectCount = 0;}
+    if (++p.reflectCount > (bar.captured?.maxReflections ?? 16)) {
+      if (p.reflectCount === (bar.captured?.maxReflections ?? 16) + 1) events.push({result: 'reflectCycle', attacker: p.owner ?? null, target: null, damage: 0, entity: p.id, kind: 'projectile'});
+      return true;
+    }
+    const n = best.normal, nv = sub(p.vel, scale(n, 2 * dot(p.vel, n))), rest = (1 - best.t) * best.len, previous = p.owner;
+    const dir = normalize(nv);
+    a = add(best.point, scale(n, 1e-7));
+    p.vel = nv;p.dir = dir;p.pos = add(a, scale(dir, rest));
+    p.origin ??= previous;p.owner = bar.owner;p.hitLog = [];p.homing = null;
+    if (p.captured?.attackFraction != null) {const o = game.fighters[bar.owner];if (o) p.hit = {...p.hit, damage: p.captured.attackFraction * o.attributes.attack};}
+    events.push({result: 'reflected', attacker: bar.owner ?? null, target: previous ?? null, damage: 0, entity: p.id, by: bar.id, face: best.face, kind: 'projectile', pl: p.pl ?? 1, barrierPl: bar.pl ?? 1});
+  }
+  return true;
+}
+/** O lutador está protegido desta explosão? O segmento 3D do centro da explosão ao centro do corpo cruza o volume de alguma barreira protetora (M30.7). */
+function shieldedFromBlast(a, f, shields) {
+  const p0 = {x: a.pos.x, z: a.pos.z, y: a.y + a.height / 2}, p1 = {x: f.position.x, z: f.position.z, y: altOf(f) + fighterHeight() / 2};
+  const hit = shields.find(b => segmentHitsVolume(b, b.y, b.height, p0, p1));
+  return hit ?? null;
+}
+/** Explosão destrói as barreiras vulneráveis que seu volume alcança (M14.5, M14.7); a proteção já foi avaliada antes (M30.6, item 4). */
+function breakBarriers(game, a, events) {
+  for (const b of game.world.entities) {
+    if (b.dead || !b.breakableByBlast || !vOverlap(a.y, a.y + a.height, b.y, b.y + b.height) || closestOnShape(b, a.pos).distance > a.radius) continue;
+    b.dead = true;events.push({result: 'barrierBroken', attacker: a.owner ?? null, target: b.owner ?? null, damage: 0, entity: b.id, kind: 'barrier', by: 'explosion'});
+  }
+}
+/** Tackle contra barreira vulnerável: destrói (qualquer PL, frente, verso ou borda, inclusive a própria) e o atacante recua e fica em stagger (M14.3, M14.4, M19.9). */
+function breakByTackle(e, f, events) {
+  e.dead = true;
+  const cap = e.captured ?? {}, away = scale(direction(f.action.heading), -1);
+  f.action = null;f.velocity = vec();f.locomotionVelocity = vec();f.blend = null;f.vaultHeight = 0;
+  f.push = {direction: away, distance: nominalDistance(f, 'tackle') * (cap.tackleRecoil ?? .15), elapsed: 0};
+  f.knockRecovery = Math.max(f.knockRecovery, cap.tackleStagger ?? .25);
+  events?.push({result: 'barrierBroken', attacker: f.id, target: e.owner ?? null, damage: 0, entity: e.id, kind: 'barrier', by: 'tackle'});
+}
+

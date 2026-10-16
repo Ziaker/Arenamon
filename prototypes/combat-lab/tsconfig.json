@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": false,
+    "strict": false,
+    "alwaysStrict": true,
+    "noImplicitAny": false,
+    "strictNullChecks": true,
+    "lib": ["ES2022", "DOM"]
+  },
+  "include": ["src/sim/**/*.js", "src/sim/**/*.d.ts"]
+}

@@ -41,7 +41,7 @@ git stash list
 | **Animation Studio** | `prototypes/studio/` | Codex / Claude | Preservar compatibilidade do Action Editor com arquivos GLB. |
 | **Núcleo de Rigging** | `prototypes/studio/src/rigging/` | Codex | O núcleo estrutural, bind pose e pesos são de responsabilidade do Codex. Não reescreva sem coordenação. |
 | **Propostas Visuais de Rigging** | `prototypes/studio/proposals/` | Antigravity | Três propostas visuais independentes (A, B e C). Não escolher uma delas unilateralmente. |
-| **Laboratório de Combate** | `prototypes/combat-lab/` | Claude | Mantido isolado na branch `feat/combat-core-etapa-a`. |
+| **Laboratório de Combate** | `prototypes/combat-lab/` | Claude | Está na `main` (integrado por merge). Mapa de módulos e testes: `docs/INDICE_MODULOS.md`. |
 | **Central de Acesso & Docs**| Raiz e `docs/` | Antigravity / Claude | Manter links relativos sempre válidos para execução via `file://`. |
 
 ---

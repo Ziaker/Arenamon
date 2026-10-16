@@ -30,13 +30,19 @@ import {createPresetsPanel} from './ui/presets-panel.js';
 import {createMovementPanel} from './ui/movement-panel.js';
 import {createDiagnostics, createWindowsOverlay} from './ui/diagnostics-panel.js';
 import {createTrainingPanel} from './ui/training-panel.js';
+import {createMovesPanel} from './ui/moves-panel.js';
+import {MovesHud} from './ui/moves-hud.js';
 import {createPerfPanel} from './ui/perf-panel.js';
 import {createAiEvalPanel} from './ui/ai-eval-panel.js';
 import {createProjectFiles} from './ui/project-files.js';
 import * as Moves from './sim/moves.js';
+import {registerStandardMoves, STANDARD_MOVE_IDS} from './sim/moves/standard.js';
 /* global __GAME_CONFIG_TS__ */
 const GAME_CONFIG_TS = typeof __GAME_CONFIG_TS__ === 'string' ? __GAME_CONFIG_TS__ : '';
 import {length, sub, dot} from './sim/math.js';
+
+// Moves padrão (D2): registrados aqui, no bootstrap do laboratório, nunca no núcleo da simulação. Registrar não equipa nenhum slot.
+registerStandardMoves();
 
 const $ = id => document.getElementById(id);
 const canvas = document.querySelector('.stage canvas');
@@ -412,12 +418,13 @@ $('camera-reset').onclick = () => {view.reset(game.fighters[0]);canvas.focus();}
 $('rp-back').onclick = () => stepFrames(-1);$('rp-fwd').onclick = () => stepFrames(1);$('rp-play').onclick = () => togglePause();$('rp-live').onclick = goLive;
 $('rp-speed').onchange = () => {clock.timeScale = Number($('rp-speed').value) || 1;};
 $('dock-toggle').onclick = () => {$('dock').classList.toggle('collapsed');$('dock-toggle').classList.toggle('active', !$('dock').classList.contains('collapsed'));};$('dock-toggle').classList.add('active');
-const TITLES = {match: 'Partida', scenarios: 'Cenários', tuning: 'Ajustes', overlays: 'Visualizar', characters: 'Personagens', controls: 'Controles', export: 'Exportar', homolog: 'Homologação'};
+const TITLES = {match: 'Partida', moves: 'Moves', scenarios: 'Cenários', tuning: 'Ajustes', overlays: 'Visualizar', characters: 'Personagens', controls: 'Controles', export: 'Exportar', homolog: 'Homologação'};
 function openTool(tool) {
   const same = !$('panel').hidden && $('panel').dataset.tool === tool;$('panel').hidden = same;$('panel').dataset.tool = tool;
   for (const b of document.querySelectorAll('[data-tool]')) b.classList.toggle('active', !same && b.dataset.tool === tool);
   for (const s of document.querySelectorAll('[data-section]')) s.hidden = s.dataset.section !== tool;$('panel-title').textContent = TITLES[tool];
   if (tool === 'homolog') homologation.render();
+  if (tool === 'moves') movesPanel.render();
   if (tool === 'scenarios') {syncCompareOptions();movement.render();}
   if (tool === 'tuning') presets.render();
   if (tool === 'export') renderGameDiff();if (tool === 'tuning') tuning.render();
@@ -443,6 +450,16 @@ const diagnostics = createDiagnostics({$, game, tuning, download});
 const windowsOverlay = createWindowsOverlay({root: $('win-overlay'), view, game});
 $('win-controls').append(...tuning.sectionControls('Janelas de combate'));
 // Treino de defesa/esquiva perfeitas: o vermelho segue o roteiro do treino; tudo cronometrado em passos de simulação.
+const movesPanel = createMovesPanel({$, game, download});
+const movesHud = new MovesHud($('moves-hud'));
+/** Avisos discretos dos Moves (M28.6): falha de execução com o motivo e a devolução da stamina. */
+const seenNotices = new WeakSet(), MOVE_FAIL = {semEspaco: 'sem espaço — stamina devolvida, sem recarga', limiteDeEntidades: 'limite de entidades do mundo — stamina devolvida', semCarga: 'sem carga', effectMissing: 'efeito não registrado'};
+function moveNotices() {
+  for (const e of game.events) {
+    if (seenNotices.has(e) || e.result !== 'moveFailed') continue;seenNotices.add(e);
+    diagnostics.toast({text: `${e.move === 'psyshock' ? 'Psyshock' : e.move === 'reflect' ? 'Reflect' : e.move}: ${MOVE_FAIL[e.reason] ?? e.reason}`, fighter: e.attacker === 1 ? 1 : 0, kind: 'deny'});
+  }
+}
 const training = createTrainingPanel({$, game, ui, clock, download, toast: e => diagnostics.toast(e),
   start: trainer => {abortScenario();restorePlaybackValues();ui.playback = null;trainer.start(game);ui.paused = false;input.clear();input.locked = false;resetViewAndLogs();matchRec.start({seed: trainer.seed, profile: game.profile, enemyProfile: game.enemyProfile, mode: 'training', values: tuning.snapshotValues()});syncButtons();canvas.focus();},
   stop: () => {game.phase = 'menu';}});
@@ -493,6 +510,7 @@ function frame(now) {
   view.draw(game.fighters, game.events, live ? dt * clock.timeScale : 0, {paused: !live, realDt: dt, tick: game.tick, sources: [C.extras.toggles.enablePlayerAI || ui.scenario ? 'IA' : 'jogador', 'IA'], world: game.world});
   const back = replay.length ? (replay.length - 1 - replay.cursor) : 0;
   hud.render(game, ui.fps, {locked: input.locked, paused: ui.paused && game.phase !== 'menu', replay: back ? `−${back} passos (${(back * C.test.step * 1000).toFixed(0)} ms) · ▶ retoma daqui` : 'último passo · , e . avançam/voltam', playerAI: !!C.extras.toggles.enablePlayerAI});
+  movesHud.render(game);moveNotices();
   $('rp-readout').textContent = `passo ${game.tick}${back ? ` · −${(back * C.test.step).toFixed(2)} s` : ''}${clock.timeScale !== 1 ? ` · ${clock.timeScale}×` : ''}`;
   dock.render();hudProposals.render(game, live ? dt * clock.timeScale : 0);windowsOverlay.update();perfPanel.frame({frameMs: dt * 1000, simMs, steps});
   if ((uiTimer += dt) > .1) {uiTimer = 0;renderLive();renderHistory();renderCharacterLive();renderRecStatus();visualPanel.live();diagnostics.live();perfPanel.live();}
@@ -586,6 +604,6 @@ window.__arenaLive = {rules: C.rules, test: C.test, locomotion: C.locomotion, ca
 // window.__lab só aparece depois da restauração do workspace (os testes esperam por ele).
 bootWorkspace().catch(e => {console.error('workspace:', e);ui.workspaceError = e.message;return null;}).then(boot => {
   // API dos movimentos especiais (registro vazio): registerMove, listMoves, validateMove; equipar com setLoadout.
-  window.__lab = {moves: {...Moves, setLoadout: (id, ids) => game.setLoadout(id, ids)}, C, game, view, hudProposals, presets, movement, playSequence, diagnostics, training, perf: perfPanel, aiEval, projectFiles, reportsOf, visualPanel, recorder, replay, tuning, ui, startMatch, startScenario: id => startScenario(SCENARIOS.find(s => s.id === id)), stepFrames, seekTick, goLive, togglePause, setCharacter, loadStudioFile, SCENARIOS, runScenario,
+  window.__lab = {moves: {...Moves, setLoadout: (id, ids) => game.setLoadout(id, ids), standard: STANDARD_MOVE_IDS, equipStandard: id => game.setLoadout(id, STANDARD_MOVE_IDS)}, C, game, view, hudProposals, presets, movement, playSequence, diagnostics, training, perf: perfPanel, aiEval, projectFiles, reportsOf, visualPanel, recorder, replay, tuning, ui, startMatch, startScenario: id => startScenario(SCENARIOS.find(s => s.id === id)), stepFrames, seekTick, goLive, togglePause, setCharacter, loadStudioFile, SCENARIOS, runScenario,
     ws: boot?.ws ?? null, store: boot?.store ?? null, wsUI: boot?.wsUI ?? null, workspaceBoot: boot};
 });

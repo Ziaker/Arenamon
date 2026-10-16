@@ -150,10 +150,11 @@ try {
     const entries = anim.flatMap(a => a.log), actionEntries = current.flat().filter(e => ['tackle', 'dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'vault'].includes(e.to));
     const finished = entries.filter(e => e.reason === 'ação concluída');
     check('Animação (GLB)', 'uma entrada de animação por ação X/C (sem reinício por detecção repetida)', actionEntries.length <= recActions && actionEntries.length > 0, `${actionEntries.length} entradas para ${recActions} ações`);
-    // A última amostra visível pode cair até um quadro antes do fim (GL por software ≈ 60 ms por quadro): tolerância de 2 quadros.
+    // A última amostra visível pode cair até um quadro antes do fim (GL por software ≈ 60 ms por quadro). A tolerância usa a duração média de quadro medida DEPOIS da partida;
+  // um quadro mais lento no meio (carga da máquina, captura de tela) fazia a verificação reprovar de forma intermitente — por isso 3 quadros, não 2.
     const frameMs = await L(() => new Promise(r => {let n = 0;const t0 = performance.now();const f = t => (++n < 20 ? requestAnimationFrame(f) : r((t - t0) / n));requestAnimationFrame(f);}));
-    const tol = 100 * 2 * frameMs / 1000 / Math.min(...(await L(() => [window.__lab.C.actions.tackle.duration, window.__lab.C.actions.dodge.duration])));
-    check('Animação (GLB)', 'ações concluídas tocam até o fim (tolerância de 2 quadros)', finished.every(e => e.playedPct >= 100 - tol), `tolerância ${tol.toFixed(0)}% · ${finished.map(e => e.playedPct).slice(0, 12).join(', ')}`);
+    const tol = 100 * 3 * frameMs / 1000 / Math.min(...(await L(() => [window.__lab.C.actions.tackle.duration, window.__lab.C.actions.dodge.duration])));
+    check('Animação (GLB)', 'ações concluídas tocam até o fim (tolerância de 3 quadros)', finished.every(e => e.playedPct >= 100 - tol), `tolerância ${tol.toFixed(0)}% · ${finished.map(e => e.playedPct).slice(0, 12).join(', ')}`);
     check('Animação (GLB)', 'cancelamentos legítimos identificados', entries.filter(e => e.reason.startsWith('ação cancelada') || e.reason === 'cancelamento C → X').every(e => e.from || e.to), `${entries.filter(e => e.reason.startsWith('ação cancelada')).length} cancelamentos pela defesa`);
     check('Animação (GLB)', 'telemetria registra motivo e origem', entries.every(e => e.reason && e.source), `${entries.length} trocas`);
     writeFileSync(out + 'animacao-telemetria.json', JSON.stringify(anim, null, 2));

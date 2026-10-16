@@ -64,8 +64,8 @@ Arenamon/
 │   │   │   └── screenshots/      # Evidências e capturas visuais das propostas
 │   │   └── build.mjs             # Compilador do Animation Studio
 │   │
-│   ├── combat-lab/               # 4. LABORATÓRIO DE COMBATE (Branch feat/combat-core-etapa-a)
-│   │   ├── dist/                 # Artefato compilado (quando na branch)
+│   ├── combat-lab/               # 4. LABORATÓRIO DE COMBATE (na main; ver docs/INDICE_MODULOS.md)
+│   │   ├── dist/                 # Artefato compilado (npm run build; ignorado pelo Git)
 │   │   ├── src/                  # Simulação tática, estilos de IA, calibração A x B
 │   │   └── test/                 # Testes de IA, simulação determinística e paridade
 │   │

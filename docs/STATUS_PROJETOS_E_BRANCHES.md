@@ -4,6 +4,17 @@ Este documento mapeia o estado atual de desenvolvimento do Arenamon em suas dife
 
 ---
 
+## 0. Estado verificado em 16/10/2026 (derivado do Git; prevalece sobre a tabela da seção 1)
+
+Verificação: `git fetch` e `git merge-base --is-ancestor` contra `origin/main`. A tabela da seção 1 é anterior e **parcialmente desatualizada** (ex.: o laboratório de combate já está na `main`; hashes de commit de branches mudaram).
+
+- **Já integradas à `main`:** `feat/combat-lab-overhaul`, `feat/combat-lab-calibracao`, `feat/combat-moves-base`, `feat/reorganizacao-acesso-central`, `feat/studio-editor-fase1`, `feat/studio-rigging-fase1-gpt6`, `feat/studio-rigging-ui-proposals`, `integration/rigging-proposals-codex-v2`, `fix/arena-movement-camera`, `codex/jogavel-blocos`, `docs/moves-decisoes-rodadas`.
+- **Ainda NÃO integradas:** `feat/combat-core-etapa-a` (`f337e00`), `feat/game-etapa-a` (`245e5b9`), `feat/studio-rig-telemetry-autorig` (`249e34b`), `feat/studio-animation-library` (`3f3cb67`), `feat/studio-cc0-animation-library`, `feat/studio-rigging-guiado`, `feat/studio-rig-workbench`, `integration/workbench-telemetry-autorig` (`516ca8d`), `fix/studio-diagnostic-ci` (`a549d23`), `fix/studio-usabilidade-viewer`, `codex/rig-editor-fase1`, `codex/rig-editor-stabilization`, `codex/rig-editor-multimesh-tests`, `feat/combat-lab-v7`, `feat/combat-core-etapa-a-gpt6`, `feat/studio-diagnostic-animations-gpt6`, `tests/combate-regressao`.
+- **Documentos de domínio dos Moves:** `docs/MOVES_DECISOES_RODADAS.md` (design aprovado; implementação não autorizada) e `docs/MAPA_COMBAT_LAB_DECISOES_RODADAS.md` (mapa da arena).
+- **Índice de módulos e testes:** `docs/INDICE_MODULOS.md`. **O que foi ou não executado:** `docs/VERIFICACOES.md`.
+
+---
+
 ## 1. Mapa de Branches Ativas
 
 | Branch | Responsável / Agente | Foco Principal | Status Atual | Último Commit |
@@ -45,16 +56,16 @@ Este documento mapeia o estado atual de desenvolvimento do Arenamon em suas dife
   - Teste de flexão interativo no navegador.
   - Exportação e reimportação de GLB preservando `userData.arenamonRig`.
 
-### 3. Laboratório de Combate (`prototypes/combat-lab` na branch `feat/combat-core-etapa-a`)
+### 3. Laboratório de Combate (`prototypes/combat-lab`, integrado à `main`)
 - **Situação:** Aprovado em 14/10/2026 para experimentação e calibração de regras da Etapa A.
 - **Recursos Principais:**
   - Separação estrita de X (Tackle) e C (Esquiva).
   - IA tática com 6 estilos de combate (Agressor, Contra-atacante, Esquivador, etc.).
   - Ferramenta de comparação A x B em tempo real.
   - Exportador de patch Git para `src/config.ts` do jogo.
-- **Como Acessar:** Desenvolvido isoladamente na branch `feat/combat-core-etapa-a`. Para compilar e testar localmente:
+- **Como Acessar:** O laboratório está na `main` (integrado por merges das branches de overhaul, calibração e base de Moves). Para compilar e testar localmente:
   ```powershell
-  git checkout feat/combat-core-etapa-a
+  git checkout main
   npm run build:combat-lab
   ```
 

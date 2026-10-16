@@ -96,6 +96,12 @@ export class Budget {
     if (this.suppressed.length > 200) this.suppressed.shift();
   }
   beginFrame() { this.frameSuppressed = 0; }
+  // Zera contadores ativos e supressões (chamado em reset de luta / menu / troca de personagem).
+  reset() {
+    this.active = {particles: 0, rings: 0, lights: 0, trails: 0, decals: 0, drawCalls: 0};
+    this.suppressed = [];
+    this.frameSuppressed = 0;
+  }
   stats() {
     return {
       quality: this.quality,

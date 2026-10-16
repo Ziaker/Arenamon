@@ -28,8 +28,12 @@ const PROJ = {kind: 'projectile', offset: {forward: .8}, radius: .3, speed: 14, 
 {
   assert.equal(listMoves().length, 0, 'registro vazio ao carregar o motor');
   const walk = d => readdirSync(d, {withFileTypes: true}).flatMap(e => e.isDirectory() ? walk(`${d}/${e.name}`) : e.name.endsWith('.js') ? [`${d}/${e.name}`] : []);
-  const users = walk(fileURLToPath(new URL('../src', import.meta.url))).filter(f => !f.endsWith('moves.js') && /registerMove\(/.test(readFileSync(f, 'utf8')));
-  assert.deepEqual(users, [], 'nenhum código do laboratório registra movimentos');
+  const files = walk(fileURLToPath(new URL('../src', import.meta.url))), src = f => readFileSync(f, 'utf8'), norm = f => f.replace(/\\/g, '/'), rel = f => norm(f).split('/src/').pop();
+  // D2: só moves/standard.js chama registerMove, e só o bootstrap do laboratório (main.js) chama registerStandardMoves(); o núcleo sim/ nunca registra.
+  const users = files.filter(f => !norm(f).endsWith('/sim/moves.js') && /registerMove\(/.test(src(f)));
+  assert.deepEqual(users.map(rel), ['sim/moves/standard.js'], 'só os Moves padrão registram movimentos');
+  const boot = files.filter(f => /registerStandardMoves\(\)/.test(src(f)) && !norm(f).endsWith('/sim/moves/standard.js'));
+  assert.deepEqual(boot.map(rel), ['main.js'], 'registrados só no bootstrap do laboratório');
   const g = arena(), e0 = steps(g, 30, i => cmd({skill: i % 4}));
   assert.ok(!g.fighters[0].action && g.world.entities.length === 0 && e0.length === 0, 'teclas dos slots sem movimento equipado não fazem nada');
 }
