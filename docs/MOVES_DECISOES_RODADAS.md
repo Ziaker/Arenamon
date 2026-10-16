@@ -317,7 +317,7 @@ Ambiguidades:
 
 Ambiguidades:
 - *Aberta:* definir geometricamente a região protegida, incluindo múltiplas barreiras e proteção parcial do corpo (ver P7).
-- *Aberta:* a mesma explosão não deve causar dano atrás da barreira por atualização posterior do mesmo evento.
+- *Aberta:* a mesma explosão não deve causar dano atrás da barreira por atualização posterior do mesmo evento. **→ Princípio resolvido por M30.6 (item 4)**; a geometria permanece em P7.
 - *Aberta:* valor-base do recuo curto.
 - *Resolvidas:* Power Level não remove a proteção contra explosões (M22.5); Tackle ignora PL do Reflect (M19.9).
 
@@ -461,8 +461,8 @@ Ambiguidades:
 - **M21.9** *A* — contatos contínuos só geram nova disputa após separação, nova emissão ou novo evento ofensivo.
 
 Ambiguidades:
-- *Aberta:* critérios exatos para reconhecer eventos simultâneos dentro do mesmo passo físico.
-- *Aberta:* duas interações vencendo o mesmo ataque no mesmo instante: a neutralização deve ocorrer uma vez, preservando o determinismo.
+- *Aberta:* critérios exatos para reconhecer eventos simultâneos dentro do mesmo passo físico. **→ Resolvida por M30.6** (ordem física do contato; empate por ordem de criação).
+- *Aberta:* duas interações vencendo o mesmo ataque no mesmo instante: a neutralização deve ocorrer uma vez, preservando o determinismo. **→ Coberta por M30.6** (a ordem física/criação decide qual interação vem primeiro; contatos seguintes não veem a barreira destruída).
 - *Aberta:* a duração do stagger pode ser ajustada, mas sua interação com animações já interrompidas deve obedecer ao controlador existente.
 
 ### Rodada 22 — Explosões e Fields persistentes
@@ -645,6 +645,18 @@ Notas do arquivista sobre M30.4 (não são decisões):
 Notas do arquivista sobre M30.5 (não são decisões):
 - Completa, sem reinterpretar, M3.3, M3.4, M7.7, M7.8 e M13.3; responde a ambiguidade da Rodada 3 sobre o percurso completo do projétil e a de M29.2 sobre compatibilizar a espessura de 0,10 m.
 - A imunidade do item 3 é **por projétil e por barreira** (um projétil que atravessou a barreira X continua sujeito à barreira Y). Esta leitura não foi decidida explicitamente.
+
+- **M30.6** *A* — **P6 resolvida.** Prioridade de eventos no mesmo passo físico (reflexão, ataque de PL superior, Tackle, explosão):
+  1. Os contatos do mesmo passo são resolvidos na **ordem física do contato**.
+  2. **Empate** de ordem: pela **ordem de criação das entidades**.
+  3. Uma **barreira destruída não é vista pelos contatos seguintes** do mesmo passo; os anteriores permanecem como ocorreram.
+  4. **Quem estava atrás da barreira no instante da explosão continua protegido daquela explosão**, mesmo que a barreira seja destruída por ela.
+  Opção não escolhida: B (todos os contatos do passo veem a barreira como existente; ela some no fim do passo).
+
+Notas do arquivista sobre M30.6 (não são decisões):
+- A mensagem do diretor que registrou esta decisão chegou truncada em “Registre como M30.”; o registro como **M30.6** e a continuação para P7 seguem o padrão das mensagens anteriores.
+- Consistente com M13.5 e M21.2 (ordem física determinística, sem favorecer jogador ou IA) e com os resultados já aprovados: reflexão (M19.3), PL superior destrói e é neutralizado (M19.2), Tackle destrói (M19.9), explosão destrói mas a barreira protege (M14.5–M14.7, M22.5).
+- **P7 continua aberta:** o item 4 estabelece o princípio de proteção, mas **não define** a geometria de “estar atrás da barreira” (múltiplas barreiras, proteção parcial do corpo).
 ---
 
 ## 4. Especificação vigente — Reflect
@@ -714,7 +726,7 @@ Busca posições alternativas próximas e à frente. Esgotada a busca dentro do 
 
 **7.4 Counter Stagger.** 0,2 s (configurável); não acumula; novos Counters não reiniciam o stagger ativo; pode interromper carregamento quando aplicado validamente; perder uma disputa distante entre projéteis não causa stagger automático.
 
-**7.5 Exceções.** Reflect prioriza reflexão válida sobre Clash; Tackle destrói Reflect independentemente de PL; explosões podem destruir Reflect, mas a barreira mantém a proteção da região coberta; Status e Trick puros não possuem PL (M23.9).
+**7.5 Exceções.** Prioridade de eventos no mesmo passo: M30.6. Reflect prioriza reflexão válida sobre Clash; Tackle destrói Reflect independentemente de PL; explosões podem destruir Reflect, mas a barreira mantém a proteção da região coberta; Status e Trick puros não possuem PL (M23.9).
 
 ## 8. Inteligência artificial
 
@@ -756,7 +768,7 @@ Nenhuma delas foi resolvida por quem publicou este arquivo. Valores experimentai
 - **P4 — Knockback acumulado do Psyshock (RESOLVIDA em 2026-10-16 por M30.3).** Decisão: teto de 0,9 m/s por alvo, dentro de cada execução (0,3 m/s por pedra).
 - **P14 — Detalhes do teto de knockback (Baixa, nova).** Pedra refletida conta no teto da execução original? O teto vale só para a componente horizontal ou também para a vertical? Não decididas.
 - **P5 — Homing e pontos anatômicos (Média).** Falta contrato técnico dos pontos de mira nos modelos e comportamento para anatomias diferentes; deve ser compatível com os colisores atuais do laboratório.
-- **P6 — Reflexão × Power Level (Média).** Prioridades de eventos entre reflexão válida, ataque superior contra Reflect, explosão e Tackle, sem resultados incompatíveis simultâneos (requisito de consistência, não nova decisão de gameplay).
+- **P6 — Reflexão × Power Level (RESOLVIDA em 2026-10-16 por M30.6).** Decisão: ordem física do contato; empate por ordem de criação; barreira destruída não é vista pelos contatos seguintes do passo; quem estava atrás no instante da explosão segue protegido dela.
 - **P7 — Explosões e região protegida (Média).** Definição geométrica de quais personagens são protegidos, preservando a proteção durante o mesmo evento.
 - **P8 — Parâmetros numéricos de calibração (Baixa).** Sem valores aprovados: tolerância de desnível; alcance da busca de posições das pedras; dispersão do leque; inércia telecinética; magnitude do recuo de Tackle após destruir Reflect; tolerâncias de colisão e de ciclos degenerados; instante de início do VFX de expiração.
 - **P9 — Estados de entrada e ordenação de comandos (Média).** Soltar Move, pressionar defesa e ativar Dodge no mesmo passo exigem ordem determinística e testável; a regra existente do jogo não deve ser substituída sem auditoria.
@@ -823,3 +835,4 @@ Moves específicos do tipo Status; buffs e debuffs; fórmulas de regeneração a
 - **2026-10-16 — Rodada 30 (cont.):** M30.3 (P4 resolvida: teto de knockback de 0,9 m/s por alvo, em cada execução); P14 criada como subquestão.
 - **2026-10-16 — Rodada 30 (cont.):** M30.4 (P2 resolvida: Reflect usa as dimensões lógicas do motor).
 - **2026-10-16 — Rodada 30 (cont.):** M30.5 (P3 resolvida: regra de superfícies do painel do Reflect).
+- **2026-10-16 — Rodada 30 (cont.):** M30.6 (P6 resolvida: prioridade de eventos no mesmo passo). P7 segue aberta (geometria da região protegida).
