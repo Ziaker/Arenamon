@@ -115,7 +115,7 @@ Decisões posteriormente modificadas: trajetória reta do Psyshock → homing li
 Ambiguidades:
 - *Importante:* a passagem pela face traseira deve valer para o percurso completo do projétil, inclusive se ele entra pelo verso e depois alcança a região frontal.
 - *Importante:* impactos exatamente nas quinas entre frente e bordas precisam de prioridade geométrica determinística.
-- *Aberta:* uso de dimensões visuais ou do colisor como referência de escala da barreira (ver P2).
+- *Aberta:* uso de dimensões visuais ou do colisor como referência de escala da barreira (ver P2). **→ Resolvida por M30.4** (dimensões lógicas do motor).
 - *Aberta:* relação entre tamanhos de pedras e propriedades físicas — os tamanhos variam visualmente, sem aprovação de massa ou dano variável por tamanho. **→ Resolvida por M30.2** (tamanho é só visual; dano igual para todas as pedras).
 
 ### Rodada 4 — Duração, destruição e impactos
@@ -156,7 +156,7 @@ Ambiguidades:
 - *Aberta:* curva de crescimento dimensional do Reflect em relação ao tempo de carga (interpolação linear plausível, **não aprovada**).
 - *Aberta:* “10–14 m/s” pode ser distribuição uniforme ou apenas limites permitidos; distribuição estatística não aprovada.
 - *Aberta:* arredondamento dos custos fracionários de stamina e precisão exibida pelo HUD.
-- *Aberta:* se as dimensões vêm das bounding boxes do modelo, do colisor principal ou de dimensão lógica padronizada (ver P2).
+- *Aberta:* se as dimensões vêm das bounding boxes do modelo, do colisor principal ou de dimensão lógica padronizada (ver P2). **→ Resolvida por M30.4** (dimensão lógica do motor).
 
 ### Rodada 6 — Interrupções, defesa e categorias preliminares
 **Procedência declarada: R**
@@ -628,6 +628,12 @@ Notas do arquivista sobre M30.2 (não são decisões):
 Notas do arquivista sobre M30.3 (não são decisões):
 - Consequência: com 0,3 m/s por pedra, o teto é atingido na 3ª pedra que acerta o mesmo alvo; as seguintes não acrescentam knockback a ele (o dano segue a regra de M30.1/M30.2).
 - **Nova ambiguidade P14 (Baixa):** (a) pedra refletida que atinge o lançador original conta no teto **da execução original** (leitura natural, não decidida)? (b) o teto de 0,9 m/s vale só para a componente horizontal ou também para a vertical? Nenhuma das duas foi decidida.
+
+- **M30.4** *A* — **P2 resolvida.** O Reflect usa as **dimensões lógicas do motor**, independentes do modelo importado: **largura e profundidade de referência = 2 × `C.test.halfExtent`; altura de referência = `C.extras.visual.bodyHeight`**. Opções não escolhidas: B (caixa do modelo importado) e C (parâmetros de referência próprios do Reflect).
+
+Notas do arquivista sobre M30.4 (não são decisões):
+- Valores atuais no código (16/10/2026): `halfExtent` = 0,5 → largura/profundidade de referência 1,0 m; `bodyHeight` = 1,3 m. Reflect base: largura de 1,5 m a 3,0 m e altura de 1,95 m a 3,25 m; distância livre inicial (M26s.4) = 50% de 1,0 m.
+- `bodyHeight` fica no grupo `extras.visual` do config, mas o motor já a usa em colisões de entidades (`world.js`). Alterar o slider “altura visual” passa a alterar também a referência do Reflect **nos usos seguintes** (M28.4: a barreira criada guarda suas medidas).
 ---
 
 ## 4. Especificação vigente — Reflect
@@ -641,7 +647,7 @@ Move Reflect · Charge · Field · tecla padrão A · custo 1 stamina cobrada no
 PL1 com carga < 2 s; PL2 de 2 s até antes de 4 s; PL3 em 4 s. PL fixado na criação. Reflete ataques elegíveis de PL igual ou inferior. Ataques superiores destroem a barreira e são neutralizados no contato. Explosões não são refletíveis e seguem regras defensivas próprias. Tackle destrói Reflect independentemente do PL.
 
 ### 4.3 Geometria
-Retangular, painel vertical; espessura inicial recomendada e globalmente aprovada 0,10 m (ajustável); largura 1,5×–3× e altura 1,5×–2,5× as do personagem; distância livre inicial 50% da profundidade do personagem; base na altitude da superfície de apoio, com tolerância configurável para desníveis; orientação acompanha o personagem durante a carga e congela na criação; preview se adapta ao espaço sem violar dimensões mínimas; personagens são obstáculos ao posicionamento.
+Retangular, painel vertical; espessura inicial recomendada e globalmente aprovada 0,10 m (ajustável); largura 1,5×–3× e altura 1,5×–2,5× as **dimensões lógicas do motor** (M30.4: largura/profundidade = 2 × `halfExtent`, altura = `bodyHeight`); distância livre inicial 50% da profundidade lógica; base na altitude da superfície de apoio, com tolerância configurável para desníveis; orientação acompanha o personagem durante a carga e congela na criação; preview se adapta ao espaço sem violar dimensões mínimas; personagens são obstáculos ao posicionamento.
 
 ### 4.4 Colisões
 Face frontal: reflexão especular. Bordas: reflexão especular com normais próprias. Face traseira: passagem livre para projéteis que chegam pelo verso. Personagens: obstáculo sólido com deslizamento lateral. Dodge: colisão física, ultrapassagem por cima se a trajetória permitir. Reflexões entre barreiras sucessivas e ilimitadas em contagem lógica; ciclos numéricos degenerados não podem prender a simulação.
@@ -734,7 +740,7 @@ Nenhuma delas foi resolvida por quem publicou este arquivo. Valores experimentai
 
 - **P1 — Momento de cálculo do dano das pedras (RESOLVIDA em 2026-10-16 por M30.1).** Decisão: grava-se 0,2 × Ataque do lançador no disparo; se refletida, recalcula com o Ataque do refletor no instante da reflexão. Texto original da pendência preservado no histórico do Git. Subquestão aberta: **P13**.
 - **P13 — “Ataque” no disparo e na reflexão: base ou efetivo? (Baixa, nova).** Valor-base do personagem ou valor com modificadores de Status vigentes naquele instante. Sem Status hoje, é indiferente; decidir antes do primeiro Move de Status.
-- **P2 — Referência dimensional do Reflect (Média).** Colisor de combate, bounding box visual ou dimensões lógicas do personagem; afeta largura, altura, profundidade de referência e distância. Acessórios visuais não devem alterar a física.
+- **P2 — Referência dimensional do Reflect (RESOLVIDA em 2026-10-16 por M30.4).** Decisão: dimensões lógicas do motor (largura/profundidade = 2 × `halfExtent`; altura = `bodyHeight`), independentes do modelo importado.
 - **P3 — Geometria da reflexão em quinas (Média).** Frente e bordas refletem, o verso é atravessável; falta regra para contatos próximos às extremidades e incidência pelo verso, evitando reflexões contraditórias.
 - **P4 — Knockback acumulado do Psyshock (RESOLVIDA em 2026-10-16 por M30.3).** Decisão: teto de 0,9 m/s por alvo, dentro de cada execução (0,3 m/s por pedra).
 - **P14 — Detalhes do teto de knockback (Baixa, nova).** Pedra refletida conta no teto da execução original? O teto vale só para a componente horizontal ou também para a vertical? Não decididas.
@@ -804,3 +810,4 @@ Moves específicos do tipo Status; buffs e debuffs; fórmulas de regeneração a
 - **2026-10-16 — Rodada 30:** P1 resolvida (M30.1, escolha A); P13 criada como subquestão. Primeira decisão registrada diretamente neste arquivo.
 - **2026-10-16 — Rodada 30 (cont.):** M30.2 (pedras homogêneas: mesmas propriedades, mesmo PL, mesmo dano-base; redução só no impacto). P4 continua aberta.
 - **2026-10-16 — Rodada 30 (cont.):** M30.3 (P4 resolvida: teto de knockback de 0,9 m/s por alvo, em cada execução); P14 criada como subquestão.
+- **2026-10-16 — Rodada 30 (cont.):** M30.4 (P2 resolvida: Reflect usa as dimensões lógicas do motor).
