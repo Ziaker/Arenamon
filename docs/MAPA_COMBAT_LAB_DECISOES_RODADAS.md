@@ -2,7 +2,7 @@
 
 > **Documento oficial de planejamento em andamento.** Arquivo único a ser atualizado a cada nova rodada solicitada pelo usuário. Não é especificação final nem autorização para implementar.
 >
-> **Status:** Rodadas 1–10 respondidas e registradas (**143 respostas**); Rodada 10 revisada aprovada integralmente (10 respostas); Rodada 11 apresentada abaixo, com **9 perguntas ainda não respondidas**, após auditoria das 143 escolhas anteriores. **Diretriz vigente posterior à Rodada 9:** desconsiderar integralmente gamepad no planejamento do mapa; preservar referências antigas só por rastreabilidade, sem exigir decisão nem teste para esse dispositivo.
+> **Status:** Rodadas 1–11 respondidas e registradas (**152 respostas aprovadas**). Rodada 11 aprovada integralmente (9 respostas) e auditoria de pendências atualizada. **Diretriz vigente posterior à Rodada 9:** desconsiderar integralmente gamepad no planejamento do mapa; preservar referências antigas só por rastreabilidade, sem exigir decisão nem teste para esse dispositivo.
 > **Fonte de verdade das decisões:** respostas do usuário na conversa ChatGPT sobre o mapa do Arenamon. Opções rejeitadas e sugestões do assistente **não** são requisitos aprovados.
 > **Repositório:** https://github.com/Ziaker/Arenamon · **Escopo:** apenas laboratório de combate `prototypes/combat-lab/`.
 > **Referência do código inspecionado antes da criação:** `main` @ `a16904bd395b982225fe1eed9f87e59bc1a65421` (2026-10-15). Não significa que essas features já tenham sido implementadas.
@@ -14,7 +14,7 @@
 3. Manter as perguntas sem resposta e conflitos em seção específica. Atualizar contagens e o status. A disponibilidade de atualização depende de uma nova interação e de acesso de escrita ao GitHub; **não existe atualização automática de fundo**.
 4. Fazer commit e verificar o arquivo no GitHub após cada atualização. Não modificar código nem outros arquivos sem solicitação explícita.
 6. **Escopo vigente de controles:** somente teclado para salto e demais decisões do mapa; todas as exigências anteriores referentes a gamepad estão desconsideradas por ordem expressa posterior do usuário. **Não voltar a perguntar ou atribuir botão de gamepad nesta sequência.** Referências históricas devem permanecer arquivadas como escolhas anteriores, não requisitos ativos. A publicação remota não prova sincronização com o checkout local.
-5. As Rodadas 1–10 contêm 143 respostas aprovadas. A versão original e redundante da Rodada 10 permanece arquivada, sem respostas e sem força normativa; a Rodada 10 revisada contém as dez decisões válidas. Antes de apresentar a Rodada 11, auditar as novas perguntas contra todas as decisões anteriores.
+5. As Rodadas 1–11 contêm 152 respostas aprovadas. A versão original e redundante da Rodada 10 permanece arquivada, sem respostas e sem força normativa; a Rodada 10 revisada contém as dez decisões válidas. Antes de apresentar qualquer nova pergunta, auditar todas as 152 escolhas para evitar repetição.
 
 ## Visão transversal de requisitos aprovados (resumo; detalhes por ID abaixo)
 
@@ -763,9 +763,7 @@ Resposta aprovada: **D — Todas essas ferramentas, individualmente ativáveis o
 
 **Observações adicionais do usuário na Rodada 10:** nenhuma. Escolhas da versão original arquivada não contam como decisões. A exclusão de gamepad permanece vigente.
 
-## Rodada 11 — QUESTIONÁRIO PENDENTE (9 perguntas auditadas, ainda não respondidas)
-
-> **Auditoria prévia de redundância concluída.** As nove perguntas abaixo tratam de lacunas não resolvidas pelas 143 decisões aprovadas. Não reabrir probabilidades de itens (R4.7), rotas seguras (R3.13), replanejamento da IA (R8.1), salto independente (R1.10/R7), desempenho-base (R9.16), proteção excedente já aprovada (R10.1), renovação do escudo (R10.2) ou temas retirados de escopo. Referências por pergunta indicadas na tabela de auditoria após o questionário.
+## Rodada 11 — Spawn, proteção, drops e colisões (9 decisões aprovadas)
 
 **R11.1 — Como devem ser estabelecidas as posições iniciais dos dois lutadores na arena circular?**
 
@@ -774,7 +772,7 @@ Resposta aprovada: **D — Todas essas ferramentas, individualmente ativáveis o
 - C — Dois pontos independentes sorteados em uma região inicial central, respeitando separação mínima.
 - D — Posições e padrão de sorteio configuráveis, respeitando as restrições já aprovadas.
 
-**Status:** não respondida.
+**Resposta aprovada:** **B — Dois pontos opostos sorteados a cada partida, com separação equilibrada e posições válidas.**
 
 **R11.2 — Quando um lutador perde o HP restante ao colidir com o cenário após ser arremessado, a quem atribuir essa derrota?**
 
@@ -783,7 +781,7 @@ Resposta aprovada: **D — Todas essas ferramentas, individualmente ativáveis o
 - C — Ao último adversário que causou dano, desde que o contato tenha ocorrido recentemente.
 - D — Regra de atribuição configurável para diferentes tipos de impacto.
 
-**Status:** não respondida.
+**Resposta aprovada:** **C — Ao último adversário que causou dano, desde que o contato tenha ocorrido recentemente.**
 
 **R11.3 — O escudo de HP deve absorver dano periódico de status, como queimadura ou veneno, além de golpes diretos?**
 
@@ -792,7 +790,7 @@ Resposta aprovada: **D — Todas essas ferramentas, individualmente ativáveis o
 - C — Absorve ataques diretos e colisões ambientais, mas dano periódico atravessa o escudo.
 - D — A proteção é configurável por categoria de fonte de dano.
 
-**Status:** não respondida.
+**Resposta aprovada:** **A — Sim. Todo dano que reduziria HP, inclusive dano periódico e ambiental, passa primeiro pelo escudo.**
 
 **R11.4 — Se uma cura de 20 HP começar com a vida abaixo do máximo, mas ultrapassar o HP máximo, o que fazer com o excedente?**
 
@@ -801,7 +799,7 @@ Resposta aprovada: **D — Todas essas ferramentas, individualmente ativáveis o
 - C — Recupera o HP e concede o escudo completo de 40 pontos sempre que houver excedente.
 - D — Tratamento do excedente configurável, sem alterar a regra já aprovada para HP previamente cheio.
 
-**Status:** não respondida.
+**Resposta aprovada:** **B — Recupera o HP e converte apenas o excedente numérico em pontos de escudo.**
 
 **R11.5 — Qual geometria de colisão deve determinar a coleta automática de itens em diferentes alturas?**
 
@@ -810,7 +808,7 @@ Resposta aprovada: **D — Todas essas ferramentas, individualmente ativáveis o
 - C — Sobreposição real entre um volume tridimensional de coleta do item e o corpo do personagem.
 - D — Formato e dimensões configuráveis individualmente por consumível.
 
-**Status:** não respondida.
+**Resposta aprovada:** **A — Distância esférica tridimensional entre o item e o personagem.**
 
 **R11.6 — Quando um objeto destrutível se rompe acima do piso, como o consumível liberado se comporta verticalmente?**
 
@@ -819,7 +817,7 @@ Resposta aprovada: **D — Todas essas ferramentas, individualmente ativáveis o
 - C — Surge diretamente na superfície acessível mais próxima do ponto da destruição.
 - D — O comportamento do drop é configurável por categoria de objeto.
 
-**Status:** não respondida.
+**Resposta aprovada:** **A — Aparece no ponto de destruição e cai fisicamente até uma superfície válida.**
 
 **R11.7 — Quando um projétil atinge a borda invisível da arena circular, qual deve ser a resposta padrão?**
 
@@ -828,7 +826,7 @@ Resposta aprovada: **D — Todas essas ferramentas, individualmente ativáveis o
 - C — Pode atravessar a borda, mas deixa de interagir com o combate fora da arena.
 - D — Cada tipo de projétil define se colide, ricocheteia ou atravessa o limite.
 
-**Status:** não respondida.
+**Resposta aprovada:** **B — Ricocheteia conforme as propriedades físicas e direção de contato.**
 
 **R11.8 — Como os temporizadores de consumíveis, respawn e escudos devem reagir à pausa e ao hitstop durante a luta?**
 
@@ -837,7 +835,7 @@ Resposta aprovada: **D — Todas essas ferramentas, individualmente ativáveis o
 - C — Congelam na pausa; durante o hitstop, apenas efeitos de combate pausam, enquanto gerações do mapa avançam.
 - D — Relógios de simulação e efeitos configuráveis, preservando determinismo dos testes.
 
-**Status:** não respondida.
+**Resposta aprovada:** **A — Todos ficam congelados durante pausa e hitstop.**
 
 **R11.9 — O reaparecimento de um objeto destrutível deve apresentar algum aviso visual antes de o colisor sólido voltar a existir?**
 
@@ -846,9 +844,11 @@ Resposta aprovada: **D — Todas essas ferramentas, individualmente ativáveis o
 - C — Sim. Uma prévia translúcida do objeto aparece antes de se tornar sólida.
 - D — Aviso, duração e aparência configuráveis no laboratório.
 
-**Status:** não respondida.
+**Resposta aprovada:** **C — Sim. Uma prévia translúcida do objeto aparece antes de se tornar sólida.**
 
-### Auditoria de não redundância para a Rodada 11
+**Observações adicionais do usuário nesta rodada:** nenhuma. A palavra “recentemente” em R11.2 continua sem janela de tempo definida; não inventar intervalo.
+
+### Auditoria prévia de não redundância para a Rodada 11 (histórico)
 
 - **R11.1:** R3.13/R10.9 — Restrições de geração e igualdade dos consumíveis não determinam posições de spawn dos lutadores.
 - **R11.2:** R3.7/R7.15/R10.8 — Dano físico ambiental definido; autoria de derrota ainda não.
@@ -891,6 +891,30 @@ Resposta aprovada: **D — Todas essas ferramentas, individualmente ativáveis o
 25. **R10.9:** dois consumíveis iniciais seguem apenas as restrições espaciais existentes; não impor distribuição equidistante dos lutadores.
 26. **R10.10:** ganhar estágio de Velocidade no ar não modifica trajetória balística em curso; bônus aplica-se apenas a ações posteriores.
 
+27. **R11.1:** dois pontos iniciais opostos sorteados a cada partida, com separação equilibrada e posições válidas.
+28. **R11.2:** derrota por colisão ambiental é atribuída ao último adversário que causou dano *recentemente*; a duração da janela de autoria ainda não foi definida.
+29. **R11.3:** todo dano que reduziria HP (inclusive status periódicos e ambiente) primeiro passa pelo escudo.
+30. **R11.4:** cura que ultrapassaria o HP máximo converte **somente o excedente numérico** em pontos de escudo, respeitando a capacidade acumulável. Regra de HP previamente cheio permanece.
+31. **R11.5:** a coleta é decidida pela **distância esférica 3D** entre personagem e item.
+32. **R11.6:** drop surge no ponto de destruição e **cai fisicamente** até superfície válida.
+33. **R11.7:** projétil que atinge borda circular ricocheteia conforme propriedades físicas e normal de contato.
+34. **R11.8:** temporizadores de consumíveis, respawn e escudos congelam na pausa e no hitstop.
+35. **R11.9:** destrutível reaparece somente após exibir **prévia translúcida** antes do colisor tornar-se sólido.
+
+## Auditoria de pendências após as 11 rodadas — classificação por prioridade
+
+**Decisões funcionais fechadas:** geometria/limites da arena, posicionamento validado, saltos e plataformas, dano a objetos/colisão, tipos de itens e probabilidades, progressão, coleta 3D, limites e timers, escudos/mitigação, IA/câmera, spawn dos lutadores e projéteis no perímetro, pausa/hitstop e VFX de respawn. Esses temas **não devem ser novamente submetidos como decisões de princípio**.
+
+**Lacuna comportamental real:** R11.2 usa o termo **“recentemente”** para atribuir uma derrota ao último adversário que causou dano. Não há intervalo, nem regra de expiração, nem definição de como contabilizar impactos em cadeia. Pode ser especificado como parâmetro de janela de crédito na fase de implementação, mas não pode ser declarado numérico como aprovado.
+
+**Parâmetros já definidos como configuráveis, sem valor inicial obrigatório aprovado:** recuperação normal de aterrissagem R7.9; teto de escudo R9.5; resistências quantitativas individuais dos destrutíveis R9.10; duração de aviso translúcido R11.9; raio da esfera de coleta R11.5; distância de separação inicial de lutadores R11.1; escolhas de câmera, materiais, danos e física descritas no laboratório. Não criar rodadas repetitivas apenas para atribuir números arbitrários a essas opções.
+
+**Pendências de validação técnica (não são perguntas de game design):** testar reprodução por seed/save/replay, geometria circular e plataformas 3D, determinismo de coleta e timers, integração de dano de status com escudo, rendimento em 1080p e passo fixo a 120 Hz, navegação IA/oclusão de câmera, regressão do sistema anterior. Não afirmar que a funcionalidade está implementada. Meta aprovada 60 FPS; hardware de referência ainda por medir.
+
+**Possíveis integrações a especificar tecnicamente sem alterar o design:** ordem dos eventos do mesmo passo, comportamento em colisões e múltiplas fontes de dano simultâneas, preservação de autoria dos projéteis ricocheteados, teste de acessibilidade após reaparecimento. Devem seguir decisões anteriores e exigir nova aprovação apenas se surgir escolha de comportamento incompatível com elas.
+
+**Fora de escopo:** gamepad, por ordem posterior do usuário; não propor nova pergunta sobre ele.
+
 ## Pendências, ambiguidades e decisões NÃO tomadas
 
 - **P1 — CONTROLE FORA DO ESCOPO (resolvido por retirada):** por instrução expressa posterior à R9, gamepad foi totalmente excluído do planejamento do mapa; não há botão ou mapeamento pendente e não se deve repor exigências relacionadas. O salto por teclado Espaço permanece aprovado.
@@ -898,11 +922,11 @@ Resposta aprovada: **D — Todas essas ferramentas, individualmente ativáveis o
 - **P3 — Recuperação ao aterrissar:** R7.9 aprova configuração independente, **sem tempo inicial numérico**.
 - **P4 — Cura de HP:** R9.1 definiu **20 HP** como padrão (R5.9 mantém a cura configurável em pontos ou porcentagem). **Resolvida quanto ao valor inicial.**
 - **P5 — Recuperação imediata de stamina:** R9.2 definiu **2 pontos**, item distinto do aumento permanente de capacidade. **Resolvida quanto ao valor inicial.**
-- **P6 — Escudo temporário:** R9.3–R9.7 e R10.1–R10.2 definiram **10 s, até 40 pontos por aplicação, capacidade acumulável até teto configurável, duração renovada integralmente a 10 s em nova coleta, dano bruto absorvido antes da Defesa, excedente mitigado pela Defesa normal, sem bloquear empurrões/lançamentos**. Teto numérico inicial e interações com fontes de dano contínuo ainda não foram definidos; não repetir valores configuráveis sem necessidade.
+- **P6 — Escudo temporário:** R9.3–R9.7 e R10.1–R10.2 definiram **10 s, até 40 pontos por aplicação, capacidade acumulável até teto configurável, duração renovada integralmente a 10 s em nova coleta, dano bruto absorvido antes da Defesa, excedente mitigado pela Defesa normal, sem bloquear empurrões/lançamentos**. R11.3 esclareceu que **todo dano ao HP**, incluindo dano periódico de status e ambiental, atravessa primeiro o escudo. R11.4 converte somente excedente numérico de cura em escudo quando HP começa abaixo do máximo. O teto do escudo e outras intensidades permanecem configuráveis; não repetir pedido de valores arbitrários.
 - **P7 — Recompensa extra de progressão total:** R9.8–R9.9 aprovaram **recuperação imediata de stamina repetível** a cada consumível elegível; R10.4 determina que **quando HP e stamina já estão cheios** o consumível concede o **escudo temporário existente**, respeitando teto. Não presumir quantidade numérica distinta para a recuperação especial de stamina, nem solicitar padrão sem necessidade.
 - **P8 — HP e resistências de objetos:** R9.10–R9.11 definiram **30 HP inicialmente por destrutível**, com resistências por **contato físico, projéteis, área e colisão ambiental**. Multiplicadores numéricos de resistência continuam configuráveis e sem valores iniciais aprovados; não reapresentar a classificação por categoria já aprovada.
 - **P9 — Falha de geração procedural:** R9.12 exige procurar sistematicamente a **posição válida mais próxima da sorteada**; R10.6 determina **adiar a geração e tentar novamente quando o cenário mudar**, sem gerar itens ou obstáculos em posições inválidas. Regras de acessibilidade anteriores mantidas.
-- **P10 — Encerramento de luta:** R9.13 determina que os temporizadores de objetos, itens e escudos **parem imediatamente na definição do vencedor**. Questões de animações pós-partida não foram especificamente alteradas.
+- **P10 — Temporizadores de partida:** R9.13 determina que os temporizadores de objetos, itens e escudos **parem imediatamente na definição do vencedor**; R11.8 manda congelar **todos durante pausas e hitstop**. Questões de animações pós-partida não foram especificamente alteradas.
 - **P11 — Regressão e desempenho:** R9.15 exige cobertura completa, incluindo **navegador, HUD, IA, seeds, replay e desempenho**; a exigência relativa a gamepad foi **retirada por ordem posterior**. R9.16 define **meta de 60 FPS a 1080p**, preservando física de passo fixo a **120 Hz**, mas ainda falta hardware de referência, a ser definido apenas quando for viável medir desempenho, sem repetir a meta aprovada.
 - **P12 — Interação ataque/defesa:** R8.7 aprova que explosões danifiquem objetos dentro do volume 3D; isso não aprova ignorar colisões tridimensionais ou fazer projéteis atravessarem bloqueios. R8.8 estabelece consumo de projétil que destrói o objeto.
 - **P13 — Categoria de buff regeneração:** não inventar progressão de regeneração de stamina a partir da lista preliminar de R4.2. A implementação deve usar as cinco categorias definitivas e os consumíveis de recuperação descritos.
@@ -1091,3 +1115,5 @@ Resposta aprovada: **D — Todas essas ferramentas, individualmente ativáveis o
 - **Rodada 10 revisada aprovada:** 10 decisões (R10.1–R10.10) incorporadas, todas alternativas originais revisadas mantidas, total 143 respostas aprovadas. Rodadas 1–9 preservadas byte a byte. A versão original redundante da Rodada 10 continua arquivada como não respondida. Próxima rodada só após auditoria de redundância. Exclusão do gamepad mantida. Nenhuma implementação de código.
 
 - **Preparação da Rodada 11:** nove perguntas ainda não respondidas registradas no mesmo arquivo após auditoria de redundância; cada uma vinculada a IDs anteriores para explicar a diferença. Rodadas 1–10 preservadas, total de decisões aprovadas continua 143. Não implica autorização para implementação.
+
+- **Rodada 11 aprovada:** 9 decisões (R11.1–R11.9) incorporadas, total **152 respostas aprovadas**; alternativas originais preservadas e auditoria de pendências classificada. Rodadas 1–10 inalteradas no texto de perguntas/respostas. R11.2 mantém termo «recentemente» sem número inventado. Nenhum código alterado.
