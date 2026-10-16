@@ -73,7 +73,7 @@ Convenções: **T** = testes; **R** = riscos; **A** = critério de aceite. Toda 
 - **R:** **médio-alto** (homing e muitas entidades; limite `C.world.maxEntities`=64 vs 8 pedras × vários usos). *Mitigação:* teste de carga; recusa já existente (`spawnRefused`).
 - **A:** testes + medição com `npm run measure:sim` refeita (carga de Moves) **sem exigir meta** (não há meta definida).
 
-### Fase 4 — Power Level, Clash e Counter (M)
+### Fase 4 — Power Level, Clash e Counter (M) — **ENTREGUE (PR da Fase 4), no escopo de Reflect, Psyshock e Tackle**
 - **O que:** PL em entidades e ações (Tackle PL1 fixo); Clash (PL igual) e Counter (PL diferente) para as interações elegíveis; Counter Stagger de 0,2 s (só se o vencedor atinge o corpo; sem acumular; pode interromper Charge); eventos e telemetria (M20.9).
 - **Arquivos:** `sim/combat.js`, `sim/world.js`, `sim/telemetry.js`, `ui` (HUD/telemetria), testes `pl.test.mjs` (M18–M22).
 - **R:** **médio** — pode mexer em resultados do Tackle existente. *Mitigação:* PL só entra quando há Move equipado; testes `core`/`rules` inalterados.

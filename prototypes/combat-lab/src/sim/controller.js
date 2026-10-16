@@ -504,6 +504,7 @@ function stepCharge(f, cmd) {
 /** Recargas dos movimentos (chamado por passo; a taxa pode vir de status). */
 export function tickCooldowns(f, dt) {
   if (f.moveRecovery > 0) f.moveRecovery = Math.max(0, f.moveRecovery - dt);
+  if (f.counterStagger > 0) f.counterStagger = Math.max(0, f.counterStagger - dt);
   const cds = f.moveCooldowns;if (!cds) return;const rate = stat(f, 'cooldownRate', 1);
   for (const id of Object.keys(cds)) {cds[id] = Math.max(0, cds[id] - dt * rate);if (cds[id] <= 0) delete cds[id];}
 }
