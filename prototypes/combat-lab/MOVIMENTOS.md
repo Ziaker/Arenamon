@@ -181,13 +181,25 @@ Decisões (momento, Move, motivo, PL) ficam em `brain.t.mv.log` (telemetria opci
 
 ## Interface do laboratório — Fase 6
 
-**Aba Moves** (`ui/moves-panel.js`): equipar Reflect (A) e Psyshock (S) para o jogador e o vermelho (vêm **desligados**; valem já na partida atual); **emissores técnicos** (projétil hostil PL1/PL2/PL3 do vermelho rumo ao azul; explosão no centro, PL2); **10 cenários técnicos** repetíveis (`sim/scenarios-moves.js`, duelo isolado, semente fixa, ajustes atuais, esperado × obtido, exportável em JSON); **parâmetros** de `C.world.charge/reflect/psyshock` com tooltip, formato e marca **aprovado** × **provisório**, botão ↺ por parâmetro e restaurar todos (valem para os **próximos usos**, M28.4); **avaliação jogável dos Moves** (10 itens, aprovado/reprovado/observação, salva no navegador e no JSON — é a aprovação **sua**, M28.9).
+**Aba Moves** (`ui/moves-panel.js`): equipar Reflect (A) e Psyshock (S) para o jogador e o vermelho (vêm **desligados**; valem já na partida atual); **emissores técnicos** (projétil hostil PL1/PL2/PL3 do vermelho rumo ao azul; explosão no centro, PL2); **12 cenários técnicos** repetíveis (`sim/scenarios-moves.js`, duelo isolado, semente fixa, ajustes atuais, esperado × obtido, exportável em JSON); **parâmetros** de `C.world.charge/reflect/psyshock` com tooltip, formato e marca **aprovado** × **provisório**, botão ↺ por parâmetro e restaurar todos (valem para os **próximos usos**, M28.4); **avaliação jogável dos Moves** (10 itens, aprovado/reprovado/observação, salva no navegador e no JSON — é a aprovação **sua**, M28.9).
 
 **HUD dos slots** (`ui/moves-hud.js`, `sim/move-state.js`): para cada lutador com Moves, tecla, nome e estado real — pronto, carregando (% e PL com a cor do nível), recarga, recuperação ou bloqueado **com o motivo do motor** (a tela usa as mesmas permissões do controlador). **Aviso discreto** quando um Move falha (ex.: “Reflect: sem espaço — stamina devolvida, sem recarga”). O aviso de contato da arena e a linha de contato passaram a entender os eventos novos (reflexão, barreira destruída, Counter, stagger, proteção).
 
 **Visual** (`view/world-view.js`): barreira e pedras coloridas pelo PL (PL1 ciano, PL2 âmbar, PL3 magenta), barreira com contorno e piscar no último segundo, **prévia** da barreira durante a carga (verde se cabe, vermelha se faltar espaço), pedras que se formam ao redor de quem carrega o Psyshock (3 + 1 a cada 0,8 s) e **anéis de impacto** nos eventos. É representação mínima e **provisória**; animações do personagem, gesto da mão e VFX definitivos dependem da sua avaliação e dos modelos.
 
-**Fica fora desta fase:** lasers e seus emissores (Fase 7), overlays técnicos específicos dos Moves além dos já existentes em Visualizar, persistência dos equipamentos no workspace (equipar vale na sessão).
+**Fica fora desta fase:** overlays técnicos específicos dos Moves além dos já existentes em Visualizar, persistência dos equipamentos no workspace (equipar vale na sessão).
+
+## Lasers contínuos — Fase 7 (`sim/beam.js`, entidade `beam`)
+
+Um **feixe** é uma fonte (`kind: 'beam'`: dono, origem, direção, `pl`, `length`, `width`, `life`, `interval`, `hit`, `turn` opcional para varrer) que o mundo **recalcula do zero a cada passo**: a trajetória não tem estado, então reflexão em cadeia, troca de dono e “sem a barreira o feixe segue reto” (M17.7) são consequência direta e não há contatos repetidos em incidência rasante.
+
+- **Segmentos** (`e.segments`: `{a, b, owner, pl, by, neutralized?}`): até `C.world.beam.maxSegments` (8); depois o feixe para e avisa **uma vez** (`reflectCycle`, M17.2). Termina no primeiro obstáculo: barreira refletora, parede, **corpo de lutador** (não atravessa) ou limite da arena.
+- **Barreira refletora:** frente e borda refletem (a borda pela própria normal); o **verso atravessa** (M30.5). Quem reflete passa a ser o **dono do trecho seguinte** (M17.6), que pode ferir o lançador original mas não o novo dono. Incidência rasante/paralela é ignorada (`|direção·normal| < 1e-4`).
+- **PL (M20.6, M18.8):** PL do feixe **superior** ao da barreira a destrói e neutraliza **só o segmento incidente**; a fonte continua e emite de novo no passo seguinte. PL igual ou inferior reflete.
+- **Dano:** a cada `interval` (0,25 s) por alvo, pelo mesmo `applyHit` (defesa, invulnerabilidade, status). Com `captured.attackFraction` o dano do trecho é recalculado com o Ataque do dono **desse trecho**; senão `hit.damage`. Eventos trazem `source: 'laser'`, `kind: 'beam'`, `seg` e `pl`.
+- **Eventos sem repetição:** `reflected`, `neutralized` e `reflectCycle` saem **uma vez por contato novo** (a identificação é segmento + barreira), então o feixe contínuo não gera avisos nem Counter a cada passo.
+- **Padrões provisórios** (`C.world.beam`): alcance 24 m, 8 segmentos, intervalo 0,25 s, dano 2 do emissor técnico. Nenhum Move cria laser ainda; o feixe é infraestrutura + **emissores técnicos** (aba Moves: Laser PL1/PL2/PL3 e giratório, 4 s) e dois cenários (`laser-reflect`, `laser-pl`).
+- **Fora de escopo (abertos):** Tackle × laser (sem Clash/Counter de laser), Counter Stagger por laser, laser disparado por lutador, feixe com largura/pierce, overlay técnico do feixe.
 
 ## Garantias verificadas (`test/moves.test.mjs`)
 

@@ -7,7 +7,7 @@ import {reflectPlacement} from '../sim/moves/reflect.js';
 import {stoneCount} from '../sim/moves/psyshock.js';
 
 export const PL_HEX = [0xffffff, 0x59d6e6, 0xffcf6a, 0xff6adf];
-const RING = {reflected: [null, 1.3], barrierBroken: [0xff8a5a, 2.4], stoneClash: [0xb59cff, 1], counter: [0xffd24a, 1.2], tackleClash: [0xffffff, .9], counterStagger: [0xffd24a, 1.5], shielded: [0x59d6e6, 1.3]};
+const RING = {reflected: [null, 1.3], barrierBroken: [0xff8a5a, 2.4], stoneClash: [0xb59cff, 1], counter: [0xffd24a, 1.2], tackleClash: [0xffffff, .9], counterStagger: [0xffd24a, 1.5], shielded: [0x59d6e6, 1.3], neutralized: [0xffffff, 1]};
 const FIGHTER_EVENTS = new Set(['counterStagger', 'shielded']);
 
 export class WorldView {
@@ -24,7 +24,11 @@ export class WorldView {
   make(e) {
     const color = this.colorOf(e);let mesh;
     if (e.kind === 'projectile') mesh = new T.Mesh(new T.SphereGeometry(1, 16, 12), new T.MeshBasicMaterial({color, transparent: true, opacity: .9}));
-    else if (e.kind === 'area') {
+    else if (e.kind === 'beam') {
+      // Feixe: um paralelepípedo fino por segmento (até `maxSegments`), reposicionado a cada quadro conforme `e.segments`.
+      mesh = new T.Group();const geo = new T.BoxGeometry(1, 1, 1);
+      for (let i = 0; i < (e.maxSegments ?? 8); i++) {const s = new T.Mesh(geo, new T.MeshBasicMaterial({color, transparent: true, opacity: .85}));s.visible = false;mesh.add(s);}
+    } else if (e.kind === 'area') {
       const geo = new T.CircleGeometry(1, 48);geo.rotateX(-Math.PI / 2);
       mesh = new T.Mesh(geo, new T.MeshBasicMaterial({color: e.explosion ? 0xff8a5a : 0xffb361, transparent: true, opacity: .35, depthWrite: false, side: T.DoubleSide}));
     } else {
@@ -45,7 +49,14 @@ export class WorldView {
     const alive = new Set();
     for (const e of world?.entities ?? []) {
       alive.add(e.id);const m = this.meshes.get(e.id) ?? this.make(e);
-      if (e.kind === 'projectile') {m.position.set(e.pos.x, e.y, e.pos.z);m.scale.setScalar(e.radius * (e.visualScale ?? 1) * (e.exec != null ? 1.15 : 1));m.material.color.setHex(this.colorOf(e));}
+      if (e.kind === 'beam') {
+        m.children.forEach((s, i) => {
+          const g = e.segments?.[i];s.visible = !!g;if (!g) return;
+          const dx = g.b.x - g.a.x, dz = g.b.z - g.a.z, len = Math.hypot(dx, dz), w = Math.max(.05, (e.width ?? .04) * 2);
+          s.position.set((g.a.x + g.b.x) / 2, e.y, (g.a.z + g.b.z) / 2);s.rotation.y = Math.atan2(dx, dz);s.scale.set(w, w, Math.max(1e-3, len));
+          s.material.color.setHex(g.neutralized ? 0xffffff : PL_HEX[Math.min(3, g.pl ?? 1)]);s.material.opacity = g.neutralized ? .35 : .85;
+        });
+      } else if (e.kind === 'projectile') {m.position.set(e.pos.x, e.y, e.pos.z);m.scale.setScalar(e.radius * (e.visualScale ?? 1) * (e.exec != null ? 1.15 : 1));m.material.color.setHex(this.colorOf(e));}
       else if (e.kind === 'area') {
         m.position.set(e.pos.x, (e.y ?? 0) + .03, e.pos.z);
         if (e.shape === 'box') {m.scale.set(e.hx * 2, 1, e.hz * 2);m.rotation.y = e.angle ?? 0;} else m.scale.set(e.radius, 1, e.radius);
@@ -65,7 +76,8 @@ export class WorldView {
       if (this.seen.has(ev)) continue;this.seen.add(ev);
       const spec = RING[ev.result];if (!spec) continue;
       const m = this.meshes.get(ev.entity), f = FIGHTER_EVENTS.has(ev.result) ? fighters[ev.target] : null;
-      const pos = f ? {x: f.position.x, y: .6, z: f.position.z} : m ? m.position : null;if (!pos) continue;
+      const be = ev.kind === 'beam' && ev.seg != null ? world?.entities.find(x => x.id === ev.entity) : null, bp = be?.segments?.[ev.seg]?.b;   // eventos do feixe: o anel nasce no ponto do contato
+      const pos = bp ? {x: bp.x, y: be.y, z: bp.z} : f ? {x: f.position.x, y: .6, z: f.position.z} : m ? m.position : null;if (!pos) continue;
       this.ring(pos.x, pos.y ?? .6, pos.z, spec[0] ?? PL_HEX[Math.min(3, ev.barrierPl ?? ev.pl ?? 1)], spec[1]);
     }
     for (const [id, m] of this.meshes) if (!alive.has(id)) {this.group.remove(m);m.traverse(o => {o.geometry?.dispose();o.material?.dispose();});this.meshes.delete(id);}

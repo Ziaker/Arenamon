@@ -52,6 +52,10 @@ Executado e aprovado em worktree temporário: `npm run typecheck`; `npm run test
 
 Executado e aprovado em worktree temporário: `npm run typecheck`; `npm run test:combat-lab:unit` completo (inclui `moves-ui.test` 5 verificações); `npm run test:combat-lab:browser` completo (inclui `moves-ui.browser` 16/16: aba Moves, HUD, prévia, reflexão com anel, pedras, aviso de falha, offline, sem erros; **capturas inspecionadas** em `validation/moves-ui/`); `npm run check:offline`; impressão digital IA × IA idêntica à da base. **Não medido:** desempenho de render com muitas entidades/VFX em GPU real. **Não executado:** `verify:workspace`/`verify` completo (worktree), paridade v6 (arquivo ausente). **Pendente (sua):** avaliação jogável e visual — checklist de 10 itens na aba Moves.
 
+### Fase 7 dos Moves — Lasers e emissores técnicos (2026-10-16, branch `feat/moves-fase7-laser` sobre `main` @ `1b1a228`)
+
+Executado e aprovado em worktree temporário: `npm run typecheck`; `npm run test:combat-lab:unit` completo (inclui `beam.test` 11 verificações); `moves-ui.browser` 18/18 (emissores de laser, desenho do feixe; captura `validation/moves-ui/laser.png`); suíte `test:combat-lab:browser` completa; `npm run check:offline`; impressão digital IA × IA idêntica à da base (`257bd5a0…`: sem feixe, nada muda). **Não medido:** desempenho de render do feixe em GPU real. **Não executado:** `verify:workspace`/`verify` completo (worktree), paridade v6 (arquivo ausente). **Pendente (sua):** avaliação visual/jogável do laser (a captura mostra o feixe na linha da câmera; o laser ainda não é usado por nenhum Move).
+
 ### NÃO executado / pendente
 
 - `npm run verify:workspace`: **recusa worktrees por desenho** (exige o checkout oficial). Deve ser rodado na pasta oficial quando ela estiver livre.

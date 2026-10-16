@@ -14,10 +14,11 @@ import {C} from './config.js';
 import {isInvulnerable, nominalDistance} from './entity.js';
 import {sweepBox, segmentHitsVolume} from './geometry.js';
 import {launch} from './combat.js';
+import {traceBeam} from './beam.js';
 import {applyStatus, stat} from './status.js';
 import {vec, add, sub, scale, dot, length, normalize, direction, angleOf, angleDelta, clamp} from './math.js';
 
-export const ENTITY_KINDS = ['projectile', 'barrier', 'wall', 'area'];
+export const ENTITY_KINDS = ['projectile', 'barrier', 'wall', 'area', 'beam'];
 export const createWorld = () => ({entities: [], nextId: 1});
 const fighterHeight = () => C.extras.visual.bodyHeight;
 const altOf = f => (f.flight?.y ?? 0) + (f.vaultHeight ?? 0);
@@ -46,6 +47,7 @@ export const DEFAULTS = {
   projectile: {shape: 'circle', radius: .25, y: .65, height: 0, speed: 12, life: 2, pierce: 1, blockedBy: ['barrier', 'wall'], hitsOwner: false},
   barrier: {shape: 'box', hx: .9, hz: .15, y: 0, height: 1.8, life: 3, hp: Infinity, blocksProjectiles: true, blocksFighters: false, blocksOwner: false},
   wall: {shape: 'box', hx: 1.5, hz: .3, y: 0, height: 2.2, life: Infinity, blocksProjectiles: true, blocksFighters: true},
+  beam: {y: .9, life: 2, length: 24, width: .04, pl: 1, interval: .25, turn: 0, hitsOwner: false, hit: {damage: 0}},
   area: {shape: 'circle', radius: 2, y: 0, height: 2, life: .3, grow: 0, pulses: 1, interval: 0, falloff: 'none', affectsOwner: false, follow: false},
 };
 /** Valida um modelo de entidade (lança erro legível). */
@@ -65,6 +67,7 @@ export function spawn(world, t, events = []) {
   const e = structuredClone({...DEFAULTS[t.kind], ...t});
   e.id = world.nextId++;e.age = 0;e.hitLog = [];e.pulsesDone = 0;e.pos = {...(t.pos ?? vec())};e.dir = t.dir ? normalize(t.dir) : direction(t.angle ?? 0);
   if (e.kind === 'projectile') e.vel = scale(e.dir, e.speed);
+  if (e.kind === 'beam') {e.nextHit = {};e.segments = [];e.contacts = [];e.maxSegments ??= C.world.beam.maxSegments;}
   if (e.kind === 'area') {e.baseRadius = e.radius;if (e.grow > 0) e.radius = e.startRadius ?? 0;}
   world.entities.push(e);events.push({result: 'spawn', attacker: e.owner ?? null, target: null, damage: 0, entity: e.id, kind: e.kind});
   return e;
@@ -138,6 +141,7 @@ export function stepWorld(game, dt) {
     e.age += dt;
     if (e.kind === 'projectile') stepProjectile(game, e, dt, events, spawnLater);
     else if (e.kind === 'area') stepArea(game, e, dt, events);
+    else if (e.kind === 'beam') stepBeam(game, e, dt, events);
     if (!e.dead && e.age >= e.life - 1e-9) {e.dead = true;events.push({result: 'expire', attacker: e.owner ?? null, target: null, damage: 0, entity: e.id, kind: e.kind});if (e.onExpire) spawnLater.push(at(e.onExpire, e));}
   }
   clashStones(world, events);
@@ -181,6 +185,22 @@ function stepProjectile(game, p, dt, events, spawnLater) {
       if (ev && p.counterWon && p.defeated?.includes(f.id) && (ev.result === 'impact' || ev.result === 'partial')) applyCounterStagger(f, p.captured?.counterStagger ?? 0, events, p.owner ?? null);
       if (p.hitLog.length >= p.pierce || ev?.result === 'partial' || ev?.result === 'perfect') {p.dead = true;if (p.onHit) spawnLater.push(at(p.onHit, p));return;}
     }
+  }
+}
+/**
+ * Feixe contínuo: recalcula os segmentos (reflexões, troca de dono, barreira que some) e aplica o dano a cada `interval` por alvo, pelo
+ * mesmo `applyHit` dos demais acertos. O dano do trecho usa `captured.attackFraction × Ataque do dono do trecho` quando existir (M17.6); senão `hit.damage × Ataque`.
+ */
+function stepBeam(game, e, dt, events) {
+  if (e.turn) {const d = angleOf(e.dir) + e.turn * dt;e.dir = direction(d);}
+  const {segments, hits} = traceBeam(game, e, events);e.segments = segments;
+  for (const h of hits) {
+    if ((e.nextHit[h.target] ?? 0) > e.age + 1e-9) continue;
+    e.nextHit[h.target] = e.age + e.interval;
+    const f = game.fighters[h.target], seg = segments[h.seg], dir = normalize(sub(seg.b, seg.a)), o = h.owner != null ? game.fighters[h.owner] : null;
+    const hit = e.captured?.attackFraction != null && o ? {...e.hit, damage: e.captured.attackFraction * o.attributes.attack} : e.hit;
+    const ev = applyHit(game, h.owner, f, hit, dir, {entity: e.id, source: 'laser', origin: seg.a, pl: seg.pl});
+    if (ev) events.push({...ev, seg: h.seg, kind: 'beam'});
   }
 }
 function stepArea(game, a, dt, events) {

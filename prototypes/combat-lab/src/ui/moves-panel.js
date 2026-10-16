@@ -50,6 +50,12 @@ const PARAMS = [
     ['psyshock', 'counterStagger', 'Counter Stagger', 'Stagger quando uma pedra de PL superior atinge o corpo do derrotado (M21.5).', 0, 1, .01, sec, true],
     ['psyshock', 'radius', 'Raio de colisão da pedra', 'Igual em todas as pedras (o tamanho visual varia sem efeito na física, M30.2).', .05, .5, .01, m, false],
   ]],
+  ['Laser (emissor técnico)', [
+    ['beam', 'length', 'Alcance do feixe', 'Comprimento total somando os segmentos refletidos (provisório).', 4, 40, 1, m, false],
+    ['beam', 'maxSegments', 'Segmentos máximos', 'Salvaguarda contra reflexões em cadeia (M17.2); acima disso o feixe para e avisa uma vez.', 1, 16, 1, int, false],
+    ['beam', 'interval', 'Intervalo entre danos', 'Tempo entre dois danos do feixe no mesmo alvo (provisório).', .05, 1, .05, sec, false],
+    ['beam', 'damage', 'Dano por acerto', 'Dano de cada acerto do emissor técnico, antes do Ataque (provisório).', 0, 20, .5, num, false],
+  ]],
 ];
 
 /** Itens da avaliação jogável e visual dos Moves (M28.9: separada dos testes automáticos; decisão do diretor). */
@@ -84,6 +90,13 @@ export function createMovesPanel({$, game, download}) {
       hit: {damage: C.world.psyshock.damageFraction * r.attributes.attack, knockback: {horizontal: C.world.psyshock.knockbackPerStone, vertical: 0}}, captured: {attackFraction: C.world.psyshock.damageFraction, counterStagger: C.world.psyshock.counterStagger}}, game.lastStepEvents);
     return true;
   }
+  /** Laser técnico do vermelho rumo ao azul (PL 1–3); `turn` (rad/s) faz o emissor varrer a arena. Vive 4 s. */
+  function emitLaser(pl, turn = 0) {
+    if (game.phase !== 'playing') return false;
+    const [b, r] = game.fighters, dx = b.position.x - r.position.x, dz = b.position.z - r.position.z, d = Math.hypot(dx, dz) || 1;
+    spawn(game.world, {kind: 'beam', owner: 1, pos: {x: r.position.x + dx / d * .7, z: r.position.z + dz / d * .7}, dir: {x: dx / d, z: dz / d}, life: 4, pl, turn, length: C.world.beam.length, maxSegments: C.world.beam.maxSegments, interval: C.world.beam.interval, hit: {damage: C.world.beam.damage}}, game.lastStepEvents);
+    return true;
+  }
   function emitExplosion() {
     if (game.phase !== 'playing') return false;
     spawn(game.world, {kind: 'area', explosion: true, owner: 1, affectsOwner: true, pos: {x: 0, z: 0}, radius: 4, y: 0, height: 3, life: .25, pulses: 1, falloff: 'linear', pl: 2, hit: {damage: 10, knockback: {horizontal: 5, vertical: 4}}}, game.lastStepEvents);
@@ -105,7 +118,8 @@ export function createMovesPanel({$, game, download}) {
       <div class="row"><b>Adversário (vermelho)</b><label><input type="checkbox" data-equip="1.reflect" ${eq1.reflect ? 'checked' : ''}> Reflect</label><label><input type="checkbox" data-equip="1.psyshock" ${eq1.psyshock ? 'checked' : ''}> Psyshock</label><span class="muted">usa a IA tática</span></div>
       <h3>Emissores técnicos (na partida)</h3>
       <div class="row"><button type="button" data-emit="1">Projétil hostil PL1</button><button type="button" data-emit="2">PL2</button><button type="button" data-emit="3">PL3</button><button type="button" data-emit="boom">Explosão no centro (PL2)</button></div>
-      <p class="hint">O projétil sai do vermelho rumo ao azul: use para testar o Reflect e o Counter. A explosão destrói barreiras alcançadas; quem está atrás de uma barreira fica protegido.</p>
+      <div class="row"><button type="button" data-laser="1">Laser PL1</button><button type="button" data-laser="2">PL2</button><button type="button" data-laser="3">PL3</button><button type="button" data-laser="sweep">Laser giratório (PL1)</button></div>
+      <p class="hint">O projétil e o laser (4 s, contínuo, dano a cada 0,25 s) saem do vermelho rumo ao azul: use para testar o Reflect, a reflexão em cadeia e o Counter. A explosão destrói barreiras alcançadas; quem está atrás de uma barreira fica protegido.</p>
       <h3>Cenários técnicos</h3>
       <div class="row"><button type="button" id="mvp-run">▶ Executar todos</button><button type="button" id="mvp-export" ${results ? '' : 'disabled'}>↓ JSON</button></div>
       <div id="mvp-results">${scen}</div>
@@ -119,6 +133,7 @@ export function createMovesPanel({$, game, download}) {
     for (const s of root.querySelectorAll('[data-hom]')) s.onchange = () => {homolog[s.dataset.hom] = {...homolog[s.dataset.hom], v: s.value};saveHomolog(homolog);};
     for (const s of root.querySelectorAll('[data-hom-note]')) s.onchange = () => {homolog[s.dataset.homNote] = {...homolog[s.dataset.homNote], n: s.value};saveHomolog(homolog);};
     for (const c of root.querySelectorAll('[data-equip]')) c.onchange = () => {const [id, kind] = c.dataset.equip.split('.');setEquip(Number(id), kind, c.checked);};
+    for (const b of root.querySelectorAll('[data-laser]')) b.onclick = () => {const k = b.dataset.laser;(k === 'sweep' ? emitLaser(1, .8) : emitLaser(Number(k)));};
     for (const b of root.querySelectorAll('[data-emit]')) b.onclick = () => {const k = b.dataset.emit;(k === 'boom' ? emitExplosion() : emitProjectile(Number(k)));};
     $('mvp-run').onclick = () => {results = runMoveScenarios();render();};
     $('mvp-export').onclick = () => results && download(JSON.stringify({schema: 'arenamon-lab-report', version: 1, kind: 'moves-scenarios', createdAt: new Date().toISOString(), step: C.test.step, scenarios: results, homologation: MOVES_HOMOLOG.map((t, i) => ({item: t, verdict: homolog[i]?.v || 'pendente', note: homolog[i]?.n || ''}))}, null, 1), 'arenamon-cenarios-moves.json');
@@ -127,7 +142,7 @@ export function createMovesPanel({$, game, download}) {
       C.world[g][k] = v;root.querySelector(`[data-o="${inp.dataset.p}"]`).textContent = spec[7](v);root.querySelector(`[data-reset="${inp.dataset.p}"]`).disabled = v === defaults().world[g][k];
     };
     for (const b of root.querySelectorAll('[data-reset]')) b.onclick = () => {const [g, k] = b.dataset.reset.split('.');C.world[g][k] = defaults().world[g][k];render();};
-    $('mvp-reset-all').onclick = () => {for (const g of ['charge', 'reflect', 'psyshock']) Object.assign(C.world[g], defaults().world[g]);render();};
+    $('mvp-reset-all').onclick = () => {for (const g of ['charge', 'reflect', 'psyshock', 'beam']) Object.assign(C.world[g], defaults().world[g]);render();};
   }
-  return {render, emitProjectile, emitExplosion, setEquip, get results() {return results;}, STANDARD};
+  return {render, emitProjectile, emitLaser, emitExplosion, setEquip, get results() {return results;}, STANDARD};
 }
