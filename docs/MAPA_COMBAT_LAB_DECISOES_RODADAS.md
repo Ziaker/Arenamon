@@ -2,7 +2,7 @@
 
 > **Documento oficial de planejamento em andamento.** Arquivo único a ser atualizado a cada nova rodada solicitada pelo usuário. Não é especificação final nem autorização para implementar.
 >
-> **Status:** Rodadas 1–9 respondidas e registradas (**133 respostas**); Rodada 10 com 16 perguntas não respondidas. **Diretriz vigente posterior à Rodada 9:** desconsiderar integralmente gamepad no planejamento do mapa; preservar referências antigas só por rastreabilidade, sem exigir decisão nem teste para esse dispositivo.
+> **Status:** Rodadas 1–9 respondidas e registradas (**133 respostas**); Rodada 10 com 10 perguntas revisadas ainda não respondidas (duplicações retiradas). **Diretriz vigente posterior à Rodada 9:** desconsiderar integralmente gamepad no planejamento do mapa; preservar referências antigas só por rastreabilidade, sem exigir decisão nem teste para esse dispositivo.
 > **Fonte de verdade das decisões:** respostas do usuário na conversa ChatGPT sobre o mapa do Arenamon. Opções rejeitadas e sugestões do assistente **não** são requisitos aprovados.
 > **Repositório:** https://github.com/Ziaker/Arenamon · **Escopo:** apenas laboratório de combate `prototypes/combat-lab/`.
 > **Referência do código inspecionado antes da criação:** `main` @ `a16904bd395b982225fe1eed9f87e59bc1a65421` (2026-10-15). Não significa que essas features já tenham sido implementadas.
@@ -14,7 +14,7 @@
 3. Manter as perguntas sem resposta e conflitos em seção específica. Atualizar contagens e o status. A disponibilidade de atualização depende de uma nova interação e de acesso de escrita ao GitHub; **não existe atualização automática de fundo**.
 4. Fazer commit e verificar o arquivo no GitHub após cada atualização. Não modificar código nem outros arquivos sem solicitação explícita.
 6. **Escopo vigente de controles:** somente teclado para salto e demais decisões do mapa; todas as exigências anteriores referentes a gamepad estão desconsideradas por ordem expressa posterior do usuário. **Não voltar a perguntar ou atribuir botão de gamepad nesta sequência.** Referências históricas devem permanecer arquivadas como escolhas anteriores, não requisitos ativos. A publicação remota não prova sincronização com o checkout local.
-5. A rodada 9 contém decisões aprovadas; a rodada 10 abaixo é **questionário pendente**, não contém decisões aprovadas.
+5. A rodada 9 contém decisões aprovadas; a rodada 10 **revisada** abaixo é questionário pendente sem decisões aprovadas. A versão anterior, retirada por redundâncias, está arquivada ao final.
 
 ## Visão transversal de requisitos aprovados (resumo; detalhes por ID abaixo)
 
@@ -669,149 +669,97 @@ Resposta aprovada: **D — Todas essas ferramentas, individualmente ativáveis o
 
 **Observações adicionais enviadas pelo usuário na Rodada 9:** nenhuma. **Histórico R9.14:** a opção D foi escolhida sem informar botão. **Diretriz posterior prevalente:** o usuário instruiu ignorar gamepad completamente; este tópico deixou de ser uma pendência e não deve ser retomado.
 
-## Rodada 10 — QUESTIONÁRIO PENDENTE (16 perguntas, sem respostas)
+## Rodada 10 — QUESTIONÁRIO REVISADO E PENDENTE (10 perguntas, nenhuma resposta)
 
-**R10.1 — Por quanto tempo a trava de alvo deve ser mantida quando um obstáculo bloqueia continuamente a linha de visão?**
+> **Auditoria de redundância:** perguntas anteriores sobre probabilidades de consumíveis (R4.7), segurança/rotas de geração (R3.13), recálculo de IA (R8.1), necessidade de salto independente (R1.10), meta de desempenho (R9.16) e sincronização documental foram retiradas do questionário ativo. Parâmetros já declarados configuráveis não serão novamente submetidos apenas para forçar um padrão numérico. Versão anterior arquivada sem respostas ao final do documento.
 
-- A — 0,5 segundo.
-- B — 1 segundo.
-- C — 2 segundos.
-- D — Tempo de tolerância configurável com valor padrão informado nas observações.
+**R10.1 — Se o escudo tiver menos capacidade que o dano bruto recebido, como calcular o dano que ultrapassa a proteção?**
 
-**Status:** não respondida.
-
-**R10.2 — Qual deve ser o tempo inicial de recuperação após um salto normal, antes de poder agir novamente?**
-
-- A — 0 s (controle terrestre imediato; intervalo de 0,25 s para outro salto permanece).
-- B — 0,10 s.
-- C — 0,20 s.
-- D — Outro valor numérico informado nas observações, mantendo o parâmetro configurável.
+- A — Consumir o escudo e aplicar a Defesa normalmente somente ao excedente.
+- B — Consumir o escudo e descontar o excedente diretamente do HP, sem Defesa.
+- C — O golpe que destrói o escudo não causa dano ao HP, mesmo com excedente.
+- D — Outro procedimento, especificado nas observações.
 
 **Status:** não respondida.
 
-**R10.3 — Qual limite inicial de capacidade acumulada deve ser usado para o escudo, considerando que cada aplicação fornece até 40 pontos?**
+**R10.2 — Quando outro consumível acrescenta proteção ao escudo já ativo, o que acontece com a duração de 10 segundos?**
 
-- A — Até 60 pontos de escudo acumulado.
-- B — Até 80 pontos.
-- C — Até 120 pontos.
-- D — Outro teto inicial informado nas observações, sempre configurável.
-
-**Status:** não respondida.
-
-**R10.4 — Se o escudo não for suficiente para absorver o dano bruto inteiro, como tratar o excedente?**
-
-- A — Escudo absorve sua capacidade restante; o dano excedente passa então pela mitigação normal de Defesa.
-- B — Escudo absorve sua capacidade restante; o excedente atinge o HP diretamente, sem Defesa.
-- C — O golpe que esgota o escudo causa zero dano ao HP, mesmo com excedente.
-- D — Regra configurável, com comportamento inicial detalhado nas observações.
+- A — Renova a duração total para 10 segundos.
+- B — Conserva apenas o tempo restante original.
+- C — Cada acréscimo possui sua própria expiração de 10 segundos.
+- D — Outra regra, especificada nas observações.
 
 **Status:** não respondida.
 
-**R10.5 — Quanto deve restaurar a recompensa especial de stamina recebida com HP cheio e todos os atributos no estágio 4?**
+**R10.3 — Como os quatro estágios de Defesa devem combinar sua redução de 10 pontos percentuais por estágio com a defesa básica que o personagem já possui?**
 
-- A — Os mesmos 2 pontos do consumível comum de stamina.
-- B — Preenche completamente a stamina até o máximo atual.
-- C — Restaura 1 ponto, independentemente do item comum.
-- D — Quantidade específica informada nas observações.
-
-**Status:** não respondida.
-
-**R10.6 — Se o personagem já estiver com todos os estágios e HP e stamina máximos, o que ocorre ao receber a recompensa especial de stamina?**
-
-- A — A coleta acontece, mesmo sem benefício imediato.
-- B — O item permanece disponível, sem ser coletado.
-- C — Concede escudo temporário seguindo as regras já aprovadas.
-- D — Outra consequência específica, informada nas observações.
+- A — Somar a redução percentual após a mitigação básica, com mínimo de 0 dano.
+- B — Aplicar a redução dos estágios ao dano bruto e depois a defesa básica.
+- C — Somar os percentuais de mitigação existentes e dos estágios em uma única redução, com limite máximo a definir.
+- D — Outra fórmula, especificada nas observações.
 
 **Status:** não respondida.
 
-**R10.7 — Se um item tocar um personagem derrotado, com HP igual a zero, como a coleta deve ser resolvida?**
+**R10.4 — Quando todos os estágios estão no máximo e HP e stamina já estão cheios, o que acontece com o consumível que concederia stamina adicional?**
 
-- A — Não concede benefícios; personagens derrotados não podem coletar itens.
-- B — Cura ainda pode ocorrer no mesmo passo e impedir a derrota se processada antes do encerramento.
-- C — O personagem derrotado pode receber item, mas isso não reverte a derrota.
-- D — Ordem de processamento e exceções configuráveis, com regra inicial especificada.
-
-**Status:** não respondida.
-
-**R10.8 — O que acontece quando um drop de destruição surge em posição bloqueada ou fisicamente inacessível?**
-
-- A — Tenta o ponto livre válido mais próximo do objeto destruído.
-- B — Drop não é criado caso o ponto exato esteja inválido.
-- C — Tenta posições próximas e, se nenhuma for válida, concede o benefício diretamente ao destruidor.
-- D — Estratégia configurável sem permitir itens presos em colisores.
+- A — É coletado e consumido, mesmo sem benefício adicional.
+- B — Permanece no cenário até que a recuperação possa ser aproveitada.
+- C — Concede o escudo temporário já aprovado, respeitando o limite acumulado.
+- D — Outro resultado, especificado nas observações.
 
 **Status:** não respondida.
 
-**R10.9 — O que fazer se nenhum local válido existir sequer após a busca sistemática aprovada para geração de objetos ou itens?**
+**R10.5 — Personagens derrotados (HP = 0) ainda podem coletar um consumível por colisão no mesmo passo da simulação?**
 
-- A — Adiar a geração e repetir a busca quando o cenário mudar.
-- B — Cancelar somente aquela ocorrência e aguardar o próximo intervalo regular.
-- C — Aguardar vaga e tentar a cada passo da simulação até conseguir.
-- D — Tratar cada categoria (objetos, plataformas, consumíveis) com regras de contingência separadas.
-
-**Status:** não respondida.
-
-**R10.10 — Como definir as probabilidades iguais entre as categorias de consumíveis depois de considerar HP, stamina e cinco atributos?**
-
-- A — Todos os 7 tipos possuem exatamente a mesma probabilidade nas gerações regulares.
-- B — Sorteio primeiro entre recuperação e evolução, depois entre tipos dentro de cada grupo.
-- C — HP, stamina e cinco evoluções possuem pesos ajustáveis, inicialmente iguais.
-- D — Outro agrupamento explicitado nas observações.
+- A — Não. A derrota impede a coleta.
+- B — Sim, caso a coleta ocorra antes da confirmação da derrota e cure o personagem.
+- C — Podem coletar, mas a derrota não é revertida.
+- D — Outra regra de prioridade, especificada nas observações.
 
 **Status:** não respondida.
 
-**R10.11 — Ao reaparecer um destrutível ou ser criado um novo obstáculo, como preservar rotas e segurança durante o combate?**
+**R10.6 — Se não existir nenhuma posição válida para gerar um objeto ou consumível, mesmo após a busca pelo local mais próximo, como agir?**
 
-- A — Apenas aceitar posições que não colidam com jogadores, itens e obstáculos e preservem caminhos livres.
-- B — Exigir também uma distância mínima configurável das trajetórias previstas dos jogadores.
-- C — Impedir reaparecimento próximo a personagens, independentemente das condições de rota.
-- D — Usar a regra de posições válidas anterior com testes de conectividade e margens adicionais configuráveis.
-
-**Status:** não respondida.
-
-**R10.12 — Como o pulo independente deve coexistir com o salto/vault atualmente associado à esquiva?**
-
-- A — Permanecem ações separadas, com controles, intervalos e comportamento físico próprios.
-- B — A esquiva aérea passa a usar a mesma física do pulo normal.
-- C — O novo pulo substitui completamente o vault da esquiva.
-- D — Coexistência configurável no laboratório, preservando o comportamento existente por padrão.
+- A — Adiar a geração e refazer a busca quando o cenário mudar.
+- B — Cancelar essa ocorrência e aguardar o próximo intervalo programado.
+- C — Continuar tentando periodicamente até surgir uma posição válida.
+- D — Adotar políticas diferentes para objetos e consumíveis, especificadas nas observações.
 
 **Status:** não respondida.
 
-**R10.13 — Como a IA deve reagir quando seu caminho planejado fica indisponível por bloqueio temporário ou reaparecimento de objetos?**
+**R10.7 — Se um lutador atravessa o ponto onde um destrutível acabou de ser destruído pelo próprio impacto, o que ocorre com seu movimento restante?**
 
-- A — Recalcula imediatamente uma nova rota válida.
-- B — Aguarda brevemente e recalcula se o bloqueio persistir.
-- C — Tenta contornar localmente antes de solicitar novo planejamento de caminho.
-- D — Estratégia e intervalos configuráveis, sempre impedindo aprisionamento permanente.
-
-**Status:** não respondida.
-
-**R10.14 — Como devem ser configuradas as resistências iniciais dos destrutíveis por categoria de impacto?**
-
-- A — 100% de dano para contato físico, projéteis, área e colisão ambiental.
-- B — Contato 100%, projéteis 100%, área 50% e colisão ambiental 100%.
-- C — Contato 100%, projéteis 75%, área 75% e colisão ambiental 125%.
-- D — Tabela inicial de multiplicadores personalizada, informada nas observações e editável por objeto.
+- A — A colisão interrompe o impulso daquele contato, mesmo após a destruição.
+- B — O lutador continua com o impulso residual após o objeto desaparecer.
+- C — Atravessa apenas se a velocidade do impacto superar um limiar configurável.
+- D — Outra regra de interação, especificada nas observações.
 
 **Status:** não respondida.
 
-**R10.15 — Como escolher um equipamento de referência para verificar a meta de 60 FPS em 1080p?**
+**R10.8 — Colidir com um objeto destrutível deve também causar dano ao lutador que sofreu o impacto?**
 
-- A — Definir hardware de referência futuramente; testes já devem medir FPS e tempos de quadro.
-- B — Usar o computador local do usuário como referência, após obter suas especificações.
-- C — Definir perfis mínimo e recomendado de hardware em rodada futura.
-- D — Outro alvo concreto, indicado nas observações.
+- A — Não. O objeto perde HP e o lutador sofre apenas a resposta física.
+- B — Sim, dano ao lutador proporcional à velocidade relativa do impacto.
+- C — Sim, mas apenas acima de uma velocidade mínima configurável.
+- D — A reação e o dano ao lutador são configuráveis por objeto.
 
 **Status:** não respondida.
 
-**R10.16 — Como deve ser validada a sincronização entre o arquivo GitHub e o checkout local oficial após cada atualização documental?**
+**R10.9 — Os dois consumíveis iniciais devem ser posicionados considerando a igualdade de acesso entre os lutadores?**
 
-- A — Confirmar o commit remoto e deixar a sincronização local pendente até haver acesso à pasta oficial.
-- B — Exigir confirmação de `git fetch`/`git pull` no checkout local antes de considerar a rodada concluída.
-- C — Confirmar o commit remoto, e solicitar sincronização local apenas antes da implementação.
-- D — Outro procedimento explícito, indicado nas observações.
+- A — Não. Basta cumprir as restrições de geração e acessibilidade já aprovadas.
+- B — Sim. Sortear posições aproximadamente equidistantes dos dois pontos de início.
+- C — Sim. Garantir um item acessível mais próximo de cada lutador.
+- D — Aplicar um critério de equilíbrio de distâncias configurável.
+
+**Status:** não respondida.
+
+**R10.10 — Ao coletar um estágio de Velocidade durante um salto ou lançamento balístico, ele altera o impulso horizontal já em curso?**
+
+- A — Não. Aumenta a velocidade das próximas ações, preservando integralmente a trajetória atual.
+- B — Sim. Escala imediatamente a velocidade horizontal aérea em 5% por estágio recém-adquirido.
+- C — Aplica o bônus à velocidade atual somente quando o personagem aterrissar.
+- D — Comportamento diferente para salto voluntário e lançamento, especificado nas observações.
 
 **Status:** não respondida.
 
@@ -845,12 +793,12 @@ Resposta aprovada: **D — Todas essas ferramentas, individualmente ativáveis o
 - **P3 — Recuperação ao aterrissar:** R7.9 aprova configuração independente, **sem tempo inicial numérico**.
 - **P4 — Cura de HP:** R9.1 definiu **20 HP** como padrão (R5.9 mantém a cura configurável em pontos ou porcentagem). **Resolvida quanto ao valor inicial.**
 - **P5 — Recuperação imediata de stamina:** R9.2 definiu **2 pontos**, item distinto do aumento permanente de capacidade. **Resolvida quanto ao valor inicial.**
-- **P6 — Escudo temporário:** R9.3–R9.7 definiram **10 s, até 40 pontos por aplicação, capacidade acumulável com teto configurável, absorção de dano bruto antes de Defesa, sem bloquear empurrões/lançamentos**. **Ainda faltam** teto numérico inicial, dano excedente ao esgotamento do escudo e possíveis interações excepcionais; R10.3–R10.4.
-- **P7 — Recompensa extra de progressão total:** R9.8–R9.9 aprovaram **recuperação imediata de stamina repetível** a cada consumível elegível. **Ainda pendentes** a quantidade restaurada e o caso de stamina já cheia; R10.5–R10.6.
-- **P8 — HP e resistências de objetos:** R9.10–R9.11 definiram **30 HP inicialmente por destrutível**, com resistências por **contato físico, projéteis, área e colisão ambiental**. Multiplicadores numéricos de resistência continuam pendentes, R10.14.
-- **P9 — Falha de geração procedural:** R9.12 exige procurar sistematicamente a **posição válida mais próxima da sorteada**. Continua pendente o que fazer caso nenhuma posição válida exista em toda a arena; R10.9.
+- **P6 — Escudo temporário:** R9.3–R9.7 definiram **10 s, até 40 pontos por aplicação, capacidade acumulável com teto configurável, absorção de dano bruto antes de Defesa, sem bloquear empurrões/lançamentos**. **Ainda faltam** dano excedente ao esgotamento do escudo, duração quando proteção é acumulada e possíveis interações excepcionais; R10.1–R10.2. O teto do escudo permanece configurável, conforme R9.5, sem obrigatoriedade de novo valor inicial nesta fase.
+- **P7 — Recompensa extra de progressão total:** R9.8–R9.9 aprovaram **recuperação imediata de stamina repetível** a cada consumível elegível. **Ainda pendente** o caso de stamina já cheia, tratado em R10.4. A quantidade especial permanece sem valor numérico próprio aprovado, mas não será redundante com a recuperação comum de 2 pontos por padrão presumido.
+- **P8 — HP e resistências de objetos:** R9.10–R9.11 definiram **30 HP inicialmente por destrutível**, com resistências por **contato físico, projéteis, área e colisão ambiental**. Multiplicadores numéricos de resistência continuam configuráveis e sem valores iniciais aprovados; não reapresentar a classificação por categoria já aprovada.
+- **P9 — Falha de geração procedural:** R9.12 exige procurar sistematicamente a **posição válida mais próxima da sorteada**. Continua pendente o que fazer caso nenhuma posição válida exista em toda a arena; R10.6.
 - **P10 — Encerramento de luta:** R9.13 determina que os temporizadores de objetos, itens e escudos **parem imediatamente na definição do vencedor**. Questões de animações pós-partida não foram especificamente alteradas.
-- **P11 — Regressão e desempenho:** R9.15 exige cobertura completa, incluindo **navegador, HUD, IA, seeds, replay e desempenho**; a exigência relativa a gamepad foi **retirada por ordem posterior**. R9.16 define **meta de 60 FPS a 1080p**, preservando física de passo fixo a **120 Hz**, mas ainda falta hardware de referência; R10.15.
+- **P11 — Regressão e desempenho:** R9.15 exige cobertura completa, incluindo **navegador, HUD, IA, seeds, replay e desempenho**; a exigência relativa a gamepad foi **retirada por ordem posterior**. R9.16 define **meta de 60 FPS a 1080p**, preservando física de passo fixo a **120 Hz**, mas ainda falta hardware de referência, a ser definido apenas quando for viável medir desempenho, sem repetir a meta aprovada.
 - **P12 — Interação ataque/defesa:** R8.7 aprova que explosões danifiquem objetos dentro do volume 3D; isso não aprova ignorar colisões tridimensionais ou fazer projéteis atravessarem bloqueios. R8.8 estabelece consumo de projétil que destrói o objeto.
 - **P13 — Categoria de buff regeneração:** não inventar progressão de regeneração de stamina a partir da lista preliminar de R4.2. A implementação deve usar as cinco categorias definitivas e os consumíveis de recuperação descritos.
 - **P14 — Estado técnico NÃO implementado:** mundo do laboratório em `prototypes/combat-lab/src/sim/world.js` já oferece projéteis, paredes, barreiras de movimentos e áreas; `status.js` suporta status temporários; `physics.js` usa limites quadrados; isso **não demonstra** existência das novas entidades persistentes, progressão de estágios, arena circular nem pulo independente.
@@ -872,6 +820,158 @@ Resposta aprovada: **D — Todas essas ferramentas, individualmente ativáveis o
 
 - **Não extrapolar:** não modificar implementações de entrada do jogo. Esta atualização foi somente documental.
 
+## Arquivo histórico do questionário anterior da Rodada 10 (não respondido)
+
+> Este questionário foi **substituído** porque continha perguntas repetidas e solicitação de números em parâmetros já definidos como configuráveis. O conteúdo abaixo é apenas histórico: **nenhuma escolha foi respondida ou aprovada**.
+
+### Rodada 10 — versão original substituída (SEM RESPOSTAS) QUESTIONÁRIO PENDENTE (16 perguntas, sem respostas)
+
+**Questão antiga 10.1 — Por quanto tempo a trava de alvo deve ser mantida quando um obstáculo bloqueia continuamente a linha de visão?**
+
+- A — 0,5 segundo.
+- B — 1 segundo.
+- C — 2 segundos.
+- D — Tempo de tolerância configurável com valor padrão informado nas observações.
+
+**Status:** não respondida.
+
+**Questão antiga 10.2 — Qual deve ser o tempo inicial de recuperação após um salto normal, antes de poder agir novamente?**
+
+- A — 0 s (controle terrestre imediato; intervalo de 0,25 s para outro salto permanece).
+- B — 0,10 s.
+- C — 0,20 s.
+- D — Outro valor numérico informado nas observações, mantendo o parâmetro configurável.
+
+**Status:** não respondida.
+
+**Questão antiga 10.3 — Qual limite inicial de capacidade acumulada deve ser usado para o escudo, considerando que cada aplicação fornece até 40 pontos?**
+
+- A — Até 60 pontos de escudo acumulado.
+- B — Até 80 pontos.
+- C — Até 120 pontos.
+- D — Outro teto inicial informado nas observações, sempre configurável.
+
+**Status:** não respondida.
+
+**Questão antiga 10.4 — Se o escudo não for suficiente para absorver o dano bruto inteiro, como tratar o excedente?**
+
+- A — Escudo absorve sua capacidade restante; o dano excedente passa então pela mitigação normal de Defesa.
+- B — Escudo absorve sua capacidade restante; o excedente atinge o HP diretamente, sem Defesa.
+- C — O golpe que esgota o escudo causa zero dano ao HP, mesmo com excedente.
+- D — Regra configurável, com comportamento inicial detalhado nas observações.
+
+**Status:** não respondida.
+
+**Questão antiga 10.5 — Quanto deve restaurar a recompensa especial de stamina recebida com HP cheio e todos os atributos no estágio 4?**
+
+- A — Os mesmos 2 pontos do consumível comum de stamina.
+- B — Preenche completamente a stamina até o máximo atual.
+- C — Restaura 1 ponto, independentemente do item comum.
+- D — Quantidade específica informada nas observações.
+
+**Status:** não respondida.
+
+**Questão antiga 10.6 — Se o personagem já estiver com todos os estágios e HP e stamina máximos, o que ocorre ao receber a recompensa especial de stamina?**
+
+- A — A coleta acontece, mesmo sem benefício imediato.
+- B — O item permanece disponível, sem ser coletado.
+- C — Concede escudo temporário seguindo as regras já aprovadas.
+- D — Outra consequência específica, informada nas observações.
+
+**Status:** não respondida.
+
+**Questão antiga 10.7 — Se um item tocar um personagem derrotado, com HP igual a zero, como a coleta deve ser resolvida?**
+
+- A — Não concede benefícios; personagens derrotados não podem coletar itens.
+- B — Cura ainda pode ocorrer no mesmo passo e impedir a derrota se processada antes do encerramento.
+- C — O personagem derrotado pode receber item, mas isso não reverte a derrota.
+- D — Ordem de processamento e exceções configuráveis, com regra inicial especificada.
+
+**Status:** não respondida.
+
+**Questão antiga 10.8 — O que acontece quando um drop de destruição surge em posição bloqueada ou fisicamente inacessível?**
+
+- A — Tenta o ponto livre válido mais próximo do objeto destruído.
+- B — Drop não é criado caso o ponto exato esteja inválido.
+- C — Tenta posições próximas e, se nenhuma for válida, concede o benefício diretamente ao destruidor.
+- D — Estratégia configurável sem permitir itens presos em colisores.
+
+**Status:** não respondida.
+
+**Questão antiga 10.9 — O que fazer se nenhum local válido existir sequer após a busca sistemática aprovada para geração de objetos ou itens?**
+
+- A — Adiar a geração e repetir a busca quando o cenário mudar.
+- B — Cancelar somente aquela ocorrência e aguardar o próximo intervalo regular.
+- C — Aguardar vaga e tentar a cada passo da simulação até conseguir.
+- D — Tratar cada categoria (objetos, plataformas, consumíveis) com regras de contingência separadas.
+
+**Status:** não respondida.
+
+**Questão antiga 10.10 — Como definir as probabilidades iguais entre as categorias de consumíveis depois de considerar HP, stamina e cinco atributos?**
+
+- A — Todos os 7 tipos possuem exatamente a mesma probabilidade nas gerações regulares.
+- B — Sorteio primeiro entre recuperação e evolução, depois entre tipos dentro de cada grupo.
+- C — HP, stamina e cinco evoluções possuem pesos ajustáveis, inicialmente iguais.
+- D — Outro agrupamento explicitado nas observações.
+
+**Status:** não respondida.
+
+**Questão antiga 10.11 — Ao reaparecer um destrutível ou ser criado um novo obstáculo, como preservar rotas e segurança durante o combate?**
+
+- A — Apenas aceitar posições que não colidam com jogadores, itens e obstáculos e preservem caminhos livres.
+- B — Exigir também uma distância mínima configurável das trajetórias previstas dos jogadores.
+- C — Impedir reaparecimento próximo a personagens, independentemente das condições de rota.
+- D — Usar a regra de posições válidas anterior com testes de conectividade e margens adicionais configuráveis.
+
+**Status:** não respondida.
+
+**Questão antiga 10.12 — Como o pulo independente deve coexistir com o salto/vault atualmente associado à esquiva?**
+
+- A — Permanecem ações separadas, com controles, intervalos e comportamento físico próprios.
+- B — A esquiva aérea passa a usar a mesma física do pulo normal.
+- C — O novo pulo substitui completamente o vault da esquiva.
+- D — Coexistência configurável no laboratório, preservando o comportamento existente por padrão.
+
+**Status:** não respondida.
+
+**Questão antiga 10.13 — Como a IA deve reagir quando seu caminho planejado fica indisponível por bloqueio temporário ou reaparecimento de objetos?**
+
+- A — Recalcula imediatamente uma nova rota válida.
+- B — Aguarda brevemente e recalcula se o bloqueio persistir.
+- C — Tenta contornar localmente antes de solicitar novo planejamento de caminho.
+- D — Estratégia e intervalos configuráveis, sempre impedindo aprisionamento permanente.
+
+**Status:** não respondida.
+
+**Questão antiga 10.14 — Como devem ser configuradas as resistências iniciais dos destrutíveis por categoria de impacto?**
+
+- A — 100% de dano para contato físico, projéteis, área e colisão ambiental.
+- B — Contato 100%, projéteis 100%, área 50% e colisão ambiental 100%.
+- C — Contato 100%, projéteis 75%, área 75% e colisão ambiental 125%.
+- D — Tabela inicial de multiplicadores personalizada, informada nas observações e editável por objeto.
+
+**Status:** não respondida.
+
+**Questão antiga 10.15 — Como escolher um equipamento de referência para verificar a meta de 60 FPS em 1080p?**
+
+- A — Definir hardware de referência futuramente; testes já devem medir FPS e tempos de quadro.
+- B — Usar o computador local do usuário como referência, após obter suas especificações.
+- C — Definir perfis mínimo e recomendado de hardware em rodada futura.
+- D — Outro alvo concreto, indicado nas observações.
+
+**Status:** não respondida.
+
+**Questão antiga 10.16 — Como deve ser validada a sincronização entre o arquivo GitHub e o checkout local oficial após cada atualização documental?**
+
+- A — Confirmar o commit remoto e deixar a sincronização local pendente até haver acesso à pasta oficial.
+- B — Exigir confirmação de `git fetch`/`git pull` no checkout local antes de considerar a rodada concluída.
+- C — Confirmar o commit remoto, e solicitar sincronização local apenas antes da implementação.
+- D — Outro procedimento explícito, indicado nas observações.
+
+**Status:** não respondida.
+
+
+
 ## Changelog do registro
 
 - **Criação inicial:** Rodadas 1–8 completas (117 perguntas e escolhas), texto de observação da R4, Rodada 9 pendente (16 perguntas e todas as alternativas), índice de decisões, substituições e pendências. Nenhum código alterado por esta documentação.
@@ -879,3 +979,5 @@ Resposta aprovada: **D — Todas essas ferramentas, individualmente ativáveis o
 - **Atualização após Rodada 9:** 16 decisões adicionadas (R9.1–R9.16), todas as alternativas apresentadas mantidas; total 133 decisões aprovadas de Rodadas 1–9; Rodada 10 incluída como questionário pendente de 16 perguntas. R9.14 continua sem identificação do botão de gamepad. Nenhum código alterado.
 
 - **Ajuste de escopo após Rodada 9 (ordem expressa do usuário):** desconsiderar gamepad na especificação do mapa e em perguntas futuras. Questão originalmente R10.1 foi cancelada sem resposta e preservada em seção histórica; substituída por questão de tolerância do lock-on. Itens históricos R1.10/R2.1/R7.3/R9.14 preservados com prevalência da nova diretriz. Requisito de testes de gamepad da R9.15 retirado, permanecendo os demais testes. Nenhum código foi modificado.
+
+- **Revisão de qualidade do questionário da Rodada 10:** após o usuário apontar repetições, realizada auditoria das Rodadas 1–9. As 16 perguntas pendentes originais foram arquivadas sem resposta; Rodada 10 ativa substituída por 10 perguntas genuinamente não resolvidas (escudo, defesa cumulativa, itens com barras cheias, K.O. no mesmo passo, ausência de local válido, efeitos de destruição e coleta em voo). Nenhuma decisão R1–R9 foi alterada e nenhum código foi modificado.
