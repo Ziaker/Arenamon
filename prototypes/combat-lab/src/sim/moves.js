@@ -1,3 +1,4 @@
+// @ts-check
 // Movimentos especiais (golpes dos Pokémon): registro, validação e execução. Infraestrutura SEM conteúdo — o registro
 // começa vazio; os movimentos serão adicionados depois, um a um, só com dados (ver MOVIMENTOS.md).
 //
@@ -23,6 +24,7 @@ const AIMS = ['target', 'facing', 'input'], MOTIONS = ['none', 'root', 'dash'], 
  *   fromGuard (padrão true), fromGuardStun (padrão false), invulnerable ([t0, t1] em s), aim ('target' | 'facing' | 'input'),
  *   motion ({type: 'none' | 'root' | 'dash', distance, start, end}), animation (id do bloco de animação; padrão move_<slot>),
  *   timeline: [{at, spawn | status (+ target) | hit}]
+ * @param {import('./types').MoveDef} def
  */
 export function validateMove(def) {
   const fail = m => {throw new Error(`movimento ${def?.id ?? '?'}: ${m}`);};
@@ -40,7 +42,10 @@ export function validateMove(def) {
   }
   return true;
 }
-/** Registra um movimento (sobrescreve o de mesmo id). Nenhum movimento é registrado pelo laboratório. */
+/**
+ * Registra um movimento (sobrescreve o de mesmo id). Nenhum movimento é registrado pelo laboratório.
+ * @param {import('./types').MoveDef} def
+ */
 export function registerMove(def) {validateMove(def);REGISTRY.set(def.id, Object.freeze(structuredClone(def)));return def.id;}
 export const unregisterMove = id => REGISTRY.delete(id);
 export const getMove = id => (id ? REGISTRY.get(id) ?? null : null);
