@@ -208,7 +208,7 @@ Ambiguidades:
 
 Ambiguidades:
 - *Resolvidas:* dimensionamento máximo diante de obstáculos (M13.6); criação perto de outro personagem (M26s.3).
-- *Parcialmente aberta:* regiões anatômicas no modelo ou colisor — sem estrutura oficial de pontos de mira (ver P5).
+- *Parcialmente aberta:* regiões anatômicas no modelo ou colisor — sem estrutura oficial de pontos de mira (ver P5). **→ Resolvida por M30.8** (pontos sorteados na caixa lógica do alvo; detalhes em P15).
 - *Aberta:* distribuição aleatória das posições das pedras deve ser reproduzível por seed nos testes; algoritmo não selecionado.
 - *Aberta:* ondas geométricas são visuais (M14.8); duração e orçamento de partículas ficam para calibração visual.
 
@@ -665,6 +665,13 @@ Notas do arquivista sobre M30.7 (não são decisões):
 - Proteção **tudo ou nada**: não há proteção parcial nem redução proporcional de dano/empurrão.
 - “Centro do corpo” = centro da caixa lógica do lutador (M30.4: largura/profundidade = 2 × `halfExtent`, altura = `bodyHeight`, a partir da altitude de apoio). Esta leitura não foi decidida explicitamente.
 - Complementa M30.6 (item 4): a proteção é avaliada **no instante em que a explosão atinge a barreira**, com a barreira ainda presente.
+
+- **M30.8** *C* — **P5 resolvida.** Com lock-on, os pontos de mira das pedras são **sorteados dentro da caixa lógica do alvo, por semente** (caixa lógica = M30.4: largura/profundidade = 2 × `halfExtent`, altura = `bodyHeight`; independente do modelo importado). Opções não escolhidas: A (grade fixa de 9 pontos em ordem fixa) e B (pontos ou ossos nomeados do modelo).
+
+Notas do arquivista sobre M30.8 (não são decisões):
+- **Nova ambiguidade P15 (Baixa):** detalhes do sorteio não decididos — distribuição (uniforme na caixa?), repetição de pontos entre pedras, e qual fluxo de aleatoriedade (próprio, derivado da semente da partida e da execução, para não perturbar a IA nem o replay). Valores/algoritmos iniciais serão provisórios na implementação.
+- Reprodutibilidade: o sorteio acontece **uma vez, no disparo**, e o resultado é guardado nas pedras (coerente com M28.4/M30.1); o mesmo estado e a mesma semente devem dar os mesmos pontos (save/load e replay).
+- Não substitui a ambiguidade de R8 sobre a distribuição das **posições das pedras ao redor do lançador** (visual), que continua aberta.
 ---
 
 ## 4. Especificação vigente — Reflect
@@ -698,7 +705,7 @@ Move Psyshock · Charge · Projectile · tecla padrão S · custo 1 stamina · c
 Três pedras iniciais; +1 a cada 0,8 s; oito ao atingir a carga máxima. Posições, tamanhos e alturas visualmente variados. Seguem o personagem por inércia telecinética suave. Pedras do mesmo Move não colidem entre si. Posições alternativas são procuradas para evitar penetração em obstáculos.
 
 ### 5.3 Disparo
-Todas as pedras simultâneas; gesto de extensão de uma mão; velocidade individual configurável no intervalo inicial de 10–14 m/s. Com lock-on: regiões diferentes do alvo; homing limitado a 0,3 s e 180°/s. Sem lock-on: leque discreto frontal com dispersão ajustável. Perda definitiva do alvo termina o homing preservando o movimento. Reflexão cancela o homing. Sem tempo fixo máximo de voo; os limites válidos da arena encerram o projétil.
+Todas as pedras simultâneas; gesto de extensão de uma mão; velocidade individual configurável no intervalo inicial de 10–14 m/s. Com lock-on: pontos sorteados por semente dentro da caixa lógica do alvo (M30.8); homing limitado a 0,3 s e 180°/s. Sem lock-on: leque discreto frontal com dispersão ajustável. Perda definitiva do alvo termina o homing preservando o movimento. Reflexão cancela o homing. Sem tempo fixo máximo de voo; os limites válidos da arena encerram o projétil.
 
 ### 5.4 Dano
 Dano-base nominal por pedra: 20% do Ataque do lançador **gravado no disparo** (M30.1). Hits sucessivos no mesmo alvo: 1; 0,8; 0,64; 0,512… Cada pedra pode ser defendida, bloqueada perfeitamente ou evitada pelos i-frames. Knockback inicial 0,3 m/s por pedra; limite acumulado de 0,9 m/s **por alvo, dentro de cada execução** (M30.3; subdetalhes em P14). Hit stun, guard stun e proteção de combo existentes permanecem válidos.
@@ -775,7 +782,8 @@ Nenhuma delas foi resolvida por quem publicou este arquivo. Valores experimentai
 - **P3 — Geometria da reflexão em quinas (RESOLVIDA em 2026-10-16 por M30.5).** Decisão: primeira superfície atingida; borda reflete pela própria normal mesmo vindo de trás; entrada pelo verso atravessa e ignora a barreira até sair do volume; empate: frente > borda > verso.
 - **P4 — Knockback acumulado do Psyshock (RESOLVIDA em 2026-10-16 por M30.3).** Decisão: teto de 0,9 m/s por alvo, dentro de cada execução (0,3 m/s por pedra).
 - **P14 — Detalhes do teto de knockback (Baixa, nova).** Pedra refletida conta no teto da execução original? O teto vale só para a componente horizontal ou também para a vertical? Não decididas.
-- **P5 — Homing e pontos anatômicos (Média).** Falta contrato técnico dos pontos de mira nos modelos e comportamento para anatomias diferentes; deve ser compatível com os colisores atuais do laboratório.
+- **P5 — Homing e pontos anatômicos (RESOLVIDA em 2026-10-16 por M30.8).** Decisão: pontos sorteados, por semente, dentro da caixa lógica do alvo (independente do modelo).
+- **P15 — Detalhes do sorteio dos pontos de mira (Baixa, nova).** Distribuição, repetição de pontos e fluxo de aleatoriedade. Não decididos.
 - **P6 — Reflexão × Power Level (RESOLVIDA em 2026-10-16 por M30.6).** Decisão: ordem física do contato; empate por ordem de criação; barreira destruída não é vista pelos contatos seguintes do passo; quem estava atrás no instante da explosão segue protegido dela.
 - **P7 — Explosões e região protegida (RESOLVIDA em 2026-10-16 por M30.7).** Decisão: protegido se o segmento 3D do centro da explosão ao centro do corpo cruza o volume de alguma barreira Reflect (qualquer personagem, basta uma barreira, vale mesmo se a barreira for destruída pela explosão).
 - **P8 — Parâmetros numéricos de calibração (Baixa).** Sem valores aprovados: tolerância de desnível; alcance da busca de posições das pedras; dispersão do leque; inércia telecinética; magnitude do recuo de Tackle após destruir Reflect; tolerâncias de colisão e de ciclos degenerados; instante de início do VFX de expiração.
@@ -845,3 +853,4 @@ Moves específicos do tipo Status; buffs e debuffs; fórmulas de regeneração a
 - **2026-10-16 — Rodada 30 (cont.):** M30.5 (P3 resolvida: regra de superfícies do painel do Reflect).
 - **2026-10-16 — Rodada 30 (cont.):** M30.6 (P6 resolvida: prioridade de eventos no mesmo passo). P7 segue aberta (geometria da região protegida).
 - **2026-10-16 — Rodada 30 (cont.):** M30.7 (P7 resolvida: geometria da região protegida contra explosões).
+- **2026-10-16 — Rodada 30 (cont.):** M30.8 (P5 resolvida: pontos de mira sorteados por semente na caixa lógica do alvo); P15 criada como subquestão.
