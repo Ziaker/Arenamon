@@ -113,8 +113,8 @@ Ambiguidades:
 Decisões posteriormente modificadas: trajetória reta do Psyshock → homing limitado (M10.2); bordas do Reflect passam a refletir por normais próprias (M13.3); geometria tridimensional fina aceita globalmente (M29.2).
 
 Ambiguidades:
-- *Importante:* a passagem pela face traseira deve valer para o percurso completo do projétil, inclusive se ele entra pelo verso e depois alcança a região frontal.
-- *Importante:* impactos exatamente nas quinas entre frente e bordas precisam de prioridade geométrica determinística.
+- *Importante:* a passagem pela face traseira deve valer para o percurso completo do projétil, inclusive se ele entra pelo verso e depois alcança a região frontal. **→ Resolvida por M30.5** (ignora a barreira até sair do volume dela).
+- *Importante:* impactos exatamente nas quinas entre frente e bordas precisam de prioridade geométrica determinística. **→ Resolvida por M30.5** (primeira superfície; empate: frente > borda > verso).
 - *Aberta:* uso de dimensões visuais ou do colisor como referência de escala da barreira (ver P2). **→ Resolvida por M30.4** (dimensões lógicas do motor).
 - *Aberta:* relação entre tamanhos de pedras e propriedades físicas — os tamanhos variam visualmente, sem aprovação de massa ou dano variável por tamanho. **→ Resolvida por M30.2** (tamanho é só visual; dano igual para todas as pedras).
 
@@ -300,7 +300,7 @@ Ambiguidades:
 
 Ambiguidades:
 - *Resolvidas:* valor inicial da distância (M26s.4); altitude (M26s.2) e tolerância de desníveis (M27.2); espessura sugerida e aprovada globalmente (M29.2).
-- *Aberta:* prioridade entre borda refletora, face frontal e passagem traseira próximo às quinas (ver P3).
+- *Aberta:* prioridade entre borda refletora, face frontal e passagem traseira próximo às quinas (ver P3). **→ Resolvida por M30.5.**
 - *Aberta:* algoritmo e tolerâncias da verificação do maior retângulo válido.
 
 ### Rodada 14 — Interações físicas e explosões
@@ -599,7 +599,7 @@ Ambiguidades:
 
 Ambiguidades:
 - *Importante:* a interpretação é forte, mas não equivale a três respostas numeradas.
-- *Aberta:* compatibilizar a espessura de 0,10 m com as regras de reflexão da frente, das bordas e passagem pelo verso.
+- *Aberta:* compatibilizar a espessura de 0,10 m com as regras de reflexão da frente, das bordas e passagem pelo verso. **→ Resolvida por M30.5.**
 - *Aberta:* critério de esgotamento da busca de posições do Psyshock (depende do alcance configurável).
 - *Aberta:* regra clara para impedir edições manuais do HTML gerado.
 
@@ -634,6 +634,17 @@ Notas do arquivista sobre M30.3 (não são decisões):
 Notas do arquivista sobre M30.4 (não são decisões):
 - Valores atuais no código (16/10/2026): `halfExtent` = 0,5 → largura/profundidade de referência 1,0 m; `bodyHeight` = 1,3 m. Reflect base: largura de 1,5 m a 3,0 m e altura de 1,95 m a 3,25 m; distância livre inicial (M26s.4) = 50% de 1,0 m.
 - `bodyHeight` fica no grupo `extras.visual` do config, mas o motor já a usa em colisões de entidades (`world.js`). Alterar o slider “altura visual” passa a alterar também a referência do Reflect **nos usos seguintes** (M28.4: a barreira criada guarda suas medidas).
+
+- **M30.5** *A* — **P3 resolvida.** Geometria de colisão do painel do Reflect (caixa fina, M29.2):
+  1. Vale a **primeira superfície fisicamente atingida** (M7.7).
+  2. **Borda** reflete pela **normal da própria borda**, **mesmo que o projétil venha de trás**.
+  3. Quem entra pelo **verso atravessa** e **ignora essa barreira até sair do volume dela**; ao sair, a barreira volta a valer para esse projétil.
+  4. **Empate dentro da tolerância:** **frente > borda > verso**. (A tolerância numérica é valor provisório, P8.)
+  Opção não escolhida: B (o lado de origem decide tudo; vindo de trás, passa por todas as superfícies, bordas incluídas).
+
+Notas do arquivista sobre M30.5 (não são decisões):
+- Completa, sem reinterpretar, M3.3, M3.4, M7.7, M7.8 e M13.3; responde a ambiguidade da Rodada 3 sobre o percurso completo do projétil e a de M29.2 sobre compatibilizar a espessura de 0,10 m.
+- A imunidade do item 3 é **por projétil e por barreira** (um projétil que atravessou a barreira X continua sujeito à barreira Y). Esta leitura não foi decidida explicitamente.
 ---
 
 ## 4. Especificação vigente — Reflect
@@ -650,7 +661,7 @@ PL1 com carga < 2 s; PL2 de 2 s até antes de 4 s; PL3 em 4 s. PL fixado na cria
 Retangular, painel vertical; espessura inicial recomendada e globalmente aprovada 0,10 m (ajustável); largura 1,5×–3× e altura 1,5×–2,5× as **dimensões lógicas do motor** (M30.4: largura/profundidade = 2 × `halfExtent`, altura = `bodyHeight`); distância livre inicial 50% da profundidade lógica; base na altitude da superfície de apoio, com tolerância configurável para desníveis; orientação acompanha o personagem durante a carga e congela na criação; preview se adapta ao espaço sem violar dimensões mínimas; personagens são obstáculos ao posicionamento.
 
 ### 4.4 Colisões
-Face frontal: reflexão especular. Bordas: reflexão especular com normais próprias. Face traseira: passagem livre para projéteis que chegam pelo verso. Personagens: obstáculo sólido com deslizamento lateral. Dodge: colisão física, ultrapassagem por cima se a trajetória permitir. Reflexões entre barreiras sucessivas e ilimitadas em contagem lógica; ciclos numéricos degenerados não podem prender a simulação.
+Face frontal: reflexão especular. Bordas: reflexão especular com normais próprias. Face traseira: passagem livre para projéteis que chegam pelo verso (M30.5: ignoram essa barreira até saírem do volume dela). Vale a primeira superfície atingida; borda reflete mesmo vindo de trás; empate: frente > borda > verso. Personagens: obstáculo sólido com deslizamento lateral. Dodge: colisão física, ultrapassagem por cima se a trajetória permitir. Reflexões entre barreiras sucessivas e ilimitadas em contagem lógica; ciclos numéricos degenerados não podem prender a simulação.
 
 ### 4.5 Duração e destruição
 Duração = 4 s + tempo carregado (4–8 s). Múltiplas barreiras coexistem. Tackle destrói pela frente, verso ou bordas, inclusive barreiras próprias, com recuo curto e stagger de 0,25 s. Explosões podem destruir várias barreiras; Reflect absorve a explosão na região protegida. Ondas de destruição são somente visuais.
@@ -741,7 +752,7 @@ Nenhuma delas foi resolvida por quem publicou este arquivo. Valores experimentai
 - **P1 — Momento de cálculo do dano das pedras (RESOLVIDA em 2026-10-16 por M30.1).** Decisão: grava-se 0,2 × Ataque do lançador no disparo; se refletida, recalcula com o Ataque do refletor no instante da reflexão. Texto original da pendência preservado no histórico do Git. Subquestão aberta: **P13**.
 - **P13 — “Ataque” no disparo e na reflexão: base ou efetivo? (Baixa, nova).** Valor-base do personagem ou valor com modificadores de Status vigentes naquele instante. Sem Status hoje, é indiferente; decidir antes do primeiro Move de Status.
 - **P2 — Referência dimensional do Reflect (RESOLVIDA em 2026-10-16 por M30.4).** Decisão: dimensões lógicas do motor (largura/profundidade = 2 × `halfExtent`; altura = `bodyHeight`), independentes do modelo importado.
-- **P3 — Geometria da reflexão em quinas (Média).** Frente e bordas refletem, o verso é atravessável; falta regra para contatos próximos às extremidades e incidência pelo verso, evitando reflexões contraditórias.
+- **P3 — Geometria da reflexão em quinas (RESOLVIDA em 2026-10-16 por M30.5).** Decisão: primeira superfície atingida; borda reflete pela própria normal mesmo vindo de trás; entrada pelo verso atravessa e ignora a barreira até sair do volume; empate: frente > borda > verso.
 - **P4 — Knockback acumulado do Psyshock (RESOLVIDA em 2026-10-16 por M30.3).** Decisão: teto de 0,9 m/s por alvo, dentro de cada execução (0,3 m/s por pedra).
 - **P14 — Detalhes do teto de knockback (Baixa, nova).** Pedra refletida conta no teto da execução original? O teto vale só para a componente horizontal ou também para a vertical? Não decididas.
 - **P5 — Homing e pontos anatômicos (Média).** Falta contrato técnico dos pontos de mira nos modelos e comportamento para anatomias diferentes; deve ser compatível com os colisores atuais do laboratório.
@@ -811,3 +822,4 @@ Moves específicos do tipo Status; buffs e debuffs; fórmulas de regeneração a
 - **2026-10-16 — Rodada 30 (cont.):** M30.2 (pedras homogêneas: mesmas propriedades, mesmo PL, mesmo dano-base; redução só no impacto). P4 continua aberta.
 - **2026-10-16 — Rodada 30 (cont.):** M30.3 (P4 resolvida: teto de knockback de 0,9 m/s por alvo, em cada execução); P14 criada como subquestão.
 - **2026-10-16 — Rodada 30 (cont.):** M30.4 (P2 resolvida: Reflect usa as dimensões lógicas do motor).
+- **2026-10-16 — Rodada 30 (cont.):** M30.5 (P3 resolvida: regra de superfícies do painel do Reflect).
