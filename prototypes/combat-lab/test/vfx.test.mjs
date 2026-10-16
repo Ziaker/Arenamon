@@ -573,7 +573,7 @@ test('ciclo: expulsão por capacidade do pool não trava o runtime', () => {
   assert.ok(!threw, 'pool esgotado não lança exceção');
 });
 
-test('ciclo: Clash C executa liberação diferida (onRelease)', () => {
+test('ciclo: Clash C executa liberação diferida (onRelease) através do runtime', () => {
   // Verifica o contrato declarativo: build retorna {parts, hold, onRelease}.
   const ctx = {position: {x: 0, y: 0.85, z: 0}, normal: {x: 1, y: 0, z: 0}, seed: 0.42, tick: 900};
   const result = buildClashC(ctx, ctx.seed);
@@ -583,19 +583,24 @@ test('ciclo: Clash C executa liberação diferida (onRelease)', () => {
   assert.ok(Array.isArray(releaseParts) && releaseParts.length > 0,
     'onRelease do Clash C produz partículas na liberação');
 
-  // Verifica o runtime: uma instância com onRelease libera orçamento e emite partículas ao expirar.
+  // Runtime: registra apenas a variante C do clash (remove A e B) para forçar
+  // o caminho real de onRelease ao processar um evento de clash.
   const scene = new T.Scene();
   const camera = new T.PerspectiveCamera(60, 1, 0.1, 100);
   const rt = new VfxRuntime(scene, {camera, quality: 'high', maxParticles: 512});
   registerAllEffects(rt);
+  assert.ok(rt.registry.unregister('clash:clash', '1.0'), 'remove variante A');
+  assert.ok(rt.registry.unregister('clash:clash', '1.1'), 'remove variante B');
+  assert.equal(rt.registry.byFamily('clash').length, 1, 'apenas a variante C permanece');
+
   const ev = [{tick: 910, attacker: 0, target: 1, result: 'clash', damage: 10, normal: {x: 1, y: 0, z: 0}}];
   const spawnedBefore = rt.stats.spawned;
   rt.update(fighters, ev, 0.016, {tick: 910});
-  // Avançar além do hold para disparar onRelease da instância ativa
+  // Avançar além do hold (0.18s) para disparar onRelease da instância ativa.
   for (let i = 0; i < 15; i++) rt.update(fighters, [], 0.016, {tick: 910 + i});
-  const spawnedAfter = rt.stats.spawned;
-  // partículas da liberação diferida foram adicionadas
-  assert.ok(spawnedAfter >= spawnedBefore, 'runtime processou a instância de clash');
+  const spawnedAfterRelease = rt.stats.spawned;
+  assert.ok(spawnedAfterRelease > spawnedBefore,
+    'onRelease do Clash C produz partículas adicionais no runtime na liberação');
   // orçamento liberado após a expiração total
   for (let i = 0; i < 30; i++) rt.update(fighters, [], 0.016, {tick: 970 + i});
   assert.equal(rt.budget.active.particles, 0, 'orçamento zerado após expiração total do clash');
@@ -639,6 +644,45 @@ test('ciclo: runtime inativo (enabled=false) não processa nem consome orçament
   assert.equal(rt.stats.spawned, 0, 'runtime desligado não produz partículas');
   assert.equal(rt.budget.active.particles, 0, 'runtime desligado não consome orçamento');
   assert.equal(rt.activeEffects.size, 0, 'runtime desligado não cria instâncias');
+});
+
+test('ciclo: ativar → criar efeitos → desativar → reativar zera o orçamento', () => {
+  const scene = new T.Scene();
+  const camera = new T.PerspectiveCamera(60, 1, 0.1, 100);
+  const rt = new VfxRuntime(scene, {camera, quality: 'medium', maxParticles: 256});
+  registerAllEffects(rt);
+  // cria efeitos
+  const ev = [{tick: 900, attacker: 0, target: 1, result: 'impact', damage: 20, normal: {x: 0, y: 1, z: 0}}];
+  rt.update(fighters, ev, 0.016, {tick: 900});
+  assert.ok(rt.budget.active.particles > 0, 'orçamento consumido com VFX ligado');
+  // desativa: deve zerar orçamento
+  rt.enabled = false;
+  rt.update(fighters, [], 0.016, {tick: 901});
+  assert.equal(rt.budget.active.particles, 0, 'desativar zera o orçamento');
+  // reativa: orçamento volta a estar disponível para novos efeitos
+  rt.enabled = true;
+  rt.update(fighters, ev, 0.016, {tick: 902});
+  assert.ok(rt.budget.active.particles > 0, 'reativar permite consumir orçamento novamente');
+});
+
+test('ciclo: exaustão/regeneração determinística após reset (relógio zerado)', () => {
+  const makeCount = () => {
+    const scene = new T.Scene();
+    const camera = new T.PerspectiveCamera(60, 1, 0.1, 100);
+    const rt = new VfxRuntime(scene, {camera, quality: 'medium', maxParticles: 256});
+    registerAllEffects(rt);
+    const exhausted = {...fighters[1], exhausted: true, hp: 100};
+    const fts = [fighters[0], exhausted];
+    // roda ~1 s gerando partículas contínuas de exaustão
+    for (let i = 0; i < 60; i++) rt.update(fts, [], 0.016, {tick: 1000 + i});
+    const n = rt.stats.spawned;
+    rt.reset();
+    // roda novamente do zero: mesmo resultado esperado
+    for (let i = 0; i < 60; i++) rt.update(fts, [], 0.016, {tick: 1000 + i});
+    return {first: n, second: rt.stats.spawned};
+  };
+  const {first, second} = makeCount();
+  assert.equal(first, second, 'mesma quantidade de partículas de exaustão antes e depois do reset');
 });
 
 console.log(`\n${passed} testes de VFX aprovados.`);
