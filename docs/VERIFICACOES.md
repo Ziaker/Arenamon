@@ -20,6 +20,10 @@ Este arquivo separa **o que foi efetivamente executado** do que **permanece pend
 
 **Intermitência registrada:** na primeira passada, `test/diagnostics.browser.mjs` reprovou 1 de 21 verificações (“Negados · aviso curto na arena com o motivo do motor”), enquanto outros comandos rodavam em paralelo na máquina. Reexecutado 4 vezes depois, passou 21/21 todas as vezes. Como os HTMLs são idênticos aos de `origin/main`, a causa não é esta mudança; **a causa raiz não foi investigada** (suspeita: verificação sensível a tempo sob carga). Acompanhar.
 
+### Medição adicional (2026-10-16, `main` @ `bed73b7`)
+
+`npm run measure:sim` (2 execuções): simulação ≈ 7 µs/passo com IA × IA e ≈ 4,5 µs sem a IA do azul, contra 8 333 µs de orçamento a 120 Hz — ver `DESEMPENHO_BASELINE.md`. Não mede GPU/render.
+
 ### NÃO executado / pendente
 
 - `npm run verify:workspace`: **recusa worktrees por desenho** (exige o checkout oficial). Deve ser rodado na pasta oficial quando ela estiver livre.
