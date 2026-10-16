@@ -1,3 +1,4 @@
+// @ts-check
 // Movimentos especiais (golpes dos Pokémon): registro, validação e execução. Infraestrutura SEM conteúdo — o registro
 // começa vazio; os movimentos serão adicionados depois, um a um, só com dados (ver MOVIMENTOS.md).
 //
@@ -5,11 +6,15 @@
 // um dos slots do lutador (C.world.slots) e, ao longo da duração, dispara uma LINHA DO TEMPO de efeitos:
 //   • spawn  — cria uma entidade do mundo (projétil, barreira, parede, área/explosão) relativa ao lutador;
 //   • status — aplica um buff/debuff (a si ou ao adversário);
-//   • hit    — golpe corpo a corpo instantâneo (uma área curta à frente, pela mesma função de acerto).
+//   • hit    — golpe corpo a corpo instantâneo (uma área curta à frente, pela mesma função de acerto);
+//   • effect — efeito com código próprio, por nome (move-effects.js), para lógica que depende da execução (ex.: carga).
+// Movimentos de CARGA (`charge`): segurar o botão carrega, soltar executa; ver charge.js e o controlador. Neles `duration` é
+// opcional e todos os eventos da linha do tempo disparam NA SOLTURA (`at` é ignorado).
 // Deslocamento opcional (motion) e janelas próprias de invulnerabilidade e de cancelamento.
 import {C} from './config.js';
 import {validateEntity, DEFAULTS} from './world.js';
 import {validateStatus} from './status.js';
+import {CHARGE_OVERRIDES} from './charge.js';
 
 const REGISTRY = new Map();
 export const MOVE_SCHEMA_VERSION = 1;
@@ -22,25 +27,40 @@ const AIMS = ['target', 'facing', 'input'], MOTIONS = ['none', 'root', 'dash'], 
  *   podem interromper; padrão = duration), cancelFrom (tipos de ação que este movimento pode interromper, ex.: ['dodge']),
  *   fromGuard (padrão true), fromGuardStun (padrão false), invulnerable ([t0, t1] em s), aim ('target' | 'facing' | 'input'),
  *   motion ({type: 'none' | 'root' | 'dash', distance, start, end}), animation (id do bloco de animação; padrão move_<slot>),
- *   timeline: [{at, spawn | status (+ target) | hit}]
+ *   timeline: [{at, spawn | status (+ target) | hit | effect}],
+ *   charge ({max (s, padrão 4) e substituições de C.world.charge}: movimento de carga), cooldownBoost (true: novo toque durante a recarga
+ *   gasta stamina para encurtá-la, M2.3)
+ * @param {import('./types').MoveDef} def
  */
 export function validateMove(def) {
   const fail = m => {throw new Error(`movimento ${def?.id ?? '?'}: ${m}`);};
   if (!def || typeof def.id !== 'string' || !def.id) throw new Error('movimento sem id');
-  if (!(def.duration > 0)) fail('duration deve ser > 0');
+  if (!def.charge && !((def.duration ?? 0) > 0)) fail('duration deve ser > 0');
+  if (def.duration !== undefined && !(def.duration > 0)) fail('duration deve ser > 0');
+  if (def.charge) {
+    if (typeof def.charge !== 'object') fail('charge deve ser um objeto');
+    if (def.charge.max !== undefined && !(def.charge.max > 0)) fail('charge.max deve ser > 0');
+    if (def.charge.group !== undefined && !(C.world[def.charge.group] && typeof C.world[def.charge.group] === 'object')) fail(`charge.group desconhecido (${def.charge.group})`);
+    for (const k of CHARGE_OVERRIDES) if (def.charge[k] !== undefined && !(def.charge[k] >= 0)) fail(`charge.${k} inválido`);
+  }
+  if (def.cooldownBoost !== undefined && typeof def.cooldownBoost !== 'boolean') fail('cooldownBoost deve ser booleano');
   for (const k of ['cost', 'cooldown', 'cancelAfter']) if (def[k] !== undefined && !(def[k] >= 0)) fail(`${k} inválido`);
   if (def.aim && !AIMS.includes(def.aim)) fail(`aim desconhecido (${def.aim})`);
   if (def.motion && !MOTIONS.includes(def.motion.type)) fail(`motion desconhecido (${def.motion.type})`);
   if (def.invulnerable && !(Array.isArray(def.invulnerable) && def.invulnerable[0] <= def.invulnerable[1])) fail('invulnerable deve ser [início, fim]');
   for (const [i, ev] of (def.timeline || []).entries()) {
-    if (!(ev.at >= 0 && ev.at <= def.duration)) fail(`timeline[${i}].at fora da duração`);
-    const kinds = ['spawn', 'status', 'hit'].filter(k => ev[k]);if (kinds.length !== 1) fail(`timeline[${i}] precisa de exatamente um entre spawn, status e hit`);
+    if (!def.charge && !((ev.at ?? -1) >= 0 && (ev.at ?? 0) <= (def.duration ?? 0))) fail(`timeline[${i}].at fora da duração`);
+    const kinds = ['spawn', 'status', 'hit', 'effect'].filter(k => ev[k]);if (kinds.length !== 1) fail(`timeline[${i}] precisa de exatamente um entre spawn, status, hit e effect`);
+    if (ev.effect && typeof ev.effect !== 'string') fail(`timeline[${i}].effect deve ser o nome de um efeito`);
     if (ev.spawn) validateEntity(ev.spawn);if (ev.status) validateStatus(ev.status);
     if (ev.target && !TARGETS.includes(ev.target)) fail(`timeline[${i}].target desconhecido`);
   }
   return true;
 }
-/** Registra um movimento (sobrescreve o de mesmo id). Nenhum movimento é registrado pelo laboratório. */
+/**
+ * Registra um movimento (sobrescreve o de mesmo id). Nenhum movimento é registrado pelo laboratório.
+ * @param {import('./types').MoveDef} def
+ */
 export function registerMove(def) {validateMove(def);REGISTRY.set(def.id, Object.freeze(structuredClone(def)));return def.id;}
 export const unregisterMove = id => REGISTRY.delete(id);
 export const getMove = id => (id ? REGISTRY.get(id) ?? null : null);

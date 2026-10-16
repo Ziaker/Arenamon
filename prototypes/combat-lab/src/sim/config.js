@@ -57,8 +57,8 @@ export function defaults() {
     toggles: {enableTackle: 1, enableDodge: 1, enableDefense: 1, enableClash: 1, enableInvulnerability: 1, enableLaunch: 1, enableVault: 1, enableWallBounce: 1,
       enableAIAttack: 1, enableAIReactive: 1, enableCameraFollow: 1, enableCameraRecenter: 1, enablePlayerAI: 0, showHitboxes: 0, showAttackVectors: 0,
       enableHitstop: 1, enableCounterBonus: 1, enableLandingSkid: 1, enableEnemyAI: 1, enableSprint: 1, enemyManual: 0},
-    // skill1–4: slots de movimentos especiais (padrão 1, 2, 3 e 4 do teclado). Sem movimento equipado, a tecla não faz nada.
-    bindings: {forward: 0, back: 1, left: 2, right: 3, tackle: 4, dodge: 5, defend: 6, lock: 7, pause: 8, restart: 9, debug: 10, skill1: 47, skill2: 48, skill3: 49, skill4: 50},
+    // skill1–4: slots de movimentos especiais (padrão A, S, 3 e 4 do teclado; A e S = Reflect e Psyshock, D3). Sem movimento equipado, a tecla não faz nada.
+    bindings: {forward: 0, back: 1, left: 2, right: 3, tackle: 4, dodge: 5, defend: 6, lock: 7, pause: 8, restart: 9, debug: 10, skill1: 11, skill2: 12, skill3: 49, skill4: 50},
     // Teclas do vermelho no controle manual (índices em keyCodes): I/J/K/L movem, U tackle, O esquiva, P defesa, Y alvo.
     bindings2: {forward: 33, back: 35, left: 34, right: 36, tackle: 37, dodge: 38, defend: 39, lock: 40, skill1: 41, skill2: 42, skill3: 44, skill4: 45},
     colors: {playerR: 53, playerG: 137, playerB: 255, enemyR: 242, enemyG: 81, enemyB: 75, floorR: 96, floorG: 109, floorB: 116, wallR: 202, wallG: 212, wallB: 219,
@@ -103,7 +103,14 @@ export function defaults() {
   };
   // Mundo de combate (projéteis, barreiras, paredes, áreas) criado por movimentos. maxEntities: limite simultâneo
   // (acima dele a criação é recusada com evento). slots: quantidade de movimentos equipáveis por lutador.
-  const world = {maxEntities: 64, slots: 4};
+  // charge: regras compartilhadas dos movimentos de carga (Reflect/Psyshock). PROVISÓRIOS (M30.10), configuráveis; cada uso captura uma cópia congelada no início (M28.4, D1).
+  const world = {maxEntities: 64, slots: 4, charge: {moveSlow: .75, turnSlow: .75, dodgeCancelAfter: .2, interruptCooldownFactor: .5, recovery: .25, bufferWindow: .15, boostStaminaPerSecond: .5, boostStep: 1},
+    // reflect: valores iniciais PROVISÓRIOS do Reflect (M30.10); largura/altura em múltiplos das dimensões lógicas do motor (M30.4); crescimento linear com a carga.
+    reflect: {widthMin: 1.5, widthMax: 3, heightMin: 1.5, heightMax: 2.5, thickness: .1, gapFraction: .5, durationBase: 4, tackleRecoil: .15, tackleStagger: .25, supportTolerance: .25, tieTolerance: .001, maxReflections: 16},
+    // psyshock: valores iniciais PROVISÓRIOS do Psyshock (M30.10): pedras (3 a 8, +1 por 0,8 s), velocidade sorteada por pedra (D4), homing 0,3 s a 180°/s, leque de 20° sem alvo, busca de espaço de 3 m, dano 0,2 × Ataque, fator 0,8 por acerto no mesmo alvo, knockback 0,3 m/s por pedra com teto de 0,9 m/s por alvo.
+    psyshock: {minStones: 3, maxStones: 8, stoneSeconds: .8, speedMin: 10, speedMax: 14, homingSeconds: .3, homingRate: 180, fanAngle: 20, searchRange: 3, searchStep: .25, arc: 120, ringMin: .8, ringMax: 1.1, heightMin: .35, heightMax: 1.1, scaleMin: .7, scaleMax: 1.3, radius: .2, damageFraction: .2, successiveFactor: .8, knockbackPerStone: .3, knockbackCap: .9, followInertia: .15, counterStagger: .2},
+    // beam: lasers contínuos e emissores técnicos (Fase 7). PROVISÓRIOS: comprimento máximo, segmentos refletidos por passo e intervalo entre danos por alvo.
+    beam: {length: 24, maxSegments: 8, interval: .25, damage: 2}};
   return {rules, test, locomotion, camera, profiles: profilesLab, extras, actions, vfx: vfxDefaults(), display: displayDefaults(), world};
 }
 

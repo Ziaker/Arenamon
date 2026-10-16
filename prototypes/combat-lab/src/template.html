@@ -28,6 +28,7 @@
    <button type="button" role="tab" data-tool="tuning" title="Ajustes: todos os parâmetros, por grupo"><i>⚙</i><span>Ajustes</span></button>
    <button type="button" role="tab" data-tool="overlays" title="Hitboxes, normais, lançamento e alcance"><i>▧</i><span>Visualizar</span></button>
    <button type="button" role="tab" data-tool="characters" title="Personagens e animações do Studio; eventos de combate"><i>♙</i><span>Personagens</span></button>
+   <button type="button" role="tab" data-tool="moves" title="Reflect e Psyshock: equipar, ajustar, emitir e cenários técnicos"><i>✦</i><span>Moves</span></button>
    <button type="button" role="tab" data-tool="controls" title="Dummy, IA, dificuldade, gamepad e histórico de comandos"><i>🎮</i><span>Controles</span></button>
    <button type="button" role="tab" data-tool="export" title="Exportar/importar ajustes e relatório de diferenças para o jogo"><i>↗</i><span>Exportar</span></button>
    <button type="button" role="tab" data-tool="homolog" title="Checklist da sua avaliação jogável (aprovado/reprovado/observação)"><i>✔</i><span>Homologação</span></button>
@@ -202,6 +203,7 @@
      <h3>Histórico de entrada</h3>
      <label class="check"><input type="checkbox" id="show-history" checked> Mostrar histórico de comandos</label>
     </section>
+    <section data-section="moves" hidden><div id="moves-panel"></div></section>
     <section data-section="homolog" hidden><div id="homolog-list"></div></section>
     <section data-section="export" hidden>
      <h3>Workspace</h3>
@@ -248,6 +250,7 @@
    <div id="ab-badge" hidden aria-live="polite"></div>
    <div id="win-overlay" aria-hidden="true"></div>
    <div id="perf-overlay" hidden></div>
+   <div id="moves-hud" hidden aria-label="Movimentos equipados"></div>
    <div id="deny-toast" hidden role="status"></div>
    <section id="graphs" hidden aria-label="Gráficos do gravador de movimento"><header><b>Gráficos de movimento</b><div id="graphs-markers" class="row"></div><button type="button" id="graphs-close" class="icon" aria-label="Fechar gráficos">✕</button></header><div id="graphs-body"></div></section>
    <div id="replay-badge" hidden>PAUSADO · <span id="replay-text"></span></div>

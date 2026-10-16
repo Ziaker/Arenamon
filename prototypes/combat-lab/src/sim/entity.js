@@ -12,10 +12,13 @@ export function createFighter(id, attributes, position) {
     // Locomoção contínua: fase (accel/cruise/brake/reverse/turn/overspeed), sprint e telemetria do último passo.
     turnVelocity: 0, sprinting: false, sprintCarry: false, locoPhase: 'idle', desiredVelocity: vec(), appliedAccel: vec(), inputDir: vec(), staminaTrend: 0, lastLanding: null, faceGoal: id ? Math.PI : 0, recoveryFrom: null,
     // Movimentos especiais e status (vazios até existirem movimentos): slots equipados, recargas, buffs/debuffs, efeitos a disparar.
-    loadout: [], moveCooldowns: {}, statuses: [], moveFx: []};
+    loadout: [], moveCooldowns: {}, statuses: [], moveFx: [],
+    // Charge (charge.js): carga em andamento (null = nenhuma), recuperação após soltar (s), comando de Move guardado e eventos a entregar ao jogo.
+    charge: null, moveRecovery: 0, skillBuffer: null, moveEvents: [], counterStagger: 0};
 }
-// skill: índice do slot de movimento especial pedido neste passo (null = nenhum).
-export const emptyCommand = () => ({move: vec(), dodge: false, dodgeHeld: false, tackle: false, guard: false, guardPressed: false, target: null, skill: null});
+// skill: índice do slot de movimento especial pedido neste passo (null = nenhum; só a BORDA do botão). skillHeld: botões de slot mantidos
+// pressionados (array por slot, ou null quando nenhum): é o que mantém e solta um Charge.
+export const emptyCommand = () => ({move: vec(), dodge: false, dodgeHeld: false, tackle: false, guard: false, guardPressed: false, target: null, skill: null, skillHeld: null});
 /** Parâmetros próprios de uma ação X/C (C.actions.dodge ou C.actions.tackle). */
 export const actionParams = kind => C.actions[kind];
 /** Duração de uma ação: esquiva e tackle têm durações independentes; recuo usa as regras gerais. */

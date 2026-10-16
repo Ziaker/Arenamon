@@ -2,7 +2,8 @@
 import {C} from './config.js';
 import {Brain} from './ai.js';
 import {createFighter, emptyCommand, isInvulnerable} from './entity.js';
-import {updateFighter, advanceAction, bufferDuringHitstop, tickCooldowns} from './controller.js';
+import {updateFighter, advanceAction, bufferDuringHitstop, tickCooldowns, isDepleted} from './controller.js';
+import {getEffect} from './move-effects.js';
 import {createWorld, stepWorld, spawn} from './world.js';
 import {tickStatuses, applyStatus} from './status.js';
 import {getMove, placeRelative, setLoadout} from './moves.js';
@@ -13,6 +14,8 @@ const finishingNow = g => g.phase === 'finishing';
 export class Game {
   constructor({seed = 1} = {}) {
     this.brain = new Brain(seed, 'aiRed');this.playerBrain = new Brain(seed + 1, 'aiBlue');
+    // A IA lê o mundo (projéteis e barreiras) só por esta função: ela não entra no estado salvo e sempre aponta para o mundo atual.
+    this.brain.getWorld = this.playerBrain.getWorld = () => this.world;
     // Movimentos equipados por lutador (ids registrados em moves.js); mantidos entre partidas.
     this.loadouts = [[], []];
     this.mode = 'combat';this.profile = 'balanced';this.enemyProfile = 'balanced';
@@ -43,6 +46,7 @@ export class Game {
     this.lastCommands = commands;
     for (const f of this.fighters) updateFighter(f, commands[f.id] ?? emptyCommand(), this.fighters, C.test.step);
     const actions = this.fighters.map(f => f.action), worldEvents = [];
+    for (const f of this.fighters) if (f.moveEvents?.length) worldEvents.push(...f.moveEvents.splice(0));   // eventos do Charge (início, soltura, cancelamento, recarga acelerada)
     this.fireMoveEffects(worldEvents);
     const fresh = stepPhysics(this.fighters, C.test.step, this.world);
     // Mundo (projéteis, barreiras, paredes, áreas) e status: depois da física dos lutadores, no mesmo passo.
@@ -71,6 +75,7 @@ export class Game {
         const other = this.fighters.find(o => o.id !== f.id);
         if (ev.spawn) spawn(this.world, placeRelative(f, fx.heading, ev.spawn), events);
         else if (ev.status) {const who = ev.target === 'opponent' ? other : f;if (who && who.hp > 0) {applyStatus(who, ev.status, {source: f.id});events.push({result: 'statusApplied', attacker: f.id, target: who.id, damage: 0, status: ev.status.id});}}
+        else if (ev.effect) this.runEffect(f, def, ev, fx, events);
         else if (ev.hit) {
           // Golpe corpo a corpo: área curta à frente, por um passo, com a mesma função de acerto das entidades.
           const range = ev.hit.range ?? 1.2, width = ev.hit.width ?? 1.2;
@@ -78,6 +83,22 @@ export class Game {
         }
       }
     }
+  }
+  /** Executa o efeito nomeado de um evento da linha do tempo; falha (`ok: false`) desfaz custo, recarga e recuperação do Charge. */
+  runEffect(f, def, ev, fx, events) {
+    const handler = getEffect(ev.effect), res = handler ? handler(this, f, def, {...fx, event: ev, events}) : {ok: false, reason: 'effectMissing', detail: {effect: ev.effect}};
+    if (res?.ok === false) this.failMove(f, def, fx, res, events);
+  }
+  /** Falha de execução (M13.7, M29.3): devolve a stamina, remove recarga e recuperação, avisa com motivo. Uma vez por soltura. */
+  failMove(f, def, fx, res, events) {
+    const rel = fx.charge;
+    if (rel) {
+      if (rel.failed) return;
+      rel.failed = true;f.stamina = Math.min(C.rules.staminaMax, f.stamina + rel.cost);f.regenBase = f.stamina;f.regenAge = 0;f.exhausted = isDepleted(f.stamina);
+      if (f.moveCooldowns) delete f.moveCooldowns[def.id];
+      f.moveRecovery = 0;
+    }
+    events.push({result: 'moveFailed', attacker: f.id, target: null, damage: 0, move: def.id, reason: res.reason ?? 'failed', detail: res.detail});
   }
   /** Equipa movimentos registrados num lutador (vale a partir de agora e nas próximas partidas). */
   setLoadout(id, ids) {this.loadouts[id] = setLoadout(this.fighters[id], ids);return this.loadouts[id];}
@@ -97,7 +118,7 @@ export class Game {
     this.fighters = s.fighters;this.tick = s.tick;this.events = s.events;this.winner = s.winner;this.hitstop = s.hitstop;this.phase = s.phase;
     this.brain.load(s.brain);this.playerBrain.load(s.playerBrain);this.lastStepEvents = s.lastStepEvents || [];
     this.world = s.world ?? createWorld();if (s.loadouts) this.loadouts = s.loadouts;
-    for (const f of this.fighters) {f.statuses ??= [];f.moveCooldowns ??= {};f.loadout ??= [];f.moveFx ??= [];}
+    for (const f of this.fighters) {f.statuses ??= [];f.moveCooldowns ??= {};f.loadout ??= [];f.moveFx ??= [];f.charge ??= null;f.moveRecovery ??= 0;f.skillBuffer ??= null;f.moveEvents ??= [];f.counterStagger ??= 0;}
   }
 }
 

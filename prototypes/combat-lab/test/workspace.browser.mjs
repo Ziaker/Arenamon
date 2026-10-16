@@ -128,7 +128,8 @@ try {
   await s.page.locator('.char-slot >> nth=1 >> [data-autorestore]').uncheck();await settle(s.L);await s.ctx.close();
   s = await open(dirA);
   check('Último modelo', 'restauração automática independente por slot (azul sim, vermelho não)', await s.L(() => !!window.__lab.ui.characters[0] && !window.__lab.ui.characters[1]));
-  await s.page.locator('[data-tool="characters"]').click();
+  // Abre a aba só se ainda não estiver aberta (o seletor sem `button` também casava o painel aberto e clicar na aba aberta a recolhe; reprovava de forma intermitente).
+  await s.page.evaluate(() => {const p = document.getElementById('panel');if (p.hidden || p.dataset.tool !== 'characters') document.querySelector('button[data-tool="characters"]').click();});
   check('Último modelo', 'vermelho oferece reabrir o último modelo', await s.page.locator('.char-slot >> nth=1 >> [data-reopen]').count() === 1);
   await s.page.locator('.char-slot >> nth=1 >> [data-autorestore]').check();await s.page.locator('.char-slot >> nth=1 >> [data-reopen]').click();await s.page.waitForFunction(() => window.__lab.ui.characters[1]);
 

@@ -33,9 +33,11 @@ try {
   // ================= Comandos negados =================
   await tab('match');await page.selectOption('#mode', 'inactive');await page.click('#start');await page.waitForTimeout(200);
   await L(() => {const f = window.__lab.game.fighters[0];f.stamina = .4;f.regenBase = .4;f.regenAge = 0;});
-  await key('KeyX');await page.waitForTimeout(60);
+  await key('KeyX');
+  // Espera o aviso aparecer (em vez de um intervalo fixo de 60 ms). Com quadros lentos o buffer de 100 ms pode expirar dentro de um só quadro: o aviso final é “buffer expirou”, com o mesmo motivo do motor.
+  await page.waitForFunction(() => /^X /.test(document.getElementById('deny-toast')?.textContent ?? ''), null, {timeout: 3000}).catch(() => {});
   const toast = await page.textContent('#deny-toast');
-  check('Negados', 'aviso curto na arena com o motivo do motor', /^X (guardado no buffer|ignorado): stamina insuficiente \(0,4\d \/ 1,00\)/.test(toast) && await page.isVisible('#deny-toast'), toast);
+  check('Negados', 'aviso curto na arena com o motivo do motor', /^X (guardado no buffer|ignorado|buffer expirou): stamina insuficiente \(0,4\d \/ 1,00\)/.test(toast) && await page.isVisible('#deny-toast'), toast);
   await page.waitForTimeout(1700);check('Negados', 'o aviso some sozinho', !(await page.isVisible('#deny-toast')));
   await key('KeyC');await page.waitForTimeout(40);
   await L(() => {const f = window.__lab.game.fighters[0];f.stamina = 3;f.regenBase = 3;f.exhausted = false;});
@@ -94,6 +96,7 @@ try {
   const v3 = await L(() => ({v: window.__lab.ui.characters[0].importValidations[1], lib: window.__lab.ui.characters[0].clipInfo.filter(c => c.name.startsWith('alheia_')).map(c => c.compatible)}));
   check('Validador', 'rig diferente: Incompatível, com ossos ausentes listados', v3.v.verdict === 2 && v3.v.label === 'Incompatível' && v3.v.clips.some(c => c.issues.some(i => /ausente/.test(i.text))), v3.v.issues.map(i => i.text).join(' | '));
   check('Validador', 'nada descartado: clipes incompatíveis ficam na biblioteca, desabilitados', v3.lib.length === 3 && v3.lib.every(c => c === false));
+  await page.waitForFunction(() => /Incompatível/.test(document.querySelector('.char-slot .validation')?.textContent ?? ''), null, {timeout: 3000}).catch(() => {});
   const panelText = await page.textContent('.char-slot .validation');
   check('Validador', 'relatórios visíveis no slot, com prévia por clipe', /Compatível/.test(panelText) && /Incompatível/.test(panelText) && await page.locator('.char-slot .validation [data-val-preview]').count() > 0);
   await L(() => document.querySelectorAll('.char-slot .validation details').forEach(d => d.open = true));await page.screenshot({path: out + 'validador.png'});

@@ -64,7 +64,7 @@ export function stepPhysics(fighters, dt, world = null) {
       f.position = add(f.position, scale(add(f.velocity, pushVel.get(f.id)), dt / steps));
       clampToArena(f);
       // Paredes e barreiras sólidas criadas por movimentos (sem elas, nada muda).
-      if (world?.entities.length) {collideFighter(world, f);clampToArena(f);}
+      if (world?.entities.length) {collideFighter(world, f, events);clampToArena(f);}
     }
     for (let pass = 0; pass < X.contactProjectionPasses; pass++) {
       for (let ai = 0; ai < fighters.length; ai++) for (let bi = ai + 1; bi < fighters.length; bi++) {
