@@ -225,7 +225,7 @@ Ambiguidades:
 Decisões posteriores: Rodada 14 (recuo curto e 0,25 s de stagger ao destruir Reflect com Tackle); Rodada 26 substituta (0,3 m/s por pedra, limite acumulado de 0,9 m/s).
 
 Ambiguidades:
-- *Aberta, importante:* o limite de 0,9 m/s é por alvo e por execução, ou global por execução? (ver P4)
+- *Aberta, importante:* o limite de 0,9 m/s é por alvo e por execução, ou global por execução? (ver P4) **→ Resolvida por M30.3** (por alvo, dentro de cada execução).
 - *Aberta:* direção do impulso quando a pedra atinge de cima ou o alvo está junto a uma parede.
 - *Aberta:* o recuo curto do Tackle não tem magnitude numérica inicial aprovada (slider previsto).
 - *Aberta:* lasers em incidência tangencial precisam de estabilidade numérica para não gerar contatos repetidos artificiais.
@@ -548,7 +548,7 @@ Notas: regras detalhadas de efeitos Status estão deliberadamente adiadas; prior
 Ambiguidades:
 - *Resolvidas:* perda de contato com o chão durante a carga interrompe a habilidade (M27.1); falta absoluta de espaço (M29.3).
 - *Aberta:* cálculo da profundidade do personagem em diferentes colisores e modelos.
-- *Aberta:* o limite acumulado de knockback deve ser associado explicitamente ao alvo e à execução (ver P4).
+- *Aberta:* o limite acumulado de knockback deve ser associado explicitamente ao alvo e à execução (ver P4). **→ Resolvida por M30.3.**
 - *Aberta:* a recuperação não deve ser estendida involuntariamente pela duração visual do disparo.
 
 ### Rodada 27 — Posicionamento final e IA
@@ -621,7 +621,13 @@ Notas do arquivista sobre M30.2 (não são decisões):
 - Tamanho, altura e posição das pedras são **só visuais**: não alteram dano nem outras propriedades. Isso responde a ambiguidade da Rodada 3 sobre “tamanhos de pedras e propriedades físicas”.
 - A redução sucessiva é aplicada **no momento do impacto**; não é gravada na pedra. A pedra carrega apenas o dano-base fixo de M30.1.
 - A palavra “status” foi registrada literalmente e lida como “propriedades/estado idênticos”. Se o diretor quis dizer efeitos de Status (buff/debuff), nenhum está definido para o Psyshock.
-- **Não responde P4** (escopo do limite de knockback acumulado); P4 segue aberta.
+- **Não responde P4** (escopo do limite de knockback acumulado); P4 segue aberta. *(Resolvida depois por M30.3.)*
+
+- **M30.3** *por alvo* — **P4 resolvida.** Nas palavras do diretor: “cada alvo recebe no máximo 0,9 m/s de knockback acumulado de cada execução de Psyshock (0,3 por pedra)”. O teto de 0,9 m/s vale **por alvo, dentro de cada execução**; o knockback por pedra é 0,3 m/s (M26s.7). Opção não escolhida: teto único somando todos os alvos da execução.
+
+Notas do arquivista sobre M30.3 (não são decisões):
+- Consequência: com 0,3 m/s por pedra, o teto é atingido na 3ª pedra que acerta o mesmo alvo; as seguintes não acrescentam knockback a ele (o dano segue a regra de M30.1/M30.2).
+- **Nova ambiguidade P14 (Baixa):** (a) pedra refletida que atinge o lançador original conta no teto **da execução original** (leitura natural, não decidida)? (b) o teto de 0,9 m/s vale só para a componente horizontal ou também para a vertical? Nenhuma das duas foi decidida.
 ---
 
 ## 4. Especificação vigente — Reflect
@@ -658,7 +664,7 @@ Três pedras iniciais; +1 a cada 0,8 s; oito ao atingir a carga máxima. Posiç�
 Todas as pedras simultâneas; gesto de extensão de uma mão; velocidade individual configurável no intervalo inicial de 10–14 m/s. Com lock-on: regiões diferentes do alvo; homing limitado a 0,3 s e 180°/s. Sem lock-on: leque discreto frontal com dispersão ajustável. Perda definitiva do alvo termina o homing preservando o movimento. Reflexão cancela o homing. Sem tempo fixo máximo de voo; os limites válidos da arena encerram o projétil.
 
 ### 5.4 Dano
-Dano-base nominal por pedra: 20% do Ataque do lançador **gravado no disparo** (M30.1). Hits sucessivos no mesmo alvo: 1; 0,8; 0,64; 0,512… Cada pedra pode ser defendida, bloqueada perfeitamente ou evitada pelos i-frames. Knockback inicial 0,3 m/s por pedra; limite acumulado 0,9 m/s por execução (**escopo por alvo ainda não formalizado — P4**). Hit stun, guard stun e proteção de combo existentes permanecem válidos.
+Dano-base nominal por pedra: 20% do Ataque do lançador **gravado no disparo** (M30.1). Hits sucessivos no mesmo alvo: 1; 0,8; 0,64; 0,512… Cada pedra pode ser defendida, bloqueada perfeitamente ou evitada pelos i-frames. Knockback inicial 0,3 m/s por pedra; limite acumulado de 0,9 m/s **por alvo, dentro de cada execução** (M30.3; subdetalhes em P14). Hit stun, guard stun e proteção de combo existentes permanecem válidos.
 
 ### 5.5 Power Level
 PL1 antes de 2 s; PL2 de 2 s até antes de 4 s; PL3 em 4 s. Todas as pedras compartilham o PL da execução e resolvem colisões individualmente; só as efetivamente destruídas deixam de existir. Refletidas, conservam o PL original.
@@ -730,7 +736,8 @@ Nenhuma delas foi resolvida por quem publicou este arquivo. Valores experimentai
 - **P13 — “Ataque” no disparo e na reflexão: base ou efetivo? (Baixa, nova).** Valor-base do personagem ou valor com modificadores de Status vigentes naquele instante. Sem Status hoje, é indiferente; decidir antes do primeiro Move de Status.
 - **P2 — Referência dimensional do Reflect (Média).** Colisor de combate, bounding box visual ou dimensões lógicas do personagem; afeta largura, altura, profundidade de referência e distância. Acessórios visuais não devem alterar a física.
 - **P3 — Geometria da reflexão em quinas (Média).** Frente e bordas refletem, o verso é atravessável; falta regra para contatos próximos às extremidades e incidência pelo verso, evitando reflexões contraditórias.
-- **P4 — Knockback acumulado do Psyshock (Média).** 0,3 m/s por pedra e limite de 0,9 m/s por execução; falta formalizar se o limite vale por alvo.
+- **P4 — Knockback acumulado do Psyshock (RESOLVIDA em 2026-10-16 por M30.3).** Decisão: teto de 0,9 m/s por alvo, dentro de cada execução (0,3 m/s por pedra).
+- **P14 — Detalhes do teto de knockback (Baixa, nova).** Pedra refletida conta no teto da execução original? O teto vale só para a componente horizontal ou também para a vertical? Não decididas.
 - **P5 — Homing e pontos anatômicos (Média).** Falta contrato técnico dos pontos de mira nos modelos e comportamento para anatomias diferentes; deve ser compatível com os colisores atuais do laboratório.
 - **P6 — Reflexão × Power Level (Média).** Prioridades de eventos entre reflexão válida, ataque superior contra Reflect, explosão e Tackle, sem resultados incompatíveis simultâneos (requisito de consistência, não nova decisão de gameplay).
 - **P7 — Explosões e região protegida (Média).** Definição geométrica de quais personagens são protegidos, preservando a proteção durante o mesmo evento.
@@ -796,3 +803,4 @@ Moves específicos do tipo Status; buffs e debuffs; fórmulas de regeneração a
 - **2026-10-16 — Criação inicial:** transposição do Registro-Mestre (Rodadas 1–29), IDs `M<rodada>.<item>`, notas do arquivista e estados separados de design, implementação e integridade. Nenhum código alterado.
 - **2026-10-16 — Rodada 30:** P1 resolvida (M30.1, escolha A); P13 criada como subquestão. Primeira decisão registrada diretamente neste arquivo.
 - **2026-10-16 — Rodada 30 (cont.):** M30.2 (pedras homogêneas: mesmas propriedades, mesmo PL, mesmo dano-base; redução só no impacto). P4 continua aberta.
+- **2026-10-16 — Rodada 30 (cont.):** M30.3 (P4 resolvida: teto de knockback de 0,9 m/s por alvo, em cada execução); P14 criada como subquestão.
