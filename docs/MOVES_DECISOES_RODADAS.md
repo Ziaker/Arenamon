@@ -316,7 +316,7 @@ Ambiguidades:
 - **M14.8** *A* — ondas de destruição são exclusivamente visuais.
 
 Ambiguidades:
-- *Aberta:* definir geometricamente a região protegida, incluindo múltiplas barreiras e proteção parcial do corpo (ver P7).
+- *Aberta:* definir geometricamente a região protegida, incluindo múltiplas barreiras e proteção parcial do corpo (ver P7). **→ Resolvida por M30.7** (segmento 3D; basta uma barreira; sem proteção parcial).
 - *Aberta:* a mesma explosão não deve causar dano atrás da barreira por atualização posterior do mesmo evento. **→ Princípio resolvido por M30.6 (item 4)**; a geometria permanece em P7.
 - *Aberta:* valor-base do recuo curto.
 - *Resolvidas:* Power Level não remove a proteção contra explosões (M22.5); Tackle ignora PL do Reflect (M19.9).
@@ -656,7 +656,15 @@ Notas do arquivista sobre M30.5 (não são decisões):
 Notas do arquivista sobre M30.6 (não são decisões):
 - A mensagem do diretor que registrou esta decisão chegou truncada em “Registre como M30.”; o registro como **M30.6** e a continuação para P7 seguem o padrão das mensagens anteriores.
 - Consistente com M13.5 e M21.2 (ordem física determinística, sem favorecer jogador ou IA) e com os resultados já aprovados: reflexão (M19.3), PL superior destrói e é neutralizado (M19.2), Tackle destrói (M19.9), explosão destrói mas a barreira protege (M14.5–M14.7, M22.5).
-- **P7 continua aberta:** o item 4 estabelece o princípio de proteção, mas **não define** a geometria de “estar atrás da barreira” (múltiplas barreiras, proteção parcial do corpo).
+- **P7 continua aberta:** o item 4 estabelece o princípio de proteção, mas **não define** a geometria de “estar atrás da barreira” (múltiplas barreiras, proteção parcial do corpo). *(Resolvida depois por M30.7.)*
+
+- **M30.7** *A* — **P7 resolvida.** Um lutador está **protegido da explosão** se o **segmento 3D do centro da explosão ao centro do corpo cruza o volume de alguma barreira Reflect**. Vale para **qualquer personagem, inclusive o dono**; **basta uma barreira**; conta **mesmo que a barreira seja destruída por essa explosão**. Opções não escolhidas: B (corpo inteiro coberto) e C (proteção proporcional).
+
+Notas do arquivista sobre M30.7 (não são decisões):
+- A mensagem do diretor que registrou esta decisão chegou truncada em “…e sig”; o registro como **M30.7** e a continuação para o próximo item seguem o padrão das mensagens anteriores.
+- Proteção **tudo ou nada**: não há proteção parcial nem redução proporcional de dano/empurrão.
+- “Centro do corpo” = centro da caixa lógica do lutador (M30.4: largura/profundidade = 2 × `halfExtent`, altura = `bodyHeight`, a partir da altitude de apoio). Esta leitura não foi decidida explicitamente.
+- Complementa M30.6 (item 4): a proteção é avaliada **no instante em que a explosão atinge a barreira**, com a barreira ainda presente.
 ---
 
 ## 4. Especificação vigente — Reflect
@@ -676,7 +684,7 @@ Retangular, painel vertical; espessura inicial recomendada e globalmente aprovad
 Face frontal: reflexão especular. Bordas: reflexão especular com normais próprias. Face traseira: passagem livre para projéteis que chegam pelo verso (M30.5: ignoram essa barreira até saírem do volume dela). Vale a primeira superfície atingida; borda reflete mesmo vindo de trás; empate: frente > borda > verso. Personagens: obstáculo sólido com deslizamento lateral. Dodge: colisão física, ultrapassagem por cima se a trajetória permitir. Reflexões entre barreiras sucessivas e ilimitadas em contagem lógica; ciclos numéricos degenerados não podem prender a simulação.
 
 ### 4.5 Duração e destruição
-Duração = 4 s + tempo carregado (4–8 s). Múltiplas barreiras coexistem. Tackle destrói pela frente, verso ou bordas, inclusive barreiras próprias, com recuo curto e stagger de 0,25 s. Explosões podem destruir várias barreiras; Reflect absorve a explosão na região protegida. Ondas de destruição são somente visuais.
+Duração = 4 s + tempo carregado (4–8 s). Múltiplas barreiras coexistem. Tackle destrói pela frente, verso ou bordas, inclusive barreiras próprias, com recuo curto e stagger de 0,25 s. Explosões podem destruir várias barreiras; Reflect absorve a explosão na região protegida (M30.7: segmento 3D do centro da explosão ao centro do corpo cruzando o volume da barreira). Ondas de destruição são somente visuais.
 
 ### 4.6 Falhas
 Sem espaço mínimo válido: não cria barreira, devolve a stamina, não inicia cooldown e mostra feedback discreto do motivo.
@@ -769,7 +777,7 @@ Nenhuma delas foi resolvida por quem publicou este arquivo. Valores experimentai
 - **P14 — Detalhes do teto de knockback (Baixa, nova).** Pedra refletida conta no teto da execução original? O teto vale só para a componente horizontal ou também para a vertical? Não decididas.
 - **P5 — Homing e pontos anatômicos (Média).** Falta contrato técnico dos pontos de mira nos modelos e comportamento para anatomias diferentes; deve ser compatível com os colisores atuais do laboratório.
 - **P6 — Reflexão × Power Level (RESOLVIDA em 2026-10-16 por M30.6).** Decisão: ordem física do contato; empate por ordem de criação; barreira destruída não é vista pelos contatos seguintes do passo; quem estava atrás no instante da explosão segue protegido dela.
-- **P7 — Explosões e região protegida (Média).** Definição geométrica de quais personagens são protegidos, preservando a proteção durante o mesmo evento.
+- **P7 — Explosões e região protegida (RESOLVIDA em 2026-10-16 por M30.7).** Decisão: protegido se o segmento 3D do centro da explosão ao centro do corpo cruza o volume de alguma barreira Reflect (qualquer personagem, basta uma barreira, vale mesmo se a barreira for destruída pela explosão).
 - **P8 — Parâmetros numéricos de calibração (Baixa).** Sem valores aprovados: tolerância de desnível; alcance da busca de posições das pedras; dispersão do leque; inércia telecinética; magnitude do recuo de Tackle após destruir Reflect; tolerâncias de colisão e de ciclos degenerados; instante de início do VFX de expiração.
 - **P9 — Estados de entrada e ordenação de comandos (Média).** Soltar Move, pressionar defesa e ativar Dodge no mesmo passo exigem ordem determinística e testável; a regra existente do jogo não deve ser substituída sem auditoria.
 - **P10 — Arquitetura do repositório (Alta antes da implementação).** Auditar o que já existe, quais partes estão em JavaScript, como os Moves são registrados, os estados do controlador, as entidades físicas, a execução de testes e a produção do HTML offline. Não há autorização para reconstruir do zero. *(Auditoria parcial feita em 16/10/2026 pelo Claude Code; resultados em documentação separada, quando publicada.)*
@@ -836,3 +844,4 @@ Moves específicos do tipo Status; buffs e debuffs; fórmulas de regeneração a
 - **2026-10-16 — Rodada 30 (cont.):** M30.4 (P2 resolvida: Reflect usa as dimensões lógicas do motor).
 - **2026-10-16 — Rodada 30 (cont.):** M30.5 (P3 resolvida: regra de superfícies do painel do Reflect).
 - **2026-10-16 — Rodada 30 (cont.):** M30.6 (P6 resolvida: prioridade de eventos no mesmo passo). P7 segue aberta (geometria da região protegida).
+- **2026-10-16 — Rodada 30 (cont.):** M30.7 (P7 resolvida: geometria da região protegida contra explosões).
