@@ -2,7 +2,7 @@
 
 > **Documento oficial de planejamento em andamento.** Arquivo único a ser atualizado a cada nova rodada solicitada pelo usuário. Não é especificação final nem autorização para implementar.
 >
-> **Status:** Rodadas 1–9 respondidas e registradas (**133 respostas**); Rodada 10 apresentada e **ainda não respondida** (16 perguntas).
+> **Status:** Rodadas 1–9 respondidas e registradas (**133 respostas**); Rodada 10 com 16 perguntas não respondidas. **Diretriz vigente posterior à Rodada 9:** desconsiderar integralmente gamepad no planejamento do mapa; preservar referências antigas só por rastreabilidade, sem exigir decisão nem teste para esse dispositivo.
 > **Fonte de verdade das decisões:** respostas do usuário na conversa ChatGPT sobre o mapa do Arenamon. Opções rejeitadas e sugestões do assistente **não** são requisitos aprovados.
 > **Repositório:** https://github.com/Ziaker/Arenamon · **Escopo:** apenas laboratório de combate `prototypes/combat-lab/`.
 > **Referência do código inspecionado antes da criação:** `main` @ `a16904bd395b982225fe1eed9f87e59bc1a65421` (2026-10-15). Não significa que essas features já tenham sido implementadas.
@@ -12,7 +12,8 @@
 1. A cada nova rodada **respondida**, acrescentar perguntas, alternativas escolhidas, observações textuais e decisões com identificadores imutáveis `R<n>.<n>` **neste mesmo arquivo**, preservando as rodadas anteriores.
 2. Quando uma decisão posterior substituir uma anterior, **não apagar o histórico**: marcar o item anterior como substituído, indicar o item novo e registrar exatamente o que foi alterado. Nunca transformar uma recomendação não aprovada em decisão.
 3. Manter as perguntas sem resposta e conflitos em seção específica. Atualizar contagens e o status. A disponibilidade de atualização depende de uma nova interação e de acesso de escrita ao GitHub; **não existe atualização automática de fundo**.
-4. Fazer commit e verificar o arquivo no GitHub após cada atualização. Não modificar código nem outros arquivos sem solicitação explícita. A publicação remota não prova sincronização com o checkout local.
+4. Fazer commit e verificar o arquivo no GitHub após cada atualização. Não modificar código nem outros arquivos sem solicitação explícita.
+6. **Escopo vigente de controles:** somente teclado para salto e demais decisões do mapa; todas as exigências anteriores referentes a gamepad estão desconsideradas por ordem expressa posterior do usuário. **Não voltar a perguntar ou atribuir botão de gamepad nesta sequência.** Referências históricas devem permanecer arquivadas como escolhas anteriores, não requisitos ativos. A publicação remota não prova sincronização com o checkout local.
 5. A rodada 9 contém decisões aprovadas; a rodada 10 abaixo é **questionário pendente**, não contém decisões aprovadas.
 
 ## Visão transversal de requisitos aprovados (resumo; detalhes por ID abaixo)
@@ -20,7 +21,7 @@
 - **Arena:** plana e circular, raio 50 m (100 m de diâmetro); estilo de laboratório técnico minimalista; barreira de contorno invisível com sinalização discreta e rebotes configuráveis.
 - **Obstáculos:** inicialmente 4 objetos geométricos destrutíveis com **30 HP cada** (HP individual configurável), dano por ataques/colisões, resistências por forma de entrega (contato físico, projétil, área, colisão ambiental), VFX selecionáveis e reaparecimento 15–30 s após destruição em nova posição válida. Inicialmente 4 indestrutíveis de blocos/cilindros/pilares, sólidos, oferecendo cobertura e rebotes. Quantidades e características definidas por seus parâmetros. Distribuições aleatórias sem sobreposição, com proteção de spawns/rotas.
 - **Plataformas:** duas, posições aleatórias, topos de 3×3 m, alturas de 1 m e 1,5 m, totalmente sólidas; personagens podem subir, ficar, lutar e cair; ataques e colisões respeitam volumes tridimensionais.
-- **Salto:** tecla Espaço; botão de gamepad **pendente**, embora remapeamento esteja aprovado. Altura inicial 2 m; intervalo 0,25 s após aterrissagem; sem custo de stamina; apenas em estado livre/caminhando/correndo; salto normal sem invulnerabilidade e sem ações ofensivas/defensivas durante o ar. Impulso horizontal preservado na decolagem sem correção aérea; gravidade compartilhada de referência mas ajustável independentemente; até um salto normal antes de tocar o solo (movimentos especiais podem conceder adicionais). IA poderá saltar estrategicamente.
+- **Salto:** tecla Espaço no teclado. Gamepad **fora de escopo por determinação posterior à R9** (a escolha histórica de mapeamento não constitui pendência). Altura inicial 2 m; intervalo 0,25 s após aterrissagem; sem custo de stamina; apenas em estado livre/caminhando/correndo; salto normal sem invulnerabilidade e sem ações ofensivas/defensivas durante o ar. Impulso horizontal preservado na decolagem sem correção aérea; gravidade compartilhada de referência mas ajustável independentemente; até um salto normal antes de tocar o solo (movimentos especiais podem conceder adicionais). IA poderá saltar estrategicamente.
 - **Consumíveis:** 2 no início, sorteados independentemente e com tipos equiprováveis. Novas gerações em 20–40 s; no máximo 4 presentes para geração regular, suspensa quando houver 4 ou mais e temporizador reiniciado quando abre uma vaga; duração em campo 15 s. Drops de destrutíveis surgem na posição do objeto e podem exceder transitoriamente o limite. Coleta automática em todos os estados, prioridade determinística por primeiro contato. Gerar em posições acessíveis no chão ou nas plataformas. IA disputa itens por risco/valor.
 - **Progressão por coleta:** Ataque, Defesa, capacidade máxima de Stamina, redução do Cooldown, Velocidade — 4 estágios **permanentes até fim da luta** por categoria, no máximo 20 estágios no total por personagem. Ataque +10% por estágio, Defesa −10 pontos percentuais de dano e empurrão por estágio, Stamina +1 ponto de capacidade por estágio (ganho simultâneo na stamina atual), Cooldown −10% de duração por estágio (só recargas iniciadas após coleta), Velocidade +5% por estágio na locomoção e distância/velocidade de esquiva. Item de categoria no máximo vira cura igual ao consumível de HP. Existem também consumíveis separados de recuperação imediata de **20 HP** e **2 pontos de stamina**. Se a cura seria recebida com HP cheio, conceder escudo temporário de **10 s** e **até 40 pontos de absorção por aplicação**, com acúmulo de capacidade até teto configurável; escudo absorve **dano bruto antes da Defesa** e não protege contra empurrões ou lançamentos. Quando todos os cinco atributos estão no estágio 4 e HP cheio, benefício especial é **recuperação imediata de stamina**, concedido repetidamente a cada consumível elegível. Quantidades/tetos complementares pendentes.
 - **IA, câmera, ferramentas:** navegação/replanejamento após mudança nos obstáculos; perseguição/uso estratégico de plataformas, cobertura, line-of-sight e consumíveis; janela de tolerância do lock-on após obstrução; obstáculos transparentes quando bloqueiam câmera; ajuste vertical e afastamento por distância; indicadores de itens, HUD configurável de estágios e nova aba **Mapa**. Parâmetros visuais aplicados imediatamente; estruturais e de geração apenas na próxima partida; diagnósticos selecionáveis.
@@ -666,16 +667,16 @@ Resposta aprovada: **D — Todas essas ferramentas, individualmente ativáveis o
 
 **Resposta aprovada:** **A — Meta de 60 FPS em 1080p, em um ambiente de hardware a ser definido, preservando a simulação fixa a 120 Hz.**
 
-**Observações adicionais enviadas pelo usuário na Rodada 9:** nenhuma. **Importante sobre R9.14:** a opção D foi selecionada, mas o botão específico não foi identificado; não presumir que houve especificação de botão. Continua pendente, retomado em R10.1.
+**Observações adicionais enviadas pelo usuário na Rodada 9:** nenhuma. **Histórico R9.14:** a opção D foi escolhida sem informar botão. **Diretriz posterior prevalente:** o usuário instruiu ignorar gamepad completamente; este tópico deixou de ser uma pendência e não deve ser retomado.
 
 ## Rodada 10 — QUESTIONÁRIO PENDENTE (16 perguntas, sem respostas)
 
-**R10.1 — Qual botão padrão específico deverá ser usado no gamepad para o salto independente?**
+**R10.1 — Por quanto tempo a trava de alvo deve ser mantida quando um obstáculo bloqueia continuamente a linha de visão?**
 
-- A — D-pad para cima (direcional digital ↑), sem alterar comandos já ocupados.
-- B — R3 (pressionar o analógico direito), verificando o comportamento atual antes de atribuir.
-- C — D-pad para a esquerda (direcional digital ←).
-- D — Outro botão ou combinação, especificado textualmente nas observações.
+- A — 0,5 segundo.
+- B — 1 segundo.
+- C — 2 segundos.
+- D — Tempo de tolerância configurável com valor padrão informado nas observações.
 
 **Status:** não respondida.
 
@@ -834,12 +835,12 @@ Resposta aprovada: **D — Todas essas ferramentas, individualmente ativáveis o
 15. **R3.5/R3.6 → R9.10–R9.11:** quatro destrutíveis começam com **30 HP**, resistências separadas por categoria de entrega; parâmetros individuais continuam configuráveis.
 16. **R3.13 → R9.12:** quando ponto sorteado é inválido, procurar **sistematicamente o ponto válido mais próximo**, mantendo restrições.
 17. **R9.13:** temporizadores param imediatamente ao fim da luta.
-18. **R9.15–R9.16:** todos os testes de integração/regressão/navegador/gamepad/HUD/desempenho são obrigatórios; meta 60 FPS/1080p com simulação de 120 Hz.
-19. **R7.3 + R9.14:** ambas selecionam a categoria “outro botão de gamepad” **sem informar o botão**; a lacuna permanece pendente, não resolvida.
+18. **R9.15–R9.16 → retirada posterior parcial:** manter todos os testes de integração, regressão, navegador, HUD, IA e desempenho; retirar apenas o componente **gamepad** por determinação expressa posterior, sem descartar o restante. Meta 60 FPS/1080p com simulação de 120 Hz permanece.
+19. **R7.3 + R9.14 → instrução expressa posterior:** o usuário retirou **todo gamepad do escopo do mapa**. Preservar opções antigas apenas como histórico; cancelar qualquer pendência ou pergunta para especificar controle e não tornar testes de gamepad obrigatórios neste escopo.
 
 ## Pendências, ambiguidades e decisões NÃO tomadas
 
-- **P1 — Botão de pulo do gamepad:** R7.3 e R9.14 escolheram “outro botão”, **sem indicar qual**. O botão permanece pendente para R10.1. Não presumir D-pad/L3/R3.
+- **P1 — CONTROLE FORA DO ESCOPO (resolvido por retirada):** por instrução expressa posterior à R9, gamepad foi totalmente excluído do planejamento do mapa; não há botão ou mapeamento pendente e não se deve repor exigências relacionadas. O salto por teclado Espaço permanece aprovado.
 - **P2 — Salto e movimento aéreo:** R2.3 e R7.7 especificam impulso horizontal preservado e sem correção durante o salto. R2.7 diz “apenas movimentar-se”; deve-se preservar a interpretação estrita de movimento horizontal balístico sem permitir novo direcionamento no ar. Caso isso inclua outra ação além de deslocamento prévio, pedir esclarecimento.
 - **P3 — Recuperação ao aterrissar:** R7.9 aprova configuração independente, **sem tempo inicial numérico**.
 - **P4 — Cura de HP:** R9.1 definiu **20 HP** como padrão (R5.9 mantém a cura configurável em pontos ou porcentagem). **Resolvida quanto ao valor inicial.**
@@ -849,14 +850,32 @@ Resposta aprovada: **D — Todas essas ferramentas, individualmente ativáveis o
 - **P8 — HP e resistências de objetos:** R9.10–R9.11 definiram **30 HP inicialmente por destrutível**, com resistências por **contato físico, projéteis, área e colisão ambiental**. Multiplicadores numéricos de resistência continuam pendentes, R10.14.
 - **P9 — Falha de geração procedural:** R9.12 exige procurar sistematicamente a **posição válida mais próxima da sorteada**. Continua pendente o que fazer caso nenhuma posição válida exista em toda a arena; R10.9.
 - **P10 — Encerramento de luta:** R9.13 determina que os temporizadores de objetos, itens e escudos **parem imediatamente na definição do vencedor**. Questões de animações pós-partida não foram especificamente alteradas.
-- **P11 — Regressão e desempenho:** R9.15 exige cobertura completa, incluindo **navegador, gamepad, HUD, IA, seeds, replay e desempenho**. R9.16 define **meta de 60 FPS a 1080p**, preservando física de passo fixo a **120 Hz**, mas ainda falta hardware de referência; R10.15.
+- **P11 — Regressão e desempenho:** R9.15 exige cobertura completa, incluindo **navegador, HUD, IA, seeds, replay e desempenho**; a exigência relativa a gamepad foi **retirada por ordem posterior**. R9.16 define **meta de 60 FPS a 1080p**, preservando física de passo fixo a **120 Hz**, mas ainda falta hardware de referência; R10.15.
 - **P12 — Interação ataque/defesa:** R8.7 aprova que explosões danifiquem objetos dentro do volume 3D; isso não aprova ignorar colisões tridimensionais ou fazer projéteis atravessarem bloqueios. R8.8 estabelece consumo de projétil que destrói o objeto.
 - **P13 — Categoria de buff regeneração:** não inventar progressão de regeneração de stamina a partir da lista preliminar de R4.2. A implementação deve usar as cinco categorias definitivas e os consumíveis de recuperação descritos.
 - **P14 — Estado técnico NÃO implementado:** mundo do laboratório em `prototypes/combat-lab/src/sim/world.js` já oferece projéteis, paredes, barreiras de movimentos e áreas; `status.js` suporta status temporários; `physics.js` usa limites quadrados; isso **não demonstra** existência das novas entidades persistentes, progressão de estágios, arena circular nem pulo independente.
 - **P15 — Persistência do planejamento:** arquivo GitHub é fonte compartilhada, mas a atualização depende de solicitação em cada rodada e acesso ao repositório. Não confundir “gravado no GitHub” com “sincronizado com checkout local oficial”.
+
+## Pergunta de planejamento retirada por instrução expressa (preservada somente para auditoria)
+
+- **Motivo:** após receber a Rodada 10, o usuário determinou “MEU DEUS IGNORA GAMEPAD”. Isso substitui exigências anteriores de mapear, testar ou perguntar sobre gamepad no contexto do mapa Arenamon; não altera os controles existentes do jogo por si só.
+- **Consequência:** a pergunta originalmente mostrada como R10.1 foi **cancelada sem resposta** e substituída por uma pergunta sobre o tempo de tolerância do lock-on. O registro das alternativas originais segue apenas abaixo, sem efeito normativo:
+
+**R10.1 — Qual botão padrão específico deverá ser usado no gamepad para o salto independente?**
+
+- A — D-pad para cima (direcional digital ↑), sem alterar comandos já ocupados.
+- B — R3 (pressionar o analógico direito), verificando o comportamento atual antes de atribuir.
+- C — D-pad para a esquerda (direcional digital ←).
+- D — Outro botão ou combinação, especificado textualmente nas observações.
+
+**Status:** não respondida.
+
+- **Não extrapolar:** não modificar implementações de entrada do jogo. Esta atualização foi somente documental.
 
 ## Changelog do registro
 
 - **Criação inicial:** Rodadas 1–8 completas (117 perguntas e escolhas), texto de observação da R4, Rodada 9 pendente (16 perguntas e todas as alternativas), índice de decisões, substituições e pendências. Nenhum código alterado por esta documentação.
 
 - **Atualização após Rodada 9:** 16 decisões adicionadas (R9.1–R9.16), todas as alternativas apresentadas mantidas; total 133 decisões aprovadas de Rodadas 1–9; Rodada 10 incluída como questionário pendente de 16 perguntas. R9.14 continua sem identificação do botão de gamepad. Nenhum código alterado.
+
+- **Ajuste de escopo após Rodada 9 (ordem expressa do usuário):** desconsiderar gamepad na especificação do mapa e em perguntas futuras. Questão originalmente R10.1 foi cancelada sem resposta e preservada em seção histórica; substituída por questão de tolerância do lock-on. Itens históricos R1.10/R2.1/R7.3/R9.14 preservados com prevalência da nova diretriz. Requisito de testes de gamepad da R9.15 retirado, permanecendo os demais testes. Nenhum código foi modificado.
