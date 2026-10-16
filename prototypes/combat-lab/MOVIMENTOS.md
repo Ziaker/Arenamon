@@ -15,7 +15,7 @@ Adicionar um movimento é só uma questão de **dados**: uma definição validad
 | `src/sim/game.js` | Dispara os efeitos da linha do tempo, avança o mundo e os status a cada passo e guarda tudo em save/load. |
 | `src/view/world-view.js` | Desenho genérico das entidades, pela cor do dono. Pode ser trocado por modelos e VFX próprios. |
 
-**Entrada:** os slots 1–4 usam as teclas **1, 2, 3 e 4** (vermelho manual: H, G, N e M). No gamepad, X, RT, LT e o clique do analógico direito acionam os slots 1 a 4. Tudo é configurável em Controles.
+**Entrada:** os slots 1–4 usam as teclas **A, S, 3 e 4** (vermelho manual: H, G, N e M); A e S são os padrões de Reflect e Psyshock (D3). No gamepad, X, RT, LT e o clique do analógico direito acionam os slots 1 a 4. Tudo é configurável em Controles. O comando da simulação traz a borda do botão (`skill`) e os botões de slot **mantidos** (`skillHeld`, array por slot ou `null`), que seguram e soltam um Charge.
 
 **Animação:** os estados `move_1` a `move_4` ficam disponíveis em Personagens. O Studio já exporta esses ids no mapa de ações; um slot sem clipe próprio usa o do tackle.
 
@@ -89,6 +89,29 @@ Ordem de resolução, a mesma do tackle:
 - **Remoção por etiqueta:** `cleanse(f, 'debuff')`.
 
 Sem status ativos, todos os modificadores valem exatamente 1. O combate básico (tackle, clash, lançamento, stamina, locomoção) já lê esses atributos.
+
+## Movimentos de carga (Charge) — Fase 1
+
+Um movimento com `charge: {max}` é **segurar para carregar, soltar para executar** (infraestrutura para Reflect e Psyshock; **nenhum está registrado**). Não é uma ação: o lutador continua andando, com **−25%** de velocidade e de giro. Estado em `fighter.charge`; regras em `sim/charge.js` (puro) e no controlador (`chargePermission`, `startCharge`, `cancelCharge`, `stepCharge`).
+
+| Regra | Valor (provisório, `C.world.charge`, M30.10) |
+|---|---|
+| Custo | cobrado ao iniciar; não é devolvido em interrupção |
+| Recarga | começa na **soltura**; interrupção/cancelamento aplica **metade** (`interruptCooldownFactor`) |
+| Carga máxima | `charge.max` (padrão 4 s); parado no máximo até soltar |
+| Power Level | PL1 < 50% da carga, PL2 de 50% a antes de 100%, PL3 na carga máxima — por contagem de **passos** |
+| Cancelamento | defesa cancela; C só após 0,2 s (`dodgeCancelAfter`); Tackle indisponível durante a carga |
+| Interrupção | golpe com lançamento ou hit stun; perda de apoio; derrota. Dano puro não interrompe |
+| Recuperação | 0,25 s após soltar: bloqueia Tackle e novos Moves; movimento, defesa e Dodge permitidos |
+| Do Dodge | começa no fim do deslocamento principal; comando guardado nos últimos 0,15 s (`bufferWindow`) |
+| Aceleração de recarga | `cooldownBoost: true`: novo toque (borda) gasta 0,5 de stamina por 1 s encurtado, proporcional na fração final; vale durante outro Charge |
+| Ordem no mesmo passo | defesa → X/C → soltar o Move (M30.9) |
+
+**Efeitos:** a linha do tempo de um Charge dispara **na soltura** e usa eventos `{effect: 'nome'}` ligados a manipuladores registrados em `sim/move-effects.js` (`registerEffect`); o manipulador recebe `fx.charge = {ticks, seconds, level, params}`. Se devolver `{ok: false, reason}`, o jogo devolve a stamina (uma vez), remove recarga e recuperação e emite `moveFailed`.
+
+**Contrato M28.4 (D1):** ao apertar, o controlador captura `chargeParams(def)` — cópia **congelada** de `C.world.charge` com as substituições de `def.charge`. Alterar sliders durante a carga só vale para os próximos usos.
+
+**Eventos:** `chargeStart`, `chargeRelease`, `chargeCancel`, `chargeInterrupt`, `cooldownBoost`, `moveFailed`. **Testes:** `test/charge.test.mjs`.
 
 ## Garantias verificadas (`test/moves.test.mjs`)
 

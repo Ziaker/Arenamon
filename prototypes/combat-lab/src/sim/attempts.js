@@ -43,6 +43,11 @@ export const REASONS = {
   silenced: () => 'impedido de usar movimentos (efeito de status)',
   stunned: () => 'atordoado (efeito de status)',
   disarmed: () => 'impedido de usar o tackle (efeito de status)',
+  charging: () => 'carga em andamento (sem segundo carregamento nem Tackle)',
+  chargeLock: d => `a esquiva só cancela a carga depois de ${ms(d.left)}`,
+  moveRecovery: d => `recuperação do movimento (${ms(d.left)} restantes)`,
+  noGround: () => 'só é possível carregar com apoio no chão',
+  chargeEnded: d => `carga encerrada (${d.why})`,
 };
 const RESULT = {denied: 'ignorado', buffered: 'guardado no buffer', expired: 'buffer expirou', executed: 'executado', partial: 'executado'};
 /** Frase curta: “X ignorado: stamina insuficiente (0,60 / 1,00)”. */
