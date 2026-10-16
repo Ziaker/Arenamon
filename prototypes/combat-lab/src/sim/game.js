@@ -134,6 +134,10 @@ export class Game {
       f.charge ??= null;f.moveRecovery ??= 0;f.skillBuffer ??= null;f.moveEvents ??= [];f.counterStagger ??= 0;
       if (!s.combatWindows) f.combatWindows = null;
     }
+    for (let i = 0; i < this.fighters.length; i++) {
+      if (this.combatWindows?.[i]) this.fighters[i].combatWindows = structuredClone(this.combatWindows[i]);
+      else this.fighters[i].combatWindows = null;
+    }
   }
 }
 
