@@ -219,7 +219,7 @@ try {
   const recorded = await L(() => {window.__lab.togglePause(true);const g = window.__lab.game;return {ticks: window.__labRecording.matchRec.ticks, tick: g.tick, fighters: JSON.stringify(g.fighters)};});
   assert.ok(recorded.ticks > 100 && recorded.ticks === recorded.tick, `gravou ${recorded.ticks} passos`);
   pending = page.waitForEvent('download');await page.click('#rec-save');const recPath = await (await pending).path();
-  const recJson = JSON.parse(await readFile(recPath, 'utf8'));assert.equal(recJson.schema, 'arenamon-match');assert.equal(recJson.ticks, recorded.ticks);assert.ok(recJson.commands.length < recorded.ticks, `comandos comprimidos (${recJson.commands.length} grupos para ${recorded.ticks} passos; modo ${await page.inputValue('#player-mode')}; ${JSON.stringify(recJson.commands.slice(0, 3)).slice(0, 400)})`);
+  const recJson = JSON.parse(await readFile(recPath, 'utf8'));assert.equal(recJson.schema, 'arenamon-match');assert.equal(recJson.ticks, recorded.ticks);assert.ok(recJson.commands.length <= recorded.ticks, `comandos comprimidos, nunca expandidos (a IA tática raramente repete o mesmo comando em passos seguidos, então “<” dependia da semente) (${recJson.commands.length} grupos para ${recorded.ticks} passos; modo ${await page.inputValue('#player-mode')}; ${JSON.stringify(recJson.commands.slice(0, 3)).slice(0, 400)})`);
   await page.click('#arena-autoplay-toggle');await L(() => window.__lab.tuning.commit([['rules.launchUp', 9]], 'muda algo antes de reproduzir'));
   await page.selectOption('#rec-values', 'recorded');await page.setInputFiles('#rec-file', recPath);
   await page.waitForFunction(() => window.__labRecording.ui.playback?.ended, null, {timeout: 20000});

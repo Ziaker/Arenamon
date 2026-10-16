@@ -52,7 +52,7 @@ Convenções: **T** = testes; **R** = riscos; **A** = critério de aceite. Toda 
 - **A:** testes passam no estado atual; relatório do que o contrato M28.4 exige corrigir.
 - **R:** baixo (só testes). **Reversível:** sim.
 
-### Fase 1 — Charge no controlador (G)
+### Fase 1 — Charge no controlador (G) — **ENTREGUE (PR da Fase 1)**
 - **O que:** hold/release de slot; estado de carga; custo no início; interrupção com meio cooldown; cancelamento por defesa/Dodge (≥0,2 s); sem iniciar no ar; interrompe se perder o apoio (M27.1); sem carga simultânea; −25% velocidade linear e angular; buffer de 0,15 s no fim do Dodge; recuperação de 0,25 s; aceleração de cooldown por novo toque físico (custo proporcional); ordem do passo M30.9; falha com devolução de stamina e sem cooldown. Tudo sobre `MoveParams`.
 - **Arquivos:** `sim/moves.js` (schema `charge`, validação), `sim/entity.js` (campos do lutador; comando: `skillHeld[]`, `skillReleased`), `sim/controller.js` (`updateFighter`: charging, cancelamentos, penalidades; `movePermission`), `sim/config.js` (novo grupo `C.moves` provisório, M30.10), `sim/types.d.ts`, `ui/input.js` (teclado: held/keyup; gamepad: borda de soltura), `main.js` (fiação), `sim/movement.js`/`recording.js` (comandos com campos novos — **compatível**: a gravação guarda o objeto de comando inteiro; gravações antigas ficam sem os campos, tratados como falso), testes.
 - **T:** `charge.test.mjs`: M2.4–M2.6, M7.1–M7.9, M15.1–M15.4, M16.1–M16.8, M26s.8, M27.1, M27.4, M30.9; propriedades (milhares de situações aleatórias sem violar invariantes: stamina ≥ 0, no máximo uma ação, determinismo); `properties`/`core`/`sim`/`rules`/`locomotion` **inalterados**.

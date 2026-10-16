@@ -28,6 +28,10 @@ Este arquivo separa **o que foi efetivamente executado** do que **permanece pend
 
 Executado e aprovado em worktree temporário: `npm run typecheck` (sem erros) e `npm run test:combat-lab:unit` completo (~2 min), incluindo os dois testes novos de caracterização (`moves-contract` 4 verificações; `moves-order` 4 verificações). **Não executado:** testes de navegador, `check:offline` e `verify` completo (nenhum código de jogo, HTML ou `dist` foi alterado nesta fase; só testes, `package.json` e documentação). Resultado-chave: **11 de 12** leituras de `C` testadas ainda alteram entidades já criadas — ver `docs/MOVES_TEST_MATRIX.md`.
 
+### Fase 1 dos Moves — Charge (2026-10-16, branch `feat/moves-fase1-charge` sobre `main` @ `f715b05`)
+
+Executado e aprovado em worktree temporário: `npm run typecheck`; `npm run test:combat-lab:unit` completo (inclui `charge.test` 18 verificações); `npm run test:combat-lab:browser` completo (verify 19/19, overhaul 116/116, workspace 43/43, calibration 32/32, diagnostics 21/21, perf 23/23, tools 18/18); `npm run check:offline`; **impressão digital de lutas IA × IA (6 sementes × 2400 passos) idêntica à da base, ignorando os campos novos do Charge** — sem Moves a partida não mudou. Correções de testes intermitentes (não de código de jogo): `diagnostics.browser` passou a esperar o aviso (e aceitar “buffer expirou” quando o quadro é lento); `verify.mjs` não exige mais que a gravação da IA tática seja estritamente menor que o número de passos. **Não executado:** testes de navegador de jogo/studio/importador/placeholders (nada neles mudou), `verify:workspace` e `verify` completo (worktree), paridade v6 (arquivo ausente).
+
 ### NÃO executado / pendente
 
 - `npm run verify:workspace`: **recusa worktrees por desenho** (exige o checkout oficial). Deve ser rodado na pasta oficial quando ela estiver livre.
