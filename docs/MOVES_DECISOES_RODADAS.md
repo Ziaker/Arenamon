@@ -116,7 +116,7 @@ Ambiguidades:
 - *Importante:* a passagem pela face traseira deve valer para o percurso completo do projétil, inclusive se ele entra pelo verso e depois alcança a região frontal.
 - *Importante:* impactos exatamente nas quinas entre frente e bordas precisam de prioridade geométrica determinística.
 - *Aberta:* uso de dimensões visuais ou do colisor como referência de escala da barreira (ver P2).
-- *Aberta:* relação entre tamanhos de pedras e propriedades físicas — os tamanhos variam visualmente, sem aprovação de massa ou dano variável por tamanho.
+- *Aberta:* relação entre tamanhos de pedras e propriedades físicas — os tamanhos variam visualmente, sem aprovação de massa ou dano variável por tamanho. **→ Resolvida por M30.2** (tamanho é só visual; dano igual para todas as pedras).
 
 ### Rodada 4 — Duração, destruição e impactos
 **Procedência declarada: R**
@@ -615,6 +615,13 @@ Notas do arquivista sobre M30.1 (não são decisões):
 - Ponto de atenção para a implementação: `world.applyHit` hoje multiplica o dano por `stat(owner, 'attack', 1)` no impacto; com M30.1 o Ataque já entra no valor gravado e **não pode ser contado duas vezes**. A forma de evitar isso é decisão técnica da implementação, a ser verificada por teste.
 - Efeito sobre outras entradas: resolve a parte “quando amostrar” de M10.1 e M17.3.
 
+- **M30.2** — **Pedras homogêneas.** Declaração do diretor (2026-10-16), nas palavras dele: “todas pedras têm o mesmo status, o mesmo Power Level, o mesmo dano que só reduz no impacto”. Leitura registrada: todas as pedras de uma mesma execução do Psyshock têm as **mesmas propriedades**, o **mesmo Power Level** (já em M19.5) e o **mesmo dano-base** (M30.1); o dano só **se reduz no impacto**, pelo multiplicador sucessivo por acerto no mesmo alvo (M6.3, 0,8 por acerto).
+
+Notas do arquivista sobre M30.2 (não são decisões):
+- Tamanho, altura e posição das pedras são **só visuais**: não alteram dano nem outras propriedades. Isso responde a ambiguidade da Rodada 3 sobre “tamanhos de pedras e propriedades físicas”.
+- A redução sucessiva é aplicada **no momento do impacto**; não é gravada na pedra. A pedra carrega apenas o dano-base fixo de M30.1.
+- A palavra “status” foi registrada literalmente e lida como “propriedades/estado idênticos”. Se o diretor quis dizer efeitos de Status (buff/debuff), nenhum está definido para o Psyshock.
+- **Não responde P4** (escopo do limite de knockback acumulado); P4 segue aberta.
 ---
 
 ## 4. Especificação vigente — Reflect
@@ -788,3 +795,4 @@ Moves específicos do tipo Status; buffs e debuffs; fórmulas de regeneração a
 
 - **2026-10-16 — Criação inicial:** transposição do Registro-Mestre (Rodadas 1–29), IDs `M<rodada>.<item>`, notas do arquivista e estados separados de design, implementação e integridade. Nenhum código alterado.
 - **2026-10-16 — Rodada 30:** P1 resolvida (M30.1, escolha A); P13 criada como subquestão. Primeira decisão registrada diretamente neste arquivo.
+- **2026-10-16 — Rodada 30 (cont.):** M30.2 (pedras homogêneas: mesmas propriedades, mesmo PL, mesmo dano-base; redução só no impacto). P4 continua aberta.
