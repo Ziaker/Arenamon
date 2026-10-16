@@ -24,7 +24,7 @@ export class Game {
     this.brain.reset();this.playerBrain.reset();
     this.fighters.forEach((f, i) => {
       f.loadout = [...(this.loadouts[i] || [])];
-      if (this.combatWindows?.[i]) f.combatWindows = structuredClone(this.combatWindows[i]);
+      f.combatWindows = this.combatWindows?.[i] ? structuredClone(this.combatWindows[i]) : null;
     });
     this.world = createWorld();
     this.tick = 0;this.events = [];this.winner = null;this.hitstop = 0;this.phase = 'playing';this.lastStepEvents = [];
@@ -107,8 +107,11 @@ export class Game {
     this.fighters = s.fighters;this.tick = s.tick;this.events = s.events;this.winner = s.winner;this.hitstop = s.hitstop;this.phase = s.phase;
     this.brain.load(s.brain);this.playerBrain.load(s.playerBrain);this.lastStepEvents = s.lastStepEvents || [];
     this.world = s.world ?? createWorld();if (s.loadouts) this.loadouts = s.loadouts;
-    if (s.combatWindows) this.combatWindows = s.combatWindows;
-    for (const f of this.fighters) {f.statuses ??= [];f.moveCooldowns ??= {};f.loadout ??= [];f.moveFx ??= [];}
+    this.combatWindows = s.combatWindows ? structuredClone(s.combatWindows) : [null, null];
+    for (const f of this.fighters) {
+      f.statuses ??= [];f.moveCooldowns ??= {};f.loadout ??= [];f.moveFx ??= [];
+      if (!s.combatWindows) f.combatWindows = null;
+    }
   }
 }
 

@@ -286,17 +286,19 @@ export class Character {
       characterId: this.source?.name || 'character'
     });
   }
+  /** Extrai o mapa de janelas de combate para todas as ações suportadas do personagem. */
+  getAllCombatWindows() {
+    return {
+      tackle: this.getCombatWindows('tackle'),
+      dodge: this.getCombatWindows('dodge_forward')
+    };
+  }
   /**
    * Atualiza a pose. ctx: {tick, source: 'jogador'|'IA'} para o sorteio determinístico e a telemetria.
    * dt = 0 (pausa) mantém a pose.
+   * SOMENTE VISUAL: nunca modifica o estado autoritativo do lutador.
    */
   update(f, dt, alt, events = [], ctx = {}) {
-    if (f && !f.combatWindows) {
-      f.combatWindows = {
-        tackle: this.getCombatWindows('tackle'),
-        dodge: this.getCombatWindows('dodge_forward')
-      };
-    }
     const opt = Character.options;this.clock += dt;if (dt > 0) this.lastDt = dt;
     if (this.visualFreeze > 0) {this.visualFreeze = Math.max(0, this.visualFreeze - dt);dt = 0;}
     if (f.flight && !this.wasFlying) this.flightV0 = f.flight.vy + C.rules.launchGravity * C.test.step;

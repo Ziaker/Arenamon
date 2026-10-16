@@ -45,7 +45,7 @@ export function isInvulnerable(f) {
   if (!C.extras?.toggles?.enableInvulnerability || !f?.action) return false;
   if (f.action.invulnerableFor === 0) return false;
   const kind = f.action.kind;
-  if (C.extras.toggles.enableAnimationCombatWindows && f.action.combatWindows?.invulnerabilityWindows) {
+  if (C.extras.toggles.enableAnimationCombatWindows && f.action.combatWindows?.invulnerabilityWindows?.length) {
     if (f.action.invulnerableFor !== undefined) {
       return f.action.elapsed < f.action.invulnerableFor - 1e-8;
     }
@@ -58,14 +58,12 @@ export function isInvulnerable(f) {
 }
 export function isOffensive(f) {
   if (!f?.action || f.action.kind !== 'tackle') return false;
-  if (!C.extras?.toggles?.enableAnimationCombatWindows || !f.action.combatWindows) {
+  if (!C.extras?.toggles?.enableAnimationCombatWindows || !f.action.combatWindows?.activeWindows?.length) {
     return true;
   }
   const stepSec = C.test?.step || (1 / 120);
   const curStep = Math.round((f.action.elapsed ?? 0) / stepSec);
-  const windows = f.action.combatWindows.activeWindows;
-  if (!Array.isArray(windows)) return true;
-  return windows.some(([s, e]) => curStep >= s && curStep < e);
+  return f.action.combatWindows.activeWindows.some(([s, e]) => curStep >= s && curStep < e);
 }
 /** Janela genérica de encadeamento: a ação atual já pode ser substituída por outra (ou pela defesa)? */
 export const chainOpen = f => !f.action || f.action.kind === 'recoil' || f.action.elapsed >= actionSpec(f.action).chainAfter - 1e-8;

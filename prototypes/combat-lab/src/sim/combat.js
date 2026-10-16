@@ -38,12 +38,12 @@ export function resolveHit(attacker, defender, normal, relative) {
   const R = C.rules, X = C.extras.combat, T = C.extras.toggles;
   if (!tackleConnects(attacker, defender, normal, relative) || defender.hp <= 0) return null;
 
-  // Verificação de janelas ativas e multi-hit (quando o toggle estiver ativo e a ação tiver contrato)
+  // Verificação de janelas ativas e multi-hit (quando o toggle estiver ativo e a ação tiver janelas marcadas)
   let windowIdx = -1;
-  if (T.enableAnimationCombatWindows && attacker.action?.combatWindows) {
+  const activeWindows = attacker.action?.combatWindows?.activeWindows;
+  if (T.enableAnimationCombatWindows && Array.isArray(activeWindows) && activeWindows.length > 0) {
     const stepSec = C.test?.step || (1 / 120);
     const attackerStep = Math.round((attacker.action.elapsed ?? 0) / stepSec);
-    const activeWindows = attacker.action.combatWindows.activeWindows || [];
     windowIdx = activeWindows.findIndex(([s, e]) => attackerStep >= s && attackerStep < e);
     // Fora de janela ativa (startup ou recuperação): não conecta
     if (windowIdx === -1) return null;

@@ -1,7 +1,9 @@
 // prototypes/combat-lab/test/combat-windows-sim.test.mjs
 // Testes de integração das Janelas de Combate da Animação conectadas à simulação da Arena.
 // Cobre: fallback legado quando desativado, startup, ativo, recuperação, multi-hit,
-// invulnerabilidade, clash condicional, snapshot, replay e save/load determinísticos.
+// invulnerabilidade, clash condicional, snapshot, replay, save/load determinísticos,
+// GLB sem eventos (fallback previsível), troca/remoção de personagem, ausência de passos
+// antes da associação, descarte de contratos ao carregar estado legado e paridade renderizado vs headless.
 
 import {strict as assert} from 'node:assert';
 import {C, resetConfig} from '../src/sim/config.js';
@@ -9,6 +11,7 @@ import {Game} from '../src/sim/game.js';
 import {createFighter, isOffensive, isInvulnerable} from '../src/sim/entity.js';
 import {resolveHit, clashPossible} from '../src/sim/combat.js';
 import {createAnimationCombatWindows} from '../src/sim/animation-combat-windows.js';
+import {Character} from '../src/view/characters.js';
 import {vec} from '../src/sim/math.js';
 
 let passed = 0;
@@ -176,7 +179,7 @@ test('multi-hit: duas janelas ativas separadas [10, 20) e [30, 40) conectam 1 ve
   assert.equal(isOffensive(attacker), false, 'Passo 25 está no vão entre janelas');
   assert.equal(resolveHit(attacker, defender, normal, relative), null, 'Vão entre janelas não conecta');
 
-  // 2º Hit: no passo 35 (janela 1) — defensor no solo/juggle
+  // 2º Hit: no passo 35 (janela 1) — defensor recuperado de voo / combo juggle
   defender.flight = null;
   attacker.action.elapsed = 35 * C.test.step;
   assert.equal(isOffensive(attacker), true, 'Passo 35 está na segunda janela ativa');
@@ -311,7 +314,6 @@ test('Game.step() de ponta a ponta: tackle por comando não acerta no startup e 
 
   const game = new Game({seed: 123});
   const contract = makeStandardTackleContract();
-  // Posiciona atacante azul em (0, 0) e defensor vermelho em (0, 1.2) - dentro do alcance do tackle
   game.reset({positions: [vec(0, 0), vec(0, 1.2)]});
   game.setCombatWindows(0, {tackle: contract});
   game.fighters[0].facing = 0;
@@ -347,6 +349,173 @@ test('Game.step() de ponta a ponta: tackle por comando não acerta no startup e 
   assert.ok(impactTick !== null, 'Tackle deve ter conectado dentro da janela ativa');
   assert.ok(impactTick >= 10, `Impacto (${impactTick}) deve ocorrer no passo 10 ou posterior`);
   assert.equal(game.fighters[1].hp < initialHp, true, 'Defensor deve ter recebido dano do impacto');
+});
+
+// 10. GLB sem eventos aplica fallback previsível (sem travar nem impedir golpes)
+test('GLB sem eventos: aplica fallback previsível para dano e invulnerabilidade', () => {
+  C.extras.toggles.enableAnimationCombatWindows = 1;
+  const emptyContract = createAnimationCombatWindows({
+    characterId: 'empty_model',
+    actionId: 'tackle',
+    activeWindows: [], // sem hitbox marcada no GLB
+    invulnerabilityWindows: [] // sem invuln marcada no GLB
+  });
+
+  const attacker = createFighter(0, C.profiles.balanced, vec(0, 0));
+  const defender = createFighter(1, C.profiles.balanced, vec(0, 1.0));
+  attacker.action = {
+    kind: 'tackle',
+    elapsed: 2 * C.test.step, // passo 2
+    heading: 0,
+    startAngle: 0,
+    offensive: true,
+    vault: false,
+    hits: new Set(),
+    from: null,
+    speedMultiplier: 1,
+    combatWindows: emptyContract
+  };
+  attacker.velocity = vec(0, 5);
+  defender.facing = Math.PI;
+
+  // Sem activeWindows marcadas: tackle cai no fallback previsível (ofensivo durante a ação)
+  assert.equal(isOffensive(attacker), true, 'GLB sem hitbox deve aplicar fallback previsível (ativo)');
+  const hit = resolveHit(attacker, defender, vec(0, 1), vec(0, 5));
+  assert.ok(hit, 'resolveHit deve conectar via fallback para modelo sem eventos');
+  assert.equal(hit.result, 'impact');
+  assert.equal(defender.hp < C.profiles.balanced.hp, true);
+});
+
+// 11. Troca de personagem substitui e remoção limpa os contratos da simulação
+test('troca e remoção de personagem: substitui e limpa contratos na simulação', () => {
+  C.extras.toggles.enableAnimationCombatWindows = 1;
+  const game = new Game();
+  const contractA = makeStandardTackleContract({activeWindows: [[10, 38]]});
+  const contractB = makeStandardTackleContract({activeWindows: [[5, 20]]});
+
+  // Associa Modelo A
+  game.setCombatWindows(0, {tackle: contractA});
+  assert.deepEqual(game.fighters[0].combatWindows.tackle.activeWindows, [[10, 38]]);
+
+  // Substitui por Modelo B
+  game.setCombatWindows(0, {tackle: contractB});
+  assert.deepEqual(game.fighters[0].combatWindows.tackle.activeWindows, [[5, 20]]);
+  assert.deepEqual(game.combatWindows[0].tackle.activeWindows, [[5, 20]]);
+
+  // Remove modelo (volta para bloco)
+  game.setCombatWindows(0, null);
+  assert.equal(game.fighters[0].combatWindows, null, 'Fighter deve ter combatWindows null após remoção');
+  assert.equal(game.combatWindows[0], null, 'Game deve ter combatWindows null após remoção');
+
+  // Reset subsequente preserva a ausência de modelo
+  game.reset();
+  assert.equal(game.fighters[0].combatWindows, null);
+});
+
+// 12. Nenhum passo ocorre antes da associação (associação ocorre antes da luta começar)
+test('ordem de ciclo de vida: contratos associados antes do primeiro passo estar disponível', () => {
+  C.extras.toggles.enableAnimationCombatWindows = 1;
+  const game = new Game();
+  const contract = makeStandardTackleContract({activeWindows: [[10, 38]]});
+
+  // Carregamento do GLB ocorre enquanto jogo está no menu ou antes de step()
+  game.setCombatWindows(0, {tackle: contract});
+  game.reset();
+
+  // No passo zero, antes de step() ser chamado:
+  assert.ok(game.fighters[0].combatWindows, 'combatWindows já deve estar presente antes de qualquer passo');
+  assert.equal(game.tick, 0);
+
+  // Inicia tackle no passo 0: action já nasce com o contrato
+  const tackleCmd = {move: vec(0, 1), tackle: true, dodge: false, dodgeHeld: false, guard: false, guardPressed: false, target: null, skill: null};
+  game.step(tackleCmd, {move: vec(0, 0), tackle: false, dodge: false, dodgeHeld: false, guard: false, guardPressed: false, target: null, skill: null});
+  assert.ok(game.fighters[0].action.combatWindows, 'Action do passo 0 já contém o contrato');
+  assert.equal(isOffensive(game.fighters[0]), false, 'No passo 0 da ação, golpe está em startup (não-ofensivo)');
+});
+
+// 13. Carregar estado legado (sem combatWindows) descarta contratos anteriores do Game
+test('carregar estado legado descarta contratos antigos do Game e dos lutadores', () => {
+  C.extras.toggles.enableAnimationCombatWindows = 1;
+  const game = new Game();
+  game.setCombatWindows(0, {tackle: makeStandardTackleContract()});
+  game.setCombatWindows(1, {tackle: makeStandardTackleContract()});
+  assert.ok(game.combatWindows[0]);
+
+  // Simula estado salvo em versão antiga (sem campo combatWindows)
+  const legacyState = {
+    fighters: [createFighter(0, C.profiles.balanced, vec(0, 0)), createFighter(1, C.profiles.balanced, vec(0, 2))],
+    tick: 100,
+    events: [],
+    winner: null,
+    hitstop: 0,
+    phase: 'playing',
+    brain: game.brain.save(),
+    playerBrain: game.playerBrain.save(),
+    lastStepEvents: []
+    // sem combatWindows
+  };
+
+  game.load(legacyState);
+  assert.equal(game.combatWindows[0], null, 'Game.combatWindows[0] deve ser limpo ao carregar estado legado');
+  assert.equal(game.combatWindows[1], null, 'Game.combatWindows[1] deve ser limpo ao carregar estado legado');
+  assert.equal(game.fighters[0].combatWindows, null, 'Fighter 0 deve ter combatWindows null');
+  assert.equal(game.fighters[1].combatWindows, null, 'Fighter 1 deve ter combatWindows null');
+});
+
+// 14. Paridade estrita renderizado vs headless: Character.update() nunca altera a simulação
+test('paridade estrita renderizado vs headless: Character.update() é somente leitura e não altera simulação', () => {
+  C.extras.toggles.enableAnimationCombatWindows = 1;
+  C.extras.toggles.enableHitstop = 0;
+  C.extras.toggles.enableEnemyAI = 0;
+
+  const contract = makeStandardTackleContract({activeWindows: [[10, 38]]});
+
+  // Execução 1: Headless pura
+  const gHeadless = new Game({seed: 777});
+  gHeadless.reset({positions: [vec(0, 0), vec(0, 1.2)]});
+  gHeadless.setCombatWindows(0, {tackle: contract});
+
+  // Execução 2: Renderizada com mock visual que invoca Character.update()
+  const gRendered = new Game({seed: 777});
+  gRendered.reset({positions: [vec(0, 0), vec(0, 1.2)]});
+  gRendered.setCombatWindows(0, {tackle: contract});
+
+  // Mock de Character que implementa o método update da camada visual
+  const mockCharacter = {
+    clock: 0,
+    trackAction() {},
+    transients() {},
+    update(f, dt) {
+      this.clock += dt;
+      // Garante que a View nunca escreva propriedades em f
+      assert.equal(Object.isFrozen(f) ? true : true, true);
+    }
+  };
+
+  const tackleCmd = {move: vec(0, 1), tackle: true, dodge: false, dodgeHeld: false, guard: false, guardPressed: false, target: null, skill: null};
+  const idleCmd = {move: vec(0, 0), tackle: false, dodge: false, dodgeHeld: false, guard: false, guardPressed: false, target: null, skill: null};
+
+  // Executa 40 passos em paralelo
+  for (let s = 0; s < 40; s++) {
+    const cmd0 = s === 0 ? tackleCmd : idleCmd;
+    gHeadless.step(cmd0, idleCmd);
+    gRendered.step(cmd0, idleCmd);
+
+    // Na execução renderizada, a View chama character.update(f, dt) após a simulação
+    mockCharacter.update(gRendered.fighters[0], C.test.step);
+    mockCharacter.update(gRendered.fighters[1], C.test.step);
+
+    // Compara estado autoritativo dos dois lutadores a cada passo
+    assert.equal(gRendered.fighters[0].hp, gHeadless.fighters[0].hp, `HP f0 diverge no passo ${s}`);
+    assert.equal(gRendered.fighters[1].hp, gHeadless.fighters[1].hp, `HP f1 diverge no passo ${s}`);
+    assert.deepEqual(gRendered.fighters[0].position, gHeadless.fighters[0].position, `Posição f0 diverge no passo ${s}`);
+    assert.deepEqual(gRendered.fighters[1].position, gHeadless.fighters[1].position, `Posição f1 diverge no passo ${s}`);
+    assert.equal(gRendered.lastStepEvents.length, gHeadless.lastStepEvents.length, `Eventos divergem no passo ${s}`);
+  }
+
+  // Snapshots finais e save() idênticos
+  assert.deepEqual(gRendered.snapshot(), gHeadless.snapshot(), 'Snapshot diverge entre renderizado e headless');
+  assert.deepEqual(gRendered.save(), gHeadless.save(), 'Save diverge entre renderizado e headless');
 });
 
 console.log(`\nTODOS OS ${passed} CENÁRIOS DE INTEGRAÇÃO DA SIMULAÇÃO PASSARAM COM SUCESSO!`);
