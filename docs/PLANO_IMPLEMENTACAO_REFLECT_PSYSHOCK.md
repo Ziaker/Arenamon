@@ -79,7 +79,7 @@ Convenções: **T** = testes; **R** = riscos; **A** = critério de aceite. Toda 
 - **R:** **médio** — pode mexer em resultados do Tackle existente. *Mitigação:* PL só entra quando há Move equipado; testes `core`/`rules` inalterados.
 - **Nota:** pode ser fundida às Fases 2–3 se você preferir menos PRs (aumenta o tamanho de cada um).
 
-### Fase 5 — IA (M)
+### Fase 5 — IA (M) — **ENTREGUE (PR da Fase 5)**
 - **O que:** a IA tática usa Reflect e Psyshock com **as mesmas permissões** do jogador (M15.7–M15.8, M27.6): quando criar a barreira, quando soltar o Charge, PL a escolher, desviar de barreiras/projéteis refletidos, Tackle para destruir barreira; telemetria opcional das decisões.
 - **Arquivos:** `sim/tactics.js` (hoje **não** usa movimentos), `sim/ai.js`, `sim/ai-eval.js`, testes `ai.test`/`ai-eval.test` (não podem regredir) + novo `ai-moves.test.mjs`.
 - **R:** **médio** — mudar a IA pode alterar o equilíbrio (a IA revisada já foi calibrada). *Mitigação:* comportamento novo só com Moves equipados; sem Moves, `ai-eval` idêntico.

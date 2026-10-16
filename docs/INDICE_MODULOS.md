@@ -35,7 +35,7 @@
 | `charge.js` · `move-effects.js` | Parâmetros capturados, PL por carga, aceleração de recarga (puro) · manipuladores nomeados de efeitos de Move | `charge` |
 | `moves.js` | Registro de movimentos (vazio), validação, `setLoadout`, posicionamento relativo | `moves`, `moves-contract` (contrato M28.4, caracterização), `moves-order` (ordem das entradas) |
 | `status.js` | Buffs/debuffs (`applyStatus`, `modifier`, `tickStatuses`) | `moves` |
-| `ai.js` · `tactics.js` · `ai-eval.js` | IA do v6 (paridade) · IA tática · avaliação com sementes fixas | `ai`, `ai-eval` |
+| `ai.js` · `tactics.js` · `ai-eval.js` · `ai-moves.js` | IA do v6 (paridade) · IA tática · avaliação com sementes fixas · decisões de Moves da IA (mesmas regras do jogador) | `ai`, `ai-eval`, `ai-moves` |
 | `scenarios.js` · `compare.js` · `ab-switch.js` · `balance.js` · `training.js` · `movement.js` · `attempts.js` | Cenários repetíveis, comparação A×B, métricas, treino, gravador de movimento, diagnóstico de comandos | `calibration`, `training`, `diagnostics` |
 | `presets.js` · `telemetry.js` · `recording.js` · `replay.js` · `graphics.js` | Presets, telemetria/frame data, gravação, replay por estado, perfis gráficos | `calibration`, `sim`, `perf` |
 
