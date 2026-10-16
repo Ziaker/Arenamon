@@ -29,7 +29,7 @@
 | **R** — Reconstrução | Decisão recuperada de uma síntese anterior; conteúdo conhecido, redação original possivelmente indisponível |
 | **I** — Interpretação | Conclusão inferida de uma aprovação global, sem seleção individual inequívoca |
 
-**Procedência declarada por período:** Rodadas 1–12 predominantemente **R**; 13–17 **H**; 18 original substituída (revisada **H**); 19–25 **H**; 26 original não aprovada (substituta **H**); 27–28 **H** (exceto a confirmação posterior da questão 28.1); 29 **I** (aprovação global sem respostas numeradas).
+**Procedência declarada por período:** Rodadas 1–12 predominantemente **R**; 13–17 **H**; 18 original substituída (revisada **H**); 19–25 **H**; 26 original não aprovada (substituta **H**); 27–28 **H** (exceto a confirmação posterior da questão 28.1); 29 **I** (aprovação global sem respostas numeradas); **30 decisão direta do diretor** (2026-10-16, pós-Registro-Mestre).
 
 O link público da conversa foi fornecido, mas seu conteúdo integral não foi recuperado de forma verificável.
 
@@ -243,7 +243,7 @@ Ambiguidades:
 
 Ambiguidades:
 - *Resolvidas:* homing só com lock-on ativo no disparo (regra citada pelo Registro como “Rodada 11”; ver M11.5–M11.6 e a nota da Rodada 11); taxa angular máxima (M12.1).
-- *Aberta, importante:* o momento em que o Ataque é amostrado para o dano-base (ver P1). A Rodada 26 original perguntou isso, mas foi substituída sem aprovação.
+- *Aberta, importante:* o momento em que o Ataque é amostrado para o dano-base (ver P1). A Rodada 26 original perguntou isso, mas foi substituída sem aprovação. **→ Resolvida por M30.1** (no disparo).
 - *Aberta:* o VFX de degradação não define o instante percentual de início.
 - *Aberta:* relação entre o tamanho visual das pedras e seu dano — não especificada.
 
@@ -372,7 +372,7 @@ Ambiguidades:
 - **M17.8** *B* — outro Move pode ter cooldown acelerado durante Charge.
 
 Ambiguidades:
-- *Aberta, importante:* instante de amostragem do Ataque do refletor (ver P1).
+- *Aberta, importante:* instante de amostragem do Ataque do refletor (ver P1). **→ Resolvida por M30.1** (no instante da reflexão).
 - *Aberta:* o algoritmo de ciclos degenerados deve evitar loops sem criar limite artificial de reflexões.
 - *Aberta:* passagem de propriedade entre segmentos do laser e eventos de dano com identificação consistente.
 - *Resolvida:* neutralização de segmento de laser não encerra a fonte (M20.6).
@@ -603,6 +603,18 @@ Ambiguidades:
 - *Aberta:* critério de esgotamento da busca de posições do Psyshock (depende do alcance configurável).
 - *Aberta:* regra clara para impedir edições manuais do HTML gerado.
 
+
+### Rodada 30 — Pendências resolvidas pelo diretor (sessão com o Claude Code)
+**Procedência: decisão direta do diretor ao Claude Code em 2026-10-16 (resposta explícita a uma pergunta com opções A/B/C). Não faz parte do Registro-Mestre original; é a primeira rodada registrada diretamente neste arquivo.**
+
+- **M30.1** *A* — **P1 resolvida.** O dano de cada pedra do Psyshock grava **0,2 × Ataque do lançador no disparo** (instante em que as pedras são criadas/lançadas). Se a pedra for refletida, o dano é **recalculado com o Ataque do refletor no instante da reflexão**. Opções não escolhidas: B (ler o Ataque no impacto, como o Tackle faz hoje) e C (gravar no início da carga).
+
+Notas do arquivista sobre M30.1 (não são decisões):
+- Consequência já prevista pelo contrato M28.4: a pedra guarda o valor com que foi criada; ajustes e buffs posteriores não a alteram.
+- **Nova ambiguidade P13 (Baixa):** “Ataque” no disparo/reflexão é o atributo-base do personagem ou o valor efetivo com modificadores de Status vigentes naquele instante? Hoje nenhum Status existe (os dois dão o mesmo resultado); a pergunta só passa a importar com o primeiro Move de Status. **Não decidida.**
+- Ponto de atenção para a implementação: `world.applyHit` hoje multiplica o dano por `stat(owner, 'attack', 1)` no impacto; com M30.1 o Ataque já entra no valor gravado e **não pode ser contado duas vezes**. A forma de evitar isso é decisão técnica da implementação, a ser verificada por teste.
+- Efeito sobre outras entradas: resolve a parte “quando amostrar” de M10.1 e M17.3.
+
 ---
 
 ## 4. Especificação vigente — Reflect
@@ -639,13 +651,13 @@ Três pedras iniciais; +1 a cada 0,8 s; oito ao atingir a carga máxima. Posiç�
 Todas as pedras simultâneas; gesto de extensão de uma mão; velocidade individual configurável no intervalo inicial de 10–14 m/s. Com lock-on: regiões diferentes do alvo; homing limitado a 0,3 s e 180°/s. Sem lock-on: leque discreto frontal com dispersão ajustável. Perda definitiva do alvo termina o homing preservando o movimento. Reflexão cancela o homing. Sem tempo fixo máximo de voo; os limites válidos da arena encerram o projétil.
 
 ### 5.4 Dano
-Dano-base nominal por pedra: 20% do Ataque. Hits sucessivos no mesmo alvo: 1; 0,8; 0,64; 0,512… Cada pedra pode ser defendida, bloqueada perfeitamente ou evitada pelos i-frames. Knockback inicial 0,3 m/s por pedra; limite acumulado 0,9 m/s por execução (**escopo por alvo ainda não formalizado — P4**). Hit stun, guard stun e proteção de combo existentes permanecem válidos.
+Dano-base nominal por pedra: 20% do Ataque do lançador **gravado no disparo** (M30.1). Hits sucessivos no mesmo alvo: 1; 0,8; 0,64; 0,512… Cada pedra pode ser defendida, bloqueada perfeitamente ou evitada pelos i-frames. Knockback inicial 0,3 m/s por pedra; limite acumulado 0,9 m/s por execução (**escopo por alvo ainda não formalizado — P4**). Hit stun, guard stun e proteção de combo existentes permanecem válidos.
 
 ### 5.5 Power Level
 PL1 antes de 2 s; PL2 de 2 s até antes de 4 s; PL3 em 4 s. Todas as pedras compartilham o PL da execução e resolvem colisões individualmente; só as efetivamente destruídas deixam de existir. Refletidas, conservam o PL original.
 
 ### 5.6 Reflexão
-Pedra refletida muda de proprietário, recebe nova direção por reflexão geométrica, cancela o homing, recalcula o dano-base com o Ataque do refletor, pode atingir o lançador original e conserva o PL. **Pendente: momento da amostragem do Ataque (P1).**
+Pedra refletida muda de proprietário, recebe nova direção por reflexão geométrica, cancela o homing, recalcula o dano-base com o Ataque do refletor, pode atingir o lançador original e conserva o PL. O Ataque do refletor é lido **no instante da reflexão** e gravado na pedra (M30.1). Pendente apenas a subquestão P13 (Ataque-base ou efetivo com Status).
 
 ### 5.7 Falha de espaço
 Busca posições alternativas próximas e à frente. Esgotada a busca dentro do alcance configurado sem formar todas as pedras: o disparo falha, as pedras desaparecem, a stamina é devolvida e nenhum cooldown é aplicado.
@@ -707,7 +719,8 @@ A IA usa Reflect e Psyshock desde a primeira implementação jogável. Deve aval
 
 Nenhuma delas foi resolvida por quem publicou este arquivo. Valores experimentais podem começar como provisórios, configuráveis e identificados como não aprovados.
 
-- **P1 — Momento de cálculo do dano das pedras (Alta).** O dano depende do Ataque e é recalculado na reflexão, mas não foi determinado se o atributo é amostrado no início da carga, no disparo, na reflexão ou no impacto. A Rodada 26 original levantou a questão e foi substituída. **Não há aprovação para adotar qualquer alternativa.**
+- **P1 — Momento de cálculo do dano das pedras (RESOLVIDA em 2026-10-16 por M30.1).** Decisão: grava-se 0,2 × Ataque do lançador no disparo; se refletida, recalcula com o Ataque do refletor no instante da reflexão. Texto original da pendência preservado no histórico do Git. Subquestão aberta: **P13**.
+- **P13 — “Ataque” no disparo e na reflexão: base ou efetivo? (Baixa, nova).** Valor-base do personagem ou valor com modificadores de Status vigentes naquele instante. Sem Status hoje, é indiferente; decidir antes do primeiro Move de Status.
 - **P2 — Referência dimensional do Reflect (Média).** Colisor de combate, bounding box visual ou dimensões lógicas do personagem; afeta largura, altura, profundidade de referência e distância. Acessórios visuais não devem alterar a física.
 - **P3 — Geometria da reflexão em quinas (Média).** Frente e bordas refletem, o verso é atravessável; falta regra para contatos próximos às extremidades e incidência pelo verso, evitando reflexões contraditórias.
 - **P4 — Knockback acumulado do Psyshock (Média).** 0,3 m/s por pedra e limite de 0,9 m/s por execução; falta formalizar se o limite vale por alvo.
@@ -774,3 +787,4 @@ Moves específicos do tipo Status; buffs e debuffs; fórmulas de regeneração a
 ## Changelog do registro
 
 - **2026-10-16 — Criação inicial:** transposição do Registro-Mestre (Rodadas 1–29), IDs `M<rodada>.<item>`, notas do arquivista e estados separados de design, implementação e integridade. Nenhum código alterado.
+- **2026-10-16 — Rodada 30:** P1 resolvida (M30.1, escolha A); P13 criada como subquestão. Primeira decisão registrada diretamente neste arquivo.
