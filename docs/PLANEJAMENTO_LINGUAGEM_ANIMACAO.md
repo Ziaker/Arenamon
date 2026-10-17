@@ -118,6 +118,15 @@ As formas `[Start X]` e `[Start: X]` ainda são alternativas de escrita: nenhuma
 | LAN-072 | **Organizar testes de conformidade com casos de referência e resultados esperados, validação de timing, inspeção visual multivistas e comparação de exportação.** | `70A — Criar casos de referência com resultados esperados, verificações temporais, inspeção visual multivistas e comparação de exportação.` | **APROVADA — Rodada 9 (recomendação aprovada)** |
 | LAN-073 | **A especificação só estará pronta para eventual prova de conceito quando consolidada, acompanhada de exemplos verificáveis e testes de aceitação definidos, sem pendências bloqueantes; qualquer prova de conceito ainda exige autorização explícita.** | `71C — Quando houver especificação consolidada, exemplos verificáveis, testes de aceitação definidos e nenhuma pendência bloqueante; a prova de conceito dependerá ainda de autorização explícita.` | **APROVADA — Rodada 9 (recomendação aprovada)** |
 | LAN-074 | ****Antes de executar a criação ou alteração de uma animação, a IA deve revisar a descrição fornecida e perguntar obrigatoriamente ao diretor sobre informações descritivas ausentes ou ambíguas necessárias para entender o movimento pretendido.** Deve expor as lacunas identificadas em perguntas claras, sem inventar silenciosamente intenção, poses, trajetória, timing, alvo, estilo ou elementos anatômicos omitidos. A execução das partes dependentes dessas respostas deve aguardar o esclarecimento do diretor. Se a descrição já estiver suficientemente definida, não são necessárias perguntas artificiais. Parâmetros técnicos realmente opcionais continuam podendo ser propostos provisoriamente conforme LAN-014/LAN-065, mas tais sugestões **não dispensam** as perguntas obrigatórias sobre lacunas na descrição.** | `Complemento explícito do diretor — inclusive adicione a obrigatoriedade da IA perguntar sobre o que falta de informação na desc da animação` | **APROVADA — Rodada 9 (complemento explícito)** |
+| LAN-075 | **Revisar o briefing com checklist contextual de intenção, movimento, anatomia, poses, timing, estilo e referências, perguntando pelos elementos relevantes ausentes; não exigir campos irrelevantes.** | `72B — Usar uma checklist contextual de intenção, movimento, anatomia, poses, timing, estilo e referências, perguntando sobre os elementos relevantes ausentes.` | **APROVADA — Rodada 10 (recomendação aprovada)** |
+| LAN-076 | **Agrupar perguntas de esclarecimento por categoria em uma rodada e permitir novas perguntas quando as respostas revelarem novas lacunas relevantes.** | `73A — Agrupar as dúvidas em uma rodada de perguntas por categoria, permitindo novas perguntas somente quando as respostas revelarem outras lacunas.` | **APROVADA — Rodada 10 (recomendação aprovada)** |
+| LAN-077 | **A IA pode decidir somente aspectos criativos explicitamente delegados pelo diretor; deve registrar decisões, valores e justificativas e preservar todos os requisitos fixados.** | `74A — A IA pode decidir somente os aspectos explicitamente delegados, registrando os valores e a justificativa, sem alterar requisitos já definidos.` | **APROVADA — Rodada 10 (recomendação aprovada)** |
+| LAN-078 | **Diante de linguagem subjetiva como 'mais épico', 'mais peso' ou 'mais exagerado', apresentar interpretações concretas com efeitos previstos em movimento/timing e pedir escolha ao diretor.** | `75B — Apresentar interpretações concretas, explicando como cada uma afetaria movimento e timing, e solicitar sua escolha.` | **APROVADA — Rodada 10 (recomendação aprovada)** |
+| LAN-079 | **Inspecionar referências fornecidas, identificar características potencialmente relevantes e perguntar ao diretor quais devem orientar a animação; não copiar indiscriminadamente outras características.** | `76B — Analisar as referências disponíveis, identificar quais características podem orientar o trabalho e perguntar quais devem ser seguidas.` | **APROVADA — Rodada 10 (recomendação aprovada)** |
+| LAN-080 | **Manter histórico rastreável e vinculado à versão da animação, contendo perguntas, respostas, decisões delegadas e alterações de briefing.** | `77B — Manter registro rastreável de perguntas, respostas, decisões delegadas e revisões, associado à versão da animação.` | **APROVADA — Rodada 10 (recomendação aprovada)** |
+| LAN-081 | **Detectar contradições entre descrição, referências e parâmetros explícitos, apontar instruções conflitantes e pedir resolução antes de executar a parte afetada.** | `78A — Apontar a contradição, mostrar as instruções envolvidas e pedir resolução antes de executar a parte afetada.` | **APROVADA — Rodada 10 (recomendação aprovada)** |
+| LAN-082 | **Após esclarecimentos, apresentar resumo consolidado do briefing e solicitar confirmação do diretor antes de iniciar o blocking; essa aprovação é anterior e distinta da aprovação do blocking concluído.** | `79B — Apresentar um resumo consolidado do briefing e solicitar sua confirmação antes de começar o blocking.` | **APROVADA — Rodada 10 (recomendação aprovada)** |
+| LAN-083 | **Preparar exemplo canônico completo com briefing, perguntas e respostas, etapas, modificadores, marcações de eventos, validações previstas e distinção entre decisões aprovadas e propostas; a obrigação de preparar o exemplo não aprova o conteúdo hipotético nem autoriza implementação.** | `80B — Preparar um exemplo canônico completo, com briefing, perguntas e respostas, etapas, modificadores, marcações de eventos, validações previstas e distinção entre decisões aprovadas e propostas.` | **APROVADA — Rodada 10 (recomendação aprovada)** |
 
 Consequências invariantes:
 - Para o intervalo textual `a-b`, a quantidade é `b - a + 1` frames (se `b >= a`).
@@ -151,7 +160,9 @@ Consequências invariantes:
 4. Parâmetros técnicos genuinamente opcionais podem continuar como sugestões provisórias, identificadas e rastreadas segundo LAN-014/LAN-065. **Isso não substitui a obrigação de perguntar sobre lacunas na descrição da animação.**
 5. O procedimento concreto de checklist, agrupamento de perguntas e tratamento de delegação de escolhas ainda será deliberado na Rodada 10; não presumir autorização para implementar nem para decidir opções pendentes.
 
-**Continuam pendentes:** normalização formal da sintaxe e de eventos, checklist obrigatório da descrição, tratamento de respostas incompletas, critérios quantitativos para continuidade/loop/contatos, estrutura do mapa anatômico, equações/presets das curvas, duração mínima e compatibilidade de efeitos, geometria de hitboxes, detalhamento dos testes de conformidade e da homologação. A escolha do terceiro teste não aprova um modelo específico nem autoriza implementação.
+**Rodada 10 aprovada:** checklist contextual com perguntas obrigatórias sobre lacunas relevantes; questões agrupadas por categoria; delegações criativas limitadas ao que foi autorizado; interpretação de adjetivos subjetivos apresentada em alternativas para decisão; leitura de referências com confirmação do que deve ser utilizado; histórico de perguntas/respostas/delegações/revisões; resolução explícita de contradições; **resumo consolidado para aprovação do diretor antes de iniciar o blocking**; e preparação de exemplo canônico integral, sem presumir que seus detalhes fictícios estejam aprovados (LAN-075 a LAN-083).
+
+**Continuam pendentes:** sintaxe normalizada exata e tipagem de eventos, checklist e exemplos de briefing completos, regras de nomes/IDs de múltiplos Mid, definição formal de amostragem entre frames e para loops, métricas e tolerâncias para contato/continuidade, parametrização concreta das curvas e mínimo de duração de deformações, formato de hitboxes, critérios testáveis de exportação, matriz de testes de conformidade e exemplo canônico documentado. Nada foi implementado ou homologado.
 
 ## 4. Modelo temporal ilustrativo — PROPOSTA, não norma aprovada
 
@@ -357,19 +368,33 @@ Requisitos propostos para uma futura fase de validador:
 - **LAN-Q70.** Quais critérios objetivos e evidências devem compor a matriz de testes de aceitação da gramática, da animação e da exportação? **RESOLVIDA — LAN-072 (70A)**.
 - **LAN-Q71.** Quando considerar a versão inicial da linguagem pronta para uma prova de conceito controlada, sem autorizar a implementação automaticamente? **RESOLVIDA — LAN-073 (71C)**.
 
-### Rodada 10 — briefing obrigatório e protocolo de esclarecimentos (pendente; roteiro proposto)
+### Rodada 10 — briefing obrigatório e protocolo de esclarecimentos (concluída; decisões LAN-075 a LAN-083)
 
-> **Nenhuma decisão desta rodada foi aprovada.** LAN-074 já exige perguntas sobre lacunas na descrição, sem autorizar criação ou implementação. Esta rodada decide os detalhes do procedimento.
+> **Rodada concluída:** o diretor declarou `sigo com suas recomendações`, aprovando 72B, 73A, 74A, 75B, 76B, 77B, 78A, 79B e 80B. A obrigação LAN-074 de perguntar sobre lacunas na descrição permanece em vigor; nenhuma implementação foi autorizada.
 
-- **LAN-Q72.** Quais campos devem entrar na revisão inicial da descrição (tipo, intenção, ação, anatomia, duração, poses, impacto, referências) e quais são necessários conforme o tipo de animação?
-- **LAN-Q73.** Como apresentar as perguntas de esclarecimento: todas agrupadas, uma por vez ou por categorias de criticidade?
-- **LAN-Q74.** O que fazer quando o diretor autorizar explicitamente a IA a decidir algum aspecto criativo ainda indefinido?
-- **LAN-Q75.** Como interpretar descrições subjetivas como `mais épico`, `mais peso` e `mais exagerado` sem presumir movimentos específicos?
-- **LAN-Q76.** Como lidar com imagens, vídeos, animações e arquivos de referência fornecidos para orientar poses e timing?
-- **LAN-Q77.** Como registrar cada pergunta, resposta, decisão delegada e revisão do briefing para manter rastreabilidade e impedir contradições?
-- **LAN-Q78.** Como resolver instruções conflitantes entre descrição atual, arquivos de referência e parâmetros explícitos sem escolher silenciosamente?
-- **LAN-Q79.** Como confirmar que a fase obrigatória de perguntas terminou e que o briefing está suficientemente completo antes do blocking?
-- **LAN-Q80.** Como preparar uma especificação canônica de exemplo com briefing, perguntas, respostas, blocos, modificadores e relatório de validação, sem iniciar implementação?
+- **LAN-Q72.** Quais campos devem entrar na revisão inicial da descrição (tipo, intenção, ação, anatomia, duração, poses, impacto, referências) e quais são necessários conforme o tipo de animação? **RESOLVIDA — LAN-075 (72B)**.
+- **LAN-Q73.** Como apresentar as perguntas de esclarecimento: todas agrupadas, uma por vez ou por categorias de criticidade? **RESOLVIDA — LAN-076 (73A)**.
+- **LAN-Q74.** O que fazer quando o diretor autorizar explicitamente a IA a decidir algum aspecto criativo ainda indefinido? **RESOLVIDA — LAN-077 (74A)**.
+- **LAN-Q75.** Como interpretar descrições subjetivas como `mais épico`, `mais peso` e `mais exagerado` sem presumir movimentos específicos? **RESOLVIDA — LAN-078 (75B)**.
+- **LAN-Q76.** Como lidar com imagens, vídeos, animações e arquivos de referência fornecidos para orientar poses e timing? **RESOLVIDA — LAN-079 (76B)**.
+- **LAN-Q77.** Como registrar cada pergunta, resposta, decisão delegada e revisão do briefing para manter rastreabilidade e impedir contradições? **RESOLVIDA — LAN-080 (77B)**.
+- **LAN-Q78.** Como resolver instruções conflitantes entre descrição atual, arquivos de referência e parâmetros explícitos sem escolher silenciosamente? **RESOLVIDA — LAN-081 (78A)**.
+- **LAN-Q79.** Como confirmar que a fase obrigatória de perguntas terminou e que o briefing está suficientemente completo antes do blocking? **RESOLVIDA — LAN-082 (79B)**.
+- **LAN-Q80.** Como preparar uma especificação canônica de exemplo com briefing, perguntas, respostas, blocos, modificadores e relatório de validação, sem iniciar implementação? **RESOLVIDA — LAN-083 (80B)**.
+
+### Rodada 11 — contrato temporal, conformidade e aceitação (pendente; roteiro proposto)
+
+> **Esta rodada não aprova soluções por antecipação.** A finalidade é resolver lacunas concretas de semântica, validação e interoperabilidade antes de elaborar o exemplo canônico ou qualquer implementação.
+
+- **LAN-Q81.** Quais campos mínimos e tipos devem compor um bloco de animação, distinguindo declarações obrigatórias das opcionais?
+- **LAN-Q82.** Como normalizar nomes opcionais e IDs de múltiplos Mid, inclusive duplicações e referências entre etapas?
+- **LAN-Q83.** Como definir a correspondência entre frames de autoria 1-based, amostras de poses, duração de 30 FPS e limites de etapas sem frame fantasma?
+- **LAN-Q84.** Como representar o limite de loop para assegurar continuidade visual de pose e velocidade sem duplicar duração?
+- **LAN-Q85.** Como avaliar e comunicar a duração mínima necessária para deformações com retorno suave, sem alterar janelas aprovadas?
+- **LAN-Q86.** Como aprovar e aplicar métricas verificáveis de deslizamento, contato, continuidade e deformação conforme a anatomia e o estilo?
+- **LAN-Q87.** Quais campos mínimos do volume de hitbox (shape, tamanho, deslocamento, rotação, alvo, janela) serão documentados e como separar prévia de dano real?
+- **LAN-Q88.** Como estruturar evidências e rastreabilidade por agente/versão, diferenciando teste realizado, teste não executado, ressalva e reprovação?
+- **LAN-Q89.** Em que ordem consolidar gramática, casos canônicos, testes e revisão de pendências antes de solicitar autorização específica para prova de conceito?
 
 ## 10. Governança e escopo
 
@@ -394,3 +419,4 @@ Requisitos propostos para uma futura fase de validador:
 | 16/10/2026 | **Rodada 7:** registradas nove aprovações explícitas LAN-047 a LAN-055 (45A, 46B, 47A, 48A, 49B, 50A, 51B, 52B, 53A). LAN-Q45 a LAN-Q53 marcadas como resolvidas, sem remover perguntas nem decisões anteriores. LAN-Q54 a LAN-Q62 adicionadas apenas como pendências de planejamento. Nenhuma implementação autorizada. |
 | 17/10/2026 | **Rodada 8:** o diretor aprovou todas as recomendações da rodada com `sigo todas recomendações`, correspondendo a 54B, 55A, 56A, 57B, 58B, 59B, 60B, 61B e 62A. Registradas LAN-056 a LAN-064 e resolvidas LAN-Q54 a LAN-Q62. Incluídas LAN-Q63 a LAN-Q71 como pendências para normalização/conformidade. Nenhuma implementação autorizada; histórico integral preservado. |
 | 17/10/2026 | **Rodada 9:** o diretor aprovou todas as nove recomendações (63C, 64B, 65B, 66B, 67A, 68B, 69A, 70A, 71C), registradas em LAN-065 a LAN-073. Complemento explícito `inclusive adicione a obrigatoriedade da IA perguntar sobre o que falta de informação na desc da animação`, registrado separadamente em LAN-074. LAN-Q63 a LAN-Q71 resolvidas sem apagar histórico. LAN-Q72 a LAN-Q80 adicionadas como pendentes. Nenhuma implementação autorizada. |
+| 17/10/2026 | **Rodada 10:** o diretor aprovou todas as recomendações com `sigo com suas recomendações`, correspondentes a 72B, 73A, 74A, 75B, 76B, 77B, 78A, 79B e 80B. Registradas LAN-075 a LAN-083, preservada a obrigatoriedade LAN-074, e marcadas resolvidas LAN-Q72 a LAN-Q80. Propostas LAN-Q81 a LAN-Q89 adicionadas sem aprovação. Nenhuma implementação autorizada. |
