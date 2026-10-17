@@ -46,6 +46,14 @@ As formas `[Start X]` e `[Start: X]` ainda são alternativas de escrita: nenhuma
 |---|---|---|---|
 | LAN-001 | **Intervalos relativos à fase:** um modificador inserido em Start, Mid ou End usa frames locais dessa mesma fase; não usa o início global da animação. | `Aprovado: os modificadores usam frames locais à etapa.` | **APROVADA** |
 | LAN-002 | **Intervalos inclusivos na linguagem do diretor:** tanto o frame inicial como o final fazem parte da janela, e uma futura conversão interna deverá acontecer automaticamente. | `Aprovado: intervalos inclusivos, incluindo início e fim, com conversão interna automática.` | **APROVADA** |
+| LAN-003 | **Frames locais numerados a partir de 1; primeiro frame de cada etapa = 1.** | `1A — Começar em 1. O primeiro frame de cada etapa sempre será o frame 1.` | **APROVADA — Rodada 1** |
+| LAN-004 | **Organização das etapas: Start e End, com possibilidade de vários Mid para ações complexas.** | `2B — Start e End, com possibilidade de vários Mid para ações complexas.` | **APROVADA — Rodada 1** |
+| LAN-005 | **Todas as animações obrigatoriamente em 30 FPS.** | `3A — Todas as animações obrigatoriamente em 30 FPS.` | **APROVADA — Rodada 1** |
+| LAN-006 | **Convenção de delimitadores: [ ] para direção visual; { } para dados mecânicos.** | `4A — Usar [ ] para direção visual e { } para dados mecânicos.` | **APROVADA — Rodada 1** |
+| LAN-007 | **Combinar modificadores simultâneos quando compatíveis e sinalizar conflitos.** | `5A — Combinar modificadores compatíveis e sinalizar conflitos.` | **APROVADA — Rodada 1** |
+| LAN-008 | **A deformação deve retornar suavemente ao estado normal dentro do próprio intervalo de atuação.** | `6A — A deformação deve voltar ao normal dentro do próprio intervalo.` | **APROVADA — Rodada 1** |
+| LAN-009 | **Primeira utilização: prompts estruturados no Claude/Antigravity com Blender MCP, antes de desenvolver outras ferramentas.** | `7A — Primeiro usar prompts estruturados no Claude/Antigravity com Blender MCP.` | **APROVADA — Rodada 1** |
+| LAN-010 | **Etapas com durações fixas nesta primeira versão; suporte a durações dinâmicas fica para planejamento posterior.** | `8C — Começar com durações fixas e planejar suporte a durações dinâmicas posteriormente.` | **APROVADA — Rodada 1** |
 
 Consequências invariantes:
 - Para o intervalo textual `a-b`, a quantidade é `b - a + 1` frames (se `b >= a`).
@@ -54,11 +62,13 @@ Consequências invariantes:
 - Converter para o contrato do jogo não pode criar nem perder um frame de duração por erro de borda.
 - Nenhuma dessas decisões autoriza modificar a lógica de dano, cancelamento, física ou invulnerabilidade.
 
-**Ainda não está definido:** indexação inicial dos frames (1 ou 0); se as fases são obrigatórias; se as durações aceitam parâmetros automáticos; sobreposições; significado preciso dos modificadores; representação e efeito real das hitboxes.
+**Aprovado na Rodada 1:** numeração local em 1, Start e End com possibilidade de múltiplos Mid, 30 FPS obrigatório, distinção `[ ]` visual e `{ }` mecânica, composição apenas dos modificadores compatíveis com alerta de conflitos, retorno suave da deformação dentro do intervalo, etapa inicial por prompts para Claude/Antigravity via Blender MCP e durações fixas na primeira versão.
+
+**Continuam pendentes:** formato exato dos cabeçalhos, se há um mínimo de blocos Mid, regra detalhada de composição e detecção de conflitos, intensidades e algoritmos dos modificadores, representação e funcionamento efetivo de hitboxes, política para rigs não humanos, implementação/exportação e condições de evolução para durações dinâmicas. A linguagem de prompts não está implementada.
 
 ## 4. Modelo temporal ilustrativo — PROPOSTA, não norma aprovada
 
-Exemplo hipotético com frames **numerados a partir de 1**, apenas para expor as contas:
+Exemplo hipotético com frames **numerados a partir de 1**, conforme **LAN-003 aprovada**. Os números do exemplo e sua sintaxe continuam ilustrativos:
 
     [Start: 12]    # frames globais 1..12
     [Mid: 16]      # frames globais 13..28
@@ -67,7 +77,7 @@ Exemplo hipotético com frames **numerados a partir de 1**, apenas para expor as
     {Hitbox: 9-11} # frames globais 21..23, 3 frames
     [End: 18]      # frames globais 29..46
 
-Para uma fase com início global `S` e intervalo local inclusivo `a-b` (se a indexação de 1 for escolhida), o intervalo global inclusivo é `[S+a-1, S+b-1]`. A conversão do intervalo global de frames para segundos e passos da simulação dependerá do FPS de autoria, da duração efetiva do golpe e do contrato em vigor; **não** basta copiar números de frames de 30 FPS diretamente para passos de 120 Hz.
+Para uma fase com início global `S` e intervalo local inclusivo `a-b` (**indexação em 1 aprovada**), o intervalo global inclusivo é `[S+a-1, S+b-1]`. A conversão do intervalo global de frames para segundos e passos da simulação dependerá do FPS de autoria, da duração efetiva do golpe e do contrato em vigor; **não** basta copiar números de frames de 30 FPS diretamente para passos de 120 Hz.
 
 Quando a fase terminar, o próximo trecho não deverá receber um frame fantasma ou duplicado que aumente a duração final. A convenção de amostragem/poses nos limites ainda precisa de decisão.
 
@@ -97,7 +107,7 @@ Uma forma legível, com parâmetros opcionais, poderia ser:
     O braço segue a trajetória e o corpo retorna ao equilíbrio.
     [FollowThrough: 1-9]
 
-**Somente demonstração de expressividade e contagem**, não um uppercut oficialmente aprovado. Prefixos, nomes dos efeitos, duração, significado de `Impact` e distinção entre `[ ]` / `{ }` estão **pendentes**.
+**Somente demonstração de expressividade e contagem**, não um uppercut oficialmente aprovado. A separação entre `[ ]` para direção visual e `{ }` para dados mecânicos está **aprovada em LAN-006**; sintaxe literal dos parâmetros, nomes dos efeitos, valores de duração e significado de `Impact` continuam **pendentes**. O cabeçalho `[FPS: 30]` é apenas ilustrativo: a taxa fixa de 30 FPS é aprovada independentemente de esse cabeçalho vir a ser exigido.
 
 ### Exemplo inspirado na intenção do tapa de Vigoroth (não especificação oficial)
 
@@ -156,17 +166,17 @@ Requisitos propostos para uma futura fase de validador:
 
 ## 9. Perguntas pendentes — roteiro de deliberação
 
-### Rodada 1 — gramática e tempo (iniciar por aqui)
-- **LAN-Q01.** Frames locais começam em **1** ou **0**? Os exemplos usam 1, mas não há aprovação explícita da origem.
-- **LAN-Q02.** Start/Mid/End são sempre três fases obrigatórias, ou fases opcionais e/ou repetíveis para movimentos complexos?
-- **LAN-Q03.** O FPS deve ser informado em cada prompt, ter padrão global configurável ou ser obtido do arquivo/projeto?
-- **LAN-Q04.** Colchetes para direção/efeitos e chaves para informações mecânicas devem ter semântica distinta obrigatória?
-- **LAN-Q05.** Modificadores em simultâneo na mesma parte: composição aditiva, precedência definida, substituição, rejeição, ou dependente do tipo?
-- **LAN-Q06.** No término do modificador, o efeito deve ser removido instantaneamente, com atenuação incluída em sua janela ou com um intervalo de saída declarado?
-- **LAN-Q07.** O diretor deseja que o sistema seja inicialmente uma **linguagem de prompts para Claude/Antigravity**, um **interpretador estruturado com validação**, ou uma **ferramenta no próprio Studio**? (Nenhuma arquitetura escolhida.)
-- **LAN-Q08.** As durações de Start/Mid/End são fixas por prompt, ou podem ser expressas também por marcos e tempos relativos/adaptáveis?
+### Rodada 1 — gramática e tempo (concluída em 16/10/2026; decisões LAN-003 a LAN-010)
+- **LAN-Q01.** Frames locais começam em **1** ou **0**? Os exemplos usam 1, mas não há aprovação explícita da origem. **RESOLVIDA — LAN-003 (1A)**.
+- **LAN-Q02.** Start/Mid/End são sempre três fases obrigatórias, ou fases opcionais e/ou repetíveis para movimentos complexos? **RESOLVIDA — LAN-004 (2B)**.
+- **LAN-Q03.** O FPS deve ser informado em cada prompt, ter padrão global configurável ou ser obtido do arquivo/projeto? **RESOLVIDA — LAN-005 (3A)**.
+- **LAN-Q04.** Colchetes para direção/efeitos e chaves para informações mecânicas devem ter semântica distinta obrigatória? **RESOLVIDA — LAN-006 (4A)**.
+- **LAN-Q05.** Modificadores em simultâneo na mesma parte: composição aditiva, precedência definida, substituição, rejeição, ou dependente do tipo? **RESOLVIDA — LAN-007 (5A)**.
+- **LAN-Q06.** No término do modificador, o efeito deve ser removido instantaneamente, com atenuação incluída em sua janela ou com um intervalo de saída declarado? **RESOLVIDA — LAN-008 (6A)**.
+- **LAN-Q07.** O diretor deseja que o sistema seja inicialmente uma **linguagem de prompts para Claude/Antigravity**, um **interpretador estruturado com validação**, ou uma **ferramenta no próprio Studio**? (Nenhuma arquitetura escolhida.) **RESOLVIDA — LAN-009 (7A)**.
+- **LAN-Q08.** As durações de Start/Mid/End são fixas por prompt, ou podem ser expressas também por marcos e tempos relativos/adaptáveis? **RESOLVIDA — LAN-010 (8C)**.
 
-### Rodada 2 — semântica visual e rig
+### Rodada 2 — semântica visual e rig (próxima rodada; pendente)
 - **LAN-Q09.** Como identificar a parte-alvo: nomes exatos de ossos, termos anatômicos com mapeamento por rig ou ambos?
 - **LAN-Q10.** Se a anatomia não suportar o modificador, interromper com erro, pedir alternativa ou apresentar versões para aprovação?
 - **LAN-Q11.** `Smear` significa escala/stretch esquelético, malha temporária de deformação, múltiplas cópias/blur visual, ou seleção explícita do método?
@@ -204,3 +214,4 @@ Requisitos propostos para uma futura fase de validador:
 | Data | Ação |
 |---|---|
 | 16/10/2026 | Primeira consolidação da ideia de Start/Mid/End, das duas decisões explicitamente aprovadas (LAN-001 e LAN-002), dos conflitos técnicos conhecidos e das perguntas pendentes. Novo documento isolado; nenhum código alterado. |
+| 16/10/2026 | **Rodada 1:** registradas oito aprovações explícitas (LAN-003 a LAN-010; escolhas 1A, 2B, 3A, 4A, 5A, 6A, 7A e 8C). LAN-Q01 a LAN-Q08 marcadas como resolvidas sem apagá-las. Restantes pendências preservadas. Nenhuma implementação autorizada. |
