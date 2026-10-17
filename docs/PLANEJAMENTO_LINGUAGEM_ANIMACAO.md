@@ -136,6 +136,15 @@ As formas `[Start X]` e `[Start: X]` ainda são alternativas de escrita: nenhuma
 | LAN-090 | **Metadados de hitbox admitem formato, dimensões, offset, orientação, osso e janela ativa, com campos opcionais propostos pela IA e relatório; não alteram por si mesmos a lógica de dano.** | `87B — Admitir formato, dimensões, offset, orientação, osso associado e intervalo ativo, com campos opcionais propostos pela IA e relatório de validação.` | **APROVADA — Rodada 11 (recomendação aprovada)** |
 | LAN-091 | **Rastrear por agente, versão e etapa evidências verificáveis, comandos efetivamente executados, resultados, falhas, ressalvas e testes não realizados; não declarar sucesso sem prova.** | `88A — Registrar por versão e etapa as evidências, comandos executados, resultados, falhas, ressalvas e testes não realizados, sem declarar sucesso sem prova.` | **APROVADA — Rodada 11 (recomendação aprovada)** |
 | LAN-092 | **Antes de eventual prova de conceito, consolidar gramática, preparar exemplos completos, definir casos de conformidade e auditar pendências bloqueantes; solicitar autorização específica antes de qualquer implementação.** | `89A — Consolidar a gramática, preparar exemplos completos, definir casos de conformidade, auditar pendências bloqueantes e pedir autorização específica antes de implementar.` | **APROVADA — Rodada 11 (recomendação aprovada)** |
+| LAN-093 | **Blocos Mid aceitam `[Mid: 12 | name=uppercut]` ou `[Mid 12 | name=uppercut]`, com nome opcional e identificação sequencial estável; os dois formatos devem ser normalizados.** | `90A — Adotar [Mid: 12 | name=uppercut] ou [Mid 12 | name=uppercut], aceitando nome opcional e atribuindo ID sequencial estável.` | **APROVADA — Rodada 12** |
+| LAN-094 | **A gramática organiza seção global artística opcional e comandos visuais `[ ]` e mecânicos `{ }` dentro da respectiva etapa, usando frames locais.** | `91A — Usar seção artística global opcional e comandos visuais [ ] e mecânicos { } associados à respectiva etapa, respeitando frames locais.` | **APROVADA — Rodada 12** |
+| LAN-095 | **Parâmetros numéricos devem ter unidades pertinentes a seu tipo, com validação de conversões; valores sugeridos pela IA permanecem identificados como provisórios. As unidades específicas por campo ainda requerem definição documental.** | `92B — Definir unidades próprias por tipo de parâmetro, validar as conversões e sinalizar valores sugeridos como provisórios.` | **APROVADA — Rodada 12** |
+| LAN-096 | **Diagnósticos se dividem em três níveis: erro bloqueante para as operações afetadas; pendência que exige aprovação; aviso informativo, todos rastreáveis.** | `93A — Definir três níveis: erro bloqueante para operações afetadas, pendência que exige aprovação e aviso informativo, com diagnóstico rastreável.` | **APROVADA — Rodada 12** |
+| LAN-097 | **O frame autoral i representa o intervalo temporal de (i−1)/30 a i/30 segundos (na etapa de 30 FPS), com limite final separado e conversões documentadas; não acrescentar duração ou frame fantasma.** | `94B — Definir que o frame i corresponde ao intervalo temporal de (i−1)/30 a i/30 segundos, com limite final separado e conversões documentadas.` | **APROVADA — Rodada 12** |
+| LAN-098 | **A matriz de conformidade deve incluir casos positivos e negativos para contagem de frames, intervalos inclusivos, vários Mid, eventos pontuais, loops, conflitos e deformações curtas demais.** | `95A — Incluir testes positivos e negativos de frames, intervalos inclusivos, vários Mid, eventos pontuais, loops, conflitos e deformações curtas demais.` | **APROVADA — Rodada 12** |
+| LAN-099 | **O aceite de exemplo completo exige briefing confirmado, blocking aprovado, evidências documentadas de conformidade e exportação, e aprovação final; testes não realizados jamais podem ser declarados concluídos.** | `96B — Exigir briefing confirmado, blocking aprovado, verificações documentadas de conformidade/exportação e aprovação final, sem alegar testes não executados.` | **APROVADA — Rodada 12** |
+| LAN-100 | **Catálogo versionado por categoria deve definir nome, finalidade, parâmetros e exemplos válidos/inválidos dos comandos; comandos desconhecidos exigem esclarecimento, não execução silenciosa.** | `97A — Criar catálogo versionado por categoria, com nome, finalidade, parâmetros e exemplos válidos/inválidos; comandos desconhecidos exigem esclarecimento.` | **APROVADA — Rodada 12** |
+| LAN-101 | **A revisão final deve apresentar matriz separando normas aprovadas, pendências bloqueantes, itens futuros e evidências de conformidade; exigir aprovação explícita do diretor para homologação.** | `98B — Entregar uma matriz separando normas aprovadas, pendências bloqueantes, itens futuros e evidências de conformidade, solicitando sua aprovação explícita.` | **APROVADA — Rodada 12** |
 
 Consequências invariantes:
 - Para o intervalo textual `a-b`, a quantidade é `b - a + 1` frames (se `b >= a`).
@@ -173,7 +182,9 @@ Consequências invariantes:
 
 **Rodada 11 aprovada:** Mode, Start e End obrigatórios e Mid conforme a ação (LAN-084); IDs estáveis, nomes opcionais e rejeição de ambiguidades nos Mid (LAN-085); frames autorais 1-based com duração de 1/30 s por frame, sem duração fantasma (LAN-086); fechamento de loop por amostra técnica fora da contagem autoral e sem aumentar a duração (LAN-087); mínimo de deformação avaliado por efeito/curva/magnitude sem extensão automática (LAN-088); tolerâncias propostas por anatomia e aprovadas antes da validação definitiva (LAN-089); campos opcionais de hitbox com geometria, orientação, associação óssea e janela, sem ativar dano (LAN-090); evidências por agente, etapa e versão incluindo falhas/testes omitidos (LAN-091); preparação ordenada de gramática, exemplos, conformidade e auditoria antes de solicitar autorização de implementação (LAN-092).
 
-**Continuam pendentes:** representação literal normalizada e detalhamento da tipagem de eventos; critérios numéricos de tolerância a aprovar; convenções de parâmetros e suas unidades; catálogo de diagnósticos; exemplos completos com briefing hipotético explicitamente identificado; matriz definitiva de conformidade e verificação da importação/exportação em ambiente real. Nenhuma alteração de runtime ou implementação foi autorizada.
+**Rodada 12 aprovada:** sintaxe de Mid nomeado com `name` opcional e IDs sequenciais estáveis (LAN-093), organização de comandos globais/visuais/mecânicos por fase (LAN-094), unidades por tipo com conversão validada e sugestões provisórias (LAN-095), três níveis rastreáveis de diagnóstico (LAN-096), correspondência formal do frame i ao intervalo `(i−1)/30` até `i/30` s (LAN-097), casos positivos e negativos de conformidade (LAN-098), aceite condicionado a briefing/blocking/validações/aprovação final sem alegar testes não executados (LAN-099), catálogo versionado com comandos válidos/inválidos (LAN-100) e matriz final de normas, bloqueios, futuro e evidências sujeita à aprovação do diretor (LAN-101).
+
+**Continuam pendentes:** escolhas numéricas de tolerância, unidades concretas para cada parâmetro, formas exatas e validações dos tipos de eventos e comentários, conteúdo detalhado de entradas do catálogo, exemplos completos com briefings e resultados esperados, matriz de casos de teste exaustiva e qualquer evidência de execução real em Blender/GLB. A especificação permanece **preliminar**, sem prova de conceito autorizada.
 
 ## 4. Modelo temporal ilustrativo — PROPOSTA, não norma aprovada
 
@@ -407,19 +418,19 @@ Requisitos propostos para uma futura fase de validador:
 - **LAN-Q88.** Como estruturar evidências e rastreabilidade por agente/versão, diferenciando teste realizado, teste não executado, ressalva e reprovação? **RESOLVIDA — LAN-091 (88A)**.
 - **LAN-Q89.** Em que ordem consolidar gramática, casos canônicos, testes e revisão de pendências antes de solicitar autorização específica para prova de conceito? **RESOLVIDA — LAN-092 (89A)**.
 
-### Rodada 12 — fechamento do formato canônico e testes normativos (pendente; roteiro proposto)
+### Rodada 12 — fechamento do formato canônico e testes normativos (concluída; decisões LAN-093 a LAN-101)
 
-> **Todas estas questões permanecem propostas, não aprovações.** A consolidação da seção 12 abaixo reproduz regras já aprovadas; detalhes ausentes serão decididos separadamente.
+> **Rodada concluída:** o diretor aprovou expressamente 90A, 91A, 92B, 93A, 94B, 95A, 96B, 97A e 98B. A consolidação da seção 12 deve distinguir regras aprovadas, propostas ainda não aprovadas e testes não executados.
 
-- **LAN-Q90.** Qual a forma exata de escrever cabeçalhos com nomes opcionais e IDs, sem confundir duração, identificadores de Mid e termos descritivos?
-- **LAN-Q91.** Como representar poses, intervalos de modificadores, eventos pontuais, holds visuais, dados mecânicos e seções globais num exemplo normativo sem ambiguidades?
-- **LAN-Q92.** Como representar precisão/unidades de valores (escala, ângulos, offsets, intensidade) e tratamento de propostas provisórias?
-- **LAN-Q93.** Como categorizar diagnósticos em bloqueante, pendência que exige aprovação e simples aviso, preservando a execução seletiva autorizada?
-- **LAN-Q94.** Qual convenção documental para limites de tempo, último frame, amostra terminal e conversão de 30 FPS para 120 Hz quando aplicável?
-- **LAN-Q95.** Como estabelecer casos de teste curtos para sequência de Mid, intervalo inclusivo, impacto pontual, loop e fechamento, conflito e duração insuficiente?
-- **LAN-Q96.** Como definir critérios de aceite do exemplo completo, incluindo briefing esclarecido, blocking aprovado, exportação GLB e revisão final, sem presumir que os testes já foram executados?
-- **LAN-Q97.** Como organizar um catálogo normativo de termos visuais e mecânicos, com exemplos de comandos aceitos e comandos não definidos?
-- **LAN-Q98.** Como consolidar e apresentar ao diretor os itens já normativos, as pendências ainda bloqueantes e os itens reservados para uma versão futura?
+- **LAN-Q90.** Qual a forma exata de escrever cabeçalhos com nomes opcionais e IDs, sem confundir duração, identificadores de Mid e termos descritivos? **RESOLVIDA — LAN-093 (90A)**.
+- **LAN-Q91.** Como representar poses, intervalos de modificadores, eventos pontuais, holds visuais, dados mecânicos e seções globais num exemplo normativo sem ambiguidades? **RESOLVIDA — LAN-094 (91A)**.
+- **LAN-Q92.** Como representar precisão/unidades de valores (escala, ângulos, offsets, intensidade) e tratamento de propostas provisórias? **RESOLVIDA — LAN-095 (92B)**.
+- **LAN-Q93.** Como categorizar diagnósticos em bloqueante, pendência que exige aprovação e simples aviso, preservando a execução seletiva autorizada? **RESOLVIDA — LAN-096 (93A)**.
+- **LAN-Q94.** Qual convenção documental para limites de tempo, último frame, amostra terminal e conversão de 30 FPS para 120 Hz quando aplicável? **RESOLVIDA — LAN-097 (94B)**.
+- **LAN-Q95.** Como estabelecer casos de teste curtos para sequência de Mid, intervalo inclusivo, impacto pontual, loop e fechamento, conflito e duração insuficiente? **RESOLVIDA — LAN-098 (95A)**.
+- **LAN-Q96.** Como definir critérios de aceite do exemplo completo, incluindo briefing esclarecido, blocking aprovado, exportação GLB e revisão final, sem presumir que os testes já foram executados? **RESOLVIDA — LAN-099 (96B)**.
+- **LAN-Q97.** Como organizar um catálogo normativo de termos visuais e mecânicos, com exemplos de comandos aceitos e comandos não definidos? **RESOLVIDA — LAN-100 (97A)**.
+- **LAN-Q98.** Como consolidar e apresentar ao diretor os itens já normativos, as pendências ainda bloqueantes e os itens reservados para uma versão futura? **RESOLVIDA — LAN-101 (98B)**.
 
 ## 10. Governança e escopo
 
@@ -446,6 +457,7 @@ Requisitos propostos para uma futura fase de validador:
 | 17/10/2026 | **Rodada 9:** o diretor aprovou todas as nove recomendações (63C, 64B, 65B, 66B, 67A, 68B, 69A, 70A, 71C), registradas em LAN-065 a LAN-073. Complemento explícito `inclusive adicione a obrigatoriedade da IA perguntar sobre o que falta de informação na desc da animação`, registrado separadamente em LAN-074. LAN-Q63 a LAN-Q71 resolvidas sem apagar histórico. LAN-Q72 a LAN-Q80 adicionadas como pendentes. Nenhuma implementação autorizada. |
 | 17/10/2026 | **Rodada 10:** o diretor aprovou todas as recomendações com `sigo com suas recomendações`, correspondentes a 72B, 73A, 74A, 75B, 76B, 77B, 78A, 79B e 80B. Registradas LAN-075 a LAN-083, preservada a obrigatoriedade LAN-074, e marcadas resolvidas LAN-Q72 a LAN-Q80. Propostas LAN-Q81 a LAN-Q89 adicionadas sem aprovação. Nenhuma implementação autorizada. |
 | 17/10/2026 | **Rodada 11:** o diretor aprovou as nove recomendações com `suas recomendações` (81B, 82A, 83A, 84B, 85A, 86B, 87B, 88A, 89A), registradas em LAN-084 a LAN-092. LAN-Q81 a LAN-Q89 resolvidas, preservando enunciados e decisões anteriores. Consolidação documental de regras já aprovadas na seção 12 e novas pendências LAN-Q90 a LAN-Q98, sem implementação. |
+| 17/10/2026 | **Rodada 12:** o diretor aprovou explicitamente as nove recomendações (90A, 91A, 92B, 93A, 94B, 95A, 96B, 97A, 98B). Registradas LAN-093 a LAN-101 e resolvidas LAN-Q90 a LAN-Q98. Consolidação normativa e auditoria documental da seção 12 atualizadas, preservando o histórico integral. Nenhuma implementação, prova de conceito ou alteração em `main` autorizada. |
 
 ## 12. Consolidação normativa preliminar — derivada exclusivamente das decisões aprovadas
 
@@ -466,8 +478,8 @@ Requisitos propostos para uma futura fase de validador:
 
 - A autoria usa **30 FPS obrigatórios**; a indexação do primeiro frame local de cada etapa começa em **1**. Intervalos textuais `a-b` são **inclusivos** e contêm `b-a+1` frames (LAN-001 a LAN-003, LAN-005).
 - O modo (`Mode`) deve ser declarado. **Start e End são obrigatórios**; um ou mais **Mid podem existir conforme a ação**, incluindo nomes opcionais e IDs sequenciais estáveis (LAN-004, LAN-030, LAN-052, LAN-067, LAN-084, LAN-085).
-- Os cabeçalhos aceitam tanto `[Start: 12]` quanto `[Start 12]`, com normalização. O formato exato de cabeçalhos de Mid nomeados ainda é **PENDENTE** (LAN-029, LAN-030, LAN-085).
-- Cada frame autoral representa intervalo de **1/30 segundo**. Uma etapa de `N` frames tem duração `N/30` segundos, com limite final fora dos `N` intervalos autorais, sem adicionar duração fantasma. Amostras de pose e limites serão explicitados na futura norma formal (LAN-086).
+- Os cabeçalhos aceitam tanto `[Start: 12]` quanto `[Start 12]`, com normalização. A forma de Mid nomeado `[Mid: 12 | name=uppercut]` ou `[Mid 12 | name=uppercut]` é **REGRA APROVADA**, com nome opcional e ID estável; os detalhes de caracteres permitidos em nomes e referências continuam pendentes (LAN-029, LAN-030, LAN-085, LAN-093).
+- Cada frame autoral **i** corresponde ao intervalo temporal semiaberto `[(i−1)/30, i/30)` s em relação ao início da etapa de autoria, com índice i iniciado em 1. Uma etapa de `N` frames tem duração `N/30` s; seu limite final é calculado separadamente, sem adicionar duração fantasma. Para outro referencial, somar o deslocamento da etapa, mantendo a conversão documentada (LAN-086, LAN-097).
 - Eventos pontuais usam um número; modificadores temporais usam dois extremos inclusivos. Modificadores dentro da etapa contam frames **locais**; a equivalência global deve ser relatada, sem introduzir frames extras nas transições (LAN-001, LAN-002, LAN-032, LAN-036, LAN-068).
 - Loops devem preservar continuidade de pose/movimento e podem conter **amostra técnica terminal de fechamento** fora da contagem autoral, sem acrescentar duração ao ciclo (LAN-050, LAN-087).
 - O tempo do clipe poderá ser ajustado à duração mecânica da ação conforme o contrato aprovado, com relatório de diferenças. A simulação do Arenamon utiliza passos próprios e intervalos internos semiabertos; comandos autorais não mudam a física diretamente (LAN-020, LAN-021, LAN-068).
@@ -505,7 +517,7 @@ Requisitos propostos para uma futura fase de validador:
 |---|---|---|
 | Interpretação/briefing | Perguntas obrigatórias quando faltarem informações relevantes; resumo confirmado antes do blocking | **REGRA APROVADA**, caso de teste pendente |
 | Contagem de frames | 30 FPS, índices locais em 1, intervalos inclusivos, duração sem frame fantasma | **REGRA APROVADA**, verificação automatizada pendente |
-| Mid e transições | IDs estáveis; referências não ambíguas; poses/velocidades coerentes | **REGRA APROVADA**, formato detalhado pendente |
+| Mid e transições | IDs estáveis, nomes opcionais e formato `[Mid: N | name=...]` / `[Mid N | name=...]`; referências não ambíguas; poses/velocidades coerentes | **REGRA APROVADA**, restrições de nomes e exemplos testáveis pendentes |
 | Efeitos/deformações | Não sobrescrever parâmetros explícitos; conflito diagnosticado; retorno dentro da janela | **REGRA APROVADA**, tolerâncias dependem de aprovação |
 | Loop/contato | Fechamento sem duração extra, sem deslizamento não intencional | **REGRA APROVADA**, métricas numéricas pendentes |
 | Hitbox | Prévia vermelha, intervalos e volumes como metadados sem ativação de dano | **REGRA APROVADA**, esquema completo pendente |
@@ -514,9 +526,59 @@ Requisitos propostos para uma futura fase de validador:
 
 ### 12.6 Bloqueios ainda abertos — PENDENTE
 
-- Definir forma textual canônica e regras de validação de campos, nomes opcionais de Mid, unidades numéricas e registros técnicos de erro.
-- Definir métricas/tolerâncias por classe de animação e anatomia; quaisquer valores numéricos deverão receber aprovação antes de tornar-se critério oficial.
-- Especificar e auditar casos de teste (inclusive limites de frames e eventos, múltiplos Mid, loops, conflitos, deformações, preservação de rig e GLB reimportado).
-- Completar exemplo **canônico** envolvendo briefing, perguntas/respostas reais ou explicitamente hipotéticas, decisões e evidências; o exemplo mínimo acima não substitui a homologação.
+- Detalhar caracteres permitidos, escapes e unicidade de nomes/IDs de Mid, bem como a sintaxe/semântica literal de todas as variantes de eventos e seus parâmetros.
+- Definir unidades concretas e tolerâncias numéricas por tipo de parâmetro, ação e anatomia; valores não aprovados permanecem propostas provisórias, e limites numéricos exigem aprovação.
+- Completar catálogo versionado com entradas individuais, comandos válidos/inválidos e tratamento de compatibilidade.
+- Especificar casos positivos/negativos com resultados esperados para contagem, Mid, loops, conflitos, deformações, preservação de rig e GLB reimportado, **sem afirmar que já foram executados**.
+- Completar exemplo **canônico** com briefing, esclarecimentos, confirmação, estrutura de animação, validações e evidências hipotéticas identificadas como não executadas.
+- Realizar revisão final de matriz de normas, pendências bloqueantes, itens futuros e evidências de conformidade e solicitar aprovação explícita do diretor (LAN-101).
 - Nenhum código, protótipo funcional, implementação no Blender/MCP, Studio ou runtime, ou prova de conceito foi autorizado neste registro.
+
+
+### 12.7 Consolidação formal da Rodada 12 — REGRA APROVADA
+
+| Domínio | Obrigação normativa aprovada | Decisões |
+|---|---|---|
+| Cabeçalhos de Mid | Aceitar `[Mid: 12 | name=uppercut]` e `[Mid 12 | name=uppercut]`, com `name` opcional e identificação sequencial estável | LAN-029, LAN-030, LAN-085, LAN-093 |
+| Localização dos comandos | Seção global artística opcional; comandos visuais `[ ]` e mecânicos `{ }` associados à respectiva etapa, com intervalos locais | LAN-006, LAN-037, LAN-094 |
+| Parâmetros e procedência | Unidade apropriada por tipo; conversão validada; sugestões provisórias visivelmente identificadas | LAN-014, LAN-070, LAN-095 |
+| Diagnósticos | **Erro bloqueante** para a operação afetada, **pendência para aprovação**, **aviso informativo**; registrar causas e desfechos | LAN-071, LAN-096 |
+| Tempo | Frame local `i` ocupa `[(i−1)/30, i/30)` s desde o início de sua fase; o limite terminal não acrescenta duração | LAN-001 a LAN-003, LAN-086, LAN-097 |
+| Conformidade | Casos **positivos e negativos** de frames, intervalos inclusivos, múltiplos Mid, eventos pontuais, loops, conflitos e deformações insuficientes | LAN-072, LAN-098 |
+| Aceitação | Briefing confirmado, blocking aprovado, evidências de conformidade/exportação e aprovação final; declarar testes não executados | LAN-026, LAN-055, LAN-091, LAN-099 |
+| Catálogo | Versionado e categorizado, com nomes, fins, parâmetros e exemplos válidos/inválidos; comandos desconhecidos são impedimentos para esclarecimento | LAN-069, LAN-100 |
+| Homologação | Matriz de normas aprovadas, bloqueios, itens futuros e evidências, seguida de aprovação explícita do diretor | LAN-073, LAN-092, LAN-101 |
+
+**Nota de semântica:** a notação `[(i−1)/30, i/30)` é um intervalo semiaberto **temporal** dentro da etapa. Isso não altera os intervalos textuais **inclusivos** como `[Smear: 4-6]` nem autoriza mudar a simulação. Para uma etapa com deslocamento global de `K` frames, seu frame local `i` corresponde ao frame global `K+i`; o tempo autoral correspondente começa em `(K+i−1)/30` s. Se a ação usar outro tempo de reprodução, deve ser aplicado o mapeamento aprovado e documentadas as diferenças, sem assumir taxa da física igual à de autoria.
+
+### 12.8 Casos de conformidade documentais — PROPOSTA DE TESTES, NÃO EXECUTADOS
+
+| ID proposto | Cenário | Resultado esperado derivado de regra aprovada | Situação |
+|---|---|---|---|
+| TC-01 | Start com 12 frames, Mid com 16 e End com 18 | 46 frames autorais = 46/30 s; sem frame extra | **Planejado, não executado** |
+| TC-02 | Mid de 16 frames com `[Smear: 4-6]` | 3 frames locais ativos; evento não se estende para outras fases | **Planejado, não executado** |
+| TC-03 | Duas etapas Mid com `name` opcional | IDs sequenciais estáveis; duplicidade/referência ambígua diagnosticada | **Planejado, não executado** |
+| TC-04 | `[Impact: 10]` e `[Smear: 4-6]` | Primeiro é evento pontual; segundo é intervalo inclusivo | **Planejado, não executado** |
+| TC-05 | Loop de 30 frames com amostra terminal de fechamento | Duração de 30/30 s; amostra terminal não soma frame de autoria | **Planejado, não executado** |
+| TC-06 | Dois modificadores incompatíveis no mesmo canal/intervalo | Bloqueio das operações conflitantes e solicitação de resolução | **Planejado, não executado** |
+| TC-07 | Deformação de um frame incapaz de entrar e retornar suavemente | Diagnóstico e pedido de correção sem aumento automático do intervalo | **Planejado, não executado** |
+| TC-08 | Comando desconhecido, rig ambíguo ou parâmetro técnico sugerido | Não executar silenciosamente; distinguir erro, aprovação pendente e provisório conforme o caso | **Planejado, não executado** |
+| TC-09 | Comparação de `.blend` com GLB reimportado | Registrar diferenças, falhas, ressalvas e não testados; não confundir exportação com integração ao jogo | **Planejado, não executado** |
+
+Estes casos são **propostas de exemplos e de verificações**, não alegações de teste executado, nem escolha automática de parâmetros concretos. Sua conversão em matriz oficial completa e critérios quantitativos ainda exige revisão.
+
+### 12.9 Auditoria de pendências pós-Rodada 12 — PENDENTE, sujeita à revisão do diretor
+
+| Grupo | Situação documental | Classificação para futura prova de conceito |
+|---|---|---|
+| Gramática lexical | Formato de Mid aprovado, mas faltam regras de escapes, texto livre, identificadores, repetição de campos, comentários e nomes válidos | **Candidato a bloqueante** |
+| Catálogo técnico | Família e curvas aprovadas, mas faltam esquemas de campos, unidades concretas, defaults e exemplos válidos/inválidos por operador | **Candidato a bloqueante** |
+| Tolerâncias e deformação | Método de aprovação de limites aprovado, mas não há limites numéricos homologados nem critério computável geral de suavidade | **Candidato a bloqueante**, conforme escopo de teste |
+| Contrato de eventos/hitbox | Semântica visual/mecânica aprovada; schema de exportação, múltiplos volumes e integração somente leitura ainda requerem detalhamento | **Candidato a bloqueante** para testes de hitbox |
+| Evidência de execução | Nenhum teste real de Blender/GLB foi executado por esta documentação; as exigências de verificação são aprovadas | **Ainda sem evidências**; não declarar conforme |
+| Exemplo canônico completo | Obrigação aprovada; apenas exemplo mínimo ilustrativo está documentado | **Candidato a bloqueante** |
+| Evolução futura | Durações dinâmicas continuam fora do primeiro escopo, embora previstas para estudo | **Futuro, não bloqueante** da versão inicial |
+| Homologação | Aprovação explícita do diretor exigida após matriz revisada e ausência de bloqueios relevantes | **Pendente de aprovação** |
+
+**Importante:** a classificação `candidato a bloqueante` acima é **análise documental para revisão, não nova decisão aprovada**. Cabe ao diretor aprovar a matriz de homologação conforme LAN-101. Também não se presume que a prova de conceito deva testar todos os efeitos simultaneamente: seu escopo exato precisará de aprovação separada.
 
