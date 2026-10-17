@@ -458,6 +458,7 @@ Requisitos propostos para uma futura fase de validador:
 | 17/10/2026 | **Rodada 10:** o diretor aprovou todas as recomendações com `sigo com suas recomendações`, correspondentes a 72B, 73A, 74A, 75B, 76B, 77B, 78A, 79B e 80B. Registradas LAN-075 a LAN-083, preservada a obrigatoriedade LAN-074, e marcadas resolvidas LAN-Q72 a LAN-Q80. Propostas LAN-Q81 a LAN-Q89 adicionadas sem aprovação. Nenhuma implementação autorizada. |
 | 17/10/2026 | **Rodada 11:** o diretor aprovou as nove recomendações com `suas recomendações` (81B, 82A, 83A, 84B, 85A, 86B, 87B, 88A, 89A), registradas em LAN-084 a LAN-092. LAN-Q81 a LAN-Q89 resolvidas, preservando enunciados e decisões anteriores. Consolidação documental de regras já aprovadas na seção 12 e novas pendências LAN-Q90 a LAN-Q98, sem implementação. |
 | 17/10/2026 | **Rodada 12:** o diretor aprovou explicitamente as nove recomendações (90A, 91A, 92B, 93A, 94B, 95A, 96B, 97A, 98B). Registradas LAN-093 a LAN-101 e resolvidas LAN-Q90 a LAN-Q98. Consolidação normativa e auditoria documental da seção 12 atualizadas, preservando o histórico integral. Nenhuma implementação, prova de conceito ou alteração em `main` autorizada. |
+| 17/10/2026 | **Continuação documental após a Rodada 12:** preparados catálogo técnico comentado dos oito modificadores (seção 13), exemplo canônico candidato com briefing/respostas explicitamente hipotéticos e verificações não executadas (seção 14), e pendências LAN-Q99 a LAN-Q106 (seção 15). **Nenhuma nova aprovação atribuída ao diretor; LAN-001 a LAN-101 e histórico preservados. Nenhum código, rig ou runtime alterado.** |
 
 ## 12. Consolidação normativa preliminar — derivada exclusivamente das decisões aprovadas
 
@@ -582,3 +583,206 @@ Estes casos são **propostas de exemplos e de verificações**, não alegações
 
 **Importante:** a classificação `candidato a bloqueante` acima é **análise documental para revisão, não nova decisão aprovada**. Cabe ao diretor aprovar a matriz de homologação conforme LAN-101. Também não se presume que a prova de conceito deva testar todos os efeitos simultaneamente: seu escopo exato precisará de aprovação separada.
 
+## 13. Catálogo técnico comentado — PROPOSTA DOCUMENTAL, NÃO HOMOLOGADA
+
+> **Escopo autorizado por "prossiga" em 17/10/2026:** preparar o detalhamento do catálogo e um exemplo canônico **para avaliação**, sem gerar código, modificar modelos, executar Blender ou aprovar novos comportamentos. O conjunto de oito nomes abaixo **já está aprovado** (LAN-038); as definições específicas de campos, eixos, algoritmos, valores, unidades, prioridades, limiares e exemplos de sintaxe são **CANDIDATOS**, não decisões do diretor.
+>
+> **Versão indicada apenas para discussão:** `catalog-draft-0`. Esse identificador é editorial e **não homologa uma versão da linguagem**.
+
+### 13.1 Contrato comum a todos os oito modificadores
+
+**Regras efetivamente aprovadas:** autorar em 30 FPS; intervalos textuais locais e inclusivos; comandos visuais entre colchetes; descrições livres e parâmetros nomeados opcionais; parâmetros explícitos obrigatórios e inferências claramente provisórias; mapear partes ao rig inspecionado; considerar anatomia, exportação, compatibilidade, curvas e retorno; bloquear conflitos ou ambiguidades antes de executar a operação afetada (LAN-001/002/003/005/006/007/008/011/012/014/031/034/035/041/056/065/071/095/096).
+
+| Campo candidato | Significado a discutir | Situação |
+|---|---|---|
+| `target` | Parte anatômica (ex.: mão, antebraço) ou osso real, validado por mapeamento | **Nome de campo proposto**; identificação anatômica **aprovada** |
+| `axis` / `space` | Direção da deformação e espaço anatômico/local | **Campos propostos**; referencial documentado **aprovado** |
+| `intensity` / `factor` | Magnitude quantificada, com unidade conforme natureza do efeito | **Campos, unidade e escala pendentes** |
+| `curve` / `attack` / `release` | Curva e composição de entrada/pico/retorno dentro da janela | **Campos e parametrização pendentes**; famílias Ease/Sharp/Elastic/Overshoot **aprovadas** |
+| `method` | Técnica opcional de Smear; se omitida, proposta justificada da IA | **Opcionalidade aprovada**, vocabulário de métodos pendente |
+| `preserve_volume` / `anatomy_limit` | Controle opcional de compensação entre eixos e limite anatômico | **Campos propostos**; suporte conceitual **aprovado** |
+| `delay_frames` / `source` | Relação temporal de movimento secundário com principal | **Campos propostos**; atraso e dependência **aprovados** |
+| `notes` | Descrição livre de intenção, poses, peso e silhueta | **Campo proposto**; texto descritivo livre **aprovado** |
+
+**Regras transversais de avaliação (aprovadas):**
+1. O nome de um alvo não autoriza pressupor que ele exista no rig real: inspecionar, mapear, diagnosticar e pedir esclarecimento em caso de dúvida.
+2. Duas operações simultâneas sobre a **mesma propriedade/canal da mesma parte** precisam de uma análise de compatibilidade. A IA pode combinar apenas efeitos compatíveis; efeitos incompatíveis **não** são resolvidos por precedência arbitrária.
+3. Nenhuma deformação deve permanecer alterada após a própria janela; se não couber entrada e retorno suaves no intervalo, solicitar correção **sem estender duração**.
+4. O método efetivo, os parâmetros e a exportação/reimportação precisam ser auditáveis. Não confundir `exportou sem erro` com `preservou aparência`.
+5. A semântica de alvos, tolerâncias numéricas e curvas concretas permanece **PENDENTE DE APROVAÇÃO**; os itens abaixo servem de especificação **candidata**.
+
+### 13.2 Os oito verbetes propostos
+
+| Modificador aprovado | Finalidade e interpretação candidata | Entradas candidatas opcionais | Risco a validar |
+|---|---|---|---|
+| **Smear** | Acentuar a trajetória de um segmento na ação rápida por deformação, rastro ou técnica equivalente, sem determinar previamente o método | `target`, `method`, `axis`, `intensity`, `curve` | Silhueta ilegível, geometria auxiliar ausente no GLB, técnica incompatível com rig |
+| **Squash** | Comprimir o volume aparente sobre eixo(s) pretendido(s), podendo compensar proporções em outros eixos | `target`, `axis`, `factor`, `preserve_volume`, `curve` | Colapso de junta, penetração involuntária, compensação excessiva |
+| **Stretch** | Alongar uma parte do corpo ou o gesto de modo controlado, com retorno à proporção normal | `target`, `axis`, `factor`, `anatomy_limit`, `curve` | Estiramento de articulação, troca inesperada de referencial |
+| **Scale** | Aumentar/reduzir temporariamente uma parte; por eixo ou uniformemente se assim for proposto/definido | `target`, `axis`, `factor`, `curve` | Origem/pivô inadequado, propagação para filhos do rig |
+| **Anticipation** | Marcador de direção temporal que orienta poses preparatórias, movimento em sentido contrário e timing antes da ação principal | `target`, `intent`, `pose_hint`, `curve` | Antecipação gerada fora da fase, movimento incompatível com apoio |
+| **FollowThrough** | Marcador temporal para a continuidade/reação residual após ação dominante, respeitando massa, juntas e controle global | `target`, `source`, `delay_frames`, `curve` | Excesso de oscilação, invasão do tempo de recuperação |
+| **Overlap** | Distribuir defasagens entre alvos relacionados sem tornar seus movimentos independentes da ação principal | `targets`, `source`, `delay_frames`, `curve` | Transições descoordenadas, efeitos somados no mesmo canal |
+| **SecondaryAction** | Movimento complementar subordinado à ação primária, sem prejudicar leitura, impacto nem restrições físicas | `target`, `source`, `intent`, `delay_frames`, `curve` | Distrair do gesto principal, conflito de canal, anatomia inexistente |
+
+**Observação:** `intent`, `pose_hint`, `targets` e todos os demais identificadores nesta tabela são **propostas de nomes de campos**; não constam como chaves obrigatórias ou homologadas nas decisões aprovadas. A presença de exemplos não dispensa o briefing obrigatório LAN-074.
+
+### 13.3 Exemplos isolados — CANDIDATOS DE SINTAXE, NÃO EXECUTÁVEIS
+
+```text
+[Squash: 3-12 | target=torso | axis=anatomical_vertical]
+  Comprimir o tronco no meio da preparação e retornar à forma normal antes do fim.
+[Stretch: 2-11 | target=forearm_right | axis=local_forward]
+  Alongar progressivamente, atingir o pico perto do gesto e recuperar o volume normal.
+[Scale: 1-10 | target=right_hand]
+  Ampliar a silhueta da mão antes do impacto e retornar dentro desta janela.
+[Smear: 1-9 | target=forearm_right]
+  O método de smear NÃO foi informado: solicitar proposta fundamentada e validar exportação.
+[Anticipation: 2-10 | target=torso]
+  A IA propõe poses preparatórias condizentes com a intenção já confirmada.
+[FollowThrough: 1-9 | target=arms]
+  Recuperação residual sem alterar automaticamente o deslocamento físico do personagem.
+[Overlap: 2-9 | target=head | source=torso]
+  Propor atraso conforme anatomia e massa percebida, sem presumir um número fixo.
+[SecondaryAction: 2-9 | target=face]
+  Ação secundária opcional subordinada ao golpe; alvo só existe se o rig inspecionado suportar.
+```
+
+As expressões `anatomical_vertical`, `local_forward`, `source=torso` etc. **não foram homologadas**. O exemplo pode ser rejeitado por rig inexistente, intensidade não declarada, impossibilidade de retorno ou conflito; essa rejeição seria **correta** até que o diretor ou a política aprovada resolva cada lacuna. Este catálogo **não** determina, por conta própria, mínimos universais de frames, intensidades, nomes de ossos ou algoritmo de curvas.
+
+### 13.4 Matriz candidata para revisão de cada operador
+
+| Evidência esperada por operador | Smear | Squash | Stretch | Scale | Anticipation | FollowThrough | Overlap | SecondaryAction |
+|---|---|---|---|---|---|---|---|---|
+| Anatomia e alvo mapeados | Sim | Sim | Sim | Sim | Sim | Sim | Sim | Sim |
+| Entrada/saída dentro da janela, quando deformante | Sim | Sim | Sim | Sim | Não é deformação obrigatória | Não é deformação obrigatória | Conforme transformação | Conforme transformação |
+| Separação de propriedades com efeitos simultâneos | Sim | Sim | Sim | Sim | Sim | Sim | Sim | Sim |
+| Trajetória/timing e transições observados | Sim | Sim | Sim | Sim | Sim | Sim | Sim | Sim |
+| Comparação Blender → GLB quando houver resultado exportado | Sim | Sim | Sim | Sim | Sim | Sim | Sim | Sim |
+
+**Estado da matriz:** planejamento de inspeção, **nenhum ensaio executado**. Requisitos numéricos concretos e parâmetros de catálogo precisam ser submetidos ao diretor antes de homologação.
+
+## 14. Exemplo canônico candidato — tapa estilizado (100% HIPOTÉTICO)
+
+> **ATENÇÃO:** cenário, criatura, intenções, decisões criativas, poses, duração, parâmetros, respostas e aprovação de briefing abaixo são **fictícios e escritos exclusivamente para demonstrar a linguagem**. **Não** são declarações feitas pelo diretor, **não** homologam animação, **não** representam rig inspecionado e **não** autorizam gerar qualquer arquivo Blender, vídeo ou GLB. As regras citadas como aprovadas já constam em LAN-001 a LAN-101; a aplicação concreta neste exemplo permanece **PROPOSTA**.
+
+### 14.1 Descrição recebida — FICTÍCIA
+
+> "Quero uma animação de tapa exagerado, com a mão crescendo perto do impacto, um smear veloz e recuperação visível."
+
+**Lacunas detectadas segundo o procedimento aprovado:** quem executa o tapa; tipo de anatomia e disponibilidade de rig; mão usada; direção do gesto; alvo e contato; duração e fases; pose de preparação; estilo de exagero; se a ação é cíclica; tolerância a efeitos que não sobrevivam ao GLB; autorização para qualquer proposta de intensidade/curva. Não responder silenciosamente a essas questões.
+
+### 14.2 Perguntas e respostas — SIMULAÇÃO DIDÁTICA, NUNCA ENVIADAS AO DIRETOR
+
+| Pergunta que a IA deveria fazer | Resposta **inventada apenas para o exemplo** | Status |
+|---|---|---|
+| Qual personagem e qual material anatômico? | Criatura bípede genérica de demonstração, com braços e mãos; nenhum rig real fornecido | **HISTÓRIA HIPOTÉTICA**, rig não verificado |
+| Qual mão e trajetória? | Tapa com a mão direita num arco lateral da direita para a esquerda | **HISTÓRIA HIPOTÉTICA** |
+| Qual deve ser a intenção artística? | Estilo cartunesco, silhueta forte, preparação e aceleração bem legíveis | **HISTÓRIA HIPOTÉTICA** |
+| O golpe deve fazer o personagem sair do lugar? | Não: movimento horizontal in-place e apoio dos pés | **HISTÓRIA HIPOTÉTICA** |
+| Qual duração e forma da animação? | OneShot, Start 12 frames, Mid de aproximação 14, Mid do golpe 10, End 10; 30 FPS | **HISTÓRIA HIPOTÉTICA** |
+| Como tratar efeitos visuais e impacto? | Smear no antebraço, ampliação temporária da mão direita; impacto no frame 6 do segundo Mid; hitbox apenas ilustrativa | **HISTÓRIA HIPOTÉTICA** |
+| Você delega algum detalhe? | Somente a sugestão de curva/intensidade e método de Smear, que devem ser rastreados como provisórios | **HISTÓRIA HIPOTÉTICA** |
+| Confirma o briefing consolidado? | "Confirmo, somente para este exemplo fictício" | **CONFIRMAÇÃO SIMULADA**; **não** substitui confirmação real exigida por LAN-082 |
+
+**Porta de aprovação real:** em produção, depois de reunir respostas verdadeiras e inspecionar o rig, a IA precisará apresentar resumo para aprovação verdadeira do diretor **antes** do blocking. Na simulação, a etapa está apenas representada.
+
+### 14.3 Prompt estruturado — EXEMPLO ILUSTRATIVO, NÃO EXECUTÁVEL
+
+As linhas de descrição abaixo compõem texto livre; as linhas entre `[ ]` e `{ }` ilustram, respectivamente, comandos visuais e dados mecânicos, mas **nem todas as palavras-chave ilustrativas possuem grafia homologada**. As linhas com `#` são anotações editoriais de documento, **não** sintaxe oficialmente permitida. `ArtDirection`, `Contact`, `Hold` e atributos como `shape` e `target` continuam propostas de grafia. Os nomes anatômicos exigem mapeamento a rig verdadeiro antes de uso.
+
+```text
+# CENÁRIO HIPOTÉTICO — não enviar diretamente a um agente como comando aprovado
+[Mode: OneShot]
+[ArtDirection]
+  Silhuetas claras, antecipação exagerada e recuperação com sensação de peso.
+  Direção global opcional, sem comandar regras do combate.
+
+[Start: 12]                         # globais 1..12
+  Carregar peso na postura sem deslocar a raiz horizontal.
+  [Pose: 9 | ready]
+  [Anticipation: 3-10 | target=torso]
+    Preparação no sentido oposto ao tapa; não alterar duração.
+  [Contact: 1-12 | target=feet]
+    Pés apoiados, sem deslizamento não intencional.
+
+[Mid: 14 | name=approach]           # ID sequencial 1; globais 13..26
+  Iniciar o arco do tapa, mantendo silhueta legível.
+  [Pose: 11 | arm_extended]
+  [Stretch: 3-12 | target=forearm_right]
+    Alongamento contido, com retorno ao normal até o fim da janela.
+
+[Mid 10 | name=slap]                # ID sequencial 2; globais 27..36
+  Acelerar o arco lateral para o impacto do exemplo.
+  [Smear: 1-8 | target=forearm_right]
+    Seleção de method pela IA: PROVISÓRIA, justificar e validar GLB.
+  [Scale: 1-9 | target=right_hand]
+    Intensidade e curva PROVISÓRIAS: sugerir e identificar na revisão.
+    A mão deve recuperar sua proporção até o término desta janela.
+  [Impact: 6]                       # evento pontual: global 32
+  {Hitbox: 5-7 | target=right_hand} # metadados/volume vermelho; globais 31..33
+    Forma, dimensões e posição ainda exigem definição ou proposta provisória.
+
+[End: 10]                          # globais 37..46
+  Recuperar pose e estabilidade sem criar frames extras.
+  [FollowThrough: 1-9 | target=arm_right]
+  [Overlap: 2-9 | target=shoulders | source=torso]
+  [SecondaryAction: 2-9 | target=face]
+    Expressão facial só se houver controles reais no rig.
+```
+
+**Restrições de execução, se o exemplo viesse a ser usado no futuro:** (1) inspecionar rig e checar as partes `forearm_right`, `right_hand`, `feet` e `face`; (2) resolver eventuais conflitos por canal, inclusive os dois efeitos sobre região do braço; (3) aprovar escolhas de intensidade/curva e metas qualitativas do briefing quando não delegadas; (4) não presumir que um `Smear` em 8 frames ou `Scale` em 9 frames satisfaça retorno suave — a viabilidade dependerá de curva e magnitude; (5) não ativar dano ao ler `Hitbox`; (6) impedir execução até o briefing **real** e o blocking **real** serem aprovados.
+
+### 14.4 Derivação temporal do exemplo — conferência aritmética documental
+
+| Etapa | Frames da etapa | Frames globais inclusivos | Duração autoral |
+|---|---:|---|---:|
+| Start | 12 | 1..12 | 12/30 s |
+| Mid #1 `approach` | 14 | 13..26 | 14/30 s |
+| Mid #2 `slap` | 10 | 27..36 | 10/30 s |
+| End | 10 | 37..46 | 10/30 s |
+| **Total** | **46** | **1..46** | **46/30 s ≈ 1,533 s** |
+
+- `[Impact: 6]` no Mid #2: deslocamento global anterior = 26; índice global = `26+6=32`. O intervalo temporal autoral desse frame global é `[31/30, 32/30)` segundos, sem duração adicional criada pelo evento.
+- `{Hitbox: 5-7}` no Mid #2: índices globais = `31..33`, três frames autorais inclusivos e **apenas metadados de prévia**, não duração de dano real. Sua futura conversão para passos de simulação segue contrato a especificar/verificar.
+- `[Scale: 1-9]` no Mid #2: frames globais `27..35`, nove frames inclusivos. O frame global 36 pertence ao Mid #2 mas já está fora desse modificador.
+- `[Smear: 1-8]` no Mid #2: globais `27..34`, oito frames inclusivos.
+- A existência de dois Mid e seus IDs estáveis não insere quadros entre as etapas; o fechamento total fica em `46/30` segundos. Nenhuma dessas contas representa teste de engine, renderização ou Blender.
+
+### 14.5 Matriz de verificação desse exemplo — PLANO, NÃO EXECUTADO
+
+| Marco | Evidência que seria necessária | Estado **real** |
+|---|---|---|
+| Briefing | Perguntas respondidas e resumo aprovado pelo diretor | **NÃO REALIZADO** (diálogo fictício) |
+| Anatomia | Mapa de ossos, eixos, pivôs, cópia versionada | **NÃO REALIZADO** (rig fictício) |
+| Blocking | Poses-chave e timing mostrados; aceite do diretor | **NÃO REALIZADO** |
+| Conformidade temporal | Verificar em parser/validador autorizado local/global, inclusividade e duração | **NÃO REALIZADO** (há somente contas escritas) |
+| Composição de efeitos | Verificar conflito, retorno, limites e intenção visual | **NÃO REALIZADO** |
+| Hitbox de prévia | Geometria vermelha, associação e metadados, sem alterar dano | **NÃO REALIZADO** |
+| Blender | Executar em rig real, comparar views e versões com/sem efeitos | **NÃO REALIZADO** |
+| GLB | Exportar, reimportar, comparar aparência/timing; documentar perdas | **NÃO REALIZADO** |
+| Jogo | Integrar apenas se autorizado, testar duração/janelas na simulação | **NÃO REALIZADO; FORA DO ESCOPO ATUAL** |
+| Entrega | `.blend`, GLB, vídeo, prompt original, relatório e aprovação final | **NENHUM ARQUIVO DE ANIMAÇÃO CRIADO** |
+
+### 14.6 Pendências que o exemplo torna visíveis — SEM APROVAÇÃO
+
+1. Falta definir sintaxe formal de seção global, marcadores de contato e texto livre, assim como comentários, aspas, escapes e nomes/IDs permitidos.
+2. Não estão definidos contratos exatos e unidades de `target`, `axis`, `factor`, `intensity`, `curve`, `delay_frames`, `method` e `shape`. A aprovação dos conceitos não define suas fórmulas.
+3. Faltam esquemas concretos de geometria/volumes e metadados `{Hitbox}`, sem permitir inferir lógica de dano.
+4. Sem mapa anatômico real não se pode verificar bone mapping, IK, deformação, retarget ou exportação.
+5. Sem curvas/magnitudes e tolerâncias aprovadas não se pode atestar suavidade, retorno, deslizamento, interpenetração ou fechamento.
+6. Não foram produzidos `.blend`, GLB, vídeo, evidências de execução, blocking aprovado ou aprovação final.
+
+**Conclusão documental:** o exemplo é um artefato de planejamento **pronto para crítica**, não uma animação aprovada. Pela LAN-101, a auditoria de bloqueios e os resultados de conformidade precisariam ser submetidos ao diretor antes da homologação da linguagem. Esta etapa não autoriza implementação.
+
+## 15. Próximas questões propostas — ainda NÃO APROVADAS
+
+A próxima rodada visa resolver lacunas tornadas explícitas pelo catálogo e exemplo. Nenhuma alternativa deve ser escolhida automaticamente, mesmo quando aparecer como recomendação.
+
+- **LAN-Q99.** Qual a gramática oficial da seção artística global, texto livre, comentários, caracteres especiais e escape de delimitadores?
+- **LAN-Q100.** Quais unidades e convenções específicas devem ser usadas em ângulos, escalas, deslocamentos, durações de atraso e intensidade?
+- **LAN-Q101.** Qual forma exata de identificar alvos anatômicos, múltiplos alvos, canais e referencial do eixo dentro dos comandos?
+- **LAN-Q102.** Como tipar e validar campos específicos dos oito modificadores, mantendo parâmetros opcionais e proibindo inventar valores aprovados?
+- **LAN-Q103.** Como registrar propostas de curvas/limites sem transformá-las em defaults normativos antes de aprovação?
+- **LAN-Q104.** Qual especificação mínima de `{Hitbox}` para prévia vermelha e metadados sem integração automática com dano?
+- **LAN-Q105.** Como exigir evidências de correspondência entre briefing, blocking, validação, Blender e GLB sem afirmar que testes documentais foram executados?
+- **LAN-Q106.** Que prioridades usar para concluir o catálogo, exemplos e matriz de aceitação sem iniciar código antes de autorização explícita?
