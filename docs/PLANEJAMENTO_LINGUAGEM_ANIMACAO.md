@@ -108,6 +108,16 @@ As formas `[Start X]` e `[Start: X]` ainda são alternativas de escrita: nenhuma
 | LAN-062 | **Para efeitos auxiliares, testar exportação GLB direta e, se necessário, bake ou representação equivalente, comparando visualmente e documentando perdas.** | `60B — Testar exportação direta e, quando necessário, utilizar bake ou representação equivalente, com comparação visual e relatório de perdas.` | **APROVADA — Rodada 8 (aprovação global das recomendações)** |
 | LAN-063 | **Validar Blender e GLB reimportado como estágios independentes; exigir teste no jogo quando houver integração disponível e relatar o que não foi testado.** | `61B — Validar Blender e GLB reimportado separadamente, exigir teste no jogo quando houver integração disponível e relatar claramente o que não foi testado.` | **APROVADA — Rodada 8 (aprovação global das recomendações)** |
 | LAN-064 | **Terceiro teste inicial: criatura quadrúpede genérica e autoral executando salto no lugar, com apoios e FollowThrough. A identidade/modelo exatos seguem a aprovação do diretor.** | `62A — Criatura quadrúpede genérica e autoral, com animação de salto no lugar, apoios e follow-through.` | **APROVADA — Rodada 8 (aprovação global das recomendações)** |
+| LAN-065 | **Tratar lacunas conforme criticidade: parâmetros técnicos opcionais podem receber propostas provisórias explicitamente identificadas; ambiguidades impeditivas exigem confirmação. A obrigação adicional de perguntas sobre lacunas da descrição da animação consta em LAN-074.** | `63C — Separar por criticidade: sugerir valores opcionais identificados como provisórios e exigir confirmação para ambiguidades que bloqueiem a execução.` | **APROVADA — Rodada 9 (recomendação aprovada)** |
+| LAN-066 | **O texto estruturado da linguagem é a fonte de verdade; uma representação técnica derivada, verificável e gerada futuramente pode ser admitida, sem fontes independentes conflitantes.** | `64B — Texto estruturado como fonte de verdade, com possibilidade futura de gerar representação técnica derivada e verificável.` | **APROVADA — Rodada 9 (recomendação aprovada)** |
+| LAN-067 | **O tipo de animação precisa de declaração explícita (por exemplo, Loop ou OneShot); não se deve inferir modo de execução somente pelo nome do clipe. A forma literal `[Mode: ...]` continua sujeita à gramática final.** | `65B — Exigir uma declaração explícita do tipo, como [Mode: Loop] ou [Mode: OneShot], sem presumir pela nomenclatura.` | **APROVADA — Rodada 9 (recomendação aprovada)** |
+| LAN-068 | **Relatórios devem indicar frames locais e globais, tempo do clipe, duração ajustada à ação e, quando aplicável, passos internos, com regras de conversão explícitas.** | `66B — Exibir frames locais e globais, tempo do clipe, duração ajustada e, quando aplicável, passos internos com regras explícitas de conversão.` | **APROVADA — Rodada 9 (recomendação aprovada)** |
+| LAN-069 | **Versionar a linguagem e o catálogo de comandos; reconhecer e rejeitar comandos desconhecidos em vez de executá-los silenciosamente.** | `67A — Versionar a linguagem e o catálogo; identificar comandos desconhecidos e impedir sua execução silenciosa.` | **APROVADA — Rodada 9 (recomendação aprovada)** |
+| LAN-070 | **Manter rastreabilidade separada de valores explicitamente solicitados, propostas da IA, aprovações do diretor e alterações posteriores.** | `68B — Identificar separadamente valores explícitos, propostas da IA, aprovações e alterações posteriores, com histórico rastreável.` | **APROVADA — Rodada 9 (recomendação aprovada)** |
+| LAN-071 | **Emitir diagnóstico por erro e bloquear operações comprometidas; incompatibilidades e violações essenciais devem ser resolvidas antes da execução afetada.** | `69A — Emitir diagnóstico por erro, bloquear operações comprometidas e exigir resolução prévia dos conflitos ou violações essenciais.` | **APROVADA — Rodada 9 (recomendação aprovada)** |
+| LAN-072 | **Organizar testes de conformidade com casos de referência e resultados esperados, validação de timing, inspeção visual multivistas e comparação de exportação.** | `70A — Criar casos de referência com resultados esperados, verificações temporais, inspeção visual multivistas e comparação de exportação.` | **APROVADA — Rodada 9 (recomendação aprovada)** |
+| LAN-073 | **A especificação só estará pronta para eventual prova de conceito quando consolidada, acompanhada de exemplos verificáveis e testes de aceitação definidos, sem pendências bloqueantes; qualquer prova de conceito ainda exige autorização explícita.** | `71C — Quando houver especificação consolidada, exemplos verificáveis, testes de aceitação definidos e nenhuma pendência bloqueante; a prova de conceito dependerá ainda de autorização explícita.` | **APROVADA — Rodada 9 (recomendação aprovada)** |
+| LAN-074 | ****Antes de executar a criação ou alteração de uma animação, a IA deve revisar a descrição fornecida e perguntar obrigatoriamente ao diretor sobre informações descritivas ausentes ou ambíguas necessárias para entender o movimento pretendido.** Deve expor as lacunas identificadas em perguntas claras, sem inventar silenciosamente intenção, poses, trajetória, timing, alvo, estilo ou elementos anatômicos omitidos. A execução das partes dependentes dessas respostas deve aguardar o esclarecimento do diretor. Se a descrição já estiver suficientemente definida, não são necessárias perguntas artificiais. Parâmetros técnicos realmente opcionais continuam podendo ser propostos provisoriamente conforme LAN-014/LAN-065, mas tais sugestões **não dispensam** as perguntas obrigatórias sobre lacunas na descrição.** | `Complemento explícito do diretor — inclusive adicione a obrigatoriedade da IA perguntar sobre o que falta de informação na desc da animação` | **APROVADA — Rodada 9 (complemento explícito)** |
 
 Consequências invariantes:
 - Para o intervalo textual `a-b`, a quantidade é `b - a + 1` frames (se `b >= a`).
@@ -132,7 +142,16 @@ Consequências invariantes:
 
 **Rodada 8 aprovada:** inspeção e mapa anatômico verificável antes da execução; pausa seletiva diante de ambiguidades e autorização para alterações estruturais; cópia versionada com preservação de rig/malha/pesos; referenciais anatômicos e conversões explícitas; interpenetrações ambíguas sob revisão; métricas de contato e continuidade com limites propostos para aprovação; validação de efeitos auxiliares com exportação/bake e comparação; testes separados de Blender/GLB e eventual jogo, declarando lacunas; e terceiro caso inicial quadrúpede genérico autoral saltando no lugar com apoios e FollowThrough.
 
-**Continuam pendentes:** normalização formal de sintaxe e eventos, política para valores inferidos pela IA, critérios quantitativos efetivos para continuidade/loop/contatos, estrutura do mapa anatômico, equações/presets de curvas, duração mínima/compatibilidade de efeitos, geometria e exportação de hitboxes, rastreabilidade das validações, detalhes de versionamento e critérios finais de homologação. A escolha do terceiro teste não aprova um modelo específico nem autoriza implementação.
+**Rodada 9 aprovada:** parâmetros técnicos opcionais propostos provisoriamente e ambiguidades impeditivas encaminhadas à confirmação; texto estruturado como fonte de verdade; modo de animação explicitamente declarado; relatórios de contagem local/global, tempo e passos; versões de linguagem e catálogo; rastreabilidade de origem e aprovação de parâmetros; diagnóstico e bloqueio seletivo de violações; testes por referência; e prontidão para eventual prova de conceito condicionada a ausência de pendências bloqueantes e autorização explícita.
+
+**Complemento obrigatório do diretor (LAN-074) — conferência da descrição antes de animar:**
+1. A IA deve ler a descrição da animação antes da execução e identificar todas as lacunas ou ambiguidades descritivas relevantes para o movimento pretendido.
+2. Havendo lacunas na descrição, **é obrigatório formular perguntas ao diretor**, inclusive sobre intenção criativa, ação, poses, trajetória, timing, alvos e anatomia quando faltarem elementos relevantes. Não inventar respostas nem tratar sugestões próprias como decisões aprovadas.
+3. A IA deve esperar o esclarecimento das informações descritivas das quais a execução depende. Quando a descrição estiver suficientemente clara, não precisa fazer perguntas apenas por formalidade.
+4. Parâmetros técnicos genuinamente opcionais podem continuar como sugestões provisórias, identificadas e rastreadas segundo LAN-014/LAN-065. **Isso não substitui a obrigação de perguntar sobre lacunas na descrição da animação.**
+5. O procedimento concreto de checklist, agrupamento de perguntas e tratamento de delegação de escolhas ainda será deliberado na Rodada 10; não presumir autorização para implementar nem para decidir opções pendentes.
+
+**Continuam pendentes:** normalização formal da sintaxe e de eventos, checklist obrigatório da descrição, tratamento de respostas incompletas, critérios quantitativos para continuidade/loop/contatos, estrutura do mapa anatômico, equações/presets das curvas, duração mínima e compatibilidade de efeitos, geometria de hitboxes, detalhamento dos testes de conformidade e da homologação. A escolha do terceiro teste não aprova um modelo específico nem autoriza implementação.
 
 ## 4. Modelo temporal ilustrativo — PROPOSTA, não norma aprovada
 
@@ -324,19 +343,33 @@ Requisitos propostos para uma futura fase de validador:
 - **LAN-Q61.** Como organizar diferenças entre prévia no Blender, prévia reimportada em GLB e reprodução futura no Arenamon sem afirmar integração não implementada? **RESOLVIDA — LAN-063 (61B)**.
 - **LAN-Q62.** Qual criatura de anatomia não humanoide e qual ação específica deverão compor o terceiro teste inicial, e como aprovar o modelo de teste? **RESOLVIDA — LAN-064 (62A)**.
 
-### Rodada 9 — normalização, contrato de conformidade e rastreabilidade (pendente; roteiro proposto)
+### Rodada 9 — normalização, contrato de conformidade e rastreabilidade (concluída; decisões LAN-065 a LAN-074)
 
-> **Todas as alternativas desta rodada continuam pendentes.** A gramática poderá ser especificada e validada documentalmente sem implementar parser, plugin, Blender ou runtime até autorização explícita.
+> **Rodada concluída:** o diretor aprovou todas as recomendações (`sigo suas recomendações`), correspondentes às escolhas 63C, 64B, 65B, 66B, 67A, 68B, 69A, 70A e 71C. Acrescentou expressamente a obrigação de perguntar sobre informação ausente na descrição da animação (LAN-074). Nenhuma implementação autorizada.
 
-- **LAN-Q63.** Como tratar instruções incompletas ou ambíguas no prompt: pedir confirmação, gerar proposta provisória identificada ou bloquear conforme a criticidade?
-- **LAN-Q64.** Qual o formato canônico normalizado do documento/prompt: texto estruturado único, texto com representação intermediária proposta ou duas fontes equivalentes?
-- **LAN-Q65.** Como declarar tipos de animação (Loop, OneShot, pose, reação), evitando que propriedades cíclicas sejam presumidas a partir do nome?
-- **LAN-Q66.** Como representar e validar frames locais, globais, eventos pontuais e intervalos inclusivos em relatórios e exportações, preservando duração exata?
-- **LAN-Q67.** Como identificar versão do catálogo, versão da linguagem e compatibilidade de comandos entre agentes, sem aceitar comandos desconhecidos silenciosamente?
-- **LAN-Q68.** Como registrar valores explicitamente fornecidos, valores sugeridos e valores aprovados, distinguindo proveniência e revisão?
-- **LAN-Q69.** Qual o tratamento de erros de conformidade: falhar seletivamente, bloquear execução completa ou permitir correções automatizadas condicionadas à aprovação?
-- **LAN-Q70.** Quais critérios objetivos e evidências devem compor a matriz de testes de aceitação da gramática, da animação e da exportação?
-- **LAN-Q71.** Quando considerar a versão inicial da linguagem pronta para uma prova de conceito controlada, sem autorizar a implementação automaticamente?
+- **LAN-Q63.** Como tratar instruções incompletas ou ambíguas no prompt: pedir confirmação, gerar proposta provisória identificada ou bloquear conforme a criticidade? **RESOLVIDA — LAN-065 (63C)**.
+- **LAN-Q64.** Qual o formato canônico normalizado do documento/prompt: texto estruturado único, texto com representação intermediária proposta ou duas fontes equivalentes? **RESOLVIDA — LAN-066 (64B)**.
+- **LAN-Q65.** Como declarar tipos de animação (Loop, OneShot, pose, reação), evitando que propriedades cíclicas sejam presumidas a partir do nome? **RESOLVIDA — LAN-067 (65B)**.
+- **LAN-Q66.** Como representar e validar frames locais, globais, eventos pontuais e intervalos inclusivos em relatórios e exportações, preservando duração exata? **RESOLVIDA — LAN-068 (66B)**.
+- **LAN-Q67.** Como identificar versão do catálogo, versão da linguagem e compatibilidade de comandos entre agentes, sem aceitar comandos desconhecidos silenciosamente? **RESOLVIDA — LAN-069 (67A)**.
+- **LAN-Q68.** Como registrar valores explicitamente fornecidos, valores sugeridos e valores aprovados, distinguindo proveniência e revisão? **RESOLVIDA — LAN-070 (68B)**.
+- **LAN-Q69.** Qual o tratamento de erros de conformidade: falhar seletivamente, bloquear execução completa ou permitir correções automatizadas condicionadas à aprovação? **RESOLVIDA — LAN-071 (69A)**.
+- **LAN-Q70.** Quais critérios objetivos e evidências devem compor a matriz de testes de aceitação da gramática, da animação e da exportação? **RESOLVIDA — LAN-072 (70A)**.
+- **LAN-Q71.** Quando considerar a versão inicial da linguagem pronta para uma prova de conceito controlada, sem autorizar a implementação automaticamente? **RESOLVIDA — LAN-073 (71C)**.
+
+### Rodada 10 — briefing obrigatório e protocolo de esclarecimentos (pendente; roteiro proposto)
+
+> **Nenhuma decisão desta rodada foi aprovada.** LAN-074 já exige perguntas sobre lacunas na descrição, sem autorizar criação ou implementação. Esta rodada decide os detalhes do procedimento.
+
+- **LAN-Q72.** Quais campos devem entrar na revisão inicial da descrição (tipo, intenção, ação, anatomia, duração, poses, impacto, referências) e quais são necessários conforme o tipo de animação?
+- **LAN-Q73.** Como apresentar as perguntas de esclarecimento: todas agrupadas, uma por vez ou por categorias de criticidade?
+- **LAN-Q74.** O que fazer quando o diretor autorizar explicitamente a IA a decidir algum aspecto criativo ainda indefinido?
+- **LAN-Q75.** Como interpretar descrições subjetivas como `mais épico`, `mais peso` e `mais exagerado` sem presumir movimentos específicos?
+- **LAN-Q76.** Como lidar com imagens, vídeos, animações e arquivos de referência fornecidos para orientar poses e timing?
+- **LAN-Q77.** Como registrar cada pergunta, resposta, decisão delegada e revisão do briefing para manter rastreabilidade e impedir contradições?
+- **LAN-Q78.** Como resolver instruções conflitantes entre descrição atual, arquivos de referência e parâmetros explícitos sem escolher silenciosamente?
+- **LAN-Q79.** Como confirmar que a fase obrigatória de perguntas terminou e que o briefing está suficientemente completo antes do blocking?
+- **LAN-Q80.** Como preparar uma especificação canônica de exemplo com briefing, perguntas, respostas, blocos, modificadores e relatório de validação, sem iniciar implementação?
 
 ## 10. Governança e escopo
 
@@ -360,3 +393,4 @@ Requisitos propostos para uma futura fase de validador:
 | 16/10/2026 | **Rodada 6:** registradas nove decisões explícitas LAN-038 a LAN-046 (36A, 37B, 38B, 39B, 40A, 41B, 42A, 43B, 44A). LAN-Q36 a LAN-Q44 marcadas como resolvidas sem supressão do histórico. LAN-Q45 a LAN-Q53 adicionadas como pendências, sem presumir aprovações. Nenhuma implementação autorizada. |
 | 16/10/2026 | **Rodada 7:** registradas nove aprovações explícitas LAN-047 a LAN-055 (45A, 46B, 47A, 48A, 49B, 50A, 51B, 52B, 53A). LAN-Q45 a LAN-Q53 marcadas como resolvidas, sem remover perguntas nem decisões anteriores. LAN-Q54 a LAN-Q62 adicionadas apenas como pendências de planejamento. Nenhuma implementação autorizada. |
 | 17/10/2026 | **Rodada 8:** o diretor aprovou todas as recomendações da rodada com `sigo todas recomendações`, correspondendo a 54B, 55A, 56A, 57B, 58B, 59B, 60B, 61B e 62A. Registradas LAN-056 a LAN-064 e resolvidas LAN-Q54 a LAN-Q62. Incluídas LAN-Q63 a LAN-Q71 como pendências para normalização/conformidade. Nenhuma implementação autorizada; histórico integral preservado. |
+| 17/10/2026 | **Rodada 9:** o diretor aprovou todas as nove recomendações (63C, 64B, 65B, 66B, 67A, 68B, 69A, 70A, 71C), registradas em LAN-065 a LAN-073. Complemento explícito `inclusive adicione a obrigatoriedade da IA perguntar sobre o que falta de informação na desc da animação`, registrado separadamente em LAN-074. LAN-Q63 a LAN-Q71 resolvidas sem apagar histórico. LAN-Q72 a LAN-Q80 adicionadas como pendentes. Nenhuma implementação autorizada. |
