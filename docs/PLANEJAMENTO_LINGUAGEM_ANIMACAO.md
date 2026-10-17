@@ -145,6 +145,14 @@ As formas `[Start X]` e `[Start: X]` ainda são alternativas de escrita: nenhuma
 | LAN-099 | **O aceite de exemplo completo exige briefing confirmado, blocking aprovado, evidências documentadas de conformidade e exportação, e aprovação final; testes não realizados jamais podem ser declarados concluídos.** | `96B — Exigir briefing confirmado, blocking aprovado, verificações documentadas de conformidade/exportação e aprovação final, sem alegar testes não executados.` | **APROVADA — Rodada 12** |
 | LAN-100 | **Catálogo versionado por categoria deve definir nome, finalidade, parâmetros e exemplos válidos/inválidos dos comandos; comandos desconhecidos exigem esclarecimento, não execução silenciosa.** | `97A — Criar catálogo versionado por categoria, com nome, finalidade, parâmetros e exemplos válidos/inválidos; comandos desconhecidos exigem esclarecimento.` | **APROVADA — Rodada 12** |
 | LAN-101 | **A revisão final deve apresentar matriz separando normas aprovadas, pendências bloqueantes, itens futuros e evidências de conformidade; exigir aprovação explícita do diretor para homologação.** | `98B — Entregar uma matriz separando normas aprovadas, pendências bloqueantes, itens futuros e evidências de conformidade, solicitando sua aprovação explícita.` | **APROVADA — Rodada 12** |
+| LAN-102 | **Adotar seção opcional `[ArtDirection]`, associar descrições livres ao contexto e estabelecer convenção explícita para comentários e caracteres escapados. O mecanismo literal dos comentários/escapes ainda não foi selecionado.** | `99A — Adotar seção [ArtDirection] opcional, descrições textuais associadas ao contexto e convenção explícita para comentários e caracteres escapados.` | **APROVADA — Rodada 13** |
+| LAN-103 | **Usar fatores adimensionais para escala, graus para ângulos, frames para atrasos e unidades espaciais documentadas do modelo para deslocamentos/posições, com validação das conversões; não presumir escala física não documentada.** | `100B — Usar fatores adimensionais para escala, graus para ângulos, frames para atrasos e unidades espaciais documentadas do modelo para posições/deslocamentos, com conversões explícitas.` | **APROVADA — Rodada 13** |
+| LAN-104 | **Definir `target` para um alvo, `targets` para vários e `axis`/`space` para o referencial, aceitando nomes anatômicos ou de ossos reais com validação obrigatória de mapeamento no rig.** | `101A — Definir target para um alvo, targets para vários e axis/space para referencial; aceitar anatomia ou nomes de ossos e validar cada mapeamento.` | **APROVADA — Rodada 13** |
+| LAN-105 | **Cada modificador deve possuir esquema tipado próprio, composto por campos opcionais pertinentes e sujeitos a validação; nenhum valor numérico padrão é instituído sem aprovação.** | `102A — Definir esquema tipado para cada modificador, com campos opcionais pertinentes e validação; não instituir valores numéricos padrão sem aprovação.` | **APROVADA — Rodada 13** |
+| LAN-106 | **Permitir seleção da família de curva e parâmetros opcionais de entrada, pico e retorno; propostas automáticas ficam provisórias e devem permanecer na janela declarada, respeitando retorno aplicável.** | `103A — Permitir a família da curva e parâmetros opcionais de entrada, pico e retorno; propostas automáticas permanecem provisórias e devem caber no intervalo.` | **APROVADA — Rodada 13** |
+| LAN-107 | **Admitir esfera, cápsula e caixa como tipos candidatos de hitbox, com osso, dimensões, offset, orientação e intervalo opcionais ou explicitamente definidos; validar antes de exportar, sem ativar dano automaticamente. A implementação/conjunto definitivo de formatos ainda requer homologação.** | `104A — Admitir esfera, cápsula e caixa como tipos candidatos, com osso, dimensões, offset, orientação e intervalo opcionais ou explícitos, validados antes de exportar; sem ativar dano.` | **APROVADA — Rodada 13** |
+| LAN-108 | **Criar matriz de evidências por versão e etapa, com estado, evidência verificável, responsável, falhas e testes não executados, sem presumir aprovações ou testes bem-sucedidos.** | `105A — Criar matriz por versão e etapa, com estado, evidência verificável, responsável, falhas e testes não executados; nenhuma aprovação presumida.` | **APROVADA — Rodada 13** |
+| LAN-109 | **Concluir convenções e catálogo, revisar o exemplo completo, consolidar testes de conformidade, auditar bloqueios e pedir autorização expressa do diretor antes de qualquer implementação.** | `106A — Fechar convenções e catálogo, revisar o exemplo completo, consolidar testes de conformidade, auditar bloqueios e solicitar sua aprovação antes de qualquer implementação.` | **APROVADA — Rodada 13** |
 
 Consequências invariantes:
 - Para o intervalo textual `a-b`, a quantidade é `b - a + 1` frames (se `b >= a`).
@@ -459,6 +467,7 @@ Requisitos propostos para uma futura fase de validador:
 | 17/10/2026 | **Rodada 11:** o diretor aprovou as nove recomendações com `suas recomendações` (81B, 82A, 83A, 84B, 85A, 86B, 87B, 88A, 89A), registradas em LAN-084 a LAN-092. LAN-Q81 a LAN-Q89 resolvidas, preservando enunciados e decisões anteriores. Consolidação documental de regras já aprovadas na seção 12 e novas pendências LAN-Q90 a LAN-Q98, sem implementação. |
 | 17/10/2026 | **Rodada 12:** o diretor aprovou explicitamente as nove recomendações (90A, 91A, 92B, 93A, 94B, 95A, 96B, 97A, 98B). Registradas LAN-093 a LAN-101 e resolvidas LAN-Q90 a LAN-Q98. Consolidação normativa e auditoria documental da seção 12 atualizadas, preservando o histórico integral. Nenhuma implementação, prova de conceito ou alteração em `main` autorizada. |
 | 17/10/2026 | **Continuação documental após a Rodada 12:** preparados catálogo técnico comentado dos oito modificadores (seção 13), exemplo canônico candidato com briefing/respostas explicitamente hipotéticos e verificações não executadas (seção 14), e pendências LAN-Q99 a LAN-Q106 (seção 15). **Nenhuma nova aprovação atribuída ao diretor; LAN-001 a LAN-101 e histórico preservados. Nenhum código, rig ou runtime alterado.** |
+| 17/10/2026 | **Rodada 13:** aprovação explícita das oito recomendações (99A, 100B, 101A, 102A, 103A, 104A, 105A, 106A), registradas como LAN-102 a LAN-109. LAN-Q99 a LAN-Q106 marcadas como resolvidas sem apagar enunciados. Consolidação e auditoria documental pós-Rodada 13 acrescentadas; propostas antigas continuam identificadas como candidatas. Nenhuma implementação, teste Blender ou alteração em `main` autorizada. |
 
 ## 12. Consolidação normativa preliminar — derivada exclusivamente das decisões aprovadas
 
@@ -774,15 +783,84 @@ As linhas de descrição abaixo compõem texto livre; as linhas entre `[ ]` e `{
 
 **Conclusão documental:** o exemplo é um artefato de planejamento **pronto para crítica**, não uma animação aprovada. Pela LAN-101, a auditoria de bloqueios e os resultados de conformidade precisariam ser submetidos ao diretor antes da homologação da linguagem. Esta etapa não autoriza implementação.
 
-## 15. Próximas questões propostas — ainda NÃO APROVADAS
+## 15. Rodada 13 — convenções e catálogo (CONCLUÍDA; LAN-102 a LAN-109)
 
-A próxima rodada visa resolver lacunas tornadas explícitas pelo catálogo e exemplo. Nenhuma alternativa deve ser escolhida automaticamente, mesmo quando aparecer como recomendação.
+**Rodada aprovada:** as escolhas explícitas do diretor foram 99A, 100B, 101A, 102A, 103A, 104A, 105A e 106A. Os enunciados históricos são mantidos abaixo; foram aprovados os princípios expressos nas opções, não as sugestões numéricas ou sintaxes incidentais anteriormente indicadas como candidatas.
 
-- **LAN-Q99.** Qual a gramática oficial da seção artística global, texto livre, comentários, caracteres especiais e escape de delimitadores?
-- **LAN-Q100.** Quais unidades e convenções específicas devem ser usadas em ângulos, escalas, deslocamentos, durações de atraso e intensidade?
-- **LAN-Q101.** Qual forma exata de identificar alvos anatômicos, múltiplos alvos, canais e referencial do eixo dentro dos comandos?
-- **LAN-Q102.** Como tipar e validar campos específicos dos oito modificadores, mantendo parâmetros opcionais e proibindo inventar valores aprovados?
-- **LAN-Q103.** Como registrar propostas de curvas/limites sem transformá-las em defaults normativos antes de aprovação?
-- **LAN-Q104.** Qual especificação mínima de `{Hitbox}` para prévia vermelha e metadados sem integração automática com dano?
-- **LAN-Q105.** Como exigir evidências de correspondência entre briefing, blocking, validação, Blender e GLB sem afirmar que testes documentais foram executados?
-- **LAN-Q106.** Que prioridades usar para concluir o catálogo, exemplos e matriz de aceitação sem iniciar código antes de autorização explícita?
+- **LAN-Q99.** Qual a gramática oficial da seção artística global, texto livre, comentários, caracteres especiais e escape de delimitadores? **RESOLVIDA — LAN-102 (99A)**.
+- **LAN-Q100.** Quais unidades e convenções específicas devem ser usadas em ângulos, escalas, deslocamentos, durações de atraso e intensidade? **RESOLVIDA — LAN-103 (100B)**.
+- **LAN-Q101.** Qual forma exata de identificar alvos anatômicos, múltiplos alvos, canais e referencial do eixo dentro dos comandos? **RESOLVIDA — LAN-104 (101A)**.
+- **LAN-Q102.** Como tipar e validar campos específicos dos oito modificadores, mantendo parâmetros opcionais e proibindo inventar valores aprovados? **RESOLVIDA — LAN-105 (102A)**.
+- **LAN-Q103.** Como registrar propostas de curvas/limites sem transformá-las em defaults normativos antes de aprovação? **RESOLVIDA — LAN-106 (103A)**.
+- **LAN-Q104.** Qual especificação mínima de `{Hitbox}` para prévia vermelha e metadados sem integração automática com dano? **RESOLVIDA — LAN-107 (104A)**.
+- **LAN-Q105.** Como exigir evidências de correspondência entre briefing, blocking, validação, Blender e GLB sem afirmar que testes documentais foram executados? **RESOLVIDA — LAN-108 (105A)**.
+- **LAN-Q106.** Que prioridades usar para concluir o catálogo, exemplos e matriz de aceitação sem iniciar código antes de autorização explícita? **RESOLVIDA — LAN-109 (106A)**.
+
+## 16. Consolidação técnica pós-Rodada 13 — NORMAS APROVADAS VS. DETALHES PENDENTES
+
+> **Estado:** consolidação normativa parcial, não contrato executável homologado. As decisões LAN-102 a LAN-109 vinculam requisitos conceituais explícitos. Nomes ou valores que não constam dessas decisões continuam **PROPOSTOS**. Os exemplos da seção 14 continuam inteiramente hipotéticos, incluindo o briefing e a suposta confirmação.
+
+### 16.1 Matriz de impacto das oito aprovações
+
+| Decisão | O que agora é REGRA APROVADA | O que NÃO foi aprovado por inferência |
+|---|---|---|
+| LAN-102 / 99A | Seção `[ArtDirection]` opcional; texto livre contextual; obrigação de definir regras para comentários e escapes | Símbolo efetivo de comentário, sequências de escape, precedência entre blocos, nomes de seções adicionais |
+| LAN-103 / 100B | Escala como fator sem dimensão; ângulos em graus; atrasos em frames; deslocamentos/posições nas unidades espaciais documentadas do modelo, com conversão explícita | Que uma unidade do Blender equivalha sempre a um metro; escala física universal; fator/intensidade padrão para qualquer personagem |
+| LAN-104 / 101A | `target` singular, `targets` plural, `axis`/`space` para referencial; aceitar anatomia e nomes de ossos **com mapeamento validado** | Valores literais aceitos para `space`, chaves de listas, separadores de múltiplos alvos, nomes de ossos inexistentes e permissão para alterá-los |
+| LAN-105 / 102A | Esquema tipado por cada um dos oito modificadores, com campos opcionais pertinentes e validação; **sem defaults numéricos não aprovados** | Lista definitiva de todos os campos por modificador; unidades de `intensity` e `factor`; limites, prioridades e algoritmos específicos |
+| LAN-106 / 103A | Família de curva e parâmetros opcionais de entrada/pico/retorno; inferências identificadas como provisórias e contidas na janela | Curva fixa, fórmula Bézier, valor de pico, duração percentual de cada fase ou regra universal de overshoot |
+| LAN-107 / 104A | Esfera, cápsula e caixa **admitidas como candidatas**; osso, dimensões, offset, orientação e intervalo opcionais ou explícitos, validação antes de exportar, **sem ativação automática de dano** | Tipos definitivos obrigatórios, nomes exatos das chaves, unidades de dimensões, esquema de serialização GLB ou lógica de combate |
+| LAN-108 / 105A | Matriz rastreável por versão e etapa com estado, responsável, evidência, falhas e testes não realizados; nenhuma aprovação presumida | Formato físico do relatório, valores de tolerância, links de artefatos ainda inexistentes, qualquer teste marcado como concluído |
+| LAN-109 / 106A | Sequência de conclusão: convenções e catálogo → exemplo revisado → conformidade → auditoria de bloqueios → **autorização explícita** antes de implementar | Autorização atual para parser, IA executora, Blender MCP, GLB, Studio, jogo ou prova de conceito |
+
+### 16.2 Catálogo comentado: o que se torna normativo e o que não muda
+
+Os nomes dos oito modificadores já eram aprovados (LAN-038); **LAN-105 acrescenta a obrigação de haver um esquema tipado e validado para cada um deles**, mas **não** homologa automaticamente os nomes de campo sugeridos na seção 13.2. As chaves `target`, `targets`, `axis` e `space` são agora aprovadas como interface conceitual de alvo/referencial (LAN-104). Outros campos sugeridos como `method` (opcionalidade já aprovada para Smear), `factor`, `curve`, `preserve_volume`, `source` e `delay_frames` devem ser confrontados com as decisões específicas antes de receber forma literal definitiva.
+
+**Requisitos transversais aprovados para todos os esquemas:** reconhecer o rig verdadeiro; rejeitar alvos inexistentes/ambíguos antes da operação afetada; documentar procedência de cada parâmetro; respeitar valores declarados; propor opcionais como provisórios; compor apenas operações simultâneas compatíveis; verificar retorno de deformações no intervalo; confrontar Blender com GLB reimportado quando existirem arquivos e permissão para execução (LAN-007/008/011/014/031/034/035/039/054/056/063/070/095/103 a 106).
+
+**Cautela especial de hitbox:** esfera, cápsula e caixa são **candidatos admitidos** para a futura especificação, não uma alegação de que qualquer formato está implementado ou de que modifica dano. Continuam pendentes o contrato exato de dados, unidades espaciais, atualização por osso e validação do GLB com metadados separados (LAN-018/019/090/107).
+
+### 16.3 Revisão documental do exemplo hipotético da seção 14
+
+| Aspecto do exemplo | Avaliação documental após a Rodada 13 | Próxima ação |
+|---|---|---|
+| `[ArtDirection]` | Nome da seção agora aprovado como opcional (LAN-102) | Definir fronteira do bloco, indentação e semântica de encerramento |
+| `[Mid: 14 \| name=approach]` e `[Mid 10 \| name=slap]` | Formas apoiadas em LAN-093; IDs sequenciais estáveis | Formalizar identificadores/names permitidos e duplicidades |
+| `target=...` | Chave aprovada (LAN-104); nomes de exemplo são fictícios | Inspecionar rig real numa etapa futura autorizada e validar cada mapeamento |
+| `axis`/`space` | Campos e necessidade de referencial aprovados (LAN-104) | Aprovar vocabulário de valores e regras de coordenadas |
+| `Smear`, `Stretch`, `Scale`, `FollowThrough`, `Overlap`, `SecondaryAction` | Operadores aprovados; campos particulares e resultados não homologados | Concluir os oito esquemas tipados em revisão futura |
+| `[Impact: 6]` / `{Hitbox: 5-7}` | Semântica de ponto/intervalo e metadados autorizados; dano não é ativado | Definir serialização, esquema concreto e teste de conformidade |
+| `#` comentários editoriais | **Não aprovado** como regra literal de comentário | Deliberar delimitador e escape; não executar o exemplo como se fosse canônico |
+| 46 frames, 30 FPS e índices globais 1..46 | Aritmética documental coerente com LAN-001/002/005/086/097 | Criar testes de conformidade **após** autorização apropriada; não declarar teste executado |
+| Confirmação de briefing, blocking e exportação | **SIMULADOS/NÃO REALIZADOS** | Não substituir por aprovação real, evidência de execução ou teste GLB |
+
+**Importante:** os diálogos inventados para tornar o exemplo compreensível **não** equivalem a perguntas reais ao diretor; o protocolo de esclarecimento LAN-074 e a confirmação do briefing LAN-082 permanecem requisitos obrigatórios antes de qualquer animação real.
+
+### 16.4 Matriz preliminar de pendências e conformidade — AUDITORIA, NÃO HOMOLOGAÇÃO
+
+| Grupo | Decisão normativa já existente | Lacuna não resolvida | Situação |
+|---|---|---|---|
+| Gramática lexical | Seção global/texto livre, comandos por fase, Mid nomeado | Convenção exata de comentário e escape, indentação, duplicação, nomes e lista de alvos | **Candidato a bloqueio** |
+| Esquemas dos oito operadores | Catálogo fechado inicial e tipos opcionais por comando | Campos aceitos/rejeitados, tipos, relações e diagnósticos por operador | **Candidato a bloqueio** |
+| Unidades de parâmetros | Dimensões definidas conceitualmente (fator/grau/frame/unidade do modelo) | Precisão, limites, arredondamento, escala e eixos no GLB | **Depende do escopo** |
+| Curvas e retorno | Famílias, picos e retorno dentro da janela | Significado matemático e limites, testabilidade do retorno em cada efeito | **Candidato a bloqueio** |
+| Hitboxes | Volumes candidatos, metadados e prévia vermelha, sem dano automático | Estrutura e localização dos metadados, tipos definitivos e validação na exportação | **Candidato a bloqueio de teste com hitbox** |
+| Evidências | Matriz por agente/etapa/versão; testes omitidos explicitamente | Layout do relatório e implementação real da instrumentação | **Não executado** |
+| Casos canônicos | Exemplo candidato documentado e cenários TC-01–TC-09 | Exemplo revisado, critérios concretos e execução verificável | **Não homologado** |
+| Aprovação | Briefing e blocking aprovados pelo diretor antes de continuar; decisão final explícita | Nenhum briefing, blocking ou conjunto de evidências reais aprovado aqui | **Pendente** |
+
+**Classificações** como "candidato a bloqueio" são apenas análise para deliberação, **não uma nova regra de prioridade aprovada pelo diretor**. A matriz definitiva deverá distinguir normas, lacunas, futuro e evidências conforme LAN-101.
+
+## 17. Rodada 14 — questões ainda pendentes para fechamento técnico (PROPOSTAS, NÃO APROVADAS)
+
+- **LAN-Q107.** Qual o delimitador e a gramática de comentários, aspas, escapes e texto livre em `[ArtDirection]` e nas etapas?
+- **LAN-Q108.** Como escrever listas em `targets` e validar nomes, caracteres, IDs, canais e valores permitidos em `axis`/`space`?
+- **LAN-Q109.** Quais são os esquemas tipados concretos para Smear, Squash, Stretch e Scale, preservando opcionais e ausência de defaults numéricos?
+- **LAN-Q110.** Quais são os esquemas tipados concretos para Anticipation, FollowThrough, Overlap e SecondaryAction, especialmente `source` e atraso?
+- **LAN-Q111.** Como formalizar os campos de `curve`, o pico e as transições com retorno dentro da janela sem presumir percentuais fixos?
+- **LAN-Q112.** Como formalizar a serialização de hitbox e o destino de metadados, sem confundir GLB, prévia visual e integração de gameplay?
+- **LAN-Q113.** Como apresentar a matriz de evidências por agente/etapa/versão com rastreabilidade e estados não executados?
+- **LAN-Q114.** Como determinar quais pendências são bloqueantes para a especificação v1 documental, e o que pode ficar para testes/versões posteriores?
+
+> **Nota de governança:** não há decisões LAN-110 ou superiores aprovadas. Todas as oito perguntas desta seção estão abertas. A definição dos próximos detalhes exige nova manifestação do diretor.
