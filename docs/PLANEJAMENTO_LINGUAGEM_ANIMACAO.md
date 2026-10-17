@@ -67,6 +67,11 @@ As formas `[Start X]` e `[Start: X]` ainda são alternativas de escrita: nenhuma
 | LAN-021 | **Comandos mecânicos em { } para janelas e eventos, incluindo invulnerabilidade, cancelamentos, hitstop e stagger, devem inicialmente servir à inspeção, sem modificar automaticamente a mecânica.** | `19A — Permitir comandos { } que descrevam janelas e eventos, inicialmente como dados para inspeção, sem modificar a mecânica automaticamente.` | **APROVADA — Rodada 3** |
 | LAN-022 | **Root motion horizontal in-place por padrão; outros movimentos visuais são admitidos apenas quando compatíveis com o controle autoritativo da física.** | `20B — In-place horizontal por padrão, permitindo outros movimentos visuais quando forem compatíveis com o controle da física.` | **APROVADA — Rodada 3** |
 | LAN-023 | **A linguagem terá escopo geral de animação, com extensões específicas para as mecânicas do Arenamon.** | `21C — Linguagem geral de animação, com extensões específicas para as mecânicas do Arenamon.` | **APROVADA — Rodada 3** |
+| LAN-024 | **Entrega obrigatória por animação: arquivo `.blend` editável, GLB exportado, prévia em vídeo, especificação original do prompt e relatório de validação.** | `22A — Arquivo .blend, GLB exportado, prévia em vídeo, especificação original do prompt e relatório de validação.` | **APROVADA — Rodada 4** |
+| LAN-025 | **Qualidade avaliada pela combinação de testes automáticos, revisão visual de múltiplos ângulos e aprovação final do diretor.** | `23A — Combinar testes automáticos, avaliação visual em vários ângulos e aprovação final do diretor.` | **APROVADA — Rodada 4** |
+| LAN-026 | **Fluxo de aprovação: diretor aprova primeiro o blocking; a IA pode então refinar e polir; o diretor faz a aprovação final antes da entrega definitiva.** | `24C — Aprovar primeiro o blocking, permitir refinamento e polimento depois e exigir aprovação final antes da entrega definitiva.` | **APROVADA — Rodada 4** |
+| LAN-027 | **Cada versão recebe identificação própria, histórico de mudanças e referência à versão de origem; variantes anteriores devem permanecer preservadas.** | `25A — Cada versão recebe identificação própria, histórico de alterações e referência à versão original; variantes ficam preservadas.` | **APROVADA — Rodada 4** |
+| LAN-028 | **Casos iniciais para validar a linguagem: idle de Vigoroth, tapa com deformação das mãos e animação de criatura com anatomia não humanoide. A criatura e a ação do terceiro teste permanecem indefinidas.** | `26B — Idle do Vigoroth, tapa com deformação das mãos e uma animação de criatura com anatomia não humanoide.` | **APROVADA — Rodada 4** |
 
 Consequências invariantes:
 - Para o intervalo textual `a-b`, a quantidade é `b - a + 1` frames (se `b >= a`).
@@ -81,7 +86,9 @@ Consequências invariantes:
 
 **Rodada 3 aprovada:** prévia vermelha e exportação de metadados da hitbox sem alterar automaticamente o dano; volumes automáticos/explícitos, múltiplos e passíveis de associação óssea com validação; sincronização pela duração da ação e relatório das diferenças; comandos mecânicos para inspeção sem alteração automática; in-place horizontal padrão com movimentos visuais fisicamente compatíveis; linguagem geral extensível para o Arenamon.
 
-**Continuam pendentes:** forma exata dos cabeçalhos, quantidade mínima de Mid, algoritmos e prioridades específicos para composição/conflitos de efeitos, intensidade padrão e aceitação de parâmetros propostos, catálogo e semântica de cada modificador, geometria/semântica detalhada dos volumes, mecanismo de sincronização e validação, políticas de entregas e aprovação, formas concretas de exportação e condições de evolução para durações dinâmicas. As aprovações não constituem implementação, autorização de mudança na física ou homologação de exportadores.
+**Rodada 4 aprovada:** entrega `.blend`, GLB, prévia em vídeo, prompt original e relatório de validação; testes automáticos + análise visual multivistas + aprovação do diretor; aprovação do blocking antes de refinamento/polimento, com aprovação final antes da entrega definitiva; versionamento identificado, rastreável e não destrutivo; três testes-alvo (idle Vigoroth, tapa deformante, criatura não humanoide a definir).
+
+**Continuam pendentes:** forma exata da gramática/cabeçalhos, quantidade mínima de Mid, algoritmos específicos para efeitos simultâneos e tratamento de conflitos, intensidades e curvas, catálogo e semântica de modificadores, geometria dos volumes, mecanismo de conversão e diagnóstico de sincronização, detalhamento dos critérios de validação, formatos e rotas concretas de exportação, escolha da criatura e ação do terceiro teste e critérios de evolução para durações dinâmicas. As aprovações não constituem implementação, autorização de mudança na física ou homologação de exportadores.
 
 ## 4. Modelo temporal ilustrativo — PROPOSTA, não norma aprovada
 
@@ -210,12 +217,26 @@ Requisitos propostos para uma futura fase de validador:
 - **LAN-Q20.** In-place sempre, por padrão com exceções ou configurável por ação? **RESOLVIDA — LAN-022 (20B)**.
 - **LAN-Q21.** A evolução da linguagem deve valer apenas para o laboratório de combate ou também para outros usos e jogos? **RESOLVIDA — LAN-023 (21C)**.
 
-### Rodada 4 — produção, segurança e aprovação (próxima rodada; pendente)
-- **LAN-Q22.** Arquivos de entrega: BLEND, GLB, vídeo, especificação textual e/ou relatório de validação — quais são obrigatórios?
-- **LAN-Q23.** Verificação: apenas testes automáticos ou também revisão visual em vários ângulos, comparação e aprovação do diretor?
-- **LAN-Q24.** Critérios de aprovação por fases (blocking, spline, polish) e autorização antes de substituir arquivos?
-- **LAN-Q25.** Como versionar uma animação e registrar variantes sem sobrescrever originais?
-- **LAN-Q26.** Quais três casos reais devemos usar para validar a linguagem (idle, uppercut, tapa, esquiva, quadrúpede...)?
+### Rodada 4 — produção, segurança e aprovação (concluída; decisões LAN-024 a LAN-028)
+- **LAN-Q22.** Arquivos de entrega: BLEND, GLB, vídeo, especificação textual e/ou relatório de validação — quais são obrigatórios? **RESOLVIDA — LAN-024 (22A)**.
+- **LAN-Q23.** Verificação: apenas testes automáticos ou também revisão visual em vários ângulos, comparação e aprovação do diretor? **RESOLVIDA — LAN-025 (23A)**.
+- **LAN-Q24.** Critérios de aprovação por fases (blocking, spline, polish) e autorização antes de substituir arquivos? **RESOLVIDA — LAN-026 (24C)**.
+- **LAN-Q25.** Como versionar uma animação e registrar variantes sem sobrescrever originais? **RESOLVIDA — LAN-027 (25A)**.
+- **LAN-Q26.** Quais três casos reais devemos usar para validar a linguagem (idle, uppercut, tapa, esquiva, quadrúpede...)? **RESOLVIDA — LAN-028 (26B)**.
+
+### Rodada 5 — gramática detalhada e catálogo inicial de modificadores (pendente; propostas de perguntas)
+
+> **As opções desta rodada ainda não foram aprovadas**. As perguntas não alteram nenhuma decisão anterior.
+
+- **LAN-Q27.** Qual formato literal dos cabeçalhos e das durações: `[Start: 12]`, `[Start 12]` ou aceitar ambos e normalizar?
+- **LAN-Q28.** Como identificar múltiplos `Mid`: repetição sequencial de `[Mid: X]`, identificação explícita `[Mid: Nome | X]` ou numeração automática?
+- **LAN-Q29.** Qual sintaxe de parâmetros adicionais de um modificador (alvo, intensidade, curva), mantendo valores opcionais e estritamente respeitados quando fornecidos?
+- **LAN-Q30.** Como expressar eventos pontuais versus intervalos inclusivos: `[Impact: 8]`, `[Impact: 8-8]` ou uma sintaxe separada?
+- **LAN-Q31.** Como a IA escolhe e documenta curvas de entrada, sustentação e saída de modificadores dentro do intervalo aprovado?
+- **LAN-Q32.** Como categorizar compatibilidade e conflitos entre modificadores simultâneos que atingem o mesmo osso, canal ou malha?
+- **LAN-Q33.** Como lidar com modificadores de deformação com janela muito curta, inclusive um único frame, sem violar o retorno suave dentro do intervalo aprovado em LAN-008?
+- **LAN-Q34.** Como garantir continuidade de poses e curvas entre Start, múltiplos Mid e End sem acrescentar ou duplicar frames?
+- **LAN-Q35.** Como declarar princípios globais (Staging, Appeal etc.) e definir o primeiro catálogo de modificadores temporais, sem tratar todos os 12 princípios como operações temporais?
 
 ## 10. Governança e escopo
 
@@ -234,3 +255,4 @@ Requisitos propostos para uma futura fase de validador:
 | 16/10/2026 | **Rodada 1:** registradas oito aprovações explícitas (LAN-003 a LAN-010; escolhas 1A, 2B, 3A, 4A, 5A, 6A, 7A e 8C). LAN-Q01 a LAN-Q08 marcadas como resolvidas sem apagá-las. Restantes pendências preservadas. Nenhuma implementação autorizada. |
 | 16/10/2026 | **Rodada 2:** registradas sete aprovações explícitas (LAN-011 a LAN-017; escolhas 9C, 10C, 11D, 12C, 13C, 14B, 15B). LAN-Q09 a LAN-Q15 marcadas como resolvidas sem apagar o texto anterior. Restantes pendências preservadas. Nenhuma implementação autorizada. |
 | 16/10/2026 | **Rodada 3:** registradas seis decisões explícitas (LAN-018 a LAN-023; escolhas 16A, 17C, 18B, 19A, 20B, 21C). LAN-Q16 a LAN-Q21 marcadas como resolvidas. Preservadas todas as decisões e pendências anteriores. Nenhuma implementação nem ativação de regras de combate autorizada. |
+| 16/10/2026 | **Rodada 4:** registradas cinco decisões explícitas (LAN-024 a LAN-028; escolhas 22A, 23A, 24C, 25A, 26B). LAN-Q22 a LAN-Q26 marcadas como resolvidas sem suprimir o texto histórico. Incluídas perguntas LAN-Q27 a LAN-Q35 como pendências novas, sem aprová-las. Nenhuma implementação autorizada. |
