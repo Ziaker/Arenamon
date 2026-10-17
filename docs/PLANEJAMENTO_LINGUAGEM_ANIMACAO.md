@@ -54,6 +54,13 @@ As formas `[Start X]` e `[Start: X]` ainda são alternativas de escrita: nenhuma
 | LAN-008 | **A deformação deve retornar suavemente ao estado normal dentro do próprio intervalo de atuação.** | `6A — A deformação deve voltar ao normal dentro do próprio intervalo.` | **APROVADA — Rodada 1** |
 | LAN-009 | **Primeira utilização: prompts estruturados no Claude/Antigravity com Blender MCP, antes de desenvolver outras ferramentas.** | `7A — Primeiro usar prompts estruturados no Claude/Antigravity com Blender MCP.` | **APROVADA — Rodada 1** |
 | LAN-010 | **Etapas com durações fixas nesta primeira versão; suporte a durações dinâmicas fica para planejamento posterior.** | `8C — Começar com durações fixas e planejar suporte a durações dinâmicas posteriormente.` | **APROVADA — Rodada 1** |
+| LAN-011 | **Nomes anatômicos e nomes exatos de ossos são aceitos para designar partes-alvo; antes de executar, a IA deve inspecionar o rig e mapear os termos às estruturas reais.** | `9C — Aceitar nomes anatômicos ou ossos exatos, com inspeção e mapeamento do rig antes da execução.` | **APROVADA — Rodada 2** |
+| LAN-012 | **Diante de modificador incompatível com a anatomia ou a técnica, a IA deve propor alternativa anatômica/técnica e solicitar aprovação antes de executá-la.** | `10C — Propor uma alternativa anatômica ou técnica e solicitar sua aprovação antes de executar.` | **APROVADA — Rodada 2** |
+| LAN-013 | **Smear admite diferentes técnicas, selecionadas conforme rig e resultado pretendido; a exportação precisa ser verificada.** | `11D — Permitir diferentes técnicas, escolhidas conforme o rig e o resultado pretendido, verificando a exportação.` | **APROVADA — Rodada 2** |
+| LAN-014 | **Parâmetros dos modificadores são opcionais; quando explicitamente fornecidos devem ser respeitados, e quando ausentes os valores propostos pela IA ficam identificados como provisórios.** | `12C — Parâmetros opcionais: valores explícitos são obrigatórios quando fornecidos; os ausentes são propostos pela IA e ficam identificados como provisórios.` | **APROVADA — Rodada 2** |
+| LAN-015 | **Distinguir princípios globais de direção artística de modificadores temporais acionáveis.** | `13C — Separar princípios globais de direção artística e modificadores temporais acionáveis.` | **APROVADA — Rodada 2** |
+| LAN-016 | **Permitir poses-chave e marcos opcionais; a IA deve criar o blocking, refinar curvas e apresentar transições à revisão.** | `14B — A linguagem permite poses-chave e marcos opcionais; a IA cria o blocking, refina as curvas e apresenta as transições para revisão.` | **APROVADA — Rodada 2** |
+| LAN-017 | **Se uma deformação não sobreviver corretamente à exportação GLB, buscar bake ou substituição compatível, validar o resultado e solicitar aprovação caso haja perda visual.** | `15B — Procurar uma versão compatível por bake ou substituição, validar o resultado e solicitar aprovação se houver perda visual.` | **APROVADA — Rodada 2** |
 
 Consequências invariantes:
 - Para o intervalo textual `a-b`, a quantidade é `b - a + 1` frames (se `b >= a`).
@@ -64,7 +71,9 @@ Consequências invariantes:
 
 **Aprovado na Rodada 1:** numeração local em 1, Start e End com possibilidade de múltiplos Mid, 30 FPS obrigatório, distinção `[ ]` visual e `{ }` mecânica, composição apenas dos modificadores compatíveis com alerta de conflitos, retorno suave da deformação dentro do intervalo, etapa inicial por prompts para Claude/Antigravity via Blender MCP e durações fixas na primeira versão.
 
-**Continuam pendentes:** formato exato dos cabeçalhos, se há um mínimo de blocos Mid, regra detalhada de composição e detecção de conflitos, intensidades e algoritmos dos modificadores, representação e funcionamento efetivo de hitboxes, política para rigs não humanos, implementação/exportação e condições de evolução para durações dinâmicas. A linguagem de prompts não está implementada.
+**Rodada 2 aprovada:** reconhecimento e mapeamento prévio de termos anatômicos/nomes de ossos, alternativas sujeitas a aprovação para incompatibilidades, seleção de técnicas de Smear condicionada a rig/resultado/exportação, parâmetros opcionais com propostas provisórias identificadas, distinção entre princípios globais e operadores temporais, poses/marcos opcionais com revisão das transições e tentativa validada de bake/substituição para exportação incompatível com aprovação da perda visual.
+
+**Continuam pendentes:** forma exata dos cabeçalhos, quantidade mínima de Mid, algoritmos e prioridades específicos para composição/conflitos de efeitos, intensidade padrão e aceitação de parâmetros propostos, catálogo e semântica de cada modificador, regras detalhadas de hitboxes e gameplay, formas concretas de exportação e condições de evolução para durações dinâmicas. As aprovações não constituem implementação, autorização de mudança na física ou homologação de exportadores.
 
 ## 4. Modelo temporal ilustrativo — PROPOSTA, não norma aprovada
 
@@ -176,16 +185,16 @@ Requisitos propostos para uma futura fase de validador:
 - **LAN-Q07.** O diretor deseja que o sistema seja inicialmente uma **linguagem de prompts para Claude/Antigravity**, um **interpretador estruturado com validação**, ou uma **ferramenta no próprio Studio**? (Nenhuma arquitetura escolhida.) **RESOLVIDA — LAN-009 (7A)**.
 - **LAN-Q08.** As durações de Start/Mid/End são fixas por prompt, ou podem ser expressas também por marcos e tempos relativos/adaptáveis? **RESOLVIDA — LAN-010 (8C)**.
 
-### Rodada 2 — semântica visual e rig (próxima rodada; pendente)
-- **LAN-Q09.** Como identificar a parte-alvo: nomes exatos de ossos, termos anatômicos com mapeamento por rig ou ambos?
-- **LAN-Q10.** Se a anatomia não suportar o modificador, interromper com erro, pedir alternativa ou apresentar versões para aprovação?
-- **LAN-Q11.** `Smear` significa escala/stretch esquelético, malha temporária de deformação, múltiplas cópias/blur visual, ou seleção explícita do método?
-- **LAN-Q12.** Intensidades (amplitude, direção, curva) obrigatórias ou descrição natural com sugestões do agente?
-- **LAN-Q13.** Todos os princípios podem receber janelas, ou apenas efeitos temporais; quais princípios são globais?
-- **LAN-Q14.** Como devem funcionar poses-chave e transições Start→Mid→End quando há mudanças bruscas?
-- **LAN-Q15.** Qual a política para deformações que não sobrevivem à exportação GLB?
+### Rodada 2 — semântica visual e rig (concluída; decisões LAN-011 a LAN-017)
+- **LAN-Q09.** Como identificar a parte-alvo: nomes exatos de ossos, termos anatômicos com mapeamento por rig ou ambos? **RESOLVIDA — LAN-011 (9C)**.
+- **LAN-Q10.** Se a anatomia não suportar o modificador, interromper com erro, pedir alternativa ou apresentar versões para aprovação? **RESOLVIDA — LAN-012 (10C)**.
+- **LAN-Q11.** `Smear` significa escala/stretch esquelético, malha temporária de deformação, múltiplas cópias/blur visual, ou seleção explícita do método? **RESOLVIDA — LAN-013 (11D)**.
+- **LAN-Q12.** Intensidades (amplitude, direção, curva) obrigatórias ou descrição natural com sugestões do agente? **RESOLVIDA — LAN-014 (12C)**.
+- **LAN-Q13.** Todos os princípios podem receber janelas, ou apenas efeitos temporais; quais princípios são globais? **RESOLVIDA — LAN-015 (13C)**.
+- **LAN-Q14.** Como devem funcionar poses-chave e transições Start→Mid→End quando há mudanças bruscas? **RESOLVIDA — LAN-016 (14B)**.
+- **LAN-Q15.** Qual a política para deformações que não sobrevivem à exportação GLB? **RESOLVIDA — LAN-017 (15B)**.
 
-### Rodada 3 — gameplay e integração
+### Rodada 3 — gameplay e integração (próxima rodada; pendente)
 - **LAN-Q16.** `{Hitbox}` inicialmente desenha volume vermelho, exporta eventos/metadados ou futuramente governa dano real? Cada opção exige autorização e validação distinta.
 - **LAN-Q17.** Como identificar formato, tamanho, offset, orientação e osso de uma hitbox? Podem existir múltiplos volumes e golpes multihit?
 - **LAN-Q18.** Como resolver divergência de FPS e duração entre o clipe animado e a duração efetiva do golpe no jogo?
@@ -215,3 +224,4 @@ Requisitos propostos para uma futura fase de validador:
 |---|---|
 | 16/10/2026 | Primeira consolidação da ideia de Start/Mid/End, das duas decisões explicitamente aprovadas (LAN-001 e LAN-002), dos conflitos técnicos conhecidos e das perguntas pendentes. Novo documento isolado; nenhum código alterado. |
 | 16/10/2026 | **Rodada 1:** registradas oito aprovações explícitas (LAN-003 a LAN-010; escolhas 1A, 2B, 3A, 4A, 5A, 6A, 7A e 8C). LAN-Q01 a LAN-Q08 marcadas como resolvidas sem apagá-las. Restantes pendências preservadas. Nenhuma implementação autorizada. |
+| 16/10/2026 | **Rodada 2:** registradas sete aprovações explícitas (LAN-011 a LAN-017; escolhas 9C, 10C, 11D, 12C, 13C, 14B, 15B). LAN-Q09 a LAN-Q15 marcadas como resolvidas sem apagar o texto anterior. Restantes pendências preservadas. Nenhuma implementação autorizada. |
