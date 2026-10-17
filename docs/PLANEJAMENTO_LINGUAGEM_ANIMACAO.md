@@ -72,6 +72,15 @@ As formas `[Start X]` e `[Start: X]` ainda são alternativas de escrita: nenhuma
 | LAN-026 | **Fluxo de aprovação: diretor aprova primeiro o blocking; a IA pode então refinar e polir; o diretor faz a aprovação final antes da entrega definitiva.** | `24C — Aprovar primeiro o blocking, permitir refinamento e polimento depois e exigir aprovação final antes da entrega definitiva.` | **APROVADA — Rodada 4** |
 | LAN-027 | **Cada versão recebe identificação própria, histórico de mudanças e referência à versão de origem; variantes anteriores devem permanecer preservadas.** | `25A — Cada versão recebe identificação própria, histórico de alterações e referência à versão original; variantes ficam preservadas.` | **APROVADA — Rodada 4** |
 | LAN-028 | **Casos iniciais para validar a linguagem: idle de Vigoroth, tapa com deformação das mãos e animação de criatura com anatomia não humanoide. A criatura e a ação do terceiro teste permanecem indefinidas.** | `26B — Idle do Vigoroth, tapa com deformação das mãos e uma animação de criatura com anatomia não humanoide.` | **APROVADA — Rodada 4** |
+| LAN-029 | **Aceitar tanto cabeçalhos com dois-pontos (`[Start: 12]`) como com espaço (`[Start 12]`) e normalizar automaticamente ambos.** | `27C — Aceitar ambos os formatos e normalizá-los automaticamente.` | **APROVADA — Rodada 5** |
+| LAN-030 | **Permitir blocos Mid sem nome e nomes opcionais; atribuir identificação automática aos blocos.** | `28C — Aceitar blocos sem nome e permitir nomes opcionais, com identificação automática dos blocos.` | **APROVADA — Rodada 5** |
+| LAN-031 | **Admitir campos nomeados opcionais e uma descrição textual livre abaixo de cada modificador.** | `29B — Permitir campos nomeados opcionais e uma descrição livre abaixo do modificador.` | **APROVADA — Rodada 5** |
+| LAN-032 | **Interpretar um único número como evento pontual e dois números como intervalo inclusivo, como `[Impact: 8]` e `[Smear: 8-12]`.** | `30A — Um número indica evento pontual; dois números indicam intervalo, como [Impact: 8] e [Smear: 8-12].` | **APROVADA — Rodada 5** |
+| LAN-033 | **A IA deve propor curvas apropriadas ao movimento, registrar parâmetros efetivos e respeitar integralmente curvas explicitamente fornecidas pelo diretor.** | `31C — A IA propõe curvas adequadas ao efeito, registra seus parâmetros e respeita curvas explicitamente declaradas.` | **APROVADA — Rodada 5** |
+| LAN-034 | **Determinar compatibilidade por parte do corpo, propriedade/canal afetado e intervalo; combinar efeitos compatíveis e exigir resolução dos incompatíveis antes da execução.** | `32A — Analisar parte do corpo, propriedade e intervalo; combinar efeitos compatíveis e exigir resolução dos incompatíveis antes da execução.` | **APROVADA — Rodada 5** |
+| LAN-035 | **Rejeitar janelas de deformação curtas demais para cumprir entrada e retorno suaves dentro da própria janela; solicitar correção.** | `33A — Rejeitar janelas de deformação que sejam curtas demais para entrada e retorno suaves, solicitando correção.` | **APROVADA — Rodada 5** |
+| LAN-036 | **Exigir continuidade de poses e trajetórias entre etapas sem inserir frames extras; admitir mudanças bruscas intencionais quando declaradas.** | `34A — Exigir continuidade de pose e trajetória entre as etapas, sem criar frames extras; permitir mudanças bruscas intencionais quando especificadas.` | **APROVADA — Rodada 5** |
+| LAN-037 | **Usar seção global de direção artística e catálogo inicial controlado de modificadores temporais, ampliado somente após validação.** | `35A — Usar uma seção global de direção artística e um catálogo inicial controlado de modificadores temporais, ampliado somente após validação.` | **APROVADA — Rodada 5** |
 
 Consequências invariantes:
 - Para o intervalo textual `a-b`, a quantidade é `b - a + 1` frames (se `b >= a`).
@@ -88,7 +97,9 @@ Consequências invariantes:
 
 **Rodada 4 aprovada:** entrega `.blend`, GLB, prévia em vídeo, prompt original e relatório de validação; testes automáticos + análise visual multivistas + aprovação do diretor; aprovação do blocking antes de refinamento/polimento, com aprovação final antes da entrega definitiva; versionamento identificado, rastreável e não destrutivo; três testes-alvo (idle Vigoroth, tapa deformante, criatura não humanoide a definir).
 
-**Continuam pendentes:** forma exata da gramática/cabeçalhos, quantidade mínima de Mid, algoritmos específicos para efeitos simultâneos e tratamento de conflitos, intensidades e curvas, catálogo e semântica de modificadores, geometria dos volumes, mecanismo de conversão e diagnóstico de sincronização, detalhamento dos critérios de validação, formatos e rotas concretas de exportação, escolha da criatura e ação do terceiro teste e critérios de evolução para durações dinâmicas. As aprovações não constituem implementação, autorização de mudança na física ou homologação de exportadores.
+**Rodada 5 aprovada:** dois estilos de cabeçalho normalizados; Mid opcionalmente nomeado com IDs automáticos; parâmetros nomeados opcionais e texto livre por modificador; eventos de frame único diferenciados dos intervalos; curvas propostas, documentadas e subordinadas às declaradas; conflito detectado por alvo/propriedade/intervalo, resolvido antes de executar; deformações com duração insuficiente rejeitadas; continuidade entre etapas sem frames extras, exceto mudança brusca intencional declarada; seção global artística distinta de catálogo temporal controlado.
+
+**Continuam pendentes:** gramática exata para nomes opcionais e múltiplos Mid, catálogo nominal e semântica detalhada dos modificadores, critérios objetivos de compatibilidade e duração mínima por tipo, intensidades/presets de cada efeito, tipos de curvas, geometria de volumes, sincronização/diagnóstico, detalhes de exportação e validação, identidade do terceiro teste e condições de evolução para duração dinâmica. As aprovações não constituem implementação, autorização de mudança na física ou homologação de exportadores.
 
 ## 4. Modelo temporal ilustrativo — PROPOSTA, não norma aprovada
 
@@ -224,19 +235,33 @@ Requisitos propostos para uma futura fase de validador:
 - **LAN-Q25.** Como versionar uma animação e registrar variantes sem sobrescrever originais? **RESOLVIDA — LAN-027 (25A)**.
 - **LAN-Q26.** Quais três casos reais devemos usar para validar a linguagem (idle, uppercut, tapa, esquiva, quadrúpede...)? **RESOLVIDA — LAN-028 (26B)**.
 
-### Rodada 5 — gramática detalhada e catálogo inicial de modificadores (pendente; propostas de perguntas)
+### Rodada 5 — gramática detalhada e catálogo inicial de modificadores (concluída; decisões LAN-029 a LAN-037)
 
-> **As opções desta rodada ainda não foram aprovadas**. As perguntas não alteram nenhuma decisão anterior.
+> **Rodada respondida:** apenas as nove alternativas explicitamente selecionadas (LAN-029 a LAN-037) estão aprovadas. A especificação exata de cada modificador segue pendente.
 
-- **LAN-Q27.** Qual formato literal dos cabeçalhos e das durações: `[Start: 12]`, `[Start 12]` ou aceitar ambos e normalizar?
-- **LAN-Q28.** Como identificar múltiplos `Mid`: repetição sequencial de `[Mid: X]`, identificação explícita `[Mid: Nome | X]` ou numeração automática?
-- **LAN-Q29.** Qual sintaxe de parâmetros adicionais de um modificador (alvo, intensidade, curva), mantendo valores opcionais e estritamente respeitados quando fornecidos?
-- **LAN-Q30.** Como expressar eventos pontuais versus intervalos inclusivos: `[Impact: 8]`, `[Impact: 8-8]` ou uma sintaxe separada?
-- **LAN-Q31.** Como a IA escolhe e documenta curvas de entrada, sustentação e saída de modificadores dentro do intervalo aprovado?
-- **LAN-Q32.** Como categorizar compatibilidade e conflitos entre modificadores simultâneos que atingem o mesmo osso, canal ou malha?
-- **LAN-Q33.** Como lidar com modificadores de deformação com janela muito curta, inclusive um único frame, sem violar o retorno suave dentro do intervalo aprovado em LAN-008?
-- **LAN-Q34.** Como garantir continuidade de poses e curvas entre Start, múltiplos Mid e End sem acrescentar ou duplicar frames?
-- **LAN-Q35.** Como declarar princípios globais (Staging, Appeal etc.) e definir o primeiro catálogo de modificadores temporais, sem tratar todos os 12 princípios como operações temporais?
+- **LAN-Q27.** Qual formato literal dos cabeçalhos e das durações: `[Start: 12]`, `[Start 12]` ou aceitar ambos e normalizar? **RESOLVIDA — LAN-029 (27C)**.
+- **LAN-Q28.** Como identificar múltiplos `Mid`: repetição sequencial de `[Mid: X]`, identificação explícita `[Mid: Nome | X]` ou numeração automática? **RESOLVIDA — LAN-030 (28C)**.
+- **LAN-Q29.** Qual sintaxe de parâmetros adicionais de um modificador (alvo, intensidade, curva), mantendo valores opcionais e estritamente respeitados quando fornecidos? **RESOLVIDA — LAN-031 (29B)**.
+- **LAN-Q30.** Como expressar eventos pontuais versus intervalos inclusivos: `[Impact: 8]`, `[Impact: 8-8]` ou uma sintaxe separada? **RESOLVIDA — LAN-032 (30A)**.
+- **LAN-Q31.** Como a IA escolhe e documenta curvas de entrada, sustentação e saída de modificadores dentro do intervalo aprovado? **RESOLVIDA — LAN-033 (31C)**.
+- **LAN-Q32.** Como categorizar compatibilidade e conflitos entre modificadores simultâneos que atingem o mesmo osso, canal ou malha? **RESOLVIDA — LAN-034 (32A)**.
+- **LAN-Q33.** Como lidar com modificadores de deformação com janela muito curta, inclusive um único frame, sem violar o retorno suave dentro do intervalo aprovado em LAN-008? **RESOLVIDA — LAN-035 (33A)**.
+- **LAN-Q34.** Como garantir continuidade de poses e curvas entre Start, múltiplos Mid e End sem acrescentar ou duplicar frames? **RESOLVIDA — LAN-036 (34A)**.
+- **LAN-Q35.** Como declarar princípios globais (Staging, Appeal etc.) e definir o primeiro catálogo de modificadores temporais, sem tratar todos os 12 princípios como operações temporais? **RESOLVIDA — LAN-037 (35A)**.
+
+### Rodada 6 — catálogo semântico de efeitos e parâmetros (pendente; roteiro proposto)
+
+> **Nenhuma alternativa está aprovada nesta seção.** Esta rodada detalhará os modificadores sem modificar decisões existentes.
+
+- **LAN-Q36.** Qual o conjunto inicial de modificadores temporais de deformação (Smear, Squash, Stretch, Scale e outros), e qual processo de ampliação do catálogo?
+- **LAN-Q37.** Quando `Smear` significa deformação corporal, rastro visual, duplicação temporária ou outro método, qual a convenção para selecionar/descrever a técnica?
+- **LAN-Q38.** Como especificar intensidade e escala de Squash/Stretch/Scale (eixos, preservação de volume, alvo anatômico) sem forçar anatomia inadequada?
+- **LAN-Q39.** Quais curvas de entrada/pico/retorno devem estar disponíveis para deformações, e como registrar propostas provisórias feitas pela IA?
+- **LAN-Q40.** Como distinguir `Anticipation` e `FollowThrough` como marcadores temporais de direção dos seus efeitos reais nas poses e curvas?
+- **LAN-Q41.** Como especificar `Overlap` e `SecondaryAction`: alvo anatômico, atraso, duração e dependência da ação principal?
+- **LAN-Q42.** Quais princípios devem ser globais por padrão e como expressar sua intensidade geral sem transformar todos em operadores de frames?
+- **LAN-Q43.** Como definir a ampliação temporária de partes corporais (mãos, punhos, cabeça etc.) com volta ao normal, preservação anatômica e coerência de exportação?
+- **LAN-Q44.** Como validar que uma mudança é efeito artístico intencional versus deformação acidental do rig, incluindo prévia sem efeitos e comparação?
 
 ## 10. Governança e escopo
 
@@ -256,3 +281,4 @@ Requisitos propostos para uma futura fase de validador:
 | 16/10/2026 | **Rodada 2:** registradas sete aprovações explícitas (LAN-011 a LAN-017; escolhas 9C, 10C, 11D, 12C, 13C, 14B, 15B). LAN-Q09 a LAN-Q15 marcadas como resolvidas sem apagar o texto anterior. Restantes pendências preservadas. Nenhuma implementação autorizada. |
 | 16/10/2026 | **Rodada 3:** registradas seis decisões explícitas (LAN-018 a LAN-023; escolhas 16A, 17C, 18B, 19A, 20B, 21C). LAN-Q16 a LAN-Q21 marcadas como resolvidas. Preservadas todas as decisões e pendências anteriores. Nenhuma implementação nem ativação de regras de combate autorizada. |
 | 16/10/2026 | **Rodada 4:** registradas cinco decisões explícitas (LAN-024 a LAN-028; escolhas 22A, 23A, 24C, 25A, 26B). LAN-Q22 a LAN-Q26 marcadas como resolvidas sem suprimir o texto histórico. Incluídas perguntas LAN-Q27 a LAN-Q35 como pendências novas, sem aprová-las. Nenhuma implementação autorizada. |
+| 16/10/2026 | **Rodada 5:** registradas nove decisões explícitas (LAN-029 a LAN-037; 27C, 28C, 29B, 30A, 31C, 32A, 33A, 34A, 35A). As perguntas LAN-Q27 a LAN-Q35 foram marcadas como resolvidas mantendo o enunciado histórico. LAN-Q36 a LAN-Q44 adicionadas somente como pendências. Nenhuma implementação autorizada. |
