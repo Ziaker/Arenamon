@@ -99,6 +99,15 @@ As formas `[Start X]` e `[Start: X]` ainda são alternativas de escrita: nenhuma
 | LAN-053 | **São permitidos metadados visuais de entrada, saída e blending entre clipes, sem modificar automaticamente cancelamentos nem outras regras de gameplay.** | `51B — Permitir metadados visuais de entrada, saída e blending, sem alterar automaticamente cancelamentos ou outras regras de gameplay.` | **APROVADA — Rodada 7** |
 | LAN-054 | **Curvas avançadas podem ser utilizadas no Blender; realizar bake quando necessário e comparar a animação original com o GLB reimportado.** | `52B — Permitir curvas avançadas no Blender, aplicar bake quando necessário e comparar a animação original com o GLB reimportado.` | **APROVADA — Rodada 7** |
 | LAN-055 | **A validação exige relatório automático de timing e integridade, prévias multivistas, comparação com/sem efeitos e teste de reimportação GLB antes da entrega final.** | `53A — Relatório automático de timing e integridade, prévias multivistas, comparação com/sem efeitos e teste de reimportação GLB antes da entrega final.` | **APROVADA — Rodada 7** |
+| LAN-056 | **Antes de animar, analisar rig, hierarquia, malha e articulações e produzir mapa anatômico verificável.** | `54B — Inspecionar rig, hierarquia, malha e articulações; produzir um mapa anatômico verificável antes de animar.` | **APROVADA — Rodada 8 (aprovação global das recomendações)** |
+| LAN-057 | **Em caso de rig incompleto/ambíguo, interromper apenas operações afetadas, diagnosticar e propor correções, exigindo aprovação antes de alterações estruturais.** | `55A — Interromper apenas as operações afetadas, apresentar diagnóstico e propostas de correção, exigindo aprovação antes de mudanças estruturais.` | **APROVADA — Rodada 8 (aprovação global das recomendações)** |
+| LAN-058 | **Criar e editar somente cópia versionada, preservando rig, malha e pesos originais, com autorização prévia para quaisquer alterações estruturais.** | `56A — Trabalhar sempre sobre uma cópia versionada, preservando rig, malha e pesos originais; mudanças estruturais exigem autorização.` | **APROVADA — Rodada 8 (aprovação global das recomendações)** |
+| LAN-059 | **Detectar orientação, escala, pivôs e eixos do rig e estabelecer referencial anatômico documentado, com conversões explícitas para os eixos de trabalho.** | `57B — Detectar orientação, escala, pivôs e eixos do rig e usar um referencial anatômico documentado, com conversões explícitas.` | **APROVADA — Rodada 8 (aprovação global das recomendações)** |
+| LAN-060 | **Detectar possíveis interpenetrações; distinguir exageros intencionais explicitamente previstos e enviar casos ambíguos para revisão visual.** | `58B — Detectar possíveis problemas, distinguir exageros explicitamente previstos e submeter casos ambíguos à revisão visual.` | **APROVADA — Rodada 8 (aprovação global das recomendações)** |
+| LAN-061 | **Combinar métricas de deslocamento, contato e continuidade com inspeção visual; limites quantitativos serão propostos e deverão ser aprovados, não presumidos.** | `59B — Combinar métricas de deslocamento, continuidade e contato com inspeção visual, propondo limites verificáveis para aprovação.` | **APROVADA — Rodada 8 (aprovação global das recomendações)** |
+| LAN-062 | **Para efeitos auxiliares, testar exportação GLB direta e, se necessário, bake ou representação equivalente, comparando visualmente e documentando perdas.** | `60B — Testar exportação direta e, quando necessário, utilizar bake ou representação equivalente, com comparação visual e relatório de perdas.` | **APROVADA — Rodada 8 (aprovação global das recomendações)** |
+| LAN-063 | **Validar Blender e GLB reimportado como estágios independentes; exigir teste no jogo quando houver integração disponível e relatar o que não foi testado.** | `61B — Validar Blender e GLB reimportado separadamente, exigir teste no jogo quando houver integração disponível e relatar claramente o que não foi testado.` | **APROVADA — Rodada 8 (aprovação global das recomendações)** |
+| LAN-064 | **Terceiro teste inicial: criatura quadrúpede genérica e autoral executando salto no lugar, com apoios e FollowThrough. A identidade/modelo exatos seguem a aprovação do diretor.** | `62A — Criatura quadrúpede genérica e autoral, com animação de salto no lugar, apoios e follow-through.` | **APROVADA — Rodada 8 (aprovação global das recomendações)** |
 
 Consequências invariantes:
 - Para o intervalo textual `a-b`, a quantidade é `b - a + 1` frames (se `b >= a`).
@@ -121,7 +130,9 @@ Consequências invariantes:
 
 **Rodada 7 aprovada:** poses-chave opcionais por frame local e anatomia (LAN-047); marcos de timing internos sem frames extras (LAN-048); contatos/travamentos temporais com IK quando necessário e validação de deslizamentos (LAN-049); fechamento contínuo de loops sem frames adicionais (LAN-050); impacto, pose e hold visual separados do hitstop mecânico (LAN-051); Mid com IDs automáticos e conteúdo próprio (LAN-052); metadados de blending sem alterar gameplay (LAN-053); curvas avançadas com bake e comparação após reimportação GLB (LAN-054); e relatório de timing/integridade, multivistas, comparação com/sem efeitos e reimportação antes da entrega final (LAN-055).
 
-**Continuam pendentes:** detalhes precisos da gramática e formatos de eventos, critérios quantitativos para continuidade/loop/contatos, mapeamento de anatomias e hierarquia dos rigs, equações e presets das curvas, duração mínima e compatibilidade de efeitos, geometria das hitboxes, sincronização e diagnósticos, política de recursos auxiliares e exportabilidade, escolha da criatura não humanoide de teste e critérios de homologação. As decisões não constituem implementação nem autorização de alterações no combate.
+**Rodada 8 aprovada:** inspeção e mapa anatômico verificável antes da execução; pausa seletiva diante de ambiguidades e autorização para alterações estruturais; cópia versionada com preservação de rig/malha/pesos; referenciais anatômicos e conversões explícitas; interpenetrações ambíguas sob revisão; métricas de contato e continuidade com limites propostos para aprovação; validação de efeitos auxiliares com exportação/bake e comparação; testes separados de Blender/GLB e eventual jogo, declarando lacunas; e terceiro caso inicial quadrúpede genérico autoral saltando no lugar com apoios e FollowThrough.
+
+**Continuam pendentes:** normalização formal de sintaxe e eventos, política para valores inferidos pela IA, critérios quantitativos efetivos para continuidade/loop/contatos, estrutura do mapa anatômico, equações/presets de curvas, duração mínima/compatibilidade de efeitos, geometria e exportação de hitboxes, rastreabilidade das validações, detalhes de versionamento e critérios finais de homologação. A escolha do terceiro teste não aprova um modelo específico nem autoriza implementação.
 
 ## 4. Modelo temporal ilustrativo — PROPOSTA, não norma aprovada
 
@@ -299,19 +310,33 @@ Requisitos propostos para uma futura fase de validador:
 - **LAN-Q52.** Como modelar, revisar, amostrar e exportar curvas/poses do Blender para GLB, preservando timing e intenção visual? **RESOLVIDA — LAN-054 (52B)**.
 - **LAN-Q53.** Quais evidências mínimas devem acompanhar a validação de continuidade, contatos, deformação, timing e exportação antes da aprovação do blocking e da entrega final? **RESOLVIDA — LAN-055 (53A)**.
 
-### Rodada 8 — rigs não humanoides, integridade e validação de exportação (pendente; roteiro proposto)
+### Rodada 8 — rigs não humanoides, integridade e validação de exportação (concluída; decisões LAN-056 a LAN-064)
 
-> **Não há decisões aprovadas para esta rodada.** As alternativas serão propostas separadamente, e nenhuma orientação pode modificar malha/rig/pesos ou substituir a aprovação do diretor por suposição.
+> **Rodada concluída por aprovação global das recomendações:** o diretor respondeu `sigo todas recomendações`, ratificando as alternativas 54B, 55A, 56A, 57B, 58B, 59B, 60B, 61B e 62A como decisões LAN-056 a LAN-064. A aprovação não autoriza alterar malha, rig ou pesos nem implementar código.
 
-- **LAN-Q54.** Como detectar e classificar anatomias não humanoides e seus segmentos a partir da inspeção do rig e da malha?
-- **LAN-Q55.** O que fazer com mapeamentos ambíguos, ossos ausentes ou malhas sem rig e como registrar pedidos de aprovação?
-- **LAN-Q56.** Como preservar estrutura óssea, skinning, materiais, malha e arquivos-fonte quando uma técnica de animação pede adaptação?
-- **LAN-Q57.** Como definir espaço de coordenadas, direção frontal, unidade de escala, pivôs e eixos para que comandos anatômicos não invertam movimentos?
-- **LAN-Q58.** Como lidar com colisões ou interpenetrações visuais intencionais versus erros de malha/rig nas deformações?
-- **LAN-Q59.** Quais critérios mensuráveis ou diagnósticos devem validar pés/mãos apoiados, deslizamento, IK e fechamento de loops sem sacrificar animação estilizada?
-- **LAN-Q60.** Como representar efeitos auxiliares (trails, cópias, geometria de Smear, shape keys) na exportação GLB sem perder a aparência, e o que reprovar?
-- **LAN-Q61.** Como organizar diferenças entre prévia no Blender, prévia reimportada em GLB e reprodução futura no Arenamon sem afirmar integração não implementada?
-- **LAN-Q62.** Qual criatura de anatomia não humanoide e qual ação específica deverão compor o terceiro teste inicial, e como aprovar o modelo de teste?
+- **LAN-Q54.** Como detectar e classificar anatomias não humanoides e seus segmentos a partir da inspeção do rig e da malha? **RESOLVIDA — LAN-056 (54B)**.
+- **LAN-Q55.** O que fazer com mapeamentos ambíguos, ossos ausentes ou malhas sem rig e como registrar pedidos de aprovação? **RESOLVIDA — LAN-057 (55A)**.
+- **LAN-Q56.** Como preservar estrutura óssea, skinning, materiais, malha e arquivos-fonte quando uma técnica de animação pede adaptação? **RESOLVIDA — LAN-058 (56A)**.
+- **LAN-Q57.** Como definir espaço de coordenadas, direção frontal, unidade de escala, pivôs e eixos para que comandos anatômicos não invertam movimentos? **RESOLVIDA — LAN-059 (57B)**.
+- **LAN-Q58.** Como lidar com colisões ou interpenetrações visuais intencionais versus erros de malha/rig nas deformações? **RESOLVIDA — LAN-060 (58B)**.
+- **LAN-Q59.** Quais critérios mensuráveis ou diagnósticos devem validar pés/mãos apoiados, deslizamento, IK e fechamento de loops sem sacrificar animação estilizada? **RESOLVIDA — LAN-061 (59B)**.
+- **LAN-Q60.** Como representar efeitos auxiliares (trails, cópias, geometria de Smear, shape keys) na exportação GLB sem perder a aparência, e o que reprovar? **RESOLVIDA — LAN-062 (60B)**.
+- **LAN-Q61.** Como organizar diferenças entre prévia no Blender, prévia reimportada em GLB e reprodução futura no Arenamon sem afirmar integração não implementada? **RESOLVIDA — LAN-063 (61B)**.
+- **LAN-Q62.** Qual criatura de anatomia não humanoide e qual ação específica deverão compor o terceiro teste inicial, e como aprovar o modelo de teste? **RESOLVIDA — LAN-064 (62A)**.
+
+### Rodada 9 — normalização, contrato de conformidade e rastreabilidade (pendente; roteiro proposto)
+
+> **Todas as alternativas desta rodada continuam pendentes.** A gramática poderá ser especificada e validada documentalmente sem implementar parser, plugin, Blender ou runtime até autorização explícita.
+
+- **LAN-Q63.** Como tratar instruções incompletas ou ambíguas no prompt: pedir confirmação, gerar proposta provisória identificada ou bloquear conforme a criticidade?
+- **LAN-Q64.** Qual o formato canônico normalizado do documento/prompt: texto estruturado único, texto com representação intermediária proposta ou duas fontes equivalentes?
+- **LAN-Q65.** Como declarar tipos de animação (Loop, OneShot, pose, reação), evitando que propriedades cíclicas sejam presumidas a partir do nome?
+- **LAN-Q66.** Como representar e validar frames locais, globais, eventos pontuais e intervalos inclusivos em relatórios e exportações, preservando duração exata?
+- **LAN-Q67.** Como identificar versão do catálogo, versão da linguagem e compatibilidade de comandos entre agentes, sem aceitar comandos desconhecidos silenciosamente?
+- **LAN-Q68.** Como registrar valores explicitamente fornecidos, valores sugeridos e valores aprovados, distinguindo proveniência e revisão?
+- **LAN-Q69.** Qual o tratamento de erros de conformidade: falhar seletivamente, bloquear execução completa ou permitir correções automatizadas condicionadas à aprovação?
+- **LAN-Q70.** Quais critérios objetivos e evidências devem compor a matriz de testes de aceitação da gramática, da animação e da exportação?
+- **LAN-Q71.** Quando considerar a versão inicial da linguagem pronta para uma prova de conceito controlada, sem autorizar a implementação automaticamente?
 
 ## 10. Governança e escopo
 
@@ -334,3 +359,4 @@ Requisitos propostos para uma futura fase de validador:
 | 16/10/2026 | **Rodada 5:** registradas nove decisões explícitas (LAN-029 a LAN-037; 27C, 28C, 29B, 30A, 31C, 32A, 33A, 34A, 35A). As perguntas LAN-Q27 a LAN-Q35 foram marcadas como resolvidas mantendo o enunciado histórico. LAN-Q36 a LAN-Q44 adicionadas somente como pendências. Nenhuma implementação autorizada. |
 | 16/10/2026 | **Rodada 6:** registradas nove decisões explícitas LAN-038 a LAN-046 (36A, 37B, 38B, 39B, 40A, 41B, 42A, 43B, 44A). LAN-Q36 a LAN-Q44 marcadas como resolvidas sem supressão do histórico. LAN-Q45 a LAN-Q53 adicionadas como pendências, sem presumir aprovações. Nenhuma implementação autorizada. |
 | 16/10/2026 | **Rodada 7:** registradas nove aprovações explícitas LAN-047 a LAN-055 (45A, 46B, 47A, 48A, 49B, 50A, 51B, 52B, 53A). LAN-Q45 a LAN-Q53 marcadas como resolvidas, sem remover perguntas nem decisões anteriores. LAN-Q54 a LAN-Q62 adicionadas apenas como pendências de planejamento. Nenhuma implementação autorizada. |
+| 17/10/2026 | **Rodada 8:** o diretor aprovou todas as recomendações da rodada com `sigo todas recomendações`, correspondendo a 54B, 55A, 56A, 57B, 58B, 59B, 60B, 61B e 62A. Registradas LAN-056 a LAN-064 e resolvidas LAN-Q54 a LAN-Q62. Incluídas LAN-Q63 a LAN-Q71 como pendências para normalização/conformidade. Nenhuma implementação autorizada; histórico integral preservado. |
