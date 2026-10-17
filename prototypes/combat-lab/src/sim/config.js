@@ -122,7 +122,7 @@ export function vfxDefaults() {
   const shake = (amplitude, duration, profile, enabled = 1) => ({enabled, profile, amplitude, duration, frequency: 26, damping: 7, angular: .6, intensity: 1, limit: .45});
   return {
     // legacy: liga também as partículas e o tremor antigos do v6 (parâmetros de Ajustes › Visual › Efeitos e feedback).
-    master: {enabled: 1, maxParticles: 1400, debugLog: 1, legacy: 0},
+    master: {enabled: 1, maxParticles: 1400, debugLog: 1, legacy: 0, noFlash: 0, reduceMotion: 0, highContrast: 0},
     hit: {enabled: 1, variant: 0, size: 1.3, duration: .38, count: 18, intensity: 1, speed: 6, opacity: .95, color: 0xffb361, glow: 1.2, fade: 1.6},
     dodge: {enabled: 1, variant: 0, count: 6, length: 1.4, duration: .22, width: .07, opacity: .7, spread: .45, interval: .025, intensity: 1, color: 0x9dffd8},
     sprint: {enabled: 1, variant: 0, density: 1, length: 1.1, speed: 9, spread: .5, intensity: 1, opacity: .55, color: 0xd8f4ff, frequency: 28},

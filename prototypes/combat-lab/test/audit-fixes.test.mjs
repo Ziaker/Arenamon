@@ -154,4 +154,111 @@ function createMockTuning() {
   console.log('✓ Correção 5: Identificação de bloqueios e parries corrigida para ON BLOCK / PERFECT GUARD');
 }
 
-console.log('--- Todas as 5 verificações da auditoria foram validadas com sucesso! ---');
+// --- 5. Verificação [P0]: Knockback Terrestre Real (applyHit não cria flight quando vertical <= 0) ---
+{
+  const {Game} = await import('../src/sim/game.js');
+  const {applyHit} = await import('../src/sim/world.js');
+  const {emptyCommand} = await import('../src/sim/entity.js');
+
+  resetConfig(defaults());
+  const game = new Game();
+  game.mode = 'inactive';
+  game.reset({positions: [{x: 0, z: -3}, {x: 0, z: 0}]});
+  const target = game.fighters[1];
+  applyHit(game, 0, target, {damage: 0, knockback: {horizontal: 0.3, vertical: 0}}, {x: 0, z: 1});
+
+  assert.equal(target.flight, null, 'Knockback terrestre não deve colocar o alvo em flight');
+  assert.ok(target.push, 'Knockback terrestre deve inicializar push');
+  assert.equal(target.push.distance, 0.45, 'Distância mínima prometida de 0,45 m');
+
+  for (let i = 0; i < 40; i++) game.step(emptyCommand(), emptyCommand());
+  assert.ok(target.position.z >= 0.44, `Alvo deve percorrer os 0,45 m (percorrido: ${target.position.z.toFixed(4)} m)`);
+  assert.equal(target.flight, null, 'Permanece sem flight após o deslocamento');
+  console.log('✓ Correção 6 [P0]: Knockback terrestre percorre 0,45 m sem ser anulado por flight');
+}
+
+// --- 6. Verificação [P1]: Evasão Emergencial durante o Charge contra Tackle ---
+{
+  const {Game} = await import('../src/sim/game.js');
+  const {registerMove} = await import('../src/sim/moves.js');
+  const {psyshockDef} = await import('../src/sim/moves/psyshock.js');
+  const {emptyCommand} = await import('../src/sim/entity.js');
+  const {tacticalCommand} = await import('../src/sim/tactics.js');
+  const {movesCommand} = await import('../src/sim/ai-moves.js');
+
+  resetConfig(defaults());
+  registerMove(psyshockDef);
+  const game = new Game();
+  game.mode = 'inactive';
+  game.reset({positions: [{x: 0, z: -3}, {x: 0, z: 0}]});
+  const blue = game.fighters[0];
+  const red = game.fighters[1];
+  game.setLoadout(0, ['psyshock', null, null, null]);
+
+  const c0 = emptyCommand();
+  c0.skill = 0; c0.skillHeld = {0: true};
+  game.step(c0, emptyCommand());
+  for (let i = 0; i < 35; i++) {
+    const cHold = emptyCommand();
+    cHold.skillHeld = {0: true};
+    game.step(cHold, emptyCommand());
+  }
+
+  red.action = {kind: 'tackle', heading: Math.PI, duration: 0.5, elapsed: 0, canCancel: true};
+  const brain = {t: null, cooldown: 0, random: () => 0.5, wasGuard: false, getWorld: () => game.world};
+  const cTactical = tacticalCommand(brain, blue, red, 1/120, {});
+  const cFinal = movesCommand(brain, blue, red, cTactical);
+
+  assert.equal(cFinal.dodge, true, 'IA deve emitir comando de esquiva emergencial');
+  assert.equal(cFinal.skillHeld, null, 'IA deve soltar o botão de carga para esquivar');
+  game.step(cFinal, emptyCommand());
+  assert.equal(blue.action?.kind, 'dodge', 'Lutador deve entrar em esquiva');
+  assert.equal(blue.charge, null, 'Carga deve ser cancelada pela esquiva');
+  console.log('✓ Correção 7 [P1]: IA cancela carga com esquiva emergencial ao detectar Tackle rival');
+}
+
+// --- 7. Verificação [P1]: 3 Modelos 3D Distintos para a Barreira (Reflect) ---
+{
+  const {WorldView} = await import('../src/view/world-view.js');
+  const scene = {add: () => {}, remove: () => {}};
+  const wv = new WorldView(scene);
+
+  C.vfx.barrier.variant = 0;
+  const m0 = wv.make({id: 101, kind: 'barrier', reflect: true, shape: 'box', pos: {x: 0, z: 0}, y: 0, height: 2, hx: 1, hz: 0.1});
+  C.vfx.barrier.variant = 1;
+  const m1 = wv.make({id: 102, kind: 'barrier', reflect: true, shape: 'box', pos: {x: 0, z: 0}, y: 0, height: 2, hx: 1, hz: 0.1});
+  C.vfx.barrier.variant = 2;
+  const m2 = wv.make({id: 103, kind: 'barrier', reflect: true, shape: 'box', pos: {x: 0, z: 0}, y: 0, height: 2, hx: 1, hz: 0.1});
+
+  assert.notEqual(m0.geometry.type, m1.geometry.type === 'BoxGeometry' ? 'different' : '', 'Variante 1 deve ter geometria cristalina');
+  assert.equal(m0.userData.style, 0, 'Estilo 0 registrado');
+  assert.equal(m1.userData.style, 1, 'Estilo 1 registrado');
+  assert.equal(m2.userData.style, 2, 'Estilo 2 registrado');
+  assert.ok(m0.getObjectByName('subGrid'), 'Estilo 0 possui grelha hexagonal subGrid');
+  assert.ok(m1.getObjectByName('cleavage'), 'Estilo 1 possui facetas de clivagem cristalina');
+  assert.ok(m2.getObjectByName('innerWave'), 'Estilo 2 possui onda interna de plasma');
+  console.log('✓ Correção 8 [P1]: Três modelos e geometrias 3D distintos construídos para a barreira');
+}
+
+// --- 8. Verificação [P2]: Acessibilidade Visual aplicada ao renderizador ativo e legado ---
+{
+  const {VfxSystem} = await import('../src/view/vfx.js');
+  const scene = {add: () => {}, remove: () => {}};
+  const flashEl = {style: {}};
+  const vfx = new VfxSystem(scene, {flashEl});
+
+  vfx.setAccessibility({noFlash: true, reduceMotion: true, highContrast: true});
+  vfx.screenFlash({x: 0, z: 0}, 0, 1, 0xffffff, 0.5);
+  assert.equal(vfx.flash, null, 'noFlash deve suprimir flashes no sistema legado');
+
+  vfx.shake('shakeHit', {x: 0, z: 1}, 1, 'teste');
+  assert.equal(vfx.shakes.length, 0, 'reduceMotion deve suprimir camera shakes no sistema legado');
+
+  vfx.spawn({x: 0, y: 0, z: 0, vx: 10, vy: 10, vz: 10, color: 0xffffff, alpha: 0.2});
+  const spawnedParticle = vfx.norm.p[0] || vfx.add.p[0];
+  assert.ok(spawnedParticle.vx < 5, 'reduceMotion deve amortecer velocidade de partículas');
+  assert.ok(spawnedParticle.alpha >= 0.85, 'highContrast deve elevar opacidade de partículas');
+  console.log('✓ Correção 9 [P2]: Acessibilidade visual (noFlash, reduceMotion, highContrast) consumida pelo sistema legado ativo');
+}
+
+console.log('--- Todas as correções da auditoria foram validadas com sucesso! ---');

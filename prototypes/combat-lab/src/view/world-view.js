@@ -28,13 +28,25 @@ const FIGHTER_EVENTS = new Set(['counterStagger', 'shielded']);
 function buildRockGeometry(style = 0) {
   let geo;
   if (style === 1) {
-    // Estilo 1: Cristal Psíquico (Octaedro duplo facetado com facetas afiadas)
-    geo = new T.OctahedronGeometry(1, 0);
-    const pos = geo.attributes.position;
-    for (let i = 0; i < pos.count; i++) {
-      const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
-      pos.setXYZ(i, x * 0.85, y * 1.55, z * 0.85);
+    // Estilo 1: Cristal Psíquico (Cone duplo hexagonal facetado / bipirâmide afiada de 12 faces)
+    const verts = [];
+    const r = 0.88, h = 1.35;
+    const equator = [];
+    for (let i = 0; i < 6; i++) {
+      const a = (i * Math.PI) / 3;
+      equator.push(new T.Vector3(Math.cos(a) * r, 0, Math.sin(a) * r));
     }
+    const apex = new T.Vector3(0, h, 0);
+    const nadir = new T.Vector3(0, -h, 0);
+    for (let i = 0; i < 6; i++) {
+      const next = (i + 1) % 6;
+      // Pirâmide superior
+      verts.push(apex.x, apex.y, apex.z, equator[i].x, equator[i].y, equator[i].z, equator[next].x, equator[next].y, equator[next].z);
+      // Pirâmide inferior
+      verts.push(nadir.x, nadir.y, nadir.z, equator[next].x, equator[next].y, equator[next].z, equator[i].x, equator[i].y, equator[i].z);
+    }
+    geo = new T.BufferGeometry();
+    geo.setAttribute('position', new T.Float32BufferAttribute(verts, 3));
   } else if (style === 2) {
     // Estilo 2: Meteorito Runas (Icosaedro com blocos esculpidos)
     geo = new T.IcosahedronGeometry(1, 0);
@@ -55,6 +67,68 @@ function buildRockGeometry(style = 0) {
       pos.setXYZ(i, x * perturb, y * perturb, z * perturb);
     }
   }
+  geo.computeVertexNormals();
+  return geo;
+}
+
+/** Gera grelha hexagonal para a barreira estilo 0 (Hex-Grid Ciclado). */
+function buildHexGridGeometry(cols = 4, rows = 4) {
+  const pts = [];
+  const dx = 1 / cols, dy = 1 / rows;
+  for (let r = 0; r < rows; r++) {
+    const y0 = -0.5 + r * dy, y1 = y0 + dy;
+    for (let c = 0; c < cols; c++) {
+      const x0 = -0.5 + c * dx, x1 = x0 + dx;
+      const mx = (x0 + x1) / 2, my = (y0 + y1) / 2;
+      pts.push(new T.Vector3(x0, my, 0.51), new T.Vector3(mx, y1, 0.51));
+      pts.push(new T.Vector3(mx, y1, 0.51), new T.Vector3(x1, my, 0.51));
+      pts.push(new T.Vector3(x1, my, 0.51), new T.Vector3(mx, y0, 0.51));
+      pts.push(new T.Vector3(mx, y0, 0.51), new T.Vector3(x0, my, 0.51));
+      pts.push(new T.Vector3(x0, my, -0.51), new T.Vector3(mx, y1, -0.51));
+      pts.push(new T.Vector3(mx, y1, -0.51), new T.Vector3(x1, my, -0.51));
+      pts.push(new T.Vector3(x1, my, -0.51), new T.Vector3(mx, y0, -0.51));
+      pts.push(new T.Vector3(mx, y0, -0.51), new T.Vector3(x0, my, -0.51));
+    }
+  }
+  return new T.BufferGeometry().setFromPoints(pts);
+}
+
+/** Gera placa facetada de cristal para a barreira estilo 1 (Cristal de Quartzo). */
+function buildQuartzGeometry() {
+  const verts = [];
+  const p = [
+    [-0.5, -0.4], [-0.5, 0.4], [-0.4, 0.5], [0.4, 0.5],
+    [0.5, 0.4], [0.5, -0.4], [0.4, -0.5], [-0.4, -0.5]
+  ];
+  const frontZ = 0.45, backZ = -0.45, midZ = 0;
+  for (let i = 0; i < 8; i++) {
+    const next = (i + 1) % 8;
+    verts.push(0, 0, frontZ, p[i][0], p[i][1], midZ, p[next][0], p[next][1], midZ);
+    verts.push(0, 0, backZ, p[next][0], p[next][1], midZ, p[i][0], p[i][1], midZ);
+    verts.push(p[i][0], p[i][1], midZ, p[next][0], p[next][1], midZ, p[next][0], p[next][1], -0.15);
+    verts.push(p[i][0], p[i][1], midZ, p[next][0], p[next][1], -0.15, p[i][0], p[i][1], -0.15);
+  }
+  const geo = new T.BufferGeometry();
+  geo.setAttribute('position', new T.Float32BufferAttribute(verts, 3));
+  geo.computeVertexNormals();
+  return geo;
+}
+
+/** Gera escudo curvo de plasma para a barreira estilo 2 (Campo de Força Puro). */
+function buildForceFieldGeometry(segments = 24) {
+  const verts = [];
+  for (let i = 0; i < segments; i++) {
+    const u0 = i / segments, u1 = (i + 1) / segments;
+    const x0 = -0.5 + u0, x1 = -0.5 + u1;
+    const z0 = Math.sin(u0 * Math.PI) * 0.35 - 0.17;
+    const z1 = Math.sin(u1 * Math.PI) * 0.35 - 0.17;
+    verts.push(x0, -0.5, z0, x1, -0.5, z1, x1, 0.5, z1);
+    verts.push(x0, -0.5, z0, x1, 0.5, z1, x0, 0.5, z0);
+    verts.push(x1, -0.5, z1, x0, -0.5, z0, x1, 0.5, z1);
+    verts.push(x1, 0.5, z1, x0, -0.5, z0, x0, 0.5, z0);
+  }
+  const geo = new T.BufferGeometry();
+  geo.setAttribute('position', new T.Float32BufferAttribute(verts, 3));
   geo.computeVertexNormals();
   return geo;
 }
@@ -81,6 +155,11 @@ export class WorldView {
     // Cache de geometrias de rocha
     this.rockGeos = [buildRockGeometry(0), buildRockGeometry(1), buildRockGeometry(2)];
     this.trailTimer = 0;
+    this.accessibility = {noFlash: false, reduceMotion: false, highContrast: false};
+  }
+
+  setAccessibility(a = {}) {
+    this.accessibility = {...this.accessibility, ...a};
   }
 
   getRockGeo(style = 0) {
@@ -157,31 +236,95 @@ export class WorldView {
       mesh = new T.Mesh(geo, new T.MeshBasicMaterial({color: e.explosion ? 0xff8a5a : 0xffb361, transparent: true, opacity: .35, depthWrite: false, side: T.DoubleSide}));
     } else {
       // Barreira (Reflect) ou Paredes
-      const geo = e.shape === 'circle' ? new T.CylinderGeometry(1, 1, 1, 32, 1, true) : new T.BoxGeometry(1, 1, 1);
       const isReflect = !!e.reflect;
-      const opacity = isReflect ? (C.vfx?.barrier?.opacity ?? 0.65) : (e.kind === 'wall' ? 0.95 : 0.35);
-      mesh = new T.Mesh(geo, new T.MeshStandardMaterial({
-        color: e.kind === 'wall' ? 0x9aa7b3 : color,
-        emissive: isReflect ? color : 0,
-        emissiveIntensity: isReflect ? (C.vfx?.barrier?.edgeGlow ?? 0.8) : 0,
-        transparent: true,
-        opacity,
-        roughness: isReflect ? 0.18 : 0.8,
-        metalness: isReflect ? 0.85 : 0.1,
-        depthWrite: e.kind === 'wall',
-        side: T.DoubleSide
-      }));
-      if (isReflect) {
-        // Bordas da barreira
-        const edges = new T.LineSegments(new T.EdgesGeometry(geo), new T.LineBasicMaterial({color, linewidth: 2}));
-        edges.name = 'edges';
-        mesh.add(edges);
-
-        // Grelha geométrica de cristal / hexágonos
-        const subGeo = new T.WireframeGeometry(geo);
-        const subGrid = new T.LineSegments(subGeo, new T.LineBasicMaterial({color, transparent: true, opacity: 0.3}));
-        subGrid.name = 'subGrid';
-        mesh.add(subGrid);
+      const barrierStyle = isReflect ? Math.max(0, Math.min(2, C.vfx?.barrier?.variant ?? 0)) : 0;
+      let geo;
+      if (!isReflect) {
+        geo = e.shape === 'circle' ? new T.CylinderGeometry(1, 1, 1, 32, 1, true) : new T.BoxGeometry(1, 1, 1);
+        mesh = new T.Mesh(geo, new T.MeshStandardMaterial({
+          color: e.kind === 'wall' ? 0x9aa7b3 : color,
+          transparent: true,
+          opacity: e.kind === 'wall' ? 0.95 : 0.35,
+          roughness: 0.8,
+          metalness: 0.1,
+          depthWrite: e.kind === 'wall',
+          side: T.DoubleSide
+        }));
+      } else {
+        // Três estilos 3D reais para o Reflect
+        const isHighContrast = !!(this.accessibility?.highContrast || C.vfx.master?.highContrast || C.vfx.laser?.highContrast);
+        const opacity = isHighContrast ? 0.95 : (C.vfx?.barrier?.opacity ?? 0.65);
+        const edgeGlow = C.vfx?.barrier?.edgeGlow ?? 1.2;
+        if (barrierStyle === 1) {
+          // Estilo 1: Cristal de Quartzo (Placa facetada com arestas diamantadas e brilho vítreo)
+          geo = buildQuartzGeometry();
+          const mat = new T.MeshStandardMaterial({
+            color,
+            emissive: color,
+            emissiveIntensity: edgeGlow * 0.9,
+            transparent: true,
+            opacity: Math.max(0.72, opacity),
+            roughness: 0.05,
+            metalness: 0.95,
+            side: T.DoubleSide,
+            depthWrite: false,
+          });
+          mesh = new T.Mesh(geo, mat);
+          // Facetas internas do cristal (clivagem cristalina)
+          const cleavage = new T.LineSegments(new T.WireframeGeometry(geo), new T.LineBasicMaterial({color: 0xffffff, transparent: true, opacity: isHighContrast ? 0.8 : 0.45, linewidth: 2}));
+          cleavage.name = 'cleavage';
+          mesh.add(cleavage);
+          mesh.material = mat;
+        } else if (barrierStyle === 2) {
+          // Estilo 2: Campo de Força Puro (Escudo curvo de plasma com camadas de onda de choque)
+          geo = buildForceFieldGeometry();
+          const mat = new T.MeshStandardMaterial({
+            color,
+            emissive: color,
+            emissiveIntensity: edgeGlow * 1.4,
+            transparent: true,
+            opacity: opacity * 0.9,
+            roughness: 0.1,
+            metalness: 0.3,
+            side: T.DoubleSide,
+            depthWrite: false,
+          });
+          mesh = new T.Mesh(geo, mat);
+          // Onda interna de plasma
+          const innerGeo = buildForceFieldGeometry(16);
+          const innerMat = new T.MeshBasicMaterial({color: 0xffffff, transparent: true, opacity: isHighContrast ? 0.6 : 0.35, side: T.DoubleSide});
+          const inner = new T.Mesh(innerGeo, innerMat);
+          inner.name = 'innerWave';
+          inner.scale.set(0.96, 0.96, 0.92);
+          mesh.add(inner);
+          mesh.material = mat;
+        } else {
+          // Estilo 0 (Padrão): Hex-Grid Ciclado (Placa tecnológica com malha hexagonal e moldura reforçada)
+          geo = new T.BoxGeometry(1, 1, 1);
+          const mat = new T.MeshStandardMaterial({
+            color,
+            emissive: color,
+            emissiveIntensity: edgeGlow * 0.8,
+            transparent: true,
+            opacity,
+            roughness: 0.18,
+            metalness: 0.85,
+            side: T.DoubleSide,
+            depthWrite: false,
+          });
+          mesh = new T.Mesh(geo, mat);
+          // Bordas reforçadas
+          const edges = new T.LineSegments(new T.EdgesGeometry(geo), new T.LineBasicMaterial({color, linewidth: 2}));
+          edges.name = 'edges';
+          mesh.add(edges);
+          // Grelha hexagonal
+          const hexGeo = buildHexGridGeometry();
+          const subGrid = new T.LineSegments(hexGeo, new T.LineBasicMaterial({color, transparent: true, opacity: isHighContrast ? 0.8 : 0.45}));
+          subGrid.name = 'subGrid';
+          mesh.add(subGrid);
+          mesh.material = mat;
+        }
+        mesh.userData.style = barrierStyle;
       }
     }
 
@@ -193,9 +336,12 @@ export class WorldView {
 
   /** Anel que se expande e some (VFX de evento). */
   ring(x, y, z, color, size, life = .38) {
+    const isNoFlash = !!(this.accessibility?.noFlash || C.vfx.master?.noFlash || C.vfx.laser?.noFlash);
+    const isHighContrast = !!(this.accessibility?.highContrast || C.vfx.master?.highContrast || C.vfx.laser?.highContrast);
+    const opacity = isNoFlash ? 0.45 : isHighContrast ? 1.0 : 0.85;
     const geo = new T.RingGeometry(.82, 1, 40);
     geo.rotateX(-Math.PI / 2);
-    const mesh = new T.Mesh(geo, new T.MeshBasicMaterial({color, transparent: true, opacity: .85, depthWrite: false, side: T.DoubleSide}));
+    const mesh = new T.Mesh(geo, new T.MeshBasicMaterial({color, transparent: true, opacity, depthWrite: false, side: T.DoubleSide}));
     mesh.position.set(x, y, z);
     mesh.renderOrder = 802;
     this.group.add(mesh);
@@ -225,7 +371,9 @@ export class WorldView {
 
   /** Emite fragmentos/estilhaços físicos quando uma rocha colide ou se quebra. */
   emitRockShatter(x, y, z, normal, color) {
-    const count = C.vfx?.rock?.shatterCount ?? 14;
+    const isReduceMotion = !!(this.accessibility?.reduceMotion || C.vfx.master?.reduceMotion || C.vfx.laser?.reduceMotion);
+    const motionScale = isReduceMotion ? 0.25 : 1.0;
+    const count = isReduceMotion ? 6 : (C.vfx?.rock?.shatterCount ?? 14);
     const nx = normal?.x ?? 0, nz = normal?.z ?? 0;
     for (let i = 0; i < count; i++) {
       const geo = new T.DodecahedronGeometry(0.08 + Math.random() * 0.08, 0);
@@ -241,18 +389,18 @@ export class WorldView {
       this.group.add(mesh);
 
       const angle = Math.random() * Math.PI * 2;
-      const speed = 2.5 + Math.random() * 5.5;
-      const up = 1.5 + Math.random() * 5.0;
+      const speed = (2.5 + Math.random() * 5.5) * motionScale;
+      const up = (1.5 + Math.random() * 5.0) * motionScale;
       this.particles.push({
         mesh,
         age: 0,
         life: 0.42 + Math.random() * 0.22,
         vel: {
-          x: Math.cos(angle) * speed + nx * 2.5,
+          x: Math.cos(angle) * speed + nx * 2.5 * motionScale,
           y: up,
-          z: Math.sin(angle) * speed + nz * 2.5,
+          z: Math.sin(angle) * speed + nz * 2.5 * motionScale,
         },
-        rotVel: {x: (Math.random() - 0.5) * 16, y: (Math.random() - 0.5) * 16, z: (Math.random() - 0.5) * 16},
+        rotVel: {x: (Math.random() - 0.5) * 16 * motionScale, y: (Math.random() - 0.5) * 16 * motionScale, z: (Math.random() - 0.5) * 16 * motionScale},
         startScale: 1.0,
       });
     }
@@ -260,7 +408,9 @@ export class WorldView {
 
   /** Emite estilhaços cristalinos quando uma barreira é destruída. */
   emitBarrierShatter(x, y, z, color) {
-    const count = C.vfx?.barrier?.shatterFragments ?? 20;
+    const isReduceMotion = !!(this.accessibility?.reduceMotion || C.vfx.master?.reduceMotion || C.vfx.laser?.reduceMotion);
+    const motionScale = isReduceMotion ? 0.25 : 1.0;
+    const count = isReduceMotion ? 8 : (C.vfx?.barrier?.shatterFragments ?? 20);
     for (let i = 0; i < count; i++) {
       const geo = new T.BoxGeometry(0.12 + Math.random() * 0.15, 0.12 + Math.random() * 0.15, 0.02);
       const mat = new T.MeshBasicMaterial({color, transparent: true, opacity: 0.85, side: T.DoubleSide, depthWrite: false});
@@ -269,13 +419,13 @@ export class WorldView {
       this.group.add(mesh);
 
       const angle = Math.random() * Math.PI * 2;
-      const speed = 2.0 + Math.random() * 4.5;
+      const speed = (2.0 + Math.random() * 4.5) * motionScale;
       this.particles.push({
         mesh,
         age: 0,
         life: 0.5 + Math.random() * 0.25,
-        vel: {x: Math.cos(angle) * speed, y: 1.0 + Math.random() * 4.0, z: Math.sin(angle) * speed},
-        rotVel: {x: Math.random() * 12, y: Math.random() * 12, z: Math.random() * 12},
+        vel: {x: Math.cos(angle) * speed, y: (1.0 + Math.random() * 4.0) * motionScale, z: Math.sin(angle) * speed},
+        rotVel: {x: (Math.random() - 0.5) * 18 * motionScale, y: (Math.random() - 0.5) * 18 * motionScale, z: (Math.random() - 0.5) * 18 * motionScale},
         startScale: 1.0,
       });
     }
@@ -322,7 +472,7 @@ export class WorldView {
     const alive = new Set();
     for (const e of world?.entities ?? []) {
       alive.add(e.id);
-      const m = this.meshes.get(e.id) ?? this.make(e);
+      let m = this.meshes.get(e.id) ?? this.make(e);
 
       if (e.kind === 'beam') {
         if (skipBeams) {
@@ -371,13 +521,37 @@ export class WorldView {
         m.position.set(e.pos.x, e.y + e.height / 2, e.pos.z);m.rotation.y = e.angle ?? 0;
         if (e.shape === 'circle') m.scale.set(e.radius, e.height, e.radius);else m.scale.set(e.hx * 2, e.height, e.hz * 2);
         if (e.reflect) {
+          const currentStyle = Math.max(0, Math.min(2, C.vfx?.barrier?.variant ?? 0));
+          if (m.userData.style !== currentStyle) {
+            this.group.remove(m);
+            m.traverse(o => {if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose();});
+            this.meshes.delete(e.id);
+            m = this.make(e);
+            m.position.set(e.pos.x, e.y + e.height / 2, e.pos.z);
+            m.rotation.y = e.angle ?? 0;
+            if (e.shape === 'circle') m.scale.set(e.radius, e.height, e.radius);
+            else m.scale.set(e.hx * 2, e.height, e.hz * 2);
+          }
           // Pulsação suave e enfraquecimento no fim da vida
           const left = e.life - e.age;
           const pulse = 0.88 + 0.12 * Math.sin(this.time * (C.vfx?.barrier?.pulseFreq ?? 2.2) * Math.PI * 2);
           const weak = left < 1 ? (.45 + .55 * Math.abs(Math.sin(this.time * 30))) : 1;
-          const baseOp = C.vfx?.barrier?.opacity ?? 0.65;
-          m.material.opacity = baseOp * weak * pulse;
-          m.material.emissiveIntensity = (C.vfx?.barrier?.edgeGlow ?? 0.8) * weak * pulse;
+          const isHighContrast = !!(this.accessibility?.highContrast || C.vfx.master?.highContrast || C.vfx.laser?.highContrast);
+          const baseOp = isHighContrast ? 0.95 : (C.vfx?.barrier?.opacity ?? 0.65);
+          if (m.material) {
+            m.material.opacity = baseOp * weak * pulse;
+            m.material.emissiveIntensity = (C.vfx?.barrier?.edgeGlow ?? 0.8) * weak * pulse;
+          }
+          if (m.userData.style === 0) {
+            const subGrid = m.getObjectByName('subGrid');
+            if (subGrid?.material) subGrid.material.opacity = (isHighContrast ? 0.8 : (0.3 + 0.25 * Math.sin(this.time * 5))) * weak;
+          } else if (m.userData.style === 2) {
+            const inner = m.getObjectByName('innerWave');
+            if (inner?.material) {
+              inner.material.opacity = (isHighContrast ? 0.6 : (0.2 + 0.2 * Math.cos(this.time * 6))) * weak;
+              inner.scale.z = 0.92 + 0.08 * Math.sin(this.time * 4);
+            }
+          }
         }
       }
     }

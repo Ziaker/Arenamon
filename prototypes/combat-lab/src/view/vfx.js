@@ -129,8 +129,14 @@ export class VfxSystem {
     scene.add(this.add.mesh, this.norm.mesh);
     this.log = [];this.timers = [];this.emit = new Map();this.shakes = [];this.ghosts = [];this.stats = {spawned: 0, peak: 0};
     this.seenEvents = new WeakSet();this.landings = [];this.prevPos = [];this.prevStamina = [];this.flash = null;this.freezeUntil = 0;
+    this.accessibility = {noFlash: false, reduceMotion: false, highContrast: false};
     // Custo por tipo (medidor de desempenho e filtro “mais caros”): partículas criadas e disparos.
     this.stats.byType = {};this.stats.firesByType = {};this.emitting = null;
+  }
+  setAccessibility(a = {}) {
+    this.accessibility = {...this.accessibility, ...a};
+    if (this.accessibility.reduceMotion) this.shakes = [];
+    if (this.accessibility.noFlash && this.flashEl) {this.flash = null;this.flashEl.style.opacity = '0';}
   }
   get cfg() {return C.vfx;}
   enabled(type) {return !!C.vfx.master.enabled && !!C.vfx[type]?.enabled;}
@@ -138,9 +144,15 @@ export class VfxSystem {
   /** Uma partícula. o: {x,y,z, vx,vy,vz, life, w,h, cell, mode, color, alpha, additive, …}. */
   spawn(o) {
     const total = this.add.p.length + this.norm.p.length;if (total >= C.vfx.master.maxParticles) return;
-    const c = new T.Color(o.color ?? 0xffffff);const glow = o.glow ?? 1;
-    const p = {age: -(o.delay || 0), life: Math.max(.02, o.life ?? .4), x: o.x, y: o.y ?? 0, z: o.z, vx: o.vx || 0, vy: o.vy || 0, vz: o.vz || 0, gravity: o.gravity, drag: o.drag, floor: o.floor,
-      w: o.w ?? .3, h: o.h ?? o.w ?? .3, grow: o.grow, sizeCurve: o.sizeCurve, stretchCurve: o.stretchCurve, alphaCurve: o.alphaCurve, fade: o.fade, alpha: o.alpha ?? 1,
+    const c = new T.Color(o.color ?? 0xffffff);let glow = o.glow ?? 1;
+    let alpha = o.alpha ?? 1;
+    let vx = o.vx || 0, vy = o.vy || 0, vz = o.vz || 0;
+    const isReduceMotion = !!(this.accessibility?.reduceMotion || C.vfx.master?.reduceMotion || C.vfx.laser?.reduceMotion);
+    const isHighContrast = !!(this.accessibility?.highContrast || C.vfx.master?.highContrast || C.vfx.laser?.highContrast);
+    if (isReduceMotion) {vx *= 0.25;vy *= 0.25;vz *= 0.25;}
+    if (isHighContrast) {alpha = Math.max(0.85, alpha);glow = Math.max(1.8, glow);}
+    const p = {age: -(o.delay || 0), life: Math.max(.02, o.life ?? .4), x: o.x, y: o.y ?? 0, z: o.z, vx, vy, vz, gravity: o.gravity, drag: o.drag, floor: o.floor,
+      w: o.w ?? .3, h: o.h ?? o.w ?? .3, grow: o.grow, sizeCurve: o.sizeCurve, stretchCurve: o.stretchCurve, alphaCurve: o.alphaCurve, fade: o.fade, alpha,
       r: Math.min(4, c.r * glow), g: Math.min(4, c.g * glow), b: Math.min(4, c.b * glow), cell: CELLS[o.cell ?? 'dot'], mode: MODE[o.mode ?? 'billboard'], rot: o.rot ?? 0, spin: o.spin, ax: o.ax, ay: o.ay, az: o.az, follow: o.follow};
     (o.additive === false ? this.norm : this.add).add(p);this.stats.spawned++;if (this.emitting) this.stats.byType[this.emitting] = (this.stats.byType[this.emitting] ?? 0) + 1;
   }
@@ -536,6 +548,7 @@ export class VfxSystem {
   updateGhosts(dt) {for (const g of this.ghosts) {if (!g.obj.visible) continue;g.age += dt;const k = g.age / Math.max(1e-3, g.life);g.mat.opacity = Math.max(0, g.base * (1 - k));if (k >= 1) g.obj.visible = false;}}
   // ---------- Flash de tela e filtro (só visual) ----------
   screenFlash(p, y, strength, color, duration) {
+    if (this.accessibility?.noFlash || C.vfx.master?.noFlash || C.vfx.laser?.noFlash) return;
     if (!this.flashEl || strength <= 0) return;
     const col = new T.Color(color), v = new T.Vector3(p.x, y, p.z);let sx = 50, sy = 50;
     if (this.camera) {v.project(this.camera);sx = (v.x * .5 + .5) * 100;sy = (-v.y * .5 + .5) * 100;}
@@ -544,19 +557,21 @@ export class VfxSystem {
   }
   updateFlash(dt) {
     if (!this.flashEl) return;
+    if (this.accessibility?.noFlash || C.vfx.master?.noFlash || C.vfx.laser?.noFlash) {this.flash = null;this.flashEl.style.opacity = '0';return;}
     if (this.flash) {this.flash.t += dt;const k = this.flash.t / this.flash.d;this.flashEl.style.opacity = String(Math.max(0, this.flash.s * (1 - k) * (1 - k)));if (k >= 1) {this.flash = null;this.flashEl.style.opacity = '0';}}
     if (this.filterUntil !== undefined && this.time >= this.filterUntil && this.canvas) {this.canvas.style.filter = '';this.filterUntil = undefined;}
   }
   canvasFilter(css, duration) {if (!this.canvas) return;this.canvas.style.filter = css;this.filterUntil = (this.time ?? 0) + duration;}
   // ---------- Tremor de câmera (transformação visual temporária; nunca toca no rig nem na entrada) ----------
   shake(key, n, power = 1, reason = '') {
+    if (this.accessibility?.reduceMotion || C.vfx.master?.reduceMotion || C.vfx.laser?.reduceMotion) return;
     const s = C.vfx[key];if (!C.vfx.shakeMaster.enabled || !s?.enabled) return;
     this.record(key, `${reason}${power !== 1 ? ` · força ${power.toFixed(2)}` : ''}`, {variant: 'ABC'[s.profile | 0]});
     this.shakes.push({key, t: 0, power, n: n ? {x: n.x, z: n.z} : null, phase: Math.random() * 100, ax: rand(-1, 1)});
   }
   /** Deslocamento {x,y,z} e rotação (roll) da câmera neste quadro, somando os tremores ativos (limitado). */
   shakeOffset(dt, camera) {
-    if (!C.vfx.shakeMaster.enabled) {this.shakes = [];return {x: 0, y: 0, z: 0, roll: 0};}
+    if (this.accessibility?.reduceMotion || C.vfx.master?.reduceMotion || C.vfx.laser?.reduceMotion || !C.vfx.shakeMaster.enabled) {this.shakes = [];return {x: 0, y: 0, z: 0, roll: 0};}
     let x = 0, y = 0, z = 0, roll = 0, limit = 0;
     for (const s of this.shakes) {
       const c = C.vfx[s.key];s.t += dt;if (s.t > c.duration) {s.dead = true;continue;}

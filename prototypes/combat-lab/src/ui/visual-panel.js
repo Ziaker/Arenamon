@@ -130,13 +130,13 @@ export function createVisualPanel({tuning, view, game, $, hud, download}) {
       <div class="vfx-quick-a11y" style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
         <span style="font-weight:600;font-size:0.85rem;">Acessibilidade Visual:</span>
         <label style="display:inline-flex;align-items:center;gap:4px;font-size:0.85rem;cursor:pointer;">
-          <input type="checkbox" data-vfx-a11y="noFlash" ${C.vfx.laser?.noFlash ? 'checked' : ''}> Sem Flash (noFlash)
+          <input type="checkbox" data-vfx-a11y="noFlash" ${(C.vfx.master?.noFlash || C.vfx.laser?.noFlash) ? 'checked' : ''}> Sem Flash (noFlash)
         </label>
         <label style="display:inline-flex;align-items:center;gap:4px;font-size:0.85rem;cursor:pointer;">
-          <input type="checkbox" data-vfx-a11y="reduceMotion" ${C.vfx.laser?.reduceMotion ? 'checked' : ''}> Reduzir Movimento (reduceMotion)
+          <input type="checkbox" data-vfx-a11y="reduceMotion" ${(C.vfx.master?.reduceMotion || C.vfx.laser?.reduceMotion) ? 'checked' : ''}> Reduzir Movimento (reduceMotion)
         </label>
         <label style="display:inline-flex;align-items:center;gap:4px;font-size:0.85rem;cursor:pointer;">
-          <input type="checkbox" data-vfx-a11y="highContrast" ${C.vfx.laser?.highContrast ? 'checked' : ''}> Alto Contraste (highContrast)
+          <input type="checkbox" data-vfx-a11y="highContrast" ${(C.vfx.master?.highContrast || C.vfx.laser?.highContrast) ? 'checked' : ''}> Alto Contraste (highContrast)
         </label>
       </div>
     `;
@@ -316,8 +316,15 @@ export function createVisualPanel({tuning, view, game, $, hud, download}) {
       inp.onchange = () => {
         const key = inp.dataset.vfxA11y;
         const val = inp.checked ? 1 : 0;
-        tuning.commit([[`vfx.laser.${key}`, val]], 'Acessibilidade ' + key);
-        view.vfxRuntime?.setAccessibility?.({[key]: !!val});
+        tuning.commit([
+          [`vfx.master.${key}`, val],
+          [`vfx.laser.${key}`, val]
+        ], 'Acessibilidade ' + key);
+        const a = {[key]: !!val};
+        view.setAccessibility?.(a);
+        view.vfx?.setAccessibility?.(a);
+        view.vfxRuntime?.setAccessibility?.(a);
+        view.worldView?.setAccessibility?.(a);
       };
     }
     // Modo simples (toggle, variante, intensidade principal, prévia) e avançado (todos os parâmetros). Mesmos parâmetros.
@@ -392,6 +399,16 @@ export function createVisualPanel({tuning, view, game, $, hud, download}) {
         view.vfxRuntime.setVariant(t, C.vfx[t].variant);
       }
     }
+    const a11y = {
+      noFlash: !!(C.vfx.master?.noFlash || C.vfx.laser?.noFlash),
+      reduceMotion: !!(C.vfx.master?.reduceMotion || C.vfx.laser?.reduceMotion),
+      highContrast: !!(C.vfx.master?.highContrast || C.vfx.laser?.highContrast),
+    };
+    view.setAccessibility?.(a11y);
+    view.vfx?.setAccessibility?.(a11y);
+    view.vfxRuntime?.setAccessibility?.(a11y);
+    view.worldView?.setAccessibility?.(a11y);
+
     const activeVar = C.vfx.hit?.variant ?? 0;
     for (const x of root.querySelectorAll('[data-global-vfx]')) {
       x.setAttribute('aria-pressed', String(Number(x.dataset.globalVfx) === activeVar));

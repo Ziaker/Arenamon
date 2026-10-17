@@ -85,9 +85,24 @@ export function tacticalCommand(brain, self, target, dt, P) {
   t.time += dt;brain.cooldown = Math.max(0, brain.cooldown - dt);
   const diff = sub(target.position, self.position), distance = length(diff), forward = distance > 1e-6 ? normalize(diff) : direction(self.facing);
   if (self.charge) {
-    // Enquanto o lutador estiver executando uma carga: prioriza espaçamento/manutenção de distância e evita cancelar sem motivo
+    const oppTackle = target?.action?.kind === 'tackle';
     const away = distance > 1e-6 ? normalize(scale(diff, -1)) : direction(self.facing + Math.PI);
     const side = vec(away.z * (t.orbit ?? 1), -away.x * (t.orbit ?? 1));
+    const canDodgeCancel = self.charge.ticks >= (self.charge.params?.dodgeLockTicks ?? 30) && !self.exhausted && self.stamina >= A.dodge.cost;
+
+    // Evasão emergencial durante o Charge: se o rival iniciar um Tackle a caminho, cancela a carga com esquiva lateral
+    if (oppTackle && distance < 4.2 && canDodgeCancel) {
+      c.dodge = true;
+      c.dodgeDirection = side;
+      c.move = side;
+      c.tackle = false;
+      c.guard = false;
+      c.guardPressed = false;
+      brain.wasGuard = false;
+      return finish(brain, c, self, target);
+    }
+
+    // Enquanto o lutador estiver executando uma carga: prioriza espaçamento/manutenção de distância e evita cancelar sem motivo
     c.move = distance < 4.5 ? away : normalize(add(scale(away, 0.4), scale(side, 0.8)));
     c.tackle = false;
     c.dodge = false;

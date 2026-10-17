@@ -14,7 +14,7 @@ import {C} from './config.js';
 import {getMove} from './moves.js';
 import {chargePermission} from './controller.js';
 import {segmentHitsVolume} from './geometry.js';
-import {length, sub, dot, normalize} from './math.js';
+import {length, sub, dot, normalize, scale, vec, direction} from './math.js';
 
 /** Passos de carga para chegar a cada Power Level (PL1 curto; PL2 em 2,0 s; PL3 em 4,0 s). */
 const LEVEL_TICKS = {1: 30, 2: 240, 3: 480};
@@ -56,11 +56,35 @@ export function movesCommand(brain, self, target, c) {
   const threat = world ? incomingProjectile(world, self) : null;
   const defend = () => {c.guard = true;c.guardPressed = !brain.wasGuard;brain.wasGuard = true;};
 
-  // ---------- Carga em andamento: sustentar proporcional à distância, suprimir cancelamentos acidentais ----------
   if (self.charge) {
     mv.phase = 'charging';
     const ch = self.charge;
     const distance = target ? length(sub(target.position, self.position)) : 10;
+    const oppTackle = target?.action?.kind === 'tackle';
+    const canDodgeCancel = ch.ticks >= (ch.params?.dodgeLockTicks ?? 30) && !self.exhausted && self.stamina >= (C.actions?.dodge?.cost ?? 1);
+
+    // Evasão emergencial durante o Charge: se o rival inicia um Tackle a curta distância, esquiva lateralmente cancelando o charge
+    if (oppTackle && distance < 4.5 && canDodgeCancel) {
+      const diff = sub(target.position, self.position);
+      const away = length(diff) > 1e-6 ? normalize(scale(diff, -1)) : direction(self.facing + Math.PI);
+      const side = vec(away.z, -away.x);
+      c.dodge = true;
+      c.dodgeDirection = side;
+      c.move = side;
+      c.skillHeld = null;
+      c.tackle = false;
+      c.guard = false;
+      c.guardPressed = false;
+      log(mv, {time: +t.time.toFixed(3), move: ch.move, why: 'evasão emergencial contra tackle', distance: +distance.toFixed(2)});
+      return c;
+    }
+
+    // Se tactics já tiver pedido esquiva emergencial, respeita e solta a tecla do charge
+    if (c.dodge && canDodgeCancel) {
+      c.skillHeld = null;
+      return c;
+    }
+
     if (ch.move === 'psyshock') {
       // Quanto mais distante, mais mantém a carga para atingir PL superior (PL2 em 2s, PL3 em 4s)
       if (distance >= 7.0) mv.goalTicks = Math.max(mv.goalTicks, LEVEL_TICKS[3]);

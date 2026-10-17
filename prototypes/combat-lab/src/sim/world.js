@@ -102,12 +102,21 @@ export function applyHit(game, ownerId, target, hit, normal, info = {}) {
     if (kb && (kb.horizontal > 0 || kb.vertical > 0) && T.enableLaunch) {
       const dir = length(normal) > 1e-7 ? normalize(normal) : vec(0, 1);
       const hKb = (kb.horizontal ?? 0) * k, vKb = (kb.vertical ?? 0) * k;
-      launch(target, dir, hKb, vKb);
-      launchInfo = {direction: dir, horizontal: hKb, vertical: vKb};
-      if (vKb <= 1e-6 && hKb > 0) {
-        target.push = {direction: dir, distance: Math.max(0.45, hKb * 1.5), elapsed: 0};
+      if (vKb > 1e-6 || target.flight) {
+        launch(target, dir, hKb, vKb);
+        launchInfo = {direction: dir, horizontal: hKb, vertical: vKb};
+      } else if (hKb > 0) {
         target.action = null;
+        target.flight = null;
+        target.blend = null;
+        target.guard = false;
+        target.guardSuppressed = true;
+        target.velocity = vec();
+        target.locomotionVelocity = vec();
+        target.push = {direction: dir, distance: Math.max(0.45, hKb * 1.5), elapsed: 0};
         target.knockRecovery = Math.max(target.knockRecovery, R.landingRecovery);
+        target.state = 'pushed';
+        launchInfo = {direction: dir, horizontal: hKb, vertical: 0};
       }
     }
     else if (hit.flinch) {target.action = null;target.knockRecovery = Math.max(target.knockRecovery, hit.flinch);}

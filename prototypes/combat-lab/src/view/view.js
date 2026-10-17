@@ -57,6 +57,11 @@ export class View {
     const end = () => dragging = false;canvas.addEventListener('pointerup', end);canvas.addEventListener('pointercancel', end);window.addEventListener('blur', end);
     canvas.addEventListener('wheel', e => {e.preventDefault();this.rig.zoomBy(e.deltaY * C.extras.cameraExtra.wheelSensitivity);}, {passive: false});
   }
+  setAccessibility(a = {}) {
+    this.vfx?.setAccessibility?.(a);
+    this.vfxRuntime?.setAccessibility?.(a);
+    this.worldView?.setAccessibility?.(a);
+  }
   /** Reaplica tamanho da arena, cores, luzes e câmera depois de mudanças no ajustador. */
   applyConfig() {
     const X = C.extras, V = X.visual, half = C.test.arenaHalf, ratio = half / 16;
