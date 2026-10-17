@@ -1,0 +1,73 @@
+{
+ "validacao_leave_one_out": {
+  "falsos_positivos": [
+   {
+    "clip": "Walk Strafe Right",
+    "par": "leg~leg",
+    "fracao": 0.0455,
+    "limite_sem_o_clip": 0.031
+   }
+  ],
+  "testes": 57,
+  "taxa": 0.0175
+ },
+ "_leia": "Limite EMPIRICO de sobreposicao membro~regiao vizinha, derivado de clips autorais do projeto (maximo x 1.5, teto 0.9). Sem aprovacao humana. Veja calibrate_interp.py.",
+ "clips": [
+  "idle",
+  "alt idle",
+  "Standing Block Idle",
+  "Walk fwd",
+  "Walk Backward",
+  "Walk Strafe Right",
+  "run",
+  "Headbutt",
+  "Tackle 1",
+  "Drop Kick",
+  "Flip Kick",
+  "Standing Melee Attack Backhand",
+  "Zombie Attack",
+  "chop sweep",
+  "get hit",
+  "Jump",
+  "land",
+  "Falling Idle",
+  "Standing Up",
+  "Wall Crash",
+  "Zombie Stand Up",
+  "Sitting Dazed",
+  "Flying Knee Punch Combo",
+  "Jump Attack",
+  "perfect guard kick",
+  "sand kick",
+  "Running Slide",
+  "dodge 2",
+  "Center Block"
+ ],
+ "pares": {
+  "arm~leg": {
+   "max_fracao_autoral": 0.1364,
+   "max_profundidade_autoral_m": 0.0669,
+   "limite_fracao": 0.205
+  },
+  "arm~body": {
+   "max_fracao_autoral": 0.3409,
+   "max_profundidade_autoral_m": 0.3351,
+   "limite_fracao": 0.511
+  },
+  "leg~leg": {
+   "max_fracao_autoral": 0.0455,
+   "max_profundidade_autoral_m": 0.019,
+   "limite_fracao": 0.068
+  },
+  "leg~body": {
+   "max_fracao_autoral": 0.5217,
+   "max_profundidade_autoral_m": 0.2895,
+   "limite_fracao": 0.783
+  },
+  "arm~arm": {
+   "max_fracao_autoral": 0.0874,
+   "max_profundidade_autoral_m": 0.0081,
+   "limite_fracao": 0.131
+  }
+ }
+}

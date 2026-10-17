@@ -1,0 +1,4 @@
+{"name": "positivos: Jump (salto Mixamo) tem elevacao e movimento reais", "mode": "oneshot", "rules": [
+  {"id": "pos_lift", "type": "lift_and_land", "bone": "Hips", "frames": "0-54", "min_rise": 0.1, "land_tol": 0.5},
+  {"id": "pos_motion", "type": "motion_present", "frames": "0-54", "min_mean": 0.01}
+]}

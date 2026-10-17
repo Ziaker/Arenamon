@@ -1,0 +1,22 @@
+{
+  "name": "Vigoroth Tackle - coreografia relacional (RASCUNHO: estrutura vinda do briefing aprovado em chat; limiares PROPOSTOS)",
+  "mode": "oneshot",
+  "rules": [
+    {"id": "braco_D_acelera_antes_do_tronco", "type": "leads_before", "bone": "RightHand", "other": "Spine2", "frames": "0-12", "frac": 0.15,
+     "note": "estrutura: precedencia do braco D; frac e PROPOSTO"},
+    {"id": "mao_D_trajetoria_descendente_g9_g17", "type": "path_descends", "bone": "RightHand", "frames": "9-17", "min_drop": 0.15, "min_frac": 0.7, "tol_up": 0.01,
+     "note": "estrutura: descida em g9-g17; min_drop/min_frac PROPOSTOS"},
+    {"id": "mao_D_cruza_a_frente_do_tronco", "type": "crosses_value", "bone": "RightHand", "axis": "x", "value": 0.0, "relative_to_hips": true, "frames": "5-20",
+     "note": "estrutura: cruza o eixo central do tronco; eixo x relativo ao quadril e a convencao do rig (PROPOSTO), conferir em imagem"},
+    {"id": "elevacao_e_aterrissagem_g27_g30", "type": "lift_and_land", "bone": "Hips", "frames": "27-30", "min_rise": 0.02, "land_tol": 0.08,
+     "note": "estrutura: pulinho g27-g30; min_rise/land_tol PROPOSTOS"},
+    {"id": "end_distancia_a_idle_diminui", "type": "distance_to_action_decreases", "action": "idle", "ref_frame": 0, "frames": "30-40", "min_frac": 0.6,
+     "note": "estrutura: retorno gradual; idle e provisoria (P4)"},
+    {"id": "movimento_residual_g18_g26", "type": "motion_present", "frames": "18-26", "min_mean": 0.003,
+     "note": "estrutura: g18-g26 tem movimento residual; min_mean PROPOSTO"},
+    {"id": "mao_D_com_movimento_relevante_na_janela_g9_g13", "type": "window_speed_ratio", "bone": "RightHand", "frames": "9-13", "exclude_frames": "39-40", "min_ratio": 0.5,
+     "note": "estrutura: o impacto fica restrito a g9-g13 (nenhum frame de contato e escolhido); min_ratio PROPOSTO; g39-g40 (snap de saida) excluidos"},
+    {"id": "contato_g9_g13_exige_imagem", "type": "visual_only", "frames": "9-13", "note": "frame exato e forma da garra: julgamento humano"}
+  ],
+  "notas": "Rascunho nao aprovado. A ESTRUTURA vem do briefing aprovado em chat; todo limiar numerico e proposta de quem escreveu o arquivo. Nao verifica peso, agressividade nem qualidade do ritmo."
+}

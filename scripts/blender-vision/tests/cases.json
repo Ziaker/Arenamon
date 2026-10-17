@@ -1,0 +1,12 @@
+{
+  "_leia": "Rotulos escritos A MAO, por raciocinio sobre cada manipulacao e conferencia em imagem (case_arm_into_body: bracos E atravessando o tronco, visto em ids/bones), NAO por saida da ferramenta. Servem para medir se a ferramenta detecta o problema real, nao apenas se concorda com ela mesma.",
+  "casos": [
+    {"action": "idle", "tipo": "dense", "esperado": {"pes_deslizando_max_frames": 0, "modo": "in_place"}, "motivo": "idle parado: pes nao escorregam"},
+    {"action": "Walk fwd", "tipo": "dense", "esperado": {"sem_arrasto_constante": true}, "motivo": "caminhada Mixamo autoral: pe nao arrasta a velocidade constante; desaceleracao no pouso e normal"},
+    {"action": "case_skate", "tipo": "dense", "esperado": {"pes_deslizando_min_frames": 10}, "motivo": "quadril translada 0.6 m em 30 frames com as pernas paradas: os dois pes arrastam"},
+    {"action": "case_stepped_hold", "tipo": "dense", "esperado": {"paradas_tipo_unico": "hold_por_interpolacao_constante", "paradas_min": 3, "check_not_frozen_nao_e_FAIL": true}, "motivo": "chaves a cada 5 frames em CONSTANTE: holds de blocking intencionais, nunca defeito"},
+    {"action": "case_arm_into_body", "tipo": "interp", "esperado": {"status": "HIPOTESE"}, "motivo": "braco E inteiro dentro do tronco (conferido na vista de ossos)"},
+    {"action": "case_leg_into_leg", "tipo": "interp", "esperado": {"status": "HIPOTESE"}, "motivo": "perna E sobreposta a coxa D (rotulo ambiguo na imagem)", "limitacao_conhecida": "FALSO NEGATIVO conhecido: apos a calibracao em mundo, leg~leg 0.046 < limite 0.068 e leg~body 0.71 < limite 0.78 (o limite leg~body e alto por causa de Standing Up, 0.52). A ferramenta NAO detecta este caso."},
+    {"action": "case_arm_clear", "tipo": "interp", "esperado": {"status": "PASS"}, "motivo": "braco E afastado do corpo"}
+  ]
+}

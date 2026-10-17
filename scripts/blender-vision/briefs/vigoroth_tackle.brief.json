@@ -1,0 +1,29 @@
+﻿{
+  "name": "Vigoroth Tackle - Teste 01 (briefing aprovado em chat; regras derivadas, ver notas)",
+  "rules": [
+    {"id": "duracao_41_frames", "type": "frame_count", "expected": 41},
+
+    {"id": "start_perna_D_apoiada", "type": "foot_planted", "side": "Right", "frames": "0-3", "max_height": 0.2, "max_slide": 0.03},
+    {"id": "start_perna_E_no_ar", "type": "foot_airborne", "side": "Left", "frames": "0-3", "min_height": 0.22},
+    {"id": "start_braco_D_recuado_lateral", "type": "joint_rel", "bone": "RightHand", "axis": "x", "max": -0.45, "frames": "0-3"},
+    {"id": "start_mao_E_a_frente_do_rosto", "type": "joint_rel", "bone": "LeftHand", "axis": "y", "max": -0.2, "frames": "0-3"},
+
+    {"id": "smear_4_8_braco_D", "type": "scale_window", "bones": ["RightForeArm", "RightHand"], "frames": "4-8", "min_dev": 0.05, "ignore_frames": "9-12"},
+    {"id": "stretch_9_12_braco_D", "type": "scale_window", "bones": ["RightForeArm", "RightHand"], "frames": "9-12", "min_dev": 0.05, "ignore_frames": "4-8"},
+
+    {"id": "mid2_perna_E_apoio_principal", "type": "foot_planted", "side": "Left", "frames": "10-26", "max_height": 0.2, "max_slide": 0.03},
+    {"id": "mid2_perna_D_para_tras", "type": "joint_rel", "bone": "RightFoot", "axis": "y", "min": 0.05, "frames": "11-17"},
+
+    {"id": "mid3_braco_D_estendido", "type": "limb_extended", "side": "Right", "kind": "arm", "frames": "18-26", "min_angle": 150},
+    {"id": "mid3_nao_congelar", "type": "not_frozen", "frames": "18-26", "min_motion": 0.004, "min_run": 3},
+
+    {"id": "mao_D_garra_representavel", "type": "hand_digits", "side": "Right", "min_digits": 3},
+    {"id": "mao_D_garra_aberta_no_contato_9_13", "type": "visual_only", "frames": "9-13", "note": "forma aberta em garra e frame de contato (janela 9-13, sem frame unico) exigem imagem e aprovacao humana"},
+
+    {"id": "end_retorno_a_idle_provisorio", "type": "pose_matches_action", "action": "idle", "frame": 40, "ref_frame": 0, "max_deg": 10,
+     "note": "PROVISORIO: a idle de referencia ainda nao foi aprovada (P4)"},
+    {"id": "sem_penetracao_membros_corpo", "type": "no_interpenetration", "frames": "0-40", "max_depth": 0.02}
+  ],
+  "notas": "Regras limitam-se ao que o briefing declara. Valores numericos (alturas, angulos, limites) sao PROPOSTOS por quem escreveu o arquivo e precisam de aprovacao do diretor. Deslocamento fisico (P3) nao e verificado."
+}
+

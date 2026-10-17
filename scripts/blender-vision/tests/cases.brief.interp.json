@@ -1,0 +1,1 @@
+{"name": "casos-rotulados interpenetracao", "mode": "oneshot", "rules": [{"id": "sem_penetracao", "type": "no_interpenetration", "frames": "0-100", "max_depth": 0.02}]}
