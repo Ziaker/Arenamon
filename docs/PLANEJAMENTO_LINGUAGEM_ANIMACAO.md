@@ -81,6 +81,15 @@ As formas `[Start X]` e `[Start: X]` ainda são alternativas de escrita: nenhuma
 | LAN-035 | **Rejeitar janelas de deformação curtas demais para cumprir entrada e retorno suaves dentro da própria janela; solicitar correção.** | `33A — Rejeitar janelas de deformação que sejam curtas demais para entrada e retorno suaves, solicitando correção.` | **APROVADA — Rodada 5** |
 | LAN-036 | **Exigir continuidade de poses e trajetórias entre etapas sem inserir frames extras; admitir mudanças bruscas intencionais quando declaradas.** | `34A — Exigir continuidade de pose e trajetória entre as etapas, sem criar frames extras; permitir mudanças bruscas intencionais quando especificadas.` | **APROVADA — Rodada 5** |
 | LAN-037 | **Usar seção global de direção artística e catálogo inicial controlado de modificadores temporais, ampliado somente após validação.** | `35A — Usar uma seção global de direção artística e um catálogo inicial controlado de modificadores temporais, ampliado somente após validação.` | **APROVADA — Rodada 5** |
+| LAN-038 | **Catálogo temporal inicial: Smear, Squash, Stretch, Scale, Anticipation, FollowThrough, Overlap e SecondaryAction; expansão apenas posteriormente.** | `36A — Smear, Squash, Stretch, Scale, Anticipation, FollowThrough, Overlap e SecondaryAction como primeiro conjunto, com expansão posterior.` | **APROVADA — Rodada 6** |
+| LAN-039 | **Smear admite parâmetro opcional `method`; na ausência dele, a IA fundamenta a seleção do método e valida sua exportação.** | `37B — Permitir um parâmetro opcional method, com seleção fundamentada pela IA quando omitido e validação da exportação.` | **APROVADA — Rodada 6** |
+| LAN-040 | **Squash, Stretch e Scale admitem escala/deformação por eixo e parâmetros opcionais de preservação de volume e limites anatômicos; a IA identifica como provisórios os valores que propuser.** | `38B — Escala/deformação por eixo, com parâmetros opcionais de volume e anatomia; a IA apresenta propostas provisórias quando necessário.` | **APROVADA — Rodada 6** |
+| LAN-041 | **Disponibilizar curvas predefinidas Ease, Sharp, Elastic e Overshoot, parametrizáveis e personalizáveis, respeitando retorno suave e demais regras já aprovadas.** | `39B — Curvas predefinidas como Ease, Sharp, Elastic e Overshoot, com parâmetros e possibilidade de personalização, respeitando as regras de retorno.` | **APROVADA — Rodada 6** |
+| LAN-042 | **Anticipation e FollowThrough operam como marcadores temporais de direção para a IA construir poses e curvas coerentes dentro da janela indicada.** | `40A — Funcionam como marcadores temporais que orientam a IA a construir poses e curvas coerentes na janela especificada.` | **APROVADA — Rodada 6** |
+| LAN-043 | **Overlap e SecondaryAction admitem alvos e atrasos específicos, derivados da ação principal e condicionados por massa, articulações e anatomia.** | `41B — Permitir alvos e atrasos próprios, derivados do movimento principal, considerando massa, articulações e anatomia.` | **APROVADA — Rodada 6** |
+| LAN-044 | **Uma seção global opcional define princípios, estilo e intensidade; a IA aplica os critérios durante a animação inteira e relata como os utilizou.** | `42A — Uma seção global opcional define princípios, estilo e intensidade; a IA aplica os critérios na animação inteira e relata como os utilizou.` | **APROVADA — Rodada 6** |
+| LAN-045 | **Ampliação temporária de partes corporais pode usar Scale e outras deformações compatíveis com o rig, com técnica escolhida conforme resultado e controles de proporção, eixo e retorno.** | `43B — Permitir Scale e deformações compatíveis com o rig, escolhendo o método conforme o resultado, com proporções, eixos e retorno controláveis.` | **APROVADA — Rodada 6** |
+| LAN-046 | **Validar efeitos pela comparação da animação com e sem modificadores e pela inspeção visual em vários ângulos, reprovando defeitos não intencionais.** | `44A — Comparar a animação com e sem efeitos, inspecionar deformações em múltiplos ângulos e reprovar defeitos não intencionais.` | **APROVADA — Rodada 6** |
 
 Consequências invariantes:
 - Para o intervalo textual `a-b`, a quantidade é `b - a + 1` frames (se `b >= a`).
@@ -99,7 +108,9 @@ Consequências invariantes:
 
 **Rodada 5 aprovada:** dois estilos de cabeçalho normalizados; Mid opcionalmente nomeado com IDs automáticos; parâmetros nomeados opcionais e texto livre por modificador; eventos de frame único diferenciados dos intervalos; curvas propostas, documentadas e subordinadas às declaradas; conflito detectado por alvo/propriedade/intervalo, resolvido antes de executar; deformações com duração insuficiente rejeitadas; continuidade entre etapas sem frames extras, exceto mudança brusca intencional declarada; seção global artística distinta de catálogo temporal controlado.
 
-**Continuam pendentes:** gramática exata para nomes opcionais e múltiplos Mid, catálogo nominal e semântica detalhada dos modificadores, critérios objetivos de compatibilidade e duração mínima por tipo, intensidades/presets de cada efeito, tipos de curvas, geometria de volumes, sincronização/diagnóstico, detalhes de exportação e validação, identidade do terceiro teste e condições de evolução para duração dinâmica. As aprovações não constituem implementação, autorização de mudança na física ou homologação de exportadores.
+**Rodada 6 aprovada:** oito modificadores temporais no catálogo inicial (LAN-038); escolha de técnica Smear por `method` opcional e justificativa da IA (LAN-039); deformação por eixo com volume/anatomia opcionais (LAN-040); curvas Ease/Sharp/Elastic/Overshoot personalizáveis respeitando o retorno (LAN-041); Anticipation/FollowThrough como diretrizes temporais de poses e curvas (LAN-042); Overlap/SecondaryAction com atrasos e anatomia próprios (LAN-043); seção global opcional com relatório de aplicação (LAN-044); ampliação corporal temporária e controlável (LAN-045); e comparação com/sem efeitos e multivistas, rejeitando defeitos (LAN-046).
+
+**Continuam pendentes:** gramática exata para múltiplos Mid e nomes opcionais; parâmetros concretos, equações e presets das curvas e deformações; regras objetivas de duração mínima e conflitos; regras de poses-chave, contatos, timing e loops; geometria de volumes; método de sincronização e diagnósticos; caminhos de exportação e critérios de homologação; identidade do terceiro teste; e eventual duração dinâmica. Nenhum efeito foi implementado, nem alteração de física ou gameplay autorizada.
 
 ## 4. Modelo temporal ilustrativo — PROPOSTA, não norma aprovada
 
@@ -249,19 +260,33 @@ Requisitos propostos para uma futura fase de validador:
 - **LAN-Q34.** Como garantir continuidade de poses e curvas entre Start, múltiplos Mid e End sem acrescentar ou duplicar frames? **RESOLVIDA — LAN-036 (34A)**.
 - **LAN-Q35.** Como declarar princípios globais (Staging, Appeal etc.) e definir o primeiro catálogo de modificadores temporais, sem tratar todos os 12 princípios como operações temporais? **RESOLVIDA — LAN-037 (35A)**.
 
-### Rodada 6 — catálogo semântico de efeitos e parâmetros (pendente; roteiro proposto)
+### Rodada 6 — catálogo semântico de efeitos e parâmetros (concluída; decisões LAN-038 a LAN-046)
 
-> **Nenhuma alternativa está aprovada nesta seção.** Esta rodada detalhará os modificadores sem modificar decisões existentes.
+> **Rodada concluída:** as seleções explícitas 36A, 37B, 38B, 39B, 40A, 41B, 42A, 43B e 44A estão registradas como LAN-038 a LAN-046. Demais detalhes de implementação seguem pendentes.
 
-- **LAN-Q36.** Qual o conjunto inicial de modificadores temporais de deformação (Smear, Squash, Stretch, Scale e outros), e qual processo de ampliação do catálogo?
-- **LAN-Q37.** Quando `Smear` significa deformação corporal, rastro visual, duplicação temporária ou outro método, qual a convenção para selecionar/descrever a técnica?
-- **LAN-Q38.** Como especificar intensidade e escala de Squash/Stretch/Scale (eixos, preservação de volume, alvo anatômico) sem forçar anatomia inadequada?
-- **LAN-Q39.** Quais curvas de entrada/pico/retorno devem estar disponíveis para deformações, e como registrar propostas provisórias feitas pela IA?
-- **LAN-Q40.** Como distinguir `Anticipation` e `FollowThrough` como marcadores temporais de direção dos seus efeitos reais nas poses e curvas?
-- **LAN-Q41.** Como especificar `Overlap` e `SecondaryAction`: alvo anatômico, atraso, duração e dependência da ação principal?
-- **LAN-Q42.** Quais princípios devem ser globais por padrão e como expressar sua intensidade geral sem transformar todos em operadores de frames?
-- **LAN-Q43.** Como definir a ampliação temporária de partes corporais (mãos, punhos, cabeça etc.) com volta ao normal, preservação anatômica e coerência de exportação?
-- **LAN-Q44.** Como validar que uma mudança é efeito artístico intencional versus deformação acidental do rig, incluindo prévia sem efeitos e comparação?
+- **LAN-Q36.** Qual o conjunto inicial de modificadores temporais de deformação (Smear, Squash, Stretch, Scale e outros), e qual processo de ampliação do catálogo? **RESOLVIDA — LAN-038 (36A)**.
+- **LAN-Q37.** Quando `Smear` significa deformação corporal, rastro visual, duplicação temporária ou outro método, qual a convenção para selecionar/descrever a técnica? **RESOLVIDA — LAN-039 (37B)**.
+- **LAN-Q38.** Como especificar intensidade e escala de Squash/Stretch/Scale (eixos, preservação de volume, alvo anatômico) sem forçar anatomia inadequada? **RESOLVIDA — LAN-040 (38B)**.
+- **LAN-Q39.** Quais curvas de entrada/pico/retorno devem estar disponíveis para deformações, e como registrar propostas provisórias feitas pela IA? **RESOLVIDA — LAN-041 (39B)**.
+- **LAN-Q40.** Como distinguir `Anticipation` e `FollowThrough` como marcadores temporais de direção dos seus efeitos reais nas poses e curvas? **RESOLVIDA — LAN-042 (40A)**.
+- **LAN-Q41.** Como especificar `Overlap` e `SecondaryAction`: alvo anatômico, atraso, duração e dependência da ação principal? **RESOLVIDA — LAN-043 (41B)**.
+- **LAN-Q42.** Quais princípios devem ser globais por padrão e como expressar sua intensidade geral sem transformar todos em operadores de frames? **RESOLVIDA — LAN-044 (42A)**.
+- **LAN-Q43.** Como definir a ampliação temporária de partes corporais (mãos, punhos, cabeça etc.) com volta ao normal, preservação anatômica e coerência de exportação? **RESOLVIDA — LAN-045 (43B)**.
+- **LAN-Q44.** Como validar que uma mudança é efeito artístico intencional versus deformação acidental do rig, incluindo prévia sem efeitos e comparação? **RESOLVIDA — LAN-046 (44A)**.
+
+### Rodada 7 — timing, poses, loops e eventos (pendente; roteiro proposto)
+
+> **Questões ainda não aprovadas.** Esta rodada deverá preservar 30 FPS, frames locais 1-based, intervalos inclusivos, retorno suave dentro da janela e separação de informações visuais/mecânicas.
+
+- **LAN-Q45.** Como especificar poses-chave opcionais e seus marcos temporais, sem conflito com os intervalos de modificadores?
+- **LAN-Q46.** Como definir timing de preparação, aceleração, pausa e recuperação, sem inserir frames além da duração fixa?
+- **LAN-Q47.** Como indicar contatos com chão, apoio das mãos ou travamento de pés (IK/foot plant) sem alterar deslocamento físico do lutador?
+- **LAN-Q48.** Como definir animações cíclicas (Idle etc.) e a continuidade entre o último frame e o primeiro sem mudar a contagem de frames?
+- **LAN-Q49.** Como declarar impacto visual, pose de impacto e possível pausa/hold de animação, separando isso do hitstop mecânico?
+- **LAN-Q50.** Como representar sequências de múltiplos golpes, múltiplos Mid e ritmos diferentes, mantendo tempos e marcos locais verificáveis?
+- **LAN-Q51.** Como especificar blending de entrada e saída, interrupções e transições com outras animações sem transformar metadados em alterações mecânicas?
+- **LAN-Q52.** Como modelar, revisar, amostrar e exportar curvas/poses do Blender para GLB, preservando timing e intenção visual?
+- **LAN-Q53.** Quais evidências mínimas devem acompanhar a validação de continuidade, contatos, deformação, timing e exportação antes da aprovação do blocking e da entrega final?
 
 ## 10. Governança e escopo
 
@@ -282,3 +307,4 @@ Requisitos propostos para uma futura fase de validador:
 | 16/10/2026 | **Rodada 3:** registradas seis decisões explícitas (LAN-018 a LAN-023; escolhas 16A, 17C, 18B, 19A, 20B, 21C). LAN-Q16 a LAN-Q21 marcadas como resolvidas. Preservadas todas as decisões e pendências anteriores. Nenhuma implementação nem ativação de regras de combate autorizada. |
 | 16/10/2026 | **Rodada 4:** registradas cinco decisões explícitas (LAN-024 a LAN-028; escolhas 22A, 23A, 24C, 25A, 26B). LAN-Q22 a LAN-Q26 marcadas como resolvidas sem suprimir o texto histórico. Incluídas perguntas LAN-Q27 a LAN-Q35 como pendências novas, sem aprová-las. Nenhuma implementação autorizada. |
 | 16/10/2026 | **Rodada 5:** registradas nove decisões explícitas (LAN-029 a LAN-037; 27C, 28C, 29B, 30A, 31C, 32A, 33A, 34A, 35A). As perguntas LAN-Q27 a LAN-Q35 foram marcadas como resolvidas mantendo o enunciado histórico. LAN-Q36 a LAN-Q44 adicionadas somente como pendências. Nenhuma implementação autorizada. |
+| 16/10/2026 | **Rodada 6:** registradas nove decisões explícitas LAN-038 a LAN-046 (36A, 37B, 38B, 39B, 40A, 41B, 42A, 43B, 44A). LAN-Q36 a LAN-Q44 marcadas como resolvidas sem supressão do histórico. LAN-Q45 a LAN-Q53 adicionadas como pendências, sem presumir aprovações. Nenhuma implementação autorizada. |
