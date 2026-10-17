@@ -61,6 +61,12 @@ As formas `[Start X]` e `[Start: X]` ainda são alternativas de escrita: nenhuma
 | LAN-015 | **Distinguir princípios globais de direção artística de modificadores temporais acionáveis.** | `13C — Separar princípios globais de direção artística e modificadores temporais acionáveis.` | **APROVADA — Rodada 2** |
 | LAN-016 | **Permitir poses-chave e marcos opcionais; a IA deve criar o blocking, refinar curvas e apresentar transições à revisão.** | `14B — A linguagem permite poses-chave e marcos opcionais; a IA cria o blocking, refina as curvas e apresenta as transições para revisão.` | **APROVADA — Rodada 2** |
 | LAN-017 | **Se uma deformação não sobreviver corretamente à exportação GLB, buscar bake ou substituição compatível, validar o resultado e solicitar aprovação caso haja perda visual.** | `15B — Procurar uma versão compatível por bake ou substituição, validar o resultado e solicitar aprovação se houver perda visual.` | **APROVADA — Rodada 2** |
+| LAN-018 | **O comando {Hitbox} deve exibir um volume ofensivo vermelho na prévia e exportar metadados com o intervalo; não deve alterar automaticamente regras de dano.** | `16A — Desenhar uma hitbox vermelha na prévia e exportar metadados de seus intervalos, sem alterar automaticamente as regras de dano.` | **APROVADA — Rodada 3** |
+| LAN-019 | **Hitboxes podem ter volumes gerados automaticamente ou especificados explicitamente, associados a ossos quando necessário, com múltiplos volumes; exigem validação antes de qualquer integração.** | `17C — Permitir volumes automáticos ou explícitos, vinculados a ossos quando necessário, com múltiplas hitboxes e validação antes da integração.` | **APROVADA — Rodada 3** |
+| LAN-020 | **Sincronização: ajustar a velocidade temporal de reprodução do clipe à duração da ação, converter eventos consistentemente e apresentar relatório das diferenças.** | `18B — Ajustar o tempo de reprodução à duração da ação, converter os eventos de forma consistente e apresentar um relatório das diferenças.` | **APROVADA — Rodada 3** |
+| LAN-021 | **Comandos mecânicos em { } para janelas e eventos, incluindo invulnerabilidade, cancelamentos, hitstop e stagger, devem inicialmente servir à inspeção, sem modificar automaticamente a mecânica.** | `19A — Permitir comandos { } que descrevam janelas e eventos, inicialmente como dados para inspeção, sem modificar a mecânica automaticamente.` | **APROVADA — Rodada 3** |
+| LAN-022 | **Root motion horizontal in-place por padrão; outros movimentos visuais são admitidos apenas quando compatíveis com o controle autoritativo da física.** | `20B — In-place horizontal por padrão, permitindo outros movimentos visuais quando forem compatíveis com o controle da física.` | **APROVADA — Rodada 3** |
+| LAN-023 | **A linguagem terá escopo geral de animação, com extensões específicas para as mecânicas do Arenamon.** | `21C — Linguagem geral de animação, com extensões específicas para as mecânicas do Arenamon.` | **APROVADA — Rodada 3** |
 
 Consequências invariantes:
 - Para o intervalo textual `a-b`, a quantidade é `b - a + 1` frames (se `b >= a`).
@@ -73,7 +79,9 @@ Consequências invariantes:
 
 **Rodada 2 aprovada:** reconhecimento e mapeamento prévio de termos anatômicos/nomes de ossos, alternativas sujeitas a aprovação para incompatibilidades, seleção de técnicas de Smear condicionada a rig/resultado/exportação, parâmetros opcionais com propostas provisórias identificadas, distinção entre princípios globais e operadores temporais, poses/marcos opcionais com revisão das transições e tentativa validada de bake/substituição para exportação incompatível com aprovação da perda visual.
 
-**Continuam pendentes:** forma exata dos cabeçalhos, quantidade mínima de Mid, algoritmos e prioridades específicos para composição/conflitos de efeitos, intensidade padrão e aceitação de parâmetros propostos, catálogo e semântica de cada modificador, regras detalhadas de hitboxes e gameplay, formas concretas de exportação e condições de evolução para durações dinâmicas. As aprovações não constituem implementação, autorização de mudança na física ou homologação de exportadores.
+**Rodada 3 aprovada:** prévia vermelha e exportação de metadados da hitbox sem alterar automaticamente o dano; volumes automáticos/explícitos, múltiplos e passíveis de associação óssea com validação; sincronização pela duração da ação e relatório das diferenças; comandos mecânicos para inspeção sem alteração automática; in-place horizontal padrão com movimentos visuais fisicamente compatíveis; linguagem geral extensível para o Arenamon.
+
+**Continuam pendentes:** forma exata dos cabeçalhos, quantidade mínima de Mid, algoritmos e prioridades específicos para composição/conflitos de efeitos, intensidade padrão e aceitação de parâmetros propostos, catálogo e semântica de cada modificador, geometria/semântica detalhada dos volumes, mecanismo de sincronização e validação, políticas de entregas e aprovação, formas concretas de exportação e condições de evolução para durações dinâmicas. As aprovações não constituem implementação, autorização de mudança na física ou homologação de exportadores.
 
 ## 4. Modelo temporal ilustrativo — PROPOSTA, não norma aprovada
 
@@ -194,15 +202,15 @@ Requisitos propostos para uma futura fase de validador:
 - **LAN-Q14.** Como devem funcionar poses-chave e transições Start→Mid→End quando há mudanças bruscas? **RESOLVIDA — LAN-016 (14B)**.
 - **LAN-Q15.** Qual a política para deformações que não sobrevivem à exportação GLB? **RESOLVIDA — LAN-017 (15B)**.
 
-### Rodada 3 — gameplay e integração (próxima rodada; pendente)
-- **LAN-Q16.** `{Hitbox}` inicialmente desenha volume vermelho, exporta eventos/metadados ou futuramente governa dano real? Cada opção exige autorização e validação distinta.
-- **LAN-Q17.** Como identificar formato, tamanho, offset, orientação e osso de uma hitbox? Podem existir múltiplos volumes e golpes multihit?
-- **LAN-Q18.** Como resolver divergência de FPS e duração entre o clipe animado e a duração efetiva do golpe no jogo?
-- **LAN-Q19.** A linguagem pode mencionar invulnerabilidade, cancelamento, hitstop e stagger sem mudar a física, ou esses termos serão restritos?
-- **LAN-Q20.** In-place sempre, por padrão com exceções ou configurável por ação?
-- **LAN-Q21.** A evolução da linguagem deve valer apenas para o laboratório de combate ou também para outros usos e jogos?
+### Rodada 3 — gameplay e integração (concluída; decisões LAN-018 a LAN-023)
+- **LAN-Q16.** `{Hitbox}` inicialmente desenha volume vermelho, exporta eventos/metadados ou futuramente governa dano real? Cada opção exige autorização e validação distinta. **RESOLVIDA — LAN-018 (16A)**.
+- **LAN-Q17.** Como identificar formato, tamanho, offset, orientação e osso de uma hitbox? Podem existir múltiplos volumes e golpes multihit? **RESOLVIDA — LAN-019 (17C)**.
+- **LAN-Q18.** Como resolver divergência de FPS e duração entre o clipe animado e a duração efetiva do golpe no jogo? **RESOLVIDA — LAN-020 (18B)**.
+- **LAN-Q19.** A linguagem pode mencionar invulnerabilidade, cancelamento, hitstop e stagger sem mudar a física, ou esses termos serão restritos? **RESOLVIDA — LAN-021 (19A)**.
+- **LAN-Q20.** In-place sempre, por padrão com exceções ou configurável por ação? **RESOLVIDA — LAN-022 (20B)**.
+- **LAN-Q21.** A evolução da linguagem deve valer apenas para o laboratório de combate ou também para outros usos e jogos? **RESOLVIDA — LAN-023 (21C)**.
 
-### Rodada 4 — produção, segurança e aprovação
+### Rodada 4 — produção, segurança e aprovação (próxima rodada; pendente)
 - **LAN-Q22.** Arquivos de entrega: BLEND, GLB, vídeo, especificação textual e/ou relatório de validação — quais são obrigatórios?
 - **LAN-Q23.** Verificação: apenas testes automáticos ou também revisão visual em vários ângulos, comparação e aprovação do diretor?
 - **LAN-Q24.** Critérios de aprovação por fases (blocking, spline, polish) e autorização antes de substituir arquivos?
@@ -225,3 +233,4 @@ Requisitos propostos para uma futura fase de validador:
 | 16/10/2026 | Primeira consolidação da ideia de Start/Mid/End, das duas decisões explicitamente aprovadas (LAN-001 e LAN-002), dos conflitos técnicos conhecidos e das perguntas pendentes. Novo documento isolado; nenhum código alterado. |
 | 16/10/2026 | **Rodada 1:** registradas oito aprovações explícitas (LAN-003 a LAN-010; escolhas 1A, 2B, 3A, 4A, 5A, 6A, 7A e 8C). LAN-Q01 a LAN-Q08 marcadas como resolvidas sem apagá-las. Restantes pendências preservadas. Nenhuma implementação autorizada. |
 | 16/10/2026 | **Rodada 2:** registradas sete aprovações explícitas (LAN-011 a LAN-017; escolhas 9C, 10C, 11D, 12C, 13C, 14B, 15B). LAN-Q09 a LAN-Q15 marcadas como resolvidas sem apagar o texto anterior. Restantes pendências preservadas. Nenhuma implementação autorizada. |
+| 16/10/2026 | **Rodada 3:** registradas seis decisões explícitas (LAN-018 a LAN-023; escolhas 16A, 17C, 18B, 19A, 20B, 21C). LAN-Q16 a LAN-Q21 marcadas como resolvidas. Preservadas todas as decisões e pendências anteriores. Nenhuma implementação nem ativação de regras de combate autorizada. |
