@@ -11,9 +11,9 @@ import {add, scale, direction} from '../math.js';
 /** Definição do movimento (dados puros, clonável). */
 export const reflectDef = Object.freeze({
   id: 'reflect', name: 'Reflect',
-  description: 'Carregue e solte para criar uma barreira que reflete projéteis. Quanto mais carga, maior e mais duradoura; ela é sólida para os dois lutadores.',
+  description: 'Carregue por no mínimo 1,5 s e solte para criar uma barreira que reflete projéteis. Quanto mais carga, maior e mais duradoura; ela é sólida para os dois lutadores.',
   cost: 1, cooldown: 8, cooldownBoost: true,
-  charge: {max: 4, group: 'reflect'},
+  charge: {max: 4, min: 1.5, group: 'reflect'},
   timeline: [{effect: 'reflect'}],
 });
 
@@ -67,7 +67,9 @@ export function reflectPlacement(game, f, P, fraction, heading) {
 export function reflectEffect(/** @type {any} */ game, /** @type {any} */ f, /** @type {any} */ def, /** @type {any} */ fx) {
   const ch = fx.charge;
   if (!ch) return {ok: false, reason: 'semCarga'};
-  const P = ch.params, G = P.group, place = /** @type {any} */ (reflectPlacement(game, f, P, ch.ticks / P.maxTicks, fx.heading));
+  const P = ch.params, G = P.group;
+  if (ch.seconds < (G?.minCharge ?? def?.charge?.min ?? 1.5) - 1e-4) return {ok: false, reason: 'semCargaMinima'};
+  const place = /** @type {any} */ (reflectPlacement(game, f, P, ch.ticks / P.maxTicks, fx.heading));
   if (!place.ok) return {ok: false, reason: place.reason};
   const duration = G.durationBase + ch.seconds;                      // 4 s + tempo carregado (M4.3): 4 a 8 s
   const e = spawn(game.world, {

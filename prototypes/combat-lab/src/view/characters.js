@@ -36,6 +36,8 @@ export const STATE_ACTIONS = {
   dodge_right: ['dodge_right', 'dodge_left', 'dodge_forward', 'idle'], vault: ['jump', 'dodge_forward', 'idle'], recoil: ['blocked', 'hit', 'idle'],
   // Movimentos especiais por slot (o Studio já exporta move_1…move_4 no mapa de ações); sem clipe próprio, usa o do tackle.
   move_1: ['move_1', 'tackle', 'idle'], move_2: ['move_2', 'tackle', 'idle'], move_3: ['move_3', 'tackle', 'idle'], move_4: ['move_4', 'tackle', 'idle'],
+  charge_reflect: ['reflect_charge', 'idle'], release_reflect: ['reflect_release', 'move_1', 'tackle'],
+  charge_psyshock: ['psyshock_charge', 'idle'], release_psyshock: ['psyshock_release', 'move_2', 'tackle'],
   airborne: ['knockback', 'fall', 'hit', 'idle'], landing: ['land', 'recover', 'downed', 'idle'], recover: ['recover', 'land', 'idle'], defeated: ['death', 'downed', 'idle'], pushed: ['hit', 'idle'],
 };
 export const STATE_LABELS = {neutral: 'Parado', turn: 'Girando no lugar', walk: 'Andando', run: 'Correndo', walk_back: 'Recuando', walk_left: 'Lateral esquerda', walk_right: 'Lateral direita',
@@ -43,7 +45,9 @@ export const STATE_LABELS = {neutral: 'Parado', turn: 'Girando no lugar', walk: 
   guard_enter: 'Entrando na defesa', guard: 'Defendendo', guard_exit: 'Saindo da defesa', guard_hit: 'Defesa perfeita', guardStun: 'Guard stun', tackle: 'Tackle', dodge_forward: 'Esquiva frontal',
   dodge_back: 'Esquiva traseira', dodge_left: 'Esquiva esquerda', dodge_right: 'Esquiva direita', vault: 'Salto sobre o rival', recoil: 'Recuo (bloqueado)', airborne: 'Lançado',
   landing: 'Aterrissando', recover: 'Recuperando (exausto)', defeated: 'Derrotado', pushed: 'Empurrado', __preview: 'Prévia',
-  move_1: 'Movimento 1', move_2: 'Movimento 2', move_3: 'Movimento 3', move_4: 'Movimento 4'};
+  move_1: 'Movimento 1', move_2: 'Movimento 2', move_3: 'Movimento 3', move_4: 'Movimento 4',
+  charge_reflect: 'Carregando Reflect', release_reflect: 'Disparo do Reflect',
+  charge_psyshock: 'Carregando Psyshock', release_psyshock: 'Disparo do Psyshock'};
 /** Blocos de animação listados no painel (cada um serve a um ou mais estados e aceita várias variantes). */
 export const ACTION_IDS = ['idle', 'turn', 'walk', 'run', 'sprint', 'walk_stop', 'sprint_stop', 'walk_back', 'walk_left', 'walk_right', 'block_start', 'block', 'block_end', 'guard_impact', 'blocked', 'tackle',
   'dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'jump', 'hit', 'knockback', 'fall', 'land', 'recover', 'downed', 'death', 'move_1', 'move_2', 'move_3', 'move_4'];
@@ -60,12 +64,16 @@ const ALIASES = {
   fall: ['fall', 'falling', 'queda'], land: ['land', 'landing', 'aterrissar'], recover: ['recover', 'get up', 'getup', 'stand up', 'levantar'], downed: ['downed', 'down', 'caido'],
   death: ['death', 'die', 'dying', 'dead', 'ko', 'derrota'],
   move_1: ['move 1', 'golpe 1', 'special 1', 'skill 1'], move_2: ['move 2', 'golpe 2', 'special 2', 'skill 2'], move_3: ['move 3', 'golpe 3', 'special 3', 'skill 3'], move_4: ['move 4', 'golpe 4', 'special 4', 'skill 4'],
+  reflect_charge: ['reflect charge', 'reflect_charge', 'barrier charge', 'shield charge', 'channel', 'cast start', 'cast_start'],
+  reflect_release: ['reflect release', 'reflect_release', 'barrier release', 'barrier', 'cast release', 'cast_release', 'reflect'],
+  psyshock_charge: ['psyshock charge', 'psyshock_charge', 'psychic charge', 'stone charge', 'channel', 'cast start', 'cast_start'],
+  psyshock_release: ['psyshock release', 'psyshock_release', 'psychic release', 'psyshock', 'throw', 'cast release', 'cast_release'],
 };
 const MOVE_KEYS = ['move_1', 'move_2', 'move_3', 'move_4'];
 const TIMED = new Set(['tackle', 'dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'vault', 'recoil', 'guardStun', 'airborne', 'landing', 'recover', 'defeated', ...MOVE_KEYS]);
 const TRANSIENT = new Set(['guard_enter', 'guard_exit', 'guard_hit']);
 /** Tocam uma vez a partir da entrada e seguram a última pose (não repetem em laço). */
-const ONE_SHOT = new Set([...TRANSIENT, 'walk_stop', 'sprint_stop', '__preview']);
+const ONE_SHOT = new Set([...TRANSIENT, 'walk_stop', 'sprint_stop', '__preview', 'release_reflect', 'release_psyshock', ...MOVE_KEYS]);
 const LOCOMOTION = new Set(['neutral', 'turn', 'walk', 'run', 'walk_back', 'walk_left', 'walk_right']);
 const ACTION_KEYS = new Set(['tackle', 'dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'vault', ...MOVE_KEYS]);
 const COMBAT_KEYS = new Set(['airborne', 'landing', 'recover', 'guardStun', 'recoil', 'defeated', 'pushed', 'guard_hit']);
@@ -103,6 +111,12 @@ export class Character {
     this.root = clone(source.scene);this.mixer = new T.AnimationMixer(this.root);
     this.clips = source.animations.slice();this.clipInfo = this.clips.map(c => ({name: c.name, origin: 'glb', compatible: true, coverage: 1}));
     this.variants = autoVariants(source);this.speeds = {};this.clipOffsets = {};this.visualOffset = 0;this.autoGround = true;
+    this.moveAnims = {
+      reflect: {chargeClip: null, chargeLoopStart: 0, releaseClip: null},
+      psyshock: {chargeClip: null, chargeLoopStart: 0, releaseClip: null}
+    };
+    this.movePreview = null;
+    this.autoAssignMoveAnims();
     this.current = null;this.layers = [];this.fade = 0;this.timer = 0;this.clock = 0;this.flightV0 = 0;this.wasFlying = false;this.lastFlight = -Infinity;
     this.transient = null;this.wasGuard = false;this.seenEvents = new WeakSet();this.statesSeen = new Set();this.preview = null;this.visualFreeze = 0;
     this.stableLoco = null;this.locoCandidate = null;this.locoCandidateAt = 0;this.prevAction = null;this.actionSerial = 0;this.log = [];this.transitions = 0;this.restartsAvoided = 0;
@@ -115,11 +129,105 @@ export class Character {
     this.hipsRest = this.hips?.position.clone();
     this.bones = new Map();this.root.traverse(o => {if (o.isBone) this.bones.set(boneKey(o.name), o.name);});
     this.restore();
+    this.warmGround();
   }
   // ---------- Associações (persistidas por nome de clipe neste navegador) ----------
   /** Compatibilidade com o v7: primeira variante de cada ação. */
   get mapping() {return Object.fromEntries(Object.entries(this.variants).filter(([, v]) => v.length).map(([id, v]) => [id, v[0]]));}
-  variantsOf(id) {return (this.variants[id] || []).filter(i => this.clips[i] && this.clipInfo[i]?.compatible);}
+  autoAssignMoveAnims() {
+    for (const moveId of ['reflect', 'psyshock']) {
+      const conf = this.moveAnims[moveId] ??= {chargeClip: null, chargeLoopStart: 0, releaseClip: null};
+      if (conf.chargeClip == null) {
+        const kws = moveId === 'reflect' ? ALIASES.reflect_charge : ALIASES.psyshock_charge;
+        conf.chargeClip = this.findClipByKeywords(kws);
+      }
+      if (conf.releaseClip == null) {
+        const legacyIdx = this.variants[moveId === 'reflect' ? 'move_1' : 'move_2']?.[0];
+        if (legacyIdx != null && this.clips[legacyIdx]) {
+          conf.releaseClip = legacyIdx;
+        } else {
+          const kws = moveId === 'reflect' ? ALIASES.reflect_release : ALIASES.psyshock_release;
+          conf.releaseClip = this.findClipByKeywords(kws);
+        }
+      }
+    }
+  }
+  findClipByKeywords(keywords) {
+    if (!keywords || !this.clips?.length) return null;
+    for (const kw of keywords) {
+      const lower = kw.toLowerCase();
+      const idx = this.clips.findIndex(c => c.name.toLowerCase().includes(lower));
+      if (idx >= 0 && (this.clipInfo?.[idx]?.compatible ?? true)) return idx;
+    }
+    return null;
+  }
+  getMoveAnimConfig(moveId) {
+    this.moveAnims ??= {};
+    if (!this.moveAnims[moveId]) {
+      this.moveAnims[moveId] = {chargeClip: null, chargeLoopStart: 0, releaseClip: null};
+    }
+    return this.moveAnims[moveId];
+  }
+  setMoveAnim(moveId, type, clipIndex) {
+    const conf = this.getMoveAnimConfig(moveId);
+    const idx = clipIndex == null || clipIndex === '' ? null : Number(clipIndex);
+    if (type === 'charge') {
+      conf.chargeClip = idx;
+    } else if (type === 'release') {
+      conf.releaseClip = idx;
+      const legacyKey = moveId === 'reflect' ? 'move_1' : 'move_2';
+      if (idx != null) this.variants[legacyKey] = [idx];
+      else delete this.variants[legacyKey];
+    }
+    this.resetVisual();
+    this.save();
+  }
+  setMoveChargeLoopStart(moveId, seconds) {
+    const conf = this.getMoveAnimConfig(moveId);
+    conf.chargeLoopStart = Math.max(0, Number(seconds) || 0);
+    this.save();
+  }
+  startMovePreview(moveId, onEnd = null) {
+    this.stopPreview();
+    this.stopMovePreview();
+    const conf = this.getMoveAnimConfig(moveId);
+    const chargeIdx = conf.chargeClip ?? this.variantsOf('idle')[0] ?? 0;
+    const releaseIdx = conf.releaseClip ?? this.variantsOf(moveId === 'reflect' ? 'move_1' : 'move_2')[0] ?? this.variantsOf('tackle')[0] ?? 0;
+    this.movePreview = {
+      moveId,
+      phase: 'charge',
+      chargeIdx,
+      releaseIdx,
+      started: this.clock,
+      chargeDuration: 2.2,
+      onEnd,
+      serial: ++this.actionSerial
+    };
+    return true;
+  }
+  stopMovePreview() {
+    if (this.movePreview?.onEnd) this.movePreview.onEnd();
+    this.movePreview = null;
+    this.resetVisual();
+  }
+  variantsOf(id) {
+    if (id?.startsWith?.('charge_')) {
+      const moveId = id.slice(7);
+      const conf = this.moveAnims?.[moveId];
+      if (conf?.chargeClip != null && this.clips[conf.chargeClip]) return [conf.chargeClip];
+      return this.variantsOf('idle');
+    }
+    if (id?.startsWith?.('release_')) {
+      const moveId = id.slice(8);
+      const conf = this.moveAnims?.[moveId];
+      if (conf?.releaseClip != null && this.clips[conf.releaseClip]) return [conf.releaseClip];
+      const legacyKey = moveId === 'reflect' ? 'move_1' : 'move_2';
+      const legList = this.variants[legacyKey];
+      if (legList?.length) return legList;
+      return this.variantsOf('tackle');
+    }
+    return (this.variants[id] || []).filter(i => this.clips[i] && this.clipInfo[i]?.compatible);
+  }
   addVariant(id, index) {if (!this.clipInfo[index]?.compatible) return false;const list = this.variants[id] ??= [];if (!list.includes(index)) list.push(index);this.resetVisual();this.save();return true;}
   removeVariant(id, index) {this.variants[id] = (this.variants[id] || []).filter(i => i !== index);if (!this.variants[id].length) delete this.variants[id];this.resetVisual();this.save();}
   /** Troca a variante principal (posição 0) de um estado. */
@@ -134,8 +242,16 @@ export class Character {
   /** Associações, velocidades e offsets em formato portátil (clipes por nome). */
   stateData() {
     const byName = i => this.clips[i]?.name;
+    const moveAnimsData = {};
+    for (const [m, conf] of Object.entries(this.moveAnims || {})) {
+      moveAnimsData[m] = {
+        chargeClip: conf.chargeClip != null ? byName(conf.chargeClip) : null,
+        chargeLoopStart: conf.chargeLoopStart || 0,
+        releaseClip: conf.releaseClip != null ? byName(conf.releaseClip) : null
+      };
+    }
     return {variants: Object.fromEntries(Object.entries(this.variants).map(([id, l]) => [id, l.map(byName).filter(Boolean)])), speeds: {...this.speeds},
-      clipOffsets: Object.fromEntries(Object.entries(this.clipOffsets).map(([i, v]) => [byName(i), v]).filter(([k]) => k)), visualOffset: this.visualOffset, autoGround: this.autoGround};
+      clipOffsets: Object.fromEntries(Object.entries(this.clipOffsets).map(([i, v]) => [byName(i), v]).filter(([k]) => k)), visualOffset: this.visualOffset, autoGround: this.autoGround, moveAnims: moveAnimsData};
   }
   save() {
     if (!this.persist) return;
@@ -158,6 +274,16 @@ export class Character {
     Object.assign(this.speeds, data.speeds || {});
     for (const [n, v] of Object.entries(data.clipOffsets || {})) {const i = idx(n);if (i >= 0) this.clipOffsets[i] = v;}
     if (typeof data.visualOffset === 'number') this.visualOffset = data.visualOffset;if (typeof data.autoGround === 'boolean') this.autoGround = data.autoGround;
+    if (data.moveAnims) {
+      for (const [m, conf] of Object.entries(data.moveAnims)) {
+        this.moveAnims[m] = {
+          chargeClip: conf.chargeClip ? idx(conf.chargeClip) : null,
+          chargeLoopStart: Number(conf.chargeLoopStart) || 0,
+          releaseClip: conf.releaseClip ? idx(conf.releaseClip) : null
+        };
+      }
+    }
+    this.autoAssignMoveAnims();
   }
   /** Importa clipes para a biblioteca, verificando os ossos referenciados. Devolve o relatório por clipe. */
   importClips(file) {
@@ -178,7 +304,20 @@ export class Character {
   }
   speedOf(id) {return (Character.options.speed || 1) * (this.speeds[id] ?? 1);}
   /** Ação associada a um estado (primeira da ordem de preferência com variantes). */
-  actionFor(stateKey) {for (const id of STATE_ACTIONS[stateKey] || ['idle']) if (this.variantsOf(id).length) return id;return null;}
+  actionFor(stateKey) {
+    if (stateKey?.startsWith?.('charge_')) {
+      const moveId = stateKey.slice(7);
+      const conf = this.moveAnims?.[moveId];
+      if (conf?.chargeClip != null && this.clips[conf.chargeClip]) return stateKey;
+      return this.actionFor('idle') || 'idle';
+    }
+    if (stateKey?.startsWith?.('release_')) {
+      if (this.variantsOf(stateKey).length) return stateKey;
+      return this.actionFor('tackle') || 'tackle';
+    }
+    for (const id of STATE_ACTIONS[stateKey] || ['idle']) if (this.variantsOf(id).length) return id;
+    return null;
+  }
   /** Compatibilidade: primeira variante do estado. */
   clipFor(stateKey) {const id = this.actionFor(stateKey);return id ? {id, index: this.variantsOf(id)[0]} : null;}
   /** Sorteio determinístico da variante na entrada do estado (mesmo lutador, estado e passo → mesma escolha). */
@@ -190,6 +329,10 @@ export class Character {
     if (f.flight) return 'airborne';
     if (f.state === 'landing' && f.recoveryFrom && this.current && ACTION_KEYS.has(this.current.key)) return this.current.key;
     if (f.state === 'landing') return this.clock - this.lastFlight < 1.5 ? 'landing' : 'recover';
+    if (f.charge) {
+      const moveId = f.charge.move || (f.charge.slot === 0 ? 'reflect' : 'psyshock');
+      return 'charge_' + moveId;
+    }
     if (f.action?.kind === 'tackle') return 'tackle';
     if (f.action?.kind === 'move') return MOVE_KEYS[Math.max(0, Math.min(3, f.action.slot ?? 0))];
     if (f.action?.kind === 'dodge') {
@@ -211,7 +354,11 @@ export class Character {
       // Mantém o freio até a desaceleração acabar (evita trocar no meio da animação por oscilação da fase).
       if ((f.locoPhase === 'brake' || f.locoPhase === 'reverse' || f.locoPhase === 'sprintStop') && speed > .3) return this.current.key;
     }
-    if (speed < .15) return Math.abs(angleDelta(f.visualFacing, f.facing)) > .2 ? 'turn' : 'neutral';
+    if (speed < .15) {
+      const diff = Math.abs(angleDelta(f.visualFacing, f.facing));
+      const turning = this.current?.key === 'turn';
+      return diff > (turning ? .08 : .22) ? 'turn' : 'neutral';
+    }
     const rel = angleDelta(f.faceGoal ?? f.facing, angleOf(f.velocity));
     if (Math.abs(rel) > 3 * Math.PI / 4) return 'walk_back';
     if (Math.abs(rel) > Math.PI / 4) return rel > 0 ? 'walk_left' : 'walk_right';
@@ -232,7 +379,11 @@ export class Character {
   progress(f, key) {
     const R = C.rules;
     if (key === 'tackle') return f.action ? f.action.elapsed / actionDuration('tackle') : 1;
-    if (MOVE_KEYS.includes(key)) return f.action?.kind === 'move' ? f.action.elapsed / Math.max(1e-6, actionSpec(f.action).duration) : 1;
+    if (MOVE_KEYS.includes(key)) {
+      if (f.action?.kind === 'move') return f.action.elapsed / Math.max(1e-6, actionSpec(f.action).duration || .4);
+      const d = this.current?.clip.duration || .4;
+      return Math.min(1, Math.max(0, (this.clock - (this.current?.started ?? this.clock)) / Math.max(1e-4, d / this.speedOf(this.current?.id || key))));
+    }
     // Pulo físico: o clipe de salto acompanha o tempo de voo balístico (2·impulso ÷ gravidade).
     if (key === 'vault' && f.action?.jump) return f.action.elapsed / Math.max(.05, 2 * C.actions.dodge.vaultUp / Math.max(.1, C.actions.dodge.vaultGravity));
     if (key.startsWith('dodge') || key === 'vault') return f.action ? f.action.elapsed / actionDuration('dodge') : 1;
@@ -244,20 +395,29 @@ export class Character {
     if (key === 'defeated') return Math.min(1, this.timer / 1.2);
     return 0;
   }
-  /** Transições curtas: entrar/sair da defesa e defesa perfeita. */
+  /** Transições curtas: entrar/sair da defesa, defesa perfeita e disparo de movimentos. */
   transients(f, events) {
-    for (const e of events) if (!this.seenEvents.has(e)) {this.seenEvents.add(e);if (e.target === f.id && e.result === 'perfect') this.startTransient('guard_hit');}
+    for (const e of events) if (!this.seenEvents.has(e)) {
+      this.seenEvents.add(e);
+      if (e.target === f.id && e.result === 'perfect') this.startTransient('guard_hit');
+      if (e.attacker === f.id && (e.result === 'chargeRelease' || e.result === 'move') && e.slot != null) {
+        const moveId = e.move || (e.slot === 0 ? 'reflect' : 'psyshock');
+        this.startTransient('release_' + moveId);
+      }
+    }
     // Defesa ligada/desligada em poucos quadros (comum na IA) não reinicia entrar/sair da defesa:
     // entrada logo depois de uma saída (ou saída de uma defesa curta) segue direto, só com o fade.
     const hold = Character.options.guardHold;
     if (f.guard && !this.wasGuard && !f.action) {if (this.clock - (this.guardOffAt ?? -Infinity) >= hold) this.startTransient('guard_enter');else if (this.transient?.key === 'guard_exit') this.transient = null;this.guardOnAt = this.clock;}
     if (!f.guard && this.wasGuard && !f.action && f.state !== 'guardStun') {if (this.clock - (this.guardOnAt ?? -Infinity) >= hold) this.startTransient('guard_exit');else if (this.transient?.key === 'guard_enter') this.transient = null;this.guardOffAt = this.clock;}
     this.wasGuard = f.guard;
-    if (this.transient && (f.action || f.flight || f.state === 'guardStun' || f.state === 'landing' || f.hp <= 0 || this.clock >= this.transient.until)) this.transient = null;
+    if (this.transient && (f.action || (f.guard && !this.transient.key.startsWith('guard_')) || f.flight || f.state === 'guardStun' || f.state === 'landing' || f.hp <= 0 || this.clock >= this.transient.until)) this.transient = null;
   }
   startTransient(key) {
-    const id = this.actionFor(key);if (!id || id !== STATE_ACTIONS[key][0]) return;
-    this.transient = {key, until: this.clock + (this.clips[this.variantsOf(id)[0]].duration || .2) / this.speedOf(id), serial: ++this.actionSerial};
+    const id = this.actionFor(key);if (!id || (id !== key && id !== STATE_ACTIONS[key]?.[0] && id !== 'tackle')) return;
+    const variants = this.variantsOf(id);if (!variants?.length) return;
+    const clipIdx = variants[0], clipDur = this.clips[clipIdx]?.duration || .4, speed = this.speedOf(id);
+    this.transient = {key, until: this.clock + (clipDur / speed), serial: ++this.actionSerial};
   }
   // ---------- Prévia (só visual) ----------
   startPreview(index) {if (!Number.isInteger(index) || !this.clips[index]) return false;this.preview = {index, started: this.clock, serial: ++this.actionSerial};return true;}
@@ -305,15 +465,32 @@ export class Character {
     if (f.flight) this.lastFlight = this.clock;this.wasFlying = !!f.flight;
     this.trackAction(f);this.transients(f, events);
     let p = this.preview;if (p && this.clock - p.started >= (this.clips[p.index]?.duration || 0) / Math.max(.05, opt.speed)) {this.preview = null;p = null;}
-    const raw = p ? '__preview' : this.transient?.key ?? this.stateKey(f), key = p ? raw : this.smoothLocomotion(raw);
+    let mp = this.movePreview;
+    if (mp) {
+      if (mp.phase === 'charge') {
+        if (this.clock - mp.started >= mp.chargeDuration) {
+          mp.phase = 'release';
+          mp.started = this.clock;
+          mp.serial = ++this.actionSerial;
+        }
+      } else if (mp.phase === 'release') {
+        const relDur = (this.clips[mp.releaseIdx]?.duration || .6) / Math.max(.05, opt.speed);
+        if (this.clock - mp.started >= relDur) {
+          this.stopMovePreview();
+          mp = null;
+        }
+      }
+    }
+    const raw = p ? '__preview' : mp ? (mp.phase === 'charge' ? 'charge_' + mp.moveId : 'release_' + mp.moveId) : this.transient?.key ?? this.stateKey(f);
+    const key = (p || mp) ? raw : this.smoothLocomotion(raw);
     this.statesSeen.add(key);
     // Identidade da entrada: estado + número da ação/transição (X, C, transição curta ou prévia).
-    const serial = p ? p.serial : this.transient ? this.transient.serial : ACTION_KEYS.has(key) ? this.actionSerial : 0;
+    const serial = p ? p.serial : mp ? mp.serial : this.transient ? this.transient.serial : ACTION_KEYS.has(key) ? this.actionSerial : 0;
     const entry = `${key}#${serial}`;
     if (!this.current || this.current.entry !== entry) {
       const id = p ? 'preview' : this.actionFor(key);
       if (id) {
-        const index = p ? p.index : this.pickVariant(id, hash(this.slot, key, ctx.tick ?? Math.round(this.clock * 120), serial));
+        const index = p ? p.index : (mp ? (mp.phase === 'charge' ? mp.chargeIdx : mp.releaseIdx) : this.pickVariant(id, hash(this.slot, key, ctx.tick ?? Math.round(this.clock * 120), serial)));
         this.enter(key, id, index, entry, f, ctx);
       } else if (this.current) this.current.entry = entry;
     } else if (this.current.key !== key) this.current.key = key;
@@ -352,7 +529,7 @@ export class Character {
     let old = 0;
     for (const layer of this.layers) {
       const k = Math.max(0, Math.min(1, (this.clock - layer.fadeStart) / fadeOf(this.current)));layer.weight = layer.fadeFrom * (1 - k);
-      if (layer.weight <= 1e-4) {layer.action.stop();this.mixer.uncacheAction(layer.clip);layer.dead = true;continue;}
+      if (layer.weight <= 1e-4) {layer.action.stop();layer.dead = true;continue;}
       const a = layer.action, d = layer.clip.duration || 1;
       a.time = ONE_SHOT.has(layer.key) || TIMED.has(layer.key) ? Math.min(d, a.time + dt * this.speedOf(layer.id)) : (a.time + dt * this.speedOf(layer.id)) % d;
       a.setEffectiveWeight(layer.weight);old += layer.weight;
@@ -362,10 +539,26 @@ export class Character {
     if (this.current) {
       const a = this.current.action, d = this.current.clip.duration || 1, s = this.speedOf(this.current.id);
       this.current.weight = Math.max(0, 1 - Math.min(1, old));a.setEffectiveWeight(this.current.weight);
-      if (p) a.time = Math.min(d, (this.clock - p.started) * Character.options.speed);
-      else if (ONE_SHOT.has(this.current.key)) a.time = Math.min(d, (this.clock - this.current.started) * s);
-      else if (TIMED.has(this.current.key)) a.time = Math.min(d, Math.max(0, this.progress(f, this.current.key)) * d);
-      else a.time = (a.time + dt * s) % d;
+      if (p) {
+        a.time = Math.min(d, (this.clock - p.started) * Character.options.speed);
+      } else if (this.current.key.startsWith('charge_')) {
+        const moveId = this.current.key.slice(7);
+        const conf = this.moveAnims?.[moveId];
+        const loopStart = Math.min(conf?.chargeLoopStart ?? 0, Math.max(0, d - 0.05));
+        const elapsed = (this.clock - this.current.started) * s;
+        if (elapsed < d) {
+          a.time = elapsed;
+        } else {
+          const loopLen = Math.max(1e-4, d - loopStart);
+          a.time = loopStart + ((elapsed - loopStart) % loopLen);
+        }
+      } else if (ONE_SHOT.has(this.current.key) || this.current.key.startsWith('release_')) {
+        a.time = Math.min(d, (this.clock - this.current.started) * s);
+      } else if (TIMED.has(this.current.key)) {
+        a.time = Math.min(d, Math.max(0, this.progress(f, this.current.key)) * d);
+      } else {
+        a.time = (a.time + dt * s) % d;
+      }
     }
     this.mixer.update(0);
     // Sem root motion: o deslocamento horizontal da raiz do GLB é descartado (a posição vem da física).

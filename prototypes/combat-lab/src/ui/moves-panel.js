@@ -75,7 +75,7 @@ const HOMOLOG_KEY = 'arenamon-moves-homolog';
 const loadHomolog = () => {try {return JSON.parse(localStorage.getItem(HOMOLOG_KEY) ?? '{}');} catch {return {};}};
 const saveHomolog = h => {try {localStorage.setItem(HOMOLOG_KEY, JSON.stringify(h));} catch {/* sem armazenamento: a avaliação vale só nesta sessão */}};
 
-export function createMovesPanel({$, game, download}) {
+export function createMovesPanel({$, game, download, tuning, view, ui}) {
   const root = $('moves-panel');
   let results = null, homolog = loadHomolog();
   const equipped = id => ({reflect: game.fighters[id]?.loadout?.includes('reflect'), psyshock: game.fighters[id]?.loadout?.includes('psyshock')});
@@ -119,6 +119,118 @@ export function createMovesPanel({$, game, download}) {
     return `<div class="mvp-param" title="${escape(tip)}"><label>${escape(label)} <small class="${approved ? 'ok' : 'warn'}">${approved ? 'aprovado' : 'provisório'}</small></label>
       <div class="row"><input type="range" data-p="${group}.${key}" min="${min}" max="${max}" step="${step}" value="${v}"><output data-o="${group}.${key}">${fmt(v)}</output><button type="button" data-reset="${group}.${key}" title="Padrão: ${escape(fmt(def))}" ${v === def ? 'disabled' : ''}>↺</button></div></div>`;
   }
+  function renderMovesAnimSection() {
+    const ch = ui?.characters?.[0];
+    if (!ch) {
+      return `
+        <div class="moves-anim-section">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <h3 style="margin:0;font-size:13px;color:var(--cyan);display:flex;align-items:center;gap:6px;">
+              <span>⚔</span> Animações dos Moves (Carga & Disparo)
+            </h3>
+            <span class="muted" style="font-size:11px;">Jogador Azul · Modelo GLB</span>
+          </div>
+          <p class="hint" style="margin:0;">
+            ℹ Nenhum modelo GLB carregado no jogador azul. Carregue um modelo na aba <b>Personagens</b> para associar os clipes de carga (com slider de loop) e disparo de cada Move.
+          </p>
+        </div>
+      `;
+    }
+
+    const movesList = [
+      ['reflect', 'Reflect (Barreira)', 'Tecla A · Slot 0', 'Escudo refletor frontal'],
+      ['psyshock', 'Psyshock (Pedras Psíquicas)', 'Tecla S · Slot 1', 'Disparo de projéteis com homing']
+    ];
+
+    const cardsHtml = movesList.map(([moveId, title, keyHelp, desc]) => {
+      const conf = ch.getMoveAnimConfig(moveId);
+      const chargeClip = conf.chargeClip != null ? ch.clips[conf.chargeClip] : null;
+      const chargeDur = chargeClip?.duration || 1.0;
+      const loopStart = Math.min(conf.chargeLoopStart || 0, Math.max(0, chargeDur - 0.02));
+      const loopPct = chargeDur > 0 ? (loopStart / chargeDur * 100).toFixed(0) : 0;
+
+      const clipOptions = (selectedIdx, placeholder) => {
+        return `<option value="">${placeholder}</option>` + ch.clips.map((c, i) => {
+          const isSel = i === selectedIdx;
+          return `<option value="${i}" ${isSel ? 'selected' : ''}>${escape(c.name)} (${c.duration.toFixed(2)}s)</option>`;
+        }).join('');
+      };
+
+      const isPreviewing = ch.movePreview?.moveId === moveId;
+
+      return `
+        <div class="moves-anim-card" data-card-move="${moveId}">
+          <div class="moves-anim-card-head">
+            <div>
+              <h4 style="margin:0;font-size:13px;color:#78ebff;"><span>✨</span> ${escape(title)}</h4>
+              <small class="muted">${escape(keyHelp)} · ${escape(desc)}</small>
+            </div>
+            <button type="button" class="btn-preview-move ${isPreviewing ? 'active' : ''}" data-preview-move="${moveId}">
+              ${isPreviewing ? '⏹ Parar Teste' : '▶ Testar Carga (com Loop) ➔ Disparo'}
+            </button>
+          </div>
+
+          <div class="moves-anim-grid">
+            <!-- 1. Animação de Carga + Slider de Loop -->
+            <div class="moves-anim-col">
+              <label>1. Animação de Carga (Segurar tecla):</label>
+              <select data-move-anim-select="charge" data-move-id="${moveId}">
+                ${clipOptions(conf.chargeClip, '— Selecionar animação de carga —')}
+              </select>
+              
+              <div class="moves-loop-slider-box">
+                <div class="moves-loop-slider-head">
+                  <span><b>Início do Loop na Carga:</b></span>
+                  <output data-move-loop-out="${moveId}">${loopStart.toFixed(2)}s (${loopPct}%)</output>
+                </div>
+                <input type="range" data-move-loop-range="${moveId}" min="0" max="${chargeDur.toFixed(2)}" step="0.01" value="${loopStart.toFixed(2)}" ${chargeClip ? '' : 'disabled'}>
+                <div class="move-loop-timeline" data-loop-timeline="${moveId}">
+                  <div class="loop-intro" style="flex:${Math.max(0.001, loopStart)};" title="Windup inicial: 0.00s a ${loopStart.toFixed(2)}s">
+                    ${loopStart > 0.15 ? `Intro (${loopStart.toFixed(2)}s)` : ''}
+                  </div>
+                  <div class="loop-repeat" style="flex:${Math.max(0.001, chargeDur - loopStart)};" title="Ciclo contínuo de loop: ${loopStart.toFixed(2)}s a ${chargeDur.toFixed(2)}s">
+                    🔁 Loop (${(chargeDur - loopStart).toFixed(2)}s)
+                  </div>
+                </div>
+                <p class="hint" style="margin:4px 0 0 0;font-size:10.5px;">
+                  A animação toca a introdução; ao alcançar o fim do clipe, <b>volta para ${loopStart.toFixed(2)}s</b> e repete o loop enquanto segurar a tecla.
+                </p>
+              </div>
+            </div>
+
+            <!-- 2. Animação de Disparo -->
+            <div class="moves-anim-col">
+              <label>2. Animação de Disparo (Ao soltar tecla):</label>
+              <select data-move-anim-select="release" data-move-id="${moveId}">
+                ${clipOptions(conf.releaseClip, '— Selecionar animação de disparo —')}
+              </select>
+              <p class="hint" style="margin-top:6px;font-size:11px;">
+                Dispara ao soltar a tecla do Move, transitando com suavidade (blend) da pose de carga atual até o golpe.
+              </p>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    return `
+      <div class="moves-anim-section">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <h3 style="margin:0;font-size:13px;color:var(--cyan);display:flex;align-items:center;gap:6px;">
+            <span>⚔</span> Animações dos Moves (Carga & Disparo)
+          </h3>
+          <span class="muted" style="font-size:11px;">Jogador Azul · Modelo GLB</span>
+        </div>
+        <p class="hint" style="margin-top:2px;">
+          Ambos os movimentos (Reflect e Psyshock) utilizam mecânica de <b>Charge</b>. Escolha a animação de carga (com slider para definir quando ela começa a fazer loop em si mesma) e a animação do disparo ao soltar a tecla.
+        </p>
+        <div class="moves-anim-cards">
+          ${cardsHtml}
+        </div>
+      </div>
+    `;
+  }
+
   function render() {
     const openKeys = new Set([...root.querySelectorAll('details[open][data-k]')].map(d => d.dataset.k));   // a interface não recolhe os grupos que você abriu
     const eq0 = equipped(0), eq1 = equipped(1);
@@ -127,6 +239,17 @@ export function createMovesPanel({$, game, download}) {
       <p class="hint">Reflect (tecla <b>A</b>) e Psyshock (tecla <b>S</b>): <b>segure para carregar, solte para executar</b>. Vêm desligados: marque abaixo para equipar (valem nas próximas partidas e já na atual). A aprovação de jogabilidade e visual é sua (aba Homologação).</p>
       <h3>Equipar</h3>
       <div class="row"><b>Jogador (azul)</b><label><input type="checkbox" data-equip="0.reflect" ${eq0.reflect ? 'checked' : ''}> Reflect</label><label><input type="checkbox" data-equip="0.psyshock" ${eq0.psyshock ? 'checked' : ''}> Psyshock</label></div>
+      ${renderMovesAnimSection()}
+      
+      <div class="vfx-quick-style">
+        <b>Estilo VFX dos Golpes:</b>
+        <div class="seg" role="group" aria-label="Variante dos Moves">
+          <button type="button" data-moves-vfx="0" ${(C.vfx.hit?.variant === 0) ? 'aria-pressed="true"' : 'aria-pressed="false"'}>A (Arcade)</button>
+          <button type="button" data-moves-vfx="1" ${(C.vfx.hit?.variant === 1) ? 'aria-pressed="true"' : 'aria-pressed="false"'}>B (Halo)</button>
+          <button type="button" data-moves-vfx="2" ${(C.vfx.hit?.variant === 2) ? 'aria-pressed="true"' : 'aria-pressed="false"'}>C (Tático)</button>
+        </div>
+      </div>
+  
       <div class="row"><b>Adversário (vermelho)</b><label><input type="checkbox" data-equip="1.reflect" ${eq1.reflect ? 'checked' : ''}> Reflect</label><label><input type="checkbox" data-equip="1.psyshock" ${eq1.psyshock ? 'checked' : ''}> Psyshock</label><span class="muted">usa a IA tática</span></div>
       <h3>Emissores técnicos & Laser (Simulação Física Real)</h3>
       <div class="row"><button type="button" data-emit="1">Projétil hostil PL1</button><button type="button" data-emit="2">PL2</button><button type="button" data-emit="3">PL3</button><button type="button" data-emit="boom">Explosão no centro (PL2)</button></div>
@@ -153,8 +276,110 @@ export function createMovesPanel({$, game, download}) {
       ${PARAMS.map(([title, list]) => `<details data-k="p:${escape(title)}"><summary><b>${escape(title)}</b></summary>${list.map(paramRow).join('')}</details>`).join('')}
       <div class="row"><button type="button" id="mvp-reset-all">Restaurar todos os padrões</button></div>`;
     for (const d of root.querySelectorAll('details[data-k]')) if (openKeys.has(d.dataset.k)) d.open = true;
+    
+    // Controles de animação dos Moves (Carga com Loop + Disparo)
+    const ch = ui?.characters?.[0];
+    if (ch) {
+      for (const sel of root.querySelectorAll('[data-move-anim-select]')) {
+        sel.onchange = () => {
+          const moveId = sel.dataset.moveId;
+          const type = sel.dataset.moveAnimSelect;
+          const val = sel.value === '' ? null : Number(sel.value);
+          ch.setMoveAnim(moveId, type, val);
+          render();
+        };
+      }
+
+      for (const inp of root.querySelectorAll('[data-move-loop-range]')) {
+        inp.oninput = () => {
+          const moveId = inp.dataset.moveLoopRange;
+          const val = Number(inp.value) || 0;
+          const conf = ch.getMoveAnimConfig(moveId);
+          const chargeClip = conf.chargeClip != null ? ch.clips[conf.chargeClip] : null;
+          const chargeDur = chargeClip?.duration || 1.0;
+          const pct = chargeDur > 0 ? (val / chargeDur * 100).toFixed(0) : 0;
+          
+          const out = root.querySelector(`[data-move-loop-out="${moveId}"]`);
+          if (out) out.textContent = `${val.toFixed(2)}s (${pct}%)`;
+
+          const timeline = root.querySelector(`[data-loop-timeline="${moveId}"]`);
+          if (timeline) {
+            const intro = timeline.querySelector('.loop-intro');
+            const repeat = timeline.querySelector('.loop-repeat');
+            if (intro) {
+              intro.style.flex = String(Math.max(0.001, val));
+              intro.textContent = val > 0.15 ? `Intro (${val.toFixed(2)}s)` : '';
+              intro.title = `Windup inicial: 0.00s a ${val.toFixed(2)}s`;
+            }
+            if (repeat) {
+              repeat.style.flex = String(Math.max(0.001, chargeDur - val));
+              repeat.textContent = `🔁 Loop (${(chargeDur - val).toFixed(2)}s)`;
+              repeat.title = `Ciclo contínuo de loop: ${val.toFixed(2)}s a ${chargeDur.toFixed(2)}s`;
+            }
+          }
+          ch.setMoveChargeLoopStart(moveId, val);
+        };
+      }
+
+      for (const b of root.querySelectorAll('[data-preview-move]')) {
+        b.onclick = () => {
+          const moveId = b.dataset.previewMove;
+          if (ch.movePreview?.moveId === moveId) {
+            ch.stopMovePreview();
+            b.classList.remove('active');
+            b.textContent = '▶ Testar Carga (com Loop) ➔ Disparo';
+          } else {
+            for (const other of root.querySelectorAll('[data-preview-move]')) {
+              other.classList.remove('active');
+              other.textContent = '▶ Testar Carga (com Loop) ➔ Disparo';
+            }
+            b.classList.add('active');
+            b.textContent = '⏹ Parar Teste';
+            ch.startMovePreview(moveId, () => {
+              b.classList.remove('active');
+              b.textContent = '▶ Testar Carga (com Loop) ➔ Disparo';
+            });
+          }
+        };
+      }
+    }
     for (const s of root.querySelectorAll('[data-hom]')) s.onchange = () => {homolog[s.dataset.hom] = {...homolog[s.dataset.hom], v: s.value};saveHomolog(homolog);};
     for (const s of root.querySelectorAll('[data-hom-note]')) s.onchange = () => {homolog[s.dataset.homNote] = {...homolog[s.dataset.homNote], n: s.value};saveHomolog(homolog);};
+    
+    for (const b of root.querySelectorAll('[data-moves-vfx]')) {
+      b.onclick = () => {
+        const v = Number(b.dataset.movesVfx) || 0;
+        const targets = ['hit', 'dodge', 'sprint', 'block', 'clash'];
+        if (tuning) {
+          const changes = [];
+          for (const t of targets) {
+            if (C.vfx[t] && C.vfx[t].variant !== v) {
+              changes.push([`vfx.${t}.variant`, v]);
+            }
+          }
+          if (changes.length) {
+            tuning.commit(changes, 'VFX dos Moves ' + ['A', 'B', 'C'][v]);
+          }
+        } else {
+          for (const t of targets) {
+            if (C.vfx[t]) C.vfx[t].variant = v;
+          }
+        }
+        for (const t of targets) {
+          view?.vfxRuntime?.setVariant?.(t, v);
+        }
+        for (const x of root.querySelectorAll('[data-moves-vfx]')) {
+          x.setAttribute('aria-pressed', String(x === b));
+        }
+      };
+    }
+    tuning?.onChange?.(() => {
+      const activeVar = C.vfx.hit?.variant ?? 0;
+      for (const x of root.querySelectorAll('[data-moves-vfx]')) {
+        x.setAttribute('aria-pressed', String(Number(x.dataset.movesVfx) === activeVar));
+      }
+    });
+    
     for (const c of root.querySelectorAll('[data-equip]')) c.onchange = () => {const [id, kind] = c.dataset.equip.split('.');setEquip(Number(id), kind, c.checked);};
     for (const b of root.querySelectorAll('[data-laser]')) b.onclick = () => {const k = b.dataset.laser;(k === 'sweep' ? emitLaser(1, .8) : emitLaser(Number(k)));};
     for (const b of root.querySelectorAll('[data-laser-scene]')) b.onclick = () => testLaserScene(b.dataset.laserScene);

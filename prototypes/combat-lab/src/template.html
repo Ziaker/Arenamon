@@ -13,7 +13,8 @@
   <div class="brand"><span class="logo">A</span><strong>ARENAMON <em>LAB</em></strong><small>Combate · v7</small></div>
   <div class="top-info"><span class="chip" id="phase" title="Fase da partida e estado do alvo"></span><span class="chip ai" id="ai-chip" title="Modo da IA do adversário"></span><span class="chip dirty" id="tune-state" data-state="clean" title="Ajustes alterados em relação ao último preset salvo ou JSON exportado"><i></i><span>Ajustes padrão</span></span><span class="chip ws" id="ws-chip" data-state="ok" title="Workspace persistente"><i></i><span>Workspace</span></span></div>
   <div class="top-actions">
-   <button type="button" id="pause" title="Pausar / continuar (Esc)">❚❚ Pausar</button>
+   <button type="button" id="arena-zen-toggle" role="switch" aria-checked="false" title="Modo Arena (F2): tela cheia limpa para focar no combate">⚔ Modo Arena</button>
+   <button type="button" id="pause" title="Pausar / continuar (Esc ou Espaço)">❚❚ Pausar</button>
    <button type="button" id="restart-top" title="Reiniciar a partida (R)">↺ Reiniciar</button>
    <button type="button" id="arena-hitboxes-toggle" role="switch" aria-checked="false" title="Mostrar os colisores físicos (coloridos pelo estado) e as trajetórias de X/C">▧ Hitboxes</button>
    <button type="button" id="arena-autoplay-toggle" role="switch" aria-checked="false" title="IA controla o jogador azul (IA × IA)">🤖 IA jogador</button>
@@ -247,6 +248,8 @@
     <div class="fighter enemy"><strong>ADVERSÁRIO · VERMELHO</strong><meter id="hp1" min="0" max="1" value="1" aria-label="Vida adversário"></meter><meter id="stamina1" class="sta" min="0" max="1" value="1" aria-label="Stamina adversário"></meter><span id="state1"></span></div>
    </header>
    <div id="impact-notice" aria-live="polite" hidden></div>
+   <div id="dojo-advantage-badge" hidden aria-live="polite"></div>
+   <div class="zen-badge"><kbd>F2</kbd> Modo Arena Ativo · Pressione F2 para voltar ao Lab</div>
    <div id="ab-badge" hidden aria-live="polite"></div>
    <div id="win-overlay" aria-hidden="true"></div>
    <div id="perf-overlay" hidden></div>
@@ -270,12 +273,13 @@
    <button type="button" id="rp-live" title="Voltar ao tempo real">● Ao vivo</button>
    <label title="Câmera lenta: escala do tempo da simulação">Tempo <select id="rp-speed"><option value="0.1">0,1×</option><option value="0.25">0,25×</option><option value="0.5">0,5×</option><option value="1" selected>1×</option></select></label>
    <span class="readout" id="rp-readout">passo 0</span>
-   <div class="seg" role="tablist" aria-label="Vista"><button type="button" data-dock="timeline" aria-pressed="true">Linha do tempo</button><button type="button" data-dock="hits" aria-pressed="false">Golpes</button><button type="button" data-dock="frames" aria-pressed="false">Quadros</button></div>
+   <div class="seg" role="tablist" aria-label="Vista"><button type="button" data-dock="timeline" aria-pressed="true">Linha do tempo</button><button type="button" data-dock="hits" aria-pressed="false">Golpes</button><button type="button" data-dock="frames" aria-pressed="false">Quadros</button><button type="button" data-dock="dojo" aria-pressed="false">🥋 Dojo</button></div>
   </div>
   <div class="dock-body">
    <canvas id="timeline" aria-label="Linha do tempo: estados, ações, invulnerabilidade, stamina e golpes dos últimos segundos. Clique para voltar a um passo."></canvas>
    <div id="hit-log" class="table-wrap" hidden></div>
    <div id="frame-table" class="table-wrap" hidden></div>
+   <div id="dojo-meter" class="table-wrap" hidden></div>
   </div>
  </section>
 </div>

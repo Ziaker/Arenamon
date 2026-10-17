@@ -57,9 +57,17 @@ const ui = {playback: null, paused: false, scenario: null, playerMode: 'tactical
 // Vermelho no controle manual (Partida › Controle manual do vermelho): teclas e gamepad próprios.
 const input2 = new Input(canvas, () => {}, {slot: 1});
 const input = new Input(canvas, code => {
-  if (code === keyFor('pause')) togglePause();
-  if (code === keyFor('restart') && game.phase !== 'menu') {if (ui.training) training.begin();else startMatch();}
-  if (code === keyFor('debug')) {hud.debug = !hud.debug;C.extras.hud.debugVisible = Number(hud.debug);}
+  if (code === keyFor('pause') || code === 'Space') togglePause();
+  if ((code === keyFor('restart') || code === 'KeyR') && game.phase !== 'menu') {if (ui.training) training.begin();else startMatch();}
+  if (code === keyFor('debug') || code === 'F3') {hud.debug = !hud.debug;C.extras.hud.debugVisible = Number(hud.debug);}
+  if (code === 'KeyH') {
+    const v = C.extras.toggles.showHitboxes ? 0 : 1;
+    tuning.commit([['extras.toggles.showHitboxes', v], ['extras.toggles.showAttackVectors', v]], 'Hitboxes');
+    syncButtons();
+  }
+  if (code === 'F2') {
+    toggleZenMode();
+  }
 });
 
 // ---------- Partida ----------
@@ -71,6 +79,23 @@ function startMatch({playback = null} = {}) {
   applySeed();game.profile = $('profile').value;game.enemyProfile = $('enemy-profile').value;game.mode = $('mode').value;
   game.reset();ui.paused = false;input.clear();input.locked = false;resetViewAndLogs();canvas.focus();syncButtons();
   matchRec.start({seed: Number($('seed').value), profile: game.profile, enemyProfile: game.enemyProfile, mode: game.mode, values: tuning.snapshotValues()});renderRecStatus();
+}
+function toggleZenMode(force) {
+  const lab = document.querySelector('.lab');
+  if (!lab) return;
+  const next = force ?? !lab.classList.contains('zen-mode');
+  lab.classList.toggle('zen-mode', next);
+  syncButtons();
+  if (next) {
+    $('panel').hidden = true;
+    for (const b of document.querySelectorAll('[data-tool]')) b.classList.remove('active');
+    $('dock').classList.add('collapsed');
+    $('dock-toggle')?.classList.remove('active');
+  } else {
+    $('dock').classList.remove('collapsed');
+    $('dock-toggle')?.classList.add('active');
+  }
+  canvas.focus();
 }
 function togglePause(force) {
   if (game.phase === 'menu') return;
@@ -338,7 +363,7 @@ function syncCharacterCombatWindows() {
     game.setCombatWindows(id, ch ? ch.getAllCombatWindows() : null);
   }
 }
-const charPanel = createCharacterPanel({ui, view, $, hooks: charHooks, onCharactersChanged: () => {syncCharacterCombatWindows();syncRuleDurations();dock.invalidate();}});
+const charPanel = createCharacterPanel({ui, view, $, hooks: charHooks, onCharactersChanged: () => {syncCharacterCombatWindows();syncRuleDurations();dock.invalidate();movesPanel?.render?.();}});
 syncCharacterCombatWindows();
 const renderCharacters = () => {charPanel.render();renderStudioEvents();renderRuleDurations();};
 const setCharacter = (id, source) => charPanel.setCharacter(id, source);
@@ -409,7 +434,14 @@ function syncButtons() {
   const hb = $('arena-hitboxes-toggle'), on = !!C.extras.toggles.showHitboxes;hb.setAttribute('aria-checked', String(on));
   const ab = $('arena-autoplay-toggle'), ai = !!C.extras.toggles.enablePlayerAI;ab.setAttribute('aria-checked', String(ai));$('name0').textContent = ai ? 'JOGADOR IA · AZUL' : 'JOGADOR · AZUL';
   $('pause').textContent = ui.paused ? '▶ Continuar' : '❚❚ Pausar';$('rp-play').textContent = ui.paused ? '▶' : '❚❚';
+  const zb = $('arena-zen-toggle');
+  if (zb) {
+    const isZen = document.querySelector('.lab')?.classList.contains('zen-mode') ?? false;
+    zb.setAttribute('aria-checked', String(isZen));
+    zb.classList.toggle('active', isZen);
+  }
 }
+$('arena-zen-toggle').onclick = () => toggleZenMode();
 $('arena-hitboxes-toggle').onclick = () => {const v = C.extras.toggles.showHitboxes ? 0 : 1;tuning.commit([['extras.toggles.showHitboxes', v], ['extras.toggles.showAttackVectors', v]], 'Hitboxes');canvas.focus();};
 $('arena-autoplay-toggle').onclick = () => {tuning.commit([['extras.toggles.enablePlayerAI', C.extras.toggles.enablePlayerAI ? 0 : 1]], 'IA do jogador');game.playerBrain.reset();input.clear();canvas.focus();};
 $('pause').onclick = () => togglePause();$('restart-top').onclick = startMatch;$('restart').onclick = startMatch;$('start').onclick = startMatch;$('start-center').onclick = startMatch;
@@ -436,6 +468,10 @@ window.addEventListener('keydown', e => {
   const typing = e.target.matches('input[type=text],input[type=search],input[type=number],textarea,select');
   if ((e.ctrlKey || e.metaKey) && !typing) {const k = e.key.toLowerCase();if (k === 'z' && !e.shiftKey) {e.preventDefault();tuning.undo();}else if (k === 'y' || (k === 'z' && e.shiftKey)) {e.preventDefault();tuning.redo();}return;}
   if (typing) return;
+  // Atalhos de combate (Space, R, H, F2) são tratados pelo Input
+
+
+
   if (e.key === ',') {e.preventDefault();stepFrames(-1);}else if (e.key === '.') {e.preventDefault();stepFrames(1);}
   else if (e.code === presets.abKey && presets.ab.active && !e.repeat) {e.preventDefault();presets.toggleAB();}
 });
@@ -451,7 +487,7 @@ const diagnostics = createDiagnostics({$, game, tuning, download});
 const windowsOverlay = createWindowsOverlay({root: $('win-overlay'), view, game});
 $('win-controls').append(...tuning.sectionControls('Janelas de combate'));
 // Treino de defesa/esquiva perfeitas: o vermelho segue o roteiro do treino; tudo cronometrado em passos de simulação.
-const movesPanel = createMovesPanel({$, game, download});
+const movesPanel = createMovesPanel({$, game, download, tuning, view, ui});
 const movesHud = new MovesHud($('moves-hud'));
 /** Avisos discretos dos Moves (M28.6): falha de execução com o motivo e a devolução da stamina. */
 const seenNotices = new WeakSet(), MOVE_FAIL = {semEspaco: 'sem espaço — stamina devolvida, sem recarga', limiteDeEntidades: 'limite de entidades do mundo — stamina devolvida', semCarga: 'sem carga', effectMissing: 'efeito não registrado'};
@@ -500,6 +536,27 @@ function foldStaticSections() {
 foldStaticSections();
 
 // ---------- Laço principal ----------
+
+let lastAdvantageHit = null, advantageTimer = null;
+function updateDojoAdvantageBadge() {
+  const badge = $('dojo-advantage-badge');
+  if (!badge) return;
+  const latest = recorder.hits.filter(h => h.advantage !== null).at(-1);
+  if (latest && latest !== lastAdvantageHit) {
+    lastAdvantageHit = latest;
+    const adv = latest.advantage;
+    const isBlock = ['partial', 'perfect', 'shielded', 'blocked', 'guard'].includes(latest.result);
+    const isClash = ['clash', 'tackleClash', 'stoneClash'].includes(latest.result);
+    const tag = isBlock ? (latest.result === 'perfect' ? 'PERFECT GUARD' : 'ON BLOCK') : isClash ? 'CLASH' : 'ON HIT';
+    const msVal = (Math.abs(adv) * C.test.step * 1000).toFixed(0);
+    badge.className = adv > 0 ? 'adv-plus' : adv < 0 ? 'adv-minus' : 'adv-even';
+    badge.innerHTML = `<span class="adv-tag">${tag}</span> <b>${adv > 0 ? '+' : ''}${adv}</b> <small>(${msVal}ms)</small> · ${adv > 0 ? 'VANTAGEM' : adv < 0 ? 'DESVANTAGEM' : 'NEUTRO'}`;
+    badge.hidden = false;
+    clearTimeout(advantageTimer);
+    advantageTimer = setTimeout(() => { badge.hidden = true; }, 1800);
+  }
+}
+
 let last = performance.now(), uiTimer = 0;
 function frame(now) {
   const dt = Math.max(0, (now - last) / 1000);last = now;
@@ -513,7 +570,7 @@ function frame(now) {
   hud.render(game, ui.fps, {locked: input.locked, paused: ui.paused && game.phase !== 'menu', replay: back ? `−${back} passos (${(back * C.test.step * 1000).toFixed(0)} ms) · ▶ retoma daqui` : 'último passo · , e . avançam/voltam', playerAI: !!C.extras.toggles.enablePlayerAI});
   movesHud.render(game);moveNotices();
   $('rp-readout').textContent = `passo ${game.tick}${back ? ` · −${(back * C.test.step).toFixed(2)} s` : ''}${clock.timeScale !== 1 ? ` · ${clock.timeScale}×` : ''}`;
-  dock.render();hudProposals.render(game, live ? dt * clock.timeScale : 0);windowsOverlay.update();perfPanel.frame({frameMs: dt * 1000, simMs, steps});
+  dock.render();updateDojoAdvantageBadge();hudProposals.render(game, live ? dt * clock.timeScale : 0);windowsOverlay.update();perfPanel.frame({frameMs: dt * 1000, simMs, steps});
   if ((uiTimer += dt) > .1) {uiTimer = 0;renderLive();renderHistory();renderCharacterLive();renderRecStatus();visualPanel.live();diagnostics.live();perfPanel.live();}
   ui.frame++;requestAnimationFrame(frame);
 }

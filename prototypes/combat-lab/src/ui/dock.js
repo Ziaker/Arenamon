@@ -13,7 +13,7 @@ const GUTTER = 84;
 export function createDock({recorder, getCursorTick, onSeek, studioWindowsFor}) {
   const canvas = $('timeline'), ctx = canvas.getContext('2d');let view = 'timeline', dirty = true, lastKey = '';
   for (const b of document.querySelectorAll('[data-dock]')) b.onclick = () => {view = b.dataset.dock;for (const x of document.querySelectorAll('[data-dock]')) x.setAttribute('aria-pressed', String(x === b));
-    canvas.hidden = view !== 'timeline';$('hit-log').hidden = view !== 'hits';$('frame-table').hidden = view !== 'frames';dirty = true;render(true);};
+    canvas.hidden = view !== 'timeline';$('hit-log').hidden = view !== 'hits';$('frame-table').hidden = view !== 'frames';$('dojo-meter').hidden = view !== 'dojo';dirty = true;render(true);};
   function layout() {
     const r = canvas.getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1);
     if (canvas.width !== Math.round(r.width * dpr) || canvas.height !== Math.round(r.height * dpr)) {canvas.width = Math.round(r.width * dpr);canvas.height = Math.round(r.height * dpr);}
@@ -73,10 +73,125 @@ export function createDock({recorder, getCursorTick, onSeek, studioWindowsFor}) 
     const rows = frameTable();
     $('frame-table').innerHTML = `<table><tr><th>Ação</th><th>Total (passos)</th><th>ms</th><th>Ativo</th><th>Invulnerável</th><th>Cancelável</th><th>Stamina</th></tr>${rows.map(r => `<tr><td>${escape(r.action)}</td><td>${r.total}</td><td>${ms(r.total).toFixed(0)}</td><td>${r.active}</td><td>${r.invulnerable}</td><td>${escape(r.cancel)}</td><td>${r.cost || '—'}</td></tr>`).join('')}</table><p class="hint">Valores nominais calculados a partir dos ajustes atuais (passo de ${ms(1).toFixed(2)} ms). Os tempos reais de cada golpe aparecem em “Golpes”.</p>`;
   }
+  function dojoView() {
+    const hits = recorder.hits.slice(-12).reverse();
+    const who = id => id === 0 ? 'Azul' : 'Vermelho';
+    const advBadge = v => {
+      if (v == null) return '<span class="hit-adv even">calculando...</span>';
+      if (v > 0) return `<span class="hit-adv plus">+${v} VANTAGEM (+${ms(v).toFixed(0)} ms)</span>`;
+      if (v < 0) return `<span class="hit-adv minus">${v} DESVANTAGEM (${ms(v).toFixed(0)} ms)</span>`;
+      return '<span class="hit-adv even">0 NEUTRO (EVEN)</span>';
+    };
+
+    // Obter dados da última ação de cada lutador com medição e janelas nominais reais
+    const fightersHtml = [0, 1].map(id => {
+      const lastAction = recorder.actions.filter(a => a.fighter === id).at(-1);
+      const actionKind = lastAction?.kind;
+      const actionName = lastAction ? (actionKind === 'tackle' ? 'Tackle (X)' : actionKind === 'dodge' ? 'Esquiva (C)' : actionKind === 'recoil' ? 'Recuo' : actionKind === 'guardStun' ? 'Guard Stun' : actionKind) : 'Neutro / Livre';
+      const steps = lastAction && lastAction.end ? (lastAction.end - lastAction.start) : (lastAction ? (recorder.samples.at(-1)?.tick - lastAction.start) : 0);
+      
+      let startupSteps = 0, activeSteps = 0, recoverySteps = 0;
+      let phaseLabel = 'nominal';
+      const st = studioWindowsFor?.(id)?.[actionKind === 'tackle' ? 'tackle' : 'dodge'];
+
+      if (actionKind === 'tackle') {
+        const totalNominal = Math.max(1, Math.round((C.actions.tackle.duration || 0.40) / C.test.step));
+        if (st?.hitbox) {
+          startupSteps = Math.max(0, Math.round(st.hitbox[0] / C.test.step));
+          activeSteps = Math.max(1, Math.round((st.hitbox[1] - st.hitbox[0]) / C.test.step));
+          recoverySteps = Math.max(0, totalNominal - startupSteps - activeSteps);
+          phaseLabel = 'Studio GLB';
+        } else if (lastAction.hit != null) {
+          startupSteps = Math.max(0, lastAction.hit - lastAction.start);
+          activeSteps = Math.max(1, Math.round((C.actions.tackle.hitstop || 0.08) / C.test.step));
+          const totalMeasured = lastAction.end ? (lastAction.end - lastAction.start) : Math.max(steps, startupSteps + activeSteps);
+          recoverySteps = Math.max(0, totalMeasured - startupSteps - activeSteps);
+          phaseLabel = 'Medido no contato';
+        } else {
+          const chain = Math.round((C.actions.tackle.chainAfter || 0.20) / C.test.step);
+          startupSteps = 0;
+          activeSteps = Math.min(totalNominal, chain);
+          recoverySteps = Math.max(0, totalNominal - activeSteps);
+          phaseLabel = 'Nominal Arena';
+        }
+      } else if (actionKind === 'dodge') {
+        const totalNominal = Math.max(1, Math.round((C.actions.dodge.duration || 0.40) / C.test.step));
+        if (st?.invulnerable) {
+          startupSteps = Math.max(0, Math.round(st.invulnerable[0] / C.test.step));
+          activeSteps = Math.max(1, Math.round((st.invulnerable[1] - st.invulnerable[0]) / C.test.step));
+          recoverySteps = Math.max(0, totalNominal - startupSteps - activeSteps);
+          phaseLabel = 'Studio GLB';
+        } else {
+          const invSteps = Math.round((C.actions.dodge.invulnerable || 0.20) / C.test.step);
+          startupSteps = 0;
+          activeSteps = Math.min(totalNominal, invSteps);
+          recoverySteps = Math.max(0, totalNominal - activeSteps);
+          phaseLabel = 'Nominal Arena';
+        }
+      } else if (actionKind === 'recoil') {
+        activeSteps = Math.max(1, Math.round((C.rules.recoil || 0.20) / C.test.step));
+        phaseLabel = 'Recuo';
+      } else if (actionKind === 'guardStun') {
+        activeSteps = Math.max(1, Math.round((C.rules.guardStun || 0.25) / C.test.step));
+        phaseLabel = 'Guard Stun';
+      }
+
+      const totalSegments = startupSteps + activeSteps + recoverySteps;
+      const titleAttr = totalSegments
+        ? `Régua de Frames (${phaseLabel}): Startup ${startupSteps}f (${ms(startupSteps).toFixed(0)}ms) · Ativo ${activeSteps}f (${ms(activeSteps).toFixed(0)}ms) · Recuperação ${recoverySteps}f (${ms(recoverySteps).toFixed(0)}ms)`
+        : 'Sem ação ativa no momento';
+
+      return `<div class="dojo-fighter-strip f${id}">
+        <header>
+          <b>${who(id)}</b>
+          <span>Ação: <strong>${escape(actionName)}</strong> ${totalSegments ? `(${totalSegments}f · ${ms(totalSegments).toFixed(0)} ms · <small>${phaseLabel}</small>)` : ''}</span>
+        </header>
+        <div class="dojo-meter-bar" title="${titleAttr}">
+          ${totalSegments === 0 ? '<div class="dojo-meter-seg" style="flex:1;background:#1e293b;color:#94a3b8">Neutro / Livre</div>' : `
+            ${startupSteps > 0 ? `<div class="dojo-meter-seg startup" style="flex:${startupSteps};min-width:24px;" title="Startup: ${startupSteps}f (${ms(startupSteps).toFixed(0)} ms)">${startupSteps}f Startup</div>` : ''}
+            <div class="dojo-meter-seg active" style="flex:${activeSteps};min-width:24px;" title="Ativo: ${activeSteps}f (${ms(activeSteps).toFixed(0)} ms)">${activeSteps}f Ativo</div>
+            ${recoverySteps > 0 ? `<div class="dojo-meter-seg recovery" style="flex:${recoverySteps};min-width:24px;" title="Recuperação: ${recoverySteps}f (${ms(recoverySteps).toFixed(0)} ms)">${recoverySteps}f Recup</div>` : ''}
+          `}
+        </div>
+      </div>`;
+    }).join('');
+
+    const hitsHtml = hits.length ? hits.map(h => {
+      const resName = escape(RESULT_NAMES[h.result] || h.result);
+      return `<div class="dojo-hit-card">
+        <header>
+          <span class="hit-result">${who(h.attacker)} → ${who(h.target)} · ${resName}</span>
+          ${advBadge(h.advantage)}
+        </header>
+        <div class="hit-details">
+          Dano: <b>${h.damage}</b> · Contato: ${h.actionTick != null ? `${h.actionTick + 1}º passo (${ms(h.actionTick + 1).toFixed(0)} ms)` : '—'} ·
+          Livre: atacante ${h.attackerFree ?? '…'}p / alvo ${h.targetFree ?? '…'}p
+          ${h.moveAdvantage != null ? ` · Vantagem locomoção: ${h.moveAdvantage > 0 ? '+' : ''}${h.moveAdvantage}p` : ''}
+        </div>
+        <button type="button" data-dojo-seek="${h.tick}">▶ Ver este Frame (${h.tick})</button>
+      </div>`;
+    }).join('') : '<p class="hint">Nenhum golpe registrado nesta sessão. Acerte um golpe ou teste um cenário para ver a análise de frames em tempo real.</p>';
+
+    $('dojo-meter').innerHTML = `<div class="dojo-panel">
+      <div>
+        <h4 style="margin:0 0 6px 0;font-size:12px;color:var(--cyan);text-transform:uppercase;letter-spacing:.05em;">Régua de Ações & Frames dos Lutadores (Dojo)</h4>
+        ${fightersHtml}
+      </div>
+      <div>
+        <h4 style="margin:10px 0 6px 0;font-size:12px;color:var(--amber);text-transform:uppercase;letter-spacing:.05em;">Histórico de Golpes & Frame Advantage</h4>
+        <div class="dojo-hits-grid">${hitsHtml}</div>
+      </div>
+    </div>`;
+
+    for (const b of $('dojo-meter').querySelectorAll('[data-dojo-seek]')) {
+      b.onclick = () => onSeek(Number(b.dataset.dojoSeek));
+    }
+  }
+
   function render(force = false) {
     const key = `${view}:${recorder.samples.at(-1)?.tick}:${getCursorTick()}:${recorder.hits.length}:${recorder.hits.at(-1)?.advantage}:${recorder.hits.at(-1)?.moveAdvantage}`;
     if (!force && !dirty && key === lastKey) return;lastKey = key;dirty = false;
-    if (view === 'timeline') timeline();else if (view === 'hits') hitLog();else frames();
+    if (view === 'timeline') timeline();else if (view === 'hits') hitLog();else if (view === 'frames') frames();else dojoView();
   }
   canvas.addEventListener('pointerdown', e => {
     const r = canvas.getBoundingClientRect(), px = e.clientX - r.left, start = Number(canvas.dataset.start), span = Number(canvas.dataset.span);

@@ -48,12 +48,12 @@ ok('a IA escolhe PL1, PL2 ou PL3 de forma contextual (varia com a semente e a si
 // ---------- Defesa: Reflect reativo, só quando dá tempo de chegar ao PL do projétil ----------
 {
   const g = duel({blue: vec(0, 6), red: vec(0, -6)});g.fighters[0].facing = Math.PI;g.fighters[1].facing = 0;                       // azul (IA) defende contra pedras vindas do vermelho
-  // pedra PL1 hostil a ~0,8 s do impacto
-  spawn(g.world, {kind: 'projectile', owner: 1, pos: {x: 0, z: -1}, dir: {x: 0, z: 1}, speed: 12, y: .65, radius: .2, life: 3, pierce: 1, pl: 1, clashable: true, hit: {damage: 5}}, []);
+  // pedra PL1 hostil a ~2,0 s do impacto (permite carga mínima de 1,5 s do Reflect)
+  spawn(g.world, {kind: 'projectile', owner: 1, pos: {x: 0, z: -14}, dir: {x: 0, z: 1}, speed: 10, y: .65, radius: .2, life: 5, pierce: 1, pl: 1, clashable: true, hit: {damage: 5}}, []);
   for (let i = 0; i < 40; i++) stepAI(g);
   assert.ok(events.some(e => e.result === 'chargeStart' && e.attacker === 0 && e.move === 'reflect'), 'a IA começa o Reflect ao ver um projétil hostil');
   const log = g.playerBrain.t.mv.log.find(e => e.move === 'reflect');assert.ok(log && log.pl === 1);
-  for (let i = 0; i < 80; i++) stepAI(g);
+  for (let i = 0; i < 220; i++) stepAI(g);
   assert.ok(g.world.entities.some(e => e.reflect && e.owner === 0) || events.some(e => e.result === 'reflected'), 'a barreira aparece antes do impacto ou o projétil é refletido');
   assert.equal(g.fighters[0].hp, 100, 'sem dano');
 }

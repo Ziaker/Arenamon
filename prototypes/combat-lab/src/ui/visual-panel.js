@@ -8,7 +8,7 @@ import {fold} from './characters-panel.js';
 import {escape} from './tuning.js';
 
 /** Parâmetro principal de cada efeito no modo simples. */
-const MAIN = {hit: 'intensity', dodge: 'intensity', sprint: 'intensity', block: 'intensity', perfect: 'intensity', ground: 'intensity', clash: 'intensity', exhaust: 'glow', regen: 'intensity'};
+const MAIN = {hit: 'intensity', dodge: 'intensity', sprint: 'intensity', block: 'intensity', perfect: 'intensity', ground: 'intensity', clash: 'intensity', exhaust: 'glow', regen: 'intensity', rock: 'scale', barrier: 'opacity'};
 export function createVisualPanel({tuning, view, game, $, hud, download}) {
   const root = $('visual-panel'), state = {mode: 'simple', filter: 'all'};
   function setMode(m) {
@@ -22,7 +22,7 @@ export function createVisualPanel({tuning, view, game, $, hud, download}) {
     const cost = view.vfx.stats.byType || {}, changed = t => tuning.manifest.some(m => m.path.startsWith(`vfx.${t}.`) && tuning.changed(m));
     const ranked = VFX_TYPES.map(([t]) => t).sort((a, b) => (cost[b] ?? 0) - (cost[a] ?? 0)), top = ranked.filter(t => (cost[t] ?? 0) > 0);
     for (const el of root.querySelectorAll('[data-vfx-type]')) {
-      const t = el.dataset.vfxType, show = f === 'all' || (f === 'active' && C.vfx.master.enabled && C.vfx[t].enabled) || (f === 'changed' && changed(t)) || (f === 'costly' && top.includes(t));
+      const t = el.dataset.vfxType, show = f === 'all' || (f === 'active' && C.vfx.master.enabled && C.vfx[t]?.enabled) || (f === 'changed' && changed(t)) || (f === 'costly' && top.includes(t));
       el.hidden = !show;el.style.order = f === 'costly' ? String(ranked.indexOf(t)) : '';
       const c = el.querySelector('[data-cost]');if (c) c.textContent = cost[t] ? `${cost[t]} partículas` : '';
     }
@@ -74,21 +74,82 @@ export function createVisualPanel({tuning, view, game, $, hud, download}) {
       <p class="hint" style="margin:0 0 8px 0;" id="vfx-runtime-hint">
         ${view.useNewVfx ? 'Ativo: VfxRuntime com instanciamento único, BeamRenderer dedicado (núcleo incondicional, halo aditivo) e variantes A/B/C.' : 'Ativo: renderizador legado. O novo sistema está em repouso como fallback seguro.'}
       </p>
+
+      <!-- SEÇÃO LASER DA ARENA -->
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-        <span class="muted" style="font-size:0.85rem;">Prévia Rápida:</span>
+        <span class="muted" style="font-size:0.85rem;">Laser da Arena:</span>
         <button type="button" data-laser-preview="1">▶ Laser PL1 (Ciano)</button>
         <button type="button" data-laser-preview="2">▶ Laser PL2 (Dourado)</button>
         <button type="button" data-laser-preview="3">▶ Laser PL3 (Magenta)</button>
-      </div>
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px;">
-        <span class="muted" style="font-size:0.85rem;">Simulação Física Real (Dano e Colisão):</span>
         <button type="button" data-sim-laser="1">⚡ Laser Real PL1</button>
         <button type="button" data-sim-laser="2">⚡ Laser Real PL2</button>
         <button type="button" data-sim-laser="3">⚡ Laser Real PL3</button>
         <button type="button" data-sim-scene="reflect">⚡ Testar Reflexão Real</button>
         <button type="button" data-sim-scene="neutralize">⚡ Testar Neutralização Real</button>
       </div>
+
+      <!-- SEÇÃO ROCHAS TELECINÉTICAS (PSYSHOCK) -->
+      <div class="vfx-quick-rock" style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.08);">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:6px;">
+          <span style="font-weight:600;font-size:0.9rem;">🪨 Rochas Telecinéticas (Psyshock) — Modelo 3D & Efeitos:</span>
+          <div class="seg" role="group" aria-label="Modelo 3D da Rocha">
+            <button type="button" data-rock-style="0" ${C.vfx.rock?.variant === 0 ? 'aria-pressed="true"' : 'aria-pressed="false"'}>Boulder Facetado</button>
+            <button type="button" data-rock-style="1" ${C.vfx.rock?.variant === 1 ? 'aria-pressed="true"' : 'aria-pressed="false"'}>Cristal Psíquico</button>
+            <button type="button" data-rock-style="2" ${C.vfx.rock?.variant === 2 ? 'aria-pressed="true"' : 'aria-pressed="false"'}>Meteorito Runas</button>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <span class="muted" style="font-size:0.85rem;">Ações das Rochas:</span>
+          <button type="button" data-rock-preview="1">▶ Prévia Rochas PL1</button>
+          <button type="button" data-rock-preview="2">▶ Prévia Rochas PL2</button>
+          <button type="button" data-rock-preview="3">▶ Prévia Rochas PL3</button>
+          <button type="button" data-sim-rock="1">⚡ Disparar Pedras Reais</button>
+          <button type="button" data-sim-rock="shatter">💥 Testar Estilhaçamento</button>
+        </div>
+      </div>
+
+      <!-- SEÇÃO BARREIRA DE ENERGIA (REFLECT) -->
+      <div class="vfx-quick-barrier" style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.08);">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:6px;">
+          <span style="font-weight:600;font-size:0.9rem;">🛡️ Barreira de Energia (Reflect) — Estrutura & VFX:</span>
+          <div class="seg" role="group" aria-label="Estilo da Barreira">
+            <button type="button" data-barrier-style="0" ${C.vfx.barrier?.variant === 0 ? 'aria-pressed="true"' : 'aria-pressed="false"'}>Hex-Grid Ciclado</button>
+            <button type="button" data-barrier-style="1" ${C.vfx.barrier?.variant === 1 ? 'aria-pressed="true"' : 'aria-pressed="false"'}>Cristal Prismático</button>
+            <button type="button" data-barrier-style="2" ${C.vfx.barrier?.variant === 2 ? 'aria-pressed="true"' : 'aria-pressed="false"'}>Campo de Força Puro</button>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <span class="muted" style="font-size:0.85rem;">Ações da Barreira:</span>
+          <button type="button" data-barrier-preview="1">▶ Prévia Barreira</button>
+          <button type="button" data-sim-barrier="spawn">⚡ Materializar Barreira Real</button>
+          <button type="button" data-sim-barrier="shatter">💥 Testar Quebra por Tackle</button>
+        </div>
+      </div>
+
+      <!-- ACESSIBILIDADE VISUAL -->
+      <div class="vfx-quick-a11y" style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <span style="font-weight:600;font-size:0.85rem;">Acessibilidade Visual:</span>
+        <label style="display:inline-flex;align-items:center;gap:4px;font-size:0.85rem;cursor:pointer;">
+          <input type="checkbox" data-vfx-a11y="noFlash" ${C.vfx.laser?.noFlash ? 'checked' : ''}> Sem Flash (noFlash)
+        </label>
+        <label style="display:inline-flex;align-items:center;gap:4px;font-size:0.85rem;cursor:pointer;">
+          <input type="checkbox" data-vfx-a11y="reduceMotion" ${C.vfx.laser?.reduceMotion ? 'checked' : ''}> Reduzir Movimento (reduceMotion)
+        </label>
+        <label style="display:inline-flex;align-items:center;gap:4px;font-size:0.85rem;cursor:pointer;">
+          <input type="checkbox" data-vfx-a11y="highContrast" ${C.vfx.laser?.highContrast ? 'checked' : ''}> Alto Contraste (highContrast)
+        </label>
+      </div>
     `;
+    renderModeBox.insertAdjacentHTML("beforeend", `
+      <div class="vfx-quick-style" style="margin-top:10px;">
+        <b>Estilo Global de VFX:</b>
+        <div class="seg" role="group" aria-label="Estilo Global">
+          <button type="button" data-global-vfx="0" ${C.vfx.hit?.variant === 0 ? 'aria-pressed="true"' : 'aria-pressed="false"'}>Variante A (Arcade)</button>
+          <button type="button" data-global-vfx="1" ${C.vfx.hit?.variant === 1 ? 'aria-pressed="true"' : 'aria-pressed="false"'}>Variante B (Cinematic)</button>
+          <button type="button" data-global-vfx="2" ${C.vfx.hit?.variant === 2 ? 'aria-pressed="true"' : 'aria-pressed="false"'}>Variante C (Tático)</button>
+        </div>
+      </div>
+  `);
     root.append(renderModeBox);
     const updateVfxModeButtons = () => {
       const legBtn = renderModeBox.querySelector('[data-vfx-runtime-btn="legacy"]');
@@ -110,6 +171,28 @@ export function createVisualPanel({tuning, view, game, $, hud, download}) {
       view.useNewVfx = true;
       updateVfxModeButtons();
     });
+    
+    for (const b of renderModeBox.querySelectorAll('[data-global-vfx]')) {
+      b.onclick = () => {
+        const v = Number(b.dataset.globalVfx) || 0;
+        const changes = [];
+        for (const [t] of VFX_TYPES) {
+          if (C.vfx[t] && C.vfx[t].variant !== v) {
+            changes.push([`vfx.${t}.variant`, v]);
+          }
+        }
+        if (changes.length) {
+          tuning.commit(changes, 'Estilo Global VFX ' + ['A', 'B', 'C'][v]);
+        }
+        for (const [t] of VFX_TYPES) {
+          view.vfxRuntime?.setVariant?.(t, v);
+        }
+        for (const x of renderModeBox.querySelectorAll('[data-global-vfx]')) {
+          x.setAttribute('aria-pressed', String(x === b));
+        }
+      };
+    }
+    
     for (const b of renderModeBox.querySelectorAll('[data-laser-preview]')) {
       b.onclick = () => {
         const pl = Number(b.dataset.laserPreview) || 1;
@@ -143,13 +226,108 @@ export function createVisualPanel({tuning, view, game, $, hud, download}) {
         }
       };
     }
+    // Manipuladores de Rochas (Psyshock)
+    for (const b of renderModeBox.querySelectorAll('[data-rock-style]')) {
+      b.onclick = () => {
+        const v = Number(b.dataset.rockStyle) || 0;
+        tuning.commit([['vfx.rock.variant', v]], 'Modelo de Rocha ' + ['Boulder', 'Cristal', 'Meteorito'][v]);
+        view.vfxRuntime?.setVariant?.('rock', v);
+        for (const x of renderModeBox.querySelectorAll('[data-rock-style]')) x.setAttribute('aria-pressed', String(x === b));
+      };
+    }
+    for (const b of renderModeBox.querySelectorAll('[data-rock-preview]')) {
+      b.onclick = () => {
+        const pl = Number(b.dataset.rockPreview) || 1;
+        const [blue, red] = game.fighters;
+        const target = red || blue;
+        if (view.useNewVfx) view.vfxRuntime.preview('rock', game.fighters);
+        else view.vfx.preview('rock', game.fighters);
+        view.worldView?.emitRockShatter?.(target.position.x, 0.8, target.position.z, {x: 0, z: 1}, [0x59d6e6, 0xffcf6a, 0xff6adf][pl - 1]);
+      };
+    }
+    for (const b of renderModeBox.querySelectorAll('[data-sim-rock]')) {
+      b.onclick = () => {
+        const act = b.dataset.simRock;
+        if (game.phase !== 'playing') game.startMatch?.('center');
+        const [blue, red] = game.fighters;
+        if (act === 'shatter') {
+          const mid = {x: (blue.position.x + red.position.x) / 2, z: (blue.position.z + red.position.z) / 2};
+          view.worldView?.emitRockShatter?.(mid.x, 0.8, mid.z, {x: 0, z: 1}, 0x59d6e6);
+          view.vfx.fire('rock', {pos: mid, n: {x: 0, z: 1}, power: 1.5}, 'estilhaçamento manual');
+        } else {
+          const dx = red.position.x - blue.position.x, dz = red.position.z - blue.position.z, d = Math.hypot(dx, dz) || 1;
+          const count = 4;
+          for (let i = 0; i < count; i++) {
+            const angle = Math.atan2(dx, dz) + (i - (count - 1) / 2) * 0.18;
+            const dir = {x: Math.sin(angle), z: Math.cos(angle)};
+            spawn(game.world, {
+              kind: 'projectile', owner: 0, pos: {x: blue.position.x + dir.x * 0.9, z: blue.position.z + dir.z * 0.9},
+              y: 0.65 + i * 0.15, radius: 0.22, speed: 13, dir, vy: 0, life: 6, pierce: 1, blockedBy: ['barrier', 'wall'],
+              hit: {damage: 6, knockback: {horizontal: 1.8, vertical: 0}}, pl: 2, clashable: true, visualScale: 1.0,
+              captured: {attackFraction: 0.2, successiveFactor: 0.8, knockbackCap: 4, knockbackPerStone: 1.8, counterStagger: 0.25, level: 2, move: 'psyshock', speed: 13}
+            }, game.lastStepEvents);
+          }
+        }
+      };
+    }
+    // Manipuladores de Barreira (Reflect)
+    for (const b of renderModeBox.querySelectorAll('[data-barrier-style]')) {
+      b.onclick = () => {
+        const v = Number(b.dataset.barrierStyle) || 0;
+        tuning.commit([['vfx.barrier.variant', v]], 'Estilo da Barreira ' + ['Hex-Grid', 'Cristal', 'Campo de Força'][v]);
+        view.vfxRuntime?.setVariant?.('barrier', v);
+        for (const x of renderModeBox.querySelectorAll('[data-barrier-style]')) x.setAttribute('aria-pressed', String(x === b));
+      };
+    }
+    for (const b of renderModeBox.querySelectorAll('[data-barrier-preview]')) {
+      b.onclick = () => {
+        const [blue] = game.fighters;
+        if (view.useNewVfx) view.vfxRuntime.preview('barrier', game.fighters);
+        else view.vfx.preview('barrier', game.fighters);
+        view.worldView?.emitBarrierShatter?.(blue.position.x, 0.8, blue.position.z, 0x59d6e6);
+      };
+    }
+    for (const b of renderModeBox.querySelectorAll('[data-sim-barrier]')) {
+      b.onclick = () => {
+        const act = b.dataset.simBarrier;
+        if (game.phase !== 'playing') game.startMatch?.('center');
+        const [blue, red] = game.fighters;
+        if (act === 'spawn') {
+          const dir = {x: Math.sin(blue.facing), z: Math.cos(blue.facing)};
+          spawn(game.world, {
+            kind: 'barrier', owner: 0, shape: 'box', pos: {x: blue.position.x + dir.x * 1.2, z: blue.position.z + dir.z * 1.2},
+            angle: blue.facing, hx: 1.5, hz: 0.05, y: 0, height: 2.4, life: 10, hp: Infinity,
+            blocksProjectiles: true, blocksFighters: true, blocksOwner: true, reflect: true, shields: true, breakableByTackle: true, pl: 2,
+            captured: {tackleRecoil: 0.15, tackleStagger: 0.25, tieTolerance: 0.001, maxReflections: 16}
+          }, game.lastStepEvents);
+        } else if (act === 'shatter') {
+          const mid = {x: (blue.position.x + red.position.x) / 2, z: (blue.position.z + red.position.z) / 2};
+          spawn(game.world, {
+            kind: 'barrier', owner: 1, shape: 'box', pos: mid, angle: 0, hx: 1.8, hz: 0.05, y: 0, height: 2.4, life: 10, hp: Infinity,
+            blocksProjectiles: true, blocksFighters: true, blocksOwner: true, reflect: true, shields: true, breakableByTackle: true, pl: 1,
+            captured: {tackleRecoil: 0.15, tackleStagger: 0.25, tieTolerance: 0.001, maxReflections: 16}
+          }, game.lastStepEvents);
+          blue.action = {kind: 'tackle', heading: Math.atan2(mid.x - blue.position.x, mid.z - blue.position.z), duration: 0.5, elapsed: 0, canCancel: true};
+        }
+      };
+    }
+    // Acessibilidade
+    for (const inp of renderModeBox.querySelectorAll('[data-vfx-a11y]')) {
+      inp.onchange = () => {
+        const key = inp.dataset.vfxA11y;
+        const val = inp.checked ? 1 : 0;
+        tuning.commit([[`vfx.laser.${key}`, val]], 'Acessibilidade ' + key);
+        view.vfxRuntime?.setAccessibility?.({[key]: !!val});
+      };
+    }
     // Modo simples (toggle, variante, intensidade principal, prévia) e avançado (todos os parâmetros). Mesmos parâmetros.
     const bar = document.createElement('div');bar.className = 'vfx-bar';
     bar.innerHTML = `<div class="seg wide" role="group" aria-label="Modo dos efeitos"><button type="button" data-vfx-mode-btn="simple">Simples</button><button type="button" data-vfx-mode-btn="advanced">Avançado</button></div>
       <div class="seg wide" role="group" aria-label="Filtro dos efeitos">${[['all', 'Todos'], ['active', 'Ativos'], ['changed', 'Alterados'], ['costly', 'Mais caros']].map(([v, t]) => `<button type="button" data-vfx-filter="${v}">${t}</button>`).join('')}</div><p class="hint" id="vfx-filter-info"></p>`;
     root.append(bar);
     const simple = document.createElement('div');simple.className = 'vfx-simple';simple.dataset.vfxMode = 'simple';
-    for (const [type, label] of VFX_TYPES) {
+    const CORE_VFX = VFX_TYPES.filter(([t]) => t !== 'rock' && t !== 'barrier');
+    for (const [type, label] of CORE_VFX) {
       const row = document.createElement('div');row.className = 'vfx-simple-row';row.dataset.vfxType = type;
       const head = document.createElement('div');head.className = 'vfx-simple-head';head.innerHTML = `<b>${escape(label)}</b><span class="muted" data-cost></span>`;
       const pv = document.createElement('button');pv.type = 'button';pv.textContent = '▶';pv.title = 'Prévia';pv.dataset.preview = `vfx.${type}`;
@@ -213,6 +391,10 @@ export function createVisualPanel({tuning, view, game, $, hud, download}) {
       if (C.vfx[t] && C.vfx[t].variant != null) {
         view.vfxRuntime.setVariant(t, C.vfx[t].variant);
       }
+    }
+    const activeVar = C.vfx.hit?.variant ?? 0;
+    for (const x of root.querySelectorAll('[data-global-vfx]')) {
+      x.setAttribute('aria-pressed', String(Number(x.dataset.globalVfx) === activeVar));
     }
     if (C.vfx.laser && view.vfxRuntime.beamRenderer) {
       view.vfxRuntime.beamRenderer.setConfig(C.vfx.laser);

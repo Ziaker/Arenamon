@@ -24,8 +24,10 @@ export function chargeParams(def) {
   const p = {};
   for (const k of CHARGE_OVERRIDES) p[k] = over[k] ?? base[k];
   p.max = over.max ?? 4;
+  p.min = over.min ?? over.minCharge ?? 0;
   p.step = step;
   p.maxTicks = Math.round(p.max / step);
+  p.minTicks = Math.round(p.min / step);
   p.pl2Ticks = Math.round(p.maxTicks / 2);          // PL2 a partir de 50% da carga (M19.1): 2,0 s para a carga de 4 s
   p.dodgeLockTicks = Math.round(p.dodgeCancelAfter / step);
   p.bufferTicks = Math.round(p.bufferWindow / step);

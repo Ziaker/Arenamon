@@ -84,6 +84,18 @@ export function tacticalCommand(brain, self, target, dt, P) {
   const t = brain.t ??= init(brain, P), S = t.style, A = C.actions, R = C.rules;
   t.time += dt;brain.cooldown = Math.max(0, brain.cooldown - dt);
   const diff = sub(target.position, self.position), distance = length(diff), forward = distance > 1e-6 ? normalize(diff) : direction(self.facing);
+  if (self.charge) {
+    // Enquanto o lutador estiver executando uma carga: prioriza espaçamento/manutenção de distância e evita cancelar sem motivo
+    const away = distance > 1e-6 ? normalize(scale(diff, -1)) : direction(self.facing + Math.PI);
+    const side = vec(away.z * (t.orbit ?? 1), -away.x * (t.orbit ?? 1));
+    c.move = distance < 4.5 ? away : normalize(add(scale(away, 0.4), scale(side, 0.8)));
+    c.tackle = false;
+    c.dodge = false;
+    c.guard = false;
+    c.guardPressed = false;
+    brain.wasGuard = false;
+    return finish(brain, c, self, target);
+  }
   const myReach = contactDistance() + nominalDistance(self, 'tackle') * (.55 + .3 * S.range), oppReach = contactDistance() + nominalDistance(target, 'tackle') * .85;
   const affordTackle = !self.exhausted && self.stamina >= A.tackle.cost - 1e-6, affordDodge = !self.exhausted && self.stamina >= A.dodge.cost - 1e-6;
   const free = !self.action && self.knockRecovery <= 0 && !self.flight;

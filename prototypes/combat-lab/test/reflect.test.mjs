@@ -24,22 +24,30 @@ function arena({blue = vec(0, -3), red = vec(0, 3)} = {}) {
 }
 const step = (g, c0 = cmd(), c1 = cmd()) => {g.step(c0, c1);events.push(...g.lastStepEvents);return g.lastStepEvents;};
 const steps = (g, k, c0 = () => cmd(), c1 = () => cmd()) => {for (let i = 0; i < k; i++) step(g, c0(i), c1(i));};
-/** Segura o botão por `ticks` passos e solta: devolve a barreira criada (ou undefined se falhou). */
-function cast(g, ticks) {step(g, cmd({skill: 0, skillHeld: H}));steps(g, ticks - 1, () => cmd({skillHeld: H}));step(g, cmd());return g.world.entities.find(e => e.reflect);}
+/** Segura o botão por `ticks` passos e solta: devolve a barreira criada (ou undefined se falhou). Padrão: 180 passos (1,5 s, carga mínima). */
+function cast(g, ticks = 180) {step(g, cmd({skill: 0, skillHeld: H}));steps(g, ticks - 1, () => cmd({skillHeld: H}));step(g, cmd());return g.world.entities.find(e => e.reflect);}
 const barrier = (g, o = {}) => spawn(g.world, {kind: 'barrier', owner: 0, shape: 'box', pos: {x: 0, z: 0}, angle: 0, hx: 1, hz: .05, y: 0, height: 2, life: 5, hp: Infinity, blocksProjectiles: true, blocksFighters: true, blocksOwner: true,
   reflect: true, shields: true, breakableByTackle: true, breakableByBlast: true, pl: 1, captured: {tieTolerance: .001, maxReflections: 16, tackleRecoil: .15, tackleStagger: .25}, ...o}, []);
 const shot = (g, o = {}) => spawn(g.world, {kind: 'projectile', owner: 1, pos: {x: 0, z: 2.5}, dir: {x: 0, z: -1}, y: .65, radius: .25, speed: 14, life: 3, pierce: 1, hit: {damage: 10}, ...o}, []);
 
 // ---------- Criação: dimensões, posição, duração, PL ----------
 {
-  const g = arena(), f = g.fighters[0], b = cast(g, 2);
+  const g = arena(), f = g.fighters[0];
+  // Soltura antes de 1,5 s (ex: 60 passos = 0,5 s) não gera barreira e emite chargeInterrupt
+  const b0 = cast(g, 60);
+  assert.equal(b0, undefined, 'soltura antes de 1,5 s não cria barreira');
+  assert.ok(events.some(e => e.result === 'chargeInterrupt' && e.reason === 'minCharge'), 'emite chargeInterrupt por minCharge');
+}
+ok('soltura antes de 1,5 s não ativa o Reflect e trata como interrupção (minCharge)');
+{
+  const g = arena(), f = g.fighters[0], b = cast(g, 180);
   assert.ok(b && b.kind === 'barrier' && b.owner === 0 && b.reflect, 'a soltura cria a barreira');
-  near(b.hx * 2, 1.5 * (1 + (2 / 480) * 1), 1e-9);near(b.height, (1.5 + (2 / 480)) * 1.3, 1e-9);near(b.hz, .05);near(b.life, 4 + 2 / 120, 1e-9);assert.equal(b.pl, 1);
+  near(b.hx * 2, 1.5 * (1 + (180 / 480) * 1), 1e-9);near(b.height, (1.5 + (180 / 480)) * 1.3, 1e-9);near(b.hz, .05);near(b.life, 4 + 180 / 120, 1e-9);assert.equal(b.pl, 1);
   near(b.pos.x, 0);near(b.pos.z, f.position.z + .5 + .5 + .05, 1e-9);near(b.angle, 0);near(b.y, 0);
   assert.ok(b.blocksFighters && b.blocksOwner && b.blocksProjectiles, 'sólida para os dois lutadores (M9.4)');
   assert.ok(events.some(e => e.result === 'chargeRelease') && f.moveCooldowns.reflect > 7.9 && f.moveRecovery > 0);
 }
-ok('criação na soltura: largura e altura mínimas com pouca carga, base no chão, distância livre de 50% da profundidade, 4 s + carga, PL1');
+ok('criação na soltura: largura e altura mínimas com carga mínima (1,5 s), base no chão, distância livre de 50% da profundidade, 4 s + carga, PL1');
 {
   const mid = cast(arena(), 240), max = cast(arena(), 480);
   near(mid.hx * 2, 2.25, 1e-9);near(mid.height, 2.6, 1e-9);near(mid.life, 6, 1e-9);assert.equal(mid.pl, 2);
@@ -50,7 +58,7 @@ ok('crescimento com a carga: metade → 2,25 m × 2,6 m, 6 s, PL2; máxima → 3
   const g = arena(), b = cast(g, 480), f = g.fighters[0];
   const heading = b.angle;g.fighters[0].facing = 1.2;steps(g, 5);near(b.angle, heading, 1e-12);                   // orientação congelada na criação
   assert.ok(f.charge === null);
-  const h = arena(), b2 = cast(h, 100), c = arena();c.fighters[0].facing = Math.PI / 2;const b3 = cast(c, 100);
+  const h = arena(), b2 = cast(h, 200), c = arena();c.fighters[0].facing = Math.PI / 2;const b3 = cast(c, 200);
   near(b3.angle, Math.PI / 2, .5);assert.ok(b3.pos.x > b2.pos.x + .5, 'acompanha a orientação do personagem durante a carga');
 }
 ok('a orientação acompanha o personagem durante a carga e congela ao materializar');
@@ -61,14 +69,14 @@ ok('a orientação acompanha o personagem durante a carga e congela ao materiali
   const h = arena({red: vec(0, -1.5)}), s0 = h.fighters[0].stamina, b2 = cast(h, 480);
   assert.equal(b2, undefined);assert.ok(events.some(e => e.result === 'moveFailed' && e.reason === 'semEspaco'));
   near(h.fighters[0].stamina, s0, 1e-9);assert.equal(h.fighters[0].moveCooldowns.reflect, undefined, 'sem recarga');assert.equal(h.fighters[0].moveRecovery, 0);
-  const w = arena({blue: vec(0, 15.2)});assert.equal(cast(w, 10), undefined, 'a barreira não pode sair da arena');
-  const k = arena();spawn(k.world, {kind: 'wall', pos: {x: 0, z: -1.95}, hx: 5, hz: .3, y: 0, height: 2.2, life: Infinity}, []);assert.equal(cast(k, 10), undefined, 'parede é obstáculo');
+  const w = arena({blue: vec(0, 15.2)});assert.equal(cast(w, 180), undefined, 'a barreira não pode sair da arena');
+  const k = arena();spawn(k.world, {kind: 'wall', pos: {x: 0, z: -1.95}, hx: 5, hz: .3, y: 0, height: 2.2, life: Infinity}, []);assert.equal(cast(k, 180), undefined, 'parede é obstáculo');
 }
 ok('sem espaço: encolhe até o maior retângulo válido (mínimo 1,5×); sem o mínimo, nenhuma barreira, stamina devolvida, sem recarga; arena e paredes contam');
 
 // ---------- Reflexão ----------
 {
-  const g = arena(), b = cast(g, 2), p = shot(g, {pl: 1, captured: {attackFraction: .2}}), ev = [];
+  const g = arena(), b = cast(g), p = shot(g, {pl: 1, captured: {attackFraction: .2}}), ev = [];
   steps(g, 3);                                                              // a recuperação acaba antes do projétil chegar? (irrelevante: só observamos o projétil)
   let reflectedAt = null, hit = null;
   for (let i = 0; i < 90 && !p.dead; i++) {const e = step(g);if (!reflectedAt && e.some(x => x.result === 'reflected')) reflectedAt = {z: p.pos.z, owner: p.owner};hit = e.find(x => x.result === 'impact') ?? hit;}
@@ -76,11 +84,11 @@ ok('sem espaço: encolhe até o maior retângulo válido (mínimo 1,5×); sem o 
   assert.ok(r && r.face === 'front' && r.by === b.id && r.attacker === 0 && r.target === 1, 'refletida pela frente');assert.equal(p.origin, 1);assert.equal(reflectedAt.owner, 0, 'passa a ser do refletor (M2.7)');
   assert.ok(hit && hit.attacker === 0 && hit.target === 1, 'atinge o lançador original (M17.4)');
   near(g.fighters[1].hp, 100 - .2 * 20, 1e-9);void ev;                       // dano recalculado com o Ataque do refletor: 0,2 × 20 (M30.1)
-  const h = arena();h.fighters[0].attributes.attack = 30;cast(h, 2);const q = shot(h, {captured: {attackFraction: .2}});steps(h, 90);assert.ok(q.dead);near(h.fighters[1].hp, 100 - 6, 1e-9);
+  const h = arena();h.fighters[0].attributes.attack = 30;cast(h);const q = shot(h, {captured: {attackFraction: .2}});steps(h, 90);assert.ok(q.dead);near(h.fighters[1].hp, 100 - 6, 1e-9);
 }
 ok('reflexão especular pela frente: o dono passa a ser o refletor, atinge o lançador original com o dano recalculado (0,2 × Ataque do refletor)');
 {
-  const g = arena(), b = cast(g, 2), e0 = b.hx;
+  const g = arena(), b = cast(g), e0 = b.hx;
   const p = shot(g, {pos: {x: -3, z: b.pos.z}, dir: {x: 1, z: 0}, y: .65});
   steps(g, 40);
   const r = events.find(e => e.result === 'reflected');
@@ -88,7 +96,7 @@ ok('reflexão especular pela frente: o dono passa a ser o refletor, atinge o lan
 }
 ok('a borda reflete pela própria normal');
 {
-  const g = arena(), b = cast(g, 2);
+  const g = arena(), b = cast(g);
   const p = spawn(g.world, {kind: 'projectile', owner: 0, pos: {x: 0, z: -3.6}, dir: {x: 0, z: 1}, y: .65, radius: .25, speed: 14, life: 3, pierce: 1, hit: {damage: 10}}, []);
   steps(g, 60);
   assert.ok(!events.some(e => e.result === 'reflected'), 'pelo verso atravessa');assert.ok(p.dead && g.fighters[1].hp === 90, 'e segue até o adversário');
@@ -133,7 +141,7 @@ ok('ciclo degenerado: no máximo 16 reflexões por passo; o projétil segue e a 
 
 // ---------- Sólida, Tackle e explosão ----------
 {
-  const g = arena(), b = cast(g, 2);steps(g, 40);
+  const g = arena(), b = cast(g);steps(g, 40);
   steps(g, 150, () => cmd(), () => cmd({move: vec(0, -1)}));
   assert.ok(g.fighters[1].position.z > b.pos.z + b.hz + .5 - 1e-6, `o adversário não atravessa a barreira (z=${g.fighters[1].position.z})`);
 }
@@ -153,13 +161,13 @@ ok('a barreira é sólida para o adversário (que não a atravessa andando)');
 ok('Tackle destrói o Reflect (qualquer PL, de qualquer dono) e o atacante recua e fica em stagger de 0,25 s');
 {
   const blast = (g, o = {}) => spawn(g.world, {kind: 'area', explosion: true, owner: 1, affectsOwner: true, pos: {x: 0, z: 0}, radius: 4, y: 0, height: 3, life: .1, pulses: 1, hit: {damage: 10}, ...o}, []);
-  const g = arena(), b = cast(g, 2);steps(g, 2);blast(g);events.length = 0;steps(g, 3);
+  const g = arena(), b = cast(g);steps(g, 2);blast(g);events.length = 0;steps(g, 3);
   assert.equal(g.fighters[0].hp, 100, 'protegido pela barreira (segmento centro da explosão → centro do corpo cruza a barreira)');
   assert.ok(events.some(e => e.result === 'shielded' && e.target === 0) && b.dead && events.some(e => e.result === 'barrierBroken' && e.by === 'explosion'), 'e a barreira é destruída pela mesma explosão');
   assert.ok(g.fighters[1].hp < 100, 'quem não está atrás da barreira leva o dano');
   const c = arena();blast(c);steps(c, 3);assert.ok(c.fighters[0].hp < 100, 'sem barreira, o mesmo lutador leva o dano');
-  const d = arena(), b2 = cast(d, 2);steps(d, 2);blast(d, {radius: 1});steps(d, 3);assert.ok(!b2.dead, 'explosão que não alcança a barreira não a destrói');
-  const e = arena(), b3 = cast(e, 2);steps(e, 2);const side = spawn(e.world, {kind: 'area', explosion: true, owner: 1, pos: {x: 0, z: -1}, radius: 2, y: 0, height: 3, life: .1, pulses: 1, hit: {damage: 10}}, []);steps(e, 3);
+  const d = arena(), b2 = cast(d);steps(d, 2);blast(d, {radius: 1});steps(d, 3);assert.ok(!b2.dead, 'explosão que não alcança a barreira não a destrói');
+  const e = arena(), b3 = cast(e);steps(e, 2);const side = spawn(e.world, {kind: 'area', explosion: true, owner: 1, pos: {x: 0, z: -1}, radius: 2, y: 0, height: 3, life: .1, pulses: 1, hit: {damage: 10}}, []);steps(e, 3);
   assert.ok(b3.dead && e.fighters[0].hp === 100, 'explosão atrás/na altura da barreira: o dono também é protegido (M30.7, qualquer personagem)');void side;
 }
 ok('explosão: destrói a barreira que alcança, mas quem estava atrás dela fica protegido daquela explosão (inclusive o dono); sem barreira, leva o dano');
@@ -175,15 +183,15 @@ ok('explosão: destrói a barreira que alcança, mas quem estava atrás dela fic
 }
 ok('M28.4/D1: os parâmetros do Reflect são capturados ao apertar; mexer nos sliders depois não altera a barreira criada nem o uso em andamento');
 {
-  const g = arena(), b = cast(g, 2);steps(g, Math.round((b.life - .1) * 120));assert.ok(g.world.entities.includes(b));
+  const g = arena(), b = cast(g);steps(g, Math.round((b.life - .1) * 120));assert.ok(g.world.entities.includes(b));
   steps(g, 30);assert.ok(!g.world.entities.includes(b), 'some ao fim da duração');assert.ok(events.some(e => e.result === 'expire' && e.entity === b.id));
   const m = getMove('reflect');assert.ok(m.charge.group === 'reflect' && m.cooldownBoost && m.cooldown === 8 && m.cost === 1);
 }
 ok('a barreira expira ao fim de 4 s + carga; definição: custo 1, recarga 8 s, recarga acelerável');
 {
-  const g = arena(), s = JSON.stringify(g.save());cast(g, 30);const h = new Game();h.mode = 'inactive';h.load(g.save());
+  const g = arena(), s = JSON.stringify(g.save());cast(g);const h = new Game();h.mode = 'inactive';h.load(g.save());
   const run = x => {steps(x, 20);return JSON.stringify({w: x.world, f: x.fighters});};
-  const a = arena();cast(a, 30);const b = new Game();b.mode = 'inactive';b.load(a.save());steps(a, 20);steps(b, 20);
+  const a = arena();cast(a);const b = new Game();b.mode = 'inactive';b.load(a.save());steps(a, 20);steps(b, 20);
   assert.equal(JSON.stringify({w: a.world, f: a.fighters}), JSON.stringify({w: b.world, f: b.fighters}), 'save/load com barreira viva reproduz a mesma partida');void s;void run;void length;
 }
 ok('save/load com a barreira viva reproduz a mesma partida');

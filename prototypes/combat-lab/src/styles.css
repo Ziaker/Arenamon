@@ -220,3 +220,81 @@ pre.diff{max-height:240px;overflow:auto;font-size:11px;background:#0b1118;paddin
 .vfx-simple-row .tune-control{padding:4px 6px}.vfx-simple-row .tune-bottom{display:none}
 .btn-link{display:inline-flex;align-items:center;background:var(--field);border:1px solid var(--line);border-radius:8px;padding:6px 10px;color:var(--text);text-decoration:none;font-size:13px}.btn-link:hover{border-color:#4d6b85}
 .pf-area table{width:100%;font-size:12px}.pf-area td{padding:3px 4px;border-bottom:1px solid #ffffff10}.pf-area td:last-child{text-align:right;white-space:nowrap}.pf-area button{min-height:24px;padding:1px 7px;font-size:11px}
+
+/* ---------- Modo Arena Zen (F2) ---------- */
+.lab.zen-mode .rail{display:none}
+.lab.zen-mode #panel{display:none!important}
+.lab.zen-mode .top-info{display:none}
+.lab.zen-mode .dock{height:36px}
+.lab.zen-mode .dock-body{display:none}
+.lab.zen-mode .zen-badge{display:flex}
+.zen-badge{position:absolute;bottom:42px;left:50%;transform:translateX(-50%);background:#0b141ed9;border:1px solid #59d6e666;color:#e8fdfc;font:700 12px/1.2 Inter,system-ui,sans-serif;padding:5px 14px;border-radius:999px;pointer-events:none;z-index:10;display:none;align-items:center;gap:6px;box-shadow:0 4px 20px #000a}
+.zen-badge kbd{background:#173447;padding:1px 5px;border-radius:4px;border:1px solid #59d6e6;color:#59d6e6}
+
+/* ---------- Dojo: Pop-up de Vantagem de Frames na Arena ---------- */
+#dojo-advantage-badge{position:absolute;top:76px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;padding:6px 16px;border-radius:8px;font:900 14px/1 Inter,system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;pointer-events:none;z-index:7;transition:opacity .25s ease,transform .2s ease;box-shadow:0 8px 24px #000c}
+#dojo-advantage-badge.adv-plus{background:#102c1ae6;border:2px solid #34c759;color:#78f395;text-shadow:0 0 10px #34c75988}
+#dojo-advantage-badge.adv-minus{background:#30111ce6;border:2px solid #ff3b69;color:#ff8fa8;text-shadow:0 0 10px #ff3b6988}
+#dojo-advantage-badge.adv-even{background:#2a2512e6;border:2px solid #ffcf3f;color:#ffe28a;text-shadow:0 0 10px #ffcf3f88}
+#dojo-advantage-badge b{font-size:16px;font-variant-numeric:tabular-nums}
+#dojo-advantage-badge .adv-tag{padding:2px 6px;border-radius:4px;background:#ffffff1f;font-size:11px}
+
+/* ---------- Dojo: Frame Meter & Histórico de Golpes na Doca ---------- */
+.dojo-panel{display:flex;flex-direction:column;gap:12px;padding:6px 8px}
+.dojo-fighter-strip{display:flex;flex-direction:column;gap:4px;background:#0c1622;border:1px solid #1f354a;border-radius:8px;padding:8px 10px}
+.dojo-fighter-strip header{display:flex;justify-content:space-between;align-items:center;font-size:12px}
+.dojo-fighter-strip header b{font-weight:700;letter-spacing:.05em}
+.dojo-fighter-strip.f0 header b{color:#7fe7ff}
+.dojo-fighter-strip.f1 header b{color:#ff8fb1}
+.dojo-meter-bar{position:relative;height:24px;border-radius:6px;background:#080e14;border:1px solid #ffffff18;overflow:hidden;display:flex}
+.dojo-meter-seg{height:100%;display:flex;align-items:center;justify-content:center;font:700 10px/1 ui-monospace,Consolas,monospace;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 3px}
+.dojo-meter-seg.startup{background:#1a5fb4;border-right:1px solid #3584e4}
+.dojo-meter-seg.active{background:#e01b24;border-right:1px solid #f66151;box-shadow:inset 0 0 8px #ff3838}
+.dojo-meter-seg.recovery{background:#26a269;border-right:1px solid #33d17a}
+.dojo-meter-seg.hitstop{background:#f6d32d;color:#1e1a00}
+.dojo-meter-seg.stun{background:#ff7800}
+.dojo-hits-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:6px;margin-top:4px}
+.dojo-hit-card{display:flex;flex-direction:column;gap:4px;background:#0e1a26;border:1px solid #233c54;border-radius:8px;padding:6px 8px;font-size:11.5px}
+.dojo-hit-card header{display:flex;justify-content:space-between;align-items:center}
+.dojo-hit-card .hit-result{font-weight:800;letter-spacing:.05em}
+.dojo-hit-card .hit-adv{font:800 12px ui-monospace,monospace;padding:2px 8px;border-radius:999px}
+.dojo-hit-card .hit-adv.plus{background:#163e24;color:#61ff8c;border:1px solid #34c759}
+.dojo-hit-card .hit-adv.minus{background:#421320;color:#ff859d;border:1px solid #ff3b69}
+.dojo-hit-card .hit-adv.even{background:#3b3211;color:#ffd866;border:1px solid #ffcf3f}
+.dojo-hit-card .hit-details{color:var(--muted);font-size:10.5px}
+.dojo-hit-card button{align-self:flex-start;min-height:22px;padding:1px 8px;font-size:10.5px}
+
+/* ---------- Tabela de Animações: Categorias & Filtros ---------- */
+.anim-filter-bar{display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap}
+.anim-filter-bar button{font-size:11px;min-height:26px;padding:2px 8px;border-radius:6px}
+.state-search{width:100%;margin-bottom:8px;font-size:12px}
+.state-badge{font-size:9.5px;font-weight:800;letter-spacing:.06em;padding:1px 5px;border-radius:4px;margin-left:4px;text-transform:uppercase}
+.state-badge.move{background:#143d4d;color:#78ebff;border:1px solid #2da6bf}
+.state-badge.loco{background:#1c2d3a;color:#a3c9e6}
+.state-badge.react{background:#382218;color:#ffb594}
+
+/* ---------- VFX & Moves Quick Style Switcher ---------- */
+.vfx-quick-style{display:flex;align-items:center;gap:8px;padding:8px 10px;background:#142232;border:1px solid #2d4763;border-radius:8px;margin:8px 0}
+.vfx-quick-style b{font-size:12px;white-space:nowrap}
+
+/* ---------- Moves Animations & Charge Loop ---------- */
+.moves-anim-section{background:#0e1722;border:1px solid #1e3146;border-radius:8px;padding:12px;margin:12px 0}
+.moves-anim-cards{display:flex;flex-direction:column;gap:12px;margin-top:8px}
+.moves-anim-card{background:#142232;border:1px solid #233a52;border-radius:8px;padding:12px}
+.moves-anim-card-head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.moves-anim-card-head h4{margin:0;font-size:13px;color:#78ebff;display:flex;align-items:center;gap:6px}
+.moves-anim-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width: 680px){.moves-anim-grid{grid-template-columns:1fr}}
+.moves-anim-col{display:flex;flex-direction:column;gap:6px}
+.moves-anim-col label{font-size:11px;font-weight:700;color:#9bb0c3}
+.moves-anim-col select{background:#0b131c;border:1px solid #2c4257;color:#e1ebf5;border-radius:5px;padding:5px 8px;font-size:12px;width:100%}
+.moves-loop-slider-box{background:#0b131c;border:1px solid #1c2e40;border-radius:6px;padding:8px 10px;margin-top:4px}
+.moves-loop-slider-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;font-size:11px}
+.moves-loop-slider-head output{font-weight:700;color:#f6d32d;font-family:ui-monospace,Consolas,monospace}
+.move-loop-timeline{display:flex;height:20px;border-radius:4px;overflow:hidden;font-size:10px;font-weight:700;margin-top:6px;border:1px solid #ffffff15}
+.move-loop-timeline .loop-intro{background:#1a5fb4;color:#d0e6ff;display:flex;align-items:center;justify-content:center;overflow:hidden;white-space:nowrap;padding:0 4px}
+.move-loop-timeline .loop-repeat{background:#d48800;color:#fff2b2;display:flex;align-items:center;justify-content:center;overflow:hidden;white-space:nowrap;padding:0 4px}
+.btn-preview-move{background:#1d4264;border:1px solid #3584e4;color:#fff;border-radius:6px;padding:5px 12px;font-size:11.5px;font-weight:700;cursor:pointer;transition:background .15s}
+.btn-preview-move:hover{background:#2a5e8f}
+.btn-preview-move.active{background:#e01b24;border-color:#ff5f6d}
+

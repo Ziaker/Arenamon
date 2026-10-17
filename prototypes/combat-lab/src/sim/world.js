@@ -99,7 +99,17 @@ export function applyHit(game, ownerId, target, hit, normal, info = {}) {
     else if (target.stun <= 1e-8 && hit.guardStun !== 0) target.stun = hit.guardStun ?? R.guardStun;
   } else {
     const kb = hit.knockback, k = stat(target, 'knockbackTaken', 1) * scaleK;
-    if (kb && (kb.horizontal > 0 || kb.vertical > 0) && T.enableLaunch) {const dir = length(normal) > 1e-7 ? normalize(normal) : vec(0, 1);launch(target, dir, (kb.horizontal ?? 0) * k, (kb.vertical ?? 0) * k);launchInfo = {direction: dir, horizontal: (kb.horizontal ?? 0) * k, vertical: (kb.vertical ?? 0) * k};}
+    if (kb && (kb.horizontal > 0 || kb.vertical > 0) && T.enableLaunch) {
+      const dir = length(normal) > 1e-7 ? normalize(normal) : vec(0, 1);
+      const hKb = (kb.horizontal ?? 0) * k, vKb = (kb.vertical ?? 0) * k;
+      launch(target, dir, hKb, vKb);
+      launchInfo = {direction: dir, horizontal: hKb, vertical: vKb};
+      if (vKb <= 1e-6 && hKb > 0) {
+        target.push = {direction: dir, distance: Math.max(0.45, hKb * 1.5), elapsed: 0};
+        target.action = null;
+        target.knockRecovery = Math.max(target.knockRecovery, R.landingRecovery);
+      }
+    }
     else if (hit.flinch) {target.action = null;target.knockRecovery = Math.max(target.knockRecovery, hit.flinch);}
     for (const s of hit.statuses || []) applyStatus(target, s, {source: ownerId});
     target.counterWindow = 0;

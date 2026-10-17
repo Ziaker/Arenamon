@@ -70,6 +70,22 @@ function range(key, value, path) {
       return {min: 0, max: 1, step: 1, fmt: n => n ? 'Ligado' : 'Desligado'};
     }
   }
+  if (path && path.startsWith('vfx.rock.')) {
+    if (key === 'scale' || key === 'glow') return {min: 0.2, max: 3.0, step: 0.1, fmt: n => n.toFixed(1) + '×'};
+    if (key === 'rotSpeed') return {min: 0, max: 10, step: 0.5, fmt: n => n.toFixed(1) + ' rad/s'};
+    if (key === 'trailDensity') return {min: 1, max: 30, step: 1, fmt: n => String(n)};
+    if (key === 'shatterCount') return {min: 4, max: 32, step: 2, fmt: n => String(n)};
+    if (['enabled', 'trail', 'shatter', 'cracksEmissive'].includes(key)) return {min: 0, max: 1, step: 1, fmt: n => n ? 'Ligado' : 'Desligado'};
+    if (key === 'variant') return {min: 0, max: 2, step: 1, fmt: n => ['A · Boulder Facetado', 'B · Cristal Psíquico', 'C · Meteorito Runas'][n] || 'A'};
+  }
+  if (path && path.startsWith('vfx.barrier.')) {
+    if (key === 'opacity') return {min: 0.1, max: 1.0, step: 0.05, fmt: n => (n * 100).toFixed(0) + '%'};
+    if (key === 'pulseFreq') return {min: 0.5, max: 8.0, step: 0.1, fmt: n => n.toFixed(1) + ' Hz'};
+    if (key === 'edgeGlow') return {min: 0.2, max: 3.0, step: 0.1, fmt: n => n.toFixed(1) + '×'};
+    if (key === 'shatterFragments') return {min: 6, max: 48, step: 2, fmt: n => String(n)};
+    if (['enabled', 'ripples'].includes(key)) return {min: 0, max: 1, step: 1, fmt: n => n ? 'Ligado' : 'Desligado'};
+    if (key === 'variant') return {min: 0, max: 2, step: 1, fmt: n => ['A · Hex-Grid', 'B · Cristal de Quartzo', 'C · Campo de Força'][n] || 'A'};
+  }
   if (/Fraction|Multiplier|Restitution|Scale|Weight|Base$|Opacity|Strength|Smoothing|Alignment|Dot$|Visible$/.test(key)) return {min: /Alignment|Dot/.test(key) ? -1 : 0, max: key === 'uiScale' ? 3 : 2, step: .01, fmt: n => n.toFixed(2)};
   const s = Math.abs(value), max = s >= 50 ? s * 3 : s >= 10 ? s * 4 : s >= 1 ? Math.max(10, s * 4) : s >= .1 ? Math.max(2, s * 5) : Math.max(.5, s * 8), step = s >= 20 ? .5 : s >= 1 ? .05 : s >= .1 ? .01 : .001;
   return {min: 0, max: Math.ceil(max / step) * step, step, fmt: n => n.toFixed(step >= .5 ? 1 : step >= .01 ? 2 : 3)};

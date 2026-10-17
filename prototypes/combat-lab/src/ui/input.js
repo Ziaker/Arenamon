@@ -42,10 +42,30 @@ export class Input {
     this.canvas = canvas;this.shortcut = slot ? () => {} : shortcut;this.held = new Set();this.pressed = new Set();this.locked = false;this.history = [];this.lastIntent = '';
     this.padPrev = [];this.padName = '';
     window.addEventListener('keydown', e => {
-      if (e.target.matches('input,select,textarea,button') && e.code !== 'Escape') return;
-      if (C.extras.keyCodes.includes(e.code)) e.preventDefault();
-      if (!this.held.has(e.code)) {this.pressed.add(e.code);if (e.code === this.key('lock')) this.locked = !this.locked;this.shortcut(e.code);}
+      const isTyping = e.target && e.target.matches('input[type=text],input[type=search],input[type=number],input[type=file],textarea');
+      if (isTyping && e.code !== 'Escape') return;
+      if (e.target && e.target.matches('input,select,button') && !isTyping) {
+        const combatOrGlobalKeys = ['KeyX', 'KeyC', 'KeyD', 'KeyA', 'KeyS', 'Space', 'KeyR', 'KeyH', 'F2', 'F3', 'Escape'];
+        if (combatOrGlobalKeys.includes(e.code) || !e.target.matches('input[type=range]')) {
+          e.target.blur?.();
+          canvas?.focus?.();
+        } else {
+          return;
+        }
+      }
+      if (C.extras.keyCodes.includes(e.code) || ['Space', 'KeyR', 'KeyH', 'F2', 'F3'].includes(e.code)) e.preventDefault();
+      if (!this.held.has(e.code)) {
+        this.pressed.add(e.code);
+        if (e.code === this.key('lock')) this.locked = !this.locked;
+        this.shortcut(e.code);
+      }
       this.held.add(e.code);
+    });
+    window.addEventListener('pointerup', e => {
+      if (e.target?.matches?.('input[type=range],button')) {
+        e.target.blur?.();
+        canvas?.focus?.();
+      }
     });
     window.addEventListener('keyup', e => this.held.delete(e.code));
     window.addEventListener('blur', () => this.clear());
