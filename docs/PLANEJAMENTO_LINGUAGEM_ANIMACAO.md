@@ -90,6 +90,15 @@ As formas `[Start X]` e `[Start: X]` ainda são alternativas de escrita: nenhuma
 | LAN-044 | **Uma seção global opcional define princípios, estilo e intensidade; a IA aplica os critérios durante a animação inteira e relata como os utilizou.** | `42A — Uma seção global opcional define princípios, estilo e intensidade; a IA aplica os critérios na animação inteira e relata como os utilizou.` | **APROVADA — Rodada 6** |
 | LAN-045 | **Ampliação temporária de partes corporais pode usar Scale e outras deformações compatíveis com o rig, com técnica escolhida conforme resultado e controles de proporção, eixo e retorno.** | `43B — Permitir Scale e deformações compatíveis com o rig, escolhendo o método conforme o resultado, com proporções, eixos e retorno controláveis.` | **APROVADA — Rodada 6** |
 | LAN-046 | **Validar efeitos pela comparação da animação com e sem modificadores e pela inspeção visual em vários ângulos, reprovando defeitos não intencionais.** | `44A — Comparar a animação com e sem efeitos, inspecionar deformações em múltiplos ângulos e reprovar defeitos não intencionais.` | **APROVADA — Rodada 6** |
+| LAN-047 | **Poses-chave são marcadores opcionais em frames locais, com descrição da postura e alvos anatômicos, como `[Pose: 8 | crouch]`.** | `45A — Permitir marcadores opcionais de pose em frames locais, como [Pose: 8 | crouch], com descrição da postura e alvos anatômicos.` | **APROVADA — Rodada 7** |
+| LAN-048 | **São permitidos marcos opcionais de timing para aceleração, hold e desaceleração, com intervalos locais, sem acrescentar frames à etapa.** | `46B — Permitir marcos opcionais de ritmo, como aceleração, hold e desaceleração, com intervalos locais e sem acrescentar frames.` | **APROVADA — Rodada 7** |
+| LAN-049 | **São permitidos marcadores temporais de contato/travamento para pontos de apoio, com IK quando necessário, inspeção de deslizamento e respeito à física.** | `47A — Permitir marcadores temporais de contato e travamento, usando IK quando necessário, com inspeção de deslizamentos e respeito à física.` | **APROVADA — Rodada 7** |
+| LAN-050 | **Animações cíclicas exigem continuidade de pose e movimento na passagem do último para o primeiro frame, com verificação do loop e sem frames extras.** | `48A — Exigir fechamento contínuo de pose e movimento, com verificação do loop sem acrescentar frames.` | **APROVADA — Rodada 7** |
+| LAN-051 | **A linguagem admite impacto, pose e hold visual com duração declarada; hitstop mecânico permanece metadado separado e não é alterado automaticamente.** | `49B — Permitir impacto, pose e hold visual com duração declarada, mantendo o hitstop mecânico como metadado separado.` | **APROVADA — Rodada 7** |
+| LAN-052 | **Cada Mid pode ter suas próprias poses, modificadores, timing e impactos, recebendo IDs automáticos e mantendo continuidade com as etapas adjacentes.** | `50A — Cada Mid pode ter poses, modificadores, timing e impactos próprios, com IDs automáticos e continuidade entre eles.` | **APROVADA — Rodada 7** |
+| LAN-053 | **São permitidos metadados visuais de entrada, saída e blending entre clipes, sem modificar automaticamente cancelamentos nem outras regras de gameplay.** | `51B — Permitir metadados visuais de entrada, saída e blending, sem alterar automaticamente cancelamentos ou outras regras de gameplay.` | **APROVADA — Rodada 7** |
+| LAN-054 | **Curvas avançadas podem ser utilizadas no Blender; realizar bake quando necessário e comparar a animação original com o GLB reimportado.** | `52B — Permitir curvas avançadas no Blender, aplicar bake quando necessário e comparar a animação original com o GLB reimportado.` | **APROVADA — Rodada 7** |
+| LAN-055 | **A validação exige relatório automático de timing e integridade, prévias multivistas, comparação com/sem efeitos e teste de reimportação GLB antes da entrega final.** | `53A — Relatório automático de timing e integridade, prévias multivistas, comparação com/sem efeitos e teste de reimportação GLB antes da entrega final.` | **APROVADA — Rodada 7** |
 
 Consequências invariantes:
 - Para o intervalo textual `a-b`, a quantidade é `b - a + 1` frames (se `b >= a`).
@@ -110,7 +119,9 @@ Consequências invariantes:
 
 **Rodada 6 aprovada:** oito modificadores temporais no catálogo inicial (LAN-038); escolha de técnica Smear por `method` opcional e justificativa da IA (LAN-039); deformação por eixo com volume/anatomia opcionais (LAN-040); curvas Ease/Sharp/Elastic/Overshoot personalizáveis respeitando o retorno (LAN-041); Anticipation/FollowThrough como diretrizes temporais de poses e curvas (LAN-042); Overlap/SecondaryAction com atrasos e anatomia próprios (LAN-043); seção global opcional com relatório de aplicação (LAN-044); ampliação corporal temporária e controlável (LAN-045); e comparação com/sem efeitos e multivistas, rejeitando defeitos (LAN-046).
 
-**Continuam pendentes:** gramática exata para múltiplos Mid e nomes opcionais; parâmetros concretos, equações e presets das curvas e deformações; regras objetivas de duração mínima e conflitos; regras de poses-chave, contatos, timing e loops; geometria de volumes; método de sincronização e diagnósticos; caminhos de exportação e critérios de homologação; identidade do terceiro teste; e eventual duração dinâmica. Nenhum efeito foi implementado, nem alteração de física ou gameplay autorizada.
+**Rodada 7 aprovada:** poses-chave opcionais por frame local e anatomia (LAN-047); marcos de timing internos sem frames extras (LAN-048); contatos/travamentos temporais com IK quando necessário e validação de deslizamentos (LAN-049); fechamento contínuo de loops sem frames adicionais (LAN-050); impacto, pose e hold visual separados do hitstop mecânico (LAN-051); Mid com IDs automáticos e conteúdo próprio (LAN-052); metadados de blending sem alterar gameplay (LAN-053); curvas avançadas com bake e comparação após reimportação GLB (LAN-054); e relatório de timing/integridade, multivistas, comparação com/sem efeitos e reimportação antes da entrega final (LAN-055).
+
+**Continuam pendentes:** detalhes precisos da gramática e formatos de eventos, critérios quantitativos para continuidade/loop/contatos, mapeamento de anatomias e hierarquia dos rigs, equações e presets das curvas, duração mínima e compatibilidade de efeitos, geometria das hitboxes, sincronização e diagnósticos, política de recursos auxiliares e exportabilidade, escolha da criatura não humanoide de teste e critérios de homologação. As decisões não constituem implementação nem autorização de alterações no combate.
 
 ## 4. Modelo temporal ilustrativo — PROPOSTA, não norma aprovada
 
@@ -274,19 +285,33 @@ Requisitos propostos para uma futura fase de validador:
 - **LAN-Q43.** Como definir a ampliação temporária de partes corporais (mãos, punhos, cabeça etc.) com volta ao normal, preservação anatômica e coerência de exportação? **RESOLVIDA — LAN-045 (43B)**.
 - **LAN-Q44.** Como validar que uma mudança é efeito artístico intencional versus deformação acidental do rig, incluindo prévia sem efeitos e comparação? **RESOLVIDA — LAN-046 (44A)**.
 
-### Rodada 7 — timing, poses, loops e eventos (pendente; roteiro proposto)
+### Rodada 7 — timing, poses, loops e eventos (concluída; decisões LAN-047 a LAN-055)
 
-> **Questões ainda não aprovadas.** Esta rodada deverá preservar 30 FPS, frames locais 1-based, intervalos inclusivos, retorno suave dentro da janela e separação de informações visuais/mecânicas.
+> **Rodada concluída:** aprovadas somente as respostas explícitas 45A, 46B, 47A, 48A, 49B, 50A, 51B, 52B e 53A. Mantidos os contratos de 30 FPS, frames locais 1-based, intervalos inclusivos, retorno suave dentro da janela e distinção entre direção visual e dados mecânicos.
 
-- **LAN-Q45.** Como especificar poses-chave opcionais e seus marcos temporais, sem conflito com os intervalos de modificadores?
-- **LAN-Q46.** Como definir timing de preparação, aceleração, pausa e recuperação, sem inserir frames além da duração fixa?
-- **LAN-Q47.** Como indicar contatos com chão, apoio das mãos ou travamento de pés (IK/foot plant) sem alterar deslocamento físico do lutador?
-- **LAN-Q48.** Como definir animações cíclicas (Idle etc.) e a continuidade entre o último frame e o primeiro sem mudar a contagem de frames?
-- **LAN-Q49.** Como declarar impacto visual, pose de impacto e possível pausa/hold de animação, separando isso do hitstop mecânico?
-- **LAN-Q50.** Como representar sequências de múltiplos golpes, múltiplos Mid e ritmos diferentes, mantendo tempos e marcos locais verificáveis?
-- **LAN-Q51.** Como especificar blending de entrada e saída, interrupções e transições com outras animações sem transformar metadados em alterações mecânicas?
-- **LAN-Q52.** Como modelar, revisar, amostrar e exportar curvas/poses do Blender para GLB, preservando timing e intenção visual?
-- **LAN-Q53.** Quais evidências mínimas devem acompanhar a validação de continuidade, contatos, deformação, timing e exportação antes da aprovação do blocking e da entrega final?
+- **LAN-Q45.** Como especificar poses-chave opcionais e seus marcos temporais, sem conflito com os intervalos de modificadores? **RESOLVIDA — LAN-047 (45A)**.
+- **LAN-Q46.** Como definir timing de preparação, aceleração, pausa e recuperação, sem inserir frames além da duração fixa? **RESOLVIDA — LAN-048 (46B)**.
+- **LAN-Q47.** Como indicar contatos com chão, apoio das mãos ou travamento de pés (IK/foot plant) sem alterar deslocamento físico do lutador? **RESOLVIDA — LAN-049 (47A)**.
+- **LAN-Q48.** Como definir animações cíclicas (Idle etc.) e a continuidade entre o último frame e o primeiro sem mudar a contagem de frames? **RESOLVIDA — LAN-050 (48A)**.
+- **LAN-Q49.** Como declarar impacto visual, pose de impacto e possível pausa/hold de animação, separando isso do hitstop mecânico? **RESOLVIDA — LAN-051 (49B)**.
+- **LAN-Q50.** Como representar sequências de múltiplos golpes, múltiplos Mid e ritmos diferentes, mantendo tempos e marcos locais verificáveis? **RESOLVIDA — LAN-052 (50A)**.
+- **LAN-Q51.** Como especificar blending de entrada e saída, interrupções e transições com outras animações sem transformar metadados em alterações mecânicas? **RESOLVIDA — LAN-053 (51B)**.
+- **LAN-Q52.** Como modelar, revisar, amostrar e exportar curvas/poses do Blender para GLB, preservando timing e intenção visual? **RESOLVIDA — LAN-054 (52B)**.
+- **LAN-Q53.** Quais evidências mínimas devem acompanhar a validação de continuidade, contatos, deformação, timing e exportação antes da aprovação do blocking e da entrega final? **RESOLVIDA — LAN-055 (53A)**.
+
+### Rodada 8 — rigs não humanoides, integridade e validação de exportação (pendente; roteiro proposto)
+
+> **Não há decisões aprovadas para esta rodada.** As alternativas serão propostas separadamente, e nenhuma orientação pode modificar malha/rig/pesos ou substituir a aprovação do diretor por suposição.
+
+- **LAN-Q54.** Como detectar e classificar anatomias não humanoides e seus segmentos a partir da inspeção do rig e da malha?
+- **LAN-Q55.** O que fazer com mapeamentos ambíguos, ossos ausentes ou malhas sem rig e como registrar pedidos de aprovação?
+- **LAN-Q56.** Como preservar estrutura óssea, skinning, materiais, malha e arquivos-fonte quando uma técnica de animação pede adaptação?
+- **LAN-Q57.** Como definir espaço de coordenadas, direção frontal, unidade de escala, pivôs e eixos para que comandos anatômicos não invertam movimentos?
+- **LAN-Q58.** Como lidar com colisões ou interpenetrações visuais intencionais versus erros de malha/rig nas deformações?
+- **LAN-Q59.** Quais critérios mensuráveis ou diagnósticos devem validar pés/mãos apoiados, deslizamento, IK e fechamento de loops sem sacrificar animação estilizada?
+- **LAN-Q60.** Como representar efeitos auxiliares (trails, cópias, geometria de Smear, shape keys) na exportação GLB sem perder a aparência, e o que reprovar?
+- **LAN-Q61.** Como organizar diferenças entre prévia no Blender, prévia reimportada em GLB e reprodução futura no Arenamon sem afirmar integração não implementada?
+- **LAN-Q62.** Qual criatura de anatomia não humanoide e qual ação específica deverão compor o terceiro teste inicial, e como aprovar o modelo de teste?
 
 ## 10. Governança e escopo
 
@@ -308,3 +333,4 @@ Requisitos propostos para uma futura fase de validador:
 | 16/10/2026 | **Rodada 4:** registradas cinco decisões explícitas (LAN-024 a LAN-028; escolhas 22A, 23A, 24C, 25A, 26B). LAN-Q22 a LAN-Q26 marcadas como resolvidas sem suprimir o texto histórico. Incluídas perguntas LAN-Q27 a LAN-Q35 como pendências novas, sem aprová-las. Nenhuma implementação autorizada. |
 | 16/10/2026 | **Rodada 5:** registradas nove decisões explícitas (LAN-029 a LAN-037; 27C, 28C, 29B, 30A, 31C, 32A, 33A, 34A, 35A). As perguntas LAN-Q27 a LAN-Q35 foram marcadas como resolvidas mantendo o enunciado histórico. LAN-Q36 a LAN-Q44 adicionadas somente como pendências. Nenhuma implementação autorizada. |
 | 16/10/2026 | **Rodada 6:** registradas nove decisões explícitas LAN-038 a LAN-046 (36A, 37B, 38B, 39B, 40A, 41B, 42A, 43B, 44A). LAN-Q36 a LAN-Q44 marcadas como resolvidas sem supressão do histórico. LAN-Q45 a LAN-Q53 adicionadas como pendências, sem presumir aprovações. Nenhuma implementação autorizada. |
+| 16/10/2026 | **Rodada 7:** registradas nove aprovações explícitas LAN-047 a LAN-055 (45A, 46B, 47A, 48A, 49B, 50A, 51B, 52B, 53A). LAN-Q45 a LAN-Q53 marcadas como resolvidas, sem remover perguntas nem decisões anteriores. LAN-Q54 a LAN-Q62 adicionadas apenas como pendências de planejamento. Nenhuma implementação autorizada. |
