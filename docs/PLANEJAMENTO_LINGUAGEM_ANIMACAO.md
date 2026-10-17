@@ -127,6 +127,15 @@ As formas `[Start X]` e `[Start: X]` ainda são alternativas de escrita: nenhuma
 | LAN-081 | **Detectar contradições entre descrição, referências e parâmetros explícitos, apontar instruções conflitantes e pedir resolução antes de executar a parte afetada.** | `78A — Apontar a contradição, mostrar as instruções envolvidas e pedir resolução antes de executar a parte afetada.` | **APROVADA — Rodada 10 (recomendação aprovada)** |
 | LAN-082 | **Após esclarecimentos, apresentar resumo consolidado do briefing e solicitar confirmação do diretor antes de iniciar o blocking; essa aprovação é anterior e distinta da aprovação do blocking concluído.** | `79B — Apresentar um resumo consolidado do briefing e solicitar sua confirmação antes de começar o blocking.` | **APROVADA — Rodada 10 (recomendação aprovada)** |
 | LAN-083 | **Preparar exemplo canônico completo com briefing, perguntas e respostas, etapas, modificadores, marcações de eventos, validações previstas e distinção entre decisões aprovadas e propostas; a obrigação de preparar o exemplo não aprova o conteúdo hipotético nem autoriza implementação.** | `80B — Preparar um exemplo canônico completo, com briefing, perguntas e respostas, etapas, modificadores, marcações de eventos, validações previstas e distinção entre decisões aprovadas e propostas.` | **APROVADA — Rodada 10 (recomendação aprovada)** |
+| LAN-084 | **Exigir declaração explícita de modo (`Mode`), etapa Start e etapa End; blocos Mid são usados quando o movimento exigir; os demais campos seguem opcionais conforme suas normas.** | `81B — Exigir Mode, Start e End; incluir blocos Mid conforme a ação descrita, mantendo os outros campos opcionais.` | **APROVADA — Rodada 11 (recomendação aprovada)** |
+| LAN-085 | **Atribuir IDs sequenciais estáveis aos múltiplos Mid, admitir nomes opcionais e rejeitar nomes duplicados ou referências ambíguas até o esclarecimento.** | `82A — Gerar IDs sequenciais estáveis, permitir nomes opcionais e rejeitar nomes ou referências ambíguas até serem esclarecidos.` | **APROVADA — Rodada 11 (recomendação aprovada)** |
+| LAN-086 | **Cada frame autoral de 30 FPS corresponde a um intervalo de duração 1/30 s, com índice local começando em 1; o limite final da duração é calculado separadamente, sem introduzir frame autoral ou duração extra.** | `83A — Tratar cada frame como um intervalo de 1/30 s, com amostras indexadas a partir de 1 e limite final calculado separadamente, sem frame extra de duração.` | **APROVADA — Rodada 11 (recomendação aprovada)** |
+| LAN-087 | **Para loops, permitir amostra técnica de fechamento no limite final da duração, externa à contagem de frames autorais; verificar continuidade de pose e velocidade, sem aumentar o tempo do loop.** | `84B — Permitir uma amostra técnica de fechamento no limite de duração, fora da contagem de frames de autoria, verificando pose e velocidade.` | **APROVADA — Rodada 11 (recomendação aprovada)** |
+| LAN-088 | **A duração mínima de deformações deve ser avaliada conforme efeito, curva e magnitude; se insuficiente para entrada e retorno, explicar a incompatibilidade e solicitar correção sem ampliar a janela automaticamente.** | `85A — Avaliar o mínimo necessário segundo efeito, curva e deformação, informar o motivo e solicitar correção sem ampliar a janela por conta própria.` | **APROVADA — Rodada 11 (recomendação aprovada)** |
+| LAN-089 | **Propor métricas e tolerâncias verificáveis de deslizamento, contato e continuidade de acordo com movimento e anatomia; registrar valores e pedir aprovação antes de validação definitiva.** | `86B — Propor tolerâncias verificáveis por tipo de movimento e anatomia, registrar os valores e submetê-los à aprovação antes da validação definitiva.` | **APROVADA — Rodada 11 (recomendação aprovada)** |
+| LAN-090 | **Metadados de hitbox admitem formato, dimensões, offset, orientação, osso e janela ativa, com campos opcionais propostos pela IA e relatório; não alteram por si mesmos a lógica de dano.** | `87B — Admitir formato, dimensões, offset, orientação, osso associado e intervalo ativo, com campos opcionais propostos pela IA e relatório de validação.` | **APROVADA — Rodada 11 (recomendação aprovada)** |
+| LAN-091 | **Rastrear por agente, versão e etapa evidências verificáveis, comandos efetivamente executados, resultados, falhas, ressalvas e testes não realizados; não declarar sucesso sem prova.** | `88A — Registrar por versão e etapa as evidências, comandos executados, resultados, falhas, ressalvas e testes não realizados, sem declarar sucesso sem prova.` | **APROVADA — Rodada 11 (recomendação aprovada)** |
+| LAN-092 | **Antes de eventual prova de conceito, consolidar gramática, preparar exemplos completos, definir casos de conformidade e auditar pendências bloqueantes; solicitar autorização específica antes de qualquer implementação.** | `89A — Consolidar a gramática, preparar exemplos completos, definir casos de conformidade, auditar pendências bloqueantes e pedir autorização específica antes de implementar.` | **APROVADA — Rodada 11 (recomendação aprovada)** |
 
 Consequências invariantes:
 - Para o intervalo textual `a-b`, a quantidade é `b - a + 1` frames (se `b >= a`).
@@ -162,7 +171,9 @@ Consequências invariantes:
 
 **Rodada 10 aprovada:** checklist contextual com perguntas obrigatórias sobre lacunas relevantes; questões agrupadas por categoria; delegações criativas limitadas ao que foi autorizado; interpretação de adjetivos subjetivos apresentada em alternativas para decisão; leitura de referências com confirmação do que deve ser utilizado; histórico de perguntas/respostas/delegações/revisões; resolução explícita de contradições; **resumo consolidado para aprovação do diretor antes de iniciar o blocking**; e preparação de exemplo canônico integral, sem presumir que seus detalhes fictícios estejam aprovados (LAN-075 a LAN-083).
 
-**Continuam pendentes:** sintaxe normalizada exata e tipagem de eventos, checklist e exemplos de briefing completos, regras de nomes/IDs de múltiplos Mid, definição formal de amostragem entre frames e para loops, métricas e tolerâncias para contato/continuidade, parametrização concreta das curvas e mínimo de duração de deformações, formato de hitboxes, critérios testáveis de exportação, matriz de testes de conformidade e exemplo canônico documentado. Nada foi implementado ou homologado.
+**Rodada 11 aprovada:** Mode, Start e End obrigatórios e Mid conforme a ação (LAN-084); IDs estáveis, nomes opcionais e rejeição de ambiguidades nos Mid (LAN-085); frames autorais 1-based com duração de 1/30 s por frame, sem duração fantasma (LAN-086); fechamento de loop por amostra técnica fora da contagem autoral e sem aumentar a duração (LAN-087); mínimo de deformação avaliado por efeito/curva/magnitude sem extensão automática (LAN-088); tolerâncias propostas por anatomia e aprovadas antes da validação definitiva (LAN-089); campos opcionais de hitbox com geometria, orientação, associação óssea e janela, sem ativar dano (LAN-090); evidências por agente, etapa e versão incluindo falhas/testes omitidos (LAN-091); preparação ordenada de gramática, exemplos, conformidade e auditoria antes de solicitar autorização de implementação (LAN-092).
+
+**Continuam pendentes:** representação literal normalizada e detalhamento da tipagem de eventos; critérios numéricos de tolerância a aprovar; convenções de parâmetros e suas unidades; catálogo de diagnósticos; exemplos completos com briefing hipotético explicitamente identificado; matriz definitiva de conformidade e verificação da importação/exportação em ambiente real. Nenhuma alteração de runtime ou implementação foi autorizada.
 
 ## 4. Modelo temporal ilustrativo — PROPOSTA, não norma aprovada
 
@@ -382,19 +393,33 @@ Requisitos propostos para uma futura fase de validador:
 - **LAN-Q79.** Como confirmar que a fase obrigatória de perguntas terminou e que o briefing está suficientemente completo antes do blocking? **RESOLVIDA — LAN-082 (79B)**.
 - **LAN-Q80.** Como preparar uma especificação canônica de exemplo com briefing, perguntas, respostas, blocos, modificadores e relatório de validação, sem iniciar implementação? **RESOLVIDA — LAN-083 (80B)**.
 
-### Rodada 11 — contrato temporal, conformidade e aceitação (pendente; roteiro proposto)
+### Rodada 11 — contrato temporal, conformidade e aceitação (concluída; decisões LAN-084 a LAN-092)
 
-> **Esta rodada não aprova soluções por antecipação.** A finalidade é resolver lacunas concretas de semântica, validação e interoperabilidade antes de elaborar o exemplo canônico ou qualquer implementação.
+> **Rodada concluída:** o diretor respondeu `suas recomendações`, aprovando 81B, 82A, 83A, 84B, 85A, 86B, 87B, 88A e 89A. Nenhuma implementação autorizada.
 
-- **LAN-Q81.** Quais campos mínimos e tipos devem compor um bloco de animação, distinguindo declarações obrigatórias das opcionais?
-- **LAN-Q82.** Como normalizar nomes opcionais e IDs de múltiplos Mid, inclusive duplicações e referências entre etapas?
-- **LAN-Q83.** Como definir a correspondência entre frames de autoria 1-based, amostras de poses, duração de 30 FPS e limites de etapas sem frame fantasma?
-- **LAN-Q84.** Como representar o limite de loop para assegurar continuidade visual de pose e velocidade sem duplicar duração?
-- **LAN-Q85.** Como avaliar e comunicar a duração mínima necessária para deformações com retorno suave, sem alterar janelas aprovadas?
-- **LAN-Q86.** Como aprovar e aplicar métricas verificáveis de deslizamento, contato, continuidade e deformação conforme a anatomia e o estilo?
-- **LAN-Q87.** Quais campos mínimos do volume de hitbox (shape, tamanho, deslocamento, rotação, alvo, janela) serão documentados e como separar prévia de dano real?
-- **LAN-Q88.** Como estruturar evidências e rastreabilidade por agente/versão, diferenciando teste realizado, teste não executado, ressalva e reprovação?
-- **LAN-Q89.** Em que ordem consolidar gramática, casos canônicos, testes e revisão de pendências antes de solicitar autorização específica para prova de conceito?
+- **LAN-Q81.** Quais campos mínimos e tipos devem compor um bloco de animação, distinguindo declarações obrigatórias das opcionais? **RESOLVIDA — LAN-084 (81B)**.
+- **LAN-Q82.** Como normalizar nomes opcionais e IDs de múltiplos Mid, inclusive duplicações e referências entre etapas? **RESOLVIDA — LAN-085 (82A)**.
+- **LAN-Q83.** Como definir a correspondência entre frames de autoria 1-based, amostras de poses, duração de 30 FPS e limites de etapas sem frame fantasma? **RESOLVIDA — LAN-086 (83A)**.
+- **LAN-Q84.** Como representar o limite de loop para assegurar continuidade visual de pose e velocidade sem duplicar duração? **RESOLVIDA — LAN-087 (84B)**.
+- **LAN-Q85.** Como avaliar e comunicar a duração mínima necessária para deformações com retorno suave, sem alterar janelas aprovadas? **RESOLVIDA — LAN-088 (85A)**.
+- **LAN-Q86.** Como aprovar e aplicar métricas verificáveis de deslizamento, contato, continuidade e deformação conforme a anatomia e o estilo? **RESOLVIDA — LAN-089 (86B)**.
+- **LAN-Q87.** Quais campos mínimos do volume de hitbox (shape, tamanho, deslocamento, rotação, alvo, janela) serão documentados e como separar prévia de dano real? **RESOLVIDA — LAN-090 (87B)**.
+- **LAN-Q88.** Como estruturar evidências e rastreabilidade por agente/versão, diferenciando teste realizado, teste não executado, ressalva e reprovação? **RESOLVIDA — LAN-091 (88A)**.
+- **LAN-Q89.** Em que ordem consolidar gramática, casos canônicos, testes e revisão de pendências antes de solicitar autorização específica para prova de conceito? **RESOLVIDA — LAN-092 (89A)**.
+
+### Rodada 12 — fechamento do formato canônico e testes normativos (pendente; roteiro proposto)
+
+> **Todas estas questões permanecem propostas, não aprovações.** A consolidação da seção 12 abaixo reproduz regras já aprovadas; detalhes ausentes serão decididos separadamente.
+
+- **LAN-Q90.** Qual a forma exata de escrever cabeçalhos com nomes opcionais e IDs, sem confundir duração, identificadores de Mid e termos descritivos?
+- **LAN-Q91.** Como representar poses, intervalos de modificadores, eventos pontuais, holds visuais, dados mecânicos e seções globais num exemplo normativo sem ambiguidades?
+- **LAN-Q92.** Como representar precisão/unidades de valores (escala, ângulos, offsets, intensidade) e tratamento de propostas provisórias?
+- **LAN-Q93.** Como categorizar diagnósticos em bloqueante, pendência que exige aprovação e simples aviso, preservando a execução seletiva autorizada?
+- **LAN-Q94.** Qual convenção documental para limites de tempo, último frame, amostra terminal e conversão de 30 FPS para 120 Hz quando aplicável?
+- **LAN-Q95.** Como estabelecer casos de teste curtos para sequência de Mid, intervalo inclusivo, impacto pontual, loop e fechamento, conflito e duração insuficiente?
+- **LAN-Q96.** Como definir critérios de aceite do exemplo completo, incluindo briefing esclarecido, blocking aprovado, exportação GLB e revisão final, sem presumir que os testes já foram executados?
+- **LAN-Q97.** Como organizar um catálogo normativo de termos visuais e mecânicos, com exemplos de comandos aceitos e comandos não definidos?
+- **LAN-Q98.** Como consolidar e apresentar ao diretor os itens já normativos, as pendências ainda bloqueantes e os itens reservados para uma versão futura?
 
 ## 10. Governança e escopo
 
@@ -420,3 +445,78 @@ Requisitos propostos para uma futura fase de validador:
 | 17/10/2026 | **Rodada 8:** o diretor aprovou todas as recomendações da rodada com `sigo todas recomendações`, correspondendo a 54B, 55A, 56A, 57B, 58B, 59B, 60B, 61B e 62A. Registradas LAN-056 a LAN-064 e resolvidas LAN-Q54 a LAN-Q62. Incluídas LAN-Q63 a LAN-Q71 como pendências para normalização/conformidade. Nenhuma implementação autorizada; histórico integral preservado. |
 | 17/10/2026 | **Rodada 9:** o diretor aprovou todas as nove recomendações (63C, 64B, 65B, 66B, 67A, 68B, 69A, 70A, 71C), registradas em LAN-065 a LAN-073. Complemento explícito `inclusive adicione a obrigatoriedade da IA perguntar sobre o que falta de informação na desc da animação`, registrado separadamente em LAN-074. LAN-Q63 a LAN-Q71 resolvidas sem apagar histórico. LAN-Q72 a LAN-Q80 adicionadas como pendentes. Nenhuma implementação autorizada. |
 | 17/10/2026 | **Rodada 10:** o diretor aprovou todas as recomendações com `sigo com suas recomendações`, correspondentes a 72B, 73A, 74A, 75B, 76B, 77B, 78A, 79B e 80B. Registradas LAN-075 a LAN-083, preservada a obrigatoriedade LAN-074, e marcadas resolvidas LAN-Q72 a LAN-Q80. Propostas LAN-Q81 a LAN-Q89 adicionadas sem aprovação. Nenhuma implementação autorizada. |
+| 17/10/2026 | **Rodada 11:** o diretor aprovou as nove recomendações com `suas recomendações` (81B, 82A, 83A, 84B, 85A, 86B, 87B, 88A, 89A), registradas em LAN-084 a LAN-092. LAN-Q81 a LAN-Q89 resolvidas, preservando enunciados e decisões anteriores. Consolidação documental de regras já aprovadas na seção 12 e novas pendências LAN-Q90 a LAN-Q98, sem implementação. |
+
+## 12. Consolidação normativa preliminar — derivada exclusivamente das decisões aprovadas
+
+> **Estado:** síntese normativa **parcial**, não homologação final de gramática ou autorização de implementação. Os requisitos abaixo possuem suporte nas decisões indicadas e não devem ser confundidos com uma especificação executável, um parser pronto ou animações validadas.
+>
+> **Convenção:** **REGRA APROVADA** = conteúdo obrigatório já deliberado; **EXEMPLO ILUSTRATIVO** = valores e nomes demonstrativos sem aprovação de uma animação real; **PENDENTE** = escolha que depende de deliberação.
+
+### 12.1 Fluxo obrigatório de criação (REGRA APROVADA)
+
+1. Receber descrição da animação e inspecionar referências e anatomia disponível; realizar checklist **contextual** de intenção, ação, anatomia, poses, duração/timing, estilo e referências (LAN-074 a LAN-076).
+2. **Perguntar ao diretor** sobre lacunas relevantes ou ambiguidades da descrição, preferencialmente agrupadas por categoria. Pedir esclarecimento adicional se surgirem novas lacunas. Não presumir intenção criativa. Distinguir parâmetros técnicos opcionais propostos provisoriamente de decisões aprovadas (LAN-014, LAN-065, LAN-074 a LAN-081).
+3. Exibir resumo consolidado do briefing, a procedência das informações e escolhas delegadas; **aguardar a confirmação do diretor antes de iniciar o blocking** (LAN-077 a LAN-082).
+4. Inspecionar e mapear rig, hierarquia e anatomia, com cópia versionada e preservação dos dados originais. Incompatibilidades/alterações estruturais exigem esclarecimento ou aprovação; operações afetadas não avançam silenciosamente (LAN-011, LAN-012, LAN-056 a LAN-059).
+5. Preparar blocking, obter sua aprovação e só depois prosseguir a refinamento/polimento. Exigir aprovação final antes da entrega definitiva; mudanças permanecem rastreadas por versão (LAN-016, LAN-026, LAN-027).
+6. Preparar os cinco entregáveis exigidos: `.blend`, GLB, vídeo de prévia, prompt original e relatório de validação. Testar o que for possível e registrar explicitamente o não testado, evitando alegações sem evidências (LAN-024, LAN-025, LAN-054, LAN-055, LAN-062, LAN-063, LAN-091).
+
+### 12.2 Semântica temporal e estrutura (REGRA APROVADA)
+
+- A autoria usa **30 FPS obrigatórios**; a indexação do primeiro frame local de cada etapa começa em **1**. Intervalos textuais `a-b` são **inclusivos** e contêm `b-a+1` frames (LAN-001 a LAN-003, LAN-005).
+- O modo (`Mode`) deve ser declarado. **Start e End são obrigatórios**; um ou mais **Mid podem existir conforme a ação**, incluindo nomes opcionais e IDs sequenciais estáveis (LAN-004, LAN-030, LAN-052, LAN-067, LAN-084, LAN-085).
+- Os cabeçalhos aceitam tanto `[Start: 12]` quanto `[Start 12]`, com normalização. O formato exato de cabeçalhos de Mid nomeados ainda é **PENDENTE** (LAN-029, LAN-030, LAN-085).
+- Cada frame autoral representa intervalo de **1/30 segundo**. Uma etapa de `N` frames tem duração `N/30` segundos, com limite final fora dos `N` intervalos autorais, sem adicionar duração fantasma. Amostras de pose e limites serão explicitados na futura norma formal (LAN-086).
+- Eventos pontuais usam um número; modificadores temporais usam dois extremos inclusivos. Modificadores dentro da etapa contam frames **locais**; a equivalência global deve ser relatada, sem introduzir frames extras nas transições (LAN-001, LAN-002, LAN-032, LAN-036, LAN-068).
+- Loops devem preservar continuidade de pose/movimento e podem conter **amostra técnica terminal de fechamento** fora da contagem autoral, sem acrescentar duração ao ciclo (LAN-050, LAN-087).
+- O tempo do clipe poderá ser ajustado à duração mecânica da ação conforme o contrato aprovado, com relatório de diferenças. A simulação do Arenamon utiliza passos próprios e intervalos internos semiabertos; comandos autorais não mudam a física diretamente (LAN-020, LAN-021, LAN-068).
+
+### 12.3 Efeitos, princípios e metadados (REGRA APROVADA)
+
+- `[ ]` indica direção/efeitos **visuais** e `{ }` indica dados **mecânicos**. A seção global artística é opcional e distinta do catálogo temporal controlado (LAN-006, LAN-015, LAN-037, LAN-044).
+- Catálogo inicial aprovado: **Smear, Squash, Stretch, Scale, Anticipation, FollowThrough, Overlap, SecondaryAction**. `method` de Smear é opcional; técnicas escolhidas pela IA precisam de justificativa e verificação de exportação (LAN-038, LAN-039).
+- Parâmetros nomeados são opcionais; texto livre é aceito. Valores expressamente fornecidos vinculam a IA; os propostos sem instrução explícita permanecem provisórios e rastreáveis (LAN-014, LAN-031, LAN-033, LAN-070).
+- Compatibilidade de efeitos simultâneos depende de alvo anatômico, canal/propriedade e intervalo. Conflitos precisam de resolução prévia; deformações muito curtas para entrada e retorno suaves devem ser rejeitadas, sem alteração automática de duração (LAN-007, LAN-008, LAN-034, LAN-035, LAN-088).
+- Curvas predefinidas aprovadas para disponibilização futura: Ease, Sharp, Elastic, Overshoot, respeitando as regras de retorno; aplicações específicas, parâmetros, intervalos e resultados devem ser verificáveis (LAN-041).
+- Poses, timing, contatos, impactos e holds visuais podem ser declarados sem acrescentar frames; hitstop de gameplay, cancelamentos e invulnerabilidade permanecem dados de inspeção até autorização de integração (LAN-047 a LAN-053).
+- `{Hitbox}` representa volume vermelho na prévia e metadados de janela, podendo incluir forma, dimensões, deslocamento, orientação e osso. **Não ativa dano automaticamente** (LAN-018, LAN-019, LAN-090).
+
+### 12.4 Exemplo mínimo de contagem — EXEMPLO ILUSTRATIVO, NÃO ANIMAÇÃO APROVADA
+
+```text
+[Mode: OneShot]   # declaração explícita do modo (grafia literal ainda candidata)
+[Start: 12]      # 12 intervalos de 1/30 s; frames globais 1..12
+  Preparação descrita no briefing confirmado.
+[Mid: 16]        # frames globais 13..28
+  Movimento principal descrito no briefing confirmado.
+  [Smear: 4-6]   # 3 frames locais; globais 16..18
+  [Impact: 10]   # evento pontual local; frame global 22
+  {Hitbox: 9-11} # 3 frames locais; globais 21..23; metadados/visualização
+[End: 18]        # frames globais 29..46
+  Retorno e conclusão descritos no briefing confirmado.
+```
+
+**Conta ilustrativa:** `12+16+18 = 46` frames = `46/30 s` de duração autoral total. Os textos de movimento, nomes, medidas, posições, anatomia, pose e eventual gameplay reais exigem briefing aprovado. Os valores desse exemplo não estão aprovados como especificação de uppercut, tapa ou idle. A sintaxe exata de anotações, comentários e todos os parâmetros ainda não foi homologada; o exemplo **não** autoriza execução.
+
+### 12.5 Matriz de aceitação em planejamento — não executada
+
+| Aspecto | Verificação exigida pelo princípio aprovado | Estado |
+|---|---|---|
+| Interpretação/briefing | Perguntas obrigatórias quando faltarem informações relevantes; resumo confirmado antes do blocking | **REGRA APROVADA**, caso de teste pendente |
+| Contagem de frames | 30 FPS, índices locais em 1, intervalos inclusivos, duração sem frame fantasma | **REGRA APROVADA**, verificação automatizada pendente |
+| Mid e transições | IDs estáveis; referências não ambíguas; poses/velocidades coerentes | **REGRA APROVADA**, formato detalhado pendente |
+| Efeitos/deformações | Não sobrescrever parâmetros explícitos; conflito diagnosticado; retorno dentro da janela | **REGRA APROVADA**, tolerâncias dependem de aprovação |
+| Loop/contato | Fechamento sem duração extra, sem deslizamento não intencional | **REGRA APROVADA**, métricas numéricas pendentes |
+| Hitbox | Prévia vermelha, intervalos e volumes como metadados sem ativação de dano | **REGRA APROVADA**, esquema completo pendente |
+| Exportação | Comparar Blender e GLB reimportado; evidenciar perdas, failures e não testados | **REGRA APROVADA**, execução não iniciada |
+| Aprovação | Briefing confirmado, blocking aprovado, resultado final aprovado | **REGRA APROVADA**, nenhuma animação aprovada aqui |
+
+### 12.6 Bloqueios ainda abertos — PENDENTE
+
+- Definir forma textual canônica e regras de validação de campos, nomes opcionais de Mid, unidades numéricas e registros técnicos de erro.
+- Definir métricas/tolerâncias por classe de animação e anatomia; quaisquer valores numéricos deverão receber aprovação antes de tornar-se critério oficial.
+- Especificar e auditar casos de teste (inclusive limites de frames e eventos, múltiplos Mid, loops, conflitos, deformações, preservação de rig e GLB reimportado).
+- Completar exemplo **canônico** envolvendo briefing, perguntas/respostas reais ou explicitamente hipotéticas, decisões e evidências; o exemplo mínimo acima não substitui a homologação.
+- Nenhum código, protótipo funcional, implementação no Blender/MCP, Studio ou runtime, ou prova de conceito foi autorizado neste registro.
+
