@@ -458,8 +458,26 @@ $('debug-toggle').onclick = () => {hud.debug = !hud.debug;C.extras.hud.debugVisi
 $('camera-reset').onclick = () => {view.reset(game.fighters[0]);canvas.focus();};
 $('rp-back').onclick = () => stepFrames(-1);$('rp-fwd').onclick = () => stepFrames(1);$('rp-play').onclick = () => togglePause();$('rp-live').onclick = goLive;
 $('rp-speed').onchange = () => {clock.timeScale = Number($('rp-speed').value) || 1;};
-function syncDockButtons() {const open = !$('dock').classList.contains('collapsed');$('dock-toggle').classList.toggle('active', open);const c = $('dock-collapse');if (c) {c.textContent = open ? '▾' : '▴';c.setAttribute('aria-expanded', String(open));c.title = open ? 'Fechar a linha do tempo' : 'Abrir a linha do tempo';}}
+function syncDockButtons() {const open = !$('dock').classList.contains('collapsed');if ($('dock-reopen')) $('dock-reopen').hidden = open || $('dock').closest('.zen-mode') !== null;$('dock-toggle').classList.toggle('active', open);const c = $('dock-collapse');if (c) {c.textContent = open ? '▾' : '▴';c.setAttribute('aria-expanded', String(open));c.title = open ? 'Fechar a linha do tempo' : 'Abrir a linha do tempo';}}
 $('dock-toggle').onclick = () => {$('dock').classList.toggle('collapsed');syncDockButtons();};$('dock-collapse').onclick = $('dock-toggle').onclick;syncDockButtons();
+$('dock-reopen').onclick = $('dock-toggle').onclick;
+// Redimensionar arrastando: largura do painel lateral e altura da linha do tempo (valores guardados no navegador)
+function dragResize(handle, start, move, done, reset) {
+  handle.addEventListener('pointerdown', e => {
+    e.preventDefault();handle.setPointerCapture(e.pointerId);const s = start(e);handle.classList.add('dragging');
+    const mv = ev => move(s, ev), up = () => {handle.removeEventListener('pointermove', mv);handle.removeEventListener('pointerup', up);handle.classList.remove('dragging');done();};
+    handle.addEventListener('pointermove', mv);handle.addEventListener('pointerup', up);
+  });
+  handle.addEventListener('dblclick', reset);
+}
+const store = (k, v) => {try {v == null ? localStorage.removeItem(k) : localStorage.setItem(k, String(v));} catch {}};
+const stored = k => {try {return Number(localStorage.getItem(k)) || 0;} catch {return 0;}};
+{
+  const panelEl = $('panel'), w0 = stored('arenamon.panelW');if (w0 >= 280) panelEl.style.width = w0 + 'px';
+  dragResize($('panel-resizer'), e => ({x: e.clientX, w: panelEl.getBoundingClientRect().width}), (s, ev) => {panelEl.style.width = Math.max(280, Math.min(window.innerWidth - 190, s.w + ev.clientX - s.x)) + 'px';}, () => store('arenamon.panelW', Math.round(panelEl.getBoundingClientRect().width)), () => {panelEl.style.width = '';store('arenamon.panelW', null);});
+  const dockEl = $('dock'), h0 = stored('arenamon.dockH'), root = document.documentElement;if (h0 >= 90) root.style.setProperty('--dock-h', h0 + 'px');
+  dragResize($('dock-resizer'), e => ({y: e.clientY, h: dockEl.getBoundingClientRect().height}), (s, ev) => {root.style.setProperty('--dock-h', Math.max(90, Math.min(window.innerHeight * .75, s.h - (ev.clientY - s.y))) + 'px');}, () => store('arenamon.dockH', Math.round(dockEl.getBoundingClientRect().height)), () => {root.style.removeProperty('--dock-h');store('arenamon.dockH', null);});
+}
 const TITLES = {match: 'Partida', moves: 'Moves', scenarios: 'Cenários', tuning: 'Ajustes', overlays: 'Visualizar', characters: 'Personagens', controls: 'Controles', export: 'Exportar', homolog: 'Homologação'};
 function setSubCardFilter(tool, sub) {
   const panel = $('panel'), sec = document.querySelector(`.panel-body section[data-section="${tool}"]`);
