@@ -525,3 +525,24 @@ pre.diff{max-height:72px;padding:4px;font-size:9.5px;margin:2px 0}
 
 
 
+
+/* Visualizar: lista de efeitos (esquerda) + painel só do efeito escolhido (direita) */
+.vx-md{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start}
+.vx-list{flex:0 0 200px;position:sticky;top:0;max-height:calc(100vh - 150px);overflow:auto;display:flex;flex-direction:column;gap:2px;padding:6px;background:#0f1a26;border:1px solid #2a3f54;border-radius:10px;scrollbar-width:thin}
+.vx-list input[type=search]{width:100%;margin-bottom:4px;min-height:30px;font-size:12.5px}
+.vx-gh{margin:8px 4px 2px;font-size:10.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#7f9bb3}
+#visual-panel .vx-list button{display:flex;align-items:center;gap:8px;width:100%;text-align:left;min-height:30px;padding:3px 8px;border:1px solid transparent;border-radius:7px;background:none;font-size:12.5px;color:#d5e5f2}
+#visual-panel .vx-list button:hover{background:#17283a}
+#visual-panel .vx-list button[aria-current=true]{background:#17475d;border-color:var(--cyan);color:#fff}
+.vx-list button span{flex:1;min-width:0;line-height:1.2}
+.vx-list .dot{flex:none;width:9px;height:9px;border-radius:50%;background:#44566a}.vx-list .dot.on{background:#7be37b;box-shadow:0 0 6px #7be37b88}.vx-list .dot.off{background:#3b4a5a;outline:1px solid #6b7f93;outline-offset:-1px}.vx-list .dot.na{background:none;outline:1px dashed #44566a}
+.vx-list em{font-style:normal;color:var(--amber);font-size:10px}
+.vx-detail{flex:1 1 340px;min-width:0}
+.vx-head{display:flex;align-items:baseline;gap:10px;padding:2px 2px 8px;margin-bottom:8px;border-bottom:1px solid #ffffff1a}
+.vx-head h3{margin:0!important;font-size:17px!important;color:#eaf5ff}
+.vx-unit[hidden]{display:none!important}
+.vx-unit>.fold{border:0;background:none}.vx-unit>.fold>.fold-head{display:none}
+.vx-unit>.fold>.fold-body{padding:0}
+.vx-unit>.vx-card{border:0;background:none;padding:0}
+.vx-unit>div>.vx-card{margin-bottom:10px}
+.vx-unit.fold{border:0;background:none;border-radius:0}.vx-unit.fold>.fold-head{display:none}.vx-unit.fold>.fold-body{padding:0}
