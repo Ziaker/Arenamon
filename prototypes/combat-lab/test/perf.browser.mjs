@@ -55,6 +55,9 @@ try {
   await page.fill('[data-vx-search]', 'esquiva');check('VFX', 'busca filtra a lista', await L(() => [...document.querySelectorAll('[data-vx-item]')].filter(b => !b.hidden).length >= 1 && document.querySelector('[data-vx-item="vfx-hit"]').hidden));
   await page.fill('[data-vx-search]', '');
   check('VFX', 'todos os parâmetros continuam disponíveis (um efeito por vez)', await L(() => document.querySelectorAll('#visual-panel [data-path^="vfx."]').length) > 90);
+  for (const w of [280, 360, 760]) {await L(w => {document.getElementById('panel').style.width = w + 'px';}, w);await page.waitForTimeout(250);
+    check('VFX', `painel de ${w}px: lista não cobre o conteúdo nem cria rolagem lateral`, await L(() => {const a = document.querySelector('.vx-list').getBoundingClientRect(), d = document.querySelector('.vx-detail').getBoundingClientRect(), pb = document.querySelector('.panel-body');return (a.bottom <= d.top + 1 || a.right <= d.left + 1 || d.right <= a.left + 1) && pb.scrollWidth <= pb.clientWidth + 2;}));}
+  await L(() => {document.getElementById('panel').style.width = '';});
   await L(() => window.__lab.tuning.commit([['vfx.regen.enabled', 1], ['vfx.exhaust.enabled', 1]], 'on'));
   await page.screenshot({path: out + 'vfx-simples.png'});
 

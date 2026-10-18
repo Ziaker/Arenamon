@@ -574,3 +574,10 @@ pre.diff{max-height:72px;padding:4px;font-size:9.5px;margin:2px 0}
 #dock-reopen{position:absolute;left:10px;bottom:10px;z-index:30;padding:6px 14px;border-radius:999px;background:#0b141ee6;border:1px solid #59d6e688;color:#cfeff6;font-size:12px;cursor:pointer}
 #dock-reopen:hover{background:#17475d}
 @media(max-width:1100px){#panel-resizer{display:none}}
+/* Painel estreito (arrastado): a lista de efeitos vira uma faixa no topo, sem cobrir o conteúdo */
+#visual-panel{container-type:inline-size}
+@container (max-width:600px){
+  .vx-md{display:block}
+  .vx-list{position:static;max-height:190px;margin-bottom:10px}
+  .vx-detail{min-width:0}
+}
