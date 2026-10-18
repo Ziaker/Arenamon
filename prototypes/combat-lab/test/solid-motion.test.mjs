@@ -122,12 +122,12 @@ const metrics = fx => {
   const ps = fx.all, n = ps.length || 1, speedOf = p => p.orb ? Math.hypot(p.orb.vx, p.orb.vz, p.orb.rise) : Math.hypot(p.vx, p.vy, p.vz);
   const out = {n: ps.length, size: ps.reduce((a, p) => a + Math.max(p.sx, p.sy, p.sz), 0) / n, life: ps.reduce((a, p) => a + p.life, 0) / n, speed: ps.reduce((a, p) => a + speedOf(p), 0) / n,
     tb: ps.reduce((a, p) => a + Math.abs(p.wx) + Math.abs(p.wy) + Math.abs(p.wz) + Math.abs(p.swirl) + p.tbAmp + (p.orb ? Math.abs(p.orb.w) : 0), 0) / n, alpha: ps.reduce((a, p) => a + p.alpha, 0) / n, r: ps.reduce((a, p) => a + p.r, 0) / n, b: ps.reduce((a, p) => a + p.b, 0) / n};
-  out.energy = out.n * out.speed; run(fx, .2);
+  out.fadeA = ps.reduce((a, p) => a + fx.fade(p, .5), 0) / n; out.fadeB = ps.reduce((a, p) => a + fx.fade(p, .75), 0) / n; out.energy = out.n * out.speed; run(fx, .2);
   const al = fx.all.length || 1; out.spread = fx.all.reduce((a, p) => a + Math.hypot(p.x, p.z), 0) / al; out.height = fx.all.reduce((a, p) => a + p.y, 0) / al;
   return out;
 };
-const METRIC = {intensity: 'energy', amount: 'n', size: 'size', duration: 'life', velocity: 'speed', scatter: 'spread', lift: 'height', turbulence: 'tb', opacity: 'alpha'};
-const LOHI = {opacity: [.3, 1]};
+const METRIC = {intensity: 'energy', amount: 'n', size: 'size', duration: 'life', velocity: 'speed', scatter: 'spread', lift: 'height', turbulence: 'tb', opacity: 'alpha', fadeStart: 'fadeA', fadeEnd: 'fadeB'};
+const LOHI = {opacity: [.3, 1], fadeStart: [.1, .9], fadeEnd: [.5, 1]};
 
 test('sliders: cada controle de cada família 3D muda o efeito de forma perceptível', () => {
   const bad = [];

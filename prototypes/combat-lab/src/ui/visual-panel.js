@@ -155,7 +155,7 @@ export function createVisualPanel({tuning, view, game, $, hud, download}) {
     // ---------- VFX 3D sólidos: malhas com volume real; por família: estilo, prévias, comparação e sliders ----------
     const solidBox = document.createElement('div');solidBox.className = 'vfx-solid-box';solidBox.dataset.solidBox = '1';
     solidBox.style.cssText = 'background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.14);border-radius:6px;padding:10px 12px;margin:0 0 14px;';
-    const SOLID_SLIDERS = ['intensity', 'amount', 'size', 'duration', 'velocity', 'scatter', 'lift', 'turbulence', 'opacity'];
+    const SOLID_SLIDERS = ['intensity', 'amount', 'size', 'duration', 'velocity', 'scatter', 'lift', 'turbulence', 'opacity', 'fadeStart', 'fadeEnd'];
     solidBox.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:6px;"><span style="font-weight:600;font-size:.95rem;">Efeitos 3D sólidos (malhas com volume, giram com a câmera)</span>
         <label style="display:inline-flex;align-items:center;gap:4px;font-size:.85rem;"><input type="checkbox" data-solid-master ${C.vfx.solid?.enabled ? 'checked' : ''}> Ligados</label></div>
       <p class="hint" style="margin:0 0 8px;">Funcionam com os dois renderizadores. O estilo marcado é exatamente o usado na luta; clicar já mostra a prévia. Poeira e vento têm estilo, intensidade e cores independentes (use os dois juntos). Ctrl+Z desfaz; presets e exportação incluem tudo.</p>
@@ -166,7 +166,7 @@ export function createVisualPanel({tuning, view, game, $, hud, download}) {
           <label style="display:inline-flex;align-items:center;gap:4px;font-size:.8rem;"><input type="checkbox" data-solid-on="${f.key}" ${C.vfx[f.key]?.enabled ? 'checked' : ''}> ligado</label>
           ${f.previews ? f.previews.map(([w, l]) => `<button type="button" data-solid-prev="${f.key}:${w}">▶ ${l}</button>`).join('') + `<button type="button" data-solid-prev="${f.key}:compare" title="Todos os estilos lado a lado, no mesmo movimento">▶ Comparar os ${f.names.length}</button>` : `<button type="button" data-solid-prev="${f.key}:dash">▶ Prévia</button>`}</div>
         <div class="seg" role="group" aria-label="${escape(f.label)}" style="flex-wrap:wrap;">${f.names.map((n, v) => `<button type="button" data-solid-variant="${f.key}:${v}" aria-pressed="${(C.vfx[f.key]?.variant | 0) === v}" title="${escape(n)}">${escape(n)}</button>`).join('')}</div>
-        <details data-solid-sliders="${f.key}" style="margin-top:4px;"><summary class="muted" style="cursor:pointer;font-size:.8rem;">Ajustes finos (quantidade, tamanho, duração, velocidade, dispersão, altura, turbulência, opacidade, cores)</summary><div data-solid-rows></div></details></div>`).join('');
+        <details data-solid-sliders="${f.key}" style="margin-top:4px;"><summary class="muted" style="cursor:pointer;font-size:.8rem;">Ajustes finos (quantidade, tamanho, duração, velocidade, dispersão, altura, turbulência, opacidade, dissipação, cores)</summary><div data-solid-rows></div></details></div>`).join('');
     root.append(solidBox);
     for (const f of SOLID_FAMILIES) {
       const rows = solidBox.querySelector(`[data-solid-sliders="${f.key}"] [data-solid-rows]`);

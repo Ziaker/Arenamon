@@ -119,7 +119,7 @@ export function defaults() {
  * Cada efeito tem enabled, variant (0 = A, 1 = B, 2 = C) e parâmetros próprios usados pelas três variantes.
  */
 export function vfxDefaults() {
-  const solidFam = (extra = {}) => ({enabled: 1, variant: 0, intensity: 1, amount: 1, size: 1, duration: 1, velocity: 1, scatter: 1, lift: 1, turbulence: 1, opacity: 1, ...extra});
+  const solidFam = (extra = {}) => ({enabled: 1, variant: 0, intensity: 1, amount: 1, size: 1, duration: 1, velocity: 1, scatter: 1, lift: 1, turbulence: 1, opacity: 1, fadeStart: .6, fadeEnd: 1, ...extra});
   const shake = (amplitude, duration, profile, enabled = 1) => ({enabled, profile, amplitude, duration, frequency: 26, damping: 7, angular: .6, intensity: 1, limit: .45});
   return {
     // legacy: liga também as partículas e o tremor antigos do v6 (parâmetros de Ajustes › Visual › Efeitos e feedback).
@@ -158,7 +158,7 @@ export function vfxDefaults() {
     // VFX sólidos (malhas 3D instanciadas, view/solid-fx.js). variant: índice da opção listada em SOLID_FAMILIES.
     solid: {enabled: 1, maxObjects: 220, quality: 1},
     // Todas as famílias 3D têm os mesmos controles: intensidade, amount (quantidade/taxa ×), size, duration (×), velocity (×),
-    // scatter (dispersão ×), lift (altura ×), turbulence (rotação/ruído ×) e opacity. Só aparência.
+    // scatter (dispersão ×), lift (altura ×), turbulence (rotação/ruído ×), opacity e o fade ao longo da vida (fadeStart/fadeEnd, fração da vida). Só aparência.
     solidDust: {...solidFam(), color: 0xb9a07a, color2: 0x7fffe0},
     solidWind: {...solidFam(), color: 0xf4f9ff},
     solidRunDust: {...solidFam(), color: 0xd8c9ad},

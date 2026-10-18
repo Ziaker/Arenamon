@@ -89,7 +89,9 @@ const SOLID_PARAMS_META = {
   scatter: ['Dispersão (×)', 'Abre ou fecha o leque: afasta os objetos do ponto de origem e espalha as trajetórias.', R(.2, 3, .01, x)],
   lift: ['Altura (×)', 'Altura de nascimento e impulso vertical.', R(.2, 3, .01, x)],
   turbulence: ['Turbulência e rotação (×)', 'Giro dos volumes e ruído nas trajetórias; 1,00× é o padrão, abaixo reduz o giro.', R(0, 3, .01, x)],
-  opacity: ['Opacidade', 'Transparência dos volumes (também some suavemente no fim da vida).', R(.1, 1, .01, pct)],
+  opacity: ['Opacidade', 'Opacidade máxima dos volumes (no começo da vida).', R(.1, 1, .01, pct)],
+  fadeStart: ['Começa a sumir em (% da vida)', 'Quando a opacidade começa a diminuir. 0% = já nasce sumindo; 100% = só some no último instante.', R(0, .98, .01, pct)],
+  fadeEnd: ['Some por completo em (% da vida)', 'Quando a opacidade chega a zero. Quanto mais perto do início, mais rápido o efeito dissipa; 100% = dura até o fim.', R(.05, 1, .01, pct)],
 };
 const VFX_HELP = {
   freeze: 'Pausa só as poses dos personagens e aplica um filtro na tela; a simulação continua no mesmo tempo (nada muda nas regras).',

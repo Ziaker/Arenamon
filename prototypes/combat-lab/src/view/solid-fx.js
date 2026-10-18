@@ -54,7 +54,7 @@ export const SOLID_FAMILIES = [
 ];
 export const SOLID_KEYS = SOLID_FAMILIES.map(f => f.key);
 /** Controles de cada família (chaves em C.vfx.<família>): uniformes, aplicados em SolidFx.spawn(). */
-export const SOLID_PARAMS = ['intensity', 'amount', 'size', 'duration', 'velocity', 'scatter', 'lift', 'turbulence', 'opacity'];
+export const SOLID_PARAMS = ['intensity', 'amount', 'size', 'duration', 'velocity', 'scatter', 'lift', 'turbulence', 'opacity', 'fadeStart', 'fadeEnd'];
 
 const HARD_CAP = 512;
 const SHAPES = {
@@ -166,7 +166,8 @@ export class SolidFx {
     let orb = null; if (o.orb) { const b = o.orb; orb = {cx: b.cx, cz: b.cz, vx: b.vx * vel, vz: b.vz * vel, a0: b.a0, w: b.w * tb, r0: b.r0 * sc, r1: b.r1 * sc, y0: b.y0 * lift, rise: b.rise * lift * kr}; }
     const alpha = Math.max(hc && op > 0 ? .85 : 0, (o.alpha ?? 1) * op), blob = (o.shape === 'lump' && o.mat === 'smoke'), squash = blob;
     let cluster = 0; if (blob) { let cl = this.cur; if (!cl || cl.n >= SMOKE_MAX_SPHERES || Math.hypot(x - cl.x, z - cl.z) > 1.8) cl = this.cur = {id: ++this.cid, n: 0, x, z}; cl.n++; cluster = cl.id; }
-    Object.assign(p, {blob, cluster, shape: o.shape ?? 'chunk', mat: (o.mat === 'smoke' && !blob) ? 'lit' : (o.mat ?? 'lit'), x, y: (o.y ?? 0) * lift, z, vx, vy, vz, orb, tbAmp: Math.max(0, tb - 1) * 5,
+    const fs0 = clamp(F?.fadeStart ?? .6, 0, .98), fe0 = clamp(F?.fadeEnd ?? 1, fs0 + .02, 1);
+    Object.assign(p, {fadeStart: fs0, fadeEnd: fe0, blob, cluster, shape: o.shape ?? 'chunk', mat: (o.mat === 'smoke' && !blob) ? 'lit' : (o.mat ?? 'lit'), x, y: (o.y ?? 0) * lift, z, vx, vy, vz, orb, tbAmp: Math.max(0, tb - 1) * 5,
       gx: o.gx || 0, gy: o.gy ?? 0, drag: o.drag ?? 0, swirl: (o.swirl || 0) * tb, life: Math.max(.05, o.life ?? .6), age: -(o.delay || 0),
       sx: (o.sx ?? o.s ?? .1) * (squash ? .95 + this.rnd() * .15 : 1), sy: (o.sy ?? o.s ?? .1) * (squash ? .82 + this.rnd() * .14 : 1), sz: (o.sz ?? o.s ?? .1) * (squash ? .95 + this.rnd() * .15 : 1), grow: o.grow || 0, growY: o.growY ?? o.grow ?? 0, growL: o.growL || 0,
       rx: o.rx || 0, ry: o.ry ?? (squash ? this.rnd() * 6.28 : 0), rz: o.rz || 0, wx: (o.wx || 0) * kr * tb, wy: (o.wy || 0) * kr * tb, wz: (o.wz || 0) * kr * tb, align: !!o.align, floor: o.floor ?? null,
@@ -240,6 +241,9 @@ export class SolidFx {
   /** Rajada de dash/arrancada/parada: poeira e vento (cada família com o seu estilo, intensidade e cores). */
   burst(f, s, phase, i) { this.dust(f, s, phase, i); this.wind(f, s, phase, i); }
 
+  /** Opacidade ao longo da vida (0..1): cheia até fadeStart, cai suavemente e chega a zero em fadeEnd (frações da vida do objeto). */
+  fade(p, k) { return k <= p.fadeStart ? 1 : k >= p.fadeEnd ? 0 : 1 - smooth((k - p.fadeStart) / (p.fadeEnd - p.fadeStart)); }
+
   integrate(dt) {
     const keep = []; for (const m of this.meshes.values()) m.userData.n = 0;
     const d = this.dummy, A = this.q;
@@ -262,14 +266,13 @@ export class SolidFx {
       }
       const sc = k < p.pop / p.life ? smooth(clamp(k / (p.pop / p.life), 0, 1)) : (k < p.hold ? 1 : 1 - smooth((k - p.hold) / (1 - p.hold)));
       const gxz = 1 + p.grow * k, gy = 1 + p.growY * k, gl = 1 + p.growL * k;
-      if (p.blob) { this.smoke.add(p.cluster, p.x, p.y, p.z, .5 * Math.cbrt(p.sx * gxz * p.sy * gy * p.sz * gxz) * sc, p.r, p.g, p.b, p.alpha * (k > .6 ? 1 - smooth((k - .6) / .4) : 1), k, p.seed); continue; }
+      if (p.blob) { this.smoke.add(p.cluster, p.x, p.y, p.z, .5 * Math.cbrt(p.sx * gxz * p.sy * gy * p.sz * gxz) * sc, p.r, p.g, p.b, p.alpha * this.fade(p, k), k, p.seed); continue; }
       const m = this.meshFor(p.shape, p.mat), idx = m.userData.n++;
       d.position.set(p.x, p.y, p.z); d.scale.set(Math.max(1e-4, p.sx * gxz * sc), Math.max(1e-4, p.sy * gy * sc), Math.max(1e-4, p.sz * gxz * gl * sc));
       if (p.align) { this.v.set(p.vx, p.vy, p.vz); if (this.v.lengthSq() > 1e-6) { A.setFromUnitVectors(this.up, this.v.normalize()); d.quaternion.copy(A); } }
       else d.rotation.set(p.rx, p.ry, p.rz, 'YXZ');
       d.updateMatrix(); m.setMatrixAt(idx, d.matrix); this.col.setRGB(p.r, p.g, p.b); m.setColorAt(idx, this.col);
-      const fa = .6;
-      m.geometry.attributes.instanceAlpha.array[idx] = p.alpha * (k > fa ? 1 - smooth((k - fa) / (1 - fa)) : 1);
+      m.geometry.attributes.instanceAlpha.array[idx] = p.alpha * this.fade(p, k);
       const fx = m.geometry.attributes.instanceFx.array;fx[idx * 3] = k;fx[idx * 3 + 1] = p.seed;fx[idx * 3 + 2] = p.mode;
     }
     this.all = keep; this.smoke.setQuality(C.vfx.solid?.quality ?? 1); this.smoke.flush();
