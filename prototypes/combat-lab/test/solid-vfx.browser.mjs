@@ -91,19 +91,19 @@ try {
     for (const k of ks) for (let v = 0; v < N[k]; v++) {C.vfx[k].variant = v;fx.preview(k, window.__lab.game.fighters, 'run');for (let j = 0; j < 6; j++) fx.update([], [], 1 / 30);}
     view.renderer.render(view.scene, view.camera);fx.reset();view.renderer.render(view.scene, view.camera);
     return {g: [g0, info.memory.geometries], programs: [p0, info.programs?.length ?? 0], meshes: [mid, fx.meshes.size], materials: Object.keys(fx.materials).length, shapes: Object.keys(fx.geometries).length, children: fx.group.children.length};});
-  check('trocar estilos/prévias 200 vezes e resetar não acumula malhas, geometrias de GPU, programas nem materiais', leak.children === leak.meshes[1] && leak.meshes[1] <= leak.shapes * leak.materials && leak.programs[1] - leak.programs[0] <= 4 && leak.g[1] - leak.g[0] <= leak.shapes && leak.materials === 4, JSON.stringify(leak));
+  check('trocar estilos/prévias 200 vezes e resetar não acumula malhas, geometrias de GPU, programas nem materiais', leak.children === leak.meshes[1] && leak.meshes[1] <= leak.shapes * leak.materials && leak.programs[1] - leak.programs[0] <= 4 && leak.g[1] - leak.g[0] <= leak.shapes && leak.materials === 3, JSON.stringify(leak));
   await L(() => window.__lab.tuning.resetAll());
 
   // ---------- Palco limpo para capturas ----------
   // Partida nova e limpa (a luta acima pode ter terminado em derrota, com a tela de resultado por cima).
   await L(() => {window.__lab.view.useNewVfx = false;window.__lab.startMatch?.();});await page.waitForTimeout(400);
-  await page.keyboard.press('Escape').catch(() => {});await L(() => {document.getElementById('panel').hidden = true;window.__lab.C.extras.hud.fxVisible = 1;window.__lab.togglePause?.();});
+  await page.keyboard.press('Escape').catch(() => {});await L(() => {document.getElementById('panel').hidden = true;document.getElementById('overlay').hidden = true;document.getElementById('menu').hidden = true;window.__lab.C.extras.hud.fxVisible = 1;window.__lab.togglePause(true);});
   const saved = await L(() => {const {game, C} = window.__lab, V = C.extras.visual, keep = {w: V.bodyWidth, h: V.bodyHeight, d: V.bodyDepth, ar: V.arrowRadius, al: V.arrowLength, ch: C.camera.height, cl: C.camera.lookHeight, ca: C.camera.lookAhead};
     V.bodyWidth = V.bodyDepth = .02;V.bodyHeight = .02;V.arrowRadius = .01;V.arrowLength = .01;game.fighters[0].position.x = -9;game.fighters[0].position.z = 5;game.fighters[1].position.x = -5.6;game.fighters[1].position.z = 5;return keep;});
-  const setup = (yawDelta, zoom, h = 1.5, look = .4) => L(([d, z, h, look]) => {const {view, C} = window.__lab, rig = view.rig;C.camera.height = h;C.camera.lookHeight = look;C.camera.lookAhead = 1.2;rig.manualLeft = 1e9;rig.yaw = rig.desiredYaw = (window.__yaw0 ??= rig.yaw) + d;rig.zoom = rig.distance = z;}, [yawDelta, zoom, h, look]);
+  const setup = (yawDelta, zoom, h = 1.5, look = .4) => L(([d, z, h, look]) => {const {view, C} = window.__lab, rig = view.rig;C.camera.height = h;C.camera.lookHeight = look;C.camera.lookAhead = 1.2;rig.manualLeft = 1e9;rig.anchor = {x: -9, z: 5};rig.yaw = rig.desiredYaw = (window.__yaw0 ??= rig.yaw) + d;rig.zoom = rig.distance = z;}, [yawDelta, zoom, h, look]);
   const frame = () => L(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
   const stepFx = n => L(n => {const fx = window.__lab.view.solid;for (let i = 0; i < n; i++) fx.update([], [], 1 / 60);}, n);
-  const clip = {x: 330, y: 190, width: 840, height: 520};
+  const clip = {x: 330, y: 250, width: 840, height: 470};
   const ANGLES = [['frente', 0, 1.3, .3, 4.4], ['lado', Math.PI / 2, 1.3, .3, 4.4], ['alto', 0.4, 7, .2, 3.4]];
   const files = [];
   const start = (k, v, what, extra = {}) => L(([k, v, what, extra]) => {const {C, view, game} = window.__lab;for (const f of ['solidDust', 'solidWind', 'solidRunDust', 'solidRunWind']) C.vfx[f].enabled = f === k ? 1 : 0;C.vfx[k].variant = v;view.solid.reset();view.solid.preview(k, game.fighters, what, extra);}, [k, v, what, extra]);
@@ -121,7 +121,7 @@ try {
   const others = [['solidDodge', 'esquiva'], ['solidLanding', 'aterrissagem'], ['solidImpact', 'impacto'], ['solidBlock', 'bloqueio'], ['solidClash', 'colisao']], sheet = [];
   for (const [k, nm] of others) for (let v = 0; v < 3; v++) for (const [an, yaw] of [['frente', 0], ['lado', Math.PI / 2]]) {
     await L(([k, v]) => {const {C, view, game} = window.__lab;for (const f of ['solidDodge', 'solidLanding', 'solidImpact', 'solidBlock', 'solidClash']) C.vfx[f].variant = f === k ? v : 0;view.solid.reset();view.solid.preview(k, game.fighters);}, [k, v]);
-    await setup(yaw, 3.6, 1.6, .6);await stepFx(k === 'solidLanding' || k === 'solidDodge' ? 10 : 6);await frame();const f = `${nm}-${'ABC'[v]}-${an}.png`;await page.screenshot({path: out + f, clip: {x: 400, y: 220, width: 700, height: 460}});sheet.push(f);
+    await setup(yaw, 3.6, 1.6, .6);await stepFx(k === 'solidLanding' || k === 'solidDodge' ? 10 : 6);await frame();const f = `${nm}-${'ABC'[v]}-${an}.png`;await page.screenshot({path: out + f, clip: {x: 400, y: 250, width: 700, height: 440}});sheet.push(f);
   }
   check('capturas das curvas (6) e das demais famílias (30)', turns.length === 6 && sheet.length === 30);
 
@@ -134,14 +134,14 @@ try {
     for (const [name, k, what, zoom, hgt] of CL) {
       await L(([k, what]) => {const {C, view, game} = window.__lab;for (const f of ['solidDust', 'solidWind', 'solidRunDust', 'solidRunWind']) C.vfx[f].enabled = f === k ? 1 : 0;view.solid.reset();view.solid.compare(k, game.fighters, what);}, [k, what]);
       await setup(0.55, zoom + 1, hgt, .3);const dir = tmp + '/' + name;mkdirSync(dir);
-      for (let i = 0; i < 45; i++) {await stepFx(2);await frame();await page.screenshot({path: `${dir}/f${String(i).padStart(3, '0')}.png`, clip: {x: 250, y: 200, width: 1000, height: 500}});}
+      for (let i = 0; i < 45; i++) {await stepFx(2);await frame();await page.screenshot({path: `${dir}/f${String(i).padStart(3, '0')}.png`, clip: {x: 250, y: 250, width: 1000, height: 450}});}
       const r = spawnSync('ffmpeg', ['-y', '-v', 'error', '-framerate', '15', '-i', `${dir}/f%03d.png`, '-vf', 'scale=720:-2', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '30', '-movflags', '+faststart', `${clips}${name}.mp4`]);
       if (r.status === 0 && existsSync(`${clips}${name}.mp4`)) clipList.push(name); else console.log('· falha no ffmpeg:', String(r.stderr).slice(0, 200));
     }
     rmSync(tmp, {recursive: true, force: true});
   }
   check(ffmpeg ? 'clipes curtos de comparação em movimento (8 clipes)' : 'clipes em movimento (ffmpeg ausente: não gerados)', !ffmpeg || clipList.length === 8, clipList.join(', '));
-  await L(s => {const {C} = window.__lab, V = C.extras.visual;V.bodyWidth = s.w;V.bodyDepth = s.d;V.bodyHeight = s.h;V.arrowRadius = s.ar;V.arrowLength = s.al;C.camera.height = s.ch;C.camera.lookHeight = s.cl;C.camera.lookAhead = s.ca;window.__lab.tuning.resetAll();window.__lab.togglePause?.();}, saved);
+  await L(s => {const {C} = window.__lab, V = C.extras.visual;V.bodyWidth = s.w;V.bodyDepth = s.d;V.bodyHeight = s.h;V.arrowRadius = s.ar;V.arrowLength = s.al;C.camera.height = s.ch;C.camera.lookHeight = s.cl;C.camera.lookAhead = s.ca;window.__lab.tuning.resetAll();window.__lab.togglePause(false);}, saved);
 
   // ---------- Desempenho (identifica o renderizador) ----------
   const perf = await L(async () => {

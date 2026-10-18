@@ -12,7 +12,10 @@ let passed = 0;
 const test = (name, fn) => { resetConfig(); fn(); passed++; console.log('✓', name); };
 const mk = () => new SolidFx(new T.Scene());
 const run = (fx, sec, dt = 1 / 60) => { for (let t = 0; t < sec; t += dt) fx.update([], [], dt); };
-const sig = fx => [...new Set(fx.all.map(p => p.shape + ':' + p.mat + (p.orb ? ':orb' : '') + (p.swirl ? ':sw' : '') + (p.align ? ':al' : '')))].sort().join(',');
+const sig = fx => {
+  const ps = fx.all, ext = a => { const v = ps.map(p => p[a]); return +(Math.max(...v) - Math.min(...v)).toFixed(1); }, tags = [...new Set(ps.map(p => p.shape + ':' + p.mat + (p.orb ? ':orb' : '') + (p.swirl ? ':sw' : '') + (p.align ? ':al' : '')))].sort().join(',');
+  return `${tags}|n${Math.round(ps.length / 4)}|x${Math.round(ext('x') * 2) / 2}|y${Math.round(ext('y') * 4) / 4}|z${Math.round(ext('z') * 2) / 2}|s${Math.round(Math.max(...ps.map(p => p.sx)) * 8) / 8}`;
+};
 const stage = [{position: {x: 0, z: 0}}, {position: {x: 3.5, z: 0}}];
 const FAMS = Object.fromEntries(SOLID_FAMILIES.map(f => [f.key, f]));
 
@@ -24,9 +27,10 @@ function signedVolume(g) {
   return v;
 }
 
-test('geometrias novas: sólidos fechados com volume positivo, sem planos', () => {
+test('geometrias de fumaça: sólido fechado e liso, volume positivo, sem planos nem faixas', () => {
   const fx = mk();
-  for (const k of ['lump', 'crescent', 'arch', 'windArc', 'windSpiral', 'windCurl']) {
+  assert.ok(!('crescent' in fx.geometries) && !('windArc' in fx.geometries), 'sem faixas duras nem fitas de vento');
+  for (const k of ['lump']) {
     const g = fx.geometries[k]; g.computeBoundingBox(); const s = g.boundingBox.getSize(new T.Vector3());
     assert.ok(s.x > .05 && s.y > .05 && s.z > .05, `${k} tem extensão nos três eixos ${s.toArray().map(n => n.toFixed(2))}`);
     assert.ok(signedVolume(g) > 1e-4, `${k}: volume ${signedVolume(g).toFixed(4)} (normais para fora)`);
@@ -43,16 +47,15 @@ test('poeira: os oito estilos têm silhuetas diferentes (formas, materiais e mov
     sigs.push(sig(fx)); shapes.push(new Set(fx.all.map(p => p.shape)));
   }
   assert.equal(new Set(sigs).size, 8, sigs.join(' | '));
-  assert.ok(shapes[4].has('crescent') && shapes[5].has('lump') && shapes[6].has('lump') && shapes[7].has('lump'));
+  for (const v of [4, 5, 6, 7]) assert.ok(shapes[v].has('lump') && !shapes[v].has('crescent'), `estilo ${v}: nuvem de volumes macios`);
   assert.ok(sigs[7].includes(':orb') && !sigs[6].includes(':orb'), 'a coluna em espiral orbita; o anel não');
 });
 
-test('vento (dash/esquiva): quatro estilos com silhuetas próprias', () => {
+test('vento (dash/esquiva): quatro estilos de fumaça, cada um com silhueta própria', () => {
   const sigs = [];
-  for (let v = 0; v < 4; v++) { C.vfx.solidWind.variant = v; const fx = mk(), s = {dir: {x: 0, z: 1}, speed: 9, t: 0}; fx.wind({position: {x: 0, z: 0}}, s, 'start', 0); for (let k = 0; k < 8; k++) { s.t = k * .03; fx.wind({position: {x: 0, z: k * .27}}, s, 'dash', 0); } sigs.push(sig(fx)); }
+  for (let v = 0; v < 4; v++) { C.vfx.solidWind.variant = v; const fx = mk(), s = {dir: {x: 0, z: 1}, speed: 9, t: 0}; fx.wind({position: {x: 0, z: 0}}, s, 'start', 0); for (let k = 0; k < 8; k++) { s.t = k * .03; fx.wind({position: {x: 0, z: k * .27}}, s, 'dash', 0); } sigs.push(sig(fx)); assert.ok(fx.all.every(p => p.shape === 'lump' && p.mat === 'smoke'), `estilo ${v}: só volumes de fumaça`); }
   assert.equal(new Set(sigs).size, 4, sigs.join(' | '));
-  assert.ok(sigs[0].includes('windArc') && sigs[1].includes('windSpiral') && sigs[2].includes('windCurl') && sigs[3].includes('spike'));
-  for (const s of sigs) assert.ok(s.includes(':wind'), 'vento usa o material próprio');
+  assert.ok(sigs[1].includes(':orb') && !sigs[0].includes(':orb'), 'o redemoinho orbita');
 });
 
 test('corrida: três poeiras e três ventos distintos, contínuos e diferentes do burst do dash', () => {
@@ -88,8 +91,8 @@ test('corrida: arrancada → emissão contínua → desaceleração → parada, 
 test('corrida: responde à velocidade (mais rápido, mais emissão) e à curva (lateral para fora)', () => {
   const spawnedAt = v => { const fx = mk(), f = {position: {x: 0, z: 0}, sprinting: true, action: null}; for (let i = 0; i < 240; i++) { f.position.z += v / 120; fx.update([f], [], 1 / 120); } return fx.stats.spawned; };
   assert.ok(spawnedAt(8) > spawnedAt(3) * 1.15, `${spawnedAt(8)} > ${spawnedAt(3)}`);
-  const lateral = (w) => { C.vfx.solidRunDust.variant = 0; const fx = mk(), f = {position: {x: 0, z: 0}, sprinting: true, action: null}; let hd = 0, sx = 0, n = 0;
-    for (let i = 0; i < 360; i++) { hd += w / 120; f.position.x += Math.sin(hd) * 6 / 120; f.position.z += Math.cos(hd) * 6 / 120; fx.update([f], [], 1 / 120); if (i > 200) for (const p of fx.all) if (p.age < .02) { const d = {x: Math.cos(hd), z: -Math.sin(hd)}; sx += p.vx * d.x + p.vz * d.z; n++; } }
+  const lateral = (w) => { C.vfx.solidRunDust.variant = 0; C.vfx.solidRunWind.enabled = 0; C.vfx.solidDust.enabled = 0; C.vfx.solidWind.enabled = 0; const fx = mk(), f = {position: {x: 0, z: 0}, sprinting: true, action: null}; let hd = 0, sx = 0, n = 0;
+    for (let i = 0; i < 360; i++) { hd += w / 120; f.position.x += Math.sin(hd) * 6 / 120; f.position.z += Math.cos(hd) * 6 / 120; fx.update([f], [], 1 / 120); if (i > 200) for (const p of fx.all) if (p.age >= 0 && p.age < .02) { const d = {x: Math.cos(hd), z: -Math.sin(hd)}; sx += p.vx * d.x + p.vz * d.z; n++; } }
     return {turn: fx.state[0].turn, side: sx / Math.max(1, n)}; };
   const straight = lateral(0), right = lateral(1.5), left = lateral(-1.5);
   assert.ok(Math.abs(straight.turn) < .1 && right.turn > .8 && left.turn < -.8, JSON.stringify({straight, right, left}));

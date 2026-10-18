@@ -160,9 +160,9 @@ export function vfxDefaults() {
     // Todas as famílias 3D têm os mesmos controles: intensidade, amount (quantidade/taxa ×), size, duration (×), velocity (×),
     // scatter (dispersão ×), lift (altura ×), turbulence (rotação/ruído ×) e opacity. Só aparência.
     solidDust: {...solidFam(), color: 0xb9a07a, color2: 0x7fffe0},
-    solidWind: {...solidFam({opacity: .7}), color: 0xdff3ff},
-    solidRunDust: {...solidFam(), color: 0xc2aa84},
-    solidRunWind: {...solidFam({opacity: .7}), color: 0xdff3ff},
+    solidWind: {...solidFam(), color: 0xf4f9ff},
+    solidRunDust: {...solidFam(), color: 0xd8c9ad},
+    solidRunWind: {...solidFam(), color: 0xf4f9ff},
     solidDodge: {...solidFam(), color: 0x9dffd8},
     solidLanding: {...solidFam(), color: 0xd9c9a8},
     solidImpact: {...solidFam(), color: 0xffb361},

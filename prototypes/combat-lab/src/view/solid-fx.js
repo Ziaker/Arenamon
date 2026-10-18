@@ -13,23 +13,23 @@ export const SOLID_FAMILIES = [
     'B · Rastro turbulento: volumes irregulares que giram e se dispersam',
     'C · Impacto pesado: blocos grandes no início, depois grãos pequenos',
     'D · Energético: cacos geométricos e onda baixa que se expande',
-    'E · Ondas em camadas: faixas curvas empilhadas que sobem e se abrem',
-    'F · Nuvem rolante: volumes macios que rolam rente ao chão',
-    'G · Anel de nuvem: coroa de volumes que se abre ao redor dos pés',
-    'H · Coluna em espiral: volumes sobem em hélice com a ponta enrolada']},
+    'E · Ondas em camadas: faixas de fumaça empilhadas que sobem e se abrem',
+    'F · Nuvem rolante: volumes de fumaça que rolam rente ao chão, com cauda enrolada',
+    'G · Anel de nuvem: coroa de fumaça que se abre ao redor dos pés',
+    'H · Coluna em espiral: fumaça sobe em hélice com a ponta enrolada']},
   {key: 'solidWind', label: 'Vento do dash e da arrancada (3D)', trigger: 'dash/esquiva, arrancada e parada', previews: MOVE_PREVIEWS, names: [
-    'A · Fitas em S: tiras longas e curvas que escorrem ao lado do corpo',
-    'B · Espirais: hélices que giram no próprio eixo e se alargam',
-    'C · Ganchos rentes ao chão: caracóis de vento junto a cada pé',
-    'D · Cunha de rajadas: leque em V de cones longos para trás']},
+    'A · Rajada em S: caudas de vento que varrem curvas atrás do corpo e se dissolvem',
+    'B · Redemoinho: coluna de vento em hélice que gira e sobe atrás dos pés, com poeira',
+    'C · Caracol rasteiro: caracóis de vento deitados junto aos pés, abrindo para fora',
+    'D · Onda de pressão: arcos largos de ar que se abrem atrás do corpo']},
   {key: 'solidRunDust', label: 'Poeira da corrida (3D)', trigger: 'sprint contínuo, curvas e desaceleração', previews: MOVE_PREVIEWS.slice(2), names: [
     'A · Pegadas de poeira: cada passada levanta volumes e grãos (mais no pé de fora da curva)',
     'B · Nuvem contínua: fio de volumes largos e baixos; a cauda cresce com a velocidade',
     'C · Sulcos rolantes: pequenas ondas curvas se abrem no chão a cada passada']},
   {key: 'solidRunWind', label: 'Vento da corrida (3D)', trigger: 'sprint contínuo, curvas e desaceleração', previews: MOVE_PREVIEWS.slice(2), names: [
-    'A · Fitas laterais: tiras curvas saem dos ombros; a curvatura segue o giro',
-    'B · Espirais de esteira: hélices giram atrás do corredor, maiores com a velocidade',
-    'C · Arcos de corrente: meios-toros em pé se alargam atrás do tronco']},
+    'A · Fitas contínuas: caudas em S saem dos ombros e varrem para trás; a curvatura segue o giro',
+    'B · Esteira helicoidal: faixa em hélice que gira atrás do corredor, maior com a velocidade',
+    'C · Arcos de pressão: arcos de ar em pé que se alargam atrás do tronco']},
   {key: 'solidDodge', label: 'Esquiva (3D)', trigger: 'esquiva (C)', names: [
     'A · Lâminas de vento: barras finas que cortam o ar ao lado do corpo',
     'B · Cristais fantasma: prismas luminosos deixados para trás, afundando',
@@ -90,6 +90,48 @@ function solidMaterial(params) {
   return m;
 }
 
+
+/** Material de fumaça/vento: tons chapados (cel) e dissolução por ruído (bordas se esfarelam no fim da vida). */
+const SMOKE_VERT = `
+attribute float instanceAlpha; attribute vec3 instanceFx;
+varying vec3 vN; varying vec3 vObj; varying float vA; varying vec3 vFx; varying vec3 vCol;
+void main() {
+  mat4 M = modelMatrix * instanceMatrix;
+  vec3 c0 = M[0].xyz, c1 = M[1].xyz, c2 = M[2].xyz;
+  vec3 inv = vec3(1.0 / max(dot(c0, c0), 1e-8), 1.0 / max(dot(c1, c1), 1e-8), 1.0 / max(dot(c2, c2), 1e-8));
+  vN = normalize(mat3(M) * (normal * inv));
+  vObj = position; vA = instanceAlpha; vFx = instanceFx;
+  #ifdef USE_INSTANCING_COLOR
+    vCol = instanceColor;
+  #else
+    vCol = vec3(1.0);
+  #endif
+  gl_Position = projectionMatrix * viewMatrix * M * vec4(position, 1.0);
+}`;
+const SMOKE_FRAG = `
+uniform vec3 uLight;
+varying vec3 vN; varying vec3 vObj; varying float vA; varying vec3 vFx; varying vec3 vCol;
+float hash(vec3 p) { p = fract(p * 0.3183099 + .1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
+float vnoise(vec3 x) {
+  vec3 i = floor(x), f = fract(x); f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(mix(hash(i), hash(i + vec3(1, 0, 0)), f.x), mix(hash(i + vec3(0, 1, 0)), hash(i + vec3(1, 1, 0)), f.x), f.y),
+             mix(mix(hash(i + vec3(0, 0, 1)), hash(i + vec3(1, 0, 1)), f.x), mix(hash(i + vec3(0, 1, 1)), hash(i + vec3(1, 1, 1)), f.x), f.y), f.z);
+}
+void main() {
+  float age = vFx.x, seed = vFx.y, th = smoothstep(.45, 1.0, age);
+  if (vnoise(vObj * 7.0 + vec3(seed * 31.0)) < th * 1.05) discard;
+  vec3 N = normalize(vN); if (!gl_FrontFacing) N = -N;
+  float d = dot(N, normalize(uLight)) * .5 + .5;
+  float band = d > .66 ? 1.0 : (d > .42 ? .78 : .56);
+  vec3 col = vCol * band * (d > .66 ? vec3(1.0) : vec3(.93, .96, 1.03));
+  gl_FragColor = vec4(col, vA);
+  #include <tonemapping_fragment>
+  #include <colorspace_fragment>
+}`;
+function smokeMaterial() {
+  return new T.ShaderMaterial({vertexShader: SMOKE_VERT, fragmentShader: SMOKE_FRAG, uniforms: {uLight: {value: new T.Vector3(.3, .85, .45)}}, transparent: true, depthWrite: true});
+}
+
 export class SolidFx {
   constructor(scene) {
     this.scene = scene;
@@ -99,8 +141,7 @@ export class SolidFx {
     this.materials = {
       lit: solidMaterial({color: 0xffffff, roughness: .92, metalness: 0, flatShading: true}),
       glow: solidMaterial({color: 0xffffff, roughness: .35, metalness: .1, flatShading: true, emissive: 0x2f7f78, emissiveIntensity: .8}),
-      puff: solidMaterial({color: 0xffffff, roughness: 1, metalness: 0, flatShading: false}),
-      wind: solidMaterial({color: 0xffffff, roughness: .45, metalness: 0, flatShading: false, emissive: 0x6a7f90, emissiveIntensity: .55}),
+      smoke: smokeMaterial(),      // fumaça/poeira/vento: volumes macios com tons chapados e dissolução por ruído
     };
     this.meshes = new Map(); this.wrappers = new Map();
     this.all = []; this.free = []; for (let i = 0; i < HARD_CAP; i++) this.free.push({});
@@ -119,6 +160,7 @@ export class SolidFx {
     const base = this.geometries[shape], g = new T.BufferGeometry();
     g.index = base.index; for (const [k, a] of Object.entries(base.attributes)) g.setAttribute(k, a);
     g.setAttribute('instanceAlpha', new T.InstancedBufferAttribute(new Float32Array(HARD_CAP).fill(1), 1).setUsage(T.DynamicDrawUsage));
+    g.setAttribute('instanceFx', new T.InstancedBufferAttribute(new Float32Array(HARD_CAP * 3), 3).setUsage(T.DynamicDrawUsage));   // idade 0..1, semente, modo (0 volume, 1 faixa)
     if (!base.boundingSphere) base.computeBoundingSphere(); g.boundingSphere = base.boundingSphere;
     return g;
   }
@@ -161,12 +203,12 @@ export class SolidFx {
     const hv = sc < 1 ? .5 + .5 * sc : 1; vx *= hv; vz *= hv; const sp = Math.hypot(vx, vz), spread = Math.max(0, sc - 1) * .8 + jit;
     vx += (this.rnd() - .5) * 2 * spread * sp; vz += (this.rnd() - .5) * 2 * spread * sp; if (clone) { x += j() * .15; z += j() * .15; vy *= 1 + j(); }
     let orb = null; if (o.orb) { const b = o.orb; orb = {cx: b.cx, cz: b.cz, vx: b.vx * vel, vz: b.vz * vel, a0: b.a0, w: b.w * tb, r0: b.r0 * sc, r1: b.r1 * sc, y0: b.y0 * lift, rise: b.rise * lift * kr}; }
-    const alpha = Math.max(hc && op > 0 ? .85 : 0, (o.alpha ?? 1) * op);
+    const alpha = Math.max(hc && op > 0 ? .85 : 0, (o.alpha ?? 1) * op), squash = (o.shape === 'lump' && o.mat === 'smoke');
     Object.assign(p, {shape: o.shape ?? 'chunk', mat: o.mat ?? 'lit', x, y: (o.y ?? 0) * lift, z, vx, vy, vz, orb, tbAmp: Math.max(0, tb - 1) * 5,
       gx: o.gx || 0, gy: o.gy ?? 0, drag: o.drag ?? 0, swirl: (o.swirl || 0) * tb, life: Math.max(.05, o.life ?? .6), age: -(o.delay || 0),
-      sx: o.sx ?? o.s ?? .1, sy: o.sy ?? o.s ?? .1, sz: o.sz ?? o.s ?? .1, grow: o.grow || 0, growY: o.growY ?? o.grow ?? 0, growL: o.growL || 0,
-      rx: o.rx || 0, ry: o.ry || 0, rz: o.rz || 0, wx: (o.wx || 0) * kr * tb, wy: (o.wy || 0) * kr * tb, wz: (o.wz || 0) * kr * tb, align: !!o.align, floor: o.floor ?? null,
-      pop: o.pop ?? .12, hold: o.hold ?? .5, r: col.r, g: col.g, b: col.b, alpha, bounce: o.bounce ?? .28, rest: false});
+      sx: (o.sx ?? o.s ?? .1) * (squash ? .95 + this.rnd() * .15 : 1), sy: (o.sy ?? o.s ?? .1) * (squash ? .82 + this.rnd() * .14 : 1), sz: (o.sz ?? o.s ?? .1) * (squash ? .95 + this.rnd() * .15 : 1), grow: o.grow || 0, growY: o.growY ?? o.grow ?? 0, growL: o.growL || 0,
+      rx: o.rx || 0, ry: o.ry ?? (squash ? this.rnd() * 6.28 : 0), rz: o.rz || 0, wx: (o.wx || 0) * kr * tb, wy: (o.wy || 0) * kr * tb, wz: (o.wz || 0) * kr * tb, align: !!o.align, floor: o.floor ?? null,
+      pop: o.pop ?? .12, hold: o.hold ?? .5, mode: o.mode || 0, seed: this.rnd(), r: col.r, g: col.g, b: col.b, alpha, bounce: o.bounce ?? .28, rest: false});
     this.all.push(p); this.stats.spawned++; return true;
   }
   /** Agenda uma ação com os mesmos controles de família que estavam ativos no disparo. */
@@ -262,10 +304,12 @@ export class SolidFx {
       if (p.align) { this.v.set(p.vx, p.vy, p.vz); if (this.v.lengthSq() > 1e-6) { A.setFromUnitVectors(this.up, this.v.normalize()); d.quaternion.copy(A); } }
       else d.rotation.set(p.rx, p.ry, p.rz, 'YXZ');
       d.updateMatrix(); m.setMatrixAt(idx, d.matrix); this.col.setRGB(p.r, p.g, p.b); m.setColorAt(idx, this.col);
-      m.geometry.attributes.instanceAlpha.array[idx] = p.alpha * (k > .6 ? 1 - smooth((k - .6) / .4) : 1);
+      const fa = .6;
+      m.geometry.attributes.instanceAlpha.array[idx] = p.alpha * (k > fa ? 1 - smooth((k - fa) / (1 - fa)) : 1);
+      const fx = m.geometry.attributes.instanceFx.array;fx[idx * 3] = k;fx[idx * 3 + 1] = p.seed;fx[idx * 3 + 2] = p.mode;
     }
     this.all = keep;
-    for (const m of this.meshes.values()) { m.count = m.userData.n; m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true; m.geometry.attributes.instanceAlpha.needsUpdate = true; }
+    for (const m of this.meshes.values()) { m.count = m.userData.n; m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true; m.geometry.attributes.instanceAlpha.needsUpdate = true; m.geometry.attributes.instanceFx.needsUpdate = true; }
     this.stats.active = keep.length; this.stats.peak = Math.max(this.stats.peak, keep.length);
   }
 
