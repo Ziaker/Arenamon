@@ -13,8 +13,8 @@ const fighter = (x = 0, z = 0, extra = {}) => ({id: 0, position: {x, y: 0, z}, s
 const sig = fx => [...new Set(fx.all.map(p => p.shape + ':' + p.mat))].sort().join(',');
 const run = (fx, seconds, dt = 1 / 60) => { for (let t = 0; t < seconds; t += dt) fx.update([], [], dt); };
 
-test('configuração: nove famílias 3D com variante, nomes descritivos e padrões coerentes', () => {
-  assert.equal(SOLID_FAMILIES.length, 9);
+test('configuração: dez famílias 3D com variante, nomes descritivos e padrões coerentes', () => {
+  assert.equal(SOLID_FAMILIES.length, 10);
   assert.equal(SOLID_FAMILIES.find(f => f.key === 'solidDust').names.length, 8, 'poeira tem 4 entregues + 4 novas');
   for (const f of SOLID_FAMILIES) {
     assert.ok(C.vfx[f.key], f.key); assert.equal(C.vfx[f.key].variant, 0);

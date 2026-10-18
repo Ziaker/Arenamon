@@ -5,6 +5,7 @@ import * as T from 'three';
 import {C} from '../sim/config.js';
 import {MOTION_SHAPES, DUST_NEW, WIND, RUN_DUST, RUN_WIND} from './solid-motion.js';
 import {SmokeVolume, SMOKE_MAX_SPHERES} from './smoke-volume.js';
+import {REFLECT_FX} from './solid-reflect.js';
 
 /** Famílias com seletor 3D. `names` descreve a aparência de cada opção (índice = vfx.<chave>.variant). `previews`: botões de prévia. */
 const MOVE_PREVIEWS = [['dash', 'Dash'], ['start', 'Arrancada'], ['run', 'Corrida'], ['turn', 'Curva'], ['stop', 'Parada']];
@@ -51,6 +52,10 @@ export const SOLID_FAMILIES = [
     'A · Cruz de lâminas: duas barras cruzadas que crescem e somem',
     'B · Argolas duplas: duas ondas baixas e fagulhas tetraédricas',
     'C · Núcleo prismático: prisma central com coroa de estacas']},
+  {key: 'solidReflect', label: 'Invocação do Reflect (3D)', trigger: 'a barreira do Reflect materializa (ao soltar o botão)', names: [
+    'A · Muralha de cristal: colunas irrompem do chão ao longo da barreira em onda, com poeira e uma onda de choque rasteira',
+    'B · Montagem de prismas: placas hexagonais voam de todos os lados e encaixam num painel de colmeia, cada uma com um clarão',
+    'C · Véu de névoa: uma cortina de névoa se tece de ponta a ponta, sobe e ondula, com faíscas subindo e uma onda no chão']},
 ];
 export const SOLID_KEYS = SOLID_FAMILIES.map(f => f.key);
 /** Controles de cada família (chaves em C.vfx.<família>): uniformes, aplicados em SolidFx.spawn(). */
@@ -167,7 +172,7 @@ export class SolidFx {
     const alpha = Math.max(hc && op > 0 ? .85 : 0, (o.alpha ?? 1) * op), blob = (o.shape === 'lump' && o.mat === 'smoke'), squash = blob;
     let cluster = 0; if (blob) { let cl = this.cur; if (!cl || cl.n >= SMOKE_MAX_SPHERES || Math.hypot(x - cl.x, z - cl.z) > 1.8) cl = this.cur = {id: ++this.cid, n: 0, x, z}; cl.n++; cluster = cl.id; }
     const fs0 = clamp(F?.fadeStart ?? .6, 0, .98), fe0 = clamp(F?.fadeEnd ?? 1, fs0 + .02, 1);
-    Object.assign(p, {fadeStart: fs0, fadeEnd: fe0, blob, cluster, shape: o.shape ?? 'chunk', mat: (o.mat === 'smoke' && !blob) ? 'lit' : (o.mat ?? 'lit'), x, y: (o.y ?? 0) * lift, z, vx, vy, vz, orb, tbAmp: Math.max(0, tb - 1) * 5,
+    Object.assign(p, {to: o.to ? {...o.to} : null, tt: Math.max(.01, o.tt || 0), x0: x, y0: (o.y ?? 0) * lift, z0: z, fadeStart: fs0, fadeEnd: fe0, blob, cluster, shape: o.shape ?? 'chunk', mat: (o.mat === 'smoke' && !blob) ? 'lit' : (o.mat ?? 'lit'), x, y: (o.y ?? 0) * lift, z, vx, vy, vz, orb, tbAmp: Math.max(0, tb - 1) * 5,
       gx: o.gx || 0, gy: o.gy ?? 0, drag: o.drag ?? 0, swirl: (o.swirl || 0) * tb, life: Math.max(.05, o.life ?? .6), age: -(o.delay || 0),
       sx: (o.sx ?? o.s ?? .1) * (squash ? .95 + this.rnd() * .15 : 1), sy: (o.sy ?? o.s ?? .1) * (squash ? .82 + this.rnd() * .14 : 1), sz: (o.sz ?? o.s ?? .1) * (squash ? .95 + this.rnd() * .15 : 1), grow: o.grow || 0, growY: o.growY ?? o.grow ?? 0, growL: o.growL || 0,
       rx: o.rx || 0, ry: o.ry ?? (squash ? this.rnd() * 6.28 : 0), rz: o.rz || 0, wx: (o.wx || 0) * kr * tb, wy: (o.wy || 0) * kr * tb, wz: (o.wz || 0) * kr * tb, align: !!o.align, floor: o.floor ?? null,
@@ -181,12 +186,13 @@ export class SolidFx {
   dispose() { this.reset(); for (const g of Object.values(this.geometries)) g.dispose(); for (const g of this.wrappers.values()) g.dispose(); for (const m of Object.values(this.materials)) m.dispose(); for (const m of this.meshes.values()) m.dispose(); this.smoke.dispose(); this.scene.remove(this.group); }
 
   // ---------- Atualização por quadro ----------
-  update(fighters, events, dt, {visible = true} = {}) {
+  update(fighters, events, dt, {visible = true, world = null} = {}) {
     this.group.visible = visible;
     this.time += dt;
     if (dt > 0) {
       for (const e of events || []) {
         if (this.seen.has(e)) continue; this.seen.add(e);
+        if (e.result === 'chargeRelease' && e.move === 'reflect') { this.onReflect(e, world); continue; }
         const a = fighters[e.attacker], b = fighters[e.target]; if (!a || !b) continue;
         const n = e.normal ? this.unit(e.normal.x, e.normal.z) : this.unit(b.position.x - a.position.x, b.position.z - a.position.z);
         if (e.result === 'impact') this.fire('solidImpact', {pos: b.position, n, power: 1}, `golpe ${e.attacker}→${e.target}`);
@@ -208,6 +214,11 @@ export class SolidFx {
     for (const t of this.timers.filter(t => t.at <= this.time)) t.fn();
     this.timers = this.timers.filter(t => t.at > this.time);
     this.integrate(dt);
+  }
+  /** O Reflect materializou: anima a invocação na barreira real (a mais nova do lançador). */
+  onReflect(e, world) {
+    const bar = world?.entities?.filter(x => x.kind === 'barrier' && x.reflect && x.owner === e.attacker && !x.dead).sort((a, b) => b.id - a.id)[0]; if (!bar) return;
+    this.fire('solidReflect', {pos: bar.pos, dir: {x: Math.sin(bar.angle), z: Math.cos(bar.angle)}, bar: {x: bar.pos.x, z: bar.pos.z, dir: {x: Math.sin(bar.angle), z: Math.cos(bar.angle)}, hw: bar.hx, y: bar.y ?? 0, h: bar.height, pl: bar.pl}, power: 1}, 'barreira do Reflect materializou');
   }
   unit(x, z) { const m = Math.hypot(x, z) || 1; return {x: x / m, z: z / m}; }
   /**
@@ -254,7 +265,8 @@ export class SolidFx {
       if (p.age < 0) continue;
       const k = p.age / p.life;
       if (dt > 0 && !p.rest) {
-        if (p.orb) { const o = p.orb, a = o.a0 + o.w * p.age, rad = o.r0 + (o.r1 - o.r0) * k; p.x = o.cx + o.vx * p.age + Math.cos(a) * rad; p.z = o.cz + o.vz * p.age + Math.sin(a) * rad; p.y = o.y0 + o.rise * p.age; p.ry += 3 * dt; }
+        if (p.to) { const u = clamp(p.age / p.tt, 0, 1), e = 1 - Math.pow(1 - u, 3); p.x = p.x0 + (p.to.x - p.x0) * e; p.y = p.y0 + (p.to.y - p.y0) * e; p.z = p.z0 + (p.to.z - p.z0) * e; }
+        else if (p.orb) { const o = p.orb, a = o.a0 + o.w * p.age, rad = o.r0 + (o.r1 - o.r0) * k; p.x = o.cx + o.vx * p.age + Math.cos(a) * rad; p.z = o.cz + o.vz * p.age + Math.sin(a) * rad; p.y = o.y0 + o.rise * p.age; p.ry += 3 * dt; }
         else {
           if (p.swirl) { const c = Math.cos(p.swirl * dt), s = Math.sin(p.swirl * dt), vx = p.vx * c - p.vz * s; p.vz = p.vx * s + p.vz * c; p.vx = vx; }
           if (p.tbAmp) { p.vx += (this.rnd() - .5) * p.tbAmp * dt * 8; p.vz += (this.rnd() - .5) * p.tbAmp * dt * 8; p.vy += (this.rnd() - .5) * p.tbAmp * dt * 5; }
@@ -286,9 +298,9 @@ export class SolidFx {
     const c = C.vfx[key], v = c.variant | 0, fam = SOLID_FAMILIES.find(f => f.key === key), variant = clamp(v, 0, fam.names.length - 1);
     this.record(key, variant, reason);
     const q = C.vfx.solid.quality ?? 1, I = (c.intensity ?? 1) * (ctx.power ?? 1), S = c.size ?? 1, D = c.duration ?? 1, cnt = n => Math.max(1, Math.round(n * (q === 0 ? .55 : q === 2 ? 1.4 : 1) * Math.min(1.6, .6 + .4 * I)));
-    const o = {c, I, S, D, cnt, ...ctx};
+    const o = {c, I, S, D, cnt, qk: q === 0 ? .55 : q === 2 ? 1.4 : 1, ...ctx};
     this.fam = c; this.cur = null; this.origin = ctx.pos;
-    try { BUILD[key][variant].call(this, o); } finally { this.fam = null; this.origin = null; }
+    try { (key === 'solidReflect' ? REFLECT_FX : BUILD[key])[key === 'solidReflect' ? variant : variant].call(this, o); } finally { this.fam = null; this.origin = null; }
   }
 
   // ---------- Prévias e comparação ----------
@@ -300,6 +312,7 @@ export class SolidFx {
   preview(key, fighters, what = 'dash', opts = {}) {
     const a = fighters[0], o = fighters[1] ?? fighters[0], n = this.unit(o.position.x - a.position.x, o.position.z - a.position.z), tag = 'prévia manual';
     if (['solidDust', 'solidWind', 'solidRunDust', 'solidRunWind', 'all'].includes(key)) { this.script(key, fighters, what, opts); return; }
+    if (key === 'solidReflect') { const d = this.unit(o.position.x - a.position.x, o.position.z - a.position.z), x = a.position.x + d.x * 1.8, z = a.position.z + d.z * 1.8; this.fire(key, {pos: {x, z}, dir: d, bar: {x, z, dir: d, hw: 1.6, y: 0, h: 2.2, pl: 1}, power: 1}, tag); return; }
     if (key === 'solidDodge') { this.fire(key, {pos: o.position, dir: this.unit(o.position.x - a.position.x, o.position.z - a.position.z), power: 1}, tag); return; }
     if (key === 'solidLanding') { this.fire(key, {pos: o.position, power: 1.4}, tag); return; }
     if (key === 'solidClash') { this.fire(key, {pos: {x: (a.position.x + o.position.x) / 2, z: (a.position.z + o.position.z) / 2}, n, power: 1}, tag); return; }

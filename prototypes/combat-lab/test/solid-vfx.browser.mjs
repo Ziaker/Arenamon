@@ -29,11 +29,11 @@ try {
 
   // ---------- Painel: estrutura ----------
   const FAM = await L(() => [...document.querySelectorAll('[data-solid-family]')].map(d => ({key: d.dataset.solidFamily, variants: d.querySelectorAll('[data-solid-variant]').length, previews: d.querySelectorAll('[data-solid-prev]').length, rows: d.querySelectorAll('[data-solid-rows] [data-path]').length})));
-  check('o painel lista as 9 famílias 3D', FAM.length === 9 && FAM.map(f => f.key).join() === 'solidDust,solidWind,solidRunDust,solidRunWind,solidDodge,solidLanding,solidImpact,solidBlock,solidClash', FAM.map(f => f.key).join());
-  check('poeira tem 8 estilos; vento do dash 4; poeira e vento da corrida 3 cada; demais 3', FAM.map(f => f.variants).join() === '8,4,3,3,3,3,3,3,3', FAM.map(f => f.variants).join());
+  check('o painel lista as 10 famílias 3D', FAM.length === 10 && FAM.map(f => f.key).join() === 'solidDust,solidWind,solidRunDust,solidRunWind,solidDodge,solidLanding,solidImpact,solidBlock,solidClash,solidReflect', FAM.map(f => f.key).join());
+  check('poeira tem 8 estilos; vento do dash 4; poeira e vento da corrida 3 cada; demais 3', FAM.map(f => f.variants).join() === '8,4,3,3,3,3,3,3,3,3', FAM.map(f => f.variants).join());
   check('cada família tem 11 sliders (inclui dissipação) + cor (poeira também cor secundária)', FAM.every(f => f.rows === (f.key === 'solidDust' ? 13 : 12)), FAM.map(f => f.rows).join());
   const names = await L(() => [...document.querySelectorAll('[data-solid-variant]')].map(b => b.textContent));
-  check('cada botão explica a aparência (nome com descrição)', names.length === 33 && names.every(n => n.length > 25), names.length + ' botões');
+  check('cada botão explica a aparência (nome com descrição)', names.length === 36 && names.every(n => n.length > 25), names.length + ' botões');
   check('prévias: dash, arrancada, corrida, curva, parada e comparação nas famílias de movimento', FAM.slice(0, 2).every(f => f.previews === 6) && FAM.slice(2, 4).every(f => f.previews === 4) && await page.locator('[data-solid-combo-prev]').count() === 5);
   check('controles globais de limite de objetos e qualidade presentes', await page.locator('[data-solid-global] [data-path="vfx.solid.maxObjects"]').count() === 1 && await page.locator('[data-solid-global] [data-path="vfx.solid.quality"]').count() === 1);
 
@@ -42,7 +42,7 @@ try {
   const setSlider = (path, value) => L(([p, v]) => {const el = document.querySelector(`[data-solid-rows] [data-path="${p}"]`);el.value = String(v);el.dispatchEvent(new Event('input', {bubbles: true}));el.dispatchEvent(new Event('change', {bubbles: true}));return window.__lab.C.vfx[p.split('.')[1]][p.split('.')[2]];}, [path, value]);
   const stuck = [];
   for (const f of FAM) for (const [p, v] of [['intensity', 1.7], ['amount', 1.6], ['size', 1.4], ['duration', 1.5], ['velocity', 1.5], ['scatter', 1.6], ['lift', 1.5], ['turbulence', 1.8], ['opacity', .6], ['fadeStart', .3], ['fadeEnd', .8]]) {const got = await setSlider(`vfx.${f.key}.${p}`, v);if (Math.abs(got - v) > .02) stuck.push(`${f.key}.${p}=${got}`);}
-  check('os 99 sliders gravam o valor em C.vfx', stuck.length === 0, stuck.join(' | '));
+  check('os 110 sliders gravam o valor em C.vfx', stuck.length === 0, stuck.join(' | '));
   await L(() => window.__lab.tuning.resetAll());
   const count = async amount => {await setSlider('vfx.solidWind.amount', amount);return L(() => {const fx = window.__lab.view.solid;fx.reset();fx.rnd = (s => () => (s = (s * 1664525 + 1013904223) >>> 0) / 4294967296)(7);fx.preview('solidWind', window.__lab.game.fighters, 'dash');for (let i = 0; i < 30; i++) fx.update([], [], 1 / 60);return fx.stats.spawned;});};
   const lo = await count(.4), hi = await count(2.5);check('um slider mexido na interface muda o efeito (quantidade do vento)', hi > lo * 1.8, `${lo} → ${hi}`);

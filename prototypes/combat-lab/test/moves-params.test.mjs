@@ -27,7 +27,7 @@ const mean = a => a.reduce((s, v) => s + v, 0) / Math.max(1, a.length);
 const sdOf = a => {const m = mean(a);return Math.sqrt(mean(a.map(v => (v - m) ** 2)));};
 
 // ---------- Cobertura: nada que a simulação lê fica sem slider ----------
-const NEW = new Set(['psyshock.knockbackVertical', 'psyshock.knockbackLevelBonus', 'psyshock.knockbackSpeedFactor', 'reflect.minCharge', 'psyshock.searchStep', 'psyshock.arc', 'psyshock.ringMin', 'psyshock.ringMax', 'psyshock.heightMin', 'psyshock.heightMax', 'psyshock.scaleMin', 'psyshock.scaleMax']);
+const NEW = new Set(['reflect.burstRadius', 'reflect.burstForce', 'reflect.burstDamage', 'reflect.burstPush', 'reflect.burstHurt', 'psyshock.knockbackVertical', 'psyshock.knockbackLevelBonus', 'psyshock.knockbackSpeedFactor', 'reflect.minCharge', 'psyshock.searchStep', 'psyshock.arc', 'psyshock.ringMin', 'psyshock.ringMax', 'psyshock.heightMin', 'psyshock.heightMax', 'psyshock.scaleMin', 'psyshock.scaleMax']);
 const GROUPS = ['charge', 'reflect', 'psyshock', 'beam'];
 const rows = new Map(MOVES_PARAMS.flatMap(([, list]) => list).map(r => [`${r[0]}.${r[1]}`, r]));
 /** Chaves da configuração que NENHUM código da simulação ou da visão lê (campos legados): sem leitor, um slider seria controle morto. */
@@ -110,6 +110,30 @@ ok('reflect.minCharge: define o tempo mínimo segurando para a barreira nascer')
   assert.equal(MOVES_PARAMS.flatMap(g => g[1]).find(r => r[1] === 'knockbackCap')[5], 10);
 }
 ok('psyshock: limites de knockback até 10 e novos controles (vertical, bônus por PL, velocidade da pedra) alteram o empurrão real');
+
+{
+  // Pulso ao invocar o Reflect: alcance, força, dano e os dois interruptores.
+  const burst = cfg => {
+    const g = arena(() => Object.assign(C.world.reflect, cfg)), evs = [], st = c => {g.step(c, cmd());evs.push(...g.lastStepEvents);};
+    g.fighters[1].position.x = 0;g.fighters[1].position.z = 2;                       // adversário perto da barreira
+    st(cmd({skill: 0, skillHeld: HOLD(0)}));for (let i = 1; i < 200; i++) st(cmd({skillHeld: HOLD(0)}));st(cmd());for (let i = 0; i < 6; i++) st(cmd());
+    const hits = evs.filter(e => e.result === 'impact' && e.target === 1);
+    return {made: g.world.entities.some(e => e.kind === 'barrier'), hits, hp: g.fighters[1].hp, kb: hits.map(h => h.launch?.horizontal ?? 0).reduce((a, b) => a + b, 0), dmg: hits.reduce((a, h) => a + h.damage, 0), barrierAlive: g.world.entities.some(e => e.kind === 'barrier' && !e.dead)};
+  };
+  const off = burst({}), noRadius = burst({burstRadius: 0, burstPush: 1, burstHurt: 1, burstDamage: 1}), pushOnly = burst({burstRadius: 10, burstPush: 1, burstForce: 4}), hurtOnly = burst({burstRadius: 10, burstHurt: 1, burstDamage: .5}), both = burst({burstRadius: 10, burstPush: 1, burstForce: 4, burstHurt: 1, burstDamage: .5});
+  assert.ok(off.made && off.hits.length === 0 && off.hp === 100, 'padrão: sem pulso');
+  assert.equal(noRadius.hits.length, 0, 'raio 0 desliga o pulso mesmo com os interruptores ligados');
+  assert.ok(pushOnly.hits.length === 1 && pushOnly.kb > 0 && pushOnly.dmg === 0 && pushOnly.hp === 100, `só empurrão: ${JSON.stringify({kb: pushOnly.kb, dmg: pushOnly.dmg, hits: pushOnly.hits.length})}`);
+  assert.ok(hurtOnly.hits.length === 1 && hurtOnly.dmg > 0 && hurtOnly.kb === 0 && hurtOnly.hp < 100, `só dano: ${JSON.stringify({kb: hurtOnly.kb, dmg: hurtOnly.dmg, hp: hurtOnly.hp})}`);
+  assert.ok(both.kb > 0 && both.dmg > 0, 'os dois juntos');
+  assert.ok(both.barrierAlive && both.made, 'o pulso não quebra a própria barreira');
+  assert.equal(burst({burstRadius: .5, burstPush: 1, burstForce: 4}).hits.length, 0, 'alcance curto não atinge quem está longe');
+  const weak = burst({burstRadius: 10, burstPush: 1, burstForce: 1}), strong = burst({burstRadius: 10, burstPush: 1, burstForce: 6});
+  assert.ok(strong.kb > weak.kb * 2, `a força muda o empurrão: ${weak.kb} → ${strong.kb}`);
+  const d1 = burst({burstRadius: 10, burstHurt: 1, burstDamage: .2}), d2 = burst({burstRadius: 10, burstHurt: 1, burstDamage: 1});
+  assert.ok(d2.dmg > d1.dmg * 2, `o dano muda: ${d1.dmg} → ${d2.dmg}`);
+}
+ok('reflect: pulso ao invocar (alcance 0–10 m, força, dano e interruptores de empurrão e dano) altera o resultado real');
 
 console.log(`
 ${n} verificações dos sliders dos Moves aprovadas.`);

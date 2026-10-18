@@ -185,7 +185,7 @@ export class View {
       t0 = now();this.vfx.update(fighters, events, vfxDt, {characters: this.characters, camera: this.camera});tm.vfx = now() - t0;
       this.vfxRuntime.beamRenderer?.reset();
     }
-    this.solid.update(fighters, events, vfxDt, {visible: !!X.hud.fxVisible});
+    this.solid.update(fighters, events, vfxDt, {visible: !!X.hud.fxVisible, world});
     const legacy = this.updateLegacy(fighters, events, paused ? 0 : dt);
     const fxOn = !!X.hud.fxVisible;
     const legacyOn = fxOn && !this.useNewVfx && !!this.vfx.atlas;

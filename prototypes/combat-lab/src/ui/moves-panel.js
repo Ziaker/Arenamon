@@ -7,6 +7,7 @@ import {runMoveScenarios} from '../sim/scenarios-moves.js';
 const escape = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
 
 const STANDARD = [['reflect', 'Reflect', 0], ['psyshock', 'Psyshock', 1]];
+const yesno = v => v ? '1 · sim' : '0 · não';
 const sec = v => `${v.toFixed(2)} s`, pct = v => `${(v * 100).toFixed(0)}%`, num = v => v.toFixed(2), m = v => `${v.toFixed(2)} m`, deg = v => `${v.toFixed(0)}°`, ms = v => `${v.toFixed(2)} m/s`, x = v => `${v.toFixed(2)}×`, int = v => v.toFixed(0);
 /** [grupo em C.world, chave, rótulo, descrição, min, max, passo, formato, aprovado?] — “aprovado” = valor decidido pelo diretor; o resto é provisório (M30.10). */
 const PARAMS = [
@@ -33,6 +34,11 @@ const PARAMS = [
     ['reflect', 'tackleStagger', 'Stagger do Tackle ao destruir', 'Tempo em stagger do atacante (M14.3).', 0, 1, .01, sec, true],
     ['reflect', 'tieTolerance', 'Tolerância de empate geométrico', 'Distância dentro da qual frente > borda > verso (M30.5; provisório).', 0, .05, .001, m, false],
     ['reflect', 'maxReflections', 'Limite de reflexões por passo', 'Salvaguarda contra ciclos degenerados (M17.2; provisório).', 1, 64, 1, int, false],
+    ['reflect', 'burstRadius', 'Pulso ao invocar: alcance', 'Raio, a partir do centro da barreira, em que o pulso atinge os lutadores ao materializar (0 = sem pulso). A própria barreira não quebra (provisório).', 0, 10, .25, m, false],
+    ['reflect', 'burstForce', 'Pulso ao invocar: força do empurrão', 'Empurrão horizontal do pulso (cai com a distância). Só vale com “Causa empurrão” ligado (provisório).', 0, 10, .05, ms, false],
+    ['reflect', 'burstDamage', 'Pulso ao invocar: dano', 'Dano do pulso como fração do Ataque do lançador (0 = nenhum; cai com a distância). Só vale com “Causa dano” ligado (provisório).', 0, 2, .01, pct, false],
+    ['reflect', 'burstPush', 'Pulso ao invocar: causa empurrão?', 'Liga o empurrão do pulso (provisório).', 0, 1, 1, yesno, false],
+    ['reflect', 'burstHurt', 'Pulso ao invocar: causa dano?', 'Liga o dano do pulso (provisório).', 0, 1, 1, yesno, false],
   ]],
   ['Psyshock', [
     ['psyshock', 'minStones', 'Pedras iniciais', 'Quantidade com carga mínima (M11.1).', 1, 8, 1, int, true],
@@ -132,7 +138,7 @@ export function createMovesPanel({$, game, download, tuning, view, ui}) {
   function paramRow([group, key, label, tip, min, max, step, fmt, approved]) {
     const v = C.world[group][key], def = defaults().world[group][key];
     return `<div class="mvp-param" title="${escape(tip)}"><label>${escape(label)} <small class="${approved ? 'ok' : 'warn'}">${approved ? 'aprovado' : 'provisório'}</small></label>
-      <div class="row"><input type="range" data-p="${group}.${key}" min="${min}" max="${max}" step="${step}" value="${v}"><output data-o="${group}.${key}">${fmt(v)}</output><button type="button" data-reset="${group}.${key}" title="Padrão: ${escape(fmt(def))}" ${v === def ? 'disabled' : ''}>↺</button></div></div>`;
+      <div class="row">${min === 0 && max === 1 && step === 1 ? `<input type="checkbox" data-p="${group}.${key}" ${v ? 'checked' : ''}>` : `<input type="range" data-p="${group}.${key}" min="${min}" max="${max}" step="${step}" value="${v}">`}<output data-o="${group}.${key}">${fmt(v)}</output><button type="button" data-reset="${group}.${key}" title="Padrão: ${escape(fmt(def))}" ${v === def ? 'disabled' : ''}>↺</button></div></div>`;
   }
   function renderMovesAnimSection() {
     const ch = ui?.characters?.[0];
@@ -411,7 +417,7 @@ export function createMovesPanel({$, game, download, tuning, view, ui}) {
     $('mvp-run').onclick = () => {results = runMoveScenarios();render();};
     $('mvp-export').onclick = () => results && download(JSON.stringify({schema: 'arenamon-lab-report', version: 1, kind: 'moves-scenarios', createdAt: new Date().toISOString(), step: C.test.step, scenarios: results, homologation: MOVES_HOMOLOG.map((t, i) => ({item: t, verdict: homolog[i]?.v || 'pendente', note: homolog[i]?.n || ''}))}, null, 1), 'arenamon-cenarios-moves.json');
     for (const inp of root.querySelectorAll('[data-p]')) inp.oninput = () => {
-      const [g, k] = inp.dataset.p.split('.'), spec = PARAMS.flatMap(p => p[1]).find(s => s[0] === g && s[1] === k), v = Number(inp.value);
+      const [g, k] = inp.dataset.p.split('.'), spec = PARAMS.flatMap(p => p[1]).find(s => s[0] === g && s[1] === k), v = inp.type === 'checkbox' ? (inp.checked ? 1 : 0) : Number(inp.value);
       C.world[g][k] = v;root.querySelector(`[data-o="${inp.dataset.p}"]`).textContent = spec[7](v);root.querySelector(`[data-reset="${inp.dataset.p}"]`).disabled = v === defaults().world[g][k];
     };
     for (const b of root.querySelectorAll('[data-reset]')) b.onclick = () => {const [g, k] = b.dataset.reset.split('.');C.world[g][k] = defaults().world[g][k];render();};
