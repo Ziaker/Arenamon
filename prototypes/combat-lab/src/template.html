@@ -89,10 +89,38 @@
      <div class="row"><label class="field">Lutas<input type="number" id="balance-matches" min="1" max="200" value="20"></label><label class="field">Semente<input type="number" id="balance-seed" min="1" value="1"></label></div>
      <button type="button" class="wide" id="balance-run">Medir equilíbrio</button>
      <div id="balance-report" class="report" aria-live="polite"></div>
-     <h3>Avaliação da IA: anterior × revisada</h3>
-     <p class="hint">As duas versões da IA tática jogam as mesmas lutas (mesmas sementes) contra a IA anterior. A revisão em uso no jogo fica em Ajustes › IA.</p>
+     <h3>Avaliação da IA: evoluída, revisada e linha de base</h3>
+     <p class="hint">Comparação estatística rigorosa pareada ou unilateral com loadouts, matriz de sementes, níveis de dificuldade e cenários difíceis.</p>
+     <div class="row">
+      <label class="field">Candidato<select id="aieval-candidate-rev">
+       <option value="2" selected>Revisão 2 (Evoluída)</option>
+       <option value="1">Revisão 1 (Revisada)</option>
+      </select></label>
+      <label class="field">Linha de Base<select id="aieval-baseline-rev">
+       <option value="0" selected>Revisão 0 (Anterior / v6)</option>
+       <option value="1">Revisão 1 (Revisada)</option>
+      </select></label>
+      <label class="field">Dificuldade<select id="aieval-difficulty">
+       <option value="normal" selected>Normal</option>
+       <option value="easy">Fácil</option>
+       <option value="hard">Difícil</option>
+       <option value="expert">Especialista</option>
+      </select></label>
+     </div>
      <div class="row"><label class="field">Lutas<input type="number" id="aieval-matches" min="4" max="400" value="60"></label><label class="field">Semente<input type="number" id="aieval-seed" min="1" value="1"></label><label class="field">Estilo<select id="aieval-style"></select></label></div>
-     <div class="row"><button type="button" class="wide" id="aieval-run">Comparar IAs</button><button type="button" id="aieval-export">↓ Relatório (JSON)</button></div>
+     <div class="row">
+      <label class="field">Loadout (Moves)<select id="aieval-loadout">
+       <option value="none">Sem Moves (básico)</option>
+       <option value="reflect">Com Reflect</option>
+       <option value="psyshock">Com Psyshock</option>
+       <option value="both">Ambos (Reflect + Psyshock)</option>
+      </select></label>
+      <label class="field">Arena / Lados<select id="aieval-mode">
+       <option value="paired">Pareado (Azul + Vermelho alternados)</option>
+       <option value="blue">Candidato só no Azul</option>
+      </select></label>
+     </div>
+     <div class="row"><button type="button" class="wide primary" id="aieval-run">Comparar IAs</button><button type="button" id="aieval-scenarios">Cenários Difíceis</button><button type="button" id="aieval-export">↓ Relatório (JSON)</button></div>
      <div id="aieval-report" class="report" aria-live="polite"></div>
      <h3>Comparar A × B</h3>
      <p class="hint">Executa a mesma situação com dois conjuntos de ajustes (atuais, padrão do laboratório, jogo oficial ou presets salvos) e mostra os resultados lado a lado. A configuração atual não muda.</p>

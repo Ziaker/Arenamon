@@ -15,6 +15,10 @@ import {getMove} from './moves.js';
 import {chargePermission} from './controller.js';
 import {segmentHitsVolume} from './geometry.js';
 import {length, sub, dot, normalize, scale, vec, direction} from './math.js';
+import {perceiveIncomingProjectile} from './perception.js';
+import {predictProjectileTrajectory} from './prediction.js';
+import {featuresOf} from './tactics.js';
+import {evaluateMoveOpportunity, evaluateChargeContinuation} from './move-strategy.js';
 
 /** Passos de carga para chegar a cada Power Level (PL1 curto; PL2 em 2,0 s; PL3 em 4,0 s). */
 const LEVEL_TICKS = {1: 30, 2: 240, 3: 480};
@@ -53,14 +57,27 @@ export function movesCommand(brain, self, target, c) {
   const t = brain.t, mv = (t.mv ??= {phase: 'idle', slot: -1, goalTicks: 0, wait: 0, roll: 0, last: t.time ?? 0, log: []});
   const dt = Math.max(0, (t.time ?? 0) - mv.last);mv.last = t.time ?? 0;
   const world = brain.getWorld?.() ?? null;
-  const threat = world ? incomingProjectile(world, self) : null;
+  const F = typeof featuresOf === 'function' ? featuresOf(brain) : null;
+  const perc = (F?.perception && t.perception) ? t.perception : null;
+  const P = typeof brain.personality === 'function' ? brain.personality() : (brain.P ?? {});
+  let threat = (world && perc) ? perceiveIncomingProjectile(perc, brain, world, self, t.time ?? 0, P) : (world ? incomingProjectile(world, self) : null);
+  if (threat && world && typeof featuresOf === 'function' && featuresOf(brain)?.prediction) {
+    const tid = threat.id;
+    const proj = world.entities.find((/** @type {any} */ e) => e.id === tid);
+    if (proj) {
+      const pred = predictProjectileTrajectory(proj, world, self);
+      if (pred.willHitBarrier) threat = null;
+    }
+  }
   const defend = () => {c.guard = true;c.guardPressed = !brain.wasGuard;brain.wasGuard = true;};
 
   if (self.charge) {
     mv.phase = 'charging';
     const ch = self.charge;
     const distance = target ? length(sub(target.position, self.position)) : 10;
-    const oppTackle = target?.action?.kind === 'tackle';
+    const oppTackle = (perc && perc.observedAction !== undefined && perc.observedAction !== null)
+      ? perc.observedAction === 'tackle'
+      : target?.action?.kind === 'tackle';
     const canDodgeCancel = ch.ticks >= (ch.params?.dodgeLockTicks ?? 30) && !self.exhausted && self.stamina >= (C.actions?.dodge?.cost ?? 1);
 
     // Evasão emergencial durante o Charge: se o rival inicia um Tackle a curta distância, esquiva lateralmente cancelando o charge
@@ -89,10 +106,12 @@ export function movesCommand(brain, self, target, c) {
       // Quanto mais distante, mais mantém a carga para atingir PL superior (PL2 em 2s, PL3 em 4s)
       if (distance >= 7.0) mv.goalTicks = Math.max(mv.goalTicks, LEVEL_TICKS[3]);
       else if (distance >= 4.8) mv.goalTicks = Math.max(mv.goalTicks, LEVEL_TICKS[2]);
-      // Se o adversário se aproximar muito rápido, solta antecipadamente se já atingiu o patamar mínimo
-      if (distance < 3.2 && ch.ticks >= LEVEL_TICKS[1]) mv.goalTicks = Math.min(mv.goalTicks, ch.ticks);
+      const cont = evaluateChargeContinuation(self, target, ch, distance, threat);
+      if (cont.shouldRelease) mv.goalTicks = Math.min(mv.goalTicks, ch.ticks);
     } else if (ch.move === 'reflect') {
       mv.goalTicks = Math.max(mv.goalTicks, 180);
+      const cont = evaluateChargeContinuation(self, target, ch, distance, threat);
+      if (cont.shouldRelease) mv.goalTicks = Math.min(mv.goalTicks, ch.ticks);
     }
     if (threat && threat.time < .22 && threat.pl > 0 && (ch.move !== 'reflect' || ch.ticks < 180)) {
       defend();
@@ -115,6 +134,7 @@ export function movesCommand(brain, self, target, c) {
     const def = getMove(slots[slot]);if (!def) return false;
     if (!chargePermission(self, def, slot).ok) return false;
     c.skill = slot;c.skillHeld = held(slot);mv.phase = 'charging';mv.slot = slot;mv.goalTicks = goal;
+    c.tackle = false;c.dodge = false;c.guard = false;c.guardPressed = false;brain.wasGuard = false;
     log(mv, {time: +t.time.toFixed(3), move: def.id, why, goalTicks: goal, ...extra});return true;
   };
 
@@ -145,14 +165,19 @@ export function movesCommand(brain, self, target, c) {
 
   // ---------- Psyshock ofensivo ----------
   const pi = slots.indexOf('psyshock');
-  if (pi >= 0 && distance > 3.5 && self.stamina >= 2 && !target.flight) {
+  if (pi >= 0 && distance > 3.5 && self.stamina >= 2 && !target.flight && (brain.cooldown ?? 0) <= 0) {
     mv.roll = .5;
-    const p = Math.min(.9, .25 + .5 * (S.attack ?? .5) + (distance > 6 ? .15 : 0));
-    if (brain.random() < p) {
-      const r = brain.random(), far = distance > 6.5, patient = (S.reserve ?? .5) > .6 || (S.bait ?? .5) > .6;
-      const level = r < (far && patient ? .2 : .45) ? 1 : r < (far ? .7 : .9) ? 2 : 3;
-      start(pi, LEVEL_TICKS[level], 'ataque à distância', {pl: level, distance: +distance.toFixed(2)});
+    const oppEval = evaluateMoveOpportunity(self, target, 'psyshock', pi, world, {distance, threat}, S, () => brain.random());
+    if (oppEval.viable) {
+      const p = Math.min(.9, .25 + .5 * (S.attack ?? .5) + (distance > 6 ? .15 : 0));
+      if (brain.random() < p) {
+        start(pi, oppEval.goalTicks, 'ataque à distância', {pl: oppEval.level ?? (oppEval.goalTicks >= LEVEL_TICKS[3] ? 3 : oppEval.goalTicks >= LEVEL_TICKS[2] ? 2 : 1), distance: +distance.toFixed(2)});
+      }
     }
+  }
+  if (brain.lastDecision) {
+    if (c.skillHeld) brain.lastDecision.command.skillHeld = c.skillHeld;
+    if (c.skill) brain.lastDecision.command.skill = c.skill;
   }
   return c;
 }

@@ -212,6 +212,20 @@ test('movimentos especiais na aba moves: carga com loop configurável e disparo'
   check('prévia em fase de carga', ch.movePreview?.phase === 'charge');
   ch.stopMovePreview();
   check('stopMovePreview encerra a prévia', ch.movePreview === null);
+
+  // O fim do ciclo pode ocorrer antes do fim do clipe: 0–0,4 intro, 0,4–0,7 loop, 0,7–1,0 fora do ciclo.
+  const {ch: ranged, g: rangedGame} = setup(src);
+  rangedGame.setLoadout(0, ['reflect', 'psyshock', null, null]);
+  ranged.setMoveAnim('reflect', 'charge', chargeIdx);
+  ranged.setMoveChargeLoopStart('reflect', 0.4);
+  ranged.setMoveChargeLoopEnd('reflect', 0.7);
+  const rangedKeys = run(ranged, rangedGame, 115, t => {
+    const c = cmd();if (t === 0) c.skill = 0;c.skillHeld = [true, false, false, false];return [c, cmd()];
+  }).filter(k => k.key === 'charge_reflect');
+  check('loop inicia antes de acabar o clipe', Math.abs(rangedKeys[96]?.time - 0.5) < 0.05, `${rangedKeys[96]?.time}`);
+  check('fim configurado é salvo no estado portátil', ranged.stateData().moveAnims.reflect.chargeLoopEnd === 0.7);
+  ranged.setMoveChargeLoopEnd('reflect', 0.3);
+  check('intervalo permanece válido ao antecipar o fim', ranged.getMoveAnimConfig('reflect').chargeLoopStart <= 0.28 + 1e-8);
 });
 writeFileSync(out + 'animation-report.json', JSON.stringify({createdAt: new Date().toISOString(), checks: report}, null, 2));
 console.log(`\n${passed} testes de animação aprovados · ${report.length} verificações.`);

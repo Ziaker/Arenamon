@@ -146,8 +146,8 @@ export function createMovesPanel({$, game, download, tuning, view, ui}) {
       const conf = ch.getMoveAnimConfig(moveId);
       const chargeClip = conf.chargeClip != null ? ch.clips[conf.chargeClip] : null;
       const chargeDur = chargeClip?.duration || 1.0;
-      const loopStart = Math.min(conf.chargeLoopStart || 0, Math.max(0, chargeDur - 0.02));
-      const loopPct = chargeDur > 0 ? (loopStart / chargeDur * 100).toFixed(0) : 0;
+      const loopEnd = Math.min(chargeDur, Math.max(0.02, conf.chargeLoopEnd ?? chargeDur));
+      const loopStart = Math.min(Math.max(0, conf.chargeLoopStart || 0), Math.max(0, loopEnd - 0.02));
 
       const clipOptions = (selectedIdx, placeholder) => {
         return `<option value="">${placeholder}</option>` + ch.clips.map((c, i) => {
@@ -171,7 +171,7 @@ export function createMovesPanel({$, game, download, tuning, view, ui}) {
           </div>
 
           <div class="moves-anim-grid">
-            <!-- 1. Animação de Carga + Slider de Loop -->
+            <!-- 1. Animação de Carga + intervalo de Loop -->
             <div class="moves-anim-col">
               <label>1. Animação de Carga (Segurar tecla):</label>
               <select data-move-anim-select="charge" data-move-id="${moveId}">
@@ -179,21 +179,21 @@ export function createMovesPanel({$, game, download, tuning, view, ui}) {
               </select>
               
               <div class="moves-loop-slider-box">
-                <div class="moves-loop-slider-head">
-                  <span><b>Início do Loop na Carga:</b></span>
-                  <output data-move-loop-out="${moveId}">${loopStart.toFixed(2)}s (${loopPct}%)</output>
-                </div>
-                <input type="range" data-move-loop-range="${moveId}" min="0" max="${chargeDur.toFixed(2)}" step="0.01" value="${loopStart.toFixed(2)}" ${chargeClip ? '' : 'disabled'}>
+                <label for="move-loop-start-${moveId}">Início do loop <output data-move-loop-out="${moveId}-start">${loopStart.toFixed(2)} s</output></label>
+                <input id="move-loop-start-${moveId}" type="range" data-move-loop-range="${moveId}" data-loop-edge="start" min="0" max="${Math.max(0, loopEnd - 0.02).toFixed(2)}" step="0.01" value="${loopStart.toFixed(2)}" ${chargeClip ? '' : 'disabled'}>
+                <label for="move-loop-end-${moveId}">Fim do loop <output data-move-loop-out="${moveId}-end">${loopEnd.toFixed(2)} s</output></label>
+                <input id="move-loop-end-${moveId}" type="range" data-move-loop-range="${moveId}" data-loop-edge="end" min="${Math.min(chargeDur, loopStart + 0.02).toFixed(2)}" max="${chargeDur.toFixed(2)}" step="0.01" value="${loopEnd.toFixed(2)}" ${chargeClip ? '' : 'disabled'}>
                 <div class="move-loop-timeline" data-loop-timeline="${moveId}">
                   <div class="loop-intro" style="flex:${Math.max(0.001, loopStart)};" title="Windup inicial: 0.00s a ${loopStart.toFixed(2)}s">
                     ${loopStart > 0.15 ? `Intro (${loopStart.toFixed(2)}s)` : ''}
                   </div>
-                  <div class="loop-repeat" style="flex:${Math.max(0.001, chargeDur - loopStart)};" title="Ciclo contínuo de loop: ${loopStart.toFixed(2)}s a ${chargeDur.toFixed(2)}s">
-                    🔁 Loop (${(chargeDur - loopStart).toFixed(2)}s)
+                  <div class="loop-repeat" style="flex:${Math.max(0.001, loopEnd - loopStart)};" title="Ciclo contínuo de loop: ${loopStart.toFixed(2)}s a ${loopEnd.toFixed(2)}s">
+                    🔁 Loop (${(loopEnd - loopStart).toFixed(2)}s)
                   </div>
+                  <div class="loop-tail" style="flex:${Math.max(0.001, chargeDur - loopEnd)};" title="Trecho após o loop: ${loopEnd.toFixed(2)}s a ${chargeDur.toFixed(2)}s">${chargeDur - loopEnd > 0.15 ? 'Final' : ''}</div>
                 </div>
                 <p class="hint" style="margin:4px 0 0 0;font-size:10.5px;">
-                  A animação toca a introdução; ao alcançar o fim do clipe, <b>volta para ${loopStart.toFixed(2)}s</b> e repete o loop enquanto segurar a tecla.
+                  Segurando: toca a introdução uma vez e repete apenas o trecho entre início e fim. Ao soltar: passa imediatamente para a animação de disparo. O trecho final do clipe de carga fica fora do loop.
                 </p>
               </div>
             </div>
@@ -222,7 +222,7 @@ export function createMovesPanel({$, game, download, tuning, view, ui}) {
           <span class="muted" style="font-size:11px;">Jogador Azul · Modelo GLB</span>
         </div>
         <p class="hint" style="margin-top:2px;">
-          Ambos os movimentos (Reflect e Psyshock) utilizam mecânica de <b>Charge</b>. Escolha a animação de carga (com slider para definir quando ela começa a fazer loop em si mesma) e a animação do disparo ao soltar a tecla.
+          Reflect e Psyshock usam Charge. Defina o início e o fim do trecho repetido da animação de carga; o disparo começa ao soltar a tecla, sem esperar o clipe terminar.
         </p>
         <div class="moves-anim-cards">
           ${cardsHtml}
@@ -293,31 +293,40 @@ export function createMovesPanel({$, game, download, tuning, view, ui}) {
       for (const inp of root.querySelectorAll('[data-move-loop-range]')) {
         inp.oninput = () => {
           const moveId = inp.dataset.moveLoopRange;
-          const val = Number(inp.value) || 0;
+          const edge = inp.dataset.loopEdge;
           const conf = ch.getMoveAnimConfig(moveId);
           const chargeClip = conf.chargeClip != null ? ch.clips[conf.chargeClip] : null;
           const chargeDur = chargeClip?.duration || 1.0;
-          const pct = chargeDur > 0 ? (val / chargeDur * 100).toFixed(0) : 0;
-          
-          const out = root.querySelector(`[data-move-loop-out="${moveId}"]`);
-          if (out) out.textContent = `${val.toFixed(2)}s (${pct}%)`;
+          if (edge === 'start') ch.setMoveChargeLoopStart(moveId, Number(inp.value));
+          else ch.setMoveChargeLoopEnd(moveId, Number(inp.value));
+          const start = conf.chargeLoopStart || 0;
+          const end = conf.chargeLoopEnd ?? chargeDur;
+          const startInput = root.querySelector(`[data-move-loop-range="${moveId}"][data-loop-edge="start"]`);
+          const endInput = root.querySelector(`[data-move-loop-range="${moveId}"][data-loop-edge="end"]`);
+          startInput.max = Math.max(0, end - 0.02).toFixed(2);
+          endInput.min = Math.min(chargeDur, start + 0.02).toFixed(2);
+          startInput.value = start.toFixed(2);
+          endInput.value = end.toFixed(2);
+          root.querySelector(`[data-move-loop-out="${moveId}-start"]`).textContent = `${start.toFixed(2)} s`;
+          root.querySelector(`[data-move-loop-out="${moveId}-end"]`).textContent = `${end.toFixed(2)} s`;
 
           const timeline = root.querySelector(`[data-loop-timeline="${moveId}"]`);
           if (timeline) {
             const intro = timeline.querySelector('.loop-intro');
             const repeat = timeline.querySelector('.loop-repeat');
+            const tail = timeline.querySelector('.loop-tail');
             if (intro) {
-              intro.style.flex = String(Math.max(0.001, val));
-              intro.textContent = val > 0.15 ? `Intro (${val.toFixed(2)}s)` : '';
-              intro.title = `Windup inicial: 0.00s a ${val.toFixed(2)}s`;
+              intro.style.flex = String(Math.max(0.001, start));
+              intro.textContent = start > 0.15 ? `Intro (${start.toFixed(2)}s)` : '';
+              intro.title = `Windup inicial: 0.00s a ${start.toFixed(2)}s`;
             }
             if (repeat) {
-              repeat.style.flex = String(Math.max(0.001, chargeDur - val));
-              repeat.textContent = `🔁 Loop (${(chargeDur - val).toFixed(2)}s)`;
-              repeat.title = `Ciclo contínuo de loop: ${val.toFixed(2)}s a ${chargeDur.toFixed(2)}s`;
+              repeat.style.flex = String(Math.max(0.001, end - start));
+              repeat.textContent = `🔁 Loop (${(end - start).toFixed(2)}s)`;
+              repeat.title = `Ciclo contínuo de loop: ${start.toFixed(2)}s a ${end.toFixed(2)}s`;
             }
+            if (tail) {tail.style.flex = String(Math.max(0.001, chargeDur - end));tail.textContent = chargeDur - end > 0.15 ? 'Final' : '';tail.title = `Trecho após o loop: ${end.toFixed(2)}s a ${chargeDur.toFixed(2)}s`;}
           }
-          ch.setMoveChargeLoopStart(moveId, val);
         };
       }
 

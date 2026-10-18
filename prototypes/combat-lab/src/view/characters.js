@@ -112,8 +112,8 @@ export class Character {
     this.clips = source.animations.slice();this.clipInfo = this.clips.map(c => ({name: c.name, origin: 'glb', compatible: true, coverage: 1}));
     this.variants = autoVariants(source);this.speeds = {};this.clipOffsets = {};this.visualOffset = 0;this.autoGround = true;
     this.moveAnims = {
-      reflect: {chargeClip: null, chargeLoopStart: 0, releaseClip: null},
-      psyshock: {chargeClip: null, chargeLoopStart: 0, releaseClip: null}
+      reflect: {chargeClip: null, chargeLoopStart: 0, chargeLoopEnd: null, releaseClip: null},
+      psyshock: {chargeClip: null, chargeLoopStart: 0, chargeLoopEnd: null, releaseClip: null}
     };
     this.movePreview = null;
     this.autoAssignMoveAnims();
@@ -136,7 +136,7 @@ export class Character {
   get mapping() {return Object.fromEntries(Object.entries(this.variants).filter(([, v]) => v.length).map(([id, v]) => [id, v[0]]));}
   autoAssignMoveAnims() {
     for (const moveId of ['reflect', 'psyshock']) {
-      const conf = this.moveAnims[moveId] ??= {chargeClip: null, chargeLoopStart: 0, releaseClip: null};
+      const conf = this.moveAnims[moveId] ??= {chargeClip: null, chargeLoopStart: 0, chargeLoopEnd: null, releaseClip: null};
       if (conf.chargeClip == null) {
         const kws = moveId === 'reflect' ? ALIASES.reflect_charge : ALIASES.psyshock_charge;
         conf.chargeClip = this.findClipByKeywords(kws);
@@ -164,7 +164,7 @@ export class Character {
   getMoveAnimConfig(moveId) {
     this.moveAnims ??= {};
     if (!this.moveAnims[moveId]) {
-      this.moveAnims[moveId] = {chargeClip: null, chargeLoopStart: 0, releaseClip: null};
+      this.moveAnims[moveId] = {chargeClip: null, chargeLoopStart: 0, chargeLoopEnd: null, releaseClip: null};
     }
     return this.moveAnims[moveId];
   }
@@ -184,7 +184,16 @@ export class Character {
   }
   setMoveChargeLoopStart(moveId, seconds) {
     const conf = this.getMoveAnimConfig(moveId);
-    conf.chargeLoopStart = Math.max(0, Number(seconds) || 0);
+    const duration = this.clips[conf.chargeClip]?.duration || 1;
+    const end = Math.min(duration, conf.chargeLoopEnd ?? duration);
+    conf.chargeLoopStart = Math.min(Math.max(0, Number(seconds) || 0), Math.max(0, end - 0.02));
+    this.save();
+  }
+  setMoveChargeLoopEnd(moveId, seconds) {
+    const conf = this.getMoveAnimConfig(moveId);
+    const duration = this.clips[conf.chargeClip]?.duration || 1;
+    conf.chargeLoopEnd = Math.min(duration, Math.max(0.02, Number(seconds) || duration));
+    conf.chargeLoopStart = Math.min(conf.chargeLoopStart || 0, Math.max(0, conf.chargeLoopEnd - 0.02));
     this.save();
   }
   startMovePreview(moveId, onEnd = null) {
@@ -247,6 +256,7 @@ export class Character {
       moveAnimsData[m] = {
         chargeClip: conf.chargeClip != null ? byName(conf.chargeClip) : null,
         chargeLoopStart: conf.chargeLoopStart || 0,
+        chargeLoopEnd: conf.chargeLoopEnd ?? null,
         releaseClip: conf.releaseClip != null ? byName(conf.releaseClip) : null
       };
     }
@@ -279,6 +289,7 @@ export class Character {
         this.moveAnims[m] = {
           chargeClip: conf.chargeClip ? idx(conf.chargeClip) : null,
           chargeLoopStart: Number(conf.chargeLoopStart) || 0,
+          chargeLoopEnd: Number.isFinite(Number(conf.chargeLoopEnd)) && conf.chargeLoopEnd != null ? Number(conf.chargeLoopEnd) : null,
           releaseClip: conf.releaseClip ? idx(conf.releaseClip) : null
         };
       }
@@ -544,13 +555,14 @@ export class Character {
       } else if (this.current.key.startsWith('charge_')) {
         const moveId = this.current.key.slice(7);
         const conf = this.moveAnims?.[moveId];
-        const loopStart = Math.min(conf?.chargeLoopStart ?? 0, Math.max(0, d - 0.05));
+        const loopEnd = Math.min(d, Math.max(0.02, conf?.chargeLoopEnd ?? d));
+        const loopStart = Math.min(Math.max(0, conf?.chargeLoopStart ?? 0), Math.max(0, loopEnd - 0.02));
         const elapsed = (this.clock - this.current.started) * s;
-        if (elapsed < d) {
+        if (elapsed < loopEnd) {
           a.time = elapsed;
         } else {
-          const loopLen = Math.max(1e-4, d - loopStart);
-          a.time = loopStart + ((elapsed - loopStart) % loopLen);
+          const loopLen = Math.max(0.02, loopEnd - loopStart);
+          a.time = loopStart + ((elapsed - loopEnd) % loopLen);
         }
       } else if (ONE_SHOT.has(this.current.key) || this.current.key.startsWith('release_')) {
         a.time = Math.min(d, (this.clock - this.current.started) * s);

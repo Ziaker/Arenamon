@@ -34,13 +34,13 @@ export function defaults() {
       exhaustRecovery: .15, guardRegenFactor: .70, landingSkidFraction: .34, landingSkidDrag: 8, landingSkidMin: .08},
     // moveSmoothing: giro máximo (rad/s) da intenção de movimento da IA; minDirectionHold: tempo mínimo antes de inverter
     // a intenção (contra zigue-zague). 0 = intenções cruas (v6). Ataques e esquivas nunca são suavizados.
-    // revision: 0 = IA tática anterior (15/10/2026); 1 = revisada (valida as ações com as regras do motor antes de pedir,
-    // estima o contato antes do X, evita exaustão, usa sprint e aproveita contra-ataques). Mesmas regras do jogador.
-    ai: {revision: 1, moveSmoothing: 10, minDirectionHold: .18, initialCooldown: .6, orbitChangePeriod: 1.7, threatAlignment: .3, threatDistance: 4.8, defensiveRetreatDistance: 2.4, defensiveRetreatStrength: .5,
+    // revision: 0 = IA tática anterior (15/10/2026); 1 = revisada (valida ações antes de pedir, alcance, sprint, contra-ataque);
+    // 2 = evoluída (percepção justa, previsão de contato, gestão de arena/zonas, economia, defesa contextual, modelo do oponente, sequências e dificuldade balanceada).
+    ai: {revision: 2, difficultyTier: 'normal', moveSmoothing: 10, minDirectionHold: .18, initialCooldown: .6, orbitChangePeriod: 1.7, threatAlignment: .3, threatDistance: 4.8, defensiveRetreatDistance: 2.4, defensiveRetreatStrength: .5,
       reactiveRetreatStrength: .2, approachDistance: 3, retreatDistance: 1.35, retreatStrength: .65, strafeStrength: .72, wallPrediction: .8, wallMargin: 1,
       attackRange: 3.35, combatAttackCooldown: 1.1, lowStaminaThreshold: .95, lowStaminaDistance: 2.5, lowStaminaRetreat: .7, evadeCycle: 3, evadeCycleIndex: 2},
     // Personalidade de cada IA. Reação/erros/variação/hesitação 0 e agressividade 0,5 = IA exata do v6.
-    aiRed: {reaction: .16, reactionJitter: .14, mistake: .16, aggression: .45, variation: .45, hesitation: .3, evadeChance: .35, style: 0, adaptation: .55},
+    aiRed: {difficultyTier: 'normal', reaction: .16, reactionJitter: .14, mistake: .16, aggression: .45, variation: .45, hesitation: .3, evadeChance: .35, style: 0, adaptation: .55},
     aiBlue: {reaction: .1, reactionJitter: .12, mistake: .1, aggression: .62, variation: .4, hesitation: .15, evadeChance: .5, style: 0, adaptation: .7},
     cameraExtra: {idleAlignDelay: .85, idleAlignSpeed: 1.5, unlockedTurnMultiplier: 1.2, verticalFollow: 7, flightZoomFactor: .18, flightHeightFactor: .42,
       flightLookFactor: .40, orbitSensitivity: .006, wheelSensitivity: .01, fov: 48, nearClip: .1, farClip: 100, lockTargetBias: .28, lockBiasLimit: 4.7,
