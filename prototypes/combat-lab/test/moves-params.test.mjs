@@ -28,10 +28,10 @@ const sdOf = a => {const m = mean(a);return Math.sqrt(mean(a.map(v => (v - m) **
 
 // ---------- Cobertura: nada que a simulação lê fica sem slider ----------
 const NEW = new Set(['reflect.burstRadius', 'reflect.burstForce', 'reflect.burstDamage', 'reflect.burstPush', 'reflect.burstHurt', 'psyshock.knockbackVertical', 'psyshock.knockbackLevelBonus', 'psyshock.knockbackSpeedFactor', 'reflect.minCharge', 'psyshock.searchStep', 'psyshock.arc', 'psyshock.ringMin', 'psyshock.ringMax', 'psyshock.heightMin', 'psyshock.heightMax', 'psyshock.scaleMin', 'psyshock.scaleMax']);
-const GROUPS = ['charge', 'reflect', 'psyshock', 'beam'];
+const GROUPS = ['charge', 'reflect', 'psyshock', 'beam', 'ai'];
 const rows = new Map(MOVES_PARAMS.flatMap(([, list]) => list).map(r => [`${r[0]}.${r[1]}`, r]));
 /** Chaves da configuração que NENHUM código da simulação ou da visão lê (campos legados): sem leitor, um slider seria controle morto. */
-const UNUSED = new Set(['reflect.supportTolerance', 'psyshock.followInertia']);
+const UNUSED = new Set([]);
 function sourceFiles(dir) {return readdirSync(dir).flatMap(f => {const p = dir + '/' + f;return statSync(p).isDirectory() ? sourceFiles(p) : /\.js$/.test(f) ? [p] : [];});}
 {
   const src = sourceFiles(fileURLToPath(new URL('../src', import.meta.url))).filter(f => !/sim[\/]config\.js$/.test(f)).map(f => readFileSync(f, 'utf8')).join('\n');
@@ -134,6 +134,23 @@ ok('psyshock: limites de knockback até 10 e novos controles (vertical, bônus p
   assert.ok(d2.dmg > d1.dmg * 2, `o dano muda: ${d1.dmg} → ${d2.dmg}`);
 }
 ok('reflect: pulso ao invocar (alcance 0–10 m, força, dano e interruptores de empurrão e dano) altera o resultado real');
+
+{
+  // IA com Moves: os parâmetros da aba Moves mudam as decisões reais do adversário.
+  const starts = cfg => {
+    const g = arena(() => Object.assign(C.world.ai, cfg)), evs = [];
+    g.setLoadout(1, ['reflect', 'psyshock']);g.mode = 'tactical';g.fighters[1].position.z = 6;g.fighters[0].position.z = -6;
+    for (let i = 0; i < 1500; i++) {g.step(cmd(), g.brain.command(g.fighters[1], g.fighters[0], 'tactical', C.test.step));evs.push(...g.lastStepEvents);}
+    return evs.filter(e => e.result === 'chargeStart' && e.attacker === 1 && e.move === 'psyshock').length;
+  };
+  const base = starts({});
+  assert.ok(base > 0, 'padrão: a IA usa o Psyshock de longe (' + base + ')');
+  assert.equal(starts({psyshockMinDistance: 30}), 0, 'distância mínima maior que a arena: nunca usa');
+  assert.equal(starts({psyshockMinStamina: 6}), 0, 'stamina mínima acima do máximo: nunca usa');
+  assert.equal(starts({psyshockChanceMax: 0}), 0, 'chance máxima 0: nunca usa');
+  assert.ok(starts({decisionInterval: 3}) < base || base === 1, 'intervalo maior entre decisões: decide menos vezes');
+}
+ok('IA com Moves: distância mínima, stamina mínima, chance máxima e intervalo de decisão do Psyshock alteram as decisões reais do adversário');
 
 console.log(`
 ${n} verificações dos sliders dos Moves aprovadas.`);

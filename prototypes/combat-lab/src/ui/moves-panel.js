@@ -68,6 +68,21 @@ const PARAMS = [
     ['psyshock', 'counterStagger', 'Counter Stagger', 'Stagger quando uma pedra de PL superior atinge o corpo do derrotado (M21.5).', 0, 1, .01, sec, true],
     ['psyshock', 'radius', 'Raio de colisão da pedra', 'Igual em todas as pedras (o tamanho visual varia sem efeito na física, M30.2).', .05, .5, .01, m, false],
   ]],
+  ['IA com Moves (decisões do adversário)', [
+    ['ai', 'evadeDistance', 'Esquiva emergencial: distância do Tackle rival', 'Durante a carga, se o rival inicia um Tackle a menos desta distância, a IA esquiva cancelando a carga (provisório).', 0, 10, .1, m, false],
+    ['ai', 'pl2Distance', 'Psyshock: distância para carregar até PL2', 'A partir desta distância do alvo a IA segura o Psyshock até o PL2 (provisório).', 0, 15, .1, m, false],
+    ['ai', 'pl3Distance', 'Psyshock: distância para carregar até PL3', 'A partir desta distância do alvo a IA segura o Psyshock até o PL3 (provisório).', 0, 20, .1, m, false],
+    ['ai', 'reflectHold', 'Reflect: tempo mínimo segurando', 'Tempo mínimo que a IA segura o Reflect antes de soltar (provisório).', .5, 4, .05, sec, false],
+    ['ai', 'lastSecondDefend', 'Defesa em cima da hora (janela)', 'Se um projétil chega em menos que isto, a IA solta a carga e defende (provisório).', 0, 1, .01, sec, false],
+    ['ai', 'noTimeDefend', 'Defesa sem tempo para o PL (janela)', 'Sem tempo de carregar um Reflect de PL suficiente, a IA defende se o projétil chega em menos que isto (provisório).', 0, 1, .01, sec, false],
+    ['ai', 'barrierBreakRange', 'Barreira rival: alcance para destruir com Tackle', 'A IA tenta destruir a barreira do adversário com Tackle a menos desta distância (provisório).', 0, 8, .1, m, false],
+    ['ai', 'barrierBreakChance', 'Barreira rival: chance de tentar', 'Probabilidade de a IA investir contra a barreira quando está ao alcance (provisório).', 0, 1, .01, pct, false],
+    ['ai', 'psyshockMinDistance', 'Psyshock ofensivo: distância mínima', 'A IA só usa o Psyshock acima desta distância do alvo (provisório).', 0, 12, .1, m, false],
+    ['ai', 'psyshockMinStamina', 'Psyshock ofensivo: stamina mínima', 'Stamina mínima para a IA iniciar o Psyshock (provisório).', 0, 6, .1, num, false],
+    ['ai', 'psyshockChanceMax', 'Psyshock ofensivo: chance máxima por decisão', 'Teto da probabilidade de usar o Psyshock quando é viável (provisório).', 0, 1, .01, pct, false],
+    ['ai', 'afterChargeWait', 'Pausa depois de uma carga', 'Tempo que a IA espera depois de soltar ou perder uma carga antes de decidir de novo (provisório).', 0, 3, .05, sec, false],
+    ['ai', 'decisionInterval', 'Intervalo entre decisões de Move', 'Tempo mínimo entre duas decisões de Move da IA (provisório).', .1, 3, .05, sec, false],
+  ]],
   ['Laser (emissor técnico)', [
     ['beam', 'length', 'Alcance do feixe', 'Comprimento total somando os segmentos refletidos (provisório).', 4, 40, 1, m, false],
     ['beam', 'maxSegments', 'Segmentos máximos', 'Salvaguarda contra reflexões em cadeia (M17.2); acima disso o feixe para e avisa uma vez.', 1, 16, 1, int, false],
@@ -98,7 +113,7 @@ const saveHomolog = h => {try {localStorage.setItem(HOMOLOG_KEY, JSON.stringify(
 
 export function createMovesPanel({$, game, download, tuning, view, ui}) {
   const root = $('moves-panel');
-  let results = null, homolog = loadHomolog();
+  let results = null, homolog = loadHomolog(), subscribed = false;
   const equipped = id => ({reflect: game.fighters[id]?.loadout?.includes('reflect'), psyshock: game.fighters[id]?.loadout?.includes('psyshock')});
   function setEquip(id, kind, on) {
     const cur = equipped(id);cur[kind] = on;
@@ -403,12 +418,13 @@ export function createMovesPanel({$, game, download, tuning, view, ui}) {
         }
       };
     }
-    tuning?.onChange?.(() => {
+    if (!subscribed && tuning?.onChange) {subscribed = true;tuning.onChange(() => {
+      if (!root.querySelector('[data-p]:active')) render();
       const activeVar = C.vfx.hit?.variant ?? 0;
       for (const x of root.querySelectorAll('[data-moves-vfx]')) {
         x.setAttribute('aria-pressed', String(Number(x.dataset.movesVfx) === activeVar));
       }
-    });
+    });}
     
     for (const c of root.querySelectorAll('[data-equip]')) c.onchange = () => {const [id, kind] = c.dataset.equip.split('.');setEquip(Number(id), kind, c.checked);};
     for (const b of root.querySelectorAll('[data-laser]')) b.onclick = () => {const k = b.dataset.laser;(k === 'sweep' ? emitLaser(1, .8) : emitLaser(Number(k)));};
@@ -416,12 +432,18 @@ export function createMovesPanel({$, game, download, tuning, view, ui}) {
     for (const b of root.querySelectorAll('[data-emit]')) b.onclick = () => {const k = b.dataset.emit;(k === 'boom' ? emitExplosion() : emitProjectile(Number(k)));};
     $('mvp-run').onclick = () => {results = runMoveScenarios();render();};
     $('mvp-export').onclick = () => results && download(JSON.stringify({schema: 'arenamon-lab-report', version: 1, kind: 'moves-scenarios', createdAt: new Date().toISOString(), step: C.test.step, scenarios: results, homologation: MOVES_HOMOLOG.map((t, i) => ({item: t, verdict: homolog[i]?.v || 'pendente', note: homolog[i]?.n || ''}))}, null, 1), 'arenamon-cenarios-moves.json');
-    for (const inp of root.querySelectorAll('[data-p]')) inp.oninput = () => {
-      const [g, k] = inp.dataset.p.split('.'), spec = PARAMS.flatMap(p => p[1]).find(s => s[0] === g && s[1] === k), v = inp.type === 'checkbox' ? (inp.checked ? 1 : 0) : Number(inp.value);
-      C.world[g][k] = v;root.querySelector(`[data-o="${inp.dataset.p}"]`).textContent = spec[7](v);root.querySelector(`[data-reset="${inp.dataset.p}"]`).disabled = v === defaults().world[g][k];
-    };
-    for (const b of root.querySelectorAll('[data-reset]')) b.onclick = () => {const [g, k] = b.dataset.reset.split('.');C.world[g][k] = defaults().world[g][k];render();};
-    $('mvp-reset-all').onclick = () => {for (const g of ['charge', 'reflect', 'psyshock', 'beam']) Object.assign(C.world[g], defaults().world[g]);render();};
+    // Parâmetros dos Moves: arrastar mostra o valor ao vivo e, ao soltar, entra UMA entrada no histórico do ajustador (Ctrl+Z / Ctrl+Y).
+    const before = new Map(), label = path => PARAMS.flatMap(p => p[1]).find(r => r[0] + '.' + r[1] === path)?.[2] ?? path;
+    const show = (inp, v) => {const [g, k] = inp.dataset.p.split('.'), spec = PARAMS.flatMap(p => p[1]).find(r => r[0] === g && r[1] === k);root.querySelector(`[data-o="${inp.dataset.p}"]`).textContent = spec[7](v);root.querySelector(`[data-reset="${inp.dataset.p}"]`).disabled = v === defaults().world[g][k];};
+    const commit = (changes, text) => tuning ? tuning.commit(changes, text) : changes.forEach(([p, , v]) => {const [g, k] = p.replace(/^world\./, '').split('.');C.world[g][k] = v;});
+    for (const inp of root.querySelectorAll('[data-p]')) {
+      const [g, k] = inp.dataset.p.split('.'), path = `world.${g}.${k}`;
+      if (inp.type === 'checkbox') {inp.onchange = () => {commit([[path, inp.checked ? 1 : 0]], label(inp.dataset.p));render();};continue;}
+      inp.oninput = () => {const v = Number(inp.value);if (!before.has(path)) before.set(path, C.world[g][k]);C.world[g][k] = v;show(inp, v);};
+      inp.onchange = () => {const after = C.world[g][k], was = before.get(path);before.delete(path);if (was !== undefined && was !== after) {C.world[g][k] = was;commit([[path, after]], label(inp.dataset.p));}render();};
+    }
+    for (const b of root.querySelectorAll('[data-reset]')) b.onclick = () => {const [g, k] = b.dataset.reset.split('.');commit([[`world.${g}.${k}`, defaults().world[g][k]]], 'Restaurar ' + label(b.dataset.reset));render();};
+    $('mvp-reset-all').onclick = () => {const ch = [];for (const g of ['charge', 'reflect', 'psyshock', 'beam', 'ai']) for (const [k, v] of Object.entries(defaults().world[g])) if (C.world[g][k] !== v) ch.push([`world.${g}.${k}`, v]);commit(ch, 'Restaurar os parâmetros dos Moves');render();};
   }
   return {render, emitProjectile, emitLaser, emitExplosion, setEquip, get results() {return results;}, STANDARD};
 }

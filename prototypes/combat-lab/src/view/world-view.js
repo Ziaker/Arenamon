@@ -395,8 +395,9 @@ export class WorldView {
     const motionScale = isReduceMotion ? 0.25 : 1.0;
     const count = isReduceMotion ? 6 : (C.vfx?.rock?.shatterCount ?? 14);
     const nx = normal?.x ?? 0, nz = normal?.z ?? 0;
+    const rc = C.vfx?.rock ?? {}, spdK = rc.shatterSpeed ?? 1, lifeK = rc.shatterLife ?? 1, sizeK = rc.shatterSize ?? 1;
     for (let i = 0; i < count; i++) {
-      const geo = new T.DodecahedronGeometry(0.08 + Math.random() * 0.08, 0);
+      const geo = new T.DodecahedronGeometry((0.08 + Math.random() * 0.08) * sizeK, 0);
       const isGlowing = Math.random() < 0.45;
       const mat = new T.MeshBasicMaterial({
         color: isGlowing ? color : 0x3a424e,
@@ -409,12 +410,12 @@ export class WorldView {
       this.group.add(mesh);
 
       const angle = Math.random() * Math.PI * 2;
-      const speed = (2.5 + Math.random() * 5.5) * motionScale;
-      const up = (1.5 + Math.random() * 5.0) * motionScale;
+      const speed = (2.5 + Math.random() * 5.5) * motionScale * spdK;
+      const up = (1.5 + Math.random() * 5.0) * motionScale * spdK;
       this.particles.push({
         mesh,
         age: 0,
-        life: 0.42 + Math.random() * 0.22,
+        life: (0.42 + Math.random() * 0.22) * lifeK,
         vel: {
           x: Math.cos(angle) * speed + nx * 2.5 * motionScale,
           y: up,
@@ -431,20 +432,21 @@ export class WorldView {
     const isReduceMotion = !!(this.accessibility?.reduceMotion || C.vfx.master?.reduceMotion || C.vfx.laser?.reduceMotion);
     const motionScale = isReduceMotion ? 0.25 : 1.0;
     const count = isReduceMotion ? 8 : (C.vfx?.barrier?.shatterFragments ?? 20);
+    const bc = C.vfx?.barrier ?? {}, spdK = bc.shatterSpeed ?? 1, lifeK = bc.shatterLife ?? 1, sizeK = bc.shatterSize ?? 1;
     for (let i = 0; i < count; i++) {
-      const geo = new T.BoxGeometry(0.12 + Math.random() * 0.15, 0.12 + Math.random() * 0.15, 0.02);
+      const geo = new T.BoxGeometry((0.12 + Math.random() * 0.15) * sizeK, (0.12 + Math.random() * 0.15) * sizeK, 0.02);
       const mat = new T.MeshBasicMaterial({color, transparent: true, opacity: 0.85, side: T.DoubleSide, depthWrite: false});
       const mesh = new T.Mesh(geo, mat);
       mesh.position.set(x + (Math.random() - 0.5) * 1.5, y + (Math.random() - 0.5) * 1.2, z + (Math.random() - 0.5) * 0.2);
       this.group.add(mesh);
 
       const angle = Math.random() * Math.PI * 2;
-      const speed = (2.0 + Math.random() * 4.5) * motionScale;
+      const speed = (2.0 + Math.random() * 4.5) * motionScale * spdK;
       this.particles.push({
         mesh,
         age: 0,
-        life: 0.5 + Math.random() * 0.25,
-        vel: {x: Math.cos(angle) * speed, y: (1.0 + Math.random() * 4.0) * motionScale, z: Math.sin(angle) * speed},
+        life: (0.5 + Math.random() * 0.25) * lifeK,
+        vel: {x: Math.cos(angle) * speed, y: (1.0 + Math.random() * 4.0) * motionScale * spdK, z: Math.sin(angle) * speed},
         rotVel: {x: (Math.random() - 0.5) * 18 * motionScale, y: (Math.random() - 0.5) * 18 * motionScale, z: (Math.random() - 0.5) * 18 * motionScale},
         startScale: 1.0,
       });
