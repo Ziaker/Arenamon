@@ -152,28 +152,38 @@ export function createVisualPanel({tuning, view, game, $, hud, download}) {
       </div>
   `);
     root.append(renderModeBox);
-    // ---------- VFX 3D sólidos: malhas com volume real, seletor por família com prévia ----------
+    // ---------- VFX 3D sólidos: malhas com volume real; por família: estilo, prévias, comparação e sliders ----------
     const solidBox = document.createElement('div');solidBox.className = 'vfx-solid-box';solidBox.dataset.solidBox = '1';
     solidBox.style.cssText = 'background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.14);border-radius:6px;padding:10px 12px;margin:0 0 14px;';
+    const SOLID_SLIDERS = ['intensity', 'amount', 'size', 'duration', 'velocity', 'scatter', 'lift', 'turbulence', 'opacity'];
     solidBox.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:6px;"><span style="font-weight:600;font-size:.95rem;">Efeitos 3D sólidos (malhas com volume, giram com a câmera)</span>
         <label style="display:inline-flex;align-items:center;gap:4px;font-size:.85rem;"><input type="checkbox" data-solid-master ${C.vfx.solid?.enabled ? 'checked' : ''}> Ligados</label></div>
-      <p class="hint" style="margin:0 0 8px;">Funcionam com os dois renderizadores. A opção marcada é exatamente a aplicada em partida; clicar já mostra a prévia. Ctrl+Z desfaz a escolha.</p>` +
+      <p class="hint" style="margin:0 0 8px;">Funcionam com os dois renderizadores. O estilo marcado é exatamente o usado na luta; clicar já mostra a prévia. Poeira e vento têm estilo, intensidade e cores independentes (use os dois juntos). Ctrl+Z desfaz; presets e exportação incluem tudo.</p>
+      <div class="row" data-solid-combo style="margin-bottom:6px;"><b style="font-size:.85rem;">Poeira + vento juntos:</b>${[['dash', 'Dash'], ['start', 'Arrancada'], ['run', 'Corrida'], ['turn', 'Curva'], ['stop', 'Parada']].map(([w, l]) => `<button type="button" data-solid-combo-prev="${w}">▶ ${l}</button>`).join('')}</div>
+      <div class="row" style="margin-bottom:6px;"><span class="muted" style="font-size:.8rem;">Limite de objetos e qualidade:</span><span data-solid-global></span></div>` +
       SOLID_FAMILIES.map(f => `<div data-solid-family="${f.key}" style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.08);">
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;"><b style="font-size:.9rem;">${escape(f.label)}</b><span class="muted" style="font-size:.8rem;">Dispara em: ${escape(f.trigger)}</span>
           <label style="display:inline-flex;align-items:center;gap:4px;font-size:.8rem;"><input type="checkbox" data-solid-on="${f.key}" ${C.vfx[f.key]?.enabled ? 'checked' : ''}> ligado</label>
-          ${f.key === 'solidDust' ? '<button type="button" data-solid-prev="solidDust:dash">▶ Dash</button><button type="button" data-solid-prev="solidDust:start">▶ Arrancada</button><button type="button" data-solid-prev="solidDust:stop">▶ Parada</button><button type="button" data-solid-prev="solidDust:compare">▶ Comparar as 4</button>' : `<button type="button" data-solid-prev="${f.key}:dash">▶ Prévia</button>`}</div>
-        <div class="seg" role="group" aria-label="${escape(f.label)}" style="flex-wrap:wrap;">${f.names.map((n, v) => `<button type="button" data-solid-variant="${f.key}:${v}" aria-pressed="${(C.vfx[f.key]?.variant | 0) === v}" title="${escape(n)}">${escape(n)}</button>`).join('')}</div></div>`).join('');
+          ${f.previews ? f.previews.map(([w, l]) => `<button type="button" data-solid-prev="${f.key}:${w}">▶ ${l}</button>`).join('') + `<button type="button" data-solid-prev="${f.key}:compare" title="Todos os estilos lado a lado, no mesmo movimento">▶ Comparar os ${f.names.length}</button>` : `<button type="button" data-solid-prev="${f.key}:dash">▶ Prévia</button>`}</div>
+        <div class="seg" role="group" aria-label="${escape(f.label)}" style="flex-wrap:wrap;">${f.names.map((n, v) => `<button type="button" data-solid-variant="${f.key}:${v}" aria-pressed="${(C.vfx[f.key]?.variant | 0) === v}" title="${escape(n)}">${escape(n)}</button>`).join('')}</div>
+        <details data-solid-sliders="${f.key}" style="margin-top:4px;"><summary class="muted" style="cursor:pointer;font-size:.8rem;">Ajustes finos (quantidade, tamanho, duração, velocidade, dispersão, altura, turbulência, opacidade, cores)</summary><div data-solid-rows></div></details></div>`).join('');
     root.append(solidBox);
+    for (const f of SOLID_FAMILIES) {
+      const rows = solidBox.querySelector(`[data-solid-sliders="${f.key}"] [data-solid-rows]`);
+      for (const p of [...SOLID_SLIDERS, 'color', ...(f.colors > 1 ? ['color2'] : [])]) rows.append(tuning.controlFor(`vfx.${f.key}.${p}`));
+    }
+    const globalRow = solidBox.querySelector('[data-solid-global]');for (const p of ['vfx.solid.maxObjects', 'vfx.solid.quality']) globalRow.append(tuning.controlFor(p));
     const solidPreview = (key, what = 'dash') => {
       const fx = view.solid;if (!fx) return;
-      if (key === 'solidDust' && what === 'compare') fx.compareDust(game.fighters, 'dash');else fx.preview(key, game.fighters, what);
+      if (what === 'compare') fx.compare(key, game.fighters, key.startsWith('solidRun') ? 'run' : 'dash');else fx.preview(key, game.fighters, what);
     };
     for (const b of solidBox.querySelectorAll('[data-solid-variant]')) b.onclick = () => {
       const [key, v] = b.dataset.solidVariant.split(':'), fam = SOLID_FAMILIES.find(f => f.key === key);
       tuning.commit([[`vfx.${key}.variant`, Number(v)]], `${fam.label}: ${fam.names[Number(v)].split(':')[0]}`);
-      solidPreview(key);
+      solidPreview(key, fam.previews ? (key.startsWith('solidRun') ? 'run' : 'dash') : 'dash');
     };
     for (const b of solidBox.querySelectorAll('[data-solid-prev]')) b.onclick = () => {const [key, what] = b.dataset.solidPrev.split(':');solidPreview(key, what);};
+    for (const b of solidBox.querySelectorAll('[data-solid-combo-prev]')) b.onclick = () => view.solid?.preview('all', game.fighters, b.dataset.solidComboPrev);
     for (const c of solidBox.querySelectorAll('[data-solid-on]')) c.onchange = () => tuning.commit([[`vfx.${c.dataset.solidOn}.enabled`, c.checked ? 1 : 0]], 'Efeito 3D ' + c.dataset.solidOn);
     solidBox.querySelector('[data-solid-master]').onchange = e => tuning.commit([['vfx.solid.enabled', e.target.checked ? 1 : 0]], 'Efeitos 3D sólidos');
     const updateVfxModeButtons = () => {

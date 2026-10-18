@@ -13,9 +13,9 @@ const fighter = (x = 0, z = 0, extra = {}) => ({id: 0, position: {x, y: 0, z}, s
 const sig = fx => [...new Set(fx.all.map(p => p.shape + ':' + p.mat))].sort().join(',');
 const run = (fx, seconds, dt = 1 / 60) => { for (let t = 0; t < seconds; t += dt) fx.update([], [], dt); };
 
-test('configuração: seis famílias 3D com variante, nomes descritivos e padrões coerentes', () => {
-  assert.equal(SOLID_FAMILIES.length, 6);
-  assert.equal(SOLID_FAMILIES.find(f => f.key === 'solidDust').names.length, 4, 'poeira tem 4 opções');
+test('configuração: nove famílias 3D com variante, nomes descritivos e padrões coerentes', () => {
+  assert.equal(SOLID_FAMILIES.length, 9);
+  assert.equal(SOLID_FAMILIES.find(f => f.key === 'solidDust').names.length, 8, 'poeira tem 4 entregues + 4 novas');
   for (const f of SOLID_FAMILIES) {
     assert.ok(C.vfx[f.key], f.key); assert.equal(C.vfx[f.key].variant, 0);
     for (const n of f.names) assert.ok(n.length > 25 && /:/.test(n), 'o nome explica a aparência: ' + n);
@@ -85,17 +85,18 @@ test('intensidade: dash mais rápido gera mais e mais forte; arrancada, dash e p
   }
 });
 
-test('desaparecem suavemente: a escala cai a zero antes do fim e tudo volta ao pool', () => {
-  C.vfx.solidDust.variant = 0; const fx = mk(); fx.dust(fighter(), {dir: {x: 0, z: 1}, speed: 9, t: 0}, 'start', 0);
-  const total = fx.all.length, longest = Math.max(...fx.all.map(p => p.life));
-  let prev = Infinity, shrinking = false;
-  for (let t = 0; t < longest + .1; t += 1 / 60) {
+test('desaparecem suavemente: escala e opacidade caem a zero antes do fim e tudo volta ao pool', () => {
+  const fx = mk(); fx.spawn({shape: 'chunk', mat: 'lit', x: 0, y: 1, z: 0, s: .3, life: 1, hold: .4});
+  let prevS = Infinity, prevA = Infinity, last = null;
+  for (let t = 0; t < .98; t += 1 / 60) {
     fx.update([], [], 1 / 60);
-    const m = [...fx.meshes.values()][0]; const e = new T.Matrix4(), pos = new T.Vector3(), q = new T.Quaternion(), sc = new T.Vector3();
-    if (m.count) { m.getMatrixAt(0, e); e.decompose(pos, q, sc); if (t > longest * .8) { assert.ok(sc.x <= prev + 1e-6); shrinking = true; } prev = sc.x; }
+    const m = [...fx.meshes.values()][0], e = new T.Matrix4(), pos = new T.Vector3(), q = new T.Quaternion(), sc = new T.Vector3();
+    m.getMatrixAt(0, e); e.decompose(pos, q, sc); const al = m.geometry.attributes.instanceAlpha.array[0];
+    if (t > .45) { assert.ok(sc.x <= prevS + 1e-9, 'escala só diminui'); assert.ok(al <= prevA + 1e-9, 'opacidade só diminui'); }
+    prevS = sc.x; prevA = al; last = {s: sc.x, a: al};
   }
-  assert.ok(shrinking); assert.equal(fx.all.length, 0); assert.equal(fx.free.length, 512, 'pool devolvido');
-  assert.ok(total > 4);
+  assert.ok(last.s < .06 && last.a < .15, JSON.stringify(last));
+  run(fx, .1); assert.equal(fx.all.length, 0); assert.equal(fx.free.length, 512, 'pool devolvido');
 });
 
 test('desempenho: teto de objetos ativos, geometrias/materiais reutilizados, sem crescimento', () => {
@@ -110,7 +111,7 @@ test('desempenho: teto de objetos ativos, geometrias/materiais reutilizados, sem
 
 test('outras famílias 3D: cada opção dispara, é diferente das irmãs, sem NaN', () => {
   const ctx = {pos: {x: 1, z: 2}, n: {x: 0, z: 1}, dir: {x: 0, z: 1}, power: 1.2};
-  for (const f of SOLID_FAMILIES.filter(f => f.key !== 'solidDust')) {
+  for (const f of SOLID_FAMILIES.filter(f => ['solidDodge', 'solidLanding', 'solidImpact', 'solidBlock', 'solidClash'].includes(f.key))) {
     const sigs = [];
     for (let v = 0; v < f.names.length; v++) {
       C.vfx[f.key].variant = v; const fx = mk(); fx.fire(f.key, ctx, 'teste');
@@ -151,20 +152,20 @@ test('seletor: escolher, desfazer e refazer mantém C.vfx igual ao que dispara',
   const tuning = createMockTuningFor(C);
   for (const f of SOLID_FAMILIES) {
     const last = f.names.length - 1; tuning.commit([[`vfx.${f.key}.variant`, last]], f.label);
-    const fx = mk(); fx.preview(f.key, [fighter(0, 0), fighter(2, 2, {id: 1})]);
+    const fx = mk(); fx.preview(f.key, [fighter(0, 0), fighter(2, 2, {id: 1})], f.previews ? 'run' : 'dash'); run(fx, .5);
     assert.ok(fx.log.some(l => l.effect === f.key && l.variant === last), `${f.key}: disparou a opção exibida (${last})`);
     tuning.undo(); assert.equal(C.vfx[f.key].variant, 0);
-    const fx2 = mk(); fx2.preview(f.key, [fighter(0, 0), fighter(2, 2, {id: 1})]); assert.ok(fx2.log.every(l => l.variant === 0), `${f.key}: após desfazer dispara a opção 0`);
+    const fx2 = mk(); fx2.preview(f.key, [fighter(0, 0), fighter(2, 2, {id: 1})], f.previews ? 'run' : 'dash'); run(fx2, .5); assert.ok(fx2.log.every(l => l.variant === 0), `${f.key}: após desfazer dispara a opção 0`);
     tuning.redo(); assert.equal(C.vfx[f.key].variant, last);
-    const fx3 = mk(); fx3.preview(f.key, [fighter(0, 0), fighter(2, 2, {id: 1})]); assert.ok(fx3.log.some(l => l.variant === last), `${f.key}: após refazer dispara a opção ${last}`);
+    const fx3 = mk(); fx3.preview(f.key, [fighter(0, 0), fighter(2, 2, {id: 1})], f.previews ? 'run' : 'dash'); run(fx3, .5); assert.ok(fx3.log.some(l => l.variant === last), `${f.key}: após refazer dispara a opção ${last}`);
   }
 });
 
-test('comparação: compareDust cria as quatro faixas, uma por opção, lado a lado', () => {
+test('comparação: compareDust cria as oito faixas, uma por opção, lado a lado', () => {
   const fx = mk(); fx.compareDust([fighter(0, 0), fighter(4, 0, {id: 1})]);
   for (let k = 1; k <= 25; k++) fx.update([], [], 1 / 30);
   const ids = Object.keys(fx.stats.byVariant).filter(k => k.startsWith('solidDust:')).sort();
-  assert.deepEqual(ids, ['solidDust:0', 'solidDust:1', 'solidDust:2', 'solidDust:3']);
+  assert.deepEqual(ids, Array.from({length: 8}, (_, v) => 'solidDust:' + v));
 });
 
 test('defaults: vfxDefaults() inclui as famílias 3D e é independente da cópia viva', () => {

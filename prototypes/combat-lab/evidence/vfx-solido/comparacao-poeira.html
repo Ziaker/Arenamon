@@ -1,67 +1,192 @@
-<!doctype html><meta charset="utf-8"><title>Poeira do dash — comparação 3D</title><style>body{font:14px system-ui;background:#10151c;color:#e6edf3;margin:16px}h1,h2{font-weight:600}table{border-collapse:collapse}td,th{border:1px solid #2b3642;padding:4px;vertical-align:top}img{width:420px;display:block}.n{max-width:420px;color:#9fb0c0;font-size:12px}</style>
-<h1>Poeira do dash — quatro estilos em 3D</h1><p>Cada coluna é um ângulo de câmera diferente do mesmo dash (instante ≈ 0,4 s). Todas as partículas são malhas com volume (tetraedros, icosaedros irregulares, caixas, prismas e toroides), sem sprites.</p>
-<table><tr><th></th><th>Frente</th><th>Lado</th><th>Alto</th></tr><tr><th>A · Poeira compacta — torrões e grãos lançados para trás</th><td><img src="poeira-A-compacta-frente.png" alt="A · Poeira compacta — torrões e grãos lançados para trás (frente)"></td><td><img src="poeira-A-compacta-lado.png" alt="A · Poeira compacta — torrões e grãos lançados para trás (lado)"></td><td><img src="poeira-A-compacta-alto.png" alt="A · Poeira compacta — torrões e grãos lançados para trás (alto)"></td></tr><tr><th>B · Rastro turbulento — volumes que giram e se dispersam</th><td><img src="poeira-B-turbulenta-frente.png" alt="B · Rastro turbulento — volumes que giram e se dispersam (frente)"></td><td><img src="poeira-B-turbulenta-lado.png" alt="B · Rastro turbulento — volumes que giram e se dispersam (lado)"></td><td><img src="poeira-B-turbulenta-alto.png" alt="B · Rastro turbulento — volumes que giram e se dispersam (alto)"></td></tr><tr><th>C · Impacto pesado — blocos grandes no início, depois grãos</th><td><img src="poeira-C-pesada-frente.png" alt="C · Impacto pesado — blocos grandes no início, depois grãos (frente)"></td><td><img src="poeira-C-pesada-lado.png" alt="C · Impacto pesado — blocos grandes no início, depois grãos (lado)"></td><td><img src="poeira-C-pesada-alto.png" alt="C · Impacto pesado — blocos grandes no início, depois grãos (alto)"></td></tr><tr><th>D · Energético — cacos geométricos e onda baixa</th><td><img src="poeira-D-energetica-frente.png" alt="D · Energético — cacos geométricos e onda baixa (frente)"></td><td><img src="poeira-D-energetica-lado.png" alt="D · Energético — cacos geométricos e onda baixa (lado)"></td><td><img src="poeira-D-energetica-alto.png" alt="D · Energético — cacos geométricos e onda baixa (alto)"></td></tr></table>
-<h2>Esquiva, aterrissagem, impacto, bloqueio e colisão</h2><table><tr><th>Efeito</th><th>Opção</th><th>Frente</th><th>Lado</th></tr><tr><td>esquiva</td><td>A</td><td><img src="esquiva-A-frente.png" alt="esquiva A frente" style="width:340px"></td><td><img src="esquiva-A-lado.png" alt="esquiva A lado" style="width:340px"></td></tr><tr><td>esquiva</td><td>B</td><td><img src="esquiva-B-frente.png" alt="esquiva B frente" style="width:340px"></td><td><img src="esquiva-B-lado.png" alt="esquiva B lado" style="width:340px"></td></tr><tr><td>esquiva</td><td>C</td><td><img src="esquiva-C-frente.png" alt="esquiva C frente" style="width:340px"></td><td><img src="esquiva-C-lado.png" alt="esquiva C lado" style="width:340px"></td></tr><tr><td>aterrissagem</td><td>A</td><td><img src="aterrissagem-A-frente.png" alt="aterrissagem A frente" style="width:340px"></td><td><img src="aterrissagem-A-lado.png" alt="aterrissagem A lado" style="width:340px"></td></tr><tr><td>aterrissagem</td><td>B</td><td><img src="aterrissagem-B-frente.png" alt="aterrissagem B frente" style="width:340px"></td><td><img src="aterrissagem-B-lado.png" alt="aterrissagem B lado" style="width:340px"></td></tr><tr><td>aterrissagem</td><td>C</td><td><img src="aterrissagem-C-frente.png" alt="aterrissagem C frente" style="width:340px"></td><td><img src="aterrissagem-C-lado.png" alt="aterrissagem C lado" style="width:340px"></td></tr><tr><td>impacto</td><td>A</td><td><img src="impacto-A-frente.png" alt="impacto A frente" style="width:340px"></td><td><img src="impacto-A-lado.png" alt="impacto A lado" style="width:340px"></td></tr><tr><td>impacto</td><td>B</td><td><img src="impacto-B-frente.png" alt="impacto B frente" style="width:340px"></td><td><img src="impacto-B-lado.png" alt="impacto B lado" style="width:340px"></td></tr><tr><td>impacto</td><td>C</td><td><img src="impacto-C-frente.png" alt="impacto C frente" style="width:340px"></td><td><img src="impacto-C-lado.png" alt="impacto C lado" style="width:340px"></td></tr><tr><td>bloqueio</td><td>A</td><td><img src="bloqueio-A-frente.png" alt="bloqueio A frente" style="width:340px"></td><td><img src="bloqueio-A-lado.png" alt="bloqueio A lado" style="width:340px"></td></tr><tr><td>bloqueio</td><td>B</td><td><img src="bloqueio-B-frente.png" alt="bloqueio B frente" style="width:340px"></td><td><img src="bloqueio-B-lado.png" alt="bloqueio B lado" style="width:340px"></td></tr><tr><td>bloqueio</td><td>C</td><td><img src="bloqueio-C-frente.png" alt="bloqueio C frente" style="width:340px"></td><td><img src="bloqueio-C-lado.png" alt="bloqueio C lado" style="width:340px"></td></tr><tr><td>colisao</td><td>A</td><td><img src="colisao-A-frente.png" alt="colisao A frente" style="width:340px"></td><td><img src="colisao-A-lado.png" alt="colisao A lado" style="width:340px"></td></tr><tr><td>colisao</td><td>B</td><td><img src="colisao-B-frente.png" alt="colisao B frente" style="width:340px"></td><td><img src="colisao-B-lado.png" alt="colisao B lado" style="width:340px"></td></tr><tr><td>colisao</td><td>C</td><td><img src="colisao-C-frente.png" alt="colisao C frente" style="width:340px"></td><td><img src="colisao-C-lado.png" alt="colisao C lado" style="width:340px"></td></tr></table>
+<!doctype html><meta charset="utf-8"><title>VFX de movimento 3D — comparação</title><style>body{font:14px system-ui;background:#10151c;color:#e6edf3;margin:16px}h1,h2{font-weight:600}table{border-collapse:collapse;margin-bottom:18px}td,th{border:1px solid #2b3642;padding:4px;vertical-align:top;text-align:left;max-width:260px}img{display:block}video{width:520px;margin:4px}</style>
+<h1>Poeira e vento 3D — dash, esquiva e corrida</h1><p>Malhas com volume real (icosaedros deformados, faixas extrudadas, meios-toros, tubos afilados), sem sprites. Clipes: cada faixa é uma opção do mesmo movimento.</p>
+<h2>Poeira do dash (8 estilos)</h2><table><tr><th>Estilo</th><th>Frente</th><th>Lado</th><th>Alto</th></tr><tr><th>A · compacta</th><td><img src="poeira-dash-A-compacta-frente.png" alt="poeira-dash-A-compacta-frente.png" style="width:300px" loading="lazy"></td><td><img src="poeira-dash-A-compacta-lado.png" alt="poeira-dash-A-compacta-lado.png" style="width:300px" loading="lazy"></td><td><img src="poeira-dash-A-compacta-alto.png" alt="poeira-dash-A-compacta-alto.png" style="width:300px" loading="lazy"></td></tr><tr><th>B · turbulenta</th><td><img src="poeira-dash-B-turbulenta-frente.png" alt="poeira-dash-B-turbulenta-frente.png" style="width:300px" loading="lazy"></td><td><img src="poeira-dash-B-turbulenta-lado.png" alt="poeira-dash-B-turbulenta-lado.png" style="width:300px" loading="lazy"></td><td><img src="poeira-dash-B-turbulenta-alto.png" alt="poeira-dash-B-turbulenta-alto.png" style="width:300px" loading="lazy"></td></tr><tr><th>C · impacto pesado</th><td><img src="poeira-dash-C-pesada-frente.png" alt="poeira-dash-C-pesada-frente.png" style="width:300px" loading="lazy"></td><td><img src="poeira-dash-C-pesada-lado.png" alt="poeira-dash-C-pesada-lado.png" style="width:300px" loading="lazy"></td><td><img src="poeira-dash-C-pesada-alto.png" alt="poeira-dash-C-pesada-alto.png" style="width:300px" loading="lazy"></td></tr><tr><th>D · energética</th><td><img src="poeira-dash-D-energetica-frente.png" alt="poeira-dash-D-energetica-frente.png" style="width:300px" loading="lazy"></td><td><img src="poeira-dash-D-energetica-lado.png" alt="poeira-dash-D-energetica-lado.png" style="width:300px" loading="lazy"></td><td><img src="poeira-dash-D-energetica-alto.png" alt="poeira-dash-D-energetica-alto.png" style="width:300px" loading="lazy"></td></tr><tr><th>E · ondas em camadas</th><td><img src="poeira-dash-E-camadas-frente.png" alt="poeira-dash-E-camadas-frente.png" style="width:300px" loading="lazy"></td><td><img src="poeira-dash-E-camadas-lado.png" alt="poeira-dash-E-camadas-lado.png" style="width:300px" loading="lazy"></td><td><img src="poeira-dash-E-camadas-alto.png" alt="poeira-dash-E-camadas-alto.png" style="width:300px" loading="lazy"></td></tr><tr><th>F · nuvem rolante</th><td><img src="poeira-dash-F-rolante-frente.png" alt="poeira-dash-F-rolante-frente.png" style="width:300px" loading="lazy"></td><td><img src="poeira-dash-F-rolante-lado.png" alt="poeira-dash-F-rolante-lado.png" style="width:300px" loading="lazy"></td><td><img src="poeira-dash-F-rolante-alto.png" alt="poeira-dash-F-rolante-alto.png" style="width:300px" loading="lazy"></td></tr><tr><th>G · anel de nuvem</th><td><img src="poeira-dash-G-anel-frente.png" alt="poeira-dash-G-anel-frente.png" style="width:300px" loading="lazy"></td><td><img src="poeira-dash-G-anel-lado.png" alt="poeira-dash-G-anel-lado.png" style="width:300px" loading="lazy"></td><td><img src="poeira-dash-G-anel-alto.png" alt="poeira-dash-G-anel-alto.png" style="width:300px" loading="lazy"></td></tr><tr><th>H · coluna em espiral</th><td><img src="poeira-dash-H-espiral-frente.png" alt="poeira-dash-H-espiral-frente.png" style="width:300px" loading="lazy"></td><td><img src="poeira-dash-H-espiral-lado.png" alt="poeira-dash-H-espiral-lado.png" style="width:300px" loading="lazy"></td><td><img src="poeira-dash-H-espiral-alto.png" alt="poeira-dash-H-espiral-alto.png" style="width:300px" loading="lazy"></td></tr></table>
+<h2>Vento do dash (4 estilos)</h2><table><tr><th>Estilo</th><th>Frente</th><th>Lado</th><th>Alto</th></tr><tr><th>A · fitas em S</th><td><img src="vento-dash-A-fitas-frente.png" alt="vento-dash-A-fitas-frente.png" style="width:300px" loading="lazy"></td><td><img src="vento-dash-A-fitas-lado.png" alt="vento-dash-A-fitas-lado.png" style="width:300px" loading="lazy"></td><td><img src="vento-dash-A-fitas-alto.png" alt="vento-dash-A-fitas-alto.png" style="width:300px" loading="lazy"></td></tr><tr><th>B · espirais</th><td><img src="vento-dash-B-espirais-frente.png" alt="vento-dash-B-espirais-frente.png" style="width:300px" loading="lazy"></td><td><img src="vento-dash-B-espirais-lado.png" alt="vento-dash-B-espirais-lado.png" style="width:300px" loading="lazy"></td><td><img src="vento-dash-B-espirais-alto.png" alt="vento-dash-B-espirais-alto.png" style="width:300px" loading="lazy"></td></tr><tr><th>C · ganchos rentes ao chão</th><td><img src="vento-dash-C-ganchos-frente.png" alt="vento-dash-C-ganchos-frente.png" style="width:300px" loading="lazy"></td><td><img src="vento-dash-C-ganchos-lado.png" alt="vento-dash-C-ganchos-lado.png" style="width:300px" loading="lazy"></td><td><img src="vento-dash-C-ganchos-alto.png" alt="vento-dash-C-ganchos-alto.png" style="width:300px" loading="lazy"></td></tr><tr><th>D · cunha de rajadas</th><td><img src="vento-dash-D-cunha-frente.png" alt="vento-dash-D-cunha-frente.png" style="width:300px" loading="lazy"></td><td><img src="vento-dash-D-cunha-lado.png" alt="vento-dash-D-cunha-lado.png" style="width:300px" loading="lazy"></td><td><img src="vento-dash-D-cunha-alto.png" alt="vento-dash-D-cunha-alto.png" style="width:300px" loading="lazy"></td></tr></table>
+<h2>Poeira da corrida (3 estilos)</h2><table><tr><th>Estilo</th><th>Frente</th><th>Lado</th><th>Alto</th></tr><tr><th>A · pegadas</th><td><img src="poeira-corrida-A-pegadas-frente.png" alt="poeira-corrida-A-pegadas-frente.png" style="width:300px" loading="lazy"></td><td><img src="poeira-corrida-A-pegadas-lado.png" alt="poeira-corrida-A-pegadas-lado.png" style="width:300px" loading="lazy"></td><td><img src="poeira-corrida-A-pegadas-alto.png" alt="poeira-corrida-A-pegadas-alto.png" style="width:300px" loading="lazy"></td></tr><tr><th>B · nuvem contínua</th><td><img src="poeira-corrida-B-nuvem-frente.png" alt="poeira-corrida-B-nuvem-frente.png" style="width:300px" loading="lazy"></td><td><img src="poeira-corrida-B-nuvem-lado.png" alt="poeira-corrida-B-nuvem-lado.png" style="width:300px" loading="lazy"></td><td><img src="poeira-corrida-B-nuvem-alto.png" alt="poeira-corrida-B-nuvem-alto.png" style="width:300px" loading="lazy"></td></tr><tr><th>C · sulcos rolantes</th><td><img src="poeira-corrida-C-sulcos-frente.png" alt="poeira-corrida-C-sulcos-frente.png" style="width:300px" loading="lazy"></td><td><img src="poeira-corrida-C-sulcos-lado.png" alt="poeira-corrida-C-sulcos-lado.png" style="width:300px" loading="lazy"></td><td><img src="poeira-corrida-C-sulcos-alto.png" alt="poeira-corrida-C-sulcos-alto.png" style="width:300px" loading="lazy"></td></tr></table>
+<h2>Vento da corrida (3 estilos)</h2><table><tr><th>Estilo</th><th>Frente</th><th>Lado</th><th>Alto</th></tr><tr><th>A · fitas laterais</th><td><img src="vento-corrida-A-fitas-frente.png" alt="vento-corrida-A-fitas-frente.png" style="width:300px" loading="lazy"></td><td><img src="vento-corrida-A-fitas-lado.png" alt="vento-corrida-A-fitas-lado.png" style="width:300px" loading="lazy"></td><td><img src="vento-corrida-A-fitas-alto.png" alt="vento-corrida-A-fitas-alto.png" style="width:300px" loading="lazy"></td></tr><tr><th>B · espirais de esteira</th><td><img src="vento-corrida-B-espirais-frente.png" alt="vento-corrida-B-espirais-frente.png" style="width:300px" loading="lazy"></td><td><img src="vento-corrida-B-espirais-lado.png" alt="vento-corrida-B-espirais-lado.png" style="width:300px" loading="lazy"></td><td><img src="vento-corrida-B-espirais-alto.png" alt="vento-corrida-B-espirais-alto.png" style="width:300px" loading="lazy"></td></tr><tr><th>C · arcos de corrente</th><td><img src="vento-corrida-C-arcos-frente.png" alt="vento-corrida-C-arcos-frente.png" style="width:300px" loading="lazy"></td><td><img src="vento-corrida-C-arcos-lado.png" alt="vento-corrida-C-arcos-lado.png" style="width:300px" loading="lazy"></td><td><img src="vento-corrida-C-arcos-alto.png" alt="vento-corrida-C-arcos-alto.png" style="width:300px" loading="lazy"></td></tr></table>
+<h2>Curvas (vista de cima)</h2><img src="curva-poeira-A-pegadas-alto.png" alt="curva-poeira-A-pegadas-alto.png" style="width:300px" loading="lazy"><img src="curva-poeira-B-nuvem-alto.png" alt="curva-poeira-B-nuvem-alto.png" style="width:300px" loading="lazy"><img src="curva-poeira-C-sulcos-alto.png" alt="curva-poeira-C-sulcos-alto.png" style="width:300px" loading="lazy"><img src="curva-vento-A-fitas-alto.png" alt="curva-vento-A-fitas-alto.png" style="width:300px" loading="lazy"><img src="curva-vento-B-espirais-alto.png" alt="curva-vento-B-espirais-alto.png" style="width:300px" loading="lazy"><img src="curva-vento-C-arcos-alto.png" alt="curva-vento-C-arcos-alto.png" style="width:300px" loading="lazy">
+<h2>Clipes em movimento (comparação lado a lado)</h2><figure style="display:inline-block"><video src="movimento/comparar-poeira-dash.mp4" controls loop muted></video><figcaption>comparar-poeira-dash</figcaption></figure><figure style="display:inline-block"><video src="movimento/comparar-vento-dash.mp4" controls loop muted></video><figcaption>comparar-vento-dash</figcaption></figure><figure style="display:inline-block"><video src="movimento/comparar-poeira-corrida.mp4" controls loop muted></video><figcaption>comparar-poeira-corrida</figcaption></figure><figure style="display:inline-block"><video src="movimento/comparar-vento-corrida.mp4" controls loop muted></video><figcaption>comparar-vento-corrida</figcaption></figure><figure style="display:inline-block"><video src="movimento/comparar-poeira-curva.mp4" controls loop muted></video><figcaption>comparar-poeira-curva</figcaption></figure><figure style="display:inline-block"><video src="movimento/comparar-vento-curva.mp4" controls loop muted></video><figcaption>comparar-vento-curva</figcaption></figure><figure style="display:inline-block"><video src="movimento/comparar-poeira-parada.mp4" controls loop muted></video><figcaption>comparar-poeira-parada</figcaption></figure><figure style="display:inline-block"><video src="movimento/comparar-vento-parada.mp4" controls loop muted></video><figcaption>comparar-vento-parada</figcaption></figure>
+<h2>Esquiva, aterrissagem, impacto, bloqueio e colisão</h2><table><tr><th>Efeito</th><th>Opção</th><th>Frente</th><th>Lado</th></tr><tr><td>esquiva</td><td>A</td><td><img src="esquiva-A-frente.png" alt="esquiva-A-frente.png" style="width:300px" loading="lazy"></td><td><img src="esquiva-A-lado.png" alt="esquiva-A-lado.png" style="width:300px" loading="lazy"></td></tr><tr><td>esquiva</td><td>B</td><td><img src="esquiva-B-frente.png" alt="esquiva-B-frente.png" style="width:300px" loading="lazy"></td><td><img src="esquiva-B-lado.png" alt="esquiva-B-lado.png" style="width:300px" loading="lazy"></td></tr><tr><td>esquiva</td><td>C</td><td><img src="esquiva-C-frente.png" alt="esquiva-C-frente.png" style="width:300px" loading="lazy"></td><td><img src="esquiva-C-lado.png" alt="esquiva-C-lado.png" style="width:300px" loading="lazy"></td></tr><tr><td>aterrissagem</td><td>A</td><td><img src="aterrissagem-A-frente.png" alt="aterrissagem-A-frente.png" style="width:300px" loading="lazy"></td><td><img src="aterrissagem-A-lado.png" alt="aterrissagem-A-lado.png" style="width:300px" loading="lazy"></td></tr><tr><td>aterrissagem</td><td>B</td><td><img src="aterrissagem-B-frente.png" alt="aterrissagem-B-frente.png" style="width:300px" loading="lazy"></td><td><img src="aterrissagem-B-lado.png" alt="aterrissagem-B-lado.png" style="width:300px" loading="lazy"></td></tr><tr><td>aterrissagem</td><td>C</td><td><img src="aterrissagem-C-frente.png" alt="aterrissagem-C-frente.png" style="width:300px" loading="lazy"></td><td><img src="aterrissagem-C-lado.png" alt="aterrissagem-C-lado.png" style="width:300px" loading="lazy"></td></tr><tr><td>impacto</td><td>A</td><td><img src="impacto-A-frente.png" alt="impacto-A-frente.png" style="width:300px" loading="lazy"></td><td><img src="impacto-A-lado.png" alt="impacto-A-lado.png" style="width:300px" loading="lazy"></td></tr><tr><td>impacto</td><td>B</td><td><img src="impacto-B-frente.png" alt="impacto-B-frente.png" style="width:300px" loading="lazy"></td><td><img src="impacto-B-lado.png" alt="impacto-B-lado.png" style="width:300px" loading="lazy"></td></tr><tr><td>impacto</td><td>C</td><td><img src="impacto-C-frente.png" alt="impacto-C-frente.png" style="width:300px" loading="lazy"></td><td><img src="impacto-C-lado.png" alt="impacto-C-lado.png" style="width:300px" loading="lazy"></td></tr><tr><td>bloqueio</td><td>A</td><td><img src="bloqueio-A-frente.png" alt="bloqueio-A-frente.png" style="width:300px" loading="lazy"></td><td><img src="bloqueio-A-lado.png" alt="bloqueio-A-lado.png" style="width:300px" loading="lazy"></td></tr><tr><td>bloqueio</td><td>B</td><td><img src="bloqueio-B-frente.png" alt="bloqueio-B-frente.png" style="width:300px" loading="lazy"></td><td><img src="bloqueio-B-lado.png" alt="bloqueio-B-lado.png" style="width:300px" loading="lazy"></td></tr><tr><td>bloqueio</td><td>C</td><td><img src="bloqueio-C-frente.png" alt="bloqueio-C-frente.png" style="width:300px" loading="lazy"></td><td><img src="bloqueio-C-lado.png" alt="bloqueio-C-lado.png" style="width:300px" loading="lazy"></td></tr><tr><td>colisao</td><td>A</td><td><img src="colisao-A-frente.png" alt="colisao-A-frente.png" style="width:300px" loading="lazy"></td><td><img src="colisao-A-lado.png" alt="colisao-A-lado.png" style="width:300px" loading="lazy"></td></tr><tr><td>colisao</td><td>B</td><td><img src="colisao-B-frente.png" alt="colisao-B-frente.png" style="width:300px" loading="lazy"></td><td><img src="colisao-B-lado.png" alt="colisao-B-lado.png" style="width:300px" loading="lazy"></td></tr><tr><td>colisao</td><td>C</td><td><img src="colisao-C-frente.png" alt="colisao-C-frente.png" style="width:300px" loading="lazy"></td><td><img src="colisao-C-lado.png" alt="colisao-C-lado.png" style="width:300px" loading="lazy"></td></tr></table>
 <h2>Desempenho</h2><pre>{
   "env": {
-    "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
-    "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36 Edg/155.0.0.0"
+    "glRenderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+    "glVendor": "Google Inc. (Google)",
+    "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36 Edg/155.0.0.0",
+    "software": true,
+    "webgl2": true
   },
-  "dust": {
-    "A": {
-      "updateAvgMs": 0.4136,
-      "updateP95Ms": 1.1,
-      "updateMaxMs": 9.8,
-      "peakActive": 220,
-      "rejected": 1257,
-      "meshes": 12
+  "families": {
+    "solidDust": {
+      "0": {
+        "avg": 0.0227,
+        "p95": 0.1,
+        "max": 0.6,
+        "peakActive": 72,
+        "spawned": 5702
+      },
+      "1": {
+        "avg": 0.0213,
+        "p95": 0.1,
+        "max": 0.2,
+        "peakActive": 40,
+        "spawned": 5758
+      },
+      "2": {
+        "avg": 0.0113,
+        "p95": 0.1,
+        "max": 0.2,
+        "peakActive": 24,
+        "spawned": 5798
+      },
+      "3": {
+        "avg": 0.0187,
+        "p95": 0.1,
+        "max": 0.3,
+        "peakActive": 52,
+        "spawned": 5870
+      },
+      "4": {
+        "avg": 0.024,
+        "p95": 0.1,
+        "max": 0.4,
+        "peakActive": 28,
+        "spawned": 5922
+      },
+      "5": {
+        "avg": 0.0247,
+        "p95": 0.1,
+        "max": 0.3,
+        "peakActive": 28,
+        "spawned": 5958
+      },
+      "6": {
+        "avg": 0.09,
+        "p95": 0.2,
+        "max": 4.4,
+        "peakActive": 44,
+        "spawned": 6046
+      },
+      "7": {
+        "avg": 0.0353,
+        "p95": 0.1,
+        "max": 0.5,
+        "peakActive": 36,
+        "spawned": 6118
+      }
     },
-    "B": {
-      "updateAvgMs": 0.2825,
-      "updateP95Ms": 0.4,
-      "updateMaxMs": 1.2,
-      "peakActive": 220,
-      "rejected": 1630,
-      "meshes": 12
+    "solidWind": {
+      "0": {
+        "avg": 0.0113,
+        "p95": 0.1,
+        "max": 0.3,
+        "peakActive": 24,
+        "spawned": 6158
+      },
+      "1": {
+        "avg": 0.0067,
+        "p95": 0.1,
+        "max": 0.1,
+        "peakActive": 12,
+        "spawned": 6178
+      },
+      "2": {
+        "avg": 0.0113,
+        "p95": 0.1,
+        "max": 0.1,
+        "peakActive": 20,
+        "spawned": 6218
+      },
+      "3": {
+        "avg": 0.0127,
+        "p95": 0.1,
+        "max": 0.2,
+        "peakActive": 32,
+        "spawned": 6282
+      }
     },
-    "C": {
-      "updateAvgMs": 0.2114,
-      "updateP95Ms": 0.3,
-      "updateMaxMs": 0.9,
-      "peakActive": 220,
-      "rejected": 3130,
-      "meshes": 12
+    "solidRunDust": {
+      "0": {
+        "avg": 0.0433,
+        "p95": 0.2,
+        "max": 0.4,
+        "peakActive": 130,
+        "spawned": 6478
+      },
+      "1": {
+        "avg": 0.032,
+        "p95": 0.1,
+        "max": 0.2,
+        "peakActive": 68,
+        "spawned": 6550
+      },
+      "2": {
+        "avg": 0.026,
+        "p95": 0.1,
+        "max": 0.2,
+        "peakActive": 50,
+        "spawned": 6622
+      }
     },
-    "D": {
-      "updateAvgMs": 0.1836,
-      "updateP95Ms": 0.3,
-      "updateMaxMs": 0.7,
-      "peakActive": 220,
-      "rejected": 4542,
-      "meshes": 12
+    "solidRunWind": {
+      "0": {
+        "avg": 0.0173,
+        "p95": 0.1,
+        "max": 0.1,
+        "peakActive": 32,
+        "spawned": 6694
+      },
+      "1": {
+        "avg": 0.0073,
+        "p95": 0.1,
+        "max": 0.1,
+        "peakActive": 12,
+        "spawned": 6710
+      },
+      "2": {
+        "avg": 0.006,
+        "p95": 0.1,
+        "max": 0.1,
+        "peakActive": 12,
+        "spawned": 6734
+      }
     }
   },
   "worstCase": {
-    "updateAvgMs": 0.1736,
-    "updateP95Ms": 0.3,
-    "updateMaxMs": 0.7,
+    "avg": 0.152,
+    "p95": 0.3,
+    "max": 1,
     "peakActive": 220,
     "cap": 220,
-    "rejected": 26338,
-    "meshes": 12
+    "rejected": 4538,
+    "meshes": 20
   },
   "draw": {
-    "withSolid": {
-      "calls": 15,
-      "triangles": 2776
+    "legado": {
+      "withSolid": {
+        "calls": 16,
+        "triangles": 45532,
+        "cpuRenderMedianMs": 0.1
+      },
+      "withoutSolid": {
+        "calls": 12,
+        "triangles": 160,
+        "cpuRenderMedianMs": 0
+      }
     },
-    "withoutSolid": {
-      "calls": 12,
-      "triangles": 100
-    },
-    "cpuRenderMedianMsWith": 0.2,
-    "cpuRenderMedianMsWithout": 0.1
+    "VfxRuntime": {
+      "withSolid": {
+        "calls": 16,
+        "triangles": 45532,
+        "cpuRenderMedianMs": 0.1
+      },
+      "withoutSolid": {
+        "calls": 12,
+        "triangles": 160,
+        "cpuRenderMedianMs": 0
+      }
+    }
   },
-  "geometries": 7,
-  "materials": 2
+  "shapes": 13,
+  "materials": 4,
+  "instancedMeshes": 20
 }</pre>

@@ -3,14 +3,33 @@
 // Geometrias e materiais são criados uma vez e reutilizados; o número de objetos ativos tem teto rígido (C.vfx.solid.maxObjects).
 import * as T from 'three';
 import {C} from '../sim/config.js';
+import {MOTION_SHAPES, DUST_NEW, WIND, RUN_DUST, RUN_WIND} from './solid-motion.js';
 
-/** Famílias com seletor 3D. `names` descreve a aparência de cada opção (índice = vfx.<chave>.variant). */
+/** Famílias com seletor 3D. `names` descreve a aparência de cada opção (índice = vfx.<chave>.variant). `previews`: botões de prévia. */
+const MOVE_PREVIEWS = [['dash', 'Dash'], ['start', 'Arrancada'], ['run', 'Corrida'], ['turn', 'Curva'], ['stop', 'Parada']];
 export const SOLID_FAMILIES = [
-  {key: 'solidDust', label: 'Poeira do dash (3D)', trigger: 'dash, arrancada e parada', names: [
+  {key: 'solidDust', label: 'Poeira do dash e da arrancada (3D)', trigger: 'dash/esquiva, arrancada e parada', previews: MOVE_PREVIEWS, colors: 2, names: [
     'A · Poeira compacta: torrões e grãos lançados para trás pelos pés',
     'B · Rastro turbulento: volumes irregulares que giram e se dispersam',
     'C · Impacto pesado: blocos grandes no início, depois grãos pequenos',
-    'D · Energético: cacos geométricos e onda baixa que se expande']},
+    'D · Energético: cacos geométricos e onda baixa que se expande',
+    'E · Ondas em camadas: faixas curvas empilhadas que sobem e se abrem',
+    'F · Nuvem rolante: volumes macios que rolam rente ao chão',
+    'G · Anel de nuvem: coroa de volumes que se abre ao redor dos pés',
+    'H · Coluna em espiral: volumes sobem em hélice com a ponta enrolada']},
+  {key: 'solidWind', label: 'Vento do dash e da arrancada (3D)', trigger: 'dash/esquiva, arrancada e parada', previews: MOVE_PREVIEWS, names: [
+    'A · Fitas em S: tiras longas e curvas que escorrem ao lado do corpo',
+    'B · Espirais: hélices que giram no próprio eixo e se alargam',
+    'C · Ganchos rentes ao chão: caracóis de vento junto a cada pé',
+    'D · Cunha de rajadas: leque em V de cones longos para trás']},
+  {key: 'solidRunDust', label: 'Poeira da corrida (3D)', trigger: 'sprint contínuo, curvas e desaceleração', previews: MOVE_PREVIEWS.slice(2), names: [
+    'A · Pegadas de poeira: cada passada levanta volumes e grãos (mais no pé de fora da curva)',
+    'B · Nuvem contínua: fio de volumes largos e baixos; a cauda cresce com a velocidade',
+    'C · Sulcos rolantes: pequenas ondas curvas se abrem no chão a cada passada']},
+  {key: 'solidRunWind', label: 'Vento da corrida (3D)', trigger: 'sprint contínuo, curvas e desaceleração', previews: MOVE_PREVIEWS.slice(2), names: [
+    'A · Fitas laterais: tiras curvas saem dos ombros; a curvatura segue o giro',
+    'B · Espirais de esteira: hélices giram atrás do corredor, maiores com a velocidade',
+    'C · Arcos de corrente: meios-toros em pé se alargam atrás do tronco']},
   {key: 'solidDodge', label: 'Esquiva (3D)', trigger: 'esquiva (C)', names: [
     'A · Lâminas de vento: barras finas que cortam o ar ao lado do corpo',
     'B · Cristais fantasma: prismas luminosos deixados para trás, afundando',
@@ -33,6 +52,8 @@ export const SOLID_FAMILIES = [
     'C · Núcleo prismático: prisma central com coroa de estacas']},
 ];
 export const SOLID_KEYS = SOLID_FAMILIES.map(f => f.key);
+/** Controles de cada família (chaves em C.vfx.<família>): uniformes, aplicados em SolidFx.spawn(). */
+export const SOLID_PARAMS = ['intensity', 'amount', 'size', 'duration', 'velocity', 'scatter', 'lift', 'turbulence', 'opacity'];
 
 const HARD_CAP = 512;
 const SHAPES = {
@@ -42,27 +63,49 @@ const SHAPES = {
   slab: () => new T.BoxGeometry(1, 1, 1),
   spike: () => new T.ConeGeometry(.5, 1, 5),
   prism: () => new T.CylinderGeometry(.5, .5, 1, 6),
-  // Toroide deitado no chão (plano XZ); com `pitch` fica vertical.
+  // Toroide deitado no chão (plano XZ); com `rx` fica vertical.
   wave: () => { const g = new T.TorusGeometry(1, .07, 6, 36); g.rotateX(Math.PI / 2); return g; },
+  ...MOTION_SHAPES,
 };
 const mulberry = (seed) => () => { seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const smooth = k => k * k * (3 - 2 * k);
+const angDelta = (a, b) => { let d = a - b; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI; return d; };
+const PROFILE = {
+  dash: t => ({v: t < .3 ? 9 : 0, dodge: t < .3, sprint: false, w: 0, T: .9}),
+  start: t => ({v: t < .5 ? 6.2 * Math.min(1, t / .3) : 0, sprint: t < .5, w: 0, T: .9}),
+  run: t => ({v: t < 1 ? 6.2 * Math.min(1, t / .35) : 0, sprint: t < 1, w: 0, T: 1.8}),
+  turn: t => ({v: t < 1.4 ? 6.2 * Math.min(1, t / .35) : 0, sprint: t < 1.4, w: t > .4 && t < 1.4 ? 1.7 : 0, T: 2.2}),
+  stop: t => ({v: t < .5 ? 6.2 * Math.min(1, t / .25) : 0, sprint: t < .5, w: 0, T: 1.3}),
+};
+
+/** Material com opacidade por instância (atributo instanceAlpha): o mesmo material serve todas as malhas do tipo. */
+function solidMaterial(params) {
+  const m = new T.MeshStandardMaterial({...params, transparent: true, depthWrite: true});
+  m.onBeforeCompile = sh => {
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute float instanceAlpha;\nvarying float vIA;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvIA = instanceAlpha;');
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying float vIA;').replace('#include <color_fragment>', '#include <color_fragment>\ndiffuseColor.a *= vIA;');
+  };
+  m.customProgramCacheKey = () => 'solid-instance-alpha';
+  return m;
+}
 
 export class SolidFx {
   constructor(scene) {
     this.scene = scene;
     this.group = new T.Group(); this.group.name = 'solid-fx'; scene.add(this.group);
     this.geometries = {}; for (const [k, f] of Object.entries(SHAPES)) this.geometries[k] = f();
-    // Dois materiais para todo o sistema: um iluminado (terra, pedra) e um luminoso (energia). Nenhum é textura/sprite.
+    // Poucos materiais para todo o sistema (terra facetada, energia luminosa, poeira macia, vento); nenhum usa textura ou sprite.
     this.materials = {
-      lit: new T.MeshStandardMaterial({color: 0xffffff, roughness: .92, metalness: 0, flatShading: true}),
-      glow: new T.MeshStandardMaterial({color: 0xffffff, roughness: .35, metalness: .1, flatShading: true, emissive: 0x2f7f78, emissiveIntensity: .8}),
+      lit: solidMaterial({color: 0xffffff, roughness: .92, metalness: 0, flatShading: true}),
+      glow: solidMaterial({color: 0xffffff, roughness: .35, metalness: .1, flatShading: true, emissive: 0x2f7f78, emissiveIntensity: .8}),
+      puff: solidMaterial({color: 0xffffff, roughness: 1, metalness: 0, flatShading: false}),
+      wind: solidMaterial({color: 0xffffff, roughness: .45, metalness: 0, flatShading: false, emissive: 0x6a7f90, emissiveIntensity: .55}),
     };
-    this.meshes = new Map();
+    this.meshes = new Map(); this.wrappers = new Map();
     this.all = []; this.free = []; for (let i = 0; i < HARD_CAP; i++) this.free.push({});
-    this.timers = []; this.time = 0; this.seq = 1; this.rnd = mulberry(0x51ED);
-    this.state = {}; this.seen = new WeakSet(); this.landings = [];
+    this.timers = []; this.scripts = []; this.time = 0; this.seq = 1; this.rnd = mulberry(0x51ED);
+    this.state = {}; this.seen = new WeakSet(); this.landings = []; this.fam = null; this.origin = null;
     this.accessibility = {noFlash: false, reduceMotion: false, highContrast: false};
     this.stats = {spawned: 0, peak: 0, active: 0, rejected: 0, byFamily: {}, byVariant: {}};
     this.log = []; this.white = new T.Color(0xffffff); this.dummy = new T.Object3D(); this.q = new T.Quaternion(); this.col = new T.Color(); this.up = new T.Vector3(0, 1, 0); this.v = new T.Vector3();
@@ -71,10 +114,19 @@ export class SolidFx {
   get cfg() { return C.vfx; }
   cap() { return clamp(Math.round(C.vfx.solid?.maxObjects ?? 220), 8, HARD_CAP); }
   on(key) { return !!C.vfx.master?.enabled && !!C.vfx.solid?.enabled && !!C.vfx[key]?.enabled; }
+  /** Geometria da malha: reaproveita os mesmos buffers da forma base e só acrescenta o atributo de opacidade por instância. */
+  wrapper(shape) {
+    const base = this.geometries[shape], g = new T.BufferGeometry();
+    g.index = base.index; for (const [k, a] of Object.entries(base.attributes)) g.setAttribute(k, a);
+    g.setAttribute('instanceAlpha', new T.InstancedBufferAttribute(new Float32Array(HARD_CAP).fill(1), 1).setUsage(T.DynamicDrawUsage));
+    if (!base.boundingSphere) base.computeBoundingSphere(); g.boundingSphere = base.boundingSphere;
+    return g;
+  }
   meshFor(shape, mat) {
     const id = shape + ':' + mat; let m = this.meshes.get(id);
     if (!m) {
-      m = new T.InstancedMesh(this.geometries[shape], this.materials[mat], HARD_CAP); m.userData.n = 0;
+      const g = this.wrapper(shape); this.wrappers.set(id, g);
+      m = new T.InstancedMesh(g, this.materials[mat], HARD_CAP); m.userData.n = 0;
       m.instanceMatrix.setUsage(T.DynamicDrawUsage); m.count = 0; m.frustumCulled = false; m.castShadow = false; m.receiveShadow = false;
       m.setColorAt(0, this.col.set(0xffffff)); m.instanceColor.setUsage(T.DynamicDrawUsage);
       this.group.add(m); this.meshes.set(id, m);
@@ -86,23 +138,42 @@ export class SolidFx {
     this.stats.byFamily[family] = (this.stats.byFamily[family] ?? 0) + 1;
     const k = `${family}:${variant}`; this.stats.byVariant[k] = (this.stats.byVariant[k] ?? 0) + 1;
   }
-  /** Uma partícula/forma 3D. Retorna false se o teto de objetos ativos foi atingido (nada é criado). */
+  /**
+   * Uma partícula/forma 3D. Os controles da família em disparo (this.fam = C.vfx.<chave>) valem para todos os construtores:
+   * amount (quantidade/taxa), velocity, scatter (dispersão), lift (altura), turbulence (rotação e ruído) e opacity.
+   * Peças estruturais (ondas, núcleos) não são repetidas nem sumidas pela quantidade (shape 'wave' ou fixed: true).
+   */
   spawn(o) {
+    const F = this.fam, m = F && !o.fixed && o.shape !== 'wave' ? (F.amount ?? 1) : 1;
+    if (m < 1 && this.rnd() > m) return false;
+    const ok = this.put(o, F);
+    if (m > 1) { const extra = Math.floor(m) - 1 + (this.rnd() < m - Math.floor(m) ? 1 : 0); for (let k = 0; k < extra; k++) this.put(o, F, true); }
+    return ok;
+  }
+  put(o, F, clone = false) {
     if (this.all.length >= this.cap() || !this.free.length) { this.stats.rejected++; return false; }
     const reduce = this.accessibility.reduceMotion || C.vfx.master?.reduceMotion, hc = this.accessibility.highContrast || C.vfx.master?.highContrast;
-    const k = reduce ? .25 : 1, p = this.free.pop();
+    const kr = reduce ? .25 : 1, vel = (F?.velocity ?? 1) * kr, sc = F?.scatter ?? 1, lift = F?.lift ?? 1, tb = F?.turbulence ?? 1, op = F?.opacity ?? 1, org = this.origin, p = this.free.pop();
     const col = this.col.set(o.color ?? 0xffffff); if (hc) col.lerp(this.white, .35);
-    Object.assign(p, {shape: o.shape ?? 'chunk', mat: o.mat ?? 'lit', x: o.x, y: o.y ?? 0, z: o.z, vx: (o.vx || 0) * k, vy: (o.vy || 0) * k, vz: (o.vz || 0) * k,
-      gx: o.gx || 0, gy: o.gy ?? 0, drag: o.drag ?? 0, swirl: o.swirl || 0, life: Math.max(.05, o.life ?? .6), age: -(o.delay || 0),
-      sx: o.sx ?? o.s ?? .1, sy: o.sy ?? o.s ?? .1, sz: o.sz ?? o.s ?? .1, grow: o.grow || 0, growY: o.growY ?? o.grow ?? 0,
-      rx: o.rx || 0, ry: o.ry || 0, rz: o.rz || 0, wx: (o.wx || 0) * k, wy: (o.wy || 0) * k, wz: (o.wz || 0) * k, align: !!o.align, floor: o.floor ?? null,
-      pop: o.pop ?? .12, hold: o.hold ?? .5, r: col.r, g: col.g, b: col.b, bounce: o.bounce ?? .28, rest: false});
+    const jit = clone ? .35 : 0, j = () => (this.rnd() - .5) * 2 * jit;
+    let x = o.x, z = o.z; if (org) { x = org.x + (x - org.x) * sc; z = org.z + (z - org.z) * sc; }
+    let vx = (o.vx || 0) * vel, vy = (o.vy || 0) * vel * lift, vz = (o.vz || 0) * vel;
+    const hv = sc < 1 ? .5 + .5 * sc : 1; vx *= hv; vz *= hv; const sp = Math.hypot(vx, vz), spread = Math.max(0, sc - 1) * .8 + jit;
+    vx += (this.rnd() - .5) * 2 * spread * sp; vz += (this.rnd() - .5) * 2 * spread * sp; if (clone) { x += j() * .15; z += j() * .15; vy *= 1 + j(); }
+    let orb = null; if (o.orb) { const b = o.orb; orb = {cx: b.cx, cz: b.cz, vx: b.vx * vel, vz: b.vz * vel, a0: b.a0, w: b.w * tb, r0: b.r0 * sc, r1: b.r1 * sc, y0: b.y0 * lift, rise: b.rise * lift * kr}; }
+    const alpha = Math.max(hc && op > 0 ? .85 : 0, (o.alpha ?? 1) * op);
+    Object.assign(p, {shape: o.shape ?? 'chunk', mat: o.mat ?? 'lit', x, y: (o.y ?? 0) * lift, z, vx, vy, vz, orb, tbAmp: Math.max(0, tb - 1) * 5,
+      gx: o.gx || 0, gy: o.gy ?? 0, drag: o.drag ?? 0, swirl: (o.swirl || 0) * tb, life: Math.max(.05, o.life ?? .6), age: -(o.delay || 0),
+      sx: o.sx ?? o.s ?? .1, sy: o.sy ?? o.s ?? .1, sz: o.sz ?? o.s ?? .1, grow: o.grow || 0, growY: o.growY ?? o.grow ?? 0, growL: o.growL || 0,
+      rx: o.rx || 0, ry: o.ry || 0, rz: o.rz || 0, wx: (o.wx || 0) * kr * tb, wy: (o.wy || 0) * kr * tb, wz: (o.wz || 0) * kr * tb, align: !!o.align, floor: o.floor ?? null,
+      pop: o.pop ?? .12, hold: o.hold ?? .5, r: col.r, g: col.g, b: col.b, alpha, bounce: o.bounce ?? .28, rest: false});
     this.all.push(p); this.stats.spawned++; return true;
   }
-  after(delay, fn) { this.timers.push({at: this.time + delay, fn}); }
+  /** Agenda uma ação com os mesmos controles de família que estavam ativos no disparo. */
+  after(delay, fn) { const fam = this.fam, origin = this.origin; this.timers.push({at: this.time + delay, fn: () => { const f0 = this.fam, o0 = this.origin; this.fam = fam; this.origin = origin; try { fn(); } finally { this.fam = f0; this.origin = o0; } }}); }
   r(a, b) { return a + this.rnd() * (b - a); }
-  reset() { for (const p of this.all) this.free.push(p); this.all.length = 0; this.timers = []; this.state = {}; this.landings = []; this.log = []; this.group.visible = true; for (const m of this.meshes.values()) m.count = 0; }
-  dispose() { this.reset(); for (const g of Object.values(this.geometries)) g.dispose(); for (const m of Object.values(this.materials)) m.dispose(); for (const m of this.meshes.values()) m.dispose(); this.scene.remove(this.group); }
+  reset() { for (const p of this.all) this.free.push(p); this.all.length = 0; this.timers = []; this.scripts = []; this.state = {}; this.landings = []; this.log = []; this.fam = null; this.origin = null; this.group.visible = true; for (const m of this.meshes.values()) m.count = 0; }
+  dispose() { this.reset(); for (const g of Object.values(this.geometries)) g.dispose(); for (const g of this.wrappers.values()) g.dispose(); for (const m of Object.values(this.materials)) m.dispose(); for (const m of this.meshes.values()) m.dispose(); this.scene.remove(this.group); }
 
   // ---------- Atualização por quadro ----------
   update(fighters, events, dt, {visible = true} = {}) {
@@ -127,30 +198,43 @@ export class SolidFx {
         this.landings[i] = L?.n ?? 0;
         this.trackDash(f, i, dt);
       });
+      this.runScripts(dt);
     }
     for (const t of this.timers.filter(t => t.at <= this.time)) t.fn();
     this.timers = this.timers.filter(t => t.at > this.time);
     this.integrate(dt);
   }
   unit(x, z) { const m = Math.hypot(x, z) || 1; return {x: x / m, z: z / m}; }
-  /** Dash comum (esquiva), arrancada (sprint começa) e parada (acaba): estados por lutador a partir do estado real da simulação. */
-  trackDash(f, i, dt) {
-    const s = this.state[i] ??= {prev: {...f.position}, kind: null, t: 0, acc: 0, speed: 0, dir: {x: 0, z: 1}};
+  /**
+   * Dash comum (esquiva), arrancada, corrida contínua, curva e parada: o estado vem do lutador real (ou de um lutador virtual nas
+   * prévias, pelo MESMO caminho). Esquiva: rajadas de poeira e vento. Sprint: arrancada (rajada), emissão contínua proporcional à
+   * velocidade e à curva, desaceleração (`coast`) e parada (rajada). Nada aqui altera a simulação.
+   */
+  trackDash(f, key, dt) {
+    const s = this.state[key] ??= {prev: {...f.position}, kind: null, t: 0, acc: 0, speed: 0, dir: {x: 0, z: 1}, turn: 0, hd: 0, n: 0, foot: 0, peak: 0};
+    s.solo = f.solo ?? null; s.ov = f.ov ?? null;
     const dx = f.position.x - s.prev.x, dz = f.position.z - s.prev.z; s.prev = {...f.position};
     const sp = Math.hypot(dx, dz) / dt; s.speed += (sp - s.speed) * Math.min(1, dt * 18);
-    if (sp > .05) s.dir = this.unit(dx, dz); else if (f.action?.heading != null) s.dir = {x: Math.sin(f.action.heading), z: Math.cos(f.action.heading)};
-    const kind = f.action?.kind === 'dodge' ? 'dodge' : f.sprinting ? 'sprint' : null;
-    if (kind !== s.kind) {
-      if (kind) { s.t = 0; s.acc = 0; this.dust(f, s, 'start', i); this.dodgeFx(f, s, kind, i); }
-      else if (s.peak > 2.2) this.dust(f, s, 'stop', i);
-      s.kind = kind; s.peak = 0;
+    if (sp > .05) { s.dir = this.unit(dx, dz); const hd = Math.atan2(s.dir.x, s.dir.z); s.turn += (angDelta(hd, s.hd) / dt - s.turn) * Math.min(1, dt * 10); s.hd = hd; }
+    else { if (f.action?.heading != null) s.dir = {x: Math.sin(f.action.heading), z: Math.cos(f.action.heading)}; s.turn *= Math.max(0, 1 - dt * 10); }
+    const was = s.kind, kind = f.action?.kind === 'dodge' ? 'dodge' : f.sprinting ? 'sprint' : ((was === 'sprint' || was === 'coast') && s.speed > 1.2 ? 'coast' : null);
+    if (kind !== was) {
+      if (!was && kind) { s.t = 0; s.acc = 0; s.peak = 0; this.burst(f, s, 'start', key); if (kind === 'dodge') this.dodgeFx(f, s, key); }
+      else if (was && !kind && s.peak > 2.2) this.burst(f, s, 'stop', key);
+      else if (was === 'dodge' && kind === 'sprint') s.t = 0;
+      s.kind = kind;
     }
     if (!kind) return;
-    s.t += dt; s.peak = Math.max(s.peak ?? 0, s.speed);
-    const rate = kind === 'dodge' ? 34 : 16; s.acc += dt;
-    while (s.acc >= 1 / rate) { s.acc -= 1 / rate; this.dust(f, s, 'dash', i); }
+    s.t += dt; s.peak = Math.max(s.peak, s.speed);
+    const sp1 = clamp(s.speed / 9, .3, 1.8), rate = kind === 'dodge' ? 34 : 10 + 14 * sp1; s.acc += dt;
+    while (s.acc >= 1 / rate) {
+      s.acc -= 1 / rate; s.n++; s.foot ^= 1;
+      if (kind === 'dodge') this.burst(f, s, 'dash', key); else this.runTick(f, s, kind === 'coast' ? clamp((s.speed - 1.2) / 4, 0, 1) : 1);
+    }
   }
-  dodgeFx(f, s, kind, i) { if (kind === 'dodge') this.fire('solidDodge', {pos: f.position, dir: s.dir, power: 1}, `esquiva ${i ? 'vermelho' : 'azul'}`); }
+  dodgeFx(f, s, key) { if (!s.solo || s.solo === 'solidDodge') this.fire('solidDodge', {pos: f.position, dir: s.dir, power: 1}, `esquiva ${key === 1 ? 'vermelho' : 'azul'}`); }
+  /** Rajada de dash/arrancada/parada: poeira e vento (cada família com o seu estilo, intensidade e cores). */
+  burst(f, s, phase, i) { this.dust(f, s, phase, i); this.wind(f, s, phase, i); }
 
   integrate(dt) {
     const keep = []; for (const m of this.meshes.values()) m.userData.n = 0;
@@ -160,22 +244,28 @@ export class SolidFx {
       if (p.age >= p.life) { this.free.push(p); continue; }
       keep.push(p);
       if (p.age < 0) continue;
+      const k = p.age / p.life;
       if (dt > 0 && !p.rest) {
-        if (p.swirl) { const c = Math.cos(p.swirl * dt), s = Math.sin(p.swirl * dt), vx = p.vx * c - p.vz * s; p.vz = p.vx * s + p.vz * c; p.vx = vx; }
-        p.vy -= p.gy * dt; p.vx -= p.gx * dt; const dr = Math.exp(-p.drag * dt); p.vx *= dr; p.vy *= dr; p.vz *= dr;
-        p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt;
-        if (p.floor !== null && p.y < p.floor) { p.y = p.floor; if (Math.abs(p.vy) < 1) { p.rest = true; p.vx = p.vy = p.vz = 0; p.wx = p.wy = p.wz = 0; } else { p.vy = -p.vy * p.bounce; p.vx *= .55; p.vz *= .55; p.wx *= .5; p.wz *= .5; } }
+        if (p.orb) { const o = p.orb, a = o.a0 + o.w * p.age, rad = o.r0 + (o.r1 - o.r0) * k; p.x = o.cx + o.vx * p.age + Math.cos(a) * rad; p.z = o.cz + o.vz * p.age + Math.sin(a) * rad; p.y = o.y0 + o.rise * p.age; p.ry += 3 * dt; }
+        else {
+          if (p.swirl) { const c = Math.cos(p.swirl * dt), s = Math.sin(p.swirl * dt), vx = p.vx * c - p.vz * s; p.vz = p.vx * s + p.vz * c; p.vx = vx; }
+          if (p.tbAmp) { p.vx += (this.rnd() - .5) * p.tbAmp * dt * 8; p.vz += (this.rnd() - .5) * p.tbAmp * dt * 8; p.vy += (this.rnd() - .5) * p.tbAmp * dt * 5; }
+          p.vy -= p.gy * dt; p.vx -= p.gx * dt; const dr = Math.exp(-p.drag * dt); p.vx *= dr; p.vy *= dr; p.vz *= dr;
+          p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt;
+          if (p.floor !== null && p.y < p.floor) { p.y = p.floor; if (Math.abs(p.vy) < 1) { p.rest = true; p.vx = p.vy = p.vz = 0; p.wx = p.wy = p.wz = 0; } else { p.vy = -p.vy * p.bounce; p.vx *= .55; p.vz *= .55; p.wx *= .5; p.wz *= .5; } }
+        }
         p.rx += p.wx * dt; p.ry += p.wy * dt; p.rz += p.wz * dt;
       }
-      const k = p.age / p.life, sc = k < p.pop / p.life * 1 ? smooth(clamp(k / (p.pop / p.life), 0, 1)) : (k < p.hold ? 1 : 1 - smooth((k - p.hold) / (1 - p.hold)));
-      const gxz = 1 + p.grow * k, gy = 1 + p.growY * k, m = this.meshFor(p.shape, p.mat), idx = m.userData.n++;
-      d.position.set(p.x, p.y, p.z); d.scale.set(Math.max(1e-4, p.sx * gxz * sc), Math.max(1e-4, p.sy * gy * sc), Math.max(1e-4, p.sz * gxz * sc));
+      const sc = k < p.pop / p.life ? smooth(clamp(k / (p.pop / p.life), 0, 1)) : (k < p.hold ? 1 : 1 - smooth((k - p.hold) / (1 - p.hold)));
+      const gxz = 1 + p.grow * k, gy = 1 + p.growY * k, gl = 1 + p.growL * k, m = this.meshFor(p.shape, p.mat), idx = m.userData.n++;
+      d.position.set(p.x, p.y, p.z); d.scale.set(Math.max(1e-4, p.sx * gxz * sc), Math.max(1e-4, p.sy * gy * sc), Math.max(1e-4, p.sz * gxz * gl * sc));
       if (p.align) { this.v.set(p.vx, p.vy, p.vz); if (this.v.lengthSq() > 1e-6) { A.setFromUnitVectors(this.up, this.v.normalize()); d.quaternion.copy(A); } }
       else d.rotation.set(p.rx, p.ry, p.rz, 'YXZ');
       d.updateMatrix(); m.setMatrixAt(idx, d.matrix); this.col.setRGB(p.r, p.g, p.b); m.setColorAt(idx, this.col);
+      m.geometry.attributes.instanceAlpha.array[idx] = p.alpha * (k > .6 ? 1 - smooth((k - .6) / .4) : 1);
     }
     this.all = keep;
-    for (const m of this.meshes.values()) { m.count = m.userData.n; m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true; }
+    for (const m of this.meshes.values()) { m.count = m.userData.n; m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true; m.geometry.attributes.instanceAlpha.needsUpdate = true; }
     this.stats.active = keep.length; this.stats.peak = Math.max(this.stats.peak, keep.length);
   }
 
@@ -186,44 +276,83 @@ export class SolidFx {
     this.record(key, variant, reason);
     const q = C.vfx.solid.quality ?? 1, I = (c.intensity ?? 1) * (ctx.power ?? 1), S = c.size ?? 1, D = c.duration ?? 1, cnt = n => Math.max(1, Math.round(n * (q === 0 ? .55 : q === 2 ? 1.4 : 1) * Math.min(1.6, .6 + .4 * I)));
     const o = {c, I, S, D, cnt, ...ctx};
-    BUILD[key][variant].call(this, o);
+    this.fam = c; this.origin = ctx.pos;
+    try { BUILD[key][variant].call(this, o); } finally { this.fam = null; this.origin = null; }
   }
-  /** Compara as quatro poeiras lado a lado (uma faixa por opção), no mesmo dash. */
-  compareDust(fighters, what = 'dash') { for (let v = 0; v < 4; v++) this.preview('solidDust', fighters, what, {variant: v, lane: (v - 1.5) * 1.3}); }
-  /** Prévia: dispara o efeito escolhido no painel. Para a poeira, simula dash (e arrancada/parada) em sequência. */
+
+  // ---------- Prévias e comparação ----------
+  /**
+   * Prévia. Famílias de movimento (poeira/vento do dash e da corrida): `what` = dash | start | run | turn | stop, rodando o MESMO caminho
+   * da luta com um lutador virtual que cruza a tela; só a família pedida aparece (solo), salvo opts.solo === null ou key 'all'.
+   * opts.variant força uma opção (comparação); opts.lane afasta a faixa em profundidade.
+   */
   preview(key, fighters, what = 'dash', opts = {}) {
-    const a = fighters[0], o = fighters[1] ?? fighters[0], n = this.unit(o.position.x - a.position.x, o.position.z - a.position.z);
-    const tag = 'prévia manual';
-    if (key === 'solidDust') {
-      // opts.variant força uma opção (comparação lado a lado); opts.lane desloca a faixa lateralmente.
-      // O dash segue em direção ao adversário (ou à frente, sem ele), em um trecho curto que cabe na tela.
-      const same = a === o, dist = same ? 3 : Math.hypot(o.position.x - a.position.x, o.position.z - a.position.z), dir = same ? {x: 0, z: 1} : this.unit(o.position.x - a.position.x, o.position.z - a.position.z);
-      const side = {x: dir.z, z: -dir.x}, lane = opts.lane ?? 0, hop = Math.min(.14, Math.max(.04, (dist - 1.2) / 18));
-      const s = {dir, speed: 9, t: 0, ov: opts.variant ?? null};
-      const f = {position: {x: a.position.x + side.x * lane, z: a.position.z + side.z * lane}};
-      if (what === 'start') { this.dust(f, s, 'start', 9); return; }
-      if (what === 'stop') { this.dust(f, s, 'stop', 9); return; }
-      this.dust(f, s, 'start', 9);
-      for (let k = 1; k <= 18; k++) this.after(k * .03, () => { s.t = k * .03; f.position.x += dir.x * hop; f.position.z += dir.z * hop; this.dust(f, s, 'dash', 9); });
-      this.after(19 * .03, () => this.dust(f, s, 'stop', 9));
-      return;
-    }
+    const a = fighters[0], o = fighters[1] ?? fighters[0], n = this.unit(o.position.x - a.position.x, o.position.z - a.position.z), tag = 'prévia manual';
+    if (['solidDust', 'solidWind', 'solidRunDust', 'solidRunWind', 'all'].includes(key)) { this.script(key, fighters, what, opts); return; }
     if (key === 'solidDodge') { this.fire(key, {pos: o.position, dir: this.unit(o.position.x - a.position.x, o.position.z - a.position.z), power: 1}, tag); return; }
     if (key === 'solidLanding') { this.fire(key, {pos: o.position, power: 1.4}, tag); return; }
     if (key === 'solidClash') { this.fire(key, {pos: {x: (a.position.x + o.position.x) / 2, z: (a.position.z + o.position.z) / 2}, n, power: 1}, tag); return; }
     this.fire(key, {pos: o.position, n, power: 1}, tag);
   }
+  /** Lutador virtual com perfil de velocidade/curva; chama trackDash como a luta faz. */
+  script(key, fighters, what, opts) {
+    const a = fighters[0], o = fighters[1] ?? fighters[0], same = a === o, toO = same ? {x: 0, z: 1} : this.unit(o.position.x - a.position.x, o.position.z - a.position.z), side = {x: toO.z, z: -toO.x}, lane = opts.lane ?? 0;
+    const prof = PROFILE[what] ?? PROFILE.dash, vf = {position: {x: a.position.x + toO.x * lane - side.x * 2.2, z: a.position.z + toO.z * lane - side.z * 2.2}, sprinting: false, action: null, solo: opts.solo === null ? null : (opts.solo ?? (key === 'all' ? null : key)), ov: opts.variant != null ? {[key]: opts.variant} : (opts.ov ?? null)};
+    this.scripts.push({key: 'pv' + (this.seq++), vf, t: 0, T: prof(0).T, prof, hd: Math.atan2(side.x, side.z), side});
+  }
+  runScripts(dt) {
+    this.scripts = this.scripts.filter(sc => {
+      sc.t += dt; const st = sc.prof(sc.t), on = sc.t < sc.T;
+      sc.hd += st.w * dt; const dir = {x: Math.sin(sc.hd), z: Math.cos(sc.hd)};
+      sc.vf.position.x += dir.x * st.v * dt; sc.vf.position.z += dir.z * st.v * dt; sc.vf.sprinting = !!st.sprint; sc.vf.action = st.dodge ? {kind: 'dodge', heading: sc.hd} : null;
+      this.trackDash(sc.vf, sc.key, dt);
+      const alive = on || this.state[sc.key]?.kind; if (!alive) delete this.state[sc.key]; return alive && sc.t < sc.T + 1.5;
+    });
+  }
+  /** Compara todas as opções de uma família lado a lado (uma faixa por opção, mesmo movimento). */
+  compare(key, fighters, what = 'dash') {
+    const n = SOLID_FAMILIES.find(f => f.key === key).names.length;
+    for (let v = 0; v < n; v++) this.preview(key, fighters, what, {variant: v, lane: (v - (n - 1) / 2) * 1.05});
+  }
+  compareDust(fighters, what = 'dash') { this.compare('solidDust', fighters, what); }
 
-  // ---------- Poeira do dash ----------
+  // ---------- Poeira, vento e corrida ----------
+  muted(s, key) { return !!s.solo && s.solo !== key; }
+  footsOf(f, dir) { const side = {x: dir.z, z: -dir.x}; return {side, feet: [-1, 1].map(k => ({x: f.position.x + side.x * .2 * k - dir.x * .08, z: f.position.z + side.z * .2 * k - dir.z * .08}))}; }
+  motionCtx(key, f, s, phase) {
+    const c = C.vfx[key], dir = s.dir, {side, feet} = this.footsOf(f, dir), sp = clamp((s.speed || 8) / 9, .4, 1.8) * (key.startsWith('solidRun') ? (c.intensity ?? 1) : 1), q = C.vfx.solid.quality ?? 1;
+    return {c, f, s, phase, dir, side, feet, sp, I: (c.intensity ?? 1) * sp, S: (c.size ?? 1) * (key === 'solidDust' ? 1.6 : 1), D: c.duration ?? 1, qk: q === 0 ? .55 : q === 2 ? 1.4 : 1, t: s.t || 0, col: c.color, col2: c.color2, n: s.n || 0, foot: s.foot || 0, turn: s.turn || 0, taper: 1};
+  }
+  /** Poeira (dash, arrancada, parada). */
   dust(f, s, phase, i) {
-    if (!this.on('solidDust')) return;
-    const c = C.vfx.solidDust, v = s.ov ?? clamp(c.variant | 0, 0, 3), dir = s.dir, side = {x: dir.z, z: -dir.x};
-    const sp = clamp((s.speed || 8) / 9, .4, 1.8), I = (c.intensity ?? 1) * sp, S = (c.size ?? 1) * 1.6, D = c.duration ?? 1, q = C.vfx.solid.quality ?? 1;
-    const qk = q === 0 ? .55 : q === 2 ? 1.4 : 1;
-    if (phase !== 'dash') this.record('solidDust', v, phase === 'start' ? 'arrancada' : 'parada');
-    else if (!s.logged || this.time - s.logged > .25) { s.logged = this.time; this.record('solidDust', v, 'dash'); }
-    const feet = [[-1, 0], [1, 0]].map(([k]) => ({x: f.position.x + side.x * .2 * k - dir.x * .08, z: f.position.z + side.z * .2 * k - dir.z * .08}));
-    BUILD_DUST[v].call(this, {c, f, s, phase, dir, side, feet, I, S, D, qk, t: s.t || 0, col: c.color, col2: c.color2});
+    if (!this.on('solidDust') || this.muted(s, 'solidDust')) return;
+    const c = C.vfx.solidDust, v = s.ov?.solidDust ?? clamp(c.variant | 0, 0, BUILD_DUST.length - 1), ctx = this.motionCtx('solidDust', f, s, phase);
+    this.logMotion('solidDust', v, phase, s);
+    this.fam = c; this.origin = f.position;
+    try { BUILD_DUST[v].call(this, ctx); } finally { this.fam = null; this.origin = null; }
+  }
+  /** Vento (dash, arrancada, parada). */
+  wind(f, s, phase, i) {
+    if (!this.on('solidWind') || this.muted(s, 'solidWind')) return;
+    const c = C.vfx.solidWind, v = s.ov?.solidWind ?? clamp(c.variant | 0, 0, WIND.length - 1), ctx = this.motionCtx('solidWind', f, s, phase);
+    this.logMotion('solidWind', v, phase, s);
+    this.fam = c; this.origin = f.position;
+    try { WIND[v].call(this, ctx); } finally { this.fam = null; this.origin = null; }
+  }
+  /** Emissão contínua da corrida (um tick): poeira e vento próprios do sprint; `taper` < 1 na desaceleração. */
+  runTick(f, s, taper) {
+    for (const [key, list] of [['solidRunDust', RUN_DUST], ['solidRunWind', RUN_WIND]]) {
+      if (!this.on(key) || this.muted(s, key)) continue;
+      const c = C.vfx[key], v = s.ov?.[key] ?? clamp(c.variant | 0, 0, list.length - 1), ctx = {...this.motionCtx(key, f, s, 'run'), taper};
+      this.logMotion(key, v, taper < 1 ? 'desaceleração' : 'corrida', s);
+      this.fam = c; this.origin = f.position;
+      try { list[v].call(this, ctx); } finally { this.fam = null; this.origin = null; }
+    }
+  }
+  logMotion(key, v, phase, s) {
+    const label = phase === 'start' ? 'arrancada' : phase === 'stop' ? 'parada' : phase;
+    if (phase === 'start' || phase === 'stop') { this.record(key, v, label); return; }
+    const m = s.logged ??= {}; if (!m[key] || this.time - m[key] > .25) { m[key] = this.time; this.record(key, v, label); }
   }
 }
 
@@ -296,6 +425,8 @@ const BUILD_DUST = [
     }
   },
 ];
+
+BUILD_DUST.push(...DUST_NEW); // estilos E–H (solid-motion.js)
 
 // ---- Outras famílias: três variantes cada, com formas e movimento próprios ----
 const yawOf = (dir) => Math.atan2(dir.x, dir.z);
@@ -373,7 +504,7 @@ const BUILD = {
       const side = {x: n.z, z: -n.x};
       for (let k = -2; k <= 2; k++) { const arc = k * .34, px = pos.x - n.x * .55 + side.x * Math.sin(arc) * .8, pz = pos.z - n.z * .55 + side.z * Math.sin(arc) * .8;
         this.spawn({shape: 'prism', mat: 'glow', color: mixc(c.color, 0xffffff, .12 * Math.abs(k)), x: px, y: .8 + (k % 2) * .18, z: pz, sx: .42 * S, sy: .06 * S, sz: .42 * S, rx: Math.PI / 2, ry: yawOf(n) + arc,
-          vx: -n.x * .9, vz: -n.z * .9, drag: 1.5, life: .36 * D * Math.min(1.4, I), pop: .06, hold: .45, delay: Math.abs(k) * .02}); }
+          vx: -n.x * .9 * I, vz: -n.z * .9 * I, drag: 1.5, life: .36 * D * Math.min(1.4, I), pop: .06, hold: .45, delay: Math.abs(k) * .02}); }
     },
     // B · Lascas defletidas
     function ({pos, n, I, S, D, c, cnt}) {

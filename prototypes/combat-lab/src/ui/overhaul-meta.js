@@ -2,7 +2,7 @@
 // sombras, HUD, altura visual e tremor de câmera. kind: 'range' (padrão), 'select', 'toggle' ou 'color'.
 import {VFX_TYPES, SHAKE_PROFILES} from '../view/vfx.js';
 import {C} from '../sim/config.js';
-import {SOLID_FAMILIES} from '../view/solid-fx.js';
+import {SOLID_FAMILIES, SOLID_KEYS} from '../view/solid-fx.js';
 
 const sec = n => n.toFixed(2) + ' s', mps2 = n => n.toFixed(1) + ' m/s²', x = n => n.toFixed(2) + '×', pct = n => (n * 100).toFixed(0) + '%', m = n => n.toFixed(2) + ' m', num = n => n.toFixed(2);
 const onOff = n => n ? 'Ligado' : 'Desligado';
@@ -77,6 +77,18 @@ const VFX_PARAMS = {
   target: ['Mostrar em', select(['Adversário', 'Ambos', 'Jogador'])], enabled: ['Ligado', toggle], variant: ['Variante', null],
   maxParticles: ['Limite de partículas simultâneas', R(100, 4000, 50, n => String(n))], debugLog: ['Registrar motivo de cada disparo', toggle], legacy: ['Efeitos legados do v6 (partículas em caixa e tremor antigo)', toggle],
   profile: ['Perfil', select(SHAKE_PROFILES)], amplitude: ['Amplitude', R(0, .6, .005, m)], damping: ['Amortecimento', R(0, 30, .1, num)], angular: ['Deslocamento angular', R(0, 3, .01, x)], limit: ['Limite máximo', R(0, 1, .01, m)],
+};
+// Controles das famílias 3D: multiplicadores sobre o padrão de cada estilo (1,00× = como entregue). Só aparência.
+const SOLID_PARAMS_META = {
+  intensity: ['Intensidade (força geral)', 'Multiplica velocidade e quantidade de forma proporcional.', R(.1, 3, .01, x)],
+  amount: ['Quantidade / taxa de emissão', 'Quantos objetos nascem por disparo ou por passada. Abaixo de 1× some parte deles; acima de 1× repete com pequena variação.', R(.1, 3, .01, x)],
+  size: ['Tamanho', 'Escala dos volumes (múltiplo do tamanho de cada estilo).', R(.3, 3, .01, x)],
+  duration: ['Duração (× do padrão)', 'Quanto tempo os objetos duram antes de sumir. Só aparência: não muda a duração do dash nem do sprint.', R(.3, 3, .01, x)],
+  velocity: ['Velocidade dos objetos (×)', 'Velocidade com que poeira e vento são lançados.', R(.2, 3, .01, x)],
+  scatter: ['Dispersão (×)', 'Abre ou fecha o leque: afasta os objetos do ponto de origem e espalha as trajetórias.', R(.2, 3, .01, x)],
+  lift: ['Altura (×)', 'Altura de nascimento e impulso vertical.', R(.2, 3, .01, x)],
+  turbulence: ['Turbulência e rotação (×)', 'Giro dos volumes e ruído nas trajetórias; 1,00× é o padrão, abaixo reduz o giro.', R(0, 3, .01, x)],
+  opacity: ['Opacidade', 'Transparência dos volumes (também some suavemente no fim da vida).', R(.1, 1, .01, pct)],
 };
 const VFX_HELP = {
   freeze: 'Pausa só as poses dos personagens e aplica um filtro na tela; a simulação continua no mesmo tempo (nada muda nas regras).',
@@ -182,6 +194,9 @@ export function overhaulMeta(path) {
   if (root === 'vfx') {
     const type = parts[1], def = VFX_TYPES.find(t => t[0] === type);
     if (key === 'variant' && def) return out('Variante', 'Três alternativas visuais realmente diferentes.', select(def[2]));
+    if (SOLID_KEYS.includes(type) && SOLID_PARAMS_META[key]) { const [l, h, r] = SOLID_PARAMS_META[key];return out(l, h, r); }
+    if (SOLID_KEYS.includes(type) && (key === 'color' || key === 'color2')) return out(key === 'color' ? 'Cor' : 'Cor secundária (energia)', 'Cor base dos volumes deste efeito.', color);
+    if (SOLID_KEYS.includes(type) && key === 'enabled') return out('Ligado', 'Liga ou desliga este efeito 3D.', toggle);
     const solid = SOLID_FAMILIES.find(f => f.key === type);
     if (key === 'variant' && solid) return out('Estilo 3D', `Formas com volume real (sem sprites). Disparo: ${solid.trigger}. Cada opção tem forma e movimento próprios, não só cor ou tamanho.`, select(solid.names));
     if (type === 'solid' && key === 'enabled') return out('Efeitos 3D sólidos (todos)', 'Liga ou desliga todas as malhas 3D de poeira, esquiva, aterrissagem, impacto, bloqueio e colisão.', toggle);

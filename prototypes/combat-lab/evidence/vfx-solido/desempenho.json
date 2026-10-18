@@ -1,65 +1,185 @@
 {
   "generated": "2026-10-18",
-  "note": "Edge headless com SwiftShader (renderização por software): tempos de GPU NÃO são representativos; vale como custo de CPU e contagem de desenhos.",
+  "note": "Tempos são de CPU (atualização das partículas e envio do desenho). Se env.software for true, o WebGL roda por software (SwiftShader) e NENHUM tempo de GPU é representativo.",
   "env": {
-    "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
-    "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36 Edg/155.0.0.0"
+    "glRenderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+    "glVendor": "Google Inc. (Google)",
+    "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36 Edg/155.0.0.0",
+    "software": true,
+    "webgl2": true
   },
-  "dust": {
-    "A": {
-      "updateAvgMs": 0.4136,
-      "updateP95Ms": 1.1,
-      "updateMaxMs": 9.8,
-      "peakActive": 220,
-      "rejected": 1257,
-      "meshes": 12
+  "families": {
+    "solidDust": {
+      "0": {
+        "avg": 0.0227,
+        "p95": 0.1,
+        "max": 0.6,
+        "peakActive": 72,
+        "spawned": 5702
+      },
+      "1": {
+        "avg": 0.0213,
+        "p95": 0.1,
+        "max": 0.2,
+        "peakActive": 40,
+        "spawned": 5758
+      },
+      "2": {
+        "avg": 0.0113,
+        "p95": 0.1,
+        "max": 0.2,
+        "peakActive": 24,
+        "spawned": 5798
+      },
+      "3": {
+        "avg": 0.0187,
+        "p95": 0.1,
+        "max": 0.3,
+        "peakActive": 52,
+        "spawned": 5870
+      },
+      "4": {
+        "avg": 0.024,
+        "p95": 0.1,
+        "max": 0.4,
+        "peakActive": 28,
+        "spawned": 5922
+      },
+      "5": {
+        "avg": 0.0247,
+        "p95": 0.1,
+        "max": 0.3,
+        "peakActive": 28,
+        "spawned": 5958
+      },
+      "6": {
+        "avg": 0.09,
+        "p95": 0.2,
+        "max": 4.4,
+        "peakActive": 44,
+        "spawned": 6046
+      },
+      "7": {
+        "avg": 0.0353,
+        "p95": 0.1,
+        "max": 0.5,
+        "peakActive": 36,
+        "spawned": 6118
+      }
     },
-    "B": {
-      "updateAvgMs": 0.2825,
-      "updateP95Ms": 0.4,
-      "updateMaxMs": 1.2,
-      "peakActive": 220,
-      "rejected": 1630,
-      "meshes": 12
+    "solidWind": {
+      "0": {
+        "avg": 0.0113,
+        "p95": 0.1,
+        "max": 0.3,
+        "peakActive": 24,
+        "spawned": 6158
+      },
+      "1": {
+        "avg": 0.0067,
+        "p95": 0.1,
+        "max": 0.1,
+        "peakActive": 12,
+        "spawned": 6178
+      },
+      "2": {
+        "avg": 0.0113,
+        "p95": 0.1,
+        "max": 0.1,
+        "peakActive": 20,
+        "spawned": 6218
+      },
+      "3": {
+        "avg": 0.0127,
+        "p95": 0.1,
+        "max": 0.2,
+        "peakActive": 32,
+        "spawned": 6282
+      }
     },
-    "C": {
-      "updateAvgMs": 0.2114,
-      "updateP95Ms": 0.3,
-      "updateMaxMs": 0.9,
-      "peakActive": 220,
-      "rejected": 3130,
-      "meshes": 12
+    "solidRunDust": {
+      "0": {
+        "avg": 0.0433,
+        "p95": 0.2,
+        "max": 0.4,
+        "peakActive": 130,
+        "spawned": 6478
+      },
+      "1": {
+        "avg": 0.032,
+        "p95": 0.1,
+        "max": 0.2,
+        "peakActive": 68,
+        "spawned": 6550
+      },
+      "2": {
+        "avg": 0.026,
+        "p95": 0.1,
+        "max": 0.2,
+        "peakActive": 50,
+        "spawned": 6622
+      }
     },
-    "D": {
-      "updateAvgMs": 0.1836,
-      "updateP95Ms": 0.3,
-      "updateMaxMs": 0.7,
-      "peakActive": 220,
-      "rejected": 4542,
-      "meshes": 12
+    "solidRunWind": {
+      "0": {
+        "avg": 0.0173,
+        "p95": 0.1,
+        "max": 0.1,
+        "peakActive": 32,
+        "spawned": 6694
+      },
+      "1": {
+        "avg": 0.0073,
+        "p95": 0.1,
+        "max": 0.1,
+        "peakActive": 12,
+        "spawned": 6710
+      },
+      "2": {
+        "avg": 0.006,
+        "p95": 0.1,
+        "max": 0.1,
+        "peakActive": 12,
+        "spawned": 6734
+      }
     }
   },
   "worstCase": {
-    "updateAvgMs": 0.1736,
-    "updateP95Ms": 0.3,
-    "updateMaxMs": 0.7,
+    "avg": 0.152,
+    "p95": 0.3,
+    "max": 1,
     "peakActive": 220,
     "cap": 220,
-    "rejected": 26338,
-    "meshes": 12
+    "rejected": 4538,
+    "meshes": 20
   },
   "draw": {
-    "withSolid": {
-      "calls": 15,
-      "triangles": 2776
+    "legado": {
+      "withSolid": {
+        "calls": 16,
+        "triangles": 45532,
+        "cpuRenderMedianMs": 0.1
+      },
+      "withoutSolid": {
+        "calls": 12,
+        "triangles": 160,
+        "cpuRenderMedianMs": 0
+      }
     },
-    "withoutSolid": {
-      "calls": 12,
-      "triangles": 100
-    },
-    "cpuRenderMedianMsWith": 0.2,
-    "cpuRenderMedianMsWithout": 0.1
+    "VfxRuntime": {
+      "withSolid": {
+        "calls": 16,
+        "triangles": 45532,
+        "cpuRenderMedianMs": 0.1
+      },
+      "withoutSolid": {
+        "calls": 12,
+        "triangles": 160,
+        "cpuRenderMedianMs": 0
+      }
+    }
   },
-  "geometries": 7,
-  "materials": 2
+  "shapes": 13,
+  "materials": 4,
+  "instancedMeshes": 20
 }
