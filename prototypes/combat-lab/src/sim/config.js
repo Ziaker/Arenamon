@@ -154,6 +154,14 @@ export function vfxDefaults() {
       dynamicLight: 1, reflectionActive: 1, neutralizeActive: 1,
       quality: 1, noFlash: 0, reduceMotion: 0, highContrast: 0,
     },
+    // VFX sólidos (malhas 3D instanciadas, view/solid-fx.js). variant: índice da opção listada em SOLID_FAMILIES.
+    solid: {enabled: 1, maxObjects: 220, quality: 1},
+    solidDust: {enabled: 1, variant: 0, intensity: 1, size: 1, duration: 1, color: 0xb9a07a, color2: 0x7fffe0},
+    solidDodge: {enabled: 1, variant: 0, intensity: 1, size: 1, duration: 1, color: 0x9dffd8},
+    solidLanding: {enabled: 1, variant: 0, intensity: 1, size: 1, duration: 1, color: 0xd9c9a8},
+    solidImpact: {enabled: 1, variant: 0, intensity: 1, size: 1, duration: 1, color: 0xffb361},
+    solidBlock: {enabled: 1, variant: 0, intensity: 1, size: 1, duration: 1, color: 0x73caff},
+    solidClash: {enabled: 1, variant: 0, intensity: 1, size: 1, duration: 1, color: 0xffe58d},
     shakeMaster: {enabled: 1},
     shakeGuard: shake(.05, .16, 0), shakeHit: shake(.12, .28, 0), shakeGround: shake(.09, .3, 1), shakePerfect: shake(.1, .3, 2), shakeClash: shake(.18, .42, 1),
   };

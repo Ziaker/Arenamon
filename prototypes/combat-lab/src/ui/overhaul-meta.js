@@ -2,6 +2,7 @@
 // sombras, HUD, altura visual e tremor de câmera. kind: 'range' (padrão), 'select', 'toggle' ou 'color'.
 import {VFX_TYPES, SHAKE_PROFILES} from '../view/vfx.js';
 import {C} from '../sim/config.js';
+import {SOLID_FAMILIES} from '../view/solid-fx.js';
 
 const sec = n => n.toFixed(2) + ' s', mps2 = n => n.toFixed(1) + ' m/s²', x = n => n.toFixed(2) + '×', pct = n => (n * 100).toFixed(0) + '%', m = n => n.toFixed(2) + ' m', num = n => n.toFixed(2);
 const onOff = n => n ? 'Ligado' : 'Desligado';
@@ -72,6 +73,7 @@ const VFX_PARAMS = {
   shatterCount: ['Fragmentos de estilhaço', R(4, 32, 1, n => String(n))], cracksEmissive: ['Brilho das veias de energia', toggle],
   pulseFreq: ['Frequência de pulsação', R(.5, 8, .1, n => n.toFixed(1) + ' Hz')], ripples: ['Ondas de impacto na barreira', toggle],
   shatterFragments: ['Fragmentos ao quebrar', R(6, 48, 2, n => String(n))], edgeGlow: ['Brilho nas bordas', R(.2, 3, .1, x)],
+  maxObjects: ['Limite de objetos 3D ativos', R(8, 512, 1, n => String(n))], quality: ['Qualidade dos efeitos 3D', select(['Baixa (menos objetos)', 'Média', 'Alta (mais objetos)'])],
   target: ['Mostrar em', select(['Adversário', 'Ambos', 'Jogador'])], enabled: ['Ligado', toggle], variant: ['Variante', null],
   maxParticles: ['Limite de partículas simultâneas', R(100, 4000, 50, n => String(n))], debugLog: ['Registrar motivo de cada disparo', toggle], legacy: ['Efeitos legados do v6 (partículas em caixa e tremor antigo)', toggle],
   profile: ['Perfil', select(SHAKE_PROFILES)], amplitude: ['Amplitude', R(0, .6, .005, m)], damping: ['Amortecimento', R(0, 30, .1, num)], angular: ['Deslocamento angular', R(0, 3, .01, x)], limit: ['Limite máximo', R(0, 1, .01, m)],
@@ -180,6 +182,9 @@ export function overhaulMeta(path) {
   if (root === 'vfx') {
     const type = parts[1], def = VFX_TYPES.find(t => t[0] === type);
     if (key === 'variant' && def) return out('Variante', 'Três alternativas visuais realmente diferentes.', select(def[2]));
+    const solid = SOLID_FAMILIES.find(f => f.key === type);
+    if (key === 'variant' && solid) return out('Estilo 3D', `Formas com volume real (sem sprites). Disparo: ${solid.trigger}. Cada opção tem forma e movimento próprios, não só cor ou tamanho.`, select(solid.names));
+    if (type === 'solid' && key === 'enabled') return out('Efeitos 3D sólidos (todos)', 'Liga ou desliga todas as malhas 3D de poeira, esquiva, aterrissagem, impacto, bloqueio e colisão.', toggle);
     const p = VFX_PARAMS[key];if (!p) return null;
     const label = type === 'shakeMaster' && key === 'enabled' ? 'Tremores de câmera (todos)' : type === 'master' && key === 'enabled' ? 'Efeitos visuais (todos)' : p[0];
     return out(label, VFX_HELP[key] || `${p[0]} do efeito. Só aparência: não altera regras, tempos da simulação ou cooldowns.`, p[1]);

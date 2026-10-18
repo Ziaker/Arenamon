@@ -9,6 +9,7 @@ import {STYLES} from '../sim/tactics.js';
 import {actionMeta, OFFICIAL_MAP, migrateFlat, flatten} from './actions-meta.js';
 import {overhaulMeta} from './overhaul-meta.js';
 import {VFX_TYPES, SHAKE_EVENTS} from '../view/vfx.js';
+import {SOLID_FAMILIES} from '../view/solid-fx.js';
 
 const $ = id => document.getElementById(id);
 export const pathGet = (root, path) => path.split('.').reduce((a, k) => a?.[k], root);
@@ -108,7 +109,7 @@ export function officialValue(path) {
 const same = (a, b) => Math.abs(a - b) <= 1e-9 * Math.max(1, Math.abs(a), Math.abs(b));
 
 /** Seções do overhaul fora do catálogo original: sprint (Ajustes) e efeitos, sombras, HUD e tremores (Visualizar). */
-export const EXTRA_SECTIONS = [['Sprint (C mantido)', 'actions.sprint', null], ['VFX · geral', 'vfx.master', null],
+export const EXTRA_SECTIONS = [['Sprint (C mantido)', 'actions.sprint', null], ['VFX · geral', 'vfx.master', null], ['VFX 3D · geral', 'vfx.solid', null], ...SOLID_FAMILIES.map(f => [`VFX 3D · ${f.label}`, `vfx.${f.key}`, null]),
   ...VFX_TYPES.map(([type, label]) => [`VFX · ${label}`, `vfx.${type}`, null]), ['Tremor · geral', 'vfx.shakeMaster', null], ...SHAKE_EVENTS.map(([key, label]) => [`Tremor · ${label}`, `vfx.${key}`, null]),
   ['Teclas do vermelho (controle manual)', 'extras.bindings2', null], ['VFX · Laser da Arena (BeamRenderer)', 'vfx.laser', null], ['Sombras', 'display.shadow', null], ['HUD', 'display.hud', null], ['Altura visual', 'display.grounding', null], ['Indicador da janela C → X', 'display.cancelRing', null], ['Animação: transições', 'display.animation', null], ['Diagnóstico de comandos', 'display.diagnostics', null], ['Janelas de combate', 'display.windows', null], ['Medidor de desempenho', 'display.perf', null]];
 /** Parâmetros mostrados em outras abas (sem duplicar controles no Ajustes). */

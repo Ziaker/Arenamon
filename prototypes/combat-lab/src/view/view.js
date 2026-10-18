@@ -7,6 +7,7 @@ import {direction, length, angleOf} from '../sim/math.js';
 import {wouldVault, cancelWindow} from '../sim/controller.js';
 import {CameraRig} from './rig.js';
 import {VfxSystem} from './vfx.js';
+import {SolidFx} from './solid-fx.js';
 import {WorldView} from './world-view.js';
 import {phaseAt} from '../sim/motion.js';
 // Novo sistema de VFX declarativo (ativado ao lado do legado durante a migração).
@@ -45,6 +46,7 @@ export class View {
     // runtime está disponível em this.vfxRuntime para migração efeito a efeito.
     this.vfxRuntime = new VfxRuntime(this.scene, {camera: this.camera, canvas, flashEl: document.getElementById('vfx-flash'), quality: 'medium'});
     registerAllEffects(this.vfxRuntime);
+    this.solid = new SolidFx(this.scene); // malhas 3D sólidas (poeira do dash, esquiva, impactos); independe do renderizador de sprites
     this.useNewVfx = false; // trocar para true quando o novo sistema estiver em paridade
     this.overlayGroup = new T.Group();this.overlayGroup.renderOrder = 900;this.scene.add(this.overlayGroup);
     this.worldView = new WorldView(this.scene);
@@ -60,6 +62,7 @@ export class View {
   setAccessibility(a = {}) {
     this.vfx?.setAccessibility?.(a);
     this.vfxRuntime?.setAccessibility?.(a);
+    this.solid?.setAccessibility?.(a);
     this.worldView?.setAccessibility?.(a);
   }
   /** Reaplica tamanho da arena, cores, luzes e câmera depois de mudanças no ajustador. */
@@ -78,6 +81,7 @@ export class View {
     this.rig.reset(player);this.seenEvents = new WeakSet();this.legacySeen = new WeakSet();this.cameraShake = 0;for (const e of this.effects) {this.scene.remove(e.mesh);e.mesh.geometry.dispose();e.mesh.material.dispose();}this.effects = [];this.airborneSeen = [];this.invulnerableFx.clear();this.normals = [];this.vfx.reset();
     if (this.canvas) this.canvas.style.filter = '';
     this.vfxRuntime.reset();
+    this.solid.reset();
   }
   /** Efeitos legados do v6 (partículas em caixa e tremor antigo). Só com “Efeitos legados” ligado em Visualizar. */
   spawnBurst(pos, type) {
@@ -181,6 +185,7 @@ export class View {
       t0 = now();this.vfx.update(fighters, events, vfxDt, {characters: this.characters, camera: this.camera});tm.vfx = now() - t0;
       this.vfxRuntime.beamRenderer?.reset();
     }
+    this.solid.update(fighters, events, vfxDt, {visible: !!X.hud.fxVisible});
     const legacy = this.updateLegacy(fighters, events, paused ? 0 : dt);
     const fxOn = !!X.hud.fxVisible;
     const legacyOn = fxOn && !this.useNewVfx && !!this.vfx.atlas;

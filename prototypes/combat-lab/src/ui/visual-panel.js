@@ -4,6 +4,7 @@
 import {C, vfxDefaults, displayDefaults} from '../sim/config.js';
 import {spawn} from '../sim/world.js';
 import {VFX_TYPES, SHAKE_EVENTS} from '../view/vfx.js';
+import {SOLID_FAMILIES} from '../view/solid-fx.js';
 import {fold} from './characters-panel.js';
 import {escape} from './tuning.js';
 
@@ -151,6 +152,30 @@ export function createVisualPanel({tuning, view, game, $, hud, download}) {
       </div>
   `);
     root.append(renderModeBox);
+    // ---------- VFX 3D sólidos: malhas com volume real, seletor por família com prévia ----------
+    const solidBox = document.createElement('div');solidBox.className = 'vfx-solid-box';solidBox.dataset.solidBox = '1';
+    solidBox.style.cssText = 'background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.14);border-radius:6px;padding:10px 12px;margin:0 0 14px;';
+    solidBox.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:6px;"><span style="font-weight:600;font-size:.95rem;">Efeitos 3D sólidos (malhas com volume, giram com a câmera)</span>
+        <label style="display:inline-flex;align-items:center;gap:4px;font-size:.85rem;"><input type="checkbox" data-solid-master ${C.vfx.solid?.enabled ? 'checked' : ''}> Ligados</label></div>
+      <p class="hint" style="margin:0 0 8px;">Funcionam com os dois renderizadores. A opção marcada é exatamente a aplicada em partida; clicar já mostra a prévia. Ctrl+Z desfaz a escolha.</p>` +
+      SOLID_FAMILIES.map(f => `<div data-solid-family="${f.key}" style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.08);">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;"><b style="font-size:.9rem;">${escape(f.label)}</b><span class="muted" style="font-size:.8rem;">Dispara em: ${escape(f.trigger)}</span>
+          <label style="display:inline-flex;align-items:center;gap:4px;font-size:.8rem;"><input type="checkbox" data-solid-on="${f.key}" ${C.vfx[f.key]?.enabled ? 'checked' : ''}> ligado</label>
+          ${f.key === 'solidDust' ? '<button type="button" data-solid-prev="solidDust:dash">▶ Dash</button><button type="button" data-solid-prev="solidDust:start">▶ Arrancada</button><button type="button" data-solid-prev="solidDust:stop">▶ Parada</button><button type="button" data-solid-prev="solidDust:compare">▶ Comparar as 4</button>' : `<button type="button" data-solid-prev="${f.key}:dash">▶ Prévia</button>`}</div>
+        <div class="seg" role="group" aria-label="${escape(f.label)}" style="flex-wrap:wrap;">${f.names.map((n, v) => `<button type="button" data-solid-variant="${f.key}:${v}" aria-pressed="${(C.vfx[f.key]?.variant | 0) === v}" title="${escape(n)}">${escape(n)}</button>`).join('')}</div></div>`).join('');
+    root.append(solidBox);
+    const solidPreview = (key, what = 'dash') => {
+      const fx = view.solid;if (!fx) return;
+      if (key === 'solidDust' && what === 'compare') fx.compareDust(game.fighters, 'dash');else fx.preview(key, game.fighters, what);
+    };
+    for (const b of solidBox.querySelectorAll('[data-solid-variant]')) b.onclick = () => {
+      const [key, v] = b.dataset.solidVariant.split(':'), fam = SOLID_FAMILIES.find(f => f.key === key);
+      tuning.commit([[`vfx.${key}.variant`, Number(v)]], `${fam.label}: ${fam.names[Number(v)].split(':')[0]}`);
+      solidPreview(key);
+    };
+    for (const b of solidBox.querySelectorAll('[data-solid-prev]')) b.onclick = () => {const [key, what] = b.dataset.solidPrev.split(':');solidPreview(key, what);};
+    for (const c of solidBox.querySelectorAll('[data-solid-on]')) c.onchange = () => tuning.commit([[`vfx.${c.dataset.solidOn}.enabled`, c.checked ? 1 : 0]], 'Efeito 3D ' + c.dataset.solidOn);
+    solidBox.querySelector('[data-solid-master]').onchange = e => tuning.commit([['vfx.solid.enabled', e.target.checked ? 1 : 0]], 'Efeitos 3D sólidos');
     const updateVfxModeButtons = () => {
       const legBtn = renderModeBox.querySelector('[data-vfx-runtime-btn="legacy"]');
       const newBtn = renderModeBox.querySelector('[data-vfx-runtime-btn="new"]');
@@ -409,6 +434,9 @@ export function createVisualPanel({tuning, view, game, $, hud, download}) {
     view.vfxRuntime?.setAccessibility?.(a11y);
     view.worldView?.setAccessibility?.(a11y);
 
+    for (const b of root.querySelectorAll('[data-solid-variant]')) {const [k, v] = b.dataset.solidVariant.split(':');b.setAttribute('aria-pressed', String((C.vfx[k]?.variant | 0) === Number(v)));}
+    for (const c of root.querySelectorAll('[data-solid-on]')) c.checked = !!C.vfx[c.dataset.solidOn]?.enabled;
+    const sm = root.querySelector('[data-solid-master]');if (sm) sm.checked = !!C.vfx.solid?.enabled;
     const activeVar = C.vfx.hit?.variant ?? 0;
     for (const x of root.querySelectorAll('[data-global-vfx]')) {
       x.setAttribute('aria-pressed', String(Number(x.dataset.globalVfx) === activeVar));

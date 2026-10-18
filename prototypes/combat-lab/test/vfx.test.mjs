@@ -858,14 +858,28 @@ test('variantes: exaustão e regeneração possuem variantes A, B e C funcionais
   }
 });
 
-test('variantes: runtime.setVariant altera a variante disparada pelo evento visual', () => {
+test('variantes: a variante disparada vem de C.vfx (fonte única), igual à exibida no painel', () => {
   const rt = makeRuntime();
-  rt.setVariant('hit', 2);
+  const before = C.vfx.hit.variant;
+  C.vfx.hit.variant = 2;
   const ev = [{tick: 10, attacker: 0, target: 1, result: 'impact', damage: 20, normal: {x: 0, y: 0, z: 1}}];
   rt.update(fighters, ev, 0.016, {tick: 10});
   const active = [...rt.activeEffects.values()];
   assert.ok(active.length > 0);
   assert.equal(active[0].effectDef.variant, 2, 'deve disparar a variante 2 (C)');
+  C.vfx.hit.variant = before;
+});
+
+test('variantes: setVariant não sobrepõe C.vfx; desfazer/refazer (C mudou) vale no próximo disparo', () => {
+  const rt = makeRuntime();
+  const before = C.vfx.hit.variant;
+  rt.setVariant('hit', 2);                 // chamada antiga do painel: não pode criar uma escolha paralela
+  assert.equal(rt.getVariant('hit'), before, 'sem desvio: continua o valor da configuração');
+  C.vfx.hit.variant = 1; assert.equal(rt.getVariant('hit'), 1);
+  C.vfx.hit.variant = 0; assert.equal(rt.getVariant('hit'), 0, 'depois do desfazer o runtime acompanha a configuração');
+  rt.update(fighters, [{tick: 11, attacker: 0, target: 1, result: 'impact', damage: 20, normal: {x: 0, y: 0, z: 1}}], 0.016, {tick: 11});
+  assert.equal([...rt.activeEffects.values()][0].effectDef.variant, 0);
+  C.vfx.hit.variant = before;
 });
 
 test('runtime: update repassa world para o BeamRenderer e contabiliza beamsActive', () => {

@@ -177,13 +177,15 @@ export class VfxRuntime {
       highContrast: opts.highContrast,
     });
   }
+  // Fonte única da escolha: C.vfx[família].variant (o que o painel mostra e o desfazer/refazer restauram).
+  // setVariant só guarda famílias sem entrada em C.vfx e nunca sobrepõe o valor da configuração.
   setVariant(family, variant) {
+    if (typeof C !== 'undefined' && C.vfx && C.vfx[family] && C.vfx[family].variant !== undefined) { this.variants.delete(family); return; }
     this.variants.set(family, variant | 0);
   }
   getVariant(family) {
-    if (this.variants.has(family)) return this.variants.get(family);
-    if (typeof C !== 'undefined' && C.vfx && C.vfx[family]) return C.vfx[family].variant | 0;
-    return 0;
+    if (typeof C !== 'undefined' && C.vfx && C.vfx[family] && C.vfx[family].variant !== undefined) return C.vfx[family].variant | 0;
+    return this.variants.has(family) ? this.variants.get(family) : 0;
   }
   typeToFamily(t) {
     const map = {hit: 'hit', partial: 'block', perfect: 'perfect', clash: 'clash', ground: 'ground', dodge: 'dodge', sprint: 'sprint', exhaust: 'exhaust', regen: 'regen', wall: 'wall'};
