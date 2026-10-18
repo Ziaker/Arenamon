@@ -258,9 +258,8 @@ export function createMovesPanel({$, game, download, tuning, view, ui}) {
     const scen = results ? results.map(s => `<details data-k="s:${s.id}" ${s.ok ? '' : 'open'}><summary class="${s.ok ? 'ok' : 'warn'}">${s.ok ? '✓' : '✗'} ${escape(s.name)}</summary><table><tr><th>Verificação</th><th>Esperado</th><th>Obtido</th></tr>${s.rows.map(r => `<tr class="${r.ok ? 'ok' : 'warn'}"><td>${r.ok ? '✓' : '✗'} ${escape(r.what)}</td><td>${escape(r.expected)}</td><td>${escape(r.got)}</td></tr>`).join('')}</table></details>`).join('') : '<p class="hint">Cada cenário roda num duelo isolado, com semente fixa e os ajustes atuais, e compara esperado × obtido.</p>';
     root.innerHTML = `
       <p class="hint">Reflect (tecla <b>A</b>) e Psyshock (tecla <b>S</b>): <b>segure para carregar, solte para executar</b>. Vêm desligados: marque abaixo para equipar (valem nas próximas partidas e já na atual). A aprovação de jogabilidade e visual é sua (aba Homologação).</p>
-      <h3>Equipar</h3>
+      <div class="bento-card" data-subcard="equip" data-sublabel="Equipar & Laser"><h3>Equipar</h3>
       <div class="row"><b>Jogador (azul)</b><label><input type="checkbox" data-equip="0.reflect" ${eq0.reflect ? 'checked' : ''}> Reflect</label><label><input type="checkbox" data-equip="0.psyshock" ${eq0.psyshock ? 'checked' : ''}> Psyshock</label></div>
-      ${renderMovesAnimSection()}
       
       <div class="vfx-quick-style">
         <b>Estilo VFX dos Golpes:</b>
@@ -289,13 +288,14 @@ export function createMovesPanel({$, game, download, tuning, view, ui}) {
       <p class="hint">Os feixes acima são gerados na simulação ativa (física real, dano, colisões, reflexão em barreiras e neutralização), consumidos em tempo real pelo novo BeamRenderer com exclusão mútua do renderizador legado.</p>
       <h3>Cenários técnicos</h3>
       <div class="row"><button type="button" id="mvp-run">▶ Executar todos</button><button type="button" id="mvp-export" ${results ? '' : 'disabled'}>↓ JSON</button></div>
-      <div id="mvp-results">${scen}</div>
-      <h3>Avaliação jogável dos Moves</h3>
+      <div id="mvp-results">${scen}</div></div>
+      <div class="bento-card" data-subcard="anim" data-sublabel="Animações & Homolog.">${renderMovesAnimSection()}
+      <details class="mvp-hom-fold" data-k="homolog"><summary><b>Avaliação jogável dos Moves (${MOVES_HOMOLOG.length})</b></summary>
       <p class="hint">A sua aprovação (separada dos testes automáticos). Fica salva neste navegador e vai no JSON exportado.</p>
-      ${MOVES_HOMOLOG.map((t, i) => `<div class="mvp-hom"><div>${escape(t)}</div><div class="row"><select data-hom="${i}"><option value="">pendente</option><option value="ok" ${homolog[i]?.v === 'ok' ? 'selected' : ''}>aprovado</option><option value="no" ${homolog[i]?.v === 'no' ? 'selected' : ''}>reprovado</option></select><input type="text" data-hom-note="${i}" placeholder="observação" value="${escape(homolog[i]?.n ?? '')}"></div></div>`).join('')}
-      <h3>Parâmetros <small class="muted">(valem para os próximos usos; barreiras e pedras já criadas guardam os valores de quando nasceram)</small></h3>
+      ${MOVES_HOMOLOG.map((t, i) => `<div class="mvp-hom"><div>${escape(t)}</div><div class="row"><select data-hom="${i}"><option value="">pendente</option><option value="ok" ${homolog[i]?.v === 'ok' ? 'selected' : ''}>aprovado</option><option value="no" ${homolog[i]?.v === 'no' ? 'selected' : ''}>reprovado</option></select><input type="text" data-hom-note="${i}" placeholder="observação" value="${escape(homolog[i]?.n ?? '')}"></div></div>`).join('')}</details></div>
+      <div class="bento-card" data-subcard="params" data-sublabel="Parâmetros"><h3>Parâmetros <small class="muted">(próximos usos)</small></h3>
       ${PARAMS.map(([title, list]) => `<details data-k="p:${escape(title)}"><summary><b>${escape(title)}</b></summary>${list.map(paramRow).join('')}</details>`).join('')}
-      <div class="row"><button type="button" id="mvp-reset-all">Restaurar todos os padrões</button></div>`;
+      <div class="row"><button type="button" id="mvp-reset-all">Restaurar todos os padrões</button></div></div>`;
     for (const d of root.querySelectorAll('details[data-k]')) if (openKeys.has(d.dataset.k)) d.open = true;
     
     // Controles de animação dos Moves (Carga com Loop + Disparo)

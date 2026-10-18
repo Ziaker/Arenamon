@@ -20,6 +20,7 @@
    <button type="button" id="arena-autoplay-toggle" role="switch" aria-checked="false" title="IA controla o jogador azul (IA × IA)">🤖 IA jogador</button>
    <button type="button" id="camera-reset" title="Reposicionar a câmera atrás do jogador">◎ Câmera</button>
    <button type="button" id="debug-toggle" title="Depuração (F3)">F3</button>
+    <button type="button" id="audio-toggle" title="Ligar/desligar efeitos sonoros (M)">🔊 Som</button>
   </div>
  </header>
  <div class="body">
@@ -36,237 +37,293 @@
    <span class="rail-spacer"></span>
    <button type="button" id="dock-toggle" title="Mostrar/recolher a linha do tempo"><i>⏱</i><span>Timeline</span></button>
   </nav>
-  <aside class="panel" id="panel" hidden>
-   <header class="panel-head"><h2 id="panel-title"></h2><button type="button" class="icon" id="panel-close" title="Recolher painel" aria-label="Recolher painel">⟨</button></header>
-   <div class="panel-body">
-    <section data-section="match">
-     <p class="hint">Combate em blocos com as regras do laboratório v6. Os valores podem divergir do jogo oficial: veja a aba Exportar.</p>
-     <label class="field">Perfil do jogador (azul)<select id="profile"><option value="balanced">Equilibrado</option><option value="agile">Ágil</option><option value="resistant">Resistente</option></select></label>
-     <label class="field">Perfil do adversário (vermelho)<select id="enemy-profile"><option value="balanced">Equilibrado</option><option value="agile">Ágil</option><option value="resistant">Resistente</option></select></label>
-     <label class="field">Comportamento do adversário<select id="mode"></select></label>
-     <div id="enemy-ai-control"></div>
-     <label class="field">IA do jogador quando 🤖 ligado<select id="player-mode"></select></label>
-     <button type="button" class="primary wide" id="start">▶ Iniciar combate</button>
-     <h3>Aleatoriedade</h3>
-     <p class="hint">Cada IA tem personalidade própria (reação, erros, agressividade, variação e hesitação) em <b>Ajustes › IA</b>. A semente define a sequência sorteada: a mesma semente repete a mesma luta.</p>
-     <label class="field">Semente<input type="number" id="seed" min="1" step="1" value="1"></label>
-     <label class="check"><input type="checkbox" id="seed-fixed"> Semente fixa (sem marcar, cada combate sorteia uma nova)</label>
-     <h3>Dificuldade da IA</h3>
-     <div class="seg wide" role="group" aria-label="Dificuldade"><button type="button" data-difficulty="easy">Fácil</button><button type="button" data-difficulty="normal">Normal (v6)</button><button type="button" data-difficulty="hard">Difícil</button></div>
-     <p class="hint">Os presets mudam alcance, intervalo de ataque, reação e ciclo de esquiva da IA (aba Ajustes › IA), com desfazer.</p>
-     <h3>Gravação da partida</h3>
-     <p class="hint">Toda partida é gravada (semente, perfis, ajustes e as entradas do azul). Reproduza com os ajustes da gravação para repetir a luta exatamente, ou com os ajustes atuais para repetir as mesmas entradas em outra configuração.</p>
-     <div class="row"><button type="button" id="rec-save" disabled>↓ Salvar gravação</button><span id="rec-status" class="muted"></span></div>
-     <label class="field">Reproduzir gravação (.json)<input type="file" id="rec-file" accept=".json,application/json"></label>
-     <label class="field">Ajustes na reprodução<select id="rec-values"><option value="recorded">Os da gravação (repete a luta exatamente)</option><option value="current">Os atuais (mesmas entradas, outra configuração)</option></select></label>
-     <div id="rec-result" class="report" aria-live="polite"></div>
-     <h3>Controles</h3>
-     <p class="keys">↑↓←→ mover · <b>X</b> tackle (qualquer direção) · <b>C</b> esquiva (salta sobre o rival no caminho; X durante C = cancelamento C → X; segure C com uma direção = sprint) · <b>D</b> defender · <b>Tab</b> fixar alvo · <b>Esc</b> pausar · <b>R</b> reiniciar · botão direito/roda: câmera. Gamepad: A tackle, B esquiva, LB/RB defesa, Y alvo.</p>
-     <p class="hint">Pausado: ◂/▸ na linha do tempo (ou , e .) voltam e avançam um passo de simulação. Os últimos 12 s ficam gravados.</p>
-    </section>
-    <section data-section="scenarios" hidden>
-     <p class="hint">Cada cenário começa sempre do mesmo jeito, com comandos roteirizados para os dois lutadores, e termina com <b>esperado × obtido</b> calculado a partir dos ajustes atuais.</p>
-     <div id="scenario-list"></div>
-     <button type="button" class="wide" id="scenario-all" title="Executa todos sem animação e mostra o relatório">Executar todos (instantâneo)</button>
-     <div id="scenario-report" class="report" aria-live="polite"></div>
-     <h3>Gravador de movimento</h3>
-     <p class="hint">Grave alguns segundos jogando (ou use a sequência padrão) e reexecute quantas vezes quiser: mesmo estado inicial, mesma semente e mesmos comandos, com os parâmetros de A e de B. Mede e desenha velocidade, aceleração, posição, distância, stamina e estados.</p>
-     <label class="field">Sequência<select id="mv-seq"></select></label>
-     <div class="row"><button type="button" id="mv-rec">● Gravar da partida</button><button type="button" id="mv-play" title="Reproduz na arena com os parâmetros de A">▶ Ver na arena (A)</button><button type="button" id="mv-del">Excluir</button></div>
-     <div class="row"><button type="button" id="mv-export-seq">↓ Sequência</button><label class="file-btn">↑ Sequência<input type="file" id="mv-import" accept=".json,application/json" hidden></label></div>
-     <p class="hint" id="mv-status"></p>
-     <div class="row"><label class="field">A<select id="mv-a"></select></label><label class="field">B<select id="mv-b"></select></label></div>
-     <button type="button" class="wide primary" id="mv-run">Medir e comparar</button>
-     <div id="mv-report" class="report" aria-live="polite"></div>
-     <div class="row"><button type="button" id="mv-graphs">📈 Abrir gráficos</button><button type="button" id="mv-csv">↓ CSV</button><button type="button" id="mv-json">↓ Relatório JSON</button></div>
-     <h3>Treino de defesa e esquiva perfeitas</h3>
-     <div class="row"><label class="field">Treinar<select id="train-mode"></select></label><label class="field">Ataque do vermelho<select id="train-attack"></select></label></div>
-     <div class="row"><label class="field">Intervalo (s)<input type="number" id="train-interval" min="0.5" max="10" step="0.1" value="2"></label><label class="field">Semente<input type="number" id="train-seed" min="1" value="1"></label><label class="field">Velocidade<select id="train-speed"><option value="0.25">0,25×</option><option value="0.5">0,5×</option><option value="1" selected>1×</option></select></label></div>
-     <div class="row"><button type="button" class="primary" id="train-start">▶ Iniciar treino</button><button type="button" id="train-restart" title="Recomeça com a mesma semente (zera o placar)">↺ Reinício rápido</button><button type="button" id="train-export">↓ Histórico (JSON)</button></div>
-     <div id="train-report" class="report" aria-live="polite"></div>
-     <h3>Equilíbrio IA × IA</h3>
-     <p class="hint">Lutas rápidas, sem animação, com os ajustes atuais e os perfis da aba Partida. Mostra se um ajuste fez alguma mecânica dominar.</p>
-     <div class="row"><label class="field">Lutas<input type="number" id="balance-matches" min="1" max="200" value="20"></label><label class="field">Semente<input type="number" id="balance-seed" min="1" value="1"></label></div>
-     <button type="button" class="wide" id="balance-run">Medir equilíbrio</button>
-     <div id="balance-report" class="report" aria-live="polite"></div>
-     <h3>Avaliação da IA: evoluída, revisada e linha de base</h3>
-     <p class="hint">Comparação estatística rigorosa pareada ou unilateral com loadouts, matriz de sementes, níveis de dificuldade e cenários difíceis.</p>
-     <div class="row">
-      <label class="field">Candidato<select id="aieval-candidate-rev">
-       <option value="2" selected>Revisão 2 (Evoluída)</option>
-       <option value="1">Revisão 1 (Revisada)</option>
-      </select></label>
-      <label class="field">Linha de Base<select id="aieval-baseline-rev">
-       <option value="0" selected>Revisão 0 (Anterior / v6)</option>
-       <option value="1">Revisão 1 (Revisada)</option>
-      </select></label>
-      <label class="field">Dificuldade<select id="aieval-difficulty">
-       <option value="normal" selected>Normal</option>
-       <option value="easy">Fácil</option>
-       <option value="hard">Difícil</option>
-       <option value="expert">Especialista</option>
-      </select></label>
+   <aside class="panel" id="panel" data-layout="bento" hidden>
+    <header class="panel-head">
+     <h2 id="panel-title"></h2>
+     <div id="panel-subtabs" class="subtabs" role="tablist" aria-label="Sub-abas da seção"></div>
+     <div class="panel-head-actions">
+      <button type="button" class="chip-btn" id="panel-hints-toggle" aria-pressed="false" title="Mostrar ou ocultar textos explicativos nas ferramentas">? Dicas</button>
+      <button type="button" class="chip-btn" id="panel-layout-toggle" aria-pressed="true" title="Alternar entre Grade Sem Scroll (múltiplas colunas) e Barra Lateral Estreita (1 coluna)">⊞ Grade</button>
+      <button type="button" class="icon" id="panel-close" title="Recolher painel" aria-label="Recolher painel">⟨</button>
      </div>
-     <div class="row"><label class="field">Lutas<input type="number" id="aieval-matches" min="4" max="400" value="60"></label><label class="field">Semente<input type="number" id="aieval-seed" min="1" value="1"></label><label class="field">Estilo<select id="aieval-style"></select></label></div>
-     <div class="row">
-      <label class="field">Loadout (Moves)<select id="aieval-loadout">
-       <option value="none">Sem Moves (básico)</option>
-       <option value="reflect">Com Reflect</option>
-       <option value="psyshock">Com Psyshock</option>
-       <option value="both">Ambos (Reflect + Psyshock)</option>
-      </select></label>
-      <label class="field">Arena / Lados<select id="aieval-mode">
-       <option value="paired">Pareado (Azul + Vermelho alternados)</option>
-       <option value="blue">Candidato só no Azul</option>
-      </select></label>
-     </div>
-     <div class="row"><button type="button" class="wide primary" id="aieval-run">Comparar IAs</button><button type="button" id="aieval-scenarios">Cenários Difíceis</button><button type="button" id="aieval-export">↓ Relatório (JSON)</button></div>
-     <div id="aieval-report" class="report" aria-live="polite"></div>
-     <h3>Comparar A × B</h3>
-     <p class="hint">Executa a mesma situação com dois conjuntos de ajustes (atuais, padrão do laboratório, jogo oficial ou presets salvos) e mostra os resultados lado a lado. A configuração atual não muda.</p>
-     <div class="row"><label class="field">A<select id="comp-a"></select></label><label class="field">B<select id="comp-b"></select></label></div>
-     <label class="field">Situação<select id="comp-source"><option value="scenarios">Todos os cenários roteirizados</option><option value="match">Gravação da partida atual (mesmas entradas do azul)</option></select></label>
-     <button type="button" class="wide" id="comp-run">Comparar</button>
-     <div id="comp-report" class="report" aria-live="polite"></div>
-    </section>
-    <section data-section="tuning" hidden>
-     <div class="seg wide" role="group" aria-label="Modo do ajustador" id="tune-mode"><button type="button" data-tune-mode-btn="simple" aria-pressed="true" title="Presets, ~16 controles de alto impacto e comparação jogável">Modo simples</button><button type="button" data-tune-mode-btn="advanced" aria-pressed="false" title="Todos os parâmetros do laboratório, por grupo">Modo avançado</button></div>
-     <h3>Presets</h3>
-     <p class="hint">Presets de sensação mudam só locomoção, sprint, curvas de X/C e transições de animação: nunca VFX, HUD, câmera ou regras. Os iniciais são propostas para avaliação, não valores aprovados.</p>
-     <div class="row"><select id="preset-select" aria-label="Preset selecionado" class="grow"></select></div>
-     <div id="preset-info" class="report"></div>
-     <div class="row"><button type="button" class="primary" id="preset-apply">Aplicar…</button><button type="button" id="preset-dup">Duplicar</button><button type="button" id="preset-update" title="Grava os ajustes atuais neste preset (nova versão)">Atualizar com os atuais</button><button type="button" id="preset-delete">Excluir</button><button type="button" id="preset-revert" title="Volta os parâmetros alterados pelo último preset aplicado">↶ Restaurar estado anterior</button></div>
-     <div id="preset-plan" class="report" aria-live="polite"></div>
-     <div id="preset-list"></div>
-     <details class="save-preset"><summary>Salvar ajustes atuais como novo preset</summary>
-      <div class="row"><input type="text" id="preset-name" placeholder="Nome do preset" maxlength="60"><button type="button" id="preset-save">Salvar</button></div>
-      <label class="field">Descrição<textarea id="preset-desc" rows="2" placeholder="O que este preset busca (opcional)"></textarea></label>
-      <div class="row"><label class="pill"><input type="radio" name="preset-scope" value="full" checked> Completo (todos os parâmetros)</label><label class="pill"><input type="radio" name="preset-scope" value="partial"> Só categorias</label></div>
-      <div id="preset-cats"></div>
-     </details>
-     <h4>Comparar presets</h4>
-     <div class="row"><select id="preset-a" aria-label="Preset A"></select><span>×</span><select id="preset-b" aria-label="Preset B"></select><button type="button" id="preset-compare">Comparar</button><button type="button" id="preset-measure" title="Mede a sensação com a sequência padrão de movimento">Medir</button></div>
-     <div id="preset-diff" class="report"></div>
-     <h3>Parâmetros</h3>
-     <div data-tune-mode="simple">
-      <p class="hint"><b>Calibração principal.</b> Controles de alto impacto. Cada um edita os parâmetros oficiais do laboratório (listados abaixo dele); o modo avançado mostra os mesmos valores.</p>
-      <div id="simple-controls"></div>
-     </div>
-     <div data-tune-mode="advanced" hidden>
-      <p class="hint"><b>Todos os parâmetros</b>, por grupo, com busca e filtros.</p>
-      <div class="tune-tools">
-       <input type="search" id="tune-search" placeholder="Buscar parâmetro…" aria-label="Buscar parâmetro">
-       <div class="seg" role="group" aria-label="Filtro"><button type="button" data-filter="all" aria-pressed="true">Todos</button><button type="button" data-filter="changed" aria-pressed="false" title="Diferentes do padrão do laboratório">Alterados</button><button type="button" data-filter="experimental" aria-pressed="false" title="Diferentes do jogo oficial (config.ts)">≠ jogo</button><button type="button" data-filter="lab" aria-pressed="false" title="Não existem no jogo oficial">Só lab</button></div>
-       <div class="row"><button type="button" id="tune-undo" disabled title="Desfazer ajuste (Ctrl+Z)">↶</button><button type="button" id="tune-redo" disabled title="Refazer ajuste (Ctrl+Y)">↷</button><span id="tune-counter" class="muted"></span></div>
+    </header>
+    <div class="panel-body">
+     <section data-section="match">
+      <div class="bento-card" data-subcard="perfis" data-sublabel="Perfis & IA">
+       <p class="hint">Combate em blocos com as regras do laboratório v6. Os valores podem divergir do jogo oficial: veja a aba Exportar.</p>
+       <div class="row">
+        <label class="field">Perfil Azul<select id="profile"><option value="balanced">Equilibrado</option><option value="agile">Ágil</option><option value="resistant">Resistente</option></select></label>
+        <label class="field">Perfil Vermelho<select id="enemy-profile"><option value="balanced">Equilibrado</option><option value="agile">Ágil</option><option value="resistant">Resistente</option></select></label>
+       </div>
+       <div class="row">
+        <label class="field">IA Vermelho<select id="mode"></select></label>
+        <label class="field">IA Azul (🤖)<select id="player-mode"></select></label>
+       </div>
+       <div id="enemy-ai-control" class="compact-toggles"></div>
+       <button type="button" class="primary wide" id="start">▶ Iniciar combate</button>
       </div>
-      <div class="tabs" id="tune-tabs" role="tablist"></div>
-      <div id="tune-list"></div>
-     </div>
-     <h3>Comparação jogável A × B</h3>
-     <p class="hint">Jogue alternando dois presets sem reiniciar a partida. Parâmetros que afetam uma ação em curso só trocam quando ela termina.</p>
-     <div class="row"><label class="field">A<select id="ab-a"></select></label><label class="field">B<select id="ab-b"></select></label></div>
-     <button type="button" class="wide" id="ab-start">▶ Ativar comparação jogável</button>
-     <div class="row" id="ab-keep" hidden><span class="muted">Encerrar mantendo:</span><button type="button" data-ab-keep="A">A</button><button type="button" data-ab-keep="B">B</button><button type="button" data-ab-keep="baseline">Estado anterior</button></div>
-     <div id="ab-status" class="report" aria-live="polite"></div>
-     <h3>Histórico de calibrações</h3>
-     <p class="hint">Pontos de calibração guardados no workspace (sobrevivem ao fechar o laboratório e vão no backup). Restaurar pode ser desfeito com Ctrl+Z.</p>
-     <div class="row"><input type="text" id="calib-name" placeholder="Nome do ponto de calibração" maxlength="80"><button type="button" id="calib-save">Salvar ponto</button></div>
-     <div id="calib-list"></div>
-     <button type="button" class="wide" id="reset-all">Restaurar todos os padrões do laboratório</button>
-    </section>
-    <section data-section="overlays" hidden>
-     <p class="hint">Sobreposições técnicas desenhadas por cima da arena. Não alteram a simulação.</p>
-     <div id="overlay-list"></div>
-     <div id="visual-panel"></div>
-     <h3>Desempenho</h3>
-     <div id="perf-panel"></div>
-     <h3>Janelas de combate</h3>
-     <p class="hint">Barras temporárias acima dos lutadores com o tempo restante de cada janela, lidas do estado real da simulação (nenhum temporizador próprio).</p>
-     <div id="win-controls"></div>
-     <h3>Diagnóstico de comandos</h3>
-     <p class="hint">Por que um comando não saiu: o motivo é a própria condição avaliada pelo motor no passo do comando.</p>
-     <div id="diag-panel"></div>
-     <h3>Dados ao vivo</h3>
-     <dl class="live" id="live-data"></dl>
-    </section>
-    <section data-section="characters" hidden>
-     <p class="hint">Carregue o <b>.glb</b> exportado pelo Animation Studio. As ações associadas no Studio viram as animações de cada estado do combate. A posição continua vindo da física.</p>
-     <div id="char-slots"></div>
-     <h3>Armazenamento dos modelos e animações</h3>
-     <p class="hint">Os GLBs ficam salvos neste navegador, identificados pelo conteúdo (SHA-256), não pelo nome. Nada é excluído sem você pedir.</p>
-     <div id="ws-storage" class="report"></div>
-     <h3>Opções gerais das animações</h3>
-     <label class="check"><input type="checkbox" id="char-lock-root" checked disabled> Deslocamento da raiz sempre controlado pela física (as animações nunca movem o personagem no mundo)</label>
-     <label class="check"><input type="checkbox" id="char-fit" checked> Ajustar a altura ao colisor (1,3 m)</label>
-     <label class="field">Transição suave entre estados <output id="char-fade-out">0.18 s</output><input type="range" id="char-fade" min="0.02" max="0.6" step="0.01" value="0.18"></label>
-     <label class="field">Transição de entrada em X, C e reações <output id="char-action-fade-out">0.07 s</output><input type="range" id="char-action-fade" min="0.02" max="0.3" step="0.01" value="0.07"></label>
-     <label class="field">Estabilidade da locomoção (histerese) <output id="char-hold-out">0.10 s</output><input type="range" id="char-hold" min="0" max="0.4" step="0.01" value="0.1"></label>
-     <label class="field">Velocidade geral das animações <output id="char-speed-out">1.00×</output><input type="range" id="char-speed" min="0.25" max="3" step="0.05" value="1"></label>
-     <h3>Durações das animações no jogo</h3>
-     <label class="check"><input type="checkbox" id="char-sync"> As durações das animações definem SOMENTE as durações das ações (tackle, esquiva, recuo, guard stun e aterrissagem). A distância nominal de X e C não muda; as janelas de eventos do Studio nunca alteram as regras</label>
-     <label class="field">Personagem de referência<select id="char-sync-source"><option value="0">Azul</option><option value="1">Vermelho</option></select></label>
-     <div id="char-durations" class="report"></div>
-     <p class="hint">Sem sincronizar, a ação respeita a duração configurada e o clipe é esticado para acompanhá-la. Com sincronização, a duração do clipe (÷ velocidade) define a duração da ação e a física distribui a mesma distância nesse tempo. A troca de animação nunca muda velocidade nem distância.</p>
-     <h3>Testar todas as animações do GLB</h3>
-     <p class="hint">Prévia puramente visual: reproduz o clipe inteiro, mesmo sem estado associado. Não muda movimento, dano, colisão ou regras.</p>
-     <label class="field">Personagem<select id="char-preview-slot"><option value="0">Azul</option><option value="1">Vermelho</option></select></label>
-     <label class="field">Animação<select id="char-preview-clip"></select></label>
-     <div class="row"><button type="button" id="char-preview-play">▶ Reproduzir clipe inteiro</button><button type="button" id="char-preview-stop">■ Parar prévia</button></div>
-     <p class="hint" id="char-preview-info"></p>
-     <h3>Eventos do Studio × jogo</h3>
-     <p class="hint">Compara as janelas marcadas no Studio (hitbox, invulnerabilidade, recuperação) com as janelas reais da simulação. Apenas visualização: nenhuma regra é alterada.</p>
-     <div id="studio-events" class="report"></div>
-    </section>
-    <section data-section="controls" hidden>
-     <p class="hint">Teclado, gamepad e configuração de entrada. Perfis, IA e semente ficam em <b>Partida</b>.</p>
-     <h3>Teclas</h3>
-     <div id="bindings-controls"></div>
-     <h3>Teclas do vermelho (controle manual)</h3>
-     <p class="hint">Valem quando “Controle manual do vermelho” está ligado em Partida. O vermelho usa o segundo gamepad conectado.</p>
-     <div id="bindings2-controls"></div>
-     <h3>Gamepad</h3>
-     <p class="keys">A tackle · B esquiva (segure para sprint) · LB/RB defesa · Y alvo · Start pausa.</p>
-     <p class="hint" id="pad-status">Nenhum gamepad conectado.</p>
-     <h3>Atalhos do laboratório</h3>
-     <label class="field">Trocar A × B na comparação jogável<select id="ab-key"></select></label>
-     <h3>Histórico de entrada</h3>
-     <label class="check"><input type="checkbox" id="show-history" checked> Mostrar histórico de comandos</label>
-    </section>
-    <section data-section="moves" hidden><div id="moves-panel"></div></section>
-    <section data-section="homolog" hidden><div id="homolog-list"></div></section>
-    <section data-section="export" hidden>
-     <h3>Workspace</h3>
-     <p class="hint">Ajustes, presets, preferências, última partida, modelos, animações, associações e offsets são salvos automaticamente neste navegador e restaurados ao abrir.</p>
-     <p class="hint" id="ws-status-line"></p>
-     <label class="check"><input type="checkbox" id="ws-auto-session"> Restaurar automaticamente ajustes, preferências e a última partida ao abrir</label>
-     <label class="check"><input type="checkbox" id="ws-warn-close"> Avisar ao fechar com ajustes não exportados em JSON (mesmo com o workspace salvo)</label>
-     <div class="row"><button type="button" id="ws-save-now">Salvar agora</button></div>
-     <h3>Backup completo do workspace</h3>
-     <p class="hint">Pacote ZIP portátil (manifesto versionado, configuração, presets, calibrações, homologação, modelos e animações) para levar a outro navegador ou computador. A importação valida tudo e mostra uma prévia antes de mudar qualquer coisa.</p>
-     <label class="check"><input type="checkbox" id="ws-export-all"> Incluir também os arquivos armazenados que não estão em uso</label>
-     <div class="row"><button type="button" class="primary" id="ws-export">↓ Exportar Workspace Completo (ZIP)</button></div>
-     <label class="field">Importar Workspace Completo (.zip)<input type="file" id="ws-import-file" accept=".zip,application/zip"></label>
-     <div id="ws-import-result" class="report" aria-live="polite"></div>
-     <h3>Relatórios e pastas do projeto</h3>
-     <p class="hint">Os relatórios exportados (gravador de movimento, diagnóstico, treino, benchmark, avaliação da IA e telemetria de animação) abrem no painel externo, um HTML complementar e opcional.</p>
-     <div class="row"><a class="btn-link" id="reports-link" href="arenamon-painel-relatorios.html" target="_blank" rel="noopener">Abrir painel de relatórios ↗</a></div>
-     <div id="pf-panel"></div>
-     <h3>Ajustes em JSON</h3>
-     <p class="hint">O laboratório nunca altera o jogo. Use o relatório para decidir o que levar ao <code>config.ts</code>.</p>
-     <div class="row"><button type="button" class="primary" id="export-json">↓ Exportar ajustes (JSON)</button><button type="button" id="copy-json">Copiar</button></div>
-     <label class="field">Importar JSON (v5 a v8; formatos antigos são migrados com relatório)<textarea id="import-text" rows="5" placeholder="Cole aqui ou escolha um arquivo"></textarea></label>
-     <div class="row"><input type="file" id="import-file" accept=".json,application/json"><button type="button" id="import-preview">Pré-visualizar</button></div>
-     <div id="import-result" class="report"></div>
-     <h3>Diferenças em relação ao jogo oficial</h3>
-     <div id="game-diff" class="report"></div>
-     <h3>Proposta para o config.ts do jogo</h3>
-     <p class="hint">Gera um diff para revisão (aplicável com <code>git apply</code>). O laboratório nunca altera o jogo. Conflitos, como durações diferentes de X e C (no jogo ainda são um valor só), e parâmetros sem equivalente ficam de fora e são listados.</p>
-     <label class="check"><input type="checkbox" id="patch-defaults"><span>Incluir as diferenças padrão do laboratório (arena, velocidade, câmera…), não só o que você ajustou</span></label>
-     <button type="button" id="patch-generate">Gerar proposta</button>
-     <div id="patch-result" class="report" aria-live="polite"></div>
-    </section>
-   </div>
-  </aside>
+      <div class="bento-card" data-subcard="semente" data-sublabel="Semente & Dificuldade">
+       <h3>Aleatoriedade</h3>
+       <p class="hint">Cada IA tem personalidade própria (reação, erros, agressividade, variação e hesitação) em <b>Ajustes › IA</b>. A semente define a sequência sorteada: a mesma semente repete a mesma luta.</p>
+       <div class="row">
+        <label class="field">Semente<input type="number" id="seed" min="1" step="1" value="1"></label>
+        <label class="check"><input type="checkbox" id="seed-fixed"> Fixa</label>
+       </div>
+       <h3>Dificuldade da IA</h3>
+       <div class="seg wide" role="group" aria-label="Dificuldade"><button type="button" data-difficulty="easy">Fácil</button><button type="button" data-difficulty="normal">Normal (v6)</button><button type="button" data-difficulty="hard">Difícil</button></div>
+       <p class="hint">Os presets mudam alcance, intervalo de ataque, reação e ciclo de esquiva da IA (aba Ajustes › IA), com desfazer.</p>
+      </div>
+      <div class="bento-card" data-subcard="gravacao" data-sublabel="Gravação & Comandos">
+       <h3>Gravação da partida</h3>
+       <p class="hint">Toda partida é gravada (semente, perfis, ajustes e as entradas do azul). Reproduza com os ajustes da gravação para repetir a luta exatamente, ou com os ajustes atuais para repetir as mesmas entradas em outra configuração.</p>
+       <div class="row"><button type="button" id="rec-save" disabled>↓ Salvar gravação</button><span id="rec-status" class="muted"></span></div>
+       <div class="row">
+        <label class="field">Reproduzir (.json)<input type="file" id="rec-file" accept=".json,application/json"></label>
+        <label class="field">Ajustes<select id="rec-values"><option value="recorded">Da gravação (exato)</option><option value="current">Atuais (outra config)</option></select></label>
+       </div>
+       <div id="rec-result" class="report" aria-live="polite"></div>
+       <h3>Controles</h3>
+       <p class="keys">↑↓←→ mover · <b>X</b> tackle · <b>C</b> esquiva/sprint (C→X cancela) · <b>D</b> defender · <b>Tab</b> alvo · <b>Esc</b> pausar · <b>R</b> reiniciar.</p>
+       <p class="hint">Pausado: ◂/▸ na linha do tempo (ou , e .) voltam e avançam um passo de simulação. Os últimos 12 s ficam gravados.</p>
+      </div>
+     </section>
+     <section data-section="scenarios" hidden>
+      <div class="bento-card" data-subcard="roteirizados" data-sublabel="Roteirizados (8)">
+       <div class="row" style="justify-content:space-between;margin-bottom:4px">
+        <b style="font-size:12px;color:#b8d4ec">Cenários Roteirizados</b>
+        <button type="button" class="primary" id="scenario-all" title="Executa todos sem animação e mostra o relatório">▶ Executar todos (8)</button>
+       </div>
+       <p class="hint">Cada cenário começa sempre do mesmo jeito, com comandos roteirizados para os dois lutadores, e termina com <b>esperado × obtido</b> calculado a partir dos ajustes atuais.</p>
+       <div id="scenario-list"></div>
+       <div id="scenario-report" class="report" aria-live="polite"></div>
+       <h3>Comparar A × B</h3>
+       <p class="hint">Executa a mesma situação com dois conjuntos de ajustes (atuais, padrão do laboratório, jogo oficial ou presets salvos) e mostra os resultados lado a lado. A configuração atual não muda.</p>
+       <div class="row"><label class="field">A<select id="comp-a"></select></label><label class="field">B<select id="comp-b"></select></label><label class="field">Situação<select id="comp-source"><option value="scenarios">Todos os cenários roteirizados</option><option value="match">Gravação da partida atual</option></select></label><button type="button" id="comp-run">Comparar</button></div>
+       <div id="comp-report" class="report" aria-live="polite"></div>
+      </div>
+      <div class="bento-card" data-subcard="treino-mov" data-sublabel="Treino & Gravador">
+       <h3>Treino de defesa e esquiva perfeitas</h3>
+       <div class="row"><label class="field">Treinar<select id="train-mode"></select></label><label class="field">Ataque<select id="train-attack"></select></label><label class="field">Intervalo<input type="number" id="train-interval" min="0.5" max="10" step="0.1" value="2"></label><label class="field">Semente<input type="number" id="train-seed" min="1" value="1"></label><label class="field">Vel.<select id="train-speed"><option value="0.25">0,25×</option><option value="0.5">0,5×</option><option value="1" selected>1×</option></select></label></div>
+       <div class="row"><button type="button" class="primary" id="train-start">▶ Iniciar treino</button><button type="button" id="train-restart" title="Recomeça com a mesma semente (zera o placar)">↺ Reiniciar</button><button type="button" id="train-export">↓ JSON</button></div>
+       <div id="train-report" class="report" aria-live="polite"></div>
+       <h3>Gravador de movimento</h3>
+       <p class="hint">Grave alguns segundos jogando (ou use a sequência padrão) e reexecute quantas vezes quiser: mesmo estado inicial, mesma semente e mesmos comandos, com os parâmetros de A e de B. Mede e desenha velocidade, aceleração, posição, distância, stamina e estados.</p>
+       <div class="row"><label class="field" style="flex:1.4">Sequência<select id="mv-seq"></select></label><button type="button" id="mv-rec">● Gravar da partida</button><button type="button" id="mv-play" title="Reproduz na arena com os parâmetros de A">▶ Arena (A)</button><button type="button" id="mv-del">✕</button><button type="button" id="mv-export-seq" title="Exportar sequência">↓</button><label class="file-btn" title="Importar sequência">↑<input type="file" id="mv-import" accept=".json,application/json" hidden></label></div>
+       <p class="hint" id="mv-status"></p>
+       <div class="row"><label class="field">A<select id="mv-a"></select></label><label class="field">B<select id="mv-b"></select></label><button type="button" class="primary" id="mv-run">Medir A×B</button><button type="button" id="mv-graphs">📈 Gráficos</button><button type="button" id="mv-csv">↓ CSV</button><button type="button" id="mv-json">↓ JSON</button></div>
+       <div id="mv-report" class="report" aria-live="polite"></div>
+      </div>
+      <div class="bento-card" data-subcard="ia-eval" data-sublabel="IA × IA & Avaliação">
+       <h3>Avaliação da IA: evoluída, revisada e linha de base</h3>
+       <p class="hint">Comparação estatística rigorosa pareada ou unilateral com loadouts, matriz de sementes, níveis de dificuldade e cenários difíceis.</p>
+       <div class="row">
+        <label class="field">Candidato<select id="aieval-candidate-rev">
+         <option value="2" selected>Rev. 2 (Evoluída)</option>
+         <option value="1">Rev. 1 (Revisada)</option>
+        </select></label>
+        <label class="field">Base<select id="aieval-baseline-rev">
+         <option value="0" selected>Rev. 0 (Anterior/v6)</option>
+         <option value="1">Rev. 1 (Revisada)</option>
+        </select></label>
+        <label class="field">Dificuldade<select id="aieval-difficulty">
+         <option value="normal" selected>Normal</option>
+         <option value="easy">Fácil</option>
+         <option value="hard">Difícil</option>
+         <option value="expert">Especialista</option>
+        </select></label>
+       </div>
+       <div class="row"><label class="field">Lutas<input type="number" id="aieval-matches" min="4" max="400" value="60"></label><label class="field">Semente<input type="number" id="aieval-seed" min="1" value="1"></label><label class="field">Estilo<select id="aieval-style"></select></label></div>
+       <div class="row">
+        <label class="field">Loadout (Moves)<select id="aieval-loadout">
+         <option value="none">Sem Moves (básico)</option>
+         <option value="reflect">Com Reflect</option>
+         <option value="psyshock">Com Psyshock</option>
+         <option value="both">Ambos (Reflect + Psyshock)</option>
+        </select></label>
+        <label class="field">Arena / Lados<select id="aieval-mode">
+         <option value="paired">Pareado (Azul + Vermelho)</option>
+         <option value="blue">Candidato só no Azul</option>
+        </select></label>
+       </div>
+       <div class="row"><button type="button" class="primary" id="aieval-run">Comparar IAs</button><button type="button" id="aieval-scenarios">Cenários Difíceis</button><button type="button" id="aieval-export">↓ JSON</button></div>
+       <div id="aieval-report" class="report" aria-live="polite"></div>
+       <h3>Equilíbrio IA × IA</h3>
+       <p class="hint">Lutas rápidas, sem animação, com os ajustes atuais e os perfis da aba Partida. Mostra se um ajuste fez alguma mecânica dominar.</p>
+       <div class="row"><label class="field">Lutas<input type="number" id="balance-matches" min="1" max="200" value="20"></label><label class="field">Semente<input type="number" id="balance-seed" min="1" value="1"></label><button type="button" id="balance-run">Medir equilíbrio</button></div>
+       <div id="balance-report" class="report" aria-live="polite"></div>
+      </div>
+     </section>
+     <section data-section="tuning" hidden>
+      <div class="bento-card bento-wide" data-subcard="parametros" data-sublabel="Sliders & Calibração">
+       <div class="row" style="justify-content:space-between;margin-bottom:4px">
+        <div class="seg" role="group" aria-label="Modo do ajustador" id="tune-mode" style="flex:1"><button type="button" data-tune-mode-btn="simple" aria-pressed="true" title="Presets, ~16 controles de alto impacto e comparação jogável">Modo simples (16)</button><button type="button" data-tune-mode-btn="advanced" aria-pressed="false" title="Todos os parâmetros do laboratório, por grupo">Modo avançado (Todos)</button></div>
+        <button type="button" id="reset-all" title="Restaurar todos os padrões do laboratório">↺ Restaurar padrões</button>
+       </div>
+       <h3>Parâmetros</h3>
+       <div data-tune-mode="simple">
+        <p class="hint"><b>Calibração principal.</b> Controles de alto impacto. Cada um edita os parâmetros oficiais do laboratório (listados abaixo dele); o modo avançado mostra os mesmos valores.</p>
+        <div id="simple-controls"></div>
+       </div>
+       <div data-tune-mode="advanced" hidden>
+        <p class="hint"><b>Todos os parâmetros</b>, por grupo, com busca e filtros.</p>
+        <div class="tune-tools">
+         <div class="row">
+          <input type="search" id="tune-search" placeholder="🔍 Buscar parâmetro…" aria-label="Buscar parâmetro" style="flex:1">
+          <div class="seg" role="group" aria-label="Filtro"><button type="button" data-filter="all" aria-pressed="true">Todos</button><button type="button" data-filter="changed" aria-pressed="false" title="Diferentes do padrão do laboratório">Alterados</button><button type="button" data-filter="experimental" aria-pressed="false" title="Diferentes do jogo oficial (config.ts)">≠ jogo</button><button type="button" data-filter="lab" aria-pressed="false" title="Não existem no jogo oficial">Só lab</button></div>
+          <button type="button" id="tune-undo" disabled title="Desfazer ajuste (Ctrl+Z)">↶</button><button type="button" id="tune-redo" disabled title="Refazer ajuste (Ctrl+Y)">↷</button><span id="tune-counter" class="muted"></span>
+         </div>
+        </div>
+        <div class="tabs" id="tune-tabs" role="tablist"></div>
+        <div id="tune-list"></div>
+       </div>
+      </div>
+      <div class="bento-card" data-subcard="presets" data-sublabel="Presets & Histórico">
+       <h3>Presets</h3>
+       <p class="hint">Presets de sensação mudam só locomoção, sprint, curvas de X/C e transições de animação: nunca VFX, HUD, câmera ou regras. Os iniciais são propostas para avaliação, não valores aprovados.</p>
+       <div class="row"><select id="preset-select" aria-label="Preset selecionado" class="grow"></select><button type="button" class="primary" id="preset-apply">Aplicar…</button><button type="button" id="preset-dup" title="Duplicar preset">Duplicar</button><button type="button" id="preset-update" title="Grava os ajustes atuais neste preset (nova versão)">Atualizar</button><button type="button" id="preset-delete" title="Excluir preset">✕</button><button type="button" id="preset-revert" title="Volta os parâmetros alterados pelo último preset aplicado">↶</button></div>
+       <div id="preset-info" class="report"></div>
+       <div id="preset-plan" class="report" aria-live="polite"></div>
+       <div id="preset-list"></div>
+       <details class="save-preset"><summary>Salvar ajustes atuais como novo preset</summary>
+        <div class="row"><input type="text" id="preset-name" placeholder="Nome do preset" maxlength="60"><button type="button" id="preset-save">Salvar</button></div>
+        <label class="field">Descrição<textarea id="preset-desc" rows="1" placeholder="O que este preset busca (opcional)"></textarea></label>
+        <div class="row"><label class="pill"><input type="radio" name="preset-scope" value="full" checked> Completo (todos os parâmetros)</label><label class="pill"><input type="radio" name="preset-scope" value="partial"> Só categorias</label></div>
+        <div id="preset-cats"></div>
+       </details>
+       <h4>Comparar presets</h4>
+       <div class="row"><select id="preset-a" aria-label="Preset A"></select><span>×</span><select id="preset-b" aria-label="Preset B"></select><button type="button" id="preset-compare">Comparar</button><button type="button" id="preset-measure" title="Mede a sensação com a sequência padrão de movimento">Medir</button></div>
+       <div id="preset-diff" class="report"></div>
+       <h3>Comparação jogável A × B</h3>
+       <p class="hint">Jogue alternando dois presets sem reiniciar a partida. Parâmetros que afetam uma ação em curso só trocam quando ela termina.</p>
+       <div class="row"><label class="field">A<select id="ab-a"></select></label><label class="field">B<select id="ab-b"></select></label><button type="button" id="ab-start">▶ Ativar comparação jogável</button></div>
+       <div class="row" id="ab-keep" hidden><span class="muted">Encerrar mantendo:</span><button type="button" data-ab-keep="A">A</button><button type="button" data-ab-keep="B">B</button><button type="button" data-ab-keep="baseline">Estado anterior</button></div>
+       <div id="ab-status" class="report" aria-live="polite"></div>
+       <h3>Histórico de calibrações</h3>
+       <p class="hint">Pontos de calibração guardados no workspace (sobrevivem ao fechar o laboratório e vão no backup). Restaurar pode ser desfeito com Ctrl+Z.</p>
+       <div class="row"><input type="text" id="calib-name" placeholder="Nome do ponto de calibração" maxlength="80"><button type="button" id="calib-save">Salvar ponto</button></div>
+       <div id="calib-list"></div>
+      </div>
+     </section>
+     <section data-section="overlays" hidden>
+      <div class="bento-card" data-subcard="colisores" data-sublabel="Colisores & Ao Vivo">
+       <b style="font-size:12px;color:#b8d4ec">Sobreposições na Arena</b>
+       <p class="hint">Sobreposições técnicas desenhadas por cima da arena. Não alteram a simulação.</p>
+       <div id="overlay-list"></div>
+       <h3>Janelas de combate</h3>
+       <p class="hint">Barras temporárias acima dos lutadores com o tempo restante de cada janela, lidas do estado real da simulação (nenhum temporizador próprio).</p>
+       <div id="win-controls"></div>
+       <h3>Dados ao vivo</h3>
+       <dl class="live" id="live-data"></dl>
+      </div>
+      <div class="bento-card bento-wide" data-subcard="vfx" data-sublabel="VFX, Laser & Câmera">
+       <div id="visual-panel"></div>
+      </div>
+      <div class="bento-card" data-subcard="perf" data-sublabel="Desempenho & Diag">
+       <h3>Desempenho</h3>
+       <div id="perf-panel"></div>
+       <h3>Diagnóstico de comandos</h3>
+       <p class="hint">Por que um comando não saiu: o motivo é a própria condição avaliada pelo motor no passo do comando.</p>
+       <div id="diag-panel"></div>
+      </div>
+     </section>
+     <section data-section="characters" hidden>
+      <div class="bento-card bento-wide" data-subcard="modelos" data-sublabel="Lutadores (Azul × Vermelho)">
+       <p class="hint">Carregue o <b>.glb</b> exportado pelo Animation Studio. As ações associadas no Studio viram as animações de cada estado do combate. A posição continua vindo da física.</p>
+       <div id="char-slots"></div>
+       <h3>Armazenamento dos modelos e animações</h3>
+       <p class="hint">Os GLBs ficam salvos neste navegador, identificados pelo conteúdo (SHA-256), não pelo nome. Nada é excluído sem você pedir.</p>
+       <div id="ws-storage" class="report"></div>
+      </div>
+      <div class="bento-card" data-subcard="transicoes" data-sublabel="Transições, Duração & Studio">
+       <h3>Opções gerais das animações</h3>
+       <div class="row">
+        <label class="check"><input type="checkbox" id="char-lock-root" checked disabled> Raiz presa à física</label>
+        <label class="check"><input type="checkbox" id="char-fit" checked> Ajustar altura (1,3 m)</label>
+       </div>
+       <div class="grid2-fields">
+        <label class="field">Fade estados <output id="char-fade-out">0.18 s</output><input type="range" id="char-fade" min="0.02" max="0.6" step="0.01" value="0.18"></label>
+        <label class="field">Fade X/C/reação <output id="char-action-fade-out">0.07 s</output><input type="range" id="char-action-fade" min="0.02" max="0.3" step="0.01" value="0.07"></label>
+        <label class="field">Histerese loco <output id="char-hold-out">0.10 s</output><input type="range" id="char-hold" min="0" max="0.4" step="0.01" value="0.1"></label>
+        <label class="field">Velocidade geral <output id="char-speed-out">1.00×</output><input type="range" id="char-speed" min="0.25" max="3" step="0.05" value="1"></label>
+       </div>
+       <h3>Durações das animações no jogo</h3>
+       <div class="row">
+        <label class="check" style="flex:1"><input type="checkbox" id="char-sync"> Usar duração dos clipes nas regras (X, C, recuo, guard stun, land)</label>
+        <label class="field" style="width:110px">Ref.<select id="char-sync-source"><option value="0">Azul</option><option value="1">Vermelho</option></select></label>
+       </div>
+       <div id="char-durations" class="report"></div>
+       <p class="hint">Sem sincronizar, a ação respeita a duração configurada e o clipe é esticado para acompanhá-la. Com sincronização, a duração do clipe (÷ velocidade) define a duração da ação e a física distribui a mesma distância nesse tempo.</p>
+       <h3>Testar todas as animações do GLB</h3>
+       <p class="hint">Prévia puramente visual: reproduz o clipe inteiro, mesmo sem estado associado. Não muda movimento, dano, colisão ou regras.</p>
+       <div class="row"><label class="field" style="width:95px">Slot<select id="char-preview-slot"><option value="0">Azul</option><option value="1">Vermelho</option></select></label><label class="field" style="flex:1">Clipe<select id="char-preview-clip"></select></label><button type="button" id="char-preview-play">▶ Tocar</button><button type="button" id="char-preview-stop">■</button></div>
+       <p class="hint" id="char-preview-info"></p>
+       <h3>Eventos do Studio × jogo</h3>
+       <p class="hint">Compara as janelas marcadas no Studio (hitbox, invulnerabilidade, recuperação) com as janelas reais da simulação. Apenas visualização: nenhuma regra é alterada.</p>
+       <div id="studio-events" class="report"></div>
+      </div>
+     </section>
+     <section data-section="controls" hidden>
+      <div class="bento-card" data-subcard="teclas-azul" data-sublabel="Teclas Azul">
+       <h3>Teclas</h3>
+       <div id="bindings-controls"></div>
+      </div>
+      <div class="bento-card" data-subcard="teclas-vermelho" data-sublabel="Teclas Vermelho">
+       <h3>Teclas do vermelho (controle manual)</h3>
+       <p class="hint">Valem quando “Controle manual do vermelho” está ligado em Partida. O vermelho usa o segundo gamepad conectado.</p>
+       <div id="bindings2-controls"></div>
+      </div>
+      <div class="bento-card" data-subcard="gamepad" data-sublabel="Gamepad & Atalhos">
+       <p class="hint">Teclado, gamepad e configuração de entrada. Perfis, IA e semente ficam em <b>Partida</b>.</p>
+       <h3>Gamepad</h3>
+       <p class="keys">A tackle · B esquiva (segure para sprint) · LB/RB defesa · Y alvo · Start pausa.</p>
+       <p class="hint" id="pad-status">Nenhum gamepad conectado.</p>
+       <h3>Atalhos do laboratório</h3>
+       <label class="field">Trocar A × B na comparação jogável<select id="ab-key"></select></label>
+       <h3>Histórico de entrada</h3>
+       <label class="check"><input type="checkbox" id="show-history" checked> Mostrar histórico de comandos</label>
+      </div>
+     </section>
+     <section data-section="moves" hidden><div id="moves-panel"></div></section>
+     <section data-section="homolog" hidden><div id="homolog-list"></div></section>
+     <section data-section="export" hidden>
+      <div class="bento-card" data-subcard="workspace" data-sublabel="Workspace & ZIP">
+       <h3>Workspace</h3>
+       <p class="hint">Ajustes, presets, preferências, última partida, modelos, animações, associações e offsets são salvos automaticamente neste navegador e restaurados ao abrir.</p>
+       <p class="hint" id="ws-status-line"></p>
+       <label class="check"><input type="checkbox" id="ws-auto-session"> Restaurar automaticamente sessão ao abrir</label>
+       <label class="check"><input type="checkbox" id="ws-warn-close"> Avisar ao fechar com ajustes não exportados em JSON</label>
+       <div class="row"><button type="button" id="ws-save-now">Salvar agora</button></div>
+       <h3>Backup completo do workspace</h3>
+       <p class="hint">Pacote ZIP portátil (manifesto versionado, configuração, presets, calibrações, homologação, modelos e animações) para levar a outro navegador ou computador. A importação valida tudo e mostra uma prévia antes de mudar qualquer coisa.</p>
+       <label class="check"><input type="checkbox" id="ws-export-all"> Incluir arquivos armazenados não usados</label>
+       <div class="row"><button type="button" class="primary" id="ws-export">↓ Exportar Workspace Completo (ZIP)</button></div>
+       <label class="field">Importar Workspace (.zip)<input type="file" id="ws-import-file" accept=".zip,application/zip"></label>
+       <div id="ws-import-result" class="report" aria-live="polite"></div>
+      </div>
+      <div class="bento-card" data-subcard="json-pastas" data-sublabel="JSON & Pastas">
+       <h3>Ajustes em JSON</h3>
+       <p class="hint">O laboratório nunca altera o jogo. Use o relatório para decidir o que levar ao <code>config.ts</code>.</p>
+       <div class="row"><button type="button" class="primary" id="export-json">↓ Exportar ajustes (JSON)</button><button type="button" id="copy-json">Copiar</button></div>
+       <label class="field">Importar JSON (v5 a v8)<textarea id="import-text" rows="2" placeholder="Cole aqui ou escolha um arquivo"></textarea></label>
+       <div class="row"><input type="file" id="import-file" accept=".json,application/json"><button type="button" id="import-preview">Pré-visualizar</button></div>
+       <div id="import-result" class="report"></div>
+       <h3>Relatórios e pastas do projeto</h3>
+       <p class="hint">Os relatórios exportados (gravador de movimento, diagnóstico, treino, benchmark, avaliação da IA e telemetria de animação) abrem no painel externo, um HTML complementar e opcional.</p>
+       <div class="row"><a class="btn-link" id="reports-link" href="arenamon-painel-relatorios.html" target="_blank" rel="noopener">Abrir painel de relatórios ↗</a></div>
+       <div id="pf-panel"></div>
+      </div>
+      <div class="bento-card" data-subcard="patch-diff" data-sublabel="Patch & Diferenças">
+       <h3>Proposta para o config.ts do jogo</h3>
+       <p class="hint">Gera um diff para revisão (aplicável com <code>git apply</code>). O laboratório nunca altera o jogo. Conflitos, como durações diferentes de X e C (no jogo ainda são um valor só), e parâmetros sem equivalente ficam de fora e são listados.</p>
+       <label class="check"><input type="checkbox" id="patch-defaults"><span>Incluir diferenças padrão do laboratório</span></label>
+       <button type="button" id="patch-generate">Gerar proposta</button>
+       <div id="patch-result" class="report" aria-live="polite"></div>
+       <h3>Diferenças em relação ao jogo oficial</h3>
+       <div id="game-diff" class="report"></div>
+      </div>
+     </section>
+    </div>
+   </aside>
   <main class="stage">
    <canvas tabindex="0" aria-label="Arena 3D. Setas movem, X tackle, C esquiva (segure para sprint), D defesa."></canvas>
    <div id="vfx-flash"></div>
@@ -282,14 +339,78 @@
    <div id="win-overlay" aria-hidden="true"></div>
    <div id="perf-overlay" hidden></div>
    <div id="moves-hud" hidden aria-label="Movimentos equipados"></div>
+    <div id="offscreen-arrow" hidden><span class="arrow-icon">◀</span> <span class="arrow-dist"></span></div>
+    <div id="action-hint-pill">↑↓←→ Mover · X Tackle · C Esquiva · D Defesa · A/S Moves</div>
+    <div id="ko-banner" hidden>K.O.</div>
    <div id="deny-toast" hidden role="status"></div>
    <section id="graphs" hidden aria-label="Gráficos do gravador de movimento"><header><b>Gráficos de movimento</b><div id="graphs-markers" class="row"></div><button type="button" id="graphs-close" class="icon" aria-label="Fechar gráficos">✕</button></header><div id="graphs-body"></div></section>
    <div id="replay-badge" hidden>PAUSADO · <span id="replay-text"></span></div>
    <ol id="input-history" aria-label="Histórico de comandos"></ol>
    <pre id="debug" hidden></pre>
    <div id="contact"></div>
-   <section id="menu" class="card-screen"><div class="card"><h1>Laboratório de combate</h1><p>Escolha perfis e comportamento em <b>Partida</b>, ou rode um <b>Cenário</b>.</p><button type="button" class="primary" id="start-center">▶ Iniciar combate</button></div></section>
-   <section id="overlay" class="card-screen" hidden><div class="card"><h1 id="overlay-title"></h1><button type="button" id="resume" hidden>Continuar</button><button type="button" id="restart">Reiniciar partida</button><button type="button" id="back">Voltar ao menu</button></div></section>
+   <section id="menu" class="card-screen">
+    <div class="card quick-start-card">
+     <h1>ARENAMON COMBATE</h1>
+     <p class="subtitle">Laboratório de Combate Principal · Seleção Rápida</p>
+     <div class="quick-selectors">
+      <div class="quick-row">
+       <label><span>Lutador Azul</span>
+        <select id="quick-profile">
+         <option value="balanced">Equilibrado</option>
+         <option value="agile">Ágil</option>
+         <option value="resistant">Resistente</option>
+        </select>
+       </label>
+       <label><span>Adversário Vermelho</span>
+        <select id="quick-enemy-profile">
+         <option value="balanced">Equilibrado</option>
+         <option value="agile">Ágil</option>
+         <option value="resistant">Resistente</option>
+        </select>
+       </label>
+      </div>
+      <div class="quick-row">
+       <label><span>IA Vermelho</span>
+        <select id="quick-mode"></select>
+       </label>
+       <label><span>Dificuldade IA</span>
+        <select id="quick-difficulty">
+         <option value="normal">Normal</option>
+         <option value="easy">Fácil</option>
+         <option value="hard">Difícil</option>
+         <option value="expert">Expert</option>
+        </select>
+       </label>
+      </div>
+      <div class="quick-moves">
+       <b>Moves (Azul):</b>
+       <label class="check"><input type="checkbox" id="quick-reflect" checked> [A] Reflect</label>
+       <label class="check"><input type="checkbox" id="quick-psyshock" checked> [S] Psyshock</label>
+      </div>
+      <div class="quick-options">
+       <label class="check"><input type="checkbox" id="quick-auto-zen"> Iniciar em Modo Arena (F2)</label>
+       <label class="check"><input type="checkbox" id="quick-auto-lock"> Auto Lock-On inicial</label>
+      </div>
+     </div>
+     <div class="quick-actions">
+      <button type="button" class="primary btn-start" id="start-center">▶ Iniciar combate</button>
+     </div>
+    </div>
+   </section>
+   <section id="overlay" class="card-screen" hidden>
+    <div class="card">
+     <h1 id="overlay-title"></h1>
+     <div id="match-summary-stats" class="match-summary-stats" hidden></div>
+     <div class="match-summary-actions">
+      <button type="button" class="primary" id="btn-rematch">↺ Revanche</button>
+      <button type="button" id="btn-new-match">🎲 Nova Luta</button>
+      <button type="button" id="btn-review-replay">🎬 Replay</button>
+      <button type="button" id="resume" hidden>Continuar</button>
+      <button type="button" id="restart">Reiniciar partida</button>
+      <button type="button" id="back">Voltar ao menu</button>
+     </div>
+    </div>
+   </section>
    <p id="fatal" hidden>WebGL indisponível neste navegador.</p>
   </main>
  </div>

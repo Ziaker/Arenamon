@@ -58,7 +58,8 @@ export function createVisualPanel({tuning, view, game, $, hud, download}) {
   }
   function render() {
     root.replaceChildren();
-    const h = (t, hint) => {const e = document.createElement('h3');e.textContent = t;root.append(e);if (hint) {const p = document.createElement('p');p.className = 'hint';p.textContent = hint;root.append(p);}};
+    const colLeft = document.createElement('div');colLeft.className = 'vfx-col-left';const colMid = document.createElement('div');colMid.className = 'vfx-col-mid';const colRight = document.createElement('div');colRight.className = 'vfx-col-right';root.append(colLeft, colMid, colRight);
+    const h = (t, hint, host = colLeft) => {const e = document.createElement('h3');e.textContent = t;host.append(e);if (hint) {const p = document.createElement('p');p.className = 'hint';p.textContent = hint;host.append(p);}};
     h('Efeitos visuais (VFX)', 'Cada efeito tem variantes visuais diferentes, liga/desliga, parâmetros próprios, prévia e preset. Só aparência: nada aqui muda regras, tempos da simulação, invulnerabilidade ou cooldowns.');
     // Seletor de Renderizador VFX e Controles do Laser
     const renderModeBox = document.createElement('div');
@@ -151,7 +152,7 @@ export function createVisualPanel({tuning, view, game, $, hud, download}) {
         </div>
       </div>
   `);
-    root.append(renderModeBox);
+    colLeft.append(renderModeBox);
     // ---------- VFX 3D sólidos: malhas com volume real; por família: estilo, prévias, comparação e sliders ----------
     const solidBox = document.createElement('div');solidBox.className = 'vfx-solid-box';solidBox.dataset.solidBox = '1';
     solidBox.style.cssText = 'background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.14);border-radius:6px;padding:10px 12px;margin:0 0 14px;';
@@ -160,14 +161,14 @@ export function createVisualPanel({tuning, view, game, $, hud, download}) {
         <label style="display:inline-flex;align-items:center;gap:4px;font-size:.85rem;"><input type="checkbox" data-solid-master ${C.vfx.solid?.enabled ? 'checked' : ''}> Ligados</label></div>
       <p class="hint" style="margin:0 0 8px;">Funcionam com os dois renderizadores. O estilo marcado é exatamente o usado na luta; clicar já mostra a prévia. Poeira e vento têm estilo, intensidade e cores independentes (use os dois juntos). Ctrl+Z desfaz; presets e exportação incluem tudo.</p>
       <div class="row" data-solid-combo style="margin-bottom:6px;"><b style="font-size:.85rem;">Poeira + vento juntos:</b>${[['dash', 'Dash'], ['start', 'Arrancada'], ['run', 'Corrida'], ['turn', 'Curva'], ['stop', 'Parada']].map(([w, l]) => `<button type="button" data-solid-combo-prev="${w}">▶ ${l}</button>`).join('')}</div>
-      <div class="row" style="margin-bottom:6px;"><span class="muted" style="font-size:.8rem;">Limite de objetos e qualidade:</span><span data-solid-global></span></div>` +
+      <div class="row" style="margin-bottom:6px;"><span class="muted" style="font-size:.8rem;">Limite de objetos e qualidade:</span><span data-solid-global></span></div><div class="solid-families-grid">` +
       SOLID_FAMILIES.map(f => `<div data-solid-family="${f.key}" style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.08);">
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;"><b style="font-size:.9rem;">${escape(f.label)}</b><span class="muted" style="font-size:.8rem;">Dispara em: ${escape(f.trigger)}</span>
           <label style="display:inline-flex;align-items:center;gap:4px;font-size:.8rem;"><input type="checkbox" data-solid-on="${f.key}" ${C.vfx[f.key]?.enabled ? 'checked' : ''}> ligado</label>
           ${f.previews ? f.previews.map(([w, l]) => `<button type="button" data-solid-prev="${f.key}:${w}">▶ ${l}</button>`).join('') + `<button type="button" data-solid-prev="${f.key}:compare" title="Todos os estilos lado a lado, no mesmo movimento">▶ Comparar os ${f.names.length}</button>` : `<button type="button" data-solid-prev="${f.key}:dash">▶ Prévia</button>`}</div>
         <div class="seg" role="group" aria-label="${escape(f.label)}" style="flex-wrap:wrap;">${f.names.map((n, v) => `<button type="button" data-solid-variant="${f.key}:${v}" aria-pressed="${(C.vfx[f.key]?.variant | 0) === v}" title="${escape(n)}">${escape(n)}</button>`).join('')}</div>
-        <details data-solid-sliders="${f.key}" style="margin-top:4px;"><summary class="muted" style="cursor:pointer;font-size:.8rem;">Ajustes finos (quantidade, tamanho, duração, velocidade, dispersão, altura, turbulência, opacidade, dissipação, cores)</summary><div data-solid-rows></div></details></div>`).join('');
-    root.append(solidBox);
+        <details data-solid-sliders="${f.key}" style="margin-top:4px;"><summary class="muted" style="cursor:pointer;font-size:.8rem;">Ajustes finos (quantidade, tamanho, duração, velocidade, dispersão, altura, turbulência, opacidade, dissipação, cores)</summary><div data-solid-rows></div></details></div>`).join('') + `</div>`;
+    colRight.append(solidBox);
     for (const f of SOLID_FAMILIES) {
       const rows = solidBox.querySelector(`[data-solid-sliders="${f.key}"] [data-solid-rows]`);
       for (const p of [...SOLID_SLIDERS, 'color', ...(f.colors > 1 ? ['color2'] : [])]) rows.append(tuning.controlFor(`vfx.${f.key}.${p}`));
@@ -366,7 +367,7 @@ export function createVisualPanel({tuning, view, game, $, hud, download}) {
     const bar = document.createElement('div');bar.className = 'vfx-bar';
     bar.innerHTML = `<div class="seg wide" role="group" aria-label="Modo dos efeitos"><button type="button" data-vfx-mode-btn="simple">Simples</button><button type="button" data-vfx-mode-btn="advanced">Avançado</button></div>
       <div class="seg wide" role="group" aria-label="Filtro dos efeitos">${[['all', 'Todos'], ['active', 'Ativos'], ['changed', 'Alterados'], ['costly', 'Mais caros']].map(([v, t]) => `<button type="button" data-vfx-filter="${v}">${t}</button>`).join('')}</div><p class="hint" id="vfx-filter-info"></p>`;
-    root.append(bar);
+    colMid.append(bar);
     const simple = document.createElement('div');simple.className = 'vfx-simple';simple.dataset.vfxMode = 'simple';
     const CORE_VFX = VFX_TYPES.filter(([t]) => t !== 'rock' && t !== 'barrier');
     for (const [type, label] of CORE_VFX) {
@@ -381,11 +382,11 @@ export function createVisualPanel({tuning, view, game, $, hud, download}) {
       const adv = document.createElement('button');adv.type = 'button';adv.textContent = 'Avançado ▸';adv.title = 'Todos os parâmetros deste efeito';adv.onclick = () => {setMode('advanced');const g = root.querySelector(`[data-group="vfx-${type}"]`);g?.setOpen?.(true);g?.scrollIntoView({block: 'start'});};
       head.append(pv, adv);row.append(head, ...[`vfx.${type}.enabled`, `vfx.${type}.variant`, `vfx.${type}.${MAIN[type]}`].map(p => tuning.controlFor(p)));simple.append(row);
     }
-    root.append(simple);
+    colMid.append(simple);
     const advanced = document.createElement('div');advanced.dataset.vfxMode = 'advanced';
     advanced.append(group('Geral dos efeitos', 'vfx-master', tuning.sectionControls('VFX · geral')));
     const laserRows = tuning.sectionControls('VFX · Laser da Arena (BeamRenderer)');
-    advanced.append(group('Laser da Arena (BeamRenderer)', 'vfx-laser', laserRows, [actions('vfx.laser', 'Laser da Arena', () => vfxDefaults().laser, () => view.vfxRuntime.preview('laser', game.fighters))], true));
+    advanced.append(group('Laser da Arena (BeamRenderer)', 'vfx-laser', laserRows, [actions('vfx.laser', 'Laser da Arena', () => vfxDefaults().laser, () => view.vfxRuntime.preview('laser', game.fighters))], false));
     for (const [type, label] of VFX_TYPES) {
       const rows = tuning.sectionControls(`VFX · ${label}`), g = group(label, `vfx-${type}`, rows, [actions(`vfx.${type}`, label, () => vfxDefaults()[type], () => {
         view.vfxRuntime.setVariant(type, C.vfx[type]?.variant || 0);
@@ -394,30 +395,26 @@ export function createVisualPanel({tuning, view, game, $, hud, download}) {
       })]);
       g.dataset.vfxType = type;advanced.append(g);
     }
-    root.append(advanced);
+    colMid.append(advanced);
     for (const b of bar.querySelectorAll('[data-vfx-mode-btn]')) b.onclick = () => setMode(b.dataset.vfxModeBtn);
     for (const b of bar.querySelectorAll('[data-vfx-filter]')) b.onclick = () => setFilter(b.dataset.vfxFilter);
     setMode(state.mode);setFilter(state.filter);
-    h('Tremor de câmera', 'Transformação visual temporária da câmera, aplicada depois do posicionamento: não muda a direção de movimento, o referencial das setas nem a física.');
-    root.append(group('Geral dos tremores', 'shake-master', tuning.sectionControls('Tremor · geral')));
+    const extraFold = document.createElement('details');extraFold.className = 'vfx-extra-fold';extraFold.innerHTML = '<summary><b>Tremor, Sombras, Câmera, HUD & Indicadores</b></summary>';
+    const extraGrid = document.createElement('div');extraGrid.className = 'vfx-extra-grid';extraFold.append(extraGrid);colMid.append(extraFold);
+    extraGrid.append(group('Geral dos tremores', 'shake-master', tuning.sectionControls('Tremor · geral')));
     for (const [key, label] of SHAKE_EVENTS) {
       const rows = tuning.sectionControls(`Tremor · ${label}`), n = {x: 0, z: 1};
-      root.append(group(label, key, rows, [actions(`vfx.${key}`, label, () => vfxDefaults()[key], () => {view.vfx.shake(key, n, 1, 'prévia manual');})]));
+      extraGrid.append(group(label, key, rows, [actions(`vfx.${key}`, label, () => vfxDefaults()[key], () => {view.vfx.shake(key, n, 1, 'prévia manual');})]));
     }
-    h('Sombras');
     const shadowRows = [...tuning.sectionControls('Sombras'), tuning.controlFor('extras.visual.shadowHeightFade'), tuning.controlFor('extras.visual.shadowMin')];
-    root.append(group('Estilo e forma da sombra', 'shadow', shadowRows, [actions('display.shadow', 'Sombras', () => displayDefaults().shadow)], true));
-    h('Câmera');
-    root.append(group('Câmera', 'camera', tuning.sectionControls('Câmera')), group('Câmera: ajustes avançados', 'camera-extra', tuning.sectionControls('Câmera: ajustes avançados')));
-    h('HUD', 'Três propostas funcionais para comparação (A Arcade Vector, B Combat Halo, C Tactical Combat) com os mesmos dados reais. Os quatro cooldowns são SÓ DEMONSTRAÇÃO: não existem movimentos, nomes ou tempos oficiais.');
+    extraGrid.append(group('Estilo e forma da sombra', 'shadow', shadowRows, [actions('display.shadow', 'Sombras', () => displayDefaults().shadow)], false));
+    extraGrid.append(group('Câmera', 'camera', tuning.sectionControls('Câmera')), group('Câmera: ajustes avançados', 'camera-extra', tuning.sectionControls('Câmera: ajustes avançados')));
     const demo = document.createElement('div');demo.className = 'row';
     for (let i = 0; i < 4; i++) {const b = document.createElement('button');b.type = 'button';b.textContent = `Disparar demo ${i + 1}`;b.dataset.demo = i;b.onclick = () => hud.triggerDemo(i);demo.append(b);}
-    root.append(group('Propostas de HUD', 'hud', tuning.sectionControls('HUD'), [demo], true));
-    h('Altura visual e indicadores');
-    root.append(group('Altura visual (blocos e modelos)', 'grounding', tuning.sectionControls('Altura visual')), group('Indicador da janela C → X', 'cancel-ring', tuning.sectionControls('Indicador da janela C → X'),
+    extraGrid.append(group('Propostas de HUD', 'hud', tuning.sectionControls('HUD'), [demo], false));
+    extraGrid.append(group('Altura visual (blocos e modelos)', 'grounding', tuning.sectionControls('Altura visual')), group('Indicador da janela C → X', 'cancel-ring', tuning.sectionControls('Indicador da janela C → X'),
       [Object.assign(document.createElement('p'), {className: 'hint', textContent: 'A reativação do tackle durante a esquiva é decidida por TEMPO (início e fim da janela, em Ajustes › X e C). Não há círculo de distância nas regras: este anel só desenha a janela. Ver relatório técnico.'})]));
-    h('Depuração dos efeitos');
-    const dbg = document.createElement('div');dbg.id = 'vfx-debug';dbg.className = 'report';root.append(dbg);
+    const dbg = document.createElement('div');dbg.id = 'vfx-debug';dbg.className = 'report';extraGrid.append(dbg);
   }
   function live() {
     const box = $('vfx-debug');if (!box || box.closest('[hidden]')) return;

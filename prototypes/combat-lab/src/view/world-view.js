@@ -152,10 +152,30 @@ export class WorldView {
     this.preview.renderOrder = 801;
     this.group.add(this.preview);
 
+    // Anéis de carga 3D no chão para cada lutador (QoL 5)
+    this.chargeRings = [this.createChargeRing(), this.createChargeRing()];
+
     // Cache de geometrias de rocha
     this.rockGeos = [buildRockGeometry(0), buildRockGeometry(1), buildRockGeometry(2)];
     this.trailTimer = 0;
     this.accessibility = {noFlash: false, reduceMotion: false, highContrast: false};
+  }
+
+  createChargeRing() {
+    const geo = new T.RingGeometry(0.65, 0.85, 32);
+    geo.rotateX(-Math.PI / 2);
+    const mat = new T.MeshBasicMaterial({
+      color: 0x59d6e6,
+      transparent: true,
+      opacity: 0,
+      side: T.DoubleSide,
+      depthWrite: false,
+    });
+    const mesh = new T.Mesh(geo, mat);
+    mesh.visible = false;
+    mesh.renderOrder = 805;
+    this.group.add(mesh);
+    return mesh;
   }
 
   setAccessibility(a = {}) {
@@ -335,7 +355,7 @@ export class WorldView {
   }
 
   /** Anel que se expande e some (VFX de evento). */
-  ring(x, y, z, color, size, life = .38) {
+  ring(x, y, z, color, size, life = .55) {
     const isNoFlash = !!(this.accessibility?.noFlash || C.vfx.master?.noFlash || C.vfx.laser?.noFlash);
     const isHighContrast = !!(this.accessibility?.highContrast || C.vfx.master?.highContrast || C.vfx.laser?.highContrast);
     const opacity = isNoFlash ? 0.45 : isHighContrast ? 1.0 : 0.85;
@@ -653,7 +673,23 @@ export class WorldView {
   drawCharging(world, fighters, dt = 0) {
     let showPreview = false;
     for (const f of fighters) {
-      const orbs = this.orbs[f.id] ??= [], ch = f.charge;
+      const ring = this.chargeRings?.[f.id];
+      const ch = f.charge;
+      if (ring) {
+        if (ch) {
+          ring.visible = true;
+          ring.position.set(f.position.x, 0.04, f.position.z);
+          const ratio = ch.ratio ?? (ch.ticks / (ch.params?.maxTicks || 180));
+          const scale = 0.6 + Math.min(1.2, ratio * 0.8);
+          ring.scale.set(scale, scale, scale);
+          const plIdx = ch.ticks >= (ch.params?.maxTicks ?? 180) ? 3 : ch.ticks >= (ch.params?.pl2Ticks ?? 90) ? 2 : 1;
+          ring.material.color.setHex(PL_HEX[plIdx]);
+          ring.material.opacity = 0.35 + 0.25 * Math.sin(this.time * 9);
+        } else {
+          ring.visible = false;
+        }
+      }
+      const orbs = this.orbs[f.id] ??= [];
       let want = 0;
 
       if (ch && ch.move === 'reflect') {
