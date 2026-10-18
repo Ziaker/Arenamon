@@ -798,5 +798,6 @@
     </footer>
   </div>
 
+<script>for (const a of document.querySelectorAll('a[href$=".html"]')) a.addEventListener("click", () => {a.href = a.getAttribute("href").split("?")[0] + "?v=" + Date.now();});</script>
 </body>
 </html>
