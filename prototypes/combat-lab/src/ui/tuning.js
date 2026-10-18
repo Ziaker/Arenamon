@@ -188,6 +188,7 @@ export function createTuning({apply}) {
     $('tune-undo').disabled = !state.undo.length;$('tune-redo').disabled = !state.redo.length;
     $('tune-undo').title = state.undo.length ? 'Desfazer: ' + state.undo.at(-1).label : 'Nada para desfazer';$('tune-redo').title = state.redo.length ? 'Refazer: ' + state.redo.at(-1).label : 'Nada para refazer';
   }
+  const fill = el => {if (el.type === 'range') el.style.setProperty('--p', ((Number(el.value) - Number(el.min)) / ((Number(el.max) - Number(el.min)) || 1) * 100).toFixed(1) + '%');};
   function control(m) {
     const v = pathGet(C, m.path), row = document.createElement('div');row.className = 'tune-control' + (changed(m) ? ' changed' : '');
     const top = document.createElement('div');top.className = 'tune-top';
@@ -218,7 +219,7 @@ export function createTuning({apply}) {
     else if (m.kind === 'toggle') {el = document.createElement('input');el.type = 'checkbox';el.className = 'tune-toggle';el.checked = !!v;el.onchange = () => commit([[m.path, el.checked ? 1 : 0]], m.label);}
     else if (m.kind === 'color') {el = document.createElement('input');el.type = 'color';el.value = m.fmt(v);el.oninput = () => {pathSet(C, m.path, parseInt(el.value.slice(1), 16));value.textContent = el.value;apply();};el.onchange = () => {const after = parseInt(el.value.slice(1), 16);pathSet(C, m.path, state.colorBefore ?? after);commit([[m.path, after]], m.label);state.colorBefore = undefined;};el.onfocus = () => {state.colorBefore = pathGet(C, m.path);};}
     else {
-      el = document.createElement('input');el.type = 'range';el.min = m.min;el.max = m.max;el.step = m.step;el.value = v;let before = null;
+      el = document.createElement('input');el.type = 'range';el.min = m.min;el.max = m.max;el.step = m.step;el.value = v;let before = null;fill(el);el.addEventListener('input', () => fill(el));
       el.addEventListener('input', () => {if (before === null) before = pathGet(C, m.path);const n = Math.max(m.min, Math.min(m.max, Number(el.value)));pathSet(C, m.path, n);value.textContent = m.fmt(n);apply();});
       el.addEventListener('change', () => {const after = pathGet(C, m.path);if (before !== null && !same(before, after)) {pathSet(C, m.path, before);commit([[m.path, after]], m.label);}before = null;});
     }
@@ -236,7 +237,7 @@ export function createTuning({apply}) {
       if (!e.row.isConnected) {state.external.delete(e);continue;}
       const v = pathGet(C, e.m.path), el = e.row.querySelector('[data-path]'), out = e.row.querySelector('.tune-value');
       if (document.activeElement === el && e.m.kind !== 'select') continue;
-      if (e.m.kind === 'toggle') el.checked = !!v;else if (e.m.kind === 'color') el.value = e.m.fmt(v);else el.value = String(e.m.kind === 'select' ? Math.round(v) : v);
+      if (e.m.kind === 'toggle') el.checked = !!v;else if (e.m.kind === 'color') el.value = e.m.fmt(v);else el.value = String(e.m.kind === 'select' ? Math.round(v) : v);fill(el);
       out.textContent = e.m.fmt(v);e.row.classList.toggle('changed', changed(e.m));
     }
   }
