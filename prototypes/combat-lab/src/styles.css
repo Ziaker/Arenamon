@@ -581,3 +581,17 @@ pre.diff{max-height:72px;padding:4px;font-size:9.5px;margin:2px 0}
   .vx-list{position:static;max-height:190px;margin-bottom:10px}
   .vx-detail{min-width:0}
 }
+.panel-body{container-type:inline-size}
+@container (max-width:620px){
+  .panel[data-layout="bento"][data-subcard="all"] .panel-body section[data-section]:not([hidden]){grid-template-columns:minmax(0,1fr)}
+  .panel-body .bento-card{min-width:0;overflow-wrap:anywhere}
+  .panel-body .row,.panel-body .grid2-fields{min-width:0}
+}
+@container (max-width:620px){
+  #char-slots,.homolog{grid-template-columns:minmax(0,1fr)}
+  .panel-body select,.panel-body input:not([type=checkbox]):not([type=radio]),.panel-body .field,.panel-body label.field{max-width:100%;min-width:0}
+  .panel-body code{overflow-wrap:anywhere;white-space:normal}
+  .panel-body .char-slot,.panel-body .char-slot *{min-width:0}
+  .homolog .pill{flex-wrap:wrap;max-width:100%}
+}
+@container (max-width:620px){.panel-body .tune-top{flex-wrap:wrap}.panel-body .tune-value{white-space:normal;overflow-wrap:anywhere}}
