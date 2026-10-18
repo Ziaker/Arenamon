@@ -32,7 +32,7 @@ test('volume real: só malhas instanciadas com sólidos fechados; nenhum sprite,
     assert.ok(s.x > 0 && s.y > 0 && s.z > 0, 'extensão nos três eixos ' + g.type);
     assert.ok(g.attributes.position.count >= 4, 'pelo menos um tetraedro');
   }
-  for (const m of Object.values(fx.materials)) { assert.ok(!(m instanceof T.SpriteMaterial)); assert.ok(!m.map, 'sem textura'); assert.equal(m.side, T.FrontSide); if (m.isShaderMaterial) assert.deepEqual(Object.keys(m.uniforms), ['uLight'], 'o material de fumaça não tem textura nenhuma (só a direção da luz)'); }
+  for (const m of Object.values(fx.materials)) { assert.ok(!(m instanceof T.SpriteMaterial)); assert.ok(!m.map, 'sem textura'); if (!m.isShaderMaterial) assert.equal(m.side, T.FrontSide); if (m.isShaderMaterial) { assert.deepEqual(Object.keys(m.uniforms).sort(), ['uData', 'uLight', 'uSteps'], 'fumaça: só a tabela numérica de esferas, a luz e os passos'); assert.ok(m.uniforms.uData.value.image.data instanceof Float32Array, 'a única textura é uma tabela de números (não imagem)'); } }
   fx.dust(fighter(), {dir: {x: 0, z: 1}, speed: 9, t: 0}, 'start', 0);
   fx.update([], [], 1 / 60);
   assert.ok(fx.meshes.size > 0);

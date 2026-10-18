@@ -7,9 +7,9 @@ Camada de efeitos feita só de malhas com volume real em `InstancedMesh`, sem sp
 - Referências de linguagem visual (vídeo e imagens de fumaça em desenho animado): usadas só como vocabulário — faixas curvas em camadas, volumes que rolam, anéis de nuvem, colunas em espiral, caudas em S. As formas são originais, geradas por código; nenhum arquivo de referência entra no projeto.
 
 ## Geometrias e material
-Sólidos de debris: icosaedro irregular, tetraedro, octaedro, caixa, cone, prisma hexagonal, toroide baixo. Fumaça, poeira e vento: **`lump`**, um volume macio (icosfera subdividida, normais suaves). Não há fitas, faixas planas nem tubos: o vento é feito de **correntes de volumes** (caudas em S, hélices, arcos, caracóis) que nascem em sequência e se dissolvem.
-
-O aspecto de efeito vem do **material `smoke`** (shader próprio, sem textura): tons chapados em 3 degraus (como as nuvens de desenho animado das referências), dissolução por ruído 3D que esfarela as bordas no fim da vida e opacidade por instância. Os volumes ganham achatamento e giro aleatórios para não parecerem esferas idênticas.
+- **Debris** (poeiras A–D, esquiva, aterrissagem, impacto, bloqueio, colisão): icosaedro irregular, tetraedro, octaedro, caixa, cone, prisma hexagonal, toroide baixo, em `InstancedMesh`.
+- **Fumaça, poeira clara e vento** (poeiras E–H e todo o vento): cada partícula é uma esfera simulada normalmente (posição, velocidade, órbita, atraso, escala), mas elas **não são desenhadas como malhas**. As esferas de um mesmo efeito formam um *cluster* (até 24) e `src/view/smoke-volume.js` as desenha como **uma massa contínua por raymarching de campo de distância**: união suave das esferas + ruído nas bordas, num cubo proxy por cluster. A massa funde, incha e se esfarela (ruído 3D) em vez de parecer um monte de bolas. É 3D de verdade (gira com a câmera e escreve profundidade); a única "textura" é uma tabela numérica com as esferas. Sem sprites, billboards nem planos com textura.
+- **Sombreamento:** 3 tons chapados a partir da normal do campo de distância (como as nuvens das referências).
 
 ## Famílias e estilos (painel Visualizar › Efeitos 3D sólidos)
 | Família | Disparo | Estilos |
@@ -29,7 +29,7 @@ Poeira e vento são famílias independentes: estilo, intensidade e cores escolhi
 A escolha vive só em `C.vfx.<família>.variant` (histórico do ajustador: Ctrl+Z/Ctrl+Y; exportação JSON, presets e A × B usam o mesmo caminho). Painel, `SolidFx` e `VfxRuntime.getVariant` leem esse valor; `VfxRuntime.setVariant` não cria mais escolha paralela. As prévias de dash/arrancada/corrida/curva/parada usam um lutador virtual que passa pelo MESMO `trackDash` da luta.
 
 ## Desempenho
-Teto de objetos ativos, geometrias e 3 materiais compartilhados (lit, glow, smoke), no máximo uma malha instanciada por (forma, material), opacidade por instância sem materiais extras. Medição em `evidence/vfx-solido/desempenho.json`, com o renderizador WebGL identificado (`env.glRenderer`; em Edge headless é SwiftShader, por software: só vale como custo de CPU e contagem de desenhos).
+Teto de objetos ativos (esferas e debris), até 48 clusters de fumaça por quadro (1 desenho para todos), geometrias e 3 materiais compartilhados (lit, glow, smoke), no máximo uma malha instanciada por (forma, material). O raymarching custa por pixel: 26 passos e até 24 esferas por cluster; o custo real de quadro está em `desempenho.json` (`frameMs`). Medição em `evidence/vfx-solido/desempenho.json`, com o renderizador WebGL identificado (`env.glRenderer`; em Edge headless é SwiftShader, por software: só vale como custo de CPU e contagem de desenhos).
 
 ## Evidências e testes
 - `evidence/vfx-solido/comparacao-poeira.html`: todos os estilos × 3 ângulos, curvas e clipes `movimento/*.mp4` de comparação lado a lado (dash, corrida, curva e parada).

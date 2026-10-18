@@ -91,7 +91,7 @@ try {
     for (const k of ks) for (let v = 0; v < N[k]; v++) {C.vfx[k].variant = v;fx.preview(k, window.__lab.game.fighters, 'run');for (let j = 0; j < 6; j++) fx.update([], [], 1 / 30);}
     view.renderer.render(view.scene, view.camera);fx.reset();view.renderer.render(view.scene, view.camera);
     return {g: [g0, info.memory.geometries], programs: [p0, info.programs?.length ?? 0], meshes: [mid, fx.meshes.size], materials: Object.keys(fx.materials).length, shapes: Object.keys(fx.geometries).length, children: fx.group.children.length};});
-  check('trocar estilos/prévias 200 vezes e resetar não acumula malhas, geometrias de GPU, programas nem materiais', leak.children === leak.meshes[1] && leak.meshes[1] <= leak.shapes * leak.materials && leak.programs[1] - leak.programs[0] <= 4 && leak.g[1] - leak.g[0] <= leak.shapes && leak.materials === 3, JSON.stringify(leak));
+  check('trocar estilos/prévias 200 vezes e resetar não acumula malhas, geometrias de GPU, programas nem materiais', leak.children === leak.meshes[1] + 1 && leak.meshes[1] <= leak.shapes * leak.materials && leak.programs[1] - leak.programs[0] <= 4 && leak.g[1] - leak.g[0] <= leak.shapes && leak.materials === 3, JSON.stringify(leak));
   await L(() => window.__lab.tuning.resetAll());
 
   // ---------- Palco limpo para capturas ----------
@@ -157,6 +157,11 @@ try {
     out.worstCase = {...stats(t), peakActive: peak, cap: fx.cap(), rejected: fx.stats.rejected, meshes: fx.meshes.size};
     out.draw = {};
     for (const mode of [false, true]) {view.useNewVfx = mode;const m = {};for (const vis of [true, false]) {fx.group.visible = vis;R.info.reset();R.render(view.scene, view.camera);const calls = R.info.render.calls, tris = R.info.render.triangles, a = [];for (let i = 0; i < 40; i++) {const t0 = performance.now();R.render(view.scene, view.camera);a.push(performance.now() - t0);}a.sort((x, y) => x - y);m[vis ? 'withSolid' : 'withoutSolid'] = {calls, triangles: tris, cpuRenderMedianMs: +a[20].toFixed(3)};}out.draw[mode ? 'VfxRuntime' : 'legado'] = m;}
+    // Custo real de quadro (inclui a rasterização; em renderização por software é pessimista): 10 quadros com carga contínua, com e sem os sólidos.
+    const frameMs = async vis => {fx.reset();fx.group.visible = vis;const t0 = performance.now();for (let i = 0; i < 10; i++) {if (i % 3 === 0) fx.preview('all', fighters, ['dash', 'run', 'turn', 'stop'][(i / 3) % 4 | 0], {lane: (i % 5) * .4});fx.update([], [], 1 / 60);await new Promise(r => requestAnimationFrame(r));}return +((performance.now() - t0) / 10).toFixed(2);};
+    out.frameMs = {withSolid: await frameMs(true), withoutSolid: await frameMs(false), smokeClustersPeak: fx.stats.clusters};
+    for (const k of ['solidDust', 'solidWind', 'solidRunDust', 'solidRunWind']) C.vfx[k].amount = 1;
+    out.frameMsTypical = {withSolid: await frameMs(true), withoutSolid: await frameMs(false), note: 'uma corrida/dash por vez, quantidade padrão'};
     fx.group.visible = true;view.useNewVfx = false;
     out.shapes = Object.keys(fx.geometries).length;out.materials = Object.keys(fx.materials).length;out.instancedMeshes = fx.meshes.size;
     return out;
@@ -166,6 +171,7 @@ try {
   console.log(`· renderizador WebGL: ${perf.env.glRenderer} (${perf.env.software ? 'software' : 'GPU'}) · WebGL${perf.env.webgl2 ? '2' : '1'}`);
   check('pior caso respeita o teto de objetos', w.peakActive <= w.cap, `pico ${w.peakActive}/${w.cap}, rejeitados ${w.rejected}`);
   check('chamadas de desenho dos sólidos limitadas (≤ 24 a mais, em qualquer renderizador de sprites)', dl.withSolid.calls - dl.withoutSolid.calls <= 24 && dn.withSolid.calls - dn.withoutSolid.calls <= 24, `legado +${dl.withSolid.calls - dl.withoutSolid.calls} · VfxRuntime +${dn.withSolid.calls - dn.withoutSolid.calls}`);
+  check('quadro completo com fumaça raymarched no pior caso (software GL, MUITO pessimista) abaixo de 1500 ms', perf.frameMs.withSolid < 1500, `com ${perf.frameMs.withSolid} ms · sem ${perf.frameMs.withoutSolid} ms por quadro`);
   check('custo de CPU da atualização no pior caso < 4 ms por quadro', w.p95 < 4, `média ${w.avg} ms · p95 ${w.p95} ms · máx ${w.max} ms`);
 
   // ---------- Folha de comparação ----------

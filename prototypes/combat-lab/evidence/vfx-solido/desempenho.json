@@ -11,175 +11,185 @@
   "families": {
     "solidDust": {
       "0": {
-        "avg": 0.0227,
-        "p95": 0.1,
-        "max": 0.6,
+        "avg": 0.0733,
+        "p95": 0.2,
+        "max": 2.3,
         "peakActive": 72,
-        "spawned": 5702
+        "spawned": 20512
       },
       "1": {
-        "avg": 0.0213,
+        "avg": 0.0407,
         "p95": 0.1,
-        "max": 0.2,
+        "max": 0.5,
         "peakActive": 40,
-        "spawned": 5758
+        "spawned": 20568
       },
       "2": {
-        "avg": 0.0113,
+        "avg": 0.0153,
         "p95": 0.1,
         "max": 0.2,
         "peakActive": 24,
-        "spawned": 5798
+        "spawned": 20608
       },
       "3": {
-        "avg": 0.0187,
-        "p95": 0.1,
-        "max": 0.3,
-        "peakActive": 52,
-        "spawned": 5870
-      },
-      "4": {
-        "avg": 0.024,
-        "p95": 0.1,
-        "max": 0.4,
-        "peakActive": 28,
-        "spawned": 5922
-      },
-      "5": {
-        "avg": 0.0247,
-        "p95": 0.1,
-        "max": 0.3,
-        "peakActive": 28,
-        "spawned": 5958
-      },
-      "6": {
-        "avg": 0.09,
-        "p95": 0.2,
-        "max": 4.4,
-        "peakActive": 44,
-        "spawned": 6046
-      },
-      "7": {
-        "avg": 0.0353,
+        "avg": 0.028,
         "p95": 0.1,
         "max": 0.5,
+        "peakActive": 52,
+        "spawned": 20680
+      },
+      "4": {
+        "avg": 0.0573,
+        "p95": 0.2,
+        "max": 1.2,
+        "peakActive": 152,
+        "spawned": 20984
+      },
+      "5": {
+        "avg": 0.018,
+        "p95": 0.1,
+        "max": 0.2,
+        "peakActive": 84,
+        "spawned": 21120
+      },
+      "6": {
+        "avg": 0.022,
+        "p95": 0.1,
+        "max": 0.3,
+        "peakActive": 88,
+        "spawned": 21296
+      },
+      "7": {
+        "avg": 0.008,
+        "p95": 0.1,
+        "max": 0.1,
         "peakActive": 36,
-        "spawned": 6118
+        "spawned": 21368
       }
     },
     "solidWind": {
       "0": {
-        "avg": 0.0113,
+        "avg": 0.038,
         "p95": 0.1,
-        "max": 0.3,
-        "peakActive": 24,
-        "spawned": 6158
+        "max": 0.8,
+        "peakActive": 180,
+        "spawned": 21668
       },
       "1": {
-        "avg": 0.0067,
+        "avg": 0.024,
         "p95": 0.1,
-        "max": 0.1,
-        "peakActive": 12,
-        "spawned": 6178
+        "max": 0.4,
+        "peakActive": 56,
+        "spawned": 21756
       },
       "2": {
-        "avg": 0.0113,
+        "avg": 0.0507,
         "p95": 0.1,
-        "max": 0.1,
-        "peakActive": 20,
-        "spawned": 6218
+        "max": 2.5,
+        "peakActive": 112,
+        "spawned": 21980
       },
       "3": {
-        "avg": 0.0127,
+        "avg": 0.05,
         "p95": 0.1,
-        "max": 0.2,
-        "peakActive": 32,
-        "spawned": 6282
+        "max": 1.8,
+        "peakActive": 168,
+        "spawned": 22316
       }
     },
     "solidRunDust": {
       "0": {
-        "avg": 0.0433,
+        "avg": 0.038,
         "p95": 0.2,
-        "max": 0.4,
-        "peakActive": 130,
-        "spawned": 6478
+        "max": 0.3,
+        "peakActive": 132,
+        "spawned": 22512
       },
       "1": {
-        "avg": 0.032,
+        "avg": 0.014,
         "p95": 0.1,
-        "max": 0.2,
+        "max": 0.1,
         "peakActive": 68,
-        "spawned": 6550
+        "spawned": 22584
       },
       "2": {
-        "avg": 0.026,
+        "avg": 0.0353,
         "p95": 0.1,
         "max": 0.2,
-        "peakActive": 50,
-        "spawned": 6622
+        "peakActive": 220,
+        "spawned": 23014
       }
     },
     "solidRunWind": {
       "0": {
-        "avg": 0.0173,
-        "p95": 0.1,
-        "max": 0.1,
-        "peakActive": 32,
-        "spawned": 6694
+        "avg": 0.0347,
+        "p95": 0.2,
+        "max": 0.4,
+        "peakActive": 220,
+        "spawned": 23454
       },
       "1": {
-        "avg": 0.0073,
+        "avg": 0.0313,
         "p95": 0.1,
-        "max": 0.1,
-        "peakActive": 12,
-        "spawned": 6710
+        "max": 0.3,
+        "peakActive": 220,
+        "spawned": 23814
       },
       "2": {
-        "avg": 0.006,
+        "avg": 0.026,
         "p95": 0.1,
-        "max": 0.1,
-        "peakActive": 12,
-        "spawned": 6734
+        "max": 0.3,
+        "peakActive": 212,
+        "spawned": 24154
       }
     }
   },
   "worstCase": {
-    "avg": 0.152,
+    "avg": 0.1217,
     "p95": 0.3,
-    "max": 1,
+    "max": 2.2,
     "peakActive": 220,
     "cap": 220,
-    "rejected": 4538,
-    "meshes": 20
+    "rejected": 21240,
+    "meshes": 12
   },
   "draw": {
     "legado": {
       "withSolid": {
-        "calls": 16,
-        "triangles": 45532,
+        "calls": 14,
+        "triangles": 768,
         "cpuRenderMedianMs": 0.1
       },
       "withoutSolid": {
-        "calls": 12,
-        "triangles": 160,
-        "cpuRenderMedianMs": 0
+        "calls": 11,
+        "triangles": 88,
+        "cpuRenderMedianMs": 0.1
       }
     },
     "VfxRuntime": {
       "withSolid": {
-        "calls": 16,
-        "triangles": 45532,
+        "calls": 14,
+        "triangles": 768,
         "cpuRenderMedianMs": 0.1
       },
       "withoutSolid": {
-        "calls": 12,
-        "triangles": 160,
+        "calls": 11,
+        "triangles": 88,
         "cpuRenderMedianMs": 0
       }
     }
   },
-  "shapes": 13,
-  "materials": 4,
-  "instancedMeshes": 20
+  "frameMs": {
+    "withSolid": 618.22,
+    "withoutSolid": 124.86,
+    "smokeClustersPeak": 14
+  },
+  "frameMsTypical": {
+    "withSolid": 256.77,
+    "withoutSolid": 626.18,
+    "note": "uma corrida/dash por vez, quantidade padrão"
+  },
+  "shapes": 8,
+  "materials": 3,
+  "instancedMeshes": 12
 }

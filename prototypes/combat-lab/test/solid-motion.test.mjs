@@ -178,7 +178,7 @@ test('sem vazamento: trocar estilos, resetar e prever 300 vezes não cria malhas
     fx.compare(['solidDust', 'solidWind'][i % 2], stage, 'dash'); run(fx, .2, 1 / 30); if (i % 7 === 0) fx.reset();
   }
   assert.equal(Object.keys(fx.geometries).length, geos); assert.equal(Object.keys(fx.materials).length, mats);
-  assert.ok(fx.meshes.size <= geos * mats, `malhas ${fx.meshes.size}`); assert.equal(scene.children[0].children.length, fx.meshes.size, 'cada malha instanciada uma vez na cena');
+  assert.ok(fx.meshes.size <= geos * mats, `malhas ${fx.meshes.size}`); assert.equal(scene.children[0].children.length, fx.meshes.size + 1, 'cada malha instanciada uma vez na cena, mais o volume de fumaça');
   assert.equal(fx.wrappers.size, fx.meshes.size); assert.ok(fx.stats.peak <= fx.cap());
   fx.reset(); assert.equal(fx.all.length, 0); assert.equal(fx.free.length, 512); for (const m of fx.meshes.values()) assert.equal(m.count, 0);
   fx.dispose(); assert.equal(scene.children.length, 0);
@@ -188,6 +188,21 @@ test('teto de objetos com as famílias novas: vento e poeira juntos nunca passam
   C.vfx.solid.maxObjects = 60; C.vfx.solidDust.amount = 3; C.vfx.solidWind.amount = 3; const fx = mk();
   for (let i = 0; i < 50; i++) { fx.preview('all', stage, 'run', {lane: i * .1}); fx.update([], [], 1 / 30); assert.ok(fx.all.length <= 60); }
   assert.ok(fx.stats.rejected > 0);
+});
+
+test('fumaça volumétrica: esferas agrupadas em clusters e desenhadas como massa única (raymarching), sem malhas de esfera por partícula', () => {
+  C.vfx.solidDust.variant = 4; const fx = mk(), s = {dir: {x: 1, z: 0}, speed: 9, t: 0};
+  fx.dust({position: {x: 0, z: 0}}, s, 'start', 0); fx.update([], [], 1 / 60);
+  assert.ok(fx.stats.clusters >= 1 && fx.smoke.geometry.instanceCount === fx.stats.clusters, 'um cubo proxy por cluster');
+  assert.ok(![...fx.meshes.keys()].some(k => k.endsWith(':smoke')), 'nenhuma malha instanciada por esfera de fumaça');
+  const blobs = fx.all.filter(p => p.blob);
+  assert.ok(blobs.length > 8 && blobs.every(p => p.cluster > 0), 'esferas pertencem a clusters');
+  // a tabela enviada à GPU contém as posições reais das esferas do primeiro cluster (até 24 por cluster)
+  const row0 = fx.smoke.data.subarray(0, 24 * 4), n = fx.smoke.a.misc.array[1];
+  assert.ok(n >= 1 && n <= 24 && row0[3] > 0, `cluster 0 tem ${n} esferas com raio positivo`);
+  for (let k = 0; k < 300; k++) { fx.dust({position: {x: k * .01, z: 0}}, s, 'start', 0); fx.update([], [], 1 / 60); }
+  assert.ok(fx.smoke.active <= 48 && fx.smoke.dropped >= 0, 'limite de clusters respeitado');
+  fx.reset(); assert.equal(fx.smoke.geometry.instanceCount, 0, 'reset zera o volume');
 });
 
 console.log(`\n${passed} testes de VFX de movimento aprovados.`);

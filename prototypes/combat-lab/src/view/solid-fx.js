@@ -4,6 +4,7 @@
 import * as T from 'three';
 import {C} from '../sim/config.js';
 import {MOTION_SHAPES, DUST_NEW, WIND, RUN_DUST, RUN_WIND} from './solid-motion.js';
+import {SmokeVolume, SMOKE_MAX_SPHERES} from './smoke-volume.js';
 
 /** Famílias com seletor 3D. `names` descreve a aparência de cada opção (índice = vfx.<chave>.variant). `previews`: botões de prévia. */
 const MOVE_PREVIEWS = [['dash', 'Dash'], ['start', 'Arrancada'], ['run', 'Corrida'], ['turn', 'Curva'], ['stop', 'Parada']];
@@ -91,47 +92,6 @@ function solidMaterial(params) {
 }
 
 
-/** Material de fumaça/vento: tons chapados (cel) e dissolução por ruído (bordas se esfarelam no fim da vida). */
-const SMOKE_VERT = `
-attribute float instanceAlpha; attribute vec3 instanceFx;
-varying vec3 vN; varying vec3 vObj; varying float vA; varying vec3 vFx; varying vec3 vCol;
-void main() {
-  mat4 M = modelMatrix * instanceMatrix;
-  vec3 c0 = M[0].xyz, c1 = M[1].xyz, c2 = M[2].xyz;
-  vec3 inv = vec3(1.0 / max(dot(c0, c0), 1e-8), 1.0 / max(dot(c1, c1), 1e-8), 1.0 / max(dot(c2, c2), 1e-8));
-  vN = normalize(mat3(M) * (normal * inv));
-  vObj = position; vA = instanceAlpha; vFx = instanceFx;
-  #ifdef USE_INSTANCING_COLOR
-    vCol = instanceColor;
-  #else
-    vCol = vec3(1.0);
-  #endif
-  gl_Position = projectionMatrix * viewMatrix * M * vec4(position, 1.0);
-}`;
-const SMOKE_FRAG = `
-uniform vec3 uLight;
-varying vec3 vN; varying vec3 vObj; varying float vA; varying vec3 vFx; varying vec3 vCol;
-float hash(vec3 p) { p = fract(p * 0.3183099 + .1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
-float vnoise(vec3 x) {
-  vec3 i = floor(x), f = fract(x); f = f * f * (3.0 - 2.0 * f);
-  return mix(mix(mix(hash(i), hash(i + vec3(1, 0, 0)), f.x), mix(hash(i + vec3(0, 1, 0)), hash(i + vec3(1, 1, 0)), f.x), f.y),
-             mix(mix(hash(i + vec3(0, 0, 1)), hash(i + vec3(1, 0, 1)), f.x), mix(hash(i + vec3(0, 1, 1)), hash(i + vec3(1, 1, 1)), f.x), f.y), f.z);
-}
-void main() {
-  float age = vFx.x, seed = vFx.y, th = smoothstep(.45, 1.0, age);
-  if (vnoise(vObj * 7.0 + vec3(seed * 31.0)) < th * 1.05) discard;
-  vec3 N = normalize(vN); if (!gl_FrontFacing) N = -N;
-  float d = dot(N, normalize(uLight)) * .5 + .5;
-  float band = d > .66 ? 1.0 : (d > .42 ? .78 : .56);
-  vec3 col = vCol * band * (d > .66 ? vec3(1.0) : vec3(.93, .96, 1.03));
-  gl_FragColor = vec4(col, vA);
-  #include <tonemapping_fragment>
-  #include <colorspace_fragment>
-}`;
-function smokeMaterial() {
-  return new T.ShaderMaterial({vertexShader: SMOKE_VERT, fragmentShader: SMOKE_FRAG, uniforms: {uLight: {value: new T.Vector3(.3, .85, .45)}}, transparent: true, depthWrite: true});
-}
-
 export class SolidFx {
   constructor(scene) {
     this.scene = scene;
@@ -141,8 +101,9 @@ export class SolidFx {
     this.materials = {
       lit: solidMaterial({color: 0xffffff, roughness: .92, metalness: 0, flatShading: true}),
       glow: solidMaterial({color: 0xffffff, roughness: .35, metalness: .1, flatShading: true, emissive: 0x2f7f78, emissiveIntensity: .8}),
-      smoke: smokeMaterial(),      // fumaça/poeira/vento: volumes macios com tons chapados e dissolução por ruído
     };
+    // Fumaça/poeira/vento: esferas agrupadas em clusters e desenhadas como UMA massa contínua por raymarching (smoke-volume.js).
+    this.smoke = new SmokeVolume(this.group); this.materials.smoke = this.smoke.material; this.cur = null; this.cid = 0;
     this.meshes = new Map(); this.wrappers = new Map();
     this.all = []; this.free = []; for (let i = 0; i < HARD_CAP; i++) this.free.push({});
     this.timers = []; this.scripts = []; this.time = 0; this.seq = 1; this.rnd = mulberry(0x51ED);
@@ -203,8 +164,9 @@ export class SolidFx {
     const hv = sc < 1 ? .5 + .5 * sc : 1; vx *= hv; vz *= hv; const sp = Math.hypot(vx, vz), spread = Math.max(0, sc - 1) * .8 + jit;
     vx += (this.rnd() - .5) * 2 * spread * sp; vz += (this.rnd() - .5) * 2 * spread * sp; if (clone) { x += j() * .15; z += j() * .15; vy *= 1 + j(); }
     let orb = null; if (o.orb) { const b = o.orb; orb = {cx: b.cx, cz: b.cz, vx: b.vx * vel, vz: b.vz * vel, a0: b.a0, w: b.w * tb, r0: b.r0 * sc, r1: b.r1 * sc, y0: b.y0 * lift, rise: b.rise * lift * kr}; }
-    const alpha = Math.max(hc && op > 0 ? .85 : 0, (o.alpha ?? 1) * op), squash = (o.shape === 'lump' && o.mat === 'smoke');
-    Object.assign(p, {shape: o.shape ?? 'chunk', mat: o.mat ?? 'lit', x, y: (o.y ?? 0) * lift, z, vx, vy, vz, orb, tbAmp: Math.max(0, tb - 1) * 5,
+    const alpha = Math.max(hc && op > 0 ? .85 : 0, (o.alpha ?? 1) * op), blob = (o.shape === 'lump' && o.mat === 'smoke'), squash = blob;
+    let cluster = 0; if (blob) { let cl = this.cur; if (!cl || cl.n >= SMOKE_MAX_SPHERES || Math.hypot(x - cl.x, z - cl.z) > 1.8) cl = this.cur = {id: ++this.cid, n: 0, x, z}; cl.n++; cluster = cl.id; }
+    Object.assign(p, {blob, cluster, shape: o.shape ?? 'chunk', mat: (o.mat === 'smoke' && !blob) ? 'lit' : (o.mat ?? 'lit'), x, y: (o.y ?? 0) * lift, z, vx, vy, vz, orb, tbAmp: Math.max(0, tb - 1) * 5,
       gx: o.gx || 0, gy: o.gy ?? 0, drag: o.drag ?? 0, swirl: (o.swirl || 0) * tb, life: Math.max(.05, o.life ?? .6), age: -(o.delay || 0),
       sx: (o.sx ?? o.s ?? .1) * (squash ? .95 + this.rnd() * .15 : 1), sy: (o.sy ?? o.s ?? .1) * (squash ? .82 + this.rnd() * .14 : 1), sz: (o.sz ?? o.s ?? .1) * (squash ? .95 + this.rnd() * .15 : 1), grow: o.grow || 0, growY: o.growY ?? o.grow ?? 0, growL: o.growL || 0,
       rx: o.rx || 0, ry: o.ry ?? (squash ? this.rnd() * 6.28 : 0), rz: o.rz || 0, wx: (o.wx || 0) * kr * tb, wy: (o.wy || 0) * kr * tb, wz: (o.wz || 0) * kr * tb, align: !!o.align, floor: o.floor ?? null,
@@ -214,8 +176,8 @@ export class SolidFx {
   /** Agenda uma ação com os mesmos controles de família que estavam ativos no disparo. */
   after(delay, fn) { const fam = this.fam, origin = this.origin; this.timers.push({at: this.time + delay, fn: () => { const f0 = this.fam, o0 = this.origin; this.fam = fam; this.origin = origin; try { fn(); } finally { this.fam = f0; this.origin = o0; } }}); }
   r(a, b) { return a + this.rnd() * (b - a); }
-  reset() { for (const p of this.all) this.free.push(p); this.all.length = 0; this.timers = []; this.scripts = []; this.state = {}; this.landings = []; this.log = []; this.fam = null; this.origin = null; this.group.visible = true; for (const m of this.meshes.values()) m.count = 0; }
-  dispose() { this.reset(); for (const g of Object.values(this.geometries)) g.dispose(); for (const g of this.wrappers.values()) g.dispose(); for (const m of Object.values(this.materials)) m.dispose(); for (const m of this.meshes.values()) m.dispose(); this.scene.remove(this.group); }
+  reset() { for (const p of this.all) this.free.push(p); this.all.length = 0; this.timers = []; this.scripts = []; this.state = {}; this.landings = []; this.log = []; this.fam = null; this.origin = null; this.cur = null; this.smoke.clear(); this.group.visible = true; for (const m of this.meshes.values()) m.count = 0; }
+  dispose() { this.reset(); for (const g of Object.values(this.geometries)) g.dispose(); for (const g of this.wrappers.values()) g.dispose(); for (const m of Object.values(this.materials)) m.dispose(); for (const m of this.meshes.values()) m.dispose(); this.smoke.dispose(); this.scene.remove(this.group); }
 
   // ---------- Atualização por quadro ----------
   update(fighters, events, dt, {visible = true} = {}) {
@@ -299,7 +261,9 @@ export class SolidFx {
         p.rx += p.wx * dt; p.ry += p.wy * dt; p.rz += p.wz * dt;
       }
       const sc = k < p.pop / p.life ? smooth(clamp(k / (p.pop / p.life), 0, 1)) : (k < p.hold ? 1 : 1 - smooth((k - p.hold) / (1 - p.hold)));
-      const gxz = 1 + p.grow * k, gy = 1 + p.growY * k, gl = 1 + p.growL * k, m = this.meshFor(p.shape, p.mat), idx = m.userData.n++;
+      const gxz = 1 + p.grow * k, gy = 1 + p.growY * k, gl = 1 + p.growL * k;
+      if (p.blob) { this.smoke.add(p.cluster, p.x, p.y, p.z, .5 * Math.cbrt(p.sx * gxz * p.sy * gy * p.sz * gxz) * sc, p.r, p.g, p.b, p.alpha * (k > .6 ? 1 - smooth((k - .6) / .4) : 1), k, p.seed); continue; }
+      const m = this.meshFor(p.shape, p.mat), idx = m.userData.n++;
       d.position.set(p.x, p.y, p.z); d.scale.set(Math.max(1e-4, p.sx * gxz * sc), Math.max(1e-4, p.sy * gy * sc), Math.max(1e-4, p.sz * gxz * gl * sc));
       if (p.align) { this.v.set(p.vx, p.vy, p.vz); if (this.v.lengthSq() > 1e-6) { A.setFromUnitVectors(this.up, this.v.normalize()); d.quaternion.copy(A); } }
       else d.rotation.set(p.rx, p.ry, p.rz, 'YXZ');
@@ -308,9 +272,9 @@ export class SolidFx {
       m.geometry.attributes.instanceAlpha.array[idx] = p.alpha * (k > fa ? 1 - smooth((k - fa) / (1 - fa)) : 1);
       const fx = m.geometry.attributes.instanceFx.array;fx[idx * 3] = k;fx[idx * 3 + 1] = p.seed;fx[idx * 3 + 2] = p.mode;
     }
-    this.all = keep;
+    this.all = keep; this.smoke.setQuality(C.vfx.solid?.quality ?? 1); this.smoke.flush();
     for (const m of this.meshes.values()) { m.count = m.userData.n; m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true; m.geometry.attributes.instanceAlpha.needsUpdate = true; m.geometry.attributes.instanceFx.needsUpdate = true; }
-    this.stats.active = keep.length; this.stats.peak = Math.max(this.stats.peak, keep.length);
+    this.stats.clusters = this.smoke.active; this.stats.active = keep.length; this.stats.peak = Math.max(this.stats.peak, keep.length);
   }
 
   // ---------- Disparo pontual ----------
@@ -320,7 +284,7 @@ export class SolidFx {
     this.record(key, variant, reason);
     const q = C.vfx.solid.quality ?? 1, I = (c.intensity ?? 1) * (ctx.power ?? 1), S = c.size ?? 1, D = c.duration ?? 1, cnt = n => Math.max(1, Math.round(n * (q === 0 ? .55 : q === 2 ? 1.4 : 1) * Math.min(1.6, .6 + .4 * I)));
     const o = {c, I, S, D, cnt, ...ctx};
-    this.fam = c; this.origin = ctx.pos;
+    this.fam = c; this.cur = null; this.origin = ctx.pos;
     try { BUILD[key][variant].call(this, o); } finally { this.fam = null; this.origin = null; }
   }
 
@@ -372,7 +336,7 @@ export class SolidFx {
     if (!this.on('solidDust') || this.muted(s, 'solidDust')) return;
     const c = C.vfx.solidDust, v = s.ov?.solidDust ?? clamp(c.variant | 0, 0, BUILD_DUST.length - 1), ctx = this.motionCtx('solidDust', f, s, phase);
     this.logMotion('solidDust', v, phase, s);
-    this.fam = c; this.origin = f.position;
+    this.fam = c; this.cur = null; this.origin = f.position;
     try { BUILD_DUST[v].call(this, ctx); } finally { this.fam = null; this.origin = null; }
   }
   /** Vento (dash, arrancada, parada). */
@@ -380,7 +344,7 @@ export class SolidFx {
     if (!this.on('solidWind') || this.muted(s, 'solidWind')) return;
     const c = C.vfx.solidWind, v = s.ov?.solidWind ?? clamp(c.variant | 0, 0, WIND.length - 1), ctx = this.motionCtx('solidWind', f, s, phase);
     this.logMotion('solidWind', v, phase, s);
-    this.fam = c; this.origin = f.position;
+    this.fam = c; this.cur = null; this.origin = f.position;
     try { WIND[v].call(this, ctx); } finally { this.fam = null; this.origin = null; }
   }
   /** Emissão contínua da corrida (um tick): poeira e vento próprios do sprint; `taper` < 1 na desaceleração. */
@@ -389,7 +353,7 @@ export class SolidFx {
       if (!this.on(key) || this.muted(s, key)) continue;
       const c = C.vfx[key], v = s.ov?.[key] ?? clamp(c.variant | 0, 0, list.length - 1), ctx = {...this.motionCtx(key, f, s, 'run'), taper};
       this.logMotion(key, v, taper < 1 ? 'desaceleração' : 'corrida', s);
-      this.fam = c; this.origin = f.position;
+      this.fam = c; this.cur = null; this.origin = f.position;
       try { list[v].call(this, ctx); } finally { this.fam = null; this.origin = null; }
     }
   }
