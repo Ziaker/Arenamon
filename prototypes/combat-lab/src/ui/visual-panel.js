@@ -6,12 +6,12 @@ import {spawn} from '../sim/world.js';
 import {VFX_TYPES, SHAKE_EVENTS} from '../view/vfx.js';
 import {SOLID_FAMILIES} from '../view/solid-fx.js';
 import {fold} from './characters-panel.js';
-import {escape} from './tuning.js';
+import {escape, pathGet as pathGetRoot} from './tuning.js';
 
 /** Parâmetro principal de cada efeito no modo simples. */
 const MAIN = {hit: 'intensity', dodge: 'intensity', sprint: 'intensity', block: 'intensity', perfect: 'intensity', ground: 'intensity', clash: 'intensity', exhaust: 'glow', regen: 'intensity', rock: 'scale', barrier: 'opacity'};
 export function createVisualPanel({tuning, view, game, $, hud, download}) {
-  const root = $('visual-panel'), state = {mode: 'simple', filter: 'all'};
+  const root = $('visual-panel'), state = {mode: 'advanced', filter: 'all', sel: null}, api = {};
   function setMode(m) {
     state.mode = m === 'advanced' ? 'advanced' : 'simple';
     for (const b of root.querySelectorAll('[data-vfx-mode-btn]')) b.setAttribute('aria-pressed', String(b.dataset.vfxModeBtn === state.mode));
@@ -333,26 +333,6 @@ export function createVisualPanel({tuning, view, game, $, hud, download}) {
         view.worldView?.setAccessibility?.(a);
       };
     }
-    // Modo simples (toggle, variante, intensidade principal, prévia) e avançado (todos os parâmetros). Mesmos parâmetros.
-    const bar = document.createElement('div');bar.className = 'vfx-bar';
-    bar.innerHTML = `<div class="seg wide" role="group" aria-label="Modo dos efeitos"><button type="button" data-vfx-mode-btn="simple">Simples</button><button type="button" data-vfx-mode-btn="advanced">Avançado</button></div>
-      <div class="seg wide" role="group" aria-label="Filtro dos efeitos">${[['all', 'Todos'], ['active', 'Ativos'], ['changed', 'Alterados'], ['costly', 'Mais caros']].map(([v, t]) => `<button type="button" data-vfx-filter="${v}">${t}</button>`).join('')}</div><p class="hint" id="vfx-filter-info"></p>`;
-    S.combate.append(bar);
-    const simple = document.createElement('div');simple.className = 'vfx-simple';simple.dataset.vfxMode = 'simple';
-    const CORE_VFX = VFX_TYPES.filter(([t]) => t !== 'rock' && t !== 'barrier');
-    for (const [type, label] of CORE_VFX) {
-      const row = document.createElement('div');row.className = 'vfx-simple-row';row.dataset.vfxType = type;
-      const head = document.createElement('div');head.className = 'vfx-simple-head';head.innerHTML = `<b>${escape(label)}</b><span class="muted" data-cost></span>`;
-      const pv = document.createElement('button');pv.type = 'button';pv.textContent = '▶';pv.title = 'Prévia';pv.dataset.preview = `vfx.${type}`;
-      pv.onclick = () => {
-        view.vfxRuntime.setVariant(type, C.vfx[type]?.variant || 0);
-        if (view.useNewVfx) view.vfxRuntime.preview(type, game.fighters);
-        else view.vfx.preview(type, game.fighters);
-      };
-      const adv = document.createElement('button');adv.type = 'button';adv.textContent = 'Avançado ▸';adv.title = 'Todos os parâmetros deste efeito';adv.onclick = () => {setMode('advanced');const g = root.querySelector(`[data-group="vfx-${type}"]`);g?.setOpen?.(true);g?.scrollIntoView({block: 'start'});};
-      head.append(pv, adv);row.append(head, ...[`vfx.${type}.enabled`, `vfx.${type}.variant`, `vfx.${type}.${MAIN[type]}`].map(p => tuning.controlFor(p)));simple.append(row);
-    }
-    S.combate.append(simple);
     const advanced = document.createElement('div');advanced.dataset.vfxMode = 'advanced';
     advanced.append(group('Geral dos efeitos', 'vfx-master', tuning.sectionControls('VFX · geral')));
     const laserRows = tuning.sectionControls('VFX · Laser da Arena (BeamRenderer)');
@@ -366,9 +346,7 @@ export function createVisualPanel({tuning, view, game, $, hud, download}) {
       if (type === 'rock' || type === 'barrier') S[type === 'rock' ? 'rochas' : 'barreira'].append(g);else {g.dataset.vfxType = type;advanced.append(g);}
     }
     S.combate.append(advanced);
-    for (const b of bar.querySelectorAll('[data-vfx-mode-btn]')) b.onclick = () => setMode(b.dataset.vfxModeBtn);
-    for (const b of bar.querySelectorAll('[data-vfx-filter]')) b.onclick = () => setFilter(b.dataset.vfxFilter);
-    setMode(state.mode);setFilter(state.filter);
+    setMode(state.mode);
     const extraGrid = document.createElement('div');extraGrid.className = 'vx-folds';S.extras.append(extraGrid);
     extraGrid.append(group('Geral dos tremores', 'shake-master', tuning.sectionControls('Tremor · geral')));
     for (const [key, label] of SHAKE_EVENTS) {
@@ -384,6 +362,65 @@ export function createVisualPanel({tuning, view, game, $, hud, download}) {
     extraGrid.append(group('Altura visual (blocos e modelos)', 'grounding', tuning.sectionControls('Altura visual')), group('Indicador da janela C → X', 'cancel-ring', tuning.sectionControls('Indicador da janela C → X'),
       [Object.assign(document.createElement('p'), {className: 'hint', textContent: 'A reativação do tackle durante a esquiva é decidida por TEMPO (início e fim da janela, em Ajustes › X e C). Não há círculo de distância nas regras: este anel só desenha a janela. Ver relatório técnico.'})]));
     const dbg = document.createElement('div');dbg.id = 'vfx-debug';dbg.className = 'report';extraGrid.append(dbg);
+    // ---------- Mestre-detalhe: lista de efeitos à esquerda, só o efeito escolhido à direita ----------
+    const units = [], GROUPS = ['Geral', 'Combate', 'Movimento 3D', 'Mundo', 'Câmera, tremor e HUD'];
+    const wrap = els => {const d = document.createElement('div');d.append(...els);return d;};
+    const unit = (group, label, el, o = {}) => {el.classList.add('vx-unit');el.hidden = true;units.push({id: o.id ?? label, group, label, el, prefix: o.prefix, on: o.on});};
+    const foldLabel = g => g.querySelector('.fold-title')?.firstChild?.textContent?.trim() ?? g.dataset.group;
+    const body = s => wrap([...s.children].filter(c => !c.matches('h3, p.hint')));
+    unit('Geral', 'Renderizador, estilo e acessibilidade', body(S.geral), {id: 'geral'});
+    const dbgBox = $('vfx-debug');if (dbgBox) unit('Geral', 'Disparos recentes (depuração)', wrap([dbgBox]), {id: 'debug'});
+    const master = advanced.querySelector('[data-group="vfx-master"]');if (master) unit('Combate', 'Geral dos efeitos', master, {id: 'vfx-master', prefix: 'vfx.master.'});
+    for (const [type, label] of VFX_TYPES) {const g = advanced.querySelector(`[data-group="vfx-${type}"]`);if (g) unit('Combate', label, g, {id: 'vfx-' + type, prefix: `vfx.${type}.`, on: `vfx.${type}.enabled`});}
+    const tools = [...solidBox.querySelectorAll(':scope > .vx-toolbar')];unit('Movimento 3D', 'Geral dos efeitos 3D', wrap(tools), {id: 'solid-geral', prefix: 'vfx.solid.', on: 'vfx.solid.enabled'});
+    for (const f of SOLID_FAMILIES) unit('Movimento 3D', f.label, solidBox.querySelector(`[data-solid-family="${f.key}"]`), {id: f.key, prefix: `vfx.${f.key}.`, on: `vfx.${f.key}.enabled`});
+    unit('Mundo', 'Rochas (Psyshock)', body(S.rochas), {id: 'rock', prefix: 'vfx.rock.', on: 'vfx.rock.enabled'});
+    unit('Mundo', 'Barreira (Reflect)', body(S.barreira), {id: 'barrier', prefix: 'vfx.barrier.', on: 'vfx.barrier.enabled'});
+    unit('Mundo', 'Laser da arena', body(S.laser), {id: 'laser', prefix: 'vfx.laser.', on: 'vfx.laser.enabled'});
+    for (const g of [...extraGrid.children]) if (g !== dbgBox && g.classList.contains('fold')) unit('Câmera, tremor e HUD', foldLabel(g), g, {id: g.dataset.group});
+    for (const d of solidBox.querySelectorAll('details')) d.open = true;
+    for (const u of units) if (u.el.classList.contains('fold') || u.el.dataset.group) u.el.setOpen?.(true);
+    const md = document.createElement('div');md.className = 'vx-md';
+    const list = document.createElement('aside');list.className = 'vx-list';
+    list.innerHTML = '<input type="search" placeholder="Buscar efeito…" aria-label="Buscar efeito" data-vx-search>';
+    const detail = document.createElement('div');detail.className = 'vx-detail';
+    const head = document.createElement('header');head.className = 'vx-head';detail.append(head);
+    for (const g of GROUPS) {
+      const us = units.filter(u => u.group === g);if (!us.length) continue;
+      const h = document.createElement('div');h.className = 'vx-gh';h.textContent = g;h.dataset.vxGroup = g;list.append(h);
+      for (const u of us) {
+        const b = document.createElement('button');b.type = 'button';b.dataset.vxItem = u.id;b.innerHTML = `<i class="dot"></i><span>${escape(u.label)}</span><em hidden title="Tem valores diferentes do padrão">●</em>`;
+        b.onclick = () => select(u.id);u.btn = b;list.append(b);detail.append(u.el);
+      }
+    }
+    const autoBox = document.createElement('label');autoBox.className = 'vx-check vx-auto';autoBox.title = 'Mostra o efeito de novo toda vez que você muda um valor';
+    let autoOn = true;try {autoOn = localStorage.getItem('arenamon.vfxAutoPreview') !== '0';} catch {}
+    autoBox.innerHTML = `<input type="checkbox" data-vx-auto ${autoOn ? 'checked' : ''}> Prévia automática`;
+    autoBox.querySelector('input').onchange = e => {autoOn = e.target.checked;try {localStorage.setItem('arenamon.vfxAutoPreview', autoOn ? '1' : '0');} catch {}};
+    let autoTimer = 0;
+    api.autoPreview = () => {
+      if (!autoOn) return;clearTimeout(autoTimer);
+      autoTimer = setTimeout(() => {const cur = units.find(u => u.id === state.sel);cur?.el.querySelector('[data-preview],[data-solid-prev],[data-rock-preview],[data-barrier-preview],[data-laser-preview]')?.click();}, 280);
+    };
+    function refreshList() {
+      for (const u of units) {
+        const on = u.on ? !!pathGetRoot(C, u.on) : null, chg = u.prefix ? tuning.manifest.some(m => m.path.startsWith(u.prefix) && tuning.changed(m)) : false;
+        u.btn.querySelector('.dot').className = 'dot ' + (on === null ? 'na' : on ? 'on' : 'off');u.btn.querySelector('em').hidden = !chg;
+      }
+    }
+    function select(id) {
+      const cur = units.find(u => u.id === id) ?? units[0];state.sel = cur.id;
+      for (const u of units) {u.el.hidden = u !== cur;u.btn.setAttribute('aria-current', String(u === cur));}
+      head.innerHTML = `<h3>${escape(cur.label)}</h3><span class="muted">${escape(cur.group)}</span>`;
+      head.append(autoBox);
+    }
+    list.querySelector('[data-vx-search]').oninput = e => {
+      const q = e.target.value.trim().toLowerCase();
+      for (const u of units) u.btn.hidden = !!q && !u.label.toLowerCase().includes(q);
+      for (const h of list.querySelectorAll('.vx-gh')) h.hidden = !units.some(u => u.group === h.dataset.vxGroup && !u.btn.hidden);
+    };
+    md.append(list, detail);root.replaceChildren(md);
+    api.select = select;api.refreshList = refreshList;select(state.sel ?? 'vfx-hit');refreshList();
   }
   function live() {
     const box = $('vfx-debug');if (!box || box.closest('[hidden]')) return;
@@ -392,9 +429,11 @@ export function createVisualPanel({tuning, view, game, $, hud, download}) {
     const beams = view.useNewVfx ? ` · ${v.stats.beamsActive ?? 0} lasers ativos` : '';
     box.innerHTML = `<p class="muted">${v.stats.active ?? 0} partículas ativas · pico ${v.stats.peak} · ${v.stats.spawned} criadas${beams} · limite ${C.vfx.master.maxParticles}</p><table><tr><th>t</th><th>Efeito</th><th>Var.</th><th>Motivo do disparo</th></tr>${rows.map(e => `<tr><td>${e.t.toFixed(2)}</td><td>${escape(e.effect)}</td><td>${e.variant}</td><td>${escape(e.action || e.reason)}</td></tr>`).join('')}</table>`;
   }
+  let lastVfx = JSON.stringify(C.vfx);
   render();
   tuning.onChange(() => {
-    if (state.filter !== 'all') setFilter(state.filter);
+    api.refreshList?.();
+    {const now = JSON.stringify(C.vfx);if (now !== lastVfx) {lastVfx = now;if (!root.closest('[hidden]')) api.autoPreview?.();}}
     for (const [t] of VFX_TYPES) {
       if (C.vfx[t] && C.vfx[t].variant != null) {
         view.vfxRuntime.setVariant(t, C.vfx[t].variant);
@@ -422,5 +461,5 @@ export function createVisualPanel({tuning, view, game, $, hud, download}) {
       view.vfxRuntime.beamRenderer.setQuality(['low', 'medium', 'high'][C.vfx.laser.quality] || 'medium');
     }
   });
-  return {render, live, setMode, setFilter, get vfxMode() {return state.mode;}};
+  return {render, live, setMode, setFilter, select: id => api.select?.(id), get vfxMode() {return state.mode;}};
 }

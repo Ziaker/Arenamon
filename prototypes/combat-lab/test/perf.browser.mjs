@@ -48,15 +48,14 @@ try {
   await page.click('[data-gprofile="high"]');
 
   // ================= Interface de VFX =================
-  check('VFX', 'modo simples: 9 efeitos com toggle, variante, intensidade e prévia', await L(() => [...document.querySelectorAll('.vfx-simple-row')].every(r => r.querySelectorAll('[data-path]').length === 3 && r.querySelector('[data-preview]'))) && await page.locator('.vfx-simple-row').count() === 9);
-  await L(() => window.__lab.tuning.commit([['vfx.regen.enabled', 0], ['vfx.exhaust.enabled', 0]], 'off'));await page.click('[data-vfx-filter="active"]');
-  check('VFX', 'filtro “Ativos”', await page.locator('.vfx-simple-row:not([hidden])').count() === 7);
-  await page.click('[data-vfx-filter="changed"]');check('VFX', 'filtro “Alterados”', await page.locator('.vfx-simple-row:not([hidden])').count() === 2);
-  await page.click('[data-vfx-filter="costly"]');const costly = await page.textContent('#vfx-filter-info');
-  check('VFX', 'filtro “Mais caros” por partículas medidas', /partículas criadas/.test(costly) && await page.locator('.vfx-simple-row:not([hidden])').count() >= 1, costly);
-  await page.click('[data-vfx-filter="all"]');await page.click('[data-vfx-mode-btn="advanced"]');
-  check('VFX', 'modo avançado mantém todos os parâmetros (grupos recolhíveis)', await L(() => document.querySelectorAll('[data-vfx-mode="advanced"] [data-path^="vfx."]').length) > 90 && await page.isHidden('.vfx-simple'));
-  await L(() => window.__lab.tuning.commit([['vfx.regen.enabled', 1], ['vfx.exhaust.enabled', 1]], 'on'));await page.click('[data-vfx-mode-btn="simple"]');
+  check('VFX', 'lista mestre-detalhe: 9 efeitos de combate, cada um com ligado, variante e prévia', await L(() => ['hit', 'dodge', 'sprint', 'block', 'perfect', 'ground', 'clash', 'exhaust', 'regen'].every(t => document.querySelector(`[data-vx-item="vfx-${t}"]`) && document.querySelectorAll(`[data-group="vfx-${t}"] [data-path="vfx.${t}.enabled"], [data-group="vfx-${t}"] [data-path="vfx.${t}.variant"]`).length === 2 && document.querySelector(`[data-group="vfx-${t}"] [data-preview]`))));
+  await L(() => window.__lab.tuning.commit([['vfx.regen.enabled', 0], ['vfx.exhaust.enabled', 0]], 'off'));
+  check('VFX', 'indicador de ligado/desligado na lista', await L(() => document.querySelector('[data-vx-item="vfx-regen"] .dot').classList.contains('off') && document.querySelector('[data-vx-item="vfx-hit"] .dot').classList.contains('on')));
+  check('VFX', 'efeito alterado ganha marca na lista', await L(() => !document.querySelector('[data-vx-item="vfx-regen"] em').hidden));
+  await page.fill('[data-vx-search]', 'esquiva');check('VFX', 'busca filtra a lista', await L(() => [...document.querySelectorAll('[data-vx-item]')].filter(b => !b.hidden).length >= 1 && document.querySelector('[data-vx-item="vfx-hit"]').hidden));
+  await page.fill('[data-vx-search]', '');
+  check('VFX', 'todos os parâmetros continuam disponíveis (um efeito por vez)', await L(() => document.querySelectorAll('#visual-panel [data-path^="vfx."]').length) > 90);
+  await L(() => window.__lab.tuning.commit([['vfx.regen.enabled', 1], ['vfx.exhaust.enabled', 1]], 'on'));
   await page.screenshot({path: out + 'vfx-simples.png'});
 
   // ================= Benchmark =================
