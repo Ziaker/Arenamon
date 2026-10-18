@@ -76,6 +76,8 @@ try {
     await set(`vfx.${type}.variant`, v);await L(() => {window.__lab.view.vfx.reset();window.__lab.view.vfx.stats.peak = 0;});await frames(2);
     const before = await L(() => window.__lab.view.vfx.stats.spawned);
     await L(t => window.__lab.view.vfx.preview(t, window.__lab.game.fighters), type);await frames(type === 'perfect' || type === 'clash' ? 5 : ['dodge', 'sprint', 'exhaust', 'regen'].includes(type) ? 7 : 2);
+    // Efeitos contínuos emitem por intervalo de TEMPO (não de quadros): espera até 2 s pela primeira emissão em vez de contar quadros (evita falha intermitente conforme o ritmo de renderização).
+    if (['dodge', 'sprint', 'exhaust', 'regen'].includes(type)) await page.waitForFunction(b => window.__lab.view.vfx.stats.spawned > b, before, {timeout: 2000}).catch(() => {});
     const after = await L(() => ({spawned: window.__lab.view.vfx.stats.spawned, active: window.__lab.view.vfx.stats.peak}));
     await page.screenshot({path: out + `vfx-${type}-${'abcd'[v]}.png`, clip: stage});
     check('VFX', `${type} variante ${'ABCD'[v]}: gera partículas`, after.spawned > before && after.active > 0, `${after.spawned - before} criadas`);
