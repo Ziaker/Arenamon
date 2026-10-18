@@ -20,44 +20,37 @@ npm run verify
 | **Verificação Geral** | `npm run verify` | Executa typecheck + build + todas as suítes do repositório |
 | **Apenas Tipagem** | `npm run typecheck` | Validação estática TypeScript sem emitir arquivos |
 | **Apenas Build** | `npm run build` | Compila os arquivos HTML offline independentes |
-| **Testes do Jogo (Unidade)** | `node prototypes/game/test.mjs` | 20 testes mecânicos da arena de combate |
-| **Testes de Câmera/Locomoção**| `node prototypes/game/locomotion.test.mjs`| 15 cenários de órbita, lock-on e mobilidade |
-| **Testes do Jogo (Navegador)** | `node prototypes/game/verify.mjs` | 18 cenários interativos no Edge (teclado real) |
+| **Testes do Jogo Principal — Unidade (Combat Lab)** | `npm run test:combat-lab:unit` | 35+ suítes unitárias do jogo principal (X/C, Moves, IA tática, VFX 3D, calibração) |
+| **Testes do Jogo Principal — Navegador (Combat Lab)** | `npm run test:combat-lab:browser` | Suíte completa no Edge (verify, moves-ui, solid-vfx, overhaul, calibration, perf) |
 | **Testes do Studio (Unidade)**| `node prototypes/studio/test/ops.test.mjs` | 18 testes unitários do editor de animações |
 | **Testes de Rigging (Unidade)**| `node prototypes/studio/test/rigging.test.mjs` | 7 testes unitários do núcleo de rigging do Codex |
 | **Testes do Studio (Navegador)**| `node prototypes/studio/verify.mjs` | 20 verificações de navegador no Animation Studio |
 | **Testes de Rigging (Navegador)**| `node prototypes/studio/test/rigging.browser.mjs` | 12 verificações de navegador no Rigging Studio |
 | **Teste Cruzado com Codex 7323b48** | `node prototypes/studio/proposals/test-codex-cross.mjs` | Validação direta com validador e metadados do Codex |
 | **Testes das Propostas Visuais** | `node prototypes/studio/proposals/test-proposals.mjs` | Validação Playwright das Propostas A, B e C |
+| **Protótipo Legado de Blocos (Descontinuado)** | `npm run test:game:unit` / `npm run test:game:browser` | Suíte histórica do protótipo antigo em `prototypes/game/` |
 
 ---
 
 ## 2. Matriz Detalhada de Testes
 
-### A. Jogo Principal (`prototypes/game`)
+### A. Jogo Principal — Combat Lab (`prototypes/combat-lab`)
 
-#### 1. Testes Mecânicos de Combate
-- **Arquivo de Código:** `prototypes/game/test.mjs`
-- **Sistema:** Núcleo de simulação física, colisões e combate.
-- **Objetivo:** Garantir matemática discreta exata de movimento em 8 direções, cálculo de impacto por contato de volumes, esquiva com tempo de invulnerabilidade e custo de stamina, guarda com absorção de impacto, cálculo de empurrão (60% ataque / 40% velocidade) e transição de estados.
-- **Quantidade de Testes:** 20 cenários mecânicos.
-- **Último Resultado Comprovado:** `20 mechanical scenarios passed` (100% de sucesso).
+> **Nota:** O jogo oficial do Arenamon é o **Combat Lab** (`prototypes/combat-lab/dist/arenamon-combate-laboratorio.html`). O antigo `prototypes/game/dist/arenamon-jogavel.html` é apenas um protótipo inicial legado de blocos (descontinuado).
 
-#### 2. Testes de Locomoção e Câmera
-- **Arquivo de Código:** `prototypes/game/locomotion.test.mjs`
-- **Sistema:** Câmera orbital híbrida e navegação desacoplada.
-- **Objetivo:** Validar desacoplamento entre orientação do corpo e rotação da câmera, travamento relativo ao alvo (lock-on strafe), transições diagonais suaves, limites angulares e determinismo sob taxas de 30, 60 e 144 Hz.
-- **Quantidade de Testes:** 15 cenários de locomoção.
-- **Último Resultado Comprovado:** `15 locomotion/camera scenarios passed` (100% de sucesso).
+#### 1. Suíte Unitária Completa (`npm run test:combat-lab:unit`)
+- **Arquivos de Código:** `prototypes/combat-lab/test/*.test.mjs` (`sim`, `core`, `properties`, `ai`, `locomotion`, `animation`, `rules`, `moves`, `charge`, `reflect`, `psyshock`, `beam`, `pl`, `ai-moves`, `moves-ui`, `moves-params`, `vfx`, `solid-vfx`, `solid-motion`, etc.)
+- **Sistema:** Motor completo do jogo (física 120 Hz, X/C separados, Moves, Power Levels, IA tática de 5 fases, VFX 3D sólidos e workspace).
+- **Último Resultado Comprovado:** 100% aprovado em todas as suítes unitárias.
 
-#### 3. Verificações de Navegador (Ponta a Ponta)
-- **Arquivo de Código:** `prototypes/game/verify.mjs`
-- **Arquivo de Relatório:** `prototypes/game/validation/browser.json`
-- **Evidências Visuais:** `prototypes/game/validation/` (`menu.png`, `impact.png`, `block.png`, `result.png`, `narrow.png`)
-- **Sistema:** Interface jogável, renderização Three.js no Edge, eventos reais de teclado e mouse.
-- **Objetivo:** Comprovar carregamento offline via `file://`, ausência de requisições externas, input de teclado real (Setas, F para guarda, C para investida), impacto na vida (HP) do adversário e layout responsivo.
-- **Quantidade de Testes:** 18 cenários no navegador.
-- **Último Resultado Comprovado:** `PASS: 18 browser scenarios, file:// offline, no errors or external requests` (100% de sucesso).
+#### 2. Verificações de Navegador Ponta a Ponta (`npm run test:combat-lab:browser`)
+- **Arquivos de Código:** `prototypes/combat-lab/verify.mjs`, `test/moves-ui.browser.mjs`, `test/solid-vfx.browser.mjs`, `test/overhaul.browser.mjs`, `test/calibration.browser.mjs`, `test/perf.browser.mjs`, `test/tools.browser.mjs`
+- **Sistema:** Interface Bento Zero-Scroll nas 9 abas, importação de GLB do Studio, Moves (`Reflect`, `Psyshock`, `Laser`), 9 famílias de VFX 3D sólidos, replay e homologação offline no Edge.
+- **Último Resultado Comprovado:** 19/19 em `verify.mjs`, 18/18 em `moves-ui.browser.mjs` e 100% em `solid-vfx.browser.mjs`, sem erros ou requisições de rede.
+
+#### 3. Protótipo Inicial Legado de Blocos (`prototypes/game` — Descontinuado)
+- **Arquivos de Código:** `prototypes/game/test.mjs` (20 cenários), `prototypes/game/locomotion.test.mjs` (15 cenários), `prototypes/game/verify.mjs` (18 cenários)
+- **Situação:** Mantido apenas para compatibilidade de script histórica; não representa o jogo atual.
 
 ---
 

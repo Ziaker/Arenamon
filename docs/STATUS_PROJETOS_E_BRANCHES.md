@@ -34,21 +34,23 @@ Verificação: `git fetch` e `git merge-base --is-ancestor` contra `origin/main`
 
 ## 2. Status por Subsistema
 
-### 1. Jogo Principal (`prototypes/game`)
-- **Situação:** Totalmente jogável offline em `arenamon-jogavel.html`.
-- **Mecânicas Implementadas:**
-  - Movimento normalizado em 8 direções.
-  - Esquiva com janela de invulnerabilidade e custo de stamina.
-  - Guarda ativa com absorção e guard stun.
-  - Tackle físico ofensivo acionado por tecla dedicada.
-  - Câmera orbital híbrida (livre e travamento de combate com Tab).
-  - 3 modos de IA do oponente (Inativo, Defensivo, Ofensivo).
-  - Ciclo de partida completo (Menu -> Luta -> Vitória/Derrota -> Reinício).
-- **Decisões:** Parâmetros provisórios mantidos configuráveis; sem alterações na física ou controles durante esta reorganização.
+### 1. Jogo Principal — Combat Lab (`prototypes/combat-lab`)
+- **Situação:** **Jogo oficial ativo**, totalmente jogável offline em `prototypes/combat-lab/dist/arenamon-combate-laboratorio.html` (atalho `JOGAR_ARENAMON.html`).
+- **Mecânicas e Sistemas Implementados:**
+  - Separação estrita de `X` (Tackle em 8 direções) e `C` (Esquiva sem dano), janela de cancelamento `C → X` e clash entre tackles.
+  - **Moves Especiais (`A` / `S`) e Power Level (`PL1–PL3`):** `Reflect` (barreira de energia 3D com reflexão de projéteis/lasers e quebra por tackle) e `Psyshock` (formação e disparo de rochas telecinéticas 3D).
+  - **VFX 3D Sólidos & `VfxRuntime`:** 9 famílias de malhas volumétricas 3D (poeira de dash em 8 estilos, vento, corrida, esquiva, aterrissagem, impacto, bloqueio e clash), `BeamRenderer` para lasers e modelos 3D de rochas/barreiras.
+  - **Personagens GLB do Studio:** Importação de modelos animados com mapa de ações e sincronização das durações de animação.
+  - **IA Tática de 5 Fases:** Percepção honesta, predição, controle espacial, economia de stamina, modelagem do oponente e planejamento de sequência em 6 estilos estratégicos.
+  - **Dashboard Bento Zero-Scroll & Modo Arena:** 9 abas sem rolagem vertical (`0 px` overflow) + botão `⚔ Modo Arena` para jogar em tela cheia.
+- **Como Compilar:**
+  ```powershell
+  npm run build:combat-lab
+  ```
 
 ### 2. Animation Studio & Rigging (`prototypes/studio`)
 - **Situação:** Totalmente operacional offline em `arenamon-animation-studio.html`.
-- **Action Editor:** Recorte de clipes, alteração de velocidade, fechamento de loop, extração de root motion in-place, visualização A x B, roundtrip GLB.
+- **Action Editor & 3 Modos:** Viewport 3D soberano com modos **Rigging**, **Animar** e **Preview & Entrega**, recorte de clipes, alteração de velocidade, fechamento de loop, extração de root motion in-place, visualização A x B e roundtrip GLB.
 - **Rigging Studio (Integrado):**
   - Template guiado com 20 articulações padrão (formato Mixamo).
   - Bind pose com coordenadas legíveis X/Y/Z e espelhamento simétrico.
@@ -56,18 +58,8 @@ Verificação: `git fetch` e `git merge-base --is-ancestor` contra `origin/main`
   - Teste de flexão interativo no navegador.
   - Exportação e reimportação de GLB preservando `userData.arenamonRig`.
 
-### 3. Laboratório de Combate (`prototypes/combat-lab`, integrado à `main`)
-- **Situação:** Aprovado em 14/10/2026 para experimentação e calibração de regras da Etapa A.
-- **Recursos Principais:**
-  - Separação estrita de X (Tackle) e C (Esquiva).
-  - IA tática com 6 estilos de combate (Agressor, Contra-atacante, Esquivador, etc.).
-  - Ferramenta de comparação A x B em tempo real.
-  - Exportador de patch Git para `src/config.ts` do jogo.
-- **Como Acessar:** O laboratório está na `main` (integrado por merges das branches de overhaul, calibração e base de Moves). Para compilar e testar localmente:
-  ```powershell
-  git checkout main
-  npm run build:combat-lab
-  ```
+### 3. Protótipo Inicial Legado de Blocos (`prototypes/game` — Descontinuado)
+- **Situação:** Descontinuado como jogo principal (`arenamon-jogavel.html`). Preservado apenas para histórico e compatibilidade dos scripts de teste antigos. O jogo oficial é `prototypes/combat-lab`.
 
 ### 4. Propostas Visuais de Rigging (`prototypes/studio/proposals`)
 - **Situação:** Três protótipos visuais concluídos e funcionais, **sem escolha de um deles pelo agente**, aguardando avaliação e homologação do usuário.

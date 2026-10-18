@@ -32,12 +32,12 @@ Todo código-fonte, documentação, recurso permitido, teste e entrega final dev
    Todos os sistemas principais e HTMLs de teste devem estar acessíveis em diretórios previsíveis dentro da pasta local oficial:
    - **Central de Acesso Geral:** `ABRIR_ARENAMON.html` na raiz da pasta oficial.
    - **Central de Testes e Relatórios:** `TESTES_ARENAMON.html` na raiz da pasta oficial.
-   - **Jogo Principal:** `prototypes/game/dist/arenamon-jogavel.html`
+   - **Jogo Principal (Laboratório de Combate):** `prototypes/combat-lab/dist/arenamon-combate-laboratorio.html` (atalho na raiz: `JOGAR_ARENAMON.html`)
    - **Animation Studio & Rigging:** `prototypes/studio/dist/arenamon-animation-studio.html`
    - **Propostas de Rigging (A/B/C):** `prototypes/studio/proposals/index.html` (com `proposta-a.html`, `proposta-b.html`, `proposta-c.html`)
    - **Importador de Modelos:** `prototypes/importer/dist/importador-prototipo.html`
    - **Laboratório de Blocos:** `prototypes/placeholders/dist/criaturas-laboratorio.html`
-   - **Laboratório de Combate:** `prototypes/combat-lab/dist/arenamon-combate-laboratorio.html`
+   - **Protótipo Legado de Blocos (Descontinuado):** `prototypes/game/dist/arenamon-jogavel.html`
    - **Documentação:** Diretório centralizado `docs/`.
 
 4. **Publicação Segura de Compilados no GitHub:**

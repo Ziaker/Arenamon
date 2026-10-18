@@ -551,71 +551,64 @@ PASS: dois blocos, cores, câmera, layout, file:// offline, sem erros.</pre>
         </div>
       </article>
 
-      <!-- SUÍTE 4: TESTES MECÂNICOS DO JOGO -->
+      <!-- SUÍTE 4: TESTES UNITÁRIOS DO JOGO PRINCIPAL (COMBAT LAB) -->
       <article class="suite-card" data-category="jogo">
         <div class="suite-header">
           <div>
-            <h2 class="suite-title">Testes Mecânicos da Arena de Combate (20 Cenários)</h2>
+            <h2 class="suite-title">Testes Unitários do Jogo Principal — Combat Lab (35+ Suítes)</h2>
             <div class="tag-group">
-              <span class="tag success">✓ 20 Aprovados</span>
-              <span class="tag">prototypes/game/test.mjs</span>
+              <span class="tag success">✓ 100% Aprovados</span>
+              <span class="tag primary">npm run test:combat-lab:unit</span>
+              <span class="tag">prototypes/combat-lab/test/*.test.mjs</span>
             </div>
           </div>
         </div>
         <p class="suite-desc">
-          Valida a matemática discreta da simulação física: normalização de movimento em 8 direções, esquiva de 400ms com 200ms de invulnerabilidade e custo de stamina, guarda parcial e perfeita (com 2s de cooldown após falha), fórmula assintótica de empurrão (60% ataque / 40% velocidade) e determinismo temporal a 30, 60 e 144 Hz.
+          Valida o motor completo do Jogo Principal (Laboratório de Combate): separação X (Tackle) e C (Esquiva), cancelamento C → X, Moves (Reflect, Psyshock, Beam), Power Levels (PL1–PL3), IA tática de 5 fases, VFX 3D sólidos, locomoção contínua, calibração A × B e testes de propriedade (200 lutas determinísticas).
         </p>
         <div class="cmd-box">
-          <code>node prototypes/game/test.mjs</code>
-          <button class="copy-btn" onclick="copyCmd('node prototypes/game/test.mjs', this)">Copiar Comando</button>
+          <code>npm run test:combat-lab:unit</code>
+          <button class="copy-btn" onclick="copyCmd('npm run test:combat-lab:unit', this)">Copiar Comando</button>
         </div>
       </article>
 
-      <!-- SUÍTE 5: TESTES DE LOCOMOÇÃO E CÂMERA -->
+      <!-- SUÍTE 5: VERIFICAÇÃO E2E DO JOGO PRINCIPAL (COMBAT LAB + MOVES + VFX SÓLIDOS) -->
       <article class="suite-card" data-category="jogo">
         <div class="suite-header">
           <div>
-            <h2 class="suite-title">Testes de Locomoção e Câmera Orbital (15 Cenários)</h2>
+            <h2 class="suite-title">Verificação de Navegador do Jogo Principal — Combat Lab, Moves & VFX 3D</h2>
             <div class="tag-group">
-              <span class="tag success">✓ 15 Aprovados</span>
-              <span class="tag">prototypes/game/locomotion.test.mjs</span>
-            </div>
-          </div>
-        </div>
-        <p class="suite-desc">
-          Verifica a base ortonormal da câmera em 12 ângulos orbitais, manutenção de strafe lateral relativo à tela durante cruzamento de alvos em órbita, aceleração curta sem inércia residual, continuidade angular e esquivas diagonais defensivas.
-        </p>
-        <div class="cmd-box">
-          <code>node prototypes/game/locomotion.test.mjs</code>
-          <button class="copy-btn" onclick="copyCmd('node prototypes/game/locomotion.test.mjs', this)">Copiar Comando</button>
-        </div>
-      </article>
-
-      <!-- SUÍTE 6: VERIFICAÇÃO DO JOGO EM NAVEGADOR -->
-      <article class="suite-card" data-category="jogo">
-        <div class="suite-header">
-          <div>
-            <h2 class="suite-title">Cenários Interativos do Jogo no Edge (18 Cenários)</h2>
-            <div class="tag-group">
-              <span class="tag success">✓ 18 Aprovados</span>
+              <span class="tag success">✓ 19 + 18 + VFX Sólidos Aprovados</span>
               <span class="tag primary">Playwright Edge</span>
-              <span class="tag">prototypes/game/verify.mjs</span>
+              <span class="tag">prototypes/combat-lab/verify.mjs</span>
             </div>
           </div>
         </div>
         <p class="suite-desc">
-          Executa a partida jogável real via Playwright: inicialização offline em file:// sem requisições de rede, teste de teclas reservadas, movimentação por setas, acionamento de guarda por tecla, lock-on híbrido por Tab, arrasto e zoom de câmera por mouse, colisão física com perda de HP e tela de vitória/derrota.
+          Executa o Jogo Principal (`arenamon-combate-laboratorio.html`) offline no Edge: importação de personagem GLB gerado pelo Studio, IA tática sorteada, ajustador Bento Zero-Scroll nas 9 abas, Moves (Reflect, Psyshock e Laser), 9 famílias de VFX 3D sólidos, replay passo a passo e homologação.
         </p>
         <div class="cmd-box">
-          <code>node prototypes/game/verify.mjs</code>
-          <button class="copy-btn" onclick="copyCmd('node prototypes/game/verify.mjs', this)">Copiar Comando</button>
+          <code>node prototypes/combat-lab/verify.mjs; node prototypes/combat-lab/test/moves-ui.browser.mjs; node prototypes/combat-lab/test/solid-vfx.browser.mjs</code>
+          <button class="copy-btn" onclick="copyCmd('node prototypes/combat-lab/verify.mjs; node prototypes/combat-lab/test/moves-ui.browser.mjs; node prototypes/combat-lab/test/solid-vfx.browser.mjs', this)">Copiar Comando</button>
         </div>
-        <div class="evidence-row">
-          <span style="font-size: 0.8rem; color: var(--text-muted); align-self: center;">Evidências do jogo:</span>
-          <a href="#" class="evidence-thumb" onclick="openModal('prototypes/game/validation/menu.png'); return false;">🖼️ Menu Inicial</a>
-          <a href="#" class="evidence-thumb" onclick="openModal('prototypes/game/validation/impact.png'); return false;">🖼️ Impacto e Dano</a>
-          <a href="#" class="evidence-thumb" onclick="openModal('prototypes/game/validation/block.png'); return false;">🖼️ Guarda Bloqueada</a>
-          <a href="#" class="evidence-thumb" onclick="openModal('prototypes/game/validation/result.png'); return false;">🖼️ Vitória / Derrota</a>
+      </article>
+
+      <!-- SUÍTE 6: PROTÓTIPO LEGADO DE BLOCOS (DESCONTINUADO) -->
+      <article class="suite-card" data-category="placeholders">
+        <div class="suite-header">
+          <div>
+            <h2 class="suite-title">Protótipo Inicial Legado de Blocos (Descontinuado)</h2>
+            <div class="tag-group">
+              <span class="tag">Legado · prototypes/game/</span>
+            </div>
+          </div>
+        </div>
+        <p class="suite-desc">
+          Suíte preservada apenas para histórico do protótipo inicial de blocos (`arenamon-jogavel.html`). O jogo oficial atual do Arenamon é o Combat Lab (`prototypes/combat-lab/`).
+        </p>
+        <div class="cmd-box">
+          <code>node prototypes/game/test.mjs; node prototypes/game/locomotion.test.mjs; node prototypes/game/verify.mjs</code>
+          <button class="copy-btn" onclick="copyCmd('node prototypes/game/test.mjs; node prototypes/game/locomotion.test.mjs; node prototypes/game/verify.mjs', this)">Copiar Comando</button>
         </div>
       </article>
 

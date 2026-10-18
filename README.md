@@ -11,7 +11,7 @@ Para abrir e utilizar qualquer módulo, protótipo ou teste sem precisar de term
 👉 **[`ABRIR_ARENAMON.html`](ABRIR_ARENAMON.html)**
 
 Esse arquivo funciona 100% offline via protocolo `file://` e oferece atalhos diretos para:
-- **Arenamon Combate Jogável** (`prototypes/game/dist/arenamon-jogavel.html`)
+- **Jogo Principal (Laboratório de Combate)** (`prototypes/combat-lab/dist/arenamon-combate-laboratorio.html` ou [`JOGAR_ARENAMON.html`](JOGAR_ARENAMON.html))
 - **Animation Studio & Rigging Studio** (`prototypes/studio/dist/arenamon-animation-studio.html`)
 - **Propostas Visuais de Rigging (A, B e C)** (`prototypes/studio/proposals/index.html`)
 - **Central Interativa de Testes** ([`TESTES_ARENAMON.html`](TESTES_ARENAMON.html))
@@ -48,6 +48,8 @@ O repositório foi organizado de forma segura e não-destrutiva, preservando a m
 ```text
 Arenamon/
 ├── ABRIR_ARENAMON.html           # Central de Acesso Rápido a todos os Ambientes
+├── JOGAR_ARENAMON.html           # Atalho direto para o Jogo Principal (Combat Lab)
+├── HTMLS_ARENAMON.html           # Índice rápido dos HTMLs compilados
 ├── TESTES_ARENAMON.html          # Central Interativa de Testes, Comandos e Evidências
 ├── README.md                     # Este guia inicial
 ├── AGENTS.md                     # Protocolo obrigatório de colaboração entre agentes
@@ -63,12 +65,13 @@ Arenamon/
 │   └── GDD_Pokemon_Arena_Fighter_v0_1.docx # Game Design Document original
 │
 ├── prototypes/                   # Aplicações e Ambientes Funcionais
-│   ├── game/                     # Jogo principal jogável em arena 3D
+│   ├── combat-lab/               # JOGO PRINCIPAL (Laboratório de Combate 3D completo)
 │   ├── studio/                   # Animation Studio e Rigging Studio integrado
 │   │   └── proposals/            # Três propostas visuais independentes de Rigging
 │   ├── placeholders/             # Laboratório base com dois blocos geométricos
 │   ├── importer/                 # Importador e conversor de modelos FBX/GLB
-│   └── croagunk/                 # Laboratório local de diagnóstico de deformação
+│   ├── croagunk/                 # Laboratório local de diagnóstico de deformação
+│   └── game/                     # Protótipo inicial legado de blocos (descontinuado)
 │
 └── .github/workflows/            # Workflows de Integração Contínua (CI)
 ```
@@ -79,12 +82,12 @@ Arenamon/
 
 | Ambiente | Localização Principal | Situação |
 |---|---|---|
-| **Arenamon Jogável** | `prototypes/game/dist/arenamon-jogavel.html` | Jogável offline · Etapa A aprovada |
-| **Animation Studio** | `prototypes/studio/dist/arenamon-animation-studio.html` | Totalmente operacional · V6 + Rigging |
+| **Jogo Principal (Combat Lab)** | `prototypes/combat-lab/dist/arenamon-combate-laboratorio.html` | **Jogo oficial ativo** · X/C, Moves, VFX 3D, IA Tática e UI Zero-Scroll |
+| **Animation Studio** | `prototypes/studio/dist/arenamon-animation-studio.html` | Totalmente operacional · 3 Modos (Rigging, Animar, Preview) |
 | **Propostas de Rigging** | `prototypes/studio/proposals/index.html` | 3 opções funcionais · Aguarda homologação |
-| **Laboratório de Combate**| `prototypes/combat-lab/` (na `main`) | Calibração A x B · Etapa A aprovada em 14/10/2026 |
 | **Visualizador de Blocos**| `prototypes/placeholders/dist/criaturas-laboratorio.html` | Base segura de blocos geométricos 1.0.0 |
 | **Importador de Modelos** | `prototypes/importer/dist/importador-prototipo.html` | Conversão flat color sem assets restritos |
+| **Protótipo Legado (Descontinuado)** | `prototypes/game/dist/arenamon-jogavel.html` | Protótipo inicial de blocos preservado apenas para histórico |
 
 ---
 
