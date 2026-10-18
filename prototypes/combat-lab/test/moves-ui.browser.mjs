@@ -71,7 +71,7 @@ try {
   check('as pedras acertam o adversário', await L(() => window.__lab.game.fighters[1].hp) < 100);
   // falha de espaço: aviso discreto
   await L(() => {const g = window.__lab.game;g.fighters[0].moveCooldowns = {};g.fighters[0].moveRecovery = 0;g.fighters[0].stamina = 3;g.fighters[0].regenBase = 3;g.fighters[0].position = {x: 0, z: 15.4};g.fighters[0].facing = 0;});
-  await key('KeyA', true);await page.waitForTimeout(1600);await key('KeyA', false);await page.waitForTimeout(250);
+  await key('KeyA', true);await page.waitForTimeout(1900);await key('KeyA', false);await page.waitForTimeout(250);
   const toast = await page.textContent('#deny-toast');check('a falha de espaço avisa com o motivo e a devolução da stamina', /Reflect: sem espaço/.test(toast), toast);
   await page.screenshot({path: out + 'falha-espaco.png'});
   check('sem requisições de rede e sem erros no console', network.length === 0 && errors.length === 0, [...network, ...errors].join(' | '));

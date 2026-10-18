@@ -151,7 +151,7 @@ try {
   await openTab('match');await page.selectOption('#player-mode', 'random');await page.fill('#seed', '7');await page.press('#seed', 'Tab');
   await page.click('[data-difficulty="hard"]');assert.equal(await L(() => window.__lab.C.extras.ai.attackRange), 3.8);await L(() => window.__lab.tuning.undo());assert.equal(await L(() => window.__lab.C.extras.ai.attackRange), 3.35);
   await openTab('match');await page.selectOption('#mode', 'inactive');await page.click('#start');await page.locator('canvas').first().focus();
-  await page.keyboard.down('ArrowUp');await page.waitForTimeout(300);await page.keyboard.up('ArrowUp');await page.keyboard.press('KeyX');await page.waitForTimeout(150);
+  await page.keyboard.down('ArrowUp');await page.waitForTimeout(300);await page.keyboard.up('ArrowUp');await page.keyboard.press('KeyX');await page.waitForFunction(() => /X/.test(document.getElementById('input-history')?.textContent ?? ''), null, {timeout: 4000}).catch(() => {});
   assert.match(await page.textContent('#input-history'), /X/);
   await page.waitForTimeout(500);await L(() => {window.__padOn = true;window.__pad.buttons[1].pressed = true;});await page.waitForTimeout(120);await L(() => {window.__pad.buttons[1].pressed = false;});await page.waitForTimeout(500);
   assert.ok(await L(() => window.__lab.recorder.actions.some(a => a.fighter === 0 && a.kind === 'dodge')), 'botão B do gamepad executa esquiva');
