@@ -2,6 +2,19 @@
 
 Estas regras se aplicam obrigatoriamente a Codex, Claude, Antigravity e qualquer outro agente ou desenvolvedor que trabalhe neste repositório.
 
+## Tudo precisa ser acessível ao usuário (regra obrigatória para toda IA)
+
+O usuário abre e testa tudo pela pasta oficial, sem rodar comandos. Por isso, **nada que você entregar pode ficar escondido**:
+
+1. **Ponto de entrada único:** o jogo abre por `JOGAR_ARENAMON.html`; todo o resto sai de `ABRIR_ARENAMON.html` (portal) e `HTMLS_ARENAMON.html` (índice rápido). Testes e relatórios ficam em `TESTES_ARENAMON.html`.
+2. **Novo recurso, página, relatório, evidência, captura, clipe ou documento = novo link no portal** (`ABRIR_ARENAMON.html`) e menção em `docs/`. Se o usuário não consegue chegar lá em até 2 cliques a partir do portal, a entrega está incompleta.
+3. **Sempre recompile antes de entregar** (`npm run build:combat-lab` e os demais `build` afetados) para que o `dist/` aberto pelo usuário já contenha a mudança. Diga na resposta qual arquivo abrir.
+4. **Tudo que o usuário precisa ajustar tem controle na interface** (slider, interruptor ou seletor visível no painel), com nome claro e unidade. Não deixe valor importante só no código.
+5. **Nunca guarde a única cópia de algo importante** em `validation/`, pastas temporárias, `.codex/`, `.gemini/` ou fora da pasta oficial. Evidências versionáveis vão em `prototypes/<sistema>/evidence/`; documentos em `docs/`.
+6. **Sem duplicatas soltas na raiz** (modelos `.glb`, `.docx`, zips, capturas): modelos locais ficam em `chars/` (ignorado pelo Git); documentos em `docs/`.
+7. **Resposta final em português claro**: diga o que mudou, onde abrir, o que testou e o que **não** foi verificado. Não rode baterias de teste longas sem necessidade; o usuário prefere testar o jogo ele mesmo.
+8. **Não mexa no que o usuário não pediu** (por exemplo, o Animation Studio quando o pedido é sobre o jogo).
+
 ## Destinos Oficiais Exclusivos do Projeto
 
 O projeto possui rigorosamente apenas dois destinos oficiais:
