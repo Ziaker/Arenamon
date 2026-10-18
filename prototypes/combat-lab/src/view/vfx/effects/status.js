@@ -29,8 +29,8 @@ function fighterSeed(ctx, base) {
   return ctx.seed * 31 + (base || 0);
 }
 
-// --- Exaustão (indicadores azuis) ---
-export function buildExhaust(ctx, seed, intensity = 1) {
+// --- Exaustão Var 0 (A): cachoeira de setas azuis descendentes ---
+export function buildExhaustA(ctx, seed, intensity = 1) {
   const {position} = ctx;
   const rnd = lcg(seed);
   const parts = [];
@@ -50,8 +50,43 @@ export function buildExhaust(ctx, seed, intensity = 1) {
   return parts;
 }
 
-// --- Regeneração de stamina (amarelo) ---
-export function buildRegen(ctx, seed, rate = 1, intensity = 1) {
+// --- Exaustão Var 1 (B): chuva de losangos e fragmentos azuis ---
+export function buildExhaustB(ctx, seed, intensity = 1) {
+  const {position} = ctx;
+  const rnd = lcg(seed);
+  const parts = [];
+  const cnt = Math.max(2, Math.round(6 * 0.4));
+  for (let k = 0; k < cnt; k++) {
+    const a = rnd() * Math.PI * 2, r = 0.2 + rnd() * 0.5;
+    parts.push(particle({cell: k % 2 ? CELL.diamond : CELL.shard, mode: MODE.billboard, additive: false,
+      x: position.x + Math.cos(a) * r, y: altOf(ctx) + 2.0 + (rnd() - 0.5) * 0.3,
+      z: position.z + Math.sin(a) * r, vy: -1.3,
+      life: 1.4, w: 0.18, color: EXHAUST_COLOR, alpha: 0.85, fade: 1.5,
+      rot: rnd() * Math.PI, spin: -3 + rnd() * 6}));
+  }
+  return parts;
+}
+
+// --- Exaustão Var 2 (C): cascata enfraquecida com filetes verticais e poeira ---
+export function buildExhaustC(ctx, seed, intensity = 1) {
+  const {position} = ctx;
+  const rnd = lcg(seed);
+  const parts = [];
+  const cnt = Math.max(2, Math.round(4 * 0.4));
+  for (let k = 0; k < cnt; k++) {
+    const a = rnd() * Math.PI * 2, r = 0.15 + rnd() * 0.4;
+    parts.push(particle({cell: CELL.streak, mode: MODE.axis, additive: false,
+      x: position.x + Math.cos(a) * r, y: altOf(ctx) + 1.8,
+      z: position.z + Math.sin(a) * r, vy: -0.9,
+      life: 1.2, w: 0.04, h: 0.45,
+      ax: 0, ay: -1, az: 0,
+      color: EXHAUST_COLOR, alpha: 0.7, fade: 1.6}));
+  }
+  return parts;
+}
+
+// --- Regeneração Var 0 (A): setas amarelas ascendentes ---
+export function buildRegenA(ctx, seed, rate = 1, intensity = 1) {
   const {position} = ctx;
   const rnd = lcg(seed);
   const k = Math.max(0.3, Math.min(2, rate / Math.max(1e-6, 3 / 5)));
@@ -72,8 +107,48 @@ export function buildRegen(ctx, seed, rate = 1, intensity = 1) {
   return parts;
 }
 
+// --- Regeneração Var 1 (B): linhas energéticas verticais subindo rapidamente ---
+export function buildRegenB(ctx, seed, rate = 1, intensity = 1) {
+  const {position} = ctx;
+  const rnd = lcg(seed);
+  const parts = [];
+  const cnt = Math.max(2, Math.round(4 * 0.4));
+  for (let j = 0; j < cnt; j++) {
+    const a = rnd() * Math.PI * 2, r = 0.2 + rnd() * 0.4;
+    parts.push(particle({cell: CELL.streak, mode: MODE.axis, additive: true,
+      x: position.x + Math.cos(a) * r, y: altOf(ctx) + 0.2,
+      z: position.z + Math.sin(a) * r, vy: 1.8,
+      life: 0.8, w: 0.05, h: 0.6,
+      ax: 0, ay: 1, az: 0,
+      color: REGEN_COLOR, alpha: 0.85, fade: 1.4}));
+  }
+  return parts;
+}
+
+// --- Regeneração Var 2 (C): pulsos luminosos e partículas douradas ---
+export function buildRegenC(ctx, seed, rate = 1, intensity = 1) {
+  const {position} = ctx;
+  const rnd = lcg(seed);
+  const parts = [];
+  parts.push(particle({cell: CELL.ring, mode: MODE.ground, x: position.x, y: 0.08, z: position.z,
+    life: 0.6, w: 0.7, color: REGEN_COLOR, alpha: 0.7, fade: 1.5,
+    sizeCurve: k2 => 1 + k2 * 0.8, additive: true}));
+  for (let j = 0; j < 3; j++) {
+    const a = rnd() * Math.PI * 2, r = 0.15 + rnd() * 0.35;
+    parts.push(particle({cell: CELL.spark, mode: MODE.billboard, additive: true,
+      x: position.x + Math.cos(a) * r, y: altOf(ctx) + 0.3 + j * 0.2,
+      z: position.z + Math.sin(a) * r, vy: 1.4,
+      life: 0.7, w: 0.09, color: 0xffffff, alpha: 0.9, fade: 1.6}));
+  }
+  return parts;
+}
+
+export const buildExhaust = buildExhaustA;
+export const buildRegen = buildRegenA;
+export const BUILD_EXHAUST = [buildExhaustA, buildExhaustB, buildExhaustC];
+export const BUILD_REGEN = [buildRegenA, buildRegenB, buildRegenC];
+
 function altOf(ctx) {
-  // altura visual (voo/salto) do lutador alvo; fallback 0.
   return 0;
 }
 
@@ -105,7 +180,43 @@ export const STATUS_DEFS = [
     maxStack: 1,
     replay: 'full',
     family: 'status',
-    build: buildExhaust,
+    build: buildExhaustA,
+  },
+  {
+    id: 'status:exhaust',
+    version: '1.1',
+    trigger: 'status',
+    conditions: [{state: 'exhausted'}],
+    priority: 20,
+    anchor: 'contact',
+    duration: 1.1,
+    seed: true,
+    variant: 1,
+    quality: 'medium',
+    limits: {particles: 20},
+    aggregation: 'stack',
+    maxStack: 1,
+    replay: 'full',
+    family: 'status',
+    build: buildExhaustB,
+  },
+  {
+    id: 'status:exhaust',
+    version: '1.2',
+    trigger: 'status',
+    conditions: [{state: 'exhausted'}],
+    priority: 20,
+    anchor: 'contact',
+    duration: 1.1,
+    seed: true,
+    variant: 2,
+    quality: 'medium',
+    limits: {particles: 20},
+    aggregation: 'stack',
+    maxStack: 1,
+    replay: 'full',
+    family: 'status',
+    build: buildExhaustC,
   },
   {
     id: 'status:regen',
@@ -123,7 +234,43 @@ export const STATUS_DEFS = [
     maxStack: 1,
     replay: 'full',
     family: 'status',
-    build: buildRegen,
+    build: buildRegenA,
+  },
+  {
+    id: 'status:regen',
+    version: '1.1',
+    trigger: 'status',
+    conditions: [{state: 'regen'}],
+    priority: 20,
+    anchor: 'contact',
+    duration: 1.0,
+    seed: true,
+    variant: 1,
+    quality: 'medium',
+    limits: {particles: 16},
+    aggregation: 'stack',
+    maxStack: 1,
+    replay: 'full',
+    family: 'status',
+    build: buildRegenB,
+  },
+  {
+    id: 'status:regen',
+    version: '1.2',
+    trigger: 'status',
+    conditions: [{state: 'regen'}],
+    priority: 20,
+    anchor: 'contact',
+    duration: 1.0,
+    seed: true,
+    variant: 2,
+    quality: 'medium',
+    limits: {particles: 16},
+    aggregation: 'stack',
+    maxStack: 1,
+    replay: 'full',
+    family: 'status',
+    build: buildRegenC,
   },
   {
     id: 'status:invulnerable',

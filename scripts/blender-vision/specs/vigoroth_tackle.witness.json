@@ -1,0 +1,124 @@
+{
+  "schema": "arenamon.animation-witness.spec/1",
+  "name": "Teste 01 — Tackle do Vigoroth",
+  "source_constraints": {
+    "allowed_blend_sha256": [
+      "C3B59C053C6DC66DB25A207BB4F06262607C9A667A01BFD4C90620D3461DB943"
+    ],
+    "note": "hash do backup original preservado; versões derivadas exigem autorização explícita"
+  },
+  "visual_plans": [
+    {
+      "name": "contexto",
+      "purpose": "Ler pose, silhueta, oclusão e continuidade nas fases do ataque.",
+      "frames": [0, 4, 8, 9, 11, 13, 17, 20, 27, 30, 40],
+      "views": ["front", "side_nX", "top", "q3"],
+      "modes": ["solid", "ids", "sil", "bones"],
+      "size": 420,
+      "cols": 6,
+      "required_for_claims": ["right_arm_leads", "smear_5_frames", "stretch_4_frames", "artistic_quality"]
+    },
+    {
+      "name": "mao_direita",
+      "purpose": "Inspecionar a configuração representável da mão direita nos frames da janela de contato.",
+      "frames": [9, 11, 13],
+      "views": ["front", "side_nX", "top", "q3"],
+      "modes": ["solid", "ids", "bones"],
+      "size": 520,
+      "cols": 3,
+      "zoom": "RightHand",
+      "zoom_preset": "hand",
+      "required_for_claims": ["right_hand_representation", "contact_9_13"]
+    }
+  ],
+  "claims": [
+    {
+      "id": "duration_41",
+      "type": "frame_count",
+      "statement": "O blocking possui exatamente 41 frames",
+      "expected": 41,
+      "criterion_status": "approved",
+      "criterion_origin": "briefing do usuario"
+    },
+    {
+      "id": "rig_and_idle",
+      "type": "inventory",
+      "statement": "O arquivo contém a action idle necessária para P4",
+      "required_actions": ["idle"],
+      "criterion_status": "approved",
+      "criterion_origin": "P4 do briefing"
+    },
+    {
+      "id": "root_displacement_p3",
+      "type": "root_displacement",
+      "statement": "O deslocamento real é medido, mas permanece sem critério de aprovação",
+      "criterion_origin": "P3: deslocamento real indefinido"
+    },
+    {
+      "id": "right_hand_representation",
+      "type": "rig_digits",
+      "statement": "Capacidade anatômica da mão direita é inventariada sem inventar dedos",
+      "side": "Right",
+      "criterion_origin": "P2: mão direita aberta em garra"
+    },
+    {
+      "id": "right_hand_open_claw",
+      "type": "hand_configuration",
+      "statement": "A abertura geométrica dos dois dedos representáveis da mão direita é medida em g9–g13",
+      "side": "Right",
+      "frames": [9, 13],
+      "requires_approved_criterion": true,
+      "criterion_status": "incomplete",
+      "criterion_origin": "P2 aprovado semanticamente; definição geométrica de 'garra aberta' ainda ausente"
+    },
+    {
+      "id": "right_arm_leads",
+      "type": "body_relative_onset",
+      "statement": "A mão direita inicia movimento autoral antes do tronco",
+      "bone": "RightHand",
+      "other": "Spine2",
+      "frames": [0, 13],
+      "threshold_m": 0.015,
+      "requires_approved_criterion": true,
+      "criterion_status": "proposed",
+      "criterion_origin": "estrutura do briefing; limiar ainda proposto"
+    },
+    {
+      "id": "contact_9_13",
+      "type": "target_contact_window",
+      "statement": "A mão direita entra em contato com o alvo entre g9 e g13",
+      "frames": [9, 13],
+      "proximity_tolerance_m": 0.005,
+      "requires_approved_criterion": true,
+      "criterion_status": "proposed",
+      "criterion_origin": "P1 aprovado; tolerância geométrica proposta"
+    },
+    {
+      "id": "smear_5_frames",
+      "type": "deformation_window",
+      "statement": "O Smear existe durante cinco frames",
+      "frames": [4, 8],
+      "bones": [],
+      "requires_approved_criterion": true,
+      "criterion_status": "incomplete",
+      "criterion_origin": "P5 aprovado; ossos e intensidade ainda não aprovados"
+    },
+    {
+      "id": "stretch_4_frames",
+      "type": "deformation_window",
+      "statement": "O Stretch existe durante quatro frames",
+      "frames": [9, 12],
+      "bones": [],
+      "requires_approved_criterion": true,
+      "criterion_status": "incomplete",
+      "criterion_origin": "P5 aprovado; ossos e intensidade ainda não aprovados"
+    },
+    {
+      "id": "artistic_quality",
+      "type": "artistic_judgement",
+      "statement": "O ataque parece pesado, agressivo, legível e com bom impacto",
+      "criterion_origin": "não existe referência aprovada"
+    }
+  ]
+}
+

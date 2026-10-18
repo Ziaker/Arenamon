@@ -1,0 +1,6 @@
+{"name": "negativos: idle (parada) NAO pode satisfazer regras de movimento", "mode": "loop", "rules": [
+  {"id": "neg_lift", "type": "lift_and_land", "bone": "Hips", "frames": "0-60", "min_rise": 0.15, "land_tol": 0.5},
+  {"id": "neg_descends", "type": "path_descends", "bone": "RightHand", "frames": "0-60", "min_drop": 0.3, "min_frac": 0.7},
+  {"id": "neg_crosses", "type": "crosses_value", "bone": "RightHand", "axis": "left", "space": "body", "value": 0.5, "frames": "0-60"},
+  {"id": "neg_motion", "type": "motion_present", "frames": "0-60", "min_mean": 0.05}
+]}

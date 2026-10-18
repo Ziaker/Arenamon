@@ -40,6 +40,9 @@ import {registerStandardMoves, STANDARD_MOVE_IDS} from './sim/moves/standard.js'
 /* global __GAME_CONFIG_TS__ */
 const GAME_CONFIG_TS = typeof __GAME_CONFIG_TS__ === 'string' ? __GAME_CONFIG_TS__ : '';
 import {length, sub, dot} from './sim/math.js';
+import {spawn} from './sim/world.js';
+import * as T from 'three';
+import {soundFx} from './view/audio.js';
 
 // Moves padrão (D2): registrados aqui, no bootstrap do laboratório, nunca no núcleo da simulação. Registrar não equipa nenhum slot.
 registerStandardMoves();
@@ -56,9 +59,17 @@ const ui = {playback: null, paused: false, scenario: null, playerMode: 'tactical
 // Vermelho no controle manual (Partida › Controle manual do vermelho): teclas e gamepad próprios.
 const input2 = new Input(canvas, () => {}, {slot: 1});
 const input = new Input(canvas, code => {
-  if (code === keyFor('pause')) togglePause();
-  if (code === keyFor('restart') && game.phase !== 'menu') {if (ui.training) training.begin();else startMatch();}
-  if (code === keyFor('debug')) {hud.debug = !hud.debug;C.extras.hud.debugVisible = Number(hud.debug);}
+  if (code === keyFor('pause') || code === 'Space') togglePause();
+  if ((code === keyFor('restart') || code === 'KeyR') && game.phase !== 'menu') {if (ui.training) training.begin();else startMatch();}
+  if (code === keyFor('debug') || code === 'F3') {hud.debug = !hud.debug;C.extras.hud.debugVisible = Number(hud.debug);}
+  if (code === 'KeyH') {
+    const v = C.extras.toggles.showHitboxes ? 0 : 1;
+    tuning.commit([['extras.toggles.showHitboxes', v], ['extras.toggles.showAttackVectors', v]], 'Hitboxes');
+    syncButtons();
+  }
+  if (code === 'F2') {
+    toggleZenMode();
+  }
 });
 
 // ---------- Partida ----------
@@ -68,8 +79,25 @@ function startMatch({playback = null} = {}) {
   abortScenario();restorePlaybackValues();ui.playback = playback;
   if (!playback && !$('seed-fixed').checked) $('seed').value = String(1 + Math.floor(Math.random() * 99999));
   applySeed();game.profile = $('profile').value;game.enemyProfile = $('enemy-profile').value;game.mode = $('mode').value;
-  game.reset();ui.paused = false;input.clear();input.locked = false;resetViewAndLogs();canvas.focus();syncButtons();
+  game.reset();ui.paused = false;input.clear();input.locked = false;resetViewAndLogs();canvas.focus();syncButtons();resetMatchStats();
   matchRec.start({seed: Number($('seed').value), profile: game.profile, enemyProfile: game.enemyProfile, mode: game.mode, values: tuning.snapshotValues()});renderRecStatus();
+}
+function toggleZenMode(force) {
+  const lab = document.querySelector('.lab');
+  if (!lab) return;
+  const next = force ?? !lab.classList.contains('zen-mode');
+  lab.classList.toggle('zen-mode', next);
+  syncButtons();
+  if (next) {
+    $('panel').hidden = true;
+    for (const b of document.querySelectorAll('[data-tool]')) b.classList.remove('active');
+    $('dock').classList.add('collapsed');
+    $('dock-toggle')?.classList.remove('active');
+  } else {
+    $('dock').classList.remove('collapsed');
+    $('dock-toggle')?.classList.add('active');
+  }
+  canvas.focus();
 }
 function togglePause(force) {
   if (game.phase === 'menu') return;
@@ -103,7 +131,9 @@ function stepOnce() {
   const c1 = ui.training && !ui.playback ? ui.training.enemyCommand(game) : ui.playback ? ui.playback.commands1?.[game.tick] ?? undefined : C.extras.toggles.enemyManual ? input2.command(game.fighters[1], game.fighters[0], view.rig.yaw, game.tick) : undefined;
   presets.ab.beforeStep(game);
   const tickBefore = game.tick;game.step(c0, c1 ?? undefined);if (game.tick > tickBefore) {matchRec.record(tickBefore, c0, c1);if (!ui.playback) movement.onStep(c0, game.lastCommands?.[1]);if (ui.training) training.afterStep(c0);}view.rig.step(game.fighters[0], game.fighters[1], input.locked, C.test.step);
-  recorder.record(game);pushReplay();
+  if (game.lastStepEvents?.length) {handleSoundEvents(game.lastStepEvents);trackMatchEvents(game.lastStepEvents);}
+trackChargeSounds();trackExhaustionSounds();checkKoTrigger();
+recorder.record(game);pushReplay();
 }
 function stepFrames(delta) {
   if (game.phase === 'menu') return;
@@ -337,7 +367,7 @@ function syncCharacterCombatWindows() {
     game.setCombatWindows(id, ch ? ch.getAllCombatWindows() : null);
   }
 }
-const charPanel = createCharacterPanel({ui, view, $, hooks: charHooks, onCharactersChanged: () => {syncCharacterCombatWindows();syncRuleDurations();dock.invalidate();}});
+const charPanel = createCharacterPanel({ui, view, $, hooks: charHooks, onCharactersChanged: () => {syncCharacterCombatWindows();syncRuleDurations();dock.invalidate();movesPanel?.render?.();}});
 syncCharacterCombatWindows();
 const renderCharacters = () => {charPanel.render();renderStudioEvents();renderRuleDurations();};
 const setCharacter = (id, source) => charPanel.setCharacter(id, source);
@@ -408,10 +438,21 @@ function syncButtons() {
   const hb = $('arena-hitboxes-toggle'), on = !!C.extras.toggles.showHitboxes;hb.setAttribute('aria-checked', String(on));
   const ab = $('arena-autoplay-toggle'), ai = !!C.extras.toggles.enablePlayerAI;ab.setAttribute('aria-checked', String(ai));$('name0').textContent = ai ? 'JOGADOR IA · AZUL' : 'JOGADOR · AZUL';
   $('pause').textContent = ui.paused ? '▶ Continuar' : '❚❚ Pausar';$('rp-play').textContent = ui.paused ? '▶' : '❚❚';
+  const zb = $('arena-zen-toggle');
+  if (zb) {
+    const isZen = document.querySelector('.lab')?.classList.contains('zen-mode') ?? false;
+    zb.setAttribute('aria-checked', String(isZen));
+    zb.classList.toggle('active', isZen);
+  }
 }
+$('arena-zen-toggle').onclick = () => toggleZenMode();
 $('arena-hitboxes-toggle').onclick = () => {const v = C.extras.toggles.showHitboxes ? 0 : 1;tuning.commit([['extras.toggles.showHitboxes', v], ['extras.toggles.showAttackVectors', v]], 'Hitboxes');canvas.focus();};
 $('arena-autoplay-toggle').onclick = () => {tuning.commit([['extras.toggles.enablePlayerAI', C.extras.toggles.enablePlayerAI ? 0 : 1]], 'IA do jogador');game.playerBrain.reset();input.clear();canvas.focus();};
-$('pause').onclick = () => togglePause();$('restart-top').onclick = startMatch;$('restart').onclick = startMatch;$('start').onclick = startMatch;$('start-center').onclick = startMatch;
+$('pause').onclick = () => togglePause();$('restart-top').onclick = startMatch;$('restart').onclick = startMatch;$('start').onclick = startMatch;$('start-center').onclick = onQuickStart;
+$('btn-rematch')?.addEventListener('click', () => {$('overlay').hidden = true;startMatch();});
+$('btn-new-match')?.addEventListener('click', () => {$('overlay').hidden = true;$('seed-fixed').checked = false;startMatch();});
+$('btn-review-replay')?.addEventListener('click', () => {$('overlay').hidden = true;seekTick(0);togglePause(false);});
+$('audio-toggle')?.addEventListener('click', () => {soundFx.toggle();updateAudioBtn();});updateAudioBtn();
 $('resume').onclick = () => togglePause(false);$('back').onclick = () => {abortScenario();game.phase = 'menu';input.clear();};
 $('debug-toggle').onclick = () => {hud.debug = !hud.debug;C.extras.hud.debugVisible = Number(hud.debug);canvas.focus();};
 $('camera-reset').onclick = () => {view.reset(game.fighters[0]);canvas.focus();};
@@ -419,6 +460,42 @@ $('rp-back').onclick = () => stepFrames(-1);$('rp-fwd').onclick = () => stepFram
 $('rp-speed').onchange = () => {clock.timeScale = Number($('rp-speed').value) || 1;};
 $('dock-toggle').onclick = () => {$('dock').classList.toggle('collapsed');$('dock-toggle').classList.toggle('active', !$('dock').classList.contains('collapsed'));};$('dock-toggle').classList.add('active');
 const TITLES = {match: 'Partida', moves: 'Moves', scenarios: 'Cenários', tuning: 'Ajustes', overlays: 'Visualizar', characters: 'Personagens', controls: 'Controles', export: 'Exportar', homolog: 'Homologação'};
+function setSubCardFilter(tool, sub) {
+  const panel = $('panel'), sec = document.querySelector(`.panel-body section[data-section="${tool}"]`);
+  panel.dataset.subcard = sub;
+  if (sec) for (const c of sec.querySelectorAll(':scope > .bento-card[data-subcard], :scope > #moves-panel > .bento-card[data-subcard]')) c.classList.toggle('subcard-hidden', sub !== 'all' && c.dataset.subcard !== sub);
+  const bar = $('panel-subtabs');
+  if (bar) for (const b of bar.querySelectorAll('[data-subtab]')) b.setAttribute('aria-pressed', String(b.dataset.subtab === sub));
+}
+function renderSubTabs(tool) {
+  const bar = $('panel-subtabs'), sec = document.querySelector(`.panel-body section[data-section="${tool}"]`);
+  if (!bar) return;
+  const cards = sec ? [...sec.querySelectorAll(':scope > .bento-card[data-subcard], :scope > #moves-panel > .bento-card[data-subcard]')] : [];
+  if (tool === 'match' || cards.length <= 1) {bar.hidden = true;bar.replaceChildren();$('panel').dataset.subcard = 'all';return;}
+  bar.hidden = false;
+  const makeBtn = (id, label) => {
+    const b = document.createElement('button');b.type = 'button';b.dataset.subtab = id;b.textContent = label;
+    b.setAttribute('aria-pressed', String(id === 'all'));
+    b.onclick = () => setSubCardFilter(tool, $('panel').dataset.subcard === id && id !== 'all' ? 'all' : id);
+    return b;
+  };
+  bar.replaceChildren(makeBtn('all', '⊞ Tudo'), ...cards.map(c => makeBtn(c.dataset.subcard, c.dataset.sublabel || c.dataset.subcard)));
+  setSubCardFilter(tool, 'all');
+}
+if ($('panel-layout-toggle')) {
+  $('panel-layout-toggle').onclick = () => {
+    const p = $('panel'), next = p.dataset.layout === 'sidebar' ? 'bento' : 'sidebar';
+    p.dataset.layout = next;
+    $('panel-layout-toggle').setAttribute('aria-pressed', String(next === 'bento'));
+    $('panel-layout-toggle').textContent = next === 'bento' ? '⊞ Grade' : '▯ Lateral';
+  };
+}
+if ($('panel-hints-toggle')) {
+  $('panel-hints-toggle').onclick = () => {
+    const on = $('panel').classList.toggle('show-hints');
+    $('panel-hints-toggle').setAttribute('aria-pressed', String(on));
+  };
+}
 function openTool(tool) {
   const same = !$('panel').hidden && $('panel').dataset.tool === tool;$('panel').hidden = same;$('panel').dataset.tool = tool;
   for (const b of document.querySelectorAll('[data-tool]')) b.classList.toggle('active', !same && b.dataset.tool === tool);
@@ -427,7 +504,8 @@ function openTool(tool) {
   if (tool === 'moves') movesPanel.render();
   if (tool === 'scenarios') {syncCompareOptions();movement.render();}
   if (tool === 'tuning') presets.render();
-  if (tool === 'export') renderGameDiff();if (tool === 'tuning') tuning.render();
+  if (tool === 'export') renderGameDiff();if (tool === 'tuning') tuning.render();if (tool === 'overlays') {diagnostics.live();perfPanel.live();}
+  renderSubTabs(tool);
 }
 for (const b of document.querySelectorAll('[data-tool]')) b.onclick = () => openTool(b.dataset.tool);
 $('panel-close').onclick = () => {$('panel').hidden = true;for (const b of document.querySelectorAll('[data-tool]')) b.classList.remove('active');};
@@ -435,6 +513,13 @@ window.addEventListener('keydown', e => {
   const typing = e.target.matches('input[type=text],input[type=search],input[type=number],textarea,select');
   if ((e.ctrlKey || e.metaKey) && !typing) {const k = e.key.toLowerCase();if (k === 'z' && !e.shiftKey) {e.preventDefault();tuning.undo();}else if (k === 'y' || (k === 'z' && e.shiftKey)) {e.preventDefault();tuning.redo();}return;}
   if (typing) return;
+  // Atalhos de combate (Space, R, H, F2, M, Backspace/F4, F5) são tratados pelo Input
+  if (e.code === 'KeyM') {e.preventDefault();soundFx.toggle();updateAudioBtn();}
+  if (e.code === 'Backspace' || e.code === 'F4') {e.preventDefault();resetArenaFighters();}
+  if (e.code === 'F5') {e.preventDefault();cycleOpponentAiMode();}
+
+
+
   if (e.key === ',') {e.preventDefault();stepFrames(-1);}else if (e.key === '.') {e.preventDefault();stepFrames(1);}
   else if (e.code === presets.abKey && presets.ab.active && !e.repeat) {e.preventDefault();presets.toggleAB();}
 });
@@ -450,7 +535,7 @@ const diagnostics = createDiagnostics({$, game, tuning, download});
 const windowsOverlay = createWindowsOverlay({root: $('win-overlay'), view, game});
 $('win-controls').append(...tuning.sectionControls('Janelas de combate'));
 // Treino de defesa/esquiva perfeitas: o vermelho segue o roteiro do treino; tudo cronometrado em passos de simulação.
-const movesPanel = createMovesPanel({$, game, download});
+const movesPanel = createMovesPanel({$, game, download, tuning, view, ui});
 const movesHud = new MovesHud($('moves-hud'));
 /** Avisos discretos dos Moves (M28.6): falha de execução com o motivo e a devolução da stamina. */
 const seenNotices = new WeakSet(), MOVE_FAIL = {semEspaco: 'sem espaço — stamina devolvida, sem recarga', limiteDeEntidades: 'limite de entidades do mundo — stamina devolvida', semCarga: 'sem carga', effectMissing: 'efeito não registrado'};
@@ -485,7 +570,7 @@ $('bindings2-controls').append(...tuning.sectionControls('Teclas do vermelho (co
 /** Grupos estáticos com mais de dois controles ganham botão ▼ (recolher/expandir). */
 function foldStaticSections() {
   for (const section of document.querySelectorAll('.panel-body section[data-section]')) {
-    for (const h of [...section.children].filter(el => el.tagName === 'H3')) {
+    for (const h of section.querySelectorAll(':scope > h3, :scope > .bento-card > h3')) {
       if (h.querySelector('.fold-btn')) continue;
       const items = [];for (let el = h.nextElementSibling; el && el.tagName !== 'H3'; el = el.nextElementSibling) items.push(el);
       const count = items.reduce((n, el) => n + (el.matches('input,select,button,textarea') ? 1 : 0) + el.querySelectorAll('input,select,button,textarea').length, 0);
@@ -498,7 +583,276 @@ function foldStaticSections() {
 }
 foldStaticSections();
 
+
+// ---------- Efeitos sonoros, telemetria e QoL da Arena ----------
+function handleSoundEvents(events) {
+  for (const ev of events) {
+    if (ev.result === 'impact') {
+      if ((ev.damage ?? 0) >= 15) soundFx.playHeavyHit();
+      else soundFx.playHit();
+    } else if (ev.result === 'partial') {
+      soundFx.playBlock();
+    } else if (ev.result === 'perfect') {
+      soundFx.playParry();
+    } else if (ev.result === 'clash' || ev.result === 'tackleClash' || ev.result === 'stoneClash') {
+      soundFx.playClash();
+    } else if (ev.result === 'dodge' || ev.result === 'perfectDodge') {
+      soundFx.playDodge();
+    } else if (ev.result === 'barrierBroken') {
+      soundFx.playBarrierBreak();
+    } else if (ev.result === 'chargeRelease') {
+      soundFx.playChargeRelease(ev.level ?? 1);
+    }
+  }
+}
+
+const lastChargePl = [0, 0];
+function trackChargeSounds() {
+  for (const f of game.fighters) {
+    if (f.charge) {
+      const pl = f.charge.pl ?? (f.charge.ticks >= (f.charge.params?.maxTicks ?? 180) ? 3 : f.charge.ticks >= (f.charge.params?.pl2Ticks ?? 90) ? 2 : 1);
+      if (pl > lastChargePl[f.id]) soundFx.playChargeLevel(pl);
+      lastChargePl[f.id] = pl;
+    } else {
+      lastChargePl[f.id] = 0;
+    }
+  }
+}
+
+const lastExhausted = [false, false];
+function trackExhaustionSounds() {
+  for (const f of game.fighters) {
+    const isEx = f.stamina <= 0 || f.state === 'exhausted';
+    if (isEx && !lastExhausted[f.id]) {
+      if (f.id === 0) soundFx.playExhaustion();
+    }
+    lastExhausted[f.id] = isEx;
+  }
+}
+
+const matchStats = {damageDealt: [0, 0], hitsLanded: [0, 0], parries: [0, 0], blocks: [0, 0], movesUsed: [0, 0], startTick: 0};
+let lastKoHandled = false;
+
+function resetMatchStats() {
+  matchStats.damageDealt = [0, 0];
+  matchStats.hitsLanded = [0, 0];
+  matchStats.parries = [0, 0];
+  matchStats.blocks = [0, 0];
+  matchStats.movesUsed = [0, 0];
+  matchStats.startTick = game.tick;
+  lastKoHandled = false;
+  lastChargePl[0] = lastChargePl[1] = 0;
+  lastExhausted[0] = lastExhausted[1] = false;
+  const overlayStats = $('match-summary-stats');
+  if (overlayStats) overlayStats.innerHTML = '';
+}
+
+function trackMatchEvents(events) {
+  for (const ev of events) {
+    const atk = ev.attacker, tgt = ev.target;
+    if (ev.result === 'impact') {
+      if (atk === 0 || atk === 1) {matchStats.damageDealt[atk] += ev.damage ?? 0; matchStats.hitsLanded[atk]++;}
+    } else if (ev.result === 'partial') {
+      if (tgt === 0 || tgt === 1) matchStats.blocks[tgt]++;
+      if (atk === 0 || atk === 1) matchStats.damageDealt[atk] += ev.damage ?? 0;
+    } else if (ev.result === 'perfect') {
+      if (tgt === 0 || tgt === 1) matchStats.parries[tgt]++;
+    } else if (ev.result === 'chargeRelease' || ev.result === 'spawn') {
+      if (atk === 0 || atk === 1) matchStats.movesUsed[atk]++;
+    }
+  }
+}
+
+function checkKoTrigger() {
+  if (lastKoHandled) return;
+  const hasKo = game.fighters.some(f => f.hp <= 0 && f.state === 'ko') || game.phase === 'finishing' || game.phase === 'result';
+  if (hasKo) {
+    lastKoHandled = true;
+    soundFx.playKo();
+    const banner = $('ko-banner');
+    if (banner) {
+      banner.hidden = false;
+      banner.classList.add('animate-ko');
+      setTimeout(() => {banner.hidden = true; banner.classList.remove('animate-ko');}, 2200);
+    }
+    const origScale = clock.timeScale;
+    clock.timeScale = 0.25;
+    setTimeout(() => {clock.timeScale = origScale;}, 600);
+    renderMatchSummary();
+  }
+}
+
+function renderMatchSummary() {
+  const container = $('match-summary-stats');
+  if (!container) return;
+  const durationSec = Math.max(0, (game.tick - matchStats.startTick) * C.test.step).toFixed(1);
+  container.innerHTML = `
+    <table class="summary-table">
+      <thead>
+        <tr><th>Estatística</th><th>Azul (Jogador)</th><th>Vermelho (Rival)</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Dano Total</td><td><b>${matchStats.damageDealt[0].toFixed(0)}</b> HP</td><td><b>${matchStats.damageDealt[1].toFixed(0)}</b> HP</td></tr>
+        <tr><td>Golpes Conectados</td><td>${matchStats.hitsLanded[0]}</td><td>${matchStats.hitsLanded[1]}</td></tr>
+        <tr><td>Defesas / Parries</td><td>${matchStats.blocks[0]} / ${matchStats.parries[0]}</td><td>${matchStats.blocks[1]} / ${matchStats.parries[1]}</td></tr>
+        <tr><td>Movimentos Usados</td><td>${matchStats.movesUsed[0]}</td><td>${matchStats.movesUsed[1]}</td></tr>
+        <tr><td>Duração da Luta</td><td colspan="2" style="text-align:center">${durationSec} s</td></tr>
+      </tbody>
+    </table>
+  `;
+}
+
+const _projPos = new T.Vector3();
+function updateOffscreenArrow(w, h) {
+  const arrow = $('offscreen-arrow');
+  if (!arrow) return;
+  if (game.phase !== 'playing' && game.phase !== 'finishing') {arrow.hidden = true; return;}
+  const red = game.fighters[1];
+  if (!red || !view?.camera) {arrow.hidden = true; return;}
+  _projPos.set(red.position.x, 0.75, red.position.z);
+  _projPos.project(view.camera);
+  const isBehind = _projPos.z > 1.0, isOffX = _projPos.x < -0.92 || _projPos.x > 0.92, isOffY = _projPos.y < -0.92 || _projPos.y > 0.92;
+  if (isBehind || isOffX || isOffY) {
+    let nx = _projPos.x, ny = _projPos.y;
+    if (isBehind) {nx = -nx; ny = -ny;}
+    const angle = Math.atan2(ny, nx), borderMargin = 36, cx = w / 2, cy = h / 2, rx = cx - borderMargin, ry = cy - borderMargin;
+    const cos = Math.cos(angle), sin = Math.sin(angle), scale = Math.min(Math.abs(rx / (cos || 1e-5)), Math.abs(ry / (sin || 1e-5)));
+    const sx = cx + cos * scale, sy = cy - sin * scale;
+    arrow.style.left = `${sx.toFixed(1)}px`;
+    arrow.style.top = `${sy.toFixed(1)}px`;
+    const deg = ((-angle) * 180 / Math.PI) + 90;
+    arrow.style.transform = `translate(-50%, -50%) rotate(${deg.toFixed(1)}deg)`;
+    arrow.hidden = false;
+  } else {
+    arrow.hidden = true;
+  }
+}
+
+function updateActionHintPill() {
+  const pill = $('action-hint-pill');
+  if (!pill) return;
+  if (game.phase !== 'playing' && game.phase !== 'finishing') {pill.hidden = true; return;}
+  const p = game.fighters[0];
+  if (!p) {pill.hidden = true; return;}
+  let text = '', kind = 'hint';
+  if (p.charge) {
+    const pl = p.charge.pl ?? (p.charge.ticks >= (p.charge.params?.pl2Ticks || 90) ? 2 : 1);
+    text = `⚡ Segurando ${p.charge.move === 'reflect' ? '[A] Reflect' : '[S] Psyshock'} (PL${pl}) · Solte para disparar ou aperte C para cancelar`;
+    kind = 'charge';
+  } else if (p.action?.kind === 'tackle' && p.action.elapsed <= (C.rules.tackleCancelWindow || 0.15)) {
+    text = '💨 Arrancada de Tackle · Aperte C para CANCELAR em esquiva!';
+    kind = 'cancel';
+  } else if (p.stamina <= 0 || p.state === 'exhausted') {
+    text = '⚠️ EXAUSTO · Stamina zerada! Recue para recuperar';
+    kind = 'warn';
+  } else if (p.counterWindow > 0) {
+    text = `✨ CONTRA-ATAQUE ATIVO (+${p.counterWindow.toFixed(2)}s) · Golpeie agora!`;
+    kind = 'counter';
+  }
+  if (text) {pill.textContent = text; pill.dataset.kind = kind; pill.hidden = false;}
+  else {pill.hidden = true;}
+}
+
+function resetArenaFighters() {
+  game.fighters[0].position = {x: 0, z: -4};
+  game.fighters[0].hp = game.fighters[0].attributes.hp;
+  game.fighters[0].stamina = C.rules.staminaMax;
+  game.fighters[0].state = 'idle';
+  game.fighters[0].flight = null;
+  game.fighters[0].action = null;
+  game.fighters[0].charge = null;
+
+  game.fighters[1].position = {x: 0, z: 2};
+  game.fighters[1].hp = game.fighters[1].attributes.hp;
+  game.fighters[1].stamina = C.rules.staminaMax;
+  game.fighters[1].state = 'idle';
+  game.fighters[1].flight = null;
+  game.fighters[1].action = null;
+  game.fighters[1].charge = null;
+
+  game.hitstop = 0;
+  game.phase = 'playing';
+  view.reset(game.fighters[0]);
+  diagnostics.toast?.({text: 'Arena resetada: posições e HP/Stamina restaurados', fighter: 0, kind: 'info'});
+}
+
+function cycleOpponentAiMode() {
+  const modes = ['tactical', 'combat', 'evasive', 'inactive'];
+  const cur = $('mode').value;
+  const idx = modes.indexOf(cur);
+  const next = modes[(idx + 1) % modes.length];
+  $('mode').value = next;
+  game.mode = next;
+  C.extras.gameModes.enemyMode = AI_MODES.findIndex(([id]) => id === game.mode);
+  game.brain.reset();
+  syncButtons();
+  diagnostics.toast?.({text: `Modo do oponente: ${next.toUpperCase()}`, fighter: 1, kind: 'info'});
+}
+
+function onQuickStart() {
+  if ($('quick-profile')) $('profile').value = $('quick-profile').value;
+  if ($('quick-enemy-profile')) $('enemy-profile').value = $('quick-enemy-profile').value;
+  if ($('quick-ai-mode')) {
+    $('mode').value = $('quick-ai-mode').value;
+    game.mode = $('mode').value;
+    C.extras.gameModes.enemyMode = AI_MODES.findIndex(([id]) => id === game.mode);
+  }
+  if ($('quick-difficulty')) {
+    const diff = difficulty[$('quick-difficulty').value];
+    if (diff) {
+      tuning.commit(Object.entries(diff).map(([k, v]) => ['extras.ai.' + k, v]), 'Dificuldade');
+      game.brain.reset();
+    }
+  }
+  const equipReflect = $('quick-reflect')?.checked;
+  const equipPsyshock = $('quick-psyshock')?.checked;
+  if (equipReflect || equipPsyshock) {
+    const loadout = [
+      equipReflect ? 'reflect' : null,
+      equipPsyshock ? 'psyshock' : null,
+      null,
+      null
+    ];
+    game.setLoadout(0, loadout);
+  }
+  if ($('quick-zen')?.checked) toggleZenMode(true);
+  if ($('quick-autolock')?.checked) input.locked = true;
+  $('panel').hidden = true;
+  $('dock').classList.add('collapsed');
+  $('dock-toggle')?.classList.remove('active');
+  startMatch();
+}
+
+function updateAudioBtn() {
+  const b = $('audio-toggle');
+  if (!b) return;
+  b.textContent = soundFx.enabled ? '🔊 Som' : '🔇 Mudo';
+  b.setAttribute('aria-checked', String(soundFx.enabled));
+  b.classList.toggle('active', soundFx.enabled);
+}
+
 // ---------- Laço principal ----------
+
+let lastAdvantageHit = null, advantageTimer = null;
+function updateDojoAdvantageBadge() {
+  const badge = $('dojo-advantage-badge');
+  if (!badge) return;
+  const latest = recorder.hits.filter(h => h.advantage !== null).at(-1);
+  if (latest && latest !== lastAdvantageHit) {
+    lastAdvantageHit = latest;
+    const adv = latest.advantage;
+    const isBlock = ['partial', 'perfect', 'shielded', 'blocked', 'guard'].includes(latest.result);
+    const isClash = ['clash', 'tackleClash', 'stoneClash'].includes(latest.result);
+    const tag = isBlock ? (latest.result === 'perfect' ? 'PERFECT GUARD' : 'ON BLOCK') : isClash ? 'CLASH' : 'ON HIT';
+    const msVal = (Math.abs(adv) * C.test.step * 1000).toFixed(0);
+    badge.className = adv > 0 ? 'adv-plus' : adv < 0 ? 'adv-minus' : 'adv-even';
+    badge.innerHTML = `<span class="adv-tag">${tag}</span> <b>${adv > 0 ? '+' : ''}${adv}</b> <small>(${msVal}ms)</small> · ${adv > 0 ? 'VANTAGEM' : adv < 0 ? 'DESVANTAGEM' : 'NEUTRO'}`;
+    badge.hidden = false;
+    clearTimeout(advantageTimer);
+    advantageTimer = setTimeout(() => { badge.hidden = true; }, 1800);
+  }
+}
+
 let last = performance.now(), uiTimer = 0;
 function frame(now) {
   const dt = Math.max(0, (now - last) / 1000);last = now;
@@ -512,7 +866,7 @@ function frame(now) {
   hud.render(game, ui.fps, {locked: input.locked, paused: ui.paused && game.phase !== 'menu', replay: back ? `−${back} passos (${(back * C.test.step * 1000).toFixed(0)} ms) · ▶ retoma daqui` : 'último passo · , e . avançam/voltam', playerAI: !!C.extras.toggles.enablePlayerAI});
   movesHud.render(game);moveNotices();
   $('rp-readout').textContent = `passo ${game.tick}${back ? ` · −${(back * C.test.step).toFixed(2)} s` : ''}${clock.timeScale !== 1 ? ` · ${clock.timeScale}×` : ''}`;
-  dock.render();hudProposals.render(game, live ? dt * clock.timeScale : 0);windowsOverlay.update();perfPanel.frame({frameMs: dt * 1000, simMs, steps});
+  dock.render();updateDojoAdvantageBadge();hudProposals.render(game, live ? dt * clock.timeScale : 0);windowsOverlay.update();perfPanel.frame({frameMs: dt * 1000, simMs, steps});updateOffscreenArrow(canvas.clientWidth, canvas.clientHeight);updateActionHintPill();if (game.phase === 'result' && !lastKoHandled) checkKoTrigger();
   if ((uiTimer += dt) > .1) {uiTimer = 0;renderLive();renderHistory();renderCharacterLive();renderRecStatus();visualPanel.live();diagnostics.live();perfPanel.live();}
   ui.frame++;requestAnimationFrame(frame);
 }
@@ -604,6 +958,6 @@ window.__arenaLive = {rules: C.rules, test: C.test, locomotion: C.locomotion, ca
 // window.__lab só aparece depois da restauração do workspace (os testes esperam por ele).
 bootWorkspace().catch(e => {console.error('workspace:', e);ui.workspaceError = e.message;return null;}).then(boot => {
   // API dos movimentos especiais (registro vazio): registerMove, listMoves, validateMove; equipar com setLoadout.
-  window.__lab = {moves: {...Moves, setLoadout: (id, ids) => game.setLoadout(id, ids), standard: STANDARD_MOVE_IDS, equipStandard: id => game.setLoadout(id, STANDARD_MOVE_IDS)}, C, game, view, hudProposals, presets, movement, playSequence, diagnostics, training, perf: perfPanel, aiEval, projectFiles, reportsOf, visualPanel, recorder, replay, tuning, ui, startMatch, startScenario: id => startScenario(SCENARIOS.find(s => s.id === id)), stepFrames, seekTick, goLive, togglePause, setCharacter, loadStudioFile, SCENARIOS, runScenario,
+  window.__lab = {moves: {...Moves, setLoadout: (id, ids) => game.setLoadout(id, ids), standard: STANDARD_MOVE_IDS, equipStandard: id => game.setLoadout(id, STANDARD_MOVE_IDS)}, C, game, view, hudProposals, presets, movement, playSequence, diagnostics, training, perf: perfPanel, aiEval, projectFiles, reportsOf, visualPanel, recorder, replay, tuning, ui, startMatch, startScenario: id => startScenario(SCENARIOS.find(s => s.id === id)), stepFrames, seekTick, goLive, togglePause, setCharacter, loadStudioFile, SCENARIOS, runScenario, spawn, openTool,
     ws: boot?.ws ?? null, store: boot?.store ?? null, wsUI: boot?.wsUI ?? null, workspaceBoot: boot};
 });

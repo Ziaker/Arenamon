@@ -1,0 +1,6 @@
+{
+  "_leia": "RASCUNHO NAO APROVADO. Todas as faixas sao null: quem define 'pesado', 'rapido', 'agressivo' e o diretor. Preencha [min, max] (null = sem limite). Medidas: duracao_frames, t10, t50, t90 (instante 0-1 em que 10/50/90% do percurso ja ocorreu), pico_norm (instante do pico de velocidade), pico_sobre_media, fracao_parada.",
+  "corpo":   {"duracao_frames": null, "t10": null, "t50": null, "t90": null, "pico_norm": null, "pico_sobre_media": null, "fracao_parada": null},
+  "maos":    {"t10": null, "t50": null, "t90": null, "pico_norm": null, "pico_sobre_media": null, "fracao_parada": null},
+  "quadril": {"t50": null, "pico_norm": null, "pico_sobre_media": null}
+}

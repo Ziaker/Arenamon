@@ -3,7 +3,7 @@
 > **Status: PLANO APROVADO em 2026-10-16 (decisões D1–D7 conforme as recomendações; aprovação por fase, D7).** Fase 0 entregue em PR próprio (testes de caracterização, sem alterar código de jogo); **Fases 1–7 aguardam aprovação individual.**
 > **Fonte das regras:** `docs/MOVES_DECISOES_RODADAS.md` (IDs `M<rodada>.<item>`; Rodada 30 = decisões de 16/10/2026). Este plano não cria regras novas: onde falta decisão, aparece como **Decisão pendente (Dn)**.
 > **Base de código lida em 2026-10-16 (`main` @ `a822df7`):** `sim/{moves,world,status,controller,entity,game,config,recording,physics}.js`, `ui/input.js`, `view/world-view.js`, `test/moves.test.mjs`. **Não lidos a fundo:** `tactics.js`/`ai.js` (apenas buscado uso de movimentos: nenhum), `vfx.js`, painéis de `ui/`, `scenarios.js`. Onde isso afeta o plano, está marcado.
-> **Escopo:** laboratório (`prototypes/combat-lab/`). O jogo oficial (`prototypes/game`) **não** é tocado (porte exige autorização separada).
+> **Escopo:** Jogo Principal / Laboratório (`prototypes/combat-lab/`). O protótipo inicial legado de blocos (`prototypes/game`, descontinuado) **não** é tocado.
 
 ## 1. Resumo
 

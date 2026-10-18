@@ -130,7 +130,7 @@ ok('o teto de knockback vale por alvo dentro de cada execução (execuções dif
 }
 ok('pedras refletidas pelo Reflect do adversário voltam como do refletor, com dano recalculado (0,2 × Ataque do refletor) e sem homing');
 {
-  const g = arena();g.step(cmd({skill: 0, skillHeld: [true, false, false, false]}), cmd());steps(g, 5, () => cmd({skillHeld: [true, false, false, false]}));step(g, cmd());     // Reflect próprio
+  const g = arena();g.step(cmd({skill: 0, skillHeld: [true, false, false, false]}), cmd());steps(g, 180, () => cmd({skillHeld: [true, false, false, false]}));step(g, cmd());     // Reflect próprio
   const b = g.world.entities.find(e => e.reflect);assert.ok(b);steps(g, 40);
   const s = fire(g, 100);steps(g, 200);
   assert.ok(!events.some(e => e.result === 'reflected'), 'as pedras do dono não são refletidas pela própria barreira (saem por trás/frente sem reflexão)');

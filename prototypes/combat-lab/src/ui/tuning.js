@@ -9,6 +9,7 @@ import {STYLES} from '../sim/tactics.js';
 import {actionMeta, OFFICIAL_MAP, migrateFlat, flatten} from './actions-meta.js';
 import {overhaulMeta} from './overhaul-meta.js';
 import {VFX_TYPES, SHAKE_EVENTS} from '../view/vfx.js';
+import {SOLID_FAMILIES} from '../view/solid-fx.js';
 
 const $ = id => document.getElementById(id);
 export const pathGet = (root, path) => path.split('.').reduce((a, k) => a?.[k], root);
@@ -55,6 +56,37 @@ function range(key, value, path) {
   if (['reversal', 'acceleration', 'braking'].includes(key)) return {min: 0, max: 400, step: 1, fmt: n => String(n)};
   if (['lightX', 'lightY', 'lightZ'].includes(key)) return {min: -30, max: 30, step: .5, fmt: n => n.toFixed(1)};
   if (key === 'gridDivisions') return {min: 2, max: 100, step: 1, fmt: n => String(n)};
+  if (path && path.startsWith('vfx.laser.')) {
+    if (key.startsWith('coreWidth') || key.startsWith('haloWidth') || key === 'muzzleSize' || key === 'contactSize') {
+      return {min: 0.01, max: 0.8, step: 0.005, fmt: n => n.toFixed(3) + ' m'};
+    }
+    if (key.endsWith('Opacity')) return {min: 0, max: 1, step: 0.05, fmt: n => (n * 100).toFixed(0) + '%'};
+    if (key === 'intensity') return {min: 0.1, max: 3.0, step: 0.1, fmt: n => n.toFixed(1) + '×'};
+    if (key === 'pulseFreq') return {min: 1.0, max: 3.0, step: 0.1, fmt: n => n.toFixed(1) + ' Hz'};
+    if (key === 'flowSpeed') return {min: 0, max: 60, step: 1, fmt: n => n.toFixed(0) + ' m/s'};
+    if (key === 'sparksPerSecond') return {min: 0, max: 100, step: 5, fmt: n => n.toFixed(0) + '/s'};
+    if (key === 'pl') return {min: 1, max: 3, step: 1, fmt: n => 'PL' + n};
+    if (key === 'quality') return {min: 0, max: 2, step: 1, fmt: n => ['Baixa', 'Média', 'Alta'][n] || 'Média'};
+    if (['enabled', 'dynamicLight', 'noFlash', 'reduceMotion', 'highContrast', 'reflectionActive', 'neutralizeActive'].includes(key)) {
+      return {min: 0, max: 1, step: 1, fmt: n => n ? 'Ligado' : 'Desligado'};
+    }
+  }
+  if (path && path.startsWith('vfx.rock.')) {
+    if (key === 'scale' || key === 'glow') return {min: 0.2, max: 3.0, step: 0.1, fmt: n => n.toFixed(1) + '×'};
+    if (key === 'rotSpeed') return {min: 0, max: 10, step: 0.5, fmt: n => n.toFixed(1) + ' rad/s'};
+    if (key === 'trailDensity') return {min: 1, max: 30, step: 1, fmt: n => String(n)};
+    if (key === 'shatterCount') return {min: 4, max: 32, step: 2, fmt: n => String(n)};
+    if (['enabled', 'trail', 'shatter', 'cracksEmissive'].includes(key)) return {min: 0, max: 1, step: 1, fmt: n => n ? 'Ligado' : 'Desligado'};
+    if (key === 'variant') return {min: 0, max: 2, step: 1, fmt: n => ['A · Boulder Facetado', 'B · Cristal Psíquico', 'C · Meteorito Runas'][n] || 'A'};
+  }
+  if (path && path.startsWith('vfx.barrier.')) {
+    if (key === 'opacity') return {min: 0.1, max: 1.0, step: 0.05, fmt: n => (n * 100).toFixed(0) + '%'};
+    if (key === 'pulseFreq') return {min: 0.5, max: 8.0, step: 0.1, fmt: n => n.toFixed(1) + ' Hz'};
+    if (key === 'edgeGlow') return {min: 0.2, max: 3.0, step: 0.1, fmt: n => n.toFixed(1) + '×'};
+    if (key === 'shatterFragments') return {min: 6, max: 48, step: 2, fmt: n => String(n)};
+    if (['enabled', 'ripples'].includes(key)) return {min: 0, max: 1, step: 1, fmt: n => n ? 'Ligado' : 'Desligado'};
+    if (key === 'variant') return {min: 0, max: 2, step: 1, fmt: n => ['A · Hex-Grid', 'B · Cristal de Quartzo', 'C · Campo de Força'][n] || 'A'};
+  }
   if (/Fraction|Multiplier|Restitution|Scale|Weight|Base$|Opacity|Strength|Smoothing|Alignment|Dot$|Visible$/.test(key)) return {min: /Alignment|Dot/.test(key) ? -1 : 0, max: key === 'uiScale' ? 3 : 2, step: .01, fmt: n => n.toFixed(2)};
   const s = Math.abs(value), max = s >= 50 ? s * 3 : s >= 10 ? s * 4 : s >= 1 ? Math.max(10, s * 4) : s >= .1 ? Math.max(2, s * 5) : Math.max(.5, s * 8), step = s >= 20 ? .5 : s >= 1 ? .05 : s >= .1 ? .01 : .001;
   return {min: 0, max: Math.ceil(max / step) * step, step, fmt: n => n.toFixed(step >= .5 ? 1 : step >= .01 ? 2 : 3)};
@@ -77,9 +109,9 @@ export function officialValue(path) {
 const same = (a, b) => Math.abs(a - b) <= 1e-9 * Math.max(1, Math.abs(a), Math.abs(b));
 
 /** Seções do overhaul fora do catálogo original: sprint (Ajustes) e efeitos, sombras, HUD e tremores (Visualizar). */
-export const EXTRA_SECTIONS = [['Sprint (C mantido)', 'actions.sprint', null], ['VFX · geral', 'vfx.master', null],
+export const EXTRA_SECTIONS = [['Sprint (C mantido)', 'actions.sprint', null], ['VFX · geral', 'vfx.master', null], ['VFX 3D · geral', 'vfx.solid', null], ...SOLID_FAMILIES.map(f => [`VFX 3D · ${f.label}`, `vfx.${f.key}`, null]),
   ...VFX_TYPES.map(([type, label]) => [`VFX · ${label}`, `vfx.${type}`, null]), ['Tremor · geral', 'vfx.shakeMaster', null], ...SHAKE_EVENTS.map(([key, label]) => [`Tremor · ${label}`, `vfx.${key}`, null]),
-  ['Teclas do vermelho (controle manual)', 'extras.bindings2', null], ['Sombras', 'display.shadow', null], ['HUD', 'display.hud', null], ['Altura visual', 'display.grounding', null], ['Indicador da janela C → X', 'display.cancelRing', null], ['Animação: transições', 'display.animation', null], ['Diagnóstico de comandos', 'display.diagnostics', null], ['Janelas de combate', 'display.windows', null], ['Medidor de desempenho', 'display.perf', null]];
+  ['Teclas do vermelho (controle manual)', 'extras.bindings2', null], ['VFX · Laser da Arena (BeamRenderer)', 'vfx.laser', null], ['Sombras', 'display.shadow', null], ['HUD', 'display.hud', null], ['Altura visual', 'display.grounding', null], ['Indicador da janela C → X', 'display.cancelRing', null], ['Animação: transições', 'display.animation', null], ['Diagnóstico de comandos', 'display.diagnostics', null], ['Janelas de combate', 'display.windows', null], ['Medidor de desempenho', 'display.perf', null]];
 /** Parâmetros mostrados em outras abas (sem duplicar controles no Ajustes). */
 const ELSEWHERE = new Set(['extras.toggles.enableEnemyAI', 'extras.toggles.enemyManual', 'extras.visual.shadowMin', 'extras.visual.shadowHeightFade']);
 export function createTuning({apply}) {

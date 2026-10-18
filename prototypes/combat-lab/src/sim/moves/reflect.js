@@ -11,9 +11,9 @@ import {add, scale, direction} from '../math.js';
 /** Definição do movimento (dados puros, clonável). */
 export const reflectDef = Object.freeze({
   id: 'reflect', name: 'Reflect',
-  description: 'Carregue e solte para criar uma barreira que reflete projéteis. Quanto mais carga, maior e mais duradoura; ela é sólida para os dois lutadores.',
+  description: 'Carregue por no mínimo 1,5 s e solte para criar uma barreira que reflete projéteis. Quanto mais carga, maior e mais duradoura; ela é sólida para os dois lutadores.',
   cost: 1, cooldown: 8, cooldownBoost: true,
-  charge: {max: 4, group: 'reflect'},
+  charge: {max: 4, min: 1.5, group: 'reflect'},
   timeline: [{effect: 'reflect'}],
 });
 
@@ -67,7 +67,9 @@ export function reflectPlacement(game, f, P, fraction, heading) {
 export function reflectEffect(/** @type {any} */ game, /** @type {any} */ f, /** @type {any} */ def, /** @type {any} */ fx) {
   const ch = fx.charge;
   if (!ch) return {ok: false, reason: 'semCarga'};
-  const P = ch.params, G = P.group, place = /** @type {any} */ (reflectPlacement(game, f, P, ch.ticks / P.maxTicks, fx.heading));
+  const P = ch.params, G = P.group;
+  if (ch.seconds < (G?.minCharge ?? def?.charge?.min ?? 1.5) - 1e-4) return {ok: false, reason: 'semCargaMinima'};
+  const place = /** @type {any} */ (reflectPlacement(game, f, P, ch.ticks / P.maxTicks, fx.heading));
   if (!place.ok) return {ok: false, reason: place.reason};
   const duration = G.durationBase + ch.seconds;                      // 4 s + tempo carregado (M4.3): 4 a 8 s
   const e = spawn(game.world, {
@@ -77,5 +79,11 @@ export function reflectEffect(/** @type {any} */ game, /** @type {any} */ f, /**
     // Parâmetros capturados (M28.4): a barreira não lê mais C.world.reflect depois de criada.
     captured: {tieTolerance: G.tieTolerance, maxReflections: G.maxReflections, tackleRecoil: G.tackleRecoil, tackleStagger: G.tackleStagger, width: place.width, height: place.height, thickness: G.thickness, duration, level: ch.level, move: def.id},
   }, fx.events ?? []);
+  // Pulso ao materializar (opcional): empurra e/ou fere quem está ao redor da barreira, num círculo de `burstRadius` m. Não é explosão:
+  // a própria barreira não quebra e o pulso não é bloqueado por ela. Com raio 0, ou com os dois interruptores desligados, não há pulso.
+  const R = G.burstRadius ?? 0, force = G.burstPush ? (G.burstForce ?? 0) : 0, dmg = G.burstHurt ? (G.burstDamage ?? 0) * (f.attributes?.attack ?? 1) : 0;
+  if (e && R > 1e-6 && (force > 0 || dmg > 0))
+    spawn(game.world, {kind: 'area', owner: f.id, affectsOwner: false, pos: {...place.center}, radius: R, y: Math.max(0, place.base - .5), height: 3, life: .1, pulses: 1, falloff: 'linear', pl: ch.level,
+      hit: {damage: dmg, knockback: force > 0 ? {horizontal: force, vertical: 0} : undefined}}, fx.events ?? []);
   return e ? {ok: true} : {ok: false, reason: 'limiteDeEntidades'};
 }

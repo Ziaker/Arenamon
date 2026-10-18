@@ -1,0 +1,33 @@
+{
+ "action_original": "Walk fwd",
+ "action_nova": "Walk fwd_footlock",
+ "trechos_travados_frames_autorais": {
+  "Left": [
+   [
+    11,
+    24
+   ]
+  ],
+  "Right": [
+   [
+    1,
+    9
+   ],
+   [
+    25,
+    33
+   ]
+  ]
+ },
+ "deslizamento_max_antes_m_por_frame": {
+  "Left": 0.0105,
+  "Right": 0.0117
+ },
+ "deslizamento_max_depois_m_por_frame": {
+  "Left": 0.0075,
+  "Right": 0.0104
+ },
+ "frames_corrigidos": 32,
+ "blend_origem_intacto": true,
+ "copia_salva_em": "C:\\Users\\zerke\\AppData\\Local\\Temp\\claude\\C--Users-zerke-OneDrive--rea-de-Trabalho-Arenamon\\b5a13073-5e49-4525-8e62-cf803b5729c2\\scratchpad\\fl.blend"
+}

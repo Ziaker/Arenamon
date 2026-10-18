@@ -451,7 +451,8 @@ export function cancelCharge(f, why) {
   const ch = f.charge;if (!ch) return;
   f.charge = null;const def = getMove(ch.move);
   if (def && why !== 'defeated' && def.cooldown > 0) (f.moveCooldowns ??= {})[def.id] = Math.max(f.moveCooldowns?.[def.id] ?? 0, interruptCooldown(def, ch.params));
-  moveEvent(f, {result: why === 'hit' ? 'chargeInterrupt' : 'chargeCancel', move: ch.move, slot: ch.slot, reason: why, seconds: ch.ticks * ch.params.step});
+  const isInterrupt = why === 'hit' || why === 'minCharge' || why === 'interrupted';
+  moveEvent(f, {result: isInterrupt ? 'chargeInterrupt' : 'chargeCancel', move: ch.move, slot: ch.slot, reason: why, seconds: ch.ticks * ch.params.step});
   if (attemptsActive()) report(f, {kind: 'skill', slot: ch.slot, move: ch.move, result: 'denied', reason: 'chargeEnded', detail: {why}});
 }
 /** Aceleração manual da recarga: novo toque (M7.9) gasta stamina para encurtá-la; permitida durante outro Charge (M17.8). */
@@ -496,6 +497,11 @@ function stepCharge(f, cmd) {
   const ch = f.charge, def = getMove(ch.move);
   if (!def) {f.charge = null;return;}
   if (ch.ticks > 0 && !cmd.skillHeld?.[ch.slot]) {
+    const minTicks = ch.params.minTicks ?? (def.charge?.min ? Math.round(def.charge.min / ch.params.step) : 0);
+    if (minTicks > 0 && ch.ticks < minTicks) {
+      cancelCharge(f, 'minCharge');
+      return;
+    }
     const level = chargeLevel(ch.ticks, ch.params), rel = {ticks: ch.ticks, seconds: ch.ticks * ch.params.step, level, params: ch.params, cost: ch.cost, slot: ch.slot, failed: false, lock: cmd.target ?? null};   // lock: alvo travado no instante da soltura (mira do Psyshock)
     f.charge = null;
     // Recarga na materialização/disparo (M2.4/M2.5) e recuperação (M26s.8); o jogo desfaz as duas se o efeito falhar (M13.7, M29.3).

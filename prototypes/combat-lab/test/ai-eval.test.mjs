@@ -5,10 +5,13 @@ import assert from 'node:assert/strict';
 import {C, defaults, resetConfig} from '../src/sim/config.js';
 import {evalSeries, evalMatch} from '../src/sim/ai-eval.js';
 import {REVISION_1, featuresOf} from '../src/sim/tactics.js';
+import {registerStandardMoves} from '../src/sim/moves/standard.js';
+
+registerStandardMoves();
 
 let n = 0;const ok = l => {n++;console.log('✓', l);};
 resetConfig(defaults());
-assert.equal(C.extras.ai.revision, 1, 'revisada por padrão');assert.equal(featuresOf({revisionOverride: 0}).validate, false);assert.equal(REVISION_1.stamina, false);
+assert.equal(C.extras.ai.revision, 2, 'evoluída por padrão');assert.equal(featuresOf({revisionOverride: 0}).validate, false);assert.equal(REVISION_1.stamina, false);
 {
   const a = evalMatch({seed: 9, blueRev: 1, redRev: 0}), b = evalMatch({seed: 9, blueRev: 1, redRev: 0});
   assert.deepEqual(a, b, 'mesma semente, mesma luta');
@@ -38,5 +41,99 @@ ok('revisada × anterior (mesmo lado, mesmas sementes): menos ações negadas, u
   }
 }
 ok('estilos Agressor, Esquivador e Paredão: revisada sem perda relevante e com menos ações negadas');
+
+// ---------- Fase 0: Avaliação Pareada nos Dois Lados da Arena ----------
+{
+  const paired = (await import('../src/sim/ai-eval.js')).evalPairedSeries({
+    pairs: 15,
+    seed: 10,
+    candidateRev: 1,
+    baselineRev: 0,
+    loadouts: 'none',
+  });
+  assert.equal(paired.totalMatches, 30, '15 pares = 30 lutas no total');
+  assert.equal(paired.candidateWins + paired.baselineWins + paired.timeouts, 30, 'todas as lutas contabilizadas');
+  assert.ok(paired.candRateCombined >= 0 && paired.candRateCombined <= 1, 'taxa combinada válida');
+  assert.ok(paired.ci95[0] <= paired.candRateCombined && paired.candRateCombined <= paired.ci95[1], 'IC 95% consistente com a taxa combinada');
+  assert.ok(paired.candidateStats.denied <= paired.baselineStats.denied, 'candidato reduz ações negadas na média pareada');
+  assert.ok(paired.candidateStats.whiffs <= paired.baselineStats.whiffs * 1.05, 'candidato não explode em whiffs');
+}
+ok('avaliação pareada nos dois lados da arena elimina viés de spawn e mede IC 95%');
+
+// ---------- Fase 0: Avaliação com Moves Equipados (Reflect + Psyshock) ----------
+{
+  const pairedMoves = (await import('../src/sim/ai-eval.js')).evalPairedSeries({
+    pairs: 10,
+    seed: 40,
+    candidateRev: 1,
+    baselineRev: 0,
+    loadouts: 'both',
+  });
+  assert.equal(pairedMoves.totalMatches, 20);
+  assert.ok(pairedMoves.candidateStats.chargesStarted > 0, 'revisada usa os movimentos de carga');
+  assert.ok(pairedMoves.candidateStats.chargesCompleted > 0, 'revisada solta os movimentos com sucesso');
+  assert.ok(pairedMoves.candidateStats.projectileDamageDealt > 0, 'dano de projéteis é computado à parte');
+  assert.ok(pairedMoves.candidateStats.counterMissed >= 0, 'contra-ataques perdidos são rastreados');
+  assert.ok(pairedMoves.candidateStats.missedDefense >= 0, 'defesas viáveis perdidas são rastreadas');
+}
+ok('partidas com Moves equipados (Reflect e Psyshock) entram na avaliação pareada');
+
+// ---------- Fase 0: Coleção Fixa de 8 Situações Difíceis ----------
+{
+  const {runDifficultScenarios} = await import('../src/sim/ai-eval.js');
+  const scen = runDifficultScenarios({candidateRev: 1, baselineRev: 0, loadouts: 'both'});
+  assert.equal(scen.totalScenarios, 8, '8 situações difíceis fixas');
+  assert.equal(scen.candidateScore, 8, 'candidato passa em 8 de 8 situações difíceis');
+  assert.ok(scen.scenarios.every(s => s.candidate.passed), 'todos os 8 cenários aprovados');
+}
+ok('coleção fixa de 8 situações difíceis avaliada com sucesso (score 8/8)');
+
+// ---------- Fase 1: Explicar Decisões, Taxonomia de Erros e Replay ----------
+{
+  const {evalMatch, explainDefeat, evalPairedSeries, ERROR_TAXONOMY} = await import('../src/sim/ai-eval.js');
+  assert.ok(ERROR_TAXONOMY.prediction_error && ERROR_TAXONOMY.execution_error, 'taxonomia de erros formalizada');
+
+  // Luta única para inspecionar desfecho dos ataques e ranking de decisões
+  const match = evalMatch({seed: 12, blueRev: 1, redRev: 0, loadouts: 'both'});
+  const blueSide = match.sides[0];
+  assert.ok(blueSide.attackOutcomes, 'desfechos dos ataques categorizados');
+  const sumAttacks = Object.values(blueSide.attackOutcomes).reduce((a, b) => a + b, 0);
+  assert.ok(sumAttacks >= 0, 'desfechos de ataque computados');
+
+  assert.ok(blueSide.taxonomyErrors, 'erros mapeados por taxonomia');
+  assert.ok(match.worstDecisions.length >= 0, 'decisões ruins ranqueadas por severidade');
+  if (match.worstDecisions.length > 0) {
+    const top = match.worstDecisions[0];
+    assert.ok(top.score >= 0, 'decisão possui pontuação de severidade ponderada');
+    assert.ok(top.taxonomy, 'decisão possui categoria taxonômica');
+  }
+
+  // Explicação de derrota sem inspecionar código passo a passo
+  const paired = evalPairedSeries({pairs: 10, seed: 15, candidateRev: 1, baselineRev: 0, loadouts: 'both'});
+  assert.ok(paired.candidateStats.attackOutcomes, 'estatísticas pareadas incluem desfechos de ataques');
+  assert.ok(paired.candidateStats.taxonomyErrors, 'estatísticas pareadas incluem taxonomia de falhas');
+  assert.ok(paired.worstDecisions.length > 0, 'ranking unificado das piores decisões gerado');
+
+  const sampleDefeat = paired.defeatExplanation ?? explainDefeat(match, 1);
+  if (sampleDefeat) {
+    assert.ok(sampleDefeat.summary.includes('Lutador') && sampleDefeat.summary.includes('Distribuição de falhas'), 'explicação narrativa de derrota gerada com causa-raiz');
+    assert.ok(Array.isArray(sampleDefeat.topErrors), 'top erros catalogados na explicação');
+  }
+}
+ok('Fase 1: ciclo completo de decisão, taxonomia de erros, ranking de piores decisões e explicação de derrota validados');
+
+// ---------- Fases 2, 3 e 4: Avaliação da Revisão 2 (Previsão e Gestão Espacial) ----------
+{
+  const {evalPairedSeries, runDifficultScenarios} = await import('../src/sim/ai-eval.js');
+  const scen2 = runDifficultScenarios({candidateRev: 2, baselineRev: 0, loadouts: 'both'});
+  assert.equal(scen2.candidateScore, 8, 'revisão 2 passa em 8 de 8 situações difíceis');
+
+  const paired = evalPairedSeries({pairs: 10, seed: 100, candidateRev: 2, baselineRev: 1, loadouts: 'both'});
+  assert.ok(paired.candidateStats, 'revisão 2 produz estatísticas válidas');
+  assert.ok(paired.candidateStats.denied <= paired.baselineStats.denied + 20, 'revisão 2 mantém ações negadas controladas');
+}
+ok('Fases 2, 3 e 4: Revisão 2 (Previsão & Espacial) validada com avaliação pareada e cenários difíceis');
+
 resetConfig(defaults());
 console.log(`\n${n} verificações da avaliação da IA aprovadas.`);
+

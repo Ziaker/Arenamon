@@ -20,6 +20,8 @@ export const VFX_TYPES = [
   ['clash', 'Clash entre tackles', ['A · Explosão central simétrica', 'B · Cruzamento de energia', 'C · Compressão e liberação']],
   ['exhaust', 'Exaustão (indicadores azuis)', ['A · Cachoeira de setas', 'B · Chuva de fragmentos', 'C · Cascata enfraquecida']],
   ['regen', 'Regeneração de stamina (amarelo)', ['A · Setas ascendentes', 'B · Linhas energéticas', 'C · Pulsos de recuperação']],
+  ['rock', 'Rochas telecinéticas (Psyshock)', ['A · Boulder Facetado', 'B · Cristal Psíquico', 'C · Meteorito Runas']],
+  ['barrier', 'Barreira de energia (Reflect)', ['A · Hex-Grid Ciclado', 'B · Cristal de Quartzo', 'C · Campo de Força Vibrante']],
 ];
 export const SHAKE_EVENTS = [['shakeGuard', 'Tremor ao defender'], ['shakeHit', 'Tremor ao sofrer hit'], ['shakeGround', 'Tremor ao colidir com o chão'], ['shakePerfect', 'Tremor na defesa perfeita'], ['shakeClash', 'Tremor no clash entre tackles']];
 export const SHAKE_PROFILES = ['A · Impacto seco', 'B · Oscilação amortecida', 'C · Pulso direcional'];
@@ -127,8 +129,14 @@ export class VfxSystem {
     scene.add(this.add.mesh, this.norm.mesh);
     this.log = [];this.timers = [];this.emit = new Map();this.shakes = [];this.ghosts = [];this.stats = {spawned: 0, peak: 0};
     this.seenEvents = new WeakSet();this.landings = [];this.prevPos = [];this.prevStamina = [];this.flash = null;this.freezeUntil = 0;
+    this.accessibility = {noFlash: false, reduceMotion: false, highContrast: false};
     // Custo por tipo (medidor de desempenho e filtro “mais caros”): partículas criadas e disparos.
     this.stats.byType = {};this.stats.firesByType = {};this.emitting = null;
+  }
+  setAccessibility(a = {}) {
+    this.accessibility = {...this.accessibility, ...a};
+    if (this.accessibility.reduceMotion) this.shakes = [];
+    if (this.accessibility.noFlash && this.flashEl) {this.flash = null;this.flashEl.style.opacity = '0';}
   }
   get cfg() {return C.vfx;}
   enabled(type) {return !!C.vfx.master.enabled && !!C.vfx[type]?.enabled;}
@@ -136,9 +144,15 @@ export class VfxSystem {
   /** Uma partícula. o: {x,y,z, vx,vy,vz, life, w,h, cell, mode, color, alpha, additive, …}. */
   spawn(o) {
     const total = this.add.p.length + this.norm.p.length;if (total >= C.vfx.master.maxParticles) return;
-    const c = new T.Color(o.color ?? 0xffffff);const glow = o.glow ?? 1;
-    const p = {age: -(o.delay || 0), life: Math.max(.02, o.life ?? .4), x: o.x, y: o.y ?? 0, z: o.z, vx: o.vx || 0, vy: o.vy || 0, vz: o.vz || 0, gravity: o.gravity, drag: o.drag, floor: o.floor,
-      w: o.w ?? .3, h: o.h ?? o.w ?? .3, grow: o.grow, sizeCurve: o.sizeCurve, stretchCurve: o.stretchCurve, alphaCurve: o.alphaCurve, fade: o.fade, alpha: o.alpha ?? 1,
+    const c = new T.Color(o.color ?? 0xffffff);let glow = o.glow ?? 1;
+    let alpha = o.alpha ?? 1;
+    let vx = o.vx || 0, vy = o.vy || 0, vz = o.vz || 0;
+    const isReduceMotion = !!(this.accessibility?.reduceMotion || C.vfx.master?.reduceMotion || C.vfx.laser?.reduceMotion);
+    const isHighContrast = !!(this.accessibility?.highContrast || C.vfx.master?.highContrast || C.vfx.laser?.highContrast);
+    if (isReduceMotion) {vx *= 0.25;vy *= 0.25;vz *= 0.25;}
+    if (isHighContrast) {alpha = Math.max(0.85, alpha);glow = Math.max(1.8, glow);}
+    const p = {age: -(o.delay || 0), life: Math.max(.02, o.life ?? .4), x: o.x, y: o.y ?? 0, z: o.z, vx, vy, vz, gravity: o.gravity, drag: o.drag, floor: o.floor,
+      w: o.w ?? .3, h: o.h ?? o.w ?? .3, grow: o.grow, sizeCurve: o.sizeCurve, stretchCurve: o.stretchCurve, alphaCurve: o.alphaCurve, fade: o.fade, alpha,
       r: Math.min(4, c.r * glow), g: Math.min(4, c.g * glow), b: Math.min(4, c.b * glow), cell: CELLS[o.cell ?? 'dot'], mode: MODE[o.mode ?? 'billboard'], rot: o.rot ?? 0, spin: o.spin, ax: o.ax, ay: o.ay, az: o.az, follow: o.follow};
     (o.additive === false ? this.norm : this.add).add(p);this.stats.spawned++;if (this.emitting) this.stats.byType[this.emitting] = (this.stats.byType[this.emitting] ?? 0) + 1;
   }
@@ -192,8 +206,17 @@ export class VfxSystem {
   fire(type, ctx, reason) {
     if (!this.enabled(type)) {this.record(type, `${reason} · desligado`);return;}
     this.record(type, reason);const v = C.vfx[type].variant | 0;this.emitting = type;this.stats.firesByType[type] = (this.stats.firesByType[type] ?? 0) + 1;
-    ({hit: [this.hitA, this.hitB, this.hitC], block: [this.blockA, this.blockB, this.blockC, this.blockD], perfect: [this.perfectA, this.perfectB, this.perfectC],
-      ground: [this.groundA, this.groundB, this.groundC, this.groundD], clash: [this.clashA, this.clashB, this.clashC]})[type][v].call(this, C.vfx[type], ctx);
+    const handlers = {
+      hit: [this.hitA, this.hitB, this.hitC],
+      block: [this.blockA, this.blockB, this.blockC, this.blockD],
+      perfect: [this.perfectA, this.perfectB, this.perfectC],
+      ground: [this.groundA, this.groundB, this.groundC, this.groundD],
+      clash: [this.clashA, this.clashB, this.clashC],
+      rock: [this.rockA, this.rockB, this.rockC],
+      barrier: [this.barrierA, this.barrierB, this.barrierC]
+    };
+    const list = handlers[type];
+    if (list) (list[v] ?? list[0]).call(this, C.vfx[type], ctx);
     // Bloqueio: brilho de contato sempre voltado para a câmera, para o feedback nunca sumir (escudos planos podem ficar de perfil).
     if (type === 'block' && v !== 0) {const p = this.frontOf(ctx.pos, ctx.n, .5), c = C.vfx.block;this.spawn({x: p.x, y: .8, z: p.z, life: c.duration * .4, w: .55 * c.size, cell: 'spark', color: c.color, glow: 1.3 * c.intensity, alpha: c.opacity, grow: .6 * c.expansion, fade: 1.5});}
     this.emitting = null;
@@ -221,6 +244,13 @@ export class VfxSystem {
     const tag = 'prévia manual';
     if (type === 'clash') this.fire(type, {pos: ahead, n: {x: -n.x, z: -n.z}, power: 1}, tag);
     else if (type === 'ground') this.fire(type, {pos: f.position, power: 1}, tag);
+    else if (type === 'rock') {
+      this.fire('rock', {pos: f.position, n, power: 1}, tag);
+      if (this.view?.worldView?.emitRockShatter) this.view.worldView.emitRockShatter(f.position.x, 0.8, f.position.z, n, 0x59d6e6);
+    } else if (type === 'barrier') {
+      this.fire('barrier', {pos: f.position, n, power: 1}, tag);
+      if (this.view?.worldView?.emitBarrierShatter) this.view.worldView.emitBarrierShatter(f.position.x, 0.8, f.position.z, 0x59d6e6);
+    }
     else this.fire(type, {pos: f.position, n, power: 1, fighters}, tag);
     const shakeFor = {hit: 'shakeHit', block: 'shakeGuard', perfect: 'shakePerfect', ground: 'shakeGround', clash: 'shakeClash'}[type];if (shakeFor) this.shake(shakeFor, n, 1, tag);
   }
@@ -426,6 +456,63 @@ export class VfxSystem {
     for (let j = 0; j < Math.max(1, Math.round(c.count * .4 * k)); j++) {const a = rand(0, Math.PI * 2), r = rand(.15, c.spread);this.spawn({x: f.position.x + Math.cos(a) * r, y: alt + .1, z: f.position.z + Math.sin(a) * r, vy: c.speed * rand(.8, 1.3), life: c.height / Math.max(.2, c.speed), w: c.size * .6, cell: 'dot', color: c.color, glow: c.intensity * 1.4 * k, alpha: c.opacity, fade: 1.1, follow: this.follower(f), additive: false});}
     if (s.n % Math.max(2, Math.round(c.frequency * .7)) === 0) this.spawn({x: f.position.x, y: alt + .03, z: f.position.z, life: .55, w: .5, mode: 'ground', cell: 'ring', color: c.color, glow: c.intensity * k, alpha: c.opacity * .8, fade: 1.3, sizeCurve: q => 1 + q * 1.6 * (.5 + c.spread), follow: this.follower(f)});
   }
+  // ---------- ROCHAS TELECINÉTICAS ----------
+  rockA(c, {pos, n, power = 1}) { // Boulder Facetado: estilhaços rochosos densos + fumaça de impacto + fragmentos angulares
+    const y = pos.y ?? 0.8, S = c.scale ?? 1, cnt = Math.round((c.shatterCount ?? 14) * (c.intensity ?? 1) * power);
+    this.spawn({x: pos.x, y, z: pos.z, life: 0.35, w: 0.8 * S, cell: 'shock', color: 0x8a9ba8, alpha: 0.7, fade: 1.5});
+    for (let k = 0; k < cnt; k++) {
+      const a = rand(0, Math.PI * 2), sp = rand(3, 8) * S;
+      this.spawn({x: pos.x, y, z: pos.z, vx: Math.cos(a) * sp + (n?.x ?? 0) * 2, vy: rand(1, 5), vz: Math.sin(a) * sp + (n?.z ?? 0) * 2, gravity: 12, floor: 0.04, drag: 2, life: rand(0.4, 0.8), w: rand(0.08, 0.2) * S, cell: k % 2 ? 'chunk' : 'shard', color: k % 3 === 0 ? 0x59d6e6 : 0x47525d, alpha: 0.95, fade: 1.8, rot: rand(0, 6), spin: rand(-10, 10)});
+    }
+  }
+  rockB(c, {pos, n, power = 1}) { // Cristal Psíquico: fragmentos afiados reluzentes de energia + anel etéreo ciano/magenta
+    const y = pos.y ?? 0.8, S = c.scale ?? 1, cnt = Math.round((c.shatterCount ?? 16) * (c.intensity ?? 1) * power);
+    this.spawn({x: pos.x, y, z: pos.z, life: 0.45, w: 1.1 * S, cell: 'star4', color: 0x59d6e6, glow: 1.8, alpha: 1, rot: Math.PI / 4, fade: 1.4});
+    this.spawn({x: pos.x, y, z: pos.z, life: 0.5, w: 0.6 * S, cell: 'shock', color: 0xff6adf, glow: 1.5, alpha: 0.9, fade: 1.2, sizeCurve: ease.outCubic});
+    for (let k = 0; k < cnt; k++) {
+      const a = rand(0, Math.PI * 2), sp = rand(4, 9) * S;
+      this.spawn({x: pos.x, y, z: pos.z, vx: Math.cos(a) * sp + (n?.x ?? 0) * 2.5, vy: rand(0.5, 4.5), vz: Math.sin(a) * sp + (n?.z ?? 0) * 2.5, drag: 2.5, life: rand(0.35, 0.7), w: rand(0.09, 0.18) * S, cell: k % 2 ? 'diamond' : 'shard', color: k % 2 ? 0x59d6e6 : 0xff6adf, glow: 1.6, alpha: 1, fade: 1.5, rot: rand(0, 6), spin: rand(-12, 12)});
+    }
+  }
+  rockC(c, {pos, n, power = 1}) { // Meteorito Runas: brasas incandescentes de alta velocidade + ondas concentradas
+    const y = pos.y ?? 0.8, S = c.scale ?? 1, cnt = Math.round((c.shatterCount ?? 18) * (c.intensity ?? 1) * power);
+    this.spawn({x: pos.x, y, z: pos.z, life: 0.3, w: 1.3 * S, cell: 'dot', color: 0xffcf6a, glow: 2.0, alpha: 1, grow: 1.2, fade: 1.6});
+    this.spawn({x: pos.x, y: 0.03, z: pos.z, life: 0.5, w: 0.9 * S, mode: 'ground', cell: 'crack', color: 0x221a12, alpha: 0.85, additive: false, fade: 2});
+    for (let k = 0; k < cnt; k++) {
+      const a = rand(0, Math.PI * 2), sp = rand(3.5, 10) * S;
+      this.spawn({x: pos.x, y, z: pos.z, vx: Math.cos(a) * sp + (n?.x ?? 0) * 3, vy: rand(1, 6), vz: Math.sin(a) * sp + (n?.z ?? 0) * 3, gravity: 14, floor: 0.04, drag: 1.8, life: rand(0.4, 0.85), w: rand(0.07, 0.16) * S, cell: k % 3 === 0 ? 'spark' : (k % 2 ? 'chunk' : 'streak'), mode: k % 3 === 0 ? 'billboard' : 'axis', ax: Math.cos(a), ay: 0.5, az: Math.sin(a), color: k % 2 ? 0xffcf6a : 0xff7a3c, glow: 1.7, alpha: 1, fade: 1.4});
+    }
+  }
+  // ---------- BARREIRA DE ENERGIA ----------
+  barrierA(c, {pos, n, power = 1}) { // Hex-Grid Ciclado: desintegração em colmeia hexagonal cintilante
+    const y = pos.y ?? 0.8, S = c.scale ?? 1, p = this.frontOf(pos, n ?? {x: 0, z: 1}, 0.5), sa = this.shieldAxis(p, n ?? {x: 0, z: 1});
+    const cnt = Math.round((c.shatterFragments ?? 20) * (c.intensity ?? 1) * power);
+    this.spawn({x: p.x, y, z: p.z, life: 0.5, w: 1.6 * S, h: 1.4 * S, cell: 'hex', mode: 'plane', ...sa, color: 0x59d6e6, glow: 1.8 * (c.edgeGlow ?? 1.4), alpha: c.opacity ?? 0.7, fade: 1.5});
+    for (let k = 0; k < cnt; k++) {
+      const a = rand(0, Math.PI * 2), sp = rand(2, 6);
+      this.spawn({x: p.x + (rand(-1, 1)) * 0.6, y: y + rand(-0.5, 0.5), z: p.z + (rand(-1, 1)) * 0.6, vx: Math.cos(a) * sp, vy: rand(0.5, 3), vz: Math.sin(a) * sp, drag: 2.2, life: rand(0.35, 0.7), w: rand(0.12, 0.25) * S, h: rand(0.12, 0.25) * S, cell: 'hex', mode: 'billboard', color: 0x59d6e6, glow: 1.5, alpha: 0.9, fade: 1.6, rot: rand(0, 6), spin: rand(-8, 8)});
+    }
+  }
+  barrierB(c, {pos, n, power = 1}) { // Cristal de Quartzo: estilhaçamento prismático reflexivo
+    const y = pos.y ?? 0.8, S = c.scale ?? 1, p = this.frontOf(pos, n ?? {x: 0, z: 1}, 0.5);
+    const cnt = Math.round((c.shatterFragments ?? 22) * (c.intensity ?? 1) * power);
+    this.spawn({x: p.x, y, z: p.z, life: 0.4, w: 1.4 * S, cell: 'star4', color: 0xffffff, glow: 2.0, alpha: 1, rot: Math.PI / 4, fade: 1.2});
+    for (let k = 0; k < cnt; k++) {
+      const a = rand(0, Math.PI * 2), sp = rand(3, 7.5);
+      this.spawn({x: p.x + (rand(-1, 1)) * 0.5, y: y + rand(-0.4, 0.4), z: p.z + (rand(-1, 1)) * 0.5, vx: Math.cos(a) * sp, vy: rand(1, 4), vz: Math.sin(a) * sp, gravity: 9, drag: 2, life: rand(0.4, 0.75), w: rand(0.1, 0.22) * S, cell: k % 2 ? 'shard' : 'diamond', color: k % 3 === 0 ? 0xffffff : (k % 2 ? 0x9dffd2 : 0x73caff), glow: 1.4, alpha: 0.95, fade: 1.5, rot: rand(0, 6), spin: rand(-12, 12)});
+    }
+  }
+  barrierC(c, {pos, n, power = 1}) { // Campo de Força Vibrante: anéis de sobrecarga e arcos elétricos
+    const y = pos.y ?? 0.8, S = c.scale ?? 1, p = this.frontOf(pos, n ?? {x: 0, z: 1}, 0.5), sa = this.shieldAxis(p, n ?? {x: 0, z: 1});
+    const cnt = Math.round((c.shatterFragments ?? 18) * (c.intensity ?? 1) * power);
+    this.spawn({x: p.x, y, z: p.z, life: 0.5, w: 1.8 * S, h: 1.6 * S, cell: 'arc', mode: 'plane', ...sa, color: 0xffcf6a, glow: 1.7, alpha: 0.85, fade: 1.4});
+    for (let k = 0; k < 3; k++) {
+      this.spawn({x: p.x, y, z: p.z, delay: k * 0.08, life: 0.5, w: 0.5 * S, cell: 'ring', mode: 'plane', ...sa, color: 0xffcf6a, glow: 1.5, alpha: 0.9, fade: 1.3, sizeCurve: k2 => 1 + ease.outCubic(k2) * 2.8});
+    }
+    for (let k = 0; k < cnt; k++) {
+      this.spawn({x: p.x + (rand(-1, 1)) * 0.6, y: y + rand(-0.5, 0.5), z: p.z + (rand(-1, 1)) * 0.6, vx: (rand(-1, 1)) * 3, vy: rand(0, 3), vz: (rand(-1, 1)) * 3, drag: 3, life: rand(0.3, 0.6), w: rand(0.08, 0.18) * S, cell: 'spark', color: 0xffcf6a, glow: 1.8, alpha: 1, fade: 1.6});
+    }
+  }
   /** Partículas que acompanham o lutador (exaustão e regeneração seguem o corpo). */
   follower(f) {const key = '__f' + f.id;let o = this[key];if (!o) {o = this[key] = {dx: 0, dz: 0, last: {...f.position}};}return o;}
   syncFollowers(fighters) {for (const f of fighters) {const o = this['__f' + f.id];if (!o) continue;o.dx = f.position.x - o.last.x;o.dz = f.position.z - o.last.z;o.last = {...f.position};}}
@@ -461,6 +548,7 @@ export class VfxSystem {
   updateGhosts(dt) {for (const g of this.ghosts) {if (!g.obj.visible) continue;g.age += dt;const k = g.age / Math.max(1e-3, g.life);g.mat.opacity = Math.max(0, g.base * (1 - k));if (k >= 1) g.obj.visible = false;}}
   // ---------- Flash de tela e filtro (só visual) ----------
   screenFlash(p, y, strength, color, duration) {
+    if (this.accessibility?.noFlash || C.vfx.master?.noFlash || C.vfx.laser?.noFlash) return;
     if (!this.flashEl || strength <= 0) return;
     const col = new T.Color(color), v = new T.Vector3(p.x, y, p.z);let sx = 50, sy = 50;
     if (this.camera) {v.project(this.camera);sx = (v.x * .5 + .5) * 100;sy = (-v.y * .5 + .5) * 100;}
@@ -469,19 +557,21 @@ export class VfxSystem {
   }
   updateFlash(dt) {
     if (!this.flashEl) return;
+    if (this.accessibility?.noFlash || C.vfx.master?.noFlash || C.vfx.laser?.noFlash) {this.flash = null;this.flashEl.style.opacity = '0';return;}
     if (this.flash) {this.flash.t += dt;const k = this.flash.t / this.flash.d;this.flashEl.style.opacity = String(Math.max(0, this.flash.s * (1 - k) * (1 - k)));if (k >= 1) {this.flash = null;this.flashEl.style.opacity = '0';}}
     if (this.filterUntil !== undefined && this.time >= this.filterUntil && this.canvas) {this.canvas.style.filter = '';this.filterUntil = undefined;}
   }
   canvasFilter(css, duration) {if (!this.canvas) return;this.canvas.style.filter = css;this.filterUntil = (this.time ?? 0) + duration;}
   // ---------- Tremor de câmera (transformação visual temporária; nunca toca no rig nem na entrada) ----------
   shake(key, n, power = 1, reason = '') {
+    if (this.accessibility?.reduceMotion || C.vfx.master?.reduceMotion || C.vfx.laser?.reduceMotion) return;
     const s = C.vfx[key];if (!C.vfx.shakeMaster.enabled || !s?.enabled) return;
     this.record(key, `${reason}${power !== 1 ? ` · força ${power.toFixed(2)}` : ''}`, {variant: 'ABC'[s.profile | 0]});
     this.shakes.push({key, t: 0, power, n: n ? {x: n.x, z: n.z} : null, phase: Math.random() * 100, ax: rand(-1, 1)});
   }
   /** Deslocamento {x,y,z} e rotação (roll) da câmera neste quadro, somando os tremores ativos (limitado). */
   shakeOffset(dt, camera) {
-    if (!C.vfx.shakeMaster.enabled) {this.shakes = [];return {x: 0, y: 0, z: 0, roll: 0};}
+    if (this.accessibility?.reduceMotion || C.vfx.master?.reduceMotion || C.vfx.laser?.reduceMotion || !C.vfx.shakeMaster.enabled) {this.shakes = [];return {x: 0, y: 0, z: 0, roll: 0};}
     let x = 0, y = 0, z = 0, roll = 0, limit = 0;
     for (const s of this.shakes) {
       const c = C.vfx[s.key];s.t += dt;if (s.t > c.duration) {s.dead = true;continue;}

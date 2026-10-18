@@ -1,15 +1,18 @@
-# Arenamon · Laboratório de combate (Etapa A + overhaul)
+# Arenamon · Jogo Principal & Laboratório de Combate
 
-Gere com `npm run build` e abra `dist/arenamon-combate-laboratorio.html` por duplo clique (offline, sem modelos embutidos).
+> **Este é o Jogo Principal Oficial do Arenamon (`prototypes/combat-lab/`).** O antigo `prototypes/game/dist/arenamon-jogavel.html` foi descontinuado como protótipo inicial legado de blocos.
 
-## Ambiente de calibração (workspace, presets, A × B, gravador, diagnóstico, desempenho, IA)
+Gere com `npm run build` (ou `npm run build:combat-lab`) e abra `dist/arenamon-combate-laboratorio.html` por duplo clique (offline, sem modelos embutidos).
+
+## Ambiente de calibração e dashboard Bento Zero-Scroll (workspace, presets, A × B, gravador, diagnóstico, desempenho, IA)
 
 O relatório técnico está em [`CALIBRACAO.md`](CALIBRACAO.md). Em resumo:
 
+- **Dashboard Bento Zero-Scroll:** todas as 9 abas (`Partida`, `Cenários`, `Ajustes`, `Visualizar`, `Personagens`, `Moves`, `Controles`, `Exportar` e `Homologação`) organizam seus cartões lado a lado em grade com sub-abas instantâneas (`⊞ Tudo` | sub-cartão), alternância `⊞ Grade` ↔ `▯ Lateral`, botão `? Dicas` e `0 px` de rolagem vertical.
 - **Workspace persistente:** modelos, animações, associações, ajustes e preferências restaurados ao abrir (IndexedDB, identificados por SHA-256), além do backup completo em ZIP com prévia.
 - **Presets de sensação** (Storm-like, Etapa A, Pesado), **calibração simplificada** com 16 controles, **A × B jogável** por tecla e **gravador de movimento** determinístico com gráficos.
 - **Diagnóstico de comandos negados** (o próprio motor diz o motivo), **janelas de combate** acima dos lutadores, **treino de defesa e esquiva perfeitas** e **validador de modelos e animações**.
-- **Medidor de desempenho**, benchmark reproduzível, perfis gráficos e VFX simples/avançado.
+- **Medidor de desempenho**, benchmark reproduzível, perfis gráficos e VFX simples/avançado + 9 famílias de VFX 3D sólidos.
 - **IA revisada** (a anterior continua selecionável), **servidor local opcional** (`npm run dev:combat-lab`) e **painel de relatórios** (`dist/arenamon-painel-relatorios.html`).
 
 ## Overhaul (movimento, animação, VFX e HUD)
@@ -22,20 +25,17 @@ O relatório técnico completo está em [`OVERHAUL.md`](OVERHAUL.md). Em resumo:
 - **Lock-on separado do movimento**: as setas continuam relativas à câmera, com o referencial travado enquanto a seta é mantida. O lock-on cuida da câmera, da orientação e da mira.
 - **IA** com intenções suavizadas, enviadas ao mesmo controlador do jogador. O oponente pode ser desligado em Partida.
 - **Animação** (`src/view/characters.js`): máquina de estados sem reinícios indevidos, várias variantes por estado sorteadas na entrada (determinístico), importação de clipes para a biblioteca, estados Sprint, Freio da caminhada e Freio do sprint, altura visual automática e telemetria.
-- **VFX** (`src/view/vfx.js`): 9 tipos × 3 variantes, com sliders, prévia, preset e registro do motivo de cada disparo, além de tremor de câmera em 3 perfis e sombras A/B/C.
-- **HUD**: propostas A (Arcade Vector), B (Combat Halo) e C (Tactical Combat), alternáveis e sem escolha definitiva. Os cooldowns são só demonstração.
-- Testes: `test/locomotion.test.mjs`, `test/animation.test.mjs` e `test/overhaul.browser.mjs` (navegador, com o GLB local opcional).
+- **VFX** (`src/view/vfx.js`, `src/view/solid-fx.js`): 9 tipos 2D × 3 variantes + 9 famílias 3D sólidas (poeira, vento, corrida, esquiva, aterrissagem, impacto, bloqueio, clash), BeamRenderer para lasers, rochas telecinéticas e barreira de energia 3D.
+- **HUD**: propostas A (Arcade Vector), B (Combat Halo) e C (Tactical Combat), alternáveis e sem escolha definitiva.
+- Testes: `test/locomotion.test.mjs`, `test/animation.test.mjs`, `test/overhaul.browser.mjs`, `test/moves-ui.browser.mjs` e `test/solid-vfx.browser.mjs`.
 
 ## Origem
 
-O laboratório v6 (`arenamon-combate-laboratorio-v6.html`) era um único HTML com o jogo compilado editado à mão e um script de ajustes colado no fim. A física dele (lançamento aéreo, clash, salto da esquiva, rebote na parede, contra-ataque, hitstop, deslizamento ao aterrissar e IA estendida) **não existia em nenhuma branch**: só naquele arquivo. Esta versão reconstrói tudo como fontes em `src/`.
+O laboratório v6 (`arenamon-combate-laboratorio-v6.html`) era um único HTML com o jogo compilado editado à mão e um script de ajustes colado no fim. A física dele (lançamento aéreo, clash, salto da esquiva, rebote na parede, contra-ataque, hitstop, deslizamento ao aterrissar e IA estendida) **não existia em nenhuma branch**: só naquele arquivo. Esta versão reconstrói tudo como fontes em `src/` e tornou-se o **Jogo Principal Oficial do Arenamon**.
 
-O porto é verificado por `test/parity.mjs`. O teste executa o v6 original e esta simulação na mesma página, com os mesmos comandos, e compara o estado completo a cada passo. São 16 execuções e 76.800 passos idênticos, cobrindo impacto, clash, defesa parcial e perfeita, esquiva perfeita e invulnerabilidade. O teste usa o HTML v6 local do usuário (`ARENAMON_LAB_V6`, padrão `~/Downloads/...`) e é ignorado se o arquivo não existir.
-
-**Divergências em relação ao jogo oficial** (`prototypes/game/src/config.ts`):
-- O laboratório usa os valores do v6, não os do jogo: arena 32 × 32 m (jogo 20 × 20), velocidade base 4,8 (jogo 4), perfis ágil e resistente, e câmera mais rápida, mais próxima do alvo e com distância máxima maior.
-- O ajustador marca cada parâmetro como **jogo** (igual), **≠ jogo** (difere) ou **lab** (só existe no laboratório). O relatório em Exportar lista as diferenças.
-- O laboratório nunca altera o jogo.
+**Comparação com o protótipo legado de blocos** (`prototypes/game/src/config.ts`, descontinuado):
+- O jogo principal (`combat-lab`) usa arena 32 × 32 m (legado 20 × 20), velocidade base 4,8 (legado 4), perfis ágil e resistente, e câmera mais rápida, mais próxima do alvo e com distância máxima maior.
+- O ajustador marca cada parâmetro como **jogo** (igual ao `config.ts` legado), **≠ jogo** (difere) ou **lab** (exclusivo do motor atual). O relatório em Exportar lista as diferenças.
 
 | Pasta | Conteúdo |
 | --- | --- |

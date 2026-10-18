@@ -2,7 +2,7 @@
 // telemetria de animação. Não depende do laboratório em execução: só dos arquivos.
 import {renderCharts, MOVEMENT_PANELS, SERIES} from '../src/ui/charts.js';
 
-export const SUPPORTED_VERSION = 1;
+export const SUPPORTED_VERSION = 2;
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'})[c]);
 const n = (v, d = 2) => v == null || !Number.isFinite(+v) ? '—' : (+v).toFixed(d);
@@ -84,10 +84,49 @@ const RENDER = {
       ${d.results.map(r => `<tr><td>${esc(r.label)}</td><td class="num">${r.characters}</td><td class="num">${n(r.fpsAvg, 1)}</td><td class="num">${n(r.frameAvg, 1)}</td><td class="num">${n(r.frameP95, 1)}</td><td class="num">${n(r.frameWorst, 1)}</td><td class="num">${n(r.workAvg)}</td><td class="num">${n(r.simAvg)}</td><td class="num">${n(r.animAvg)}</td><td class="num">${n(r.vfxAvg)}</td><td class="num">${n(r.renderAvg)}</td><td class="num">${r.gpuAvg == null ? '—' : n(r.gpuAvg)}</td><td class="num">${n(r.callsAvg, 0)}</td></tr>`).join('')}</table>`;
   },
   'ai-evaluation': d => {
-    const rows = [['Vitórias', s => s.wins], ['Tackles (X)', s => s.tackles], ['X que acertaram', s => s.hits], ['X bloqueados', s => s.blocked], ['X sem contato', s => s.whiffs], ['Clashes', s => s.clashes], ['Esquivas (C)', s => s.dodges], ['C → X', s => s.cancels], ['Sprints', s => s.sprints], ['Esquivas perfeitas', s => s.perfectDodges], ['Stamina gasta', s => n(s.staminaSpent)], ['Stamina desperdiçada', s => n(s.staminaWasted)], ['Tempo exausto (s)', s => n(s.exhaustedTime)], ['Ações negadas', s => s.denied], ['Contra-ataques aproveitados', s => `${s.counterTaken} de ${s.counterOpen}`]];
-    const b = d.before.sides[0], a = d.after.sides[0];
-    return `<h2>Avaliação da IA</h2><p class="meta">${d.config.matches} lutas por versão · sementes a partir de ${d.config.seed} · estilo ${esc(d.config.style)} · adversário: ${esc(d.config.opponent)}</p>
-      ${tiles([['vitórias (anterior)', `${(100 * b.wins / d.before.matches).toFixed(0)}%`], ['vitórias (revisada)', `${(100 * a.wins / d.after.matches).toFixed(0)}%`], ['ruído aproximado (±2σ)', `±${(200 * Math.sqrt(.25 / d.before.matches) * Math.SQRT2).toFixed(0)} pontos`]])}
+    if (d.subkind === 'difficult-scenarios' && d.scenariosResult) {
+      const sr = d.scenariosResult;
+      return `<h2>Bateria de Cenários Difíceis da IA</h2><p class="meta">Loadout: ${esc(d.config.loadout)} · Candidato: <b>${sr.candidateScore}/${sr.totalScenarios} (${(sr.candidatePassRate * 100).toFixed(0)}%)</b> · Linha de base: <b>${sr.baselineScore}/${sr.totalScenarios} (${(sr.baselinePassRate * 100).toFixed(0)}%)</b></p>
+        <table><tr><th>Cenário</th><th>Situação</th><th>Linha de Base</th><th>Revisada</th></tr>${sr.scenarios.map(s => `<tr><td><b>${esc(s.name)}</b></td><td>${esc(s.description)}</td><td class="${s.baseline.passed ? 'ok' : 'warn'}">${s.baseline.passed ? '✓ Aprovado' : '✗ Falhou'}<br><small>${esc(s.baseline.detail)}</small></td><td class="${s.candidate.passed ? 'ok' : 'warn'}">${s.candidate.passed ? '✓ Aprovado' : '✗ Falhou'}<br><small>${esc(s.candidate.detail)}</small></td></tr>`).join('')}</table>`;
+    }
+    const rows = [
+      ['Vitórias', s => s.wins],
+      ['Dano total causado', s => n(s.damage)],
+      ['Dano de projéteis (causado / sofrido)', s => `${n(s.projectileDamageDealt ?? 0)} / ${n(s.projectileDamageTaken ?? 0)}`],
+      ['Tackles (X)', s => s.tackles],
+      ['X que acertaram', s => s.hits],
+      ['X bloqueados', s => s.blocked],
+      ['X sem contato (whiffs)', s => s.whiffs],
+      ['Clashes', s => s.clashes],
+      ['Esquivas (C)', s => s.dodges],
+      ['C → X', s => s.cancels],
+      ['Sprints', s => s.sprints],
+      ['Esquivas perfeitas', s => s.perfectDodges],
+      ['Stamina gasta', s => n(s.staminaSpent)],
+      ['Stamina desperdiçada', s => n(s.staminaWasted)],
+      ['Tempo exausto (s)', s => n(s.exhaustedTime)],
+      ['Ações negadas', s => s.denied],
+      ['Contra-ataques aproveitados', s => `${s.counterTaken} de ${s.counterOpen}`],
+      ['Contra-ataques perdidos', s => s.counterMissed ?? 0],
+      ['Oportunidades de punição perdidas', s => s.missedPunish ?? 0],
+      ['Dano limpo com stamina disponível', s => s.missedDefense ?? 0],
+      ['Moves (cargas iniciadas / concluídas)', s => `${s.chargesStarted ?? 0} / ${s.chargesCompleted ?? 0}`],
+      ['Desfecho dos Tackles (Hit / Block / Clash / Dodge / Interr / Whiff)', s => s.attackOutcomes ? `${s.attackOutcomes.hit}/${s.attackOutcomes.blocked}/${s.attackOutcomes.clash}/${s.attackOutcomes.dodged}/${s.attackOutcomes.interrupted}/${s.attackOutcomes.whiff}` : '—'],
+      ['Taxonomia de Falhas (Previsão / Exec / Estrat / Percep / Regras)', s => s.taxonomyErrors ? `${s.taxonomyErrors.prediction_error}/${s.taxonomyErrors.execution_error}/${s.taxonomyErrors.strategy_error}/${s.taxonomyErrors.perception_error}/${s.taxonomyErrors.rule_limitation}` : '—'],
+    ];
+    if (d.paired) {
+      const p = d.paired, c = p.candidateStats, b = p.baselineStats;
+      return `<h2>Avaliação da IA (Pareada nos Dois Lados)</h2><p class="meta">${p.totalMatches} lutas pareadas (${p.pairs} Azul, ${p.pairs} Vermelho) · sementes a partir de ${p.seed} · Loadout: <b>${esc(p.loadoutId)}</b> · estilo ${esc(d.config.style)} · adversário: ${esc(d.config.opponent)}</p>
+        ${tiles([['vitórias (Revisada)', `${(100 * p.candRateCombined).toFixed(1)}%`], ['vitórias (Anterior)', `${(100 * p.baseRateCombined).toFixed(1)}%`], ['IC 95%', `[${(100 * p.ci95[0]).toFixed(0)}%, ${(100 * p.ci95[1]).toFixed(0)}%]`], ['Azul / Vermelho', `${(100 * p.candRateBlue).toFixed(0)}% / ${(100 * p.candRateRed).toFixed(0)}%`]])}
+        <table><tr><th>Métrica (soma de ambos os lados)</th><th class="num">Anterior</th><th class="num">Revisada</th></tr>${rows.map(([k, f]) => `<tr><td>${k}</td><td class="num">${f(b)}</td><td class="num">${f(c)}</td></tr>`).join('')}</table>
+        ${p.defeatExplanation ? `<h3>Diagnóstico Explicativo da Derrota (Fase 1)</h3><pre style="white-space:pre-wrap;font-family:inherit;font-size:12px;background:rgba(255,255,255,0.05);padding:10px;border-radius:4px">${esc(p.defeatExplanation.summary)}</pre>` : ''}
+        ${p.worstDecisions?.length ? `<h3>Ranking de Decisões de Maior Custo (Fase 1: Replay)</h3><table><tr><th>#</th><th>Semente</th><th>t</th><th>Lutador</th><th>Taxonomia</th><th>Motivo</th><th>Custo</th></tr>${p.worstDecisions.slice(0, 10).map((w, idx) => `<tr><td>${idx + 1}</td><td>${w.seed}</td><td>${w.time}</td><td>${w.fighter === 0 ? 'Azul' : 'Vermelho'}</td><td><b>${esc(w.taxonomy ?? '—')}</b></td><td>${esc(w.reason)}</td><td>${esc((w.hpCost ? w.hpCost + ' HP ' : '') + (w.staminaCost ? w.staminaCost + ' Stamina' : ''))}</td></tr>`).join('')}</table>` : ''}
+        ${p.blocks?.length > 1 ? `<h3>Consistência por bloco</h3><table><tr><th>Bloco</th><th>Revisada</th><th>Anterior</th><th>Ações negadas</th><th>Whiffs</th></tr>${p.blocks.map(bl => `<tr><td>#${bl.blockIndex}</td><td>${(bl.candidateWinRate * 100).toFixed(0)}%</td><td>${(bl.baselineWinRate * 100).toFixed(0)}%</td><td>${bl.deniedCandidate}</td><td>${bl.whiffsCandidate}</td></tr>`).join('')}</table>` : ''}`;
+    }
+    const b = d.before?.sides?.[0] ?? d.baselineStats, a = d.after?.sides?.[0] ?? d.candidateStats;
+    const matches = d.config.matches ?? d.before?.matches ?? 60;
+    return `<h2>Avaliação da IA</h2><p class="meta">${matches} lutas por versão · sementes a partir de ${d.config.seed} · estilo ${esc(d.config.style)} · adversário: ${esc(d.config.opponent)}</p>
+      ${tiles([['vitórias (anterior)', `${(100 * (b.wins ?? 0) / matches).toFixed(0)}%`], ['vitórias (revisada)', `${(100 * (a.wins ?? 0) / matches).toFixed(0)}%`], ['ruído aproximado (±2σ)', `±${(200 * Math.sqrt(.25 / matches) * Math.SQRT2).toFixed(0)} pontos`]])}
       <table><tr><th>Azul contra a IA anterior</th><th class="num">Anterior</th><th class="num">Revisada</th></tr>${rows.map(([k, f]) => `<tr><td>${k}</td><td class="num">${f(b)}</td><td class="num">${f(a)}</td></tr>`).join('')}</table>`;
   },
   'animation-telemetry': d => {

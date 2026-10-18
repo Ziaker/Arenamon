@@ -37,11 +37,11 @@ git stash list
 
 | Área | Diretório | Agente Principal / Foco | Recomendações Técnicas |
 |---|---|---|---|
-| **Jogo Principal** | `prototypes/game/` | Claude / Equipe | Manter paridade com `test.mjs` e `locomotion.test.mjs`. Não alterar regras do GDD sem aprovação. |
-| **Animation Studio** | `prototypes/studio/` | Codex / Claude | Preservar compatibilidade do Action Editor com arquivos GLB. |
+| **Jogo Principal (Combat Lab)** | `prototypes/combat-lab/` | Claude / Equipe / Antigravity | Este é o jogo oficial do Arenamon (`arenamon-combate-laboratorio.html`). Mapa de módulos e testes: `docs/INDICE_MODULOS.md`. |
+| **Animation Studio** | `prototypes/studio/` | Codex / Claude / Antigravity | Preservar compatibilidade do Action Editor e dos 3 modos com arquivos GLB. |
 | **Núcleo de Rigging** | `prototypes/studio/src/rigging/` | Codex | O núcleo estrutural, bind pose e pesos são de responsabilidade do Codex. Não reescreva sem coordenação. |
 | **Propostas Visuais de Rigging** | `prototypes/studio/proposals/` | Antigravity | Três propostas visuais independentes (A, B e C). Não escolher uma delas unilateralmente. |
-| **Laboratório de Combate** | `prototypes/combat-lab/` | Claude | Está na `main` (integrado por merge). Mapa de módulos e testes: `docs/INDICE_MODULOS.md`. |
+| **Protótipo Legado de Blocos** | `prototypes/game/` | Histórico (Descontinuado) | Protótipo inicial antigo (`arenamon-jogavel.html`); ignorar para novas features do jogo. |
 | **Central de Acesso & Docs**| Raiz e `docs/` | Antigravity / Claude | Manter links relativos sempre válidos para execução via `file://`. |
 
 ---

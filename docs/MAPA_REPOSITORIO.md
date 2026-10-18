@@ -35,15 +35,11 @@ Arenamon/
 ├── prototypes/                   # Aplicações, Protótipos e Ambientes Funcionais
 │   ├── index.html                # Catálogo clássico de protótipos
 │   │
-│   ├── game/                     # Protótipo legado de blocos; não é o jogo atual
-│   │   ├── dist/                 # Artefatos compilados para o navegador
-│   │   │   └── arenamon-jogavel.html  # Jogo completo offline (569 KB)
-│   │   ├── src/                  # Código-fonte TypeScript (lógica, arena, física, IA)
-│   │   ├── test.mjs              # 20 cenários mecânicos (tackle, esquiva, guarda, IA)
-│   │   ├── locomotion.test.mjs   # 15 cenários de locomoção e câmera orbital
-│   │   ├── verify.mjs            # 18 cenários em navegador Edge via Playwright
-│   │   ├── build.mjs             # Compilador esbuild em arquivo único
-│   │   └── README.md             # Documentação técnica do jogo
+│   ├── combat-lab/               # 1. JOGO PRINCIPAL — ARENAMON COMBATE (ver docs/INDICE_MODULOS.md)
+│   │   ├── dist/                 # Artefato compilado (npm run build)
+│   │   │   └── arenamon-combate-laboratorio.html # Jogo principal completo offline (~1.5 MB)
+│   │   ├── src/                  # Motor completo (X/C, Moves, VFX 3D sólidos, IA tática, UI Bento)
+│   │   └── test/                 # 35+ suítes unitárias + verificações de navegador no Edge
 │   │
 │   ├── studio/                   # 2. ANIMATION STUDIO & RIGGING STUDIO
 │   │   ├── dist/                 # Artefato compilado
@@ -64,10 +60,11 @@ Arenamon/
 │   │   │   └── screenshots/      # Evidências e capturas visuais das propostas
 │   │   └── build.mjs             # Compilador do Animation Studio
 │   │
-│   ├── combat-lab/               # 4. LABORATÓRIO DE COMBATE (na main; ver docs/INDICE_MODULOS.md)
-│   │   ├── dist/                 # Artefato compilado (npm run build; ignorado pelo Git)
-│   │   ├── src/                  # Simulação tática, estilos de IA, calibração A x B
-│   │   └── test/                 # Testes de IA, simulação determinística e paridade
+│   ├── game/                     # 4. PROTÓTIPO LEGADO DE BLOCOS (Descontinuado; não é o jogo atual)
+│   │   ├── dist/
+│   │   │   └── arenamon-jogavel.html  # Protótipo inicial antigo (569 KB — ignorar)
+│   │   ├── src/                  # Código TypeScript inicial congelado
+│   │   └── README.md             # Histórico do protótipo inicial
 │   │
 │   ├── placeholders/             # 5. LABORATÓRIO BASE (Criaturas Geométricas)
 │   │   ├── dist/

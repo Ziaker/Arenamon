@@ -8,17 +8,17 @@
 
 | Mexi em… | Rode (rápido → completo) | Precisa de navegador? |
 |---|---|---|
-| `combat-lab/src/sim/`, regras, IA, física | `npm run test:combat-lab:unit` | não |
-| `combat-lab/src/{view,ui,workspace}/`, HTML do lab | `npm run test:combat-lab:browser` | sim (Edge/Chromium) |
-| `game/src/` | `npm run test:game:unit` · `npm run test:game:browser` | só o 2º |
+| `combat-lab/src/sim/`, regras, IA, física (Jogo Principal) | `npm run test:combat-lab:unit` | não |
+| `combat-lab/src/{view,ui,workspace}/`, HTML do jogo/lab | `npm run test:combat-lab:browser` | sim (Edge/Chromium) |
 | `studio/src/` | `npm run test:studio:unit` · `npm run test:studio:browser` | só o 2º |
 | `importer/`, `placeholders/` | `npm run test:importer` · `npm run test:placeholders` | sim |
+| `game/src/` (protótipo legado descontinuado) | `npm run test:game:unit` · `npm run test:game:browser` | só o 2º |
 | tipos (JSDoc/`.ts`) | `npm run typecheck` | não |
 | qualquer coisa antes de entregar | `npm run verify` (= workspace + tipos + tudo + varredura offline) | sim |
 
 `npm run test:unit` roda todos os testes sem navegador (~1,5 min). `npm run check:offline` faz a varredura estática dos HTMLs gerados (exige `npm run build` antes).
 
-## 2. Laboratório de combate (`prototypes/combat-lab/`)
+## 2. Jogo Principal — Laboratório de Combate (`prototypes/combat-lab/`)
 
 **Simulação — `src/sim/`** (sem DOM nem Three.js; roda em Node; passo fixo de 120 Hz, determinística por semente)
 
@@ -53,8 +53,8 @@
 2. **Acerto único:** toda entidade do mundo passa por `world.applyHit` (mesmas regras do tackle). Não crie outro caminho de dano.
 3. **Estado = dados simples** clonáveis por `structuredClone` (`save/load`, replay, cenários). Não guarde funções nem referências a DOM no estado.
 4. **Sem aleatoriedade própria** na sim: tudo vem da semente (`Brain`). Evite `Math.random`/`Date.now` no passo.
-5. **Jogo oficial é independente:** `prototypes/game` não importa o laboratório. O laboratório só **lê** `game/src/config.ts` (comparação e geração de patch; nunca altera). Portar regras ao jogo exige autorização.
-6. **Registro de Moves vazio:** nenhum código do laboratório registra movimentos (garantido por `moves.test.mjs`).
+5. **O Combat Lab É o jogo oficial:** `prototypes/combat-lab` é o jogo principal do Arenamon. A pasta `prototypes/game` é apenas um protótipo legado de blocos (descontinuado), mantido no repositório para compatibilidade de testes históricos e referência de diff em `official.js`/`gamepatch.js`.
+6. **Registro de Moves vazio:** nenhum código do laboratório registra movimentos fora do bootstrap explícito (garantido por `moves.test.mjs`).
 
 ## 4. Riscos conhecidos (documentados, sem alteração)
 
@@ -63,13 +63,13 @@ Detalhes e proposta de tratamento: [PROPOSTA_REFATORACAO_ESTADO_GLOBAL.md](PROPO
 - **`C` é global e mutável** — 18 módulos de `sim/` o importam; ajustes de interface o alteram durante a partida. Para os Moves isso exige a regra de **captura de parâmetros na criação** (M28.4).
 - **`REGISTRY` de Moves é global** (fora do `Game`) e o `save` guarda ids, não definições.
 - **Ciclo de importação** `entity → moves → world → entity` (funciona porque os usos ficam dentro de funções).
-- **Dois motores de combate** (laboratório em JS, jogo em TS): a paridade verificada é de **valores de configuração**, não de comportamento.
+- **Protótipo legado (`prototypes/game`):** mantido congelado em TS apenas como referência histórica; toda evolução do jogo acontece em `prototypes/combat-lab`.
 
 ## 5. Outros protótipos
 
 | Pasta | O que é | Testes |
 |---|---|---|
-| `prototypes/game/` | Protótipo legado de blocos (TS) | `test.mjs`, `locomotion.test.mjs` (unit) · `verify.mjs` (navegador) |
+| `prototypes/game/` | Protótipo legado de blocos (TS — descontinuado; não é o jogo atual) | `test.mjs`, `locomotion.test.mjs` (unit) · `verify.mjs` (navegador) |
 | `prototypes/studio/` | Animation Studio + Rigging; `proposals/` = propostas A/B/C (aguardam decisão do diretor) | `test/ops`, `test/rigging` (unit) · `verify.mjs`, `test/rigging.browser.mjs` |
 | `prototypes/importer/` · `placeholders/` | Importador de modelos · laboratório de blocos | `verify.mjs` (navegador) |
 | `scripts/` | `verify-workspace.mjs` (governança do checkout), `check-offline.mjs` (varredura estática) | `check-offline.test.mjs` |

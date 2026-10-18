@@ -1,0 +1,1 @@
+{"name": "casos-rotulados congelamento", "mode": "oneshot", "rules": [{"id": "nao_congelar", "type": "not_frozen", "frames": "0-32", "min_motion": 0.004, "min_run": 3}]}

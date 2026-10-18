@@ -64,12 +64,12 @@ Há dois stashes compartilhados pelo repositório, preservados sem aplicação o
 
 - central de ambientes: `ABRIR_ARENAMON.html`;
 - central de testes: `TESTES_ARENAMON.html`;
-- jogo: `prototypes/game/dist/arenamon-jogavel.html`;
+- **jogo principal (Combat Lab):** `prototypes/combat-lab/dist/arenamon-combate-laboratorio.html` (atalho `JOGAR_ARENAMON.html`);
 - Animation Studio e Rigging: `prototypes/studio/dist/arenamon-animation-studio.html`;
 - propostas de rigging: `prototypes/studio/proposals/index.html`;
 - importador: `prototypes/importer/dist/importador-prototipo.html`;
 - laboratório base: `prototypes/placeholders/dist/criaturas-laboratorio.html`;
-- laboratório de combate, quando a branch correspondente estiver ativa e compilada: `prototypes/combat-lab/dist/arenamon-combate-laboratorio.html`.
+- protótipo legado de blocos (descontinuado): `prototypes/game/dist/arenamon-jogavel.html`.
 
 Os compilados `dist/` são locais e regeneráveis. Uma branch que não contenha determinado subsistema não deve receber cópia manual conflitante de outra branch. Use o histórico Git para selecionar a branch e execute o build correspondente no checkout oficial.
 

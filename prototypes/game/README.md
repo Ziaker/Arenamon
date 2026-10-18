@@ -1,6 +1,11 @@
-# Arenamon — primeiro combate jogável
+# Arenamon — Protótipo Inicial Legado de Blocos (Descontinuado)
 
-Abra `dist/arenamon-jogavel.html` por duplo clique. O arquivo inclui Three.js e sua licença MIT; funciona em `file://` sem servidor, CDN, modelos ou texturas. Requer navegador com WebGL. O código-fonte e os testes são locais; nada foi publicado.
+> ⚠️ **AVISO IMPORTANTE (DESCONTINUADO):** Este diretório (`prototypes/game/` e `dist/arenamon-jogavel.html`) contém apenas o **protótipo inicial legado de blocos** e **NÃO é o jogo principal do Arenamon**.
+> O **Jogo Principal Oficial** do Arenamon é o **Combat Lab**, localizado em [`prototypes/combat-lab/dist/arenamon-combate-laboratorio.html`](../combat-lab/dist/arenamon-combate-laboratorio.html) (ou pelo atalho [`JOGAR_ARENAMON.html`](../../JOGAR_ARENAMON.html) na raiz).
+
+---
+
+Abra `dist/arenamon-jogavel.html` por duplo clique apenas se desejar consultar o protótipo histórico de blocos. O arquivo inclui Three.js e sua licença MIT; funciona em `file://` sem servidor, CDN, modelos ou texturas.
 
 ## Execução e controles
 

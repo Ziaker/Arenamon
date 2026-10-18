@@ -88,9 +88,11 @@ export function psyshockEffect(/** @type {any} */ game, /** @type {any} */ f, /*
       // Sem alvo travado: leque discreto frontal (M26s.6), horizontal.
       dir = direction(heading + (n === 1 ? 0 : (i - (n - 1) / 2) * (fan / (n - 1))));
     }
+    // Empurrão desta pedra: base × (1 + bônus por nível de PL acima do 1) × (1 + fator × (velocidade da pedra ÷ velocidade média − 1)). Padrões 0 = sem bônus.
+    const kbH = G.knockbackPerStone * (1 + (G.knockbackLevelBonus ?? 0) * (ch.level - 1)) * (1 + (G.knockbackSpeedFactor ?? 0) * (speed / ((G.speedMin + G.speedMax) / 2) - 1));
     spawn(game.world, {
       kind: 'projectile', owner: f.id, pos: {x: s.x, z: s.z}, y: s.y, radius: G.radius, dir, speed: hSpeed, vy, life: Infinity, pierce: 1, blockedBy: ['barrier', 'wall'],
-      hit: {damage: base, knockback: {horizontal: G.knockbackPerStone, vertical: 0}}, pl: ch.level, clashable: true, exec: execId, homing, visualScale: s.scale,
+      hit: {damage: base, knockback: {horizontal: kbH, vertical: G.knockbackVertical ?? 0}}, pl: ch.level, clashable: true, exec: execId, homing, visualScale: s.scale,
       captured: {attackFraction: G.damageFraction, successiveFactor: G.successiveFactor, knockbackCap: G.knockbackCap, knockbackPerStone: G.knockbackPerStone, counterStagger: G.counterStagger, level: ch.level, move: def.id, speed},
     }, fx.events ?? []);
   }

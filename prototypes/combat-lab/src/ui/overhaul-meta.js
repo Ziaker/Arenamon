@@ -2,6 +2,7 @@
 // sombras, HUD, altura visual e tremor de câmera. kind: 'range' (padrão), 'select', 'toggle' ou 'color'.
 import {VFX_TYPES, SHAKE_PROFILES} from '../view/vfx.js';
 import {C} from '../sim/config.js';
+import {SOLID_FAMILIES, SOLID_KEYS} from '../view/solid-fx.js';
 
 const sec = n => n.toFixed(2) + ' s', mps2 = n => n.toFixed(1) + ' m/s²', x = n => n.toFixed(2) + '×', pct = n => (n * 100).toFixed(0) + '%', m = n => n.toFixed(2) + ' m', num = n => n.toFixed(2);
 const onOff = n => n ? 'Ligado' : 'Desligado';
@@ -48,7 +49,8 @@ const SPRINT = {
   exhaustedStop: ['Stamina zerada encerra o sprint', 'Ao zerar a stamina o sprint termina com o freio do sprint e o lutador fica exausto (regra da stamina).', toggle],
 };
 const AI = {
-  revision: ['Revisão da IA tática', 'Revisada: só pede ações que o motor aceitaria agora (mesma regra do jogador), estima se o X alcança antes de atacar, evita ficar exausta, usa sprint para encurtar distância e aproveita contra-ataques. Anterior: IA tática de 15/10/2026 (para comparação).', select(['Anterior (15/10/2026)', 'Revisada'])],
+  revision: ['Revisão da IA tática', 'Evoluída: Fases 2–10 (percepção justa, previsão de contato, gestão de arena/zonas, economia baseada em valor, defesa contextual, modelo do oponente, planejamento de sequências e dificuldade honesta). Revisada: regras do motor, sprint e alcance. Anterior: IA tática de 15/10/2026.', select(['Anterior (15/10/2026)', 'Revisada', 'Evoluída (Fases 2–10)'])],
+  difficultyTier: ['Dificuldade da IA', 'Dificuldade balanceada sem trapaças: modula percepção, hesitação e sequências táticas.', select(['Fácil', 'Normal', 'Difícil', 'Especialista'])],
   moveSmoothing: ['Suavização da intenção de movimento (IA)', 'Giro máximo (rad/s) da direção que a IA envia ao controlador. Contra giros instantâneos e zigue-zague; ataques e respostas a ameaças passam direto. 0 = intenções cruas (v6).', R(0, 40, .5, n => n ? n.toFixed(1) + ' rad/s' : 'desligada')],
   minDirectionHold: ['Retenção contra zigue-zague (IA)', 'Tempo mínimo antes de a IA voltar à direção anterior logo depois de mudar.', R(0, .6, .01, sec)],
 };
@@ -67,9 +69,29 @@ const VFX_PARAMS = {
   freeze: ['Congelamento visual (só poses e efeito)', R(0, .25, .005, n => (n * 1000).toFixed(0) + ' ms')], radius: ['Raio', R(.2, 4, .01, m)], particleSize: ['Tamanho das partículas', R(.02, 1, .01, m)],
   elevation: ['Elevação', R(0, 3, .01, x)], mixA: ['Combinado (D): poeira (A)', R(0, 2, .01, x)], mixB: ['Combinado (D): anel (B)', R(0, 2, .01, x)], mixC: ['Combinado (D): estilhaços (C)', R(0, 2, .01, x)], minImpact: ['Impacto mínimo para disparar', R(0, 15, .1, n => n.toFixed(1) + ' m/s')], fallSpeed: ['Velocidade de queda', R(.1, 6, .01, n => n.toFixed(2) + ' m/s')],
   startHeight: ['Altura inicial', R(.3, 4, .01, m)], height: ['Altura', R(.3, 4, .01, m)], scaleWithRate: ['Intensidade acompanha a taxa de recuperação', toggle],
+  rotSpeed: ['Velocidade de rotação', R(0, 10, .1, n => n.toFixed(1) + ' rad/s')], trail: ['Rastro de partículas', toggle],
+  trailDensity: ['Densidade do rastro', R(1, 30, 1, n => String(n))], shatter: ['Estilhaçar no impacto', toggle],
+  shatterCount: ['Fragmentos de estilhaço', R(4, 32, 1, n => String(n))], cracksEmissive: ['Brilho das veias de energia', toggle],
+  pulseFreq: ['Frequência de pulsação', R(.5, 8, .1, n => n.toFixed(1) + ' Hz')], ripples: ['Ondas de impacto na barreira', toggle],
+  shatterFragments: ['Fragmentos ao quebrar', R(6, 48, 2, n => String(n))], edgeGlow: ['Brilho nas bordas', R(.2, 3, .1, x)],
+  maxObjects: ['Limite de objetos 3D ativos', R(8, 512, 1, n => String(n))], quality: ['Qualidade dos efeitos 3D', select(['Baixa (menos objetos)', 'Média', 'Alta (mais objetos)'])],
   target: ['Mostrar em', select(['Adversário', 'Ambos', 'Jogador'])], enabled: ['Ligado', toggle], variant: ['Variante', null],
   maxParticles: ['Limite de partículas simultâneas', R(100, 4000, 50, n => String(n))], debugLog: ['Registrar motivo de cada disparo', toggle], legacy: ['Efeitos legados do v6 (partículas em caixa e tremor antigo)', toggle],
   profile: ['Perfil', select(SHAKE_PROFILES)], amplitude: ['Amplitude', R(0, .6, .005, m)], damping: ['Amortecimento', R(0, 30, .1, num)], angular: ['Deslocamento angular', R(0, 3, .01, x)], limit: ['Limite máximo', R(0, 1, .01, m)],
+};
+// Controles das famílias 3D: multiplicadores sobre o padrão de cada estilo (1,00× = como entregue). Só aparência.
+const SOLID_PARAMS_META = {
+  intensity: ['Intensidade (força geral)', 'Multiplica velocidade e quantidade de forma proporcional.', R(.1, 3, .01, x)],
+  amount: ['Quantidade / taxa de emissão', 'Quantos objetos nascem por disparo ou por passada. Abaixo de 1× some parte deles; acima de 1× repete com pequena variação.', R(.1, 3, .01, x)],
+  size: ['Tamanho', 'Escala dos volumes (múltiplo do tamanho de cada estilo).', R(.3, 3, .01, x)],
+  duration: ['Duração (× do padrão)', 'Quanto tempo os objetos duram antes de sumir. Só aparência: não muda a duração do dash nem do sprint.', R(.3, 3, .01, x)],
+  velocity: ['Velocidade dos objetos (×)', 'Velocidade com que poeira e vento são lançados.', R(.2, 3, .01, x)],
+  scatter: ['Dispersão (×)', 'Abre ou fecha o leque: afasta os objetos do ponto de origem e espalha as trajetórias.', R(.2, 3, .01, x)],
+  lift: ['Altura (×)', 'Altura de nascimento e impulso vertical.', R(.2, 3, .01, x)],
+  turbulence: ['Turbulência e rotação (×)', 'Giro dos volumes e ruído nas trajetórias; 1,00× é o padrão, abaixo reduz o giro.', R(0, 3, .01, x)],
+  opacity: ['Opacidade', 'Opacidade máxima dos volumes (no começo da vida).', R(.1, 1, .01, pct)],
+  fadeStart: ['Começa a sumir em (% da vida)', 'Quando a opacidade começa a diminuir. 0% = já nasce sumindo; 100% = só some no último instante.', R(0, .98, .01, pct)],
+  fadeEnd: ['Some por completo em (% da vida)', 'Quando a opacidade chega a zero. Quanto mais perto do início, mais rápido o efeito dissipa; 100% = dura até o fim.', R(.05, 1, .01, pct)],
 };
 const VFX_HELP = {
   freeze: 'Pausa só as poses dos personagens e aplica um filtro na tela; a simulação continua no mesmo tempo (nada muda nas regras).',
@@ -175,6 +197,12 @@ export function overhaulMeta(path) {
   if (root === 'vfx') {
     const type = parts[1], def = VFX_TYPES.find(t => t[0] === type);
     if (key === 'variant' && def) return out('Variante', 'Três alternativas visuais realmente diferentes.', select(def[2]));
+    if (SOLID_KEYS.includes(type) && SOLID_PARAMS_META[key]) { const [l, h, r] = SOLID_PARAMS_META[key];return out(l, h, r); }
+    if (SOLID_KEYS.includes(type) && (key === 'color' || key === 'color2')) return out(key === 'color' ? 'Cor' : 'Cor secundária (energia)', 'Cor base dos volumes deste efeito.', color);
+    if (SOLID_KEYS.includes(type) && key === 'enabled') return out('Ligado', 'Liga ou desliga este efeito 3D.', toggle);
+    const solid = SOLID_FAMILIES.find(f => f.key === type);
+    if (key === 'variant' && solid) return out('Estilo 3D', `Formas com volume real (sem sprites). Disparo: ${solid.trigger}. Cada opção tem forma e movimento próprios, não só cor ou tamanho.`, select(solid.names));
+    if (type === 'solid' && key === 'enabled') return out('Efeitos 3D sólidos (todos)', 'Liga ou desliga todas as malhas 3D de poeira, esquiva, aterrissagem, impacto, bloqueio e colisão.', toggle);
     const p = VFX_PARAMS[key];if (!p) return null;
     const label = type === 'shakeMaster' && key === 'enabled' ? 'Tremores de câmera (todos)' : type === 'master' && key === 'enabled' ? 'Efeitos visuais (todos)' : p[0];
     return out(label, VFX_HELP[key] || `${p[0]} do efeito. Só aparência: não altera regras, tempos da simulação ou cooldowns.`, p[1]);

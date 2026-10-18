@@ -9,6 +9,8 @@ import {Budget, QUALITY_LIMITS} from './budget.js';
 import {CameraFeedback} from './camera-feedback.js';
 import {VfxTelemetry} from './telemetry.js';
 import {adaptSimEvent, freezeVisualEvent, eventSeed, QUALITY} from './contract.js';
+import {BeamRenderer} from './beam-renderer.js';
+import {C} from '../../sim/config.js';
 
 const VERT = `
 attribute vec3 iPos; attribute vec3 iAxis; attribute vec2 iSize; attribute vec4 iColor; attribute vec3 iMisc;
@@ -153,15 +155,92 @@ export class VfxRuntime {
     this.add = new ParticleBatch(maxParticles, T.AdditiveBlending, this.atlas, this.pools);
     this.norm = new ParticleBatch(1024, T.NormalBlending, this.atlas, this.pools);
     scene.add(this.add.mesh, this.norm.mesh);
+    this.beamRenderer = new BeamRenderer(scene, {quality});
+    this.variants = new Map(); // family -> variantIndex
     this.activeEffects = new Map(); // instanceId → {effectDef, ctx, cost, spawned, releaseCb, releaseAt}
-    this.stats = {spawned: 0, peak: 0, active: 0, firesByType: {}, byType: {}};
+    this.stats = {spawned: 0, peak: 0, active: 0, firesByType: {}, byType: {}, beamsActive: 0};
     this.log = [];
     this.debugLog = false;
     this.contAcc = new Map(); // acumulador de efeitos contínuos por lutador/estado
   }
   setRegistry(registry) { this.registry = registry; }
-  setQuality(quality) { this.quality = quality; this.budget.setQuality(quality); }
-  setAccessibility(opts) { this.cameraFeedback.setAccessibility(opts); }
+  setQuality(quality) {
+    this.quality = quality;
+    this.budget.setQuality(quality);
+    this.beamRenderer?.setQuality(quality);
+  }
+  setAccessibility(opts) {
+    this.cameraFeedback.setAccessibility(opts);
+    this.beamRenderer?.setConfig({
+      reduceMotion: opts.preferReducedMotion || opts.reduceMotion,
+      noFlash: opts.noFlash,
+      highContrast: opts.highContrast,
+    });
+  }
+  // Fonte única da escolha: C.vfx[família].variant (o que o painel mostra e o desfazer/refazer restauram).
+  // setVariant só guarda famílias sem entrada em C.vfx e nunca sobrepõe o valor da configuração.
+  setVariant(family, variant) {
+    if (typeof C !== 'undefined' && C.vfx && C.vfx[family] && C.vfx[family].variant !== undefined) { this.variants.delete(family); return; }
+    this.variants.set(family, variant | 0);
+  }
+  getVariant(family) {
+    if (typeof C !== 'undefined' && C.vfx && C.vfx[family] && C.vfx[family].variant !== undefined) return C.vfx[family].variant | 0;
+    return this.variants.has(family) ? this.variants.get(family) : 0;
+  }
+  typeToFamily(t) {
+    const map = {hit: 'hit', partial: 'block', perfect: 'perfect', clash: 'clash', ground: 'ground', dodge: 'dodge', sprint: 'sprint', exhaust: 'exhaust', regen: 'regen', wall: 'wall'};
+    return map[t] || t;
+  }
+  triggerCameraFeedback(ev) {
+    if (!this.cameraFeedback) return;
+    if (ev.type === 'hit') {
+      const isHeavy = (ev.damage || 0) > 15;
+      this.cameraFeedback.applyProfile(isHeavy ? 'heavyHit' : 'lightHit', {power: Math.min(2, (ev.damage || 10) / 15)});
+    } else if (ev.type === 'perfect') {
+      this.cameraFeedback.applyProfile('perfectBlock');
+    } else if (ev.type === 'clash') {
+      this.cameraFeedback.applyProfile('clash');
+    } else if (ev.type === 'ground') {
+      this.cameraFeedback.applyProfile('landing');
+    }
+  }
+  preview(type, fighters = []) {
+    const a = fighters?.[0] || {position: {x: -1, y: 0, z: 0}};
+    const o = fighters?.[1] || {position: {x: 1, y: 0, z: 0}};
+    if (type === 'laser' || type === 'beam') {
+      const seg0 = {a: {x: a.position.x, y: 0.8, z: a.position.z}, b: {x: o.position.x, y: 0.8, z: o.position.z}, pl: this.beamRenderer?.config?.pl || 1};
+      const fakeWorld = {
+        entities: [{
+          id: 9999, kind: 'beam', y: 0.8, pl: this.beamRenderer?.config?.pl || 1, dead: false,
+          segments: [seg0]
+        }]
+      };
+      this.beamRenderer?.update(fakeWorld, 0.016, {camera: this.camera, particleBatch: this.add, cameraFeedback: this.cameraFeedback});
+      return;
+    }
+    const pos = {x: (a.position.x + o.position.x) / 2, y: 0, z: (a.position.z + o.position.z) / 2};
+    const norm = {x: 0, y: 0, z: 1};
+    const tick = Math.floor(this.time * 120);
+    const evMap = {
+      hit: {type: 'hit', damage: 20, position: {...o.position, y: 0.8}, normal: {x: 0, y: 0, z: 1}},
+      block: {type: 'partial', damage: 5, position: {...o.position, y: 0.8}, normal: {x: 0, y: 0, z: 1}},
+      perfect: {type: 'perfect', damage: 0, position: {...o.position, y: 0.8}, normal: {x: 0, y: 0, z: 1}},
+      clash: {type: 'clash', damage: 10, position: pos, normal: {x: 1, y: 0, z: 0}},
+      ground: {type: 'ground', damage: 0, position: {...a.position, y: 0}, normal: {x: 0, y: 1, z: 0}, power: 1.5},
+      dodge: {type: 'dodge', damage: 0, position: {...a.position}, direction: {x: 0, y: 0, z: 1}},
+      sprint: {type: 'sprint', damage: 0, position: {...a.position}, direction: {x: 0, y: 0, z: 1}, dx: 0, dz: 1},
+      exhaust: {type: 'exhaust', damage: 0, position: {...a.position}, normal: {x: 0, y: 1, z: 0}},
+      regen: {type: 'regen', damage: 0, position: {...a.position}, normal: {x: 0, y: 1, z: 0}},
+    };
+    const ev = evMap[type] || {type, damage: 10, position: pos, normal: norm};
+    const vis = freezeVisualEvent({
+      tick, eventId: `prev:${type}:${this.time}`,
+      type: ev.type, position: ev.position, normal: ev.normal || norm, direction: ev.direction || {x: 0, y: 0, z: 1},
+      damage: ev.damage, closingSpeed: 0, launch: null, surface: null,
+      seed: 0.42, attacker: 0, target: 1, anchor: 'contact',
+    });
+    this.handleVisualEvent(vis, fighters?.length ? fighters : [a, o], []);
+  }
   makeAtlas() {
     if (typeof document === 'undefined') return null;
     const S = 128, cv = document.createElement('canvas'); cv.width = cv.height = S * 4; const g = cv.getContext('2d');
@@ -185,11 +264,12 @@ export class VfxRuntime {
     const tex = new T.CanvasTexture(cv); tex.colorSpace = T.SRGBColorSpace; tex.generateMipmaps = true; tex.minFilter = T.LinearMipmapLinearFilter;
     return tex;
   }
-  update(fighters, simEvents, dt, {characters = [], paused = false, tick = 0} = {}) {
+  update(fighters, simEvents, dt, {characters = [], paused = false, tick = 0, world = null, camera = null} = {}) {
     if (!this.enabled) {
       this.pools.clearAll(); this.activeEffects.clear(); this.scheduler.clear();
       this.add.clear(); this.norm.clear();
       this.budget.reset(); this.cameraFeedback.reset(); this.contAcc.clear();
+      this.beamRenderer?.reset();
       return;
     }
     const frameDt = paused ? 0 : Math.min(dt, 0.05);
@@ -213,8 +293,17 @@ export class VfxRuntime {
     const nNorm = this.norm.update(frameDt);
     this.stats.active = nAdd + nNorm;
     this.stats.peak = Math.max(this.stats.peak, this.stats.active);
+    // 6.5. Atualizar feixes e laser dedicados (BeamRenderer).
+    if (this.beamRenderer) {
+      const activeBeams = this.beamRenderer.update(world, frameDt, {
+        camera: this.camera || camera,
+        particleBatch: this.add,
+        cameraFeedback: this.cameraFeedback,
+      });
+      this.stats.beamsActive = activeBeams;
+    }
     // 7. Feedback de câmera.
-    const cam = this.cameraFeedback.update(frameDt, performance.now() / 1000, this.camera);
+    const cam = this.cameraFeedback.update(frameDt, performance.now() / 1000, this.camera || camera);
     this.cameraFeedback.renderFlash();
     this.cameraFeedback.renderFilter();
     // 8. Telemetria: snapshot do quadro.
@@ -226,12 +315,17 @@ export class VfxRuntime {
     return {camera: cam, stats: this.stats};
   }
   handleVisualEvent(ev, fighters, characters) {
+    this.triggerCameraFeedback(ev);
+    const family = this.typeToFamily(ev.type);
+    const desiredVariant = this.getVariant(family);
     const candidates = [];
     for (const def of this.registry.list()) {
       if (def.trigger === ev.type) candidates.push(def);
     }
-    candidates.sort((a, b) => (b.priority || 0) - (a.priority || 0));
-    for (const def of candidates) {
+    const matching = candidates.filter(d => (d.variant ?? 0) === desiredVariant);
+    const pool = matching.length > 0 ? matching : candidates;
+    pool.sort((a, b) => (b.priority || 0) - (a.priority || 0));
+    for (const def of pool) {
       if (!this.shouldSpawn(def, ev, fighters)) continue;
       this.spawnEffect(def, ev, fighters, characters);
       if (def.aggregation === 'none') break;
@@ -287,7 +381,8 @@ export class VfxRuntime {
       if (f.exhausted) states.push('status:exhaust');
       if (f.staminaTrend > 1e-4 && f.stamina < 3 - 1e-6 && !f.sprinting && !f.exhausted && f.hp > 0) states.push('status:regen');
       for (const stateId of states) {
-        const def = this.registry.getLatest(stateId);
+        const desiredVariant = this.getVariant(stateId === 'status:exhaust' ? 'exhaust' : 'regen');
+        const def = this.registry.list().find(e => e.id === stateId && (e.variant ?? 0) === desiredVariant) || this.registry.getLatest(stateId);
         if (!def) continue;
         const key = `${stateId}:${i}`;
         const acc = (this.contAcc.get(key) || 0) + dt;
@@ -369,13 +464,15 @@ export class VfxRuntime {
     this.pools.clearAll(); this.add.clear(); this.norm.clear();
     this.budget.reset(); this.contAcc.clear(); this.contSeq = 0; this.time = 0;
     this.cameraFeedback.reset();
-    this.stats = {spawned: 0, peak: 0, active: 0, firesByType: {}, byType: {}};
+    this.beamRenderer?.reset();
+    this.stats = {spawned: 0, peak: 0, active: 0, firesByType: {}, byType: {}, beamsActive: 0};
     this.log = [];
   }
   dispose() {
     this.reset();
     this.add.mesh.geometry.dispose(); this.add.mesh.material.dispose();
     this.norm.mesh.geometry.dispose(); this.norm.mesh.material.dispose();
+    this.beamRenderer?.dispose();
   }
   recordLog(def, ev, action) {
     if (!this.debugLog) return;

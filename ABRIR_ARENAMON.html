@@ -438,32 +438,35 @@
     <section id="jogo">
       <div class="section-head">
         <h2 class="section-title"><span>🎮</span> Jogo Principal (Arenamon Combate)</h2>
-        <span class="section-badge">Jogo Atual · Laboratório de Combate</span>
+        <span class="section-badge">Jogo Oficial · prototypes/combat-lab</span>
       </div>
 
       <div class="card card-highlight">
         <div class="card-top">
-          <span class="card-tag game">Build atual do combate</span>
+          <span class="card-tag game">Jogo Oficial Ativo</span>
           <span style="font-size: 0.85rem; color: var(--success); font-weight: 700;">✓ Pronto para Jogar</span>
         </div>
-        <h3 class="card-h2">Arenamon — Laboratório de Combate Jogável</h3>
+        <h3 class="card-h2">Arenamon — Jogo Principal & Laboratório de Combate</h3>
         <p class="card-desc">
-          Esta é a versão jogável correta do Arenamon: personagens importáveis, combate tridimensional, IAs configuráveis, tackle, esquiva, defesa, clash, hitboxes e ferramentas de calibração.
+          O jogo principal oficial do Arenamon é o <strong>Combat Lab</strong> (<code>prototypes/combat-lab/dist/arenamon-combate-laboratorio.html</code>). Inclui suporte a personagens GLB do Studio, X (Tackle) e C (Esquiva) separados, Moves especiais com Power Level (Reflect &amp; Psyshock), VFX 3D sólidos, IA tática de 5 fases, Modo Arena tela cheia e interface Bento Zero-Scroll.
         </p>
 
         <ul class="feature-list">
-          <li><strong>Ações:</strong> X para tackle ofensivo, C para esquiva defensiva e D para defesa.</li>
-          <li><strong>Combate:</strong> IAs variadas, clash, lançamento, stamina, defesa perfeita e esquiva perfeita.</li>
-          <li><strong>Personagens:</strong> importação de GLB e controle de velocidade das animações.</li>
-          <li><strong>Calibração:</strong> parâmetros, presets, replay, cenários e exportação JSON.</li>
+          <li><strong>Ações &amp; Moves:</strong> X para tackle ofensivo, C para esquiva defensiva (com C → X), D para defesa e A/S para Moves (Reflect e Psyshock com PL1–PL3).</li>
+          <li><strong>VFX 3D &amp; Visual:</strong> 9 famílias de efeitos 3D sólidos, rochas telecinéticas, barreira de energia, lasers e Modo Arena sem painéis.</li>
+          <li><strong>Personagens:</strong> importação de GLB do Animation Studio e sincronização das durações de animação.</li>
+          <li><strong>Dashboard Bento Zero-Scroll:</strong> 9 abas de calibração, presets, replay, cenários, A × B e exportação sem necessidade de rolagem vertical.</li>
         </ul>
 
         <div class="btn-row">
-          <a href="JOGAR_ARENAMON.html" class="btn-action btn-primary">
-            ▶️ Abrir Arenamon Combate
+          <a href="prototypes/combat-lab/dist/arenamon-combate-laboratorio.html" class="btn-action btn-primary">
+            ▶️ Jogar Arenamon (Abrir Jogo Principal)
+          </a>
+          <a href="prototypes/combat-lab/dist/arenamon-painel-relatorios.html" class="btn-action btn-secondary">
+            📊 Painel de Relatórios
           </a>
           <a href="docs/REVISAO_GDD_COMBATE.md" class="btn-action btn-secondary">
-            📖 Ler regras do combate
+            📖 Ler Regras do Combate
           </a>
         </div>
       </div>
@@ -598,38 +601,32 @@
       </div>
     </section>
 
-    <!-- 4. LABORATÓRIO DE COMBATE -->
+    <!-- 4. LABORATÓRIO DE COMBATE & CALIBRAÇÃO -->
     <section id="combate">
       <div class="section-head">
-        <h2 class="section-title"><span>⚔️</span> Laboratório de Combate (Etapa A)</h2>
-        <span class="section-badge">Branch feat/combat-core-etapa-a</span>
+        <h2 class="section-title"><span>⚔️</span> Documentação & Relatórios do Jogo (Combat Lab)</h2>
+        <span class="section-badge">Jogo Principal · prototypes/combat-lab</span>
       </div>
 
       <div class="card">
         <div class="card-top">
-          <span class="card-tag warning">Aprovado pelo Responsável em 14/10/2026</span>
-          <span class="card-tag">Calibração & IA Tática</span>
+          <span class="card-tag warning">Jogo Oficial + Calibração Integrada</span>
+          <span class="card-tag">Moves · VFX 3D · IA Tática</span>
         </div>
-        <h3 class="card-h2">Laboratório de Calibração e Regras de Combate</h3>
+        <h3 class="card-h2">Documentação e Ferramentas do Jogo Principal</h3>
         <p class="card-desc">
-          Ambiente de testes especializado que gerou a especificação da Etapa A do combate. Permite simulação determinística passo a passo, IA tática com 6 estilos estratégicos (Agressor, Contra-atacante, etc.), ajuste de variáveis em tempo real e exportação de patch Git para <code>config.ts</code>.
+          O <strong>Combat Lab</strong> é o próprio jogo principal do Arenamon (<code>arenamon-jogavel.html</code> em <code>prototypes/game/</code> foi descontinuado como protótipo inicial legado). Acesse abaixo os documentos técnicos de Moves, VFX sólidos, calibração e o painel externo de relatórios.
         </p>
 
-        <ul class="feature-list">
-          <li><strong>Regras Aprovadas:</strong> Separação estrita de X (Tackle em 8 direções) e C (Esquiva sem dano), cancelamento C → X, clash de 30% e defesa sem deslocamento.</li>
-          <li><strong>Ferramenta A x B:</strong> Compara dois conjuntos de parâmetros lado a lado sob os mesmos cenários de luta.</li>
-        </ul>
-
         <div class="inst-box">
-          # Para experimentar este laboratório em sua branch dedicada no terminal:
-          git checkout feat/combat-core-etapa-a
-          node prototypes/combat-lab/build.mjs
-          # O arquivo será gerado em prototypes/combat-lab/dist/arenamon-combate-laboratorio.html
+          # Para recompilar o jogo principal no terminal:
+          npm run build:combat-lab
+          # Saída: prototypes/combat-lab/dist/arenamon-combate-laboratorio.html
         </div>
 
         <div style="margin-top: 18px;">
-          <a href="JOGAR_ARENAMON.html" class="btn-action btn-primary" style="margin-bottom: 10px;">
-            ▶️ Abrir o jogo / laboratório
+          <a href="prototypes/combat-lab/dist/arenamon-combate-laboratorio.html" class="btn-action btn-primary" style="margin-bottom: 10px;">
+            ▶️ Abrir Arenamon (Jogo Principal)
           </a>
           <a href="docs/REVISAO_GDD_COMBATE.md" class="btn-action btn-secondary">
             📖 Consultar Documento Oficial da Revisão do GDD (Etapa A)

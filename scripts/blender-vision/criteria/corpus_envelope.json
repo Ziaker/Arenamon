@@ -1,0 +1,99 @@
+{
+ "_leia": "Envelope EMPIRICO (percentis 10 e 90) de clips de ataque existentes do projeto. Mede o quao tipico e um ritmo; NAO julga qualidade artistica. Derivado automaticamente; nenhuma aprovacao humana envolvida.",
+ "clips_de_ataque_usados": [
+  "Headbutt",
+  "Tackle 1",
+  "Drop Kick",
+  "Flip Kick",
+  "Flying Knee Punch Combo",
+  "Jump Attack",
+  "Standing Melee Attack Backhand",
+  "Zombie Attack",
+  "chop sweep",
+  "perfect guard kick",
+  "sand kick",
+  "Running Slide"
+ ],
+ "corpo": {
+  "t10": [
+   0.096,
+   0.211
+  ],
+  "t50": [
+   0.307,
+   0.48
+  ],
+  "t90": [
+   0.67,
+   0.926
+  ],
+  "pico_norm": [
+   0.135,
+   0.435
+  ],
+  "pico_sobre_media": [
+   1.733,
+   5.434
+  ],
+  "fracao_parada": [
+   0.015,
+   0.074
+  ],
+  "duracao_frames": [
+   36.4,
+   76.0
+  ]
+ },
+ "maos": {
+  "t10": [
+   0.091,
+   0.221
+  ],
+  "t50": [
+   0.295,
+   0.48
+  ],
+  "t90": [
+   0.675,
+   0.897
+  ],
+  "pico_norm": [
+   0.125,
+   0.494
+  ],
+  "pico_sobre_media": [
+   2.032,
+   6.034
+  ],
+  "fracao_parada": [
+   0.019,
+   0.13
+  ]
+ },
+ "quadril": {
+  "t10": [
+   0.075,
+   0.207
+  ],
+  "t50": [
+   0.316,
+   0.524
+  ],
+  "t90": [
+   0.692,
+   0.926
+  ],
+  "pico_norm": [
+   0.128,
+   0.48
+  ],
+  "pico_sobre_media": [
+   1.738,
+   4.059
+  ],
+  "fracao_parada": [
+   0.021,
+   0.103
+  ]
+ }
+}

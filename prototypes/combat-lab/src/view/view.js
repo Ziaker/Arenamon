@@ -7,6 +7,7 @@ import {direction, length, angleOf} from '../sim/math.js';
 import {wouldVault, cancelWindow} from '../sim/controller.js';
 import {CameraRig} from './rig.js';
 import {VfxSystem} from './vfx.js';
+import {SolidFx} from './solid-fx.js';
 import {WorldView} from './world-view.js';
 import {phaseAt} from '../sim/motion.js';
 // Novo sistema de VFX declarativo (ativado ao lado do legado durante a migração).
@@ -45,15 +46,24 @@ export class View {
     // runtime está disponível em this.vfxRuntime para migração efeito a efeito.
     this.vfxRuntime = new VfxRuntime(this.scene, {camera: this.camera, canvas, flashEl: document.getElementById('vfx-flash'), quality: 'medium'});
     registerAllEffects(this.vfxRuntime);
+    this.solid = new SolidFx(this.scene); // malhas 3D sólidas (poeira do dash, esquiva, impactos); independe do renderizador de sprites
     this.useNewVfx = false; // trocar para true quando o novo sistema estiver em paridade
     this.overlayGroup = new T.Group();this.overlayGroup.renderOrder = 900;this.scene.add(this.overlayGroup);
     this.worldView = new WorldView(this.scene);
+    this.vfx.view = this;
+    this.vfxRuntime.view = this;
     let dragging = false, previous = 0;
     canvas.addEventListener('contextmenu', e => e.preventDefault());
     canvas.addEventListener('pointerdown', e => {if (e.button === 2) {dragging = true;previous = e.clientX;canvas.setPointerCapture(e.pointerId);}});
     canvas.addEventListener('pointermove', e => {if (dragging) {this.rig.orbit(-(e.clientX - previous) * C.extras.cameraExtra.orbitSensitivity);previous = e.clientX;}});
     const end = () => dragging = false;canvas.addEventListener('pointerup', end);canvas.addEventListener('pointercancel', end);window.addEventListener('blur', end);
     canvas.addEventListener('wheel', e => {e.preventDefault();this.rig.zoomBy(e.deltaY * C.extras.cameraExtra.wheelSensitivity);}, {passive: false});
+  }
+  setAccessibility(a = {}) {
+    this.vfx?.setAccessibility?.(a);
+    this.vfxRuntime?.setAccessibility?.(a);
+    this.solid?.setAccessibility?.(a);
+    this.worldView?.setAccessibility?.(a);
   }
   /** Reaplica tamanho da arena, cores, luzes e câmera depois de mudanças no ajustador. */
   applyConfig() {
@@ -71,6 +81,7 @@ export class View {
     this.rig.reset(player);this.seenEvents = new WeakSet();this.legacySeen = new WeakSet();this.cameraShake = 0;for (const e of this.effects) {this.scene.remove(e.mesh);e.mesh.geometry.dispose();e.mesh.material.dispose();}this.effects = [];this.airborneSeen = [];this.invulnerableFx.clear();this.normals = [];this.vfx.reset();
     if (this.canvas) this.canvas.style.filter = '';
     this.vfxRuntime.reset();
+    this.solid.reset();
   }
   /** Efeitos legados do v6 (partículas em caixa e tremor antigo). Só com “Efeitos legados” ligado em Visualizar. */
   spawnBurst(pos, type) {
@@ -159,7 +170,7 @@ export class View {
       // A prévia de animação continua tocando com a partida pausada.
       t0 = now();character?.update(f, paused ? (character.preview ? realDt : 0) : dt, alt, events, {tick, source: sources[f.id]});tm.anim += now() - t0;
     }
-    t0 = now();this.drawOverlays(fighters, paused ? 0 : dt);this.worldView.update(world, {fighters, events, dt: paused ? 0 : dt});tm.overlays = now() - t0;
+    t0 = now();this.drawOverlays(fighters, paused ? 0 : dt);this.worldView.update(world, {fighters, events, dt: paused ? 0 : dt, skipBeams: this.useNewVfx});tm.overlays = now() - t0;
     if (!this.rig.initialized) this.rig.reset(fighters[0]);
     const pose = this.rig.pose();
     this.camera.position.set(pose.position.x, pose.height, pose.position.z);this.camera.lookAt(pose.lookAt.x, pose.lookHeight, pose.lookAt.z);this.camera.updateMatrixWorld();
@@ -168,17 +179,20 @@ export class View {
     let rt = null;
     if (this.useNewVfx) {
       // Novo runtime declarativo (renderizador ativo). O legado fica inativo.
-      t0 = now();rt = this.vfxRuntime.update(fighters, events, vfxDt, {characters: this.characters, camera: this.camera, paused, tick});tm.vfx = now() - t0;
+      t0 = now();rt = this.vfxRuntime.update(fighters, events, vfxDt, {characters: this.characters, camera: this.camera, paused, tick, world});tm.vfx = now() - t0;
     } else {
       // Renderizador legado (fallback). O novo runtime permanece inativo.
       t0 = now();this.vfx.update(fighters, events, vfxDt, {characters: this.characters, camera: this.camera});tm.vfx = now() - t0;
+      this.vfxRuntime.beamRenderer?.reset();
     }
+    this.solid.update(fighters, events, vfxDt, {visible: !!X.hud.fxVisible, world});
     const legacy = this.updateLegacy(fighters, events, paused ? 0 : dt);
     const fxOn = !!X.hud.fxVisible;
     const legacyOn = fxOn && !this.useNewVfx && !!this.vfx.atlas;
     const newOn = fxOn && this.useNewVfx && !!this.vfxRuntime.atlas;
     this.vfx.add.mesh.visible = legacyOn; this.vfx.norm.mesh.visible = legacyOn;
     this.vfxRuntime.add.mesh.visible = newOn; this.vfxRuntime.norm.mesh.visible = newOn;
+    if (this.vfxRuntime.beamRenderer) this.vfxRuntime.beamRenderer.group.visible = newOn;
     // Tremor: vem do sistema ativo (legado ou novo). Nunca altera o rig nem a entrada.
     let sh;
     if (this.useNewVfx && rt && rt.camera) {

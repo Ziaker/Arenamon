@@ -30,6 +30,7 @@ try {
   const mid = await L(() => {const f = window.__lab.game.fighters[0];return {charging: !!f.charge, ticks: f.charge?.ticks ?? 0, move: f.charge?.move ?? null};});
   check('segurar A (teclado real) carrega o Reflect', mid.charging && mid.move === 'reflect' && mid.ticks > 10, JSON.stringify(mid));
   await page.screenshot({path: out + 'carregando.png'});
+  await page.waitForTimeout(1200);
   await key('KeyA', false);await page.waitForTimeout(400);
   const after = await L(() => {const g = window.__lab.game, f = g.fighters[0], b = g.world.entities.find(e => e.reflect);
     return {charging: !!f.charge, barrier: b ? {owner: b.owner, pl: b.pl, width: +(b.hx * 2).toFixed(2), height: +b.height.toFixed(2), life: +b.life.toFixed(2)} : null, cooldown: +(f.moveCooldowns.reflect ?? 0).toFixed(2)};});

@@ -13,6 +13,7 @@ import {Character} from '../src/view/characters.js';
 import {Game} from '../src/sim/game.js';
 import {C, resetConfig} from '../src/sim/config.js';
 import {vec} from '../src/sim/math.js';
+import {registerStandardMoves} from '../src/sim/moves/standard.js';
 
 const out = fileURLToPath(new URL('../validation/', import.meta.url));mkdirSync(out, {recursive: true});
 let passed = 0;const report = [];
@@ -133,6 +134,98 @@ test('altura visual: ajuste automático por animação, offset manual e independ
 test('sem root motion: deslocamento horizontal do quadril descartado', () => {
   const {ch, g} = setup();run(ch, g, 50, t => [cmd({move: vec(1, 0)}), cmd()]);
   check('quadril sem deslocamento X/Z', Math.abs(ch.hips.position.x - ch.hipsRest.x) < 1e-9 && Math.abs(ch.hips.position.z - ch.hipsRest.z) < 1e-9);
+});
+test('disparo de movimentos: move_1 e move_2 ativam animação própria', () => {
+  registerStandardMoves();
+  const specialClip1 = clip('Special Move 1', .6, 45);
+  const specialClip2 = clip('Special Move 2', .5, 35);
+  const src = makeSource([specialClip1, specialClip2]);
+  const {ch, g} = setup(src);
+  g.setLoadout(0, ['reflect', 'psyshock', null, null]);
+  const idx1 = src.animations.indexOf(specialClip1);
+  const idx2 = src.animations.indexOf(specialClip2);
+  ch.addVariant('move_1', idx1);
+  ch.addVariant('move_2', idx2);
+
+  // Passo 10 a 190: carrega Reflect (slot 0) por 180 passos (1,5 s de carga mínima) e solta no passo 190
+  run(ch, g, 210, t => {
+    const c = cmd();
+    if (t === 10) c.skill = 0;
+    c.skillHeld = [t >= 10 && t < 190, false, false, false];
+    return [c, cmd()];
+  });
+  const m1 = entries(ch, 'release_reflect').concat(entries(ch, 'move_1'));
+  check('disparo entra ao soltar a carga do Reflect', m1.length >= 1, `${m1.length} entradas`);
+  check('disparo toca o clipe associado ao Reflect', m1[0]?.clipTo === 'Special Move 1', m1[0]?.clipTo);
+
+  // Passo 10 a 20 da próxima bateria: carrega Psyshock (slot 1) e solta no passo 20
+  run(ch, g, 40, t => {
+    const c = cmd();
+    if (t === 10) c.skill = 1;
+    c.skillHeld = [false, t >= 10 && t < 20, false, false];
+    return [c, cmd()];
+  });
+  const m2 = entries(ch, 'release_psyshock').concat(entries(ch, 'move_2'));
+  check('disparo entra ao soltar a carga do Psyshock', m2.length >= 1, `${m2.length} entradas`);
+  check('disparo toca o clipe associado ao Psyshock', m2[0]?.clipTo === 'Special Move 2', m2[0]?.clipTo);
+});
+test('movimentos especiais na aba moves: carga com loop configurável e disparo', () => {
+  registerStandardMoves();
+  const chargeClip = clip('Charge Loopable', 1.0, 20);
+  const releaseClip = clip('Release Blast', 0.5, 30);
+  const src = makeSource([chargeClip, releaseClip]);
+  const {ch, g} = setup(src);
+  g.setLoadout(0, ['reflect', 'psyshock', null, null]);
+
+  const chargeIdx = src.animations.indexOf(chargeClip);
+  const releaseIdx = src.animations.indexOf(releaseClip);
+
+  // Configura carga com ponto de loop em 0.4s e disparo
+  ch.setMoveAnim('reflect', 'charge', chargeIdx);
+  ch.setMoveChargeLoopStart('reflect', 0.40);
+  ch.setMoveAnim('reflect', 'release', releaseIdx);
+
+  // Segura a carga por 180 passos (1.5 segundos):
+  const keys = run(ch, g, 180, t => {
+    const c = cmd();
+    if (t === 0) c.skill = 0;
+    c.skillHeld = [true, false, false, false];
+    return [c, cmd()];
+  });
+
+  const chargeSamples = keys.filter(k => k.key === 'charge_reflect');
+  check('estado charge_reflect ativo durante a carga', chargeSamples.length > 100, `${chargeSamples.length}`);
+  check('tempo no passo 60 está em torno de 0.5s', Math.abs(chargeSamples[60].time - 0.5) < 0.05, `${chargeSamples[60]?.time}`);
+
+  // Após 1.0s (passo 144 = 1.2s total = 0.2s após completar 1.0s), deve estar em 0.4s + 0.2s = 0.6s
+  const sampleAfter1s = chargeSamples[144];
+  check('após 1.0s o clipe fez loop a partir de 0.4s (esperado ~0.6s)', Math.abs(sampleAfter1s.time - 0.60) < 0.05, `${sampleAfter1s?.time}`);
+
+  // Solta a carga e verifica o disparo
+  run(ch, g, 30, () => [cmd({skillHeld: [false, false, false, false]}), cmd()]);
+  const relEntries = entries(ch, 'release_reflect');
+  check('release_reflect entra ao soltar a tecla', relEntries.length >= 1);
+  check('release_reflect toca o clipe Release Blast', relEntries[0]?.clipTo === 'Release Blast', relEntries[0]?.clipTo);
+
+  // Testar prévia integrada (startMovePreview / stopMovePreview)
+  check('startMovePreview inicia a prévia da sequência', ch.startMovePreview('reflect'));
+  check('prévia em fase de carga', ch.movePreview?.phase === 'charge');
+  ch.stopMovePreview();
+  check('stopMovePreview encerra a prévia', ch.movePreview === null);
+
+  // O fim do ciclo pode ocorrer antes do fim do clipe: 0–0,4 intro, 0,4–0,7 loop, 0,7–1,0 fora do ciclo.
+  const {ch: ranged, g: rangedGame} = setup(src);
+  rangedGame.setLoadout(0, ['reflect', 'psyshock', null, null]);
+  ranged.setMoveAnim('reflect', 'charge', chargeIdx);
+  ranged.setMoveChargeLoopStart('reflect', 0.4);
+  ranged.setMoveChargeLoopEnd('reflect', 0.7);
+  const rangedKeys = run(ranged, rangedGame, 115, t => {
+    const c = cmd();if (t === 0) c.skill = 0;c.skillHeld = [true, false, false, false];return [c, cmd()];
+  }).filter(k => k.key === 'charge_reflect');
+  check('loop inicia antes de acabar o clipe', Math.abs(rangedKeys[96]?.time - 0.5) < 0.05, `${rangedKeys[96]?.time}`);
+  check('fim configurado é salvo no estado portátil', ranged.stateData().moveAnims.reflect.chargeLoopEnd === 0.7);
+  ranged.setMoveChargeLoopEnd('reflect', 0.3);
+  check('intervalo permanece válido ao antecipar o fim', ranged.getMoveAnimConfig('reflect').chargeLoopStart <= 0.28 + 1e-8);
 });
 writeFileSync(out + 'animation-report.json', JSON.stringify({createdAt: new Date().toISOString(), checks: report}, null, 2));
 console.log(`\n${passed} testes de animação aprovados · ${report.length} verificações.`);

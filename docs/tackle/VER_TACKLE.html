@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Arenamon — Player do Tackle do Vigoroth (Teste 01)</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --card: #181c27;
+      --border: #2b3245;
+      --primary: #4f8cff;
+      --primary-hover: #3a75e6;
+      --success: #2e9e4f;
+      --text: #f0f3fa;
+      --text-muted: #8c96ac;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background: var(--bg); color: var(--text); padding: 24px; display: flex; flex-direction: column; align-items: center; }
+    .container { width: 100%; max-width: 1040px; }
+    header { margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 16px; }
+    h1 { font-size: 22px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+    .badge { background: var(--success); color: #fff; font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px; text-transform: uppercase; }
+    .status-text { font-size: 13px; color: var(--text-muted); }
+    
+    .player-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,0.4); margin-bottom: 24px; }
+    .video-wrapper { position: relative; background: #000; display: flex; justify-content: center; }
+    video { width: 100%; max-height: 540px; display: block; object-fit: contain; }
+    .views-overlay { position: absolute; top: 12px; left: 16px; right: 16px; display: flex; justify-content: space-between; pointer-events: none; }
+    .view-tag { background: rgba(0,0,0,0.65); padding: 4px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; letter-spacing: 0.5px; border: 1px solid rgba(255,255,255,0.15); }
+
+    .controls-panel { padding: 18px 24px; border-top: 1px solid var(--border); }
+    .phase-indicator { background: rgba(79, 140, 255, 0.1); border: 1px solid rgba(79, 140, 255, 0.3); border-radius: 8px; padding: 10px 16px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
+    .phase-title { font-weight: 700; font-size: 14px; color: var(--primary); }
+    .phase-desc { font-size: 13px; color: var(--text-muted); }
+    .frame-badge { font-family: monospace; font-size: 14px; font-weight: 700; background: var(--border); padding: 2px 8px; border-radius: 4px; }
+
+    .btn-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    button { background: var(--border); color: var(--text); border: none; padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px; }
+    button:hover { background: #3b445e; }
+    button.active { background: var(--primary); color: #fff; }
+    .play-btn { background: var(--primary); color: #fff; padding: 8px 20px; font-size: 14px; }
+    .play-btn:hover { background: var(--primary-hover); }
+    .divider { width: 1px; height: 24px; background: var(--border); margin: 0 4px; }
+    .help-hint { font-size: 12px; color: var(--text-muted); margin-left: auto; }
+
+    .tabs-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+    .tabs-header { display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 12px; }
+    .tab-btn { background: transparent; color: var(--text-muted); }
+    .tab-btn.active { background: var(--border); color: var(--text); }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .evidence-img { width: 100%; border-radius: 8px; border: 1px solid var(--border); display: block; margin-top: 10px; }
+
+    .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 14px; }
+    .summary-box { background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+    .summary-box .label { font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 700; margin-bottom: 4px; }
+    .summary-box .val { font-size: 15px; font-weight: 700; color: #fff; }
+    .summary-box .sub { font-size: 12px; color: var(--success); margin-top: 2px; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <div>
+      <h1>Tackle do Vigoroth <span class="badge">Aprovado (v26)</span></h1>
+      <p class="status-text">Reconstrução 100% autônoma do zero • 41 frames a 30 FPS • Contrato de Movimento Verificado</p>
+    </div>
+    <div style="text-align: right;">
+      <a href="chars/vigor/tackle_history/index.html" target="_blank" style="color: var(--primary); font-size: 13px; text-decoration: none; font-weight: 600;">Abrir Histórico Completo &rarr;</a>
+    </div>
+  </header>
+
+  <div class="player-card">
+    <div class="video-wrapper">
+      <video id="vid" src="chars/vigor/tackle_preview.mp4" autoplay loop muted playsinline></video>
+      <div class="views-overlay">
+        <div class="view-tag">&#9658; VISTA FRONTAL</div>
+        <div class="view-tag">&#9658; VISTA DE PERFIL (LATERAL)</div>
+      </div>
+    </div>
+
+    <div class="controls-panel">
+      <div class="phase-indicator">
+        <div>
+          <span class="phase-title" id="phaseTitle">Start / Antecipação</span>
+          <span class="phase-desc" id="phaseDesc"> — Perna D apoiada no chão, perna E levantada, braço E mirando oponente</span>
+        </div>
+        <div class="frame-badge" id="frameBadge">t1 (g0) / 41</div>
+      </div>
+
+      <div class="btn-row">
+        <button class="play-btn" id="playBtn" onclick="togglePlay()">&#10074;&#10074; Pausar</button>
+        <button onclick="step(-1)">&#9664; -1 Frame</button>
+        <button onclick="step(1)">+1 Frame &#9654;</button>
+        <div class="divider"></div>
+        <span style="font-size: 12px; color: var(--text-muted); font-weight: 600;">VELOCIDADE:</span>
+        <button onclick="setSpeed(0.25)" id="spd025">0.25x (Lenta)</button>
+        <button onclick="setSpeed(0.5)" id="spd05">0.5x</button>
+        <button onclick="setSpeed(1.0)" id="spd1" class="active">1.0x (Normal)</button>
+        <div class="help-hint">Atalhos: Espaço (Pause), Setas &larr; &rarr; (Passo)</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tabs-card">
+    <div class="tabs-header">
+      <button class="tab-btn active" onclick="openTab('tab-resumo', this)">Resumo das Fases</button>
+      <button class="tab-btn" onclick="openTab('tab-visao', this)">Visão Geral (14 Poses)</button>
+      <button class="tab-btn" onclick="openTab('tab-ids', this)">Passes de Cor (Membros)</button>
+      <button class="tab-btn" onclick="openTab('tab-garra', this)">Zoom da Garra</button>
+      <button class="tab-btn" onclick="openTab('tab-grafico', this)">Gráfico Cinemático</button>
+    </div>
+
+    <div id="tab-resumo" class="tab-content active">
+      <p style="font-size: 14px; line-height: 1.6; color: #c0c8db;">
+        Esta animação substituiu a versão de teste anterior com problemas de congelamento e deslizamento. Todos os 41 frames foram sintetizados e ajustados por cinemática e curvas Bezier.
+      </p>
+      <div class="summary-grid">
+        <div class="summary-box">
+          <div class="label">Total de Frames</div>
+          <div class="val">41 frames (30 FPS)</div>
+          <div class="sub">&check; Duração exata de 1.36s</div>
+        </div>
+        <div class="summary-box">
+          <div class="label">Pico de Velocidade</div>
+          <div class="val">0.47 m/frame</div>
+          <div class="sub">&check; Golpe contínuo (unimodal em g11)</div>
+        </div>
+        <div class="summary-box">
+          <div class="label">Smear &amp; Stretch</div>
+          <div class="val">5 frames / 4 frames</div>
+          <div class="sub">&check; Retorno limpo dentro da janela</div>
+        </div>
+        <div class="summary-box">
+          <div class="label">Deslizamento de Pés</div>
+          <div class="val">0 frames (Zero skate)</div>
+          <div class="sub">&check; Passos com fase aérea e IK</div>
+        </div>
+        <div class="summary-box">
+          <div class="label">Interpenetração</div>
+          <div class="val">0 violações graves</div>
+          <div class="sub">&check; Braço livre do tronco</div>
+        </div>
+        <div class="summary-box">
+          <div class="label">Convergência ao Idle</div>
+          <div class="val">0.0&deg; descontinuidade</div>
+          <div class="sub">&check; Casamento exato em g40</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="tab-visao" class="tab-content">
+      <p style="font-size: 13px; color: var(--text-muted);">Contact sheet frontal e lateral nos 14 frames-chave da animação:</p>
+      <img src="chars/vigor/tackle_history/v26/1_visao_geral_front_side.png" class="evidence-img" alt="Visão Geral">
+    </div>
+
+    <div id="tab-ids" class="tab-content">
+      <p style="font-size: 13px; color: var(--text-muted);">Passes semânticos por cores sólidas (Vermelho=Braço D, Azul=Braço E, Verde=Perna D, Ciano=Perna E, Branco=Tronco, Amarelo=Cabeça):</p>
+      <img src="chars/vigor/tackle_history/v26/2_passes_de_id.png" class="evidence-img" alt="Passes de ID">
+    </div>
+
+    <div id="tab-garra" class="tab-content">
+      <p style="font-size: 13px; color: var(--text-muted);">Câmera de zoom rastreando a mão e garra direita nos momentos críticos do golpe:</p>
+      <img src="chars/vigor/tackle_history/v26/3_zoom_mao_D.png" class="evidence-img" alt="Zoom da Garra">
+    </div>
+
+    <div id="tab-grafico" class="tab-content">
+      <p style="font-size: 13px; color: var(--text-muted);">Curva de velocidade temporal e fases de contato dos pés:</p>
+      <img src="chars/vigor/tackle_history/v26/5_grafico_denso.png" class="evidence-img" alt="Gráfico Denso">
+    </div>
+  </div>
+</div>
+
+<script>
+  const vid = document.getElementById('vid');
+  const playBtn = document.getElementById('playBtn');
+  const frameBadge = document.getElementById('frameBadge');
+  const phaseTitle = document.getElementById('phaseTitle');
+  const phaseDesc = document.getElementById('phaseDesc');
+
+  const PHASES = [
+    { start: 0, end: 3, title: "Start / Antecipação", desc: "Perna D apoiada no chão, perna E levantada, braço E mirando oponente" },
+    { start: 4, end: 8, title: "Smear / Disparo Explosivo", desc: "Braço direito lidera antes do tronco; smear de 5 frames (escala +15%)" },
+    { start: 9, end: 12, title: "Stretch & Contato", desc: "Garra aberta descendo em arco diagonal cruzando o peito; stretch de 4 frames" },
+    { start: 13, end: 13, title: "Continuação do Contato", desc: "Follow-through do impacto com pé E travado no chão" },
+    { start: 14, end: 17, title: "Recuperação 1", desc: "Absorção de impacto e sustentação na perna esquerda" },
+    { start: 18, end: 26, title: "Recuperação 2 / Movimento Residual", desc: "Balanço ativo de respiração e peso (sem congelamento; braço afastado do tronco)" },
+    { start: 27, end: 30, title: "Pulinho de Reposicionamento", desc: "Subida rápida de 5.5 cm e aterrissagem estável" },
+    { start: 31, end: 40, title: "Finalização / Retorno ao Idle", desc: "Passos curtos com fase aérea e convergência suave para a pose de descanso em g40" },
+  ];
+
+  function togglePlay() {
+    if (vid.paused) {
+      vid.play();
+      playBtn.innerHTML = '&#10074;&#10074; Pausar';
+    } else {
+      vid.pause();
+      playBtn.innerHTML = '&#9658; Reproduzir';
+    }
+  }
+
+  function step(delta) {
+    vid.pause();
+    playBtn.innerHTML = '&#9658; Reproduzir';
+    vid.currentTime = Math.max(0, Math.min(vid.duration, vid.currentTime + (delta / 30)));
+    updateInfo();
+  }
+
+  function setSpeed(spd) {
+    vid.playbackRate = spd;
+    ['spd025', 'spd05', 'spd1'].forEach(id => document.getElementById(id).classList.remove('active'));
+    if (spd === 0.25) document.getElementById('spd025').classList.add('active');
+    if (spd === 0.5) document.getElementById('spd05').classList.add('active');
+    if (spd === 1.0) document.getElementById('spd1').classList.add('active');
+  }
+
+  function updateInfo() {
+    const g = Math.min(40, Math.floor(vid.currentTime * 30));
+    const t = g + 1;
+    frameBadge.textContent = `t${t} (g${g}) / 41`;
+
+    const phase = PHASES.find(p => g >= p.start && g <= p.end) || PHASES[0];
+    phaseTitle.textContent = phase.title;
+    phaseDesc.textContent = ` — ${phase.desc}`;
+  }
+
+  vid.addEventListener('timeupdate', updateInfo);
+
+  window.addEventListener('keydown', e => {
+    if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
+    if (e.code === 'ArrowRight') { e.preventDefault(); step(1); }
+    if (e.code === 'ArrowLeft') { e.preventDefault(); step(-1); }
+  });
+
+  function openTab(tabId, btn) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    document.getElementById(tabId).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+
+</body>
+</html>

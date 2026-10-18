@@ -4,6 +4,12 @@ import {Character, loadStudioFile, loadAnimationFile, ACTION_IDS, STATE_LABELS} 
 import {escape} from './tuning.js';
 import {validateModel, validateAnimations} from '../view/validate.js';
 
+
+const ACTION_CATS = {
+  moves: ['tackle', 'dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'jump'],
+  loco: ['idle', 'walk', 'run', 'sprint', 'turn', 'walk_stop', 'sprint_stop', 'walk_back', 'walk_left', 'walk_right'],
+  react: ['block_start', 'block', 'block_end', 'guard_impact', 'blocked', 'hit', 'knockback', 'fall', 'land', 'recover', 'downed', 'death'],
+};
 const ACTION_LABELS = {idle: 'Parado', turn: 'Girar no lugar', walk: 'Andar', run: 'Correr', sprint: 'Sprint (8 direções)', walk_stop: 'Freio da caminhada', sprint_stop: 'Freio do sprint',
   walk_back: 'Andar para trás', walk_left: 'Lateral esquerda', walk_right: 'Lateral direita', block_start: 'Entrar na defesa', block: 'Defesa', block_end: 'Sair da defesa',
   guard_impact: 'Impacto na defesa', blocked: 'Recuo (bloqueado)', tackle: 'Tackle (X)', dodge_forward: 'Esquiva frontal', dodge_back: 'Esquiva traseira', dodge_left: 'Esquiva esquerda',
@@ -95,13 +101,52 @@ export function createCharacterPanel({ui, view, $, onCharactersChanged, hooks = 
     return fold('Altura visual e apoio no chão', `h${id}`, body, {open: true});
   }
   function statesBox(id, ch) {
-    // Uma linha por estado: clipe principal (menu) e prévia. Variantes extras e velocidade só abrem em “▸”.
+    // Uma linha por estado: clipe principal (menu) e prévia. Filtros rápidos por categoria e busca instantânea.
     const body = document.createElement('div');body.className = 'state-list';
+
+    // Controles de busca e filtro por categoria
+    const controlsWrap = document.createElement('div');
+    controlsWrap.innerHTML = `<input type="search" class="state-search" placeholder="🔍 Filtrar ação ou clipe..." aria-label="Filtrar ações">
+      <div class="anim-filter-bar">
+        <button type="button" class="active" data-cat="all">Todos (${ACTION_IDS.length})</button>
+        <button type="button" data-cat="moves">⚔ Golpes & Moves</button>
+        <button type="button" data-cat="loco">🏃 Locomoção</button>
+        <button type="button" data-cat="react">🛡 Defesa & Reações</button>
+      </div>
+      <p class="hint" style="margin:4px 0 8px 0;font-size:11px;">ℹ As animações de carga (com slider de loop) e disparo dos Moves especiais ficam na aba <b>Moves</b>.</p>`;
+    body.append(controlsWrap);
+
+    let activeCat = 'all', filterText = '';
+    const updateFilter = () => {
+      for (const row of body.querySelectorAll('.state-row')) {
+        const act = row.dataset.action;
+        const catMatch = activeCat === 'all' || (activeCat === 'moves' && ACTION_CATS.moves.includes(act)) || (activeCat === 'loco' && ACTION_CATS.loco.includes(act)) || (activeCat === 'react' && ACTION_CATS.react.includes(act));
+        const label = (ACTION_LABELS[act] || act).toLowerCase();
+        const sel = row.querySelector('[data-primary]');
+        const clipName = sel && sel.selectedIndex > 0 ? sel.options[sel.selectedIndex].text.toLowerCase() : '';
+        const textMatch = !filterText || label.includes(filterText) || act.includes(filterText) || clipName.includes(filterText);
+        row.hidden = !(catMatch && textMatch);
+      }
+    };
+
+    controlsWrap.querySelector('.state-search').oninput = e => {
+      filterText = e.target.value.trim().toLowerCase();
+      updateFilter();
+    };
+    for (const b of controlsWrap.querySelectorAll('[data-cat]')) {
+      b.onclick = () => {
+        activeCat = b.dataset.cat;
+        for (const x of controlsWrap.querySelectorAll('[data-cat]')) x.classList.toggle('active', x === b);
+        updateFilter();
+      };
+    }
+
     const clipOptions = sel => ['<option value="">— sem animação própria —</option>', ...ch.clips.map((c, i) => `<option value="${i}" ${ch.clipInfo[i].compatible ? '' : 'disabled'} ${i === sel ? 'selected' : ''}>${escape(c.name)} · ${c.duration.toFixed(2)} s</option>`)].join('');
     for (const action of ACTION_IDS) {
+      const catBadge = ACTION_CATS.moves.includes(action) ? '<span class="state-badge move">GOLPE</span>' : ACTION_CATS.loco.includes(action) ? '<span class="state-badge loco">LOCO</span>' : '<span class="state-badge react">REAÇÃO</span>';
       const list = ch.variantsOf(action), row = document.createElement('div');row.className = 'state-row';row.dataset.action = action;
       const extra = list.length > 1 ? ` +${list.length - 1}` : '';
-      row.innerHTML = `<div class="state-line"><b title="${action}">${escape(ACTION_LABELS[action] || action)}</b><select data-primary aria-label="Animação de ${action}">${clipOptions(list[0] ?? -1)}</select><button type="button" data-play title="Prévia" ${list.length ? '' : 'disabled'}>▶</button><button type="button" data-more title="Variantes e velocidade" aria-expanded="false">▸${extra}</button></div><div class="state-more" hidden></div>`;
+      row.innerHTML = `<div class="state-line"><b title="${action}">${escape(ACTION_LABELS[action] || action)}${catBadge}</b><select data-primary aria-label="Animação de ${action}">${clipOptions(list[0] ?? -1)}</select><button type="button" data-play title="Prévia" ${list.length ? '' : 'disabled'}>▶</button><button type="button" data-more title="Variantes e velocidade" aria-expanded="false">▸${extra}</button></div><div class="state-more" hidden></div>`;
       row.querySelector('[data-primary]').onchange = e => {ch.setPrimary(action, e.target.value === '' ? null : Number(e.target.value));render();onCharactersChanged();};
       row.querySelector('[data-play]').onclick = () => {if (list.length) ch.startPreview(list[0]);};
       const more = row.querySelector('.state-more'), btn = row.querySelector('[data-more]'), key = `${id}:${action}`;
