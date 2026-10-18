@@ -54,6 +54,7 @@ const log = (mv, entry) => {mv.log.push(entry);if (mv.log.length > 30) mv.log.sh
 export function movesCommand(brain, self, target, c) {
   const slots = self.loadout;
   if (!slots || !slots.some(Boolean) || !brain.t) return c;
+  const A = C.world.ai, holdTicks = Math.max(1, Math.round(A.reflectHold / C.test.step));   // parâmetros ajustáveis na aba Moves › IA com Moves
   const t = brain.t, mv = (t.mv ??= {phase: 'idle', slot: -1, goalTicks: 0, wait: 0, roll: 0, last: t.time ?? 0, log: []});
   const dt = Math.max(0, (t.time ?? 0) - mv.last);mv.last = t.time ?? 0;
   const world = brain.getWorld?.() ?? null;
@@ -81,7 +82,7 @@ export function movesCommand(brain, self, target, c) {
     const canDodgeCancel = ch.ticks >= (ch.params?.dodgeLockTicks ?? 30) && !self.exhausted && self.stamina >= (C.actions?.dodge?.cost ?? 1);
 
     // Evasão emergencial durante o Charge: se o rival inicia um Tackle a curta distância, esquiva lateralmente cancelando o charge
-    if (oppTackle && distance < 4.5 && canDodgeCancel) {
+    if (oppTackle && distance < A.evadeDistance && canDodgeCancel) {
       const diff = sub(target.position, self.position);
       const away = length(diff) > 1e-6 ? normalize(scale(diff, -1)) : direction(self.facing + Math.PI);
       const side = vec(away.z, -away.x);
@@ -104,16 +105,16 @@ export function movesCommand(brain, self, target, c) {
 
     if (ch.move === 'psyshock') {
       // Quanto mais distante, mais mantém a carga para atingir PL superior (PL2 em 2s, PL3 em 4s)
-      if (distance >= 7.0) mv.goalTicks = Math.max(mv.goalTicks, LEVEL_TICKS[3]);
-      else if (distance >= 4.8) mv.goalTicks = Math.max(mv.goalTicks, LEVEL_TICKS[2]);
+      if (distance >= A.pl3Distance) mv.goalTicks = Math.max(mv.goalTicks, LEVEL_TICKS[3]);
+      else if (distance >= A.pl2Distance) mv.goalTicks = Math.max(mv.goalTicks, LEVEL_TICKS[2]);
       const cont = evaluateChargeContinuation(self, target, ch, distance, threat);
       if (cont.shouldRelease) mv.goalTicks = Math.min(mv.goalTicks, ch.ticks);
     } else if (ch.move === 'reflect') {
-      mv.goalTicks = Math.max(mv.goalTicks, 180);
+      mv.goalTicks = Math.max(mv.goalTicks, holdTicks);
       const cont = evaluateChargeContinuation(self, target, ch, distance, threat);
       if (cont.shouldRelease) mv.goalTicks = Math.min(mv.goalTicks, ch.ticks);
     }
-    if (threat && threat.time < .22 && threat.pl > 0 && (ch.move !== 'reflect' || ch.ticks < 180)) {
+    if (threat && threat.time < A.lastSecondDefend && threat.pl > 0 && (ch.move !== 'reflect' || ch.ticks < holdTicks)) {
       defend();
       log(mv, {time: +t.time.toFixed(3), move: ch.move, why: 'defesa em cima da hora', pl: threat.pl});
       return c;
@@ -126,7 +127,7 @@ export function movesCommand(brain, self, target, c) {
     if (ch.ticks < mv.goalTicks) c.skillHeld = held(ch.slot);
     return c;
   }
-  if (mv.phase === 'charging') {mv.phase = 'idle';mv.wait = .35;}      // terminou (soltou ou foi interrompida): respira um pouco
+  if (mv.phase === 'charging') {mv.phase = 'idle';mv.wait = A.afterChargeWait;}      // terminou (soltou ou foi interrompida): respira um pouco
   mv.wait = Math.max(0, mv.wait - dt);
   if (mv.wait > 0 || self.action || self.flight || self.knockRecovery > 0 || self.hp <= 0) return c;
 
@@ -141,10 +142,10 @@ export function movesCommand(brain, self, target, c) {
   // ---------- Reflect reativo (só se der tempo de chegar a um PL suficiente) ----------
   const ri = slots.indexOf('reflect');
   if (threat) {
-    const need = ri >= 0 ? Math.max(180, REFLECT_TICKS[Math.min(3, threat.pl)] ?? 480) : (LEVEL_TICKS[Math.min(3, threat.pl)] ?? 480);
+    const need = ri >= 0 ? Math.max(holdTicks, REFLECT_TICKS[Math.min(3, threat.pl)] ?? 480) : (LEVEL_TICKS[Math.min(3, threat.pl)] ?? 480);
     const canMakeIt = threat.time * 120 >= need + 18;
     if (ri >= 0 && canMakeIt && start(ri, need, 'projétil hostil a caminho', {pl: threat.pl, time: +threat.time.toFixed(2)})) return c;
-    if (threat.time < .26 && !self.guard && !c.dodge) {defend();log(mv, {time: +t.time.toFixed(3), move: null, why: 'sem tempo para o PL do projétil: defende', pl: threat.pl});return c;}
+    if (threat.time < A.noTimeDefend && !self.guard && !c.dodge) {defend();log(mv, {time: +t.time.toFixed(3), move: null, why: 'sem tempo para o PL do projétil: defende', pl: threat.pl});return c;}
   }
   if (!world) return c;
 
@@ -155,9 +156,9 @@ export function movesCommand(brain, self, target, c) {
   // ---------- Barreira do adversário no caminho: destruí-la com Tackle quando está perto ----------
   const barrier = enemyBarrierBetween(world, self, target);
   if (barrier) {
-    mv.roll = .5;
+    mv.roll = A.decisionInterval;
     const to = sub(barrier.pos, self.position), d = length(to);
-    if (d < 3.2 && !self.exhausted && self.stamina >= C.actions.tackle.cost + .5 && brain.random() < .6) {
+    if (d < A.barrierBreakRange && !self.exhausted && self.stamina >= C.actions.tackle.cost + .5 && brain.random() < A.barrierBreakChance) {
       c.tackle = true;c.move = normalize(to);log(mv, {time: +t.time.toFixed(3), move: 'tackle', why: 'destruir barreira do adversário', distance: +d.toFixed(2)});
     }
     return c;
@@ -165,11 +166,11 @@ export function movesCommand(brain, self, target, c) {
 
   // ---------- Psyshock ofensivo ----------
   const pi = slots.indexOf('psyshock');
-  if (pi >= 0 && distance > 3.5 && self.stamina >= 2 && !target.flight && (brain.cooldown ?? 0) <= 0) {
-    mv.roll = .5;
+  if (pi >= 0 && distance > A.psyshockMinDistance && self.stamina >= A.psyshockMinStamina && !target.flight && (brain.cooldown ?? 0) <= 0) {
+    mv.roll = A.decisionInterval;
     const oppEval = evaluateMoveOpportunity(self, target, 'psyshock', pi, world, {distance, threat}, S, () => brain.random());
     if (oppEval.viable) {
-      const p = Math.min(.9, .25 + .5 * (S.attack ?? .5) + (distance > 6 ? .15 : 0));
+      const p = Math.min(A.psyshockChanceMax, .25 + .5 * (S.attack ?? .5) + (distance > 6 ? .15 : 0));
       if (brain.random() < p) {
         start(pi, oppEval.goalTicks, 'ataque à distância', {pl: oppEval.level ?? (oppEval.goalTicks >= LEVEL_TICKS[3] ? 3 : oppEval.goalTicks >= LEVEL_TICKS[2] ? 2 : 1), distance: +distance.toFixed(2)});
       }

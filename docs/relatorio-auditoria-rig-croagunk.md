@@ -1,13 +1,13 @@
 # Pokémon Arena Fighter 3D — Relatório Técnico de Auditoria, Conversão e Validação do Rig de Croagunk (Pokkén Tournament DX)
 
 **Data da Auditoria:** 13 de Outubro de 2026  
-**Ativo Principal Gerado:** [`croagunk-pokken.glb`](file:///c:/Users/zerke/OneDrive/Área%20de%20Trabalho/Arenamon/croagunk-pokken.glb) (7.874.040 bytes / 7,87 MB)  
+**Ativo Principal Gerado:** [`croagunk-pokken.glb`](file:///c:/Users/zerke/OneDrive/Área%20de%20Trabalho/Arenamon/chars/croagunk/croagunk-pokken.glb) (7.874.040 bytes / 7,87 MB)  
 **Fonte Original Auditada:** `Nintendo Switch - Pokken Tournament DX - Combat Pokemon - #0453 Croagunk (Combat).zip` (`Croagunk.dae`)  
 **Visualizador Interativo de Diagnóstico:** [`diagnostico-pokken.html`](file:///c:/Users/zerke/OneDrive/Área%20de%20Trabalho/Arenamon/prototypes/croagunk/dist/diagnostico-pokken.html) (12.442.749 bytes / 12,44 MB)  
 **Arquivos Anteriores Preservados Intactos:**
-- [`croagunk.glb`](file:///c:/Users/zerke/OneDrive/Área%20de%20Trabalho/Arenamon/croagunk.glb) (207.140 bytes — Malha estática base)
-- [`croagunk-rigged.glb`](file:///c:/Users/zerke/OneDrive/Área%20de%20Trabalho/Arenamon/croagunk-rigged.glb) (1.438.180 bytes — Rig procedural de 15 ossos com 13 animações)
-- [`croagunk-rigged-anterior.glb`](file:///c:/Users/zerke/OneDrive/Área%20de%20Trabalho/Arenamon/croagunk-rigged-anterior.glb) (1.437.300 bytes — Cópia de segurança do rig v1)
+- [`croagunk.glb`](file:///c:/Users/zerke/OneDrive/Área%20de%20Trabalho/Arenamon/chars/croagunk/croagunk.glb) (207.140 bytes — Malha estática base)
+- [`croagunk-rigged.glb`](file:///c:/Users/zerke/OneDrive/Área%20de%20Trabalho/Arenamon/chars/croagunk/croagunk-rigged.glb) (1.438.180 bytes — Rig procedural de 15 ossos com 13 animações)
+- [`croagunk-rigged-anterior.glb`](file:///c:/Users/zerke/OneDrive/Área%20de%20Trabalho/Arenamon/chars/croagunk/croagunk-rigged-anterior.glb) (1.437.300 bytes — Cópia de segurança do rig v1)
 - [`croagunk-laboratorio.html`](file:///c:/Users/zerke/OneDrive/Área%20de%20Trabalho/Arenamon/prototypes/croagunk/dist/croagunk-laboratorio.html) (931.675 bytes — Laboratório 3D do rig de 15 ossos)
 
 **Veredito Estrutural e de Deformação:** **APROVADO PARA PRODUÇÃO PROFISSIONAL DE COMBATE**
@@ -18,7 +18,7 @@
 
 A presente auditoria e trabalho de engenharia 3D concluiu com êxito a transição da base esquelética do personagem Croagunk no projeto *Pokémon Arena Fighter*. O rig anterior, gerado de forma sintética com 15 ossos e fronteiras de peso algorítmicas, possuía limitações inerentes de resolução articular, ausência de controles faciais e estiramentos de malha em poses extremas.
 
-A partir do pacote original de **Pokkén Tournament DX (Nintendo Switch / Bandai Namco)**, foi inspecionado, corrigido matematicamente e convertido o modelo `Croagunk.dae`, gerando o ativo oficial [`croagunk-pokken.glb`](file:///c:/Users/zerke/OneDrive/Área%20de%20Trabalho/Arenamon/croagunk-pokken.glb).
+A partir do pacote original de **Pokkén Tournament DX (Nintendo Switch / Bandai Namco)**, foi inspecionado, corrigido matematicamente e convertido o modelo `Croagunk.dae`, gerando o ativo oficial [`croagunk-pokken.glb`](file:///c:/Users/zerke/OneDrive/Área%20de%20Trabalho/Arenamon/chars/croagunk/croagunk-pokken.glb).
 
 ### Destaques da Entrega:
 1. **Esqueleto Original Preservado:** Esqueleto completo com **60 articulações**, incluindo mandíbula móvel, bochechas infláveis independentes, três segmentos espinhais, ossos de torção (twist bones) nas extremidades e 3 dedos articulados por mão.

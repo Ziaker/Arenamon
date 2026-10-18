@@ -72,6 +72,7 @@ const VFX_PARAMS = {
   rotSpeed: ['Velocidade de rotação', R(0, 10, .1, n => n.toFixed(1) + ' rad/s')], trail: ['Rastro de partículas', toggle],
   trailDensity: ['Densidade do rastro', R(1, 30, 1, n => String(n))], shatter: ['Estilhaçar no impacto', toggle],
   shatterCount: ['Fragmentos de estilhaço', R(4, 32, 1, n => String(n))], cracksEmissive: ['Brilho das veias de energia', toggle],
+  shatterSpeed: ['Velocidade dos estilhaços', R(.2, 3, .05, x)], shatterLife: ['Duração dos estilhaços', R(.3, 3, .05, x)], shatterSize: ['Tamanho dos estilhaços', R(.4, 3, .05, x)],
   pulseFreq: ['Frequência de pulsação', R(.5, 8, .1, n => n.toFixed(1) + ' Hz')], ripples: ['Ondas de impacto na barreira', toggle],
   shatterFragments: ['Fragmentos ao quebrar', R(6, 48, 2, n => String(n))], edgeGlow: ['Brilho nas bordas', R(.2, 3, .1, x)],
   maxObjects: ['Limite de objetos 3D ativos', R(8, 512, 1, n => String(n))], quality: ['Qualidade dos efeitos 3D', select(['Baixa (menos objetos)', 'Média', 'Alta (mais objetos)'])],

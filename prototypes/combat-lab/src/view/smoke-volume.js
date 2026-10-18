@@ -97,7 +97,7 @@ export class SmokeVolume {
         const x = c.s[i * 4], y = c.s[i * 4 + 1], z = c.s[i * 4 + 2], r = c.s[i * 4 + 3], o = (row * W + i) * 4; this.data[o] = x; this.data[o + 1] = y; this.data[o + 2] = z; this.data[o + 3] = r;
         mnx = Math.min(mnx, x - r); mny = Math.min(mny, y - r); mnz = Math.min(mnz, z - r); mxx = Math.max(mxx, x + r); mxy = Math.max(mxy, y + r); mxz = Math.max(mxz, z + r); rs += r;
       }
-      const kk = Math.max(.06, rs / c.n * 1.7), m = kk * .3 + .04;
+      const kk = Math.max(.06, rs / c.n * 2.4), m = kk * .3 + .04;
       mnx -= m; mny -= m; mnz -= m; mxx += m; mxy += m; mxz += m;
       A.misc.array.set([row, c.n, kk, c.seed], row * 4); A.boxC.array.set([(mnx + mxx) / 2, (mny + mxy) / 2, (mnz + mxz) / 2], row * 3); A.boxH.array.set([(mxx - mnx) / 2, (mxy - mny) / 2, (mxz - mnz) / 2], row * 3);
       A.aa.array.set([c.a / c.n, c.age / c.n], row * 2); A.col.array.set([c.cr / c.n, c.cg / c.n, c.cb / c.n], row * 3); row++;
