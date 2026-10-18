@@ -1,4 +1,4 @@
-// Controlador do editor (Fase 1): timeline, recorte, tempo/loop, eventos, root motion, comparação e histórico.
+// Controlador do editor (Fase 1 + Redesenho Zen): timeline em pílula flutuante + overlay, recorte, tempo/loop, eventos, root motion, comparação e histórico.
 import {createHistory} from './history.js';
 import {createStore, meta, EVENT_TYPES, eventType, eventWarnings, newId} from './store.js';
 import {trimClip, scaleClipTime, closeLoop, keyTimes, trimEvents, scaleEvents} from './clip-ops.js';
@@ -15,13 +15,17 @@ const history = createHistory({onEdit: c => window.__studioProject?.markDirty(c.
   $('ed-undo').disabled = !s.canUndo;$('ed-redo').disabled = !s.canRedo;
   $('ed-undo').title = s.canUndo ? `Desfazer: ${s.undoLabel} (Ctrl+Z)` : 'Nada para desfazer';
   $('ed-redo').title = s.canRedo ? `Refazer: ${s.redoLabel} (Ctrl+Y)` : 'Nada para refazer';
+  window.__studioLayout?.refreshStatus?.();
 }});
 const store = createStore({engine: E, history});
 const compare = createCompare({engine: E, store});
 window.__studioCompare = compare;
 
-const ui = {tool: null, fps: 30, ranges: new WeakMap(), selectedEvent: null, keyCache: new WeakMap(), rootCache: new WeakMap(), rootChoice: null, height: 210, collapsed: false};
-try {const h = Number(localStorage.getItem('arenamon-studio-timeline-h'));if (h > 0) ui.height = h;ui.collapsed = localStorage.getItem('arenamon-studio-timeline-collapsed') === '1';} catch {}
+const ui = {tool: null, fps: 30, ranges: new WeakMap(), selectedEvent: null, keyCache: new WeakMap(), rootCache: new WeakMap(), rootChoice: null, height: 196, collapsed: true, pinned: false, interacting: false};
+try {
+  const h = Number(localStorage.getItem('arenamon-studio-timeline-h'));
+  if (h > 0) ui.height = h;
+} catch {}
 const clip = () => E.selectedClip;
 const time = () => {const a = E.selectedAction, d = clip()?.duration || 0;return Math.max(0, Math.min(d, a?.time || 0));};
 const frameStep = () => 1 / ui.fps;
@@ -46,50 +50,108 @@ const timeline = createTimeline($('ed-canvas'), {
   },
   onEventAdd: t => addEvent($('ed-event-type').value, t),
 });
-let readout = '';
+
+let readout = '', wasPlaying = false, autoCollapseTimer = null;
+const stage = document.querySelector('.stage'), dock = $('ed-dock'), full = $('ed-full'), pinBtn = $('ed-pin');
+
+function schedulePlayDim(immediate = false) {
+  clearTimeout(autoCollapseTimer);
+  if (!E.playing) {dock.classList.remove('ed-playing-dim');return;}
+  if (ui.pinned) {dock.classList.remove('ed-playing-dim');return;}
+  const run = () => {
+    if (!E.playing || ui.pinned || ui.interacting) return;
+    if (!ui.collapsed) {ui.collapsed = true;applyHeight();}
+    dock.classList.add('ed-playing-dim');
+  };
+  if (immediate) run();
+  else autoCollapseTimer = setTimeout(run, 150);
+}
+
 E.on('tick', () => {
   const c = clip();
-  // Repetir somente o trecho na prévia.
   const range = c && ui.ranges.get(c);
   if (range && $('ed-loop-range').checked && E.playing) {const t = time();if (t >= range.end - 1e-4 || t < range.start - 1e-4) E.seek(range.start);}
+  if (E.playing !== wasPlaying) {
+    wasPlaying = E.playing;
+    if (E.playing) {
+      ui.interacting = false;
+      schedulePlayDim(false);
+    } else {
+      clearTimeout(autoCollapseTimer);
+      dock.classList.remove('ed-playing-dim');
+    }
+  }
   timeline.update();
   const t = time(), d = c?.duration || 0, text = `${fmt(t)} s|quadro ${Math.round(t * ui.fps)} / ${Math.round(d * ui.fps)}`;
   if (text !== readout) {readout = text;const [a, b] = text.split('|');$('ed-time').textContent = a;$('ed-frame').textContent = b;}
 });
 
-// ---------- Dock: altura, recolher e ferramentas ----------
-const stage = document.querySelector('.stage'), dock = $('ed-dock');
+// ---------- Dock: altura, recolher, fixar e ferramentas ----------
 function applyHeight() {
-  const bar = dock.querySelector('.ed-bar').offsetHeight || 46;
-  // Garante espaço para todas as faixas da timeline (116 px) e, com ferramenta aberta, para o painel.
-  const h = ui.collapsed ? bar + 6 : Math.max(ui.height, bar + 130, ui.tool ? bar + 250 : 0);
-  stage.style.setProperty('--ed-dock-h', Math.min(h, Math.max(bar + 6, stage.clientHeight - 140)) + 'px');
-  dock.classList.toggle('ed-collapsed', ui.collapsed);$('ed-collapse').setAttribute('aria-expanded', String(!ui.collapsed));$('ed-collapse').textContent = ui.collapsed ? '▴' : '▾';
-  try {localStorage.setItem('arenamon-studio-timeline-h', String(ui.height));localStorage.setItem('arenamon-studio-timeline-collapsed', ui.collapsed ? '1' : '0');} catch {}
-  timeline.invalidate();window.__studioLayout?.syncTimeline(ui.collapsed);
+  const maxH = Math.max(148, Math.floor((stage.clientHeight || 600) * 0.38));
+  const h = Math.min(Math.max(148, ui.height), maxH);
+  stage.style.setProperty('--ed-dock-h', h + 'px');
+  dock.classList.toggle('ed-collapsed', ui.collapsed);
+  if (full) full.hidden = ui.collapsed;
+  $('ed-collapse').setAttribute('aria-expanded', String(!ui.collapsed));
+  $('ed-collapse').textContent = ui.collapsed ? '▴ Timeline' : '▾ Timeline';
+  if (pinBtn) pinBtn.setAttribute('aria-pressed', String(!!ui.pinned));
+  try {localStorage.setItem('arenamon-studio-timeline-h', String(ui.height));} catch {}
+  if (!ui.collapsed) requestAnimationFrame(() => {timeline.invalidate();timeline.draw();});
+  window.__studioLayout?.syncTimeline?.(ui.collapsed, ui.pinned);
 }
 {
   const grip = $('ed-grip');let start = null;
-  grip.addEventListener('pointerdown', e => {e.preventDefault();start = {y: e.clientY, h: dock.offsetHeight};grip.setPointerCapture(e.pointerId);document.body.classList.add('ed-resizing');});
-  grip.addEventListener('pointermove', e => {if (!start) return;ui.collapsed = false;ui.height = Math.max(110, start.h + start.y - e.clientY);applyHeight();});
+  grip.addEventListener('pointerdown', e => {e.preventDefault();ui.interacting = true;start = {y: e.clientY, h: full?.offsetHeight || ui.height};grip.setPointerCapture(e.pointerId);document.body.classList.add('ed-resizing');});
+  grip.addEventListener('pointermove', e => {if (!start) return;ui.collapsed = false;ui.height = Math.max(148, start.h + start.y - e.clientY);applyHeight();});
   const end = () => {start = null;document.body.classList.remove('ed-resizing');};grip.addEventListener('pointerup', end);grip.addEventListener('pointercancel', end);
   grip.addEventListener('dblclick', () => {ui.collapsed = !ui.collapsed;applyHeight();});
-  grip.addEventListener('keydown', e => {if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {e.preventDefault();ui.collapsed = false;ui.height = Math.max(110, ui.height + (e.key === 'ArrowUp' ? 20 : -20));applyHeight();}});
-  $('ed-collapse').onclick = () => {ui.collapsed = !ui.collapsed;applyHeight();};
-  // A barra pode quebrar em várias linhas: remede quando o palco ou a própria barra mudam de tamanho.
-  const ro = new ResizeObserver(() => applyHeight());ro.observe(stage);ro.observe(dock.querySelector('.ed-bar'));
+  grip.addEventListener('keydown', e => {if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {e.preventDefault();ui.collapsed = false;ui.height = Math.max(148, ui.height + (e.key === 'ArrowUp' ? 20 : -20));applyHeight();}});
+  $('ed-collapse').onclick = () => {ui.collapsed = !ui.collapsed;if (!ui.collapsed) dock.classList.remove('ed-playing-dim');applyHeight();};
+  if (pinBtn) pinBtn.onclick = () => {ui.pinned = !ui.pinned;if (ui.pinned) {ui.collapsed = false;dock.classList.remove('ed-playing-dim');}applyHeight();};
+  $('play')?.addEventListener('click', () => {
+    queueMicrotask(() => {
+      if (E.playing && !ui.pinned) {
+        ui.interacting = false;
+        schedulePlayDim(true);
+      } else {
+        dock.classList.remove('ed-playing-dim');
+      }
+    });
+  });
+  dock.addEventListener('pointerenter', () => {ui.interacting = true;clearTimeout(autoCollapseTimer);dock.classList.remove('ed-playing-dim');});
+  dock.addEventListener('pointermove', () => {ui.interacting = true;clearTimeout(autoCollapseTimer);dock.classList.remove('ed-playing-dim');});
+  dock.addEventListener('pointerleave', () => {ui.interacting = false;if (E.playing && !ui.pinned) schedulePlayDim(false);});
+  dock.addEventListener('focusin', e => {if (e.target?.id === 'play' && E.playing) return;ui.interacting = true;clearTimeout(autoCollapseTimer);dock.classList.remove('ed-playing-dim');});
+  dock.addEventListener('focusout', e => {if (!dock.contains(e.relatedTarget)) {ui.interacting = false;if (E.playing && !ui.pinned) schedulePlayDim(false);}});
+  const ro = new ResizeObserver(() => applyHeight());ro.observe(stage);
 }
-function openTool(name, {keep = false} = {}) {
+
+const TOOL_TO_CONTEXT = {trim: 'trim', time: 'clip', events: 'event', root: 'root', compare: 'compare'};
+function openTool(name, {keep = false, fromLayout = false} = {}) {
   if (ui.tool === name && !keep) name = null;
-  ui.tool = name;if (name) ui.collapsed = false;
+  ui.tool = name;
+  if (name && !fromLayout) ui.collapsed = false;
   for (const b of dock.querySelectorAll('[data-tool]')) b.setAttribute('aria-pressed', String(b.dataset.tool === name));
-  for (const s of dock.querySelectorAll('[data-panel]')) s.hidden = s.dataset.panel !== name;
-  $('ed-panel').hidden = !name;dock.classList.toggle('has-panel', !!name);
-  document.querySelector('[data-workflow="edit"]')?.classList.toggle('current', !!name && name !== 'compare');
+  for (const s of document.querySelectorAll('[data-panel]')) {
+    if (s.dataset.panel === 'time') s.hidden = !(name === 'time' || window.__studioLayout?.inspector?.kind === 'clip');
+    else s.hidden = s.dataset.panel !== name;
+  }
+  $('ed-panel').hidden = !name;
+  dock.classList.toggle('has-panel', !!name);
+  if (!fromLayout && window.__studioLayout) {
+    if (name) {
+      const kind = TOOL_TO_CONTEXT[name] || name;
+      const id = name === 'events' ? ui.selectedEvent : E.selectedIndex;
+      window.__studioLayout.selectContext(kind, id, {fromEditor: true, tool: name});
+    } else if (['trim', 'event', 'root', 'compare'].includes(window.__studioLayout.inspector?.kind)) {
+      window.__studioLayout.closeInspector({fromEditor: true});
+    }
+  }
   applyHeight();renderAll();
 }
 for (const b of dock.querySelectorAll('[data-tool]')) b.onclick = () => openTool(b.dataset.tool);
-for (const b of dock.querySelectorAll('.ed-close')) b.onclick = () => openTool(null);
+for (const b of document.querySelectorAll('.ed-close')) b.onclick = () => openTool(null);
 $('ed-zoom-in').onclick = () => {timeline.zoom(1.5);timeline.draw();};
 $('ed-zoom-out').onclick = () => {timeline.zoom(1 / 1.5);timeline.draw();};
 $('ed-fit').onclick = () => {timeline.fit();timeline.draw();};
@@ -137,7 +199,6 @@ function trimHere(r = range()) {
 $('ed-mark-in').onclick = markIn;$('ed-mark-out').onclick = markOut;
 $('ed-select-all').onclick = () => clip() && setRange({start: 0, end: clip().duration});
 $('ed-clear-range').onclick = () => setRange(null);
-// Cada campo move somente o seu lado; sem seleção, o outro lado vai ao início/fim do clipe.
 for (const [id, side] of [['ed-in', 'start'], ['ed-out', 'end']]) $(id).onchange = () => {
   const c = clip(), raw = $(id).value.trim();if (!c || raw === '') return;const v = snapT(Number(raw.replace(',', '.')));if (!Number.isFinite(v)) return;
   const r = range() || {start: 0, end: c.duration};setRange({...r, [side]: v});
@@ -171,7 +232,7 @@ function renderTime() {
   $('ed-delete').disabled = !d.derivedFrom;
   const origin = d.derivedFrom ? `Derivado de “${d.derivedFrom.clipName}”.` : `Importado${c.sourceFile ? ` de ${c.sourceFile}` : ''}.`;
   const edits = d.edits.length ? `${d.edits.length} edição(ões): ${d.edits.slice(-4).map(e => e.op).join(', ')}.` : 'Sem edições.';
-  $('ed-clip-origin').textContent = `${origin} ${edits} A fonte original fica preservada para restauração.`;
+  $('ed-clip-origin').textContent = `${origin} ${edits}`;
 }
 
 // ---------- Eventos ----------
@@ -184,7 +245,14 @@ function addEvent(type, t = time(), label) {
 function updateEvent(id, patch, label = 'Editar evento') {const c = clip();if (!c) return;store.edit(c, label, x => {Object.assign(meta(x).events.find(e => e.id === id), patch);meta(x).events.sort((a, b) => a.time - b.time);});renderEvents();}
 function removeEvent(id) {const c = clip();if (!c) return;store.edit(c, 'Excluir evento', x => {meta(x).events = meta(x).events.filter(e => e.id !== id);}, {op: 'event-remove'});if (ui.selectedEvent === id) ui.selectedEvent = null;renderEvents();}
 function renderEvents() {
-  const c = clip(), list = $('ed-event-list');timeline.invalidate();if (ui.tool !== 'events') return;list.replaceChildren();
+  const c = clip(), list = $('ed-event-list');timeline.invalidate();
+  const summary = $('st-clip-events-summary');
+  if (summary) {
+    const count = c ? meta(c).events.length : 0;
+    summary.textContent = count ? `${count} evento(s) neste clipe` : 'Nenhum evento marcado';
+  }
+  if (!list) return;
+  list.replaceChildren();
   if (!c) return;const events = meta(c).events;
   if (!events.length) {const p = document.createElement('p');p.className = 'ed-empty-list';p.textContent = 'Nenhum evento neste clipe. Escolha um tipo e clique em “No quadro atual”.';list.append(p);}
   for (const e of events) {
@@ -226,7 +294,6 @@ function rootEdit(opts) {
     d.rootMotion = {
       rootNode: a.info.node.name, options: opts, inPlace: opts.horizontal === 0,
       horizontalRemoved: opts.horizontal < 1, verticalRemoved: opts.vertical === 'lock', yawRemoved: opts.rotation === 'remove-yaw',
-      // Guarda o deslocamento da primeira versão (antes de qualquer redução) como dado separado.
       original: previous?.original || rootMotionData(a, ui.fps),
       note: 'Deslocamento extraído da animação visual. No Arenamon a física move o personagem; não reaplique este deslocamento sobre um clip in-place.',
     };
@@ -244,7 +311,8 @@ $('ed-root-node').onchange = () => {ui.rootChoice = $('ed-root-node').value;rend
 $('ed-root-new').onclick = () => applyRoot(rootOptions(), true);
 $('ed-root-apply').onclick = () => applyRoot(rootOptions(), false);
 function renderRoot() {
-  if (ui.tool !== 'root') return;const c = clip(), list = rootCandidates(c), a = c && analysis(c);
+  if (ui.tool !== 'root' && window.__studioLayout?.inspector?.kind !== 'root') return;
+  const c = clip(), list = rootCandidates(c), a = c && analysis(c);
   $('ed-root-node').replaceChildren(...list.map(x => new Option(x.node.name || x.node.type, x.node.uuid)));if (a) $('ed-root-node').value = a.info.node.uuid;
   $('ed-root-new').disabled = $('ed-root-apply').disabled = !a;
   const chips = $('ed-root-metrics');chips.replaceChildren();
@@ -253,7 +321,7 @@ function renderRoot() {
   for (const [k, v] of [['Horizontal', fmt(m.horizontal, 2)], ['Percurso', fmt(m.path, 2)], ['ΔX', fmt(m.dx, 2)], ['ΔZ', fmt(m.dz, 2)], ['Altura', `${fmt(m.minY, 2)} a ${fmt(m.maxY, 2)}`], ['Giro', `${fmt(m.yawDegrees, 0)}°`]]) {const s = document.createElement('span');s.className = 'ed-chip';s.textContent = `${k} ${v}`;chips.append(s);}
   drawRootGraph(a);
   const d = meta(c).rootMotion, mode = window.__studioV3?.rootMode;
-  const preview = mode && mode !== 'original' ? ' A prévia está travando o deslocamento (Ajustes › Chão e movimento); escolha “Original” lá para ver o movimento real.' : '';
+  const preview = mode && mode !== 'original' ? ' A prévia está travando o deslocamento; escolha “Original” em Cena para ver o movimento real.' : '';
   $('ed-root-state').textContent = (d ? `Editado: horizontal ${Math.round(d.options.horizontal * 100)}% · altura ${d.verticalRemoved ? 'neutralizada' : 'preservada'} · giro ${d.yawRemoved ? 'neutralizado' : 'preservado'}. Deslocamento original salvo (${d.original.samples.length} amostras).` : `Original: desloca ${fmt(m.horizontal, 2)} unidades na horizontal.`) + preview;
 }
 function drawRootGraph(a) {
@@ -269,11 +337,12 @@ function drawRootGraph(a) {
 
 // ---------- Comparação ----------
 function renderCompare() {
-  if (ui.tool !== 'compare') return;const type = $('lab-compare-type').value, mine = compare.handles(type);
+  if (ui.tool !== 'compare' && window.__studioLayout?.inspector?.kind !== 'compare') return;
+  const type = $('lab-compare-type').value, mine = compare.handles(type);
   $('ed-cmp-on').checked = !!window.__studioV3?.compare;$('ed-cmp-clips').hidden = !mine;
   $('ed-cmp-b-field').hidden = type !== 'clips';$('ed-cmp-sync-field').hidden = type !== 'clips';$('ed-cmp-free').hidden = type !== 'clips' || $('ed-cmp-sync').value !== 'free';
   compare.refreshOptions();
-  $('ed-cmp-info').textContent = type === 'original' ? 'Esquerda: clipe atual (com edições). Direita: a fonte original preservada, no mesmo tempo.' : type === 'clips' ? 'A usa a reprodução principal (play, velocidade e loop). O enquadramento é o mesmo nas duas vistas.' : 'Tipos da V3: mesma animação com diferentes prévias.';
+  $('ed-cmp-info').textContent = type === 'original' ? 'Esquerda: clipe atual (com edições). Direita: a fonte original preservada, no mesmo tempo.' : type === 'clips' ? 'A usa a reprodução principal (play, velocidade e loop). O enquadramento é o mesmo nas duas vistas.' : 'Mesma animação com diferentes prévias.';
 }
 $('ed-cmp-on').onchange = () => {window.__studioV3?.setCompare($('ed-cmp-on').checked);};
 $('lab-compare-type').addEventListener('change', () => {if (!window.__studioV3?.compare) window.__studioV3?.setCompare(true);renderCompare();});
@@ -287,6 +356,7 @@ $('lab-compare-button').addEventListener('click', () => queueMicrotask(renderCom
 
 // ---------- Teclado ----------
 window.addEventListener('keydown', e => {
+  if (window.__studioLayout?.zen) return;
   const a = document.activeElement, typing = a && (['INPUT', 'SELECT', 'TEXTAREA'].includes(a.tagName) && a.type !== 'checkbox' && a.type !== 'range');
   if ((e.ctrlKey || e.metaKey) && !e.altKey) {
     const k = e.key.toLowerCase();if (typing) return;
@@ -299,7 +369,7 @@ window.addEventListener('keydown', e => {
   else if (e.key === 'o' || e.key === 'O') {e.preventDefault();markOut();if (ui.tool !== 'trim') openTool('trim');}
   else if (e.key === 'Home') {e.preventDefault();seek(0);}
   else if (e.key === 'End') {e.preventDefault();seek(clip()?.duration || 0);}
-  else if ((e.key === 'Delete' || e.key === 'Backspace') && ui.selectedEvent && ui.tool === 'events') {e.preventDefault();removeEvent(ui.selectedEvent);}
+  else if ((e.key === 'Delete' || e.key === 'Backspace') && ui.selectedEvent && (ui.tool === 'events' || window.__studioLayout?.inspector?.kind === 'event')) {e.preventDefault();removeEvent(ui.selectedEvent);}
 });
 
 // ---------- Sincronização com o motor ----------
@@ -325,11 +395,13 @@ function manifest() {
     }),
   };
 }
-// Antes de exportar, grava o quadro de cada evento (no fps de trabalho) nos metadados do próprio clip.
 function beforeExport() {for (const c of E.clips) {const d = meta(c);d.fps = ui.fps;for (const e of d.events) e.frame = Math.round(e.time * ui.fps);}}
 window.__studioEditor = {
-  manifest, beforeExport, frameStep, openTool, history, store, timeline,
-  setCollapsed(v) {ui.collapsed = !!v;applyHeight();}, get collapsed() {return ui.collapsed;},
+  manifest, beforeExport, frameStep, openTool, history, store, timeline, renderAll,
+  setCollapsed(v) {ui.collapsed = !!v;if (!ui.collapsed) dock.classList.remove('ed-playing-dim');applyHeight();}, get collapsed() {return ui.collapsed;},
+  setExpanded(v) {ui.collapsed = !v;if (!ui.collapsed) dock.classList.remove('ed-playing-dim');applyHeight();}, get expanded() {return !ui.collapsed;},
+  setPinned(v) {ui.pinned = !!v;if (ui.pinned) dock.classList.remove('ed-playing-dim');applyHeight();}, get pinned() {return ui.pinned;},
+  get selectedEvent() {return ui.selectedEvent;}, set selectedEvent(id) {ui.selectedEvent = id;renderEvents();},
   setRange, trimToNew, trimHere, setSpeed, setDuration, loopClose, addEvent, updateEvent, removeEvent, applyRoot, analysis: () => clip() && analysis(clip()),
   undo: () => history.undo(), redo: () => history.redo(), get fps() {return ui.fps;}, set fps(v) {$('ed-fps').value = String(v);$('ed-fps').onchange();},
 };

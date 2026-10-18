@@ -88,7 +88,7 @@ function addMarker(){const c=E.selectedClip;if(!c)return toast('Selecione uma an
 function screenshot(){if(!E.model)return toast('Importe um personagem primeiro');try{const r=E.renderer,canvas=r.domElement;if(!canvas.width||!canvas.height)throw Error('Canvas sem tamanho');
  if(!V3.render?.(0))r.render(E.scene,E.camera);const data=canvas.toDataURL('image/png');if(data.length<200)throw Error('Imagem PNG vazia');const a=document.createElement('a');const name=(E.selectedClip?.sourceFile||'arenamon').replace(/\.[^.]+$/,'').replace(/[^a-zA-Z0-9_-]/g,'_');a.download='arenamon-'+name+'-pose.png';a.href=data;a.click();toast('Captura PNG salva');
  }catch(error){console.warn(error);toast('Falha na captura PNG: '+error.message)}}
-function focusMode(){const root=document.querySelector('.studio'),on=!root.classList.contains('v4-focus');root.classList.toggle('v4-focus',on);$('v4-focus').setAttribute('aria-pressed',String(on));$('v4-focus').textContent=on?'⤢ Sair do foco':'⛶ Foco';requestAnimationFrame(()=>window.dispatchEvent(new Event('resize')));toast(on?'Modo foco ativado. Pressione Esc para sair.':'Painéis restaurados')}
+function focusMode(){window.__studioLayout?.toggleZen?.()}
 function serialize(){return {version:1,inspect:{skeleton:$('v4-skeleton').checked,wireframe:$('v4-wireframe').checked,bounds:$('v4-bounds').checked,mesh:$('v4-mesh').value,backgroundOn:$('v4-background-on').checked,background:$('v4-background').value,fov:Number($('v4-fov').value),autoOrbit:$('v4-orbit').checked,orbitSpeed:Number($('v4-orbit-speed').value)},library:{favorites:[...state.favorites],sort:$('v4-clip-sort').value,onlyFavorites:$('v4-only-favorites').checked},ab:state.ab,markers:state.markers,cameraSlots:state.cameraSlots}}
 function restore(obj){if(!obj||typeof obj!=='object')return;
  const i=obj.inspect||{},l=obj.library||{};for(let [id,val] of [['v4-skeleton',i.skeleton],['v4-wireframe',i.wireframe],['v4-bounds',i.bounds],['v4-background-on',i.backgroundOn],['v4-orbit',i.autoOrbit],['v4-only-favorites',l.onlyFavorites]])if(typeof val==='boolean')$(id).checked=val;
@@ -129,12 +129,11 @@ $('v4-ab-on').addEventListener('change',()=>{const i=getSelected();const ab=stat
 $('v4-ab-a').onclick=()=>setAB('a');$('v4-ab-b').onclick=()=>setAB('b');$('v4-ab-clear').onclick=()=>{delete state.ab[getSelected()];updateAB();window.__studioProject?.markDirty('loop A–B')};
 $('v4-marker-add').onclick=addMarker;$('v4-marker-name').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addMarker()}});
 $('v4-screenshot').onclick=screenshot;$('v4-focus').onclick=focusMode;
-window.addEventListener('keydown',e=>{const a=document.activeElement;if(a&&['INPUT','SELECT','TEXTAREA'].includes(a.tagName))return;if(e.ctrlKey||e.metaKey||e.altKey)return;
- if(e.key==='Escape'&&document.querySelector('.studio').classList.contains('v4-focus')){focusMode();return}
+window.addEventListener('keydown',e=>{if(window.__studioLayout?.zen)return;const a=document.activeElement;if(a&&['INPUT','SELECT','TEXTAREA'].includes(a.tagName))return;if(e.ctrlKey||e.metaKey||e.altKey)return;
  if(!E.model)return;
  if(e.code==='Space'){e.preventDefault();$('play').click()}
  else if(e.code==='ArrowLeft'||e.code==='ArrowRight'){e.preventDefault();pause();const step=window.__studioEditor?.frameStep?.()||1/30;seek(clamp(currentTime()+(e.code==='ArrowLeft'?-1:1)*step,0,E.selectedClip?.duration||0))}
- else if(e.key==='f'||e.key==='F')$('frame').click()
+ else if((e.key==='f'||e.key==='F')&&e.shiftKey){e.preventDefault();$('frame').click()}
 });
 renderCameraSlots();setFov($('v4-fov').value);setBackground();updateClipOptions();
 // Fase 1: favoritos, A–B e marcadores são indexados por posição; remover um clipe derivado desloca os índices.

@@ -1,22 +1,75 @@
-<nav class="st-rail" id="st-rail" aria-label="Ferramentas">
- <div class="st-rail-group" role="tablist" aria-label="Painel de ferramentas">
-  <button type="button" role="tab" data-panel="project" aria-selected="false" title="Projeto: importar personagem e animações, salvar e recuperar"><i aria-hidden="true">◈</i><span>Projeto</span></button>
-  <button type="button" role="tab" data-panel="rigging" aria-selected="false" title="Rigging: criar e editar ossos, pesos iniciais e telemetria de coordenadas"><i aria-hidden="true">♧</i><span>Rigging</span></button>
-  <button type="button" role="tab" data-panel="appearance" aria-selected="false" title="Aparência: texturas, iluminação, cor global e fundo"><i aria-hidden="true">◐</i><span>Aparência</span></button>
-  <button type="button" role="tab" data-panel="scene" aria-selected="false" title="Cenário: grid, chão, eixos e dummy"><i aria-hidden="true">▦</i><span>Cenário</span></button>
-  <button type="button" role="tab" data-panel="camera" aria-selected="false" title="Câmera: presets, câmera do jogo, FOV e posições salvas"><i aria-hidden="true">◉</i><span>Câmera</span></button>
-  <button type="button" role="tab" data-panel="motion" aria-selected="false" title="Movimento: prévia de root motion, trajetória, loop A–B e marcadores"><i aria-hidden="true">➤</i><span>Movimento</span></button>
-  <button type="button" role="tab" data-panel="inspect" aria-selected="false" title="Inspeção: esqueleto, wireframe, malhas, volume e dados técnicos"><i aria-hidden="true">✧</i><span>Inspeção</span></button>
-  <button type="button" role="tab" data-panel="export" aria-selected="false" title="Exportar: GLB final e JSON de ações"><i aria-hidden="true">↗</i><span>Exportar</span></button>
+<div class="st-top-left" id="st-top-left">
+ <button type="button" class="st-project-btn" id="st-project-btn" title="Abrir configurações do projeto e importação" aria-label="Projeto e importação">
+  <span id="st-project-badge-slot"></span>
+ </button>
+</div>
+
+<div class="st-modes" id="st-modes" role="tablist" aria-label="Modo de trabalho">
+ <button type="button" role="tab" id="st-mode-rigging" data-mode="rigging" aria-selected="false">Rigging</button>
+ <button type="button" role="tab" id="st-mode-animate" data-mode="animate" aria-selected="true">Animar</button>
+ <button type="button" role="tab" id="st-mode-deliver" data-mode="deliver" aria-selected="false">Preview &amp; Entrega</button>
+</div>
+
+<div class="st-top-actions" id="st-top-actions">
+ <button type="button" class="btn btn-soft st-top-save" id="st-top-save" disabled title="Salvar projeto (Ctrl+S)">Salvar</button>
+ <button type="button" class="header-export" id="st-top-export" title="Abrir opções de exportação">Exportar <span aria-hidden="true">↗</span></button>
+</div>
+
+<div class="st-hud" id="st-hud" role="toolbar" aria-label="Controles rápidos do visualizador">
+ <div class="st-hud-item">
+  <button type="button" class="st-hud-btn" id="st-hud-camera-btn" aria-expanded="false" aria-controls="st-hud-camera-pop" title="Câmera e enquadramento" aria-label="Câmera">◉</button>
+  <div class="st-hud-pop" id="st-hud-camera-pop" hidden role="dialog" aria-label="Opções rápidas de câmera">
+   <div class="st-hud-pop-title">Câmera</div>
+   <div class="st-slot" data-slot="hud-camera-select"></div>
+   <div class="st-hud-pop-row" data-slot="hud-camera-actions"></div>
+   <button type="button" class="st-hud-more" id="st-more-camera">Mais ajustes de câmera…</button>
+  </div>
  </div>
- <div class="st-rail-group st-rail-areas" aria-label="Áreas">
-  <button type="button" id="st-toggle-library" aria-pressed="true" title="Mostrar/ocultar a biblioteca de animações (direita)"><i aria-hidden="true">☰</i><span>Animações</span></button>
-  <button type="button" id="st-toggle-timeline" aria-pressed="true" title="Mostrar/recolher a timeline de edição (embaixo)"><i aria-hidden="true">⏱</i><span>Editar</span></button>
+ <div class="st-hud-item">
+  <button type="button" class="st-hud-btn" id="st-hud-scene-btn" aria-expanded="false" aria-controls="st-hud-scene-pop" title="Luz, texturas e grid" aria-label="Luz e Grid">☼</button>
+  <div class="st-hud-pop" id="st-hud-scene-pop" hidden role="dialog" aria-label="Opções rápidas de luz e grid">
+   <div class="st-hud-pop-title">Cena e Luz</div>
+   <div class="st-hud-pop-row" data-slot="hud-scene-toggles"></div>
+   <button type="button" class="st-hud-more" id="st-more-scene">Mais ajustes de cena…</button>
+  </div>
  </div>
-</nav>
-<aside class="st-panel" id="st-panel" aria-label="Ferramenta ativa">
- <header class="st-panel-head"><div><small class="micro-label" id="st-panel-kicker">FERRAMENTA</small><h2 id="st-panel-title">Projeto</h2></div><button type="button" class="st-icon-btn" id="st-panel-close" title="Recolher painel (o modelo e as configurações são mantidos)" aria-label="Recolher painel">⟨</button></header>
- <div class="st-panel-body">
+ <div class="st-hud-item">
+  <button type="button" class="st-hud-btn" id="st-hud-xray-btn" aria-pressed="false" title="Alternar esqueleto / raio-X" aria-label="Raio-X e Esqueleto">✧</button>
+ </div>
+ <div class="st-hud-item" data-slot="hud-zen"></div>
+</div>
+
+<div class="rg-toolbar" id="rg-toolbar" role="toolbar" aria-label="Ferramentas rápidas de Rigging" hidden>
+ <button type="button" class="rg-tb-btn rg-tb-primary" id="rg-open-inspector" title="Abrir inspetor do osso selecionado">♧ Ossos</button>
+ <button type="button" class="rg-tb-btn" data-rg-proxy="rg-rest" title="Voltar à pose de repouso">Pose de repouso</button>
+ <button type="button" class="rg-tb-btn" data-rg-proxy="rg-audit" title="Auditar hierarquia e pesos do rig">Verificar rig</button>
+ <button type="button" class="rg-tb-btn" data-rg-proxy="rg-template" title="Gerar 20 pontos guiados para malha sem esqueleto">Criar 20 ossos</button>
+ <button type="button" class="rg-tb-btn" data-rg-proxy="rg-bind" title="Vincular malha aos ossos (skinning)">Vincular skin</button>
+</div>
+
+<div class="st-deliver-bar" id="st-deliver-bar" role="toolbar" aria-label="Barra de Preview e Entrega" hidden>
+ <button type="button" class="st-del-btn" id="st-deliver-play" title="Reproduzir/pausar prévia">▶ Prévia</button>
+ <div class="st-del-presets" role="group" aria-label="Câmeras de validação">
+  <button type="button" class="st-del-chip" data-cam-preset="game">Câmera do jogo</button>
+  <button type="button" class="st-del-chip" data-cam-preset="lock">Lock-on</button>
+  <button type="button" class="st-del-chip" data-cam-preset="arena">Arena</button>
+  <button type="button" class="st-del-chip" data-cam-preset="free">Livre</button>
+ </div>
+ <button type="button" class="st-del-btn st-del-export" id="st-deliver-export-btn">↓ Exportar GLB / JSON</button>
+</div>
+
+<button type="button" class="st-pill-clips" id="st-open-clips" aria-pressed="false" title="Abrir gaveta de Clipes e Ações">☰ Clipes/Ações</button>
+
+<aside class="st-inspector" id="st-inspector" aria-label="Inspetor contextual" hidden>
+ <header class="st-inspector-head">
+  <div class="st-inspector-titles">
+   <small class="micro-label" id="st-inspector-kicker">INSPETOR</small>
+   <h2 id="st-inspector-title">Projeto</h2>
+  </div>
+  <button type="button" class="st-icon-btn" id="st-inspector-close" title="Fechar inspetor (Esc)" aria-label="Fechar inspetor">✕</button>
+ </header>
+ <nav class="st-inspector-subnav" id="st-inspector-subnav" aria-label="Seções do contexto" hidden></nav>
+ <div class="st-inspector-body" id="st-inspector-body">
   <section data-section="project" aria-label="Projeto">
    <div class="st-recovery" id="st-recovery" hidden>
     <strong>Sessão não salva encontrada</strong>
@@ -25,20 +78,25 @@
    </div>
    <div class="st-slot" data-slot="import"></div>
    <div class="st-card st-project-info">
-    <h3>Arquivo de projeto</h3>
+    <div class="st-head-row">
+     <h3>Arquivo de projeto</h3>
+     <button type="button" class="st-help-trigger" data-help="O projeto é salvo como um arquivo .arenamon.glb contendo materiais originais, animações editadas, organização, eventos e root motion. Para continuar depois, importe esse arquivo como modelo." aria-label="Ajuda sobre arquivo de projeto">?</button>
+    </div>
     <dl><dt>Personagem</dt><dd id="st-info-model">—</dd><dt>Animações</dt><dd id="st-info-clips">0</dd><dt>Estado</dt><dd id="st-info-state">Sem alterações</dd><dt>Recuperação local</dt><dd id="st-info-recovery">—</dd></dl>
-    <button type="button" class="btn btn-primary st-wide" id="st-save-project" disabled title="Salva um GLB completo (materiais originais, animações editadas, organização, eventos e root motion). Reabra-o aqui para continuar.">Salvar projeto</button>
-    <p class="st-hint">O projeto é um <b>.arenamon.glb</b> com tudo o que você fez. Para continuar depois, importe esse arquivo como modelo.</p>
+    <button type="button" class="btn btn-primary st-wide" id="st-save-project" disabled title="Salva um GLB completo com todas as edições">Salvar projeto</button>
     <div class="st-slot" data-slot="import-json"></div>
    </div>
    <div class="st-slot" data-slot="guide"></div>
    <div class="st-slot" data-slot="foot"></div>
   </section>
+
   <section data-section="rigging" aria-label="Rigging" hidden>
-   <p class="st-hint">Antes das animações: posicione ossos com precisão, espelhe lados e confira vínculos de skinning. As coordenadas abaixo são do <b>espaço local da raiz do modelo</b>, não valores de tela.</p>
+   <div class="st-head-row">
+    <h3>Articulação e Coordenadas</h3>
+    <button type="button" class="st-help-trigger" data-help="Posicione ossos com precisão, espelhe lados e confira vínculos de skinning. As coordenadas estão no espaço local da raiz do modelo. Clique num marcador 3D ou mova o manipulador no palco." aria-label="Ajuda sobre Rigging">?</button>
+   </div>
    <div class="rg-state st-card" id="rg-state" role="status">Importe um personagem em Projeto.</div>
    <div class="st-row"><button type="button" class="btn btn-soft" id="rg-rest">Pose de repouso</button><button type="button" class="btn btn-soft" id="rg-audit">Verificar rig</button></div>
-   <h3>Ossos e posições</h3>
    <div class="rg-field"><label for="rg-search">Procurar osso</label><input type="search" id="rg-search" placeholder="Ex.: Clavicle, Elbow, Knee…" autocomplete="off"></div>
    <div class="rg-field"><label for="rg-bone">Articulação selecionada</label><select id="rg-bone"></select></div>
    <div class="rg-field"><label for="rg-parent">Pai na hierarquia</label><output id="rg-parent">—</output></div>
@@ -50,76 +108,148 @@
    <div class="st-row"><button type="button" class="btn btn-primary" id="rg-apply">Aplicar posição</button><button type="button" class="btn btn-soft" id="rg-reset-joint">Reverter campos</button></div>
    <label class="rg-check"><input type="checkbox" id="rg-mirror" checked> Espelhar o lado oposto (Left ↔ Right)</label>
    <label class="rg-check"><input type="checkbox" id="rg-markers" checked> Mostrar marcadores 3D e manipulador</label>
-   <p class="st-hint">Clique num marcador sobre o modelo para selecionar, ou mova o manipulador no visualizador. As alterações nos ossos vinculados são feitas na pose de repouso; teste as deformações depois.</p>
    <div class="rg-data st-card">
     <h3>Telemetria do osso</h3><pre id="rg-telemetry">—</pre>
    </div>
    <div class="st-card" id="rg-pose-card">
-    <h3>Teste temporário da deformação</h3>
+    <div class="st-head-row">
+     <h3>Teste temporário da deformação</h3>
+     <button type="button" class="st-help-trigger" data-help="Dobre a articulação para verificar se a malha acompanha o osso. Volte a 0° antes de mover ou salvar o rig." aria-label="Ajuda sobre teste de deformação">?</button>
+    </div>
     <div class="rg-field"><label for="rg-pose-axis">Eixo de flexão</label><select id="rg-pose-axis"><option value="x">X — frente/trás</option><option value="y">Y — torção</option><option value="z">Z — lateral</option></select></div>
     <div class="rg-field"><label for="rg-pose">Rotação de teste (não é salva)</label><input id="rg-pose" type="range" min="-90" max="90" step="1" value="0"><output id="rg-pose-out">0°</output></div>
     <button type="button" class="btn btn-soft st-wide" id="rg-pose-reset">Restaurar pose de repouso</button>
-    <p class="st-hint">Dobre a articulação para verificar se a malha acompanha o osso. Volte a 0° antes de mover ou salvar o rig.</p>
    </div>
    <div class="st-card" id="rg-build">
-    <h3>Criar rig para malha sem esqueleto</h3>
-    <p class="st-hint">Gera <b>20 articulações</b>, incluindo quatro por braço: clavícula, ombro, cotovelo e punho. Posição inicial aproximada — ajuste ao formato do personagem antes de vincular pesos.</p>
+    <div class="st-head-row">
+     <h3>Criar rig para malha sem esqueleto</h3>
+     <button type="button" class="st-help-trigger" data-help="Gera 20 articulações (incluindo clavícula, ombro, cotovelo e punho). Ajuste ao formato do personagem antes de vincular pesos automáticos por proximidade." aria-label="Ajuda sobre criação de rig">?</button>
+    </div>
     <button type="button" class="btn btn-soft st-wide" id="rg-template">Criar/renovar pontos guiados</button>
     <div class="rg-field"><label for="rg-smooth">Suavização dos pesos iniciais</label><input id="rg-smooth" type="range" min="0.03" max="0.5" step="0.01" value="0.13"><output id="rg-smooth-out">0.13</output></div>
     <button type="button" class="btn btn-primary st-wide" id="rg-bind">Vincular malha aos ossos (skin)</button>
-    <p class="st-hint">Pesos automáticos por proximidade são provisórios. A operação modifica a malha do projeto; mantenha uma cópia do original para comparar.</p>
    </div>
    <h3>Diagnóstico e arquivos</h3>
    <div class="st-row"><button type="button" class="btn btn-soft" id="rg-export">Exportar coordenadas JSON</button><button type="button" class="btn btn-soft" id="rg-import">Importar coordenadas JSON</button></div>
    <input type="file" id="rg-file" accept=".json,application/json" hidden>
    <pre class="rg-report" id="rg-report" aria-live="polite">Nenhuma auditoria realizada.</pre>
   </section>
+
+  <section data-section="clips" aria-label="Clipes e Ações" hidden>
+   <div class="st-clips-filter" role="tablist" aria-label="Filtro da biblioteca">
+    <button type="button" role="tab" data-org-view="all" aria-selected="true" class="active">Clipes + Ações</button>
+    <button type="button" role="tab" data-org-view="clips" aria-selected="false">Só Clipes</button>
+    <button type="button" role="tab" data-org-view="actions" aria-selected="false">Só Ações</button>
+   </div>
+   <div class="st-slot" data-slot="organizer"></div>
+  </section>
+
+  <section data-section="clip" aria-label="Propriedades do Clipe" hidden>
+   <div class="st-slot" data-slot="clip-quick-assign"></div>
+   <div class="st-card">
+    <div class="st-slot" data-slot="editor-time"></div>
+   </div>
+   <div class="st-card">
+    <div class="st-head-row">
+     <h3>Eventos do clipe</h3>
+     <button type="button" class="btn btn-mini btn-soft" id="st-clip-open-events">◆ Editar eventos</button>
+    </div>
+    <p class="st-status-sub" id="st-clip-events-summary">Nenhum evento marcado</p>
+   </div>
+   <div class="st-card">
+    <div class="st-head-row">
+     <h3>Movimento e Loop A–B</h3>
+     <button type="button" class="st-link" id="st-open-root-tool">Editar Root Motion ›</button>
+    </div>
+    <div class="st-slot" data-slot="root-preview"></div>
+    <div class="st-slot" data-slot="trajectory"></div>
+    <div class="st-slot" data-slot="playback"></div>
+   </div>
+  </section>
+
+  <section data-section="trim" aria-label="Recortar trecho" hidden>
+   <div class="st-slot" data-slot="editor-trim"></div>
+  </section>
+
+  <section data-section="event" aria-label="Eventos de combate" hidden>
+   <div class="st-slot" data-slot="editor-events"></div>
+  </section>
+
+  <section data-section="root" aria-label="Root motion" hidden>
+   <div class="st-slot" data-slot="editor-root"></div>
+  </section>
+
+  <section data-section="compare" aria-label="Comparar animações" hidden>
+   <div class="st-slot" data-slot="editor-compare"></div>
+  </section>
+
   <section data-section="appearance" aria-label="Aparência" hidden>
-   <h3>Visualização</h3><div class="st-slot" data-slot="toggles"></div>
+   <div class="st-head-row">
+    <h3>Visualização</h3>
+    <button type="button" class="st-help-trigger" data-help="A aparência afeta apenas a prévia 3D. As opções de material do arquivo final ficam em Exportar." aria-label="Ajuda sobre aparência">?</button>
+   </div>
+   <div class="st-slot" data-slot="toggles"></div>
    <h3>Cor</h3><div class="st-slot" data-slot="paint"></div>
    <h3>Fundo</h3><div class="st-slot" data-slot="background"></div>
-   <p class="st-hint">A aparência afeta só a prévia. As opções do GLB final ficam em Exportar.</p>
   </section>
+
   <section data-section="scene" aria-label="Cenário" hidden>
-   <h3>Grid e chão</h3><div class="st-slot" data-slot="grid"></div>
+   <div class="st-head-row">
+    <h3>Grid e chão</h3>
+    <button type="button" class="st-help-trigger" data-help="A altura do solo é independente do root motion e não altera os dados exportados." aria-label="Ajuda sobre grid e chão">?</button>
+   </div>
+   <div class="st-slot" data-slot="grid"></div>
    <details class="st-more"><summary>Posição, tamanho e rotação</summary><div class="st-slot" data-slot="grid-advanced"></div></details>
    <h3>Alvo de referência</h3><div class="st-slot" data-slot="dummy"></div>
   </section>
+
   <section data-section="camera" aria-label="Câmera" hidden>
-   <h3>Modo</h3><div class="st-slot" data-slot="camera-mode"></div>
+   <div class="st-head-row">
+    <h3>Modo de câmera</h3>
+    <button type="button" class="st-help-trigger" data-help="Simule câmeras do jogo (Arenamon, Lock-on, Arena) ou salve até 3 ângulos favoritos da câmera livre." aria-label="Ajuda sobre câmera">?</button>
+   </div>
+   <div class="st-slot" data-slot="camera-mode"></div>
    <details class="st-more"><summary>Distância, altura e suavização</summary><div class="st-slot" data-slot="camera-advanced"></div></details>
    <h3>Lente e órbita</h3><div class="st-slot" data-slot="lens"></div>
    <h3>Posições salvas</h3><div class="st-slot" data-slot="camera-slots"></div>
   </section>
-  <section data-section="motion" aria-label="Movimento" hidden>
-   <h3>Root motion na prévia</h3><div class="st-slot" data-slot="root-preview"></div>
-   <p class="st-hint">Para criar uma versão in-place exportável, use <button type="button" class="st-link" id="st-open-root-tool">Editar › Root motion</button>.</p>
-   <h3>Trajetória</h3><div class="st-slot" data-slot="trajectory"></div>
-   <h3>Repetição A–B e marcadores</h3><div class="st-slot" data-slot="playback"></div>
-  </section>
+
   <section data-section="inspect" aria-label="Inspeção" hidden>
-   <h3>Sobreposições</h3><div class="st-slot" data-slot="overlays"></div>
+   <div class="st-head-row">
+    <h3>Sobreposições 3D</h3>
+    <button type="button" class="st-help-trigger" data-help="Ferramentas de observação: não alteram ossos, animações nem o GLB exportado." aria-label="Ajuda sobre inspeção">?</button>
+   </div>
+   <div class="st-slot" data-slot="overlays"></div>
    <h3>Malhas</h3><div class="st-slot" data-slot="mesh"></div>
    <h3>Pés e chão</h3><div class="st-slot" data-slot="feet"></div>
    <h3>Dados técnicos do clipe</h3><div class="st-slot" data-slot="metadata"></div>
   </section>
+
   <section data-section="export" aria-label="Exportar" hidden>
-   <p class="st-hint">O <b>GLB final</b> vai para o jogo. O <b>JSON</b> traz os nomes, categorias, ações, eventos e root motion. Para continuar a edição depois, use <b>Salvar projeto</b> em Projeto.</p>
+   <div class="st-head-row">
+    <h3>Pacote final</h3>
+    <button type="button" class="st-help-trigger" data-help="O GLB final contém personagem, esqueleto, animações e manifesto extras.arenamon. O JSON contém nomes, categorias, ações, eventos e root motion." aria-label="Ajuda sobre exportação">?</button>
+   </div>
    <div class="st-slot" data-slot="export"></div>
    <p class="st-result" id="st-export-result" role="status"></p>
   </section>
-  <p class="st-needs-model" id="st-needs-model" hidden>Importe um personagem em <button type="button" class="st-link" data-goto="project">Projeto</button> para usar esta ferramenta.</p>
+
+  <p class="st-needs-model" id="st-needs-model" hidden>Importe um personagem em <button type="button" class="st-link" data-goto="project">Projeto</button> para usar este inspetor.</p>
  </div>
 </aside>
-<div class="st-grip" id="st-left-grip" role="separator" aria-orientation="vertical" aria-label="Largura do painel de ferramentas" tabindex="0" title="Arraste para ajustar a largura · setas do teclado também funcionam"></div>
-<div class="st-topinfo" id="st-topinfo">
- <span class="st-clip-chip" id="st-clip-chip" title="Animação selecionada">Nenhuma animação</span>
- <span class="st-save" id="st-save" data-state="clean" role="status" aria-live="polite"><i aria-hidden="true"></i><span id="st-save-text">Sem alterações</span></span>
-</div>
-<div class="st-top-actions" id="st-top-actions">
- <button type="button" class="btn btn-soft st-top-save" id="st-top-save" disabled title="Salvar projeto (Ctrl+S)">Salvar</button>
- <button type="button" class="header-export" id="st-top-export" title="Abrir as opções de exportação">Exportar <span aria-hidden="true">↗</span></button>
-</div>
+
+<footer class="st-statusbar" id="st-statusbar" aria-label="Barra de status">
+ <span class="st-status-main" id="st-status-main">Pronto · importe um modelo FBX ou GLB</span>
+ <div class="st-status-right">
+  <span class="st-clip-chip" id="st-clip-chip" title="Animação selecionada">Nenhuma animação</span>
+  <span class="st-status-rig" id="st-status-rig" hidden>0 ossos</span>
+  <span class="st-save" id="st-save" data-state="clean" role="status" aria-live="polite"><i aria-hidden="true"></i><span id="st-save-text">Sem alterações</span></span>
+  <span id="st-status-help-slot"></span>
+ </div>
+</footer>
+
+<div class="st-tooltip" id="st-tooltip" role="tooltip" hidden></div>
+
 <div class="st-modal" id="st-confirm" hidden role="dialog" aria-modal="true" aria-labelledby="st-confirm-title" aria-describedby="st-confirm-text">
  <div class="st-modal-card">
   <h2 id="st-confirm-title">Alterações não salvas</h2>

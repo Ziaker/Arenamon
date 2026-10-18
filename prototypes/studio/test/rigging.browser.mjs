@@ -22,10 +22,10 @@ try {
   await page.context().setOffline(true);
   await page.goto(pathToFileURL(root+'dist/arenamon-animation-studio.html').href);
   await page.waitForFunction(()=>window.__studioRig&&window.__importer&&window.__studioEditor,{timeout:45000});
-  assert.ok(await page.locator('[data-panel=rigging]').count());
-  const initial=await page.evaluate(()=>({panel:window.__studioLayout.panel,mode:window.__studioRig.active}));
-  assert.equal(initial.panel,'project');assert.equal(initial.mode,false);
-  mark('Studio abre offline e aba Rigging aparece antes de Animações');
+  assert.ok(await page.locator('[data-mode="rigging"]').count());
+  const initial=await page.evaluate(()=>({mode:window.__studioLayout.mode,inspector:window.__studioLayout.inspector,rigActive:window.__studioRig.active}));
+  assert.equal(initial.mode,'animate');assert.equal(initial.inspector.open,false);assert.equal(initial.rigActive,false);
+  mark('Studio abre offline e modo Rigging aparece antes de Animar');
 
   // Malha estática sem rig.
   await page.evaluate(async()=>{
@@ -35,12 +35,12 @@ try {
     body.name='CreatureBody';body.position.y=1.2;root.add(body);
     await E.install(root,[],'personagem-sem-rig.glb');
   });
-  await page.click('[data-panel=rigging]');
+  await page.click('[data-mode="rigging"]');
   await page.waitForFunction(()=>window.__studioRig.active);
   assert.match(await page.textContent('#rg-state'),/Malha sem rig/);
-  await page.click('#rg-template');
-  const draft=await page.evaluate(()=>({n:window.__studioRig.draft?.joints.length,selected:window.__studioRig.selected}));
-  assert.equal(draft.n,20);assert.equal(draft.selected,'Hips');
+  await page.click('[data-rg-proxy="rg-template"]');
+  const draft=await page.evaluate(()=>({n:window.__studioRig.draft?.joints.length,selected:window.__studioRig.selected,inspector:window.__studioLayout.inspector}));
+  assert.equal(draft.n,20);assert.equal(draft.selected,'Hips');assert.equal(draft.inspector.open,true);assert.equal(draft.inspector.kind,'bone');
   assert.equal(await page.locator('#rg-bone option').count(),20);
   mark('Template guiado tem 20 bones e campos numéricos X/Y/Z');
   // Verificar telemetria e simetria.
@@ -139,7 +139,7 @@ try {
     mesh.name='DraftBody';mesh.position.y=1;root.add(mesh);
     await E.install(root,[],'draft.glb');
   });
-  if(!await page.evaluate(()=>window.__studioRig.active))await page.click('[data-panel=rigging]');
+  if(!await page.evaluate(()=>window.__studioRig.active))await page.click('[data-mode="rigging"]');
   await page.locator('#rg-template').evaluate(el=>el.click()); // DOM click evita espera de navegação espúria em file:// no Edge CI.
   await page.waitForFunction(()=>window.__studioRig.draft?.joints.length===20);
   const draftBefore=await page.evaluate(()=>window.__studioRig.draft.joints.find(j=>j.name==='LeftElbow').p);

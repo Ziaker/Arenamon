@@ -1,88 +1,92 @@
-<section class="ed-dock" id="ed-dock" aria-label="Timeline e ferramentas de edição">
-<div class="ed-grip" id="ed-grip" role="separator" aria-orientation="horizontal" aria-label="Altura da timeline" tabindex="0" title="Arraste para redimensionar a timeline · duplo clique para recolher"></div>
-<div class="ed-bar">
+<section class="ed-dock ed-collapsed" id="ed-dock" aria-label="Timeline e ferramentas de edição">
+<div class="ed-full" id="ed-full" hidden>
+ <div class="ed-grip" id="ed-grip" role="separator" aria-orientation="horizontal" aria-label="Altura da timeline" tabindex="0" title="Arraste para redimensionar a timeline · duplo clique para recolher"></div>
+ <div class="ed-bar">
+  <div class="ed-group ed-transport-edges">
+   <button type="button" id="ed-start" title="Ir para o início (Home)" aria-label="Ir para o início">⏮</button>
+   <button type="button" id="ed-end" title="Ir para o fim (End)" aria-label="Ir para o fim">⏭</button>
+  </div>
+  <div class="ed-group ed-clip" id="ed-clip-slot"></div>
+  <div class="ed-group ed-opts" id="ed-opts">
+   <label title="Quadros por segundo usados para navegar, exibir quadros e ajustar cortes e eventos">FPS <select id="ed-fps"><option value="24">24</option><option value="30" selected>30</option><option value="60">60</option></select></label>
+  </div>
+  <div class="ed-tools" role="toolbar" aria-label="Ferramentas de edição">
+   <button type="button" data-tool="trim" aria-pressed="false" title="Selecionar um trecho e criar um clipe com ele">✂ Recortar</button>
+   <button type="button" data-tool="time" aria-pressed="false" title="Velocidade, duração, loop, duplicar e restaurar">⏱ Tempo</button>
+   <button type="button" data-tool="events" aria-pressed="false" title="Eventos de combate na timeline">◆ Eventos</button>
+   <button type="button" data-tool="root" aria-pressed="false" title="Analisar e editar o deslocamento da raiz">➤ Root motion</button>
+   <button type="button" data-tool="compare" aria-pressed="false" title="Comparar duas animações">▥ Comparar</button>
+  </div>
+ </div>
+ <div class="ed-main">
+  <div class="ed-canvas-wrap"><div class="ed-zoom" role="group" aria-label="Zoom da timeline"><button type="button" id="ed-zoom-out" title="Diminuir zoom (Ctrl + roda)" aria-label="Diminuir zoom">−</button><button type="button" id="ed-fit" title="Mostrar o clipe inteiro" aria-label="Mostrar o clipe inteiro">⤢</button><button type="button" id="ed-zoom-in" title="Aumentar zoom (Ctrl + roda)" aria-label="Aumentar zoom">+</button></div><canvas id="ed-canvas" aria-label="Timeline: arraste na régua para navegar, na faixa Trecho para selecionar e na faixa Eventos para mover eventos"></canvas><p class="ed-empty" id="ed-empty">Importe um personagem e escolha uma animação para ver a timeline.</p></div>
+ </div>
+</div>
+<div class="ed-pill" id="ed-pill">
  <div class="ed-group ed-transport" id="ed-transport">
-  <button type="button" id="ed-start" title="Ir para o início (Home)" aria-label="Ir para o início">⏮</button>
   <button type="button" id="ed-prev" title="Quadro anterior (←)" aria-label="Quadro anterior">◂</button>
   <span id="ed-play-slot"></span>
   <button type="button" id="ed-next" title="Próximo quadro (→)" aria-label="Próximo quadro">▸</button>
-  <button type="button" id="ed-end" title="Ir para o fim (End)" aria-label="Ir para o fim">⏭</button>
  </div>
  <div class="ed-readout" title="Tempo atual · quadro atual / total de quadros"><strong id="ed-time">0,000 s</strong><small id="ed-frame">quadro 0 / 0</small></div>
- <div class="ed-group ed-clip" id="ed-clip-slot"></div>
- <div class="ed-group ed-opts" id="ed-opts">
-  <label title="Quadros por segundo usados para navegar, exibir quadros e ajustar cortes e eventos">FPS <select id="ed-fps"><option value="24">24</option><option value="30" selected>30</option><option value="60">60</option></select></label>
- </div>
- <div class="ed-tools" role="toolbar" aria-label="Ferramentas de edição">
-  <button type="button" data-tool="trim" aria-pressed="false" title="Selecionar um trecho e criar um clipe com ele">✂ Recortar</button>
-  <button type="button" data-tool="time" aria-pressed="false" title="Velocidade, duração, loop, duplicar e restaurar">⏱ Tempo</button>
-  <button type="button" data-tool="events" aria-pressed="false" title="Eventos de combate na timeline">◆ Eventos</button>
-  <button type="button" data-tool="root" aria-pressed="false" title="Analisar e editar o deslocamento da raiz">➤ Root motion</button>
-  <button type="button" data-tool="compare" aria-pressed="false" title="Comparar duas animações">▥ Comparar</button>
- </div>
- <button type="button" id="ed-collapse" class="ed-collapse" aria-expanded="true" title="Recolher/expandir a timeline" aria-label="Recolher timeline">▾</button>
+ <span id="ed-clips-btn-slot"></span>
+ <button type="button" id="ed-collapse" class="ed-collapse" aria-expanded="false" title="Expandir/recolher timeline completa" aria-label="Expandir timeline">▴ Timeline</button>
+ <button type="button" id="ed-pin" class="ed-pin" aria-pressed="false" title="Fixar timeline aberta durante a reprodução" aria-label="Fixar timeline">📌</button>
 </div>
-<div class="ed-main">
- <div class="ed-canvas-wrap"><div class="ed-zoom" role="group" aria-label="Zoom da timeline"><button type="button" id="ed-zoom-out" title="Diminuir zoom (Ctrl + roda)" aria-label="Diminuir zoom">−</button><button type="button" id="ed-fit" title="Mostrar o clipe inteiro" aria-label="Mostrar o clipe inteiro">⤢</button><button type="button" id="ed-zoom-in" title="Aumentar zoom (Ctrl + roda)" aria-label="Aumentar zoom">+</button></div><canvas id="ed-canvas" aria-label="Timeline: arraste na régua para navegar, na faixa Trecho para selecionar e na faixa Eventos para mover eventos"></canvas><p class="ed-empty" id="ed-empty">Importe um personagem e escolha uma animação para ver a timeline.</p></div>
- <aside class="ed-panel" id="ed-panel" hidden>
-  <section data-panel="trim" hidden>
-   <header><h3>Recortar trecho</h3><button type="button" class="ed-close" aria-label="Fechar ferramenta">✕</button></header>
-   <p class="ed-hint">Arraste na faixa <b>Trecho</b> ou use <kbd>I</kbd> e <kbd>O</kbd> para marcar início e fim no tempo atual.</p>
-   <div class="ed-row"><label>Início (s)<input id="ed-in" type="number" step="0.001" min="0"></label><label>Fim (s)<input id="ed-out" type="number" step="0.001" min="0"></label></div>
-   <div class="ed-row ed-buttons"><button type="button" id="ed-mark-in">Marcar início</button><button type="button" id="ed-mark-out">Marcar fim</button><button type="button" id="ed-select-all">Tudo</button><button type="button" id="ed-clear-range" title="Limpar seleção">Limpar</button></div>
-   <p class="ed-info" id="ed-range-info">Nenhum trecho selecionado.</p>
-   <label class="ed-check"><input id="ed-loop-range" type="checkbox"> Repetir somente o trecho na prévia</label>
-   <label class="ed-check"><input id="ed-snap" type="checkbox" checked> Ajustar aos quadros</label>
-   <button type="button" class="ed-primary" id="ed-trim-new" disabled>✂ Criar clipe com o trecho</button>
-   <button type="button" id="ed-trim-here" disabled>Recortar o clipe atual</button>
-   <p class="ed-note">“Criar clipe” preserva a animação original. Recortar o clipe atual também pode ser desfeito (Ctrl+Z) ou restaurado na ferramenta Tempo.</p>
-  </section>
-  <section data-panel="time" hidden>
-   <header><h3>Tempo, loop e versões</h3><button type="button" class="ed-close" aria-label="Fechar ferramenta">✕</button></header>
-   <div class="ed-row"><label>Velocidade (%)<input id="ed-speed" type="number" min="10" max="400" step="5" value="100"></label><button type="button" id="ed-apply-speed" title="Reescala todos os keyframes e eventos do clipe">Aplicar</button></div>
-   <div class="ed-row"><label>Duração (s)<input id="ed-duration" type="number" min="0.05" step="0.01"></label><button type="button" id="ed-apply-duration">Aplicar</button></div>
-   <h4>Loop</h4>
-   <div class="ed-row"><label>Transição de fechamento (s)<input id="ed-loop-blend" type="number" min="0.03" step="0.01" value="0.2"></label><button type="button" id="ed-close-loop" title="Faz o final convergir suavemente para a pose inicial">Fechar loop</button></div>
-   <label class="ed-check"><input id="ed-loop-keep-travel" type="checkbox" checked> Preservar o deslocamento horizontal da raiz</label>
-   <h4>Versões</h4>
-   <div class="ed-row ed-buttons"><button type="button" id="ed-duplicate">Duplicar clipe</button><button type="button" id="ed-restore" title="Volta à animação importada (pode ser desfeito)">Restaurar original</button><button type="button" id="ed-delete" title="Somente clipes derivados podem ser excluídos">Excluir derivado</button></div>
-   <p class="ed-info" id="ed-clip-origin"></p>
-  </section>
-  <section data-panel="events" hidden>
-   <header><h3>Eventos de combate</h3><button type="button" class="ed-close" aria-label="Fechar ferramenta">✕</button></header>
-   <div class="ed-row"><select id="ed-event-type" aria-label="Tipo de evento"></select><button type="button" class="ed-primary-mini" id="ed-event-add">＋ No quadro atual</button></div>
-   <p class="ed-hint">Duplo clique na faixa <b>Eventos</b> também adiciona. Arraste um evento para movê-lo. Os eventos são dados exportados; não alteram o combate do jogo.</p>
-   <div class="ed-event-list" id="ed-event-list"></div>
-   <p class="ed-warn" id="ed-event-warnings" role="status"></p>
-  </section>
-  <section data-panel="root" hidden>
-   <header><h3>Root motion</h3><button type="button" class="ed-close" aria-label="Fechar ferramenta">✕</button></header>
-   <label class="ed-field">Osso raiz<select id="ed-root-node"></select></label>
-   <div class="ed-chips" id="ed-root-metrics"></div>
-   <canvas id="ed-root-graph" class="ed-graph" aria-label="Gráfico do deslocamento da raiz ao longo do tempo"></canvas>
-   <p class="ed-legend"><span style="--c:#54d9ee">horizontal</span><span style="--c:#bff36a">altura</span><span style="--c:#ffb35c">giro</span></p>
-   <label class="ed-field">Deslocamento horizontal <output id="ed-root-h-out">0%</output><input id="ed-root-h" type="range" min="0" max="200" step="5" value="0"></label>
-   <label class="ed-field">Como reduzir<select id="ed-root-method"><option value="full">Todo o deslocamento (in-place total)</option><option value="trend">Só o avanço (mantém o balanço)</option></select></label>
-   <label class="ed-field">Altura<select id="ed-root-v"><option value="keep">Preservar (saltos, agachamentos)</option><option value="lock">Neutralizar</option></select></label>
-   <label class="ed-field">Rotação<select id="ed-root-rot"><option value="keep">Preservar</option><option value="remove-yaw">Neutralizar giro acumulado (yaw)</option></select></label>
-   <button type="button" class="ed-primary" id="ed-root-new">Criar versão editada</button>
-   <button type="button" id="ed-root-apply">Aplicar ao clipe atual</button>
-   <p class="ed-info" id="ed-root-state"></p>
-   <p class="ed-note">O deslocamento original é salvo separadamente em <code>extras.arenamon.rootMotion</code>. No jogo, a física controla a posição: use clipes in-place para não aplicar o deslocamento duas vezes.</p>
-  </section>
-  <section data-panel="compare" hidden>
-   <header><h3>Comparar</h3><button type="button" class="ed-close" aria-label="Fechar ferramenta">✕</button></header>
-   <label class="ed-check"><input id="ed-cmp-on" type="checkbox"> Comparação ativa</label>
-   <label class="ed-field" id="ed-cmp-type-slot">Tipo</label>
-   <div id="ed-cmp-clips">
-    <label class="ed-field" id="ed-cmp-b-field">Animação B<select id="ed-cmp-b"></select></label>
-    <label class="ed-field">Exibição<select id="ed-cmp-layout"><option value="side">Lado a lado</option><option value="overlay">Sobreposição transparente</option></select></label>
-    <label class="ed-field" id="ed-cmp-sync-field">Sincronia<select id="ed-cmp-sync"><option value="time">Sincronizada · mesmo tempo</option><option value="phase">Sincronizada · mesma fase</option><option value="free">Independente</option></select></label>
-    <div class="ed-row" id="ed-cmp-free"><button type="button" id="ed-cmp-play">❚❚ Pausar B</button><button type="button" id="ed-cmp-restart">⟲ Reiniciar B</button><label>Vel. B<select id="ed-cmp-speed"><option value="0.25">0,25×</option><option value="0.5">0,5×</option><option value="1" selected>1×</option><option value="1.5">1,5×</option><option value="2">2×</option></select></label></div>
-   </div>
-   <p class="ed-info" id="ed-cmp-info">A usa a reprodução principal (play, velocidade e loop). O enquadramento é o mesmo nas duas vistas.</p>
-  </section>
- </aside>
-</div>
+<aside class="ed-panel" id="ed-panel" hidden>
+ <section data-panel="trim" hidden>
+  <header><h3>Recortar trecho <button type="button" class="st-help-trigger" data-help="Arraste na faixa Trecho da timeline ou use as teclas I e O para marcar início e fim no tempo atual. Criar clipe preserva a animação original." aria-label="Ajuda sobre recortar trecho">?</button></h3><button type="button" class="ed-close" aria-label="Fechar ferramenta">✕</button></header>
+  <div class="ed-row"><label>Início (s)<input id="ed-in" type="number" step="0.001" min="0"></label><label>Fim (s)<input id="ed-out" type="number" step="0.001" min="0"></label></div>
+  <div class="ed-row ed-buttons"><button type="button" id="ed-mark-in">Marcar início</button><button type="button" id="ed-mark-out">Marcar fim</button><button type="button" id="ed-select-all">Tudo</button><button type="button" id="ed-clear-range" title="Limpar seleção">Limpar</button></div>
+  <p class="ed-info" id="ed-range-info">Nenhum trecho selecionado.</p>
+  <label class="ed-check"><input id="ed-loop-range" type="checkbox"> Repetir somente o trecho na prévia</label>
+  <label class="ed-check"><input id="ed-snap" type="checkbox" checked> Ajustar aos quadros</label>
+  <button type="button" class="ed-primary" id="ed-trim-new" disabled>✂ Criar clipe com o trecho</button>
+  <button type="button" id="ed-trim-here" disabled>Recortar o clipe atual</button>
+ </section>
+ <section data-panel="time" hidden>
+  <header><h3>Tempo, loop e versões</h3><button type="button" class="ed-close" aria-label="Fechar ferramenta">✕</button></header>
+  <div class="ed-row"><label>Velocidade (%)<input id="ed-speed" type="number" min="10" max="400" step="5" value="100"></label><button type="button" id="ed-apply-speed" title="Reescala todos os keyframes e eventos do clipe">Aplicar</button></div>
+  <div class="ed-row"><label>Duração (s)<input id="ed-duration" type="number" min="0.05" step="0.01"></label><button type="button" id="ed-apply-duration">Aplicar</button></div>
+  <h4>Loop</h4>
+  <div class="ed-row"><label>Transição de fechamento (s)<input id="ed-loop-blend" type="number" min="0.03" step="0.01" value="0.2"></label><button type="button" id="ed-close-loop" title="Faz o final convergir suavemente para a pose inicial">Fechar loop</button></div>
+  <label class="ed-check"><input id="ed-loop-keep-travel" type="checkbox" checked> Preservar o deslocamento horizontal da raiz</label>
+  <h4>Versões</h4>
+  <div class="ed-row ed-buttons"><button type="button" id="ed-duplicate">Duplicar clipe</button><button type="button" id="ed-restore" title="Volta à animação importada (pode ser desfeito)">Restaurar original</button><button type="button" id="ed-delete" title="Somente clipes derivados podem ser excluídos">Excluir derivado</button></div>
+  <p class="ed-info" id="ed-clip-origin"></p>
+ </section>
+ <section data-panel="events" hidden>
+  <header><h3>Eventos de combate <button type="button" class="st-help-trigger" data-help="Duplo clique na faixa Eventos da timeline também adiciona. Arraste um evento para movê-lo. Os eventos são exportados nos metadados sem alterar o motor." aria-label="Ajuda sobre eventos de combate">?</button></h3><button type="button" class="ed-close" aria-label="Fechar ferramenta">✕</button></header>
+  <div class="ed-row"><select id="ed-event-type" aria-label="Tipo de evento"></select><button type="button" class="ed-primary-mini" id="ed-event-add">＋ No quadro atual</button></div>
+  <div class="ed-event-list" id="ed-event-list"></div>
+  <p class="ed-warn" id="ed-event-warnings" role="status"></p>
+ </section>
+ <section data-panel="root" hidden>
+  <header><h3>Root motion <button type="button" class="st-help-trigger" data-help="O deslocamento original é salvo em extras.arenamon.rootMotion. No jogo, a física controla a posição: use clipes in-place para não aplicar o deslocamento duas vezes." aria-label="Ajuda sobre root motion">?</button></h3><button type="button" class="ed-close" aria-label="Fechar ferramenta">✕</button></header>
+  <label class="ed-field">Osso raiz<select id="ed-root-node"></select></label>
+  <div class="ed-chips" id="ed-root-metrics"></div>
+  <canvas id="ed-root-graph" class="ed-graph" aria-label="Gráfico do deslocamento da raiz ao longo do tempo"></canvas>
+  <p class="ed-legend"><span style="--c:#54d9ee">horizontal</span><span style="--c:#bff36a">altura</span><span style="--c:#ffb35c">giro</span></p>
+  <label class="ed-field">Deslocamento horizontal <output id="ed-root-h-out">0%</output><input id="ed-root-h" type="range" min="0" max="200" step="5" value="0"></label>
+  <label class="ed-field">Como reduzir<select id="ed-root-method"><option value="full">Todo o deslocamento (in-place total)</option><option value="trend">Só o avanço (mantém o balanço)</option></select></label>
+  <label class="ed-field">Altura<select id="ed-root-v"><option value="keep">Preservar (saltos, agachamentos)</option><option value="lock">Neutralizar</option></select></label>
+  <label class="ed-field">Rotação<select id="ed-root-rot"><option value="keep">Preservar</option><option value="remove-yaw">Neutralizar giro acumulado (yaw)</option></select></label>
+  <button type="button" class="ed-primary" id="ed-root-new">Criar versão editada</button>
+  <button type="button" id="ed-root-apply">Aplicar ao clipe atual</button>
+  <p class="ed-info" id="ed-root-state"></p>
+ </section>
+ <section data-panel="compare" hidden>
+  <header><h3>Comparar <button type="button" class="st-help-trigger" data-help="A vista A usa a reprodução principal. O enquadramento de câmera é sincronizado entre as duas vistas." aria-label="Ajuda sobre comparação">?</button></h3><button type="button" class="ed-close" aria-label="Fechar ferramenta">✕</button></header>
+  <label class="ed-check"><input id="ed-cmp-on" type="checkbox"> Comparação ativa</label>
+  <label class="ed-field" id="ed-cmp-type-slot">Tipo</label>
+  <div id="ed-cmp-clips">
+   <label class="ed-field" id="ed-cmp-b-field">Animação B<select id="ed-cmp-b"></select></label>
+   <label class="ed-field">Exibição<select id="ed-cmp-layout"><option value="side">Lado a lado</option><option value="overlay">Sobreposição transparente</option></select></label>
+   <label class="ed-field" id="ed-cmp-sync-field">Sincronia<select id="ed-cmp-sync"><option value="time">Sincronizada · mesmo tempo</option><option value="phase">Sincronizada · mesma fase</option><option value="free">Independente</option></select></label>
+   <div class="ed-row" id="ed-cmp-free"><button type="button" id="ed-cmp-play">❚❚ Pausar B</button><button type="button" id="ed-cmp-restart">⟲ Reiniciar B</button><label>Vel. B<select id="ed-cmp-speed"><option value="0.25">0,25×</option><option value="0.5">0,5×</option><option value="1" selected>1×</option><option value="1.5">1,5×</option><option value="2">2×</option></select></label></div>
+  </div>
+  <p class="ed-info" id="ed-cmp-info">A usa a reprodução principal.</p>
+ </section>
+</aside>
 </section>
 <div class="ed-history" id="ed-history"><button type="button" id="ed-undo" disabled title="Desfazer (Ctrl+Z)" aria-label="Desfazer">↶</button><button type="button" id="ed-redo" disabled title="Refazer (Ctrl+Y)" aria-label="Refazer">↷</button></div>

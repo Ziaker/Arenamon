@@ -1,4 +1,5 @@
-// Teste de navegador do Animation Studio: layout por ferramentas, salvar/sair, edição real → exportação GLB → reimportação.
+// Teste de navegador do Animation Studio (v8 Viewport-First): soberania do palco >=85%, 3 modos, inspetor contextual único,
+// pílula/overlay de timeline, HUD de 4 botões, Modo Zen unificado, ajuda progressiva (?), salvar/sair, edição real → exportação GLB → reimportação.
 // Uso: node prototypes/studio/verify.mjs   (requer `npm run build` antes)
 // Opcional: ARENAMON_LOCAL_MODEL=caminho.glb verifica também um modelo local (nunca versionado).
 import {chromium} from '@playwright/test';
@@ -30,16 +31,23 @@ try {
   const lastSaved = async path => {const b64 = await page.evaluate(async () => {const f = window.__picker.files.at(-1);const u = new Uint8Array(await f.blob.arrayBuffer());let s = '';for (let i = 0; i < u.length; i += 32768) s += String.fromCharCode(...u.subarray(i, i + 32768));return btoa(s);});await writeFile(path, Buffer.from(b64, 'base64'));return path;};
   const saveState = () => page.getAttribute('#st-save', 'data-state');
   const reloadAttempt = async () => {const n = dialogs.length;await page.evaluate(() => location.reload()).catch(() => {});await page.waitForTimeout(600);return dialogs.length > n;};
+  const ensureTimelineExpanded = async on => {
+    const collapsed = await page.evaluate(() => window.__studioEditor.collapsed);
+    if (on && collapsed) await page.click('#ed-collapse');
+    if (!on && !collapsed) await page.click('#ed-collapse');
+  };
   page.on('pageerror', e => report.errors.push(e.message));page.on('console', m => {if (m.type() === 'error') report.errors.push(m.text());});
   page.on('request', r => {if (/^https?:/.test(r.url())) report.network.push(r.url());});
   await page.context().setOffline(true);
-  await page.goto(pathToFileURL(root + 'dist/arenamon-animation-studio.html').href);await page.waitForFunction(() => window.__studioEditor && window.__importer);
+  await page.goto(pathToFileURL(root + 'dist/arenamon-animation-studio.html').href);
+  await page.waitForFunction(() => window.__studioEditor && window.__importer && window.__studioLayout);
 
   // ---------- Projeto novo: sem alterações, sem aviso ao sair ----------
   assert.equal(await saveState(), 'clean');assert.equal(await page.textContent('#st-save-text'), 'Nenhum projeto');
-  await page.click('[data-panel="appearance"]');await page.click('[data-panel="project"]'); // gesto do usuário (exigido pelo beforeunload)
-  assert.equal(await reloadAttempt(), false, 'sem aviso sem alterações');await page.waitForFunction(() => window.__studioEditor && window.__importer);
-  assert.equal(await page.isVisible('#st-panel'), true);
+  await page.click('#st-project-btn');assert.equal(await page.isVisible('#st-inspector'), true);
+  await page.click('#st-inspector-close');assert.equal(await page.isVisible('#st-inspector'), false);
+  assert.equal(await reloadAttempt(), false, 'sem aviso sem alterações');
+  await page.waitForFunction(() => window.__studioEditor && window.__importer && window.__studioLayout);
   step('projeto novo: estado “Nenhum projeto” e recarregar sem aviso');
 
   // ---------- Regressão: estado inicial da v6 ----------
@@ -60,52 +68,265 @@ try {
   assert.equal(await saveState(), 'dirty', 'importar marca alterações');
   assert.match(await page.textContent('#st-clip-chip'), /sintetico\.glb · 1|dup\.fbx/);
 
-  // ---------- Layout: ferramentas, painéis e redimensionamento ----------
-  const width = sel => page.evaluate(s => document.querySelector(s).getBoundingClientRect().width, sel);
+  // ---------- [8.1 #3] Estado inicial limpo após importação ----------
+  const cleanAfterImport = await page.evaluate(() => ({
+    inspectorOpen: window.__studioLayout.inspector.open,
+    timelineExpanded: window.__studioLayout.timeline.expanded,
+  }));
+  assert.equal(cleanAfterImport.inspectorOpen, false, 'inspetor fechado após importação');
+  assert.equal(cleanAfterImport.timelineExpanded, false, 'timeline em pílula após importação');
+  step('estado inicial limpo após importação: inspetor fechado e timeline recolhida em pílula', cleanAfterImport);
+
+  // ---------- [8.1 #1 & #2] Soberania do Viewport (>= 85%) e altura das barras fixas ----------
   const canvasMatches = () => page.evaluate(() => {const v = document.getElementById('view'), c = v.querySelector('canvas');return Math.abs(c.getBoundingClientRect().width - v.clientWidth) < 2 && Math.abs(c.width / devicePixelRatio - v.clientWidth) < 2;});
-  const SECTIONS = {project: '#model-drop', appearance: '#color', scene: '#lab-grid', camera: '#lab-camera', motion: '#lab-root-mode', inspect: '#v4-skeleton', export: '#export'};
-  const modelId = await page.evaluate(() => window.__importer.model.uuid);
-  for (const [panel, control] of Object.entries(SECTIONS)) {
-    await page.click(`[data-panel="${panel}"]`);
-    if (!(await page.isVisible('#st-panel'))) await page.click(`[data-panel="${panel}"]`);
-    const visible = await page.evaluate(() => [...document.querySelectorAll('[data-section]')].filter(s => !s.hidden && s.offsetParent).map(s => s.dataset.section));
-    assert.deepEqual(visible, [panel], 'somente a aba ativa: ' + panel);assert.equal(await page.isVisible(control), true, control + ' visível em ' + panel);
-    for (const [other, c] of Object.entries(SECTIONS)) if (other !== panel) assert.equal(await page.isVisible(c), false, c + ' oculto em ' + panel);
+  const sovereigntyMetrics = {};
+  for (const vp of [{width: 1366, height: 768}, {width: 1920, height: 1080}]) {
+    await page.setViewportSize(vp);await page.waitForTimeout(120);
+    const m = await page.evaluate(() => {
+      const v = document.getElementById('view').getBoundingClientRect();
+      const top = document.querySelector('header.topbar').getBoundingClientRect();
+      const status = document.getElementById('st-statusbar').getBoundingClientRect();
+      const ratio = (v.width * v.height) / (window.innerWidth * window.innerHeight);
+      return {ratio: Number(ratio.toFixed(4)), topH: top.height, statusH: status.height};
+    });
+    assert.ok(m.ratio >= 0.85, `viewport >= 85% em ${vp.width}x${vp.height}: ${m.ratio}`);
+    assert.ok(m.topH >= 36 && m.topH <= 44, `topbar entre 36px e 44px em ${vp.width}x${vp.height}: ${m.topH}`);
+    assert.ok(m.statusH >= 20 && m.statusH <= 24, `statusbar entre 20px e 24px em ${vp.width}x${vp.height}: ${m.statusH}`);
+    assert.ok(await canvasMatches(), `canvas sincronizado em ${vp.width}x${vp.height}`);
+    sovereigntyMetrics[`${vp.width}x${vp.height}`] = m;
   }
-  assert.equal(await page.evaluate(() => window.__importer.model.uuid), modelId, 'trocar de aba não recarrega o modelo');
-  // Aparência e câmera sincronizadas entre o painel e os atalhos do visualizador.
-  await page.click('[data-panel="camera"]');await page.selectOption('#lab-camera', 'game');assert.equal(await page.inputValue('#lab-quick-camera'), 'game');
-  await page.selectOption('#lab-quick-camera', 'free');assert.equal(await page.inputValue('#lab-camera'), 'free');
-  assert.equal(await saveState(), 'dirty');
-  // Recolher/reabrir e redimensionar a esquerda.
-  const stageOpen = await width('.stage');await page.click('#st-panel-close');await page.waitForTimeout(80);
-  assert.equal(await page.isVisible('#st-panel'), false);const stageClosed = await width('.stage');assert.ok(stageClosed > stageOpen + 200, 'visualizador ganha o espaço');
-  await page.waitForTimeout(80);assert.ok(await canvasMatches(), 'canvas acompanha o novo tamanho');
-  assert.equal(await page.evaluate(() => window.__importer.playing), true, 'a animação continua ao recolher');
-  await page.click('[data-panel="project"]');assert.equal(await page.isVisible('#model-drop'), true, 'reabre pela barra');
-  const left0 = await width('#st-panel'), grip = await page.locator('#st-left-grip').boundingBox();
-  await page.mouse.move(grip.x + 3, grip.y + grip.height / 2);await page.mouse.down();await page.mouse.move(grip.x + 83, grip.y + grip.height / 2, {steps: 5});await page.mouse.up();
-  assert.ok(Math.abs(await width('#st-panel') - (left0 + 80)) < 3, 'arrastar ajusta a largura esquerda');
-  await page.focus('#st-left-grip');await page.keyboard.press('ArrowLeft');assert.ok(Math.abs(await width('#st-panel') - (left0 + 56)) < 3);
-  // Direita: redimensionar, recolher e reabrir; ambos fechados.
-  const right0 = await width('.organizer');await page.focus('.v6-resize');await page.keyboard.press('ArrowLeft');await page.keyboard.press('ArrowLeft');
-  assert.ok(Math.abs(await width('.organizer') - (right0 - 60)) < 3, 'redimensionar direita');
-  await page.click('#st-library-close');assert.equal(await page.isVisible('.organizer'), false);
-  await page.click('#st-panel-close');const both = await width('.stage');assert.ok(both > 1500 - 74 - 2, 'ambos fechados: quase toda a tela para o visualizador (' + both + ')');
-  await page.waitForTimeout(80);assert.ok(await canvasMatches());
-  await page.click('#st-toggle-library');assert.equal(await page.isVisible('.organizer'), true);
-  // Timeline: recolher e abrir pela barra.
-  await page.click('#st-toggle-timeline');assert.equal(await page.isVisible('#ed-canvas'), false);await page.click('#st-toggle-timeline');assert.equal(await page.isVisible('#ed-canvas'), true);
-  // Modo foco recolhe as duas laterais e restaura.
-  const focus = async () => {if (!(await page.evaluate(() => document.querySelector('.view-more').open))) await page.click('.view-more summary');await page.click('#v4-focus');};
-  await focus();assert.equal(await page.isVisible('.organizer'), false);
-  await focus();assert.equal(await page.isVisible('.organizer'), true);
-  // Estado preservado na sessão.
-  await page.click('[data-panel="inspect"]');
-  assert.deepEqual(await page.evaluate(() => [sessionStorage.getItem('st-panel'), sessionStorage.getItem('st-left-open'), sessionStorage.getItem('st-right-open')]), ['inspect', '1', '1']);
-  await page.click('[data-panel="project"]');
-  step('layout: abas exclusivas, painéis recolhíveis e redimensionáveis, foco, timeline, canvas e estado da sessão');
-  // Renomeia pela interface da v6.
+  await page.setViewportSize({width: 1500, height: 960});await page.waitForTimeout(100);
+  step('soberania do viewport (>= 85% em 1366x768 e 1920x1080) e altura das barras fixas (topbar 40px, statusbar 22px)', sovereigntyMetrics);
+
+  // ---------- [8.1 #4] Três modos de trabalho (Rigging, Animar, Preview & Entrega) ----------
+  const modelId = await page.evaluate(() => window.__importer.model.uuid);
+  for (const mode of ['rigging', 'animate', 'deliver']) {
+    await page.click(`[data-mode="${mode}"]`);
+    const st = await page.evaluate(() => ({
+      mode: window.__studioLayout.mode,
+      uuid: window.__importer.model.uuid,
+      inspectorOpen: window.__studioLayout.inspector.open,
+      rgToolbarVisible: !document.getElementById('rg-toolbar').hidden,
+      edDockVisible: !document.getElementById('ed-dock').hidden,
+      deliverBarVisible: !document.getElementById('st-deliver-bar').hidden,
+    }));
+    assert.equal(st.mode, mode);
+    assert.equal(st.uuid, modelId, 'trocar de modo não recarrega o modelo');
+    assert.equal(st.inspectorOpen, false, 'trocar de modo não abre o inspetor automaticamente');
+    assert.equal(st.rgToolbarVisible, mode === 'rigging');
+    assert.equal(st.edDockVisible, mode === 'animate');
+    assert.equal(st.deliverBarVisible, mode === 'deliver');
+  }
+  await page.click('[data-mode="animate"]');
+  step('três modos de trabalho (Rigging, Animar, Preview & Entrega) alternam sem recarregar modelo nem abrir inspetor');
+
+  // ---------- [8.1 #5, #6, #7] Inspetor contextual único e #view nunca encolhe com overlays ----------
+  const viewRectBase = await page.evaluate(() => {
+    const r = document.getElementById('view').getBoundingClientRect();
+    return {x: r.x, y: r.y, width: r.width, height: r.height};
+  });
+  const checkSingleSidebarAndFixedView = async label => {
+    const info = await page.evaluate(() => {
+      const r = document.getElementById('view').getBoundingClientRect();
+      const visibleAsides = [...document.querySelectorAll('aside')].filter(a => !a.hidden && a.offsetParent && getComputedStyle(a).visibility !== 'hidden').map(a => a.id || a.className);
+      return {rect: {x: r.x, y: r.y, width: r.width, height: r.height}, visibleAsides};
+    });
+    assert.ok(info.visibleAsides.length <= 1, `nunca duas barras laterais simultâneas (${label}): ${info.visibleAsides.join(',')}`);
+    if (info.visibleAsides.length === 1) assert.equal(info.visibleAsides[0], 'st-inspector');
+    assert.equal(info.rect.width, viewRectBase.width, `#view width constante em ${label}`);
+    assert.equal(info.rect.height, viewRectBase.height, `#view height constante em ${label}`);
+  };
+
+  // Contexto 'clips' e seleção de clipe -> contexto 'clip'
+  await page.click('#st-open-clips');
+  assert.equal(await page.evaluate(() => window.__studioLayout.inspector.kind), 'clips');
+  await checkSingleSidebarAndFixedView('clips');
+  await page.click('.v6-clip[data-clip="0"]');
+  assert.equal(await page.evaluate(() => window.__studioLayout.inspector.kind), 'clip');
+  await checkSingleSidebarAndFixedView('clip');
+
+  // Em 'rigging', selecionar um osso abre o contexto 'bone'
+  await page.click('[data-mode="rigging"]');
+  assert.equal(await page.evaluate(() => window.__studioLayout.inspector.open), false);
+  await page.evaluate(() => window.__studioRig.select('mixamorigHead'));
+  assert.deepEqual(await page.evaluate(() => window.__studioLayout.inspector), {open: true, kind: 'bone', targetId: 'mixamorigHead'});
+  await checkSingleSidebarAndFixedView('bone');
+
+  // De volta a 'animate', expandir timeline e clicar na ferramenta 'events' abre o contexto 'event'
+  await page.click('[data-mode="animate"]');
+  await ensureTimelineExpanded(true);
+  await checkSingleSidebarAndFixedView('timeline-expanded');
+  await page.click('[data-tool="events"]');
+  assert.equal(await page.evaluate(() => window.__studioLayout.inspector.kind), 'event');
+  await checkSingleSidebarAndFixedView('event');
+
+  // Clicar no fundo vazio do #view fecha o inspetor quando aberto, e clicar novamente abre 'scene'
+  await page.mouse.click(viewRectBase.x + 120, viewRectBase.y + 120);
+  await page.waitForTimeout(50);
+  assert.equal(await page.evaluate(() => window.__studioLayout.inspector.open), false, 'clique no palco fecha inspetor aberto');
+  await page.mouse.click(viewRectBase.x + 120, viewRectBase.y + 120);
+  await page.waitForTimeout(50);
+  assert.equal(await page.evaluate(() => window.__studioLayout.inspector.kind), 'scene', 'clique no palco vazio abre contexto scene');
+  await checkSingleSidebarAndFixedView('scene');
+  await page.click('#st-inspector-close');
+  await ensureTimelineExpanded(false);
+  step('inspetor contextual único (clip, bone, event, scene), no máximo 1 aside visível e #view nunca encolhe com overlays');
+
+  // ---------- [8.1 #8 & #9] Pílula e overlay da timeline + Auto-recolhimento e atenuação no Play ----------
+  // Garantir que está pausado antes de testar a pílula
+  if (await page.evaluate(() => window.__importer.playing)) await page.click('#play');
+  const pillMetrics = await page.evaluate(() => {
+    const pill = document.querySelector('#ed-dock .ed-pill').getBoundingClientRect();
+    const canvasVisible = !document.querySelector('#ed-dock .ed-full').hidden && document.getElementById('ed-canvas').offsetParent !== null;
+    return {pillH: pill.height, canvasVisible};
+  });
+  assert.ok(pillMetrics.pillH >= 36 && pillMetrics.pillH <= 44, `pílula da timeline <= 44px: ${pillMetrics.pillH}`);
+  assert.equal(pillMetrics.canvasVisible, false, '#ed-canvas oculto na pílula');
+
+  await ensureTimelineExpanded(true);
+  const expandedMetrics = await page.evaluate(() => {
+    const dock = document.getElementById('ed-dock').getBoundingClientRect();
+    const stage = document.querySelector('.stage').getBoundingClientRect();
+    const canvasVisible = document.getElementById('ed-canvas').offsetParent !== null;
+    return {dockH: dock.height, stageH: stage.height, ratio: dock.height / stage.height, canvasVisible};
+  });
+  assert.equal(expandedMetrics.canvasVisible, true, '#ed-canvas visível na timeline expandida');
+  assert.ok(expandedMetrics.ratio <= 0.38, `timeline expandida <= 38% do palco: ${expandedMetrics.ratio}`);
+
+  // Auto-recolhimento no Play quando não fixada (pinned === false)
+  await page.mouse.move(10, 10); // tira o mouse de cima da pílula
+  await page.click('#play');
+  await page.mouse.move(10, 10);
+  await page.waitForTimeout(260); // aguarda transição de opacidade
+  const playUnpinned = await page.evaluate(() => {
+    const pill = document.querySelector('#ed-dock .ed-pill');
+    return {
+      playing: window.__importer.playing,
+      expanded: window.__studioLayout.timeline.expanded,
+      opacity: parseFloat(getComputedStyle(pill).opacity),
+    };
+  });
+  assert.equal(playUnpinned.playing, true);
+  assert.equal(playUnpinned.expanded, false, 'Play recolhe a timeline quando não fixada');
+  assert.ok(playUnpinned.opacity < 0.7, `pílula atenuada durante Play (~0.55): ${playUnpinned.opacity}`);
+
+  // Hover na pílula restaura opacidade 1.0
+  const pillBox = await page.locator('#ed-dock .ed-pill').boundingBox();
+  await page.mouse.move(pillBox.x + pillBox.width / 2, pillBox.y + pillBox.height / 2);
+  await page.waitForTimeout(240);
+  const hoverOpacity = await page.evaluate(() => parseFloat(getComputedStyle(document.querySelector('#ed-dock .ed-pill')).opacity));
+  assert.ok(hoverOpacity > 0.95, `hover restaura opacidade 1.0: ${hoverOpacity}`);
+  await page.click('#play'); // pausa
+
+  // Com pinned === true (#ed-pin), clicar em Play mantém a timeline expandida
+  await page.click('#ed-pin');
+  await ensureTimelineExpanded(true);
+  await page.click('#play');
+  const playPinned = await page.evaluate(() => ({
+    playing: window.__importer.playing,
+    pinned: window.__studioLayout.timeline.pinned,
+    expanded: window.__studioLayout.timeline.expanded,
+  }));
+  assert.equal(playPinned.playing, true);
+  assert.equal(playPinned.pinned, true);
+  assert.equal(playPinned.expanded, true, 'Play com pin ativo mantém a timeline expandida');
+  await page.click('#play'); // pausa
+  await page.click('#ed-pin'); // desativa pin
+  step('pílula (<=44px) e overlay (<=38%) da timeline; auto-recolhimento e opacidade 0.55 no Play + override de pin');
+
+  // ---------- [8.1 #12] HUD compacto (4 botões, popovers e sem sobreposição com inspetor) ----------
+  const hudCount = await page.locator('#st-hud > .st-hud-item').count();
+  assert.ok(hudCount <= 4, `HUD contém no máximo 4 botões de topo: ${hudCount}`);
+  await page.click('#st-hud-camera-btn');
+  assert.equal(await page.isVisible('#st-hud-camera-pop'), true);
+  await page.click('#st-hud-scene-btn');
+  assert.equal(await page.isVisible('#st-hud-camera-pop'), false);
+  assert.equal(await page.isVisible('#st-hud-scene-pop'), true);
+  await page.keyboard.press('Escape');
+  assert.equal(await page.isVisible('#st-hud-scene-pop'), false);
+  // Abrir inspetor e verificar não sobreposição entre #st-hud e #st-inspector
+  await page.click('#st-open-clips');
+  await page.waitForTimeout(220);
+  const hudNoOverlap = await page.evaluate(() => {
+    const h = document.getElementById('st-hud').getBoundingClientRect();
+    const i = document.getElementById('st-inspector').getBoundingClientRect();
+    return {hudRight: h.right, inspectorLeft: i.left};
+  });
+  assert.ok(hudNoOverlap.hudRight <= hudNoOverlap.inspectorLeft, `HUD não sobrepõe o inspetor (${hudNoOverlap.hudRight} <= ${hudNoOverlap.inspectorLeft})`);
+  step('HUD de 4 botões com popovers (Câmera, Luz/Grid, Raio-X, Zen) e deslocamento sem sobrepor o inspetor');
+
+  // ---------- [8.1 #10 & #11] Modo Zen unificado (.st-zen) e ausência de .v4-focus legado ----------
+  const hasLegacyFocus = await page.evaluate(() => {
+    for (const sheet of document.styleSheets) {
+      for (const rule of sheet.cssRules || []) {
+        if (rule.selectorText && rule.selectorText.includes('.v4-focus')) return true;
+      }
+    }
+    return document.querySelector('.v4-focus') !== null;
+  });
+  assert.equal(hasLegacyFocus, false, 'ausência de modo foco legado (.v4-focus) concorrente');
+
+  // Entrar em Modo Zen com inspetor 'clips' aberto e timeline expandida
+  await ensureTimelineExpanded(true);
+  await page.click('#v4-focus'); // botão Zen no HUD
+  const zenState = await page.evaluate(() => {
+    const v = document.getElementById('view').getBoundingClientRect();
+    const top = document.querySelector('header.topbar');
+    const status = document.getElementById('st-statusbar');
+    const hud = document.getElementById('st-hud');
+    return {
+      zen: window.__studioLayout.zen,
+      hasClass: document.body.classList.contains('st-zen'),
+      viewRatio: (v.width * v.height) / (window.innerWidth * window.innerHeight),
+      topHidden: getComputedStyle(top).display === 'none' || getComputedStyle(top).opacity === '0' || getComputedStyle(top).pointerEvents === 'none',
+      statusHidden: getComputedStyle(status).display === 'none' || getComputedStyle(status).opacity === '0' || getComputedStyle(status).pointerEvents === 'none',
+      hudHidden: getComputedStyle(hud).display === 'none' || getComputedStyle(hud).opacity === '0' || getComputedStyle(hud).pointerEvents === 'none',
+      inspectorHidden: document.getElementById('st-inspector').hidden,
+      dockHidden: document.getElementById('ed-dock').hidden,
+    };
+  });
+  assert.equal(zenState.zen, true);assert.equal(zenState.hasClass, true);
+  assert.ok(zenState.viewRatio >= 0.98, `#view >= 98% da janela em Modo Zen: ${zenState.viewRatio}`);
+  assert.equal(zenState.topHidden, true);assert.equal(zenState.statusHidden, true);
+  assert.equal(zenState.hudHidden, true);assert.equal(zenState.inspectorHidden, true);assert.equal(zenState.dockHidden, true);
+
+  // Qualquer tecla sai do Modo Zen e restaura exatamente mode, inspector e timeline sem efeitos colaterais
+  await page.keyboard.press('Space');
+  const afterKeyExit = await page.evaluate(() => ({
+    zen: window.__studioLayout.zen,
+    playing: window.__importer.playing,
+    mode: window.__studioLayout.mode,
+    inspector: window.__studioLayout.inspector,
+    timelineExpanded: window.__studioLayout.timeline.expanded,
+  }));
+  assert.equal(afterKeyExit.zen, false);
+  assert.equal(afterKeyExit.playing, false, 'tecla usada para sair do Zen não dispara Play colateral');
+  assert.equal(afterKeyExit.mode, 'animate');
+  assert.equal(afterKeyExit.inspector.open, true);assert.equal(afterKeyExit.inspector.kind, 'clips');
+  assert.equal(afterKeyExit.timelineExpanded, true);
+
+  // Ativar Zen por tecla 'f' e sair com clique; ativar por 'Tab' e por duplo-clique em #view
+  await page.keyboard.press('f');assert.equal(await page.evaluate(() => window.__studioLayout.zen), true);
+  await page.mouse.click(200, 200);assert.equal(await page.evaluate(() => window.__studioLayout.zen), false);
+  await page.keyboard.press('Tab');assert.equal(await page.evaluate(() => window.__studioLayout.zen), true);
+  await page.keyboard.press('Escape');assert.equal(await page.evaluate(() => window.__studioLayout.zen), false);
+  await page.dblclick('#view', {position: {x: 200, y: 200}});assert.equal(await page.evaluate(() => window.__studioLayout.zen), true);
+  await page.keyboard.press('Escape');assert.equal(await page.evaluate(() => window.__studioLayout.zen), false);
+  step('Modo Zen unificado (botão HUD, Tab, F, duplo-clique) com >=98% viewport e restauração exata sem efeitos colaterais');
+
+  // ---------- [8.1 #13] Ajuda progressiva (?) e zero parágrafos instrutivos fixos (.st-hint) ----------
+  assert.equal(await page.locator('.st-hint').count(), 0, 'zero .st-hint fixos no DOM');
+  await page.click('#st-project-btn');
+  const helpBtn = page.locator('#st-inspector [data-section="project"] .st-help-trigger[data-help]').first();
+  await helpBtn.focus();
+  assert.equal(await page.isVisible('#st-tooltip'), true, 'focar em ? exibe #st-tooltip');
+  assert.match(await page.textContent('#st-tooltip'), /\.arenamon\.glb/);
+  await page.keyboard.press('Escape');
+  assert.equal(await page.isVisible('#st-tooltip'), false, 'Escape oculta #st-tooltip');
+  step('ajuda progressiva (?) acessível por foco/hover/Escape e zero .st-hint fixos no DOM');
+
+  // ---------- Renomear clipes pela interface ----------
+  await page.click('#st-open-clips');
   await page.click('#v6-rename-options summary');
   for (const [i, name] of [[0, 'idle'], [1, 'run'], [2, 'tackle']]) {await page.selectOption('#clip', String(i));await page.fill('#clip-name', name);await page.click('#rename-clip');}
   await page.selectOption('#clip', '3');await page.fill('#clip-name', 'tackle');await page.click('#rename-clip');
@@ -113,6 +334,7 @@ try {
   step('renomear clipes e rejeitar nome duplicado');
 
   // ---------- Timeline ----------
+  await ensureTimelineExpanded(true);
   await page.selectOption('#clip', '2');await page.waitForTimeout(100);
   const box = await page.locator('#ed-canvas').boundingBox();assert.ok(box.height > 80 && box.width > 300, 'timeline visível');
   await page.mouse.click(box.x + 92 + (box.width - 92) * .5, box.y + 12);await page.waitForTimeout(50);
@@ -129,7 +351,6 @@ try {
   // ---------- Recorte (exemplo: 0,4 s de um ataque de 3 s) ----------
   await page.click('[data-tool="trim"]');await page.fill('#ed-in', '1.2');await page.press('#ed-in', 'Tab');await page.fill('#ed-out', '');await page.type('#ed-out', '1.6');await page.press('#ed-out', 'Tab');
   assert.match(await page.textContent('#ed-range-info'), /0,400 s · 12 quadros/);
-  // Arrastar na faixa Trecho também cria seleção.
   await page.click('#ed-trim-new');
   let state = await page.evaluate(() => {const E = window.__importer, c = E.selectedClip, head = E.model.getObjectByName('mixamorigHead');const tr = c.tracks.find(t => t.name.startsWith(head.uuid));return {name: c.name, duration: c.duration, count: E.clips.length, first: Array.from(tr.values.slice(0, 4)), times: Array.from(tr.times), src: E.clips[2].duration};});
   assert.equal(state.count, 7);assert.equal(state.name, 'tackle · 1.20–1.60s');assert.ok(Math.abs(state.duration - .4) < 1e-6);assert.equal(state.src, 3, 'original preservado');
@@ -156,7 +377,7 @@ try {
   await page.locator('.ed-event').nth(1).locator('button', {hasText: '×'}).click();assert.equal(await page.locator('.ed-event').count(), 1);
   await page.click('#ed-undo');assert.equal(await page.locator('.ed-event').count(), 2);
   // Exemplo do pedido: no tackle original, hitbox no quadro 8 e recuperação no quadro 22.
-  await page.selectOption('#clip', '2');await page.evaluate(() => {const ed = window.__studioEditor;ed.addEvent('hitbox_on', 8 / 30);ed.addEvent('recovery_start', 22 / 30);});
+  await page.evaluate(() => window.__importer.selectIndex(2));await page.evaluate(() => {const ed = window.__studioEditor;ed.addEvent('hitbox_on', 8 / 30);ed.addEvent('recovery_start', 22 / 30);});
   // Arrastar um evento na faixa Eventos da timeline (quadro 8 → 12) e desfazer.
   await page.click('#ed-fit');const cbox = await page.locator('#ed-canvas').boundingBox(), xAt = t => cbox.x + 92 + t * (cbox.width - 92 - 18) / 3, laneY = cbox.y + 26 + 24 + 14;
   await page.mouse.move(xAt(8 / 30), laneY);await page.mouse.down();await page.mouse.move(xAt(10 / 30), laneY, {steps: 4});await page.mouse.move(xAt(12 / 30), laneY, {steps: 4});await page.mouse.up();
@@ -165,7 +386,7 @@ try {
   step('eventos: adicionar, editar quadro/nome, arrastar na timeline, excluir, desfazer', events);
 
   // ---------- Root motion ----------
-  await page.selectOption('#clip', '1');await page.click('[data-tool="root"]');await page.waitForTimeout(50);
+  await page.evaluate(() => window.__importer.selectIndex(1));await page.click('[data-tool="root"]');await page.waitForTimeout(50);
   const metrics = await page.evaluate(() => window.__studioEditor.analysis().metrics);
   assert.ok(Math.abs(metrics.dz - 3) < 1e-3, 'deslocamento medido em metros do modelo (3 m)');assert.ok(Math.abs(metrics.yawDegrees - 90) < .1);
   assert.equal(await page.inputValue('#ed-root-h'), '0');await page.click('#ed-root-new');
@@ -176,7 +397,7 @@ try {
   step('root motion: versão in-place exportável com dados de deslocamento separados', {x: state.x, z: state.z, y: state.y});
 
   // ---------- Tempo: velocidade, duração, loop, restaurar ----------
-  await page.selectOption('#clip', '0');await page.click('[data-tool="time"]');
+  await page.evaluate(() => window.__importer.selectIndex(0));await page.click('[data-tool="time"]');
   await page.fill('#ed-speed', '200');await page.click('#ed-apply-speed');assert.equal(await page.evaluate(() => window.__importer.selectedClip.duration), 1);
   await page.keyboard.press('Control+z');assert.equal(await page.evaluate(() => window.__importer.selectedClip.duration), 2);
   await page.keyboard.press('Control+Shift+z');assert.equal(await page.evaluate(() => window.__importer.selectedClip.duration), 1);
@@ -190,18 +411,22 @@ try {
   step('velocidade, duração, fechar loop, duplicar, restaurar e excluir derivado (com undo/redo)');
 
   // ---------- Organização (drag & drop da v6) e associações ----------
+  await page.evaluate(() => window.__studioLayout.selectContext('clips'));
   await page.selectOption('#v6-group-select', 'idle');
   await page.dragAndDrop('.v6-clip[data-clip="0"]', '.v6-slot[data-action="idle"]');
   assert.equal(await page.inputValue('#action-idle'), '0', 'arrastar clipe para ação');
   const trimmedIndex = await page.evaluate(() => window.__importer.clips.findIndex(c => c.name === 'tackle · 1.20–1.60s'));
   await page.click(`.v6-clip[data-clip="${trimmedIndex}"]`);await page.selectOption('#v6-action-select', 'tackle');
+  await page.evaluate(() => window.__studioLayout.selectContext('clips'));
   const inplaceIndex = await page.evaluate(() => window.__importer.clips.findIndex(c => c.name === 'run · in-place'));
   await page.click(`.v6-clip[data-clip="${inplaceIndex}"]`);await page.selectOption('#v6-action-select', 'run');
   assert.equal(await page.inputValue('#action-tackle'), String(trimmedIndex));
   step('organização por drag & drop e associação de clipes editados a ações');
 
   // ---------- Comparação ----------
-  await page.selectOption('#clip', String(inplaceIndex));await page.click('[data-tool="compare"]');
+  await page.evaluate(i => window.__importer.selectIndex(i), inplaceIndex);
+  await ensureTimelineExpanded(true);
+  await page.click('[data-tool="compare"]');
   await page.selectOption('#lab-compare-type', 'original');await page.waitForTimeout(200);
   assert.equal(await page.evaluate(() => window.__studioV3.compare), true);await page.screenshot({path: out + 'compare-original.png'});
   await page.selectOption('#lab-compare-type', 'clips');await page.selectOption('#ed-cmp-b', '1');await page.selectOption('#ed-cmp-layout', 'overlay');await page.waitForTimeout(150);
@@ -211,26 +436,38 @@ try {
   assert.equal(await page.evaluate(() => window.__studioV3.compare), false);
   step('comparação: original × editada, A × B (lado a lado, sobreposição, independente) e tipos da V3');
 
-  // ---------- Regressão v6 ----------
-  await page.click('[data-panel="appearance"]');
+  // ---------- Regressão v6 (Aparência, Cenário, Câmera, Movimento, Inspeção) ----------
+  await page.evaluate(() => window.__studioLayout.selectContext('appearance'));
   await page.click('#textures');assert.equal(await page.isChecked('#textures'), false);assert.equal(await page.textContent('#texturesLabel'), 'Texturas: OFF');await page.click('#textures');
   await page.click('#lighting');assert.equal(await page.isChecked('#lighting'), false);await page.click('#lighting');
   await page.locator('#color').evaluate(el => {el.value = '#ff0000';el.dispatchEvent(new Event('input', {bubbles: true}));});
   assert.equal(await page.inputValue('#palette'), 'global');assert.equal(await page.evaluate(() => window.__importer.model.getObjectByName('Body').material.color.getHexString()), 'ff0000');
   await page.selectOption('#palette', 'palette');
+  // Atalhos no popover de Luz/Grid do HUD
+  await page.click('#st-hud-scene-btn');
   await page.click('#lab-quick-grid');assert.equal(await page.isChecked('#lab-grid'), false);await page.click('#lab-quick-grid');
-  await page.click('[data-panel="scene"]');await page.check('#lab-dummy');assert.equal(await page.evaluate(() => window.__importer.scene.children.find(o => o.name === 'Arenamon Studio · Alvo técnico').visible), true);
-  await page.click('[data-panel="camera"]');await page.selectOption('#lab-camera', 'lock');await page.click('#lab-preset');assert.equal(await page.inputValue('#lab-camera'), 'game');
-  await page.click('[data-panel="motion"]');await page.selectOption('#lab-root-mode', 'original');
-  await page.click('[data-panel="inspect"]');await page.check('#v4-skeleton');await page.uncheck('#v4-skeleton');
-  await page.selectOption('#lab-quick-camera', 'free');await page.click('#play');assert.equal(await page.evaluate(() => window.__importer.playing), true);
+  await page.keyboard.press('Escape');
+  await page.evaluate(() => window.__studioLayout.selectContext('scene'));
+  await page.check('#lab-dummy');assert.equal(await page.evaluate(() => window.__importer.scene.children.find(o => o.name === 'Arenamon Studio · Alvo técnico').visible), true);
+  await page.evaluate(() => window.__studioLayout.selectContext('camera'));
+  await page.selectOption('#lab-camera', 'lock');await page.click('#lab-preset');assert.equal(await page.inputValue('#lab-camera'), 'game');
+  // Sincronização entre #lab-camera e #lab-quick-camera no popover do HUD
+  await page.click('#st-hud-camera-btn');
+  assert.equal(await page.inputValue('#lab-quick-camera'), 'game');
+  await page.selectOption('#lab-quick-camera', 'free');assert.equal(await page.inputValue('#lab-camera'), 'free');
+  await page.keyboard.press('Escape');
+  await page.evaluate(() => window.__studioLayout.selectContext('clip'));
+  await page.selectOption('#lab-root-mode', 'original');
+  await page.evaluate(() => window.__studioLayout.selectContext('inspect'));
+  await page.check('#v4-skeleton');await page.uncheck('#v4-skeleton');
+  await page.click('#play');assert.equal(await page.evaluate(() => window.__importer.playing), true);
   await page.click('#play');assert.equal(await page.evaluate(() => window.__importer.playing), false);
-  step('regressão: texturas/luz, pintura global, grid, dummy, câmeras, root mode, inspeção, reprodução (nas abas)');
+  step('regressão: texturas/luz, pintura global, grid, dummy, câmeras, root mode, inspeção, reprodução (no inspetor e HUD)');
 
   // ---------- Exportação ----------
   const tackleAt = await page.evaluate(() => window.__importer.clips[2].userData.arenamon.events.map(e => e.type));
   assert.deepEqual(tackleAt, ['hitbox_on', 'recovery_start']);
-  await page.click('#st-top-export');assert.equal(await page.isVisible('#export'), true, 'Exportar abre a aba');
+  await page.click('#st-top-export');assert.equal(await page.isVisible('#export'), true, 'Exportar abre o contexto export');
   await page.evaluate(() => {window.__picker.mode = 'ok';});await page.click('#export-json');await page.waitForFunction(() => document.getElementById('st-export-result').dataset.state === 'ok');
   const jsonPath = await lastSaved(out + 'actions.json');
   const manifest = JSON.parse(await readFile(jsonPath, 'utf8'));assert.equal(manifest.animationEditor.schemaVersion, 1);
@@ -269,11 +506,23 @@ try {
   await page.evaluate(() => {window.__picker.mode = 'fail';});await page.setInputFiles('#model', glbPath);await page.waitForSelector('#st-confirm:not([hidden])');await page.click('[data-answer="save"]');
   await page.waitForFunction(() => document.getElementById('st-save').dataset.state === 'error');assert.equal(await page.evaluate(() => window.__importer.model.uuid), uuidBefore, 'falha ao salvar não descarta');
   await page.evaluate(() => {window.__picker.mode = 'cancel';});await page.click('#st-top-save');await page.waitForTimeout(150);assert.equal(await saveState(), 'dirty', 'cancelar o salvamento mantém “não salvo”');
-  await page.evaluate(() => {window.__picker.mode = 'ok';});await page.click('#st-top-save');await page.waitForFunction(() => document.getElementById('st-save').dataset.state === 'saved');
+  await page.evaluate(() => {window.__picker.mode = 'ok';});
+  // [8.1 #15] Configurar preferências para verificar persistência de layout v8 após reload
+  await page.click('[data-mode="deliver"]');
+  await page.click('#st-top-save');await page.waitForFunction(() => document.getElementById('st-save').dataset.state === 'saved');
   assert.match(await page.textContent('#st-save-text'), /Projeto salvo às/);const projectPath = await lastSaved(out + 'projeto.arenamon.glb');
   assert.match(await page.evaluate(() => window.__picker.files.at(-1).name), /\.arenamon\.glb$/);
-  assert.equal(await reloadAttempt(), false, 'sem aviso depois de salvar');await page.waitForFunction(() => window.__importer && window.__studioEditor);
-  step('salvar/sair: beforeunload, diálogo (cancelar, salvar com falha), salvar cancelado, salvo e recarregar sem aviso');
+  assert.equal(await reloadAttempt(), false, 'sem aviso depois de salvar');
+  await page.waitForFunction(() => window.__importer && window.__studioEditor && window.__studioLayout);
+  const persistedLayout = await page.evaluate(() => ({
+    mode: window.__studioLayout.mode,
+    raw: JSON.parse(localStorage.getItem('arenamon-studio-ui-v8') || 'null'),
+  }));
+  assert.equal(persistedLayout.mode, 'deliver', 'modo preservado em arenamon-studio-ui-v8 após reload');
+  assert.ok(persistedLayout.raw && persistedLayout.raw.mode === 'deliver');
+  await page.click('[data-mode="animate"]');
+  step('salvar/sair e persistência v8: beforeunload, diálogo, salvar projeto e preservar arenamon-studio-ui-v8 após reload');
+
   // Projeto reaberto do arquivo: começa sem alterações. Depois, Sair sem salvar substitui pelo GLB final.
   await page.setInputFiles('#model', projectPath);await page.waitForFunction(n => window.__importer.clips.length === n && document.getElementById('status').textContent.startsWith('Modelo carregado'), expected.length);
   assert.equal(await saveState(), 'clean', 'projeto aberto de arquivo');
@@ -301,14 +550,18 @@ try {
   assert.deepEqual(re.bones, originalSkin.bones);assert.deepEqual(re.parents, originalSkin.parents);assert.equal(re.vertices, originalSkin.vertices);assert.ok(re.deform > .01, 'skinning deforma após reimportar');
   assert.equal(re.actionTackle, String(trimmedIndex));assert.equal(re.actionIdle, '0');assert.equal(re.actionRun, String(inplaceIndex));
   // A interface do editor exibe os eventos reimportados.
-  await page.selectOption('#clip', String(trimmedIndex));await page.click('[data-tool="events"]');assert.equal(await page.locator('.ed-event').count(), 2);
+  await page.evaluate(i => window.__importer.selectIndex(i), trimmedIndex);
+  await ensureTimelineExpanded(true);
+  await page.click('[data-tool="events"]');assert.equal(await page.locator('.ed-event').count(), 2);
   step('reimportação: recorte, eventos, in-place, nomes, associações, hierarquia e skinning preservados', re);
 
   // ---------- Recuperação local após fechar sem salvar ----------
   await page.evaluate(() => {window.__importer.selectIndex(0);window.__studioEditor.setSpeed(200);});assert.equal(await saveState(), 'dirty');
   await page.waitForFunction(() => /cópia neste navegador/.test(document.getElementById('st-info-recovery').textContent), null, {timeout: 20000});
-  page.__acceptUnload = true;await page.evaluate(() => location.reload());await page.waitForFunction(() => window.__importer && window.__studioEditor);page.__acceptUnload = false;
+  page.__acceptUnload = true;await page.evaluate(() => location.reload());await page.waitForFunction(() => window.__importer && window.__studioEditor && window.__studioLayout);page.__acceptUnload = false;
   assert.ok(dialogs.includes('beforeunload'));
+  // Caso o inspetor de projeto esteja fechado, clicar em Projeto para ver o cartão de recuperação
+  if (!(await page.isVisible('#st-recovery'))) await page.click('#st-project-btn');
   await page.waitForSelector('#st-recovery:not([hidden])');assert.match(await page.textContent('#st-recovery-text'), /animações/);
   await page.click('#st-recovery-open');await page.waitForFunction(n => window.__importer.clips.length === n, expected.length);
   await page.waitForFunction(() => document.getElementById('st-save').dataset.state === 'dirty' && /recuperada/.test(document.getElementById('st-save').title + document.getElementById('st-info-state').textContent));
@@ -317,29 +570,62 @@ try {
   await page.evaluate(() => window.__studioProject.clearRecovery());
   step('recuperação local: cópia gravada no IndexedDB, oferecida após recarregar e restaurada com as edições');
 
-  // Preview visível (pixels diferentes do fundo).
-  await page.click('[data-tool="events"]');await page.selectOption('#lab-quick-camera', 'free');await page.click('#frame');await page.waitForTimeout(200);
+  // ---------- Preview visível e Capturas Obrigatórias (Seção 8.1 #14 & Seção 8.2) ----------
+  await page.click('#st-hud-camera-btn');await page.selectOption('#lab-quick-camera', 'free');await page.click('#frame');await page.keyboard.press('Escape');
+  await page.waitForTimeout(200);
   const png = (await page.locator('#view canvas').screenshot()).toString('base64');
   const visible = await page.evaluate(async png => {const img = new Image();img.src = 'data:image/png;base64,' + png;await img.decode();const c = document.createElement('canvas');c.width = img.width;c.height = img.height;const g = c.getContext('2d');g.drawImage(img, 0, 0);const d = g.getImageData(0, 0, c.width, c.height).data;let n = 0;for (let i = 0; i < d.length; i += 4) if (d[i] > 120 && d[i + 1] < 140) n++;return n / (c.width * c.height);}, png);
   assert.ok(visible > .003, 'personagem visível no preview: ' + visible);
   await page.screenshot({path: out + 'studio.png'});
-  for (const viewport of [{width: 1920, height: 1000}, {width: 1024, height: 768}, {width: 390, height: 844}]) {
+
+  // Capturas em 1920x1080 e 1366x768 nos modos exigidos na Seção 8.2
+  for (const vp of [{width: 1920, height: 1080}, {width: 1366, height: 768}]) {
+    const tag = `${vp.width}x${vp.height}`;
+    await page.setViewportSize(vp);await page.waitForTimeout(150);
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'sem rolagem horizontal em ' + tag);
+    assert.ok(await canvasMatches(), 'canvas em ' + tag);
+
+    // 1. Modo Rigging com gizmo/marcadores visíveis
+    await page.click('[data-mode="rigging"]');await page.waitForTimeout(120);
+    await page.screenshot({path: out + `${tag}-rigging.png`});
+
+    // 2. Modo Animar padrão (pílula flutuante e viewport limpo)
+    await page.click('[data-mode="animate"]');
+    await ensureTimelineExpanded(false);
+    await page.evaluate(() => window.__studioLayout.closeInspector());
+    await page.waitForTimeout(120);
+    await page.screenshot({path: out + `${tag}-animate-pill.png`});
+
+    // 3. Modo Animar com timeline expandida + inspetor contextual de clipe aberto
+    await ensureTimelineExpanded(true);
+    await page.evaluate(() => window.__studioLayout.selectContext('clip', 0));
+    await page.waitForTimeout(150);
+    await page.screenshot({path: out + `${tag}-animate-expanded-clip.png`});
+
+    // 4. Modo Preview & Entrega
+    await page.click('[data-mode="deliver"]');await page.waitForTimeout(120);
+    await page.screenshot({path: out + `${tag}-deliver.png`});
+
+    // 5. Modo Zen (100% viewport)
+    await page.evaluate(() => window.__studioLayout.enterZen());await page.waitForTimeout(120);
+    await page.screenshot({path: out + `${tag}-zen.png`});
+    await page.evaluate(() => window.__studioLayout.exitZen());
+  }
+
+  // Responsividade em Tablet (1024x768) e Mobile (390x844)
+  await page.click('[data-mode="animate"]');
+  await ensureTimelineExpanded(false);
+  await page.evaluate(() => window.__studioLayout.closeInspector());
+  for (const viewport of [{width: 1024, height: 768}, {width: 390, height: 844}]) {
     await page.setViewportSize(viewport);await page.waitForTimeout(200);
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'sem rolagem horizontal em ' + viewport.width);
-    assert.equal(await page.isVisible('#st-rail'), true, 'barra de ferramentas em ' + viewport.width);
-    if (viewport.width < 1100) {
-      // Painéis sobrepostos: um de cada vez; tocar no visualizador fecha.
-      await page.click('[data-panel="appearance"]');assert.equal(await page.isVisible('#color'), true);assert.equal(await page.isVisible('.organizer'), false);
-      await page.screenshot({path: out + `after-${viewport.width}-panel.png`});
-      await page.click('#st-toggle-library');assert.equal(await page.isVisible('#st-panel'), false);assert.equal(await page.isVisible('.organizer'), true);
-      await page.screenshot({path: out + `after-${viewport.width}-library.png`});
-      await page.click('#st-library-close');
-    }
-    await page.waitForTimeout(80);assert.ok(await canvasMatches(), 'canvas em ' + viewport.width);
+    const topH = await page.evaluate(() => document.querySelector('header.topbar').getBoundingClientRect().height);
+    assert.ok(topH <= 48, `topbar <= 48px em ${viewport.width}: ${topH}`);
+    assert.ok(await canvasMatches(), 'canvas em ' + viewport.width);
     await page.screenshot({path: out + `after-${viewport.width}.png`});
   }
   await page.setViewportSize({width: 1500, height: 960});
-  step('preview visível; desktop, tablet e celular sem rolagem horizontal, com painéis sobrepostos no tablet/celular');
+  step('preview visível, capturas obrigatórias (1920x1080, 1366x768, 1024x768, 390x844) e responsividade sem rolagem horizontal');
 
   if (process.env.ARENAMON_LOCAL_MODEL) {
     await page.setViewportSize({width: 1500, height: 960});

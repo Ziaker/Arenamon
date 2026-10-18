@@ -10,20 +10,19 @@ const S={draft:null,selected:null,markers:new Map(),rigBones:new Map(),lastAudit
   lastModel:null,wasActive:false,playBefore:false,dragging:false,dragBefore:null,poseBone:null,poseBase:null,
   poseAngle:0,suppress:false};
 const geo=new T.SphereGeometry(1,12,8);
-const ray=new T.Raycaster(),mouse=new T.Vector2(),world=new T.Vector3();
+const ray=new T.Raycaster(),mouse=new T.Vector2();
 const TC=new TransformControls(E.camera,E.renderer.domElement);
 TC.setMode('translate');TC.setSize(.7);
 const helper=TC.getHelper();helper.name='Arenamon Rigging · Manipulador (somente visualização)';
 E.scene.add(helper);helper.visible=false;
 
-const active=()=>!!E.model&&window.__studioLayout?.panel==='rigging'&&window.__studioLayout?.leftOpen;
+const active=()=>!!E.model&&window.__studioLayout?.mode==='rigging'&&!window.__studioLayout?.zen;
 const fmt=n=>Number(n).toFixed(5);
 const vector=a=>new T.Vector3(a[0],a[1],a[2]);
 const array=p=>[p.x,p.y,p.z];
 const near=(a,b)=>a?.length===b?.length&&a.every((n,i)=>Math.abs(n-b[i])<1e-7);
-const safe=(s)=>String(s??'').slice(0,200);
 const skinned=()=>{let n=0;E.model?.traverse(o=>{if(o.isSkinnedMesh)n++;});return n;};
-function status(message,severity='normal'){const box=$('rg-state');box.textContent=message;box.dataset.status=severity;}
+function status(message,severity='normal'){const box=$('rg-state');if(!box)return;box.textContent=message;box.dataset.status=severity;}
 function mark(reason){E.model && window.__studioProject?.markDirty(reason);}
 function hideMarkers() {TC.detach();helper.visible=false;for(const m of S.markers.values())m.visible=false;}
 function disposeMarkers() {
@@ -43,13 +42,11 @@ function joint(name){return joints().find(j=>j.name===name)||null;}
 function selectedPoint(){return joint(S.selected)?.p||null;}
 function rootPointFromWorld(w){return array(E.model.worldToLocal(w.clone()));}
 function worldFromRoot(p){return E.model.localToWorld(vector(p));}
-// Um GLB reimportado pode conter os metadados no primeiro nó, não na Scene do GLTFLoader.
 function restoredDraft(root) {
   let hit=null;
   root.traverse(o=>{if(!hit&&o.userData?.arenamonRigDraft?.schema==='arenamon-rig')hit={node:o,draft:o.userData.arenamonRigDraft};});
   if(!hit)return null;
   const copy=structuredClone(hit.draft);
-  // As coordenadas são do nó onde foram salvas; converte para a raiz atual do modelo.
   root.updateMatrixWorld(true);
   copy.joints=copy.joints.map(j=>{
     const local=vector(j.p), world=hit.node.localToWorld(local);
@@ -85,6 +82,7 @@ function resetOnInstall(){
       render();
     }
   }
+  window.__studioLayout?.refreshStatus?.();
 }
 
 function updateMarkers() {
@@ -117,13 +115,18 @@ function attach() {
   TC.detach();const marker=S.markers.get(S.selected);
   if(marker&&active()&&$('rg-markers').checked){TC.attach(marker);helper.visible=true;}
 }
-function select(name) {
+function syncSelectedFields(name) {
   if(!name||!joint(name))return;
   clearPose();S.selected=name;
   $('rg-bone').value=name;const q=joint(name);
   for(const [id,v] of [['rg-x',q.p[0]],['rg-y',q.p[1]],['rg-z',q.p[2]]])$(id).value=fmt(v);
   $('rg-parent').textContent=q.parent||'raiz do modelo';
   updateMarkers();attach();renderTelemetry();
+}
+function select(name, {openInspector = true} = {}) {
+  if(!name||!joint(name))return;
+  syncSelectedFields(name);
+  if(openInspector) window.__studioLayout?.selectContext?.('bone', name);
 }
 function renderTelemetry() {
   if(!E.model||!S.selected){$('rg-telemetry').textContent='Nenhum osso selecionado.';return;}
@@ -171,12 +174,16 @@ function render() {
   $('rg-apply').disabled=!S.selected;
   $('rg-reset-joint').disabled=!S.selected;
   $('rg-rest').disabled=!nBones;
+  const tbTpl=document.querySelector('[data-rg-proxy="rg-template"]'), tbBind=document.querySelector('[data-rg-proxy="rg-bind"]');
+  if(tbTpl){tbTpl.hidden=nSkin>0;tbTpl.disabled=$('rg-template').disabled;}
+  if(tbBind){tbBind.hidden=nSkin>0;tbBind.disabled=$('rg-bind').disabled;}
   if(nSkin)status(nSkin+' malha(s) com skin · '+nBones+' ossos. Edite as posições no espaço da raiz e teste a dobra.');
   else if(S.draft)status('Rascunho com '+S.draft.joints.length+' pontos · sem skinning. Ajuste e depois clique em Vincular malha.','warn');
   else if(nBones)status(nBones+' ossos soltos, sem skin. Para evitar destruir a hierarquia, faça cópia antes de gerar novo rig.','warn');
   else status('Malha sem rig. Crie os 20 pontos guiados, ajuste por vista e depois gere o skin.','warn');
-  if(S.selected)select(S.selected);else {TC.detach();$('rg-telemetry').textContent='—';}
+  if(S.selected)syncSelectedFields(S.selected);else {TC.detach();$('rg-telemetry').textContent='—';}
   if(S.lastAudit)renderAudit(S.lastAudit);
+  window.__studioLayout?.refreshStatus?.();
 }
 function renderAudit(a) {
   const head='Ossos: '+a.bones+' · Malhas skinned: '+a.skinnedMeshes+'/'+a.meshes.length+
@@ -243,6 +250,7 @@ function onTemplate() {
   const draft=makeTemplate(modelBounds(E.model));
   S.draft=draft;E.model.userData.arenamonRigDraft=structuredClone(draft);
   S.selected=draft.joints[0].name;rebuildMarkers();render();mark('criar pontos de rigging');
+  window.__studioLayout?.selectContext?.('bone', S.selected);
 }
 function onBind() {
   if(!E.model||!S.draft)return;
@@ -252,7 +260,6 @@ function onBind() {
   clearPose();E.enterRigRest();
   try{
     const result=bindDraftToModel(E.model,S.draft,{smoothness:Number($('rg-smooth').value)});
-    // Não permitir que Undo de pontos anteriores seja aplicado incorretamente a um skin já vinculado.
     window.__studioEditor?.history?.clear();
     delete E.model.userData.arenamonRigDraft;
     E.commitRig({replacements:result.replacements,reason:'criar rig com skinning e '+result.bones.length+' ossos'});
@@ -280,7 +287,6 @@ async function importJSON(file) {
   if(skinned()) {
     const unknown=data.joints.filter(j=>!findBone(j.name));
     if(unknown.length){status('JSON não corresponde a este rig. Ossos ausentes: '+unknown.map(j=>j.name).join(', '),'warn');return;}
-    // Importação de coordenadas não muda nomes, pais ou pesos; apenas posições dos bones existentes.
     const before=Object.fromEntries(data.joints.map(j=>[j.name,[...joint(j.name).p]]));
     const after=Object.fromEntries(data.joints.map(j=>[j.name,[...j.p]]));
     const history=window.__studioEditor?.history,command={label:'Importar posições do rig',
@@ -306,6 +312,12 @@ function pose() {
   b.quaternion.copy(S.poseBase).multiply(new T.Quaternion().setFromAxisAngle(axis,a));
   b.updateMatrixWorld(true);S.poseAngle=a;$('rg-pose-out').textContent=Number($('rg-pose').value)+'°';
 }
+function syncMode() {
+  const now=active();
+  if(now&&!S.wasActive&&E.model){S.playBefore=E.playing;S.wasActive=true;prepareRig();}
+  else if(!now&&S.wasActive){S.wasActive=false;clearPose();hideMarkers();E.controls.enabled=true;if(E.clips.length){E.selectIndex(E.selectedIndex);E.setPlaying(S.playBefore);}}
+  if(now&&!S.dragging&&E.model){updateMarkers();}
+}
 // ---------- Eventos ----------
 E.on('installed',resetOnInstall);
 E.on('rigChanged',()=>{if(active()&&!S.dragging)updateMarkers();});
@@ -319,7 +331,7 @@ $('rg-file').onchange=async()=>{const f=$('rg-file').files?.[0];$('rg-file').val
 $('rg-bone').onchange=()=>select($('rg-bone').value);
 $('rg-search').oninput=()=>render();
 $('rg-apply').onclick=onNumeric;
-$('rg-reset-joint').onclick=()=>S.selected&&select(S.selected);
+$('rg-reset-joint').onclick=()=>S.selected&&syncSelectedFields(S.selected);
 $('rg-markers').onchange=()=>{updateMarkers();attach();};
 $('rg-smooth').oninput=()=>$('rg-smooth-out').textContent=Number($('rg-smooth').value).toFixed(2);
 $('rg-pose').oninput=pose;
@@ -331,9 +343,13 @@ E.renderer.domElement.addEventListener('pointerdown',e=>{
   mouse.set((e.clientX-rect.left)/rect.width*2-1,-(e.clientY-rect.top)/rect.height*2+1);
   ray.setFromCamera(mouse,E.camera);
   const picked=ray.intersectObjects([...S.markers.values()].filter(m=>m.visible),false)[0];
-  if(picked?.object?.userData.rigJoint)select(picked.object.userData.rigJoint);
+  if(picked?.object?.userData.rigJoint){
+    window.__studioRigPickedAt=performance.now();
+    select(picked.object.userData.rigJoint);
+  }
 });
 TC.addEventListener('dragging-changed',e=>{
+  window.__studioRigPickedAt=performance.now();
   S.dragging=!!e.value;E.controls.enabled=!e.value;
   if(S.dragging){clearPose();S.dragBefore=selectedSnapshot();}
   else if(S.dragBefore){
@@ -347,23 +363,17 @@ TC.addEventListener('objectChange',()=>{
   if(!S.dragging||!S.selected)return;
   const marker=S.markers.get(S.selected);if(!marker)return;
   const p=rootPointFromWorld(marker.position);
-  // Atualiza visualmente, mas não grava histórico até soltar o manipulador.
   const after={[S.selected]:p};
   const pair=S.selected.startsWith('Left')?'Right'+S.selected.slice(4):S.selected.startsWith('Right')?'Left'+S.selected.slice(5):null;
   if(pair&&$('rg-mirror').checked&&joint(pair)){const c=modelBounds(E.model).center[0];after[pair]=[2*c-p[0],p[1],p[2]];}
   applyPositions(after,{emit:false});updateMarkers();renderTelemetry();
 });
-// Ativação da aba: pausa animações para editar bind rest, sem alterar clipes/keys.
-E.on('tick',()=>{
-  const now=active();
-  if(now&&!S.wasActive&&E.model){S.playBefore=E.playing;S.wasActive=true;prepareRig();}
-  else if(!now&&S.wasActive){S.wasActive=false;clearPose();hideMarkers();E.controls.enabled=true;if(E.clips.length){E.selectIndex(E.selectedIndex);E.setPlaying(S.playBefore);}}
-  if(now&&!S.dragging&&E.model){updateMarkers();}
-});
+E.on('tick',syncMode);
 $('rg-pose-card').hidden=true;
 window.__studioRig={
   get active(){return active();},get draft(){return S.draft;},
   get selected(){return S.selected;},select,refreshAudit,exportCoordinates:()=>exportCoordinates(E.model,S.draft),
   applyJoint(name,p){if(!joint(name))throw Error('Osso não encontrado: '+name);select(name);commitPosition(p,selectedSnapshot(),'Editar coordenada via API');},
-  createTemplate:onTemplate,bind:onBind,render,
+  createTemplate:onTemplate,bind:onBind,render,syncMode,
+  state:()=>({active:active(),selected:S.selected,boneCount:E.model?joints().length:0,hasDraft:!!S.draft}),
 };
