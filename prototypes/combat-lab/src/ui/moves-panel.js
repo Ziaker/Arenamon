@@ -28,6 +28,7 @@ const PARAMS = [
     ['reflect', 'thickness', 'Espessura', 'Espessura física do painel (M29.2: 0,10 m sugerido).', .02, .5, .01, m, true],
     ['reflect', 'gapFraction', 'Distância livre à frente', 'Fração da profundidade do personagem entre ele e a barreira (M26s.4).', 0, 2, .05, pct, true],
     ['reflect', 'durationBase', 'Duração base', 'Segundos de duração com carga zero; soma o tempo carregado (M4.2–M4.4).', 1, 10, .25, sec, true],
+    ['reflect', 'minCharge', 'Carga mínima para materializar', 'Tempo mínimo segurando o botão; soltar antes disso falha e devolve a stamina (M4.1; provisório).', 0, 4, .05, sec, false],
     ['reflect', 'tackleRecoil', 'Recuo do Tackle ao destruir', 'Fração do deslocamento nominal do Tackle (provisório, M30.10).', 0, .6, .01, pct, false],
     ['reflect', 'tackleStagger', 'Stagger do Tackle ao destruir', 'Tempo em stagger do atacante (M14.3).', 0, 1, .01, sec, true],
     ['reflect', 'tieTolerance', 'Tolerância de empate geométrico', 'Distância dentro da qual frente > borda > verso (M30.5; provisório).', 0, .05, .001, m, false],
@@ -43,6 +44,14 @@ const PARAMS = [
     ['psyshock', 'homingRate', 'Giro máximo do homing', 'Graus por segundo (M12.1).', 0, 720, 10, deg, true],
     ['psyshock', 'fanAngle', 'Leque sem alvo', 'Abertura total do leque discreto frontal (provisório, M30.10).', 0, 90, 1, deg, false],
     ['psyshock', 'searchRange', 'Alcance da busca de espaço', 'Quanto à frente procurar posições livres para as pedras (provisório).', 0, 8, .25, m, false],
+    ['psyshock', 'searchStep', 'Passo da busca de espaço', 'Distância entre as posições testadas ao procurar um lugar livre para cada pedra (provisório).', .05, 1, .05, m, false],
+    ['psyshock', 'arc', 'Abertura do arco das pedras', 'Ângulo total em que as pedras se distribuem à frente do lançador ao formar (provisório).', 0, 360, 5, deg, false],
+    ['psyshock', 'ringMin', 'Distância mínima do lançador', 'Raio mínimo do anel onde as pedras nascem, sorteado por pedra (provisório).', .3, 3, .05, m, false],
+    ['psyshock', 'ringMax', 'Distância máxima do lançador', 'Raio máximo do anel onde as pedras nascem (provisório).', .3, 3, .05, m, false],
+    ['psyshock', 'heightMin', 'Altura mínima das pedras', 'Altura inicial mínima, sorteada por pedra; só visual e posição de saída (M30.2; provisório).', 0, 2.5, .05, m, false],
+    ['psyshock', 'heightMax', 'Altura máxima das pedras', 'Altura inicial máxima, sorteada por pedra (M30.2; provisório).', 0, 2.5, .05, m, false],
+    ['psyshock', 'scaleMin', 'Tamanho visual mínimo', 'Escala mínima da pedra; não muda a colisão (M30.2; provisório).', .3, 3, .05, x, false],
+    ['psyshock', 'scaleMax', 'Tamanho visual máximo', 'Escala máxima da pedra; não muda a colisão (M30.2; provisório).', .3, 3, .05, x, false],
     ['psyshock', 'damageFraction', 'Dano-base', 'Fração do Ataque do lançador gravada no disparo (M30.1).', .01, 1, .01, pct, true],
     ['psyshock', 'successiveFactor', 'Fator por acerto no mesmo alvo', 'Cada acerto seguinte da mesma execução causa este fator do anterior (M6.3).', .1, 1, .01, pct, true],
     ['psyshock', 'knockbackPerStone', 'Knockback por pedra', 'Empurrão horizontal por pedra (M26s.7).', 0, 2, .05, ms, true],
@@ -57,6 +66,9 @@ const PARAMS = [
     ['beam', 'damage', 'Dano por acerto', 'Dano de cada acerto do emissor técnico, antes do Ataque (provisório).', 0, 20, .5, num, false],
   ]],
 ];
+
+/** Controles da aba (exportado para os testes de cobertura: cada parâmetro da configuração dos Moves precisa de slider). */
+export const MOVES_PARAMS = PARAMS;
 
 /** Itens da avaliação jogável e visual dos Moves (M28.9: separada dos testes automáticos; decisão do diretor). */
 export const MOVES_HOMOLOG = [
