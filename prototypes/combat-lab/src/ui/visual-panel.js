@@ -393,6 +393,15 @@ export function createVisualPanel({tuning, view, game, $, hud, download}) {
         b.onclick = () => select(u.id);u.btn = b;list.append(b);detail.append(u.el);
       }
     }
+    const autoBox = document.createElement('label');autoBox.className = 'vx-check vx-auto';autoBox.title = 'Mostra o efeito de novo toda vez que você muda um valor';
+    let autoOn = true;try {autoOn = localStorage.getItem('arenamon.vfxAutoPreview') !== '0';} catch {}
+    autoBox.innerHTML = `<input type="checkbox" data-vx-auto ${autoOn ? 'checked' : ''}> Prévia automática`;
+    autoBox.querySelector('input').onchange = e => {autoOn = e.target.checked;try {localStorage.setItem('arenamon.vfxAutoPreview', autoOn ? '1' : '0');} catch {}};
+    let autoTimer = 0;
+    api.autoPreview = () => {
+      if (!autoOn) return;clearTimeout(autoTimer);
+      autoTimer = setTimeout(() => {const cur = units.find(u => u.id === state.sel);cur?.el.querySelector('[data-preview],[data-solid-prev],[data-rock-preview],[data-barrier-preview],[data-laser-preview]')?.click();}, 280);
+    };
     function refreshList() {
       for (const u of units) {
         const on = u.on ? !!pathGetRoot(C, u.on) : null, chg = u.prefix ? tuning.manifest.some(m => m.path.startsWith(u.prefix) && tuning.changed(m)) : false;
@@ -403,6 +412,7 @@ export function createVisualPanel({tuning, view, game, $, hud, download}) {
       const cur = units.find(u => u.id === id) ?? units[0];state.sel = cur.id;
       for (const u of units) {u.el.hidden = u !== cur;u.btn.setAttribute('aria-current', String(u === cur));}
       head.innerHTML = `<h3>${escape(cur.label)}</h3><span class="muted">${escape(cur.group)}</span>`;
+      head.append(autoBox);
     }
     list.querySelector('[data-vx-search]').oninput = e => {
       const q = e.target.value.trim().toLowerCase();
@@ -419,9 +429,11 @@ export function createVisualPanel({tuning, view, game, $, hud, download}) {
     const beams = view.useNewVfx ? ` · ${v.stats.beamsActive ?? 0} lasers ativos` : '';
     box.innerHTML = `<p class="muted">${v.stats.active ?? 0} partículas ativas · pico ${v.stats.peak} · ${v.stats.spawned} criadas${beams} · limite ${C.vfx.master.maxParticles}</p><table><tr><th>t</th><th>Efeito</th><th>Var.</th><th>Motivo do disparo</th></tr>${rows.map(e => `<tr><td>${e.t.toFixed(2)}</td><td>${escape(e.effect)}</td><td>${e.variant}</td><td>${escape(e.action || e.reason)}</td></tr>`).join('')}</table>`;
   }
+  let lastVfx = JSON.stringify(C.vfx);
   render();
   tuning.onChange(() => {
     api.refreshList?.();
+    {const now = JSON.stringify(C.vfx);if (now !== lastVfx) {lastVfx = now;if (!root.closest('[hidden]')) api.autoPreview?.();}}
     for (const [t] of VFX_TYPES) {
       if (C.vfx[t] && C.vfx[t].variant != null) {
         view.vfxRuntime.setVariant(t, C.vfx[t].variant);

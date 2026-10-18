@@ -92,12 +92,12 @@ function toggleZenMode(force) {
     $('panel').hidden = true;
     for (const b of document.querySelectorAll('[data-tool]')) b.classList.remove('active');
     $('dock').classList.add('collapsed');
-    $('dock-toggle')?.classList.remove('active');
+    $('dock-toggle')?.classList.remove('active');$('dock-collapse')?.setAttribute('aria-expanded', 'false');
   } else {
     $('dock').classList.remove('collapsed');
     $('dock-toggle')?.classList.add('active');
   }
-  canvas.focus();
+  syncDockButtons();canvas.focus();
 }
 function togglePause(force) {
   if (game.phase === 'menu') return;
@@ -458,7 +458,8 @@ $('debug-toggle').onclick = () => {hud.debug = !hud.debug;C.extras.hud.debugVisi
 $('camera-reset').onclick = () => {view.reset(game.fighters[0]);canvas.focus();};
 $('rp-back').onclick = () => stepFrames(-1);$('rp-fwd').onclick = () => stepFrames(1);$('rp-play').onclick = () => togglePause();$('rp-live').onclick = goLive;
 $('rp-speed').onchange = () => {clock.timeScale = Number($('rp-speed').value) || 1;};
-$('dock-toggle').onclick = () => {$('dock').classList.toggle('collapsed');$('dock-toggle').classList.toggle('active', !$('dock').classList.contains('collapsed'));};$('dock-toggle').classList.add('active');
+function syncDockButtons() {const open = !$('dock').classList.contains('collapsed');$('dock-toggle').classList.toggle('active', open);const c = $('dock-collapse');if (c) {c.textContent = open ? '▾' : '▴';c.setAttribute('aria-expanded', String(open));c.title = open ? 'Fechar a linha do tempo' : 'Abrir a linha do tempo';}}
+$('dock-toggle').onclick = () => {$('dock').classList.toggle('collapsed');syncDockButtons();};$('dock-collapse').onclick = $('dock-toggle').onclick;syncDockButtons();
 const TITLES = {match: 'Partida', moves: 'Moves', scenarios: 'Cenários', tuning: 'Ajustes', overlays: 'Visualizar', characters: 'Personagens', controls: 'Controles', export: 'Exportar', homolog: 'Homologação'};
 function setSubCardFilter(tool, sub) {
   const panel = $('panel'), sec = document.querySelector(`.panel-body section[data-section="${tool}"]`);
@@ -817,9 +818,6 @@ function onQuickStart() {
   }
   if ($('quick-zen')?.checked) toggleZenMode(true);
   if ($('quick-autolock')?.checked) input.locked = true;
-  $('panel').hidden = true;
-  $('dock').classList.add('collapsed');
-  $('dock-toggle')?.classList.remove('active');
   startMatch();
 }
 
