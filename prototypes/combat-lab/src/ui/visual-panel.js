@@ -58,117 +58,87 @@ export function createVisualPanel({tuning, view, game, $, hud, download}) {
   }
   function render() {
     root.replaceChildren();
-    const colLeft = document.createElement('div');colLeft.className = 'vfx-col-left';const colMid = document.createElement('div');colMid.className = 'vfx-col-mid';const colRight = document.createElement('div');colRight.className = 'vfx-col-right';root.append(colLeft, colMid, colRight);
-    const h = (t, hint, host = colLeft) => {const e = document.createElement('h3');e.textContent = t;host.append(e);if (hint) {const p = document.createElement('p');p.className = 'hint';p.textContent = hint;host.append(p);}};
-    h('Efeitos visuais (VFX)', 'Cada efeito tem variantes visuais diferentes, liga/desliga, parâmetros próprios, prévia e preset. Só aparência: nada aqui muda regras, tempos da simulação, invulnerabilidade ou cooldowns.');
-    // Seletor de Renderizador VFX e Controles do Laser
-    const renderModeBox = document.createElement('div');
-    renderModeBox.className = 'vfx-runtime-toggle-box';
-    renderModeBox.style.cssText = 'background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.14);border-radius:6px;padding:10px 12px;margin:8px 0 14px;';
-    renderModeBox.innerHTML = `
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px;">
-        <span style="font-weight:600;font-size:0.95rem;">Renderizador Ativo de VFX & Laser</span>
-        <div class="seg" role="group" aria-label="Renderizador de VFX">
-          <button type="button" data-vfx-runtime-btn="legacy" ${!view.useNewVfx ? 'aria-pressed="true"' : 'aria-pressed="false"'}>Legado (v6 Fallback)</button>
-          <button type="button" data-vfx-runtime-btn="new" ${view.useNewVfx ? 'aria-pressed="true"' : 'aria-pressed="false"'}>Novo VfxRuntime (Declarativo + Laser)</button>
+    root.className = 'vx';
+    // Layout em seções empilhadas (tudo visível, sem colunas apertadas), com atalhos fixos no topo.
+    const SECS = [
+      ['geral', 'Geral', 'Só aparência: nada aqui muda regras, tempos da simulação, invulnerabilidade ou cooldowns. Ctrl+Z desfaz; presets e exportação incluem tudo.'],
+      ['combate', 'Efeitos de combate', 'Impacto, esquiva, sprint, bloqueio, clash, exaustão e regeneração. Cada efeito tem 3 variantes, liga/desliga, prévia e preset.'],
+      ['3d', 'Movimento 3D', 'Malhas com volume real que giram com a câmera. O estilo marcado é exatamente o usado na luta; clicar já mostra a prévia.'],
+      ['rochas', 'Rochas (Psyshock)', 'Modelo da pedra, rastro e estilhaços.'],
+      ['barreira', 'Barreira (Reflect)', 'Estilo, brilho, pulsação e quebra da barreira.'],
+      ['laser', 'Laser da arena', 'Prévias visuais e disparos reais na simulação.'],
+      ['extras', 'Câmera, tremor e HUD', 'Tremores, sombras, câmera, HUD, altura visual e depuração.'],
+    ];
+    const nav = document.createElement('nav');nav.className = 'vx-nav';nav.setAttribute('aria-label', 'Seções de Visualizar');
+    const SHORT = {combate: 'Combate', extras: 'Câmera e HUD', rochas: 'Rochas', barreira: 'Barreira'};
+    nav.innerHTML = SECS.map(([id, t]) => `<button type="button" data-vx-go="${id}">${escape(SHORT[id] ?? t)}</button>`).join('');root.append(nav);
+    const S = {};
+    for (const [id, title, hint] of SECS) {
+      const s = document.createElement('section');s.className = 'vx-sec';s.id = 'vx-' + id;
+      s.innerHTML = `<h3>${escape(title)}</h3><p class="hint">${escape(hint)}</p>`;root.append(s);S[id] = s;
+    }
+    for (const b of nav.querySelectorAll('[data-vx-go]')) b.onclick = () => {
+      for (const x of nav.querySelectorAll('[data-vx-go]')) x.removeAttribute('aria-current');b.setAttribute('aria-current', 'true');
+      S[b.dataset.vxGo].scrollIntoView({block: 'start', behavior: 'smooth'});
+    };
+    const pressed = on => `aria-pressed="${on ? 'true' : 'false'}"`;
+    S.geral.insertAdjacentHTML('beforeend', `<div class="vx-grid">
+      <div class="vx-card"><h4>Renderizador de VFX</h4>
+        <div class="seg wide" role="group" aria-label="Renderizador de VFX">
+          <button type="button" data-vfx-runtime-btn="legacy" ${pressed(!view.useNewVfx)}>Legado (v6)</button>
+          <button type="button" data-vfx-runtime-btn="new" ${pressed(view.useNewVfx)}>VfxRuntime + Laser</button>
         </div>
+        <p class="hint" id="vfx-runtime-hint">${view.useNewVfx ? 'Ativo: VfxRuntime com instanciamento único, BeamRenderer dedicado (núcleo incondicional, halo aditivo) e variantes A/B/C.' : 'Ativo: renderizador legado. O novo sistema está em repouso como fallback seguro.'}</p>
       </div>
-      <p class="hint" style="margin:0 0 8px 0;" id="vfx-runtime-hint">
-        ${view.useNewVfx ? 'Ativo: VfxRuntime com instanciamento único, BeamRenderer dedicado (núcleo incondicional, halo aditivo) e variantes A/B/C.' : 'Ativo: renderizador legado. O novo sistema está em repouso como fallback seguro.'}
-      </p>
-
-      <!-- SEÇÃO LASER DA ARENA -->
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-        <span class="muted" style="font-size:0.85rem;">Laser da Arena:</span>
-        <button type="button" data-laser-preview="1">▶ Laser PL1 (Ciano)</button>
-        <button type="button" data-laser-preview="2">▶ Laser PL2 (Dourado)</button>
-        <button type="button" data-laser-preview="3">▶ Laser PL3 (Magenta)</button>
-        <button type="button" data-sim-laser="1">⚡ Laser Real PL1</button>
-        <button type="button" data-sim-laser="2">⚡ Laser Real PL2</button>
-        <button type="button" data-sim-laser="3">⚡ Laser Real PL3</button>
-        <button type="button" data-sim-scene="reflect">⚡ Testar Reflexão Real</button>
-        <button type="button" data-sim-scene="neutralize">⚡ Testar Neutralização Real</button>
-      </div>
-
-      <!-- SEÇÃO ROCHAS TELECINÉTICAS (PSYSHOCK) -->
-      <div class="vfx-quick-rock" style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.08);">
-        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:6px;">
-          <span style="font-weight:600;font-size:0.9rem;">🪨 Rochas Telecinéticas (Psyshock) — Modelo 3D & Efeitos:</span>
-          <div class="seg" role="group" aria-label="Modelo 3D da Rocha">
-            <button type="button" data-rock-style="0" ${C.vfx.rock?.variant === 0 ? 'aria-pressed="true"' : 'aria-pressed="false"'}>Boulder Facetado</button>
-            <button type="button" data-rock-style="1" ${C.vfx.rock?.variant === 1 ? 'aria-pressed="true"' : 'aria-pressed="false"'}>Cristal Psíquico</button>
-            <button type="button" data-rock-style="2" ${C.vfx.rock?.variant === 2 ? 'aria-pressed="true"' : 'aria-pressed="false"'}>Meteorito Runas</button>
-          </div>
+      <div class="vx-card"><h4>Estilo global dos efeitos de combate</h4>
+        <div class="seg wide" role="group" aria-label="Estilo Global">
+          <button type="button" data-global-vfx="0" ${pressed(C.vfx.hit?.variant === 0)}>A · Arcade</button>
+          <button type="button" data-global-vfx="1" ${pressed(C.vfx.hit?.variant === 1)}>B · Cinematic</button>
+          <button type="button" data-global-vfx="2" ${pressed(C.vfx.hit?.variant === 2)}>C · Tático</button>
         </div>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-          <span class="muted" style="font-size:0.85rem;">Ações das Rochas:</span>
-          <button type="button" data-rock-preview="1">▶ Prévia Rochas PL1</button>
-          <button type="button" data-rock-preview="2">▶ Prévia Rochas PL2</button>
-          <button type="button" data-rock-preview="3">▶ Prévia Rochas PL3</button>
-          <button type="button" data-sim-rock="1">⚡ Disparar Pedras Reais</button>
-          <button type="button" data-sim-rock="shatter">💥 Testar Estilhaçamento</button>
-        </div>
+        <p class="hint">Aplica a mesma variante a todos os efeitos de combate de uma vez.</p>
       </div>
-
-      <!-- SEÇÃO BARREIRA DE ENERGIA (REFLECT) -->
-      <div class="vfx-quick-barrier" style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.08);">
-        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:6px;">
-          <span style="font-weight:600;font-size:0.9rem;">🛡️ Barreira de Energia (Reflect) — Estrutura & VFX:</span>
-          <div class="seg" role="group" aria-label="Estilo da Barreira">
-            <button type="button" data-barrier-style="0" ${C.vfx.barrier?.variant === 0 ? 'aria-pressed="true"' : 'aria-pressed="false"'}>Hex-Grid Ciclado</button>
-            <button type="button" data-barrier-style="1" ${C.vfx.barrier?.variant === 1 ? 'aria-pressed="true"' : 'aria-pressed="false"'}>Cristal Prismático</button>
-            <button type="button" data-barrier-style="2" ${C.vfx.barrier?.variant === 2 ? 'aria-pressed="true"' : 'aria-pressed="false"'}>Campo de Força Puro</button>
-          </div>
+      <div class="vx-card"><h4>Acessibilidade visual</h4>
+        <label class="vx-check"><input type="checkbox" data-vfx-a11y="noFlash" ${(C.vfx.master?.noFlash || C.vfx.laser?.noFlash) ? 'checked' : ''}> Sem flash</label>
+        <label class="vx-check"><input type="checkbox" data-vfx-a11y="reduceMotion" ${(C.vfx.master?.reduceMotion || C.vfx.laser?.reduceMotion) ? 'checked' : ''}> Reduzir movimento</label>
+        <label class="vx-check"><input type="checkbox" data-vfx-a11y="highContrast" ${(C.vfx.master?.highContrast || C.vfx.laser?.highContrast) ? 'checked' : ''}> Alto contraste</label>
+      </div></div>`);
+    S.rochas.insertAdjacentHTML('beforeend', `<div class="vx-card vx-wide"><h4>Modelo da pedra</h4>
+        <div class="seg wide" role="group" aria-label="Modelo 3D da Rocha">
+          <button type="button" data-rock-style="0" ${pressed(C.vfx.rock?.variant === 0)}>Boulder facetado</button>
+          <button type="button" data-rock-style="1" ${pressed(C.vfx.rock?.variant === 1)}>Cristal psíquico</button>
+          <button type="button" data-rock-style="2" ${pressed(C.vfx.rock?.variant === 2)}>Meteorito com runas</button>
         </div>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-          <span class="muted" style="font-size:0.85rem;">Ações da Barreira:</span>
-          <button type="button" data-barrier-preview="1">▶ Prévia Barreira</button>
-          <button type="button" data-sim-barrier="spawn">⚡ Materializar Barreira Real</button>
-          <button type="button" data-sim-barrier="shatter">💥 Testar Quebra por Tackle</button>
+        <h4>Testar</h4>
+        <div class="vx-btns"><button type="button" data-rock-preview="1">▶ Prévia PL1</button><button type="button" data-rock-preview="2">▶ Prévia PL2</button><button type="button" data-rock-preview="3">▶ Prévia PL3</button>
+          <button type="button" data-sim-rock="1">⚡ Disparar pedras reais</button><button type="button" data-sim-rock="shatter">💥 Testar estilhaçamento</button></div></div>`);
+    S.barreira.insertAdjacentHTML('beforeend', `<div class="vx-card vx-wide"><h4>Estilo da barreira</h4>
+        <div class="seg wide" role="group" aria-label="Estilo da Barreira">
+          <button type="button" data-barrier-style="0" ${pressed(C.vfx.barrier?.variant === 0)}>Hex-grid ciclado</button>
+          <button type="button" data-barrier-style="1" ${pressed(C.vfx.barrier?.variant === 1)}>Cristal prismático</button>
+          <button type="button" data-barrier-style="2" ${pressed(C.vfx.barrier?.variant === 2)}>Campo de força puro</button>
         </div>
-      </div>
-
-      <!-- ACESSIBILIDADE VISUAL -->
-      <div class="vfx-quick-a11y" style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-        <span style="font-weight:600;font-size:0.85rem;">Acessibilidade Visual:</span>
-        <label style="display:inline-flex;align-items:center;gap:4px;font-size:0.85rem;cursor:pointer;">
-          <input type="checkbox" data-vfx-a11y="noFlash" ${(C.vfx.master?.noFlash || C.vfx.laser?.noFlash) ? 'checked' : ''}> Sem Flash (noFlash)
-        </label>
-        <label style="display:inline-flex;align-items:center;gap:4px;font-size:0.85rem;cursor:pointer;">
-          <input type="checkbox" data-vfx-a11y="reduceMotion" ${(C.vfx.master?.reduceMotion || C.vfx.laser?.reduceMotion) ? 'checked' : ''}> Reduzir Movimento (reduceMotion)
-        </label>
-        <label style="display:inline-flex;align-items:center;gap:4px;font-size:0.85rem;cursor:pointer;">
-          <input type="checkbox" data-vfx-a11y="highContrast" ${(C.vfx.master?.highContrast || C.vfx.laser?.highContrast) ? 'checked' : ''}> Alto Contraste (highContrast)
-        </label>
-      </div>
-    `;
-    renderModeBox.insertAdjacentHTML("beforeend", `
-      <div class="vfx-quick-style" style="margin-top:10px;">
-        <b>Estilo Global de VFX:</b>
-        <div class="seg" role="group" aria-label="Estilo Global">
-          <button type="button" data-global-vfx="0" ${C.vfx.hit?.variant === 0 ? 'aria-pressed="true"' : 'aria-pressed="false"'}>Variante A (Arcade)</button>
-          <button type="button" data-global-vfx="1" ${C.vfx.hit?.variant === 1 ? 'aria-pressed="true"' : 'aria-pressed="false"'}>Variante B (Cinematic)</button>
-          <button type="button" data-global-vfx="2" ${C.vfx.hit?.variant === 2 ? 'aria-pressed="true"' : 'aria-pressed="false"'}>Variante C (Tático)</button>
-        </div>
-      </div>
-  `);
-    colLeft.append(renderModeBox);
+        <h4>Testar</h4>
+        <div class="vx-btns"><button type="button" data-barrier-preview="1">▶ Prévia</button><button type="button" data-sim-barrier="spawn">⚡ Materializar barreira real</button><button type="button" data-sim-barrier="shatter">💥 Testar quebra por tackle</button></div></div>`);
+    S.laser.insertAdjacentHTML('beforeend', `<div class="vx-card vx-wide"><h4>Prévia visual</h4>
+        <div class="vx-btns"><button type="button" data-laser-preview="1">▶ PL1 · ciano</button><button type="button" data-laser-preview="2">▶ PL2 · dourado</button><button type="button" data-laser-preview="3">▶ PL3 · magenta</button></div>
+        <h4>Disparo real na simulação</h4>
+        <div class="vx-btns"><button type="button" data-sim-laser="1">⚡ Laser PL1</button><button type="button" data-sim-laser="2">⚡ Laser PL2</button><button type="button" data-sim-laser="3">⚡ Laser PL3</button>
+          <button type="button" data-sim-scene="reflect">⚡ Reflexão real</button><button type="button" data-sim-scene="neutralize">⚡ Neutralização real</button></div></div>`);
+    const renderModeBox = root;
     // ---------- VFX 3D sólidos: malhas com volume real; por família: estilo, prévias, comparação e sliders ----------
     const solidBox = document.createElement('div');solidBox.className = 'vfx-solid-box';solidBox.dataset.solidBox = '1';
-    solidBox.style.cssText = 'background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.14);border-radius:6px;padding:10px 12px;margin:0 0 14px;';
     const SOLID_SLIDERS = ['intensity', 'amount', 'size', 'duration', 'velocity', 'scatter', 'lift', 'turbulence', 'opacity', 'fadeStart', 'fadeEnd'];
-    solidBox.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:6px;"><span style="font-weight:600;font-size:.95rem;">Efeitos 3D sólidos (malhas com volume, giram com a câmera)</span>
-        <label style="display:inline-flex;align-items:center;gap:4px;font-size:.85rem;"><input type="checkbox" data-solid-master ${C.vfx.solid?.enabled ? 'checked' : ''}> Ligados</label></div>
-      <p class="hint" style="margin:0 0 8px;">Funcionam com os dois renderizadores. O estilo marcado é exatamente o usado na luta; clicar já mostra a prévia. Poeira e vento têm estilo, intensidade e cores independentes (use os dois juntos). Ctrl+Z desfaz; presets e exportação incluem tudo.</p>
-      <div class="row" data-solid-combo style="margin-bottom:6px;"><b style="font-size:.85rem;">Poeira + vento juntos:</b>${[['dash', 'Dash'], ['start', 'Arrancada'], ['run', 'Corrida'], ['turn', 'Curva'], ['stop', 'Parada']].map(([w, l]) => `<button type="button" data-solid-combo-prev="${w}">▶ ${l}</button>`).join('')}</div>
-      <div class="row" style="margin-bottom:6px;"><span class="muted" style="font-size:.8rem;">Limite de objetos e qualidade:</span><span data-solid-global></span></div><div class="solid-families-grid">` +
-      SOLID_FAMILIES.map(f => `<div data-solid-family="${f.key}" style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.08);">
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;"><b style="font-size:.9rem;">${escape(f.label)}</b><span class="muted" style="font-size:.8rem;">Dispara em: ${escape(f.trigger)}</span>
-          <label style="display:inline-flex;align-items:center;gap:4px;font-size:.8rem;"><input type="checkbox" data-solid-on="${f.key}" ${C.vfx[f.key]?.enabled ? 'checked' : ''}> ligado</label>
-          ${f.previews ? f.previews.map(([w, l]) => `<button type="button" data-solid-prev="${f.key}:${w}">▶ ${l}</button>`).join('') + `<button type="button" data-solid-prev="${f.key}:compare" title="Todos os estilos lado a lado, no mesmo movimento">▶ Comparar os ${f.names.length}</button>` : `<button type="button" data-solid-prev="${f.key}:dash">▶ Prévia</button>`}</div>
-        <div class="seg" role="group" aria-label="${escape(f.label)}" style="flex-wrap:wrap;">${f.names.map((n, v) => `<button type="button" data-solid-variant="${f.key}:${v}" aria-pressed="${(C.vfx[f.key]?.variant | 0) === v}" title="${escape(n)}">${escape(n)}</button>`).join('')}</div>
-        <details data-solid-sliders="${f.key}" style="margin-top:4px;"><summary class="muted" style="cursor:pointer;font-size:.8rem;">Ajustes finos (quantidade, tamanho, duração, velocidade, dispersão, altura, turbulência, opacidade, dissipação, cores)</summary><div data-solid-rows></div></details></div>`).join('') + `</div>`;
-    colRight.append(solidBox);
+    solidBox.innerHTML = `<div class="vx-toolbar"><label class="vx-check"><input type="checkbox" data-solid-master ${C.vfx.solid?.enabled ? 'checked' : ''}> Efeitos 3D ligados</label>
+        <span class="vx-sep"></span><b>Poeira + vento juntos:</b><span class="vx-btns" data-solid-combo>${[['dash', 'Dash'], ['start', 'Arrancada'], ['run', 'Corrida'], ['turn', 'Curva'], ['stop', 'Parada']].map(([w, l]) => `<button type="button" data-solid-combo-prev="${w}">▶ ${l}</button>`).join('')}</span></div>
+      <div class="vx-toolbar"><b>Limite e qualidade:</b><span class="vx-global" data-solid-global></span></div><div class="solid-families-grid">` +
+      SOLID_FAMILIES.map(f => `<div class="vx-card" data-solid-family="${f.key}">
+        <div class="vx-fam-head"><b>${escape(f.label)}</b><label class="vx-check"><input type="checkbox" data-solid-on="${f.key}" ${C.vfx[f.key]?.enabled ? 'checked' : ''}> ligado</label></div>
+        <p class="hint">Dispara em: ${escape(f.trigger)}</p>
+        <div class="vx-btns">${f.previews ? f.previews.map(([w, l]) => `<button type="button" data-solid-prev="${f.key}:${w}">▶ ${l}</button>`).join('') + `<button type="button" data-solid-prev="${f.key}:compare" title="Todos os estilos lado a lado, no mesmo movimento">▶ Comparar os ${f.names.length}</button>` : `<button type="button" data-solid-prev="${f.key}:dash">▶ Prévia</button>`}</div>
+        <div class="vx-variants" role="group" aria-label="${escape(f.label)}">${f.names.map((n, v) => `<button type="button" data-solid-variant="${f.key}:${v}" aria-pressed="${(C.vfx[f.key]?.variant | 0) === v}" title="${escape(n)}">${escape(n)}</button>`).join('')}</div>
+        <details data-solid-sliders="${f.key}"><summary>Ajustes finos</summary><div class="vx-rows" data-solid-rows></div></details></div>`).join('') + `</div>`;
+    S['3d'].append(solidBox);
     for (const f of SOLID_FAMILIES) {
       const rows = solidBox.querySelector(`[data-solid-sliders="${f.key}"] [data-solid-rows]`);
       for (const p of [...SOLID_SLIDERS, 'color', ...(f.colors > 1 ? ['color2'] : [])]) rows.append(tuning.controlFor(`vfx.${f.key}.${p}`));
@@ -367,7 +337,7 @@ export function createVisualPanel({tuning, view, game, $, hud, download}) {
     const bar = document.createElement('div');bar.className = 'vfx-bar';
     bar.innerHTML = `<div class="seg wide" role="group" aria-label="Modo dos efeitos"><button type="button" data-vfx-mode-btn="simple">Simples</button><button type="button" data-vfx-mode-btn="advanced">Avançado</button></div>
       <div class="seg wide" role="group" aria-label="Filtro dos efeitos">${[['all', 'Todos'], ['active', 'Ativos'], ['changed', 'Alterados'], ['costly', 'Mais caros']].map(([v, t]) => `<button type="button" data-vfx-filter="${v}">${t}</button>`).join('')}</div><p class="hint" id="vfx-filter-info"></p>`;
-    colMid.append(bar);
+    S.combate.append(bar);
     const simple = document.createElement('div');simple.className = 'vfx-simple';simple.dataset.vfxMode = 'simple';
     const CORE_VFX = VFX_TYPES.filter(([t]) => t !== 'rock' && t !== 'barrier');
     for (const [type, label] of CORE_VFX) {
@@ -382,25 +352,24 @@ export function createVisualPanel({tuning, view, game, $, hud, download}) {
       const adv = document.createElement('button');adv.type = 'button';adv.textContent = 'Avançado ▸';adv.title = 'Todos os parâmetros deste efeito';adv.onclick = () => {setMode('advanced');const g = root.querySelector(`[data-group="vfx-${type}"]`);g?.setOpen?.(true);g?.scrollIntoView({block: 'start'});};
       head.append(pv, adv);row.append(head, ...[`vfx.${type}.enabled`, `vfx.${type}.variant`, `vfx.${type}.${MAIN[type]}`].map(p => tuning.controlFor(p)));simple.append(row);
     }
-    colMid.append(simple);
+    S.combate.append(simple);
     const advanced = document.createElement('div');advanced.dataset.vfxMode = 'advanced';
     advanced.append(group('Geral dos efeitos', 'vfx-master', tuning.sectionControls('VFX · geral')));
     const laserRows = tuning.sectionControls('VFX · Laser da Arena (BeamRenderer)');
-    advanced.append(group('Laser da Arena (BeamRenderer)', 'vfx-laser', laserRows, [actions('vfx.laser', 'Laser da Arena', () => vfxDefaults().laser, () => view.vfxRuntime.preview('laser', game.fighters))], false));
+    S.laser.append(group('Parâmetros do laser (BeamRenderer)', 'vfx-laser', laserRows, [actions('vfx.laser', 'Laser da Arena', () => vfxDefaults().laser, () => view.vfxRuntime.preview('laser', game.fighters))], true));
     for (const [type, label] of VFX_TYPES) {
       const rows = tuning.sectionControls(`VFX · ${label}`), g = group(label, `vfx-${type}`, rows, [actions(`vfx.${type}`, label, () => vfxDefaults()[type], () => {
         view.vfxRuntime.setVariant(type, C.vfx[type]?.variant || 0);
         if (view.useNewVfx) view.vfxRuntime.preview(type, game.fighters);
         else view.vfx.preview(type, game.fighters);
-      })]);
-      g.dataset.vfxType = type;advanced.append(g);
+      })], type === 'rock' || type === 'barrier');
+      if (type === 'rock' || type === 'barrier') S[type === 'rock' ? 'rochas' : 'barreira'].append(g);else {g.dataset.vfxType = type;advanced.append(g);}
     }
-    colMid.append(advanced);
+    S.combate.append(advanced);
     for (const b of bar.querySelectorAll('[data-vfx-mode-btn]')) b.onclick = () => setMode(b.dataset.vfxModeBtn);
     for (const b of bar.querySelectorAll('[data-vfx-filter]')) b.onclick = () => setFilter(b.dataset.vfxFilter);
     setMode(state.mode);setFilter(state.filter);
-    const extraFold = document.createElement('details');extraFold.className = 'vfx-extra-fold';extraFold.innerHTML = '<summary><b>Tremor, Sombras, Câmera, HUD & Indicadores</b></summary>';
-    const extraGrid = document.createElement('div');extraGrid.className = 'vfx-extra-grid';extraFold.append(extraGrid);colMid.append(extraFold);
+    const extraGrid = document.createElement('div');extraGrid.className = 'vx-folds';S.extras.append(extraGrid);
     extraGrid.append(group('Geral dos tremores', 'shake-master', tuning.sectionControls('Tremor · geral')));
     for (const [key, label] of SHAKE_EVENTS) {
       const rows = tuning.sectionControls(`Tremor · ${label}`), n = {x: 0, z: 1};
