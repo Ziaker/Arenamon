@@ -27,7 +27,7 @@ const mean = a => a.reduce((s, v) => s + v, 0) / Math.max(1, a.length);
 const sdOf = a => {const m = mean(a);return Math.sqrt(mean(a.map(v => (v - m) ** 2)));};
 
 // ---------- Cobertura: nada que a simulação lê fica sem slider ----------
-const NEW = new Set(['reflect.minCharge', 'psyshock.searchStep', 'psyshock.arc', 'psyshock.ringMin', 'psyshock.ringMax', 'psyshock.heightMin', 'psyshock.heightMax', 'psyshock.scaleMin', 'psyshock.scaleMax']);
+const NEW = new Set(['psyshock.knockbackVertical', 'psyshock.knockbackLevelBonus', 'psyshock.knockbackSpeedFactor', 'reflect.minCharge', 'psyshock.searchStep', 'psyshock.arc', 'psyshock.ringMin', 'psyshock.ringMax', 'psyshock.heightMin', 'psyshock.heightMax', 'psyshock.scaleMin', 'psyshock.scaleMax']);
 const GROUPS = ['charge', 'reflect', 'psyshock', 'beam'];
 const rows = new Map(MOVES_PARAMS.flatMap(([, list]) => list).map(r => [`${r[0]}.${r[1]}`, r]));
 /** Chaves da configuração que NENHUM código da simulação ou da visão lê (campos legados): sem leitor, um slider seria controle morto. */
@@ -96,6 +96,20 @@ ok('psyshock.searchStep: o passo da busca muda onde as pedras acham espaço livr
   assert.equal(made(2.5, 2.8), true, 'segurando além da carga mínima materializa');
 }
 ok('reflect.minCharge: define o tempo mínimo segurando para a barreira nascer');
+{
+  const kbOf = (cfg, ticks = 96) => stones(arena(() => Object.assign(C.world.psyshock, cfg)), ticks).map(e => e.hit.knockback);
+  const base = kbOf({});
+  assert.ok(base.every(k => k.vertical === 0 && Math.abs(k.horizontal - .3) < 1e-9), 'padrão inalterado: 0,3 m/s horizontal, 0 vertical');
+  assert.ok(kbOf({knockbackVertical: 2}).every(k => k.vertical === 2), 'lançamento vertical por pedra');
+  const pl1 = kbOf({knockbackLevelBonus: 1}, 10), pl3 = kbOf({knockbackLevelBonus: 1}, 480);
+  assert.ok(Math.abs(pl1[0].horizontal - .3) < 1e-9 && Math.abs(pl3[0].horizontal - .3 * 3) < 1e-9, `bônus por PL: PL1 ${pl1[0].horizontal} · PL3 ${pl3[0].horizontal}`);
+  const sp = kbOf({knockbackSpeedFactor: 1}, 480).map(k => k.horizontal);
+  assert.ok(Math.max(...sp) - Math.min(...sp) > .01, 'empurrão varia com a velocidade sorteada da pedra');
+  assert.equal(new Set(kbOf({}, 480).map(k => k.horizontal.toFixed(6))).size, 1, 'sem o fator, todas as pedras empurram igual');
+  assert.equal(MOVES_PARAMS.flatMap(g => g[1]).find(r => r[1] === 'knockbackPerStone')[5], 3.2);
+  assert.equal(MOVES_PARAMS.flatMap(g => g[1]).find(r => r[1] === 'knockbackCap')[5], 4.8);
+}
+ok('psyshock: limites de knockback +60% e novos controles (vertical, bônus por PL, velocidade da pedra) alteram o empurrão real');
 
 console.log(`
 ${n} verificações dos sliders dos Moves aprovadas.`);
