@@ -325,7 +325,9 @@
      </section>
     </div>
    </aside>
+   <div id="panel-resizer" role="separator" aria-orientation="vertical" tabindex="0" title="Arraste para mudar a largura do painel (duplo clique restaura)"></div>
   <main class="stage">
+   <button type="button" id="dock-reopen" hidden title="Abrir a linha do tempo">▴ Linha do tempo</button>
    <canvas tabindex="0" aria-label="Arena 3D. Setas movem, X tackle, C esquiva (segure para sprint), D defesa."></canvas>
    <div id="vfx-flash"></div>
    <div id="hud-proposals" class="hudp" hidden></div>
@@ -416,6 +418,7 @@
   </main>
  </div>
  <section class="dock" id="dock">
+  <div id="dock-resizer" role="separator" aria-orientation="horizontal" tabindex="0" title="Arraste para mudar a altura (duplo clique restaura)"></div>
   <div class="dock-bar">
    <button type="button" id="dock-collapse" title="Abrir/fechar a linha do tempo" aria-expanded="true">▾</button>
    <button type="button" id="rp-back" title="Voltar um passo (,)">◂</button>
