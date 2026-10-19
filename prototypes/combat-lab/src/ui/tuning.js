@@ -16,7 +16,7 @@ const $ = id => document.getElementById(id);
 export const pathGet = (root, path) => path.split('.').reduce((a, k) => a?.[k], root);
 export const pathSet = (root, path, value) => {const keys = path.split('.'), last = keys.pop();const obj = keys.reduce((a, k) => a?.[k], root);if (!obj || !(last in obj)) return false;obj[last] = value;return true;};
 const TABS = [
-  ['X e C', ['Esquiva (C)', 'Tackle (X)', 'Sprint (C mantido)', 'Cancelamento C → X', 'Buffer de entrada']],
+  ['X e C', ['Esquiva (C)', 'Tackle (X)', 'Tackle carregado (PL)', 'Sprint (C mantido)', 'Cancelamento C → X', 'Buffer de entrada']],
   ['Combate', ['Regras gerais, defesa e stamina', 'Knockback e clash', 'Combate e colisões']],
   ['Atributos', ['Atributos: equilibrado', 'Atributos: ágil', 'Atributos: resistente']],
   ['Movimento', ['Movimento']], ['IA', ['IA: estratégia e decisões', 'IA: personalidade do vermelho', 'IA: personalidade do azul (IA jogador)']], ['Arena', ['Arena e simulação']],
@@ -39,7 +39,7 @@ function range(key, value, path) {
   if (parent === 'extras.colors') return {min: 0, max: 255, step: 1, fmt: n => String(n)};
   if (parent === 'extras.gameModes') return key === 'enemyMode' ? {min: 0, max: AI_MODES.length - 1, step: 1, fmt: n => AI_MODES[n]?.[1] ?? '?'} : {min: 0, max: 2, step: 1, fmt: n => PROFILE_LABEL[n] ?? '?'};
   if (key === 'style' && (parent === 'extras.aiRed' || parent === 'extras.aiBlue')) return {min: 0, max: STYLES.length, step: 1, fmt: n => n ? STYLES[n - 1].label : 'Sorteado por partida'};
-  if (toggled(key)) return {min: 0, max: 1, step: 1, fmt: n => n ? 'Ligado' : 'Desligado'};
+  if (toggled(key)) return {min: 0, max: 1, step: 1, fmt: n => n ? 'Ligado' : 'Desligado', kind: 'toggle'};
   if (RADIANS.includes(key)) {const max = key === 'initialYaw' ? 360 : /rate/i.test(key) || key === 'guardTurn' || key === 'guardAcceleration' ? 1440 : 180;return {min: 0, max: max * Math.PI / 180, step: Math.PI / 180, fmt: n => (n * 180 / Math.PI).toFixed(0) + '°'};}
   // Durações que podem vir das animações: até 4 s para caber clips longos.
   if (['recoil', 'guardStun', 'landingRecovery'].includes(key) && path.startsWith('rules.')) return {min: 0, max: 4, step: .01, fmt: n => n.toFixed(2) + ' s'};

@@ -247,8 +247,9 @@ function stepArea(game, a, dt, events) {
 }
 
 // ---------- Power Level: disputas e Counter Stagger ----------
-/** PL do Tackle: fixo em 1 (M21.1). */
+/** PL base do Tackle (M21.1); o Tackle carregado ou o do sprint sobe a `action.pl` (2 ou 3). */
 export const TACKLE_PL = 1;
+export const tacklePL = f => f?.action?.pl ?? TACKLE_PL;
 /**
  * Counter Stagger (M20.8, M21.4–M21.7): o derrotado fica em stagger de \`seconds\` quando o ataque vencedor atinge o seu CORPO. Não acumula nem
  * reinicia o stagger ativo; interrompe o Charge pela regra comum (recuperação > 0). Devolve true se aplicou.
@@ -265,14 +266,14 @@ export function applyCounterStagger(f, seconds, events, by = null) {
  * ação) e, ao atingir o corpo do derrotado, o Counter Stagger se aplica. Devolve true se a pedra foi destruída.
  */
 function tackleDispute(p, f, events) {
-  const pl = p.pl ?? 1;
-  if (pl <= TACKLE_PL) {
+  const pl = p.pl ?? 1, tpl = tacklePL(f);
+  if (pl <= tpl) {
     p.dead = true;
-    events.push({result: 'tackleClash', attacker: f.id, target: p.owner ?? null, damage: 0, entity: p.id, pl, other: TACKLE_PL, kind: 'projectile'});
+    events.push({result: 'tackleClash', attacker: f.id, target: p.owner ?? null, damage: 0, entity: p.id, pl, other: tpl, kind: 'projectile'});
     return true;
   }
   f.action.neutralized = true;p.counterWon = true;(p.defeated ??= []).push(f.id);
-  events.push({result: 'counter', attacker: p.owner ?? null, target: f.id, damage: 0, entity: p.id, pl, other: TACKLE_PL, kind: 'projectile'});
+  events.push({result: 'counter', attacker: p.owner ?? null, target: f.id, damage: 0, entity: p.id, pl, other: tpl, kind: 'projectile'});
   return false;
 }
 
