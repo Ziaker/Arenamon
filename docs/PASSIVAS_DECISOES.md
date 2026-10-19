@@ -111,10 +111,19 @@ O sistema admite tipos diferentes de passivas, conforme a definição individual
 - **Permanece pendente:** como resolver efeitos que sejam incompatíveis, mutuamente exclusivos ou que provoquem conflitos na atualização do estado. A opção A não define regras de desempate, prioridade entre efeitos incompatíveis, nem comportamento particular de passivas ainda não especificadas.
 - Esta decisão mantém a ativação independente aprovada na Rodada 12, **sem autorizar implementação**.
 
+## Rodada 14 — Resolução de conflitos entre passivas (opção C aprovada)
+
+- **Conflitos entre efeitos de passivas simultaneamente acionadas serão resolvidos por regras específicas de cada combinação de efeitos incompatíveis.**
+- **Não haverá uma prioridade global** entre categorias de efeitos, valores numéricos de prioridade atribuídos universalmente às passivas, nem desempate automático por posição no equipamento, decorrentes desta decisão.
+- Quando uma combinação de passivas produzir efeitos incompatíveis, mutuamente exclusivos ou que disputem a mesma alteração de estado, **a regra dessa interação deverá ser definida e aprovada durante o projeto das passivas envolvidas**, antes de implementar tal combinação.
+- **Não se aprova anulação mútua automática**, prevalência fixa de um efeito ou outro, nem resultados específicos para combinações ainda não definidas.
+- **Efeitos compatíveis continuam seguindo a ativação independente e a resolução simultânea das Rodadas 12–13**, bem como as regras de acúmulo e cálculo das Rodadas 7–11.
+- **Permanecem pendentes:** o catálogo das combinações incompatíveis, o resultado exato de cada conflito e o tratamento de eventuais interações novas ou não previstas. Nenhuma mecânica foi autorizada para implementação.
+
 ## Pontos pendentes — não aprovados
 
 - Identidade, números, magnitude, duração, gatilhos e cooldowns de cada passiva.
-- Resolução de conflitos entre efeitos simultâneos incompatíveis, mutuamente exclusivos ou que disputem uma mesma alteração de estado; critérios de desempate ainda não aprovados.
+- Catálogo e critérios concretos de resolução para cada combinação de efeitos incompatíveis ou mutuamente exclusivos; casos não previstos permanecem sem regra aprovada.
 - Unidades e conversão para efeitos de natureza diversa, regras de arredondamento específicas quando exigido inteiro, interações entre modificadores incompatíveis e tratamento de casos especiais não cobertos por restrições preexistentes.
 - Comportamento das passivas em KO, respawn, pausas, hitstop e demais estados; a definição é individual, mas as regras concretas ainda não foram aprovadas.
 - Interface de seleção, apresentação visual e implementação técnica.
