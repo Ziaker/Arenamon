@@ -32,9 +32,15 @@ O sistema admite tipos diferentes de passivas, conforme a definição individual
 - **Não existe, por esta decisão, uma suspensão global automática de todas as passivas** em estados como hit stun, guard stun, esquiva ou interrupções.
 - A interação efetiva com cada estado será definida para cada passiva, sem presumir imunidades, exceções ou efeitos não aprovados.
 
+## Rodada 4 — Disponibilidade das passivas genéricas (opção A aprovada)
+
+- **Todas as passivas genéricas estão liberadas desde o início do jogo.**
+- Todas podem ser selecionadas no pré-jogo, respeitando o limite geral de **duas passivas equipadas** e as demais regras aprovadas.
+- Não é necessário desbloquear passivas genéricas por progressão, conquistas ou desafios.
+- Esta decisão **não define** quais serão as passivas genéricas nem suas características ou quantidades.
+
 ## Pontos pendentes — não aprovados
 
-- Regras de disponibilidade ou desbloqueio das passivas genéricas.
 - Identidade, números, magnitude, duração, gatilhos e cooldowns de cada passiva.
 - Regras para substituição da seleção durante uma partida ou entre partidas.
 - Possibilidade de equipar duplicatas, quando aplicável.
