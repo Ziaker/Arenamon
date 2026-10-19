@@ -49,6 +49,12 @@ const SPRINT = {
   exhaustedStop: ['Stamina zerada encerra o sprint', 'Ao zerar a stamina o sprint termina com o freio do sprint e o lutador fica exausto (regra da stamina).', toggle],
 };
 const AI = {
+  useCharge: ['IA usa o tackle carregado', 'Ligado: a IA carrega PL2/PL3 quando o alvo está fora do alcance normal, dentro do alcance da carga e há tempo seguro para carregar.', toggle],
+  useFeint: ['IA usa a finta', 'Ligado: a IA cancela o próprio tackle no startup quando o rival abre a defesa perfeita ou esquiva, e cancela a carga se o alvo some.', toggle],
+  wallEscape: ['IA foge do wall-splat', 'Ligado: lançada rumo à parede, a IA mergulha (X) para sair do voo antes de ficar presa.', toggle],
+  chargeMargin: ['IA: margem de segurança da carga', 'Folga extra (s) que a IA exige, além do tempo de carga, antes de o rival poder alcançá-la. Maior = carrega menos e com mais segurança.', R(0, 1, .01, sec)],
+  chargeChance: ['IA: chance de carregar', 'Probabilidade de a IA carregar quando a situação permite.', R(0, 1, .01, pct)],
+  feintChance: ['IA: chance de fintar', 'Probabilidade de a IA fintar quando lê a defesa perfeita ou a esquiva do rival no startup do tackle.', R(0, 1, .01, pct)],
   sprintReserve: ['Reserva de stamina ao correr (IA)', 'Stamina que a IA exige sobrar, além do custo de C e de X, para começar um sprint. Menor = corre mais; maior = poupa stamina para atacar.', R(0, 1.5, .05, n => n.toFixed(2))],
   sprintMargin: ['Distância para correr (IA)', 'A IA só corre quando está a mais que a zona de ameaça do rival somada a esta margem (m). Negativa = corre mais cedo; maior = só corre de muito longe.', R(-3, 3, .1, m)],
   moveSmoothing: ['Suavização da intenção de movimento (IA)', 'Giro máximo (rad/s) da direção que a IA envia ao controlador. Contra giros instantâneos e zigue-zague; ataques e respostas a ameaças passam direto. 0 = intenções cruas (v6).', R(0, 40, .5, n => n ? n.toFixed(1) + ' rad/s' : 'desligada')],

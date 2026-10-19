@@ -47,7 +47,9 @@ export function defaults() {
     // a intenção (contra zigue-zague). 0 = intenções cruas (v6). Ataques e esquivas nunca são suavizados.
     // revision: 0 = IA tática anterior (15/10/2026); 1 = revisada (valida ações antes de pedir, alcance, sprint, contra-ataque);
     // 2 = evoluída (percepção justa, previsão de contato, gestão de arena/zonas, economia, defesa contextual, modelo do oponente, sequências e dificuldade balanceada).
-    ai: {revision: 2, difficultyTier: 'normal', sprintReserve: .2, sprintMargin: 0, moveSmoothing: 10, minDirectionHold: .18, initialCooldown: .6, orbitChangePeriod: 1.7, threatAlignment: .3, threatDistance: 4.8, defensiveRetreatDistance: 2.4, defensiveRetreatStrength: .5,
+    ai: {revision: 2, difficultyTier: 'normal', sprintReserve: .2, sprintMargin: 0,
+      // Tackle carregado, finta e fuga do wall-splat (revisão 2): usar a carga (PL2/PL3) a distância segura, fintar tackle que o rival lê, mergulhar para escapar da parede.
+      useCharge: 1, useFeint: 1, wallEscape: 1, chargeMargin: .25, chargeChance: .8, feintChance: .5, moveSmoothing: 10, minDirectionHold: .18, initialCooldown: .6, orbitChangePeriod: 1.7, threatAlignment: .3, threatDistance: 4.8, defensiveRetreatDistance: 2.4, defensiveRetreatStrength: .5,
       reactiveRetreatStrength: .2, approachDistance: 3, retreatDistance: 1.35, retreatStrength: .65, strafeStrength: .72, wallPrediction: .8, wallMargin: 1,
       attackRange: 3.35, combatAttackCooldown: 1.1, lowStaminaThreshold: .95, lowStaminaDistance: 2.5, lowStaminaRetreat: .7, evadeCycle: 3, evadeCycleIndex: 2},
     // Personalidade de cada IA. Reação/erros/variação/hesitação 0 e agressividade 0,5 = IA exata do v6.

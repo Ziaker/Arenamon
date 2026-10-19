@@ -39,11 +39,11 @@ test('estilos: sorteados por partida (variados entre sementes) e fixáveis pela 
   console.log(`   ${seen.size} de ${STYLES.length} estilos sorteados em 40 lutas`);
 });
 test('usa todas as mecânicas: X, C, C → X, salto, defesa (parcial e perfeita), esquiva perfeita e clash', () => {
-  const r = runBalance({matches: 30, seed: 1, mode: 'tactical'}), sum = k => r.sides[0][k] + r.sides[1][k];
+  const r = runBalance({matches: 60, seed: 1, mode: 'tactical'}), sum = k => r.sides[0][k] + r.sides[1][k];   // 60 lutas: o salto é raro e a IA agora também carrega o tackle
   for (const k of ['tackle', 'dodge', 'cancel', 'vault', 'partial', 'perfect', 'perfectDodge', 'clash', 'impact']) assert.ok(sum(k) > 0, `${k} usado`);
   assert.ok(sum('clash') < sum('impact') / 2, 'o clash não domina');
   assert.ok(r.timeouts <= r.matches * .35, `${r.timeouts} lutas sem vencedor`);
-  console.log(`   30 lutas: X ${sum('tackle')}, C ${sum('dodge')}, C → X ${sum('cancel')}, saltos ${sum('vault')}, bloqueios ${sum('partial')}, defesas perfeitas ${sum('perfect')}, esquivas perfeitas ${sum('perfectDodge')}, clashes ${sum('clash')}, sem vencedor ${r.timeouts}`);
+  console.log(`   60 lutas: X ${sum('tackle')}, C ${sum('dodge')}, C → X ${sum('cancel')}, saltos ${sum('vault')}, bloqueios ${sum('partial')}, defesas perfeitas ${sum('perfect')}, esquivas perfeitas ${sum('perfectDodge')}, clashes ${sum('clash')}, sem vencedor ${r.timeouts}`);
 });
 test('mais forte que a IA do v6, dos dois lados', () => {
   const a = runBalance({matches: 30, seed: 2, mode: 'tactical', enemyMode: 'combat'}), b = runBalance({matches: 30, seed: 3, mode: 'combat', enemyMode: 'tactical'});

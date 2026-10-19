@@ -16,6 +16,7 @@ export const ACTION_TABS = {
       ['☄ Meteor slam e ground bounce', ['rules.slamAngle', 'rules.slamMinHeight', 'rules.slamDamage', 'rules.slamRecovery', 'rules.slamLaunchHorizontal', 'rules.groundBounceForce'], true],
       ['🏃 Movimento e curva do tackle', '@Tackle (X)'],
       ['🧱 Recuo, empurrão e clash', ['rules.recoil', 'rules.recoilFraction', 'rules.clashFraction', 'rules.clashPushDistance', 'rules.clashPushDuration', 'rules.clashUp', 'rules.clashHorizontal', 'extras.combat.impactHitstop', 'extras.combat.clashHitstop']],
+      ['🤖 IA e o tackle', ['extras.ai.useCharge', 'extras.ai.useFeint', 'extras.ai.wallEscape', 'extras.ai.chargeMargin', 'extras.ai.chargeChance', 'extras.ai.feintChance']],
       ['⌨ Buffer de entrada', '@Buffer de entrada'],
     ],
     anims: ['tackle', 'tackle_charge', 'tackle_pl2', 'tackle_pl3', 'brake', 'wall_splat'],

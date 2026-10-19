@@ -95,7 +95,7 @@ ok('sprint recusado por stamina abaixo do mínimo (uma vez por esquiva)');
         if (['chain', 'recoil', 'guardStun', 'recovery', 'perfectCooldown'].includes(e.reason)) assert.ok(d.left > 0, JSON.stringify(e));
         if (e.reason === 'cancelWindow') assert.ok(d.elapsed < d.open[0] - 1e-9 || d.elapsed > d.open[1] + 1e-9, JSON.stringify(e));
         if (e.reason) assert.ok(REASONS[e.reason], 'motivo sem descrição: ' + e.reason);
-        if (e.result === 'executed' && (e.kind === 'tackle' || e.kind === 'dodge')) assert.equal(f.action?.kind === e.kind || f.sprinting || !!f.flight || f.knockRecovery > 0 || f.action?.kind === 'recoil', true, JSON.stringify(e));
+        if (e.result === 'executed' && (e.kind === 'tackle' || e.kind === 'dodge')) assert.equal(f.action?.kind === e.kind || f.sprinting || !!f.flight || f.knockRecovery > 0 || f.action?.kind === 'recoil' || /carga|finta|meteor/.test(e.note ?? ''), true, JSON.stringify(e));   // carga iniciada, finta e slam não deixam uma ação 'tackle' no estado
         if (e.result === 'denied' && (e.kind === 'tackle' || e.kind === 'dodge') && e.state !== undefined) assert.ok(!(f.action?.kind === e.kind && f.action.elapsed < 1e-9), 'negado não pode iniciar a ação');
       }
     }
