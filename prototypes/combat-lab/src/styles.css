@@ -629,3 +629,6 @@ pre.diff{max-height:72px;padding:4px;font-size:9.5px;margin:2px 0}
 .chip.ws:not([data-state=error]):not([data-state=memory]) span{display:none}
 .chip.ws:not([data-state=error]):not([data-state=memory]){padding:4px 8px}
 .top-info .chip{flex:none}.top-info .chip.ai{flex:0 1 auto;min-width:60px}
+/* Aviso de sessão anterior: barra fina de largura total (não ocupa uma coluna inteira da grade) */
+#session-banner{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin:0 0 4px;padding:5px 9px;font-size:12px}
+#session-banner p{margin:0;flex:1 1 220px}#session-banner .row{margin:0;flex:none;gap:6px}#session-banner button{min-height:24px;padding:1px 9px;font-size:11.5px}
