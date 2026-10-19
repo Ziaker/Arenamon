@@ -54,10 +54,17 @@ O sistema admite tipos diferentes de passivas, conforme a definição individual
 - O jogador poderá escolher outra combinação **na preparação da partida seguinte**, respeitando as regras de disponibilidade, quantidade e proibição de duplicatas já aprovadas.
 - Esta decisão não define a interface de seleção nem os demais detalhes de implementação.
 
+## Rodada 7 — Acúmulo dos efeitos de passivas (opção A aprovada)
+
+- Quando **duas passivas diferentes equipadas** concedem benefícios compatíveis sobre o mesmo atributo ou efeito de combate, **esses benefícios são somados diretamente (acúmulo aditivo)**.
+- Benefícios compatíveis não são combinados por multiplicação sequencial e não se descarta o menor benefício apenas por incidirem sobre o mesmo atributo.
+- Esta regra de acúmulo não modifica o limite de duas passivas, a proibição de equipar duplicatas nem os critérios individuais de ativação e suspensão já aprovados.
+- **Escopo ainda indefinido:** valores, base de cálculo de bônus percentuais, arredondamento, limites máximos, interação com buffs/debuffs de outras fontes, precedência entre efeitos incompatíveis e fórmulas específicas permanecem sujeitos a decisões posteriores. Não presumir fórmulas ou exceções.
+
 ## Pontos pendentes — não aprovados
 
 - Identidade, números, magnitude, duração, gatilhos e cooldowns de cada passiva.
-- Interações e prioridades entre duas passivas equipadas.
+- Prioridades, ordem de aplicação e conflitos entre efeitos incompatíveis das duas passivas equipadas.
 - Limites de empilhamento e relação com buffs, debuffs e atributos.
 - Comportamento das passivas em KO, respawn, pausas, hitstop e demais estados; a definição é individual, mas as regras concretas ainda não foram aprovadas.
 - Interface de seleção, apresentação visual e implementação técnica.
