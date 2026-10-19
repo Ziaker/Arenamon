@@ -195,7 +195,7 @@ export function createTuning({apply}) {
       const reset = document.createElement('button');reset.type = 'button';reset.textContent = '↺ grupo';reset.title = 'Restaurar este grupo aos padrões do laboratório';
       reset.onclick = () => commit(members.map(m => [m.path, m.initial]), 'Restaurar ' + section);
       const body = document.createElement('div');body.className = 'tune-body';for (const m of members) body.append(control(m));
-      if (members.length > 2) {const fold = document.createElement('button');fold.type = 'button';fold.className = 'fold-btn';const set = open => {state.folds.set(section, open);body.hidden = !open;fold.textContent = open ? '▼' : '▶';fold.title = (open ? 'Recolher ' : 'Expandir ') + section;fold.setAttribute('aria-expanded', String(open));};fold.onclick = () => set(body.hidden);set(state.folds.get(section) ?? true);head.prepend(fold);}
+      if (members.length > 2) {const fold = document.createElement('button');fold.type = 'button';fold.className = 'fold-btn';const set = open => {state.folds.set(section, open);body.hidden = !open;fold.textContent = open ? '▼' : '▶';fold.title = (open ? 'Recolher ' : 'Expandir ') + section;fold.setAttribute('aria-expanded', String(open));};fold.onclick = () => set(body.hidden);set(state.folds.get(section) ?? false);head.prepend(fold);}
       head.append(title, reset);group.append(head, body);
       list.append(group);
     }

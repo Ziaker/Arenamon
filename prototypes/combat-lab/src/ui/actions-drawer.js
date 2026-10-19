@@ -13,13 +13,13 @@ export const ACTION_TABS = {
       ['⚡ Carga e Power Level', '@Tackle carregado (PL)', true],
       ['🎭 Finta e brake slide', ['rules.feintWindow', 'rules.feintStaminaCost', 'rules.feintSkidSpeed', 'rules.feintRecovery'], true],
       ['🧱 Wall-splat', ['rules.wallSplatMinSpeed', 'rules.wallSplatDuration', 'rules.wallSplatDamage', 'rules.landingRecovery'], true],
-      ['☄ Meteor slam e ground bounce', ['rules.slamAngle', 'rules.slamMinHeight', 'rules.slamDamage', 'rules.slamSpeedLoss', 'rules.slamFallTime', 'rules.slamImpactScale', 'rules.slamImpactShake', 'rules.slamRecovery', 'rules.slamLaunchHorizontal', 'rules.groundBounceForce'], true],
+      ['☄ Meteor slam e ground bounce', ['rules.slamAngle', 'rules.slamMinHeight', 'rules.slamDamage', 'rules.slamSpeedLoss', 'rules.slamFxOn', 'rules.slamFxSize', 'rules.slamFxLength', 'rules.slamFxIntensity', 'rules.slamFxHeat', 'rules.slamFxSparks', 'rules.slamFxFlicker', 'rules.slamFxFadeOut', 'rules.slamPrepTime', 'rules.slamHop', 'rules.slamFallTime', 'rules.slamImpactScale', 'rules.slamImpactShake', 'rules.slamRecovery', 'rules.slamLaunchHorizontal', 'rules.groundBounceForce'], true],
       ['🏃 Movimento e curva do tackle', '@Tackle (X)'],
       ['🧱 Recuo, empurrão e clash', ['rules.recoil', 'rules.recoilFraction', 'rules.clashFraction', 'rules.clashPushDistance', 'rules.clashPushDuration', 'rules.clashUp', 'rules.clashHorizontal', 'extras.combat.impactHitstop', 'extras.combat.clashHitstop']],
       ['🤖 IA e o tackle', ['extras.ai.useCharge', 'extras.ai.useFeint', 'extras.ai.wallEscape', 'extras.ai.chargeMargin', 'extras.ai.chargeChance', 'extras.ai.feintChance']],
       ['⌨ Buffer de entrada', '@Buffer de entrada'],
     ],
-    anims: ['tackle', 'tackle_charge', 'tackle_pl2', 'tackle_pl3', 'brake', 'wall_splat'],
+    anims: ['tackle', 'tackle_charge', 'tackle_pl2', 'tackle_pl3', 'brake', 'wall_splat', 'meteor_prep', 'meteor_dive'],
   },
   dodge: {
     icon: '💨', label: 'Esquiva', title: 'Esquiva (C) e sprint',
@@ -76,7 +76,7 @@ export function createActionsDrawer({$, tuning, ui, onCharactersChanged = () => 
     const head = document.createElement('h2');head.className = 'act-title';head.textContent = `${cfg.icon} ${cfg.title}`;root.append(head);
     for (const [title, spec, open] of cfg.sections) {
       const paths = pathsOf(spec);if (!paths.length) continue;
-      const d = document.createElement('details');d.className = 'act-card';d.dataset.k = `act:${name}:${title}`;d.open = !!open || (ui.actOpen?.has(d.dataset.k) ?? false);
+      const d = document.createElement('details');d.className = 'act-card';d.dataset.k = `act:${name}:${title}`;d.open = (ui.actOpen?.has(d.dataset.k) ?? false);
       const sum = document.createElement('summary');sum.innerHTML = `<b>${escape(title)}</b> <small class="muted">${paths.length}</small>`;d.append(sum);
       const body = document.createElement('div');body.className = 'act-controls';for (const p of paths) body.append(tuning.controlFor(p));d.append(body);
       d.addEventListener('toggle', () => {(ui.actOpen ??= new Set())[d.open ? 'add' : 'delete'](d.dataset.k);});

@@ -60,6 +60,7 @@ try {
   assert.match(await page.textContent('#tune-counter'), /de \d+ · \d+ ≠ jogo/);
   // Aba “X e C”: parâmetros independentes da esquiva, do tackle e do cancelamento.
   assert.match(await page.locator('#tune-tabs [role=tab]').first().textContent(), /^X e C · \d+$/);
+  await page.evaluate(() => document.querySelectorAll('.fold-btn[aria-expanded="false"]').forEach(b => b.click()));
   for (const id of ['#tune-actions-dodge-duration', '#tune-actions-tackle-duration', '#tune-actions-cancel-windowStart', '#tune-actions-cancel-invulnerability', '#tune-actions-buffer-window']) assert.ok(await page.isVisible(id), id);
   assert.match(await page.textContent('#tune-list'), /Esquiva \(C\)[\s\S]*Tackle \(X\)[\s\S]*Cancelamento C → X/);
   await page.locator('#tune-actions-tackle-duration').fill('0.5');await page.locator('#tune-actions-tackle-duration').dispatchEvent('change');

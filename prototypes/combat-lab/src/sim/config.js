@@ -17,7 +17,7 @@ export function defaults() {
     // Finta (enableTackleFeint): C ou D no startup do tackle (feintWindow) ou durante a carga cancelam o ataque; o lutador derrapa (brake slide),
     // paga só feintStaminaCost (devolve o resto do custo do tackle) e volta ao neutro em feintRecovery.
     feintWindow: .12, feintStaminaCost: .3, feintSkidSpeed: 4, feintRecovery: .15,
-    wallSplatMinSpeed: 6, wallSplatDuration: .7, wallSplatDamage: 0, slamAngle: Math.PI / 4, slamMinHeight: .3, slamDamage: 1, slamFallTime: .12, slamSpeedLoss: 1, slamImpactScale: 1.2, slamImpactShake: 1.2, slamRecovery: .6, slamLaunchHorizontal: .4, groundBounceForce: 9,
+    wallSplatMinSpeed: 6, wallSplatDuration: .7, wallSplatDamage: 0, slamAngle: Math.PI / 4, slamMinHeight: .3, slamDamage: 1, slamFxOn: 1, slamFxSize: 1, slamFxLength: 1, slamFxIntensity: 1, slamFxHeat: .5, slamFxSparks: 1, slamFxFlicker: .5, slamFxFadeOut: .25, slamPrepTime: .5, slamHop: .8, slamFallTime: .12, slamSpeedLoss: 0, slamImpactScale: 1.2, slamImpactShake: 1.2, slamRecovery: .6, slamLaunchHorizontal: .4, groundBounceForce: 9,
     landingRecovery: .19, wallRestitution: .28, perfect: .2, perfectCooldown: 2, staminaMax: 3, regenDelay: 1, regenTime: 5, guardSpeed: .6,
     exhaustedSpeed: .7, guardTurn: 3 * Math.PI, guardAcceleration: 15 * Math.PI,
     // exhaustMode 1: exausto quando sobra menos que o menor custo de X/C (0 = só em zero, Etapa A). Rebote na parede: vertical.
