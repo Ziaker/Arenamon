@@ -1,7 +1,7 @@
 # Arenamon — Catálogo de moves do Mushroom
 
 > **Documento de decisões de design — fonte para implementação posterior.**  
-> **Última consolidação:** 19/10/2026. **Status do Bullet Punch:** design aprovado nas regras descritas abaixo; **não implementado nem testado**.  
+> **Última consolidação:** 19/10/2026. **Status:** Bullet Punch com design principal aprovado; Sand Wave com especificação inicial aprovada e pendências identificadas. **Nenhum dos dois foi implementado ou testado neste documento.**  
 > **Origem:** decisões explícitas do diretor nesta conversa, preservadas em ordem cronológica; informações técnicas do repositório são assinaladas separadamente.  
 > **Escopo autorizado:** documentação das mecânicas e dos VFX explicitamente solicitados; **não** inclui criar animações, trabalhar em rigging, alterar o Combat Lab ou escolher novos parâmetros sem aprovação.
 >
@@ -11,7 +11,7 @@
 
 | Ordem informada | Move | Situação |
 |---|---|---|
-| 1 | **Rock Tomb** | Nome aprovado; gameplay ainda não especificado. O diretor corrigiu expressamente **Rock Slide → Rock Tomb**. |
+| 1 | **Sand Wave** | Novo nome do golpe imediatamente colocado em discussão (**Rock Tomb**, anteriormente chamado de **Rock Slide**). Mecânica inicial especificada na seção 6; associação definitiva ao slot sujeita a correção explícita caso o diretor se refira a outro golpe. |
 | 2 | **Bullet Punch** | Mecânica descrita neste documento; implementação pendente. |
 | 3 | **Sand Kick** | Nome aprovado; gameplay ainda não especificado. |
 | 4 | **Body Slam** | Nome aprovado; gameplay ainda não especificado. |
@@ -148,7 +148,7 @@ Em seguida à consulta sobre limites, o diretor autorizou expressamente **as rec
 - A formulação antiga **“reaparece a uma distância fixa à frente da posição inicial”** foi refinada/substituída: agora o destino é o **marcador dinâmico de 3 a 10 m**, relativo à posição atual enquanto o botão estiver segurado e **congelado no mundo ao soltar**.
 - A formulação inicial **“desaparece depois de 0,75 s do começo do move”** deve ser lida como **0,75 s depois de SOLTAR o botão**, pois existe uma fase prévia de duração variável para ajustar o marcador.
 - A formulação genérica **“intangível”** foi especificada mais rigorosamente: **ausência física completa da simulação**, não simples transparência visual.
-- **Rock Slide** foi corrigido para **Rock Tomb** e não é o move planejado.
+- **Rock Slide** foi inicialmente corrigido para **Rock Tomb**. Na rodada posterior, o diretor pediu **“Mude o nome do ataque pra Sand Wave”** enquanto Rock Tomb era o golpe em pauta; o nome vigente desse item fica **Sand Wave**. O **Sand Kick** permanece no item 3 até confirmação contrária. A sequência histórica é preservada.
 
 ## 5. Pendências e limites de escopo para implementação
 
@@ -177,3 +177,101 @@ O design principal está definido, mas **não afirmar que a funcionalidade está
 - [`docs/MOVES_DECISOES_RODADAS.md`](MOVES_DECISOES_RODADAS.md) e [`docs/REVISAO_GDD_COMBATE.md`](REVISAO_GDD_COMBATE.md): regras aprovadas de combate que continuam valendo.
 
 **Condição de entrega futura:** registrar novos parâmetros e decisões neste mesmo documento, implementar em branch apropriada após autorização, validar no Combat Lab, disponibilizar pelo portal e relatar testes e limitações. **Este commit altera apenas documentação.**
+
+## 6. Sand Wave — especificação inicial de gameplay (rodada 19/10/2026)
+
+### 6.1 Nome, relação com o elenco e classificação
+
+- **Nome solicitado:** `Sand Wave`.
+- O golpe que o assistente havia anunciado como próximo a desenvolver era **Rock Tomb**; por referência contextual imediata, esta atualização registra **Sand Wave como novo nome do item 1**. **Não apagar Sand Kick**, que permanece listado em terceiro enquanto não houver instrução inequívoca de renomeá-lo. A identificação do slot pode ser corrigida pelo diretor sem alterar as propriedades do Sand Wave.
+- **Tipo de execução:** **Burst** — não tratar como Charge. Há **0,25 s de preparação**.
+- **Power Level:** **PL1**.
+- **Custo de stamina por execução:** **2 unidades**.
+- **Cooldown:** **10 segundos**.
+- Estes números foram definidos diretamente pelo diretor; **não presumir sliders**, faixas ou substituições.
+
+### 6.2 Forma, origem e elegibilidade
+
+1. Ataque de **área triangular**, com **4 m** como dimensão informada pelo diretor; o **vértice/ponta parte do personagem que lança** o golpe.
+2. O golpe projeta uma **barragem de areia** nessa área.
+3. **Só pode ser ativado no chão**.
+4. **Só pode atingir adversários no chão**. Alvos em voo/aéreos não são atingidos.
+5. Em contato com alvo elegível, a barragem **empurra** o adversário e causa **pouco dano**.
+6. **Quantidade exata de dano e intensidade do empurrão ainda não foram definidas**. Não substituir por números arbitrários nem assumir o dano ou knockback do Tackle.
+7. Os **4 m** devem ser preservados na especificação, mas o diretor ainda não explicitou se essa medida é comprimento longitudinal, largura da base ou outra convenção da geometria triangular. **Não converter em ângulo, largura e área numéricos sem aprovação**.
+
+### 6.3 Cronologia e janela de colisão
+
+| Elemento temporal | Valor aprovado | Observação |
+|---|---:|---|
+| Preparação (startup do Burst) | **0,25 s** | Antes da emissão ofensiva. |
+| Duração da barragem Sand Wave | **1,50 s** | Duração do ataque/efeito descrito pelo diretor. |
+| Hitbox da barragem | **0,75 s iniciais** | Atinge/empurra apenas durante a primeira metade da barragem. |
+| Dissipação visual sem hitbox | **0,75 s finais** | Efeitos da barragem de areia desaparecendo; sem novos acertos nessa metade. |
+| Cegueira aplicada em contato | **4,00 s** | Debuff individual de duração própria, distinto do tempo em que a barragem existe. |
+
+**Separação obrigatória:** ao completar os **primeiros 0,75 s de barragem**, a **hitbox deixa de existir**, mas os VFX da areia continuam sumindo pelos **0,75 s seguintes**. Um inimigo que só entrar no triângulo durante a fase de dissipação não deve ser atingido por esse efeito residual.
+
+**Ponto de cronologia a esclarecer apenas se for necessário:** interpretar no motor se os **1,50 s** contam exclusivamente a barragem **após** os **0,25 s de preparação**, ou se correspondem à duração total da ação incluindo a preparação. Os períodos de **0,75 s + 0,75 s** da barragem foram explicitamente informados; não encurtá-los para acomodar a preparação por suposição.
+
+### 6.4 Efeito secundário de cegueira (blind/fog)
+
+1. **O contato com a barragem** aplica uma condição de **cegueira por 4 segundos** ao adversário atingido.
+2. Enquanto estiver cegado, há um efeito **fog** que **diminui a iluminação do ambiente**, criando a sensação de visão severamente limitada.
+3. **Raio de visão do personagem cegado: 10 m**, usado na regra de lock-on durante a cegueira.
+4. Durante os 4 s, o alvo cegado **não pode realizar lock-on em adversário que esteja fora desse raio de 10 m**, medido **a partir do próprio personagem cegado**.
+5. Se o lock-on **já estiver ativo** e o oponente associado **não estiver dentro do raio de visão de 10 m**, o lock-on **deve ser desligado**.
+6. Quando o adversário está **dentro** dos **10 m** do personagem cegado, esta regra de cegueira **não proíbe o lock-on por distância**; outras condições normais do motor continuam válidas.
+7. **Apenas diminuir a iluminação ou desenhar fog não implementa o bloqueio de lock-on**: a restrição deve fazer parte das regras de seleção/manutenção de alvo, com desligamento efetivo do lock-on quando o alvo não puder ser visto pela regra de 10 m.
+8. **A cegueira pertence ao personagem atingido**, não é uma desativação global de lock-on de todos os lutadores. O escopo exato da mudança de iluminação para cada câmera/visão do jogador ainda precisa de definição técnica, evitando afetar indevidamente jogadores que não receberam o debuff.
+9. O status continua por **4 s após sua aplicação**, mesmo se a hitbox/efeito visual de areia já tiver terminado.
+
+### 6.5 Tabela de requisitos aprovados
+
+| ID | Parâmetro ou regra | Valor definido pelo diretor |
+|---|---|---|
+| SW-D01 | Nome | **Sand Wave** |
+| SW-D02 | Categoria de execução | **Burst** |
+| SW-D03 | Preparação | **0,25 s** |
+| SW-D04 | Cooldown | **10 s** |
+| SW-D05 | Power Level | **PL1** |
+| SW-D06 | Custo de stamina | **2** |
+| SW-D07 | Geometria | **Triângulo de 4 m**, vértice no lançador |
+| SW-D08 | Ofensiva | **Barragem de areia**, empurrão e dano baixo ao contato |
+| SW-D09 | Restrição do lançador | **Somente no chão** |
+| SW-D10 | Restrição dos alvos | **Somente inimigos no chão** |
+| SW-D11 | Duração da barragem | **1,5 s** |
+| SW-D12 | Janela ofensiva | **Primeiros 0,75 s** |
+| SW-D13 | Dissipação visual | **0,75 s finais, sem hitbox** |
+| SW-D14 | Cegueira | **4 s após contato** |
+| SW-D15 | Visão sob cegueira | **Raio de 10 m em torno do cegado** |
+| SW-D16 | Lock-on | **Impedido contra alvo fora dos 10 m; lock-on existente é desligado** se o alvo estiver fora |
+| SW-D17 | Visual da cegueira | **Fog e redução de iluminação** durante o debuff |
+
+### 6.6 Questões não decididas — não inventar
+
+- **SW-P01 — geometria:** a qual dimensão do triângulo se referem os **4 m**; qual a largura ou abertura da base; como o triângulo acompanha a orientação.
+- **SW-P02 — dano:** magnitude do “pouco dano”, possível escalonamento pelo atributo Ataque, e interações com defesa.
+- **SW-P03 — empurrão:** magnitude, direção e se há componente vertical. Não presumir Tackle.
+- **SW-P04 — múltiplos contatos:** se o mesmo adversário pode sofrer múltiplos hits durante os **0,75 s**, frequência ou apenas um único acerto por execução.
+- **SW-P05 — restrição de chão:** critério físico de apoio, inclusive transições de pulo, Dodge com salto, flight e fase de aterrissagem.
+- **SW-P06 — linha temporal:** se os **0,25 s** de preparação se somam aos **1,5 s** de barragem ou integram o mesmo prazo; instante preciso de consumo da stamina e início do cooldown, se não herdado do padrão do motor.
+- **SW-P07 — escopo visual:** controle de fog/iluminação por câmera/observador, para não impor cegueira visual a jogadores não atingidos; intensidade exata do escurecimento.
+- **SW-P08 — lock-on/visibilidade:** critérios adicionais de obstrução e visibilidade além do raio **10 m**; efeitos sobre IA, em partidas com vários adversários, e reativação automática versus manual após alvo voltar à faixa.
+- **SW-P09 — reaplicação de cegueira:** contato adicional durante os 4 s renova, acumula ou é ignorado; nenhuma regra de stacking foi escolhida.
+- **SW-P10 — relações de combate:** tratamento de defesa parcial/perfeita, invulnerabilidade, outros golpes de PL1 e interrupções; respeitar regras já existentes, solicitar decisão apenas quando necessário.
+- **SW-P11 — identificação do move renomeado:** registro usa **Sand Wave como sucessor de Rock Tomb**, pois esse era o ataque em discussão imediata. **Sand Kick permanece distinto por ora**; corrigir a associação se o diretor indicar outro referente, mantendo este histórico.
+
+### 6.7 Referências técnicas verificadas — não é implementação
+
+- [`prototypes/combat-lab/src/ui/input.js`](../prototypes/combat-lab/src/ui/input.js): o lock-on do jogador usa estado `input.locked`. A nova condição de cegueira exige cancelar/bloquear lock-on de fato, e não apenas alterar a cena.
+- [`prototypes/combat-lab/src/sim/controller.js`](../prototypes/combat-lab/src/sim/controller.js): interpretação de alvo por `cmd.target`, ações e restrições de execução.
+- [`prototypes/combat-lab/src/sim/status.js`](../prototypes/combat-lab/src/sim/status.js): status temporários possuem duração e expiração, mas o motor consultado **não oferece uma flag `blind` pronta**; será necessário integrar a condição ao controle de alvo/visão.
+- [`prototypes/combat-lab/src/view/view.js`](../prototypes/combat-lab/src/view/view.js): cena com fontes de iluminação próprias e renderizador; alteração visual exigirá preservar separação entre lógica de cegueira e apresentação.
+- [`prototypes/combat-lab/src/sim/world.js`](../prototypes/combat-lab/src/sim/world.js): `area` nativa admite círculos e caixas; o **triângulo** precisará de solução de colisão apropriada e testes, **não** deve ser substituído silenciosamente por caixa ou círculo.
+
+**Estado real:** documento aprovado parcialmente; **Sand Wave não foi implementado, integrado ao loadout, jogado ou testado**. Esta entrega altera somente documentação. O design do Bullet Punch nas seções 2–5 permanece inalterado.
+
+### 6.8 Histórico desta alteração
+
+**19/10/2026:** após concluir a documentação de Bullet Punch, o diretor forneceu a definição de `Sand Wave` em substituição ao nome do golpe em pauta, com **10 s / PL1 / 2 stamina / Burst / 0,25 s**, área triangular de **4 m**, barragem de areia, empurrão e pouco dano, debuff visual/funcional de cegueira por **4 s**, visão de **10 m** para lock-on sob cegueira, uso exclusivamente no chão, alvo somente no chão, **1,5 s** de duração, **0,75 s** de hitbox e **0,75 s** de dissipação dos efeitos. Não foram autorizados números adicionais ou implementação.
