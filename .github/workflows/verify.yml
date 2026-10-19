@@ -1,0 +1,42 @@
+name: Verify
+
+# Protege a main: roda em todo pull request e em todo push na main.
+# Não usa `npm run verify` inteiro porque o primeiro passo dele (verify:workspace) exige o caminho local oficial do projeto;
+# aqui rodam typecheck, os testes (modo rápido: sem properties, ai-eval, perf, parity) e a checagem offline dos HTMLs.
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: windows-latest   # Edge já vem instalado (os testes de navegador usam channel: msedge)
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install
+        run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Testes (rápido)
+        run: node scripts/run-tests.mjs --fast --json test-report.json
+      - name: Checagem offline dos HTMLs
+        run: npm run check:offline
+      - name: Upload relatórios
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: arenamon-verify
+          path: |
+            test-report.json
+            prototypes/*/validation/
+          retention-days: 14
+          if-no-files-found: warn

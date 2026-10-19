@@ -3,7 +3,7 @@ name: Arenamon Studio Rigging
 on:
   push:
     branches:
-      - feat/studio-rigging-fase1-gpt6
+      - 'feat/studio-rigging*'
   workflow_dispatch:
 
 permissions:
