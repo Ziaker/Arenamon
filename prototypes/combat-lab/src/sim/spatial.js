@@ -197,5 +197,5 @@ export function shouldSprintManaged(self, distance, threatZone, budget) {
   if (self.exhausted) return false;
   if (self.stamina < budget) return false;
   // Corre para encurtar distâncias até a borda de engajamento da zona de ameaça (com margem de desaceleração)
-  return distance > threatZone + 0.5;
+  return distance > threatZone + (C.extras.ai.sprintMargin ?? 0.5);
 }

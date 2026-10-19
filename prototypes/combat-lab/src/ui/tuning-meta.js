@@ -25,7 +25,7 @@ export const SECTIONS=[
   ['Cancelamento C → X','actions.cancel',null],
   ['Buffer de entrada','actions.buffer',null],
   ['Regras gerais, defesa e stamina','rules',['recoil','recoilFraction','blend','guardStun','perfect','perfectCooldown','staminaMax','regenDelay','regenTime','exhaustMode','guardSpeed','exhaustedSpeed','guardTurn','guardAcceleration']],
-  ['Knockback e clash','rules',['launchGravity','launchUp','launchHorizontal','launchDrag','clashFraction','clashUp','clashHorizontal','landingRecovery','wallRestitution','wallBounceVertical','wallBounceUp']],
+  ['Knockback e clash','rules',['launchGravity','launchUp','launchHorizontal','launchDrag','clashFraction','clashUp','clashHorizontal','clashPushDistance','clashPushDuration','techWindow','techMinAir','techCost','landingRecovery','wallRestitution','wallBounceVertical','wallBounceUp']],
   ['Combate e colisões','extras.combat',null],
   ['Atributos: equilibrado','profiles.balanced',null],
   ['Atributos: ágil','profiles.agile',null],

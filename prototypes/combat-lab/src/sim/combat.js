@@ -10,6 +10,14 @@ export function launch(f, away, horizontal, vertical) {
   f.flight = {y: 0, vy: vertical, horizontal: scale(n, horizontal)};
   f.action = null;f.push = null;f.blend = null;f.velocity = vec();f.locomotionVelocity = vec();
   f.guard = false;f.guardSuppressed = true;f.knockRecovery = 0;f.vaultHeight = 0;f.counterWindow = 0;f.landingSlide = null;f.state = 'airborne';
+  f.tech = null;f.techDodge = null;
+}
+/** Empurrão no chão (sem voo): o lutador desliza para longe do contato e fica em recuperação curta. */
+export function pushAway(f, away, distance, duration) {
+  const n = normalize(away);
+  f.push = {direction: n, distance, elapsed: 0, duration};
+  f.action = null;f.flight = null;f.velocity = vec();f.locomotionVelocity = vec();f.blend = null;f.guard = false;f.guardSuppressed = true;
+  f.vaultHeight = 0;f.counterWindow = 0;f.landingSlide = null;f.knockRecovery = C.rules.landingRecovery;f.recoveryFrom = null;f.tech = null;f.techDodge = null;f.state = 'landing';
 }
 export function clashPossible(a, b, normal, relative) {
   const X = C.extras.combat;
@@ -17,13 +25,14 @@ export function clashPossible(a, b, normal, relative) {
   if (C.extras.toggles.enableAnimationCombatWindows && (!isOffensive(a) || !isOffensive(b))) return false;
   return dot(direction(a.action.heading), normal) > X.clashFacingAlignment && dot(direction(b.action.heading), normal) < -X.clashFacingAlignment && dot(relative, normal) > X.clashClosingSpeed;
 }
-/** X contra X: os dois recebem dano e são lançados em direções opostas (ignora invulnerabilidade). */
+/** X contra X: os dois recebem dano e são lançados (ou, com enableClashPush, empurrados no chão) em direções opostas (ignora invulnerabilidade). */
 export function clash(a, b, normal) {
   const R = C.rules, toA = stat(b, 'attack', b.attributes.attack) * R.clashFraction * stat(a, 'damageTaken', 1), toB = stat(a, 'attack', a.attributes.attack) * R.clashFraction * stat(b, 'damageTaken', 1);
   a.hp = Math.max(0, a.hp - toA);b.hp = Math.max(0, b.hp - toB);
-  launch(a, scale(normal, -1), R.clashHorizontal, R.clashUp);
-  launch(b, normal, R.clashHorizontal, R.clashUp);
-  return [{attacker: a.id, target: b.id, result: 'clash', damage: toB, normal: {...normal}}, {attacker: b.id, target: a.id, result: 'clash', damage: toA, normal: scale(normal, -1)}];
+  const push = !!C.extras.toggles.enableClashPush;
+  if (push) {pushAway(a, scale(normal, -1), R.clashPushDistance, R.clashPushDuration);pushAway(b, normal, R.clashPushDistance, R.clashPushDuration);}
+  else {launch(a, scale(normal, -1), R.clashHorizontal, R.clashUp);launch(b, normal, R.clashHorizontal, R.clashUp);}
+  return [{attacker: a.id, target: b.id, result: 'clash', damage: toB, normal: {...normal}, push}, {attacker: b.id, target: a.id, result: 'clash', damage: toA, normal: scale(normal, -1), push}];
 }
 /** O tackle do atacante conecta no defensor, dado a normal e a velocidade relativa do contato? */
 export function tackleConnects(attacker, defender, normal, relative) {

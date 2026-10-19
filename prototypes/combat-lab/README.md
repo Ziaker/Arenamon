@@ -225,3 +225,8 @@ Paleta global na barra superior (**⌕ Buscar**, **≠ N alterados**, **? Atalho
 ## Biblioteca de personagens (Personagens)
 
 Todo modelo carregado fica guardado neste navegador junto com as animações importadas e as associações de ações. Em cada slot, **Personagens salvos** lista todos eles: escolha um e **Carregar neste slot** para trocar de personagem e voltar depois sem reimportar nada. Para levar a outro navegador ou computador, use **Exportar Workspace Completo (ZIP)** (aba Exportar).
+## Clash por empurrão e recovery rápido (Ajustes › Combate › Knockback e clash)
+
+- **Clash por empurrão** (`Ativar ou desativar sistemas`, desligado por padrão): no clash entre tackles os dois recuam no chão (distância e duração por slider), com o mesmo dano e hitstop, em vez de serem lançados.
+- **Recovery rápido** (ligado por padrão): lançado, aperte **C** até `janela` segundos antes de tocar o chão e segure uma direção; ao pousar sai uma esquiva imediata nessa direção, custando `custo de stamina` (0 a 2; substitui o custo da esquiva). Sem stamina, o lutador cai normalmente. `Tempo mínimo de voo` impede escapar logo após o golpe.
+- **IA:** usa o recovery (afasta-se do rival) e corre mais; `Reserva de stamina ao correr` e `Distância para correr` ficam em Ajustes › IA.
