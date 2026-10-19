@@ -39,7 +39,7 @@ try {
 
   // ---------- Sliders reais ----------
   await L(() => document.querySelectorAll('[data-solid-sliders]').forEach(d => {d.open = true;}));
-  const setSlider = (path, value) => L(([p, v]) => {const el = document.querySelector(`[data-solid-rows] [data-path="${p}"]`);el.value = String(v);el.dispatchEvent(new Event('input', {bubbles: true}));el.dispatchEvent(new Event('change', {bubbles: true}));return window.__lab.C.vfx[p.split('.')[1]][p.split('.')[2]];}, [path, value]);
+  const setSlider = (path, value) => L(([p, v]) => {window.__lab.visualPanel.select(p.split('.')[1]);const el = document.querySelector(`[data-solid-rows] [data-path="${p}"]`);el.value = String(v);el.dispatchEvent(new Event('input', {bubbles: true}));el.dispatchEvent(new Event('change', {bubbles: true}));return window.__lab.C.vfx[p.split('.')[1]][p.split('.')[2]];}, [path, value]);
   const stuck = [];
   for (const f of FAM) for (const [p, v] of [['intensity', 1.7], ['amount', 1.6], ['size', 1.4], ['duration', 1.5], ['velocity', 1.5], ['scatter', 1.6], ['lift', 1.5], ['turbulence', 1.8], ['opacity', .6], ['fadeStart', .3], ['fadeEnd', .8]]) {const got = await setSlider(`vfx.${f.key}.${p}`, v);if (Math.abs(got - v) > .02) stuck.push(`${f.key}.${p}=${got}`);}
   check('os 110 sliders gravam o valor em C.vfx', stuck.length === 0, stuck.join(' | '));
@@ -55,6 +55,7 @@ try {
   const again = (k, w) => L(([k, w]) => {const fx = window.__lab.view.solid;fx.reset();fx.preview(k, window.__lab.game.fighters, w);}, [k, w]);
   for (const [key, v] of [['solidDust', 6], ['solidWind', 3], ['solidRunDust', 2], ['solidRunWind', 1]]) {
     await L(() => window.__lab.view.solid.reset());
+    await L(k => window.__lab.visualPanel.select(k), key);   // o painel mostra um efeito por vez
     await page.click(`[data-solid-variant="${key}:${v}"]`);await settle();let s = await state(key);
     check(`${key}: clicar no estilo ${'ABCDEFGH'[v]} → configuração, botão marcado e prévia são o mesmo (${v})`, s.c === v && s.pressed === v && s.last === v, JSON.stringify(s));
     await L(() => document.getElementById('tune-undo').click());await again(key, 'run');await settle();s = await state(key);
