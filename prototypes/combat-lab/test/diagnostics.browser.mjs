@@ -35,6 +35,7 @@ try {
   await L(() => {const f = window.__lab.game.fighters[0];f.stamina = .4;f.regenBase = .4;f.regenAge = 0;});
   await key('KeyX');
   // Espera o aviso aparecer (em vez de um intervalo fixo de 60 ms). Com quadros lentos o buffer de 100 ms pode expirar dentro de um só quadro: o aviso final é “buffer expirou”, com o mesmo motivo do motor.
+  await page.evaluate(() => {window.__lab.C.display.diagnostics.toast = 1;});
   await page.waitForFunction(() => /^X /.test(document.getElementById('deny-toast')?.textContent ?? ''), null, {timeout: 3000}).catch(() => {});
   const toast = await page.textContent('#deny-toast');
   check('Negados', 'aviso curto na arena com o motivo do motor', /^X (guardado no buffer|ignorado|buffer expirou): stamina insuficiente \(0,4\d \/ 1,00\)/.test(toast) && await page.isVisible('#deny-toast'), toast);

@@ -162,7 +162,7 @@ test('IA usa o mesmo controlador: mesmas intenções → mesma física; intenç�
   for (let t = 0; t < 120 * 40; t++) {
     duel.step(duel.playerBrain.command(duel.fighters[0], duel.fighters[1], 'tactical', STEP()));
     duel.fighters.forEach((f, i) => {
-      const free = !f.action && !f.flight && f.stun <= 0 && f.knockRecovery <= 0 && !f.contacts && !f.landingSlide && !f.blend && f.hp > 0 && !duel.frozen;
+      const free = !f.action && !f.tackleCharge && !f.flight && f.stun <= 0 && f.knockRecovery <= 0 && !f.contacts && !f.landingSlide && !f.blend && f.hp > 0 && !duel.frozen;
       if (free && prevFree[i]) worst[i] = Math.max(worst[i], Math.hypot(f.velocity.x - prevV[i].x, f.velocity.z - prevV[i].z) / limitFor(f) * (C.test.step));
       prevV[i] = {...f.velocity};prevFree[i] = free;
     });

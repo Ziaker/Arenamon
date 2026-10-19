@@ -345,6 +345,7 @@ export class Character {
     if (f.hp <= 0 && !f.flight) return 'defeated';
     if (f.flight) return f.wallSplat ? 'wallSplat' : 'airborne';
     if (f.state === 'landing' && f.recoveryFrom && this.current && ACTION_KEYS.has(this.current.key)) return this.current.key;
+    if (f.state === 'landing' && f.recoveryFrom === 'tackle') return 'tackle';   // recuperação do tackle/mergulho: segura a pose do golpe, sem a animação de aterrissagem
     if (f.state === 'landing') return this.clock - this.lastFlight < 1.5 ? 'landing' : 'recover';
     if (f.charge) {
       const moveId = f.charge.move || (f.charge.slot === 0 ? 'reflect' : 'psyshock');

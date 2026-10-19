@@ -17,7 +17,7 @@ export function defaults() {
     // Finta (enableTackleFeint): C ou D no startup do tackle (feintWindow) ou durante a carga cancelam o ataque; o lutador derrapa (brake slide),
     // paga só feintStaminaCost (devolve o resto do custo do tackle) e volta ao neutro em feintRecovery.
     feintWindow: .12, feintStaminaCost: .3, feintSkidSpeed: 4, feintRecovery: .15,
-    wallSplatMinSpeed: 6, wallSplatDuration: .7, wallSplatDamage: 0, slamAngle: Math.PI / 4, slamMinHeight: .3, slamDamage: 1, slamImpactScale: 1.2, slamImpactShake: 1.2, slamRecovery: .6, slamLaunchHorizontal: .4, groundBounceForce: 9,
+    wallSplatMinSpeed: 6, wallSplatDuration: .7, wallSplatDamage: 0, slamAngle: Math.PI / 4, slamMinHeight: .3, slamDamage: 1, slamFallTime: .12, slamSpeedLoss: 1, slamImpactScale: 1.2, slamImpactShake: 1.2, slamRecovery: .6, slamLaunchHorizontal: .4, groundBounceForce: 9,
     landingRecovery: .19, wallRestitution: .28, perfect: .2, perfectCooldown: 2, staminaMax: 3, regenDelay: 1, regenTime: 5, guardSpeed: .6,
     exhaustedSpeed: .7, guardTurn: 3 * Math.PI, guardAcceleration: 15 * Math.PI,
     // exhaustMode 1: exausto quando sobra menos que o menor custo de X/C (0 = só em zero, Etapa A). Rebote na parede: vertical.
@@ -69,7 +69,7 @@ export function defaults() {
     gameModes: {enemyMode: 8, playerProfile: 0},
     toggles: {enableTackle: 1, enableDodge: 1, enableDefense: 1, enableClash: 1, enableInvulnerability: 1, enableLaunch: 1, enableVault: 1, enableWallBounce: 1,
       enableAIAttack: 1, enableAIReactive: 1, enableCameraFollow: 1, enableCameraRecenter: 1, enablePlayerAI: 0, showHitboxes: 0, showAttackVectors: 0,
-      enableHitstop: 1, enableCounterBonus: 1, enableLandingSkid: 1, enableEnemyAI: 1, enableSprint: 1, enemyManual: 0, enableAnimationCombatWindows: 0, enableClashPush: 0, enableTechRecovery: 1, enableChargeTackle: 1, enableWallSplat: 1, enableMeteorSlam: 1, enableTackleFeint: 1},
+      enableHitstop: 1, enableCounterBonus: 1, enableLandingSkid: 1, enableEnemyAI: 1, enableSprint: 1, enemyManual: 0, enableAnimationCombatWindows: 0, enableClashPush: 0, enableTechRecovery: 1, enableChargeTackle: 1, enableWallSplat: 1, enableMeteorSlam: 1, enableFlightSlam: 0, enableTackleFeint: 1},
     // skill1–4: slots de movimentos especiais (padrão A, S, 3 e 4 do teclado; A e S = Reflect e Psyshock, D3). Sem movimento equipado, a tecla não faz nada.
     bindings: {forward: 0, back: 1, left: 2, right: 3, tackle: 4, dodge: 5, defend: 6, lock: 7, pause: 8, restart: 9, debug: 10, skill1: 11, skill2: 12, skill3: 49, skill4: 50},
     // Teclas do vermelho no controle manual (índices em keyCodes): I/J/K/L movem, U tackle, O esquiva, P defesa, Y alvo.
@@ -203,7 +203,7 @@ export function displayDefaults() {
     // Transições da máquina de estados de animação (Personagens). Só visual: não mudam tempos, física ou regras.
     animation: {fade: .18, actionFade: .07, locomotionHold: .1, speed: 1},
     // Diagnóstico de comandos (só apresentação): aviso na arena 0 = desligado, 1 = só o jogador, 2 = ambos.
-    diagnostics: {toast: 1, toastMs: 1400, logExecuted: 0},
+    diagnostics: {toast: 0, toastMs: 1400, logExecuted: 0},
     // Indicadores das janelas de combate acima dos lutadores (tempos lidos da simulação). mode: 0 desligado, 1 jogador, 2 ambos.
     // Medidor de desempenho: caixa compacta na arena (0/1). Só apresentação.
     perf: {overlay: 0},

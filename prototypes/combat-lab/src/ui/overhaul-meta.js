@@ -63,6 +63,7 @@ const AI = {
 const TOGGLES = {
   enableTackleFeint: ['Finta do tackle (C ou D cancelam)', 'Ligado: C ou D no startup do tackle ou durante a carga cancelam o ataque e o lutador só derrapa, voltando ao neutro rápido. Desligado: C durante a carga esquiva e D defende.', toggle],
   enableWallSplat: ['Wall-splat (preso na parede)', 'Ligado: lançado que bate na parede já caindo e rápido fica suspenso e indefeso (janela de combo). Subindo, vale o ricochete.', toggle],
+  enableFlightSlam: ['Mergulho no ar para quem foi lançado (X)', 'Desligado (padrão): quem leva knockback não pode fazer nada no ar, nem cancelar com X. Ligado: X durante o voo vira meteor slam.', toggle],
   enableMeteorSlam: ['Meteor slam e ground bounce', 'Ligado: C → X no salto do vault, e o X de quem foi lançado, viram mergulho oblíquo; o acerto lança o rival para cima. Desligado: descida suave como antes.', toggle],
   enableChargeTackle: ['Tackle carregado (segurar X)', 'Ligado: o X dispara ao soltar; segurar carrega até PL3. X correndo vira PL2 imediato e C → X continua imediato. Desligado: o X dispara na hora, como antes.', toggle],
   enableClashPush: ['Clash por empurrão (em vez de lançamento)', 'Ligado: no clash entre tackles (mesmo Power Level) os dois são empurrados para trás no chão, sem voar. Desligado: lançamento aéreo (padrão).', toggle],
@@ -186,6 +187,8 @@ const RULES2 = {
   wallSplatDamage: ['Wall-splat: dano extra', 'HP perdido ao ficar preso na parede. 0 = nenhum (o ganho é a janela de combo).', R(0, 30, .5, n => n.toFixed(1) + ' HP')],
   slamAngle: ['Meteor slam: ângulo do mergulho', 'Ângulo de descida em relação ao chão: 45° desce 1 m por metro andado. Maior = mais vertical e mais curto.', R(Math.PI / 18, Math.PI * 80 / 180, Math.PI / 180, n => (n * 180 / Math.PI).toFixed(0) + '°')],
   slamMinHeight: ['Meteor slam: altura mínima do C → X', 'Altura mínima (m) do salto do vault para o X virar mergulho. Abaixo disso o X desce suave como antes.', R(0, 2, .05, m)],
+  slamSpeedLoss: ['Meteor slam: velocidade perdida', 'Quanto da velocidade horizontal o personagem perde durante o mergulho. 0% = avança como um Tackle normal; 100% = despenca sem avançar nada para a frente.', R(0, 1, .01, pct)],
+  slamFallTime: ['Meteor slam: tempo de queda', 'Tempo (s) para despencar da altura do salto até o chão ao começar o mergulho. Menor = cai mais rápido. 0 = cai instantaneamente.', R(0, .6, .01, sec)],
   slamImpactScale: ['Meteor slam: tamanho do efeito de impacto no chão', 'Multiplicador do efeito visual de aterrissagem (poeira, anéis) criado onde o mergulho aterrissa. 1,00 = igual ao pouso normal; 1,20 = 20% maior.', R(.5, 3, .05, x)],
   slamImpactShake: ['Meteor slam: tremor da câmera no impacto', 'Multiplicador do tremor de câmera do impacto do mergulho no chão (1,00 = tremor de um pouso normal).', R(0, 3, .05, x)],
   slamDamage: ['Meteor slam: dano', 'Multiplicador do dano do mergulho sobre o dano base do Tackle, sem Power Level. 1,00 = igual ao Tackle normal.', R(1, 4, .01, x)],
