@@ -192,13 +192,13 @@ O design principal está definido, mas **não afirmar que a funcionalidade está
 
 ### 6.2 Forma, origem e elegibilidade
 
-1. Ataque de **área retangular** (substitui o triângulo originalmente proposto). O diretor havia indicado uma medida de **4 m**, porém **ainda não definiu se corresponde ao comprimento, à largura ou a ambos**. O retângulo se projeta na direção do golpe a partir do lançador; **o alinhamento exato do personagem com a borda do retângulo ainda não foi aprovado**.
+1. Ataque de **área retangular** (substitui o triângulo originalmente proposto), **4 m de alcance frontal (comprimento/altura do retângulo na vista superior) × 3 m de largura lateral**. O diretor **aprovou expressamente** a proporção recomendada de **4 × 3 m** e o posicionamento de Mushroom **no centro da borda traseira**, de onde se projeta a barragem. Estes são **valores iniciais**, ajustáveis por **dois sliders independentes: ALTURA (4 m, extensão à frente na vista superior) e LARGURA (3 m, extensão lateral)**. **Altura do retângulo na vista superior NÃO é a altura vertical da hitbox 3D**, que permanece indefinida.
 2. O golpe projeta uma **barragem de areia** nessa área.
 3. **Só pode ser ativado no chão**.
 4. **Só pode atingir adversários no chão**. Alvos em voo/aéreos não são atingidos.
 5. Em contato com alvo elegível, a barragem **empurra** o adversário e causa **pouco dano**.
 6. **Dano fixo e independente do atributo Ataque**, conforme decisão do diretor na Rodada 1; a quantidade exata de dano **ainda não foi definida**. O empurrão é **contínuo durante a janela de hitbox enquanto o inimigo permanece na barragem**, mas sua intensidade exata **ainda não foi definida**. Não presumir valores ou fórmula do Tackle.
-7. A forma aprovada agora é **retangular**, mas a distribuição dos **4 m** entre **comprimento (alcance frontal)** e **largura (cobertura lateral)** permanece **pendente de decisão**. Foi apresentada **apenas como recomendação não aprovada** a proporção **4 m de comprimento × 3 m de largura**, com o lançador no centro da borda traseira. **Não aplicar esses números como decisão até aprovação expressa.**
+7. **Dimensões iniciais aprovadas:** **4 m de ALTURA em vista superior (alcance frontal/comprimento)** × **3 m de LARGURA (alcance transversal/lateral)**; dois controles ajustáveis de forma independente na interface. Um slider **Altura/alcance frontal** modifica o comprimento do retângulo à frente do lançador; um slider **Largura** modifica sua cobertura para os lados. O centro da borda traseira coincide com a origem da barragem em Mushroom. **Limites mínimos/máximos e incrementos desses sliders ainda não foram decididos** e não devem ser inventados. A altura física/vertical 3D necessária para a colisão com personagens no chão é **outra dimensão**, não definida por esta decisão.
 8. A **direção da barragem é determinada no disparo**. Uma vez disparada, a área retangular **permanece fixa durante sua execução**, sem acompanhar a rotação do lançador.
 9. Cada inimigo pode **receber somente um acerto por execução** (dano e aplicação inicial da cegueira). Contato prolongado não gera danos repetidos.
 10. O **empurrão é força contínua** enquanto um alvo elegível permanece em contato com a barragem **dentro dos primeiros 0,75 s**. Após esse intervalo, apenas o VFX se dissipa, **sem empurrão e sem hitbox**.
@@ -239,7 +239,7 @@ O design principal está definido, mas **não afirmar que a funcionalidade está
 | SW-D04 | Cooldown | **10 s** |
 | SW-D05 | Power Level | **PL1** |
 | SW-D06 | Custo de stamina | **2** |
-| SW-D07 | Geometria (revisada) | **Retângulo**, substituindo a forma triangular anterior; **4 m informados**, mas sentido dimensional e largura/comprimento exatos pendentes. **4 × 3 m é somente recomendação**, não aprovação |
+| SW-D07 | Geometria (revisada e aprovada) | **Retângulo de 4 m de alcance frontal/altura na vista superior × 3 m de largura**, com Mushroom no centro da borda traseira. **Dois sliders independentes** para largura e altura/alcance frontal. Não confundir altura na vista superior com espessura/altura vertical da hitbox 3D. |
 | SW-D08 | Ofensiva | **Barragem de areia**, empurrão e dano baixo ao contato |
 | SW-D09 | Restrição do lançador | **Somente no chão** |
 | SW-D10 | Restrição dos alvos | **Somente inimigos no chão** |
@@ -255,10 +255,12 @@ O design principal está definido, mas **não afirmar que a funcionalidade está
 | SW-D20 | Acertos por alvo — Rodada 1, pergunta 3 (A) | **Um único acerto por inimigo por execução**; não repetir dano/cegueira pelo contato prolongado |
 | SW-D21 | Cálculo de dano — Rodada 1, pergunta 4 (A) | **Dano fixo, independente de Ataque**; magnitude numérica ainda pendente |
 | SW-D22 | Empurrão — Rodada 1, pergunta 5 (B) | **Força contínua** durante o contato de alvo elegível com a hitbox nos primeiros **0,75 s**; magnitude/direção ainda pendentes |
+| SW-D23 | Dimensões do Sand Wave | **4 m de altura no diagrama/alcance frontal × 3 m de largura**, origem no centro da borda traseira. Proposta **aprovada** pelo diretor com resposta “sim”. |
+| SW-D24 | Controles de dimensão | **Slider ALTURA (alcance frontal), inicial 4 m**, e **slider LARGURA, inicial 3 m**, independentes; faixas e passos ainda pendentes. |
 
 ### 6.6 Questões não decididas — não inventar
 
-- **SW-P01 — geometria retangular:** o diretor substituiu **triângulo → retângulo**. Ainda falta decidir se os **4 m** indicam **comprimento frontal**, **largura lateral** ou **ambos**; a dimensão remanescente e o posicionamento exato do retângulo em relação ao corpo também requerem aprovação. O assistente **recomendou 4 m de comprimento × 3 m de largura, com personagem no centro da borda de emissão** como mera proposta explicativa, **não aprovada**. **A direção da área já está aprovada como fixa desde o disparo**, não é pendência.
+- **SW-P01 — limites dos sliders de dimensão e altura física:** a **geometria plana está aprovada**, com **4 m de alcance frontal/altura na vista superior × 3 m de largura, origem no centro da borda traseira**, e os dois **sliders independentes de ALTURA (alcance frontal) e LARGURA** são **obrigatórios**. **Ainda não foram definidos** mínimo, máximo e passo de cada slider. A **altura vertical da hitbox no espaço 3D** não equivale ao alcance frontal; requer definição técnica compatível com 'só atinge inimigos no chão'. **A direção já está aprovada como fixa no disparo.**
 - **SW-P02 — dano:** **valor numérico exato** do dano fixo e interações com defesa permanecem pendentes. **Já está decidido** que o valor **não depende do atributo Ataque**.
 - **SW-P03 — empurrão:** já está aprovado que é **força contínua durante o contato enquanto a hitbox está ativa**. Restam pendentes a **magnitude**, o **sentido/vetor de força** e eventual **componente vertical**. Não presumir valores de Tackle.
 - **SW-P05 — restrição de chão:** critério físico de apoio, inclusive transições de pulo, Dodge com salto, flight e fase de aterrissagem.
@@ -286,6 +288,6 @@ O design principal está definido, mas **não afirmar que a funcionalidade está
 
 **19/10/2026 — estado do design:** o diretor esclareceu que Sand Wave **não está pronto** e exigiu uma rodada de perguntas. A rodada seguinte resolveu direção da área, acerto único por inimigo, dano fixo e força de empurrão contínua; **a geometria completa, valores numéricos de dano/empurrão e outros aspectos permanecem pendentes**, conforme a seção 6.6.
 
-**19/10/2026 — revisão da forma:** o diretor determinou que **Sand Wave não é mais triangular; sua área passa a ser retangular**. O triângulo permanece mencionado somente como **histórico revogado**, não como opção vigente. Ao pedir orientação sobre largura e comprimento, o diretor recebeu **recomendação de 4 m de comprimento (avanço frontal) × 3 m de largura (cobertura lateral), com Mushroom no centro da borda traseira**; **essa proposta está aguardando aprovação**. Todas as demais decisões anteriores permanecem preservadas.
+**19/10/2026 — revisão da forma:** o diretor determinou que **Sand Wave não é mais triangular; sua área passa a ser retangular**. O triângulo permanece mencionado somente como **histórico revogado**, não como opção vigente. Após receber explicação visual de comprimento (alcance para a frente) e largura (extensão lateral), o diretor respondeu **“sim”** à proposta de **4 m para a frente × 3 m de largura**, com Mushroom no centro da borda traseira. Em seguida pediu explicitamente **sliders de largura e altura**. Portanto, as **dimensões padrão 4 × 3 m e os dois sliders independentes estão aprovados**; 'altura' aqui é a dimensão vertical do retângulo **na planta/vista superior (alcance frontal)**, não a elevação física em 3D. Faixas e passos de slider ainda não foram aprovados. Todas as demais decisões anteriores permanecem preservadas.
 
 **19/10/2026 — Rodada 1 (perguntas 1–5):** **1. D — pediu referência visual simples sem gerar imagem; resposta dimensional PENDENTE.** **2. A — direção fixada no disparo. 3. A — um acerto por inimigo por execução. 4. A — dano fixo independente de Ataque. 5. B — empurrão contínuo durante contato com a barragem ativa.** Não completar automaticamente a pergunta 1.
