@@ -37,8 +37,8 @@ try {
   check('Simples', 'controle de conjunto edita exatamente os parâmetros que lista', inertia.join() === 'locomotion.accelCurve,locomotion.brakeCurve,locomotion.residualSpeed' && /accelCurve/.test(await s.page.textContent('[data-simple="inertia"] [data-affects]')), inertia.join());
   await s.L(() => {window.__lab.tuning.undo();window.__lab.tuning.undo();});
   check('Simples', 'desfazer (Ctrl+Z) volta os valores', diff(v0, await values(s.L)).length === 0);
-  await s.page.click('[data-tune-mode-btn="advanced"]');
-  check('Avançado', 'modo avançado mostra todos os parâmetros', await s.page.isVisible('#tune-list') && await s.L(() => document.querySelectorAll('#tune-list .tune-control').length) > 20);
+  await s.page.click('[data-tune-mode-btn="advanced"]');await s.page.selectOption('#tune-level', 'technical');
+  check('Avançado', 'modo avançado mostra todos os parâmetros (nível Tudo)', await s.page.isVisible('#tune-list') && await s.L(() => document.querySelectorAll('#tune-list .tune-control').length) > 20);
   await s.L(() => window.__lab.tuning.commit([['locomotion.turnRate', 3 * Math.PI]], 'x'));await s.page.click('[data-tune-mode-btn="simple"]');
   check('Simples', 'ajuste individual no avançado aparece no controle de conjunto como divergente (sem estado próprio)', await s.page.isVisible('[data-simple="turn"] [data-div]') && !(await s.page.isVisible('[data-simple="inertia"] [data-div]')));
   await s.L(() => window.__lab.tuning.undo());

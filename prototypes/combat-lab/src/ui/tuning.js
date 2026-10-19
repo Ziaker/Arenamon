@@ -10,6 +10,7 @@ import {actionMeta, OFFICIAL_MAP, migrateFlat, flatten} from './actions-meta.js'
 import {overhaulMeta} from './overhaul-meta.js';
 import {VFX_TYPES, SHAKE_EVENTS} from '../view/vfx.js';
 import {SOLID_FAMILIES} from '../view/solid-fx.js';
+import {MECHANIC_ORDER, mechanicLabel, mechanicsOf, levelVisible, levelOf, LEVELS, derivedText, loadTags, saveTags, allTags, nestedFrom} from './organize.js';
 
 const $ = id => document.getElementById(id);
 export const pathGet = (root, path) => path.split('.').reduce((a, k) => a?.[k], root);
@@ -129,7 +130,12 @@ export function createTuning({apply}) {
     }
   }
   const byPath = new Map(manifest.map(m => [m.path, m]));
-  const state = {tab: TABS[0][0], filter: 'all', undo: [], redo: [], saved: snapshotValues(), savedLabel: 'padrão', listeners: new Set(), folds: new Map(), external: new Set()};
+  const state = {tab: TABS[0][0], filter: 'all', undo: [], redo: [], saved: snapshotValues(), savedLabel: 'padrão', listeners: new Set(), folds: new Map(), external: new Set(), view: 'type', mech: MECHANIC_ORDER[0], level: 'basic', tagFilter: '', tags: loadTags()};
+  try {const o = JSON.parse(localStorage.getItem('arenamon-lab-tune-view-v1') || '{}');if (o.view === 'mech' || o.view === 'type') state.view = o.view;if (['basic', 'advanced', 'technical'].includes(o.level)) state.level = o.level;} catch {/* sem armazenamento */}
+  const saveView = () => {try {localStorage.setItem('arenamon-lab-tune-view-v1', JSON.stringify({view: state.view, level: state.level}));} catch {/* sem armazenamento */}};
+  const inTabs = m => TABS.some(([, sec]) => sec.includes(m.section));
+  const scoped = m => !ELSEWHERE.has(m.path) && (state.view === 'mech' || inTabs(m));
+  const tagsOf = m => state.tags[m.path] ?? [];
   function snapshotValues() {return Object.fromEntries(manifest.map(m => [m.path, pathGet(C, m.path)]));}
   const status = m => {const v = pathGet(C, m.path);return m.official === undefined ? 'lab' : same(v, m.official) ? 'official' : 'experimental';};
   const changed = m => !same(pathGet(C, m.path), m.initial);
@@ -155,6 +161,13 @@ export function createTuning({apply}) {
   const hideTip = () => {tip.hidden = true;};
   function renderTabs() {
     const box = $('tune-tabs');box.replaceChildren();
+    if (state.view === 'mech') {
+      for (const id of MECHANIC_ORDER) {
+        const n = manifest.filter(m => scoped(m) && mechanicsOf(m.path).includes(id) && visible(m)).length;if (!n && id !== state.mech) continue;
+        const b = document.createElement('button');b.type = 'button';b.role = 'tab';b.textContent = `${mechanicLabel(id)} · ${n}`;b.setAttribute('aria-pressed', String(state.mech === id));b.onclick = () => {state.mech = id;render();};box.append(b);
+      }
+      return;
+    }
     for (const [name, sections] of TABS) {
       const n = manifest.filter(m => sections.includes(m.section) && visible(m)).length, b = document.createElement('button');b.type = 'button';b.role = 'tab';
       b.textContent = `${name} · ${n}`;b.setAttribute('aria-pressed', String(state.tab === name));b.onclick = () => {state.tab = name;render();};box.append(b);
@@ -164,14 +177,19 @@ export function createTuning({apply}) {
     if (ELSEWHERE.has(m.path)) return false;
     const q = $('tune-search').value.trim().toLowerCase();
     if (q && !(m.label + ' ' + m.path + ' ' + m.help + ' ' + m.section).toLowerCase().includes(q)) return false;
+    if (state.tagFilter) {const t = tagsOf(m);if (state.tagFilter === '__none' ? t.length : !t.includes(state.tagFilter)) return false;}
+    // O nível só esconde parâmetros quando não há busca, filtro ou etiqueta: o que você procura sempre aparece.
+    if (!q && state.filter === 'all' && !state.tagFilter && !levelVisible(m.path, state.level)) return false;
     return state.filter === 'all' || (state.filter === 'changed' ? changed(m) : status(m) === state.filter);
   }
   function render() {
     renderTabs();const list = $('tune-list');list.replaceChildren();const q = $('tune-search').value.trim();
-    const sections = q || state.filter !== 'all' ? TABS.flatMap(([, s]) => s) : TABS.find(([n]) => n === state.tab)[1];
+    const everything = q || state.filter !== 'all' || state.tagFilter;
+    const mech = state.view === 'mech', pool = m => mech ? scoped(m) && (everything || mechanicsOf(m.path).includes(state.mech)) : true;
+    const sections = mech ? [...new Set(manifest.filter(m => scoped(m) && pool(m)).map(m => m.section))] : everything ? TABS.flatMap(([, s]) => s) : TABS.find(([n]) => n === state.tab)[1];
     let total = 0;
     for (const section of sections) {
-      const members = manifest.filter(m => m.section === section && visible(m));if (!members.length) continue;total += members.length;
+      const members = manifest.filter(m => m.section === section && pool(m) && visible(m));if (!members.length) continue;total += members.length;
       const group = document.createElement('div');group.className = 'tune-group';
       const head = document.createElement('header');const title = document.createElement('span');title.textContent = section;
       const reset = document.createElement('button');reset.type = 'button';reset.textContent = '↺ grupo';reset.title = 'Restaurar este grupo aos padrões do laboratório';
@@ -181,10 +199,12 @@ export function createTuning({apply}) {
       head.append(title, reset);group.append(head, body);
       list.append(group);
     }
-    if (!total) {const p = document.createElement('p');p.className = 'hint';p.textContent = 'Nenhum parâmetro neste filtro.';list.append(p);}
+    if (!total) {const p = document.createElement('p');p.className = 'hint';p.textContent = state.level !== 'technical' ? 'Nenhum parâmetro neste filtro. Alguns podem estar ocultos pelo nível: escolha “Tudo” em Nível.' : 'Nenhum parâmetro neste filtro.';list.append(p);}
     // Conta só o que esta aba mostra (efeitos, sombras, HUD, câmera e teclas ficam em outras abas).
-    const here = manifest.filter(m => TABS.some(([, s]) => s.includes(m.section)) && !ELSEWHERE.has(m.path));
-    $('tune-counter').textContent = `${total} de ${here.length} · ${here.filter(m => status(m) === 'experimental').length} ≠ jogo`;
+    const here = manifest.filter(m => scoped(m));
+    const hidden = (q || state.filter !== 'all' || state.tagFilter) ? 0 : manifest.filter(m => scoped(m) && !levelVisible(m.path, state.level)).length;
+    $('tune-counter').textContent = `${total} de ${here.length} · ${here.filter(m => status(m) === 'experimental').length} ≠ jogo` + (hidden ? ` · ${hidden} ocultos pelo nível` : '');
+    syncOrgUi();
     $('tune-undo').disabled = !state.undo.length;$('tune-redo').disabled = !state.redo.length;
     $('tune-undo').title = state.undo.length ? 'Desfazer: ' + state.undo.at(-1).label : 'Nada para desfazer';$('tune-redo').title = state.redo.length ? 'Refazer: ' + state.redo.at(-1).label : 'Nada para refazer';
   }
@@ -208,9 +228,14 @@ export function createTuning({apply}) {
     const reset = document.createElement('button');reset.type = 'button';reset.textContent = '↺ lab';reset.title = 'Padrão do laboratório: ' + m.fmt(m.initial);reset.disabled = !changed(m);reset.onclick = () => commit([[m.path, m.initial]], 'Restaurar ' + m.label);
     actions.append(reset);
     if (st === 'experimental') {const g = document.createElement('button');g.type = 'button';g.textContent = '= jogo';g.title = 'Usar o valor do jogo: ' + m.fmt(m.official);g.onclick = () => commit([[m.path, m.official]], 'Valor do jogo: ' + m.label);actions.append(g);}
+    const tg = document.createElement('button');tg.type = 'button';tg.className = 'tag-btn';tg.textContent = tagsOf(m).length ? '🏷 ' + tagsOf(m).length : '🏷';tg.title = tagsOf(m).length ? 'Etiquetas: ' + tagsOf(m).join(', ') : 'Adicionar etiqueta';tg.setAttribute('aria-label', 'Etiquetas de ' + m.label);
+    tg.onclick = ev => {ev.stopPropagation();openTagPop(m, tg);};actions.prepend(tg);
     bottom.append(code, actions);
     // Liga/desliga fica na mesma linha do rótulo (mais compacto).
-    if (m.kind === 'toggle') {top.prepend(slider);row.append(top, bottom);row.classList.add('is-toggle');} else row.append(top, slider, bottom);return row;
+    if (m.kind === 'toggle') {top.prepend(slider);row.append(top, bottom);row.classList.add('is-toggle');} else row.append(top, slider, bottom);
+    if (tagsOf(m).length) {const chips = document.createElement('div');chips.className = 'tag-chips';for (const t of tagsOf(m)) {const c = document.createElement('span');c.className = 'tag-chip';c.textContent = t;chips.append(c);}row.append(chips);}
+    const d = derivedText(m.path);if (d) {const el = document.createElement('div');el.className = 'tune-derived';el.dataset.derived = m.path;el.textContent = '→ ' + d;row.append(el);}
+    return row;
   }
   /** Campo do parâmetro conforme o tipo; mudanças entram no histórico (desfazer/refazer). */
   function input(m, id, value) {
@@ -220,7 +245,7 @@ export function createTuning({apply}) {
     else if (m.kind === 'color') {el = document.createElement('input');el.type = 'color';el.value = m.fmt(v);el.oninput = () => {pathSet(C, m.path, parseInt(el.value.slice(1), 16));value.textContent = el.value;apply();};el.onchange = () => {const after = parseInt(el.value.slice(1), 16);pathSet(C, m.path, state.colorBefore ?? after);commit([[m.path, after]], m.label);state.colorBefore = undefined;};el.onfocus = () => {state.colorBefore = pathGet(C, m.path);};}
     else {
       el = document.createElement('input');el.type = 'range';el.min = m.min;el.max = m.max;el.step = m.step;el.value = v;let before = null;fill(el);el.addEventListener('input', () => fill(el));
-      el.addEventListener('input', () => {if (before === null) before = pathGet(C, m.path);const n = Math.max(m.min, Math.min(m.max, Number(el.value)));pathSet(C, m.path, n);value.textContent = m.fmt(n);apply();});
+      el.addEventListener('input', () => {if (before === null) before = pathGet(C, m.path);const n = Math.max(m.min, Math.min(m.max, Number(el.value)));pathSet(C, m.path, n);value.textContent = m.fmt(n);apply();refreshDerived();});
       el.addEventListener('change', () => {const after = pathGet(C, m.path);if (before !== null && !same(before, after)) {pathSet(C, m.path, before);commit([[m.path, after]], m.label);}before = null;});
     }
     el.id = id;el.dataset.path = m.path;return el;
@@ -245,6 +270,54 @@ export function createTuning({apply}) {
   $('tune-search').addEventListener('input', () => {hideTip();render();});
   for (const b of document.querySelectorAll('[data-filter]')) b.onclick = () => {state.filter = b.dataset.filter;for (const x of document.querySelectorAll('[data-filter]')) x.setAttribute('aria-pressed', String(x === b));render();};
   $('tune-undo').onclick = undo;$('tune-redo').onclick = redo;
+  // ---------- Organização: visão, nível, etiquetas ----------
+  /** Recalcula os textos derivados visíveis (os valores dependem de outros parâmetros). */
+  function refreshDerived() {for (const el of document.querySelectorAll('.tune-derived[data-derived]')) el.textContent = '→ ' + (derivedText(el.dataset.derived) ?? '');}
+  state.listeners.add(refreshDerived);
+  function syncOrgUi() {
+    for (const b of document.querySelectorAll('[data-tview]')) b.setAttribute('aria-pressed', String(b.dataset.tview === state.view));
+    const lv = $('tune-level');if (lv) lv.value = state.level;
+    const tg = $('tune-tag');
+    if (tg) {
+      const count = t => Object.values(state.tags).filter(a => a.includes(t)).length;
+      const opts = [['', 'Todas as etiquetas'], ['__none', 'Sem etiqueta'], ...allTags(state.tags).map(t => [t, `🏷 ${t}${count(t) ? ' · ' + count(t) : ''}`])];
+      tg.replaceChildren(...opts.map(([v, t]) => new Option(t, v)));tg.value = opts.some(([v]) => v === state.tagFilter) ? state.tagFilter : '';
+    }
+    const ex = $('tune-tag-export');
+    if (ex) {
+      const n = Object.keys(state.tags).filter(p => state.tags[p].length && byPath.has(p) && (!state.tagFilter || (state.tagFilter !== '__none' && state.tags[p].includes(state.tagFilter)))).length;
+      ex.disabled = !n;ex.textContent = `↓ Exportar marcados (${n})`;ex.title = state.tagFilter ? `Exporta os ${n} parâmetros com a etiqueta “${state.tagFilter}”` : `Exporta os ${n} parâmetros que têm alguma etiqueta`;
+    }
+  }
+  let pop = null;
+  function closeTagPop() {pop?.remove();pop = null;}
+  function openTagPop(m, anchor) {
+    closeTagPop();pop = document.createElement('div');pop.className = 'tag-pop';pop.setAttribute('role', 'dialog');pop.setAttribute('aria-label', 'Etiquetas de ' + m.label);
+    const title = document.createElement('strong');title.textContent = m.label;pop.append(title);
+    const set = tag => {const cur = new Set(tagsOf(m));cur.has(tag) ? cur.delete(tag) : cur.add(tag);if (cur.size) state.tags[m.path] = [...cur];else delete state.tags[m.path];saveTags(state.tags);closeTagPop();render();emit();};
+    const chips = document.createElement('div');chips.className = 'tag-pop-chips';
+    for (const t of allTags(state.tags)) {const b = document.createElement('button');b.type = 'button';b.textContent = t;b.setAttribute('aria-pressed', String(tagsOf(m).includes(t)));b.onclick = () => set(t);chips.append(b);}
+    const add = document.createElement('input');add.type = 'text';add.placeholder = 'Nova etiqueta + Enter';add.maxLength = 24;
+    add.onkeydown = ev => {ev.stopPropagation();if (ev.key === 'Enter' && add.value.trim()) {ev.preventDefault();const t = add.value.trim().toLowerCase();if (!tagsOf(m).includes(t)) set(t);else closeTagPop();} else if (ev.key === 'Escape') closeTagPop();};
+    pop.append(chips, add);document.body.append(pop);
+    const r = anchor.getBoundingClientRect(), w = pop.getBoundingClientRect();
+    pop.style.left = Math.max(8, Math.min(innerWidth - w.width - 8, r.right - w.width)) + 'px';
+    pop.style.top = (r.bottom + 6 + w.height > innerHeight ? Math.max(8, r.top - w.height - 6) : r.bottom + 6) + 'px';add.focus();
+  }
+  document.addEventListener('pointerdown', e => {if (pop && !pop.contains(e.target) && !e.target.closest?.('.tag-btn')) closeTagPop();});
+  for (const b of document.querySelectorAll('[data-tview]')) b.onclick = () => {state.view = b.dataset.tview;saveView();render();};
+  if ($('tune-level')) $('tune-level').onchange = () => {state.level = $('tune-level').value;saveView();render();};
+  if ($('tune-tag')) $('tune-tag').onchange = () => {state.tagFilter = $('tune-tag').value;render();};
+  /** Baixa um JSON no formato do Ajustes só com os parâmetros etiquetados (ou com a etiqueta filtrada). */
+  function exportTagged() {
+    const paths = Object.keys(state.tags).filter(p => byPath.has(p) && state.tags[p].length && (!state.tagFilter || (state.tagFilter !== '__none' && state.tags[p].includes(state.tagFilter))));
+    if (!paths.length) return 0;
+    const data = {schema: 'arenamon-tuning', version: 9, source: 'arenamon-combate-laboratorio (marcados)', createdAt: new Date().toISOString(), filterTag: state.tagFilter || null, values: nestedFrom(paths, p => pathGet(C, p)), tags: Object.fromEntries(paths.map(p => [p, state.tags[p]])), note: 'Somente parâmetros etiquetados; importe pela aba Exportar para aplicar.'};
+    const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 1)], {type: 'application/json'})), a = document.createElement('a');
+    a.href = url;a.download = 'arenamon-marcados' + (state.tagFilter ? '-' + state.tagFilter.replace(/[^A-Za-z0-9]+/g, '_') : '') + '.json';a.click();setTimeout(() => URL.revokeObjectURL(url), 4000);
+    return paths.length;
+  }
+  if ($('tune-tag-export')) $('tune-tag-export').onclick = exportTagged;
   $('tune-list').addEventListener('scroll', hideTip, {passive: true});
 
   // Presets: ui/presets-panel.js (biblioteca com presets de sensação, categorias, versões e comparação).
@@ -274,7 +347,7 @@ export function createTuning({apply}) {
   function apply_(changes, label) {const n = commit(changes, label);markSaved(label);return n;}
   function resetAll() {commit(manifest.map(m => [m.path, m.initial]), 'Restaurar todos os padrões');}
   render();
-  return {manifest, byPath, commit, setTransient, undo, redo, render, controlFor, sectionControls, exportData, preview, applyChanges: apply_, resetAll, markSaved, dirty, status, changed,
+  return {manifest, byPath, exportTagged, state, commit, setTransient, undo, redo, render, controlFor, sectionControls, exportData, preview, applyChanges: apply_, resetAll, markSaved, dirty, status, changed,
     onChange: fn => state.listeners.add(fn), get savedLabel() {return state.savedLabel;}, snapshotValues, officialValue, valuesOf, migrate: flat => migrateFlat(flat, known())};
 }
 export const escape = s => String(s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'})[c]);

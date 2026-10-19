@@ -611,3 +611,11 @@ pre.diff{max-height:72px;padding:4px;font-size:9.5px;margin:2px 0}
 .quick-keys kbd{font:12px ui-monospace,Consolas,monospace;background:#1a2b3c;border:1px solid #ffffff22;border-bottom-width:2px;border-radius:5px;padding:1px 6px}
 .quick-foot{font-size:11.5px;color:#8fa6bb}
 #changed-open[data-n="0"]{opacity:.65}#changed-open:not([data-n="0"]){color:var(--amber);border-color:#ffcf7d55}
+
+/* Organização dos parâmetros: visão por mecânica, nível, etiquetas e valores derivados */
+.tune-org{gap:6px;flex-wrap:wrap;align-items:center;margin-top:4px}.tune-org select{min-width:0;max-width:150px}.tune-org .field.inline{display:flex;align-items:center;gap:4px;font-size:11px}
+.tune-derived{margin-top:2px;font-size:10.5px;color:#8fd0ff;line-height:1.3}
+.tag-btn{font-size:10px;min-height:20px;padding:0 6px}
+.tag-chips{display:flex;flex-wrap:wrap;gap:3px;margin-top:3px}.tag-chip{font-size:9.5px;padding:0 6px;border-radius:999px;background:#1f3a52;border:1px solid #6cb7ff55;color:#cfe8ff}
+.tag-pop{position:fixed;z-index:70;width:240px;display:flex;flex-direction:column;gap:6px;padding:8px;background:#101c29;border:1px solid #ffffff2a;border-radius:10px;box-shadow:0 10px 36px #000a;font-size:11.5px}
+.tag-pop-chips{display:flex;flex-wrap:wrap;gap:4px}.tag-pop-chips button{font-size:11px;min-height:22px;padding:1px 8px;border-radius:999px}.tag-pop-chips button[aria-pressed=true]{background:#1f3a52;border-color:#6cb7ff88;color:#fff}
