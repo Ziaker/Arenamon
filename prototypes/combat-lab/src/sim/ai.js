@@ -17,6 +17,9 @@ export const AI_MODES = [
   ['tactical', 'Tático (estratégico)'],
 ];
 
+/** Modos oferecidos na interface: IA normal (a mais recente), ataque constante, defesa constante e parado. */
+export const UI_AI_MODES = [['tactical', 'Normal (IA tática)'], ['offensive', 'Ataque constante'], ['guard', 'Defesa constante'], ['inactive', 'Parado (IA desligada)']];
+
 /** O tackle do atacante aponta para o defensor? */
 export function threatens(attacker, defender) {
   if (attacker.action?.kind !== 'tackle') return false;

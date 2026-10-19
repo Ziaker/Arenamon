@@ -53,7 +53,7 @@ function pick(brain, entries) {
 /** Estado tático de uma partida: estilo sorteado e traços variados pela personalidade. */
 function init(brain, P) {
   if (P?.difficultyTier) {
-    P = applyDifficultyProfile(P, P.difficultyTier);
+    P = applyDifficultyProfile(P, 'normal');
   }
   const fixed = Math.round(P.style ?? 0), base = fixed >= 1 && fixed <= STYLES.length ? STYLES[fixed - 1] : STYLES[Math.floor(brain.random() * STYLES.length)];
   const spread = .15 + .35 * (P.variation ?? .4), style = {...base};
@@ -98,7 +98,7 @@ export function tacticalCommand(brain, self, target, dt, P) {
   const c = emptyCommand();c.target = target.id;
   const F = featuresOf(brain);
   if (F.difficulty && P?.difficultyTier) {
-    P = applyDifficultyProfile(P, P.difficultyTier);
+    P = applyDifficultyProfile(P, 'normal');
   }
   const t = brain.t ??= init(brain, P), S = t.style, A = C.actions, R = C.rules;
   t.time += dt;brain.cooldown = Math.max(0, brain.cooldown - dt);
@@ -531,7 +531,8 @@ export function tacticalCommand(brain, self, target, dt, P) {
 
 const oppAttackingNow = target => target.action?.kind === 'tackle';
 /** Revisão em uso por esta IA (a avaliação pode fixar por lado; senão, o ajuste global extras.ai.revision). */
-export const revisionOf = brain => (brain.revisionOverride ?? C.extras.ai.revision) | 0;
+/** Só existe a IA mais recente (revisão 2); revisionOverride serve apenas à avaliação pareada interna. */
+export const revisionOf = brain => (brain.revisionOverride ?? 2) | 0;
 /** Melhorias das revisões da IA (a avaliação pode ligar uma a uma para medir o efeito). */
 export const REVISION_FEATURES = ['validate', 'reach', 'stamina', 'counter', 'sprint', 'dodgeStamina', 'perception', 'prediction', 'spatial', 'economy', 'defense', 'opponentModel', 'sequencePlanner', 'difficulty'];
 /**

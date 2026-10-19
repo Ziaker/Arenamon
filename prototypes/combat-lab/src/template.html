@@ -18,6 +18,7 @@
    <button type="button" id="pause" title="Pausar / continuar (Esc ou Espaço)">❚❚ Pausar</button>
    <button type="button" id="restart-top" title="Reiniciar a partida (R)">↺ Reiniciar</button>
    <button type="button" id="arena-hitboxes-toggle" role="switch" aria-checked="false" title="Mostrar os colisores físicos (coloridos pelo estado) e as trajetórias de X/C">▧ Hitboxes</button>
+   <button type="button" id="arena-enemy-ai-toggle" role="switch" aria-checked="true" title="Liga/desliga a IA do oponente (desligada, o vermelho fica parado)">🧠 IA oponente</button>
    <button type="button" id="arena-autoplay-toggle" role="switch" aria-checked="false" title="IA controla o jogador azul (IA × IA)">🤖 IA jogador</button>
    <button type="button" id="camera-reset" title="Reposicionar a câmera atrás do jogador">◎ Câmera</button>
    <button type="button" id="debug-toggle" title="Depuração (F3)">F3</button>
@@ -70,9 +71,6 @@
         <label class="field">Semente<input type="number" id="seed" min="1" step="1" value="1"></label>
         <label class="check"><input type="checkbox" id="seed-fixed"> Fixa</label>
        </div>
-       <h3>Dificuldade da IA</h3>
-       <div class="seg wide" role="group" aria-label="Dificuldade"><button type="button" data-difficulty="easy">Fácil</button><button type="button" data-difficulty="normal">Normal (v6)</button><button type="button" data-difficulty="hard">Difícil</button></div>
-       <p class="hint">Os presets mudam alcance, intervalo de ataque, reação e ciclo de esquiva da IA (aba Ajustes › IA), com desfazer.</p>
       </div>
       <div class="bento-card" data-subcard="gravacao" data-sublabel="Gravação & Comandos">
        <h3>Gravação da partida</h3>
@@ -117,22 +115,6 @@
       <div class="bento-card" data-subcard="ia-eval" data-sublabel="IA × IA & Avaliação">
        <h3>Avaliação da IA: evoluída, revisada e linha de base</h3>
        <p class="hint">Comparação estatística rigorosa pareada ou unilateral com loadouts, matriz de sementes, níveis de dificuldade e cenários difíceis.</p>
-       <div class="row">
-        <label class="field">Candidato<select id="aieval-candidate-rev">
-         <option value="2" selected>Rev. 2 (Evoluída)</option>
-         <option value="1">Rev. 1 (Revisada)</option>
-        </select></label>
-        <label class="field">Base<select id="aieval-baseline-rev">
-         <option value="0" selected>Rev. 0 (Anterior/v6)</option>
-         <option value="1">Rev. 1 (Revisada)</option>
-        </select></label>
-        <label class="field">Dificuldade<select id="aieval-difficulty">
-         <option value="normal" selected>Normal</option>
-         <option value="easy">Fácil</option>
-         <option value="hard">Difícil</option>
-         <option value="expert">Especialista</option>
-        </select></label>
-       </div>
        <div class="row"><label class="field">Lutas<input type="number" id="aieval-matches" min="4" max="400" value="60"></label><label class="field">Semente<input type="number" id="aieval-seed" min="1" value="1"></label><label class="field">Estilo<select id="aieval-style"></select></label></div>
        <div class="row">
         <label class="field">Loadout (Moves)<select id="aieval-loadout">
@@ -375,14 +357,6 @@
       <div class="quick-row">
        <label><span>IA Vermelho</span>
         <select id="quick-mode"></select>
-       </label>
-       <label><span>Dificuldade IA</span>
-        <select id="quick-difficulty">
-         <option value="normal">Normal</option>
-         <option value="easy">Fácil</option>
-         <option value="hard">Difícil</option>
-         <option value="expert">Expert</option>
-        </select>
        </label>
       </div>
       <div class="quick-moves">
