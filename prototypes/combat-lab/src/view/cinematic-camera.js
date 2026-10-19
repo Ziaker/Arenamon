@@ -84,6 +84,7 @@ export class CinematicCamera {
     this.speedlineState = null; // {startedAt, duration, x, y}
     this.letterboxState = null; // {startedAt, duration, mode, pct}
     this.koState = null;     // {startedAt, duration, roll, arc, center, radius}
+    this.koConsumed = false; // Garante que K.O. dispare exatamente 1x por round
     this.lastEventsSeen = new WeakSet();
     this.previewActive = null;
     this.previewTimer = null;
@@ -162,8 +163,13 @@ export class CinematicCamera {
     this.speedlineState = null;
     this.letterboxState = null;
     this.koState = null;
+    this.koConsumed = false;
+    this.initialized = false;
     this.previewActive = null;
-    if (this.previewTimer) clearTimeout(this.previewTimer);
+    if (this.previewTimer) {
+      clearTimeout(this.previewTimer);
+      this.previewTimer = null;
+    }
     this.spring.pos = {x: 0, y: 0, z: 0};
     this.spring.velPos = {x: 0, y: 0, z: 0};
     this.spring.look = {x: 0, y: 0, z: 0};
@@ -267,16 +273,23 @@ export class CinematicCamera {
     const p1 = winnerPos || {x: -1, y: 0.9, z: 0};
     const p2 = loserPos || {x: 1, y: 0.9, z: 0};
     const mid = scale(add(p1, p2), 0.5);
+    const startCamPos = this.spring.pos || {x: mid.x, y: 3, z: mid.z + 5};
+    const toCam = sub(startCamPos, mid);
+    const radius = Math.max(3.2, Math.hypot(toCam.x, toCam.z));
+    const baseAngle = Math.atan2(toCam.z, toCam.x);
     this.koState = {
       startedAt: this.clock,
       duration: this.config.koCamera.slowDuration * 1.5,
-      center: mid,
+      center: {x: mid.x, y: 0.9, z: mid.z},
+      radius,
+      baseAngle,
       roll: (this.config.koCamera.roll * Math.PI) / 180,
       arc: (this.config.koCamera.orbitArc * Math.PI) / 180,
     };
-    this.activeEffect = 'ko_finish';
     this.triggerLetterbox({duration: 0.8, pct: 8});
     this.triggerImpactFrame({whiteDur: 0.05, invertDur: 0.05, strength: 0.9});
+    this.triggerVisualSlowmo({scale: 0.2, duration: 0.6});
+    this.activeEffect = 'ko_finish';
   }
 
   triggerKoFinisher(winnerPos, loserPos) {
@@ -392,73 +405,86 @@ export class CinematicCamera {
   // ---------- Prévia de Efeitos Individuais na Interface ----------
 
   previewEffect(id) {
-    this.clearAll();
+    if (this.previewTimer) {
+      clearTimeout(this.previewTimer);
+      this.previewTimer = null;
+    }
     const prevEnabled = this.config.enabled;
+    this.clearAll();
     this.config.enabled = true;
     this.previewActive = id;
 
     const dummyPlayer = {position: {x: -1.2, y: 0, z: 0}, desiredMove: {x: 1, z: 0}, action: null};
     const dummyEnemy = {position: {x: 1.2, y: 0, z: 0}, desiredMove: {x: -1, z: 0}, action: null};
 
+    let durMs = 800;
+
     switch (id) {
       case 'dutchDodge':
         this.target.roll = (this.config.dutchDodge.maxRoll * Math.PI) / 180;
-        this.previewTimer = setTimeout(() => { this.target.roll = 0; }, (this.config.dutchDodge.duration * 1000) || 300);
+        durMs = Math.round((this.config.dutchDodge.duration * 1000) || 300);
         break;
       case 'lowSpeed':
         this.target.posOffset.y = -this.config.lowSpeed.dropHeight;
-        this.previewTimer = setTimeout(() => { this.target.posOffset.y = 0; }, 600);
+        durMs = 600;
         break;
       case 'snapParry':
         this.triggerSnap(dummyPlayer.position, dummyEnemy.position, {x: 1, z: 0}, {isClash: false});
         this.triggerLetterbox({duration: 0.35});
+        durMs = 450;
         break;
       case 'chargeFov':
         this.target.fovOffset = -this.config.chargeFov.maxCompression;
-        this.previewTimer = setTimeout(() => { this.target.fovOffset = 0; }, 800);
+        durMs = 700;
         break;
       case 'releaseFov':
         this.triggerFovPunch();
         this.triggerSpeedlines();
+        durMs = 400;
         break;
       case 'meteorSlam':
         this.target.posOffset.y = -this.config.meteorSlam.impactDrop;
         this.triggerFovPunch(this.config.meteorSlam.impactFov, 0.3);
         this.triggerSpeedlines();
-        this.previewTimer = setTimeout(() => { this.target.posOffset.y = 0; }, 400);
+        durMs = 450;
         break;
       case 'koCamera':
         this.triggerKoFinish(dummyPlayer.position, dummyEnemy.position);
+        durMs = 900;
         break;
       case 'impactFrames':
         this.triggerImpactFrame({whiteDur: 0.06, invertDur: 0.06, strength: 1.0});
+        durMs = 300;
         break;
       case 'speedlines':
         this.triggerSpeedlines({duration: 0.45});
+        durMs = 450;
         break;
       case 'letterbox':
         this.triggerLetterbox({duration: 0.6});
+        durMs = 600;
         break;
       case 'slowMotion':
-        this.triggerSnap(dummyPlayer.position, dummyEnemy.position, {x: 1, z: 0});
-        this.triggerLetterbox({duration: 0.4});
+        this.triggerVisualSlowmo({scale: this.config.slowMotion.scale, duration: this.config.slowMotion.duration * 2.5});
+        this.triggerLetterbox({duration: 0.45});
+        durMs = 500;
         break;
     }
 
-    if (this.previewTimer) {
-      const origTimer = this.previewTimer;
-      this.previewTimer = setTimeout(() => {
-        this.previewActive = null;
-        this.config.enabled = prevEnabled;
-      }, 1000);
-    }
+    this.previewTimer = setTimeout(() => {
+      this.clearAll();
+      this.config.enabled = prevEnabled;
+      this.previewActive = null;
+      this.previewTimer = null;
+    }, durMs);
   }
 
   // ---------- Aplicação por Quadro (Camada de Apresentação) ----------
 
-  apply(basePose, fighters = [], events = [], dt = 1 / 60, {camera = null, paused = false, tick = 0} = {}) {
-    this.clock += paused ? 0 : dt;
-    this.time += dt;
+  apply(basePose, fighters = [], events = [], dt = 1 / 60, {camera = null, paused = false, realDt = null, tick = 0} = {}) {
+    const effectiveDt = (this.koState || this.previewActive) ? (realDt ?? dt ?? 0.016) : (paused ? 0 : dt);
+    this.clock += effectiveDt;
+    this.time += effectiveDt;
 
     if (!this.config.enabled) {
       this.clearAll();
@@ -483,18 +509,33 @@ export class CinematicCamera {
         const atk = fighters[ev.attacker], tgt = fighters[ev.target];
         const hasBoth = atk && tgt;
 
+        // Projeção em tela do ponto 3D de colisão (espaço normalizado 0..1)
+        let screenPos = {x: 0.5, y: 0.5};
+        if (camera && hasBoth) {
+          const midX = (atk.position.x + tgt.position.x) * 0.5;
+          const midY = ((atk.position.y ?? 0.9) + (tgt.position.y ?? 0.9)) * 0.5;
+          const midZ = (atk.position.z + tgt.position.z) * 0.5;
+          const v = new T.Vector3(midX, midY, midZ).project(camera);
+          screenPos = {
+            x: clamp(v.x * 0.5 + 0.5, 0.05, 0.95),
+            y: clamp(-v.y * 0.5 + 0.5, 0.05, 0.95)
+          };
+        }
+
         if (ev.result === 'perfect') {
           // Defesa Perfeita (Parry)
           if (hasBoth) this.triggerSnap(atk.position, tgt.position, ev.normal || sub(tgt.position, atk.position), {isClash: false});
           this.triggerLetterbox({duration: 0.35});
           this.triggerImpactFrame({whiteDur: 0.035, invertDur: 0.035, strength: 0.85});
-          this.triggerSpeedlines({duration: 0.22});
+          this.triggerSpeedlines({duration: 0.22, screenPos});
+          this.triggerVisualSlowmo({scale: 0.35, duration: 0.18});
         } else if (ev.result === 'clash' || ev.result === 'tackleClash' || ev.result === 'stoneClash') {
           // Clash entre tackles
           if (hasBoth) this.triggerSnap(atk.position, tgt.position, ev.normal || sub(tgt.position, atk.position), {isClash: true});
           this.triggerLetterbox({duration: 0.42});
           this.triggerImpactFrame({whiteDur: 0.04, invertDur: 0.04, strength: 0.95});
-          this.triggerSpeedlines({duration: 0.25});
+          this.triggerSpeedlines({duration: 0.25, screenPos});
+          this.triggerVisualSlowmo({scale: 0.25, duration: 0.22});
         } else if (ev.result === 'impact') {
           // Impacto pesado / Meteor Slam
           const isHeavy = (ev.damage ?? 0) >= 15 || !!ev.slam || (ev.pl ?? 1) >= 3;
@@ -502,18 +543,22 @@ export class CinematicCamera {
             this.triggerFovPunch(this.config.releaseFov.punchFov * 0.8, 0.2);
             this.triggerLetterbox({duration: 0.3});
             this.triggerImpactFrame({whiteDur: 0.03, invertDur: 0.03, strength: 0.7});
-            this.triggerSpeedlines({duration: 0.18});
+            this.triggerSpeedlines({duration: 0.18, screenPos});
+            if (ev.slam) {
+              this.triggerMeteorContraplongee({impactDrop: this.config.meteorSlam.impactDrop, duration: 0.35});
+            }
           }
         } else if (ev.result === 'chargeRelease') {
           // Disparo de golpe carregado
           this.triggerFovPunch();
-          this.triggerSpeedlines();
+          this.triggerSpeedlines({duration: 0.2, screenPos});
         }
       }
     }
 
-    // 2. Escanear K.O. e Finalização
-    if (p1 && p2 && (p1.hp <= 0 || p2.hp <= 0) && !this.koState) {
+    // 2. Escanear K.O. e Finalização (apenas uma vez por round)
+    if (p1 && p2 && (p1.hp <= 0 || p2.hp <= 0) && !this.koState && !this.koConsumed) {
+      this.koConsumed = true;
       const winner = p1.hp > 0 ? p1 : p2;
       const loser = p1.hp <= 0 ? p1 : p2;
       this.triggerKoFinish(winner.position, loser.position);
@@ -524,7 +569,7 @@ export class CinematicCamera {
     let targetLook = {x: basePose.lookAt.x, y: basePose.lookHeight, z: basePose.lookAt.z};
     let targetRoll = 0;
     let targetFovOffset = 0;
-    let currentPriority = 0; // 0=normal, 10=dodge, 20=speed, 30=charge, 40=fovPunch, 50=snap, 60=ko
+    let currentPriority = 0; // 0=normal, 10=dodge, 20=speed, 30=charge, 35=slam, 40=fovPunch, 50=snap, 60=ko
 
     // C01 — Dutch Angle na esquiva do jogador
     if (this.config.dutchDodge.enabled && p1?.action?.kind === 'dodge' && !this.previewActive) {
@@ -556,14 +601,33 @@ export class CinematicCamera {
       }
     }
 
-    // C04 — Respiração de FOV na carga
-    if (this.config.chargeFov.enabled && p1?.charge && !this.previewActive) {
+    // C04 — Respiração de FOV na carga (projétil ou tackle)
+    const chargeObj = p1?.charge || p1?.tackleCharge;
+    if (this.config.chargeFov.enabled && chargeObj && !this.previewActive) {
       currentPriority = Math.max(currentPriority, 30);
-      const maxTicks = p1.charge.params?.maxTicks ?? 180;
-      const progress = clamp((p1.charge.ticks ?? 0) / Math.max(1, maxTicks), 0, 1);
+      let progress = 0;
+      if (p1.charge) {
+        const maxTicks = p1.charge.params?.maxTicks ?? 180;
+        progress = clamp((p1.charge.ticks ?? 0) / Math.max(1, maxTicks), 0, 1);
+      } else if (p1.tackleCharge) {
+        const maxDur = p1.tackleCharge.duration ?? 1.0;
+        progress = clamp((p1.tackleCharge.elapsed ?? p1.tackleCharge.t ?? 0) / Math.max(0.1, maxDur), 0, 1);
+      }
       const ease = progress * progress * (3 - 2 * progress); // smoothstep
       targetFovOffset -= this.config.chargeFov.maxCompression * ease * gi;
       this.activeEffect = 'charge_breath';
+    }
+
+    // C06 — Meteor Slam na descida rápida
+    if (this.config.meteorSlam.enabled && p1 && !this.previewActive) {
+      const isMeteorDive = p1.state === 'meteorDive' || (p1.flight?.isSlam && (p1.flight?.vy ?? 0) < -3);
+      if (isMeteorDive) {
+        currentPriority = Math.max(currentPriority, 35);
+        targetPos.y = Math.max(0.35, targetPos.y - this.config.meteorSlam.impactDrop * 0.7 * gi);
+        targetLook.y = Math.max(0.2, (p1.flight?.y ?? 0) * 0.5);
+        targetFovOffset += this.config.meteorSlam.impactFov * 0.5 * gi;
+        this.activeEffect = 'meteor_dive';
+      }
     }
 
     // C05 — FOV Punch no Disparo
@@ -594,7 +658,7 @@ export class CinematicCamera {
       }
     }
 
-    // C07 — K.O. e Finalização
+    // C07 — K.O. e Finalização (órbita 3D verdadeira em torno do centro do combate)
     if (this.koState) {
       const elapsed = this.clock - this.koState.startedAt;
       if (elapsed >= this.koState.duration) {
@@ -602,9 +666,13 @@ export class CinematicCamera {
       } else {
         currentPriority = Math.max(currentPriority, 60);
         const k = elapsed / Math.max(1e-4, this.koState.duration);
-        const angle = this.koState.arc * Math.sin(k * Math.PI * 0.5);
+        const orbitAngle = this.koState.baseAngle + this.koState.arc * Math.sin(k * Math.PI * 0.5);
+        const dist = this.koState.radius;
+        targetPos.x = this.koState.center.x + Math.cos(orbitAngle) * dist;
+        targetPos.z = this.koState.center.z + Math.sin(orbitAngle) * dist;
+        targetPos.y = Math.max(0.35, targetPos.y - this.config.koCamera.dropHeight * (1 - k * 0.3));
+        targetLook = {x: this.koState.center.x, y: this.koState.center.y + 0.3, z: this.koState.center.z};
         targetRoll = this.koState.roll * (1 - k * 0.5) * gi;
-        targetPos.y = Math.max(0.3, targetPos.y - this.config.koCamera.dropHeight * (1 - k * 0.3));
       }
     }
 
@@ -616,39 +684,50 @@ export class CinematicCamera {
     }
 
     // 4. Integração da Mola de Inércia (C12 — Inércia e Amortecimento)
-    const kStiff = this.config.springInertia.stiffness;
-    const kDamp = this.config.springInertia.damping;
-    const stepDt = Math.min(dt, 0.05);
+    if (!this.config.springInertia.enabled) {
+      this.spring.pos = {x: targetPos.x, y: targetPos.y, z: targetPos.z};
+      this.spring.look = {x: targetLook.x, y: targetLook.y, z: targetLook.z};
+      this.spring.roll = targetRoll;
+      this.spring.fovOffset = targetFovOffset;
+      this.spring.velPos = {x: 0, y: 0, z: 0};
+      this.spring.velLook = {x: 0, y: 0, z: 0};
+      this.spring.velRoll = 0;
+      this.spring.velFov = 0;
+    } else {
+      const kStiff = this.config.springInertia.stiffness;
+      const kDamp = this.config.springInertia.damping;
+      const stepDt = Math.min(dt, 0.05);
 
-    // Mola de posição
-    const posDiff = sub3(targetPos, this.spring.pos);
-    this.spring.velPos.x += (posDiff.x * kStiff - this.spring.velPos.x * kDamp) * stepDt;
-    this.spring.velPos.y += (posDiff.y * kStiff - this.spring.velPos.y * kDamp) * stepDt;
-    this.spring.velPos.z += (posDiff.z * kStiff - this.spring.velPos.z * kDamp) * stepDt;
-    this.spring.pos.x += this.spring.velPos.x * stepDt;
-    this.spring.pos.y += this.spring.velPos.y * stepDt;
-    this.spring.pos.z += this.spring.velPos.z * stepDt;
+      // Mola de posição
+      const posDiff = sub3(targetPos, this.spring.pos);
+      this.spring.velPos.x += (posDiff.x * kStiff - this.spring.velPos.x * kDamp) * stepDt;
+      this.spring.velPos.y += (posDiff.y * kStiff - this.spring.velPos.y * kDamp) * stepDt;
+      this.spring.velPos.z += (posDiff.z * kStiff - this.spring.velPos.z * kDamp) * stepDt;
+      this.spring.pos.x += this.spring.velPos.x * stepDt;
+      this.spring.pos.y += this.spring.velPos.y * stepDt;
+      this.spring.pos.z += this.spring.velPos.z * stepDt;
 
-    // Mola de ponto focal
-    const lookDiff = sub3(targetLook, this.spring.look);
-    this.spring.velLook.x += (lookDiff.x * kStiff - this.spring.velLook.x * kDamp) * stepDt;
-    this.spring.velLook.y += (lookDiff.y * kStiff - this.spring.velLook.y * kDamp) * stepDt;
-    this.spring.velLook.z += (lookDiff.z * kStiff - this.spring.velLook.z * kDamp) * stepDt;
-    this.spring.look.x += this.spring.velLook.x * stepDt;
-    this.spring.look.y += this.spring.velLook.y * stepDt;
-    this.spring.look.z += this.spring.velLook.z * stepDt;
+      // Mola de ponto focal
+      const lookDiff = sub3(targetLook, this.spring.look);
+      this.spring.velLook.x += (lookDiff.x * kStiff - this.spring.velLook.x * kDamp) * stepDt;
+      this.spring.velLook.y += (lookDiff.y * kStiff - this.spring.velLook.y * kDamp) * stepDt;
+      this.spring.velLook.z += (lookDiff.z * kStiff - this.spring.velLook.z * kDamp) * stepDt;
+      this.spring.look.x += this.spring.velLook.x * stepDt;
+      this.spring.look.y += this.spring.velLook.y * stepDt;
+      this.spring.look.z += this.spring.velLook.z * stepDt;
 
-    // Mola de Roll
-    const rollDiff = targetRoll - this.spring.roll;
-    this.spring.velRoll += (rollDiff * (kStiff * 0.8) - this.spring.velRoll * kDamp) * stepDt;
-    this.spring.roll += this.spring.velRoll * stepDt;
-    const maxRollLimit = this.config.springInertia.maxRollRad;
-    this.spring.roll = clamp(this.spring.roll, -maxRollLimit, maxRollLimit);
+      // Mola de Roll
+      const rollDiff = targetRoll - this.spring.roll;
+      this.spring.velRoll += (rollDiff * (kStiff * 0.8) - this.spring.velRoll * kDamp) * stepDt;
+      this.spring.roll += this.spring.velRoll * stepDt;
+      const maxRollLimit = this.config.springInertia.maxRollRad;
+      this.spring.roll = clamp(this.spring.roll, -maxRollLimit, maxRollLimit);
 
-    // Mola de FOV
-    const fovDiff = targetFovOffset - this.spring.fovOffset;
-    this.spring.velFov += (fovDiff * (kStiff * 1.2) - this.spring.velFov * kDamp) * stepDt;
-    this.spring.fovOffset += this.spring.velFov * stepDt;
+      // Mola de FOV
+      const fovDiff = targetFovOffset - this.spring.fovOffset;
+      this.spring.velFov += (fovDiff * (kStiff * 1.2) - this.spring.velFov * kDamp) * stepDt;
+      this.spring.fovOffset += this.spring.velFov * stepDt;
+    }
 
     // Efeito de chão seguro: a câmera nunca deve penetrar o solo
     const safeY = Math.max(0.2, this.spring.pos.y);
@@ -676,7 +755,7 @@ export class CinematicCamera {
   renderOverlays(camera = null) {
     if (typeof document === 'undefined') return;
 
-    // A. Letterbox
+    // A. Letterbox (suporta proporção precisa de Cinema 2.39:1 baseada na geometria da tela)
     if (this.letterboxEl) {
       if (this.config.enabled && this.letterboxState) {
         const elapsed = this.clock - this.letterboxState.startedAt;
@@ -686,7 +765,18 @@ export class CinematicCamera {
         } else {
           const k = elapsed / Math.max(1e-4, this.letterboxState.duration);
           const env = Math.sin(k * Math.PI);
-          const pct = this.letterboxState.mode === 'cinema' ? 12 : (this.letterboxState.pct || 6);
+          let pct = this.letterboxState.pct || 6;
+          if (this.letterboxState.mode === 'cinema' || this.config.letterbox.mode === 'cinema') {
+            const w = this.canvas?.clientWidth || (typeof window !== 'undefined' ? window.innerWidth : 1280) || 1280;
+            const h = this.canvas?.clientHeight || (typeof window !== 'undefined' ? window.innerHeight : 720) || 720;
+            const currentAspect = w / Math.max(1, h);
+            if (currentAspect < 2.39) {
+              const targetHeight = w / 2.39;
+              pct = Math.max(4, Math.min(25, ((h - targetHeight) / (2 * h)) * 100));
+            } else {
+              pct = 5;
+            }
+          }
           this.letterboxEl.style.opacity = '1';
           const topBar = this.letterboxEl.querySelector('.cine-bar-top');
           const botBar = this.letterboxEl.querySelector('.cine-bar-bottom');

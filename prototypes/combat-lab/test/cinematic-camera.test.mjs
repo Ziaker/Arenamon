@@ -368,6 +368,99 @@ test('Ingestão de eventos de combate mapeia automaticamente para efeitos cinem�
   assert.ok(cine.snap !== null || cine.activeEffect === 'parry_snap');
 });
 
+// ==========================================
+// 5. VALIDAÇÃO DOS PONTOS DA AUDITORIA INDEPENDENTE
+// ==========================================
+console.log('\n5. Validação dos Pontos da Auditoria Independente:');
+
+test('C07: K.O. dispara exatamente uma vez sem disparos repetidos enquanto lutador permanece derrotado', () => {
+  const mockDom = createMockDom();
+  const cine = new CinematicCamera(null, {overlayContainer: mockDom});
+  cine.config.enabled = true;
+
+  const mockFighters = [
+    {id: 0, state: 'idle', position: {x: 0, y: 0, z: 0}, hp: 100},
+    {id: 1, state: 'defeated', position: {x: 2, y: 0, z: 0}, hp: 0}
+  ];
+  const basePose = {position: {x: 0, y: 3, z: 8}, height: 3, lookAt: {x: 0, y: 1, z: 0}, lookHeight: 1, roll: 0, fov: 48, yaw: 0, pitch: 0, dist: 8};
+
+  // Quadro 1: dispara K.O.
+  cine.apply(basePose, mockFighters, [], 0.016);
+  assert.ok(cine.koState !== null, 'K.O. deve estar ativo no primeiro quadro');
+  assert.equal(cine.koConsumed, true, 'Flag koConsumed deve ser marcada');
+
+  // Simular expiração do K.O.
+  cine.clock += 5.0;
+  cine.apply(basePose, mockFighters, [], 0.016);
+  assert.equal(cine.koState, null, 'koState deve expirar normalmente');
+
+  // Quadro subsequente: com lutador ainda derrotado (hp = 0), NÃO deve re-disparar
+  cine.apply(basePose, mockFighters, [], 0.016);
+  assert.equal(cine.koState, null, 'K.O. não deve re-disparar em loop');
+});
+
+test('C12: Desativar springInertia.enabled desativa mola e aplica alvos diretamente', () => {
+  const mockDom = createMockDom();
+  const cine = new CinematicCamera(null, {overlayContainer: mockDom});
+  cine.config.enabled = true;
+  cine.config.springInertia.enabled = false; // Toggle individual desligado
+
+  cine.target.roll = 0.15;
+  cine.target.posOffset.y = -0.4;
+  cine.previewActive = 'manual';
+
+  const basePose = {position: {x: 0, y: 3, z: 8}, height: 3, lookAt: {x: 0, y: 1, z: 0}, lookHeight: 1, roll: 0, fov: 48, yaw: 0, pitch: 0, dist: 8};
+  const result = cine.apply(basePose, [], [], 0.016);
+
+  // Sem mola, o roll vai diretamente para o alvo no mesmo quadro
+  assert.equal(result.roll, 0.15, 'Roll deve ser instantâneo sem delay de mola quando springInertia.enabled for false');
+});
+
+test('C04: Suporta tackleCharge além de charge normal', () => {
+  const mockDom = createMockDom();
+  const cine = new CinematicCamera(null, {overlayContainer: mockDom});
+  cine.config.enabled = true;
+
+  const mockFighters = [
+    {id: 0, state: 'charging', position: {x: 0, y: 0, z: 0}, hp: 100, tackleCharge: {elapsed: 0.5, duration: 1.0}},
+    {id: 1, state: 'idle', position: {x: 2, y: 0, z: 0}, hp: 100}
+  ];
+  const basePose = {position: {x: 0, y: 3, z: 8}, height: 3, lookAt: {x: 0, y: 1, z: 0}, lookHeight: 1, roll: 0, fov: 48, yaw: 0, pitch: 0, dist: 8};
+
+  cine.apply(basePose, mockFighters, [], 0.016);
+  assert.equal(cine.activeEffect, 'charge_breath', 'Deve reconhecer tackleCharge e ativar respiração de FOV');
+  assert.ok(cine.spring.velFov < 0, 'FOV deve estar comprimindo');
+});
+
+test('C06: Reconhece estado meteorDive e descida rápida em queda livre', () => {
+  const mockDom = createMockDom();
+  const cine = new CinematicCamera(null, {overlayContainer: mockDom});
+  cine.config.enabled = true;
+
+  const mockFighters = [
+    {id: 0, state: 'meteorDive', position: {x: 0, y: 5, z: 0}, flight: {y: 5, vy: -12, isSlam: true}, hp: 100},
+    {id: 1, state: 'idle', position: {x: 2, y: 0, z: 0}, hp: 100}
+  ];
+  const basePose = {position: {x: 0, y: 3, z: 8}, height: 3, lookAt: {x: 0, y: 1, z: 0}, lookHeight: 1, roll: 0, fov: 48, yaw: 0, pitch: 0, dist: 8};
+
+  cine.apply(basePose, mockFighters, [], 0.016);
+  assert.equal(cine.activeEffect, 'meteor_dive', 'Deve ativar enquadramento cinemático de meteor dive');
+});
+
+test('previewEffect não vaza config.enabled para true se estava false', async () => {
+  const mockDom = createMockDom();
+  const cine = new CinematicCamera(null, {overlayContainer: mockDom});
+  cine.config.enabled = false;
+
+  cine.previewEffect('dutchDodge');
+  assert.equal(cine.previewActive, 'dutchDodge');
+
+  // Aguardar fim do timer da prévia
+  await new Promise(r => setTimeout(r, 400));
+  assert.equal(cine.config.enabled, false, 'enabled deve ser restaurado para false com 100% de integridade');
+  assert.equal(cine.previewActive, null);
+});
+
 console.log('\n==========================================');
 console.log(`TESTES CONCLUÍDOS: ${passed} passaram, ${failed} falharam.`);
 console.log('==========================================\n');

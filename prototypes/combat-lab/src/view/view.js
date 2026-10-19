@@ -258,13 +258,14 @@ export class View {
       const arrow = this.arrows[f.id];arrow.position.set(f.position.x + Math.sin(f.visualFacing) * V.arrowOffset, V.arrowHeight + alt + vis, f.position.z + Math.cos(f.visualFacing) * V.arrowOffset);
       arrow.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), new T.Vector3(Math.sin(f.visualFacing), 0, Math.cos(f.visualFacing)));arrow.scale.set(V.arrowRadius / .16, V.arrowLength / .42, V.arrowRadius / .16);
       arrow.material.color.setHex(f.guard ? rgb('arrowGuard') : rgb('arrow'));
-      // A prévia de animação continua tocando com a partida pausada.
-      t0 = now();character?.update(f, paused ? (character.preview ? realDt : 0) : dt, alt, events, {tick, source: sources[f.id]});tm.anim += now() - t0;
+      // A prévia de animação continua tocando com a partida pausada; bullet time visual desacelera apresentação.
+      const visualScale = this.cinematic?.getVisualTimeScale?.() ?? 1.0;
+      t0 = now();character?.update(f, paused ? (character.preview ? realDt : 0) : (dt * visualScale), alt, events, {tick, source: sources[f.id]});tm.anim += now() - t0;
     }
     t0 = now();this.drawOverlays(fighters, paused ? 0 : dt);this.worldView.update(world, {fighters, events, dt: paused ? 0 : dt, skipBeams: this.useNewVfx, camera: this.camera});tm.overlays = now() - t0;
     if (!this.rig.initialized) this.rig.reset(fighters[0]);
     const basePose = this.rig.pose();
-    const cinePose = this.cinematic ? this.cinematic.apply(basePose, fighters, events, dt, {camera: this.camera, paused, tick}) : basePose;
+    const cinePose = this.cinematic ? this.cinematic.apply(basePose, fighters, events, dt, {camera: this.camera, paused, tick, realDt}) : basePose;
     this.camera.position.set(cinePose.position.x, cinePose.height, cinePose.position.z);
     this.camera.lookAt(cinePose.lookAt.x, cinePose.lookHeight, cinePose.lookAt.z);
     if (cinePose.roll) this.camera.rotateZ(cinePose.roll);
