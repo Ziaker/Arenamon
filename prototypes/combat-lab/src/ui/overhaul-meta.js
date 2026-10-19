@@ -11,6 +11,15 @@ const toggle = {min: 0, max: 1, step: 1, fmt: onOff, kind: 'toggle'};
 const color = {min: 0, max: 0xffffff, step: 1, fmt: n => '#' + Math.round(n).toString(16).padStart(6, '0'), kind: 'color'};
 const select = options => ({min: 0, max: options.length - 1, step: 1, fmt: n => options[n] ?? '?', kind: 'select', options});
 
+const SQUASH = {
+  enableSquashStretch: ['Deformação elástica do Tackle', 'Deforma somente o modelo 3D durante a investida, sem alterar ossos ou colisões.', toggle],
+  squashIntensity: ['Compressão no arranque', 'Compressão na direção do golpe antes do alongamento.', R(0, .3, .01, pct)],
+  stretchIntensity: ['Alongamento no impulso', 'Alongamento na direção do golpe. PL2 e PL3 podem ampliar esta intensidade.', R(0, .4, .01, pct)],
+  squashWindow: ['Janela de compressão', 'Duração em ms. Zero remove a compressão; golpes curtos limitam a janela à metade do arranque disponível.', R(0, 150, 1, n => n + ' ms')],
+  settleDuration: ['Retorno amortecido', 'Tempo em ms para retornar aproximadamente 98% à escala neutra após desaceleração, impacto ou cancelamento.', R(30, 200, 1, n => n + ' ms')],
+  preserveVolume: ['Preservar volume', 'Compensa os eixos transversais com 1/raiz(Sz), mantendo Sx × Sy × Sz = 1.', toggle],
+  plScaling: ['Alongamento por Power Level', 'PL2 amplia o alongamento em 25%; PL3, em 50%. A compressão não muda.', toggle],
+};
 const LOCO = {
   model: ['Modelo de locomoção', 'Contínuo (overhaul): aceleração com curva, aderência lateral, atrito e giro com aceleração angular. v6: aproximação linear antiga (mantida para comparação e paridade).', select(['v6 (linear)', 'Contínuo (overhaul)'])],
   acceleration: ['Aceleração', 'Aceleração (m/s²) ao sair do repouso rumo à direção pedida. Valores altos ≈ resposta instantânea; baixos dão sensação de peso.', R(1, 200, .5, mps2)],
@@ -215,6 +224,7 @@ const CANCEL2 = {
 };
 /** Metadado de um caminho do overhaul (ou null). */
 export function overhaulMeta(path) {
+  if (path.startsWith('extras.visual.squashStretch.')) {const m = SQUASH[path.split('.').pop()];return m ? {label: m[0], help: m[1], range: {...m[2]}} : null;}
   const parts = path.split('.'), key = parts.at(-1), root = parts[0];
   const out = (label, help, range) => range && {label, help, range: {...range}};
   if (root === 'locomotion' && LOCO[key]) return out(...LOCO[key]);
