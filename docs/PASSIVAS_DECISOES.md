@@ -193,12 +193,21 @@ O sistema admite tipos diferentes de passivas, conforme a definição individual
 - A decisão aplica-se exclusivamente aos cooldowns das passivas; **não altera cooldowns de golpes ou outras habilidades**, nem define sua duração, seus gatilhos, a ocorrência do respawn ou regras de KO.
 - Esta rodada registra somente uma decisão de design e **não autoriza implementação**.
 
+## Rodada 23 — Encerramento dos efeitos ativos das passivas ao ocorrer KO (opção A aprovada)
+
+- **No momento em que o personagem sofre um KO, todos os efeitos ativos de suas passivas são encerrados imediatamente.**
+- **Os efeitos encerrados pelo KO não são preservados, pausados para retomada nem continuam consumindo duração para retornar após o respawn.** O personagem retorna sem os efeitos que estavam ativos antes do KO.
+- Esse encerramento é **um término efetivo do efeito** para os fins da regra de início do cooldown das Rodadas 16–17. Entretanto, **no respawn, todos os cooldowns restantes das passivas são zerados**, conforme a Rodada 22, independentemente do tempo transcorrido desde o KO.
+- **O KO não remove nem troca as passivas equipadas** e não representa, por si só, novo gatilho de ativação no respawn. Permanecem válidas as restrições de seleção e acionamento das Rodadas 1–6 e 20–22.
+- Esta decisão define o destino dos **efeitos ativos no instante do KO**. Permanecem pendentes as regras específicas de passivas permanentes ou condicionais que não produzam um efeito ativo temporário, assim como situações de suspensão prévia, pausas globais, hitstop e contagem do cooldown durante o intervalo entre KO e respawn.
+- A decisão **não estabelece valores de duração nem novas regras de KO, respawn ou ativação**, e **não autoriza implementação de mecânicas**.
+
 ## Pontos pendentes — não aprovados
 
 - Identidade, números, magnitude, duração, gatilhos e cooldowns de cada passiva.
 - Catálogo e critérios concretos de resolução para cada combinação de efeitos incompatíveis ou mutuamente exclusivos; casos não previstos permanecem sem regra aprovada.
 - Unidades e conversão para efeitos de natureza diversa, regras de arredondamento específicas quando exigido inteiro, interações entre modificadores incompatíveis e tratamento de casos especiais não cobertos por restrições preexistentes.
-- Ativação, suspensão ou expiração dos efeitos ativos em KO e respawn, comportamento da contagem durante o intervalo de KO, pausas, hitstop e demais situações; os cooldowns das passivas são zerados no respawn conforme a Rodada 22, mas os demais comportamentos concretos continuam pendentes.
+- Comportamento específico de passivas permanentes e condicionais sem efeito ativo temporário, efeitos previamente suspensos, contagem de cooldown durante o intervalo KO–respawn, pausas, hitstop e demais situações não aprovadas; a Rodada 23 encerra todos os efeitos ativos no KO e a Rodada 22 zera os cooldowns no respawn.
 - Interface de seleção, apresentação visual e implementação técnica.
 
 ## Governança deste documento
