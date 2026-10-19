@@ -164,12 +164,68 @@ O sistema admite tipos diferentes de passivas, conforme a definição individual
 - **Ainda não definidos:** quais passivas admitem suspensão, suas condições de retomada, seu comportamento em KO/respawn, o tratamento de efeitos permanentes ou sem duração e os respectivos efeitos na recarga quando aplicáveis. Não pressupor nenhuma dessas regras.
 - Esta rodada registra exclusivamente a decisão de design: **não autoriza implementação**.
 
+## Rodada 20 — Novo gatilho enquanto o efeito anterior permanece ativo (opção A aprovada)
+
+- **Enquanto o efeito de uma passiva permanecer ativo, novos gatilhos dessa mesma passiva são ignorados.** A habilidade não se reativa em resposta a esses eventos.
+- O novo gatilho **não reinicia nem prolonga a duração** do efeito em andamento e **não cria uma segunda instância** dele.
+- A duração do efeito anterior **continua seguindo as regras que já lhe são aplicáveis**, incluindo a suspensão e o comportamento individual do cronômetro aprovados na Rodada 19, quando cabíveis. A presente decisão não reinicia a contagem.
+- A passiva continua sujeita ao início do cooldown **no término efetivo do efeito**, conforme as Rodadas 16–18; ignorar um gatilho durante o efeito ativo não antecipa nem reinicia esse cooldown.
+- A regra afeta **somente a reativação da própria passiva** e não impede a ativação independente de uma outra passiva equipada no mesmo evento, preservando as Rodadas 12 e 13.
+- **Permanecem pendentes** as regras concretas de passivas cujo efeito esteja suspenso, permanente, instantâneo ou com término não definido, além de outros casos não cobertos pelo conceito de efeito anterior ativo. A Rodada 20 não presume condições de retomada nem altera as decisões individuais já aprovadas.
+- Este registro é estritamente documental e **não autoriza implementação**.
+
+## Rodada 21 — Continuidade do cooldown durante estados de combate (opção A aprovada)
+
+- **Uma vez iniciada, a contagem do cooldown de uma passiva continua avançando normalmente durante todos os estados de combate do personagem**, inclusive estados que restrinjam suas ações, como hit stun e guard stun.
+- **Entrar ou permanecer em um estado de combate incapacitante não pausa nem congela automaticamente a recarga** já iniciada, e sair desse estado não reinicia o cronômetro.
+- A continuidade do cooldown **não autoriza a ativação da passiva em um estado no qual suas regras individuais proíbam o acionamento**. As condições de funcionamento por estado continuam sujeitas à Rodada 3.
+- Permanecem preservadas as Rodadas 15–18: o cooldown da passiva é independente dos modificadores de recarga de outras habilidades e começa quando o efeito efetivamente termina, nos casos e condições já aprovados.
+- **Não definido nesta rodada:** a contagem em KO e respawn, pausas globais do jogo, hitstop e situações especiais de paralisação do tempo que não sejam simplesmente estados de combate; tampouco se estabelecem regras novas para duração ou suspensão do efeito ativo, objeto da Rodada 19.
+- Esta é exclusivamente uma decisão documental; **não autoriza implementação**.
+
+## Rodada 22 — Zerar cooldowns das passivas no respawn (opção C aprovada)
+
+- **Ao retornar à luta após um KO (no respawn), todos os cooldowns restantes das passivas equipadas são zerados.** A recarga pendente deixa de existir nesse momento.
+- **As passivas ficam prontas para nova ativação no respawn**, mas somente podem ser acionadas quando seus respectivos gatilhos e demais condições individuais de funcionamento forem satisfeitos, conforme as Rodadas 2 e 3. **O respawn, por si só, não aciona automaticamente uma passiva.**
+- A regra de zerar cooldowns no respawn é uma **exceção específica** à continuidade da contagem durante estados de combate aprovada na Rodada 21, sem revogar aquela decisão para os demais estados.
+- Esta decisão **não estabelece se o cooldown continua avançando ou fica pausado durante o período de KO anterior ao respawn**: independentemente da contagem nesse intervalo, qualquer recarga ainda pendente é eliminada ao ocorrer o respawn.
+- **Permanece pendente** o destino de efeitos de passivas que estejam ativos no momento do KO ou do respawn, bem como a interação desses efeitos com a regra da Rodada 20 (não reativar uma passiva enquanto seu efeito anterior permanecer ativo). A prontidão da recarga não substitui as restrições de acionamento já aprovadas.
+- A decisão aplica-se exclusivamente aos cooldowns das passivas; **não altera cooldowns de golpes ou outras habilidades**, nem define sua duração, seus gatilhos, a ocorrência do respawn ou regras de KO.
+- Esta rodada registra somente uma decisão de design e **não autoriza implementação**.
+
+## Rodada 23 — Encerramento dos efeitos ativos das passivas ao ocorrer KO (opção A aprovada)
+
+- **No momento em que o personagem sofre um KO, todos os efeitos ativos de suas passivas são encerrados imediatamente.**
+- **Os efeitos encerrados pelo KO não são preservados, pausados para retomada nem continuam consumindo duração para retornar após o respawn.** O personagem retorna sem os efeitos que estavam ativos antes do KO.
+- Esse encerramento é **um término efetivo do efeito** para os fins da regra de início do cooldown das Rodadas 16–17. Entretanto, **no respawn, todos os cooldowns restantes das passivas são zerados**, conforme a Rodada 22, independentemente do tempo transcorrido desde o KO.
+- **O KO não remove nem troca as passivas equipadas** e não representa, por si só, novo gatilho de ativação no respawn. Permanecem válidas as restrições de seleção e acionamento das Rodadas 1–6 e 20–22.
+- Esta decisão define o destino dos **efeitos ativos no instante do KO**. Permanecem pendentes as regras específicas de passivas permanentes ou condicionais que não produzam um efeito ativo temporário, assim como situações de suspensão prévia, pausas globais, hitstop e contagem do cooldown durante o intervalo entre KO e respawn.
+- A decisão **não estabelece valores de duração nem novas regras de KO, respawn ou ativação**, e **não autoriza implementação de mecânicas**.
+
+## Rodada 24 — Pausa do cooldown das passivas durante hitstop (opção A aprovada)
+
+- **Quando ocorrer hitstop, a contagem do cooldown já iniciado de uma passiva fica pausada durante todo o intervalo de hitstop.**
+- **Enquanto durar o hitstop, o tempo restante de recarga permanece congelado**; ao terminar o hitstop e a simulação ser retomada, o cooldown **prossegue do ponto em que estava**, sem reiniciar e sem descontar o intervalo interrompido.
+- Esta decisão cria uma **exceção temporal específica para o hitstop** à continuidade da recarga durante os estados de combate, aprovada na Rodada 21. A recarga continua normalmente em estados como hit stun e guard stun quando não há hitstop.
+- A regra afeta **somente a contagem do cooldown das passivas durante o hitstop**. Não estabelece se a duração dos efeitos ativos continua ou é pausada durante hitstop, nem determina gatilhos, novas ativações ou outros comportamentos de passivas nesse intervalo.
+- Permanecem válidas a independência de cooldown da Rodada 15, as regras de início da recarga das Rodadas 16–18, o encerramento dos efeitos no KO da Rodada 23 e o zeramento dos cooldowns no respawn da Rodada 22.
+- **Continuam pendentes** a contagem durante pausas globais do jogo e o período entre KO e respawn, além dos demais casos especiais ainda não aprovados. Esta rodada registra apenas a decisão de design e **não autoriza implementação**.
+
+## Rodada 25 — Pausa da duração dos efeitos ativos durante hitstop (opção A aprovada)
+
+- **Durante o hitstop, o cronômetro de duração de todos os efeitos ativos das passivas fica pausado.** Nenhum tempo de duração é consumido enquanto perdurar essa interrupção.
+- **Ao terminar o hitstop e a simulação retomar**, a contagem da duração desses efeitos **continua a partir do tempo restante que havia antes do hitstop**, sem reinício, renovação ou extensão adicional além da pausa.
+- Exemplo ilustrativo: uma proteção com **3 segundos de duração restante** ao começar o hitstop mantém esses **3 segundos restantes** até o fim da interrupção e somente então volta a consumir duração.
+- A regra é **geral para a duração dos efeitos ativos** durante hitstop e complementa a Rodada 24, que já havia aprovado a pausa dos **cooldowns** das passivas nesse intervalo. Isso não altera a definição individual do comportamento da duração durante **outras formas de suspensão**, conforme a Rodada 19.
+- A pausa do cronômetro **não determina, por si só, se o efeito permanece funcional durante hitstop**, se novos gatilhos são avaliados nesse intervalo ou se existem condições específicas de ativação e suspensão. Esses aspectos continuam pendentes e não devem ser presumidos.
+- Permanecem válidas as regras anteriormente aprovadas de término de efeito, início do cooldown e KO/respawn. **Esta decisão é exclusivamente documental e não autoriza implementação.**
+
 ## Pontos pendentes — não aprovados
 
 - Identidade, números, magnitude, duração, gatilhos e cooldowns de cada passiva.
 - Catálogo e critérios concretos de resolução para cada combinação de efeitos incompatíveis ou mutuamente exclusivos; casos não previstos permanecem sem regra aprovada.
 - Unidades e conversão para efeitos de natureza diversa, regras de arredondamento específicas quando exigido inteiro, interações entre modificadores incompatíveis e tratamento de casos especiais não cobertos por restrições preexistentes.
-- Comportamento das passivas em KO, respawn, pausas, hitstop e demais estados; a definição é individual, mas as regras concretas ainda não foram aprovadas.
+- Comportamento específico de passivas permanentes e condicionais sem efeito ativo temporário, efeitos previamente suspensos, contagem de cooldown durante o intervalo KO–respawn, pausas globais e demais situações não aprovadas; as Rodadas 24–25 pausam, respectivamente, a recarga e a duração dos efeitos ativos durante hitstop, a Rodada 23 encerra os efeitos ativos no KO e a Rodada 22 zera os cooldowns no respawn. Permanecem indefinidos o funcionamento efetivo dos efeitos e a possibilidade de novos gatilhos durante hitstop.
 - Interface de seleção, apresentação visual e implementação técnica.
 
 ## Governança deste documento
