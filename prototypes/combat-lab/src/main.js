@@ -27,6 +27,7 @@ import {openStore} from './workspace/store.js';
 import {Workspace} from './workspace/workspace.js';
 import {createWorkspaceUI} from './ui/workspace-panel.js';
 import {createPresetsPanel} from './ui/presets-panel.js';
+import {createQuickPanel} from './ui/quick-panel.js';
 import {createMovementPanel} from './ui/movement-panel.js';
 import {createDiagnostics, createWindowsOverlay} from './ui/diagnostics-panel.js';
 import {createTrainingPanel} from './ui/training-panel.js';
@@ -274,6 +275,7 @@ function applyConfig() {
 const tuning = createTuning({apply: applyConfig});
 // Presets (sensação, completos e por categoria), calibração simplificada, modo simples/avançado e A × B jogável.
 const presets = createPresetsPanel({tuning, $, game, download: (...a) => download(...a)});
+const quick = createQuickPanel({$, tuning, presets, onOpen: () => input.clear()});
 const movement = createMovementPanel({$, game, ui, presets, tuning, download: (...a) => download(...a), playSequence: (...a) => playSequence(...a), getWs: () => wsRef.ws});
 function syncTuneState() {
   const dirty = tuning.dirty(), chip = $('tune-state'), isDefault = tuning.manifest.every(m => !tuning.changed(m));
@@ -525,9 +527,13 @@ function openTool(tool) {
 for (const b of document.querySelectorAll('[data-tool]')) b.onclick = () => openTool(b.dataset.tool);
 $('panel-close').onclick = () => {$('panel').hidden = true;for (const b of document.querySelectorAll('[data-tool]')) b.classList.remove('active');};
 window.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {e.preventDefault();quick.isOpen() ? quick.hide() : quick.show('params');return;}
+  if (quick.isOpen()) return;
   const typing = e.target.matches('input[type=text],input[type=search],input[type=number],textarea,select');
   if ((e.ctrlKey || e.metaKey) && !typing) {const k = e.key.toLowerCase();if (k === 'z' && !e.shiftKey) {e.preventDefault();tuning.undo();}else if (k === 'y' || (k === 'z' && e.shiftKey)) {e.preventDefault();tuning.redo();}return;}
   if (typing) return;
+  if (e.key === '/' ) {e.preventDefault();quick.show('params');return;}
+  if (e.key === '?') {e.preventDefault();quick.show('keys');return;}
   // Atalhos de combate (Space, R, H, F2, M, Backspace/F4, F5) são tratados pelo Input
   if (e.code === 'KeyM') {e.preventDefault();soundFx.toggle();updateAudioBtn();}
   if (e.code === 'Backspace' || e.code === 'F4') {e.preventDefault();resetArenaFighters();}
@@ -792,7 +798,7 @@ function resetArenaFighters() {
 }
 
 function cycleOpponentAiMode() {
-  const modes = ['tactical', 'combat', 'evasive', 'inactive'];
+  const modes = UI_AI_MODES.map(([id]) => id);
   const cur = $('mode').value;
   const idx = modes.indexOf(cur);
   const next = modes[(idx + 1) % modes.length];
@@ -801,7 +807,7 @@ function cycleOpponentAiMode() {
   C.extras.gameModes.enemyMode = AI_MODES.findIndex(([id]) => id === game.mode);
   game.brain.reset();
   syncButtons();
-  diagnostics.toast?.({text: `Modo do oponente: ${next.toUpperCase()}`, fighter: 1, kind: 'info'});
+  diagnostics.toast?.({text: `Modo do oponente: ${UI_AI_MODES.find(([id]) => id === next)[1]}`, fighter: 1, kind: 'info'});
 }
 
 function onQuickStart() {
