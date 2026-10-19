@@ -493,6 +493,8 @@ Estas divergências **não significam que o Sand Wave esteja implementado**: ind
 
 #### Contrato de gameplay e visual conceitual
 
+**Nota de precedência:** os itens 1–18 e sua tabela preservam a especificação inicial. A Rodada 1, na seção **7.4**, aprovou o alcance/controle do marcador, a fórmula do dano e a direção do lançamento. Formulações iniciais de aspectos “ainda não explicitados” nestas quatro matérias são históricas e foram complementadas na seção 7.4. **A cronologia dos 0,55 s continua pendente entre duas alternativas B/C mutuamente exclusivas; nenhuma foi aprovada.**
+
 1. **Recarga:** **9 s de cooldown** por uso.
 2. **Custo:** **3 unidades de stamina** por uso.
 3. **Power Level:** **ignora PL (Power Level)**. O significado de “ignorar” em cada tipo específico de confronto ainda precisa de detalhamento; não presumir neutralização, prioridade ou imunidade universal.
@@ -537,9 +539,9 @@ Estas divergências **não significam que o Sand Wave esteja implementado**: ind
 
 ### 7.2 Pontos ainda não decididos — não inventar
 
-- **ES-P01 — mira e cronologia do Normal Cast:** confirmar comportamento preciso de **manter/soltar botão**, tempo de ajuste do marcador, quando os **0,55 s** começam, momento de lançamento do projétil, definição e congelamento da posição-alvo; **não** importar o ciclo de desaparecimento/investida do Bullet Punch.
-- **ES-P02 — limites do marcador:** alcance mínimo/máximo, geometria da seleção, interação com paredes e destino fora de área válida; não extrapolar a partir de Bullet Punch.
-- **ES-P03 — dano e lançamento:** se os **20 DMG** são fixos ou sofrem modificadores, regras de defesa/invulnerabilidade, número de alvos, direção e força do lançamento para trás, bem como eventuais efeitos do bloqueio por paredes sobre a detonação.
+- **ES-P01 — cronologia do Normal Cast AINDA NÃO DECIDIDA (Rodada 1, questão 1D):** o diretor mantém **B e C como opções mutuamente exclusivas, sem escolher nenhuma**. **B:** botão segurado sem limite para ajustar marcador; soltar inicia cast de 0,55 s, seguido pelo disparo. **C:** cast de 0,55 s começa ao pressionar; marcador ajustável enquanto isso; disparo somente após completar o cast **e** soltar. **B e C não podem ocorrer simultaneamente**. Congelamento do marcador, momento de cobrança e demais transições permanecem para decisão posterior. Não importar as ações físicas de Bullet Punch.
+- **ES-P02 — controle e distância PARCIALMENTE RESOLVIDOS (Rodada 1, 2A e 3A):** aprovado controle por comandos direcionais **independente da orientação do corpo do Mushroom**, segundo o princípio de Bullet Punch, e alcance do marcador **entre 3 m e 10 m**. Permanecem em aberto colisão com paredes, destinos inválidos e geometria detalhada de seleção; não importar outras regras do Bullet Punch por analogia.
+- **ES-P03 — cálculo de dano e direção PARCIALMENTE RESOLVIDOS (Rodada 1, 4B e 5A):** **20 DMG de dano-base multiplicados pelo atributo Ataque**, sujeitos às regras normais de defesa e demais modificadores aplicáveis; o lançamento é **radial para fora do centro da explosão**. Ainda pendentes magnitude/velocidade do lançamento, número de alvos, casos de colisão, detalhes de invulnerabilidade e oclusão por paredes; não criar imunidades nem efeitos extras.
 - **ES-P04 — interação com PL/Reflect:** descrever objetivamente o que significa “ignora PL” em disputas entre golpes e se “ignora Reflect” atinge apenas a fase de deslocamento subterrâneo ou toda a execução, sem presumir que isso ignore guarda, invulnerabilidade ou colisão de personagens.
 - **ES-P05 — rock size sliders:** parâmetros de mínimo/máximo/passo e se **3 × 3 m** se refere à base, como editar os eixos, altura física e regras de colocação sobre lutadores/outras rochas/limites de arena.
 - **ES-P06 — passagem aérea RESOLVIDA em regra principal (opção B); detalhes técnicos pendentes:** **bloquear passagem terrestre e permitir atravessar por cima da rocha somente se a trajetória aérea tiver altura física suficiente**, sem atravessar o volume sólido e sem permitir escalada terrestre. Não definir altura mínima numérica arbitrária: verificar colisão contra as dimensões físicas efetivas da rocha. Restam integração técnica de saltos já iniciados, movimento aéreo e contatos de borda com as regras existentes. **Não** converter essa escolha em proibição de pulo ou deslizamento automático.
@@ -553,4 +555,27 @@ Estas divergências **não significam que o Sand Wave esteja implementado**: ind
 
 **19/10/2026 — decisão posterior de colisão com a rocha, opção B aprovada pelo diretor:** a rocha **bloqueia deslocamento terrestre**, **não é escalável por locomoção normal**, mas **pode ser ultrapassada por cima durante um salto ou deslocamento aéreo com altura suficiente**, sem atravessar a sua colisão sólida. **ES-D18 passa de alternativa pendente para opção B aprovada**; permanecem indefinidas dimensões verticais finais e detalhes técnicos de validação de altura. As opções de impedir pulos e de deslizamento automático **não** foram aprovadas. Nenhum código foi modificado.
 
+**19/10/2026 — Emerging Stone Rodada 1 (D/A/A/B/A):** questão 1D = **NÃO DECIDIDA**; manter as alternativas de cronologia **B e C para escolha futura, mutuamente exclusivas**. Questões 2–5 aprovadas: **2A** direcionais ajustam o marcador independentemente da orientação de Mushroom; **3A** alcance de **3–10 m**; **4B** dano-base **20 × atributo Ataque**, sujeito a defesas e modificadores normais; **5A** lançamento **radialmente para fora do centro da explosão**. Registro vigente em ES-D19–ES-D22. Nenhuma implementação autorizada.
+
 **Preservação:** as decisões e textos anteriores, incluindo **SW-D01–SW-D68**, Rodadas **1–10** do Sand Wave, Bullet Punch e o histórico da renomeação Rock Tomb → Emerging Stone, permanecem válidos e íntegros. A presente aprovação é **somente documentação**.
+
+### 7.4 Emerging Stone — Rodada 1 (19/10/2026): decisões e escolha adiada
+
+**Resultado declarado:** 1D / 2A / 3A / 4B / 5A. **A questão 1 está PENDENTE**: o diretor não escolheu B nem C, mas determinou manter **ambas como alternativas mutuamente exclusivas para decisão futura**. A escolha 1D **não autoriza combinar B e C** nem introduzir cronologia híbrida.
+
+#### Questão 1 — duas alternativas NÃO aprovadas (B versus C)
+
+- **Opção B (candidata, NÃO APROVADA):** o jogador pode manter o botão pressionado **sem limite de tempo** para ajustar o marcador. **Ao soltar**, inicia-se o **cast de 0,55 s**; o projétil é disparado após esse cast.
+- **Opção C (candidata, NÃO APROVADA):** o **cast de 0,55 s inicia quando o botão é pressionado**. O marcador pode ser ajustado durante esse período; o projétil somente dispara **depois de completar 0,55 s e de soltar o botão**.
+- **Regra de precedência:** essas possibilidades são **incompatíveis**, e **nenhuma é a regra vigente**; o único número de cast aprovado continua **0,55 s** (ES-D06). Segurar/soltar, cronologia final, momento exato de congelar o marcador e de descontar recursos seguem indefinidos.
+
+#### Questões 2–5 — aprovadas
+
+| ID | Origem | Regra vigente |
+|---|---|---|
+| ES-D19 | Rodada 1, questão 2 (A) — controle da mira | **Comandos direcionais ajustam o marcador independentemente da orientação do corpo do Mushroom**, pelo mesmo princípio funcional do Bullet Punch, sem importar outros parâmetros ou a ausência física daquele golpe. |
+| ES-D20 | Rodada 1, questão 3 (A) — alcance da mira | **Marcador com distância selecionável de 3–10 m**, conforme a faixa documentada para Bullet Punch; **projétil permanece a 15 m/s** (ES-D08). |
+| ES-D21 | Rodada 1, questão 4 (B) — dano | **20 DMG de dano-base × atributo Ataque**, sujeito às **regras normais de defesa e demais modificadores**. Complementa ES-D05 e ES-D12 sem revogá-los e não aprova ignorar defesa. |
+| ES-D22 | Rodada 1, questão 5 (A) — direção do lançamento | **Lançamento radialmente para fora do centro da explosão** para inimigos atingidos; magnitude e dinâmica vertical continuam não decididas. |
+
+**Escopo:** aprovadas quatro regras **ES-D19–ES-D22**, nenhuma regra de cronologia para a questão 1. **Todas ES-D01–ES-D18 e SW-D01–SW-D68 mantidas literalmente**, assim como as outras seções do catálogo. Não alterar o jogo, não executar implementação nem testes do golpe.
