@@ -136,6 +136,16 @@ O sistema admite tipos diferentes de passivas, conforme a definição individual
 - **Não definido nesta rodada:** como determinar o término em passivas de efeito instantâneo, efeitos permanentes ou sem duração definida; interações com término antecipado, interrupção, suspensão, KO, respawn ou reativação antes de terminar o efeito. Esses casos devem ser submetidos a decisões específicas, sem suposições automáticas.
 - Esta é exclusivamente uma decisão de design; **não autoriza implementação** nem estabelece durações ou cooldowns concretos para qualquer passiva.
 
+## Rodada 17 — Início da recarga após término antecipado do efeito (opção A aprovada)
+
+- Se o efeito produzido por uma passiva com cooldown **terminar antes da duração originalmente prevista**, a contagem do cooldown **começa imediatamente no momento do término efetivo do efeito**.
+- **Não se aguarda a duração originalmente planejada** para iniciar a recarga: o instante de referência é o término real, mesmo quando antecipado.
+- Exemplo meramente ilustrativo: uma passiva com duração prevista de 5 segundos e cooldown de 20 segundos cujo efeito termine efetivamente após 2 segundos começa a recarregar no segundo 2 e, sem outras interferências, conclui a recarga no segundo 22.
+- A regra detalha a Rodada 16 (cooldown iniciado ao término do efeito) e preserva a Rodada 15 (recarga independente dos modificadores de cooldown das outras habilidades).
+- **Permanece indefinido** quais efeitos podem terminar antecipadamente, por quais causas e sob quais condições; esta decisão **não autoriza interromper, dissipar, cancelar ou remover** efeitos que não tenham essa possibilidade aprovada.
+- Casos de efeito instantâneo, permanente, sem duração definida, suspensão sem término efetivo, KO/respawn e outras particularidades continuam pendentes, sem inferir soluções por analogia.
+- Este registro é exclusivamente documental: **não autoriza implementar mecânicas**.
+
 ## Pontos pendentes — não aprovados
 
 - Identidade, números, magnitude, duração, gatilhos e cooldowns de cada passiva.
