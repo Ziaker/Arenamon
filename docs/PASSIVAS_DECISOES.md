@@ -164,6 +164,16 @@ O sistema admite tipos diferentes de passivas, conforme a definição individual
 - **Ainda não definidos:** quais passivas admitem suspensão, suas condições de retomada, seu comportamento em KO/respawn, o tratamento de efeitos permanentes ou sem duração e os respectivos efeitos na recarga quando aplicáveis. Não pressupor nenhuma dessas regras.
 - Esta rodada registra exclusivamente a decisão de design: **não autoriza implementação**.
 
+## Rodada 20 — Novo gatilho enquanto o efeito anterior permanece ativo (opção A aprovada)
+
+- **Enquanto o efeito de uma passiva permanecer ativo, novos gatilhos dessa mesma passiva são ignorados.** A habilidade não se reativa em resposta a esses eventos.
+- O novo gatilho **não reinicia nem prolonga a duração** do efeito em andamento e **não cria uma segunda instância** dele.
+- A duração do efeito anterior **continua seguindo as regras que já lhe são aplicáveis**, incluindo a suspensão e o comportamento individual do cronômetro aprovados na Rodada 19, quando cabíveis. A presente decisão não reinicia a contagem.
+- A passiva continua sujeita ao início do cooldown **no término efetivo do efeito**, conforme as Rodadas 16–18; ignorar um gatilho durante o efeito ativo não antecipa nem reinicia esse cooldown.
+- A regra afeta **somente a reativação da própria passiva** e não impede a ativação independente de uma outra passiva equipada no mesmo evento, preservando as Rodadas 12 e 13.
+- **Permanecem pendentes** as regras concretas de passivas cujo efeito esteja suspenso, permanente, instantâneo ou com término não definido, além de outros casos não cobertos pelo conceito de efeito anterior ativo. A Rodada 20 não presume condições de retomada nem altera as decisões individuais já aprovadas.
+- Este registro é estritamente documental e **não autoriza implementação**.
+
 ## Pontos pendentes — não aprovados
 
 - Identidade, números, magnitude, duração, gatilhos e cooldowns de cada passiva.
