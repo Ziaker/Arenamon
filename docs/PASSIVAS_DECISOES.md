@@ -61,11 +61,19 @@ O sistema admite tipos diferentes de passivas, conforme a definição individual
 - Esta regra de acúmulo não modifica o limite de duas passivas, a proibição de equipar duplicatas nem os critérios individuais de ativação e suspensão já aprovados.
 - **Escopo ainda indefinido:** valores, base de cálculo de bônus percentuais, arredondamento, limites máximos, interação com buffs/debuffs de outras fontes, precedência entre efeitos incompatíveis e fórmulas específicas permanecem sujeitos a decisões posteriores. Não presumir fórmulas ou exceções.
 
+## Rodada 8 — Interação das passivas com modificadores externos (opção A aprovada)
+
+- Fica aprovado o **acúmulo aditivo universal** dos modificadores **compatíveis** que incidam sobre o mesmo atributo ou efeito de combate, **independentemente da origem**.
+- A regra inclui os efeitos das passivas equipadas e os modificadores externos, como **buffs, debuffs, efeitos de golpes e benefícios coletados na arena**, quando incidirem sobre o mesmo atributo e forem compatíveis.
+- Modificadores positivos e negativos compatíveis entram na mesma soma; por exemplo, bônus de +10% e +15% com penalidade de -5% correspondem a um modificador líquido de **+20 pontos percentuais**, desde que usem a mesma base de cálculo.
+- Não separam-se camadas multiplicativas apenas por causa da origem do modificador; tampouco um efeito temporário substitui automaticamente o efeito de uma passiva apenas por agir sobre o mesmo atributo.
+- **Permanece indefinido:** a base numérica de referência para percentuais, a ordem de aplicação entre modificadores de unidades diferentes, os limites e arredondamentos, além das interações entre efeitos incompatíveis. A aprovação desta rodada não altera mecanismos já aprovados de duração, ativação, suspensão ou expiração dos efeitos.
+
 ## Pontos pendentes — não aprovados
 
 - Identidade, números, magnitude, duração, gatilhos e cooldowns de cada passiva.
 - Prioridades, ordem de aplicação e conflitos entre efeitos incompatíveis das duas passivas equipadas.
-- Limites de empilhamento e relação com buffs, debuffs e atributos.
+- Base de cálculo dos percentuais, unidades, limites de empilhamento, arredondamentos e interações entre modificadores incompatíveis.
 - Comportamento das passivas em KO, respawn, pausas, hitstop e demais estados; a definição é individual, mas as regras concretas ainda não foram aprovadas.
 - Interface de seleção, apresentação visual e implementação técnica.
 
