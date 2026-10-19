@@ -128,6 +128,14 @@ O sistema admite tipos diferentes de passivas, conforme a definição individual
 - Esta regra específica delimita a aplicação dos modificadores de cooldown e não altera o acúmulo aditivo universal **entre efeitos compatíveis** aprovado nas Rodadas 7–9, nem as demais decisões anteriores.
 - **Não implementar** esta decisão antes de autorização específica.
 
+## Rodada 16 — Início do cooldown das passivas (opção B aprovada; substitui a opção A enviada anteriormente)
+
+- **O cooldown das passivas automáticas com recarga começa somente após o término do efeito produzido pela ativação**, e não no instante em que a passiva é acionada.
+- Enquanto o efeito ainda estiver ativo, **a contagem do cooldown correspondente ainda não começou**. Assim, para uma passiva hipotética com efeito de 5 segundos e cooldown de 20 segundos, a recarga começa após os 5 segundos de efeito e termina 20 segundos depois, ressalvadas eventuais regras específicas já existentes de temporização.
+- Esta decisão preserva a **independência da recarga das passivas** aprovada na Rodada 15: modificadores de redução de cooldown de outras habilidades não aceleram sua recarga.
+- **Não definido nesta rodada:** como determinar o término em passivas de efeito instantâneo, efeitos permanentes ou sem duração definida; interações com término antecipado, interrupção, suspensão, KO, respawn ou reativação antes de terminar o efeito. Esses casos devem ser submetidos a decisões específicas, sem suposições automáticas.
+- Esta é exclusivamente uma decisão de design; **não autoriza implementação** nem estabelece durações ou cooldowns concretos para qualquer passiva.
+
 ## Pontos pendentes — não aprovados
 
 - Identidade, números, magnitude, duração, gatilhos e cooldowns de cada passiva.
