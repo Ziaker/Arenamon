@@ -88,6 +88,21 @@ try {
   await s.L(() => {window.__lab.ui.lastImport = null;});await s.page.locator('.char-slot').nth(0).locator('[data-import]').setInputFiles(animGlb);
   await s.page.waitForFunction(() => /já foi importado/.test(document.querySelector('[data-import-result]')?.textContent || ''));
   check('Animações', 'reimportar o mesmo conteúdo não duplica clipes', (await s.L(() => window.__lab.ui.characters[0].clips.length)) === 6);
+  // Biblioteca de personagens: trocar de modelo e voltar ao primeiro traz as animações importadas de volta, sem reimportar.
+  {
+    const idA = await s.L(() => window.__lab.ui.characters[0].source.assetId), modelB = out + 'personagem-b.glb';
+    writeFileSync(modelB, renameAnimations(readFileSync(fixtureGlb), n => n + '-b'));
+    await s.page.locator('.char-slot').nth(0).locator('input[data-model]').setInputFiles(modelB);
+    await s.page.waitForFunction(id => window.__lab.ui.characters[0]?.source.assetId && window.__lab.ui.characters[0].source.assetId !== id, idA);
+    check('Biblioteca', 'trocar para outro modelo não traz as animações do primeiro', (await s.L(() => window.__lab.ui.characters[0].clips.filter(c => c.name.includes('[animacoes-extra.glb]')).length)) === 0);
+    const sel = s.page.locator('.char-slot').nth(0).locator('[data-lib]');
+    await sel.waitFor({state: 'visible'});
+    check('Biblioteca', 'a lista mostra os dois personagens salvos', (await sel.locator('option').count()) === 3, await sel.locator('option').allTextContents());
+    await sel.selectOption(idA);await s.page.locator('.char-slot').nth(0).locator('[data-lib-load]').click();
+    await s.page.waitForFunction(id => window.__lab.ui.characters[0]?.source.assetId === id, idA);
+    await s.page.waitForFunction(() => window.__lab.ui.characters[0].clips.some(c => c.name.includes('[animacoes-extra.glb]')));
+    check('Biblioteca', 'voltar ao primeiro restaura as animações importadas sem reimportar', (await s.L(() => window.__lab.ui.characters[0].clips.filter(c => c.name.includes('[animacoes-extra.glb]')).length)) === 3);
+  }
   // Associações pelos menus da interface: tackle → golpe importado; walk → freio importado + variante.
   const pick = async (action, text) => {const sel = s.page.locator(`.char-slot >> nth=0 >> .state-row[data-action="${action}"] select[data-primary]`);const v = await sel.evaluate((el, t) => [...el.options].find(o => o.textContent.includes(t)).value, text);await sel.selectOption(v);};
   await pick('tackle', 'golpe [animacoes-extra.glb]');await pick('walk', 'freio [animacoes-extra.glb]');

@@ -221,3 +221,7 @@ Paleta global na barra superior (**⌕ Buscar**, **≠ N alterados**, **? Atalho
 - **Nível:** Básico (padrão), + Avançado ou Tudo. Busca, filtro "alterados" e etiquetas sempre mostram tudo; o contador informa quantos estão ocultos pelo nível.
 - **Valores derivados:** linhas "→" abaixo de alguns sliders mostram o efeito real (distância e velocidade do X/C, usos de stamina, tempo de recarga, ms e quadros) e se atualizam ao arrastar.
 - **Etiquetas:** o botão 🏷 de cada parâmetro aplica etiquetas ("em teste", "calibrar depois", "não mexer" ou as suas), filtráveis; **↓ Exportar marcados** baixa um JSON só com eles, importável pela aba Exportar. As etiquetas ficam salvas neste navegador.
+
+## Biblioteca de personagens (Personagens)
+
+Todo modelo carregado fica guardado neste navegador junto com as animações importadas e as associações de ações. Em cada slot, **Personagens salvos** lista todos eles: escolha um e **Carregar neste slot** para trocar de personagem e voltar depois sem reimportar nada. Para levar a outro navegador ou computador, use **Exportar Workspace Completo (ZIP)** (aba Exportar).
