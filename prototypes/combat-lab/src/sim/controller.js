@@ -168,7 +168,7 @@ function stepTackleCharge(f, cmd, fighters, dt, desiredHeading, target, move, di
  */
 export function startSlamFromFlight(f, dirs, fighters, desiredHeading, guardHeld, locked) {
   const h = f.flight?.y ?? 0;
-  f.flight = null;f.wallSplat = null;f.tech = null;f.techDodge = null;f.knockRecovery = 0;
+  f.flight = null;f.wallSplat = null;f.tech = null;f.techDodge = null;f.knockRecovery = 0;f.normalJumpLanding = false;
   startSlam(f, h, dirs, fighters, desiredHeading, guardHeld, locked);
 }
 /** Meteor slam: estados 'meteorPrep' (jogado para cima por slamPrepTime) e 'meteorDive' (despenca em cima do rival). Aqui só a preparação; a mira vem em aimSlam. */
@@ -217,19 +217,23 @@ export function updateFighter(f, cmd, fighters, dt) {
   }
   if (requested && A.buffer.window > 0) {const m = length(cmd.move) > 1 ? normalize(cmd.move) : cmd.move;f.inputBuffer = {kind: requested, move: {...m}, dodgeDirection: cmd.dodgeDirection && {...cmd.dodgeDirection}, age: 0};}
   // Comandos novos com o lutador indisponível: o motivo é a própria condição que encerra o passo abaixo.
+  const isSlamTrigger = f.flight && requested === 'tackle' && T.enableMeteorSlam && (f.flight.isNormalJump || T.enableFlightSlam) && !f.wallSplat && f.hp > 0 && !f.exhausted && f.stamina >= costOf(f, A.tackle.cost) - 1e-8 && !hasFlag(f, 'disarmed') && !hasFlag(f, 'stunned');
   if (diag && (requested || cmd.guardPressed) && (f.flight || f.knockRecovery > 0 || f.hp <= 0)) {
-    const why = f.flight ? {reason: 'airborne'} : f.knockRecovery > 0 ? {reason: 'recovery', detail: {left: f.knockRecovery}} : {reason: 'defeated'};
-    if (requested) report(f, {kind: requested, result: A.buffer.window > 0 && f.hp > 0 ? 'buffered' : 'denied', ...why});
-    if (cmd.guardPressed && T.enableDefense) report(f, {kind: 'guard', result: 'denied', ...why});
+    if (!isSlamTrigger) {
+      const why = f.flight ? {reason: 'airborne'} : f.knockRecovery > 0 ? {reason: 'recovery', detail: {left: f.knockRecovery}} : {reason: 'defeated'};
+      if (requested) report(f, {kind: requested, result: A.buffer.window > 0 && f.hp > 0 ? 'buffered' : 'denied', ...why});
+      if (cmd.guardPressed && T.enableDefense) report(f, {kind: 'guard', result: 'denied', ...why});
+    }
   }
   if (f.tackleCharge && (f.flight || f.knockRecovery > 0 || f.hp <= 0)) cancelTackleCharge(f, 'hit');   // golpe sofrido: a carga do tackle cai e a stamina gasta não volta
   if (f.charge && (f.flight || f.knockRecovery > 0 || f.hp <= 0)) cancelCharge(f, f.hp <= 0 ? 'defeated' : 'hit');   // golpe com lançamento, recuperação ou perda de apoio (M15.3, M27.1)
   if (f.flight) {
-    // Meteor slam de quem foi lançado: X no ar vira mergulho oblíquo (não vale preso na parede nem sem stamina).
-    if (!f.flight.isNormalJump && T.enableMeteorSlam && T.enableFlightSlam && cmd.tackle && !f.wallSplat && f.hp > 0 && !f.exhausted && f.stamina >= costOf(f, A.tackle.cost) - 1e-8 && !hasFlag(f, 'disarmed') && !hasFlag(f, 'stunned')) {
+    // Meteor slam de quem está no ar (salto normal com Espaço ou lançado): X no ar vira mergulho oblíquo (não vale preso na parede nem sem stamina).
+    if (isSlamTrigger) {
       const target0 = fighters.find(o => o.id === cmd.target && o.hp > 0), mv = length(cmd.move) > 1 ? normalize(cmd.move) : cmd.move;
+      const isNormal = !!f.flight?.isNormalJump;
       startSlamFromFlight(f, {move: mv, dodgeDirection: cmd.dodgeDirection}, fighters, target0 ? angleOf(sub(target0.position, f.position)) : length(mv) > 0 ? angleOf(mv) : f.facing, cmd.guard, !!target0 && !!cmd.locked);
-      if (diag) report(f, {kind: 'tackle', result: 'executed', note: 'meteor slam (lançado)'});
+      if (diag) report(f, {kind: 'tackle', result: 'executed', note: isNormal ? 'meteor slam (salto normal)' : 'meteor slam (lançado)'});
     } else {
       if (!f.flight.isNormalJump && T.enableTechRecovery && T.enableDodge && f.hp > 0 && !f.wallSplat) armTechRecovery(f, cmd, dt);
       f.action = null;f.push = null;f.guard = false;f.vaultHeight = 0;f.velocity = vec();f.locomotionVelocity = vec();f.bufferedTackle = null;f.state = f.wallSplat ? 'wallSplat' : 'airborne';return;

@@ -88,4 +88,19 @@ const vaulting = (over = {}) => {
   const stuck = nearWall({});step(stuck.g);step(stuck.g, cmd({tackle: true}));assert.ok(stuck.f.wallSplat && !stuck.f.action, 'preso na parede não mergulha');
   ok('quem foi lançado pode mergulhar com X (custo de stamina; não preso na parede)');
 }
+{
+  // Salto normal (Barra de Espaço) + Tackle (X) no ar vira Meteor Slam
+  const g = arena({blue: vec(0, -2), red: vec(0, 4)});
+  const f = g.fighters[0];
+  step(g, cmd({jump: true}));
+  assert.ok(f.flight && f.flight.isNormalJump, 'lutador está no ar do salto normal');
+  for (let i = 0; i < 4; i++) step(g, cmd());
+  assert.ok(f.flight && f.flight.y > 0.2, 'atingiu altura no salto normal');
+  const yBefore = f.flight.y, s0 = f.stamina;
+  step(g, cmd({tackle: true, move: vec(0, 1)}));
+  assert.ok(!f.flight && f.action?.slam, 'Tackle durante o salto normal vira Meteor Slam');
+  assert.ok(f.vaultHeight > 0 && Math.abs(f.vaultHeight - yBefore) < 0.3, 'assume a altura do salto');
+  assert.ok(s0 - f.stamina >= C.actions.tackle.cost - 1e-6, 'desconta a stamina do tackle');
+  ok('Tackle (X) durante o salto normal (Espaço) vira Meteor Slam com sucesso');
+}
 console.log(`\n${n} verificações do tackle (fase 2) aprovadas.`);
