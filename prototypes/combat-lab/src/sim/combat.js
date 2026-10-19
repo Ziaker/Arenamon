@@ -10,7 +10,7 @@ export function launch(f, away, horizontal, vertical) {
   f.flight = {y: 0, vy: vertical, horizontal: scale(n, horizontal)};
   f.action = null;f.push = null;f.blend = null;f.velocity = vec();f.locomotionVelocity = vec();
   f.guard = false;f.guardSuppressed = true;f.knockRecovery = 0;f.vaultHeight = 0;f.counterWindow = 0;f.landingSlide = null;f.state = 'airborne';
-  f.tech = null;f.techDodge = null;
+  f.tech = null;f.techDodge = null;f.wallSplat = null;
 }
 /** Empurrão no chão (sem voo): o lutador desliza para longe do contato e fica em recuperação curta. */
 export function pushAway(f, away, distance, duration) {
@@ -34,7 +34,7 @@ export function clashPossible(a, b, normal, relative) {
 export function clash(a, b, normal) {
   const R = C.rules, toA = stat(b, 'attack', b.attributes.attack) * R.clashFraction * stat(a, 'damageTaken', 1), toB = stat(a, 'attack', a.attributes.attack) * R.clashFraction * stat(b, 'damageTaken', 1);
   a.hp = Math.max(0, a.hp - toA);b.hp = Math.max(0, b.hp - toB);
-  const push = !!C.extras.toggles.enableClashPush;
+  const push = !!C.extras.toggles.enableClashPush;a.lastAttacker = b.id;b.lastAttacker = a.id;
   if (push) {pushAway(a, scale(normal, -1), R.clashPushDistance, R.clashPushDuration);pushAway(b, normal, R.clashPushDistance, R.clashPushDuration);}
   else {launch(a, scale(normal, -1), R.clashHorizontal, R.clashUp);launch(b, normal, R.clashHorizontal, R.clashUp);}
   return [{attacker: a.id, target: b.id, result: 'clash', damage: toB, normal: {...normal}, push}, {attacker: b.id, target: a.id, result: 'clash', damage: toA, normal: scale(normal, -1), push}];
@@ -42,7 +42,7 @@ export function clash(a, b, normal) {
 /** O tackle do atacante conecta no defensor, dado a normal e a velocidade relativa do contato? */
 export function tackleConnects(attacker, defender, normal, relative) {
   const X = C.extras.combat;
-  if (attacker.action?.kind !== 'tackle' || attacker.action.neutralized || attacker.flight || defender.flight) return false;   // neutralizado por um Counter de PL superior: não conecta mais nesta ação
+  if (attacker.action?.kind !== 'tackle' || attacker.action.neutralized || attacker.flight || (defender.flight && !defender.wallSplat)) return false;   // preso na parede (wall-splat) o rival continua acertável   // neutralizado por um Counter de PL superior: não conecta mais nesta ação
   const dir = direction(attacker.action.heading), off = sub(defender.position, attacker.position);
   const towards = length(off) > 1e-6 ? normalize(off) : normal;
   return dot(dir, towards) > X.tackleTargetAlignment && dot(dir, normal) > X.tackleNormalAlignment && dot(relative, normal) > X.tackleClosingSpeed;
@@ -106,9 +106,12 @@ export function resolveHit(attacker, defender, normal, relative) {
     const launchSpeed = (R.launchHorizontal * (X.launchAttackBase + X.launchAttackWeight * attack / X.launchAttackReference) + Math.min(X.launchClosingCap, closing * X.launchClosingMultiplier)) * stat(defender, 'knockbackTaken', 1);
     const toward = normalize(sub(defender.position, attacker.position));
     const departure = normalize(add(scale(normal, X.launchNormalWeight), scale(toward, X.launchCenterWeight)));
-    if (T.enableLaunch) {const dir = length(departure) > 1e-7 ? departure : normal;launch(defender, dir, launchSpeed, R.launchUp * stat(defender, 'knockbackTaken', 1));launchInfo = {direction: normalize(dir), horizontal: launchSpeed, vertical: R.launchUp};}
+    // Meteor slam: o rival é lançado para CIMA com groundBounceForce (ground bounce) e com pouco empurrão horizontal.
+    const slam = !!attacker.action.slam, up = slam ? R.groundBounceForce : R.launchUp * stat(defender, 'knockbackTaken', 1), hSpeed = launchSpeed * (slam ? R.slamLaunchHorizontal : 1);
+    defender.lastAttacker = attacker.id;
+    if (T.enableLaunch) {const dir = length(departure) > 1e-7 ? departure : normal;launch(defender, dir, hSpeed, up);launchInfo = {direction: normalize(dir), horizontal: hSpeed, vertical: up, ...(slam ? {bounce: true} : {})};}
     else {defender.action = null;defender.knockRecovery = R.landingRecovery;}
   }
   if (defender.hp === 0) {defender.guard = false;defender.guardSuppressed = true;}
-  return {attacker: attacker.id, target: defender.id, result: perfect ? 'perfect' : protectedFront ? 'partial' : 'impact', damage, normal: {...normal}, launch: launchInfo};
+  return {attacker: attacker.id, target: defender.id, result: perfect ? 'perfect' : protectedFront ? 'partial' : 'impact', damage, normal: {...normal}, launch: launchInfo, ...(attacker.action.slam ? {slam: true} : {})};
 }

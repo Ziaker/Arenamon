@@ -169,7 +169,8 @@ export class VfxSystem {
       if (this.seenEvents.has(e)) continue;this.seenEvents.add(e);
       const a = fighters[e.attacker], b = fighters[e.target];if (!a || !b) continue;
       const tag = `evento ${e.result} (passo ${e.tick ?? '?'}: ${e.attacker === 0 ? 'azul' : 'vermelho'} → ${e.target === 0 ? 'azul' : 'vermelho'})`;
-      if (e.result === 'impact') {this.fire('hit', {pos: b.position, n: e.normal, power: 1}, tag);this.shake('shakeHit', e.normal, 1, tag);}
+      if (e.result === 'impact') {this.fire('hit', {pos: b.position, n: e.normal, power: e.slam ? 1.5 : 1}, tag);this.shake(e.slam ? 'shakeGround' : 'shakeHit', e.normal, e.slam ? 1.4 : 1, tag);}
+      else if (e.result === 'wallSplat') {this.fire('hit', {pos: b.position, n: e.normal, power: 1.4}, tag);this.shake('shakeClash', e.normal, 1, tag);}
       else if (e.result === 'partial') {this.fire('block', {pos: b.position, n: e.normal, power: 1}, tag);this.shake('shakeGuard', e.normal, 1, tag);}
       else if (e.result === 'perfect') {this.fire('perfect', {pos: b.position, n: e.normal, power: 1, fighters}, tag);this.shake('shakePerfect', e.normal, 1, tag);}
       else if (e.result === 'clash' && e.attacker === 0) {const mid = {x: (a.position.x + b.position.x) / 2, z: (a.position.z + b.position.z) / 2};this.fire('clash', {pos: mid, n: e.normal, power: 1}, tag);this.shake('shakeClash', e.normal, 1, tag);}
