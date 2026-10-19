@@ -94,10 +94,18 @@ O sistema admite tipos diferentes de passivas, conforme a definição individual
 - **Exemplo ilustrativo:** atributo-base 87 com modificador de +15% produz **100,05**; esse valor fracionário é preservado para cálculos subsequentes até que uma operação concreta exija representação inteira.
 - **Continuam pendentes:** regras de arredondamento específicas para cada situação que exija inteiro, aspectos de representação numérica da implementação e tratamento de unidades/efeitos incompatíveis. Não alterar o funcionamento já aprovado de mecânicas particulares.
 
+## Rodada 12 — Ativação simultânea de passivas (opção A aprovada)
+
+- **As duas passivas equipadas são acionadas independentemente quando um mesmo evento de combate satisfaz os gatilhos de ambas**, desde que cada uma também cumpra seus próprios requisitos e restrições individuais de ativação.
+- O acionamento de uma passiva **não impede automaticamente** o acionamento da outra apenas por terem sido disparadas pelo mesmo evento.
+- A decisão **não estabelece ordem de resolução**, prioridade de processamento, precedência entre efeitos nem critérios para resolver conflitos ou alterações de estado causadas pelos efeitos ativados. Esses aspectos permanecem pendentes de aprovação posterior.
+- Permanecem válidas a seleção fixa de duas passivas distintas (Rodadas 1, 5 e 6), as regras individuais de funcionamento por estado (Rodadas 2 e 3) e os princípios de combinação de modificadores aprovados nas Rodadas 7–11.
+- Esta decisão **não autoriza implementação** nem define casos específicos de ativação de qualquer passiva.
+
 ## Pontos pendentes — não aprovados
 
 - Identidade, números, magnitude, duração, gatilhos e cooldowns de cada passiva.
-- Prioridades, ordem de aplicação e conflitos entre efeitos incompatíveis das duas passivas equipadas.
+- Ordem de resolução, prioridades de processamento e conflitos entre efeitos de passivas acionadas pelo mesmo evento, inclusive possíveis alterações de estado durante a resolução.
 - Unidades e conversão para efeitos de natureza diversa, regras de arredondamento específicas quando exigido inteiro, interações entre modificadores incompatíveis e tratamento de casos especiais não cobertos por restrições preexistentes.
 - Comportamento das passivas em KO, respawn, pausas, hitstop e demais estados; a definição é individual, mas as regras concretas ainda não foram aprovadas.
 - Interface de seleção, apresentação visual e implementação técnica.
