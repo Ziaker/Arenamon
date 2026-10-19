@@ -9,13 +9,17 @@ export const ACTION_TABS = {
   tackle: {
     icon: '💥', label: 'Tackle', title: 'Tackle (X)',
     sections: [
-      ['⚙ Sistemas', [T + 'enableTackle', T + 'enableChargeTackle', T + 'enableClash', T + 'enableClashPush', T + 'enableHitstop'], true],
+      ['⚙ Sistemas', [T + 'enableTackle', T + 'enableChargeTackle', T + 'enableTackleFeint', T + 'enableWallSplat', T + 'enableMeteorSlam', T + 'enableClash', T + 'enableClashPush', T + 'enableHitstop'], true],
       ['⚡ Carga e Power Level', '@Tackle carregado (PL)', true],
+      ['🎭 Finta e brake slide', ['rules.feintWindow', 'rules.feintStaminaCost', 'rules.feintSkidSpeed', 'rules.feintRecovery'], true],
+      ['🧱 Wall-splat', ['rules.wallSplatMinSpeed', 'rules.wallSplatDuration', 'rules.wallSplatDamage', 'rules.landingRecovery'], true],
+      ['☄ Meteor slam e ground bounce', ['rules.slamAngle', 'rules.slamMinHeight', 'rules.slamDamage', 'rules.slamRecovery', 'rules.slamLaunchHorizontal', 'rules.groundBounceForce'], true],
       ['🏃 Movimento e curva do tackle', '@Tackle (X)'],
       ['🧱 Recuo, empurrão e clash', ['rules.recoil', 'rules.recoilFraction', 'rules.clashFraction', 'rules.clashPushDistance', 'rules.clashPushDuration', 'rules.clashUp', 'rules.clashHorizontal', 'extras.combat.impactHitstop', 'extras.combat.clashHitstop']],
+      ['🤖 IA e o tackle', ['extras.ai.useCharge', 'extras.ai.useFeint', 'extras.ai.wallEscape', 'extras.ai.chargeMargin', 'extras.ai.chargeChance', 'extras.ai.feintChance']],
       ['⌨ Buffer de entrada', '@Buffer de entrada'],
     ],
-    anims: ['tackle', 'tackle_charge', 'tackle_pl2', 'tackle_pl3', 'brake'],
+    anims: ['tackle', 'tackle_charge', 'tackle_pl2', 'tackle_pl3', 'brake', 'wall_splat'],
   },
   dodge: {
     icon: '💨', label: 'Esquiva', title: 'Esquiva (C) e sprint',

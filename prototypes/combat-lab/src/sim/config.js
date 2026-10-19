@@ -12,6 +12,12 @@ export function defaults() {
     // Tackle carregado (enableChargeTackle): segurar X carrega (PL1 < 50%, PL2 de 50% a 99%, PL3 na carga máxima); soltar dispara.
     // Velocidade e alcance andam juntos (a duração do tackle é fixa). sprintTacklePL: X apertado correndo sai neste PL, sem carga.
     chargeTackleMaxTime: 1.2, chargeTackleDrain: .8, chargeTackleTurn: .25, chargeTackleSpeed2: 1.25, chargeTackleSpeed3: 1.6, chargeTackleDamage2: 1.3, chargeTackleDamage3: 1.7, sprintTacklePL: 2,
+    // Wall-splat: lançado que bate na parede JÁ CAINDO, rápido o bastante, fica suspenso e indefeso por wallSplatDuration (a subida continua com o ricochete).
+    // Meteor slam: X no ar (C → X no salto do vault ou X de quem foi lançado) vira mergulho oblíquo (slamAngle); o acerto lança o rival para CIMA (ground bounce).
+    // Finta (enableTackleFeint): C ou D no startup do tackle (feintWindow) ou durante a carga cancelam o ataque; o lutador derrapa (brake slide),
+    // paga só feintStaminaCost (devolve o resto do custo do tackle) e volta ao neutro em feintRecovery.
+    feintWindow: .12, feintStaminaCost: .3, feintSkidSpeed: 4, feintRecovery: .15,
+    wallSplatMinSpeed: 6, wallSplatDuration: .7, wallSplatDamage: 0, slamAngle: Math.PI / 4, slamMinHeight: .3, slamDamage: 1.2, slamRecovery: .6, slamLaunchHorizontal: .4, groundBounceForce: 9,
     landingRecovery: .19, wallRestitution: .28, perfect: .2, perfectCooldown: 2, staminaMax: 3, regenDelay: 1, regenTime: 5, guardSpeed: .6,
     exhaustedSpeed: .7, guardTurn: 3 * Math.PI, guardAcceleration: 15 * Math.PI,
     // exhaustMode 1: exausto quando sobra menos que o menor custo de X/C (0 = só em zero, Etapa A). Rebote na parede: vertical.
@@ -41,7 +47,9 @@ export function defaults() {
     // a intenção (contra zigue-zague). 0 = intenções cruas (v6). Ataques e esquivas nunca são suavizados.
     // revision: 0 = IA tática anterior (15/10/2026); 1 = revisada (valida ações antes de pedir, alcance, sprint, contra-ataque);
     // 2 = evoluída (percepção justa, previsão de contato, gestão de arena/zonas, economia, defesa contextual, modelo do oponente, sequências e dificuldade balanceada).
-    ai: {revision: 2, difficultyTier: 'normal', sprintReserve: .2, sprintMargin: 0, moveSmoothing: 10, minDirectionHold: .18, initialCooldown: .6, orbitChangePeriod: 1.7, threatAlignment: .3, threatDistance: 4.8, defensiveRetreatDistance: 2.4, defensiveRetreatStrength: .5,
+    ai: {revision: 2, difficultyTier: 'normal', sprintReserve: .2, sprintMargin: 0,
+      // Tackle carregado, finta e fuga do wall-splat (revisão 2): usar a carga (PL2/PL3) a distância segura, fintar tackle que o rival lê, mergulhar para escapar da parede.
+      useCharge: 1, useFeint: 1, wallEscape: 1, chargeMargin: .25, chargeChance: .8, feintChance: .5, moveSmoothing: 10, minDirectionHold: .18, initialCooldown: .6, orbitChangePeriod: 1.7, threatAlignment: .3, threatDistance: 4.8, defensiveRetreatDistance: 2.4, defensiveRetreatStrength: .5,
       reactiveRetreatStrength: .2, approachDistance: 3, retreatDistance: 1.35, retreatStrength: .65, strafeStrength: .72, wallPrediction: .8, wallMargin: 1,
       attackRange: 3.35, combatAttackCooldown: 1.1, lowStaminaThreshold: .95, lowStaminaDistance: 2.5, lowStaminaRetreat: .7, evadeCycle: 3, evadeCycleIndex: 2},
     // Personalidade de cada IA. Reação/erros/variação/hesitação 0 e agressividade 0,5 = IA exata do v6.
@@ -61,7 +69,7 @@ export function defaults() {
     gameModes: {enemyMode: 8, playerProfile: 0},
     toggles: {enableTackle: 1, enableDodge: 1, enableDefense: 1, enableClash: 1, enableInvulnerability: 1, enableLaunch: 1, enableVault: 1, enableWallBounce: 1,
       enableAIAttack: 1, enableAIReactive: 1, enableCameraFollow: 1, enableCameraRecenter: 1, enablePlayerAI: 0, showHitboxes: 0, showAttackVectors: 0,
-      enableHitstop: 1, enableCounterBonus: 1, enableLandingSkid: 1, enableEnemyAI: 1, enableSprint: 1, enemyManual: 0, enableAnimationCombatWindows: 0, enableClashPush: 0, enableTechRecovery: 1, enableChargeTackle: 1},
+      enableHitstop: 1, enableCounterBonus: 1, enableLandingSkid: 1, enableEnemyAI: 1, enableSprint: 1, enemyManual: 0, enableAnimationCombatWindows: 0, enableClashPush: 0, enableTechRecovery: 1, enableChargeTackle: 1, enableWallSplat: 1, enableMeteorSlam: 1, enableTackleFeint: 1},
     // skill1–4: slots de movimentos especiais (padrão A, S, 3 e 4 do teclado; A e S = Reflect e Psyshock, D3). Sem movimento equipado, a tecla não faz nada.
     bindings: {forward: 0, back: 1, left: 2, right: 3, tackle: 4, dodge: 5, defend: 6, lock: 7, pause: 8, restart: 9, debug: 10, skill1: 11, skill2: 12, skill3: 49, skill4: 50},
     // Teclas do vermelho no controle manual (índices em keyCodes): I/J/K/L movem, U tackle, O esquiva, P defesa, Y alvo.

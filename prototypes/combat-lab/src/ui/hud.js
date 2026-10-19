@@ -4,9 +4,9 @@ import {isInvulnerable, isOffensive} from '../sim/entity.js';
 import {AI_MODES} from '../sim/ai.js';
 
 export const STATE_NAMES = {neutral: 'Livre', tackleCharge: 'Carregando tackle', moving: 'Movimentação', airborne: 'Lançado', landing: 'Aterrissando', guard: 'Defesa', dodge: 'Esquiva', tackle: 'Tackle', guardStun: 'Guard stun', recoil: 'Recuo', pushed: 'Empurrão', defeated: 'Derrotado'};
-export const RESULT_NAMES = {impact: 'Impacto', clash: 'CLASH!', partial: 'Bloqueio parcial', reflected: 'Reflexão', barrierBroken: 'Barreira destruída', neutralized: 'Projétil neutralizado', stoneClash: 'Choque de pedras', counter: 'Counter de PL', tackleClash: 'Tackle × pedra (Clash)', counterStagger: 'Counter Stagger', shielded: 'Protegido pela barreira', moveFailed: 'Movimento falhou', perfect: 'Defesa perfeita', perfectDodge: 'Esquiva perfeita', invulnerable: 'Invulnerável'};
+export const RESULT_NAMES = {impact: 'Impacto', clash: 'CLASH!', partial: 'Bloqueio parcial', reflected: 'Reflexão', barrierBroken: 'Barreira destruída', neutralized: 'Projétil neutralizado', stoneClash: 'Choque de pedras', counter: 'Counter de PL', tackleClash: 'Tackle × pedra (Clash)', counterStagger: 'Counter Stagger', shielded: 'Protegido pela barreira', moveFailed: 'Movimento falhou', perfect: 'Defesa perfeita', perfectDodge: 'Esquiva perfeita', invulnerable: 'Invulnerável', wallSplat: 'Wall-splat!'};
 const $ = id => document.getElementById(id);
-const NOTICE = new Set(['impact', 'clash', 'partial', 'perfect', 'perfectDodge', 'invulnerable', 'reflected', 'barrierBroken', 'neutralized', 'stoneClash', 'counter', 'tackleClash', 'counterStagger', 'shielded']);
+const NOTICE = new Set(['impact', 'clash', 'partial', 'perfect', 'perfectDodge', 'invulnerable', 'reflected', 'barrierBroken', 'neutralized', 'stoneClash', 'counter', 'tackleClash', 'counterStagger', 'shielded', 'wallSplat']);
 
 export class Hud {
   constructor() {this.debug = false;this.lastNotice = null;this.noticeUntil = 0;this.lastInvulnNotice = 0;}
@@ -32,7 +32,7 @@ export class Hud {
       if (!repeated) {
         if (s.result === 'invulnerable' || s.result === 'perfectDodge') this.lastInvulnNotice = now;
         this.noticeUntil = now + (s.result === 'clash' ? F.clashNoticeMs : F.impactNoticeMs);notice.dataset.result = s.result;
-        notice.textContent = s.result === 'clash' ? `CLASH · ${(C.rules.clashFraction * 100).toFixed(0)}% / ${(C.rules.clashFraction * 100).toFixed(0)}%` : s.result === 'impact' ? `IMPACTO  −${s.damage} HP` : s.result === 'partial' ? `DEFESA  −${s.damage} HP` : s.result === 'perfect' ? 'DEFESA PERFEITA' : s.result === 'perfectDodge' ? 'ESQUIVA PERFEITA · CONTRA-ATAQUE' : s.result === 'invulnerable' ? 'INVULNERÁVEL' : (RESULT_NAMES[s.result] ?? s.result).toUpperCase() + (s.pl ? ` · PL${s.pl}` : '');
+        notice.textContent = s.result === 'clash' ? `CLASH · ${(C.rules.clashFraction * 100).toFixed(0)}% / ${(C.rules.clashFraction * 100).toFixed(0)}%` : s.result === 'impact' ? (s.slam ? `METEOR SLAM  −${s.damage} HP` : `IMPACTO  −${s.damage} HP`) : s.result === 'partial' ? `DEFESA  −${s.damage} HP` : s.result === 'perfect' ? 'DEFESA PERFEITA' : s.result === 'perfectDodge' ? 'ESQUIVA PERFEITA · CONTRA-ATAQUE' : s.result === 'invulnerable' ? 'INVULNERÁVEL' : (RESULT_NAMES[s.result] ?? s.result).toUpperCase() + (s.pl ? ` · PL${s.pl}` : '');
       }
     }
     notice.hidden = !paused && performance.now() > this.noticeUntil;

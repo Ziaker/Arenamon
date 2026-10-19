@@ -76,6 +76,7 @@ test('lock-on “sempre para o alvo”: corpo virado para o oponente também no 
   check('sprint ativo e corpo para o alvo', f.sprinting && Math.abs(Math.atan2(Math.sin(f.facing - want), Math.cos(f.facing - want))) < .1, `sprint=${f.sprinting} Δ=${(f.facing - want).toFixed(2)}`);
 });
 test('rebote na parede: horizontal e vertical configuráveis', () => {
+  C.extras.toggles.enableWallSplat = 0;   // regra antiga do ricochete; o wall-splat (caindo) tem teste próprio
   C.rules.wallBounceUp = 6;C.rules.wallBounceVertical = 0;const g = setup(vec(0, 0), vec(6, 0));const f = g.fighters[0];
   f.position = vec(C.test.arenaHalf - C.test.halfExtent - .05, 0);f.flight = {y: 1, vy: -2, horizontal: vec(10, 0)};
   g.step(cmd(), cmd());

@@ -128,7 +128,7 @@ export class VfxSystem {
     this.add = new ParticleBatch(4096, T.AdditiveBlending, this.atlas);this.norm = new ParticleBatch(2048, T.NormalBlending, this.atlas);
     scene.add(this.add.mesh, this.norm.mesh);
     this.log = [];this.timers = [];this.emit = new Map();this.shakes = [];this.ghosts = [];this.stats = {spawned: 0, peak: 0};
-    this.seenEvents = new WeakSet();this.landings = [];this.prevPos = [];this.prevStamina = [];this.flash = null;this.freezeUntil = 0;
+    this.seenEvents = new WeakSet();this.landings = [];this.brakes = [];this.prevPos = [];this.prevStamina = [];this.flash = null;this.freezeUntil = 0;
     this.accessibility = {noFlash: false, reduceMotion: false, highContrast: false};
     // Custo por tipo (medidor de desempenho e filtro “mais caros”): partículas criadas e disparos.
     this.stats.byType = {};this.stats.firesByType = {};this.emitting = null;
@@ -169,7 +169,8 @@ export class VfxSystem {
       if (this.seenEvents.has(e)) continue;this.seenEvents.add(e);
       const a = fighters[e.attacker], b = fighters[e.target];if (!a || !b) continue;
       const tag = `evento ${e.result} (passo ${e.tick ?? '?'}: ${e.attacker === 0 ? 'azul' : 'vermelho'} → ${e.target === 0 ? 'azul' : 'vermelho'})`;
-      if (e.result === 'impact') {this.fire('hit', {pos: b.position, n: e.normal, power: 1}, tag);this.shake('shakeHit', e.normal, 1, tag);}
+      if (e.result === 'impact') {this.fire('hit', {pos: b.position, n: e.normal, power: e.slam ? 1.5 : 1}, tag);this.shake(e.slam ? 'shakeGround' : 'shakeHit', e.normal, e.slam ? 1.4 : 1, tag);}
+      else if (e.result === 'wallSplat') {this.fire('hit', {pos: b.position, n: e.normal, power: 1.4}, tag);this.shake('shakeClash', e.normal, 1, tag);}
       else if (e.result === 'partial') {this.fire('block', {pos: b.position, n: e.normal, power: 1}, tag);this.shake('shakeGuard', e.normal, 1, tag);}
       else if (e.result === 'perfect') {this.fire('perfect', {pos: b.position, n: e.normal, power: 1, fighters}, tag);this.shake('shakePerfect', e.normal, 1, tag);}
       else if (e.result === 'clash' && e.attacker === 0) {const mid = {x: (a.position.x + b.position.x) / 2, z: (a.position.z + b.position.z) / 2};this.fire('clash', {pos: mid, n: e.normal, power: 1}, tag);this.shake('shakeClash', e.normal, 1, tag);}
@@ -183,6 +184,10 @@ export class VfxSystem {
         else this.record('ground', `colisão abaixo do mínimo (${impact.toFixed(1)} < ${cfg.minImpact} m/s): sem efeito`);
       }
       this.landings[i] = L?.n ?? 0;
+      // Finta (brake slide): poeira nos pés quando o lutador derrapa para cancelar o tackle.
+      const B = f.lastBrake;
+      if (B && this.brakes[i] !== undefined && B.n !== this.brakes[i]) this.fire('ground', {pos: {x: B.x, z: B.z}, power: Math.min(1.4, .5 + B.speed / 8)}, `finta: derrapagem (${B.speed.toFixed(1)} m/s)`);
+      this.brakes[i] = B?.n ?? 0;
       const prev = this.prevPos[i] ?? {...f.position};const dx = f.position.x - prev.x, dz = f.position.z - prev.z;this.prevPos[i] = {...f.position};
       if (dt <= 0) return;
       const alt = (f.flight?.y ?? 0) + (f.vaultHeight ?? 0);

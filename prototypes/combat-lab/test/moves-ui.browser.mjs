@@ -47,6 +47,9 @@ try {
   }
   await page.click('[data-act="tackle"]');
   check('o Tackle tem os controles da carga (toggle, tempo, dreno, PL2/PL3 e X no sprint)', await page.locator('#act-tackle [data-path="extras.toggles.enableChargeTackle"]').count() === 1 && await page.locator('#act-tackle [data-path^="rules.chargeTackle"]').count() >= 7 && await page.locator('#act-tackle [data-path="rules.sprintTacklePL"]').count() === 1);
+  check('o Tackle tem wall-splat e meteor slam (toggles e sliders)', await page.locator('#act-tackle [data-path="extras.toggles.enableWallSplat"]').count() === 1 && await page.locator('#act-tackle [data-path="extras.toggles.enableMeteorSlam"]').count() === 1 && await page.locator('#act-tackle [data-path^="rules.wallSplat"]').count() === 3 && await page.locator('#act-tackle [data-path="rules.groundBounceForce"]').count() === 1 && await page.locator('#act-tackle [data-path="rules.slamAngle"]').count() === 1);
+  check('o Tackle tem a finta (toggle e 4 sliders) e o seletor da animação de freio', await page.locator('#act-tackle [data-path="extras.toggles.enableTackleFeint"]').count() === 1 && await page.locator('#act-tackle [data-path^="rules.feint"]').count() === 4 && await L(() => [...document.querySelectorAll('#act-tackle .act-anim b')].some(b => /Freio/.test(b.textContent)) || /sem clipe|nenhum modelo/i.test(document.getElementById('act-tackle').textContent)));
+  check('o Tackle tem os controles da IA (toggles de carga, finta e fuga e 3 sliders)', await page.locator('#act-tackle [data-path^="extras.ai.use"]').count() === 2 && await page.locator('#act-tackle [data-path="extras.ai.wallEscape"]').count() === 1 && await page.locator('#act-tackle [data-path="extras.ai.chargeChance"]').count() === 1);
   await page.click('[data-act="moves"]');
   // ---------- Tackle carregado no jogo real ----------
   await tab('match');await page.selectOption('#mode', 'inactive');await page.click('#start');await page.waitForTimeout(400);

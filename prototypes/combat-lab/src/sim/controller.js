@@ -113,10 +113,25 @@ function startTackleCharge(f, p) {
   f.guard = false;f.guardSuppressed = false;f.stun = 0;f.push = null;f.blend = null;f.vaultHeight = 0;f.bufferedTackle = null;f.inputBuffer = null;f.sprinting = false;
   f.velocity = vec();f.locomotionVelocity = vec();f.state = 'tackleCharge';
 }
+/**
+ * Finta / brake slide: cancela o tackle (no startup ou na carga), devolve a parte do custo acima de feintStaminaCost, derrapa na direção do ataque
+ * (o deslizamento usa o mesmo decaimento do pouso) e fica em recuperação curta, bem menor que a de um tackle que erra.
+ */
+export function doFeint(f, from) {
+  const R = C.rules, heading = f.action ? f.action.heading : f.facing, tackleCost = costOf(f, C.actions.tackle.cost);
+  if (from === 'charge') cancelTackleCharge(f, 'feint');
+  const sp = Math.max(R.feintSkidSpeed, length(f.velocity) * .5);
+  f.action = null;f.guard = false;f.guardSuppressed = false;f.blend = null;f.vaultHeight = 0;f.bufferedTackle = null;f.inputBuffer = null;f.sprinting = false;
+  f.stamina = clamp(f.stamina + tackleCost - R.feintStaminaCost, 0, R.staminaMax);f.regenBase = f.stamina;f.regenAge = 0;f.exhausted = isDepleted(f.stamina);
+  f.landingSlide = {velocity: scale(direction(heading), sp)};f.velocity = vec();f.locomotionVelocity = vec();
+  f.knockRecovery = Math.max(f.knockRecovery, R.feintRecovery);f.recoveryFrom = null;f.brakeLeft = R.feintRecovery;f.state = 'brake';
+  f.lastBrake = {n: (f.lastBrake?.n ?? 0) + 1, x: f.position.x, z: f.position.z, speed: sp};f.feints = (f.feints ?? 0) + 1;
+}
 export function cancelTackleCharge(f, why = 'cancel') {if (!f.tackleCharge) return;f.tackleCharge = null;f.tackleChargeEnd = why;if (f.state === 'tackleCharge') f.state = 'neutral';}
 /** 'charging' (segue carregando, o passo termina aqui), 'fired' (a ação saiu) ou 'cancelled' (D ou C cancelaram; o pedido segue o fluxo normal). */
 function stepTackleCharge(f, cmd, fighters, dt, desiredHeading, target, move, diag) {
   const R = C.rules, ch = f.tackleCharge;
+  if (C.extras.toggles.enableTackleFeint && (cmd.dodge || (cmd.guardPressed && C.extras.toggles.enableDefense))) {doFeint(f, 'charge');if (diag) report(f, {kind: 'tackle', result: 'executed', note: 'finta (cancelou a carga)'});return 'feint';}
   if ((cmd.guard && C.extras.toggles.enableDefense) || cmd.dodge) {cancelTackleCharge(f, cmd.dodge ? 'dodge' : 'guard');return 'cancelled';}
   ch.t += dt;ch.level = tackleChargeLevel(ch.t);
   if (ch.t < R.chargeTackleMaxTime) f.stamina = Math.max(0, f.stamina - R.chargeTackleDrain * dt);
@@ -132,6 +147,19 @@ function stepTackleCharge(f, cmd, fighters, dt, desiredHeading, target, move, di
   applyTacklePL(f.action, level);f.action.charged = level;
   if (diag) report(f, {kind: 'tackle', result: 'executed', note: `carga solta no PL${level}`});
   return 'fired';
+}
+/**
+ * Meteor slam a partir do voo de lançamento: o lutador sai do voo e mergulha em tackle oblíquo (slamAngle) na altura em que estava.
+ * Gancho também para o futuro botão de pular: qualquer ação que deixe o lutador no ar pode chamar startSlam(f, altura, ...).
+ */
+export function startSlamFromFlight(f, dirs, fighters, desiredHeading, guardHeld, locked) {
+  const h = f.flight?.y ?? 0;
+  f.flight = null;f.wallSplat = null;f.tech = null;f.techDodge = null;f.knockRecovery = 0;
+  startSlam(f, h, dirs, fighters, desiredHeading, guardHeld, locked);
+}
+export function startSlam(f, height, dirs, fighters, desiredHeading, guardHeld, locked = false) {
+  startAction(f, 'tackle', dirs, fighters, desiredHeading, false, guardHeld, locked);
+  f.vaultHeight = Math.max(0, height);f.action.slam = true;f.action.fromSlam = true;f.action.plDamage = (f.action.plDamage ?? 1) * C.rules.slamDamage;
 }
 /** Tempo até o solo (s) de um lutador em voo balístico. */
 export function timeToLand(f) {const g = C.rules.launchGravity, fl = f.flight;return fl ? (fl.vy + Math.sqrt(Math.max(0, fl.vy * fl.vy + 2 * g * fl.y))) / g : 0;}
@@ -166,19 +194,30 @@ export function updateFighter(f, cmd, fighters, dt) {
   if (f.tackleCharge && (f.flight || f.knockRecovery > 0 || f.hp <= 0)) cancelTackleCharge(f, 'hit');   // golpe sofrido: a carga do tackle cai e a stamina gasta não volta
   if (f.charge && (f.flight || f.knockRecovery > 0 || f.hp <= 0)) cancelCharge(f, f.hp <= 0 ? 'defeated' : 'hit');   // golpe com lançamento, recuperação ou perda de apoio (M15.3, M27.1)
   if (f.flight) {
-    if (T.enableTechRecovery && T.enableDodge && f.hp > 0) armTechRecovery(f, cmd, dt);
-    f.action = null;f.push = null;f.guard = false;f.vaultHeight = 0;f.velocity = vec();f.locomotionVelocity = vec();f.bufferedTackle = null;f.state = 'airborne';return;
+    // Meteor slam de quem foi lançado: X no ar vira mergulho oblíquo (não vale preso na parede nem sem stamina).
+    if (T.enableMeteorSlam && cmd.tackle && !f.wallSplat && f.hp > 0 && !f.exhausted && f.stamina >= costOf(f, A.tackle.cost) - 1e-8 && !hasFlag(f, 'disarmed') && !hasFlag(f, 'stunned')) {
+      const target0 = fighters.find(o => o.id === cmd.target && o.hp > 0), mv = length(cmd.move) > 1 ? normalize(cmd.move) : cmd.move;
+      startSlamFromFlight(f, {move: mv, dodgeDirection: cmd.dodgeDirection}, fighters, target0 ? angleOf(sub(target0.position, f.position)) : length(mv) > 0 ? angleOf(mv) : f.facing, cmd.guard, !!target0 && !!cmd.locked);
+      if (diag) report(f, {kind: 'tackle', result: 'executed', note: 'meteor slam (lançado)'});
+    } else {
+      if (T.enableTechRecovery && T.enableDodge && f.hp > 0 && !f.wallSplat) armTechRecovery(f, cmd, dt);
+      f.action = null;f.push = null;f.guard = false;f.vaultHeight = 0;f.velocity = vec();f.locomotionVelocity = vec();f.bufferedTackle = null;f.state = f.wallSplat ? 'wallSplat' : 'airborne';return;
+    }
   }
-  if (f.knockRecovery > 0) {f.knockRecovery = Math.max(0, f.knockRecovery - dt);if (f.knockRecovery <= 0) f.recoveryFrom = null;f.vaultHeight = 0;f.velocity = vec();f.locomotionVelocity = vec();f.action = null;f.guard = false;f.bufferedTackle = null;f.state = 'landing';return;}
+  if (f.knockRecovery > 0) {f.knockRecovery = Math.max(0, f.knockRecovery - dt);if (f.knockRecovery <= 0) f.recoveryFrom = null;f.vaultHeight = 0;f.velocity = vec();f.locomotionVelocity = vec();f.action = null;f.guard = false;f.bufferedTackle = null;f.state = f.brakeLeft > 0 ? 'brake' : 'landing';f.brakeLeft = Math.max(0, (f.brakeLeft ?? 0) - dt);return;}
   if (f.hp <= 0) {f.state = 'defeated';f.velocity = vec();f.action = null;f.push = null;f.vaultHeight = 0;f.bufferedTackle = null;return;}
   const target = fighters.find(o => o.id === cmd.target && o.hp > 0);
   const move = length(cmd.move) > 1 ? normalize(cmd.move) : cmd.move;
   // Mira (ataques sem direção, prévia): o alvo, se houver. Orientação do corpo: ver faceGoal abaixo.
   const desiredHeading = target ? angleOf(sub(target.position, f.position)) : length(move) > 0 ? angleOf(move) : f.facing;
+  // Finta: C ou D no startup do tackle cancelam o ataque (só derrapa, sem esquiva); o acerto já feito ou o mergulho impedem.
+  if (T.enableTackleFeint && f.action?.kind === 'tackle' && !f.action.slam && (f.action.hits?.size ?? 0) === 0 && f.action.elapsed < R.feintWindow - 1e-9 && (cmd.dodge || cmd.guardPressed)) {
+    doFeint(f, 'startup');if (diag) report(f, {kind: 'tackle', result: 'executed', note: 'finta (cancelou o startup)'});return;
+  }
   // Tackle carregado: enquanto X segue apertado o lutador fica parado carregando; soltar (ou acabar a stamina) dispara no PL alcançado.
   if (f.tackleCharge) {
     const r = stepTackleCharge(f, cmd, fighters, dt, desiredHeading, target, move, diag);
-    if (r === 'charging') return;
+    if (r === 'charging' || r === 'feint') return;
   }
   // Recovery rápido: o pouso acabou de acontecer com C armado; esquiva na direção segurada, cobrando só o custo do recovery.
   if (f.techDodge) {
@@ -324,7 +363,8 @@ export function updateFighter(f, cmd, fighters, dt) {
         f.vaultHeight = action.vault ? A.dodge.vaultHeight * Math.sin(Math.PI * clamp((action.elapsed + dt) / A.dodge.duration, 0, 1)) : 0;
       } else {
         // X vindo de um salto (C → X no ar): desce suavemente da altura em que estava, sem teletransporte.
-        f.vaultHeight = action.liftStart > 0 ? (action.liftTime > 0 ? action.liftStart * (1 - smoothstep((action.elapsed + dt) / action.liftTime)) : 0) : 0;
+        if (action.slam) f.vaultHeight = Math.max(0, f.vaultHeight - Math.tan(R.slamAngle) * Math.max(0, dot(f.velocity, direction(action.heading))) * dt);   // mergulho: desce tan(ângulo) por metro andado
+        else f.vaultHeight = action.liftStart > 0 ? (action.liftTime > 0 ? action.liftStart * (1 - smoothstep((action.elapsed + dt) / action.liftTime)) : 0) : 0;
       }
       f.state = action.kind;
     } else {
@@ -397,6 +437,8 @@ function startAction(f, kind, dirs, fighters, desiredHeading, viaCancel, guardHe
   if (blendTime !== undefined) f.action.blendTime = blendTime;
   if (invulnerableFor !== undefined) f.action.invulnerableFor = invulnerableFor;
   if (liftStart > 0) {f.action.liftStart = liftStart;f.action.liftTime = liftTime;f.action.fromCancel = true;}
+  // Meteor slam: C → X a partir do salto do vault (acima da altura mínima) vira mergulho oblíquo com bônus de dano.
+  if (viaCancel && kind === 'tackle' && T.enableMeteorSlam && liftStart > C.rules.slamMinHeight) {f.action.slam = true;f.action.fromSlam = true;f.action.plDamage = C.rules.slamDamage;}
   if (viaCancel) f.action.fromCancel = true;
   if (countered) f.counterWindow = 0;
   // O custo de C já gasto continua gasto; X cobra o próprio custo.
@@ -414,11 +456,12 @@ export function advanceAction(f, dt) {
   // O pulo físico termina ao tocar o chão (a duração da esquiva não o corta no ar).
   const done = f.action.jump ? f.action.jump.landed : f.action.elapsed >= duration - 1e-8;
   if (done) {
-    const wasExhausted = f.exhausted && (kind === 'dodge' || kind === 'tackle');
+    const wasExhausted = f.exhausted && (kind === 'dodge' || kind === 'tackle'), slamMissed = !!f.action.slam && f.action.hits.size === 0;
     f.action = null;f.velocity = vec();f.vaultHeight = 0;f.state = f.hp <= 0 ? 'defeated' : 'neutral';
     if (wasExhausted && f.hp > 0) f.knockRecovery = Math.max(f.knockRecovery, C.extras.combat.exhaustRecovery);
     const recovery = spec.recovery;
     if (recovery > 0 && f.hp > 0) f.knockRecovery = Math.max(f.knockRecovery, recovery);
+    if (slamMissed && f.hp > 0) f.knockRecovery = Math.max(f.knockRecovery, C.rules.slamRecovery);   // errou o mergulho: fica vulnerável ao aterrissar
     // A animação segura a pose final da ação durante essa recuperação (não troca para “levantar”).
     f.recoveryFrom = f.knockRecovery > 0 && kind !== 'recoil' && kind !== 'move' ? kind : null;
   }
