@@ -120,6 +120,14 @@ O sistema admite tipos diferentes de passivas, conforme a definição individual
 - **Efeitos compatíveis continuam seguindo a ativação independente e a resolução simultânea das Rodadas 12–13**, bem como as regras de acúmulo e cálculo das Rodadas 7–11.
 - **Permanecem pendentes:** o catálogo das combinações incompatíveis, o resultado exato de cada conflito e o tratamento de eventuais interações novas ou não previstas. Nenhuma mecânica foi autorizada para implementação.
 
+## Rodada 15 — Independência da recarga das passivas (opção B aprovada)
+
+- **Passivas com cooldown possuem recarga independente da redução de cooldown aplicada às outras habilidades do personagem.**
+- **Modificadores de redução de cooldown usados em outras habilidades não reduzem nem aceleram a recarga dessas passivas.**
+- Os tempos de recarga e as condições de acionamento de cada passiva continuam sujeitos à sua definição individual; esta rodada não estabelece valores nem regras adicionais de início, pausa ou reinício de cooldown.
+- Esta regra específica delimita a aplicação dos modificadores de cooldown e não altera o acúmulo aditivo universal **entre efeitos compatíveis** aprovado nas Rodadas 7–9, nem as demais decisões anteriores.
+- **Não implementar** esta decisão antes de autorização específica.
+
 ## Pontos pendentes — não aprovados
 
 - Identidade, números, magnitude, duração, gatilhos e cooldowns de cada passiva.
