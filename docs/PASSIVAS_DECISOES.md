@@ -69,11 +69,20 @@ O sistema admite tipos diferentes de passivas, conforme a definição individual
 - Não separam-se camadas multiplicativas apenas por causa da origem do modificador; tampouco um efeito temporário substitui automaticamente o efeito de uma passiva apenas por agir sobre o mesmo atributo.
 - **Permanece indefinido:** a base numérica de referência para percentuais, a ordem de aplicação entre modificadores de unidades diferentes, os limites e arredondamentos, além das interações entre efeitos incompatíveis. A aprovação desta rodada não altera mecanismos já aprovados de duração, ativação, suspensão ou expiração dos efeitos.
 
+## Rodada 9 — Base de cálculo dos modificadores percentuais (opção A aprovada)
+
+- **Todos os modificadores percentuais compatíveis de um atributo usam como referência o atributo-base original do personagem, antes da aplicação dos modificadores.**
+- Os bônus e as penalidades percentuais compatíveis são **somados entre si**, conforme as Rodadas 7 e 8, e sua soma é aplicada **uma única vez sobre o atributo-base**.
+- Os modificadores **absolutos** (em unidades do atributo, não em %) são **somados separadamente** e não são ampliados pelos percentuais.
+- Para modificadores compatíveis expressos nestas duas categorias, a relação aprovada é: **valor resultante = atributo-base + (atributo-base × soma algébrica dos percentuais) + soma algébrica dos modificadores absolutos**; os percentuais são convertidos para fração decimal nessa expressão.
+- **Exemplo ilustrativo:** velocidade-base de 100 unidades, bônus percentuais combinados de +20% e bônus absoluto de +30 unidades resultam em **150 unidades**, e não em 156.
+- **Não definido nesta rodada:** valores ou definição específica de cada atributo-base no sistema, limites mínimos/máximos, arredondamentos e resolução de efeitos incompatíveis ou de natureza diversa. Não presumir novas regras para esses casos.
+
 ## Pontos pendentes — não aprovados
 
 - Identidade, números, magnitude, duração, gatilhos e cooldowns de cada passiva.
 - Prioridades, ordem de aplicação e conflitos entre efeitos incompatíveis das duas passivas equipadas.
-- Base de cálculo dos percentuais, unidades, limites de empilhamento, arredondamentos e interações entre modificadores incompatíveis.
+- Unidades e conversão para efeitos de natureza diversa, limites mínimos/máximos de atributos, arredondamentos e interações entre modificadores incompatíveis.
 - Comportamento das passivas em KO, respawn, pausas, hitstop e demais estados; a definição é individual, mas as regras concretas ainda não foram aprovadas.
 - Interface de seleção, apresentação visual e implementação técnica.
 
