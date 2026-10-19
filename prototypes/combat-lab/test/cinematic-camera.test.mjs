@@ -12,16 +12,10 @@ import {
 
 let passed = 0;
 let failed = 0;
+const testQueue = [];
 
 function test(name, fn) {
-  try {
-    fn();
-    passed++;
-    console.log(`  ✓ ${name}`);
-  } catch (err) {
-    failed++;
-    console.error(`  ✗ ${name}:`, err.message);
-  }
+  testQueue.push({name, fn});
 }
 
 // Mock DOM container para testes sem navegador completo
@@ -456,10 +450,88 @@ test('previewEffect não vaza config.enabled para true se estava false', async (
   assert.equal(cine.previewActive, 'dutchDodge');
 
   // Aguardar fim do timer da prévia
-  await new Promise(r => setTimeout(r, 400));
+  await new Promise(r => setTimeout(r, 450));
   assert.equal(cine.config.enabled, false, 'enabled deve ser restaurado para false com 100% de integridade');
   assert.equal(cine.previewActive, null);
 });
+
+test('C08: getImpactFramePhase retorna white e invert nas durações exatas para silhueta real', () => {
+  const mockDom = createMockDom();
+  const cine = new CinematicCamera(null, {overlayContainer: mockDom});
+  cine.config.enabled = true;
+
+  cine.triggerImpactFrame({whiteDur: 0.04, invertDur: 0.04, strength: 1.0});
+  assert.equal(cine.getImpactFramePhase(), 'white', 'Primeira fase deve ser silhueta branca');
+
+  cine.clock += 0.05;
+  assert.equal(cine.getImpactFramePhase(), 'invert', 'Segunda fase deve ser silhueta invertida');
+
+  cine.clock += 0.05;
+  assert.equal(cine.getImpactFramePhase(), null, 'Após expiração deve retornar null');
+});
+
+test('P0: K.O. avança mola e órbita mesmo quando dt = 0 na fase de resultado', () => {
+  const mockDom = createMockDom();
+  const cine = new CinematicCamera(null, {overlayContainer: mockDom});
+  cine.config.enabled = true;
+
+  const mockFighters = [
+    {id: 0, state: 'idle', position: {x: 0, y: 0, z: 0}, hp: 100},
+    {id: 1, state: 'defeated', position: {x: 2, y: 0, z: 0}, hp: 0}
+  ];
+  const basePose = {position: {x: 0, y: 3, z: 8}, height: 3, lookAt: {x: 0, y: 1, z: 0}, lookHeight: 1, roll: 0, fov: 48, yaw: 0, pitch: 0, dist: 8};
+
+  // Disparo do K.O.
+  cine.apply(basePose, mockFighters, [], 0.016, {paused: false, realDt: 0.016});
+  assert.ok(cine.koState !== null);
+  const posZ0 = cine.spring.pos.z;
+
+  // Próximo quadro: simulando game.phase === 'result' onde dt = 0 e paused = true, mas realDt = 0.016
+  for (let i = 0; i < 10; i++) {
+    cine.apply(basePose, mockFighters, [], 0, {paused: true, realDt: 0.016});
+  }
+
+  // A mola e a órbita devem ter se movido mesmo com dt = 0
+  assert.notEqual(cine.spring.pos.z, posZ0, 'A câmera deve continuar orbitando e a mola deve avançar no K.O. mesmo com dt=0');
+});
+
+test('P1: FOV da carga do Tackle atinge 100% de compressão apenas no chargeTackleMaxTime (1.2s)', () => {
+  const mockDom = createMockDom();
+  const cine = new CinematicCamera(null, {overlayContainer: mockDom});
+  cine.config.enabled = true;
+
+  // Teste com t = 0.6s (metade de 1.2s)
+  const mockFightersHalf = [
+    {id: 0, state: 'tackleCharge', position: {x: 0, y: 0, z: 0}, hp: 100, tackleCharge: {t: 0.6, level: 2}},
+    {id: 1, state: 'idle', position: {x: 2, y: 0, z: 0}, hp: 100}
+  ];
+  const basePose = {position: {x: 0, y: 3, z: 8}, height: 3, lookAt: {x: 0, y: 1, z: 0}, lookHeight: 1, roll: 0, fov: 48, yaw: 0, pitch: 0, dist: 8};
+
+  cine.apply(basePose, mockFightersHalf, [], 0.016);
+  // smoothstep(0.5) = 0.5 * 0.5 * (3 - 2 * 0.5) = 0.5
+  const halfFovTarget = -cine.config.chargeFov.maxCompression * 0.5;
+  assert.ok(Math.abs(cine.target.fovOffset - halfFovTarget) < 0.2, 'Em 0.6s o FOV deve estar em aproximadamente 50% de compressão');
+
+  // Teste com t = 1.2s (carga máxima total)
+  const mockFightersFull = [
+    {id: 0, state: 'tackleCharge', position: {x: 0, y: 0, z: 0}, hp: 100, tackleCharge: {t: 1.2, level: 3}},
+    {id: 1, state: 'idle', position: {x: 2, y: 0, z: 0}, hp: 100}
+  ];
+  cine.apply(basePose, mockFightersFull, [], 0.016);
+  assert.equal(cine.target.fovOffset, -cine.config.chargeFov.maxCompression, 'Em 1.2s o FOV deve atingir compressão máxima exata');
+});
+
+// Execução assíncrona sequencial de todos os testes
+for (const t of testQueue) {
+  try {
+    await t.fn();
+    passed++;
+    console.log(`  ✓ ${t.name}`);
+  } catch (err) {
+    failed++;
+    console.error(`  ✗ ${t.name}:`, err.message);
+  }
+}
 
 console.log('\n==========================================');
 console.log(`TESTES CONCLUÍDOS: ${passed} passaram, ${failed} falharam.`);

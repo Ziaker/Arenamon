@@ -248,13 +248,28 @@ export class CinematicCamera {
     };
   }
 
-  triggerSpeedlines({duration = null, screenPos = null} = {}) {
+  getImpactFramePhase() {
+    if (!this.config.enabled || !this.config.impactFrames.enabled || this.config.noFlash || !this.impactState) {
+      return null;
+    }
+    const elapsed = this.clock - this.impactState.startedAt;
+    if (elapsed < this.impactState.whiteDuration) {
+      return 'white';
+    }
+    if (elapsed < this.impactState.whiteDuration + this.impactState.invertDuration) {
+      return 'invert';
+    }
+    return null;
+  }
+
+  triggerSpeedlines({duration = null, screenPos = null, worldPos = null} = {}) {
     if (!this.config.enabled || !this.config.speedlines.enabled) return;
     this.speedlineState = {
       startedAt: this.clock,
       duration: duration ?? this.config.speedlines.duration,
       x: screenPos?.x ?? 0.5,
       y: screenPos?.y ?? 0.5,
+      worldPos: worldPos ? {...worldPos} : null,
     };
   }
 
@@ -471,6 +486,8 @@ export class CinematicCamera {
         break;
     }
 
+    this.renderOverlays();
+
     this.previewTimer = setTimeout(() => {
       this.clearAll();
       this.config.enabled = prevEnabled;
@@ -511,15 +528,19 @@ export class CinematicCamera {
 
         // Projeção em tela do ponto 3D de colisão (espaço normalizado 0..1)
         let screenPos = {x: 0.5, y: 0.5};
-        if (camera && hasBoth) {
+        let worldPos = null;
+        if (hasBoth) {
           const midX = (atk.position.x + tgt.position.x) * 0.5;
           const midY = ((atk.position.y ?? 0.9) + (tgt.position.y ?? 0.9)) * 0.5;
           const midZ = (atk.position.z + tgt.position.z) * 0.5;
-          const v = new T.Vector3(midX, midY, midZ).project(camera);
-          screenPos = {
-            x: clamp(v.x * 0.5 + 0.5, 0.05, 0.95),
-            y: clamp(-v.y * 0.5 + 0.5, 0.05, 0.95)
-          };
+          worldPos = {x: midX, y: midY, z: midZ};
+          if (camera) {
+            const v = new T.Vector3(midX, midY, midZ).project(camera);
+            screenPos = {
+              x: clamp(v.x * 0.5 + 0.5, 0.05, 0.95),
+              y: clamp(-v.y * 0.5 + 0.5, 0.05, 0.95)
+            };
+          }
         }
 
         if (ev.result === 'perfect') {
@@ -527,14 +548,14 @@ export class CinematicCamera {
           if (hasBoth) this.triggerSnap(atk.position, tgt.position, ev.normal || sub(tgt.position, atk.position), {isClash: false});
           this.triggerLetterbox({duration: 0.35});
           this.triggerImpactFrame({whiteDur: 0.035, invertDur: 0.035, strength: 0.85});
-          this.triggerSpeedlines({duration: 0.22, screenPos});
+          this.triggerSpeedlines({duration: 0.22, screenPos, worldPos});
           this.triggerVisualSlowmo({scale: 0.35, duration: 0.18});
         } else if (ev.result === 'clash' || ev.result === 'tackleClash' || ev.result === 'stoneClash') {
           // Clash entre tackles
           if (hasBoth) this.triggerSnap(atk.position, tgt.position, ev.normal || sub(tgt.position, atk.position), {isClash: true});
           this.triggerLetterbox({duration: 0.42});
           this.triggerImpactFrame({whiteDur: 0.04, invertDur: 0.04, strength: 0.95});
-          this.triggerSpeedlines({duration: 0.25, screenPos});
+          this.triggerSpeedlines({duration: 0.25, screenPos, worldPos});
           this.triggerVisualSlowmo({scale: 0.25, duration: 0.22});
         } else if (ev.result === 'impact') {
           // Impacto pesado / Meteor Slam
@@ -543,7 +564,7 @@ export class CinematicCamera {
             this.triggerFovPunch(this.config.releaseFov.punchFov * 0.8, 0.2);
             this.triggerLetterbox({duration: 0.3});
             this.triggerImpactFrame({whiteDur: 0.03, invertDur: 0.03, strength: 0.7});
-            this.triggerSpeedlines({duration: 0.18, screenPos});
+            this.triggerSpeedlines({duration: 0.18, screenPos, worldPos});
             if (ev.slam) {
               this.triggerMeteorContraplongee({impactDrop: this.config.meteorSlam.impactDrop, duration: 0.35});
             }
@@ -551,7 +572,7 @@ export class CinematicCamera {
         } else if (ev.result === 'chargeRelease') {
           // Disparo de golpe carregado
           this.triggerFovPunch();
-          this.triggerSpeedlines({duration: 0.2, screenPos});
+          this.triggerSpeedlines({duration: 0.2, screenPos, worldPos});
         }
       }
     }
@@ -610,8 +631,8 @@ export class CinematicCamera {
         const maxTicks = p1.charge.params?.maxTicks ?? 180;
         progress = clamp((p1.charge.ticks ?? 0) / Math.max(1, maxTicks), 0, 1);
       } else if (p1.tackleCharge) {
-        const maxDur = p1.tackleCharge.duration ?? 1.0;
-        progress = clamp((p1.tackleCharge.elapsed ?? p1.tackleCharge.t ?? 0) / Math.max(0.1, maxDur), 0, 1);
+        const maxTime = C.rules?.chargeTackleMaxTime ?? 1.2;
+        progress = clamp((p1.tackleCharge.t ?? p1.tackleCharge.elapsed ?? 0) / Math.max(1e-6, maxTime), 0, 1);
       }
       const ease = progress * progress * (3 - 2 * progress); // smoothstep
       targetFovOffset -= this.config.chargeFov.maxCompression * ease * gi;
@@ -681,6 +702,9 @@ export class CinematicCamera {
       targetRoll = this.target.roll;
       targetPos.y += this.target.posOffset.y;
       targetFovOffset += this.target.fovOffset;
+    } else {
+      this.target.roll = targetRoll;
+      this.target.fovOffset = targetFovOffset;
     }
 
     // 4. Integração da Mola de Inércia (C12 — Inércia e Amortecimento)
@@ -696,7 +720,8 @@ export class CinematicCamera {
     } else {
       const kStiff = this.config.springInertia.stiffness;
       const kDamp = this.config.springInertia.damping;
-      const stepDt = Math.min(dt, 0.05);
+      // Garante que mesmo quando dt=0 (pausado/result), a mola continue fluida via effectiveDt
+      const stepDt = Math.min(effectiveDt, 0.05);
 
       // Mola de posição
       const posDiff = sub3(targetPos, this.spring.pos);
@@ -755,7 +780,7 @@ export class CinematicCamera {
   renderOverlays(camera = null) {
     if (typeof document === 'undefined') return;
 
-    // A. Letterbox (suporta proporção precisa de Cinema 2.39:1 baseada na geometria da tela)
+    // A. Letterbox (suporta proporção precisa de Cinema 2.39:1 baseada na geometria da tela sem clamps artificiais)
     if (this.letterboxEl) {
       if (this.config.enabled && this.letterboxState) {
         const elapsed = this.clock - this.letterboxState.startedAt;
@@ -772,9 +797,9 @@ export class CinematicCamera {
             const currentAspect = w / Math.max(1, h);
             if (currentAspect < 2.39) {
               const targetHeight = w / 2.39;
-              pct = Math.max(4, Math.min(25, ((h - targetHeight) / (2 * h)) * 100));
+              pct = ((h - targetHeight) / (2 * h)) * 100;
             } else {
-              pct = 5;
+              pct = 0;
             }
           }
           this.letterboxEl.style.opacity = '1';
@@ -797,29 +822,22 @@ export class CinematicCamera {
         if (elapsed >= totalDur) {
           this.impactState = null;
           this.impactFrameEl.style.opacity = '0';
-          if (this.canvas) this.canvas.style.filter = '';
         } else if (elapsed < this.impactState.whiteDuration) {
-          // Fase 1: Silhueta branca
-          this.impactFrameEl.style.opacity = String(this.impactState.strength);
+          // Fase 1: Silhueta monocromática branca
+          this.impactFrameEl.style.opacity = String(this.impactState.strength * 0.4);
           this.impactFrameEl.style.background = '#ffffff';
-          if (this.canvas) this.canvas.style.filter = 'contrast(2.5) brightness(1.8)';
         } else if (elapsed < this.impactState.whiteDuration + this.impactState.invertDuration) {
-          // Fase 2: Inversão negativa
-          this.impactFrameEl.style.opacity = String(this.impactState.strength * 0.7);
+          // Fase 2: Silhueta monocromática preta
+          this.impactFrameEl.style.opacity = String(this.impactState.strength * 0.35);
           this.impactFrameEl.style.background = '#000000';
-          if (this.canvas) this.canvas.style.filter = 'invert(1) hue-rotate(180deg) contrast(2)';
         } else {
           // Fase 3: Decaimento
           const decay = 1 - (elapsed - this.impactState.whiteDuration - this.impactState.invertDuration) / 0.08;
-          this.impactFrameEl.style.opacity = String(Math.max(0, this.impactState.strength * decay * 0.4));
+          this.impactFrameEl.style.opacity = String(Math.max(0, this.impactState.strength * decay * 0.2));
           this.impactFrameEl.style.background = '#ffffff';
-          if (this.canvas) this.canvas.style.filter = '';
         }
       } else {
         this.impactFrameEl.style.opacity = '0';
-        if (this.canvas && !this.canvas.style.filter?.includes('blur')) {
-          this.canvas.style.filter = '';
-        }
       }
     }
 
@@ -833,6 +851,14 @@ export class CinematicCamera {
       this.speedlinesCtx.clearRect(0, 0, w, h);
 
       if (this.config.enabled && this.speedlineState) {
+        // Se houver coordenada 3D mundial e câmera Three.js com matriz atualizada, projeta na tela
+        if (camera && this.speedlineState.worldPos) {
+          const wp = this.speedlineState.worldPos;
+          const v = new T.Vector3(wp.x, wp.y, wp.z).project(camera);
+          this.speedlineState.x = clamp(v.x * 0.5 + 0.5, 0.05, 0.95);
+          this.speedlineState.y = clamp(-v.y * 0.5 + 0.5, 0.05, 0.95);
+        }
+
         const elapsed = this.clock - this.speedlineState.startedAt;
         if (elapsed >= this.speedlineState.duration) {
           this.speedlineState = null;

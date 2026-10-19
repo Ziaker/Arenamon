@@ -62,6 +62,8 @@ export class View {
     this.worldView = new WorldView(this.scene);
     this.vfx.view = this;
     this.vfxRuntime.view = this;
+    this.silhouetteWhiteMat = new T.MeshBasicMaterial({color: 0xffffff});
+    this.silhouetteBlackMat = new T.MeshBasicMaterial({color: 0x050505});
     this.cinematic = new CinematicCamera(this, {canvas, overlayContainer: canvas?.parentElement});
     let dragging = false, previous = 0;
     canvas.addEventListener('contextmenu', e => e.preventDefault());
@@ -226,6 +228,8 @@ export class View {
   }
   draw(fighters, events = [], dt = 1 / 60, {paused = false, tick = 0, sources = [], realDt = dt, world = null} = {}) {
     const X = C.extras, V = X.visual, S = C.display.shadow, G = C.display.grounding, now = () => performance.now(), tm = this.timings = {anim: 0, vfx: 0, render: 0, overlays: 0};let t0;
+    const visualScale = this.cinematic?.getVisualTimeScale?.() ?? 1.0;
+    const isKoSeq = !!this.cinematic?.koState;
     for (const event of events) {
       if (this.seenEvents.has(event)) continue;this.seenEvents.add(event);
       const attacker = fighters[event.attacker], target = fighters[event.target];if (!attacker || !target) continue;
@@ -259,8 +263,8 @@ export class View {
       arrow.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), new T.Vector3(Math.sin(f.visualFacing), 0, Math.cos(f.visualFacing)));arrow.scale.set(V.arrowRadius / .16, V.arrowLength / .42, V.arrowRadius / .16);
       arrow.material.color.setHex(f.guard ? rgb('arrowGuard') : rgb('arrow'));
       // A prévia de animação continua tocando com a partida pausada; bullet time visual desacelera apresentação.
-      const visualScale = this.cinematic?.getVisualTimeScale?.() ?? 1.0;
-      t0 = now();character?.update(f, paused ? (character.preview ? realDt : 0) : (dt * visualScale), alt, events, {tick, source: sources[f.id]});tm.anim += now() - t0;
+      const animDt = (paused && !isKoSeq) ? (character?.preview ? realDt : 0) : ((isKoSeq ? (realDt ?? 0.016) : dt) * visualScale);
+      t0 = now();character?.update(f, animDt, alt, events, {tick, source: sources[f.id]});tm.anim += now() - t0;
     }
     t0 = now();this.drawOverlays(fighters, paused ? 0 : dt);this.worldView.update(world, {fighters, events, dt: paused ? 0 : dt, skipBeams: this.useNewVfx, camera: this.camera});tm.overlays = now() - t0;
     if (!this.rig.initialized) this.rig.reset(fighters[0]);
@@ -277,8 +281,8 @@ export class View {
       this.camera.updateProjectionMatrix();
     }
     this.camera.updateMatrixWorld();
-    // Efeitos depois da câmera (o flash de tela projeta o ponto do impacto). Pausado: dt = 0, os efeitos congelam.
-    const vfxDt = paused ? 0 : Math.min(dt, 0.05);
+    // Efeitos depois da câmera (o flash de tela projeta o ponto do impacto). Pausado: dt = 0, os efeitos congelam (exceto K.O. cinematográfico).
+    const vfxDt = (paused && !isKoSeq) ? 0 : Math.min((isKoSeq ? (realDt ?? 0.016) : dt) * visualScale, 0.05);
     let rt = null;
     if (this.useNewVfx) {
       // Novo runtime declarativo (renderizador ativo). O legado fica inativo.
@@ -312,11 +316,51 @@ export class View {
       this.camera.lookAt(cinePose.lookAt.x + sh.x * .5, cinePose.lookHeight + sh.y * .5, cinePose.lookAt.z + sh.z * .5);
       this.camera.rotateZ(sh.roll + (cinePose.roll || 0));
     }
+    // Atualiza overlays de apresentação (speedlines projetadas com a matriz final da câmera)
+    this.cinematic?.renderOverlays?.(this.camera);
     const w = this.canvas.clientWidth, h = this.canvas.clientHeight;
     if (w > 0 && h > 0) {
       this.renderer.setSize(w, h, false);this.camera.aspect = w / h;this.camera.updateProjectionMatrix();
+
+      // C08 — Impact Frame com Silhueta Real em WebGL (personagens brancos sobre fundo preto puro)
+      const impactPhase = this.cinematic?.getImpactFramePhase?.();
+      let origBg = null;
+      const hiddenElements = [];
+      const swappedMeshes = [];
+
+      if (impactPhase === 'white' || impactPhase === 'invert') {
+        origBg = this.scene.background;
+        this.scene.background = impactPhase === 'white' ? new T.Color(0x050505) : new T.Color(0xffffff);
+        const silMat = impactPhase === 'white' ? this.silhouetteWhiteMat : this.silhouetteBlackMat;
+
+        const toHide = [this.floor, this.circleFloor, this.circleRing, this.grid, ...this.walls, this.worldView?.group, ...this.shadows];
+        for (const el of toHide) {
+          if (el && el.visible) {
+            el.visible = false;
+            hiddenElements.push(el);
+          }
+        }
+
+        const targets = [...this.meshes, ...this.characters.map(c => c?.root)].filter(Boolean);
+        for (const root of targets) {
+          root.traverse(child => {
+            if (child.isMesh && child.visible) {
+              swappedMeshes.push({mesh: child, origMat: child.material});
+              child.material = silMat;
+            }
+          });
+        }
+      }
+
       // Tempo de CPU do envio ao WebGL (não é tempo de GPU); o tempo de GPU, quando há suporte, vem da consulta de tempo.
       this.gpuTimer?.begin();t0 = now();this.renderer.render(this.scene, this.camera);tm.render = now() - t0;this.gpuTimer?.end();
+
+      // Restaura cena ao normal imediatamente após a renderização do quadro
+      if (impactPhase === 'white' || impactPhase === 'invert') {
+        this.scene.background = origBg;
+        for (const el of hiddenElements) el.visible = true;
+        for (const {mesh, origMat} of swappedMeshes) mesh.material = origMat;
+      }
     }
   }
   // ---------- Sobreposições técnicas (recriadas a cada quadro em um grupo próprio; materiais/geometrias descartados) ----------
