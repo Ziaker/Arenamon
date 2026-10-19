@@ -39,11 +39,17 @@ O sistema admite tipos diferentes de passivas, conforme a definição individual
 - Não é necessário desbloquear passivas genéricas por progressão, conquistas ou desafios.
 - Esta decisão **não define** quais serão as passivas genéricas nem suas características ou quantidades.
 
+## Rodada 5 — Duplicatas no equipamento (opção A aprovada)
+
+- **Não é permitido equipar duas cópias da mesma habilidade passiva.**
+- Os dois espaços de equipamento devem conter **habilidades passivas diferentes**.
+- A proibição aplica-se tanto às passivas genéricas quanto às passivas únicas do personagem, sem exceções aprovadas.
+- Permanecem válidas as combinações da Rodada 1 e o limite de duas passivas equipadas no total.
+
 ## Pontos pendentes — não aprovados
 
 - Identidade, números, magnitude, duração, gatilhos e cooldowns de cada passiva.
 - Regras para substituição da seleção durante uma partida ou entre partidas.
-- Possibilidade de equipar duplicatas, quando aplicável.
 - Interações e prioridades entre duas passivas equipadas.
 - Limites de empilhamento e relação com buffs, debuffs e atributos.
 - Comportamento das passivas em KO, respawn, pausas, hitstop e demais estados; a definição é individual, mas as regras concretas ainda não foram aprovadas.
