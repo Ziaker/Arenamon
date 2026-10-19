@@ -509,7 +509,7 @@ Estas divergências **não significam que o Sand Wave esteja implementado**: ind
 14. **Resistência da rocha:** **5 HP**.
 15. **Duração da rocha:** **infinita/permanente** — sem cronômetro que a faça desaparecer naturalmente. Critérios de destruição e outras regras de interação ainda precisam ser definidos.
 16. **Dimensões iniciais:** a rocha é um **bloco de 3 × 3 m**, com **slider obrigatório** para ajuste de tamanho. Ainda não foram aprovados mínimo, máximo e passo do slider nem sua relação com a altura física e com os dois eixos da base.
-17. **Restrição de escalada:** a rocha **não pode ser escalada/subida** como obstáculo normal. O diretor apresentou **alternativas ainda não escolhidas** para interação com saltos/voo e impossibilidade de travessia: **impedir o pulo**, **permitir passar por cima** ou **forçar deslizamento até a direção livre mais próxima**. **Nenhuma dessas alternativas foi aprovada especificamente**.
+17. **Restrição de escalada e colisão — decisão posterior aprovada (opção B):** a rocha **não pode ser escalada/subida** por locomoção terrestre e **bloqueia a passagem no chão**. **A passagem aérea por cima é permitida somente quando o personagem tiver altura suficiente para superar fisicamente o obstáculo**, sem atravessar o volume sólido da rocha. A opção B substitui, para esta questão, o estado anterior de alternativas ainda não escolhidas. **Não** foi aprovado um valor numérico de altura, a proibição geral de saltar nem o deslizamento automático para a direção livre mais próxima.
 18. **Persistência espacial:** a rocha criada pela detonação **permanece no ambiente** (salvo futuras regras de destruição/remoção por interação, ainda não definidas); não substituir por VFX passageiro nem cancelar ao fim do cast.
 
 #### Tabela de decisões iniciais explicitadas pelo diretor
@@ -533,7 +533,7 @@ Estas divergências **não significam que o Sand Wave esteja implementado**: ind
 | ES-D15 | Persistência | **Duração infinita/permanente**, sem expiração por tempo |
 | ES-D16 | Geometria/ajuste | **Bloco 3 × 3 m com slider de tamanho**; configuração exata do slider pendente |
 | ES-D17 | Restrição | **Rocha não pode ser escalada/subida normalmente** |
-| ES-D18 | Tratamento do pulo | **Alternativas mencionadas, não escolhidas**: bloquear pulo, permitir passagem por cima ou forçar deslizamento para direção livre mais próxima |
+| ES-D18 | Tratamento do pulo — opção B aprovada posteriormente | **A rocha bloqueia a passagem terrestre, mas permite passagem aérea somente por cima, quando houver altura suficiente para ultrapassá-la sem atravessar sua colisão sólida**. Mantida a proibição de escalada normal (ES-D17); sem altura numérica adicional aprovada |
 
 ### 7.2 Pontos ainda não decididos — não inventar
 
@@ -542,7 +542,7 @@ Estas divergências **não significam que o Sand Wave esteja implementado**: ind
 - **ES-P03 — dano e lançamento:** se os **20 DMG** são fixos ou sofrem modificadores, regras de defesa/invulnerabilidade, número de alvos, direção e força do lançamento para trás, bem como eventuais efeitos do bloqueio por paredes sobre a detonação.
 - **ES-P04 — interação com PL/Reflect:** descrever objetivamente o que significa “ignora PL” em disputas entre golpes e se “ignora Reflect” atinge apenas a fase de deslocamento subterrâneo ou toda a execução, sem presumir que isso ignore guarda, invulnerabilidade ou colisão de personagens.
 - **ES-P05 — rock size sliders:** parâmetros de mínimo/máximo/passo e se **3 × 3 m** se refere à base, como editar os eixos, altura física e regras de colocação sobre lutadores/outras rochas/limites de arena.
-- **ES-P06 — pulo e colisão:** **escolher uma** das três alternativas de comportamento citadas pelo diretor: salto impedido, passagem por cima ou deslizamento para a direção livre mais próxima. Definir relações com saltos já iniciados, efeitos aéreos, paredes e o lado permitido, quando necessário.
+- **ES-P06 — passagem aérea RESOLVIDA em regra principal (opção B); detalhes técnicos pendentes:** **bloquear passagem terrestre e permitir atravessar por cima da rocha somente se a trajetória aérea tiver altura física suficiente**, sem atravessar o volume sólido e sem permitir escalada terrestre. Não definir altura mínima numérica arbitrária: verificar colisão contra as dimensões físicas efetivas da rocha. Restam integração técnica de saltos já iniciados, movimento aéreo e contatos de borda com as regras existentes. **Não** converter essa escolha em proibição de pulo ou deslizamento automático.
 - **ES-P07 — rocha persistente:** dano que os **5 HP** recebem de ataques e colisões; multiplicidade e limite simultâneo de rochas, interação com outros obstáculos e remoção ao chegar a 0 HP. Não presumir limite de quantidade, destruição automática ou bloqueio de todos os golpes.
 - **ES-P08 — terreno e detonação:** colisão do projétil **no subsolo**, superfícies onde pode viajar, obstáculos físicos e bloqueio/oclusão do raio da explosão; altura e localização de surgimento da rocha.
 - **ES-P09 — VFX e animação:** conceito do rastro de terra/detritos está descrito; visuais finais, transição da detonação e animação da rocha ainda não aprovados.
@@ -550,5 +550,7 @@ Estas divergências **não significam que o Sand Wave esteja implementado**: ind
 ### 7.3 Histórico de aprovação e escopo
 
 **19/10/2026 — especificação inicial de Emerging Stone recebida do diretor:** **9CD / 3STM / ignora PL / ignora Reflect / 20DMG / Normal Cast 0,55 s**, projétil subterrâneo com trilha de terra e detritos (analogia de toupeira) a **15 m/s** até **marcador ajustado na pré-carga, similar a Bullet Punch**, detonação ao chegar ao marcador com **raio de 5 m e lançamento para trás**, criação de **rocha persistente 5 HP / duração infinita / bloco 3 × 3 m com slider**, **não escalável**. As alternativas para a interação com saltos foram citadas, porém **não escolhidas**, e assim continuam pendentes. **Não foi autorizada implementação, nem foram definidos parâmetros adicionais.**
+
+**19/10/2026 — decisão posterior de colisão com a rocha, opção B aprovada pelo diretor:** a rocha **bloqueia deslocamento terrestre**, **não é escalável por locomoção normal**, mas **pode ser ultrapassada por cima durante um salto ou deslocamento aéreo com altura suficiente**, sem atravessar a sua colisão sólida. **ES-D18 passa de alternativa pendente para opção B aprovada**; permanecem indefinidas dimensões verticais finais e detalhes técnicos de validação de altura. As opções de impedir pulos e de deslizamento automático **não** foram aprovadas. Nenhum código foi modificado.
 
 **Preservação:** as decisões e textos anteriores, incluindo **SW-D01–SW-D68**, Rodadas **1–10** do Sand Wave, Bullet Punch e o histórico da renomeação Rock Tomb → Emerging Stone, permanecem válidos e íntegros. A presente aprovação é **somente documentação**.
