@@ -11,9 +11,9 @@
 
 | Ordem informada | Move | Situação |
 |---|---|---|
-| 1 | **Sand Wave** | Novo nome do golpe imediatamente colocado em discussão (**Rock Tomb**, anteriormente chamado de **Rock Slide**). Mecânica inicial especificada na seção 6; associação definitiva ao slot sujeita a correção explícita caso o diretor se refira a outro golpe. |
+| 1 | **Rock Tomb** | Nome confirmado após correção de **Rock Slide**; gameplay ainda não especificado. **Não foi substituído por Sand Wave.** |
 | 2 | **Bullet Punch** | Mecânica descrita neste documento; implementação pendente. |
-| 3 | **Sand Kick** | Nome aprovado; gameplay ainda não especificado. |
+| 3 | **Sand Wave** | **Substitui Sand Kick**, por confirmação explícita do diretor; especificação inicial na seção 6, ainda com pendências de design. |
 | 4 | **Body Slam** | Nome aprovado; gameplay ainda não especificado. |
 
 **Identificação técnica em aberto:** o diretor chama o personagem **Mushroom**. `docs/ROSTER.md` chama o personagem cogumelo de **Mosh**, com recursos em `chars/mosh/`. A equivalência Mushroom ↔ Mosh **não foi confirmada explicitamente** nesta conversa; não substituir automaticamente o identificador do personagem no código.
@@ -148,7 +148,7 @@ Em seguida à consulta sobre limites, o diretor autorizou expressamente **as rec
 - A formulação antiga **“reaparece a uma distância fixa à frente da posição inicial”** foi refinada/substituída: agora o destino é o **marcador dinâmico de 3 a 10 m**, relativo à posição atual enquanto o botão estiver segurado e **congelado no mundo ao soltar**.
 - A formulação inicial **“desaparece depois de 0,75 s do começo do move”** deve ser lida como **0,75 s depois de SOLTAR o botão**, pois existe uma fase prévia de duração variável para ajustar o marcador.
 - A formulação genérica **“intangível”** foi especificada mais rigorosamente: **ausência física completa da simulação**, não simples transparência visual.
-- **Rock Slide** foi inicialmente corrigido para **Rock Tomb**. Na rodada posterior, o diretor pediu **“Mude o nome do ataque pra Sand Wave”** enquanto Rock Tomb era o golpe em pauta; o nome vigente desse item fica **Sand Wave**. O **Sand Kick** permanece no item 3 até confirmação contrária. A sequência histórica é preservada.
+- **Rock Slide → Rock Tomb** é a correção histórica do golpe 1 e **continua válida**. Na sequência, o diretor esclareceu expressamente que **Sand Wave substitui Sand Kick (golpe 3)**, **não Rock Tomb**. A associação anterior de Sand Wave com Rock Tomb foi um erro de interpretação do assistente e está revogada; o histórico da correção fica preservado.
 
 ## 5. Pendências e limites de escopo para implementação
 
@@ -183,7 +183,7 @@ O design principal está definido, mas **não afirmar que a funcionalidade está
 ### 6.1 Nome, relação com o elenco e classificação
 
 - **Nome solicitado:** `Sand Wave`.
-- O golpe que o assistente havia anunciado como próximo a desenvolver era **Rock Tomb**; por referência contextual imediata, esta atualização registra **Sand Wave como novo nome do item 1**. **Não apagar Sand Kick**, que permanece listado em terceiro enquanto não houver instrução inequívoca de renomeá-lo. A identificação do slot pode ser corrigida pelo diretor sem alterar as propriedades do Sand Wave.
+- **Decisão explícita do diretor:** **Sand Wave substitui Sand Kick (item 3 da lista)**. **Rock Tomb permanece como golpe 1**, sem gameplay definido. A associação anterior de Sand Wave ao item 1 foi equivocada e foi corrigida, sem perda do histórico.
 - **Tipo de execução:** **Burst** — não tratar como Charge. Há **0,25 s de preparação**.
 - **Power Level:** **PL1**.
 - **Custo de stamina por execução:** **2 unidades**.
@@ -247,6 +247,7 @@ O design principal está definido, mas **não afirmar que a funcionalidade está
 | SW-D15 | Visão sob cegueira | **Raio de 10 m em torno do cegado** |
 | SW-D16 | Lock-on | **Impedido contra alvo fora dos 10 m; lock-on existente é desligado** se o alvo estiver fora |
 | SW-D17 | Visual da cegueira | **Fog e redução de iluminação** durante o debuff |
+| SW-D18 | Renomeação correta | **Sand Wave substitui Sand Kick (golpe 3)**; Rock Tomb permanece como golpe 1 |
 
 ### 6.6 Questões não decididas — não inventar
 
@@ -260,7 +261,6 @@ O design principal está definido, mas **não afirmar que a funcionalidade está
 - **SW-P08 — lock-on/visibilidade:** critérios adicionais de obstrução e visibilidade além do raio **10 m**; efeitos sobre IA, em partidas com vários adversários, e reativação automática versus manual após alvo voltar à faixa.
 - **SW-P09 — reaplicação de cegueira:** contato adicional durante os 4 s renova, acumula ou é ignorado; nenhuma regra de stacking foi escolhida.
 - **SW-P10 — relações de combate:** tratamento de defesa parcial/perfeita, invulnerabilidade, outros golpes de PL1 e interrupções; respeitar regras já existentes, solicitar decisão apenas quando necessário.
-- **SW-P11 — identificação do move renomeado:** registro usa **Sand Wave como sucessor de Rock Tomb**, pois esse era o ataque em discussão imediata. **Sand Kick permanece distinto por ora**; corrigir a associação se o diretor indicar outro referente, mantendo este histórico.
 
 ### 6.7 Referências técnicas verificadas — não é implementação
 
@@ -274,4 +274,8 @@ O design principal está definido, mas **não afirmar que a funcionalidade está
 
 ### 6.8 Histórico desta alteração
 
-**19/10/2026:** após concluir a documentação de Bullet Punch, o diretor forneceu a definição de `Sand Wave` em substituição ao nome do golpe em pauta, com **10 s / PL1 / 2 stamina / Burst / 0,25 s**, área triangular de **4 m**, barragem de areia, empurrão e pouco dano, debuff visual/funcional de cegueira por **4 s**, visão de **10 m** para lock-on sob cegueira, uso exclusivamente no chão, alvo somente no chão, **1,5 s** de duração, **0,75 s** de hitbox e **0,75 s** de dissipação dos efeitos. Não foram autorizados números adicionais ou implementação.
+**19/10/2026 — especificação inicial:** o diretor definiu `Sand Wave` com **10 s / PL1 / 2 stamina / Burst / 0,25 s**, área triangular de **4 m**, barragem de areia, empurrão e pouco dano, cegueira por **4 s**, visão de **10 m** para lock-on, uso e alvos apenas no chão, **1,5 s** de barragem, **0,75 s** de hitbox e **0,75 s** de dissipação. Nenhum número adicional foi autorizado.
+
+**19/10/2026 — correção de identificação:** o diretor esclareceu: **“estou substituindo sand kick”**. Portanto, **o terceiro golpe passa a chamar-se Sand Wave**, e o primeiro golpe continua sendo **Rock Tomb**. O documento reconhece expressamente que interpretar Sand Wave como substituto de Rock Tomb foi um erro do assistente.
+
+**19/10/2026 — estado do design:** o diretor também esclareceu que Sand Wave **não está pronto** e exigiu uma rodada de perguntas sobre o golpe. Geometria completa, valores de dano/empurrão, contatos múltiplos e outros aspectos seguem **pendentes de decisão**, conforme a seção 6.6.
