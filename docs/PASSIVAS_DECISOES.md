@@ -155,6 +155,15 @@ O sistema admite tipos diferentes de passivas, conforme a definição individual
 - **Não definido nesta rodada:** duração numérica de qualquer cooldown, tratamento de acionamento cujo efeito seja impedido ou não aplicado, multiplicidade de efeitos instantâneos dentro de uma mesma ativação, ou regras para efeitos contínuos, permanentes ou suspensos. Nenhuma dessas situações deve receber uma regra por suposição.
 - Esta decisão trata exclusivamente do início da recarga e **não autoriza implementação**.
 
+## Rodada 19 — Comportamento da duração durante suspensão temporária (opção C aprovada)
+
+- **Cada passiva define individualmente como sua duração se comporta durante uma suspensão temporária de seu efeito.** Não há regra global única que imponha a pausa ou a continuidade do cronômetro de duração para todas as passivas.
+- Ao especificar cada passiva, deverá ser aprovado se, enquanto o efeito estiver suspenso, **(a)** o cronômetro de duração fica pausado, preservando o tempo restante para uma eventual retomada, ou **(b)** o cronômetro continua avançando, podendo chegar ao término durante a suspensão.
+- A suspensão temporária de um efeito **não equivale automaticamente ao término efetivo**. O começo da recarga continua obedecendo às Rodadas 16–18: ocorre quando o efeito efetivamente termina, conforme as regras aprovadas aplicáveis a esse efeito.
+- A escolha de pausar ou continuar a contagem **não determina, por si só, quando uma passiva é suspensa, quais estados provocam suspensão, nem as condições de retomada ou encerramento**. Essas definições permanecem individualizadas, de acordo com a Rodada 3.
+- **Ainda não definidos:** quais passivas admitem suspensão, suas condições de retomada, seu comportamento em KO/respawn, o tratamento de efeitos permanentes ou sem duração e os respectivos efeitos na recarga quando aplicáveis. Não pressupor nenhuma dessas regras.
+- Esta rodada registra exclusivamente a decisão de design: **não autoriza implementação**.
+
 ## Pontos pendentes — não aprovados
 
 - Identidade, números, magnitude, duração, gatilhos e cooldowns de cada passiva.
