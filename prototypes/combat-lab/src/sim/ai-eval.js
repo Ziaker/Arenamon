@@ -322,6 +322,7 @@ export function evalMatch({
         if (last[i]?.kind === 'tackle' && f.action !== last[i]) {
           const ev = last[i].__eval;
           if (ev) {
+            if (ev.outcome === 'whiff' && f.state === 'brake') {ev.outcome = 'feint';s.feints = (s.feints ?? 0) + 1;}   // tackle cancelado por finta: não é erro de alcance
             s.attackOutcomes[ev.outcome] = (s.attackOutcomes[ev.outcome] ?? 0) + 1;
             if (ev.outcome === 'whiff') {
               s.whiffs++;
@@ -791,7 +792,7 @@ export const DIFFICULT_SCENARIOS = [
         maxSeconds: 0.8,
         initialPositions: [vec(0, -1.4), vec(0, 1.4)],
         scenarioSetup: g => {
-          g.fighters[1].action = {kind: 'tackle', heading: -Math.PI / 2, elapsed: 0.05, duration: 0.35, speedMultiplier: 1};
+          g.fighters[1].action = {kind: 'tackle', heading: -Math.PI / 2, elapsed: C.rules.feintWindow + 0.03, duration: 0.35, speedMultiplier: 1, hits: new Set()};   // já fora da janela da finta: o rival não cancela o ataque
           g.fighters[1].velocity = vec(0, -7.5);
         },
       });
@@ -858,7 +859,7 @@ export const DIFFICULT_SCENARIOS = [
         initialPositions: [vec(0, -1.6), vec(0, 1.6)],
         scenarioSetup: g => {
           g.fighters[0].charge = {move: 'psyshock', ticks: 40, slot: 1, params: {dodgeLockTicks: 25}};
-          g.fighters[1].action = {kind: 'tackle', heading: -Math.PI / 2, elapsed: 0.05, duration: 0.35, speedMultiplier: 1};
+          g.fighters[1].action = {kind: 'tackle', heading: -Math.PI / 2, elapsed: C.rules.feintWindow + 0.03, duration: 0.35, speedMultiplier: 1, hits: new Set()};   // já fora da janela da finta: o rival não cancela o ataque
           g.fighters[1].velocity = vec(0, -7.5);
         },
       });

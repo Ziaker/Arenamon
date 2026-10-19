@@ -350,6 +350,7 @@ export class Character {
       const moveId = f.charge.move || (f.charge.slot === 0 ? 'reflect' : 'psyshock');
       return 'charge_' + moveId;
     }
+    if (f.state === 'brake') return 'brake';
     if (f.tackleCharge) return 'tackle_charge';
     if (f.action?.kind === 'tackle') return f.action.pl === 3 ? 'tackle_pl3' : f.action.pl === 2 ? 'tackle_pl2' : 'tackle';
     if (f.action?.kind === 'move') return MOVE_KEYS[Math.max(0, Math.min(3, f.action.slot ?? 0))];

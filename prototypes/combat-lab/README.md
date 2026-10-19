@@ -257,3 +257,9 @@ A compilação embute `inicial/workspace-inicial.zip` no HTML. Na primeira abert
 - **Meteor slam:** C → X durante o salto do vault (acima da altura mínima) e o X de quem foi lançado viram mergulho oblíquo (ângulo, +20% de dano, recuperação longa ao errar). Fica um gancho (`startSlam`) para o botão de pular futuro.
 - **Ground bounce:** o rival acertado pelo mergulho quica para cima (`groundBounceForce`) com pouco empurrão horizontal e tremor de câmera.
 - Controles em Ações › Tackle (toggles `enableWallSplat` e `enableMeteorSlam` e sliders). Estado de animação novo: "Preso na parede (wall-splat)".
+
+## Tackle (fase 3): finta e brake slide
+
+- **Finta:** **C** ou **D** durante o startup do tackle (janela em slider) ou durante a carga cancelam o ataque. Nenhuma esquiva ou defesa sai: o lutador só derrapa (brake slide, com poeira nos pés), paga apenas `feintStaminaCost` (o resto do custo do tackle volta) e retorna ao neutro em `feintRecovery`, bem antes do fim de um tackle.
+- Não vale para tackle que já acertou ou em mergulho (meteor slam). Toggle `enableTackleFeint`; desligado, C durante a carga esquiva como na fase 1.
+- Controles em Ações › Tackle (seção 🎭 Finta e brake slide) e animação "Freio / derrapagem (finta)".

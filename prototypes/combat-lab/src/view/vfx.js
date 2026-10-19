@@ -128,7 +128,7 @@ export class VfxSystem {
     this.add = new ParticleBatch(4096, T.AdditiveBlending, this.atlas);this.norm = new ParticleBatch(2048, T.NormalBlending, this.atlas);
     scene.add(this.add.mesh, this.norm.mesh);
     this.log = [];this.timers = [];this.emit = new Map();this.shakes = [];this.ghosts = [];this.stats = {spawned: 0, peak: 0};
-    this.seenEvents = new WeakSet();this.landings = [];this.prevPos = [];this.prevStamina = [];this.flash = null;this.freezeUntil = 0;
+    this.seenEvents = new WeakSet();this.landings = [];this.brakes = [];this.prevPos = [];this.prevStamina = [];this.flash = null;this.freezeUntil = 0;
     this.accessibility = {noFlash: false, reduceMotion: false, highContrast: false};
     // Custo por tipo (medidor de desempenho e filtro “mais caros”): partículas criadas e disparos.
     this.stats.byType = {};this.stats.firesByType = {};this.emitting = null;
@@ -184,6 +184,10 @@ export class VfxSystem {
         else this.record('ground', `colisão abaixo do mínimo (${impact.toFixed(1)} < ${cfg.minImpact} m/s): sem efeito`);
       }
       this.landings[i] = L?.n ?? 0;
+      // Finta (brake slide): poeira nos pés quando o lutador derrapa para cancelar o tackle.
+      const B = f.lastBrake;
+      if (B && this.brakes[i] !== undefined && B.n !== this.brakes[i]) this.fire('ground', {pos: {x: B.x, z: B.z}, power: Math.min(1.4, .5 + B.speed / 8)}, `finta: derrapagem (${B.speed.toFixed(1)} m/s)`);
+      this.brakes[i] = B?.n ?? 0;
       const prev = this.prevPos[i] ?? {...f.position};const dx = f.position.x - prev.x, dz = f.position.z - prev.z;this.prevPos[i] = {...f.position};
       if (dt <= 0) return;
       const alt = (f.flight?.y ?? 0) + (f.vaultHeight ?? 0);

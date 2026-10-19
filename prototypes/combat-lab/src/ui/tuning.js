@@ -16,7 +16,7 @@ const $ = id => document.getElementById(id);
 export const pathGet = (root, path) => path.split('.').reduce((a, k) => a?.[k], root);
 export const pathSet = (root, path, value) => {const keys = path.split('.'), last = keys.pop();const obj = keys.reduce((a, k) => a?.[k], root);if (!obj || !(last in obj)) return false;obj[last] = value;return true;};
 const TABS = [
-  ['X e C', ['Esquiva (C)', 'Tackle (X)', 'Tackle carregado (PL)', 'Wall-splat e meteor slam', 'Sprint (C mantido)', 'Cancelamento C → X', 'Buffer de entrada']],
+  ['X e C', ['Esquiva (C)', 'Tackle (X)', 'Tackle carregado (PL)', 'Finta e brake slide', 'Wall-splat e meteor slam', 'Sprint (C mantido)', 'Cancelamento C → X', 'Buffer de entrada']],
   ['Combate', ['Regras gerais, defesa e stamina', 'Knockback e clash', 'Combate e colisões']],
   ['Atributos', ['Atributos: equilibrado', 'Atributos: ágil', 'Atributos: resistente']],
   ['Movimento', ['Movimento']], ['IA', ['IA: estratégia e decisões', 'IA: personalidade do vermelho', 'IA: personalidade do azul (IA jogador)']], ['Arena', ['Arena e simulação']],
