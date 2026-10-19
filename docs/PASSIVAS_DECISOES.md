@@ -211,12 +211,21 @@ O sistema admite tipos diferentes de passivas, conforme a definição individual
 - Permanecem válidas a independência de cooldown da Rodada 15, as regras de início da recarga das Rodadas 16–18, o encerramento dos efeitos no KO da Rodada 23 e o zeramento dos cooldowns no respawn da Rodada 22.
 - **Continuam pendentes** a contagem durante pausas globais do jogo e o período entre KO e respawn, além dos demais casos especiais ainda não aprovados. Esta rodada registra apenas a decisão de design e **não autoriza implementação**.
 
+## Rodada 25 — Pausa da duração dos efeitos ativos durante hitstop (opção A aprovada)
+
+- **Durante o hitstop, o cronômetro de duração de todos os efeitos ativos das passivas fica pausado.** Nenhum tempo de duração é consumido enquanto perdurar essa interrupção.
+- **Ao terminar o hitstop e a simulação retomar**, a contagem da duração desses efeitos **continua a partir do tempo restante que havia antes do hitstop**, sem reinício, renovação ou extensão adicional além da pausa.
+- Exemplo ilustrativo: uma proteção com **3 segundos de duração restante** ao começar o hitstop mantém esses **3 segundos restantes** até o fim da interrupção e somente então volta a consumir duração.
+- A regra é **geral para a duração dos efeitos ativos** durante hitstop e complementa a Rodada 24, que já havia aprovado a pausa dos **cooldowns** das passivas nesse intervalo. Isso não altera a definição individual do comportamento da duração durante **outras formas de suspensão**, conforme a Rodada 19.
+- A pausa do cronômetro **não determina, por si só, se o efeito permanece funcional durante hitstop**, se novos gatilhos são avaliados nesse intervalo ou se existem condições específicas de ativação e suspensão. Esses aspectos continuam pendentes e não devem ser presumidos.
+- Permanecem válidas as regras anteriormente aprovadas de término de efeito, início do cooldown e KO/respawn. **Esta decisão é exclusivamente documental e não autoriza implementação.**
+
 ## Pontos pendentes — não aprovados
 
 - Identidade, números, magnitude, duração, gatilhos e cooldowns de cada passiva.
 - Catálogo e critérios concretos de resolução para cada combinação de efeitos incompatíveis ou mutuamente exclusivos; casos não previstos permanecem sem regra aprovada.
 - Unidades e conversão para efeitos de natureza diversa, regras de arredondamento específicas quando exigido inteiro, interações entre modificadores incompatíveis e tratamento de casos especiais não cobertos por restrições preexistentes.
-- Comportamento específico de passivas permanentes e condicionais sem efeito ativo temporário, efeitos previamente suspensos, contagem de cooldown durante o intervalo KO–respawn, pausas globais e demais situações não aprovadas; a Rodada 24 pausa a recarga durante hitstop, a Rodada 23 encerra todos os efeitos ativos no KO e a Rodada 22 zera os cooldowns no respawn. Permanecem indefinidos o comportamento dos efeitos ativos e a possibilidade de novos gatilhos durante hitstop.
+- Comportamento específico de passivas permanentes e condicionais sem efeito ativo temporário, efeitos previamente suspensos, contagem de cooldown durante o intervalo KO–respawn, pausas globais e demais situações não aprovadas; as Rodadas 24–25 pausam, respectivamente, a recarga e a duração dos efeitos ativos durante hitstop, a Rodada 23 encerra os efeitos ativos no KO e a Rodada 22 zera os cooldowns no respawn. Permanecem indefinidos o funcionamento efetivo dos efeitos e a possibilidade de novos gatilhos durante hitstop.
 - Interface de seleção, apresentação visual e implementação técnica.
 
 ## Governança deste documento
