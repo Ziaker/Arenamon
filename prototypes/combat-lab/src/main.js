@@ -2,7 +2,7 @@
 // cenários, ajustador, personagens do Studio, exportação e aviso de alterações não salvas.
 import {C, keyFor, defaults} from './sim/config.js';
 import {Game, FixedClock} from './sim/game.js';
-import {AI_MODES} from './sim/ai.js';
+import {AI_MODES, UI_AI_MODES} from './sim/ai.js';
 import {styleLabel} from './sim/tactics.js';
 import {Recorder} from './sim/telemetry.js';
 import {ReplayBuffer} from './sim/replay.js';
@@ -315,12 +315,6 @@ function sessionBanner(prevValues, {auto}) {
   }
   return diff.length;
 }
-const difficulty = {
-  easy: {attackRange: 2.6, combatAttackCooldown: 1.8, initialCooldown: 1.2, threatDistance: 3.2, evadeCycle: 5, evadeCycleIndex: 2, reactiveRetreatStrength: .1},
-  normal: Object.fromEntries(Object.entries(defaults().extras.ai).filter(([k]) => ['attackRange', 'combatAttackCooldown', 'initialCooldown', 'threatDistance', 'evadeCycle', 'evadeCycleIndex', 'reactiveRetreatStrength'].includes(k))),
-  hard: {attackRange: 3.8, combatAttackCooldown: .7, initialCooldown: .3, threatDistance: 6, evadeCycle: 2, evadeCycleIndex: 1, reactiveRetreatStrength: .35},
-};
-for (const b of document.querySelectorAll('[data-difficulty]')) b.onclick = () => {tuning.commit(Object.entries(difficulty[b.dataset.difficulty]).map(([k, v]) => ['extras.ai.' + k, v]), 'Dificuldade ' + b.textContent);game.brain.reset();};
 
 // ---------- Exportar ----------
 function download(data, name, type = 'application/json') {const url = URL.createObjectURL(new Blob([data], {type})), a = document.createElement('a');a.href = url;a.download = name;a.click();setTimeout(() => URL.revokeObjectURL(url), 4000);}
@@ -423,8 +417,8 @@ function renderStudioEvents() {
   $('ab-key').replaceChildren(...codes.map(c => new Option(c.replace(/^Key/, '').replace(/^Digit/, '').replace('Arrow', 'Seta '), c)));$('ab-key').value = presets.abKey;
   $('ab-key').onchange = e => {const code = e.target.value, used = Object.entries(C.extras.bindings).find(([, i]) => C.extras.keyCodes[i] === code);presets.setABKey(code);$('ab-key').title = used ? `Atenção: ${code} também é a tecla de “${used[0]}”` : '';if (used) $('ab-key').setCustomValidity?.('tecla em uso');};
 }
-$('mode').replaceChildren(...AI_MODES.map(([id, label]) => new Option(label, id)));$('mode').value = game.mode;
-$('player-mode').replaceChildren(...AI_MODES.filter(([id]) => id !== 'inactive').map(([id, label]) => new Option(label, id)));$('player-mode').value = ui.playerMode;
+$('mode').replaceChildren(...UI_AI_MODES.map(([id, label]) => new Option(label, id)));$('mode').value = game.mode;
+$('player-mode').replaceChildren(...UI_AI_MODES.filter(([id]) => id !== 'inactive').map(([id, label]) => new Option(label, id)));$('player-mode').value = ui.playerMode;
 $('mode').onchange = () => {game.mode = $('mode').value;C.extras.gameModes.enemyMode = AI_MODES.findIndex(([id]) => id === game.mode);game.brain.reset();syncButtons();};
 $('profile').onchange = () => {C.extras.gameModes.playerProfile = ['balanced', 'agile', 'resistant'].indexOf($('profile').value);};
 $('player-mode').onchange = () => {ui.playerMode = $('player-mode').value;game.playerBrain.reset();};
@@ -436,6 +430,7 @@ function renderHistory() {$('input-history').innerHTML = input.history.map(h => 
 // ---------- Barra superior, painéis e doca ----------
 function syncButtons() {
   const hb = $('arena-hitboxes-toggle'), on = !!C.extras.toggles.showHitboxes;hb.setAttribute('aria-checked', String(on));
+  const eb = $('arena-enemy-ai-toggle');eb.setAttribute('aria-checked', String(!!C.extras.toggles.enableEnemyAI));
   const ab = $('arena-autoplay-toggle'), ai = !!C.extras.toggles.enablePlayerAI;ab.setAttribute('aria-checked', String(ai));$('name0').textContent = ai ? 'JOGADOR IA · AZUL' : 'JOGADOR · AZUL';
   $('pause').textContent = ui.paused ? '▶ Continuar' : '❚❚ Pausar';$('rp-play').textContent = ui.paused ? '▶' : '❚❚';
   const zb = $('arena-zen-toggle');
@@ -447,6 +442,7 @@ function syncButtons() {
 }
 $('arena-zen-toggle').onclick = () => toggleZenMode();
 $('arena-hitboxes-toggle').onclick = () => {const v = C.extras.toggles.showHitboxes ? 0 : 1;tuning.commit([['extras.toggles.showHitboxes', v], ['extras.toggles.showAttackVectors', v]], 'Hitboxes');canvas.focus();};
+$('arena-enemy-ai-toggle').onclick = () => {tuning.commit([['extras.toggles.enableEnemyAI', C.extras.toggles.enableEnemyAI ? 0 : 1]], 'IA do oponente');game.brain.reset();syncButtons();canvas.focus();};
 $('arena-autoplay-toggle').onclick = () => {tuning.commit([['extras.toggles.enablePlayerAI', C.extras.toggles.enablePlayerAI ? 0 : 1]], 'IA do jogador');game.playerBrain.reset();input.clear();canvas.focus();};
 $('pause').onclick = () => togglePause();$('restart-top').onclick = startMatch;$('restart').onclick = startMatch;$('start').onclick = startMatch;$('start-center').onclick = onQuickStart;
 $('btn-rematch')?.addEventListener('click', () => {$('overlay').hidden = true;startMatch();});
@@ -815,13 +811,6 @@ function onQuickStart() {
     $('mode').value = $('quick-ai-mode').value;
     game.mode = $('mode').value;
     C.extras.gameModes.enemyMode = AI_MODES.findIndex(([id]) => id === game.mode);
-  }
-  if ($('quick-difficulty')) {
-    const diff = difficulty[$('quick-difficulty').value];
-    if (diff) {
-      tuning.commit(Object.entries(diff).map(([k, v]) => ['extras.ai.' + k, v]), 'Dificuldade');
-      game.brain.reset();
-    }
   }
   const equipReflect = $('quick-reflect')?.checked;
   const equipPsyshock = $('quick-psyshock')?.checked;
