@@ -44,7 +44,8 @@ ok('X/C sem stamina e exausto: “X ignorado: stamina insuficiente (0,60 / 1,00)
   for (let i = 0; i < 14; i++) step();assert.ok(log.some(x => x.result === 'expired' && x.reason === 'cancelWindow'), 'buffer expira com o mesmo motivo');
   while (f.action?.kind === 'dodge' && f.action.elapsed < w0 + .01) step();
   if (f.action?.kind === 'dodge') {const ex = expect(step(cmd({tackle: true})), 'tackle', 'executed');assert.ok(ex.viaCancel && f.action.kind === 'tackle' && f.action.fromCancel);}
-  C.actions.buffer.window = 0;expect(step(cmd({dodge: true})), 'dodge', 'denied');
+  C.actions.buffer.window = 0;C.extras.toggles.enableTackleFeint = 0;   // com a finta, C no startup do X cancela o tackle (teste próprio); aqui vale a regra antiga de negar
+  expect(step(cmd({dodge: true})), 'dodge', 'denied');
 }
 {
   const {f, step} = setup();C.actions.buffer.window = 0;step(cmd({dodge: true, move: vec(1, 0)}));for (let i = 0; i < 3; i++) step();

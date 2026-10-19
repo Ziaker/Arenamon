@@ -26,6 +26,7 @@ export const SECTIONS=[
   ['Buffer de entrada','actions.buffer',null],
   ['Regras gerais, defesa e stamina','rules',['recoil','recoilFraction','blend','guardStun','perfect','perfectCooldown','staminaMax','regenDelay','regenTime','exhaustMode','guardSpeed','exhaustedSpeed','guardTurn','guardAcceleration']],
   ['Tackle carregado (PL)','rules',['chargeTackleMaxTime','chargeTackleDrain','chargeTackleTurn','chargeTackleSpeed2','chargeTackleSpeed3','chargeTackleDamage2','chargeTackleDamage3','sprintTacklePL']],
+  ['Finta e brake slide','rules',['feintWindow','feintStaminaCost','feintSkidSpeed','feintRecovery']],
   ['Wall-splat e meteor slam','rules',['wallSplatMinSpeed','wallSplatDuration','wallSplatDamage','slamAngle','slamMinHeight','slamDamage','slamRecovery','slamLaunchHorizontal','groundBounceForce']],
   ['Knockback e clash','rules',['launchGravity','launchUp','launchHorizontal','launchDrag','clashFraction','clashUp','clashHorizontal','clashPushDistance','clashPushDuration','techWindow','techMinAir','techCost','landingRecovery','wallRestitution','wallBounceVertical','wallBounceUp']],
   ['Combate e colisões','extras.combat',null],

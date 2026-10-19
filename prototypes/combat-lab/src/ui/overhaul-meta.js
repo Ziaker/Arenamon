@@ -55,6 +55,7 @@ const AI = {
   minDirectionHold: ['Retenção contra zigue-zague (IA)', 'Tempo mínimo antes de a IA voltar à direção anterior logo depois de mudar.', R(0, .6, .01, sec)],
 };
 const TOGGLES = {
+  enableTackleFeint: ['Finta do tackle (C ou D cancelam)', 'Ligado: C ou D no startup do tackle ou durante a carga cancelam o ataque e o lutador só derrapa, voltando ao neutro rápido. Desligado: C durante a carga esquiva e D defende.', toggle],
   enableWallSplat: ['Wall-splat (preso na parede)', 'Ligado: lançado que bate na parede já caindo e rápido fica suspenso e indefeso (janela de combo). Subindo, vale o ricochete.', toggle],
   enableMeteorSlam: ['Meteor slam e ground bounce', 'Ligado: C → X no salto do vault, e o X de quem foi lançado, viram mergulho oblíquo; o acerto lança o rival para cima. Desligado: descida suave como antes.', toggle],
   enableChargeTackle: ['Tackle carregado (segurar X)', 'Ligado: o X dispara ao soltar; segurar carrega até PL3. X correndo vira PL2 imediato e C → X continua imediato. Desligado: o X dispara na hora, como antes.', toggle],
@@ -169,6 +170,10 @@ const RULES2 = {
   chargeTackleDamage2: ['Tackle PL2: dano', 'Multiplicador do dano (e do impulso de lançamento) do tackle PL2. 1,30 = +30%.', R(1, 4, .01, x)],
   chargeTackleDamage3: ['Tackle PL3: dano', 'Multiplicador do dano (e do impulso de lançamento) do tackle PL3. 1,70 = +70%.', R(1, 6, .01, x)],
   sprintTacklePL: ['X no sprint: PL do tackle', 'Apertar X correndo dispara na hora, sem carga, neste Power Level (1 a 3), herdando a velocidade da corrida.', R(1, 3, 1, n => 'PL' + n)],
+  feintWindow: ['Finta: janela de startup', 'Segundos do início do tackle em que C ou D ainda cancelam o ataque (fora da carga, que cancela sempre).', R(.02, .5, .01, sec)],
+  feintStaminaCost: ['Finta: custo de stamina', 'Stamina que a finta custa no total: o resto do custo do tackle é devolvido. 0 = grátis; igual ao custo do tackle = nada devolvido.', R(0, 2, .05, n => n.toFixed(2))],
+  feintSkidSpeed: ['Finta: velocidade da derrapagem', 'Velocidade inicial (m/s) do deslize dos pés ao frear; decai sozinha (mesmo decaimento do pouso).', R(0, 12, .1, n => n.toFixed(1) + ' m/s')],
+  feintRecovery: ['Finta: tempo até voltar ao neutro', 'Recuperação depois da finta (bem menor que a de um tackle que erra). Durante ela o lutador está no estado de freio.', R(0, 1, .01, sec)],
   wallSplatMinSpeed: ['Wall-splat: velocidade mínima', 'Velocidade horizontal mínima (m/s) para o lançado, já CAINDO, ficar preso na parede. Abaixo disso (ou subindo) vale o ricochete.', R(0, 30, .5, n => n.toFixed(1) + ' m/s')],
   wallSplatDuration: ['Wall-splat: duração', 'Quanto tempo o lutador fica suspenso e indefeso na parede, na altura do impacto (janela de combo), antes de cair.', R(.1, 2, .01, sec)],
   wallSplatDamage: ['Wall-splat: dano extra', 'HP perdido ao ficar preso na parede. 0 = nenhum (o ganho é a janela de combo).', R(0, 30, .5, n => n.toFixed(1) + ' HP')],

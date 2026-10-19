@@ -11,6 +11,7 @@ registerStandardMoves();
 
 let n = 0;const ok = l => {n++;console.log('✓', l);};
 resetConfig(defaults());
+C.extras.toggles.enableTackleFeint = 0;   // a IA ainda não usa a finta (fase 4); sem isso o D/C aleatório dela no startup do X passa a cancelar o próprio tackle e distorce a comparação
 assert.equal(C.extras.ai.revision, 2, 'evoluída por padrão');assert.equal(featuresOf({revisionOverride: 0}).validate, false);assert.equal(REVISION_1.stamina, false);
 {
   const a = evalMatch({seed: 9, blueRev: 1, redRev: 0}), b = evalMatch({seed: 9, blueRev: 1, redRev: 0});

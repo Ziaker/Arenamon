@@ -113,10 +113,25 @@ function startTackleCharge(f, p) {
   f.guard = false;f.guardSuppressed = false;f.stun = 0;f.push = null;f.blend = null;f.vaultHeight = 0;f.bufferedTackle = null;f.inputBuffer = null;f.sprinting = false;
   f.velocity = vec();f.locomotionVelocity = vec();f.state = 'tackleCharge';
 }
+/**
+ * Finta / brake slide: cancela o tackle (no startup ou na carga), devolve a parte do custo acima de feintStaminaCost, derrapa na direção do ataque
+ * (o deslizamento usa o mesmo decaimento do pouso) e fica em recuperação curta, bem menor que a de um tackle que erra.
+ */
+export function doFeint(f, from) {
+  const R = C.rules, heading = f.action ? f.action.heading : f.facing, tackleCost = costOf(f, C.actions.tackle.cost);
+  if (from === 'charge') cancelTackleCharge(f, 'feint');
+  const sp = Math.max(R.feintSkidSpeed, length(f.velocity) * .5);
+  f.action = null;f.guard = false;f.guardSuppressed = false;f.blend = null;f.vaultHeight = 0;f.bufferedTackle = null;f.inputBuffer = null;f.sprinting = false;
+  f.stamina = clamp(f.stamina + tackleCost - R.feintStaminaCost, 0, R.staminaMax);f.regenBase = f.stamina;f.regenAge = 0;f.exhausted = isDepleted(f.stamina);
+  f.landingSlide = {velocity: scale(direction(heading), sp)};f.velocity = vec();f.locomotionVelocity = vec();
+  f.knockRecovery = Math.max(f.knockRecovery, R.feintRecovery);f.recoveryFrom = null;f.brakeLeft = R.feintRecovery;f.state = 'brake';
+  f.lastBrake = {n: (f.lastBrake?.n ?? 0) + 1, x: f.position.x, z: f.position.z, speed: sp};f.feints = (f.feints ?? 0) + 1;
+}
 export function cancelTackleCharge(f, why = 'cancel') {if (!f.tackleCharge) return;f.tackleCharge = null;f.tackleChargeEnd = why;if (f.state === 'tackleCharge') f.state = 'neutral';}
 /** 'charging' (segue carregando, o passo termina aqui), 'fired' (a ação saiu) ou 'cancelled' (D ou C cancelaram; o pedido segue o fluxo normal). */
 function stepTackleCharge(f, cmd, fighters, dt, desiredHeading, target, move, diag) {
   const R = C.rules, ch = f.tackleCharge;
+  if (C.extras.toggles.enableTackleFeint && (cmd.dodge || (cmd.guardPressed && C.extras.toggles.enableDefense))) {doFeint(f, 'charge');if (diag) report(f, {kind: 'tackle', result: 'executed', note: 'finta (cancelou a carga)'});return 'feint';}
   if ((cmd.guard && C.extras.toggles.enableDefense) || cmd.dodge) {cancelTackleCharge(f, cmd.dodge ? 'dodge' : 'guard');return 'cancelled';}
   ch.t += dt;ch.level = tackleChargeLevel(ch.t);
   if (ch.t < R.chargeTackleMaxTime) f.stamina = Math.max(0, f.stamina - R.chargeTackleDrain * dt);
@@ -189,16 +204,20 @@ export function updateFighter(f, cmd, fighters, dt) {
       f.action = null;f.push = null;f.guard = false;f.vaultHeight = 0;f.velocity = vec();f.locomotionVelocity = vec();f.bufferedTackle = null;f.state = f.wallSplat ? 'wallSplat' : 'airborne';return;
     }
   }
-  if (f.knockRecovery > 0) {f.knockRecovery = Math.max(0, f.knockRecovery - dt);if (f.knockRecovery <= 0) f.recoveryFrom = null;f.vaultHeight = 0;f.velocity = vec();f.locomotionVelocity = vec();f.action = null;f.guard = false;f.bufferedTackle = null;f.state = 'landing';return;}
+  if (f.knockRecovery > 0) {f.knockRecovery = Math.max(0, f.knockRecovery - dt);if (f.knockRecovery <= 0) f.recoveryFrom = null;f.vaultHeight = 0;f.velocity = vec();f.locomotionVelocity = vec();f.action = null;f.guard = false;f.bufferedTackle = null;f.state = f.brakeLeft > 0 ? 'brake' : 'landing';f.brakeLeft = Math.max(0, (f.brakeLeft ?? 0) - dt);return;}
   if (f.hp <= 0) {f.state = 'defeated';f.velocity = vec();f.action = null;f.push = null;f.vaultHeight = 0;f.bufferedTackle = null;return;}
   const target = fighters.find(o => o.id === cmd.target && o.hp > 0);
   const move = length(cmd.move) > 1 ? normalize(cmd.move) : cmd.move;
   // Mira (ataques sem direção, prévia): o alvo, se houver. Orientação do corpo: ver faceGoal abaixo.
   const desiredHeading = target ? angleOf(sub(target.position, f.position)) : length(move) > 0 ? angleOf(move) : f.facing;
+  // Finta: C ou D no startup do tackle cancelam o ataque (só derrapa, sem esquiva); o acerto já feito ou o mergulho impedem.
+  if (T.enableTackleFeint && f.action?.kind === 'tackle' && !f.action.slam && (f.action.hits?.size ?? 0) === 0 && f.action.elapsed < R.feintWindow - 1e-9 && (cmd.dodge || cmd.guardPressed)) {
+    doFeint(f, 'startup');if (diag) report(f, {kind: 'tackle', result: 'executed', note: 'finta (cancelou o startup)'});return;
+  }
   // Tackle carregado: enquanto X segue apertado o lutador fica parado carregando; soltar (ou acabar a stamina) dispara no PL alcançado.
   if (f.tackleCharge) {
     const r = stepTackleCharge(f, cmd, fighters, dt, desiredHeading, target, move, diag);
-    if (r === 'charging') return;
+    if (r === 'charging' || r === 'feint') return;
   }
   // Recovery rápido: o pouso acabou de acontecer com C armado; esquiva na direção segurada, cobrando só o custo do recovery.
   if (f.techDodge) {

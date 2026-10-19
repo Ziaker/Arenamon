@@ -37,7 +37,7 @@ function run(seed) {
   const hold = [null, null], hitsPerAction = new Map(), bound = C.test.arenaHalf - C.test.halfExtent + 1e-6;
   const fail = (t, msg, extra = '') => assert.fail(`semente ${seed}, passo ${t}: ${msg} ${extra}`);
   for (let t = 0; t < TICKS; t++) {
-    const before = g.fighters.map(f => ({kind: f.action?.kind ?? null, action: f.action, invulnerable: isInvulnerable(f), hp: f.hp}));
+    const before = g.fighters.map(f => ({kind: f.action?.kind ?? null, action: f.action, invulnerable: isInvulnerable(f), hp: f.hp, feints: f.feints ?? 0}));
     // Um terço das execuções usa a IA tática nos dois lados (comandos “inteligentes” em vez de aleatórios).
     if (tactical) g.step(g.playerBrain.command(g.fighters[0], g.fighters[1], 'tactical', C.test.step));
     else g.step(commands(rand, g, 0, hold), commands(rand, g, 1, hold));
@@ -67,7 +67,8 @@ function run(seed) {
       const cancelledVulnerable = g.lastCommands?.[b]?.tackle && before[b].kind === 'dodge' && C.actions.cancel.invulnerability === 1;
       // Exceção legítima (tackle carregado): tackle de PL maior contra tackle de PL menor neutraliza o menor e tira a invulnerabilidade de início dele.
       const lostToPL = before[b].kind === 'tackle' && g.fighters[b].plDefeated === true;
-      if (e.damage > 0 && e.result === 'impact' && before[b].invulnerable && !cancelledVulnerable && !lostToPL) fail(t, 'dano em lutador invulnerável');
+      const feinted = (g.fighters[b].feints ?? 0) > before[b].feints;   // finta: cancelar o tackle tira a invulnerabilidade do startup no mesmo passo
+      if (e.damage > 0 && e.result === 'impact' && before[b].invulnerable && !cancelledVulnerable && !lostToPL && !feinted) fail(t, 'dano em lutador invulnerável');
       // Um impacto por alvo por ação.
       if (DAMAGE.has(e.result) || e.result === 'perfect') {
         const act = after[a].kind === 'tackle' ? after[a].action : before[a].action;if (!act) continue;
