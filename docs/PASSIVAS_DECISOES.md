@@ -183,12 +183,22 @@ O sistema admite tipos diferentes de passivas, conforme a definição individual
 - **Não definido nesta rodada:** a contagem em KO e respawn, pausas globais do jogo, hitstop e situações especiais de paralisação do tempo que não sejam simplesmente estados de combate; tampouco se estabelecem regras novas para duração ou suspensão do efeito ativo, objeto da Rodada 19.
 - Esta é exclusivamente uma decisão documental; **não autoriza implementação**.
 
+## Rodada 22 — Zerar cooldowns das passivas no respawn (opção C aprovada)
+
+- **Ao retornar à luta após um KO (no respawn), todos os cooldowns restantes das passivas equipadas são zerados.** A recarga pendente deixa de existir nesse momento.
+- **As passivas ficam prontas para nova ativação no respawn**, mas somente podem ser acionadas quando seus respectivos gatilhos e demais condições individuais de funcionamento forem satisfeitos, conforme as Rodadas 2 e 3. **O respawn, por si só, não aciona automaticamente uma passiva.**
+- A regra de zerar cooldowns no respawn é uma **exceção específica** à continuidade da contagem durante estados de combate aprovada na Rodada 21, sem revogar aquela decisão para os demais estados.
+- Esta decisão **não estabelece se o cooldown continua avançando ou fica pausado durante o período de KO anterior ao respawn**: independentemente da contagem nesse intervalo, qualquer recarga ainda pendente é eliminada ao ocorrer o respawn.
+- **Permanece pendente** o destino de efeitos de passivas que estejam ativos no momento do KO ou do respawn, bem como a interação desses efeitos com a regra da Rodada 20 (não reativar uma passiva enquanto seu efeito anterior permanecer ativo). A prontidão da recarga não substitui as restrições de acionamento já aprovadas.
+- A decisão aplica-se exclusivamente aos cooldowns das passivas; **não altera cooldowns de golpes ou outras habilidades**, nem define sua duração, seus gatilhos, a ocorrência do respawn ou regras de KO.
+- Esta rodada registra somente uma decisão de design e **não autoriza implementação**.
+
 ## Pontos pendentes — não aprovados
 
 - Identidade, números, magnitude, duração, gatilhos e cooldowns de cada passiva.
 - Catálogo e critérios concretos de resolução para cada combinação de efeitos incompatíveis ou mutuamente exclusivos; casos não previstos permanecem sem regra aprovada.
 - Unidades e conversão para efeitos de natureza diversa, regras de arredondamento específicas quando exigido inteiro, interações entre modificadores incompatíveis e tratamento de casos especiais não cobertos por restrições preexistentes.
-- Ativação, suspensão ou expiração de efeitos em KO, respawn, pausas, hitstop e demais situações; a continuidade do cooldown já iniciado nos estados de combate foi aprovada na Rodada 21, mas os demais comportamentos concretos continuam pendentes.
+- Ativação, suspensão ou expiração dos efeitos ativos em KO e respawn, comportamento da contagem durante o intervalo de KO, pausas, hitstop e demais situações; os cooldowns das passivas são zerados no respawn conforme a Rodada 22, mas os demais comportamentos concretos continuam pendentes.
 - Interface de seleção, apresentação visual e implementação técnica.
 
 ## Governança deste documento
