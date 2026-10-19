@@ -53,7 +53,7 @@
    <button type="button" role="tab" data-tool="scenarios" title="Cenários de teste repetíveis com esperado × obtido"><i>◎</i><span>Cenários</span></button>
    <button type="button" role="tab" data-tool="tuning" title="Ajustes: todos os parâmetros, por grupo"><i>⚙</i><span>Ajustes</span></button>
    <button type="button" role="tab" data-tool="overlays" title="Hitboxes, normais, lançamento e alcance"><i>▧</i><span>Visualizar</span></button>
-   <button type="button" role="tab" data-tool="characters" title="Personagens e animações do Studio; eventos de combate"><i>♙</i><span>Personagens</span></button>
+   <button type="button" role="tab" data-tool="characters" hidden aria-hidden="true" tabindex="-1" title="Personagens (abre a gaveta)"><i>♙</i><span>Personagens</span></button>
    <button type="button" role="tab" data-tool="controls" title="Dummy, IA, dificuldade, gamepad e histórico de comandos"><i>🎮</i><span>Controles</span></button>
    <button type="button" role="tab" data-tool="export" title="Exportar/importar ajustes e relatório de diferenças para o jogo"><i>↗</i><span>Exportar</span></button>
    <button type="button" role="tab" data-tool="homolog" title="Checklist da sua avaliação jogável (aprovado/reprovado/observação)"><i>✔</i><span>Homologação</span></button>
@@ -236,42 +236,6 @@
        <div id="diag-panel"></div>
       </div>
      </section>
-     <section data-section="characters" hidden>
-      <div class="bento-card bento-wide" data-subcard="modelos" data-sublabel="Lutadores (Azul × Vermelho)">
-       <p class="hint">Carregue o <b>.glb</b> exportado pelo Animation Studio. As ações associadas no Studio viram as animações de cada estado do combate. A posição continua vindo da física.</p>
-       <div id="char-slots"></div>
-       <h3>Armazenamento dos modelos e animações</h3>
-       <p class="hint">Os GLBs ficam salvos neste navegador, identificados pelo conteúdo (SHA-256), não pelo nome. Nada é excluído sem você pedir.</p>
-       <div id="ws-storage" class="report"></div>
-      </div>
-      <div class="bento-card" data-subcard="transicoes" data-sublabel="Transições, Duração & Studio">
-       <h3>Opções gerais das animações</h3>
-       <div class="row">
-        <label class="check"><input type="checkbox" id="char-lock-root" checked disabled> Raiz presa à física</label>
-        <label class="check"><input type="checkbox" id="char-fit" checked> Ajustar altura (1,3 m)</label>
-       </div>
-       <div class="grid2-fields">
-        <label class="field">Fade estados <output id="char-fade-out">0.18 s</output><input type="range" id="char-fade" min="0.02" max="0.6" step="0.01" value="0.18"></label>
-        <label class="field">Fade X/C/reação <output id="char-action-fade-out">0.07 s</output><input type="range" id="char-action-fade" min="0.02" max="0.3" step="0.01" value="0.07"></label>
-        <label class="field">Histerese loco <output id="char-hold-out">0.10 s</output><input type="range" id="char-hold" min="0" max="0.4" step="0.01" value="0.1"></label>
-        <label class="field">Velocidade geral <output id="char-speed-out">1.00×</output><input type="range" id="char-speed" min="0.25" max="3" step="0.05" value="1"></label>
-       </div>
-       <h3>Durações das animações no jogo</h3>
-       <div class="row">
-        <label class="check" style="flex:1"><input type="checkbox" id="char-sync"> Usar duração dos clipes nas regras (X, C, recuo, guard stun, land)</label>
-        <label class="field" style="width:110px">Ref.<select id="char-sync-source"><option value="0">Azul</option><option value="1">Vermelho</option></select></label>
-       </div>
-       <div id="char-durations" class="report"></div>
-       <p class="hint">Sem sincronizar, a ação respeita a duração configurada e o clipe é esticado para acompanhá-la. Com sincronização, a duração do clipe (÷ velocidade) define a duração da ação e a física distribui a mesma distância nesse tempo.</p>
-       <h3>Testar todas as animações do GLB</h3>
-       <p class="hint">Prévia puramente visual: reproduz o clipe inteiro, mesmo sem estado associado. Não muda movimento, dano, colisão ou regras.</p>
-       <div class="row"><label class="field" style="width:95px">Slot<select id="char-preview-slot"><option value="0">Azul</option><option value="1">Vermelho</option></select></label><label class="field" style="flex:1">Clipe<select id="char-preview-clip"></select></label><button type="button" id="char-preview-play">▶ Tocar</button><button type="button" id="char-preview-stop">■</button></div>
-       <p class="hint" id="char-preview-info"></p>
-       <h3>Eventos do Studio × jogo</h3>
-       <p class="hint">Compara as janelas marcadas no Studio (hitbox, invulnerabilidade, recuperação) com as janelas reais da simulação. Apenas visualização: nenhuma regra é alterada.</p>
-       <div id="studio-events" class="report"></div>
-      </div>
-     </section>
      <section data-section="controls" hidden>
       <div class="bento-card" data-subcard="teclas-azul" data-sublabel="Teclas Azul">
        <h3>Teclas</h3>
@@ -350,6 +314,44 @@
    <div id="win-overlay" aria-hidden="true"></div>
    <div id="perf-overlay" hidden></div>
    <div id="moves-hud" hidden aria-label="Movimentos equipados"></div>
+   <button type="button" id="chars-open" class="corner-btn corner-btn-left" aria-expanded="false" aria-controls="chars-drawer" title="Personagens e animações: modelos, biblioteca de clipes e a animação de cada estado">👤 Personagens</button>
+   <aside id="chars-drawer" class="moves-drawer chars-drawer" hidden aria-label="Personagens e animações"><header><strong>👤 Personagens e animações</strong><button type="button" id="chars-close" aria-label="Fechar Personagens" title="Fechar (Esc)">✕</button></header>
+    <nav id="chars-fighters" class="act-tabs" aria-label="Lutador"><button type="button" data-fighter-tab="0" aria-pressed="true">🔵 Azul</button><button type="button" data-fighter-tab="1" aria-pressed="false">🔴 Vermelho</button></nav>
+    <div class="act-views"><div id="chars-main">
+     <p class="hint">Carregue o <b>.glb</b> do Animation Studio (ou escolha um personagem salvo). Depois <b>arraste um clipe da biblioteca</b> para o estado, ou escolha no seletor da linha. A posição continua vindo da física.</p>
+     <div id="char-slots"></div>
+     <details class="act-card" id="chars-global"><summary><b>⚙ Opções gerais, durações, testes e armazenamento</b> <small class="muted">avançado</small></summary>
+       <h3>Opções gerais das animações</h3>
+       <div class="row">
+        <label class="check"><input type="checkbox" id="char-lock-root" checked disabled> Raiz presa à física</label>
+        <label class="check"><input type="checkbox" id="char-fit" checked> Ajustar altura (1,3 m)</label>
+       </div>
+       <div class="grid2-fields">
+        <label class="field">Fade estados <output id="char-fade-out">0.18 s</output><input type="range" id="char-fade" min="0.02" max="0.6" step="0.01" value="0.18"></label>
+        <label class="field">Fade X/C/reação <output id="char-action-fade-out">0.07 s</output><input type="range" id="char-action-fade" min="0.02" max="0.3" step="0.01" value="0.07"></label>
+        <label class="field">Histerese loco <output id="char-hold-out">0.10 s</output><input type="range" id="char-hold" min="0" max="0.4" step="0.01" value="0.1"></label>
+        <label class="field">Velocidade geral <output id="char-speed-out">1.00×</output><input type="range" id="char-speed" min="0.25" max="3" step="0.05" value="1"></label>
+       </div>
+       <h3>Durações das animações no jogo</h3>
+       <div class="row">
+        <label class="check" style="flex:1"><input type="checkbox" id="char-sync"> Usar duração dos clipes nas regras (X, C, recuo, guard stun, land)</label>
+        <label class="field" style="width:110px">Ref.<select id="char-sync-source"><option value="0">Azul</option><option value="1">Vermelho</option></select></label>
+       </div>
+       <div id="char-durations" class="report"></div>
+       <p class="hint">Sem sincronizar, a ação respeita a duração configurada e o clipe é esticado para acompanhá-la. Com sincronização, a duração do clipe (÷ velocidade) define a duração da ação e a física distribui a mesma distância nesse tempo.</p>
+       <h3>Testar todas as animações do GLB</h3>
+       <p class="hint">Prévia puramente visual: reproduz o clipe inteiro, mesmo sem estado associado. Não muda movimento, dano, colisão ou regras.</p>
+       <div class="row"><label class="field" style="width:95px">Slot<select id="char-preview-slot"><option value="0">Azul</option><option value="1">Vermelho</option></select></label><label class="field" style="flex:1">Clipe<select id="char-preview-clip"></select></label><button type="button" id="char-preview-play">▶ Tocar</button><button type="button" id="char-preview-stop">■</button></div>
+       <p class="hint" id="char-preview-info"></p>
+       <h3>Eventos do Studio × jogo</h3>
+       <p class="hint">Compara as janelas marcadas no Studio (hitbox, invulnerabilidade, recuperação) com as janelas reais da simulação. Apenas visualização: nenhuma regra é alterada.</p>
+       <div id="studio-events" class="report"></div>
+       <h3>Armazenamento dos modelos e animações</h3>
+       <p class="hint">Os GLBs ficam salvos neste navegador, identificados pelo conteúdo (SHA-256), não pelo nome. Nada é excluído sem você pedir.</p>
+       <div id="ws-storage" class="report"></div>
+     </details>
+    </div></div>
+   </aside>
    <button type="button" id="moves-open" class="corner-btn" aria-expanded="false" aria-controls="moves-drawer" title="Ações: Moves (até 4 por personagem, com o botão de cada um), Tackle, Esquiva e Bloqueio: sliders e animações">⚔ Ações</button>
    <aside id="moves-drawer" class="moves-drawer" hidden aria-label="Ações"><header><strong>⚔ Ações</strong><button type="button" id="moves-close" aria-label="Fechar Ações" title="Fechar (Esc)">✕</button></header><nav id="act-tabs" class="act-tabs" aria-label="Seções das ações"><button type="button" data-act="moves" aria-pressed="true">✦ Moves</button><button type="button" data-act="tackle" aria-pressed="false">💥 Tackle</button><button type="button" data-act="dodge" aria-pressed="false">💨 Esquiva</button><button type="button" data-act="block" aria-pressed="false">🛡 Bloqueio</button></nav><div class="act-views"><div id="moves-panel"></div><div id="act-tackle" hidden></div><div id="act-dodge" hidden></div><div id="act-block" hidden></div></div></aside>
     <div id="offscreen-arrow" hidden><span class="arrow-icon">◀</span> <span class="arrow-dist"></span></div>

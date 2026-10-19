@@ -95,6 +95,7 @@ try {
     await s.page.locator('.char-slot').nth(0).locator('input[data-model]').setInputFiles(modelB);
     await s.page.waitForFunction(id => window.__lab.ui.characters[0]?.source.assetId && window.__lab.ui.characters[0].source.assetId !== id, idA);
     check('Biblioteca', 'trocar para outro modelo não traz as animações do primeiro', (await s.L(() => window.__lab.ui.characters[0].clips.filter(c => c.name.includes('[animacoes-extra.glb]')).length)) === 0);
+    await s.L(() => document.querySelectorAll('#chars-drawer details').forEach(d=>d.open=true));
     const sel = s.page.locator('.char-slot').nth(0).locator('[data-lib]');
     await sel.waitFor({state: 'visible'});
     check('Biblioteca', 'a lista mostra os dois personagens salvos', (await sel.locator('option').count()) === 3, await sel.locator('option').allTextContents());
@@ -107,14 +108,17 @@ try {
   const pick = async (action, text) => {const sel = s.page.locator(`.char-slot >> nth=0 >> .state-row[data-action="${action}"] select[data-primary]`);const v = await sel.evaluate((el, t) => [...el.options].find(o => o.textContent.includes(t)).value, text);await sel.selectOption(v);};
   await pick('tackle', 'golpe [animacoes-extra.glb]');await pick('walk', 'freio [animacoes-extra.glb]');
   await s.L(() => {const c = window.__lab.ui.characters[0];c.addVariant('walk', c.clips.findIndex(x => x.name === 'run'));c.speeds.tackle = 1.35;c.clipOffsets[c.clips.findIndex(x => x.name.startsWith('golpe'))] = -.07;c.save();});
+  await s.L(() => document.querySelectorAll('#chars-drawer details').forEach(d => d.open = true));
+  await s.L(() => window.__lab.charPanel.selectFighter(0));
+  await s.L(() => document.querySelectorAll('#chars-drawer .fold-btn[aria-expanded="false"]').forEach(b => b.click()));
   const off = s.page.locator('.char-slot >> nth=0 >> input[data-offset]');await off.fill('0.18');await off.dispatchEvent('change');
-  await s.page.locator('.char-slot').nth(1).getByRole('button', {name: 'Usar o do azul'}).click();await s.page.waitForFunction(() => window.__lab.ui.characters[1]?.clips.length === 6);
+  await s.L(() => window.__lab.charPanel.selectFighter(1));await s.page.locator('.char-slot').nth(1).getByRole('button', {name: 'Usar o do azul'}).click();await s.page.waitForFunction(() => window.__lab.ui.characters[1]?.clips.length === 6);
   check('Modelo', 'vermelho com o mesmo modelo recebe as animações importadas', true);
   // Ajustes, preferências e partida.
   await s.L(() => window.__lab.tuning.commit([['rules.recoil', .42], ['actions.tackle.duration', .47], ['locomotion.acceleration', 31], ['vfx.hit.variant', 2]], 'teste workspace'));
   await s.tab('overlays');await s.page.locator('[data-overlay="hurtboxes"]').check();await s.page.selectOption('#rp-speed', '0.5');
   await s.tab('match');await s.page.fill('#seed', '4321');await s.page.locator('#seed').dispatchEvent('change');
-  await s.tab('characters');await s.page.locator('#char-fade').fill('0.31');await s.page.locator('#char-fade').dispatchEvent('input');
+  await s.tab('characters');await s.L(() => document.querySelectorAll('#chars-drawer details').forEach(d=>d.open=true));await s.page.locator('#char-fade').fill('0.31');await s.page.locator('#char-fade').dispatchEvent('input');
   await s.tab('tuning');await s.page.fill('#calib-name', 'Antes do teste A×B');await s.page.click('#calib-save');
   await s.page.waitForTimeout(700);const st = await settle(s.L);
   check('Workspace', 'gravação confirmada pela transação (estado “saved”)', st.state === 'saved', JSON.stringify(st));
@@ -136,16 +140,19 @@ try {
   check('Reabrir', 'sem erros no console', s.errors.length === 0, s.errors.join(' | '));
   await s.page.screenshot({path: out + '2-reaberto.png'});
   // Reabrir último modelo após remover; restauração automática desligada para o vermelho.
-  await s.tab('characters');await s.page.locator('.char-slot').nth(1).getByRole('button', {name: 'Remover'}).click();
+  await s.tab('characters');await s.L(() => window.__lab.charPanel.selectFighter(1));await s.page.locator('.char-slot').nth(1).getByRole('button', {name: 'Remover'}).click();
   check('Último modelo', 'botão “Reabrir último modelo utilizado” aparece após remover', await s.page.locator('.char-slot >> nth=1 >> [data-reopen]').count() === 1);
   await s.page.locator('.char-slot >> nth=1 >> [data-reopen]').click();await s.page.waitForFunction(() => window.__lab.ui.characters[1]?.clips.length === 6);
   check('Último modelo', 'reabre do armazenamento com as animações', true);
+  await s.L(() => document.querySelectorAll('#chars-drawer details').forEach(d => d.open = true));
   await s.page.locator('.char-slot >> nth=1 >> [data-autorestore]').uncheck();await settle(s.L);await s.ctx.close();
   s = await open(dirA);
   check('Último modelo', 'restauração automática independente por slot (azul sim, vermelho não)', await s.L(() => !!window.__lab.ui.characters[0] && !window.__lab.ui.characters[1]));
   // Abre a aba só se ainda não estiver aberta (o seletor sem `button` também casava o painel aberto e clicar na aba aberta a recolhe; reprovava de forma intermitente).
   await s.page.evaluate(() => {const p = document.getElementById('panel');if (p.hidden || p.dataset.tool !== 'characters') document.querySelector('button[data-tool="characters"]').click();});
+  await s.L(() => window.__lab.charPanel.selectFighter(1));
   check('Último modelo', 'vermelho oferece reabrir o último modelo', await s.page.locator('.char-slot >> nth=1 >> [data-reopen]').count() === 1);
+  await s.L(() => document.querySelectorAll('#chars-drawer details').forEach(d => d.open = true));
   await s.page.locator('.char-slot >> nth=1 >> [data-autorestore]').check();await s.page.locator('.char-slot >> nth=1 >> [data-reopen]').click();await s.page.waitForFunction(() => window.__lab.ui.characters[1]);
 
   // ================= 3. Backup completo → perfil limpo =================
@@ -186,6 +193,7 @@ try {
   check('Integridade', 'selecionar de novo regrava a cópia danificada e recupera animações e associações', await s.L(() => window.__lab.ui.characters[0].clips.length) === 6 && (await s.L(() => window.__lab.ws.doc.models[window.__lab.ui.characters[0].source.assetId].state.variants.tackle?.[0])) === 'golpe [animacoes-extra.glb]');
   await s.page.waitForFunction(() => document.querySelectorAll('#ws-storage tr[data-asset]').length >= 2);
   const count = () => s.L(() => window.__lab.store.listAssets().then(l => l.length));const n0 = await count();
+  await s.L(() => document.querySelectorAll('#chars-drawer details').forEach(d => d.open = true));
   s.page.__accept = false;await s.page.locator('#ws-storage tr[data-asset] [data-del]').first().click();await s.page.waitForTimeout(200);
   check('Exclusão', 'cancelar a confirmação não exclui nada', await count() === n0);
   await s.ctx.close();

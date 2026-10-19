@@ -240,8 +240,8 @@ try {
   step(`gravação de partida: ${recorded.ticks} passos IA × IA salvos (comprimidos em ${recJson.commands.length} trechos) e reproduzidos com estado final idêntico; comparação A × B (gravação e cenários) e proposta de patch do config.ts com conflito X/C`);
 
   // ---------- 2/3. Personagem do Studio e eventos ----------
-  await page.click('[data-tool="characters"]');await page.locator('.char-slot').nth(0).locator('input[type=file]').setInputFiles(out + 'personagem-studio.glb');
-  await page.waitForFunction(() => window.__lab.ui.characters[0]);await page.locator('.char-slot').nth(1).getByRole('button', {name: 'Usar o do azul'}).click();
+  await page.evaluate(() => document.querySelector('[data-tool="characters"]').click());await page.locator('.char-slot').nth(0).locator('input[type=file]').setInputFiles(out + 'personagem-studio.glb');
+  await page.waitForFunction(() => window.__lab.ui.characters[0]);await page.evaluate(() => window.__lab.charPanel.selectFighter(1));await page.locator('.char-slot').nth(1).getByRole('button', {name: 'Usar o do azul'}).click();await page.evaluate(() => window.__lab.charPanel.selectFighter(0));
   const ch = await L(() => {const c = window.__lab.ui.characters[0];return {mapping: c.mapping, inScene: !!c.root.parent, blockVisible: window.__lab.view.meshes[0].visible};});
   assert.equal(ch.inScene, true);assert.equal(ch.blockVisible, false);assert.equal(ch.mapping.tackle, 2);assert.equal(ch.mapping.idle, 0);
   const studioText = await page.textContent('#studio-events');assert.match(studioText, /Invulnerabilidade0–200 ms0–200 ms/);assert.match(studioText, /≠ Hitbox ativa80–320 ms0–400 ms/);
@@ -252,7 +252,8 @@ try {
   await page.waitForTimeout(400);await page.screenshot({path: out + 'personagens.png'});
   step('personagens do Studio: mapa de ações, animação sincronizada com o tackle, cópia tingida no vermelho e eventos Studio × jogo');
   // Velocidade por animação e durações das animações como regras.
-  await page.click('[data-tool="characters"]');
+  await page.evaluate(() => document.querySelector('[data-tool="characters"]').click());
+  await page.evaluate(() => document.querySelectorAll('#chars-drawer details').forEach(d=>d.open=true));
   // Velocidade por estado fica no painel “▸” de cada estado.
   for (const a of ['idle', 'tackle']) await page.evaluate(a => {const b = document.querySelectorAll('.char-slot')[0].querySelector(`[data-action="${a}"] [data-more]`);if (b.getAttribute('aria-expanded') !== 'true') b.click();}, a);
   const idleRange = page.locator('.char-slot').nth(0).locator('[data-action="idle"] input[type=range]');
@@ -269,7 +270,7 @@ try {
   const sync = await L(() => {const c = window.__lab.ui.characters[0], f = window.__lab.game.fighters[0];return {t: c.current.action.time, expected: f.action.elapsed / window.__lab.C.actions.tackle.duration * c.current.action.getClip().duration};});
   assert.ok(Math.abs(sync.t - sync.expected) < .15, 'clip inteiro dentro da ação');
   await L(() => window.__lab.tuning.undo());assert.equal(await L(() => window.__lab.C.actions.tackle.duration), 3);
-  await page.click('[data-tool="characters"]');await page.uncheck('#char-sync');await L(() => {window.__lab.tuning.resetAll();});
+  await page.evaluate(() => document.querySelector('[data-tool="characters"]').click());await page.uncheck('#char-sync');await L(() => {window.__lab.tuning.resetAll();});
   step('animações: velocidade por ação e geral; durações das animações definem as durações de X e C (janelas nunca vêm do GLB) (com desfazer)');
 
   // Compatibilidade e layout.

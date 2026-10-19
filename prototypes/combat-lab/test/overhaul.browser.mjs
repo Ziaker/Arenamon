@@ -141,7 +141,7 @@ try {
   if (existsSync(glb)) {
     await openTab('characters');
     await page.setInputFiles('#char-slots .char-slot input[data-model]', glb);await page.waitForFunction(() => window.__lab.ui.characters[0]);
-    await page.click('#char-slots .char-slot:nth-child(2) [data-same]');await page.waitForFunction(() => window.__lab.ui.characters[1]);
+    await page.evaluate(() => window.__lab.charPanel.selectFighter(1));await page.click('#char-slots .char-slot:nth-child(2) [data-same]');await page.evaluate(() => window.__lab.charPanel.selectFighter(0));await page.waitForFunction(() => window.__lab.ui.characters[1]);
     await L(() => window.__lab.tuning.commit([['extras.toggles.enableEnemyAI', 1], ['extras.toggles.enablePlayerAI', 1]], 'IA x IA'));await openTab('match');await start();
     for (let i = 0; i < 12; i++) {await page.waitForTimeout(250);await page.screenshot({path: out + `frames/luta-${String(i).padStart(2, '0')}.png`, clip: stage});}
     await page.waitForTimeout(6000);

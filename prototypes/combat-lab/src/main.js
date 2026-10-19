@@ -522,13 +522,23 @@ if ($('panel-hints-toggle')) {
 }
 /** Moves: gaveta própria no canto da arena (fora da barra esquerda). */
 function toggleMoves(open = $('moves-drawer').hidden) {
+  if (open) toggleChars(false);
   $('moves-drawer').hidden = !open;$('moves-open').setAttribute('aria-expanded', String(open));$('moves-open').classList.toggle('active', open);
   if (open) actionsDrawer.render();
 }
 $('moves-open').onclick = () => toggleMoves();$('moves-close').onclick = () => toggleMoves(false);
+/** Personagens: gaveta larga própria (modelos, biblioteca de clipes e a animação de cada estado). */
+function toggleChars(open = $('chars-drawer').hidden) {
+  if (open) toggleMoves(false);
+  $('chars-drawer').hidden = !open;$('chars-open').setAttribute('aria-expanded', String(open));$('chars-open').classList.toggle('active', open);
+  if (open) {renderCharacters();renderStudioEvents();}
+}
+$('chars-open').onclick = () => toggleChars();$('chars-close').onclick = () => toggleChars(false);
+window.addEventListener('keydown', e => {if (e.key === 'Escape' && !$('chars-drawer').hidden && !e.target.matches?.('input[type=text],input[type=search]')) {e.preventDefault();e.stopImmediatePropagation();toggleChars(false);}}, true);
 window.addEventListener('keydown', e => {if (e.key === 'Escape' && !$('moves-drawer').hidden && !e.target.matches?.('input[type=text],input[type=search]')) {e.preventDefault();e.stopImmediatePropagation();toggleMoves(false);}}, true);
 function openTool(tool) {
   if (tool === 'moves') {toggleMoves();return;}
+  if (tool === 'characters') {toggleChars(true);return;}   // abre a gaveta (o botão da barra é só compatibilidade e fica oculto)
   const same = !$('panel').hidden && $('panel').dataset.tool === tool;$('panel').hidden = same;$('panel').dataset.tool = tool;
   for (const b of document.querySelectorAll('[data-tool]')) b.classList.toggle('active', !same && b.dataset.tool === tool);
   for (const s of document.querySelectorAll('[data-section]')) s.hidden = s.dataset.section !== tool;$('panel-title').textContent = TITLES[tool];
@@ -935,7 +945,7 @@ function applyDocUi(doc) {
   if (u.previewSlot) $('char-preview-slot').value = u.previewSlot;
   if (typeof u.dockCollapsed === 'boolean' && u.dockCollapsed !== $('dock').classList.contains('collapsed')) $('dock-toggle').click();
   if (u.dockView) document.querySelector(`[data-dock="${u.dockView}"]`)?.click();
-  if (u.tool === null) $('panel-close').click();else if (u.tool && TITLES[u.tool] && ($('panel').hidden || $('panel').dataset.tool !== u.tool)) openTool(u.tool);
+  if (u.tool === null) $('panel-close').click();else if (u.tool && TITLES[u.tool] && u.tool !== 'characters' && u.tool !== 'moves' && ($('panel').hidden || $('panel').dataset.tool !== u.tool)) openTool(u.tool);
 }
 const collectApp = () => ({name: 'arenamon-combate-laboratorio', build: document.title, userAgent: navigator.userAgent});
 
@@ -1001,6 +1011,6 @@ window.__arenaLive = {rules: C.rules, test: C.test, locomotion: C.locomotion, ca
 // window.__lab só aparece depois da restauração do workspace (os testes esperam por ele).
 bootWorkspace().catch(e => {console.error('workspace:', e);ui.workspaceError = e.message;return null;}).then(boot => {
   // API dos movimentos especiais (registro vazio): registerMove, listMoves, validateMove; equipar com setLoadout.
-  window.__lab = {moves: {...Moves, setLoadout: (id, ids) => game.setLoadout(id, ids), standard: STANDARD_MOVE_IDS, equipStandard: id => game.setLoadout(id, STANDARD_MOVE_IDS)}, C, game, view, hudProposals, presets, movement, playSequence, diagnostics, training, perf: perfPanel, aiEval, projectFiles, reportsOf, visualPanel, recorder, replay, tuning, ui, startMatch, startScenario: id => startScenario(SCENARIOS.find(s => s.id === id)), stepFrames, seekTick, goLive, togglePause, setCharacter, loadStudioFile, SCENARIOS, runScenario, spawn, openTool,
+  window.__lab = {charPanel, moves: {...Moves, setLoadout: (id, ids) => game.setLoadout(id, ids), standard: STANDARD_MOVE_IDS, equipStandard: id => game.setLoadout(id, STANDARD_MOVE_IDS)}, C, game, view, hudProposals, presets, movement, playSequence, diagnostics, training, perf: perfPanel, aiEval, projectFiles, reportsOf, visualPanel, recorder, replay, tuning, ui, startMatch, startScenario: id => startScenario(SCENARIOS.find(s => s.id === id)), stepFrames, seekTick, goLive, togglePause, setCharacter, loadStudioFile, SCENARIOS, runScenario, spawn, openTool,
     ws: boot?.ws ?? null, store: boot?.store ?? null, wsUI: boot?.wsUI ?? null, workspaceBoot: boot};
 });
