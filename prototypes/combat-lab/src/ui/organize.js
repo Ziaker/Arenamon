@@ -7,7 +7,7 @@ import {C} from '../sim/config.js';
 const re = (...p) => new RegExp('^(?:' + p.join('|') + ')');
 export const MECHANICS = [
   ['tackle', 'Tackle (X)', re('actions\\.tackle\\.', 'actions\\.buffer\\.', 'extras\\.combat\\.(?:tackle|impactHitstop|contactProjection)', 'rules\\.(?:recoil|blend)', 'extras\\.toggles\\.(?:enableTackle|enableHitstop)', 'vfx\\.(?:hit|solidImpact|shakeHit)\\.')],
-  ['dodge', 'Esquiva (C)', re('actions\\.dodge\\.', 'actions\\.cancel\\.', 'extras\\.combat\\.vault', 'extras\\.toggles\\.(?:enableDodge|enableInvulnerability|enableVault)', 'vfx\\.(?:dodge|solidDodge)\\.')],
+  ['dodge', 'Esquiva (C)', re('actions\\.dodge\\.', 'actions\\.cancel\\.', 'extras\\.combat\\.vault', 'extras\\.toggles\\.(?:enableDodge|enableInvulnerability|enableVault|enableTechRecovery)', 'vfx\\.(?:dodge|solidDodge)\\.')],
   ['sprint', 'Sprint', re('actions\\.sprint\\.', 'extras\\.toggles\\.enableSprint', 'vfx\\.(?:sprint|solidRunDust|solidRunWind|solidDust|solidWind)\\.')],
   ['defense', 'Defesa e bloqueio perfeito', re('rules\\.(?:guard|perfect)', 'extras\\.combat\\.(?:guard|perfect)', 'actions\\.dodge\\.(?:counterWindow|perfectEvadeStamina)', 'actions\\.tackle\\.(?:counterSpeed|guardCancel|perfectGuardCancel)', 'extras\\.toggles\\.(?:enableDefense|enableCounterBonus)', 'vfx\\.(?:block|solidBlock|perfect|shakeGuard|shakePerfect)\\.')],
   ['stamina', 'Stamina e exaustão', re('rules\\.(?:staminaMax|regen|exhaust)', 'extras\\.combat\\.(?:exhaustRecovery|guardRegenFactor)', 'actions\\.sprint\\.(?:staminaDrain|minStamina|exhaustedStop)', 'vfx\\.(?:exhaust|regen)\\.')],
@@ -40,7 +40,7 @@ const BASIC = new Set([
   'actions.cancel.windowStart', 'actions.cancel.windowEnd', 'actions.cancel.invulnerability', 'actions.buffer.window',
   'actions.sprint.speedMultiplier', 'actions.sprint.staminaDrain', 'actions.sprint.minStamina',
   'rules.recoil', 'rules.recoilFraction', 'rules.guardStun', 'rules.perfect', 'rules.perfectCooldown', 'rules.staminaMax', 'rules.regenDelay', 'rules.regenTime', 'rules.guardSpeed', 'rules.exhaustedSpeed',
-  'rules.clashFraction', 'rules.clashUp', 'rules.clashHorizontal', 'rules.launchUp', 'rules.launchHorizontal', 'rules.launchGravity', 'rules.landingRecovery', 'rules.wallRestitution',
+  'rules.clashFraction', 'rules.clashPushDistance', 'rules.techWindow', 'rules.techCost', 'rules.clashUp', 'rules.clashHorizontal', 'rules.launchUp', 'rules.launchHorizontal', 'rules.launchGravity', 'rules.landingRecovery', 'rules.wallRestitution',
   'extras.combat.guardDamageMultiplier', 'extras.combat.impactHitstop', 'extras.combat.clashHitstop', 'extras.combat.perfectGuardCounterWindow',
   'test.pushCoefficient', 'test.pushDuration', 'test.arenaHalf', 'test.hp',
   'locomotion.acceleration', 'locomotion.braking', 'locomotion.turnRate', 'locomotion.friction',

@@ -44,6 +44,9 @@ export function stepPhysics(fighters, dt, world = null) {
         f.landingSlide = T.enableLandingSkid ? {velocity: scale(flight.horizontal, X.landingSkidFraction)} : null;
         f.flight = null;f.velocity = vec();f.knockRecovery = R.landingRecovery;f.recoveryFrom = null;
         f.state = f.hp <= 0 ? 'defeated' : 'landing';
+        // Recovery rápido: C apertado a tempo no ar e stamina suficiente: ao tocar o chão, a esquiva sai na hora (o controlador a inicia).
+        const tech = f.tech;f.tech = null;
+        if (T.enableTechRecovery && tech && f.hp > 0 && f.stamina >= R.techCost - 1e-8 && (R.techCost <= 0 || !f.exhausted)) {f.knockRecovery = 0;f.landingSlide = null;f.techDodge = {dir: tech.dir};f.state = 'neutral';}
       } else {f.velocity = {...flight.horizontal};f.state = 'airborne';}
     }
     if (f.landingSlide) {
@@ -52,9 +55,9 @@ export function stepPhysics(fighters, dt, world = null) {
     }
     const skid = f.landingSlide ? f.landingSlide.velocity : vec();
     if (!f.push) {pushVel.set(f.id, skid);continue;}
-    const p = f.push, dist = p.distance * (smoothstep((p.elapsed + dt) / C.test.pushDuration) - smoothstep(p.elapsed / C.test.pushDuration));
+    const p = f.push, dur = p.duration ?? C.test.pushDuration, dist = p.distance * (smoothstep((p.elapsed + dt) / dur) - smoothstep(p.elapsed / dur));
     pushVel.set(f.id, add(scale(p.direction, dist / dt), skid));
-    p.elapsed += dt;if (p.elapsed >= C.test.pushDuration - 1e-8) f.push = null;
+    p.elapsed += dt;if (p.elapsed >= dur - 1e-8) f.push = null;
   }
   const speed = Math.max(0, ...fighters.map(f => length(add(f.velocity, pushVel.get(f.id)))));
   const steps = Math.max(1, Math.ceil(speed * dt / C.test.contactStep));

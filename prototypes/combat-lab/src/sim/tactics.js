@@ -18,7 +18,7 @@ import {C} from './config.js';
 import {emptyCommand, nominalDistance} from './entity.js';
 import {vec, add, scale, sub, dot, length, normalize, direction, clamp} from './math.js';
 import {actionProgress} from './motion.js';
-import {cancelWindow, isDepleted, startPermission} from './controller.js';
+import {cancelWindow, isDepleted, startPermission, timeToLand} from './controller.js';
 import {chainOpen, actionSpec} from './entity.js';
 import {initPerception, updatePerception} from './perception.js';
 import {predictContact, canDefenseArrive, calculatePunishWindow, trackPredictionAccuracy} from './prediction.js';
@@ -105,6 +105,16 @@ export function tacticalCommand(brain, self, target, dt, P) {
   t.perception ??= initPerception(brain, P);
   updatePerception(t.perception, brain, self, target, dt, P, t.time);
   const diff = sub(target.position, self.position), distance = length(diff), forward = distance > 1e-6 ? normalize(diff) : direction(self.facing);
+  // Recovery rápido: lançado, a IA aperta C pouco antes do chão (uma vez) e segura uma direção que a afasta do rival sem encostar na parede.
+  t.techPress = false;
+  if (!self.flight) t.techArmed = false;
+  else if (C.extras.toggles.enableTechRecovery && C.extras.toggles.enableDodge && self.hp > 0 && F.techRecovery) {
+    const R = C.rules, tl = timeToLand(self), canPay = self.stamina >= R.techCost - 1e-8 && (R.techCost <= 0 || !self.exhausted);
+    const s = safeSide(self, forward, t.orbit), side = vec(forward.z * s, -forward.x * s);
+    c.move = safeArenaDirection(self.position, normalize(add(scale(side, .85), scale(forward, distance < 3 ? -.6 : .2))));
+    if (canPay && !t.techArmed && tl <= R.techWindow * .85 + 1e-9 && (self.flight.age ?? 0) >= R.techMinAir) {t.techArmed = true;t.techPress = true;c.dodge = true;}
+    return finish(brain, c, self, target);
+  }
   if (F.opponentModel && t.opponentModel) {
     const oppExhausted = !!target.exhausted;
     const justExhausted = oppExhausted && !t.oppWasExhausted;
@@ -369,7 +379,7 @@ export function tacticalCommand(brain, self, target, dt, P) {
 
   // ---------- Sprint (revisão 1 e 2): encurta distância longa sem gastar a reserva ----------
   if (F.sprint && C.extras.toggles.enableSprint) {
-    const S2 = A.sprint, budget = A.dodge.cost + A.tackle.cost + S2.staminaDrain * .8 + .2;
+    const S2 = A.sprint, budget = A.dodge.cost + A.tackle.cost + (C.extras.ai.sprintReserve ?? (S2.staminaDrain * .8 + .2));
     const threatDist = zones ? zones.threatZone : (myReach + 1.2);
     if (self.sprinting || (t.sprinting && self.action?.kind === 'dodge')) {
       const keep = (distance > (F.spatial ? threatDist : myReach + 1.2)) && self.stamina > A.tackle.cost + .25;
@@ -534,14 +544,14 @@ const oppAttackingNow = target => target.action?.kind === 'tackle';
 /** Só existe a IA mais recente (revisão 2); revisionOverride serve apenas à avaliação pareada interna. */
 export const revisionOf = brain => (brain.revisionOverride ?? 2) | 0;
 /** Melhorias das revisões da IA (a avaliação pode ligar uma a uma para medir o efeito). */
-export const REVISION_FEATURES = ['validate', 'reach', 'stamina', 'counter', 'sprint', 'dodgeStamina', 'perception', 'prediction', 'spatial', 'economy', 'defense', 'opponentModel', 'sequencePlanner', 'difficulty'];
+export const REVISION_FEATURES = ['validate', 'reach', 'stamina', 'counter', 'sprint', 'dodgeStamina', 'perception', 'prediction', 'spatial', 'economy', 'defense', 'opponentModel', 'sequencePlanner', 'difficulty', 'techRecovery'];
 /**
  * Medido (400 lutas por variante contra a IA anterior, sementes fixas): “stamina” (nunca se exaurir por escolha) derrubou a
  * taxa de vitória de ~56% para ~34% — ficar passiva perde mais do que a exaustão custa —, por isso fica DESLIGADA na
  * revisão 1 (continua disponível para avaliação). As demais não pioraram e melhoram as métricas de uso das mecânicas.
  */
-export const REVISION_1 = {validate: true, reach: true, stamina: false, counter: true, sprint: true, dodgeStamina: false, perception: false, prediction: false, spatial: false, economy: false, defense: false, opponentModel: false, sequencePlanner: false, difficulty: false};
-export const REVISION_2 = {validate: true, reach: true, stamina: false, counter: true, sprint: true, dodgeStamina: false, perception: true, prediction: true, spatial: true, economy: true, defense: true, opponentModel: true, sequencePlanner: true, difficulty: true};
+export const REVISION_1 = {validate: true, reach: true, stamina: false, counter: true, sprint: true, dodgeStamina: false, perception: false, prediction: false, spatial: false, economy: false, defense: false, opponentModel: false, sequencePlanner: false, difficulty: false, techRecovery: false};
+export const REVISION_2 = {validate: true, reach: true, stamina: false, counter: true, sprint: true, dodgeStamina: false, perception: true, prediction: true, spatial: true, economy: true, defense: true, opponentModel: true, sequencePlanner: true, difficulty: true, techRecovery: true};
 export const AI_REVISIONS = {
   0: {id: 'rev0', label: 'Anterior (v6)', description: 'IA de referência do v6; sem validação prévia de permissões, sem sprint tático.', features: Object.fromEntries(REVISION_FEATURES.map(k => [k, false]))},
   1: {id: 'rev1', label: 'Revisada (Tática)', description: 'Revisão tática com validação de permissões, estimativa de alcance, sprint e contra-ataques.', features: REVISION_1},
@@ -565,7 +575,7 @@ function finish(brain, c, self = null, target = null) {
     const unavailable = !!self.flight || self.knockRecovery > 0 || self.hp <= 0;
     if (unavailable) {
       c.tackle = false;
-      c.dodge = false;
+      c.dodge = !!(self.flight && brain.t?.techPress);
       c.guard = false;
       if (brain.t) brain.t.sprinting = false;
     } else {

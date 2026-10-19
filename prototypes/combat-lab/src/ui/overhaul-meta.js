@@ -49,10 +49,14 @@ const SPRINT = {
   exhaustedStop: ['Stamina zerada encerra o sprint', 'Ao zerar a stamina o sprint termina com o freio do sprint e o lutador fica exausto (regra da stamina).', toggle],
 };
 const AI = {
+  sprintReserve: ['Reserva de stamina ao correr (IA)', 'Stamina que a IA exige sobrar, além do custo de C e de X, para começar um sprint. Menor = corre mais; maior = poupa stamina para atacar.', R(0, 1.5, .05, n => n.toFixed(2))],
+  sprintMargin: ['Distância para correr (IA)', 'A IA só corre quando está a mais que a zona de ameaça do rival somada a esta margem (m). Negativa = corre mais cedo; maior = só corre de muito longe.', R(-3, 3, .1, m)],
   moveSmoothing: ['Suavização da intenção de movimento (IA)', 'Giro máximo (rad/s) da direção que a IA envia ao controlador. Contra giros instantâneos e zigue-zague; ataques e respostas a ameaças passam direto. 0 = intenções cruas (v6).', R(0, 40, .5, n => n ? n.toFixed(1) + ' rad/s' : 'desligada')],
   minDirectionHold: ['Retenção contra zigue-zague (IA)', 'Tempo mínimo antes de a IA voltar à direção anterior logo depois de mudar.', R(0, .6, .01, sec)],
 };
 const TOGGLES = {
+  enableClashPush: ['Clash por empurrão (em vez de lançamento)', 'Ligado: no clash entre tackles (mesmo Power Level) os dois são empurrados para trás no chão, sem voar. Desligado: lançamento aéreo (padrão).', toggle],
+  enableTechRecovery: ['Recovery rápido (C no ar)', 'Ligado: apertar C pouco antes de tocar o chão, depois de ser lançado, faz uma esquiva imediata ao pousar, na direção segurada, gastando stamina.', toggle],
   enableEnemyAI: ['IA do oponente', 'Desligada: o vermelho fica na arena como boneco, recebendo dano, colisões e reações físicas, sem tomar decisões.', toggle],
   enableSprint: ['Permitir sprint (C mantido)', 'Liga o sprint depois da esquiva com C pressionado.', toggle],
   enemyManual: ['Controle manual do vermelho', 'Ligado: o vermelho é controlado pelo teclado (teclas configuráveis em Controles; padrão I J K L, U tackle, O esquiva, P defesa, Y alvo) ou pelo segundo gamepad. A IA dele é ignorada.', toggle],
@@ -154,6 +158,11 @@ const RULES2 = {
   exhaustMode: ['Quando fica exausto', 'Abaixo do menor custo: ao sobrar menos stamina que a ação mais barata (X ou C), o lutador fica exausto até recuperar toda a stamina. Só em zero: regra da Etapa A (com máximos fracionários, ex.: 5,1, nunca acontecia).', select(['Só em zero (Etapa A)', 'Abaixo do menor custo de X/C'])],
   wallRestitution: ['Rebote na parede: horizontal', 'Fração da velocidade horizontal devolvida ao bater na parede durante o voo (0 = gruda, 1 = rebote total).', R(0, 2, .01, x)],
   wallBounceVertical: ['Rebote na parede: vertical (× velocidade vertical)', 'Multiplica a velocidade vertical no momento do choque com a parede (1 = mantém, 0 = zera, negativo inverte).', R(-1, 2, .01, x)],
+  clashPushDistance: ['Clash por empurrão: distância', 'Quanto cada lutador desliza para trás (m) quando “Clash por empurrão” está ligado. O choque, o dano e o hitstop são os mesmos do clash normal.', R(0, 8, .1, m)],
+  clashPushDuration: ['Clash por empurrão: duração', 'Tempo do deslize (s) do empurrão do clash.', R(.1, 1.2, .01, sec)],
+  techWindow: ['Recovery rápido: janela', 'Quantos segundos antes de tocar o chão o C é aceito para armar o recovery (voando). Maior = mais fácil; menor = exige timing.', R(.05, 1.5, .01, sec)],
+  techMinAir: ['Recovery rápido: tempo mínimo de voo', 'Só aceita o C depois de tantos segundos de voo (0 = desde o lançamento, respeitando a janela antes do chão). Evita escapar logo ao ser atingido.', R(0, 1.5, .01, sec)],
+  techCost: ['Recovery rápido: custo de stamina', 'Stamina gasta ao fazer o recovery (substitui o custo da esquiva). 0 = grátis. Sem stamina suficiente, o lutador cai normalmente.', R(0, 2, .05, n => n.toFixed(2))],
   wallBounceUp: ['Rebote na parede: impulso vertical', 'Velocidade para cima somada ao bater na parede durante o voo.', R(0, 20, .1, n => n.toFixed(1) + ' m/s')],
 };
 const TACKLE2 = {

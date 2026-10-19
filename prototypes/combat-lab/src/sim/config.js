@@ -7,6 +7,8 @@ export function defaults() {
   // blend: dissipação da velocidade quando a DEFESA cancela uma esquiva/tackle (GDD 7.3: 100 ms).
   const rules = {recoil: .3, recoilFraction: .15, blend: .1, guardStun: .2,
     launchGravity: 17.5, launchUp: 7.3, launchHorizontal: 11, launchDrag: 1.15, clashFraction: .3, clashUp: 8.1, clashHorizontal: 12,
+    // Clash por empurrão (enableClashPush): os dois recuam no chão em vez de serem lançados. Recovery rápido (enableTechRecovery): C no ar.
+    clashPushDistance: 2.2, clashPushDuration: .35, techWindow: .35, techMinAir: 0, techCost: 1,
     landingRecovery: .19, wallRestitution: .28, perfect: .2, perfectCooldown: 2, staminaMax: 3, regenDelay: 1, regenTime: 5, guardSpeed: .6,
     exhaustedSpeed: .7, guardTurn: 3 * Math.PI, guardAcceleration: 15 * Math.PI,
     // exhaustMode 1: exausto quando sobra menos que o menor custo de X/C (0 = só em zero, Etapa A). Rebote na parede: vertical.
@@ -36,7 +38,7 @@ export function defaults() {
     // a intenção (contra zigue-zague). 0 = intenções cruas (v6). Ataques e esquivas nunca são suavizados.
     // revision: 0 = IA tática anterior (15/10/2026); 1 = revisada (valida ações antes de pedir, alcance, sprint, contra-ataque);
     // 2 = evoluída (percepção justa, previsão de contato, gestão de arena/zonas, economia, defesa contextual, modelo do oponente, sequências e dificuldade balanceada).
-    ai: {revision: 2, difficultyTier: 'normal', moveSmoothing: 10, minDirectionHold: .18, initialCooldown: .6, orbitChangePeriod: 1.7, threatAlignment: .3, threatDistance: 4.8, defensiveRetreatDistance: 2.4, defensiveRetreatStrength: .5,
+    ai: {revision: 2, difficultyTier: 'normal', sprintReserve: .2, sprintMargin: 0, moveSmoothing: 10, minDirectionHold: .18, initialCooldown: .6, orbitChangePeriod: 1.7, threatAlignment: .3, threatDistance: 4.8, defensiveRetreatDistance: 2.4, defensiveRetreatStrength: .5,
       reactiveRetreatStrength: .2, approachDistance: 3, retreatDistance: 1.35, retreatStrength: .65, strafeStrength: .72, wallPrediction: .8, wallMargin: 1,
       attackRange: 3.35, combatAttackCooldown: 1.1, lowStaminaThreshold: .95, lowStaminaDistance: 2.5, lowStaminaRetreat: .7, evadeCycle: 3, evadeCycleIndex: 2},
     // Personalidade de cada IA. Reação/erros/variação/hesitação 0 e agressividade 0,5 = IA exata do v6.
@@ -56,7 +58,7 @@ export function defaults() {
     gameModes: {enemyMode: 8, playerProfile: 0},
     toggles: {enableTackle: 1, enableDodge: 1, enableDefense: 1, enableClash: 1, enableInvulnerability: 1, enableLaunch: 1, enableVault: 1, enableWallBounce: 1,
       enableAIAttack: 1, enableAIReactive: 1, enableCameraFollow: 1, enableCameraRecenter: 1, enablePlayerAI: 0, showHitboxes: 0, showAttackVectors: 0,
-      enableHitstop: 1, enableCounterBonus: 1, enableLandingSkid: 1, enableEnemyAI: 1, enableSprint: 1, enemyManual: 0, enableAnimationCombatWindows: 0},
+      enableHitstop: 1, enableCounterBonus: 1, enableLandingSkid: 1, enableEnemyAI: 1, enableSprint: 1, enemyManual: 0, enableAnimationCombatWindows: 0, enableClashPush: 0, enableTechRecovery: 1},
     // skill1–4: slots de movimentos especiais (padrão A, S, 3 e 4 do teclado; A e S = Reflect e Psyshock, D3). Sem movimento equipado, a tecla não faz nada.
     bindings: {forward: 0, back: 1, left: 2, right: 3, tackle: 4, dodge: 5, defend: 6, lock: 7, pause: 8, restart: 9, debug: 10, skill1: 11, skill2: 12, skill3: 49, skill4: 50},
     // Teclas do vermelho no controle manual (índices em keyCodes): I/J/K/L movem, U tackle, O esquiva, P defesa, Y alvo.

@@ -97,8 +97,8 @@ console.log('--- Iniciando testes da Fase 4 (Gestão de distância e arena) ---'
   // Longe (6.0m) e com stamina: deve correr
   assert(shouldSprintManaged(self, 6.0, 3.0, budget) === true, 'Deve ativar sprint a longa distância com stamina');
 
-  // Próximo da zona de ameaça (3.2m): deve parar de correr para não entrar vulnerável
-  assert(shouldSprintManaged(self, 3.2, 3.0, budget) === false, 'Deve parar o sprint ao se aproximar da zona de perigo');
+  // Na borda da zona de ameaça (3.0m, margem padrão 0): deve parar de correr para não entrar vulnerável
+  assert(shouldSprintManaged(self, 3.0, 3.0, budget) === false, 'Deve parar o sprint ao se aproximar da zona de perigo');
 
   // Pouca stamina: não deve correr
   self.stamina = 2.0;

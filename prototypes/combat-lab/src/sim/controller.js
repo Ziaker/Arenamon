@@ -99,6 +99,15 @@ export function bufferDuringHitstop(f, cmd) {
   const m = length(cmd.move) > 1 ? normalize(cmd.move) : cmd.move;
   f.inputBuffer = {kind, move: {...m}, dodgeDirection: cmd.dodgeDirection && {...cmd.dodgeDirection}, age: -Math.max(0, A.buffer.window > 0 ? 0 : 1e9), hitstop: true};
 }
+/** Tempo até o solo (s) de um lutador em voo balístico. */
+export function timeToLand(f) {const g = C.rules.launchGravity, fl = f.flight;return fl ? (fl.vy + Math.sqrt(Math.max(0, fl.vy * fl.vy + 2 * g * fl.y))) / g : 0;}
+/** Recovery rápido: C pedido no ar dentro da janela antes do pouso arma a esquiva; a direção segurada até o pouso é a que vale. */
+function armTechRecovery(f, cmd, dt) {
+  const R = C.rules, fl = f.flight;fl.age = (fl.age ?? 0) + dt;
+  const dir = cmd.dodgeDirection && length(cmd.dodgeDirection) > .01 ? cmd.dodgeDirection : length(cmd.move) > .01 ? (length(cmd.move) > 1 ? normalize(cmd.move) : cmd.move) : null;
+  if (cmd.dodge && !f.tech && fl.age >= R.techMinAir - 1e-8 && timeToLand(f) <= R.techWindow + 1e-8) f.tech = {dir: dir ? {...dir} : vec(), at: fl.age};
+  else if (f.tech && dir) f.tech.dir = {...dir};
+}
 export function updateFighter(f, cmd, fighters, dt) {
   const R = C.rules, X = C.extras, T = X.toggles, A = C.actions;
   // Buffer de entrada: o pedido mais recente de X ou C vale por actions.buffer.window, mesmo no ar ou na aterrissagem.
@@ -121,13 +130,27 @@ export function updateFighter(f, cmd, fighters, dt) {
     if (cmd.guardPressed && T.enableDefense) report(f, {kind: 'guard', result: 'denied', ...why});
   }
   if (f.charge && (f.flight || f.knockRecovery > 0 || f.hp <= 0)) cancelCharge(f, f.hp <= 0 ? 'defeated' : 'hit');   // golpe com lançamento, recuperação ou perda de apoio (M15.3, M27.1)
-  if (f.flight) {f.action = null;f.push = null;f.guard = false;f.vaultHeight = 0;f.velocity = vec();f.locomotionVelocity = vec();f.bufferedTackle = null;f.state = 'airborne';return;}
+  if (f.flight) {
+    if (T.enableTechRecovery && T.enableDodge && f.hp > 0) armTechRecovery(f, cmd, dt);
+    f.action = null;f.push = null;f.guard = false;f.vaultHeight = 0;f.velocity = vec();f.locomotionVelocity = vec();f.bufferedTackle = null;f.state = 'airborne';return;
+  }
   if (f.knockRecovery > 0) {f.knockRecovery = Math.max(0, f.knockRecovery - dt);if (f.knockRecovery <= 0) f.recoveryFrom = null;f.vaultHeight = 0;f.velocity = vec();f.locomotionVelocity = vec();f.action = null;f.guard = false;f.bufferedTackle = null;f.state = 'landing';return;}
   if (f.hp <= 0) {f.state = 'defeated';f.velocity = vec();f.action = null;f.push = null;f.vaultHeight = 0;f.bufferedTackle = null;return;}
   const target = fighters.find(o => o.id === cmd.target && o.hp > 0);
   const move = length(cmd.move) > 1 ? normalize(cmd.move) : cmd.move;
   // Mira (ataques sem direção, prévia): o alvo, se houver. Orientação do corpo: ver faceGoal abaixo.
   const desiredHeading = target ? angleOf(sub(target.position, f.position)) : length(move) > 0 ? angleOf(move) : f.facing;
+  // Recovery rápido: o pouso acabou de acontecer com C armado; esquiva na direção segurada, cobrando só o custo do recovery.
+  if (f.techDodge) {
+    const td = f.techDodge;f.techDodge = null;
+    if (T.enableDodge && !f.action) {
+      const s0 = f.stamina;
+      startAction(f, 'dodge', {move: td.dir, dodgeDirection: length(td.dir) > .01 ? td.dir : undefined}, fighters, desiredHeading, false, cmd.guard, !!target && !!cmd.locked);
+      f.action.techRecovery = true;f.techRecoveries = (f.techRecoveries ?? 0) + 1;
+      f.stamina = Math.max(0, s0 - R.techCost);f.regenBase = f.stamina;f.regenAge = 0;f.exhausted = isDepleted(f.stamina);
+      if (diag) report(f, {kind: 'dodge', result: 'executed', note: 'recovery rápido'});
+    }
+  }
   f.desiredMove = {...move};f.combatHeading = desiredHeading;f.inputDir = {...move};
   f.perfectCooldown = Math.max(0, f.perfectCooldown - dt);
   if (f.perfectLeft > 0) {f.perfectLeft = Math.max(0, f.perfectLeft - dt);if (f.perfectLeft < 1e-8 && !f.perfectSucceeded) f.perfectCooldown = R.perfectCooldown;}
