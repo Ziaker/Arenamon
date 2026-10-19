@@ -6,7 +6,7 @@
 // com atlas de texturas procedural, buffers reaproveitados e limite global de partículas (master.maxParticles).
 import * as T from 'three';
 import {clone} from 'three/addons/utils/SkeletonUtils.js';
-import {C} from '../sim/config.js';
+import {C, feintColor} from '../sim/config.js';
 
 const CELLS = {dot: 0, streak: 1, star4: 2, ring: 3, arrowDown: 4, diamond: 5, shard: 6, spark: 7, smoke: 8, shock: 9, star: 10, arrowUp: 11, crack: 12, hex: 13, chunk: 14, arc: 15};
 const MODE = {billboard: 0, ground: 1, axis: 2, plane: 3};
@@ -169,13 +169,18 @@ export class VfxSystem {
       if (this.seenEvents.has(e)) continue;this.seenEvents.add(e);
       const a = fighters[e.attacker], b = fighters[e.target];if (!a || !b) continue;
       const tag = `evento ${e.result} (passo ${e.tick ?? '?'}: ${e.attacker === 0 ? 'azul' : 'vermelho'} → ${e.target === 0 ? 'azul' : 'vermelho'})`;
-      if (e.result === 'impact') {if (e.slam) {const sc = C.rules.slamImpactScale;this.fire('ground', {pos: {x: a.position.x, z: a.position.z}, power: sc}, tag + ' · impacto do meteor slam no chão');this.shake('shakeGround', null, C.rules.slamImpactShake, tag);}this.fire('hit', {pos: b.position, n: e.normal, power: e.slam ? 1.5 : 1}, tag);this.shake(e.slam ? 'shakeGround' : 'shakeHit', e.normal, e.slam ? 1.4 : 1, tag);}
+      if (e.result === 'impact') {this.fire('hit', {pos: b.position, n: e.normal, power: e.slam ? 1.5 : 1}, tag);this.shake(e.slam ? 'shakeGround' : 'shakeHit', e.normal, e.slam ? 1.4 : 1, tag);}
       else if (e.result === 'wallSplat') {this.fire('hit', {pos: b.position, n: e.normal, power: 1.4}, tag);this.shake('shakeClash', e.normal, 1, tag);}
       else if (e.result === 'partial') {this.fire('block', {pos: b.position, n: e.normal, power: 1}, tag);this.shake('shakeGuard', e.normal, 1, tag);}
       else if (e.result === 'perfect') {this.fire('perfect', {pos: b.position, n: e.normal, power: 1, fighters}, tag);this.shake('shakePerfect', e.normal, 1, tag);}
       else if (e.result === 'clash' && e.attacker === 0) {const mid = {x: (a.position.x + b.position.x) / 2, z: (a.position.z + b.position.z) / 2};this.fire('clash', {pos: mid, n: e.normal, power: 1}, tag);this.shake('shakeClash', e.normal, 1, tag);}
     }
     fighters.forEach((f, i) => {
+      // Impacto do meteor slam no chão: sempre que o mergulho toca o chão, acertando ou não.
+      if (f.action?.slam && f.action.groundHit && !(this.slamSeen ??= new WeakSet()).has(f.action)) {
+        this.slamSeen.add(f.action);const tag = 'impacto do meteor slam no chão';
+        this.fire('ground', {pos: {x: f.position.x, z: f.position.z}, power: C.rules.slamImpactScale}, tag);this.shake('shakeGround', null, C.rules.slamImpactShake, tag);
+      }
       // Colisão real com o solo depois do voo (evento físico da simulação, não da animação).
       const L = f.lastLanding;
       if (L && this.landings[i] !== undefined && L.n !== this.landings[i]) {
@@ -185,13 +190,14 @@ export class VfxSystem {
       }
       this.landings[i] = L?.n ?? 0;
       // Finta (brake slide): poeira nos pés quando o lutador derrapa para cancelar o tackle.
-      const B = f.lastBrake;
-      if (B && this.brakes[i] !== undefined && B.n !== this.brakes[i]) this.fire('ground', {pos: {x: B.x, z: B.z}, power: Math.min(1.4, .5 + B.speed / 8)}, `finta: derrapagem (${B.speed.toFixed(1)} m/s)`);
-      this.brakes[i] = B?.n ?? 0;
       const prev = this.prevPos[i] ?? {...f.position};const dx = f.position.x - prev.x, dz = f.position.z - prev.z;this.prevPos[i] = {...f.position};
       if (dt <= 0) return;
       const alt = (f.flight?.y ?? 0) + (f.vaultHeight ?? 0);
-      if (f.action?.kind === 'dodge') this.stream('dodge', f, dt, {alt, dx, dz, i});
+      if (f.action?.kind === 'dodge') {
+        const R = C.rules, tint = !!f.action.feint && !!R.feintFxOn, d = C.vfx.dodge, saved = tint ? {...d} : null;
+        if (tint) {d.color = feintColor(R.feintFxColor);d.intensity = (d.intensity ?? 1) * R.feintFxIntensity;d.length = (d.length ?? 1) * R.feintFxSize;d.width = (d.width ?? 1) * R.feintFxSize;}
+        try {this.stream('dodge', f, dt, {alt, dx, dz, i});} finally {if (tint) Object.assign(d, saved);}
+      }
       else this.emit.delete(`dodge${i}`);
       if (f.sprinting || (this.previewUntil?.sprint > this.time && i === 0)) this.stream('sprint', f, dt, {alt, dx, dz, i});else this.emit.delete('sprint' + i);
       const ex = C.vfx.exhaust, exTarget = ex.target === 1 || (ex.target === 0 ? i === 1 : i === 0);

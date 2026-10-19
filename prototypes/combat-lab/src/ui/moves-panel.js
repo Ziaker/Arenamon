@@ -228,6 +228,24 @@ export function createMovesPanel({$, game, download, tuning, view, ui}) {
     return `<details data-k="p:${escape(title)}" ${open ? 'open' : ''}><summary><b>${escape(title)}</b></summary>${g[1].map(paramRow).join('')}</details>`;
   }
 
+  /** Liga os controles de parâmetros (data-p) de um escopo: arrastar mostra o valor ao vivo e, ao soltar, entra UMA entrada no histórico do ajustador (Ctrl+Z / Ctrl+Y). */
+  function bindParams(scope, rerender) {
+    const before = new Map(), label = path => PARAMS.flatMap(p => p[1]).find(r => r[0] + '.' + r[1] === path)?.[2] ?? path;
+    const show = (inp, v) => {const [g, k] = inp.dataset.p.split('.'), spec = PARAMS.flatMap(p => p[1]).find(r => r[0] === g && r[1] === k);scope.querySelector(`[data-o="${inp.dataset.p}"]`).textContent = spec[7](v);scope.querySelector(`[data-reset="${inp.dataset.p}"]`).disabled = v === defaults().world[g][k];};
+    const commit = (changes, text) => tuning ? tuning.commit(changes, text) : changes.forEach(([p, , v]) => {const [g, k] = p.replace(/^world\./, '').split('.');C.world[g][k] = v;});
+    for (const inp of scope.querySelectorAll('[data-p]')) {
+      const [g, k] = inp.dataset.p.split('.'), path = `world.${g}.${k}`;
+      if (inp.type === 'checkbox') {inp.onchange = () => {commit([[path, inp.checked ? 1 : 0]], label(inp.dataset.p));rerender();};continue;}
+      inp.oninput = () => {const v = Number(inp.value);if (!before.has(path)) before.set(path, C.world[g][k]);C.world[g][k] = v;show(inp, v);};
+      inp.onchange = () => {const after = C.world[g][k], was = before.get(path);before.delete(path);if (was !== undefined && was !== after) {C.world[g][k] = was;commit([[path, after]], label(inp.dataset.p));}rerender();};
+    }
+    for (const b of scope.querySelectorAll('[data-reset]')) b.onclick = () => {const [g, k] = b.dataset.reset.split('.');commit([[`world.${g}.${k}`, defaults().world[g][k]]], 'Restaurar ' + label(b.dataset.reset));rerender();};
+  }
+  /** Parâmetros da IA com Moves, para a aba IA da gaveta de Ações (antes ficavam na aba Moves). */
+  function renderAiParams(container) {
+    container.innerHTML = paramGroup('IA com Moves (decisões do adversário)', true);
+    bindParams(container, () => renderAiParams(container));
+  }
   function render() {
     const openKeys = new Set([...root.querySelectorAll('details[open][data-k]')].map(d => d.dataset.k));   // a interface não recolhe os grupos que você abriu
     const l0 = loadoutOf(0), l1 = loadoutOf(1), eqIds = [...new Set([...l0, ...l1].filter(Boolean))];
@@ -238,7 +256,7 @@ export function createMovesPanel({$, game, download, tuning, view, ui}) {
       return `<section class="mv-move" data-move="${mid}"><header><h3>✦ ${escape(moveLabel(mid))}</h3><small class="muted">${owners}</small></header>
         ${info?.hint ? `<p class="hint">${escape(info.hint)}</p>` : ''}${anims}${info ? paramGroup(info.group) : '<p class="hint">Este move ainda não tem parâmetros ajustáveis nesta tela.</p>'}</section>`;
     }).join('');
-    const shared = eqIds.length ? `<section class="mv-move" data-move="_charge"><header><h3>⚙ Carga (todos os moves equipados)</h3></header>${paramGroup('Carga (compartilhada)')}${l1.some(Boolean) ? paramGroup('IA com Moves (decisões do adversário)') : ''}</section>` : '';
+    const shared = eqIds.length ? `<section class="mv-move" data-move="_charge"><header><h3>⚙ Carga (todos os moves equipados)</h3></header>${paramGroup('Carga (compartilhada)')}</section>` : '';
     root.innerHTML = `
       <p class="hint">Escolha até <b>${C.world.slots} moves por personagem</b> e o <b>botão</b> de cada slot. Segure para carregar e solte para executar. Só aparecem os ajustes dos moves equipados.</p>
       <section class="mv-card"><h3>Equipar</h3>${loadoutBox(0, 'Jogador (azul)')}${loadoutBox(1, 'Adversário (vermelho)')}</section>
@@ -355,18 +373,8 @@ export function createMovesPanel({$, game, download, tuning, view, ui}) {
     for (const b of root.querySelectorAll('[data-emit]')) b.onclick = () => {const k = b.dataset.emit;(k === 'boom' ? emitExplosion() : emitProjectile(Number(k)));};
     $('mvp-run').onclick = () => {results = runMoveScenarios();render();};
     $('mvp-export').onclick = () => results && download(JSON.stringify({schema: 'arenamon-lab-report', version: 1, kind: 'moves-scenarios', createdAt: new Date().toISOString(), step: C.test.step, scenarios: results, homologation: MOVES_HOMOLOG.map((t, i) => ({item: t, verdict: homolog[i]?.v || 'pendente', note: homolog[i]?.n || ''}))}, null, 1), 'arenamon-cenarios-moves.json');
-    // Parâmetros dos Moves: arrastar mostra o valor ao vivo e, ao soltar, entra UMA entrada no histórico do ajustador (Ctrl+Z / Ctrl+Y).
-    const before = new Map(), label = path => PARAMS.flatMap(p => p[1]).find(r => r[0] + '.' + r[1] === path)?.[2] ?? path;
-    const show = (inp, v) => {const [g, k] = inp.dataset.p.split('.'), spec = PARAMS.flatMap(p => p[1]).find(r => r[0] === g && r[1] === k);root.querySelector(`[data-o="${inp.dataset.p}"]`).textContent = spec[7](v);root.querySelector(`[data-reset="${inp.dataset.p}"]`).disabled = v === defaults().world[g][k];};
-    const commit = (changes, text) => tuning ? tuning.commit(changes, text) : changes.forEach(([p, , v]) => {const [g, k] = p.replace(/^world\./, '').split('.');C.world[g][k] = v;});
-    for (const inp of root.querySelectorAll('[data-p]')) {
-      const [g, k] = inp.dataset.p.split('.'), path = `world.${g}.${k}`;
-      if (inp.type === 'checkbox') {inp.onchange = () => {commit([[path, inp.checked ? 1 : 0]], label(inp.dataset.p));render();};continue;}
-      inp.oninput = () => {const v = Number(inp.value);if (!before.has(path)) before.set(path, C.world[g][k]);C.world[g][k] = v;show(inp, v);};
-      inp.onchange = () => {const after = C.world[g][k], was = before.get(path);before.delete(path);if (was !== undefined && was !== after) {C.world[g][k] = was;commit([[path, after]], label(inp.dataset.p));}render();};
-    }
-    for (const b of root.querySelectorAll('[data-reset]')) b.onclick = () => {const [g, k] = b.dataset.reset.split('.');commit([[`world.${g}.${k}`, defaults().world[g][k]]], 'Restaurar ' + label(b.dataset.reset));render();};
+    bindParams(root, render);
     $('mvp-reset-all').onclick = () => {const ch = [];for (const g of ['charge', 'reflect', 'psyshock', 'beam', 'ai']) for (const [k, v] of Object.entries(defaults().world[g])) if (C.world[g][k] !== v) ch.push([`world.${g}.${k}`, v]);commit(ch, 'Restaurar os parâmetros dos Moves');render();};
   }
-  return {render, emitProjectile, emitLaser, emitExplosion, setEquip, setSlot, loadoutOf, get results() {return results;}, STANDARD};
+  return {render, renderAiParams, emitProjectile, emitLaser, emitExplosion, setEquip, setSlot, loadoutOf, get results() {return results;}, STANDARD};
 }

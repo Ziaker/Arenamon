@@ -583,7 +583,7 @@ const windowsOverlay = createWindowsOverlay({root: $('win-overlay'), view, game}
 $('win-controls').append(...tuning.sectionControls('Janelas de combate'));
 // Treino de defesa/esquiva perfeitas: o vermelho segue o roteiro do treino; tudo cronometrado em passos de simulação.
 const movesPanel = createMovesPanel({$, game, download, tuning, view, ui});
-const actionsDrawer = createActionsDrawer({$, tuning, ui, renderMoves: () => movesPanel.render(), onCharactersChanged: () => {syncCharacterCombatWindows();syncRuleDurations();dock.invalidate();}});
+const actionsDrawer = createActionsDrawer({$, tuning, ui, renderMoves: () => movesPanel.render(), renderAiMoves: c => movesPanel.renderAiParams(c), onCharactersChanged: () => {syncCharacterCombatWindows();syncRuleDurations();dock.invalidate();}});
 const movesHud = new MovesHud($('moves-hud'));
 /** Avisos discretos dos Moves (M28.6): falha de execução com o motivo e a devolução da stamina. */
 const seenNotices = new WeakSet(), MOVE_FAIL = {semEspaco: 'sem espaço — stamina devolvida, sem recarga', limiteDeEntidades: 'limite de entidades do mundo — stamina devolvida', semCarga: 'sem carga', effectMissing: 'efeito não registrado'};

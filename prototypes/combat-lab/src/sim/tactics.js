@@ -271,7 +271,7 @@ export function tacticalCommand(brain, self, target, dt, P) {
   // Finta do próprio tackle: se o rival lê o ataque no startup (levanta a defesa ou esquiva), a IA cancela em vez de bater na defesa.
   if (F.tackleFeint && AI.useFeint && TG.enableTackleFeint && self.action?.kind === 'tackle' && !self.action.slam && (self.action.hits?.size ?? 0) === 0 && self.action.elapsed < RU.feintWindow - .03) {
     const read = (target.guard && target.perfectLeft > 0) || (target.action?.kind === 'dodge' && target.counterWindow <= 0 && target.action.elapsed < C.actions.dodge.invulnerable);   // defesa perfeita aberta ou esquiva invulnerável: bater agora só dá contra-ataque ao rival
-    if (read) {t.feintRoll ??= brain.random();if (t.feintRoll < AI.feintChance) {c.dodge = true;c.target = target.id;return finish(brain, c, self, target);}}
+    if (read) {t.feintRoll ??= brain.random();if (t.feintRoll < AI.feintChance) {const back = scale(direction(self.action.heading), -1);c.dodge = true;c.move = back;c.dodgeDirection = back;c.target = target.id;return finish(brain, c, self, target);}}
   } else if (self.action?.kind !== 'tackle') t.feintRoll = null;
   // Continuação da carga: segura X até o PL planejado e solta quando o alvo está ao alcance; se o rival ataca, solta (PL2+ vence o clash) ou fintar.
   if (self.tackleCharge && t.tcharge) {
@@ -279,11 +279,11 @@ export function tacticalCommand(brain, self, target, dt, P) {
     c.move = aim;c.target = target.id;c.tackleHeld = true;c.dodgeDirection = aim;
     if (oppAtk && inc0?.reaches) {
       if (lv >= 2 && distance < plReach(lv) + .5) c.tackleHeld = false;
-      else if (F.tackleFeint && AI.useFeint && TG.enableTackleFeint) {c.dodge = true;c.tackleHeld = false;}
+      else if (F.tackleFeint && AI.useFeint && TG.enableTackleFeint) {const back = scale(direction(self.facing), -1);c.dodge = true;c.move = back;c.dodgeDirection = back;c.tackleHeld = false;}
       else c.tackleHeld = false;
     } else if (lv >= t.tcharge.level) {
       if (distance <= plReach(lv) - .15 || lv >= 3) c.tackleHeld = false;
-    } else if (distance > plReach(t.tcharge.level) + 1.6 && F.tackleFeint && AI.useFeint && TG.enableTackleFeint) {c.dodge = true;c.tackleHeld = false;}   // o alvo fugiu: finta em vez de errar
+    } else if (distance > plReach(t.tcharge.level) + 1.6 && F.tackleFeint && AI.useFeint && TG.enableTackleFeint) {const back = scale(direction(self.facing), -1);c.dodge = true;c.move = back;c.dodgeDirection = back;c.tackleHeld = false;}   // o alvo fugiu: finta em vez de errar
     if (!c.tackleHeld && !c.dodge) {t.myAttack = {at: t.time, read: null};t.why = 'carga';brain.cooldown = .4 + (1 - boldness) * .4 * brain.random();}
     return finish(brain, c, self, target);
   }

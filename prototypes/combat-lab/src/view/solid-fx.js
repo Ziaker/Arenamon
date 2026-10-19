@@ -2,7 +2,7 @@
 // Só apresentação: lê o estado da simulação, nunca escreve nela. Independe do renderizador de sprites (legado ou VfxRuntime).
 // Geometrias e materiais são criados uma vez e reutilizados; o número de objetos ativos tem teto rígido (C.vfx.solid.maxObjects).
 import * as T from 'three';
-import {C} from '../sim/config.js';
+import {C, feintColor} from '../sim/config.js';
 import {MOTION_SHAPES, DUST_NEW, WIND, RUN_DUST, RUN_WIND} from './solid-motion.js';
 import {SmokeVolume, SMOKE_MAX_SPHERES} from './smoke-volume.js';
 import {REFLECT_FX} from './solid-reflect.js';
@@ -195,19 +195,20 @@ export class SolidFx {
         if (e.result === 'chargeRelease' && e.move === 'reflect') { this.onReflect(e, world); continue; }
         const a = fighters[e.attacker], b = fighters[e.target]; if (!a || !b) continue;
         const n = e.normal ? this.unit(e.normal.x, e.normal.z) : this.unit(b.position.x - a.position.x, b.position.z - a.position.z);
-        if (e.result === 'impact') {if (e.slam) this.fire('solidLanding', {pos: {x: a.position.x, z: a.position.z}, power: C.rules.slamImpactScale}, 'impacto do meteor slam no chão');this.fire('solidImpact', {pos: b.position, n, power: 1}, `golpe ${e.attacker}→${e.target}`);}
+        if (e.result === 'impact') {this.fire('solidImpact', {pos: b.position, n, power: 1}, `golpe ${e.attacker}→${e.target}`);}
         else if (e.result === 'partial') this.fire('solidBlock', {pos: b.position, n, power: 1}, 'defesa parcial');
         else if (e.result === 'perfect') this.fire('solidBlock', {pos: b.position, n, power: 1.7}, 'defesa perfeita');
         else if (e.result === 'clash' && e.attacker === 0) this.fire('solidClash', {pos: {x: (a.position.x + b.position.x) / 2, z: (a.position.z + b.position.z) / 2}, n, power: 1}, 'clash');
       }
       fighters.forEach((f, i) => {
+        if (f.action?.slam && f.action.groundHit && !(this.slamSeen ??= new WeakSet()).has(f.action)) {this.slamSeen.add(f.action);this.fire('solidLanding', {pos: {x: f.position.x, z: f.position.z}, power: C.rules.slamImpactScale}, 'impacto do meteor slam no chão');}
         const L = f.lastLanding;
         if (L && this.landings[i] !== undefined && L.n !== this.landings[i]) {
           const minI = C.vfx.ground?.minImpact ?? 2;
           if (L.vertical >= minI) this.fire('solidLanding', {pos: {x: L.x, z: L.z}, power: Math.min(2, L.vertical / 7)}, `colisão com o solo (${L.vertical.toFixed(1)} m/s)`);
         }
         this.landings[i] = L?.n ?? 0;
-        this.trackDash(f, i, dt);
+        this.tint(f, () => this.trackDash(f, i, dt));
       });
       this.runScripts(dt);
     }
@@ -219,6 +220,14 @@ export class SolidFx {
   onReflect(e, world) {
     const bar = world?.entities?.filter(x => x.kind === 'barrier' && x.reflect && x.owner === e.attacker && !x.dead).sort((a, b) => b.id - a.id)[0]; if (!bar) return;
     this.fire('solidReflect', {pos: bar.pos, dir: {x: Math.sin(bar.angle), z: Math.cos(bar.angle)}, bar: {x: bar.pos.x, z: bar.pos.z, dir: {x: Math.sin(bar.angle), z: Math.cos(bar.angle)}, hw: bar.hx, y: bar.y ?? 0, h: bar.height, pl: bar.pl}, power: 1}, 'barreira do Reflect materializou');
+  }
+  /** Finta: a esquiva rápida usa os efeitos normais de esquiva (poeira, vento, rastro), tingidos de amarelo e com os sliders da finta. */
+  tint(f, fn) {
+    const R = C.rules;
+    if (!f.action?.feint || !R.feintFxOn) {fn();return;}
+    const keys = ['solidDust', 'solidWind', 'solidDodge'], saved = keys.map(k => ({...C.vfx[k]})), col = feintColor(R.feintFxColor);
+    for (const k of keys) {const c = C.vfx[k];c.color = col;if ('color2' in c) c.color2 = col;c.intensity = (c.intensity ?? 1) * R.feintFxIntensity;c.size = (c.size ?? 1) * R.feintFxSize;}
+    try {fn();} finally {keys.forEach((k, i) => Object.assign(C.vfx[k], saved[i]));}
   }
   unit(x, z) { const m = Math.hypot(x, z) || 1; return {x: x / m, z: z / m}; }
   /**

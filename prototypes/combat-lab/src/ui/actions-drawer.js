@@ -1,4 +1,4 @@
-// Gaveta de Ações (botão no canto da arena): abas Moves, Tackle, Esquiva e Bloqueio. Cada aba reúne, com ícone por seção, os
+// Gaveta de Ações (botão no canto da arena): abas Moves, Tackle, Esquiva, Bloqueio e IA. Cada aba reúne, com ícone por seção, os
 // interruptores, os sliders que já existem desses sistemas (o mesmo controle do Ajustes: entra no desfazer e atualiza as outras abas)
 // e os seletores de animação de cada personagem. A aba Moves é o painel de Moves (moves-panel.js).
 import {ACTION_LABELS} from './characters-panel.js';
@@ -11,15 +11,14 @@ export const ACTION_TABS = {
     sections: [
       ['⚙ Sistemas', [T + 'enableTackle', T + 'enableChargeTackle', T + 'enableTackleFeint', T + 'enableWallSplat', T + 'enableMeteorSlam', T + 'enableFlightSlam', T + 'enableClash', T + 'enableClashPush', T + 'enableHitstop'], true],
       ['⚡ Carga e Power Level', '@Tackle carregado (PL)', true],
-      ['🎭 Finta e brake slide', ['rules.feintWindow', 'rules.feintStaminaCost', 'rules.feintSkidSpeed', 'rules.feintRecovery'], true],
+      ['🎭 Finta (esquiva rápida para os lados e para trás)', ['rules.feintWindow', 'rules.feintMinAngle', 'rules.feintDuration', 'rules.feintDistance', 'rules.feintCost', 'rules.feintFxOn', 'rules.feintFxIntensity', 'rules.feintFxSize', 'rules.feintFxColor'], true],
       ['🧱 Wall-splat', ['rules.wallSplatMinSpeed', 'rules.wallSplatDuration', 'rules.wallSplatDamage', 'rules.landingRecovery'], true],
-      ['☄ Meteor slam e ground bounce', ['rules.slamAngle', 'rules.slamMinHeight', 'rules.slamDamage', 'rules.slamSpeedLoss', 'rules.slamFxOn', 'rules.slamFxSize', 'rules.slamFxLength', 'rules.slamFxIntensity', 'rules.slamFxHeat', 'rules.slamFxSparks', 'rules.slamFxFlicker', 'rules.slamFxFadeOut', 'rules.slamPrepTime', 'rules.slamHop', 'rules.slamFallTime', 'rules.slamImpactScale', 'rules.slamImpactShake', 'rules.slamRecovery', 'rules.slamLaunchHorizontal', 'rules.groundBounceForce'], true],
+      ['☄ Meteor slam e ground bounce', ['rules.slamAngle', 'rules.slamMinHeight', 'rules.slamDamage', 'rules.slamSpeedLoss', 'rules.slamRingOn', 'rules.slamRingStart', 'rules.slamRingRadius', 'rules.slamRingDuration', 'rules.slamRingThickness', 'rules.slamRingIntensity', 'rules.slamRingOpacity', 'rules.slamRingFade', 'rules.slamFxOn', 'rules.slamFxSize', 'rules.slamFxLength', 'rules.slamFxIntensity', 'rules.slamFxHeat', 'rules.slamFxSparks', 'rules.slamFxFlicker', 'rules.slamFxFadeOut', 'rules.slamGroundTime', 'rules.slamGroundRadius', 'rules.slamPrepTime', 'rules.slamHop', 'rules.slamFallTime', 'rules.slamImpactScale', 'rules.slamImpactShake', 'rules.slamRecovery', 'rules.slamLaunchHorizontal', 'rules.groundBounceForce'], true],
       ['🏃 Movimento e curva do tackle', '@Tackle (X)'],
       ['🧱 Recuo, empurrão e clash', ['rules.recoil', 'rules.recoilFraction', 'rules.clashFraction', 'rules.clashPushDistance', 'rules.clashPushDuration', 'rules.clashUp', 'rules.clashHorizontal', 'extras.combat.impactHitstop', 'extras.combat.clashHitstop']],
-      ['🤖 IA e o tackle', ['extras.ai.useCharge', 'extras.ai.useFeint', 'extras.ai.wallEscape', 'extras.ai.chargeMargin', 'extras.ai.chargeChance', 'extras.ai.feintChance']],
       ['⌨ Buffer de entrada', '@Buffer de entrada'],
     ],
-    anims: ['tackle', 'tackle_charge', 'tackle_pl2', 'tackle_pl3', 'brake', 'wall_splat', 'meteor_prep', 'meteor_dive'],
+    anims: ['tackle', 'tackle_charge', 'tackle_pl2', 'tackle_pl3', 'brake', 'wall_splat', 'meteor_prep', 'meteor_dive', 'meteor_ground'],
   },
   dodge: {
     icon: '💨', label: 'Esquiva', title: 'Esquiva (C) e sprint',
@@ -32,6 +31,17 @@ export const ACTION_TABS = {
     ],
     anims: ['dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'jump', 'sprint', 'sprint_stop'],
   },
+  ai: {
+    icon: '🤖', label: 'IA', title: 'IA (adversário e IA jogador)',
+    sections: [
+      ['⚙ Sistemas', ['extras.gameModes.enemyMode', 'extras.gameModes.playerProfile', T + 'enableEnemyAI', T + 'enemyManual', T + 'enablePlayerAI', T + 'enableAIAttack', T + 'enableAIReactive'], true],
+      ['🧠 Estratégia, decisões e tackle', '@IA: estratégia e decisões', true],
+      ['🔴 Personalidade do vermelho', '@IA: personalidade do vermelho'],
+      ['🔵 Personalidade do azul (IA jogador)', '@IA: personalidade do azul (IA jogador)'],
+      ['⏱ Ritmo legado', ['test.aiInterval', 'test.aiRange']],
+    ],
+    anims: [],
+  },
   block: {
     icon: '🛡', label: 'Bloqueio', title: 'Bloqueio (D)',
     sections: [
@@ -43,8 +53,8 @@ export const ACTION_TABS = {
   },
 };
 
-export function createActionsDrawer({$, tuning, ui, onCharactersChanged = () => {}, renderMoves = () => {}}) {
-  const tabs = $('act-tabs'), views = {moves: $('moves-panel'), tackle: $('act-tackle'), dodge: $('act-dodge'), block: $('act-block')};
+export function createActionsDrawer({$, tuning, ui, onCharactersChanged = () => {}, renderMoves = () => {}, renderAiMoves = () => {}}) {
+  const tabs = $('act-tabs'), views = {moves: $('moves-panel'), tackle: $('act-tackle'), dodge: $('act-dodge'), block: $('act-block'), ai: $('act-ai')};
   let current = 'moves';
   const escape = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
 
@@ -82,7 +92,8 @@ export function createActionsDrawer({$, tuning, ui, onCharactersChanged = () => 
       d.addEventListener('toggle', () => {(ui.actOpen ??= new Set())[d.open ? 'add' : 'delete'](d.dataset.k);});
       root.append(d);
     }
-    root.append(animBox(cfg.anims));
+    if (name === 'ai') {const box = document.createElement('section');box.className = 'act-card mv-ai-moves';root.append(box);renderAiMoves(box);}
+    if (cfg.anims.length) root.append(animBox(cfg.anims));
   }
   function show(name) {
     current = name;

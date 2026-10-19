@@ -325,7 +325,7 @@ export function evalMatch({
         if (last[i]?.kind === 'tackle' && f.action !== last[i]) {
           const ev = last[i].__eval;
           if (ev) {
-            if (ev.outcome === 'whiff' && f.state === 'brake') {ev.outcome = 'feint';s.feints = (s.feints ?? 0) + 1;}   // tackle cancelado por finta: não é erro de alcance
+            if (ev.outcome === 'whiff' && (f.state === 'brake' || f.action?.feint)) {ev.outcome = 'feint';s.feints = (s.feints ?? 0) + 1;}   // tackle cancelado por finta: não é erro de alcance
             s.attackOutcomes[ev.outcome] = (s.attackOutcomes[ev.outcome] ?? 0) + 1;
             if (ev.outcome === 'whiff') {
               s.whiffs++;

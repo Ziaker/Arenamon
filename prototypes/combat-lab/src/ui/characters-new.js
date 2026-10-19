@@ -3,7 +3,7 @@
 // Grupos da lista de estados (cada estado do combate aponta para um bloco de animação).
 const GROUPS = [
   ['loco', '🏃', 'Locomoção', ['idle', 'turn', 'walk', 'run', 'sprint', 'walk_stop', 'sprint_stop', 'walk_back', 'walk_left', 'walk_right']],
-  ['tackle', '💥', 'Tackle e carga', ['tackle', 'tackle_charge', 'tackle_pl2', 'tackle_pl3', 'brake', 'meteor_prep', 'meteor_dive']],
+  ['tackle', '💥', 'Tackle e carga', ['tackle', 'tackle_charge', 'tackle_pl2', 'tackle_pl3', 'brake', 'meteor_prep', 'meteor_dive', 'meteor_ground']],
   ['dodge', '💨', 'Esquiva e salto', ['dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'jump']],
   ['guard', '🛡', 'Defesa', ['block_start', 'block', 'block_end', 'guard_impact', 'blocked']],
   ['react', '💫', 'Reações', ['hit', 'knockback', 'wall_splat', 'fall', 'land', 'recover', 'downed', 'death']],

@@ -113,25 +113,37 @@ function startTackleCharge(f, p) {
   f.guard = false;f.guardSuppressed = false;f.stun = 0;f.push = null;f.blend = null;f.vaultHeight = 0;f.bufferedTackle = null;f.inputBuffer = null;f.sprinting = false;
   f.velocity = vec();f.locomotionVelocity = vec();f.state = 'tackleCharge';
 }
+/** Direção válida da finta: a pedida (setas) só vale para os lados e para trás em relação ao ataque; para a frente (ou sem direção) não há finta. */
+export function feintDirection(cmd, refHeading) {
+  const m = cmd.dodgeDirection && length(cmd.dodgeDirection) > .01 ? cmd.dodgeDirection : length(cmd.move) > .01 ? cmd.move : null;
+  if (!m) return null;
+  return Math.abs(angleDelta(refHeading, angleOf(m))) >= C.rules.feintMinAngle * Math.PI / 180 - 1e-9 ? normalize(m) : null;
+}
+/** A stamina disponível (já contando a devolução do custo do tackle) cobre o custo da finta? */
+export const canFeint = f => f.stamina + costOf(f, C.actions.tackle.cost) >= C.rules.feintCost - 1e-6;
 /**
- * Finta / brake slide: cancela o tackle (no startup ou na carga), devolve a parte do custo acima de feintStaminaCost, derrapa na direção do ataque
- * (o deslizamento usa o mesmo decaimento do pouso) e fica em recuperação curta, bem menor que a de um tackle que erra.
+ * Finta: cancela o tackle (no startup ou na carga) e vira uma esquiva (C) para o lado ou para trás, um pouco mais rápida que a normal:
+ * dura feintDuration × a duração da esquiva, percorre feintDistance × a distância dela e custa feintCost de stamina (o custo do tackle volta).
  */
-export function doFeint(f, from) {
-  const R = C.rules, heading = f.action ? f.action.heading : f.facing, tackleCost = costOf(f, C.actions.tackle.cost);
+export function doFeint(f, from, dir, fighters, desiredHeading, guardHeld) {
+  const R = C.rules, tackleCost = costOf(f, C.actions.tackle.cost);
   if (from === 'charge') cancelTackleCharge(f, 'feint');
-  const sp = Math.max(R.feintSkidSpeed, length(f.velocity) * .5);
-  f.action = null;f.guard = false;f.guardSuppressed = false;f.blend = null;f.vaultHeight = 0;f.bufferedTackle = null;f.inputBuffer = null;f.sprinting = false;
-  f.stamina = clamp(f.stamina + tackleCost - R.feintStaminaCost, 0, R.staminaMax);f.regenBase = f.stamina;f.regenAge = 0;f.exhausted = isDepleted(f.stamina);
-  f.landingSlide = {velocity: scale(direction(heading), sp)};f.velocity = vec();f.locomotionVelocity = vec();
-  f.knockRecovery = Math.max(f.knockRecovery, R.feintRecovery);f.recoveryFrom = null;f.brakeLeft = R.feintRecovery;f.state = 'brake';
-  f.lastBrake = {n: (f.lastBrake?.n ?? 0) + 1, x: f.position.x, z: f.position.z, speed: sp};f.feints = (f.feints ?? 0) + 1;
+  f.action = null;f.guard = false;f.guardSuppressed = false;f.blend = null;f.vaultHeight = 0;f.bufferedTackle = null;f.inputBuffer = null;f.sprinting = false;f.stun = 0;f.push = null;
+  f.stamina = clamp(f.stamina + tackleCost, 0, R.staminaMax);
+  startAction(f, 'dodge', {move: dir, dodgeDirection: dir}, fighters, desiredHeading, false, guardHeld);   // cobra o custo normal da esquiva
+  const extra = Math.max(0, R.feintCost - costOf(f, C.actions.dodge.cost));
+  f.stamina = Math.max(0, f.stamina - extra);f.regenBase = f.stamina;f.regenAge = 0;f.exhausted = isDepleted(f.stamina);
+  f.action.feint = true;f.action.durationScale = R.feintDuration;f.action.distanceScale = R.feintDistance;
+  f.feints = (f.feints ?? 0) + 1;
 }
 export function cancelTackleCharge(f, why = 'cancel') {if (!f.tackleCharge) return;f.tackleCharge = null;f.tackleChargeEnd = why;if (f.state === 'tackleCharge') f.state = 'neutral';}
 /** 'charging' (segue carregando, o passo termina aqui), 'fired' (a ação saiu) ou 'cancelled' (D ou C cancelaram; o pedido segue o fluxo normal). */
 function stepTackleCharge(f, cmd, fighters, dt, desiredHeading, target, move, diag) {
   const R = C.rules, ch = f.tackleCharge;
-  if (C.extras.toggles.enableTackleFeint && (cmd.dodge || (cmd.guardPressed && C.extras.toggles.enableDefense))) {doFeint(f, 'charge');if (diag) report(f, {kind: 'tackle', result: 'executed', note: 'finta (cancelou a carga)'});return 'feint';}
+  if (C.extras.toggles.enableTackleFeint && cmd.dodge) {
+    const dir = feintDirection(cmd, f.facing);
+    if (dir && canFeint(f)) {doFeint(f, 'charge', dir, fighters, desiredHeading, cmd.guard);if (diag) report(f, {kind: 'tackle', result: 'executed', note: 'finta (cancelou a carga)'});return 'feint';}
+  }
   if ((cmd.guard && C.extras.toggles.enableDefense) || cmd.dodge) {cancelTackleCharge(f, cmd.dodge ? 'dodge' : 'guard');return 'cancelled';}
   ch.t += dt;ch.level = tackleChargeLevel(ch.t);
   if (ch.t < R.chargeTackleMaxTime) f.stamina = Math.max(0, f.stamina - R.chargeTackleDrain * dt);
@@ -162,6 +174,7 @@ export function startSlamFromFlight(f, dirs, fighters, desiredHeading, guardHeld
 /** Meteor slam: estados 'meteorPrep' (jogado para cima por slamPrepTime) e 'meteorDive' (despenca em cima do rival). Aqui só a preparação; a mira vem em aimSlam. */
 function aimSlam(f, fighters, h = f.vaultHeight) {
   const a = f.action;if (!a) return;
+  a.slamCarry = a.from ? {...a.from} : {...f.velocity};   // velocidade herdada do dash: segue durante a preparação, reduzida por slamSpeedLoss, e zera ao terminá-la
   a.slamBase = a.slamH0 = h;a.slamT = 0;a.slamPrepDone = !(C.rules.slamPrepTime > 1e-6) || !(h > 1e-6);
   if (a.slamPrepDone) aimSlamDive(f, fighters);else a.heading = a.startAngle = slamFoeAngle(f, fighters) ?? a.heading;
 }
@@ -172,7 +185,7 @@ function aimSlamDive(f, fighters) {
   a.slamH0 = Math.max(f.vaultHeight, 1e-6);
   if (!foe) return;
   const dx = foe.position.x - f.position.x, dz = foe.position.z - f.position.z;
-  a.heading = a.startAngle = angleOf({x: dx, z: dz});
+  if (Math.hypot(dx, dz) > .35) a.heading = a.startAngle = angleOf({x: dx, z: dz});   // quase em cima do rival a direção seria instável: mantém a que já tinha
   a.slamReach = Math.max(.5, Math.hypot(dx, dz) - .3);   // anda até entrar no rival (o golpe só conecta com avanço)
 }
 export function startSlam(f, height, dirs, fighters, desiredHeading, guardHeld, locked = false) {
@@ -229,8 +242,9 @@ export function updateFighter(f, cmd, fighters, dt) {
   // Mira (ataques sem direção, prévia): o alvo, se houver. Orientação do corpo: ver faceGoal abaixo.
   const desiredHeading = target ? angleOf(sub(target.position, f.position)) : length(move) > 0 ? angleOf(move) : f.facing;
   // Finta: C ou D no startup do tackle cancelam o ataque (só derrapa, sem esquiva); o acerto já feito ou o mergulho impedem.
-  if (T.enableTackleFeint && f.action?.kind === 'tackle' && !f.action.slam && (f.action.hits?.size ?? 0) === 0 && f.action.elapsed < R.feintWindow - 1e-9 && (cmd.dodge || cmd.guardPressed)) {
-    doFeint(f, 'startup');if (diag) report(f, {kind: 'tackle', result: 'executed', note: 'finta (cancelou o startup)'});return;
+  if (T.enableTackleFeint && f.action?.kind === 'tackle' && !f.action.slam && (f.action.hits?.size ?? 0) === 0 && f.action.elapsed < R.feintWindow - 1e-9 && cmd.dodge) {
+    const dir = feintDirection(cmd, f.action.heading);
+    if (dir && canFeint(f)) {doFeint(f, 'startup', dir, fighters, desiredHeading, cmd.guard);if (diag) report(f, {kind: 'tackle', result: 'executed', note: 'finta (cancelou o startup)'});return;}
   }
   // Tackle carregado: enquanto X segue apertado o lutador fica parado carregando; soltar (ou acabar a stamina) dispara no PL alcançado.
   if (f.tackleCharge) {
@@ -353,14 +367,19 @@ export function updateFighter(f, cmd, fighters, dt) {
       // No modelo novo, o tackle olha para a própria trajetória (exceto lockFacing = 1) e a esquiva olha para o alvo.
       const facingGoal = target && (L.model !== 1 || action.kind === 'dodge' || L.lockFacing === 1) ? desiredHeading : action.heading;
       turnToward(f, facingGoal, dt);
-      const D = p.duration, u0 = action.elapsed / D, u1 = (action.elapsed + dt) / D, nominal = nominalDistance(f, action.kind) * (action.speedMultiplier ?? 1) * (action.plSpeed ?? 1);
+      const D = p.duration * (action.durationScale ?? 1), u0 = action.elapsed / D, u1 = (action.elapsed + dt) / D, nominal = nominalDistance(f, action.kind) * (action.speedMultiplier ?? 1) * (action.plSpeed ?? 1) * (action.distanceScale ?? 1);
       let speed;
       if (p.profile === 1) {
         // Integração com correção: o restante da distância (pretendida, sem contar colisões) é distribuído pelo restante
         // da curva. A mistura de entrada com a velocidade anterior não encurta nem alonga a ação.
-        const rem = 1 - actionProgress(p, u0), left = Math.max(0, nominal - (action.traveled ?? 0));
+        const rem = 1 - actionProgress(p, u0), left = Math.max(0, nominal - (action.traveled ?? 0) - (action.fricSkipped ?? 0));
         speed = rem > 1e-9 ? left * (actionProgress(p, u1) - actionProgress(p, u0)) / rem / dt : 0;
       } else speed = nominal * (actionProgress(p, u1) - actionProgress(p, u0)) / dt;
+      if (action.kind === 'tackle' && !action.slam) {
+        // Atrito do Tackle (por versão: PL1/PL2/PL3): a velocidade decai com exp(-atrito × tempo); a distância perdida não é compensada pela correção do perfil.
+        const k = action.pl === 3 ? R.tackleFriction3 : action.pl === 2 ? R.tackleFriction2 : R.tackleFriction1;
+        if (k > 0) {const s1 = speed * Math.exp(-k * (action.elapsed + dt));action.fricSkipped = (action.fricSkipped ?? 0) + (speed - s1) * dt;speed = s1;}
+      }
       f.velocity = scale(direction(action.heading), speed);
       const blendTime = action.blendTime ?? p.blend;
       if (action.from && blendTime > 0 && action.elapsed < blendTime) {
@@ -368,9 +387,9 @@ export function updateFighter(f, cmd, fighters, dt) {
         f.velocity = {x: action.from.x * (1 - blend) + f.velocity.x * blend, z: action.from.z * (1 - blend) + f.velocity.z * blend};
       }
       if (action.slam) {
-        // Preparação: sem avanço. Queda: avança o necessário para chegar ao rival no instante em que toca o chão (slamSpeedLoss reduz esse avanço); depois de aterrissar, parado.
+        // Preparação: segue com a velocidade herdada menos slamSpeedLoss (a perda é total ao fim dela). Queda: avança o necessário para chegar ao rival no instante em que toca o chão (slamSpeedLoss reduz esse avanço); depois de aterrissar, parado.
         const tLeft = Math.max(dt, R.slamFallTime * f.vaultHeight / Math.max(1e-6, action.slamH0 ?? 0)), left = Math.max(0, (action.slamReach ?? 0) - (action.traveled ?? 0));
-        f.velocity = action.slamLanded || !action.slamPrepDone ? vec() : action.slamReach === undefined ? scale(f.velocity, 1 - R.slamSpeedLoss) : scale(direction(action.heading), Math.min(left / dt, left / tLeft) * (1 - R.slamSpeedLoss));
+        f.velocity = action.slamLanded ? vec() : !action.slamPrepDone ? scale(action.slamCarry ?? vec(), 1 - R.slamSpeedLoss) : action.slamReach === undefined ? vec() : scale(direction(action.heading), Math.min(left / dt, left / tLeft));
       }
       action.traveled = (action.traveled ?? 0) + Math.max(0, dot(f.velocity, direction(action.heading))) * dt;
       if (action.kind === 'dodge' && action.jump) {
@@ -395,7 +414,7 @@ export function updateFighter(f, cmd, fighters, dt) {
         if (action.slam && action.slamPrepDone && f.vaultHeight <= 1e-9 && (action.slamH0 ?? 0) > 1e-6) action.slamLanded = true;
         if (!action.slam) f.vaultHeight = action.liftStart > 0 ? (action.liftTime > 0 ? action.liftStart * (1 - smoothstep((action.elapsed + dt) / action.liftTime)) : 0) : 0;
       }
-      f.state = action.slam ? (action.slamPrepDone ? 'meteorDive' : 'meteorPrep') : action.kind;
+      f.state = action.slam ? (!action.slamPrepDone ? 'meteorPrep' : action.slamLanded ? 'meteorGround' : 'meteorDive') : action.kind;
     } else {
       f.vaultHeight = 0;
       const distance = nominalDistance(f) * R.recoilFraction;
@@ -483,14 +502,13 @@ export function advanceAction(f, dt) {
   f.action.elapsed += dt;
   const kind = f.action.kind, spec = actionSpec(f.action), duration = spec.duration;
   // O pulo físico termina ao tocar o chão (a duração da esquiva não o corta no ar).
-  const done = f.action.jump ? f.action.jump.landed : (f.action.elapsed >= duration - 1e-8 && !(f.action.slam && !f.action.slamLanded)) || (f.action.slamLanded && (f.action.slamHold = (f.action.slamHold ?? 0) + dt) > .06);
+  const done = f.action.jump ? f.action.jump.landed : (f.action.elapsed >= duration - 1e-8 && !f.action.slam) || (f.action.slamLanded && (f.action.slamHold = (f.action.slamHold ?? 0) + dt) > C.rules.slamGroundTime + (f.action.hits.size === 0 ? C.rules.slamRecovery : 0));   // estado meteorGround: o mergulho segue no chão por slamGroundTime (+ slamRecovery se errou)
   if (done) {
-    const wasExhausted = f.exhausted && (kind === 'dodge' || kind === 'tackle'), slamMissed = !!f.action.slam && f.action.hits.size === 0;
+    const wasExhausted = f.exhausted && (kind === 'dodge' || kind === 'tackle'), wasSlam = !!f.action.slam;
     f.action = null;f.velocity = vec();f.vaultHeight = 0;f.state = f.hp <= 0 ? 'defeated' : 'neutral';
     if (wasExhausted && f.hp > 0) f.knockRecovery = Math.max(f.knockRecovery, C.extras.combat.exhaustRecovery);
     const recovery = spec.recovery;
-    if (recovery > 0 && f.hp > 0) f.knockRecovery = Math.max(f.knockRecovery, recovery);
-    if (slamMissed && f.hp > 0) f.knockRecovery = Math.max(f.knockRecovery, C.rules.slamRecovery);   // errou o mergulho: fica vulnerável ao aterrissar
+    if (recovery > 0 && f.hp > 0 && !wasSlam) f.knockRecovery = Math.max(f.knockRecovery, recovery);   // o meteor slam já passou pelo estado meteorGround: sem recuperação extra de 'aterrissar'
     // A animação segura a pose final da ação durante essa recuperação (não troca para “levantar”).
     f.recoveryFrom = f.knockRecovery > 0 && kind !== 'recoil' && kind !== 'move' ? kind : null;
   }

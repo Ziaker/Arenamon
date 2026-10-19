@@ -137,5 +137,17 @@ export function stepPhysics(fighters, dt, world = null) {
     w.announced = true;const dmg = R.wallSplatDamage;if (dmg > 0 && f.hp > 0) f.hp = Math.max(0, f.hp - dmg);
     events.push({result: 'wallSplat', attacker: f.lastAttacker ?? 1 - f.id, target: f.id, damage: dmg, normal: {...w.normal}, duration: w.duration});
   }
+  // Impacto do meteor slam no chão: quem estiver embaixo de quem aterrissou é acertado, mesmo sem avanço no instante do pouso.
+  for (const a of fighters) {
+    const s = a.action;
+    if (!s?.slam || !s.slamLanded || s.groundHit || a.hp <= 0) continue;
+    s.groundHit = true;
+    for (const b of fighters) {
+      if (b === a || b.hp <= 0 || b.flight || s.hits.has(b.id)) continue;
+      const off = sub(b.position, a.position);if (length(off) > C.rules.slamGroundRadius) continue;
+      const n = length(off) > 1e-6 ? normalize(off) : direction(s.heading), ev = resolveHit(a, b, n, scale(n, 6), true);
+      if (ev) events.push(ev);
+    }
+  }
   return events;
 }

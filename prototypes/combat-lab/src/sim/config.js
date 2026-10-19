@@ -14,10 +14,10 @@ export function defaults() {
     chargeTackleMaxTime: 1.2, chargeTackleDrain: .8, chargeTackleTurn: .25, chargeTackleMove: .8, chargeTackleSpeed2: 1.25, chargeTackleSpeed3: 1.6, chargeTackleDamage2: 1.3, chargeTackleDamage3: 1.7, sprintTacklePL: 2,
     // Wall-splat: lançado que bate na parede JÁ CAINDO, rápido o bastante, fica suspenso e indefeso por wallSplatDuration (a subida continua com o ricochete).
     // Meteor slam: X no ar (C → X no salto do vault ou X de quem foi lançado) vira mergulho oblíquo (slamAngle); o acerto lança o rival para CIMA (ground bounce).
-    // Finta (enableTackleFeint): C ou D no startup do tackle (feintWindow) ou durante a carga cancelam o ataque; o lutador derrapa (brake slide),
-    // paga só feintStaminaCost (devolve o resto do custo do tackle) e volta ao neutro em feintRecovery.
-    feintWindow: .12, feintStaminaCost: .3, feintSkidSpeed: 4, feintRecovery: .15,
-    wallSplatMinSpeed: 6, wallSplatDuration: .7, wallSplatDamage: 0, slamAngle: Math.PI / 4, slamMinHeight: .3, slamDamage: 1, slamFxOn: 1, slamFxSize: 1, slamFxLength: 1, slamFxIntensity: 1, slamFxHeat: .5, slamFxSparks: 1, slamFxFlicker: .5, slamFxFadeOut: .25, slamPrepTime: .5, slamHop: .8, slamFallTime: .12, slamSpeedLoss: 0, slamImpactScale: 1.2, slamImpactShake: 1.2, slamRecovery: .6, slamLaunchHorizontal: .4, groundBounceForce: 9,
+    // Finta (enableTackleFeint): C com direção para os lados ou para trás (ângulo ≥ feintMinAngle em relação ao ataque), no startup do tackle (feintWindow) ou
+    // durante a carga, cancela o ataque e vira uma esquiva rápida: dura feintDuration × a da esquiva, percorre feintDistance × a dela e custa feintCost.
+    feintFxOn: 1, feintFxIntensity: 1, feintFxSize: 1, feintFxColor: .5, feintWindow: .12, feintMinAngle: 60, feintDuration: .8, feintDistance: 1, feintCost: 1.6,
+    wallSplatMinSpeed: 6, wallSplatDuration: .7, wallSplatDamage: 0, slamAngle: Math.PI / 4, slamMinHeight: .3, slamDamage: 1, tackleFriction1: 0, tackleFriction2: 0, tackleFriction3: 0, slamRingOn: 1, slamRingStart: .6, slamRingRadius: 4, slamRingDuration: .7, slamRingThickness: .35, slamRingIntensity: 1, slamRingOpacity: .9, slamRingFade: 1, slamFxOn: 1, slamFxSize: 1, slamFxLength: 1, slamFxIntensity: 1, slamFxHeat: .5, slamFxSparks: 1, slamFxFlicker: .5, slamFxFadeOut: .25, slamGroundTime: .45, slamGroundRadius: 1.4, slamPrepTime: .5, slamHop: .8, slamFallTime: .12, slamSpeedLoss: .6, slamImpactScale: 1.2, slamImpactShake: 1.2, slamRecovery: .6, slamLaunchHorizontal: .4, groundBounceForce: 9,
     landingRecovery: .19, wallRestitution: .28, perfect: .2, perfectCooldown: 2, staminaMax: 3, regenDelay: 1, regenTime: 5, guardSpeed: .6,
     exhaustedSpeed: .7, guardTurn: 3 * Math.PI, guardAcceleration: 15 * Math.PI,
     // exhaustMode 1: exausto quando sobra menos que o menor custo de X/C (0 = só em zero, Etapa A). Rebote na parede: vertical.
@@ -119,13 +119,13 @@ export function defaults() {
   // charge: regras compartilhadas dos movimentos de carga (Reflect/Psyshock). PROVISÓRIOS (M30.10), configuráveis; cada uso captura uma cópia congelada no início (M28.4, D1).
   const world = {maxEntities: 64, slots: 4, charge: {moveSlow: .75, turnSlow: .75, dodgeCancelAfter: .2, interruptCooldownFactor: .5, recovery: .25, bufferWindow: .15, boostStaminaPerSecond: .5, boostStep: 1},
     // reflect: valores iniciais PROVISÓRIOS do Reflect (M30.10); largura/altura em múltiplos das dimensões lógicas do motor (M30.4); crescimento linear com a carga.
-    reflect: {widthMin: 1.5, widthMax: 3, heightMin: 1.5, heightMax: 2.5, thickness: .1, gapFraction: .5, durationBase: 4, minCharge: 1.5, tackleRecoil: .15, tackleStagger: .25, burstRadius: 0, burstForce: 3, burstDamage: 0, burstPush: 0, burstHurt: 0, tieTolerance: .001, maxReflections: 16},
+    reflect: {widthMin: 1.5, widthMax: 3, heightMin: 1.5, heightMax: 2.5, thickness: .1, gapFraction: .5, durationBase: 4, minCharge: .9, tackleRecoil: .15, tackleStagger: .25, burstRadius: 0, burstForce: 3, burstDamage: 0, burstPush: 0, burstHurt: 0, tieTolerance: .001, maxReflections: 16},
     // psyshock: valores iniciais PROVISÓRIOS do Psyshock (M30.10): pedras (3 a 8, +1 por 0,8 s), velocidade sorteada por pedra (D4), homing 0,3 s a 180°/s, leque de 20° sem alvo, busca de espaço de 3 m, dano 0,2 × Ataque, fator 0,8 por acerto no mesmo alvo, knockback 0,3 m/s por pedra com teto de 0,9 m/s por alvo.
     psyshock: {minStones: 3, maxStones: 8, stoneSeconds: .8, speedMin: 10, speedMax: 14, homingSeconds: .3, homingRate: 180, fanAngle: 20, searchRange: 3, searchStep: .25, arc: 120, ringMin: .8, ringMax: 1.1, heightMin: .35, heightMax: 1.1, scaleMin: .7, scaleMax: 1.3, radius: .2, damageFraction: .2, successiveFactor: .8, knockbackPerStone: .3, knockbackCap: .9, knockbackVertical: 0, knockbackLevelBonus: 0, knockbackSpeedFactor: 0, counterStagger: .2},
     // beam: lasers contínuos e emissores técnicos (Fase 7). PROVISÓRIOS: comprimento máximo, segmentos refletidos por passo e intervalo entre danos por alvo.
     beam: {length: 24, maxSegments: 8, interval: .25, damage: 2},
     // ai: como a IA decide usar os Moves (sim/ai-moves.js). Distâncias em m, tempos em s. Os padrões reproduzem o comportamento anterior.
-    ai: {evadeDistance: 4.5, pl2Distance: 4.8, pl3Distance: 7, reflectHold: 1.5, lastSecondDefend: .22, noTimeDefend: .26, barrierBreakRange: 3.2, barrierBreakChance: .6, psyshockMinDistance: 3.5, psyshockMinStamina: 2, psyshockChanceMax: .9, afterChargeWait: .35, decisionInterval: .5}};
+    ai: {evadeDistance: 4.5, pl2Distance: 4.8, pl3Distance: 7, reflectHold: .9, lastSecondDefend: .22, noTimeDefend: .26, barrierBreakRange: 3.2, barrierBreakChance: .6, psyshockMinDistance: 3.5, psyshockMinStamina: 2, psyshockChanceMax: .9, afterChargeWait: .35, decisionInterval: .5}};
   return {rules, test, locomotion, camera, profiles: profilesLab, extras, actions, vfx: vfxDefaults(), display: displayDefaults(), world};
 }
 
@@ -249,3 +249,9 @@ export const keyFor = name => C.extras.keyCodes[C.extras.bindings[name]];
 /** Tecla do vermelho no controle manual. */
 export const keyFor2 = name => C.extras.keyCodes[C.extras.bindings2[name]];
 export const rgb = base => {const c = C.extras.colors;return ((c[base + 'R'] | 0) << 16) | ((c[base + 'G'] | 0) << 8) | (c[base + 'B'] | 0);};
+
+/** Cor dos efeitos da finta: 0 = amarelo-limão, 0,5 = amarelo-ouro (padrão), 1 = laranja. */
+export function feintColor(t) {
+  const a = [0xf5, 0xee, 0x50], b = [0xff, 0xd2, 0x3c], c = [0xff, 0x9a, 0x2e], u = Math.max(0, Math.min(1, t)), [p, q, k] = u < .5 ? [a, b, u * 2] : [b, c, (u - .5) * 2];
+  return (Math.round(p[0] + (q[0] - p[0]) * k) << 16) | (Math.round(p[1] + (q[1] - p[1]) * k) << 8) | Math.round(p[2] + (q[2] - p[2]) * k);
+}

@@ -63,20 +63,20 @@ const vaulting = (over = {}) => {
   const h0 = f.vaultHeight;step(g, cmd({tackle: true, move: vec(0, 1), dodgeDirection: vec(0, 1)}));
   assert.equal(f.action?.kind, 'tackle');assert.ok(f.action.slam, 'C → X no vault vira meteor slam');assert.equal(f.action.plDamage, C.rules.slamDamage);
   const hs = [h0];let ev = [];for (let i = 0; i < 80; i++) {ev.push(...step(g, cmd({move: vec(0, 1)})));hs.push(f.vaultHeight);}
-  assert.ok(hs.slice(1).every((h, i) => h <= hs[i] + 1e-9), 'mergulho: a altura só desce');assert.ok(hs.some(h => h === 0), 'chega ao solo');
+  const peak = hs.indexOf(Math.max(...hs));assert.ok(hs.slice(1, peak + 1).every((h, i) => h >= hs[i] - 1e-9) && hs[peak] > h0 + C.rules.slamHop * .9, `preparação: sobe ${C.rules.slamHop} m jogado para cima`);assert.ok(hs.slice(peak + 1).every((h, i) => h <= hs[peak + i] + 1e-9), 'mergulho: depois do pico a altura só desce');assert.ok(hs.some(h => h === 0), 'chega ao solo');
   const hit = ev.find(e => e.result === 'impact' && e.slam);assert.ok(hit, 'o slam acerta e marca o evento');assert.equal(hit.launch.bounce, true);
-  assert.ok(Math.abs(hit.damage - C.profiles.balanced.attack * C.rules.slamDamage) < 1e-9, `dano +20% (${hit.damage})`);
+  assert.ok(Math.abs(hit.damage - C.profiles.balanced.attack * C.rules.slamDamage) < 1e-9, `dano = ataque × slamDamage, sem Power Level (${hit.damage})`);
   assert.ok(Math.abs(hit.launch.vertical - C.rules.groundBounceForce) < 1e-9, 'quique: lançamento para cima pelo groundBounceForce');
   assert.ok(hit.launch.horizontal < 11 * .6, 'pouco empurrão horizontal');
-  ok('C → X no salto do vault vira meteor slam: mergulha, causa +20% e lança o rival para cima (ground bounce)');
+  ok('C → X no salto do vault vira meteor slam: mergulha, causa o dano base e lança o rival para cima (ground bounce)');
 }
 {
   const {g, f} = vaulting({'extras.toggles.enableMeteorSlam': 0});g.fighters[1].position = vec(0, 9);step(g, cmd({tackle: true, move: vec(0, 1)}));
   assert.ok(!f.action?.slam, 'toggle desligado: descida suave de sempre');
   const m = vaulting();m.g.fighters[1].position = vec(0, 9);step(m.g, cmd({tackle: true, move: vec(0, 1), dodgeDirection: vec(0, 1)}));
-  assert.ok(m.f.action.slam);let rec = 0;for (let i = 0; i < 200 && m.f.action; i++) step(m.g, cmd({move: vec(0, 1)}));rec = m.f.knockRecovery;
-  assert.ok(rec > C.rules.slamRecovery * .5, `errou o mergulho: recuperação longa (${rec.toFixed(2)} s)`);
-  ok('slam que erra deixa o atacante em recuperação longa; toggle desligado mantém o comportamento antigo');
+  assert.ok(m.f.action.slam);let ground = 0, landing = false;for (let i = 0; i < 300 && m.f.action; i++) {step(m.g, cmd({move: vec(0, 1)}));if (m.f.state === 'meteorGround') ground++;if (m.f.state === 'landing') landing = true;}
+  assert.ok(ground * C.test.step >= (C.rules.slamGroundTime + C.rules.slamRecovery) * .95, `errou o mergulho: fica no estado do chão por mais tempo (${(ground * C.test.step).toFixed(2)} s)`);assert.ok(!landing && m.f.knockRecovery === 0, 'sem estado de aterrissar depois do meteor');
+  ok('slam que erra fica mais tempo no estado do chão (sem aterrissar); toggle desligado mantém o comportamento antigo');
 }
 {
   const g = arena({blue: vec(0, -2), red: vec(0, 6)});C.extras.toggles.enableFlightSlam = 1;const f = g.fighters[0];launch(f, vec(1, 0), 4, 6);step(g, cmd());

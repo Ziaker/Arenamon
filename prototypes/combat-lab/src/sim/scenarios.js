@@ -5,6 +5,7 @@ import {C, ROOT_KEYS} from './config.js';
 import {Game} from './game.js';
 import {Recorder} from './telemetry.js';
 import {vec, direction} from './math.js';
+import {TACKLE_SCENARIOS} from './scenarios-tackle.js';
 
 const cmd = (o = {}) => ({move: vec(), dodge: false, tackle: false, guard: false, guardPressed: false, target: null, ...o});
 const toward = (from, to) => {const dx = to.x - from.x, dz = to.z - from.z, d = Math.hypot(dx, dz) || 1;return vec(dx / d, dz / d);};
@@ -25,7 +26,7 @@ function timeToContact(a, d) {
 /** Passos suficientes para uma ação completa, recuperação, voo e aterrissagem com os ajustes atuais. */
 const enough = (extra = 0) => Math.ceil((C.actions.tackle.duration + C.actions.tackle.recovery + C.actions.dodge.duration + C.actions.dodge.recovery + 2 * Math.max(C.rules.launchUp, C.rules.clashUp) / C.rules.launchGravity + C.rules.landingRecovery + C.rules.recoil + C.rules.guardStun + extra) / C.test.step) + 60;
 
-export const SCENARIOS = [
+const BASE_SCENARIOS = [
   {
     id: 'guard-partial', name: 'Tackle contra defesa', description: 'O vermelho defende parado (janela perfeita já encerrada); o azul investe de frente.',
     positions: [vec(0, -2.4), vec(0, 0)], ticks: () => enough(), setup: g => {face(g.fighters[0], 0);face(g.fighters[1], Math.PI);},
@@ -129,6 +130,8 @@ export const SCENARIOS = [
     },
   },
 ];
+/** Cenários base + os do Tackle e do meteor slam (scenarios-tackle.js). */
+export const SCENARIOS = [...BASE_SCENARIOS, ...TACKLE_SCENARIOS];
 
 const pathGet = (root, path) => path.split('.').reduce((a, k) => a?.[k], root);
 const pathSet = (root, path, v) => {const keys = path.split('.'), last = keys.pop();keys.reduce((a, k) => a[k], root)[last] = v;};
@@ -140,13 +143,14 @@ export function prepareScenario(def, game) {
   game.mode = 'inactive';game.profile = 'balanced';game.enemyProfile = 'balanced';game.reset({positions: def.positions});def.setup?.(game);
   const start = structuredClone(game.fighters.map(f => ({x: f.position.x, z: f.position.z, hp: f.hp, stamina: f.stamina})));
   const log = {events: [], hitstopTicks: 0, afterHit: null, maxCounter: [0, 0], flew: [false, false], damageTaken: [0, 0], staminaBonus: 0, counterSpeed: 1, airTicks: [0, 0], landingTicks: [0, 0],
-    wallHits: [0, 0], bounced: false, actionsStarted: [0, 0], wasExhausted: [false, false], exhaustTicks: [0, 0], maxZ: -Infinity};
+    wallHits: [0, 0], bounced: false, actionsStarted: [0, 0], wasExhausted: [false, false], exhaustTicks: [0, 0], maxZ: -Infinity, states: new Set()};
   let t = 0, lastAction = [null, null];const scratch = {}, total = typeof def.ticks === 'function' ? def.ticks() : def.ticks;
   return {
     get tick() {return t;}, get done() {return t >= total;}, get total() {return total;},
     commands() {return def.script(t, game, scratch);},
     /** Chamado depois de cada passo: atualiza o registro do cenário. */
     observe() {
+      log.states.add(game.fighters[0].state);
       for (const e of game.lastStepEvents) {
         log.events.push(e);
         if (!log.afterHit && (e.result === 'partial' || e.result === 'perfect')) {const a = game.fighters[e.attacker], d = game.fighters[e.target];log.afterHit = {attackerState: a.state, defenderStun: d.stun, defenderShift: Math.hypot(d.position.x - start[e.target].x, d.position.z - start[e.target].z)};}
@@ -169,7 +173,7 @@ export function prepareScenario(def, game) {
       t++;
     },
     finish() {
-      const result = {id: def.id, name: def.name, checks: def.checks({log, game, start})};result.ok = result.checks.every(c => c.ok);
+      const result = {id: def.id, name: def.name, checks: def.checks({log, game, start, scratch})};result.ok = result.checks.every(c => c.ok);
       for (const [p, v] of Object.entries(saved)) pathSet(C, p, v);
       return result;
     },

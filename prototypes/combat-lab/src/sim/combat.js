@@ -19,8 +19,11 @@ export function pushAway(f, away, distance, duration) {
   f.action = null;f.flight = null;f.velocity = vec();f.locomotionVelocity = vec();f.blend = null;f.guard = false;f.guardSuppressed = true;
   f.vaultHeight = 0;f.counterWindow = 0;f.landingSlide = null;f.knockRecovery = C.rules.landingRecovery;f.recoveryFrom = null;f.tech = null;f.techDodge = null;f.state = 'landing';
 }
+/** Preparação do meteor slam (no ar, jogado para cima): sem dano, sem clash, sem knockback. */
+const slamPrep = f => !!f.action?.slam && !f.action.slamPrepDone;
 export function clashPossible(a, b, normal, relative) {
   const X = C.extras.combat;
+  if (slamPrep(a) || slamPrep(b)) return false;
   if (!C.extras.toggles.enableClash || a.action?.kind !== 'tackle' || b.action?.kind !== 'tackle' || a.flight || b.flight) return false;
   if (C.extras.toggles.enableAnimationCombatWindows && (!isOffensive(a) || !isOffensive(b))) return false;
   const facing = dot(direction(a.action.heading), normal) > X.clashFacingAlignment && dot(direction(b.action.heading), normal) < -X.clashFacingAlignment && dot(relative, normal) > X.clashClosingSpeed;
@@ -36,6 +39,7 @@ export function clashPossible(a, b, normal, relative) {
  * Vale como clash: mesma resolução simétrica.
  */
 export function mutualTackle(a, b, normal, relative) {
+  if (slamPrep(a) || slamPrep(b)) return false;
   if (!C.extras.toggles.enableClash || a.flight || b.flight || a.action?.kind !== 'tackle' || b.action?.kind !== 'tackle') return false;
   if (C.extras.toggles.enableAnimationCombatWindows && (!isOffensive(a) || !isOffensive(b))) return false;
   if (a.action.hits?.has(b.id) || b.action.hits?.has(a.id)) return false;
@@ -53,15 +57,16 @@ export function clash(a, b, normal) {
 /** O tackle do atacante conecta no defensor, dado a normal e a velocidade relativa do contato? */
 export function tackleConnects(attacker, defender, normal, relative) {
   const X = C.extras.combat;
+  if (slamPrep(attacker)) return false;
   if (attacker.action?.kind !== 'tackle' || attacker.action.neutralized || attacker.flight || (defender.flight && !defender.wallSplat)) return false;   // preso na parede (wall-splat) o rival continua acertável   // neutralizado por um Counter de PL superior: não conecta mais nesta ação
   const dir = direction(attacker.action.heading), off = sub(defender.position, attacker.position);
   const towards = length(off) > 1e-6 ? normalize(off) : normal;
   return dot(dir, towards) > X.tackleTargetAlignment && dot(dir, normal) > X.tackleNormalAlignment && dot(relative, normal) > X.tackleClosingSpeed;
 }
 /** Resolve um tackle conectado. Devolve o evento ou null. */
-export function resolveHit(attacker, defender, normal, relative) {
+export function resolveHit(attacker, defender, normal, relative, force = false) {
   const R = C.rules, X = C.extras.combat, T = C.extras.toggles;
-  if (!tackleConnects(attacker, defender, normal, relative) || defender.hp <= 0) return null;
+  if ((!force && !tackleConnects(attacker, defender, normal, relative)) || defender.hp <= 0) return null;
 
   // Verificação de janelas ativas e multi-hit (quando o toggle estiver ativo e a ação tiver janelas marcadas)
   let windowIdx = -1;
