@@ -238,3 +238,7 @@ O bloco de Moves saiu da barra esquerda e virou uma gaveta própria, aberta pelo
 - **Equipar:** até 4 moves por personagem (azul e vermelho), um por slot, com o **botão** de cada slot escolhido ali mesmo (é o mesmo de Controles › Teclas e entra no desfazer). Um move não ocupa dois slots do mesmo personagem.
 - **Só os equipados:** cada move equipado ganha um bloco com a animação de carga (com loop) e de disparo e os sliders dele; os dos não equipados ficam ocultos. A carga compartilhada e a IA com Moves aparecem só quando há move equipado (a IA, só se o vermelho equipar).
 - **Ferramentas de teste** (recolhidas): emissores, laser, cenários técnicos, estilo dos efeitos e avaliação jogável.
+
+## Workspace inicial embutido (`inicial/`)
+
+A compilação embute `inicial/workspace-inicial.zip` no HTML. Na primeira abertura num navegador sem workspace, o laboratório o importa sozinho (ajustes calibrados, Cogumelo e arenamon-prototipo nos slots, animações e calibrações). Depois, o workspace do navegador manda. Detalhes e como atualizar: `inicial/README.md`.
