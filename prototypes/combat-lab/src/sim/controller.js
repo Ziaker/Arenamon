@@ -75,7 +75,7 @@ export function startPermission(f, kind) {
   if (cur?.kind === 'dodge' && kind === 'tackle') {
     // C → X: só na janela (por padrão, o fim da esquiva). Depois de uma esquiva perfeita, a qualquer momento.
     const c = A.cancel, [w0, w1] = cancelWindow(), perfect = c.perfectAnytime && f.counterWindow > 0;
-    const inWindow = cur.elapsed >= w0 - 1e-8 && cur.elapsed <= w1 + 1e-8, ok = !!c.dodgeToTackle && (perfect || inWindow);
+    const airSlam = !!C.extras.toggles.enableMeteorSlam && f.vaultHeight > C.rules.slamMinHeight, inWindow = airSlam || (cur.elapsed >= w0 - 1e-8 && cur.elapsed <= w1 + 1e-8), ok = !!c.dodgeToTackle && (perfect || inWindow);
     return {ok, viaCancel: true, ...(ok ? {} : c.dodgeToTackle ? {reason: 'cancelWindow', detail: {elapsed: cur.elapsed, open: [w0, w1]}} : {reason: 'cancelDisabled'})};
   }
   // X não cancela o próprio X (selfCancel 0) e C só cancela C nos últimos selfCancelFromEnd segundos.
@@ -136,7 +136,9 @@ function stepTackleCharge(f, cmd, fighters, dt, desiredHeading, target, move, di
   ch.t += dt;ch.level = tackleChargeLevel(ch.t);
   if (ch.t < R.chargeTackleMaxTime) f.stamina = Math.max(0, f.stamina - R.chargeTackleDrain * dt);
   f.regenBase = f.stamina;f.regenAge = 0;f.exhausted = isDepleted(f.stamina) || f.exhausted;
-  f.velocity = vec();f.locomotionVelocity = vec();f.state = 'tackleCharge';
+  // Carregando o tackle o lutador anda mais devagar (chargeTackleMove da velocidade de caminhada), não fica parado.
+  const mv = hasFlag(f, 'rooted') || hasFlag(f, 'stunned') ? vec() : scale(move, walkSpeed(f) * R.chargeTackleMove);
+  f.velocity = mv;f.locomotionVelocity = {...mv};f.desiredVelocity = {...mv};f.state = 'tackleCharge';
   if (target || length(move) > .01) turnToward(f, desiredHeading, dt, R.chargeTackleTurn);
   const empty = f.stamina <= 1e-8 && ch.t < R.chargeTackleMaxTime;
   if (cmd.tackleHeld && !empty) return 'charging';
@@ -157,9 +159,16 @@ export function startSlamFromFlight(f, dirs, fighters, desiredHeading, guardHeld
   f.flight = null;f.wallSplat = null;f.tech = null;f.techDodge = null;f.knockRecovery = 0;
   startSlam(f, h, dirs, fighters, desiredHeading, guardHeld, locked);
 }
+/** Meteor slam mirando o rival: a descida é calibrada para chegar ao chão em cima dele (nunca mais rasa que slamAngle; sem rival usa o ângulo). */
+function aimSlam(f, fighters, h = f.vaultHeight) {
+  const foe = fighters.find(o => o.id !== f.id && o.hp > 0), base = Math.tan(C.rules.slamAngle);
+  if (!foe || !f.action || !(h > 1e-6)) return;
+  const d = Math.max(.35, Math.hypot(foe.position.x - f.position.x, foe.position.z - f.position.z) - .3);
+  f.action.slamSlope = Math.min(Math.tan(Math.PI * 80 / 180), Math.max(base, h / d));
+}
 export function startSlam(f, height, dirs, fighters, desiredHeading, guardHeld, locked = false) {
   startAction(f, 'tackle', dirs, fighters, desiredHeading, false, guardHeld, locked);
-  f.vaultHeight = Math.max(0, height);f.action.slam = true;f.action.fromSlam = true;f.action.plDamage = (f.action.plDamage ?? 1) * C.rules.slamDamage;
+  f.vaultHeight = Math.max(0, height);f.action.slam = true;f.action.fromSlam = true;f.action.plDamage = C.rules.slamDamage;aimSlam(f, fighters, height);
 }
 /** Tempo até o solo (s) de um lutador em voo balístico. */
 export function timeToLand(f) {const g = C.rules.launchGravity, fl = f.flight;return fl ? (fl.vy + Math.sqrt(Math.max(0, fl.vy * fl.vy + 2 * g * fl.y))) / g : 0;}
@@ -363,7 +372,7 @@ export function updateFighter(f, cmd, fighters, dt) {
         f.vaultHeight = action.vault ? A.dodge.vaultHeight * Math.sin(Math.PI * clamp((action.elapsed + dt) / A.dodge.duration, 0, 1)) : 0;
       } else {
         // X vindo de um salto (C → X no ar): desce suavemente da altura em que estava, sem teletransporte.
-        if (action.slam) f.vaultHeight = Math.max(0, f.vaultHeight - Math.tan(R.slamAngle) * Math.max(0, dot(f.velocity, direction(action.heading))) * dt);   // mergulho: desce tan(ângulo) por metro andado
+        if (action.slam) f.vaultHeight = Math.max(0, f.vaultHeight - (action.slamSlope ?? Math.tan(R.slamAngle)) * Math.max(0, dot(f.velocity, direction(action.heading))) * dt);   // mergulho: desce tan(ângulo) por metro andado
         else f.vaultHeight = action.liftStart > 0 ? (action.liftTime > 0 ? action.liftStart * (1 - smoothstep((action.elapsed + dt) / action.liftTime)) : 0) : 0;
       }
       f.state = action.kind;
@@ -438,7 +447,7 @@ function startAction(f, kind, dirs, fighters, desiredHeading, viaCancel, guardHe
   if (invulnerableFor !== undefined) f.action.invulnerableFor = invulnerableFor;
   if (liftStart > 0) {f.action.liftStart = liftStart;f.action.liftTime = liftTime;f.action.fromCancel = true;}
   // Meteor slam: C → X a partir do salto do vault (acima da altura mínima) vira mergulho oblíquo com bônus de dano.
-  if (viaCancel && kind === 'tackle' && T.enableMeteorSlam && liftStart > C.rules.slamMinHeight) {f.action.slam = true;f.action.fromSlam = true;f.action.plDamage = C.rules.slamDamage;}
+  if (viaCancel && kind === 'tackle' && T.enableMeteorSlam && liftStart > C.rules.slamMinHeight) {f.action.slam = true;f.action.fromSlam = true;f.action.plDamage = C.rules.slamDamage;aimSlam(f, fighters, liftStart);}
   if (viaCancel) f.action.fromCancel = true;
   if (countered) f.counterWindow = 0;
   // O custo de C já gasto continua gasto; X cobra o próprio custo.

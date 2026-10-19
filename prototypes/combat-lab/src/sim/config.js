@@ -11,13 +11,13 @@ export function defaults() {
     clashPushDistance: 2.2, clashPushDuration: .35, techWindow: .35, techMinAir: 0, techCost: 1,
     // Tackle carregado (enableChargeTackle): segurar X carrega (PL1 < 50%, PL2 de 50% a 99%, PL3 na carga máxima); soltar dispara.
     // Velocidade e alcance andam juntos (a duração do tackle é fixa). sprintTacklePL: X apertado correndo sai neste PL, sem carga.
-    chargeTackleMaxTime: 1.2, chargeTackleDrain: .8, chargeTackleTurn: .25, chargeTackleSpeed2: 1.25, chargeTackleSpeed3: 1.6, chargeTackleDamage2: 1.3, chargeTackleDamage3: 1.7, sprintTacklePL: 2,
+    chargeTackleMaxTime: 1.2, chargeTackleDrain: .8, chargeTackleTurn: .25, chargeTackleMove: .8, chargeTackleSpeed2: 1.25, chargeTackleSpeed3: 1.6, chargeTackleDamage2: 1.3, chargeTackleDamage3: 1.7, sprintTacklePL: 2,
     // Wall-splat: lançado que bate na parede JÁ CAINDO, rápido o bastante, fica suspenso e indefeso por wallSplatDuration (a subida continua com o ricochete).
     // Meteor slam: X no ar (C → X no salto do vault ou X de quem foi lançado) vira mergulho oblíquo (slamAngle); o acerto lança o rival para CIMA (ground bounce).
     // Finta (enableTackleFeint): C ou D no startup do tackle (feintWindow) ou durante a carga cancelam o ataque; o lutador derrapa (brake slide),
     // paga só feintStaminaCost (devolve o resto do custo do tackle) e volta ao neutro em feintRecovery.
     feintWindow: .12, feintStaminaCost: .3, feintSkidSpeed: 4, feintRecovery: .15,
-    wallSplatMinSpeed: 6, wallSplatDuration: .7, wallSplatDamage: 0, slamAngle: Math.PI / 4, slamMinHeight: .3, slamDamage: 1.2, slamRecovery: .6, slamLaunchHorizontal: .4, groundBounceForce: 9,
+    wallSplatMinSpeed: 6, wallSplatDuration: .7, wallSplatDamage: 0, slamAngle: Math.PI / 4, slamMinHeight: .3, slamDamage: 1, slamImpactScale: 1.2, slamImpactShake: 1.2, slamRecovery: .6, slamLaunchHorizontal: .4, groundBounceForce: 9,
     landingRecovery: .19, wallRestitution: .28, perfect: .2, perfectCooldown: 2, staminaMax: 3, regenDelay: 1, regenTime: 5, guardSpeed: .6,
     exhaustedSpeed: .7, guardTurn: 3 * Math.PI, guardAcceleration: 15 * Math.PI,
     // exhaustMode 1: exausto quando sobra menos que o menor custo de X/C (0 = só em zero, Etapa A). Rebote na parede: vertical.

@@ -12,7 +12,8 @@ export class Hud {
   constructor() {this.debug = false;this.lastNotice = null;this.noticeUntil = 0;this.lastInvulnNotice = 0;}
   render(game, fps, {locked, paused, replay, playerAI}) {
     const F = C.extras.fx;
-    $('menu').hidden = game.phase !== 'menu';$('overlay').hidden = game.phase !== 'result';
+    $('menu').hidden = game.phase !== 'menu';if (game.phase !== 'result') this.resultAt = 0;else if (!this.resultAt) this.resultAt = performance.now();
+    $('overlay').hidden = game.phase !== 'result' || performance.now() - this.resultAt < 1900;   // o K.O. aparece sozinho antes do cartão de resultado
     $('overlay-title').textContent = game.winner === 0 ? 'Vitória no teste' : game.winner === 1 ? 'Derrota no teste' : 'Empate no teste';
     const phase = {playing: 'Em combate', finishing: 'Finalizando impacto', menu: 'Preparação', paused: 'Pausa', result: 'Resultado'}[game.phase] || game.phase;
     const phaseText = `${paused ? 'Pausado' : phase}${locked ? ' · alvo fixado' : ''}${playerAI ? ' · IA × IA' : ''}`, phaseFull = `${paused ? 'Pausado' : phase} · alvo ${locked ? 'fixado' : 'livre'}${playerAI ? ' · IA × IA' : ''}`;
