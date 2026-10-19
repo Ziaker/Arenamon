@@ -30,6 +30,17 @@ export function clashPossible(a, b, normal, relative) {
   if (pa !== pb) {const loser = pa > pb ? b : a;loser.action.neutralized = true;loser.action.invulnerableFor = 0;loser.plDefeated = true;return false;}   // o derrotado perde a invulnerabilidade do início do tackle: o golpe do vencedor conecta
   return true;
 }
+/**
+ * Dois tackles que conectam um no outro no mesmo contato sem chegar ao clash frontal (mira entre tackleTargetAlignment e
+ * clashFacingAlignment): sem isso, o primeiro da lista lançava o rival e o contra-golpe deste nunca era avaliado (vantagem de índice).
+ * Vale como clash: mesma resolução simétrica.
+ */
+export function mutualTackle(a, b, normal, relative) {
+  if (!C.extras.toggles.enableClash || a.flight || b.flight || a.action?.kind !== 'tackle' || b.action?.kind !== 'tackle') return false;
+  if (C.extras.toggles.enableAnimationCombatWindows && (!isOffensive(a) || !isOffensive(b))) return false;
+  if (a.action.hits?.has(b.id) || b.action.hits?.has(a.id)) return false;
+  return tackleConnects(a, b, normal, relative) && tackleConnects(b, a, scale(normal, -1), scale(relative, -1));
+}
 /** X contra X: os dois recebem dano e são lançados (ou, com enableClashPush, empurrados no chão) em direções opostas (ignora invulnerabilidade). */
 export function clash(a, b, normal) {
   const R = C.rules, toA = stat(b, 'attack', b.attributes.attack) * R.clashFraction * stat(a, 'damageTaken', 1), toB = stat(a, 'attack', a.attributes.attack) * R.clashFraction * stat(b, 'damageTaken', 1);

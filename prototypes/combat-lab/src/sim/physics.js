@@ -1,7 +1,7 @@
 // Física de passo fixo: voo balístico, deslizamento ao aterrissar, subpassos, limites da arena com rebote
 // e separação de colisores AABB. Detecta clash/impacto no primeiro passe de contato.
 import {C} from './config.js';
-import {clashPossible, clash, resolveHit} from './combat.js';
+import {clashPossible, mutualTackle, clash, resolveHit} from './combat.js';
 import {collideFighter} from './world.js';
 import {vec, add, scale, sub, dot, length, normalize, clamp, direction, smoothstep} from './math.js';
 
@@ -103,7 +103,7 @@ export function stepPhysics(fighters, dt, world = null) {
           a.contacts++;b.contacts++;
           if ((!a.flight || a.wallSplat) && (!b.flight || b.wallSplat) && a.hp > 0 && b.hp > 0) {
             const rel = sub(add(a.velocity, pushVel.get(a.id)), add(b.velocity, pushVel.get(b.id)));
-            if (clashPossible(a, b, contact.normal, rel)) events.push(...clash(a, b, contact.normal));
+            if (clashPossible(a, b, contact.normal, rel) || mutualTackle(a, b, contact.normal, rel)) events.push(...clash(a, b, contact.normal));
             else {
               const hitA = resolveHit(a, b, contact.normal, rel), hitB = resolveHit(b, a, scale(contact.normal, -1), scale(rel, -1));
               if (hitA) events.push(hitA);if (hitB) events.push(hitB);
