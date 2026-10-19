@@ -46,10 +46,17 @@ O sistema admite tipos diferentes de passivas, conforme a definição individual
 - A proibição aplica-se tanto às passivas genéricas quanto às passivas únicas do personagem, sem exceções aprovadas.
 - Permanecem válidas as combinações da Rodada 1 e o limite de duas passivas equipadas no total.
 
+## Rodada 6 — Momento de seleção e troca das passivas (opção A aprovada)
+
+- As **duas passivas são selecionadas exclusivamente antes do início da partida**, durante a preparação pré-jogo.
+- A combinação de passivas equipadas **permanece fixa durante toda a partida**.
+- **Não é permitido substituir passivas durante o combate**, nem em eventuais intervalos ou transições que pertençam à mesma partida.
+- O jogador poderá escolher outra combinação **na preparação da partida seguinte**, respeitando as regras de disponibilidade, quantidade e proibição de duplicatas já aprovadas.
+- Esta decisão não define a interface de seleção nem os demais detalhes de implementação.
+
 ## Pontos pendentes — não aprovados
 
 - Identidade, números, magnitude, duração, gatilhos e cooldowns de cada passiva.
-- Regras para substituição da seleção durante uma partida ou entre partidas.
 - Interações e prioridades entre duas passivas equipadas.
 - Limites de empilhamento e relação com buffs, debuffs e atributos.
 - Comportamento das passivas em KO, respawn, pausas, hitstop e demais estados; a definição é individual, mas as regras concretas ainda não foram aprovadas.
