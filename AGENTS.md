@@ -11,7 +11,7 @@ O usuário abre e testa tudo pela pasta oficial, sem rodar comandos. Por isso, *
 3. **Sempre recompile antes de entregar** (`npm run build:combat-lab` e os demais `build` afetados) para que o `dist/` aberto pelo usuário já contenha a mudança. Diga na resposta qual arquivo abrir.
 4. **Tudo que o usuário precisa ajustar tem controle na interface** (slider, interruptor ou seletor visível no painel), com nome claro e unidade. Não deixe valor importante só no código.
 5. **Nunca guarde a única cópia de algo importante** em `validation/`, pastas temporárias, `.codex/`, `.gemini/` ou fora da pasta oficial. Evidências versionáveis vão em `prototypes/<sistema>/evidence/`; documentos em `docs/`.
-6. **Sem duplicatas soltas na raiz** (modelos `.glb`, `.docx`, zips, capturas): modelos locais ficam em `chars/` (ignorado pelo Git); documentos em `docs/`.
+6. **Sem duplicatas soltas na raiz** (modelos `.glb`, `.docx`, zips, capturas): modelos ficam em `chars/` (versionada no Git); documentos em `docs/`.
 7. **Resposta final em português claro**: diga o que mudou, onde abrir, o que testou e o que **não** foi verificado. Não rode baterias de teste longas sem necessidade; o usuário prefere testar o jogo ele mesmo.
 8. **Não mexa no que o usuário não pediu** (por exemplo, o Animation Studio quando o pedido é sobre o jogo).
 
@@ -71,7 +71,7 @@ Todo código-fonte, documentação, recurso permitido, teste e entrega final dev
 ## Antes de entregar
 
 1. Revise `git diff` e `git status --short`.
-2. Confirme que nenhum segredo ou recurso proprietário foi incluído; nunca use `git add -f` para contornar as exclusões.
+2. Confirme que nenhum segredo (chaves, tokens, senhas) foi incluído; nunca use `git add -f` para contornar as exclusões.
 3. Execute `npm run verify` e corrija falhas relacionadas à mudança.
 4. Crie um commit descritivo e identificável.
 5. Atualize sua branch com o remoto sem sobrescrever trabalho alheio e envie o commit.
@@ -80,6 +80,6 @@ Todo código-fonte, documentação, recurso permitido, teste e entrega final dev
 
 Uma tarefa não está sincronizada apenas porque os arquivos foram salvos. Ela termina quando o commit enviado e o commit remoto foram comparados e confirmados.
 
-## Conteúdo restrito
+## Modelos e recursos de personagens
 
-Modelos e recursos extraídos de jogos proprietários permanecem somente no ambiente local até haver comprovação dos direitos de uso e redistribuição. Não os adicione ao Git, a releases, a Pages ou a qualquer serviço externo.
+Por decisão do responsável pelo projeto, **não há bloqueio de conteúdo**: modelos, animações e recursos da pasta `chars/` são versionados e publicados no GitHub (repositório privado), inclusive os que não são autorais. A responsabilidade pelos direitos de uso e redistribuição é do responsável. Exceção apenas de tamanho: o material de trabalho pesado do Vigor (`chars/vigor/`, `chars/vigor.zip`, cerca de 1,5 GB de renders, `.blend` e logs) fica local.

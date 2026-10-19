@@ -33,13 +33,12 @@ tmp/
 temp/
 
 # Recursos de jogos proprietários ou de licença ainda não comprovada.
-# Permanecem no disco local, mas nunca entram no Git/GitHub.
+# Modelos soltos fora de chars/ continuam locais. A pasta chars/ É versionada (decisão do responsável, ver AGENTS.md).
 *.glb
 *.gltf
 *.dae
 *.fbx
 *.obj
-chars/
 prototypes/croagunk/
 **/validation/
 !/validation/
@@ -53,3 +52,12 @@ prototypes/croagunk/
 /GDD_Pokemon_Arena_Fighter_v0_1.docx
 /prototypes/placeholders/floor-check.mjs
 /archives/2026-10-13-impeto/placeholders/floor-check.mjs
+
+# chars/: modelos e animações do elenco entram no GitHub (repositório privado), exceto o material de trabalho pesado do Vigor.
+!chars/**/*.glb
+!chars/**/*.gltf
+!chars/**/*.dae
+!chars/**/*.fbx
+!chars/**/*.obj
+chars/vigor/
+chars/vigor.zip
