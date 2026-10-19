@@ -60,13 +60,13 @@ export function createWorkspaceUI(ctx) {
     renderStorage();
   }
   /** Reabre o último modelo do slot a partir do armazenamento (com verificação de integridade). */
-  async function reopen(slot, {auto = false} = {}) {
-    const s = ws.doc.slots[slot];if (!s?.modelId) return {error: 'Nenhum modelo usado antes neste slot.'};
+  async function reopen(slot, {auto = false, modelId = null} = {}) {
+    const prevSlot = ws.doc.slots[slot], s = modelId ? {modelId, name: ws.doc.models[modelId]?.name ?? null} : prevSlot;if (!s?.modelId) return {error: 'Nenhum modelo usado antes neste slot.'};
     const r = await loadAsset(store, s.modelId);
     if (r.error) {setMsg(slot, `<span class="bad">${auto ? 'Restauração automática falhou' : 'Não foi possível reabrir'} “${escape(s.name || '?')}”: ${escape(r.message)}</span>${/Selecione/.test(r.message) ? '' : ' Selecione o arquivo de novo acima.'}`);return {error: r.message};}
     let source;try {source = await loadStudioFile(fileFrom(r.bytes, r.meta.name));} catch (e) {setMsg(slot, `<span class="bad">“${escape(s.name)}” não pôde ser lido: ${escape(e.message)}</span>`);return {error: e.message};}
     source.assetId = s.modelId;source.name = s.name || r.meta.name;
-    const problems = await install(slot, source);ws.setSlot(slot, {active: 1});
+    const problems = await install(slot, source);ws.setSlot(slot, {modelId: s.modelId, name: source.name, active: 1});
     store.touchAsset(s.modelId, {lastUsedAt: Date.now()}).catch(() => {});
     setMsg(slot, `<span class="ok">${auto ? 'Restaurado automaticamente' : 'Reaberto'}: ${escape(source.name)}${ws.doc.models[s.modelId]?.imports?.length ? ` + ${ws.doc.models[s.modelId].imports.length} arquivo(s) de animação` : ''}.</span>`
       + (problems.length ? `<br><span class="warn">Não recuperadas: ${problems.map(escape).join(' · ')}</span>` : '') + (ws.doc.models[s.modelId]?.migratedFrom ? '<br><span class="muted">Associações migradas do formato antigo (por nome de arquivo).</span>' : ''));
@@ -104,6 +104,19 @@ export function createWorkspaceUI(ctx) {
       <label class="check"><input type="checkbox" data-autorestore ${s.autoRestore ? 'checked' : ''}> Restaurar automaticamente na próxima sessão</label></div>
       ${s.modelId ? `<p class="hint">Último: <b>${escape(s.name || '?')}</b> · ${s.modelId.slice(0, 12)}…</p>` : ''}<p class="hint ws-slot-msg">${slotMsg[slot]}</p>`;
     box.querySelector('[data-reopen]')?.addEventListener('click', () => reopen(slot));
+    // Biblioteca: qualquer personagem já carregado neste navegador volta com as animações e associações que tinha.
+    const lib = document.createElement('div');lib.className = 'row ws-lib';lib.hidden = true;
+    lib.innerHTML = '<label class="field grow">Personagens salvos<select data-lib aria-label="Personagens salvos neste navegador"></select></label><button type="button" data-lib-load disabled title="Carrega o personagem escolhido neste slot, com as animações e associações salvas">Carregar neste slot</button>';
+    box.prepend(lib);
+    store.listAssets().then(list => {
+      const models = list.filter(a => a.kind === 'model').sort((a, b) => (b.lastUsedAt ?? b.addedAt ?? 0) - (a.lastUsedAt ?? a.addedAt ?? 0));
+      const sel = lib.querySelector('[data-lib]');
+      sel.replaceChildren(new Option(models.length ? 'Escolha um personagem…' : 'Nenhum personagem salvo ainda', ''), ...models.map(a => {const n = ws.doc.models[a.id]?.imports?.length ?? 0;return new Option(`${a.name}${n ? ` · ${n} arquivo(s) de animação` : ''}${ch?.source.assetId === a.id ? ' (carregado)' : ''}`, a.id);}));
+      lib.hidden = !models.length;
+      const go = lib.querySelector('[data-lib-load]');
+      sel.onchange = () => {go.disabled = !sel.value || sel.value === ch?.source.assetId;};
+      go.onclick = () => {if (sel.value) reopen(slot, {modelId: sel.value});};
+    }).catch(() => {});
     box.querySelector('[data-autorestore]').onchange = e => ws.setSlot(slot, {autoRestore: e.target.checked ? 1 : 0});
     el.querySelector('.row')?.after(box);
   }
