@@ -174,12 +174,21 @@ O sistema admite tipos diferentes de passivas, conforme a definição individual
 - **Permanecem pendentes** as regras concretas de passivas cujo efeito esteja suspenso, permanente, instantâneo ou com término não definido, além de outros casos não cobertos pelo conceito de efeito anterior ativo. A Rodada 20 não presume condições de retomada nem altera as decisões individuais já aprovadas.
 - Este registro é estritamente documental e **não autoriza implementação**.
 
+## Rodada 21 — Continuidade do cooldown durante estados de combate (opção A aprovada)
+
+- **Uma vez iniciada, a contagem do cooldown de uma passiva continua avançando normalmente durante todos os estados de combate do personagem**, inclusive estados que restrinjam suas ações, como hit stun e guard stun.
+- **Entrar ou permanecer em um estado de combate incapacitante não pausa nem congela automaticamente a recarga** já iniciada, e sair desse estado não reinicia o cronômetro.
+- A continuidade do cooldown **não autoriza a ativação da passiva em um estado no qual suas regras individuais proíbam o acionamento**. As condições de funcionamento por estado continuam sujeitas à Rodada 3.
+- Permanecem preservadas as Rodadas 15–18: o cooldown da passiva é independente dos modificadores de recarga de outras habilidades e começa quando o efeito efetivamente termina, nos casos e condições já aprovados.
+- **Não definido nesta rodada:** a contagem em KO e respawn, pausas globais do jogo, hitstop e situações especiais de paralisação do tempo que não sejam simplesmente estados de combate; tampouco se estabelecem regras novas para duração ou suspensão do efeito ativo, objeto da Rodada 19.
+- Esta é exclusivamente uma decisão documental; **não autoriza implementação**.
+
 ## Pontos pendentes — não aprovados
 
 - Identidade, números, magnitude, duração, gatilhos e cooldowns de cada passiva.
 - Catálogo e critérios concretos de resolução para cada combinação de efeitos incompatíveis ou mutuamente exclusivos; casos não previstos permanecem sem regra aprovada.
 - Unidades e conversão para efeitos de natureza diversa, regras de arredondamento específicas quando exigido inteiro, interações entre modificadores incompatíveis e tratamento de casos especiais não cobertos por restrições preexistentes.
-- Comportamento das passivas em KO, respawn, pausas, hitstop e demais estados; a definição é individual, mas as regras concretas ainda não foram aprovadas.
+- Ativação, suspensão ou expiração de efeitos em KO, respawn, pausas, hitstop e demais situações; a continuidade do cooldown já iniciado nos estados de combate foi aprovada na Rodada 21, mas os demais comportamentos concretos continuam pendentes.
 - Interface de seleção, apresentação visual e implementação técnica.
 
 ## Governança deste documento
