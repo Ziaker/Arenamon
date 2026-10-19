@@ -210,3 +210,7 @@ Os padrões são diferentes: o vermelho reage mais devagar e hesita mais; o azul
 - `node prototypes/combat-lab/test/local-character.mjs modelo.glb`: diagnóstico local do mapa de animações de um modelo seu (resultado em `validation/`).
 - `node prototypes/combat-lab/test/parity.mjs`: paridade passo a passo com o v6 local, no modo `V6_COMPAT` (opcional; só compara o comportamento antigo).
 - `node prototypes/combat-lab/verify.mjs`: 19 verificações (incluindo a IA tática por padrão, a gravação e a reprodução idêntica de partida, a aba X e C, a migração de JSON v6, C → X pelo teclado, o indicador e a homologação) no Edge offline, incluindo o GLB gerado pelo próprio Animation Studio com mapa de ações e eventos.
+
+## Busca rápida (Ctrl+K ou `/`)
+
+Paleta global na barra superior (**⌕ Buscar**, **≠ N alterados**, **? Atalhos**): busca em todos os parâmetros de qualquer aba e permite editá-los ali mesmo (entram no desfazer/refazer), lista os alterados em relação ao padrão com restauração individual ou geral, aplica presets e mostra os atalhos (`?`). Esc fecha só a paleta, sem pausar a partida.

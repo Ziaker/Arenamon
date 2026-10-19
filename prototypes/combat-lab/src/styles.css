@@ -595,3 +595,19 @@ pre.diff{max-height:72px;padding:4px;font-size:9.5px;margin:2px 0}
   .homolog .pill{flex-wrap:wrap;max-width:100%}
 }
 @container (max-width:620px){.panel-body .tune-top{flex-wrap:wrap}.panel-body .tune-value{white-space:normal;overflow-wrap:anywhere}}
+/* Paleta rápida: busca global, alterados, presets e atalhos */
+.quick-pal{position:fixed;inset:0;z-index:60;display:flex;justify-content:center;align-items:flex-start;padding:7vh 12px 12px;background:#050b12b3}
+.quick-pal[hidden]{display:none}
+.quick-box{width:min(680px,100%);max-height:84vh;display:flex;flex-direction:column;gap:8px;background:#101c29;border:1px solid #ffffff22;border-radius:12px;padding:12px;box-shadow:0 18px 60px #000a}
+.quick-head{display:flex;gap:8px}.quick-head input{flex:1;min-width:0;font-size:15px;padding:8px 10px}
+.quick-tabs{display:flex;gap:6px;flex-wrap:wrap}.quick-tabs button{padding:4px 10px;font-size:12.5px}.quick-tabs button[aria-pressed=true]{background:#1f3a52;border-color:#6cb7ff88;color:#fff}
+.quick-list{overflow:auto;min-height:60px;display:flex;flex-direction:column;gap:8px;padding-right:2px}
+.quick-item{display:flex;flex-direction:column;gap:2px;border:1px solid #ffffff12;border-radius:8px;padding:6px 8px;background:#0c1621}
+.quick-item>small{color:#8fa6bb;font-size:11px}
+.quick-preset{flex-direction:row;align-items:center;gap:10px}.quick-preset small{flex:1}
+.quick-actions{display:flex;justify-content:flex-end}
+.quick-list h4{margin:8px 0 2px;font-size:12px;color:#8fa6bb;text-transform:uppercase;letter-spacing:.06em}
+.quick-keys{display:grid;grid-template-columns:minmax(120px,max-content) 1fr;gap:4px 12px;margin:0}.quick-keys dt{margin:0}.quick-keys dd{margin:0;color:#cfe2f2}
+.quick-keys kbd{font:12px ui-monospace,Consolas,monospace;background:#1a2b3c;border:1px solid #ffffff22;border-bottom-width:2px;border-radius:5px;padding:1px 6px}
+.quick-foot{font-size:11.5px;color:#8fa6bb}
+#changed-open[data-n="0"]{opacity:.65}#changed-open:not([data-n="0"]){color:var(--amber);border-color:#ffcf7d55}

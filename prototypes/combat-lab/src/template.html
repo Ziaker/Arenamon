@@ -9,11 +9,30 @@
 </head>
 <body>
 <!--DEV--><div style="position:fixed;inset:0;z-index:999;display:grid;place-items:center;background:#0e1621;color:#eef5fb;font:16px system-ui;padding:24px;text-align:center"><div><h1 style="font-size:22px">Este é o modelo-fonte, não o laboratório.</h1><p>O laboratório completo é um único HTML gerado pelo build:<br><b>prototypes/combat-lab/dist/arenamon-combate-laboratorio.html</b></p><p style="color:#9bb0c3">Gere com <code>npm run build</code> e abra esse arquivo por duplo clique.</p></div></div><!--/DEV-->
+<div id="quick-pal" class="quick-pal" role="dialog" aria-modal="true" aria-label="Busca rápida" hidden>
+ <div class="quick-box">
+  <div class="quick-head">
+   <input type="search" id="quick-q" autocomplete="off" spellcheck="false" placeholder="Buscar parâmetro…">
+   <button type="button" id="quick-close" aria-label="Fechar" title="Fechar (Esc)">✕</button>
+  </div>
+  <div class="quick-tabs" role="group" aria-label="Seções da busca">
+   <button type="button" data-qmode="params" aria-pressed="true">Parâmetros</button>
+   <button type="button" data-qmode="changed" aria-pressed="false">Alterados · 0</button>
+   <button type="button" data-qmode="presets" aria-pressed="false">Presets</button>
+   <button type="button" data-qmode="keys" aria-pressed="false">Atalhos</button>
+  </div>
+  <div id="quick-list" class="quick-list"></div>
+  <div id="quick-foot" class="quick-foot"></div>
+ </div>
+</div>
 <div class="lab">
  <header class="top">
   <div class="brand"><span class="logo">A</span><strong>ARENAMON <em>LAB</em></strong><small>Combate · v7</small></div>
   <div class="top-info"><span class="chip" id="phase" title="Fase da partida e estado do alvo"></span><span class="chip ai" id="ai-chip" title="Modo da IA do adversário"></span><span class="chip dirty" id="tune-state" data-state="clean" title="Ajustes alterados em relação ao último preset salvo ou JSON exportado"><i></i><span>Ajustes padrão</span></span><span class="chip ws" id="ws-chip" data-state="ok" title="Workspace persistente"><i></i><span>Workspace</span></span></div>
   <div class="top-actions">
+   <button type="button" id="quick-open" title="Buscar parâmetros em todas as abas (Ctrl+K ou /)">⌕ Buscar</button>
+   <button type="button" id="changed-open" data-n="0" title="Parâmetros diferentes do padrão do laboratório">≠ 0 alterados</button>
+   <button type="button" id="shortcuts-open" title="Lista de atalhos (?)">? Atalhos</button>
    <button type="button" id="arena-zen-toggle" role="switch" aria-checked="false" title="Modo Arena (F2): tela cheia limpa para focar no combate">⚔ Modo Arena</button>
    <button type="button" id="pause" title="Pausar / continuar (Esc ou Espaço)">❚❚ Pausar</button>
    <button type="button" id="restart-top" title="Reiniciar a partida (R)">↺ Reiniciar</button>

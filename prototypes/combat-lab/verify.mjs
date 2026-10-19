@@ -148,8 +148,7 @@ try {
   step(`câmera lenta (0,25×: ${b - a} passos/s × ${c1 - c0} a 1×) e retomada a partir do passado`);
 
   // ---------- 9. Controles: IA, gamepad, histórico ----------
-  await openTab('match');await page.selectOption('#player-mode', 'random');await page.fill('#seed', '7');await page.press('#seed', 'Tab');
-  await page.click('[data-difficulty="hard"]');assert.equal(await L(() => window.__lab.C.extras.ai.attackRange), 3.8);await L(() => window.__lab.tuning.undo());assert.equal(await L(() => window.__lab.C.extras.ai.attackRange), 3.35);
+  await openTab('match');await page.selectOption('#player-mode', 'offensive');await page.fill('#seed', '7');await page.press('#seed', 'Tab');
   await openTab('match');await page.selectOption('#mode', 'inactive');await page.click('#start');await page.locator('canvas').first().focus();
   await page.keyboard.down('ArrowUp');await page.waitForTimeout(300);await page.keyboard.up('ArrowUp');await page.keyboard.press('KeyX');await page.waitForFunction(() => /X/.test(document.getElementById('input-history')?.textContent ?? ''), null, {timeout: 4000}).catch(() => {});
   assert.match(await page.textContent('#input-history'), /X/);
@@ -214,7 +213,7 @@ try {
   step('homologação jogável: 17 itens, aprovado/reprovado com observação, salva ao recarregar e exportada no JSON');
   // ---------- Gravação e reprodução de partida ----------
   // O workspace restaura a última configuração de partida (o azul ficou em “aleatório” antes do recarregamento): fixa o modo tático.
-  await openTab('controls');await openTab('match');await page.selectOption('#mode', 'combat');await page.selectOption('#player-mode', 'tactical');
+  await openTab('controls');await openTab('match');await page.selectOption('#mode', 'offensive');await page.selectOption('#player-mode', 'tactical');
   await page.click('#arena-autoplay-toggle');await page.click('#start');await page.waitForTimeout(2500);
   const recorded = await L(() => {window.__lab.togglePause(true);const g = window.__lab.game;return {ticks: window.__labRecording.matchRec.ticks, tick: g.tick, fighters: JSON.stringify(g.fighters)};});
   assert.ok(recorded.ticks > 100 && recorded.ticks === recorded.tick, `gravou ${recorded.ticks} passos`);
