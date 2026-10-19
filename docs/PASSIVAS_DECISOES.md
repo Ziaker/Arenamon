@@ -102,10 +102,19 @@ O sistema admite tipos diferentes de passivas, conforme a definição individual
 - Permanecem válidas a seleção fixa de duas passivas distintas (Rodadas 1, 5 e 6), as regras individuais de funcionamento por estado (Rodadas 2 e 3) e os princípios de combinação de modificadores aprovados nas Rodadas 7–11.
 - Esta decisão **não autoriza implementação** nem define casos específicos de ativação de qualquer passiva.
 
+## Rodada 13 — Resolução simultânea de passivas (opção A aprovada)
+
+- Quando as duas passivas equipadas são acionadas por **um mesmo evento de combate**, seus requisitos e condições de ativação são **avaliados a partir do mesmo estado de referência desse evento**, sem prioridade de uma posição de equipamento sobre a outra.
+- Os efeitos das passivas acionadas que sejam **compatíveis** são **aplicados conjuntamente**, em resolução simultânea, sem sequência privilegiada entre os dois espaços.
+- Uma passiva **não perde seu acionamento apenas por um efeito da outra ser processado antes**, pois as condições de ambas se referem ao mesmo estado do evento.
+- A resolução conjunta de modificadores compatíveis respeita o acúmulo aditivo e a base de cálculo já aprovados nas Rodadas 7–11, sem criar fórmulas adicionais.
+- **Permanece pendente:** como resolver efeitos que sejam incompatíveis, mutuamente exclusivos ou que provoquem conflitos na atualização do estado. A opção A não define regras de desempate, prioridade entre efeitos incompatíveis, nem comportamento particular de passivas ainda não especificadas.
+- Esta decisão mantém a ativação independente aprovada na Rodada 12, **sem autorizar implementação**.
+
 ## Pontos pendentes — não aprovados
 
 - Identidade, números, magnitude, duração, gatilhos e cooldowns de cada passiva.
-- Ordem de resolução, prioridades de processamento e conflitos entre efeitos de passivas acionadas pelo mesmo evento, inclusive possíveis alterações de estado durante a resolução.
+- Resolução de conflitos entre efeitos simultâneos incompatíveis, mutuamente exclusivos ou que disputem uma mesma alteração de estado; critérios de desempate ainda não aprovados.
 - Unidades e conversão para efeitos de natureza diversa, regras de arredondamento específicas quando exigido inteiro, interações entre modificadores incompatíveis e tratamento de casos especiais não cobertos por restrições preexistentes.
 - Comportamento das passivas em KO, respawn, pausas, hitstop e demais estados; a definição é individual, mas as regras concretas ainda não foram aprovadas.
 - Interface de seleção, apresentação visual e implementação técnica.
