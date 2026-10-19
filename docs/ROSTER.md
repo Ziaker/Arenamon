@@ -47,5 +47,5 @@ Este documento cataloga o elenco de lutadores e os modelos 3D integrados ao proj
   - `Cogumelo_com_rig.fbx` e `Cogumelo_sem_rig.fbx` (modelo com e sem esqueleto).
   - `cogumelo_frente.png`, `cogumelo_lado.png`, `cogumelo_costas.png` (referências).
   - Animações próprias: `idle`, `alt idle`, `move 1`, `attack 1`, `charge`, `recovery`.
-- **Pacote Mixamo na mesma pasta:** ~40 animações (hits, quedas, bloqueio, strafe etc.) ficam **só locais**, fora do Git, por serem de terceiros.
+- **Pacote Mixamo na mesma pasta:** ~40 animações (hits, quedas, bloqueio, strafe etc.), também versionadas.
 - **Status:** disponível; ainda não carregado no laboratório (o lab importa `.glb`, então é preciso converter).
