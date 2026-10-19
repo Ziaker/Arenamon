@@ -196,12 +196,14 @@ O design principal está definido, mas **não afirmar que a funcionalidade está
 2. O golpe projeta uma **barragem de areia** nessa área.
 3. **Só pode ser ativado no chão**.
 4. **Só pode atingir adversários no chão**. Alvos em voo/aéreos não são atingidos.
-5. Em contato com alvo elegível, a barragem **empurra** o adversário e causa **pouco dano**.
-6. **Dano fixo e independente do atributo Ataque**, conforme decisão do diretor na Rodada 1; a quantidade exata de dano **ainda não foi definida**. O empurrão é **contínuo durante a janela de hitbox enquanto o inimigo permanece na barragem**, mas sua intensidade exata **ainda não foi definida**. Não presumir valores ou fórmula do Tackle.
+5. Em contato ofensivo válido com alvo elegível, a barragem causa **6 HP de dano fixo por inimigo por execução** (referência: **6% do HP padrão de 100**, antes de eventuais reduções por defesa), aplica **cegueira por 4 s** salvo defesa perfeita, e produz **empurrão contínuo horizontal** enquanto o alvo permanece na área ofensiva.
+6. **Dano-base: 6 HP fixos**, **independente do atributo Ataque** do lançador; não multiplicar por Ataque. Respeitar as reduções aplicáveis pela defesa parcial e a anulação total pela defesa perfeita. **Empurrão-base: aceleração horizontal de 12 m/s²**, enquanto houver contato com a hitbox e durante sua janela de **0,75 s**; **não** confundir aceleração com deslocamento total garantido, impulso instantâneo, velocidade fixa ou a fórmula de knockback do Tackle. **Direção do empurrão: sempre para a frente na orientação congelada no disparo**, não radial nem lateral. A redução quantitativa de aceleração sob defesa parcial ainda não foi definida separadamente.
 7. **Dimensões iniciais aprovadas:** **4 m de ALTURA em vista superior (alcance frontal/comprimento)** × **3 m de LARGURA (alcance transversal/lateral)**; dois controles ajustáveis de forma independente na interface. Um slider **Altura/alcance frontal** modifica o comprimento do retângulo à frente do lançador; um slider **Largura** modifica sua cobertura para os lados. O centro da borda traseira coincide com a origem da barragem em Mushroom. **Limites mínimos/máximos e incrementos desses sliders ainda não foram decididos** e não devem ser inventados. A altura física/vertical 3D necessária para a colisão com personagens no chão é **outra dimensão**, não definida por esta decisão.
 8. A **direção da barragem é determinada no disparo**. Uma vez disparada, a área retangular **permanece fixa durante sua execução**, sem acompanhar a rotação do lançador.
 9. Cada inimigo pode **receber somente um acerto por execução** (dano e aplicação inicial da cegueira). Contato prolongado não gera danos repetidos.
-10. O **empurrão é força contínua** enquanto um alvo elegível permanece em contato com a barragem **dentro dos primeiros 0,75 s**. Após esse intervalo, apenas o VFX se dissipa, **sem empurrão e sem hitbox**.
+10. O **empurrão aplica aceleração horizontal-base de 12 m/s² continuamente** sobre alvos elegíveis ainda em contato com a barragem **somente durante os primeiros 0,75 s**. A orientação do vetor é **para a frente na direção fixada no disparo**. A **defesa parcial reduz a intensidade** desse empurrão; a **defesa perfeita anula o empurrão**. Após esse intervalo, apenas o VFX se dissipa, **sem empurrão e sem hitbox**.
+11. **Defesa parcial**: reduz **dano e empurrão**, mas **não bloqueia cegueira** (4 s). **Defesa perfeita**: anula **dano, empurrão e cegueira**. As porcentagens exatas de redução do empurrão na defesa parcial não foram definidas e não devem ser arbitradas.
+12. **Reaplicação da cegueira por novo acerto válido de Sand Wave enquanto o debuff estiver ativo:** o cronômetro **é reiniciado para 4,00 s**, sem acumular duração e sem somar intensidade/pilhas. O contato prolongado de uma **mesma execução** não gera novos acertos nem reinícios.
 
 ### 6.3 Cronologia e janela de colisão
 
@@ -213,7 +215,7 @@ O design principal está definido, mas **não afirmar que a funcionalidade está
 | Dissipação visual sem hitbox | **0,75 s finais** | Efeitos da barragem de areia desaparecendo; sem novos acertos nessa metade. |
 | Cegueira aplicada em contato | **4,00 s** | Debuff individual de duração própria, distinto do tempo em que a barragem existe. |
 
-**Separação obrigatória:** ao completar os **primeiros 0,75 s de barragem**, a **hitbox deixa de existir**, e o empurrão contínuo também **cessa**. Os VFX da areia continuam sumindo pelos **0,75 s seguintes**. Um inimigo que só entrar no triângulo durante a fase de dissipação não recebe dano, cegueira ou empurrão desse efeito residual. Cada alvo pode receber **no máximo um acerto (dano + cegueira)** durante uma execução, embora a força de empurrão possa atuar continuamente durante o contato na janela ofensiva.
+**Separação obrigatória:** ao completar os **primeiros 0,75 s de barragem**, a **hitbox deixa de existir**, e o empurrão contínuo também **cessa**. Os VFX da areia continuam sumindo pelos **0,75 s seguintes**. Um inimigo que só entrar no **retângulo** durante a fase de dissipação não recebe dano, cegueira ou empurrão desse efeito residual. Cada alvo pode receber **no máximo um acerto (6 HP de dano-base + aplicação/reinício de cegueira, conforme defesa)** durante uma execução, embora a força de empurrão possa atuar continuamente durante o contato na janela ofensiva.
 
 **Ponto de cronologia a esclarecer apenas se for necessário:** interpretar no motor se os **1,50 s** contam exclusivamente a barragem **após** os **0,25 s de preparação**, ou se correspondem à duração total da ação incluindo a preparação. Os períodos de **0,75 s + 0,75 s** da barragem foram explicitamente informados; não encurtá-los para acomodar a preparação por suposição.
 
@@ -228,6 +230,8 @@ O design principal está definido, mas **não afirmar que a funcionalidade está
 7. **Apenas diminuir a iluminação ou desenhar fog não implementa o bloqueio de lock-on**: a restrição deve fazer parte das regras de seleção/manutenção de alvo, com desligamento efetivo do lock-on quando o alvo não puder ser visto pela regra de 10 m.
 8. **A cegueira pertence ao personagem atingido**, não é uma desativação global de lock-on de todos os lutadores. O escopo exato da mudança de iluminação para cada câmera/visão do jogador ainda precisa de definição técnica, evitando afetar indevidamente jogadores que não receberam o debuff.
 9. O status continua por **4 s após sua aplicação**, mesmo se a hitbox/efeito visual de areia já tiver terminado.
+10. **Novo acerto válido em outra execução de Sand Wave:** se o alvo ainda estiver cegado, **reinicia a duração restante da cegueira para 4,00 s**. **Não soma 4 s ao tempo restante** nem cria pilhas. Repetição do contato da **mesma execução** não renova o debuff.
+11. **Defesa parcial não impede a cegueira**, embora reduza o dano e o empurrão. **Defesa perfeita anula a aplicação ou renovação de cegueira** e também zera dano/empurrão desse acerto.
 
 ### 6.5 Tabela de requisitos aprovados
 
@@ -253,22 +257,25 @@ O design principal está definido, mas **não afirmar que a funcionalidade está
 | SW-D18 | Renomeação correta | **Sand Wave substitui Sand Kick (golpe 3)**; Rock Tomb permanece como golpe 1 |
 | SW-D19 | Direção da área — Rodada 1, pergunta 2 (A) | **Fixada no disparo**, sem acompanhar a rotação do personagem durante a execução |
 | SW-D20 | Acertos por alvo — Rodada 1, pergunta 3 (A) | **Um único acerto por inimigo por execução**; não repetir dano/cegueira pelo contato prolongado |
-| SW-D21 | Cálculo de dano — Rodada 1, pergunta 4 (A) | **Dano fixo, independente de Ataque**; magnitude numérica ainda pendente |
-| SW-D22 | Empurrão — Rodada 1, pergunta 5 (B) | **Força contínua** durante o contato de alvo elegível com a hitbox nos primeiros **0,75 s**; magnitude/direção ainda pendentes |
+| SW-D21 | Cálculo de dano — Rodada 1, pergunta 4 (A), complementada na Rodada 2 | **6 HP de dano-base fixo, independente de Ataque**; reduções de defesa parcial e anulação por defesa perfeita conforme SW-D28 |
+| SW-D22 | Empurrão — Rodada 1, pergunta 5 (B), complementada na Rodada 2 | **Aceleração horizontal-base de 12 m/s², contínua durante contato na hitbox ativa (0,75 s), sempre para a frente na orientação do disparo**; defesa parcial reduz e perfeita anula |
 | SW-D23 | Dimensões do Sand Wave | **4 m de altura no diagrama/alcance frontal × 3 m de largura**, origem no centro da borda traseira. Proposta **aprovada** pelo diretor com resposta “sim”. |
 | SW-D24 | Controles de dimensão | **Slider ALTURA (alcance frontal), inicial 4 m**, e **slider LARGURA, inicial 3 m**, independentes; faixas e passos ainda pendentes. |
+| SW-D25 | Rodada 2, questão 1 (C) — dano | **6 HP fixos** por inimigo por execução, independente do atributo Ataque (6% do HP padrão de 100 antes da mitigação) |
+| SW-D26 | Rodada 2, questão 2 (C) — força | **Aceleração horizontal-base contínua de 12 m/s²** durante contato com a hitbox ativa; não é velocidade ou deslocamento garantido |
+| SW-D27 | Rodada 2, questão 3 (A) — direção do empurrão | **Sempre para a frente na direção em que Mushroom disparou a barragem**, orientação fixada na emissão |
+| SW-D28 | Rodada 2, questão 4 (A) — defesa | **Parcial reduz dano e empurrão, mas não impede cegueira. Perfeita anula dano, empurrão e cegueira.** |
+| SW-D29 | Rodada 2, questão 5 (A) — reaplicação | **Outro acerto válido durante cegueira reinicia duração para 4 s**, não acrescenta tempo nem stacks; o mesmo ataque só acerta uma vez por alvo |
 
 ### 6.6 Questões não decididas — não inventar
 
 - **SW-P01 — limites dos sliders de dimensão e altura física:** a **geometria plana está aprovada**, com **4 m de alcance frontal/altura na vista superior × 3 m de largura, origem no centro da borda traseira**, e os dois **sliders independentes de ALTURA (alcance frontal) e LARGURA** são **obrigatórios**. **Ainda não foram definidos** mínimo, máximo e passo de cada slider. A **altura vertical da hitbox no espaço 3D** não equivale ao alcance frontal; requer definição técnica compatível com 'só atinge inimigos no chão'. **A direção já está aprovada como fixa no disparo.**
-- **SW-P02 — dano:** **valor numérico exato** do dano fixo e interações com defesa permanecem pendentes. **Já está decidido** que o valor **não depende do atributo Ataque**.
-- **SW-P03 — empurrão:** já está aprovado que é **força contínua durante o contato enquanto a hitbox está ativa**. Restam pendentes a **magnitude**, o **sentido/vetor de força** e eventual **componente vertical**. Não presumir valores de Tackle.
+- **SW-P03 — integração física do empurrão:** **12 m/s² horizontais na direção frontal fixada e por contato ativo estão aprovados**. Continua pendente apenas a **porcentagem/multiplicador de redução da aceleração na defesa parcial** (seguir padrão do motor somente se equivalência for confirmada), e como o efeito combina com velocidade existente, atrito e obstáculos na simulação. **Não** adicionar componente vertical ou outros efeitos não aprovados.
 - **SW-P05 — restrição de chão:** critério físico de apoio, inclusive transições de pulo, Dodge com salto, flight e fase de aterrissagem.
 - **SW-P06 — linha temporal:** se os **0,25 s** de preparação se somam aos **1,5 s** de barragem ou integram o mesmo prazo; instante preciso de consumo da stamina e início do cooldown, se não herdado do padrão do motor.
 - **SW-P07 — escopo visual:** controle de fog/iluminação por câmera/observador, para não impor cegueira visual a jogadores não atingidos; intensidade exata do escurecimento.
 - **SW-P08 — lock-on/visibilidade:** critérios adicionais de obstrução e visibilidade além do raio **10 m**; efeitos sobre IA, em partidas com vários adversários, e reativação automática versus manual após alvo voltar à faixa.
-- **SW-P09 — reaplicação de cegueira:** contato adicional durante os 4 s renova, acumula ou é ignorado; nenhuma regra de stacking foi escolhida.
-- **SW-P10 — relações de combate:** tratamento de defesa parcial/perfeita, invulnerabilidade, outros golpes de PL1 e interrupções; respeitar regras já existentes, solicitar decisão apenas quando necessário.
+- **SW-P10 — relações de combate remanescentes:** **defesa parcial (reduz dano e empurrão, não impede cegueira), perfeita (anula os três efeitos) já estão aprovadas**. Faltam esclarecer eventual percentual específico de redução do empurrão na parcial, interação com invulnerabilidade, outros golpes PL1 e interrupções onde não cobertos integralmente pelas regras existentes.
 
 ### 6.7 Referências técnicas verificadas — não é implementação
 
@@ -290,4 +297,6 @@ O design principal está definido, mas **não afirmar que a funcionalidade está
 
 **19/10/2026 — revisão da forma:** o diretor determinou que **Sand Wave não é mais triangular; sua área passa a ser retangular**. O triângulo permanece mencionado somente como **histórico revogado**, não como opção vigente. Após receber explicação visual de comprimento (alcance para a frente) e largura (extensão lateral), o diretor respondeu **“sim”** à proposta de **4 m para a frente × 3 m de largura**, com Mushroom no centro da borda traseira. Em seguida pediu explicitamente **sliders de largura e altura**. Portanto, as **dimensões padrão 4 × 3 m e os dois sliders independentes estão aprovados**; 'altura' aqui é a dimensão vertical do retângulo **na planta/vista superior (alcance frontal)**, não a elevação física em 3D. Faixas e passos de slider ainda não foram aprovados. Todas as demais decisões anteriores permanecem preservadas.
 
-**19/10/2026 — Rodada 1 (perguntas 1–5):** **1. D — pediu referência visual simples sem gerar imagem; resposta dimensional PENDENTE.** **2. A — direção fixada no disparo. 3. A — um acerto por inimigo por execução. 4. A — dano fixo independente de Ataque. 5. B — empurrão contínuo durante contato com a barragem ativa.** Não completar automaticamente a pergunta 1.
+**19/10/2026 — Rodada 1 (perguntas 1–5):** **1. D — pediu referência visual simples sem gerar imagem; dimensão foi resolvida posteriormente por aprovação de 4 × 3 m com sliders independentes.** **2. A — direção fixada no disparo. 3. A — um acerto por inimigo por execução. 4. A — dano fixo independente de Ataque. 5. B — empurrão contínuo durante contato com a barragem ativa.**
+
+**19/10/2026 — Rodada 2, decisões confirmadas pelo diretor (C/C/A/A/A):** (1) **6 HP de dano fixo** sem escala por Ataque; (2) **aceleração horizontal-base contínua de 12 m/s²**; (3) **empurrão para a frente na direção fixa do disparo**; (4) **defesa parcial reduz dano e empurrão, preserva cegueira; defesa perfeita anula os três efeitos**; (5) **novo acerto válido enquanto cegado reinicia o debuff em 4 s**, sem acumular. Todos os demais requisitos seguem intactos; Sand Wave **não foi implementado nem testado**.
