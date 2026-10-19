@@ -151,7 +151,56 @@ export class View {
     return {x: Math.sin(phase * 2.1) * a, y: Math.sin(phase * 1.5) * a * .45, z: Math.cos(phase * 1.9) * a};
   }
   /** Personagem 3D opcional por lutador (characters.js). Quando presente, o bloco fica oculto. */
-  setCharacter(id, character) {this.characters[id] = character;}
+  setCharacter(id, character) {
+    if (this.characters[id] !== character) this.isWarmedUp = false;
+    this.characters[id] = character;
+  }
+  /**
+   * Pré-aquecimento da cena, modelos e GPU:
+   * 1. Pré-calcula curvas de solo das ações de combate essenciais (sem engasgar a CPU na luta).
+   * 2. Pré-compila todos os shaders GLSL no WebGL (via compileAsync / compile).
+   * 3. Executa um render inicial para carregar texturas e programas na VRAM.
+   */
+  async warmUp(characters = this.characters, {onProgress = null} = {}) {
+    onProgress?.(0.15, 'Preparando geometria dos lutadores…');
+    this.scene.updateMatrixWorld(true);
+    for (const ch of characters) {
+      if (ch?.root) ch.root.updateMatrixWorld(true);
+    }
+    await new Promise(r => setTimeout(r, 16));
+
+    onProgress?.(0.4, 'Pré-calculando pontos de apoio no solo…');
+    for (const ch of characters) {
+      if (ch?.warmEssentialGround) {
+        try { ch.warmEssentialGround(); } catch (e) { console.warn('warmEssentialGround:', e); }
+      }
+    }
+    await new Promise(r => setTimeout(r, 16));
+
+    onProgress?.(0.7, 'Pré-compilando shaders na GPU (WebGL)…');
+    try {
+      if (this.renderer && typeof this.renderer.compileAsync === 'function') {
+        await this.renderer.compileAsync(this.scene, this.camera);
+      } else if (this.renderer && typeof this.renderer.compile === 'function') {
+        this.renderer.compile(this.scene, this.camera);
+      }
+    } catch (e) {
+      console.warn('compileAsync fallback:', e);
+      if (this.renderer && typeof this.renderer.compile === 'function') {
+        this.renderer.compile(this.scene, this.camera);
+      }
+    }
+    await new Promise(r => setTimeout(r, 16));
+
+    onProgress?.(0.95, 'Carregando texturas na VRAM…');
+    const w = this.canvas?.clientWidth || 0, h = this.canvas?.clientHeight || 0;
+    if (w > 0 && h > 0) {
+      this.renderer.setSize(w, h, false);
+      this.renderer.render(this.scene, this.camera);
+    }
+    this.isWarmedUp = true;
+    onProgress?.(1.0, 'Pronto!');
+  }
   /** Sombra no estilo escolhido (A quadrada, B círculo, C círculo suave). Sempre na posição física, rente ao chão. */
   shadowFor(f) {
     const S = C.display.shadow, style = S.style | 0, key = style === 2 ? `soft${Math.round(S.softness * 20)}` : style === 1 ? 'circle' : 'box';

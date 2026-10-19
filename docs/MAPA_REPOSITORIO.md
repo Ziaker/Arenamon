@@ -25,6 +25,7 @@ Arenamon/
 │   ├── STATUS_PROJETOS_E_BRANCHES.md # Estado das branches paralelas e roadmap
 │   ├── GUIA_COLABORACAO_AGENTES.md   # Guia rápido de colaboração sem conflitos
 │   ├── CONTRATO_TECNICO_RIGGING.md   # Contrato canônico de telemetria, patch e auto-rig
+│   ├── OTIMIZACAO_DESEMPENHO_WARMUP.md # Diagnóstico de stuttering e arquitetura de warm-up/loading
 │   ├── REVISAO_GDD_COMBATE.md    # Revisão do GDD de Combate (Etapa A aprovada)
 │   ├── ROSTER.md                 # Personagens e atributos planejados
 │   └── GDD_Pokemon_Arena_Fighter_v0_1.docx # Game Design Document original

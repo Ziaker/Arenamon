@@ -607,12 +607,36 @@ export class Character {
     }
     this.groundCache.set(index, curve);return curve;
   }
+  /** Pré-calcula imediatamente as curvas de solo das ações de combate essenciais para evitar engasgos na partida. */
+  warmEssentialGround() {
+    const priority = [
+      'idle', 'turn', 'walk', 'run', 'sprint', 'walk_back', 'walk_left', 'walk_right',
+      'tackle', 'tackle_pl2', 'tackle_pl3', 'tackle_charge', 'brake',
+      'block_start', 'block', 'guard_impact', 'blocked',
+      'dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'jump',
+      'hit', 'knockback', 'fall', 'land', 'recover'
+    ];
+    for (const act of priority) {
+      const list = this.variants[act] || [];
+      for (const idx of list) {
+        if (!this.groundCache.has(idx) && this.clips[idx]) {
+          this.groundCurve(idx);
+        }
+      }
+    }
+  }
   /** Pré-calcula as curvas de apoio em segundo plano (um clipe por vez), para a luta nunca pagar esse custo. */
   warmGround(delay = 60) {
     // Só os clipes associados a estados (os demais calculam na primeira vez que tocarem), em momentos ociosos do navegador.
     const queue = [...new Set(Object.values(this.variants).flat())].filter(i => !this.groundCache.has(i));
-    const idle = typeof requestIdleCallback === 'function' ? fn => requestIdleCallback(fn, {timeout: 1500}) : fn => setTimeout(fn, delay);
-    const next = () => {if (this.disposed || !queue.length) return;this.groundCurve(queue.shift());this.warmTimer = setTimeout(() => idle(next), delay);};
+    const idle = typeof requestIdleCallback === 'function' ? fn => requestIdleCallback(fn, {timeout: Character.isLiveCombat ? 4000 : 1500}) : fn => setTimeout(fn, Character.isLiveCombat ? 350 : delay);
+    const next = () => {
+      if (this.disposed || !queue.length) return;
+      // Se houver combate intenso em tempo real, espaça o processamento para não disputar o orçamento de 16ms
+      const actualDelay = Character.isLiveCombat ? 300 : delay;
+      this.groundCurve(queue.shift());
+      this.warmTimer = setTimeout(() => idle(next), actualDelay);
+    };
     this.warmTimer = setTimeout(() => idle(next), delay);
   }
   /** Ponto mais baixo do clipe no instante t (interpolado); clipGround(index) = mínimo do clipe inteiro. */
@@ -626,7 +650,11 @@ export class Character {
   groundAtFrame(index, t) {
     if (this.groundCache.has(index)) return this.groundAt(index, t);
     this.groundPending ??= new Set();
-    if (!this.groundPending.has(index)) {this.groundPending.add(index);const run = () => {if (this.disposed) return;this.groundCurve(index);this.groundPending.delete(index);};typeof requestIdleCallback === 'function' ? requestIdleCallback(run, {timeout: 400}) : setTimeout(run, 0);}
+    if (!this.groundPending.has(index)) {
+      this.groundPending.add(index);
+      const run = () => {if (this.disposed) return;this.groundCurve(index);this.groundPending.delete(index);};
+      typeof requestIdleCallback === 'function' ? requestIdleCallback(run, {timeout: Character.isLiveCombat ? 2000 : 400}) : setTimeout(run, 0);
+    }
     return this.restMinY;
   }
   /** Posição, escala e orientação. Altura visual independente da física: o colisor e a sombra não se movem. */
@@ -659,6 +687,7 @@ export class Character {
 // fade: transição entre estados comuns; actionFade: entrada em X/C e reações de combate (curta, para prevalecer).
 // fade, actionFade, locomotionHold e speed são os parâmetros oficiais C.display.animation (ajustador, presets, desfazer).
 Character.options = {lockRoot: true, fit: true, syncRules: false, guardHold: .25};
+Character.isLiveCombat = false;
 for (const key of ['fade', 'actionFade', 'locomotionHold', 'speed']) Object.defineProperty(Character.options, key, {enumerable: true, get: () => C.display.animation[key], set: v => {C.display.animation[key] = v;}});
 /** Armazenamento das associações por modelo (instalado pelo workspace): {get(character), set(character, data)}. */
 Character.stateStore = null;

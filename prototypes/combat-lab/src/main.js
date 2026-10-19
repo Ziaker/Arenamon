@@ -75,6 +75,35 @@ const input = new Input(canvas, code => {
 });
 
 // ---------- Partida ----------
+let warmingUp = false;
+async function triggerWarmup({force = false} = {}) {
+  if (warmingUp) return;
+  if (!force && view.isWarmedUp) return;
+  const hasModels = ui.characters[0] || ui.characters[1];
+  if (!hasModels && !force) return;
+  const loader = $('arena-loader'), msg = $('loader-msg'), bar = $('loader-bar');
+  if (loader && !navigator.webdriver) {
+    loader.hidden = false;
+    loader.style.opacity = '1';
+  }
+  warmingUp = true;
+  try {
+    await view.warmUp(ui.characters, {
+      onProgress: (p, text) => {
+        if (bar) bar.style.width = `${Math.round(p * 100)}%`;
+        if (msg && text) msg.textContent = text;
+      }
+    });
+  } catch (err) {
+    console.warn('warmup error:', err);
+  } finally {
+    warmingUp = false;
+    if (loader) {
+      loader.style.opacity = '0';
+      setTimeout(() => { loader.hidden = true; }, 280);
+    }
+  }
+}
 function resetViewAndLogs() {view.reset(game.fighters[0]);recorder.clear();replay.clear();pushReplay();dock.invalidate();clock.reset();}
 function startMatch({playback = null} = {}) {
   if (ui.training) {training.end();}
@@ -83,6 +112,9 @@ function startMatch({playback = null} = {}) {
   applySeed();game.profile = $('profile').value;game.enemyProfile = $('enemy-profile').value;game.mode = $('mode').value;
   game.reset();ui.paused = false;input.clear();input.locked = false;resetViewAndLogs();canvas.focus();syncButtons();resetMatchStats();
   matchRec.start({seed: Number($('seed').value), profile: game.profile, enemyProfile: game.enemyProfile, mode: game.mode, values: tuning.snapshotValues()});renderRecStatus();
+  if (!view.isWarmedUp && (ui.characters[0] || ui.characters[1]) && !navigator.webdriver) {
+    triggerWarmup();
+  }
 }
 function toggleZenMode(force) {
   const lab = document.querySelector('.lab');
@@ -600,6 +632,7 @@ const aiEval = createAiEvalPanel({$, download});
 // Medidor de desempenho, perfis gráficos e benchmark (IA × IA com semente fixa no laço real).
 let benchRestore = null;
 const perfPanel = createPerfPanel({$, view, game, tuning, ui, download, getWs: () => wsRef.ws,
+  onWarmup: () => triggerWarmup({force: true}),
   startBench: ({seed, characters}) => {
     if (!benchRestore) benchRestore = {toggles: [['extras.toggles.enablePlayerAI', C.extras.toggles.enablePlayerAI], ['extras.toggles.enableEnemyAI', C.extras.toggles.enableEnemyAI], ['extras.toggles.enemyManual', C.extras.toggles.enemyManual]], mode: $('mode').value, playerMode: ui.playerMode, seed: $('seed').value, fixed: $('seed-fixed').checked};
     tuning.setTransient([['extras.toggles.enablePlayerAI', 1], ['extras.toggles.enableEnemyAI', 1], ['extras.toggles.enemyManual', 0]]);ui.playerMode = 'tactical';
@@ -895,6 +928,7 @@ let last = performance.now(), uiTimer = 0;
 function frame(now) {
   const dt = Math.max(0, (now - last) / 1000);last = now;
   const live = !ui.paused && (game.phase === 'playing' || game.phase === 'finishing');
+  Character.isLiveCombat = live;
   const tSim = performance.now();let steps = 0;
   if (live) clock.advance(dt, () => {steps++;stepOnce();});else clock.reset();
   const simMs = performance.now() - tSim;
@@ -992,6 +1026,9 @@ async function bootWorkspace() {
   // Pastas do projeto (servidor local opcional ou pasta autorizada no navegador).
   projectFiles = createProjectFiles({$, ui, presets: presets.api, wsUI, charPanel, reportsOf});
   if (window.__ARENAMON_DEV__) $('reports-link').href = '/relatorios';
+  if (restored.length && !navigator.webdriver) {
+    setTimeout(() => triggerWarmup(), 120);
+  }
   return {ws, store, wsUI, restored};
 }
 let projectFiles = null;
@@ -1012,6 +1049,6 @@ window.__arenaLive = {rules: C.rules, test: C.test, locomotion: C.locomotion, ca
 // window.__lab só aparece depois da restauração do workspace (os testes esperam por ele).
 bootWorkspace().catch(e => {console.error('workspace:', e);ui.workspaceError = e.message;return null;}).then(boot => {
   // API dos movimentos especiais (registro vazio): registerMove, listMoves, validateMove; equipar com setLoadout.
-  window.__lab = {charPanel, moves: {...Moves, setLoadout: (id, ids) => game.setLoadout(id, ids), standard: STANDARD_MOVE_IDS, equipStandard: id => game.setLoadout(id, STANDARD_MOVE_IDS)}, C, game, view, hudProposals, presets, movement, playSequence, diagnostics, training, perf: perfPanel, aiEval, projectFiles, reportsOf, visualPanel, recorder, replay, tuning, ui, startMatch, startScenario: id => startScenario(SCENARIOS.find(s => s.id === id)), stepFrames, seekTick, goLive, togglePause, setCharacter, loadStudioFile, SCENARIOS, runScenario, spawn, openTool,
+  window.__lab = {charPanel, moves: {...Moves, setLoadout: (id, ids) => game.setLoadout(id, ids), standard: STANDARD_MOVE_IDS, equipStandard: id => game.setLoadout(id, STANDARD_MOVE_IDS)}, C, game, view, hudProposals, presets, movement, playSequence, diagnostics, training, perf: perfPanel, aiEval, projectFiles, reportsOf, visualPanel, recorder, replay, tuning, ui, startMatch, startScenario: id => startScenario(SCENARIOS.find(s => s.id === id)), stepFrames, seekTick, goLive, togglePause, setCharacter, loadStudioFile, triggerWarmup, SCENARIOS, runScenario, spawn, openTool,
     ws: boot?.ws ?? null, store: boot?.store ?? null, wsUI: boot?.wsUI ?? null, workspaceBoot: boot};
 });
