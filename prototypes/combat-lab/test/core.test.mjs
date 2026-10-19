@@ -148,6 +148,7 @@ test('C → X: transição de velocidade suave (sem pico artificial) — curva p
   expect('C → X', 'velocidade no passo do cancelamento ≥ 85% da anterior', Math.hypot(c.at.vx, c.at.vz) >= .85 * Math.hypot(c.prev.vx, c.prev.vz), `≥ ${fmt(.85 * Math.hypot(c.prev.vx, c.prev.vz))}`, Math.hypot(c.at.vx, c.at.vz));
 });
 test('C → X durante o salto: começa na altura atual e desce sem teletransporte', () => {
+  C.extras.toggles.enableMeteorSlam = 0;   // descida suave da Etapa A; com o meteor slam ligado o X do salto mergulha (teste próprio)
   const D = C.actions.dodge, k = 18, c = cancelCase('durante o salto (150 ms)', k, {dodgeDir: vec(0, 1), tackleDir: vec(), enemy: vec(0, 2.2)});
   const hs = c.S.slice(c.act - 3, c.act + 30).map(s => s.h), steps = hs.slice(1).map((h, i) => Math.abs(h - hs[i]));
   expect('C → X aéreo', 'estava no ar ao cancelar', c.prev.h > 1.5, '> 1,5 m', c.prev.h);

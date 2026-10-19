@@ -250,3 +250,10 @@ A compilação embute `inicial/workspace-inicial.zip` no HTML. Na primeira abert
 - **PL dinâmico:** o PL do tackle vale no clash entre tackles (o maior vence), contra pedras do Psyshock e no counter.
 - **Gaveta ⚔ Ações** (canto inferior direito): abas Moves, Tackle, Esquiva e Bloqueio, com ícones, os sliders/interruptores de cada sistema e os seletores de animação (inclui Carga do tackle, Tackle PL2/PL3 e Freio, com fallback para o clipe do tackle).
 - Próximas fases: wall-splat, meteor slam e ground bounce; finta e brake slide; IA.
+
+## Tackle (fase 2): wall-splat, meteor slam e ground bounce
+
+- **Wall-splat:** qualquer lançamento (tackle, clash, Psyshock) que bate na parede **já caindo** e acima da velocidade mínima deixa o lutador preso e indefeso, suspenso na altura do impacto, pela duração configurada; ele pode ser acertado de novo (combo) e depois cai. Subindo, vale o ricochete de sempre. Dano extra em slider (padrão 0).
+- **Meteor slam:** C → X durante o salto do vault (acima da altura mínima) e o X de quem foi lançado viram mergulho oblíquo (ângulo, +20% de dano, recuperação longa ao errar). Fica um gancho (`startSlam`) para o botão de pular futuro.
+- **Ground bounce:** o rival acertado pelo mergulho quica para cima (`groundBounceForce`) com pouco empurrão horizontal e tremor de câmera.
+- Controles em Ações › Tackle (toggles `enableWallSplat` e `enableMeteorSlam` e sliders). Estado de animação novo: "Preso na parede (wall-splat)".
