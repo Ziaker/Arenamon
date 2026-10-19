@@ -146,6 +146,15 @@ O sistema admite tipos diferentes de passivas, conforme a definição individual
 - Casos de efeito instantâneo, permanente, sem duração definida, suspensão sem término efetivo, KO/respawn e outras particularidades continuam pendentes, sem inferir soluções por analogia.
 - Este registro é exclusivamente documental: **não autoriza implementar mecânicas**.
 
+## Rodada 18 — Início do cooldown das passivas com efeito instantâneo (opção A aprovada)
+
+- Para uma passiva automática com cooldown cujo **efeito seja instantâneo**, a recarga **começa imediatamente após a aplicação do efeito**, no próprio evento que acionou a passiva.
+- **Não é necessário aguardar o término da ação de combate associada** ao evento para iniciar o cooldown quando o efeito instantâneo já tiver sido aplicado.
+- Esta regra concretiza, para efeitos instantâneos, o princípio aprovado na **Rodada 16** (cooldown iniciado ao término do efeito) e é compatível com a **Rodada 17** (término efetivo, inclusive antecipado, como referência para o início da recarga).
+- Continua válida a **Rodada 15**: a recarga da passiva não é acelerada pelos modificadores de redução de cooldown aplicáveis a outras habilidades.
+- **Não definido nesta rodada:** duração numérica de qualquer cooldown, tratamento de acionamento cujo efeito seja impedido ou não aplicado, multiplicidade de efeitos instantâneos dentro de uma mesma ativação, ou regras para efeitos contínuos, permanentes ou suspensos. Nenhuma dessas situações deve receber uma regra por suposição.
+- Esta decisão trata exclusivamente do início da recarga e **não autoriza implementação**.
+
 ## Pontos pendentes — não aprovados
 
 - Identidade, números, magnitude, duração, gatilhos e cooldowns de cada passiva.
