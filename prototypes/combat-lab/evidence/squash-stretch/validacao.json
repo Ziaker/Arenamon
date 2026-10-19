@@ -1,0 +1,14 @@
+{
+  "date": "2026-10-19",
+  "branch": "codex/tackle-squash-stretch",
+  "build": "npm run build:combat-lab: aprovado",
+  "tests": "npm test: aprovado, exit 0",
+  "types": "npm run typecheck: aprovado",
+  "offline": "npm run check:offline: aprovado (10 HTMLs)",
+  "verify": "npm run verify: bloqueado somente pela exigência de executar no checkout principal; worktree interno autorizado pelo usuário",
+  "scope": "Entrega isolada; sem integração no checkout principal",
+  "limitations": [
+    "Sem análise dedicada do impacto do efeito em FPS/GPU",
+    "Nem todos os modelos do acervo foram avaliados visualmente"
+  ]
+}

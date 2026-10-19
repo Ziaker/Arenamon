@@ -6,7 +6,7 @@ import {C} from '../sim/config.js';
 // Um parâmetro pode aparecer em mais de uma mecânica (ex.: guard stun em Defesa e em Tackle). A visão "Por tipo" continua igual.
 const re = (...p) => new RegExp('^(?:' + p.join('|') + ')');
 export const MECHANICS = [
-  ['tackle', 'Tackle (X)', re('rules\\.(?:chargeTackle|sprintTacklePL|wallSplat|slam|groundBounce|feint)', 'extras\\.toggles\\.(?:enableChargeTackle|enableWallSplat|enableMeteorSlam|enableTackleFeint)', 'actions\\.tackle\\.', 'actions\\.buffer\\.', 'extras\\.combat\\.(?:tackle|impactHitstop|contactProjection)', 'rules\\.(?:recoil|blend)', 'extras\\.toggles\\.(?:enableTackle|enableHitstop)', 'vfx\\.(?:hit|solidImpact|shakeHit)\\.')],
+  ['tackle', 'Tackle (X)', re('extras\\.visual\\.squashStretch\\.', 'rules\\.(?:chargeTackle|sprintTacklePL|wallSplat|slam|groundBounce|feint)', 'extras\\.toggles\\.(?:enableChargeTackle|enableWallSplat|enableMeteorSlam|enableTackleFeint)', 'actions\\.tackle\\.', 'actions\\.buffer\\.', 'extras\\.combat\\.(?:tackle|impactHitstop|contactProjection)', 'rules\\.(?:recoil|blend)', 'extras\\.toggles\\.(?:enableTackle|enableHitstop)', 'vfx\\.(?:hit|solidImpact|shakeHit)\\.')],
   ['dodge', 'Esquiva (C)', re('actions\\.dodge\\.', 'actions\\.cancel\\.', 'extras\\.combat\\.vault', 'extras\\.toggles\\.(?:enableDodge|enableInvulnerability|enableVault|enableTechRecovery)', 'vfx\\.(?:dodge|solidDodge)\\.')],
   ['sprint', 'Sprint', re('actions\\.sprint\\.', 'extras\\.toggles\\.enableSprint', 'vfx\\.(?:sprint|solidRunDust|solidRunWind|solidDust|solidWind)\\.')],
   ['defense', 'Defesa e bloqueio perfeito', re('rules\\.(?:guard|perfect)', 'extras\\.combat\\.(?:guard|perfect)', 'actions\\.dodge\\.(?:counterWindow|perfectEvadeStamina)', 'actions\\.tackle\\.(?:counterSpeed|guardCancel|perfectGuardCancel)', 'extras\\.toggles\\.(?:enableDefense|enableCounterBonus)', 'vfx\\.(?:block|solidBlock|perfect|shakeGuard|shakePerfect)\\.')],
@@ -54,6 +54,7 @@ const ADVANCED_VFX = /^vfx\.[A-Za-z0-9]+\.(?:variant|amount|size|duration|opacit
 
 /** Nível de um parâmetro: 'basic' | 'advanced' | 'technical'. */
 export function levelOf(path) {
+  if (path.startsWith('extras.visual.squashStretch.')) return 'basic';
   if (BASIC.has(path) || BASIC_VFX.test(path) || /^extras\.toggles\.enable/.test(path)) return 'basic';
   if (/^profiles\.[a-z]+\.(?:attack|defense|speed|hp)$/.test(path)) return 'basic';
   if (TECH_PATH.test(path) || TECH_KEY.test(path)) return 'technical';

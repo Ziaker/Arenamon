@@ -114,6 +114,8 @@ export const boneKey = name => String(name).toLowerCase().replace(/^.*[:|]/, '')
 const hash = (...parts) => {let h = 2166136261;for (const ch of parts.join('|')) {h ^= ch.charCodeAt(0);h = Math.imul(h, 16777619);}return h >>> 0;};
 const STORE = 'arenamon-lab-anim-v1:';
 
+import {createSquashState, resetSquash, updateSquash} from './squash-stretch.js';
+
 export class Character {
   constructor(source, {tint = null, slot = 0, persist = true} = {}) {
     this.source = source;this.slot = slot;this.persist = persist;
@@ -137,6 +139,12 @@ export class Character {
     if (!this.hips) this.root.traverse(o => {if (!this.hips && o.isBone) this.hips = o;});
     this.hipsRest = this.hips?.position.clone();
     this.bones = new Map();this.root.traverse(o => {if (o.isBone) this.bones.set(boneKey(o.name), o.name);});
+    // O mixer mantém a raiz GLB; somente os wrappers recebem a deformação.
+    this.model = this.root;
+    this.root = new T.Group();this.deformation = new T.Group();this.presentation = new T.Group();
+    this.root.add(this.deformation);this.deformation.add(this.presentation);this.presentation.add(this.model);
+    this.model.position.set(0, 0, 0);this.model.rotation.set(0, 0, 0);this.model.scale.setScalar(1);
+    this.squash = createSquashState();this.squashTick = -1;this.squashFighter = null;
     this.restore();
     this.warmGround();
   }
@@ -495,6 +503,8 @@ export class Character {
    * SOMENTE VISUAL: nunca modifica o estado autoritativo do lutador.
    */
   update(f, dt, alt, events = [], ctx = {}) {
+    if (this.squashFighter !== f || (ctx.tick != null && ctx.tick < this.squashTick)) resetSquash(this.squash);
+    this.squashFighter = f;this.squashTick = ctx.tick ?? this.squashTick;
     const opt = Character.options;this.clock += dt;if (dt > 0) this.lastDt = dt;
     if (this.visualFreeze > 0) {this.visualFreeze = Math.max(0, this.visualFreeze - dt);dt = 0;}
     if (f.flight && !this.wasFlying) this.flightV0 = f.flight.vy + C.rules.launchGravity * C.test.step;
@@ -684,9 +694,17 @@ export class Character {
       ground = w > 0 ? acc / w : ground;
     }
     const manual = (this.current ? this.clipOffsets[this.current.index] ?? 0 : 0) + this.visualOffset + (C.display.grounding.visualOffset || 0);
+    updateSquash(this.squash, f, dt, C.extras.visual.squashStretch, C.actions.tackle);
     const target = -ground * scale + manual;
     this.groundOffset += (target - this.groundOffset) * (dt > 0 ? 1 - Math.exp(-dt / .06) : 1);
-    this.root.scale.setScalar(scale);this.root.position.set(f.position.x, alt + this.groundOffset, f.position.z);this.root.rotation.set(0, f.visualFacing, 0);
+    // Como antes de criar os wrappers, descarta transformações animadas da raiz de apresentação.
+    this.model.position.set(0, 0, 0);this.model.rotation.set(0, 0, 0);this.model.scale.setScalar(1);
+    this.root.scale.setScalar(scale);
+    // Corrige somente o deslocamento causado pela deformação; mantém o amortecimento do apoio original.
+    this.root.position.set(f.position.x, alt + this.groundOffset - ground * scale * (this.squash.transverse - 1), f.position.z);
+    this.root.rotation.set(0, this.squash.heading, 0);
+    this.deformation.scale.set(this.squash.transverse, this.squash.transverse, this.squash.z);
+    this.presentation.rotation.set(0, f.visualFacing - this.squash.heading, 0);
   }
   /** Durações das regras derivadas dos clipes (primeira variante ÷ velocidade). Só ações com animação própria. */
   ruleDurations() {
@@ -698,7 +716,7 @@ export class Character {
     // As janelas marcadas no Studio (hitbox, invulnerabilidade) servem só para comparação: nunca alteram as regras.
     return out;
   }
-  dispose() {this.disposed = true;clearTimeout(this.warmTimer);this.mixer.stopAllAction();this.mixer.uncacheRoot(this.root);this.root.removeFromParent();}
+  dispose() {this.disposed = true;clearTimeout(this.warmTimer);this.mixer.stopAllAction();this.mixer.uncacheRoot(this.model);this.root.removeFromParent();}
 }
 // fade: transição entre estados comuns; actionFade: entrada em X/C e reações de combate (curta, para prevalecer).
 // fade, actionFade, locomotionHold e speed são os parâmetros oficiais C.display.animation (ajustador, presets, desfazer).
