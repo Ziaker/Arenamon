@@ -39,7 +39,7 @@ temp/
 *.dae
 *.fbx
 *.obj
-chars/
+chars/*
 prototypes/croagunk/
 **/validation/
 !/validation/
@@ -53,3 +53,17 @@ prototypes/croagunk/
 /GDD_Pokemon_Arena_Fighter_v0_1.docx
 /prototypes/placeholders/floor-check.mjs
 /archives/2026-10-13-impeto/placeholders/floor-check.mjs
+
+# Mosh (cogumelo): personagem autoral do projeto, sem restrição de direitos. Entram o modelo, as referências e as animações próprias.
+# As animações do pacote Mixamo na mesma pasta continuam só locais.
+!chars/mosh/
+chars/mosh/*
+!chars/mosh/Cogumelo_com_rig.fbx
+!chars/mosh/Cogumelo_sem_rig.fbx
+!chars/mosh/cogumelo_*.png
+!chars/mosh/idle.fbx
+!chars/mosh/alt idle.fbx
+!chars/mosh/move 1.fbx
+!chars/mosh/attack 1.fbx
+!chars/mosh/charge.fbx
+!chars/mosh/recovery.fbx

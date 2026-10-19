@@ -37,3 +37,15 @@ Este documento cataloga o elenco de lutadores e os modelos 3D integrados ao proj
 - **Modelo Base:** [`chars/gumshoos/gumshoos.glb`](file:///c:/Users/zerke/OneDrive/Área%20de%20Trabalho/Arenamon/chars/gumshoos/gumshoos.glb)
   - **Tamanho:** 523 KB
   - **Status:** Disponível para futuro processo de rigging e animação
+
+---
+
+## 4. Mosh (cogumelo) — personagem autoral
+
+- **Origem e direitos:** criado pelo responsável pelo projeto; livre de restrições, **versionado no Git** (exceção explícita no `.gitignore`).
+- **Pasta:** [`chars/mosh/`](../chars/mosh/)
+  - `Cogumelo_com_rig.fbx` e `Cogumelo_sem_rig.fbx` (modelo com e sem esqueleto).
+  - `cogumelo_frente.png`, `cogumelo_lado.png`, `cogumelo_costas.png` (referências).
+  - Animações próprias: `idle`, `alt idle`, `move 1`, `attack 1`, `charge`, `recovery`.
+- **Pacote Mixamo na mesma pasta:** ~40 animações (hits, quedas, bloqueio, strafe etc.) ficam **só locais**, fora do Git, por serem de terceiros.
+- **Status:** disponível; ainda não carregado no laboratório (o lab importa `.glb`, então é preciso converter).
