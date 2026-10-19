@@ -65,7 +65,9 @@ function run(seed) {
       // Invulnerável não recebe dano de impacto.
       // Exceção legítima: no mesmo passo o alvo trocou C por X com “Invulnerabilidade no cancelamento” = nenhuma.
       const cancelledVulnerable = g.lastCommands?.[b]?.tackle && before[b].kind === 'dodge' && C.actions.cancel.invulnerability === 1;
-      if (e.damage > 0 && e.result === 'impact' && before[b].invulnerable && !cancelledVulnerable) fail(t, 'dano em lutador invulnerável');
+      // Exceção legítima (tackle carregado): tackle de PL maior contra tackle de PL menor neutraliza o menor e tira a invulnerabilidade de início dele.
+      const lostToPL = before[b].kind === 'tackle' && g.fighters[b].plDefeated === true;
+      if (e.damage > 0 && e.result === 'impact' && before[b].invulnerable && !cancelledVulnerable && !lostToPL) fail(t, 'dano em lutador invulnerável');
       // Um impacto por alvo por ação.
       if (DAMAGE.has(e.result) || e.result === 'perfect') {
         const act = after[a].kind === 'tackle' ? after[a].action : before[a].action;if (!act) continue;

@@ -99,6 +99,40 @@ export function bufferDuringHitstop(f, cmd) {
   const m = length(cmd.move) > 1 ? normalize(cmd.move) : cmd.move;
   f.inputBuffer = {kind, move: {...m}, dodgeDirection: cmd.dodgeDirection && {...cmd.dodgeDirection}, age: -Math.max(0, A.buffer.window > 0 ? 0 : 1e9), hitstop: true};
 }
+/** Nível de PL pela carga do tackle: PL1 abaixo de 50% do tempo máximo, PL2 de 50% a 99%, PL3 na carga máxima. */
+export const tackleChargeLevel = (t, max = C.rules.chargeTackleMaxTime) => t >= max - 1e-9 ? 3 : t >= max / 2 - 1e-9 ? 2 : 1;
+/** Aplica o Power Level a uma ação de tackle: velocidade/alcance (a duração é fixa) e dano proporcionais (valores em sliders). */
+export function applyTacklePL(action, level) {
+  const R = C.rules;level = Math.max(1, Math.min(3, Math.round(level)));action.pl = level;
+  action.plSpeed = level === 3 ? R.chargeTackleSpeed3 : level === 2 ? R.chargeTackleSpeed2 : 1;
+  action.plDamage = level === 3 ? R.chargeTackleDamage3 : level === 2 ? R.chargeTackleDamage2 : 1;
+}
+function startTackleCharge(f, p) {
+  f.stamina = Math.max(0, f.stamina - costOf(f, p.cost));f.regenBase = f.stamina;f.regenAge = 0;f.exhausted = isDepleted(f.stamina);
+  f.tackleCharge = {t: 0, level: 1, start: f.facing};
+  f.guard = false;f.guardSuppressed = false;f.stun = 0;f.push = null;f.blend = null;f.vaultHeight = 0;f.bufferedTackle = null;f.inputBuffer = null;f.sprinting = false;
+  f.velocity = vec();f.locomotionVelocity = vec();f.state = 'tackleCharge';
+}
+export function cancelTackleCharge(f, why = 'cancel') {if (!f.tackleCharge) return;f.tackleCharge = null;f.tackleChargeEnd = why;if (f.state === 'tackleCharge') f.state = 'neutral';}
+/** 'charging' (segue carregando, o passo termina aqui), 'fired' (a ação saiu) ou 'cancelled' (D ou C cancelaram; o pedido segue o fluxo normal). */
+function stepTackleCharge(f, cmd, fighters, dt, desiredHeading, target, move, diag) {
+  const R = C.rules, ch = f.tackleCharge;
+  if ((cmd.guard && C.extras.toggles.enableDefense) || cmd.dodge) {cancelTackleCharge(f, cmd.dodge ? 'dodge' : 'guard');return 'cancelled';}
+  ch.t += dt;ch.level = tackleChargeLevel(ch.t);
+  if (ch.t < R.chargeTackleMaxTime) f.stamina = Math.max(0, f.stamina - R.chargeTackleDrain * dt);
+  f.regenBase = f.stamina;f.regenAge = 0;f.exhausted = isDepleted(f.stamina) || f.exhausted;
+  f.velocity = vec();f.locomotionVelocity = vec();f.state = 'tackleCharge';
+  if (target || length(move) > .01) turnToward(f, desiredHeading, dt, R.chargeTackleTurn);
+  const empty = f.stamina <= 1e-8 && ch.t < R.chargeTackleMaxTime;
+  if (cmd.tackleHeld && !empty) return 'charging';
+  // Soltou (ou acabou a stamina): o tackle sai no PL alcançado, sem cobrar o custo de novo (já pago no início da carga).
+  const level = ch.level, s0 = f.stamina;f.tackleCharge = null;
+  startAction(f, 'tackle', {move, dodgeDirection: cmd.dodgeDirection}, fighters, desiredHeading, false, cmd.guard, !!target && !!cmd.locked);
+  f.stamina = s0;f.regenBase = s0;f.regenAge = 0;f.exhausted = isDepleted(s0);
+  applyTacklePL(f.action, level);f.action.charged = level;
+  if (diag) report(f, {kind: 'tackle', result: 'executed', note: `carga solta no PL${level}`});
+  return 'fired';
+}
 /** Tempo até o solo (s) de um lutador em voo balístico. */
 export function timeToLand(f) {const g = C.rules.launchGravity, fl = f.flight;return fl ? (fl.vy + Math.sqrt(Math.max(0, fl.vy * fl.vy + 2 * g * fl.y))) / g : 0;}
 /** Recovery rápido: C pedido no ar dentro da janela antes do pouso arma a esquiva; a direção segurada até o pouso é a que vale. */
@@ -129,6 +163,7 @@ export function updateFighter(f, cmd, fighters, dt) {
     if (requested) report(f, {kind: requested, result: A.buffer.window > 0 && f.hp > 0 ? 'buffered' : 'denied', ...why});
     if (cmd.guardPressed && T.enableDefense) report(f, {kind: 'guard', result: 'denied', ...why});
   }
+  if (f.tackleCharge && (f.flight || f.knockRecovery > 0 || f.hp <= 0)) cancelTackleCharge(f, 'hit');   // golpe sofrido: a carga do tackle cai e a stamina gasta não volta
   if (f.charge && (f.flight || f.knockRecovery > 0 || f.hp <= 0)) cancelCharge(f, f.hp <= 0 ? 'defeated' : 'hit');   // golpe com lançamento, recuperação ou perda de apoio (M15.3, M27.1)
   if (f.flight) {
     if (T.enableTechRecovery && T.enableDodge && f.hp > 0) armTechRecovery(f, cmd, dt);
@@ -140,6 +175,11 @@ export function updateFighter(f, cmd, fighters, dt) {
   const move = length(cmd.move) > 1 ? normalize(cmd.move) : cmd.move;
   // Mira (ataques sem direção, prévia): o alvo, se houver. Orientação do corpo: ver faceGoal abaixo.
   const desiredHeading = target ? angleOf(sub(target.position, f.position)) : length(move) > 0 ? angleOf(move) : f.facing;
+  // Tackle carregado: enquanto X segue apertado o lutador fica parado carregando; soltar (ou acabar a stamina) dispara no PL alcançado.
+  if (f.tackleCharge) {
+    const r = stepTackleCharge(f, cmd, fighters, dt, desiredHeading, target, move, diag);
+    if (r === 'charging') return;
+  }
   // Recovery rápido: o pouso acabou de acontecer com C armado; esquiva na direção segurada, cobrando só o custo do recovery.
   if (f.techDodge) {
     const td = f.techDodge;f.techDodge = null;
@@ -196,7 +236,11 @@ export function updateFighter(f, cmd, fighters, dt) {
     const fresh = kind === requested && !fromBuffer, fromStun = !requested && !fromBuffer;
     if (permission.buffer) {f.bufferedTackle = {move: {...dirs.move}, dodgeDirection: dirs.dodgeDirection && {...dirs.dodgeDirection}};f.inputBuffer = null;if (diag && fresh) report(f, {kind, result: 'buffered', reason: permission.reason, detail: permission.detail, note: 'sai quando o guard stun acabar'});}
     else if (permission.ok && affordable) {
-      const via = permission.viaCancel;if (f.charge) cancelCharge(f, 'dodge');startAction(f, kind, dirs, fighters, desiredHeading, via, cmd.guard, !!target && !!cmd.locked);if (fromBuffer) f.action.buffered = true;
+      const via = permission.viaCancel;if (f.charge) cancelCharge(f, 'dodge');
+      const chargeIt = kind === 'tackle' && T.enableChargeTackle && fresh && !via && !f.action && !f.sprinting && !!cmd.tackleHeld && !f.charge, sprintX = kind === 'tackle' && T.enableChargeTackle && fresh && f.sprinting && !via;
+      if (chargeIt) {startTackleCharge(f, p);if (diag) report(f, {kind: 'tackle', result: 'executed', note: 'carga iniciada'});return;}
+      startAction(f, kind, dirs, fighters, desiredHeading, via, cmd.guard, !!target && !!cmd.locked);if (fromBuffer) f.action.buffered = true;
+      if (sprintX) applyTacklePL(f.action, R.sprintTacklePL);
       if (diag) report(f, {kind, result: 'executed', viaCancel: !!via, fromBuffer, note: fromStun ? 'guardado durante o guard stun' : undefined});
     } else if (diag) {
       // Sem permissão ou sem stamina: a ação atual continua intacta (inclusive a esquiva, no caso de C → X).
@@ -252,7 +296,7 @@ export function updateFighter(f, cmd, fighters, dt) {
       // No modelo novo, o tackle olha para a própria trajetória (exceto lockFacing = 1) e a esquiva olha para o alvo.
       const facingGoal = target && (L.model !== 1 || action.kind === 'dodge' || L.lockFacing === 1) ? desiredHeading : action.heading;
       turnToward(f, facingGoal, dt);
-      const D = p.duration, u0 = action.elapsed / D, u1 = (action.elapsed + dt) / D, nominal = nominalDistance(f, action.kind) * (action.speedMultiplier ?? 1);
+      const D = p.duration, u0 = action.elapsed / D, u1 = (action.elapsed + dt) / D, nominal = nominalDistance(f, action.kind) * (action.speedMultiplier ?? 1) * (action.plSpeed ?? 1);
       let speed;
       if (p.profile === 1) {
         // Integração com correção: o restante da distância (pretendida, sem contar colisões) é distribuído pelo restante
@@ -359,7 +403,7 @@ function startAction(f, kind, dirs, fighters, desiredHeading, viaCancel, guardHe
   f.stamina = Math.max(0, f.stamina - costOf(f, p.cost));f.regenBase = f.stamina;f.regenAge = 0;
   f.exhausted = isDepleted(f.stamina);f.guard = false;f.guardSuppressed = guardHeld;
   f.stun = 0;f.push = null;f.blend = null;f.vaultHeight = liftStart;f.bufferedTackle = null;f.inputBuffer = null;
-  f.sprinting = false;f.sprintCarry = false;f.sprintArmed = kind === 'dodge';
+  f.sprinting = false;f.sprintCarry = false;f.sprintArmed = kind === 'dodge';f.plDefeated = false;
 }
 
 /** Avança o relógio da ação e a encerra ao fim da duração própria. */

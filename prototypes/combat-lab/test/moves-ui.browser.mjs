@@ -40,6 +40,22 @@ try {
   await page.screenshot({path: out + 'cenarios.png'});
   const dl = page.waitForEvent('download');await page.click('#mvp-export');const file = await (await dl).path();check('exporta os cenários em JSON versionado', !!file);
 
+  // ---------- Gaveta de Ações: Tackle, Esquiva e Bloqueio ----------
+  for (const [t, minControls] of [['tackle', 40], ['dodge', 40], ['block', 12]]) {
+    await page.click(`[data-act="${t}"]`);
+    check(`a aba ${t} da gaveta traz os sliders do sistema e os seletores de animação`, await page.locator(`#act-${t} .tune-control`).count() >= minControls && await page.locator(`#act-${t} details`).count() >= 3 && await L(t => document.querySelectorAll(`#act-${t} [data-anim], #act-${t} .act-card .hint`).length > 0, t));
+  }
+  await page.click('[data-act="tackle"]');
+  check('o Tackle tem os controles da carga (toggle, tempo, dreno, PL2/PL3 e X no sprint)', await page.locator('#act-tackle [data-path="extras.toggles.enableChargeTackle"]').count() === 1 && await page.locator('#act-tackle [data-path^="rules.chargeTackle"]').count() >= 7 && await page.locator('#act-tackle [data-path="rules.sprintTacklePL"]').count() === 1);
+  await page.click('[data-act="moves"]');
+  // ---------- Tackle carregado no jogo real ----------
+  await tab('match');await page.selectOption('#mode', 'inactive');await page.click('#start');await page.waitForTimeout(400);
+  await page.click('#moves-close');await page.locator('canvas').first().focus();await key('KeyX', true);await page.waitForTimeout(700);
+  const chg = await L(() => {const f = window.__lab.game.fighters[0];return {lvl: f.tackleCharge?.level, hud: document.getElementById('moves-hud').textContent};});
+  check('segurar X carrega o tackle (PL2 em ~0,7 s) e o HUD mostra a barra de carga', chg.lvl === 2 && /Tackle[\s\S]*PL2/.test(chg.hud), JSON.stringify(chg).slice(0, 100));
+  await key('KeyX', false);await page.waitForTimeout(150);
+  check('soltar X dispara o tackle no PL alcançado', await L(() => window.__lab.game.fighters[0].action?.pl) === 2);
+  await L(() => window.__lab.game.reset?.());
   // ---------- Equipar e jogar ----------
   check('equipar pela aba preenche os slots do jogador', JSON.stringify(await L(() => window.__lab.game.fighters[0].loadout)) === JSON.stringify(['reflect', 'psyshock', null, null]));
   await tab('match');await page.selectOption('#mode', 'inactive');await page.click('#start');await page.waitForTimeout(400);

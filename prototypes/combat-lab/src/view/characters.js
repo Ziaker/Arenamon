@@ -32,6 +32,8 @@ export const STATE_ACTIONS = {
   sprint: ['sprint', 'run', 'walk', 'idle'], walk_stop: ['walk_stop'], sprint_stop: ['sprint_stop', 'walk_stop'],
   guard_enter: ['block_start', 'block', 'idle'], guard: ['block', 'block_start', 'idle'], guard_exit: ['block_end', 'idle'], guard_hit: ['guard_impact', 'blocked', 'block', 'idle'],
   guardStun: ['guard_impact', 'blocked', 'block', 'idle'], tackle: ['tackle', 'run', 'idle'],
+  // Tackle carregado: sem clipe próprio cada nível cai para o clipe do tackle (PL3 → PL2 → tackle); a carga sem clipe usa a pose parada.
+  tackle_charge: ['tackle_charge', 'idle'], tackle_pl2: ['tackle_pl2', 'tackle', 'run', 'idle'], tackle_pl3: ['tackle_pl3', 'tackle_pl2', 'tackle', 'run', 'idle'], brake: ['brake', 'sprint_stop', 'walk_stop', 'idle'],
   dodge_forward: ['dodge_forward', 'dodge_left', 'jump', 'idle'], dodge_back: ['dodge_back', 'dodge_forward', 'idle'], dodge_left: ['dodge_left', 'dodge_forward', 'idle'],
   dodge_right: ['dodge_right', 'dodge_left', 'dodge_forward', 'idle'], vault: ['jump', 'dodge_forward', 'idle'], recoil: ['blocked', 'hit', 'idle'],
   // Movimentos especiais por slot (o Studio já exporta move_1…move_4 no mapa de ações); sem clipe próprio, usa o do tackle.
@@ -42,14 +44,14 @@ export const STATE_ACTIONS = {
 };
 export const STATE_LABELS = {neutral: 'Parado', turn: 'Girando no lugar', walk: 'Andando', run: 'Correndo', walk_back: 'Recuando', walk_left: 'Lateral esquerda', walk_right: 'Lateral direita',
   sprint: 'Sprint', walk_stop: 'Freio da caminhada', sprint_stop: 'Freio do sprint',
-  guard_enter: 'Entrando na defesa', guard: 'Defendendo', guard_exit: 'Saindo da defesa', guard_hit: 'Defesa perfeita', guardStun: 'Guard stun', tackle: 'Tackle', dodge_forward: 'Esquiva frontal',
+  guard_enter: 'Entrando na defesa', guard: 'Defendendo', guard_exit: 'Saindo da defesa', guard_hit: 'Defesa perfeita', guardStun: 'Guard stun', tackle: 'Tackle', tackle_charge: 'Carregando tackle', tackle_pl2: 'Tackle PL2', tackle_pl3: 'Tackle PL3', brake: 'Freio do tackle (finta)', dodge_forward: 'Esquiva frontal',
   dodge_back: 'Esquiva traseira', dodge_left: 'Esquiva esquerda', dodge_right: 'Esquiva direita', vault: 'Salto sobre o rival', recoil: 'Recuo (bloqueado)', airborne: 'Lançado',
   landing: 'Aterrissando', recover: 'Recuperando (exausto)', defeated: 'Derrotado', pushed: 'Empurrado', __preview: 'Prévia',
   move_1: 'Movimento 1', move_2: 'Movimento 2', move_3: 'Movimento 3', move_4: 'Movimento 4',
   charge_reflect: 'Carregando Reflect', release_reflect: 'Disparo do Reflect',
   charge_psyshock: 'Carregando Psyshock', release_psyshock: 'Disparo do Psyshock'};
 /** Blocos de animação listados no painel (cada um serve a um ou mais estados e aceita várias variantes). */
-export const ACTION_IDS = ['idle', 'turn', 'walk', 'run', 'sprint', 'walk_stop', 'sprint_stop', 'walk_back', 'walk_left', 'walk_right', 'block_start', 'block', 'block_end', 'guard_impact', 'blocked', 'tackle',
+export const ACTION_IDS = ['idle', 'turn', 'walk', 'run', 'sprint', 'walk_stop', 'sprint_stop', 'walk_back', 'walk_left', 'walk_right', 'block_start', 'block', 'block_end', 'guard_impact', 'blocked', 'tackle', 'tackle_charge', 'tackle_pl2', 'tackle_pl3', 'brake',
   'dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'jump', 'hit', 'knockback', 'fall', 'land', 'recover', 'downed', 'death', 'move_1', 'move_2', 'move_3', 'move_4'];
 // Sinônimos para associar por nome quando o arquivo não traz o mapa do Studio.
 const ALIASES = {
@@ -58,7 +60,9 @@ const ALIASES = {
   walk_back: ['walk back', 'walking backward', 'walk backward', 'backward walk', 'back walk', 'recuar'], walk_left: ['walk left', 'left strafe', 'strafe left', 'left walk'], walk_right: ['walk right', 'right strafe', 'strafe right', 'right walk'],
   block_start: ['block start', 'guard start', 'block idle start'], block: ['block', 'guard', 'defend', 'defesa', 'blocking'], block_end: ['block end', 'guard end'],
   guard_impact: ['guard impact', 'block hit', 'block impact', 'guard hit'], blocked: ['blocked', 'recoil', 'bounce', 'rebote'],
-  tackle: ['tackle', 'dash attack', 'charge', 'attack', 'investida'], dodge_forward: ['dodge forward', 'dodge', 'front', 'roll forward', 'forward roll', 'esquiva'],
+  tackle: ['tackle', 'dash attack', 'charge', 'attack', 'investida'],
+  tackle_charge: ['tackle charge', 'tackle_charge', 'charge up', 'wind up', 'windup', 'power up'], tackle_pl2: ['tackle pl2', 'tackle_pl2', 'tackle 2', 'tackle medium', 'dash attack 2'],
+  tackle_pl3: ['tackle pl3', 'tackle_pl3', 'tackle 3', 'tackle heavy', 'heavy tackle', 'tackle max'], brake: ['brake', 'skid', 'slide stop', 'brake slide', 'stop slide'], dodge_forward: ['dodge forward', 'dodge', 'front', 'roll forward', 'forward roll', 'esquiva'],
   dodge_back: ['dodge back', 'back', 'backstep', 'roll back'], dodge_left: ['dodge left', 'side', 'left', 'roll left'], dodge_right: ['dodge right', 'side', 'right', 'roll right'],
   jump: ['jump', 'vault', 'salto', 'pulo'], hit: ['hit', 'hurt', 'damage', 'impact', 'dano'], knockback: ['knockback', 'knock back', 'push', 'launched', 'fly', 'lancado'],
   fall: ['fall', 'falling', 'queda'], land: ['land', 'landing', 'aterrissar'], recover: ['recover', 'get up', 'getup', 'stand up', 'levantar'], downed: ['downed', 'down', 'caido'],
@@ -70,12 +74,12 @@ const ALIASES = {
   psyshock_release: ['psyshock release', 'psyshock_release', 'psychic release', 'psyshock', 'throw', 'cast release', 'cast_release'],
 };
 const MOVE_KEYS = ['move_1', 'move_2', 'move_3', 'move_4'];
-const TIMED = new Set(['tackle', 'dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'vault', 'recoil', 'guardStun', 'airborne', 'landing', 'recover', 'defeated', ...MOVE_KEYS]);
+const TIMED = new Set(['tackle', 'tackle_pl2', 'tackle_pl3', 'dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'vault', 'recoil', 'guardStun', 'airborne', 'landing', 'recover', 'defeated', ...MOVE_KEYS]);
 const TRANSIENT = new Set(['guard_enter', 'guard_exit', 'guard_hit']);
 /** Tocam uma vez a partir da entrada e seguram a última pose (não repetem em laço). */
 const ONE_SHOT = new Set([...TRANSIENT, 'walk_stop', 'sprint_stop', '__preview', 'release_reflect', 'release_psyshock', ...MOVE_KEYS]);
 const LOCOMOTION = new Set(['neutral', 'turn', 'walk', 'run', 'walk_back', 'walk_left', 'walk_right']);
-const ACTION_KEYS = new Set(['tackle', 'dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'vault', ...MOVE_KEYS]);
+const ACTION_KEYS = new Set(['tackle', 'tackle_pl2', 'tackle_pl3', 'dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'vault', ...MOVE_KEYS]);
 const COMBAT_KEYS = new Set(['airborne', 'landing', 'recover', 'guardStun', 'recoil', 'defeated', 'pushed', 'guard_hit']);
 
 /** Recusa cedo (com motivo legível) o que não é GLB 2.0/glTF, antes de entregar ao carregador. */
@@ -333,7 +337,7 @@ export class Character {
   clipFor(stateKey) {const id = this.actionFor(stateKey);return id ? {id, index: this.variantsOf(id)[0]} : null;}
   /** Sorteio determinístico da variante na entrada do estado (mesmo lutador, estado e passo → mesma escolha). */
   pickVariant(id, seed) {const list = this.variantsOf(id);if (list.length <= 1) return list[0];const [r] = mulberry(seed);return list[Math.floor(r * list.length)];}
-  missingStates() {return Object.keys(STATE_ACTIONS).filter(k => k !== 'neutral' && !TRANSIENT.has(k) && !['walk_stop', 'sprint_stop'].includes(k) && (this.actionFor(k) ?? 'idle') === 'idle');}
+  missingStates() {return Object.keys(STATE_ACTIONS).filter(k => k !== 'neutral' && !['tackle_charge', 'tackle_pl2', 'tackle_pl3', 'brake'].includes(k) && !TRANSIENT.has(k) && !['walk_stop', 'sprint_stop'].includes(k) && (this.actionFor(k) ?? 'idle') === 'idle');}
   // ---------- Estado visual ----------
   stateKey(f) {
     if (f.hp <= 0 && !f.flight) return 'defeated';
@@ -344,7 +348,8 @@ export class Character {
       const moveId = f.charge.move || (f.charge.slot === 0 ? 'reflect' : 'psyshock');
       return 'charge_' + moveId;
     }
-    if (f.action?.kind === 'tackle') return 'tackle';
+    if (f.tackleCharge) return 'tackle_charge';
+    if (f.action?.kind === 'tackle') return f.action.pl === 3 ? 'tackle_pl3' : f.action.pl === 2 ? 'tackle_pl2' : 'tackle';
     if (f.action?.kind === 'move') return MOVE_KEYS[Math.max(0, Math.min(3, f.action.slot ?? 0))];
     if (f.action?.kind === 'dodge') {
       if (f.action.vault) return 'vault';
@@ -389,7 +394,7 @@ export class Character {
   /** Progresso 0..1 dos estados com duração definida pela simulação. */
   progress(f, key) {
     const R = C.rules;
-    if (key === 'tackle') return f.action ? f.action.elapsed / actionDuration('tackle') : 1;
+    if (key === 'tackle' || key === 'tackle_pl2' || key === 'tackle_pl3') return f.action ? f.action.elapsed / actionDuration('tackle') : 1;
     if (MOVE_KEYS.includes(key)) {
       if (f.action?.kind === 'move') return f.action.elapsed / Math.max(1e-6, actionSpec(f.action).duration || .4);
       const d = this.current?.clip.duration || .4;

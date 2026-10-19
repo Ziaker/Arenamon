@@ -28,6 +28,7 @@ import {Workspace, readPackage} from './workspace/workspace.js';
 import {createWorkspaceUI} from './ui/workspace-panel.js';
 import {createPresetsPanel} from './ui/presets-panel.js';
 import {createQuickPanel} from './ui/quick-panel.js';
+import {createActionsDrawer} from './ui/actions-drawer.js';
 import {createMovementPanel} from './ui/movement-panel.js';
 import {createDiagnostics, createWindowsOverlay} from './ui/diagnostics-panel.js';
 import {createTrainingPanel} from './ui/training-panel.js';
@@ -364,7 +365,7 @@ function syncCharacterCombatWindows() {
     game.setCombatWindows(id, ch ? ch.getAllCombatWindows() : null);
   }
 }
-const charPanel = createCharacterPanel({ui, view, $, hooks: charHooks, onCharactersChanged: () => {syncCharacterCombatWindows();syncRuleDurations();dock.invalidate();movesPanel?.render?.();}});
+const charPanel = createCharacterPanel({ui, view, $, hooks: charHooks, onCharactersChanged: () => {syncCharacterCombatWindows();syncRuleDurations();dock.invalidate();movesPanel?.render?.();actionsDrawer?.render?.();}});
 syncCharacterCombatWindows();
 const renderCharacters = () => {charPanel.render();renderStudioEvents();renderRuleDurations();};
 const setCharacter = (id, source) => charPanel.setCharacter(id, source);
@@ -522,7 +523,7 @@ if ($('panel-hints-toggle')) {
 /** Moves: gaveta própria no canto da arena (fora da barra esquerda). */
 function toggleMoves(open = $('moves-drawer').hidden) {
   $('moves-drawer').hidden = !open;$('moves-open').setAttribute('aria-expanded', String(open));$('moves-open').classList.toggle('active', open);
-  if (open) movesPanel.render();
+  if (open) actionsDrawer.render();
 }
 $('moves-open').onclick = () => toggleMoves();$('moves-close').onclick = () => toggleMoves(false);
 window.addEventListener('keydown', e => {if (e.key === 'Escape' && !$('moves-drawer').hidden && !e.target.matches?.('input[type=text],input[type=search]')) {e.preventDefault();e.stopImmediatePropagation();toggleMoves(false);}}, true);
@@ -571,6 +572,7 @@ const windowsOverlay = createWindowsOverlay({root: $('win-overlay'), view, game}
 $('win-controls').append(...tuning.sectionControls('Janelas de combate'));
 // Treino de defesa/esquiva perfeitas: o vermelho segue o roteiro do treino; tudo cronometrado em passos de simulação.
 const movesPanel = createMovesPanel({$, game, download, tuning, view, ui});
+const actionsDrawer = createActionsDrawer({$, tuning, ui, renderMoves: () => movesPanel.render(), onCharactersChanged: () => {syncCharacterCombatWindows();syncRuleDurations();dock.invalidate();}});
 const movesHud = new MovesHud($('moves-hud'));
 /** Avisos discretos dos Moves (M28.6): falha de execução com o motivo e a devolução da stamina. */
 const seenNotices = new WeakSet(), MOVE_FAIL = {semEspaco: 'sem espaço — stamina devolvida, sem recarga', limiteDeEntidades: 'limite de entidades do mundo — stamina devolvida', semCarga: 'sem carga', effectMissing: 'efeito não registrado'};

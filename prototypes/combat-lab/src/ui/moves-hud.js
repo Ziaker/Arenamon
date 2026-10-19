@@ -17,13 +17,16 @@ export class MovesHud {
   render(game, visible = true) {
     const rows = [];
     for (const f of game.fighters) {
-      const slots = slotStatuses(f);if (!slots.length) continue;
+      const slots = slotStatuses(f), tc = f.tackleCharge;if (!slots.length && !tc) continue;
+      // Tackle carregado: barra com a % da carga e o PL alcançado (mesmas cores dos Moves).
+      const frac = tc ? Math.min(1, tc.t / Math.max(1e-6, C.rules.chargeTackleMaxTime)) : 0;
+      const tcell = tc ? `<div class="mvp-slot" data-state="carregando" style="--p:${frac.toFixed(3)};--c:${PL_COLORS[tc.level]}"><kbd>${escape(keyLabel(C.extras.keyCodes[(f.id ? C.extras.bindings2 : C.extras.bindings).tackle]))}</kbd><b>Tackle</b><span>${Math.round(frac * 100)}% · PL${tc.level}</span><i></i></div>` : '';
       const cells = slots.map(s => {
         const color = s.state === 'carregando' ? PL_COLORS[s.level] : s.state === 'pronto' ? '#b8ef6c' : s.state === 'bloqueado' ? '#ff9a8a' : '#9bb0c3';
         const p = s.state === 'carregando' ? s.progress : s.state === 'recarga' ? s.progress : s.state === 'recuperacao' ? 1 - Math.min(1, s.left / .25) : 1;
         return `<div class="mvp-slot" data-state="${s.state}" style="--p:${p.toFixed(3)};--c:${color}"><kbd>${escape(keyOf(f.id, s.slot))}</kbd><b>${escape(s.name)}</b><span>${escape(s.text)}</span><i></i></div>`;
       }).join('');
-      rows.push(`<div class="mvp-row" data-fighter="${f.id}"><em>${f.id ? 'Vermelho' : 'Azul'}</em>${cells}</div>`);
+      rows.push(`<div class="mvp-row" data-fighter="${f.id}"><em>${f.id ? 'Vermelho' : 'Azul'}</em>${tcell}${cells}</div>`);
     }
     const html = visible ? rows.join('') : '';
     if (html !== this.last) {this.last = html;this.root.innerHTML = html;}

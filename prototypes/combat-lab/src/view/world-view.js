@@ -676,15 +676,15 @@ export class WorldView {
     let showPreview = false;
     for (const f of fighters) {
       const ring = this.chargeRings?.[f.id];
-      const ch = f.charge;
+      const ch = f.charge, tc = f.tackleCharge;
       if (ring) {
-        if (ch) {
+        if (ch || tc) {
           ring.visible = true;
           ring.position.set(f.position.x, 0.04, f.position.z);
-          const ratio = ch.ratio ?? (ch.ticks / (ch.params?.maxTicks || 180));
+          const ratio = tc ? tc.t / Math.max(1e-6, C.rules.chargeTackleMaxTime) : (ch.ratio ?? (ch.ticks / (ch.params?.maxTicks || 180)));
           const scale = 0.6 + Math.min(1.2, ratio * 0.8);
           ring.scale.set(scale, scale, scale);
-          const plIdx = ch.ticks >= (ch.params?.maxTicks ?? 180) ? 3 : ch.ticks >= (ch.params?.pl2Ticks ?? 90) ? 2 : 1;
+          const plIdx = tc ? tc.level : ch.ticks >= (ch.params?.maxTicks ?? 180) ? 3 : ch.ticks >= (ch.params?.pl2Ticks ?? 90) ? 2 : 1;
           ring.material.color.setHex(PL_HEX[plIdx]);
           ring.material.opacity = 0.35 + 0.25 * Math.sin(this.time * 9);
         } else {

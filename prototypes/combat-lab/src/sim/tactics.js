@@ -78,7 +78,7 @@ function incoming(self, target, perception = null) {
   const X = C.actions.tackle, toSelf = sub(self.position, target.position), d = length(toSelf);
   const along = d > 1e-6 ? dot(direction(a.heading), normalize(toSelf)) : 1;
   if (along < C.extras.ai.threatAlignment) return null;
-  const u = clamp(a.elapsed / X.duration, 0, 1), left = nominalDistance(target, 'tackle') * (a.speedMultiplier ?? 1) * (1 - actionProgress(X, u));
+  const u = clamp(a.elapsed / X.duration, 0, 1), left = nominalDistance(target, 'tackle') * (a.speedMultiplier ?? 1) * (a.plSpeed ?? 1) * (1 - actionProgress(X, u));
   const lateral = Math.sqrt(Math.max(0, d * d - (d * along) ** 2)), gap = d - contactDistance();
   const reaches = left * along + .15 >= gap && lateral < contactDistance() + .2;
   const targetVel = perception?.apparentVel ?? target.velocity;

@@ -19,7 +19,7 @@ export function createFighter(id, attributes, position) {
 }
 // skill: índice do slot de movimento especial pedido neste passo (null = nenhum; só a BORDA do botão). skillHeld: botões de slot mantidos
 // pressionados (array por slot, ou null quando nenhum): é o que mantém e solta um Charge.
-export const emptyCommand = () => ({move: vec(), dodge: false, dodgeHeld: false, tackle: false, guard: false, guardPressed: false, target: null, skill: null, skillHeld: null});
+export const emptyCommand = () => ({move: vec(), dodge: false, dodgeHeld: false, tackle: false, tackleHeld: false, guard: false, guardPressed: false, target: null, skill: null, skillHeld: null});
 /** Parâmetros próprios de uma ação X/C (C.actions.dodge ou C.actions.tackle). */
 export const actionParams = kind => C.actions[kind];
 /** Duração de uma ação: esquiva e tackle têm durações independentes; recuo usa as regras gerais. */

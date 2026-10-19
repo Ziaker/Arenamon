@@ -23,7 +23,12 @@ export function clashPossible(a, b, normal, relative) {
   const X = C.extras.combat;
   if (!C.extras.toggles.enableClash || a.action?.kind !== 'tackle' || b.action?.kind !== 'tackle' || a.flight || b.flight) return false;
   if (C.extras.toggles.enableAnimationCombatWindows && (!isOffensive(a) || !isOffensive(b))) return false;
-  return dot(direction(a.action.heading), normal) > X.clashFacingAlignment && dot(direction(b.action.heading), normal) < -X.clashFacingAlignment && dot(relative, normal) > X.clashClosingSpeed;
+  const facing = dot(direction(a.action.heading), normal) > X.clashFacingAlignment && dot(direction(b.action.heading), normal) < -X.clashFacingAlignment && dot(relative, normal) > X.clashClosingSpeed;
+  if (!facing) return false;
+  // Power Levels diferentes: não há clash. O PL maior vence a disputa (o de baixo é neutralizado e só o dele conecta, pelo fluxo normal de acerto).
+  const pa = a.action.pl ?? 1, pb = b.action.pl ?? 1;
+  if (pa !== pb) {const loser = pa > pb ? b : a;loser.action.neutralized = true;loser.action.invulnerableFor = 0;loser.plDefeated = true;return false;}   // o derrotado perde a invulnerabilidade do início do tackle: o golpe do vencedor conecta
+  return true;
 }
 /** X contra X: os dois recebem dano e são lançados (ou, com enableClashPush, empurrados no chão) em direções opostas (ignora invulnerabilidade). */
 export function clash(a, b, normal) {
@@ -86,7 +91,7 @@ export function resolveHit(attacker, defender, normal, relative) {
   if (windowIdx >= 0) attacker.action.hitWindows[windowIdx].add(defender.id);
   const protectedFront = defender.guard && dot(direction(defender.facing), normalize(sub(attacker.position, defender.position))) >= X.guardFrontAlignment;
   const perfect = protectedFront && defender.perfectLeft > 1e-8;
-  const attack = stat(attacker, 'attack', attacker.attributes.attack), damage = perfect ? 0 : attack * (protectedFront ? X.guardDamageMultiplier : 1) * stat(defender, 'damageTaken', 1);
+  const attack = stat(attacker, 'attack', attacker.attributes.attack) * (attacker.action.plDamage ?? 1), damage = perfect ? 0 : attack * (protectedFront ? X.guardDamageMultiplier : 1) * stat(defender, 'damageTaken', 1);
   defender.hp = Math.max(0, defender.hp - damage);
   let launchInfo = null;
   if (protectedFront) {

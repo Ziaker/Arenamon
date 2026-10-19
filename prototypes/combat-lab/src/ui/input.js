@@ -20,7 +20,7 @@ export function toCommand(intent, self, target, cameraYaw, locked) {
   } else move = vec();
   const still = intent.x === 0 && intent.forward === 0, dodgeDirection = still ? (locked ? forwardToTarget : direction(self.facing)) : move;
   // locked: o comando vem do lock-on do jogador (o tackle persegue o alvo). A IA mira por conta própria.
-  return {move, target: locked ? target.id : null, locked: !!locked, dodge: intent.dodge, dodgeHeld: !!intent.dodgeHeld, tackle: intent.tackle, guard: intent.guard, guardPressed: intent.guardPressed, dodgeDirection, skill: intent.skill ?? null, skillHeld: intent.skillHeld ?? null,
+  return {move, target: locked ? target.id : null, locked: !!locked, dodge: intent.dodge, dodgeHeld: !!intent.dodgeHeld, tackle: intent.tackle, tackleHeld: !!intent.tackleHeld, guard: intent.guard, guardPressed: intent.guardPressed, dodgeDirection, skill: intent.skill ?? null, skillHeld: intent.skillHeld ?? null,
     dodgeForward: still || (intent.forward > 0 && intent.x === 0)};
 }
 
@@ -79,7 +79,7 @@ export class Input {
     this.padName = p.id;const b = i => !!p.buttons[i]?.pressed, edge = i => b(i) && !this.padPrev[i];
     let x = p.axes[0] || 0, y = -(p.axes[1] || 0);if (Math.hypot(x, y) < .3) {x = 0;y = 0;}
     if (b(14)) x = -1;if (b(15)) x = 1;if (b(12)) y = 1;if (b(13)) y = -1;
-    const intent = {x: Math.sign(Math.round(x)), forward: Math.sign(Math.round(y)), tackle: edge(PAD.tackle), dodge: edge(PAD.dodge), dodgeHeld: b(PAD.dodge), guard: b(PAD.defendR) || b(PAD.defendL),
+    const intent = {x: Math.sign(Math.round(x)), forward: Math.sign(Math.round(y)), tackle: edge(PAD.tackle), tackleHeld: b(PAD.tackle), dodge: edge(PAD.dodge), dodgeHeld: b(PAD.dodge), guard: b(PAD.defendR) || b(PAD.defendL),
       guardPressed: edge(PAD.defendR) || edge(PAD.defendL), skill: (i => i < 0 ? null : i)(PAD.skills.findIndex(edge)), skillHeld: heldSlots(PAD.skills.map(b))};
     if (edge(PAD.lock)) this.locked = !this.locked;
     if (!this.slot) {if (edge(PAD.pause)) this.shortcut(keyFor('pause'));if (edge(PAD.restart)) this.shortcut(keyFor('restart'));}
@@ -89,9 +89,9 @@ export class Input {
   command(self, target, cameraYaw, tick) {
     const k = name => this.held.has(this.key(name)), pk = name => this.pressed.has(this.key(name));
     const skillKey = ['skill1', 'skill2', 'skill3', 'skill4'].findIndex(pk);
-    const keyIntent = {x: Number(k('right')) - Number(k('left')), forward: Number(k('forward')) - Number(k('back')), dodge: pk('dodge'), dodgeHeld: k('dodge'), tackle: pk('tackle'), guard: k('defend'), guardPressed: pk('defend'), skill: skillKey < 0 ? null : skillKey, skillHeld: heldSlots(['skill1', 'skill2', 'skill3', 'skill4'].map(k))};
+    const keyIntent = {x: Number(k('right')) - Number(k('left')), forward: Number(k('forward')) - Number(k('back')), dodge: pk('dodge'), dodgeHeld: k('dodge'), tackle: pk('tackle'), tackleHeld: k('tackle'), guard: k('defend'), guardPressed: pk('defend'), skill: skillKey < 0 ? null : skillKey, skillHeld: heldSlots(['skill1', 'skill2', 'skill3', 'skill4'].map(k))};
     const p = this.pad();
-    const intent = p ? {x: keyIntent.x || p.x, forward: keyIntent.forward || p.forward, dodge: keyIntent.dodge || p.dodge, dodgeHeld: keyIntent.dodgeHeld || p.dodgeHeld, tackle: keyIntent.tackle || p.tackle, guard: keyIntent.guard || p.guard, guardPressed: keyIntent.guardPressed || p.guardPressed, skill: keyIntent.skill ?? p.skill, skillHeld: mergeHeld(keyIntent.skillHeld, p.skillHeld)} : keyIntent;
+    const intent = p ? {x: keyIntent.x || p.x, forward: keyIntent.forward || p.forward, dodge: keyIntent.dodge || p.dodge, dodgeHeld: keyIntent.dodgeHeld || p.dodgeHeld, tackle: keyIntent.tackle || p.tackle, tackleHeld: keyIntent.tackleHeld || p.tackleHeld, guard: keyIntent.guard || p.guard, guardPressed: keyIntent.guardPressed || p.guardPressed, skill: keyIntent.skill ?? p.skill, skillHeld: mergeHeld(keyIntent.skillHeld, p.skillHeld)} : keyIntent;
     this.record(intent, tick);
     const c = toCommand(intent, self, target, this.frameYaw(intent, cameraYaw), this.locked);this.pressed.clear();return c;
   }

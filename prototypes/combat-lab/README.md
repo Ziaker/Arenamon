@@ -242,3 +242,11 @@ O bloco de Moves saiu da barra esquerda e virou uma gaveta própria, aberta pelo
 ## Workspace inicial embutido (`inicial/`)
 
 A compilação embute `inicial/workspace-inicial.zip` no HTML. Na primeira abertura num navegador sem workspace, o laboratório o importa sozinho (ajustes calibrados, Cogumelo e arenamon-prototipo nos slots, animações e calibrações). Depois, o workspace do navegador manda. Detalhes e como atualizar: `inicial/README.md`.
+
+## Tackle carregado (fase 1) e gaveta de Ações
+
+- **Segurar X carrega; soltar dispara.** Toque rápido = PL1; de 50% a 99% da carga = PL2; carga máxima = PL3 (tempo, dreno de stamina, giro, velocidade/alcance e dano de cada PL em Ações › Tackle). Parado enquanto carrega, com anel colorido por PL no chão e barra no HUD. D ou C cancelam; um golpe sofrido também (sem devolver stamina).
+- **X correndo (sprint) sai PL2 na hora**, sem carga; **C → X continua imediato**. Toggle `enableChargeTackle` desliga tudo (X imediato como antes).
+- **PL dinâmico:** o PL do tackle vale no clash entre tackles (o maior vence), contra pedras do Psyshock e no counter.
+- **Gaveta ⚔ Ações** (canto inferior direito): abas Moves, Tackle, Esquiva e Bloqueio, com ícones, os sliders/interruptores de cada sistema e os seletores de animação (inclui Carga do tackle, Tackle PL2/PL3 e Freio, com fallback para o clipe do tackle).
+- Próximas fases: wall-splat, meteor slam e ground bounce; finta e brake slide; IA.
