@@ -197,8 +197,11 @@ O design principal está definido, mas **não afirmar que a funcionalidade está
 3. **Só pode ser ativado no chão**.
 4. **Só pode atingir adversários no chão**. Alvos em voo/aéreos não são atingidos.
 5. Em contato com alvo elegível, a barragem **empurra** o adversário e causa **pouco dano**.
-6. **Quantidade exata de dano e intensidade do empurrão ainda não foram definidas**. Não substituir por números arbitrários nem assumir o dano ou knockback do Tackle.
-7. Os **4 m** devem ser preservados na especificação, mas o diretor ainda não explicitou se essa medida é comprimento longitudinal, largura da base ou outra convenção da geometria triangular. **Não converter em ângulo, largura e área numéricos sem aprovação**.
+6. **Dano fixo e independente do atributo Ataque**, conforme decisão do diretor na Rodada 1; a quantidade exata de dano **ainda não foi definida**. O empurrão é **contínuo durante a janela de hitbox enquanto o inimigo permanece na barragem**, mas sua intensidade exata **ainda não foi definida**. Não presumir valores ou fórmula do Tackle.
+7. Os **4 m** devem ser preservados na especificação, mas o diretor **pediu referência visual para escolher sua interpretação**: comprimento longitudinal, largura da base ou ambos. A opção geométrica **permanece pendente** até resposta posterior; **não** fixar ângulo, largura ou área numéricos.
+8. A **direção da barragem é determinada no disparo**. Uma vez disparada, a área triangular **permanece fixa durante sua execução**, sem acompanhar a rotação do lançador.
+9. Cada inimigo pode **receber somente um acerto por execução** (dano e aplicação inicial da cegueira). Contato prolongado não gera danos repetidos.
+10. O **empurrão é força contínua** enquanto um alvo elegível permanece em contato com a barragem **dentro dos primeiros 0,75 s**. Após esse intervalo, apenas o VFX se dissipa, **sem empurrão e sem hitbox**.
 
 ### 6.3 Cronologia e janela de colisão
 
@@ -210,7 +213,7 @@ O design principal está definido, mas **não afirmar que a funcionalidade está
 | Dissipação visual sem hitbox | **0,75 s finais** | Efeitos da barragem de areia desaparecendo; sem novos acertos nessa metade. |
 | Cegueira aplicada em contato | **4,00 s** | Debuff individual de duração própria, distinto do tempo em que a barragem existe. |
 
-**Separação obrigatória:** ao completar os **primeiros 0,75 s de barragem**, a **hitbox deixa de existir**, mas os VFX da areia continuam sumindo pelos **0,75 s seguintes**. Um inimigo que só entrar no triângulo durante a fase de dissipação não deve ser atingido por esse efeito residual.
+**Separação obrigatória:** ao completar os **primeiros 0,75 s de barragem**, a **hitbox deixa de existir**, e o empurrão contínuo também **cessa**. Os VFX da areia continuam sumindo pelos **0,75 s seguintes**. Um inimigo que só entrar no triângulo durante a fase de dissipação não recebe dano, cegueira ou empurrão desse efeito residual. Cada alvo pode receber **no máximo um acerto (dano + cegueira)** durante uma execução, embora a força de empurrão possa atuar continuamente durante o contato na janela ofensiva.
 
 **Ponto de cronologia a esclarecer apenas se for necessário:** interpretar no motor se os **1,50 s** contam exclusivamente a barragem **após** os **0,25 s de preparação**, ou se correspondem à duração total da ação incluindo a preparação. Os períodos de **0,75 s + 0,75 s** da barragem foram explicitamente informados; não encurtá-los para acomodar a preparação por suposição.
 
@@ -248,13 +251,16 @@ O design principal está definido, mas **não afirmar que a funcionalidade está
 | SW-D16 | Lock-on | **Impedido contra alvo fora dos 10 m; lock-on existente é desligado** se o alvo estiver fora |
 | SW-D17 | Visual da cegueira | **Fog e redução de iluminação** durante o debuff |
 | SW-D18 | Renomeação correta | **Sand Wave substitui Sand Kick (golpe 3)**; Rock Tomb permanece como golpe 1 |
+| SW-D19 | Direção da área — Rodada 1, pergunta 2 (A) | **Fixada no disparo**, sem acompanhar a rotação do personagem durante a execução |
+| SW-D20 | Acertos por alvo — Rodada 1, pergunta 3 (A) | **Um único acerto por inimigo por execução**; não repetir dano/cegueira pelo contato prolongado |
+| SW-D21 | Cálculo de dano — Rodada 1, pergunta 4 (A) | **Dano fixo, independente de Ataque**; magnitude numérica ainda pendente |
+| SW-D22 | Empurrão — Rodada 1, pergunta 5 (B) | **Força contínua** durante o contato de alvo elegível com a hitbox nos primeiros **0,75 s**; magnitude/direção ainda pendentes |
 
 ### 6.6 Questões não decididas — não inventar
 
-- **SW-P01 — geometria:** a qual dimensão do triângulo se referem os **4 m**; qual a largura ou abertura da base; como o triângulo acompanha a orientação.
-- **SW-P02 — dano:** magnitude do “pouco dano”, possível escalonamento pelo atributo Ataque, e interações com defesa.
-- **SW-P03 — empurrão:** magnitude, direção e se há componente vertical. Não presumir Tackle.
-- **SW-P04 — múltiplos contatos:** se o mesmo adversário pode sofrer múltiplos hits durante os **0,75 s**, frequência ou apenas um único acerto por execução.
+- **SW-P01 — geometria (pergunta 1 da Rodada 1):** o diretor **não escolheu A/B/C** e pediu uma **referência visual simples, sem gerar imagem**. A decisão é se os **4 m** são o **comprimento desde o vértice**, a **largura da base** ou **ambos**; se escolher somente uma dimensão, a outra continua pendente. **A direção da área já está aprovada como fixa a partir do disparo**, não é pendência.
+- **SW-P02 — dano:** **valor numérico exato** do dano fixo e interações com defesa permanecem pendentes. **Já está decidido** que o valor **não depende do atributo Ataque**.
+- **SW-P03 — empurrão:** já está aprovado que é **força contínua durante o contato enquanto a hitbox está ativa**. Restam pendentes a **magnitude**, o **sentido/vetor de força** e eventual **componente vertical**. Não presumir valores de Tackle.
 - **SW-P05 — restrição de chão:** critério físico de apoio, inclusive transições de pulo, Dodge com salto, flight e fase de aterrissagem.
 - **SW-P06 — linha temporal:** se os **0,25 s** de preparação se somam aos **1,5 s** de barragem ou integram o mesmo prazo; instante preciso de consumo da stamina e início do cooldown, se não herdado do padrão do motor.
 - **SW-P07 — escopo visual:** controle de fog/iluminação por câmera/observador, para não impor cegueira visual a jogadores não atingidos; intensidade exata do escurecimento.
@@ -278,4 +284,6 @@ O design principal está definido, mas **não afirmar que a funcionalidade está
 
 **19/10/2026 — correção de identificação:** o diretor esclareceu: **“estou substituindo sand kick”**. Portanto, **o terceiro golpe passa a chamar-se Sand Wave**, e o primeiro golpe continua sendo **Rock Tomb**. O documento reconhece expressamente que interpretar Sand Wave como substituto de Rock Tomb foi um erro do assistente.
 
-**19/10/2026 — estado do design:** o diretor também esclareceu que Sand Wave **não está pronto** e exigiu uma rodada de perguntas sobre o golpe. Geometria completa, valores de dano/empurrão, contatos múltiplos e outros aspectos seguem **pendentes de decisão**, conforme a seção 6.6.
+**19/10/2026 — estado do design:** o diretor esclareceu que Sand Wave **não está pronto** e exigiu uma rodada de perguntas. A rodada seguinte resolveu direção da área, acerto único por inimigo, dano fixo e força de empurrão contínua; **a geometria completa, valores numéricos de dano/empurrão e outros aspectos permanecem pendentes**, conforme a seção 6.6.
+
+**19/10/2026 — Rodada 1 (perguntas 1–5):** **1. D — pediu referência visual simples sem gerar imagem; resposta dimensional PENDENTE.** **2. A — direção fixada no disparo. 3. A — um acerto por inimigo por execução. 4. A — dano fixo independente de Ataque. 5. B — empurrão contínuo durante contato com a barragem ativa.** Não completar automaticamente a pergunta 1.
