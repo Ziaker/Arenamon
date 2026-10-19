@@ -78,11 +78,19 @@ O sistema admite tipos diferentes de passivas, conforme a definição individual
 - **Exemplo ilustrativo:** velocidade-base de 100 unidades, bônus percentuais combinados de +20% e bônus absoluto de +30 unidades resultam em **150 unidades**, e não em 156.
 - **Não definido nesta rodada:** valores ou definição específica de cada atributo-base no sistema, limites mínimos/máximos, arredondamentos e resolução de efeitos incompatíveis ou de natureza diversa. Não presumir novas regras para esses casos.
 
+## Rodada 10 — Limites adicionais dos atributos modificados (opção A aprovada)
+
+- **Não serão introduzidos novos limites mínimos ou máximos para atributos em decorrência do sistema de passivas ou do acúmulo aditivo aprovado nas Rodadas 7–9.**
+- A soma dos modificadores compatíveis poderá produzir o valor resultante de acordo com a fórmula aprovada, **respeitando exclusivamente as restrições já existentes e aplicáveis às mecânicas do jogo**.
+- Não se cria, por esta decisão, um teto universal de bônus, um limite da soma dos modificadores, nem novos limites individuais por atributo ou por efeito.
+- A decisão **não revoga limites já existentes**, nem aprova mudanças em velocidade, defesa, dano, recuperação, cooldowns ou qualquer outra mecânica específica.
+- **Continuam pendentes** regras de arredondamento, tratamento de unidades diferentes, efeitos incompatíveis e casos especiais não resolvidos pelas restrições preexistentes. Não introduzir implicitamente novos limites para esses casos.
+
 ## Pontos pendentes — não aprovados
 
 - Identidade, números, magnitude, duração, gatilhos e cooldowns de cada passiva.
 - Prioridades, ordem de aplicação e conflitos entre efeitos incompatíveis das duas passivas equipadas.
-- Unidades e conversão para efeitos de natureza diversa, limites mínimos/máximos de atributos, arredondamentos e interações entre modificadores incompatíveis.
+- Unidades e conversão para efeitos de natureza diversa, arredondamentos, interações entre modificadores incompatíveis e tratamento de casos especiais não cobertos por restrições preexistentes.
 - Comportamento das passivas em KO, respawn, pausas, hitstop e demais estados; a definição é individual, mas as regras concretas ainda não foram aprovadas.
 - Interface de seleção, apresentação visual e implementação técnica.
 
