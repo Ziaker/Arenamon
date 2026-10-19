@@ -1,0 +1,1992 @@
+{
+  "schema": "arenamon-tuning",
+  "version": 9,
+  "source": "arenamon-combate-laboratorio (overhaul)",
+  "createdAt": "2026-10-19T02:20:23.782Z",
+  "values": {
+    "rules": {
+      "recoil": 0.514,
+      "recoilFraction": 0.15,
+      "blend": 0.43,
+      "guardStun": 0.514,
+      "launchGravity": 39.6,
+      "launchUp": 7.1,
+      "launchHorizontal": 19.3,
+      "launchDrag": 1.15,
+      "clashFraction": 0.3,
+      "clashUp": 8.1,
+      "clashHorizontal": 12,
+      "landingRecovery": 0.629,
+      "wallRestitution": 0.28,
+      "perfect": 0.2,
+      "perfectCooldown": 2,
+      "staminaMax": 7.1,
+      "regenDelay": 1,
+      "regenTime": 1.25,
+      "guardSpeed": 0.6,
+      "exhaustedSpeed": 0.7,
+      "guardTurn": 9.42477796076938,
+      "guardAcceleration": 47.12388980384689,
+      "exhaustMode": 1,
+      "wallBounceVertical": 1,
+      "wallBounceUp": 0
+    },
+    "test": {
+      "step": 0.008333333333333333,
+      "maxFrame": 0.1,
+      "arenaHalf": 16,
+      "halfExtent": 0.5,
+      "hp": 100,
+      "attack": 20,
+      "defense": 50,
+      "speed": 4.8,
+      "attackReference": 20,
+      "speedReference": 10,
+      "defenseMedian": 50,
+      "pushCoefficient": 2,
+      "pushDuration": 0.3,
+      "aiInterval": 0.85,
+      "aiRange": 3.3,
+      "contactStep": 0.1,
+      "epsilon": 1e-8,
+      "forwardTolerance": 0.39269908169872414
+    },
+    "locomotion": {
+      "acceleration": 40,
+      "braking": 34,
+      "reversal": 62,
+      "turnRate": 18.84955592153876,
+      "visualTurnRate": 21.991148575128552,
+      "model": 1,
+      "accelCurve": 0.55,
+      "brakeCurve": 0.5,
+      "friction": 1.1,
+      "turnGrip": 52,
+      "residualSpeed": 0.35,
+      "turnAcceleration": 160,
+      "moveFrame": 0,
+      "frameLatch": 1,
+      "lockFacing": 2,
+      "stopThreshold": 0.55,
+      "lockTackleHoming": 1
+    },
+    "camera": {
+      "distance": 6.2,
+      "height": 2.2,
+      "lookHeight": 1.1,
+      "lookAhead": 1.8,
+      "followResponse": 12,
+      "distanceResponse": 5,
+      "yawResponse": 3,
+      "maxTurnRate": 1.208304866765305,
+      "deadZone": 0.3490658503988659,
+      "movingDeadZone": 1.0471975511965976,
+      "closeRange": 1.3,
+      "initialYaw": 3.3415926535897933,
+      "shoulder": 0.45,
+      "framingRange": 6,
+      "distanceScale": 0.35,
+      "manualHold": 1.5,
+      "minDistance": 4.8,
+      "maxDistance": 24
+    },
+    "profiles": {
+      "balanced": {
+        "attack": 20,
+        "defense": 50,
+        "speed": 4.19,
+        "hp": 100
+      },
+      "agile": {
+        "attack": 16,
+        "defense": 35,
+        "speed": 6,
+        "hp": 100
+      },
+      "resistant": {
+        "attack": 24,
+        "defense": 80,
+        "speed": 4.08,
+        "hp": 100
+      }
+    },
+    "extras": {
+      "combat": {
+        "vaultCollisionHeight": 1.3,
+        "tackleTargetAlignment": 0.15,
+        "tackleNormalAlignment": 0,
+        "tackleClosingSpeed": 0.06,
+        "clashFacingAlignment": 0.2,
+        "clashClosingSpeed": 0.06,
+        "guardFrontAlignment": 0,
+        "guardDamageMultiplier": 0.5,
+        "launchAttackBase": 0.85,
+        "launchAttackWeight": 0.15,
+        "launchAttackReference": 20,
+        "launchClosingCap": 2,
+        "launchClosingMultiplier": 0.1,
+        "launchNormalWeight": 0.75,
+        "launchCenterWeight": 0.25,
+        "contactProjectionPasses": 4,
+        "clashHitstop": 0.085,
+        "impactHitstop": 0.035,
+        "perfectGuardCounterWindow": 0.7,
+        "exhaustRecovery": 0.15,
+        "guardRegenFactor": 0.7,
+        "landingSkidFraction": 0.34,
+        "landingSkidDrag": 8,
+        "landingSkidMin": 0.08
+      },
+      "ai": {
+        "revision": 1,
+        "difficultyTier": "normal",
+        "moveSmoothing": 10,
+        "minDirectionHold": 0.18,
+        "initialCooldown": 0.6,
+        "orbitChangePeriod": 1.7,
+        "threatAlignment": 0.3,
+        "threatDistance": 4.8,
+        "defensiveRetreatDistance": 2.4,
+        "defensiveRetreatStrength": 0.5,
+        "reactiveRetreatStrength": 0.2,
+        "approachDistance": 3,
+        "retreatDistance": 1.35,
+        "retreatStrength": 0.65,
+        "strafeStrength": 0.72,
+        "wallPrediction": 0.8,
+        "wallMargin": 1,
+        "attackRange": 3.35,
+        "combatAttackCooldown": 1.1,
+        "lowStaminaThreshold": 0.95,
+        "lowStaminaDistance": 2.5,
+        "lowStaminaRetreat": 0.7,
+        "evadeCycle": 3,
+        "evadeCycleIndex": 2
+      },
+      "aiRed": {
+        "difficultyTier": "normal",
+        "reaction": 0.16,
+        "reactionJitter": 0.14,
+        "mistake": 0.16,
+        "aggression": 0.45,
+        "variation": 0.45,
+        "hesitation": 0.3,
+        "evadeChance": 0.35,
+        "style": 0,
+        "adaptation": 0.55
+      },
+      "aiBlue": {
+        "reaction": 0.1,
+        "reactionJitter": 0.12,
+        "mistake": 0.1,
+        "aggression": 0.62,
+        "variation": 0.4,
+        "hesitation": 0.15,
+        "evadeChance": 0.5,
+        "style": 0,
+        "adaptation": 0.7
+      },
+      "cameraExtra": {
+        "idleAlignDelay": 0.85,
+        "idleAlignSpeed": 1.5,
+        "unlockedTurnMultiplier": 1.2,
+        "verticalFollow": 7,
+        "flightZoomFactor": 0.18,
+        "flightHeightFactor": 0.42,
+        "flightLookFactor": 0.4,
+        "orbitSensitivity": 0.006,
+        "wheelSensitivity": 0.01,
+        "fov": 48,
+        "nearClip": 0.1,
+        "farClip": 100,
+        "lockTargetBias": 0.28,
+        "lockBiasLimit": 4.7,
+        "framingSeparationFactor": 0.45,
+        "framingPadding": 1.2,
+        "cameraShakeAmount": 0.12,
+        "cameraShakeDecay": 10
+      },
+      "visual": {
+        "bodyWidth": 1,
+        "bodyHeight": 1.3,
+        "bodyDepth": 1,
+        "arrowRadius": 0.16,
+        "arrowLength": 0.42,
+        "arrowOffset": 0.2,
+        "arrowHeight": 1.48,
+        "guardScale": 1.03,
+        "landingScale": 0.82,
+        "shadowMin": 0.3,
+        "shadowHeightFade": 0.16,
+        "renderPixelRatio": 2,
+        "ambientLightIntensity": 2.5,
+        "directionalIntensity": 2,
+        "floorThickness": 0.1,
+        "wallHeight": 0.35,
+        "wallThickness": 0.15,
+        "gridDivisions": 32,
+        "lightX": 4,
+        "lightY": 12,
+        "lightZ": -8
+      },
+      "fx": {
+        "impactCount": 8,
+        "clashCount": 12,
+        "landingCount": 7,
+        "impactDuration": 0.34,
+        "clashDuration": 0.48,
+        "particleWidth": 0.075,
+        "particleHeight": 0.07,
+        "particleLength": 0.66,
+        "clashParticleLength": 0.95,
+        "particleOpacity": 0.92,
+        "particleTravel": 1.6,
+        "particleInitialTravel": 0.15,
+        "particleRise": 0.36,
+        "particleHeightFromGround": 0.22,
+        "particleStretch": 1.9,
+        "invulnRepeatDelay": 300,
+        "impactNoticeMs": 630,
+        "clashNoticeMs": 970,
+        "invulnNoticeMs": 350,
+        "noticeFontSize": 30,
+        "clashNoticeFontSize": 40,
+        "hitboxOpacity": 0.6,
+        "attackVectorWidth": 0.13
+      },
+      "hud": {
+        "uiScale": 1,
+        "debugFontSize": 12,
+        "footerFontSize": 15,
+        "fxVisible": 1,
+        "hudVisible": 1,
+        "debugVisible": 0,
+        "menuOpacity": 0.85,
+        "fpsSmoothing": 0.05
+      },
+      "gameModes": {
+        "enemyMode": 8,
+        "playerProfile": 0
+      },
+      "toggles": {
+        "enableTackle": 1,
+        "enableDodge": 1,
+        "enableDefense": 1,
+        "enableClash": 1,
+        "enableInvulnerability": 1,
+        "enableLaunch": 1,
+        "enableVault": 1,
+        "enableWallBounce": 1,
+        "enableAIAttack": 1,
+        "enableAIReactive": 1,
+        "enableCameraFollow": 1,
+        "enableCameraRecenter": 1,
+        "enablePlayerAI": 0,
+        "showHitboxes": 0,
+        "showAttackVectors": 0,
+        "enableHitstop": 1,
+        "enableCounterBonus": 1,
+        "enableLandingSkid": 1,
+        "enableEnemyAI": 0,
+        "enableSprint": 1,
+        "enemyManual": 0,
+        "enableAnimationCombatWindows": 0
+      },
+      "bindings": {
+        "forward": 0,
+        "back": 1,
+        "left": 2,
+        "right": 3,
+        "tackle": 4,
+        "dodge": 5,
+        "defend": 6,
+        "lock": 7,
+        "pause": 8,
+        "restart": 9,
+        "debug": 10,
+        "skill1": 11,
+        "skill2": 12,
+        "skill3": 49,
+        "skill4": 50
+      },
+      "bindings2": {
+        "forward": 31,
+        "back": 28,
+        "left": 27,
+        "right": 29,
+        "tackle": 37,
+        "dodge": 38,
+        "defend": 39,
+        "lock": 40,
+        "skill1": 41,
+        "skill2": 42,
+        "skill3": 44,
+        "skill4": 45
+      },
+      "colors": {
+        "playerR": 53,
+        "playerG": 137,
+        "playerB": 255,
+        "enemyR": 242,
+        "enemyG": 81,
+        "enemyB": 75,
+        "floorR": 96,
+        "floorG": 109,
+        "floorB": 116,
+        "wallR": 202,
+        "wallG": 212,
+        "wallB": 219,
+        "backgroundR": 32,
+        "backgroundG": 43,
+        "backgroundB": 53,
+        "gridMajorR": 196,
+        "gridMajorG": 209,
+        "gridMajorB": 217,
+        "gridMinorR": 133,
+        "gridMinorG": 147,
+        "gridMinorB": 156,
+        "impactR": 255,
+        "impactG": 179,
+        "impactB": 97,
+        "clashR": 255,
+        "clashG": 229,
+        "clashB": 141,
+        "landingR": 180,
+        "landingG": 193,
+        "landingB": 203,
+        "partialR": 115,
+        "partialG": 202,
+        "partialB": 255,
+        "perfectR": 157,
+        "perfectG": 255,
+        "perfectB": 210,
+        "invulnerableR": 195,
+        "invulnerableG": 215,
+        "invulnerableB": 255,
+        "shadowR": 19,
+        "shadowG": 26,
+        "shadowB": 32,
+        "arrowR": 255,
+        "arrowG": 255,
+        "arrowB": 255,
+        "arrowGuardR": 255,
+        "arrowGuardG": 224,
+        "arrowGuardB": 100,
+        "defeatedR": 86,
+        "defeatedG": 97,
+        "defeatedB": 106,
+        "glowGuardR": 84,
+        "glowGuardG": 80,
+        "glowGuardB": 51,
+        "glowInvulnR": 49,
+        "glowInvulnG": 91,
+        "glowInvulnB": 88,
+        "glowRecoilR": 96,
+        "glowRecoilG": 48,
+        "glowRecoilB": 71,
+        "glowTackleR": 107,
+        "glowTackleG": 54,
+        "glowTackleB": 4
+      },
+      "keyCodes": [
+        "ArrowUp",
+        "ArrowDown",
+        "ArrowLeft",
+        "ArrowRight",
+        "KeyX",
+        "KeyC",
+        "KeyD",
+        "Tab",
+        "Escape",
+        "KeyR",
+        "F3",
+        "KeyA",
+        "KeyS",
+        "KeyZ",
+        "Space",
+        "KeyQ",
+        "KeyE",
+        "KeyF",
+        "KeyW",
+        "KeyT",
+        "ShiftLeft",
+        "ShiftRight",
+        "Enter",
+        "Numpad0",
+        "Numpad1",
+        "Numpad2",
+        "Numpad3",
+        "Numpad4",
+        "Numpad5",
+        "Numpad6",
+        "Numpad7",
+        "Numpad8",
+        "Numpad9",
+        "KeyI",
+        "KeyJ",
+        "KeyK",
+        "KeyL",
+        "KeyU",
+        "KeyO",
+        "KeyP",
+        "KeyY",
+        "KeyH",
+        "KeyG",
+        "KeyB",
+        "KeyN",
+        "KeyM",
+        "KeyV",
+        "Digit1",
+        "Digit2",
+        "Digit3",
+        "Digit4"
+      ]
+    },
+    "actions": {
+      "dodge": {
+        "duration": 0.5,
+        "cost": 1,
+        "invulnerable": 0.2,
+        "distance": 2.05,
+        "curveStart": 1.6,
+        "steerLimit": 0.5235987755982988,
+        "steerRate": 3.141592653589793,
+        "blend": 0.06,
+        "chainAfter": 0.2,
+        "recovery": 0,
+        "fromGuard": 1,
+        "distanceReference": 0.4,
+        "profile": 1,
+        "fromRecoil": 1,
+        "fromGuardStun": 1,
+        "vaultHeight": 2.2,
+        "vaultReachBonus": 0.7,
+        "vaultForwardMin": 0.1,
+        "vaultLateralWidth": 1.15,
+        "perfectEvadeStamina": 0.2,
+        "counterWindow": 0.55,
+        "prepTime": 0.03,
+        "impulseTime": 0.1,
+        "decelStart": 0.6,
+        "recoveryTime": 0.1,
+        "prepSpeed": 0.6,
+        "travelEnd": 0.78,
+        "selfCancelFromEnd": 0.1,
+        "vaultPhysics": 1,
+        "vaultUp": 9,
+        "vaultGravity": 40,
+        "vaultHorizontal": 11
+      },
+      "tackle": {
+        "duration": 1.352,
+        "cost": 1,
+        "invulnerable": 0,
+        "distance": 1.9,
+        "curveStart": 1.6,
+        "steerLimit": 0.5235987755982988,
+        "steerRate": 3.141592653589793,
+        "blend": 0.06,
+        "chainAfter": 0.2,
+        "recovery": 0,
+        "fromGuard": 1,
+        "distanceReference": 0.4,
+        "profile": 1,
+        "fromRecoil": 0,
+        "fromGuardStun": 0,
+        "counterSpeed": 1.18,
+        "prepTime": 0.04,
+        "impulseTime": 0.08,
+        "decelStart": 0.55,
+        "recoveryTime": 0.08,
+        "prepSpeed": 0.55,
+        "travelEnd": 0.62,
+        "selfCancel": 0,
+        "guardCancel": 0,
+        "perfectGuardCancel": 1
+      },
+      "sprint": {
+        "speedMultiplier": 1.8,
+        "acceleration": 26,
+        "braking": 15,
+        "turnGrip": 28,
+        "staminaDrain": 0.55,
+        "minStamina": 0.2,
+        "entryFraction": 0.7,
+        "exhaustedStop": 1
+      },
+      "cancel": {
+        "dodgeToTackle": 1,
+        "windowStart": 0.3,
+        "windowEnd": 2.35,
+        "transition": 0.06,
+        "velocityInfluence": 1,
+        "airDescent": 0.18,
+        "invulnerability": 0,
+        "windowMode": 0,
+        "fromEnd": 0.61,
+        "perfectAnytime": 1
+      },
+      "buffer": {
+        "window": 0.1
+      }
+    },
+    "vfx": {
+      "master": {
+        "enabled": 1,
+        "maxParticles": 1400,
+        "debugLog": 1,
+        "legacy": 0,
+        "noFlash": 0,
+        "reduceMotion": 0,
+        "highContrast": 0
+      },
+      "hit": {
+        "enabled": 1,
+        "variant": 1,
+        "size": 2.23,
+        "duration": 0.71,
+        "count": 18,
+        "intensity": 2.63,
+        "speed": 6,
+        "opacity": 0.95,
+        "color": 16777215,
+        "glow": 1.2,
+        "fade": 2.58
+      },
+      "dodge": {
+        "enabled": 1,
+        "variant": 0,
+        "count": 6,
+        "length": 1.4,
+        "duration": 0.22,
+        "width": 0.07,
+        "opacity": 0.7,
+        "spread": 0.45,
+        "interval": 0.025,
+        "intensity": 1,
+        "color": 16777215
+      },
+      "sprint": {
+        "enabled": 1,
+        "variant": 0,
+        "density": 1,
+        "length": 1.1,
+        "speed": 9,
+        "spread": 0.5,
+        "intensity": 1,
+        "opacity": 0.55,
+        "color": 14218495,
+        "frequency": 28
+      },
+      "block": {
+        "enabled": 1,
+        "variant": 2,
+        "size": 1,
+        "opacity": 0.75,
+        "duration": 0.3,
+        "color": 7588607,
+        "intensity": 1.22,
+        "count": 10,
+        "expansion": 1
+      },
+      "perfect": {
+        "enabled": 1,
+        "variant": 0,
+        "intensity": 2.84,
+        "duration": 0.55,
+        "scale": 1.2,
+        "count": 26,
+        "wave": 2.4,
+        "glow": 1.6,
+        "color": 10354642,
+        "color2": 16777215,
+        "fade": 1.4,
+        "flash": 0.55,
+        "freeze": 0.07
+      },
+      "ground": {
+        "enabled": 1,
+        "variant": 3,
+        "radius": 2.9,
+        "density": 1.52,
+        "duration": 0.82,
+        "intensity": 1.57,
+        "speed": 3.5,
+        "opacity": 0.85,
+        "particleSize": 0.22,
+        "elevation": 0.5,
+        "color": 15134194,
+        "minImpact": 2,
+        "mixA": 1,
+        "mixB": 0.8,
+        "mixC": 0.6
+      },
+      "clash": {
+        "enabled": 1,
+        "variant": 0,
+        "scale": 1.2,
+        "duration": 0.6,
+        "intensity": 2.52,
+        "count": 30,
+        "color": 16770445,
+        "color2": 16742972,
+        "radius": 1.6,
+        "speed": 7,
+        "glow": 1.6
+      },
+      "exhaust": {
+        "enabled": 1,
+        "variant": 0,
+        "target": 0,
+        "count": 5,
+        "fallSpeed": 1.1,
+        "spread": 0.55,
+        "size": 0.26,
+        "opacity": 0.85,
+        "glow": 0.65,
+        "startHeight": 2.1,
+        "interval": 0.14,
+        "color": 5219327
+      },
+      "regen": {
+        "enabled": 1,
+        "variant": 0,
+        "count": 3,
+        "frequency": 7,
+        "speed": 1.2,
+        "height": 1.8,
+        "intensity": 2.23,
+        "size": 0.28,
+        "opacity": 0.8,
+        "spread": 0.5,
+        "color": 16765773,
+        "scaleWithRate": 1
+      },
+      "rock": {
+        "enabled": 1,
+        "variant": 1,
+        "scale": 1,
+        "rotSpeed": 3.5,
+        "trail": 1,
+        "trailDensity": 8,
+        "shatter": 1,
+        "shatterCount": 14,
+        "shatterSpeed": 1,
+        "shatterLife": 1,
+        "shatterSize": 1,
+        "glow": 1.2,
+        "cracksEmissive": 1
+      },
+      "barrier": {
+        "enabled": 1,
+        "variant": 0,
+        "opacity": 0.65,
+        "pulseFreq": 2.2,
+        "ripples": 1,
+        "shatterFragments": 20,
+        "shatterSpeed": 1,
+        "shatterLife": 1,
+        "shatterSize": 1,
+        "edgeGlow": 1.4
+      },
+      "laser": {
+        "enabled": 1,
+        "pl": 1,
+        "coreWidth1": 0.04,
+        "coreWidth2": 0.065,
+        "coreWidth3": 0.095,
+        "coreOpacity": 0.95,
+        "haloWidth1": 0.15,
+        "haloWidth2": 0.24,
+        "haloWidth3": 0.38,
+        "haloOpacity": 0.65,
+        "intensity": 1.2,
+        "pulseFreq": 2,
+        "flowSpeed": 24,
+        "muzzleSize": 0.28,
+        "contactSize": 0.35,
+        "sparksPerSecond": 20,
+        "dynamicLight": 1,
+        "reflectionActive": 1,
+        "neutralizeActive": 1,
+        "quality": 1,
+        "noFlash": 0,
+        "reduceMotion": 0,
+        "highContrast": 0
+      },
+      "solid": {
+        "enabled": 1,
+        "maxObjects": 220,
+        "quality": 1
+      },
+      "solidDust": {
+        "enabled": 1,
+        "variant": 4,
+        "intensity": 0.82,
+        "amount": 3,
+        "size": 0.49,
+        "duration": 1,
+        "velocity": 1.85,
+        "scatter": 0.77,
+        "lift": 2.38,
+        "turbulence": 1,
+        "opacity": 1,
+        "fadeStart": 0.39,
+        "fadeEnd": 1,
+        "color": 16777215,
+        "color2": 16777215
+      },
+      "solidWind": {
+        "enabled": 0,
+        "variant": 2,
+        "intensity": 1,
+        "amount": 1,
+        "size": 1,
+        "duration": 1,
+        "velocity": 1,
+        "scatter": 1,
+        "lift": 1,
+        "turbulence": 1,
+        "opacity": 0.7,
+        "fadeStart": 0.6,
+        "fadeEnd": 1,
+        "color": 40447
+      },
+      "solidRunDust": {
+        "enabled": 1,
+        "variant": 2,
+        "intensity": 0.63,
+        "amount": 3,
+        "size": 0.72,
+        "duration": 0.73,
+        "velocity": 1.48,
+        "scatter": 0.6,
+        "lift": 0.69,
+        "turbulence": 1,
+        "opacity": 0.75,
+        "fadeStart": 0.38,
+        "fadeEnd": 1,
+        "color": 16777215
+      },
+      "solidRunWind": {
+        "enabled": 0,
+        "variant": 2,
+        "intensity": 1.98,
+        "amount": 0.52,
+        "size": 0.6,
+        "duration": 0.64,
+        "velocity": 1.8,
+        "scatter": 1,
+        "lift": 1,
+        "turbulence": 1,
+        "opacity": 0.7,
+        "fadeStart": 0.6,
+        "fadeEnd": 1,
+        "color": 14676991
+      },
+      "solidDodge": {
+        "enabled": 1,
+        "variant": 2,
+        "intensity": 1.57,
+        "amount": 0.75,
+        "size": 1.6,
+        "duration": 0.59,
+        "velocity": 1.95,
+        "scatter": 0.4,
+        "lift": 0.47,
+        "turbulence": 1.72,
+        "opacity": 1,
+        "fadeStart": 0.3,
+        "fadeEnd": 1,
+        "color": 16777215
+      },
+      "solidLanding": {
+        "enabled": 1,
+        "variant": 0,
+        "intensity": 1.33,
+        "amount": 1,
+        "size": 1,
+        "duration": 1.5,
+        "velocity": 0.66,
+        "scatter": 0.76,
+        "lift": 1.12,
+        "turbulence": 1,
+        "opacity": 1,
+        "fadeStart": 0.6,
+        "fadeEnd": 1,
+        "color": 14272936
+      },
+      "solidImpact": {
+        "enabled": 1,
+        "variant": 0,
+        "intensity": 1,
+        "amount": 1,
+        "size": 1,
+        "duration": 1,
+        "velocity": 1,
+        "scatter": 1,
+        "lift": 1,
+        "turbulence": 1,
+        "opacity": 1,
+        "fadeStart": 0.6,
+        "fadeEnd": 1,
+        "color": 16757601
+      },
+      "solidBlock": {
+        "enabled": 1,
+        "variant": 2,
+        "intensity": 1,
+        "amount": 1,
+        "size": 1,
+        "duration": 1,
+        "velocity": 1,
+        "scatter": 1,
+        "lift": 1,
+        "turbulence": 1,
+        "opacity": 1,
+        "fadeStart": 0.6,
+        "fadeEnd": 1,
+        "color": 7588607
+      },
+      "solidClash": {
+        "enabled": 0,
+        "variant": 0,
+        "intensity": 1,
+        "amount": 1,
+        "size": 1,
+        "duration": 1,
+        "velocity": 1,
+        "scatter": 1,
+        "lift": 1,
+        "turbulence": 1,
+        "opacity": 1,
+        "fadeStart": 0.6,
+        "fadeEnd": 1,
+        "color": 16770445
+      },
+      "solidReflect": {
+        "enabled": 1,
+        "variant": 0,
+        "intensity": 1,
+        "amount": 1,
+        "size": 1,
+        "duration": 1,
+        "velocity": 1,
+        "scatter": 1,
+        "lift": 1,
+        "turbulence": 1,
+        "opacity": 1,
+        "fadeStart": 0.6,
+        "fadeEnd": 1,
+        "color": 7588607
+      },
+      "shakeMaster": {
+        "enabled": 1
+      },
+      "shakeGuard": {
+        "enabled": 1,
+        "profile": 0,
+        "amplitude": 0.05,
+        "duration": 0.16,
+        "frequency": 26,
+        "damping": 7,
+        "angular": 0.6,
+        "intensity": 1,
+        "limit": 0.45
+      },
+      "shakeHit": {
+        "enabled": 1,
+        "profile": 0,
+        "amplitude": 0.12,
+        "duration": 0.28,
+        "frequency": 26,
+        "damping": 7,
+        "angular": 0.6,
+        "intensity": 1,
+        "limit": 0.45
+      },
+      "shakeGround": {
+        "enabled": 1,
+        "profile": 1,
+        "amplitude": 0.09,
+        "duration": 0.3,
+        "frequency": 26,
+        "damping": 7,
+        "angular": 0.6,
+        "intensity": 1,
+        "limit": 0.45
+      },
+      "shakePerfect": {
+        "enabled": 1,
+        "profile": 2,
+        "amplitude": 0.1,
+        "duration": 0.3,
+        "frequency": 26,
+        "damping": 7,
+        "angular": 0.6,
+        "intensity": 1,
+        "limit": 0.45
+      },
+      "shakeClash": {
+        "enabled": 1,
+        "profile": 1,
+        "amplitude": 0.18,
+        "duration": 0.42,
+        "frequency": 26,
+        "damping": 7,
+        "angular": 0.6,
+        "intensity": 1,
+        "limit": 0.45
+      }
+    },
+    "display": {
+      "shadow": {
+        "style": 2,
+        "opacity": 0.55,
+        "radius": 0.62,
+        "scaleX": 1,
+        "scaleZ": 1,
+        "softness": 0.6,
+        "offsetX": 0,
+        "offsetZ": 0,
+        "intensity": 1
+      },
+      "hud": {
+        "proposal": 0,
+        "scale": 1.11,
+        "demoCooldowns": 1,
+        "demoAuto": 1,
+        "demoDuration": 4,
+        "damageDelay": 0.45
+      },
+      "grounding": {
+        "autoGround": 1,
+        "visualOffset": 0
+      },
+      "cancelRing": {
+        "inner": 1.05,
+        "width": 0.25,
+        "opacity": 0.75
+      },
+      "animation": {
+        "fade": 0.19,
+        "actionFade": 0.09,
+        "locomotionHold": 0.08,
+        "speed": 1.75
+      },
+      "diagnostics": {
+        "toast": 1,
+        "toastMs": 1400,
+        "logExecuted": 0
+      },
+      "perf": {
+        "overlay": 0
+      },
+      "windows": {
+        "mode": 0,
+        "scale": 1,
+        "opacity": 0.9,
+        "invulnerable": 1,
+        "cancel": 1,
+        "chain": 1,
+        "recovery": 1,
+        "guardStun": 1,
+        "recoil": 1,
+        "perfect": 1,
+        "perfectCooldown": 1,
+        "counter": 1,
+        "buffer": 1,
+        "hitstop": 0,
+        "statuses": 1,
+        "cooldowns": 1
+      }
+    },
+    "world": {
+      "maxEntities": 64,
+      "slots": 4,
+      "charge": {
+        "moveSlow": 0.75,
+        "turnSlow": 0.75,
+        "dodgeCancelAfter": 0.2,
+        "interruptCooldownFactor": 0.5,
+        "recovery": 0.25,
+        "bufferWindow": 0.15,
+        "boostStaminaPerSecond": 0.5,
+        "boostStep": 1
+      },
+      "reflect": {
+        "widthMin": 1.5,
+        "widthMax": 3,
+        "heightMin": 1.5,
+        "heightMax": 2.5,
+        "thickness": 0.1,
+        "gapFraction": 0.5,
+        "durationBase": 4,
+        "minCharge": 1.5,
+        "tackleRecoil": 0.15,
+        "tackleStagger": 0.25,
+        "burstRadius": 0,
+        "burstForce": 3,
+        "burstDamage": 0,
+        "burstPush": 0,
+        "burstHurt": 0,
+        "tieTolerance": 0.001,
+        "maxReflections": 16
+      },
+      "psyshock": {
+        "minStones": 3,
+        "maxStones": 8,
+        "stoneSeconds": 0.8,
+        "speedMin": 10,
+        "speedMax": 14,
+        "homingSeconds": 0.3,
+        "homingRate": 180,
+        "fanAngle": 20,
+        "searchRange": 3,
+        "searchStep": 0.25,
+        "arc": 120,
+        "ringMin": 0.8,
+        "ringMax": 1.1,
+        "heightMin": 0.35,
+        "heightMax": 1.1,
+        "scaleMin": 0.7,
+        "scaleMax": 1.3,
+        "radius": 0.2,
+        "damageFraction": 0.2,
+        "successiveFactor": 0.8,
+        "knockbackPerStone": 0.3,
+        "knockbackCap": 0.9,
+        "knockbackVertical": 0,
+        "knockbackLevelBonus": 0,
+        "knockbackSpeedFactor": 0,
+        "counterStagger": 0.2
+      },
+      "beam": {
+        "length": 24,
+        "maxSegments": 8,
+        "interval": 0.25,
+        "damage": 2
+      },
+      "ai": {
+        "evadeDistance": 4.5,
+        "pl2Distance": 4.8,
+        "pl3Distance": 7,
+        "reflectHold": 1.5,
+        "lastSecondDefend": 0.22,
+        "noTimeDefend": 0.26,
+        "barrierBreakRange": 3.2,
+        "barrierBreakChance": 0.6,
+        "psyshockMinDistance": 3.5,
+        "psyshockMinStamina": 2,
+        "psyshockChanceMax": 0.9,
+        "afterChargeWait": 0.35,
+        "decisionInterval": 0.5
+      }
+    }
+  },
+  "changedFromLabDefaults": [
+    {
+      "path": "actions.dodge.duration",
+      "lab": 0.4,
+      "value": 0.5
+    },
+    {
+      "path": "actions.dodge.distance",
+      "lab": 2.5,
+      "value": 2.05
+    },
+    {
+      "path": "actions.dodge.blend",
+      "lab": 0.1,
+      "value": 0.06
+    },
+    {
+      "path": "actions.dodge.prepTime",
+      "lab": 0.06,
+      "value": 0.03
+    },
+    {
+      "path": "actions.dodge.impulseTime",
+      "lab": 0.14,
+      "value": 0.1
+    },
+    {
+      "path": "actions.dodge.decelStart",
+      "lab": 0.55,
+      "value": 0.6
+    },
+    {
+      "path": "actions.dodge.recoveryTime",
+      "lab": 0.12,
+      "value": 0.1
+    },
+    {
+      "path": "actions.dodge.prepSpeed",
+      "lab": 0.45,
+      "value": 0.6
+    },
+    {
+      "path": "actions.dodge.travelEnd",
+      "lab": 0.7,
+      "value": 0.78
+    },
+    {
+      "path": "actions.tackle.duration",
+      "lab": 0.4,
+      "value": 1.352
+    },
+    {
+      "path": "actions.tackle.invulnerable",
+      "lab": 0.2,
+      "value": 0
+    },
+    {
+      "path": "actions.tackle.distance",
+      "lab": 2.5,
+      "value": 1.9
+    },
+    {
+      "path": "actions.tackle.blend",
+      "lab": 0.1,
+      "value": 0.06
+    },
+    {
+      "path": "actions.tackle.prepTime",
+      "lab": 0.06,
+      "value": 0.04
+    },
+    {
+      "path": "actions.tackle.impulseTime",
+      "lab": 0.1,
+      "value": 0.08
+    },
+    {
+      "path": "actions.tackle.decelStart",
+      "lab": 0.5,
+      "value": 0.55
+    },
+    {
+      "path": "actions.tackle.prepSpeed",
+      "lab": 0.5,
+      "value": 0.55
+    },
+    {
+      "path": "actions.tackle.travelEnd",
+      "lab": 0.55,
+      "value": 0.62
+    },
+    {
+      "path": "actions.cancel.windowStart",
+      "lab": 0,
+      "value": 0.3
+    },
+    {
+      "path": "actions.cancel.windowEnd",
+      "lab": 0.4,
+      "value": 2.35
+    },
+    {
+      "path": "actions.cancel.windowMode",
+      "lab": 1,
+      "value": 0
+    },
+    {
+      "path": "actions.cancel.fromEnd",
+      "lab": 0.15,
+      "value": 0.61
+    },
+    {
+      "path": "rules.recoil",
+      "lab": 0.3,
+      "value": 0.514
+    },
+    {
+      "path": "rules.blend",
+      "lab": 0.1,
+      "value": 0.43
+    },
+    {
+      "path": "rules.guardStun",
+      "lab": 0.2,
+      "value": 0.514
+    },
+    {
+      "path": "rules.staminaMax",
+      "lab": 3,
+      "value": 7.1
+    },
+    {
+      "path": "rules.regenTime",
+      "lab": 5,
+      "value": 1.25
+    },
+    {
+      "path": "rules.launchGravity",
+      "lab": 17.5,
+      "value": 39.6
+    },
+    {
+      "path": "rules.launchUp",
+      "lab": 7.3,
+      "value": 7.1
+    },
+    {
+      "path": "rules.launchHorizontal",
+      "lab": 11,
+      "value": 19.3
+    },
+    {
+      "path": "rules.landingRecovery",
+      "lab": 0.19,
+      "value": 0.629
+    },
+    {
+      "path": "profiles.balanced.speed",
+      "lab": 4.8,
+      "value": 4.19
+    },
+    {
+      "path": "locomotion.acceleration",
+      "lab": 26,
+      "value": 40
+    },
+    {
+      "path": "locomotion.braking",
+      "lab": 22,
+      "value": 34
+    },
+    {
+      "path": "locomotion.reversal",
+      "lab": 38,
+      "value": 62
+    },
+    {
+      "path": "locomotion.turnRate",
+      "lab": 12.566370614359172,
+      "value": 18.84955592153876
+    },
+    {
+      "path": "locomotion.visualTurnRate",
+      "lab": 15.707963267948966,
+      "value": 21.991148575128552
+    },
+    {
+      "path": "locomotion.accelCurve",
+      "lab": 0.45,
+      "value": 0.55
+    },
+    {
+      "path": "locomotion.brakeCurve",
+      "lab": 0.35,
+      "value": 0.5
+    },
+    {
+      "path": "locomotion.friction",
+      "lab": 0.8,
+      "value": 1.1
+    },
+    {
+      "path": "locomotion.turnGrip",
+      "lab": 34,
+      "value": 52
+    },
+    {
+      "path": "locomotion.residualSpeed",
+      "lab": 0.25,
+      "value": 0.35
+    },
+    {
+      "path": "locomotion.turnAcceleration",
+      "lab": 90,
+      "value": 160
+    },
+    {
+      "path": "extras.ai.revision",
+      "lab": 2,
+      "value": 1
+    },
+    {
+      "path": "extras.toggles.enableEnemyAI",
+      "lab": 1,
+      "value": 0
+    },
+    {
+      "path": "actions.sprint.speedMultiplier",
+      "lab": 1.55,
+      "value": 1.8
+    },
+    {
+      "path": "actions.sprint.acceleration",
+      "lab": 16,
+      "value": 26
+    },
+    {
+      "path": "actions.sprint.braking",
+      "lab": 12,
+      "value": 15
+    },
+    {
+      "path": "actions.sprint.turnGrip",
+      "lab": 20,
+      "value": 28
+    },
+    {
+      "path": "vfx.solidDust.variant",
+      "lab": 0,
+      "value": 4
+    },
+    {
+      "path": "vfx.solidDust.intensity",
+      "lab": 1,
+      "value": 0.82
+    },
+    {
+      "path": "vfx.solidDust.amount",
+      "lab": 1,
+      "value": 3
+    },
+    {
+      "path": "vfx.solidDust.size",
+      "lab": 1,
+      "value": 0.49
+    },
+    {
+      "path": "vfx.solidDust.velocity",
+      "lab": 1,
+      "value": 1.85
+    },
+    {
+      "path": "vfx.solidDust.scatter",
+      "lab": 1,
+      "value": 0.77
+    },
+    {
+      "path": "vfx.solidDust.lift",
+      "lab": 1,
+      "value": 2.38
+    },
+    {
+      "path": "vfx.solidDust.fadeStart",
+      "lab": 0.6,
+      "value": 0.39
+    },
+    {
+      "path": "vfx.solidDust.color",
+      "lab": 12165242,
+      "value": 16777215
+    },
+    {
+      "path": "vfx.solidDust.color2",
+      "lab": 8388576,
+      "value": 16777215
+    },
+    {
+      "path": "vfx.solidWind.enabled",
+      "lab": 1,
+      "value": 0
+    },
+    {
+      "path": "vfx.solidWind.variant",
+      "lab": 0,
+      "value": 2
+    },
+    {
+      "path": "vfx.solidWind.opacity",
+      "lab": 1,
+      "value": 0.7
+    },
+    {
+      "path": "vfx.solidWind.color",
+      "lab": 16054783,
+      "value": 40447
+    },
+    {
+      "path": "vfx.solidRunDust.variant",
+      "lab": 0,
+      "value": 2
+    },
+    {
+      "path": "vfx.solidRunDust.intensity",
+      "lab": 1,
+      "value": 0.63
+    },
+    {
+      "path": "vfx.solidRunDust.amount",
+      "lab": 1,
+      "value": 3
+    },
+    {
+      "path": "vfx.solidRunDust.size",
+      "lab": 1,
+      "value": 0.72
+    },
+    {
+      "path": "vfx.solidRunDust.duration",
+      "lab": 1,
+      "value": 0.73
+    },
+    {
+      "path": "vfx.solidRunDust.velocity",
+      "lab": 1,
+      "value": 1.48
+    },
+    {
+      "path": "vfx.solidRunDust.scatter",
+      "lab": 1,
+      "value": 0.6
+    },
+    {
+      "path": "vfx.solidRunDust.lift",
+      "lab": 1,
+      "value": 0.69
+    },
+    {
+      "path": "vfx.solidRunDust.opacity",
+      "lab": 1,
+      "value": 0.75
+    },
+    {
+      "path": "vfx.solidRunDust.fadeStart",
+      "lab": 0.6,
+      "value": 0.38
+    },
+    {
+      "path": "vfx.solidRunDust.color",
+      "lab": 14207405,
+      "value": 16777215
+    },
+    {
+      "path": "vfx.solidRunWind.enabled",
+      "lab": 1,
+      "value": 0
+    },
+    {
+      "path": "vfx.solidRunWind.variant",
+      "lab": 0,
+      "value": 2
+    },
+    {
+      "path": "vfx.solidRunWind.intensity",
+      "lab": 1,
+      "value": 1.98
+    },
+    {
+      "path": "vfx.solidRunWind.amount",
+      "lab": 1,
+      "value": 0.52
+    },
+    {
+      "path": "vfx.solidRunWind.size",
+      "lab": 1,
+      "value": 0.6
+    },
+    {
+      "path": "vfx.solidRunWind.duration",
+      "lab": 1,
+      "value": 0.64
+    },
+    {
+      "path": "vfx.solidRunWind.velocity",
+      "lab": 1,
+      "value": 1.8
+    },
+    {
+      "path": "vfx.solidRunWind.opacity",
+      "lab": 1,
+      "value": 0.7
+    },
+    {
+      "path": "vfx.solidRunWind.color",
+      "lab": 16054783,
+      "value": 14676991
+    },
+    {
+      "path": "vfx.solidDodge.variant",
+      "lab": 0,
+      "value": 2
+    },
+    {
+      "path": "vfx.solidDodge.intensity",
+      "lab": 1,
+      "value": 1.57
+    },
+    {
+      "path": "vfx.solidDodge.amount",
+      "lab": 1,
+      "value": 0.75
+    },
+    {
+      "path": "vfx.solidDodge.size",
+      "lab": 1,
+      "value": 1.6
+    },
+    {
+      "path": "vfx.solidDodge.duration",
+      "lab": 1,
+      "value": 0.59
+    },
+    {
+      "path": "vfx.solidDodge.velocity",
+      "lab": 1,
+      "value": 1.95
+    },
+    {
+      "path": "vfx.solidDodge.scatter",
+      "lab": 1,
+      "value": 0.4
+    },
+    {
+      "path": "vfx.solidDodge.lift",
+      "lab": 1,
+      "value": 0.47
+    },
+    {
+      "path": "vfx.solidDodge.turbulence",
+      "lab": 1,
+      "value": 1.72
+    },
+    {
+      "path": "vfx.solidDodge.fadeStart",
+      "lab": 0.6,
+      "value": 0.3
+    },
+    {
+      "path": "vfx.solidDodge.color",
+      "lab": 10354648,
+      "value": 16777215
+    },
+    {
+      "path": "vfx.solidLanding.intensity",
+      "lab": 1,
+      "value": 1.33
+    },
+    {
+      "path": "vfx.solidLanding.duration",
+      "lab": 1,
+      "value": 1.5
+    },
+    {
+      "path": "vfx.solidLanding.velocity",
+      "lab": 1,
+      "value": 0.66
+    },
+    {
+      "path": "vfx.solidLanding.scatter",
+      "lab": 1,
+      "value": 0.76
+    },
+    {
+      "path": "vfx.solidLanding.lift",
+      "lab": 1,
+      "value": 1.12
+    },
+    {
+      "path": "vfx.solidBlock.variant",
+      "lab": 0,
+      "value": 2
+    },
+    {
+      "path": "vfx.solidClash.enabled",
+      "lab": 1,
+      "value": 0
+    },
+    {
+      "path": "vfx.hit.variant",
+      "lab": 0,
+      "value": 1
+    },
+    {
+      "path": "vfx.hit.size",
+      "lab": 1.3,
+      "value": 2.23
+    },
+    {
+      "path": "vfx.hit.duration",
+      "lab": 0.38,
+      "value": 0.71
+    },
+    {
+      "path": "vfx.hit.intensity",
+      "lab": 1,
+      "value": 2.63
+    },
+    {
+      "path": "vfx.hit.color",
+      "lab": 16757601,
+      "value": 16777215
+    },
+    {
+      "path": "vfx.hit.fade",
+      "lab": 1.6,
+      "value": 2.58
+    },
+    {
+      "path": "vfx.dodge.color",
+      "lab": 10354648,
+      "value": 16777215
+    },
+    {
+      "path": "vfx.block.variant",
+      "lab": 1,
+      "value": 2
+    },
+    {
+      "path": "vfx.block.intensity",
+      "lab": 1,
+      "value": 1.22
+    },
+    {
+      "path": "vfx.perfect.intensity",
+      "lab": 1.3,
+      "value": 2.84
+    },
+    {
+      "path": "vfx.ground.variant",
+      "lab": 0,
+      "value": 3
+    },
+    {
+      "path": "vfx.ground.radius",
+      "lab": 1.3,
+      "value": 2.9
+    },
+    {
+      "path": "vfx.ground.density",
+      "lab": 1,
+      "value": 1.52
+    },
+    {
+      "path": "vfx.ground.duration",
+      "lab": 0.55,
+      "value": 0.82
+    },
+    {
+      "path": "vfx.ground.intensity",
+      "lab": 1,
+      "value": 1.57
+    },
+    {
+      "path": "vfx.clash.intensity",
+      "lab": 1.3,
+      "value": 2.52
+    },
+    {
+      "path": "vfx.exhaust.glow",
+      "lab": 1,
+      "value": 0.65
+    },
+    {
+      "path": "vfx.regen.intensity",
+      "lab": 1,
+      "value": 2.23
+    },
+    {
+      "path": "vfx.rock.variant",
+      "lab": 0,
+      "value": 1
+    },
+    {
+      "path": "extras.bindings2.forward",
+      "lab": 33,
+      "value": 31
+    },
+    {
+      "path": "extras.bindings2.back",
+      "lab": 35,
+      "value": 28
+    },
+    {
+      "path": "extras.bindings2.left",
+      "lab": 34,
+      "value": 27
+    },
+    {
+      "path": "extras.bindings2.right",
+      "lab": 36,
+      "value": 29
+    },
+    {
+      "path": "display.hud.scale",
+      "lab": 1,
+      "value": 1.11
+    },
+    {
+      "path": "display.animation.fade",
+      "lab": 0.18,
+      "value": 0.19
+    },
+    {
+      "path": "display.animation.actionFade",
+      "lab": 0.07,
+      "value": 0.09
+    },
+    {
+      "path": "display.animation.locomotionHold",
+      "lab": 0.1,
+      "value": 0.08
+    },
+    {
+      "path": "display.animation.speed",
+      "lab": 1,
+      "value": 1.75
+    }
+  ],
+  "differencesFromGame": [
+    {
+      "path": "actions.dodge.duration",
+      "game": 0.4,
+      "lab": 0.5
+    },
+    {
+      "path": "actions.dodge.blend",
+      "game": 0.1,
+      "lab": 0.06
+    },
+    {
+      "path": "actions.tackle.duration",
+      "game": 0.4,
+      "lab": 1.352
+    },
+    {
+      "path": "actions.tackle.invulnerable",
+      "game": 0.2,
+      "lab": 0
+    },
+    {
+      "path": "actions.tackle.blend",
+      "game": 0.1,
+      "lab": 0.06
+    },
+    {
+      "path": "rules.recoil",
+      "game": 0.3,
+      "lab": 0.514
+    },
+    {
+      "path": "rules.blend",
+      "game": 0.1,
+      "lab": 0.43
+    },
+    {
+      "path": "rules.guardStun",
+      "game": 0.2,
+      "lab": 0.514
+    },
+    {
+      "path": "rules.staminaMax",
+      "game": 3,
+      "lab": 7.1
+    },
+    {
+      "path": "rules.regenTime",
+      "game": 5,
+      "lab": 1.25
+    },
+    {
+      "path": "profiles.balanced.speed",
+      "game": 4,
+      "lab": 4.19
+    },
+    {
+      "path": "profiles.agile.speed",
+      "game": 5,
+      "lab": 6
+    },
+    {
+      "path": "profiles.resistant.speed",
+      "game": 3.4,
+      "lab": 4.08
+    },
+    {
+      "path": "locomotion.acceleration",
+      "game": 60,
+      "lab": 40
+    },
+    {
+      "path": "locomotion.braking",
+      "game": 100,
+      "lab": 34
+    },
+    {
+      "path": "locomotion.reversal",
+      "game": 140,
+      "lab": 62
+    },
+    {
+      "path": "locomotion.turnRate",
+      "game": 12.566370614359172,
+      "lab": 18.84955592153876
+    },
+    {
+      "path": "locomotion.visualTurnRate",
+      "game": 15.707963267948966,
+      "lab": 21.991148575128552
+    },
+    {
+      "path": "camera.distanceResponse",
+      "game": 4,
+      "lab": 5
+    },
+    {
+      "path": "camera.yawResponse",
+      "game": 2.5,
+      "lab": 3
+    },
+    {
+      "path": "camera.maxTurnRate",
+      "game": 0.7853981633974483,
+      "lab": 1.208304866765305
+    },
+    {
+      "path": "camera.closeRange",
+      "game": 2.5,
+      "lab": 1.3
+    },
+    {
+      "path": "camera.maxDistance",
+      "game": 16,
+      "lab": 24
+    },
+    {
+      "path": "test.arenaHalf",
+      "game": 10,
+      "lab": 16
+    },
+    {
+      "path": "test.speed",
+      "game": 4,
+      "lab": 4.8
+    }
+  ],
+  "labOnlyParameters": 728,
+  "note": "Valores do laboratório. Nada é aplicado ao jogo automaticamente; use differencesFromGame para decidir o que levar ao config.ts.",
+  "homologation": {
+    "summary": {
+      "ok": 14,
+      "fail": 3,
+      "pending": 0,
+      "total": 17
+    },
+    "items": [
+      {
+        "id": "x8",
+        "title": "X nas 8 direções",
+        "status": "fail",
+        "note": "",
+        "at": "2026-10-15T10:57:38.206Z"
+      },
+      {
+        "id": "cNoDamage",
+        "title": "C nunca causa dano",
+        "status": "ok",
+        "note": "",
+        "at": "2026-10-15T10:57:22.609Z"
+      },
+      {
+        "id": "cxEarly",
+        "title": "C → X no início da esquiva",
+        "status": "fail",
+        "note": "Só deve ser possível realizar nos últimos segundos da esquiva, não no inicio",
+        "at": "2026-10-15T10:57:20.694Z"
+      },
+      {
+        "id": "cxAir",
+        "title": "C → X durante o salto",
+        "status": "fail",
+        "note": "",
+        "at": "2026-10-15T10:57:57.086Z"
+      },
+      {
+        "id": "cxInvuln",
+        "title": "C → X sem invulnerabilidade extra",
+        "status": "ok",
+        "note": "",
+        "at": "2026-10-15T10:58:01.201Z"
+      },
+      {
+        "id": "cxStamina",
+        "title": "C → X sem stamina",
+        "status": "ok",
+        "note": "",
+        "at": "2026-10-15T10:58:07.298Z"
+      },
+      {
+        "id": "cxVelocity",
+        "title": "Velocidade no C → X",
+        "status": "ok",
+        "note": "",
+        "at": "2026-10-15T10:58:12.348Z"
+      },
+      {
+        "id": "clash",
+        "title": "Clash frontal",
+        "status": "ok",
+        "note": "",
+        "at": "2026-10-15T10:58:17.027Z"
+      },
+      {
+        "id": "clashEdge",
+        "title": "Clash diagonal e perto da parede",
+        "status": "ok",
+        "note": "",
+        "at": "2026-10-15T10:58:20.477Z"
+      },
+      {
+        "id": "guard",
+        "title": "Defesa",
+        "status": "ok",
+        "note": "",
+        "at": "2026-10-15T10:58:24.056Z"
+      },
+      {
+        "id": "recoil",
+        "title": "Recuo",
+        "status": "ok",
+        "note": "",
+        "at": "2026-10-15T10:58:28.984Z"
+      },
+      {
+        "id": "guardStun",
+        "title": "X guardado no guard stun",
+        "status": "ok",
+        "note": "",
+        "at": "2026-10-15T10:58:33.153Z"
+      },
+      {
+        "id": "perfect",
+        "title": "Defesa perfeita e esquiva perfeita",
+        "status": "ok",
+        "note": "",
+        "at": "2026-10-15T10:58:35.963Z"
+      },
+      {
+        "id": "stamina",
+        "title": "Stamina",
+        "status": "ok",
+        "note": "",
+        "at": "2026-10-15T10:58:46.526Z"
+      },
+      {
+        "id": "buffer",
+        "title": "Buffer de entrada",
+        "status": "ok",
+        "note": "",
+        "at": "2026-10-15T10:58:53.524Z"
+      },
+      {
+        "id": "indicator",
+        "title": "Indicador da janela C → X",
+        "status": "ok",
+        "note": "",
+        "at": "2026-10-15T10:58:56.688Z"
+      },
+      {
+        "id": "feel",
+        "title": "Sensação geral de controle",
+        "status": "ok",
+        "note": "",
+        "at": "2026-10-15T10:59:05.283Z"
+      }
+    ]
+  }
+}

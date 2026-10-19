@@ -14,6 +14,13 @@ async function versionInfo() {
   const d = new Date(), pad = n => String(n).padStart(2, '0'), when = `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
   return {label: 'v' + pkg.version, detail: `Versão ${pkg.version} · compilado em ${when}${commit ? ' · commit ' + commit : ''}`};
 }
+/** Pacote de workspace embutido (inicial/workspace-inicial.zip) como texto base64 num script inerte; o laboratório o importa na primeira abertura. */
+async function initialWorkspaceTag() {
+  try {
+    const bytes = await readFile(new URL('inicial/workspace-inicial.zip', root));
+    return `<script type="application/octet-stream" id="initial-workspace" data-bytes="${bytes.length}">${bytes.toString('base64')}</script>`;
+  } catch {return '';}
+}
 const inline = js => js.replace(/<\/script/gi, '<\\/script');
 
 /** Laboratório de combate: um único HTML (Three.js + laboratório). */
@@ -24,7 +31,7 @@ export async function buildLab({minify = true} = {}) {
   const [template, css, license] = await Promise.all([read('src/template.html'), read('src/styles.css'), read('../../node_modules/three/LICENSE')]);
   // O aviso “modelo-fonte” só aparece se alguém abrir src/template.html diretamente; o build o remove.
   const version = await versionInfo();
-  return template.replace(/<!--DEV-->[\s\S]*?<!--\/DEV-->\n?/, '').replaceAll('__VERSION_DETAIL__', version.detail).replaceAll('__VERSION__', version.label).replace('/*__CSS__*/', () => css).replace('/*__BUNDLE__*/', () => inline('/*\n' + license + '\n*/' + bundle.outputFiles[0].text));
+  return template.replace(/<!--DEV-->[\s\S]*?<!--\/DEV-->\n?/, '').replaceAll('<!--INITIAL_WORKSPACE-->', await initialWorkspaceTag()).replaceAll('__VERSION_DETAIL__', version.detail).replaceAll('__VERSION__', version.label).replace('/*__CSS__*/', () => css).replace('/*__BUNDLE__*/', () => inline('/*\n' + license + '\n*/' + bundle.outputFiles[0].text));
 }
 /** Painel externo de relatórios: HTML único e offline que lê relatórios exportados (não acessa a partida). */
 export async function buildReportsPanel({minify = true} = {}) {

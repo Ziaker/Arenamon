@@ -24,7 +24,7 @@ import {emptyCommand} from './sim/entity.js';
 import {patchConfigTs, unifiedDiff, collectChanges} from './ui/gamepatch.js';
 import {OFFICIAL_MAP} from './ui/actions-meta.js';
 import {openStore} from './workspace/store.js';
-import {Workspace} from './workspace/workspace.js';
+import {Workspace, readPackage} from './workspace/workspace.js';
 import {createWorkspaceUI} from './ui/workspace-panel.js';
 import {createPresetsPanel} from './ui/presets-panel.js';
 import {createQuickPanel} from './ui/quick-panel.js';
@@ -937,6 +937,21 @@ function applyDocUi(doc) {
 }
 const collectApp = () => ({name: 'arenamon-combate-laboratorio', build: document.title, userAgent: navigator.userAgent});
 
+/** Primeira abertura (workspace novo neste navegador): importa o pacote inicial embutido na compilação (ver inicial/README.md). */
+async function applyInitialWorkspace(ws, wsUI) {
+  const tag = document.getElementById('initial-workspace'), q = new URLSearchParams(location.search).get('inicial');
+  if (!tag || q === 'nao' || (navigator.webdriver && q !== 'sim')) return false;   // navegador automatizado (testes) parte do estado vazio
+  if (!ws.fresh || ws.doc.extra?.initialWorkspace || ws.doc.slots.some(s => s.modelId) || Object.keys(ws.doc.models).length) return false;
+  try {
+    const bin = atob(tag.textContent.trim()), bytes = new Uint8Array(bin.length);for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    const pkg = await readPackage(bytes);if (pkg.error) throw new Error(pkg.error);
+    await wsUI.applyImport(pkg, {tuning: 'package', models: 'package', presets: 'both', ui: 'package', homologation: 'package'}, 'pacote inicial');
+    ws.doc.extra.initialWorkspace = 'v1';ws.touch();
+    ws.notes.push('Primeira abertura: workspace inicial importado (ajustes calibrados, personagens e animações).');
+    return true;
+  } catch (e) {console.warn('workspace inicial:', e);ws.notes.push('Workspace inicial não pôde ser importado: ' + e.message);return false;}
+}
+
 async function bootWorkspace() {
   const store = await openStore();let ls = null;try {ls = localStorage;} catch {ls = null;}
   const ws = await Workspace.open(store, {ls});wsRef.store = store;
@@ -947,10 +962,11 @@ async function bootWorkspace() {
     if (ws.doc.tuning?.values) ui.sessionRestored = sessionBanner(ws.doc.tuning.values, {auto: !!ws.doc.prefs.autoRestoreSession});
   });
   wsRef.ws = ws;wsRef.ui = wsUI;wsUI.bind();
+  const initialApplied = await applyInitialWorkspace(ws, wsUI);
   // Modelos: restauração automática por slot (o vermelho reaproveita o modelo do azul quando é o mesmo arquivo).
   const S = ws.doc.slots, restored = [];
   for (const slot of [0, 1]) {
-    const s = S[slot];if (!s.autoRestore || !s.active || !s.modelId) continue;
+    const s = S[slot];if (initialApplied || !s.autoRestore || !s.active || !s.modelId) continue;
     if (slot === 1 && S[0].modelId === s.modelId && ui.characters[0]?.source.assetId === s.modelId) {await wsUI.useSame();restored.push(slot);continue;}
     if ((await wsUI.reopen(slot, {auto: true})).ok) restored.push(slot);
   }
