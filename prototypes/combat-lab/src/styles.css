@@ -619,3 +619,13 @@ pre.diff{max-height:72px;padding:4px;font-size:9.5px;margin:2px 0}
 .tag-chips{display:flex;flex-wrap:wrap;gap:3px;margin-top:3px}.tag-chip{font-size:9.5px;padding:0 6px;border-radius:999px;background:#1f3a52;border:1px solid #6cb7ff55;color:#cfe8ff}
 .tag-pop{position:fixed;z-index:70;width:240px;display:flex;flex-direction:column;gap:6px;padding:8px;background:#101c29;border:1px solid #ffffff2a;border-radius:10px;box-shadow:0 10px 36px #000a;font-size:11.5px}
 .tag-pop-chips{display:flex;flex-wrap:wrap;gap:4px}.tag-pop-chips button{font-size:11px;min-height:22px;padding:1px 8px;border-radius:999px}.tag-pop-chips button[aria-pressed=true]{background:#1f3a52;border-color:#6cb7ff88;color:#fff}
+
+/* Barra superior enxuta: botões ON/OFF, menu Ferramentas e chips curtos */
+.top-actions #quick-open,.top-actions #shortcuts-open{min-width:32px;padding:4px 8px;font-size:14px}
+.top-actions button.onoff::after{content:'OFF';margin-left:6px;padding:0 5px;border-radius:999px;font-size:9.5px;font-weight:800;letter-spacing:.04em;background:#2a3846;color:#9fb3c4}
+.top-actions button.onoff[aria-checked=true]::after{content:'ON';background:#1d6b4b;color:#eafff4}
+.tools-pop{position:fixed;z-index:65;display:flex;flex-direction:column;gap:4px;padding:6px;min-width:170px;background:#101c29;border:1px solid #ffffff2a;border-radius:10px;box-shadow:0 10px 36px #000a}
+.tools-pop[hidden]{display:none}.tools-pop button{justify-content:flex-start;text-align:left}
+.chip.ws:not([data-state=error]):not([data-state=memory]) span{display:none}
+.chip.ws:not([data-state=error]):not([data-state=memory]){padding:4px 8px}
+.top-info .chip{flex:none}.top-info .chip.ai{flex:0 1 auto;min-width:60px}

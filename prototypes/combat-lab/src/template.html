@@ -30,18 +30,21 @@
   <div class="brand"><span class="logo">A</span><strong>ARENAMON <em>LAB</em></strong><small id="app-version" title="__VERSION_DETAIL__">Combate · __VERSION__</small></div>
   <div class="top-info"><span class="chip" id="phase" title="Fase da partida e estado do alvo"></span><span class="chip ai" id="ai-chip" title="Modo da IA do adversário"></span><span class="chip dirty" id="tune-state" data-state="clean" title="Ajustes alterados em relação ao último preset salvo ou JSON exportado"><i></i><span>Ajustes padrão</span></span><span class="chip ws" id="ws-chip" data-state="ok" title="Workspace persistente"><i></i><span>Workspace</span></span></div>
   <div class="top-actions">
-   <button type="button" id="quick-open" title="Buscar parâmetros em todas as abas (Ctrl+K ou /)">⌕ Buscar</button>
-   <button type="button" id="changed-open" data-n="0" title="Parâmetros diferentes do padrão do laboratório">≠ 0 alterados</button>
-   <button type="button" id="shortcuts-open" title="Lista de atalhos (?)">? Atalhos</button>
+   <button type="button" id="quick-open" aria-label="Buscar parâmetros" title="Buscar parâmetros em todas as abas (Ctrl+K ou /)">⌕</button>
+   <button type="button" id="changed-open" data-n="0" title="Parâmetros diferentes do padrão do laboratório">≠ 0</button>
+   <button type="button" id="shortcuts-open" aria-label="Atalhos" title="Lista de atalhos (?)">?</button>
    <button type="button" id="arena-zen-toggle" role="switch" aria-checked="false" title="Modo Arena (F2): tela cheia limpa para focar no combate">⚔ Modo Arena</button>
    <button type="button" id="pause" title="Pausar / continuar (Esc ou Espaço)">❚❚ Pausar</button>
    <button type="button" id="restart-top" title="Reiniciar a partida (R)">↺ Reiniciar</button>
-   <button type="button" id="arena-hitboxes-toggle" role="switch" aria-checked="false" title="Mostrar os colisores físicos (coloridos pelo estado) e as trajetórias de X/C">▧ Hitboxes</button>
-   <button type="button" id="arena-enemy-ai-toggle" role="switch" aria-checked="true" title="Liga/desliga a IA do oponente (desligada, o vermelho fica parado)">🧠 IA oponente</button>
-   <button type="button" id="arena-autoplay-toggle" role="switch" aria-checked="false" title="IA controla o jogador azul (IA × IA)">🤖 IA jogador</button>
-   <button type="button" id="camera-reset" title="Reposicionar a câmera atrás do jogador">◎ Câmera</button>
-   <button type="button" id="debug-toggle" title="Depuração (F3)">F3</button>
+   <button type="button" id="arena-enemy-ai-toggle" class="onoff" role="switch" aria-checked="true" title="Liga/desliga a IA do oponente (desligada, o vermelho fica parado)">🧠 IA oponente</button>
+   <button type="button" id="arena-autoplay-toggle" class="onoff" role="switch" aria-checked="false" title="IA controla o jogador azul (IA × IA)">🤖 IA jogador</button>
+   <button type="button" id="tools-toggle" aria-haspopup="true" aria-expanded="false" title="Hitboxes, câmera, depuração e som">⋯ Ferramentas</button>
+   <div id="tools-pop" class="tools-pop" role="menu" hidden>
+    <button type="button" id="arena-hitboxes-toggle" class="onoff" role="switch" aria-checked="false" title="Mostrar os colisores físicos (coloridos pelo estado) e as trajetórias de X/C (H)">▧ Hitboxes</button>
+    <button type="button" id="camera-reset" title="Reposicionar a câmera atrás do jogador">◎ Câmera</button>
+    <button type="button" id="debug-toggle" title="Depuração (F3)">F3 Depuração</button>
     <button type="button" id="audio-toggle" title="Ligar/desligar efeitos sonoros (M)">🔊 Som</button>
+   </div>
   </div>
  </header>
  <div class="body">

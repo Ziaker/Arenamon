@@ -15,8 +15,11 @@ export class Hud {
     $('menu').hidden = game.phase !== 'menu';$('overlay').hidden = game.phase !== 'result';
     $('overlay-title').textContent = game.winner === 0 ? 'Vitória no teste' : game.winner === 1 ? 'Derrota no teste' : 'Empate no teste';
     const phase = {playing: 'Em combate', finishing: 'Finalizando impacto', menu: 'Preparação', paused: 'Pausa', result: 'Resultado'}[game.phase] || game.phase;
-    $('phase').textContent = `${paused ? 'Pausado' : phase} · alvo ${locked ? 'fixado' : 'livre'}${playerAI ? ' · IA × IA' : ''}`;
-    $('ai-chip').textContent = 'Vermelho: ' + (AI_MODES.find(([id]) => id === game.mode)?.[1] || game.mode);
+    const phaseText = `${paused ? 'Pausado' : phase}${locked ? ' · alvo fixado' : ''}${playerAI ? ' · IA × IA' : ''}`, phaseFull = `${paused ? 'Pausado' : phase} · alvo ${locked ? 'fixado' : 'livre'}${playerAI ? ' · IA × IA' : ''}`;
+    if ($('phase').textContent !== phaseText) {$('phase').textContent = phaseText;$('phase').title = phaseFull;}
+    const modeFull = AI_MODES.find(([id]) => id === game.mode)?.[1] || game.mode, modeShort = ({tactical: 'Normal', offensive: 'Ataque constante', guard: 'Defesa constante', inactive: 'Parado'})[game.mode] || modeFull;
+    const aiText = C.extras.toggles.enableEnemyAI ? 'IA: ' + modeShort : 'IA: desligada';
+    if ($('ai-chip').textContent !== aiText) {$('ai-chip').textContent = aiText;$('ai-chip').title = C.extras.toggles.enableEnemyAI ? 'Modo da IA do adversário: ' + modeFull : 'IA do oponente desligada (botão 🧠)';}
     for (const f of game.fighters) {
       $(`hp${f.id}`).value = f.hp / f.attributes.hp;$(`stamina${f.id}`).value = f.stamina / C.rules.staminaMax;$(`stamina${f.id}`).classList.toggle("exhausted", !!f.exhausted);
       $(`state${f.id}`).textContent = `${Math.ceil(f.hp)} HP · ${STATE_NAMES[f.state] || f.state}${f.exhausted ? ' · Exausto' : ''}${f.counterWindow > 0 ? ' · Contra-ataque' : ''}`;

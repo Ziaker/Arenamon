@@ -280,7 +280,8 @@ const movement = createMovementPanel({$, game, ui, presets, tuning, download: (.
 function syncTuneState() {
   const dirty = tuning.dirty(), chip = $('tune-state'), isDefault = tuning.manifest.every(m => !tuning.changed(m));
   chip.dataset.state = dirty ? 'dirty' : isDefault ? 'clean' : 'saved';
-  chip.querySelector('span').textContent = dirty ? 'Ajustes não exportados' : isDefault ? 'Ajustes padrão' : `Ajustes salvos (${tuning.savedLabel})`;
+  chip.querySelector('span').textContent = dirty ? 'Ajustes não exportados' : isDefault ? 'Ajustes padrão' : 'Ajustes salvos';
+  chip.title = dirty ? 'Ajustes alterados desde o último preset salvo ou JSON exportado' : isDefault ? 'Todos os ajustes estão nos padrões do laboratório' : `Ajustes salvos (${tuning.savedLabel})`;
   const values = tuning.snapshotValues();
   // Cópia no formato v7 (compatibilidade): só depois de o workspace ler a sessão anterior, para não sobrescrevê-la ao abrir.
   if (wsRef.ws) try {localStorage.setItem('arenamon-lab-session-v7', JSON.stringify(values));} catch {}
@@ -444,6 +445,11 @@ function syncButtons() {
 }
 $('arena-zen-toggle').onclick = () => toggleZenMode();
 $('arena-hitboxes-toggle').onclick = () => {const v = C.extras.toggles.showHitboxes ? 0 : 1;tuning.commit([['extras.toggles.showHitboxes', v], ['extras.toggles.showAttackVectors', v]], 'Hitboxes');canvas.focus();};
+const toolsPop = $('tools-pop'), toolsBtn = $('tools-toggle');
+function closeTools() {if (toolsPop.hidden) return;toolsPop.hidden = true;toolsBtn.setAttribute('aria-expanded', 'false');}
+toolsBtn.onclick = e => {e.stopPropagation();if (!toolsPop.hidden) {closeTools();return;}toolsPop.hidden = false;toolsBtn.setAttribute('aria-expanded', 'true');const r = toolsBtn.getBoundingClientRect(), w = toolsPop.getBoundingClientRect().width;toolsPop.style.top = (r.bottom + 6) + 'px';toolsPop.style.left = Math.max(8, Math.min(innerWidth - w - 8, r.right - w)) + 'px';};
+document.addEventListener('pointerdown', e => {if (!toolsPop.hidden && !toolsPop.contains(e.target) && e.target !== toolsBtn) closeTools();});
+window.addEventListener('keydown', e => {if (e.key === 'Escape' && !toolsPop.hidden) {e.preventDefault();e.stopImmediatePropagation();closeTools();}}, true);
 $('arena-enemy-ai-toggle').onclick = () => {tuning.commit([['extras.toggles.enableEnemyAI', C.extras.toggles.enableEnemyAI ? 0 : 1]], 'IA do oponente');game.brain.reset();syncButtons();canvas.focus();};
 $('arena-autoplay-toggle').onclick = () => {tuning.commit([['extras.toggles.enablePlayerAI', C.extras.toggles.enablePlayerAI ? 0 : 1]], 'IA do jogador');game.playerBrain.reset();input.clear();canvas.focus();};
 $('pause').onclick = () => togglePause();$('restart-top').onclick = startMatch;$('restart').onclick = startMatch;$('start').onclick = startMatch;$('start-center').onclick = onQuickStart;

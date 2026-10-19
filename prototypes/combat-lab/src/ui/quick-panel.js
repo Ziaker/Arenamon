@@ -88,7 +88,7 @@ export function createQuickPanel({$, tuning, presets, onOpen = () => {}}) {
   }
   function updateCount() {
     const n = changedList().length, b = $('changed-open');
-    if (b) {b.textContent = `≠ ${n} alterado${n === 1 ? '' : 's'}`;b.dataset.n = String(n);b.title = n ? 'Parâmetros diferentes do padrão do laboratório: ver e restaurar' : 'Nada alterado em relação ao padrão do laboratório';}
+    if (b) {b.textContent = `≠ ${n}`;b.dataset.n = String(n);b.title = n ? `${n} parâmetro${n === 1 ? '' : 's'} diferente${n === 1 ? '' : 's'} do padrão do laboratório: ver e restaurar` : 'Nada alterado em relação ao padrão do laboratório';b.setAttribute('aria-label', b.title);}
     const tab = root.querySelector('[data-qmode=changed]');if (tab) tab.textContent = `Alterados · ${n}`;
   }
   function show(next, query = '') {
