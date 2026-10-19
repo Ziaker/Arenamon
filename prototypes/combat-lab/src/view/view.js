@@ -316,12 +316,18 @@ export class View {
       this.camera.lookAt(cinePose.lookAt.x + sh.x * .5, cinePose.lookHeight + sh.y * .5, cinePose.lookAt.z + sh.z * .5);
       this.camera.rotateZ(sh.roll + (cinePose.roll || 0));
     }
-    // Atualiza overlays de apresentação (speedlines projetadas com a matriz final da câmera)
-    this.cinematic?.renderOverlays?.(this.camera);
     const w = this.canvas.clientWidth, h = this.canvas.clientHeight;
     if (w > 0 && h > 0) {
-      this.renderer.setSize(w, h, false);this.camera.aspect = w / h;this.camera.updateProjectionMatrix();
+      this.renderer.setSize(w, h, false);
+      this.camera.aspect = w / h;
+      this.camera.updateProjectionMatrix();
+    }
+    // Garante que a matriz de mundo e projeção da câmera estejam 100% atualizadas antes de projetar speedlines
+    this.camera.updateMatrixWorld(true);
+    // Atualiza overlays de apresentação (speedlines projetadas com a matriz final da câmera)
+    this.cinematic?.renderOverlays?.(this.camera);
 
+    if (w > 0 && h > 0) {
       // C08 — Impact Frame com Silhueta Real em WebGL (personagens brancos sobre fundo preto puro)
       const impactPhase = this.cinematic?.getImpactFramePhase?.();
       let origBg = null;
@@ -352,14 +358,16 @@ export class View {
         }
       }
 
-      // Tempo de CPU do envio ao WebGL (não é tempo de GPU); o tempo de GPU, quando há suporte, vem da consulta de tempo.
-      this.gpuTimer?.begin();t0 = now();this.renderer.render(this.scene, this.camera);tm.render = now() - t0;this.gpuTimer?.end();
-
-      // Restaura cena ao normal imediatamente após a renderização do quadro
-      if (impactPhase === 'white' || impactPhase === 'invert') {
-        this.scene.background = origBg;
-        for (const el of hiddenElements) el.visible = true;
-        for (const {mesh, origMat} of swappedMeshes) mesh.material = origMat;
+      try {
+        // Tempo de CPU do envio ao WebGL (não é tempo de GPU); o tempo de GPU, quando há suporte, vem da consulta de tempo.
+        this.gpuTimer?.begin();t0 = now();this.renderer.render(this.scene, this.camera);tm.render = now() - t0;this.gpuTimer?.end();
+      } finally {
+        // Restaura cena ao normal imediatamente após a renderização do quadro mesmo se houver erro
+        if (impactPhase === 'white' || impactPhase === 'invert') {
+          this.scene.background = origBg;
+          for (const el of hiddenElements) el.visible = true;
+          for (const {mesh, origMat} of swappedMeshes) mesh.material = origMat;
+        }
       }
     }
   }

@@ -727,8 +727,12 @@ pre.diff{max-height:72px;padding:4px;font-size:9.5px;margin:2px 0}
 .loader-sub{font-size:11.5px;color:#8fa6bb}
 
 /* ---------- Câmera Cinemática & Efeitos Visuais ZZZ ---------- */
-.cine-letterbox{position:absolute;inset:0;pointer-events:none;z-index:40;display:flex;flex-direction:column;justify-content:space-between;transition:opacity .15s ease}
-.cine-bar{width:100%;background:#000;height:0%;transition:height .15s cubic-bezier(.2,0,0,1)}
+.cine-letterbox{position:absolute;inset:0;pointer-events:none;z-index:40;transition:opacity .15s ease}
+.cine-bar{background:#000}
+.cine-bar-top{position:absolute;top:0;left:0;right:0;width:100%;height:0%;transition:height .15s cubic-bezier(.2,0,0,1)}
+.cine-bar-bottom{position:absolute;bottom:0;left:0;right:0;width:100%;height:0%;transition:height .15s cubic-bezier(.2,0,0,1)}
+.cine-bar-left{position:absolute;top:0;bottom:0;left:0;width:0%;height:100%;transition:width .15s cubic-bezier(.2,0,0,1)}
+.cine-bar-right{position:absolute;top:0;bottom:0;right:0;width:0%;height:100%;transition:width .15s cubic-bezier(.2,0,0,1)}
 .cine-impact-frame{position:absolute;inset:0;pointer-events:none;z-index:42;opacity:0;transition:opacity .02s linear}
 .cine-speedlines{position:absolute;inset:0;pointer-events:none;z-index:43;width:100%;height:100%}
 

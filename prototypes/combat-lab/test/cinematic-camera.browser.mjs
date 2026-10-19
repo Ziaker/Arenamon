@@ -146,6 +146,63 @@ try {
   });
   check('Partida executa com fluidez com câmera cinematográfica ativa (estabilidade e FPS)', matchStable);
 
+  // 12. Validação profunda de C08 — Materiais WebGL de silhueta e restauração completa
+  const c08Robustness = await page.evaluate(() => {
+    const lab = window.__lab;
+    const view = lab.view;
+    const cine = lab.cinematic;
+
+    // Verificar materiais de silhueta dedicados
+    const hasSilMats = !!(view.silhouetteWhiteMat && view.silhouetteBlackMat);
+    const origFloorVis = view.floor.visible;
+
+    // Forçar disparo de silhueta branca
+    cine.triggerImpactFrame({whiteDur: 0.5, invertDur: 0.5, strength: 1.0});
+    const phaseWhite = cine.getImpactFramePhase() === 'white';
+
+    // Executa frame de renderização
+    view.draw(lab.game.fighters, [], 0.016);
+
+    // Após o frame, a cena DEVE estar restaurada pelo bloco finally
+    const floorRestored = view.floor.visible === origFloorVis;
+    const bgRestored = !!view.scene.background;
+
+    // Resetar
+    cine.reset();
+    const phaseAfterReset = cine.getImpactFramePhase() === null;
+
+    return {hasSilMats, phaseWhite, floorRestored, bgRestored, phaseAfterReset};
+  });
+  check('C08 WebGL: Materiais de silhueta branca/preta existem no renderer', c08Robustness.hasSilMats);
+  check('C08 WebGL: Fase de silhueta é reconhecida durante o impacto', c08Robustness.phaseWhite);
+  check('C08 WebGL: Cenário e fundo são restaurados após o quadro (proteção try/finally)', c08Robustness.floorRestored && c08Robustness.bgRestored);
+  check('C08 WebGL: Reset cancela fase de silhueta imediatamente', c08Robustness.phaseAfterReset);
+
+  // 13. Validação do Letterbox Cinema 2.39:1 com pillarbox em viewport ultrawide
+  await page.setViewportSize({width: 3440, height: 1080}); // 3.185:1 aspect ratio (> 2.39)
+  await page.evaluate(() => {
+    const cine = window.__lab.cinematic;
+    cine.config.enabled = true;
+    cine.config.letterbox.enabled = true;
+    cine.config.letterbox.mode = 'cinema';
+    cine.triggerLetterbox({duration: 1.0, mode: 'cinema'});
+    cine.clock += 0.5; // meio do ciclo (seno máximo)
+    cine.renderOverlays();
+  });
+  await page.waitForTimeout(50);
+  const ultrawideBars = await page.evaluate(() => {
+    const lb = document.getElementById('cine-letterbox');
+    const left = lb?.querySelector('.cine-bar-left');
+    const right = lb?.querySelector('.cine-bar-right');
+    const top = lb?.querySelector('.cine-bar-top');
+    const wLeft = parseFloat(left?.style.width || '0');
+    const wRight = parseFloat(right?.style.width || '0');
+    const hTop = parseFloat(top?.style.height || '0');
+    return {wLeft, wRight, hTop};
+  });
+  check('C10 Letterbox: Em ultrawide 3.18:1, barras laterais (pillarbox) são aplicadas (> 0%)', ultrawideBars.wLeft > 0 && ultrawideBars.wRight > 0);
+  check('C10 Letterbox: Em ultrawide 3.18:1, barras verticais ficam zeradas (0%)', ultrawideBars.hTop === 0);
+
   check('Nenhum erro de script ou exceção durante a execução', errors.length === 0, errors.join('; '));
 
 } finally {

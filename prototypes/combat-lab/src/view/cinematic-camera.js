@@ -103,7 +103,7 @@ export class CinematicCamera {
       this.letterboxEl = document.createElement('div');
       this.letterboxEl.id = 'cine-letterbox';
       this.letterboxEl.className = 'cine-letterbox';
-      this.letterboxEl.innerHTML = '<div class="cine-bar cine-bar-top"></div><div class="cine-bar cine-bar-bottom"></div>';
+      this.letterboxEl.innerHTML = '<div class="cine-bar cine-bar-top"></div><div class="cine-bar cine-bar-bottom"></div><div class="cine-bar cine-bar-left"></div><div class="cine-bar cine-bar-right"></div>';
       root.appendChild(this.letterboxEl);
     }
 
@@ -162,6 +162,7 @@ export class CinematicCamera {
     this.impactState = null;
     this.speedlineState = null;
     this.letterboxState = null;
+    this.slowMoState = null;
     this.koState = null;
     this.koConsumed = false;
     this.initialized = false;
@@ -780,13 +781,22 @@ export class CinematicCamera {
   renderOverlays(camera = null) {
     if (typeof document === 'undefined') return;
 
-    // A. Letterbox (suporta proporção precisa de Cinema 2.39:1 baseada na geometria da tela sem clamps artificiais)
+    // A. Letterbox (suporta proporção precisa de Cinema 2.39:1 baseada na geometria da tela sem clamps artificiais, com pillarbox em ultrawide > 2.39:1)
     if (this.letterboxEl) {
+      const topBar = this.letterboxEl.querySelector('.cine-bar-top');
+      const botBar = this.letterboxEl.querySelector('.cine-bar-bottom');
+      const leftBar = this.letterboxEl.querySelector('.cine-bar-left');
+      const rightBar = this.letterboxEl.querySelector('.cine-bar-right');
+
       if (this.config.enabled && this.letterboxState) {
         const elapsed = this.clock - this.letterboxState.startedAt;
         if (elapsed >= this.letterboxState.duration) {
           this.letterboxState = null;
           this.letterboxEl.style.opacity = '0';
+          if (topBar) topBar.style.height = '0%';
+          if (botBar) botBar.style.height = '0%';
+          if (leftBar) leftBar.style.width = '0%';
+          if (rightBar) rightBar.style.width = '0%';
         } else {
           const k = elapsed / Math.max(1e-4, this.letterboxState.duration);
           const env = Math.sin(k * Math.PI);
@@ -797,17 +807,29 @@ export class CinematicCamera {
             const currentAspect = w / Math.max(1, h);
             if (currentAspect < 2.39) {
               const targetHeight = w / 2.39;
-              pct = ((h - targetHeight) / (2 * h)) * 100;
+              const pctY = ((h - targetHeight) / (2 * h)) * 100;
+              const curH = pctY * env;
+              if (topBar) topBar.style.height = `${curH}%`;
+              if (botBar) botBar.style.height = `${curH}%`;
+              if (leftBar) leftBar.style.width = '0%';
+              if (rightBar) rightBar.style.width = '0%';
             } else {
-              pct = 0;
+              const targetWidth = h * 2.39;
+              const pctX = ((w - targetWidth) / (2 * w)) * 100;
+              const curW = pctX * env;
+              if (leftBar) leftBar.style.width = `${curW}%`;
+              if (rightBar) rightBar.style.width = `${curW}%`;
+              if (topBar) topBar.style.height = '0%';
+              if (botBar) botBar.style.height = '0%';
             }
+          } else {
+            const curH = pct * env;
+            if (topBar) topBar.style.height = `${curH}%`;
+            if (botBar) botBar.style.height = `${curH}%`;
+            if (leftBar) leftBar.style.width = '0%';
+            if (rightBar) rightBar.style.width = '0%';
           }
           this.letterboxEl.style.opacity = '1';
-          const topBar = this.letterboxEl.querySelector('.cine-bar-top');
-          const botBar = this.letterboxEl.querySelector('.cine-bar-bottom');
-          const curH = pct * env;
-          if (topBar) topBar.style.height = `${curH}%`;
-          if (botBar) botBar.style.height = `${curH}%`;
         }
       } else {
         this.letterboxEl.style.opacity = '0';

@@ -78,11 +78,22 @@ O usuário possui controle total sobre a câmera cinemática diretamente na inte
 
 Suíte de testes dedicada:
 
-- **Teste Unitário (21 verificações):**
+- **Teste Unitário (31 verificações):**
   ```bash
   node prototypes/combat-lab/test/cinematic-camera.test.mjs
   ```
-- **Teste no Navegador (14 verificações em Playwright Chromium/Edge):**
+- **Teste no Navegador (20 verificações em Playwright Chromium/Edge):**
   ```bash
   node prototypes/combat-lab/test/cinematic-camera.browser.mjs
   ```
+
+---
+
+## 7. Histórico de Correções e Auditorias Independentes
+
+### Rodada 3 de Correções:
+1. **P1 — Reset completo de Bullet Time:** `clearAll()` e `reset()` agora limpam explicitamente `this.slowMoState = null;`, garantindo restauração instantânea de `getVisualTimeScale() === 1.0` ao desativar ou reiniciar a partida.
+2. **P1 — Projeção de Speedlines em Matriz Atualizada:** A atualização de `camera.aspect`, `camera.updateProjectionMatrix()` e `camera.updateMatrixWorld(true)` foi reordenada para ocorrer *antes* de `cinematic.renderOverlays(this.camera)`, garantindo precisão subpixel na projeção 3D-para-tela.
+3. **P1 — Silhuetas WebGL Protegidas por `try / finally`:** O swap de materiais dos lutadores (`silhouetteWhiteMat` / `silhouetteBlackMat`) e a ocultação do piso/cenário foram envolvidos em bloco `try ... finally` no `view.js`, blindando contra qualquer estado residual mesmo se ocorrer exceção.
+4. **P2 — Pillarbox 2.39:1 em Monitores Ultrawide:** O Letterbox em modo cinema calcula proporção real em qualquer tela e adiciona barras verticais laterais (`.cine-bar-left`, `.cine-bar-right`) em monitores ultrawide (> 2.39:1), preservando a proporção de cinema 2.39:1 sem distorção.
+5. **Sincronização de Branch:** Todos os 47 commits mais recentes da `main` (incluindo documentação e passivas) foram incorporados via merge limpo.

@@ -21,30 +21,37 @@ function test(name, fn) {
 // Mock DOM container para testes sem navegador completo
 function createMockDom() {
   const elements = {};
-  const createMockElement = (id) => ({
-    id,
-    style: {},
-    className: '',
-    hidden: false,
-    setAttribute: () => {},
-    getAttribute: () => null,
-    appendChild: (c) => c,
-    querySelector: () => null,
-    querySelectorAll: () => [],
-    getContext: () => ({
-      clearRect: () => {},
-      beginPath: () => {},
-      moveTo: () => {},
-      lineTo: () => {},
-      stroke: () => {},
-      save: () => {},
-      restore: () => {},
-      strokeStyle: '',
-      lineWidth: 1
-    }),
-    width: 800,
-    height: 600
-  });
+  const createMockElement = (id) => {
+    const children = {};
+    return {
+      id,
+      style: {},
+      className: '',
+      hidden: false,
+      innerHTML: '',
+      setAttribute: () => {},
+      getAttribute: () => null,
+      appendChild: (c) => c,
+      querySelector: (sel) => {
+        children[sel] ??= createMockElement(sel);
+        return children[sel];
+      },
+      querySelectorAll: () => [],
+      getContext: () => ({
+        clearRect: () => {},
+        beginPath: () => {},
+        moveTo: () => {},
+        lineTo: () => {},
+        stroke: () => {},
+        save: () => {},
+        restore: () => {},
+        strokeStyle: '',
+        lineWidth: 1
+      }),
+      width: 800,
+      height: 600
+    };
+  };
 
   return {
     querySelector: (sel) => {
@@ -519,6 +526,66 @@ test('P1: FOV da carga do Tackle atinge 100% de compressão apenas no chargeTack
   ];
   cine.apply(basePose, mockFightersFull, [], 0.016);
   assert.equal(cine.target.fovOffset, -cine.config.chargeFov.maxCompression, 'Em 1.2s o FOV deve atingir compressão máxima exata');
+});
+
+test('P1: clearAll() e reset() limpam slowMoState e restauram getVisualTimeScale() para 1.0', () => {
+  const mockDom = createMockDom();
+  const cine = new CinematicCamera(null, {overlayContainer: mockDom});
+  cine.config.enabled = true;
+
+  // Dispara bullet time
+  cine.triggerVisualSlowmo({scale: 0.15, duration: 0.5});
+  assert.ok(cine.slowMoState !== null, 'slowMoState deve estar ativo');
+  assert.equal(cine.getVisualTimeScale(), 0.15, 'Time scale deve refletir a câmera lenta');
+
+  // Executa clearAll()
+  cine.clearAll();
+  assert.equal(cine.slowMoState, null, 'clearAll deve anular slowMoState');
+  assert.equal(cine.getVisualTimeScale(), 1.0, 'getVisualTimeScale deve retornar 1.0 imediatamente após clearAll');
+
+  // Dispara novamente e testa reset()
+  cine.config.enabled = true;
+  cine.triggerVisualSlowmo({scale: 0.2, duration: 0.4});
+  assert.ok(cine.slowMoState !== null);
+  cine.reset();
+  assert.equal(cine.slowMoState, null, 'reset deve anular slowMoState');
+  assert.equal(cine.getVisualTimeScale(), 1.0, 'getVisualTimeScale deve retornar 1.0 imediatamente após reset');
+});
+
+test('P2: Letterbox C10 no modo cinema aplica pillarbox (.cine-bar-left, .cine-bar-right) em resoluções ultrawide (> 2.39:1)', () => {
+  const origDoc = globalThis.document;
+  const origWin = globalThis.window;
+  const mockDom = createMockDom();
+  mockDom.getElementById = (id) => null;
+  globalThis.document = mockDom;
+  globalThis.window = {innerWidth: 3840, innerHeight: 1080};
+
+  try {
+    // Simula canvas ultrawide 32:9 (ex: 3840 x 1080 -> aspect = 3.55 > 2.39)
+    const mockCanvas = {clientWidth: 3840, clientHeight: 1080};
+    const cine = new CinematicCamera(mockCanvas, {overlayContainer: mockDom});
+    cine.config.enabled = true;
+    cine.config.letterbox.enabled = true;
+    cine.config.letterbox.mode = 'cinema';
+
+    cine.triggerLetterbox({duration: 0.5, mode: 'cinema'});
+    // Avança meio ciclo (env ~ 1.0 no ponto médio)
+    cine.clock += 0.25;
+    cine.renderOverlays();
+
+    const leftBar = cine.letterboxEl?.querySelector('.cine-bar-left');
+    const rightBar = cine.letterboxEl?.querySelector('.cine-bar-right');
+    const topBar = cine.letterboxEl?.querySelector('.cine-bar-top');
+    const botBar = cine.letterboxEl?.querySelector('.cine-bar-bottom');
+
+    assert.ok(leftBar && rightBar, 'Elementos das barras laterais devem existir');
+    assert.equal(topBar.style.height, '0%', 'Barras superior e inferior não devem cobrir ultrawide');
+    assert.ok(parseFloat(leftBar.style.width) > 0, 'Barra lateral esquerda deve ter largura positiva no ultrawide');
+    assert.ok(parseFloat(rightBar.style.width) > 0, 'Barra lateral direita deve ter largura positiva no ultrawide');
+  } finally {
+    globalThis.document = origDoc;
+    globalThis.window = origWin;
+  }
 });
 
 // Execução assíncrona sequencial de todos os testes
