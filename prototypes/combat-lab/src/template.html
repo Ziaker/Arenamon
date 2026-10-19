@@ -175,6 +175,12 @@
           <button type="button" id="tune-undo" disabled title="Desfazer ajuste (Ctrl+Z)">↶</button><button type="button" id="tune-redo" disabled title="Refazer ajuste (Ctrl+Y)">↷</button><span id="tune-counter" class="muted"></span>
          </div>
         </div>
+        <div class="row tune-org">
+         <div class="seg" role="group" aria-label="Organização"><button type="button" data-tview="type" aria-pressed="true" title="Agrupado por tipo de dado (regras, ações, visual…)">Por tipo</button><button type="button" data-tview="mech" aria-pressed="false" title="Agrupado por mecânica: tudo que afeta o Tackle, a Esquiva, a Defesa…">Por mecânica</button></div>
+         <label class="field inline">Nível <select id="tune-level" aria-label="Nível dos parâmetros" title="Básico: o essencial. Avançado: inclui ajustes finos. Tudo: inclui os técnicos. Busca, “alterados” e etiquetas sempre mostram tudo."><option value="basic">Básico</option><option value="advanced">+ Avançado</option><option value="technical">Tudo</option></select></label>
+         <select id="tune-tag" aria-label="Filtrar por etiqueta"></select>
+         <button type="button" id="tune-tag-export" disabled>↓ Exportar marcados (0)</button>
+        </div>
         <div class="tabs" id="tune-tabs" role="tablist"></div>
         <div id="tune-list"></div>
        </div>

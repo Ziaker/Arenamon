@@ -214,3 +214,10 @@ Os padrões são diferentes: o vermelho reage mais devagar e hesita mais; o azul
 ## Busca rápida (Ctrl+K ou `/`)
 
 Paleta global na barra superior (**⌕ Buscar**, **≠ N alterados**, **? Atalhos**): busca em todos os parâmetros de qualquer aba e permite editá-los ali mesmo (entram no desfazer/refazer), lista os alterados em relação ao padrão com restauração individual ou geral, aplica presets e mostra os atalhos (`?`). Esc fecha só a paleta, sem pausar a partida.
+
+## Organização dos parâmetros (Ajustes › Todos os parâmetros)
+
+- **Por tipo / Por mecânica:** a visão por mecânica reúne tudo que afeta o Tackle, a Esquiva, o Sprint, a Defesa, a Stamina, o empurrão, o Clash, a IA etc., inclusive os efeitos visuais e o tremor de cada uma. Um parâmetro pode aparecer em mais de uma mecânica.
+- **Nível:** Básico (padrão), + Avançado ou Tudo. Busca, filtro "alterados" e etiquetas sempre mostram tudo; o contador informa quantos estão ocultos pelo nível.
+- **Valores derivados:** linhas "→" abaixo de alguns sliders mostram o efeito real (distância e velocidade do X/C, usos de stamina, tempo de recarga, ms e quadros) e se atualizam ao arrastar.
+- **Etiquetas:** o botão 🏷 de cada parâmetro aplica etiquetas ("em teste", "calibrar depois", "não mexer" ou as suas), filtráveis; **↓ Exportar marcados** baixa um JSON só com eles, importável pela aba Exportar. As etiquetas ficam salvas neste navegador.
