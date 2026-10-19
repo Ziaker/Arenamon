@@ -86,11 +86,19 @@ O sistema admite tipos diferentes de passivas, conforme a definição individual
 - A decisão **não revoga limites já existentes**, nem aprova mudanças em velocidade, defesa, dano, recuperação, cooldowns ou qualquer outra mecânica específica.
 - **Continuam pendentes** regras de arredondamento, tratamento de unidades diferentes, efeitos incompatíveis e casos especiais não resolvidos pelas restrições preexistentes. Não introduzir implicitamente novos limites para esses casos.
 
+## Rodada 11 — Precisão e arredondamento dos atributos (opção A aprovada)
+
+- **Manter integralmente a precisão dos valores fracionários nos cálculos dos atributos modificados.** Não arredondar ou truncar automaticamente o valor resultante em cada etapa de cálculo ou ao combinar modificadores.
+- **O arredondamento só ocorre quando uma mecânica específica ou a apresentação exigir valor inteiro**, respeitando a regra própria dessa mecânica ou apresentação. Esta decisão não cria método universal de arredondamento.
+- A regra vale para o resultado dos modificadores percentuais e absolutos definidos nas Rodadas 7–9 e não introduz novos limites, conforme a Rodada 10.
+- **Exemplo ilustrativo:** atributo-base 87 com modificador de +15% produz **100,05**; esse valor fracionário é preservado para cálculos subsequentes até que uma operação concreta exija representação inteira.
+- **Continuam pendentes:** regras de arredondamento específicas para cada situação que exija inteiro, aspectos de representação numérica da implementação e tratamento de unidades/efeitos incompatíveis. Não alterar o funcionamento já aprovado de mecânicas particulares.
+
 ## Pontos pendentes — não aprovados
 
 - Identidade, números, magnitude, duração, gatilhos e cooldowns de cada passiva.
 - Prioridades, ordem de aplicação e conflitos entre efeitos incompatíveis das duas passivas equipadas.
-- Unidades e conversão para efeitos de natureza diversa, arredondamentos, interações entre modificadores incompatíveis e tratamento de casos especiais não cobertos por restrições preexistentes.
+- Unidades e conversão para efeitos de natureza diversa, regras de arredondamento específicas quando exigido inteiro, interações entre modificadores incompatíveis e tratamento de casos especiais não cobertos por restrições preexistentes.
 - Comportamento das passivas em KO, respawn, pausas, hitstop e demais estados; a definição é individual, mas as regras concretas ainda não foram aprovadas.
 - Interface de seleção, apresentação visual e implementação técnica.
 
