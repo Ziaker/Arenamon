@@ -236,7 +236,7 @@ export function createMovesPanel({$, game, download, tuning, view, ui}) {
       const info = MOVE_INFO[mid], owners = [[0, l0], [1, l1]].filter(([, l]) => l.includes(mid)).map(([w, l]) => `${w ? 'Vermelho' : 'Azul'}: slot ${l.indexOf(mid) + 1}${w ? '' : ` · botão ${escape(keyName(C.extras.keyCodes[C.extras.bindings[SKILL_NAMES[l.indexOf(mid)]]]))}`}`).join(' · ');
       const anims = [0, 1].filter(w => (w ? l1 : l0).includes(mid)).map(w => animCard(mid, w)).join('');
       return `<section class="mv-move" data-move="${mid}"><header><h3>✦ ${escape(moveLabel(mid))}</h3><small class="muted">${owners}</small></header>
-        ${info?.hint ? `<p class="hint">${escape(info.hint)}</p>` : ''}${anims}${info ? paramGroup(info.group, true) : '<p class="hint">Este move ainda não tem parâmetros ajustáveis nesta tela.</p>'}</section>`;
+        ${info?.hint ? `<p class="hint">${escape(info.hint)}</p>` : ''}${anims}${info ? paramGroup(info.group) : '<p class="hint">Este move ainda não tem parâmetros ajustáveis nesta tela.</p>'}</section>`;
     }).join('');
     const shared = eqIds.length ? `<section class="mv-move" data-move="_charge"><header><h3>⚙ Carga (todos os moves equipados)</h3></header>${paramGroup('Carga (compartilhada)')}${l1.some(Boolean) ? paramGroup('IA com Moves (decisões do adversário)') : ''}</section>` : '';
     root.innerHTML = `

@@ -79,7 +79,7 @@ const vaulting = (over = {}) => {
   ok('slam que erra deixa o atacante em recuperação longa; toggle desligado mantém o comportamento antigo');
 }
 {
-  const g = arena({blue: vec(0, -2), red: vec(0, 6)});const f = g.fighters[0];launch(f, vec(1, 0), 4, 6);step(g, cmd());
+  const g = arena({blue: vec(0, -2), red: vec(0, 6)});C.extras.toggles.enableFlightSlam = 1;const f = g.fighters[0];launch(f, vec(1, 0), 4, 6);step(g, cmd());
   const y = f.flight.y;assert.ok(y > 0);const s0 = f.stamina;
   step(g, cmd({tackle: true, move: vec(0, 1), dodgeDirection: vec(0, 1)}));
   assert.ok(!f.flight && f.action?.slam, 'X de quem foi lançado: sai do voo e mergulha');assert.ok(f.vaultHeight > 0 && Math.abs(f.vaultHeight - y) < .5, `na altura em que estava (${f.vaultHeight.toFixed(2)} ≈ ${y.toFixed(2)})`);

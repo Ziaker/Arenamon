@@ -120,7 +120,7 @@ export function resolveHit(attacker, defender, normal, relative) {
     // Meteor slam: o rival é lançado para CIMA com groundBounceForce (ground bounce) e com pouco empurrão horizontal.
     const slam = !!attacker.action.slam, up = slam ? R.groundBounceForce : R.launchUp * stat(defender, 'knockbackTaken', 1), hSpeed = launchSpeed * (slam ? R.slamLaunchHorizontal : 1);
     defender.lastAttacker = attacker.id;
-    if (T.enableLaunch) {const dir = length(departure) > 1e-7 ? departure : normal;launch(defender, dir, hSpeed, up);launchInfo = {direction: normalize(dir), horizontal: hSpeed, vertical: up, ...(slam ? {bounce: true} : {})};}
+    if (T.enableLaunch) {const dir = slam ? direction(attacker.facing) : length(departure) > 1e-7 ? departure : normal;launch(defender, dir, hSpeed, up);launchInfo = {direction: normalize(dir), horizontal: hSpeed, vertical: up, ...(slam ? {bounce: true} : {})};}
     else {defender.action = null;defender.knockRecovery = R.landingRecovery;}
   }
   if (defender.hp === 0) {defender.guard = false;defender.guardSuppressed = true;}

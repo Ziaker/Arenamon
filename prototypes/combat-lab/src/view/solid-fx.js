@@ -195,7 +195,7 @@ export class SolidFx {
         if (e.result === 'chargeRelease' && e.move === 'reflect') { this.onReflect(e, world); continue; }
         const a = fighters[e.attacker], b = fighters[e.target]; if (!a || !b) continue;
         const n = e.normal ? this.unit(e.normal.x, e.normal.z) : this.unit(b.position.x - a.position.x, b.position.z - a.position.z);
-        if (e.result === 'impact') this.fire('solidImpact', {pos: b.position, n, power: 1}, `golpe ${e.attacker}→${e.target}`);
+        if (e.result === 'impact') {if (e.slam) this.fire('solidLanding', {pos: {x: a.position.x, z: a.position.z}, power: C.rules.slamImpactScale}, 'impacto do meteor slam no chão');this.fire('solidImpact', {pos: b.position, n, power: 1}, `golpe ${e.attacker}→${e.target}`);}
         else if (e.result === 'partial') this.fire('solidBlock', {pos: b.position, n, power: 1}, 'defesa parcial');
         else if (e.result === 'perfect') this.fire('solidBlock', {pos: b.position, n, power: 1.7}, 'defesa perfeita');
         else if (e.result === 'clash' && e.attacker === 0) this.fire('solidClash', {pos: {x: (a.position.x + b.position.x) / 2, z: (a.position.z + b.position.z) / 2}, n, power: 1}, 'clash');

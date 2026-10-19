@@ -8,6 +8,7 @@ import {wouldVault, cancelWindow} from '../sim/controller.js';
 import {CameraRig} from './rig.js';
 import {VfxSystem} from './vfx.js';
 import {SolidFx} from './solid-fx.js';
+import {MeteorFx} from './meteor-fx.js';
 import {WorldView} from './world-view.js';
 import {phaseAt} from '../sim/motion.js';
 // Novo sistema de VFX declarativo (ativado ao lado do legado durante a migração).
@@ -47,6 +48,7 @@ export class View {
     this.vfxRuntime = new VfxRuntime(this.scene, {camera: this.camera, canvas, flashEl: document.getElementById('vfx-flash'), quality: 'medium'});
     registerAllEffects(this.vfxRuntime);
     this.solid = new SolidFx(this.scene); // malhas 3D sólidas (poeira do dash, esquiva, impactos); independe do renderizador de sprites
+    this.meteorFx = new MeteorFx(this.scene); // rastro de fogo do meteor slam (só na queda)
     this.useNewVfx = false; // trocar para true quando o novo sistema estiver em paridade
     this.overlayGroup = new T.Group();this.overlayGroup.renderOrder = 900;this.scene.add(this.overlayGroup);
     this.worldView = new WorldView(this.scene);
@@ -81,7 +83,7 @@ export class View {
     this.rig.reset(player);this.seenEvents = new WeakSet();this.legacySeen = new WeakSet();this.cameraShake = 0;for (const e of this.effects) {this.scene.remove(e.mesh);e.mesh.geometry.dispose();e.mesh.material.dispose();}this.effects = [];this.airborneSeen = [];this.invulnerableFx.clear();this.normals = [];this.vfx.reset();
     if (this.canvas) this.canvas.style.filter = '';
     this.vfxRuntime.reset();
-    this.solid.reset();
+    this.solid.reset();this.meteorFx?.reset();
   }
   /** Efeitos legados do v6 (partículas em caixa e tremor antigo). Só com “Efeitos legados” ligado em Visualizar. */
   spawnBurst(pos, type) {
@@ -186,6 +188,7 @@ export class View {
       this.vfxRuntime.beamRenderer?.reset();
     }
     this.solid.update(fighters, events, vfxDt, {visible: !!X.hud.fxVisible, world});
+    this.meteorFx.update(fighters, vfxDt, this.camera, !!X.hud.fxVisible, this.characters);
     const legacy = this.updateLegacy(fighters, events, paused ? 0 : dt);
     const fxOn = !!X.hud.fxVisible;
     const legacyOn = fxOn && !this.useNewVfx && !!this.vfx.atlas;

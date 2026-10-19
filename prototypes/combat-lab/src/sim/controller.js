@@ -75,7 +75,7 @@ export function startPermission(f, kind) {
   if (cur?.kind === 'dodge' && kind === 'tackle') {
     // C → X: só na janela (por padrão, o fim da esquiva). Depois de uma esquiva perfeita, a qualquer momento.
     const c = A.cancel, [w0, w1] = cancelWindow(), perfect = c.perfectAnytime && f.counterWindow > 0;
-    const inWindow = cur.elapsed >= w0 - 1e-8 && cur.elapsed <= w1 + 1e-8, ok = !!c.dodgeToTackle && (perfect || inWindow);
+    const airSlam = !!C.extras.toggles.enableMeteorSlam && f.vaultHeight > C.rules.slamMinHeight, inWindow = airSlam || (cur.elapsed >= w0 - 1e-8 && cur.elapsed <= w1 + 1e-8), ok = !!c.dodgeToTackle && (perfect || inWindow);
     return {ok, viaCancel: true, ...(ok ? {} : c.dodgeToTackle ? {reason: 'cancelWindow', detail: {elapsed: cur.elapsed, open: [w0, w1]}} : {reason: 'cancelDisabled'})};
   }
   // X não cancela o próprio X (selfCancel 0) e C só cancela C nos últimos selfCancelFromEnd segundos.
@@ -136,7 +136,9 @@ function stepTackleCharge(f, cmd, fighters, dt, desiredHeading, target, move, di
   ch.t += dt;ch.level = tackleChargeLevel(ch.t);
   if (ch.t < R.chargeTackleMaxTime) f.stamina = Math.max(0, f.stamina - R.chargeTackleDrain * dt);
   f.regenBase = f.stamina;f.regenAge = 0;f.exhausted = isDepleted(f.stamina) || f.exhausted;
-  f.velocity = vec();f.locomotionVelocity = vec();f.state = 'tackleCharge';
+  // Carregando o tackle o lutador anda mais devagar (chargeTackleMove da velocidade de caminhada), não fica parado.
+  const mv = hasFlag(f, 'rooted') || hasFlag(f, 'stunned') ? vec() : scale(move, walkSpeed(f) * R.chargeTackleMove);
+  f.velocity = mv;f.locomotionVelocity = {...mv};f.desiredVelocity = {...mv};f.state = 'tackleCharge';
   if (target || length(move) > .01) turnToward(f, desiredHeading, dt, R.chargeTackleTurn);
   const empty = f.stamina <= 1e-8 && ch.t < R.chargeTackleMaxTime;
   if (cmd.tackleHeld && !empty) return 'charging';
@@ -157,9 +159,25 @@ export function startSlamFromFlight(f, dirs, fighters, desiredHeading, guardHeld
   f.flight = null;f.wallSplat = null;f.tech = null;f.techDodge = null;f.knockRecovery = 0;
   startSlam(f, h, dirs, fighters, desiredHeading, guardHeld, locked);
 }
+/** Meteor slam: estados 'meteorPrep' (jogado para cima por slamPrepTime) e 'meteorDive' (despenca em cima do rival). Aqui só a preparação; a mira vem em aimSlam. */
+function aimSlam(f, fighters, h = f.vaultHeight) {
+  const a = f.action;if (!a) return;
+  a.slamBase = a.slamH0 = h;a.slamT = 0;a.slamPrepDone = !(C.rules.slamPrepTime > 1e-6) || !(h > 1e-6);
+  if (a.slamPrepDone) aimSlamDive(f, fighters);else a.heading = a.startAngle = slamFoeAngle(f, fighters) ?? a.heading;
+}
+const slamFoeAngle = (f, fighters) => {const foe = fighters.find(o => o.id !== f.id && o.hp > 0);return foe ? angleOf({x: foe.position.x - f.position.x, z: foe.position.z - f.position.z}) : null;};
+/** Início da queda: vira para o rival de agora e guarda a distância até entrar nele; queda e avanço terminam juntos. */
+function aimSlamDive(f, fighters) {
+  const a = f.action, foe = fighters.find(o => o.id !== f.id && o.hp > 0);
+  a.slamH0 = Math.max(f.vaultHeight, 1e-6);
+  if (!foe) return;
+  const dx = foe.position.x - f.position.x, dz = foe.position.z - f.position.z;
+  a.heading = a.startAngle = angleOf({x: dx, z: dz});
+  a.slamReach = Math.max(.5, Math.hypot(dx, dz) - .3);   // anda até entrar no rival (o golpe só conecta com avanço)
+}
 export function startSlam(f, height, dirs, fighters, desiredHeading, guardHeld, locked = false) {
   startAction(f, 'tackle', dirs, fighters, desiredHeading, false, guardHeld, locked);
-  f.vaultHeight = Math.max(0, height);f.action.slam = true;f.action.fromSlam = true;f.action.plDamage = (f.action.plDamage ?? 1) * C.rules.slamDamage;
+  f.vaultHeight = Math.max(0, height);f.action.slam = true;f.action.fromSlam = true;f.action.plDamage = C.rules.slamDamage;aimSlam(f, fighters, height);
 }
 /** Tempo até o solo (s) de um lutador em voo balístico. */
 export function timeToLand(f) {const g = C.rules.launchGravity, fl = f.flight;return fl ? (fl.vy + Math.sqrt(Math.max(0, fl.vy * fl.vy + 2 * g * fl.y))) / g : 0;}
@@ -195,7 +213,7 @@ export function updateFighter(f, cmd, fighters, dt) {
   if (f.charge && (f.flight || f.knockRecovery > 0 || f.hp <= 0)) cancelCharge(f, f.hp <= 0 ? 'defeated' : 'hit');   // golpe com lançamento, recuperação ou perda de apoio (M15.3, M27.1)
   if (f.flight) {
     // Meteor slam de quem foi lançado: X no ar vira mergulho oblíquo (não vale preso na parede nem sem stamina).
-    if (T.enableMeteorSlam && cmd.tackle && !f.wallSplat && f.hp > 0 && !f.exhausted && f.stamina >= costOf(f, A.tackle.cost) - 1e-8 && !hasFlag(f, 'disarmed') && !hasFlag(f, 'stunned')) {
+    if (T.enableMeteorSlam && T.enableFlightSlam && cmd.tackle && !f.wallSplat && f.hp > 0 && !f.exhausted && f.stamina >= costOf(f, A.tackle.cost) - 1e-8 && !hasFlag(f, 'disarmed') && !hasFlag(f, 'stunned')) {
       const target0 = fighters.find(o => o.id === cmd.target && o.hp > 0), mv = length(cmd.move) > 1 ? normalize(cmd.move) : cmd.move;
       startSlamFromFlight(f, {move: mv, dodgeDirection: cmd.dodgeDirection}, fighters, target0 ? angleOf(sub(target0.position, f.position)) : length(mv) > 0 ? angleOf(mv) : f.facing, cmd.guard, !!target0 && !!cmd.locked);
       if (diag) report(f, {kind: 'tackle', result: 'executed', note: 'meteor slam (lançado)'});
@@ -349,6 +367,11 @@ export function updateFighter(f, cmd, fighters, dt) {
         const blend = smoothstep((action.elapsed + dt) / blendTime);
         f.velocity = {x: action.from.x * (1 - blend) + f.velocity.x * blend, z: action.from.z * (1 - blend) + f.velocity.z * blend};
       }
+      if (action.slam) {
+        // Preparação: sem avanço. Queda: avança o necessário para chegar ao rival no instante em que toca o chão (slamSpeedLoss reduz esse avanço); depois de aterrissar, parado.
+        const tLeft = Math.max(dt, R.slamFallTime * f.vaultHeight / Math.max(1e-6, action.slamH0 ?? 0)), left = Math.max(0, (action.slamReach ?? 0) - (action.traveled ?? 0));
+        f.velocity = action.slamLanded || !action.slamPrepDone ? vec() : action.slamReach === undefined ? scale(f.velocity, 1 - R.slamSpeedLoss) : scale(direction(action.heading), Math.min(left / dt, left / tLeft) * (1 - R.slamSpeedLoss));
+      }
       action.traveled = (action.traveled ?? 0) + Math.max(0, dot(f.velocity, direction(action.heading))) * dt;
       if (action.kind === 'dodge' && action.jump) {
         // Pulo físico: altura integrada pela gravidade; deslocamento horizontal constante na direção do salto.
@@ -363,10 +386,16 @@ export function updateFighter(f, cmd, fighters, dt) {
         f.vaultHeight = action.vault ? A.dodge.vaultHeight * Math.sin(Math.PI * clamp((action.elapsed + dt) / A.dodge.duration, 0, 1)) : 0;
       } else {
         // X vindo de um salto (C → X no ar): desce suavemente da altura em que estava, sem teletransporte.
-        if (action.slam) f.vaultHeight = Math.max(0, f.vaultHeight - Math.tan(R.slamAngle) * Math.max(0, dot(f.velocity, direction(action.heading))) * dt);   // mergulho: desce tan(ângulo) por metro andado
-        else f.vaultHeight = action.liftStart > 0 ? (action.liftTime > 0 ? action.liftStart * (1 - smoothstep((action.elapsed + dt) / action.liftTime)) : 0) : 0;
+        if (action.slam && !action.slamPrepDone) {
+          // Jogado para cima: sobe desacelerando (sem pulo), sem andar, até o ponto mais alto; aí mira o rival e despenca.
+          action.slamT += dt;const u = Math.min(1, action.slamT / R.slamPrepTime);
+          f.vaultHeight = action.slamBase + R.slamHop * (1 - (1 - u) * (1 - u));
+          if (u >= 1) {action.slamPrepDone = true;aimSlamDive(f, fighters);}
+        } else if (action.slam) f.vaultHeight = Math.max(0, f.vaultHeight - (R.slamFallTime > 1e-6 ? (action.slamH0 ?? 0) / R.slamFallTime * dt : Infinity));   // despenca a altura inteira em slamFallTime
+        if (action.slam && action.slamPrepDone && f.vaultHeight <= 1e-9 && (action.slamH0 ?? 0) > 1e-6) action.slamLanded = true;
+        if (!action.slam) f.vaultHeight = action.liftStart > 0 ? (action.liftTime > 0 ? action.liftStart * (1 - smoothstep((action.elapsed + dt) / action.liftTime)) : 0) : 0;
       }
-      f.state = action.kind;
+      f.state = action.slam ? (action.slamPrepDone ? 'meteorDive' : 'meteorPrep') : action.kind;
     } else {
       f.vaultHeight = 0;
       const distance = nominalDistance(f) * R.recoilFraction;
@@ -438,7 +467,7 @@ function startAction(f, kind, dirs, fighters, desiredHeading, viaCancel, guardHe
   if (invulnerableFor !== undefined) f.action.invulnerableFor = invulnerableFor;
   if (liftStart > 0) {f.action.liftStart = liftStart;f.action.liftTime = liftTime;f.action.fromCancel = true;}
   // Meteor slam: C → X a partir do salto do vault (acima da altura mínima) vira mergulho oblíquo com bônus de dano.
-  if (viaCancel && kind === 'tackle' && T.enableMeteorSlam && liftStart > C.rules.slamMinHeight) {f.action.slam = true;f.action.fromSlam = true;f.action.plDamage = C.rules.slamDamage;}
+  if (viaCancel && kind === 'tackle' && T.enableMeteorSlam && liftStart > C.rules.slamMinHeight) {f.action.slam = true;f.action.fromSlam = true;f.action.plDamage = C.rules.slamDamage;aimSlam(f, fighters, liftStart);}
   if (viaCancel) f.action.fromCancel = true;
   if (countered) f.counterWindow = 0;
   // O custo de C já gasto continua gasto; X cobra o próprio custo.
@@ -454,7 +483,7 @@ export function advanceAction(f, dt) {
   f.action.elapsed += dt;
   const kind = f.action.kind, spec = actionSpec(f.action), duration = spec.duration;
   // O pulo físico termina ao tocar o chão (a duração da esquiva não o corta no ar).
-  const done = f.action.jump ? f.action.jump.landed : f.action.elapsed >= duration - 1e-8;
+  const done = f.action.jump ? f.action.jump.landed : (f.action.elapsed >= duration - 1e-8 && !(f.action.slam && !f.action.slamLanded)) || (f.action.slamLanded && (f.action.slamHold = (f.action.slamHold ?? 0) + dt) > .06);
   if (done) {
     const wasExhausted = f.exhausted && (kind === 'dodge' || kind === 'tackle'), slamMissed = !!f.action.slam && f.action.hits.size === 0;
     f.action = null;f.velocity = vec();f.vaultHeight = 0;f.state = f.hp <= 0 ? 'defeated' : 'neutral';

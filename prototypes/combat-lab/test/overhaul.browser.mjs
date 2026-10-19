@@ -99,6 +99,7 @@ try {
   check('VFX', 'limpeza: partículas liberadas após o efeito', (await L(() => window.__lab.view.vfx.add.p.length + window.__lab.view.vfx.norm.p.length)) <= 40, `${await L(() => window.__lab.view.vfx.add.p.length + window.__lab.view.vfx.norm.p.length)} restantes (regeneração/exaustão podem continuar)`);
   // Preset por efeito e persistência via preset salvo.
   await openTab('overlays');await page.click('[data-vx-item="vfx-hit"]');
+  await page.evaluate(() => document.querySelectorAll('.fold-btn[aria-expanded="false"]').forEach(b => b.click()));
   let dl = page.waitForEvent('download');await page.click('[data-group="vfx-hit"] [title="Exportar os valores deste efeito (JSON)"]');
   const preset = JSON.parse(await (await import('node:fs/promises')).readFile(await (await dl).path(), 'utf8'));
   check('VFX', 'preset exportável por efeito', preset.schema === 'arenamon-vfx-preset' && preset.values.variant !== undefined && preset.values.size !== undefined);

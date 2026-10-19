@@ -28,7 +28,7 @@ ok('níveis de PL: abaixo de 50% PL1, de 50% a 99% PL2, 100% PL3');
 {
   const g = arena();const f = g.fighters[0], s0 = f.stamina;hold(g, .3);
   assert.ok(f.tackleCharge && !f.action, 'carregando, sem ação');assert.equal(f.state, 'tackleCharge');
-  const p0 = {...f.position};hold(g, .2);assert.ok(Math.abs(f.position.z - p0.z) < 1e-6 && Math.abs(f.position.x - p0.x) < 1e-6, 'parado enquanto carrega (sem locomoção)');
+  const p0 = {...f.position};hold(g, .2);const moved = Math.hypot(f.position.x - p0.x, f.position.z - p0.z);assert.ok(moved > .05 && moved < 4.8 * .2 * C.rules.chargeTackleMove + 1e-3, 'anda mais devagar enquanto carrega (chargeTackleMove), não fica parado');
   assert.ok(f.stamina < s0 - C.actions.tackle.cost - .2, `dreno durante a carga (${(s0 - f.stamina).toFixed(2)})`);
   step(g, cmd({move: vec(0, 1)}));assert.equal(f.action?.kind, 'tackle', 'soltar dispara');assert.equal(f.action.pl, 1);assert.ok(!f.tackleCharge);
   ok('segurar X: parado, dreno por segundo e disparo ao soltar (PL1 abaixo de 50%)');
