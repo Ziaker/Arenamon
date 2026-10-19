@@ -97,7 +97,7 @@ export function tickStatuses(f, dt, staminaMax) {
       while (s.acc >= s.tick.interval - 1e-9 && f.hp > 0) {
         s.acc -= s.tick.interval;
         const dmg = (s.tick.damage ?? 0) * s.stacks * stat(f, 'damageTaken', 1), heal = (s.tick.heal ?? 0) * s.stacks;
-        if (dmg) f.hp = Math.max(0, f.hp - dmg);
+        if (dmg) {f.hp = Math.max(0, f.hp - dmg);if (f.hp === 0) {f.guard = false;f.guardSuppressed = true;}}   // mesma regra do golpe letal (combat.js)
         if (heal) f.hp = Math.min(f.attributes.hp, f.hp + heal);
         if (s.tick.stamina) {f.stamina = Math.max(0, Math.min(staminaMax, f.stamina + s.tick.stamina * s.stacks));f.regenBase = f.stamina;}
         events.push({result: 'statusTick', target: f.id, attacker: s.source, status: s.id, damage: dmg, heal});

@@ -393,7 +393,7 @@ function breakBarriers(game, a, events) {
 function breakByTackle(e, f, events) {
   e.dead = true;
   const cap = e.captured ?? {}, away = scale(direction(f.action.heading), -1);
-  f.action = null;f.velocity = vec();f.locomotionVelocity = vec();f.blend = null;f.vaultHeight = 0;
+  f.action = null;f.velocity = vec();f.locomotionVelocity = vec();f.blend = null;f.vaultHeight = 0;f.state = 'landing';   // sem ação, o estado não pode seguir como 'tackle'
   f.push = {direction: away, distance: nominalDistance(f, 'tackle') * (cap.tackleRecoil ?? .15), elapsed: 0};
   f.knockRecovery = Math.max(f.knockRecovery, cap.tackleStagger ?? .25);
   events?.push({result: 'barrierBroken', attacker: f.id, target: e.owner ?? null, damage: 0, entity: e.id, kind: 'barrier', by: 'tackle'});
