@@ -11,7 +11,7 @@
 
 | Ordem informada | Move | Situação |
 |---|---|---|
-| 1 | **Emerging Stone** | **Novo nome aprovado para o Move 1, substituindo Rock Tomb** (nome que anteriormente corrigiu Rock Slide). Gameplay ainda não especificado. **Não é substituído por Sand Wave, que permanece como Move 3.** |
+| 1 | **Emerging Stone** | **Move 1, substituindo o nome Rock Tomb**; parâmetros iniciais, projétil subterrâneo, explosão e rocha persistente agora descritos na **seção 7.1**. Detalhes adicionais de colisão, marcador e salto permanecem pendentes. **Sand Wave segue como Move 3.** |
 | 2 | **Bullet Punch** | Mecânica descrita neste documento; implementação pendente. |
 | 3 | **Sand Wave** | **Substitui Sand Kick**, por confirmação explícita do diretor; especificação inicial na seção 6, ainda com pendências de design. |
 | 4 | **Body Slam** | Nome aprovado; gameplay ainda não especificado. |
@@ -469,7 +469,7 @@ Estas divergências **não significam que o Sand Wave esteja implementado**: ind
 
 **Estado após a Rodada 10:** as **decisões funcionais de gameplay levantadas nessa auditoria estão respondidas**, incluindo comportamento da IA cegada e política para obstáculos móveis. **A direção visual final permanece pendente**, pois o diretor escolheu aguardar comparação de protótipos. **Não foi emitida certificação de encerramento integral ou de prontidão de implementação**. A integração futura da mecânica e os testes não estão autorizados por este registro.
 
-## 7. Emerging Stone — renomeação oficial do Move 1 (19/10/2026)
+## 7. Emerging Stone — renomeação e especificação inicial do Move 1 (19/10/2026)
 
 **Decisão expressa do diretor:** o primeiro golpe de Mushroom passa a chamar-se **Emerging Stone**, **em substituição ao nome Rock Tomb**.
 
@@ -479,10 +479,76 @@ Estas divergências **não significam que o Sand Wave esteja implementado**: ind
 | Ordem no elenco | **Move 1**, sem alteração |
 | Nome vigente | **Emerging Stone** |
 | Nome anterior | **Rock Tomb** (que antes havia corrigido a indicação **Rock Slide**) |
-| Mecânicas e parâmetros | **Ainda não definidos nem aprovados**; o nome, isoladamente, não determina execução, dano, alvo, alcance, hitbox, custo, cooldown ou Power Level |
-| Visual, animação e VFX | **Não especificados** por esta renomeação |
+| Mecânicas e parâmetros | A renomeação **isoladamente** não definiu mecânicas; **posteriormente**, o diretor forneceu o conjunto de regras de gameplay **ES-D01–ES-D18**, descrito na **seção 7.1**, com pendências especificadas na seção 7.2 |
+| Visual, animação e VFX | A renomeação **não** especificou VFX; a descrição **posterior** definiu o conceito de terra emergindo e detritos ao longo do trajeto subterrâneo. Aparência final/animações detalhadas continuam não aprovadas |
 | Implementação e testes | **Não autorizados nem executados** por esta alteração documental |
 
 **Preservação e precedência histórica:** os trechos de correção de Rock Slide → Rock Tomb, a decisão **SW-D18** e os relatos das Rodadas 1–10 de Sand Wave continuam íntegros como registros das decisões anteriores. Onde constar “Rock Tomb permanece como golpe 1”, interpretar como referência **histórica, superada apenas quanto ao nome** por esta renomeação. **A posição do golpe 1 não mudou**, Sand Wave continua **substituindo Sand Kick no Move 3**, Bullet Punch continua Move 2 e Body Slam permanece Move 4 até nova decisão explícita.
 
-**Próxima etapa autorizável:** iniciar rodadas próprias para **definir o gameplay de Emerging Stone**, solicitando aprovação antes de qualquer escolha mecânica; a presente alteração **não inicia implementação de moves**.
+**Estado da renomeação original:** após a mudança de nome, as mecânicas ainda não estavam definidas. O diretor posteriormente forneceu a especificação inicial de gameplay da **seção 7.1**, que agora prevalece para esses parâmetros sem revogar o registro histórico. **Nenhuma implementação de moves foi iniciada por esta documentação.**
+
+### 7.1 Especificação inicial aprovada diretamente pelo diretor — Emerging Stone
+
+**Identidade:** Emerging Stone é o **Move 1 do Mushroom**, anteriormente nomeado Rock Tomb. O diretor forneceu os parâmetros e o conceito abaixo expressamente, **sem autorizar implementação**. Os pontos não descritos não devem ser preenchidos por analogia com Bullet Punch nem com o motor.
+
+#### Contrato de gameplay e visual conceitual
+
+1. **Recarga:** **9 s de cooldown** por uso.
+2. **Custo:** **3 unidades de stamina** por uso.
+3. **Power Level:** **ignora PL (Power Level)**. O significado de “ignorar” em cada tipo específico de confronto ainda precisa de detalhamento; não presumir neutralização, prioridade ou imunidade universal.
+4. **Reflect:** **ignora Reflect**. Não aplicar reflexão automática ao projétil do Emerging Stone; detalhes de outras interações com escudos/barreiras permanecem em aberto.
+5. **Dano:** **20 DMG** definido pelo diretor. Ainda não foi explicitado se é dano-base fixo ou sujeito a atributos/modificadores e defesas existentes; não converter silenciosamente em fórmula.
+6. **Execução:** **Normal Cast**, com **0,55 s** especificados para o cast. Não inferir, sem aprovação, quando o jogador congela a escolha do marcador, quando os recursos são pagos ou se existe etapa de ajuste de duração variável além do cast.
+7. **Marcador/seleção:** durante a **pré-carga/preparação**, o jogador seleciona a **direção/destino indicado por um marcador**, em funcionamento **similar ao marcador de Bullet Punch**. Essa similaridade **não** aprova automaticamente o mesmo alcance, velocidade de ajuste, regras de segurar/soltar botão, cancelamentos, congelamento de posição ou teletransporte do Bullet Punch.
+8. **Projétil:** dispara-se um **projétil subterrâneo** que percorre o subsolo **em direção ao marcador** selecionado. **Velocidade de deslocamento: 15 m/s**.
+9. **VFX de deslocamento:** o trajeto subterrâneo deve ser perceptível por **terra emergindo e detritos sendo expelidos pelo solo**, como o rastro de **uma toupeira avançando sob a terra**. Esta é uma referência conceitual obrigatória; forma artística, densidade e partículas exatas dependem de aprovação posterior.
+10. **Detonação:** ao **chegar ao marcador**, o projétil **detona na região ao redor do destino**.
+11. **Área de detonação:** **raio de 5 m** ao redor do ponto de detonação.
+12. **Efeitos da detonação:** causa o **dano especificado de 20 DMG** ao(s) inimigo(s) validamente atingido(s) na área e os **lança para trás**. Número máximo de vítimas, vetor/fórmula/intensidade do lançamento, elegibilidade vertical e tratamento de defesa/invulnerabilidade continuam pendentes de especificação; **não inventar** valores.
+13. **Rocha criada:** **junto da detonação**, **uma rocha emerge do solo**, permanecendo como **obstáculo físico no ambiente**.
+14. **Resistência da rocha:** **5 HP**.
+15. **Duração da rocha:** **infinita/permanente** — sem cronômetro que a faça desaparecer naturalmente. Critérios de destruição e outras regras de interação ainda precisam ser definidos.
+16. **Dimensões iniciais:** a rocha é um **bloco de 3 × 3 m**, com **slider obrigatório** para ajuste de tamanho. Ainda não foram aprovados mínimo, máximo e passo do slider nem sua relação com a altura física e com os dois eixos da base.
+17. **Restrição de escalada:** a rocha **não pode ser escalada/subida** como obstáculo normal. O diretor apresentou **alternativas ainda não escolhidas** para interação com saltos/voo e impossibilidade de travessia: **impedir o pulo**, **permitir passar por cima** ou **forçar deslizamento até a direção livre mais próxima**. **Nenhuma dessas alternativas foi aprovada especificamente**.
+18. **Persistência espacial:** a rocha criada pela detonação **permanece no ambiente** (salvo futuras regras de destruição/remoção por interação, ainda não definidas); não substituir por VFX passageiro nem cancelar ao fim do cast.
+
+#### Tabela de decisões iniciais explicitadas pelo diretor
+
+| ID | Assunto | Regra expressa vigente |
+|---|---|---|
+| ES-D01 | Cooldown | **9 s** |
+| ES-D02 | Stamina | **3 unidades** |
+| ES-D03 | PL | **Ignora PL**; interações específicas ainda dependem de definição |
+| ES-D04 | Reflect | **Ignora Reflect** |
+| ES-D05 | Dano | **20 DMG** |
+| ES-D06 | Categoria/cast | **Normal Cast, 0,55 s** |
+| ES-D07 | Mira | **Selecionar direção/destino pelo marcador durante pré-carga, similar à função do marcador do Bullet Punch**, sem importar parâmetros não citados |
+| ES-D08 | Projétil e velocidade | **Projétil percorre o subsolo rumo ao marcador a 15 m/s** |
+| ES-D09 | VFX do trajeto | **Terra emergindo e detritos expelidos, lembrando toupeira avançando sob o solo** |
+| ES-D10 | Gatilho da explosão | **Detona quando atinge o marcador** |
+| ES-D11 | Raio da detonação | **5 m** |
+| ES-D12 | Ofensiva da explosão | **20 DMG e lançamento para trás** dos inimigos validamente atingidos, intensidade/vetor ainda pendentes |
+| ES-D13 | Criação de obstáculo | **Rocha emerge junto da detonação** |
+| ES-D14 | HP do obstáculo | **5 HP** |
+| ES-D15 | Persistência | **Duração infinita/permanente**, sem expiração por tempo |
+| ES-D16 | Geometria/ajuste | **Bloco 3 × 3 m com slider de tamanho**; configuração exata do slider pendente |
+| ES-D17 | Restrição | **Rocha não pode ser escalada/subida normalmente** |
+| ES-D18 | Tratamento do pulo | **Alternativas mencionadas, não escolhidas**: bloquear pulo, permitir passagem por cima ou forçar deslizamento para direção livre mais próxima |
+
+### 7.2 Pontos ainda não decididos — não inventar
+
+- **ES-P01 — mira e cronologia do Normal Cast:** confirmar comportamento preciso de **manter/soltar botão**, tempo de ajuste do marcador, quando os **0,55 s** começam, momento de lançamento do projétil, definição e congelamento da posição-alvo; **não** importar o ciclo de desaparecimento/investida do Bullet Punch.
+- **ES-P02 — limites do marcador:** alcance mínimo/máximo, geometria da seleção, interação com paredes e destino fora de área válida; não extrapolar a partir de Bullet Punch.
+- **ES-P03 — dano e lançamento:** se os **20 DMG** são fixos ou sofrem modificadores, regras de defesa/invulnerabilidade, número de alvos, direção e força do lançamento para trás, bem como eventuais efeitos do bloqueio por paredes sobre a detonação.
+- **ES-P04 — interação com PL/Reflect:** descrever objetivamente o que significa “ignora PL” em disputas entre golpes e se “ignora Reflect” atinge apenas a fase de deslocamento subterrâneo ou toda a execução, sem presumir que isso ignore guarda, invulnerabilidade ou colisão de personagens.
+- **ES-P05 — rock size sliders:** parâmetros de mínimo/máximo/passo e se **3 × 3 m** se refere à base, como editar os eixos, altura física e regras de colocação sobre lutadores/outras rochas/limites de arena.
+- **ES-P06 — pulo e colisão:** **escolher uma** das três alternativas de comportamento citadas pelo diretor: salto impedido, passagem por cima ou deslizamento para a direção livre mais próxima. Definir relações com saltos já iniciados, efeitos aéreos, paredes e o lado permitido, quando necessário.
+- **ES-P07 — rocha persistente:** dano que os **5 HP** recebem de ataques e colisões; multiplicidade e limite simultâneo de rochas, interação com outros obstáculos e remoção ao chegar a 0 HP. Não presumir limite de quantidade, destruição automática ou bloqueio de todos os golpes.
+- **ES-P08 — terreno e detonação:** colisão do projétil **no subsolo**, superfícies onde pode viajar, obstáculos físicos e bloqueio/oclusão do raio da explosão; altura e localização de surgimento da rocha.
+- **ES-P09 — VFX e animação:** conceito do rastro de terra/detritos está descrito; visuais finais, transição da detonação e animação da rocha ainda não aprovados.
+
+### 7.3 Histórico de aprovação e escopo
+
+**19/10/2026 — especificação inicial de Emerging Stone recebida do diretor:** **9CD / 3STM / ignora PL / ignora Reflect / 20DMG / Normal Cast 0,55 s**, projétil subterrâneo com trilha de terra e detritos (analogia de toupeira) a **15 m/s** até **marcador ajustado na pré-carga, similar a Bullet Punch**, detonação ao chegar ao marcador com **raio de 5 m e lançamento para trás**, criação de **rocha persistente 5 HP / duração infinita / bloco 3 × 3 m com slider**, **não escalável**. As alternativas para a interação com saltos foram citadas, porém **não escolhidas**, e assim continuam pendentes. **Não foi autorizada implementação, nem foram definidos parâmetros adicionais.**
+
+**Preservação:** as decisões e textos anteriores, incluindo **SW-D01–SW-D68**, Rodadas **1–10** do Sand Wave, Bullet Punch e o histórico da renomeação Rock Tomb → Emerging Stone, permanecem válidos e íntegros. A presente aprovação é **somente documentação**.
