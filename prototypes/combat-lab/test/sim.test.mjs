@@ -64,9 +64,12 @@ test('personalidade: azul e vermelho decidem de forma diferente', () => {
 });
 test('personalidade neutra reproduz o ritmo fixo do v6 (sem aleatoriedade)', () => {
   const saved = structuredClone([C.extras.aiRed, C.extras.aiBlue]);
+  const savedShape = C.map?.arenaShape;
+  if (C.map) C.map.arenaShape = 'square';
   for (const k of ['aiRed', 'aiBlue']) Object.assign(C.extras[k], {reaction: 0, reactionJitter: 0, mistake: 0, aggression: .5, variation: 0, hesitation: 0});
   assert.deepEqual(aiDuel(1, 2400), aiDuel(99, 2400), 'sem aleatoriedade, a semente não muda nada');
   Object.assign(C.extras.aiRed, saved[0]);Object.assign(C.extras.aiBlue, saved[1]);
+  if (C.map) C.map.arenaShape = savedShape;
 });
 test('equilíbrio IA × IA: determinístico, consistente e sem alterar a configuração', () => {
   const before = JSON.stringify(C), a = runBalance({matches: 6, seed: 3}), b = runBalance({matches: 6, seed: 3});

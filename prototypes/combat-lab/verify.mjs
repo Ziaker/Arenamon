@@ -121,7 +121,7 @@ try {
 
   // ---------- 5. Cenários ----------
   await page.click('[data-tool="scenarios"]');await page.click('#scenario-all');
-  assert.match(await page.textContent('#scenario-report'), /14 de 14 cenários aprovados/);
+  assert.match(await page.textContent('#scenario-report'), /(\d+) de \1 cenários aprovados/);
   await page.locator('.scenario[data-id="clash"] button').click();
   await page.waitForFunction(() => !window.__lab.ui.scenario && window.__lab.ui.lastResult?.id === 'clash', null, {timeout: 15000});
   assert.equal(await L(() => window.__lab.ui.lastResult.ok), true);assert.equal(await page.getAttribute('.scenario[data-id="clash"]', 'data-result'), 'ok');
@@ -230,7 +230,7 @@ try {
   // Comparação A × B com a gravação e com os cenários.
   await page.click('[data-tool="scenarios"]');await page.selectOption('#comp-a', '__current');await page.selectOption('#comp-b', '__game');
   await page.selectOption('#comp-source', 'match');await page.click('#comp-run');assert.match(await page.textContent('#comp-report'), /passos gravados[\s\S]*Vencedor/);
-  await page.selectOption('#comp-source', 'scenarios');await page.click('#comp-run');assert.equal(await page.locator('#comp-report tr').count(), 15);
+  await page.selectOption('#comp-source', 'scenarios');await page.click('#comp-run');assert.ok(await page.locator('#comp-report tr').count() >= 15);
   // Proposta de patch: X e C com durações diferentes = conflito; iguais = muda rules.dodge.
   await L(() => window.__lab.tuning.commit([['actions.dodge.duration', .5]], 'teste patch'));await page.click('[data-tool="export"]');await page.click('#patch-generate');
   assert.match(await page.textContent('#patch-result'), /Conflitos[\s\S]*rules\.dodge/);

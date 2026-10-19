@@ -21,7 +21,13 @@ export function replayMatch(meta, commands) {
   for (let t = 0; t < commands.length && g.phase !== 'result'; t++) {
     g.step(commands[t] ?? undefined);
     g.fighters.forEach((f, i) => {if (f.action && f.action !== last[i]) {if (f.action.fromCancel) sides[i].cancel++;if (f.action.buffered) sides[i].buffered++;}last[i] = f.action;});
-    for (const e of g.lastStepEvents) {const s = sides[e.attacker];if (e.result in s) s[e.result]++;s.damage += e.damage;}
+    for (const e of g.lastStepEvents) {
+      const s = sides[e.attacker];
+      if (s) {
+        if (e.result in s) s[e.result]++;
+        if (typeof e.damage === 'number') s.damage += e.damage;
+      }
+    }
   }
   return {ticks: g.tick, winner: g.winner, phase: g.phase, hp: g.fighters.map(f => f.hp), stamina: g.fighters.map(f => f.stamina), sides, fighters: JSON.stringify(g.fighters)};
 }

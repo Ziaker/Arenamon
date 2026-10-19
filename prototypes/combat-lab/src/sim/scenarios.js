@@ -6,6 +6,7 @@ import {Game} from './game.js';
 import {Recorder} from './telemetry.js';
 import {vec, direction} from './math.js';
 import {TACKLE_SCENARIOS} from './scenarios-tackle.js';
+import {MAP_SCENARIOS} from './scenarios-map.js';
 
 const cmd = (o = {}) => ({move: vec(), dodge: false, tackle: false, guard: false, guardPressed: false, target: null, ...o});
 const toward = (from, to) => {const dx = to.x - from.x, dz = to.z - from.z, d = Math.hypot(dx, dz) || 1;return vec(dx / d, dz / d);};
@@ -108,11 +109,11 @@ const BASE_SCENARIOS = [
     id: 'wall', name: 'Knockback contra a parede', description: 'O vermelho é lançado na direção da parede e deve ricochetear para dentro da arena.',
     positions: [vec(0, 0), vec(0, 2.4)], ticks: () => enough(),
     // Adaptativo: o vermelho perto da parede e o azul a uma distância que o tackle alcança com os ajustes atuais.
-    setup: g => {const h = C.test.arenaHalf - C.test.halfExtent, zr = h - .9, reach = 2 * C.test.halfExtent + Math.min(1.4, .45 * C.actions.tackle.distance * (C.actions.tackle.distanceReference || C.actions.tackle.duration) * C.profiles.balanced.speed);
+    setup: g => {const radius = C.map.arenaShape === 'square' ? C.test.arenaHalf : (C.map.arenaRadius ?? 50), h = radius - C.test.halfExtent, zr = h - .9, reach = 2 * C.test.halfExtent + Math.min(1.4, .45 * C.actions.tackle.distance * (C.actions.tackle.distanceReference || C.actions.tackle.duration) * C.profiles.balanced.speed);
       g.fighters[0].position = vec(0, zr - reach);g.fighters[1].position = vec(0, zr);face(g.fighters[0], 0);face(g.fighters[1], Math.PI);},
     script: (t) => [t === 10 ? cmd({move: vec(0, 1), tackle: true, target: 1}) : cmd({target: 1}), cmd({target: 0})],
     checks: ({log, game}) => {
-      const bound = C.test.arenaHalf - C.test.halfExtent, z = game.fighters[1].position.z;
+      const bound = (C.map?.arenaShape === 'square' ? C.test.arenaHalf : (C.map?.arenaRadius ?? 50)) - C.test.halfExtent, z = game.fighters[1].position.z;
       return [check('Impacto', events(log, 'impact').length, 'impact', log.events[0]?.result ?? 'nenhum'), check('Tocou a parede durante o voo', log.wallHits[1] > 0, '≥ 1', log.wallHits[1]),
         check('Ricochete para dentro', !C.extras.toggles.enableWallBounce || log.bounced, C.extras.toggles.enableWallBounce ? 'sim' : 'desligado', log.bounced ? 'sim' : 'não'),
         check('Termina dentro da arena', Math.abs(z) <= bound + 1e-9, `|z| ≤ ${fmt(bound)}`, Math.abs(z))];
@@ -130,8 +131,8 @@ const BASE_SCENARIOS = [
     },
   },
 ];
-/** Cenários base + os do Tackle e do meteor slam (scenarios-tackle.js). */
-export const SCENARIOS = [...BASE_SCENARIOS, ...TACKLE_SCENARIOS];
+/** Cenários base + os do Tackle/meteor slam + os do Novo Mapa. */
+export const SCENARIOS = [...BASE_SCENARIOS, ...TACKLE_SCENARIOS, ...MAP_SCENARIOS];
 
 const pathGet = (root, path) => path.split('.').reduce((a, k) => a?.[k], root);
 const pathSet = (root, path, v) => {const keys = path.split('.'), last = keys.pop();keys.reduce((a, k) => a[k], root)[last] = v;};
@@ -165,10 +166,12 @@ export function prepareScenario(def, game) {
       });
       if (game.frozen) log.hitstopTicks++;
       log.staminaBefore = game.fighters[0].stamina;
-      const enemy = game.fighters[1], bound = C.test.arenaHalf - C.test.halfExtent;
+      const enemy = game.fighters[1], bound = (C.map?.arenaShape === 'square' ? C.test.arenaHalf : (C.map?.arenaRadius ?? 50)) - C.test.halfExtent;
+      const enemyDist = Math.hypot(enemy.position.x, enemy.position.z);
       // Toque na parede: velocidade horizontal do voo invertida (com subpassos a posição volta para dentro no mesmo passo).
       if (enemy.flight) {const hz = enemy.flight.horizontal.z, hx = enemy.flight.horizontal.x, ph = log.prevH;
-        if ((ph && ((ph.z > .05 && hz < 0) || (ph.x > .05 && hx < 0) || (ph.x < -.05 && hx > 0))) || Math.abs(enemy.position.z) >= bound - 1e-9 || Math.abs(enemy.position.x) >= bound - 1e-9) log.wallHits[1]++;
+        const atWall = C.map?.arenaShape === 'square' ? (Math.abs(enemy.position.z) >= bound - 1e-9 || Math.abs(enemy.position.x) >= bound - 1e-9) : (enemyDist >= bound - 1e-9);
+        if ((ph && ((ph.z > .05 && hz < 0) || (ph.x > .05 && hx < 0) || (ph.x < -.05 && hx > 0))) || atWall) log.wallHits[1]++;
         if (hz < 0 && log.wallHits[1]) log.bounced = true;log.prevH = {x: hx, z: hz};} else log.prevH = null;
       t++;
     },

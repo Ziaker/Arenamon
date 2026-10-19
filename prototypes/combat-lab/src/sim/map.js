@@ -6,6 +6,7 @@
 // Implementa rigorosamente as decisões das Rodadas 1–11 de docs/MAPA_COMBAT_LAB_DECISOES_RODADAS.md.
 
 import {C} from './config.js';
+import {getFighterMaxStamina} from './entity.js';
 import {vec, add, sub, scale, length, normalize, dot, clamp, direction, angleOf} from './math.js';
 
 export const MAP_DEFAULTS = {
@@ -130,6 +131,7 @@ export function isValidSpawnPosition(pos, radius, mapState, fighters = [], minDi
 
   // Não sobrepor outros destrutíveis sólidos
   for (const d of mapState.destructibles) {
+    if (dist2D(pos, d.pos) < 1e-4) continue; // ignora a si mesmo se já estiver nesta coordenada
     if (d.state === 'solid' || d.state === 'ghost') {
       const dr = Math.max(d.size.hx, d.size.hz) + radius + 0.8;
       if (dist2D(pos, d.pos) < dr) return false;
@@ -266,15 +268,19 @@ export function initMap(mapState, fighters = []) {
  * Sorteia dois pontos iniciais opostos válidos com separação equilibrada (R11.1).
  */
 export function generateFighterSpawnPositions(mapState) {
-  const angle = randomRange(mapState, 0, Math.PI * 2);
   const separationRadius = randomRange(mapState, 6.0, 9.0); // 12 a 18 m de distância mútua
-  const p0 = {x: Math.cos(angle) * separationRadius, z: Math.sin(angle) * separationRadius};
-  const p1 = {x: -p0.x, z: -p0.z};
-
-  const valid0 = findNearestValidPosition({x: p0.x, z: p0.z, y: 0}, 1.0, mapState, []) || p0;
-  const valid1 = findNearestValidPosition({x: p1.x, z: p1.z, y: 0}, 1.0, mapState, [{position: valid0}]) || p1;
-
-  return [vec(valid0.x, valid0.z), vec(valid1.x, valid1.z)];
+  const baseAngle = randomRange(mapState, 0, Math.PI * 2);
+  for (let attempt = 0; attempt < 16; attempt++) {
+    const angle = baseAngle + (attempt * Math.PI) / 8;
+    const p0 = {x: Math.cos(angle) * separationRadius, z: Math.sin(angle) * separationRadius, y: 0};
+    const p1 = {x: -p0.x, z: -p0.z, y: 0};
+    const valid0 = findNearestValidPosition(p0, 1.0, mapState, []);
+    if (!valid0) continue;
+    const valid1 = findNearestValidPosition(p1, 1.0, mapState, [{position: valid0}]);
+    if (!valid1) continue;
+    return [vec(valid0.x, valid0.z), vec(valid1.x, valid1.z)];
+  }
+  return [vec(0, -8), vec(0, 8)];
 }
 
 /**
@@ -293,20 +299,30 @@ export function stepMap(mapState, dt, fighters = [], events = []) {
     if (d.state === 'dead') {
       d.respawnTimer -= dt;
       if (d.respawnTimer <= (M.destructibleGhostPreview ?? 2.0)) {
-        // Entra na fase de prévia translúcida (ghost) antes de se tornar sólido
-        d.state = 'ghost';
-        d.ghostTimer = d.respawnTimer;
         // Sorteia nova posição válida na arena (R6.6)
         const angle = randomRange(mapState, 0, Math.PI * 2);
         const dist = randomRange(mapState, 10, 24);
         const rawPos = {x: Math.cos(angle) * dist, z: Math.sin(angle) * dist, y: 0};
-        const validPos = findNearestValidPosition(rawPos, 1.2, mapState, fighters) || rawPos;
+        const validPos = findNearestValidPosition(rawPos, 1.2, mapState, fighters);
+        if (!validPos) {
+          // Adia a geração quando não existir posição válida (R10.6, Caso C da auditoria)
+          d.respawnTimer = 1.0;
+          continue;
+        }
+        // Entra na fase de prévia translúcida (ghost) antes de se tornar sólido
         d.pos = validPos;
+        d.state = 'ghost';
+        d.ghostTimer = d.respawnTimer;
         events.push({result: 'destructibleGhost', id: d.id, pos: {...d.pos}});
       }
     } else if (d.state === 'ghost') {
       d.ghostTimer -= dt;
       if (d.ghostTimer <= 0) {
+        // Antes de materializar sólido, verifica se o local não foi bloqueado por combatente (R10.6)
+        if (!isValidSpawnPosition(d.pos, 1.2, mapState, fighters, 1.5)) {
+          d.ghostTimer = 0.5; // Adia a materialização física enquanto houver sobreposição
+          continue;
+        }
         // Materialização sólida definitiva
         d.state = 'solid';
         d.hp = d.maxHp;
@@ -343,9 +359,9 @@ export function stepMap(mapState, dt, fighters = [], events = []) {
     }
   }
 
-  // 3. Spawner regular de consumíveis (20–40s, máx 4 regulares R4.6, R6.1, R6.3, R6.7)
-  const regularCount = mapState.items.filter(it => !it.isDrop).length;
-  if (regularCount < (M.itemMaxRegular ?? 4)) {
+  // 3. Spawner regular de consumíveis (20–40s, máx 4 consumíveis totais no cenário R4.6, R6.1, R6.3, R6.7)
+  const totalCount = mapState.items.length;
+  if (totalCount < (M.itemMaxRegular ?? 4)) {
     mapState.regularSpawnTimer -= dt;
     if (mapState.regularSpawnTimer <= 0) {
       // Gerar 1 novo consumível regular
@@ -375,7 +391,7 @@ export function stepMap(mapState, dt, fighters = [], events = []) {
   const pickupR = M.itemPickupRadius ?? 1.3;
   for (let i = mapState.items.length - 1; i >= 0; i--) {
     const item = mapState.items[i];
-    let candidateFighter = null;
+    let candidateFighter = /** @type {any} */ (null);
     let minDist = Infinity;
 
     for (const f of fighters) {
@@ -399,9 +415,12 @@ export function stepMap(mapState, dt, fighters = [], events = []) {
       // Coleta bem-sucedida!
       mapState.items.splice(i, 1);
       mapState.itemStats.collected++;
+      events.push({result: 'itemCollected', id: item.id, type: item.type, fighter: candidateFighter.id});
       applyConsumableEffect(candidateFighter, item.type, events);
     }
   }
+
+  return events;
 }
 
 /** Altura do piso/plataforma em determinada coordenada (X, Z). */
@@ -464,9 +483,10 @@ export function applyConsumableEffect(fighter, type, events = []) {
       // Efeito imediato na stamina máxima (R6.10: +1 à capacidade e +1 à stamina atual simultaneamente)
       if (cat === 'staminaMax') {
         const bonusCap = M.stageStaminaBonus ?? 1;
-        C.rules.staminaMax += bonusCap;
-        fighter.stamina = Math.min(C.rules.staminaMax, fighter.stamina + bonusCap);
+        const maxStam = getFighterMaxStamina(fighter);
+        fighter.stamina = Math.min(maxStam, fighter.stamina + bonusCap);
         fighter.regenBase = fighter.stamina;
+        fighter.exhausted = false;
       }
 
       events.push({result: 'stageUp', fighter: fighter.id, category: cat, stage: fighter.stages[cat]});
@@ -481,7 +501,7 @@ export function applyConsumableEffect(fighter, type, events = []) {
 
     // Todos os 5 atributos estão no estágio 4 E HP está cheio!
     // Concede benefício especial repetível: recuperação imediata de stamina (R9.8, R9.9)
-    if (fighter.stamina < C.rules.staminaMax) {
+    if (fighter.stamina < getFighterMaxStamina(fighter)) {
       applyStaminaHeal(fighter, M.healStamina ?? 2, events);
       return;
     }
@@ -517,7 +537,7 @@ export function applyHpHeal(fighter, amount, events = []) {
 
 /** Aplica recuperação imediata de stamina. */
 export function applyStaminaHeal(fighter, amount, events = []) {
-  const maxStam = C.rules.staminaMax ?? 3;
+  const maxStam = getFighterMaxStamina(fighter);
   const gained = Math.min(amount, Math.max(0, maxStam - fighter.stamina));
   fighter.stamina = Math.min(maxStam, fighter.stamina + amount);
   fighter.regenBase = fighter.stamina;
@@ -533,7 +553,7 @@ export function applyStaminaHeal(fighter, amount, events = []) {
  */
 export function applyShield(fighter, points, duration = 10, events = []) {
   const M = C.map ?? MAP_DEFAULTS;
-  const maxCap = M.shieldMaxCap ?? 80;
+  const maxCap = fighter.shield?.maxHp ?? M.shieldMaxCap ?? 80;
   fighter.shield ??= {hp: 0, duration: 0, maxHp: maxCap};
 
   const oldHp = fighter.shield.hp;
@@ -567,9 +587,25 @@ export function stepShield(fighter, dt, events = []) {
  * 2. Se dano bruto > escudo: consome todo o escudo e o excedente passa pela Defesa (R10.1).
  * 3. Defesa básica + estágios de defesa (-10 pp por estágio, R10.3) aplicados apenas ao excedente.
  * 4. Escudo não bloqueia empurrões nem lançamentos (R9.7).
+ * @param {any} [arg0]
+ * @param {any} [arg1]
+ * @param {any} [arg2]
+ * @param {boolean} [isBlocked]
+ * @param {boolean} [isPerfect]
  */
-export function processDamageWithShieldAndStages(defender, rawDamage, attacker = null, isBlocked = false, isPerfect = false) {
-  if (defender.hp <= 0) return {absorbedByShield: 0, hpDamage: 0};
+export function processDamageWithShieldAndStages(arg0, arg1, arg2 = null, isBlocked = false, isPerfect = false) {
+  let defender, rawDamage, attacker;
+  if (typeof arg1 === 'number') {
+    defender = arg0;
+    rawDamage = arg1;
+    attacker = arg2;
+  } else {
+    attacker = arg0;
+    defender = arg1;
+    rawDamage = typeof arg2 === 'number' ? arg2 : 0;
+  }
+
+  if (!defender || defender.hp <= 0) return {absorbedByShield: 0, hpDamage: 0};
   if (isPerfect) return {absorbedByShield: 0, hpDamage: 0};
 
   defender.shield ??= {hp: 0, duration: 0, maxHp: 80};
@@ -607,7 +643,7 @@ export function processDamageWithShieldAndStages(defender, rawDamage, attacker =
 
     if (attacker) {
       defender.lastAttacker = attacker.id;
-      defender.lastDamagedTime = performance.now();
+      defender.lastDamagedTick = (defender.lastDamagedTick ?? 0) + 1;
     }
   }
 
@@ -616,6 +652,12 @@ export function processDamageWithShieldAndStages(defender, rawDamage, attacker =
 
 /**
  * Danifica um objeto destrutível de acordo com a categoria de entrega e bônus ofensivo (R3.6, R5.14, R9.10).
+ * @param {any} destructible
+ * @param {number} baseDamage
+ * @param {string} [category]
+ * @param {any} [attacker]
+ * @param {any} [mapState]
+ * @param {any[]} [events]
  */
 export function damageDestructible(destructible, baseDamage, category = 'physical', attacker = null, mapState = null, events = []) {
   if (destructible.state !== 'solid' || destructible.hp <= 0) return false;
@@ -637,21 +679,23 @@ export function damageDestructible(destructible, baseDamage, category = 'physica
     // Objeto destruído! (R1.12, R3.8, R6.5, R11.6)
     destructible.state = 'dead';
     destructible.respawnTimer = randomRange(mapState, C.map?.destructibleRespawnMin ?? 15, C.map?.destructibleRespawnMax ?? 30);
-    mapState.destructibleStats.broken++;
+    if (mapState?.destructibleStats) mapState.destructibleStats.broken++;
     events.push({result: 'destructibleDestroyed', id: destructible.id, pos: {...destructible.pos}});
 
     // Spawn do drop de consumível que cai fisicamente (R1.12, R4.11, R11.6)
-    if (mapState) {
+    if (mapState?.items) {
       const dropType = pickRandomConsumableType(mapState);
+      const dHeight = destructible.size?.height ?? destructible.size?.hy ?? 1.6;
       mapState.items.push({
         id: mapState.nextEntityId++,
         type: dropType,
-        pos: {x: destructible.pos.x, y: destructible.size.height + 0.2, z: destructible.pos.z},
+        pos: {x: destructible.pos.x, y: dHeight + 0.2, z: destructible.pos.z},
         life: C.map?.itemLifetime ?? 15,
         isDrop: true, // drop excepcional que pode exceder 4 itens (R5.16)
         vy: 1.5, // leve impulso para cima antes da queda balística
       });
       events.push({result: 'dropSpawned', type: dropType, pos: {...destructible.pos}});
+      events.push({result: 'itemDropped', type: dropType, pos: {...destructible.pos}});
     }
     return true;
   }

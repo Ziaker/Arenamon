@@ -73,7 +73,7 @@ export function getCombatZones(self, target, style = null) {
 export function safeArenaDirection(pos, desiredDir, arenaHalf = C.test.arenaHalf, margin = 1.6) {
   const isCircle = C.map?.arenaShape !== 'square';
   if (isCircle) {
-    const radius = C.map?.arenaRadius ?? 50;
+    const radius = (arenaHalf != null && arenaHalf !== C.test.arenaHalf) ? arenaHalf : (C.map?.arenaRadius ?? 50);
     const d = length(pos);
     const lim = radius - margin;
     if (d > lim && d > 1e-6) {

@@ -9,7 +9,7 @@
 //   • Demais encadeamentos (C → C, X → C, X → X e defesa): janela genérica `chainAfter` da ação em curso (GDD 7.3/7.4).
 // Com os ajustes V6_COMPAT (config.js) o resultado é idêntico ao laboratório v6 (teste de paridade).
 import {C} from './config.js';
-import {nominalDistance, actionParams, invulnerableWindow, chainOpen, actionSpec} from './entity.js';
+import {nominalDistance, actionParams, invulnerableWindow, chainOpen, actionSpec, getFighterMaxStamina} from './entity.js';
 import {stat, hasFlag} from './status.js';
 import {moveInSlot, getMove} from './moves.js';
 import {chargeParams, chargeLevel, interruptCooldown, boostPlan} from './charge.js';
@@ -87,7 +87,7 @@ export function startPermission(f, kind) {
   return {ok: true};
 }
 /** Motivo da falta de stamina (mesma condição de `affordable` em updateFighter). */
-const staminaReason = (f, p) => f.exhausted ? {reason: 'exhausted', detail: {value: f.stamina, refill: C.rules.staminaMax}} : {reason: 'stamina', detail: {value: f.stamina, required: p.cost}};
+const staminaReason = (f, p) => f.exhausted ? {reason: 'exhausted', detail: {value: f.stamina, refill: getFighterMaxStamina(f)}} : {reason: 'stamina', detail: {value: f.stamina, required: p.cost}};
 
 // Memória só do diagnóstico (fora do estado do lutador: não entra em save/replay nem altera a simulação).
 const lastBufferReason = new WeakMap(), sprintDenied = new WeakSet();
@@ -129,7 +129,7 @@ export function doFeint(f, from, dir, fighters, desiredHeading, guardHeld) {
   const R = C.rules, tackleCost = costOf(f, C.actions.tackle.cost);
   if (from === 'charge') cancelTackleCharge(f, 'feint');
   f.action = null;f.guard = false;f.guardSuppressed = false;f.blend = null;f.vaultHeight = 0;f.bufferedTackle = null;f.inputBuffer = null;f.sprinting = false;f.stun = 0;f.push = null;
-  f.stamina = clamp(f.stamina + tackleCost, 0, R.staminaMax);
+  f.stamina = clamp(f.stamina + tackleCost, 0, getFighterMaxStamina(f));
   startAction(f, 'dodge', {move: dir, dodgeDirection: dir}, fighters, desiredHeading, false, guardHeld);   // cobra o custo normal da esquiva
   const extra = Math.max(0, R.feintCost - costOf(f, C.actions.dodge.cost));
   f.stamina = Math.max(0, f.stamina - extra);f.regenBase = f.stamina;f.regenAge = 0;f.exhausted = isDepleted(f.stamina);
@@ -272,9 +272,10 @@ export function updateFighter(f, cmd, fighters, dt) {
   if (f.sprinting) {f.regenBase = Math.max(0, f.stamina - A.sprint.staminaDrain * dt);f.regenAge = 0;}
   f.regenAge += dt * (f.guard ? X.combat.guardRegenFactor : 1) * stat(f, 'staminaRegen', 1);
   const regen = clamp((f.regenAge - R.regenDelay) / R.regenTime, 0, 1);
-  f.stamina = f.regenBase + (R.staminaMax - f.regenBase) * regen ** 3;
+  const maxStam = getFighterMaxStamina(f);
+  f.stamina = f.regenBase + (maxStam - f.regenBase) * regen ** 3;
   if (f.sprinting && isDepleted(f.stamina)) {f.exhausted = true;}
-  if (f.stamina >= R.staminaMax - 1e-8) {f.stamina = R.staminaMax;f.exhausted = false;}
+  if (f.stamina >= maxStam - 1e-8) {f.stamina = maxStam;f.exhausted = false;}
   f.staminaTrend = (f.stamina - staminaBefore) / dt;
   if (!cmd.dodgeHeld) f.sprintArmed = false;
   if (!cmd.guard || !T.enableDefense) {f.guard = false;f.guardSuppressed = false;}
@@ -312,10 +313,13 @@ export function updateFighter(f, cmd, fighters, dt) {
     const g = M.jumpGravity ?? R.launchGravity;
     const h = M.jumpHeight ?? 2.0;
     const vy = Math.sqrt(2 * g * h);
+    const horiz = length(move) > 0
+      ? scale(normalize(move), Math.max(length(f.velocity), walkSpeed(f)))
+      : {...f.velocity};
     f.flight = {
       y: f.groundY ?? 0,
       vy,
-      horizontal: {...f.velocity},
+      horizontal: horiz,
       gravity: g,
       isNormalJump: true,
     };
@@ -362,7 +366,7 @@ export function updateFighter(f, cmd, fighters, dt) {
   // Sprint pedido (C mantido com direção no ponto de entrada) e recusado por stamina: relatado uma vez por esquiva.
   if (diag && !sprintReady && T.enableSprint && cmd.dodgeHeld && f.sprintArmed && length(move) > .01 && f.action?.kind === 'dodge' && !f.action.vault && !sprintDenied.has(f.action)
     && f.action.elapsed >= S.entryFraction * A.dodge.duration - 1e-8 && (f.exhausted || f.stamina < S.minStamina - 1e-8)) {
-    sprintDenied.add(f.action);report(f, {kind: 'sprint', result: 'denied', ...(f.exhausted ? {reason: 'exhausted', detail: {value: f.stamina, refill: R.staminaMax}} : {reason: 'sprintStamina', detail: {value: f.stamina, required: S.minStamina}})});
+    sprintDenied.add(f.action);report(f, {kind: 'sprint', result: 'denied', ...(f.exhausted ? {reason: 'exhausted', detail: {value: f.stamina, refill: getFighterMaxStamina(f)}} : {reason: 'sprintStamina', detail: {value: f.stamina, required: S.minStamina}})});
   }
   if (sprintReady && f.action?.kind === 'dodge' && !f.action.vault && f.action.elapsed >= S.entryFraction * A.dodge.duration - 1e-8) {
     f.locomotionVelocity = {...f.velocity};f.action = null;f.vaultHeight = 0;f.sprinting = true;f.sprintCarry = false;
@@ -566,7 +570,7 @@ export function movePermission(f, def, slot = null) {
   }
   if (f.stun > 1e-8 && !def.fromGuardStun) return {ok: false, reason: 'guardStun', detail: {left: f.stun}};
   const cost = costOf(f, def.cost ?? 1);
-  if (f.exhausted && cost > 0) return {ok: false, reason: 'exhausted', detail: {value: f.stamina, refill: C.rules.staminaMax}};
+  if (f.exhausted && cost > 0) return {ok: false, reason: 'exhausted', detail: {value: f.stamina, refill: getFighterMaxStamina(f)}};
   if (f.stamina < cost - 1e-8) return {ok: false, reason: 'stamina', detail: {value: f.stamina, required: cost}};
   return {ok: true};
 }
@@ -621,7 +625,7 @@ export function chargePermission(f, def, slot = null) {
   else if (cur && !chainOpen(f)) return {ok: false, reason: 'chain', detail: {left: Math.max(0, actionSpec(cur).chainAfter - cur.elapsed)}};
   if (f.stun > 1e-8 && !def.fromGuardStun) return {ok: false, reason: 'guardStun', detail: {left: f.stun}};
   const cost = costOf(f, def.cost ?? 1);
-  if (f.exhausted && cost > 0) return {ok: false, reason: 'exhausted', detail: {value: f.stamina, refill: C.rules.staminaMax}};
+  if (f.exhausted && cost > 0) return {ok: false, reason: 'exhausted', detail: {value: f.stamina, refill: getFighterMaxStamina(f)}};
   if (f.stamina < cost - 1e-8) return {ok: false, reason: 'stamina', detail: {value: f.stamina, required: cost}};
   return {ok: true};
 }
@@ -648,7 +652,7 @@ export function cancelCharge(f, why) {
 function boostCooldown(f, def, slot, diag) {
   const left = f.moveCooldowns?.[def.id] ?? 0, plan = boostPlan(left, chargeParams(def)), cost = costOf(f, plan.cost);
   const deny = why => {if (diag) report(f, {kind: 'skill', slot, move: def.id, result: 'denied', ...why});};
-  if (f.exhausted && cost > 0) return deny({reason: 'exhausted', detail: {value: f.stamina, refill: C.rules.staminaMax}});
+  if (f.exhausted && cost > 0) return deny({reason: 'exhausted', detail: {value: f.stamina, refill: getFighterMaxStamina(f)}});
   if (f.stamina < cost - 1e-8) return deny({reason: 'stamina', detail: {value: f.stamina, required: cost}});
   f.stamina = Math.max(0, f.stamina - cost);f.regenBase = f.stamina;f.regenAge = 0;f.exhausted = isDepleted(f.stamina);
   const rest = left - plan.reduce;if (rest <= 1e-8) delete f.moveCooldowns[def.id];else f.moveCooldowns[def.id] = rest;

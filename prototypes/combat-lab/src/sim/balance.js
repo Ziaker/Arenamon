@@ -20,7 +20,13 @@ export function runBalance({matches = 20, seed = 1, profile = 'balanced', enemyP
         last[i] = f.action;
         if (f.exhausted) {s.exhaustedTicks++;if (!wasExhausted[i]) s.exhausted++;}wasExhausted[i] = f.exhausted;
       });
-      for (const e of g.lastStepEvents) {const s = sides[e.attacker];if (e.result in s) s[e.result]++;s.damage += e.damage;}
+      for (const e of g.lastStepEvents) {
+        const s = sides[e.attacker];
+        if (s) {
+          if (e.result in s) s[e.result]++;
+          if (typeof e.damage === 'number') s.damage += e.damage;
+        }
+      }
     }
     if (g.phase === 'result' && g.winner !== null) sides[g.winner].wins++;else timeouts++;
     [g.playerBrain, g.brain].forEach((b, i) => {const s = b.t?.style?.label;if (s) sides[i].styles[s] = (sides[i].styles[s] || 0) + 1;});

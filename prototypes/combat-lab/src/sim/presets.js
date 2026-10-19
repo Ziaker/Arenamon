@@ -43,6 +43,13 @@ export const categoryLabel = id => CATEGORIES.find(c => c.id === id)?.label ?? i
  */
 export function switchClass(path) {
   if (path.startsWith('test.') || /^profiles\.[a-z]+\.hp$/.test(path) || path === 'rules.staminaMax') return 'restart';
+  if (path.startsWith('map.')) {
+    const k = path.split('.')[1];
+    if (['arenaRadius', 'arenaShape', 'destructibleCount', 'destructibleHp', 'obstacleCount', 'platforms', 'itemInitialCount'].includes(k)) {
+      return 'restart';
+    }
+    return 'boundary';
+  }
   const c = categoryOf(path);
   if (['locomotion', 'control', 'sprint', 'animation', 'camera', 'vfx', 'display', 'bindings', 'ai'].includes(c)) {
     // Parâmetros de sprint ligados à stamina continuam válidos a qualquer momento (lidos por passo, sem reescrever stamina).

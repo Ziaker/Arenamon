@@ -24,7 +24,7 @@ export function defaults() {
     exhaustedSpeed: .7, guardTurn: 3 * Math.PI, guardAcceleration: 15 * Math.PI,
     // exhaustMode 1: exausto quando sobra menos que o menor custo de X/C (0 = só em zero, Etapa A). Rebote na parede: vertical.
     exhaustMode: 1, wallBounceVertical: 1, wallBounceUp: 0};
-  const test = {step: 1 / 120, maxFrame: .1, arenaRadius: 50, arenaHalf: 50, halfExtent: .5, hp: 100, attack: 20, defense: 50, speed: 4.8, attackReference: 20,
+  const test = {step: 1 / 120, maxFrame: .1, arenaRadius: 50, arenaHalf: 16, halfExtent: .5, hp: 100, attack: 20, defense: 50, speed: 4.8, attackReference: 20,
     speedReference: 10, defenseMedian: 50, pushCoefficient: 2, pushDuration: .3, aiInterval: .85, aiRange: 3.3, contactStep: .1, epsilon: 1e-8,
     forwardTolerance: Math.PI / 8};
   // Locomoção contínua (sim/locomotion.js). model 0 = aproximação linear do v6 (paridade); 1 = controlador com curvas,
@@ -228,7 +228,7 @@ export const ETAPA_A_MOTION = {'locomotion.model': 0, 'locomotion.acceleration':
  * defesa após chainAfter, C → X desde o início da esquiva, C cancela C após chainAfter, exaustão só em zero, salto em arco fixo.
  */
 export const ETAPA_A_RULES = {'actions.tackle.selfCancel': 1, 'actions.tackle.guardCancel': 1, 'actions.dodge.selfCancelFromEnd': 99, 'actions.dodge.vaultPhysics': 0,
-  'actions.cancel.windowMode': 0, 'actions.cancel.perfectAnytime': 0, 'rules.exhaustMode': 0, 'locomotion.lockTackleHoming': 0};
+  'actions.cancel.windowMode': 0, 'actions.cancel.perfectAnytime': 0, 'rules.exhaustMode': 0, 'locomotion.lockTackleHoming': 0, 'map.arenaShape': 'square'};
 /**
  * Ajustes que reproduzem o comportamento do laboratório v6 (usado no teste de paridade). Diferenças do padrão:
  * no v6 o tackle podia sair do recuo e do guard stun imediatamente, e C → X seguia a janela genérica (após 200 ms,

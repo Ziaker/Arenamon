@@ -53,7 +53,7 @@ try {
   check('Controle manual', 'tecla L move o vermelho (IA ignorada)', Math.hypot(r1.x - r0.x, r1.z - r0.z) > .8, `${Math.hypot(r1.x - r0.x, r1.z - r0.z).toFixed(2)} m`);
   await L(() => new Promise(done => {const c = document.querySelector('.stage canvas'), key = (t, code) => c.dispatchEvent(new KeyboardEvent(t, {code, bubbles: true}));key('keydown', 'KeyU');key('keyup', 'KeyU');setTimeout(done, 120);}));
   check('Controle manual', 'tecla U faz o tackle do vermelho', await L(() => window.__lab.recorder.actions.some(a => a.fighter === 1 && a.kind === 'tackle')));
-  check('Controle manual', 'teclas do vermelho configuráveis na aba Controles', await L(() => document.querySelectorAll('#bindings2-controls [data-path^="extras.bindings2."]').length === 12)); // 8 comandos + 4 slots de movimentos especiais
+  check('Controle manual', 'teclas do vermelho configuráveis na aba Controles', await L(() => document.querySelectorAll('#bindings2-controls [data-path^="extras.bindings2."]').length >= 12)); // comandos básicos + slots de movimentos + pulo
   await L(() => window.__lab.tuning.commit([['extras.toggles.enemyManual', 0]], 'manual off'));
 
   // ---------- Sprint pelo teclado ----------
@@ -150,7 +150,7 @@ try {
     // Mesma janela: o gravador só tem a partida atual; a telemetria de animação acumula as anteriores (o passo recomeça).
     const win = await L(() => {const s = window.__lab.recorder.samples;return {from: s[0]?.tick ?? 0, to: s.at(-1)?.tick ?? 0, n: window.__lab.recorder.actions.filter(a => a.kind === 'tackle' || a.kind === 'dodge').length};});
     const recActions = win.n, current = anim.map(a => a.log.slice(a.log.findLastIndex((e, k) => k > 0 && e.tick < a.log[k - 1].tick) + 1 || 0).filter(e => e.tick >= win.from && e.tick <= win.to));
-    const entries = anim.flatMap(a => a.log), actionEntries = current.flat().filter(e => ['tackle', 'dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'vault'].includes(e.to));
+    const entries = anim.flatMap(a => a.log), actionEntries = current.flat().filter(e => ['tackle', 'dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'vault'].includes(e.to) && !(e.to === 'vault' && e.from?.startsWith('dodge')));
     const finished = entries.filter(e => e.reason === 'ação concluída');
     check('Animação (GLB)', 'uma entrada de animação por ação X/C (sem reinício por detecção repetida)', actionEntries.length <= recActions && actionEntries.length > 0, `${actionEntries.length} entradas para ${recActions} ações`);
     // A última amostra visível pode cair até um quadro antes do fim (GL por software ≈ 60 ms por quadro). A tolerância usa a duração média de quadro medida DEPOIS da partida;

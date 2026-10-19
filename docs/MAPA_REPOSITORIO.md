@@ -121,4 +121,5 @@ Para garantir **estabilidade absoluta** e não quebrar o trabalho paralelo dos o
 | **Protótipo antigo de blocos** | `prototypes/game/dist/arenamon-jogavel.html` | `prototypes/game/src/` | `prototypes/game/README.md` |
 | **Importador de Modelos** | `prototypes/importer/dist/importador-prototipo.html` | `prototypes/importer/src/` | `prototypes/importer/README.md` |
 | **Visualizador de Blocos** | `prototypes/placeholders/dist/criaturas-laboratorio.html`| `prototypes/placeholders/src/`| `prototypes/placeholders/README.md`|
+| **VFX 3D Elemental (Psíquico)** | `prototypes/vfx-elemental/dist/vfx-elemental-psiquico.html` | `prototypes/vfx-elemental/src/` | `docs/VFX_ELEMENTAL_PSIQUICO.md` |
 | **Matriz de Testes** | `TESTES_ARENAMON.html` | `test*.mjs` em cada pasta | `docs/CENTRAL_DE_TESTES.md` |

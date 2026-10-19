@@ -102,7 +102,7 @@ function range(key, value, path) {
     if (key === 'jumpGravity') return {min: 5, max: 40, step: 0.5, fmt: n => n.toFixed(1) + ' m/s²'};
     if (key === 'itemPickupRadius') return {min: 0.5, max: 5.0, step: 0.1, fmt: n => n.toFixed(1) + ' m'};
     if (key === 'healHp') return {min: 5, max: 100, step: 5, fmt: n => n + ' HP'};
-    if (key === 'healStamina') return {min: 1, max: 10, step: 1, fmt: n => n + ' seg'};
+    if (key === 'healStamina') return {min: 1, max: 10, step: 1, fmt: n => n + ' pontos'};
     if (key === 'stageAttackBonus' || key === 'stageCooldownReduction' || key === 'stageSpeedBonus') return {min: 0.01, max: 0.50, step: 0.01, fmt: n => '+' + (n * 100).toFixed(0) + '%'};
     if (key === 'stageDefenseReduction') return {min: 0.01, max: 0.50, step: 0.01, fmt: n => '-' + (n * 100).toFixed(0) + ' pp'};
   }

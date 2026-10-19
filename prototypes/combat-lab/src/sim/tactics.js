@@ -105,6 +105,32 @@ export function tacticalCommand(brain, self, target, dt, P) {
   t.perception ??= initPerception(brain, P);
   updatePerception(t.perception, brain, self, target, dt, P, t.time);
   const diff = sub(target.position, self.position), distance = length(diff), forward = distance > 1e-6 ? normalize(diff) : direction(self.facing);
+  const oppReach = contactDistance() + nominalDistance(target, 'tackle') * .85;
+
+  // ---------- Percepção das ações do adversário (sempre atualizada, mesmo em voo ou carga) ----------
+  const oppKind = (F.perception && t.perception)
+    ? t.perception.observedAction
+    : (target.action?.kind ?? (target.guard ? 'guard' : null));
+  const restarted = target.action && oppKind && oppKind === t.oppKind && (target.action?.elapsed ?? 0) < t.oppElapsed - 1e-9;
+  if (oppKind !== t.oppKind || restarted) {
+    if (oppKind === 'tackle') {
+      const attackDist = (F.perception && t.perception?.observedActionDistance != null)
+        ? t.perception.observedActionDistance
+        : distance;
+      if (F.opponentModel && t.opponentModel) {
+        recordOpponentAttack(t.opponentModel, attackDist, .25 * (P.adaptation ?? .5) + .05);
+        t.model.attackDist = t.opponentModel.preferredAttackDistance;
+      } else {
+        // Aprende de que distância o adversário costuma atacar (para ficar logo fora dela).
+        t.model.attackDist = t.model.attackDist === null ? attackDist : ema(t.model.attackDist, attackDist, .2 + .5 * (P.adaptation ?? .5));
+      }
+      t.model.attackRate = ema(t.model.attackRate, attackDist < oppReach + 1 ? 1 : .3, .25 * (P.adaptation ?? .5) + .05);
+      const reaction = F.perception ? 0 : ((P.reaction ?? .15) + brain.random() * (P.reactionJitter ?? .1));
+      const misread = F.perception ? (t.perception?.actionMisread ?? false) : (brain.random() < (P.mistake ?? .1));
+      t.threat = {at: t.time + reaction, decided: false, misread, response: null};
+    }
+  }
+  t.oppKind = oppKind;t.oppElapsed = target.action?.elapsed ?? 0;
   // Recovery rápido: lançado, a IA aperta C pouco antes do chão (uma vez) e segura uma direção que a afasta do rival sem encostar na parede.
   t.techPress = false;
   if (!self.flight) t.techArmed = false;
@@ -115,9 +141,27 @@ export function tacticalCommand(brain, self, target, dt, P) {
     // Fuga do wall-splat: se o voo vai bater na parede caindo e rápido antes de pousar, mergulha (X) para sair do voo.
     t.slamPress = false;
     if (F.wallEscape && C.extras.ai.wallEscape && C.extras.toggles.enableWallSplat && C.extras.toggles.enableMeteorSlam && !self.wallSplat && self.flight && !self.exhausted && self.stamina >= A.tackle.cost + .05) {
-      const fl = self.flight, g = R.launchGravity, b = C.test.arenaHalf - C.test.halfExtent, vx = fl.horizontal.x, vz = fl.horizontal.z;
-      const tx = vx > 1e-6 ? (b - self.position.x) / vx : vx < -1e-6 ? (-b - self.position.x) / vx : Infinity, tz = vz > 1e-6 ? (b - self.position.z) / vz : vz < -1e-6 ? (-b - self.position.z) / vz : Infinity;
-      const tWall = Math.min(tx, tz), vyAt = fl.vy - g * tWall;
+      const fl = self.flight, g = R.launchGravity, vx = fl.horizontal.x, vz = fl.horizontal.z;
+      const isCircle = C.map?.arenaShape !== 'square';
+      const b = (isCircle ? (C.map?.arenaRadius ?? 50) : C.test.arenaHalf) - C.test.halfExtent;
+      let tWall = Infinity;
+      if (isCircle) {
+        const vSq = vx * vx + vz * vz;
+        if (vSq > 1e-6) {
+          const bProj = 2 * (self.position.x * vx + self.position.z * vz);
+          const cProj = self.position.x * self.position.x + self.position.z * self.position.z - b * b;
+          const disc = bProj * bProj - 4 * vSq * cProj;
+          if (disc >= 0) {
+            const sol = (-bProj + Math.sqrt(disc)) / (2 * vSq);
+            if (sol > 0) tWall = sol;
+          }
+        }
+      } else {
+        const tx = vx > 1e-6 ? (b - self.position.x) / vx : vx < -1e-6 ? (-b - self.position.x) / vx : Infinity;
+        const tz = vz > 1e-6 ? (b - self.position.z) / vz : vz < -1e-6 ? (-b - self.position.z) / vz : Infinity;
+        tWall = Math.min(tx, tz);
+      }
+      const vyAt = fl.vy - g * tWall;
       if (tWall > 0 && tWall < tl && vyAt < 0 && length(fl.horizontal) >= R.wallSplatMinSpeed * .8) {
         t.slamPress = true;c.tackle = true;c.move = distance > 1e-6 ? forward : c.move;c.target = target.id;c.dodgeDirection = c.move;
         return finish(brain, c, self, target);
@@ -175,7 +219,7 @@ export function tacticalCommand(brain, self, target, dt, P) {
     brain.wasGuard = false;
     return finish(brain, c, self, target);
   }
-  const myReach = contactDistance() + nominalDistance(self, 'tackle') * (.55 + .3 * S.range), oppReach = contactDistance() + nominalDistance(target, 'tackle') * .85;
+  const myReach = contactDistance() + nominalDistance(self, 'tackle') * (.55 + .3 * S.range);
   const affordTackle = !self.exhausted && self.stamina >= A.tackle.cost - 1e-6, affordDodge = !self.exhausted && self.stamina >= A.dodge.cost - 1e-6;
   const free = !self.action && self.knockRecovery <= 0 && !self.flight;
   // Evita gastar a última ação e ficar exausto, salvo em oportunidade clara (finalização, rival vulnerável, contra-ataque).
@@ -202,36 +246,12 @@ export function tacticalCommand(brain, self, target, dt, P) {
   // Orçamento do C → X pelo flanco: com a exaustão abaixo do menor custo, sobra uma ação para não ficar exausto.
   const flankBudget = A.dodge.cost + A.tackle.cost + (C.rules.exhaustMode === 1 ? Math.min(A.dodge.cost, A.tackle.cost) * (1 - .5 * (1 - S.reserve)) : 0) + S.reserve * .6 * A.dodge.cost;
 
-  // ---------- Percepção das ações do adversário ----------
-  const oppKind = (F.perception && t.perception)
-    ? t.perception.observedAction
-    : (target.action?.kind ?? (target.guard ? 'guard' : null));
-  const restarted = target.action && oppKind && oppKind === t.oppKind && (target.action?.elapsed ?? 0) < t.oppElapsed - 1e-9;
-  if (oppKind !== t.oppKind || restarted) {
-    if (oppKind === 'tackle') {
-      const attackDist = (F.perception && t.perception?.observedActionDistance != null)
-        ? t.perception.observedActionDistance
-        : distance;
-      if (F.opponentModel && t.opponentModel) {
-        recordOpponentAttack(t.opponentModel, attackDist, .25 * (P.adaptation ?? .5) + .05);
-        t.model.attackDist = t.opponentModel.preferredAttackDistance;
-      } else {
-        // Aprende de que distância o adversário costuma atacar (para ficar logo fora dela).
-        t.model.attackDist = t.model.attackDist === null ? attackDist : ema(t.model.attackDist, attackDist, .2 + .5 * (P.adaptation ?? .5));
-      }
-      t.model.attackRate = ema(t.model.attackRate, attackDist < oppReach + 1 ? 1 : .3, .25 * (P.adaptation ?? .5) + .05);
-      const reaction = F.perception ? 0 : ((P.reaction ?? .15) + brain.random() * (P.reactionJitter ?? .1));
-      const misread = F.perception ? (t.perception?.actionMisread ?? false) : (brain.random() < (P.mistake ?? .1));
-      t.threat = {at: t.time + reaction, decided: false, misread, response: null};
-    }
-  }
   // Como o adversário respondeu ao nosso X (para adaptar as próximas escolhas): observa o estado dele durante a
   // janela de resposta, inclusive quem já estava defendendo antes do ataque.
   if (t.myAttack && t.time - t.myAttack.at < .45 && !t.myAttack.read && t.time - t.myAttack.at > .02) {
     const k = target.action?.kind;
     t.myAttack.read = k === 'dodge' ? 'dodge' : k === 'tackle' ? 'clash' : target.guard || target.stun > 0 ? 'guard' : null;
   }
-  t.oppKind = oppKind;t.oppElapsed = target.action?.elapsed ?? 0;
   if (t.myAttack && t.time - t.myAttack.at >= .45) {
     const read = t.myAttack.read ?? 'hit', rate = .15 + .45 * (P.adaptation ?? .5);
     if (F.opponentModel && t.opponentModel) {

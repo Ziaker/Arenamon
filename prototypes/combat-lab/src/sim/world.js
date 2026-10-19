@@ -184,6 +184,13 @@ function stepProjectile(game, p, dt, events, spawnLater) {
     const from = {...p.pos};p.pos = add(p.pos, scale(p.vel, dt / steps));if (p.gravity) {p.y = Math.max(0, p.y + (p.vy ?? 0) * dt / steps);if (p.y <= 0 && p.vy < 0) {p.dead = true;events.push({result: 'groundHit', attacker: p.owner ?? null, target: null, damage: 0, entity: p.id, kind: 'projectile'});if (p.onHit) spawnLater.push(at(p.onHit, p));return;}}
     if (!p.gravity && p.vy) {p.y += p.vy * dt / steps;if (p.y <= 0 && p.vy < 0) {p.dead = true;events.push({result: 'groundHit', attacker: p.owner ?? null, target: null, damage: 0, entity: p.id, kind: 'projectile'});return;}}   // voo inclinado sem gravidade (pedras com alvo travado)
     if (!reflectPass(game, p, from, events)) return;
+    const half = C.test.arenaHalf;
+    if (Math.abs(p.pos.x) > half || Math.abs(p.pos.z) > half) {
+      p.dead = true;
+      events.push({result: 'arenaHit', attacker: p.owner ?? null, target: null, damage: 0, entity: p.id, kind: 'projectile'});
+      if (p.onHit) spawnLater.push(at(p.onHit, p));
+      return;
+    }
     const isCircle = C.map?.arenaShape !== 'square';
     if (isCircle) {
       const radius = C.map?.arenaRadius ?? 50;
@@ -207,9 +214,6 @@ function stepProjectile(game, p, dt, events, spawnLater) {
           }
         }
       }
-    } else {
-      const half = C.test.arenaHalf;
-      if (Math.abs(p.pos.x) > half || Math.abs(p.pos.z) > half) {p.dead = true;events.push({result: 'arenaHit', attacker: p.owner ?? null, target: null, damage: 0, entity: p.id, kind: 'projectile'});if (p.onHit) spawnLater.push(at(p.onHit, p));return;}
     }
 
     // Mapa: destrutíveis, obstáculos e plataformas (R1.5, R1.8, R3.4, R8.8)

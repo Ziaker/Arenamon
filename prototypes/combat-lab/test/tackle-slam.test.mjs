@@ -14,7 +14,7 @@ function arena({blue = vec(0, -3), red = vec(0, 3), over = {}} = {}) {
   const g = new Game();g.mode = 'inactive';g.reset({positions: [blue, red]});g.fighters[0].facing = 0;g.fighters[1].facing = Math.PI;return g;
 }
 const step = (g, a = cmd(), b = cmd()) => {g.step(a, b);return g.lastStepEvents;};
-const wallX = () => C.test.arenaHalf - C.test.halfExtent;
+const wallX = () => (C.map?.arenaShape === 'square' ? C.test.arenaHalf : (C.map?.arenaRadius ?? 50)) - C.test.halfExtent;
 /** Lutador 0 voando rente à parede +x. */
 function nearWall(flight, over = {}) {
   const g = arena({blue: vec(0, 0), red: vec(-8, 0), over});const f = g.fighters[0];

@@ -129,7 +129,22 @@ export class Brain {
       if (canDodge && evade && this.cooldown <= 0) {c.move = side;c.dodge = true;this.cooldown = C.test.aiInterval * this.rhythm(P);this.phase++;}
       else {c.guard = true;c.move = predict > 0 ? scale(forward, -A.reactiveRetreatStrength) : vec();}
     } else {
-      if (distance > A.approachDistance * this.rangeBias) c.move = forward;
+      const mapState = this.getMapState?.();
+      let seekItem = null;
+      if (mapState?.items?.length && self.hp < (self.attributes.hp * 0.7) && distance > 5.5 && !threatNear) {
+        let minDist = Infinity;
+        for (const it of mapState.items) {
+          const d = Math.hypot(it.pos.x - self.position.x, it.pos.z - self.position.z);
+          if (d < 25 && d < minDist) {
+            minDist = d;
+            seekItem = it;
+          }
+        }
+      }
+      if (seekItem) {
+        const toItem = sub({x: seekItem.pos.x, z: seekItem.pos.z}, self.position);
+        c.move = length(toItem) > 1e-4 ? normalize(toItem) : vec();
+      } else if (distance > A.approachDistance * this.rangeBias) c.move = forward;
       else if (distance < A.retreatDistance * this.rangeBias) c.move = scale(forward, -A.retreatStrength);
       else if (mode === 'combat') c.move = scale(side, A.strafeStrength);
       // Evita encostar na parede enquanto circula.

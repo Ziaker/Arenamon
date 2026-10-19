@@ -17,6 +17,7 @@ try {
   page.on('request', r => {if (/^https?:/.test(r.url())) network.push(r.url());});page.on('dialog', d => d.accept());
   await page.context().setOffline(true);await page.goto(labUrl);await page.waitForFunction(() => window.__lab);
   const L = (fn, arg) => page.evaluate(fn, arg);
+  await L(() => {window.__lab.C.map.arenaShape = 'square';});
   const tab = t => L(t => {if (t === 'moves') {if (document.getElementById('moves-drawer').hidden) document.getElementById('moves-open').click();return;}const p = document.getElementById('panel');if (p.hidden || p.dataset.tool !== t) document.querySelector(`button[data-tool="${t}"]`).click();}, t);
   const key = async (code, down) => {await page.locator('canvas').first().focus();await (down ? page.keyboard.down(code) : page.keyboard.up(code));};
 

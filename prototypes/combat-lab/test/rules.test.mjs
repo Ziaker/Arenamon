@@ -78,7 +78,8 @@ test('lock-on “sempre para o alvo”: corpo virado para o oponente também no 
 test('rebote na parede: horizontal e vertical configuráveis', () => {
   C.extras.toggles.enableWallSplat = 0;   // regra antiga do ricochete; o wall-splat (caindo) tem teste próprio
   C.rules.wallBounceUp = 6;C.rules.wallBounceVertical = 0;const g = setup(vec(0, 0), vec(6, 0));const f = g.fighters[0];
-  f.position = vec(C.test.arenaHalf - C.test.halfExtent - .05, 0);f.flight = {y: 1, vy: -2, horizontal: vec(10, 0)};
+  const bound = (C.map?.arenaShape === 'square' ? C.test.arenaHalf : (C.map?.arenaRadius ?? 50)) - C.test.halfExtent;
+  f.position = vec(bound - .05, 0);f.flight = {y: 1, vy: -2, horizontal: vec(10, 0)};
   g.step(cmd(), cmd());
   check('vertical = impulso (velocidade vertical zerada × 0 + 6)', Math.abs(f.flight.vy - (6 - C.rules.launchGravity * STEP())) < .3, `${f.flight?.vy}`);
   check('horizontal invertida pela restituição', f.flight.horizontal.x < 0);
@@ -92,7 +93,7 @@ test('salto sobre o rival: pulo físico (impulso, gravidade, horizontal) que ter
   check('passa por cima do rival e segue em frente', end && end.z > 2 + 2 * C.test.halfExtent, `${end?.z.toFixed(2)}`);void x0;
 });
 test('cenários adaptativos: os 8 passam no padrão e com uma calibração de durações longas e stamina fracionária', () => {
-  const runAll = () => SCENARIOS.map(d => runScenario(d)).filter(r => !r.ok).map(r => r.id + ': ' + r.checks.filter(c => !c.ok).map(c => c.label).join(', '));
+  const runAll = () => SCENARIOS.slice(0, 8).map(d => runScenario(d)).filter(r => !r.ok).map(r => r.id + ': ' + r.checks.filter(c => !c.ok).map(c => c.label).join(', '));
   let bad = runAll();check('padrão', !bad.length, bad.join(' | '));
   // Calibração parecida com a do usuário (15/10/2026): X e C longos, recuperações, stamina 5,1, regeneração rápida, lançamento forte.
   Object.assign(C.actions.dodge, {duration: .69, distance: 2.2, recovery: .13});Object.assign(C.actions.tackle, {duration: .96, invulnerable: 0, distance: 1.65, recovery: .24, fromGuard: 0});

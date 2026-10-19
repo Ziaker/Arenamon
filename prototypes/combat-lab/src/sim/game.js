@@ -1,7 +1,7 @@
 // Ciclo de partida de passo fixo (120 Hz), igual ao v6, mais estado serializável para replay e cenários.
 import {C} from './config.js';
 import {Brain} from './ai.js';
-import {createFighter, emptyCommand, isInvulnerable, isOffensive} from './entity.js';
+import {createFighter, emptyCommand, isInvulnerable, isOffensive, getFighterMaxStamina} from './entity.js';
 import {updateFighter, advanceAction, bufferDuringHitstop, tickCooldowns, isDepleted} from './controller.js';
 import {getEffect} from './move-effects.js';
 import {createWorld, stepWorld, spawn} from './world.js';
@@ -26,6 +26,7 @@ export class Game {
     this.mapState = createMapState(seed);
     this.reset();this.phase = 'menu';
   }
+  /** @param {{positions?: any}} [options] */
   reset({positions = null} = {}) {
     this.mapState = createMapState(this.seed);
     const pos = positions ?? (C.map?.arenaShape !== 'square' ? generateFighterSpawnPositions(this.mapState) : [vec(0, -4), vec(0, 2)]);
@@ -40,6 +41,7 @@ export class Game {
     initMap(this.mapState, this.fighters);
     this.tick = 0;this.events = [];this.winner = null;this.hitstop = 0;this.phase = 'playing';this.lastStepEvents = [];
   }
+  start() {this.phase = 'playing';}
   pause() {if (this.phase === 'playing') this.phase = 'paused';else if (this.phase === 'paused') this.phase = 'playing';}
   /** Um passo de simulação. cmd1 opcional: sem ele, o adversário usa a IA do modo atual. */
   step(cmd0 = emptyCommand(), cmd1) {
@@ -61,15 +63,17 @@ export class Game {
     for (const f of this.fighters) if (f.moveEvents?.length) worldEvents.push(...f.moveEvents.splice(0));   // eventos do Charge (início, soltura, cancelamento, recarga acelerada)
     this.fireMoveEffects(worldEvents);
     const fresh = stepPhysics(this.fighters, C.test.step, this.world);
-    // Escudos temporários (R9.3-R9.7, R10.2, R11.8)
-    for (const f of this.fighters) stepShield(f, C.test.step, fresh);
+    // Escudos temporários (R9.3-R9.7, R10.2, R11.8): timers não avançam durante finishing, pause ou hitstop
+    if (!finishing && this.phase === 'playing') {
+      for (const f of this.fighters) stepShield(f, C.test.step, fresh);
+    }
     // Mapa: consumíveis, respawn e drops (R4, R6, R9.13)
     if (!finishing && this.phase === 'playing' && this.mapState) {
-      fresh.push(...stepMap(this.mapState, C.test.step, this.fighters, this.events));
+      fresh.push(...stepMap(this.mapState, C.test.step, this.fighters));
     }
     // Mundo (projéteis, barreiras, paredes, áreas) e status: depois da física dos lutadores, no mesmo passo.
     fresh.push(...worldEvents, ...stepWorld(this, C.test.step));
-    for (const f of this.fighters) {fresh.push(...tickStatuses(f, C.test.step, C.rules.staminaMax));tickCooldowns(f, C.test.step);}
+    for (const f of this.fighters) {fresh.push(...tickStatuses(f, C.test.step, getFighterMaxStamina(f)));tickCooldowns(f, C.test.step);}
     for (const e of fresh) e.tick = this.tick;
     this.events.push(...fresh);this.events = this.events.slice(-12);this.lastStepEvents = fresh;
     if (C.extras.toggles.enableHitstop) {

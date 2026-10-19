@@ -45,7 +45,7 @@ const ai = g => g.playerBrain.command(g.fighters[0], g.fighters[1], 'tactical', 
 
 // ---------- Fuga do wall-splat ----------
 {
-  const wall = C.test.arenaHalf;
+  const wall = (C.map?.arenaShape === 'square' ? C.test.arenaHalf : (C.map?.arenaRadius ?? 50));
   const g = arena(vec(wall - 1.5, 0), vec(-6, 0));C.extras.toggles.enableFlightSlam = 1;const f = g.fighters[0];
   f.flight = {y: 1.2, vy: -3, horizontal: vec(11, 0)};f.state = 'airborne';
   const c = ai(g);assert.ok(c.tackle, 'caindo em direção à parede: a IA mergulha (X) para escapar do splat');

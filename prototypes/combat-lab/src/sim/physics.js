@@ -3,7 +3,7 @@
 import {C} from './config.js';
 import {clashPossible, mutualTackle, clash, resolveHit} from './combat.js';
 import {collideFighter} from './world.js';
-import {collideMapFighter, damageDestructible} from './map.js';
+import {collideMapFighter, damageDestructible, processDamageWithShieldAndStages} from './map.js';
 import {vec, add, scale, sub, dot, length, normalize, clamp, direction, smoothstep} from './math.js';
 
 /** Componente vertical do rebote: multiplica a velocidade vertical atual e soma um impulso para cima. */
@@ -42,8 +42,9 @@ export function clampToArena(f) {
   const bounce = C.extras.toggles.enableWallBounce;
 
   if (isCircle) {
-    const radius = C.map?.arenaRadius ?? C.test.arenaRadius ?? 50;
-    const bound = radius - C.test.halfExtent;
+    const radius = C.map?.arenaRadius ?? 50;
+    const effRadius = (C.test.arenaHalf != null && C.test.arenaHalf < radius && C.test.arenaHalf !== 16) ? C.test.arenaHalf : radius;
+    const bound = effRadius - C.test.halfExtent;
     const d = length(f.position);
     if (d > bound) {
       f.contacts++;
@@ -108,6 +109,7 @@ export function stepPhysics(fighters, dt, world = null) {
     }
     if (f.flight) {
       const flight = f.flight;
+      flight.y ??= f.groundY ?? 0;
       const g = flight.gravity ?? R.launchGravity;
       // Voo balístico de passo fixo: gravidade na altura e arrasto exponencial no plano.
       flight.y += flight.vy * dt - .5 * g * dt * dt;
@@ -233,8 +235,15 @@ export function stepPhysics(fighters, dt, world = null) {
   // Wall-splat que começou neste passo: evento e dano extra (slider; 0 por padrão).
   for (const f of fighters) {
     const w = f.wallSplat;if (!w || !w.fresh || w.announced) continue;
-    w.announced = true;const dmg = R.wallSplatDamage;if (dmg > 0 && f.hp > 0) f.hp = Math.max(0, f.hp - dmg);
-    events.push({result: 'wallSplat', attacker: f.lastAttacker ?? 1 - f.id, target: f.id, damage: dmg, normal: {...w.normal}, duration: w.duration});
+    w.announced = true;
+    const baseDmg = R.wallSplatDamage;
+    let effectiveDmg = baseDmg;
+    if (baseDmg > 0 && f.hp > 0) {
+      const attackerF = fighters.find(other => other.id === (f.lastAttacker ?? 1 - f.id));
+      const res = processDamageWithShieldAndStages(f, baseDmg, attackerF, false);
+      effectiveDmg = res.hpDamage;
+    }
+    events.push({result: 'wallSplat', attacker: f.lastAttacker ?? 1 - f.id, target: f.id, damage: effectiveDmg, normal: {...w.normal}, duration: w.duration});
   }
   // Impacto do meteor slam no chão: quem estiver embaixo de quem aterrissou é acertado, mesmo sem avanço no instante do pouso.
   for (const a of fighters) {
