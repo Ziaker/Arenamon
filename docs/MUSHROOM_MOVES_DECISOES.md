@@ -11,12 +11,14 @@
 
 | Ordem informada | Move | Situação |
 |---|---|---|
-| 1 | **Rock Tomb** | Nome confirmado após correção de **Rock Slide**; gameplay ainda não especificado. **Não foi substituído por Sand Wave.** |
+| 1 | **Emerging Stone** | **Novo nome aprovado para o Move 1, substituindo Rock Tomb** (nome que anteriormente corrigiu Rock Slide). Gameplay ainda não especificado. **Não é substituído por Sand Wave, que permanece como Move 3.** |
 | 2 | **Bullet Punch** | Mecânica descrita neste documento; implementação pendente. |
 | 3 | **Sand Wave** | **Substitui Sand Kick**, por confirmação explícita do diretor; especificação inicial na seção 6, ainda com pendências de design. |
 | 4 | **Body Slam** | Nome aprovado; gameplay ainda não especificado. |
 
 **Identificação técnica em aberto:** o diretor chama o personagem **Mushroom**. `docs/ROSTER.md` chama o personagem cogumelo de **Mosh**, com recursos em `chars/mosh/`. A equivalência Mushroom ↔ Mosh **não foi confirmada explicitamente** nesta conversa; não substituir automaticamente o identificador do personagem no código.
+
+**Renomeação vigente aprovada em 19/10/2026:** **Move 1: Rock Tomb → Emerging Stone**. Mudança **somente de nome**; **não** muda a identidade de Mushroom, a posição do golpe, as decisões de Bullet Punch/Sand Wave, o Move 4, nem aprova mecânica, estatística, animação, VFX ou implementação de Emerging Stone. Referências a **Rock Tomb** nas seções históricas deste documento descrevem a nomenclatura anterior e **não** restabelecem o nome antigo.
 
 A ordem apresentada acima é a **ordem dos golpes definida pelo diretor**. Associação efetiva aos slots de loadout requer integração posterior.
 
@@ -179,6 +181,8 @@ O design principal está definido, mas **não afirmar que a funcionalidade está
 **Condição de entrega futura:** registrar novos parâmetros e decisões neste mesmo documento, implementar em branch apropriada após autorização, validar no Combat Lab, disponibilizar pelo portal e relatar testes e limitações. **Este commit altera apenas documentação.**
 
 ## 6. Sand Wave — especificação inicial de gameplay (rodada 19/10/2026)
+
+**Nota de leitura atual:** menções a “Rock Tomb permanece como golpe 1” nesta seção e na decisão histórica **SW-D18** registram a nomenclatura **válida naquele momento**. O diretor posteriormente renomeou **somente o Move 1 para Emerging Stone**. **Sand Wave continua o Move 3**; nenhuma decisão funcional de Sand Wave foi alterada.
 
 ### 6.1 Nome, relação com o elenco e classificação
 
@@ -465,3 +469,20 @@ Estas divergências **não significam que o Sand Wave esteja implementado**: ind
 
 **Estado após a Rodada 10:** as **decisões funcionais de gameplay levantadas nessa auditoria estão respondidas**, incluindo comportamento da IA cegada e política para obstáculos móveis. **A direção visual final permanece pendente**, pois o diretor escolheu aguardar comparação de protótipos. **Não foi emitida certificação de encerramento integral ou de prontidão de implementação**. A integração futura da mecânica e os testes não estão autorizados por este registro.
 
+## 7. Emerging Stone — renomeação oficial do Move 1 (19/10/2026)
+
+**Decisão expressa do diretor:** o primeiro golpe de Mushroom passa a chamar-se **Emerging Stone**, **em substituição ao nome Rock Tomb**.
+
+| Campo | Estado vigente |
+|---|---|
+| Personagem | **Mushroom** (identificador técnico Mushroom ↔ Mosh continua sem confirmação) |
+| Ordem no elenco | **Move 1**, sem alteração |
+| Nome vigente | **Emerging Stone** |
+| Nome anterior | **Rock Tomb** (que antes havia corrigido a indicação **Rock Slide**) |
+| Mecânicas e parâmetros | **Ainda não definidos nem aprovados**; o nome, isoladamente, não determina execução, dano, alvo, alcance, hitbox, custo, cooldown ou Power Level |
+| Visual, animação e VFX | **Não especificados** por esta renomeação |
+| Implementação e testes | **Não autorizados nem executados** por esta alteração documental |
+
+**Preservação e precedência histórica:** os trechos de correção de Rock Slide → Rock Tomb, a decisão **SW-D18** e os relatos das Rodadas 1–10 de Sand Wave continuam íntegros como registros das decisões anteriores. Onde constar “Rock Tomb permanece como golpe 1”, interpretar como referência **histórica, superada apenas quanto ao nome** por esta renomeação. **A posição do golpe 1 não mudou**, Sand Wave continua **substituindo Sand Kick no Move 3**, Bullet Punch continua Move 2 e Body Slam permanece Move 4 até nova decisão explícita.
+
+**Próxima etapa autorizável:** iniciar rodadas próprias para **definir o gameplay de Emerging Stone**, solicitando aprovação antes de qualquer escolha mecânica; a presente alteração **não inicia implementação de moves**.
