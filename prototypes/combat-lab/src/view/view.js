@@ -36,6 +36,13 @@ export class View {
     this.scene.background = new T.Color(rgb('background'));this.ambientLight = new T.HemisphereLight(0xffffff, 0x65707b, X.visual.ambientLightIntensity);this.scene.add(this.ambientLight);
     this.directionalLight = new T.DirectionalLight(0xffffff, X.visual.directionalIntensity);this.directionalLight.position.set(X.visual.lightX, X.visual.lightY, X.visual.lightZ);this.scene.add(this.directionalLight);
     this.floor = new T.Mesh(new T.BoxGeometry(32, X.visual.floorThickness, 32), new T.MeshStandardMaterial({color: rgb('floor'), roughness: 1}));this.floor.position.y = -.06;this.scene.add(this.floor);
+    this.circleFloor = new T.Mesh(new T.CylinderGeometry(50, 50, X.visual.floorThickness, 64), new T.MeshStandardMaterial({color: rgb('floor'), roughness: 1}));
+    this.circleFloor.position.y = -X.visual.floorThickness / 2;
+    this.scene.add(this.circleFloor);
+    this.circleRing = new T.Mesh(new T.RingGeometry(49.85, 50.15, 96), new T.MeshBasicMaterial({color: 0x59d6e6, side: T.DoubleSide, transparent: true, opacity: 0.45, depthWrite: false}));
+    this.circleRing.rotation.x = -Math.PI / 2;
+    this.circleRing.position.y = 0.015;
+    this.scene.add(this.circleRing);
     this.grid = new T.GridHelper(32, 32, rgb('gridMajor'), rgb('gridMinor'));this.grid.position.y = .005;this.scene.add(this.grid);this.walls = [];
     for (const [x, z, w, d] of [[-16, 0, .15, 32], [16, 0, .15, 32], [0, -16, 32, .15], [0, 16, 32, .15]]) {
       const wall = new T.Mesh(new T.BoxGeometry(w, X.visual.wallHeight, d), new T.MeshStandardMaterial({color: rgb('wall')}));wall.position.set(x, .175, z);this.scene.add(wall);this.walls.push(wall);
@@ -70,10 +77,35 @@ export class View {
   /** Reaplica tamanho da arena, cores, luzes e câmera depois de mudanças no ajustador. */
   applyConfig() {
     const X = C.extras, V = X.visual, half = C.test.arenaHalf, ratio = half / 16;
-    this.floor.scale.set(ratio, V.floorThickness / .1, ratio);this.grid.scale.set(ratio, 1, ratio);
-    this.walls.forEach((wall, i) => {wall.position.set(i === 0 ? -half : i === 1 ? half : 0, V.wallHeight / 2, i === 2 ? -half : i === 3 ? half : 0);wall.scale.set(i < 2 ? V.wallThickness / .15 : ratio, V.wallHeight / .35, i < 2 ? ratio : V.wallThickness / .15);});
+    const isCircle = C.map?.arenaShape !== 'square';
+    const rad = C.map?.arenaRadius ?? half;
+
+    if (isCircle) {
+      this.circleFloor.visible = true;
+      this.circleRing.visible = true;
+      const cRatio = rad / 50;
+      this.circleFloor.scale.set(cRatio, V.floorThickness / 0.1, cRatio);
+      this.circleRing.scale.set(cRatio, 1, cRatio);
+      this.circleFloor.material.color.setHex(rgb('floor'));
+      this.floor.visible = false;
+      this.walls.forEach(w => { w.visible = false; });
+      this.grid.scale.set(rad / 16, 1, rad / 16);
+    } else {
+      this.circleFloor.visible = false;
+      this.circleRing.visible = false;
+      this.floor.visible = true;
+      this.floor.scale.set(ratio, V.floorThickness / .1, ratio);
+      this.grid.scale.set(ratio, 1, ratio);
+      this.walls.forEach((wall, i) => {
+        wall.visible = true;
+        wall.position.set(i === 0 ? -half : i === 1 ? half : 0, V.wallHeight / 2, i === 2 ? -half : i === 3 ? half : 0);
+        wall.scale.set(i < 2 ? V.wallThickness / .15 : ratio, V.wallHeight / .35, i < 2 ? ratio : V.wallThickness / .15);
+        wall.material.color.setHex(rgb('wall'));
+      });
+      this.floor.material.color.setHex(rgb('floor'));
+    }
     this.camera.fov = X.cameraExtra.fov;this.camera.near = X.cameraExtra.nearClip;this.camera.far = X.cameraExtra.farClip;this.camera.updateProjectionMatrix();
-    this.scene.background.setHex(rgb('background'));this.floor.material.color.setHex(rgb('floor'));this.walls.forEach(w => w.material.color.setHex(rgb('wall')));
+    this.scene.background.setHex(rgb('background'));
     const gridKey = rgb('gridMajor') + ':' + rgb('gridMinor') + ':' + V.gridDivisions;
     if (this.gridKey !== gridKey) {this.gridKey = gridKey;const fresh = new T.GridHelper(32, V.gridDivisions, rgb('gridMajor'), rgb('gridMinor'));this.grid.geometry.dispose();this.grid.geometry = fresh.geometry;fresh.material.dispose();}
     this.ambientLight.intensity = V.ambientLightIntensity;this.directionalLight.intensity = V.directionalIntensity;this.directionalLight.position.set(V.lightX, V.lightY, V.lightZ);
@@ -172,7 +204,7 @@ export class View {
       // A prévia de animação continua tocando com a partida pausada.
       t0 = now();character?.update(f, paused ? (character.preview ? realDt : 0) : dt, alt, events, {tick, source: sources[f.id]});tm.anim += now() - t0;
     }
-    t0 = now();this.drawOverlays(fighters, paused ? 0 : dt);this.worldView.update(world, {fighters, events, dt: paused ? 0 : dt, skipBeams: this.useNewVfx});tm.overlays = now() - t0;
+    t0 = now();this.drawOverlays(fighters, paused ? 0 : dt);this.worldView.update(world, {fighters, events, dt: paused ? 0 : dt, skipBeams: this.useNewVfx, camera: this.camera});tm.overlays = now() - t0;
     if (!this.rig.initialized) this.rig.reset(fighters[0]);
     const pose = this.rig.pose();
     this.camera.position.set(pose.position.x, pose.height, pose.position.z);this.camera.lookAt(pose.lookAt.x, pose.lookHeight, pose.lookAt.z);this.camera.updateMatrixWorld();

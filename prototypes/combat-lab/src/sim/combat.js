@@ -4,10 +4,12 @@ import {isInvulnerable, isOffensive} from './entity.js';
 import {stat} from './status.js';
 import {vec, add, scale, sub, dot, length, normalize, angleOf, direction} from './math.js';
 
+import {processDamageWithShieldAndStages} from './map.js';
+
 /** Coloca o lutador em voo balístico (o eixo horizontal é integrado pela física). */
 export function launch(f, away, horizontal, vertical) {
   const n = normalize(away);
-  f.flight = {y: 0, vy: vertical, horizontal: scale(n, horizontal)};
+  f.flight = {y: f.groundY ?? 0, vy: vertical, horizontal: scale(n, horizontal)};
   f.action = null;f.push = null;f.blend = null;f.velocity = vec();f.locomotionVelocity = vec();
   f.guard = false;f.guardSuppressed = true;f.knockRecovery = 0;f.vaultHeight = 0;f.counterWindow = 0;f.landingSlide = null;f.state = 'airborne';
   f.tech = null;f.techDodge = null;f.wallSplat = null;
@@ -47,18 +49,28 @@ export function mutualTackle(a, b, normal, relative) {
 }
 /** X contra X: os dois recebem dano e são lançados (ou, com enableClashPush, empurrados no chão) em direções opostas (ignora invulnerabilidade). */
 export function clash(a, b, normal) {
-  const R = C.rules, toA = stat(b, 'attack', b.attributes.attack) * R.clashFraction * stat(a, 'damageTaken', 1), toB = stat(a, 'attack', a.attributes.attack) * R.clashFraction * stat(b, 'damageTaken', 1);
-  a.hp = Math.max(0, a.hp - toA);b.hp = Math.max(0, b.hp - toB);
+  const R = C.rules;
+  const atkMultB = 1 + (b.stages?.attack ?? 0) * (C.map?.stageAttackBonus ?? 0.10);
+  const atkMultA = 1 + (a.stages?.attack ?? 0) * (C.map?.stageAttackBonus ?? 0.10);
+  const rawToA = stat(b, 'attack', b.attributes.attack) * atkMultB * R.clashFraction * stat(a, 'damageTaken', 1);
+  const rawToB = stat(a, 'attack', a.attributes.attack) * atkMultA * R.clashFraction * stat(b, 'damageTaken', 1);
+  const resA = processDamageWithShieldAndStages(a, rawToA, b, false, false);
+  const resB = processDamageWithShieldAndStages(b, rawToB, a, false, false);
   const push = !!C.extras.toggles.enableClashPush;a.lastAttacker = b.id;b.lastAttacker = a.id;
   if (push) {pushAway(a, scale(normal, -1), R.clashPushDistance, R.clashPushDuration);pushAway(b, normal, R.clashPushDistance, R.clashPushDuration);}
   else {launch(a, scale(normal, -1), R.clashHorizontal, R.clashUp);launch(b, normal, R.clashHorizontal, R.clashUp);}
-  return [{attacker: a.id, target: b.id, result: 'clash', damage: toB, normal: {...normal}, push}, {attacker: b.id, target: a.id, result: 'clash', damage: toA, normal: scale(normal, -1), push}];
+  return [{attacker: a.id, target: b.id, result: 'clash', damage: resB.hpDamage, shieldAbsorbed: resB.absorbedByShield, normal: {...normal}, push}, {attacker: b.id, target: a.id, result: 'clash', damage: resA.hpDamage, shieldAbsorbed: resA.absorbedByShield, normal: scale(normal, -1), push}];
 }
 /** O tackle do atacante conecta no defensor, dado a normal e a velocidade relativa do contato? */
 export function tackleConnects(attacker, defender, normal, relative) {
   const X = C.extras.combat;
   if (slamPrep(attacker)) return false;
-  if (attacker.action?.kind !== 'tackle' || attacker.action.neutralized || attacker.flight || (defender.flight && !defender.wallSplat)) return false;   // preso na parede (wall-splat) o rival continua acertável   // neutralizado por um Counter de PL superior: não conecta mais nesta ação
+  if (attacker.action?.kind !== 'tackle' || attacker.action.neutralized || attacker.flight || (defender.flight && !defender.wallSplat)) return false;
+  // Volume tridimensional real (R7.11-R7.12): não conecta se separados verticalmente fora do meteor slam
+  const attY = (attacker.groundY ?? 0) + (attacker.flight?.y ?? attacker.vaultHeight ?? 0);
+  const defY = (defender.groundY ?? 0) + (defender.flight?.y ?? defender.vaultHeight ?? 0);
+  if (Math.abs(attY - defY) > (C.extras?.visual?.bodyHeight ?? 1.2) && !attacker.action?.slam) return false;
+
   const dir = direction(attacker.action.heading), off = sub(defender.position, attacker.position);
   const towards = length(off) > 1e-6 ? normalize(off) : normal;
   return dot(dir, towards) > X.tackleTargetAlignment && dot(dir, normal) > X.tackleNormalAlignment && dot(relative, normal) > X.tackleClosingSpeed;
@@ -107,8 +119,14 @@ export function resolveHit(attacker, defender, normal, relative, force = false) 
   if (windowIdx >= 0) attacker.action.hitWindows[windowIdx].add(defender.id);
   const protectedFront = defender.guard && dot(direction(defender.facing), normalize(sub(attacker.position, defender.position))) >= X.guardFrontAlignment;
   const perfect = protectedFront && defender.perfectLeft > 1e-8;
-  const attack = stat(attacker, 'attack', attacker.attributes.attack) * (attacker.action.plDamage ?? 1), damage = perfect ? 0 : attack * (protectedFront ? X.guardDamageMultiplier : 1) * stat(defender, 'damageTaken', 1);
-  defender.hp = Math.max(0, defender.hp - damage);
+  const atkStageMult = 1 + (attacker.stages?.attack ?? 0) * (C.map?.stageAttackBonus ?? 0.10);
+  const attack = stat(attacker, 'attack', attacker.attributes.attack) * (attacker.action.plDamage ?? 1) * atkStageMult;
+  const rawDamage = perfect ? 0 : attack * stat(defender, 'damageTaken', 1);
+
+  // Pipeline central: absorve dano bruto no escudo antes da Defesa (R9.6, R10.1, R10.3, R11.3)
+  const dmgResult = processDamageWithShieldAndStages(defender, rawDamage, attacker, protectedFront, perfect);
+  const damage = dmgResult.hpDamage;
+
   let launchInfo = null;
   if (protectedFront) {
     // O atacante recua; a defesa NÃO lança, empurra nem desloca o defensor.
@@ -119,15 +137,17 @@ export function resolveHit(attacker, defender, normal, relative, force = false) 
     else if (defender.stun <= 1e-8) defender.stun = R.guardStun;
   } else {
     defender.counterWindow = 0;const closing = Math.max(0, dot(relative, normal));
-    const launchSpeed = (R.launchHorizontal * (X.launchAttackBase + X.launchAttackWeight * attack / X.launchAttackReference) + Math.min(X.launchClosingCap, closing * X.launchClosingMultiplier)) * stat(defender, 'knockbackTaken', 1);
+    // Redução de knockback pelos estágios de Defesa (R6.11)
+    const defStageKnockbackMult = Math.max(0, 1.0 - (defender.stages?.defense ?? 0) * (C.map?.stageDefenseReduction ?? 0.10));
+    const launchSpeed = (R.launchHorizontal * (X.launchAttackBase + X.launchAttackWeight * attack / X.launchAttackReference) + Math.min(X.launchClosingCap, closing * X.launchClosingMultiplier)) * stat(defender, 'knockbackTaken', 1) * defStageKnockbackMult;
     const toward = normalize(sub(defender.position, attacker.position));
     const departure = normalize(add(scale(normal, X.launchNormalWeight), scale(toward, X.launchCenterWeight)));
     // Meteor slam: o rival é lançado para CIMA com groundBounceForce (ground bounce) e com pouco empurrão horizontal.
-    const slam = !!attacker.action.slam, up = slam ? R.groundBounceForce : R.launchUp * stat(defender, 'knockbackTaken', 1), hSpeed = launchSpeed * (slam ? R.slamLaunchHorizontal : 1);
+    const slam = !!attacker.action.slam, up = slam ? R.groundBounceForce : R.launchUp * stat(defender, 'knockbackTaken', 1) * defStageKnockbackMult, hSpeed = launchSpeed * (slam ? R.slamLaunchHorizontal : 1);
     defender.lastAttacker = attacker.id;
     if (T.enableLaunch) {const dir = slam ? direction(attacker.facing) : length(departure) > 1e-7 ? departure : normal;launch(defender, dir, hSpeed, up);launchInfo = {direction: normalize(dir), horizontal: hSpeed, vertical: up, ...(slam ? {bounce: true} : {})};}
     else {defender.action = null;defender.knockRecovery = R.landingRecovery;}
   }
   if (defender.hp === 0) {defender.guard = false;defender.guardSuppressed = true;}
-  return {attacker: attacker.id, target: defender.id, result: perfect ? 'perfect' : protectedFront ? 'partial' : 'impact', damage, normal: {...normal}, launch: launchInfo, ...(attacker.action.slam ? {slam: true} : {})};
+  return {attacker: attacker.id, target: defender.id, result: perfect ? 'perfect' : protectedFront ? 'partial' : 'impact', damage, shieldAbsorbed: dmgResult.absorbedByShield, normal: {...normal}, launch: launchInfo, ...(attacker.action.slam ? {slam: true} : {})};
 }

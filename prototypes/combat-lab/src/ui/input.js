@@ -20,7 +20,7 @@ export function toCommand(intent, self, target, cameraYaw, locked) {
   } else move = vec();
   const still = intent.x === 0 && intent.forward === 0, dodgeDirection = still ? (locked ? forwardToTarget : direction(self.facing)) : move;
   // locked: o comando vem do lock-on do jogador (o tackle persegue o alvo). A IA mira por conta própria.
-  return {move, target: locked ? target.id : null, locked: !!locked, dodge: intent.dodge, dodgeHeld: !!intent.dodgeHeld, tackle: intent.tackle, tackleHeld: !!intent.tackleHeld, guard: intent.guard, guardPressed: intent.guardPressed, dodgeDirection, skill: intent.skill ?? null, skillHeld: intent.skillHeld ?? null,
+  return {move, target: locked ? target.id : null, locked: !!locked, dodge: intent.dodge, dodgeHeld: !!intent.dodgeHeld, tackle: intent.tackle, tackleHeld: !!intent.tackleHeld, guard: intent.guard, guardPressed: intent.guardPressed, jump: !!intent.jump, dodgeDirection, skill: intent.skill ?? null, skillHeld: intent.skillHeld ?? null,
     dodgeForward: still || (intent.forward > 0 && intent.x === 0)};
 }
 
@@ -89,9 +89,9 @@ export class Input {
   command(self, target, cameraYaw, tick) {
     const k = name => this.held.has(this.key(name)), pk = name => this.pressed.has(this.key(name));
     const skillKey = ['skill1', 'skill2', 'skill3', 'skill4'].findIndex(pk);
-    const keyIntent = {x: Number(k('right')) - Number(k('left')), forward: Number(k('forward')) - Number(k('back')), dodge: pk('dodge'), dodgeHeld: k('dodge'), tackle: pk('tackle'), tackleHeld: k('tackle'), guard: k('defend'), guardPressed: pk('defend'), skill: skillKey < 0 ? null : skillKey, skillHeld: heldSlots(['skill1', 'skill2', 'skill3', 'skill4'].map(k))};
+    const keyIntent = {x: Number(k('right')) - Number(k('left')), forward: Number(k('forward')) - Number(k('back')), dodge: pk('dodge'), dodgeHeld: k('dodge'), tackle: pk('tackle'), tackleHeld: k('tackle'), guard: k('defend'), guardPressed: pk('defend'), jump: pk('jump'), skill: skillKey < 0 ? null : skillKey, skillHeld: heldSlots(['skill1', 'skill2', 'skill3', 'skill4'].map(k))};
     const p = this.pad();
-    const intent = p ? {x: keyIntent.x || p.x, forward: keyIntent.forward || p.forward, dodge: keyIntent.dodge || p.dodge, dodgeHeld: keyIntent.dodgeHeld || p.dodgeHeld, tackle: keyIntent.tackle || p.tackle, tackleHeld: keyIntent.tackleHeld || p.tackleHeld, guard: keyIntent.guard || p.guard, guardPressed: keyIntent.guardPressed || p.guardPressed, skill: keyIntent.skill ?? p.skill, skillHeld: mergeHeld(keyIntent.skillHeld, p.skillHeld)} : keyIntent;
+    const intent = p ? {x: keyIntent.x || p.x, forward: keyIntent.forward || p.forward, dodge: keyIntent.dodge || p.dodge, dodgeHeld: keyIntent.dodgeHeld || p.dodgeHeld, tackle: keyIntent.tackle || p.tackle, tackleHeld: keyIntent.tackleHeld || p.tackleHeld, guard: keyIntent.guard || p.guard, guardPressed: keyIntent.guardPressed || p.guardPressed, jump: keyIntent.jump, skill: keyIntent.skill ?? p.skill, skillHeld: mergeHeld(keyIntent.skillHeld, p.skillHeld)} : keyIntent;
     this.record(intent, tick);
     const c = toCommand(intent, self, target, this.frameYaw(intent, cameraYaw), this.locked);this.pressed.clear();return c;
   }
@@ -104,9 +104,9 @@ export class Input {
   /** Histórico estilo modo treino: cada mudança de intenção, com a duração em quadros. */
   record(intent, tick) {
     const arrows = {'1,0': '↑', '-1,0': '↓', '0,-1': '←', '0,1': '→', '1,-1': '↖', '1,1': '↗', '-1,-1': '↙', '-1,1': '↘'}[`${intent.forward},${intent.x}`] || '·';
-    const label = arrows + (intent.guard ? ' D' : '') + (intent.tackle ? ' X' : '') + (intent.dodge ? ' C' : '') + (intent.skill != null ? ` M${intent.skill + 1}` : '');
+    const label = arrows + (intent.guard ? ' D' : '') + (intent.tackle ? ' X' : '') + (intent.dodge ? ' C' : '') + (intent.jump ? ' Salto' : '') + (intent.skill != null ? ` M${intent.skill + 1}` : '');
     const last = this.history[0];
-    if (last && last.label === label && !intent.tackle && !intent.dodge && intent.skill == null) {last.frames++;return;}
+    if (last && last.label === label && !intent.tackle && !intent.dodge && !intent.jump && intent.skill == null) {last.frames++;return;}
     this.history.unshift({label, frames: 1, tick});if (this.history.length > 14) this.history.pop();
   }
 }

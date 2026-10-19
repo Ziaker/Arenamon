@@ -34,7 +34,7 @@
    <button type="button" id="changed-open" data-n="0" title="Parâmetros diferentes do padrão do laboratório">≠ 0</button>
    <button type="button" id="shortcuts-open" aria-label="Atalhos" title="Lista de atalhos (?)">?</button>
    <button type="button" id="arena-zen-toggle" role="switch" aria-checked="false" title="Modo Arena (F2): tela cheia limpa para focar no combate">⚔ Modo Arena</button>
-   <button type="button" id="pause" title="Pausar / continuar (Esc ou Espaço)">❚❚ Pausar</button>
+   <button type="button" id="pause" title="Pausar / continuar (Esc)">❚❚ Pausar</button>
    <button type="button" id="restart-top" title="Reiniciar a partida (R)">↺ Reiniciar</button>
    <button type="button" id="arena-enemy-ai-toggle" class="onoff" role="switch" aria-checked="true" title="Liga/desliga a IA do oponente (desligada, o vermelho fica parado)">🧠 IA oponente</button>
    <button type="button" id="arena-toast-toggle" class="onoff" role="switch" aria-checked="false" title="Liga/desliga os avisos curtos de comando negado/guardado no buffer (também em Diagnóstico)">💬 Avisos</button>
@@ -305,8 +305,8 @@
    <div id="vfx-flash"></div>
    <div id="hud-proposals" class="hudp" hidden></div>
    <header id="hud-root">
-    <div class="fighter"><strong id="name0">JOGADOR · AZUL</strong><meter id="hp0" min="0" max="1" value="1" aria-label="Vida jogador"></meter><meter id="stamina0" class="sta" min="0" max="1" value="1" aria-label="Stamina jogador"></meter><span id="state0"></span></div>
-    <div class="fighter enemy"><strong>ADVERSÁRIO · VERMELHO</strong><meter id="hp1" min="0" max="1" value="1" aria-label="Vida adversário"></meter><meter id="stamina1" class="sta" min="0" max="1" value="1" aria-label="Stamina adversário"></meter><span id="state1"></span></div>
+    <div class="fighter"><strong id="name0">JOGADOR · AZUL</strong><meter id="hp0" min="0" max="1" value="1" aria-label="Vida jogador"></meter><meter id="stamina0" class="sta" min="0" max="1" value="1" aria-label="Stamina jogador"></meter><span id="state0"></span><div id="stages0" class="stages-indicator"></div></div>
+    <div class="fighter enemy"><strong>ADVERSÁRIO · VERMELHO</strong><meter id="hp1" min="0" max="1" value="1" aria-label="Vida adversário"></meter><meter id="stamina1" class="sta" min="0" max="1" value="1" aria-label="Stamina adversário"></meter><span id="state1"></span><div id="stages1" class="stages-indicator"></div></div>
    </header>
    <div id="impact-notice" aria-live="polite" hidden></div>
    <div id="dojo-advantage-badge" hidden aria-live="polite"></div>

@@ -226,12 +226,12 @@ export function updateFighter(f, cmd, fighters, dt) {
   if (f.charge && (f.flight || f.knockRecovery > 0 || f.hp <= 0)) cancelCharge(f, f.hp <= 0 ? 'defeated' : 'hit');   // golpe com lançamento, recuperação ou perda de apoio (M15.3, M27.1)
   if (f.flight) {
     // Meteor slam de quem foi lançado: X no ar vira mergulho oblíquo (não vale preso na parede nem sem stamina).
-    if (T.enableMeteorSlam && T.enableFlightSlam && cmd.tackle && !f.wallSplat && f.hp > 0 && !f.exhausted && f.stamina >= costOf(f, A.tackle.cost) - 1e-8 && !hasFlag(f, 'disarmed') && !hasFlag(f, 'stunned')) {
+    if (!f.flight.isNormalJump && T.enableMeteorSlam && T.enableFlightSlam && cmd.tackle && !f.wallSplat && f.hp > 0 && !f.exhausted && f.stamina >= costOf(f, A.tackle.cost) - 1e-8 && !hasFlag(f, 'disarmed') && !hasFlag(f, 'stunned')) {
       const target0 = fighters.find(o => o.id === cmd.target && o.hp > 0), mv = length(cmd.move) > 1 ? normalize(cmd.move) : cmd.move;
       startSlamFromFlight(f, {move: mv, dodgeDirection: cmd.dodgeDirection}, fighters, target0 ? angleOf(sub(target0.position, f.position)) : length(mv) > 0 ? angleOf(mv) : f.facing, cmd.guard, !!target0 && !!cmd.locked);
       if (diag) report(f, {kind: 'tackle', result: 'executed', note: 'meteor slam (lançado)'});
     } else {
-      if (T.enableTechRecovery && T.enableDodge && f.hp > 0 && !f.wallSplat) armTechRecovery(f, cmd, dt);
+      if (!f.flight.isNormalJump && T.enableTechRecovery && T.enableDodge && f.hp > 0 && !f.wallSplat) armTechRecovery(f, cmd, dt);
       f.action = null;f.push = null;f.guard = false;f.vaultHeight = 0;f.velocity = vec();f.locomotionVelocity = vec();f.bufferedTackle = null;f.state = f.wallSplat ? 'wallSplat' : 'airborne';return;
     }
   }
@@ -295,6 +295,38 @@ export function updateFighter(f, cmd, fighters, dt) {
     // Segurar D não apaga o X guardado no guard stun; só um novo toque em D substitui o pedido (GDD 5: vale o último).
     if (cmd.guardPressed) f.bufferedTackle = null;
     if (cmd.guardPressed && f.perfectCooldown <= 0) {f.perfectLeft = R.perfect;f.perfectSucceeded = false;}
+  }
+  // Salto normal (R2.1–R2.8, R7.1–R7.2, R7.7–R7.9): Tecla Espaço em estado livre, caminhando ou correndo.
+  f.jumpState ??= {canJump: true, cooldown: 0};
+  if (f.jumpState.cooldown > 0) {
+    f.jumpState.cooldown = Math.max(0, f.jumpState.cooldown - dt);
+    if (f.jumpState.cooldown <= 0 && !f.flight) f.jumpState.canJump = true;
+  }
+  const canNormalJump = cmd.jump && f.hp > 0 && !f.action && !f.flight && !f.wallSplat && f.knockRecovery <= 0
+    && !f.guard && !f.tackleCharge && !f.charge && f.stun <= 1e-8
+    && !hasFlag(f, 'stunned') && !hasFlag(f, 'rooted')
+    && f.jumpState.canJump && f.jumpState.cooldown <= 0;
+
+  if (canNormalJump) {
+    const M = C.map ?? {};
+    const g = M.jumpGravity ?? R.launchGravity;
+    const h = M.jumpHeight ?? 2.0;
+    const vy = Math.sqrt(2 * g * h);
+    f.flight = {
+      y: f.groundY ?? 0,
+      vy,
+      horizontal: {...f.velocity},
+      gravity: g,
+      isNormalJump: true,
+    };
+    f.normalJumpLanding = true;
+    f.jumpState.canJump = false;
+    f.jumpState.cooldown = 0;
+    f.state = 'airborne';
+    f.sprinting = false;
+    f.sprintCarry = false;
+    if (diag) report(f, {kind: 'jump', result: 'executed', note: `salto normal h=${h}m vy=${vy.toFixed(1)}m/s`});
+    return;
   }
   // Pedido de ação: X tem prioridade se as duas teclas chegarem no mesmo passo (como no v6).
   let kind = requested, dirs = {move, dodgeDirection: cmd.dodgeDirection}, fromBuffer = false;

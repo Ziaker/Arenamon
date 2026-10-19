@@ -3,6 +3,7 @@
 import {C} from './config.js';
 import {clashPossible, mutualTackle, clash, resolveHit} from './combat.js';
 import {collideFighter} from './world.js';
+import {collideMapFighter, damageDestructible} from './map.js';
 import {vec, add, scale, sub, dot, length, normalize, clamp, direction, smoothstep} from './math.js';
 
 /** Componente vertical do rebote: multiplica a velocidade vertical atual e soma um impulso para cima. */
@@ -18,9 +19,61 @@ function tryWallSplat(f, normal) {
   f.wallSplat = {t: 0, duration: R.wallSplatDuration, normal: {...normal}, fresh: true};f.state = 'wallSplat';
   return true;
 }
-/** Mantém o lutador dentro da arena; em voo, rebate na parede conforme a restituição. */
+/** Altura do piso/plataforma na posição XZ. */
+export function getGroundHeight(pos, world) {
+  const platforms = world?.mapState?.platforms ?? world?.platforms ?? C.map?.platforms;
+  if (!platforms) return 0;
+  let highest = 0;
+  for (const p of platforms) {
+    const px = p.pos ? p.pos.x : p.x;
+    const pz = p.pos ? p.pos.z : p.z;
+    const hx = (p.width ?? 3) / 2;
+    const hz = (p.depth ?? 3) / 2;
+    if (Math.abs(pos.x - px) <= hx && Math.abs(pos.z - pz) <= hz) {
+      if (p.height > highest) highest = p.height;
+    }
+  }
+  return highest;
+}
+
+/** Mantém o lutador dentro da arena circular (ou quadrada configurada); em voo, rebate na parede conforme a restituição. */
 export function clampToArena(f) {
-  const bound = C.test.arenaHalf - C.test.halfExtent, bounce = C.extras.toggles.enableWallBounce;
+  const isCircle = C.map?.arenaShape !== 'square';
+  const bounce = C.extras.toggles.enableWallBounce;
+
+  if (isCircle) {
+    const radius = C.map?.arenaRadius ?? C.test.arenaRadius ?? 50;
+    const bound = radius - C.test.halfExtent;
+    const d = length(f.position);
+    if (d > bound) {
+      f.contacts++;
+      const nOut = d > 1e-7 ? scale(f.position, 1 / d) : vec(1, 0);
+      const nIn = scale(nOut, -1);
+      f.position = scale(nOut, bound);
+
+      if (f.flight && tryWallSplat(f, nIn)) {
+        /* gruda no wall-splat */
+      } else if (f.flight) {
+        const vDotN = dot(f.flight.horizontal, nOut);
+        if (vDotN > 0) {
+          const vNorm = scale(nOut, vDotN);
+          const vTan = sub(f.flight.horizontal, vNorm);
+          const bounceFactor = bounce ? C.rules.wallRestitution * (C.map?.wallBounceMultiplier ?? 1) : 0;
+          f.flight.horizontal = sub(vTan, scale(vNorm, bounceFactor));
+          f.velocity = {...f.flight.horizontal};
+          if (bounce) wallVertical(f);
+        }
+      } else {
+        const vDotN = dot(f.velocity, nOut);
+        if (vDotN > 0) {
+          f.velocity = sub(f.velocity, scale(nOut, vDotN));
+        }
+      }
+    }
+    return;
+  }
+
+  const bound = C.test.arenaHalf - C.test.halfExtent;
   const x = clamp(f.position.x, -bound, bound), z = clamp(f.position.z, -bound, bound);
   if (x !== f.position.x) {
     f.contacts++;
@@ -55,20 +108,42 @@ export function stepPhysics(fighters, dt, world = null) {
     }
     if (f.flight) {
       const flight = f.flight;
+      const g = flight.gravity ?? R.launchGravity;
       // Voo balístico de passo fixo: gravidade na altura e arrasto exponencial no plano.
-      flight.y += flight.vy * dt - .5 * R.launchGravity * dt * dt;
-      flight.vy -= R.launchGravity * dt;
+      flight.y += flight.vy * dt - .5 * g * dt * dt;
+      flight.vy -= g * dt;
       flight.horizontal = scale(flight.horizontal, Math.exp(-R.launchDrag * dt));
-      if (flight.y <= 0) {
+      const targetGround = getGroundHeight(f.position, world);
+      if (flight.y <= targetGround) {
+        flight.y = targetGround;
+        f.groundY = targetGround;
         // Evento real de colisão com o solo (usado pelos efeitos visuais): velocidade vertical e horizontal no contato.
         f.lastLanding = {n: (f.lastLanding?.n ?? 0) + 1, vertical: Math.max(0, -flight.vy), horizontal: length(flight.horizontal), x: f.position.x, z: f.position.z};
         f.landingSlide = T.enableLandingSkid ? {velocity: scale(flight.horizontal, X.landingSkidFraction)} : null;
-        f.flight = null;f.velocity = vec();f.knockRecovery = R.landingRecovery;f.recoveryFrom = null;
+        f.flight = null;f.velocity = vec();
+        f.knockRecovery = f.normalJumpLanding ? (C.map?.jumpLandingRecovery ?? 0.19) : R.landingRecovery;
+        f.recoveryFrom = null;
+        f.normalJumpLanding = false;
         f.state = f.hp <= 0 ? 'defeated' : 'landing';
+        if (f.jumpState) {
+          f.jumpState.canJump = false;
+          f.jumpState.cooldown = C.map?.jumpInterval ?? 0.25;
+        }
         // Recovery rápido: C apertado a tempo no ar e stamina suficiente: ao tocar o chão, a esquiva sai na hora (o controlador a inicia).
         const tech = f.tech;f.tech = null;
         if (T.enableTechRecovery && tech && f.hp > 0 && f.stamina >= R.techCost - 1e-8 && (R.techCost <= 0 || !f.exhausted)) {f.knockRecovery = 0;f.landingSlide = null;f.techDodge = {dir: tech.dir};f.state = 'neutral';}
       } else {f.velocity = {...flight.horizontal};f.state = 'airborne';}
+    } else {
+      // Lutador no chão: verifica se saiu pela borda de uma plataforma (R7.10)
+      const targetGround = getGroundHeight(f.position, world);
+      f.groundY ??= 0;
+      if (f.groundY > targetGround + 0.1) {
+        // Entra em queda balística mantendo a velocidade horizontal (R7.10)
+        f.flight = {y: f.groundY, vy: 0, horizontal: {...f.velocity}};
+        f.state = 'airborne';
+      } else {
+        f.groundY = targetGround;
+      }
     }
     if (f.landingSlide) {
       f.landingSlide.velocity = scale(f.landingSlide.velocity, Math.exp(-X.landingSkidDrag * dt));
@@ -89,12 +164,36 @@ export function stepPhysics(fighters, dt, world = null) {
       clampToArena(f);
       // Paredes e barreiras sólidas criadas por movimentos (sem elas, nada muda).
       if (world?.entities.length) {collideFighter(world, f, events);clampToArena(f);}
+      // Obstáculos, plataformas e destrutíveis do mapa (R1.6, R1.8, R7.6, R7.15, R10.7-R10.8)
+      if (world?.mapState) {
+        collideMapFighter(world.mapState, f, events);
+        clampToArena(f);
+        // Tackle danifica destrutíveis sólidos (R1.5, R3.4, R5.14, R9.10)
+        if (f.action?.kind === 'tackle' && !f.action.neutralized && world.mapState.destructibles) {
+          for (const d of world.mapState.destructibles) {
+            if (d.state !== 'solid' || f.action.hits?.has(d.id)) continue;
+            const fY = (f.groundY ?? 0) + (f.flight?.y ?? f.vaultHeight ?? 0);
+            if (fY + C.extras.visual.bodyHeight <= d.pos.y || fY >= d.pos.y + d.size.height) continue;
+            const dx = Math.abs(f.position.x - d.pos.x), dz = Math.abs(f.position.z - d.pos.z);
+            if (dx <= d.size.hx + C.test.halfExtent && dz <= d.size.hz + C.test.halfExtent) {
+              f.action.hits.add(d.id);
+              const atkStageMult = 1 + (f.stages?.attack ?? 0) * (C.map?.stageAttackBonus ?? 0.10);
+              const dmg = (C.rules?.tackleDamage ?? 10) * (f.action.plDamage ?? 1) * atkStageMult;
+              damageDestructible(d, dmg, 'physical', f, world.mapState, events);
+            }
+          }
+        }
+      }
     }
     for (let pass = 0; pass < X.contactProjectionPasses; pass++) {
       for (let ai = 0; ai < fighters.length; ai++) for (let bi = ai + 1; bi < fighters.length; bi++) {
         const a = fighters[ai], b = fighters[bi];
-        // Sobreposição no ar é ignorada: o colisor de quem está acima não toca o de quem está no chão.
-        if (Math.max(a.flight?.y ?? 0, a.vaultHeight ?? 0) > X.vaultCollisionHeight || Math.max(b.flight?.y ?? 0, b.vaultHeight ?? 0) > X.vaultCollisionHeight) continue;
+        // Sobreposição tridimensional real (R7.11)
+        const ya0 = (a.groundY ?? 0) + (a.flight?.y ?? 0) + (a.vaultHeight ?? 0);
+        const ya1 = ya0 + C.extras.visual.bodyHeight;
+        const yb0 = (b.groundY ?? 0) + (b.flight?.y ?? 0) + (b.vaultHeight ?? 0);
+        const yb1 = yb0 + C.extras.visual.bodyHeight;
+        if (ya1 < yb0 || yb1 < ya0) continue;
         // Pulo físico por cima do rival: os dois não se tocam até o pouso.
         if (a.action?.jump?.over === b.id || b.action?.jump?.over === a.id) continue;
         const contact = overlap(a, b);
@@ -110,7 +209,7 @@ export function stepPhysics(fighters, dt, world = null) {
             }
           }
         }
-        const bound = C.test.arenaHalf - C.test.halfExtent;
+        const bound = (C.map?.arenaShape !== 'square' ? (C.map?.arenaRadius ?? 50) : C.test.arenaHalf) - C.test.halfExtent;
         const room = (f, n) => Math.abs(n.x) > .5 ? bound - f.position.x * n.x : bound - f.position.z * n.z;
         const bGuards = a.action?.kind === 'recoil' && b.guard && dot(direction(b.facing), normalize(sub(a.position, b.position))) >= -1e-8;
         const aGuards = b.action?.kind === 'recoil' && a.guard && dot(direction(a.facing), normalize(sub(b.position, a.position))) >= -1e-8;

@@ -53,6 +53,15 @@ button[aria-pressed=true],button[aria-checked=true],button.active{background:#1b
 #hud-root{position:absolute;top:10px;left:12px;right:12px;display:flex;justify-content:space-between;gap:12px;pointer-events:none;transform:scale(var(--arena-hud-scale));transform-origin:top center}
 .fighter{background:#0b141ecc;border:1px solid #ffffff1a;border-radius:10px;padding:6px 10px;min-width:200px;max-width:42%}.fighter strong{font-size:11px;letter-spacing:.08em;color:#9fc7ff}.fighter.enemy{text-align:right}.fighter.enemy strong{color:#ffb0a8}
 .fighter meter{display:block;width:100%;height:9px;margin-top:4px}.fighter meter.sta{height:5px}.fighter span{font-size:11.5px;color:#d3e2ef}
+.stages-indicator{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.fighter.enemy .stages-indicator{justify-content:flex-end}
+.st-badge{display:inline-flex;align-items:center;padding:1px 5px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:0.02em;line-height:1.2}
+.st-badge.shd{background:#00bcd433;border:1px solid #00bcd4aa;color:#84ffff}
+.st-badge.atk{background:#ff980033;border:1px solid #ff9800aa;color:#ffe082}
+.st-badge.def{background:#2196f333;border:1px solid #2196f3aa;color:#90caf9}
+.st-badge.sta{background:#4caf5033;border:1px solid #4caf50aa;color:#a5d6a7}
+.st-badge.cd{background:#9c27b033;border:1px solid #9c27b0aa;color:#ce93d8}
+.st-badge.spd{background:#ffeb3b33;border:1px solid #ffeb3baa;color:#fff59d}
 #impact-notice{position:absolute;top:20%;left:50%;transform:translateX(-50%);pointer-events:none;font-size:var(--arena-notice-font);font-weight:900;letter-spacing:.08em;text-shadow:0 3px 15px #040d19;white-space:nowrap;color:#ffd7a0}
 #impact-notice[data-result=reflected],#impact-notice[data-result=shielded]{color:#7ae8f5}#impact-notice[data-result=barrierBroken],#impact-notice[data-result=neutralized]{color:#ff9a7a}#impact-notice[data-result=counter],#impact-notice[data-result=counterStagger],#impact-notice[data-result=tackleClash],#impact-notice[data-result=stoneClash]{color:#ffd24a}
 #impact-notice[data-result=clash]{color:#ffe083;font-size:var(--arena-clash-font)}#impact-notice[data-result=partial],#impact-notice[data-result=perfect]{color:#8fd4ff}#impact-notice[data-result=perfectDodge],#impact-notice[data-result=invulnerable]{color:#a8ffd8}

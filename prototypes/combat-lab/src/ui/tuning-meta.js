@@ -17,8 +17,14 @@ export const NAMES={
  haloWidth1:'Largura do halo (PL1)',haloWidth2:'Largura do halo (PL2)',haloWidth3:'Largura do halo (PL3)',haloOpacity:'Opacidade do halo',
  pulseFreq:'Frequência de pulso (1–3 Hz)',flowSpeed:'Velocidade de fluxo',muzzleSize:'Tamanho do muzzle',contactSize:'Tamanho do flare de contato',
  sparksPerSecond:'Centelhas no impacto (/s)',dynamicLight:'Luz dinâmica do laser',reflectionActive:'Nó de reflexão visível',neutralizeActive:'Desbotamento de neutralização',
- noFlash:'Sem flashes (acessibilidade)',reduceMotion:'Reduzir movimento (acessibilidade)',highContrast:'Alto contraste (acessibilidade)'
- };
+  noFlash:'Sem flashes (acessibilidade)',reduceMotion:'Reduzir movimento (acessibilidade)',highContrast:'Alto contraste (acessibilidade)',
+  arenaRadius:'Raio da arena circular (m)',wallBounceMultiplier:'Multiplicador de rebote na borda circular',wallDamageMultiplier:'Multiplicador de dano na borda circular',
+  destructibleCount:'Quantidade de objetos destrutíveis',destructibleHp:'Vida base dos destrutíveis',destructibleRespawnMin:'Tempo mín. respawn destrutível (s)',destructibleRespawnMax:'Tempo máx. respawn destrutível (s)',destructibleGhostPreview:'Prévia fantasma antes do respawn (s)',
+  obstacleCount:'Quantidade de obstáculos indestrutíveis',jumpHeight:'Altura do salto normal (m)',jumpGravity:'Gravidade do salto normal (m/s²)',jumpInterval:'Intervalo mínimo entre saltos (s)',jumpLandingRecovery:'Atraso de recuperação ao aterrissar (s)',
+  itemInitialCount:'Consumíveis iniciais na arena',itemSpawnIntervalMin:'Tempo mín. surgimento de itens (s)',itemSpawnIntervalMax:'Tempo máx. surgimento de itens (s)',itemMaxRegular:'Limite de consumíveis regulares na arena',itemLifetime:'Duração do consumível na arena (s)',itemPickupRadius:'Raio de coleta 3D esférico (m)',
+  healHp:'Cura de HP (Pílula de HP)',healStamina:'Restauração imediata de Stamina',shieldDuration:'Duração do escudo temporário (s)',shieldCapacity:'Capacidade do escudo temporário (HP)',shieldMaxCap:'Capacidade máxima acumulada do escudo (HP)',
+  stageAttackBonus:'Bônus de ataque por estágio (+10%)',stageDefenseReduction:'Redução de dano por estágio de defesa (-10 pp)',stageStaminaBonus:'Stamina máxima extra por estágio (+1)',stageCooldownReduction:'Redução de recarga por estágio (-10%)',stageSpeedBonus:'Aumento de velocidade por estágio (+5%)',stagesMax:'Máximo de estágios por categoria (4)'
+  };
 export const SECTIONS=[
   ['Esquiva (C)','actions.dodge',null],
   ['Tackle (X)','actions.tackle',null],
@@ -40,6 +46,12 @@ export const SECTIONS=[
   ['IA: personalidade do vermelho','extras.aiRed',null],
   ['IA: personalidade do azul (IA jogador)','extras.aiBlue',null],
   ['Arena e simulação','test',null],
+  ['Arena circular','map',['arenaRadius','wallBounceMultiplier','wallDamageMultiplier']],
+  ['Objetos destrutíveis','map',['destructibleCount','destructibleHp','destructibleRespawnMin','destructibleRespawnMax','destructibleGhostPreview']],
+  ['Obstáculos indestrutíveis','map',['obstacleCount']],
+  ['Plataformas e salto','map',['jumpHeight','jumpGravity','jumpInterval','jumpLandingRecovery']],
+  ['Consumíveis e drops','map',['itemInitialCount','itemSpawnIntervalMin','itemSpawnIntervalMax','itemMaxRegular','itemLifetime','itemPickupRadius','healHp','healStamina']],
+  ['Progressão de estágios e escudo','map',['shieldDuration','shieldCapacity','shieldMaxCap','stageAttackBonus','stageDefenseReduction','stageStaminaBonus','stageCooldownReduction','stageSpeedBonus','stagesMax']],
   ['Renderizador e personagens','extras.visual',null],
   ['Efeitos e feedback','extras.fx',null],
   ['HUD e visualização','extras.hud',null],

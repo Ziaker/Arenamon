@@ -2,6 +2,8 @@
 // Os valores iniciais reproduzem exatamente o laboratório v6 (arenamon-combate-laboratorio-v6.html).
 // O jogo oficial (prototypes/game/src/config.ts) é lido por ui/official.js apenas para comparação.
 
+import {MAP_DEFAULTS} from './map.js';
+
 export function defaults() {
   // Regras gerais. Os parâmetros próprios de C (esquiva) e X (tackle) ficam em `actions`.
   // blend: dissipação da velocidade quando a DEFESA cancela uma esquiva/tackle (GDD 7.3: 100 ms).
@@ -22,7 +24,7 @@ export function defaults() {
     exhaustedSpeed: .7, guardTurn: 3 * Math.PI, guardAcceleration: 15 * Math.PI,
     // exhaustMode 1: exausto quando sobra menos que o menor custo de X/C (0 = só em zero, Etapa A). Rebote na parede: vertical.
     exhaustMode: 1, wallBounceVertical: 1, wallBounceUp: 0};
-  const test = {step: 1 / 120, maxFrame: .1, arenaHalf: 16, halfExtent: .5, hp: 100, attack: 20, defense: 50, speed: 4.8, attackReference: 20,
+  const test = {step: 1 / 120, maxFrame: .1, arenaRadius: 50, arenaHalf: 50, halfExtent: .5, hp: 100, attack: 20, defense: 50, speed: 4.8, attackReference: 20,
     speedReference: 10, defenseMedian: 50, pushCoefficient: 2, pushDuration: .3, aiInterval: .85, aiRange: 3.3, contactStep: .1, epsilon: 1e-8,
     forwardTolerance: Math.PI / 8};
   // Locomoção contínua (sim/locomotion.js). model 0 = aproximação linear do v6 (paridade); 1 = controlador com curvas,
@@ -71,9 +73,9 @@ export function defaults() {
       enableAIAttack: 1, enableAIReactive: 1, enableCameraFollow: 1, enableCameraRecenter: 1, enablePlayerAI: 0, showHitboxes: 0, showAttackVectors: 0,
       enableHitstop: 1, enableCounterBonus: 1, enableLandingSkid: 1, enableEnemyAI: 1, enableSprint: 1, enemyManual: 0, enableAnimationCombatWindows: 0, enableClashPush: 0, enableTechRecovery: 1, enableChargeTackle: 1, enableWallSplat: 1, enableMeteorSlam: 1, enableFlightSlam: 0, enableTackleFeint: 1},
     // skill1–4: slots de movimentos especiais (padrão A, S, 3 e 4 do teclado; A e S = Reflect e Psyshock, D3). Sem movimento equipado, a tecla não faz nada.
-    bindings: {forward: 0, back: 1, left: 2, right: 3, tackle: 4, dodge: 5, defend: 6, lock: 7, pause: 8, restart: 9, debug: 10, skill1: 11, skill2: 12, skill3: 49, skill4: 50},
+    bindings: {forward: 0, back: 1, left: 2, right: 3, tackle: 4, dodge: 5, defend: 6, lock: 7, pause: 8, restart: 9, debug: 10, skill1: 11, skill2: 12, skill3: 49, skill4: 50, jump: 14},
     // Teclas do vermelho no controle manual (índices em keyCodes): I/J/K/L movem, U tackle, O esquiva, P defesa, Y alvo.
-    bindings2: {forward: 33, back: 35, left: 34, right: 36, tackle: 37, dodge: 38, defend: 39, lock: 40, skill1: 41, skill2: 42, skill3: 44, skill4: 45},
+    bindings2: {forward: 33, back: 35, left: 34, right: 36, tackle: 37, dodge: 38, defend: 39, lock: 40, skill1: 41, skill2: 42, skill3: 44, skill4: 45, jump: 14},
     colors: {playerR: 53, playerG: 137, playerB: 255, enemyR: 242, enemyG: 81, enemyB: 75, floorR: 96, floorG: 109, floorB: 116, wallR: 202, wallG: 212, wallB: 219,
       backgroundR: 32, backgroundG: 43, backgroundB: 53, gridMajorR: 196, gridMajorG: 209, gridMajorB: 217, gridMinorR: 133, gridMinorG: 147, gridMinorB: 156,
       impactR: 255, impactG: 179, impactB: 97, clashR: 255, clashG: 229, clashB: 141, landingR: 180, landingG: 193, landingB: 203,
@@ -126,7 +128,7 @@ export function defaults() {
     beam: {length: 24, maxSegments: 8, interval: .25, damage: 2},
     // ai: como a IA decide usar os Moves (sim/ai-moves.js). Distâncias em m, tempos em s. Os padrões reproduzem o comportamento anterior.
     ai: {evadeDistance: 4.5, pl2Distance: 4.8, pl3Distance: 7, reflectHold: .9, lastSecondDefend: .22, noTimeDefend: .26, barrierBreakRange: 3.2, barrierBreakChance: .6, psyshockMinDistance: 3.5, psyshockMinStamina: 2, psyshockChanceMax: .9, afterChargeWait: .35, decisionInterval: .5}};
-  return {rules, test, locomotion, camera, profiles: profilesLab, extras, actions, vfx: vfxDefaults(), display: displayDefaults(), world};
+  return {rules, test, locomotion, camera, profiles: profilesLab, extras, actions, vfx: vfxDefaults(), display: displayDefaults(), world, map: {...MAP_DEFAULTS}};
 }
 
 /**
@@ -213,7 +215,7 @@ export function displayDefaults() {
 
 /** Configuração viva compartilhada pela simulação, visualização e ajustador. */
 export const C = defaults();
-export const ROOT_KEYS = ['rules', 'test', 'locomotion', 'camera', 'profiles', 'extras', 'actions', 'vfx', 'display', 'world'];
+export const ROOT_KEYS = ['rules', 'test', 'locomotion', 'camera', 'profiles', 'extras', 'actions', 'vfx', 'display', 'world', 'map'];
 /**
  * Movimento da Etapa A (antes do overhaul): locomoção linear do v6, setas relativas ao alvo com lock-on, corpo sempre
  * voltado ao alvo, curva polinomial de X/C com distância proporcional à duração, IA sem suavização e sem sprint.

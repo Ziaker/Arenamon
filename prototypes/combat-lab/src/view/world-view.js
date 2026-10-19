@@ -485,7 +485,7 @@ export class WorldView {
     return group;
   }
 
-  update(world, {fighters = [], events = [], dt = 0, skipBeams = false} = {}) {
+  update(world, {fighters = [], events = [], dt = 0, skipBeams = false, camera = null} = {}) {
     this.time += dt;
     this.trailTimer += dt;
     const emitTrailsNow = this.trailTimer >= 0.04;
@@ -668,6 +668,7 @@ export class WorldView {
     }
 
     this.drawCharging(world, fighters, dt);
+    this.drawMap(world?.mapState, fighters, dt, camera);
     return alive.size;
   }
 
@@ -764,5 +765,290 @@ export class WorldView {
       }
     }
     if (!showPreview) this.preview.visible = false;
+  }
+
+  drawMap(mapState, fighters = [], dt = 0, camera = null) {
+    if (!mapState) return;
+    this.mapGroup ??= new T.Group();
+    if (!this.mapGroup.parent) this.group.add(this.mapGroup);
+    this.mapMeshes ??= new Map();
+    this.shieldBubbles ??= [null, null];
+
+    // 1. Escudos esféricos dos lutadores (R9.3-R9.7, R10.2)
+    for (let i = 0; i < fighters.length; i++) {
+      const f = fighters[i];
+      let bubble = this.shieldBubbles[i];
+      if (!bubble) {
+        const geo = new T.SphereGeometry(0.9, 24, 24);
+        const mat = new T.MeshStandardMaterial({
+          color: 0x38bdf8,
+          emissive: 0x0284c7,
+          emissiveIntensity: 0.5,
+          transparent: true,
+          opacity: 0.35,
+          roughness: 0.1,
+          metalness: 0.2,
+          side: T.DoubleSide,
+          depthWrite: false,
+        });
+        bubble = new T.Mesh(geo, mat);
+        bubble.renderOrder = 850;
+        this.group.add(bubble);
+        this.shieldBubbles[i] = bubble;
+      }
+      if (f.shield && f.shield.hp > 0 && f.hp > 0) {
+        bubble.visible = true;
+        const fY = (f.groundY ?? 0) + (f.flight?.y ?? f.vaultHeight ?? 0);
+        bubble.position.set(f.position.x, fY + 0.6, f.position.z);
+        const ratio = Math.min(1, f.shield.hp / (f.shield.maxHp || 80));
+        bubble.material.opacity = 0.22 + 0.28 * ratio + 0.08 * Math.sin(this.time * 5);
+        const pulse = 1.0 + 0.03 * Math.sin(this.time * 6);
+        bubble.scale.set(1.1 * pulse, 1.35 * pulse, 1.1 * pulse);
+      } else {
+        bubble.visible = false;
+      }
+    }
+
+    const aliveMapIds = new Set();
+
+    // 2. Plataformas (2 plataformas: 3x3m a 1.0m e 1.5m)
+    for (const p of mapState.platforms ?? []) {
+      aliveMapIds.add(p.id);
+      let m = this.mapMeshes.get(p.id);
+      if (!m) {
+        const geo = new T.BoxGeometry(p.width ?? 3, p.height, p.depth ?? 3);
+        const mat = new T.MeshStandardMaterial({
+          color: 0x475569,
+          roughness: 0.8,
+          metalness: 0.15,
+        });
+        m = new T.Mesh(geo, mat);
+        m.name = `platform_${p.id}`;
+        const edgeGeo = new T.EdgesGeometry(geo);
+        const edgeMat = new T.LineBasicMaterial({color: 0x94a3b8, transparent: true, opacity: 0.7});
+        m.add(new T.LineSegments(edgeGeo, edgeMat));
+        this.mapGroup.add(m);
+        this.mapMeshes.set(p.id, m);
+      }
+      m.position.set(p.pos?.x ?? p.x, p.height / 2, p.pos?.z ?? p.z);
+      this.checkOcclusion(m, camera, fighters);
+    }
+
+    // 3. Obstáculos indestrutíveis (4 obstáculos)
+    for (const o of mapState.obstacles ?? []) {
+      aliveMapIds.add(o.id);
+      let m = this.mapMeshes.get(o.id);
+      if (!m) {
+        let geo;
+        if (o.shape === 'cylinder') {
+          geo = new T.CylinderGeometry(o.radius, o.radius, o.height, 24);
+        } else {
+          geo = new T.BoxGeometry(o.hx * 2, o.height, o.hz * 2);
+        }
+        const mat = new T.MeshStandardMaterial({
+          color: 0x334155,
+          roughness: 0.65,
+          metalness: 0.35,
+        });
+        m = new T.Mesh(geo, mat);
+        m.name = `obstacle_${o.id}`;
+        const edgeGeo = new T.EdgesGeometry(geo);
+        const edgeMat = new T.LineBasicMaterial({color: 0x64748b, transparent: true, opacity: 0.6});
+        m.add(new T.LineSegments(edgeGeo, edgeMat));
+        this.mapGroup.add(m);
+        this.mapMeshes.set(o.id, m);
+      }
+      m.position.set(o.pos.x, o.pos.y + o.height / 2, o.pos.z);
+      this.checkOcclusion(m, camera, fighters);
+    }
+
+    // 4. Objetos Destrutíveis (4 destrutíveis) com prévia ghost (R11.9)
+    for (const d of mapState.destructibles ?? []) {
+      aliveMapIds.add(d.id);
+      let m = this.mapMeshes.get(d.id);
+      if (!m) {
+        const geo = new T.BoxGeometry(d.size.hx * 2, d.size.height, d.size.hz * 2);
+        const mat = new T.MeshStandardMaterial({
+          color: 0xd97706,
+          roughness: 0.7,
+          metalness: 0.1,
+          transparent: true,
+          opacity: 1.0,
+        });
+        m = new T.Mesh(geo, mat);
+        m.name = `destructible_${d.id}`;
+        const edgeGeo = new T.EdgesGeometry(geo);
+        const edgeMat = new T.LineBasicMaterial({color: 0xfbbf24, transparent: true, opacity: 0.8});
+        m.add(new T.LineSegments(edgeGeo, edgeMat));
+
+        // Barra de HP simples flutuante
+        const hpBarGeo = new T.PlaneGeometry(0.8, 0.08);
+        const hpBarMat = new T.MeshBasicMaterial({color: 0x22c55e, side: T.DoubleSide, depthTest: false});
+        const hpBar = new T.Mesh(hpBarGeo, hpBarMat);
+        hpBar.name = 'hpBar';
+        hpBar.position.set(0, d.size.height / 2 + 0.25, 0);
+        m.add(hpBar);
+
+        this.mapGroup.add(m);
+        this.mapMeshes.set(d.id, m);
+      }
+      m.position.set(d.pos.x, d.pos.y + d.size.height / 2, d.pos.z);
+
+      const hpBar = m.getObjectByName('hpBar');
+      if (d.state === 'solid') {
+        m.visible = true;
+        m.material.color.setHex(0xd97706);
+        m.material.opacity = 1.0;
+        m.material.depthWrite = true;
+        if (hpBar) {
+          hpBar.visible = true;
+          const hpRatio = Math.max(0, d.hp / (d.maxHp || 30));
+          hpBar.scale.x = hpRatio;
+          hpBar.material.color.setHex(hpRatio > 0.5 ? 0x22c55e : hpRatio > 0.25 ? 0xfacc15 : 0xef4444);
+          if (camera) hpBar.quaternion.copy(camera.quaternion);
+        }
+        this.checkOcclusion(m, camera, fighters);
+      } else if (d.state === 'ghost') {
+        // Prévia translúcida antes de tornar sólido (R11.9)
+        m.visible = true;
+        m.material.color.setHex(0xfef08a);
+        m.material.opacity = 0.32 + 0.22 * Math.sin(this.time * 8);
+        m.material.depthWrite = false;
+        if (hpBar) hpBar.visible = false;
+      } else {
+        m.visible = false;
+        if (hpBar) hpBar.visible = false;
+      }
+    }
+
+    // 5. Consumíveis (7 tipos com cores e geometrias únicas, R4.7, R11.5)
+    for (const it of mapState.items ?? []) {
+      aliveMapIds.add(it.id);
+      let m = this.mapMeshes.get(it.id);
+      if (!m) {
+        m = this.createConsumableMesh(it.type);
+        this.mapGroup.add(m);
+        this.mapMeshes.set(it.id, m);
+      }
+      const bob = 0.12 * Math.sin(this.time * 3.5 + it.id);
+      m.position.set(it.pos.x, it.pos.y + 0.45 + bob, it.pos.z);
+      m.rotation.y += 1.8 * dt;
+
+      const ring = m.getObjectByName('pickupRing');
+      if (ring) {
+        ring.position.y = -0.4 - bob;
+        const pScale = 0.9 + 0.15 * Math.sin(this.time * 5 + it.id);
+        ring.scale.set(pScale, pScale, pScale);
+      }
+    }
+
+    // Limpeza de entidades removidas do mapa
+    for (const [id, m] of this.mapMeshes) {
+      if (!aliveMapIds.has(id)) {
+        this.mapGroup.remove(m);
+        m.traverse(o => {
+          o.geometry?.dispose();
+          if (Array.isArray(o.material)) o.material.forEach(mat => mat.dispose());
+          else o.material?.dispose();
+        });
+        this.mapMeshes.delete(id);
+      }
+    }
+  }
+
+  createConsumableMesh(type) {
+    const group = new T.Group();
+    let geo, color;
+    switch (type) {
+      case 'heal_hp':
+        geo = new T.DodecahedronGeometry(0.3, 0);
+        color = 0xef4444;
+        break;
+      case 'heal_stamina':
+        geo = new T.OctahedronGeometry(0.3, 0);
+        geo.scale(0.8, 1.4, 0.8);
+        color = 0xeab308;
+        break;
+      case 'buff_attack':
+        geo = new T.TetrahedronGeometry(0.32, 0);
+        color = 0xf97316;
+        break;
+      case 'buff_defense':
+        geo = new T.IcosahedronGeometry(0.3, 0);
+        color = 0x3b82f6;
+        break;
+      case 'buff_stamina_max':
+        geo = new T.TorusGeometry(0.24, 0.09, 12, 24);
+        geo.rotateX(Math.PI / 3);
+        color = 0xf59e0b;
+        break;
+      case 'buff_cooldown':
+        geo = new T.OctahedronGeometry(0.28, 0);
+        geo.scale(1.2, 0.6, 1.2);
+        color = 0xa855f7;
+        break;
+      case 'buff_speed':
+      default:
+        geo = new T.ConeGeometry(0.24, 0.5, 5);
+        geo.rotateZ(-Math.PI / 6);
+        color = 0x22c55e;
+        break;
+    }
+
+    const mat = new T.MeshStandardMaterial({
+      color,
+      emissive: color,
+      emissiveIntensity: 0.45,
+      roughness: 0.3,
+      metalness: 0.3,
+    });
+    const core = new T.Mesh(geo, mat);
+    group.add(core);
+
+    const ringGeo = new T.RingGeometry(0.35, 0.55, 32);
+    ringGeo.rotateX(-Math.PI / 2);
+    const ringMat = new T.MeshBasicMaterial({color, transparent: true, opacity: 0.5, side: T.DoubleSide, depthWrite: false});
+    const ring = new T.Mesh(ringGeo, ringMat);
+    ring.name = 'pickupRing';
+    group.add(ring);
+
+    return group;
+  }
+
+  checkOcclusion(mesh, camera, fighters) {
+    if (!camera || !fighters?.length) return;
+    const camPos = camera.position;
+    let occludes = false;
+
+    for (const f of fighters) {
+      if (f.hp <= 0) continue;
+      const fPos = {x: f.position.x, y: (f.groundY ?? 0) + 0.8, z: f.position.z};
+      const dx = fPos.x - camPos.x, dy = fPos.y - camPos.y, dz = fPos.z - camPos.z;
+      const dist = Math.hypot(dx, dy, dz);
+      if (dist < 1e-4) continue;
+      const rayDir = {x: dx / dist, y: dy / dist, z: dz / dist};
+
+      const mPos = mesh.position;
+      const cx = mPos.x - camPos.x, cy = mPos.y - camPos.y, cz = mPos.z - camPos.z;
+      const t = cx * rayDir.x + cy * rayDir.y + cz * rayDir.z;
+      if (t > 0.8 && t < dist - 0.8) {
+        const perpX = cx - t * rayDir.x, perpY = cy - t * rayDir.y, perpZ = cz - t * rayDir.z;
+        const perpDist = Math.hypot(perpX, perpY, perpZ);
+        if (perpDist < 1.6) {
+          occludes = true;
+          break;
+        }
+      }
+    }
+
+    if (occludes) {
+      mesh.material.transparent = true;
+      mesh.material.opacity = 0.25;
+      mesh.material.depthWrite = false;
+    } else {
+      mesh.material.transparent = false;
+      mesh.material.opacity = 1.0;
+      mesh.material.depthWrite = true;
+    }
   }
 }

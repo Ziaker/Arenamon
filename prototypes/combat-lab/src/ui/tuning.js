@@ -20,6 +20,7 @@ const TABS = [
   ['Combate', ['Regras gerais, defesa e stamina', 'Knockback e clash', 'Combate e colisões']],
   ['Atributos', ['Atributos: equilibrado', 'Atributos: ágil', 'Atributos: resistente']],
   ['Movimento', ['Movimento']], ['IA', ['IA: estratégia e decisões', 'IA: personalidade do vermelho', 'IA: personalidade do azul (IA jogador)']], ['Arena', ['Arena e simulação']],
+  ['Mapa', ['Arena circular', 'Objetos destrutíveis', 'Obstáculos indestrutíveis', 'Plataformas e salto', 'Consumíveis e drops', 'Progressão de estágios e escudo']],
   ['Visual', ['Renderizador e personagens', 'Efeitos e feedback', 'HUD e visualização', 'Cores: canais RGB individuais']],
   ['Sistemas', ['Ativar ou desativar sistemas', 'Modos de jogo']],
 ];
@@ -89,6 +90,21 @@ function range(key, value, path) {
     if (key === 'shatterSpeed' || key === 'shatterLife' || key === 'shatterSize') return {min: 0.2, max: 3.0, step: 0.05, fmt: n => n.toFixed(2) + '×'};
     if (['enabled', 'ripples'].includes(key)) return {min: 0, max: 1, step: 1, fmt: n => n ? 'Ligado' : 'Desligado'};
     if (key === 'variant') return {min: 0, max: 2, step: 1, fmt: n => ['A · Hex-Grid', 'B · Cristal de Quartzo', 'C · Campo de Força'][n] || 'A'};
+  }
+  if (path && path.startsWith('map.')) {
+    if (key === 'arenaRadius') return {min: 15, max: 100, step: 1, fmt: n => n + ' m'};
+    if (key === 'wallBounceMultiplier' || key === 'wallDamageMultiplier') return {min: 0, max: 3, step: 0.1, fmt: n => n.toFixed(1) + '×'};
+    if (key === 'destructibleCount' || key === 'obstacleCount' || key === 'itemInitialCount' || key === 'itemMaxRegular' || key === 'stageStaminaBonus' || key === 'stagesMax') return {min: 0, max: 20, step: 1, fmt: n => String(n)};
+    if (key === 'destructibleHp' || key === 'shieldCapacity' || key === 'shieldMaxCap') return {min: 5, max: 300, step: 5, fmt: n => n + ' HP'};
+    if (key === 'destructibleRespawnMin' || key === 'destructibleRespawnMax' || key === 'itemSpawnIntervalMin' || key === 'itemSpawnIntervalMax' || key === 'itemLifetime' || key === 'shieldDuration') return {min: 2, max: 120, step: 1, fmt: n => n + ' s'};
+    if (key === 'destructibleGhostPreview' || key === 'jumpInterval' || key === 'jumpLandingRecovery') return {min: 0.05, max: 5, step: 0.01, fmt: n => n.toFixed(2) + ' s'};
+    if (key === 'jumpHeight') return {min: 0.5, max: 5.0, step: 0.1, fmt: n => n.toFixed(1) + ' m'};
+    if (key === 'jumpGravity') return {min: 5, max: 40, step: 0.5, fmt: n => n.toFixed(1) + ' m/s²'};
+    if (key === 'itemPickupRadius') return {min: 0.5, max: 5.0, step: 0.1, fmt: n => n.toFixed(1) + ' m'};
+    if (key === 'healHp') return {min: 5, max: 100, step: 5, fmt: n => n + ' HP'};
+    if (key === 'healStamina') return {min: 1, max: 10, step: 1, fmt: n => n + ' seg'};
+    if (key === 'stageAttackBonus' || key === 'stageCooldownReduction' || key === 'stageSpeedBonus') return {min: 0.01, max: 0.50, step: 0.01, fmt: n => '+' + (n * 100).toFixed(0) + '%'};
+    if (key === 'stageDefenseReduction') return {min: 0.01, max: 0.50, step: 0.01, fmt: n => '-' + (n * 100).toFixed(0) + ' pp'};
   }
   if (/Fraction|Multiplier|Restitution|Scale|Weight|Base$|Opacity|Strength|Smoothing|Alignment|Dot$|Visible$/.test(key)) return {min: /Alignment|Dot/.test(key) ? -1 : 0, max: key === 'uiScale' ? 3 : 2, step: .01, fmt: n => n.toFixed(2)};
   const s = Math.abs(value), max = s >= 50 ? s * 3 : s >= 10 ? s * 4 : s >= 1 ? Math.max(10, s * 4) : s >= .1 ? Math.max(2, s * 5) : Math.max(.5, s * 8), step = s >= 20 ? .5 : s >= 1 ? .05 : s >= .1 ? .01 : .001;

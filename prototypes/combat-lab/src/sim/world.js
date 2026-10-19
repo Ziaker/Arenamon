@@ -16,6 +16,7 @@ import {sweepBox, segmentHitsVolume} from './geometry.js';
 import {launch} from './combat.js';
 import {traceBeam} from './beam.js';
 import {applyStatus, stat} from './status.js';
+import {processDamageWithShieldAndStages, damageDestructible} from './map.js';
 import {vec, add, sub, scale, dot, length, normalize, direction, angleOf, angleDelta, clamp} from './math.js';
 
 export const ENTITY_KINDS = ['projectile', 'barrier', 'wall', 'area', 'beam'];
@@ -85,12 +86,14 @@ export function applyHit(game, ownerId, target, hit, normal, info = {}) {
   const base = {attacker: ownerId, target: target.id, normal: {...normal}, entity: info.entity ?? null, source: info.source ?? 'world', pl: info.pl ?? null};
   if (target.hp <= 0) return null;
   if (!hit.ignoreInvulnerability && isInvulnerable(target)) return {...base, result: 'invulnerable', damage: 0};
-  const attack = owner ? stat(owner, 'attack', 1) : 1, scaleK = info.scale ?? 1;
+  const atkStageMult = owner ? (1 + (owner.stages?.attack ?? 0) * (C.map?.stageAttackBonus ?? 0.10)) : 1;
+  const attack = (owner ? stat(owner, 'attack', 1) : 1) * atkStageMult, scaleK = info.scale ?? 1;
   const guardable = hit.guardable !== false && T.enableDefense, from = info.origin ?? sub(target.position, scale(normal, 1));
   const protectedFront = guardable && target.guard && dot(direction(target.facing), normalize(sub(from, target.position))) >= X.guardFrontAlignment;
   const perfect = protectedFront && target.perfectLeft > 1e-8;
-  const raw = (hit.damage ?? 0) * attack * scaleK, damage = perfect ? 0 : raw * (protectedFront ? X.guardDamageMultiplier : 1) * stat(target, 'damageTaken', 1);
-  target.hp = Math.max(0, target.hp - damage);
+  const raw = (hit.damage ?? 0) * attack * scaleK * stat(target, 'damageTaken', 1);
+  const dmgResult = processDamageWithShieldAndStages(target, raw, owner, protectedFront, perfect);
+  const damage = dmgResult.hpDamage;
   /** @type {{direction: import("./types").Vec, horizontal: number, vertical: number} | null} */
   let launchInfo = null;
   if (protectedFront) {
@@ -181,8 +184,65 @@ function stepProjectile(game, p, dt, events, spawnLater) {
     const from = {...p.pos};p.pos = add(p.pos, scale(p.vel, dt / steps));if (p.gravity) {p.y = Math.max(0, p.y + (p.vy ?? 0) * dt / steps);if (p.y <= 0 && p.vy < 0) {p.dead = true;events.push({result: 'groundHit', attacker: p.owner ?? null, target: null, damage: 0, entity: p.id, kind: 'projectile'});if (p.onHit) spawnLater.push(at(p.onHit, p));return;}}
     if (!p.gravity && p.vy) {p.y += p.vy * dt / steps;if (p.y <= 0 && p.vy < 0) {p.dead = true;events.push({result: 'groundHit', attacker: p.owner ?? null, target: null, damage: 0, entity: p.id, kind: 'projectile'});return;}}   // voo inclinado sem gravidade (pedras com alvo travado)
     if (!reflectPass(game, p, from, events)) return;
-    const half = C.test.arenaHalf;
-    if (Math.abs(p.pos.x) > half || Math.abs(p.pos.z) > half) {p.dead = true;events.push({result: 'arenaHit', attacker: p.owner ?? null, target: null, damage: 0, entity: p.id, kind: 'projectile'});if (p.onHit) spawnLater.push(at(p.onHit, p));return;}
+    const isCircle = C.map?.arenaShape !== 'square';
+    if (isCircle) {
+      const radius = C.map?.arenaRadius ?? 50;
+      const d = length(p.pos);
+      if (d >= radius - p.radius) {
+        // R11.7: Projétil que atinge borda circular ricocheteia conforme propriedades físicas e normal de contato
+        const n = normalize(p.pos);
+        const vDotN = dot(p.vel, n);
+        if (vDotN > 0) {
+          p.bounces = (p.bounces ?? 0) + 1;
+          const maxBounces = p.maxBounces ?? 2;
+          if (p.bounces <= maxBounces) {
+            p.vel = sub(p.vel, scale(n, 2 * vDotN));
+            p.dir = normalize(p.vel);
+            events.push({result: 'arenaBounce', attacker: p.owner ?? null, target: null, damage: 0, entity: p.id, kind: 'projectile'});
+          } else {
+            p.dead = true;
+            events.push({result: 'arenaHit', attacker: p.owner ?? null, target: null, damage: 0, entity: p.id, kind: 'projectile'});
+            if (p.onHit) spawnLater.push(at(p.onHit, p));
+            return;
+          }
+        }
+      }
+    } else {
+      const half = C.test.arenaHalf;
+      if (Math.abs(p.pos.x) > half || Math.abs(p.pos.z) > half) {p.dead = true;events.push({result: 'arenaHit', attacker: p.owner ?? null, target: null, damage: 0, entity: p.id, kind: 'projectile'});if (p.onHit) spawnLater.push(at(p.onHit, p));return;}
+    }
+
+    // Mapa: destrutíveis, obstáculos e plataformas (R1.5, R1.8, R3.4, R8.8)
+    if (game.mapState) {
+      for (const d of game.mapState.destructibles) {
+        if (d.state !== 'solid') continue;
+        const box = {shape: 'box', pos: {x: d.pos.x, z: d.pos.z}, hx: d.size.hx, hz: d.size.hz, angle: d.angle ?? 0};
+        if (!vOverlap(p.y - p.radius, p.y + p.radius, d.pos.y, d.pos.y + d.size.height) || !circleTouches(box, p.pos, p.radius)) continue;
+        damageDestructible(d, p.hit?.damage ?? 10, 'projectile', p.owner != null ? game.fighters[p.owner] : null, game.mapState, events);
+        events.push({result: 'destructibleHit', attacker: p.owner ?? null, target: d.id, damage: p.hit?.damage ?? 10, entity: p.id, kind: 'projectile'});
+        p.dead = true;
+        if (p.onHit) spawnLater.push(at(p.onHit, p));
+        return;
+      }
+      for (const o of game.mapState.obstacles) {
+        const obsShape = o.shape === 'cylinder'
+          ? {shape: 'circle', pos: {x: o.pos.x, z: o.pos.z}, radius: o.radius}
+          : {shape: 'box', pos: {x: o.pos.x, z: o.pos.z}, hx: o.hx, hz: o.hz, angle: o.angle ?? 0};
+        if (!vOverlap(p.y - p.radius, p.y + p.radius, o.pos.y, o.pos.y + o.height) || !circleTouches(obsShape, p.pos, p.radius)) continue;
+        events.push({result: 'obstacleHit', attacker: p.owner ?? null, target: o.id, damage: 0, entity: p.id, kind: 'projectile'});
+        p.dead = true;
+        if (p.onHit) spawnLater.push(at(p.onHit, p));
+        return;
+      }
+      for (const plat of game.mapState.platforms) {
+        const pBox = {shape: 'box', pos: {x: plat.pos?.x ?? plat.x, z: plat.pos?.z ?? plat.z}, hx: (plat.width ?? 3) / 2, hz: (plat.depth ?? 3) / 2, angle: 0};
+        if (!vOverlap(p.y - p.radius, p.y + p.radius, 0, plat.height) || !circleTouches(pBox, p.pos, p.radius)) continue;
+        events.push({result: 'platformHit', attacker: p.owner ?? null, target: plat.id, damage: 0, entity: p.id, kind: 'projectile'});
+        p.dead = true;
+        if (p.onHit) spawnLater.push(at(p.onHit, p));
+        return;
+      }
+    }
     // Barreiras e paredes primeiro: o que está na frente bloqueia.
     for (const b of game.world.entities) {
       if (b === p || b.dead || !p.blockedBy.includes(b.kind) || !blocks(b, p) || !vOverlap(p.y - p.radius, p.y + p.radius, b.y, b.y + b.height) || !circleTouches(b, p.pos, p.radius)) continue;
@@ -241,6 +301,18 @@ function stepArea(game, a, dt, events) {
       const k = a.falloff === 'linear' ? Math.max(0, 1 - dist / Math.max(1e-6, a.radius)) : 1, away = sub(f.position, a.pos);
       const ev = applyHit(game, a.owner, f, a.hit, length(away) > 1e-6 ? normalize(away) : direction(f.facing + Math.PI), {entity: a.id, scale: k, origin: a.pos});
       if (ev) events.push({...ev, pulse: a.pulsesDone});
+    }
+    if (a.hit && game.mapState?.destructibles) {
+      for (const d of game.mapState.destructibles) {
+        if (d.state !== 'solid') continue;
+        if (!vOverlap(d.pos.y, d.pos.y + d.size.height, a.y, a.y + a.height)) continue;
+        const box = {shape: 'box', pos: {x: d.pos.x, z: d.pos.z}, hx: d.size.hx, hz: d.size.hz, angle: d.angle ?? 0};
+        const c = closestOnShape(box, a.pos), dist = Math.max(0, c.inside ? 0 : c.distance);
+        if (dist > a.radius) continue;
+        const k = a.falloff === 'linear' ? Math.max(0, 1 - dist / Math.max(1e-6, a.radius)) : 1;
+        const dmg = (a.hit?.damage ?? 10) * k;
+        damageDestructible(d, dmg, 'area', a.owner != null ? game.fighters[a.owner] : null, game.mapState, events);
+      }
     }
     if (a.explosion) breakBarriers(game, a, events);
   }

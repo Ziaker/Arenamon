@@ -22,8 +22,29 @@ export class Hud {
     const aiText = C.extras.toggles.enableEnemyAI ? 'IA: ' + modeShort : 'IA: desligada';
     if ($('ai-chip').textContent !== aiText) {$('ai-chip').textContent = aiText;$('ai-chip').title = C.extras.toggles.enableEnemyAI ? 'Modo da IA do adversário: ' + modeFull : 'IA do oponente desligada (botão 🧠)';}
     for (const f of game.fighters) {
-      $(`hp${f.id}`).value = f.hp / f.attributes.hp;$(`stamina${f.id}`).value = f.stamina / C.rules.staminaMax;$(`stamina${f.id}`).classList.toggle("exhausted", !!f.exhausted);
-      $(`state${f.id}`).textContent = `${Math.ceil(f.hp)} HP · ${STATE_NAMES[f.state] || f.state}${f.exhausted ? ' · Exausto' : ''}${f.counterWindow > 0 ? ' · Contra-ataque' : ''}`;
+      const maxStamina = C.rules.staminaMax + (f.stages?.staminaMax || 0);
+      $(`hp${f.id}`).value = f.hp / f.attributes.hp;
+      $(`stamina${f.id}`).value = f.stamina / maxStamina;
+      $(`stamina${f.id}`).classList.toggle("exhausted", !!f.exhausted);
+      const shieldText = (f.shield && f.shield.hp > 0) ? ` · Escudo ${Math.ceil(f.shield.hp)}` : '';
+      const stateName = (f.flight && f.flight.isNormalJump) ? 'Salto' : (STATE_NAMES[f.state] || f.state);
+      $(`state${f.id}`).textContent = `${Math.ceil(f.hp)} HP${shieldText} · ${stateName}${f.exhausted ? ' · Exausto' : ''}${f.counterWindow > 0 ? ' · Contra-ataque' : ''}`;
+      const stEl = $(`stages${f.id}`);
+      if (stEl) {
+        const parts = [];
+        if (f.shield && f.shield.hp > 0) {
+          parts.push(`<span class="st-badge shd" title="Escudo temporário: ${Math.ceil(f.shield.hp)} HP (${f.shield.duration.toFixed(1)}s)">🛡 ${Math.ceil(f.shield.hp)}</span>`);
+        }
+        if (f.stages) {
+          if (f.stages.attack > 0) parts.push(`<span class="st-badge atk" title="Estágio de Ataque +${f.stages.attack * 10}%">⚔ +${f.stages.attack}</span>`);
+          if (f.stages.defense > 0) parts.push(`<span class="st-badge def" title="Estágio de Defesa -${f.stages.defense * 10} pp">🛡 +${f.stages.defense}</span>`);
+          if (f.stages.staminaMax > 0) parts.push(`<span class="st-badge sta" title="Estágio de Stamina Máx +${f.stages.staminaMax}">⚡ +${f.stages.staminaMax}</span>`);
+          if (f.stages.cooldown > 0) parts.push(`<span class="st-badge cd" title="Estágio de Recarga -${f.stages.cooldown * 10}%">⏱ +${f.stages.cooldown}</span>`);
+          if (f.stages.speed > 0) parts.push(`<span class="st-badge spd" title="Estágio de Velocidade +${f.stages.speed * 5}%">👟 +${f.stages.speed}</span>`);
+        }
+        const html = parts.join('');
+        if (stEl.innerHTML !== html) stEl.innerHTML = html;
+      }
     }
     // Só eventos de contato aparecem no aviso: criação, expiração, início/soltura de carga etc. não são contatos.
     const s = game.events.findLast(e => NOTICE.has(e.result)), notice = $('impact-notice');

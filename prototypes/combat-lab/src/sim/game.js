@@ -8,28 +8,36 @@ import {createWorld, stepWorld, spawn} from './world.js';
 import {tickStatuses, applyStatus} from './status.js';
 import {getMove, placeRelative, setLoadout} from './moves.js';
 import {stepPhysics} from './physics.js';
+import {createMapState, initMap, stepMap, stepShield, generateFighterSpawnPositions} from './map.js';
 import {vec} from './math.js';
 
 const finishingNow = g => g.phase === 'finishing';
 export class Game {
   constructor({seed = 1} = {}) {
+    this.seed = seed;
     this.brain = new Brain(seed, 'aiRed');this.playerBrain = new Brain(seed + 1, 'aiBlue');
-    // A IA lê o mundo (projéteis e barreiras) só por esta função: ela não entra no estado salvo e sempre aponta para o mundo atual.
+    // A IA lê o mundo (projéteis e barreiras) e o mapa só por estas funções: elas não entram no estado salvo
     this.brain.getWorld = this.playerBrain.getWorld = () => this.world;
+    this.brain.getMapState = this.playerBrain.getMapState = () => this.mapState;
     // Movimentos equipados por lutador (ids registrados em moves.js); mantidos entre partidas.
     this.loadouts = [[], []];
     this.combatWindows = [null, null];
     this.mode = 'combat';this.profile = 'balanced';this.enemyProfile = 'balanced';
+    this.mapState = createMapState(seed);
     this.reset();this.phase = 'menu';
   }
-  reset({positions = [vec(0, -4), vec(0, 2)]} = {}) {
-    this.fighters = [createFighter(0, C.profiles[this.profile] || C.profiles.balanced, {...positions[0]}), createFighter(1, C.profiles[this.enemyProfile] || C.profiles.balanced, {...positions[1]})];
+  reset({positions = null} = {}) {
+    this.mapState = createMapState(this.seed);
+    const pos = positions ?? (C.map?.arenaShape !== 'square' ? generateFighterSpawnPositions(this.mapState) : [vec(0, -4), vec(0, 2)]);
+    this.fighters = [createFighter(0, C.profiles[this.profile] || C.profiles.balanced, {...pos[0]}), createFighter(1, C.profiles[this.enemyProfile] || C.profiles.balanced, {...pos[1]})];
     this.brain.reset();this.playerBrain.reset();
     this.fighters.forEach((f, i) => {
       f.loadout = [...(this.loadouts[i] || [])];
       f.combatWindows = this.combatWindows?.[i] ? structuredClone(this.combatWindows[i]) : null;
     });
     this.world = createWorld();
+    this.world.mapState = this.mapState;
+    initMap(this.mapState, this.fighters);
     this.tick = 0;this.events = [];this.winner = null;this.hitstop = 0;this.phase = 'playing';this.lastStepEvents = [];
   }
   pause() {if (this.phase === 'playing') this.phase = 'paused';else if (this.phase === 'paused') this.phase = 'playing';}
@@ -53,6 +61,12 @@ export class Game {
     for (const f of this.fighters) if (f.moveEvents?.length) worldEvents.push(...f.moveEvents.splice(0));   // eventos do Charge (início, soltura, cancelamento, recarga acelerada)
     this.fireMoveEffects(worldEvents);
     const fresh = stepPhysics(this.fighters, C.test.step, this.world);
+    // Escudos temporários (R9.3-R9.7, R10.2, R11.8)
+    for (const f of this.fighters) stepShield(f, C.test.step, fresh);
+    // Mapa: consumíveis, respawn e drops (R4, R6, R9.13)
+    if (!finishing && this.phase === 'playing' && this.mapState) {
+      fresh.push(...stepMap(this.mapState, C.test.step, this.fighters, this.events));
+    }
     // Mundo (projéteis, barreiras, paredes, áreas) e status: depois da física dos lutadores, no mesmo passo.
     fresh.push(...worldEvents, ...stepWorld(this, C.test.step));
     for (const f of this.fighters) {fresh.push(...tickStatuses(f, C.test.step, C.rules.staminaMax));tickCooldowns(f, C.test.step);}
@@ -115,23 +129,32 @@ export class Game {
   /** Visão para o HUD e para testes (mesma forma do v6). */
   snapshot() {
     return {phase: this.phase, tick: this.tick, winner: this.winner, mode: this.mode, hitstop: this.hitstop, events: this.events,
+      mapState: this.mapState,
       fighters: this.fighters.map(f => ({...f, action: f.action ? {...f.action, hits: [...f.action.hits], hitWindows: f.action.hitWindows ? f.action.hitWindows.map(s => [...s]) : null} : null,
         invulnerable: isInvulnerable(f), offensive: isOffensive(f)}))};
   }
   /** Estado completo e independente (structuredClone preserva os Sets de acertos). */
   save() {
-    return structuredClone({fighters: this.fighters, tick: this.tick, events: this.events, winner: this.winner, hitstop: this.hitstop, phase: this.phase, world: this.world ?? createWorld(), loadouts: this.loadouts,
+    return structuredClone({fighters: this.fighters, tick: this.tick, events: this.events, winner: this.winner, hitstop: this.hitstop, phase: this.phase, world: this.world ?? createWorld(), mapState: this.mapState, loadouts: this.loadouts,
       combatWindows: this.combatWindows, brain: this.brain.save(), playerBrain: this.playerBrain.save(), lastStepEvents: this.lastStepEvents});
   }
   load(state) {
     const s = structuredClone(state);
     this.fighters = s.fighters;this.tick = s.tick;this.events = s.events;this.winner = s.winner;this.hitstop = s.hitstop;this.phase = s.phase;
     this.brain.load(s.brain);this.playerBrain.load(s.playerBrain);this.lastStepEvents = s.lastStepEvents || [];
-    this.world = s.world ?? createWorld();if (s.loadouts) this.loadouts = s.loadouts;
+    this.world = s.world ?? createWorld();
+    if (s.mapState) {
+      this.mapState = s.mapState;
+      this.world.mapState = this.mapState;
+    }
+    if (s.loadouts) this.loadouts = s.loadouts;
     this.combatWindows = s.combatWindows ? structuredClone(s.combatWindows) : [null, null];
     for (const f of this.fighters) {
       f.statuses ??= [];f.moveCooldowns ??= {};f.loadout ??= [];f.moveFx ??= [];
       f.charge ??= null;f.moveRecovery ??= 0;f.skillBuffer ??= null;f.moveEvents ??= [];f.counterStagger ??= 0;
+      f.stages ??= {attack: 0, defense: 0, staminaMax: 0, cooldown: 0, speed: 0};
+      f.shield ??= {hp: 0, duration: 0, maxHp: 80};
+      f.jumpState ??= {canJump: true, cooldown: 0};
       if (!s.combatWindows) f.combatWindows = null;
     }
     for (let i = 0; i < this.fighters.length; i++) {

@@ -61,7 +61,7 @@ const ui = {playback: null, paused: false, scenario: null, playerMode: 'tactical
 // Vermelho no controle manual (Partida › Controle manual do vermelho): teclas e gamepad próprios.
 const input2 = new Input(canvas, () => {}, {slot: 1});
 const input = new Input(canvas, code => {
-  if (code === keyFor('pause') || code === 'Space') togglePause();
+  if (code === keyFor('pause')) togglePause();
   if ((code === keyFor('restart') || code === 'KeyR') && game.phase !== 'menu') {if (ui.training) training.begin();else startMatch();}
   if (code === keyFor('debug') || code === 'F3') {hud.debug = !hud.debug;C.extras.hud.debugVisible = Number(hud.debug);}
   if (code === 'KeyH') {
