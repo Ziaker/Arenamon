@@ -519,7 +519,15 @@ if ($('panel-hints-toggle')) {
     $('panel-hints-toggle').setAttribute('aria-pressed', String(on));
   };
 }
+/** Moves: gaveta própria no canto da arena (fora da barra esquerda). */
+function toggleMoves(open = $('moves-drawer').hidden) {
+  $('moves-drawer').hidden = !open;$('moves-open').setAttribute('aria-expanded', String(open));$('moves-open').classList.toggle('active', open);
+  if (open) movesPanel.render();
+}
+$('moves-open').onclick = () => toggleMoves();$('moves-close').onclick = () => toggleMoves(false);
+window.addEventListener('keydown', e => {if (e.key === 'Escape' && !$('moves-drawer').hidden && !e.target.matches?.('input[type=text],input[type=search]')) {e.preventDefault();e.stopImmediatePropagation();toggleMoves(false);}}, true);
 function openTool(tool) {
+  if (tool === 'moves') {toggleMoves();return;}
   const same = !$('panel').hidden && $('panel').dataset.tool === tool;$('panel').hidden = same;$('panel').dataset.tool = tool;
   for (const b of document.querySelectorAll('[data-tool]')) b.classList.toggle('active', !same && b.dataset.tool === tool);
   for (const s of document.querySelectorAll('[data-section]')) s.hidden = s.dataset.section !== tool;$('panel-title').textContent = TITLES[tool];

@@ -230,3 +230,11 @@ Todo modelo carregado fica guardado neste navegador junto com as animações imp
 - **Clash por empurrão** (`Ativar ou desativar sistemas`, desligado por padrão): no clash entre tackles os dois recuam no chão (distância e duração por slider), com o mesmo dano e hitstop, em vez de serem lançados.
 - **Recovery rápido** (ligado por padrão): lançado, aperte **C** até `janela` segundos antes de tocar o chão e segure uma direção; ao pousar sai uma esquiva imediata nessa direção, custando `custo de stamina` (0 a 2; substitui o custo da esquiva). Sem stamina, o lutador cai normalmente. `Tempo mínimo de voo` impede escapar logo após o golpe.
 - **IA:** usa o recovery (afasta-se do rival) e corre mais; `Reserva de stamina ao correr` e `Distância para correr` ficam em Ajustes › IA.
+
+## Moves (botão ✦ Moves no canto da arena)
+
+O bloco de Moves saiu da barra esquerda e virou uma gaveta própria, aberta pelo botão **✦ Moves** no canto inferior direito da arena (Esc fecha). Nela:
+
+- **Equipar:** até 4 moves por personagem (azul e vermelho), um por slot, com o **botão** de cada slot escolhido ali mesmo (é o mesmo de Controles › Teclas e entra no desfazer). Um move não ocupa dois slots do mesmo personagem.
+- **Só os equipados:** cada move equipado ganha um bloco com a animação de carga (com loop) e de disparo e os sliders dele; os dos não equipados ficam ocultos. A carga compartilhada e a IA com Moves aparecem só quando há move equipado (a IA, só se o vermelho equipar).
+- **Ferramentas de teste** (recolhidas): emissores, laser, cenários técnicos, estilo dos efeitos e avaliação jogável.

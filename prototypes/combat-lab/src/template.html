@@ -54,7 +54,6 @@
    <button type="button" role="tab" data-tool="tuning" title="Ajustes: todos os parâmetros, por grupo"><i>⚙</i><span>Ajustes</span></button>
    <button type="button" role="tab" data-tool="overlays" title="Hitboxes, normais, lançamento e alcance"><i>▧</i><span>Visualizar</span></button>
    <button type="button" role="tab" data-tool="characters" title="Personagens e animações do Studio; eventos de combate"><i>♙</i><span>Personagens</span></button>
-   <button type="button" role="tab" data-tool="moves" title="Reflect e Psyshock: equipar, ajustar, emitir e cenários técnicos"><i>✦</i><span>Moves</span></button>
    <button type="button" role="tab" data-tool="controls" title="Dummy, IA, dificuldade, gamepad e histórico de comandos"><i>🎮</i><span>Controles</span></button>
    <button type="button" role="tab" data-tool="export" title="Exportar/importar ajustes e relatório de diferenças para o jogo"><i>↗</i><span>Exportar</span></button>
    <button type="button" role="tab" data-tool="homolog" title="Checklist da sua avaliação jogável (aprovado/reprovado/observação)"><i>✔</i><span>Homologação</span></button>
@@ -294,7 +293,6 @@
        <label class="check"><input type="checkbox" id="show-history" checked> Mostrar histórico de comandos</label>
       </div>
      </section>
-     <section data-section="moves" hidden><div id="moves-panel"></div></section>
      <section data-section="homolog" hidden><div id="homolog-list"></div></section>
      <section data-section="export" hidden>
       <div class="bento-card" data-subcard="workspace" data-sublabel="Workspace & ZIP">
@@ -352,6 +350,8 @@
    <div id="win-overlay" aria-hidden="true"></div>
    <div id="perf-overlay" hidden></div>
    <div id="moves-hud" hidden aria-label="Movimentos equipados"></div>
+   <button type="button" id="moves-open" class="corner-btn" aria-expanded="false" aria-controls="moves-drawer" title="Moves: escolher até 4 por personagem, o botão de cada um e os ajustes dos equipados">✦ Moves</button>
+   <aside id="moves-drawer" class="moves-drawer" hidden aria-label="Moves"><header><strong>✦ Moves</strong><button type="button" id="moves-close" aria-label="Fechar Moves" title="Fechar (Esc)">✕</button></header><div id="moves-panel"></div></aside>
     <div id="offscreen-arrow" hidden><span class="arrow-icon">◀</span> <span class="arrow-dist"></span></div>
     <div id="action-hint-pill">↑↓←→ Mover · X Tackle · C Esquiva · D Defesa · A/S Moves</div>
     <div id="ko-banner" hidden>K.O.</div>
