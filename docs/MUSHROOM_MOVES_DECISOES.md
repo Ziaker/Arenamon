@@ -192,14 +192,14 @@ O design principal está definido, mas **não afirmar que a funcionalidade está
 
 ### 6.2 Forma, origem e elegibilidade
 
-1. Ataque de **área triangular**, com **4 m** como dimensão informada pelo diretor; o **vértice/ponta parte do personagem que lança** o golpe.
+1. Ataque de **área retangular** (substitui o triângulo originalmente proposto). O diretor havia indicado uma medida de **4 m**, porém **ainda não definiu se corresponde ao comprimento, à largura ou a ambos**. O retângulo se projeta na direção do golpe a partir do lançador; **o alinhamento exato do personagem com a borda do retângulo ainda não foi aprovado**.
 2. O golpe projeta uma **barragem de areia** nessa área.
 3. **Só pode ser ativado no chão**.
 4. **Só pode atingir adversários no chão**. Alvos em voo/aéreos não são atingidos.
 5. Em contato com alvo elegível, a barragem **empurra** o adversário e causa **pouco dano**.
 6. **Dano fixo e independente do atributo Ataque**, conforme decisão do diretor na Rodada 1; a quantidade exata de dano **ainda não foi definida**. O empurrão é **contínuo durante a janela de hitbox enquanto o inimigo permanece na barragem**, mas sua intensidade exata **ainda não foi definida**. Não presumir valores ou fórmula do Tackle.
-7. Os **4 m** devem ser preservados na especificação, mas o diretor **pediu referência visual para escolher sua interpretação**: comprimento longitudinal, largura da base ou ambos. A opção geométrica **permanece pendente** até resposta posterior; **não** fixar ângulo, largura ou área numéricos.
-8. A **direção da barragem é determinada no disparo**. Uma vez disparada, a área triangular **permanece fixa durante sua execução**, sem acompanhar a rotação do lançador.
+7. A forma aprovada agora é **retangular**, mas a distribuição dos **4 m** entre **comprimento (alcance frontal)** e **largura (cobertura lateral)** permanece **pendente de decisão**. Foi apresentada **apenas como recomendação não aprovada** a proporção **4 m de comprimento × 3 m de largura**, com o lançador no centro da borda traseira. **Não aplicar esses números como decisão até aprovação expressa.**
+8. A **direção da barragem é determinada no disparo**. Uma vez disparada, a área retangular **permanece fixa durante sua execução**, sem acompanhar a rotação do lançador.
 9. Cada inimigo pode **receber somente um acerto por execução** (dano e aplicação inicial da cegueira). Contato prolongado não gera danos repetidos.
 10. O **empurrão é força contínua** enquanto um alvo elegível permanece em contato com a barragem **dentro dos primeiros 0,75 s**. Após esse intervalo, apenas o VFX se dissipa, **sem empurrão e sem hitbox**.
 
@@ -239,7 +239,7 @@ O design principal está definido, mas **não afirmar que a funcionalidade está
 | SW-D04 | Cooldown | **10 s** |
 | SW-D05 | Power Level | **PL1** |
 | SW-D06 | Custo de stamina | **2** |
-| SW-D07 | Geometria | **Triângulo de 4 m**, vértice no lançador |
+| SW-D07 | Geometria (revisada) | **Retângulo**, substituindo a forma triangular anterior; **4 m informados**, mas sentido dimensional e largura/comprimento exatos pendentes. **4 × 3 m é somente recomendação**, não aprovação |
 | SW-D08 | Ofensiva | **Barragem de areia**, empurrão e dano baixo ao contato |
 | SW-D09 | Restrição do lançador | **Somente no chão** |
 | SW-D10 | Restrição dos alvos | **Somente inimigos no chão** |
@@ -258,7 +258,7 @@ O design principal está definido, mas **não afirmar que a funcionalidade está
 
 ### 6.6 Questões não decididas — não inventar
 
-- **SW-P01 — geometria (pergunta 1 da Rodada 1):** o diretor **não escolheu A/B/C** e pediu uma **referência visual simples, sem gerar imagem**. A decisão é se os **4 m** são o **comprimento desde o vértice**, a **largura da base** ou **ambos**; se escolher somente uma dimensão, a outra continua pendente. **A direção da área já está aprovada como fixa a partir do disparo**, não é pendência.
+- **SW-P01 — geometria retangular:** o diretor substituiu **triângulo → retângulo**. Ainda falta decidir se os **4 m** indicam **comprimento frontal**, **largura lateral** ou **ambos**; a dimensão remanescente e o posicionamento exato do retângulo em relação ao corpo também requerem aprovação. O assistente **recomendou 4 m de comprimento × 3 m de largura, com personagem no centro da borda de emissão** como mera proposta explicativa, **não aprovada**. **A direção da área já está aprovada como fixa desde o disparo**, não é pendência.
 - **SW-P02 — dano:** **valor numérico exato** do dano fixo e interações com defesa permanecem pendentes. **Já está decidido** que o valor **não depende do atributo Ataque**.
 - **SW-P03 — empurrão:** já está aprovado que é **força contínua durante o contato enquanto a hitbox está ativa**. Restam pendentes a **magnitude**, o **sentido/vetor de força** e eventual **componente vertical**. Não presumir valores de Tackle.
 - **SW-P05 — restrição de chão:** critério físico de apoio, inclusive transições de pulo, Dodge com salto, flight e fase de aterrissagem.
@@ -274,7 +274,7 @@ O design principal está definido, mas **não afirmar que a funcionalidade está
 - [`prototypes/combat-lab/src/sim/controller.js`](../prototypes/combat-lab/src/sim/controller.js): interpretação de alvo por `cmd.target`, ações e restrições de execução.
 - [`prototypes/combat-lab/src/sim/status.js`](../prototypes/combat-lab/src/sim/status.js): status temporários possuem duração e expiração, mas o motor consultado **não oferece uma flag `blind` pronta**; será necessário integrar a condição ao controle de alvo/visão.
 - [`prototypes/combat-lab/src/view/view.js`](../prototypes/combat-lab/src/view/view.js): cena com fontes de iluminação próprias e renderizador; alteração visual exigirá preservar separação entre lógica de cegueira e apresentação.
-- [`prototypes/combat-lab/src/sim/world.js`](../prototypes/combat-lab/src/sim/world.js): `area` nativa admite círculos e caixas; o **triângulo** precisará de solução de colisão apropriada e testes, **não** deve ser substituído silenciosamente por caixa ou círculo.
+- [`prototypes/combat-lab/src/sim/world.js`](../prototypes/combat-lab/src/sim/world.js): `area` nativa admite círculos e caixas; com a alteração **triângulo → retângulo**, estudar a forma `box` **apenas após definição explícita de comprimento/largura e origem**, respeitando regras de alvo no chão, acerto único e empurrão contínuo.
 
 **Estado real:** documento aprovado parcialmente; **Sand Wave não foi implementado, integrado ao loadout, jogado ou testado**. Esta entrega altera somente documentação. O design do Bullet Punch nas seções 2–5 permanece inalterado.
 
@@ -285,5 +285,7 @@ O design principal está definido, mas **não afirmar que a funcionalidade está
 **19/10/2026 — correção de identificação:** o diretor esclareceu: **“estou substituindo sand kick”**. Portanto, **o terceiro golpe passa a chamar-se Sand Wave**, e o primeiro golpe continua sendo **Rock Tomb**. O documento reconhece expressamente que interpretar Sand Wave como substituto de Rock Tomb foi um erro do assistente.
 
 **19/10/2026 — estado do design:** o diretor esclareceu que Sand Wave **não está pronto** e exigiu uma rodada de perguntas. A rodada seguinte resolveu direção da área, acerto único por inimigo, dano fixo e força de empurrão contínua; **a geometria completa, valores numéricos de dano/empurrão e outros aspectos permanecem pendentes**, conforme a seção 6.6.
+
+**19/10/2026 — revisão da forma:** o diretor determinou que **Sand Wave não é mais triangular; sua área passa a ser retangular**. O triângulo permanece mencionado somente como **histórico revogado**, não como opção vigente. Ao pedir orientação sobre largura e comprimento, o diretor recebeu **recomendação de 4 m de comprimento (avanço frontal) × 3 m de largura (cobertura lateral), com Mushroom no centro da borda traseira**; **essa proposta está aguardando aprovação**. Todas as demais decisões anteriores permanecem preservadas.
 
 **19/10/2026 — Rodada 1 (perguntas 1–5):** **1. D — pediu referência visual simples sem gerar imagem; resposta dimensional PENDENTE.** **2. A — direção fixada no disparo. 3. A — um acerto por inimigo por execução. 4. A — dano fixo independente de Ataque. 5. B — empurrão contínuo durante contato com a barragem ativa.** Não completar automaticamente a pergunta 1.
