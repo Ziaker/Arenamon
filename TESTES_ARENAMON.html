@@ -593,6 +593,27 @@ PASS: dois blocos, cores, câmera, layout, file:// offline, sem erros.</pre>
         </div>
       </article>
 
+      <!-- SUÍTE NOVA: CÂMERA CINEMÁTICA ESTILO ZZZ -->
+      <article class="suite-card" data-category="jogo">
+        <div class="suite-header">
+          <div>
+            <h2 class="suite-title">Câmera Cinemática de Combate (Estilo ZZZ) — Unitário &amp; Navegador</h2>
+            <div class="tag-group">
+              <span class="tag success">✓ 21 Unitários + 14 Navegador Aprovados</span>
+              <span class="tag primary">Playwright Edge/Chrome</span>
+              <span class="tag">Efeitos C01 a C12</span>
+            </div>
+          </div>
+        </div>
+        <p class="suite-desc">
+          Valida os 12 efeitos de cinematografia dinâmica (dutch angle na esquiva, worm's-eye view na corrida/tackle, snap lateral 80° em parry/clash, FOV breathing/punch, meteor slam, impact frames, speedlines, letterbox e física de molas), preservação do yaw funcional de movimentação, piso seguro e controles de interface.
+        </p>
+        <div class="cmd-box">
+          <code>node prototypes/combat-lab/test/cinematic-camera.test.mjs; node prototypes/combat-lab/test/cinematic-camera.browser.mjs</code>
+          <button class="copy-btn" onclick="copyCmd('node prototypes/combat-lab/test/cinematic-camera.test.mjs; node prototypes/combat-lab/test/cinematic-camera.browser.mjs', this)">Copiar Comando</button>
+        </div>
+      </article>
+
       <!-- SUÍTE 6: PROTÓTIPO LEGADO DE BLOCOS (DESCONTINUADO) -->
       <article class="suite-card" data-category="placeholders">
         <div class="suite-header">

@@ -37,6 +37,7 @@ import {MovesHud} from './ui/moves-hud.js';
 import {createPerfPanel} from './ui/perf-panel.js';
 import {createAiEvalPanel} from './ui/ai-eval-panel.js';
 import {createProjectFiles} from './ui/project-files.js';
+import {createCinematicPanel} from './ui/cinematic-camera-panel.js';
 import * as Moves from './sim/moves.js';
 import {registerStandardMoves, STANDARD_MOVE_IDS} from './sim/moves/standard.js';
 /* global __GAME_CONFIG_TS__ */
@@ -645,6 +646,9 @@ const perfPanel = createPerfPanel({$, view, game, tuning, ui, download, getWs: (
     game.phase = 'menu';
   }});
 const visualPanel = createVisualPanel({tuning, view, game, $, hud: hudProposals, download});
+const cinePanel = createCinematicPanel({$, view, getWs: () => wsRef.ws});
+$('cinematic-camera-btn')?.addEventListener('click', () => cinePanel?.toggle());
+$('tools-cine-btn')?.addEventListener('click', () => {closeTools(); cinePanel?.toggle(true);});
 $('enemy-ai-control').append(tuning.controlFor('extras.toggles.enableEnemyAI'), tuning.controlFor('extras.toggles.enemyManual'));
 $('bindings-controls').append(...tuning.sectionControls('Teclas: índices configuráveis'));
 $('bindings2-controls').append(...tuning.sectionControls('Teclas do vermelho (controle manual)'));
@@ -938,7 +942,7 @@ function frame(now) {
   hud.render(game, ui.fps, {locked: input.locked, paused: ui.paused && game.phase !== 'menu', replay: back ? `−${back} passos (${(back * C.test.step * 1000).toFixed(0)} ms) · ▶ retoma daqui` : 'último passo · , e . avançam/voltam', playerAI: !!C.extras.toggles.enablePlayerAI});
   movesHud.render(game);moveNotices();
   $('rp-readout').textContent = `passo ${game.tick}${back ? ` · −${(back * C.test.step).toFixed(2)} s` : ''}${clock.timeScale !== 1 ? ` · ${clock.timeScale}×` : ''}`;
-  dock.render();updateDojoAdvantageBadge();hudProposals.render(game, live ? dt * clock.timeScale : 0);windowsOverlay.update();perfPanel.frame({frameMs: dt * 1000, simMs, steps});updateOffscreenArrow(canvas.clientWidth, canvas.clientHeight);updateActionHintPill();if (game.phase === 'result' && !lastKoHandled) checkKoTrigger();
+  dock.render();updateDojoAdvantageBadge();hudProposals.render(game, live ? dt * clock.timeScale : 0);windowsOverlay.update();perfPanel.frame({frameMs: dt * 1000, simMs, steps});cinePanel?.updateBadge?.();updateOffscreenArrow(canvas.clientWidth, canvas.clientHeight);updateActionHintPill();if (game.phase === 'result' && !lastKoHandled) checkKoTrigger();
   if ((uiTimer += dt) > .1) {uiTimer = 0;renderLive();renderHistory();renderCharacterLive();renderRecStatus();visualPanel.live();diagnostics.live();perfPanel.live();}
   ui.frame++;requestAnimationFrame(frame);
 }
@@ -1049,6 +1053,6 @@ window.__arenaLive = {rules: C.rules, test: C.test, locomotion: C.locomotion, ca
 // window.__lab só aparece depois da restauração do workspace (os testes esperam por ele).
 bootWorkspace().catch(e => {console.error('workspace:', e);ui.workspaceError = e.message;return null;}).then(boot => {
   // API dos movimentos especiais (registro vazio): registerMove, listMoves, validateMove; equipar com setLoadout.
-  window.__lab = {charPanel, moves: {...Moves, setLoadout: (id, ids) => game.setLoadout(id, ids), standard: STANDARD_MOVE_IDS, equipStandard: id => game.setLoadout(id, STANDARD_MOVE_IDS)}, C, game, view, hudProposals, presets, movement, playSequence, diagnostics, training, perf: perfPanel, aiEval, projectFiles, reportsOf, visualPanel, recorder, replay, tuning, ui, startMatch, startScenario: id => startScenario(SCENARIOS.find(s => s.id === id)), stepFrames, seekTick, goLive, togglePause, setCharacter, loadStudioFile, triggerWarmup, SCENARIOS, runScenario, spawn, openTool,
+  window.__lab = {charPanel, moves: {...Moves, setLoadout: (id, ids) => game.setLoadout(id, ids), standard: STANDARD_MOVE_IDS, equipStandard: id => game.setLoadout(id, STANDARD_MOVE_IDS)}, C, game, view, cinematic: view.cinematic, cinePanel, hudProposals, presets, movement, playSequence, diagnostics, training, perf: perfPanel, aiEval, projectFiles, reportsOf, visualPanel, recorder, replay, tuning, ui, startMatch, startScenario: id => startScenario(SCENARIOS.find(s => s.id === id)), stepFrames, seekTick, goLive, togglePause, setCharacter, loadStudioFile, triggerWarmup, SCENARIOS, runScenario, spawn, openTool,
     ws: boot?.ws ?? null, store: boot?.store ?? null, wsUI: boot?.wsUI ?? null, workspaceBoot: boot};
 });

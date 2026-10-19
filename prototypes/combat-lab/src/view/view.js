@@ -13,6 +13,7 @@ import {WorldView} from './world-view.js';
 import {phaseAt} from '../sim/motion.js';
 // Novo sistema de VFX declarativo (ativado ao lado do legado durante a migração).
 import {VfxRuntime, registerAllEffects} from './vfx/index.js';
+import {CinematicCamera} from './cinematic-camera.js';
 
 const STATE_COLORS = {invulnerable: 0x58e6ff, tackle: 0xffa040, dodge: 0x61ebba, guard: 0xffe066, guardStun: 0xffb347, recoil: 0xc77dff, airborne: 0x9db4ff, landing: 0x7f93b8, defeated: 0x56616a};
 export const OVERLAYS = [
@@ -61,6 +62,7 @@ export class View {
     this.worldView = new WorldView(this.scene);
     this.vfx.view = this;
     this.vfxRuntime.view = this;
+    this.cinematic = new CinematicCamera(this, {canvas, overlayContainer: canvas?.parentElement});
     let dragging = false, previous = 0;
     canvas.addEventListener('contextmenu', e => e.preventDefault());
     canvas.addEventListener('pointerdown', e => {if (e.button === 2) {dragging = true;previous = e.clientX;canvas.setPointerCapture(e.pointerId);}});
@@ -73,6 +75,11 @@ export class View {
     this.vfxRuntime?.setAccessibility?.(a);
     this.solid?.setAccessibility?.(a);
     this.worldView?.setAccessibility?.(a);
+    if (this.cinematic) {
+      if (a.globalIntensity != null) this.cinematic.config.globalIntensity = a.globalIntensity;
+      if (a.noFlash != null) this.cinematic.config.noFlash = a.noFlash;
+      if (a.preferReducedMotion != null) this.cinematic.config.reduceMotion = a.preferReducedMotion;
+    }
   }
   /** Reaplica tamanho da arena, cores, luzes e câmera depois de mudanças no ajustador. */
   applyConfig() {
@@ -116,6 +123,7 @@ export class View {
     if (this.canvas) this.canvas.style.filter = '';
     this.vfxRuntime.reset();
     this.solid.reset();this.meteorFx?.reset();
+    this.cinematic?.clearAll();
   }
   /** Efeitos legados do v6 (partículas em caixa e tremor antigo). Só com “Efeitos legados” ligado em Visualizar. */
   spawnBurst(pos, type) {
@@ -255,8 +263,19 @@ export class View {
     }
     t0 = now();this.drawOverlays(fighters, paused ? 0 : dt);this.worldView.update(world, {fighters, events, dt: paused ? 0 : dt, skipBeams: this.useNewVfx, camera: this.camera});tm.overlays = now() - t0;
     if (!this.rig.initialized) this.rig.reset(fighters[0]);
-    const pose = this.rig.pose();
-    this.camera.position.set(pose.position.x, pose.height, pose.position.z);this.camera.lookAt(pose.lookAt.x, pose.lookHeight, pose.lookAt.z);this.camera.updateMatrixWorld();
+    const basePose = this.rig.pose();
+    const cinePose = this.cinematic ? this.cinematic.apply(basePose, fighters, events, dt, {camera: this.camera, paused, tick}) : basePose;
+    this.camera.position.set(cinePose.position.x, cinePose.height, cinePose.position.z);
+    this.camera.lookAt(cinePose.lookAt.x, cinePose.lookHeight, cinePose.lookAt.z);
+    if (cinePose.roll) this.camera.rotateZ(cinePose.roll);
+    if (cinePose.fov && Math.abs(this.camera.fov - cinePose.fov) > 0.05) {
+      this.camera.fov = cinePose.fov;
+      this.camera.updateProjectionMatrix();
+    } else if (!this.cinematic?.config?.enabled && Math.abs(this.camera.fov - C.extras.cameraExtra.fov) > 0.05) {
+      this.camera.fov = C.extras.cameraExtra.fov;
+      this.camera.updateProjectionMatrix();
+    }
+    this.camera.updateMatrixWorld();
     // Efeitos depois da câmera (o flash de tela projeta o ponto do impacto). Pausado: dt = 0, os efeitos congelam.
     const vfxDt = paused ? 0 : Math.min(dt, 0.05);
     let rt = null;
@@ -288,8 +307,9 @@ export class View {
     }
     this.lastShake = sh;
     if (sh.x || sh.y || sh.z || sh.roll) {
-      this.camera.position.set(pose.position.x + sh.x, pose.height + sh.y, pose.position.z + sh.z);
-      this.camera.lookAt(pose.lookAt.x + sh.x * .5, pose.lookHeight + sh.y * .5, pose.lookAt.z + sh.z * .5);this.camera.rotateZ(sh.roll);
+      this.camera.position.set(cinePose.position.x + sh.x, cinePose.height + sh.y, cinePose.position.z + sh.z);
+      this.camera.lookAt(cinePose.lookAt.x + sh.x * .5, cinePose.lookHeight + sh.y * .5, cinePose.lookAt.z + sh.z * .5);
+      this.camera.rotateZ(sh.roll + (cinePose.roll || 0));
     }
     const w = this.canvas.clientWidth, h = this.canvas.clientHeight;
     if (w > 0 && h > 0) {

@@ -123,4 +123,5 @@ Para garantir **estabilidade absoluta** e não quebrar o trabalho paralelo dos o
 | **Importador de Modelos** | `prototypes/importer/dist/importador-prototipo.html` | `prototypes/importer/src/` | `prototypes/importer/README.md` |
 | **Visualizador de Blocos** | `prototypes/placeholders/dist/criaturas-laboratorio.html`| `prototypes/placeholders/src/`| `prototypes/placeholders/README.md`|
 | **VFX 3D Elemental (Psíquico)** | `prototypes/vfx-elemental/dist/vfx-elemental-psiquico.html` | `prototypes/vfx-elemental/src/` | `docs/VFX_ELEMENTAL_PSIQUICO.md` |
+| **Câmera Cinemática (ZZZ)** | Botão 🎬 em `arenamon-combate-laboratorio.html` | `prototypes/combat-lab/src/view/cinematic-camera.js` | `docs/CAMERA_CINEMATICA_ZZZ.md` |
 | **Matriz de Testes** | `TESTES_ARENAMON.html` | `test*.mjs` em cada pasta | `docs/CENTRAL_DE_TESTES.md` |
