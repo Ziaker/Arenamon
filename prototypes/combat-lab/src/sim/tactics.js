@@ -112,6 +112,17 @@ export function tacticalCommand(brain, self, target, dt, P) {
     const R = C.rules, tl = timeToLand(self), canPay = self.stamina >= R.techCost - 1e-8 && (R.techCost <= 0 || !self.exhausted);
     const s = safeSide(self, forward, t.orbit), side = vec(forward.z * s, -forward.x * s);
     c.move = safeArenaDirection(self.position, normalize(add(scale(side, .85), scale(forward, distance < 3 ? -.6 : .2))));
+    // Fuga do wall-splat: se o voo vai bater na parede caindo e rápido antes de pousar, mergulha (X) para sair do voo.
+    t.slamPress = false;
+    if (F.wallEscape && C.extras.ai.wallEscape && C.extras.toggles.enableWallSplat && C.extras.toggles.enableMeteorSlam && !self.wallSplat && self.flight && !self.exhausted && self.stamina >= A.tackle.cost + .05) {
+      const fl = self.flight, g = R.launchGravity, b = C.test.arenaHalf - C.test.halfExtent, vx = fl.horizontal.x, vz = fl.horizontal.z;
+      const tx = vx > 1e-6 ? (b - self.position.x) / vx : vx < -1e-6 ? (-b - self.position.x) / vx : Infinity, tz = vz > 1e-6 ? (b - self.position.z) / vz : vz < -1e-6 ? (-b - self.position.z) / vz : Infinity;
+      const tWall = Math.min(tx, tz), vyAt = fl.vy - g * tWall;
+      if (tWall > 0 && tWall < tl && vyAt < 0 && length(fl.horizontal) >= R.wallSplatMinSpeed * .8) {
+        t.slamPress = true;c.tackle = true;c.move = distance > 1e-6 ? forward : c.move;c.target = target.id;c.dodgeDirection = c.move;
+        return finish(brain, c, self, target);
+      }
+    }
     if (canPay && !t.techArmed && tl <= R.techWindow * .85 + 1e-9 && (self.flight.age ?? 0) >= R.techMinAir) {t.techArmed = true;t.techPress = true;c.dodge = true;}
     return finish(brain, c, self, target);
   }
@@ -252,6 +263,32 @@ export function tacticalCommand(brain, self, target, dt, P) {
   };
   const sideOf = s => vec(forward.z * s, -forward.x * s);
 
+  // ---------- Tackle carregado e finta (revisão 2) ----------
+  const AI = C.extras.ai, RU = C.rules, TG = C.extras.toggles;
+  const plMult = lv => lv === 3 ? RU.chargeTackleSpeed3 : lv === 2 ? RU.chargeTackleSpeed2 : 1;
+  const plReach = lv => contactDistance() + nominalDistance(self, 'tackle') * plMult(lv) * (.55 + .3 * S.range);
+  const chargeSecs = lv => lv === 3 ? RU.chargeTackleMaxTime : lv === 2 ? RU.chargeTackleMaxTime / 2 : 0;
+  // Finta do próprio tackle: se o rival lê o ataque no startup (levanta a defesa ou esquiva), a IA cancela em vez de bater na defesa.
+  if (F.tackleFeint && AI.useFeint && TG.enableTackleFeint && self.action?.kind === 'tackle' && !self.action.slam && (self.action.hits?.size ?? 0) === 0 && self.action.elapsed < RU.feintWindow - .03) {
+    const read = (target.guard && target.perfectLeft > 0) || (target.action?.kind === 'dodge' && target.counterWindow <= 0 && target.action.elapsed < C.actions.dodge.invulnerable);   // defesa perfeita aberta ou esquiva invulnerável: bater agora só dá contra-ataque ao rival
+    if (read) {t.feintRoll ??= brain.random();if (t.feintRoll < AI.feintChance) {c.dodge = true;c.target = target.id;return finish(brain, c, self, target);}}
+  } else if (self.action?.kind !== 'tackle') t.feintRoll = null;
+  // Continuação da carga: segura X até o PL planejado e solta quando o alvo está ao alcance; se o rival ataca, solta (PL2+ vence o clash) ou fintar.
+  if (self.tackleCharge && t.tcharge) {
+    const ch = self.tackleCharge, lv = ch.level, oppAtk = target.action?.kind === 'tackle', inc0 = oppAtk ? incoming(self, target, t.perception) : null;
+    c.move = aim;c.target = target.id;c.tackleHeld = true;c.dodgeDirection = aim;
+    if (oppAtk && inc0?.reaches) {
+      if (lv >= 2 && distance < plReach(lv) + .5) c.tackleHeld = false;
+      else if (F.tackleFeint && AI.useFeint && TG.enableTackleFeint) {c.dodge = true;c.tackleHeld = false;}
+      else c.tackleHeld = false;
+    } else if (lv >= t.tcharge.level) {
+      if (distance <= plReach(lv) - .15 || lv >= 3) c.tackleHeld = false;
+    } else if (distance > plReach(t.tcharge.level) + 1.6 && F.tackleFeint && AI.useFeint && TG.enableTackleFeint) {c.dodge = true;c.tackleHeld = false;}   // o alvo fugiu: finta em vez de errar
+    if (!c.tackleHeld && !c.dodge) {t.myAttack = {at: t.time, read: null};t.why = 'carga';brain.cooldown = .4 + (1 - boldness) * .4 * brain.random();}
+    return finish(brain, c, self, target);
+  }
+  if (!self.tackleCharge) t.tcharge = null;
+
   // ---------- 1. Durante a própria esquiva: C → X planejado ou contra-ataque ----------
   if (self.action?.kind === 'dodge') {
     // Revisão 1: esquiva que inicia um sprint: mantém C e a direção até o sprint começar.
@@ -375,6 +412,18 @@ export function tacticalCommand(brain, self, target, dt, P) {
     const want = add(land, scale(normalize(sub(self.position, land)), myReach * .75)), go = sub(want, self.position);
     c.move = length(go) > .3 ? normalize(go) : vec();
     return finish(brain, c, self, target);
+  }
+
+  // ---------- Carga à distância (revisão 2): fora do alcance normal, mas dentro do alcance de PL2/PL3 e com tempo seguro para carregar ----------
+  if (F.chargeTackle && AI.useCharge && TG.enableChargeTackle && free && !self.exhausted && !self.sprinting && !target.flight && target.hp > 0 && oppKind !== 'tackle' && !target.charge && brain.cooldown <= 0) {
+    const closing = Math.max(0, -dot(sub(((F.perception && t.perception) ? t.perception.apparentVel : target.velocity), self.velocity), forward)) + (target.exhausted || target.guard || target.knockRecovery > 0 ? 0 : 1.5);
+    for (const lv of [2, 3]) {
+      const need = chargeSecs(lv) + AI.chargeMargin, rel = target.knockRecovery > 0 ? target.knockRecovery : 0, safeAt = distance - Math.max(0, need - rel) * closing, spend = A.tackle.cost + RU.chargeTackleDrain * chargeSecs(lv);
+      const inRange = safeAt > myReach + .15 && safeAt <= plReach(lv) - .25 && distance > myReach + .3;
+      if (inRange && safeAt > oppReach + .3 && self.stamina >= spend + .35 && brain.random() < AI.chargeChance) {
+        t.tcharge = {level: lv, at: t.time};c.tackle = true;c.tackleHeld = true;c.move = aim;c.dodgeDirection = aim;c.target = target.id;t.why = 'carga';return finish(brain, c, self, target);
+      }
+    }
   }
 
   // ---------- Sprint (revisão 1 e 2): encurta distância longa sem gastar a reserva ----------
@@ -544,14 +593,14 @@ const oppAttackingNow = target => target.action?.kind === 'tackle';
 /** Só existe a IA mais recente (revisão 2); revisionOverride serve apenas à avaliação pareada interna. */
 export const revisionOf = brain => (brain.revisionOverride ?? 2) | 0;
 /** Melhorias das revisões da IA (a avaliação pode ligar uma a uma para medir o efeito). */
-export const REVISION_FEATURES = ['validate', 'reach', 'stamina', 'counter', 'sprint', 'dodgeStamina', 'perception', 'prediction', 'spatial', 'economy', 'defense', 'opponentModel', 'sequencePlanner', 'difficulty', 'techRecovery'];
+export const REVISION_FEATURES = ['validate', 'reach', 'stamina', 'counter', 'sprint', 'dodgeStamina', 'perception', 'prediction', 'spatial', 'economy', 'defense', 'opponentModel', 'sequencePlanner', 'difficulty', 'techRecovery', 'chargeTackle', 'tackleFeint', 'wallEscape'];
 /**
  * Medido (400 lutas por variante contra a IA anterior, sementes fixas): “stamina” (nunca se exaurir por escolha) derrubou a
  * taxa de vitória de ~56% para ~34% — ficar passiva perde mais do que a exaustão custa —, por isso fica DESLIGADA na
  * revisão 1 (continua disponível para avaliação). As demais não pioraram e melhoram as métricas de uso das mecânicas.
  */
-export const REVISION_1 = {validate: true, reach: true, stamina: false, counter: true, sprint: true, dodgeStamina: false, perception: false, prediction: false, spatial: false, economy: false, defense: false, opponentModel: false, sequencePlanner: false, difficulty: false, techRecovery: false};
-export const REVISION_2 = {validate: true, reach: true, stamina: false, counter: true, sprint: true, dodgeStamina: false, perception: true, prediction: true, spatial: true, economy: true, defense: true, opponentModel: true, sequencePlanner: true, difficulty: true, techRecovery: true};
+export const REVISION_1 = {validate: true, reach: true, stamina: false, counter: true, sprint: true, dodgeStamina: false, perception: false, prediction: false, spatial: false, economy: false, defense: false, opponentModel: false, sequencePlanner: false, difficulty: false, techRecovery: false, chargeTackle: false, tackleFeint: false, wallEscape: false};
+export const REVISION_2 = {validate: true, reach: true, stamina: false, counter: true, sprint: true, dodgeStamina: false, perception: true, prediction: true, spatial: true, economy: true, defense: true, opponentModel: true, sequencePlanner: true, difficulty: true, techRecovery: true, chargeTackle: true, tackleFeint: true, wallEscape: true};
 export const AI_REVISIONS = {
   0: {id: 'rev0', label: 'Anterior (v6)', description: 'IA de referência do v6; sem validação prévia de permissões, sem sprint tático.', features: Object.fromEntries(REVISION_FEATURES.map(k => [k, false]))},
   1: {id: 'rev1', label: 'Revisada (Tática)', description: 'Revisão tática com validação de permissões, estimativa de alcance, sprint e contra-ataques.', features: REVISION_1},
@@ -574,7 +623,7 @@ function finish(brain, c, self = null, target = null) {
   if (self && featuresOf(brain).validate) {
     const unavailable = !!self.flight || self.knockRecovery > 0 || self.hp <= 0;
     if (unavailable) {
-      c.tackle = false;
+      c.tackle = !!(self.flight && brain.t?.slamPress);
       c.dodge = !!(self.flight && brain.t?.techPress);
       c.guard = false;
       if (brain.t) brain.t.sprinting = false;

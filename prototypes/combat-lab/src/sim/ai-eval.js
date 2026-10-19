@@ -79,6 +79,8 @@ export const side = () => ({
   blocked: 0,
   clashes: 0,
   whiffs: 0,
+  chargedTackles: 0,
+  feints: 0,
   staminaSpent: 0,
   staminaWasted: 0,
   denied: 0,
@@ -304,6 +306,7 @@ export function evalMatch({
           if (f.action.kind === 'tackle') {
             s.tackles++;
             if (f.action.fromCancel) s.cancels++;
+            if ((f.action.pl ?? 1) > 1) s.chargedTackles = (s.chargedTackles ?? 0) + 1;
             if ((f.action.speedMultiplier ?? 1) > 1) s.counterTaken++;
             const dec = brains[i]?.lastDecision;
             f.action.__eval = {

@@ -263,3 +263,10 @@ A compilação embute `inicial/workspace-inicial.zip` no HTML. Na primeira abert
 - **Finta:** **C** ou **D** durante o startup do tackle (janela em slider) ou durante a carga cancelam o ataque. Nenhuma esquiva ou defesa sai: o lutador só derrapa (brake slide, com poeira nos pés), paga apenas `feintStaminaCost` (o resto do custo do tackle volta) e retorna ao neutro em `feintRecovery`, bem antes do fim de um tackle.
 - Não vale para tackle que já acertou ou em mergulho (meteor slam). Toggle `enableTackleFeint`; desligado, C durante a carga esquiva como na fase 1.
 - Controles em Ações › Tackle (seção 🎭 Finta e brake slide) e animação "Freio / derrapagem (finta)".
+
+## Tackle (fase 4): a IA usa carga, finta e foge do wall-splat
+
+- **Carga à distância:** fora do alcance normal e dentro do alcance de PL2/PL3, com tempo seguro para carregar (o rival não consegue alcançá-la antes da soltura), a IA segura X e solta no PL planejado. Se o rival ataca, ela solta (PL2+ vence o clash) ou fintar.
+- **Finta:** no startup do próprio tackle, se o rival abre a defesa perfeita ou esquiva, a IA cancela. Também cancela a carga se o alvo some.
+- **Fuga do wall-splat:** lançada rumo à parede, caindo e rápida, ela mergulha (X) para sair do voo.
+- Controles em Ações › Tackle › 🤖 IA e o tackle (3 toggles e 3 sliders). Medido em simulação (60 lutas × 4 sementes): força igual à IA anterior (≈48% × ≈50% de referência), com ~0,7 tackles carregados e ~1,7 fintas por lutador por luta.
