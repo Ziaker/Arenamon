@@ -7,3 +7,4 @@ export * from './landing.js';
 export * from './movement.js';
 export * from './status.js';
 export * from './environment.js';
+export * from './passives.js';
