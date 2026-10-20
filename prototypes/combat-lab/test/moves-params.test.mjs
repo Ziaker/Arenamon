@@ -17,7 +17,11 @@ const cmd = o => ({...emptyCommand(), ...o});
 const HOLD = i => [0, 1, 2, 3].map(k => k === i);
 function arena(setup) {
   resetConfig(defaults());setup?.();
-  const g = new Game();g.mode = 'inactive';g.reset({positions: [vec(0, -3), vec(0, 3)]});g.fighters[0].facing = 0;g.fighters[1].facing = Math.PI;g.setLoadout(0, ['reflect', 'psyshock']);return g;
+  const g = new Game();g.mode = 'inactive';g.reset({positions: [vec(0, -3), vec(0, 3)]});g.fighters[0].facing = 0;g.fighters[1].facing = Math.PI;g.setLoadout(0, ['reflect', 'psyshock']);
+  // Estes testes medem os efeitos dos sliders dos Moves: o mundo fica neutro (objetos no
+  // caminho gastariam stamina da IA e distorceriam contagens de decisão).
+  g.mapState.platforms = [];g.mapState.obstacles = [];g.mapState.destructibles = [];g.mapState.items = [];
+  return g;
 }
 const step = (g, c = cmd()) => g.step(c, cmd());
 /** Segura o slot por `ticks` passos e solta. */
@@ -148,7 +152,23 @@ ok('reflect: pulso ao invocar (alcance 0–10 m, força, dano e interruptores de
   assert.equal(starts({psyshockMinDistance: 30}), 0, 'distância mínima maior que a arena: nunca usa');
   assert.equal(starts({psyshockMinStamina: 6}), 0, 'stamina mínima acima do máximo: nunca usa');
   assert.equal(starts({psyshockChanceMax: 0}), 0, 'chance máxima 0: nunca usa');
-  assert.ok(starts({decisionInterval: 3}) < base || base === 1, 'intervalo maior entre decisões: decide menos vezes');
+  // decisionInterval: o portão entre DECISÕES de Move respeita o intervalo configurado (o número
+  // de disparos pode ser igual nas duas configurações quando a stamina limita — por isso mede-se
+  // o espaçamento das decisões na telemetria, não a contagem de chargeStart).
+  const decisionGaps = cfg => {
+    const g = arena(() => Object.assign(C.world.ai, cfg));
+    g.setLoadout(1, ['reflect', 'psyshock']);g.mode = 'tactical';g.fighters[1].position.z = 6;g.fighters[0].position.z = -6;
+    let last = -1;const gaps = [];
+    for (let i = 0; i < 1500; i++) {
+      g.step(cmd(), g.brain.command(g.fighters[1], g.fighters[0], 'tactical', C.test.step));
+      if (g.brain.t.mv.log.length) {if (last >= 0) gaps.push((i - last) * C.test.step);last = i;g.brain.t.mv.log.length = 0;}
+    }
+    return gaps;
+  };
+  const gaps3 = decisionGaps({decisionInterval: 3});
+  assert.ok(gaps3.length > 0 && gaps3.every(g => g >= 3 - 1e-6), `intervalo 3 s: toda decisão de Move vem ≥ 3 s após a anterior (${JSON.stringify(gaps3.map(g => +g.toFixed(2)))})`);
+  const gaps05 = decisionGaps({decisionInterval: .5});
+  assert.ok(gaps05.length > 0 && gaps05.every(g => g >= .5 - 1e-6), `intervalo 0,5 s: toda decisão de Move vem ≥ 0,5 s após a anterior (${JSON.stringify(gaps05.map(g => +g.toFixed(2)))})`);
 }
 ok('IA com Moves: distância mínima, stamina mínima, chance máxima e intervalo de decisão do Psyshock alteram as decisões reais do adversário');
 

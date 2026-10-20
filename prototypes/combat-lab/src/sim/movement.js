@@ -60,6 +60,9 @@ function prepare(seq) {
     for (const f of g.fighters) {const p = C.profiles[f.id ? g.enemyProfile : g.profile];if (p) f.attributes = {...p};}
   } else {
     g.reset({positions: seq.positions.map(p => vec(p.x, p.z))});
+    // Medição de locomoção em condições controladas: sem objetos do mundo no caminho
+    // (replay de save carrega o mapa salvo e não passa por aqui).
+    g.mapState.platforms = [];g.mapState.obstacles = [];g.mapState.destructibles = [];g.mapState.items = [];
     g.fighters.forEach((f, i) => {const a = seq.facing?.[i];if (a !== undefined) {f.facing = a;f.visualFacing = a;f.combatHeading = a;f.faceGoal = a;}});
   }
   return g;

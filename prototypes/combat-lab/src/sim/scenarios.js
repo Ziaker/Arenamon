@@ -142,7 +142,12 @@ const pathSet = (root, path, v) => {const keys = path.split('.'), last = keys.po
 export function prepareScenario(def, game) {
   const saved = Object.fromEntries(Object.keys(def.overrides || {}).map(p => [p, pathGet(C, p)]));
   for (const [p, v] of Object.entries(def.overrides || {})) pathSet(C, p, v);
-  game.mode = 'inactive';game.profile = 'balanced';game.enemyProfile = 'balanced';game.reset({positions: def.positions});def.setup?.(game);
+  game.mode = 'inactive';game.profile = 'balanced';game.enemyProfile = 'balanced';game.reset({positions: def.positions});
+  // Cenários medem mecânica em condições controladas: o mundo fica neutro para não
+  // desviar trajetórias nem curar stamina (os cenários de mapa montam no próprio setup
+  // a geometria de que precisam).
+  game.mapState.platforms = [];game.mapState.obstacles = [];game.mapState.destructibles = [];game.mapState.items = [];
+  def.setup?.(game);
   const start = structuredClone(game.fighters.map(f => ({x: f.position.x, z: f.position.z, hp: f.hp, stamina: f.stamina})));
   const log = {events: [], hitstopTicks: 0, afterHit: null, maxCounter: [0, 0], flew: [false, false], damageTaken: [0, 0], staminaBonus: 0, counterSpeed: 1, airTicks: [0, 0], landingTicks: [0, 0],
     wallHits: [0, 0], bounced: false, actionsStarted: [0, 0], wasExhausted: [false, false], exhaustTicks: [0, 0], maxZ: -Infinity, states: new Set()};

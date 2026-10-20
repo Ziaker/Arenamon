@@ -21,6 +21,7 @@ export const MAP_DEFAULTS = {
   destructibleRespawnMax: 30,
   destructibleGhostPreview: 2.0,
   obstacleCount: 4,
+  platformCount: 2,   // quantas plataformas do catálogo abaixo entram no mapa (0 desliga; o catálogo consome RNG igual)
   platforms: [
     {id: 'plat1', x: -10, z: 8, width: 3, depth: 3, height: 1.0},
     {id: 'plat2', x: 12, z: -10, width: 3, depth: 3, height: 1.5},
@@ -84,6 +85,22 @@ export function nextRandom(state) {
 
 export function randomRange(state, min, max) {
   return min + nextRandom(state) * (max - min);
+}
+
+/**
+ * Fator de escala para posicionar os objetos do mundo em função do tamanho atual
+ * da arena. As distâncias fixas (plataformas, ranges de spawn de obstáculos,
+ * destrutíveis, itens e lutadores) foram pensadas para a arena padrão (raio 50 m);
+ * ao alterar o raio (slider de raio) ou o meio-lado (arena quadrada), tudo se
+ * reposiciona proporcionalmente e permanece dentro da arena.
+ */
+export function getArenaScale() {
+  const M = C.map ?? MAP_DEFAULTS;
+  if ((M.arenaShape ?? 'circle') === 'square') {
+    // Arena quadrada: meio-lado padrão 16 m corresponde ao raio padrão de 50 m.
+    return (C.test?.arenaHalf ?? 16) / 50;
+  }
+  return (M.arenaRadius ?? 50) / 50;
 }
 
 /** Escolhe um tipo de consumível com probabilidades exatamente iguais (R4.7). */
@@ -175,9 +192,12 @@ export function findNearestValidPosition(candidate, radius, mapState, fighters =
 export function initMap(mapState, fighters = []) {
   const M = C.map ?? MAP_DEFAULTS;
   const arenaR = M.arenaRadius ?? 50;
+  const arenaScale = getArenaScale();
 
   // 1. Duas plataformas de 3x3m com alturas 1.0m e 1.5m (R7.4, R7.5, R2.9)
-  mapState.platforms = [
+  // Posições escaladas pelo tamanho da arena para permanecerem dentro da borda.
+  // Quantidade configurável via M.platformCount (padrão 2; 0 desativa plataformas).
+  const platformDefs = [
     {
       id: 'plat_1',
       pos: {x: -12 + (nextRandom(mapState) - 0.5) * 8, y: 0, z: 10 + (nextRandom(mapState) - 0.5) * 8},
@@ -193,8 +213,13 @@ export function initMap(mapState, fighters = []) {
       height: 1.5,
     },
   ];
+  const platformCount = clamp(M.platformCount ?? 2, 0, platformDefs.length);
+  mapState.platforms = platformDefs.slice(0, platformCount).map(p => ({
+    ...p,
+    pos: {x: p.pos.x * arenaScale, y: p.pos.y, z: p.pos.z * arenaScale},
+  }));
 
-  // 2. 4 obstáculos indestrutíveis: mistura de caixas, cilindros e pilares (R1.7, R3.11)
+  // 2. Obstáculos indestrutíveis: mistura de caixas, cilindros e pilares (R1.7, R3.11)
   mapState.obstacles = [];
   const obstacleShapes = [
     {shape: 'box', hx: 1.5, hz: 1.5, height: 2.2},
@@ -203,10 +228,11 @@ export function initMap(mapState, fighters = []) {
     {shape: 'box', hx: 2.0, hz: 1.0, height: 1.8},
   ];
 
-  for (let i = 0; i < 4; i++) {
+  const obstacleCount = M.obstacleCount ?? 4;
+  for (let i = 0; i < obstacleCount; i++) {
     const s = obstacleShapes[i % obstacleShapes.length];
     const angle = (i / 4) * Math.PI * 2 + randomRange(mapState, -0.4, 0.4);
-    const dist = randomRange(mapState, 14, 28);
+    const dist = randomRange(mapState, 14, 28) * arenaScale;
     const rawPos = {x: Math.cos(angle) * dist, z: Math.sin(angle) * dist, y: 0};
     const validPos = findNearestValidPosition(rawPos, 2.0, mapState, fighters) || rawPos;
     mapState.obstacles.push({
@@ -221,11 +247,12 @@ export function initMap(mapState, fighters = []) {
     });
   }
 
-  // 3. 4 objetos destrutíveis com 30 HP cada (R1.3, R1.4, R9.11)
+  // 3. Objetos destrutíveis com 30 HP cada (R1.3, R1.4, R9.11)
   mapState.destructibles = [];
-  for (let i = 0; i < 4; i++) {
+  const destructibleCount = M.destructibleCount ?? 4;
+  for (let i = 0; i < destructibleCount; i++) {
     const angle = (i / 4) * Math.PI * 2 + Math.PI / 4 + randomRange(mapState, -0.3, 0.3);
-    const dist = randomRange(mapState, 10, 24);
+    const dist = randomRange(mapState, 10, 24) * arenaScale;
     const rawPos = {x: Math.cos(angle) * dist, z: Math.sin(angle) * dist, y: 0};
     const validPos = findNearestValidPosition(rawPos, 1.2, mapState, fighters) || rawPos;
     const baseHp = M.destructibleHp ?? 30;
@@ -244,12 +271,13 @@ export function initMap(mapState, fighters = []) {
     });
   }
 
-  // 4. Dois consumíveis iniciais equiprováveis (R4.4, R6.4, R10.9)
+  // 4. Consumíveis iniciais equiprováveis (R4.4, R6.4, R10.9); quantidade configurável
   mapState.items = [];
-  for (let i = 0; i < 2; i++) {
+  const initialItems = M.itemInitialCount ?? 2;
+  for (let i = 0; i < initialItems; i++) {
     const t = pickRandomConsumableType(mapState);
     const angle = randomRange(mapState, 0, Math.PI * 2);
-    const dist = randomRange(mapState, 8, 22);
+    const dist = randomRange(mapState, 8, 22) * arenaScale;
     const rawPos = {x: Math.cos(angle) * dist, z: Math.sin(angle) * dist, y: 0.4};
     const validPos = findNearestValidPosition(rawPos, 1.0, mapState, fighters) || rawPos;
     mapState.items.push({
@@ -271,7 +299,8 @@ export function initMap(mapState, fighters = []) {
  * Sorteia dois pontos iniciais opostos válidos com separação equilibrada (R11.1).
  */
 export function generateFighterSpawnPositions(mapState) {
-  const separationRadius = randomRange(mapState, 6.0, 9.0); // 12 a 18 m de distância mútua
+  const s = getArenaScale();
+  const separationRadius = randomRange(mapState, 6.0, 9.0) * s; // separação mútua escalada
   const baseAngle = randomRange(mapState, 0, Math.PI * 2);
   for (let attempt = 0; attempt < 16; attempt++) {
     const angle = baseAngle + (attempt * Math.PI) / 8;
@@ -283,7 +312,7 @@ export function generateFighterSpawnPositions(mapState) {
     if (!valid1) continue;
     return [vec(valid0.x, valid0.z), vec(valid1.x, valid1.z)];
   }
-  return [vec(0, -8), vec(0, 8)];
+  return [vec(0, -8 * s), vec(0, 8 * s)];
 }
 
 /**
@@ -304,7 +333,7 @@ export function stepMap(mapState, dt, fighters = [], events = []) {
       if (d.respawnTimer <= (M.destructibleGhostPreview ?? 2.0)) {
         // Sorteia nova posição válida na arena (R6.6)
         const angle = randomRange(mapState, 0, Math.PI * 2);
-        const dist = randomRange(mapState, 10, 24);
+        const dist = randomRange(mapState, 10, 24) * getArenaScale();
         const rawPos = {x: Math.cos(angle) * dist, z: Math.sin(angle) * dist, y: 0};
         const validPos = findNearestValidPosition(rawPos, 1.2, mapState, fighters);
         if (!validPos) {
@@ -370,7 +399,7 @@ export function stepMap(mapState, dt, fighters = [], events = []) {
       // Gerar 1 novo consumível regular
       const t = pickRandomConsumableType(mapState);
       const angle = randomRange(mapState, 0, Math.PI * 2);
-      const dist = randomRange(mapState, 8, 22);
+      const dist = randomRange(mapState, 8, 22) * getArenaScale();
       const rawPos = {x: Math.cos(angle) * dist, z: Math.sin(angle) * dist, y: 0.4};
       const validPos = findNearestValidPosition(rawPos, 1.0, mapState, fighters);
       if (validPos) {

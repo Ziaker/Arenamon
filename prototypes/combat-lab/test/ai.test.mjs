@@ -47,13 +47,18 @@ test('usa todas as mecânicas: X, C, C → X, salto, defesa (parcial e perfeita)
 });
 test('mais forte que a IA do v6, dos dois lados', () => {
   const savedShape = C.map?.arenaShape;
+  const savedWorld = C.map ? structuredClone({initial: C.map.itemInitialCount, max: C.map.itemMaxRegular, obs: C.map.obstacleCount, dest: C.map.destructibleCount, plat: C.map.platformCount}) : null;
   if (C.map) C.map.arenaShape = 'square';
+  // Mundo neutro: a comparação é de força das IAs; objetos do mapa (posicionados pelo RNG da
+  // partida) são ruído que distorce a taxa de vitórias.
+  if (C.map) {C.map.itemInitialCount = 0; C.map.itemMaxRegular = 0; C.map.obstacleCount = 0; C.map.destructibleCount = 0; C.map.platformCount = 0;}
   const a = runBalance({matches: 30, seed: 2, mode: 'tactical', enemyMode: 'combat'}), b = runBalance({matches: 30, seed: 3, mode: 'combat', enemyMode: 'tactical'});
   const ra = a.sides[0].wins / a.matches, rb = b.sides[1].wins / b.matches;
   console.log(`   tática (azul) × v6: ${(ra * 100).toFixed(0)}% · v6 × tática (vermelho): ${(rb * 100).toFixed(0)}%`);
   // Com a exaustão abaixo do menor custo (15/10/2026), lutas ficam mais longas e o vermelho (reação lenta, mais erros) empata com o v6.
   assert.ok(ra >= .6 && rb >= .45, 'vence a IA do v6 com folga no azul e não perde no vermelho');
   if (C.map) C.map.arenaShape = savedShape;
+  if (C.map && savedWorld) Object.assign(C.map, {itemInitialCount: savedWorld.initial, itemMaxRegular: savedWorld.max, obstacleCount: savedWorld.obs, destructibleCount: savedWorld.dest, platformCount: savedWorld.plat});
 });
 test('adaptação: aprende de que distância o adversário ataca e que ele defende muito', () => {
   // Contra a IA do v6 (ataca de ~3,35 m), a distância aprendida converge para perto disso.

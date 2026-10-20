@@ -45,7 +45,7 @@ export function switchClass(path) {
   if (path.startsWith('test.') || /^profiles\.[a-z]+\.hp$/.test(path) || path === 'rules.staminaMax') return 'restart';
   if (path.startsWith('map.')) {
     const k = path.split('.')[1];
-    if (['arenaRadius', 'arenaShape', 'destructibleCount', 'destructibleHp', 'obstacleCount', 'platforms', 'itemInitialCount'].includes(k)) {
+    if (['arenaRadius', 'arenaShape', 'destructibleCount', 'destructibleHp', 'obstacleCount', 'platformCount', 'platforms', 'itemInitialCount'].includes(k)) {
       return 'restart';
     }
     return 'boundary';

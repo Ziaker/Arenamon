@@ -22,9 +22,10 @@ function check(group, label, ok, expected, actual) {report.push({group, label, o
 function test(name, fn) {resetConfig();fn();passed++;console.log('✓', name);}
 const cmd = (o = {}) => ({move: vec(), dodge: false, dodgeHeld: false, tackle: false, guard: false, guardPressed: false, target: null, ...o});
 
-/** Partida sem IA, lutadores longe um do outro (sem colisão). */
+/** Partida sem IA, lutadores longe um do outro (sem colisão). Mundo neutro: estes testes medem locomoção. */
 function arena({p0 = vec(-8, 0), p1 = vec(8, 10), profile = 'balanced'} = {}) {
   const g = new Game();g.mode = 'inactive';g.profile = profile;g.enemyProfile = profile;g.reset({positions: [p0, p1]});
+  g.mapState.platforms = [];g.mapState.obstacles = [];g.mapState.destructibles = [];g.mapState.items = [];
   for (const f of g.fighters) {f.facing = Math.PI / 2;f.visualFacing = Math.PI / 2;}
   return g;
 }

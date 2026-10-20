@@ -29,6 +29,9 @@ const STEP = () => C.test.step;
 /** Partida com posições, orientação (0 = +Z) e stamina definidas; o vermelho fica parado salvo comando. */
 function setup({p0 = vec(0, 0), p1 = vec(0, 3), face0 = 0, face1 = Math.PI, stamina0, stamina1, profile0 = 'balanced', profile1 = 'balanced'} = {}) {
   const g = new Game();g.mode = 'inactive';g.profile = profile0;g.enemyProfile = profile1;g.reset({positions: [p0, p1]});
+  // Estes testes medem a mecânica de combate em si: o mundo (plataformas, obstáculos,
+  // destrutíveis, itens) fica neutro para não bloquear trajetórias nem curar stamina.
+  g.mapState.platforms = [];g.mapState.obstacles = [];g.mapState.destructibles = [];g.mapState.items = [];
   const [a, b] = g.fighters;for (const [f, face] of [[a, face0], [b, face1]]) {f.facing = face;f.visualFacing = face;f.combatHeading = face;}
   if (stamina0 !== undefined) {a.stamina = stamina0;a.regenBase = stamina0;}if (stamina1 !== undefined) {b.stamina = stamina1;b.regenBase = stamina1;}
   return g;

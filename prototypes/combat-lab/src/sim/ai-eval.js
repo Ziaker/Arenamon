@@ -427,7 +427,7 @@ export function evalMatch({
     winner: g.winner,
     seconds: tick * step,
     sides: S,
-    timeout: g.phase !== 'result',
+    timeout: g.phase !== 'result' || g.winner == null,   // sem vencedor (tempo esgotado ou double KO) não pontua para nenhum lado
     loadouts: g.loadouts,
     finalHp: g.fighters.map(f => +f.hp.toFixed(1)),
     worstDecisions: worstDecisions.slice(0, 15),

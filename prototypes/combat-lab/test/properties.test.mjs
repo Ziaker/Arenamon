@@ -67,8 +67,12 @@ function run(seed) {
       if (e.damage > 0 && ![before[a].kind, after[a].kind].includes('tackle') && after[a].kind !== 'recoil' && e.result !== 'clash') fail(t, `dano sem X: ${e.result}`, `${before[a].kind}→${after[a].kind}`);
       if (e.damage > 0 && e.result !== 'clash' && (before[a].kind === 'dodge' && after[a].kind === 'dodge')) fail(t, 'esquiva causou dano');
       // Invulnerável não recebe dano de impacto.
-      // Exceção legítima: no mesmo passo o alvo trocou C por X com “Invulnerabilidade no cancelamento” = nenhuma.
-      const cancelledVulnerable = g.lastCommands?.[b]?.tackle && before[b].kind === 'dodge' && C.actions.cancel.invulnerability === 1;
+      // Exceção legítima: no mesmo passo o alvo trocou C por X (no comando ou via buffer) com
+      // “Invulnerabilidade no cancelamento” = nenhuma — o X novo fica vulnerável no startup.
+      // Se o golpe lançou o alvo, a ação nova já foi anulada; por isso basta a esquiva ter
+      // cessado neste passo (cancelamento em qualquer origem, ou fim natural da ação: a
+      // invulnerabilidade pertence à ação e morre com ela).
+      const cancelledVulnerable = before[b].kind === 'dodge' && C.actions.cancel.invulnerability === 1 && after[b].kind !== 'dodge';
       // Exceção legítima (tackle carregado): tackle de PL maior contra tackle de PL menor neutraliza o menor e tira a invulnerabilidade de início dele.
       const lostToPL = before[b].kind === 'tackle' && g.fighters[b].plDefeated === true;
       const feinted = (g.fighters[b].feints ?? 0) > before[b].feints;   // finta: cancelar o tackle tira a invulnerabilidade do startup no mesmo passo

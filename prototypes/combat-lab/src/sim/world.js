@@ -186,8 +186,10 @@ function stepProjectile(game, p, dt, events, spawnLater) {
     const from = {...p.pos};p.pos = add(p.pos, scale(p.vel, dt / steps));if (p.gravity) {p.y = Math.max(0, p.y + (p.vy ?? 0) * dt / steps);if (p.y <= 0 && p.vy < 0) {p.dead = true;events.push({result: 'groundHit', attacker: p.owner ?? null, target: null, damage: 0, entity: p.id, kind: 'projectile'});if (p.onHit) spawnLater.push(at(p.onHit, p));return;}}
     if (!p.gravity && p.vy) {p.y += p.vy * dt / steps;if (p.y <= 0 && p.vy < 0) {p.dead = true;events.push({result: 'groundHit', attacker: p.owner ?? null, target: null, damage: 0, entity: p.id, kind: 'projectile'});return;}}   // voo inclinado sem gravidade (pedras com alvo travado)
     if (!reflectPass(game, p, from, events)) return;
+    // Limite quadrado SÓ na arena quadrada: em arena circular o meio-lado legado
+    // (C.test.arenaHalf, do protótipo de blocos) não é a borda — o raio é (checado abaixo).
     const half = C.test.arenaHalf;
-    if (Math.abs(p.pos.x) > half || Math.abs(p.pos.z) > half) {
+    if (C.map?.arenaShape === 'square' && (Math.abs(p.pos.x) > half || Math.abs(p.pos.z) > half)) {
       p.dead = true;
       events.push({result: 'arenaHit', attacker: p.owner ?? null, target: null, damage: 0, entity: p.id, kind: 'projectile'});
       if (p.onHit) spawnLater.push(at(p.onHit, p));
