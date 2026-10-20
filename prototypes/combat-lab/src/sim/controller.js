@@ -176,17 +176,36 @@ function aimSlam(f, fighters, h = f.vaultHeight) {
   const a = f.action;if (!a) return;
   a.slamCarry = a.from ? {...a.from} : {...f.velocity};   // velocidade herdada do dash: segue durante a preparação, reduzida por slamSpeedLoss, e zera ao terminá-la
   a.slamBase = a.slamH0 = h;a.slamT = 0;a.slamPrepDone = !(C.rules.slamPrepTime > 1e-6) || !(h > 1e-6);
-  if (a.slamPrepDone) aimSlamDive(f, fighters);else a.heading = a.startAngle = slamFoeAngle(f, fighters) ?? a.heading;
+  if (a.slamPrepDone) aimSlamDive(f, fighters);
+  else if (a.locked) {
+    const foeAngle = slamFoeAngle(f, fighters, true);
+    if (foeAngle != null) a.heading = a.startAngle = foeAngle;
+  }
 }
-const slamFoeAngle = (f, fighters) => {const foe = fighters.find(o => o.id !== f.id && o.hp > 0);return foe ? angleOf({x: foe.position.x - f.position.x, z: foe.position.z - f.position.z}) : null;};
-/** Início da queda: vira para o rival de agora e guarda a distância até entrar nele; queda e avanço terminam juntos. */
+const slamFoeAngle = (f, fighters, locked = false) => {
+  if (!locked) return null;
+  const foe = fighters.find(o => o.id !== f.id && o.hp > 0);
+  if (!foe) return null;
+  const d = Math.hypot(foe.position.x - f.position.x, foe.position.z - f.position.z);
+  return d <= 8.0 ? angleOf({x: foe.position.x - f.position.x, z: foe.position.z - f.position.z}) : null;
+};
+/** Início da queda: vira para o rival se houver lock-on e estiver perto (<=8m); sem lock-on ou longe, mergulha na direção do movimento/olhar com alcance fixo. */
 function aimSlamDive(f, fighters) {
-  const a = f.action, foe = fighters.find(o => o.id !== f.id && o.hp > 0);
+  const a = f.action;if (!a) return;
   a.slamH0 = Math.max(f.vaultHeight, 1e-6);
-  if (!foe) return;
-  const dx = foe.position.x - f.position.x, dz = foe.position.z - f.position.z;
-  if (Math.hypot(dx, dz) > .35) a.heading = a.startAngle = angleOf({x: dx, z: dz});   // quase em cima do rival a direção seria instável: mantém a que já tinha
-  a.slamReach = Math.max(.5, Math.hypot(dx, dz) - .3);   // anda até entrar no rival (o golpe só conecta com avanço)
+  const foe = fighters.find(o => o.id !== f.id && o.hp > 0);
+  const dist = foe ? Math.hypot(foe.position.x - f.position.x, foe.position.z - f.position.z) : Infinity;
+  if (a.locked && foe && dist <= 8.0) {
+    const dx = foe.position.x - f.position.x, dz = foe.position.z - f.position.z;
+    if (dist > .35) a.heading = a.startAngle = angleOf({x: dx, z: dz});
+    a.slamReach = Math.min(Math.max(.5, dist - .3), 8.0);
+  } else {
+    const mv = a.dirs?.move;
+    if (mv && (mv.x !== 0 || mv.z !== 0)) {
+      a.heading = a.startAngle = Math.atan2(mv.x, mv.z);
+    }
+    a.slamReach = Math.min(C.actions.tackle.distance ?? 4.0, 4.5);
+  }
 }
 export function startSlam(f, height, dirs, fighters, desiredHeading, guardHeld, locked = false) {
   startAction(f, 'tackle', dirs, fighters, desiredHeading, false, guardHeld, locked);
@@ -232,10 +251,17 @@ export function updateFighter(f, cmd, fighters, dt) {
     if (isSlamTrigger) {
       const target0 = fighters.find(o => o.id === cmd.target && o.hp > 0), mv = length(cmd.move) > 1 ? normalize(cmd.move) : cmd.move;
       const isNormal = !!f.flight?.isNormalJump;
-      startSlamFromFlight(f, {move: mv, dodgeDirection: cmd.dodgeDirection}, fighters, target0 ? angleOf(sub(target0.position, f.position)) : length(mv) > 0 ? angleOf(mv) : f.facing, cmd.guard, !!target0 && !!cmd.locked);
+      const distToTarget = target0 ? Math.hypot(target0.position.x - f.position.x, target0.position.z - f.position.z) : Infinity;
+      const useLock = !!cmd.locked && !!target0 && distToTarget <= 8.0;
+      const desiredHeading = useLock ? angleOf(sub(target0.position, f.position)) : length(mv) > 0 ? angleOf(mv) : f.facing;
+      startSlamFromFlight(f, {move: mv, dodgeDirection: cmd.dodgeDirection}, fighters, desiredHeading, cmd.guard, useLock);
       if (diag) report(f, {kind: 'tackle', result: 'executed', note: isNormal ? 'meteor slam (salto normal)' : 'meteor slam (lançado)'});
     } else {
       if (!f.flight.isNormalJump && T.enableTechRecovery && T.enableDodge && f.hp > 0 && !f.wallSplat) armTechRecovery(f, cmd, dt);
+      if (f.flight.isNormalJump && length(f.flight.horizontal) < 0.05 && length(cmd.move) > 0.05) {
+        const m = length(cmd.move) > 1 ? normalize(cmd.move) : cmd.move;
+        f.flight.horizontal = scale(m, walkSpeed(f));
+      }
       f.action = null;f.push = null;f.guard = false;f.vaultHeight = 0;f.velocity = vec();f.locomotionVelocity = vec();f.bufferedTackle = null;f.state = f.wallSplat ? 'wallSplat' : 'airborne';return;
     }
   }

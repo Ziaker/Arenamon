@@ -722,7 +722,7 @@ export function collideMapFighter(mapState, f, events = []) {
       const ox = (hx + halfExtent) - Math.abs(dx);
       const oz = (hz + halfExtent) - Math.abs(dz);
       if (ox > 0 && oz > 0) {
-        if (f.flight && fY >= p.height - 0.35) {
+        if (f.flight && fY >= p.height - 0.5) {
           f.flight.y = Math.max(f.flight.y, p.height);
           f.groundY = p.height;
           continue;
@@ -731,12 +731,12 @@ export function collideMapFighter(mapState, f, events = []) {
           const sign = dx > 0 ? 1 : -1;
           f.position.x = px + sign * (hx + halfExtent);
           if (f.velocity.x * sign < 0) f.velocity.x = 0;
-          if (f.flight && f.flight.horizontal.x * sign < 0) f.flight.horizontal.x = 0;
+          if (f.flight && !f.flight.isNormalJump && f.flight.horizontal.x * sign < 0) f.flight.horizontal.x = 0;
         } else {
           const sign = dz > 0 ? 1 : -1;
           f.position.z = pz + sign * (hz + halfExtent);
           if (f.velocity.z * sign < 0) f.velocity.z = 0;
-          if (f.flight && f.flight.horizontal.z * sign < 0) f.flight.horizontal.z = 0;
+          if (f.flight && !f.flight.isNormalJump && f.flight.horizontal.z * sign < 0) f.flight.horizontal.z = 0;
         }
         f.contacts++;
       }
@@ -753,7 +753,7 @@ export function collideMapFighter(mapState, f, events = []) {
         const d = dist2D(f.position, o.pos);
         const minDist = o.radius + halfExtent;
         if (d < minDist && d > 1e-6) {
-          if (f.flight && fY >= topY - 0.35) {
+          if (f.flight && fY >= topY - 0.5) {
             f.flight.y = Math.max(f.flight.y, topY);
             f.groundY = topY;
             continue;
@@ -768,7 +768,7 @@ export function collideMapFighter(mapState, f, events = []) {
         const ox = (o.hx + halfExtent) - Math.abs(dx);
         const oz = (o.hz + halfExtent) - Math.abs(dz);
         if (ox > 0 && oz > 0) {
-          if (f.flight && fY >= topY - 0.35) {
+          if (f.flight && fY >= topY - 0.5) {
             f.flight.y = Math.max(f.flight.y, topY);
             f.groundY = topY;
             continue;
@@ -777,12 +777,12 @@ export function collideMapFighter(mapState, f, events = []) {
             const sign = dx > 0 ? 1 : -1;
             f.position.x = o.pos.x + sign * (o.hx + halfExtent);
             if (f.velocity.x * sign < 0) f.velocity.x = 0;
-            if (f.flight && f.flight.horizontal.x * sign < 0) f.flight.horizontal.x = 0;
+            if (f.flight && !f.flight.isNormalJump && f.flight.horizontal.x * sign < 0) f.flight.horizontal.x = 0;
           } else {
             const sign = dz > 0 ? 1 : -1;
             f.position.z = o.pos.z + sign * (o.hz + halfExtent);
             if (f.velocity.z * sign < 0) f.velocity.z = 0;
-            if (f.flight && f.flight.horizontal.z * sign < 0) f.flight.horizontal.z = 0;
+            if (f.flight && !f.flight.isNormalJump && f.flight.horizontal.z * sign < 0) f.flight.horizontal.z = 0;
           }
           f.contacts++;
         }
