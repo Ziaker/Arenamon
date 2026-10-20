@@ -223,6 +223,7 @@ const RULES2 = {
   slamRecovery: ['Meteor slam: recuperação ao errar', 'Tempo vulnerável ao aterrissar quando o mergulho não acerta ninguém.', R(0, 2, .01, sec)],
   slamLaunchHorizontal: ['Ground bounce: empurrão horizontal', 'Fração do empurrão horizontal normal que o mergulho aplica (o rival sobe mais do que anda).', R(0, 1, .01, pct)],
   groundBounceForce: ['Ground bounce: força do quique', 'Velocidade vertical (m/s) com que o rival acertado pelo mergulho quica para cima. Maior = quique mais alto.', R(0, 30, .5, n => n.toFixed(1) + ' m/s')],
+  slamBlockPushDistance: ['Meteor slam bloqueado: distância do empurrão', 'Quanto o defensor que bloqueou o mergulho (bloqueio parcial) é arrastado para trás deslizando no chão, em metros. Sem lançamento; a defesa perfeita não é empurrada (fica com a vantagem do contra-ataque).', R(3, 10, .1, m)],
   clashPushDistance: ['Clash por empurrão: distância', 'Quanto cada lutador desliza para trás (m) quando “Clash por empurrão” está ligado. O choque, o dano e o hitstop são os mesmos do clash normal.', R(0, 8, .1, m)],
   clashPushDuration: ['Clash por empurrão: duração', 'Tempo do deslize (s) do empurrão do clash.', R(.1, 1.2, .01, sec)],
   techWindow: ['Recovery rápido: janela', 'Quantos segundos antes de tocar o chão o C é aceito para armar o recovery (voando). Maior = mais fácil; menor = exige timing.', R(.05, 1.5, .01, sec)],

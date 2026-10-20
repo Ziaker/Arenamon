@@ -97,19 +97,21 @@ export const TACKLE_SCENARIOS = [
     },
   },
   {
-    id: 'meteor-blocked', name: 'Meteor slam bloqueado', description: 'Igual ao anterior, mas o vermelho segura a guarda durante o mergulho: o bloqueio anula o lançamento e o dano vira o reduzido, porém o azul NÃO recua — o slam continua, aterrissa (meteorGround) e finaliza normalmente.',
+    id: 'meteor-blocked', name: 'Meteor slam bloqueado', description: 'Igual ao anterior, mas o vermelho segura a guarda durante o mergulho: o bloqueio anula o lançamento, o dano vira o reduzido e o vermelho é ARRASTADO para trás deslizando no chão (sem voo), enquanto o azul NÃO recua — o slam continua, aterrissa (meteorGround) e finaliza normalmente.',
     positions: [vec(0, -3), vec(0, 0)], ticks: () => steps(meteorTotal()), setup: g => {face(g.fighters[0], 0);face(g.fighters[1], Math.PI);},
-    script: t => [meteorBlue(t), cmd({guard: true, target: 0})],
-    checks: ({log, game}) => {
+    script: (t, g, s) => {if (g.fighters[1].state === 'landing') s.redLanding = true;return [meteorBlue(t), cmd({guard: true, target: 0})];},
+    checks: ({log, game, start, scratch}) => {
       const S = log.states, partial = log.events.find(e => e.result === 'partial' && e.slam), after = log.afterHit;
       const dmg = ATTACK() * C.rules.slamDamage * C.extras.combat.guardDamageMultiplier;
+      const pushDist = Math.hypot(game.fighters[1].position.x - start[1].x, game.fighters[1].position.z - start[1].z);
       return [check('Mergulhou (meteorDive)', S.has('meteorDive'), 'sim', yn(S.has('meteorDive'))),
         check('Bloqueio registrado (parcial, slam)', !!partial, 'partial (slam)', partial ? 'partial (slam)' : 'nenhum'),
         check('Dano reduzido pela guarda', partial && near(partial.damage, dmg, 1e-9), dmg, partial?.damage ?? 0),
         check('Sem troca para recuo', !S.has('recoil'), 'não', yn(!S.has('recoil'))),
         check('Aterrissou e seguiu no chão (meteorGround)', S.has('meteorGround'), 'sim', yn(S.has('meteorGround'))),
         check('Defensor recebe guard stun', after && near(after.defenderStun, C.rules.guardStun, 1e-6), C.rules.guardStun, after?.defenderStun ?? 0),
-        check('Defensor não foi lançado', !log.flew[1], 'não', yn(!log.flew[1])),
+        check('Defensor arrastado para trás (m)', pushDist >= C.rules.slamBlockPushDistance * .7, `≥ ${(C.rules.slamBlockPushDistance * .7).toFixed(2)}`, pushDist),
+        check('Defensor deslizou no chão (sem lançamento)', !log.flew[1] && scratch.redLanding, 'sim', yn(!log.flew[1] && scratch.redLanding)),
         check('Ação do azul concluída (sem recuo preso)', game.fighters[0].action === null && game.fighters[0].state !== 'recoil', 'sim', yn(game.fighters[0].action === null && game.fighters[0].state !== 'recoil')),
         check('Nunca entrou em “aterrissando”', !S.has('landing'), 'sim', yn(!S.has('landing')))];
     },

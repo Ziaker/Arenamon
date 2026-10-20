@@ -28,6 +28,8 @@ export function pushAway(f, away, distance, duration) {
 }
 /** Preparação do meteor slam (no ar, jogado para cima): sem dano, sem clash, sem knockback. */
 const slamPrep = f => !!f.action?.slam && !f.action.slamPrepDone;
+/** Velocidade do deslize (m/s) do empurrão aplicado no defensor que bloqueia o meteor slam. A duração do deslize = distância ÷ esta velocidade. */
+const SLAM_BLOCK_PUSH_SPEED = 12;
 export function clashPossible(a, b, normal, relative) {
   const X = C.extras.combat;
   if (slamPrep(a) || slamPrep(b)) return false;
@@ -144,7 +146,14 @@ export function resolveHit(attacker, defender, normal, relative, force = false) 
       attacker.action = {kind: 'recoil', elapsed: 0, heading: angleOf(scale(normal, -1)), startAngle: 0, offensive: false, hits: new Set(), from: null};
       attacker.velocity = vec();attacker.state = 'recoil';attacker.blend = null;attacker.vaultHeight = 0;
     }
-    defender.push = null;defender.flight = null;defender.velocity = vec();defender.locomotionVelocity = vec();
+    if (slamCommitted && !perfect) {
+      // Slam bloqueado (parcial): o defensor é arrastado para trás DESLIZANDO no chão (sem lançamento),
+      // afastado pela distância configurável (slider 3–10 m). Defesa perfeita mantém o defensor no lugar
+      // (fica com a vantagem do contra-ataque).
+      pushAway(defender, length(normal) > 1e-8 ? normal : direction(attacker.facing), R.slamBlockPushDistance, R.slamBlockPushDistance / SLAM_BLOCK_PUSH_SPEED);
+    } else {
+      defender.push = null;defender.flight = null;defender.velocity = vec();defender.locomotionVelocity = vec();
+    }
     if (perfect) {defender.perfectSucceeded = true;defender.stun = 0;if (T.enableCounterBonus) defender.counterWindow = Math.max(defender.counterWindow, X.perfectGuardCounterWindow);}
     else if (defender.stun <= 1e-8) defender.stun = R.guardStun;
   } else {
