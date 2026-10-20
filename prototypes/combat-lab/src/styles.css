@@ -629,12 +629,35 @@ pre.diff{max-height:72px;padding:4px;font-size:9.5px;margin:2px 0}
 .tag-pop{position:fixed;z-index:70;width:240px;display:flex;flex-direction:column;gap:6px;padding:8px;background:#101c29;border:1px solid #ffffff2a;border-radius:10px;box-shadow:0 10px 36px #000a;font-size:11.5px}
 .tag-pop-chips{display:flex;flex-wrap:wrap;gap:4px}.tag-pop-chips button{font-size:11px;min-height:22px;padding:1px 8px;border-radius:999px}.tag-pop-chips button[aria-pressed=true]{background:#1f3a52;border-color:#6cb7ff88;color:#fff}
 
-/* Barra superior enxuta: botões ON/OFF, menu Ferramentas e chips curtos */
-.top-actions #quick-open,.top-actions #shortcuts-open{min-width:32px;padding:4px 8px;font-size:14px}
-.top-actions button.onoff::after{content:'OFF';margin-left:6px;padding:0 5px;border-radius:999px;font-size:9.5px;font-weight:800;letter-spacing:.04em;background:#2a3846;color:#9fb3c4}
-.top-actions button.onoff[aria-checked=true]::after{content:'ON';background:#1d6b4b;color:#eafff4}
-.tools-pop{position:fixed;z-index:65;display:flex;flex-direction:column;gap:4px;padding:6px;min-width:170px;background:#101c29;border:1px solid #ffffff2a;border-radius:10px;box-shadow:0 10px 36px #000a}
-.tools-pop[hidden]{display:none}.tools-pop button{justify-content:flex-start;text-align:left}
+/* Barra superior organizada: grupos segmentados, botões de ação e menu Ferramentas */
+.top-actions{display:flex;align-items:center;gap:8px;flex:none}
+.top-actions .btn-group{display:inline-flex;align-items:center;background:#101c29;border:1px solid #23374b;border-radius:8px;padding:2px;gap:2px}
+.top-actions .btn-group button{min-height:28px;padding:3px 10px;font-size:12px;font-weight:600;border:1px solid transparent;border-radius:6px;background:transparent;color:#c4d7e8;cursor:pointer;transition:all .12s ease;white-space:nowrap;display:inline-flex;align-items:center;gap:4px}
+.top-actions .btn-group button:hover{background:#193147;color:#fff}
+.top-actions .btn-group button:active{transform:translateY(1px)}
+.top-actions #quick-open,.top-actions #shortcuts-open{min-width:28px;padding:3px 7px;font-size:13px;font-weight:700;justify-content:center}
+.top-actions #changed-open{font-family:ui-monospace,monospace;font-size:11px;padding:3px 6px}
+.top-actions #pause{color:#ffe082}
+.top-actions #pause:hover{background:#2e2813;color:#fff;border-color:#ffd54f55}
+.top-actions #restart-top:hover{background:#14353c;color:#8de4d1}
+.top-actions #arena-zen-toggle.active,.top-actions #arena-zen-toggle[aria-checked=true]{background:#143e4d;border-color:var(--cyan);color:#eaffff;font-weight:700}
+.top-actions .cine-btn{background:linear-gradient(135deg,#162a3b,#123340)!important;border-color:#32647c!important;color:#6ce0f0!important;font-weight:700!important}
+.top-actions .cine-btn:hover{background:linear-gradient(135deg,#203e57,#194a5c)!important;border-color:var(--cyan)!important;color:#fff!important;box-shadow:0 0 10px #59d6e644}
+.top-actions #tools-toggle{min-height:28px;padding:3px 10px;font-size:12px;font-weight:600;color:#cfe2f2;background:#132231;border:1px solid #2e4a66;border-radius:6px;cursor:pointer;transition:all .12s ease}
+.top-actions #tools-toggle:hover,.top-actions #tools-toggle[aria-expanded=true]{background:#1b3752;border-color:#4f7ba7;color:#fff}
+
+button.onoff::after{content:'OFF';margin-left:8px;padding:1px 7px;border-radius:999px;font-size:9.5px;font-weight:800;letter-spacing:.04em;background:#253340;color:#8fa5b8;flex:none}
+button.onoff[aria-checked=true]::after{content:'ON';background:#14593c;color:#72ffbc;box-shadow:0 0 6px #34d39944}
+
+.tools-pop{position:fixed;z-index:65;display:flex;flex-direction:column;gap:2px;padding:8px;min-width:240px;background:#0d1723;border:1px solid #2d4763;border-radius:10px;box-shadow:0 16px 48px #000c}
+.tools-pop[hidden]{display:none!important}
+.tools-pop-section{display:flex;flex-direction:column;gap:2px}
+.tools-pop-section + .tools-pop-section{border-top:1px solid #ffffff14;margin-top:5px;padding-top:6px}
+.tools-pop-title{font-size:10px;font-weight:750;text-transform:uppercase;letter-spacing:.08em;color:#6d869d;padding:2px 8px 4px;user-select:none}
+.tools-pop button{display:flex;align-items:center;justify-content:flex-start;gap:8px;padding:6px 10px;min-height:28px;border-radius:6px;font-size:12px;color:#d2e4f3;background:transparent;border:1px solid transparent;text-align:left;cursor:pointer;transition:all .12s ease;white-space:nowrap}
+.tools-pop button:hover{background:#193148;border-color:#3f668d;color:#fff}
+.tools-pop button.onoff{justify-content:space-between}
+
 .chip.ws:not([data-state=error]):not([data-state=memory]) span{display:none}
 .chip.ws:not([data-state=error]):not([data-state=memory]){padding:4px 8px}
 .top-info .chip{flex:none}.top-info .chip.ai{flex:0 1 auto;min-width:60px}

@@ -30,23 +30,38 @@
   <div class="brand"><span class="logo">A</span><strong>ARENAMON <em>LAB</em></strong><small id="app-version" title="__VERSION_DETAIL__">Combate · __VERSION__</small></div>
   <div class="top-info"><span class="chip" id="phase" title="Fase da partida e estado do alvo"></span><span class="chip ai" id="ai-chip" title="Modo da IA do adversário"></span><span class="chip dirty" id="tune-state" data-state="clean" title="Ajustes alterados em relação ao último preset salvo ou JSON exportado"><i></i><span>Ajustes padrão</span></span><span class="chip ws" id="ws-chip" data-state="ok" title="Workspace persistente"><i></i><span>Workspace</span></span></div>
   <div class="top-actions">
-   <button type="button" id="quick-open" aria-label="Buscar parâmetros" title="Buscar parâmetros em todas as abas (Ctrl+K ou /)">⌕</button>
-   <button type="button" id="changed-open" data-n="0" title="Parâmetros diferentes do padrão do laboratório">≠ 0</button>
-   <button type="button" id="shortcuts-open" aria-label="Atalhos" title="Lista de atalhos (?)">?</button>
-   <button type="button" id="arena-zen-toggle" role="switch" aria-checked="false" title="Modo Arena (F2): tela cheia limpa para focar no combate">⚔ Modo Arena</button>
-   <button type="button" id="pause" title="Pausar / continuar (Esc)">❚❚ Pausar</button>
-   <button type="button" id="restart-top" title="Reiniciar a partida (R)">↺ Reiniciar</button>
-   <button type="button" id="arena-enemy-ai-toggle" class="onoff" role="switch" aria-checked="true" title="Liga/desliga a IA do oponente (desligada, o vermelho fica parado)">🧠 IA oponente</button>
-   <button type="button" id="arena-toast-toggle" class="onoff" role="switch" aria-checked="false" title="Liga/desliga os avisos curtos de comando negado/guardado no buffer (também em Diagnóstico)">💬 Avisos</button>
-   <button type="button" id="arena-autoplay-toggle" class="onoff" role="switch" aria-checked="false" title="IA controla o jogador azul (IA × IA)">🤖 IA jogador</button>
-   <button type="button" id="cinematic-camera-btn" class="onoff" aria-haspopup="dialog" title="Câmera Cinemática (estilo anime/ZZZ: inclinações, enquadramentos, impact frames e FOV)">🎬 Câmera Cinemática</button>
-   <button type="button" id="tools-toggle" aria-haspopup="true" aria-expanded="false" title="Hitboxes, câmera, depuração e som">⋯ Ferramentas</button>
+   <div class="btn-group top-group-util">
+    <button type="button" id="quick-open" aria-label="Buscar parâmetros" title="Buscar parâmetros em todas as abas (Ctrl+K ou /)">⌕</button>
+    <button type="button" id="changed-open" data-n="0" title="Parâmetros diferentes do padrão do laboratório">≠ 0</button>
+    <button type="button" id="shortcuts-open" aria-label="Atalhos" title="Lista de atalhos (?)">?</button>
+   </div>
+   <div class="btn-group top-group-match">
+    <button type="button" id="pause" title="Pausar / continuar (Esc)">❚❚ Pausar</button>
+    <button type="button" id="restart-top" title="Reiniciar a partida (R)">↺ Reiniciar</button>
+    <button type="button" id="arena-zen-toggle" role="switch" aria-checked="false" title="Modo Arena (F2): tela cheia limpa para focar no combate">⚔ Modo Arena</button>
+   </div>
+   <div class="btn-group top-group-actions">
+    <button type="button" id="cinematic-camera-btn" class="cine-btn" aria-haspopup="dialog" title="Câmera Cinemática (estilo anime/ZZZ: inclinações, enquadramentos, impact frames e FOV)">🎬 Cine</button>
+    <button type="button" id="tools-toggle" aria-haspopup="true" aria-expanded="false" title="Assistência, IA, câmera, depuração e som">⋯ Ferramentas ▾</button>
+   </div>
    <div id="tools-pop" class="tools-pop" role="menu" hidden>
-    <button type="button" id="arena-hitboxes-toggle" class="onoff" role="switch" aria-checked="false" title="Mostrar os colisores físicos (coloridos pelo estado) e as trajetórias de X/C (H)">▧ Hitboxes</button>
-    <button type="button" id="camera-reset" title="Reposicionar a câmera atrás do jogador">◎ Câmera</button>
-    <button type="button" id="tools-cine-btn" title="Câmera Cinemática estilo anime">🎬 Câmera Cinemática</button>
-    <button type="button" id="debug-toggle" title="Depuração (F3)">F3 Depuração</button>
-    <button type="button" id="audio-toggle" title="Ligar/desligar efeitos sonoros (M)">🔊 Som</button>
+    <div class="tools-pop-section">
+     <div class="tools-pop-title">Assistência e IA</div>
+     <button type="button" id="arena-enemy-ai-toggle" class="onoff" role="switch" aria-checked="true" title="Liga/desliga a IA do oponente (desligada, o oponente fica parado)">🧠 IA oponente</button>
+     <button type="button" id="arena-autoplay-toggle" class="onoff" role="switch" aria-checked="false" title="IA controla o jogador azul (IA × IA)">🤖 IA jogador</button>
+     <button type="button" id="arena-toast-toggle" class="onoff" role="switch" aria-checked="false" title="Liga/desliga os avisos de comando negado/guardado no buffer">💬 Avisos de comando</button>
+    </div>
+    <div class="tools-pop-section">
+     <div class="tools-pop-title">Câmera e Visual</div>
+     <button type="button" id="tools-cine-btn" title="Câmera Cinemática estilo anime ZZZ (painel de ajustes)">🎬 Câmera Cinemática</button>
+     <button type="button" id="camera-reset" title="Reposicionar a câmera atrás do jogador">◎ Reposicionar Câmera</button>
+     <button type="button" id="arena-hitboxes-toggle" class="onoff" role="switch" aria-checked="false" title="Mostrar os colisores físicos e vetores de ataque (H)">▧ Hitboxes (H)</button>
+    </div>
+    <div class="tools-pop-section">
+     <div class="tools-pop-title">Sistema</div>
+     <button type="button" id="debug-toggle" title="Painel de depuração na tela (F3)">F3 Depuração</button>
+     <button type="button" id="audio-toggle" title="Ligar/desligar efeitos sonoros (M)">🔊 Som</button>
+    </div>
    </div>
   </div>
  </header>
