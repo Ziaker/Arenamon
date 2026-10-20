@@ -229,12 +229,22 @@ O sistema admite tipos diferentes de passivas, conforme a definição individual
 - Esta decisão **não substitui regras específicas de KO, respawn, término real de efeitos ou suspensões por outras causas**, preservando as Rodadas 3, 19 e 22–23. Conflitos entre efeitos incompatíveis continuam sujeitos à aprovação individual prevista na Rodada 14.
 - Esta rodada registra exclusivamente uma decisão de design e **não autoriza implementação de mecânicas**.
 
+## Rodada 27 — Ativação imediata de passivas por gatilhos durante hitstop (opção C aprovada)
+
+- **Novos gatilhos que efetivamente ocorram durante hitstop podem acionar imediatamente as passivas correspondentes nesse mesmo intervalo**, desde que seus requisitos e condições individuais de ativação sejam satisfeitos.
+- **O hitstop, por si só, não bloqueia a ativação** de uma passiva elegível, tampouco impõe o armazenamento obrigatório do gatilho para processamento após a retomada da simulação.
+- A decisão **não cria novos gatilhos nem obriga que eventos de combate inexistentes sejam produzidos durante o hitstop**: apenas estabelece como são tratados gatilhos que realmente ocorram e sejam válidos nesse intervalo.
+- Permanecem válidas as regras individuais de funcionamento por estado (Rodada 3), a ativação independente e a resolução simultânea quando houver acionamento pelo mesmo evento (Rodadas 12–13), a resolução particular de conflitos (Rodada 14) e a proibição de reativar a mesma passiva enquanto seu efeito anterior permanecer ativo (Rodada 20).
+- **O cooldown já iniciado e a duração dos efeitos ativos continuam pausados durante hitstop**, conforme as Rodadas 24–25, e os efeitos anteriores permanecem aplicados ao personagem, conforme a Rodada 26. A permissão de uma nova ativação não revoga essas regras temporais.
+- **Permanece pendente** o momento de aplicação/execução dos efeitos gerados por uma ativação ocorrida durante o hitstop quando a sua natureza exigir processamento próprio, além de interações ainda não aprovadas com o relógio da simulação, conflitos específicos e eventos encadeados. Não presumir uma solução para essas situações apenas a partir da permissão de ativação.
+- Esta aprovação é exclusivamente documental e **não autoriza implementar mecânicas**.
+
 ## Pontos pendentes — não aprovados
 
 - Identidade, números, magnitude, duração, gatilhos e cooldowns de cada passiva.
 - Catálogo e critérios concretos de resolução para cada combinação de efeitos incompatíveis ou mutuamente exclusivos; casos não previstos permanecem sem regra aprovada.
 - Unidades e conversão para efeitos de natureza diversa, regras de arredondamento específicas quando exigido inteiro, interações entre modificadores incompatíveis e tratamento de casos especiais não cobertos por restrições preexistentes.
-- Comportamento específico de passivas permanentes e condicionais sem efeito ativo temporário, efeitos previamente suspensos, contagem de cooldown durante o intervalo KO–respawn, pausas globais e demais situações não aprovadas; as Rodadas 24–25 pausam, respectivamente, a recarga e a duração dos efeitos ativos durante hitstop, e a Rodada 26 mantém aplicados os efeitos já ativos nesse intervalo. A Rodada 23 encerra os efeitos ativos no KO e a Rodada 22 zera os cooldowns no respawn. Permanecem indefinidos a ocorrência e o processamento de novos gatilhos durante hitstop.
+- Comportamento específico de passivas permanentes e condicionais sem efeito ativo temporário, efeitos previamente suspensos, contagem de cooldown durante o intervalo KO–respawn, pausas globais e demais situações não aprovadas; as Rodadas 24–25 pausam a recarga e a duração dos efeitos ativos durante hitstop, a Rodada 26 mantém seus efeitos aplicados e a Rodada 27 permite o acionamento imediato de passivas por gatilhos válidos ocorridos nesse intervalo. Permanecem pendentes o momento de aplicação de novos efeitos durante hitstop, eventos encadeados e demais casos específicos. A Rodada 23 encerra os efeitos ativos no KO e a Rodada 22 zera os cooldowns no respawn.
 - Interface de seleção, apresentação visual e implementação técnica.
 
 ## Governança deste documento
