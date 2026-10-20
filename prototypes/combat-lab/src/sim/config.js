@@ -58,7 +58,7 @@ export function defaults() {
     cameraExtra: {idleAlignDelay: .85, idleAlignSpeed: 1.5, unlockedTurnMultiplier: 1.2, verticalFollow: 7, flightZoomFactor: .18, flightHeightFactor: .42,
       flightLookFactor: .40, orbitSensitivity: .006, wheelSensitivity: .01, fov: 48, nearClip: .1, farClip: 100, lockTargetBias: .28, lockBiasLimit: 4.7,
       framingSeparationFactor: .45, framingPadding: 1.2, cameraShakeAmount: .12, cameraShakeDecay: 10},
-    visual: {squashStretch: {enableSquashStretch: 1, squashIntensity: .15, stretchIntensity: .20, squashWindow: 60, settleDuration: 80, preserveVolume: 1, plScaling: 1}, bodyWidth: 1, bodyHeight: 1.3, bodyDepth: 1, arrowRadius: .16, arrowLength: .42, arrowOffset: .2, arrowHeight: 1.48, guardScale: 1.03,
+    visual: {smear: {enableSmear: 1, smearDurationFrames: 2, smearMinVelocity: 12, smearWidth: .18, smearColorMode: 0, smearOpacity: .85, smearPlBoost: 1}, squashStretch: {enableSquashStretch: 1, squashIntensity: .15, stretchIntensity: .20, squashWindow: 60, settleDuration: 80, preserveVolume: 1, plScaling: 1}, bodyWidth: 1, bodyHeight: 1.3, bodyDepth: 1, arrowRadius: .16, arrowLength: .42, arrowOffset: .2, arrowHeight: 1.48, guardScale: 1.03,
       landingScale: .82, shadowMin: .3, shadowHeightFade: .16, renderPixelRatio: 2, ambientLightIntensity: 2.5, directionalIntensity: 2, floorThickness: .1,
       wallHeight: .35, wallThickness: .15, gridDivisions: 32, lightX: 4, lightY: 12, lightZ: -8},
     fx: {impactCount: 8, clashCount: 12, landingCount: 7, impactDuration: .34, clashDuration: .48, particleWidth: .075, particleHeight: .07, particleLength: .66,

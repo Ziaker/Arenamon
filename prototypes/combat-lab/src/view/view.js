@@ -8,6 +8,7 @@ import {wouldVault, cancelWindow} from '../sim/controller.js';
 import {CameraRig} from './rig.js';
 import {VfxSystem} from './vfx.js';
 import {SolidFx} from './solid-fx.js';
+import {LimbSmear} from './smear-mesh.js';
 import {WorldView} from './world-view.js';
 import {phaseAt} from '../sim/motion.js';
 // Novo sistema de VFX declarativo (ativado ao lado do legado durante a migração).
@@ -30,7 +31,7 @@ export class View {
     const X = C.extras;
     this.canvas = canvas;this.scene = new T.Scene();this.camera = new T.PerspectiveCamera(X.cameraExtra.fov, 1, X.cameraExtra.nearClip, X.cameraExtra.farClip);this.rig = new CameraRig();
     this.meshes = [];this.arrows = [];this.shadows = [];this.effects = [];this.seenEvents = new WeakSet();this.airborneSeen = [];this.invulnerableFx = new Map();this.cameraShake = 0;
-    this.overlays = Object.fromEntries(OVERLAYS.map(([k]) => [k, k === 'cancelWindow']));this.characters = [];this.debug = [];this.normals = [];
+    this.overlays = Object.fromEntries(OVERLAYS.map(([k]) => [k, k === 'cancelWindow']));this.characters = [];this.smears = [];this.debug = [];this.normals = [];
     this.renderer = new T.WebGLRenderer({canvas, antialias: true});this.renderer.setPixelRatio(Math.min(devicePixelRatio, X.visual.renderPixelRatio));
     this.scene.background = new T.Color(rgb('background'));this.ambientLight = new T.HemisphereLight(0xffffff, 0x65707b, X.visual.ambientLightIntensity);this.scene.add(this.ambientLight);
     this.directionalLight = new T.DirectionalLight(0xffffff, X.visual.directionalIntensity);this.directionalLight.position.set(X.visual.lightX, X.visual.lightY, X.visual.lightZ);this.scene.add(this.directionalLight);
@@ -81,7 +82,7 @@ export class View {
     this.rig.reset(player);this.seenEvents = new WeakSet();this.legacySeen = new WeakSet();this.cameraShake = 0;for (const e of this.effects) {this.scene.remove(e.mesh);e.mesh.geometry.dispose();e.mesh.material.dispose();}this.effects = [];this.airborneSeen = [];this.invulnerableFx.clear();this.normals = [];this.vfx.reset();
     if (this.canvas) this.canvas.style.filter = '';
     this.vfxRuntime.reset();
-    this.solid.reset();
+    this.solid.reset();for (const smear of this.smears) smear?.reset();
   }
   /** Efeitos legados do v6 (partículas em caixa e tremor antigo). Só com “Efeitos legados” ligado em Visualizar. */
   spawnBurst(pos, type) {
@@ -117,7 +118,7 @@ export class View {
     return {x: Math.sin(phase * 2.1) * a, y: Math.sin(phase * 1.5) * a * .45, z: Math.cos(phase * 1.9) * a};
   }
   /** Personagem 3D opcional por lutador (characters.js). Quando presente, o bloco fica oculto. */
-  setCharacter(id, character) {this.characters[id] = character;}
+  setCharacter(id, character) {this.smears[id]?.dispose();this.characters[id] = character;this.smears[id] = character ? new LimbSmear(this.scene, character, id) : null;}
   /** Sombra no estilo escolhido (A quadrada, B círculo, C círculo suave). Sempre na posição física, rente ao chão. */
   shadowFor(f) {
     const S = C.display.shadow, style = S.style | 0, key = style === 2 ? `soft${Math.round(S.softness * 20)}` : style === 1 ? 'circle' : 'box';
@@ -169,6 +170,7 @@ export class View {
       arrow.material.color.setHex(f.guard ? rgb('arrowGuard') : rgb('arrow'));
       // A prévia de animação continua tocando com a partida pausada.
       t0 = now();character?.update(f, paused ? (character.preview ? realDt : 0) : dt, alt, events, {tick, source: sources[f.id]});tm.anim += now() - t0;
+      t0 = now();this.smears[f.id]?.update(f, paused ? 0 : dt, V.smear, tick, !!X.hud.fxVisible && !!C.vfx.master.enabled && !C.vfx.master.reduceMotion);tm.vfx += now() - t0;
     }
     t0 = now();this.drawOverlays(fighters, paused ? 0 : dt);this.worldView.update(world, {fighters, events, dt: paused ? 0 : dt, skipBeams: this.useNewVfx});tm.overlays = now() - t0;
     if (!this.rig.initialized) this.rig.reset(fighters[0]);
@@ -179,10 +181,10 @@ export class View {
     let rt = null;
     if (this.useNewVfx) {
       // Novo runtime declarativo (renderizador ativo). O legado fica inativo.
-      t0 = now();rt = this.vfxRuntime.update(fighters, events, vfxDt, {characters: this.characters, camera: this.camera, paused, tick, world});tm.vfx = now() - t0;
+      t0 = now();rt = this.vfxRuntime.update(fighters, events, vfxDt, {characters: this.characters, camera: this.camera, paused, tick, world});tm.vfx += now() - t0;
     } else {
       // Renderizador legado (fallback). O novo runtime permanece inativo.
-      t0 = now();this.vfx.update(fighters, events, vfxDt, {characters: this.characters, camera: this.camera});tm.vfx = now() - t0;
+      t0 = now();this.vfx.update(fighters, events, vfxDt, {characters: this.characters, camera: this.camera});tm.vfx += now() - t0;
       this.vfxRuntime.beamRenderer?.reset();
     }
     this.solid.update(fighters, events, vfxDt, {visible: !!X.hud.fxVisible, world});

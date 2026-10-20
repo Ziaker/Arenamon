@@ -11,6 +11,15 @@ const toggle = {min: 0, max: 1, step: 1, fmt: onOff, kind: 'toggle'};
 const color = {min: 0, max: 0xffffff, step: 1, fmt: n => '#' + Math.round(n).toString(16).padStart(6, '0'), kind: 'color'};
 const select = options => ({min: 0, max: options.length - 1, step: 1, fmt: n => options[n] ?? '?', kind: 'select', options});
 
+const SMEAR = {
+  enableSmear: ['Smear de membros no Tackle', 'Lâminas sólidas curtas entre posições dos ossos. Só aparência; não altera o GLB ou colisões.', toggle],
+  smearDurationFrames: ['Persistência da lâmina', 'Quadros de referência a 60 Hz: 2 quadros = 33 ms. A duração em segundos permanece igual em outras taxas de renderização.', R(1, 4, 1, n => n + ' quadros (' + Math.round(n * 1000 / 60) + ' ms)')],
+  smearMinVelocity: ['Velocidade mínima', 'Velocidade mundial da extremidade (animação + corpo) necessária para emitir uma lâmina.', R(5, 25, .5, n => n.toFixed(1) + ' m/s')],
+  smearWidth: ['Largura da lâmina', 'Largura em metros, independente da escala original do GLB.', R(.05, .4, .01, m)],
+  smearColorMode: ['Cor da lâmina', 'Cor média do material/textura do personagem, destaque azul/vermelho do time ou branco.', select(['Cor do personagem', 'Destaque do time', 'Branco'])],
+  smearOpacity: ['Opacidade', 'Opacidade inicial; a lâmina desvanece até desaparecer.', R(.2, 1, .05, pct)],
+  smearPlBoost: ['Reforço por Power Level', 'PL2: largura +25%. PL3: contorno neon na cor do time.', toggle],
+};
 const SQUASH = {
   enableSquashStretch: ['Deformação elástica do Tackle', 'Deforma somente o modelo 3D durante a investida, sem alterar ossos ou colisões.', toggle],
   squashIntensity: ['Compressão no arranque', 'Compressão na direção do golpe antes do alongamento.', R(0, .3, .01, pct)],
@@ -224,6 +233,7 @@ const CANCEL2 = {
 };
 /** Metadado de um caminho do overhaul (ou null). */
 export function overhaulMeta(path) {
+  if (path.startsWith('extras.visual.smear.')) {const m = SMEAR[path.split('.').pop()];return m ? {label: m[0], help: m[1], range: {...m[2]}} : null;}
   if (path.startsWith('extras.visual.squashStretch.')) {const m = SQUASH[path.split('.').pop()];return m ? {label: m[0], help: m[1], range: {...m[2]}} : null;}
   const parts = path.split('.'), key = parts.at(-1), root = parts[0];
   const out = (label, help, range) => range && {label, help, range: {...range}};
