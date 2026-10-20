@@ -2,14 +2,15 @@
 import {C} from '../sim/config.js';
 import {isInvulnerable, isOffensive} from '../sim/entity.js';
 import {AI_MODES} from '../sim/ai.js';
+import {passiveToast} from './passive-toast.js';
 
 export const STATE_NAMES = {neutral: 'Livre', tackleCharge: 'Carregando tackle', moving: 'Movimentação', airborne: 'Lançado', landing: 'Aterrissando', guard: 'Defesa', dodge: 'Esquiva', tackle: 'Tackle', guardStun: 'Guard stun', recoil: 'Recuo', pushed: 'Empurrão', defeated: 'Derrotado'};
-export const RESULT_NAMES = {impact: 'Impacto', clash: 'CLASH!', partial: 'Bloqueio parcial', reflected: 'Reflexão', barrierBroken: 'Barreira destruída', neutralized: 'Projétil neutralizado', stoneClash: 'Choque de pedras', counter: 'Counter de PL', tackleClash: 'Tackle × pedra (Clash)', counterStagger: 'Counter Stagger', shielded: 'Protegido pela barreira', moveFailed: 'Movimento falhou', perfect: 'Defesa perfeita', perfectDodge: 'Esquiva perfeita', invulnerable: 'Invulnerável', wallSplat: 'Wall-splat!'};
+export const RESULT_NAMES = {impact: 'Impacto', clash: 'CLASH!', partial: 'Bloqueio parcial', reflected: 'Reflexão', barrierBroken: 'Barreira destruída', neutralized: 'Projétil neutralizado', stoneClash: 'Choque de pedras', counter: 'Counter de PL', tackleClash: 'Tackle × pedra (Clash)', counterStagger: 'Counter Stagger', shielded: 'Protegido pela barreira', moveFailed: 'Movimento falhou', perfect: 'Defesa perfeita', perfectDodge: 'Esquiva perfeita', invulnerable: 'Invulnerável', wallSplat: 'Wall-splat!', passiveA: 'Halo Orbital', passiveB: 'Interseções Celestiais', passiveC: 'Ressonância Luminosa'};
 const $ = id => document.getElementById(id);
 const NOTICE = new Set(['impact', 'clash', 'partial', 'perfect', 'perfectDodge', 'invulnerable', 'reflected', 'barrierBroken', 'neutralized', 'stoneClash', 'counter', 'tackleClash', 'counterStagger', 'shielded', 'wallSplat']);
 
 export class Hud {
-  constructor() {this.debug = false;this.lastNotice = null;this.noticeUntil = 0;this.lastInvulnNotice = 0;}
+  constructor() {this.debug = false;this.lastNotice = null;this.noticeUntil = 0;this.lastInvulnNotice = 0;this.passiveStates = [{A: false, B: false, C: false}, {A: false, B: false, C: false}];}
   render(game, fps, {locked, paused, replay, playerAI}) {
     const F = C.extras.fx;
     $('menu').hidden = game.phase !== 'menu';$('overlay').hidden = game.phase !== 'result';
@@ -44,5 +45,31 @@ pos ${a.position.x.toFixed(2)}, ${a.position.z.toFixed(2)} | vel ${a.velocity.x.
 frente ${(a.facing * 180 / Math.PI).toFixed(0)}° | contatos ${a.contacts}
 invulnerável ${isInvulnerable(a)} | ofensivo ${isOffensive(a)} | contra-ataque ${a.counterWindow.toFixed(2)}s
 ação ${a.action ? `${a.action.kind} ${(a.action.elapsed * 1000).toFixed(0)} ms` : '—'} | stamina ${a.stamina.toFixed(2)}`).join('\n\n');
+  }
+
+  // ─── Notificações de ativação de passivas ───
+  showPassiveA(fighterId = 0) {
+    if (this.passiveStates[fighterId].A) return;
+    this.passiveStates[fighterId].A = true;
+    passiveToast.show('A', {fighter: fighterId === 0 ? 'Jogador' : 'Adversário'});
+  }
+  showPassiveB(fighterId = 0) {
+    if (this.passiveStates[fighterId].B) return;
+    this.passiveStates[fighterId].B = true;
+    passiveToast.show('B', {fighter: fighterId === 0 ? 'Jogador' : 'Adversário'});
+  }
+  showPassiveC(fighterId = 0) {
+    if (this.passiveStates[fighterId].C) return;
+    this.passiveStates[fighterId].C = true;
+    passiveToast.show('C', {fighter: fighterId === 0 ? 'Jogador' : 'Adversário'});
+  }
+
+  clearPassive(fighterId, type) {
+    if (this.passiveStates[fighterId]) this.passiveStates[fighterId][type] = false;
+  }
+
+  clearAllPassives() {
+    this.passiveStates = [{A: false, B: false, C: false}, {A: false, B: false, C: false}];
+    passiveToast.dismissAll();
   }
 }
