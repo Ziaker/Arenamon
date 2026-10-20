@@ -17,6 +17,7 @@ import {vec, add, scale, sub, dot, length, normalize, clamp, angleOf, direction,
 import {legacyApproach, locomotionStep} from './locomotion.js';
 import {actionProgress} from './motion.js';
 import {report, attemptsActive} from './attempts.js';
+import {getGroundHeight} from './physics.js';
 
 /** Aceleração/frenagem/reversão da locomoção comum no modelo do v6 (mantido para compatibilidade). */
 export function approachVelocity(current, desired, dt) {return legacyApproach(current, desired, C.locomotion, dt);}
@@ -166,9 +167,12 @@ function stepTackleCharge(f, cmd, fighters, dt, desiredHeading, target, move, di
  * Meteor slam a partir do voo de lançamento: o lutador sai do voo e mergulha em tackle oblíquo (slamAngle) na altura em que estava.
  * Gancho também para o futuro botão de pular: qualquer ação que deixe o lutador no ar pode chamar startSlam(f, altura, ...).
  */
-export function startSlamFromFlight(f, dirs, fighters, desiredHeading, guardHeld, locked) {
-  const h = f.flight?.y ?? 0;
+export function startSlamFromFlight(f, dirs, fighters, desiredHeading, guardHeld, locked, world = null) {
+  const startAlt = f.flight ? (f.flight.y ?? (f.groundY ?? 0)) : (f.groundY ?? 0);
   f.flight = null;f.wallSplat = null;f.tech = null;f.techDodge = null;f.knockRecovery = 0;f.normalJumpLanding = false;
+  const targetGround = getGroundHeight(f.position, world, startAlt);
+  f.groundY = targetGround;
+  const h = Math.max(0.3, startAlt - targetGround);
   startSlam(f, h, dirs, fighters, desiredHeading, guardHeld, locked);
 }
 /** Meteor slam: estados 'meteorPrep' (jogado para cima por slamPrepTime) e 'meteorDive' (despenca em cima do rival). Aqui só a preparação; a mira vem em aimSlam. */
@@ -220,7 +224,7 @@ function armTechRecovery(f, cmd, dt) {
   if (cmd.dodge && !f.tech && fl.age >= R.techMinAir - 1e-8 && timeToLand(f) <= R.techWindow + 1e-8) f.tech = {dir: dir ? {...dir} : vec(), at: fl.age};
   else if (f.tech && dir) f.tech.dir = {...dir};
 }
-export function updateFighter(f, cmd, fighters, dt) {
+export function updateFighter(f, cmd, fighters, dt, world = null) {
   const R = C.rules, X = C.extras, T = X.toggles, A = C.actions;
   // Buffer de entrada: o pedido mais recente de X ou C vale por actions.buffer.window, mesmo no ar ou na aterrissagem.
   const requested = cmd.tackle && T.enableTackle ? 'tackle' : cmd.dodge && T.enableDodge ? 'dodge' : null;
@@ -236,7 +240,7 @@ export function updateFighter(f, cmd, fighters, dt) {
   }
   if (requested && A.buffer.window > 0) {const m = length(cmd.move) > 1 ? normalize(cmd.move) : cmd.move;f.inputBuffer = {kind: requested, move: {...m}, dodgeDirection: cmd.dodgeDirection && {...cmd.dodgeDirection}, age: 0};}
   // Comandos novos com o lutador indisponível: o motivo é a própria condição que encerra o passo abaixo.
-  const isSlamTrigger = f.flight && requested === 'tackle' && T.enableMeteorSlam && (f.flight.isNormalJump || T.enableFlightSlam) && !f.wallSplat && f.hp > 0 && !f.exhausted && f.stamina >= costOf(f, A.tackle.cost) - 1e-8 && !hasFlag(f, 'disarmed') && !hasFlag(f, 'stunned');
+  const isSlamTrigger = f.flight && requested === 'tackle' && T.enableMeteorSlam && (f.flight.isNormalJump || f.flight.isEdgeFall || T.enableFlightSlam) && !f.wallSplat && f.hp > 0 && !f.exhausted && f.stamina >= costOf(f, A.tackle.cost) - 1e-8 && !hasFlag(f, 'disarmed') && !hasFlag(f, 'stunned');
   if (diag && (requested || cmd.guardPressed) && (f.flight || f.knockRecovery > 0 || f.hp <= 0)) {
     if (!isSlamTrigger) {
       const why = f.flight ? {reason: 'airborne'} : f.knockRecovery > 0 ? {reason: 'recovery', detail: {left: f.knockRecovery}} : {reason: 'defeated'};
@@ -254,7 +258,7 @@ export function updateFighter(f, cmd, fighters, dt) {
       const distToTarget = target0 ? Math.hypot(target0.position.x - f.position.x, target0.position.z - f.position.z) : Infinity;
       const useLock = !!cmd.locked && !!target0 && distToTarget <= 8.0;
       const desiredHeading = useLock ? angleOf(sub(target0.position, f.position)) : length(mv) > 0 ? angleOf(mv) : f.facing;
-      startSlamFromFlight(f, {move: mv, dodgeDirection: cmd.dodgeDirection}, fighters, desiredHeading, cmd.guard, useLock);
+      startSlamFromFlight(f, {move: mv, dodgeDirection: cmd.dodgeDirection}, fighters, desiredHeading, cmd.guard, useLock, world);
       if (diag) report(f, {kind: 'tackle', result: 'executed', note: isNormal ? 'meteor slam (salto normal)' : 'meteor slam (lançado)'});
     } else {
       if (!f.flight.isNormalJump && T.enableTechRecovery && T.enableDodge && f.hp > 0 && !f.wallSplat) armTechRecovery(f, cmd, dt);
@@ -343,6 +347,8 @@ export function updateFighter(f, cmd, fighters, dt) {
   if (f.jumpState.cooldown > 0) {
     f.jumpState.cooldown = Math.max(0, f.jumpState.cooldown - dt);
     if (f.jumpState.cooldown <= 0 && !f.flight) f.jumpState.canJump = true;
+  } else if (!f.flight && !f.action && !f.wallSplat && f.knockRecovery <= 0) {
+    f.jumpState.canJump = true;
   }
   const canNormalJump = cmd.jump && f.hp > 0 && !f.action && !f.flight && !f.wallSplat && f.knockRecovery <= 0
     && !f.guard && !f.tackleCharge && !f.charge && f.stun <= 1e-8
@@ -588,6 +594,10 @@ export function advanceAction(f, dt) {
     if (recovery > 0 && f.hp > 0 && !wasSlam) f.knockRecovery = Math.max(f.knockRecovery, recovery);   // o meteor slam já passou pelo estado meteorGround: sem recuperação extra de 'aterrissar'
     // A animação segura a pose final da ação durante essa recuperação (não troca para “levantar”).
     f.recoveryFrom = f.knockRecovery > 0 && kind !== 'recoil' && kind !== 'move' ? kind : null;
+    if (wasSlam && f.jumpState) {
+      f.jumpState.canJump = true;
+      f.jumpState.cooldown = C.map?.jumpInterval ?? 0.25;
+    }
   }
 }
 

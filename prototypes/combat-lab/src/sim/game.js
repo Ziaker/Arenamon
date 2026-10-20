@@ -58,7 +58,7 @@ export class Game {
     const enemy = () => C.extras.toggles.enableEnemyAI ? this.brain.command(this.fighters[1], this.fighters[0], this.mode, C.test.step) : emptyCommand();
     const commands = finishing ? [emptyCommand(), emptyCommand()] : [cmd0, cmd1 ?? enemy()];
     this.lastCommands = commands;
-    for (const f of this.fighters) updateFighter(f, commands[f.id] ?? emptyCommand(), this.fighters, C.test.step);
+    for (const f of this.fighters) updateFighter(f, commands[f.id] ?? emptyCommand(), this.fighters, C.test.step, this.world);
     const actions = this.fighters.map(f => f.action), worldEvents = [];
     for (const f of this.fighters) if (f.moveEvents?.length) worldEvents.push(...f.moveEvents.splice(0));   // eventos do Charge (início, soltura, cancelamento, recarga acelerada)
     this.fireMoveEffects(worldEvents);

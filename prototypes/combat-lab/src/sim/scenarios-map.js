@@ -193,6 +193,38 @@ export const MAP_SCENARIOS = [
     },
   },
 
+  // 7b. PLATAFORMA: Salto de plataforma + Meteor Slam e novo salto
+  {
+    id: 'map-plat-slam-jump',
+    name: 'Plataforma: Salto de plataforma + Meteor Slam e novo salto',
+    description: 'O combatente salta de cima da plataforma de 1,0 m, ativa meteor slam no ar, mergulha até o chão e salta novamente.',
+    positions: [vec(0, 0), vec(10, 10)],
+    ticks: () => steps(2.6),
+    setup: g => {
+      g.mapState.platforms = [{id: 'p1', pos: {x: 0, z: 0}, width: 3, depth: 3, height: 1.0}];
+      g.fighters[0].position = {x: 0, z: 0};
+      g.fighters[0].groundY = 1.0;
+    },
+    script: (t, g, scratch) => {
+      const f = g.fighters[0];
+      if (f.state === 'meteorPrep' || f.state === 'meteorDive' || f.state === 'meteorGround') {
+        scratch.slamExecuted = true;
+      }
+      if (t >= steps(2.05) && (f.state === 'airborne' || f.flight?.isNormalJump)) {
+        scratch.jumpedAgain = true;
+      }
+      let cmd0 = {move: vec(0, 1)};
+      if (t === 2) cmd0.jump = true;
+      if (t === 14) cmd0.tackle = true;
+      if (t === steps(2.05)) cmd0.jump = true;
+      return [cmd(cmd0), cmd()];
+    },
+    checks: ({scratch}) => [
+      check('Meteor slam executado do alto sem ser abortado', !!scratch.slamExecuted, 'sim', yn(scratch.slamExecuted)),
+      check('Conseguiu saltar novamente após o meteor slam', !!scratch.jumpedAgain, 'sim', yn(scratch.jumpedAgain)),
+    ],
+  },
+
   // 8. COMBATE: Tackle em altura diferente
   {
     id: 'map-combat-height-diff',

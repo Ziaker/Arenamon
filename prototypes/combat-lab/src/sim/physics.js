@@ -182,6 +182,17 @@ export function stepPhysics(fighters, dt, world = null) {
         const tech = f.tech;f.tech = null;
         if (T.enableTechRecovery && tech && f.hp > 0 && f.stamina >= R.techCost - 1e-8 && (R.techCost <= 0 || !f.exhausted)) {f.knockRecovery = 0;f.landingSlide = null;f.techDodge = {dir: tech.dir};f.state = 'neutral';}
       } else {f.velocity = {...flight.horizontal};f.state = 'airborne';}
+    } else if (f.action?.slam || (f.vaultHeight ?? 0) > 0.05 || f.action?.jump) {
+      // Lutador em ação aérea (meteor slam, salto ou esquiva elevada):
+      // NÃO aplicar queda espúria de borda de plataforma (evita cancelar o slam no ar)!
+      const curAlt = (f.groundY ?? 0) + (f.vaultHeight ?? 0);
+      const targetGround = getGroundHeight(f.position, world, curAlt);
+      // Se estiver no mergulho do meteor slam e cruzar o solo (plataforma ou arena), aterrissa
+      if (f.action?.slam && f.action.slamPrepDone && curAlt <= targetGround + 0.05) {
+        f.groundY = targetGround;
+        f.vaultHeight = 0;
+        f.action.slamLanded = true;
+      }
     } else {
       // Lutador no chão: verifica se saiu pela borda de uma plataforma (R7.10)
       const curY = f.groundY ?? 0;
@@ -189,7 +200,7 @@ export function stepPhysics(fighters, dt, world = null) {
       f.groundY ??= 0;
       if (f.groundY > targetGround + 0.1) {
         // Entra em queda balística mantendo a velocidade horizontal (R7.10)
-        f.flight = {y: f.groundY, vy: 0, horizontal: {...f.velocity}};
+        f.flight = {y: f.groundY, vy: 0, horizontal: {...f.velocity}, isEdgeFall: true};
         f.state = 'airborne';
       } else {
         f.groundY = targetGround;
