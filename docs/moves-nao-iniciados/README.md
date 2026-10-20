@@ -9,6 +9,7 @@
 | Arquivo | Conteúdo | Estado |
 |---|---|---|
 | [EMERGING_STONE_PROMPT_IMPLEMENTACAO.md](EMERGING_STONE_PROMPT_IMPLEMENTACAO.md) | Prompt de execução para Codex/agente implementar e testar Emerging Stone (Move 1 de Mushroom), vinculado a **ES-D01–ES-D103** | **Design fechado, implementação não iniciada por esta tarefa** |
+| [5_MOVES_GENERICOS_PROMPT.md](5_MOVES_GENERICOS_PROMPT.md) | Proposta de design para 5 moves genéricos adicionais: Lunge, Guard Break, Feint, Riposte, Second Wind. Alinhado ao Tackle v26 e ao prompt do Emerging Stone | **Proposta de design; pendências GM-P01–GM-P15** |
 | [AUDITORIA_PASTA_TACKLE.md](AUDITORIA_PASTA_TACKLE.md) | Verificação da pasta `docs/tackle` e justificativa de classificação dos arquivos encontrados | Auditoria documental |
 
 ## Fontes oficiais que continuam em seus caminhos originais
@@ -17,7 +18,7 @@ Não confundir **organizar tarefas futuras** com transferir documentos-mestre qu
 
 - [`docs/MUSHROOM_MOVES_DECISOES.md`](../MUSHROOM_MOVES_DECISOES.md): fonte canônica do Emerging Stone (**ES-D01–ES-D103**, inclusive **opção C** do cast), Bullet Punch (projeto descrito), Sand Wave (especificação e pendências) e Body Slam (nome aprovado, gameplay ainda não especificado). Abrange a diretriz universal de cobrança.
 - [`docs/MOVES_GENERICOS_CATALOGO.md`](../MOVES_GENERICOS_CATALOGO.md): Quick Attack, Swift, Harden, Spikes e Bounce: **catálogo para implementação futura**; não homologar automaticamente números marcados como propostas.
-- [`docs/MOVES_DECISOES_RODADAS.md`](../MOVES_DECISOES_RODADAS.md): documento histórico sobre Reflect/Psyshock e sistema de Moves. **Não usar o status antigo “não implementado” como diagnóstico atual**, porque o código já contém módulos de Reflect e Psyshock.
+- [`docs/MOVES_DECISOES_RODADAS.md`](../MOVES_DECISOES_RODADAS.md): documento histórico sobre Reflect/Psyshock e sistema de Moves. **Não usar o status antigo "não implementado" como diagnóstico atual**, porque o código já contém módulos de Reflect e Psyshock.
 - [`docs/PLANO_IMPLEMENTACAO_REFLECT_PSYSHOCK.md`](../PLANO_IMPLEMENTACAO_REFLECT_PSYSHOCK.md): plano e fases históricas; consultar código/commits antes de decidir o que ainda falta.
 - [`prototypes/combat-lab/MOVIMENTOS.md`](../../prototypes/combat-lab/MOVIMENTOS.md): infraestrutura atual de slots, estados, entidades, controles e testes; informação introdutória pode estar desatualizada e deve ser confrontada com o código vigente.
 
@@ -26,7 +27,7 @@ Não confundir **organizar tarefas futuras** com transferir documentos-mestre qu
 1. Um prompt/brief separado por move **que ainda aguarda implementação**, sem retirar as decisões canônicas do catálogo central.
 2. Nomear `<MOVE>_PROMPT_IMPLEMENTACAO.md` e referenciar **IDs aprovados**, não substituí-los por resumo que possa alterar semântica.
 3. Diferenciar **design aprovado**, **protótipo visual/animação aprovado**, **implementação jogável**, **testes** e **homologação final**. Uma dessas condições não implica as outras.
-4. Não converter indevidamente implementações ativas em “moves não iniciados”; antes de mover arquivos verificar referências, imports, caminhos relativos, scripts e portal.
+4. Não converter indevidamente implementações ativas em "moves não iniciados"; antes de mover arquivos verificar referências, imports, caminhos relativos, scripts e portal.
 5. Quando um move for de fato implementado, atualizar este inventário, o portal, os testes e os documentos de status na mesma entrega. Não apagar a rastreabilidade histórica.
 
 ## Auditoria de `docs/tackle`
