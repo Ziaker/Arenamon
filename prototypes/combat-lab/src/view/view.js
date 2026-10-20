@@ -9,6 +9,7 @@ import {CameraRig} from './rig.js';
 import {VfxSystem} from './vfx.js';
 import {SolidFx} from './solid-fx.js';
 import {MeteorFx} from './meteor-fx.js';
+import {LimbSmear} from './smear-mesh.js';
 import {WorldView} from './world-view.js';
 import {phaseAt} from '../sim/motion.js';
 // Novo sistema de VFX declarativo (ativado ao lado do legado durante a migração).
@@ -36,7 +37,7 @@ export class View {
     const X = C.extras;
     this.canvas = canvas;this.scene = new T.Scene();this.camera = new T.PerspectiveCamera(X.cameraExtra.fov, 1, X.cameraExtra.nearClip, X.cameraExtra.farClip);this.rig = new CameraRig();
     this.meshes = [];this.arrows = [];this.shadows = [];this.effects = [];this.seenEvents = new WeakSet();this.airborneSeen = [];this.invulnerableFx = new Map();this.cameraShake = 0;
-    this.overlays = Object.fromEntries(OVERLAYS.map(([k]) => [k, k === 'cancelWindow']));this.characters = [];this.debug = [];this.normals = [];
+    this.overlays = Object.fromEntries(OVERLAYS.map(([k]) => [k, k === 'cancelWindow']));this.characters = [];this.smears = [];this.debug = [];this.normals = [];
     this.renderer = new T.WebGLRenderer({canvas, antialias: true});this.renderer.setPixelRatio(Math.min(devicePixelRatio, X.visual.renderPixelRatio));
     this.scene.background = new T.Color(rgb('background'));this.ambientLight = new T.HemisphereLight(0xffffff, 0x65707b, X.visual.ambientLightIntensity);this.scene.add(this.ambientLight);
     this.directionalLight = new T.DirectionalLight(0xffffff, X.visual.directionalIntensity);this.directionalLight.position.set(X.visual.lightX, X.visual.lightY, X.visual.lightZ);this.scene.add(this.directionalLight);
@@ -131,7 +132,7 @@ export class View {
     if (this.canvas) this.canvas.style.filter = '';
     this.vfxRuntime.reset();
     this.quarks?.reset();
-    this.solid.reset();this.meteorFx?.reset();
+    this.solid.reset();this.meteorFx?.reset();for (const smear of this.smears) smear?.reset();
     this.cinematic?.clearAll();
     this.cinematic?.triggerRoundIntro();
   }
@@ -171,7 +172,9 @@ export class View {
   /** Personagem 3D opcional por lutador (characters.js). Quando presente, o bloco fica oculto. */
   setCharacter(id, character) {
     if (this.characters[id] !== character) this.isWarmedUp = false;
+    this.smears[id]?.dispose();
     this.characters[id] = character;
+    this.smears[id] = character ? new LimbSmear(this.scene, character, id) : null;
   }
   /**
    * Pré-aquecimento da cena, modelos e GPU:
@@ -275,6 +278,7 @@ export class View {
       // A prévia de animação continua tocando com a partida pausada; bullet time visual desacelera apresentação.
       const animDt = (paused && !isKoSeq) ? (character?.preview ? realDt : 0) : ((isKoSeq ? (realDt ?? 0.016) : dt) * visualScale);
       t0 = now();character?.update(f, animDt, alt, events, {tick, source: sources[f.id]});tm.anim += now() - t0;
+      t0 = now();this.smears[f.id]?.update(f, paused ? 0 : animDt, V.smear, tick, !!X.hud.fxVisible && !!C.vfx.master.enabled && !C.vfx.master.reduceMotion);tm.vfx += now() - t0;
     }
     t0 = now();this.drawOverlays(fighters, paused ? 0 : dt);this.worldView.update(world, {fighters, events, dt: paused ? 0 : dt, skipBeams: this.useNewVfx, camera: this.camera});tm.overlays = now() - t0;
     if (!this.rig.initialized) this.rig.reset(fighters[0]);
@@ -296,10 +300,10 @@ export class View {
     let rt = null;
     if (this.useNewVfx) {
       // Novo runtime declarativo (renderizador ativo). O legado fica inativo.
-      t0 = now();rt = this.vfxRuntime.update(fighters, events, vfxDt, {characters: this.characters, camera: this.camera, paused, tick, world});tm.vfx = now() - t0;
+      t0 = now();rt = this.vfxRuntime.update(fighters, events, vfxDt, {characters: this.characters, camera: this.camera, paused, tick, world});tm.vfx += now() - t0;
     } else {
       // Renderizador legado (fallback). O novo runtime permanece inativo.
-      t0 = now();this.vfx.update(fighters, events, vfxDt, {characters: this.characters, camera: this.camera});tm.vfx = now() - t0;
+      t0 = now();this.vfx.update(fighters, events, vfxDt, {characters: this.characters, camera: this.camera});tm.vfx += now() - t0;
       this.vfxRuntime.beamRenderer?.reset();
     }
     // Camada three.quarks experimental (A/B): cria/consome só quando ligada; desligada = custo zero.
