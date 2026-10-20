@@ -279,6 +279,147 @@ class SoundFX {
     osc.stop(t + 0.85);
   }
 
+  // ═══════════════════════════════════════════════════════════════
+  //  SONS DE ATIVAÇÃO DE PASSIVAS — Propostas A, B, C
+  // ═══════════════════════════════════════════════════════════════
+
+  /**
+   * Proposta A — Halo Orbital: tons suaves harmônicos crescendo,
+   * como sinos de vento (wind chimes) em câmara reverb.
+   */
+  playPassiveA() {
+    if (!this.enabled || !this.ctx) return;
+    this.ensureContext();
+    const t = this.ctx.currentTime;
+
+    // Harmônicos celestiais em camadas
+    const freqs = [520, 780, 1040, 1300];
+    const gains = [0.22, 0.16, 0.12, 0.08];
+    for (let i = 0; i < freqs.length; i++) {
+      const osc = this.ctx.createOscillator();
+      const gn = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freqs[i], t + i * 0.06);
+      gn.gain.setValueAtTime(0, t + i * 0.06);
+      gn.gain.linearRampToValueAtTime(gains[i], t + i * 0.06 + 0.15);
+      gn.gain.exponentialRampToValueAtTime(0.001, t + i * 0.06 + 0.9);
+      osc.connect(gn);
+      gn.connect(this.masterGain);
+      osc.start(t + i * 0.06);
+      osc.stop(t + i * 0.06 + 1.0);
+    }
+    // Sutil shimmer de ruído filtrado
+    const bufferSize = this.ctx.sampleRate * 0.5;
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * 0.03;
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = buffer;
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(800, t);
+    filter.Q.setValueAtTime(3, t);
+    const gn = this.ctx.createGain();
+    gn.gain.setValueAtTime(0, t);
+    gn.gain.linearRampToValueAtTime(0.08, t + 0.2);
+    gn.gain.exponentialRampToValueAtTime(0.001, t + 0.8);
+    noise.connect(filter);
+    filter.connect(gn);
+    gn.connect(this.masterGain);
+    noise.start(t);
+    noise.stop(t + 0.8);
+  }
+
+  /**
+   * Proposta B — Interseções Celestiais: notas cristalinas de harpa
+   * em arpeggio ascendente, com sustain longo.
+   */
+  playPassiveB() {
+    if (!this.enabled || !this.ctx) return;
+    this.ensureContext();
+    const t = this.ctx.currentTime;
+
+    // Arpeggio cristalino ascendente
+    const notes = [660, 880, 1100, 1320, 1540];
+    for (let i = 0; i < notes.length; i++) {
+      const osc = this.ctx.createOscillator();
+      const gn = this.ctx.createGain();
+      osc.type = i % 2 === 0 ? 'sine' : 'triangle';
+      osc.frequency.setValueAtTime(notes[i], t + i * 0.08);
+      gn.gain.setValueAtTime(0, t + i * 0.08);
+      gn.gain.linearRampToValueAtTime(0.18, t + i * 0.08 + 0.08);
+      gn.gain.exponentialRampToValueAtTime(0.001, t + i * 0.08 + 1.2);
+      osc.connect(gn);
+      gn.connect(this.masterGain);
+      osc.start(t + i * 0.08);
+      osc.stop(t + i * 0.08 + 1.3);
+    }
+    // Harmônico de brilho cristalino
+    const osc2 = this.ctx.createOscillator();
+    const gn2 = this.ctx.createGain();
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(2640, t + 0.3);
+    gn2.gain.setValueAtTime(0, t + 0.3);
+    gn2.gain.linearRampToValueAtTime(0.12, t + 0.45);
+    gn2.gain.exponentialRampToValueAtTime(0.001, t + 1.4);
+    osc2.connect(gn2);
+    gn2.connect(this.masterGain);
+    osc2.start(t + 0.3);
+    osc2.stop(t + 1.4);
+  }
+
+  /**
+   * Proposta C — Ressonância Luminosa: baixo profundo pulsante
+   * com crescendo dramático e eco de caverna.
+   */
+  playPassiveC() {
+    if (!this.enabled || !this.ctx) return;
+    this.ensureContext();
+    const t = this.ctx.currentTime;
+
+    // Pulso baixo profundo
+    const osc = this.ctx.createOscillator();
+    const gn = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(80, t);
+    osc.frequency.exponentialRampToValueAtTime(55, t + 0.5);
+    gn.gain.setValueAtTime(0, t);
+    gn.gain.linearRampToValueAtTime(0.45, t + 0.15);
+    gn.gain.exponentialRampToValueAtTime(0.001, t + 0.7);
+    osc.connect(gn);
+    gn.connect(this.masterGain);
+    osc.start(t);
+    osc.stop(t + 0.7);
+
+    // Eco de pulso (repetição atenuada)
+    const osc2 = this.ctx.createOscillator();
+    const gn2 = this.ctx.createGain();
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(80, t + 0.35);
+    osc2.frequency.exponentialRampToValueAtTime(50, t + 0.9);
+    gn2.gain.setValueAtTime(0, t + 0.35);
+    gn2.gain.linearRampToValueAtTime(0.2, t + 0.5);
+    gn2.gain.exponentialRampToValueAtTime(0.001, t + 1.1);
+    osc2.connect(gn2);
+    gn2.connect(this.masterGain);
+    osc2.start(t + 0.35);
+    osc2.stop(t + 1.1);
+
+    // Harmônico de brilho no topo
+    const osc3 = this.ctx.createOscillator();
+    const gn3 = this.ctx.createGain();
+    osc3.type = 'triangle';
+    osc3.frequency.setValueAtTime(440, t + 0.1);
+    osc3.frequency.exponentialRampToValueAtTime(660, t + 0.4);
+    gn3.gain.setValueAtTime(0, t + 0.1);
+    gn3.gain.linearRampToValueAtTime(0.12, t + 0.25);
+    gn3.gain.exponentialRampToValueAtTime(0.001, t + 0.8);
+    osc3.connect(gn3);
+    gn3.connect(this.masterGain);
+    osc3.start(t + 0.1);
+    osc3.stop(t + 0.8);
+  }
+
   playChargeLevel(pl = 1) { this.playCharge(pl); }
   playChargeRelease(level = 1) { this.playCharge(level); }
   playHeavyHit() { this.playHit({heavy: true}); }
