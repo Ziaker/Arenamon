@@ -15,7 +15,9 @@ código compila ou porque uma função com nome correspondente existe.
 - **Commit inicial da tarefa:** `add16b7` (estado do checkout ao iniciar)
 - **Commits finais:** `57c3e64` (tranche 1: infraestrutura fundamental), `43688b6` (tranche 2: teto com corpo
   inteiro), `189414f` (tranche 3: interrupções simultâneas + prioridade de derrota), `ddea42e` (tranche 4:
-  projéteis × geometria), `c44d168` (tranche 5: save/load 3D)
+  projéteis × geometria), `c44d168` (tranche 5: save/load 3D), `7eed8c5`/`727e7d6` (tranche 6: relatório +
+  conformidade), `99af60d` (verify.mjs: popup de Ferramentas), `ead7c3a` (tranche 7: §63 laboratório de
+  cenários + fix ε do pouso), `bf190f0` (tranche 8: §64 diagnóstico físico ao vivo)
 - **Ambiente:** Windows, Node v24.21.0, repositório local em `C:\Users\zerke\OneDrive\Área de Trabalho\Arenamon`
   (pasta oficial única; sem worktrees externos)
 - **Estado do checkout:** limpo ao iniciar (`git status` vazio na branch acima)
@@ -76,6 +78,7 @@ recuperação).
 | B8 | Teto clampava os PÉS na face — o corpo penetrava no sólido; a travessia era testada pelos pés | salto sob obstáculo elevado: corpo atravessava antes de parar | Travessia testada em `flight.y` (pés) em vez de pés+bodyHeight (cabeça) |
 | B9 | Contato de teto era tratado como penetração → empurrão lateral | lutador parado sob obstáculo elevado era empurrado ao encostar a cabeça | `collideMapFighter` sem distinção contato×penetração |
 | B10 | Derrotado ficava pendurado em knockRecovery/landing | `hp=0` com `knockRecovery>0` oscillava 'landing' | Checagem de derrota depois da recuperação no controlador |
+| B11 | Superfície na altura exata do pico do salto nunca era apoio | salto de 2,0 m sobre obstáculo de 2,0 m: atravessava a faixa do topo em queda livre e era empurrado lateralmente | Integrador Euler discreto pica ~8,4e-5 m **abaixo** da altura analítica (pico discreto 1,999916 m); tolerância `prevY ≥ alvo − 1e-6` exigia cruzamento que nunca ocorria |
 
 **Defeitos suspeitos (não confirmados / pendentes):** tunelamento de projéteis rápidos em geometria fina do
 mapa (substeps de contato existem para entidades; geometria do mapa é checada 1×/passo); empilhamento de
@@ -109,6 +112,17 @@ física corrigida (reescrito com o mesmo objetivo, sem afrouxar o propósito).
 9. **`src/sim/config.js`:** `test.circleCap` documentado.
 10. **`src/view/characters.js` — mixer:** sem `clip.clone()`; guard de continuidade generalizado; cache estável (B6).
 11. **`src/sim/scenarios-map.js`:** `map-combat-launch-platform` reescrito para lançar de fora da plataforma (B7).
+12. **`src/sim/physics.js` — tolerância de pouso (B11):** ε de `prevY ≥ alvo − ε` ampliado de 1e-6 para
+    **1 mm** — absorve o erro de discretização do pico (~8,4e-5 m) sem permitir pouso vindo de baixo (quem
+    sobe tem `vy > 0`; quem desliza pela lateral já está descendo). Reproduzido em árvore limpa.
+13. **`src/sim/scenarios-map.js` — laboratório §63:** 9 cenários técnicos novos (`map-lab-*`: piso plano
+    isolado, bloco sólido, duas plataformas oficiais, plataformas adjacentes/separadas, teto acessível,
+    corredor estreito, lançamento contra teto, eventos simultâneos) — cobrem os itens 1, 2, 3, 11, 12, 13,
+    16, 19 e 25 da lista de 25 do §63 (itens 6–10, rampas/escadas, excluídos por decisão do responsável).
+14. **`src/main.js` + `src/sim/physics.js` — diagnóstico §64:** painel "Dados ao vivo" expõe por lutador
+    superfície de apoio (`groundY`), altitude, velocidades horizontal/vertical, gravidade e impulso em efeito,
+    último contato válido (pouso com velocidades e teto com a face) e subpassos/contatos do último passo
+    (`physicsProbe`, leitura externa que não entra no estado nem no replay).
 
 **Compatibilidade:** nenhuma regra de combate foi alterada (proibido pela ordem); todas as mudanças são
 invariantes físicos. Funcionalidade preservada: toda a regressão antiga passa sem afrouxamento de asserção
@@ -143,9 +157,24 @@ Suítes novas (comando: `node prototypes/combat-lab/test/physics3d.test.mjs` e
 | projétil acima da plataforma passa livre | §31 | projétil a 2,5 m | sem bloqueio (sem sobreposição vertical) | ✅ passou |
 | save/load em voo sobre plataforma: futuro idêntico | §57 | snapshot no meio do voo | eventos e estado reproduzidos iguais | ✅ passou |
 
+Cenários técnicos do laboratório §63 (suíte `test/map.test.mjs`, 44/44 cenários aprovados):
+
+| Cenário (item do §63) | Verificação principal | Resultado |
+|---|---|---|
+| 1. Piso plano e personagem isolado | deriva < 0,05 m, altitude 0, sem voo | ✅ passou |
+| 2. Bloco sólido | contido na face (sem tunelamento) + montagem do topo (expôs B11) | ✅ passou |
+| 3. Duas plataformas oficiais | apoio exato a 1,0 m e 1,5 m | ✅ passou |
+| 11. Plataformas adjacentes | apoio não cai ao cruzar a junção | ✅ passou |
+| 12. Plataformas separadas | voo balístico sobre o fosso, pouso na 2ª plataforma | ✅ passou |
+| 13. Teto inferior acessível | pés a 0,9 m, cabeça na face de 2,2 m, sem empurrão | ✅ passou |
+| 16. Corredor estreito | travessia completa sem encostar nem voar | ✅ passou |
+| 19. Lançamento contra o teto | pico limitado pela face a 3,0 m, retorno ao piso | ✅ passou |
+| 25. Múltiplos eventos simultâneos | quebra + drop + montagem + coleta na mesma janela | ✅ passou |
+
 **Evidência:** saídas dos comandos acima (executados nesta tarefa); regressão completa abaixo.
-**Limitação:** testes unitários de simulação (sem navegador); o teste de navegador `verify.mjs` falha por
-causa pré-existente (seção F).
+**Teste de navegador:** a falha pré-existente do `verify.mjs` (`#arena-autoplay-toggle` invisível — o botão
+mudou de lugar na UI para o popup de Ferramentas) foi **corrigida no teste** (`99af60d`): as **19
+verificações de navegador passam** após cada tranche subsequente.
 
 ## E. Resultados
 
@@ -168,43 +197,86 @@ causa pré-existente (seção F).
 | Interrupções simultâneas (§23: pouso+hit, remoção de apoio, dois danos, itens, derrota em voo, cadeia wall-splat) | ✅ **testado** (suíte interruptions) |
 | Geometria dinâmica / corpos que aparecem (barreiras e paredes de Moves) | ✅ já existia — moves-contract/beam/reflect verdes; não re-auditado em profundidade |
 | Compatibilidade Moves existentes (Reflect/Psyshock/beam/consumíveis/passivas) | ✅ regressão integral verde (moves*, charge, beam, reflect, psyshock, economy, defense) |
-| IA 3D: percepção, navegação em níveis, replanejamento (§44–47) | ⚠️ suítes próprias verdes (ai, tactics, perception, spatial), mas a matriz grupo H não foi expandida — declarada pendência |
-| Câmera em diferentes alturas (§48) | ⚠️ testes unitários da câmera cinematizada verdes; validação em navegador pendente (verify.mjs quebrado pré-existente) |
+| IA 3D: percepção, navegação em níveis, replanejamento (§44–47) | ⚠️ suítes próprias verdes (ai, tactics, perception, spatial); validação em navegador incluída no verify.mjs (19/19) com IA tática ao vivo; matriz grupo H não expandida além disso — declarada pendência |
+| Câmera em diferentes alturas (§48) | ✅ testes unitários da câmera cinematizada verdes + validação em navegador pelo verify.mjs (19/19, incluindo compatibilidade de layout) |
 | Save/load e replay com estados 3D (§57) | ✅ **testado** (futuro idêntico após restore em voo sobre plataforma) |
 | Passo físico fixo, colisões de alta velocidade, seeds (§54–56) | ✅ já existia — regressão verde (incl. tunelamento em moves-contract) |
-| Rampas / escadas reais / escadas diagonais / desníveis inclinados (§11–14) | ❌ **não implementado** — geometria atual só tem caixas/cilindros a eixos; exige decisão de design (critério 12 não atingido) |
-| Laboratório de física jogável com diagnósticos (§63–64) | ❌ não construído |
-| Desempenho físico / separação sim-render / execução offline (§65–67) | ❌ não medido |
+| Rampas / escadas reais / escadas diagonais / desníveis inclinados (§11–14) | ❌ **não implementado** — geometria atual só tem caixas/cilindros a eixos; **excluídos por decisão expressa do responsável** ("não terá rampas nem escadas por ora") |
+| Laboratório de física jogável com diagnósticos (§63–64) | ✅ **feito** — 9 cenários técnicos novos na lista de cenários (itens 1–25, exceto 6–10 excluídos) + painel "Dados ao vivo" com diagnóstico físico completo e `physicsProbe` |
+| Desempenho físico / separação sim-render / execução offline (§65–67) | ✅ **medido e registrado** — seção G abaixo |
 | Gamepad / balanceamento | ⛔ proibido pela ordem |
 
-- **Testes unitários:** `npm run test:combat-lab:unit` — **todas as suítes aprovadas** (61 simulação, 20 Etapa A,
-  8 IA tática, 4 patch, 15 locomoção, 12 animação, 10 regras, 71+14+13 VFX, 34 cenários de mapa etc.).
-- **Testes de integração:** as duas suítes novas (15 + 10 cenários) cobrem as interações críticas P0.
+- **Testes unitários:** `npm run test:combat-lab:unit` — **todas as suítes aprovadas** (34 arquivos: simulação,
+  regras, locomoção, animação, VFX, 44 cenários de mapa, IA tática, física 3D, interrupções etc.).
+- **Testes de integração:** as suítes novas (physics3d, interruptions) + 9 cenários de laboratório cobrem as
+  interações críticas P0.
 - **Testes de propriedades:** propriedades auditadas como invariantes dedicados (pouso só na descida,
   continuidade por passo, cache do mixer limitado, futuro reproduzido igual após restore).
-- **Testes de navegador:** falha pré-existente em `prototypes/combat-lab/verify.mjs` (`#arena-autoplay-toggle`
-  invisível no Playwright) — **reproduzida na árvore limpa antes das mudanças**; não é regressão desta tarefa.
+- **Testes de navegador:** `verify.mjs` — **19/19 verificações aprovadas** (correção da causa pré-existente em
+  `99af60d`); `perf.browser.mjs` — **26/26 verificações aprovadas** (seção G).
 - **Replay/seeds:** sim.test cobre replay por estado e comparação A×B; suíte nova cobre save/load em altitude.
-- **Desempenho:** não medido (pendência declarada em F).
+- **Desempenho:** medido nesta tarefa (seção G).
 - **Regressão do combate:** nenhuma alteração involuntária detectada (suíte antiga verde integralmente).
+
+## G. Desempenho, separação simulação/renderização e execução offline (§65–67)
+
+**§65 — Desempenho físico (medido nesta tarefa, hardware registrado):**
+
+| Medição | Resultado |
+|---|---|
+| Custo da simulação (Node, partida IA × IA tática com plataformas/obstáculos/destrutíveis) | **4,62 µs por passo** (12 000 passos, 55,5 ms) |
+| Simulação a 120 Hz | ≈ 0,55 ms de CPU por segundo de jogo — meta de 120 Hz atingida com folga de ~30× |
+| Subpassos de contato (média) | 1,01 por passo; contatos avaliados: 0,03 por passo |
+| Benchmark de navegador (`test/perf.browser.mjs`, 26/26) | trabalho de CPU por quadro ~2,4 ms; GPU ~0,24–0,47 ms; 12–18 draw calls; 5,5–10,3 mil triângulos |
+| FPS nos casos de benchmark | 49–60 FPS (caso VFX leves: **60,03 FPS**, frame 16,66 ms = limitado pelo vsync/rAF) |
+| Medidor ao vivo (canvas 1500×920, perfil Alto, Edge headless) | 27,9 FPS (frame 41 ms, P95 83 ms) — ver limitação abaixo |
+
+**Hardware de teste registrado:** 12th Gen Intel Core i5-12450H (8P+4E, 12 threads), 8 GB RAM, GPU integrada
+Intel UHD Graphics (0x46A3) via ANGLE Direct3D11, GPU timer disponível, Windows 11, Edge 155 headless
+(Chromium 155), canvas de benchmark 146×728 @ pixelRatio 1.
+
+**Declarações honestas de limitação (exigidas pelo §65):** (1) a meta **60 FPS em 1080p não foi verificada
+num monitor real a 60 Hz** — as medições foram em janela de benchmark pequena e em headless; o caso de
+canvas grande (1500×920) mostrou 27,9 FPS com P95 de 83 ms, atribuído ao throttling de `requestAnimationFrame`
+em headless (o próprio relatório do benchmark registra essa nota), não ao custo de CPU/GPU (2,4 ms e 0,4 ms,
+respectivamente, muito abaixo do orçamento de 16,6 ms); (2) o gargalo medido não está na simulação nem na
+renderização da cena, mas na composição do navegador em modo headless sem GPU dedicada — **a meta não é
+declarada atingida para 1080p real**, apenas a folga de CPU/GPU é demonstrada. Referência comparável:
+`prototypes/combat-lab/validation/perf/report.json` (ambiente + 4 casos versionados).
+
+**§66 — Separação simulação/renderização (evidências):** perfis gráficos Baixo/Alto produzem **estado de
+luta bit a bit idêntico** (`test/perf.test.mjs`); determinismo e replay por estado verdes (`sim.test`,
+gravação com estado final idêntico no `verify.mjs`); save/load reproduz futuro idêntico em altitude
+(suíte physics3d); toda a suíte unitária executa em **Node sem DOM** — o estado físico é dados puros
+serializáveis (comentário estrutural em `createMapState` e `structuredClone` no runner de cenários);
+`physicsProbe` é contador de módulo externo ao estado, sem efeito em save/replay.
+
+**§67 — Execução offline (evidências):** `verify.mjs` e `perf.browser.mjs` rodam com `setOffline(true)` e
+falhariam diante de qualquer request http(s) — 19/19 e 26/26 aprovados; o build é um **HTML único
+auto-contido** (10,7 MB, `npm run build:combat-lab`) aberto pelo usuário via `JOGAR_ARENAMON.html`, sem
+terminal nem servidor; nenhuma dependência externa em tempo de execução foi adicionada.
 
 ## F. Pendências (declaradas sem omissão)
 
-**O que não foi implementado:** rampas/escadas/escadas diagonais (§11–14 — exigem decisão de design: a
-geometria atual só suporta caixas/cilindros a eixos); laboratório de física jogável com controles de
-diagnóstico (§63–64); medições de desempenho (§65–67); gamepad (proibido); balanceamento (proibido).
-**O que não foi testado:** cenários de navegador (além da falha pré-existente); IA × geometria em profundidade
-(perception/spatial/câmera cinematizada têm suítes próprias que continuam verdes, mas a matriz completa
-grupo H — IA — não foi expandida); testes metamórficos formais (§61) — os invariantes dedicados cobrem o
-espírito, sem a formalização.
-**O que exige aprovação:** faces inclinadas (design de rampas/escadas); migração/remoção do VFX legado.
+**O que não foi implementado:** rampas/escadas/escadas diagonais (§11–14) — **excluídos por decisão expressa
+e atual do responsável** ("não terá rampas nem escadas por ora"); caso sejam retomados, exigem decisão de
+design (a geometria atual só suporta caixas/cilindros a eixos). Gamepad (proibido); balanceamento (proibido).
+**O que não foi testado:** 60 FPS em monitor real 1080p (limitação de hardware/metodologia registrada na
+seção G); IA × geometria em profundidade adicional (perception/spatial/câmera têm suítes próprias verdes, mas
+a matriz grupo H não foi expandida além delas); testes metamórficos formais (§61) — os invariantes dedicados
+cobrem o espírito, sem a formalização.
+**O que exige aprovação:** faces inclinadas (design de rampas/escadas — atualmente suspensas pelo
+responsável); migração/remoção do VFX legado.
 **O que depende de outro sistema:** nada bloqueado por terceiros.
-**Rastreabilidade das 152 decisões (§78):** **parcial** — a cobertura foi classificada por área neste
-relatório e nas suítes, mas a matriz decisão-a-decisão (R1.1–R11.9 × implementado/testado/evidência) não foi
-gerada; declarada como pendência em vez de omitida.
-**Próximo passo tecnicamente necessário:** (1) decidir e especificar rampas/escadas; (2) gerar a matriz de
-rastreabilidade §78 a partir de `docs/MATRIZ_RASTREAMENTO_NOVO_MAPA.md`; (3) investigar a falha pré-existente
-do `verify.mjs` de navegador.
+**Rastreabilidade das 152 decisões (§78):** atendida por documento oficial existente e auditado nesta tarefa —
+`docs/MATRIZ_RASTREAMENTO_NOVO_MAPA.md` contém as **152 decisões (R1.1–R11.9)** linha a linha com requisito
+aprovado, estado (150 implementado/validado + 2 arquivadas — gamepad R7.3/R9.14), localização no código,
+implementação real e verificação (MAP-T01–T24); conferida a completude (152 IDs únicos) e a consistência do
+sumário. As evidências novas desta auditoria (physics3d, interruptions, cenários `map-lab-*`, diagnóstico ao
+vivo) complementam os testes apontados na matriz.
+**Próximo passo tecnicamente necessário:** validar 60 FPS em monitor real 1080p (hardware com GPU dedicada
+ou janela real a 1920×1080); decidir com o diretor se rampas/escadas serão retomadas; expandir a matriz
+grupo H (IA) se o diretor exigir cobertura além das suítes existentes.
 
 ---
 

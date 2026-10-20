@@ -181,8 +181,8 @@ Todos os casos de teste e cenários foram implementados e validados em `prototyp
 | **MAP-T02** | Distribuição procedural e determinismo de sementes (PRNG idêntico em replay) | R1.3, R2.10, R4.7, R4.16, R6.4 | `map-seed-determinism`, `map-prng-uniformity` | Aprovado |
 | **MAP-T03** | Quantidades, formas e separação de spawn inicial (4 destrutíveis, 4 indestrutíveis, 2 plataformas, 2 itens) | R1.3, R1.7, R2.9, R2.10, R3.3, R3.4, R3.11, R3.13, R4.4, R6.8, R7.4, R7.5, R10.9, R11.1 | `map-spawns-count`, `map-fighter-spawns-opposed` | Aprovado |
 | **MAP-T04** | Validador espacial e busca de posição alternativa mais próxima | R3.13, R4.8, R4.9, R9.12, R10.6 | `map-spawn-validator-clearance`, `map-find-nearest-valid` | Aprovado |
-| **MAP-T05** | Colisão tridimensional real (AABB de plataformas, cilindros e altura $y$) | R1.8, R1.9, R2.9, R3.12, R7.4, R7.5, R7.6, R7.11, R7.12, R7.13 | `map-platform-solid-3d`, `map-vertical-hitbox-miss` | Aprovado |
-| **MAP-T06** | Física completa do salto (2m, $v_x/v_z$ travados, 0 stamina, 0,25s cooldown, pouso em plataformas e queda de borda) | R1.9, R1.10, R1.11, R2.1, R2.2, R2.3, R2.4, R2.5, R2.6, R2.7, R2.8, R2.11, R7.1, R7.2, R7.6, R7.7, R7.8, R7.9, R7.10, R7.14, R7.16 | `map-jump-physics-2m`, `map-jump-horizontal-lock`, `map-jump-cooldown`, `map-platform-fall` | Aprovado |
+| **MAP-T05** | Colisão tridimensional real (AABB de plataformas, cilindros e altura $y$) | R1.8, R1.9, R2.9, R3.12, R7.4, R7.5, R7.6, R7.11, R7.12, R7.13 | `map-platform-solid-3d`, `map-vertical-hitbox-miss`, `map-lab-solid-block`, `map-lab-two-platforms`, `map-lab-plat-adjacent`, `map-lab-low-ceiling` | Aprovado |
+| **MAP-T06** | Física completa do salto (2m, $v_x/v_z$ travados, 0 stamina, 0,25s cooldown, pouso em plataformas e queda de borda) | R1.9, R1.10, R1.11, R2.1, R2.2, R2.3, R2.4, R2.5, R2.6, R2.7, R2.8, R2.11, R7.1, R7.2, R7.6, R7.7, R7.8, R7.9, R7.10, R7.14, R7.16 | `map-jump-physics-2m`, `map-jump-horizontal-lock`, `map-jump-cooldown`, `map-platform-fall`, `map-lab-flat-floor`, `map-lab-plat-separated`, `map-lab-solid-block` (pouso sobre topo de 2,0 m = altura do pico) | Aprovado |
 | **MAP-T07** | Dano e quebra de objetos destrutíveis (30 HP, multiplicadores de ataque, projéteis consumidos e dano em área) | R1.5, R1.6, R3.5, R3.6, R5.5, R5.14, R7.13, R8.7, R8.8, R9.10, R9.11 | `map-destructible-tackle`, `map-destructible-stage-atk`, `map-destructible-area` | Aprovado |
 | **MAP-T08** | Lançamento corporal contra destrutíveis (dano mútuo, parada de inércia e atribuição correta de KO) | R3.7, R3.8, R7.15, R10.7, R10.8, R11.2 | `map-fighter-body-slam`, `map-wall-ko-attribution` | Aprovado |
 | **MAP-T09** | Respawn de destrutíveis (15–30s, nova posição e preview translúcido "ghost") | R3.9, R6.5, R6.6, R11.9 | `map-destructible-respawn-ghost` | Aprovado |
@@ -200,7 +200,7 @@ Todos os casos de teste e cenários foram implementados e validados em `prototyp
 | **MAP-T21** | Recursos visuais, HUD e ferramentas de diagnóstico (transparência de oclusão de obstáculos, enquadramento dinâmico de câmera, HUD de estágios, toggles de depuração) | R8.9, R8.10, R8.11, R8.12, R8.13, R8.16 | `map-camera-occlusion-wireframes`, `map-hud-stages-toggle` | Aprovado |
 | **MAP-T22** | Organização da interface na aba Mapa (grupos funcionais e aplicação imediata vs próximo reset) | R8.14, R8.15 | `map-ui-tab-organization`, `map-tuning-apply-lifecycle` | Aprovado |
 | **MAP-T23** | Repetibilidade de Replays (determinismo físico e reprodutibilidade idêntica passo a passo) | R4.16 | `map-replay-determinism` | Aprovado |
-| **MAP-T24** | Desempenho e taxa de quadros (60 FPS / 120 Hz preservados na arena de 100m) | R9.16 | `map-perf-120hz-60fps` | Aprovado |
+| **MAP-T24** | Desempenho e taxa de quadros (60 FPS / 120 Hz preservados na arena de 100m) | R9.16 | `map-perf-120hz-60fps`; medições reais 20/10/2026 em `validation/perf/report.json` (simulação 4,62 µs/passo a 120 Hz; benchmark 26/26 com trabalho de CPU ~2,4 ms/quadro e 60,03 FPS no caso limitado por vsync — 1080p real não verificada, limitação registrada na auditoria) | Aprovado |
 
 ---
 
@@ -228,3 +228,25 @@ Todos os casos de teste e cenários foram implementados e validados em `prototyp
 6. **Interface, HUD e Ajustador (`src/ui/tuning.js`, `src/ui/hud.js` e `src/template.html`):**
    - Nova aba dedicada "Mapa" estruturada em 5 blocos: Arena, Objetos, Plataformas, Consumíveis e Progressão.
    - HUD modular de estágios evolutivos e ferramentas de diagnóstico ativáveis individualmente.
+
+---
+
+## Adendo — Evidências da auditoria externa de 20/10/2026
+
+Auditoria sistêmica (ordem preservada em `archives/auditoria-externa-2026-10-20.txt`, relatório em
+`docs/AUDITORIA_FISICA_3D_2026-10-20.md`, branch `feat/camera-cinematica-zzz`) — complementos de
+rastreabilidade que reforçam as linhas acima, sem substituí-las:
+
+1. **Suítes novas:** `test/physics3d.test.mjs` (lançamento com altitude, pouso só na descida, teto com corpo
+   inteiro, arena circular, wall-splat com autoria, obstáculos como apoio) e `test/interruptions.test.mjs`
+   (interrupções simultâneas, prioridade de derrota) — reforçam MAP-T05, MAP-T06, MAP-T08 e MAP-T23.
+2. **Cenários de laboratório §63** (`map-lab-flat-floor`, `map-lab-solid-block`, `map-lab-two-platforms`,
+   `map-lab-plat-adjacent`, `map-lab-plat-separated`, `map-lab-low-ceiling`, `map-lab-narrow-corridor`,
+   `map-lab-launch-ceiling`, `map-lab-multi-event`) — reforçam MAP-T05 e MAP-T06; 44/44 cenários de mapa
+   aprovados em `test/map.test.mjs`.
+3. **Diagnóstico §64:** painel "Dados ao vivo" com superfície de apoio, velocidade vertical, gravidade,
+   impulso, último contato e subpassos (`physicsProbe`) — reforça MAP-T21.
+4. **Desempenho §65:** medições reais registradas em `validation/perf/report.json` — ver MAP-T24 e a
+   limitação declarada (1080p real não verificada neste hardware de teste).
+5. **Correções físicas com defeito real confirmado:** B1–B11 no relatório da auditoria (inclui a tolerância
+   de pouso de 1 mm para superfícies na altura exata do pico do salto).
