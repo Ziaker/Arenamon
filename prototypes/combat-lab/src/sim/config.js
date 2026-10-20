@@ -184,6 +184,30 @@ export function vfxDefaults() {
     solidBlock: {...solidFam(), color: 0x73caff},
     solidClash: {...solidFam(), color: 0xffe58d},
     solidReflect: {...solidFam(), color: 0x73caff},
+    // ═══════════════════════════════════════════════════════════════
+    //  PASSIVAS — Propostas A, B, C (HUD-ativadas, não da simulação)
+    // ═══════════════════════════════════════════════════════════════
+    passiveA: {
+      enabled: 1, variant: 0,
+      color: 0x4fc3f7, color2: 0xffffff,
+      radius: 1.2, particleCount: 24,
+      orbitSpeed: 2.5, opacity: .9,
+      duration: 3.5, quality: 1,
+    },
+    passiveB: {
+      enabled: 1, variant: 0,
+      color: 0xffd54f, color2: 0xff8a65,
+      beamCount: 6, beamLength: 2.5,
+      rotationSpeed: 1.2, opacity: .85,
+      duration: 2.8, quality: 1,
+    },
+    passiveC: {
+      enabled: 1, variant: 0,
+      color: 0xe040fb, color2: 0x7c4dff,
+      waveCount: 4, waveRadius: 2.5,
+      pulseSpeed: 2.0, opacity: .9,
+      duration: 2.5, quality: 1,
+    },
     shakeMaster: {enabled: 1},
     shakeGuard: shake(.05, .16, 0), shakeHit: shake(.12, .28, 0), shakeGround: shake(.09, .3, 1), shakePerfect: shake(.1, .3, 2), shakeClash: shake(.18, .42, 1),
   };
@@ -203,8 +227,6 @@ export function displayDefaults() {
     // Transições da máquina de estados de animação (Personagens). Só visual: não mudam tempos, física ou regras.
     animation: {fade: .18, actionFade: .07, locomotionHold: .1, speed: 1},
     // Diagnóstico de comandos (só apresentação): aviso na arena 0 = desligado, 1 = só o jogador, 2 = ambos.
-    diagnostics: {toast: 1, toastMs: 1400, logExecuted: 0},
-    // Indicadores das janelas de combate acima dos lutadores (tempos lidos da simulação). mode: 0 desligado, 1 jogador, 2 ambos.
     // Medidor de desempenho: caixa compacta na arena (0/1). Só apresentação.
     perf: {overlay: 0},
     windows: {mode: 0, scale: 1, opacity: .9, invulnerable: 1, cancel: 1, chain: 1, recovery: 1, guardStun: 1, recoil: 1, perfect: 1, perfectCooldown: 1, counter: 1, buffer: 1, hitstop: 0, statuses: 1, cooldowns: 1},
