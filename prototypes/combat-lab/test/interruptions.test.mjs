@@ -8,6 +8,8 @@ import {vec} from '../src/sim/math.js';
 import {launch} from '../src/sim/combat.js';
 import {stepPhysics} from '../src/sim/physics.js';
 import {stepMap, processDamageWithShieldAndStages} from '../src/sim/map.js';
+import {spawn} from '../src/sim/world.js';
+import {emptyCommand} from '../src/sim/entity.js';
 
 let passed = 0, failed = 0;
 const failures = [];
@@ -129,6 +131,56 @@ test('coleta de item + dano no mesmo passo: ambos aplicados; derrotado não cole
   const dmg = processDamageWithShieldAndStages(a, 10, null, false); // dano no mesmo "passo" do jogo
   assert.equal(dmg.hpDamage, 10, 'dano bruto sem escudo');
   assert.equal(a.hp, hpAfterHeal - 10, `cura e dano coexistem e somam corretamente: hp=${a.hp}`);
+});
+
+// ---------------------------------------------------------------------------
+// §31 — obstáculos/plataformas/destrutíveis bloqueiam projéteis (com sobreposição vertical real)
+// ---------------------------------------------------------------------------
+/** Arena com os lutadores fora da linha de tiro (eixo z, x=0) e um projétil em voo. */
+function firingRange() {
+  const g = arena();
+  g.reset({positions: [vec(-12, -3), vec(12, 3)]});
+  g.mapState.platforms = [];
+  g.mapState.obstacles = [];
+  g.mapState.destructibles = [];
+  g.mapState.items = [];
+  return g;
+}
+const PROJ = {kind: 'projectile', owner: 0, pos: {x: 0, z: -4}, dir: {x: 0, z: 1}, y: .65, radius: .25, speed: 14, life: 8, hit: {damage: 10, knockback: {horizontal: 4, vertical: 2}}};
+const runProj = (g, tpl, steps = 90) => {
+  spawn(g.world, structuredClone(tpl), []);
+  const events = [];
+  for (let i = 0; i < steps; i++) {g.step(undefined, {...emptyCommand()});events.push(...(g.lastStepEvents ?? []));}
+  return events;
+};
+test('projétil é bloqueado por obstáculo indestrutível (§31)', () => {
+  const g = firingRange();
+  g.mapState.obstacles = [{id: 'ob1', pos: {x: 0, z: 0, y: 0}, hx: 1.5, hz: 1.5, height: 1.5}];
+  const events = runProj(g, PROJ);
+  assert.ok(events.some(e => e.result === 'obstacleHit'), 'evento obstacleHit emitido');
+  assert.ok(g.world.entities.every(e => e.dead), 'o projétil morreu no obstáculo (não atravessou)');
+});
+test('projétil é bloqueado pela lateral sólida de uma plataforma (§31)', () => {
+  const g = firingRange();
+  g.mapState.platforms = [{id: 'p1', pos: {x: 0, z: 0}, width: 3, depth: 3, height: 1}];
+  const events = runProj(g, PROJ);
+  assert.ok(events.some(e => e.result === 'platformHit'), 'evento platformHit emitido');
+  assert.ok(g.world.entities.every(e => e.dead), 'o projétil morreu na plataforma');
+});
+test('projétil acima da plataforma passa livre (sem sobreposição vertical, não há bloqueio) (§31)', () => {
+  const g = firingRange();
+  g.mapState.platforms = [{id: 'p1', pos: {x: 0, z: 0}, width: 3, depth: 3, height: 1}];
+  const events = runProj(g, {...PROJ, y: 2.5}, 60);
+  assert.ok(!events.some(e => e.result === 'platformHit'), 'nenhum bloqueio acima da plataforma');
+  assert.ok(g.world.entities.every(e => !e.dead), 'o projétil segue vivo acima da plataforma');
+});
+test('projétil danifica destrutível e é consumido (§30/§31)', () => {
+  const g = firingRange();
+  g.mapState.destructibles = [{id: 'd1', pos: {x: 0, z: 0, y: 0}, hp: 30, maxHp: 30, state: 'solid', size: {hx: 1.2, hz: 1.2, height: 1.6}, shape: 'box', angle: 0}];
+  const events = runProj(g, PROJ);
+  assert.ok(events.some(e => e.result === 'destructibleHit'), 'evento destructibleHit emitido');
+  assert.ok(g.mapState.destructibles[0].hp < 30, `o destrutível sofreu dano (hp=${g.mapState.destructibles[0].hp})`);
+  assert.ok(g.world.entities.every(e => e.dead), 'o projétil foi consumido no impacto');
 });
 
 console.log(`\n${passed} passaram, ${failed} falharam.`);
