@@ -35,6 +35,7 @@ import {createTrainingPanel} from './ui/training-panel.js';
 import {createMovesPanel} from './ui/moves-panel.js';
 import {MovesHud} from './ui/moves-hud.js';
 import {createPassivesPanel} from './ui/passives-panel.js';
+import {createQuickMenu} from './ui/menu-quick.js';
 import {PassivesHud} from './ui/passives-hud.js';
 import {PassiveVfx} from './view/passive-vfx.js';
 import {AbilityNotices} from './ui/ability-notices.js';
@@ -646,6 +647,8 @@ const movesHud = new MovesHud($('moves-hud'));
 // Passivas: painel de seleção (Partida), HUD da arena e VFX de ativação (§16/§17).
 const passivesPanel = createPassivesPanel({getCharacterNames: () => [ui.characters[0]?.source?.name ?? null, ui.characters[1]?.source?.name ?? null]});
 $('passives-card')?.append(passivesPanel.root);
+// Seleção Rápida do menu: dois blocos (personagem/moves/abilities + prévia 3D). Workspace anexado no boot.
+const quickMenu = createQuickMenu({$, game, ui, passivesPanel});
 const passivesHud = new PassivesHud($('passives-hud'));
 const passiveVfx = new PassiveVfx(view.scene);
 const abilityNotices = new AbilityNotices();
@@ -918,24 +921,14 @@ function cycleOpponentAiMode() {
 function onQuickStart() {
   if ($('quick-profile')) $('profile').value = $('quick-profile').value;
   if ($('quick-enemy-profile')) $('enemy-profile').value = $('quick-enemy-profile').value;
-  if ($('quick-ai-mode')) {
-    $('mode').value = $('quick-ai-mode').value;
+  if ($('quick-mode')) {
+    $('mode').value = $('quick-mode').value;
     game.mode = $('mode').value;
     C.extras.gameModes.enemyMode = AI_MODES.findIndex(([id]) => id === game.mode);
   }
-  const equipReflect = $('quick-reflect')?.checked;
-  const equipPsyshock = $('quick-psyshock')?.checked;
-  if (equipReflect || equipPsyshock) {
-    const loadout = [
-      equipReflect ? 'reflect' : null,
-      equipPsyshock ? 'psyshock' : null,
-      null,
-      null
-    ];
-    game.setLoadout(0, loadout);
-  }
-  if ($('quick-zen')?.checked) toggleZenMode(true);
-  if ($('quick-autolock')?.checked) input.locked = true;
+  quickMenu.applyAll();   // moves dos dois lutadores + passivas (identidade e validação do painel, R5)
+  if ($('quick-auto-zen')?.checked) toggleZenMode(true);
+  if ($('quick-auto-lock')?.checked) input.locked = true;
   startMatch();
 }
 
@@ -989,13 +982,15 @@ function frame(now) {
   ui.frame++;requestAnimationFrame(frame);
 }
 applyConfig();renderScenarios();renderCharacters();syncTuneState();openTool('match');syncButtons();
+// IA do Vermelho na Seleção Rápida: mesmo valor do seletor da Partida (applyConfig define o modo efetivo).
+$('quick-mode').replaceChildren(...UI_AI_MODES.map(([id, label]) => new Option(label, id)));$('quick-mode').value = game.mode;
 requestAnimationFrame(frame);
 
 // ---------- Workspace persistente: preferências de interface, última partida e opções de animação ----------
 function collectUi() {
   const pressed = document.querySelector('[data-dock][aria-pressed="true"]');
   return {tool: $('panel').hidden ? null : $('panel').dataset.tool, dockCollapsed: $('dock').classList.contains('collapsed'), dockView: pressed?.dataset.dock ?? 'timeline', timeScale: $('rp-speed').value,
-    overlays: {...view.overlays}, showHistory: $('show-history').checked, charSyncSource: $('char-sync-source').value, previewSlot: $('char-preview-slot').value, tuneMode: presets.mode, abKey: presets.abKey, vfxMode: visualPanel.vfxMode};
+    overlays: {...view.overlays}, showHistory: $('show-history').checked, charSyncSource: $('char-sync-source').value, previewSlot: $('char-preview-slot').value, tuneMode: presets.mode, abKey: presets.abKey, vfxMode: visualPanel.vfxMode, quick: quickMenu.collect()};
 }
 const collectMatch = () => ({enemyProfile: $('enemy-profile').value, playerMode: $('player-mode').value, seed: $('seed').value, seedFixed: $('seed-fixed').checked, recValues: $('rec-values').value});
 const collectAnim = () => {const o = Character.options;return {fit: o.fit, fade: o.fade, actionFade: o.actionFade, locomotionHold: o.locomotionHold, speed: o.speed, syncRules: o.syncRules};};
@@ -1023,6 +1018,7 @@ function applyDocUi(doc) {
   if (u.tuneMode) presets.setMode(u.tuneMode);
   if (u.vfxMode) visualPanel.setMode(u.vfxMode);
   if (u.abKey) {presets.setABKey(u.abKey);$('ab-key').value = u.abKey;}
+  if (u.quick) quickMenu.apply(u.quick);
   if (u.previewSlot) $('char-preview-slot').value = u.previewSlot;
   if (typeof u.dockCollapsed === 'boolean' && u.dockCollapsed !== $('dock').classList.contains('collapsed')) $('dock-toggle').click();
   if (u.dockView) document.querySelector(`[data-dock="${u.dockView}"]`)?.click();
@@ -1048,7 +1044,7 @@ async function applyInitialWorkspace(ws, wsUI) {
 async function bootWorkspace() {
   const store = await openStore();let ls = null;try {ls = localStorage;} catch {ls = null;}
   const ws = await Workspace.open(store, {ls});wsRef.store = store;
-  const wsUI = createWorkspaceUI({ws, store, ui, tuning, $, download, presets: presets.api, homologation, applyDocUi, collectApp, onCharactersChanged: () => {syncCharacterCombatWindows();syncRuleDurations();dock.invalidate();}});
+  const wsUI = createWorkspaceUI({ws, store, ui, tuning, $, download, presets: presets.api, homologation, applyDocUi, collectApp, onCharactersChanged: () => {syncCharacterCombatWindows();syncRuleDurations();dock.invalidate();quickMenu.refresh();}});
   Object.assign(charHooks, wsUI.hooks);wsUI.setPanel(charPanel);presets.attachWorkspace(ws);
   await ws.batch(async () => {
     if (ws.doc.prefs.autoRestoreSession) applyDocUi(ws.doc);
@@ -1094,6 +1090,7 @@ window.__arenamon = {snapshot: () => ({...game.snapshot(), frame: ui.frame, came
 window.__arenaLive = {rules: C.rules, test: C.test, locomotion: C.locomotion, camera: C.camera, profiles: C.profiles, extras: C.extras, game, view, input, clock, reset: startMatch, apply: applyConfig};
 // window.__lab só aparece depois da restauração do workspace (os testes esperam por ele).
 bootWorkspace().catch(e => {console.error('workspace:', e);ui.workspaceError = e.message;return null;}).then(boot => {
+  if (boot) quickMenu.attachWorkspace(boot);   // Seleção Rápida: personagens salvos + prévia 3D
   // API dos movimentos especiais (registro vazio): registerMove, listMoves, validateMove; equipar com setLoadout.
   window.__lab = {charPanel, moves: {...Moves, setLoadout: (id, ids) => game.setLoadout(id, ids), standard: STANDARD_MOVE_IDS, equipStandard: id => game.setLoadout(id, STANDARD_MOVE_IDS)}, C, game, view, cinematic: view.cinematic, cinePanel, hudProposals, presets, movement, playSequence, diagnostics, training, perf: perfPanel, aiEval, projectFiles, reportsOf, visualPanel, recorder, replay, tuning, ui, startMatch, startScenario: id => startScenario(SCENARIOS.find(s => s.id === id)), stepFrames, seekTick, goLive, togglePause, setCharacter, loadStudioFile, triggerWarmup, SCENARIOS, runScenario, spawn, openTool,
     ws: boot?.ws ?? null, store: boot?.store ?? null, wsUI: boot?.wsUI ?? null, workspaceBoot: boot};

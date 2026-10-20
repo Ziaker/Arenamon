@@ -398,31 +398,38 @@
      <h1>ARENAMON COMBATE</h1>
      <p class="subtitle">Laboratório de Combate Principal · Seleção Rápida</p>
      <div class="quick-selectors">
-      <div class="quick-row">
-       <label><span>Lutador Azul</span>
-        <select id="quick-profile">
-         <option value="balanced">Equilibrado</option>
-         <option value="agile">Ágil</option>
-         <option value="resistant">Resistente</option>
-        </select>
-       </label>
-       <label><span>Adversário Vermelho</span>
-        <select id="quick-enemy-profile">
-         <option value="balanced">Equilibrado</option>
-         <option value="agile">Ágil</option>
-         <option value="resistant">Resistente</option>
-        </select>
-       </label>
+      <div class="quick-fighters">
+       <div class="quick-fighter" data-fighter="0">
+        <header class="qf-head"><h3>🔵 Lutador Azul</h3>
+         <label class="qf-profile">Perfil <select id="quick-profile">
+          <option value="balanced">Equilibrado</option>
+          <option value="agile">Ágil</option>
+          <option value="resistant">Resistente</option>
+         </select></label>
+        </header>
+        <div class="qf-preview"><canvas id="quick-preview-0" width="230" height="170" aria-label="Prévia do modelo azul"></canvas><span class="qf-char-name" id="quick-char-name-0">—</span></div>
+        <label class="qf-field">Personagem <select id="quick-char-0"></select></label>
+        <div class="qf-group"><b>Moves <small class="muted">(4 slots)</small></b><div class="qf-slots" id="quick-moves-0"></div></div>
+        <div class="qf-group"><b>Abilities <small class="muted">(passivas, até 2)</small></b><div class="qf-slots" id="quick-passives-0"></div><p class="qf-passive-status" id="quick-passive-status-0"></p></div>
+       </div>
+       <div class="quick-fighter" data-fighter="1">
+        <header class="qf-head"><h3>🔴 Adversário Vermelho</h3>
+         <label class="qf-profile">Perfil <select id="quick-enemy-profile">
+          <option value="balanced">Equilibrado</option>
+          <option value="agile">Ágil</option>
+          <option value="resistant">Resistente</option>
+         </select></label>
+        </header>
+        <div class="qf-preview"><canvas id="quick-preview-1" width="230" height="170" aria-label="Prévia do modelo vermelho"></canvas><span class="qf-char-name" id="quick-char-name-1">—</span></div>
+        <label class="qf-field">Personagem <select id="quick-char-1"></select></label>
+        <div class="qf-group"><b>Moves <small class="muted">(4 slots)</small></b><div class="qf-slots" id="quick-moves-1"></div></div>
+        <div class="qf-group"><b>Abilities <small class="muted">(passivas, até 2)</small></b><div class="qf-slots" id="quick-passives-1"></div><p class="qf-passive-status" id="quick-passive-status-1"></p></div>
+       </div>
       </div>
       <div class="quick-row">
-       <label><span>IA Vermelho</span>
+       <label><span>IA do Vermelho</span>
         <select id="quick-mode"></select>
        </label>
-      </div>
-      <div class="quick-moves">
-       <b>Moves (Azul):</b>
-       <label class="check"><input type="checkbox" id="quick-reflect" checked> [A] Reflect</label>
-       <label class="check"><input type="checkbox" id="quick-psyshock" checked> [S] Psyshock</label>
       </div>
       <div class="quick-options">
        <label class="check"><input type="checkbox" id="quick-auto-zen"> Iniciar em Modo Arena (F2)</label>
