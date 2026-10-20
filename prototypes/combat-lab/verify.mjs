@@ -44,15 +44,17 @@ try {
   const L = fn => page.evaluate(fn);
   // Abre uma aba do painel sem alternar (clicar na aba já aberta a recolhe).
   const openTab = t => page.evaluate(t => {const p = document.getElementById('panel');if (p.hidden || p.dataset.tool !== t) document.querySelector(`[data-tool="${t}"]`).click();}, t);
+  // O botão de IA do jogador ficou no popup de Ferramentas: abre o popup antes de clicar (regressão de UI).
+  const clickAutoplay = async () => {await page.evaluate(() => {const p = document.getElementById('tools-pop');if (p.hidden) document.getElementById('tools-toggle').click();});await page.click('#arena-autoplay-toggle');};
   assert.equal(await L(() => window.__lab.game.phase), 'menu');assert.equal(await page.isVisible('#menu'), true);
   step('abre offline no menu, sem erros');
   // IA tática: padrão do adversário e da IA do jogador; estilo sorteado aparece nos dados ao vivo.
   assert.equal(await page.inputValue('#mode'), 'tactical');assert.equal(await page.inputValue('#player-mode'), 'tactical');
-  await page.click('#start-center');await page.click('#arena-autoplay-toggle');await page.waitForTimeout(1500);
+  await page.click('#start-center');await clickAutoplay();await page.waitForTimeout(1500);
   const live = await L(() => ({style: window.__lab.game.brain.t?.style?.label, blue: window.__lab.game.playerBrain.t?.style?.label, ticks: window.__lab.game.tick}));
   assert.ok(live.style && live.blue && live.ticks > 100, JSON.stringify(live));
   await page.click('[data-tool="overlays"]');assert.match(await page.textContent('#live-data'), new RegExp(`Estilo da IA[\\s\\S]*${live.blue}[\\s\\S]*${live.style}`));
-  await page.click('#arena-autoplay-toggle');await L(() => {window.__lab.togglePause(true);window.__lab.tuning.resetAll();window.__lab.tuning.markSaved('teste');});
+  await clickAutoplay();await L(() => {window.__lab.togglePause(true);window.__lab.tuning.resetAll();window.__lab.tuning.markSaved('teste');});
   step(`IA tática por padrão: estilos sorteados “${live.blue}” (azul) × “${live.style}” (vermelho), visíveis nos dados ao vivo`);
 
   // ---------- 6/10. Ajustador ----------
@@ -215,12 +217,12 @@ try {
   // ---------- Gravação e reprodução de partida ----------
   // O workspace restaura a última configuração de partida (o azul ficou em “aleatório” antes do recarregamento): fixa o modo tático.
   await openTab('controls');await openTab('match');await page.selectOption('#mode', 'offensive');await page.selectOption('#player-mode', 'tactical');
-  await page.click('#arena-autoplay-toggle');await page.click('#start');await page.waitForTimeout(2500);
+  await clickAutoplay();await page.click('#start');await page.waitForTimeout(2500);
   const recorded = await L(() => {window.__lab.togglePause(true);const g = window.__lab.game;return {ticks: window.__labRecording.matchRec.ticks, tick: g.tick, fighters: JSON.stringify(g.fighters)};});
   assert.ok(recorded.ticks > 100 && recorded.ticks === recorded.tick, `gravou ${recorded.ticks} passos`);
   pending = page.waitForEvent('download');await page.click('#rec-save');const recPath = await (await pending).path();
   const recJson = JSON.parse(await readFile(recPath, 'utf8'));assert.equal(recJson.schema, 'arenamon-match');assert.equal(recJson.ticks, recorded.ticks);assert.ok(recJson.commands.length <= recorded.ticks, `comandos comprimidos, nunca expandidos (a IA tática raramente repete o mesmo comando em passos seguidos, então “<” dependia da semente) (${recJson.commands.length} grupos para ${recorded.ticks} passos; modo ${await page.inputValue('#player-mode')}; ${JSON.stringify(recJson.commands.slice(0, 3)).slice(0, 400)})`);
-  await page.click('#arena-autoplay-toggle');await L(() => window.__lab.tuning.commit([['rules.launchUp', 9]], 'muda algo antes de reproduzir'));
+  await clickAutoplay();await L(() => window.__lab.tuning.commit([['rules.launchUp', 9]], 'muda algo antes de reproduzir'));
   await page.selectOption('#rec-values', 'recorded');await page.setInputFiles('#rec-file', recPath);
   await page.waitForFunction(() => window.__labRecording.ui.playback?.ended, null, {timeout: 20000});
   const replayed = await L(() => ({tick: window.__lab.game.tick, fighters: JSON.stringify(window.__lab.game.fighters), launchUp: window.__lab.C.rules.launchUp}));
