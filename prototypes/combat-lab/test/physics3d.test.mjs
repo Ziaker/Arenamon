@@ -4,7 +4,7 @@
 //   2. Pouso só ocorre na descida: subir pela lateral de uma plataforma não "teleporta" o lutador para o topo.
 //   3. Teto: subir contra a face inferior de uma plataforma sólida para a subida (sem atravessar), com continuidade.
 //   4. Salto normal sobre plataforma: aterrissa no topo exatamente uma vez (nenhuma aterrissagem repetida).
-//   5. Limite circular da arena: o half-size legado da arena quadrada (16) não limita a arena circular oficial (raio 50);
+//   5. Limite circular da arena: o half-size legado da arena quadrada não limita a arena circular oficial;
 //      um cap técnico explícito (test.circleCap) limita sem sentinel escondido.
 //   6. Wall-splat: autoria do dano vem de lastAttacker real; sem lastAttacker o evento não atribui ao índice oposto.
 //   7. Animação: entradas de estado não clonam o clipe e o cache de ações do mixer não cresce sem limite.
@@ -244,12 +244,13 @@ test('salto normal sobre a plataforma aterrissa no topo exatamente uma vez', () 
 // ---------------------------------------------------------------------------
 // 5. Limite circular da arena sem sentinel escondido
 // ---------------------------------------------------------------------------
-test('arena circular oficial (raio 50) não é limitada pelo half-size legado 16 da arena quadrada', () => {
+test('arena circular oficial não é limitada pelo half-size legado da arena quadrada', () => {
   resetConfig(defaults());
-  const f = {id: 0, position: vec(60, 0), velocity: vec(1, 0), flight: null, contacts: 0};
+  const R0 = C.map.arenaRadius;
+  const f = {id: 0, position: vec(R0 + 10, 0), velocity: vec(1, 0), flight: null, contacts: 0};
   clampToArena(f);
-  assert.ok(Math.abs(Math.hypot(f.position.x, f.position.z) - (50 - C.test.halfExtent)) < 1e-9, `clamp no raio oficial (r=${Math.hypot(f.position.x, f.position.z)})`);
-  // Cap técnico explícito para a arena circular (testes técnicos), sem depender do valor 16.
+  assert.ok(Math.abs(Math.hypot(f.position.x, f.position.z) - (R0 - C.test.halfExtent)) < 1e-9, `clamp no raio oficial (r=${Math.hypot(f.position.x, f.position.z)})`);
+  // Cap técnico explícito para a arena circular (testes técnicos), sem depender do half-size da quadrada.
   C.test.circleCap = 10;
   const g2 = {id: 0, position: vec(60, 0), velocity: vec(1, 0), flight: null, contacts: 0};
   clampToArena(g2);

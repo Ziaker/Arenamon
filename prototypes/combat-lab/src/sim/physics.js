@@ -136,9 +136,9 @@ export function clampToArena(f) {
 
   if (isCircle) {
     const radius = C.map?.arenaRadius ?? 50;
-    // arenaHalf é o half-size da arena QUADRADA legada (protótipo de blocos): o padrão 16 NÃO é um cap para a
-    // arena circular oficial. Cap técnico para cenários de teste da arena circular: C.test.circleCap (null = raio oficial).
-    const LEGACY_SQUARE_HALF = 16;
+    // arenaHalf é o half-size da arena QUADRADA legada (protótipo de blocos): o padrão atual (10,4) NÃO é um
+    // cap para a arena circular oficial. Cap técnico para cenários de teste da arena circular: C.test.circleCap (null = raio oficial).
+    const LEGACY_SQUARE_HALF = 10.4;
     const legacyCap = (C.test.arenaHalf != null && C.test.arenaHalf < radius && C.test.arenaHalf !== LEGACY_SQUARE_HALF) ? C.test.arenaHalf : null;
     const effRadius = C.test.circleCap != null ? Math.min(C.test.circleCap, radius) : (legacyCap ?? radius);
     const bound = effRadius - C.test.halfExtent;

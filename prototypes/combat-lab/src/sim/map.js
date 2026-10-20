@@ -11,7 +11,7 @@ import {sturdyGuard} from './passive-engine.js';
 import {vec, add, sub, scale, length, normalize, dot, clamp, direction, angleOf} from './math.js';
 
 export const MAP_DEFAULTS = {
-  arenaRadius: 50,
+  arenaRadius: 32.5,
   arenaShape: 'circle', // 'circle' ou 'square'
   wallBounceMultiplier: 1.0,
   wallDamageMultiplier: 1.0,

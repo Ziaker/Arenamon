@@ -70,9 +70,12 @@ try {
   await L(() => window.__lab.tuning.undo());
   await page.fill('#tune-search', 'gravidade');assert.ok(await page.locator('.tune-control').count() >= 1);
   await page.fill('#tune-search', '');await page.click('[data-filter="experimental"]');const exp = await page.locator('#tune-list .tune-control').count();assert.ok(exp >= 1, `≠ jogo: ${exp}`);
+  const arenaBefore = await L(() => window.__lab.C.test.arenaHalf);
   const arena = page.locator('#tune-test-arenaHalf');await arena.focus();await page.keyboard.press('ArrowLeft');
-  assert.equal(await L(() => window.__lab.C.test.arenaHalf), 15);assert.equal(await page.getAttribute('#tune-state', 'data-state'), 'dirty');
-  await page.click('#tune-undo');assert.equal(await L(() => window.__lab.C.test.arenaHalf), 16);await page.click('#tune-redo');assert.equal(await L(() => window.__lab.C.test.arenaHalf), 15);
+  const arenaAfter = await L(() => window.__lab.C.test.arenaHalf);
+  assert.ok(arenaAfter < arenaBefore, `seta esquerda reduz a arena (${arenaBefore} → ${arenaAfter})`);
+  assert.equal(await page.getAttribute('#tune-state', 'data-state'), 'dirty');
+  await page.click('#tune-undo');assert.equal(await L(() => window.__lab.C.test.arenaHalf), arenaBefore);await page.click('#tune-redo');assert.equal(await L(() => window.__lab.C.test.arenaHalf), arenaAfter);
   // “= jogo” usa o valor do config.ts.
   await page.locator('.tune-control', {has: page.locator('#tune-test-speed')}).getByRole('button', {name: '= jogo'}).click();
   assert.equal(await L(() => window.__lab.C.test.speed), 4);
@@ -89,8 +92,8 @@ try {
   await page.click('[data-tool="export"]');
   assert.match(await page.textContent('#game-diff'), /Metade do lado da arena/);
   let pending = page.waitForEvent('download');await page.click('#export-json');const json = JSON.parse(await readFile(await (await pending).path(), 'utf8'));
-  assert.equal(json.schema, 'arenamon-tuning');assert.equal(json.version, 9);assert.ok(json.values.vfx?.hit && json.values.display?.shadow && json.values.actions.sprint);assert.equal(json.homologation.summary.total, 17);assert.ok(json.values.actions.dodge && json.values.actions.tackle && json.values.actions.cancel);assert.equal(json.values.test.arenaHalf, 15);
-  assert.ok(json.differencesFromGame.some(d => d.path === 'test.arenaHalf' && d.game === 10 && d.lab === 15));assert.ok(!json.differencesFromGame.some(d => d.path === 'test.speed'));
+  assert.equal(json.schema, 'arenamon-tuning');assert.equal(json.version, 9);assert.ok(json.values.vfx?.hit && json.values.display?.shadow && json.values.actions.sprint);assert.equal(json.homologation.summary.total, 17);assert.ok(json.values.actions.dodge && json.values.actions.tackle && json.values.actions.cancel);assert.equal(json.values.test.arenaHalf, arenaAfter);
+  assert.ok(json.differencesFromGame.some(d => d.path === 'test.arenaHalf' && d.game === 10 && d.lab === arenaAfter));assert.ok(!json.differencesFromGame.some(d => d.path === 'test.speed'));
   // Importar um JSON v6 (formato antigo) com valor inválido: rejeitado sem aplicar nada.
   await page.fill('#import-text', JSON.stringify({schema: 'arenamon-tuning-v5', version: 6, values: {rules: {dodge: .5, launchUp: 999}}}));await page.click('#import-preview');
   assert.match(await page.textContent('#import-result'), /fora da faixa/);assert.equal(await L(() => window.__lab.C.actions.dodge.duration), .4);

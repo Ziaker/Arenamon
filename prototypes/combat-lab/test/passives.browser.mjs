@@ -76,6 +76,7 @@ try {
   const toast = await L(() => document.querySelector('#passives-hud .pvh-toast')?.textContent ?? '');
   const hud1 = await L(() => [...document.querySelectorAll('#passives-hud .mvp-row')].map(r => [r.dataset.fighter, r.querySelector('.mvp-slot[data-state="ativa"]')?.textContent ?? '']));
   check('toast branco de ativação aparece no HUD (§16)', /ativada/.test(toast), toast);
+  check('rótulo 3D branco "Ability: NOME" surge acima do lutador na ativação', await L(() => {const ls = window.__lab.view.scene.children.filter(o => o.name === 'abilityLabel');return ls.length > 0 && ls.every(o => o.position.y > 1 && o.scale.y > 0);}), await L(() => window.__lab.view.scene.children.filter(o => o.name === 'abilityLabel').length));
   check('o HUD reflete o estado ativo com tempo restante (§17)', hud1.some(r => r[0] === '1' && /s$/.test(r[1].trim())), JSON.stringify(hud1));
   check('VFX de ativação existe na cena (variante configurada)', await L(() => {const v = window.__lab.view.scene.children.length > 0;return v && (window.__lab.C.vfx?.passive?.variant ?? 0) >= 0;}));
   await page.screenshot({path: out + 'ativacao.png'});
