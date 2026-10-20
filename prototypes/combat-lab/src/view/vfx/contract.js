@@ -7,7 +7,7 @@
 // Campos do contrato visual:
 //   tick        - passo da simulação (número inteiro)
 //   eventId     - identificador único do evento visual (string)
-//   type        - família do efeito: 'hit'|'partial'|'perfect'|'perfectDodge'|'invulnerable'|'clash'|'ground'|'wall'|'status'
+//   type        - família do efeito: 'hit'|'partial'|'perfect'|'perfectDodge'|'invulnerable'|'clash'|'ground'|'wall'|'status'|'passiveA'|'passiveB'|'passiveC'
 //   attacker    - id do lutador atacante (0 ou 1)
 //   target      - id do lutador alvo (0 ou 1)
 //   position    - {x, y, z} ponto real de contato (ou fallback do alvo)
@@ -105,6 +105,27 @@ export function adaptSimEvent(simEvent, {fighters = [], tickOverride = null} = {
   });
 }
 
+// Cria um evento visual de ativação de passiva (não vem da simulação, vem do HUD/input).
+export function makePassiveEvent({fighterId = 0, position, passiveType = 'A', tick = 0}) {
+  const type = passiveType === 'A' ? 'passiveA' : passiveType === 'B' ? 'passiveB' : 'passiveC';
+  return Object.freeze({
+    tick,
+    eventId: `passive:${tick}:${fighterId}:${type}:${seq()}`,
+    type,
+    attacker: fighterId,
+    target: fighterId,
+    position: Object.freeze({...position}),
+    normal: Object.freeze({x: 0, y: 1, z: 0}),
+    direction: Object.freeze({x: 0, y: 0, z: 1}),
+    damage: 0,
+    closingSpeed: 0,
+    launch: null,
+    surface: null,
+    seed: eventSeed(tick, fighterId, fighterId, type, position),
+    reason: `Passiva ${passiveType} ativada (lutador ${fighterId})`,
+  });
+}
+
 // Classifica o tipo de evento visual a partir do resultado da simulação.
 export function classifyVisualType(result) {
   const map = {
@@ -117,12 +138,15 @@ export function classifyVisualType(result) {
     ground: 'ground',
     wall: 'wall',
     statusApplied: 'status',
+    passiveA: 'passiveA',
+    passiveB: 'passiveB',
+    passiveC: 'passiveC',
   };
   return map[result] || 'hit';
 }
 
 // Famílias de efeito reconhecidas pelo runtime.
-export const VFX_FAMILIES = Object.freeze(['impact', 'defense', 'clash', 'landing', 'movement', 'status', 'environment']);
+export const VFX_FAMILIES = Object.freeze(['impact', 'defense', 'clash', 'landing', 'movement', 'status', 'environment', 'passive']);
 
 // Níveis de qualidade.
 export const QUALITY = Object.freeze({low: 'low', medium: 'medium', high: 'high'});
@@ -130,6 +154,11 @@ export const QUALITY = Object.freeze({low: 'low', medium: 'medium', high: 'high'
 // Verifica se um objeto parece ser um evento de simulação (possui attacker/target/result).
 export function isSimEvent(obj) {
   return !!obj && typeof obj.attacker === 'number' && typeof obj.target === 'number' && typeof obj.result === 'string';
+}
+
+// Verifica se é evento de passiva.
+export function isPassiveEvent(obj) {
+  return !!obj && (obj.type === 'passiveA' || obj.type === 'passiveB' || obj.type === 'passiveC');
 }
 
 // Congela profundamente um evento visual para garantir imutabilidade no hot path.
