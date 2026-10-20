@@ -6,6 +6,9 @@ import {collideFighter} from './world.js';
 import {collideMapFighter, damageDestructible, processDamageWithShieldAndStages} from './map.js';
 import {vec, add, scale, sub, dot, length, normalize, clamp, direction, smoothstep} from './math.js';
 
+/** Sonda de diagnóstico (auditoria externa §64): subpassos e contatos do último passo físico.
+ * Leitura externa apenas — não entra no estado da simulação, no save nem no replay. */
+export const physicsProbe = {substeps: 0, contacts: 0};
 /** Componente vertical do rebote: multiplica a velocidade vertical atual e soma um impulso para cima. */
 function wallVertical(f) {const R = C.rules;f.flight.vy = f.flight.vy * R.wallBounceVertical + R.wallBounceUp;}
 /**
@@ -291,6 +294,7 @@ export function stepPhysics(fighters, dt, world = null) {
   }
   const speed = Math.max(0, ...fighters.map(f => length(add(f.velocity, pushVel.get(f.id)))));
   const steps = Math.max(1, Math.ceil(speed * dt / C.test.contactStep));
+  physicsProbe.substeps = steps;
   for (let s = 0; s < steps; s++) {
     for (const f of fighters) {
       if (f.hp <= 0 && !f.flight) continue;
@@ -391,5 +395,6 @@ export function stepPhysics(fighters, dt, world = null) {
       if (ev) events.push(ev);
     }
   }
+  physicsProbe.contacts = fighters.reduce((n, f) => n + f.contacts, 0);
   return events;
 }

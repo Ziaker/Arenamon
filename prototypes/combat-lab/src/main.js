@@ -44,6 +44,7 @@ import {registerStandardMoves, STANDARD_MOVE_IDS} from './sim/moves/standard.js'
 const GAME_CONFIG_TS = typeof __GAME_CONFIG_TS__ === 'string' ? __GAME_CONFIG_TS__ : '';
 import {length, sub, dot} from './sim/math.js';
 import {spawn} from './sim/world.js';
+import {physicsProbe} from './sim/physics.js';
 import * as T from 'three';
 import {soundFx} from './view/audio.js';
 
@@ -382,8 +383,25 @@ for (const [key, label, help] of OVERLAYS) {
 }
 function renderLive() {
   const [a, b] = game.fighters;if (!a) return;const d = length(sub(b.position, a.position)), rel = sub(a.velocity, b.velocity), n = d > 1e-6 ? {x: (b.position.x - a.position.x) / d, z: (b.position.z - a.position.z) / d} : {x: 0, z: 0};
+  // Diagnóstico físico por lutador (auditoria externa §64): apoio, altitude, velocidade vertical,
+  // gravidade e impulso em efeito, e último contato válido registrado pela física.
+  const physLine = f => {
+    const fl = f.flight, alt = (fl?.y ?? 0) + (f.vaultHeight ?? 0);
+    const parts = [f.state, `|v| ${length(f.velocity).toFixed(2)} m/s`, `apoio ${(f.groundY ?? 0).toFixed(2)} m`];
+    if (fl) parts.push(`alt ${alt.toFixed(2)} m`, `vy ${fl.vy >= 0 ? '+' : ''}${fl.vy.toFixed(2)} m/s`, `g ${(fl.gravity ?? C.rules.launchGravity).toFixed(1)} m/s²`, `impulso ${length(fl.horizontal).toFixed(2)} m/s`);
+    else if ((f.vaultHeight ?? 0) > 0.01) parts.push(`alt ${alt.toFixed(2)} m`);
+    return parts.join(' · ');
+  };
+  const lastContact = [a, b].map((f, i) => {
+    const bits = [];
+    if (f.lastLanding) bits.push(`pouso (vertical ${f.lastLanding.vertical.toFixed(1)}, horizontal ${f.lastLanding.horizontal.toFixed(1)} m/s)`);
+    if (f.lastCeilingBump) bits.push(`teto (face ${f.lastCeilingBump.face.toFixed(2)} m)`);
+    return bits.length ? `${i ? 'Vermelho' : 'Azul'}: ${bits.join(' + ')}` : null;
+  }).filter(Boolean).join(' | ') || '—';
   const rows = [['Distância entre centros', `${d.toFixed(2)} m`], ['Espaço entre colisores', `${Math.max(0, d - 2 * C.test.halfExtent).toFixed(2)} m`], ['Velocidade de aproximação', `${dot(rel, n).toFixed(2)} m/s`],
-    ['Azul', `${a.state} · ${length(a.velocity).toFixed(2)} m/s · alt ${((a.flight?.y ?? 0) + a.vaultHeight).toFixed(2)} m`], ['Vermelho', `${b.state} · ${length(b.velocity).toFixed(2)} m/s · alt ${((b.flight?.y ?? 0) + b.vaultHeight).toFixed(2)} m`],
+    ['Azul (física)', physLine(a)], ['Vermelho (física)', physLine(b)],
+    ['Último contato válido', lastContact],
+    ['Subpassos físicos', `${physicsProbe.substeps} subpasso(s) · ${physicsProbe.contacts} contato(s) no último passo`],
     ['Ação', `${a.action ? `${a.action.kind}${a.action.fromCancel ? ' (C→X)' : ''}${a.action.buffered ? ' (buffer)' : ''} ${(a.action.elapsed * 1000).toFixed(0)} ms` : '—'} / ${b.action ? `${b.action.kind}${b.action.fromCancel ? ' (C→X)' : ''}${b.action.buffered ? ' (buffer)' : ''} ${(b.action.elapsed * 1000).toFixed(0)} ms` : '—'}`], ['Estilo da IA (tático)', `${game.playerBrain.t && C.extras.toggles.enablePlayerAI && ui.playerMode === 'tactical' ? styleLabel(game.playerBrain) : '—'} / ${game.mode === 'tactical' ? styleLabel(game.brain) : '—'}`], ['Contra-ataque', `${a.counterWindow.toFixed(2)} s / ${b.counterWindow.toFixed(2)} s`], ['Hitstop', `${(game.hitstop * 1000).toFixed(0)} ms`]];
   $('live-data').innerHTML = rows.map(([k, v]) => `<dt>${k}</dt><dd>${escape(v)}</dd>`).join('');
 }
