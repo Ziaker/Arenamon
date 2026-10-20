@@ -92,7 +92,7 @@ test('launch() a partir do topo de plataforma (1,5 m) cruza a borda e aterra no 
 // ---------------------------------------------------------------------------
 // 2/3. Pouso só na descida + teto (sem "snap" para o topo e sem atravessar a face inferior)
 // ---------------------------------------------------------------------------
-test('subir pela lateral de uma plataforma não teleporta para o topo (pouso só na descida + continuidade)', () => {
+test('subir pela lateral de uma plataforma: pouso só na descida (nenhum "snap" para o topo) + continuidade', () => {
   const g = arena({height: 1});
   const f = g.fighters[0];
   // Salto corrido contra a lateral da plataforma de 1 m: entra na área da plataforma ainda subindo, a ~0,8 m.
@@ -100,40 +100,117 @@ test('subir pela lateral de uma plataforma não teleporta para o topo (pouso só
   f.groundY = 0;
   fly(f, g, {horizontal: vec(0, 2)});
   const dt = C.test.step;
-  let prevY = f.flight.y, roseAbove = false;
+  let prevY = f.flight.y, roseAbove = false, bumps = 0;
   for (let i = 0; i < 400 && f.flight; i++) {
-    const vyBefore = f.flight.vy, grav = f.flight.gravity ?? 0;
+    const vyBefore = f.flight.vy, grav = f.flight.gravity ?? 0, bumpsBefore = f.lastCeilingBump?.n ?? 0;
     step(g);
+    // O contrato central: o voo NUNCA termina em um passo de subida (vy > 0) — o "snap" para o topo pousava subindo.
+    assert.ok(f.flight || vyBefore <= 0, `pouso só na descida (passo ${i}: vy=${vyBefore.toFixed(2)})`);
     if (!f.flight) break;
     const dy = f.flight.y - prevY;
     // Continuidade espacial (contrato 6.1): nenhum salto de altitude sem causa física.
-    // No ápice (vy=0) o semi-implícito ainda desce g·dt² neste passo — tolerância física, não defeito.
-    assert.ok(Math.abs(dy) <= Math.abs(vyBefore) * dt + grav * dt * dt + 1e-9, `Δy por passo contínuo (passo ${i}: Δy=${dy.toFixed(4)}, vy=${vyBefore.toFixed(2)})`);
+    // No ápice (vy=0) o semi-implícito ainda desce g·dt²; no contato de teto o overshoot da cabeça é absorvido —
+    // ambas tolerâncias físicas, não teleportes.
+    const bumped = (f.lastCeilingBump?.n ?? 0) > bumpsBefore;
+    assert.ok(bumped || Math.abs(dy) <= Math.abs(vyBefore) * dt + grav * dt * dt + 1e-9, `Δy por passo contínuo (passo ${i}: Δy=${dy.toFixed(4)}, vy=${vyBefore.toFixed(2)})`);
     if (f.flight.vy > 0 && f.flight.y < 1 - 1e-6) {
-      // Ainda subindo e abaixo do topo: não pode ter "pousado" (o defeito grudava no topo ao cruzar 0,65 m).
-      assert.ok(f.flight.y > prevY - 1e-9 || f.flight.y > 1 - 0.05, 'sem pouso durante a subida abaixo do topo');
       if (f.flight.y > 0.65) roseAbove = true;
     }
+    bumps = f.lastCeilingBump?.n ?? 0;
     prevY = f.flight.y;
   }
   assert.ok(roseAbove, 'o cenário atravessa a faixa de 0,65 m ainda subindo');
-  // Bateu a cabeça na face inferior e caiu de volta ao próprio piso: subir pela lateral não é "subir na plataforma".
-  assert.ok(!f.flight && Math.abs(f.groundY) < 1e-9, `caiu de volta ao próprio piso (groundY=${f.groundY})`);
+  // Desfecho legítimo para plataforma de 1 m (menor que o corpo): montar o topo após o ápice ou cair ao lado —
+  // em ambos os casos o pouso ocorreu na descida, nunca durante a subida.
+  assert.ok(!f.flight, 'o voo terminou (pouso na descida)');
+  assert.ok(f.groundY === 0 || f.groundY === 1, `apoiado em nível físico real (groundY=${f.groundY})`);
 });
-test('salto sob uma plataforma alta (1,9 m): bate na face inferior e volta ao seu piso, sem atravessar', () => {
+test('salto reto sob uma plataforma alta (1,9 m): cabeça na face inferior e volta ao seu piso, sem atravessar', () => {
   const g = arena({height: 1.9});
   const f = g.fighters[0];
-  f.position = vec(0, -1.9);
+  // Diretamente sob a plataforma, sem avanço horizontal: a única saída da subida é o teto.
+  f.position = vec(0, 0);
   f.groundY = 0;
-  fly(f, g, {horizontal: vec(0, 1.4)});
+  fly(f, g, {horizontal: vec()});
+  const BODY = C.extras.visual.bodyHeight;
   let bonked = false;
   for (let i = 0; i < 400 && f.flight; i++) {
     step(g);
-    if (f.flight && f.flight.vy === 0 && Math.abs(f.flight.y - 1.9) < 1e-6) bonked = true;
+    // Teto respeita o corpo inteiro: os pés param a bodyHeight abaixo da face (a cabeça encosta na face).
+    if (f.flight && f.flight.vy === 0 && Math.abs(f.flight.y - (1.9 - BODY)) < 1e-6) bonked = true;
   }
-  assert.ok(bonked, 'a subida parou na face inferior da plataforma (teto)');
+  assert.ok(bonked, `a subida parou com a cabeça na face inferior (pés a 1,9−BODY)`);
   assert.ok(!f.flight && Math.abs(f.groundY) < 1e-9, `caiu de volta ao próprio piso (groundY=${f.groundY})`);
 });
+// ---------------------------------------------------------------------------
+// 3b. Obstáculos e destrutíveis como superfície de apoio (§7/§30/§31 da auditoria)
+// ---------------------------------------------------------------------------
+test('obstáculo oferece superfície de apoio: salto aterrissa sobre o topo (§7)', () => {
+  const g = arena({height: 0}); // sem plataforma; obstáculo é a única geometria
+  g.mapState.platforms = [];
+  g.mapState.obstacles = [{id: 'ob1', pos: {x: 0, z: 0.5, y: 0}, hx: 1.5, hz: 1.5, height: 1.2}];
+  const f = g.fighters[0];
+  f.position = vec(0, -2.2);
+  f.groundY = 0;
+  fly(f, g, {horizontal: vec(0, 3.2)});
+  for (let i = 0; i < 400 && f.flight; i++) step(g);
+  assert.ok(!f.flight && Math.abs(f.groundY - 1.2) < 1e-9, `apoiado no topo do obstáculo (groundY=${f.groundY})`);
+});
+test('obstáculo elevado tem face inferior: salto por baixo bate no teto (§19)', () => {
+  const g = arena({height: 0});
+  g.mapState.platforms = [];
+  g.mapState.obstacles = [{id: 'ob2', pos: {x: 0, z: 0, y: 2.0}, hx: 1.5, hz: 1.5, height: 1.0}];
+  const f = g.fighters[0];
+  f.position = vec(0, 0);
+  f.groundY = 0;
+  fly(f, g, {vy: Math.sqrt(2 * (C.map?.jumpGravity ?? C.rules.launchGravity) * 2.6), horizontal: vec()});
+  const BODY = C.extras.visual.bodyHeight;
+  let bonked = false;
+  for (let i = 0; i < 400 && f.flight; i++) {
+    step(g);
+    if (f.flight && f.flight.vy === 0 && Math.abs(f.flight.y - (2.0 - BODY)) < 1e-6) bonked = true;
+  }
+  assert.ok(bonked, 'subida parou com a cabeça na face inferior do obstáculo (pés a 2,0−BODY)');
+  assert.ok(!f.flight && Math.abs(f.groundY) < 1e-9, `caiu de volta ao piso (groundY=${f.groundY})`);
+  assert.ok(Math.abs(f.position.z) < 1e-9, `contato de teto não empurrou o lutador lateralmente (z=${f.position.z})`);
+});
+test('destrutível destruído deixa de oferecer apoio (§30)', () => {
+  const g = arena({height: 0});
+  g.mapState.platforms = [];
+  g.mapState.destructibles = [{id: 'd1', pos: {x: 0, z: 0.5, y: 0}, state: 'solid', size: {hx: 1.2, hz: 1.2, height: 1.4}}];
+  const f = g.fighters[0];
+  // Sólido: apoio no topo.
+  f.position = vec(0, 0.5);
+  f.groundY = 1.4;
+  f.flight = {y: 1.6, vy: 1, horizontal: vec(0, 0.5), gravity: C.rules.launchGravity};
+  for (let i = 0; i < 400 && f.flight; i++) step(g);
+  assert.ok(Math.abs(f.groundY - 1.4) < 1e-9, `apoio sobre o destrutível sólido (groundY=${f.groundY})`);
+  // Destruído: o mesmo voo cai até o solo.
+  g.mapState.destructibles[0].state = 'destroyed';
+  launch(f, vec(0, 1), 2, 2);
+  f.flight.y = 1.6;
+  for (let i = 0; i < 400 && f.flight; i++) step(g);
+  assert.ok(Math.abs(f.groundY) < 1e-9, `sem apoio após destruição (groundY=${f.groundY})`);
+});
+
+// ---------------------------------------------------------------------------
+// Grupo E — estados: interrupção física não produz teleporte (§20/§23)
+// ---------------------------------------------------------------------------
+test('interrupção por lançamento zera o vault: sem soma de altitudes fantasmas (§23)', () => {
+  const g = arena();
+  const f = g.fighters[0];
+  f.position = vec(0, -3);
+  f.groundY = 0;
+  f.vaultHeight = 1.8; // vault em curso
+  f.state = 'vault';
+  launch(f, vec(1, 0), 5, 3); // interrupção simultânea
+  assert.ok(Math.abs(f.flight.y - 1.8) < 1e-9, `altitude absorvida uma única vez (veio ${f.flight.y})`);
+  assert.equal(f.vaultHeight, 0, 'vaultHeight zerado na interrupção');
+  let maxY = 0;
+  for (let i = 0; i < 400 && f.flight; i++) {step(g); if (f.flight) maxY = Math.max(maxY, f.flight.y);}
+  assert.ok(maxY < 1.8 + 3 * 0.3 + 0.6, `sem pico de altitude fantasioso (maxY=${maxY.toFixed(2)})`);
+});
+
 test('getCeilingHeight: só conta faces acima da faixa cruzada e dentro da área XZ', () => {
   resetConfig(defaults());
   const world = {mapState: {platforms: [{pos: {x: 0, z: 0}, width: 3, depth: 3, height: 2}], obstacles: [], destructibles: []}};

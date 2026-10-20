@@ -210,22 +210,27 @@ export function stepPhysics(fighters, dt, world = null) {
       flight.vy -= g * dt;
       // Teto: subindo e cruzando a face inferior de uma plataforma/obstáculo/destrutível sólido, a subida para ali.
       // Sem isso a face inferior era atravessada e a checagem de pouso "teleportava" o lutador para o topo.
+      // O corpo inteiro é respeitado: os PÉS param a bodyHeight abaixo da face (a CABEÇA encosta na face);
+      // nunca abaixo do piso da arena. A travessia é testada pela CABEÇA (pés + bodyHeight): testar pelos pés
+      // só detectaria a face quando o corpo já estivesse inteiramente dentro do sólido.
       if (flight.vy > 0) {
-        const underside = getCeilingHeight(f.position, world, prevY, flight.y);
+        const bodyHeight = C.extras?.visual?.bodyHeight ?? 1.2;
+        const underside = getCeilingHeight(f.position, world, prevY + bodyHeight, flight.y + bodyHeight);
         if (underside != null) {
-          flight.y = underside;
+          flight.y = Math.max(underside - bodyHeight, 0);
           flight.vy = 0;
-          f.lastCeilingBump = {n: (f.lastCeilingBump?.n ?? 0) + 1, y: underside, x: f.position.x, z: f.position.z};
+          f.lastCeilingBump = {n: (f.lastCeilingBump?.n ?? 0) + 1, y: flight.y, face: underside, x: f.position.x, z: f.position.z};
         }
       }
       const drag = flight.isNormalJump ? (C.map?.jumpDrag ?? 0.0) : R.launchDrag;
       flight.horizontal = scale(flight.horizontal, Math.exp(-drag * dt));
       const curY = flight.y ?? (f.groundY ?? 0);
       const targetGround = getGroundHeight(f.position, world, curY);
-      // Pouso só na descida e CRUZANDO a superfície vindo de cima (prevY ≥ alvo): uma plataforma cruzada por baixo
-      // durante a subida (ou na qual a cabeça bateu no teto, parando exatamente no nível dela) nunca é apoio —
-      // sem isso o lutador "teleportava" para o topo ao atravessar a faixa de tolerância por baixo.
-      if (flight.vy <= 0 && flight.y <= targetGround && prevY >= targetGround + 1e-6) {
+      // Pouso só na descida e CRUZANDO a superfície vindo de cima (prevY ≥ alvo − ε): uma plataforma cruzada por baixo
+      // durante a subida nunca é apoio — sem isso o lutador "teleportava" para o topo ao atravessar a faixa de
+      // tolerância por baixo. O ε absorve o contato exato (ex.: clamp de teto que parou os pés exatamente no piso);
+      // a subida segue bloqueada pelo vy ≤ 0.
+      if (flight.vy <= 0 && flight.y <= targetGround && prevY >= targetGround - 1e-6) {
         flight.y = targetGround;
         f.groundY = targetGround;
         // Evento real de colisão com o solo (usado pelos efeitos visuais): velocidade vertical e horizontal no contato.

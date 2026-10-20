@@ -773,6 +773,8 @@ export function collideMapFighter(mapState, f, events = []) {
       const topY = (o.pos?.y ?? 0) + o.height;
       if (fY >= topY - 0.25) continue;
       if (fY + fHeight <= (o.pos?.y ?? 0)) continue;
+      // Contato de teto: cabeça exatamente na face inferior, sem subida — é contato, não penetração: sem empurrão.
+      if (f.flight && f.flight.vy <= 0 && Math.abs(fY + fHeight - (o.pos?.y ?? 0)) <= 1e-6) continue;
       if (f.flight && f.flight.vy > 0 && fY + (f.flight.vy * f.flight.vy) / 35 >= topY) continue;
       if (o.shape === 'cylinder' || o.shape === 'pillar') {
         const d = dist2D(f.position, o.pos);
@@ -811,7 +813,9 @@ export function collideMapFighter(mapState, f, events = []) {
       if (d.state !== 'solid') continue;
       const topY = (d.pos?.y ?? 0) + (d.size?.height ?? 1.6);
       if (fY >= topY - 0.25) continue;
-      if (fY + fHeight <= d.pos.y) continue;
+      if (fY + fHeight <= (d.pos?.y ?? 0)) continue;
+      // Contato de teto: cabeça exatamente na face inferior, sem subida — é contato, não penetração: sem empurrão.
+      if (f.flight && f.flight.vy <= 0 && Math.abs(fY + fHeight - (d.pos?.y ?? 0)) <= 1e-6) continue;
       if (f.flight && f.flight.vy > 0 && fY + (f.flight.vy * f.flight.vy) / 35 >= topY) continue;
       const dx = f.position.x - d.pos.x, dz = f.position.z - d.pos.z;
       const ox = (d.size.hx + halfExtent) - Math.abs(dx);

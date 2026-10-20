@@ -26,6 +26,8 @@ confirmado por teste ou por inspeção direta do código, e toda correção é a
 | B5 | Wall-splat sem autor atribuía o dano ao índice oposto | `lastAttacker = null` → dano creditado a `1 - f.id` | Fallback inventado `f.lastAttacker ?? 1 - f.id` |
 | B6 | Cada entrada de estado clonava o clipe de animação | `mixer._actionsByClip` crescia sem limite | `clip.clone()` em `enter()` a cada troca de estado |
 | B7 | Cenário de mapa codificava o defeito B2 como comportamento esperado | `map-combat-launch-platform` só passava por causa do "cola no topo" | Ponto de partida colado na face lateral da plataforma |
+| B8 | Teto clampava os PÉS na face inferior — o corpo penetrava inteiramente no sólido | Salto sob obstáculo elevado: corpo atravessava a face antes de parar | A travessia era testada pelos pés (`flight.y`) em vez de pela cabeça (pés + bodyHeight) |
+| B9 | Contato de teto era tratado como penetração volumétrica → empurrão lateral | Lutador parado sob obstáculo elevado era "empurrado para fora" ao encostar a cabeça | `collideMapFighter` não distinguia contato de cabeça na face inferior de penetração real |
 
 ## C. Implementação
 
@@ -51,10 +53,20 @@ confirmado por teste ou por inspeção direta do código, e toda correção é a
 8. **`src/sim/scenarios-map.js`:** `map-combat-launch-platform` ajustado para lançar de fora da área da
    plataforma (arco sobe, cruza a borda acima do topo e aterra no topo) — o ponto de partida anterior só
    "pousava no topo" por causa de B2 (B7).
+9. **Teto com corpo inteiro (B8):** a travessia da face inferior é testada pela CABEÇA (`prevY + bodyHeight`,
+   `flight.y + bodyHeight`) e os pés param a `bodyHeight` abaixo da face (nunca abaixo do piso da arena).
+   Antes os pés eram clampados NA face e o corpo penetrava no sólido; e a travessia pelos pés só era detectada
+   quando o corpo já estava inteiramente dentro.
+10. **Contato de teto sem empurrão lateral (B9):** `collideMapFighter` ignora obstáculos/destrutíveis quando a
+    cabeça está exatamente na face inferior sem subida (`|fY + bodyHeight − bottomY| ≤ ε && vy ≤ 0`) — contato
+    causal de teto, não penetração. Lutadores lançados contra a lateral continuam bloqueados normalmente.
+11. **Pouso com contato exato:** a condição de cruzamento aceita `prevY ≥ alvo − ε` (contato exato na
+    superfície ao iniciar a descida conta como pouso), evitando queda através do piso após um clamp de teto que
+    parou os pés exatamente no nível do chão. A subida continua bloqueada pelo `vy ≤ 0`.
 
 ## D. Testes
 
-Nova suíte dedicada `test/physics3d.test.mjs` (10 testes, executor resiliente):
+Nova suíte dedicada `test/physics3d.test.mjs` (15 testes, executor resiliente):
 
 1. `launch()` no meio de um vault preserva a altitude física (+ continuidade após 1 passo).
 2. `launch()` em alvo em voo (juggle) preserva a altitude do voo.
@@ -66,6 +78,14 @@ Nova suíte dedicada `test/physics3d.test.mjs` (10 testes, executor resiliente):
 8. Arena circular oficial (raio 50) não é limitada pelo half-size legado 16; `circleCap` explícito limita.
 9. Wall-splat sem `lastAttacker` não atribui dano ao índice oposto (dano ambiental bruto; autoria real preservada).
 10. Entradas de estado não clonam clipes e o cache de ações do mixer não cresce sem limite.
+11. Obstáculo oferece superfície de apoio: salto aterrissa sobre o topo (§7).
+12. Obstáculo elevado tem face inferior: salto por baixo para com a cabeça na face e volta ao piso, **sem
+    empurrão lateral** (§19; reproduzia B8/B9 antes da correção).
+13. Destrutível destruído deixa de oferecer apoio (§30).
+14. Interrupção por lançamento zera o vault sem soma de altitudes fantasmas (§23).
+15. Subida lateral junto a plataforma: o voo nunca termina em passo de subida (pouso só na descida) — o
+    "snap" histórico para o topo está morto; desfechos legítimos (montar após o ápice / cair ao lado) seguem
+    físicos.
 
 Regressão completa `npm run test:combat-lab:unit`: **todas as suítes aprovadas** (61 simulação, 20 Etapa A,
 8 IA tática, 4 patch, 15 locomoção, 12 animação, 10 regras, 34 VFX, etc., sem nenhuma falha).
@@ -80,7 +100,8 @@ Regressão completa `npm run test:combat-lab:unit`: **todas as suítes aprovadas
 | Lançamento (C) preserva altitude (vault, juggle, plataforma) | 🔧 **corrigido + testado** (era B1) |
 | Interação C → X (relançamento em voo) | 🔧 **corrigido + testado** (idem) |
 | Pouso físico sobre plataforma (lançado) | 🔧 **corrigido + testado**; cenário de mapa reescrito (B2/B7) |
-| Teto de plataformas (face inferior) | 🔧 **implementado + testado** (era B3) |
+| Teto de plataformas/obstáculos/destrutíveis (face inferior, corpo inteiro) | 🔧 **implementado + testado** (B3, B8, B9) |
+| Obstáculos/destrutíveis como superfície de apoio; apoio some ao destruir | ✅ **verificado por teste novo** (§7/§30) |
 | Borda circular: contenção + rebote + wall-splat | 🔧 **corrigido + testado** (B4, B5) |
 | Wall-splat: dano, autoria, suspensão | 🔧 **corrigido + testado** (B5) |
 | Mixer de animação estável sob churn de estados | 🔧 **corrigido + testado** (B6) |
