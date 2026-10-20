@@ -19,8 +19,14 @@ código compila ou porque uma função com nome correspondente existe.
 - **Ambiente:** Windows, Node v24.21.0, repositório local em `C:\Users\zerke\OneDrive\Área de Trabalho\Arenamon`
   (pasta oficial única; sem worktrees externos)
 - **Estado do checkout:** limpo ao iniciar (`git status` vazio na branch acima)
-- **Diferenças em relação à origem:** os 5 commits listados, enviados e verificados
+- **Diferenças em relação à origem:** os 6 commits listados, enviados e verificados
   (`git rev-parse HEAD` = `git rev-parse origin/feat/camera-cinematica-zzz` após cada push)
+- **Conformidade §1/§2 (verificação e documentação obrigatória):** checkout confirmado limpo na branch de
+  trabalho antes de editar; `AGENTS.md` e `docs/GUIA_COLABORACAO_AGENTES.md` lidos — **nenhum conflito de
+  instruções identificado** (branch de trabalho respeitada, sem `main`, sem force push, sem `git add -f`,
+  sem stashes tocados, área combat-lab permitida). Documentos de decisões do mapa e de Moves consultados
+  pontualmente via referências cruzadas no código (R1.x–R11.x) — leitura integral de cada documento da
+  lista do §2 **não** é reivindicada; declarada como limitação.
 
 ## B. Auditoria
 
@@ -31,6 +37,30 @@ código compila ou porque uma função com nome correspondente existe.
 **Sistemas examinados:** lançamento/knockback, salto/voo/queda/pouso, teto (faces inferiores), superfícies de
 apoio (plataformas/obstáculos/destrutíveis), arena circular e wall-splat, colisão lateral, máquina de estados,
 interrupções simultâneas, projéteis × geometria, itens/consumíveis, save/load/replay, mixer de animação.
+
+**Mapeamento real de estados (§20 — a representação verdadeira, não os nomes assumidos):**
+
+| Estado da lista do §20 | Representação real no motor |
+|---|---|
+| Neutral | `fighter.state === 'neutral'` |
+| Moving / Sprint / Brake | `state 'move'` / flag `sprinting` / `state 'brake'` + `brakeLeft` |
+| Dodge / Vault | ação em `fighter.action` (dodge; `vault` é resposta defensiva com `vaultHeight` físico) — **não** são `fighter.state` |
+| Tackle / Tackle Charge / Move / Charge | ação `action.kind === 'tackle'` / `state 'tackleCharge'` + `tackleCharge` / Move de carga é `charge`+`fx` em `moveFx` |
+| Guard / Guard Stun | flag `fighter.guard` + `guardSuppressed` / `stun > 0` |
+| Hit Stun / Recovery | `knockRecovery > 0` (+ `recoveryFrom`) |
+| Pushed | campo `fighter.push` |
+| Airborne / Falling | `fighter.flight` (balístico; `isEdgeFall` marca queda por borda) |
+| Landing | `state 'landing'` |
+| Wall Splat | `state 'wallSplat'` + `fighter.wallSplat` |
+| Meteor Slam | ação `action.slam` com fases (`slamPrepDone`, `slamLanded`) |
+| Defeated | `state 'defeated'` (agora com prioridade sobre recuperação — B10) |
+| Status temporários / passivas | `fighter.statuses`, estágios `fighter.stages`, escudo `fighter.shield` |
+
+Conclusão do §20/§21: o motor **já separa** condição física (`flight`/`vaultHeight`/`groundY`), ação
+(`action`), defesa (`guard`), status (`statuses`/`stages`/`shield`) e recuperação (`knockRecovery`) — eles
+coexistem sem se sobrescrever; nenhuma refatoração de máquina de estados foi necessária. As correções B1/B10
+reforçaram dois pontos onde essa separação vazava (altitude física perdida no launch; derrota pendurada em
+recuperação).
 
 **Defeitos confirmados e corrigidos (todos reproduzidos antes da correção):**
 
@@ -118,6 +148,34 @@ Suítes novas (comando: `node prototypes/combat-lab/test/physics3d.test.mjs` e
 causa pré-existente (seção F).
 
 ## E. Resultados
+
+**Matriz de classificação dos cenários (§59 + Partes III–XVII):**
+
+| Cenário | Situação |
+|---|---|
+| Salto normal (R2/R7) atinge ~2,0 m; conservação de impulso horizontal | ✅ já existia — regressão verde |
+| Plataformas 1,0 m / 1,5 m (subida, combate elevado, queda pela borda, slam do alto) | ✅ já existia — regressão verde |
+| Destrutíveis / itens / escudo (geração, coleta, dano, respawn) | ✅ regressão + testes novos (coleta+dano no mesmo passo) |
+| Lançamento (C) preserva altitude (vault, juggle, plataforma) | 🔧 **corrigido + testado** (B1) |
+| Interação C → X (relançamento em voo preserva altitude) | 🔧 **corrigido + testado** |
+| Pouso físico sobre plataforma (lançado de fora, arco limpo) | 🔧 **corrigido + testado**; cenário de mapa reescrito (B2/B7) |
+| Teto de plataformas/obstáculos/destrutíveis (face inferior, corpo inteiro, sem empurrão) | 🔧 **implementado + testado** (B3, B8, B9) |
+| Obstáculos/destrutíveis como superfície de apoio; apoio some ao destruir | ✅ **verificado por teste novo** (§7/§30) |
+| Projéteis × geometria do mapa (obstáculo/plataforma/destrutível, sobreposição vertical) | ✅ **verificado por teste novo** (§31) |
+| Borda circular: contenção, rebote, wall-splat com autoria real | 🔧 **corrigido + testado** (B4, B5) |
+| Mixer de animação estável sob churn de estados | 🔧 **corrigido + testado** (B6) |
+| Mapeamento de estados real (§20) e separação física/ação/defesa/status (§21) | ✅ mapeado e documentado (seção B); nenhuma refatoração necessária |
+| Interrupções simultâneas (§23: pouso+hit, remoção de apoio, dois danos, itens, derrota em voo, cadeia wall-splat) | ✅ **testado** (suíte interruptions) |
+| Geometria dinâmica / corpos que aparecem (barreiras e paredes de Moves) | ✅ já existia — moves-contract/beam/reflect verdes; não re-auditado em profundidade |
+| Compatibilidade Moves existentes (Reflect/Psyshock/beam/consumíveis/passivas) | ✅ regressão integral verde (moves*, charge, beam, reflect, psyshock, economy, defense) |
+| IA 3D: percepção, navegação em níveis, replanejamento (§44–47) | ⚠️ suítes próprias verdes (ai, tactics, perception, spatial), mas a matriz grupo H não foi expandida — declarada pendência |
+| Câmera em diferentes alturas (§48) | ⚠️ testes unitários da câmera cinematizada verdes; validação em navegador pendente (verify.mjs quebrado pré-existente) |
+| Save/load e replay com estados 3D (§57) | ✅ **testado** (futuro idêntico após restore em voo sobre plataforma) |
+| Passo físico fixo, colisões de alta velocidade, seeds (§54–56) | ✅ já existia — regressão verde (incl. tunelamento em moves-contract) |
+| Rampas / escadas reais / escadas diagonais / desníveis inclinados (§11–14) | ❌ **não implementado** — geometria atual só tem caixas/cilindros a eixos; exige decisão de design (critério 12 não atingido) |
+| Laboratório de física jogável com diagnósticos (§63–64) | ❌ não construído |
+| Desempenho físico / separação sim-render / execução offline (§65–67) | ❌ não medido |
+| Gamepad / balanceamento | ⛔ proibido pela ordem |
 
 - **Testes unitários:** `npm run test:combat-lab:unit` — **todas as suítes aprovadas** (61 simulação, 20 Etapa A,
   8 IA tática, 4 patch, 15 locomoção, 12 animação, 10 regras, 71+14+13 VFX, 34 cenários de mapa etc.).
