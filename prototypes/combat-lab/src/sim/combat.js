@@ -136,8 +136,14 @@ export function resolveHit(attacker, defender, normal, relative, force = false) 
   let launchInfo = null;
   if (protectedFront) {
     // O atacante recua; a defesa NÃO lança, empurra nem desloca o defensor.
-    attacker.action = {kind: 'recoil', elapsed: 0, heading: angleOf(scale(normal, -1)), startAngle: 0, offensive: false, hits: new Set(), from: null};
-    attacker.velocity = vec();attacker.state = 'recoil';attacker.blend = null;attacker.vaultHeight = 0;
+    // Exceção (Meteor Slam): o ataque é comprometido — o contato pode ocorrer no mergulho
+    // (meteorDive) ou no chão (meteorGround). Em ambos, bloqueado não troca para recoil:
+    // o mergulho segue, aterrissa e o slam finaliza normalmente.
+    const slamCommitted = !!attacker.action.slam;
+    if (!slamCommitted) {
+      attacker.action = {kind: 'recoil', elapsed: 0, heading: angleOf(scale(normal, -1)), startAngle: 0, offensive: false, hits: new Set(), from: null};
+      attacker.velocity = vec();attacker.state = 'recoil';attacker.blend = null;attacker.vaultHeight = 0;
+    }
     defender.push = null;defender.flight = null;defender.velocity = vec();defender.locomotionVelocity = vec();
     if (perfect) {defender.perfectSucceeded = true;defender.stun = 0;if (T.enableCounterBonus) defender.counterWindow = Math.max(defender.counterWindow, X.perfectGuardCounterWindow);}
     else if (defender.stun <= 1e-8) defender.stun = R.guardStun;
