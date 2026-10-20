@@ -6,6 +6,118 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Arenamon · Laboratório de Combate __VERSION__</title>
 <style>/*__CSS__*/</style>
+<style>
+/* ─── Estilos das Habilidades Passivas (Propostas A/B/C) ─── */
+#passive-sliders {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+#passive-sliders .field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 8px;
+  background: rgba(14,22,33,0.6);
+  border: 1px solid rgba(184,212,236,0.1);
+  border-radius: 6px;
+}
+#passive-sliders .field label {
+  font-size: 11px;
+  color: #9bb0c3;
+  display: flex;
+  justify-content: space-between;
+}
+#passive-sliders .field label output {
+  color: #4fc3f7;
+  font-weight: 600;
+}
+#passive-sliders input[type="range"] {
+  width: 100%;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: rgba(184,212,236,0.15);
+  border-radius: 2px;
+  outline: none;
+}
+#passive-sliders input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #4fc3f7;
+  cursor: pointer;
+}
+#passive-sliders input[type="range"]::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #4fc3f7;
+  cursor: pointer;
+  border: none;
+}
+#passive-activate-a:hover { background: rgba(79,195,247,.28) !important; }
+#passive-activate-b:hover { background: rgba(255,213,79,.28) !important; }
+#passive-activate-c:hover { background: rgba(224,64,251,.28) !important; }
+#passive-stats {
+  font-size: 11px;
+  color: #9bb0c3;
+}
+#passive-stats b {
+  color: #e0e7ef;
+}
+/* Toast de passivas */
+.passive-toast-container {
+  position: fixed;
+  top: 72px;
+  right: 16px;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  pointer-events: none;
+}
+.passive-toast {
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.15);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  animation: passiveToastIn 0.35s cubic-bezier(0.22,1,0.36,1), passiveToastOut 0.3s ease-in 2.5s forwards;
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 180px;
+}
+.passive-toast .icon {
+  font-size: 16px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.12);
+}
+.passive-toast.A { background: rgba(79,195,247,0.18); border-color: rgba(79,195,247,0.4); }
+.passive-toast.B { background: rgba(255,213,79,0.18); border-color: rgba(255,213,79,0.4); }
+.passive-toast.C { background: rgba(224,64,251,0.18); border-color: rgba(224,64,251,0.4); }
+@keyframes passiveToastIn {
+  from { opacity: 0; transform: translateX(40px) scale(0.92); }
+  to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+@keyframes passiveToastOut {
+  to { opacity: 0; transform: translateX(40px) scale(0.92); }
+}
+</style>
 </head>
 <body>
 <!--DEV--><div style="position:fixed;inset:0;z-index:999;display:grid;place-items:center;background:#0e1621;color:#eef5fb;font:16px system-ui;padding:24px;text-align:center"><div><h1 style="font-size:22px">Este é o modelo-fonte, não o laboratório.</h1><p>O laboratório completo é um único HTML gerado pelo build:<br><b>prototypes/combat-lab/dist/arenamon-combate-laboratorio.html</b></p><p style="color:#9bb0c3">Gere com <code>npm run build</code> e abra esse arquivo por duplo clique.</p></div></div><!--/DEV-->
