@@ -19,14 +19,15 @@ function tryWallSplat(f, normal) {
   f.wallSplat = {t: 0, duration: R.wallSplatDuration, normal: {...normal}, fresh: true};f.state = 'wallSplat';
   return true;
 }
-/** Altura do piso/plataforma na posição XZ. */
-export function getGroundHeight(pos, world) {
+/** Altura do piso/plataforma na posição XZ. Só considera superfícies válidas para a altura vertical atual do lutador (currentY). */
+export function getGroundHeight(pos, world, currentY = null) {
   const mapState = world?.mapState;
   const platforms = mapState?.platforms ?? world?.platforms ?? C.map?.platforms;
   const obstacles = mapState?.obstacles ?? world?.obstacles ?? C.map?.obstacles;
-  if (!platforms && !obstacles) return 0;
+  const destructibles = mapState?.destructibles ?? world?.destructibles;
+  if (!platforms && !obstacles && !destructibles) return 0;
   let highest = 0;
-  const footMargin = (C.test?.halfExtent ?? 0.35) * 0.75;
+  const footMargin = (C.test?.halfExtent ?? 0.35) * 0.5;
   if (platforms) {
     for (const p of platforms) {
       const px = p.pos ? p.pos.x : p.x;
@@ -34,7 +35,9 @@ export function getGroundHeight(pos, world) {
       const hx = ((p.width ?? 3) / 2) + footMargin;
       const hz = ((p.depth ?? 3) / 2) + footMargin;
       if (Math.abs(pos.x - px) <= hx && Math.abs(pos.z - pz) <= hz) {
-        if (p.height > highest) highest = p.height;
+        if (currentY === null || currentY >= p.height - 0.35) {
+          if (p.height > highest) highest = p.height;
+        }
       }
     }
   }
@@ -46,12 +49,29 @@ export function getGroundHeight(pos, world) {
         const r = (o.radius ?? 1) + footMargin;
         const dx = pos.x - ox, dz = pos.z - oz;
         if (dx * dx + dz * dz <= r * r) {
-          if (h > highest) highest = h;
+          if (currentY === null || currentY >= h - 0.35) {
+            if (h > highest) highest = h;
+          }
         }
       } else {
         const hx = (o.hx ?? 1.5) + footMargin;
         const hz = (o.hz ?? 1.5) + footMargin;
         if (Math.abs(pos.x - ox) <= hx && Math.abs(pos.z - oz) <= hz) {
+          if (currentY === null || currentY >= h - 0.35) {
+            if (h > highest) highest = h;
+          }
+        }
+      }
+    }
+  }
+  if (destructibles) {
+    for (const d of destructibles) {
+      if (d.state !== 'solid') continue;
+      const h = (d.pos?.y ?? 0) + (d.size?.height ?? 1.6);
+      const hx = (d.size?.hx ?? 0.8) + footMargin;
+      const hz = (d.size?.hz ?? 0.8) + footMargin;
+      if (Math.abs(pos.x - d.pos.x) <= hx && Math.abs(pos.z - d.pos.z) <= hz) {
+        if (currentY === null || currentY >= h - 0.35) {
           if (h > highest) highest = h;
         }
       }
@@ -139,7 +159,8 @@ export function stepPhysics(fighters, dt, world = null) {
       flight.y += flight.vy * dt - .5 * g * dt * dt;
       flight.vy -= g * dt;
       flight.horizontal = scale(flight.horizontal, Math.exp(-R.launchDrag * dt));
-      const targetGround = getGroundHeight(f.position, world);
+      const curY = flight.y ?? (f.groundY ?? 0);
+      const targetGround = getGroundHeight(f.position, world, curY);
       if (flight.y <= targetGround) {
         flight.y = targetGround;
         f.groundY = targetGround;
@@ -162,7 +183,8 @@ export function stepPhysics(fighters, dt, world = null) {
       } else {f.velocity = {...flight.horizontal};f.state = 'airborne';}
     } else {
       // Lutador no chão: verifica se saiu pela borda de uma plataforma (R7.10)
-      const targetGround = getGroundHeight(f.position, world);
+      const curY = f.groundY ?? 0;
+      const targetGround = getGroundHeight(f.position, world, curY);
       f.groundY ??= 0;
       if (f.groundY > targetGround + 0.1) {
         // Entra em queda balística mantendo a velocidade horizontal (R7.10)
