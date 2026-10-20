@@ -54,6 +54,7 @@ function createMockDom() {
   };
 
   return {
+    getElementById: (id) => null,
     querySelector: (sel) => {
       elements[sel] ??= createMockElement(sel);
       return elements[sel];
@@ -89,6 +90,9 @@ test('Contém todos os parâmetros C01 a C12 na especificação oficial', () => 
   assert.ok(c.letterbox, 'C10 letterbox definido');
   assert.ok(c.slowMotion, 'C11 slowMotion definido');
   assert.ok(c.springInertia, 'C12 springInertia definido');
+  assert.ok(c.chromaticAberration, 'chromaticAberration definido');
+  assert.ok(c.roundIntro, 'roundIntro definido');
+  assert.ok(c.combatPopups, 'combatPopups definido');
 });
 
 test('Parâmetros respeitam limites seguros de roll e altura', () => {
@@ -585,6 +589,89 @@ test('P2: Letterbox C10 no modo cinema aplica pillarbox (.cine-bar-left, .cine-b
   } finally {
     globalThis.document = origDoc;
     globalThis.window = origWin;
+  }
+});
+
+test('Opção A: Aberração Cromática dispara em impactos fortes e decai suavemente', () => {
+  const origDoc = globalThis.document;
+  const mockDom = createMockDom();
+  mockDom.getElementById = () => null;
+  globalThis.document = mockDom;
+
+  try {
+    const cine = new CinematicCamera(null, {overlayContainer: mockDom});
+    cine.config.enabled = true;
+    cine.triggerChromaticAberration({duration: 0.3, intensity: 8});
+    assert.ok(cine.chromaState !== null, 'chromaState deve estar ativo');
+    assert.equal(cine.chromaState.intensity, 8);
+
+    // Avança tempo e chama renderOverlays
+    cine.clock += 0.15;
+    cine.renderOverlays();
+    assert.ok(parseFloat(cine.chromaEl.style.opacity) > 0, 'Overlay de aberração deve ter opacidade positiva');
+
+    // Ao esgotar o tempo, deve limpar
+    cine.clock += 0.2;
+    cine.renderOverlays();
+    assert.equal(cine.chromaState, null, 'chromaState deve anular após a duração');
+    assert.equal(cine.chromaEl.style.opacity, '0');
+  } finally {
+    globalThis.document = origDoc;
+  }
+});
+
+test('Opção A: Intro de Round aplica sweeping inicial e recupera a visão de jogo', () => {
+  const mockDom = createMockDom();
+  const cine = new CinematicCamera(null, {overlayContainer: mockDom});
+  cine.config.enabled = true;
+  cine.triggerRoundIntro({duration: 1.0});
+
+  const basePose = {position: {x: 0, y: 3, z: 8}, height: 3, lookAt: {x: 0, y: 1, z: 0}, lookHeight: 1, roll: 0, fov: 48, yaw: 0, pitch: 0, dist: 8};
+  const mockFighters = [
+    {id: 0, state: 'idle', position: {x: -1.5, y: 0, z: 0}, hp: 100},
+    {id: 1, state: 'idle', position: {x: 1.5, y: 0, z: 0}, hp: 100}
+  ];
+
+  // Início da intro (t = 0.1s)
+  cine.apply(basePose, mockFighters, [], 0.1);
+  assert.equal(cine.activeEffect, 'round_intro');
+  assert.ok(cine.target.roll > 0 || cine.target.posOffset.x !== 0, 'Alvo deve sofrer offset da intro');
+
+  // Fim da intro (t = 1.0s)
+  cine.apply(basePose, mockFighters, [], 1.0);
+  assert.equal(cine.roundIntroState, null, 'roundIntroState deve finalizar ao completar duração');
+});
+
+test('Opção C: Popups de Combate e Números de Dano geram elementos estilizados', () => {
+  const origDoc = globalThis.document;
+  const mockDom = createMockDom();
+  const spawnedElements = [];
+  const origCreate = mockDom.createElement;
+  mockDom.createElement = (tag) => {
+    const el = origCreate(tag);
+    el.parentNode = mockDom;
+    spawnedElements.push(el);
+    return el;
+  };
+  globalThis.document = mockDom;
+
+  try {
+    const cine = new CinematicCamera(null, {overlayContainer: mockDom});
+    cine.config.enabled = true;
+
+    // Dispara Callout de Parry Perfeito
+    cine.spawnCallout('PERFECT DEFLECTION!', 'perfect', {x: 0.5, y: 0.4});
+    const callout = spawnedElements.find(e => e.className.includes('cine-callout-perfect'));
+    assert.ok(callout, 'Elemento de callout deve ser gerado');
+    assert.equal(callout.textContent, 'PERFECT DEFLECTION!');
+
+    // Dispara Número de Dano Crítico
+    cine.spawnDamageNumber(45, true, {x: 0.55, y: 0.45});
+    const damageEl = spawnedElements.find(e => e.className.includes('cine-crit'));
+    assert.ok(damageEl, 'Elemento de dano crítico deve ser gerado');
+    assert.equal(damageEl.textContent, '-45 CRIT!');
+  } finally {
+    globalThis.document = origDoc;
   }
 });
 

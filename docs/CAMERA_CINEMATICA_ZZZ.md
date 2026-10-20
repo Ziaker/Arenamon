@@ -78,18 +78,40 @@ O usuário possui controle total sobre a câmera cinemática diretamente na inte
 
 Suíte de testes dedicada:
 
-- **Teste Unitário (31 verificações):**
+- **Teste Unitário (34 verificações):**
   ```bash
   node prototypes/combat-lab/test/cinematic-camera.test.mjs
   ```
-- **Teste no Navegador (20 verificações em Playwright Chromium/Edge):**
+- **Teste no Navegador (24 verificações em Playwright Chromium/Edge):**
   ```bash
   node prototypes/combat-lab/test/cinematic-camera.browser.mjs
   ```
 
 ---
 
-## 7. Histórico de Correções e Auditorias Independentes
+## 7. Expansão de Game Feeling (Opções A e C)
+
+Além dos 12 efeitos cinemáticos estruturais (C01–C12), foram implementados os módulos avançados de imersão tátil e direção de arte:
+
+### Opção A — Aberração Cromática e Apresentação Dinâmica:
+* **Aberração Cromática RGB (`chromaticAberration`):** Dispersão óptica instantânea de canais vermelho e ciano nas bordas em parries perfeitos, clashes de tackles, impactos pesados e K.O. final, criando sensação de impacto de alta energia sem repaints caros.
+* **Intro Dinâmica de Round (`roundIntro`):** Plano dramático e rasante de face-off entre os combatentes nos primeiros segundos do round, desacelerando suavemente por curva de transição para a câmera de combate ao iniciar a ação.
+
+### Opção C — Sistema de Feedback de Combate Estilizado (Comic Action FX):
+* **Chamadas de Ação Estilizadas (`combatPopups.showLabels`):** Textos expressivos de anime/quadrinhos saltando com skew e sombra RGB:
+  * `PERFECT DEFLECTION!` (dourado elétrico com glow).
+  * `CLASH!!` (laranja e amarelo fogo).
+  * `PERFECT DODGE!` (azul ciano com rastro).
+  * `COUNTER HIT!` (magenta violeta).
+  * `METEOR SLAM!` (amarelo de impacto massivo).
+  * `K.O. - DECISIVE VICTORY!` (vermelho carmesim épico).
+* **Números de Dano Flutuantes (`combatPopups.showDamage`):** Valores numéricos com física de salto e destaque para acertos críticos (`-amount CRIT!`).
+
+Todos os novos efeitos possuem toggles individuais e botões de **▶ Prévia** no painel da câmera.
+
+---
+
+## 8. Histórico de Correções e Auditorias Independentes
 
 ### Rodada 3 de Correções:
 1. **P1 — Reset completo de Bullet Time:** `clearAll()` e `reset()` agora limpam explicitamente `this.slowMoState = null;`, garantindo restauração instantânea de `getVisualTimeScale() === 1.0` ao desativar ou reiniciar a partida.

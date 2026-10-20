@@ -115,6 +115,42 @@ try {
   });
   check('Prévia de Dutch Angle (C01) altera inclinação (roll) alvo', dutchActive);
 
+  // 8b. Testar prévias das Opções A e C
+  await page.locator('[data-preview="chromaticAberration"]').scrollIntoViewIfNeeded();
+  await page.click('[data-preview="chromaticAberration"]');
+  await page.waitForTimeout(50);
+  const chromaActive = await page.evaluate(() => {
+    const el = document.getElementById('cine-chroma');
+    return el && !!window.__lab.cinematic.chromaState;
+  });
+  check('Prévia de Aberração Cromática RGB ativa overlay ótico', chromaActive);
+
+  await page.locator('[data-preview="combatCallouts"]').scrollIntoViewIfNeeded();
+  await page.click('[data-preview="combatCallouts"]');
+  await page.waitForTimeout(50);
+  const calloutsSpawned = await page.evaluate(() => {
+    const popups = document.getElementById('cine-popups');
+    return popups && popups.querySelectorAll('.cine-callout').length >= 1;
+  });
+  check('Prévia de Chamadas de Combate gera callouts no DOM (.cine-callout)', calloutsSpawned);
+
+  await page.locator('[data-preview="damageNumbers"]').scrollIntoViewIfNeeded();
+  await page.click('[data-preview="damageNumbers"]');
+  await page.waitForTimeout(50);
+  const damageSpawned = await page.evaluate(() => {
+    const popups = document.getElementById('cine-popups');
+    return popups && popups.querySelectorAll('.cine-damage').length >= 1;
+  });
+  check('Prévia de Números de Dano gera elementos com animação (.cine-damage)', damageSpawned);
+
+  await page.locator('[data-preview="roundIntro"]').scrollIntoViewIfNeeded();
+  await page.click('[data-preview="roundIntro"]');
+  await page.waitForTimeout(50);
+  const introActive = await page.evaluate(() => {
+    return !!window.__lab.cinematic.roundIntroState;
+  });
+  check('Prévia de Intro de Round ativa plano dramático de abertura', introActive);
+
   // 9. Testar Restauração de Padrões
   await page.locator('#cine-reset').scrollIntoViewIfNeeded();
   await page.click('#cine-reset');

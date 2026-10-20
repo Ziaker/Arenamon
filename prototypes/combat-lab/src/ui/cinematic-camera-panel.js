@@ -71,8 +71,18 @@ export function createCinematicPanel({$, view, getWs}) {
 
           <!-- Grupo 1: Movimento e Esquiva -->
           <details class="cine-group" open>
-            <summary>🏃 Movimento e Esquiva</summary>
+            <summary>🏃 Movimento e Abertura</summary>
             <div class="cine-group-content">
+              <!-- Intro Dinâmica de Round -->
+              <div class="cine-item">
+                <div class="cine-item-head">
+                  <label class="check"><input type="checkbox" data-opt="roundIntro.enabled" ${c.roundIntro?.enabled ? 'checked' : ''}> <b>Intro Dinâmica de Round (Face-off)</b></label>
+                  <button type="button" data-preview="roundIntro" class="btn-preview">▶ Prévia</button>
+                </div>
+                <div class="cine-item-desc">Plano dramático e rasante de apresentação no início da luta, transitando suavemente para a câmera de jogo.</div>
+                <label class="field">Duração: <output>${(c.roundIntro?.duration ?? 1.2).toFixed(2)} s</output><input type="range" data-opt="roundIntro.duration" min="0.6" max="2.0" step="0.1" value="${c.roundIntro?.duration ?? 1.2}"></label>
+              </div>
+
               <!-- C01 -->
               <div class="cine-item">
                 <div class="cine-item-head">
@@ -167,6 +177,45 @@ export function createCinematicPanel({$, view, getWs}) {
                 <div class="cine-item-desc">Linhas radiais de ação convergindo para o ponto exato de colisão no espaço de tela.</div>
                 <label class="field">Quantidade de Linhas: <output>${c.speedlines.count}</output><input type="range" data-opt="speedlines.count" min="10" max="60" step="2" value="${c.speedlines.count}"></label>
                 <label class="field">Opacidade: <output>${(c.speedlines.opacity * 100).toFixed(0)}%</output><input type="range" data-opt="speedlines.opacity" min="0.1" max="1" step="0.05" value="${c.speedlines.opacity}"></label>
+              </div>
+
+              <!-- Aberração Cromática RGB -->
+              <div class="cine-item">
+                <div class="cine-item-head">
+                  <label class="check"><input type="checkbox" data-opt="chromaticAberration.enabled" ${c.chromaticAberration?.enabled ? 'checked' : ''}> <b>Aberração Cromática RGB (Glitch de Impacto)</b></label>
+                  <button type="button" data-preview="chromaticAberration" class="btn-preview">▶ Prévia</button>
+                </div>
+                <div class="cine-item-desc">Dispersão óptica instantânea de canais vermelho e ciano nas bordas em parries, clashes e golpes pesados.</div>
+                <label class="field">Intensidade: <output>${c.chromaticAberration?.intensity ?? 6} px</output><input type="range" data-opt="chromaticAberration.intensity" min="2" max="14" step="1" value="${c.chromaticAberration?.intensity ?? 6}"></label>
+              </div>
+            </div>
+          </details>
+
+          <!-- Grupo: Feedback de Combate e Popups -->
+          <details class="cine-group" open>
+            <summary>💥 Feedback de Combate e Popups (Comic Action FX)</summary>
+            <div class="cine-group-content">
+              <div class="cine-item">
+                <div class="cine-item-head">
+                  <label class="check"><input type="checkbox" data-opt="combatPopups.enabled" ${c.combatPopups?.enabled ? 'checked' : ''}> <b>Ativar Sistema de Popups de Combate</b></label>
+                </div>
+                <div class="cine-item-desc">Exibe textos dinâmicos de ação e números de dano com estilo e tipografia de anime/quadrinhos.</div>
+              </div>
+
+              <div class="cine-item">
+                <div class="cine-item-head">
+                  <label class="check"><input type="checkbox" data-opt="combatPopups.showLabels" ${c.combatPopups?.showLabels ? 'checked' : ''}> <b>Chamadas de Ação (PERFECT, CLASH, K.O.)</b></label>
+                  <button type="button" data-preview="combatCallouts" class="btn-preview">▶ Prévia</button>
+                </div>
+                <div class="cine-item-desc">Textos expressivos em parries perfeitos, choques de golpe, contra-ataques e finalização.</div>
+              </div>
+
+              <div class="cine-item">
+                <div class="cine-item-head">
+                  <label class="check"><input type="checkbox" data-opt="combatPopups.showDamage" ${c.combatPopups?.showDamage ? 'checked' : ''}> <b>Números de Dano Flutuantes</b></label>
+                  <button type="button" data-preview="damageNumbers" class="btn-preview">▶ Prévia</button>
+                </div>
+                <div class="cine-item-desc">Valores numéricos de dano saltando do ponto de impacto com destaque para acertos críticos.</div>
               </div>
             </div>
           </details>

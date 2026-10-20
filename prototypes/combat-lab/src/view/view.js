@@ -126,6 +126,7 @@ export class View {
     this.vfxRuntime.reset();
     this.solid.reset();this.meteorFx?.reset();
     this.cinematic?.clearAll();
+    this.cinematic?.triggerRoundIntro();
   }
   /** Efeitos legados do v6 (partículas em caixa e tremor antigo). Só com “Efeitos legados” ligado em Visualizar. */
   spawnBurst(pos, type) {

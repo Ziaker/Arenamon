@@ -45,6 +45,12 @@ export const CINEMATIC_DEFAULTS = Object.freeze({
   slowMotion: {enabled: true, scale: 0.25, duration: 0.2},
   // C12 — Inércia cinematográfica e recuperação
   springInertia: {enabled: true, stiffness: 180, damping: 24, maxDisplacement: 1.5, maxRollRad: 0.26},
+  // Aberração Cromática / RGB Split de Impacto
+  chromaticAberration: {enabled: true, intensity: 6, duration: 0.20},
+  // Intro Cinematográfica de Início de Round (Face-off dinâmico)
+  roundIntro: {enabled: true, duration: 1.2},
+  // Feedback de Combate Estilizado (Comic Action Callouts & Damage Numbers)
+  combatPopups: {enabled: true, showLabels: true, showDamage: true, scale: 1.0},
 });
 
 export class CinematicCamera {
@@ -85,6 +91,10 @@ export class CinematicCamera {
     this.letterboxState = null; // {startedAt, duration, mode, pct}
     this.koState = null;     // {startedAt, duration, roll, arc, center, radius}
     this.koConsumed = false; // Garante que K.O. dispare exatamente 1x por round
+    this.chromaState = null; // {startedAt, duration, intensity}
+    this.roundIntroState = null; // {startedAt, duration}
+    this.chromaEl = null;
+    this.popupsEl = null;
     this.lastEventsSeen = new WeakSet();
     this.previewActive = null;
     this.previewTimer = null;
@@ -125,6 +135,24 @@ export class CinematicCamera {
       root.appendChild(this.speedlinesCanvas);
     }
     this.speedlinesCtx = this.speedlinesCanvas.getContext('2d');
+
+    // Aberração Cromática: overlay óptico RGB
+    this.chromaEl = document.getElementById('cine-chroma');
+    if (!this.chromaEl) {
+      this.chromaEl = document.createElement('div');
+      this.chromaEl.id = 'cine-chroma';
+      this.chromaEl.className = 'cine-chroma';
+      root.appendChild(this.chromaEl);
+    }
+
+    // Callouts & Números de Dano (Comic Action Popups)
+    this.popupsEl = document.getElementById('cine-popups');
+    if (!this.popupsEl) {
+      this.popupsEl = document.createElement('div');
+      this.popupsEl.id = 'cine-popups';
+      this.popupsEl.className = 'cine-popups';
+      root.appendChild(this.popupsEl);
+    }
   }
 
   setConfig(newConf) {
@@ -165,12 +193,17 @@ export class CinematicCamera {
     this.slowMoState = null;
     this.koState = null;
     this.koConsumed = false;
+    this.chromaState = null;
+    this.roundIntroState = null;
     this.initialized = false;
     this.previewActive = null;
     if (this.previewTimer) {
       clearTimeout(this.previewTimer);
       this.previewTimer = null;
     }
+    if (this.chromaEl) this.chromaEl.style.opacity = '0';
+    if (this.canvas) this.canvas.style.filter = '';
+    if (this.popupsEl) this.popupsEl.innerHTML = '';
     this.spring.pos = {x: 0, y: 0, z: 0};
     this.spring.velPos = {x: 0, y: 0, z: 0};
     this.spring.look = {x: 0, y: 0, z: 0};
@@ -384,6 +417,54 @@ export class CinematicCamera {
     this.activeEffect = 'slowMotion';
   }
 
+  triggerChromaticAberration({duration = null, intensity = null} = {}) {
+    if (!this.config.enabled || !this.config.chromaticAberration?.enabled || this.config.noFlash) return;
+    this.chromaState = {
+      startedAt: this.clock,
+      duration: duration ?? this.config.chromaticAberration.duration,
+      intensity: intensity ?? this.config.chromaticAberration.intensity
+    };
+  }
+
+  triggerRoundIntro({duration = null} = {}) {
+    if (!this.config.enabled || !this.config.roundIntro?.enabled) return;
+    this.roundIntroState = {
+      startedAt: this.clock,
+      duration: duration ?? this.config.roundIntro.duration
+    };
+    this.activeEffect = 'round_intro';
+  }
+
+  spawnCallout(text, type = 'perfect', screenPos = {x: 0.5, y: 0.4}) {
+    if (!this.config.enabled || !this.config.combatPopups?.enabled || !this.config.combatPopups?.showLabels || !this.popupsEl) return;
+    if (typeof document === 'undefined') return;
+    const el = document.createElement('div');
+    el.className = `cine-callout cine-callout-${type}`;
+    el.textContent = text;
+    el.style.left = `${(clamp(screenPos.x, 0.08, 0.92) * 100).toFixed(1)}%`;
+    el.style.top = `${(clamp(screenPos.y, 0.12, 0.88) * 100).toFixed(1)}%`;
+    this.popupsEl.appendChild(el);
+    setTimeout(() => {
+      if (typeof el.remove === 'function') el.remove();
+      else if (el.parentNode?.removeChild) el.parentNode.removeChild(el);
+    }, 520);
+  }
+
+  spawnDamageNumber(amount, isCrit = false, screenPos = {x: 0.5, y: 0.5}) {
+    if (!this.config.enabled || !this.config.combatPopups?.enabled || !this.config.combatPopups?.showDamage || !this.popupsEl) return;
+    if (typeof document === 'undefined') return;
+    const el = document.createElement('div');
+    el.className = `cine-damage ${isCrit ? 'cine-crit' : ''}`;
+    el.textContent = isCrit ? `-${Math.round(amount)} CRIT!` : `-${Math.round(amount)}`;
+    el.style.left = `${(clamp(screenPos.x, 0.08, 0.92) * 100).toFixed(1)}%`;
+    el.style.top = `${(clamp(screenPos.y, 0.12, 0.88) * 100).toFixed(1)}%`;
+    this.popupsEl.appendChild(el);
+    setTimeout(() => {
+      if (typeof el.remove === 'function') el.remove();
+      else if (el.parentNode?.removeChild) el.parentNode.removeChild(el);
+    }, 620);
+  }
+
   getVisualTimeScale() {
     if (!this.config.enabled || !this.slowMoState) return 1.0;
     const elapsed = this.clock - this.slowMoState.startedAt;
@@ -469,8 +550,8 @@ export class CinematicCamera {
         durMs = 900;
         break;
       case 'impactFrames':
-        this.triggerImpactFrame({whiteDur: 0.06, invertDur: 0.06, strength: 1.0});
-        durMs = 300;
+        this.triggerImpactFrame({whiteDur: 0.15, invertDur: 0.15, strength: 1.0});
+        durMs = 400;
         break;
       case 'speedlines':
         this.triggerSpeedlines({duration: 0.45});
@@ -484,6 +565,25 @@ export class CinematicCamera {
         this.triggerVisualSlowmo({scale: this.config.slowMotion.scale, duration: this.config.slowMotion.duration * 2.5});
         this.triggerLetterbox({duration: 0.45});
         durMs = 500;
+        break;
+      case 'chromaticAberration':
+        this.triggerChromaticAberration({duration: 0.5, intensity: 8});
+        durMs = 500;
+        break;
+      case 'roundIntro':
+        this.triggerRoundIntro({duration: 1.2});
+        durMs = 1200;
+        break;
+      case 'combatCallouts':
+        this.spawnCallout('PERFECT DEFLECTION!', 'perfect', {x: 0.5, y: 0.38});
+        this.spawnCallout('CLASH!!', 'clash', {x: 0.5, y: 0.52});
+        this.triggerChromaticAberration({duration: 0.35, intensity: 6});
+        durMs = 700;
+        break;
+      case 'damageNumbers':
+        this.spawnDamageNumber(28, false, {x: 0.42, y: 0.48});
+        this.spawnDamageNumber(64, true, {x: 0.58, y: 0.40});
+        durMs = 650;
         break;
     }
 
@@ -551,6 +651,8 @@ export class CinematicCamera {
           this.triggerImpactFrame({whiteDur: 0.035, invertDur: 0.035, strength: 0.85});
           this.triggerSpeedlines({duration: 0.22, screenPos, worldPos});
           this.triggerVisualSlowmo({scale: 0.35, duration: 0.18});
+          this.triggerChromaticAberration({duration: 0.22, intensity: 6});
+          this.spawnCallout('PERFECT DEFLECTION!', 'perfect', screenPos);
         } else if (ev.result === 'clash' || ev.result === 'tackleClash' || ev.result === 'stoneClash') {
           // Clash entre tackles
           if (hasBoth) this.triggerSnap(atk.position, tgt.position, ev.normal || sub(tgt.position, atk.position), {isClash: true});
@@ -558,6 +660,10 @@ export class CinematicCamera {
           this.triggerImpactFrame({whiteDur: 0.04, invertDur: 0.04, strength: 0.95});
           this.triggerSpeedlines({duration: 0.25, screenPos, worldPos});
           this.triggerVisualSlowmo({scale: 0.25, duration: 0.22});
+          this.triggerChromaticAberration({duration: 0.28, intensity: 7});
+          this.spawnCallout('CLASH!!', 'clash', screenPos);
+        } else if (ev.result === 'perfectDodge') {
+          this.spawnCallout('PERFECT DODGE!', 'dodge', screenPos);
         } else if (ev.result === 'impact') {
           // Impacto pesado / Meteor Slam
           const isHeavy = (ev.damage ?? 0) >= 15 || !!ev.slam || (ev.pl ?? 1) >= 3;
@@ -566,14 +672,23 @@ export class CinematicCamera {
             this.triggerLetterbox({duration: 0.3});
             this.triggerImpactFrame({whiteDur: 0.03, invertDur: 0.03, strength: 0.7});
             this.triggerSpeedlines({duration: 0.18, screenPos, worldPos});
+            this.triggerChromaticAberration({duration: 0.20, intensity: 6});
             if (ev.slam) {
               this.triggerMeteorContraplongee({impactDrop: this.config.meteorSlam.impactDrop, duration: 0.35});
+              this.spawnCallout('METEOR SLAM!', 'slam', screenPos);
+            } else if (ev.launch) {
+              this.spawnCallout('COUNTER HIT!', 'counter', screenPos);
             }
+          }
+          if (ev.damage > 0) {
+            this.spawnDamageNumber(ev.damage, isHeavy, screenPos);
           }
         } else if (ev.result === 'chargeRelease') {
           // Disparo de golpe carregado
           this.triggerFovPunch();
           this.triggerSpeedlines({duration: 0.2, screenPos, worldPos});
+        } else if (ev.damage > 0) {
+          this.spawnDamageNumber(ev.damage, false, screenPos);
         }
       }
     }
@@ -584,6 +699,8 @@ export class CinematicCamera {
       const winner = p1.hp > 0 ? p1 : p2;
       const loser = p1.hp <= 0 ? p1 : p2;
       this.triggerKoFinish(winner.position, loser.position);
+      this.triggerChromaticAberration({duration: 0.45, intensity: 9});
+      this.spawnCallout('K.O. - DECISIVE VICTORY!', 'ko', {x: 0.5, y: 0.35});
     }
 
     // 3. Resetar alvos instantâneos da cena
@@ -649,6 +766,24 @@ export class CinematicCamera {
         targetLook.y = Math.max(0.2, (p1.flight?.y ?? 0) * 0.5);
         targetFovOffset += this.config.meteorSlam.impactFov * 0.5 * gi;
         this.activeEffect = 'meteor_dive';
+      }
+    }
+
+    // Intro Dinâmica de Round (Face-off dramático)
+    if (this.config.roundIntro?.enabled && this.roundIntroState && !this.koState) {
+      const elapsed = this.clock - this.roundIntroState.startedAt;
+      if (elapsed >= this.roundIntroState.duration) {
+        this.roundIntroState = null;
+      } else {
+        currentPriority = Math.max(currentPriority, 38);
+        const k = elapsed / Math.max(1e-4, this.roundIntroState.duration);
+        const p = Math.sin(k * Math.PI * 0.5); // Ease out 0 -> 1
+        const inv = (1 - p) * gi;
+        targetPos.x += inv * 1.5;
+        targetPos.y = Math.max(0.4, targetPos.y - inv * 0.35);
+        targetPos.z -= inv * 1.1;
+        targetRoll += inv * (4 * Math.PI / 180);
+        this.activeEffect = 'round_intro';
       }
     }
 
@@ -909,6 +1044,28 @@ export class CinematicCamera {
           }
           this.speedlinesCtx.restore();
         }
+      }
+    }
+
+    // D. Aberração Cromática & Dispersão Óptica RGB
+    if (this.chromaEl) {
+      if (this.config.enabled && !this.config.noFlash && this.chromaState) {
+        const elapsed = this.clock - this.chromaState.startedAt;
+        if (elapsed >= this.chromaState.duration) {
+          this.chromaState = null;
+          this.chromaEl.style.opacity = '0';
+          if (this.canvas) this.canvas.style.filter = '';
+        } else {
+          const k = 1 - (elapsed / Math.max(1e-4, this.chromaState.duration));
+          const curInt = Math.round(this.chromaState.intensity * k);
+          this.chromaEl.style.opacity = String(k * 0.85);
+          if (this.canvas) {
+            this.canvas.style.filter = curInt > 0 ? `drop-shadow(${curInt}px 0px 0px rgba(255,0,80,0.38)) drop-shadow(-${curInt}px 0px 0px rgba(0,220,255,0.38))` : '';
+          }
+        }
+      } else {
+        this.chromaEl.style.opacity = '0';
+        if (this.canvas) this.canvas.style.filter = '';
       }
     }
   }
