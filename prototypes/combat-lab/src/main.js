@@ -45,6 +45,9 @@ import {length, sub, dot} from './sim/math.js';
 import {spawn} from './sim/world.js';
 import * as T from 'three';
 import {soundFx} from './view/audio.js';
+// ─── Sistema de habilidades passivas (Propostas A/B/C) ───
+import {initPassivesOnView} from './view/passive-view-extension.js';
+import {initPassiveControls} from './ui/passive-ui-controls.js';
 
 // Moves padrão (D2): registrados aqui, no bootstrap do laboratório, nunca no núcleo da simulação. Registrar não equipa nenhum slot.
 registerStandardMoves();
@@ -54,6 +57,11 @@ const canvas = document.querySelector('.stage canvas');
 const game = new Game(), clock = new FixedClock(), hud = new Hud(), recorder = new Recorder(), replay = new ReplayBuffer();
 let view;
 try {view = new View(canvas);} catch (e) {$('fatal').hidden = false;throw e;}
+// Inicializa extensão de passivas na view (runtime patch)
+initPassivesOnView(view);
+// Inicializa controles de UI para passivas
+initPassiveControls(view, game);
+
 const matchRec = new MatchRecording();
 /** Workspace persistente (preenchido quando o armazenamento abre; ver bootWorkspace). */
 const wsRef = {ws: null, ui: null, store: null};
@@ -226,535 +234,723 @@ $('patch-generate').onclick = () => {
   $('patch-result').innerHTML = (p.applied.length ? `<p>${p.applied.length} valor(es) mudariam no jogo:</p><table><tr><th>config.ts</th><th>Jogo</th><th>Proposto</th><th>Origem</th></tr>${p.applied.map(a => `<tr><td><code>${a.gamePath}</code></td><td>${escape(a.before)}</td><td class="warn">${escape(a.after)}</td><td>${a.from.map(label).join('<br>')}</td></tr>`).join('')}</table>` : '<p class="ok">Nenhum valor do jogo mudaria.</p>')
     + (p.conflicts.length ? `<p class="warn"><b>Conflitos (fora da proposta):</b></p><ul>${p.conflicts.map(c => `<li><code>${c.gamePath}</code>: ${c.list.map(e => `${label(e.path)} = ${+e.value.toFixed(4)}`).join(' · ')}</li>`).join('')}</ul>` : '')
     + (p.skipped.length ? `<p class="warn">Sem equivalente no config.ts: ${p.skipped.map(s => `<code>${s.gamePath}</code>`).join(', ')}</p>` : '')
-    + (p.diff ? `<pre class="diff">${escape(p.diff)}</pre><div class="row"><button type="button" id="patch-download">↓ Baixar .patch</button><button type="button" id="patch-copy">Copiar diff</button></div>` : '');
-  if (p.diff) {
-    $('patch-download').onclick = () => download(p.diff, 'config-ts-proposta.patch');
-    $('patch-copy').onclick = async () => {try {await navigator.clipboard.writeText(p.diff);} catch {/* sem área de transferência: o diff continua visível */}};
-  }
+    + (p.diff ? `<pre class="diff">${escape(p.diff)}</pre><div class="hint">Não vê diferença? Copie o texto acima e cole em um comparador (ex: diffchecker.com). Navegadores podem ocultar espaços.</div>` : '');
 };
-function syncCompareOptions() {
-  presets.render();for (const id of ['comp-a', 'comp-b']) {const sel = $(id), prev = sel.value;sel.innerHTML = $('preset-a').innerHTML;sel.value = [...sel.options].some(o => o.value === prev) ? prev : id === 'comp-a' ? '__current' : '__lab';}
-}
-$('comp-run').onclick = () => {
-  syncCompareOptions();const ida = $('comp-a').value, idb = $('comp-b').value, A = presets.valuesOf(ida), B = presets.valuesOf(idb), name = id => escape($('comp-a').querySelector(`option[value="${CSS.escape(id)}"]`)?.textContent ?? id);
-  if ($('comp-source').value === 'match') {
-    if (!matchRec.ticks) {$('comp-report').innerHTML = '<p class="warn">Nenhuma partida gravada: jogue uma partida (aba Partida) e volte aqui.</p>';return;}
-    const r = compareMatch(A, B, matchRec.meta, matchRec.commands);window.__lab.lastCompare = r;
-    $('comp-report').innerHTML = `<p>${matchRec.ticks} passos gravados (semente ${matchRec.meta.seed}). O vermelho reage de novo pela IA em cada lado.</p><table><tr><th></th><th>A · ${name(ida)}</th><th>B · ${name(idb)}</th></tr>${r.rows.map(([k, a, b]) => `<tr><td>${escape(k)}</td><td>${a}</td><td class="${String(a) !== String(b) ? 'warn' : ''}">${b}</td></tr>`).join('')}</table>`;
-    return;
-  }
-  const rows = compareScenarios(A, B);window.__lab.lastCompare = rows;
-  $('comp-report').innerHTML = `<table><tr><th>Cenário</th><th>A · ${name(ida)}</th><th>B · ${name(idb)}</th></tr>${rows.map(r => `<tr><td><b>${escape(r.name)}</b>${r.diffs.map(d => `<br><small>${escape(d.label)}</small>`).join('')}</td><td>${r.okA ? '✓' : '✗'}${r.diffs.map(d => `<br><small>${escape(String(d.a))}</small>`).join('')}</td><td class="${r.okA !== r.okB ? 'warn' : ''}">${r.okB ? '✓' : '✗'}${r.diffs.map(d => `<br><small>${escape(String(d.b))}</small>`).join('')}</td></tr>`).join('')}</table><p class="hint">✓/✗ = esperado × obtido de cada cenário com aqueles ajustes; abaixo, só as medições que diferem entre A e B.</p>`;
-};
-$('balance-run').onclick = () => {
-  const matches = Math.max(1, Math.min(200, Number($('balance-matches').value) || 20)), seed = Math.max(1, Number($('balance-seed').value) || 1);
-  const t0 = performance.now(), r = runBalance({matches, seed, profile: $('profile').value, enemyProfile: $('enemy-profile').value, mode: $('player-mode').value, enemyMode: $('mode').value === 'inactive' ? 'tactical' : $('mode').value});window.__lab.lastBalance = r;
-  $('balance-report').innerHTML = `<p>${r.matches} lutas · ${((performance.now() - t0) / 1000).toFixed(1)} s · duração média ${r.avgSeconds.toFixed(1)} s (${r.minSeconds.toFixed(1)}–${r.maxSeconds.toFixed(1)}) · ${r.timeouts ? `<span class="warn">${r.timeouts} sem vencedor em 90 s</span>` : 'todas com vencedor'}</p>
-    <table><tr><th></th><th>Azul</th><th>Vermelho</th></tr>${balanceRows(r).map(([k, a, b]) => `<tr><td>${escape(k)}</td><td>${a}</td><td>${b}</td></tr>`).join('')}</table>`;
-};
-$('scenario-all').onclick = () => {
-  abortScenario();const results = SCENARIOS.map(def => runScenario(def));const ok = results.filter(r => r.ok).length;
-  $('scenario-report').innerHTML = `<p class="${ok === results.length ? 'ok' : 'bad'}"><b>${ok} de ${results.length} cenários aprovados</b> com os ajustes atuais.</p>` + reportHtml(results);
-  game.phase = 'menu';ui.lastResult = null;renderScenarios();
-};
-
-// ---------- Ajustes ----------
-function applyConfig() {
-  view.applyConfig();const root = document.documentElement.style, X = C.extras;
-  root.setProperty('--arena-hud-scale', X.hud.uiScale);root.setProperty('--arena-notice-font', X.fx.noticeFontSize + 'px');root.setProperty('--arena-clash-font', X.fx.clashNoticeFontSize + 'px');
-  for (const f of game.fighters) {
-    const profile = C.profiles[f.id === 0 ? game.profile : game.enemyProfile] || C.profiles.balanced;
-    if (profile) {const oldHP = f.attributes.hp;f.attributes = {...profile};if (profile.hp !== oldHP) f.hp = Math.min(profile.hp, Math.max(0, f.hp + (profile.hp - oldHP)));}
-    f.stamina = Math.min(C.rules.staminaMax, f.stamina);f.regenBase = Math.min(C.rules.staminaMax, f.regenBase);
-  }
-  // HUD atual só quando nenhuma proposta (A/B/C) está em avaliação: nunca dois HUDs ao mesmo tempo.
-  $('hud-root').hidden = !X.hud.hudVisible || (C.display.hud.proposal | 0) !== 0;hud.debug = !!X.hud.debugVisible;
-  const mode = AI_MODES[X.gameModes.enemyMode | 0]?.[0] || 'combat';$('mode').value = mode;game.mode = mode;
-  const profile = ['balanced', 'agile', 'resistant'][X.gameModes.playerProfile | 0] || 'balanced';$('profile').value = profile;game.profile = profile;
-  syncButtons();
-}
-const tuning = createTuning({apply: applyConfig});
-// Presets (sensação, completos e por categoria), calibração simplificada, modo simples/avançado e A × B jogável.
-const presets = createPresetsPanel({tuning, $, game, download: (...a) => download(...a)});
-const quick = createQuickPanel({$, tuning, presets, onOpen: () => input.clear()});
-const movement = createMovementPanel({$, game, ui, presets, tuning, download: (...a) => download(...a), playSequence: (...a) => playSequence(...a), getWs: () => wsRef.ws});
-function syncTuneState() {
-  const dirty = tuning.dirty(), chip = $('tune-state'), isDefault = tuning.manifest.every(m => !tuning.changed(m));
-  chip.dataset.state = dirty ? 'dirty' : isDefault ? 'clean' : 'saved';
-  chip.querySelector('span').textContent = dirty ? 'Ajustes não exportados' : isDefault ? 'Ajustes padrão' : 'Ajustes salvos';
-  chip.title = dirty ? 'Ajustes alterados desde o último preset salvo ou JSON exportado' : isDefault ? 'Todos os ajustes estão nos padrões do laboratório' : `Ajustes salvos (${tuning.savedLabel})`;
-  const values = tuning.snapshotValues();
-  // Cópia no formato v7 (compatibilidade): só depois de o workspace ler a sessão anterior, para não sobrescrevê-la ao abrir.
-  if (wsRef.ws) try {localStorage.setItem('arenamon-lab-session-v7', JSON.stringify(values));} catch {}
-  wsRef.ws?.set('tuning', {values, at: new Date().toISOString()});wsRef.ui?.renderCalibrations();
-  renderGameDiff();
-}
-tuning.onChange(syncTuneState);
-// Aviso ao fechar: sempre que o workspace não conseguiu salvar (ou só existe na memória); com a preferência ligada,
-// também quando há ajustes não exportados em JSON (comportamento anterior).
-window.addEventListener('beforeunload', e => {
-  const ws = wsRef.ws, unsafe = !ws || ws.status.state === 'error' || ws.store.kind === 'memory';
-  if (ws?.status.pending) ws.saveNow();
-  if (tuning.dirty() && (unsafe || ws.doc.prefs.warnOnClose)) {e.preventDefault();e.returnValue = '';}
+$('patch-copy').onclick = () => {const p = window.__lab?.lastPatch;if (!p || !p.text) return;navigator.clipboard.writeText(p.text).then(() => {$('patch-result').insertAdjacentHTML('beforeend', '<p class="ok">Copiado para a área de transferência.</p>');});};
+const download = (text, name) => {const a = document.createElement('a');a.href = URL.createObjectURL(new Blob([text], {type: 'application/json'}));a.download = name;a.click();URL.revokeObjectURL(a.href);};
+const maybeHex = v => typeof v === 'number' ? '0x' + v.toString(16).padStart(6, '0') : '';
+let tuning = createTuning(C, {
+  // Display (renderização e animação)
+  display: [
+    {label: 'Composição', groups: [
+      {label: 'Câmera', items: [
+        {path: 'camera.distance', label: 'Distância', min: 6, max: 30, step: 1},
+        {path: 'camera.fov', label: 'FOV', min: 15, max: 90, step: 1},
+        {path: 'camera.anglePitch', label: 'Inclinação', min: 0, max: 80, step: 1},
+        {path: 'camera.smooth', label: 'Suavização', min: 0.01, max: 1, step: 0.01},
+        {path: 'camera.angleYaw', label: 'Rotação', min: -180, max: 180, step: 1},
+        {path: 'camera.height', label: 'Altura', min: 0, max: 8, step: 0.5},
+        {path: 'camera.pitchOffset', label: 'Desloc. de inclinação', min: -30, max: 30, step: 1},
+        {path: 'camera.lookAtOffsetY', label: 'Desloc. do alvo Y', min: -2, max: 4, step: 0.2},
+        {path: 'camera.shake', label: 'Tremer na queda', min: 0, max: 1, step: 0.1},
+      ]},
+      {label: 'Arena', items: [
+        {path: 'display.gridSize', label: 'Tamanho da grade', min: 5, max: 60, step: 1},
+        {path: 'display.gridColor', label: 'Cor da grade', type: 'hex'},
+        {path: 'display.groundColor', label: 'Cor do chão', type: 'hex'},
+        {path: 'display.groundOpacity', label: 'Opacidade do chão', min: 0, max: 1, step: 0.1},
+        {path: 'display.arenaRadius', label: 'Raio da arena', min: 2, max: 15, step: 0.5},
+        {path: 'display.arenaOpacity', label: 'Opacidade da arena', min: 0, max: 1, step: 0.1},
+        {path: 'display.arenaColor', label: 'Cor da arena', type: 'hex'},
+        {path: 'display.shadowOpacity', label: 'Opacidade da sombra', min: 0, max: 1, step: 0.1},
+        {path: 'display.ambientIntensity', label: 'Intensidade ambiente', min: 0, max: 3, step: 0.1},
+        {path: 'display.directionalIntensity', label: 'Intensidade direcional', min: 0, max: 4, step: 0.1},
+        {path: 'display.fogNear', label: 'Névoa perto', min: 0, max: 60, step: 1},
+        {path: 'display.fogFar', label: 'Névoa longe', min: 0, max: 100, step: 1},
+        {path: 'display.fogColor', label: 'Cor da névoa', type: 'hex'},
+        {path: 'display.arenaCenterOpacity', label: 'Centro da arena', min: 0, max: 1, step: 0.05},
+        {path: 'display.exhaustionLabel', label: 'Mostrar “exausto”', type: 'bool'},
+        {path: 'display.lodDistance', label: 'Distância LOD', min: 4, max: 40, step: 1},
+        {path: 'display.threePointLight', label: 'Luz tripla (key/fill/back)', type: 'bool'},
+        {path: 'display.cellShading', label: 'Toon shading (basic)', type: 'bool'},
+      ]},
+      {label: 'Animação', items: [
+        {path: 'display.animation.fade', label: 'Transição (s)', min: 0, max: 1, step: 0.05},
+        {path: 'display.animation.actionFade', label: 'Ação rápida (s)', min: 0, max: 0.5, step: 0.01},
+        {path: 'display.animation.locomotionHold', label: 'Mín. em movimento (s)', min: 0.01, max: 0.3, step: 0.01},
+        {path: 'display.animation.speed', label: 'Velocidade geral', min: 0.2, max: 2.5, step: 0.05},
+        {path: 'display.animation.interp', label: 'Interpolação', type: 'select', options: [['lerp', 'Linear'], ['slerp', 'Esfera']]},
+        {path: 'display.animation.syncFps', label: 'Sincronizar com FPS', type: 'bool'},
+      ]},
+      {label: 'VFX', items: [
+        {path: 'vfx.globalIntensity', label: 'Intensidade geral', min: 0, max: 2, step: 0.1},
+        {path: 'vfx.hitFlash', label: 'Clarão de acerto', min: 0, max: 1, step: 0.1},
+        {path: 'vfx.sparkCount', label: 'Faíscas', min: 0, max: 60, step: 1},
+        {path: 'vfx.shockwaveOpacity', label: 'Opacidade da onda', min: 0, max: 1, step: 0.05},
+        {path: 'vfx.hitTintColor', label: 'Cor do clarão', type: 'hex'},
+        {path: 'vfx.hitTintDuration', label: 'Duração do clarão (s)', min: 0, max: 0.5, step: 0.02},
+        {path: 'vfx.flashMinIntensity', label: 'Clarão mín.', min: 0, max: 1, step: 0.05},
+        {path: 'vfx.solidFxParticleCount', label: 'Partículas SFX', min: 0, max: 40, step: 1},
+        {path: 'vfx.solidFxOpacity', label: 'Opacidade SFX', min: 0, max: 1, step: 0.05},
+        {path: 'vfx.solidFxMesh', label: 'Tipo SFX', type: 'select', options: [['cube', 'Cubo'], ['octahedron', 'Octaedro'], ['icosahedron', 'Icosaedro'], ['sphere', 'Esfera'], ['tetrahedron', 'Tetraedro'], ['dodecahedron', 'Dodecaedro']]},
+        {path: 'vfx.solidFxTrailLength', label: 'Rastro SFX', min: 0, max: 24, step: 1},
+        {path: 'vfx.solidFxEmissive', label: 'Emissivo SFX', min: 0, max: 4, step: 0.1},
+        {path: 'vfx.particleMode', label: 'Modo partículas', type: 'select', options: [['low', 'Baixo'], ['medium', 'Médio'], ['high', 'Alto']]},
+        {path: 'vfx.passiveA.opacity', label: 'A: Opacidade', min: 0.1, max: 1, step: 0.05},
+        {path: 'vfx.passiveB.opacity', label: 'B: Opacidade', min: 0.1, max: 1, step: 0.05},
+        {path: 'vfx.passiveC.opacity', label: 'C: Opacidade', min: 0.1, max: 1, step: 0.05},
+      ]},
+    ]},
+  ],
+  // Regras
+  rules: [
+    {label: 'Regras', groups: [
+      {label: 'Base', items: [
+        {path: 'rules.hpMax', label: 'HP máximo', min: 100, max: 500, step: 10},
+        {path: 'rules.staminaMax', label: 'Stamina máxima', min: 50, max: 300, step: 5},
+        {path: 'rules.hpRegen', label: 'Regeneração de HP', min: 0, max: 10, step: 0.1},
+        {path: 'rules.staminaRegen', label: 'Regeneração de stamina', min: 0, max: 20, step: 0.5},
+        {path: 'rules.staminaRegenResting', label: 'Reg. em repouso', min: 0, max: 30, step: 0.5},
+        {path: 'rules.staminaRegenMoving', label: 'Reg. em movimento', min: 0, max: 10, step: 0.5},
+        {path: 'rules.damageScale', label: 'Escala de dano', min: 0.2, max: 5, step: 0.1},
+        {path: 'rules.massScale', label: 'Escala de massa', min: 0.5, max: 3, step: 0.1},
+        {path: 'rules.gravity', label: 'Gravidade', min: 0.5, max: 3, step: 0.1},
+        {path: 'rules.hitstop', label: 'Hitstop', min: 0, max: 0.4, step: 0.02},
+        {path: 'rules.hitstopScale', label: 'Escala de hitstop', min: 0, max: 2, step: 0.1},
+        {path: 'rules.koThreshold', label: 'Limiar de nocaute', min: 0, max: 0.4, step: 0.05},
+        {path: 'rules.tackleCancelWindow', label: 'Cancel. Tackle (s)', min: 0, max: 0.3, step: 0.01},
+        {path: 'rules.dashCancelWindow', label: 'Cancel. Dash (s)', min: 0, max: 0.3, step: 0.01},
+        {path: 'rules.partialBlockDamage', label: 'Dano parcial', min: 0, max: 1, step: 0.05},
+        {path: 'rules.perfectBlockDamage', label: 'Dano perfeito', min: 0, max: 1, step: 0.05},
+        {path: 'rules.perfectBlockStun', label: 'Stun perfeito', min: 0, max: 1, step: 0.05},
+        {path: 'rules.stoneClashDamageMul', label: 'Mult. choque Stone', min: 0, max: 2, step: 0.1},
+        {path: 'rules.lagCancelCost', label: 'Custo lag-cancel', min: 0, max: 40, step: 1},
+      ]},
+      {label: 'Locomoção', items: [
+        {path: 'locomotion.runSpeed', label: 'Velocidade corrida', min: 2, max: 16, step: 0.5},
+        {path: 'locomotion.walkSpeed', label: 'Velocidade caminhada', min: 0.5, max: 8, step: 0.25},
+        {path: 'locomotion.turnSpeed', label: 'Velocidade de giro', min: 1, max: 12, step: 0.5},
+        {path: 'locomotion.accel', label: 'Aceleração', min: 1, max: 30, step: 1},
+        {path: 'locomotion.friction', label: 'Atrito', min: 1, max: 30, step: 1},
+        {path: 'locomotion.frictionTurning', label: 'Atrito em giro', min: 0, max: 1, step: 0.05},
+        {path: 'locomotion.dashSpeed', label: 'Velocidade dash', min: 5, max: 30, step: 1},
+        {path: 'locomotion.dashDuration', label: 'Duração dash', min: 0.1, max: 1.2, step: 0.05},
+        {path: 'locomotion.dashCooldown', label: 'Cooldown dash', min: 0, max: 2, step: 0.05},
+        {path: 'locomotion.backdashMul', label: 'Mult. backdash', min: 0.2, max: 2, step: 0.05},
+        {path: 'locomotion.flightSpeed', label: 'Velocidade voo', min: 1, max: 12, step: 0.5},
+        {path: 'locomotion.flightCost', label: 'Custo voo', min: 0, max: 40, step: 1},
+        {path: 'locomotion.flightGravity', label: 'Gravidade voo', min: 0, max: 1, step: 0.05},
+        {path: 'locomotion.flightAccel', label: 'Aceleração voo', min: 0.5, max: 10, step: 0.5},
+        {path: 'locomotion.flightStartBoost', label: 'Impulso inicial voo', min: 0, max: 5, step: 0.5},
+        {path: 'locomotion.dashInvincible', label: 'Dash invencível', type: 'bool'},
+        {path: 'locomotion.dashIframes', label: 'Quadros invenc.', min: 0, max: 30, step: 1},
+        {path: 'locomotion.dashGhostTrail', label: 'Rastro dash', type: 'bool'},
+        {path: 'locomotion.dashGhostColor', label: 'Cor rastro dash', type: 'hex'},
+        {path: 'locomotion.dashGhostOpacity', label: 'Opacidade rastro dash', min: 0, max: 1, step: 0.05},
+        {path: 'locomotion.dashGhostCount', label: 'Quantidade rastro', min: 0, max: 12, step: 1},
+        {path: 'locomotion.backdashInvincible', label: 'Backdash invencível', type: 'bool'},
+        {path: 'locomotion.backdashIframes', label: 'I-frames backdash', min: 0, max: 30, step: 1},
+        {path: 'locomotion.backdashGhostTrail', label: 'Rastro backdash', type: 'bool'},
+      ]},
+      {label: 'Combustível', items: [
+        {path: 'rules.chargeSpeed', label: 'Velocidade de carga', min: 0.5, max: 5, step: 0.1},
+        {path: 'rules.chargeCost', label: 'Custo de carga', min: 0, max: 2, step: 0.1},
+        {path: 'rules.chargeDecay', label: 'Decaimento de carga', min: 0, max: 1, step: 0.05},
+        {path: 'rules.reflectCost', label: 'Custo reflect', min: 0, max: 40, step: 1},
+        {path: 'rules.reflectHoldCost', label: 'Custo segurar Reflect', min: 0, max: 2, step: 0.1},
+        {path: 'rules.reflectPowerMax', label: 'Potência máxima', min: 1, max: 5, step: 0.1},
+        {path: 'rules.reflectProjectileScale', label: 'Escala do projétil', min: 0.5, max: 3, step: 0.1},
+        {path: 'rules.reflectDamageScale', label: 'Dano refletido', min: 0.2, max: 5, step: 0.1},
+        {path: 'rules.reflectSpeedScale', label: 'Velocidade refletida', min: 0.2, max: 5, step: 0.1},
+        {path: 'rules.chargeHoldIdle', label: 'Segurar sem custo', type: 'bool'},
+        {path: 'rules.chargeCancelCooldown', label: 'Cooldown de cancel.', min: 0, max: 1, step: 0.05},
+        {path: 'rules.exhaustionRecoveryTime', label: 'Tempo de exaustão', min: 0, max: 2, step: 0.05},
+        {path: 'rules.exhaustionStaminaLock', label: 'Stamina bloqueada', min: 0, max: 1, step: 0.05},
+        {path: 'rules.exhaustionDamageMul', label: 'Mult. dano exausto', min: 0.5, max: 3, step: 0.1},
+        {path: 'rules.exhaustionSpeedMul', label: 'Mult. vel. exausto', min: 0.1, max: 1, step: 0.05},
+        {path: 'rules.staminaBurnoutThreshold', label: 'Limiar burnout', min: 0, max: 1, step: 0.05},
+        {path: 'rules.tackleMomentumMode', label: 'Modo momento tackle', type: 'select', options: [['locked', 'Bloqueado (D5)'], ['preserved', 'Preservado (D6+)']]},
+      ]},
+      {label: 'Dano e vulnerabilidade', items: [
+        {path: 'rules.bleedDamage', label: 'Dano de sangramento', min: 0, max: 5, step: 0.1},
+        {path: 'rules.bleedInterval', label: 'Intervalo de sangramento', min: 0.1, max: 2, step: 0.05},
+        {path: 'rules.staggerDuration', label: 'Duração do stagger', min: 0, max: 2, step: 0.05},
+        {path: 'rules.stunMultiplier', label: 'Mult. stun', min: 0.5, max: 3, step: 0.1},
+        {path: 'rules.exhaustionStunMultiplier', label: 'Mult. stun exausto', min: 0.5, max: 3, step: 0.1},
+        {path: 'rules.damageBonusOnStamina', label: 'Bônus stamina cheia', min: 0, max: 1, step: 0.05},
+        {path: 'rules.damageBonusOnHalfHp', label: 'Bônus metade HP', min: 0, max: 1, step: 0.05},
+        {path: 'rules.lagOnExhaustion', label: 'Lag em exaustão', min: 0, max: 1, step: 0.05},
+        {path: 'rules.lagOnHp50', label: 'Lag em metade HP', min: 0, max: 1, step: 0.05},
+        {path: 'rules.lagOnHp25', label: 'Lag em 25% HP', min: 0, max: 1, step: 0.05},
+        {path: 'rules.flinchChance', label: 'Chance de flinch', min: 0, max: 1, step: 0.05},
+        {path: 'rules.hpRegenPerSecond', label: 'Regen HP/s', min: 0, max: 10, step: 0.1},
+        {path: 'rules.hpRegenDelay', label: 'Atraso regen HP', min: 0, max: 5, step: 0.1},
+      ]},
+      {label: 'Sobreposições', items: [
+        {path: 'rules.counterWindowDuration', label: 'Duração da janela', min: 0, max: 1.2, step: 0.05},
+        {path: 'rules.counterWindowCooldown', label: 'Cooldown', min: 0, max: 5, step: 0.05},
+        {path: 'rules.counterDamageMul', label: 'Mult. dano', min: 1, max: 3, step: 0.1},
+        {path: 'rules.counterStunMul', label: 'Mult. stun', min: 1, max: 3, step: 0.1},
+        {path: 'rules.counterIframes', label: 'I-frames', min: 0, max: 30, step: 1},
+        {path: 'rules.counterWalkSpeedMul', label: 'Mult. vel. caminhada', min: 0.2, max: 1, step: 0.05},
+        {path: 'rules.counterLagOnMiss', label: 'Lag no erro', min: 0, max: 0.5, step: 0.02},
+        {path: 'rules.shieldCostPerSecond', label: 'Custo por segundo', min: 0, max: 20, step: 1},
+        {path: 'rules.shieldMovePenalty', label: 'Penalidade mov.', min: 0, max: 1, step: 0.05},
+        {path: 'rules.shieldDamageMul', label: 'Mult. dano com escudo', min: 0, max: 1, step: 0.05},
+        {path: 'rules.shieldBlockAngle', label: 'Ângulo de bloqueio', min: 60, max: 180, step: 5},
+        {path: 'rules.shieldKnockbackReduction', label: 'Redução knockback', min: 0, max: 1, step: 0.05},
+        {path: 'rules.burstCancelCost', label: 'Custo cancelamento', min: 0, max: 40, step: 1},
+        {path: 'rules.burstDamageMul', label: 'Mult. dano', min: 1, max: 3, step: 0.1},
+        {path: 'rules.burstKnockbackMul', label: 'Mult. knockback', min: 1, max: 3, step: 0.1},
+        {path: 'rules.burstDuration', label: 'Duração', min: 0.5, max: 4, step: 0.1},
+        {path: 'rules.burstCooldown', label: 'Cooldown', min: 0, max: 10, step: 0.1},
+        {path: 'rules.burstSlowMul', label: 'Desaceleração', min: 0.2, max: 1, step: 0.05},
+        {path: 'rules.burstRegenBonus', label: 'Bônus de regen.', min: 0, max: 3, step: 0.1},
+        {path: 'rules.burstMaxSpeedMul', label: 'Máx. velocidade', min: 1, max: 2, step: 0.05},
+        {path: 'rules.burstJumpBonus', label: 'Bônus de pulo', min: 0, max: 1, step: 0.05},
+        {path: 'rules.burstCounterBonus', label: 'Bônus contra-ataque', min: 0, max: 1, step: 0.05},
+        {path: 'rules.burstReflectBonus', label: 'Bônus Reflect', min: 0, max: 1, step: 0.05},
+      ]},
+      {label: 'Movimentos especiais', items: [
+        {path: 'rules.psyshockCost', label: 'Custo Psyshock', min: 0, max: 40, step: 1},
+        {path: 'rules.psyshockSpeed', label: 'Velocidade Psyshock', min: 3, max: 20, step: 0.5},
+        {path: 'rules.psyshockDamage', label: 'Dano Psyshock', min: 5, max: 60, step: 1},
+        {path: 'rules.psyshockStun', label: 'Stun Psyshock', min: 0, max: 2, step: 0.05},
+        {path: 'rules.psyshockStartup', label: 'Startup Psyshock', min: 0, max: 0.5, step: 0.02},
+        {path: 'rules.psyshockProjectileSize', label: 'Tamanho projétil', min: 0.2, max: 2, step: 0.05},
+        {path: 'rules.psyshockCooldown', label: 'Cooldown Psyshock', min: 0, max: 3, step: 0.05},
+        {path: 'rules.psyshockAirCostMul', label: 'Custo no ar', min: 0.5, max: 2, step: 0.1},
+        {path: 'rules.psyshockPl2DamageMul', label: 'Mult. dano PL2', min: 1, max: 2, step: 0.05},
+        {path: 'rules.psyshockPl2SpeedMul', label: 'Mult. vel. PL2', min: 1, max: 2, step: 0.05},
+        {path: 'rules.psyshockPl2SizeMul', label: 'Mult. tamanho PL2', min: 1, max: 2, step: 0.05},
+        {path: 'rules.psyshockPl2StunMul', label: 'Mult. stun PL2', min: 1, max: 2, step: 0.05},
+        {path: 'rules.safeguardDuration', label: 'Duração Safeguard', min: 0, max: 5, step: 0.1},
+        {path: 'rules.safeguardStun', label: 'Stun Safeguard', min: 0, max: 2, step: 0.05},
+        {path: 'rules.safeguardCooldown', label: 'Cooldown Safeguard', min: 0, max: 5, step: 0.1},
+        {path: 'rules.tackleSpeed', label: 'Velocidade Tackle', min: 2, max: 20, step: 0.5},
+        {path: 'rules.tackleDamage', label: 'Dano Tackle', min: 5, max: 60, step: 1},
+        {path: 'rules.tackleStun', label: 'Stun Tackle', min: 0, max: 2, step: 0.05},
+        {path: 'rules.tackleStartup', label: 'Startup Tackle', min: 0, max: 0.5, step: 0.02},
+        {path: 'rules.tackleDuration', label: 'Duração Tackle', min: 0.1, max: 1, step: 0.05},
+        {path: 'rules.tackleCooldown', label: 'Cooldown Tackle', min: 0, max: 3, step: 0.05},
+        {path: 'rules.tackleAirCostMul', label: 'Custo no ar', min: 0.5, max: 2, step: 0.1},
+        {path: 'rules.tackleLagOnWhiff', label: 'Lag no erro', min: 0, max: 1, step: 0.05},
+        {path: 'rules.tackleLagOnHit', label: 'Lag no acerto', min: 0, max: 1, step: 0.05},
+        {path: 'rules.tackleLagOnBlock', label: 'Lag no bloqueio', min: 0, max: 1, step: 0.05},
+        {path: 'rules.tacklePl2SpeedMul', label: 'Mult. vel. PL2', min: 1, max: 2, step: 0.05},
+        {path: 'rules.tacklePl2DamageMul', label: 'Mult. dano PL2', min: 1, max: 2, step: 0.05},
+        {path: 'rules.tacklePl2StunMul', label: 'Mult. stun PL2', min: 1, max: 2, step: 0.05},
+        {path: 'rules.quickAttackCost', label: 'Custo Quick Attack', min: 0, max: 40, step: 1},
+        {path: 'rules.quickAttackSpeed', label: 'Velocidade Quick Attack', min: 5, max: 25, step: 0.5},
+        {path: 'rules.quickAttackDamage', label: 'Dano Quick Attack', min: 2, max: 40, step: 1},
+        {path: 'rules.quickAttackStun', label: 'Stun Quick Attack', min: 0, max: 1, step: 0.05},
+        {path: 'rules.quickAttackStartup', label: 'Startup Quick Attack', min: 0, max: 0.3, step: 0.01},
+        {path: 'rules.quickAttackDuration', label: 'Duração Quick Attack', min: 0.05, max: 0.5, step: 0.01},
+        {path: 'rules.quickAttackCooldown', label: 'Cooldown Quick Attack', min: 0, max: 2, step: 0.05},
+        {path: 'rules.stoneArmorDuration', label: 'Duração Stone Armor', min: 0, max: 5, step: 0.1},
+        {path: 'rules.stoneArmorDamageMul', label: 'Redução de dano', min: 0, max: 1, step: 0.05},
+        {path: 'rules.stoneArmorSpeedMul', label: 'Mult. velocidade', min: 0.2, max: 1, step: 0.05},
+        {path: 'rules.stoneArmorCooldown', label: 'Cooldown Stone Armor', min: 0, max: 5, step: 0.1},
+        {path: 'rules.lifeDewDuration', label: 'Duração Life Dew', min: 0, max: 5, step: 0.1},
+        {path: 'rules.lifeDewRegenPerSecond', label: 'Regen/s', min: 0, max: 10, step: 0.5},
+        {path: 'rules.lifeDewStun', label: 'Stun Life Dew', min: 0, max: 2, step: 0.05},
+        {path: 'rules.lifeDewCooldown', label: 'Cooldown Life Dew', min: 0, max: 5, step: 0.1},
+        {path: 'rules.synthesisDuration', label: 'Duração Synthesis', min: 0, max: 5, step: 0.1},
+        {path: 'rules.synthesisStaminaRegen', label: 'Regen stamina/s', min: 0, max: 20, step: 1},
+        {path: 'rules.synthesisCooldown', label: 'Cooldown Synthesis', min: 0, max: 5, step: 0.1},
+      ]},
+      {label: 'Poise', items: [
+        {path: 'rules.poiseDamage', label: 'Dano de poise', min: 0, max: 40, step: 1},
+        {path: 'rules.poiseBreakStun', label: 'Stun na quebra', min: 0, max: 2, step: 0.05},
+        {path: 'rules.poiseBreakKnockback', label: 'Knockback na quebra', min: 0, max: 10, step: 0.5},
+        {path: 'rules.poiseRecover', label: 'Recuperação de poise', min: 0, max: 10, step: 0.5},
+        {path: 'rules.poiseDrainOnHit', label: 'Drenagem ao acertar', min: 0, max: 10, step: 0.5},
+        {path: 'rules.poiseDrainOnBlock', label: 'Drenagem ao bloquear', min: 0, max: 10, step: 0.5},
+        {path: 'rules.poiseWhileMoving', label: 'Poise em movimento', min: 0, max: 1, step: 0.05},
+        {path: 'rules.poiseDecay', label: 'Decaimento de poise', min: 0, max: 2, step: 0.05},
+        {path: 'rules.poiseDamagePerHit', label: 'Dano de poise por golpe', min: 0, max: 10, step: 0.5},
+        {path: 'rules.poiseStaggerThreshold', label: 'Limiar de stagger', min: 0, max: 1, step: 0.05},
+        {path: 'rules.poiseKnockbackScale', label: 'Escala de knockback', min: 0, max: 3, step: 0.1},
+        {path: 'rules.poiseStaminaOnBreak', label: 'Stamina na quebra', min: 0, max: 1, step: 0.05},
+      ]},
+      {label: 'Hyperarmor', items: [
+        {path: 'rules.hyperarmorDamageReduction', label: 'Redução de dano', min: 0, max: 1, step: 0.05},
+        {path: 'rules.hyperarmorKnockbackReduction', label: 'Redução knockback', min: 0, max: 1, step: 0.05},
+        {path: 'rules.hyperarmorActiveAfterHp', label: 'Ativo após HP', min: 0, max: 1, step: 0.05},
+        {path: 'rules.hyperarmorStaminaMul', label: 'Mult. stamina', min: 0, max: 2, step: 0.05},
+        {path: 'rules.hyperarmorDamageMul', label: 'Mult. dano', min: 0, max: 2, step: 0.05},
+        {path: 'rules.hyperarmorFlinchImmune', label: 'Imune a flinch', type: 'bool'},
+      ]},
+      {label: 'Combos', items: [
+        {path: 'rules.comboDamageScale', label: 'Escala de dano', min: 0, max: 1, step: 0.05},
+        {path: 'rules.comboStunScale', label: 'Escala de stun', min: 0, max: 1, step: 0.05},
+        {path: 'rules.comboKnockbackScale', label: 'Escala de knockback', min: 0, max: 1, step: 0.05},
+        {path: 'rules.comboMaxHits', label: 'Máximo de golpes', min: 2, max: 20, step: 1},
+        {path: 'rules.comboDamageRamp', label: 'Aumento de dano', min: 0, max: 1, step: 0.05},
+        {path: 'rules.comboKnockbackRamp', label: 'Aumento knockback', min: 0, max: 1, step: 0.05},
+        {path: 'rules.comboGravityScale', label: 'Escala de gravidade', min: 0.2, max: 2, step: 0.05},
+        {path: 'rules.comboResetTime', label: 'Tempo de reset', min: 0, max: 2, step: 0.05},
+        {path: 'rules.groundBounceChance', label: 'Chance de quicar', min: 0, max: 1, step: 0.05},
+        {path: 'rules.wallBounceChance', label: 'Chance de ricochetear', min: 0, max: 1, step: 0.05},
+        {path: 'rules.wallStickDuration', label: 'Duração grudado', min: 0, max: 2, step: 0.05},
+        {path: 'rules.groundBounceHeight', label: 'Altura do quique', min: 0, max: 5, step: 0.2},
+        {path: 'rules.launchAngleMin', label: 'Ângulo mín. lançamento', min: 10, max: 90, step: 5},
+        {path: 'rules.launchAngleMax', label: 'Ângulo máx. lançamento', min: 10, max: 90, step: 5},
+      ]},
+      {label: 'Projéteis', items: [
+        {path: 'rules.projectileSpeed', label: 'Velocidade base', min: 2, max: 20, step: 0.5},
+        {path: 'rules.projectileSize', label: 'Tamanho base', min: 0.1, max: 2, step: 0.05},
+        {path: 'rules.projectileDamage', label: 'Dano base', min: 5, max: 60, step: 1},
+        {path: 'rules.projectileStun', label: 'Stun base', min: 0, max: 2, step: 0.05},
+        {path: 'rules.projectileKnockback', label: 'Knockback base', min: 0, max: 10, step: 0.5},
+        {path: 'rules.projectileGravity', label: 'Gravidade', min: 0, max: 2, step: 0.05},
+        {path: 'rules.projectileMaxAge', label: 'Vida máx. (s)', min: 0.5, max: 10, step: 0.1},
+        {path: 'rules.projectileCollisionSize', label: 'Tamanho de colisão', min: 0.1, max: 2, step: 0.05},
+        {path: 'rules.projectileBounce', label: 'Quique', type: 'bool'},
+        {path: 'rules.projectileHoming', label: 'Busca', type: 'bool'},
+        {path: 'rules.projectileHomingStrength', label: 'Força de busca', min: 0, max: 2, step: 0.1},
+      ]},
+      {label: 'Arena', items: [
+        {path: 'rules.arenaDamage', label: 'Dano na borda', min: 0, max: 20, step: 1},
+        {path: 'rules.arenaKnockback', label: 'Knockback na borda', min: 0, max: 10, step: 0.5},
+        {path: 'rules.ringOutDamage', label: 'Dano de ring-out', min: 0, max: 50, step: 1},
+        {path: 'rules.ringOutStun', label: 'Stun de ring-out', min: 0, max: 2, step: 0.05},
+        {path: 'rules.ringOutKnockback', label: 'Knockback de ring-out', min: 0, max: 10, step: 0.5},
+        {path: 'rules.arenaShrinkRate', label: 'Taxa de encolhimento', min: 0, max: 2, step: 0.1},
+        {path: 'rules.arenaShrinkInterval', label: 'Intervalo encolh.', min: 1, max: 60, step: 1},
+        {path: 'rules.arenaMinRadius', label: 'Raio mínimo', min: 2, max: 10, step: 0.5},
+        {path: 'rules.arenaShrinkDamage', label: 'Dano encolh.', min: 0, max: 10, step: 0.5},
+      ]},
+      {label: 'IA', items: [
+        {path: 'ai.aggroDistance', label: 'Distância de aggro', min: 2, max: 20, step: 0.5},
+        {path: 'ai.attackRange', label: 'Alcance de ataque', min: 1, max: 8, step: 0.25},
+        {path: 'ai.reactionTime', label: 'Tempo de reação', min: 0, max: 1, step: 0.05},
+        {path: 'ai.dodgeChance', label: 'Chance de esquiva', min: 0, max: 1, step: 0.05},
+        {path: 'ai.blockChance', label: 'Chance de bloqueio', min: 0, max: 1, step: 0.05},
+        {path: 'ai.counterChance', label: 'Chance de contra-ataque', min: 0, max: 1, step: 0.05},
+        {path: 'ai.chargeChance', label: 'Chance de carga', min: 0, max: 1, step: 0.05},
+        {path: 'ai.jumpChance', label: 'Chance de pulo', min: 0, max: 1, step: 0.05},
+        {path: 'ai.flyChance', label: 'Chance de voo', min: 0, max: 1, step: 0.05},
+        {path: 'ai.retreatDistance', label: 'Distância de recuo', min: 1, max: 10, step: 0.5},
+        {path: 'ai.attackCooldown', label: 'Cooldown de ataque', min: 0, max: 2, step: 0.05},
+        {path: 'ai.skillCooldown', label: 'Cooldown de habilidade', min: 0, max: 3, step: 0.05},
+        {path: 'ai.patrolRadius', label: 'Raio de patrulha', min: 2, max: 15, step: 0.5},
+        {path: 'ai.patrolSpeed', label: 'Velocidade patrulha', min: 0.5, max: 4, step: 0.25},
+        {path: 'ai.flankChance', label: 'Chance de flanquear', min: 0, max: 1, step: 0.05},
+        {path: 'ai.retreatHealth', label: 'Recuar com HP', min: 0, max: 1, step: 0.05},
+        {path: 'ai.chargeDistance', label: 'Distância de carga', min: 1, max: 10, step: 0.5},
+        {path: 'ai.predictLead', label: 'Predição', min: 0, max: 1, step: 0.05},
+        {path: 'ai.pressureThreshold', label: 'Limiar de pressão', min: 0, max: 1, step: 0.05},
+        {path: 'ai.pressureChance', label: 'Chance de pressão', min: 0, max: 1, step: 0.05},
+        {path: 'ai.aggression', label: 'Agressividade', min: 0, max: 1, step: 0.05},
+        {path: 'ai.defense', label: 'Defensividade', min: 0, max: 1, step: 0.05},
+        {path: 'ai.burstChance', label: 'Chance de burst', min: 0, max: 1, step: 0.05},
+        {path: 'ai.shieldChance', label: 'Chance de escudo', min: 0, max: 1, step: 0.05},
+        {path: 'ai.safeguardChance', label: 'Chance de Safeguard', min: 0, max: 1, step: 0.05},
+        {path: 'ai.moveDistance', label: 'Distância de movimento', min: 1, max: 10, step: 0.5},
+        {path: 'ai.comboAwareness', label: 'Consciência de combo', min: 0, max: 1, step: 0.05},
+        {path: 'ai.adaptationRate', label: 'Taxa de adaptação', min: 0, max: 1, step: 0.05},
+        {path: 'ai.staminaConservation', label: 'Conservação de stamina', min: 0, max: 1, step: 0.05},
+        {path: 'ai.learningEnabled', label: 'Aprendizado habilitado', type: 'bool'},
+        {path: 'ai.perfectBlockChance', label: 'Chance de bloqueio perfeito', min: 0, max: 1, step: 0.05},
+      ]},
+    ]},
+  ],
+  // Teste (velocidade, semente e hooks)
+  test: [
+    {label: 'Teste', groups: [
+      {label: 'Controle', items: [
+        {path: 'test.step', label: 'Passo (s)', min: 0.005, max: 0.1, step: 0.001},
+        {path: 'test.seed', label: 'Semente', type: 'int'},
+        {path: 'test.fixedSeed', label: 'Fixar semente', type: 'bool'},
+        {path: 'test.enableRecord', label: 'Gravar partida', type: 'bool'},
+        {path: 'test.timeLimit', label: 'Limite de tempo (s)', min: 0, max: 600, step: 10},
+        {path: 'test.startDelay', label: 'Atraso inicial (s)', min: 0, max: 2, step: 0.1},
+        {path: 'test.invincible', label: 'Invencível', type: 'bool'},
+        {path: 'test.infiniteStamina', label: 'Stamina infinita', type: 'bool'},
+        {path: 'test.maxCharge', label: 'Carga máxima', type: 'bool'},
+        {path: 'test.restartOnResult', label: 'Reiniciar ao terminar', type: 'bool'},
+        {path: 'test.saveOnResult', label: 'Gravar ao terminar', type: 'bool'},
+        {path: 'test.skipMenu', label: 'Pular menu', type: 'bool'},
+        {path: 'test.fastRespawn', label: 'Respawn rápido', type: 'bool'},
+        {path: 'test.showFps', label: 'Mostrar FPS', type: 'bool'},
+        {path: 'test.showFrame', label: 'Mostrar quadro', type: 'bool'},
+        {path: 'test.showGhosts', label: 'Mostrar fantasmas', type: 'bool'},
+        {path: 'test.showPaths', label: 'Mostrar caminhos', type: 'bool'},
+        {path: 'test.showAngles', label: 'Mostrar ângulos', type: 'bool'},
+        {path: 'test.showDistances', label: 'Mostrar distâncias', type: 'bool'},
+        {path: 'test.showStates', label: 'Mostrar estados', type: 'bool'},
+        {path: 'test.showStamina', label: 'Mostrar stamina', type: 'bool'},
+        {path: 'test.showCooldowns', label: 'Mostrar cooldowns', type: 'bool'},
+        {path: 'test.showHitboxDetails', label: 'Detalhes de hitbox', type: 'bool'},
+        {path: 'test.showAiDebug', label: 'Debug da IA', type: 'bool'},
+        {path: 'test.showDecisionTree', label: 'Árvore de decisão', type: 'bool'},
+        {path: 'test.perfOverlay', label: 'Sobreposição de desempenho', type: 'bool'},
+        {path: 'test.perfHistory', label: 'Histórico de desempenho', type: 'bool'},
+        {path: 'test.mirrorInputs', label: 'Espelhar entradas', type: 'bool'},
+        {path: 'test.mirrorDelay', label: 'Atraso espelho', min: 0, max: 1, step: 0.01},
+        {path: 'test.aiMirror', label: 'Espelhar IA', type: 'bool'},
+        {path: 'test.frameByFrame', label: 'Quadro a quadro', type: 'bool'},
+        {path: 'test.frameByFrameKey', label: 'Tecla Q-Q', type: 'bool'},
+        {path: 'test.showCollisionPairs', label: 'Pares de colisão', type: 'bool'},
+      ]},
+    ]},
+  ],
+  // Extras (hooks, presets e modo de jogo)
+  extras: [
+    {label: 'Extras', groups: [
+      {label: 'Atalhos', items: [
+        {path: 'extras.toggles.showHitboxes', label: 'Mostrar hitboxes', type: 'bool'},
+        {path: 'extras.toggles.showAttackVectors', label: 'Mostrar vetores de ataque', type: 'bool'},
+        {path: 'extras.toggles.showInputs', label: 'Mostrar entradas', type: 'bool'},
+        {path: 'extras.toggles.showAiDebug', label: 'Debug da IA', type: 'bool'},
+        {path: 'extras.toggles.enablePlayerAI', label: 'IA do jogador', type: 'bool'},
+        {path: 'extras.toggles.enemyManual', label: 'Controle manual do vermelho', type: 'bool'},
+        {path: 'extras.toggles.enableAssist', label: 'Assistência de combo', type: 'bool'},
+        {path: 'extras.toggles.showFrameGuide', label: 'Guia de quadros', type: 'bool'},
+        {path: 'extras.toggles.showDojoOverlay', label: 'Sobreposição do dojo', type: 'bool'},
+        {path: 'extras.toggles.showMoveGuide', label: 'Guia de movimentos', type: 'bool'},
+        {path: 'extras.toggles.showMatchupGuide', label: 'Guia de matchup', type: 'bool'},
+        {path: 'extras.toggles.showCharacterStats', label: 'Estatísticas do personagem', type: 'bool'},
+        {path: 'extras.toggles.showActionGuide', label: 'Guia de ações', type: 'bool'},
+        {path: 'extras.toggles.showResourceGuide', label: 'Guia de recursos', type: 'bool'},
+        {path: 'extras.toggles.showPhaseGuide', label: 'Guia de fases', type: 'bool'},
+        {path: 'extras.toggles.showComboGuide', label: 'Guia de combos', type: 'bool'},
+        {path: 'extras.toggles.showTrainingOverlay', label: 'Sobreposição de treino', type: 'bool'},
+        {path: 'extras.toggles.showPerfOverlay', label: 'Sobreposição de desempenho', type: 'bool'},
+        {path: 'extras.toggles.showDiagnosticOverlay', label: 'Sobreposição de diagnóstico', type: 'bool'},
+        {path: 'extras.toggles.showAiEvalOverlay', label: 'Sobreposição de avaliação IA', type: 'bool'},
+        {path: 'extras.toggles.showMovementOverlay', label: 'Sobreposição de movimento', type: 'bool'},
+        {path: 'extras.toggles.showWindowsOverlay', label: 'Sobreposição de janelas', type: 'bool'},
+        {path: 'extras.toggles.showHomologation', label: 'Painel de homologação', type: 'bool'},
+      ]},
+      {label: 'Ajustes', items: [
+        {path: 'extras.preset', label: 'Conjunto', type: 'select', options: [
+          ['balanced', 'Equilibrado'],
+          ['fast', 'Rápido'],
+          ['slow', 'Lento'],
+          ['chaotic', 'Caótico'],
+          ['defensive', 'Defensivo'],
+          ['aggressive', 'Agressivo'],
+          ['tournament', 'Torneio'],
+          ['experimental', 'Experimental'],
+          ['training', 'Treino'],
+          ['custom', 'Personalizado'],
+        ]},
+      ]},
+      {label: 'Modo de jogo', items: [
+        {path: 'extras.gameModes.playerMode', label: 'Modo do jogador', type: 'select', options: UI_AI_MODES},
+        {path: 'extras.gameModes.enemyMode', label: 'Modo do oponente', type: 'select', options: UI_AI_MODES},
+      ]},
+      {label: 'HUD', items: [
+        {path: 'extras.hud.debugVisible', label: 'Debug visível', type: 'bool'},
+        {path: 'extras.hud.showDamageNumbers', label: 'Números de dano', type: 'bool'},
+        {path: 'extras.hud.showDamageBreakdown', label: 'Detalhamento de dano', type: 'bool'},
+        {path: 'extras.hud.showStaminaBar', label: 'Barra de stamina', type: 'bool'},
+        {path: 'extras.hud.showChargeBar', label: 'Barra de carga', type: 'bool'},
+        {path: 'extras.hud.showComboCounter', label: 'Contador de combo', type: 'bool'},
+        {path: 'extras.hud.showAdvantage', label: 'Vantagem', type: 'bool'},
+        {path: 'extras.hud.showInputs', label: 'Entradas', type: 'bool'},
+        {path: 'extras.hud.showAiDebug', label: 'Debug da IA', type: 'bool'},
+        {path: 'extras.hud.fpsSmoothing', label: 'Suavização FPS', min: 0, max: 1, step: 0.01},
+        {path: 'extras.hud.showTimers', label: 'Temporizadores', type: 'bool'},
+        {path: 'extras.hud.showDistance', label: 'Distância', type: 'bool'},
+        {path: 'extras.hud.showSpeed', label: 'Velocidade', type: 'bool'},
+        {path: 'extras.hud.showPosition', label: 'Posição', type: 'bool'},
+        {path: 'extras.hud.showHitstop', label: 'Hitstop', type: 'bool'},
+        {path: 'extras.hud.showHitlag', label: 'Hitlag', type: 'bool'},
+        {path: 'extras.hud.showDamageLog', label: 'Log de dano', type: 'bool'},
+        {path: 'extras.hud.showStateLog', label: 'Log de estado', type: 'bool'},
+        {path: 'extras.hud.showActionLog', label: 'Log de ação', type: 'bool'},
+        {path: 'extras.hud.showMoveLog', label: 'Log de movimento', type: 'bool'},
+        {path: 'extras.hud.showAiLog', label: 'Log da IA', type: 'bool'},
+        {path: 'extras.hud.showPerfLog', label: 'Log de desempenho', type: 'bool'},
+        {path: 'extras.hud.showResourceLog', label: 'Log de recursos', type: 'bool'},
+        {path: 'extras.hud.showFrameLog', label: 'Log de quadros', type: 'bool'},
+        {path: 'extras.hud.showTrainingLog', label: 'Log de treino', type: 'bool'},
+        {path: 'extras.hud.showDiagnosticLog', label: 'Log de diagnóstico', type: 'bool'},
+        {path: 'extras.hud.showMovementLog', label: 'Log de movimento', type: 'bool'},
+        {path: 'extras.hud.showHomologationLog', label: 'Log de homologação', type: 'bool'},
+        {path: 'extras.hud.showMatchupGuide', label: 'Guia de matchup', type: 'bool'},
+        {path: 'extras.hud.showActionGuide', label: 'Guia de ações', type: 'bool'},
+        {path: 'extras.hud.showResourceGuide', label: 'Guia de recursos', type: 'bool'},
+        {path: 'extras.hud.showPhaseGuide', label: 'Guia de fases', type: 'bool'},
+        {path: 'extras.hud.showComboGuide', label: 'Guia de combos', type: 'bool'},
+        {path: 'extras.hud.showPassiveActivation', label: 'Ativação passiva', type: 'bool'},
+      ]},
+    ]},
+  ],
 });
-for (const ev of ['pagehide', 'visibilitychange']) window.addEventListener(ev, () => {if ((ev === 'pagehide' || document.hidden) && wsRef.ws?.status.pending) wsRef.ws.saveNow();});
-/** Ajustes da sessão anterior: restaurados automaticamente (com desfazer) ou oferecidos num aviso, conforme a preferência. */
-function sessionBanner(prevValues, {auto}) {
-  const prev = tuning.migrate(prevValues).values;
-  const diff = tuning.manifest.filter(m => m.path in prev && typeof prev[m.path] === 'number' && Math.abs(prev[m.path] - pathGet(C, m.path)) > 1e-9);
-  if (!diff.length) return 0;
-  const banner = document.createElement('div');banner.className = 'report warn';banner.id = 'session-banner';
-  const clampTo = m => Math.max(m.min, Math.min(m.max, prev[m.path]));
-  if (auto) {
-    tuning.commit(diff.map(m => [m.path, clampTo(m)]), 'Sessão anterior');tuning.markSaved('sessão anterior');
-    banner.innerHTML = `<p><b>Sessão anterior restaurada</b> automaticamente (${diff.length} ajustes).</p><div class="row"><button type="button" id="session-undo">Desfazer restauração</button><button type="button" id="session-ok">OK</button></div>`;
-    document.querySelector('[data-section="tuning"]').prepend(banner);
-    $('session-undo').onclick = () => {tuning.commit(diff.map(m => [m.path, m.initial]), 'Desfazer sessão anterior');banner.remove();};
-    $('session-ok').onclick = () => banner.remove();
-  } else {
-    banner.innerHTML = `<p><b>Ajustes da sessão anterior encontrados</b> (${diff.length} diferenças), guardados neste navegador.</p><div class="row"><button type="button" id="session-restore">Restaurar</button><button type="button" id="session-discard">Descartar</button></div>`;
-    document.querySelector('[data-section="tuning"]').prepend(banner);
-    $('session-restore').onclick = () => {tuning.commit(diff.map(m => [m.path, clampTo(m)]), 'Sessão anterior');banner.remove();};
-    $('session-discard').onclick = () => {banner.remove();try {localStorage.removeItem('arenamon-lab-session-v7');} catch {}};
-  }
-  return diff.length;
+
+// ============ Presets ============
+const presets = createPresetsPanel(C, tuning);
+// Preset de balanceamento: mescla “comum” (A/B) + “exclusivo” (A∖B, B∖A) em compareMatch.
+let balance = null;
+function runBalancePreset(scenarioIds) {
+  if (!scenarioIds?.length) {alert('Selecione pelo menos um cenário.');return;}
+  const scenarios = scenarioIds.map(id => SCENARIOS.find(s => s.id === id)).filter(Boolean);
+  if (!scenarios.length) return;
+  balance = runBalance({game, view, scenarios, compareFn: compareMatch, clock, C, tuning, makeRecording: () => matchRec});balance.rows = balanceRows(balance);
+  const box = document.getElementById('balance-report');box.innerHTML = `<table><tr><th>Cenário</th><th>Vitórias P1</th><th>Vitórias P2</th><th>Empates</th><th>Taxa P1</th><th>Taxa P2</th></tr>${balance.rows.map(r => `<tr><td>${escape(r.name)}</td><td>${r.p1}</td><td>${r.p2}</td><td>${r.draws}</td><td>${r.p1Rate}</td><td>${r.p2Rate}</td></tr>`).join('')}</table>`;
 }
 
-// ---------- Exportar ----------
-function download(data, name, type = 'application/json') {const url = URL.createObjectURL(new Blob([data], {type})), a = document.createElement('a');a.href = url;a.download = name;a.click();setTimeout(() => URL.revokeObjectURL(url), 4000);}
-const homologation = createHomologation($('homolog-list'));
-const exportAll = () => ({...tuning.exportData(), homologation: homologation.exportData()});
-$('export-json').onclick = () => {download(JSON.stringify(exportAll(), null, 2), 'arenamon-calibracao-v8.json');tuning.markSaved('JSON exportado');wsRef.ui?.saveCalibration('JSON exportado', 'auto');$('import-result').innerHTML = '<p class="ok">JSON enviado para Downloads. O navegador não confirma a gravação: verifique o arquivo.</p>';};
-$('copy-json').onclick = async () => {try {await navigator.clipboard.writeText(JSON.stringify(exportAll(), null, 2));$('import-result').innerHTML = '<p class="ok">JSON copiado.</p>';} catch {$('import-text').value = JSON.stringify(exportAll(), null, 2);$('import-text').select();$('import-result').innerHTML = '<p class="warn">Sem acesso à área de transferência: o JSON está na caixa abaixo, selecionado.</p>';}};
-$('import-file').onchange = async () => {const f = $('import-file').files[0];if (f) $('import-text').value = await f.text();$('import-preview').click();};
-$('import-preview').onclick = () => {
-  const p = tuning.preview($('import-text').value);
-  if (p.error) {$('import-result').innerHTML = `<p class="bad">${escape(p.error)}</p>`;return;}
-  if (!p.changes.length) {$('import-result').innerHTML = (p.converted.length ? `<p class="warn">${p.converted.length} campo(s) de formato antigo convertido(s).</p>` : '') + '<p class="ok">O JSON é igual aos ajustes atuais.</p>';return;}
-  const migration = (p.converted.length ? `<p class="warn"><b>Migração de formato antigo:</b> ${p.converted.length} campo(s) convertido(s).</p><table><tr><th>Campo antigo</th><th>Novo</th><th>Valor</th></tr>${p.converted.map(c => `<tr><td><code>${escape(c.from)}</code></td><td><code>${escape(c.to)}</code></td><td>${c.value}</td></tr>`).join('')}</table>` : '') + (p.ignored.length ? `<p class="warn"><b>Campos não reconhecidos</b> (não aplicados): ${p.ignored.map(i => `<code>${escape(i.path)}</code>`).join(', ')}</p>` : '');
-  $('import-result').innerHTML = migration + `<p>${p.changes.length} parâmetros mudariam (schema ${escape(p.schema)}, versão ${escape(p.version)}):</p><table><tr><th>Parâmetro</th><th>Atual</th><th>JSON</th></tr>${p.changes.slice(0, 40).map(([path, v]) => {const m = tuning.byPath.get(path);return `<tr><td title="${path}">${escape(m.label)}</td><td>${m.fmt(pathGet(C, path))}</td><td>${m.fmt(v)}</td></tr>`;}).join('')}</table>${p.changes.length > 40 ? '<p class="hint">…</p>' : ''}<button type="button" class="primary" id="import-apply">Aplicar ${p.changes.length} ajustes</button>`;
-  $('import-apply').onclick = () => {const n = tuning.applyChanges(p.changes, 'JSON importado');$('import-result').innerHTML = `<p class="ok">${n} ajustes aplicados (Ctrl+Z desfaz).</p>`;};
+// ============ Personagens ============
+let charPanel = null, charHooks = {};
+function onCharactersChanged() {syncCharacterCombatWindows();syncRuleDurations();dock.invalidate();}
+function setCharacter(slot, character) {ui.characters[slot] = character;game.fighters[slot].character = character;onCharactersChanged();}
+async function loadStudioFileForSlot(file, slot) {const r = await loadStudioFile(file);if (r.error) return {error: r.error};ui.sources[slot] = {file, name: file.name, size: file.size};setCharacter(slot, r.character);return r;}
+function renderCharacters() {charPanel.render();}
+function renderCharacterLive() {charPanel.live?.();}
+function syncCharacterCombatWindows() {for (const f of game.fighters) if (f.character) f.character.syncCombatWindows();}
+function syncRuleDurations() {for (const f of game.fighters) if (f.character) f.character.syncRuleDurations();}
+function refreshAnimSliders() {charPanel.refreshSliders?.();}
+charPanel = createCharacterPanel({game, ui, $, setCharacter, loadStudioFileForSlot, renderCharacters, onCharactersChanged});
+Object.assign(charHooks, charPanel.hooks);
+
+// ============ Dock e painéis ============
+const dock = createDock($('dock'), {tuning, clock, game, view, $, compareScenarios, SCENARIOS, runScenario});
+const movement = createMovementPanel({$, game, view, C});
+const diagnostics = createDiagnostics({$, C, game, ui, movement});
+const training = createTrainingPanel({$, game, view, input, C, startMatch, resetViewAndLogs, togglePause, diagnostics});
+const perfPanel = createPerfPanel({$, game, C});
+const aiEval = createAiEvalPanel({$, game, C, input, startMatch, togglePause});
+const homologation = createHomologation({$, SCENARIOS});
+const visualPanel = createVisualPanel({$, view, C, game, canvas, tuning, startMatch, applyConfig});
+const hudProposals = new HudProposals({$, game, C});
+const movesHud = new MovesHud({$, game});
+const windowsOverlay = createWindowsOverlay({$, game});
+let projectFiles = null;
+const quickPanel = createQuickPanel({$, game, onQuickStart});
+const presetsPanel = createPresetsPanel(C, tuning);
+const actionsDrawer = createActionsDrawer({$, input, game, view, canvas});
+
+// ---------- Ferramentas ----------
+const TITLES = {
+  match: 'Partida',
+  characters: 'Personagens',
+  visual: 'Visual',
+  tuning: 'Ajustes',
+  scenarios: 'Cenários',
+  telemetry: 'Telemetria',
+  replay: 'Replay',
+  workspace: 'Workspace',
+  presets: 'Presets',
+  actions: 'Ações',
+  movement: 'Movimento',
+  diagnostics: 'Diagnóstico',
+  training: 'Treino',
+  perf: 'Desempenho',
+  ai: 'IA',
+  homologation: 'Homologação',
+  project: 'Projeto',
+  quick: 'Início Rápido',
 };
-$('reset-all').onclick = () => tuning.resetAll();
-function renderGameDiff() {
-  const rows = tuning.manifest.filter(m => tuning.status(m) === 'experimental');
-  $('game-diff').innerHTML = rows.length ? `<table><tr><th>Parâmetro</th><th>Jogo (config.ts)</th><th>Laboratório</th></tr>${rows.map(m => `<tr><td title="${m.path}">${escape(m.label)}<br><code>${m.path}</code></td><td>${m.fmt(m.official)}</td><td class="warn">${m.fmt(pathGet(C, m.path))}</td></tr>`).join('')}</table><p class="hint">${tuning.manifest.filter(m => m.official === undefined).length} parâmetros existem só no laboratório (lançamento, clash, salto, IA estendida, câmera e visual) e não têm equivalente no jogo.</p>` : '<p class="ok">Todos os parâmetros em comum são iguais aos do jogo.</p>';
+function openTool(id) {
+  const panel = $('panel');
+  panel.hidden = false;
+  panel.dataset.tool = id;
+  for (const b of document.querySelectorAll('[data-tool]')) b.classList.toggle('active', b.dataset.tool === id);
+  const title = TITLES[id] ?? id;
+  const h = panel.querySelector('h2');if (h) h.textContent = title;
+  document.querySelectorAll('.tool-panel').forEach(p => p.hidden = true);
+  const tp = document.querySelector(`.tool-panel[data-tool="${id}"]`);if (tp) tp.hidden = false;
+  if (id === 'visual') visualPanel.enter();
+  else visualPanel.leave();
+  syncDockButtons();
+  canvas.focus();
 }
+for (const b of document.querySelectorAll('[data-tool]')) b.addEventListener('click', () => openTool(b.dataset.tool));
+$('panel-close').addEventListener('click', () => {$('panel').hidden = true;for (const b of document.querySelectorAll('[data-tool]')) b.classList.remove('active');syncDockButtons();canvas.focus();});
+function syncDockButtons() {for (const b of document.querySelectorAll('[data-dock]')) b.classList.toggle('active', b.getAttribute('aria-pressed') === 'true');}
 
-// ---------- Visualizar ----------
-for (const [key, label, help] of OVERLAYS) {
-  const row = document.createElement('label');row.className = 'check';row.title = help;
-  row.innerHTML = `<input type="checkbox" data-overlay="${key}"><span><b>${escape(label)}</b><br><small class="muted">${escape(help)}</small></span>`;
-  row.querySelector('input').onchange = e => {view.overlays[key] = e.target.checked;};$('overlay-list').append(row);
-}
-function renderLive() {
-  const [a, b] = game.fighters;if (!a) return;const d = length(sub(b.position, a.position)), rel = sub(a.velocity, b.velocity), n = d > 1e-6 ? {x: (b.position.x - a.position.x) / d, z: (b.position.z - a.position.z) / d} : {x: 0, z: 0};
-  const rows = [['Distância entre centros', `${d.toFixed(2)} m`], ['Espaço entre colisores', `${Math.max(0, d - 2 * C.test.halfExtent).toFixed(2)} m`], ['Velocidade de aproximação', `${dot(rel, n).toFixed(2)} m/s`],
-    ['Azul', `${a.state} · ${length(a.velocity).toFixed(2)} m/s · alt ${((a.flight?.y ?? 0) + a.vaultHeight).toFixed(2)} m`], ['Vermelho', `${b.state} · ${length(b.velocity).toFixed(2)} m/s · alt ${((b.flight?.y ?? 0) + b.vaultHeight).toFixed(2)} m`],
-    ['Ação', `${a.action ? `${a.action.kind}${a.action.fromCancel ? ' (C→X)' : ''}${a.action.buffered ? ' (buffer)' : ''} ${(a.action.elapsed * 1000).toFixed(0)} ms` : '—'} / ${b.action ? `${b.action.kind}${b.action.fromCancel ? ' (C→X)' : ''}${b.action.buffered ? ' (buffer)' : ''} ${(b.action.elapsed * 1000).toFixed(0)} ms` : '—'}`], ['Estilo da IA (tático)', `${game.playerBrain.t && C.extras.toggles.enablePlayerAI && ui.playerMode === 'tactical' ? styleLabel(game.playerBrain) : '—'} / ${game.mode === 'tactical' ? styleLabel(game.brain) : '—'}`], ['Contra-ataque', `${a.counterWindow.toFixed(2)} s / ${b.counterWindow.toFixed(2)} s`], ['Hitstop', `${(game.hitstop * 1000).toFixed(0)} ms`]];
-  $('live-data').innerHTML = rows.map(([k, v]) => `<dt>${k}</dt><dd>${escape(v)}</dd>`).join('');
-}
-
-// ---------- Personagens ----------
-// Ganchos do workspace (persistência dos GLBs e das animações importadas), instalados quando o armazenamento abre.
-const charHooks = {};
-/** Associa explicitamente à simulação (Game) as janelas de combate validadas dos personagens carregados. */
-function syncCharacterCombatWindows() {
-  for (const id of [0, 1]) {
-    const ch = ui.characters[id];
-    game.setCombatWindows(id, ch ? ch.getAllCombatWindows() : null);
-  }
-}
-const charPanel = createCharacterPanel({ui, view, $, hooks: charHooks, onCharactersChanged: () => {syncCharacterCombatWindows();syncRuleDurations();dock.invalidate();movesPanel?.render?.();actionsDrawer?.render?.();}});
-syncCharacterCombatWindows();
-const renderCharacters = () => {charPanel.render();renderStudioEvents();renderRuleDurations();};
-const setCharacter = (id, source) => charPanel.setCharacter(id, source);
-const renderCharacterLive = () => charPanel.live();
-$('char-fit').onchange = e => {Character.options.fit = e.target.checked;};
-/** Sliders da aba Personagens: editam os parâmetros oficiais display.animation.* (desfazer, presets, workspace, exportação). */
-const secs = v => `${v.toFixed(2)} s`;
-const ANIM_SLIDERS = [['char-fade', 'fade', 'char-fade-out', secs], ['char-action-fade', 'actionFade', 'char-action-fade-out', secs], ['char-hold', 'locomotionHold', 'char-hold-out', secs], ['char-speed', 'speed', 'char-speed-out', v => `${v.toFixed(2)}×`]];
-for (const [id, key, out, fmt] of ANIM_SLIDERS) {
-  const path = 'display.animation.' + key;let before = null;
-  $(id).oninput = e => {if (before === null) before = C.display.animation[key];C.display.animation[key] = Number(e.target.value) || (key === 'speed' ? 1 : 0);$(out).textContent = fmt(C.display.animation[key]);};
-  $(id).onchange = () => {const after = C.display.animation[key];if (before !== null && before !== after) {C.display.animation[key] = before;tuning.commit([[path, after]], tuning.byPath.get(path).label);}before = null;if (key === 'speed') syncRuleDurations();};
-}
-function refreshAnimSliders() {for (const [id, key, out, fmt] of ANIM_SLIDERS) {if (document.activeElement !== $(id)) $(id).value = String(C.display.animation[key]);$(out).textContent = fmt(C.display.animation[key]);}}
-tuning.onChange(refreshAnimSliders);
-$('char-sync').onchange = e => {Character.options.syncRules = e.target.checked;syncRuleDurations();};
-$('char-sync-source').onchange = () => syncRuleDurations();
-/** Personagem cujas animações definem as regras (o escolhido; se não houver, o outro). */
-function ruleSource() {const id = Number($('char-sync-source').value);return ui.characters[id] || ui.characters[1 - id];}
-/** Durações das ações vindas das animações (duração do clip ÷ velocidade), aplicadas às regras com desfazer. */
-function syncRuleDurations() {
-  if (Character.options.syncRules) {
-    const ch = ruleSource();
-    const changes = ch ? Object.entries(ch.ruleDurations()).map(([path, {value}]) => {const m = tuning.byPath.get(path);return [path, Math.max(m.min, Math.min(m.max, value))];}) : [];
-    if (changes.length) tuning.commit(changes, 'Durações das animações');
-  }
-  renderRuleDurations();renderStudioEvents();
-}
-function renderRuleDurations() {
-  const ch = ruleSource(), box = $('char-durations');
-  if (!ch) {box.innerHTML = '<p class="hint">Carregue um personagem para usar as durações das animações.</p>';return;}
-  const rows = Object.entries(ch.ruleDurations());
-  box.innerHTML = rows.length ? `<table><tr><th>Regra</th><th>Animação</th><th>Clip ÷ velocidade</th><th>No jogo agora</th></tr>${rows.map(([path, {value, from}]) => {const m = tuning.byPath.get(path);return `<tr><td>${escape(m.label)}</td><td>${escape(from)}</td><td>${value.toFixed(3)} s</td><td>${m.fmt(pathGet(C, path))}</td></tr>`;}).join('')}</table>${Character.options.syncRules ? '<p class="ok">Sincronizado: mudar a animação ou a velocidade atualiza as regras (Ctrl+Z desfaz).</p>' : ''}` : '<p class="hint">Nenhuma ação com duração definida tem animação própria (tackle, dodge_forward, blocked, guard_impact, land/recover).</p>';
-}
-function renderStudioEvents() {
-  const parts = [];
-  for (const id of [0, 1]) {
-    const ch = ui.characters[id];if (!ch) continue;
-    for (const r of compareWindows(ch)) {
-      if (r.missing) {parts.push(`<p class="warn">${id ? 'Vermelho' : 'Azul'} · ${r.action}: nenhuma animação associada.</p>`);continue;}
-      parts.push(`<p><b>${id ? 'Vermelho' : 'Azul'} · ${r.action}</b> — “${escape(r.clip)}”, ${r.events} eventos, reescalado ×${r.scale.toFixed(2)} para ${(r.duration * 1000).toFixed(0)} ms.</p>`);
-      parts.push(r.rows.length ? `<table><tr><th>Janela</th><th>Studio</th><th>Jogo</th><th>Diferença</th></tr>${r.rows.map(x => `<tr><td class="${x.ok ? 'ok' : 'warn'}">${x.ok ? '✓' : '≠'} ${escape(x.label)}</td><td>${escape(x.studio)}</td><td>${escape(x.game)}</td><td>${escape(x.note)}</td></tr>`).join('')}</table>` : '<p class="hint">Sem eventos de combate nesta animação.</p>');
-      if (r.impact != null) parts.push(`<p class="hint">Impacto marcado no Studio: ${(r.impact * 1000).toFixed(0)} ms. O contato real de cada golpe aparece em Linha do tempo › Golpes (“Contato na ação”).</p>`);
-    }
-  }
-  $('studio-events').innerHTML = parts.join('') || '<p class="hint">Carregue um GLB do Studio para comparar os eventos de combate.</p>';
-}
-
-// ---------- Controles ----------
-// Atalho da troca A × B: qualquer tecla que não seja usada pelo jogador (avisa se coincidir).
-{
-  const codes = [...new Set(['KeyB', 'KeyN', 'KeyM', 'KeyV', 'KeyG', 'KeyH', 'Digit1', 'Digit2', 'Digit3', 'Digit4', 'Backquote', 'F2', 'F4', ...C.extras.keyCodes])];
-  $('ab-key').replaceChildren(...codes.map(c => new Option(c.replace(/^Key/, '').replace(/^Digit/, '').replace('Arrow', 'Seta '), c)));$('ab-key').value = presets.abKey;
-  $('ab-key').onchange = e => {const code = e.target.value, used = Object.entries(C.extras.bindings).find(([, i]) => C.extras.keyCodes[i] === code);presets.setABKey(code);$('ab-key').title = used ? `Atenção: ${code} também é a tecla de “${used[0]}”` : '';if (used) $('ab-key').setCustomValidity?.('tecla em uso');};
-}
-$('mode').replaceChildren(...UI_AI_MODES.map(([id, label]) => new Option(label, id)));$('mode').value = game.mode;
-$('player-mode').replaceChildren(...UI_AI_MODES.filter(([id]) => id !== 'inactive').map(([id, label]) => new Option(label, id)));$('player-mode').value = ui.playerMode;
-$('mode').onchange = () => {game.mode = $('mode').value;C.extras.gameModes.enemyMode = AI_MODES.findIndex(([id]) => id === game.mode);game.brain.reset();syncButtons();};
-$('profile').onchange = () => {C.extras.gameModes.playerProfile = ['balanced', 'agile', 'resistant'].indexOf($('profile').value);};
-$('player-mode').onchange = () => {ui.playerMode = $('player-mode').value;game.playerBrain.reset();};
-function applySeed() {const s = Math.max(1, Math.round(Number($('seed').value) || 1));game.brain.seed = s;game.playerBrain.seed = s + 7919;game.brain.reset();game.playerBrain.reset();}
-$('seed').onchange = () => {$('seed-fixed').checked = true;applySeed();};
-$('show-history').onchange = e => {$('input-history').hidden = !e.target.checked;};
-function renderHistory() {$('input-history').innerHTML = input.history.map(h => `<li><b>${escape(h.label)}</b><span>${h.frames}</span></li>`).join('');$('pad-status').textContent = input.padName ? `Gamepad: ${input.padName}` : 'Nenhum gamepad conectado. Pressione um botão do controle para ativá-lo.';}
-
-// ---------- Barra superior, painéis e doca ----------
+// ---------- Botões e entrada ----------
 function syncButtons() {
-  const hb = $('arena-hitboxes-toggle'), on = !!C.extras.toggles.showHitboxes;hb.setAttribute('aria-checked', String(on));
-  const eb = $('arena-enemy-ai-toggle');eb.setAttribute('aria-checked', String(!!C.extras.toggles.enableEnemyAI));
-  const ab = $('arena-autoplay-toggle'), ai = !!C.extras.toggles.enablePlayerAI;ab.setAttribute('aria-checked', String(ai));$('name0').textContent = ai ? 'JOGADOR IA · AZUL' : 'JOGADOR · AZUL';
-  $('pause').textContent = ui.paused ? '▶ Continuar' : '❚❚ Pausar';$('rp-play').textContent = ui.paused ? '▶' : '❚❚';
-  const zb = $('arena-zen-toggle');
-  if (zb) {
-    const isZen = document.querySelector('.lab')?.classList.contains('zen-mode') ?? false;
-    zb.setAttribute('aria-checked', String(isZen));
-    zb.classList.toggle('active', isZen);
-  }
+  const playing = game.phase === 'playing' || game.phase === 'finishing';
+  $('btn-start').textContent = playing ? 'Reiniciar (R)' : 'Iniciar';
+  $('btn-start').classList.toggle('primary', !playing);
+  $('btn-pause').textContent = ui.paused ? 'Retomar' : 'Pausar';
+  $('btn-pause').disabled = !playing;
+  $('btn-zen').classList.toggle('active', document.querySelector('.lab').classList.contains('zen-mode'));
+  $('btn-zen').textContent = document.querySelector('.lab').classList.contains('zen-mode') ? 'Sair Zen' : 'Zen';
+  $('dock').classList.toggle('playing', playing);
 }
-$('arena-zen-toggle').onclick = () => toggleZenMode();
-$('arena-hitboxes-toggle').onclick = () => {const v = C.extras.toggles.showHitboxes ? 0 : 1;tuning.commit([['extras.toggles.showHitboxes', v], ['extras.toggles.showAttackVectors', v]], 'Hitboxes');canvas.focus();};
-const toolsPop = $('tools-pop'), toolsBtn = $('tools-toggle');
-function closeTools() {if (toolsPop.hidden) return;toolsPop.hidden = true;toolsBtn.setAttribute('aria-expanded', 'false');}
-toolsBtn.onclick = e => {e.stopPropagation();if (!toolsPop.hidden) {closeTools();return;}toolsPop.hidden = false;toolsBtn.setAttribute('aria-expanded', 'true');const r = toolsBtn.getBoundingClientRect(), w = toolsPop.getBoundingClientRect().width;toolsPop.style.top = (r.bottom + 6) + 'px';toolsPop.style.left = Math.max(8, Math.min(innerWidth - w - 8, r.right - w)) + 'px';};
-document.addEventListener('pointerdown', e => {if (!toolsPop.hidden && !toolsPop.contains(e.target) && e.target !== toolsBtn) closeTools();});
-window.addEventListener('keydown', e => {if (e.key === 'Escape' && !toolsPop.hidden) {e.preventDefault();e.stopImmediatePropagation();closeTools();}}, true);
-$('arena-enemy-ai-toggle').onclick = () => {tuning.commit([['extras.toggles.enableEnemyAI', C.extras.toggles.enableEnemyAI ? 0 : 1]], 'IA do oponente');game.brain.reset();syncButtons();canvas.focus();};
-$('arena-autoplay-toggle').onclick = () => {tuning.commit([['extras.toggles.enablePlayerAI', C.extras.toggles.enablePlayerAI ? 0 : 1]], 'IA do jogador');game.playerBrain.reset();input.clear();canvas.focus();};
-$('pause').onclick = () => togglePause();$('restart-top').onclick = startMatch;$('restart').onclick = startMatch;$('start').onclick = startMatch;$('start-center').onclick = onQuickStart;
-$('btn-rematch')?.addEventListener('click', () => {$('overlay').hidden = true;startMatch();});
-$('btn-new-match')?.addEventListener('click', () => {$('overlay').hidden = true;$('seed-fixed').checked = false;startMatch();});
-$('btn-review-replay')?.addEventListener('click', () => {$('overlay').hidden = true;seekTick(0);togglePause(false);});
-$('audio-toggle')?.addEventListener('click', () => {soundFx.toggle();updateAudioBtn();});updateAudioBtn();
-$('resume').onclick = () => togglePause(false);$('back').onclick = () => {abortScenario();game.phase = 'menu';input.clear();};
-$('debug-toggle').onclick = () => {hud.debug = !hud.debug;C.extras.hud.debugVisible = Number(hud.debug);canvas.focus();};
-$('camera-reset').onclick = () => {view.reset(game.fighters[0]);canvas.focus();};
-$('rp-back').onclick = () => stepFrames(-1);$('rp-fwd').onclick = () => stepFrames(1);$('rp-play').onclick = () => togglePause();$('rp-live').onclick = goLive;
-$('rp-speed').onchange = () => {clock.timeScale = Number($('rp-speed').value) || 1;};
-function syncDockButtons() {const open = !$('dock').classList.contains('collapsed');if ($('dock-reopen')) $('dock-reopen').hidden = open || $('dock').closest('.zen-mode') !== null;$('dock-toggle').classList.toggle('active', open);const c = $('dock-collapse');if (c) {c.textContent = open ? '▾' : '▴';c.setAttribute('aria-expanded', String(open));c.title = open ? 'Fechar a linha do tempo' : 'Abrir a linha do tempo';}}
-$('dock-toggle').onclick = () => {$('dock').classList.toggle('collapsed');syncDockButtons();};$('dock-collapse').onclick = $('dock-toggle').onclick;syncDockButtons();
-$('dock-reopen').onclick = $('dock-toggle').onclick;
-// Redimensionar arrastando: largura do painel lateral e altura da linha do tempo (valores guardados no navegador)
-function dragResize(handle, start, move, done, reset) {
-  handle.addEventListener('pointerdown', e => {
-    e.preventDefault();handle.setPointerCapture(e.pointerId);const s = start(e);handle.classList.add('dragging');
-    const mv = ev => move(s, ev), up = () => {handle.removeEventListener('pointermove', mv);handle.removeEventListener('pointerup', up);handle.classList.remove('dragging');done();};
-    handle.addEventListener('pointermove', mv);handle.addEventListener('pointerup', up);
-  });
-  handle.addEventListener('dblclick', reset);
-}
-const store = (k, v) => {try {v == null ? localStorage.removeItem(k) : localStorage.setItem(k, String(v));} catch {}};
-const stored = k => {try {return Number(localStorage.getItem(k)) || 0;} catch {return 0;}};
-{
-  const panelEl = $('panel'), w0 = stored('arenamon.panelW');if (w0 >= 280) panelEl.style.width = w0 + 'px';
-  dragResize($('panel-resizer'), e => ({x: e.clientX, w: panelEl.getBoundingClientRect().width}), (s, ev) => {panelEl.style.width = Math.max(280, Math.min(window.innerWidth - 190, s.w + ev.clientX - s.x)) + 'px';}, () => store('arenamon.panelW', Math.round(panelEl.getBoundingClientRect().width)), () => {panelEl.style.width = '';store('arenamon.panelW', null);});
-  const dockEl = $('dock'), h0 = stored('arenamon.dockH'), root = document.documentElement;if (h0 >= 90) root.style.setProperty('--dock-h', h0 + 'px');
-  dragResize($('dock-resizer'), e => ({y: e.clientY, h: dockEl.getBoundingClientRect().height}), (s, ev) => {root.style.setProperty('--dock-h', Math.max(90, Math.min(window.innerHeight * .75, s.h - (ev.clientY - s.y))) + 'px');}, () => store('arenamon.dockH', Math.round(dockEl.getBoundingClientRect().height)), () => {root.style.removeProperty('--dock-h');store('arenamon.dockH', null);});
-}
-const TITLES = {match: 'Partida', moves: 'Moves', scenarios: 'Cenários', tuning: 'Ajustes', overlays: 'Visualizar', characters: 'Personagens', controls: 'Controles', export: 'Exportar', homolog: 'Homologação'};
-function setSubCardFilter(tool, sub) {
-  const panel = $('panel'), sec = document.querySelector(`.panel-body section[data-section="${tool}"]`);
-  panel.dataset.subcard = sub;
-  if (sec) for (const c of sec.querySelectorAll(':scope > .bento-card[data-subcard], :scope > #moves-panel > .bento-card[data-subcard]')) c.classList.toggle('subcard-hidden', sub !== 'all' && c.dataset.subcard !== sub);
-  const bar = $('panel-subtabs');
-  if (bar) for (const b of bar.querySelectorAll('[data-subtab]')) b.setAttribute('aria-pressed', String(b.dataset.subtab === sub));
-}
-function renderSubTabs(tool) {
-  const bar = $('panel-subtabs'), sec = document.querySelector(`.panel-body section[data-section="${tool}"]`);
-  if (!bar) return;
-  const cards = sec ? [...sec.querySelectorAll(':scope > .bento-card[data-subcard], :scope > #moves-panel > .bento-card[data-subcard]')] : [];
-  if (tool === 'match' || cards.length <= 1) {bar.hidden = true;bar.replaceChildren();$('panel').dataset.subcard = 'all';return;}
-  bar.hidden = false;
-  const makeBtn = (id, label) => {
-    const b = document.createElement('button');b.type = 'button';b.dataset.subtab = id;b.textContent = label;
-    b.setAttribute('aria-pressed', String(id === 'all'));
-    b.onclick = () => setSubCardFilter(tool, $('panel').dataset.subcard === id && id !== 'all' ? 'all' : id);
-    return b;
-  };
-  bar.replaceChildren(makeBtn('all', '⊞ Tudo'), ...cards.map(c => makeBtn(c.dataset.subcard, c.dataset.sublabel || c.dataset.subcard)));
-  setSubCardFilter(tool, 'all');
-}
-if ($('panel-layout-toggle')) {
-  $('panel-layout-toggle').onclick = () => {
-    const p = $('panel'), next = p.dataset.layout === 'sidebar' ? 'bento' : 'sidebar';
-    p.dataset.layout = next;
-    $('panel-layout-toggle').setAttribute('aria-pressed', String(next === 'bento'));
-    $('panel-layout-toggle').textContent = next === 'bento' ? '⊞ Grade' : '▯ Lateral';
-  };
-}
-if ($('panel-hints-toggle')) {
-  $('panel-hints-toggle').onclick = () => {
-    const on = $('panel').classList.toggle('show-hints');
-    $('panel-hints-toggle').setAttribute('aria-pressed', String(on));
-  };
-}
-/** Moves: gaveta própria no canto da arena (fora da barra esquerda). */
-function toggleMoves(open = $('moves-drawer').hidden) {
-  $('moves-drawer').hidden = !open;$('moves-open').setAttribute('aria-expanded', String(open));$('moves-open').classList.toggle('active', open);
-  if (open) actionsDrawer.render();
-}
-$('moves-open').onclick = () => toggleMoves();$('moves-close').onclick = () => toggleMoves(false);
-window.addEventListener('keydown', e => {if (e.key === 'Escape' && !$('moves-drawer').hidden && !e.target.matches?.('input[type=text],input[type=search]')) {e.preventDefault();e.stopImmediatePropagation();toggleMoves(false);}}, true);
-function openTool(tool) {
-  if (tool === 'moves') {toggleMoves();return;}
-  const same = !$('panel').hidden && $('panel').dataset.tool === tool;$('panel').hidden = same;$('panel').dataset.tool = tool;
-  for (const b of document.querySelectorAll('[data-tool]')) b.classList.toggle('active', !same && b.dataset.tool === tool);
-  for (const s of document.querySelectorAll('[data-section]')) s.hidden = s.dataset.section !== tool;$('panel-title').textContent = TITLES[tool];
-  if (tool === 'homolog') homologation.render();
-  if (tool === 'moves') movesPanel.render();
-  if (tool === 'scenarios') {syncCompareOptions();movement.render();}
-  if (tool === 'tuning') presets.render();
-  if (tool === 'export') renderGameDiff();if (tool === 'tuning') tuning.render();if (tool === 'overlays') {diagnostics.live();perfPanel.live();}
-  renderSubTabs(tool);
-}
-for (const b of document.querySelectorAll('[data-tool]')) b.onclick = () => openTool(b.dataset.tool);
-$('panel-close').onclick = () => {$('panel').hidden = true;for (const b of document.querySelectorAll('[data-tool]')) b.classList.remove('active');};
-window.addEventListener('keydown', e => {
-  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {e.preventDefault();quick.isOpen() ? quick.hide() : quick.show('params');return;}
-  if (quick.isOpen()) return;
-  const typing = e.target.matches('input[type=text],input[type=search],input[type=number],textarea,select');
-  if ((e.ctrlKey || e.metaKey) && !typing) {const k = e.key.toLowerCase();if (k === 'z' && !e.shiftKey) {e.preventDefault();tuning.undo();}else if (k === 'y' || (k === 'z' && e.shiftKey)) {e.preventDefault();tuning.redo();}return;}
-  if (typing) return;
-  if (e.key === '/' ) {e.preventDefault();quick.show('params');return;}
-  if (e.key === '?') {e.preventDefault();quick.show('keys');return;}
-  // Atalhos de combate (Space, R, H, F2, M, Backspace/F4, F5) são tratados pelo Input
-  if (e.code === 'KeyM') {e.preventDefault();soundFx.toggle();updateAudioBtn();}
-  if (e.code === 'Backspace' || e.code === 'F4') {e.preventDefault();resetArenaFighters();}
-  if (e.code === 'F5') {e.preventDefault();cycleOpponentAiMode();}
+$('btn-start').addEventListener('click', () => {if (ui.training) training.begin();else startMatch();});
+$('btn-pause').addEventListener('click', togglePause);
+$('btn-zen').addEventListener('click', toggleZenMode);
+$('btn-step').addEventListener('click', () => stepFrames(1));
+$('btn-back').addEventListener('click', () => stepFrames(-1));
+$('btn-live').addEventListener('click', goLive);
+$('btn-hud').addEventListener('click', () => {hud.enabled = !hud.enabled;syncButtons();});
+$('btn-audio').addEventListener('click', () => {soundFx.enabled = !soundFx.enabled;syncButtons();});
+$('btn-debug').addEventListener('click', () => {C.extras.toggles.showHitboxes = !C.extras.toggles.showHitboxes;syncButtons();});
+$('btn-restart').addEventListener('click', () => {if (ui.training) training.begin();else startMatch();});
+$('btn-quit').addEventListener('click', () => {game.phase = 'menu';ui.paused = false;syncButtons();});
+$('btn-settings').addEventListener('click', () => openTool('tuning'));
+$('btn-help').addEventListener('click', () => openTool('quick'));
 
+function applySeed() {
+  const v = Number($('seed').value) || 1;
+  if ($('seed-fixed').checked) C.test.seed = v;
+  else delete C.test.seed;
+}
+$('seed').addEventListener('change', applySeed);
+$('seed-fixed').addEventListener('change', applySeed);
+function applyConfig() {
+  view.applyConfig?.(C);
+  hud.applyConfig?.(C);
+  input.applyConfig?.(C);
+  soundFx.applyConfig?.(C);
+  visualPanel.applyConfig?.(C);
+  movement.applyConfig?.(C);
+  diagnostics.applyConfig?.(C);
+  training.applyConfig?.(C);
+  perfPanel.applyConfig?.(C);
+  aiEval.applyConfig?.(C);
+}
+function resetMatchStats() {lastKoHandled = false;}
 
-
-  if (e.key === ',') {e.preventDefault();stepFrames(-1);}else if (e.key === '.') {e.preventDefault();stepFrames(1);}
-  else if (e.code === presets.abKey && presets.ab.active && !e.repeat) {e.preventDefault();presets.toggleAB();}
+// ---------- Sistema de preset de balanceamento ----------
+const BALANCE_SCENARIOS = ['basic-melee', 'ranged-spam', 'stamina-drain', 'corner-pressure', 'projectile-dodge', 'combo-test', 'exhaustion-test'];
+$('balance-run').addEventListener('click', () => {
+  const checked = [...document.querySelectorAll('[name="balance-scenario"]:checked')].map(cb => cb.value);
+  runBalancePreset(checked.length ? checked : BALANCE_SCENARIOS);
 });
-window.addEventListener('blur', () => {input.clear();input2.clear();});
-document.addEventListener('visibilitychange', () => {if (document.hidden && game.phase === 'playing') togglePause(true);});
-const dock = createDock({recorder, getCursorTick: () => game.tick, onSeek: seekTick,
-  studioWindowsFor: id => {const ch = ui.characters[id];if (!ch) return null;return {tackle: studioWindows(ch, 'tackle'), dodge: studioWindows(ch, 'dodge_forward')};}});
-
-// ---------- Overhaul: Visualizar, Partida, Controles e propostas de HUD ----------
-const hudProposals = new HudProposals($('hud-proposals'));
-// Diagnóstico de comandos (relato do controlador) e indicadores das janelas de combate (estado real da simulação).
-const diagnostics = createDiagnostics({$, game, tuning, download});
-const windowsOverlay = createWindowsOverlay({root: $('win-overlay'), view, game});
-$('win-controls').append(...tuning.sectionControls('Janelas de combate'));
-// Treino de defesa/esquiva perfeitas: o vermelho segue o roteiro do treino; tudo cronometrado em passos de simulação.
-const movesPanel = createMovesPanel({$, game, download, tuning, view, ui});
-const actionsDrawer = createActionsDrawer({$, tuning, ui, renderMoves: () => movesPanel.render(), onCharactersChanged: () => {syncCharacterCombatWindows();syncRuleDurations();dock.invalidate();}});
-const movesHud = new MovesHud($('moves-hud'));
-/** Avisos discretos dos Moves (M28.6): falha de execução com o motivo e a devolução da stamina. */
-const seenNotices = new WeakSet(), MOVE_FAIL = {semEspaco: 'sem espaço — stamina devolvida, sem recarga', limiteDeEntidades: 'limite de entidades do mundo — stamina devolvida', semCarga: 'sem carga', effectMissing: 'efeito não registrado'};
-function moveNotices() {
-  for (const e of game.events) {
-    if (seenNotices.has(e) || e.result !== 'moveFailed') continue;seenNotices.add(e);
-    diagnostics.toast({text: `${e.move === 'psyshock' ? 'Psyshock' : e.move === 'reflect' ? 'Reflect' : e.move}: ${MOVE_FAIL[e.reason] ?? e.reason}`, fighter: e.attacker === 1 ? 1 : 0, kind: 'deny'});
-  }
+for (const id of BALANCE_SCENARIOS) {
+  const cb = document.querySelector(`[name="balance-scenario"][value="${id}"]`);
+  if (cb) cb.checked = true;
 }
-const training = createTrainingPanel({$, game, ui, clock, download, toast: e => diagnostics.toast(e),
-  start: trainer => {abortScenario();restorePlaybackValues();ui.playback = null;trainer.start(game);ui.paused = false;input.clear();input.locked = false;resetViewAndLogs();matchRec.start({seed: trainer.seed, profile: game.profile, enemyProfile: game.enemyProfile, mode: 'training', values: tuning.snapshotValues()});syncButtons();canvas.focus();},
-  stop: () => {game.phase = 'menu';}});
-const aiEval = createAiEvalPanel({$, download});
-// Medidor de desempenho, perfis gráficos e benchmark (IA × IA com semente fixa no laço real).
-let benchRestore = null;
-const perfPanel = createPerfPanel({$, view, game, tuning, ui, download, getWs: () => wsRef.ws,
-  startBench: ({seed, characters}) => {
-    if (!benchRestore) benchRestore = {toggles: [['extras.toggles.enablePlayerAI', C.extras.toggles.enablePlayerAI], ['extras.toggles.enableEnemyAI', C.extras.toggles.enableEnemyAI], ['extras.toggles.enemyManual', C.extras.toggles.enemyManual]], mode: $('mode').value, playerMode: ui.playerMode, seed: $('seed').value, fixed: $('seed-fixed').checked};
-    tuning.setTransient([['extras.toggles.enablePlayerAI', 1], ['extras.toggles.enableEnemyAI', 1], ['extras.toggles.enemyManual', 0]]);ui.playerMode = 'tactical';
-    $('mode').value = 'tactical';$('seed').value = String(seed);$('seed-fixed').checked = true;startMatch();
-    const red = ui.characters[1];if (red) {red.root.visible = characters === 2;view.setCharacter(1, characters === 2 ? red : null);}
-  },
-  endBench: () => {
-    const red = ui.characters[1];if (red) {red.root.visible = true;view.setCharacter(1, red);}
-    if (benchRestore) {tuning.setTransient(benchRestore.toggles);$('mode').value = benchRestore.mode;game.mode = benchRestore.mode;ui.playerMode = benchRestore.playerMode;$('seed').value = benchRestore.seed;$('seed-fixed').checked = benchRestore.fixed;benchRestore = null;}
-    game.phase = 'menu';
-  }});
-const visualPanel = createVisualPanel({tuning, view, game, $, hud: hudProposals, download});
-$('enemy-ai-control').append(tuning.controlFor('extras.toggles.enableEnemyAI'), tuning.controlFor('extras.toggles.enemyManual'));
-$('bindings-controls').append(...tuning.sectionControls('Teclas: índices configuráveis'));
-$('bindings2-controls').append(...tuning.sectionControls('Teclas do vermelho (controle manual)'));
-/** Grupos estáticos com mais de dois controles ganham botão ▼ (recolher/expandir). */
-function foldStaticSections() {
-  for (const section of document.querySelectorAll('.panel-body section[data-section]')) {
-    for (const h of section.querySelectorAll(':scope > h3, :scope > .bento-card > h3')) {
-      if (h.querySelector('.fold-btn')) continue;
-      const items = [];for (let el = h.nextElementSibling; el && el.tagName !== 'H3'; el = el.nextElementSibling) items.push(el);
-      const count = items.reduce((n, el) => n + (el.matches('input,select,button,textarea') ? 1 : 0) + el.querySelectorAll('input,select,button,textarea').length, 0);
-      if (count <= 2) continue;
-      const body = document.createElement('div');body.className = 'fold-body';items.forEach(el => body.append(el));h.after(body);h.classList.add('static-fold');
-      const b = document.createElement('button');b.type = 'button';b.className = 'fold-btn';const set = open => {body.hidden = !open;b.textContent = open ? '▼' : '▶';b.setAttribute('aria-expanded', String(open));b.title = (open ? 'Recolher ' : 'Expandir ') + h.textContent.trim();};
-      b.onclick = () => set(body.hidden);set(true);h.append(b);
-    }
-  }
+
+// ---------- Movimentos especiais ----------
+function createMovesDrawer() {
+  const drawer = $('moves-drawer');
+  if (!drawer) return;
+  drawer.innerHTML = `
+    <div class="drawer-header"><h4>Movimentos</h4><button type="button" class="drawer-close">×</button></div>
+    <div class="drawer-body">
+      <div class="move-group"><h5>Reflect</h5><button data-move="reflect">Reflect</button></div>
+      <div class="move-group"><h5>Psyshock</h5><button data-move="psyshock">Psyshock</button></div>
+      <div class="move-group"><h5>Safeguard</h5><button data-move="safeguard">Safeguard</button></div>
+      <div class="move-group"><h5>Tackle</h5><button data-move="tackle">Tackle</button></div>
+      <div class="move-group"><h5>Quick Attack</h5><button data-move="quickAttack">Quick Attack</button></div>
+      <div class="move-group"><h5>Stone Armor</h5><button data-move="stoneArmor">Stone Armor</button></div>
+      <div class="move-group"><h5>Life Dew</h5><button data-move="lifeDew">Life Dew</button></div>
+      <div class="move-group"><h5>Synthesis</h5><button data-move="synthesis">Synthesis</button></div>
+    </div>
+  `;
+  drawer.querySelector('.drawer-close').addEventListener('click', () => drawer.classList.remove('open'));
+  drawer.querySelectorAll('[data-move]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const move = btn.dataset.move;
+      const fighter = game.fighters[0];
+      if (!fighter) return;
+      fighter.action = {kind: move, elapsed: 0, ...Moves.getMove(move)};
+    });
+  });
 }
-foldStaticSections();
+createMovesDrawer();
+$('btn-moves').addEventListener('click', () => $('moves-drawer').classList.toggle('open'));
 
+// ---------- Replay e telemetria ----------
+function renderLive() {
+  const el = $('live-report');if (!el) return;
+  const [p, e] = game.fighters;
+  el.innerHTML = `<table><tr><th>Atributo</th><th>Jogador</th><th>Oponente</th></tr>
+    <tr><td>HP</td><td>${p.hp.toFixed(0)}/${p.attributes.hp}</td><td>${e.hp.toFixed(0)}/${e.attributes.hp}</td></tr>
+    <tr><td>Stamina</td><td>${p.stamina.toFixed(0)}/${C.rules.staminaMax}</td><td>${e.stamina.toFixed(0)}/${C.rules.staminaMax}</td></tr>
+    <tr><td>Estado</td><td>${p.state}</td><td>${e.state}</td></tr>
+    <tr><td>Posição</td><td>(${p.position.x.toFixed(1)}, ${p.position.z.toFixed(1)})</td><td>(${e.position.x.toFixed(1)}, ${e.position.z.toFixed(1)})</td></tr>
+    <tr><td>Carga</td><td>${p.charge ? (p.charge.pl ?? 1) : '-'}</td><td>${e.charge ? (e.charge.pl ?? 1) : '-'}</td></tr>
+  </table>`;
+}
+function renderHistory() {
+  const el = $('history-report');if (!el) return;
+  const hits = recorder.hits.slice(-20);
+  el.innerHTML = hits.length ? `<table><tr><th>Tick</th><th>Atacante</th><th>Alvo</th><th>Dano</th><th>Resultado</th></tr>${hits.map(h => `<tr><td>${h.tick}</td><td>${h.attacker === 0 ? 'Jogador' : 'Oponente'}</td><td>${h.target === 0 ? 'Jogador' : 'Oponente'}</td><td>${h.damage?.toFixed(1) ?? '-'}</td><td>${h.result}</td></tr>`).join('')}</table>` : '<p class="hint">Nenhum acerto registrado.</p>';
+}
 
-// ---------- Efeitos sonoros, telemetria e QoL da Arena ----------
+// ---------- Áudio ----------
 function handleSoundEvents(events) {
+  if (!soundFx.enabled) return;
   for (const ev of events) {
-    if (ev.result === 'impact') {
-      if ((ev.damage ?? 0) >= 15) soundFx.playHeavyHit();
-      else soundFx.playHit();
-    } else if (ev.result === 'partial') {
-      soundFx.playBlock();
-    } else if (ev.result === 'perfect') {
-      soundFx.playParry();
-    } else if (ev.result === 'clash' || ev.result === 'tackleClash' || ev.result === 'stoneClash') {
-      soundFx.playClash();
-    } else if (ev.result === 'dodge' || ev.result === 'perfectDodge') {
-      soundFx.playDodge();
-    } else if (ev.result === 'barrierBroken') {
-      soundFx.playBarrierBreak();
-    } else if (ev.result === 'chargeRelease') {
-      soundFx.playChargeRelease(ev.level ?? 1);
-    }
+    if (ev.type === 'hit') soundFx.playHit(ev.damage ?? 10);
+    if (ev.type === 'block') soundFx.playBlock();
+    if (ev.type === 'dash') soundFx.playDash();
+    if (ev.type === 'jump') soundFx.playJump();
+    if (ev.type === 'land') soundFx.playLand();
+    if (ev.type === 'charge') soundFx.playCharge();
+    if (ev.type === 'chargeRelease') soundFx.playChargeRelease(ev.pl ?? 1);
+    if (ev.type === 'reflect') soundFx.playReflect();
+    if (ev.type === 'exhaustion') soundFx.playExhaustion();
+    if (ev.type === 'ko') soundFx.playKo();
+    if (ev.type === 'projectile') soundFx.playProjectile();
+    if (ev.type === 'counter') soundFx.playCounter();
+    if (ev.type === 'burst') soundFx.playBurst();
+    if (ev.type === 'shield') soundFx.playShield();
+    if (ev.type === 'stagger') soundFx.playStagger();
+    if (ev.type === 'poiseBreak') soundFx.playPoiseBreak();
+    if (ev.type === 'perfectBlock') soundFx.playPerfectBlock();
+    if (ev.type === 'tackle') soundFx.playTackle();
+    if (ev.type === 'stoneArmor') soundFx.playStoneArmor();
+    if (ev.type === 'lifeDew') soundFx.playLifeDew();
+    if (ev.type === 'synthesis') soundFx.playSynthesis();
+    if (ev.type === 'safeguard') soundFx.playSafeguard();
+    if (ev.type === 'quickAttack') soundFx.playQuickAttack();
   }
 }
-
-const lastChargePl = [0, 0];
 function trackChargeSounds() {
-  for (const f of game.fighters) {
-    if (f.charge) {
-      const pl = f.charge.pl ?? (f.charge.ticks >= (f.charge.params?.maxTicks ?? 180) ? 3 : f.charge.ticks >= (f.charge.params?.pl2Ticks ?? 90) ? 2 : 1);
-      if (pl > lastChargePl[f.id]) soundFx.playChargeLevel(pl);
-      lastChargePl[f.id] = pl;
-    } else {
-      lastChargePl[f.id] = 0;
-    }
-  }
+  const [p] = game.fighters;
+  if (!p || !soundFx.enabled) return;
+  if (p.charge && !p._chargeSoundPlaying) {soundFx.playCharge();p._chargeSoundPlaying = true;}
+  if (!p.charge && p._chargeSoundPlaying) {p._chargeSoundPlaying = false;}
 }
-
-const lastExhausted = [false, false];
 function trackExhaustionSounds() {
-  for (const f of game.fighters) {
-    const isEx = f.stamina <= 0 || f.state === 'exhausted';
-    if (isEx && !lastExhausted[f.id]) {
-      if (f.id === 0) soundFx.playExhaustion();
-    }
-    lastExhausted[f.id] = isEx;
-  }
+  const [p] = game.fighters;
+  if (!p || !soundFx.enabled) return;
+  if (p.state === 'exhausted' && !p._exhaustionSoundPlaying) {soundFx.playExhaustion();p._exhaustionSoundPlaying = true;}
+  if (p.state !== 'exhausted' && p._exhaustionSoundPlaying) {p._exhaustionSoundPlaying = false;}
 }
-
-const matchStats = {damageDealt: [0, 0], hitsLanded: [0, 0], parries: [0, 0], blocks: [0, 0], movesUsed: [0, 0], startTick: 0};
 let lastKoHandled = false;
-
-function resetMatchStats() {
-  matchStats.damageDealt = [0, 0];
-  matchStats.hitsLanded = [0, 0];
-  matchStats.parries = [0, 0];
-  matchStats.blocks = [0, 0];
-  matchStats.movesUsed = [0, 0];
-  matchStats.startTick = game.tick;
-  lastKoHandled = false;
-  lastChargePl[0] = lastChargePl[1] = 0;
-  lastExhausted[0] = lastExhausted[1] = false;
-  const overlayStats = $('match-summary-stats');
-  if (overlayStats) overlayStats.innerHTML = '';
-}
-
-function trackMatchEvents(events) {
-  for (const ev of events) {
-    const atk = ev.attacker, tgt = ev.target;
-    if (ev.result === 'impact') {
-      if (atk === 0 || atk === 1) {matchStats.damageDealt[atk] += ev.damage ?? 0; matchStats.hitsLanded[atk]++;}
-    } else if (ev.result === 'partial') {
-      if (tgt === 0 || tgt === 1) matchStats.blocks[tgt]++;
-      if (atk === 0 || atk === 1) matchStats.damageDealt[atk] += ev.damage ?? 0;
-    } else if (ev.result === 'perfect') {
-      if (tgt === 0 || tgt === 1) matchStats.parries[tgt]++;
-    } else if (ev.result === 'chargeRelease' || ev.result === 'spawn') {
-      if (atk === 0 || atk === 1) matchStats.movesUsed[atk]++;
-    }
-  }
-}
-
 function checkKoTrigger() {
   if (lastKoHandled) return;
-  const hasKo = game.fighters.some(f => f.hp <= 0 && f.state === 'ko') || game.phase === 'finishing' || game.phase === 'result';
-  if (hasKo) {
+  const [p, e] = game.fighters;
+  if (game.phase === 'result' && (p.hp <= 0 || e.hp <= 0)) {
     lastKoHandled = true;
-    soundFx.playKo();
-    const banner = $('ko-banner');
-    if (banner) {
-      banner.hidden = false;
-      banner.classList.add('animate-ko');
-      setTimeout(() => {banner.hidden = true; banner.classList.remove('animate-ko');}, 2200);
+    if (soundFx.enabled) soundFx.playKo();
+    diagnostics.toast?.({text: p.hp <= 0 ? 'K.O.! Oponente venceu!' : 'K.O.! Você venceu!', fighter: p.hp <= 0 ? 1 : 0, kind: 'ko'});
+  }
+}
+function trackMatchEvents(events) {
+  for (const ev of events) {
+    if (ev.type === 'hit' || ev.type === 'block') {
+      diagnostics.toast?.({text: `${ev.result?.toUpperCase() ?? 'HIT'} · ${ev.damage?.toFixed(1) ?? '?'} dmg`, fighter: ev.target, kind: ev.type});
     }
-    const origScale = clock.timeScale;
-    clock.timeScale = 0.25;
-    setTimeout(() => {clock.timeScale = origScale;}, 600);
-    renderMatchSummary();
   }
 }
 
-function renderMatchSummary() {
-  const container = $('match-summary-stats');
-  if (!container) return;
-  const durationSec = Math.max(0, (game.tick - matchStats.startTick) * C.test.step).toFixed(1);
-  container.innerHTML = `
-    <table class="summary-table">
-      <thead>
-        <tr><th>Estatística</th><th>Azul (Jogador)</th><th>Vermelho (Rival)</th></tr>
-      </thead>
-      <tbody>
-        <tr><td>Dano Total</td><td><b>${matchStats.damageDealt[0].toFixed(0)}</b> HP</td><td><b>${matchStats.damageDealt[1].toFixed(0)}</b> HP</td></tr>
-        <tr><td>Golpes Conectados</td><td>${matchStats.hitsLanded[0]}</td><td>${matchStats.hitsLanded[1]}</td></tr>
-        <tr><td>Defesas / Parries</td><td>${matchStats.blocks[0]} / ${matchStats.parries[0]}</td><td>${matchStats.blocks[1]} / ${matchStats.parries[1]}</td></tr>
-        <tr><td>Movimentos Usados</td><td>${matchStats.movesUsed[0]}</td><td>${matchStats.movesUsed[1]}</td></tr>
-        <tr><td>Duração da Luta</td><td colspan="2" style="text-align:center">${durationSec} s</td></tr>
-      </tbody>
-    </table>
-  `;
+// ---------- Movimentos especiais (HUD) ----------
+function moveNotices() {
+  const [p] = game.fighters;
+  if (!p) return;
+  // Notices de movimentos especiais são gerenciados pelo MovesHud
 }
 
-const _projPos = new T.Vector3();
+// ---------- HUD de propostas ----------
 function updateOffscreenArrow(w, h) {
   const arrow = $('offscreen-arrow');
   if (!arrow) return;
-  if (game.phase !== 'playing' && game.phase !== 'finishing') {arrow.hidden = true; return;}
-  const red = game.fighters[1];
-  if (!red || !view?.camera) {arrow.hidden = true; return;}
-  _projPos.set(red.position.x, 0.75, red.position.z);
-  _projPos.project(view.camera);
-  const isBehind = _projPos.z > 1.0, isOffX = _projPos.x < -0.92 || _projPos.x > 0.92, isOffY = _projPos.y < -0.92 || _projPos.y > 0.92;
-  if (isBehind || isOffX || isOffY) {
-    let nx = _projPos.x, ny = _projPos.y;
-    if (isBehind) {nx = -nx; ny = -ny;}
-    const angle = Math.atan2(ny, nx), borderMargin = 36, cx = w / 2, cy = h / 2, rx = cx - borderMargin, ry = cy - borderMargin;
-    const cos = Math.cos(angle), sin = Math.sin(angle), scale = Math.min(Math.abs(rx / (cos || 1e-5)), Math.abs(ry / (sin || 1e-5)));
-    const sx = cx + cos * scale, sy = cy - sin * scale;
+  const [p, e] = game.fighters;
+  if (!p || !e || game.phase !== 'playing') {arrow.hidden = true;return;}
+  const dx = e.position.x - p.position.x;
+  const dz = e.position.z - p.position.z;
+  const angle = Math.atan2(dx, dz);
+  const dist = Math.sqrt(dx * dx + dz * dz);
+  if (dist > 8) {
+    const cx = w / 2, cy = h / 2;
+    const sin = Math.sin(angle), cos = Math.cos(angle);
+    const scale = Math.min(w, h) * 0.35;
+    const ry = Math.abs(cy / (cos || 1e-5)), rx = Math.abs(cx / (sin || 1e-5));
+    const r = Math.min(rx, ry, scale);
+    const sx = cx + sin * r, sy = cy - cos * r;
     arrow.style.left = `${sx.toFixed(1)}px`;
     arrow.style.top = `${sy.toFixed(1)}px`;
     const deg = ((-angle) * 180 / Math.PI) + 90;
