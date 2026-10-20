@@ -1,7 +1,7 @@
 # ARENAMON — Regras de criação, especificação e homologação de Moves
 
 **Documento transversal de referência para TODO novo Move do Arenamon.**
-**Atualizado em:** 20/10/2026. **Repositório:** `Ziaker/Arenamon`. **Jogo principal:** `prototypes/combat-lab/`.
+**Atualizado em:** 20/10/2026 (ampliação metodológica com referência externa 5_MOVES_GENERICOS_PROMPT.md). **Repositório:** `Ziaker/Arenamon`. **Jogo principal:** `prototypes/combat-lab/`.
 
 > **Escopo:** consolidar normas já aprovadas, um roteiro obrigatório de especificação, dependências do combate 3D, apresentação audiovisual, parâmetros e critérios de teste. **Não aprova novos golpes, números ou exceções; não é autorização de implementação.** Os registros de decisões continuam sendo a fonte normativa primária. Antes de usar, conferir o estado atual do GitHub e eventuais decisões posteriores.
 
@@ -12,6 +12,7 @@ Fontes que devem ser lidas quando pertinentes:
 - [`MOVES_DECISOES_RODADAS.md`](MOVES_DECISOES_RODADAS.md): decisões M1–M30, tipos/categorias, PL, Clash, Counter, controles, Estados, Status, Trick, IA e VFX; inclui decisões anteriores substituídas e pendências.
 - [`MUSHROOM_MOVES_DECISOES.md`](MUSHROOM_MOVES_DECISOES.md): **diretriz universal posterior** de cobrança de recursos, Bullet Punch, Sand Wave, Emerging Stone e decisão final ES-D103; **não** recuperar pendência B/C de Emerging Stone como se continuasse aberta.
 - [`MOVES_GENERICOS_CATALOGO.md`](MOVES_GENERICOS_CATALOGO.md): os cinco modelos genéricos Quick Attack, Swift, Harden, Spikes e Bounce, com descrições integrais e valores **experimentais**.
+- **Referência adicional externa:** 5_MOVES_GENERICOS_PROMPT.md (cinco candidatos novos, metodologia de fases e testes; **não** fonte de aprovação automática); ver §§22–32.
 - [`MAPA_COMBAT_LAB_DECISOES_RODADAS.md`](MAPA_COMBAT_LAB_DECISOES_RODADAS.md): decisões de arena, salto, rampas, plataformas, objetos, escudos, consumíveis, colisão 3D e física.
 - [`PASSIVAS_DECISOES.md`](PASSIVAS_DECISOES.md): interações com modificadores, Sturdy, status, passivas, duração/cooldowns e hitstop.
 - [`JANELAS_COMBATE_RESOLVE_HIT.md`](JANELAS_COMBATE_RESOLVE_HIT.md): janelas de impacto associadas à animação.
@@ -299,6 +300,8 @@ Executar quando aplicável: `npm run build:combat-lab`, `npm run test:combat-lab
 
 ## 20. Modelo copiável obrigatório para novo Move
 
+**Completar este modelo conciso com o suplemento obrigatório da seção 31, que acrescenta timeline, coreografia, janelas, estados, storyboard e oráculos verificáveis.**
+
 ```markdown
 # MOVE [nome] — [id-estavel]
 Status: [proposto / aprovado / implementado / testado / homologado]
@@ -364,3 +367,306 @@ Critérios de conclusão: [...]
 - **Regra de manutenção:** este arquivo é **guia transversal**; o histórico de decisões de cada Move continua nos catálogos próprios. Alteração universal nova deve apontar fonte e data, preservando o histórico.
 
 > A criação de Moves deve produzir ações **coerentes, previsíveis e fisicamente corretas** em combate tridimensional. O diretor não precisa solicitar individualmente cada interação que decorre das regras já aprovadas; a equipe tampouco pode atribuir a ele novas exceções não decididas.
+
+
+---
+
+## 22. Como utilizar a referência adicional de cinco Moves (sem homologá-los)
+
+**Origem:** arquivo externo fornecido pelo diretor, **5_MOVES_GENERICOS_PROMPT.md**, identificado internamente como proposta de 21/10/2026. A data impressa e o nível de detalhamento **não equivalem a aprovação**, implementação ou publicação no repositório.
+
+Essa referência apresenta cinco **candidatos adicionais**: Lunge (Burst/Melee/PL1), Guard Break (Charge/Melee/PL1–3), Feint (Burst/Trick/sem PL), Riposte (Normal/Status + Melee/PL1 no componente ofensivo) e Second Wind (Normal/Status/sem PL). **Não substituem** os cinco Moves já catalogados (Quick Attack, Swift, Harden, Spikes e Bounce), nem devem ser adicionados automaticamente a um roster.
+
+**Adotar como metodologia**, e não como valores universais:
+1. Coreografia por fases com referência verificável de quadros, poses, smear, stretch, follow-through, recuperação e transição ao idle.
+2. Timeline explícita de entrada, confirmação, cast, charge, ativação, janela ativa, persistência e recovery.
+3. Janelas de hitbox, invulnerabilidade e cancelamento expressas por **intervalos semiabertos em passos inteiros da simulação**.
+4. Separação entre efeito físico, animação, VFX, SFX, HUD e estado de combate.
+5. Matriz de interações e testes específicos por Move, incluindo ações bem-sucedidas e falhas.
+6. Inventário identificável de pendências materiais, com rastreabilidade por regra aprovada.
+7. Comparação rigorosa entre **resultado esperado, observado e realmente testado**.
+
+**Não transformar em regra global:** todas as ações ofensivas terem 41 quadros; toda antecipação possuir i-frames; todo ataque ter smear de 5 quadros, stretch de 4 quadros ou pulinho; todos os novos Moves serem canceláveis por Feint; os números de guard stun e riposte; custos, dano, cooldown, alcance e knockback exemplificados; ou os bônus experimentais de Second Wind.
+
+### 22.1 Auditoria preventiva de inconsistências na referência recebida
+
+| Exemplo da referência | Inconsistência, risco ou lacuna | Exigência deste manual |
+|---|---|---|
+| Lunge comprimido de 41 quadros para 0,60 s, mas janela g9–g13 convertida em steps 36–52 | Intervalo 36–52 equivale a 0,300–0,433 s da ação de 72 passos; **não** à transformação proporcional de g9–g13 | Usar matemática de remapeamento entre timelines, não quadros antigos multiplicados por 4 |
+| Percentuais de fases de Lunge | 18+14+11+3+38+11+25 = **120%**, não 100% | Validar soma e sobreposição antes de aprovar a tabela |
+| Invulnerabilidade automática em antecipação de Lunge | Uma pose não concede invulnerabilidade | Exigir decisão específica, com estado e janela; não criar i-frames por inferência |
+| Guard Break contra defesa perfeita | A proposta apresenta alternativas ainda abertas | Não resolver contradição escolhendo a alternativa preferida da IA |
+| Feint usada fora de janela | Sugere sua animação simultânea a outra ação corporal que continua ativa | Não permitir estados incompatíveis paralelos; definir rejeição, buffer ou cancelamento validado |
+| Riposte com invulnerabilidade condicional | Não é possível conceder invulnerabilidade retroativa após verificar um evento já concluído | Definir prioridade e transição no próprio evento de contato |
+| Move com duração 0,22 s a 120 Hz | 0,22 × 120 = 26,4 passos, não inteiro | Declarar quantização e duração simulada resultante |
+| “✅” na tabela de regressão | Legenda da referência significa **teste previsto**, não teste executado | Nunca apresentar plano como aprovação real |
+| “+40%/s” em Second Wind | Pode significar taxa base ×1,4 ou +40% da capacidade máxima por segundo | Escrever fórmula explícita, base, unidades e acúmulos |
+
+A referência histórica deve permanecer intacta. Estes apontamentos são **auditoria técnica sobre como usá-la**; não registram novas decisões de gameplay.
+
+## 23. Método v2: nove entregáveis obrigatórios por novo Move
+
+| Etapa | Entregável | Condição de aceite |
+|---|---|---|
+| A. Rastreabilidade | Tabela regra → fonte → ID → status (aprovado, herdado, técnico, proposto, pendente) | Nenhuma decisão histórica substituída aparece como vigente |
+| B. Identidade | Função tática, diferença de Moves existentes, personagens, categoria, tipo, PL | O novo Move não é uma simples renomeação |
+| C. Entrada e estados | Máquina de estados, alvo, confirmação, custos, cooldown, cancelamento e falhas | Todo caminho termina em um estado controlável e correto |
+| D. Coreografia | Referência de animação e tabela por fases/poses, timelines e transições | A animação não é confundida com a mecânica |
+| E. Contrato físico | Dano, knockback H/V, volume 3D, status, Clash/Counter e resultado de cada contato | Não há interação relevante descrita apenas como “óbvia” |
+| F. Cenário e IA | Solo/ar, rampas, paredes, plataformas, teto, suporte, destino, controle da IA | Nenhuma trajetória atravessa sólidos sem regra |
+| G. Apresentação | Storyboard VFX, SFX, HUD e animação por evento real | Acerto, defesa, falha e expiração são distinguíveis |
+| H. Validação | Casos de teste com estado inicial, entrada, oráculo e evidência | Testes previstos não são relatados como executados |
+| I. Governança | Versão da ficha, valores experimentais, pendências e aprovação do diretor | Nenhum valor experimental se torna oficial por estar escrito |
+
+O fluxo é **reutilizar o que foi aprovado → especificar o novo Move concreto → auditar → solicitar só decisões novas indispensáveis → implementar apenas com autorização → testar → homologar separadamente**. Não gerar dezenas de questionários abstratos sobre a engine.
+
+## 24. Coreografia vinculada a uma máquina de estados verificável
+
+Toda ficha deve conter **dois mapas separados**:
+
+**A. Linha temporal de controle e simulação**, contendo:
+- solicitar comando e validar slot/estado/cooldown/stamina;
+- aquisição e confirmação de alvo/local/direção;
+- início do cast e início do débito segundo a **regra universal** (Normal/Burst pós-confirmar/soltar; Charge no início da carga);
+- carga, se houver, com PL corrente e máximo;
+- startup, janela ofensiva ou aplicação de status, follow-through;
+- recovery, retorno ao controle, cooldown independente, encerramento da instância;
+- perda de alvo, falta de apoio, interrupção, KO, hitstop, falha, refund e limpeza;
+- estado anterior, evento, condições, estado seguinte e identidade única da execução.
+
+**B. Storyboard audiovisual**, contendo:
+- pose de início, antecipação, compressão/energia, smear/stretch quando apropriado, gesto de contato, impacto, seguimento, recuperação, transição ao idle;
+- quadros/segundos de origem e de destino;
+- movimento real do colisor e movimento somente visual;
+- som, partículas e HUD vinculados a eventos físicos, não a uma função gráfica que roda todo frame;
+- diferenças de êxito, bloqueio, erro, interrupção, expiração e disparo de Counter.
+
+**Tabela de estados obrigatória:**
+
+| Fase | Evento disparador | Pré-condições | Estado antes → depois | Custo/cooldown | Físico | Resultado se interrompido |
+|---|---|---|---|---|---|---|
+| Solicitação | input | personagem válido | estado atual → preparação/negação | **sem cobrança antecipada** para Normal/Burst | sem hitbox | informar motivo |
+| Confirmação | release/confirm | alvo/local válido | preparação → cast | Normal/Burst cobra agora, no cast | ainda sem contato até janela | política individual |
+| Charge | pressionar e segurar | Charge permitido | neutro → carregando | cobra quando Charge é ativado | efeito de carga não é dano | penalidade aprovada |
+| Startup | marco temporal | ativo | cast → startup | sem segundo débito | hitbox inativa salvo especificação | cancelar conforme contrato |
+| Contato/efeito | marco + colisão/condição | elegibilidade validada | startup → active | — | dano, status, entidade ou Trick | hit/miss/bloqueio |
+| Recovery | fim ativo | ação remanescente | active → recovery | cooldown continua | sem nova hitbox salvo multi-hit | estados de cancelamento definidos |
+| Encerramento | fase concluída/KO | limpezas | recovery → neutral/KO | — | limpar referências; manter apenas entidades de vida válida | não deixar estado órfão |
+
+**Essa tabela orienta**, mas não impõe uma máquina idêntica a todos os Moves. Distinguir relógios: duração da animação, duração da ação, Charge, duração de Projectile/Field, status ativo, recarga e hitstop. **Nenhum fim de animação deve encerrar automaticamente uma entidade que ainda possui lifetime válido.**
+
+## 25. Cálculo obrigatório de frames → segundos → passos
+
+Três medidas **não são equivalentes**:
+1. **Frame de autoria:** um quadro/pose da fonte (por exemplo, g0–g40).
+2. **Tempo da apresentação:** duração real do clipe/GLB ou de sua execução reescalada.
+3. **Passo do motor:** contador inteiro de simulação (referência 120 Hz; conferir configuração atual).
+
+Antes da conversão, a ficha declara a **convenção de duração**: se g0–g40 são 41 células de quadro com limite exclusivo g41, duração 41/30 ≈ 1,3667 s; se são 41 amostras com 40 intervalos, a duração entre g0 e g40 é 40/30 ≈ 1,3333 s. **Escolher conforme metadados da fonte, não conforme conveniência.**
+
+Adotar janelas **[startStep, endStep)** (fonte: JANELAS_COMBATE_RESOLVE_HIT.md): limite inicial incluído, limite final excluído; 0 ≤ start < end ≤ totalSteps. Não escrever notações equivocadas como dois colchetes de abertura com dois fechamentos incompatíveis.
+
+### 25.1 Exemplo de conversão que deve aparecer em futuras fichas
+
+Fonte: **41 células** g0 a g40, com **g41 exclusivo**. Ação de destino: **0,60 s = 72 passos de 1/120 s**.
+
+Hitbox proposta nos quadros de origem **[g9, g13)**:
+
+- Início = round(9 / 41 × 72) = **16**.
+- Fim exclusivo = round(13 / 41 × 72) = **23**.
+- Janela efetiva proporcional = **[16, 23)**.
+- Tempo efetivo ≈ 0,1333 a 0,1917 s.
+
+**Não usar [36,52)**, pois essa faixa inicia em 0,30 s; ela pertence a outra interpretação temporal.
+
+Se for usada convenção de **40 intervalos**, resultados podem ser diferentes e devem ser recalculados explicitamente. Não mesclar os dois critérios.
+
+### 25.2 Invariantes verificáveis
+
+- Total de steps da ação deve ser inteiro, com política de arredondamento exposta; por exemplo 0,22 s ×120 = 26,4 steps, então a duração real simulada dependerá da quantização escolhida.
+- Fases **exclusivas e sequenciais** devem cobrir a timeline prevista sem sobreposições/hiatos não intencionais. Se percentuais expressam uma partição, devem somar **100%**.
+- Fases audiovisuais e mecânicas podem se sobrepor **em trilhas distintas**, declaradamente; isso não justifica soma 120% numa partição supostamente exclusiva.
+- Marcos instantâneos (impact hint) são **eventos pontuais**, não janelas de colisão com duração.
+- Hitbox, invulnerabilidade, cancelamento, recovery e movimento físico são **trilhas mecânicas diferentes**.
+- Alterar slider de duração muda **usos futuros**, não deforma uma execução já ativa (M28.4).
+- Testes obrigatórios de borda: passo imediatamente anterior ao início, primeiro passo ativo, último passo ativo e primeiro passo excluído.
+- A referência de smear 5f/stretch 4f não preserva automaticamente essas durações **em segundos** quando a animação total é comprimida; decidir se preserva ordem, proporção ou tempo absoluto.
+
+## 26. Esqueleto de animação: Tackle v26 é referência específica, não padrão imposto a todo Move
+
+A referência verificável **docs/tackle/VER_TACKLE.html** descreve o **Tackle aprovado do Vigoroth v26**, com **41 frames a 30 FPS, 5 quadros de smear e 4 de stretch**. Servirá como molde **opcional e técnico** para novos ataques físicos, com adaptação à anatomia e ao tipo de ação:
+
+| Fase de referência | Quadros fonte | Leitura visual | Decisão mecânica que o novo Move deve explicitar |
+|---|---|---|---|
+| Antecipação | g0–g3 | peso, intenção e leitura | vulnerável? cancelável? |
+| Smear/impulso | g4–g8 | aceleração exagerada | início do deslocamento físico? |
+| Stretch/contato | g9–g12 | extensão e impacto | hitbox ativa em quais **steps**? |
+| Continuação | g13 | follow-through | pode haver segundo hit? |
+| Recuperação 1 | g14–g17 | absorção de peso/impulso | quando começa recovery mecânico? |
+| Recuperação 2 | g18–g26 | movimento residual contínuo | janela de comandos? |
+| Pulinho de reposicionamento | g27–g30 | equilíbrio **específico do Tackle** | não inventar deslocamento ou imunidade |
+| Convergência | g31–g40 | blend final ao idle | retomada do estado correto |
+
+**Não copiar automaticamente** o pulinho, a garra do Vigoroth, braço líder, pico de 0,47 m/frame, números de smear/stretch nem propriedades mecânicas entre personagens. Um Move de Status pode usar respiração, postura e aura sem smear; um Trick sem ataque não recebe automaticamente hitbox; um contra-ataque possui **ramos distintos de sucesso e falha**.
+
+Para qualquer animação remapeada, registrar **quadro origem, tempo original, tempo efetivo do novo Move, intervalo em passos e posição/velocidade real do corpo**. Testar pés e suporte no chão, arcos, deformação, timing, mudança de estado e retorno ao idle sem pop visual.
+
+**Regra essencial:** não inferir i-frames, superarmadura ou cancelabilidade de uma pose, de um “smear” ou de uma instrução estética.
+
+## 27. Trilhas independentes: hitbox, defesa, cancelamento e física
+
+Fichas técnicas devem conter tabela separada de:
+
+| Trilha | Intervalo em steps / condição | Consequência |
+|---|---|---|
+| Hitbox ofensiva | [start,end) e volume 3D | permite verificar contato, mas **não garante hit** |
+| Invulnerabilidade | [start,end) **se aprovada**; senão NENHUMA | filtra impacto elegível sem criar imunidade não pedida |
+| Resistência a interrupção | estado/condição explícita | não é o mesmo que invulnerabilidade ou redução de dano |
+| Guarda/contra-ataque | janela + gatilho válido | resultado defensivo decidido no **evento atual**, sem retroatividade |
+| Cancelamento | janela + ação destino elegível | transição atômica do estado anterior ao novo |
+| Recovery | início e fim mecânicos | quais comandos ficam bloqueados ou aceitos |
+| Deslocamento | curva física/impulso + colisão | corpo real anda/salta/empurra, não apenas o rig |
+| Persistência externa | lifetime e owner próprios | Field/projétil/buff não desaparece ao terminar recovery do lançador |
+
+Se uma Feint é solicitada fora da janela, não é aceitável executar uma segunda ação incompatível em paralelo deixando a anterior rodando. O novo Move deve **definir** recusa, buffer ou penalidade quando aplicável, usando regras existentes antes de inventar solução.
+
+Se Riposte protege contra um golpe, a resolução da proteção deve ocorrer no **evento ofensivo elegível** e na janela correspondente. Não adicionar frames passados de invulnerabilidade depois do acerto.
+
+Se Guard Break encontra defesa perfeita, defender sem guarda, i-frames ou Harden, a ficha apresenta resultados por caso. **GM-P04–GM-P07 são pendências da referência, não decisões aprovadas.**
+
+## 28. Matriz de interações concretas em vez de exceções implícitas
+
+Cada Move deve definir uma linha para **cada caso materialmente diferente**:
+
+| Contexto de teste | Entrada/contato | Resultado que deve estar documentado |
+|---|---|---|
+| Alvo neutro | contato válido | dano/knockback e stun efetivos |
+| Guarda comum | hit sobre ângulo coberto | mitigação, guard stun e empurrão conforme regra |
+| Defesa perfeita | hit na janela perfeita | zero dano ou exceção **aprovada**, efeito de guarda e hitstop |
+| i-frames | contato durante invulnerabilidade | sem hit aplicado, evento de falha correto |
+| Ataque concorrente | hitbox × hitbox com PL elegível | Clash/Counter, normalização, stagger e neutralização |
+| Obstáculo | trajeto cruza parede/sólido | bloqueio ou correção tangencial física, nunca atravessamento implícito |
+| Desnível/ar | separação real em Y | contato somente se volumes verticais se cruzarem |
+| Knockback imune | Hardening/outro efeito válido | cancelar somente as consequências especificamente protegidas |
+| Cancelamento/interrupt | evento no passo de troca | custo e cooldown **uma única vez**, estado final lícito |
+| Multi-hit | múltiplos contatos do mesmo Move | hit cap, contador por alvo/janela, resposta ao bloqueio |
+| Status/escudo/passiva | efeito derivado de dano | distinguir dano direto, DOT, shield, proteção e modificadores |
+| KO/hitstop | ação interrompida ou efeitos persistentes | tempos congelados e limpeza conforme contratos oficiais |
+
+Não assumir que “PL1 versus PL1 = empate” quando não houver **regiões ofensivas elegíveis em contato real**. Counter não acrescenta bônus universal de dano. A existência de um nome “Grab” no material de referência não prova que um sistema de agarrão esteja implementado.
+
+**Avaliar combos e cancels em ambas as direções**, inclusive comando simultâneo, release do Charge, ataque que recebe stun e tentativa de Feint; nunca permitir que um mesmo contato gere duas aplicações indevidas.
+
+## 29. Storyboard obrigatório de VFX, SFX, animação e HUD por evento
+
+Não basta escrever “partículas e som”. O Move deve incluir uma tabela audiovisual completa:
+
+| Evento mecânico | VFX com geometria e posição | SFX e timing | HUD/telemetria | Fim da apresentação |
+|---|---|---|---|---|
+| Seleção/mira | marcador, alcance, válido/inválido, profundidade 3D | feedback discreto opcional | alvo/local elegível | limpar ao cancelar |
+| Cast/Charge | pose, antecipação, emissividade, progressão visual de PL | tensão/carga | progresso, stamina, PL | interromper sem impacto falso |
+| Disparo/ação | trilhas na trajetória física, emissor correto, pós-imagem quando adequada | whoosh/disparo | custo, cooldown, ação | sem emissão duplicada |
+| Contato real | impacto no ponto físico, sparkles e fragmentos | hit real | dano, stagger e fonte | vida útil curta |
+| Defesa/i-frames | feedback distinto de acerto | bloqueio/perfect/miss | evitar “dano fantasma” | limpar corretamente |
+| Clash/Counter/reflexão | efeitos distintos para neutralização e direção | SFX de Clash/Counter | vencedor/PL/owner | não duplicar impacto |
+| Status/Field ativo | aura leve, objeto sólido real, duração/expiração | loop somente se apropriado | efeitos ativos | destruir quando expirar |
+| Cancelamento/falha | dissipação/abortamento, sem flash de hit | som de erro/recusa | razão explícita | remover partículas/objetos órfãos |
+
+Incluir por Move: cor, espessura, material, opacidade, brilho, duração, partículas máximas, escala por personagem, rastro, posição e visibilidade frente/atrás do modelo; timbre, frequência/pitch, volume e duração do som; sincronização com simulação e hitstop; câmera sem cortes involuntários; opções de acessibilidade e qualidade.
+
+**VFX não é hitbox.** A partícula não pode causar dano, prolongar a janela ativa nem se tornar fonte de verdade do acerto. A assinatura audiovisual **das passivas** é separada dos Moves.
+
+## 30. Prova quantitativa, testes e matriz de rastreabilidade
+
+Um teste deve possuir: **ID, fonte normativa, setup, input/tick, resultado esperado mensurável, observado, evidência e estado**.
+
+| Teste de exemplo | Preparação | Oráculo esperado | Estado da planilha |
+|---|---|---|---|
+| T-COST-01 | Move Burst custando 0,75 stamina | nenhum débito antes da confirmação/soltura; exatamente 0,75 debitado no cast, uma vez | **PLANEJADO** |
+| T-WINDOW-01 | 41 células fonte, 0,60 s, 120 Hz, origem [g9,g13) | [16,23) na convenção declarada; sem hit fora dos limites | **PLANEJADO** |
+| T-GUARD-01 | atacante golpeia alvo invulnerável | nenhum dano nem knockback; evento correto | **PLANEJADO** |
+| T-SNAPSHOT-01 | alterar slider depois de criar projétil | instância existente mantém valores capturados; próxima usa valores novos | **PLANEJADO** |
+| T-REPLAY-01 | mesma seed, estado e comandos | resultados e IDs determinísticos | **PLANEJADO** |
+
+**Estados permitidos:** especificado/planejado; implementado sem teste; executado passou; executado falhou; bloqueado por decisão; N/A fundamentado; homologado pelo diretor. **Nenhum ✅ pode significar simultaneamente “previsto” e “executado”.**
+
+Revisar obrigatoriamente:
+- totais de fases e janelas, arredondamento/quantização e velocidades × deslocamento;
+- stamina/cooldown Normal/Burst versus Charge, inclusive interrupção e falta de recurso;
+- defesa parcial/perfeita, i-frames, hitstop, PL e Clash/Counter elegíveis;
+- knockback H/V, caps, contatos em parede, degraus, rampas, tetos, plataformas e queda;
+- animação e VFX sob hit/miss/blocked/cancelled/KO, som sem duplicar;
+- IA, save/load, parâmetros capturados M28.4, replay/seed;
+- execução com Move não equipado para preservar paridade;
+- cenário de browser real, não somente teste de definição de arquivo.
+
+**Homologação visual e de gameplay pelo diretor é diferente de testes automatizados.**
+
+## 31. Suplemento obrigatório ao modelo de ficha da seção 20
+
+A ficha resumida da seção 20 **permanece válida**, mas deve ser completada com os campos abaixo:
+
+~~~markdown
+## A. Proveniência
+Fonte/IDs de decisões | regra | aprovada / herdada / proposta / pendente
+Referência de vídeo/animação | link/versão | parâmetros confirmados
+Autorização de implementação | SIM/NÃO
+
+## B. Timeline, frames e passos
+Origem | número de quadros | FPS | duração real | convenção N/N-1
+Duração do Move | simulação Hz | total de steps | política de quantização
+Fase | frame origem [início,fim) | segundo efetivo | steps [início,fim) | pose | deslocamento físico
+Antecipação / smear / stretch / contato / follow-through / recovery / idle
+Partição de fases = 100%? sobreposições deliberadas entre trilhas?
+
+## C. Trilhas de gameplay
+Hitbox ativa [startStep,endStep): ...
+Invulnerabilidade autorizada [startStep,endStep) OU NENHUMA: ...
+Superarmadura/interrupção: ...
+Cancelamento [steps], condição e destinos permitidos: ...
+Deslocamento real (steps, distância, velocidade, colisões): ...
+Guard stun/hit stun/knockback H e V: ...
+
+## D. Transições e eventos
+Estado anterior → evento → estado seguinte → consumo/cooldown → consequências
+Eventos de sucesso/falha/defesa/perfect/i-frames/Clash/Counter/KO
+Entrada inválida, buffer, refund, cancelamento, release e cleanup
+
+## E. VFX/SFX por evento
+Marco | efeito 3D | posição | duração | som | HUD | desligamento
+Cast/Charge | Movimento | Contato | Bloqueio | Erro | Expiração
+
+## F. Testes e evidências
+ID | fonte | estado inicial/entrada | resultado esperado | observado | status | evidência
+Testes de conversão de frames, soma de fases e limites: ...
+Regressão e determinismo, sliders e save/load: ...
+
+## G. Pendências materiais
+ID | caso concreto | regra consultada | opções sem escolha | impacto
+~~~
+
+Cada campo numérico deve informar **unidade, base, valor, intervalo de slider, status da aprovação e instante em que o motor o captura**. O template não determina números; organiza decisões verificáveis.
+
+## 32. Checklist final adicional para autores, revisores e IAs
+
+- [ ] O arquivo de referência foi lido como **proposta** e não como aprovação de suas cinco habilidades.
+- [ ] Conferi registros de decisões mais recentes e as substituições, especialmente ES-D103.
+- [ ] Categoria, tipo principal/secundário, PL/sem PL, dano e knockback H/V estão expressos.
+- [ ] A linha temporal física tem fases com início/fim e estado válidos.
+- [ ] FPS de animação, duração original e steps de simulação não foram confundidos.
+- [ ] Todas as janelas usam [início,fim) coerente e o cálculo foi demonstrado.
+- [ ] Fases exclusivas somam 100% da duração; sobreposições são trilhas declaradas.
+- [ ] I-frames, resistências e cancelamentos não foram criados a partir de aparência da animação.
+- [ ] Nenhum personagem executa duas ações incompatíveis ao mesmo tempo.
+- [ ] A cobrança universal foi preservada e não repeti perguntas sobre seu momento.
+- [ ] Dano e Status têm fórmula sem ambiguidade de porcentagem e sem aplicar Ataque duas vezes.
+- [ ] PL/Clash/Counter dependem de regiões ofensivas elegíveis e contato real.
+- [ ] Rampas, plataformas, parede, altura, teto, queda e colisores foram previstos.
+- [ ] VFX/SFX/HUD têm storyboard por evento, incluindo miss e interrupção.
+- [ ] Sliders alteram usos futuros, preservando instâncias em andamento.
+- [ ] IA, replay, seed, save/load, diagnóstico e cleanup estão especificados.
+- [ ] Testes planejados estão separados de testes executados e aprovados.
+- [ ] Apenas pendências materiais não decididas foram apresentadas ao diretor.
+- [ ] Nenhum registro de proposta foi promovido a homologação sem autorização.
+
+**Critério de qualidade:** o resultado deve fazer a coreografia observada, a física tridimensional, as janelas da simulação, os estados, os custos e os efeitos audiovisuais descreverem **exatamente o mesmo Move**. Mais páginas sem essa correspondência não representam melhor especificação.
