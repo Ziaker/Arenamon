@@ -73,7 +73,9 @@ export function defaults() {
     gameModes: {enemyMode: 8, playerProfile: 0},
     toggles: {enableTackle: 1, enableDodge: 1, enableDefense: 1, enableClash: 1, enableInvulnerability: 1, enableLaunch: 1, enableVault: 1, enableWallBounce: 1,
       enableAIAttack: 1, enableAIReactive: 1, enableCameraFollow: 1, enableCameraRecenter: 1, enablePlayerAI: 0, showHitboxes: 0, showAttackVectors: 0,
-      enableHitstop: 1, enableCounterBonus: 1, enableLandingSkid: 1, enableEnemyAI: 1, enableSprint: 1, enemyManual: 0, enableAnimationCombatWindows: 0, enableClashPush: 0, enableTechRecovery: 1, enableChargeTackle: 1, enableWallSplat: 1, enableMeteorSlam: 1, enableFlightSlam: 0, enableTackleFeint: 1},
+      enableHitstop: 1, enableCounterBonus: 1, enableLandingSkid: 1, enableEnemyAI: 1, enableSprint: 1, enemyManual: 0, enableAnimationCombatWindows: 0, enableClashPush: 0, enableTechRecovery: 1, enableChargeTackle: 1, enableWallSplat: 1, enableMeteorSlam: 1, enableFlightSlam: 0, enableTackleFeint: 1,
+      // Sistema de passivas (catálogo experimental). 0 = motor idêntico ao anterior (cenário de paridade, §32).
+      enablePassives: 1},
     // skill1–4: slots de movimentos especiais (padrão A, S, 3 e 4 do teclado; A e S = Reflect e Psyshock, D3). Sem movimento equipado, a tecla não faz nada.
     bindings: {forward: 0, back: 1, left: 2, right: 3, tackle: 4, dodge: 5, defend: 6, lock: 7, pause: 8, restart: 9, debug: 10, skill1: 11, skill2: 12, skill3: 49, skill4: 50, jump: 14},
     // Teclas do vermelho no controle manual (índices em keyCodes): I/J/K/L movem, U tackle, O esquiva, P defesa, Y alvo.
@@ -130,7 +132,30 @@ export function defaults() {
     beam: {length: 24, maxSegments: 8, interval: .25, damage: 2},
     // ai: como a IA decide usar os Moves (sim/ai-moves.js). Distâncias em m, tempos em s. Os padrões reproduzem o comportamento anterior.
     ai: {evadeDistance: 4.5, pl2Distance: 4.8, pl3Distance: 7, reflectHold: .9, lastSecondDefend: .22, noTimeDefend: .26, barrierBreakRange: 3.2, barrierBreakChance: .6, psyshockMinDistance: 3.5, psyshockMinStamina: 2, psyshockChanceMax: .9, afterChargeWait: .35, decisionInterval: .5}};
-  return {rules, test, locomotion, camera, profiles: profilesLab, extras, actions, vfx: vfxDefaults(), display: displayDefaults(), world, map: {...MAP_DEFAULTS}};
+  // Passivas (CATÁLOGO EXPERIMENTAL, não homologado): parâmetros de balanceamento por passiva (§29), ajustáveis no
+  // painel (aba Passivas) e congelados por snapshot em cada ativação (não retroativos). Ver sim/passives.js.
+  const passivas = {
+    globals: {detectDistance: 3.5},
+    'speed-boost': {speedPct: .15},
+    technician: {costPct: .2},
+    'rough-skin': {reflectDamage: 3, cooldown: 10},
+    regenerator: {heal: 5, quietTime: 5, cooldown: 15},
+    unburden: {speedPct: .15, duration: 4, cooldown: 14},
+    stamina: {defensePct: .10, duration: 4, cooldown: 10},
+    'suction-cups': {knockbackPct: .20},
+    'magic-guard': {dotReductionPct: .50},
+    'clear-body': {},
+    defiant: {attackPct: .15, duration: 4, cooldown: 12},
+    'poison-touch': {dps: 2, duration: 3, cooldown: 12},
+    anticipation: {speedPct: .15, duration: 2, cooldown: 12, detectDistance: 3.5},
+    forewarn: {windowBonus: .06, maxDuration: 4, cooldown: 12, detectDistance: 3.5},
+    'inner-focus': {stunPct: .20},
+    'effect-spore': {slowPct: .15, duration: 3, cooldown: 12},
+    sturdy: {},
+    'vital-spirit': {thresholdPct: .30, regenPct: .30},
+    guts: {attackPct: .15},
+  };
+  return {rules, test, locomotion, camera, profiles: profilesLab, extras, actions, vfx: vfxDefaults(), display: displayDefaults(), world, map: {...MAP_DEFAULTS}, passivas};
 }
 
 /**
@@ -190,6 +215,9 @@ export function vfxDefaults() {
     solidReflect: {...solidFam(), color: 0x73caff},
     shakeMaster: {enabled: 1},
     shakeGuard: shake(.05, .16, 0), shakeHit: shake(.12, .28, 0), shakeGround: shake(.09, .3, 1), shakePerfect: shake(.1, .3, 2), shakeClash: shake(.18, .42, 1),
+    // VFX de ativação de passivas (§16): 0,60 s, círculos brancos 3D + sparkles; variant 0/1/2 = A/B/C
+    // (Orbital Halo / Celestial Intersections / Luminous Resonance). Só aparência; não altera regras nem cooldowns.
+    passive: {enabled: 1, variant: 0, intensity: 1, size: 1, opacity: 1, duration: 1, sparkles: 1},
   };
 }
 
@@ -217,7 +245,7 @@ export function displayDefaults() {
 
 /** Configuração viva compartilhada pela simulação, visualização e ajustador. */
 export const C = defaults();
-export const ROOT_KEYS = ['rules', 'test', 'locomotion', 'camera', 'profiles', 'extras', 'actions', 'vfx', 'display', 'world', 'map'];
+export const ROOT_KEYS = ['rules', 'test', 'locomotion', 'camera', 'profiles', 'extras', 'actions', 'vfx', 'display', 'world', 'map', 'passivas'];
 /**
  * Movimento da Etapa A (antes do overhaul): locomoção linear do v6, setas relativas ao alvo com lock-on, corpo sempre
  * voltado ao alvo, curva polinomial de X/C com distância proporcional à duração, IA sem suavização e sem sprint.

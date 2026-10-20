@@ -17,6 +17,7 @@ import {launch} from './combat.js';
 import {traceBeam} from './beam.js';
 import {applyStatus, stat} from './status.js';
 import {processDamageWithShieldAndStages, damageDestructible} from './map.js';
+import {knockbackFactor} from './passive-engine.js';
 import {vec, add, sub, scale, dot, length, normalize, direction, angleOf, angleDelta, clamp} from './math.js';
 
 export const ENTITY_KINDS = ['projectile', 'barrier', 'wall', 'area', 'beam'];
@@ -92,7 +93,8 @@ export function applyHit(game, ownerId, target, hit, normal, info = {}) {
   const protectedFront = guardable && target.guard && dot(direction(target.facing), normalize(sub(from, target.position))) >= X.guardFrontAlignment;
   const perfect = protectedFront && target.perfectLeft > 1e-8;
   const raw = (hit.damage ?? 0) * attack * scaleK * stat(target, 'damageTaken', 1);
-  const dmgResult = processDamageWithShieldAndStages(target, raw, owner, protectedFront, perfect);
+  const contact = info.contact ?? hit.contact ?? 'area';
+  const dmgResult = processDamageWithShieldAndStages(target, raw, owner, protectedFront, perfect, {category: 'direct', contact});
   const damage = dmgResult.hpDamage;
   /** @type {{direction: import("./types").Vec, horizontal: number, vertical: number} | null} */
   let launchInfo = null;
@@ -104,7 +106,7 @@ export function applyHit(game, ownerId, target, hit, normal, info = {}) {
     const kb = hit.knockback, k = stat(target, 'knockbackTaken', 1) * scaleK;
     if (kb && (kb.horizontal > 0 || kb.vertical > 0) && T.enableLaunch) {
       const dir = length(normal) > 1e-7 ? normalize(normal) : vec(0, 1);
-      const hKb = (kb.horizontal ?? 0) * k, vKb = (kb.vertical ?? 0) * k;
+      const hKb = (kb.horizontal ?? 0) * k * knockbackFactor(target), vKb = (kb.vertical ?? 0) * k;
       if (vKb > 1e-6 || target.flight) {
         launch(target, dir, hKb, vKb);
         launchInfo = {direction: dir, horizontal: hKb, vertical: vKb};
@@ -127,7 +129,7 @@ export function applyHit(game, ownerId, target, hit, normal, info = {}) {
     target.counterWindow = 0;
   }
   if (target.hp === 0) {target.guard = false;target.guardSuppressed = true;}
-  return {...base, result: perfect ? 'perfect' : protectedFront ? 'partial' : 'impact', damage, launch: launchInfo};
+  return {...base, result: perfect ? 'perfect' : protectedFront ? 'partial' : 'impact', damage, launch: launchInfo, contact, ...(dmgResult.sturdy ? {sturdy: true} : {})};
 }
 
 // ---------- Paredes e barreiras contra lutadores (chamado pela física, a cada subpasso) ----------
@@ -262,7 +264,7 @@ function stepProjectile(game, p, dt, events, spawnLater) {
       if (p.clashable && f.action?.kind === 'tackle' && !f.action.neutralized && !isInvulnerable(f) && tackleDispute(p, f, events)) return;   // disputa de PL contra o Tackle em curso
       p.hitLog.push(f.id);
       const hit = p.exec != null ? execHit(game.world, p, f) : (p.hit || {});
-      const ev = applyHit(game, p.owner, f, hit, normalize(p.vel), {entity: p.id, origin: sub(f.position, scale(normalize(p.vel), 1)), pl: p.pl});
+      const ev = applyHit(game, p.owner, f, hit, normalize(p.vel), {entity: p.id, origin: sub(f.position, scale(normalize(p.vel), 1)), pl: p.pl, contact: 'projectile'});
       if (p.exec != null) execRecord(game.world, p, f, ev, hit);
       if (ev) events.push(ev);
       if (ev && p.counterWon && p.defeated?.includes(f.id) && (ev.result === 'impact' || ev.result === 'partial')) applyCounterStagger(f, p.captured?.counterStagger ?? 0, events, p.owner ?? null);
@@ -282,7 +284,7 @@ function stepBeam(game, e, dt, events) {
     e.nextHit[h.target] = e.age + e.interval;
     const f = game.fighters[h.target], seg = segments[h.seg], dir = normalize(sub(seg.b, seg.a)), o = h.owner != null ? game.fighters[h.owner] : null;
     const hit = e.captured?.attackFraction != null && o ? {...e.hit, damage: e.captured.attackFraction * o.attributes.attack} : e.hit;
-    const ev = applyHit(game, h.owner, f, hit, dir, {entity: e.id, source: 'laser', origin: seg.a, pl: seg.pl});
+    const ev = applyHit(game, h.owner, f, hit, dir, {entity: e.id, source: 'laser', origin: seg.a, pl: seg.pl, contact: 'beam'});
     if (ev) events.push({...ev, seg: h.seg, kind: 'beam'});
   }
 }
@@ -303,7 +305,7 @@ function stepArea(game, a, dt, events) {
       if (shield) {events.push({result: 'shielded', attacker: a.owner ?? null, target: f.id, damage: 0, entity: a.id, by: shield.id, pulse: a.pulsesDone});continue;}
       // Efeito radial: empurra do centro para fora; a intensidade cai com a distância conforme `falloff`.
       const k = a.falloff === 'linear' ? Math.max(0, 1 - dist / Math.max(1e-6, a.radius)) : 1, away = sub(f.position, a.pos);
-      const ev = applyHit(game, a.owner, f, a.hit, length(away) > 1e-6 ? normalize(away) : direction(f.facing + Math.PI), {entity: a.id, scale: k, origin: a.pos});
+      const ev = applyHit(game, a.owner, f, a.hit, length(away) > 1e-6 ? normalize(away) : direction(f.facing + Math.PI), {entity: a.id, scale: k, origin: a.pos, contact: 'area'});
       if (ev) events.push({...ev, pulse: a.pulsesDone});
     }
     if (a.hit && game.mapState?.destructibles) {

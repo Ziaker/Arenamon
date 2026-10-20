@@ -103,6 +103,7 @@
        <div id="enemy-ai-control" class="compact-toggles"></div>
        <button type="button" class="primary wide" id="start">▶ Iniciar combate</button>
       </div>
+      <div class="bento-card" data-subcard="passivas" data-sublabel="Passivas (experimental)" id="passives-card"></div>
       <div class="bento-card" data-subcard="semente" data-sublabel="Semente & Dificuldade">
        <h3>Aleatoriedade</h3>
        <p class="hint">Cada IA tem personalidade própria (reação, erros, agressividade, variação e hesitação) em <b>Ajustes › IA</b>. A semente define a sequência sorteada: a mesma semente repete a mesma luta.</p>
@@ -341,6 +342,7 @@
     </div>
    </div>
    <div id="moves-hud" hidden aria-label="Movimentos equipados"></div>
+   <div id="passives-hud" hidden aria-label="Passivas"></div>
    <button type="button" id="chars-open" class="corner-btn corner-btn-left" aria-expanded="false" aria-controls="chars-drawer" title="Personagens e animações: modelos, biblioteca de clipes e a animação de cada estado">👤 Personagens</button>
    <aside id="chars-drawer" class="moves-drawer chars-drawer" hidden aria-label="Personagens e animações"><header><strong>👤 Personagens e animações</strong><button type="button" id="chars-close" aria-label="Fechar Personagens" title="Fechar (Esc)">✕</button></header>
     <nav id="chars-fighters" class="act-tabs" aria-label="Lutador"><button type="button" data-fighter-tab="0" aria-pressed="true">🔵 Azul</button><button type="button" data-fighter-tab="1" aria-pressed="false">🔴 Vermelho</button></nav>

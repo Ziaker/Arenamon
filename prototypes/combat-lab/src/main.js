@@ -34,6 +34,10 @@ import {createDiagnostics, createWindowsOverlay} from './ui/diagnostics-panel.js
 import {createTrainingPanel} from './ui/training-panel.js';
 import {createMovesPanel} from './ui/moves-panel.js';
 import {MovesHud} from './ui/moves-hud.js';
+import {createPassivesPanel} from './ui/passives-panel.js';
+import {PassivesHud} from './ui/passives-hud.js';
+import {PassiveVfx} from './view/passive-vfx.js';
+import {PASSIVE_BY_ID} from './sim/passives.js';
 import {createPerfPanel} from './ui/perf-panel.js';
 import {createAiEvalPanel} from './ui/ai-eval-panel.js';
 import {createProjectFiles} from './ui/project-files.js';
@@ -106,14 +110,16 @@ async function triggerWarmup({force = false} = {}) {
     }
   }
 }
-function resetViewAndLogs() {view.reset(game.fighters[0]);recorder.clear();replay.clear();pushReplay();dock.invalidate();clock.reset();}
+function resetViewAndLogs() {view.reset(game.fighters[0]);recorder.clear();replay.clear();pushReplay();dock.invalidate();clock.reset();passiveVfx.clear();}
 function startMatch({playback = null} = {}) {
   if (ui.training) {training.end();}
   abortScenario();restorePlaybackValues();ui.playback = playback;
   if (!playback && !$('seed-fixed').checked) $('seed').value = String(1 + Math.floor(Math.random() * 99999));
   applySeed();game.profile = $('profile').value;game.enemyProfile = $('enemy-profile').value;game.mode = $('mode').value;
+  passivesPanel.applyTo(game);   // identidade + loadouts validados (R5: recusa duplicata/exclusiva errada)
   game.reset();ui.paused = false;input.clear();input.locked = false;resetViewAndLogs();canvas.focus();syncButtons();resetMatchStats();
-  matchRec.start({seed: Number($('seed').value), profile: game.profile, enemyProfile: game.enemyProfile, mode: game.mode, values: tuning.snapshotValues()});renderRecStatus();
+  matchRec.start({seed: Number($('seed').value), profile: game.profile, enemyProfile: game.enemyProfile, mode: game.mode, values: tuning.snapshotValues(),
+    loadouts: game.passiveLoadouts, identity: game.passiveIdentity});renderRecStatus();
   if (!view.isWarmedUp && (ui.characters[0] || ui.characters[1]) && !navigator.webdriver) {
     triggerWarmup();
   }
@@ -167,7 +173,7 @@ function stepOnce() {
   const c1 = ui.training && !ui.playback ? ui.training.enemyCommand(game) : ui.playback ? ui.playback.commands1?.[game.tick] ?? undefined : C.extras.toggles.enemyManual ? input2.command(game.fighters[1], game.fighters[0], view.rig.yaw, game.tick) : undefined;
   presets.ab.beforeStep(game);
   const tickBefore = game.tick;game.step(c0, c1 ?? undefined);if (game.tick > tickBefore) {matchRec.record(tickBefore, c0, c1);if (!ui.playback) movement.onStep(c0, game.lastCommands?.[1]);if (ui.training) training.afterStep(c0);}view.rig.step(game.fighters[0], game.fighters[1], input.locked, C.test.step);
-  if (game.lastStepEvents?.length) {handleSoundEvents(game.lastStepEvents);trackMatchEvents(game.lastStepEvents);}
+  if (game.lastStepEvents?.length) {handleSoundEvents(game.lastStepEvents);trackMatchEvents(game.lastStepEvents);passiveFeedback(game.lastStepEvents);}
 trackChargeSounds();trackExhaustionSounds();checkKoTrigger();
 recorder.record(game);pushReplay();
 }
@@ -240,6 +246,7 @@ $('rec-file').onchange = async e => {
     if (changes.length) tuning.commit(changes, 'ajustes da gravação');
   }
   $('seed').value = String(data.seed);$('seed-fixed').checked = true;$('profile').value = data.profile;$('enemy-profile').value = data.enemyProfile;$('mode').value = data.mode;
+  if (Array.isArray(data.loadouts)) passivesPanel.setFromRecording({loadouts: data.loadouts, identity: data.identity});   // reprodução exata (§27)
   startMatch({playback: {commands, commands1: parsed.commands1, source: file.name}});
   $('rec-result').innerHTML = `<p class="ok">Reproduzindo ${escape(file.name)}: ${commands.length} passos, semente ${data.seed}, ${$('rec-values').value === 'recorded' ? 'ajustes da gravação (Ctrl+Z desfaz)' : 'ajustes atuais'}.</p>`;
 };
@@ -418,7 +425,7 @@ function syncCharacterCombatWindows() {
 }
 const charPanel = createCharacterPanel({ui, view, $, hooks: charHooks, onCharactersChanged: () => {syncCharacterCombatWindows();syncRuleDurations();dock.invalidate();movesPanel?.render?.();actionsDrawer?.render?.();}});
 syncCharacterCombatWindows();
-const renderCharacters = () => {charPanel.render();renderStudioEvents();renderRuleDurations();};
+const renderCharacters = () => {charPanel.render();renderStudioEvents();renderRuleDurations();passivesPanel.render();};
 const setCharacter = (id, source) => charPanel.setCharacter(id, source);
 const renderCharacterLive = () => charPanel.live();
 $('char-fit').onchange = e => {Character.options.fit = e.target.checked;};
@@ -636,6 +643,21 @@ $('win-controls').append(...tuning.sectionControls('Janelas de combate'));
 const movesPanel = createMovesPanel({$, game, download, tuning, view, ui});
 const actionsDrawer = createActionsDrawer({$, tuning, ui, renderMoves: () => movesPanel.render(), renderAiMoves: c => movesPanel.renderAiParams(c), onCharactersChanged: () => {syncCharacterCombatWindows();syncRuleDurations();dock.invalidate();}});
 const movesHud = new MovesHud($('moves-hud'));
+// Passivas: painel de seleção (Partida), HUD da arena e VFX de ativação (§16/§17).
+const passivesPanel = createPassivesPanel({getCharacterNames: () => [ui.characters[0]?.source?.name ?? null, ui.characters[1]?.source?.name ?? null]});
+$('passives-card')?.append(passivesPanel.root);
+const passivesHud = new PassivesHud($('passives-hud'));
+const passiveVfx = new PassiveVfx(view.scene);
+/** Ativações do passo: som, toast branco e VFX da variante configurada (A/B/C). */
+function passiveFeedback(events) {
+  for (const e of events || []) {
+    if (e.result !== 'passiveActivated') continue;
+    const def = PASSIVE_BY_ID[e.passive];
+    passivesHud.toast(`${def?.nome ?? e.passive} ativada`);
+    soundFx.playPassive(C.vfx?.passive?.variant ?? 0);
+  }
+  passiveVfx.onEvents(events, game.fighters);
+}
 /** Avisos discretos dos Moves (M28.6): falha de execução com o motivo e a devolução da stamina. */
 const seenNotices = new WeakSet(), MOVE_FAIL = {semEspaco: 'sem espaço — stamina devolvida, sem recarga', limiteDeEntidades: 'limite de entidades do mundo — stamina devolvida', semCarga: 'sem carga', effectMissing: 'efeito não registrado'};
 function moveNotices() {
@@ -959,6 +981,7 @@ function frame(now) {
   const back = replay.length ? (replay.length - 1 - replay.cursor) : 0;
   hud.render(game, ui.fps, {locked: input.locked, paused: ui.paused && game.phase !== 'menu', replay: back ? `−${back} passos (${(back * C.test.step * 1000).toFixed(0)} ms) · ▶ retoma daqui` : 'último passo · , e . avançam/voltam', playerAI: !!C.extras.toggles.enablePlayerAI});
   movesHud.render(game);moveNotices();
+  passivesHud.render(game, C.extras.toggles.enablePassives !== 0);passiveVfx.update(live ? dt * clock.timeScale : 0);
   $('rp-readout').textContent = `passo ${game.tick}${back ? ` · −${(back * C.test.step).toFixed(2)} s` : ''}${clock.timeScale !== 1 ? ` · ${clock.timeScale}×` : ''}`;
   dock.render();updateDojoAdvantageBadge();hudProposals.render(game, live ? dt * clock.timeScale : 0);windowsOverlay.update();perfPanel.frame({frameMs: dt * 1000, simMs, steps});cinePanel?.updateBadge?.();updateOffscreenArrow(canvas.clientWidth, canvas.clientHeight);updateActionHintPill();if (game.phase === 'result' && !lastKoHandled) checkKoTrigger();
   if ((uiTimer += dt) > .1) {uiTimer = 0;renderLive();renderHistory();renderCharacterLive();renderRecStatus();visualPanel.live();diagnostics.live();perfPanel.live();}

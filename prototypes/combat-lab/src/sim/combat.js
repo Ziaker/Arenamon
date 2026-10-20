@@ -5,6 +5,7 @@ import {stat} from './status.js';
 import {vec, add, scale, sub, dot, length, normalize, angleOf, direction} from './math.js';
 
 import {processDamageWithShieldAndStages} from './map.js';
+import {knockbackFactor} from './passive-engine.js';
 
 /** Coloca o lutador em voo balístico (o eixo horizontal é integrado pela física).
  * A altitude inicial preserva o voo em curso (juggle) ou a elevação atual (vault de C): mudar de estado nunca
@@ -13,6 +14,7 @@ export function launch(f, away, horizontal, vertical) {
   const n = normalize(away);
   const startY = f.flight ? (f.flight.y ?? 0) : (f.groundY ?? 0) + (f.vaultHeight ?? 0);
   f.flight = {y: startY, vy: vertical, horizontal: scale(n, horizontal)};
+  f.launchedByHit = true;   // Inner Focus: só lançamento por golpe (edge-fall/jump não passa por aqui) reduz o hit stun
   f.action = null;f.push = null;f.blend = null;f.velocity = vec();f.locomotionVelocity = vec();
   f.guard = false;f.guardSuppressed = true;f.knockRecovery = 0;f.vaultHeight = 0;f.counterWindow = 0;f.landingSlide = null;f.state = 'airborne';
   f.tech = null;f.techDodge = null;f.wallSplat = null;
@@ -57,12 +59,13 @@ export function clash(a, b, normal) {
   const atkMultA = 1 + (a.stages?.attack ?? 0) * (C.map?.stageAttackBonus ?? 0.10);
   const rawToA = stat(b, 'attack', b.attributes.attack) * atkMultB * R.clashFraction * stat(a, 'damageTaken', 1);
   const rawToB = stat(a, 'attack', a.attributes.attack) * atkMultA * R.clashFraction * stat(b, 'damageTaken', 1);
-  const resA = processDamageWithShieldAndStages(a, rawToA, b, false, false);
-  const resB = processDamageWithShieldAndStages(b, rawToB, a, false, false);
+  const resA = processDamageWithShieldAndStages(a, rawToA, b, false, false, {category: 'direct', contact: 'clash'});
+  const resB = processDamageWithShieldAndStages(b, rawToB, a, false, false, {category: 'direct', contact: 'clash'});
   const push = !!C.extras.toggles.enableClashPush;a.lastAttacker = b.id;b.lastAttacker = a.id;
   if (push) {pushAway(a, scale(normal, -1), R.clashPushDistance, R.clashPushDuration);pushAway(b, normal, R.clashPushDistance, R.clashPushDuration);}
   else {launch(a, scale(normal, -1), R.clashHorizontal, R.clashUp);launch(b, normal, R.clashHorizontal, R.clashUp);}
-  return [{attacker: a.id, target: b.id, result: 'clash', damage: resB.hpDamage, shieldAbsorbed: resB.absorbedByShield, normal: {...normal}, push}, {attacker: b.id, target: a.id, result: 'clash', damage: resA.hpDamage, shieldAbsorbed: resA.absorbedByShield, normal: scale(normal, -1), push}];
+  return [{attacker: a.id, target: b.id, result: 'clash', damage: resB.hpDamage, shieldAbsorbed: resB.absorbedByShield, normal: {...normal}, push, contact: 'clash', ...(resB.sturdy ? {sturdy: true} : {})},
+    {attacker: b.id, target: a.id, result: 'clash', damage: resA.hpDamage, shieldAbsorbed: resA.absorbedByShield, normal: scale(normal, -1), push, contact: 'clash', ...(resA.sturdy ? {sturdy: true} : {})}];
 }
 /** O tackle do atacante conecta no defensor, dado a normal e a velocidade relativa do contato? */
 export function tackleConnects(attacker, defender, normal, relative) {
@@ -127,7 +130,7 @@ export function resolveHit(attacker, defender, normal, relative, force = false) 
   const rawDamage = perfect ? 0 : attack * stat(defender, 'damageTaken', 1);
 
   // Pipeline central: absorve dano bruto no escudo antes da Defesa (R9.6, R10.1, R10.3, R11.3)
-  const dmgResult = processDamageWithShieldAndStages(defender, rawDamage, attacker, protectedFront, perfect);
+  const dmgResult = processDamageWithShieldAndStages(defender, rawDamage, attacker, protectedFront, perfect, {category: 'direct', contact: 'tackle'});
   const damage = dmgResult.hpDamage;
 
   let launchInfo = null;
@@ -146,11 +149,11 @@ export function resolveHit(attacker, defender, normal, relative, force = false) 
     const toward = normalize(sub(defender.position, attacker.position));
     const departure = normalize(add(scale(normal, X.launchNormalWeight), scale(toward, X.launchCenterWeight)));
     // Meteor slam: o rival é lançado para CIMA com groundBounceForce (ground bounce) e com pouco empurrão horizontal.
-    const slam = !!attacker.action.slam, up = slam ? R.groundBounceForce : R.launchUp * stat(defender, 'knockbackTaken', 1) * defStageKnockbackMult, hSpeed = launchSpeed * (slam ? R.slamLaunchHorizontal : 1);
+    const slam = !!attacker.action.slam, up = slam ? R.groundBounceForce : R.launchUp * stat(defender, 'knockbackTaken', 1) * defStageKnockbackMult, hSpeed = launchSpeed * (slam ? R.slamLaunchHorizontal : 1) * knockbackFactor(defender);
     defender.lastAttacker = attacker.id;
     if (T.enableLaunch) {const dir = slam ? direction(attacker.facing) : length(departure) > 1e-7 ? departure : normal;launch(defender, dir, hSpeed, up);launchInfo = {direction: normalize(dir), horizontal: hSpeed, vertical: up, ...(slam ? {bounce: true} : {})};}
     else {defender.action = null;defender.knockRecovery = R.landingRecovery;}
   }
   if (defender.hp === 0) {defender.guard = false;defender.guardSuppressed = true;}
-  return {attacker: attacker.id, target: defender.id, result: perfect ? 'perfect' : protectedFront ? 'partial' : 'impact', damage, shieldAbsorbed: dmgResult.absorbedByShield, normal: {...normal}, launch: launchInfo, ...(attacker.action.slam ? {slam: true} : {})};
+  return {attacker: attacker.id, target: defender.id, result: perfect ? 'perfect' : protectedFront ? 'partial' : 'impact', damage, shieldAbsorbed: dmgResult.absorbedByShield, normal: {...normal}, launch: launchInfo, contact: 'tackle', ...(dmgResult.sturdy ? {sturdy: true} : {}), ...(attacker.action.slam ? {slam: true} : {})};
 }

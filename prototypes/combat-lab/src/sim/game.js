@@ -9,6 +9,7 @@ import {tickStatuses, applyStatus} from './status.js';
 import {getMove, placeRelative, setLoadout} from './moves.js';
 import {stepPhysics} from './physics.js';
 import {createMapState, initMap, stepMap, stepShield, generateFighterSpawnPositions} from './map.js';
+import {attachPassives, tickPassives, passiveOnEvents, passiveOnKO, setPassiveLoadout as applyPassiveLoadout} from './passive-engine.js';
 import {vec} from './math.js';
 
 const finishingNow = g => g.phase === 'finishing';
@@ -21,6 +22,9 @@ export class Game {
     this.brain.getMapState = this.playerBrain.getMapState = () => this.mapState;
     // Movimentos equipados por lutador (ids registrados em moves.js); mantidos entre partidas.
     this.loadouts = [[], []];
+    // Passivas: loadout por lutador + identidade de espécie explícita (R15), mantidos entre partidas.
+    this.passiveLoadouts = [[], []];
+    this.passiveIdentity = [null, null];
     this.combatWindows = [null, null];
     this.mode = 'combat';this.profile = 'balanced';this.enemyProfile = 'balanced';
     this.mapState = createMapState(seed);
@@ -39,6 +43,7 @@ export class Game {
     this.world = createWorld();
     this.world.mapState = this.mapState;
     initMap(this.mapState, this.fighters);
+    attachPassives(this);   // liga loadouts de passivas e restaura Sturdy (fronteira de rodada, §7/R22)
     this.tick = 0;this.events = [];this.winner = null;this.hitstop = 0;this.phase = 'playing';this.lastStepEvents = [];
   }
   start() {this.phase = 'playing';}
@@ -74,6 +79,13 @@ export class Game {
     // Mundo (projéteis, barreiras, paredes, áreas) e status: depois da física dos lutadores, no mesmo passo.
     fresh.push(...worldEvents, ...stepWorld(this, C.test.step));
     for (const f of this.fighters) {fresh.push(...tickStatuses(f, C.test.step, getFighterMaxStamina(f)));tickCooldowns(f, C.test.step);}
+    // Passivas: timers próprios (nunca por cooldownRate, R15) e gatilhos dos eventos deste passo. Só no passo normal:
+    // durante hitstop a sim está congelada e o retorno antecipado acima garante R24–R29 (cooldowns e durações
+    // congelados; nenhum evento real ocorre para ativar; efeitos ativos permanecem aplicados via stat()).
+    for (const f of this.fighters) fresh.push(...tickPassives(this, f, C.test.step));
+    fresh.push(...passiveOnEvents(this, fresh));
+    const koNow = this.fighters.find(f => f.hp <= 0);
+    if (koNow) fresh.push(...passiveOnKO(this, koNow));   // R23: KO encerra efeitos ativos imediatamente
     for (const e of fresh) e.tick = this.tick;
     this.events.push(...fresh);this.events = this.events.slice(-12);this.lastStepEvents = fresh;
     if (C.extras.toggles.enableHitstop) {
@@ -101,7 +113,7 @@ export class Game {
         else if (ev.hit) {
           // Golpe corpo a corpo: área curta à frente, por um passo, com a mesma função de acerto das entidades.
           const range = ev.hit.range ?? 1.2, width = ev.hit.width ?? 1.2;
-          spawn(this.world, placeRelative(f, fx.heading, {kind: 'area', shape: 'box', hx: width / 2, hz: range / 2, offset: {forward: C.test.halfExtent + range / 2}, y: 0, height: ev.hit.height ?? 2, life: C.test.step, pulses: 1, hit: ev.hit}), events);
+          spawn(this.world, placeRelative(f, fx.heading, {kind: 'area', shape: 'box', hx: width / 2, hz: range / 2, offset: {forward: C.test.halfExtent + range / 2}, y: 0, height: ev.hit.height ?? 2, life: C.test.step, pulses: 1, hit: {...ev.hit, contact: 'melee'}}), events);
         }
       }
     }
@@ -124,6 +136,8 @@ export class Game {
   }
   /** Equipa movimentos registrados num lutador (vale a partir de agora e nas próximas partidas). */
   setLoadout(id, ids) {this.loadouts[id] = setLoadout(this.fighters[id], ids);return this.loadouts[id];}
+  /** Equipa passivas de um lutador (validação dupla: UI e motor, R5). Vale a partir da próxima partida (reset). */
+  setPassiveLoadout(slot, ids) {return applyPassiveLoadout(this, slot, ids);}
   /** Associa janelas de combate da animação ao lutador (tackle, dodge, etc.). */
   setCombatWindows(id, windows) {
     this.combatWindows ??= [null, null];
@@ -140,6 +154,7 @@ export class Game {
   /** Estado completo e independente (structuredClone preserva os Sets de acertos). */
   save() {
     return structuredClone({fighters: this.fighters, tick: this.tick, events: this.events, winner: this.winner, hitstop: this.hitstop, phase: this.phase, world: this.world ?? createWorld(), mapState: this.mapState, loadouts: this.loadouts,
+      passiveLoadouts: this.passiveLoadouts, passiveIdentity: this.passiveIdentity,
       combatWindows: this.combatWindows, brain: this.brain.save(), playerBrain: this.playerBrain.save(), lastStepEvents: this.lastStepEvents});
   }
   load(state) {
@@ -152,6 +167,8 @@ export class Game {
       this.world.mapState = this.mapState;
     }
     if (s.loadouts) this.loadouts = s.loadouts;
+    if (s.passiveLoadouts) this.passiveLoadouts = s.passiveLoadouts;
+    if (s.passiveIdentity) this.passiveIdentity = s.passiveIdentity;
     this.combatWindows = s.combatWindows ? structuredClone(s.combatWindows) : [null, null];
     for (const f of this.fighters) {
       f.statuses ??= [];f.moveCooldowns ??= {};f.loadout ??= [];f.moveFx ??= [];
@@ -159,6 +176,8 @@ export class Game {
       f.stages ??= {attack: 0, defense: 0, staminaMax: 0, cooldown: 0, speed: 0};
       f.shield ??= {hp: 0, duration: 0, maxHp: 80};
       f.jumpState ??= {canJump: true, cooldown: 0};
+      // Passivas de saves antigos: estado neutro SEM restaurar Sturdy (R22/§7: load/replay/menu não devolvem o uso).
+      f.passiveState ??= {loadout: [...(this.passiveLoadouts?.[f.id] || [])], cooldowns: {}, actives: [], sturdyAvailable: false, sturdyUsed: false, lastDamageDealt: -1e9, lastDamageReceived: -1e9};
       if (!s.combatWindows) f.combatWindows = null;
     }
     for (let i = 0; i < this.fighters.length; i++) {

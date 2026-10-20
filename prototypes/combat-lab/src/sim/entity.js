@@ -2,6 +2,7 @@
 import {C} from './config.js';
 import {vec} from './math.js';
 import {moveSpec} from './moves.js';
+import {stat} from './status.js';
 
 export function createFighter(id, attributes, position) {
   return {id, attributes: {...attributes}, position, velocity: vec(), facing: id ? Math.PI : 0, desiredMove: vec(), locomotionVelocity: vec(),
@@ -43,7 +44,7 @@ export function actionSpec(action) {
  * Distância nominal: multiplicador próprio × tempo de referência × velocidade do lutador (GDD 7.2: 2,5 × 400 ms).
  * Com distanceReference = 0 o tempo de referência é a própria duração (Etapa A: a distância acompanhava a duração).
  */
-export const nominalDistance = (f, kind = 'dodge') => {const p = C.actions[kind];return p.distance * (p.distanceReference > 0 ? p.distanceReference : p.duration) * f.attributes.speed;};
+export const nominalDistance = (f, kind = 'dodge') => {const p = C.actions[kind];return p.distance * (p.distanceReference > 0 ? p.distanceReference : p.duration) * stat(f, 'speed', f.attributes.speed);};
 /** Invulnerável agora? Janela própria da ação (ou a herdada no cancelamento C → X). */
 export const invulnerableWindow = action => {
   if (action?.invulnerableFor !== undefined) return action.invulnerableFor;

@@ -4,6 +4,7 @@ import {C} from './config.js';
 import {clashPossible, mutualTackle, clash, resolveHit} from './combat.js';
 import {collideFighter} from './world.js';
 import {collideMapFighter, damageDestructible, processDamageWithShieldAndStages} from './map.js';
+import {passiveCost, hitStunFactor} from './passive-engine.js';
 import {vec, add, scale, sub, dot, length, normalize, clamp, direction, smoothstep} from './math.js';
 
 /** Sonda de diagnóstico (auditoria externa §64): subpassos e contatos do último passo físico.
@@ -246,7 +247,10 @@ export function stepPhysics(fighters, dt, world = null) {
         f.landingSlide = T.enableLandingSkid ? {velocity: scale(flight.horizontal, X.landingSkidFraction)} : null;
         f.flight = null;f.velocity = vec();
         const wasNormalJump = !!f.normalJumpLanding;
-        f.knockRecovery = (wasNormalJump || f.hp <= 0) ? 0 : R.landingRecovery; // derrotado não tem recuperação de pouso
+        // Inner Focus: hit stun reduzido em 20% quando o lançamento veio de um golpe (launch(); edge-fall/jump não marca).
+        const stunFactor = f.launchedByHit ? hitStunFactor(f) : 1;
+        f.launchedByHit = false;
+        f.knockRecovery = (wasNormalJump || f.hp <= 0) ? 0 : R.landingRecovery * stunFactor; // derrotado não tem recuperação de pouso
         f.recoveryFrom = null;
         f.normalJumpLanding = false;
         f.state = f.hp <= 0 ? 'defeated' : (wasNormalJump ? 'neutral' : 'landing');
@@ -256,7 +260,7 @@ export function stepPhysics(fighters, dt, world = null) {
         }
         // Recovery rápido: C apertado a tempo no ar e stamina suficiente: ao tocar o chão, a esquiva sai na hora (o controlador a inicia).
         const tech = f.tech;f.tech = null;
-        if (T.enableTechRecovery && tech && f.hp > 0 && f.stamina >= R.techCost - 1e-8 && (R.techCost <= 0 || !f.exhausted)) {f.knockRecovery = 0;f.landingSlide = null;f.techDodge = {dir: tech.dir};f.state = 'neutral';}
+        if (T.enableTechRecovery && tech && f.hp > 0 && f.stamina >= passiveCost(f, 'tech', R.techCost) - 1e-8 && (R.techCost <= 0 || !f.exhausted)) {f.knockRecovery = 0;f.landingSlide = null;f.techDodge = {dir: tech.dir};f.state = 'neutral';}
       } else {f.velocity = {...flight.horizontal};f.state = 'airborne';}
     } else if (f.action?.slam || (f.vaultHeight ?? 0) > 0.05 || f.action?.jump) {
       // Lutador em ação aérea (meteor slam, salto ou esquiva elevada):
@@ -378,7 +382,7 @@ export function stepPhysics(fighters, dt, world = null) {
     if (baseDmg > 0 && f.hp > 0) {
       // Autoria real: só um lastAttacker registrado. Sem ele é dano ambiental SEM autor (nunca o índice oposto).
       const attackerF = attackerId != null ? (fighters.find(other => other.id === attackerId) ?? null) : null;
-      const res = processDamageWithShieldAndStages(f, baseDmg, attackerF, false);
+      const res = processDamageWithShieldAndStages(f, baseDmg, attackerF, false, false, {category: 'environmental'});
       effectiveDmg = res.hpDamage;
     }
     events.push({result: 'wallSplat', attacker: attackerId, target: f.id, damage: effectiveDmg, normal: {...w.normal}, duration: w.duration});

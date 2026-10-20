@@ -7,6 +7,7 @@ import {Recorder} from './telemetry.js';
 import {vec, direction} from './math.js';
 import {TACKLE_SCENARIOS} from './scenarios-tackle.js';
 import {MAP_SCENARIOS} from './scenarios-map.js';
+import {PASSIVE_SCENARIOS} from './scenarios-passives.js';
 
 const cmd = (o = {}) => ({move: vec(), dodge: false, tackle: false, guard: false, guardPressed: false, target: null, ...o});
 const toward = (from, to) => {const dx = to.x - from.x, dz = to.z - from.z, d = Math.hypot(dx, dz) || 1;return vec(dx / d, dz / d);};
@@ -131,8 +132,8 @@ const BASE_SCENARIOS = [
     },
   },
 ];
-/** Cenários base + os do Tackle/meteor slam + os do Novo Mapa. */
-export const SCENARIOS = [...BASE_SCENARIOS, ...TACKLE_SCENARIOS, ...MAP_SCENARIOS];
+/** Cenários base + os do Tackle/meteor slam + os do Novo Mapa + os de Passivas. */
+export const SCENARIOS = [...BASE_SCENARIOS, ...TACKLE_SCENARIOS, ...MAP_SCENARIOS, ...PASSIVE_SCENARIOS];
 
 const pathGet = (root, path) => path.split('.').reduce((a, k) => a?.[k], root);
 const pathSet = (root, path, v) => {const keys = path.split('.'), last = keys.pop();keys.reduce((a, k) => a[k], root)[last] = v;};
@@ -148,7 +149,7 @@ export function prepareScenario(def, game) {
   let t = 0, lastAction = [null, null];const scratch = {}, total = typeof def.ticks === 'function' ? def.ticks() : def.ticks;
   return {
     get tick() {return t;}, get done() {return t >= total;}, get total() {return total;},
-    commands() {return def.script(t, game, scratch);},
+    commands() {return def.script ? def.script(t, game, scratch) : [cmd({target: 1}), cmd({target: 0})];},
     /** Chamado depois de cada passo: atualiza o registro do cenário. */
     observe() {
       log.states.add(game.fighters[0].state);

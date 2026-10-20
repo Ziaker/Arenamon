@@ -220,6 +220,18 @@ pre.diff{max-height:240px;overflow:auto;font-size:11px;background:#0b1118;paddin
 .mvp-slot b{font-weight:750;color:#eef5fb;font-size:11px;flex-shrink:0}
 .mvp-slot span{color:var(--c);font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:68px}
 .mvp-slot i{position:absolute;left:0;bottom:0;height:2.5px;width:calc(var(--p)*100%);background:var(--c)}
+/* Passivas: estados do HUD (permanente/ativa/pronta/recarga/consumida) + painel de seleção + toast branco */
+.mvp-slot[data-state=permanente]{opacity:.9;border-color:#b8ef6c66}
+.mvp-slot[data-state=ativa]{opacity:1;border-color:var(--c);box-shadow:0 0 10px color-mix(in srgb,var(--c) 40%,#0000)}
+.mvp-slot[data-state=consumida]{opacity:.28;text-decoration:line-through}
+#passives-hud{position:absolute;left:12px;right:12px;bottom:64px;z-index:6;pointer-events:none;display:flex;flex-direction:column;gap:4px}
+#passives-hud .mvp-row{position:static}
+.pvh-toast{position:absolute;left:50%;top:18%;transform:translateX(-50%);background:#ffffffee;color:#0b131c;font:800 15px/1.2 Inter,system-ui,sans-serif;padding:8px 18px;border-radius:999px;box-shadow:0 0 18px #ffffff88;animation:pvh-toast-in .25s ease}
+@keyframes pvh-toast-in{from{opacity:0;transform:translateX(-50%) translateY(-8px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+.passives-panel .passives-slot h3{font:700 12.5px/1.3 Inter,system-ui,sans-serif;color:#cfe2f2;margin:8px 0 4px}
+.passives-panel .passives-slot p{margin:4px 0 0;font:600 11px/1.3 Inter,system-ui,sans-serif}
+.passives-panel p.ok{color:#9fe08a}
+.passives-panel p.warn{color:#ffcf6a}
 #offscreen-arrow{position:absolute;z-index:7;pointer-events:none;display:flex;align-items:center;gap:4px;padding:3px 8px;border-radius:999px;background:#2b1620ea;border:1px solid #ff7a7acc;color:#ffe0dc;font:700 11px/1 ui-monospace,Consolas,monospace;box-shadow:0 0 10px #ff3b3066;white-space:nowrap;transition:opacity .15s}
 #offscreen-arrow .arrow-icon{display:inline-block;font-size:12px;color:#ff9a8a}
 #action-hint-pill{position:absolute;left:50%;bottom:28px;transform:translateX(-50%);z-index:5;pointer-events:none;background:#0b141ee0;border:1px solid #ffffff1a;padding:4px 12px;border-radius:999px;font:650 11.5px/1.3 Inter,system-ui,sans-serif;color:#cfe2f2;letter-spacing:.02em;box-shadow:0 4px 16px #00000066;white-space:nowrap;transition:all .15s ease}

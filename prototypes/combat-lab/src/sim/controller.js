@@ -18,6 +18,7 @@ import {legacyApproach, locomotionStep} from './locomotion.js';
 import {actionProgress} from './motion.js';
 import {report, attemptsActive} from './attempts.js';
 import {getGroundHeight} from './physics.js';
+import {passiveCost} from './passive-engine.js';
 
 /** Aceleração/frenagem/reversão da locomoção comum no modelo do v6 (mantido para compatibilidade). */
 export function approachVelocity(current, desired, dt) {return legacyApproach(current, desired, C.locomotion, dt);}
@@ -31,7 +32,9 @@ export function locomotionParams(f) {
 /** Velocidade máxima de caminhada do lutador agora (defesa e exaustão reduzem). */
 export const walkSpeed = f => stat(f, 'speed', f.attributes.speed) * (f.guard ? C.rules.guardSpeed : 1) * (f.exhausted ? C.rules.exhaustedSpeed : 1) * (f.charge ? f.charge.params.moveSlow : 1);
 /** Custo de stamina de uma ação com o modificador de status (sem status: o próprio custo). */
-export const costOf = (f, cost) => stat(f, 'staminaCost', cost);
+// kind opcional ('dodge' | 'tech'): passivas como Technician alteram o custo efetivo de esquivas e recovery (R10);
+// X/tackles e Moves continuam usando o custo base (C.extras.toggles.enablePassives desligado = paridade exata).
+export const costOf = (f, cost, kind = null) => {const base = stat(f, 'staminaCost', cost);return kind ? passiveCost(f, kind, base) : base;};
 
 /**
  * Stamina esgotada: abaixo do menor custo de X e C (exhaustMode 1) ou exatamente zero (0, Etapa A).
@@ -88,7 +91,7 @@ export function startPermission(f, kind) {
   return {ok: true};
 }
 /** Motivo da falta de stamina (mesma condição de `affordable` em updateFighter). */
-const staminaReason = (f, p) => f.exhausted ? {reason: 'exhausted', detail: {value: f.stamina, refill: getFighterMaxStamina(f)}} : {reason: 'stamina', detail: {value: f.stamina, required: p.cost}};
+const staminaReason = (f, p, kind) => f.exhausted ? {reason: 'exhausted', detail: {value: f.stamina, refill: getFighterMaxStamina(f)}} : {reason: 'stamina', detail: {value: f.stamina, required: costOf(f, p.cost, kind)}};
 
 // Memória só do diagnóstico (fora do estado do lutador: não entra em save/replay nem altera a simulação).
 const lastBufferReason = new WeakMap(), sprintDenied = new WeakSet();
@@ -388,7 +391,7 @@ export function updateFighter(f, cmd, fighters, dt, world = null) {
   if (!kind && f.bufferedTackle && f.stun <= 1e-8 && !f.action) {kind = 'tackle';dirs = f.bufferedTackle;f.bufferedTackle = null;}
   if (kind) {
     const p = actionParams(kind), disarmed = kind === 'tackle' && (hasFlag(f, 'disarmed') || hasFlag(f, 'stunned')), stunnedC = kind === 'dodge' && hasFlag(f, 'stunned');
-    const permission = disarmed || stunnedC ? {ok: false, reason: disarmed && !hasFlag(f, 'stunned') ? 'disarmed' : 'stunned'} : startPermission(f, kind), affordable = !f.exhausted && f.stamina >= costOf(f, p.cost) - 1e-8;
+    const permission = disarmed || stunnedC ? {ok: false, reason: disarmed && !hasFlag(f, 'stunned') ? 'disarmed' : 'stunned'} : startPermission(f, kind), affordable = !f.exhausted && f.stamina >= costOf(f, p.cost, kind) - 1e-8;
     const fresh = kind === requested && !fromBuffer, fromStun = !requested && !fromBuffer;
     if (permission.buffer) {f.bufferedTackle = {move: {...dirs.move}, dodgeDirection: dirs.dodgeDirection && {...dirs.dodgeDirection}};f.inputBuffer = null;if (diag && fresh) report(f, {kind, result: 'buffered', reason: permission.reason, detail: permission.detail, note: 'sai quando o guard stun acabar'});}
     else if (permission.ok && affordable) {
@@ -400,7 +403,7 @@ export function updateFighter(f, cmd, fighters, dt, world = null) {
       if (diag) report(f, {kind, result: 'executed', viaCancel: !!via, fromBuffer, note: fromStun ? 'guardado durante o guard stun' : undefined});
     } else if (diag) {
       // Sem permissão ou sem stamina: a ação atual continua intacta (inclusive a esquiva, no caso de C → X).
-      const why = !permission.ok ? {reason: permission.reason, detail: permission.detail} : staminaReason(f, p);
+      const why = !permission.ok ? {reason: permission.reason, detail: permission.detail} : staminaReason(f, p, kind);
       if (f.inputBuffer && fromBuffer) lastBufferReason.set(f.inputBuffer, why);
       if (fresh) {if (f.inputBuffer) lastBufferReason.set(f.inputBuffer, why);report(f, {kind, result: f.inputBuffer ? 'buffered' : 'denied', viaCancel: !!permission.viaCancel, ...why});}
     }
@@ -574,8 +577,8 @@ function startAction(f, kind, dirs, fighters, desiredHeading, viaCancel, guardHe
   if (viaCancel && kind === 'tackle' && T.enableMeteorSlam && liftStart > C.rules.slamMinHeight) {f.action.slam = true;f.action.fromSlam = true;f.action.plDamage = C.rules.slamDamage;aimSlam(f, fighters, liftStart);}
   if (viaCancel) f.action.fromCancel = true;
   if (countered) f.counterWindow = 0;
-  // O custo de C já gasto continua gasto; X cobra o próprio custo.
-  f.stamina = Math.max(0, f.stamina - costOf(f, p.cost));f.regenBase = f.stamina;f.regenAge = 0;
+  // O custo de C já gasto continua gasto; X cobra o próprio custo. Technician desconta só esquiva ('dodge').
+  f.stamina = Math.max(0, f.stamina - costOf(f, p.cost, kind));f.regenBase = f.stamina;f.regenAge = 0;
   f.exhausted = isDepleted(f.stamina);f.guard = false;f.guardSuppressed = guardHeld;
   f.stun = 0;f.push = null;f.blend = null;f.vaultHeight = liftStart;f.bufferedTackle = null;f.inputBuffer = null;
   f.sprinting = false;f.sprintCarry = false;f.sprintArmed = kind === 'dodge';f.plDefeated = false;

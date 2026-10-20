@@ -7,6 +7,7 @@
 
 import {C} from './config.js';
 import {getFighterMaxStamina} from './entity.js';
+import {sturdyGuard} from './passive-engine.js';
 import {vec, add, sub, scale, length, normalize, dot, clamp, direction, angleOf} from './math.js';
 
 export const MAP_DEFAULTS = {
@@ -620,8 +621,9 @@ export function stepShield(fighter, dt, events = []) {
  * @param {any} [arg2]
  * @param {boolean} [isBlocked]
  * @param {boolean} [isPerfect]
+ * @param {{category?: string, contact?: string, attacker?: any}} [ctx] origem do dano ('direct' | 'periodic' | 'environmental' | 'reflected'): Sturdy só vale para dano letal DIRETO de ataque (R6).
  */
-export function processDamageWithShieldAndStages(arg0, arg1, arg2 = null, isBlocked = false, isPerfect = false) {
+export function processDamageWithShieldAndStages(arg0, arg1, arg2 = null, isBlocked = false, isPerfect = false, ctx = {}) {
   let defender, rawDamage, attacker;
   if (typeof arg1 === 'number') {
     defender = arg0;
@@ -658,6 +660,8 @@ export function processDamageWithShieldAndStages(arg0, arg1, arg2 = null, isBloc
 
   // Dano excedente passa pela Defesa básica e redução de estágios (R10.1, R10.3)
   let finalHpDamage = 0;
+  /** @type {{hpDamage: number, sturdy: boolean}|null} Sturdy (R6/§7), quando aplicável. */
+  let sg = null;
   if (unshieldedRaw > 0) {
     const X = C.extras?.combat;
     const guardMultiplier = isBlocked ? (X?.guardDamageMultiplier ?? 0.5) : 1.0;
@@ -667,7 +671,10 @@ export function processDamageWithShieldAndStages(arg0, arg1, arg2 = null, isBloc
     const defenseFactor = Math.max(0, 1.0 - stageReduction);
 
     finalHpDamage = unshieldedRaw * guardMultiplier * defenseFactor;
-    defender.hp = Math.max(0, defender.hp - finalHpDamage);
+    // Sturdy (R6/§7): dano letal DIRETO de ataque deixa exatamente 1 HP, 1× por rodada (DOT/ambiental/refletido não protege).
+    sg = sturdyGuard(defender, finalHpDamage, {...ctx, attacker});
+    finalHpDamage = sg.hpDamage;
+    defender.hp = sg.sturdy ? 1 : Math.max(0, defender.hp - finalHpDamage);   // Sturdy já fixou o HP em 1 dentro de sturdyGuard
 
     if (attacker) {
       defender.lastAttacker = attacker.id;
@@ -675,7 +682,7 @@ export function processDamageWithShieldAndStages(arg0, arg1, arg2 = null, isBloc
     }
   }
 
-  return {absorbedByShield: absorbed, hpDamage: finalHpDamage};
+  return {absorbedByShield: absorbed, hpDamage: finalHpDamage, sturdy: !!sg?.sturdy};
 }
 
 /**

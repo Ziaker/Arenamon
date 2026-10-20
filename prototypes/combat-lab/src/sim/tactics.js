@@ -22,6 +22,7 @@ import {cancelWindow, isDepleted, startPermission, timeToLand} from './controlle
 import {chainOpen, actionSpec} from './entity.js';
 import {initPerception, updatePerception} from './perception.js';
 import {predictContact, canDefenseArrive, calculatePunishWindow, trackPredictionAccuracy} from './prediction.js';
+import {passiveCost} from './passive-engine.js';
 import {getCombatZones, safeArenaDirection, cornerPressureDirection, hysteresisDistance, okizemePlan, shouldSprintManaged} from './spatial.js';
 import {valueBasedStamina, staminaComboBudget, trackStaminaEfficiency} from './economy.js';
 import {selectDefenseResponse, postBlockDecision, canPunishSafely} from './defense.js';
@@ -196,7 +197,7 @@ export function tacticalCommand(brain, self, target, dt, P) {
       : target?.action?.kind === 'tackle';
     const away = distance > 1e-6 ? normalize(scale(diff, -1)) : direction(self.facing + Math.PI);
     const side = vec(away.z * (t.orbit ?? 1), -away.x * (t.orbit ?? 1));
-    const canDodgeCancel = self.charge.ticks >= (self.charge.params?.dodgeLockTicks ?? 30) && !self.exhausted && self.stamina >= A.dodge.cost;
+    const canDodgeCancel = self.charge.ticks >= (self.charge.params?.dodgeLockTicks ?? 30) && !self.exhausted && self.stamina >= passiveCost(self, 'dodge', A.dodge.cost);
 
     // Evasão emergencial durante o Charge: se o rival iniciar um Tackle a caminho, cancela a carga com esquiva lateral
     if (oppTackle && distance < 4.2 && canDodgeCancel) {
@@ -220,7 +221,7 @@ export function tacticalCommand(brain, self, target, dt, P) {
     return finish(brain, c, self, target);
   }
   const myReach = contactDistance() + nominalDistance(self, 'tackle') * (.55 + .3 * S.range);
-  const affordTackle = !self.exhausted && self.stamina >= A.tackle.cost - 1e-6, affordDodge = !self.exhausted && self.stamina >= A.dodge.cost - 1e-6;
+  const affordTackle = !self.exhausted && self.stamina >= A.tackle.cost - 1e-6, affordDodge = !self.exhausted && self.stamina >= passiveCost(self, 'dodge', A.dodge.cost) - 1e-6;
   const free = !self.action && self.knockRecovery <= 0 && !self.flight;
   // Evita gastar a última ação e ficar exausto, salvo em oportunidade clara (finalização, rival vulnerável, contra-ataque).
   // Revisão 1: só a finalização ou o contra-ataque justificam ficar exausto (punir a queda do rival não vale ~6 s exausto).
@@ -229,10 +230,10 @@ export function tacticalCommand(brain, self, target, dt, P) {
   const predForValue = F.economy ? predictContact(self, target, 'tackle', F.perception ? t.perception : null, C.test.arenaHalf) : null;
   const valueDecision = (F.economy && predForValue) ? valueBasedStamina(self, target, 'tackle', predForValue, S) : null;
   const keepsStamina = (!isDepleted(self.stamina - A.tackle.cost) || opening || (!F.stamina && S.reserve < .2) || (F.economy && valueDecision?.allowed));
-  const keepsDodge = !F.dodgeStamina || !isDepleted(self.stamina - A.dodge.cost) || opening;
+  const keepsDodge = !F.dodgeStamina || !isDepleted(self.stamina - passiveCost(self, 'dodge', A.dodge.cost)) || opening;
   const canDash = free && affordTackle && keepsStamina, canDodge = free && affordDodge && keepsDodge;
   // Esquiva reativa que deixaria exausto vale menos: defender costuma ser melhor.
-  const dodgeKeeps = isDepleted(self.stamina - A.dodge.cost) ? .3 : 1;
+  const dodgeKeeps = isDepleted(self.stamina - passiveCost(self, 'dodge', A.dodge.cost)) ? .3 : 1;
   const chaos = S.chaos ? .5 + brain.random() : 1;
 
   // ---------- Humor e placar ----------
@@ -244,7 +245,7 @@ export function tacticalCommand(brain, self, target, dt, P) {
   const boldness = clamp((P.aggression ?? .5) + .35 * t.mood - .5 * lead + (target.exhausted ? .3 : 0) + urgency, 0, 1.6);
   // Disciplina de stamina: C → X custa C + X; sobra a reserva do estilo para uma esquiva defensiva.
   // Orçamento do C → X pelo flanco: com a exaustão abaixo do menor custo, sobra uma ação para não ficar exausto.
-  const flankBudget = A.dodge.cost + A.tackle.cost + (C.rules.exhaustMode === 1 ? Math.min(A.dodge.cost, A.tackle.cost) * (1 - .5 * (1 - S.reserve)) : 0) + S.reserve * .6 * A.dodge.cost;
+  const flankBudget = passiveCost(self, 'dodge', A.dodge.cost) + A.tackle.cost + (C.rules.exhaustMode === 1 ? Math.min(passiveCost(self, 'dodge', A.dodge.cost), A.tackle.cost) * (1 - .5 * (1 - S.reserve)) : 0) + S.reserve * .6 * passiveCost(self, 'dodge', A.dodge.cost);
 
   // Como o adversário respondeu ao nosso X (para adaptar as próximas escolhas): observa o estado dele durante a
   // janela de resposta, inclusive quem já estava defendendo antes do ataque.
@@ -448,7 +449,7 @@ export function tacticalCommand(brain, self, target, dt, P) {
 
   // ---------- Sprint (revisão 1 e 2): encurta distância longa sem gastar a reserva ----------
   if (F.sprint && C.extras.toggles.enableSprint) {
-    const S2 = A.sprint, budget = A.dodge.cost + A.tackle.cost + (C.extras.ai.sprintReserve ?? (S2.staminaDrain * .8 + .2));
+    const S2 = A.sprint, budget = passiveCost(self, 'dodge', A.dodge.cost) + A.tackle.cost + (C.extras.ai.sprintReserve ?? (S2.staminaDrain * .8 + .2));
     const threatDist = zones ? zones.threatZone : (myReach + 1.2);
     if (self.sprinting || (t.sprinting && self.action?.kind === 'dodge')) {
       const keep = (distance > (F.spatial ? threatDist : myReach + 1.2)) && self.stamina > A.tackle.cost + .25;
@@ -461,11 +462,11 @@ export function tacticalCommand(brain, self, target, dt, P) {
   }
 
   // ---------- 4. Escolha de intenção (a cada "pensamento") ----------
-  const reserveOk = self.stamina - A.tackle.cost >= S.reserve * A.dodge.cost - 1e-6 || target.hp <= self.attributes.attack * 1.05 || target.exhausted;
+  const reserveOk = self.stamina - A.tackle.cost >= S.reserve * passiveCost(self, 'dodge', A.dodge.cost) - 1e-6 || target.hp <= self.attributes.attack * 1.05 || target.exhausted;
   if (t.time >= t.think || t.time >= t.intentUntil) {
     t.think = t.time + S.think * (.6 + .8 * brain.random()) * (target.exhausted ? .6 : 1);
     t.rangeDrift = clamp(t.rangeDrift + (brain.random() - .5) * .3, -.4, .4);
-    const m = t.model, inMyRange = distance <= myReach, inTheirRange = distance <= oppReach, low = self.exhausted || self.stamina < A.dodge.cost + A.tackle.cost * .5;
+    const m = t.model, inMyRange = distance <= myReach, inTheirRange = distance <= oppReach, low = self.exhausted || self.stamina < passiveCost(self, 'dodge', A.dodge.cost) + A.tackle.cost * .5;
     // Contra quem defende muito, ataque direto rende pouco: isca, flanco e paciência.
     const guardy = m.guard, dodgy = m.dodge, clashy = m.clash, eager = m.attackRate;
     const baitWeight = S.bait * (inTheirRange ? .4 : 1) * (.4 + eager) * 1.1 * (counterStrat?.baitWeightMod ?? 1.0);
