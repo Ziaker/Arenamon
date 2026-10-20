@@ -230,7 +230,12 @@ export function stepPhysics(fighters, dt, world = null) {
       // durante a subida nunca é apoio — sem isso o lutador "teleportava" para o topo ao atravessar a faixa de
       // tolerância por baixo. O ε absorve o contato exato (ex.: clamp de teto que parou os pés exatamente no piso);
       // a subida segue bloqueada pelo vy ≤ 0.
-      if (flight.vy <= 0 && flight.y <= targetGround && prevY >= targetGround - 1e-6) {
+      // ε de 1 mm (não 1e-6): o integrador Euler discreto pica ~8,4e-5 m ABAIXO da altura analítica do salto
+      // (pico discreto 1,999916 m para jumpHeight 2,0 m). Com ε = 1e-6, uma superfície exatamente na altura do
+      // pico do salto nunca era apoio: prevY ficava 84 μm abaixo de alvo−ε e o lutador atravessava a faixa do
+      // topo em queda livre (ex.: obstáculo de 2,0 m com salto de 2,0 m). 1 mm absorve a discretização sem
+      // permitir pouso vindo de baixo (quem sobe tem vy > 0; quem desliza pela lateral já está descendo).
+      if (flight.vy <= 0 && flight.y <= targetGround && prevY >= targetGround - 1e-3) {
         flight.y = targetGround;
         f.groundY = targetGround;
         // Evento real de colisão com o solo (usado pelos efeitos visuais): velocidade vertical e horizontal no contato.

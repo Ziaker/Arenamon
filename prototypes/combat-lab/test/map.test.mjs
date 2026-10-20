@@ -418,7 +418,7 @@ test('100 seeds de geração de mapa respeitam todas as invariantes', () => {
 console.log('\n9. Execução dos Cenários Oficiais do Mapa:');
 
 const mapScenarios = SCENARIOS.filter(s => s.id.startsWith('map-'));
-assert.equal(mapScenarios.length, 34, 'Devem existir exatamente 34 cenários do mapa');
+assert.equal(mapScenarios.length, 44, 'Devem existir exatamente 44 cenários do mapa (35 oficiais + 9 do laboratório da auditoria externa)');
 
 let scenariosPassed = 0;
 for (const sc of mapScenarios) {
@@ -432,7 +432,7 @@ for (const sc of mapScenarios) {
     failed++;
   }
 }
-assert.equal(scenariosPassed, 34, 'Todos os 34 cenários do mapa devem passar com 100% de aprovação');
+assert.equal(scenariosPassed, mapScenarios.length, 'Todos os cenários do mapa devem passar com 100% de aprovação');
 
 console.log(`\n--- RESULTADO FINAL DA SUÍTE DE TESTES DO MAPA ---`);
 console.log(`Total aprovados: ${passed + scenariosPassed}`);

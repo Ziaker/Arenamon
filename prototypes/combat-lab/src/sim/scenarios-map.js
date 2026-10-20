@@ -863,4 +863,290 @@ export const MAP_SCENARIOS = [
       ];
     },
   },
+
+  // 35. LABORATÓRIO (auditoria externa 2026-10-20, item 1): piso plano e personagem isolado
+  {
+    id: 'map-lab-flat-floor',
+    name: 'Laboratório: Piso plano com personagem isolado',
+    description: 'Lutador parado em piso plano e isolado: permanece no lugar, com altitude zero e sem entrar em queda.',
+    positions: [vec(0, 0), vec(24, 24)],
+    ticks: () => steps(1.0),
+    setup: g => {face(g.fighters[0], 0);},
+    script: t => [cmd(), cmd()],
+    checks: ({game}) => {
+      const f = game.fighters[0];
+      const d = Math.hypot(f.position.x, f.position.z);
+      return [
+        check('Permaneceu no lugar (deriva < 0,05 m)', d < 0.05, '< 0,05 m', `${d.toFixed(3)} m`),
+        check('Altitude zero no piso plano', near(f.groundY ?? 0, 0, 1e-6), '0,000', (f.groundY ?? 0).toFixed(3)),
+        check('Nunca entrou em estado aéreo', f.state !== 'airborne', 'sim', yn(f.state !== 'airborne')),
+      ];
+    },
+  },
+
+  // 36. LABORATÓRIO (item 2): bloco sólido — contenção lateral e montagem do topo
+  {
+    id: 'map-lab-solid-block',
+    name: 'Laboratório: Bloco sólido (face lateral e topo)',
+    description: 'O lutador é contido pela face lateral do bloco de 2,0 m ao correr contra ele (sem tunelamento) e, na segunda tentativa, salta e aterrissa sobre o topo.',
+    positions: [vec(0, -6), vec(12, 12)],
+    ticks: () => steps(4.5),
+    setup: g => {
+      g.mapState.obstacles = [{id: 'b1', pos: {x: 0, z: 0}, hx: 1, hz: 2.5, height: 2.0}];
+      face(g.fighters[0], 0);
+    },
+    script: (t, g, scratch) => {
+      const f = g.fighters[0];
+      if (!scratch.p1Done) { // fase 1: correr contra a face (sem saltar)
+        scratch.maxZ1 = Math.max(scratch.maxZ1 ?? -Infinity, f.position.z);
+        if (t >= steps(0.9)) {scratch.p1Done = true;return [cmd({move: vec(0, -1)}), cmd()];}
+        return [cmd({move: vec(0, 1)}), cmd()];
+      }
+      if (!scratch.p2Done) { // recuar para nova aproximação
+        if (f.position.z <= -5.6) scratch.p2Done = true;
+        return [cmd({move: vec(0, -1)}), cmd()];
+      }
+      // fase 2: correr e saltar antes da face; o impulso horizontal carrega o corpo sobre o topo
+      if (!scratch.jumped && !f.flight && f.position.z >= -3.4) {scratch.jumped = true;return [cmd({move: vec(0, 1), jump: true}), cmd()];}
+      if (!f.flight && near(f.groundY ?? 0, 2.0, 0.05)) return [cmd(), cmd()]; // montou o topo: para de andar
+      return [cmd({move: vec(0, 1)}), cmd()];
+    },
+    checks: ({game, scratch}) => {
+      const f = game.fighters[0];
+      const maxZ1 = scratch.maxZ1 ?? -Infinity;
+      const blocked = maxZ1 <= -2.7 && maxZ1 >= -3.0; // face em -2,5 − meio-corpo 0,35 = -2,85
+      const mounted = near(f.groundY ?? 0, 2.0, 0.05) && Math.abs(f.position.z) <= 2.5;
+      return [
+        check('Contido na face lateral (sem tunelamento)', blocked, '-2,7 … -3,0 m', `${maxZ1.toFixed(2)} m`),
+        check('Aterrissou sobre o topo do bloco (y = 2,0 m)', mounted, 'sim', `y=${(f.groundY ?? 0).toFixed(2)} z=${f.position.z.toFixed(2)}`),
+      ];
+    },
+  },
+
+  // 37. LABORATÓRIO (item 3): duas plataformas oficiais na mesma arena
+  {
+    id: 'map-lab-two-platforms',
+    name: 'Laboratório: Duas plataformas oficiais (1,0 m e 1,5 m)',
+    description: 'As duas alturas oficiais de plataforma coexistem na arena; lutadores apoiados em cada uma permanecem exatamente no seu nível.',
+    positions: [vec(0, 8), vec(0, -8)],
+    ticks: () => steps(0.6),
+    setup: g => {
+      g.mapState.platforms = [
+        {id: 'p1', pos: {x: 0, z: 8}, width: 3, depth: 3, height: 1.0},
+        {id: 'p2', pos: {x: 0, z: -8}, width: 3, depth: 3, height: 1.5},
+      ];
+      g.fighters[0].position = {x: 0, z: 8, y: 1.0};
+      g.fighters[0].groundY = 1.0;
+      g.fighters[1].position = {x: 0, z: -8, y: 1.5};
+      g.fighters[1].groundY = 1.5;
+    },
+    script: t => [cmd(), cmd()],
+    checks: ({game}) => {
+      const a = game.fighters[0], b = game.fighters[1];
+      const bothGrounded = a.state !== 'airborne' && b.state !== 'airborne';
+      return [
+        check('Apoio exato na plataforma oficial de 1,0 m', near(a.groundY ?? 0, 1.0, 1e-6), '1,000', (a.groundY ?? 0).toFixed(3)),
+        check('Apoio exato na plataforma oficial de 1,5 m', near(b.groundY ?? 0, 1.5, 1e-6), '1,500', (b.groundY ?? 0).toFixed(3)),
+        check('Nenhum dos dois caiu ou flutuou', bothGrounded, 'sim', yn(bothGrounded)),
+      ];
+    },
+  },
+
+  // 38. LABORATÓRIO (item 11): plataformas adjacentes (sem folga na junção)
+  {
+    id: 'map-lab-plat-adjacent',
+    name: 'Laboratório: Plataformas adjacentes (junção sem folga)',
+    description: 'Duas plataformas de 1,0 m encostadas pela aresta: ao atravessar a junção a pé, o apoio nunca cai — não há queda balística falsa na emenda.',
+    positions: [vec(-2.5, 0), vec(10, 10)],
+    ticks: () => steps(1.5),
+    setup: g => {
+      g.mapState.platforms = [
+        {id: 'p1', pos: {x: -1.5, z: 0}, width: 3, depth: 3, height: 1.0},
+        {id: 'p2', pos: {x: 1.5, z: 0}, width: 3, depth: 3, height: 1.0},
+      ];
+      g.fighters[0].position = {x: -2.5, z: 0, y: 1.0};
+      g.fighters[0].groundY = 1.0;
+      face(g.fighters[0], Math.PI / 2);
+    },
+    script: (t, g, scratch) => {
+      const f = g.fighters[0];
+      scratch.minGY = Math.min(scratch.minGY ?? Infinity, f.groundY ?? 0);
+      return [f.position.x < 2.4 ? cmd({move: vec(1, 0)}) : cmd(), cmd()];
+    },
+    checks: ({game, scratch}) => {
+      const f = game.fighters[0];
+      const minGY = scratch.minGY ?? Infinity;
+      return [
+        check('Apoio nunca caiu ao cruzar a junção (min y ≥ 0,9 m)', minGY >= 0.9, '≥ 0,900 m', `${minGY.toFixed(3)} m`),
+        check('Terminou sobre a segunda plataforma (y = 1,0 m, x > 2,0)', near(f.groundY ?? 0, 1.0, 1e-6) && f.position.x > 2.0, 'sim', `y=${(f.groundY ?? 0).toFixed(2)} x=${f.position.x.toFixed(2)}`),
+      ];
+    },
+  },
+
+  // 39. LABORATÓRIO (item 12): plataformas separadas (fosso exige salto)
+  {
+    id: 'map-lab-plat-separated',
+    name: 'Laboratório: Plataformas separadas (salto sobre o fosso)',
+    description: 'Duas plataformas de 1,0 m separadas por um fosso de 3,0 m: o impulso horizontal do salto carrega o lutador para o outro lado, com voo balístico sobre a lacuna.',
+    positions: [vec(-2.5, 0), vec(14, 14)],
+    ticks: () => steps(2.2),
+    setup: g => {
+      g.mapState.platforms = [
+        {id: 'p1', pos: {x: -2, z: 0}, width: 3, depth: 3, height: 1.0},
+        {id: 'p2', pos: {x: 4, z: 0}, width: 3, depth: 3, height: 1.0},
+      ];
+      const f = g.fighters[0];
+      f.position = {x: -2.5, z: 0, y: 1.0};
+      f.groundY = 1.0;
+      f.velocity = vec(6, 0);
+      face(f, Math.PI / 2);
+    },
+    script: (t, g, scratch) => {
+      const f = g.fighters[0];
+      if (f.flight && f.position.x > -0.5 && f.position.x < 2.5) scratch.overGap = true;
+      if (!f.flight && !scratch.jumped && f.position.x >= -1.0) {scratch.jumped = true;return [cmd({move: vec(1, 0), jump: true}), cmd()];}
+      if (scratch.jumped && !f.flight && near(f.groundY ?? 0, 1.0, 1e-6) && f.position.x >= 2.5) return [cmd(), cmd()]; // pousou em p2: para
+      return [cmd({move: vec(1, 0)}), cmd()];
+    },
+    checks: ({game, scratch}) => {
+      const f = game.fighters[0];
+      const landed = near(f.groundY ?? 0, 1.0, 1e-6) && f.position.x >= 2.5 && f.position.x <= 5.5;
+      return [
+        check('Voou sobre o fosso entre as plataformas', !!scratch.overGap, 'sim', yn(scratch.overGap)),
+        check('Aterrissou na segunda plataforma (y = 1,0 m)', landed, 'sim', `y=${(f.groundY ?? 0).toFixed(2)} x=${f.position.x.toFixed(2)}`),
+      ];
+    },
+  },
+
+  // 40. LABORATÓRIO (item 13): teto inferior acessível (laje suspensa)
+  {
+    id: 'map-lab-low-ceiling',
+    name: 'Laboratório: Teto inferior acessível (cabeça na face)',
+    description: 'Sob uma laje suspensa a 2,2 m, o salto normal (pico ~2,0 m) teria a cabeça atravessando a face; com o corpo inteiro respeitado, os pés param a 0,9 m e a cabeça encosta na face, sem empurrão lateral.',
+    positions: [vec(0, 0), vec(12, 12)],
+    ticks: () => steps(1.5),
+    setup: g => {
+      g.mapState.obstacles = [{id: 'slab', pos: {x: 0, y: 2.2, z: 0}, hx: 2, hz: 2, height: 0.6}];
+      face(g.fighters[0], 0);
+    },
+    script: (t, g, scratch) => {
+      const f = g.fighters[0];
+      const y = f.flight ? f.flight.y : (f.groundY ?? 0);
+      scratch.peakY = Math.max(scratch.peakY ?? 0, y);
+      return [t === 5 ? cmd({jump: true}) : cmd(), cmd()];
+    },
+    checks: ({game, scratch}) => {
+      const f = game.fighters[0];
+      const peakY = scratch.peakY ?? 0;
+      const bump = f.lastCeilingBump;
+      return [
+        check('Subida interrompida na face inferior (pico 0,7–1,1 m)', peakY >= 0.7 && peakY <= 1.1, '0,7 … 1,1 m', `${peakY.toFixed(2)} m`),
+        check('Registro de contato de teto (face a 2,2 m)', !!bump && near(bump.face, 2.2, 1e-6), '2,200', bump ? bump.face.toFixed(3) : 'sem contato'),
+        check('Sem empurrão lateral no teto', Math.abs(f.position.x) < 0.1 && Math.abs(f.position.z) < 0.1, '< 0,1 m', `(${f.position.x.toFixed(2)}, ${f.position.z.toFixed(2)})`),
+        check('Voltou a pousar no piso (y = 0)', near(f.groundY ?? 0, 0, 1e-6), '0,000', (f.groundY ?? 0).toFixed(3)),
+      ];
+    },
+  },
+
+  // 41. LABORATÓRIO (item 16): corredor estreito
+  {
+    id: 'map-lab-narrow-corridor',
+    name: 'Laboratório: Corredor estreito (1,6 m entre paredes)',
+    description: 'Duas paredes paralelas formam um corredor de 1,6 m (corpo de 0,7 m): o lutador atravessa de ponta a ponta sem grudar nas paredes nem levantar voo.',
+    positions: [vec(0, -6.5), vec(10, 10)],
+    ticks: () => steps(3.6),
+    setup: g => {
+      g.mapState.obstacles = [
+        {id: 'w1', pos: {x: -1.2, z: 0}, hx: 0.4, hz: 5, height: 3},
+        {id: 'w2', pos: {x: 1.2, z: 0}, hx: 0.4, hz: 5, height: 3},
+      ];
+      face(g.fighters[0], 0);
+    },
+    script: (t, g, scratch) => {
+      const f = g.fighters[0];
+      scratch.maxAbsX = Math.max(scratch.maxAbsX ?? 0, Math.abs(f.position.x));
+      scratch.wasAirborne = scratch.wasAirborne || f.state === 'airborne';
+      return [f.position.z < 4.5 ? cmd({move: vec(0, 1)}) : cmd(), cmd()];
+    },
+    checks: ({game, scratch}) => {
+      const f = game.fighters[0];
+      return [
+        check('Atravessou o corredor até o final (z > 4,0)', f.position.z > 4.0, '> 4,0 m', `${f.position.z.toFixed(2)} m`),
+        check('Não encostou nas paredes (|x| ≤ 0,85 m)', (scratch.maxAbsX ?? 99) <= 0.85, '≤ 0,850 m', `${(scratch.maxAbsX ?? 0).toFixed(3)} m`),
+        check('Permaneceu no chão durante toda a travessia', !scratch.wasAirborne, 'sim', yn(!scratch.wasAirborne)),
+      ];
+    },
+  },
+
+  // 42. LABORATÓRIO (item 19): lançamento contra o teto
+  {
+    id: 'map-lab-launch-ceiling',
+    name: 'Laboratório: Lançamento contra o teto',
+    description: 'Um lutador lançado para cima embaixo de uma laje a 3,0 m tem a subida interrompida pela face inferior (pés a 1,7 m) e retorna ao solo — sem atravessar a laje e sem teleporte para o topo.',
+    positions: [vec(0, 0), vec(12, 12)],
+    ticks: () => steps(2.2),
+    setup: g => {
+      g.mapState.obstacles = [{id: 'slab', pos: {x: 0, y: 3.0, z: 0}, hx: 2, hz: 2, height: 0.5}];
+      const f = g.fighters[0];
+      f.flight = {y: 0.2, vy: 14, horizontal: vec(0, 0), targetVy: 0, t: 0, duration: 2.0};
+      f.state = 'airborne';
+    },
+    script: (t, g, scratch) => {
+      const f = g.fighters[0];
+      const y = f.flight ? f.flight.y : (f.groundY ?? 0);
+      scratch.peakY = Math.max(scratch.peakY ?? 0, y);
+      return [cmd(), cmd()];
+    },
+    checks: ({game, scratch}) => {
+      const f = game.fighters[0];
+      const peakY = scratch.peakY ?? 0;
+      const bump = f.lastCeilingBump;
+      return [
+        check('Pico limitado pela face do teto (1,5–1,9 m)', peakY >= 1.5 && peakY <= 1.9, '1,5 … 1,9 m', `${peakY.toFixed(2)} m`),
+        check('Contato de teto registrado (face a 3,0 m)', !!bump && near(bump.face, 3.0, 1e-6), '3,000', bump ? bump.face.toFixed(3) : 'sem contato'),
+        check('Retornou ao piso sem teleporte (y = 0)', near(f.groundY ?? 0, 0, 1e-6) && !f.flight, '0,000', (f.groundY ?? 0).toFixed(3)),
+      ];
+    },
+  },
+
+  // 43. LABORATÓRIO (item 25): múltiplos eventos simultâneos
+  {
+    id: 'map-lab-multi-event',
+    name: 'Laboratório: Múltiplos eventos simultâneos',
+    description: 'Na mesma janela de simulação: o azul quebra um destrutível com tackle (com drop), enquanto o vermelho salta sobre uma plataforma e coleta um consumível elevado — todos os eventos devem ocorrer sem interferência.',
+    positions: [vec(0, -2), vec(8, -2.5)],
+    ticks: () => steps(1.6),
+    setup: g => {
+      g.mapState.platforms = [{id: 'p1', pos: {x: 8, z: 0}, width: 4, depth: 4, height: 1.0}];
+      g.mapState.destructibles = [{
+        id: 'd1', pos: {x: 0, z: 0, y: 0}, size: {hx: 0.8, hz: 0.8, height: 1.6},
+        hp: 5, maxHp: 30, state: 'solid', respawnTimer: 20, ghostTimer: 0,
+        categoryMultipliers: {physical: 1.0},
+      }];
+      g.mapState.items = [{id: 1, type: 'heal_hp', pos: {x: 8, z: 1.2, y: 1.4}, life: 15, isDrop: false, vy: 0}];
+      face(g.fighters[0], 0);
+      face(g.fighters[1], 0);
+    },
+    script: (t, g, scratch) => {
+      const b = g.fighters[1];
+      if (b.flight) scratch.bAir = true;
+      const bCmd = b.position.z < 1.0 ? cmd({move: vec(0, 1)}) : cmd(); // para sobre a plataforma após coletar
+      if (!b.flight && !scratch.bJumped && t > 5) {scratch.bJumped = true;return [t === 5 ? cmd({tackle: true, move: vec(0, 1)}) : cmd(), cmd({...bCmd, jump: true})];}
+      return [t === 5 ? cmd({tackle: true, move: vec(0, 1)}) : cmd(), bCmd];
+    },
+    checks: ({game, log, scratch}) => {
+      const d = game.mapState.destructibles[0];
+      const b = game.fighters[1];
+      const broken = d.state === 'dead' || log.events.some(e => e.result === 'destructibleDestroyed' || e.result === 'destructibleSplat');
+      const dropped = game.mapState.items.some(it => it.isDrop) || log.events.some(e => e.result === 'itemDropped' || e.result === 'dropSpawned');
+      const collected = log.events.some(e => e.result === 'itemCollected');
+      const mounted = near(b.groundY ?? 0, 1.0, 1e-6);
+      return [
+        check('Destrutível quebrado por tackle (evento 1)', broken, 'sim', yn(broken)),
+        check('Drop de consumível liberado (evento 2)', dropped, 'sim', yn(dropped)),
+        check('Vermelho montou a plataforma (evento 3)', mounted && !!scratch.bAir, 'sim', `y=${(b.groundY ?? 0).toFixed(2)}`),
+        check('Consumível elevado coletado (evento 4)', collected, 'sim', yn(collected)),
+      ];
+    },
+  },
 ];
