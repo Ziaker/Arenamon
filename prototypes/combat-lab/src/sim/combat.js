@@ -6,10 +6,13 @@ import {vec, add, scale, sub, dot, length, normalize, angleOf, direction} from '
 
 import {processDamageWithShieldAndStages} from './map.js';
 
-/** Coloca o lutador em voo balístico (o eixo horizontal é integrado pela física). */
+/** Coloca o lutador em voo balístico (o eixo horizontal é integrado pela física).
+ * A altitude inicial preserva o voo em curso (juggle) ou a elevação atual (vault de C): mudar de estado nunca
+ * descarta a posição vertical sem causa física (contrato de continuidade espacial da infraestrutura 3D). */
 export function launch(f, away, horizontal, vertical) {
   const n = normalize(away);
-  f.flight = {y: f.groundY ?? 0, vy: vertical, horizontal: scale(n, horizontal)};
+  const startY = f.flight ? (f.flight.y ?? 0) : (f.groundY ?? 0) + (f.vaultHeight ?? 0);
+  f.flight = {y: startY, vy: vertical, horizontal: scale(n, horizontal)};
   f.action = null;f.push = null;f.blend = null;f.velocity = vec();f.locomotionVelocity = vec();
   f.guard = false;f.guardSuppressed = true;f.knockRecovery = 0;f.vaultHeight = 0;f.counterWindow = 0;f.landingSlide = null;f.state = 'airborne';
   f.tech = null;f.techDodge = null;f.wallSplat = null;

@@ -80,6 +80,51 @@ export function getGroundHeight(pos, world, currentY = null) {
   return highest;
 }
 
+/**
+ * Face inferior (teto) mais baixa cruzada entre fromY e toY na posição XZ: plataformas, obstáculos e destrutíveis sólidos.
+ * Só conta superfícies cujo UNDERSIDE está estritamente acima do ponto de partida e alcançado nesta subida.
+ * Fora da área XZ (ou sem travessia) não há teto. Não altera estado: apenas consulta a geometria.
+ */
+export function getCeilingHeight(pos, world, fromY, toY) {
+  if (toY <= fromY) return null;
+  const mapState = world?.mapState;
+  const platforms = mapState?.platforms ?? world?.platforms ?? C.map?.platforms;
+  const obstacles = mapState?.obstacles ?? world?.obstacles ?? C.map?.obstacles;
+  const destructibles = mapState?.destructibles ?? world?.destructibles;
+  let lowest = Infinity;
+  if (platforms) {
+    for (const p of platforms) {
+      const px = p.pos ? p.pos.x : p.x, pz = p.pos ? p.pos.z : p.z;
+      const hx = (p.width ?? 3) / 2, hz = (p.depth ?? 3) / 2;
+      if (Math.abs(pos.x - px) <= hx && Math.abs(pos.z - pz) <= hz) {
+        const underside = p.height;
+        if (underside > fromY + 1e-6 && underside <= toY + 1e-6 && underside < lowest) lowest = underside;
+      }
+    }
+  }
+  if (obstacles) {
+    for (const o of obstacles) {
+      const ox = o.pos?.x ?? 0, oz = o.pos?.z ?? 0;
+      const underside = o.pos?.y ?? 0;
+      if (underside <= fromY + 1e-6 || underside > toY + 1e-6) continue;
+      let inside = false;
+      if (o.shape === 'cylinder' || o.shape === 'pillar') {
+        const dx = pos.x - ox, dz = pos.z - oz, r = o.radius ?? 1;
+        inside = dx * dx + dz * dz <= r * r;
+      } else inside = Math.abs(pos.x - ox) <= (o.hx ?? 1.5) && Math.abs(pos.z - oz) <= (o.hz ?? 1.5);
+      if (inside && underside < lowest) lowest = underside;
+    }
+  }
+  if (destructibles) {
+    for (const d of destructibles) {
+      if (d.state !== 'solid') continue;
+      const underside = d.pos?.y ?? 0;
+      if (underside <= fromY + 1e-6 || underside > toY + 1e-6) continue;
+      if (Math.abs(pos.x - d.pos.x) <= (d.size?.hx ?? .8) && Math.abs(pos.z - d.pos.z) <= (d.size?.hz ?? .8) && underside < lowest) lowest = underside;
+    }
+  }
+  return lowest === Infinity ? null : lowest;
+}
 /** Mantém o lutador dentro da arena circular (ou quadrada configurada); em voo, rebate na parede conforme a restituição. */
 export function clampToArena(f) {
   const isCircle = C.map?.arenaShape !== 'square';
@@ -87,7 +132,11 @@ export function clampToArena(f) {
 
   if (isCircle) {
     const radius = C.map?.arenaRadius ?? 50;
-    const effRadius = (C.test.arenaHalf != null && C.test.arenaHalf < radius && C.test.arenaHalf !== 16) ? C.test.arenaHalf : radius;
+    // arenaHalf é o half-size da arena QUADRADA legada (protótipo de blocos): o padrão 16 NÃO é um cap para a
+    // arena circular oficial. Cap técnico para cenários de teste da arena circular: C.test.circleCap (null = raio oficial).
+    const LEGACY_SQUARE_HALF = 16;
+    const legacyCap = (C.test.arenaHalf != null && C.test.arenaHalf < radius && C.test.arenaHalf !== LEGACY_SQUARE_HALF) ? C.test.arenaHalf : null;
+    const effRadius = C.test.circleCap != null ? Math.min(C.test.circleCap, radius) : (legacyCap ?? radius);
     const bound = effRadius - C.test.halfExtent;
     const d = length(f.position);
     if (d > bound) {
@@ -156,13 +205,27 @@ export function stepPhysics(fighters, dt, world = null) {
       flight.y ??= f.groundY ?? 0;
       const g = flight.gravity ?? R.launchGravity;
       // Voo balístico de passo fixo: gravidade na altura e arrasto exponencial no plano.
+      const prevY = flight.y;
       flight.y += flight.vy * dt - .5 * g * dt * dt;
       flight.vy -= g * dt;
+      // Teto: subindo e cruzando a face inferior de uma plataforma/obstáculo/destrutível sólido, a subida para ali.
+      // Sem isso a face inferior era atravessada e a checagem de pouso "teleportava" o lutador para o topo.
+      if (flight.vy > 0) {
+        const underside = getCeilingHeight(f.position, world, prevY, flight.y);
+        if (underside != null) {
+          flight.y = underside;
+          flight.vy = 0;
+          f.lastCeilingBump = {n: (f.lastCeilingBump?.n ?? 0) + 1, y: underside, x: f.position.x, z: f.position.z};
+        }
+      }
       const drag = flight.isNormalJump ? (C.map?.jumpDrag ?? 0.0) : R.launchDrag;
       flight.horizontal = scale(flight.horizontal, Math.exp(-drag * dt));
       const curY = flight.y ?? (f.groundY ?? 0);
       const targetGround = getGroundHeight(f.position, world, curY);
-      if (flight.y <= targetGround) {
+      // Pouso só na descida e CRUZANDO a superfície vindo de cima (prevY ≥ alvo): uma plataforma cruzada por baixo
+      // durante a subida (ou na qual a cabeça bateu no teto, parando exatamente no nível dela) nunca é apoio —
+      // sem isso o lutador "teleportava" para o topo ao atravessar a faixa de tolerância por baixo.
+      if (flight.vy <= 0 && flight.y <= targetGround && prevY >= targetGround + 1e-6) {
         flight.y = targetGround;
         f.groundY = targetGround;
         // Evento real de colisão com o solo (usado pelos efeitos visuais): velocidade vertical e horizontal no contato.
@@ -296,13 +359,15 @@ export function stepPhysics(fighters, dt, world = null) {
     const w = f.wallSplat;if (!w || !w.fresh || w.announced) continue;
     w.announced = true;
     const baseDmg = R.wallSplatDamage;
+    const attackerId = typeof f.lastAttacker === 'number' ? f.lastAttacker : null;
     let effectiveDmg = baseDmg;
     if (baseDmg > 0 && f.hp > 0) {
-      const attackerF = fighters.find(other => other.id === (f.lastAttacker ?? 1 - f.id));
+      // Autoria real: só um lastAttacker registrado. Sem ele é dano ambiental SEM autor (nunca o índice oposto).
+      const attackerF = attackerId != null ? (fighters.find(other => other.id === attackerId) ?? null) : null;
       const res = processDamageWithShieldAndStages(f, baseDmg, attackerF, false);
       effectiveDmg = res.hpDamage;
     }
-    events.push({result: 'wallSplat', attacker: f.lastAttacker ?? 1 - f.id, target: f.id, damage: effectiveDmg, normal: {...w.normal}, duration: w.duration});
+    events.push({result: 'wallSplat', attacker: attackerId, target: f.id, damage: effectiveDmg, normal: {...w.normal}, duration: w.duration});
   }
   // Impacto do meteor slam no chão: quem estiver embaixo de quem aterrissou é acertado, mesmo sem avanço no instante do pouso.
   for (const a of fighters) {

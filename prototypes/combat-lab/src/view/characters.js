@@ -536,12 +536,15 @@ export class Character {
   /** Entra num estado: a animação atual vira camada de fade e a nova começa do zero (registro na telemetria). */
   enter(key, id, index, entry, f, ctx) {
     const prev = this.current;
-    if (prev && prev.index === index && LOCOMOTION.has(prev.key) && LOCOMOTION.has(key)) {
-      // Mesmo clipe servindo a outro estado de locomoção (ex.: andar → correr com o mesmo clipe): continua sem reiniciar.
+    if (prev && prev.index === index) {
+      // Mesmo clipe servindo a outro estado (locomoção, ação renascida com outro serial, transição curta): continua de
+      // onde está, sem reiniciar e sem criar camada — o tempo das ações temporais é imposto pela simulação em blend().
       prev.entry = entry;prev.key = key;prev.id = id;this.restartsAvoided++;return;
     }
     if (prev) {prev.fadeStart = this.clock;prev.fadeFrom = prev.weight;this.layers.push(prev);}
-    const clip = this.clips[index].clone(), action = this.mixer.clipAction(clip);
+    // Sem clone: o mixer cacheia a ação por (clipe, raiz) e o tempo é por ação. Clonar copiava todos os keyframes de
+    // todas as tracks a cada troca de estado e fazia o cache interno do mixer crescer sem limite (uma entrada por troca).
+    const clip = this.clips[index], action = this.mixer.clipAction(clip);
     action.reset().play();action.paused = true;action.enabled = true;action.setEffectiveWeight(prev ? 0 : 1);
     this.current = {key, id, index, clip, action, entry, started: this.clock, weight: prev ? 0 : 1, fade: ACTION_KEYS.has(key) || COMBAT_KEYS.has(key) ? Character.options.actionFade : Character.options.fade};
     this.fade = 0;this.timer = 0;this.transitions++;

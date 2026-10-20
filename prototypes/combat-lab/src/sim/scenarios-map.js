@@ -257,6 +257,10 @@ export const MAP_SCENARIOS = [
     setup: g => {
       g.mapState.platforms = [{id: 'p1', pos: {x: 0, z: 3}, width: 4, depth: 4, height: 1.0}];
       const victim = g.fighters[1];
+      // Lançado de FORA da área da plataforma: o arco sobe, cruza a borda acima do topo e aterrissa no topo.
+      // (O ponto de partida original, colado na face lateral, só "pousava no topo" por causa do defeito de
+      // pouso durante a subida; com a física corrigida ele bate na face inferior e cai ao solo — comportamento certo.)
+      victim.position = vec(0, -1.5);
       victim.flight = {
         y: 0,
         horizontal: vec(0, 6),
