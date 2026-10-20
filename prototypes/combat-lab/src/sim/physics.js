@@ -21,16 +21,40 @@ function tryWallSplat(f, normal) {
 }
 /** Altura do piso/plataforma na posição XZ. */
 export function getGroundHeight(pos, world) {
-  const platforms = world?.mapState?.platforms ?? world?.platforms ?? C.map?.platforms;
-  if (!platforms) return 0;
+  const mapState = world?.mapState;
+  const platforms = mapState?.platforms ?? world?.platforms ?? C.map?.platforms;
+  const obstacles = mapState?.obstacles ?? world?.obstacles ?? C.map?.obstacles;
+  if (!platforms && !obstacles) return 0;
   let highest = 0;
-  for (const p of platforms) {
-    const px = p.pos ? p.pos.x : p.x;
-    const pz = p.pos ? p.pos.z : p.z;
-    const hx = (p.width ?? 3) / 2;
-    const hz = (p.depth ?? 3) / 2;
-    if (Math.abs(pos.x - px) <= hx && Math.abs(pos.z - pz) <= hz) {
-      if (p.height > highest) highest = p.height;
+  const footMargin = (C.test?.halfExtent ?? 0.35) * 0.75;
+  if (platforms) {
+    for (const p of platforms) {
+      const px = p.pos ? p.pos.x : p.x;
+      const pz = p.pos ? p.pos.z : p.z;
+      const hx = ((p.width ?? 3) / 2) + footMargin;
+      const hz = ((p.depth ?? 3) / 2) + footMargin;
+      if (Math.abs(pos.x - px) <= hx && Math.abs(pos.z - pz) <= hz) {
+        if (p.height > highest) highest = p.height;
+      }
+    }
+  }
+  if (obstacles) {
+    for (const o of obstacles) {
+      const ox = o.pos?.x ?? 0, oz = o.pos?.z ?? 0;
+      const h = (o.pos?.y ?? 0) + (o.height ?? 1.5);
+      if (o.shape === 'cylinder' || o.shape === 'pillar') {
+        const r = (o.radius ?? 1) + footMargin;
+        const dx = pos.x - ox, dz = pos.z - oz;
+        if (dx * dx + dz * dz <= r * r) {
+          if (h > highest) highest = h;
+        }
+      } else {
+        const hx = (o.hx ?? 1.5) + footMargin;
+        const hz = (o.hz ?? 1.5) + footMargin;
+        if (Math.abs(pos.x - ox) <= hx && Math.abs(pos.z - oz) <= hz) {
+          if (h > highest) highest = h;
+        }
+      }
     }
   }
   return highest;
@@ -123,10 +147,11 @@ export function stepPhysics(fighters, dt, world = null) {
         f.lastLanding = {n: (f.lastLanding?.n ?? 0) + 1, vertical: Math.max(0, -flight.vy), horizontal: length(flight.horizontal), x: f.position.x, z: f.position.z};
         f.landingSlide = T.enableLandingSkid ? {velocity: scale(flight.horizontal, X.landingSkidFraction)} : null;
         f.flight = null;f.velocity = vec();
-        f.knockRecovery = f.normalJumpLanding ? (C.map?.jumpLandingRecovery ?? 0.19) : R.landingRecovery;
+        const wasNormalJump = !!f.normalJumpLanding;
+        f.knockRecovery = wasNormalJump ? 0 : R.landingRecovery;
         f.recoveryFrom = null;
         f.normalJumpLanding = false;
-        f.state = f.hp <= 0 ? 'defeated' : 'landing';
+        f.state = f.hp <= 0 ? 'defeated' : (wasNormalJump ? 'neutral' : 'landing');
         if (f.jumpState) {
           f.jumpState.canJump = false;
           f.jumpState.cooldown = C.map?.jumpInterval ?? 0.25;

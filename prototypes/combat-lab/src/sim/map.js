@@ -708,19 +708,25 @@ export function damageDestructible(destructible, baseDamage, category = 'physica
 export function collideMapFighter(mapState, f, events = []) {
   if (!mapState) return;
   const halfExtent = C.test?.halfExtent ?? 0.35;
-  const fY = (f.groundY ?? 0) + (f.flight?.y ?? f.vaultHeight ?? 0);
+  const currentY = f.flight ? (f.flight.y ?? (f.groundY ?? 0)) : (f.groundY ?? 0);
+  const fY = currentY + (f.vaultHeight ?? 0);
   const fHeight = C.extras?.visual?.bodyHeight ?? 1.2;
 
-  // 1. Plataformas (laterais sólidas R7.6)
+  // 1. Plataformas (laterais sólidas R7.6 com tolerância para montar no topo)
   if (mapState.platforms) {
     for (const p of mapState.platforms) {
-      if (fY >= p.height - 0.08) continue;
+      if (fY >= p.height - 0.05) continue;
       const px = p.pos?.x ?? p.x, pz = p.pos?.z ?? p.z;
       const hx = (p.width ?? 3) / 2, hz = (p.depth ?? 3) / 2;
       const dx = f.position.x - px, dz = f.position.z - pz;
       const ox = (hx + halfExtent) - Math.abs(dx);
       const oz = (hz + halfExtent) - Math.abs(dz);
       if (ox > 0 && oz > 0) {
+        if (f.flight && fY >= p.height - 0.35) {
+          f.flight.y = Math.max(f.flight.y, p.height);
+          f.groundY = p.height;
+          continue;
+        }
         if (ox < oz) {
           const sign = dx > 0 ? 1 : -1;
           f.position.x = px + sign * (hx + halfExtent);
@@ -737,14 +743,21 @@ export function collideMapFighter(mapState, f, events = []) {
     }
   }
 
-  // 2. Obstáculos indestrutíveis (R1.8)
+  // 2. Obstáculos indestrutíveis (R1.8 com suporte a topo e tolerância)
   if (mapState.obstacles) {
     for (const o of mapState.obstacles) {
-      if (fY + fHeight <= o.pos.y || fY >= o.pos.y + o.height) continue;
-      if (o.shape === 'cylinder') {
+      const topY = (o.pos?.y ?? 0) + o.height;
+      if (fY >= topY - 0.05) continue;
+      if (fY + fHeight <= (o.pos?.y ?? 0)) continue;
+      if (o.shape === 'cylinder' || o.shape === 'pillar') {
         const d = dist2D(f.position, o.pos);
         const minDist = o.radius + halfExtent;
         if (d < minDist && d > 1e-6) {
+          if (f.flight && fY >= topY - 0.35) {
+            f.flight.y = Math.max(f.flight.y, topY);
+            f.groundY = topY;
+            continue;
+          }
           const pushDir = {x: (f.position.x - o.pos.x) / d, z: (f.position.z - o.pos.z) / d};
           f.position.x = o.pos.x + pushDir.x * minDist;
           f.position.z = o.pos.z + pushDir.z * minDist;
@@ -755,6 +768,11 @@ export function collideMapFighter(mapState, f, events = []) {
         const ox = (o.hx + halfExtent) - Math.abs(dx);
         const oz = (o.hz + halfExtent) - Math.abs(dz);
         if (ox > 0 && oz > 0) {
+          if (f.flight && fY >= topY - 0.35) {
+            f.flight.y = Math.max(f.flight.y, topY);
+            f.groundY = topY;
+            continue;
+          }
           if (ox < oz) {
             const sign = dx > 0 ? 1 : -1;
             f.position.x = o.pos.x + sign * (o.hx + halfExtent);

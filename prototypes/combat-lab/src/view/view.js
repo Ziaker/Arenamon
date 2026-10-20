@@ -241,7 +241,9 @@ export class View {
         const body = new T.Mesh(new T.BoxGeometry(1, 1, 1), new T.MeshStandardMaterial({color: f.id ? rgb('enemy') : rgb('player')}));this.meshes[f.id] = body;this.scene.add(body);
         const arrow = new T.Mesh(new T.ConeGeometry(.16, .42, 3), new T.MeshBasicMaterial({color: rgb('arrow')}));this.arrows[f.id] = arrow;this.scene.add(arrow);
       }
-      const body = this.meshes[f.id], alt = (f.flight?.y ?? 0) + (f.vaultHeight ?? 0), character = this.characters[f.id];
+      const baseGroundY = f.groundY ?? 0;
+      const currentY = f.flight ? (f.flight.y ?? baseGroundY) : baseGroundY;
+      const body = this.meshes[f.id], alt = currentY + (f.vaultHeight ?? 0), character = this.characters[f.id];
       body.visible = !character;this.arrows[f.id].visible = !character;
       // Bloco: compressão e alongamento seguindo as fases físicas de X/C (preparação comprime, impulso alonga).
       let squash = 1;
@@ -253,8 +255,8 @@ export class View {
       body.position.set(f.position.x, V.bodyHeight / 2 * squash + alt + vis, f.position.z);
       body.scale.set(V.bodyWidth * wide, (f.state === 'landing' ? V.bodyHeight * V.landingScale : f.guard ? V.bodyHeight * V.guardScale : V.bodyHeight) * squash, V.bodyDepth * wide);
       // Sombra: posição física (independente da altura visual), atenuada pela altura do lutador.
-      const shadow = this.shadowFor(f), fade = Math.max(V.shadowMin, 1 - alt * V.shadowHeightFade), style = S.style | 0;
-      shadow.position.set(f.position.x + S.offsetX, .012, f.position.z + S.offsetZ);
+      const shadow = this.shadowFor(f), fade = Math.max(V.shadowMin, 1 - Math.max(0, currentY - baseGroundY) * V.shadowHeightFade), style = S.style | 0;
+      shadow.position.set(f.position.x + S.offsetX, baseGroundY + .012, f.position.z + S.offsetZ);
       const size = (style === 0 ? 1 : S.radius * 2) * fade;
       shadow.scale.set(size * S.scaleX * (style === 0 ? V.bodyWidth : 1), 1, size * S.scaleZ * (style === 0 ? V.bodyDepth : 1));
       shadow.material.color.setHex(rgb('shadow'));shadow.material.opacity = Math.min(1, (style === 0 ? 1 : S.opacity * fade) * S.intensity);
