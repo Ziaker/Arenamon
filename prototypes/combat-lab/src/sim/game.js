@@ -26,6 +26,9 @@ export class Game {
     this.passiveLoadouts = [[], []];
     this.passiveIdentity = [null, null];
     this.combatWindows = [null, null];
+    // R31: IDs estáveis de eventos (sequência determinística) e registro do passo de eventos de
+    // passivas já processados (detecção de processamento duplicado do mesmo evento).
+    this.eventSeq = 0;this.passiveProcessed = new Set();
     this.mode = 'combat';this.profile = 'balanced';this.enemyProfile = 'balanced';
     this.mapState = createMapState(seed);
     this.reset();this.phase = 'menu';
@@ -50,7 +53,7 @@ export class Game {
   pause() {if (this.phase === 'playing') this.phase = 'paused';else if (this.phase === 'paused') this.phase = 'playing';}
   /** Um passo de simulação. cmd1 opcional: sem ele, o adversário usa a IA do modo atual. */
   step(cmd0 = emptyCommand(), cmd1) {
-    this.lastStepEvents = [];this.frozen = false;
+    this.lastStepEvents = [];this.frozen = false;this.passiveProcessed.clear();   // R31: anti-duplicata vale por passo
     if (this.phase !== 'playing' && this.phase !== 'finishing') return;
     // Hitstop: o passo conta no relógio, mas a simulação fica congelada.
     if (this.hitstop > 0) {
@@ -83,10 +86,11 @@ export class Game {
     // durante hitstop a sim está congelada e o retorno antecipado acima garante R24–R29 (cooldowns e durações
     // congelados; nenhum evento real ocorre para ativar; efeitos ativos permanecem aplicados via stat()).
     for (const f of this.fighters) fresh.push(...tickPassives(this, f, C.test.step));
+    for (const e of fresh) if (e.id == null) e.id = ++this.eventSeq;   // R31: id na ORIGEM antes do engine, para a causa carregada ser real
     fresh.push(...passiveOnEvents(this, fresh));
     const koNow = this.fighters.find(f => f.hp <= 0);
     if (koNow) fresh.push(...passiveOnKO(this, koNow));   // R23: KO encerra efeitos ativos imediatamente
-    for (const e of fresh) e.tick = this.tick;
+    for (const e of fresh) {e.tick = this.tick;if (e.id == null) e.id = ++this.eventSeq;}   // R31: ID estável por evento
     this.events.push(...fresh);this.events = this.events.slice(-12);this.lastStepEvents = fresh;
     if (C.extras.toggles.enableHitstop) {
       if (fresh.some(e => e.result === 'clash')) this.hitstop = C.extras.combat.clashHitstop;
@@ -153,7 +157,7 @@ export class Game {
   }
   /** Estado completo e independente (structuredClone preserva os Sets de acertos). */
   save() {
-    return structuredClone({fighters: this.fighters, tick: this.tick, events: this.events, winner: this.winner, hitstop: this.hitstop, phase: this.phase, world: this.world ?? createWorld(), mapState: this.mapState, loadouts: this.loadouts,
+    return structuredClone({fighters: this.fighters, tick: this.tick, events: this.events, winner: this.winner, hitstop: this.hitstop, phase: this.phase, eventSeq: this.eventSeq, world: this.world ?? createWorld(), mapState: this.mapState, loadouts: this.loadouts,
       passiveLoadouts: this.passiveLoadouts, passiveIdentity: this.passiveIdentity,
       combatWindows: this.combatWindows, brain: this.brain.save(), playerBrain: this.playerBrain.save(), lastStepEvents: this.lastStepEvents});
   }
@@ -161,6 +165,7 @@ export class Game {
     const s = structuredClone(state);
     this.fighters = s.fighters;this.tick = s.tick;this.events = s.events;this.winner = s.winner;this.hitstop = s.hitstop;this.phase = s.phase;
     this.brain.load(s.brain);this.playerBrain.load(s.playerBrain);this.lastStepEvents = s.lastStepEvents || [];
+    this.eventSeq = s.eventSeq ?? this.eventSeq;this.passiveProcessed.clear();
     this.world = s.world ?? createWorld();
     if (s.mapState) {
       this.mapState = s.mapState;

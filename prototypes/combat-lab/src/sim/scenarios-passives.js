@@ -8,8 +8,7 @@ import {vec} from './math.js';
 import {stat, applyStatus} from './status.js';
 import {costOf} from './controller.js';
 import {validateLoadout} from './passives.js';
-import {attachPassives, passiveContribute, knockbackFactor, perfectWindowBonus, hitStunFactor, dotFactor, passiveOnEvents, P} from './passive-engine.js';
-import {getMove, registerMove} from './moves.js';
+import {attachPassives, passiveContribute, knockbackFactor, perfectWindowBonus, hitStunFactor, dotFactor, passiveOnEvents, tickPassives, P} from './passive-engine.js';
 import {processDamageWithShieldAndStages} from './map.js';
 
 const cmd = (o = {}) => ({move: vec(), dodge: false, tackle: false, guard: false, guardPressed: false, target: null, ...o});
@@ -135,12 +134,15 @@ export const PASSIVE_SCENARIOS = [
       return [check('Fator de hit stun do Inner Focus', near(hitStunFactor(v), 1 - P('inner-focus').stunPct), 1 - P('inner-focus').stunPct, hitStunFactor(v)),
         check('Recuperação de pouso reduzida', near(v.knockRecovery, 0) || v.knockRecovery <= C.rules.landingRecovery * (1 - P('inner-focus').stunPct) + 1e-9, `≤ ${fmt(C.rules.landingRecovery * (1 - P('inner-focus').stunPct))}`, v.knockRecovery)];}},
   {id: 'pv-18-forewarn', name: 'Passivas 18 · Forewarn estende a janela perfeita', description: 'Oponente carregando Move PL2+ a até 3,5 m: +0,06 s de janela.',
-    positions: [vec(0, -2), vec(0, 0)], ticks: () => 90, setup: g => {facing(g);equip(g, ['forewarn'], [], 'drowzee');
-      if (!getMove('carga-teste')) registerMove({id: 'carga-teste', duration: 1, charge: {max: .5}});
-      g.fighters[1].loadout = ['carga-teste'];},
-    script: t => [cmd(), t === 0 ? cmd({skill: 0, skillHeld: [true], target: 0}) : cmd({skillHeld: [true], target: 0})],
-    checks: ({game}) => {const a = game.fighters[0], fw = a.passiveState.actives.find(x => x.id === 'forewarn');
-      return [check('Forewarn ativado pela carga inimiga', !!fw, 'ativo', fw ? 'ativo' : 'não'), check('Bônus de janela', near(perfectWindowBonus(a), P('forewarn').windowBonus), P('forewarn').windowBonus, perfectWindowBonus(a))];}},
+    positions: [vec(0, -2), vec(0, 0)], ticks: () => 40, setup: g => {facing(g);equip(g, ['forewarn'], [], 'drowzee');},
+    // O Forewarn é avaliado por tickPassives (a MESMA função da partida real) a partir de opp.charge. A carga é
+    // injetada como estado puro (padrão de ai-eval.js): registrar um move no núcleo violaria o invariante D2 de
+    // moves.test.mjs, e stepCharge só descarta cargas de moves desconhecidos DURANTE um step — fora dele, o estado
+    // é exatamente o que o engine lê em partida com Moves registrados (bootstrap do lab).
+    checks: ({game}) => {game.fighters[1].charge = {move: 'carga', ticks: 40, slot: 0, params: {pl2Ticks: 20, maxTicks: 60}};
+      tickPassives(game, game.fighters[0], C.test.step);
+      const a = game.fighters[0], fw = a.passiveState.actives.find(x => x.id === 'forewarn');
+      return [check('Forewarn ativado pela carga inimiga (tickPassives, caminho da partida)', !!fw, 'ativo', fw ? 'ativo' : 'não'), check('Bônus de janela', near(perfectWindowBonus(a), P('forewarn').windowBonus), P('forewarn').windowBonus, perfectWindowBonus(a))];}},
   {id: 'pv-19-anticipation', name: 'Passivas 19 · Anticipation reage a PL2/PL3', description: 'Oponente perto carregando tackle: +15% de velocidade por 2 s.',
     positions: [vec(0, -2), vec(0, 0)], ticks: () => Math.ceil(C.rules.chargeTackleMaxTime / 2 / C.test.step) + 40, setup: g => {facing(g);equip(g, ['anticipation'], [], 'croagunk');},
     script: t => [cmd(), t === 0 ? cmd({tackle: true, tackleHeld: true, target: 0}) : cmd({tackleHeld: true, target: 0})],
@@ -244,12 +246,14 @@ export const PASSIVE_SCENARIOS = [
     checks: ({log, game}) => [check('Hitstop ocorreu antes do contato', log.hitstopTicks > 0, '> 0', log.hitstopTicks),
       check('Veneno aplicado após o hitstop', game.fighters[1].statuses.some(s => s.id === 'passive-poison'), 'passive-poison', game.fighters[1].statuses.map(s => s.id).join(',') || 'nenhum')]},
   {id: 'pv-35-efeito-aplicado-pos-hitstop', name: 'Passivas 35 · Efeito aplicado imediatamente após o hitstop (R28)', description: 'A ativação pós-hitstop já contribui para stat() no mesmo passo.',
-    positions: [vec(0, -2), vec(0, 0)], ticks: () => 90, setup: g => {facing(g);equip(g, ['forewarn'], [], 'drowzee');g.hitstop = .3;
-      if (!getMove('carga-teste')) registerMove({id: 'carga-teste', duration: 1, charge: {max: .5}});
-      g.fighters[1].loadout = ['carga-teste'];},
-    script: t => [cmd(), t === 40 ? cmd({skill: 0, skillHeld: [true], target: 0}) : cmd({skillHeld: [true], target: 0})],
-    checks: ({game}) => {const a = game.fighters[0], fw = a.passiveState.actives.find(x => x.id === 'forewarn');
-      return [check('Ativação aconteceu (após o hitstop)', !!fw, 'ativo', fw ? 'ativo' : 'não'), check('Bônus já aplicado em perfectWindowBonus()', fw && near(perfectWindowBonus(a), P('forewarn').windowBonus), P('forewarn').windowBonus, fw ? perfectWindowBonus(a) : '—')];}},
+    positions: [vec(0, -2), vec(0, 0)], ticks: () => 90, setup: g => {facing(g);equip(g, ['forewarn'], [], 'drowzee');g.hitstop = .3;},
+    // O hitstop inicial congela os passos (R24/25); a ativação é exercitada pelo caminho real (tickPassives) com a
+    // carga injetada como estado puro (sem registrar move no núcleo, D2 — ver pv-18).
+    checks: ({log, game}) => {game.fighters[1].charge = {move: 'carga', ticks: 40, slot: 0, params: {pl2Ticks: 20, maxTicks: 60}};
+      tickPassives(game, game.fighters[0], C.test.step);
+      const a = game.fighters[0], fw = a.passiveState.actives.find(x => x.id === 'forewarn');
+      return [check('Hitstop ocorreu antes da ativação', log.hitstopTicks > 0, '> 0', log.hitstopTicks),
+        check('Ativação aconteceu (após o hitstop)', !!fw, 'ativo', fw ? 'ativo' : 'não'), check('Bônus já aplicado em perfectWindowBonus()', fw && near(perfectWindowBonus(a), P('forewarn').windowBonus), P('forewarn').windowBonus, fw ? perfectWindowBonus(a) : '—')];}},
   {id: 'pv-36-encadeamento-pos-hitstop', name: 'Passivas 36 · Encadeamento imediato com proteção anti-ciclo (R29)', description: 'Eventos gerados por passivas são reprocessados com limite de profundidade.',
     positions: [vec(0, -6), vec(0, 6)], ticks: () => 30, setup: g => {facing(g);equip(g, ['rough-skin'], ['rough-skin']);g.fighters[0].hp = 100;g.fighters[1].hp = 100;g.hitstop = .2;},
     checks: ({game}) => {const out = passiveOnEvents(game, [{result: 'impact', attacker: 0, target: 1, damage: 5, contact: 'tackle'}]);

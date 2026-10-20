@@ -6,7 +6,7 @@ import {Game} from '../src/sim/game.js';
 import {C, resetConfig, defaults} from '../src/sim/config.js';
 import {vec} from '../src/sim/math.js';
 import {stat} from '../src/sim/status.js';
-import {validateLoadout, PASSIVE_SLOTS} from '../src/sim/passives.js';
+import {validateLoadout, PASSIVE_SLOTS, PASSIVES, PASSIVE_BY_ID, genericPassives, exclusivePassives, PASSIVE_SPECIES} from '../src/sim/passives.js';
 import {attachPassives, setPassiveLoadout, tickPassives, passiveOnEvents, passiveContribute, dotFactor, knockbackFactor, hitStunFactor, perfectWindowBonus, passiveCost, sturdyGuard, P, ensureState} from '../src/sim/passive-engine.js';
 
 let passed = 0;const test = (name, fn) => {fn();passed++;console.log('✓', name);};
@@ -137,6 +137,78 @@ test('sturdyGuard: DOT/ambiental/refletido não protege; direto não-letal não 
   v.hp = 50;
   const soft = sturdyGuard(v, 10, {category: 'direct', attacker: g.fighters[0]});
   assert.equal(soft.sturdy, false, 'dano não letal não consome');assert.equal(v.passiveState.sturdyUsed, false);
+});
+
+test('§32 registro: 18 habilidades, ids estáveis, categorias e exclusividade', () => {
+  assert.equal(PASSIVES.length, 18, 'catálogo com 18 passivas');
+  assert.equal(new Set(PASSIVES.map(p => p.id)).size, 18, 'ids únicos');
+  for (const p of PASSIVES) {
+    assert.ok(/^[a-z0-9-]+$/.test(p.id), `id estável kebab-case: ${p.id}`);
+    assert.ok(['permanente', 'permanente condicional', 'gatilho'].includes(p.categoria), `categoria válida: ${p.id}`);
+    for (const k of ['nome', 'gatilho', 'efeito']) assert.ok(p[k] && String(p[k]).length > 3, `${p.id} tem ${k}`);
+    if (p.species) assert.ok(PASSIVE_SPECIES.includes(p.species), `${p.id} exclusiva de espécie do roster`);
+  }
+  const ROSTER = ['croagunk', 'drowzee', 'mush', 'vigoroth'];
+  for (const sp of ROSTER) assert.equal(exclusivePassives(sp).length, 2, `2 exclusivas de ${sp}`);
+  assert.equal(genericPassives().length, 10, '10 genéricas');
+  assert.ok(!genericPassives().some(p => p.species), 'genéricas sem espécie');
+  assert.ok(!exclusivePassives('mush').some(p => p.id === 'solid-rock'), 'Solid Rock removida não voltou');
+});
+
+test('R13: ordem dos slots não altera o resultado', () => {
+  const mk = ids => {const g = setup(ids, [], null, null);return passiveContribute(g.fighters[0], 'speed');};
+  const a = mk(['speed-boost', 'technician']), b = mk(['technician', 'speed-boost']);
+  assert.deepEqual(a, b, 'contribute independente da ordem');
+  const g = setup(['speed-boost', 'technician']);
+  const g2 = setup(['technician', 'speed-boost']);
+  assert.equal(stat(g.fighters[0], 'speed', 100), stat(g2.fighters[0], 'speed', 100), 'stat idêntica');
+  assert.equal(passiveCost(g.fighters[0], 'dodge', 1), passiveCost(g2.fighters[0], 'dodge', 1), 'custo idêntico');
+});
+
+test('R12: duas passivas ativadas pelo MESMO evento (unidade)', () => {
+  const g = setup([], ['rough-skin', 'stamina']);
+  const out = passiveOnEvents(g, [{result: 'impact', attacker: 0, target: 1, damage: 10, contact: 'tackle'}]);
+  const acts = out.filter(e => e.result === 'passiveActivated').map(e => e.passive).sort();
+  assert.deepEqual(acts, ['rough-skin', 'stamina'], 'as duas avaliadas independentemente');
+  assert.ok(out.some(e => e.result === 'passiveReflect'), 'reflexão presente');
+});
+
+test('R31: processamento duplicado do mesmo evento é detectado (ID estável)', () => {
+  const g = setup([], ['rough-skin']);
+  const ev = {result: 'impact', attacker: 0, target: 1, damage: 10, contact: 'tackle', id: 777};
+  const first = passiveOnEvents(g, [ev]);
+  const second = passiveOnEvents(g, [ev]);
+  assert.equal(first.filter(e => e.result === 'passiveReflect').length, 1, 'primeiro processou');
+  assert.ok(second.some(e => e.result === 'passiveCycleSuspect' && e.detail?.reason === 'duplicateEvent'), 'segundo sinalizado como duplicata');
+  assert.equal(second.filter(e => e.result === 'passiveReflect').length, 0, 'sem reflexão duplicada');
+});
+
+test('R31: cadeia carrega a causa (id do evento origem)', () => {
+  const g = setup([], ['rough-skin']);
+  const out = passiveOnEvents(g, [{result: 'impact', attacker: 0, target: 1, damage: 10, contact: 'tackle', id: 42}]);
+  const refl = out.find(e => e.result === 'passiveReflect');
+  assert.equal(refl.cause, 42, 'reflexão aponta o evento causador');
+});
+
+test('R27/R28: evento legítimo recebido durante hitstop aplica imediatamente (caminho §6)', () => {
+  const g = setup(['unburden'], []);
+  g.hitstop = .3;g.frozen = true;   // simulação congelada; o caminho de eventos de passivas permanece avaliável
+  const out = passiveOnEvents(g, [{result: 'itemCollected', fighter: 0, id: 5}]);
+  assert.ok(out.some(e => e.passive === 'unburden'), 'ativação imediata durante hitstop');
+  assert.ok(g.fighters[0].passiveState.actives.some(a => a.id === 'unburden'), 'efeito aplicado no mesmo processamento');
+});
+
+test('R31: proteção anti-ciclo não trava e sinaliza cadeia profunda', () => {
+  const g = setup([], ['rough-skin']);
+  // Cadeia sintética que se alimenta: cada reflexão reenvia um evento encadeável idêntico.
+  let events = [{result: 'impact', attacker: 0, target: 1, damage: 10, contact: 'tackle', id: 1}];
+  let guard = 0, suspect = 0;
+  const t0 = Date.now();
+  while (events.length && guard < 100) {guard++;const out = passiveOnEvents(g, events);
+    suspect += out.filter(e => e.result === 'passiveCycleSuspect').length;
+    events = out.filter(o => o.result === 'passiveReflect').map((o, i) => ({...o, id: 1000 + guard * 10 + i}));}
+  assert.ok(Date.now() - t0 < 2000, 'sem travamento');
+  assert.ok(guard <= 10, `encadeamento limitado pela profundidade (passos=${guard})`);
 });
 
 console.log(`\n${passed} testes de passivas passaram`);

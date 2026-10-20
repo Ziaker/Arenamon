@@ -11,7 +11,7 @@ Como abrir: `JOGAR_ARENAMON.html` (raiz) → jogo principal. A seleção de pass
 
 ---
 
-## A. Auditoria inicial
+## A. Auditoria inicial e revisão final
 
 - **Branch inicial e final:** `feat/camera-cinematica-zzz`.
 - **Commit analisado:** `d74309c` (auditoria 3D entregue anteriormente; este sistema foi construído sobre ele).
@@ -21,6 +21,18 @@ Como abrir: `JOGAR_ARENAMON.html` (raiz) → jogo principal. A seleção de pass
 - **Divergências encontradas:** `PASSIVAS_DECISOES.md` registra 25 rodadas; a ordem manda 29 (R01–R29).
   As 29 da ordem governam — as 4 rodadas ausentes do histórico foram implementadas conforme a ordem e
   ficam identificadas na matriz (R16–R18, R20–R29 na íntegra).
+- **Revisão final (mesma ordem, reauditada contra a entrega):** corrigidos quatro itens —
+  1. **R31 (causa real):** o engine carimbava `cause = e.id` antes do `game.js` atribuir os IDs, então a causa
+     era sempre `null` em partida real (os unitários passavam porque injetavam id manualmente). O `game.js`
+     agora atribui `eventSeq` às origens ANTES de chamar o engine; confirmado em partida real pelo teste de
+     navegador (`cause=1` no evento de impacto).
+  2. **§16 (reuso de VFX):** o `PassiveFx` completo do branch `feature/hud-ativacao-passivas-propostas-abc`
+     (malhas instanciadas, variantes A/B/C, pool de luzes, estatísticas) foi extraído para
+     `src/view/vfx/effects/passives.js`; o wrapper `src/view/passive-vfx.js` agora delega a ele.
+  3. **§29 (sliders):** `tuning-meta.js` ganhou nomes exibidos para `enabled`, `variant`, `intensity`,
+     `size`, `opacity` e `sparkles` de cada passiva (mecanismo genérico já cobria os parâmetros de gameplay).
+  4. **§32/§34 (testes):** unitários 9 → 16 (registro, ordem de slots, mesmo-evento, duplicata, causa,
+     hitstop, anti-travamento) e novo `test/passives.browser.mjs` com 23 verificações em partida real.
 
 ## B. Arquitetura implementada
 
@@ -32,8 +44,9 @@ Como abrir: `JOGAR_ARENAMON.html` (raiz) → jogo principal. A seleção de pass
 | `src/sim/passive-engine.js` | Motor: estado serializável por lutador (`passiveState`), `attachPassives`/`onRoundStart` (§7), `tickPassives` (timers próprios, só no passo normal), `passiveOnEvents` (gatilhos + encadeamento com profundidade máx. 8 e telemetria `passiveCycleSuspect`), `passiveOnKO` (R23), `passiveContribute` (acúmulo aditivo R7–R11), fatores `dotFactor`/`knockbackFactor`/`hitStunFactor`/`perfectWindowBonus`, `passiveCost` (Technician), `sturdyGuard` (R6/§7). |
 | `src/sim/scenarios-passives.js` | 42 cenários reproduzíveis `pv-01`…`pv-42`. |
 | `src/ui/passives-panel.js` | Seleção pré-partida (2 slots, validação compartilhada com o motor, persistência em `localStorage`). |
-| `src/ui/passives-hud.js` | HUD em partida: slots com estado (permanente/ativa/consumida), cooldowns e durações. |
-| `src/view/passive-vfx.js` | VFX 3D de ativação (três variantes A/B/C, 0,6 s, respeita `reduceMotion`/`noFlash`). |
+| `src/ui/passives-hud.js` | HUD em partida: slots com estado (permanente/ativa/consumida/recarga), cooldowns e durações, ambos os lutadores, toast de ativação. |
+| `src/view/vfx/effects/passives.js` | `PassiveFx` reutilizado do branch `feature/hud-ativacao-passivas-propostas-abc` (§16): malhas instanciadas, variantes A/B/C (`OrbitalHalo`, `CelestialIntersections`, `LuminousResonance`), pool de luzes (`Pool` de `vfx/pools.js`), estatísticas; depende só de `three`. |
+| `src/view/passive-vfx.js` | Wrapper que traduz a configuração do laboratório (`C.vfx.passive`: variant 0/1/2 → A/B/C, `duration` = multiplicador da duração, `size`, `opacity`×`intensity`×`noFlash`, `sparkles` = qualidade, `reduceMotion`) e expõe a API consumida pelo `main.js` (`onEvents`/`spawn`/`update`/`clear`). |
 
 **Módulos modificados (integração no motor, sem reescrita estrutural)**
 
@@ -44,7 +57,7 @@ Como abrir: `JOGAR_ARENAMON.html` (raiz) → jogo principal. A seleção de pass
 - `world.js` — `applyHit` com contact `projectile`/`beam`/`area` e `knockbackFactor` no empurrão horizontal.
 - `map.js` — `processDamageWithShieldAndStages(…, ctx)`; `sturdyGuard` aplicado só no ramo de dano direto; **correção de bug real**: o dano efetivo retornado pelo `sturdyGuard` estava sendo subtraído uma segunda vez (HP fixado em 1 e depois reduzido), o que matava o lutador no mesmo impacto.
 - `physics.js` — Inner Focus no `knockRecovery` do pouso; tech com custo `passiveCost(f,'tech',…)`; wallSplat com `ctx {category:'environmental'}`.
-- `game.js` — orquestração no passo: `tickPassives` → `passiveOnEvents(fresh)` → KO → `passiveOnKO`, antes do loop de `e.tick`; loadouts/identidade no save/load; `setPassiveLoadout` delegando à validação; loadout de golpes corpo a corpo com `contact:'melee'`.
+- `game.js` — orquestração no passo: `tickPassives` → `passiveOnEvents(fresh)` → KO → `passiveOnKO`, antes do loop de `e.tick`; loadouts/identidade no save/load; `setPassiveLoadout` delegando à validação; loadout de golpes corpo a corpo com `contact:'melee'`. **R31:** `eventSeq` atribui id às origens *antes* do engine (para o carimbo de causa ser real), `passiveProcessed` (anti-duplicata por passo, zerado em `step` e `load`) e `eventSeq` persistido no save.
 - `config.js`/`tuning.js`/`tuning-meta.js` — raiz `passivas` (defaults + `globals.detectDistance`), toggle `extras.toggles.enablePassives`, VFX «Passivas», sliders nomeados por passiva.
 - `main.js`/`template.html`/`styles.css`/`audio.js` — painel, HUD, toast, VFX, som procedural `playPassive(variant)`, replay aplica loadouts gravados.
 
@@ -144,6 +157,50 @@ Estados: ✅ Implementado e verificado · ⏳ Parcial · 🚫 Bloqueado por deci
 | Speed Boost + Technician | custo e velocidade independentes (pv-01) |
 | Poison Touch + Speed Boost | veneno aplica e velocidade permanece (pv-37) |
 
+### Matriz completa de pares (§30)
+
+Auditoria de todas as combinações elegíveis: 12 opções por personagem (10 genéricas + 2 exclusivas) →
+66 pares sem repetição por personagem × 4 espécies = **264 linhas classificadas**, geradas por
+`test/pairs-matrix.gen.mjs` e versionadas em **`test/pairs-matrix.md`** (regenerável com
+`node prototypes/combat-lab/test/pairs-matrix.gen.mjs`).
+
+**Resultado: 229 compatíveis · 35 compatíveis com interação · 0 incompatíveis · 0 dependentes de decisão ·
+0 impossíveis no catálogo atual.** Nenhum efeito novo foi criado para resolver combinação (§30); não há
+conflito verdadeiro no catálogo — se surgir, exige regra específica aprovada (R14/G-2).
+
+Pares «compatíveis com interação» (efeitos combinados mensuráveis, únicos por par — a variação por
+personagem repete os genéricos e consta no arquivo completo):
+
+| Par | Interação verificada |
+|---|---|
+| anticipation + speed-boost | +velocidade da Anticipation soma ao Speed Boost (aditivo, R7) |
+| anticipation + unburden | duas fontes de +velocidade por gatilhos distintos |
+| speed-boost + unburden | idem (exemplo da ordem §30) |
+| rough-skin + stamina | reflexão + redução de dano no mesmo impacto (pv-28/30) |
+| regenerator + magic-guard | cura pós-quietude com DOT já atenuado |
+| stamina + suction-cups | redução de dano + redução de knockback no mesmo golpe |
+| stamina + magic-guard | redução de dano direto + de periódico |
+| clear-body + defiant | bloqueio dispara o bônus de Ataque (pv-27) |
+| inner-focus + suction-cups | stun e knockback ambos atenuados no lançamento |
+| effect-spore + sturdy | resposta ao contato + proteção anti-KO no mesmo lutador |
+| effect-spore + rough-skin | duas respostas ao tackle recebido |
+| sturdy + rough-skin | anti-KO do dono + reflexão ao atacante (personagens opostos, §30) |
+| sturdy + stamina | anti-KO + janela de defesa após o impacto sobrevivido |
+| sturdy + magic-guard | anti-KO contra direto + atenuação de periódico |
+| vital-spirit + technician | regen de stamina condicional + custo reduzido de esquiva/tech |
+| guts + magic-guard | bônus sob debuff com DOT atenuado |
+| guts + defiant | duas fontes de +Ataque sob condições distintas |
+
+Exemplos nomeados pela ordem §30: Speed Boost + Unburden e Speed Boost + Anticipation (interação);
+Technician + Vital Spirit (interação, vigoroth); Magic Guard + Poison Touch em personagens distintos
+(compatíveis — DOT atenuado no alvo, veneno aplica normalmente); Magic Guard + Guts (interação, vigoroth);
+Clear Body + Defiant (interação); Rough Skin + Effect Spore entre atacante/defensor opostos (compatíveis —
+reflexão no atacante, esporo no defensor, ambos no mesmo evento); Sturdy + Rough Skin opostos (interação);
+Sturdy + dano periódico (não protege — pv-13, classificado como interação documentada, não incompatibilidade);
+Regenerator + efeitos de cura (compatíveis — mesma base de HP, sem dupla contagem); Stamina + outros bônus de
+«Defesa» (interação — fórmula aditiva R7–R11); Suction Cups + efeitos de knockback (interação); Poison Touch +
+proteções (compatíveis — escudo/guarda do mapa não impede veneno em contato direto).
+
 ### Passivas × Moves
 
 | Interação | Resultado |
@@ -174,17 +231,30 @@ Estados: ✅ Implementado e verificado · ⏳ Parcial · 🚫 Bloqueado por deci
 
 ## F. Testes
 
-- **Comandos:** `node prototypes/combat-lab/test/passives.test.mjs` (9 testes unitários) e
-  `node prototypes/combat-lab/test/sim.test.mjs` (executa todos os cenários, incluindo os 42 `pv-*`).
-- **Cobertura:** 42/42 cenários de passivas passando; 58/58 cenários antigos sem regressão;
-  9/9 testes unitários; `sim/core/rules/defense/tackle-charge/ai` passando após as correções no motor.
+- **Comandos:**
+  - `node prototypes/combat-lab/test/passives.test.mjs` — **16 testes unitários** (registro/catálogo,
+    `validateLoadout`, fórmula aditiva, fatores, paridade com o sistema desligado, R12/R13/R16/R18/R20/R22,
+    R27/R28 durante hitstop, R31 duplicata/cause/anti-travamento).
+  - `node prototypes/combat-lab/test/sim.test.mjs` — executa todos os cenários, incluindo os 42 `pv-*`.
+  - `node prototypes/combat-lab/test/passives.browser.mjs` — **23 verificações em navegador real** (§34):
+    seleção no painel, duplicata recusada, exclusiva validada pela UI e pelo motor, loadouts aplicados ao
+    iniciar, HUD dos dois lutadores, ativação por tackle real (Stamina + Rough Skin), aplicação durante
+    hitstop, causa R31 real, toast, VFX, cooldown pós-término no HUD, Sturdy anti-KO com HP em 1 e HUD
+    «consumida», sem rede/erros. Evidências em `prototypes/combat-lab/validation/passives/`.
+  - `node prototypes/combat-lab/test/pairs-matrix.gen.mjs` — regenera a matriz §30.
+  - `npm run test:combat-lab:unit` e `npm run test:combat-lab:browser` — cadeias completas (o browser
+    inclui `passives.browser.mjs` ao final); `npm run typecheck` e `node prototypes/combat-lab/verify.mjs`
+    (19 verificações estruturais) também executados.
+- **Cobertura:** 42/42 cenários de passivas passando; 58/58 cenários antigos sem regressão; 16/16 unitários;
+  23/23 navegador; 19/19 verify.mjs; `sim` (112 testes) passando após as correções no motor.
 - **Correções feitas durante a validação:**
   1. `controller.js` — «affordable» ignorava o desconto do Technician (esquiva negada entre 0,8×–1,0× do custo).
   2. `map.js` — Sturdy subtraía o dano duas vezes (fixava HP em 1 e depois descontava de novo → morte no mesmo golpe).
   3. `passive-engine.js` — ativação de Poison Touch agora emite `statusApplied` (telemetria/replay consistentes).
-  4. Cenários: cargas reais seguradas pelo controlador (anticipation/forewarn), regen de stamina neutralizada
+  4. `game.js` (revisão final) — IDs de evento (`eventSeq`) atribuídos às origens antes do engine: o carimbo
+     de causa (R31) era sempre `null` em partida real.
+  5. Cenários: cargas reais seguradas pelo controlador (anticipation/forewarn), regen de stamina neutralizada
      via `regenBase/regenAge` nos setups, espécies corretas nas exclusivas, KO real no pv-38.
-- **Evidência de navegador:** pendente de `verify.mjs` (executado na etapa final de build).
 
 ## G. Pendências legítimas (decisão do diretor)
 
@@ -205,9 +275,12 @@ Estados: ✅ Implementado e verificado · ⏳ Parcial · 🚫 Bloqueado por deci
 ## H. Estado final do repositório
 
 - **Arquivos adicionados:** `src/sim/passives.js`, `src/sim/passive-engine.js`, `src/sim/scenarios-passives.js`,
-  `src/ui/passives-panel.js`, `src/ui/passives-hud.js`, `src/view/passive-vfx.js`,
-  `test/passives.test.mjs`, este documento.
+  `src/ui/passives-panel.js`, `src/ui/passives-hud.js`, `src/view/vfx/effects/passives.js`,
+  `test/passives.test.mjs`, `test/passives.browser.mjs`, `test/pairs-matrix.gen.mjs`, `test/pairs-matrix.md`,
+  este documento.
 - **Arquivos alterados:** `status.js`, `entity.js`, `controller.js`, `combat.js`, `world.js`, `map.js`,
-  `physics.js`, `game.js`, `config.js`, `tuning.js`, `tuning-meta.js`, `scenarios.js`, `audio.js`,
-  `main.js`, `template.html`, `styles.css`, `package.json` (cadeia de testes).
+  `physics.js`, `game.js` (orquestração + R31 `eventSeq`/`passiveProcessed`), `config.js`, `tuning.js`,
+  `tuning-meta.js` (§29 nomes dos sliders), `scenarios.js`, `audio.js`,
+  `main.js`, `template.html`, `styles.css`, `package.json` (cadeia de testes), `src/view/passive-vfx.js`
+  (wrapper sobre o `PassiveFx` reutilizado, §16).
 - **Branch / commit / sincronização:** preencher na entrega (ver resposta da tarefa).

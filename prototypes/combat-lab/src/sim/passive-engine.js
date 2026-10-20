@@ -128,6 +128,9 @@ export function passiveOnEvents(game, events, depth = 0) {
   if (depth > MAX_PASSIVE_CHAIN_DEPTH) {out.push({result: 'passiveCycleSuspect', attacker: null, target: null, damage: 0, detail: {depth}});return out;}
   for (const e of events) {
     if (e.result === 'passiveActivated' || e.result === 'passiveReady' || e.result === 'passiveEnded') continue;
+    // R31: detecção de processamento repetido do mesmo evento (por ID estável, quando houver).
+    if (e.id != null) {if (game.passiveProcessed?.has(e.id)) {out.push({result: 'passiveCycleSuspect', attacker: null, target: null, damage: 0, detail: {reason: 'duplicateEvent', id: e.id}});continue;}game.passiveProcessed?.add(e.id);}
+    const outBefore = out.length;   // R31: eventos gerados a partir deste carregam a causa (id do evento origem)
     const A = e.attacker != null ? game.fighters[e.attacker] : null;
     const T = e.target != null ? game.fighters[e.target] : null;
     const dmg = e.damage || 0;
@@ -159,6 +162,7 @@ export function passiveOnEvents(game, events, depth = 0) {
       const f = game.fighters[e.fighter];
       if (f && hasPassive(f, 'unburden')) activate(game, f, 'unburden', {events: out, depth});
     }
+    for (let i = outBefore; i < out.length; i++) if (out[i].cause === undefined) out[i].cause = e.id ?? null;
   }
   const chainable = out.filter(o => o.result === 'passiveReflect' || o.result === 'statusApplied');
   if (chainable.length) out.push(...passiveOnEvents(game, chainable, depth + 1));
