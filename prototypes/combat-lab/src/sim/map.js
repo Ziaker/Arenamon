@@ -28,6 +28,8 @@ export const MAP_DEFAULTS = {
   jumpGravity: 17.5,
   jumpInterval: 0.25,
   jumpLandingRecovery: 0.19,
+  jumpDrag: 0.0,
+  jumpAirControl: 0.0,
   itemInitialCount: 2,
   itemSpawnIntervalMin: 20,
   itemSpawnIntervalMax: 40,

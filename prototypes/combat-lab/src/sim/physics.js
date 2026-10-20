@@ -158,7 +158,8 @@ export function stepPhysics(fighters, dt, world = null) {
       // Voo balístico de passo fixo: gravidade na altura e arrasto exponencial no plano.
       flight.y += flight.vy * dt - .5 * g * dt * dt;
       flight.vy -= g * dt;
-      flight.horizontal = scale(flight.horizontal, Math.exp(-R.launchDrag * dt));
+      const drag = flight.isNormalJump ? (C.map?.jumpDrag ?? 0.0) : R.launchDrag;
+      flight.horizontal = scale(flight.horizontal, Math.exp(-drag * dt));
       const curY = flight.y ?? (f.groundY ?? 0);
       const targetGround = getGroundHeight(f.position, world, curY);
       if (flight.y <= targetGround) {

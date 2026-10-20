@@ -100,6 +100,8 @@ function range(key, value, path) {
     if (key === 'destructibleGhostPreview' || key === 'jumpInterval' || key === 'jumpLandingRecovery') return {min: 0.05, max: 5, step: 0.01, fmt: n => n.toFixed(2) + ' s'};
     if (key === 'jumpHeight') return {min: 0.5, max: 5.0, step: 0.1, fmt: n => n.toFixed(1) + ' m'};
     if (key === 'jumpGravity') return {min: 5, max: 40, step: 0.5, fmt: n => n.toFixed(1) + ' m/s²'};
+    if (key === 'jumpDrag') return {min: 0, max: 3.0, step: 0.05, fmt: n => n.toFixed(2) + ' s⁻¹'};
+    if (key === 'jumpAirControl') return {min: 0, max: 1.0, step: 0.05, fmt: n => Math.round(n * 100) + '%'};
     if (key === 'itemPickupRadius') return {min: 0.5, max: 5.0, step: 0.1, fmt: n => n.toFixed(1) + ' m'};
     if (key === 'healHp') return {min: 5, max: 100, step: 5, fmt: n => n + ' HP'};
     if (key === 'healStamina') return {min: 1, max: 10, step: 1, fmt: n => n + ' pontos'};

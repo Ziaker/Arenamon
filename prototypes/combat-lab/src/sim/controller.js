@@ -258,9 +258,20 @@ export function updateFighter(f, cmd, fighters, dt) {
       if (diag) report(f, {kind: 'tackle', result: 'executed', note: isNormal ? 'meteor slam (salto normal)' : 'meteor slam (lançado)'});
     } else {
       if (!f.flight.isNormalJump && T.enableTechRecovery && T.enableDodge && f.hp > 0 && !f.wallSplat) armTechRecovery(f, cmd, dt);
-      if (f.flight.isNormalJump && length(f.flight.horizontal) < 0.05 && length(cmd.move) > 0.05) {
-        const m = length(cmd.move) > 1 ? normalize(cmd.move) : cmd.move;
-        f.flight.horizontal = scale(m, walkSpeed(f));
+      if (f.flight.isNormalJump) {
+        const airCtrl = C.map?.jumpAirControl ?? 0.0;
+        if (length(f.flight.horizontal) < 0.05 && length(cmd.move) > 0.05) {
+          const m = length(cmd.move) > 1 ? normalize(cmd.move) : cmd.move;
+          f.flight.horizontal = scale(m, walkSpeed(f));
+        } else if (airCtrl > 0 && length(cmd.move) > 0.05) {
+          const m = length(cmd.move) > 1 ? normalize(cmd.move) : cmd.move;
+          const targetH = scale(m, walkSpeed(f));
+          const blendRate = Math.min(1, airCtrl * 5.0 * dt);
+          f.flight.horizontal = add(
+            scale(f.flight.horizontal, 1 - blendRate),
+            scale(targetH, blendRate)
+          );
+        }
       }
       f.action = null;f.push = null;f.guard = false;f.vaultHeight = 0;f.velocity = vec();f.locomotionVelocity = vec();f.bufferedTackle = null;f.state = f.wallSplat ? 'wallSplat' : 'airborne';return;
     }

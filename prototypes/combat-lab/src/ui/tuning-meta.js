@@ -21,6 +21,7 @@ export const NAMES={
   arenaRadius:'Raio da arena circular (m)',wallBounceMultiplier:'Multiplicador de rebote na borda circular',wallDamageMultiplier:'Multiplicador de dano na borda circular',
   destructibleCount:'Quantidade de objetos destrutíveis',destructibleHp:'Vida base dos destrutíveis',destructibleRespawnMin:'Tempo mín. respawn destrutível (s)',destructibleRespawnMax:'Tempo máx. respawn destrutível (s)',destructibleGhostPreview:'Prévia fantasma antes do respawn (s)',
   obstacleCount:'Quantidade de obstáculos indestrutíveis',jumpHeight:'Altura do salto normal (m)',jumpGravity:'Gravidade do salto normal (m/s²)',jumpInterval:'Intervalo mínimo entre saltos (s)',jumpLandingRecovery:'Atraso de recuperação ao aterrissar (s)',
+  jumpDrag:'Arrasto no salto (perda de vel.)',jumpAirControl:'Controle direcional no ar (%)',
   itemInitialCount:'Consumíveis iniciais na arena',itemSpawnIntervalMin:'Tempo mín. surgimento de itens (s)',itemSpawnIntervalMax:'Tempo máx. surgimento de itens (s)',itemMaxRegular:'Limite de consumíveis regulares na arena',itemLifetime:'Duração do consumível na arena (s)',itemPickupRadius:'Raio de coleta 3D esférico (m)',
   healHp:'Cura de HP (Pílula de HP)',healStamina:'Restauração imediata de Stamina (pontos)',shieldDuration:'Duração do escudo temporário (s)',shieldCapacity:'Capacidade do escudo temporário (HP)',shieldMaxCap:'Capacidade máxima acumulada do escudo (HP)',
   stageAttackBonus:'Bônus de ataque por estágio (+10%)',stageDefenseReduction:'Redução de dano por estágio de defesa (-10 pp)',stageStaminaBonus:'Stamina máxima extra por estágio (+1)',stageCooldownReduction:'Redução de recarga por estágio (-10%)',stageSpeedBonus:'Aumento de velocidade por estágio (+5%)',stagesMax:'Máximo de estágios por categoria (4)'
@@ -49,7 +50,7 @@ export const SECTIONS=[
   ['Arena circular','map',['arenaRadius','wallBounceMultiplier','wallDamageMultiplier']],
   ['Objetos destrutíveis','map',['destructibleCount','destructibleHp','destructibleRespawnMin','destructibleRespawnMax','destructibleGhostPreview']],
   ['Obstáculos indestrutíveis','map',['obstacleCount']],
-  ['Plataformas e salto','map',['jumpHeight','jumpGravity','jumpInterval','jumpLandingRecovery']],
+  ['Plataformas e salto','map',['jumpHeight','jumpGravity','jumpInterval','jumpLandingRecovery','jumpDrag','jumpAirControl']],
   ['Consumíveis e drops','map',['itemInitialCount','itemSpawnIntervalMin','itemSpawnIntervalMax','itemMaxRegular','itemLifetime','itemPickupRadius','healHp','healStamina']],
   ['Progressão de estágios e escudo','map',['shieldDuration','shieldCapacity','shieldMaxCap','stageAttackBonus','stageDefenseReduction','stageStaminaBonus','stageCooldownReduction','stageSpeedBonus','stagesMax']],
   ['Renderizador e personagens','extras.visual',null],
@@ -280,6 +281,8 @@ export const TOOLTIPS={
  "enableCameraFollow": "Ativa ou desativa o acompanhamento automático da posição do jogador pela câmera.",
  "enableCameraRecenter": "Ativa ou desativa a recentralização da câmera após o jogador parar e o lock-on estar desligado.",
  "enablePlayerAI": "Controla se o lutador azul responde ao teclado ou à mesma IA de combate usada pelo adversário. Também pode ser alternado pelo botão 🤖 na tela, sem reiniciar a luta.",
- "enableAnimationCombatWindows": "Restringe os contatos e danos do tackle às janelas ativas [start, end) da animação, com suporte a multi-hit e fallback legado integral quando desativado."
+ "enableAnimationCombatWindows": "Restringe os contatos e danos do tackle às janelas ativas [start, end) da animação, com suporte a multi-hit e fallback legado integral quando desativado.",
+ "jumpDrag": "Taxa de perda de velocidade horizontal no ar durante o salto normal (s⁻¹). Zero mantém 100% do impulso do salto sem freio aéreo.",
+ "jumpAirControl": "Capacidade de manobrar e guiar o salto no ar usando as teclas de movimento (0% = puramente balístico, 100% = controle aéreo total)."
 };
 export const KEY_HELP={"forward": "↑ / avançar", "back": "↓ / recuar", "left": "← / esquerda", "right": "→ / direita", "tackle": "tackle X", "dodge": "esquiva C", "defend": "defesa D", "lock": "lock-on Tab", "pause": "pausa", "restart": "reiniciar", "debug": "depuração"};
