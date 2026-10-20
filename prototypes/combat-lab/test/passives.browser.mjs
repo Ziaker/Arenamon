@@ -1,6 +1,6 @@
 // Passivas no navegador (§34): seleção no painel da aba Partida (duplicata recompactada, exclusiva validada
 // pelo motor), loadouts aplicados ao iniciar, HUD em combate com estado real (§17, ambos os lutadores),
-// ativação REAL por tackle (Stamina do atingido + Rough Skin refletindo), toast + VFX, cadeia com causa (R31),
+// ativação REAL por tackle (Stamina do atingido + Rough Skin refletindo), notificação de HUD + VFX, cadeia com causa (R31),
 // aplicação durante hitstop (R27), cooldown no HUD (R16) e Sturdy impedindo KO quando a espécie permite.
 // Capturas em validation/passives/. A aprovação de jogabilidade/visual é do diretor.
 import {chromium} from '@playwright/test';
@@ -73,10 +73,9 @@ try {
   check('a ativação foi aplicada DURANTE o hitstop (R27: o evento não espera o descongelar)', hit.hitstop > 0 && hit.actives1.length > 0, `hitstop=${hit.hitstop.toFixed(3)}s`);
   check('os eventos de ativação carregam a causa do evento origem (R31)', hit.events.length > 0 && hit.events.every(e => e.cause !== null), JSON.stringify(hit.events));
   await page.waitForTimeout(250);
-  const toast = await L(() => document.querySelector('#passives-hud .pvh-toast')?.textContent ?? '');
   const hud1 = await L(() => [...document.querySelectorAll('#passives-hud .mvp-row')].map(r => [r.dataset.fighter, r.querySelector('.mvp-slot[data-state="ativa"]')?.textContent ?? '']));
-  check('toast branco de ativação aparece no HUD (§16)', /ativada/.test(toast), toast);
-  check('rótulo 3D branco "Ability: NOME" surge acima do lutador na ativação', await L(() => {const ls = window.__lab.view.scene.children.filter(o => o.name === 'abilityLabel');return ls.length > 0 && ls.every(o => o.position.y > 1 && o.scale.y > 0);}), await L(() => window.__lab.view.scene.children.filter(o => o.name === 'abilityLabel').length));
+  const notices = await L(() => [...document.querySelectorAll('#ability-notices .ability-notice')].map(n => `${n.className}="${n.textContent}"`));
+  check('notificação de HUD "Ability: NOME" entra pela direita (oponente) ao ativar (§16)', notices.length > 0 && notices.every(n => n.includes('side-1')) && notices.some(n => /Ability: /.test(n)), notices.join(' | '));
   check('o HUD reflete o estado ativo com tempo restante (§17)', hud1.some(r => r[0] === '1' && /s$/.test(r[1].trim())), JSON.stringify(hud1));
   check('VFX de ativação existe na cena (variante configurada)', await L(() => {const v = window.__lab.view.scene.children.length > 0;return v && (window.__lab.C.vfx?.passive?.variant ?? 0) >= 0;}));
   await page.screenshot({path: out + 'ativacao.png'});
