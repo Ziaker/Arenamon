@@ -238,7 +238,7 @@ export function stepPhysics(fighters, dt, world = null) {
         f.landingSlide = T.enableLandingSkid ? {velocity: scale(flight.horizontal, X.landingSkidFraction)} : null;
         f.flight = null;f.velocity = vec();
         const wasNormalJump = !!f.normalJumpLanding;
-        f.knockRecovery = wasNormalJump ? 0 : R.landingRecovery;
+        f.knockRecovery = (wasNormalJump || f.hp <= 0) ? 0 : R.landingRecovery; // derrotado não tem recuperação de pouso
         f.recoveryFrom = null;
         f.normalJumpLanding = false;
         f.state = f.hp <= 0 ? 'defeated' : (wasNormalJump ? 'neutral' : 'landing');

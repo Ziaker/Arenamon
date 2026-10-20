@@ -280,8 +280,10 @@ export function updateFighter(f, cmd, fighters, dt, world = null) {
       f.action = null;f.push = null;f.guard = false;f.vaultHeight = 0;f.velocity = vec();f.locomotionVelocity = vec();f.bufferedTackle = null;f.state = f.wallSplat ? 'wallSplat' : 'airborne';return;
     }
   }
-  if (f.knockRecovery > 0) {f.knockRecovery = Math.max(0, f.knockRecovery - dt);if (f.knockRecovery <= 0) f.recoveryFrom = null;f.vaultHeight = 0;f.velocity = vec();f.locomotionVelocity = vec();f.action = null;f.guard = false;f.bufferedTackle = null;f.state = f.brakeLeft > 0 ? 'brake' : 'landing';f.brakeLeft = Math.max(0, (f.brakeLeft ?? 0) - dt);return;}
+  // Derrota tem prioridade sobre recuperação: um lutador derrotado não pode ficar pendurado em
+  // knockRecovery/landing — o estado físico precisa corresponder ao fato imediatamente (§22/§23).
   if (f.hp <= 0) {f.state = 'defeated';f.velocity = vec();f.action = null;f.push = null;f.vaultHeight = 0;f.bufferedTackle = null;return;}
+  if (f.knockRecovery > 0) {f.knockRecovery = Math.max(0, f.knockRecovery - dt);if (f.knockRecovery <= 0) f.recoveryFrom = null;f.vaultHeight = 0;f.velocity = vec();f.locomotionVelocity = vec();f.action = null;f.guard = false;f.bufferedTackle = null;f.state = f.brakeLeft > 0 ? 'brake' : 'landing';f.brakeLeft = Math.max(0, (f.brakeLeft ?? 0) - dt);return;}
   const target = fighters.find(o => o.id === cmd.target && o.hp > 0);
   const move = length(cmd.move) > 1 ? normalize(cmd.move) : cmd.move;
   // Mira (ataques sem direção, prévia): o alvo, se houver. Orientação do corpo: ver faceGoal abaixo.
