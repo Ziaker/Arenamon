@@ -183,5 +183,30 @@ test('projétil danifica destrutível e é consumido (§30/§31)', () => {
   assert.ok(g.world.entities.every(e => e.dead), 'o projétil foi consumido no impacto');
 });
 
+// ---------------------------------------------------------------------------
+// §57 — save/load e replay com estados 3D (voo em altitude, apoio em plataforma): futuro idêntico após restaurar
+// ---------------------------------------------------------------------------
+test('save/load no meio de um voo sobre plataforma: o futuro reproduzido é idêntico (§57)', () => {
+  const g = arena();
+  g.mapState.platforms = [{id: 'p1', pos: {x: 0, z: 0}, width: 3, depth: 3, height: 1.5}];
+  const f = g.fighters[0];
+  f.position = vec(0, -6);
+  launch(f, vec(0, 1), 7, 8); // arco longo sobre a plataforma
+  const advance = (n) => {
+    const events = [];
+    for (let i = 0; i < n; i++) {g.step(undefined, {...emptyCommand()});events.push(...(g.lastStepEvents ?? []).map(e => e.result));}
+    return events;
+  };
+  advance(20); // no meio do voo
+  const saved = g.save();
+  const traceA = advance(60);
+  const stateA = {pos: {...f.position}, groundY: f.groundY, flight: f.flight ? {...f.flight} : null, state: f.state, hp: f.hp};
+  g.load(saved);
+  const traceB = advance(60);
+  const stateB = {pos: {...f.position}, groundY: f.groundY, flight: f.flight ? {...f.flight} : null, state: f.state, hp: f.hp};
+  assert.deepEqual(traceB, traceA, 'o fluxo de eventos reproduzido é idêntico após restore');
+  assert.deepEqual(stateB, stateA, 'posição, apoio, voo, estado e HP idênticos após restore');
+});
+
 console.log(`\n${passed} passaram, ${failed} falharam.`);
 if (failed) {console.log('Falhas:', failures.join(' | '));process.exit(1);}
