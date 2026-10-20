@@ -239,12 +239,22 @@ O sistema admite tipos diferentes de passivas, conforme a definição individual
 - **Permanece pendente** o momento de aplicação/execução dos efeitos gerados por uma ativação ocorrida durante o hitstop quando a sua natureza exigir processamento próprio, além de interações ainda não aprovadas com o relógio da simulação, conflitos específicos e eventos encadeados. Não presumir uma solução para essas situações apenas a partir da permissão de ativação.
 - Esta aprovação é exclusivamente documental e **não autoriza implementar mecânicas**.
 
+## Rodada 28 — Aplicação imediata dos efeitos de passivas acionadas durante hitstop (opção A aprovada)
+
+- **Quando uma passiva for validamente acionada durante hitstop, os efeitos produzidos por essa ativação são aplicados imediatamente**, ainda durante o mesmo intervalo de hitstop, observadas todas as condições e restrições individuais da passiva.
+- **A aplicação dos efeitos não é adiada até a retomada da simulação.** Por exemplo, se o efeito acionado conceder uma proteção temporária, essa proteção já passa a integrar o estado do personagem durante o hitstop.
+- **Os cronômetros de duração dos novos efeitos temporários permanecem congelados enquanto perdurar o hitstop**, retomando a contagem somente após seu término, conforme a Rodada 25. Os efeitos aplicados permanecem em vigor durante a interrupção, conforme a Rodada 26.
+- Para um **efeito instantâneo** efetivamente aplicado, permanece a regra da Rodada 18 de início do cooldown após sua aplicação; se esse cooldown já tiver começado durante o hitstop, sua **contagem permanece pausada** até terminar a interrupção, conforme a Rodada 24.
+- Permanecem válidas a ativação imediata de gatilhos válidos da Rodada 27, a independência de acionamentos e a resolução simultânea de efeitos compatíveis das Rodadas 12–13, os conflitos individualizados da Rodada 14 e a impossibilidade de reativar a mesma passiva enquanto seu efeito anterior permanecer ativo, conforme a Rodada 20.
+- **Não se aprovam, por esta rodada, novos gatilhos, movimentações, avanços da simulação, execução automática de eventos encadeados ou regras de desempate entre efeitos incompatíveis.** O comportamento concreto dessas situações não definido anteriormente permanece pendente.
+- Esta é uma decisão exclusivamente documental e **não autoriza implementação de mecânicas**.
+
 ## Pontos pendentes — não aprovados
 
 - Identidade, números, magnitude, duração, gatilhos e cooldowns de cada passiva.
 - Catálogo e critérios concretos de resolução para cada combinação de efeitos incompatíveis ou mutuamente exclusivos; casos não previstos permanecem sem regra aprovada.
 - Unidades e conversão para efeitos de natureza diversa, regras de arredondamento específicas quando exigido inteiro, interações entre modificadores incompatíveis e tratamento de casos especiais não cobertos por restrições preexistentes.
-- Comportamento específico de passivas permanentes e condicionais sem efeito ativo temporário, efeitos previamente suspensos, contagem de cooldown durante o intervalo KO–respawn, pausas globais e demais situações não aprovadas; as Rodadas 24–25 pausam a recarga e a duração dos efeitos ativos durante hitstop, a Rodada 26 mantém seus efeitos aplicados e a Rodada 27 permite o acionamento imediato de passivas por gatilhos válidos ocorridos nesse intervalo. Permanecem pendentes o momento de aplicação de novos efeitos durante hitstop, eventos encadeados e demais casos específicos. A Rodada 23 encerra os efeitos ativos no KO e a Rodada 22 zera os cooldowns no respawn.
+- Comportamento específico de passivas permanentes e condicionais sem efeito ativo temporário, efeitos previamente suspensos, contagem de cooldown durante o intervalo KO–respawn, pausas globais e demais situações não aprovadas; as Rodadas 24–25 pausam a recarga e a duração dos efeitos ativos durante hitstop, a Rodada 26 mantém seus efeitos aplicados, a Rodada 27 permite a ativação imediata por gatilhos válidos e a Rodada 28 determina a aplicação imediata dos efeitos correspondentes. Permanecem pendentes os eventos encadeados, interações especiais com a simulação e demais casos específicos. A Rodada 23 encerra os efeitos ativos no KO e a Rodada 22 zera os cooldowns no respawn.
 - Interface de seleção, apresentação visual e implementação técnica.
 
 ## Governança deste documento
