@@ -54,6 +54,7 @@ export function createCinematicPanel({$, view, getWs}) {
               <span><b>Ativar Câmera Cinemática</b><br><small class="muted">Camada de apresentação dinâmica sem alterar controles</small></span>
             </label>
             <div class="cine-actions">
+              <button type="button" id="cine-toggle-groups" title="Recolher ou expandir todas as seções">Recolher seções</button>
               <button type="button" id="cine-enable-all" title="Ativar todos os efeitos cinematográficos">Ativar todos</button>
               <button type="button" id="cine-disable-all" title="Desativar todos os efeitos individuais">Desativar todos</button>
               <button type="button" id="cine-reset" title="Restaurar valores padrão recomendados">Padrões</button>
@@ -357,6 +358,16 @@ export function createCinematicPanel({$, view, getWs}) {
       saveConfig();
       render();
     };
+
+    // Alternar Recolher/Expandir seções
+    if ($('cine-toggle-groups')) {
+      $('cine-toggle-groups').onclick = () => {
+        const details = container.querySelectorAll('.cine-group');
+        const anyOpen = [...details].some(d => d.open);
+        details.forEach(d => d.open = !anyOpen);
+        $('cine-toggle-groups').textContent = anyOpen ? 'Expandir seções' : 'Recolher seções';
+      };
+    }
 
     // Inputs dinâmicos (data-opt)
     container.querySelectorAll('[data-opt]').forEach(input => {
