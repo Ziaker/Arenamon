@@ -151,8 +151,8 @@ const DIAG = {
 };
 const PASSIVE = {
   enabled: ['Habilidades passivas visuais', 'Ativa os efeitos e as barras “Ability:” no começo da luta. Só apresentação.', toggle],
-  playerAbility: ['Habilidade do jogador', 'Efeito visual e nome de uma palavra usados pelo lutador azul.', select(['Órbita', 'Prisma', 'Ressonância'])],
-  enemyAbility: ['Habilidade do adversário', 'Efeito visual e nome de uma palavra usados pelo lutador vermelho.', select(['Órbita', 'Prisma', 'Ressonância'])],
+  playerAbility: ['Habilidade do jogador', 'Nome exibido na barra do lutador azul; todas usam sparkles brancos de 0,5 s.', select(['Órbita', 'Prisma', 'Ressonância'])],
+  enemyAbility: ['Habilidade do adversário', 'Nome exibido na barra do lutador vermelho; todas usam sparkles brancos de 0,5 s.', select(['Órbita', 'Prisma', 'Ressonância'])],
   borderMotion: ['Animação da borda metálica', 'Reflexo atravessando, pulso prateado ou luz percorrendo o contorno.', select(['Reflexo deslizante', 'Pulso prateado', 'Luz no contorno'])],
   textScale: ['Tamanho do texto “Ability”', 'Escala do nome e do prefixo nas barras laterais.', R(.8, 1.6, .05, x)],
 };
