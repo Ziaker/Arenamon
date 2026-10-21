@@ -5,6 +5,7 @@ import {C, vfxDefaults, displayDefaults} from '../sim/config.js';
 import {spawn} from '../sim/world.js';
 import {VFX_TYPES, SHAKE_EVENTS} from '../view/vfx.js';
 import {SOLID_FAMILIES} from '../view/solid-fx.js';
+import {PASSIVE_ABILITIES} from '../view/passive-abilities.js';
 import {fold} from './characters-panel.js';
 import {escape, pathGet as pathGetRoot} from './tuning.js';
 
@@ -364,6 +365,10 @@ renderModeBox.querySelector('[data-vfx-runtime-btn="legacy"]')?.addEventListener
     const demo = document.createElement('div');demo.className = 'row';
     for (let i = 0; i < 4; i++) {const b = document.createElement('button');b.type = 'button';b.textContent = `Disparar demo ${i + 1}`;b.dataset.demo = i;b.onclick = () => hud.triggerDemo(i);demo.append(b);}
     extraGrid.append(group('Propostas de HUD', 'hud', tuning.sectionControls('HUD'), [demo], false));
+    const passiveDemo = document.createElement('div');passiveDemo.className = 'vx-btns';
+    PASSIVE_ABILITIES.forEach((ability, kind) => {const b = document.createElement('button');b.type = 'button';b.textContent = `▶ ${ability.name}`;b.onclick = () => view.previewPassive(0, kind);passiveDemo.append(b);});
+    const enemyPassive = document.createElement('button');enemyPassive.type = 'button';enemyPassive.textContent = '▶ Prévia do vermelho';enemyPassive.onclick = () => view.previewPassive(1, C.display.passive.enemyAbility);passiveDemo.append(enemyPassive);
+    extraGrid.append(group('Habilidades passivas', 'passive-abilities', tuning.sectionControls('Habilidades passivas'), [passiveDemo], true));
     extraGrid.append(group('Altura visual (blocos e modelos)', 'grounding', tuning.sectionControls('Altura visual')), group('Indicador da janela C → X', 'cancel-ring', tuning.sectionControls('Indicador da janela C → X'),
       [Object.assign(document.createElement('p'), {className: 'hint', textContent: 'A reativação do tackle durante a esquiva é decidida por TEMPO (início e fim da janela, em Ajustes › X e C). Não há círculo de distância nas regras: este anel só desenha a janela. Ver relatório técnico.'})]));
     const dbg = document.createElement('div');dbg.id = 'vfx-debug';dbg.className = 'report';extraGrid.append(dbg);

@@ -10,6 +10,8 @@ import {VfxSystem} from './vfx.js';
 import {SolidFx} from './solid-fx.js';
 import {MeteorFx} from './meteor-fx.js';
 import {LimbSmear} from './smear-mesh.js';
+import {PassiveAbilitySystem} from './passive-abilities.js';
+import {createPassiveBanners} from '../ui/passive-banner.js';
 import {WorldView} from './world-view.js';
 import {phaseAt} from '../sim/motion.js';
 // Novo sistema de VFX declarativo (ativado ao lado do legado durante a migração).
@@ -62,6 +64,8 @@ export class View {
     registerAllEffects(this.vfxRuntime);
     this.solid = new SolidFx(this.scene); // malhas 3D sólidas (poeira do dash, esquiva, impactos); independe do renderizador de sprites
     this.meteorFx = new MeteorFx(this.scene); // rastro de fogo do meteor slam (só na queda)
+    this.abilityBanners = createPassiveBanners();
+    this.passives = new PassiveAbilitySystem(this.scene, {notify: (id, name) => this.abilityBanners.show(id, name)});
     this.quarks = null; // camada three.quarks (Fase 2): instanciada sob demanda quando C.vfx.quarks.enabled
     this.useNewVfx = false; // trocar para true quando o novo sistema estiver em paridade
     this.overlayGroup = new T.Group();this.overlayGroup.renderOrder = 900;this.scene.add(this.overlayGroup);
@@ -133,6 +137,7 @@ export class View {
     this.vfxRuntime.reset();
     this.quarks?.reset();
     this.solid.reset();this.meteorFx?.reset();for (const smear of this.smears) smear?.reset();
+    this.passives.reset();this.abilityBanners.clear();
     this.cinematic?.clearAll();
     this.cinematic?.triggerRoundIntro();
   }
@@ -318,6 +323,7 @@ export class View {
     }
     this.solid.update(fighters, events, vfxDt, {visible: !!X.hud.fxVisible, world});
     this.meteorFx.update(fighters, vfxDt, this.camera, !!X.hud.fxVisible, this.characters);
+    t0 = now();this.passives.update(fighters, vfxDt, {characters: this.characters, visible: !!X.hud.fxVisible && !!C.vfx.master.enabled});tm.vfx += now() - t0;
     const legacy = this.updateLegacy(fighters, events, paused ? 0 : dt);
     const fxOn = !!X.hud.fxVisible;
     const legacyOn = fxOn && !this.useNewVfx && !!this.vfx.atlas;
@@ -396,6 +402,7 @@ export class View {
     }
   }
   // ---------- Sobreposições técnicas (recriadas a cada quadro em um grupo próprio; materiais/geometrias descartados) ----------
+  previewPassive(id, kind) {this.passives.activate(id, kind);}
   clearOverlays() {for (const o of [...this.overlayGroup.children]) {this.overlayGroup.remove(o);o.geometry?.dispose();o.material?.dispose();}}
   line(points, color, opacity = .9) {
     const g = new T.BufferGeometry().setFromPoints(points.map(p => new T.Vector3(p[0], p[1], p[2])));

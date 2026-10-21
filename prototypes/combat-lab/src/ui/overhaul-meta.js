@@ -168,6 +168,13 @@ const DIAG = {
   toastMs: ['Duração do aviso', 'Tempo em tela do aviso de comando negado.', R(300, 5000, 50, n => n + ' ms')],
   logExecuted: ['Registrar também comandos executados', 'O histórico passa a listar X, C, defesa e defesa perfeita executados (útil para cronometrar).', toggle],
 };
+const PASSIVE = {
+  enabled: ['Habilidades passivas visuais', 'Ativa os efeitos e as barras “Ability:” no começo da luta. Só apresentação.', toggle],
+  playerAbility: ['Habilidade do jogador', 'Efeito visual e nome de uma palavra usados pelo lutador azul.', select(['Órbita', 'Prisma', 'Ressonância'])],
+  enemyAbility: ['Habilidade do adversário', 'Efeito visual e nome de uma palavra usados pelo lutador vermelho.', select(['Órbita', 'Prisma', 'Ressonância'])],
+  borderMotion: ['Animação da borda metálica', 'Reflexo atravessando, pulso prateado ou luz percorrendo o contorno.', select(['Reflexo deslizante', 'Pulso prateado', 'Luz no contorno'])],
+  textScale: ['Tamanho do texto “Ability”', 'Escala do nome e do prefixo nas barras laterais.', R(.8, 1.6, .05, x)],
+};
 const PERF = {overlay: ['Medidor compacto na arena', 'Mostra FPS, tempos de quadro, CPU por etapa, GPU (se disponível), draw calls e partículas no canto da arena.', toggle]};
 const WIN = {
   mode: ['Indicadores de janelas de combate', 'Barras acima dos lutadores com o tempo restante de cada janela, lidas do estado real da simulação.', select(['Desligados', 'Só o jogador (azul)', 'Ambos'])],
@@ -273,6 +280,7 @@ export function overhaulMeta(path) {
   const parts = path.split('.'), key = parts.at(-1), root = parts[0];
   const out = (label, help, range) => range && {label, help, range: {...range}};
   if (root === 'locomotion' && LOCO[key]) return out(...LOCO[key]);
+  if (root === 'display' && parts[1] === 'passive' && PASSIVE[key]) return out(...PASSIVE[key]);
   if (root === 'actions' && (parts[1] === 'dodge' || parts[1] === 'tackle') && PHASES[key]) {const [l, h, r] = PHASES[key];return out(`${l} · ${parts[1] === 'dodge' ? 'C' : 'X'}`, h, r);}
   if (root === 'actions' && parts[1] === 'sprint' && SPRINT[key]) return out(...SPRINT[key]);
   if (root === 'rules' && RULES2[key]) return out(...RULES2[key]);
