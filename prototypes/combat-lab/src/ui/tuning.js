@@ -139,7 +139,10 @@ function range(key, value, path) {
     if (key === 'jumpAirMaxSpeed') return {min: 0, max: 15, step: 0.1, fmt: n => n.toFixed(1) + ' m/s'};
     if (key === 'jumpCoyoteTime' || key === 'jumpBufferWindow') return {min: 0, max: 0.5, step: 0.01, fmt: n => n.toFixed(2) + ' s'};
     if (key === 'footstoolDamage') return {min: 0, max: 30, step: 1, fmt: n => n + ' HP'};
-    if (key === 'footstoolBounce') return {min: 0, max: 10, step: 0.1, fmt: n => n.toFixed(1) + ' m/s'};
+    if (key === 'footstoolBounce') return {min: 0, max: 14, step: 0.1, fmt: n => n.toFixed(1) + ' m/s'};
+    if (key === 'footstoolAirAccel') return {min: 0, max: 60, step: 0.5, fmt: n => n.toFixed(1) + ' m/s²'};
+    if (key === 'footstoolAirMaxSpeed') return {min: 0, max: 20, step: 0.1, fmt: n => n.toFixed(1) + ' m/s'};
+    if (key === 'footstoolVaultMargin') return {min: 0, max: 1.2, step: 0.01, fmt: n => n.toFixed(2) + ' m'};
     if (key === 'footstoolStagger') return {min: 0, max: 2, step: 0.05, fmt: n => n.toFixed(2) + ' s'};
     if (key === 'footstoolTolerance') return {min: 0, max: 1, step: 0.01, fmt: n => n.toFixed(2) + ' m'};
     if (key === 'footstoolMinFallSpeed') return {min: 0, max: 10, step: 0.1, fmt: n => n.toFixed(1) + ' m/s'};

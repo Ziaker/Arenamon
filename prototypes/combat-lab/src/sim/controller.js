@@ -546,7 +546,7 @@ export function updateFighter(f, cmd, fighters, dt, world = null) {
       if (action.kind === 'dodge' && action.jump) {
         // Pulo físico: altura integrada pela gravidade; deslocamento horizontal constante na direção do salto.
         const J = action.jump, g = A.dodge.vaultGravity;
-        J.y += J.vy * dt - .5 * g * dt * dt;J.vy -= g * dt;
+        J.prevY = J.y;J.y += J.vy * dt - .5 * g * dt * dt;J.vy -= g * dt;
         f.velocity = scale(direction(action.heading), A.dodge.vaultHorizontal);
         if (action.from && (action.blendTime ?? p.blend) > 0 && action.elapsed < (action.blendTime ?? p.blend)) {const b = smoothstep((action.elapsed + dt) / (action.blendTime ?? p.blend));f.velocity = {x: action.from.x * (1 - b) + f.velocity.x * b, z: action.from.z * (1 - b) + f.velocity.z * b};}
         f.vaultHeight = Math.max(0, J.y);

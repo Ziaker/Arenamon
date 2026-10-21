@@ -50,7 +50,7 @@ export const ACTION_TABS = {
       ['⚙ Sistemas', ['map.jumpImprovements', 'map.footstoolEnabled', 'map.footstoolVault'], true],
       ['🦘 Salto (gravidade, coyote e buffer)', ['map.jumpHeight', 'map.jumpGravity', 'map.jumpGravityUp', 'map.jumpGravityDown', 'map.jumpReleaseMult', 'map.jumpMaxFallSpeed', 'map.jumpInterval', 'map.jumpLandingRecovery', 'map.jumpCoyoteTime', 'map.jumpBufferWindow'], true],
       ['🎮 Controle aéreo e colisões', ['map.jumpDrag', 'map.jumpAirControl', 'map.jumpAirAccel', 'map.jumpAirMaxSpeed', 'map.platformCount', 'map.mountTolerance', 'map.launchSolidCollision']],
-      ['👟 Footstool (pisar no rival)', ['map.footstoolDamage', 'map.footstoolBounce', 'map.footstoolStagger', 'map.footstoolTolerance', 'map.footstoolMinFallSpeed', 'map.footstoolCooldown']],
+      ['👟 Footstool (pisar no rival)', ['map.footstoolDamage', 'map.footstoolBounce', 'map.footstoolStagger', 'map.footstoolTolerance', 'map.footstoolMinFallSpeed', 'map.footstoolCooldown', 'map.footstoolAirAccel', 'map.footstoolAirMaxSpeed', 'map.footstoolVaultMargin']],
     ],
     anims: ['jump', 'fall', 'land'],
   },

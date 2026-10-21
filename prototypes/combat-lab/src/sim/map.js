@@ -47,12 +47,15 @@ export const MAP_DEFAULTS = {
   // Footstool (pisar na cabeça do rival): ataque de contato superior do salto normal.
   footstoolEnabled: 1,
   footstoolDamage: 5,        // dano exato em alvo desprotegido (requisito do plano)
-  footstoolBounce: 3.7,      // impulso vertical de rebote do atacante (m/s), faixa 3,5–4,0
+  footstoolBounce: 6.5,      // impulso vertical de rebote do atacante (m/s); era 3,7. Segurar o botão de salto sustenta a subida (altura variável)
+  footstoolAirAccel: 20,     // controle aéreo APÓS o rebote (m/s²); o salto comum usa jumpAirAccel (8)
+  footstoolAirMaxSpeed: 7.5, // velocidade horizontal máxima alcançável no ar após o rebote (m/s); o salto comum usa jumpAirMaxSpeed (4,5)
+  footstoolVaultMargin: 0.35,// esquiva (C) sobre o rival: os pés só precisam descer até (topo da cabeça − esta margem) para pisar nele, pois o arco do vault não passa muito da cabeça (m)
   footstoolStagger: 0.25,     // stagger do defensor (s)
   footstoolTolerance: 0.12,  // tolerância física de contato horizontal (m)
   footstoolMinFallSpeed: 1.0,// velocidade vertical mínima de queda para valer (m/s)
   footstoolCooldown: 0.5,    // controle de repetição: espera mínima entre footstools do mesmo atacante (s)
-  footstoolVault: 0,         // experimental: permite footstool também durante o vault de C (separado, desligado)
+  footstoolVault: 1,         // a esquiva (C) que passa por cima do rival também pisa nele (footstool) e vira um salto com rebote e controle aéreo
   // Colisão com sólidos do mapa (correção medida na varredura de 30 partidas: lançados por golpe atravessavam até 1 m das plataformas).
   // launchSolidCollision = 1: só o SALTO voluntário "passa por cima" da lateral de um sólido quando sobe rápido; lançamentos colidem
   // e deslizam. 0 = comportamento anterior (para comparar). mountTolerance: quanto (m) os pés podem estar abaixo do topo e ainda
