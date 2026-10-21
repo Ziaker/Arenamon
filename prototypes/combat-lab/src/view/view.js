@@ -296,6 +296,9 @@ export class View {
       // A prévia de animação continua tocando com a partida pausada; bullet time visual desacelera apresentação.
       const animDt = (paused && !isKoSeq) ? (character?.preview ? realDt : 0) : ((isKoSeq ? (realDt ?? 0.016) : dt) * visualScale);
       t0 = now();character?.update(f, animDt, alt, events, {tick, source: sources[f.id]});tm.anim += now() - t0;
+      // Ausência física (Bullet Punch): nada do lutador é desenhado enquanto ele "não existe"; as speedlines ficam por conta do AimMarkers.
+      if (f.absent) {body.visible = false;arrow.visible = false;shadow.visible = false;if (character?.root) character.root.visible = false;(this.absentSeen ??= {})[f.id] = true;}
+      else if (this.absentSeen?.[f.id]) {shadow.visible = true;if (character?.root) character.root.visible = true;this.absentSeen[f.id] = false;}
       t0 = now();this.smears[f.id]?.update(f, paused ? 0 : animDt, V.smear, tick, !!X.hud.fxVisible && !!C.vfx.master.enabled && !C.vfx.master.reduceMotion);tm.vfx += now() - t0;
     }
     t0 = now();this.drawOverlays(fighters, paused ? 0 : dt);this.worldView.update(world, {fighters, events, dt: paused ? 0 : dt, skipBeams: this.useNewVfx, camera: this.camera});tm.overlays = now() - t0;
@@ -355,7 +358,7 @@ export class View {
       }
     }
     // Marcadores de mira dos Moves com destino: só existem enquanto alguém mira.
-    if (fighters.some(f => f.aim)) (this.aimMarkers ??= new AimMarkers(T, this.scene)).update(fighters, paused ? 0 : dt, {reduceMotion: !!(this._a11y?.reduceMotion || (C.vfx.master ?? {}).reduceMotion)});
+    if (fighters.some(f => f.aim || f.absent)) (this.aimMarkers ??= new AimMarkers(T, this.scene)).update(fighters, paused ? 0 : dt, {reduceMotion: !!(this._a11y?.reduceMotion || (C.vfx.master ?? {}).reduceMotion)});
     else if (this.aimMarkers) {this.aimMarkers.dispose();this.aimMarkers = null;}
     // Rotas da navegação experimental (Yuka): só quando ligada e com diagnóstico visível.
     if (navGame && C.extras.nav?.enableNav && C.extras.nav.showDebug) (this.navDebug ??= new NavDebug(T, this.scene)).update(navGame);

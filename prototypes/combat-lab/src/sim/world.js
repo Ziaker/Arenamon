@@ -89,7 +89,7 @@ export function spawn(world, t, events = []) {
 export function applyHit(game, ownerId, target, hit, normal, info = {}) {
   const R = C.rules, X = C.extras.combat, T = C.extras.toggles, owner = ownerId == null ? null : game.fighters[ownerId];
   const base = {attacker: ownerId, target: target.id, normal: {...normal}, entity: info.entity ?? null, source: info.source ?? 'world', pl: info.pl ?? null};
-  if (target.hp <= 0) return null;
+  if (target.hp <= 0 || target.absent) return null;
   if (!hit.ignoreInvulnerability) {const rip = riposteIntercept(target, ownerId, normal, base);if (rip) return rip;}   // Riposte: janela aberta anula o acerto e dispara o contra-golpe
   if (!hit.ignoreInvulnerability && isInvulnerable(target)) return {...base, result: 'invulnerable', damage: 0};
   const atkStageMult = owner ? (1 + (owner.stages?.attack ?? 0) * (C.map?.stageAttackBonus ?? 0.10)) : 1;
@@ -269,7 +269,7 @@ function stepProjectile(game, p, dt, events, spawnLater) {
       if (p.onHit) spawnLater.push(at(p.onHit, p));return;
     }
     for (const f of game.fighters) {
-      if (f.hp <= 0 || (f.id === p.owner && !p.hitsOwner) || p.hitLog.includes(f.id)) continue;
+      if (f.hp <= 0 || f.absent || (f.id === p.owner && !p.hitsOwner) || p.hitLog.includes(f.id)) continue;
       const alt = altOf(f), box = {shape: 'box', pos: f.position, hx: C.test.halfExtent, hz: C.test.halfExtent, angle: 0};
       if (!vOverlap(p.y - p.radius, p.y + p.radius, alt, alt + fighterHeight()) || !circleTouches(box, p.pos, p.radius)) continue;
       if (p.clashable && f.action?.kind === 'tackle' && !f.action.neutralized && !isInvulnerable(f) && tackleDispute(p, f, events)) return;   // disputa de PL contra o Tackle em curso
@@ -308,7 +308,7 @@ function stepArea(game, a, dt, events) {
     a.pulsesDone++;
     const shields = a.explosion ? game.world.entities.filter(e => e.shields && !e.dead) : [];
     if (a.hit) for (const f of game.fighters) {
-      if (f.hp <= 0 || (f.id === a.owner && !a.affectsOwner)) continue;
+      if (f.hp <= 0 || f.absent || (f.id === a.owner && !a.affectsOwner)) continue;
       const alt = altOf(f);if (!vOverlap(alt, alt + fighterHeight(), a.y, a.y + a.height)) continue;
       const box = {shape: 'box', pos: f.position, hx: C.test.halfExtent, hz: C.test.halfExtent, angle: 0};
       const c = closestOnShape(box, a.pos), dist = Math.max(0, c.inside ? 0 : c.distance);if (dist > a.radius) continue;

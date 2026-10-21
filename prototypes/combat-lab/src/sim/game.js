@@ -67,7 +67,7 @@ export class Game {
     }
     const finishing = this.phase === 'finishing';
     // IA do oponente desligada: o vermelho fica como boneco (recebe dano, colisões e reações físicas, sem decidir nada).
-    const enemy = () => isBlind(this.fighters[1]) && !canSee(this.fighters[1], this.fighters[0], this.world) ? blindDefensiveCommand(this.fighters[1]) : C.extras.toggles.enableEnemyAI ? this.assistNav(this.brain, this.fighters[1], this.fighters[0], this.brain.command(this.fighters[1], this.fighters[0], this.mode, C.test.step)) : emptyCommand();
+    const enemy = () => this.fighters[1].absent || this.fighters[0].absent ? emptyCommand() : isBlind(this.fighters[1]) && !canSee(this.fighters[1], this.fighters[0], this.world) ? blindDefensiveCommand(this.fighters[1]) : C.extras.toggles.enableEnemyAI ? this.assistNav(this.brain, this.fighters[1], this.fighters[0], this.brain.command(this.fighters[1], this.fighters[0], this.mode, C.test.step)) : emptyCommand();
     const commands = finishing ? [emptyCommand(), emptyCommand()] : [cmd0, cmd1 ?? enemy()];
     this.lastCommands = commands;
     for (const f of this.fighters) updateFighter(f, commands[f.id] ?? emptyCommand(), this.fighters, C.test.step, this.world);

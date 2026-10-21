@@ -73,7 +73,7 @@ export function stepSand(/** @type {any} */ game, /** @type {any} */ e, /** @typ
   const front = e.speed * e.age, still = new Set();
   e.targets ??= {};e.pushed ??= [];
   for (const f of game.fighters) {
-    if (f.id === e.owner || f.hp <= 0 || f.flight || (f.vaultHeight ?? 0) > 1e-8) continue;
+    if (f.id === e.owner || f.hp <= 0 || f.absent || f.flight || (f.vaultHeight ?? 0) > 1e-8) continue;
     const st = e.targets[f.id];
     const inside = inRect(e, f.position);
     if (!inside) {if (st) st.pinned = false;continue;}

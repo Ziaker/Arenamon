@@ -22,7 +22,7 @@ const TACKLE_SETUPS = new Map();
 export const registerTackleSetup = (/** @type {string} */ name, /** @type {Function} */ fn) => {TACKLE_SETUPS.set(name, fn);return name;};
 export const getTackleSetup = (/** @type {string} */ name) => TACKLE_SETUPS.get(name) ?? null;
 export const MOVE_SCHEMA_VERSION = 1;
-const AIMS = ['target', 'facing', 'input'], MOTIONS = ['none', 'root', 'dash'], TARGETS = ['self', 'opponent'];
+const AIMS = ['target', 'facing', 'input'], MOTIONS = ['none', 'root', 'dash', 'walk'], TARGETS = ['self', 'opponent'];
 
 /**
  * Valida a definição (lança Error com o motivo). Campos:
@@ -50,7 +50,7 @@ export function validateMove(def) {
   if (def.cooldownBoost !== undefined && typeof def.cooldownBoost !== 'boolean') fail('cooldownBoost deve ser booleano');
   if (def.group !== undefined && !(C.world[def.group] && typeof C.world[def.group] === 'object')) fail(`group desconhecido (${def.group}): precisa existir em C.world`);
   if (def.tackle !== undefined && (typeof def.tackle !== 'string' || !def.tackle)) fail('tackle deve ser o nome de uma preparação registrada');
-  if (def.aimMode !== undefined && (def.aimMode !== 'marker' || !def.group)) fail("aimMode so aceita 'marker' e exige group (os parametros do marcador vem de C.world[group])");
+  if (def.aimMode !== undefined && (!['marker', 'follow'].includes(def.aimMode) || !def.group)) fail("aimMode so aceita 'marker' ou 'follow' e exige group (os parametros do marcador vem de C.world[group])");
   if (def.groundOnly !== undefined && typeof def.groundOnly !== 'boolean') fail('groundOnly deve ser booleano');
   if (def.feint !== undefined && typeof def.feint !== 'boolean') fail('feint deve ser booleano');
   if (def.needsTarget !== undefined && (typeof def.needsTarget !== 'string' || !def.group)) fail('needsTarget deve ser a chave (em C.world[group]) do alcance de aquisição');
@@ -81,8 +81,9 @@ export function effectiveMove(def) {
   if (!g) return def;
   const out = {...def};
   for (const [k, field] of Object.entries(GROUP_OVERRIDES)) if (typeof g[k] === 'number') out[field] = g[k];
+  if (def.durationKeys) out.duration = def.durationKeys.reduce((s, k) => s + (typeof g[k] === 'number' ? g[k] : 0), 0);   // duração = soma de sliders do grupo (Bullet Punch: preparação + desaparecimento)
   if (def.invulnerableKeys) out.invulnerable = [g[def.invulnerableKeys[0]], g[def.invulnerableKeys[1]]];   // janela de i-frames ajustável nos sliders do grupo
-  if (def.timeline) out.timeline = def.timeline.map(ev => ev.atKey && typeof g[ev.atKey] === 'number' ? {...ev, at: g[ev.atKey]} : ev);   // atKey: o instante vem de um slider (ex.: 'cast')
+  if (def.timeline) out.timeline = def.timeline.map(ev => ev.atKeys ? {...ev, at: ev.atKeys.reduce((s, k) => s + (g[k] ?? 0), 0)} : ev.atKey && typeof g[ev.atKey] === 'number' ? {...ev, at: g[ev.atKey]} : ev);   // atKey: o instante vem de um slider (ex.: 'cast')
   return Object.freeze(out);
 }
 export const getMove = id => {const d = id ? REGISTRY.get(id) : null;return d ? effectiveMove(d) : null;};

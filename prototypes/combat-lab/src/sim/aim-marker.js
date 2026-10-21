@@ -8,6 +8,7 @@ import {C} from './config.js';
 import {getGroundHeight} from './physics.js';
 import {closestOnShape} from './world.js';
 import {effectiveArenaRadius} from './map.js';
+import {solidsOf, insideSolid} from './vision.js';
 import {add, scale, sub, length, normalize, direction} from './math.js';
 
 /**
@@ -43,6 +44,30 @@ export function markerInitial(/** @type {any} */ f, /** @type {Record<string, an
     return l <= P.range ? {x: locked.position.x, z: locked.position.z} : add(f.position, scale(normalize(d), P.range));
   }
   return {x: f.position.x + ahead.x * P.startDistance, z: f.position.z + ahead.z * P.startDistance};
+}
+
+/**
+ * Marcador SEGUINDO o lutador (aimMode 'follow', Bullet Punch): distância cresce de `startDistance` a `maxDistance` em `growTime` s com curva QUADRÁTICA
+ * (devagar e acelerando), na direção do último input (independente do corpo), e PARA no último ponto válido antes de parede ou borda da arena.
+ * `enemyNear` = há adversário vivo dentro de `reach` do marcador (o círculo fica vermelho; não garante alvo nem acerto).
+ */
+export function followMarker(/** @type {any} */ f, /** @type {any} */ a, /** @type {{x: number, z: number}} */ input, /** @type {number} */ dt, /** @type {any} */ world, /** @type {any[]} */ fighters) {
+  const P = a.params;
+  if (length(input) > .01) a.dir = normalize(input);
+  a.t += dt;
+  const u = Math.min(1, a.t / P.growTime), want = P.startDistance + (P.maxDistance - P.startDistance) * u * u;
+  const solids = solidsOf(world), lim = effectiveArenaRadius() - (P.edgeMargin ?? .3);
+  let dist = 0, blocked = false;
+  for (let d = .25; d <= want + 1e-9; d += .25) {
+    const p = {x: f.position.x + a.dir.x * d, z: f.position.z + a.dir.z * d};
+    if (Math.hypot(p.x, p.z) > lim || insideSolid(solids, p, C.test.halfExtent * .6)) {blocked = true;break;}
+    dist = d;
+  }
+  if (!blocked) dist = want;
+  a.pos = {x: f.position.x + a.dir.x * dist, z: f.position.z + a.dir.z * dist};
+  a.distance = dist;a.y = getGroundHeight(a.pos, world, (f.groundY ?? 0) + (P.maxRise ?? 2));
+  a.valid = true;a.reason = null;
+  a.enemyNear = fighters.some(o => o.id !== f.id && o.hp > 0 && !o.absent && Math.hypot(o.position.x - a.pos.x, o.position.z - a.pos.z) <= P.reach);
 }
 
 /** Move o marcador pela direção do input (mundo) a `speed` m/s. */

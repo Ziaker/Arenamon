@@ -68,7 +68,7 @@ export function bounceStep(/** @type {any} */ game) {
       if (st.neutralized || f.flight.vy >= 0) continue;
       const reach = 2 * C.test.halfExtent + P.contactRadius, fy = f.flight.y;
       for (const o of game.fighters) {
-        if (o === f || o.hp <= 0 || st.hits.includes(o.id)) continue;
+        if (o === f || o.hp <= 0 || o.absent || st.hits.includes(o.id)) continue;
         if (Math.hypot(o.position.x - f.position.x, o.position.z - f.position.z) > reach) continue;
         const oy = o.flight ? o.flight.y : (o.groundY ?? 0) + (o.vaultHeight ?? 0);
         if (Math.abs(fy - oy) > bodyH) continue;
@@ -80,7 +80,7 @@ export function bounceStep(/** @type {any} */ game) {
       if (!landed && f.flight) {f.bounceState = null;continue;}
       if (!st.neutralized && f.hp > 0) {
         for (const o of game.fighters) {
-          if (o === f || o.hp <= 0 || o.flight || st.hits.includes(o.id)) continue;
+          if (o === f || o.hp <= 0 || o.absent || o.flight || st.hits.includes(o.id)) continue;
           if (Math.hypot(o.position.x - f.position.x, o.position.z - f.position.z) > P.landRadius) continue;
           if (Math.abs((f.groundY ?? 0) - (o.groundY ?? 0) - (o.vaultHeight ?? 0)) > bodyH) continue;
           events.push(...strike(game, f, o, st, 'landing'));

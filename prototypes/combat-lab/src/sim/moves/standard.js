@@ -15,6 +15,6 @@ export function registerStandardMoves() {
   registerEffect('psyshock', psyshockEffect);
   registerMove(/** @type {any} */ (reflectDef));
   registerMove(/** @type {any} */ (psyshockDef));
-  for (const {def, effect, tackle, hooks, steps} of NEW_MOVES) {if (effect) registerEffect(effect[0], effect[1]);for (const [n, fn] of steps ?? []) registerStepHook(n, fn);if (tackle) registerTackleSetup(tackle[0], tackle[1]);for (const [n, fn] of hooks ?? []) registerTackleSetup(n, fn);registerMove(def);}   // Moves novos: registrados, nunca equipados por padrão
+  for (const {def, effect, tackle, hooks, steps, effects} of NEW_MOVES) {if (effect) registerEffect(effect[0], effect[1]);for (const [n, fn] of effects ?? []) registerEffect(n, fn);for (const [n, fn] of steps ?? []) registerStepHook(n, fn);if (tackle) registerTackleSetup(tackle[0], tackle[1]);for (const [n, fn] of hooks ?? []) registerTackleSetup(n, fn);registerMove(def);}   // Moves novos: registrados, nunca equipados por padrão
   return [...STANDARD_MOVE_IDS];
 }

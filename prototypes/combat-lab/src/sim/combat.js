@@ -117,7 +117,7 @@ export function knockbackReaction(target, dir, hKb, vKb) {
 /** Resolve um tackle conectado. Devolve o evento ou null. */
 export function resolveHit(attacker, defender, normal, relative, force = false) {
   const R = C.rules, X = C.extras.combat, T = C.extras.toggles;
-  if ((!force && !tackleConnects(attacker, defender, normal, relative)) || defender.hp <= 0) return null;
+  if ((!force && !tackleConnects(attacker, defender, normal, relative)) || defender.hp <= 0 || defender.absent || attacker.absent) return null;
 
   // Verificação de janelas ativas e multi-hit (quando o toggle estiver ativo e a ação tiver janelas marcadas)
   let windowIdx = -1;
@@ -197,7 +197,7 @@ export function resolveHit(attacker, defender, normal, relative, force = false) 
     }
     else if (defender.stun <= 1e-8) defender.stun = R.guardStun;
   } else {
-    defender.counterWindow = 0;const closing = Math.max(0, dot(relative, normal));
+    defender.counterWindow = 0;const closing = Math.max(0, dot(relative, normal)) * (attacker.action.impactMult ?? 1);   // impactMult: velocidade de impacto do Move (Bullet Punch)
     // Redução de knockback pelos estágios de Defesa (R6.11)
     const defStageKnockbackMult = Math.max(0, 1.0 - (defender.stages?.defense ?? 0) * (C.map?.stageDefenseReduction ?? 0.10));
     const kbo = attacker.action.kb;   // Moves que viram Tackle com knockback próprio {horizontal, vertical} em m/s (Lunge, Quick Attack…)

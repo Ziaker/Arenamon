@@ -19,7 +19,7 @@ import {actionProgress} from './motion.js';
 import {report, attemptsActive} from './attempts.js';
 import {getGroundHeight} from './physics.js';
 import {passiveCost} from './passive-engine.js';
-import {markerValidity, markerInitial, markerMove} from './aim-marker.js';
+import {markerValidity, markerInitial, markerMove, followMarker} from './aim-marker.js';
 import {canSee} from './vision.js';
 
 /** Aceleração/frenagem/reversão da locomoção comum no modelo do v6 (mantido para compatibilidade). */
@@ -32,7 +32,7 @@ export function locomotionParams(f) {
     : {acceleration: L.acceleration, braking: L.braking, reversal: L.reversal, turnGrip: L.turnGrip, accelCurve: L.accelCurve, brakeCurve: L.brakeCurve, friction: L.friction, residualSpeed: L.residualSpeed, overspeedBraking: f.sprintCarry ? S.braking : L.braking};
 }
 /** Velocidade máxima de caminhada do lutador agora (defesa e exaustão reduzem). */
-export const walkSpeed = f => stat(f, 'speed', f.attributes.speed) * (f.guard ? C.rules.guardSpeed : 1) * (f.exhausted ? C.rules.exhaustedSpeed : 1) * (f.charge ? f.charge.params.moveSlow : 1);
+export const walkSpeed = f => stat(f, 'speed', f.attributes.speed) * (f.guard ? C.rules.guardSpeed : 1) * (f.exhausted ? C.rules.exhaustedSpeed : 1) * (f.charge ? f.charge.params.moveSlow : 1) * (f.aim?.follow ? 1 - f.aim.params.slow : 1);   // Bullet Punch: marcando o destino anda a 30%
 /** Custo de stamina de uma ação com o modificador de status (sem status: o próprio custo). */
 // kind opcional ('dodge' | 'tech'): passivas como Technician alteram o custo efetivo de esquivas e recovery (R10);
 // X/tackles e Moves continuam usando o custo base (C.extras.toggles.enablePassives desligado = paridade exata).
@@ -267,6 +267,7 @@ function startNormalJump(f, move, diag, fromAir = false) {
 }
 export function updateFighter(f, cmd, fighters, dt, world = null) {
   CTX_FIGHTERS = fighters;
+  if (cmd.target != null && fighters.find(o => o.id === cmd.target)?.absent) cmd = {...cmd, target: null, locked: false};   // ausente (Bullet Punch) não pode ser selecionado como alvo
   if (cmd.target != null && hasFlag(f, 'blind')) {   // cegueira: lock-on só em quem o cegado enxerga (10 m, sem parede bloqueando por completo); senão desliga
     const t = fighters.find(o => o.id === cmd.target);
     if (!canSee(f, t, world)) cmd = {...cmd, target: null, locked: false};
@@ -359,7 +360,7 @@ export function updateFighter(f, cmd, fighters, dt, world = null) {
   if (f.knockRecovery > 0) {f.knockRecovery = Math.max(0, f.knockRecovery - dt);if (f.knockRecovery <= 0) f.recoveryFrom = null;f.vaultHeight = 0;f.velocity = vec();f.locomotionVelocity = vec();f.action = null;f.guard = false;f.bufferedTackle = null;f.state = f.brakeLeft > 0 ? 'brake' : 'landing';f.brakeLeft = Math.max(0, (f.brakeLeft ?? 0) - dt);return;}
   const target = fighters.find(o => o.id === cmd.target && o.hp > 0);
   const inputMove = length(cmd.move) > 1 ? normalize(cmd.move) : cmd.move;
-  const move = f.aim ? vec() : inputMove;   // mirando com marcador, a direção move o marcador e o corpo fica parado (MV-P29)
+  const move = f.aim && !f.aim.follow ? vec() : inputMove;   // mirando com marcador, a direção move o marcador e o corpo fica parado (MV-P29)
   // Mira (ataques sem direção, prévia): o alvo, se houver. Orientação do corpo: ver faceGoal abaixo.
   const desiredHeading = target ? angleOf(sub(target.position, f.position)) : length(move) > 0 ? angleOf(move) : f.facing;
   // Finta: C ou D no startup do tackle cancelam o ataque (só derrapa, sem esquiva); o acerto já feito ou o mergulho impedem.
@@ -680,7 +681,7 @@ export function movePermission(f, def, slot = null) {
   const cd = f.moveCooldowns?.[def.id] ?? 0;if (cd > 1e-8) return {ok: false, reason: 'cooldown', detail: {left: cd}};
   if (f.guard && def.fromGuard === false) return {ok: false, reason: 'guardBlocks'};
   const cur = f.action;
-  if (cur && !(def.cancelFrom || []).includes(cur.kind)) {
+  if (cur && !(def.cancelFrom || []).includes(cur.kind) && !(def.fromDodge && cur.kind === 'dodge')) {
     if (cur.kind === 'recoil') return {ok: false, reason: 'recoil', detail: {left: Math.max(0, C.rules.recoil - cur.elapsed)}};
     if (!chainOpen(f)) return {ok: false, reason: 'chain', detail: {left: Math.max(0, actionSpec(cur).chainAfter - cur.elapsed)}};
   }
@@ -780,6 +781,13 @@ function startRiposteStrike(f, action) {
 /** Abre o marcador: nada é cobrado até a confirmação; os parâmetros do grupo são capturados agora (M28.4). */
 function startAim(f, def, slot, fighters, world, lockId) {
   const P = structuredClone(C.world[def.group]), locked = lockId != null ? fighters.find(o => o.id === lockId && o.hp > 0) : null;
+  if (def.aimMode === 'follow') {   // marcador que segue o lutador: o corpo continua andando (a 30%) e uma esquiva em curso segue intacta
+    f.aim = {move: def.id, slot, ticks: 0, params: P, def, follow: true, dir: direction(f.facing), t: 0, pos: {...f.position}, valid: true, reason: null, y: 0, distance: 0};
+    followMarker(f, f.aim, {x: 0, z: 0}, 0, world, fighters);
+    f.guard = false;f.guardSuppressed = false;
+    moveEvent(f, {result: 'aimStart', move: def.id, slot});
+    return;
+  }
   const pos = markerInitial(f, P, locked), v = markerValidity(f, P, pos, world, fighters);
   f.aim = {move: def.id, slot, ticks: 0, params: P, def, pos, valid: v.valid, reason: v.reason, y: v.y, distance: v.distance};
   f.guard = false;f.guardSuppressed = false;f.sprinting = false;f.sprintCarry = false;f.velocity = vec();f.locomotionVelocity = vec();
@@ -795,9 +803,12 @@ export function cancelAim(f, why) {
 function stepAim(f, cmd, inputMove, ctx) {
   const a = f.aim, def = a.def ?? getMove(a.move);   // a definição EFETIVA do momento em que o marcador abriu (M28.4)
   if (!def) {f.aim = null;return;}
-  a.pos = markerMove(a.pos, inputMove, a.params.markerSpeed, ctx.dt);
-  const v = markerValidity(f, a.params, a.pos, ctx.world, ctx.fighters);
-  a.valid = v.valid;a.reason = v.reason;a.y = v.y;a.distance = v.distance;
+  if (a.follow) followMarker(f, a, inputMove, ctx.dt, ctx.world, ctx.fighters);
+  else {
+    a.pos = markerMove(a.pos, inputMove, a.params.markerSpeed, ctx.dt);
+    const v = markerValidity(f, a.params, a.pos, ctx.world, ctx.fighters);
+    a.valid = v.valid;a.reason = v.reason;a.y = v.y;a.distance = v.distance;
+  }
   if (a.ticks > 0 && !cmd.skillHeld?.[a.slot]) {
     f.aim = null;
     const perm = a.valid ? movePermission(f, def, a.slot) : {ok: false, reason: 'invalidMarker', detail: {why: a.reason}};
@@ -816,6 +827,19 @@ function stepAim(f, cmd, inputMove, ctx) {
   }
   a.ticks++;
 }
+/**
+ * Move que dispara uma investida de Tackle por conta própria (Bullet Punch ao reaparecer): ação de Tackle real rumo a `heading`, custo do Tackle devolvido,
+ * parâmetros do grupo e preparação registrada em `def.tackle`.
+ */
+export function startTackleAt(f, def, params, heading, fighters) {
+  const before = f.stamina;
+  startAction(f, 'tackle', {move: vec(), dodgeDirection: null}, fighters, heading, false, false, false);
+  f.stamina = before;
+  const a = f.action;
+  a.heading = a.startAngle = heading;a.move = def.id;a.params = params;a.moveDef = def;a.pl = 1;a.plSpeed = 1;a.plDamage = 1;
+  getTackleSetup(def.tackle)?.(f, a, params, {fighters, def});
+  return a;
+}
 /** Um passo do movimento em curso: deslocamento (motion), orientação e efeitos da linha do tempo que vencem neste passo. */
 function updateMove(f, action, target, cmd, dt) {
   const def = action.def ?? getMove(action.move);if (!def) {f.velocity = vec();return;}
@@ -826,6 +850,9 @@ function updateMove(f, action, target, cmd, dt) {
     const t0 = m.start ?? 0, t1 = m.end ?? def.duration, prog = t => smoothstep(clamp((t - t0) / Math.max(1e-6, t1 - t0), 0, 1));
     const dist = (m.distanceKey ? action.params?.[m.distanceKey] : undefined) ?? m.distance;   // distanceKey: o alcance vem de um slider do grupo (Feint)
     f.velocity = scale(direction(action.heading), dist * (prog(action.elapsed + dt) - prog(action.elapsed)) / dt);
+  } else if (m.type === 'walk') {   // anda com o input a (1 − slow) da velocidade normal (Bullet Punch: preparação a 30%); ausente não se move
+    const inp = length(cmd.move) > 1 ? normalize(cmd.move) : cmd.move;
+    f.velocity = f.absent ? vec() : scale(inp, walkSpeed(f) * (1 - (action.params?.slow ?? .7)));f.locomotionVelocity = {...f.velocity};
   } else if (m.type === 'root') f.velocity = vec();
   else {const from = action.from ?? vec(), k = Math.exp(-12 * dt);f.velocity = scale(from, k);action.from = {...f.velocity};}
   if (!def.keepFacing) turnToward(f, target && def.aim !== 'facing' ? angleOf(sub(target.position, f.position)) : action.heading, dt);   // keepFacing: recuo sem virar o corpo (Feint)
@@ -912,7 +939,7 @@ function pressSkill(f, cmd, move, desiredHeading, hasTarget, diag, fighters = []
     return;
   }
   const perm = movePermission(f, def, slot);
-  if (perm.ok && def.aimMode === 'marker') {startAim(f, def, slot, fighters, world, hasTarget ? cmd.target : null);if (diag) report(f, {kind: 'skill', slot, move: def.id, result: 'executed', note: 'marcador aberto'});return;}
+  if (perm.ok && def.aimMode) {startAim(f, def, slot, fighters, world, hasTarget ? cmd.target : null);if (diag) report(f, {kind: 'skill', slot, move: def.id, result: 'executed', note: 'marcador aberto'});return;}
   if (perm.ok && def.tackle) startTackleMove(f, def, slot, {move, dodgeDirection: cmd.dodgeDirection}, desiredHeading, hasTarget, cmd.guard, fighters);
   else if (perm.ok) startMove(f, def, slot, {move, dodgeDirection: cmd.dodgeDirection, lock: hasTarget ? cmd.target ?? null : null}, desiredHeading, hasTarget, cmd.guard);
   if (diag) report(f, {kind: 'skill', slot, move: def?.id ?? null, result: perm.ok ? 'executed' : 'denied', reason: perm.reason, detail: perm.detail});

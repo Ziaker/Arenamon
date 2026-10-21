@@ -19,7 +19,7 @@ export function stepTrap(/** @type {any} */ game, /** @type {any} */ e, /** @typ
   if (e.age < e.armDelay - 1e-9) return;
   const bodyH = C.extras?.visual?.bodyHeight ?? 1.2;
   for (const f of game.fighters) {
-    if (f.hp <= 0 || f.flight || (f.id === e.owner && !e.affectsOwner)) continue;
+    if (f.hp <= 0 || f.absent || f.flight || (f.id === e.owner && !e.affectsOwner)) continue;
     const foot = (f.groundY ?? 0) + (f.vaultHeight ?? 0);
     if (foot > e.y + e.height || foot + bodyH < e.y) continue;
     const box = {shape: 'box', pos: f.position, hx: C.test.halfExtent, hz: C.test.halfExtent, angle: 0};

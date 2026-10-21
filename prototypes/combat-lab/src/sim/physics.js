@@ -364,7 +364,7 @@ export function stepPhysics(fighters, dt, world = null) {
   physicsProbe.substeps = steps;
   for (let s = 0; s < steps; s++) {
     for (const f of fighters) {
-      if (f.hp <= 0 && !f.flight) continue;
+      if ((f.hp <= 0 && !f.flight) || f.absent) continue;   // ausente (Bullet Punch): sem corpo, não se move nem colide
       f.position = add(f.position, scale(add(f.velocity, pushVel.get(f.id)), dt / steps));
       clampToArena(f);
       // Paredes e barreiras sólidas criadas por movimentos (sem elas, nada muda).
@@ -393,6 +393,7 @@ export function stepPhysics(fighters, dt, world = null) {
     for (let pass = 0; pass < X.contactProjectionPasses; pass++) {
       for (let ai = 0; ai < fighters.length; ai++) for (let bi = ai + 1; bi < fighters.length; bi++) {
         const a = fighters[ai], b = fighters[bi];
+        if (a.absent || b.absent) continue;   // ausência física: nenhum contato
         // Sobreposição tridimensional real (R7.11)
         const ya0 = (a.groundY ?? 0) + (a.flight?.y ?? 0) + (a.vaultHeight ?? 0);
         const ya1 = ya0 + C.extras.visual.bodyHeight;
