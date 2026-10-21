@@ -2,7 +2,7 @@
 // Bullet Punch (Soco-Bala) — Normal · Melee · PL2, 1º Move de Mushroom na lista do diretor (docs/MUSHROOM_MOVES_DECISOES.md §2–3). Segurar o botão abre um marcador de
 // reaparecimento que SEGUE o lutador (3 m → 10 m em 2 s, curva quadrática, direção do input independente do corpo, para antes de obstáculo); o corpo anda a 30%.
 // Soltar confirma: cobra 1,5× o custo do Tackle e 8 s de recarga, fixa o marcador no mundo e inicia a preparação de 0,75 s (anda a 30%, interrompível; a interrupção
-// mantém o custo). Depois o lutador DEIXA DE EXISTIR por 1 s (`f.absent`: sem corpo, colisão, acerto nem seleção como alvo) e reaparece no marcador (ou no ponto válido
+// mantém o custo). Depois o lutador DEIXA DE EXISTIR por 0,2 s (`f.absent`: sem corpo, colisão, acerto nem seleção como alvo) mas VIAJA em linha reta até o marcador (a câmera o segue) e reaparece nele (ou no ponto válido
 // mais próximo). No reaparecimento procura o adversário mais próximo A PARTIR DO MARCADOR (raio de busca 5 m); sem alvo, não investe (recursos gastos); com alvo, faz uma
 // investida PL2 em linha reta rumo à posição dele naquele instante (sem perseguir), com a velocidade, invulnerabilidade, dano, knockback e recuperação do Tackle, até
 // `reach` (3 m) ou o primeiro acerto. A velocidade de impacto do knockback tem slider próprio (`impactMult`). Valores: C.world.bulletPunch, capturados ao abrir o marcador.
@@ -16,7 +16,7 @@ import {angleOf, sub} from '../math.js';
 
 export const bulletPunchDef = Object.freeze({
   id: 'bullet-punch', name: 'Bullet Punch', group: 'bulletPunch', aimMode: 'follow', fromDodge: true, tackle: 'bullet-punch', aim: 'facing',
-  description: 'Normal · PL2. Segure para marcar onde reaparecer (3 a 10 m), solte: some por 1 s e reaparece no marcador investindo contra o adversário mais próximo (se houver).',
+  description: 'Normal · PL2. Segure para marcar onde reaparecer (3 a 10 m), solte: some por 0,2 s, viaja até lá e reaparece no marcador investindo contra o adversário mais próximo (se houver).',
   cost: 1.5, cooldown: 8, duration: 1.75, durationKeys: ['cast', 'vanish'], motion: {type: 'walk'},
   timeline: [
     {at: .75, atKey: 'cast', effect: 'bullet-punch-vanish'},
@@ -34,6 +34,8 @@ export function bulletPunchSetup(/** @type {any} */ f, /** @type {any} */ a, /**
 export function bulletPunchVanish(/** @type {any} */ game, /** @type {any} */ f, /** @type {any} */ def, /** @type {any} */ fx) {
   if (f.hp <= 0) return {ok: false, reason: 'defeated'};
   f.absent = true;f.velocity = {x: 0, z: 0};f.locomotionVelocity = {x: 0, z: 0};f.guard = false;f.push = null;f.flight = null;
+  // Invisível e intangível, mas em movimento: viaja em linha reta até o marcador durante o desaparecimento (a câmera segue `f.position`).
+  if (f.action && fx.marker) f.action.travel = {from: {x: f.position.x, z: f.position.z}, to: nearestFree(game, f, fx.marker.pos), t0: f.action.elapsed, time: Math.max(1e-6, (fx.params ?? C.world.bulletPunch).vanish)};
   fx.events?.push({result: 'bulletVanish', attacker: f.id, target: null, damage: 0, x: f.position.x, z: f.position.z, move: def.id});
 }
 
@@ -51,6 +53,13 @@ function nearestFree(/** @type {any} */ game, /** @type {any} */ f, /** @type {{
     }
   }
   return want;
+}
+
+/** Um passo da viagem invisível até o marcador (chamado a cada passo enquanto `f.absent`); chega exatamente ao fim do desaparecimento. */
+export function bulletPunchTravel(/** @type {any} */ f, /** @type {any} */ action, /** @type {number} */ dt) {
+  const t = action.travel;if (!t || !f.absent) return;
+  const k = Math.max(0, Math.min(1, (action.elapsed + dt - t.t0) / t.time));
+  f.position = {x: t.from.x + (t.to.x - t.from.x) * k, z: t.from.z + (t.to.z - t.from.z) * k};
 }
 
 /** Fim do desaparecimento: reaparece, procura o alvo a partir do marcador e investe (ou não). */

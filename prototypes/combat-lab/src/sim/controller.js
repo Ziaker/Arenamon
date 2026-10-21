@@ -21,6 +21,7 @@ import {getGroundHeight} from './physics.js';
 import {passiveCost} from './passive-engine.js';
 import {markerValidity, markerInitial, markerMove, followMarker} from './aim-marker.js';
 import {canSee} from './vision.js';
+import {bulletPunchTravel} from './moves/bullet-punch.js';
 
 /** Aceleração/frenagem/reversão da locomoção comum no modelo do v6 (mantido para compatibilidade). */
 export function approachVelocity(current, desired, dt) {return legacyApproach(current, desired, C.locomotion, dt);}
@@ -889,6 +890,7 @@ function updateMove(f, action, target, cmd, dt) {
   } else if (m.type === 'walk') {   // anda com o input a (1 − slow) da velocidade normal (Bullet Punch: preparação a 30%); ausente não se move
     const inp = length(cmd.move) > 1 ? normalize(cmd.move) : cmd.move;
     f.velocity = f.absent ? vec() : scale(inp, walkSpeed(f) * (1 - (action.params?.slow ?? .7)));f.locomotionVelocity = {...f.velocity};
+    if (action.travel) bulletPunchTravel(f, action, dt);   // ausente: viaja invisível até o marcador (a câmera segue a posição)
   } else if (m.type === 'root') f.velocity = vec();
   else {const from = action.from ?? vec(), k = Math.exp(-12 * dt);f.velocity = scale(from, k);action.from = {...f.velocity};}
   if (!def.keepFacing) turnToward(f, target && def.aim !== 'facing' ? angleOf(sub(target.position, f.position)) : action.heading, dt);   // keepFacing: recuo sem virar o corpo (Feint)

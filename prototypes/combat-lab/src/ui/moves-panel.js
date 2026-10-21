@@ -215,7 +215,7 @@ const PARAMS = [
     ['bulletPunch', 'cost', 'Custo de stamina (× Tackle)', 'Cobrado na SOLTURA, junto com a recarga; 1,5 = 1,5× o custo do Tackle (documento: 1,5×; faixa 0–5×).', 0, 5, .1, x, false],
     ['bulletPunch', 'cooldown', 'Cooldown', 'Começa na soltura (documento: 8 s).', 0, 60, .5, sec, false],
     ['bulletPunch', 'cast', 'Preparação', 'Depois de soltar; anda a 30% e pode ser interrompida mantendo o custo (documento: 0,75 s).', .1, 3, .05, sec, false],
-    ['bulletPunch', 'vanish', 'Duração do desaparecimento', 'O lutador não existe fisicamente (sem corpo, colisão, acerto nem alvo) (documento: 1 s; faixa 0,1–6 s).', .1, 6, .05, sec, false],
+    ['bulletPunch', 'vanish', 'Tempo até o marcador (desaparecido)', 'Tempo da viagem invisível até o marcador: o lutador não existe fisicamente (sem corpo, colisão, acerto nem alvo) e a câmera o acompanha (padrão: 0,2 s; faixa 0,05–6 s).', .05, 6, .05, sec, false],
     ['bulletPunch', 'searchRadius', 'Raio de busca de inimigos', 'Medido a partir do MARCADOR, no reaparecimento (documento: 5 m; faixa 0,5–30 m).', .5, 30, .5, m, false],
     ['bulletPunch', 'reach', 'Alcance físico da investida', 'Distância máxima percorrida; é o círculo do marcador (documento: 3 m; faixa 0,5–20 m).', .5, 20, .25, m, false],
     ['bulletPunch', 'impactMult', 'Velocidade de impacto do knockback (× Tackle)', 'Multiplica a velocidade de impacto usada na fórmula do Tackle (documento: 1×; faixa 0–5×).', 0, 5, .1, x, false],

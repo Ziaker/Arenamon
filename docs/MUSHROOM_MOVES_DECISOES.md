@@ -73,7 +73,7 @@ O Bullet Punch é um move com **marcação manual de destino**, seguida de **pre
 
 ### 2.5 Fase 3 — desaparecimento (sem presença física)
 
-1. Depois dos **0,75 s de preparação**, Mushroom **desaparece** por **1,00 s inicialmente**, tempo configurável por slider.
+1. Depois dos **0,75 s de preparação**, Mushroom **desaparece** por **0,20 s** (era 1,00 s; ajuste de 21/10/2026: 5× mais rápido), tempo configurável por slider. **Durante esse intervalo o lutador VIAJA em linha reta, invisível e intangível, até o marcador, e a câmera o acompanha** (não fica parado no ponto de partida).
 2. Durante toda essa fase existem **VFX de speedlines**.
 3. A especificação do diretor é literal: **o personagem “para de existir” durante o movimento e só “volta a existir” ao final**. Isso não é apenas invisibilidade ou invulnerabilidade visual: **não há corpo/colisor/hitbox/hurtbox fisicamente ativo** nesse intervalo.
 4. Consequentemente, enquanto ausente, Mushroom **não pode receber ataques/dano, sofrer colisões ou ser selecionado como alvo**. O estado lógico indispensável para o término e o reaparecimento deve ser preservado internamente; os efeitos de speedlines podem continuar existindo visualmente.
@@ -111,7 +111,7 @@ Em seguida à consulta sobre limites, o diretor autorizou expressamente **as rec
 
 | Parâmetro | Valor inicial | Mínimo | Máximo | Passo | Natureza |
 |---|---:|---:|---:|---:|---|
-| Duração do desaparecimento | **1,00 s** | **0,10 s** | **6,00 s** | **0,05 s** | Slider |
+| Duração do desaparecimento (viagem invisível até o marcador) | **0,20 s** | **0,10 s** | **6,00 s** | **0,05 s** | Slider |
 | Raio de busca de inimigos | **5,00 m** | **0,50 m** | **30,00 m** | **0,50 m** | Slider |
 | Alcance físico / distância máxima da investida | **3,00 m** | **0,50 m** | **20,00 m** | **0,25 m** | Slider |
 | Custo de stamina | **1,5× o Tackle** | **0×** | **5× o Tackle** | **0,1×** | Slider independente |
