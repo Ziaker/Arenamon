@@ -13,6 +13,7 @@ export const MOVE_INFO = {
   reflect: {group: 'Reflect', hint: 'Barreira refletora frontal. Segure para carregar, solte para criar.'},
   psyshock: {group: 'Psyshock', hint: 'Pedras psíquicas com homing. Segure para carregar, solte para disparar.'},
   harden: {group: 'Harden', hint: 'Normal · Status. Toque para endurecer: +30% de Defesa e nenhum knockback ofensivo por 5 s (cast de 0,35 s).'},
+  swift: {group: 'Swift', hint: 'Burst · Projectile · PL1. Toque para disparar 3 estrelas com homing curto (com alvo travado) ou em leque (sem alvo).'},
   'second-wind': {group: 'Second Wind', hint: 'Normal · Status. Toque para regenerar stamina bem mais rápido e gastar 25% menos em esquiva e sprint por 5 s (cast de 0,35 s).'},
 };
 const SKILL_NAMES = ['skill1', 'skill2', 'skill3', 'skill4'];
@@ -94,6 +95,24 @@ const PARAMS = [
     ['secondWind', 'duration', 'Duração do efeito', 'Quanto tempo o status dura depois do cast (proposta).', .5, 20, .25, sec, false],
     ['secondWind', 'regenPctPerSecond', 'Regeneração extra por segundo', 'Fração da stamina MÁXIMA recuperada por segundo durante o efeito (MV-P09: o documento diz "+40%/s" sem base).', 0, 2, .05, pct, false],
     ['secondWind', 'mobilityCostPct', 'Desconto em esquiva e sprint', 'Redução do custo da esquiva (C) e do consumo do sprint durante o efeito (proposta: 25%).', 0, .9, .05, pct, false],
+  ]],
+  ['Swift', [
+    ['swift', 'cost', 'Custo de stamina', 'Cobrado no início do uso (Burst); vale nos PRÓXIMOS usos (M28.4). Valor do catálogo — proposta, não homologada.', 0, 5, .05, num, false],
+    ['swift', 'cooldown', 'Cooldown', 'Começa junto com o custo, no início do uso (proposta).', 0, 60, .5, sec, false],
+    ['swift', 'cast', 'Duração da ação', 'Tempo da ação (recuperação do Burst: não definido no catálogo; provisório MV-P14).', .05, 2, .01, sec, false],
+    ['swift', 'count', 'Quantidade de estrelas', 'Estrelas por uso (catálogo: 3).', 1, 9, 1, int, false],
+    ['swift', 'speed', 'Velocidade', 'Velocidade de cada estrela (catálogo: 15 m/s).', 2, 40, .5, ms, false],
+    ['swift', 'damage', 'Dano nominal por estrela', 'Dano com o Ataque de referência; final = nominal × Ataque ÷ referência (MV-P13). Catálogo: 3 HP.', 0, 30, .5, num, false],
+    ['swift', 'homingSeconds', 'Duração do homing', 'Só com alvo travado; sem garantia de acerto (catálogo: 0,25 s).', 0, 1.5, .05, sec, false],
+    ['swift', 'homingRate', 'Correção angular do homing', 'Graus por segundo (catálogo: 90°/s).', 0, 720, 10, deg, false],
+    ['swift', 'range', 'Alcance máximo', 'Distância percorrida antes de expirar (catálogo: 12 m).', 2, 40, .5, m, false],
+    ['swift', 'knockback', 'Knockback por acerto', 'Empurrão horizontal de cada estrela (catálogo: 0,3 m/s); vertical é sempre 0.', 0, 10, .05, ms, false],
+    ['swift', 'knockbackCap', 'Teto de knockback por alvo e execução', 'Máximo acumulado pelas estrelas de um mesmo uso (catálogo: 0,9 m/s).', 0, 10, .05, ms, false],
+    ['swift', 'radius', 'Raio de colisão da estrela', 'Colisor de cada estrela (provisório).', .05, .5, .01, m, false],
+    ['swift', 'fanAngle', 'Leque sem alvo travado', 'Abertura total do leque frontal quando não há lock-on (provisório).', 0, 90, 1, deg, false],
+    ['swift', 'spawnForward', 'Saída à frente do lançador', 'Distância à frente em que as estrelas nascem (provisório).', .3, 2, .05, m, false],
+    ['swift', 'spawnSpacing', 'Espaçamento lateral na saída', 'Distância lateral entre as estrelas ao nascer (provisório).', 0, 1.5, .05, m, false],
+    ['swift', 'counterStagger', 'Counter Stagger', 'Stagger quando a estrela vence uma disputa de PL e atinge o corpo (M21.5; PL1 não vence PL1).', 0, 1, .01, sec, false],
   ]],
   ['IA com Moves (decisões do adversário)', [
     ['ai', 'evadeDistance', 'Esquiva emergencial: distância do Tackle rival', 'Durante a carga, se o rival inicia um Tackle a menos desta distância, a IA esquiva cancelando a carga (provisório).', 0, 10, .1, m, false],

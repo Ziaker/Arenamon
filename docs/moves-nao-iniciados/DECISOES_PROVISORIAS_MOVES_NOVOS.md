@@ -20,3 +20,6 @@ Criado em 21/10/2026 junto com `PROMPT_IMPLEMENTACAO_MOVES_NOVOS.md` (a tabela �
 Atualizar esta tabela a cada Move entregue (status: planejado → implementado → testado). Homologação é sempre do diretor.
 | MV-P11 | todos os Normal/Burst sem marcador | "após confirmar e soltar" quando não há alvo/local a confirmar | a pressão do botão é a confirmação; cobrança e cooldown no início do cast | — | adotado |
 | MV-P12 | Harden | o que conta como "knockback ofensivo" | só o lançamento/empurrão calculado pelo golpe; o empurrão físico de corpo do atacante (dash continuado) e a gravidade ficam | — | adotado |
+| MV-P13 | Swift, Lunge, Quick Attack, Guard Break, Bounce, Riposte | "Dano nominal N HP" sem dizer se escala com o Ataque | final = N × Ataque ÷ referência (`test.attackReference` = 20): com Ataque 20 vale N; Sand Wave é a exceção (dano fixo aprovado) | slider "Dano nominal" de cada Move | adotado |
+| MV-P14 | Burst sem tempo de recuperação definido (Swift) | duração da ação | 0,25 s (slider `cast`) | slider | adotado |
+

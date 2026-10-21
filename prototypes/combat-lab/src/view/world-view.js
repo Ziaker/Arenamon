@@ -196,7 +196,17 @@ export class WorldView {
     const color = this.colorOf(e);
     let mesh;
 
-    if (e.kind === 'projectile') {
+    if (e.kind === 'projectile' && e.visual === 'star') {
+      // Estrela do Swift: duas pirâmides cruzadas branco-douradas com núcleo luminoso e giro individual (só aparência; colisão é o raio da entidade).
+      mesh = new T.Group();
+      const geo = new T.OctahedronGeometry(.9, 0);geo.scale(1, 1, .45);
+      const bodyMat = new T.MeshBasicMaterial({color: 0xfff1c2});
+      const a = new T.Mesh(geo, bodyMat), b = new T.Mesh(geo, bodyMat);b.rotation.z = Math.PI / 4;
+      const core = new T.Mesh(new T.SphereGeometry(.38, 10, 8), new T.MeshBasicMaterial({color: 0xffffff, transparent: true, opacity: .9}));core.name = 'starCore';
+      mesh.add(a, b, core);
+      mesh.userData.rotSpeed = {x: 0, y: 0, z: (4 + (e.id % 3)) * (e.id % 2 ? 1 : -1)};
+      mesh.material = bodyMat;
+    } else if (e.kind === 'projectile') {
       // Projétil de rocha (Psyshock ou projétil padrão)
       mesh = new T.Group();
       const style = C.vfx?.rock?.variant ?? 0;
@@ -510,7 +520,7 @@ export class WorldView {
       } else if (e.kind === 'projectile') {
         m.position.set(e.pos.x, e.y, e.pos.z);
         const rockScale = (C.vfx?.rock?.scale ?? 1.0);
-        const scaleVal = e.radius * (e.visualScale ?? 1) * (e.exec != null ? 1.15 : 1) * rockScale;
+        const scaleVal = e.visual === 'star' ? e.radius * 2.2 : e.radius * (e.visualScale ?? 1) * (e.exec != null ? 1.15 : 1) * rockScale;
         m.scale.setScalar(scaleVal);
         const col = this.colorOf(e);
 

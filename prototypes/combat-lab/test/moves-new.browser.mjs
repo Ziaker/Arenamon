@@ -27,11 +27,12 @@ try {
   const key = async code => {await page.locator('canvas').first().focus();await page.keyboard.down(code);await page.waitForTimeout(80);await page.keyboard.up(code);};
   await openDrawer();
   check('a aba Moves existe e lista os Moves novos nos slots', await page.locator('[data-slot-move="0.0"] option[value="harden"]').count() === 1 && await page.locator('[data-slot-move="0.0"] option[value="second-wind"]').count() === 1);
-  await page.selectOption('[data-slot-move="0.0"]', 'harden');await page.selectOption('[data-slot-move="0.1"]', 'second-wind');
+  await page.selectOption('[data-slot-move="0.0"]', 'harden');await page.selectOption('[data-slot-move="0.1"]', 'second-wind');await page.selectOption('[data-slot-move="0.2"]', 'swift');
   const lo = await L(() => window.__lab.game.fighters[0].loadout);
   check('Harden e Second Wind equipam pela interface (slots 1 e 2)', lo[0] === 'harden' && lo[1] === 'second-wind', JSON.stringify(lo));
   const panel = await L(() => {const t = document.getElementById('moves-panel');return {harden: !!t.querySelector('[data-p="harden.defensePct"]'), cost: !!t.querySelector('[data-p="harden.cost"]'), sw: !!t.querySelector('[data-p="secondWind.regenPctPerSecond"]'), swCost: !!t.querySelector('[data-p="secondWind.mobilityCostPct"]')};});
   check('a aba mostra os sliders de Harden e Second Wind (custo, cooldown, cast, duração, parâmetros próprios)', Object.values(panel).every(Boolean), JSON.stringify(panel));
+  check('o painel mostra os sliders do Swift', await L(() => !!document.querySelector('#moves-panel [data-p="swift.homingRate"]') && !!document.querySelector('#moves-panel [data-p="swift.knockbackCap"]')));
   await L(() => {document.getElementById('moves-close').click();window.__lab.startMatch();});
 
   // Teclado como jogador: A = slot 1, S = slot 2 (a simulação em renderização por software é mais lenta que o tempo real: espera por condição)
@@ -44,6 +45,12 @@ try {
   await page.waitForFunction(() => window.__lab.game.fighters[0].statuses.some(s => s.id === 'second-wind'), null, {timeout: 30000});
   const sw = await L(() => window.__lab.game.fighters[0].statuses.map(s => s.id));
   check('tecla S aciona Second Wind e os dois status coexistem', sw.includes('second-wind') && sw.includes('harden'), sw.join(','));
+
+  // Swift (tecla 3 = slot 3): três estrelas reais, com malha 3D própria
+  await key('Digit3');
+  await page.waitForFunction(() => window.__lab.game.world.entities.filter(e => e.visual === 'star').length === 3, null, {timeout: 30000});
+  const star = await L(() => ({n: window.__lab.game.world.entities.filter(e => e.visual === 'star').length, pl: window.__lab.game.world.entities.find(e => e.visual === 'star').pl, mesh: Object.values(window.__lab.view.worldView).filter(v => v instanceof Map).some(m => [...m.values()].some(x => x?.getObjectByName?.('starCore')))}));
+  check('tecla 3 dispara 3 estrelas PL1 com a malha própria no desenho', star.n === 3 && star.pl === 1 && star.mesh, JSON.stringify(star));
 
   // Desligar (tirar do slot): sem aura e sem custo
   await L(() => {window.__lab.game.setLoadout(0, []);window.__lab.startMatch();});
