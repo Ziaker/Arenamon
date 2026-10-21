@@ -455,7 +455,7 @@ export function updateFighter(f, cmd, fighters, dt, world = null) {
   // Movimento especial (slot): X/C pedidos no mesmo passo têm prioridade. Mesmo controlador, stamina e diagnóstico.
   if (!kind && cmd.skill != null && f.hp > 0) pressSkill(f, cmd, move, desiredHeading, !!target, diag, fighters);
   else if (!kind && f.skillBuffer && f.hp > 0) bufferedSkill(f, cmd, diag);
-  if (f.charge) stepCharge(f, cmd);   // soltar o Move: depois de defesa e X/C (M30.9)
+  if (f.charge) stepCharge(f, cmd, {move, desiredHeading, hasTarget: !!target, fighters});   // soltar o Move: depois de defesa e X/C (M30.9)
   // Esquiva → sprint: C ainda pressionado, com direção, a partir de entryFraction da esquiva (ou logo depois dela).
   const S = A.sprint, L = C.locomotion;
   const sprintReady = !!T.enableSprint && cmd.dodgeHeld && f.sprintArmed && length(move) > .01 && !f.guard && !f.exhausted && !f.charge && f.stamina >= S.minStamina - 1e-8 && f.stun <= 1e-8;
@@ -703,6 +703,15 @@ function startTackleMove(f, def, slot, dirs, desiredHeading, hasTarget, guardHel
   a.move = def.id;a.slot = slot;a.params = P;a.moveDef = def;a.pl = 1;a.plSpeed = 1;a.plDamage = 1;
   getTackleSetup(def.tackle)?.(f, a, P, {fighters, def, hasTarget});
 }
+/** Soltura de um Charge que vira Tackle (`def.tackle` + `charge`): ação de Tackle com PL da carga; o custo do Tackle volta (o do Move foi cobrado ao apertar). */
+function releaseTackleMove(f, def, ch, rel, cmd, ctx) {
+  const before = f.stamina;
+  startAction(f, 'tackle', {move: ctx.move, dodgeDirection: null}, ctx.fighters, ctx.desiredHeading, false, cmd.guard, ctx.hasTarget);
+  f.stamina = before;
+  const a = f.action, P = ch.params.group ?? {};
+  a.move = def.id;a.slot = ch.slot;a.params = P;a.moveDef = def;a.pl = rel.level;a.plSpeed = 1;a.plDamage = 1;
+  getTackleSetup(def.tackle)?.(f, a, P, {fighters: ctx.fighters, def, hasTarget: ctx.hasTarget, charge: rel});
+}
 /** Um passo do movimento em curso: deslocamento (motion), orientação e efeitos da linha do tempo que vencem neste passo. */
 function updateMove(f, action, target, cmd, dt) {
   const def = action.def ?? getMove(action.move);if (!def) {f.velocity = vec();return;}
@@ -756,6 +765,7 @@ function startCharge(f, def, slot, guardHeld, fromBuffer = false) {
   f.stamina = Math.max(0, f.stamina - cost);f.regenBase = f.stamina;f.regenAge = 0;f.exhausted = isDepleted(f.stamina);
   if (f.action?.kind === 'dodge') {f.locomotionVelocity = {...f.velocity};f.action = null;}
   f.charge = {move: def.id, slot, ticks: 0, params, cost, fromBuffer};
+  if (def.tackle && def.cooldown > 0) (f.moveCooldowns ??= {})[def.id] = def.cooldown;   // Charge que vira Tackle: custo e recarga no INÍCIO da carga (interromper mantém os dois)
   f.guard = false;f.guardSuppressed = guardHeld;f.push = null;f.blend = null;f.vaultHeight = 0;f.bufferedTackle = null;f.inputBuffer = null;f.skillBuffer = null;f.sprinting = false;f.sprintCarry = false;
   moveEvent(f, {result: 'chargeStart', move: def.id, slot});
 }
@@ -807,7 +817,7 @@ function bufferedSkill(f, cmd, diag) {
   else if (!perm.buffer) {f.skillBuffer = null;if (diag) report(f, {kind: 'skill', slot: b.slot, move: def.id, result: 'expired', reason: perm.reason, detail: perm.detail});}
 }
 /** Passo do Charge depois de defesa e X/C: soltar executa (efeitos na soltura, M30.9); segurar acumula, parado no máximo (M7.5). */
-function stepCharge(f, cmd) {
+function stepCharge(f, cmd, ctx) {
   const ch = f.charge, def = getMove(ch.move);
   if (!def) {f.charge = null;return;}
   if (ch.ticks > 0 && !cmd.skillHeld?.[ch.slot]) {
@@ -818,6 +828,11 @@ function stepCharge(f, cmd) {
     }
     const level = chargeLevel(ch.ticks, ch.params), rel = {ticks: ch.ticks, seconds: ch.ticks * ch.params.step, level, params: ch.params, cost: ch.cost, slot: ch.slot, failed: false, lock: cmd.target ?? null};   // lock: alvo travado no instante da soltura (mira do Psyshock)
     f.charge = null;
+    if (def.tackle) {   // soltar vira um Tackle com os parâmetros congelados da carga (Guard Break); sem recarga nova nem recuperação de Move
+      moveEvent(f, {result: 'chargeRelease', move: def.id, slot: ch.slot, level, seconds: rel.seconds});
+      releaseTackleMove(f, def, ch, rel, cmd, ctx);
+      return;
+    }
     // Recarga na materialização/disparo (M2.4/M2.5) e recuperação (M26s.8); o jogo desfaz as duas se o efeito falhar (M13.7, M29.3).
     if (def.cooldown > 0) (f.moveCooldowns ??= {})[def.id] = def.cooldown;
     f.moveRecovery = ch.params.recovery;

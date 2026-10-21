@@ -175,7 +175,7 @@ export function resolveHit(attacker, defender, normal, relative, force = false) 
     // (meteorDive) ou no chão (meteorGround). Em ambos, bloqueado não troca para recoil:
     // o mergulho segue, aterrissa e o slam finaliza normalmente.
     const slamCommitted = !!attacker.action.slam;
-    if (!slamCommitted && !attacker.action.keepOnBlock) {   // keepOnBlock: Moves que seguem a própria sequência mesmo bloqueados (Quick Attack: o retorno acontece de qualquer jeito)
+    if (!slamCommitted && !(attacker.action.keepOnBlock && !(perfect && attacker.action.guardBreak))) {   // keepOnBlock: Moves que seguem a própria sequência mesmo bloqueados (Quick Attack: o retorno acontece de qualquer jeito)
       attacker.action = {kind: 'recoil', elapsed: 0, heading: angleOf(scale(normal, -1)), startAngle: 0, offensive: false, hits: new Set(), from: null};
       attacker.velocity = vec();attacker.state = 'recoil';attacker.blend = null;attacker.vaultHeight = 0;
     }
@@ -188,6 +188,9 @@ export function resolveHit(attacker, defender, normal, relative, force = false) 
       defender.push = null;defender.flight = null;defender.velocity = vec();defender.locomotionVelocity = vec();
     }
     if (perfect) {defender.perfectSucceeded = true;defender.stun = 0;if (T.enableCounterBonus) defender.counterWindow = Math.max(defender.counterWindow, X.perfectGuardCounterWindow);}
+    else if (attacker.action.guardBreak) {   // Guard Break: derruba a guarda comum e aplica o guard stun próprio (sem empurrão)
+      defender.guard = false;defender.guardSuppressed = true;defender.stun = Math.max(defender.stun, attacker.action.guardBreak.stun);
+    }
     else if (defender.stun <= 1e-8) defender.stun = R.guardStun;
   } else {
     defender.counterWindow = 0;const closing = Math.max(0, dot(relative, normal));
@@ -205,7 +208,7 @@ export function resolveHit(attacker, defender, normal, relative, force = false) 
     else {defender.action = null;defender.knockRecovery = R.landingRecovery;}
   }
   if (defender.hp === 0) {defender.guard = false;defender.guardSuppressed = true;}
-  return {attacker: attacker.id, target: defender.id, result: perfect ? 'perfect' : protectedFront ? 'partial' : 'impact', damage, shieldAbsorbed: dmgResult.absorbedByShield, normal: {...normal}, launch: launchInfo, contact: 'tackle', ...(dmgResult.sturdy ? {sturdy: true} : {}), ...(attacker.action.slam ? {slam: true} : {})};
+  return {attacker: attacker.id, target: defender.id, result: perfect ? 'perfect' : protectedFront ? 'partial' : 'impact', damage, shieldAbsorbed: dmgResult.absorbedByShield, normal: {...normal}, launch: launchInfo, contact: 'tackle', ...(dmgResult.sturdy ? {sturdy: true} : {}), ...(attacker.action.slam ? {slam: true} : {}), ...(protectedFront && !perfect && attacker.action.guardBreak ? {guardBreak: true, stun: attacker.action.guardBreak.stun} : {})};
 }
 /**
  * Footstool (Plano D, Etapa 3): pisar na cabeça do adversário vindo de cima com o salto normal.

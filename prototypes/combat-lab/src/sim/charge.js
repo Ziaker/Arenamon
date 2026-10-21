@@ -23,9 +23,9 @@ export function chargeParams(def) {
   /** @type {Record<string, any>} */
   const p = {};
   for (const k of CHARGE_OVERRIDES) p[k] = over[k] ?? base[k];
-  p.max = over.max ?? 4;
-  // A carga mínima vem do grupo do Move (C.world.<grupo>.minCharge, ajustável na aba Moves) e, sem ele, da definição.
+  // A carga máxima e a mínima vêm do grupo do Move (C.world.<grupo>.maxCharge / minCharge, ajustáveis na aba Moves) e, sem ele, da definição.
   const grp = over.group ? C.world[over.group] : null;
+  p.max = grp?.maxCharge ?? over.max ?? 4;
   p.min = grp?.minCharge ?? over.min ?? over.minCharge ?? 0;
   p.step = step;
   p.maxTicks = Math.round(p.max / step);
