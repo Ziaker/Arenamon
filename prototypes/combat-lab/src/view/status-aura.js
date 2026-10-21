@@ -5,6 +5,7 @@
 const STYLES = {
   harden: {color: 0xdfe9f5, kind: 'shell', opacity: .22},
   'second-wind': {color: 0xffd36a, kind: 'rings', opacity: .5},
+  blind: {color: 0xc9a86a, kind: 'cloud', opacity: .38},   // nuvem de areia do cegado, visível a todos durante os 4 s (a arte final NÃO foi aprovada, SW-P07)
 };
 export class StatusAura {
   /** @param {any} T three @param {any} scene */
@@ -22,7 +23,13 @@ export class StatusAura {
         const alt = (f.flight?.y ?? (f.groundY ?? 0)) + (f.vaultHeight ?? 0), fade = Math.min(1, st.remaining / .4, (st.duration - st.remaining) / .15 + .2);
         it.root.position.set(f.position.x, alt, f.position.z);
         const pulse = o.reduceMotion ? 0 : Math.sin(this.t * 6) * .03, cap = o.noFlash ? .6 : 1;
-        if (style.kind === 'shell') {
+        if (style.kind === 'cloud') {
+          it.puffs.forEach((p, i) => {
+            const a = this.t * (o.reduceMotion ? 0 : .9) + i * 2.4, rr = o.halfExtent * (1.1 + .35 * Math.sin(i * 1.7)), y = o.bodyHeight * (.15 + .7 * ((i * .37) % 1));
+            p.position.set(Math.cos(a) * rr, y + (o.reduceMotion ? 0 : Math.sin(this.t * 2 + i) * .06), Math.sin(a) * rr);
+            p.material.opacity = style.opacity * fade * cap * (.7 + .3 * Math.sin(this.t * 3 + i));
+          });
+        } else if (style.kind === 'shell') {
           const s = 1.18 + pulse + (o.hits?.has(f.id) && !o.reduceMotion ? .12 : 0);
           it.root.scale.set(s, s, s);
           it.mat.opacity = style.opacity * fade * cap + (o.hits?.has(f.id) && !o.reduceMotion ? .25 * cap : 0);
@@ -43,6 +50,11 @@ export class StatusAura {
       const mesh = new T.Mesh(geo, mat);mesh.position.y = o.bodyHeight / 2;root.add(mesh);
       const edges = new T.LineSegments(new T.EdgesGeometry(geo), new T.LineBasicMaterial({color: 0xffffff, transparent: true, opacity: .55}));edges.position.y = o.bodyHeight / 2;root.add(edges);
       return {root, mat, dispose() {geo.dispose();mat.dispose();edges.geometry.dispose();edges.material.dispose();}};
+    }
+    if (style.kind === 'cloud') {
+      const geo = new T.SphereGeometry(o.halfExtent * .55, 10, 8), puffs = [0, 1, 2, 3, 4, 5, 6, 7].map(() => new T.Mesh(geo, new T.MeshBasicMaterial({color: style.color, transparent: true, opacity: style.opacity, depthWrite: false})));
+      puffs.forEach(p => root.add(p));
+      return {root, puffs, dispose() {geo.dispose();puffs.forEach(p => p.material.dispose());}};
     }
     const rings = [0, 1, 2].map(() => new T.Mesh(new T.RingGeometry(o.halfExtent * 1.15, o.halfExtent * 1.3, 40), new T.MeshBasicMaterial({color: style.color, transparent: true, opacity: style.opacity, side: T.DoubleSide, depthWrite: false})));
     rings.forEach(r => {r.rotation.x = -Math.PI / 2;root.add(r);});

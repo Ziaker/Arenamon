@@ -20,6 +20,7 @@ import {report, attemptsActive} from './attempts.js';
 import {getGroundHeight} from './physics.js';
 import {passiveCost} from './passive-engine.js';
 import {markerValidity, markerInitial, markerMove} from './aim-marker.js';
+import {canSee} from './vision.js';
 
 /** Aceleração/frenagem/reversão da locomoção comum no modelo do v6 (mantido para compatibilidade). */
 export function approachVelocity(current, desired, dt) {return legacyApproach(current, desired, C.locomotion, dt);}
@@ -76,6 +77,7 @@ export function startPermission(f, kind) {
     return left > 1e-8 ? {ok: false, reason: 'chargeLock', detail: {left}} : {ok: true, viaCharge: true};
   }
   if (f.moveRecovery > 1e-8 && kind === 'tackle') return {ok: false, reason: 'moveRecovery', detail: {left: f.moveRecovery}};
+  if (f.sandPush && kind === 'dodge') return {ok: false, reason: 'sandPush'};   // sob o empurrão da areia não se inicia esquiva (SW-D58)
   if (f.guard && !p.fromGuard) return {ok: false, reason: 'guardBlocks'};
   if (cur?.kind === 'dodge' && kind === 'tackle') {
     // C → X: só na janela (por padrão, o fim da esquiva). Depois de uma esquiva perfeita, a qualquer momento.
@@ -265,6 +267,10 @@ function startNormalJump(f, move, diag, fromAir = false) {
 }
 export function updateFighter(f, cmd, fighters, dt, world = null) {
   CTX_FIGHTERS = fighters;
+  if (cmd.target != null && hasFlag(f, 'blind')) {   // cegueira: lock-on só em quem o cegado enxerga (10 m, sem parede bloqueando por completo); senão desliga
+    const t = fighters.find(o => o.id === cmd.target);
+    if (!canSee(f, t, world)) cmd = {...cmd, target: null, locked: false};
+  }
   const R = C.rules, X = C.extras, T = X.toggles, A = C.actions;
   // Buffer de entrada: o pedido mais recente de X ou C vale por actions.buffer.window, mesmo no ar ou na aterrissagem.
   const requested = cmd.tackle && T.enableTackle ? 'tackle' : cmd.dodge && T.enableDodge ? 'dodge' : null;
@@ -561,7 +567,9 @@ export function updateFighter(f, cmd, fighters, dt, world = null) {
     }
   } else {
     const walk = walkSpeed(f), vMax = f.sprinting ? f.attributes.speed * S.speedMultiplier : walk, before = f.locomotionVelocity;
-    if (f.stun > 1e-8 || hasFlag(f, 'stunned')) {f.locomotionVelocity = vec();f.locoPhase = 'stun';f.desiredVelocity = vec();}
+    if (f.sandPush && !(f.stun > 1e-8 || hasFlag(f, 'stunned'))) {   // empurrado pela areia: sem controle de deslocamento; a velocidade ganha se mantém depois (atrito normal)
+      f.locomotionVelocity = add(f.locomotionVelocity, scale(f.sandPush.dir, f.sandPush.accel * dt));f.desiredVelocity = vec();f.locoPhase = 'sandPush';
+    } else if (f.stun > 1e-8 || hasFlag(f, 'stunned')) {f.locomotionVelocity = vec();f.locoPhase = 'stun';f.desiredVelocity = vec();}
     else if (hasFlag(f, 'rooted')) {const r = locomotionStep(f.locomotionVelocity, vec(), walk, locomotionParams(f), dt);f.locomotionVelocity = r.velocity;f.desiredVelocity = vec();f.locoPhase = 'rooted';}
     else if (L.model !== 1) {f.locomotionVelocity = approachVelocity(f.locomotionVelocity, scale(move, walk), dt);f.desiredVelocity = scale(move, walk);f.locoPhase = length(move) ? 'legacy' : 'idle';}
     else {
@@ -677,6 +685,7 @@ export function movePermission(f, def, slot = null) {
     if (!chainOpen(f)) return {ok: false, reason: 'chain', detail: {left: Math.max(0, actionSpec(cur).chainAfter - cur.elapsed)}};
   }
   if (f.stun > 1e-8 && !def.fromGuardStun) return {ok: false, reason: 'guardStun', detail: {left: f.stun}};
+  if (def.groundOnly && (f.flight || (f.vaultHeight ?? 0) > 1e-8)) return {ok: false, reason: 'noGround'};
   if (def.needsTarget) {const range = C.world[def.group]?.[def.needsTarget] ?? 0;if (!nearestEligible(f, CTX_FIGHTERS, range)) return {ok: false, reason: 'noTarget', detail: {range}};}
   const cost = costOf(f, def.cost ?? 1);
   if (f.exhausted && cost > 0) return {ok: false, reason: 'exhausted', detail: {value: f.stamina, refill: getFighterMaxStamina(f)}};

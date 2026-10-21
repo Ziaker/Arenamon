@@ -31,6 +31,7 @@ export const FLAGS = {
   silenced: 'não usa movimentos especiais',
   disarmed: 'não usa o tackle (X)',
   stunned: 'não age nem anda',
+  blind: 'cegueira do Sand Wave: só enxerga a 10 m (lock-on e IA), sem alterar a simulação por si só',
 };
 const STACKING = ['refresh', 'stack', 'independent', 'ignore'];
 

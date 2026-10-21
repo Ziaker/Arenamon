@@ -260,6 +260,14 @@ export class WorldView {
         s.visible = false;
         mesh.add(s);
       }
+    } else if (e.kind === 'sandwave') {
+      // Barragem de areia: retângulo no chão (o real, fixado no disparo), frente da onda que avança e grãos subindo; forma PROVISÓRIA (arte não aprovada, SW-P07).
+      mesh = new T.Group();
+      const planeGeo = new T.PlaneGeometry(1, 1);planeGeo.rotateX(-Math.PI / 2);
+      const plane = new T.Mesh(planeGeo, new T.MeshBasicMaterial({color: 0xd8bd7a, transparent: true, opacity: .28, depthWrite: false, side: T.DoubleSide}));plane.name = 'sandPlane';mesh.add(plane);
+      const front = new T.Mesh(new T.BoxGeometry(1, .5, .25), new T.MeshBasicMaterial({color: 0xe7cf92, transparent: true, opacity: .55, depthWrite: false}));front.name = 'sandFront';mesh.add(front);
+      const grainGeo = new T.BoxGeometry(.07, .07, .07);
+      for (let i = 0; i < 40; i++) {const g = new T.Mesh(grainGeo, new T.MeshBasicMaterial({color: 0xe3c98a, transparent: true, opacity: .8, depthWrite: false}));g.name = 'sandGrain';g.userData.k = i;mesh.add(g);}
     } else if (e.kind === 'trap') {
       // Armadilha de espinhos: 5 a 7 cones cristalinos em anel + um central; o raio visual é o raio real do campo (a física manda, o desenho acompanha).
       mesh = new T.Group();
@@ -557,6 +565,18 @@ export class WorldView {
         // Rastro de poeira e partículas telecinéticas
         if (emitTrailsNow && C.vfx?.rock?.trail && dt > 0) {
           this.emitRockTrail(e.pos.x, e.y, e.pos.z, e.vel ?? e.dir, col, scaleVal);
+        }
+      } else if (e.kind === 'sandwave') {
+        // retângulo real (comprimento à frente × largura), com a frente da onda avançando na velocidade do motor e dissipando nos 0,75 s finais
+        m.position.set(e.pos.x, .03, e.pos.z);m.rotation.y = Math.atan2(e.dir.x, e.dir.z);
+        const act = Math.min(e.age, e.active), fade = e.age <= e.active ? 1 : Math.max(0, 1 - (e.age - e.active) / Math.max(1e-6, e.life - e.active)), reach = e.speed * act;
+        for (const c of m.children) {
+          if (c.name === 'sandPlane') {c.scale.set(e.width, 1, Math.max(.01, reach));c.position.z = reach / 2;c.material.opacity = .28 * fade;}
+          else if (c.name === 'sandFront') {c.scale.set(e.width, 1, 1);c.position.set(0, .25, reach);c.visible = e.age <= e.active;c.material.opacity = .55 * fade;}
+          else if (c.name === 'sandGrain') {
+            const k = c.userData.k, u = ((k * 0.61803) % 1) * reach, v = (((k * 0.37) % 1) - .5) * e.width, t = (this.time * 1.4 + k * .13) % 1;
+            c.position.set(v, .1 + t * .9, u);c.material.opacity = .8 * fade * (1 - t);c.visible = reach > .05;
+          }
         }
       } else if (e.kind === 'trap') {
         // Brotam em sequência rápida (0,25 s), pulsam de leve e piscam no último segundo; antes de armar ficam translúcidos.

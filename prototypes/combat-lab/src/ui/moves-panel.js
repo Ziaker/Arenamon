@@ -15,6 +15,7 @@ export const MOVE_INFO = {
   harden: {group: 'Harden', hint: 'Normal · Status. Toque para endurecer: +30% de Defesa e nenhum knockback ofensivo por 5 s (cast de 0,35 s).'},
   swift: {group: 'Swift', hint: 'Burst · Projectile · PL1. Toque para disparar 3 estrelas com homing curto (com alvo travado) ou em leque (sem alvo).'},
   riposte: {group: 'Riposte', hint: 'Normal · Status + Melee. Toque e seja atingido entre 0,13 e 0,30 s: o golpe é anulado e você contra-ataca na hora. Fora do tempo, fica exposto.'},
+  'sand-wave': {group: 'Sand Wave', hint: 'Burst · PL1 · só no chão. Toque: após 0,25 s lança uma barragem de areia 4 × 3 m que fere (6 HP), empurra e cega por 4 s quem estiver no chão dentro dela.'},
   spikes: {group: 'Spikes', hint: 'Normal · Field. Segure para escolher o local (setas movem o marcador, até 5 m), solte para confirmar: nasce uma armadilha de espinhos que fere o primeiro adversário que pisar nela.'},
   bounce: {group: 'Bounce', hint: 'Charge · Trick + Melee · PL1–PL3. Segure para carregar (até 1,2 s), solte para saltar em arco rumo ao alvo (até 6 m) e cair em cima do adversário.'},
   feint: {group: 'Feint', hint: 'Burst · Trick. Toque logo após iniciar um ataque (ou durante a carga) para cancelá-lo e recuar com i-frames curtos. Tarde demais: gasta o Move e o ataque segue.'},
@@ -27,7 +28,7 @@ const SKILL_NAMES = ['skill1', 'skill2', 'skill3', 'skill4'];
 const ACTION_NAMES = {forward: 'Mover ↑', back: 'Mover ↓', left: 'Mover ←', right: 'Mover →', tackle: 'Tackle (X)', dodge: 'Esquiva (C)', defend: 'Defesa (D)', lock: 'Travar alvo', pause: 'Pausar', restart: 'Reiniciar', debug: 'Depuração'};
 const keyName = code => String(code ?? '?').replace(/^Key/, '').replace(/^Digit/, '').replace(/^Numpad/, 'Num ').replace('Arrow', 'Seta ').replace('Space', 'Espaço').replace('Escape', 'Esc');
 const yesno = v => v ? '1 · sim' : '0 · não';
-const sec = v => `${v.toFixed(2)} s`, pct = v => `${(v * 100).toFixed(0)}%`, num = v => v.toFixed(2), m = v => `${v.toFixed(2)} m`, deg = v => `${v.toFixed(0)}°`, ms = v => `${v.toFixed(2)} m/s`, x = v => `${v.toFixed(2)}×`, int = v => v.toFixed(0);
+const ms2 = v => `${v.toFixed(2)} m/s²`, sec = v => `${v.toFixed(2)} s`, pct = v => `${(v * 100).toFixed(0)}%`, num = v => v.toFixed(2), m = v => `${v.toFixed(2)} m`, deg = v => `${v.toFixed(0)}°`, ms = v => `${v.toFixed(2)} m/s`, x = v => `${v.toFixed(2)}×`, int = v => v.toFixed(0);
 /** [grupo em C.world, chave, rótulo, descrição, min, max, passo, formato, aprovado?] — “aprovado” = valor decidido pelo diretor; o resto é provisório (M30.10). */
 const PARAMS = [
   ['Carga (compartilhada)', [
@@ -182,6 +183,25 @@ const PARAMS = [
     ['riposte', 'knockbackH', 'Knockback horizontal do contra-golpe', 'Empurrão em quem foi contra-atacado (proposta: 3 m/s).', 0, 20, .1, ms, false],
     ['riposte', 'knockbackV', 'Knockback vertical do contra-golpe', 'Com valor acima de zero o contra-golpe lança o alvo (proposta: 0).', 0, 20, .1, ms, false],
     ['riposte', 'strikeRange', 'Alcance do contra-golpe', 'Distância percorrida pelo golpe rumo a quem atacou; não definida no documento (MV-P25).', .3, 6, .1, m, false],
+  ]],
+  ['Sand Wave', [
+    ['sandWave', 'cost', 'Custo de stamina', 'Cobrado na ATIVAÇÃO (t = 0), antes da preparação. Valor do documento (2).', 0, 5, .05, num, false],
+    ['sandWave', 'cooldown', 'Cooldown', 'Começa junto com o custo (documento: 10 s).', 0, 60, .5, sec, false],
+    ['sandWave', 'cast', 'Preparação', 'Único período obrigatório; sair do chão ou ser interrompido cancela sem devolver nada (documento: 0,25 s).', .05, 2, .01, sec, false],
+    ['sandWave', 'length', 'Alcance frontal (ALTURA na vista superior)', 'Comprimento do retângulo à frente do lançador (documento: 4 m; faixa 0,5–30 m). Velocidade da onda = alcance ÷ janela ativa.', .5, 30, .25, m, false],
+    ['sandWave', 'width', 'Largura', 'Extensão lateral do retângulo (documento: 3 m; faixa 0,5–20 m).', .5, 20, .25, m, false],
+    ['sandWave', 'active', 'Janela de acerto (hitbox)', 'Primeiros segundos da barragem: a onda avança e atinge (documento: 0,75 s).', .1, 3, .05, sec, false],
+    ['sandWave', 'dissipate', 'Dissipação visual', 'Tempo extra só de efeito, sem hitbox nem empurrão (documento: 0,75 s).', 0, 3, .05, sec, false],
+    ['sandWave', 'damage', 'Dano fixo', 'HP por inimigo por execução, independente do Ataque (documento: 6 HP).', 0, 40, .5, num, false],
+    ['sandWave', 'accel', 'Empurrão (aceleração)', 'Aceleração horizontal enquanto houver contato na janela; metade sob defesa parcial (documento: 12 m/s²).', 0, 40, .5, ms2, false],
+    ['sandWave', 'partialFactor', 'Fator do empurrão na defesa parcial', 'Multiplica a aceleração quando o alvo defende (documento: 0,5).', 0, 1, .05, num, false],
+    ['sandWave', 'blind', 'Duração da cegueira', 'Reiniciada (não somada) a cada novo acerto válido; defesa perfeita anula (documento: 4 s).', 0, 15, .25, sec, false],
+    ['sandWave', 'wallStagger', 'Stagger contra a parede', 'Sem dano extra; não renova enquanto o alvo continuar pressionado (documento: 0,30 s).', 0, 2, .05, sec, false],
+    ['sandWave', 'visionRadius', 'Raio de visão do cegado', 'Lock-on e IA só enxergam adversários até esta distância e com linha de visão (documento: 10 m).', 2, 30, .5, m, false],
+    ['sandWave', 'fogDarkness', 'Escurecimento do fog (só a câmera do cegado)', 'Redução da luz ambiente na visão do jogador cegado (documento: 60%). A arte final da areia/nuvem ainda não foi aprovada.', 0, 1, .05, pct, false],
+    ['sandWave', 'cell', 'Resolução do caminho livre (técnico)', 'Tamanho da célula da grade que calcula o caminho mais curto da onda ao redor de obstáculos.', .1, 1, .05, m, false],
+    ['sandWave', 'detour', 'Margem de desvio (técnico)', 'Quanto a grade se estende além do retângulo para a areia contornar obstáculos (provisório: 3 m).', 0, 10, .5, m, false],
+    ['sandWave', 'replanSteps', 'Recalcular obstáculos a cada (passos)', 'Obstáculos móveis: o caminho é refeito neste intervalo (SW-D67; provisório: 6).', 1, 60, 1, int, false],
   ]],
   ['Spikes', [
     ['spikes', 'cost', 'Custo de stamina', 'Cobrado ao CONFIRMAR o marcador (Normal); marcador inválido cancela sem custo. Valor do catálogo — proposta, não homologada.', 0, 5, .05, num, false],

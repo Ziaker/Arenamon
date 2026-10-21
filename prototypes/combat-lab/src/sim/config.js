@@ -188,6 +188,9 @@ export function defaults() {
     // Riposte: Normal Status+Melee PL1. Postura de 0,65 s; entre 0,13 e 0,30 s qualquer acerto elegível (menos Guard Break) é anulado e dispara um contra-golpe PL1 de 6 HP
     // (× Ataque ÷ referência), 3 m/s H, na hora do gatilho (MV-P24); strikeRange = alcance do golpe (não definido no documento: MV-P25). Janela fechada sem acerto = recuperação exposta.
     riposte: {cost: .8, cooldown: 8, cast: .65, windowStart: .13, windowEnd: .30, damage: 6, knockbackH: 3, knockbackV: 0, strikeRange: 1.6},
+    // Sand Wave: Burst PL1 (MUSHROOM_MOVES_DECISOES §6). Prep 0,25 s, barragem 1,5 s (0,75 s de hitbox + 0,75 s de dissipação), retângulo 4 (frente) × 3 (lado) m, 6 HP fixos,
+    // empurrão 12 m/s² (×0,5 na parcial), cegueira 4 s, stagger de parede 0,30 s, visão do cegado 10 m, fog = redução de 60% da luz. cell/detour/replanSteps: grade do caminho livre (técnicos).
+    sandWave: {cost: 2, cooldown: 10, cast: .25, length: 4, width: 3, active: .75, dissipate: .75, damage: 6, accel: 12, partialFactor: .5, blind: 4, wallStagger: .3, visionRadius: 10, fogDarkness: .6, cell: .25, detour: 3, replanSteps: 6},
     // Spikes: Normal Field PL1. Marcador de colocação (alcance 3D 5 m), cast 0,4 s, armadilha de 1,2 m de raio por 8 s, 6 HP nominais (× Ataque ÷ referência), sem knockback, 1 acionamento.
     // markerSpeed/startDistance/maxRise/armDelay/trapHeight não vêm do documento (MV-P29/MV-P31): provisórios.
     spikes: {cost: 1, cooldown: 10, cast: .4, range: 5, radius: 1.2, life: 8, damage: 6, knockbackH: 0, knockbackV: 0, armDelay: .25, markerSpeed: 8, startDistance: 3, minRange: 0, maxRise: 2, trapHeight: 1.2},

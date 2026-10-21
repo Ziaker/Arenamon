@@ -8,6 +8,7 @@ import {swiftDef, swiftEffect} from './swift.js';
 import {lungeDef, lungeSetup} from './lunge.js';
 import {guardBreakDef, guardBreakSetup} from './guard-break.js';
 import {feintDef} from './feint.js';
+import {sandWaveDef, sandWaveEffect} from './sand-wave.js';
 import {spikesDef, spikesEffect} from './spikes.js';
 import {bounceDef, bounceEffect, bounceStep} from './bounce.js';
 import {riposteDef} from './riposte.js';
@@ -22,6 +23,7 @@ export const NEW_MOVES = [
   {def: guardBreakDef, tackle: ['guard-break', guardBreakSetup]},
   {def: bounceDef, effect: ['bounce', bounceEffect], steps: [['bounce', bounceStep]]},
   {def: spikesDef, effect: ['spikes', spikesEffect]},
+  {def: sandWaveDef, effect: ['sand-wave', sandWaveEffect]},
   {def: feintDef},
   {def: riposteDef},
   {def: quickAttackDef, tackle: ['quick-attack', quickAttackSetup], hooks: [['quick-attack:step', quickAttackStep]]},

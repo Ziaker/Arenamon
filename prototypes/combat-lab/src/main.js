@@ -81,6 +81,7 @@ const input = new Input(canvas, code => {
     toggleZenMode();
   }
 });
+input.visionWorld = () => game.world;   // lock-on do cegado precisa conferir paredes no mundo da partida
 
 // ---------- Partida ----------
 let warmingUp = false;

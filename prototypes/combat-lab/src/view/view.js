@@ -335,10 +335,25 @@ export class View {
       this.quarks.dispose();this.quarks = null;
     }
     // Aura dos status dos Moves novos: só existe enquanto algum lutador tem Harden/Second Wind (custo zero fora disso).
-    if (fighters.some(f => f.statuses?.some(s => s.id === 'harden' || s.id === 'second-wind'))) {
+    if (fighters.some(f => f.statuses?.some(s => s.id === 'harden' || s.id === 'second-wind' || s.id === 'blind'))) {
       const m = C.vfx.master ?? {}, hitIds = new Set(events.filter(e => (e.result === 'impact' || e.result === 'partial') && !this.auraSeen.has(e)).map(e => {this.auraSeen.add(e);return e.target;}));
       (this.statusAura ??= new StatusAura(T, this.scene)).update(fighters, paused ? 0 : dt, {bodyHeight: X.visual.bodyHeight, halfExtent: C.test.halfExtent, reduceMotion: !!(this._a11y?.reduceMotion || m.reduceMotion), noFlash: !!(this._a11y?.noFlash || m.noFlash), hits: hitIds});
     } else if (this.statusAura) {this.statusAura.dispose();this.statusAura = null;}
+    // Cegueira do Sand Wave: SÓ a câmera do jogador cegado (lutador 0) recebe névoa densa perto do limite de visão e redução da luz ambiente (SW-D17/D36/D39);
+    // os outros observadores não mudam. A cena volta ao normal quando o debuff acaba.
+    {
+      const me = fighters[0], blinded = !!me && me.hp > 0 && !!me.statuses?.some(s => s.id === 'blind'), SWc = C.world.sandWave ?? {};
+      this.blindK = (this.blindK ?? 0) + ((blinded ? 1 : 0) - (this.blindK ?? 0)) * Math.min(1, (paused ? 0 : dt) * 8);
+      if (this.blindK > .01) {
+        const k = this.blindK, dark = 1 - (SWc.fogDarkness ?? .6) * k, r = SWc.visionRadius ?? 10;
+        this.ambientLight.intensity = X.visual.ambientLightIntensity * dark;this.directionalLight.intensity = X.visual.directionalIntensity * dark;
+        if (!this.scene.fog) this.scene.fog = new T.Fog(this.scene.background.getHex(), 200, 400);
+        this.scene.fog.color.copy(this.scene.background);this.scene.fog.near = 200 - (200 - r * .3) * k;this.scene.fog.far = 400 - (400 - r * 1.05) * k;
+        this._blindDimmed = true;
+      } else if (this._blindDimmed) {
+        this.scene.fog = null;this.ambientLight.intensity = X.visual.ambientLightIntensity;this.directionalLight.intensity = X.visual.directionalIntensity;this._blindDimmed = false;
+      }
+    }
     // Marcadores de mira dos Moves com destino: só existem enquanto alguém mira.
     if (fighters.some(f => f.aim)) (this.aimMarkers ??= new AimMarkers(T, this.scene)).update(fighters, paused ? 0 : dt, {reduceMotion: !!(this._a11y?.reduceMotion || (C.vfx.master ?? {}).reduceMotion)});
     else if (this.aimMarkers) {this.aimMarkers.dispose();this.aimMarkers = null;}

@@ -51,6 +51,7 @@ export function validateMove(def) {
   if (def.group !== undefined && !(C.world[def.group] && typeof C.world[def.group] === 'object')) fail(`group desconhecido (${def.group}): precisa existir em C.world`);
   if (def.tackle !== undefined && (typeof def.tackle !== 'string' || !def.tackle)) fail('tackle deve ser o nome de uma preparação registrada');
   if (def.aimMode !== undefined && (def.aimMode !== 'marker' || !def.group)) fail("aimMode so aceita 'marker' e exige group (os parametros do marcador vem de C.world[group])");
+  if (def.groundOnly !== undefined && typeof def.groundOnly !== 'boolean') fail('groundOnly deve ser booleano');
   if (def.feint !== undefined && typeof def.feint !== 'boolean') fail('feint deve ser booleano');
   if (def.needsTarget !== undefined && (typeof def.needsTarget !== 'string' || !def.group)) fail('needsTarget deve ser a chave (em C.world[group]) do alcance de aquisição');
   for (const k of ['cost', 'cooldown', 'cancelAfter']) if (def[k] !== undefined && !(def[k] >= 0)) fail(`${k} inválido`);
