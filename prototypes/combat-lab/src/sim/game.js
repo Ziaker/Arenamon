@@ -3,7 +3,7 @@ import {C} from './config.js';
 import {Brain} from './ai.js';
 import {createFighter, emptyCommand, isInvulnerable, isOffensive, getFighterMaxStamina} from './entity.js';
 import {updateFighter, advanceAction, bufferDuringHitstop, tickCooldowns, isDepleted} from './controller.js';
-import {getEffect} from './move-effects.js';
+import {getEffect, stepHooks} from './move-effects.js';
 import {createWorld, stepWorld, spawn} from './world.js';
 import {tickStatuses, applyStatus} from './status.js';
 import {getMove, placeRelative, setLoadout} from './moves.js';
@@ -74,6 +74,7 @@ export class Game {
     for (const f of this.fighters) if (f.moveEvents?.length) worldEvents.push(...f.moveEvents.splice(0));   // eventos do Charge (início, soltura, cancelamento, recarga acelerada)
     this.fireMoveEffects(worldEvents);
     const fresh = stepPhysics(this.fighters, C.test.step, this.world);
+    for (const hook of stepHooks()) fresh.push(...(hook(this) ?? []));   // Moves que continuam depois do disparo (Bounce: contato na descida e no pouso)
     // Escudos temporários (R9.3-R9.7, R10.2, R11.8): timers não avançam durante finishing, pause ou hitstop
     if (!finishing && this.phase === 'playing') {
       for (const f of this.fighters) stepShield(f, C.test.step, fresh);

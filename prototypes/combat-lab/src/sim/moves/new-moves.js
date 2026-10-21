@@ -8,16 +8,18 @@ import {swiftDef, swiftEffect} from './swift.js';
 import {lungeDef, lungeSetup} from './lunge.js';
 import {guardBreakDef, guardBreakSetup} from './guard-break.js';
 import {feintDef} from './feint.js';
+import {bounceDef, bounceEffect, bounceStep} from './bounce.js';
 import {riposteDef} from './riposte.js';
 import {quickAttackDef, quickAttackSetup, quickAttackStep} from './quick-attack.js';
 
-/** @type {{def: any, effect?: [string, Function], tackle?: [string, Function], hooks?: [string, Function][]}[]} */
+/** @type {{def: any, effect?: [string, Function], tackle?: [string, Function], hooks?: [string, Function][], steps?: [string, Function][]}[]} */
 export const NEW_MOVES = [
   {def: hardenDef, effect: ['harden', hardenEffect]},
   {def: secondWindDef, effect: ['second-wind', secondWindEffect]},
   {def: swiftDef, effect: ['swift', swiftEffect]},
   {def: lungeDef, tackle: ['lunge', lungeSetup]},
   {def: guardBreakDef, tackle: ['guard-break', guardBreakSetup]},
+  {def: bounceDef, effect: ['bounce', bounceEffect], steps: [['bounce', bounceStep]]},
   {def: feintDef},
   {def: riposteDef},
   {def: quickAttackDef, tackle: ['quick-attack', quickAttackSetup], hooks: [['quick-attack:step', quickAttackStep]]},

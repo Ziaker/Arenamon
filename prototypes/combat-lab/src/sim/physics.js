@@ -258,7 +258,7 @@ export function stepPhysics(fighters, dt, world = null) {
           f.lastCeilingBump = {n: (f.lastCeilingBump?.n ?? 0) + 1, y: flight.y, face: underside, x: f.position.x, z: f.position.z};
         }
       }
-      const drag = flight.isNormalJump ? (C.map?.jumpDrag ?? 0.0) : R.launchDrag;
+      const drag = flight.bounce ? 0 : flight.isNormalJump ? (C.map?.jumpDrag ?? 0.0) : R.launchDrag;   // Bounce: arco sem arrasto (a distância é a pedida)
       flight.horizontal = scale(flight.horizontal, Math.exp(-drag * dt));
       const curY = flight.y ?? (f.groundY ?? 0);
       const targetGround = getGroundHeight(f.position, world, curY);
@@ -282,7 +282,7 @@ export function stepPhysics(fighters, dt, world = null) {
         // Inner Focus: hit stun reduzido em 20% quando o lançamento veio de um golpe (launch(); edge-fall/jump não marca).
         const stunFactor = f.launchedByHit ? hitStunFactor(f) : 1;
         f.launchedByHit = false;
-        f.knockRecovery = (wasNormalJump || f.hp <= 0) ? 0 : R.landingRecovery * stunFactor; // derrotado não tem recuperação de pouso
+        f.knockRecovery = flight.bounce ? (f.hp <= 0 ? 0 : flight.bounce.recovery) : (wasNormalJump || f.hp <= 0) ? 0 : R.landingRecovery * stunFactor; // derrotado não tem recuperação de pouso; Bounce: recuperação própria
         f.recoveryFrom = null;
         f.normalJumpLanding = false;
         f.state = f.hp <= 0 ? 'defeated' : (wasNormalJump ? 'neutral' : 'landing');

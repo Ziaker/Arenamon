@@ -310,7 +310,7 @@ export function updateFighter(f, cmd, fighters, dt, world = null) {
       startSlamFromFlight(f, {move: mv, dodgeDirection: cmd.dodgeDirection}, fighters, desiredHeading, cmd.guard, useLock, world);
       if (diag) report(f, {kind: 'tackle', result: 'executed', note: isNormal ? 'meteor slam (salto normal)' : 'meteor slam (lançado)'});
     } else {
-      if (!f.flight.isNormalJump && T.enableTechRecovery && T.enableDodge && f.hp > 0 && !f.wallSplat) armTechRecovery(f, cmd, dt);
+      if (!f.flight.isNormalJump && !f.flight.bounce && T.enableTechRecovery && T.enableDodge && f.hp > 0 && !f.wallSplat) armTechRecovery(f, cmd, dt);
       const M0 = C.map ?? {}, feel0 = !!(M0.jumpImprovements ?? 1);
       if (f.flight.isNormalJump || f.flight.isEdgeFall) {
         // Plano D: o controlador grava o botão de salto mantido e a direção pedida; a física (stepPhysics)
@@ -817,7 +817,7 @@ function startCharge(f, def, slot, guardHeld, fromBuffer = false) {
   f.stamina = Math.max(0, f.stamina - cost);f.regenBase = f.stamina;f.regenAge = 0;f.exhausted = isDepleted(f.stamina);
   if (f.action?.kind === 'dodge') {f.locomotionVelocity = {...f.velocity};f.action = null;}
   f.charge = {move: def.id, slot, ticks: 0, params, cost, fromBuffer};
-  if (def.tackle && def.cooldown > 0) (f.moveCooldowns ??= {})[def.id] = def.cooldown;   // Charge que vira Tackle: custo e recarga no INÍCIO da carga (interromper mantém os dois)
+  if ((def.tackle || def.cooldownOnStart) && def.cooldown > 0) (f.moveCooldowns ??= {})[def.id] = def.cooldown;   // Charge que vira Tackle: custo e recarga no INÍCIO da carga (interromper mantém os dois)
   f.guard = false;f.guardSuppressed = guardHeld;f.push = null;f.blend = null;f.vaultHeight = 0;f.bufferedTackle = null;f.inputBuffer = null;f.skillBuffer = null;f.sprinting = false;f.sprintCarry = false;
   moveEvent(f, {result: 'chargeStart', move: def.id, slot});
 }
@@ -887,7 +887,7 @@ function stepCharge(f, cmd, ctx) {
       return;
     }
     // Recarga na materialização/disparo (M2.4/M2.5) e recuperação (M26s.8); o jogo desfaz as duas se o efeito falhar (M13.7, M29.3).
-    if (def.cooldown > 0) (f.moveCooldowns ??= {})[def.id] = def.cooldown;
+    if (def.cooldown > 0 && !def.cooldownOnStart) (f.moveCooldowns ??= {})[def.id] = def.cooldown;
     f.moveRecovery = ch.params.recovery;
     moveEvent(f, {result: 'chargeRelease', move: def.id, slot: ch.slot, level, seconds: rel.seconds});
     (def.timeline || []).forEach((ev, i) => (f.moveFx ??= []).push({index: i, move: def.id, heading: f.facing, charge: rel}));

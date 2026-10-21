@@ -188,6 +188,9 @@ export function defaults() {
     // Riposte: Normal Status+Melee PL1. Postura de 0,65 s; entre 0,13 e 0,30 s qualquer acerto elegível (menos Guard Break) é anulado e dispara um contra-golpe PL1 de 6 HP
     // (× Ataque ÷ referência), 3 m/s H, na hora do gatilho (MV-P24); strikeRange = alcance do golpe (não definido no documento: MV-P25). Janela fechada sem acerto = recuperação exposta.
     riposte: {cost: .8, cooldown: 8, cast: .65, windowStart: .13, windowEnd: .30, damage: 6, knockbackH: 3, knockbackV: 0, strikeRange: 1.6},
+    // Bounce: Charge Trick+Melee. Carga máx. 1,2 s (PL1 <50%, PL2 <100%, PL3 em 100%); alturas 1,5/2,5/3,5 m (experimentais); alcance horizontal máx. 6 m; 12 HP nominais
+    // (× Ataque ÷ referência), 3 m/s H e 6 m/s V; recuperação 0,25 s após o pouso. gravity/contactRadius/landRadius não vêm do documento (MV-P27/MV-P28): provisórios.
+    bounce: {cost: 1.2, cooldown: 12, maxCharge: 1.2, minCharge: 0, maxDistance: 6, heightPl1: 1.5, heightPl2: 2.5, heightPl3: 3.5, gravity: 17.5, damage: 12, knockbackH: 3, knockbackV: 6, landRecovery: .25, contactRadius: .3, landRadius: 1.4},
     // Feint: Burst Trick sem PL. Cancela Tackle/Lunge/Guard Break (e a carga de Tackle) só na antecipação (cancelWindow = 4 quadros a 30 fps = 0,133 s) e vira um recuo curto
     // (retreat m, para trás ou para o lado do input) com i-frames de 2 a 10 passos a 120 Hz. Fora da janela o Move é gasto sem efeito e o golpe segue (punível; MV-P21).
     feint: {cost: .3, cooldown: 3, cast: .22, cancelAfter: .0333, cancelWindow: .1333, retreat: .25, invulnStart: .0167, invulnEnd: .0833},
