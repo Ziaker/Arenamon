@@ -8,11 +8,11 @@ import {installNewPanel} from './characters-new.js';
 
 const ACTION_CATS = {
   moves: ['tackle', 'tackle_charge', 'tackle_pl2', 'tackle_pl3', 'brake', 'wall_splat', 'meteor_prep', 'meteor_dive', 'meteor_ground', 'dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'jump'],
-  loco: ['idle', 'walk', 'run', 'sprint', 'turn', 'walk_stop', 'sprint_stop', 'walk_back', 'walk_left', 'walk_right'],
+  loco: ['idle', 'turn', 'walk', 'walk_back', 'walk_left', 'walk_right', 'run', 'run_back', 'run_left', 'run_right', 'sprint', 'sprint_back', 'sprint_left', 'sprint_right', 'walk_stop', 'sprint_stop'],
   react: ['block_start', 'block', 'block_end', 'guard_impact', 'blocked', 'hit', 'knockback', 'fall', 'land', 'recover', 'downed', 'death'],
 };
-export const ACTION_LABELS = {idle: 'Parado', turn: 'Girar no lugar', walk: 'Andar', run: 'Correr', sprint: 'Sprint (8 direções)', walk_stop: 'Freio da caminhada', sprint_stop: 'Freio do sprint',
-  walk_back: 'Andar para trás', walk_left: 'Lateral esquerda', walk_right: 'Lateral direita', block_start: 'Entrar na defesa', block: 'Defesa', block_end: 'Sair da defesa',
+export const ACTION_LABELS = {idle: 'Parado', turn: 'Girar no lugar', walk: 'Andar para frente', walk_back: 'Andar para trás', walk_left: 'Andar para esquerda', walk_right: 'Andar para direita',
+  run: 'Correr para frente', run_back: 'Correr para trás', run_left: 'Correr para esquerda', run_right: 'Correr para direita', sprint: 'Sprint para frente', sprint_back: 'Sprint para trás', sprint_left: 'Sprint para esquerda', sprint_right: 'Sprint para direita', walk_stop: 'Freio da caminhada', sprint_stop: 'Freio do sprint', block_start: 'Entrar na defesa', block: 'Defesa', block_end: 'Sair da defesa',
   guard_impact: 'Impacto na defesa', blocked: 'Recuo (bloqueado)', tackle: 'Tackle PL1 (X)', tackle_charge: 'Carga do tackle (X segurado)', tackle_pl2: 'Tackle PL2', tackle_pl3: 'Tackle PL3', brake: 'Freio / derrapagem (finta)', wall_splat: 'Preso na parede (wall-splat)', meteor_prep: 'Meteor: preparação no ar', meteor_dive: 'Meteor: mergulho', meteor_ground: 'Meteor: no chão', dodge_forward: 'Esquiva frontal', dodge_back: 'Esquiva traseira', dodge_left: 'Esquiva esquerda',
   dodge_right: 'Esquiva direita', jump: 'Salto', hit: 'Dano', knockback: 'Lançado', fall: 'Queda', land: 'Aterrissar', recover: 'Levantar', downed: 'Caído', death: 'Derrota', move_1: 'Movimento 1', move_2: 'Movimento 2', move_3: 'Movimento 3', move_4: 'Movimento 4'};
 

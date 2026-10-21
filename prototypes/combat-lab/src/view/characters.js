@@ -27,9 +27,11 @@ import {sniffFormat} from './validate.js';
 
 /** Ordem de preferência por estado (a primeira ação com animação associada é usada). */
 export const STATE_ACTIONS = {
-  neutral: ['idle'], turn: ['turn', 'idle'], walk: ['walk', 'run', 'idle'], run: ['run', 'walk', 'idle'], walk_back: ['walk_back', 'walk', 'idle'],
-  walk_left: ['walk_left', 'strafe_left', 'walk', 'idle'], walk_right: ['walk_right', 'strafe_right', 'walk', 'idle'],
-  sprint: ['sprint', 'run', 'walk', 'idle'], walk_stop: ['walk_stop'], sprint_stop: ['sprint_stop', 'walk_stop'],
+  neutral: ['idle'], turn: ['turn', 'idle'], walk: ['walk', 'run', 'idle'], run: ['run', 'walk', 'idle'],
+  walk_back: ['walk_back', 'walk', 'idle'], walk_left: ['walk_left', 'walk', 'idle'], walk_right: ['walk_right', 'walk', 'idle'],
+  run_back: ['run_back', 'walk_back', 'run', 'idle'], run_left: ['run_left', 'walk_left', 'run', 'idle'], run_right: ['run_right', 'walk_right', 'run', 'idle'],
+  sprint: ['sprint', 'run', 'walk', 'idle'], sprint_back: ['sprint_back', 'run_back', 'walk_back', 'sprint', 'idle'], sprint_left: ['sprint_left', 'run_left', 'walk_left', 'sprint', 'idle'], sprint_right: ['sprint_right', 'run_right', 'walk_right', 'sprint', 'idle'],
+  walk_stop: ['walk_stop'], sprint_stop: ['sprint_stop', 'walk_stop'],
   guard_enter: ['block_start', 'block', 'idle'], guard: ['block', 'block_start', 'idle'], guard_exit: ['block_end', 'idle'], guard_hit: ['guard_impact', 'blocked', 'block', 'idle'],
   guardStun: ['guard_impact', 'blocked', 'block', 'idle'], tackle: ['tackle', 'run', 'idle'],
   // Tackle carregado: sem clipe próprio cada nível cai para o clipe do tackle (PL3 → PL2 → tackle); a carga sem clipe usa a pose parada.
@@ -45,8 +47,8 @@ export const STATE_ACTIONS = {
   jump: ['jump', 'vault', 'fall', 'idle'],
   airborne: ['knockback', 'fall', 'hit', 'idle'], landing: ['land', 'recover', 'downed', 'idle'], recover: ['recover', 'land', 'idle'], defeated: ['death', 'downed', 'idle'], pushed: ['hit', 'idle'],
 };
-export const STATE_LABELS = {neutral: 'Parado', turn: 'Girando no lugar', walk: 'Andando', run: 'Correndo', walk_back: 'Recuando', walk_left: 'Lateral esquerda', walk_right: 'Lateral direita',
-  sprint: 'Sprint', walk_stop: 'Freio da caminhada', sprint_stop: 'Freio do sprint',
+export const STATE_LABELS = {neutral: 'Parado', turn: 'Girando no lugar', walk: 'Andando para frente', walk_back: 'Andando para trás', walk_left: 'Andando à esquerda', walk_right: 'Andando à direita',
+  run: 'Correndo para frente', run_back: 'Correndo para trás', run_left: 'Correndo à esquerda', run_right: 'Correndo à direita', sprint: 'Sprint para frente', sprint_back: 'Sprint para trás', sprint_left: 'Sprint à esquerda', sprint_right: 'Sprint à direita', walk_stop: 'Freio da caminhada', sprint_stop: 'Freio do sprint',
   guard_enter: 'Entrando na defesa', guard: 'Defendendo', guard_exit: 'Saindo da defesa', guard_hit: 'Defesa perfeita', guardStun: 'Guard stun', tackle: 'Tackle', meteor_prep: 'Meteor: preparação no ar', meteor_dive: 'Meteor: mergulho', meteor_ground: 'Meteor: no chão', wallSplat: 'Preso na parede (wall-splat)', tackle_charge: 'Carregando tackle', tackle_pl2: 'Tackle PL2', tackle_pl3: 'Tackle PL3', brake: 'Freio do tackle (finta)', dodge_forward: 'Esquiva frontal',
   dodge_back: 'Esquiva traseira', dodge_left: 'Esquiva esquerda', dodge_right: 'Esquiva direita', vault: 'Salto sobre o rival', jump: 'Pulo', recoil: 'Recuo (bloqueado)', airborne: 'Lançado',
   landing: 'Aterrissando', recover: 'Recuperando (exausto)', defeated: 'Derrotado', pushed: 'Empurrado', __preview: 'Prévia',
@@ -54,12 +56,13 @@ export const STATE_LABELS = {neutral: 'Parado', turn: 'Girando no lugar', walk: 
   charge_reflect: 'Carregando Reflect', release_reflect: 'Disparo do Reflect',
   charge_psyshock: 'Carregando Psyshock', release_psyshock: 'Disparo do Psyshock'};
 /** Blocos de animação listados no painel (cada um serve a um ou mais estados e aceita várias variantes). */
-export const ACTION_IDS = ['idle', 'turn', 'walk', 'run', 'sprint', 'walk_stop', 'sprint_stop', 'walk_back', 'walk_left', 'walk_right', 'block_start', 'block', 'block_end', 'guard_impact', 'blocked', 'tackle', 'tackle_charge', 'tackle_pl2', 'tackle_pl3', 'brake', 'wall_splat', 'meteor_prep', 'meteor_dive', 'meteor_ground',
+export const ACTION_IDS = ['idle', 'turn', 'walk', 'walk_back', 'walk_left', 'walk_right', 'run', 'run_back', 'run_left', 'run_right', 'sprint', 'sprint_back', 'sprint_left', 'sprint_right', 'walk_stop', 'sprint_stop', 'block_start', 'block', 'block_end', 'guard_impact', 'blocked', 'tackle', 'tackle_charge', 'tackle_pl2', 'tackle_pl3', 'brake', 'wall_splat', 'meteor_prep', 'meteor_dive', 'meteor_ground',
   'dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'jump', 'hit', 'knockback', 'fall', 'land', 'recover', 'downed', 'death', 'move_1', 'move_2', 'move_3', 'move_4'];
 // Sinônimos para associar por nome quando o arquivo não traz o mapa do Studio.
 const ALIASES = {
   idle: ['idle', 'parado', 'stand', 'breathing idle', 'breath'], turn: ['turn', 'girar', 'turn in place'], walk: ['walk', 'walking', 'andar', 'caminhar'], run: ['run', 'running', 'correr'],
-  sprint: ['sprint', 'sprinting', 'fast run', 'dash run'], walk_stop: ['walk stop', 'walking stop', 'walk to stop', 'stop walking', 'freio'], sprint_stop: ['run stop', 'sprint stop', 'run to stop', 'running stop'],
+  sprint: ['sprint', 'sprinting', 'fast run', 'dash run'], sprint_back: ['sprint back', 'sprint backward'], sprint_left: ['sprint left', 'sprint strafe left'], sprint_right: ['sprint right', 'sprint strafe right'],
+  run_back: ['run back', 'running backward'], run_left: ['run left', 'running left', 'run strafe left'], run_right: ['run right', 'running right', 'run strafe right'], walk_stop: ['walk stop', 'walking stop', 'walk to stop', 'stop walking', 'freio'], sprint_stop: ['run stop', 'sprint stop', 'run to stop', 'running stop'],
   walk_back: ['walk back', 'walking backward', 'walk backward', 'backward walk', 'back walk', 'recuar'], walk_left: ['walk left', 'left strafe', 'strafe left', 'left walk'], walk_right: ['walk right', 'right strafe', 'strafe right', 'right walk'],
   block_start: ['block start', 'guard start', 'block idle start'], block: ['block', 'guard', 'defend', 'defesa', 'blocking'], block_end: ['block end', 'guard end'],
   guard_impact: ['guard impact', 'block hit', 'block impact', 'guard hit'], blocked: ['blocked', 'recoil', 'bounce', 'rebote'],
@@ -83,7 +86,7 @@ const TIMED = new Set(['tackle', 'tackle_pl2', 'tackle_pl3', 'dodge_forward', 'd
 const TRANSIENT = new Set(['guard_enter', 'guard_exit', 'guard_hit']);
 /** Tocam uma vez a partir da entrada e seguram a última pose (não repetem em laço). */
 const ONE_SHOT = new Set(['meteor_prep', 'meteor_dive', 'meteor_ground', ...TRANSIENT, 'walk_stop', 'sprint_stop', '__preview', 'release_reflect', 'release_psyshock', ...MOVE_KEYS]);
-const LOCOMOTION = new Set(['neutral', 'turn', 'walk', 'run', 'walk_back', 'walk_left', 'walk_right']);
+const LOCOMOTION = new Set(['neutral', 'turn', 'walk', 'walk_back', 'walk_left', 'walk_right', 'run', 'run_back', 'run_left', 'run_right', 'sprint', 'sprint_back', 'sprint_left', 'sprint_right']);
 const ACTION_KEYS = new Set(['meteor_prep', 'meteor_dive', 'meteor_ground', 'tackle', 'tackle_pl2', 'tackle_pl3', 'dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'vault', ...MOVE_KEYS]);
 const COMBAT_KEYS = new Set(['wallSplat', 'airborne', 'landing', 'recover', 'guardStun', 'recoil', 'defeated', 'pushed', 'guard_hit']);
 
@@ -121,7 +124,7 @@ export class Character {
     this.source = source;this.slot = slot;this.persist = persist;
     this.root = clone(source.scene);this.mixer = new T.AnimationMixer(this.root);
     this.clips = source.animations.slice();this.clipInfo = this.clips.map(c => ({name: c.name, origin: 'glb', compatible: true, coverage: 1}));
-    this.variants = autoVariants(source);this.speeds = {};this.clipOffsets = {};this.visualOffset = 0;this.autoGround = true;
+    this.variants = autoVariants(source);this.speeds = {};this.playback = {};this.clipOffsets = {};this.visualOffset = 0;this.autoGround = true;
     this.moveAnims = {
       reflect: {chargeClip: null, chargeLoopStart: 0, chargeLoopEnd: null, releaseClip: null},
       psyshock: {chargeClip: null, chargeLoopStart: 0, chargeLoopEnd: null, releaseClip: null}
@@ -254,16 +257,17 @@ export class Character {
     }
     return (this.variants[id] || []).filter(i => this.clips[i] && this.clipInfo[i]?.compatible);
   }
-  addVariant(id, index) {if (!this.clipInfo[index]?.compatible) return false;const list = this.variants[id] ??= [];if (!list.includes(index)) list.push(index);this.resetVisual();this.save();return true;}
-  removeVariant(id, index) {this.variants[id] = (this.variants[id] || []).filter(i => i !== index);if (!this.variants[id].length) delete this.variants[id];this.resetVisual();this.save();}
+  refreshVisual() {if (this.current) this.current.entry = '__mapping_changed__';}
+  addVariant(id, index) {if (!this.clipInfo[index]?.compatible) return false;const list = this.variants[id] ??= [];if (!list.includes(index)) list.push(index);this.refreshVisual();this.save();return true;}
+  removeVariant(id, index) {this.variants[id] = (this.variants[id] || []).filter(i => i !== index);if (!this.variants[id].length) delete this.variants[id];this.refreshVisual();this.save();}
   /** Troca a variante principal (posição 0) de um estado. */
-  setPrimary(id, index) {if (index === null) {delete this.variants[id];} else {if (!this.clipInfo[index]?.compatible) return false;const rest = (this.variants[id] || []).filter(i => i !== index);this.variants[id] = [index, ...rest];}this.resetVisual();this.save();return true;}
+  setPrimary(id, index) {if (index === null) {delete this.variants[id];} else {if (!this.clipInfo[index]?.compatible) return false;const extras = (this.variants[id] || []).slice(1).filter(i => i !== index);this.variants[id] = [index, ...extras];}this.refreshVisual();this.save();return true;}
   /**
    * Para e descarta todas as ações do mixer (atual e camadas). Antes, trocar uma associação só esquecia a ação atual,
    * que continuava tocando com peso 1 misturada a todas as outras (“forçando” uma pose).
    */
   resetVisual() {for (const l of [...this.layers, this.current].filter(Boolean)) {l.action.stop();this.mixer.uncacheAction(l.clip);}this.layers = [];this.current = null;this.stableLoco = null;}
-  moveVariant(id, index, delta) {const l = this.variants[id] || [], i = l.indexOf(index), j = i + delta;if (i < 0 || j < 0 || j >= l.length) return;[l[i], l[j]] = [l[j], l[i]];this.resetVisual();this.save();}
+  moveVariant(id, index, delta) {const l = this.variants[id] || [], i = l.indexOf(index), j = i + delta;if (i < 0 || j < 0 || j >= l.length) return;[l[i], l[j]] = [l[j], l[i]];this.refreshVisual();this.save();}
   storeKey() {return STORE + (this.source.name || 'sem-nome');}
   /** Associações, velocidades e offsets em formato portátil (clipes por nome). */
   stateData() {
@@ -277,7 +281,7 @@ export class Character {
         releaseClip: conf.releaseClip != null ? byName(conf.releaseClip) : null
       };
     }
-    return {variants: Object.fromEntries(Object.entries(this.variants).map(([id, l]) => [id, l.map(byName).filter(Boolean)])), speeds: {...this.speeds},
+    return {variants: Object.fromEntries(Object.entries(this.variants).map(([id, l]) => [id, l.map(byName).filter(Boolean)])), speeds: {...this.speeds}, playback: JSON.parse(JSON.stringify(this.playback)),
       clipOffsets: Object.fromEntries(Object.entries(this.clipOffsets).map(([i, v]) => [byName(i), v]).filter(([k]) => k)), visualOffset: this.visualOffset, autoGround: this.autoGround, moveAnims: moveAnimsData};
   }
   save() {
@@ -298,7 +302,7 @@ export class Character {
       const list = names.map(n => {const i = idx(n);if (i < 0) this.missingAssociations.push(`${id}: ${n}`);return i;}).filter(i => i >= 0);
       if (list.length) this.variants[id] = list;else if (names.length === 0) delete this.variants[id];
     }
-    Object.assign(this.speeds, data.speeds || {});
+    Object.assign(this.speeds, data.speeds || {});Object.assign(this.playback, data.playback || {});
     for (const [n, v] of Object.entries(data.clipOffsets || {})) {const i = idx(n);if (i >= 0) this.clipOffsets[i] = v;}
     if (typeof data.visualOffset === 'number') this.visualOffset = data.visualOffset;if (typeof data.autoGround === 'boolean') this.autoGround = data.autoGround;
     if (data.moveAnims) {
@@ -331,6 +335,7 @@ export class Character {
     this.restore();return report;
   }
   speedOf(id) {return (Character.options.speed || 1) * (this.speeds[id] ?? 1);}
+  playbackOf(id, key = id) {const o = this.playback[id] || {};return {loop: o.loop ?? !(ONE_SHOT.has(key) || TIMED.has(key)), maxDuration: Math.max(0, Number(o.maxDuration) || 0)};}
   /** Ação associada a um estado (primeira da ordem de preferência com variantes). */
   actionFor(stateKey) {
     if (stateKey?.startsWith?.('charge_')) {
@@ -384,7 +389,6 @@ export class Character {
     if (f.state === 'guardStun') return 'guardStun';
     if (f.guard) {this.guardSeenAt = this.clock;return 'guard';}
     if (this.current?.key === 'guard' && this.clock - (this.guardSeenAt ?? -Infinity) < Character.options.guardHold * .6 && !f.action) return 'guard';
-    if (f.sprinting) return 'sprint';
     const speed = length(f.velocity), walk = f.attributes.speed;
     // Freios: só quando a física está realmente desacelerando (e só se houver animação própria; senão, locomoção normal).
     if (f.locoPhase === 'sprintStop' && speed > walk * .5 && this.actionFor('sprint_stop')) return 'sprint_stop';
@@ -399,10 +403,10 @@ export class Character {
       return diff > (turning ? .08 : .22) ? 'turn' : 'neutral';
     }
     const rel = angleDelta(f.faceGoal ?? f.facing, angleOf(f.velocity));
-    if (Math.abs(rel) > 3 * Math.PI / 4) return 'walk_back';
-    if (Math.abs(rel) > Math.PI / 4) return rel > 0 ? 'walk_left' : 'walk_right';
+    const direction = Math.abs(rel) > 3 * Math.PI / 4 ? 'back' : Math.abs(rel) > Math.PI / 4 ? (rel > 0 ? 'left' : 'right') : '';
+    if (f.sprinting) return direction ? `sprint_${direction}` : 'sprint';
     // Histerese andar/correr: sobe aos 62% da velocidade, desce aos 52%.
-    const wasRun = this.stableLoco === 'run';return speed > walk * (wasRun ? .52 : .62) ? 'run' : 'walk';
+    const wasRun = this.stableLoco?.startsWith('run');const gait = speed > walk * (wasRun ? .52 : .62) ? 'run' : 'walk';return direction ? `${gait}_${direction}` : gait;
   }
   /** Histerese da locomoção: um estado de locomoção novo só vale depois de estável por locomotionHold segundos. */
   smoothLocomotion(key) {
@@ -539,6 +543,12 @@ export class Character {
         const index = p ? p.index : (mp ? (mp.phase === 'charge' ? mp.chargeIdx : mp.releaseIdx) : this.pickVariant(id, hash(this.slot, key, ctx.tick ?? Math.round(this.clock * 120), serial)));
         this.enter(key, id, index, entry, f, ctx);
       } else if (this.current) this.current.entry = entry;
+      else {
+        // Um modelo nunca deve cair na bind pose/T-pose por falta de associação. Na primeira exibição usa o
+        // primeiro clipe compatível e continua nele até existir uma troca válida.
+        const index = this.clipInfo.findIndex(info => info.compatible);
+        if (index >= 0) this.enter(key, '__fallback', index, entry, f, ctx);
+      }
     } else if (this.current.key !== key) this.current.key = key;
     this.blend(f, dt, key, p);
     this.place(f, alt, dt);
@@ -579,17 +589,17 @@ export class Character {
     for (const layer of this.layers) {
       const k = Math.max(0, Math.min(1, (this.clock - layer.fadeStart) / fadeOf(this.current)));layer.weight = layer.fadeFrom * (1 - k);
       if (layer.weight <= 1e-4) {layer.action.stop();layer.dead = true;continue;}
-      const a = layer.action, d = layer.clip.duration || 1;
-      a.time = ONE_SHOT.has(layer.key) || TIMED.has(layer.key) ? Math.min(d, a.time + dt * this.speedOf(layer.id)) : (a.time + dt * this.speedOf(layer.id)) % d;
+      const a = layer.action, d = layer.clip.duration || 1, s = this.speedOf(layer.id), playback = this.playbackOf(layer.id, layer.key), cap = Math.min(d, playback.maxDuration > 0 ? playback.maxDuration * s : d), next = a.time + dt * s;
+      a.time = playback.loop ? next % Math.max(.001, cap) : Math.min(cap, next);
       a.setEffectiveWeight(layer.weight);old += layer.weight;
     }
     this.layers = this.layers.filter(l => !l.dead);
     this.fade += dt;this.timer += dt;
     if (this.current) {
-      const a = this.current.action, d = this.current.clip.duration || 1, s = this.speedOf(this.current.id);
+      const a = this.current.action, d = this.current.clip.duration || 1, s = this.speedOf(this.current.id), playback = this.playbackOf(this.current.id, this.current.key), cap = Math.min(d, playback.maxDuration > 0 ? playback.maxDuration * s : d);
       this.current.weight = Math.max(0, 1 - Math.min(1, old));a.setEffectiveWeight(this.current.weight);
       if (p) {
-        a.time = Math.min(d, (this.clock - p.started) * Character.options.speed);
+        a.time = Math.min(cap, (this.clock - p.started) * Character.options.speed);
       } else if (this.current.key.startsWith('charge_')) {
         const moveId = this.current.key.slice(7);
         const conf = this.moveAnims?.[moveId];
@@ -603,11 +613,11 @@ export class Character {
           a.time = loopStart + ((elapsed - loopEnd) % loopLen);
         }
       } else if (ONE_SHOT.has(this.current.key) || this.current.key.startsWith('release_')) {
-        a.time = Math.min(d, (this.clock - this.current.started) * s);
+        const elapsed = (this.clock - this.current.started) * s;a.time = playback.loop ? elapsed % Math.max(.001, cap) : Math.min(cap, elapsed);
       } else if (TIMED.has(this.current.key)) {
-        a.time = Math.min(d, Math.max(0, this.progress(f, this.current.key)) * d);
+        const timed = Math.max(0, this.progress(f, this.current.key)) * cap;a.time = playback.loop ? timed % Math.max(.001, cap) : Math.min(cap, timed);
       } else {
-        a.time = (a.time + dt * s) % d;
+        const next = a.time + dt * s;a.time = playback.loop ? next % Math.max(.001, cap) : Math.min(cap, next);
       }
     }
     this.mixer.update(0);

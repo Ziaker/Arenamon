@@ -2,7 +2,7 @@
 
 // Grupos da lista de estados (cada estado do combate aponta para um bloco de animação).
 const GROUPS = [
-  ['loco', '🏃', 'Locomoção', ['idle', 'turn', 'walk', 'run', 'sprint', 'walk_stop', 'sprint_stop', 'walk_back', 'walk_left', 'walk_right']],
+  ['loco', '🏃', 'Locomoção', ['idle', 'turn', 'walk', 'walk_back', 'walk_left', 'walk_right', 'run', 'run_back', 'run_left', 'run_right', 'sprint', 'sprint_back', 'sprint_left', 'sprint_right', 'walk_stop', 'sprint_stop']],
   ['tackle', '💥', 'Tackle e carga', ['tackle', 'tackle_charge', 'tackle_pl2', 'tackle_pl3', 'brake', 'meteor_prep', 'meteor_dive', 'meteor_ground']],
   ['dodge', '💨', 'Esquiva e salto', ['dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'jump']],
   ['guard', '🛡', 'Defesa', ['block_start', 'block', 'block_end', 'guard_impact', 'blocked']],
@@ -14,7 +14,7 @@ const FIGHTER = ['Azul', 'Vermelho'], FIGHTER_ICON = ['🔵', '🔴'];
 
 export function installNewPanel(ctx) {
   const {ui, $, hooks, onCharactersChanged, setCharacter, escape, loadStudioFile, loadAnimationFile, validateAnimations, ACTION_IDS, ACTION_LABELS, STATE_LABELS, fold, openState, validationBox, heightBox, telemetryBox} = ctx;
-  const view = {fighter: 0, filter: 'all', group: 'all', text: '', hover: true, dragClip: null, open: new Set(GROUPS.map(g => g[0])), libText: ''};
+  const view = {fighter: 0, filter: 'all', group: 'all', text: '', hover: true, dragClip: null, open: new Set(GROUPS.map(g => g[0])), libText: '', tabsHidden: false, libraryHidden: false};
 
   function render() {
     const box = $('char-slots');if (!box) return;
@@ -63,8 +63,8 @@ export function installNewPanel(ctx) {
     if (ch.missingAssociations?.length) {const w = document.createElement('p');w.className = 'warn';w.textContent = `Associações salvas sem clipe (reimporte): ${ch.missingAssociations.join(', ')}.`;el.append(w);}
     const live = document.createElement('p');live.className = 'hint char-live';live.dataset.char = id;el.append(live);
     el.append(summaryBar(id, ch));
-    const grid = document.createElement('div');grid.className = 'cs-grid';
-    grid.append(statesList(id, ch), libraryPane(id, ch));
+    const grid = document.createElement('div');grid.className = 'cs-grid' + (view.libraryHidden ? ' library-hidden' : '');
+    grid.append(statesList(id, ch));if (!view.libraryHidden) grid.append(libraryPane(id, ch));
     el.append(grid);
     const adv = document.createElement('div');adv.className = 'cs-adv';
     adv.append(validationBox(id, ch), heightBox(id, ch), telemetryBox(id, ch));
@@ -77,11 +77,14 @@ export function installNewPanel(ctx) {
     const own = ACTION_IDS.filter(a => ch.variantsOf(a).length), missing = ACTION_IDS.length - own.length;
     const bar = document.createElement('div');bar.className = 'cs-summary';
     bar.innerHTML = `<div class="cs-count"><b>${own.length} de ${ACTION_IDS.length}</b> estados com animação própria · <span class="${missing ? 'warn' : 'ok'}">${missing} usam o clipe de reserva (“parado” ou o do tackle)</span></div>
-      <div class="cs-filters" role="group" aria-label="Filtro por situação">${[['all', 'Todos'], ['missing', 'Sem animação'], ['own', 'Com animação']].map(([k, t]) => `<button type="button" data-flt="${k}" aria-pressed="${view.filter === k}">${t}</button>`).join('')}</div>
-      <div class="cs-groups" role="group" aria-label="Grupo">${[['all', 'Todos os grupos'], ...GROUPS.map(g => [g[0], `${g[1]} ${g[2]}`])].map(([k, t]) => `<button type="button" data-grp="${k}" aria-pressed="${view.group === k}">${t}</button>`).join('')}</div>
+      <button type="button" data-tabs>${view.tabsHidden ? 'Mostrar abas' : 'Ocultar abas'}</button><button type="button" data-library>${view.libraryHidden ? 'Mostrar biblioteca' : 'Ocultar biblioteca'}</button>
+      <div class="cs-filters" role="group" aria-label="Filtro por situação" ${view.tabsHidden ? 'hidden' : ''}>${[['all', 'Todos'], ['missing', 'Sem animação'], ['own', 'Com animação']].map(([k, t]) => `<button type="button" data-flt="${k}" aria-pressed="${view.filter === k}">${t}</button>`).join('')}</div>
+      <div class="cs-groups" role="group" aria-label="Grupo" ${view.tabsHidden ? 'hidden' : ''}>${[['all', 'Todos os grupos'], ...GROUPS.map(g => [g[0], `${g[1]} ${g[2]}`])].map(([k, t]) => `<button type="button" data-grp="${k}" aria-pressed="${view.group === k}">${t}</button>`).join('')}</div>
       <input type="search" class="state-search" data-q value="${escape(view.text)}" placeholder="🔍 Buscar estado ou clipe…" aria-label="Buscar estado ou clipe">`;
     for (const b of bar.querySelectorAll('[data-flt]')) b.onclick = () => {view.filter = b.dataset.flt;render();};
     for (const b of bar.querySelectorAll('[data-grp]')) b.onclick = () => {view.group = b.dataset.grp;render();};
+    bar.querySelector('[data-tabs]').onclick = () => {view.tabsHidden = !view.tabsHidden;render();};
+    bar.querySelector('[data-library]').onclick = () => {view.libraryHidden = !view.libraryHidden;render();};
     bar.querySelector('[data-q]').oninput = e => {view.text = e.target.value.trim().toLowerCase();applyFilters(e.target.closest('.char-slot'));};
     return bar;
   }
@@ -131,7 +134,8 @@ export function installNewPanel(ctx) {
     });
     const more = row.querySelector('.state-more'), btn = row.querySelector('[data-more]'), key = `${id}:${action}`;
     const fill = () => {
-      more.innerHTML = `<p class="hint">Variantes sorteadas a cada execução (a principal é a A). O sorteio é feito na entrada do estado e o replay repete a escolha.</p><div class="chips"></div><select data-add aria-label="Adicionar variante">${['<option value="">+ adicionar variante…</option>', ...ch.clips.map((c, i) => `<option value="${i}" ${ch.clipInfo[i].compatible && !list.includes(i) ? '' : 'disabled'}>${escape(c.name)}</option>`)].join('')}</select><label class="state-speed">Velocidade <input type="range" min="0.25" max="3" step="0.05" value="${ch.speeds[action] ?? 1}" ${list.length ? '' : 'disabled'} aria-label="Velocidade de ${action}"><output>${(ch.speeds[action] ?? 1).toFixed(2)}×</output></label>`;
+      const playback = ch.playbackOf(action);
+      more.innerHTML = `<p class="hint">O seletor principal troca a animação. Somente “adicionar variante” cria animações extras sorteadas na entrada do estado.</p><div class="chips"></div><select data-add aria-label="Adicionar variante">${['<option value="">+ adicionar variante…</option>', ...ch.clips.map((c, i) => `<option value="${i}" ${ch.clipInfo[i].compatible && !list.includes(i) ? '' : 'disabled'}>${escape(c.name)}</option>`)].join('')}</select><label class="state-speed">Velocidade <input data-speed type="range" min="0.25" max="3" step="0.05" value="${ch.speeds[action] ?? 1}" ${list.length ? '' : 'disabled'} aria-label="Velocidade de ${action}"><output>${(ch.speeds[action] ?? 1).toFixed(2)}×</output></label><div class="state-playback"><label class="check"><input data-loop type="checkbox" ${playback.loop ? 'checked' : ''}> Repetir em loop</label><label>Duração máxima <input data-duration type="number" min="0" max="60" step="0.05" value="${playback.maxDuration}" aria-label="Duração máxima de ${action}"> s <small>0 = clipe inteiro</small></label></div>`;
       const chips = more.querySelector('.chips');
       list.forEach((index, k) => {
         const chip = document.createElement('div');chip.className = 'chip-variant';
@@ -142,7 +146,9 @@ export function installNewPanel(ctx) {
         chips.append(chip);
       });
       more.querySelector('[data-add]').onchange = e => {if (e.target.value !== '' && ch.addVariant(action, Number(e.target.value))) {render();onCharactersChanged();}};
-      const r = more.querySelector('input'), o = more.querySelector('output');r.oninput = () => {ch.speeds[action] = Number(r.value);o.textContent = `${Number(r.value).toFixed(2)}×`;};r.onchange = () => {ch.save();onCharactersChanged();};
+      const r = more.querySelector('[data-speed]'), o = more.querySelector('output');r.oninput = () => {ch.speeds[action] = Number(r.value);o.textContent = `${Number(r.value).toFixed(2)}×`;};r.onchange = () => {ch.save();onCharactersChanged();};
+      more.querySelector('[data-loop]').onchange = e => {const p = ch.playback[action] ??= {};p.loop = e.target.checked;ch.save();onCharactersChanged();};
+      more.querySelector('[data-duration]').onchange = e => {const p = ch.playback[action] ??= {};p.maxDuration = Math.max(0, Number(e.target.value) || 0);ch.save();onCharactersChanged();};
     };
     const set = open => {openState.set(key, open);more.hidden = !open;btn.setAttribute('aria-expanded', String(open));btn.textContent = (open ? '▾' : '▸') + extra;if (open) fill();};
     btn.onclick = () => set(more.hidden);if (openState.get(key)) set(true);

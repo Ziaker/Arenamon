@@ -14,7 +14,7 @@ try {
   await page.click('#act-tabs [data-act="tackle"]');
   for (const [key, value] of Object.entries({enableSmear: 0, smearDurationFrames: 4, smearMinVelocity: 20, smearWidth: .3, smearColorMode: 2, smearOpacity: .5, smearPlBoost: 0})) {
     const input = page.locator(`#act-tackle [data-path="extras.visual.smear.${key}"]`).filter({visible: true});
-    assert.equal(await input.count(), 1);
+    assert.equal(await input.count(), 1, `controle visível ausente: extras.visual.smear.${key}`);
     const before = await page.evaluate(key => window.__lab.C.extras.visual.smear[key], key);
     await input.evaluate((el, value) => {
       if (el.type === 'checkbox') el.checked = !!value;

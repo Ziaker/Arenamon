@@ -36,8 +36,6 @@ A cor do personagem usa o material principal e, quando disponível, a média da 
 Testes específicos: smear.test.mjs e smear.browser.mjs. Cobrem sete controles com desfazer, velocidade mínima, estados, PL2/PL3, cores, duração em 30–240 Hz, 100 disparos sem crescimento de recursos, reset e descarte na troca de personagem.
 O teste no navegador usa chars/mosh/Cogumelo.glb e chars/croagunk/croagunk-rigged.glb; os quatro pontos do Croagunk são verificados com seu GLB de 13 clipes. A captura usa largura 0,30 m e cor de destaque para tornar as lâminas legíveis. As âncoras de Vigoroth e o fallback são testados com ossos sintéticos, sem afirmar validação visual de todo o acervo.
 A medição de CPU da rotina não garante 60 FPS do jogo completo em qualquer GPU/modelo. Não foi feita uma comparação de FPS em todas as máquinas ou personagens.
-Como na entrega anterior, npm run verify rejeita o worktree por exigir literalmente o checkout principal; os demais comandos são executados separadamente.
-
-Validação final em 20/10/2026: `npm test`, `npm run typecheck`, `npm run check:offline` e `npm run build:combat-lab` passaram. A suíte específica de navegador foi repetida após melhorar a captura do Croagunk e o aquecimento do benchmark.
+O recurso está integrado ao jogo oficial e seus controles ficam em Ações → Tackle.
 No benchmark delimitado (Edge headless, Intel UHD, dois Cogumelos, pose de Tackle e movimento oscilante PL3, 120 intervalos após aquecimento), foram medidos 60 FPS tanto sem quanto com Smear; P95 do quadro com efeito: 17,1 ms. P95 de atualização da rotina: 0,10 ms. Isso não representa todos os combates ou equipamentos.
 O [resumo de validação](../prototypes/combat-lab/evidence/limb-smear/validacao.json) e as capturas do Cogumelo, Croagunk e controles estão no relatório.

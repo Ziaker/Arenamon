@@ -31,10 +31,4 @@ Os testes de janelas de combate, antes fora dos comandos principais, agora parti
 Testes específicos: squash-stretch.test.mjs e squash-stretch.browser.mjs. O segundo usa Edge offline e o modelo chars/mosh/Cogumelo.glb.
 Não foi feita análise dedicada do impacto deste efeito em FPS/GPU nem validação visual de todos os personagens do acervo.
 
-## Entrega isolada
-
-Por solicitação do usuário, a entrega permanece na branch codex/tackle-squash-stretch, no worktree temporário interno .worktrees/squash-stretch. Abra JOGAR_ARENAMON.html desse worktree; o checkout principal não recebeu esta mudança. Os portais e relatórios dessa cópia incluem os links da entrega.
-
-npm run verify exige literalmente o checkout principal e rejeita este worktree autorizado. A validação funcional é executada separadamente: npm test, npm run typecheck e npm run check:offline.
-
-Validação concluída em 19/10/2026: npm test (exit 0), npm run typecheck, npm run check:offline e build:combat-lab aprovados. Detalhes no relatório navegável.
+O recurso está integrado ao jogo oficial e seus controles ficam em Ações → Tackle.
