@@ -131,3 +131,14 @@ Cada entrada: data · tarefa · skill · o que foi aplicado de fato.
   (interpolação não altera o estado; teste compara a simulação ligada × desligada).
 - **Skill `performance-optimization`:** *medir antes de mexer*: oráculo + varredura geraram números antes/depois (1,00 m → 0,23 m; alcance 6,2 → 5,7 m).
 
+
+### 2026-10-21 — Laboratório HUD de progressão e consumíveis (v1.14.6)
+
+- **Tarefa:** protótipo visual de 3 HUDs (5 atributos, estágios 0–4) e 3 coleções de 7 consumíveis (`docs/HUD_CONSUMIVEIS_LAB.md`).
+- **Skill `threejs-scene-setup`:** *renderer + `setAnimationLoop`/resize + OrbitControls com limite polar* → arena com câmera interativa
+  e presets animados; *PMREM de `RoomEnvironment`* para o metal da coleção C funcionar offline.
+- **Skill `threejs-materials-lighting`:** *flat shading + emissivo* (coleção A), *`MeshToonMaterial` com gradiente de 3 tons e contorno de
+  casco invertido* (B) e *PBR metálico com faixas emissivas* (C); luz direcional com sombra e duas luzes de recorte.
+- **Skill `game-feel`:** *squash & stretch e saltitar elástico* (B), pulsos de emissão (A/C) e animação ao ganhar estágio nos HUDs.
+- **three.quarks:** emissores localizados por coleção (cada `ParticleSystem` já cria o próprio `emitter`; usar `system.emitter`, e não um
+  `new ParticleEmitter(system)` separado, que fica fora da cena e é descartado no primeiro `update`).
