@@ -303,6 +303,7 @@ $('scenario-all').onclick = () => {
 // ---------- Ajustes ----------
 function applyConfig() {
   view.applyConfig();const root = document.documentElement.style, X = C.extras;
+  view.abilityBanners?.applyConfig();
   root.setProperty('--arena-hud-scale', X.hud.uiScale);root.setProperty('--arena-notice-font', X.fx.noticeFontSize + 'px');root.setProperty('--arena-clash-font', X.fx.clashNoticeFontSize + 'px');
   for (const f of game.fighters) {
     const profile = C.profiles[f.id === 0 ? game.profile : game.enemyProfile] || C.profiles.balanced;
