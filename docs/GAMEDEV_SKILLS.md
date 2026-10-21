@@ -142,3 +142,13 @@ Cada entrada: data · tarefa · skill · o que foi aplicado de fato.
 - **Skill `game-feel`:** *squash & stretch e saltitar elástico* (B), pulsos de emissão (A/C) e animação ao ganhar estágio nos HUDs.
 - **three.quarks:** emissores localizados por coleção (cada `ParticleSystem` já cria o próprio `emitter`; usar `system.emitter`, e não um
   `new ParticleEmitter(system)` separado, que fica fora da cena e é descartado no primeiro `update`).
+
+### 2026-10-21 — Laboratório HUD de vida, stamina e moves (v1.15.5)
+
+- **Tarefa:** protótipo visual de 3 HUDs (Impacto, Quadrinhos, Clássico) para vida, stamina e 4 moves (`docs/HUD_VIDA_STAMINA_MOVES_LAB.md`).
+- **Skill `threejs-scene-setup`:** *renderer + loop + resize + OrbitControls com limite polar* e presets de câmera com interpolação (testar o HUD
+  de vários ângulos); *`ResizeObserver` no palco* porque a gaveta de controles muda a largura útil.
+- **Skill `threejs-materials-lighting`:** três temas de arena (escuro, claro, quente) trocando textura do piso, cor dos blocos e intensidade das
+  luzes, para checar a legibilidade dos HUDs contra fundos diferentes.
+- **Skill `game-feel`:** *feedback legível por forma e movimento, não só por cor* (carga treme, vida crítica pulsa, selecionado avança).
+- **Superpowers:** `brainstorming` (dispensada pelo pedido de execução direta), `verification-before-completion` (verify de navegador antes de declarar pronto).
