@@ -8,6 +8,8 @@ import {wouldVault, cancelWindow} from '../sim/controller.js';
 import {CameraRig} from './rig.js';
 import {VfxSystem} from './vfx.js';
 import {SolidFx} from './solid-fx.js';
+import {PassiveAbilitySystem} from './passive-abilities.js';
+import {createPassiveBanners} from '../ui/passive-banner.js';
 import {WorldView} from './world-view.js';
 import {phaseAt} from '../sim/motion.js';
 // Novo sistema de VFX declarativo (ativado ao lado do legado durante a migração).
@@ -47,6 +49,8 @@ export class View {
     this.vfxRuntime = new VfxRuntime(this.scene, {camera: this.camera, canvas, flashEl: document.getElementById('vfx-flash'), quality: 'medium'});
     registerAllEffects(this.vfxRuntime);
     this.solid = new SolidFx(this.scene); // malhas 3D sólidas (poeira do dash, esquiva, impactos); independe do renderizador de sprites
+    this.abilityBanners = createPassiveBanners();
+    this.passives = new PassiveAbilitySystem(this.scene, {notify: (id, name) => this.abilityBanners.show(id, name)});
     this.useNewVfx = false; // trocar para true quando o novo sistema estiver em paridade
     this.overlayGroup = new T.Group();this.overlayGroup.renderOrder = 900;this.scene.add(this.overlayGroup);
     this.worldView = new WorldView(this.scene);
@@ -76,12 +80,13 @@ export class View {
     if (this.gridKey !== gridKey) {this.gridKey = gridKey;const fresh = new T.GridHelper(32, V.gridDivisions, rgb('gridMajor'), rgb('gridMinor'));this.grid.geometry.dispose();this.grid.geometry = fresh.geometry;fresh.material.dispose();}
     this.ambientLight.intensity = V.ambientLightIntensity;this.directionalLight.intensity = V.directionalIntensity;this.directionalLight.position.set(V.lightX, V.lightY, V.lightZ);
     this.renderer.setPixelRatio(Math.min(devicePixelRatio, V.renderPixelRatio));
+    this.abilityBanners.applyConfig();
   }
   reset(player) {
     this.rig.reset(player);this.seenEvents = new WeakSet();this.legacySeen = new WeakSet();this.cameraShake = 0;for (const e of this.effects) {this.scene.remove(e.mesh);e.mesh.geometry.dispose();e.mesh.material.dispose();}this.effects = [];this.airborneSeen = [];this.invulnerableFx.clear();this.normals = [];this.vfx.reset();
     if (this.canvas) this.canvas.style.filter = '';
     this.vfxRuntime.reset();
-    this.solid.reset();
+    this.solid.reset();this.passives.reset();this.abilityBanners.clear();
   }
   /** Efeitos legados do v6 (partículas em caixa e tremor antigo). Só com “Efeitos legados” ligado em Visualizar. */
   spawnBurst(pos, type) {
@@ -186,6 +191,7 @@ export class View {
       this.vfxRuntime.beamRenderer?.reset();
     }
     this.solid.update(fighters, events, vfxDt, {visible: !!X.hud.fxVisible, world});
+    t0 = now();this.passives.update(fighters, vfxDt, {characters: this.characters, visible: !!X.hud.fxVisible && !!C.vfx.master.enabled});tm.vfx += now() - t0;
     const legacy = this.updateLegacy(fighters, events, paused ? 0 : dt);
     const fxOn = !!X.hud.fxVisible;
     const legacyOn = fxOn && !this.useNewVfx && !!this.vfx.atlas;
@@ -214,6 +220,7 @@ export class View {
       this.gpuTimer?.begin();t0 = now();this.renderer.render(this.scene, this.camera);tm.render = now() - t0;this.gpuTimer?.end();
     }
   }
+  previewPassive(id, kind) {this.passives.activate(id, kind);}
   // ---------- Sobreposições técnicas (recriadas a cada quadro em um grupo próprio; materiais/geometrias descartados) ----------
   clearOverlays() {for (const o of [...this.overlayGroup.children]) {this.overlayGroup.remove(o);o.geometry?.dispose();o.material?.dispose();}}
   line(points, color, opacity = .9) {

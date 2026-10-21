@@ -1,0 +1,13 @@
+{
+  "ok": true,
+  "names": [
+    "Órbita",
+    "Prisma"
+  ],
+  "minFontPx": 36,
+  "followsCharacter": true,
+  "mirroredEdges": true,
+  "borderModes": 3,
+  "controls": 5,
+  "errors": []
+}

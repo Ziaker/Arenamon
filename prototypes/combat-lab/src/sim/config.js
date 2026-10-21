@@ -204,6 +204,8 @@ export function displayDefaults() {
     animation: {fade: .18, actionFade: .07, locomotionHold: .1, speed: 1},
     // Diagnóstico de comandos (só apresentação): aviso na arena 0 = desligado, 1 = só o jogador, 2 = ambos.
     diagnostics: {toast: 1, toastMs: 1400, logExecuted: 0},
+    // Habilidades passivas: propostas visuais A/B/C no início da luta. Só apresentação; não altera regras ou atributos.
+    passive: {enabled: 1, playerAbility: 0, enemyAbility: 1, borderMotion: 0, textScale: 1.2},
     // Indicadores das janelas de combate acima dos lutadores (tempos lidos da simulação). mode: 0 desligado, 1 jogador, 2 ambos.
     // Medidor de desempenho: caixa compacta na arena (0/1). Só apresentação.
     perf: {overlay: 0},
