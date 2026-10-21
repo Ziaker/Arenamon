@@ -19,6 +19,7 @@ import {actionProgress} from './motion.js';
 import {report, attemptsActive} from './attempts.js';
 import {getGroundHeight} from './physics.js';
 import {passiveCost} from './passive-engine.js';
+import {markerValidity, markerInitial, markerMove} from './aim-marker.js';
 
 /** Aceleração/frenagem/reversão da locomoção comum no modelo do v6 (mantido para compatibilidade). */
 export function approachVelocity(current, desired, dt) {return legacyApproach(current, desired, C.locomotion, dt);}
@@ -298,6 +299,7 @@ export function updateFighter(f, cmd, fighters, dt, world = null) {
     }
   }
   if (f.tackleCharge && (f.flight || f.knockRecovery > 0 || f.hp <= 0)) cancelTackleCharge(f, 'hit');   // golpe sofrido: a carga do tackle cai e a stamina gasta não volta
+  if (f.aim && (f.flight || f.knockRecovery > 0 || f.hp <= 0 || f.stun > 1e-8 || hasFlag(f, 'stunned') || hasFlag(f, 'silenced'))) cancelAim(f, f.hp <= 0 ? 'defeated' : 'hit');   // golpe sofrido: o marcador some sem custo
   if (f.charge && (f.flight || f.knockRecovery > 0 || f.hp <= 0)) cancelCharge(f, f.hp <= 0 ? 'defeated' : 'hit');   // golpe com lançamento, recuperação ou perda de apoio (M15.3, M27.1)
   if (f.flight) {
     // Meteor slam de quem está no ar (salto normal com Espaço ou lançado): X no ar vira mergulho oblíquo (não vale preso na parede nem sem stamina).
@@ -350,7 +352,8 @@ export function updateFighter(f, cmd, fighters, dt, world = null) {
   if (f.hp <= 0) {f.state = 'defeated';f.velocity = vec();f.action = null;f.push = null;f.vaultHeight = 0;f.bufferedTackle = null;return;}
   if (f.knockRecovery > 0) {f.knockRecovery = Math.max(0, f.knockRecovery - dt);if (f.knockRecovery <= 0) f.recoveryFrom = null;f.vaultHeight = 0;f.velocity = vec();f.locomotionVelocity = vec();f.action = null;f.guard = false;f.bufferedTackle = null;f.state = f.brakeLeft > 0 ? 'brake' : 'landing';f.brakeLeft = Math.max(0, (f.brakeLeft ?? 0) - dt);return;}
   const target = fighters.find(o => o.id === cmd.target && o.hp > 0);
-  const move = length(cmd.move) > 1 ? normalize(cmd.move) : cmd.move;
+  const inputMove = length(cmd.move) > 1 ? normalize(cmd.move) : cmd.move;
+  const move = f.aim ? vec() : inputMove;   // mirando com marcador, a direção move o marcador e o corpo fica parado (MV-P29)
   // Mira (ataques sem direção, prévia): o alvo, se houver. Orientação do corpo: ver faceGoal abaixo.
   const desiredHeading = target ? angleOf(sub(target.position, f.position)) : length(move) > 0 ? angleOf(move) : f.facing;
   // Finta: C ou D no startup do tackle cancelam o ataque (só derrapa, sem esquiva); o acerto já feito ou o mergulho impedem.
@@ -402,6 +405,7 @@ export function updateFighter(f, cmd, fighters, dt, world = null) {
   }
   if (cmd.guard && T.enableDefense && !f.guardSuppressed && open) {
     if (f.charge) cancelCharge(f, 'guard');
+    if (f.aim) cancelAim(f, 'guard');
     if (f.action && (f.action.kind === 'dodge' || f.action.kind === 'tackle')) f.blend = {from: {...f.velocity}, elapsed: 0};
     if (f.action?.kind === 'recoil') {f.velocity = vec();f.blend = null;}
     f.action = null;f.vaultHeight = 0;f.guard = true;
@@ -439,7 +443,7 @@ export function updateFighter(f, cmd, fighters, dt, world = null) {
     const fresh = kind === requested && !fromBuffer, fromStun = !requested && !fromBuffer;
     if (permission.buffer) {f.bufferedTackle = {move: {...dirs.move}, dodgeDirection: dirs.dodgeDirection && {...dirs.dodgeDirection}};f.inputBuffer = null;if (diag && fresh) report(f, {kind, result: 'buffered', reason: permission.reason, detail: permission.detail, note: 'sai quando o guard stun acabar'});}
     else if (permission.ok && affordable) {
-      const via = permission.viaCancel;if (f.charge) cancelCharge(f, 'dodge');
+      const via = permission.viaCancel;if (f.charge) cancelCharge(f, 'dodge');if (f.aim) cancelAim(f, 'action');
       const chargeIt = kind === 'tackle' && T.enableChargeTackle && fresh && !via && !f.action && !f.sprinting && !!cmd.tackleHeld && !f.charge, sprintX = kind === 'tackle' && T.enableChargeTackle && fresh && f.sprinting && !via;
       if (chargeIt) {startTackleCharge(f, p);if (diag) report(f, {kind: 'tackle', result: 'executed', note: 'carga iniciada'});return;}
       startAction(f, kind, dirs, fighters, desiredHeading, via, cmd.guard, !!target && !!cmd.locked);if (fromBuffer) f.action.buffered = true;
@@ -453,8 +457,9 @@ export function updateFighter(f, cmd, fighters, dt, world = null) {
     }
   }
   // Movimento especial (slot): X/C pedidos no mesmo passo têm prioridade. Mesmo controlador, stamina e diagnóstico.
-  if (!kind && cmd.skill != null && f.hp > 0) pressSkill(f, cmd, move, desiredHeading, !!target, diag, fighters);
+  if (!kind && cmd.skill != null && f.hp > 0) pressSkill(f, cmd, move, desiredHeading, !!target, diag, fighters, world);
   else if (!kind && f.skillBuffer && f.hp > 0) bufferedSkill(f, cmd, diag);
+  if (f.aim) stepAim(f, cmd, inputMove, {desiredHeading, hasTarget: !!target, fighters, world, dt, diag});   // marcador: mover, confirmar ou cancelar
   if (f.charge) stepCharge(f, cmd, {move, desiredHeading, hasTarget: !!target, fighters});   // soltar o Move: depois de defesa e X/C (M30.9)
   // Esquiva → sprint: C ainda pressionado, com direção, a partir de entryFraction da esquiva (ou logo depois dela).
   const S = A.sprint, L = C.locomotion;
@@ -762,6 +767,46 @@ function startRiposteStrike(f, action) {
   a.riposteStrike = true;
   moveEvent(f, {result: 'riposteStrike', move: def.id, slot: action.slot, target: action.riposte.target});
 }
+// ---------- Mira por marcador (aimMode 'marker') ----------
+/** Abre o marcador: nada é cobrado até a confirmação; os parâmetros do grupo são capturados agora (M28.4). */
+function startAim(f, def, slot, fighters, world, lockId) {
+  const P = structuredClone(C.world[def.group]), locked = lockId != null ? fighters.find(o => o.id === lockId && o.hp > 0) : null;
+  const pos = markerInitial(f, P, locked), v = markerValidity(f, P, pos, world, fighters);
+  f.aim = {move: def.id, slot, ticks: 0, params: P, def, pos, valid: v.valid, reason: v.reason, y: v.y, distance: v.distance};
+  f.guard = false;f.guardSuppressed = false;f.sprinting = false;f.sprintCarry = false;f.velocity = vec();f.locomotionVelocity = vec();
+  moveEvent(f, {result: 'aimStart', move: def.id, slot});
+}
+/** Fecha o marcador sem executar nem cobrar. */
+export function cancelAim(f, why) {
+  const a = f.aim;if (!a) return;
+  f.aim = null;moveEvent(f, {result: 'aimCancel', move: a.move, slot: a.slot, reason: why});
+  if (attemptsActive()) report(f, {kind: 'skill', slot: a.slot, move: a.move, result: 'denied', reason: 'aimEnded', detail: {why}});
+}
+/** Um passo do marcador: move, revalida e, ao SOLTAR o botão, confirma (válido: cobra e começa o cast) ou cancela (inválido: sem custo). */
+function stepAim(f, cmd, inputMove, ctx) {
+  const a = f.aim, def = a.def ?? getMove(a.move);   // a definição EFETIVA do momento em que o marcador abriu (M28.4)
+  if (!def) {f.aim = null;return;}
+  a.pos = markerMove(a.pos, inputMove, a.params.markerSpeed, ctx.dt);
+  const v = markerValidity(f, a.params, a.pos, ctx.world, ctx.fighters);
+  a.valid = v.valid;a.reason = v.reason;a.y = v.y;a.distance = v.distance;
+  if (a.ticks > 0 && !cmd.skillHeld?.[a.slot]) {
+    f.aim = null;
+    const perm = a.valid ? movePermission(f, def, a.slot) : {ok: false, reason: 'invalidMarker', detail: {why: a.reason}};
+    if (!perm.ok) {
+      moveEvent(f, {result: 'aimCancel', move: def.id, slot: a.slot, reason: perm.reason, detail: perm.detail});
+      if (ctx.diag) report(f, {kind: 'skill', slot: a.slot, move: def.id, result: 'denied', reason: perm.reason, detail: perm.detail});
+      return;
+    }
+    const heading = angleOf(sub(a.pos, f.position));
+    startMove(f, def, a.slot, {move: vec(), lock: null}, heading, false, cmd.guard);
+    f.action.params = a.params;
+    f.action.heading = f.action.startAngle = heading;f.action.marker = {pos: {...a.pos}, y: a.y};   // destino FIXO em coordenadas do mundo
+    moveEvent(f, {result: 'aimConfirm', move: def.id, slot: a.slot, x: a.pos.x, z: a.pos.z});
+    if (ctx.diag) report(f, {kind: 'skill', slot: a.slot, move: def.id, result: 'executed', note: 'marcador confirmado'});
+    return;
+  }
+  a.ticks++;
+}
 /** Um passo do movimento em curso: deslocamento (motion), orientação e efeitos da linha do tempo que vencem neste passo. */
 function updateMove(f, action, target, cmd, dt) {
   const def = action.def ?? getMove(action.move);if (!def) {f.velocity = vec();return;}
@@ -775,7 +820,7 @@ function updateMove(f, action, target, cmd, dt) {
   } else if (m.type === 'root') f.velocity = vec();
   else {const from = action.from ?? vec(), k = Math.exp(-12 * dt);f.velocity = scale(from, k);action.from = {...f.velocity};}
   if (!def.keepFacing) turnToward(f, target && def.aim !== 'facing' ? angleOf(sub(target.position, f.position)) : action.heading, dt);   // keepFacing: recuo sem virar o corpo (Feint)
-  (def.timeline || []).forEach((ev, i) => {if (!action.fired.includes(i) && ev.at <= action.elapsed + dt + 1e-9) {action.fired.push(i);(f.moveFx ??= []).push({index: i, move: def.id, heading: action.heading, params: action.params ?? null, def, lock: action.lock ?? null});}});
+  (def.timeline || []).forEach((ev, i) => {if (!action.fired.includes(i) && ev.at <= action.elapsed + dt + 1e-9) {action.fired.push(i);(f.moveFx ??= []).push({index: i, move: def.id, heading: action.heading, params: action.params ?? null, def, lock: action.lock ?? null, marker: action.marker ?? null});}});
   f.state = 'move';
 }
 // ---------- Movimentos de carga (Charge): segurar o botão carrega, soltar executa ----------
@@ -842,12 +887,13 @@ function boostCooldown(f, def, slot, diag) {
   if (diag) report(f, {kind: 'skill', slot, move: def.id, result: 'executed', note: `recarga encurtada em ${plan.reduce.toFixed(2)} s (−${cost.toFixed(2)} de stamina)`});
 }
 /** Toque num slot (borda do botão): inicia o movimento, encurta a recarga, guarda no buffer ou nega com motivo. */
-function pressSkill(f, cmd, move, desiredHeading, hasTarget, diag, fighters = []) {
+function pressSkill(f, cmd, move, desiredHeading, hasTarget, diag, fighters = [], world = null) {
   const slot = cmd.skill, def = moveInSlot(f, slot), onCooldown = !!def && (f.moveCooldowns?.[def.id] ?? 0) > 1e-8;
   const deny = (reason, detail) => {if (diag) report(f, {kind: 'skill', slot, move: def?.id ?? null, result: 'denied', reason, detail});};
   f.skillBuffer = null;
   if (def?.cooldownBoost && onCooldown) return boostCooldown(f, def, slot, diag);
   if (def?.feint) return pressFeint(f, cmd, def, slot, move, desiredHeading, hasTarget, diag);   // cancela a carga/ação ofensiva em curso (ou só recua)
+  if (f.aim) return deny('aiming');                                       // um marcador de cada vez
   if (f.charge) return deny('charging');                                  // sem carregamentos simultâneos (M16.4)
   if (def?.charge) {
     const perm = chargePermission(f, def, slot);
@@ -857,6 +903,7 @@ function pressSkill(f, cmd, move, desiredHeading, hasTarget, diag, fighters = []
     return;
   }
   const perm = movePermission(f, def, slot);
+  if (perm.ok && def.aimMode === 'marker') {startAim(f, def, slot, fighters, world, hasTarget ? cmd.target : null);if (diag) report(f, {kind: 'skill', slot, move: def.id, result: 'executed', note: 'marcador aberto'});return;}
   if (perm.ok && def.tackle) startTackleMove(f, def, slot, {move, dodgeDirection: cmd.dodgeDirection}, desiredHeading, hasTarget, cmd.guard, fighters);
   else if (perm.ok) startMove(f, def, slot, {move, dodgeDirection: cmd.dodgeDirection, lock: hasTarget ? cmd.target ?? null : null}, desiredHeading, hasTarget, cmd.guard);
   if (diag) report(f, {kind: 'skill', slot, move: def?.id ?? null, result: perm.ok ? 'executed' : 'denied', reason: perm.reason, detail: perm.detail});

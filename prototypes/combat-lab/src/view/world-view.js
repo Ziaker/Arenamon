@@ -260,6 +260,19 @@ export class WorldView {
         s.visible = false;
         mesh.add(s);
       }
+    } else if (e.kind === 'trap') {
+      // Armadilha de espinhos: 5 a 7 cones cristalinos em anel + um central; o raio visual é o raio real do campo (a física manda, o desenho acompanha).
+      mesh = new T.Group();
+      const n = 6, spikeMat = new T.MeshStandardMaterial({color: 0xd7e6ff, emissive: 0x4f7bff, emissiveIntensity: .55, roughness: .35, metalness: .2, transparent: true, opacity: .95});
+      const coneGeo = new T.ConeGeometry(.16, 1, 6);coneGeo.translate(0, .5, 0);
+      for (let i = 0; i <= n; i++) {
+        const c = new T.Mesh(coneGeo, spikeMat), a = (i / n) * Math.PI * 2, rr = i === n ? 0 : e.radius * .62;
+        c.position.set(Math.sin(a) * rr, 0, Math.cos(a) * rr);c.userData.h = i === n ? 1 : .75 + .2 * Math.sin(i * 2.3);c.name = 'spike';
+        mesh.add(c);
+      }
+      const ringGeo = new T.RingGeometry(.9, 1, 48);ringGeo.rotateX(-Math.PI / 2);
+      const ring = new T.Mesh(ringGeo, new T.MeshBasicMaterial({color: 0x7da8ff, transparent: true, opacity: .45, depthWrite: false, side: T.DoubleSide}));
+      ring.name = 'trapRing';ring.scale.set(e.radius, 1, e.radius);ring.position.y = .02;mesh.add(ring);
     } else if (e.kind === 'area') {
       const geo = new T.CircleGeometry(1, 48);
       geo.rotateX(-Math.PI / 2);
@@ -544,6 +557,15 @@ export class WorldView {
         // Rastro de poeira e partículas telecinéticas
         if (emitTrailsNow && C.vfx?.rock?.trail && dt > 0) {
           this.emitRockTrail(e.pos.x, e.y, e.pos.z, e.vel ?? e.dir, col, scaleVal);
+        }
+      } else if (e.kind === 'trap') {
+        // Brotam em sequência rápida (0,25 s), pulsam de leve e piscam no último segundo; antes de armar ficam translúcidos.
+        m.position.set(e.pos.x, e.y ?? 0, e.pos.z);
+        const grow = Math.min(1, e.age / .25), armed = e.age >= (e.armDelay ?? 0), left = e.life - e.age, blink = left < 1 ? (.5 + .5 * Math.abs(Math.sin(this.time * 24))) : 1;
+        let i = 0;
+        for (const c of m.children) {
+          if (c.name === 'spike') {const k = Math.max(0, Math.min(1, grow * 1.4 - i * .06));c.scale.set(1, (c.userData.h ?? 1) * 1.05 * k, 1);c.material.opacity = (armed ? .95 : .55) * blink;c.material.emissiveIntensity = (armed ? .55 + .2 * Math.sin(this.time * 5 + i) : .25);i++;}
+          else if (c.name === 'trapRing') c.material.opacity = (armed ? .45 : .2) * blink;
         }
       } else if (e.kind === 'area') {
         m.position.set(e.pos.x, (e.y ?? 0) + .03, e.pos.z);

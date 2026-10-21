@@ -188,6 +188,9 @@ export function defaults() {
     // Riposte: Normal Status+Melee PL1. Postura de 0,65 s; entre 0,13 e 0,30 s qualquer acerto elegível (menos Guard Break) é anulado e dispara um contra-golpe PL1 de 6 HP
     // (× Ataque ÷ referência), 3 m/s H, na hora do gatilho (MV-P24); strikeRange = alcance do golpe (não definido no documento: MV-P25). Janela fechada sem acerto = recuperação exposta.
     riposte: {cost: .8, cooldown: 8, cast: .65, windowStart: .13, windowEnd: .30, damage: 6, knockbackH: 3, knockbackV: 0, strikeRange: 1.6},
+    // Spikes: Normal Field PL1. Marcador de colocação (alcance 3D 5 m), cast 0,4 s, armadilha de 1,2 m de raio por 8 s, 6 HP nominais (× Ataque ÷ referência), sem knockback, 1 acionamento.
+    // markerSpeed/startDistance/maxRise/armDelay/trapHeight não vêm do documento (MV-P29/MV-P31): provisórios.
+    spikes: {cost: 1, cooldown: 10, cast: .4, range: 5, radius: 1.2, life: 8, damage: 6, knockbackH: 0, knockbackV: 0, armDelay: .25, markerSpeed: 8, startDistance: 3, minRange: 0, maxRise: 2, trapHeight: 1.2},
     // Bounce: Charge Trick+Melee. Carga máx. 1,2 s (PL1 <50%, PL2 <100%, PL3 em 100%); alturas 1,5/2,5/3,5 m (experimentais); alcance horizontal máx. 6 m; 12 HP nominais
     // (× Ataque ÷ referência), 3 m/s H e 6 m/s V; recuperação 0,25 s após o pouso. gravity/contactRadius/landRadius não vêm do documento (MV-P27/MV-P28): provisórios.
     bounce: {cost: 1.2, cooldown: 12, maxCharge: 1.2, minCharge: 0, maxDistance: 6, heightPl1: 1.5, heightPl2: 2.5, heightPl3: 3.5, gravity: 17.5, damage: 12, knockbackH: 3, knockbackV: 6, landRecovery: .25, contactRadius: .3, landRadius: 1.4},

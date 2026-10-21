@@ -25,6 +25,7 @@ import {QuarksBridge} from './quarks/bridge.js';
 // Diagnóstico da navegação experimental (Fase 3, Yuka): rotas e pontos; criado só com extras.nav.enableNav + showDebug.
 import {NavDebug} from '../nav/nav-debug.js';
 import {StatusAura} from './status-aura.js';
+import {AimMarkers} from './aim-marker-view.js';
 // Pós-processamento experimental (Fase 4, pmndrs/postprocessing sem React): criado só com C.vfx.post.enabled = 1.
 import * as PP from 'postprocessing';
 import {PostPipeline} from './post/post-pipeline.js';
@@ -76,7 +77,7 @@ export class View {
     this.abilityBanners = createPassiveBanners();
     this.passives = new PassiveAbilitySystem(this.scene, {notify: (id, name) => this.abilityBanners.show(id, name)});
     this.navDebug = null; // rotas Yuka (Fase 3), sob demanda
-    this.statusAura = null; // aura dos status dos Moves novos (Harden, Second Wind), sob demanda
+    this.aimMarkers = null;this.statusAura = null; // aura dos status dos Moves novos (Harden, Second Wind), sob demanda
     this.auraSeen = new WeakSet();this.post = null;this.postSeen = new WeakSet();this.postSize = '';   // pós-processamento (Fase 4), sob demanda
     this.quarks = null; // camada three.quarks (Fase 2): instanciada sob demanda quando C.vfx.quarks.enabled
     this.useNewVfx = false; // trocar para true quando o novo sistema estiver em paridade
@@ -338,6 +339,9 @@ export class View {
       const m = C.vfx.master ?? {}, hitIds = new Set(events.filter(e => (e.result === 'impact' || e.result === 'partial') && !this.auraSeen.has(e)).map(e => {this.auraSeen.add(e);return e.target;}));
       (this.statusAura ??= new StatusAura(T, this.scene)).update(fighters, paused ? 0 : dt, {bodyHeight: X.visual.bodyHeight, halfExtent: C.test.halfExtent, reduceMotion: !!(this._a11y?.reduceMotion || m.reduceMotion), noFlash: !!(this._a11y?.noFlash || m.noFlash), hits: hitIds});
     } else if (this.statusAura) {this.statusAura.dispose();this.statusAura = null;}
+    // Marcadores de mira dos Moves com destino: só existem enquanto alguém mira.
+    if (fighters.some(f => f.aim)) (this.aimMarkers ??= new AimMarkers(T, this.scene)).update(fighters, paused ? 0 : dt, {reduceMotion: !!(this._a11y?.reduceMotion || (C.vfx.master ?? {}).reduceMotion)});
+    else if (this.aimMarkers) {this.aimMarkers.dispose();this.aimMarkers = null;}
     // Rotas da navegação experimental (Yuka): só quando ligada e com diagnóstico visível.
     if (navGame && C.extras.nav?.enableNav && C.extras.nav.showDebug) (this.navDebug ??= new NavDebug(T, this.scene)).update(navGame);
     else if (this.navDebug) {this.navDebug.dispose();this.navDebug = null;}

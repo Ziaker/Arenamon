@@ -15,12 +15,13 @@ import {isInvulnerable, nominalDistance, riposteIntercept} from './entity.js';
 import {sweepBox, segmentHitsVolume} from './geometry.js';
 import {launch} from './combat.js';
 import {traceBeam} from './beam.js';
+import {stepTrap} from './trap.js';
 import {applyStatus, stat} from './status.js';
 import {processDamageWithShieldAndStages, damageDestructible, effectiveArenaRadius} from './map.js';
 import {knockbackFactor} from './passive-engine.js';
 import {vec, add, sub, scale, dot, length, normalize, direction, angleOf, angleDelta, clamp} from './math.js';
 
-export const ENTITY_KINDS = ['projectile', 'barrier', 'wall', 'area', 'beam'];
+export const ENTITY_KINDS = ['projectile', 'barrier', 'wall', 'area', 'beam', 'trap'];
 export const createWorld = () => ({entities: [], nextId: 1});
 const fighterHeight = () => C.extras.visual.bodyHeight;
 const altOf = f => (f.flight?.y ?? 0) + (f.vaultHeight ?? 0);
@@ -51,6 +52,7 @@ export const DEFAULTS = {
   wall: {shape: 'box', hx: 1.5, hz: .3, y: 0, height: 2.2, life: Infinity, blocksProjectiles: true, blocksFighters: true},
   beam: {y: .9, life: 2, length: 24, width: .04, pl: 1, interval: .25, turn: 0, hitsOwner: false, hit: {damage: 0}},
   area: {shape: 'circle', radius: 2, y: 0, height: 2, life: .3, grow: 0, pulses: 1, interval: 0, falloff: 'none', affectsOwner: false, follow: false},
+  trap: {shape: 'circle', radius: 1.2, y: 0, height: 1.2, life: 8, armDelay: 0, pl: 1, support: true, affectsOwner: false},
 };
 /** Valida um modelo de entidade (lança erro legível). */
 export function validateEntity(t) {
@@ -167,6 +169,7 @@ export function stepWorld(game, dt) {
     if (e.kind === 'projectile') stepProjectile(game, e, dt, events, spawnLater);
     else if (e.kind === 'area') stepArea(game, e, dt, events);
     else if (e.kind === 'beam') stepBeam(game, e, dt, events);
+    else if (e.kind === 'trap') stepTrap(game, e, dt, events);
     if (!e.dead && e.age >= e.life - 1e-9) {e.dead = true;events.push({result: 'expire', attacker: e.owner ?? null, target: null, damage: 0, entity: e.id, kind: e.kind});if (e.onExpire) spawnLater.push(at(e.onExpire, e));}
   }
   clashStones(world, events);
