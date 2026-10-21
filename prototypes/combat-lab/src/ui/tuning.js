@@ -71,6 +71,7 @@ function range(key, value, path) {
     if (key === 'spacing') return {min: .75, max: 4, step: .25, fmt: n => n.toFixed(2) + ' m'};
     if (key === 'replan' || key === 'stuckTime') return {min: .1, max: 3, step: .05, fmt: n => n.toFixed(2) + ' s'};
     if (['jumpReach', 'launch', 'arrival', 'stuckDistance', 'attackMaxHeightDiff', 'jumpMargin'].includes(key)) return {min: .05, max: 6, step: .05, fmt: n => n.toFixed(2) + ' m'};
+    if (key === 'jumpPenalty' || key === 'dropPenalty') return {min: 1, max: 20, step: .5, fmt: n => n.toFixed(1) + '×'};
     if (['suppressBlockedAttacks', 'showDebug'].includes(key)) return {min: 0, max: 1, step: 1, fmt: n => n ? 'Ligado' : 'Desligado', kind: 'toggle'};
   }
   if (path && path.startsWith('vfx.post.')) {

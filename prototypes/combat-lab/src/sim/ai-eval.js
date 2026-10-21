@@ -10,6 +10,7 @@ import {withValues} from './compare.js';
 import {vec, length, sub} from './math.js';
 import {spawn} from './world.js';
 import {emptyCommand} from './entity.js';
+import {navAssist} from '../nav/nav-assist.js';
 
 export const LOADOUT_PRESETS = {
   none: {id: 'none', label: 'Sem Moves', slots: [[], []]},
@@ -102,6 +103,10 @@ export const side = () => ({
   missedMoves: 0,
   decisionTimeMs: 0,
   decisionsCount: 0,
+  stuckTime: 0,        // s empurrando obstáculo sem sair do lugar (navegação)
+  edgeFalls: 0,        // quedas de borda/plataforma
+  airTime: 0,          // s em voo por salto/queda (uso de plataformas)
+  closeTime: 0,        // s a ≤ 3 m do rival (pressão efetiva)
   attackOutcomes: {
     hit: 0,
     blocked: 0,
@@ -136,6 +141,7 @@ export function evalMatch({
   initialPositions = null,
   measureDecisionTime = false,
   scenarioSetup = null,
+  nav = [false, false],   // navegação do Yuka por lado [azul, vermelho] (liga extras.nav.enableNav só durante a chamada daquele lado)
 }) {
   const g = new Game({seed});
   g.loadouts = structuredClone(resolveLoadout(loadouts));
@@ -209,7 +215,22 @@ export function evalMatch({
         S[1].decisionsCount++;
       }
 
+      if (nav[0] || nav[1]) {
+        const prevNav = C.extras.nav.enableNav;C.extras.nav.enableNav = 1;
+        if (nav[0]) navAssist(g, g.playerBrain, g.fighters[0], g.fighters[1], cmd0);
+        if (nav[1] && C.extras.toggles.enableEnemyAI) navAssist(g, g.brain, g.fighters[1], g.fighters[0], cmd1);
+        C.extras.nav.enableNav = prevNav;
+      }
+      const cmds = [cmd0, cmd1], posBefore = g.fighters.map(f => ({x: f.position.x, z: f.position.z})), flightBefore = g.fighters.map(f => !!f.flight);
+
       g.step(cmd0, cmd1);
+      g.fighters.forEach((f, i) => {
+        const moved = Math.hypot(f.position.x - posBefore[i].x, f.position.z - posBefore[i].z) / step, wants = Math.hypot(cmds[i].move.x, cmds[i].move.z) > .5;
+        if (wants && moved < 1 && !f.flight && !f.action && f.hp > 0) S[i].stuckTime += step;
+        if (f.flight && !flightBefore[i] && f.flight.isEdgeFall) S[i].edgeFalls++;
+        if (f.flight) S[i].airTime += step;
+        if (Math.hypot(f.position.x - g.fighters[1 - i].position.x, f.position.z - g.fighters[1 - i].position.z) <= 3 && f.hp > 0) S[i].closeTime += step;
+      });
 
       for (const e of g.lastStepEvents) {
         if (e.attacker != null && S[e.attacker]) {
@@ -438,6 +459,9 @@ export function evalMatch({
 /** Várias lutas com sementes consecutivas; `values` muda a configuração (ex.: revisão da IA) só durante a avaliação. */
 export function evalSeries({
   matches = 20,
+  nav = [false, false],
+  scenarioSetup = null,
+  initialPositions = null,
   seed = 1,
   blueMode = 'tactical',
   redMode = 'tactical',
@@ -464,6 +488,9 @@ export function evalSeries({
         redFeatures,
         loadouts,
         measureDecisionTime,
+        nav,
+        scenarioSetup,
+        initialPositions,
       }));
     }
     const total = [side(), side()];

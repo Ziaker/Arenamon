@@ -22,6 +22,8 @@ export function navParams(overrides = {}) {
     jumpMax: Math.max(0, jumpHeight - (N.jumpMargin ?? .35)),
     jumpReach: N.jumpReach ?? 2.4,
     maxDrop: N.maxDrop ?? 6,
+    jumpPenalty: N.jumpPenalty ?? 1,                    // multiplica o custo das arestas de salto (>1 prefere contornar pelo chão)
+    dropPenalty: N.dropPenalty ?? 1,                    // idem para quedas
     arena: /** @type {any} */ (arenaOf()),
     blocked: [],                                        // zonas proibidas extras: {x,z,r} ou {x,z,hx,hz}
     ...overrides,
@@ -66,7 +68,7 @@ function insideArena(a, x, z, pad) {
 
 /** Assinatura do layout: muda quando o mapa muda (destrutível quebrado, parâmetros) e o grafo precisa ser reconstruído. */
 export function layoutSignature(solids, p) {
-  return JSON.stringify([solids.map(s => [s.id, s.shape, +s.x.toFixed(2), +s.z.toFixed(2), +s.hx.toFixed(2), +s.hz.toFixed(2), +s.r.toFixed(2), s.base, s.top]), p.spacing, p.jumpMax, p.jumpReach, p.arena, p.blocked]);
+  return JSON.stringify([solids.map(s => [s.id, s.shape, +s.x.toFixed(2), +s.z.toFixed(2), +s.hx.toFixed(2), +s.hz.toFixed(2), +s.r.toFixed(2), s.base, s.top]), p.spacing, p.jumpMax, p.jumpReach, p.jumpPenalty, p.dropPenalty, p.arena, p.blocked]);
 }
 
 export class NavGraph {
@@ -154,9 +156,9 @@ export class NavGraph {
         if (Math.abs(dy) <= stepTol) {   // superfícies na mesma altura (plataformas encostadas): anda
           if (d <= spacing * 1.5 + .01 && this.clearLine(a.x, a.z, b.x, b.z, a.y, toSolid)) this.link(a.index, b.index, 'walk', d);
         } else if (dy > 0) {              // sobe: salto
-          if (dy <= jumpMax && this.clearLine(a.x, a.z, b.x, b.z, a.y, toSolid)) this.link(a.index, b.index, 'jump', d + 1.2 + dy);
+          if (dy <= jumpMax && this.clearLine(a.x, a.z, b.x, b.z, a.y, toSolid)) this.link(a.index, b.index, 'jump', (d + 1.2 + dy) * this.p.jumpPenalty);
         } else if (-dy <= maxDrop && this.clearLine(a.x, a.z, b.x, b.z, b.y, a.surface === 'ground' ? null : a.surface)) {
-          this.link(a.index, b.index, 'drop', d + .4 + .25 * -dy);   // desce: queda
+          this.link(a.index, b.index, 'drop', (d + .4 + .25 * -dy) * this.p.dropPenalty);   // desce: queda
         }
       }
     }
