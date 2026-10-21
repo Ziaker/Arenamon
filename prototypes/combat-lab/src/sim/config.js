@@ -24,8 +24,9 @@ export function defaults() {
     exhaustedSpeed: .7, guardTurn: 3 * Math.PI, guardAcceleration: 15 * Math.PI,
     // exhaustMode 1: exausto quando sobra menos que o menor custo de X/C (0 = só em zero, Etapa A). Rebote na parede: vertical.
     exhaustMode: 1, wallBounceVertical: 1, wallBounceUp: 0};
-  // circleCap: cap técnico explícito para a arena circular (cenários de teste). null = raio oficial (C.map.arenaRadius).
-  // O half-size 16 da arena quadrada legada NÃO limita a arena circular (ver clampToArena em sim/physics.js).
+  // circleCap: cap técnico explícito para a arena circular (cenários de teste). null = raio oficial (C.map.arenaRadius),
+  // que é o MESMO raio que posiciona piso/anél visíveis (effectiveArenaRadius em sim/map.js): parede física = parede visual.
+  // O half-size legado da arena quadrada (arenaHalf) NUNCA limita a arena circular.
   const test = {step: 1 / 120, maxFrame: .1, arenaRadius: 50, arenaHalf: 10.4, circleCap: null, halfExtent: .5, hp: 100, attack: 20, defense: 50, speed: 4.8, attackReference: 20,
     speedReference: 10, defenseMedian: 50, pushCoefficient: 2, pushDuration: .3, aiInterval: .85, aiRange: 3.3, contactStep: .1, epsilon: 1e-8,
     forwardTolerance: Math.PI / 8};

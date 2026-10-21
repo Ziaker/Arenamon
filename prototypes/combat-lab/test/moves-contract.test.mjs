@@ -35,7 +35,7 @@ const AREAH = {...AREA, pos: {x: 0, z: 2}, y: 1.5, height: .5, radius: 3};     /
 const CASES = [
   ['projétil × lutador: meia-largura do corpo', 'test.halfExtent', .1, PROJ, null, false, true],
   ['projétil × lutador: altura do corpo (grupo “visual”)', 'extras.visual.bodyHeight', .3, PROJ, null, false, true],
-  ['projétil: limite da arena', 'test.arenaHalf', 2.5, PROJ, null, false, true],
+  ['projétil: limite da arena (arenaHalf legado NÃO limita a arena circular)', 'test.arenaHalf', 2.5, PROJ, null, false, false],
   ['projétil: lançamento ligado/desligado', 'extras.toggles.enableLaunch', 0, PROJ, null, false, true],
   ['projétil × defesa: multiplicador de dano da defesa', 'extras.combat.guardDamageMultiplier', .1, PROJ, null, true, true],
   ['projétil × defesa: guard stun', 'rules.guardStun', 1, PROJ, null, true, true],

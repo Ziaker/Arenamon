@@ -16,7 +16,7 @@ import {sweepBox, segmentHitsVolume} from './geometry.js';
 import {launch} from './combat.js';
 import {traceBeam} from './beam.js';
 import {applyStatus, stat} from './status.js';
-import {processDamageWithShieldAndStages, damageDestructible} from './map.js';
+import {processDamageWithShieldAndStages, damageDestructible, effectiveArenaRadius} from './map.js';
 import {knockbackFactor} from './passive-engine.js';
 import {vec, add, sub, scale, dot, length, normalize, direction, angleOf, angleDelta, clamp} from './math.js';
 
@@ -197,7 +197,7 @@ function stepProjectile(game, p, dt, events, spawnLater) {
     }
     const isCircle = C.map?.arenaShape !== 'square';
     if (isCircle) {
-      const radius = C.map?.arenaRadius ?? 50;
+      const radius = effectiveArenaRadius();
       const d = length(p.pos);
       if (d >= radius - p.radius) {
         // R11.7: Projétil que atinge borda circular ricocheteia conforme propriedades físicas e normal de contato

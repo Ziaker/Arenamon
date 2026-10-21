@@ -13,6 +13,7 @@ import {
   CONSUMABLE_TYPES,
   createMapState,
   initMap,
+  effectiveArenaRadius,
   nextRandom,
   generateFighterSpawnPositions,
   stepMap,
@@ -59,16 +60,32 @@ test('Raio da arena circular padrão (decisão "arena menor": 32,5 m)', () => {
   assert.equal(C.map.arenaShape, 'circle', 'Formato padrão deve ser circle');
 });
 
-test('Lutadores são contidos radialmente no limite de 50 m', () => {
+test('Parede física coincide com a parede visual: raio efetivo = arenaRadius (sem paredes invisíveis)', () => {
   const g = new Game({seed: 1});
   g.start();
   const f = g.fighters[0];
-  f.position = {x: 48, z: 0, y: 0};
+  const effR = C.map.arenaRadius;          // MESMO valor que escala piso/anél (view.applyConfig)
+  const bound = effR - C.test.halfExtent;  // corpo do lutador encosta na parede em effR
+  f.position = {x: 48, z: 0, y: 0};        // além da parede: deve ser trazido de volta ao limite exato
   f.flight = {y: 0, vy: 0, horizontal: vec(25, 0)};
   g.step(emptyCommand(), emptyCommand());
   const dist = Math.hypot(f.position.x, f.position.z);
-  assert.ok(dist <= 50.05, `Distância ${dist} deve ser <= 50 m`);
-  assert.ok(f.velocity.x <= 0, 'Velocidade deve ser refletida para dentro da arena');
+  assert.ok(dist <= bound + 1e-6, `Distância ${dist} deve ser <= ${bound} (parede em ${effR} m)`);
+  assert.ok(dist >= bound - 1.0, `Lutador deve chegar até a parede (obtido ${dist}, parede em ${bound})`);
+});
+
+test('ArenaHalf legado NÃO cria parede invisível na arena circular', () => {
+  const g = new Game({seed: 1});
+  g.start();
+  const f = g.fighters[0];
+  C.test.arenaHalf = 12;   // valor pequeno (ex.: sessão salva antiga): não pode limitar a arena circular
+  f.position = {x: 20, z: 0, y: 0};
+  f.velocity = vec(10, 0);
+  for (let i = 0; i < 600; i++) g.step({...emptyCommand(), move: vec(1, 0)}, emptyCommand());
+  const dist = Math.hypot(f.position.x, f.position.z);
+  const effR = C.map.arenaRadius;
+  assert.ok(dist > 12 + 2, `Nenhuma parede invisível em arenaHalf: chegou a ${dist.toFixed(1)} m (cap legado seria 12)`);
+  assert.ok(dist <= effR - C.test.halfExtent + 1e-6, `Limite real continua sendo o raio oficial (${effR} m)`);
 });
 
 test('Rebote na borda circular preserva elasticidade configurável', () => {
@@ -389,18 +406,23 @@ test('100 seeds de geração de mapa respeitam todas as invariantes', () => {
     assert.equal(mapState.obstacles.length, 4, `Seed ${s}: 4 obstáculos`);
     assert.equal(mapState.platforms.length, 2, `Seed ${s}: 2 plataformas`);
     
-    // Invariante 2: Todas as entidades dentro do raio da arena
+    // Invariante 2: Todas as entidades DENTRO da área alcançável (raio efetivo da parede física)
+    const effR = effectiveArenaRadius();
     for (const d of mapState.destructibles) {
       const dist = Math.hypot(d.pos.x, d.pos.z);
-      assert.ok(dist < 49, `Seed ${s}: destrutível dentro da arena`);
+      assert.ok(dist < effR - 2, `Seed ${s}: destrutível dentro da área jogável (${dist.toFixed(1)} < ${effR - 2})`);
     }
     for (const o of mapState.obstacles) {
       const dist = Math.hypot(o.pos.x, o.pos.z);
-      assert.ok(dist < 49, `Seed ${s}: obstáculo dentro da arena`);
+      assert.ok(dist < effR - 2, `Seed ${s}: obstáculo dentro da área jogável (${dist.toFixed(1)} < ${effR - 2})`);
     }
     for (const p of mapState.platforms) {
       const dist = Math.hypot(p.pos.x, p.pos.z);
-      assert.ok(dist < 49, `Seed ${s}: plataforma dentro da arena`);
+      assert.ok(dist < effR - 2, `Seed ${s}: plataforma dentro da área jogável (${dist.toFixed(1)} < ${effR - 2})`);
+    }
+    for (const it of mapState.items) {
+      const dist = Math.hypot(it.pos.x, it.pos.z);
+      assert.ok(dist < effR - 2, `Seed ${s}: consumível dentro da área jogável (${dist.toFixed(1)} < ${effR - 2})`);
     }
     
     // Invariante 3: Simulação de 60 passos sem NaN ou crash
@@ -412,6 +434,11 @@ test('100 seeds de geração de mapa respeitam todas as invariantes', () => {
       assert.ok(!Number.isNaN(f.stamina), `Seed ${s}: Stamina não pode ser NaN`);
       assert.ok(!Number.isNaN(f.position.x), `Seed ${s}: PosX não pode ser NaN`);
       assert.ok(!Number.isNaN(f.position.z), `Seed ${s}: PosZ não pode ser NaN`);
+    }
+    // Consumíveis gerados durante a simulação (spawns regulares/drops) também ficam na área jogável
+    for (const it of mapState.items) {
+      const dist = Math.hypot(it.pos.x, it.pos.z);
+      assert.ok(dist < effR, `Seed ${s}: consumível ativo dentro da parede (${dist.toFixed(1)} < ${effR})`);
     }
     seedsTested++;
   }

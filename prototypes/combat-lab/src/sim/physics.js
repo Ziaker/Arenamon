@@ -3,7 +3,7 @@
 import {C} from './config.js';
 import {clashPossible, mutualTackle, clash, resolveHit, resolveFootstool} from './combat.js';
 import {collideFighter} from './world.js';
-import {collideMapFighter, damageDestructible, processDamageWithShieldAndStages} from './map.js';
+import {collideMapFighter, damageDestructible, processDamageWithShieldAndStages, effectiveArenaRadius} from './map.js';
 import {passiveCost, hitStunFactor} from './passive-engine.js';
 import {stat} from './status.js';
 import {vec, add, scale, sub, dot, length, normalize, clamp, direction, smoothstep} from './math.js';
@@ -136,12 +136,10 @@ export function clampToArena(f) {
   const bounce = C.extras.toggles.enableWallBounce;
 
   if (isCircle) {
-    const radius = C.map?.arenaRadius ?? 50;
-    // arenaHalf é o half-size da arena QUADRADA legada (protótipo de blocos): o padrão atual (10,4) NÃO é um
-    // cap para a arena circular oficial. Cap técnico para cenários de teste da arena circular: C.test.circleCap (null = raio oficial).
-    const LEGACY_SQUARE_HALF = 10.4;
-    const legacyCap = (C.test.arenaHalf != null && C.test.arenaHalf < radius && C.test.arenaHalf !== LEGACY_SQUARE_HALF) ? C.test.arenaHalf : null;
-    const effRadius = C.test.circleCap != null ? Math.min(C.test.circleCap, radius) : (legacyCap ?? radius);
+    // O raio efetivo é o MESMO que posiciona o piso/anél visíveis (effectiveArenaRadius):
+    // a parede física coincide exatamente com a parede visível — sem "paredes invisíveis".
+    // C.test.arenaHalf (arena quadrada legada) NUNCA limita a arena circular.
+    const effRadius = effectiveArenaRadius();
     const bound = effRadius - C.test.halfExtent;
     const d = length(f.position);
     if (d > bound) {
@@ -406,7 +404,7 @@ export function stepPhysics(fighters, dt, world = null) {
             }
           }
         }
-        const bound = (C.map?.arenaShape !== 'square' ? (C.map?.arenaRadius ?? 50) : C.test.arenaHalf) - C.test.halfExtent;
+        const bound = (C.map?.arenaShape !== 'square' ? effectiveArenaRadius() : C.test.arenaHalf) - C.test.halfExtent;
         const room = (f, n) => Math.abs(n.x) > .5 ? bound - f.position.x * n.x : bound - f.position.z * n.z;
         const bGuards = a.action?.kind === 'recoil' && b.guard && dot(direction(b.facing), normalize(sub(a.position, b.position))) >= -1e-8;
         const aGuards = b.action?.kind === 'recoil' && a.guard && dot(direction(a.facing), normalize(sub(b.position, a.position))) >= -1e-8;

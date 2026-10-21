@@ -124,6 +124,19 @@ export function getArenaScale() {
   return (M.arenaRadius ?? 50) / 50;
 }
 
+/**
+ * Raio efetivo da arena circular. É a MESMA medida usada pelo limite físico
+ * (clampToArena), pela renderização (piso/anél) e pela validação de spawns: assim a
+ * parede física coincide EXATAMENTE com a parede visível e nada spawna fora da área
+ * alcançável. Única redução admitida: o cap técnico explícito de cenários de teste
+ * (C.test.circleCap) — nunca o meio-lado legado da arena quadrada (C.test.arenaHalf),
+ * que não representa a borda circular e gerava "paredes invisíveis".
+ */
+export function effectiveArenaRadius() {
+  const r = C.map?.arenaRadius ?? MAP_DEFAULTS.arenaRadius;
+  return C.test?.circleCap != null ? Math.min(C.test.circleCap, r) : r;
+}
+
 /** Escolhe um tipo de consumível com probabilidades exatamente iguais (R4.7). */
 export function pickRandomConsumableType(state) {
   const idx = Math.floor(nextRandom(state) * CONSUMABLE_TYPES.length);
@@ -147,7 +160,7 @@ export function dist3D(p1, p2) {
  * e permaneça dentro da arena circular de 50 m.
  */
 export function isValidSpawnPosition(pos, radius, mapState, fighters = [], minDistFighter = 5.0) {
-  const arenaR = C.map?.arenaRadius ?? MAP_DEFAULTS.arenaRadius;
+  const arenaR = effectiveArenaRadius();
   const dCenter = Math.hypot(pos.x, pos.z);
   // Deve estar dentro da arena com margem
   if (dCenter + radius > arenaR - 2.0) return false;
