@@ -134,7 +134,7 @@ export class MeteorFx {
       if (!rig.group.visible) continue;
       const flick = R.slamFxFlicker, wob = 1 + flick * (.12 * Math.sin(this.time * 38 + f.id) + .08 * Math.sin(this.time * 61 + 2));
       // Tamanho relativo ao personagem: 1,00 = tão largo e tão alto quanto ele (a chama ocupa ~60% da largura e ~80% da altura da textura).
-      const body = bodySize(characters[f.id]), alt = (f.flight?.y ?? 0) + (f.vaultHeight ?? 0);
+      const body = bodySize(characters[f.id]), alt = (f.flight?.y ?? f.groundY ?? 0) + (f.vaultHeight ?? 0);
       const w = body.w / .6 * R.slamFxSize * (1 + flick * .06 * Math.sin(this.time * 47)), len = body.h / .8 * R.slamFxLength * wob;
       // A cabeça (parte de baixo da chama) fica no tronco do personagem e o rastro sobe a partir dela.
       const headY = alt + body.h * .3;

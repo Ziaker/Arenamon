@@ -475,7 +475,7 @@ export class View {
     this.clearOverlays();this.lastFighters = fighters;const O = this.overlays, V = C.extras.visual, half = C.test.halfExtent;
     const legacy = !!C.extras.toggles.showHitboxes;
     for (const f of fighters) {
-      const alt = (f.flight?.y ?? 0) + (f.vaultHeight ?? 0);
+      const alt = (f.flight?.y ?? f.groundY ?? 0) + (f.vaultHeight ?? 0);
       if (O.hurtboxes || legacy) {
         const color = f.hp <= 0 ? STATE_COLORS.defeated : isInvulnerable(f) ? STATE_COLORS.invulnerable : STATE_COLORS[f.state] ?? (f.id ? 0xff5670 : 0x45c4ff);
         const box = new T.Mesh(new T.BoxGeometry(half * 2, V.bodyHeight, half * 2), new T.MeshBasicMaterial({color, wireframe: true, transparent: true, opacity: C.extras.fx.hitboxOpacity, depthTest: false, depthWrite: false}));

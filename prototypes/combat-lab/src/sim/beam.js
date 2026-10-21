@@ -13,7 +13,7 @@ import {C} from './config.js';
 import {sweepBox} from './geometry.js';
 import {add, sub, scale, dot, normalize} from './math.js';
 
-const altOf = (/** @type {any} */ f) => (f.flight?.y ?? 0) + (f.vaultHeight ?? 0);
+const altOf = (/** @type {any} */ f) => (f.flight?.y ?? f.groundY ?? 0) + (f.vaultHeight ?? 0);
 const vOverlap = (/** @type {number} */ a0, /** @type {number} */ a1, /** @type {number} */ b0, /** @type {number} */ b1) => a0 <= b1 && b0 <= a1;
 const EPS_NORMAL = 1e-4;     // |direção · normal| abaixo disso: incidência rasante, a barreira é ignorada neste trecho
 

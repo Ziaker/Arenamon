@@ -26,7 +26,7 @@ import {vec, add, sub, scale, dot, length, normalize, direction, angleOf, angleD
 export const ENTITY_KINDS = ['projectile', 'barrier', 'wall', 'area', 'beam', 'trap', 'sandwave', 'burrow'];
 export const createWorld = () => ({entities: [], nextId: 1});
 const fighterHeight = () => C.extras.visual.bodyHeight;
-const altOf = f => (f.flight?.y ?? 0) + (f.vaultHeight ?? 0);
+const altOf = f => (f.flight?.y ?? f.groundY ?? 0) + (f.vaultHeight ?? 0);
 
 // ---------- Geometria ----------
 /** Ponto do contorno da forma mais próximo de p (plano XZ) e distância. */

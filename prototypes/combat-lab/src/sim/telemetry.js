@@ -14,7 +14,7 @@ export class Recorder {
   record(game) {
     const tick = game.tick;
     const sample = {tick, hitstop: game.hitstop > 0, f: game.fighters.map(f => ({
-      state: f.state, hp: f.hp, stamina: f.stamina, speed: length(f.velocity), x: f.position.x, z: f.position.z, alt: (f.flight?.y ?? 0) + (f.vaultHeight ?? 0),
+      state: f.state, hp: f.hp, stamina: f.stamina, speed: length(f.velocity), x: f.position.x, z: f.position.z, alt: (f.flight?.y ?? f.groundY ?? 0) + (f.vaultHeight ?? 0),
       action: f.action?.kind || null, invulnerable: isInvulnerable(f), offensive: isOffensive(f), guard: f.guard, perfect: f.perfectLeft > 1e-8,
       canAct: canAct(f), canMove: canMove(f), exhausted: f.exhausted, counter: f.counterWindow > 0,
       // Locomoção: velocidade, velocidade desejada, aceleração aplicada, direção de entrada, orientação e fase.

@@ -60,7 +60,7 @@ export function reflectPlacement(game, f, P, fraction, heading) {
     for (let i = 0; i < 32; i++) {const mid = (lo + hi) / 2;if (ok(mid)) lo = mid;else hi = mid;}
     width = lo;
   }
-  return {ok: true, center, width, height, base: f.flight?.y ?? 0, thickness: G.thickness, heading};
+  return {ok: true, center, width, height, base: f.flight?.y ?? f.groundY ?? 0, thickness: G.thickness, heading};
 }
 
 /** Efeito de materialização (soltar o botão): cria a barreira ou falha com motivo (o jogo devolve a stamina). */

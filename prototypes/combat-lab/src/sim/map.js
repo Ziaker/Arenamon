@@ -476,7 +476,7 @@ export function stepMap(mapState, dt, fighters = [], events = []) {
 
       const fPos = {
         x: f.position.x,
-        y: (f.flight?.y ?? 0) + (f.vaultHeight ?? 0) + 0.6, // centro do corpo
+        y: (f.flight?.y ?? f.groundY ?? 0) + (f.vaultHeight ?? 0) + 0.6, // centro do corpo
         z: f.position.z,
       };
 

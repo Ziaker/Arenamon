@@ -35,7 +35,7 @@ export function swiftEffect(/** @type {any} */ game, /** @type {any} */ f, /** @
     if (locked) {
       // cada estrela mira um ponto sorteado dentro da caixa lógica do alvo; o homing (0,25 s, 90°/s) persegue o MESMO ponto
       const off = {x: uniform(rand, -B.halfExtent, B.halfExtent), z: uniform(rand, -B.halfExtent, B.halfExtent), y: uniform(rand, .05 * B.height, .95 * B.height)};
-      const alt = (target.flight?.y ?? 0) + (target.vaultHeight ?? 0);
+      const alt = (target.flight?.y ?? target.groundY ?? 0) + (target.vaultHeight ?? 0);
       const dx = target.position.x + off.x - pos.x, dz = target.position.z + off.z - pos.z, dy = alt + off.y - y, len3 = Math.hypot(dx, dy, dz) || 1e-9;
       dir = normalize({x: dx, z: dz});hSpeed = P.speed * Math.hypot(dx, dz) / len3;vy = P.speed * dy / len3;
       homing = {target: target.id, ticks: Math.round(P.homingSeconds / step), rate: P.homingRate * Math.PI / 180, offset: off};

@@ -26,7 +26,7 @@ const LEVEL_TICKS = {1: 30, 2: 240, 3: 480};
 /** Passos mínimos para o Reflect (mínimo de 1,5 s = 180 passos no PL1). */
 const REFLECT_TICKS = {1: 180, 2: 240, 3: 480};
 const held = (/** @type {number} */ slot) => Array.from({length: C.world.slots}, (_, i) => i === slot);
-const altOf = (/** @type {any} */ f) => (f.flight?.y ?? 0) + (f.vaultHeight ?? 0);
+const altOf = (/** @type {any} */ f) => (f.flight?.y ?? f.groundY ?? 0) + (f.vaultHeight ?? 0);
 
 /** Projétil hostil que vai atingir o lutador: o mais próximo no tempo (com PL e tempo até o impacto), ou null. */
 function incomingProjectile(/** @type {any} */ world, /** @type {any} */ self) {

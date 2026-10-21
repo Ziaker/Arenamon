@@ -47,7 +47,7 @@ export function createMovementPanel({$, game, ui, presets, tuning, download, pla
   function animProbe() {
     const live = ui.characters[0];if (!live) return null;
     const probe = new Character(live.source, {persist: false, slot: 0});probe.clips = live.clips.slice();probe.clipInfo = live.clipInfo.slice();probe.variants = structuredClone(live.variants);probe.speeds = {...live.speeds};probe.groundCache = live.groundCache;
-    return {probe, fn: (f, g, t) => {probe.update(f, C.test.step, (f.flight?.y ?? 0) + (f.vaultHeight ?? 0), g.lastStepEvents, {tick: t, source: 'jogador'});return probe.current?.key ?? null;}};
+    return {probe, fn: (f, g, t) => {probe.update(f, C.test.step, (f.flight?.y ?? f.groundY ?? 0) + (f.vaultHeight ?? 0), g.lastStepEvents, {tick: t, source: 'jogador'});return probe.current?.key ?? null;}};
   }
   function measure() {
     const seq = current(), ia = $('mv-a').value, ib = $('mv-b').value, runs = [];

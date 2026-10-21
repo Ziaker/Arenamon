@@ -193,7 +193,7 @@ export class VfxSystem {
       // Finta (brake slide): poeira nos pés quando o lutador derrapa para cancelar o tackle.
       const prev = this.prevPos[i] ?? {...f.position};const dx = f.position.x - prev.x, dz = f.position.z - prev.z;this.prevPos[i] = {...f.position};
       if (dt <= 0) return;
-      const alt = (f.flight?.y ?? 0) + (f.vaultHeight ?? 0);
+      const alt = (f.flight?.y ?? f.groundY ?? 0) + (f.vaultHeight ?? 0);
       if (f.action?.kind === 'dodge') {
         const R = C.rules, tint = !!f.action.feint && !!R.feintFxOn, d = C.vfx.dodge, saved = tint ? {...d} : null;
         if (tint) {d.color = feintColor(R.feintFxColor);d.intensity = (d.intensity ?? 1) * R.feintFxIntensity;d.length = (d.length ?? 1) * R.feintFxSize;d.width = (d.width ?? 1) * R.feintFxSize;}
