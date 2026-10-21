@@ -83,6 +83,23 @@ export function tackleConnects(attacker, defender, normal, relative) {
   const towards = length(off) > 1e-6 ? normalize(off) : normal;
   return dot(dir, towards) > X.tackleTargetAlignment && dot(dir, normal) > X.tackleNormalAlignment && dot(relative, normal) > X.tackleClosingSpeed;
 }
+/**
+ * Forma espacial (esfera no plano XZ) do golpe atual: centro à frente do atacante e raio. Cada janela da animação pode trazer a
+ * sua (`combatWindows.shapes[i] = {forward, radius}`); sem forma própria vale extras.hitbox. null = formas desligadas ou golpe sem forma (slam).
+ * @returns {{x:number, z:number, radius:number, forward:number}|null}
+ */
+export function hitShapeOf(attacker, windowIdx = 0) {
+  const H = C.extras.hitbox;
+  if (!H?.enableShapes || attacker.action?.kind !== 'tackle' || attacker.action.slam) return null;
+  const own = attacker.action.combatWindows?.shapes?.[Math.max(0, windowIdx)] ?? {}, forward = own.forward ?? H.shapeForward, radius = own.radius ?? H.shapeRadius;
+  const d = direction(attacker.action.heading);
+  return {x: attacker.position.x + d.x * forward, z: attacker.position.z + d.z * forward, radius, forward};
+}
+/** O defensor está dentro da forma espacial do golpe? (sempre true com as formas desligadas) */
+export function hitShapeAllows(attacker, defender, windowIdx = 0) {
+  const sh = hitShapeOf(attacker, windowIdx);
+  return !sh || Math.hypot(defender.position.x - sh.x, defender.position.z - sh.z) <= sh.radius + C.test.halfExtent;
+}
 /** Resolve um tackle conectado. Devolve o evento ou null. */
 export function resolveHit(attacker, defender, normal, relative, force = false) {
   const R = C.rules, X = C.extras.combat, T = C.extras.toggles;
@@ -106,6 +123,8 @@ export function resolveHit(attacker, defender, normal, relative, force = false) 
     // Modo legado: tackle conecta uma única vez durante toda a sua duração
     if (attacker.action.hits.has(defender.id)) return null;
   }
+  // Hitbox espacial (extras.hitbox.enableShapes): a janela ativa decide a forma; meteor slam (force) não usa forma.
+  if (!force && !hitShapeAllows(attacker, defender, windowIdx)) return null;
 
   if (isInvulnerable(defender)) {
     attacker.action.hits.add(defender.id);

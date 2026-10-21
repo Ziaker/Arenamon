@@ -119,3 +119,15 @@ Cada entrada: data · tarefa · skill · o que foi aplicado de fato.
   flutuação sem snap; checklist de estabilidade virou critérios de teste.
 - **Skill `performance-optimization`:** custo por passo com mediana de várias execuções, orçamento de 8 333 µs a
   120 Hz e separação "física isolada × passo completo".
+
+### 2026-10-21 — Melhorias de física, colisão, hitbox e desenho (v1.13.0)
+
+- **Tarefa:** varredura medida do jogo e correções (`docs/MELHORIAS_FISICA_COLISAO.md`).
+- **Skill `physics-tuning`:** (a) *tunelamento: distância por passo < colisor mais fino* → `tunneling.test.mjs` prova que parede de 0,2 m
+  segura a 90 m/s e mostra o limite quando `contactStep` é absurdo; (b) *interpolar o desenho entre passos fixos* → `sim/interpolation.js`
+  (só visual, restaura a simulação); (c) *contato/offset e tolerâncias como parâmetro* → `map.mountTolerance` virou slider; (d) *testar
+  em estresse* → varredura de 30 partidas achou lançados atravessando até 1 m de plataformas (regra `risesOver` só para salto voluntário).
+- **Skill `game-feel`:** *faixas de importância* → hitstop proporcional ao dano (opt-in); feedback fica fora da simulação crítica
+  (interpolação não altera o estado; teste compara a simulação ligada × desligada).
+- **Skill `performance-optimization`:** *medir antes de mexer*: oráculo + varredura geraram números antes/depois (1,00 m → 0,23 m; alcance 6,2 → 5,7 m).
+

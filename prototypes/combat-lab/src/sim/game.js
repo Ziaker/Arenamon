@@ -12,6 +12,7 @@ import {createMapState, initMap, stepMap, stepShield, generateFighterSpawnPositi
 import {attachPassives, tickPassives, passiveOnEvents, passiveOnKO, setPassiveLoadout as applyPassiveLoadout} from './passive-engine.js';
 import {vec} from './math.js';
 import {navAssist} from '../nav/nav-assist.js';
+import {poseOf} from './interpolation.js';
 
 const finishingNow = g => g.phase === 'finishing';
 export class Game {
@@ -48,7 +49,7 @@ export class Game {
     this.world.mapState = this.mapState;
     initMap(this.mapState, this.fighters);
     attachPassives(this);   // liga loadouts de passivas e restaura Sturdy (fronteira de rodada, §7/R22)
-    this.tick = 0;this.events = [];this.winner = null;this.hitstop = 0;this.phase = 'playing';this.lastStepEvents = [];
+    this.tick = 0;this.events = [];this.winner = null;this.hitstop = 0;this.phase = 'playing';this.lastStepEvents = [];this.prevPose = null;
   }
   start() {this.phase = 'playing';}
   pause() {if (this.phase === 'playing') this.phase = 'paused';else if (this.phase === 'paused') this.phase = 'playing';}
@@ -56,6 +57,7 @@ export class Game {
   step(cmd0 = emptyCommand(), cmd1) {
     this.lastStepEvents = [];this.frozen = false;this.passiveProcessed.clear();   // R31: anti-duplicata vale por passo
     if (this.phase !== 'playing' && this.phase !== 'finishing') return;
+    this.prevPose = this.fighters.map(poseOf);   // só para interpolar o desenho (view/interpolation.js); fora do save/load
     // Hitstop: o passo conta no relógio, mas a simulação fica congelada.
     if (this.hitstop > 0) {
       // Congelado, mas X/C apertados agora ficam no buffer e saem no primeiro passo depois do hitstop.
@@ -95,7 +97,11 @@ export class Game {
     this.events.push(...fresh);this.events = this.events.slice(-12);this.lastStepEvents = fresh;
     if (C.extras.toggles.enableHitstop) {
       if (fresh.some(e => e.result === 'clash')) this.hitstop = C.extras.combat.clashHitstop;
-      else if (fresh.some(e => e.result === 'impact' || e.result === 'perfect' || e.result === 'perfectDodge' || e.result === 'footstool')) this.hitstop = C.extras.combat.impactHitstop;
+      else if (fresh.some(e => e.result === 'impact' || e.result === 'perfect' || e.result === 'perfectDodge' || e.result === 'footstool')) {
+        // Faixas de importância: golpe fraco = hitstop base; golpe forte = até (1 + boost)× (com boost = 0 é sempre o base, como antes).
+        const X = C.extras.combat, dmg = Math.max(0, ...fresh.filter(e => e.result === 'impact').map(e => e.damage ?? 0));
+        this.hitstop = X.impactHitstop * (1 + (X.hitstopDamageBoost ?? 0) * Math.min(1, dmg / Math.max(1, X.hitstopDamageRef ?? 30)));
+      }
     }
     for (const f of this.fighters) if (!f.action && !f.blend && !f.flight) f.locomotionVelocity = {...f.velocity};
     for (let i = 0; i < this.fighters.length; i++) if (this.fighters[i].action === actions[i]) advanceAction(this.fighters[i], C.test.step);
@@ -166,6 +172,7 @@ export class Game {
   }
   load(state) {
     const s = structuredClone(state);
+    this.prevPose = null;
     this.fighters = s.fighters;this.tick = s.tick;this.events = s.events;this.winner = s.winner;this.hitstop = s.hitstop;this.phase = s.phase;
     this.brain.load(s.brain);this.playerBrain.load(s.playerBrain);this.lastStepEvents = s.lastStepEvents || [];
     this.eventSeq = s.eventSeq ?? this.eventSeq;this.passiveProcessed.clear();

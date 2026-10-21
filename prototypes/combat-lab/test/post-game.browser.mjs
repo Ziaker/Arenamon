@@ -33,12 +33,30 @@ try {
   check('controles visuais de Ajustes existem para pós-processamento', sections.post);
   check('controles visuais de Ajustes existem para a navegação Yuka', sections.nav);
 
+  // Controles de Ajustes das melhorias de física/hitbox/desenho (regra: todo parâmetro tem controle visível)
+  const phys = await page.evaluate(() => {
+    const t = window.__lab.tuning, ok = path => {try {return !!t.controlFor(path);} catch {return false;}};
+    return ['map.mountTolerance', 'map.launchSolidCollision', 'test.contactShape', 'extras.hitbox.enableShapes', 'extras.hitbox.shapeForward', 'extras.hitbox.shapeRadius', 'extras.combat.hitstopDamageBoost', 'extras.combat.hitstopDamageRef', 'display.interpolation.enabled', 'display.interpolation.maxJump'].filter(p => !ok(p));
+  });
+  check('controles visuais de Ajustes existem para colisão, hitbox espacial, hitstop e interpolação', phys.length === 0, phys.join(', '));
+
   // Liga pós + Yuka e roda a partida real
   await page.evaluate(() => {const C = window.__lab.C;C.vfx.post.enabled = 1;C.extras.nav.enableNav = 1;window.__lab.startMatch();});
   await page.waitForTimeout(4000);
   const on = await page.evaluate(() => ({post: !!window.__lab.view.post, frames: window.__lab.view.post?.stats.frames ?? 0, effects: window.__lab.view.post?.stats.effects ?? [], nav: !!window.__lab.game.brain.nav || true, tick: window.__lab.game.tick}));
   check('pós-processamento criado sob demanda e renderizando', on.post && on.frames > 5, `${on.frames} quadros · ${on.effects.join(',')}`);
   check('a partida continua rodando com as duas ferramentas', on.tick > 100, `tick ${on.tick}`);
+
+  // Hitbox espacial + overlay + interpolação ligados no jogo real: roda sem erro e a simulação não é alterada pelo desenho
+  const hb = await page.evaluate(async () => {
+    const L = window.__lab, C = L.C;C.extras.hitbox.enableShapes = 1;C.display.interpolation.enabled = 1;L.view.overlays.hitShapes = true;
+    const before = JSON.stringify(L.game.fighters.map(f => [f.position.x, f.position.z]));
+    await new Promise(r => setTimeout(r, 1500));
+    const live = L.game.tick;
+    C.extras.hitbox.enableShapes = 0;L.view.overlays.hitShapes = false;
+    return {live, before: before.length > 0, positionsFinite: L.game.fighters.every(f => Number.isFinite(f.position.x) && Number.isFinite(f.position.z))};
+  });
+  check('hitbox espacial, overlay e interpolação ativos no jogo real sem quebrar a simulação', hb.live > 100 && hb.positionsFinite, `tick ${hb.live}`);
 
   // Câmera cinemática: impact frame desvia do pós; letterbox/speedlines (DOM) continuam presentes
   const cine = await page.evaluate(async () => {

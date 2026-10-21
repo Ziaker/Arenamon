@@ -53,6 +53,12 @@ export const MAP_DEFAULTS = {
   footstoolMinFallSpeed: 1.0,// velocidade vertical mínima de queda para valer (m/s)
   footstoolCooldown: 0.5,    // controle de repetição: espera mínima entre footstools do mesmo atacante (s)
   footstoolVault: 0,         // experimental: permite footstool também durante o vault de C (separado, desligado)
+  // Colisão com sólidos do mapa (correção medida na varredura de 30 partidas: lançados por golpe atravessavam até 1 m das plataformas).
+  // launchSolidCollision = 1: só o SALTO voluntário "passa por cima" da lateral de um sólido quando sobe rápido; lançamentos colidem
+  // e deslizam. 0 = comportamento anterior (para comparar). mountTolerance: quanto (m) os pés podem estar abaixo do topo e ainda
+  // "montar" o sólido (antes fixo em 0,25); o apoio no chão usa mountTolerance + 0,10.
+  launchSolidCollision: 1,
+  mountTolerance: 0.25,
   itemInitialCount: 2,
   itemSpawnIntervalMin: 20,
   itemSpawnIntervalMax: 40,
@@ -803,18 +809,25 @@ export function damageDestructible(destructible, baseDamage, category = 'physica
 /**
  * Colisão física de um lutador contra plataformas (laterais sólidas), obstáculos e destrutíveis (R1.6, R1.8, R7.6, R7.15, R10.7-R10.8).
  */
+/** Subindo rápido o bastante para passar por cima do topo? Só o salto voluntário (ou tudo, com launchSolidCollision = 0). */
+function risesOver(f, fY, top) {
+  const fl = f.flight;
+  if (!fl || !(fl.vy > 0) || fY + (fl.vy * fl.vy) / 35 < top) return false;
+  return !!fl.isNormalJump || !((C.map?.launchSolidCollision) ?? 1);
+}
 export function collideMapFighter(mapState, f, events = []) {
   if (!mapState) return;
   const halfExtent = C.test?.halfExtent ?? 0.35;
   const currentY = f.flight ? (f.flight.y ?? (f.groundY ?? 0)) : (f.groundY ?? 0);
   const fY = currentY + (f.vaultHeight ?? 0);
   const fHeight = C.extras?.visual?.bodyHeight ?? 1.2;
+  const mount = C.map?.mountTolerance ?? 0.25;
 
   // 1. Plataformas (laterais sólidas R7.6 com tolerância para montar no topo)
   if (mapState.platforms) {
     for (const p of mapState.platforms) {
-      if (fY >= p.height - 0.25) continue;
-      if (f.flight && f.flight.vy > 0 && fY + (f.flight.vy * f.flight.vy) / 35 >= p.height) continue;
+      if (fY >= p.height - mount) continue;
+      if (risesOver(f, fY, p.height)) continue;
       const px = p.pos?.x ?? p.x, pz = p.pos?.z ?? p.z;
       const hx = (p.width ?? 3) / 2, hz = (p.depth ?? 3) / 2;
       const dx = f.position.x - px, dz = f.position.z - pz;
@@ -841,11 +854,11 @@ export function collideMapFighter(mapState, f, events = []) {
   if (mapState.obstacles) {
     for (const o of mapState.obstacles) {
       const topY = (o.pos?.y ?? 0) + o.height;
-      if (fY >= topY - 0.25) continue;
+      if (fY >= topY - mount) continue;
       if (fY + fHeight <= (o.pos?.y ?? 0)) continue;
       // Contato de teto: cabeça exatamente na face inferior, sem subida — é contato, não penetração: sem empurrão.
       if (f.flight && f.flight.vy <= 0 && Math.abs(fY + fHeight - (o.pos?.y ?? 0)) <= 1e-6) continue;
-      if (f.flight && f.flight.vy > 0 && fY + (f.flight.vy * f.flight.vy) / 35 >= topY) continue;
+      if (risesOver(f, fY, topY)) continue;
       if (o.shape === 'cylinder' || o.shape === 'pillar') {
         const d = dist2D(f.position, o.pos);
         const minDist = o.radius + halfExtent;
@@ -882,11 +895,11 @@ export function collideMapFighter(mapState, f, events = []) {
     for (const d of mapState.destructibles) {
       if (d.state !== 'solid') continue;
       const topY = (d.pos?.y ?? 0) + (d.size?.height ?? 1.6);
-      if (fY >= topY - 0.25) continue;
+      if (fY >= topY - mount) continue;
       if (fY + fHeight <= (d.pos?.y ?? 0)) continue;
       // Contato de teto: cabeça exatamente na face inferior, sem subida — é contato, não penetração: sem empurrão.
       if (f.flight && f.flight.vy <= 0 && Math.abs(fY + fHeight - (d.pos?.y ?? 0)) <= 1e-6) continue;
-      if (f.flight && f.flight.vy > 0 && fY + (f.flight.vy * f.flight.vy) / 35 >= topY) continue;
+      if (risesOver(f, fY, topY)) continue;
       const dx = f.position.x - d.pos.x, dz = f.position.z - d.pos.z;
       const ox = (d.size.hx + halfExtent) - Math.abs(dx);
       const oz = (d.size.hz + halfExtent) - Math.abs(dz);

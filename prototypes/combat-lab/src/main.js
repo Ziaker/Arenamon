@@ -1,5 +1,6 @@
 // Laboratório de combate Arenamon v7 — composição: simulação, câmera, HUD, entrada, replay, telemetria,
 // cenários, ajustador, personagens do Studio, exportação e aviso de alterações não salvas.
+import {applyInterpolation} from './sim/interpolation.js';
 import {C, keyFor, defaults} from './sim/config.js';
 import {Game, FixedClock} from './sim/game.js';
 import {AI_MODES, UI_AI_MODES} from './sim/ai.js';
@@ -976,7 +977,9 @@ function frame(now) {
   if (live) clock.advance(dt, () => {steps++;stepOnce();});else clock.reset();
   const simMs = performance.now() - tSim;
   ui.fps += (1 / Math.max(.001, dt) - ui.fps) * C.extras.hud.fpsSmoothing;
-  view.draw(game.fighters, game.events, live ? dt * clock.timeScale : 0, {paused: !live, realDt: dt, tick: game.tick, sources: [C.extras.toggles.enablePlayerAI || ui.scenario ? 'IA' : 'jogador', 'IA'], world: game.world, navGame: game});
+  // Interpolação do desenho (só visual): pose entre o passo anterior e o atual; a simulação é restaurada logo depois.
+  const interp = C.display.interpolation, restorePose = live && interp?.enabled ? applyInterpolation(game.fighters, game.prevPose, clock.accumulator / C.test.step, interp.maxJump) : null;
+  try {view.draw(game.fighters, game.events, live ? dt * clock.timeScale : 0, {paused: !live, realDt: dt, tick: game.tick, sources: [C.extras.toggles.enablePlayerAI || ui.scenario ? 'IA' : 'jogador', 'IA'], world: game.world, navGame: game});} finally {restorePose?.();}
   const back = replay.length ? (replay.length - 1 - replay.cursor) : 0;
   hud.render(game, ui.fps, {locked: input.locked, paused: ui.paused && game.phase !== 'menu', replay: back ? `−${back} passos (${(back * C.test.step * 1000).toFixed(0)} ms) · ▶ retoma daqui` : 'último passo · , e . avançam/voltam', playerAI: !!C.extras.toggles.enablePlayerAI});
   movesHud.render(game);moveNotices();

@@ -29,6 +29,9 @@ export function defaults() {
   // O half-size legado da arena quadrada (arenaHalf) NUNCA limita a arena circular.
   const test = {step: 1 / 120, maxFrame: .1, arenaRadius: 50, arenaHalf: 10.4, circleCap: null, halfExtent: .5, hp: 100, attack: 20, defense: 50, speed: 4.8, attackReference: 20,
     speedReference: 10, defenseMedian: 50, pushCoefficient: 2, pushDuration: .3, aiInterval: .85, aiRange: 3.3, contactStep: .1, epsilon: 1e-8,
+    // contactShape: pegada do contato lutador × lutador. 0 = quadrada (legado: alcance do tackle maior nas diagonais e normal do golpe
+    // sempre alinhada aos eixos); 1 = circular (alcance igual em todos os ângulos, normal ao longo da linha dos centros).
+    contactShape: 1,
     forwardTolerance: Math.PI / 8};
   // Locomoção contínua (sim/locomotion.js). model 0 = aproximação linear do v6 (paridade); 1 = controlador com curvas,
   // aderência lateral, atrito e giro com aceleração angular. moveFrame: 0 = setas relativas à câmera também com
@@ -46,8 +49,16 @@ export function defaults() {
     combat: {vaultCollisionHeight: 1.3, tackleTargetAlignment: .15,
       tackleNormalAlignment: 0, tackleClosingSpeed: .06, clashFacingAlignment: .2, clashClosingSpeed: .06, guardFrontAlignment: 0, guardDamageMultiplier: .5,
       launchAttackBase: .85, launchAttackWeight: .15, launchAttackReference: 20, launchClosingCap: 2, launchClosingMultiplier: .1, launchNormalWeight: .75,
-      launchCenterWeight: .25, contactProjectionPasses: 4, clashHitstop: .085, impactHitstop: .035, perfectGuardCounterWindow: .70,
+      launchCenterWeight: .25, contactProjectionPasses: 4, clashHitstop: .085, impactHitstop: .035,
+      // Hitstop por faixa de importância (skill game-feel): o congelamento do impacto cresce com o dano do golpe.
+      // hitstopDamageBoost = 0: sempre impactHitstop (comportamento anterior); 1 = dobra no dano de referência (hitstopDamageRef HP) ou mais.
+      hitstopDamageBoost: 0, hitstopDamageRef: 30, perfectGuardCounterWindow: .70,
       exhaustRecovery: .15, guardRegenFactor: .70, landingSkidFraction: .34, landingSkidDrag: 8, landingSkidMin: .08},
+    // Hitbox espacial do golpe (item 3 do plano de melhorias de física): com enableShapes = 1 o tackle só conecta se o centro do defensor
+    // estiver dentro de uma ESFERA à frente do atacante (centro a `forward` m na direção do golpe, raio `radius` + meia largura do corpo).
+    // Cada janela de combate da animação pode trazer a sua própria forma (contrato.shapes[i] = {forward, radius}; no ajuste: shapeForward / shapeRadius); sem forma própria vale este padrão.
+    // 0 = comportamento anterior (só alinhamento + sobreposição de corpos). O padrão (0,60 m / 0,40 m) é um arco frontal de ≈ ±63°.
+    hitbox: {enableShapes: 0, shapeForward: .6, shapeRadius: .4},
     // Navegação experimental (Fase 3, Yuka): 0 = navegação atual (padrão, nada muda); 1 = a IA consulta um grafo de superfícies
     // (caminhada, salto e queda) planejado com Yuka SOMENTE quando o alvo não está em linha reta caminhável. A física continua do Arenamon.
     // spacing: grade de nós do chão (m) · replan: intervalo de replanejamento (s) · jumpReach: alcance horizontal de um salto (m) ·
@@ -250,6 +261,9 @@ export function displayDefaults() {
     shadow: {style: 2, opacity: .55, radius: .62, scaleX: 1, scaleZ: 1, softness: .6, offsetX: 0, offsetZ: 0, intensity: 1},
     // proposal: 0 = HUD atual, 1 = A (Arcade Vector), 2 = B (Combat Halo), 3 = C (Tactical Combat). Cooldowns: só demonstração.
     hud: {proposal: 0, scale: 1, demoCooldowns: 1, demoAuto: 1, demoDuration: 4, damageDelay: .45},
+    // Interpolação do DESENHO entre o passo anterior e o atual da simulação (120 Hz): movimento liso em monitores de qualquer taxa.
+    // Só visual (a simulação não muda). maxJump: deslocamento (m) acima do qual não se suaviza (reinício, esquiva sobre o rival).
+    interpolation: {enabled: 1, maxJump: 1.5},
     // Altura visual: deslocamento do modelo/bloco sem mover o colisor nem a sombra.
     grounding: {autoGround: 1, visualOffset: 0},
     // Indicador da janela C → X (apenas desenho; a regra é por tempo, ver docs).

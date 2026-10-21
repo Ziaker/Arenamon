@@ -65,9 +65,10 @@ for (const id of ['muro', 'rotas', 'completo']) test(`${id}: a navegação atual
   assert.equal(outcomes[id].legacy.reachedAt, null, 'a navegação atual não deveria alcançar');
   assert.ok(outcomes[id].yuka.reachedAt !== null && outcomes[id].yuka.reachedAt < 15, `Yuka não chegou: ${JSON.stringify({...outcomes[id].yuka, trace: 0})}`);
 });
-test('corredor: caminho livre — o Yuka não interfere (mesmo resultado da navegação atual)', () => {
+test('corredor: caminho livre — o Yuka não interfere até o primeiro impacto (mesmo resultado da navegação atual)', () => {
   const {legacy, yuka} = outcomes.corredor;
-  assert.equal(yuka.reachedAt, legacy.reachedAt);assert.equal(yuka.pathLength, legacy.pathLength);assert.equal(yuka.plans, 0);
+  // até o primeiro impacto o comportamento é idêntico; depois do golpe o alvo pode ser lançado contra o fundo e a rota pode replanejar
+  assert.equal(yuka.reachedAt, legacy.reachedAt);assert.equal(yuka.hitAt, legacy.hitAt);assert.equal(yuka.tacklesOutOfReach, 0);
 });
 test('plataforma: o Yuka salta para alcançar o alvo elevado, a navegação atual ataca o vazio', () => {
   const {legacy, yuka} = outcomes.plataforma;

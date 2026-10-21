@@ -715,6 +715,26 @@ PASS: dois blocos, cores, câmera, layout, file:// offline, sem erros.</pre>
         </div>
       </article>
 
+      <article class="suite-card" data-category="jogo">
+        <div class="suite-header">
+          <div>
+            <h2 class="suite-title">Física, Colisão &amp; Hitbox — Varredura de partidas e melhorias (v1.13.0)</h2>
+            <div class="tag-group">
+              <span class="tag success">✓ 6 arquivos · 40+ verificações</span>
+              <span class="tag primary">Node + Playwright</span>
+              <span class="tag">prototypes/combat-lab/test/collision-invariants.test.mjs</span>
+            </div>
+          </div>
+        </div>
+        <p class="suite-desc">
+          Invariantes medidos em 12+ partidas IA×IA (penetração no chão, salto e lançamento; sobreposição entre lutadores; projétil × caixa), pegada do contato (alcance por ângulo), hitbox espacial por janela, interpolação do desenho, tunelamento de entidades finas e hitstop por dano. Detalhes em <code>docs/MELHORIAS_FISICA_COLISAO.md</code>.
+        </p>
+        <div class="cmd-box">
+          <code>npm run test:physics</code>
+          <button class="copy-btn" onclick="copyCmd('npm run test:physics', this)">Copiar Comando</button>
+        </div>
+      </article>
+
       <!-- SUÍTE NOVA: CÂMERA CINEMÁTICA ESTILO ZZZ -->
       <article class="suite-card" data-category="jogo">
         <div class="suite-header">

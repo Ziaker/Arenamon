@@ -220,11 +220,13 @@ function stepProjectile(game, p, dt, events, spawnLater) {
       }
     }
 
-    // Mapa: destrutíveis, obstáculos e plataformas (R1.5, R1.8, R3.4, R8.8)
+    // Mapa: destrutíveis, obstáculos e plataformas (R1.5, R1.8, R3.4, R8.8).
+    // Caixas do mapa são alinhadas aos eixos (desenho e colisão dos lutadores); `angle` é só dado legado e NÃO gira a caixa aqui:
+    // antes projéteis/áreas colidiam com uma caixa girada invisível.
     if (game.mapState) {
       for (const d of game.mapState.destructibles) {
         if (d.state !== 'solid') continue;
-        const box = {shape: 'box', pos: {x: d.pos.x, z: d.pos.z}, hx: d.size.hx, hz: d.size.hz, angle: d.angle ?? 0};
+        const box = {shape: 'box', pos: {x: d.pos.x, z: d.pos.z}, hx: d.size.hx, hz: d.size.hz, angle: 0};
         if (!vOverlap(p.y - p.radius, p.y + p.radius, d.pos.y, d.pos.y + d.size.height) || !circleTouches(box, p.pos, p.radius)) continue;
         damageDestructible(d, p.hit?.damage ?? 10, 'projectile', p.owner != null ? game.fighters[p.owner] : null, game.mapState, events);
         events.push({result: 'destructibleHit', attacker: p.owner ?? null, target: d.id, damage: p.hit?.damage ?? 10, entity: p.id, kind: 'projectile'});
@@ -235,7 +237,7 @@ function stepProjectile(game, p, dt, events, spawnLater) {
       for (const o of game.mapState.obstacles) {
         const obsShape = o.shape === 'cylinder'
           ? {shape: 'circle', pos: {x: o.pos.x, z: o.pos.z}, radius: o.radius}
-          : {shape: 'box', pos: {x: o.pos.x, z: o.pos.z}, hx: o.hx, hz: o.hz, angle: o.angle ?? 0};
+          : {shape: 'box', pos: {x: o.pos.x, z: o.pos.z}, hx: o.hx, hz: o.hz, angle: 0};
         if (!vOverlap(p.y - p.radius, p.y + p.radius, o.pos.y, o.pos.y + o.height) || !circleTouches(obsShape, p.pos, p.radius)) continue;
         events.push({result: 'obstacleHit', attacker: p.owner ?? null, target: o.id, damage: 0, entity: p.id, kind: 'projectile'});
         p.dead = true;
@@ -314,7 +316,7 @@ function stepArea(game, a, dt, events) {
       for (const d of game.mapState.destructibles) {
         if (d.state !== 'solid') continue;
         if (!vOverlap(d.pos.y, d.pos.y + d.size.height, a.y, a.y + a.height)) continue;
-        const box = {shape: 'box', pos: {x: d.pos.x, z: d.pos.z}, hx: d.size.hx, hz: d.size.hz, angle: d.angle ?? 0};
+        const box = {shape: 'box', pos: {x: d.pos.x, z: d.pos.z}, hx: d.size.hx, hz: d.size.hz, angle: 0};
         const c = closestOnShape(box, a.pos), dist = Math.max(0, c.inside ? 0 : c.distance);
         if (dist > a.radius) continue;
         const k = a.falloff === 'linear' ? Math.max(0, 1 - dist / Math.max(1e-6, a.radius)) : 1;

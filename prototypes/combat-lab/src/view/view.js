@@ -5,6 +5,7 @@ import {C, rgb} from '../sim/config.js';
 import {isInvulnerable, isOffensive, nominalDistance, actionDuration} from '../sim/entity.js';
 import {direction, length, angleOf} from '../sim/math.js';
 import {wouldVault, cancelWindow} from '../sim/controller.js';
+import {hitShapeOf} from '../sim/combat.js';
 import {CameraRig} from './rig.js';
 import {VfxSystem} from './vfx.js';
 import {SolidFx} from './solid-fx.js';
@@ -37,6 +38,7 @@ export const OVERLAYS = [
   ['launchArcs', 'Arco de lançamento previsto', 'Trajetória balística prevista de quem está no ar, com gravidade, arrasto e rebote nas paredes.'],
   ['cancelWindow', 'Janela do C → X e buffer', 'Durante a esquiva, anel no chão: cinza = janela do cancelamento ainda fechada; verde = X disponível (o arco mostra o tempo restante); vermelho = janela aberta, mas sem stamina para X. Ponto amarelo acima do lutador = comando guardado no buffer.'],
   ['preview', 'Prévia de X e C (azul)', 'Com o azul livre, mostra no chão para onde X (laranja) e C (verde) iriam na direção atual das setas (ou da frente, parado). Um arco sobre a linha verde indica que C saltaria sobre o rival.'],
+  ['hitShapes', 'Hitbox espacial do golpe', 'Círculo laranja à frente de quem faz o tackle: o defensor só é atingido se o centro dele estiver dentro (requer “Hitbox espacial” ligada em Ajustes). Mostra a forma da janela ativa.'],
   ['reach', 'Alcance de X/C', 'Anel com a distância nominal de tackle/esquiva de cada lutador (2,5 × duração × velocidade).'],
 ];
 
@@ -455,6 +457,11 @@ export class View {
         const d = direction(f.action.heading), travel = nominalDistance(f, f.action.kind) * (f.action.speedMultiplier ?? 1), left = travel * Math.max(0, 1 - f.action.elapsed / actionDuration(f.action.kind));
         const bar = new T.Mesh(new T.BoxGeometry(C.extras.fx.attackVectorWidth, .04, Math.max(.01, left)), new T.MeshBasicMaterial({color: f.action.kind === 'tackle' ? 0xffb64e : 0x61ebba, transparent: true, opacity: .68, depthTest: false}));
         bar.position.set(f.position.x + d.x * left / 2, .085 + alt, f.position.z + d.z * left / 2);bar.rotation.y = f.action.heading;bar.renderOrder = 900;this.overlayGroup.add(bar);
+      }
+      if (O.hitShapes && f.action?.kind === 'tackle') {
+        const aw = f.action.combatWindows?.activeWindows, step = Math.round((f.action.elapsed ?? 0) / (C.test.step || 1 / 120)), idx = Array.isArray(aw) ? Math.max(0, aw.findIndex(([a, b]) => step >= a && step < b)) : 0;
+        const sh = hitShapeOf(f, idx);
+        if (sh) {this.ring(sh.x, sh.z, sh.radius + half, 0xffa040, 0, Math.PI * 2, .09 + alt);this.ring(sh.x, sh.z, sh.radius + half, 0xffa040, 0, Math.PI * 2, V.bodyHeight * .6 + alt);}
       }
       if (O.guardArcs && f.guard) {
         // Ângulo válido: dot(frente, direção do atacante) ≥ alinhamento → meia abertura = acos(alinhamento).

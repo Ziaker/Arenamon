@@ -6,6 +6,9 @@ e próximos passos. **Nada foi integrado à `main`**: tudo está na branch
 `feat/ferramentas-open-source` (base: `feat/salto-footstool`, que contém câmera ZZZ,
 salto 3D, footstool, passivas e a camada three.quarks).
 
+> **Continuação (v1.13.0):** as melhorias de movimentação, colisão, física, hitbox e desenho feitas com estas skills estão em
+> `docs/MELHORIAS_FISICA_COLISAO.md`.
+
 ## Panorama
 
 | Fase | Ferramenta | Estado | Como abrir |

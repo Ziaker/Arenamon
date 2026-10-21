@@ -18,7 +18,7 @@ export function navParams(overrides = {}) {
     spacing: N.spacing ?? 1.5,
     radius: (C.test?.halfExtent ?? .5) + .12,           // folga do colisor do lutador
     bodyHeight: C.extras?.visual?.bodyHeight ?? 1.3,
-    stepTol: .25,                                       // diferença de altura que a física sobe sem salto
+    stepTol: C.map?.mountTolerance ?? .25,              // diferença de altura que a física sobe sem salto (map.mountTolerance)
     jumpMax: Math.max(0, jumpHeight - (N.jumpMargin ?? .35)),
     jumpReach: N.jumpReach ?? 2.4,
     maxDrop: N.maxDrop ?? 6,
