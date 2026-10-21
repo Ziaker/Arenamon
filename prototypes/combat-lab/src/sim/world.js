@@ -11,16 +11,19 @@
 //
 // Formas: 'circle' (raio) e 'box' (meias-medidas hx, hz, girada por `angle`). Altura: `y` (base) e `height`.
 import {C} from './config.js';
-import {isInvulnerable, nominalDistance} from './entity.js';
+import {isInvulnerable, nominalDistance, riposteIntercept} from './entity.js';
 import {sweepBox, segmentHitsVolume} from './geometry.js';
 import {launch} from './combat.js';
 import {traceBeam} from './beam.js';
+import {stepTrap} from './trap.js';
+import {stepSand} from './sand.js';
+import {stepBurrow} from './stone.js';
 import {applyStatus, stat} from './status.js';
 import {processDamageWithShieldAndStages, damageDestructible, effectiveArenaRadius} from './map.js';
 import {knockbackFactor} from './passive-engine.js';
 import {vec, add, sub, scale, dot, length, normalize, direction, angleOf, angleDelta, clamp} from './math.js';
 
-export const ENTITY_KINDS = ['projectile', 'barrier', 'wall', 'area', 'beam'];
+export const ENTITY_KINDS = ['projectile', 'barrier', 'wall', 'area', 'beam', 'trap', 'sandwave', 'burrow'];
 export const createWorld = () => ({entities: [], nextId: 1});
 const fighterHeight = () => C.extras.visual.bodyHeight;
 const altOf = f => (f.flight?.y ?? 0) + (f.vaultHeight ?? 0);
@@ -51,6 +54,9 @@ export const DEFAULTS = {
   wall: {shape: 'box', hx: 1.5, hz: .3, y: 0, height: 2.2, life: Infinity, blocksProjectiles: true, blocksFighters: true},
   beam: {y: .9, life: 2, length: 24, width: .04, pl: 1, interval: .25, turn: 0, hitsOwner: false, hit: {damage: 0}},
   area: {shape: 'circle', radius: 2, y: 0, height: 2, life: .3, grow: 0, pulses: 1, interval: 0, falloff: 'none', affectsOwner: false, follow: false},
+  burrow: {shape: 'circle', radius: 0, y: 0, height: 0, life: 120},
+  sandwave: {shape: 'box', y: 0, height: .35, life: 1.5, active: .75},
+  trap: {shape: 'circle', radius: 1.2, y: 0, height: 1.2, life: 8, armDelay: 0, pl: 1, support: true, affectsOwner: false},
 };
 /** Valida um modelo de entidade (lança erro legível). */
 export function validateEntity(t) {
@@ -85,7 +91,8 @@ export function spawn(world, t, events = []) {
 export function applyHit(game, ownerId, target, hit, normal, info = {}) {
   const R = C.rules, X = C.extras.combat, T = C.extras.toggles, owner = ownerId == null ? null : game.fighters[ownerId];
   const base = {attacker: ownerId, target: target.id, normal: {...normal}, entity: info.entity ?? null, source: info.source ?? 'world', pl: info.pl ?? null};
-  if (target.hp <= 0) return null;
+  if (target.hp <= 0 || target.absent) return null;
+  if (!hit.ignoreInvulnerability) {const rip = riposteIntercept(target, ownerId, normal, base);if (rip) return rip;}   // Riposte: janela aberta anula o acerto e dispara o contra-golpe
   if (!hit.ignoreInvulnerability && isInvulnerable(target)) return {...base, result: 'invulnerable', damage: 0};
   const atkStageMult = owner ? (1 + (owner.stages?.attack ?? 0) * (C.map?.stageAttackBonus ?? 0.10)) : 1;
   const attack = (owner ? stat(owner, 'attack', 1) : 1) * atkStageMult, scaleK = info.scale ?? 1;
@@ -166,6 +173,9 @@ export function stepWorld(game, dt) {
     if (e.kind === 'projectile') stepProjectile(game, e, dt, events, spawnLater);
     else if (e.kind === 'area') stepArea(game, e, dt, events);
     else if (e.kind === 'beam') stepBeam(game, e, dt, events);
+    else if (e.kind === 'trap') stepTrap(game, e, dt, events);
+    else if (e.kind === 'sandwave') stepSand(game, e, dt, events);
+    else if (e.kind === 'burrow') stepBurrow(game, e, dt, events);
     if (!e.dead && e.age >= e.life - 1e-9) {e.dead = true;events.push({result: 'expire', attacker: e.owner ?? null, target: null, damage: 0, entity: e.id, kind: e.kind});if (e.onExpire) spawnLater.push(at(e.onExpire, e));}
   }
   clashStones(world, events);
@@ -220,11 +230,13 @@ function stepProjectile(game, p, dt, events, spawnLater) {
       }
     }
 
-    // Mapa: destrutíveis, obstáculos e plataformas (R1.5, R1.8, R3.4, R8.8)
+    // Mapa: destrutíveis, obstáculos e plataformas (R1.5, R1.8, R3.4, R8.8).
+    // Caixas do mapa são alinhadas aos eixos (desenho e colisão dos lutadores); `angle` é só dado legado e NÃO gira a caixa aqui:
+    // antes projéteis/áreas colidiam com uma caixa girada invisível.
     if (game.mapState) {
       for (const d of game.mapState.destructibles) {
         if (d.state !== 'solid') continue;
-        const box = {shape: 'box', pos: {x: d.pos.x, z: d.pos.z}, hx: d.size.hx, hz: d.size.hz, angle: d.angle ?? 0};
+        const box = {shape: 'box', pos: {x: d.pos.x, z: d.pos.z}, hx: d.size.hx, hz: d.size.hz, angle: 0};
         if (!vOverlap(p.y - p.radius, p.y + p.radius, d.pos.y, d.pos.y + d.size.height) || !circleTouches(box, p.pos, p.radius)) continue;
         damageDestructible(d, p.hit?.damage ?? 10, 'projectile', p.owner != null ? game.fighters[p.owner] : null, game.mapState, events);
         events.push({result: 'destructibleHit', attacker: p.owner ?? null, target: d.id, damage: p.hit?.damage ?? 10, entity: p.id, kind: 'projectile'});
@@ -235,7 +247,7 @@ function stepProjectile(game, p, dt, events, spawnLater) {
       for (const o of game.mapState.obstacles) {
         const obsShape = o.shape === 'cylinder'
           ? {shape: 'circle', pos: {x: o.pos.x, z: o.pos.z}, radius: o.radius}
-          : {shape: 'box', pos: {x: o.pos.x, z: o.pos.z}, hx: o.hx, hz: o.hz, angle: o.angle ?? 0};
+          : {shape: 'box', pos: {x: o.pos.x, z: o.pos.z}, hx: o.hx, hz: o.hz, angle: 0};
         if (!vOverlap(p.y - p.radius, p.y + p.radius, o.pos.y, o.pos.y + o.height) || !circleTouches(obsShape, p.pos, p.radius)) continue;
         events.push({result: 'obstacleHit', attacker: p.owner ?? null, target: o.id, damage: 0, entity: p.id, kind: 'projectile'});
         p.dead = true;
@@ -260,7 +272,7 @@ function stepProjectile(game, p, dt, events, spawnLater) {
       if (p.onHit) spawnLater.push(at(p.onHit, p));return;
     }
     for (const f of game.fighters) {
-      if (f.hp <= 0 || (f.id === p.owner && !p.hitsOwner) || p.hitLog.includes(f.id)) continue;
+      if (f.hp <= 0 || f.absent || (f.id === p.owner && !p.hitsOwner) || p.hitLog.includes(f.id)) continue;
       const alt = altOf(f), box = {shape: 'box', pos: f.position, hx: C.test.halfExtent, hz: C.test.halfExtent, angle: 0};
       if (!vOverlap(p.y - p.radius, p.y + p.radius, alt, alt + fighterHeight()) || !circleTouches(box, p.pos, p.radius)) continue;
       if (p.clashable && f.action?.kind === 'tackle' && !f.action.neutralized && !isInvulnerable(f) && tackleDispute(p, f, events)) return;   // disputa de PL contra o Tackle em curso
@@ -299,7 +311,7 @@ function stepArea(game, a, dt, events) {
     a.pulsesDone++;
     const shields = a.explosion ? game.world.entities.filter(e => e.shields && !e.dead) : [];
     if (a.hit) for (const f of game.fighters) {
-      if (f.hp <= 0 || (f.id === a.owner && !a.affectsOwner)) continue;
+      if (f.hp <= 0 || f.absent || (f.id === a.owner && !a.affectsOwner)) continue;
       const alt = altOf(f);if (!vOverlap(alt, alt + fighterHeight(), a.y, a.y + a.height)) continue;
       const box = {shape: 'box', pos: f.position, hx: C.test.halfExtent, hz: C.test.halfExtent, angle: 0};
       const c = closestOnShape(box, a.pos), dist = Math.max(0, c.inside ? 0 : c.distance);if (dist > a.radius) continue;
@@ -314,7 +326,7 @@ function stepArea(game, a, dt, events) {
       for (const d of game.mapState.destructibles) {
         if (d.state !== 'solid') continue;
         if (!vOverlap(d.pos.y, d.pos.y + d.size.height, a.y, a.y + a.height)) continue;
-        const box = {shape: 'box', pos: {x: d.pos.x, z: d.pos.z}, hx: d.size.hx, hz: d.size.hz, angle: d.angle ?? 0};
+        const box = {shape: 'box', pos: {x: d.pos.x, z: d.pos.z}, hx: d.size.hx, hz: d.size.hz, angle: 0};
         const c = closestOnShape(box, a.pos), dist = Math.max(0, c.inside ? 0 : c.distance);
         if (dist > a.radius) continue;
         const k = a.falloff === 'linear' ? Math.max(0, 1 - dist / Math.max(1e-6, a.radius)) : 1;

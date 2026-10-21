@@ -1,5 +1,6 @@
 // Entrada: teclado (atalhos configuráveis do v6), gamepad e histórico de comandos.
 import {C, keyFor, keyFor2} from '../sim/config.js';
+import {canSee, isBlind} from '../sim/vision.js';
 import {vec, add, scale, sub, dot, length, normalize, clamp, direction, smoothstep} from '../sim/math.js';
 
 /** Botões de slot mantidos: array por slot, ou null quando nenhum (comandos sem Charge ficam idênticos aos de antes). */
@@ -94,6 +95,8 @@ export class Input {
     const p = this.pad();
     const intent = p ? {x: keyIntent.x || p.x, forward: keyIntent.forward || p.forward, dodge: keyIntent.dodge || p.dodge, dodgeHeld: keyIntent.dodgeHeld || p.dodgeHeld, tackle: keyIntent.tackle || p.tackle, tackleHeld: keyIntent.tackleHeld || p.tackleHeld, guard: keyIntent.guard || p.guard, guardPressed: keyIntent.guardPressed || p.guardPressed, jump: keyIntent.jump || p.jump, jumpHeld: keyIntent.jumpHeld || p.jumpHeld, skill: keyIntent.skill ?? p.skill, skillHeld: mergeHeld(keyIntent.skillHeld, p.skillHeld)} : keyIntent;
     this.record(intent, tick);
+    // Cegueira (Sand Wave): lock-on só em quem o cegado enxerga; se o alvo sair dos 10 m ou ficar totalmente atrás de parede, o lock-on DESLIGA e não volta sozinho (SW-D16/D37).
+    if (this.locked && isBlind(self) && !canSee(self, target, this.visionWorld?.() ?? null)) this.locked = false;
     const c = toCommand(intent, self, target, this.frameYaw(intent, cameraYaw), this.locked);this.pressed.clear();return c;
   }
   /**

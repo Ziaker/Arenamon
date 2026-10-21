@@ -33,6 +33,7 @@ export function getGroundHeight(pos, world, currentY = null) {
   if (!platforms && !obstacles && !destructibles) return 0;
   let highest = 0;
   const footMargin = (C.test?.halfExtent ?? 0.35) * 0.5;
+  const support = (C.map?.mountTolerance ?? 0.25) + 0.10;   // apoio no topo: tolerância de montagem + 10 cm
   if (platforms) {
     for (const p of platforms) {
       const px = p.pos ? p.pos.x : p.x;
@@ -40,7 +41,7 @@ export function getGroundHeight(pos, world, currentY = null) {
       const hx = ((p.width ?? 3) / 2) + footMargin;
       const hz = ((p.depth ?? 3) / 2) + footMargin;
       if (Math.abs(pos.x - px) <= hx && Math.abs(pos.z - pz) <= hz) {
-        if (currentY === null || currentY >= p.height - 0.35) {
+        if (currentY === null || currentY >= p.height - support) {
           if (p.height > highest) highest = p.height;
         }
       }
@@ -54,7 +55,7 @@ export function getGroundHeight(pos, world, currentY = null) {
         const r = (o.radius ?? 1) + footMargin;
         const dx = pos.x - ox, dz = pos.z - oz;
         if (dx * dx + dz * dz <= r * r) {
-          if (currentY === null || currentY >= h - 0.35) {
+          if (currentY === null || currentY >= h - support) {
             if (h > highest) highest = h;
           }
         }
@@ -62,7 +63,7 @@ export function getGroundHeight(pos, world, currentY = null) {
         const hx = (o.hx ?? 1.5) + footMargin;
         const hz = (o.hz ?? 1.5) + footMargin;
         if (Math.abs(pos.x - ox) <= hx && Math.abs(pos.z - oz) <= hz) {
-          if (currentY === null || currentY >= h - 0.35) {
+          if (currentY === null || currentY >= h - support) {
             if (h > highest) highest = h;
           }
         }
@@ -76,7 +77,7 @@ export function getGroundHeight(pos, world, currentY = null) {
       const hx = (d.size?.hx ?? 0.8) + footMargin;
       const hz = (d.size?.hz ?? 0.8) + footMargin;
       if (Math.abs(pos.x - d.pos.x) <= hx && Math.abs(pos.z - d.pos.z) <= hz) {
-        if (currentY === null || currentY >= h - 0.35) {
+        if (currentY === null || currentY >= h - support) {
           if (h > highest) highest = h;
         }
       }
@@ -186,9 +187,18 @@ export function clampToArena(f) {
   }
   f.position = vec(x, z);
 }
-/** Sobreposição entre dois colisores quadrados: normal de a para b e profundidade. */
+/**
+ * Sobreposição entre dois colisores: normal de a para b e profundidade.
+ * test.contactShape = 0: pegada quadrada (legado); 1: pegada circular (alcance igual em todos os ângulos; normal na linha dos centros).
+ */
 export function overlap(a, b) {
-  const T = C.test, dx = b.position.x - a.position.x, dz = b.position.z - a.position.z, sx = 2 * T.halfExtent - Math.abs(dx), sz = 2 * T.halfExtent - Math.abs(dz);
+  const T = C.test, dx = b.position.x - a.position.x, dz = b.position.z - a.position.z;
+  if ((T.contactShape | 0) === 1) {
+    const d = Math.hypot(dx, dz), r = 2 * T.halfExtent;
+    if (d > r + T.epsilon) return null;
+    return {normal: d > 1e-9 ? vec(dx / d, dz / d) : vec(1, 0), depth: Math.max(0, r - d)};
+  }
+  const sx = 2 * T.halfExtent - Math.abs(dx), sz = 2 * T.halfExtent - Math.abs(dz);
   return sx < -T.epsilon || sz < -T.epsilon ? null : sx < sz ? {normal: vec(dx >= 0 ? 1 : -1, 0), depth: Math.max(0, sx)} : {normal: vec(0, dz >= 0 ? 1 : -1), depth: Math.max(0, sz)};
 }
 export function stepPhysics(fighters, dt, world = null) {
@@ -248,7 +258,7 @@ export function stepPhysics(fighters, dt, world = null) {
           f.lastCeilingBump = {n: (f.lastCeilingBump?.n ?? 0) + 1, y: flight.y, face: underside, x: f.position.x, z: f.position.z};
         }
       }
-      const drag = flight.isNormalJump ? (C.map?.jumpDrag ?? 0.0) : R.launchDrag;
+      const drag = flight.bounce ? 0 : flight.isNormalJump ? (C.map?.jumpDrag ?? 0.0) : R.launchDrag;   // Bounce: arco sem arrasto (a distância é a pedida)
       flight.horizontal = scale(flight.horizontal, Math.exp(-drag * dt));
       const curY = flight.y ?? (f.groundY ?? 0);
       const targetGround = getGroundHeight(f.position, world, curY);
@@ -272,7 +282,7 @@ export function stepPhysics(fighters, dt, world = null) {
         // Inner Focus: hit stun reduzido em 20% quando o lançamento veio de um golpe (launch(); edge-fall/jump não marca).
         const stunFactor = f.launchedByHit ? hitStunFactor(f) : 1;
         f.launchedByHit = false;
-        f.knockRecovery = (wasNormalJump || f.hp <= 0) ? 0 : R.landingRecovery * stunFactor; // derrotado não tem recuperação de pouso
+        f.knockRecovery = flight.bounce ? (f.hp <= 0 ? 0 : flight.bounce.recovery) : (wasNormalJump || f.hp <= 0) ? 0 : R.landingRecovery * stunFactor; // derrotado não tem recuperação de pouso; Bounce: recuperação própria
         f.recoveryFrom = null;
         f.normalJumpLanding = false;
         f.state = f.hp <= 0 ? 'defeated' : (wasNormalJump ? 'neutral' : 'landing');
@@ -354,7 +364,7 @@ export function stepPhysics(fighters, dt, world = null) {
   physicsProbe.substeps = steps;
   for (let s = 0; s < steps; s++) {
     for (const f of fighters) {
-      if (f.hp <= 0 && !f.flight) continue;
+      if ((f.hp <= 0 && !f.flight) || f.absent) continue;   // ausente (Bullet Punch): sem corpo, não se move nem colide
       f.position = add(f.position, scale(add(f.velocity, pushVel.get(f.id)), dt / steps));
       clampToArena(f);
       // Paredes e barreiras sólidas criadas por movimentos (sem elas, nada muda).
@@ -383,6 +393,7 @@ export function stepPhysics(fighters, dt, world = null) {
     for (let pass = 0; pass < X.contactProjectionPasses; pass++) {
       for (let ai = 0; ai < fighters.length; ai++) for (let bi = ai + 1; bi < fighters.length; bi++) {
         const a = fighters[ai], b = fighters[bi];
+        if (a.absent || b.absent) continue;   // ausência física: nenhum contato
         // Sobreposição tridimensional real (R7.11)
         const ya0 = (a.groundY ?? 0) + (a.flight?.y ?? 0) + (a.vaultHeight ?? 0);
         const ya1 = ya0 + C.extras.visual.bodyHeight;
@@ -405,7 +416,7 @@ export function stepPhysics(fighters, dt, world = null) {
           }
         }
         const bound = (C.map?.arenaShape !== 'square' ? effectiveArenaRadius() : C.test.arenaHalf) - C.test.halfExtent;
-        const room = (f, n) => Math.abs(n.x) > .5 ? bound - f.position.x * n.x : bound - f.position.z * n.z;
+        const room = (f, n) => (C.test.contactShape | 0) === 1 ? bound - (f.position.x * n.x + f.position.z * n.z) : Math.abs(n.x) > .5 ? bound - f.position.x * n.x : bound - f.position.z * n.z;   // com normal diagonal, folga ao longo da normal
         const bGuards = a.action?.kind === 'recoil' && b.guard && dot(direction(b.facing), normalize(sub(a.position, b.position))) >= -1e-8;
         const aGuards = b.action?.kind === 'recoil' && a.guard && dot(direction(a.facing), normalize(sub(b.position, a.position))) >= -1e-8;
         let da, db;

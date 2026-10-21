@@ -3,7 +3,7 @@ import {C} from './config.js';
 import {Brain} from './ai.js';
 import {createFighter, emptyCommand, isInvulnerable, isOffensive, getFighterMaxStamina} from './entity.js';
 import {updateFighter, advanceAction, bufferDuringHitstop, tickCooldowns, isDepleted} from './controller.js';
-import {getEffect} from './move-effects.js';
+import {getEffect, stepHooks} from './move-effects.js';
 import {createWorld, stepWorld, spawn} from './world.js';
 import {tickStatuses, applyStatus} from './status.js';
 import {getMove, placeRelative, setLoadout} from './moves.js';
@@ -11,6 +11,9 @@ import {stepPhysics} from './physics.js';
 import {createMapState, initMap, stepMap, stepShield, generateFighterSpawnPositions} from './map.js';
 import {attachPassives, tickPassives, passiveOnEvents, passiveOnKO, setPassiveLoadout as applyPassiveLoadout} from './passive-engine.js';
 import {vec} from './math.js';
+import {navAssist} from '../nav/nav-assist.js';
+import {poseOf} from './interpolation.js';
+import {isBlind, canSee, blindDefensiveCommand} from './vision.js';
 
 const finishingNow = g => g.phase === 'finishing';
 export class Game {
@@ -47,7 +50,7 @@ export class Game {
     this.world.mapState = this.mapState;
     initMap(this.mapState, this.fighters);
     attachPassives(this);   // liga loadouts de passivas e restaura Sturdy (fronteira de rodada, §7/R22)
-    this.tick = 0;this.events = [];this.winner = null;this.hitstop = 0;this.phase = 'playing';this.lastStepEvents = [];
+    this.tick = 0;this.events = [];this.winner = null;this.hitstop = 0;this.phase = 'playing';this.lastStepEvents = [];this.prevPose = null;
   }
   start() {this.phase = 'playing';}
   pause() {if (this.phase === 'playing') this.phase = 'paused';else if (this.phase === 'paused') this.phase = 'playing';}
@@ -55,6 +58,7 @@ export class Game {
   step(cmd0 = emptyCommand(), cmd1) {
     this.lastStepEvents = [];this.frozen = false;this.passiveProcessed.clear();   // R31: anti-duplicata vale por passo
     if (this.phase !== 'playing' && this.phase !== 'finishing') return;
+    this.prevPose = this.fighters.map(poseOf);   // só para interpolar o desenho (view/interpolation.js); fora do save/load
     // Hitstop: o passo conta no relógio, mas a simulação fica congelada.
     if (this.hitstop > 0) {
       // Congelado, mas X/C apertados agora ficam no buffer e saem no primeiro passo depois do hitstop.
@@ -63,7 +67,7 @@ export class Game {
     }
     const finishing = this.phase === 'finishing';
     // IA do oponente desligada: o vermelho fica como boneco (recebe dano, colisões e reações físicas, sem decidir nada).
-    const enemy = () => C.extras.toggles.enableEnemyAI ? this.brain.command(this.fighters[1], this.fighters[0], this.mode, C.test.step) : emptyCommand();
+    const enemy = () => this.fighters[1].absent || this.fighters[0].absent ? emptyCommand() : isBlind(this.fighters[1]) && !canSee(this.fighters[1], this.fighters[0], this.world) ? blindDefensiveCommand(this.fighters[1]) : C.extras.toggles.enableEnemyAI ? this.assistNav(this.brain, this.fighters[1], this.fighters[0], this.brain.command(this.fighters[1], this.fighters[0], this.mode, C.test.step)) : emptyCommand();
     const commands = finishing ? [emptyCommand(), emptyCommand()] : [cmd0, cmd1 ?? enemy()];
     this.lastCommands = commands;
     for (const f of this.fighters) updateFighter(f, commands[f.id] ?? emptyCommand(), this.fighters, C.test.step, this.world);
@@ -71,6 +75,7 @@ export class Game {
     for (const f of this.fighters) if (f.moveEvents?.length) worldEvents.push(...f.moveEvents.splice(0));   // eventos do Charge (início, soltura, cancelamento, recarga acelerada)
     this.fireMoveEffects(worldEvents);
     const fresh = stepPhysics(this.fighters, C.test.step, this.world);
+    for (const hook of stepHooks()) fresh.push(...(hook(this) ?? []));   // Moves que continuam depois do disparo (Bounce: contato na descida e no pouso)
     // Escudos temporários (R9.3-R9.7, R10.2, R11.8): timers não avançam durante finishing, pause ou hitstop
     if (!finishing && this.phase === 'playing') {
       for (const f of this.fighters) stepShield(f, C.test.step, fresh);
@@ -94,7 +99,11 @@ export class Game {
     this.events.push(...fresh);this.events = this.events.slice(-12);this.lastStepEvents = fresh;
     if (C.extras.toggles.enableHitstop) {
       if (fresh.some(e => e.result === 'clash')) this.hitstop = C.extras.combat.clashHitstop;
-      else if (fresh.some(e => e.result === 'impact' || e.result === 'perfect' || e.result === 'perfectDodge' || e.result === 'footstool')) this.hitstop = C.extras.combat.impactHitstop;
+      else if (fresh.some(e => e.result === 'impact' || e.result === 'perfect' || e.result === 'perfectDodge' || e.result === 'footstool')) {
+        // Faixas de importância: golpe fraco = hitstop base; golpe forte = até (1 + boost)× (com boost = 0 é sempre o base, como antes).
+        const X = C.extras.combat, dmg = Math.max(0, ...fresh.filter(e => e.result === 'impact').map(e => e.damage ?? 0));
+        this.hitstop = X.impactHitstop * (1 + (X.hitstopDamageBoost ?? 0) * Math.min(1, dmg / Math.max(1, X.hitstopDamageRef ?? 30)));
+      }
     }
     for (const f of this.fighters) if (!f.action && !f.blend && !f.flight) f.locomotionVelocity = {...f.velocity};
     for (let i = 0; i < this.fighters.length; i++) if (this.fighters[i].action === actions[i]) advanceAction(this.fighters[i], C.test.step);
@@ -104,12 +113,14 @@ export class Game {
       this.phase = this.fighters.some(f => !!f.flight) ? 'finishing' : 'result';
     }
   }
+  /** Navegação experimental (Yuka, extras.nav.enableNav): ajusta só a intenção de movimento/salto; desligada, devolve o comando intacto. */
+  assistNav(brain, self, target, cmd) {return navAssist(this, brain, self, target, cmd);}
   /** Efeitos da linha do tempo dos movimentos que venceram neste passo (entidades, status e golpes corpo a corpo). */
   fireMoveEffects(events) {
     for (const f of this.fighters) {
       if (!f.moveFx?.length) continue;
       for (const fx of f.moveFx.splice(0)) {
-        const def = getMove(fx.move), ev = def?.timeline?.[fx.index];if (!ev) continue;
+        const def = fx.def ?? getMove(fx.move), ev = def?.timeline?.[fx.index];if (!ev) continue;
         const other = this.fighters.find(o => o.id !== f.id);
         if (ev.spawn) spawn(this.world, placeRelative(f, fx.heading, ev.spawn), events);
         else if (ev.status) {const who = ev.target === 'opponent' ? other : f;if (who && who.hp > 0) {applyStatus(who, ev.status, {source: f.id});events.push({result: 'statusApplied', attacker: f.id, target: who.id, damage: 0, status: ev.status.id});}}
@@ -163,6 +174,7 @@ export class Game {
   }
   load(state) {
     const s = structuredClone(state);
+    this.prevPose = null;
     this.fighters = s.fighters;this.tick = s.tick;this.events = s.events;this.winner = s.winner;this.hitstop = s.hitstop;this.phase = s.phase;
     this.brain.load(s.brain);this.playerBrain.load(s.playerBrain);this.lastStepEvents = s.lastStepEvents || [];
     this.eventSeq = s.eventSeq ?? this.eventSeq;this.passiveProcessed.clear();

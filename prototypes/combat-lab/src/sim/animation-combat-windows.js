@@ -92,6 +92,8 @@ export function createAnimationCombatWindows(spec = {}) {
 
     // Janelas ativas ofensivas: lista de [startStep, endStep)
     activeWindows: (spec.activeWindows || []).map(([s, e]) => [Math.round(s), Math.round(e)]),
+    // Forma espacial opcional de cada janela ativa (esfera à frente do atacante; ver extras.hitbox): [{forward, radius}] em metros.
+    ...(Array.isArray(spec.shapes) ? {shapes: spec.shapes.map(sh => ({forward: Number(sh?.forward) || 0, radius: Math.max(0.05, Number(sh?.radius) || 0.4)}))} : {}),
 
     // Janelas de invulnerabilidade: lista de [startStep, endStep)
     invulnerabilityWindows: (spec.invulnerabilityWindows || []).map(([s, e]) => [Math.round(s), Math.round(e)]),

@@ -39,11 +39,27 @@ export async function buildReportsPanel({minify = true} = {}) {
   const [template, css] = await Promise.all([read('reports/template.html'), read('reports/styles.css')]);
   return template.replace('/*__CSS__*/', () => css).replace('/*__BUNDLE__*/', () => inline(bundle.outputFiles[0].text));
 }
-/** Laboratório three.quarks: HTML único e offline de VFX com gatilho por eventos reais da simulação. */
-export async function buildQuarksLab({minify = true} = {}) {
-  const bundle = await build({entryPoints: [fileURLToPath(new URL('quarks-lab/main.js', root))], bundle: true, write: false, format: 'iife', minify, legalComments: 'inline', target: 'es2022', logLevel: 'silent'});
-  const [template, css, license] = await Promise.all([read('quarks-lab/template.html'), read('quarks-lab/styles.css'), read('../../node_modules/three/LICENSE')]);
-  const version = await versionInfo();
-  return template.replaceAll('__VERSION_DETAIL__', version.detail).replace('/*__CSS__*/', () => css).replace('/*__BUNDLE__*/', () => inline('/*\n' + license + '\n*/' + bundle.outputFiles[0].text));
+/** Texto de licença de um pacote npm (LICENSE, LICENSE.md ou LICENSE.txt): avisos obrigatórios seguem dentro do HTML. */
+async function licenseOf(pkg) {
+  for (const f of ['LICENSE', 'LICENSE.md', 'LICENSE.txt']) {
+    try {return pkg + '\n' + await read('../../node_modules/' + pkg + '/' + f);} catch {/* tenta o próximo */}
+  }
+  return pkg + ": licença não encontrada em node_modules";
 }
-export const OUTPUTS = {lab: 'dist/arenamon-combate-laboratorio.html', reports: 'dist/arenamon-painel-relatorios.html', quarks: 'dist/arenamon-vfx-quarks.html'};
+/** Laboratório de uma ferramenta open source: HTML único e offline (esbuild + template + CSS + licenças embutidas). */
+async function buildToolLab(dir, packages, {minify = true} = {}) {
+  const bundle = await build({entryPoints: [fileURLToPath(new URL(dir + '/main.js', root))], bundle: true, write: false, format: 'iife', minify, legalComments: 'inline', target: 'es2022', logLevel: 'silent', loader: {'.wasm': 'binary'}});
+  const [template, css, ...licenses] = await Promise.all([read(dir + '/template.html'), read(dir + '/styles.css'), ...packages.map(licenseOf)]);
+  const version = await versionInfo();
+  const banner = '/*\n' + licenses.join('\n----\n') + '\n*/';
+  return template.replaceAll('__VERSION_DETAIL__', version.detail).replace('/*__CSS__*/', () => css).replace('/*__BUNDLE__*/', () => inline(banner + bundle.outputFiles[0].text));
+}
+/** Laboratório three.quarks: HTML único e offline de VFX com gatilho por eventos reais da simulação. */
+export const buildQuarksLab = o => buildToolLab('quarks-lab', ['three', 'three.quarks'], o);
+/** Laboratório de navegação Yuka (Fase 3): cenários sólidos, rotas com salto e comparação A/B. */
+export const buildNavLab = o => buildToolLab('nav-lab', ['three', 'yuka'], o);
+/** Laboratório de pós-processamento pmndrs (Fase 4): bloom, distorção, aberração, grading, vinheta, DoF e A/B. */
+export const buildPostLab = o => buildToolLab('post-lab', ['three', 'postprocessing'], o);
+/** Laboratório de física Rapier (Fase 5): prova de conceito isolada, WASM embutido, comparação com a física atual. */
+export const buildPhysicsLab = o => buildToolLab('physics-lab', ['three', '@dimforge/rapier3d-compat'], o);
+export const OUTPUTS = {lab: 'dist/arenamon-combate-laboratorio.html', reports: 'dist/arenamon-painel-relatorios.html', quarks: 'dist/arenamon-vfx-quarks.html', nav: 'dist/arenamon-navegacao-yuka.html', post: 'dist/arenamon-posprocessamento.html', physics: 'dist/arenamon-fisica-rapier.html'};

@@ -5,6 +5,7 @@ import {C, rgb} from '../sim/config.js';
 import {isInvulnerable, isOffensive, nominalDistance, actionDuration} from '../sim/entity.js';
 import {direction, length, angleOf} from '../sim/math.js';
 import {wouldVault, cancelWindow} from '../sim/controller.js';
+import {hitShapeOf} from '../sim/combat.js';
 import {CameraRig} from './rig.js';
 import {VfxSystem} from './vfx.js';
 import {SolidFx} from './solid-fx.js';
@@ -21,6 +22,14 @@ import {CinematicCamera} from './cinematic-camera.js';
 // demanda quando C.vfx.quarks.enabled = 1; consome os mesmos eventos do legado.
 import * as Quarks from 'three.quarks';
 import {QuarksBridge} from './quarks/bridge.js';
+// Diagnóstico da navegação experimental (Fase 3, Yuka): rotas e pontos; criado só com extras.nav.enableNav + showDebug.
+import {NavDebug} from '../nav/nav-debug.js';
+import {StatusAura} from './status-aura.js';
+import {AimMarkers} from './aim-marker-view.js';
+// Pós-processamento experimental (Fase 4, pmndrs/postprocessing sem React): criado só com C.vfx.post.enabled = 1.
+import * as PP from 'postprocessing';
+import {PostPipeline} from './post/post-pipeline.js';
+import {feedPulses} from './post/post-params.js';
 
 const STATE_COLORS = {invulnerable: 0x58e6ff, tackle: 0xffa040, dodge: 0x61ebba, guard: 0xffe066, guardStun: 0xffb347, recoil: 0xc77dff, airborne: 0x9db4ff, landing: 0x7f93b8, defeated: 0x56616a};
 export const OVERLAYS = [
@@ -31,6 +40,7 @@ export const OVERLAYS = [
   ['launchArcs', 'Arco de lançamento previsto', 'Trajetória balística prevista de quem está no ar, com gravidade, arrasto e rebote nas paredes.'],
   ['cancelWindow', 'Janela do C → X e buffer', 'Durante a esquiva, anel no chão: cinza = janela do cancelamento ainda fechada; verde = X disponível (o arco mostra o tempo restante); vermelho = janela aberta, mas sem stamina para X. Ponto amarelo acima do lutador = comando guardado no buffer.'],
   ['preview', 'Prévia de X e C (azul)', 'Com o azul livre, mostra no chão para onde X (laranja) e C (verde) iriam na direção atual das setas (ou da frente, parado). Um arco sobre a linha verde indica que C saltaria sobre o rival.'],
+  ['hitShapes', 'Hitbox espacial do golpe', 'Círculo laranja à frente de quem faz o tackle: o defensor só é atingido se o centro dele estiver dentro (requer “Hitbox espacial” ligada em Ajustes). Mostra a forma da janela ativa.'],
   ['reach', 'Alcance de X/C', 'Anel com a distância nominal de tackle/esquiva de cada lutador (2,5 × duração × velocidade).'],
 ];
 
@@ -66,6 +76,9 @@ export class View {
     this.meteorFx = new MeteorFx(this.scene); // rastro de fogo do meteor slam (só na queda)
     this.abilityBanners = createPassiveBanners();
     this.passives = new PassiveAbilitySystem(this.scene, {notify: (id, name) => this.abilityBanners.show(id, name)});
+    this.navDebug = null; // rotas Yuka (Fase 3), sob demanda
+    this.aimMarkers = null;this.statusAura = null; // aura dos status dos Moves novos (Harden, Second Wind), sob demanda
+    this.auraSeen = new WeakSet();this.post = null;this.postSeen = new WeakSet();this.postSize = '';   // pós-processamento (Fase 4), sob demanda
     this.quarks = null; // camada three.quarks (Fase 2): instanciada sob demanda quando C.vfx.quarks.enabled
     this.useNewVfx = false; // trocar para true quando o novo sistema estiver em paridade
     this.overlayGroup = new T.Group();this.overlayGroup.renderOrder = 900;this.scene.add(this.overlayGroup);
@@ -135,7 +148,7 @@ export class View {
     this.rig.reset(player);this.seenEvents = new WeakSet();this.legacySeen = new WeakSet();this.cameraShake = 0;for (const e of this.effects) {this.scene.remove(e.mesh);e.mesh.geometry.dispose();e.mesh.material.dispose();}this.effects = [];this.airborneSeen = [];this.invulnerableFx.clear();this.normals = [];this.vfx.reset();
     if (this.canvas) this.canvas.style.filter = '';
     this.vfxRuntime.reset();
-    this.quarks?.reset();
+    this.quarks?.reset();this.post?.pulses.reset();
     this.solid.reset();this.meteorFx?.reset();for (const smear of this.smears) smear?.reset();
     this.passives.reset();this.abilityBanners.clear();
     this.cinematic?.clearAll();
@@ -242,7 +255,7 @@ export class View {
     }
     return sh;
   }
-  draw(fighters, events = [], dt = 1 / 60, {paused = false, tick = 0, sources = [], realDt = dt, world = null} = {}) {
+  draw(fighters, events = [], dt = 1 / 60, {paused = false, tick = 0, sources = [], realDt = dt, world = null, navGame = null} = {}) {
     const X = C.extras, V = X.visual, S = C.display.shadow, G = C.display.grounding, now = () => performance.now(), tm = this.timings = {anim: 0, vfx: 0, render: 0, overlays: 0};let t0;
     const visualScale = this.cinematic?.getVisualTimeScale?.() ?? 1.0;
     const isKoSeq = !!this.cinematic?.koState;
@@ -283,6 +296,9 @@ export class View {
       // A prévia de animação continua tocando com a partida pausada; bullet time visual desacelera apresentação.
       const animDt = (paused && !isKoSeq) ? (character?.preview ? realDt : 0) : ((isKoSeq ? (realDt ?? 0.016) : dt) * visualScale);
       t0 = now();character?.update(f, animDt, alt, events, {tick, source: sources[f.id]});tm.anim += now() - t0;
+      // Ausência física (Bullet Punch): nada do lutador é desenhado enquanto ele "não existe"; as speedlines ficam por conta do AimMarkers.
+      if (f.absent) {body.visible = false;arrow.visible = false;shadow.visible = false;if (character?.root) character.root.visible = false;(this.absentSeen ??= {})[f.id] = true;}
+      else if (this.absentSeen?.[f.id]) {shadow.visible = true;if (character?.root) character.root.visible = true;this.absentSeen[f.id] = false;}
       t0 = now();this.smears[f.id]?.update(f, paused ? 0 : animDt, V.smear, tick, !!X.hud.fxVisible && !!C.vfx.master.enabled && !C.vfx.master.reduceMotion);tm.vfx += now() - t0;
     }
     t0 = now();this.drawOverlays(fighters, paused ? 0 : dt);this.worldView.update(world, {fighters, events, dt: paused ? 0 : dt, skipBeams: this.useNewVfx, camera: this.camera});tm.overlays = now() - t0;
@@ -321,6 +337,32 @@ export class View {
     } else if (this.quarks) {
       this.quarks.dispose();this.quarks = null;
     }
+    // Aura dos status dos Moves novos: só existe enquanto algum lutador tem Harden/Second Wind (custo zero fora disso).
+    if (fighters.some(f => f.statuses?.some(s => s.id === 'harden' || s.id === 'second-wind' || s.id === 'blind'))) {
+      const m = C.vfx.master ?? {}, hitIds = new Set(events.filter(e => (e.result === 'impact' || e.result === 'partial') && !this.auraSeen.has(e)).map(e => {this.auraSeen.add(e);return e.target;}));
+      (this.statusAura ??= new StatusAura(T, this.scene)).update(fighters, paused ? 0 : dt, {bodyHeight: X.visual.bodyHeight, halfExtent: C.test.halfExtent, reduceMotion: !!(this._a11y?.reduceMotion || m.reduceMotion), noFlash: !!(this._a11y?.noFlash || m.noFlash), hits: hitIds});
+    } else if (this.statusAura) {this.statusAura.dispose();this.statusAura = null;}
+    // Cegueira do Sand Wave: SÓ a câmera do jogador cegado (lutador 0) recebe névoa densa perto do limite de visão e redução da luz ambiente (SW-D17/D36/D39);
+    // os outros observadores não mudam. A cena volta ao normal quando o debuff acaba.
+    {
+      const me = fighters[0], blinded = !!me && me.hp > 0 && !!me.statuses?.some(s => s.id === 'blind'), SWc = C.world.sandWave ?? {};
+      this.blindK = (this.blindK ?? 0) + ((blinded ? 1 : 0) - (this.blindK ?? 0)) * Math.min(1, (paused ? 0 : dt) * 8);
+      if (this.blindK > .01) {
+        const k = this.blindK, dark = 1 - (SWc.fogDarkness ?? .6) * k, r = SWc.visionRadius ?? 10;
+        this.ambientLight.intensity = X.visual.ambientLightIntensity * dark;this.directionalLight.intensity = X.visual.directionalIntensity * dark;
+        if (!this.scene.fog) this.scene.fog = new T.Fog(this.scene.background.getHex(), 200, 400);
+        this.scene.fog.color.copy(this.scene.background);this.scene.fog.near = 200 - (200 - r * .3) * k;this.scene.fog.far = 400 - (400 - r * 1.05) * k;
+        this._blindDimmed = true;
+      } else if (this._blindDimmed) {
+        this.scene.fog = null;this.ambientLight.intensity = X.visual.ambientLightIntensity;this.directionalLight.intensity = X.visual.directionalIntensity;this._blindDimmed = false;
+      }
+    }
+    // Marcadores de mira dos Moves com destino: só existem enquanto alguém mira.
+    if (fighters.some(f => f.aim || f.absent)) (this.aimMarkers ??= new AimMarkers(T, this.scene)).update(fighters, paused ? 0 : dt, {reduceMotion: !!(this._a11y?.reduceMotion || (C.vfx.master ?? {}).reduceMotion)});
+    else if (this.aimMarkers) {this.aimMarkers.dispose();this.aimMarkers = null;}
+    // Rotas da navegação experimental (Yuka): só quando ligada e com diagnóstico visível.
+    if (navGame && C.extras.nav?.enableNav && C.extras.nav.showDebug) (this.navDebug ??= new NavDebug(T, this.scene)).update(navGame);
+    else if (this.navDebug) {this.navDebug.dispose();this.navDebug = null;}
     this.solid.update(fighters, events, vfxDt, {visible: !!X.hud.fxVisible, world});
     this.meteorFx.update(fighters, vfxDt, this.camera, !!X.hud.fxVisible, this.characters);
     t0 = now();this.passives.update(fighters, vfxDt, {characters: this.characters, visible: !!X.hud.fxVisible && !!C.vfx.master.enabled});tm.vfx += now() - t0;
@@ -390,7 +432,10 @@ export class View {
 
       try {
         // Tempo de CPU do envio ao WebGL (não é tempo de GPU); o tempo de GPU, quando há suporte, vem da consulta de tempo.
-        this.gpuTimer?.begin();t0 = now();this.renderer.render(this.scene, this.camera);tm.render = now() - t0;this.gpuTimer?.end();
+        this.gpuTimer?.begin();t0 = now();
+        // Pós-processamento experimental: só com C.vfx.post.enabled; impact frames (silhueta pura) e desligado usam o renderer atual.
+        if (!this.renderPost(fighters, events, paused ? 0 : dt, impactPhase, isKoSeq, w, h)) this.renderer.render(this.scene, this.camera);
+        tm.render = now() - t0;this.gpuTimer?.end();
       } finally {
         // Restaura cena ao normal imediatamente após a renderização do quadro mesmo se houver erro
         if (impactPhase === 'white' || impactPhase === 'invert') {
@@ -400,6 +445,23 @@ export class View {
         }
       }
     }
+  }
+  /** Pós-processamento (Fase 4). Devolve true se o quadro foi desenhado pelo pipeline; false = usar renderer.render(). */
+  renderPost(fighters, events, dt, impactPhase, isKoSeq, w, h) {
+    const P = C.vfx.post;
+    if (!P?.enabled) {if (this.post) {this.post.dispose();this.post = null;}return false;}
+    if (impactPhase === 'white' || impactPhase === 'invert') return false;   // C08: silhueta pura, o pós não toca
+    if (!this.post) {
+      const m = C.vfx.master ?? {}, l = C.vfx.laser ?? {}, a = () => this._a11y ?? {};
+      this.post = new PostPipeline({THREE: T, PP, renderer: this.renderer, scene: this.scene, camera: this.camera, params: P, accessibility: () => ({
+        noFlash: !!(a().noFlash || m.noFlash || l.noFlash), reduceMotion: !!(a().reduceMotion || m.reduceMotion || l.reduceMotion), highContrast: !!(a().highContrast || m.highContrast || l.highContrast)})});
+      this.postSize = '';
+    }
+    if (`${w}x${h}` !== this.postSize) {this.post.setSize(w, h);this.postSize = `${w}x${h}`;}
+    feedPulses(this.post, events, fighters, this.postSeen, (pos, s) => this.post.shock(pos, s), P.distortMinDamage);
+    const loser = isKoSeq ? fighters.find(f => f.hp <= 0) : null;
+    this.post.setDof(isKoSeq, loser ? {x: loser.position.x, y: (loser.groundY ?? 0) + 1, z: loser.position.z} : null);
+    return this.post.render(dt);
   }
   // ---------- Sobreposições técnicas (recriadas a cada quadro em um grupo próprio; materiais/geometrias descartados) ----------
   previewPassive(id, kind) {this.passives.activate(id, kind);}
@@ -424,6 +486,11 @@ export class View {
         const d = direction(f.action.heading), travel = nominalDistance(f, f.action.kind) * (f.action.speedMultiplier ?? 1), left = travel * Math.max(0, 1 - f.action.elapsed / actionDuration(f.action.kind));
         const bar = new T.Mesh(new T.BoxGeometry(C.extras.fx.attackVectorWidth, .04, Math.max(.01, left)), new T.MeshBasicMaterial({color: f.action.kind === 'tackle' ? 0xffb64e : 0x61ebba, transparent: true, opacity: .68, depthTest: false}));
         bar.position.set(f.position.x + d.x * left / 2, .085 + alt, f.position.z + d.z * left / 2);bar.rotation.y = f.action.heading;bar.renderOrder = 900;this.overlayGroup.add(bar);
+      }
+      if (O.hitShapes && f.action?.kind === 'tackle') {
+        const aw = f.action.combatWindows?.activeWindows, step = Math.round((f.action.elapsed ?? 0) / (C.test.step || 1 / 120)), idx = Array.isArray(aw) ? Math.max(0, aw.findIndex(([a, b]) => step >= a && step < b)) : 0;
+        const sh = hitShapeOf(f, idx);
+        if (sh) {this.ring(sh.x, sh.z, sh.radius + half, 0xffa040, 0, Math.PI * 2, .09 + alt);this.ring(sh.x, sh.z, sh.radius + half, 0xffa040, 0, Math.PI * 2, V.bodyHeight * .6 + alt);}
       }
       if (O.guardArcs && f.guard) {
         // Ângulo válido: dot(frente, direção do atacante) ≥ alinhamento → meia abertura = acos(alinhamento).

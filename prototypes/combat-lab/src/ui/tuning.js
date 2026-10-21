@@ -47,6 +47,9 @@ function range(key, value, path) {
   if (['recoil', 'guardStun', 'landingRecovery'].includes(key) && path.startsWith('rules.')) return {min: 0, max: 4, step: .01, fmt: n => n.toFixed(2) + ' s'};
   if (key === 'epsilon') return {min: 0, max: .000001, step: .000000001, fmt: n => n.toExponential(2)};
   if (key === 'step') return {min: 1 / 240, max: 1 / 30, step: 1 / 24000, fmt: n => (1000 * n).toFixed(2) + ' ms'};
+  if (key === 'hitstopDamageBoost') return {min: 0, max: 3, step: .1, fmt: n => n ? '+' + (n * 100).toFixed(0) + '% no dano de referência' : 'Desligado (hitstop fixo)'};
+  if (key === 'hitstopDamageRef') return {min: 5, max: 100, step: 1, fmt: n => n + ' HP'};
+  if (key === 'contactShape') return {min: 0, max: 1, step: 1, fmt: n => n ? 'Circular (alcance igual em todos os ângulos)' : 'Quadrado (legado)'};
   if (key === 'arenaHalf') return {min: 6, max: 100, step: 1, fmt: n => (n * 2) + ' × ' + (n * 2) + ' m'};
   if (INTEGERS.includes(key)) {const upper = key === 'staminaMax' ? 12 : key === 'contactProjectionPasses' ? 10 : key === 'evadeCycle' || key === 'evadeCycleIndex' ? 12 : /Count$/.test(key) ? 64 : key.endsWith('Size') ? 56 : key === 'hp' ? 800 : 200;return {min: key === 'contactProjectionPasses' ? 1 : 0, max: upper, step: 1, fmt: n => String(n)};}
   if (['invulnRepeatDelay', 'impactNoticeMs', 'clashNoticeMs', 'invulnNoticeMs'].includes(key)) return {min: 0, max: 5000, step: 10, fmt: n => n + ' ms'};
@@ -59,6 +62,30 @@ function range(key, value, path) {
   if (['reversal', 'acceleration', 'braking'].includes(key)) return {min: 0, max: 400, step: 1, fmt: n => String(n)};
   if (['lightX', 'lightY', 'lightZ'].includes(key)) return {min: -30, max: 30, step: .5, fmt: n => n.toFixed(1)};
   if (key === 'gridDivisions') return {min: 2, max: 100, step: 1, fmt: n => String(n)};
+  if (path && path.startsWith('extras.hitbox.') && (key === 'shapeForward' || key === 'shapeRadius')) return {min: .1, max: 2, step: .05, fmt: n => n.toFixed(2) + ' m'};
+  if (path && path.startsWith('display.interpolation.')) {
+    if (key === 'maxJump') return {min: .2, max: 4, step: .1, fmt: n => n.toFixed(1) + ' m'};
+    if (key === 'enabled') return {min: 0, max: 1, step: 1, fmt: n => n ? 'Ligado' : 'Desligado', kind: 'toggle'};
+  }
+  if (path && path.startsWith('extras.nav.')) {
+    if (key === 'spacing') return {min: .75, max: 4, step: .25, fmt: n => n.toFixed(2) + ' m'};
+    if (key === 'replan' || key === 'stuckTime') return {min: .1, max: 3, step: .05, fmt: n => n.toFixed(2) + ' s'};
+    if (['jumpReach', 'launch', 'arrival', 'stuckDistance', 'attackMaxHeightDiff', 'jumpMargin'].includes(key)) return {min: .05, max: 6, step: .05, fmt: n => n.toFixed(2) + ' m'};
+    if (key === 'jumpPenalty' || key === 'dropPenalty') return {min: 1, max: 20, step: .5, fmt: n => n.toFixed(1) + '×'};
+    if (['suppressBlockedAttacks', 'showDebug'].includes(key)) return {min: 0, max: 1, step: 1, fmt: n => n ? 'Ligado' : 'Desligado', kind: 'toggle'};
+  }
+  if (path && path.startsWith('vfx.post.')) {
+    if (['enabled', 'bloomOn', 'distortOn', 'chromaOn', 'gradeOn', 'vignetteOn', 'dofOn', 'dofKoOnly'].includes(key)) return {min: 0, max: 1, step: 1, fmt: n => n ? 'Ligado' : 'Desligado', kind: 'toggle'};
+    if (key === 'bloomMode') return {min: 0, max: 1, step: 1, fmt: n => n ? 'Por seleção' : 'Por limiar de brilho'};
+    if (['bloomIntensity', 'distortStrength', 'bloomAttackBoost'].includes(key)) return {min: 0, max: 4, step: .05, fmt: n => n.toFixed(2) + '×'};
+    if (['bloomThreshold', 'bloomSmoothing', 'bloomRadius', 'distortSize', 'vignetteDarkness', 'vignetteOffset'].includes(key)) return {min: 0, max: 1.5, step: .01, fmt: n => n.toFixed(2)};
+    if (key === 'distortMinDamage') return {min: 0, max: 40, step: 1, fmt: n => n + ' HP'};
+    if (key === 'chromaOffset') return {min: 0, max: .006, step: .0001, fmt: n => n.toFixed(4)};
+    if (key === 'chromaImpact') return {min: 0, max: .02, step: .0005, fmt: n => n.toFixed(4)};
+    if (['gradeSaturation', 'gradeContrast', 'gradeBrightness'].includes(key)) return {min: -1, max: 1, step: .02, fmt: n => n.toFixed(2)};
+    if (key === 'gradeHue') return {min: -180, max: 180, step: 1, fmt: n => n + '°'};
+    if (key === 'dofBokeh') return {min: .5, max: 8, step: .1, fmt: n => n.toFixed(1) + '×'};
+  }
   if (path && path.startsWith('vfx.laser.')) {
     if (key.startsWith('coreWidth') || key.startsWith('haloWidth') || key === 'muzzleSize' || key === 'contactSize') {
       return {min: 0.01, max: 0.8, step: 0.005, fmt: n => n.toFixed(3) + ' m'};
@@ -94,6 +121,8 @@ function range(key, value, path) {
   }
   if (path && path.startsWith('map.')) {
     if (key === 'arenaRadius') return {min: 15, max: 100, step: 1, fmt: n => n + ' m'};
+    if (key === 'mountTolerance') return {min: 0.05, max: 0.5, step: 0.01, fmt: n => n.toFixed(2) + ' m'};
+    if (key === 'launchSolidCollision') return {min: 0, max: 1, step: 1, fmt: n => n ? 'Ligado' : 'Desligado', kind: 'toggle'};
     if (key === 'wallBounceMultiplier' || key === 'wallDamageMultiplier') return {min: 0, max: 3, step: 0.1, fmt: n => n.toFixed(1) + '×'};
     if (key === 'destructibleCount' || key === 'obstacleCount' || key === 'platformCount' || key === 'itemInitialCount' || key === 'itemMaxRegular' || key === 'stageStaminaBonus' || key === 'stagesMax') return {min: 0, max: 20, step: 1, fmt: n => String(n)};
     if (key === 'destructibleHp' || key === 'shieldCapacity' || key === 'shieldMaxCap') return {min: 5, max: 300, step: 5, fmt: n => n + ' HP'};
@@ -148,7 +177,7 @@ export const EXTRA_SECTIONS = [['Smear de Membros', 'extras.visual.smear', null]
   ['Teclas do vermelho (controle manual)', 'extras.bindings2', null], ['VFX · Laser da Arena (BeamRenderer)', 'vfx.laser', null], ['Sombras', 'display.shadow', null], ['HUD', 'display.hud', null], ['Habilidades passivas', 'display.passive', null], ['Altura visual', 'display.grounding', null], ['Indicador da janela C → X', 'display.cancelRing', null], ['Animação: transições', 'display.animation', null], ['Diagnóstico de comandos', 'display.diagnostics', null], ['Janelas de combate', 'display.windows', null], ['Medidor de desempenho', 'display.perf', null],
   // Passivas (catálogo experimental, §29): uma seção por passiva. A apresentação unificada fica em Visualizar.
   ...PASSIVES.map(p => [`Passivas · ${p.nome}${p.species ? ' (' + p.species + ')' : ''}`, `passivas.${p.id}`, null]),
-  ['Passivas · gerais (detecção)', 'passivas.globals', null], ['VFX · three.quarks (experimental)', 'vfx.quarks', null]];
+  ['Passivas · gerais (detecção)', 'passivas.globals', null], ['VFX · three.quarks (experimental)', 'vfx.quarks', null], ['IA · Navegação Yuka (experimental)', 'extras.nav', null], ['VFX · Pós-processamento (experimental)', 'vfx.post', null], ['Hitbox espacial do golpe (experimental)', 'extras.hitbox', null], ['Interpolação do desenho (movimento liso)', 'display.interpolation', null]];
 /** Parâmetros mostrados em outras abas (sem duplicar controles no Ajustes). */
 const ELSEWHERE = new Set(['extras.toggles.enableEnemyAI', 'extras.toggles.enemyManual', 'extras.visual.shadowMin', 'extras.visual.shadowHeightFade']);
 export function createTuning({apply}) {

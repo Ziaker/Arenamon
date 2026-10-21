@@ -45,7 +45,7 @@ export function traceBeam(game, e, events) {
       }
       for (const w of walls) {const h = sweepBox(w, a, end, width, tie);if (h && !('inside' in h)) consider({...h, type: 'wall'});}
       for (const f of game.fighters) {
-        if (f.hp <= 0 || (f.id === owner && !e.hitsOwner)) continue;
+        if (f.hp <= 0 || f.absent || (f.id === owner && !e.hitsOwner)) continue;
         const alt = altOf(f);if (!vOverlap(e.y - width, e.y + width, alt, alt + fh)) continue;
         const box = {pos: f.position, angle: 0, hx, hz: hx}, h = sweepBox(box, a, end, width, tie);
         if (!h) continue;

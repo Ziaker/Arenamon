@@ -23,6 +23,7 @@ export const STATS = {
   staminaCost: 'multiplicador do custo de stamina de X, C e movimentos',
   knockbackTaken: 'multiplicador do lançamento recebido',
   cooldownRate: 'velocidade de recarga dos movimentos',
+  mobilityCost: 'multiplicador do custo de stamina da esquiva (C) e do consumo do sprint (Second Wind)',
 };
 /** Flags reconhecidas pelo controlador (bloqueiam ações; o diagnóstico de comandos informa o motivo). */
 export const FLAGS = {
@@ -30,6 +31,7 @@ export const FLAGS = {
   silenced: 'não usa movimentos especiais',
   disarmed: 'não usa o tackle (X)',
   stunned: 'não age nem anda',
+  blind: 'cegueira do Sand Wave: só enxerga a 10 m (lock-on e IA), sem alterar a simulação por si só',
 };
 const STACKING = ['refresh', 'stack', 'independent', 'ignore'];
 

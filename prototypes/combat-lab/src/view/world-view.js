@@ -196,7 +196,17 @@ export class WorldView {
     const color = this.colorOf(e);
     let mesh;
 
-    if (e.kind === 'projectile') {
+    if (e.kind === 'projectile' && e.visual === 'star') {
+      // Estrela do Swift: duas pirâmides cruzadas branco-douradas com núcleo luminoso e giro individual (só aparência; colisão é o raio da entidade).
+      mesh = new T.Group();
+      const geo = new T.OctahedronGeometry(.9, 0);geo.scale(1, 1, .45);
+      const bodyMat = new T.MeshBasicMaterial({color: 0xfff1c2});
+      const a = new T.Mesh(geo, bodyMat), b = new T.Mesh(geo, bodyMat);b.rotation.z = Math.PI / 4;
+      const core = new T.Mesh(new T.SphereGeometry(.38, 10, 8), new T.MeshBasicMaterial({color: 0xffffff, transparent: true, opacity: .9}));core.name = 'starCore';
+      mesh.add(a, b, core);
+      mesh.userData.rotSpeed = {x: 0, y: 0, z: (4 + (e.id % 3)) * (e.id % 2 ? 1 : -1)};
+      mesh.material = bodyMat;
+    } else if (e.kind === 'projectile') {
       // Projétil de rocha (Psyshock ou projétil padrão)
       mesh = new T.Group();
       const style = C.vfx?.rock?.variant ?? 0;
@@ -250,6 +260,33 @@ export class WorldView {
         s.visible = false;
         mesh.add(s);
       }
+    } else if (e.kind === 'burrow') {
+      // Projétil subterrâneo: montículo de terra que corre em linha reta + anel do destino (visível através de paredes até detonar). Arte provisória.
+      mesh = new T.Group();
+      const mound = new T.Mesh(new T.ConeGeometry(.45, .5, 7), new T.MeshStandardMaterial({color: 0x6b4f2a, roughness: 1}));mound.name = 'mound';mound.position.y = .25;mesh.add(mound);
+      const ringGeo = new T.RingGeometry(.9, 1, 48);ringGeo.rotateX(-Math.PI / 2);
+      const ring = new T.Mesh(ringGeo, new T.MeshBasicMaterial({color: 0xffb35a, transparent: true, opacity: .8, depthTest: false, depthWrite: false, side: T.DoubleSide}));ring.name = 'burrowTarget';ring.renderOrder = 950;mesh.add(ring);
+    } else if (e.kind === 'sandwave') {
+      // Barragem de areia: retângulo no chão (o real, fixado no disparo), frente da onda que avança e grãos subindo; forma PROVISÓRIA (arte não aprovada, SW-P07).
+      mesh = new T.Group();
+      const planeGeo = new T.PlaneGeometry(1, 1);planeGeo.rotateX(-Math.PI / 2);
+      const plane = new T.Mesh(planeGeo, new T.MeshBasicMaterial({color: 0xd8bd7a, transparent: true, opacity: .28, depthWrite: false, side: T.DoubleSide}));plane.name = 'sandPlane';mesh.add(plane);
+      const front = new T.Mesh(new T.BoxGeometry(1, .5, .25), new T.MeshBasicMaterial({color: 0xe7cf92, transparent: true, opacity: .55, depthWrite: false}));front.name = 'sandFront';mesh.add(front);
+      const grainGeo = new T.BoxGeometry(.07, .07, .07);
+      for (let i = 0; i < 40; i++) {const g = new T.Mesh(grainGeo, new T.MeshBasicMaterial({color: 0xe3c98a, transparent: true, opacity: .8, depthWrite: false}));g.name = 'sandGrain';g.userData.k = i;mesh.add(g);}
+    } else if (e.kind === 'trap') {
+      // Armadilha de espinhos: 5 a 7 cones cristalinos em anel + um central; o raio visual é o raio real do campo (a física manda, o desenho acompanha).
+      mesh = new T.Group();
+      const n = 6, spikeMat = new T.MeshStandardMaterial({color: 0xd7e6ff, emissive: 0x4f7bff, emissiveIntensity: .55, roughness: .35, metalness: .2, transparent: true, opacity: .95});
+      const coneGeo = new T.ConeGeometry(.16, 1, 6);coneGeo.translate(0, .5, 0);
+      for (let i = 0; i <= n; i++) {
+        const c = new T.Mesh(coneGeo, spikeMat), a = (i / n) * Math.PI * 2, rr = i === n ? 0 : e.radius * .62;
+        c.position.set(Math.sin(a) * rr, 0, Math.cos(a) * rr);c.userData.h = i === n ? 1 : .75 + .2 * Math.sin(i * 2.3);c.name = 'spike';
+        mesh.add(c);
+      }
+      const ringGeo = new T.RingGeometry(.9, 1, 48);ringGeo.rotateX(-Math.PI / 2);
+      const ring = new T.Mesh(ringGeo, new T.MeshBasicMaterial({color: 0x7da8ff, transparent: true, opacity: .45, depthWrite: false, side: T.DoubleSide}));
+      ring.name = 'trapRing';ring.scale.set(e.radius, 1, e.radius);ring.position.y = .02;mesh.add(ring);
     } else if (e.kind === 'area') {
       const geo = new T.CircleGeometry(1, 48);
       geo.rotateX(-Math.PI / 2);
@@ -510,7 +547,7 @@ export class WorldView {
       } else if (e.kind === 'projectile') {
         m.position.set(e.pos.x, e.y, e.pos.z);
         const rockScale = (C.vfx?.rock?.scale ?? 1.0);
-        const scaleVal = e.radius * (e.visualScale ?? 1) * (e.exec != null ? 1.15 : 1) * rockScale;
+        const scaleVal = e.visual === 'star' ? e.radius * 2.2 : e.radius * (e.visualScale ?? 1) * (e.exec != null ? 1.15 : 1) * rockScale;
         m.scale.setScalar(scaleVal);
         const col = this.colorOf(e);
 
@@ -534,6 +571,33 @@ export class WorldView {
         // Rastro de poeira e partículas telecinéticas
         if (emitTrailsNow && C.vfx?.rock?.trail && dt > 0) {
           this.emitRockTrail(e.pos.x, e.y, e.pos.z, e.vel ?? e.dir, col, scaleVal);
+        }
+      } else if (e.kind === 'burrow') {
+        const ground = (e.alt ?? 0);m.position.set(e.pos.x, 0, e.pos.z);
+        for (const c of m.children) {
+          if (c.name === 'mound') {c.position.y = ground + .25;c.rotation.y = Math.atan2(e.to.x - e.from.x, e.to.z - e.from.z);c.scale.setScalar(.85 + .15 * Math.sin(this.time * 18));}
+          else if (c.name === 'burrowTarget') {c.position.set(e.to.x - e.pos.x, (e.to.y ?? 0) + .05, e.to.z - e.pos.z);const r = (e.params?.blastRadius ?? 5);c.scale.set(r, 1, r);c.material.opacity = .45 + .35 * Math.sin(this.time * 6);}
+        }
+      } else if (e.kind === 'sandwave') {
+        // retângulo real (comprimento à frente × largura), com a frente da onda avançando na velocidade do motor e dissipando nos 0,75 s finais
+        m.position.set(e.pos.x, .03, e.pos.z);m.rotation.y = Math.atan2(e.dir.x, e.dir.z);
+        const act = Math.min(e.age, e.active), fade = e.age <= e.active ? 1 : Math.max(0, 1 - (e.age - e.active) / Math.max(1e-6, e.life - e.active)), reach = e.speed * act;
+        for (const c of m.children) {
+          if (c.name === 'sandPlane') {c.scale.set(e.width, 1, Math.max(.01, reach));c.position.z = reach / 2;c.material.opacity = .28 * fade;}
+          else if (c.name === 'sandFront') {c.scale.set(e.width, 1, 1);c.position.set(0, .25, reach);c.visible = e.age <= e.active;c.material.opacity = .55 * fade;}
+          else if (c.name === 'sandGrain') {
+            const k = c.userData.k, u = ((k * 0.61803) % 1) * reach, v = (((k * 0.37) % 1) - .5) * e.width, t = (this.time * 1.4 + k * .13) % 1;
+            c.position.set(v, .1 + t * .9, u);c.material.opacity = .8 * fade * (1 - t);c.visible = reach > .05;
+          }
+        }
+      } else if (e.kind === 'trap') {
+        // Brotam em sequência rápida (0,25 s), pulsam de leve e piscam no último segundo; antes de armar ficam translúcidos.
+        m.position.set(e.pos.x, e.y ?? 0, e.pos.z);
+        const grow = Math.min(1, e.age / .25), armed = e.age >= (e.armDelay ?? 0), left = e.life - e.age, blink = left < 1 ? (.5 + .5 * Math.abs(Math.sin(this.time * 24))) : 1;
+        let i = 0;
+        for (const c of m.children) {
+          if (c.name === 'spike') {const k = Math.max(0, Math.min(1, grow * 1.4 - i * .06));c.scale.set(1, (c.userData.h ?? 1) * 1.05 * k, 1);c.material.opacity = (armed ? .95 : .55) * blink;c.material.emissiveIntensity = (armed ? .55 + .2 * Math.sin(this.time * 5 + i) : .25);i++;}
+          else if (c.name === 'trapRing') c.material.opacity = (armed ? .45 : .2) * blink;
         }
       } else if (e.kind === 'area') {
         m.position.set(e.pos.x, (e.y ?? 0) + .03, e.pos.z);
@@ -867,9 +931,9 @@ export class WorldView {
       aliveMapIds.add(d.id);
       let m = this.mapMeshes.get(d.id);
       if (!m) {
-        const geo = new T.BoxGeometry(d.size.hx * 2, d.size.height, d.size.hz * 2);
+        const geo = d.rock ? new T.BoxGeometry(1, 1, 1) : new T.BoxGeometry(d.size.hx * 2, d.size.height, d.size.hz * 2);
         const mat = new T.MeshStandardMaterial({
-          color: 0xd97706,
+          color: d.rock ? 0x8b8f98 : 0xd97706,
           roughness: 0.7,
           metalness: 0.1,
           transparent: true,
@@ -887,12 +951,19 @@ export class WorldView {
         const hpBar = new T.Mesh(hpBarGeo, hpBarMat);
         hpBar.name = 'hpBar';
         hpBar.position.set(0, d.size.height / 2 + 0.25, 0);
+        if (d.rock) hpBar.visible = false;
         m.add(hpBar);
 
         this.mapGroup.add(m);
         this.mapMeshes.set(d.id, m);
       }
       m.position.set(d.pos.x, d.pos.y + d.size.height / 2, d.pos.z);
+      if (d.rock) {   // rocha do Emerging Stone: o desenho cresce com a altura exposta (o colisor é o mesmo); rachaduras = escurecer conforme o HP cai, sem encolher
+        m.scale.set(d.size.hx * 2, Math.max(.01, d.size.height), d.size.hz * 2);
+        const k = Math.max(0, d.hp / (d.maxHp || 5));m.material.color.setRGB(.55 * (.45 + .55 * k), .56 * (.45 + .55 * k), .6 * (.45 + .55 * k));
+        m.visible = true;m.material.opacity = 1;this.checkOcclusion(m, camera, fighters);
+        continue;
+      }
 
       const hpBar = m.getObjectByName('hpBar');
       if (d.state === 'solid') {

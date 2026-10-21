@@ -29,6 +29,9 @@ export function defaults() {
   // O half-size legado da arena quadrada (arenaHalf) NUNCA limita a arena circular.
   const test = {step: 1 / 120, maxFrame: .1, arenaRadius: 50, arenaHalf: 10.4, circleCap: null, halfExtent: .5, hp: 100, attack: 20, defense: 50, speed: 4.8, attackReference: 20,
     speedReference: 10, defenseMedian: 50, pushCoefficient: 2, pushDuration: .3, aiInterval: .85, aiRange: 3.3, contactStep: .1, epsilon: 1e-8,
+    // contactShape: pegada do contato lutador × lutador. 0 = quadrada (legado: alcance do tackle maior nas diagonais e normal do golpe
+    // sempre alinhada aos eixos); 1 = circular (alcance igual em todos os ângulos, normal ao longo da linha dos centros).
+    contactShape: 1,
     forwardTolerance: Math.PI / 8};
   // Locomoção contínua (sim/locomotion.js). model 0 = aproximação linear do v6 (paridade); 1 = controlador com curvas,
   // aderência lateral, atrito e giro com aceleração angular. moveFrame: 0 = setas relativas à câmera também com
@@ -46,8 +49,22 @@ export function defaults() {
     combat: {vaultCollisionHeight: 1.3, tackleTargetAlignment: .15,
       tackleNormalAlignment: 0, tackleClosingSpeed: .06, clashFacingAlignment: .2, clashClosingSpeed: .06, guardFrontAlignment: 0, guardDamageMultiplier: .5,
       launchAttackBase: .85, launchAttackWeight: .15, launchAttackReference: 20, launchClosingCap: 2, launchClosingMultiplier: .1, launchNormalWeight: .75,
-      launchCenterWeight: .25, contactProjectionPasses: 4, clashHitstop: .085, impactHitstop: .035, perfectGuardCounterWindow: .70,
+      launchCenterWeight: .25, contactProjectionPasses: 4, clashHitstop: .085, impactHitstop: .035,
+      // Hitstop por faixa de importância (skill game-feel): o congelamento do impacto cresce com o dano do golpe.
+      // hitstopDamageBoost = 0: sempre impactHitstop (comportamento anterior); 1 = dobra no dano de referência (hitstopDamageRef HP) ou mais.
+      hitstopDamageBoost: 0, hitstopDamageRef: 30, perfectGuardCounterWindow: .70,
       exhaustRecovery: .15, guardRegenFactor: .70, landingSkidFraction: .34, landingSkidDrag: 8, landingSkidMin: .08},
+    // Hitbox espacial do golpe (item 3 do plano de melhorias de física): com enableShapes = 1 o tackle só conecta se o centro do defensor
+    // estiver dentro de uma ESFERA à frente do atacante (centro a `forward` m na direção do golpe, raio `radius` + meia largura do corpo).
+    // Cada janela de combate da animação pode trazer a sua própria forma (contrato.shapes[i] = {forward, radius}; no ajuste: shapeForward / shapeRadius); sem forma própria vale este padrão.
+    // 0 = comportamento anterior (só alinhamento + sobreposição de corpos). O padrão (0,60 m / 0,40 m) é um arco frontal de ≈ ±63°.
+    hitbox: {enableShapes: 0, shapeForward: .6, shapeRadius: .4},
+    // Navegação experimental (Fase 3, Yuka): 0 = navegação atual (padrão, nada muda); 1 = a IA consulta um grafo de superfícies
+    // (caminhada, salto e queda) planejado com Yuka SOMENTE quando o alvo não está em linha reta caminhável. A física continua do Arenamon.
+    // spacing: grade de nós do chão (m) · replan: intervalo de replanejamento (s) · jumpReach: alcance horizontal de um salto (m) ·
+    // launch: distância ao nó de destino para decolar (m) · stuck*: detecção de travamento · attackMaxHeightDiff: diferença de altura
+    // acima da qual o alvo é inalcançável para o tackle (m) · suppressBlockedAttacks: não ataca alvo inalcançável (só impede ataque no vazio).
+    nav: {enableNav: 0, spacing: 1.5, replan: .4, jumpReach: 2.4, jumpMargin: .35, launch: 1.5, arrival: .55, stuckTime: .8, stuckDistance: .12, attackMaxHeightDiff: .8, suppressBlockedAttacks: 1, showDebug: 1, jumpPenalty: 6, dropPenalty: 6},
     // moveSmoothing: giro máximo (rad/s) da intenção de movimento da IA; minDirectionHold: tempo mínimo antes de inverter
     // a intenção (contra zigue-zague). 0 = intenções cruas (v6). Ataques e esquivas nunca são suavizados.
     // revision: 0 = IA tática anterior (15/10/2026); 1 = revisada (valida ações antes de pedir, alcance, sprint, contra-ataque);
@@ -132,7 +149,7 @@ export function defaults() {
     // beam: lasers contínuos e emissores técnicos (Fase 7). PROVISÓRIOS: comprimento máximo, segmentos refletidos por passo e intervalo entre danos por alvo.
     beam: {length: 24, maxSegments: 8, interval: .25, damage: 2},
     // ai: como a IA decide usar os Moves (sim/ai-moves.js). Distâncias em m, tempos em s. Os padrões reproduzem o comportamento anterior.
-    ai: {evadeDistance: 4.5, pl2Distance: 4.8, pl3Distance: 7, reflectHold: .9, lastSecondDefend: .22, noTimeDefend: .26, barrierBreakRange: 3.2, barrierBreakChance: .6, psyshockMinDistance: 3.5, psyshockMinStamina: 2, psyshockChanceMax: .9, afterChargeWait: .35, decisionInterval: .5}};
+    ai: {evadeDistance: 4.5, pl2Distance: 4.8, pl3Distance: 7, reflectHold: .9, lastSecondDefend: .22, noTimeDefend: .26, barrierBreakRange: 3.2, barrierBreakChance: .6, newMovesRate: 1, psyshockMinDistance: 3.5, psyshockMinStamina: 2, psyshockChanceMax: .9, afterChargeWait: .35, decisionInterval: .5}};
   // Passivas (CATÁLOGO EXPERIMENTAL, não homologado): parâmetros de balanceamento por passiva (§29), ajustáveis no
   // painel (aba Passivas) e congelados por snapshot em cada ativação (não retroativos). Ver sim/passives.js.
   const passivas = {
@@ -156,6 +173,47 @@ export function defaults() {
     'vital-spirit': {thresholdPct: .30, regenPct: .30},
     guts: {attackPct: .15},
   };
+  // Moves NOVOS (docs/moves-nao-iniciados/PROMPT_IMPLEMENTACAO_MOVES_NOVOS.md). Cada grupo traz os sliders do Move: cost/cooldown/cast sobrepõem a
+  // definição NO PRÓXIMO USO (moves.js › effectiveMove) e o resto é lido pelo efeito do Move; a execução guarda uma cópia (M28.4).
+  // Valores iniciais vêm dos catálogos (propostas de balanceamento, NÃO homologadas) — ver DECISOES_PROVISORIAS_MOVES_NOVOS.md.
+  Object.assign(world, {
+    // Harden: +30% Defesa (⇒ dano × 1/1,3, mesma convenção da passiva de Defesa, MV-P01) e nega o knockback ofensivo por 5 s.
+    harden: {cost: .8, cooldown: 10, cast: .35, duration: 5, defensePct: .30, negateKnockback: 1},
+    // Second Wind: +40% da stamina MÁXIMA por segundo (MV-P09) e esquiva/sprint 25% mais baratos por 5 s; não cura HP.
+    secondWind: {cost: .8, cooldown: 12, cast: .35, duration: 5, regenPctPerSecond: .40, mobilityCostPct: .25},
+    // Swift: 3 estrelas, 15 m/s, 3 HP nominais cada (× Ataque ÷ referência, MV-P13), homing 0,25 s a 90°/s, alcance 12 m, knockback 0,3 m/s por acerto com teto 0,9 por alvo/execução, vertical 0.
+    // cast = tempo da ação (recuperação do Burst; provisório MV-P14). Sem lock-on: leque frontal de fanAngle graus.
+    // Lunge: Tackle de curta distância (3,5 m, total 0,6 s), 8 HP nominais, 4 m/s H sem V, i-frames 0,133 s, cancelável após 0,45 s; janela ativa 0,19–0,26 s só vale com "janelas de combate" ligadas.
+    lunge: {cost: .75, cooldown: 6, cast: .6, range: 3.5, damage: 8, knockbackH: 4, knockbackV: 0, invulnerableSeconds: .1333, chainAfter: .45, hitStart: .19, hitEnd: .26},
+    // Riposte: Normal Status+Melee PL1. Postura de 0,65 s; entre 0,13 e 0,30 s qualquer acerto elegível (menos Guard Break) é anulado e dispara um contra-golpe PL1 de 6 HP
+    // (× Ataque ÷ referência), 3 m/s H, na hora do gatilho (MV-P24); strikeRange = alcance do golpe (não definido no documento: MV-P25). Janela fechada sem acerto = recuperação exposta.
+    riposte: {cost: .8, cooldown: 8, cast: .65, windowStart: .13, windowEnd: .30, damage: 6, knockbackH: 3, knockbackV: 0, strikeRange: 1.6},
+    // Emerging Stone (ES-D01…D103, cronologia C): cast 0,55 s (corpo a 30%), marcador 3–10 m 3D, projétil 15 m/s, explosão de 5 m horizontais (20 nominais × Ataque ÷ referência, 8 m/s radial),
+    // rocha 3 m × escala (0,25–4×, passo 0,25), emerge em 0,40 s, 5 HP, lançamento da emergência 8 H/14 V, até 3 por dono. markerSpeed/startDistance/rockSearch/maxRise: provisórios.
+    emergingStone: {cost: 3, cooldown: 9, cast: .55, castSlow: .7, minRange: 3, range: 10, startDistance: 5, markerSpeed: 8, speed: 15, blastRadius: 5, damage: 20, blastKnockback: 8, rockScale: 1, rockHp: 5, riseTime: .4, launchH: 8, launchV: 14, maxRocks: 3, rockSearch: 4, maxRise: 2, edgeMargin: .3, radius: 0, allowOccupied: 1},
+    // Bullet Punch (MUSHROOM_MOVES_DECISOES §2-3): marcador 3→10 m em 2 s (quadrático), corpo a 30% (slow .7), preparação 0,75 s, desaparecimento 1 s, busca 5 m a partir do marcador,
+    // investida PL2 de até 3 m, custo 1,5× o do Tackle (Tackle = 1) e 8 s; impactMult = velocidade de impacto do knockback (1× a referência do Tackle). maxRise/edgeMargin: técnicos.
+    bulletPunch: {cost: 1.5, cooldown: 8, cast: .75, vanish: 1, searchRadius: 5, reach: 3, impactMult: 1, startDistance: 3, maxDistance: 10, growTime: 2, slow: .7, maxRise: 2, edgeMargin: .3},
+    // Sand Wave: Burst PL1 (MUSHROOM_MOVES_DECISOES §6). Prep 0,25 s, barragem 1,5 s (0,75 s de hitbox + 0,75 s de dissipação), retângulo 4 (frente) × 3 (lado) m, 6 HP fixos,
+    // empurrão 12 m/s² (×0,5 na parcial), cegueira 4 s, stagger de parede 0,30 s, visão do cegado 10 m, fog = redução de 60% da luz. cell/detour/replanSteps: grade do caminho livre (técnicos).
+    sandWave: {cost: 2, cooldown: 10, cast: .25, length: 4, width: 3, active: .75, dissipate: .75, damage: 6, accel: 12, partialFactor: .5, blind: 4, wallStagger: .3, visionRadius: 10, fogDarkness: .6, cell: .25, detour: 3, replanSteps: 6},
+    // Spikes: Normal Field PL1. Marcador de colocação (alcance 3D 5 m), cast 0,4 s, armadilha de 1,2 m de raio por 8 s, 6 HP nominais (× Ataque ÷ referência), sem knockback, 1 acionamento.
+    // markerSpeed/startDistance/maxRise/armDelay/trapHeight não vêm do documento (MV-P29/MV-P31): provisórios.
+    spikes: {cost: 1, cooldown: 10, cast: .4, range: 5, radius: 1.2, life: 8, damage: 6, knockbackH: 0, knockbackV: 0, armDelay: .25, markerSpeed: 8, startDistance: 3, minRange: 0, maxRise: 2, trapHeight: 1.2},
+    // Bounce: Charge Trick+Melee. Carga máx. 1,2 s (PL1 <50%, PL2 <100%, PL3 em 100%); alturas 1,5/2,5/3,5 m (experimentais); alcance horizontal máx. 6 m; 12 HP nominais
+    // (× Ataque ÷ referência), 3 m/s H e 6 m/s V; recuperação 0,25 s após o pouso. gravity/contactRadius/landRadius não vêm do documento (MV-P27/MV-P28): provisórios.
+    bounce: {cost: 1.2, cooldown: 12, maxCharge: 1.2, minCharge: 0, maxDistance: 6, heightPl1: 1.5, heightPl2: 2.5, heightPl3: 3.5, gravity: 17.5, damage: 12, knockbackH: 3, knockbackV: 6, landRecovery: .25, contactRadius: .3, landRadius: 1.4},
+    // Feint: Burst Trick sem PL. Cancela Tackle/Lunge/Guard Break (e a carga de Tackle) só na antecipação (cancelWindow = 4 quadros a 30 fps = 0,133 s) e vira um recuo curto
+    // (retreat m, para trás ou para o lado do input) com i-frames de 2 a 10 passos a 120 Hz. Fora da janela o Move é gasto sem efeito e o golpe segue (punível; MV-P21).
+    feint: {cost: .3, cooldown: 3, cast: .22, cancelAfter: .0333, cancelWindow: .1333, retreat: .25, invulnStart: .0167, invulnEnd: .0833},
+    // Guard Break (Charge → Tackle ao soltar): carga máx. 1 s (PL1 <50%, PL2 <100%, PL3 em 100%), custo e recarga no INÍCIO da carga, golpe de 0,7 s pós-soltura, 6 HP nominais,
+    // 2 m/s H sem V; contra guarda comum: guard stun de 0,5 s e guarda derrubada, sem empurrão (MV-P18). range = distância do avanço (não definida no documento: MV-P20).
+    guardBreak: {cost: 1, cooldown: 10, maxCharge: 1, minCharge: 0, cast: .7, range: 2.6, damage: 6, knockbackH: 2, knockbackV: 0, stun: .5, invulnerableSeconds: 0, chainAfter: .47, hitStart: .333, hitEnd: .533},
+    // Quick Attack: alvo mais próximo a até 7 m, ida ≤ 0,16 s e volta ≤ 0,14 s (velocidades = alcance ÷ tempo), recuperação 0,12 s, 8 HP nominais, 4 m/s H sem V.
+    // Sem i-frames do atacante (o catálogo não define; MV-P16). Ação total = ida + volta + recuperação.
+    quickAttack: {cost: .75, cooldown: 6, acquireRange: 7, approachMax: .16, returnMax: .14, recovery: .12, damage: 8, knockbackH: 4, knockbackV: 0, invulnerableSeconds: 0},
+    swift: {cost: .8, cooldown: 7, cast: .25, count: 3, speed: 15, damage: 3, homingSeconds: .25, homingRate: 90, range: 12, knockback: .3, knockbackCap: .9, radius: .2, fanAngle: 20, spawnForward: .9, spawnSpacing: .35, counterStagger: .2},
+  });
   return {rules, test, locomotion, camera, profiles: profilesLab, extras, actions, vfx: vfxDefaults(), display: displayDefaults(), world, map: {...MAP_DEFAULTS}, passivas};
 }
 
@@ -222,6 +280,17 @@ export function vfxDefaults() {
     // B (impacto), C (pouso) e footstool por partículas GPU, A/B comparativo com o legado.
     // 0 = desligada (custo zero, nada é instanciado). Só aparência.
     quarks: {enabled: 0},
+    // Pós-processamento experimental (Fase 4, pmndrs/postprocessing sem React): bloom por limiar/seleção, distorção em impactos fortes,
+    // aberração cromática, color grading, vinheta e profundidade de campo (só K.O.). enabled = 0: renderer atual, custo zero. Só aparência.
+    post: {
+      enabled: 0,
+      bloomOn: 1, bloomMode: 0, bloomIntensity: .9, bloomThreshold: .8, bloomSmoothing: .25, bloomRadius: .7, bloomAttackBoost: 1.8,
+      distortOn: 1, distortStrength: .5, distortSize: .28, distortMinDamage: 12,
+      chromaOn: 1, chromaOffset: .0008, chromaImpact: .004,
+      gradeOn: 1, gradeSaturation: .1, gradeContrast: .06, gradeBrightness: 0, gradeHue: 0,
+      vignetteOn: 1, vignetteDarkness: .4, vignetteOffset: .3,
+      dofOn: 0, dofBokeh: 2.5, dofKoOnly: 1,
+    },
   };
 }
 
@@ -232,6 +301,9 @@ export function displayDefaults() {
     shadow: {style: 2, opacity: .55, radius: .62, scaleX: 1, scaleZ: 1, softness: .6, offsetX: 0, offsetZ: 0, intensity: 1},
     // proposal: 0 = HUD atual, 1 = A (Arcade Vector), 2 = B (Combat Halo), 3 = C (Tactical Combat). Cooldowns: só demonstração.
     hud: {proposal: 0, scale: 1, demoCooldowns: 1, demoAuto: 1, demoDuration: 4, damageDelay: .45},
+    // Interpolação do DESENHO entre o passo anterior e o atual da simulação (120 Hz): movimento liso em monitores de qualquer taxa.
+    // Só visual (a simulação não muda). maxJump: deslocamento (m) acima do qual não se suaviza (reinício, esquiva sobre o rival).
+    interpolation: {enabled: 1, maxJump: 1.5},
     // Altura visual: deslocamento do modelo/bloco sem mover o colisor nem a sombra.
     grounding: {autoGround: 1, visualOffset: 0},
     // Indicador da janela C → X (apenas desenho; a regra é por tempo, ver docs).
