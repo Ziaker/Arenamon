@@ -11,7 +11,7 @@
 //
 // Formas: 'circle' (raio) e 'box' (meias-medidas hx, hz, girada por `angle`). Altura: `y` (base) e `height`.
 import {C} from './config.js';
-import {isInvulnerable, nominalDistance} from './entity.js';
+import {isInvulnerable, nominalDistance, riposteIntercept} from './entity.js';
 import {sweepBox, segmentHitsVolume} from './geometry.js';
 import {launch} from './combat.js';
 import {traceBeam} from './beam.js';
@@ -86,6 +86,7 @@ export function applyHit(game, ownerId, target, hit, normal, info = {}) {
   const R = C.rules, X = C.extras.combat, T = C.extras.toggles, owner = ownerId == null ? null : game.fighters[ownerId];
   const base = {attacker: ownerId, target: target.id, normal: {...normal}, entity: info.entity ?? null, source: info.source ?? 'world', pl: info.pl ?? null};
   if (target.hp <= 0) return null;
+  if (!hit.ignoreInvulnerability) {const rip = riposteIntercept(target, ownerId, normal, base);if (rip) return rip;}   // Riposte: janela aberta anula o acerto e dispara o contra-golpe
   if (!hit.ignoreInvulnerability && isInvulnerable(target)) return {...base, result: 'invulnerable', damage: 0};
   const atkStageMult = owner ? (1 + (owner.stages?.attack ?? 0) * (C.map?.stageAttackBonus ?? 0.10)) : 1;
   const attack = (owner ? stat(owner, 'attack', 1) : 1) * atkStageMult, scaleK = info.scale ?? 1;

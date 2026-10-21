@@ -32,7 +32,7 @@ const sdOf = a => {const m = mean(a);return Math.sqrt(mean(a.map(v => (v - m) **
 
 // ---------- Cobertura: nada que a simulação lê fica sem slider ----------
 const NEW = new Set(['reflect.burstRadius', 'reflect.burstForce', 'reflect.burstDamage', 'reflect.burstPush', 'reflect.burstHurt', 'psyshock.knockbackVertical', 'psyshock.knockbackLevelBonus', 'psyshock.knockbackSpeedFactor', 'reflect.minCharge', 'psyshock.searchStep', 'psyshock.arc', 'psyshock.ringMin', 'psyshock.ringMax', 'psyshock.heightMin', 'psyshock.heightMax', 'psyshock.scaleMin', 'psyshock.scaleMax']);
-const GROUPS = ['charge', 'reflect', 'psyshock', 'beam', 'ai', 'harden', 'secondWind', 'swift', 'lunge', 'quickAttack', 'guardBreak', 'feint'];
+const GROUPS = ['charge', 'reflect', 'psyshock', 'beam', 'ai', 'harden', 'secondWind', 'swift', 'lunge', 'quickAttack', 'guardBreak', 'feint', 'riposte'];
 const rows = new Map(MOVES_PARAMS.flatMap(([, list]) => list).map(r => [`${r[0]}.${r[1]}`, r]));
 /** Chaves da configuração que NENHUM código da simulação ou da visão lê (campos legados): sem leitor, um slider seria controle morto. */
 const UNUSED = new Set([]);

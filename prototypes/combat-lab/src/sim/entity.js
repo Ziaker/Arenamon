@@ -72,6 +72,24 @@ export function isInvulnerable(f) {
   return ((kind === 'dodge' || kind === 'tackle') && f.action.elapsed < invulnerableWindow(f.action) - 1e-8
     || (kind === 'move' && (() => {const s = moveSpec(f.action);return f.action.elapsed >= s.invulnerableFrom - 1e-8 && f.action.elapsed < s.invulnerable - 1e-8;})()));
 }
+/**
+ * Riposte: a janela de contra-ataque está aberta? (defensor com a ação do Move entre windowStart e windowEnd; depois do gatilho a ação vira um Tackle e
+ * a janela fecha, mas a invulnerabilidade `invulnerableFor` do golpe cobre o resto dela).
+ */
+export function riposteWindow(f) {
+  const a = f?.action;
+  if (a?.kind !== 'move' || !a.def?.riposte || !a.params) return null;
+  return a.elapsed >= a.params.windowStart - 1e-9 && a.elapsed < a.params.windowEnd - 1e-9 ? a : null;
+}
+/**
+ * Acerto elegível durante a janela do Riposte: dano e knockback anulados (nenhum dos dois é aplicado) e o gatilho do contra-golpe fica marcado na ação
+ * (o controlador o executa no passo seguinte). Quem NÃO é interceptado (Guard Break, agarrões) é decidido por quem chama. Devolve o evento ou null.
+ */
+export function riposteIntercept(defender, attackerId, normal, base = {}) {
+  const a = riposteWindow(defender);if (!a) return null;
+  a.riposte ??= {target: attackerId ?? null, at: a.elapsed};
+  return {...base, attacker: attackerId, target: defender.id, result: 'riposte', damage: 0, normal: {...normal}, launch: null};
+}
 export function isOffensive(f) {
   if (!f?.action || f.action.kind !== 'tackle') return false;
   if (!C.extras?.toggles?.enableAnimationCombatWindows || !f.action.combatWindows?.activeWindows?.length) {

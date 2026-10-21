@@ -1,6 +1,6 @@
 // Resolução de contatos ofensivos: lançamento, clash, invulnerabilidade, defesa parcial/perfeita.
 import {C} from './config.js';
-import {isInvulnerable, isOffensive} from './entity.js';
+import {isInvulnerable, isOffensive, riposteIntercept} from './entity.js';
 import {stat} from './status.js';
 import {vec, add, scale, sub, dot, length, normalize, angleOf, direction} from './math.js';
 
@@ -140,6 +140,10 @@ export function resolveHit(attacker, defender, normal, relative, force = false) 
   // Hitbox espacial (extras.hitbox.enableShapes): a janela ativa decide a forma; meteor slam (force) não usa forma.
   if (!force && !hitShapeAllows(attacker, defender, windowIdx)) return null;
 
+  if (!attacker.action.guardBreak) {   // Riposte: o acerto elegível é anulado e dispara o contra-golpe (Guard Break não é anulado: mantém o triângulo tático)
+    const rip = riposteIntercept(defender, attacker.id, normal);
+    if (rip) {attacker.action.hits.add(defender.id);if (windowIdx >= 0) attacker.action.hitWindows[windowIdx].add(defender.id);return rip;}
+  }
   if (isInvulnerable(defender)) {
     attacker.action.hits.add(defender.id);
     if (windowIdx >= 0) attacker.action.hitWindows[windowIdx].add(defender.id);

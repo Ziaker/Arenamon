@@ -741,9 +741,31 @@ function releaseTackleMove(f, def, ch, rel, cmd, ctx) {
   a.move = def.id;a.slot = ch.slot;a.params = P;a.moveDef = def;a.pl = rel.level;a.plSpeed = 1;a.plDamage = 1;
   getTackleSetup(def.tackle)?.(f, a, P, {fighters: ctx.fighters, def, hasTarget: ctx.hasTarget, charge: rel});
 }
+/**
+ * Contra-golpe do Riposte: troca a postura por um Tackle PL1 rumo a quem atacou, com os parâmetros capturados no uso; o custo do Tackle volta (o do Move foi
+ * cobrado ao apertar) e o resto da janela vira invulnerabilidade do golpe. A ação dura até o fim do cast original (0,65 s).
+ */
+function startRiposteStrike(f, action) {
+  const def = action.def, P = action.params, t = action.elapsed, p = C.actions.tackle;
+  const foe = CTX_FIGHTERS.find(o => o.id === action.riposte.target && o.hp > 0), heading = foe ? angleOf(sub(foe.position, f.position)) : f.facing;
+  const before = f.stamina;
+  startAction(f, 'tackle', {move: vec(), dodgeDirection: null}, CTX_FIGHTERS, heading, false, false, false);
+  f.stamina = before;
+  const a = f.action;
+  a.heading = a.startAngle = heading;a.fixedHeading = true;
+  a.move = def.id;a.slot = action.slot;a.params = P;a.moveDef = def;a.pl = 1;a.plSpeed = 1;a.plDamage = P.damage / C.test.attackReference;   // MV-P13
+  a.kb = {horizontal: P.knockbackH, vertical: P.knockbackV};
+  a.durationScale = Math.max(.1, P.cast - t) / p.duration;
+  a.distanceScale = P.strikeRange / Math.max(1e-6, nominalDistance(f, 'tackle'));
+  a.invulnerableFor = Math.max(0, P.windowEnd - t);
+  a.chainAfter = Math.max(.1, P.cast - t);
+  a.riposteStrike = true;
+  moveEvent(f, {result: 'riposteStrike', move: def.id, slot: action.slot, target: action.riposte.target});
+}
 /** Um passo do movimento em curso: deslocamento (motion), orientação e efeitos da linha do tempo que vencem neste passo. */
 function updateMove(f, action, target, cmd, dt) {
   const def = action.def ?? getMove(action.move);if (!def) {f.velocity = vec();return;}
+  if (def.riposte && action.riposte) {startRiposteStrike(f, action);return;}   // acerto elegível na janela: vira o contra-golpe
   const m = def.motion ?? {type: 'none'};
   if (m.type === 'dash' && m.distance) {
     // Deslocamento suave entre start e end (s): mesma distância qualquer que seja o passo.
