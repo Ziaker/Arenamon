@@ -153,7 +153,7 @@ function pushReplay() {replay.push({tick: game.tick, game: game.save(), rig: vie
 function loadFrame(frame) {if (!frame) return;game.load(frame.game);view.rig.load(frame.rig);dock.invalidate();}
 function playerCommand() {
   const [p, e] = game.fighters;
-  if (C.extras.toggles.enablePlayerAI) {input.locked = true;return game.playerBrain.command(p, e, ui.playerMode, C.test.step);}
+  if (C.extras.toggles.enablePlayerAI) {input.locked = true;return game.assistNav(game.playerBrain, p, e, game.playerBrain.command(p, e, ui.playerMode, C.test.step));}
   return input.command(p, e, view.rig.yaw, game.tick);
 }
 /** Um passo de simulação ao vivo (jogo normal ou cenário). */
@@ -976,7 +976,7 @@ function frame(now) {
   if (live) clock.advance(dt, () => {steps++;stepOnce();});else clock.reset();
   const simMs = performance.now() - tSim;
   ui.fps += (1 / Math.max(.001, dt) - ui.fps) * C.extras.hud.fpsSmoothing;
-  view.draw(game.fighters, game.events, live ? dt * clock.timeScale : 0, {paused: !live, realDt: dt, tick: game.tick, sources: [C.extras.toggles.enablePlayerAI || ui.scenario ? 'IA' : 'jogador', 'IA'], world: game.world});
+  view.draw(game.fighters, game.events, live ? dt * clock.timeScale : 0, {paused: !live, realDt: dt, tick: game.tick, sources: [C.extras.toggles.enablePlayerAI || ui.scenario ? 'IA' : 'jogador', 'IA'], world: game.world, navGame: game});
   const back = replay.length ? (replay.length - 1 - replay.cursor) : 0;
   hud.render(game, ui.fps, {locked: input.locked, paused: ui.paused && game.phase !== 'menu', replay: back ? `−${back} passos (${(back * C.test.step * 1000).toFixed(0)} ms) · ▶ retoma daqui` : 'último passo · , e . avançam/voltam', playerAI: !!C.extras.toggles.enablePlayerAI});
   movesHud.render(game);moveNotices();

@@ -59,6 +59,12 @@ function range(key, value, path) {
   if (['reversal', 'acceleration', 'braking'].includes(key)) return {min: 0, max: 400, step: 1, fmt: n => String(n)};
   if (['lightX', 'lightY', 'lightZ'].includes(key)) return {min: -30, max: 30, step: .5, fmt: n => n.toFixed(1)};
   if (key === 'gridDivisions') return {min: 2, max: 100, step: 1, fmt: n => String(n)};
+  if (path && path.startsWith('extras.nav.')) {
+    if (key === 'spacing') return {min: .75, max: 4, step: .25, fmt: n => n.toFixed(2) + ' m'};
+    if (key === 'replan' || key === 'stuckTime') return {min: .1, max: 3, step: .05, fmt: n => n.toFixed(2) + ' s'};
+    if (['jumpReach', 'launch', 'arrival', 'stuckDistance', 'attackMaxHeightDiff', 'jumpMargin'].includes(key)) return {min: .05, max: 6, step: .05, fmt: n => n.toFixed(2) + ' m'};
+    if (['suppressBlockedAttacks', 'showDebug'].includes(key)) return {min: 0, max: 1, step: 1, fmt: n => n ? 'Ligado' : 'Desligado', kind: 'toggle'};
+  }
   if (path && path.startsWith('vfx.laser.')) {
     if (key.startsWith('coreWidth') || key.startsWith('haloWidth') || key === 'muzzleSize' || key === 'contactSize') {
       return {min: 0.01, max: 0.8, step: 0.005, fmt: n => n.toFixed(3) + ' m'};
@@ -148,7 +154,7 @@ export const EXTRA_SECTIONS = [['Smear de Membros', 'extras.visual.smear', null]
   ['Teclas do vermelho (controle manual)', 'extras.bindings2', null], ['VFX · Laser da Arena (BeamRenderer)', 'vfx.laser', null], ['Sombras', 'display.shadow', null], ['HUD', 'display.hud', null], ['Habilidades passivas', 'display.passive', null], ['Altura visual', 'display.grounding', null], ['Indicador da janela C → X', 'display.cancelRing', null], ['Animação: transições', 'display.animation', null], ['Diagnóstico de comandos', 'display.diagnostics', null], ['Janelas de combate', 'display.windows', null], ['Medidor de desempenho', 'display.perf', null],
   // Passivas (catálogo experimental, §29): uma seção por passiva + VFX de ativação (A/B/C).
   ...PASSIVES.map(p => [`Passivas · ${p.nome}${p.species ? ' (' + p.species + ')' : ''}`, `passivas.${p.id}`, null]),
-  ['Passivas · gerais (detecção)', 'passivas.globals', null], ['VFX · Passivas (ativação A/B/C)', 'vfx.passive', null], ['VFX · three.quarks (experimental)', 'vfx.quarks', null]];
+  ['Passivas · gerais (detecção)', 'passivas.globals', null], ['VFX · Passivas (ativação A/B/C)', 'vfx.passive', null], ['VFX · three.quarks (experimental)', 'vfx.quarks', null], ['IA · Navegação Yuka (experimental)', 'extras.nav', null]];
 /** Parâmetros mostrados em outras abas (sem duplicar controles no Ajustes). */
 const ELSEWHERE = new Set(['extras.toggles.enableEnemyAI', 'extras.toggles.enemyManual', 'extras.visual.shadowMin', 'extras.visual.shadowHeightFade']);
 export function createTuning({apply}) {

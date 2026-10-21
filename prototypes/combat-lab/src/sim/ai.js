@@ -35,7 +35,7 @@ export function mulberry(state) {
 
 /** Personalidade neutra: reproduz exatamente a IA do v6. */
 export const NEUTRAL_PERSONALITY = {reaction: 0, reactionJitter: 0, mistake: 0, aggression: .5, variation: 0, hesitation: 0, evadeChance: .33};
-const STATE = ['cooldown', 'phase', 'wasGuard', 'orbitAge', 'orbitSign', 'rngState', 'hold', 'held', 'seed', 'threatAge', 'reactAt', 'misread', 'pause', 'orbitPeriod', 'rangeBias', 'wantsEvade', 't', 'moveIntent', 'intentAge', 'lastTurnFrom'];
+const STATE = ['cooldown', 'phase', 'wasGuard', 'orbitAge', 'orbitSign', 'rngState', 'hold', 'held', 'seed', 'threatAge', 'reactAt', 'misread', 'pause', 'orbitPeriod', 'rangeBias', 'wantsEvade', 't', 'moveIntent', 'intentAge', 'lastTurnFrom', 'nav'];
 
 export class Brain {
   /** side: 'aiRed' (adversário) ou 'aiBlue' (IA do jogador) escolhe a personalidade. */
@@ -43,7 +43,7 @@ export class Brain {
   reset() {
     this.cooldown = C.extras.ai.initialCooldown;this.phase = 0;this.wasGuard = false;this.orbitAge = 0;this.orbitSign = 1;this.rngState = this.seed >>> 0;this.hold = 0;this.held = null;
     this.threatAge = 0;this.reactAt = null;this.misread = false;this.pause = 0;this.orbitPeriod = null;this.rangeBias = 1;this.wantsEvade = false;
-    this.moveIntent = null;this.intentAge = 0;this.lastTurnFrom = null;
+    this.moveIntent = null;this.intentAge = 0;this.lastTurnFrom = null;this.nav = null;   // nav: estado do planejador Yuka (nav/nav-planner.js), só usado com extras.nav.enableNav
     this.t = null; // estado da IA tática (tactics.js), recriado a cada partida
   }
   random() {const [v, next] = mulberry(this.rngState);this.rngState = next;return v;}

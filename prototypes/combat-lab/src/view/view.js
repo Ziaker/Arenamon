@@ -21,6 +21,8 @@ import {CinematicCamera} from './cinematic-camera.js';
 // demanda quando C.vfx.quarks.enabled = 1; consome os mesmos eventos do legado.
 import * as Quarks from 'three.quarks';
 import {QuarksBridge} from './quarks/bridge.js';
+// Diagnóstico da navegação experimental (Fase 3, Yuka): rotas e pontos; criado só com extras.nav.enableNav + showDebug.
+import {NavDebug} from '../nav/nav-debug.js';
 
 const STATE_COLORS = {invulnerable: 0x58e6ff, tackle: 0xffa040, dodge: 0x61ebba, guard: 0xffe066, guardStun: 0xffb347, recoil: 0xc77dff, airborne: 0x9db4ff, landing: 0x7f93b8, defeated: 0x56616a};
 export const OVERLAYS = [
@@ -66,6 +68,7 @@ export class View {
     this.meteorFx = new MeteorFx(this.scene); // rastro de fogo do meteor slam (só na queda)
     this.abilityBanners = createPassiveBanners();
     this.passives = new PassiveAbilitySystem(this.scene, {notify: (id, name) => this.abilityBanners.show(id, name)});
+    this.navDebug = null; // rotas Yuka (Fase 3), sob demanda
     this.quarks = null; // camada three.quarks (Fase 2): instanciada sob demanda quando C.vfx.quarks.enabled
     this.useNewVfx = false; // trocar para true quando o novo sistema estiver em paridade
     this.overlayGroup = new T.Group();this.overlayGroup.renderOrder = 900;this.scene.add(this.overlayGroup);
@@ -242,7 +245,7 @@ export class View {
     }
     return sh;
   }
-  draw(fighters, events = [], dt = 1 / 60, {paused = false, tick = 0, sources = [], realDt = dt, world = null} = {}) {
+  draw(fighters, events = [], dt = 1 / 60, {paused = false, tick = 0, sources = [], realDt = dt, world = null, navGame = null} = {}) {
     const X = C.extras, V = X.visual, S = C.display.shadow, G = C.display.grounding, now = () => performance.now(), tm = this.timings = {anim: 0, vfx: 0, render: 0, overlays: 0};let t0;
     const visualScale = this.cinematic?.getVisualTimeScale?.() ?? 1.0;
     const isKoSeq = !!this.cinematic?.koState;
@@ -321,6 +324,9 @@ export class View {
     } else if (this.quarks) {
       this.quarks.dispose();this.quarks = null;
     }
+    // Rotas da navegação experimental (Yuka): só quando ligada e com diagnóstico visível.
+    if (navGame && C.extras.nav?.enableNav && C.extras.nav.showDebug) (this.navDebug ??= new NavDebug(T, this.scene)).update(navGame);
+    else if (this.navDebug) {this.navDebug.dispose();this.navDebug = null;}
     this.solid.update(fighters, events, vfxDt, {visible: !!X.hud.fxVisible, world});
     this.meteorFx.update(fighters, vfxDt, this.camera, !!X.hud.fxVisible, this.characters);
     t0 = now();this.passives.update(fighters, vfxDt, {characters: this.characters, visible: !!X.hud.fxVisible && !!C.vfx.master.enabled});tm.vfx += now() - t0;

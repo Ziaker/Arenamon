@@ -11,6 +11,7 @@ import {stepPhysics} from './physics.js';
 import {createMapState, initMap, stepMap, stepShield, generateFighterSpawnPositions} from './map.js';
 import {attachPassives, tickPassives, passiveOnEvents, passiveOnKO, setPassiveLoadout as applyPassiveLoadout} from './passive-engine.js';
 import {vec} from './math.js';
+import {navAssist} from '../nav/nav-assist.js';
 
 const finishingNow = g => g.phase === 'finishing';
 export class Game {
@@ -63,7 +64,7 @@ export class Game {
     }
     const finishing = this.phase === 'finishing';
     // IA do oponente desligada: o vermelho fica como boneco (recebe dano, colisões e reações físicas, sem decidir nada).
-    const enemy = () => C.extras.toggles.enableEnemyAI ? this.brain.command(this.fighters[1], this.fighters[0], this.mode, C.test.step) : emptyCommand();
+    const enemy = () => C.extras.toggles.enableEnemyAI ? this.assistNav(this.brain, this.fighters[1], this.fighters[0], this.brain.command(this.fighters[1], this.fighters[0], this.mode, C.test.step)) : emptyCommand();
     const commands = finishing ? [emptyCommand(), emptyCommand()] : [cmd0, cmd1 ?? enemy()];
     this.lastCommands = commands;
     for (const f of this.fighters) updateFighter(f, commands[f.id] ?? emptyCommand(), this.fighters, C.test.step, this.world);
@@ -104,6 +105,8 @@ export class Game {
       this.phase = this.fighters.some(f => !!f.flight) ? 'finishing' : 'result';
     }
   }
+  /** Navegação experimental (Yuka, extras.nav.enableNav): ajusta só a intenção de movimento/salto; desligada, devolve o comando intacto. */
+  assistNav(brain, self, target, cmd) {return navAssist(this, brain, self, target, cmd);}
   /** Efeitos da linha do tempo dos movimentos que venceram neste passo (entidades, status e golpes corpo a corpo). */
   fireMoveEffects(events) {
     for (const f of this.fighters) {
