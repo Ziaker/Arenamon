@@ -149,7 +149,7 @@ export function defaults() {
     // beam: lasers contínuos e emissores técnicos (Fase 7). PROVISÓRIOS: comprimento máximo, segmentos refletidos por passo e intervalo entre danos por alvo.
     beam: {length: 24, maxSegments: 8, interval: .25, damage: 2},
     // ai: como a IA decide usar os Moves (sim/ai-moves.js). Distâncias em m, tempos em s. Os padrões reproduzem o comportamento anterior.
-    ai: {evadeDistance: 4.5, pl2Distance: 4.8, pl3Distance: 7, reflectHold: .9, lastSecondDefend: .22, noTimeDefend: .26, barrierBreakRange: 3.2, barrierBreakChance: .6, psyshockMinDistance: 3.5, psyshockMinStamina: 2, psyshockChanceMax: .9, afterChargeWait: .35, decisionInterval: .5}};
+    ai: {evadeDistance: 4.5, pl2Distance: 4.8, pl3Distance: 7, reflectHold: .9, lastSecondDefend: .22, noTimeDefend: .26, barrierBreakRange: 3.2, barrierBreakChance: .6, newMovesRate: 1, psyshockMinDistance: 3.5, psyshockMinStamina: 2, psyshockChanceMax: .9, afterChargeWait: .35, decisionInterval: .5}};
   // Passivas (CATÁLOGO EXPERIMENTAL, não homologado): parâmetros de balanceamento por passiva (§29), ajustáveis no
   // painel (aba Passivas) e congelados por snapshot em cada ativação (não retroativos). Ver sim/passives.js.
   const passivas = {

@@ -280,6 +280,7 @@ const PARAMS = [
     ['bounce', 'landRadius', 'Raio do impacto do pouso', 'Quem está no chão dentro deste raio ao aterrissar também é atingido (provisório: 1,4 m).', 0, 5, .1, m, false],
   ]],
   ['IA com Moves (decisões do adversário)', [
+    ['ai', 'newMovesRate', 'Uso dos Moves novos pela IA', 'Multiplica a chance de a IA usar Harden, Second Wind, Swift, Lunge, Quick Attack, Guard Break, Feint, Riposte, Bounce, Spikes, Sand Wave, Bullet Punch e Emerging Stone quando equipados nela (0 = nunca usa; só vale para o que estiver equipado).', 0, 3, .1, x, false],
     ['ai', 'evadeDistance', 'Esquiva emergencial: distância do Tackle rival', 'Durante a carga, se o rival inicia um Tackle a menos desta distância, a IA esquiva cancelando a carga (provisório).', 0, 10, .1, m, false],
     ['ai', 'pl2Distance', 'Psyshock: distância para carregar até PL2', 'A partir desta distância do alvo a IA segura o Psyshock até o PL2 (provisório).', 0, 15, .1, m, false],
     ['ai', 'pl3Distance', 'Psyshock: distância para carregar até PL3', 'A partir desta distância do alvo a IA segura o Psyshock até o PL3 (provisório).', 0, 20, .1, m, false],

@@ -489,7 +489,7 @@ export function tacticalCommand(brain, self, target, dt, P) {
         t.activeSequencePlan = createPlan(PLAN_TYPES.CORNER_TRAP);
       } else if (choice === 'guardWalk' || (counterStrat?.recommendedPosture === 'anti_aggressive' && brain.random() < 0.5)) {
         t.activeSequencePlan = createPlan(PLAN_TYPES.ABSORB_AND_COUNTER);
-      } else if ((choice === 'recover' || choice === 'orbit') && self.loadout?.some(Boolean) && distance < 4.0 && brain.random() < 0.4) {
+      } else if ((choice === 'recover' || choice === 'orbit') && self.loadout?.some(id => id === 'reflect' || id === 'psyshock') && distance < 4.0 && brain.random() < 0.4) {
         t.activeSequencePlan = createPlan(PLAN_TYPES.CHARGE_SETUP);
       } else {
         t.activeSequencePlan = null;

@@ -103,6 +103,7 @@ export const side = () => ({
   missedMoves: 0,
   decisionTimeMs: 0,
   decisionsCount: 0,
+  moveUses: {},        // usos de cada Move de slot (toque, carga iniciada ou marcador confirmado)
   stuckTime: 0,        // s empurrando obstáculo sem sair do lugar (navegação)
   edgeFalls: 0,        // quedas de borda/plataforma
   airTime: 0,          // s em voo por salto/queda (uso de plataformas)
@@ -188,6 +189,7 @@ export function evalMatch({
         decision: dec ? structuredClone(dec) : null,
       });
     }
+    if (e.result === 'executed' && e.kind === 'skill' && e.move && e.note !== 'marcador aberto' && e.note !== 'cast iniciado no ar') s.moveUses[e.move] = (s.moveUses[e.move] ?? 0) + 1;
     if (e.result === 'executed' && e.kind === 'guard') s.guards++;
     if (e.result === 'executed' && e.kind === 'perfectGuard') s.perfectGuards++;
     if (e.result === 'executed' && e.kind === 'sprint') s.sprints++;
