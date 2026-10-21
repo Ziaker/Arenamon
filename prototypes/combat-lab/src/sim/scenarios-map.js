@@ -7,7 +7,7 @@ import {vec, add, sub, scale, length, normalize} from './math.js';
 import {nominalDistance, getFighterMaxStamina} from './entity.js';
 import {MAP_DEFAULTS, createMapState, applyConsumableEffect, applyShield, processDamageWithShieldAndStages} from './map.js';
 
-const cmd = (o = {}) => ({move: vec(), dodge: false, dodgeHeld: false, tackle: false, tackleHeld: false, guard: false, guardPressed: false, jump: false, target: null, skill: null, skillHeld: null, ...o});
+const cmd = (o = {}) => ({move: vec(), dodge: false, dodgeHeld: false, tackle: false, tackleHeld: false, guard: false, guardPressed: false, jump: false, jumpHeld: false, target: null, skill: null, skillHeld: null, ...o});
 const face = (f, angle) => {f.facing = angle;f.visualFacing = angle;f.combatHeading = angle;};
 const fmt = v => typeof v === 'number' ? (Math.abs(v) >= 100 ? v.toFixed(0) : v.toFixed(3).replace(/\.?0+$/, '')) : String(v);
 const check = (label, ok, expected, actual) => ({label, ok: !!ok, expected: fmt(expected), actual: fmt(actual)});
@@ -85,7 +85,7 @@ export const MAP_SCENARIOS = [
       const f = g.fighters[0];
       const y = (f.flight?.y ?? f.groundY ?? 0);
       scratch.peakY = Math.max(scratch.peakY ?? 0, y);
-      return [t === 5 ? cmd({jump: true}) : cmd(), cmd()];
+      return [cmd({jump: t === 5, jumpHeld: t >= 5 && t < 75}), cmd()];   // botão segurado: salto completo
     },
     checks: ({log, game, scratch}) => {
       const f = game.fighters[0];
@@ -101,8 +101,8 @@ export const MAP_SCENARIOS = [
   // 4. SALTO: Salto em movimento
   {
     id: 'map-jump-moving',
-    name: 'Salto: Conservação do impulso horizontal',
-    description: 'O combatente salta durante a corrida para a frente; conserva o impulso horizontal até a aterrissagem sem manobra aérea.',
+    name: 'Salto: Conservação do impulso + correção aérea',
+    description: 'O combatente salta durante a corrida para a frente; conserva o impulso horizontal e, com o direcional para o lado no ar (Plano D), corrige a trajetória lateralmente por aceleração limitada.',
     positions: [vec(0, -6), vec(10, 10)],
     ticks: () => steps(1.5),
     setup: g => {
@@ -114,15 +114,15 @@ export const MAP_SCENARIOS = [
       if (f.flight && f.flight.isNormalJump) {
         scratch.airMaxX = Math.max(scratch.airMaxX ?? 0, Math.abs(f.position.x));
       }
-      return [t <= 5 ? cmd({move: vec(0, 1), jump: t === 5}) : cmd({move: vec(1, 0)}), cmd()];
+      return [t <= 5 ? cmd({move: vec(0, 1), jump: t === 5, jumpHeld: t >= 5 && t < 75}) : cmd({move: vec(1, 0)}), cmd()];
     },
     checks: ({game, scratch}) => {
       const f = game.fighters[0];
       const movedForward = f.position.z > -4.0;
-      const noSteerX = (scratch.airMaxX ?? 0) < 0.1;
+      const steeredX = (scratch.airMaxX ?? 0) > 0.5;   // Plano D: controle aéreo corrigiu para o lado pedido
       return [
         check('Conservou avanço frontal no ar', movedForward, 'sim', yn(movedForward)),
-        check('Sem manobra lateral durante o salto', noSteerX, 'sim', yn(noSteerX)),
+        check('Correção aérea para o lado (controle aéreo do Plano D)', steeredX, 'x > 0,5 m', (scratch.airMaxX ?? 0).toFixed(2) + ' m'),
       ];
     },
   },
@@ -139,7 +139,7 @@ export const MAP_SCENARIOS = [
       g.fighters[0].position = {x: -10, z: 5.0};
       g.fighters[0].velocity = vec(0, 4);
     },
-    script: t => [t === 5 ? cmd({jump: true, move: vec(0, 1)}) : t < 30 ? cmd({move: vec(0, 1)}) : cmd(), cmd()],
+    script: t => [t < 30 ? cmd({move: vec(0, 1), jump: t === 5, jumpHeld: t >= 5 && t < 75}) : cmd(), cmd()],
     checks: ({game}) => {
       const f = game.fighters[0];
       const onPlatform = (f.groundY ?? 0) >= 0.95 && Math.abs(f.position.x - (-10)) < 1.6 && Math.abs(f.position.z - 8) < 1.6;
@@ -161,7 +161,7 @@ export const MAP_SCENARIOS = [
       g.fighters[0].position = {x: 12, z: -13.0};
       g.fighters[0].velocity = vec(0, 3.5);
     },
-    script: t => [t === 5 ? cmd({jump: true, move: vec(0, 1)}) : t < 30 ? cmd({move: vec(0, 1)}) : cmd(), cmd()],
+    script: t => [t < 30 ? cmd({move: vec(0, 1), jump: t === 5, jumpHeld: t >= 5 && t < 75}) : cmd(), cmd()],
     checks: ({game}) => {
       const f = game.fighters[0];
       const onPlatform = (f.groundY ?? 0) >= 1.45;
@@ -214,9 +214,10 @@ export const MAP_SCENARIOS = [
         scratch.jumpedAgain = true;
       }
       let cmd0 = {move: vec(0, 1)};
+      if (t >= 2 && t < 78) cmd0.jumpHeld = true;   // salto completo (altura para o mergulho)
       if (t === 2) cmd0.jump = true;
       if (t === 14) cmd0.tackle = true;
-      if (t === steps(2.05)) cmd0.jump = true;
+      if (t === steps(2.05)) {cmd0.jump = true;cmd0.jumpHeld = true;}
       return [cmd(cmd0), cmd()];
     },
     checks: ({scratch}) => [
@@ -907,7 +908,8 @@ export const MAP_SCENARIOS = [
         return [cmd({move: vec(0, -1)}), cmd()];
       }
       // fase 2: correr e saltar antes da face; o impulso horizontal carrega o corpo sobre o topo
-      if (!scratch.jumped && !f.flight && f.position.z >= -3.4) {scratch.jumped = true;return [cmd({move: vec(0, 1), jump: true}), cmd()];}
+      if (!scratch.jumped && !f.flight && f.position.z >= -3.4) {scratch.jumped = true;scratch.jumpHoldUntil = t + 75;return [cmd({move: vec(0, 1), jump: true, jumpHeld: true}), cmd()];}
+      if (scratch.jumpHoldUntil && t < scratch.jumpHoldUntil) return [cmd({move: vec(0, 1), jumpHeld: true}), cmd()];   // salto completo
       if (!f.flight && near(f.groundY ?? 0, 2.0, 0.05)) return [cmd(), cmd()]; // montou o topo: para de andar
       return [cmd({move: vec(0, 1)}), cmd()];
     },
@@ -1004,7 +1006,8 @@ export const MAP_SCENARIOS = [
     script: (t, g, scratch) => {
       const f = g.fighters[0];
       if (f.flight && f.position.x > -0.5 && f.position.x < 2.5) scratch.overGap = true;
-      if (!f.flight && !scratch.jumped && f.position.x >= -1.0) {scratch.jumped = true;return [cmd({move: vec(1, 0), jump: true}), cmd()];}
+      if (!f.flight && !scratch.jumped && f.position.x >= -1.0) {scratch.jumped = true;scratch.jumpHoldUntil = t + 75;return [cmd({move: vec(1, 0), jump: true, jumpHeld: true}), cmd()];}
+      if (scratch.jumpHoldUntil && t < scratch.jumpHoldUntil) return [cmd({move: vec(1, 0), jumpHeld: true}), cmd()];   // salto completo
       if (scratch.jumped && !f.flight && near(f.groundY ?? 0, 1.0, 1e-6) && f.position.x >= 2.5) return [cmd(), cmd()]; // pousou em p2: para
       return [cmd({move: vec(1, 0)}), cmd()];
     },
@@ -1033,7 +1036,7 @@ export const MAP_SCENARIOS = [
       const f = g.fighters[0];
       const y = f.flight ? f.flight.y : (f.groundY ?? 0);
       scratch.peakY = Math.max(scratch.peakY ?? 0, y);
-      return [t === 5 ? cmd({jump: true}) : cmd(), cmd()];
+      return [cmd({jump: t === 5, jumpHeld: t >= 5 && t < 40}), cmd()];   // botão segurado: salto completo
     },
     checks: ({game, scratch}) => {
       const f = game.fighters[0];
@@ -1131,7 +1134,8 @@ export const MAP_SCENARIOS = [
       const b = g.fighters[1];
       if (b.flight) scratch.bAir = true;
       const bCmd = b.position.z < 1.0 ? cmd({move: vec(0, 1)}) : cmd(); // para sobre a plataforma após coletar
-      if (!b.flight && !scratch.bJumped && t > 5) {scratch.bJumped = true;return [t === 5 ? cmd({tackle: true, move: vec(0, 1)}) : cmd(), cmd({...bCmd, jump: true})];}
+      if (!b.flight && !scratch.bJumped && t > 5) {scratch.bJumped = true;scratch.bHoldUntil = t + 75;return [t === 5 ? cmd({tackle: true, move: vec(0, 1)}) : cmd(), cmd({...bCmd, jump: true, jumpHeld: true})];}
+      if (scratch.bHoldUntil && t < scratch.bHoldUntil) return [t === 5 ? cmd({tackle: true, move: vec(0, 1)}) : cmd(), cmd({...bCmd, jumpHeld: true})];   // salto completo
       return [t === 5 ? cmd({tackle: true, move: vec(0, 1)}) : cmd(), bCmd];
     },
     checks: ({game, log, scratch}) => {

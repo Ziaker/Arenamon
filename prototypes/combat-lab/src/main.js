@@ -719,6 +719,8 @@ function handleSoundEvents(events) {
     if (ev.result === 'impact') {
       if ((ev.damage ?? 0) >= 15) soundFx.playHeavyHit();
       else soundFx.playHit();
+    } else if (ev.result === 'footstool') {
+      soundFx.playHit();
     } else if (ev.result === 'partial') {
       soundFx.playBlock();
     } else if (ev.result === 'perfect') {
@@ -780,6 +782,8 @@ function trackMatchEvents(events) {
   for (const ev of events) {
     const atk = ev.attacker, tgt = ev.target;
     if (ev.result === 'impact') {
+      if (atk === 0 || atk === 1) {matchStats.damageDealt[atk] += ev.damage ?? 0; matchStats.hitsLanded[atk]++;}
+    } else if (ev.result === 'footstool') {
       if (atk === 0 || atk === 1) {matchStats.damageDealt[atk] += ev.damage ?? 0; matchStats.hitsLanded[atk]++;}
     } else if (ev.result === 'partial') {
       if (tgt === 0 || tgt === 1) matchStats.blocks[tgt]++;

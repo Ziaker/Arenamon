@@ -28,10 +28,31 @@ export const MAP_DEFAULTS = {
   ],
   jumpHeight: 2.0,
   jumpGravity: 17.5,
-  jumpInterval: 0.25,
+  // Pacote experimental de sensação do salto (Plano D): gravidade assimétrica, altura variável,
+  // velocidade terminal, controle aéreo por aceleração, coyote time e jump buffer. Com jumpImprovements
+  // = 0 a física do salto volta a ser a legada (gravidade única jumpGravity), para comparação A/B.
+  jumpImprovements: 1,
+  jumpGravityUp: 17.5,     // gravidade durante a subida (m/s²); impulso continua sqrt(2·g·altura)
+  jumpGravityDown: 22.0,   // gravidade durante a descida: queda mais firme, sem flutuação
+  jumpReleaseMult: 2.2,    // multiplicador da gravidade de subida ao SOLTAR o botão (salto curto)
+  jumpMaxFallSpeed: 12.0,  // velocidade terminal de queda no salto normal (m/s)
+  jumpAirAccel: 8.0,       // aceleração do controle aéreo (m/s²); 0 desliga
+  jumpAirMaxSpeed: 4.5,    // velocidade horizontal máx. alcançável no ar (m/s); 0 = sem limite próprio
+  jumpCoyoteTime: 0.10,     // tolerância para saltar logo após sair de uma borda (s)
+  jumpBufferWindow: 0.12,   // janela de jump buffering antes do pouso (s)
+  jumpInterval: 0.12,       // intervalo mínimo entre saltos (era 0,25; 0,12 acompanha o buffer)
   jumpLandingRecovery: 0.19,
   jumpDrag: 0.0,
-  jumpAirControl: 0.0,
+  jumpAirControl: 0.0,      // legado: blend direcional no ar (mantido para compatibilidade)
+  // Footstool (pisar na cabeça do rival): ataque de contato superior do salto normal.
+  footstoolEnabled: 1,
+  footstoolDamage: 5,        // dano exato em alvo desprotegido (requisito do plano)
+  footstoolBounce: 3.7,      // impulso vertical de rebote do atacante (m/s), faixa 3,5–4,0
+  footstoolStagger: 0.25,     // stagger do defensor (s)
+  footstoolTolerance: 0.12,  // tolerância física de contato horizontal (m)
+  footstoolMinFallSpeed: 1.0,// velocidade vertical mínima de queda para valer (m/s)
+  footstoolCooldown: 0.5,    // controle de repetição: espera mínima entre footstools do mesmo atacante (s)
+  footstoolVault: 0,         // experimental: permite footstool também durante o vault de C (separado, desligado)
   itemInitialCount: 2,
   itemSpawnIntervalMin: 20,
   itemSpawnIntervalMax: 40,

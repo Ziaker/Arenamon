@@ -1,0 +1,499 @@
+# ARENAMON — PLANO DE IMPLEMENTAÇÃO: OVERHAUL DO SALTO 3D E FOOTSTOOL
+
+## Objetivo
+
+Melhorar substancialmente a sensação de saltar no Arenamon, tomando como referência a física de movimentação e as interações de Super Mario 64.
+
+**O resultado precisa ser mais fluido, responsivo, controlável e divertido**, tanto na exploração das arenas quanto durante o combate.
+
+Implementar também uma nova mecânica ofensiva, chamada **Footstool**, que recompensa o jogador por pousar corretamente sobre a cabeça do adversário.
+
+### Requisitos obrigatórios do Footstool
+
+- Dano: **5 HP** em contato válido contra alvo desprotegido.
+- Efeito no atacante: pequeno rebote vertical.
+- Efeito no defensor: stagger breve.
+- Custo de stamina: zero.
+- Aplicação simétrica para jogador e adversário.
+- Contato físico real: não pode ocorrer apenas por proximidade horizontal.
+- Não pode gerar múltiplos acertos no mesmo contato.
+
+O sistema deverá funcionar em conjunto com plataformas, obstáculos, objetos, saltos, quedas, Meteor Slam, esquivas, ataques, defesa, hit stun, knockback e demais estados existentes.
+
+---
+
+## ETAPA 0 — AUDITORIA E PREPARAÇÃO
+
+Antes de qualquer alteração:
+
+1. Leia integralmente `AGENTS.md` e respeite o protocolo do projeto.
+2. Verifique `git status --short --branch`, o checkout oficial e o estado remoto.
+3. Identifique qual branch contém a implementação jogável mais recente do mapa 3D, do salto normal, da física de plataformas e do sistema de combate.
+4. Não pressuponha que `main` contenha essas funcionalidades. Há implementações em branches como `feat/novo-mapa-combat-lab` e `feat/camera-cinematica-zzz`, cujos históricos podem divergir.
+5. Não faça merge, rebase ou sobrescrita de trabalho de outro agente sem verificar seus efeitos.
+6. Trabalhe em uma branch experimental dedicada. Não integre à `main` antes da aprovação do usuário.
+
+Audite especialmente:
+
+- `prototypes/combat-lab/src/sim/controller.js`
+- `prototypes/combat-lab/src/sim/physics.js`
+- `prototypes/combat-lab/src/sim/map.js`
+- `prototypes/combat-lab/src/sim/world.js`
+- `prototypes/combat-lab/src/sim/combat.js`
+- `prototypes/combat-lab/src/sim/entity.js`
+- `prototypes/combat-lab/src/sim/game.js`
+- `prototypes/combat-lab/src/sim/config.js`
+- `prototypes/combat-lab/src/ui/input.js`
+- Testes de mapa, combate e física tridimensional.
+
+### Referência técnica: Super Mario 64
+
+Estude os seguintes arquivos do projeto `n64decomp/sm64`:
+
+- `src/game/mario.c`: inicialização de saltos e impulsos verticais.
+- `src/game/mario_step.c`: gravidade, colisões aéreas e subdivisão do movimento.
+- `src/game/mario_actions_airborne.c`: controle aéreo e estados de salto.
+- `src/game/mario_actions_moving.c`: transições entre locomoção, saltos e aterrissagens.
+- `src/game/interaction.c`: detecção de impactos superiores e rebotes sobre objetos.
+
+Referência: https://github.com/n64decomp/sm64
+
+Extraia princípios de design e comportamento. Não transplante indiscriminadamente constantes, código ou componentes gráficos de SM64 para o Arenamon.
+
+---
+
+## ETAPA 1 — CORRIGIR A FUNDAÇÃO DA FÍSICA VERTICAL
+
+### 1.1. Convenção única para altitude
+
+A implementação atual apresenta risco de inconsistências porque `flight.y` pode representar altitude absoluta e algumas operações somam novamente `groundY`.
+
+Audite e defina claramente:
+
+- Altitude mundial dos pés.
+- Altitude da cabeça e do topo do colisor.
+- Altitude da superfície de apoio.
+- Velocidade vertical mundial.
+- Altura visual usada somente para animação.
+
+Implemente funções ou um contrato centralizado para consultar essas informações sem duplicar valores.
+
+A posição física precisa ser a autoridade. A animação jamais deve criar, apagar ou deslocar arbitrariamente o contato físico.
+
+### 1.2. Integração contínua de movimento
+
+Preservar uma simulação determinística com passo fixo.
+
+Aprimorar a integração vertical para evitar:
+
+- Penetração de plataformas.
+- Travessia de tetos.
+- Teletransporte para superfícies superiores.
+- Aterrissagens antecipadas.
+- Repetição de eventos de aterrissagem.
+- Perda de altitude ao trocar de estado.
+- Quedas interrompidas sem apoio.
+- Colisões ignoradas em velocidades elevadas.
+
+Utilizar varredura do volume físico ou subdivisão adaptativa quando necessário, preservando determinismo.
+
+A detecção de contato deve considerar a posição anterior e a posição seguinte do lutador.
+
+### 1.3. Superfícies de apoio
+
+O jogador deve poder saltar e pousar sobre qualquer objeto marcado como superfície sólida utilizável, respeitando sua geometria física:
+
+- Plataformas.
+- Caixas e obstáculos.
+- Pedras e objetos sólidos.
+- Superfícies elevadas.
+- Objetos destrutíveis enquanto existirem.
+- Plataformas móveis, caso o sistema atual as suporte.
+
+Não permitir pouso sobre objetos não sólidos, efeitos gráficos ou volumes decorativos.
+
+A aterrissagem só é válida quando o personagem cruza a superfície vindo de cima, com velocidade vertical descendente, dentro do contato físico permitido.
+
+Preservar colisões com faces laterais e inferiores.
+
+---
+
+## ETAPA 2 — MELHORAR A SENSAÇÃO DO SALTO
+
+### 2.1. Impulso de decolagem
+
+Preservar uma altura nominal de aproximadamente 2 m como ponto inicial de comparação.
+
+O salto deve ter decolagem imediata, sem atraso artificial entre o comando aceito e o início da velocidade vertical.
+
+Manter a velocidade horizontal existente na decolagem, respeitando o limite aplicável ao personagem e à ação.
+
+Evitar zerar velocidade horizontal ou fazer movimentos bruscos quando o jogador salta correndo.
+
+### 2.2. Gravidade e arco do salto
+
+Criar parâmetros independentes para:
+
+- Impulso vertical inicial.
+- Gravidade durante subida.
+- Gravidade durante descida.
+- Modificador de gravidade ao soltar o botão.
+- Influência discreta da região do ápice.
+- Velocidade máxima de queda.
+
+Comparar o comportamento atual com perfis experimentais de gravidade entre 22 e 25 m/s², ajustando o impulso para preservar aproximadamente 2 m de altura.
+
+Não tornar o personagem excessivamente flutuante.
+
+### 2.3. Altura variável
+
+Adicionar leitura de botão pressionado, mantido e solto.
+
+- Toque curto: salto mais baixo.
+- Pressão prolongada: salto completo.
+- Soltar antecipadamente o botão aumenta a desaceleração vertical durante a subida, dentro de limites.
+- Não cancelar a velocidade vertical instantaneamente.
+- Não aplicar alteração retroativa à trajetória.
+
+Preservar a possibilidade de alcançar plataformas de 1,0 m e 1,5 m com o salto completo.
+
+### 2.4. Controle aéreo limitado
+
+O controle aéreo atual está zerado ou muito restritivo.
+
+Implementar aceleração horizontal aérea parametrizável, com limite de velocidade e conservação de momento.
+
+Regras:
+
+- O movimento lateral durante o voo deve ser possível.
+- Mudar para a direção oposta deve exigir desaceleração.
+- Soltar o direcional não pode zerar o movimento instantaneamente.
+- A inércia da corrida deve permanecer perceptível.
+- O lock-on e o referencial dos comandos devem continuar corretos.
+- Não modificar as velocidades normais de Tackle, Dodge, Launch e knockback ao ajustar o salto comum.
+
+Separar o controle de um salto voluntário das trajetórias de lançamento causadas por ataques.
+
+### 2.5. Coyote time
+
+Adicionar uma tolerância inicial de 0,10 s após perder uma superfície de apoio.
+
+Deve permitir saltar logo após sair de uma borda, sem conceder saltos adicionais no ar.
+
+Não conceder coyote time depois de knockback, lançamento, interrupção ou perda forçada de controle.
+
+### 2.6. Jump buffering
+
+Adicionar uma janela experimental de 0,12 s.
+
+Se o jogador apertar o botão pouco antes de aterrissar, o salto deve ser executado assim que seu estado físico e as regras permitirem.
+
+Não contornar stun, guard stun, cooldown obrigatório, morte ou bloqueios de ação.
+
+O comando deve expirar e ser consumido uma única vez.
+
+### 2.7. Recuperação e ritmo
+
+O salto normal não deve criar uma imobilização desnecessária no pouso.
+
+Revisar o intervalo atual de 0,25 s entre saltos, comparando-o com uma alternativa mais responsiva.
+
+Não alterar automaticamente recuperações de outros sistemas.
+
+Aterrissagens leves, pesadas, por knockback e por Meteor Slam devem continuar distintas.
+
+---
+
+## ETAPA 3 — IMPLEMENTAR FOOTSTOOL
+
+### 3.1. Definição
+
+Footstool é um ataque de contato superior resultante de um salto bem-posicionado.
+
+Não é um golpe de Tackle e não pertence ao catálogo de Moves com Power Level.
+
+É uma interação de movimento e colisão física.
+
+### 3.2. Condições para ativação
+
+O contato somente poderá ser reconhecido se:
+
+1. O atacante estiver em queda real, após uma fase aérea válida.
+2. Sua velocidade vertical relativa ao alvo for descendente e suficiente.
+3. O volume dos pés cruzar a superfície superior do colisor físico do defensor.
+4. Existir sobreposição horizontal suficiente entre o volume de contato dos pés e o colisor do adversário.
+5. O contato acontecer de cima, e não de lado ou de baixo.
+6. Os dois personagens estiverem válidos para interação.
+7. Aquele contato ainda não tiver produzido um footstool.
+
+A altura superior do adversário deve considerar seu corpo físico, posição no mundo e estado aéreo.
+
+Não usar a posição de um osso da cabeça como autoridade de colisão, pois isso tornaria a mecânica dependente de cada animação e rig.
+
+### 3.3. Resultado de um Footstool válido
+
+**Atacante:**
+
+- Recebe impulso vertical de rebote, inicialmente entre 3,5 e 4,0 m/s.
+- Permanece no ar.
+- Conserva parte apropriada da velocidade horizontal.
+- Recupera controle aéreo normal.
+- Recebe feedback visual e sonoro.
+- Não consome stamina.
+
+**Defensor:**
+
+- Recebe 5 pontos de dano, preservando os contratos existentes de escudo e invulnerabilidade.
+- Entra em stagger por aproximadamente 0,25 s.
+- Tem a ação interrompida quando permitido pelas regras de interrupção.
+- Não recebe automaticamente um grande knockback horizontal ou vertical.
+- Retoma o controle pelas transições normais depois que o stagger termina.
+
+O valor de 5 HP em alvo desprotegido é um requisito, não uma constante a ser modificada por decisões de balanceamento não autorizadas.
+
+### 3.4. Integrar com o sistema de combate
+
+O stagger não pode ser implementado somente por animação.
+
+Ele precisa afetar realmente as permissões de ação, movimento e estado, respeitando:
+
+- Hit stun.
+- Guard stun.
+- Knockback e lançamento.
+- Estados de invulnerabilidade.
+- Barreiras e escudos.
+- Interrupção de cargas.
+- Cooldowns e buffers de comandos.
+- K.O. e reset de partida.
+- Efeitos de status, passivas e regras de prioridade.
+
+Não reutilizar indiscriminadamente `counterStagger` se sua semântica for específica de disputas de Power Level.
+
+As interações ambíguas com defesa perfeita, invulnerabilidade e escudo devem ser confrontadas com as regras oficiais existentes e documentadas antes de qualquer alteração dessas regras.
+
+### 3.5. Evitar abusos e falsos positivos
+
+Proibir:
+
+- Dano ao passar perto da cabeça sem contato físico.
+- Dano quando o atacante estiver subindo.
+- Dano por contato lateral.
+- Ativação repetida a cada frame.
+- Múltiplas aplicações numa única colisão.
+- Footstool quando apenas dois personagens estão parados ou sobrepostos.
+- Impulso que atravessa teto.
+- Rebote que desloca o atacante instantaneamente para fora da arena.
+- Ganho infinito de altura sem contatos reais sucessivos.
+- Duplicação de dano após replay ou restauração de estado.
+
+Permitir encadeamento de footstools apenas quando houver uma nova trajetória descendente e uma nova colisão válida, respeitando os limites configurados.
+
+Resolver contatos simultâneos de maneira determinística.
+
+### 3.6. Interação com o Vault existente
+
+Auditar a esquiva elevada que já permite ultrapassar o adversário.
+
+O sistema atual possui exceções para evitar colisões durante esse deslocamento.
+
+Não eliminar essas exceções sem compreender seu papel.
+
+Implementar primeiro o footstool no salto normal. Avaliar separadamente um toggle para permitir footstool durante o Vault, sem alterar janelas de invulnerabilidade ou propriedades da esquiva já aprovadas.
+
+### 3.7. Interação com Meteor Slam
+
+Pressionar X durante um salto normal deve continuar iniciando o Meteor Slam conforme as regras atuais.
+
+Uma mesma colisão não pode causar simultaneamente dano de Meteor Slam e dano adicional de footstool sem uma regra explicitamente aprovada.
+
+Estabelecer prioridade clara para o resultado físico e o evento de combate.
+
+---
+
+## ETAPA 4 — ANIMAÇÃO, VFX E CONTROLES
+
+### 4.1. Animações
+
+A movimentação deve comunicar os estados:
+
+- Antecipação visual curta na decolagem, sem atrasar a física.
+- Extensão durante a subida.
+- Pose de ápice.
+- Preparação para aterrissagem.
+- Compressão e recuperação no pouso.
+- Contato rápido de footstool.
+- Rebote vertical.
+- Reação de stagger no adversário.
+
+Aplicar squash/stretch, antecipação, follow-through e recuperação, sem deformar permanentemente modelos ou alterar colisores físicos.
+
+Deve funcionar com blocos genéricos e também com personagens GLB.
+
+### 4.2. Feedback audiovisual
+
+No footstool, produzir:
+
+- Pulso pequeno no ponto de contato.
+- Compressão rápida do atacante e reação do alvo.
+- Partículas discretas.
+- Som curto de impacto/rebote.
+- Indicador de 5 de dano.
+- Pequeno feedback de câmera, se o sistema de câmera cinematográfica estiver ativado.
+
+Não criar flashes excessivos nem modificar a lógica de combate por razões visuais.
+
+Respeitar configurações de acessibilidade e intensidade dos VFX.
+
+### 4.3. Painel de configuração
+
+Adicionar os controles ao local apropriado do Combat Lab, aproveitando os painéis existentes.
+
+Criar grupos de configuração para:
+
+**Salto**
+- Ativar melhorias do salto.
+- Altura máxima.
+- Gravidade de subida e descida.
+- Altura variável.
+- Controle aéreo.
+- Conservação de momento.
+- Coyote time.
+- Jump buffer.
+- Recuperação de aterrissagem.
+
+**Footstool**
+- Ativar Footstool.
+- Dano (padrão 5).
+- Impulso vertical.
+- Duração do stagger.
+- Tolerância física de contato.
+- Controle de repetição.
+- Feedback visual e sonoro.
+- Suporte experimental ao Vault, separado.
+
+Disponibilizar comparação rápida entre física atual e experimental.
+
+Respeitar persistência de parâmetros, exportação, importação e Workspace.
+
+Verificar também o mapeamento do botão de salto para gamepad, pois não basta que ele exista no teclado.
+
+---
+
+## ETAPA 5 — TESTES OBRIGATÓRIOS
+
+### 5.1. Salto
+
+Criar testes determinísticos para:
+
+- Salto parado.
+- Salto caminhando.
+- Salto correndo.
+- Salto curto.
+- Salto completo.
+- Correção aérea.
+- Mudança de direção no ar.
+- Salto imediatamente após a borda.
+- Salto solicitado pouco antes do pouso.
+- Salto com teto baixo.
+- Salto bloqueado por stun.
+- Salto após esquiva, quando permitido.
+- Salto a partir de plataforma elevada.
+- Queda de uma plataforma sem salto.
+- Aterrissagem seguida de novo salto.
+- Salto sobre superfícies com alturas próximas ao ápice.
+- Pausa, replay e reinicialização.
+
+### 5.2. Colisão com objetos
+
+Verificar pouso, contato lateral e colisão inferior em:
+
+- Plataformas de 1 m e 1,5 m.
+- Objetos com altura igual ou próxima do alcance do salto.
+- Obstáculos retangulares e cilíndricos.
+- Objetos destrutíveis.
+- Superfícies justapostas com alturas diferentes.
+- Bordas e cantos.
+- Estruturas próximas ao limite da arena.
+- Plataformas móveis, caso existam no motor atual.
+
+### 5.3. Footstool
+
+Criar cenários repetíveis de:
+
+- Jogador saltando sobre inimigo parado.
+- Inimigo saltando sobre jogador.
+- Adversário em movimento.
+- Dois personagens no ar.
+- Contato correto no centro da cabeça.
+- Contato válido próximo da borda do colisor.
+- Contato lateral inválido.
+- Contato enquanto o atacante sobe.
+- Contato sem altura suficiente.
+- Inimigo defendendo.
+- Inimigo invulnerável.
+- Inimigo com escudo.
+- Inimigo em hit stun ou knockback.
+- Inimigo sobre plataforma.
+- Footstool próximo de teto.
+- Footstool seguido de novo salto ou Meteor Slam.
+- Duas colisões no mesmo passo.
+- Repetição após replay.
+- K.O. causado por exatamente 5 de dano.
+
+Cada cenário deve registrar esperado × obtido, incluindo altitude, velocidade vertical, dano real, estado do defensor e quantidade de eventos disparados.
+
+### 5.4. Regressões
+
+Verificar explicitamente que nada disso altera indevidamente:
+
+- Tackle e seus Power Levels.
+- Esquiva e invulnerabilidade.
+- Defesa perfeita.
+- Guard stun e hit stun.
+- Lançamentos.
+- Wall splat.
+- Meteor Slam.
+- Recuperação de controle.
+- IA dos combatentes.
+- Status e passivas.
+- Determinismo em passo fixo.
+
+Executar as suítes direcionadas e a verificação oficial pertinente. Não declarar aprovação sem evidências de execução.
+
+---
+
+## CRITÉRIOS DE ACEITAÇÃO
+
+A implementação somente será considerada concluída quando:
+
+1. O salto responder imediatamente ao comando.
+2. Houver controle aéreo limitado, sem perda brusca do impulso original.
+3. O salto curto e o completo produzirem trajetórias distintas e consistentes.
+4. As plataformas e os objetos puderem ser utilizados com colisão tridimensional real.
+5. Não ocorrerem teletransportes ou mudanças de altitude sem justificativa física.
+6. Um footstool correto causar exatamente 5 HP em alvo desprotegido, rebote e stagger.
+7. Um contato inválido não causar dano.
+8. Nenhuma colisão produzir duplicação de eventos.
+9. Todos os parâmetros relevantes tiverem controles acessíveis.
+10. O jogo continuar funcional em `JOGAR_ARENAMON.html`.
+11. Os testes e cenários puderem ser acessados pelos portais oficiais.
+12. A branch experimental for publicada com hash e documentação verificáveis, sem merge automático na `main`.
+
+## ENTREGA
+
+Registrar a especificação e os resultados em `docs/`, conforme `AGENTS.md`.
+
+Recompilar o Combat Lab e atualizar os acessos pelos portais oficiais.
+
+Fornecer:
+
+- Branch e commit final.
+- Resumo das alterações.
+- Parâmetros utilizados.
+- Evidências dos testes.
+- Limitações conhecidas.
+- Itens que dependam de aprovação do usuário.
+
+Não alterar o Animation Studio, a arquitetura geral do jogo nem Moves não relacionados.
+
+**Prioridade absoluta: sensação de movimento, correção das colisões e integração com as regras existentes. A aparência visual é importante, mas não pode mascarar falhas na física.**

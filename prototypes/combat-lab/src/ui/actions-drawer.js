@@ -42,6 +42,16 @@ export const ACTION_TABS = {
     ],
     anims: [],
   },
+  jump: {
+    icon: '🦘', label: 'Salto', title: 'Salto 3D e Footstool',
+    sections: [
+      ['⚙ Sistemas', ['map.jumpImprovements', 'map.footstoolEnabled', 'map.footstoolVault'], true],
+      ['🦘 Salto (gravidade, coyote e buffer)', ['map.jumpHeight', 'map.jumpGravity', 'map.jumpGravityUp', 'map.jumpGravityDown', 'map.jumpReleaseMult', 'map.jumpMaxFallSpeed', 'map.jumpInterval', 'map.jumpLandingRecovery', 'map.jumpCoyoteTime', 'map.jumpBufferWindow'], true],
+      ['🎮 Controle aéreo e colisões', ['map.jumpDrag', 'map.jumpAirControl', 'map.jumpAirAccel', 'map.jumpAirMaxSpeed', 'map.platformCount']],
+      ['👟 Footstool (pisar no rival)', ['map.footstoolDamage', 'map.footstoolBounce', 'map.footstoolStagger', 'map.footstoolTolerance', 'map.footstoolMinFallSpeed', 'map.footstoolCooldown']],
+    ],
+    anims: ['jump', 'fall', 'land'],
+  },
   block: {
     icon: '🛡', label: 'Bloqueio', title: 'Bloqueio (D)',
     sections: [
@@ -54,7 +64,7 @@ export const ACTION_TABS = {
 };
 
 export function createActionsDrawer({$, tuning, ui, onCharactersChanged = () => {}, renderMoves = () => {}, renderAiMoves = () => {}}) {
-  const tabs = $('act-tabs'), views = {moves: $('moves-panel'), tackle: $('act-tackle'), dodge: $('act-dodge'), block: $('act-block'), ai: $('act-ai')};
+  const tabs = $('act-tabs'), views = {moves: $('moves-panel'), tackle: $('act-tackle'), dodge: $('act-dodge'), jump: $('act-jump'), block: $('act-block'), ai: $('act-ai')};
   let current = 'moves';
   const escape = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
 

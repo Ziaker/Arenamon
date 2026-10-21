@@ -664,6 +664,11 @@ export class CinematicCamera {
           this.spawnCallout('CLASH!!', 'clash', screenPos);
         } else if (ev.result === 'perfectDodge') {
           this.spawnCallout('PERFECT DODGE!', 'dodge', screenPos);
+        } else if (ev.result === 'footstool') {
+          // Pisada na cabeça do rival: impacto discreto com callout próprio.
+          this.triggerImpactFrame({whiteDur: 0.02, invertDur: 0.02, strength: 0.5});
+          this.spawnCallout('FOOTSTOOL!', 'counter', screenPos);
+          if (ev.damage > 0) this.spawnDamageNumber(ev.damage, false, screenPos);
         } else if (ev.result === 'impact') {
           // Impacto pesado / Meteor Slam
           const isHeavy = (ev.damage ?? 0) >= 15 || !!ev.slam || (ev.pl ?? 1) >= 3;

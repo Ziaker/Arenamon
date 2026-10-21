@@ -45,6 +45,7 @@ const BASIC = new Set([
   'test.pushCoefficient', 'test.pushDuration', 'test.arenaHalf', 'test.hp',
   'locomotion.acceleration', 'locomotion.braking', 'locomotion.turnRate', 'locomotion.friction',
   'camera.distance', 'camera.fov', 'extras.ai.attackRange', 'extras.ai.combatAttackCooldown', 'extras.ai.approachDistance',
+  'map.jumpImprovements', 'map.footstoolEnabled', 'map.jumpGravityUp', 'map.jumpGravityDown', 'map.footstoolDamage', 'map.footstoolBounce',
 ]);
 const TECH_PATH = /^(?:display\.|extras\.colors\.|extras\.bindings2?\.|extras\.cameraExtra\.|extras\.hud\.|test\.(?:step|maxFrame|epsilon|contactStep|forwardTolerance|halfExtent|aiInterval)|extras\.combat\.contactProjection)/;
 const TECH_KEY = /(?:^|\.)(?:curveStart|blend|profile|steerLimit|steerRate|decelStart|prepSpeed|prepTime|impulseTime|travelEnd|selfCancelFromEnd|selfCancel|recoveryTime|chainAfter|distanceReference|vaultPhysics|windowMode|fromEnd|velocityInfluence|transition|epsilon|accelCurve|brakeCurve|frameLatch|moveFrame|stopThreshold|residualSpeed|turnGrip|turnAcceleration)$/;

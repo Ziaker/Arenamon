@@ -172,3 +172,31 @@ export function resolveHit(attacker, defender, normal, relative, force = false) 
   if (defender.hp === 0) {defender.guard = false;defender.guardSuppressed = true;}
   return {attacker: attacker.id, target: defender.id, result: perfect ? 'perfect' : protectedFront ? 'partial' : 'impact', damage, shieldAbsorbed: dmgResult.absorbedByShield, normal: {...normal}, launch: launchInfo, contact: 'tackle', ...(dmgResult.sturdy ? {sturdy: true} : {}), ...(attacker.action.slam ? {slam: true} : {})};
 }
+/**
+ * Footstool (Plano D, Etapa 3): pisar na cabeça do adversário vindo de cima com o salto normal.
+ * Não é tackle nem Move: é uma interação de movimento/colisão física, simétrica para os dois lados.
+ * Contratos: dano 5 HP em alvo desprotegido pelo pipeline central (escudo absorve primeiro; estágios de
+ * defesa reduzem — "desprotegido" = sem escudo/estágios), stagger REAL por stun (afeta permissões de ação e
+ * movimento; sem reuso de counterStagger, que é semântica de disputa de Power Level), zero knockback/launch,
+ * zero stamina, ação em curso interrompida. Contato superior ignora a defesa frontal D (o golpe vem de cima).
+ * Invulnerabilidade é respeitada: o atacante ainda rebate (a física aplica o impulso), mas sem dano/stagger.
+ */
+export function resolveFootstool(attacker, defender) {
+  const M = C.map ?? {};
+  if (isInvulnerable(defender)) {
+    return {attacker: attacker.id, target: defender.id, result: 'invulnerable', damage: 0, contact: 'footstool'};
+  }
+  const dmgResult = processDamageWithShieldAndStages(defender, M.footstoolDamage ?? 5, attacker, false, false, {category: 'direct', contact: 'footstool'});
+  defender.lastAttacker = attacker.id;
+  const stagger = M.footstoolStagger ?? 0.25;
+  defender.stun = Math.max(defender.stun ?? 0, stagger);
+  // Interrupção pelas vias normais de golpe: ação/carga caem, velocidades zeram, sem launch e sem push.
+  defender.action = null;defender.push = null;defender.blend = null;
+  defender.velocity = vec();defender.locomotionVelocity = vec();
+  defender.vaultHeight = 0;defender.counterWindow = 0;defender.landingSlide = null;
+  defender.guard = false;defender.guardSuppressed = true;
+  if (defender.tackleCharge) {defender.tackleCharge = null;if (defender.state === 'tackleCharge') defender.state = 'neutral';}
+  if (defender.charge) defender.charge = null;   // interrompe a carga do Move (golpe sofrido; a devolução é do failMove)
+  if (defender.hp === 0) {defender.guard = false;defender.guardSuppressed = true;}
+  return {attacker: attacker.id, target: defender.id, result: 'footstool', damage: dmgResult.hpDamage, shieldAbsorbed: dmgResult.absorbedByShield, contact: 'footstool', stagger, ...(dmgResult.sturdy ? {sturdy: true} : {})};
+}

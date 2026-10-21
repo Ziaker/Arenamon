@@ -21,7 +21,7 @@ const TABS = [
   ['Combate', ['Regras gerais, defesa e stamina', 'Knockback e clash', 'Combate e colisões']],
   ['Atributos', ['Atributos: equilibrado', 'Atributos: ágil', 'Atributos: resistente']],
   ['Movimento', ['Movimento']], ['IA', ['IA: estratégia e decisões', 'IA: personalidade do vermelho', 'IA: personalidade do azul (IA jogador)']], ['Arena', ['Arena e simulação']],
-  ['Mapa', ['Arena circular', 'Objetos destrutíveis', 'Obstáculos indestrutíveis', 'Plataformas e salto', 'Consumíveis e drops', 'Progressão de estágios e escudo']],
+  ['Mapa', ['Arena circular', 'Objetos destrutíveis', 'Obstáculos indestrutíveis', 'Plataformas e salto', 'Footstool (pisar no rival)', 'Consumíveis e drops', 'Progressão de estágios e escudo']],
   ['Visual', ['Renderizador e personagens', 'Efeitos e feedback', 'HUD e visualização', 'Cores: canais RGB individuais']],
   ['Sistemas', ['Ativar ou desativar sistemas', 'Modos de jogo']],
 ];
@@ -31,7 +31,7 @@ const SAFE_MIN = {'rules.dodge': .05, 'rules.tackleDuration': .05, 'rules.recoil
   'extras.fx.clashDuration': .02, 'extras.visual.bodyWidth': .1, 'extras.visual.bodyHeight': .1, 'extras.visual.bodyDepth': .1, 'profiles.balanced.hp': 1, 'profiles.agile.hp': 1, 'profiles.resistant.hp': 1, 'test.hp': 1};
 const RADIANS = ['steerLimit', 'steerRate', 'guardTurn', 'guardAcceleration', 'turnRate', 'visualTurnRate', 'maxTurnRate', 'deadZone', 'movingDeadZone', 'initialYaw', 'forwardTolerance'];
 const INTEGERS = ['staminaMax', 'hp', 'attack', 'defense', 'attackReference', 'speedReference', 'defenseMedian', 'contactProjectionPasses', 'impactCount', 'clashCount', 'landingCount', 'evadeCycle', 'evadeCycleIndex', 'noticeFontSize', 'clashNoticeFontSize', 'debugFontSize', 'footerFontSize'];
-const toggled = key => key.startsWith('enable') || ['fxVisible', 'hudVisible', 'debugVisible', 'showHitboxes', 'showAttackVectors'].includes(key);
+const toggled = key => key.startsWith('enable') || ['fxVisible', 'hudVisible', 'debugVisible', 'showHitboxes', 'showAttackVectors', 'jumpImprovements', 'footstoolEnabled', 'footstoolVault'].includes(key);
 const PROFILE_LABEL = ['Equilibrado', 'Ágil', 'Resistente'];
 
 /** Faixa, passo e formato de cada parâmetro (regras do ajustador v6). */
@@ -103,6 +103,18 @@ function range(key, value, path) {
     if (key === 'jumpGravity') return {min: 5, max: 40, step: 0.5, fmt: n => n.toFixed(1) + ' m/s²'};
     if (key === 'jumpDrag') return {min: 0, max: 3.0, step: 0.05, fmt: n => n.toFixed(2) + ' s⁻¹'};
     if (key === 'jumpAirControl') return {min: 0, max: 1.0, step: 0.05, fmt: n => Math.round(n * 100) + '%'};
+    if (key === 'jumpGravityUp' || key === 'jumpGravityDown') return {min: 5, max: 40, step: 0.5, fmt: n => n.toFixed(1) + ' m/s²'};
+    if (key === 'jumpReleaseMult') return {min: 1, max: 4, step: 0.1, fmt: n => n.toFixed(1) + '×'};
+    if (key === 'jumpMaxFallSpeed') return {min: 2, max: 30, step: 0.5, fmt: n => n.toFixed(1) + ' m/s'};
+    if (key === 'jumpAirAccel') return {min: 0, max: 40, step: 0.5, fmt: n => n.toFixed(1) + ' m/s²'};
+    if (key === 'jumpAirMaxSpeed') return {min: 0, max: 15, step: 0.1, fmt: n => n.toFixed(1) + ' m/s'};
+    if (key === 'jumpCoyoteTime' || key === 'jumpBufferWindow') return {min: 0, max: 0.5, step: 0.01, fmt: n => n.toFixed(2) + ' s'};
+    if (key === 'footstoolDamage') return {min: 0, max: 30, step: 1, fmt: n => n + ' HP'};
+    if (key === 'footstoolBounce') return {min: 0, max: 10, step: 0.1, fmt: n => n.toFixed(1) + ' m/s'};
+    if (key === 'footstoolStagger') return {min: 0, max: 2, step: 0.05, fmt: n => n.toFixed(2) + ' s'};
+    if (key === 'footstoolTolerance') return {min: 0, max: 1, step: 0.01, fmt: n => n.toFixed(2) + ' m'};
+    if (key === 'footstoolMinFallSpeed') return {min: 0, max: 10, step: 0.1, fmt: n => n.toFixed(1) + ' m/s'};
+    if (key === 'footstoolCooldown') return {min: 0, max: 3, step: 0.05, fmt: n => n.toFixed(2) + ' s'};
     if (key === 'itemPickupRadius') return {min: 0.5, max: 5.0, step: 0.1, fmt: n => n.toFixed(1) + ' m'};
     if (key === 'healHp') return {min: 5, max: 100, step: 5, fmt: n => n + ' HP'};
     if (key === 'healStamina') return {min: 1, max: 10, step: 1, fmt: n => n + ' pontos'};

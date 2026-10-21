@@ -227,6 +227,41 @@ function armTechRecovery(f, cmd, dt) {
   if (cmd.dodge && !f.tech && fl.age >= R.techMinAir - 1e-8 && timeToLand(f) <= R.techWindow + 1e-8) f.tech = {dir: dir ? {...dir} : vec(), at: fl.age};
   else if (f.tech && dir) f.tech.dir = {...dir};
 }
+/**
+ * Salto normal (Plano D — overhaul do salto): decolagem imediata no mesmo passo do comando, preservando o
+ * horizontal atual. O voo nasce marcado com `jumpFeel` quando o pacote experimental está ligado (gravidade
+ * assimétrica, altura variável por botão mantido, velocidade terminal e controle aéreo por aceleração,
+ * aplicados em stepPhysics). Com fromAir (coyote time), preserva a altitude do voo em curso em vez de groundY.
+ */
+function startNormalJump(f, move, diag, fromAir = false) {
+  const M = C.map ?? {}, R = C.rules;
+  const g = M.jumpGravity ?? R.launchGravity;
+  const h = M.jumpHeight ?? 2.0;
+  const vy = Math.sqrt(2 * g * h);
+  const curH = fromAir && f.flight ? {...f.flight.horizontal} : {...f.velocity};
+  const horiz = length(move) > 0
+    ? scale(normalize(move), Math.max(length(curH), walkSpeed(f)))
+    : curH;
+  f.flight = {
+    y: fromAir && f.flight ? f.flight.y : (f.groundY ?? 0),
+    vy,
+    horizontal: horiz,
+    gravity: g,
+    isNormalJump: true,
+    jumpFeel: !!(M.jumpImprovements ?? 1),
+    jumpHeld: true,
+  };
+  f.coyoteLeft = 0;          // coyote consumido (e nunca concede saltos extras no ar)
+  f.airMoveDir = null;
+  f.footstoolDoneWith = null;   // nova trajetória: libera um novo footstool por contato válido
+  f.normalJumpLanding = true;
+  f.jumpState.canJump = false;
+  f.jumpState.cooldown = 0;
+  f.state = 'airborne';
+  f.sprinting = false;
+  f.sprintCarry = false;
+  if (diag) report(f, {kind: 'jump', result: 'executed', note: `${fromAir ? 'coyote · ' : ''}salto normal h=${h}m vy=${vy.toFixed(1)}m/s`});
+}
 export function updateFighter(f, cmd, fighters, dt, world = null) {
   const R = C.rules, X = C.extras, T = X.toggles, A = C.actions;
   // Buffer de entrada: o pedido mais recente de X ou C vale por actions.buffer.window, mesmo no ar ou na aterrissagem.
@@ -242,6 +277,16 @@ export function updateFighter(f, cmd, fighters, dt, world = null) {
     if (f.inputBuffer.age > A.buffer.window + 1e-8 || cmd.guardPressed) {if (diag && !requested) report(f, {kind: f.inputBuffer.kind, result: 'expired', ...(f.inputBuffer.age > A.buffer.window + 1e-8 ? lastBufferReason.get(f.inputBuffer) ?? {} : {note: 'substituído pela defesa'})});f.inputBuffer = null;}
   }
   if (requested && A.buffer.window > 0) {const m = length(cmd.move) > 1 ? normalize(cmd.move) : cmd.move;f.inputBuffer = {kind: requested, move: {...m}, dodgeDirection: cmd.dodgeDirection && {...cmd.dodgeDirection}, age: 0};}
+  // Jump buffering (Plano D 2.6): o toque fica guardado por jumpBufferWindow e executa no primeiro passo em que as
+  // regras permitirem — sem contornar stun, guard stun, cooldown, morte nem bloqueio de ação (o canNormalJump mais
+  // abajo vale igual para toque direto e bufferado; o pedido expira e é consumido uma única vez). Fica no topo porque
+  // o ramo de voo retorna cedo: o buffer precisa decair e ser armado também durante o salto (aperto antes do pouso).
+  const MJ = C.map ?? {}, feelJ = !!(MJ.jumpImprovements ?? 1);
+  // Decaimento: congela enquanto o ÚNICO bloqueio é o intervalo entre saltos pós-pouso (o salto bufferado sai
+  // exatamente quando o cooldown termina, sem contorná-lo); no ar, em stun/knockback etc., decai normalmente.
+  const waitingJumpCooldown = !f.flight && (f.jumpState?.cooldown ?? 0) > 0 && f.knockRecovery <= 1e-8 && f.stun <= 1e-8;
+  if (!waitingJumpCooldown) f.jumpBuffered = Math.max(0, (f.jumpBuffered ?? 0) - dt);
+  if (cmd.jump && f.hp > 0 && feelJ) f.jumpBuffered = Math.max(f.jumpBuffered ?? 0, MJ.jumpBufferWindow ?? 0.12);
   // Comandos novos com o lutador indisponível: o motivo é a própria condição que encerra o passo abaixo.
   const isSlamTrigger = f.flight && requested === 'tackle' && T.enableMeteorSlam && (f.flight.isNormalJump || f.flight.isEdgeFall || T.enableFlightSlam) && !f.wallSplat && f.hp > 0 && !f.exhausted && f.stamina >= costOf(f, A.tackle.cost) - 1e-8 && !hasFlag(f, 'disarmed') && !hasFlag(f, 'stunned');
   if (diag && (requested || cmd.guardPressed) && (f.flight || f.knockRecovery > 0 || f.hp <= 0)) {
@@ -265,8 +310,24 @@ export function updateFighter(f, cmd, fighters, dt, world = null) {
       if (diag) report(f, {kind: 'tackle', result: 'executed', note: isNormal ? 'meteor slam (salto normal)' : 'meteor slam (lançado)'});
     } else {
       if (!f.flight.isNormalJump && T.enableTechRecovery && T.enableDodge && f.hp > 0 && !f.wallSplat) armTechRecovery(f, cmd, dt);
-      if (f.flight.isNormalJump) {
-        const airCtrl = C.map?.jumpAirControl ?? 0.0;
+      const M0 = C.map ?? {}, feel0 = !!(M0.jumpImprovements ?? 1);
+      if (f.flight.isNormalJump || f.flight.isEdgeFall) {
+        // Plano D: o controlador grava o botão de salto mantido e a direção pedida; a física (stepPhysics)
+        // aplica gravidade assimétrica/altura variável e o controle aéreo por aceleração sobre esses sinais.
+        f.flight.jumpHeld = !!cmd.jumpHeld;
+        f.airMoveDir = length(cmd.move) > 0.05 ? (length(cmd.move) > 1 ? normalize(cmd.move) : {...cmd.move}) : null;
+        // Coyote time (2.5): queda natural recente da borda ainda permite o salto, sem saltos extras no ar e
+        // nunca após knockback/lançamento (esses voos não são isEdgeFall). O meteor slam (X no ar) tem prioridade acima.
+        if (f.flight.isEdgeFall && feel0 && f.coyoteLeft > 1e-8 && cmd.jump && f.hp > 0 && !f.wallSplat
+          && !hasFlag(f, 'stunned') && !hasFlag(f, 'rooted') && f.jumpState.canJump) {
+          f.jumpBuffered = 0;
+          startNormalJump(f, length(cmd.move) > 1 ? normalize(cmd.move) : cmd.move, diag, true);
+          return;
+        }
+      }
+      if (f.flight.isNormalJump && !(feel0 && (M0.jumpAirAccel ?? 0) > 0)) {
+        // Controle aéreo legado (blend direcional), mantido quando o pacote novo está desligado ou sem aceleração.
+        const airCtrl = M0.jumpAirControl ?? 0.0;
         if (length(f.flight.horizontal) < 0.05 && length(cmd.move) > 0.05) {
           const m = length(cmd.move) > 1 ? normalize(cmd.move) : cmd.move;
           f.flight.horizontal = scale(m, walkSpeed(f));
@@ -347,7 +408,8 @@ export function updateFighter(f, cmd, fighters, dt, world = null) {
     if (cmd.guardPressed) f.bufferedTackle = null;
     if (cmd.guardPressed && f.perfectCooldown <= 0) {f.perfectLeft = R.perfect;f.perfectSucceeded = false;}
   }
-  // Salto normal (R2.1–R2.8, R7.1–R7.2, R7.7–R7.9): Tecla Espaço em estado livre, caminhando ou correndo.
+  // Salto normal (R2.1–R2.8, R7.1–R7.2, R7.7–R7.9 + Plano D): Tecla Espaço em estado livre, caminhando ou correndo.
+  // O jump buffering é armado/decai no topo de updateFighter (o ramo de voo retorna cedo).
   f.jumpState ??= {canJump: true, cooldown: 0};
   if (f.jumpState.cooldown > 0) {
     f.jumpState.cooldown = Math.max(0, f.jumpState.cooldown - dt);
@@ -355,33 +417,14 @@ export function updateFighter(f, cmd, fighters, dt, world = null) {
   } else if (!f.flight && !f.action && !f.wallSplat && f.knockRecovery <= 0) {
     f.jumpState.canJump = true;
   }
-  const canNormalJump = cmd.jump && f.hp > 0 && !f.action && !f.flight && !f.wallSplat && f.knockRecovery <= 0
+  const canNormalJump = (cmd.jump || f.jumpBuffered > 1e-8) && f.hp > 0 && !f.action && !f.flight && !f.wallSplat && f.knockRecovery <= 0
     && !f.guard && !f.tackleCharge && !f.charge && f.stun <= 1e-8
     && !hasFlag(f, 'stunned') && !hasFlag(f, 'rooted')
     && f.jumpState.canJump && f.jumpState.cooldown <= 0;
 
   if (canNormalJump) {
-    const M = C.map ?? {};
-    const g = M.jumpGravity ?? R.launchGravity;
-    const h = M.jumpHeight ?? 2.0;
-    const vy = Math.sqrt(2 * g * h);
-    const horiz = length(move) > 0
-      ? scale(normalize(move), Math.max(length(f.velocity), walkSpeed(f)))
-      : {...f.velocity};
-    f.flight = {
-      y: f.groundY ?? 0,
-      vy,
-      horizontal: horiz,
-      gravity: g,
-      isNormalJump: true,
-    };
-    f.normalJumpLanding = true;
-    f.jumpState.canJump = false;
-    f.jumpState.cooldown = 0;
-    f.state = 'airborne';
-    f.sprinting = false;
-    f.sprintCarry = false;
-    if (diag) report(f, {kind: 'jump', result: 'executed', note: `salto normal h=${h}m vy=${vy.toFixed(1)}m/s`});
+    f.jumpBuffered = 0;   // consumido (toque direto ou bufferado)
+    startNormalJump(f, move, diag);
     return;
   }
   // Pedido de ação: X tem prioridade se as duas teclas chegarem no mesmo passo (como no v6).

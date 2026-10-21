@@ -94,7 +94,7 @@ export class Game {
     this.events.push(...fresh);this.events = this.events.slice(-12);this.lastStepEvents = fresh;
     if (C.extras.toggles.enableHitstop) {
       if (fresh.some(e => e.result === 'clash')) this.hitstop = C.extras.combat.clashHitstop;
-      else if (fresh.some(e => e.result === 'impact' || e.result === 'perfect' || e.result === 'perfectDodge')) this.hitstop = C.extras.combat.impactHitstop;
+      else if (fresh.some(e => e.result === 'impact' || e.result === 'perfect' || e.result === 'perfectDodge' || e.result === 'footstool')) this.hitstop = C.extras.combat.impactHitstop;
     }
     for (const f of this.fighters) if (!f.action && !f.blend && !f.flight) f.locomotionVelocity = {...f.velocity};
     for (let i = 0; i < this.fighters.length; i++) if (this.fighters[i].action === actions[i]) advanceAction(this.fighters[i], C.test.step);
@@ -181,6 +181,8 @@ export class Game {
       f.stages ??= {attack: 0, defense: 0, staminaMax: 0, cooldown: 0, speed: 0};
       f.shield ??= {hp: 0, duration: 0, maxHp: 80};
       f.jumpState ??= {canJump: true, cooldown: 0};
+      // Plano D (salto/footstool): campos novos têm padrão neutro em saves/replays antigos.
+      f.coyoteLeft ??= 0;f.jumpBuffered ??= 0;f.airMoveDir ??= null;f.footstoolCooldownT ??= 0;f.footstoolDoneWith ??= null;
       // Passivas de saves antigos: estado neutro SEM restaurar Sturdy (R22/§7: load/replay/menu não devolvem o uso).
       f.passiveState ??= {loadout: [...(this.passiveLoadouts?.[f.id] || [])], cooldowns: {}, actives: [], sturdyAvailable: false, sturdyUsed: false, lastDamageDealt: -1e9, lastDamageReceived: -1e9};
       if (!s.combatWindows) f.combatWindows = null;

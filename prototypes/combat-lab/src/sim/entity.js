@@ -22,6 +22,8 @@ export function createFighter(id, attributes, position) {
     stages: {attack: 0, defense: 0, staminaMax: 0, cooldown: 0, speed: 0},
     shield: {hp: 0, duration: 0, maxHp: C.map?.shieldMaxCap ?? 80},
     jumpState: {canJump: true, cooldown: 0},
+    // Plano D (salto/footstool): coyote time, jump buffering e controle de repetição do footstool.
+    coyoteLeft: 0, jumpBuffered: 0, airMoveDir: null, footstoolCooldownT: 0, footstoolDoneWith: null,
     lastAttacker: null, lastDamagedTick: 0};
 }
 /** Stamina máxima individual de um combatente (inclui seus estágios permanentes individuais sem alterar C.rules.staminaMax). */
@@ -29,7 +31,7 @@ export const getFighterMaxStamina = f => f ? C.rules.staminaMax + (f.stages?.sta
 
 // skill: índice do slot de movimento especial pedido neste passo (null = nenhum; só a BORDA do botão). skillHeld: botões de slot mantidos
 // pressionados (array por slot, ou null quando nenhum): é o que mantém e solta um Charge.
-export const emptyCommand = () => ({move: vec(), dodge: false, dodgeHeld: false, tackle: false, tackleHeld: false, guard: false, guardPressed: false, jump: false, target: null, skill: null, skillHeld: null});
+export const emptyCommand = () => ({move: vec(), dodge: false, dodgeHeld: false, tackle: false, tackleHeld: false, guard: false, guardPressed: false, jump: false, jumpHeld: false, target: null, skill: null, skillHeld: null});
 /** Parâmetros próprios de uma ação X/C (C.actions.dodge ou C.actions.tackle). */
 export const actionParams = kind => C.actions[kind];
 /** Duração de uma ação: esquiva e tackle têm durações independentes; recuo usa as regras gerais. */

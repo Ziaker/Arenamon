@@ -1,10 +1,11 @@
 // Física de passo fixo: voo balístico, deslizamento ao aterrissar, subpassos, limites da arena com rebote
 // e separação de colisores AABB. Detecta clash/impacto no primeiro passe de contato.
 import {C} from './config.js';
-import {clashPossible, mutualTackle, clash, resolveHit} from './combat.js';
+import {clashPossible, mutualTackle, clash, resolveHit, resolveFootstool} from './combat.js';
 import {collideFighter} from './world.js';
 import {collideMapFighter, damageDestructible, processDamageWithShieldAndStages} from './map.js';
 import {passiveCost, hitStunFactor} from './passive-engine.js';
+import {stat} from './status.js';
 import {vec, add, scale, sub, dot, length, normalize, clamp, direction, smoothstep} from './math.js';
 
 /** Sonda de diagnóstico (auditoria externa §64): subpassos e contatos do último passo físico.
@@ -207,7 +208,30 @@ export function stepPhysics(fighters, dt, world = null) {
     if (f.flight) {
       const flight = f.flight;
       flight.y ??= f.groundY ?? 0;
-      const g = flight.gravity ?? R.launchGravity;
+      let g = flight.gravity ?? R.launchGravity;
+      // Plano D (salto): voos "feel" — salto normal/coyote e queda natural de borda — usam gravidade assimétrica
+      // (subida leve, descida firme), corte de subida ao SOLTAR o botão (altura variável) e velocidade terminal.
+      // Voos de lançamento por golpe e voos sem a marca continuam no balístico legado de gravidade única.
+      const M = C.map ?? {}, feel = !!flight.jumpFeel && !!(M.jumpImprovements ?? 1);
+      if (feel) {
+        const gUp = M.jumpGravityUp ?? g, gDown = M.jumpGravityDown ?? gUp;
+        g = flight.vy > 0 ? (flight.jumpHeld !== false ? gUp : gUp * (M.jumpReleaseMult ?? 1)) : gDown;
+        const term = M.jumpMaxFallSpeed ?? 0;
+        if (term > 0 && flight.vy < -term) flight.vy = -term;
+        // Controle aéreo por aceleração (2.4): soma aceleração na direção pedida (airMoveDir, do controlador).
+        // O teto é o MAIOR entre o momento atual e a velocidade aérea máxima — assim a inércia da corrida é
+        // preservada (o vetor gira, não encolhe) e inverter exige desaceleração real ao longo de vários passos.
+        const acc = M.jumpAirAccel ?? 0;
+        if (acc > 0 && f.airMoveDir) {
+          const maxSpd = (M.jumpAirMaxSpeed ?? 0) > 0 ? M.jumpAirMaxSpeed : stat(f, 'speed', f.attributes.speed);
+          const cap = Math.max(length(flight.horizontal), maxSpd);
+          const nh = add(flight.horizontal, scale(f.airMoveDir, acc * dt));
+          const nlen = length(nh);
+          flight.horizontal = nlen > cap ? scale(nh, cap / nlen) : nh;
+        }
+      }
+      if (flight.isEdgeFall) f.coyoteLeft = Math.max(0, (f.coyoteLeft ?? 0) - dt);   // coyote só em queda natural
+      f.footstoolCooldownT = Math.max(0, (f.footstoolCooldownT ?? 0) - dt);
       // Voo balístico de passo fixo: gravidade na altura e arrasto exponencial no plano.
       const prevY = flight.y;
       flight.y += flight.vy * dt - .5 * g * dt * dt;
@@ -258,10 +282,36 @@ export function stepPhysics(fighters, dt, world = null) {
           f.jumpState.canJump = false;
           f.jumpState.cooldown = C.map?.jumpInterval ?? 0.25;
         }
+        f.coyoteLeft = 0;f.footstoolDoneWith = null;f.airMoveDir = null;
         // Recovery rápido: C apertado a tempo no ar e stamina suficiente: ao tocar o chão, a esquiva sai na hora (o controlador a inicia).
         const tech = f.tech;f.tech = null;
         if (T.enableTechRecovery && tech && f.hp > 0 && f.stamina >= passiveCost(f, 'tech', R.techCost) - 1e-8 && (R.techCost <= 0 || !f.exhausted)) {f.knockRecovery = 0;f.landingSlide = null;f.techDodge = {dir: tech.dir};f.state = 'neutral';}
       } else {f.velocity = {...flight.horizontal};f.state = 'airborne';}
+      // Footstool (Plano D, Etapa 3): ataque de contato superior do salto normal. Só vale com salto voluntário
+      // (isNormalJump — inclui o salto de coyote, que converte o voo): quem apenas caiu da borda de uma plataforma
+      // não footstoola, o que preserva o invariante "dano só com ação" nas partidas de IA (a IA não salta).
+      // Os pés cruzam o topo do colisor físico do defensor VINDO DE CIMA, com sobreposição horizontal real.
+      // O Meteor Slam tem prioridade: X no ar converte o voo em mergulho no controlador, antes da física — nunca
+      // há dano duplo na mesma colisão.
+      if (f.flight && (M.footstoolEnabled ?? 1) && flight.isNormalJump
+        && (f.footstoolCooldownT ?? 0) <= 0 && f.hp > 0 && !f.wallSplat) {
+        const bodyH = C.extras?.visual?.bodyHeight ?? 1.2, tol = M.footstoolTolerance ?? 0.12;
+        const reach = 2 * C.test.halfExtent + tol;
+        for (const b of fighters) {
+          if (b === f || b.hp <= 0 || b.wallSplat || f.footstoolDoneWith === b.id) continue;
+          if (Math.abs(f.position.x - b.position.x) > reach || Math.abs(f.position.z - b.position.z) > reach) continue;
+          const bTop = (b.groundY ?? 0) + (b.flight?.y ?? b.vaultHeight ?? 0) + bodyH;
+          if (flight.vy > -(M.footstoolMinFallSpeed ?? 1.0)) continue;          // só queda real e suficiente
+          if (!(prevY >= bTop - tol && flight.y <= bTop + tol)) continue;       // os pés cruzam o topo vindo de cima
+          events.push(resolveFootstool(f, b));
+          f.footstoolDoneWith = b.id;                                          // um footstool por contato/trajetória
+          f.footstoolCooldownT = M.footstoolCooldown ?? 0.5;
+          flight.vy = M.footstoolBounce ?? 3.7;                                // rebote vertical do atacante
+          flight.y = Math.max(flight.y, bTop + 0.02);                          // pés apoiados no topo: sem separação lateral no subpasso
+          flight.horizontal = scale(flight.horizontal, 0.8);                     // conserva parte do horizontal
+          break;
+        }
+      }
     } else if (f.action?.slam || (f.vaultHeight ?? 0) > 0.05 || f.action?.jump) {
       // Lutador em ação aérea (meteor slam, salto ou esquiva elevada):
       // NÃO aplicar queda espúria de borda de plataforma (evita cancelar o slam no ar)!
@@ -279,11 +329,16 @@ export function stepPhysics(fighters, dt, world = null) {
       const targetGround = getGroundHeight(f.position, world, curY);
       f.groundY ??= 0;
       if (f.groundY > targetGround + 0.1) {
-        // Entra em queda balística mantendo a velocidade horizontal (R7.10)
-        f.flight = {y: f.groundY, vy: 0, horizontal: {...f.velocity}, isEdgeFall: true};
+        // Entra em queda balística mantendo a velocidade horizontal (R7.10). Queda natural de borda:
+        // recebe coyote time (salto logo após a borda) e participa do pacote de sensação do salto.
+        // Nunca acontece após knockback/lançamento (esses já entram em voo pelo launch()).
+        const feelFall = !!(C.map?.jumpImprovements ?? 1);
+        f.flight = {y: f.groundY, vy: 0, horizontal: {...f.velocity}, isEdgeFall: true, jumpFeel: feelFall, jumpHeld: false};
+        if (feelFall) f.coyoteLeft = C.map?.jumpCoyoteTime ?? 0.10;
         f.state = 'airborne';
       } else {
         f.groundY = targetGround;
+        f.coyoteLeft = 0;
       }
     }
     if (f.landingSlide) {

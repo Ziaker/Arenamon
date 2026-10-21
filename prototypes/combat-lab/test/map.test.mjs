@@ -53,9 +53,9 @@ console.log('\n--- INICIANDO AUDITORIA E TESTES DO NOVO MAPA ARENAMON ---\n');
 // ==========================================
 console.log('1. Arena Circular e Limites Físicos:');
 
-test('Raio da arena circular é 50 m (diâmetro 100 m)', () => {
+test('Raio da arena circular padrão (decisão "arena menor": 32,5 m)', () => {
   const g = new Game({seed: 42});
-  assert.equal(C.map.arenaRadius, 50, 'Raio padrão deve ser 50m');
+  assert.equal(C.map.arenaRadius, 32.5, 'Raio padrão deve ser 32,5 m (decisão aprovada de reduzir a arena em ~35%)');
   assert.equal(C.map.arenaShape, 'circle', 'Formato padrão deve ser circle');
 });
 
@@ -98,29 +98,35 @@ test('Salto normal na barra de espaço inicia decolagem sem custo de stamina', (
   assert.ok(f.flight.vy > 0, 'Velocidade vertical inicial deve ser positiva');
 });
 
-test('Salto normal conserva velocidade horizontal sem permitir esterçamento no ar', () => {
+test('Salto corrido permite controle aéreo sem esterçamento brusco (Plano D)', () => {
   const g = new Game({seed: 4});
   g.start();
   const f = g.fighters[0];
   f.velocity = vec(0, 5); // correndo para frente
-  g.step({jump: true, move: vec(0, 1)}, emptyCommand()); // pula
+  g.step({jump: true, move: vec(0, 1), jumpHeld: true}, emptyCommand()); // pula segurando o botão
   assert.ok(f.flight && f.flight.isNormalJump);
-  const vx0 = f.flight.horizontal.x;
-  const vz0 = f.flight.horizontal.z;
-  // Tenta virar para a direita no ar
-  g.step({move: vec(1, 0)}, emptyCommand());
-  assert.equal(f.flight.horizontal.x, vx0, 'Velocidade horizontal X não deve ser alterada no ar');
-  assert.ok(f.flight.horizontal.z > 4.5 && f.flight.horizontal.z <= vz0, 'Velocidade horizontal Z deve sofrer apenas arrasto e não esterçamento');
+  const speed0 = length(f.flight.horizontal);
+  // Vira para a direita no ar segurando o botão: controle aéreo curva a trajetória
+  for (let i = 0; i < 10; i++) g.step({move: vec(1, 0), jumpHeld: true}, emptyCommand());
+  assert.ok(f.flight.horizontal.x > 0.3, `Controle aéreo deve gerar deslocamento lateral (x=${f.flight.horizontal.x})`);
+  assert.ok(f.flight.horizontal.z > 4.5, 'Velocidade frontal deve ser preservada durante a curva');
+  assert.ok(length(f.flight.horizontal) <= speed0 + 1e-6, 'O controle aéreo não pode aumentar a velocidade além do momento inicial');
 });
 
-test('Aterrissagem do salto normal aplica delay de recuperação (0,25s)', () => {
+test('Aterrissagem do salto normal aplica delay de recuperação (intervalo de salto)', () => {
   const g = new Game({seed: 5});
   g.start();
   const f = g.fighters[0];
-  g.step({jump: true, move: vec()}, emptyCommand());
-  // Avança até pousar (~0.95s = ~115 passos a 120Hz)
-  for (let i = 0; i < 120; i++) g.step(emptyCommand(), emptyCommand());
-  assert.ok(f.jumpState.cooldown > 0 || f.knockRecovery > 0, 'Deve ter cooldown ou recovery pós-pouso');
+  g.step({jump: true, move: vec(), jumpHeld: true}, emptyCommand());
+  // Avança até pousar (salto completo segurando o botão)
+  let landedAt = -1;
+  for (let i = 0; i < 300; i++) {
+    g.step({...emptyCommand(), jumpHeld: true}, emptyCommand());
+    if (!f.flight) { landedAt = i; break; }
+  }
+  assert.ok(landedAt >= 0, 'Lutador deve pousar após o salto');
+  assert.ok(f.jumpState.cooldown > 0 || f.knockRecovery > 0, 'Deve ter cooldown ou recovery imediatamente após o pouso');
+  assert.ok(f.jumpState.cooldown <= C.map.jumpInterval + 1e-6, 'Cooldown não pode exceder o intervalo de salto configurado');
 });
 
 // ==========================================

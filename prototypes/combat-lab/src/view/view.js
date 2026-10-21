@@ -131,7 +131,7 @@ export class View {
   /** Efeitos legados do v6 (partículas em caixa e tremor antigo). Só com “Efeitos legados” ligado em Visualizar. */
   spawnBurst(pos, type) {
     const F = C.extras.fx;if (!C.extras.hud.fxVisible) return;
-    const colors = {perfectDodge: rgb('perfect'), impact: rgb('impact'), clash: rgb('clash'), partial: rgb('partial'), perfect: rgb('perfect'), invulnerable: rgb('invulnerable'), landing: rgb('landing')};
+    const colors = {perfectDodge: rgb('perfect'), impact: rgb('impact'), clash: rgb('clash'), partial: rgb('partial'), perfect: rgb('perfect'), invulnerable: rgb('invulnerable'), landing: rgb('landing'), footstool: rgb('impact')};
     const color = colors[type] ?? 0xffffff, count = type === 'clash' ? F.clashCount : type === 'landing' ? F.landingCount : F.impactCount;
     for (let i = 0; i < count; i++) {
       const angle = i * Math.PI * 2 / count, dx = Math.cos(angle), dz = Math.sin(angle);
@@ -146,7 +146,7 @@ export class View {
       if (!on || this.legacySeen.has(event)) continue;this.legacySeen.add(event);
       const attacker = fighters[event.attacker], target = fighters[event.target];if (!attacker || !target || (event.result === 'clash' && event.attacker !== 0)) continue;
       if (event.result === 'invulnerable') {const key = `${event.attacker}:${event.target}`, now = performance.now();if (now - (this.invulnerableFx.get(key) ?? -Infinity) < F.invulnRepeatDelay) continue;this.invulnerableFx.set(key, now);}
-      if (event.result === 'clash' || event.result === 'impact' || event.result === 'perfect' || event.result === 'wallSplat') this.cameraShake = Math.max(this.cameraShake, event.result === 'clash' ? 1 : event.slam || event.result === 'wallSplat' ? .8 : .45);
+      if (event.result === 'clash' || event.result === 'impact' || event.result === 'perfect' || event.result === 'wallSplat' || event.result === 'footstool') this.cameraShake = Math.max(this.cameraShake, event.result === 'clash' ? 1 : event.slam || event.result === 'wallSplat' ? .8 : event.result === 'footstool' ? .35 : .45);
       this.spawnBurst(event.result === 'clash' ? {x: (attacker.position.x + target.position.x) / 2, z: (attacker.position.z + target.position.z) / 2} : target.position, event.result);
     }
     for (const f of fighters) {const flying = !!f.flight;if (on && this.airborneSeen[f.id] && !flying && f.state === 'landing') this.spawnBurst(f.position, 'landing');this.airborneSeen[f.id] = flying;}
