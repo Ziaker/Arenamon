@@ -8,7 +8,7 @@ Abra `JOGAR_ARENAMON.html` e use **Personagens e animações**.
 - Cada estado oferece velocidade, repetição em loop e duração máxima. Duração `0` usa o clipe inteiro.
 - **Ocultar abas** recolhe os filtros; **Ocultar biblioteca** libera a largura ocupada pela biblioteca. A gaveta possui rolagem horizontal quando a tela não comporta as colunas.
 - Se um estado não tiver clipe válido, o personagem mantém a animação atual. Na primeira exibição, usa o primeiro clipe compatível em vez da T-pose.
-- Em **Personagens → Altura visual e apoio no chão**, **Travar deslocamento horizontal da animação (X/Z)** impede que root motion de caminhada, corrida ou ataque arraste o modelo para longe da hitbox. **Travar no chão** remove a subida ou descida gravada no clipe. As duas ficam ligadas por padrão; movimento, saltos, vaults e lançamentos continuam vindo da física do jogo.
+- Em **Personagens → Altura visual e apoio no chão**, **Travar deslocamento horizontal da animação (mundo X/Z)** neutraliza a translação gravada no osso raiz mesmo em rigs com eixos locais rotacionados, como o Mushroom. O quadril também é alinhado ao centro físico para a malha não orbitar ao mudar de direção. **Travar no chão** neutraliza a subida ou descida gravada no clipe sem remover a pose. As duas ficam ligadas por padrão; movimento, saltos, vaults e lançamentos continuam vindo da física do jogo.
 
 Os efeitos **Squash & Stretch** e **Smear de Membros** ficam em **Ações → Tackle**, com controles próprios. Eles alteram somente a apresentação visual.
 

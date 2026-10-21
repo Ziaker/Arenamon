@@ -133,9 +133,9 @@ test('altura visual: ajuste automático por animação, offset manual e independ
 });
 test('sem root motion: deslocamento horizontal do quadril descartado', () => {
   const {ch, g} = setup();run(ch, g, 50, t => [cmd({move: vec(1, 0)}), cmd()]);
-  check('quadril sem deslocamento X/Z', Math.abs(ch.hips.position.x - ch.hipsRest.x) < 1e-9 && Math.abs(ch.hips.position.z - ch.hipsRest.z) < 1e-9);
-  check('todos os nós de root motion retornam ao X/Z de repouso', ch.rootMotionNodes.every(({node, rest}) => Math.abs(node.position.x - rest.x) < 1e-9 && Math.abs(node.position.z - rest.z) < 1e-9));
-  const saved = ch.stateData();check('trava horizontal persistida por personagem', saved.lockRootMotion === true);
+  check('quadril sem deslocamento X/Z local neste rig', Math.abs(ch.hips.position.x - ch.hipsRest.x) < 1e-9 && Math.abs(ch.hips.position.z - ch.hipsRest.z) < 1e-9);
+  check('todos os nós de root motion sem deslocamento X/Z local neste rig', ch.rootMotionNodes.every(({node, rest}) => Math.abs(node.position.x - rest.x) < 1e-9 && Math.abs(node.position.z - rest.z) < 1e-9));
+  const saved = ch.stateData();check('trava mundial persistida por personagem', saved.lockRootMotion === true && saved.rootMotionLockVersion === 2);
 });
 test('trava vertical mantém a pose apoiada sem bloquear altitude física', () => {
   const {ch, g} = setup();ch.variants.idle = [13];ch.groundCurve(13);run(ch, g, 80, () => [cmd(), cmd()]);

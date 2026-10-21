@@ -58,7 +58,7 @@ export function createCharacterPanel({ui, view, $, onCharactersChanged, hooks = 
     const body = document.createElement('div');
     body.innerHTML = `<label class="field">Altura visual do ${id ? 'vermelho' : 'azul'} <output data-out>${ch.visualOffset.toFixed(2)} m</output><input type="range" min="-1" max="1" step="0.01" value="${ch.visualOffset}" data-offset></label>
       <label class="check"><input type="checkbox" data-auto ${ch.autoGround ? 'checked' : ''}> Ajuste automático por animação (apoia o ponto mais baixo de cada clipe no chão)</label>
-      <label class="check"><input type="checkbox" data-root-lock ${ch.lockRootMotion ? 'checked' : ''}> Travar deslocamento horizontal da animação (X/Z)</label>
+      <label class="check"><input type="checkbox" data-root-lock ${ch.lockRootMotion ? 'checked' : ''}> Travar deslocamento horizontal da animação (mundo X/Z)</label>
       <label class="check"><input type="checkbox" data-ground-lock ${ch.lockToGround ? 'checked' : ''}> Travar no chão (remove o deslocamento vertical gravado na animação)</label>
       <p class="hint" data-ground></p><p class="hint">Só visual: saltos e lançamentos continuam seguindo a física. Compensação extra por clipe: Biblioteca.</p>`;
     const r = body.querySelector('[data-offset]');r.oninput = () => {ch.visualOffset = Number(r.value);body.querySelector('[data-out]').textContent = `${ch.visualOffset.toFixed(2)} m`;};r.onchange = () => ch.save();

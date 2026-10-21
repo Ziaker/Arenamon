@@ -149,12 +149,18 @@ export class Character {
       if (node && (node === this.hips || !node.parent?.isBone)) rootMotionNodes.add(node);
     }
     this.rootMotionNodes = [...rootMotionNodes].map(node => ({node, rest: node.position.clone()}));
+    this.rootMotionAnimated = new T.Vector3();this.rootMotionRestWorld = new T.Vector3();
     this.bones = new Map();this.root.traverse(o => {if (o.isBone) this.bones.set(boneKey(o.name), o.name);});
     // O mixer mantém a raiz GLB; somente os wrappers recebem a deformação.
     this.model = this.root;
     this.root = new T.Group();this.deformation = new T.Group();this.presentation = new T.Group();
     this.root.add(this.deformation);this.deformation.add(this.presentation);this.presentation.add(this.model);
-    this.model.position.set(0, 0, 0);this.model.rotation.set(0, 0, 0);this.model.scale.setScalar(1);
+    this.model.position.set(0, 0, 0);this.model.rotation.set(0, 0, 0);this.model.scale.setScalar(1);this.model.updateMatrixWorld(true);
+    // O pivô do arquivo pode estar longe do quadril (o Mushroom, por exemplo, vem deslocado no GLB). Centraliza o
+    // quadril no wrapper de apresentação para que girar o lutador não faça a malha orbitar ao redor da hitbox.
+    const anchorWorld = this.hips?.getWorldPosition(new T.Vector3()) ?? new T.Vector3();
+    this.modelAnchor = this.model.worldToLocal(anchorWorld);
+    this.model.position.set(-this.modelAnchor.x, 0, -this.modelAnchor.z);
     this.squash = createSquashState();this.squashTick = -1;this.squashFighter = null;
     this.restore();
     this.warmGround();
@@ -290,7 +296,7 @@ export class Character {
       };
     }
     return {variants: Object.fromEntries(Object.entries(this.variants).map(([id, l]) => [id, l.map(byName).filter(Boolean)])), speeds: {...this.speeds}, playback: JSON.parse(JSON.stringify(this.playback)),
-      clipOffsets: Object.fromEntries(Object.entries(this.clipOffsets).map(([i, v]) => [byName(i), v]).filter(([k]) => k)), visualOffset: this.visualOffset, autoGround: this.autoGround, lockRootMotion: this.lockRootMotion, lockToGround: this.lockToGround, moveAnims: moveAnimsData};
+      clipOffsets: Object.fromEntries(Object.entries(this.clipOffsets).map(([i, v]) => [byName(i), v]).filter(([k]) => k)), visualOffset: this.visualOffset, autoGround: this.autoGround, lockRootMotion: this.lockRootMotion, rootMotionLockVersion: 2, lockToGround: this.lockToGround, moveAnims: moveAnimsData};
   }
   save() {
     if (!this.persist) return;
@@ -312,7 +318,11 @@ export class Character {
     }
     Object.assign(this.speeds, data.speeds || {});Object.assign(this.playback, data.playback || {});
     for (const [n, v] of Object.entries(data.clipOffsets || {})) {const i = idx(n);if (i >= 0) this.clipOffsets[i] = v;}
-    if (typeof data.visualOffset === 'number') this.visualOffset = data.visualOffset;if (typeof data.autoGround === 'boolean') this.autoGround = data.autoGround;if (typeof data.lockRootMotion === 'boolean') this.lockRootMotion = data.lockRootMotion;if (typeof data.lockToGround === 'boolean') this.lockToGround = data.lockToGround;
+    if (typeof data.visualOffset === 'number') this.visualOffset = data.visualOffset;if (typeof data.autoGround === 'boolean') this.autoGround = data.autoGround;
+    // Estados antigos podiam ter salvo a trava incompleta como desligada. A versão 2 estreia ligada uma vez; depois a
+    // escolha feita no controle novo volta a ser respeitada normalmente.
+    this.lockRootMotion = data.rootMotionLockVersion === 2 && typeof data.lockRootMotion === 'boolean' ? data.lockRootMotion : true;
+    if (typeof data.lockToGround === 'boolean') this.lockToGround = data.lockToGround;
     if (data.moveAnims) {
       for (const [m, conf] of Object.entries(data.moveAnims)) {
         this.moveAnims[m] = {
@@ -634,9 +644,20 @@ export class Character {
       }
     }
     this.mixer.update(0);
-    // Sem root motion horizontal: todos os nós raiz animados voltam ao X/Z de repouso; a posição vem da física.
+    // Sem root motion horizontal: projeta a posição no espaço mundial e remove X/Z ali. Não basta zerar X/Z local,
+    // pois rigs com um ancestral rotacionado podem transformar o Y local em deslocamento horizontal no mundo
+    // (caso real do Mushroom). O componente vertical continua disponível para o apoio no chão neutralizá-lo.
     if (this.lockRootMotion) {
-      for (const {node, rest} of this.rootMotionNodes) {node.position.x = rest.x;node.position.z = rest.z;node.updateMatrix();}
+      this.model.updateMatrixWorld(true);
+      for (const {node, rest} of this.rootMotionNodes) {
+        const parent = node.parent;
+        if (!parent) {node.position.x = rest.x;node.position.z = rest.z;node.updateMatrix();continue;}
+        parent.updateWorldMatrix(true, false);
+        this.rootMotionAnimated.copy(node.position).applyMatrix4(parent.matrixWorld);
+        this.rootMotionRestWorld.copy(rest).applyMatrix4(parent.matrixWorld);
+        this.rootMotionAnimated.x = this.rootMotionRestWorld.x;this.rootMotionAnimated.z = this.rootMotionRestWorld.z;
+        node.position.copy(parent.worldToLocal(this.rootMotionAnimated));node.updateMatrix();
+      }
       this.model.updateMatrixWorld(true);
     }
   }
@@ -727,7 +748,7 @@ export class Character {
     if (this.lockToGround && this.autoGround && C.display.grounding.autoGround) this.groundOffset = target;
     else this.groundOffset += (target - this.groundOffset) * (dt > 0 ? 1 - Math.exp(-dt / .06) : 1);
     // Como antes de criar os wrappers, descarta transformações animadas da raiz de apresentação.
-    this.model.position.set(0, 0, 0);this.model.rotation.set(0, 0, 0);this.model.scale.setScalar(1);
+    this.model.position.set(-this.modelAnchor.x, 0, -this.modelAnchor.z);this.model.rotation.set(0, 0, 0);this.model.scale.setScalar(1);
     this.root.scale.setScalar(scale);
     // Corrige somente o deslocamento causado pela deformação; mantém o amortecimento do apoio original.
     this.root.position.set(f.position.x, alt + this.groundOffset - ground * scale * (this.squash.transverse - 1), f.position.z);
