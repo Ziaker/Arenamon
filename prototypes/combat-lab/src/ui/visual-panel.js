@@ -388,7 +388,7 @@ renderModeBox.querySelector('[data-vfx-runtime-btn="legacy"]')?.addEventListener
     unit('Mundo', 'Barreira (Reflect)', body(S.barreira), {id: 'barrier', prefix: 'vfx.barrier.', on: 'vfx.barrier.enabled'});
     unit('Mundo', 'Laser da arena', body(S.laser), {id: 'laser', prefix: 'vfx.laser.', on: 'vfx.laser.enabled'});
     for (const g of [...extraGrid.children]) if (g !== dbgBox && g.classList.contains('fold')) unit('Câmera, tremor e HUD', foldLabel(g), g, {id: g.dataset.group});
-    for (const u of units) if (u.el.classList.contains('fold') || u.el.dataset.group) u.el.setOpen?.(false);
+    for (const u of units) if (u.el.classList.contains('fold') || u.el.dataset.group) u.el.setOpen?.(true);
     const md = document.createElement('div');md.className = 'vx-md';
     const list = document.createElement('aside');list.className = 'vx-list';
     list.innerHTML = '<input type="search" placeholder="Buscar efeito…" aria-label="Buscar efeito" data-vx-search>';
