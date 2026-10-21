@@ -29,7 +29,7 @@ export function markerValidity(/** @type {any} */ f, /** @type {Record<string, a
     if (closestOnShape(e, pos).distance < (P.radius ?? 0)) return bad('blocked');
   }
   const bodyR = (C.test.halfExtent ?? .35) + (P.bodyMargin ?? 0);
-  for (const o of fighters) {
+  if (!P.allowOccupied) for (const o of fighters) {
     if (o.hp <= 0 || o.flight) continue;
     if (Math.hypot(pos.x - o.position.x, pos.z - o.position.z) < bodyR && Math.abs((o.groundY ?? 0) - y) < (C.extras?.visual?.bodyHeight ?? 1.2)) return bad('occupied');
   }

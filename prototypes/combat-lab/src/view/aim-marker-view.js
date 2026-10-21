@@ -12,6 +12,7 @@ export class AimMarkers {
     const live = new Set();
     for (const f of fighters) {
       const a = f.aim;if (!a || f.hp <= 0) continue;
+      if (f.id !== 0 && a.def?.castFirst) continue;   // adversários não enxergam o marcador do Emerging Stone durante a mira (ES)
       live.add(f.id);
       let it = this.items.get(f.id);
       if (!it) {it = this.make();this.items.set(f.id, it);this.group.add(it.root);}

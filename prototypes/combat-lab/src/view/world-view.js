@@ -260,6 +260,12 @@ export class WorldView {
         s.visible = false;
         mesh.add(s);
       }
+    } else if (e.kind === 'burrow') {
+      // Projétil subterrâneo: montículo de terra que corre em linha reta + anel do destino (visível através de paredes até detonar). Arte provisória.
+      mesh = new T.Group();
+      const mound = new T.Mesh(new T.ConeGeometry(.45, .5, 7), new T.MeshStandardMaterial({color: 0x6b4f2a, roughness: 1}));mound.name = 'mound';mound.position.y = .25;mesh.add(mound);
+      const ringGeo = new T.RingGeometry(.9, 1, 48);ringGeo.rotateX(-Math.PI / 2);
+      const ring = new T.Mesh(ringGeo, new T.MeshBasicMaterial({color: 0xffb35a, transparent: true, opacity: .8, depthTest: false, depthWrite: false, side: T.DoubleSide}));ring.name = 'burrowTarget';ring.renderOrder = 950;mesh.add(ring);
     } else if (e.kind === 'sandwave') {
       // Barragem de areia: retângulo no chão (o real, fixado no disparo), frente da onda que avança e grãos subindo; forma PROVISÓRIA (arte não aprovada, SW-P07).
       mesh = new T.Group();
@@ -565,6 +571,12 @@ export class WorldView {
         // Rastro de poeira e partículas telecinéticas
         if (emitTrailsNow && C.vfx?.rock?.trail && dt > 0) {
           this.emitRockTrail(e.pos.x, e.y, e.pos.z, e.vel ?? e.dir, col, scaleVal);
+        }
+      } else if (e.kind === 'burrow') {
+        const ground = (e.alt ?? 0);m.position.set(e.pos.x, 0, e.pos.z);
+        for (const c of m.children) {
+          if (c.name === 'mound') {c.position.y = ground + .25;c.rotation.y = Math.atan2(e.to.x - e.from.x, e.to.z - e.from.z);c.scale.setScalar(.85 + .15 * Math.sin(this.time * 18));}
+          else if (c.name === 'burrowTarget') {c.position.set(e.to.x - e.pos.x, (e.to.y ?? 0) + .05, e.to.z - e.pos.z);const r = (e.params?.blastRadius ?? 5);c.scale.set(r, 1, r);c.material.opacity = .45 + .35 * Math.sin(this.time * 6);}
         }
       } else if (e.kind === 'sandwave') {
         // retângulo real (comprimento à frente × largura), com a frente da onda avançando na velocidade do motor e dissipando nos 0,75 s finais
@@ -919,9 +931,9 @@ export class WorldView {
       aliveMapIds.add(d.id);
       let m = this.mapMeshes.get(d.id);
       if (!m) {
-        const geo = new T.BoxGeometry(d.size.hx * 2, d.size.height, d.size.hz * 2);
+        const geo = d.rock ? new T.BoxGeometry(1, 1, 1) : new T.BoxGeometry(d.size.hx * 2, d.size.height, d.size.hz * 2);
         const mat = new T.MeshStandardMaterial({
-          color: 0xd97706,
+          color: d.rock ? 0x8b8f98 : 0xd97706,
           roughness: 0.7,
           metalness: 0.1,
           transparent: true,
@@ -939,12 +951,19 @@ export class WorldView {
         const hpBar = new T.Mesh(hpBarGeo, hpBarMat);
         hpBar.name = 'hpBar';
         hpBar.position.set(0, d.size.height / 2 + 0.25, 0);
+        if (d.rock) hpBar.visible = false;
         m.add(hpBar);
 
         this.mapGroup.add(m);
         this.mapMeshes.set(d.id, m);
       }
       m.position.set(d.pos.x, d.pos.y + d.size.height / 2, d.pos.z);
+      if (d.rock) {   // rocha do Emerging Stone: o desenho cresce com a altura exposta (o colisor é o mesmo); rachaduras = escurecer conforme o HP cai, sem encolher
+        m.scale.set(d.size.hx * 2, Math.max(.01, d.size.height), d.size.hz * 2);
+        const k = Math.max(0, d.hp / (d.maxHp || 5));m.material.color.setRGB(.55 * (.45 + .55 * k), .56 * (.45 + .55 * k), .6 * (.45 + .55 * k));
+        m.visible = true;m.material.opacity = 1;this.checkOcclusion(m, camera, fighters);
+        continue;
+      }
 
       const hpBar = m.getObjectByName('hpBar');
       if (d.state === 'solid') {

@@ -368,6 +368,7 @@ export function stepMap(mapState, dt, fighters = [], events = []) {
 
   // 1. Atualizar destrutíveis (respawn e prévia translúcida R11.9)
   for (const d of mapState.destructibles) {
+    if (d.noRespawn) continue;   // destruído pela explosão do Emerging Stone: só volta na rodada seguinte
     if (d.state === 'dead') {
       d.respawnTimer -= dt;
       if (d.respawnTimer <= (M.destructibleGhostPreview ?? 2.0)) {
@@ -765,6 +766,17 @@ export function processDamageWithShieldAndStages(arg0, arg1, arg2 = null, isBloc
  */
 export function damageDestructible(destructible, baseDamage, category = 'physical', attacker = null, mapState = null, events = []) {
   if (destructible.state !== 'solid' || destructible.hp <= 0) return false;
+  if (destructible.rock) {   // Emerging Stone: HP 5; dano por golpe válido = P0 1, P1 2, P2 3, P3 4 (sem PL = P0); sem drops nem renascimento
+    const pl = category === 'physical' ? (attacker?.action?.pl ?? 0) : 0, table = destructible.hpPerPl ?? [1, 2, 3, 4], dmgRock = table[Math.max(0, Math.min(3, pl))];
+    destructible.hp = Math.max(0, destructible.hp - dmgRock);
+    events.push({result: 'destructibleDamaged', id: destructible.id, damage: dmgRock, remainingHp: destructible.hp});
+    if (destructible.hp <= 0 && mapState) {
+      destructible.state = 'dead';mapState.destructibles = mapState.destructibles.filter(x => x !== destructible);
+      events.push({result: 'rockDestroyed', id: destructible.id, owner: destructible.owner, why: 'hp', x: destructible.pos.x, z: destructible.pos.z});
+      return true;
+    }
+    return false;
+  }
 
   // Bônus de estágio de Ataque do atacante afeta objetos destrutíveis (R5.14)
   let atkMult = 1.0;

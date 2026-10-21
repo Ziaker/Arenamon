@@ -8,6 +8,8 @@ import {swiftDef, swiftEffect} from './swift.js';
 import {lungeDef, lungeSetup} from './lunge.js';
 import {guardBreakDef, guardBreakSetup} from './guard-break.js';
 import {feintDef} from './feint.js';
+import {emergingStoneDef, emergingStoneEffect} from './emerging-stone.js';
+import {stoneStep} from '../stone.js';
 import {bulletPunchDef, bulletPunchSetup, bulletPunchVanish, bulletPunchReturn} from './bullet-punch.js';
 import {sandWaveDef, sandWaveEffect} from './sand-wave.js';
 import {spikesDef, spikesEffect} from './spikes.js';
@@ -26,6 +28,7 @@ export const NEW_MOVES = [
   {def: spikesDef, effect: ['spikes', spikesEffect]},
   {def: sandWaveDef, effect: ['sand-wave', sandWaveEffect]},
   {def: bulletPunchDef, tackle: ['bullet-punch', bulletPunchSetup], effects: [['bullet-punch-vanish', bulletPunchVanish], ['bullet-punch-return', bulletPunchReturn]]},
+  {def: emergingStoneDef, effect: ['emerging-stone', emergingStoneEffect], steps: [['stone', stoneStep]]},
   {def: feintDef},
   {def: riposteDef},
   {def: quickAttackDef, tackle: ['quick-attack', quickAttackSetup], hooks: [['quick-attack:step', quickAttackStep]]},

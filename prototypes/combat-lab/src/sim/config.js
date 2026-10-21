@@ -188,6 +188,9 @@ export function defaults() {
     // Riposte: Normal Status+Melee PL1. Postura de 0,65 s; entre 0,13 e 0,30 s qualquer acerto elegível (menos Guard Break) é anulado e dispara um contra-golpe PL1 de 6 HP
     // (× Ataque ÷ referência), 3 m/s H, na hora do gatilho (MV-P24); strikeRange = alcance do golpe (não definido no documento: MV-P25). Janela fechada sem acerto = recuperação exposta.
     riposte: {cost: .8, cooldown: 8, cast: .65, windowStart: .13, windowEnd: .30, damage: 6, knockbackH: 3, knockbackV: 0, strikeRange: 1.6},
+    // Emerging Stone (ES-D01…D103, cronologia C): cast 0,55 s (corpo a 30%), marcador 3–10 m 3D, projétil 15 m/s, explosão de 5 m horizontais (20 nominais × Ataque ÷ referência, 8 m/s radial),
+    // rocha 3 m × escala (0,25–4×, passo 0,25), emerge em 0,40 s, 5 HP, lançamento da emergência 8 H/14 V, até 3 por dono. markerSpeed/startDistance/rockSearch/maxRise: provisórios.
+    emergingStone: {cost: 3, cooldown: 9, cast: .55, castSlow: .7, minRange: 3, range: 10, startDistance: 5, markerSpeed: 8, speed: 15, blastRadius: 5, damage: 20, blastKnockback: 8, rockScale: 1, rockHp: 5, riseTime: .4, launchH: 8, launchV: 14, maxRocks: 3, rockSearch: 4, maxRise: 2, edgeMargin: .3, radius: 0, allowOccupied: 1},
     // Bullet Punch (MUSHROOM_MOVES_DECISOES §2-3): marcador 3→10 m em 2 s (quadrático), corpo a 30% (slow .7), preparação 0,75 s, desaparecimento 1 s, busca 5 m a partir do marcador,
     // investida PL2 de até 3 m, custo 1,5× o do Tackle (Tackle = 1) e 8 s; impactMult = velocidade de impacto do knockback (1× a referência do Tackle). maxRise/edgeMargin: técnicos.
     bulletPunch: {cost: 1.5, cooldown: 8, cast: .75, vanish: 1, searchRadius: 5, reach: 3, impactMult: 1, startDistance: 3, maxDistance: 10, growTime: 2, slow: .7, maxRise: 2, edgeMargin: .3},
