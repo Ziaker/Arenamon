@@ -8,6 +8,7 @@
 import {C} from './config.js';
 import {getFighterMaxStamina} from './entity.js';
 import {sturdyGuard} from './passive-engine.js';
+import {solidContact} from './solid-contact.js';
 import {vec, add, sub, scale, length, normalize, dot, clamp, direction, angleOf} from './math.js';
 
 export const MAP_DEFAULTS = {
@@ -875,12 +876,19 @@ export function collideMapFighter(mapState, f, events = []) {
       if (f.flight && f.flight.vy <= 0 && Math.abs(fY + fHeight - (o.pos?.y ?? 0)) <= 1e-6) continue;
       if (risesOver(f, fY, topY)) continue;
       if (o.shape === 'cylinder' || o.shape === 'pillar') {
-        const d = dist2D(f.position, o.pos);
-        const minDist = o.radius + halfExtent;
-        if (d < minDist && d > 1e-6) {
-          const pushDir = {x: (f.position.x - o.pos.x) / d, z: (f.position.z - o.pos.z) / d};
-          f.position.x = o.pos.x + pushDir.x * minDist;
-          f.position.z = o.pos.z + pushDir.z * minDist;
+        // Menor translação real, inclusive com o centro do lutador exatamente no centro do pilar (antes: contato descartado e lutador preso).
+        const contact = solidContact({shape: 'circle', pos: o.pos, radius: o.radius}, f.position, halfExtent);
+        if (contact) {
+          const n = contact.normal;
+          f.position.x += n.x * contact.depth;
+          f.position.z += n.z * contact.depth;
+          // Só a componente que entra no sólido é removida (como nas caixas); a tangente é preservada.
+          const into = f.velocity.x * n.x + f.velocity.z * n.z;
+          if (into < 0) {f.velocity.x -= n.x * into;f.velocity.z -= n.z * into;}
+          if (f.flight && !f.flight.isNormalJump) {
+            const hv = f.flight.horizontal.x * n.x + f.flight.horizontal.z * n.z;
+            if (hv < 0) {f.flight.horizontal.x -= n.x * hv;f.flight.horizontal.z -= n.z * hv;}
+          }
           f.contacts++;
         }
       } else {
