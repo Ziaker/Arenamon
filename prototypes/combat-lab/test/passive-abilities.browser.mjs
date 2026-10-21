@@ -20,18 +20,21 @@ try {
   await page.waitForFunction(() => window.__lab);
   await page.click('#start-center');
   await page.waitForFunction(() => document.querySelectorAll('.ability-banner.show').length === 2);
-  await page.waitForTimeout(600);
+  await page.waitForFunction(() => [...document.querySelectorAll('.ability-banner.show')].every(bar => getComputedStyle(bar).transform === 'none'));
 
-  const layout = await page.evaluate(() => ({stage: (() => {const r = document.querySelector('.stage').getBoundingClientRect();return {left: r.left, right: r.right};})(), banners: [...document.querySelectorAll('.ability-banner')].map(bar => {
+  const layout = await page.evaluate(() => ({stage: (() => {const r = document.querySelector('.stage').getBoundingClientRect();return {left: r.left, right: r.right, width: r.width, height: r.height};})(), banners: [...document.querySelectorAll('.ability-banner')].map(bar => {
     const name = bar.querySelector('strong'), r = bar.getBoundingClientRect(), nr = name.getBoundingClientRect(), cs = getComputedStyle(name);
-    return {text: name.textContent, left: r.left, right: r.right, font: parseFloat(cs.fontSize), clipped: name.scrollWidth > name.clientWidth || nr.right > r.right + 1};
+    return {text: name.textContent, left: r.left, right: r.right, width: r.width, height: r.height, font: parseFloat(cs.fontSize), clipped: name.scrollWidth > name.clientWidth || nr.right > r.right + 1};
   })}));
   const banners = layout.banners;
   assert.deepEqual(banners.map(b => b.text), ['Órbita', 'Prisma']);
   assert.ok(banners.every(b => /^\S+$/u.test(b.text)), 'todos os nomes usam uma palavra');
-  assert.ok(banners.every(b => b.font >= 34), JSON.stringify(banners));
+  assert.ok(banners.every(b => b.font >= 30), JSON.stringify(banners));
   assert.ok(!banners.some(b => b.clipped), JSON.stringify(banners));
   assert.ok(Math.abs(banners[0].left - layout.stage.left) <= 2 && Math.abs(banners[1].right - layout.stage.right) <= 2, JSON.stringify(layout));
+  assert.ok(banners.every(b => b.width <= 340 && b.height <= 52), JSON.stringify(banners));
+  const occupied = banners.reduce((sum, b) => sum + b.width * b.height, 0) / (layout.stage.width * layout.stage.height);
+  assert.ok(occupied <= .1, `as duas notificações ocupam ${(occupied * 100).toFixed(2)}% da área visível`);
 
   const following = await page.evaluate(async () => {
     window.__lab.togglePause(true);
@@ -51,11 +54,12 @@ try {
   });
   await page.waitForFunction(() => document.querySelector('.stage').dataset.abilityBorder === 'chase');
   await page.waitForTimeout(650);
-  const tuned = await page.evaluate(() => ({border: document.querySelector('.stage').dataset.abilityBorder, scale: getComputedStyle(document.querySelector('.stage')).getPropertyValue('--ability-text-scale').trim(), controls: document.querySelectorAll('[data-path^="display.passive."]').length}));
-  assert.deepEqual(tuned, {border: 'chase', scale: '1.45', controls: 5});
+  const tuned = await page.evaluate(() => ({border: document.querySelector('.stage').dataset.abilityBorder, scale: getComputedStyle(document.querySelector('.stage')).getPropertyValue('--ability-text-scale').trim(), controls: document.querySelectorAll('[data-path^="display.passive."]').length, names: [...document.querySelectorAll('.ability-banner strong')].map(name => ({text: name.textContent, scroll: name.scrollWidth, client: name.clientWidth}))}));
+  assert.equal(tuned.border, 'chase');assert.equal(tuned.scale, '1.45');assert.equal(tuned.controls, 5);
+  assert.ok(tuned.names.every(name => name.scroll <= name.client), JSON.stringify(tuned.names));
   await page.screenshot({path: evidence + 'habilidades-passivas-no-jogo.png', fullPage: true});
 
-  const result = {ok: true, names: banners.map(b => b.text), minFontPx: Math.min(...banners.map(b => b.font)), followsCharacter: true, mirroredEdges: true, borderModes: 3, controls: tuned.controls, errors};
+  const result = {ok: true, names: banners.map(b => b.text), minFontPx: Math.min(...banners.map(b => b.font)), maxBannerPx: {width: 340, height: 52}, occupiedArenaPct: +(occupied * 100).toFixed(2), fullNameAtScale145: tuned.names.every(name => name.scroll <= name.client), followsCharacter: true, mirroredEdges: true, borderModes: 3, controls: tuned.controls, errors};
   writeFileSync(evidence + 'resultado.json', JSON.stringify(result, null, 2));
   assert.deepEqual(errors, []);
   console.log('✓ navegador: barras, texto, acompanhamento e controles no jogo real');

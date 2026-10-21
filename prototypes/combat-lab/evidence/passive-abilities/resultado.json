@@ -4,7 +4,13 @@
     "Órbita",
     "Prisma"
   ],
-  "minFontPx": 36,
+  "minFontPx": 31.2,
+  "maxBannerPx": {
+    "width": 340,
+    "height": 52
+  },
+  "occupiedArenaPct": 4.17,
+  "fullNameAtScale145": true,
   "followsCharacter": true,
   "mirroredEdges": true,
   "borderModes": 3,
