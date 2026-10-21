@@ -678,6 +678,35 @@ export function movePermission(f, def, slot = null) {
   if (f.stamina < cost - 1e-8) return {ok: false, reason: 'stamina', detail: {value: f.stamina, required: cost}};
   return {ok: true};
 }
+/**
+ * Feint (slot): cancela a antecipação de um Tackle / Move-Tackle (Lunge, Guard Break já solto, Quick Attack) ou a carga em curso (Guard Break, Tackle carregado, qualquer Charge) e
+ * vira um recuo curto com i-frames; sem ação ofensiva é só o recuo. Fora da janela de cancelamento o Move é GASTO sem efeito e a ação anterior continua (punível, MV-P21).
+ * Custo e recarga na confirmação (Burst); o custo da ação cancelada NÃO volta (MV-P26).
+ */
+function pressFeint(f, cmd, def, slot, move, desiredHeading, hasTarget, diag) {
+  const deny = (reason, detail) => {if (diag) report(f, {kind: 'skill', slot, move: def.id, result: 'denied', reason, detail});};
+  const perm = movePermission(f, def, slot);
+  if (!perm.ok) return deny(perm.reason, perm.detail);
+  const P = C.world[def.group], cur = f.action;
+  let cancelled = null, whiff = false;
+  if (f.charge) {cancelCharge(f, 'feint');cancelled = 'charge';}
+  else if (f.tackleCharge) {cancelTackleCharge(f, 'feint');cancelled = 'tackleCharge';}
+  else if (cur?.kind === 'tackle') {
+    if (!cur.slam && (cur.hits?.size ?? 0) === 0 && cur.elapsed < P.cancelWindow - 1e-9) {f.action = null;f.velocity = vec();cancelled = cur.move ?? 'tackle';}
+    else whiff = true;
+  }
+  if (whiff) {   // gasto sem efeito: a animação do Feint acontece e a ação anterior segue
+    const cost = costOf(f, def.cost ?? 1);f.stamina = Math.max(0, f.stamina - cost);f.regenBase = f.stamina;f.regenAge = 0;f.exhausted = isDepleted(f.stamina);
+    if (def.cooldown > 0) (f.moveCooldowns ??= {})[def.id] = def.cooldown;
+    moveEvent(f, {result: 'feintWhiff', move: def.id, slot, interrupted: cur.move ?? 'tackle'});
+  } else {
+    startMove(f, def, slot, {move, dodgeDirection: cmd.dodgeDirection}, desiredHeading, hasTarget, cmd.guard);
+    const dir = feintDirection(cmd, f.facing);
+    f.action.heading = dir ? angleOf(dir) : f.facing + Math.PI;f.action.startAngle = f.action.heading;   // para o lado do input, ou para trás
+    moveEvent(f, {result: 'feint', move: def.id, slot, cancelled});
+  }
+  if (diag) report(f, {kind: 'skill', slot, move: def.id, result: 'executed', note: whiff ? 'fora da janela: gasto sem efeito' : cancelled ? `cancelou ${cancelled}` : 'recuo'});
+}
 /** Inicia o movimento: cobra a stamina, inicia a recarga e agenda a linha do tempo (disparada em updateMove). */
 function startMove(f, def, slot, dirs, desiredHeading, hasTarget, guardHeld) {
   const aim = def.aim ?? 'target', inputDir = dirs.dodgeDirection ?? dirs.move;
@@ -719,10 +748,11 @@ function updateMove(f, action, target, cmd, dt) {
   if (m.type === 'dash' && m.distance) {
     // Deslocamento suave entre start e end (s): mesma distância qualquer que seja o passo.
     const t0 = m.start ?? 0, t1 = m.end ?? def.duration, prog = t => smoothstep(clamp((t - t0) / Math.max(1e-6, t1 - t0), 0, 1));
-    f.velocity = scale(direction(action.heading), m.distance * (prog(action.elapsed + dt) - prog(action.elapsed)) / dt);
+    const dist = (m.distanceKey ? action.params?.[m.distanceKey] : undefined) ?? m.distance;   // distanceKey: o alcance vem de um slider do grupo (Feint)
+    f.velocity = scale(direction(action.heading), dist * (prog(action.elapsed + dt) - prog(action.elapsed)) / dt);
   } else if (m.type === 'root') f.velocity = vec();
   else {const from = action.from ?? vec(), k = Math.exp(-12 * dt);f.velocity = scale(from, k);action.from = {...f.velocity};}
-  turnToward(f, target && def.aim !== 'facing' ? angleOf(sub(target.position, f.position)) : action.heading, dt);
+  if (!def.keepFacing) turnToward(f, target && def.aim !== 'facing' ? angleOf(sub(target.position, f.position)) : action.heading, dt);   // keepFacing: recuo sem virar o corpo (Feint)
   (def.timeline || []).forEach((ev, i) => {if (!action.fired.includes(i) && ev.at <= action.elapsed + dt + 1e-9) {action.fired.push(i);(f.moveFx ??= []).push({index: i, move: def.id, heading: action.heading, params: action.params ?? null, def, lock: action.lock ?? null});}});
   f.state = 'move';
 }
@@ -795,6 +825,7 @@ function pressSkill(f, cmd, move, desiredHeading, hasTarget, diag, fighters = []
   const deny = (reason, detail) => {if (diag) report(f, {kind: 'skill', slot, move: def?.id ?? null, result: 'denied', reason, detail});};
   f.skillBuffer = null;
   if (def?.cooldownBoost && onCooldown) return boostCooldown(f, def, slot, diag);
+  if (def?.feint) return pressFeint(f, cmd, def, slot, move, desiredHeading, hasTarget, diag);   // cancela a carga/ação ofensiva em curso (ou só recua)
   if (f.charge) return deny('charging');                                  // sem carregamentos simultâneos (M16.4)
   if (def?.charge) {
     const perm = chargePermission(f, def, slot);

@@ -7,6 +7,7 @@ import {secondWindDef, secondWindEffect} from './second-wind.js';
 import {swiftDef, swiftEffect} from './swift.js';
 import {lungeDef, lungeSetup} from './lunge.js';
 import {guardBreakDef, guardBreakSetup} from './guard-break.js';
+import {feintDef} from './feint.js';
 import {quickAttackDef, quickAttackSetup, quickAttackStep} from './quick-attack.js';
 
 /** @type {{def: any, effect?: [string, Function], tackle?: [string, Function], hooks?: [string, Function][]}[]} */
@@ -16,6 +17,7 @@ export const NEW_MOVES = [
   {def: swiftDef, effect: ['swift', swiftEffect]},
   {def: lungeDef, tackle: ['lunge', lungeSetup]},
   {def: guardBreakDef, tackle: ['guard-break', guardBreakSetup]},
+  {def: feintDef},
   {def: quickAttackDef, tackle: ['quick-attack', quickAttackSetup], hooks: [['quick-attack:step', quickAttackStep]]},
 ];
 export const NEW_MOVE_IDS = NEW_MOVES.map(m => m.def.id);

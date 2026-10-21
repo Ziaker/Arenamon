@@ -50,6 +50,7 @@ export function validateMove(def) {
   if (def.cooldownBoost !== undefined && typeof def.cooldownBoost !== 'boolean') fail('cooldownBoost deve ser booleano');
   if (def.group !== undefined && !(C.world[def.group] && typeof C.world[def.group] === 'object')) fail(`group desconhecido (${def.group}): precisa existir em C.world`);
   if (def.tackle !== undefined && (typeof def.tackle !== 'string' || !def.tackle)) fail('tackle deve ser o nome de uma preparação registrada');
+  if (def.feint !== undefined && typeof def.feint !== 'boolean') fail('feint deve ser booleano');
   if (def.needsTarget !== undefined && (typeof def.needsTarget !== 'string' || !def.group)) fail('needsTarget deve ser a chave (em C.world[group]) do alcance de aquisição');
   for (const k of ['cost', 'cooldown', 'cancelAfter']) if (def[k] !== undefined && !(def[k] >= 0)) fail(`${k} inválido`);
   if (def.aim && !AIMS.includes(def.aim)) fail(`aim desconhecido (${def.aim})`);
@@ -78,6 +79,7 @@ export function effectiveMove(def) {
   if (!g) return def;
   const out = {...def};
   for (const [k, field] of Object.entries(GROUP_OVERRIDES)) if (typeof g[k] === 'number') out[field] = g[k];
+  if (def.invulnerableKeys) out.invulnerable = [g[def.invulnerableKeys[0]], g[def.invulnerableKeys[1]]];   // janela de i-frames ajustável nos sliders do grupo
   if (def.timeline) out.timeline = def.timeline.map(ev => ev.atKey && typeof g[ev.atKey] === 'number' ? {...ev, at: g[ev.atKey]} : ev);   // atKey: o instante vem de um slider (ex.: 'cast')
   return Object.freeze(out);
 }

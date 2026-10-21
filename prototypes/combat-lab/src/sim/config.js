@@ -185,6 +185,9 @@ export function defaults() {
     // cast = tempo da ação (recuperação do Burst; provisório MV-P14). Sem lock-on: leque frontal de fanAngle graus.
     // Lunge: Tackle de curta distância (3,5 m, total 0,6 s), 8 HP nominais, 4 m/s H sem V, i-frames 0,133 s, cancelável após 0,45 s; janela ativa 0,19–0,26 s só vale com "janelas de combate" ligadas.
     lunge: {cost: .75, cooldown: 6, cast: .6, range: 3.5, damage: 8, knockbackH: 4, knockbackV: 0, invulnerableSeconds: .1333, chainAfter: .45, hitStart: .19, hitEnd: .26},
+    // Feint: Burst Trick sem PL. Cancela Tackle/Lunge/Guard Break (e a carga de Tackle) só na antecipação (cancelWindow = 4 quadros a 30 fps = 0,133 s) e vira um recuo curto
+    // (retreat m, para trás ou para o lado do input) com i-frames de 2 a 10 passos a 120 Hz. Fora da janela o Move é gasto sem efeito e o golpe segue (punível; MV-P21).
+    feint: {cost: .3, cooldown: 3, cast: .22, cancelAfter: .0333, cancelWindow: .1333, retreat: .25, invulnStart: .0167, invulnEnd: .0833},
     // Guard Break (Charge → Tackle ao soltar): carga máx. 1 s (PL1 <50%, PL2 <100%, PL3 em 100%), custo e recarga no INÍCIO da carga, golpe de 0,7 s pós-soltura, 6 HP nominais,
     // 2 m/s H sem V; contra guarda comum: guard stun de 0,5 s e guarda derrubada, sem empurrão (MV-P18). range = distância do avanço (não definida no documento: MV-P20).
     guardBreak: {cost: 1, cooldown: 10, maxCharge: 1, minCharge: 0, cast: .7, range: 2.6, damage: 6, knockbackH: 2, knockbackV: 0, stun: .5, invulnerableSeconds: 0, chainAfter: .47, hitStart: .333, hitEnd: .533},
