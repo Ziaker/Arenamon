@@ -8,6 +8,7 @@
 import {C} from './config.js';
 import {getFighterMaxStamina} from './entity.js';
 import {sturdyGuard} from './passive-engine.js';
+import {projectCircleFromBox} from './geometry.js';
 import {vec, add, sub, scale, length, normalize, dot, clamp, direction, angleOf} from './math.js';
 
 export const MAP_DEFAULTS = {
@@ -809,31 +810,26 @@ export function collideMapFighter(mapState, f, events = []) {
   const currentY = f.flight ? (f.flight.y ?? (f.groundY ?? 0)) : (f.groundY ?? 0);
   const fY = currentY + (f.vaultHeight ?? 0);
   const fHeight = C.extras?.visual?.bodyHeight ?? 1.2;
+  const surfaceEpsilon = 1e-3; // o mesmo milímetro usado pelo pouso para absorver a discretização do pico do salto
+  const stopInto = normal => {
+    const remove = key => {const v = f[key];if (!v) return;const into = dot(v, normal);if (into < 0) f[key] = sub(v, scale(normal, into));};
+    remove('velocity');remove('locomotionVelocity');
+    // O salto normal conserva o momento horizontal enquanto desliza pela face: assim ele pode ganhar altura
+    // e montar no topo sem atravessar o volume. Lançamentos por golpes param/rebatem normalmente.
+    if (f.flight?.horizontal && !f.flight.isNormalJump) {const into = dot(f.flight.horizontal, normal);if (into < 0) f.flight.horizontal = sub(f.flight.horizontal, scale(normal, into));}
+  };
+  const projectBox = (pos, hx, hz, angle = 0) => {
+    const hit = projectCircleFromBox({pos, hx, hz, angle}, f.position, halfExtent);if (!hit) return false;
+    f.position = hit.position;stopInto(hit.normal);f.contacts++;return true;
+  };
 
   // 1. Plataformas (laterais sólidas R7.6 com tolerância para montar no topo)
   if (mapState.platforms) {
     for (const p of mapState.platforms) {
-      if (fY >= p.height - 0.25) continue;
-      if (f.flight && f.flight.vy > 0 && fY + (f.flight.vy * f.flight.vy) / 35 >= p.height) continue;
       const px = p.pos?.x ?? p.x, pz = p.pos?.z ?? p.z;
-      const hx = (p.width ?? 3) / 2, hz = (p.depth ?? 3) / 2;
-      const dx = f.position.x - px, dz = f.position.z - pz;
-      const ox = (hx + halfExtent) - Math.abs(dx);
-      const oz = (hz + halfExtent) - Math.abs(dz);
-      if (ox > 0 && oz > 0) {
-        if (ox < oz) {
-          const sign = dx > 0 ? 1 : -1;
-          f.position.x = px + sign * (hx + halfExtent);
-          if (f.velocity.x * sign < 0) f.velocity.x = 0;
-          if (f.flight && !f.flight.isNormalJump && f.flight.horizontal.x * sign < 0) f.flight.horizontal.x = 0;
-        } else {
-          const sign = dz > 0 ? 1 : -1;
-          f.position.z = pz + sign * (hz + halfExtent);
-          if (f.velocity.z * sign < 0) f.velocity.z = 0;
-          if (f.flight && !f.flight.isNormalJump && f.flight.horizontal.z * sign < 0) f.flight.horizontal.z = 0;
-        }
-        f.contacts++;
-      }
+      const baseY = p.pos?.y ?? 0, topY = baseY + (p.height ?? 1);
+      if (fY >= topY - surfaceEpsilon || fY + fHeight <= baseY + surfaceEpsilon) continue;
+      projectBox({x: px, z: pz}, (p.width ?? 3) / 2, (p.depth ?? 3) / 2, p.angle ?? 0);
     }
   }
 
@@ -841,39 +837,20 @@ export function collideMapFighter(mapState, f, events = []) {
   if (mapState.obstacles) {
     for (const o of mapState.obstacles) {
       const topY = (o.pos?.y ?? 0) + o.height;
-      if (fY >= topY - 0.25) continue;
+      if (fY >= topY - surfaceEpsilon) continue;
       if (fY + fHeight <= (o.pos?.y ?? 0)) continue;
       // Contato de teto: cabeça exatamente na face inferior, sem subida — é contato, não penetração: sem empurrão.
       if (f.flight && f.flight.vy <= 0 && Math.abs(fY + fHeight - (o.pos?.y ?? 0)) <= 1e-6) continue;
-      if (f.flight && f.flight.vy > 0 && fY + (f.flight.vy * f.flight.vy) / 35 >= topY) continue;
       if (o.shape === 'cylinder' || o.shape === 'pillar') {
         const d = dist2D(f.position, o.pos);
         const minDist = o.radius + halfExtent;
-        if (d < minDist && d > 1e-6) {
-          const pushDir = {x: (f.position.x - o.pos.x) / d, z: (f.position.z - o.pos.z) / d};
+        if (d < minDist) {
+          const pushDir = d > 1e-6 ? {x: (f.position.x - o.pos.x) / d, z: (f.position.z - o.pos.z) / d} : normalize(length(f.velocity) > 1e-6 ? scale(f.velocity, -1) : {x: 1, z: 0});
           f.position.x = o.pos.x + pushDir.x * minDist;
           f.position.z = o.pos.z + pushDir.z * minDist;
-          f.contacts++;
+          stopInto(pushDir);f.contacts++;
         }
-      } else {
-        const dx = f.position.x - o.pos.x, dz = f.position.z - o.pos.z;
-        const ox = (o.hx + halfExtent) - Math.abs(dx);
-        const oz = (o.hz + halfExtent) - Math.abs(dz);
-        if (ox > 0 && oz > 0) {
-          if (ox < oz) {
-            const sign = dx > 0 ? 1 : -1;
-            f.position.x = o.pos.x + sign * (o.hx + halfExtent);
-            if (f.velocity.x * sign < 0) f.velocity.x = 0;
-            if (f.flight && !f.flight.isNormalJump && f.flight.horizontal.x * sign < 0) f.flight.horizontal.x = 0;
-          } else {
-            const sign = dz > 0 ? 1 : -1;
-            f.position.z = o.pos.z + sign * (o.hz + halfExtent);
-            if (f.velocity.z * sign < 0) f.velocity.z = 0;
-            if (f.flight && !f.flight.isNormalJump && f.flight.horizontal.z * sign < 0) f.flight.horizontal.z = 0;
-          }
-          f.contacts++;
-        }
-      }
+      } else projectBox(o.pos, o.hx, o.hz, o.angle ?? 0);
     }
   }
 
@@ -882,15 +859,12 @@ export function collideMapFighter(mapState, f, events = []) {
     for (const d of mapState.destructibles) {
       if (d.state !== 'solid') continue;
       const topY = (d.pos?.y ?? 0) + (d.size?.height ?? 1.6);
-      if (fY >= topY - 0.25) continue;
+      if (fY >= topY - surfaceEpsilon) continue;
       if (fY + fHeight <= (d.pos?.y ?? 0)) continue;
       // Contato de teto: cabeça exatamente na face inferior, sem subida — é contato, não penetração: sem empurrão.
       if (f.flight && f.flight.vy <= 0 && Math.abs(fY + fHeight - (d.pos?.y ?? 0)) <= 1e-6) continue;
-      if (f.flight && f.flight.vy > 0 && fY + (f.flight.vy * f.flight.vy) / 35 >= topY) continue;
-      const dx = f.position.x - d.pos.x, dz = f.position.z - d.pos.z;
-      const ox = (d.size.hx + halfExtent) - Math.abs(dx);
-      const oz = (d.size.hz + halfExtent) - Math.abs(dz);
-      if (ox > 0 && oz > 0) {
+      const collision = projectCircleFromBox({pos: d.pos, hx: d.size.hx, hz: d.size.hz, angle: d.angle ?? 0}, f.position, halfExtent);
+      if (collision) {
         if (f.flight && !f.flight.isNormalJump) {
           const relSpeed = length(f.flight.horizontal);
           if (relSpeed > 1.0) {
@@ -904,18 +878,7 @@ export function collideMapFighter(mapState, f, events = []) {
           }
         }
         if (d.state === 'solid') {
-          if (ox < oz) {
-            const sign = dx > 0 ? 1 : -1;
-            f.position.x = d.pos.x + sign * (d.size.hx + halfExtent);
-            if (f.velocity.x * sign < 0) f.velocity.x = 0;
-            if (f.flight && !f.flight.isNormalJump && f.flight.horizontal.x * sign < 0) f.flight.horizontal.x = 0;
-          } else {
-            const sign = dz > 0 ? 1 : -1;
-            f.position.z = d.pos.z + sign * (d.size.hz + halfExtent);
-            if (f.velocity.z * sign < 0) f.velocity.z = 0;
-            if (f.flight && !f.flight.isNormalJump && f.flight.horizontal.z * sign < 0) f.flight.horizontal.z = 0;
-          }
-          f.contacts++;
+          f.position = collision.position;stopInto(collision.normal);f.contacts++;
         }
       }
     }

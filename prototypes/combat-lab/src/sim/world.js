@@ -12,7 +12,7 @@
 // Formas: 'circle' (raio) e 'box' (meias-medidas hx, hz, girada por `angle`). Altura: `y` (base) e `height`.
 import {C} from './config.js';
 import {isInvulnerable, nominalDistance} from './entity.js';
-import {sweepBox, segmentHitsVolume} from './geometry.js';
+import {sweepBox, segmentHitsVolume, projectCircleFromBox} from './geometry.js';
 import {launch} from './combat.js';
 import {traceBeam} from './beam.js';
 import {applyStatus, stat} from './status.js';
@@ -23,7 +23,7 @@ import {vec, add, sub, scale, dot, length, normalize, direction, angleOf, angleD
 export const ENTITY_KINDS = ['projectile', 'barrier', 'wall', 'area', 'beam'];
 export const createWorld = () => ({entities: [], nextId: 1});
 const fighterHeight = () => C.extras.visual.bodyHeight;
-const altOf = f => (f.flight?.y ?? 0) + (f.vaultHeight ?? 0);
+const altOf = f => (f.flight?.y ?? f.groundY ?? 0) + (f.vaultHeight ?? 0);
 
 // ---------- Geometria ----------
 /** Ponto do contorno da forma mais próximo de p (plano XZ) e distância. */
@@ -140,11 +140,14 @@ export function collideFighter(world, f, events = null) {
   for (const e of world.entities) {
     const solid = e.kind === 'wall' ? e.blocksFighters : e.kind === 'barrier' && e.blocksFighters && (e.blocksOwner || e.owner !== f.id);
     if (!solid || !vOverlap(alt, alt + h, e.y, e.y + e.height)) continue;
-    const c = closestOnShape(e, f.position);if (c.distance >= r) continue;
+    const projection = e.shape === 'box' ? projectCircleFromBox(e, f.position, r) : null;
+    const c = e.shape === 'box' ? null : closestOnShape(e, f.position);if (!projection && (!c || c.distance >= r)) continue;
     if (e.breakableByTackle && f.action?.kind === 'tackle' && !f.action.neutralized && !e.dead) {breakByTackle(e, f, events);continue;}
     // Normal de saída: do ponto mais próximo para o centro (dentro da forma, pelo eixo de menor penetração).
-    let n = sub(f.position, c.point);if (length(n) < 1e-9 || c.inside) n = sub(f.position, e.pos);if (length(n) < 1e-9) n = vec(0, 1);n = normalize(n);
-    f.position = add(c.inside ? c.point : f.position, scale(n, c.inside ? r : r - c.distance));
+    let n;
+    if (projection) {f.position = projection.position;n = projection.normal;}
+    else if (c) {n = sub(f.position, c.point);if (length(n) < 1e-9 || c.inside) n = sub(f.position, e.pos);if (length(n) < 1e-9) n = vec(0, 1);n = normalize(n);f.position = add(c.inside ? c.point : f.position, scale(n, c.inside ? r : r - c.distance));}
+    else continue;
     const into = dot(f.velocity, n);if (into < 0) f.velocity = sub(f.velocity, scale(n, into));
     if (f.flight) {const hv = dot(f.flight.horizontal, n);if (hv < 0) f.flight.horizontal = sub(f.flight.horizontal, scale(n, (1 + C.rules.wallRestitution) * hv));}
     if (f.locomotionVelocity) {const lv = dot(f.locomotionVelocity, n);if (lv < 0) f.locomotionVelocity = sub(f.locomotionVelocity, scale(n, lv));}

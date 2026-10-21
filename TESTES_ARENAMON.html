@@ -574,6 +574,13 @@ PASS: dois blocos, cores, câmera, layout, file:// offline, sem erros.</pre>
 
       <!-- SUÍTE 5: VERIFICAÇÃO E2E DO JOGO PRINCIPAL (COMBAT LAB + MOVES + VFX SÓLIDOS) -->
       <article class="suite-card" data-category="jogo">
+        <div class="suite-header"><div><h2 class="suite-title">Regressão de hitbox, plataformas e blocos</h2><div class="tag-group"><span class="tag success">✓ Unitário + Edge offline</span><span class="tag primary">Colisores 3D</span></div></div></div>
+        <p class="suite-desc">Confere a altura da hitbox sobre plataformas, laterais sólidas durante o salto, caixas giradas, penetração profunda e a correspondência visual no HTML compilado.</p>
+        <div class="cmd-box"><code>node prototypes/combat-lab/test/collision-regression.test.mjs; node prototypes/combat-lab/test/collision-regression.browser.mjs</code><button class="copy-btn" onclick="copyCmd('node prototypes/combat-lab/test/collision-regression.test.mjs; node prototypes/combat-lab/test/collision-regression.browser.mjs', this)">Copiar Comando</button></div>
+        <div class="evidence-row"><a href="prototypes/combat-lab/evidence/collision-regression/index.html" class="evidence-thumb">🧱 Abrir evidência de colisão</a><a href="#" class="evidence-thumb" onclick="openModal('prototypes/combat-lab/evidence/collision-regression/hitbox-sobre-plataforma.png'); return false;">🖼️ Ver hitbox sobre plataforma</a></div>
+      </article>
+
+      <article class="suite-card" data-category="jogo">
         <div class="suite-header">
           <div>
             <h2 class="suite-title">Verificação de Navegador do Jogo Principal — Combat Lab, Moves & VFX 3D</h2>

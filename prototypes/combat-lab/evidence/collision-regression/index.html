@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Arenamon — Evidência de hitbox e colisores</title>
+  <style>
+    :root{color-scheme:dark;--bg:#07101a;--card:#111e2c;--line:#29435c;--text:#eef7ff;--muted:#9db2c5;--ok:#49e2a4}
+    *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#152b40,var(--bg) 60%);color:var(--text);font:16px/1.55 system-ui,sans-serif}main{max-width:1100px;margin:auto;padding:42px 20px 70px}a{color:#65cfff}header{margin-bottom:24px}h1{margin:.2rem 0;font-size:clamp(1.8rem,5vw,3rem)}.tag{color:var(--ok);font-weight:800;letter-spacing:.08em;text-transform:uppercase}.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px;margin-top:20px;box-shadow:0 18px 50px #0006}.metric{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}.metric div{padding:14px;border-radius:12px;background:#0a1622;border:1px solid #20384e}.metric b{display:block;color:var(--ok);font-size:1.35rem}img{display:block;width:100%;height:auto;border-radius:12px;border:1px solid var(--line);margin-top:16px}code{color:#c7eaff}.links{display:flex;gap:12px;flex-wrap:wrap;margin-top:18px}.links a{padding:9px 13px;border:1px solid var(--line);border-radius:9px;text-decoration:none;background:#0a1622}</style>
+</head>
+<body><main>
+  <header><span class="tag">Verificação aprovada</span><h1>Hitbox alinhada e colisores sólidos</h1><p>A captura abaixo foi produzida automaticamente no HTML compilado, offline, pelo Edge via Playwright.</p></header>
+  <section class="card">
+    <div class="metric"><div><b>1,00 m</b>altura da plataforma</div><div><b>1,65 m</b>centro esperado da hitbox</div><div><b>1,65 m</b>centro medido da hitbox</div></div>
+    <img src="hitbox-sobre-plataforma.png" alt="Personagem azul sobre uma plataforma com a hitbox de arame alinhada ao corpo">
+  </section>
+  <section class="card"><h2>O que foi coberto</h2><p>Altura da hitbox sobre plataformas, laterais sólidas durante saltos, caixas giradas, expulsão de penetração profunda e colisão vertical usando <code>groundY</code>.</p><div class="links"><a href="resultado.json">Resultado JSON</a><a href="../../../../docs/COLISOES_HITBOX_PLATAFORMAS.md">Documento técnico</a><a href="../../../../JOGAR_ARENAMON.html">Abrir o jogo</a><a href="../../../../TESTES_ARENAMON.html">Central de testes</a></div></section>
+</main></body></html>

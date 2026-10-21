@@ -24,6 +24,28 @@ export function faceNormals(/** @type {Rect} */ r) {
   return {front: {x: s, z: c}, back: {x: -s, z: -c}, edgePlus: {x: c, z: -s}, edgeMinus: {x: -c, z: s}};
 }
 
+/**
+ * Projeta um círculo para fora de uma caixa orientada. Retorna a posição corrigida e a normal de saída,
+ * ou null quando não há penetração. Funciona também quando o centro nasce dentro da caixa: nesse caso
+ * escolhe a face mais próxima, em vez de empurrar radialmente e deixar o corpo preso no volume.
+ * @param {Rect} rect @param {V2} point @param {number} radius
+ */
+export function projectCircleFromBox(rect, point, radius) {
+  const p = toLocal(rect, point), qu = Math.max(-rect.hx, Math.min(rect.hx, p.u)), qv = Math.max(-rect.hz, Math.min(rect.hz, p.v));
+  const du = p.u - qu, dv = p.v - qv, d2 = du * du + dv * dv;
+  if (d2 >= radius * radius - 1e-12) return null;
+  let u, v;
+  if (d2 > 1e-12) {
+    const d = Math.sqrt(d2), nx = du / d, nz = dv / d;u = qu + nx * radius;v = qv + nz * radius;
+  } else {
+    const toX = rect.hx + radius - Math.abs(p.u), toZ = rect.hz + radius - Math.abs(p.v);
+    if (toX < toZ) {u = (p.u >= 0 ? 1 : -1) * (rect.hx + radius);v = p.v;}
+    else {u = p.u;v = (p.v >= 0 ? 1 : -1) * (rect.hz + radius);}
+  }
+  const position = toWorld(rect, u, v), dx = position.x - point.x, dz = position.z - point.z, len = Math.hypot(dx, dz);
+  return {position, normal: len > 1e-12 ? {x: dx / len, z: dz / len} : {x: 1, z: 0}, depth: len};
+}
+
 /** Quatro cantos de um retângulo orientado. */
 const corners = (/** @type {Rect} */ r) => [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([a, b]) => toWorld(r, a * r.hx, b * r.hz));
 /** Dois retângulos orientados se sobrepõem? (SAT; encostar sem penetrar não conta). */

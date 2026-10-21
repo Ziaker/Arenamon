@@ -54,7 +54,10 @@ function run(seed) {
       // curtas são mais rápidas; o pico da curva em fases fica abaixo de ~3× a velocidade média.
       const vmax = Math.max(80, ...['dodge', 'tackle'].map(k => 3.2 * C.actions[k].distance * (C.actions[k].distanceReference || C.actions[k].duration) * 6 * C.actions.tackle.counterSpeed / C.actions[k].duration));
       if (Math.hypot(f.velocity.x, f.velocity.z) > vmax) fail(t, `velocidade absurda: ${Math.hypot(f.velocity.x, f.velocity.z)} (limite ${vmax.toFixed(1)})`);
-      if (f.vaultHeight < -1e-9 || f.vaultHeight > C.actions.dodge.vaultHeight + 1e-6) fail(t, `altura de salto fora da faixa: ${f.vaultHeight}`);
+      // A preparação do Meteor Slam acrescenta slamHop ao ponto em que o cancelamento aéreo começou.
+      // O limite anterior considerava só o arco da esquiva e marcava como inválido o próprio impulso configurado do slam.
+      const maxAirHeight = C.actions.dodge.vaultHeight + (f.action?.slam ? C.rules.slamHop : 0);
+      if (f.vaultHeight < -1e-9 || f.vaultHeight > maxAirHeight + 1e-6) fail(t, `altura de salto fora da faixa: ${f.vaultHeight}`);
       if (f.action?.fromCancel && f.action.kind === 'tackle' && f.action.elapsed <= C.test.step + 1e-9) stats.cancels++;
       if (f.action?.buffered && f.action.elapsed <= C.test.step + 1e-9) stats.buffered++;
       if (f.action?.vault && f.action.elapsed <= C.test.step + 1e-9) stats.vaults++;

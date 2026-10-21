@@ -406,7 +406,7 @@ export class View {
     this.clearOverlays();this.lastFighters = fighters;const O = this.overlays, V = C.extras.visual, half = C.test.halfExtent;
     const legacy = !!C.extras.toggles.showHitboxes;
     for (const f of fighters) {
-      const alt = (f.flight?.y ?? 0) + (f.vaultHeight ?? 0);
+      const alt = (f.flight?.y ?? f.groundY ?? 0) + (f.vaultHeight ?? 0);
       if (O.hurtboxes || legacy) {
         const color = f.hp <= 0 ? STATE_COLORS.defeated : isInvulnerable(f) ? STATE_COLORS.invulnerable : STATE_COLORS[f.state] ?? (f.id ? 0xff5670 : 0x45c4ff);
         const box = new T.Mesh(new T.BoxGeometry(half * 2, V.bodyHeight, half * 2), new T.MeshBasicMaterial({color, wireframe: true, transparent: true, opacity: C.extras.fx.hitboxOpacity, depthTest: false, depthWrite: false}));
@@ -421,7 +421,7 @@ export class View {
       if (O.guardArcs && f.guard) {
         // Ângulo válido: dot(frente, direção do atacante) ≥ alinhamento → meia abertura = acos(alinhamento).
         const open = Math.acos(Math.max(-1, Math.min(1, C.extras.combat.guardFrontAlignment)));
-        this.ring(f.position.x, f.position.z, 1.1, STATE_COLORS.guard, f.facing - open, f.facing + open, .05);
+        this.ring(f.position.x, f.position.z, 1.1, STATE_COLORS.guard, f.facing - open, f.facing + open, alt + .05);
       }
       if (O.cancelWindow && f.hp > 0) {
         const K = C.actions.cancel;
@@ -441,12 +441,12 @@ export class View {
       if (O.preview && f.id === 0 && f.hp > 0 && !f.action && !f.flight && f.knockRecovery <= 0) {
         const heading = length(f.desiredMove ?? {x: 0, z: 0}) > .01 ? angleOf(f.desiredMove) : f.combatHeading ?? f.facing, d = direction(heading);
         const x = nominalDistance(f, 'tackle'), c = nominalDistance(f, 'dodge'), side = {x: -d.z * .12, z: d.x * .12};
-        this.line([[f.position.x + side.x, .06, f.position.z + side.z], [f.position.x + side.x + d.x * x, .06, f.position.z + side.z + d.z * x]], 0xffa040, .85);
+        this.line([[f.position.x + side.x, alt + .06, f.position.z + side.z], [f.position.x + side.x + d.x * x, alt + .06, f.position.z + side.z + d.z * x]], 0xffa040, .85);
         const vault = !!C.extras.toggles.enableVault && wouldVault(f, heading, this.lastFighters ?? []);
-        if (vault) {const pts = [];for (let i = 0; i <= 24; i++) {const u = i / 24;pts.push([f.position.x - side.x + d.x * c * u, .06 + C.actions.dodge.vaultHeight * Math.sin(Math.PI * u), f.position.z - side.z + d.z * c * u]);}this.line(pts, 0x61ebba, .9);}
-        else this.line([[f.position.x - side.x, .06, f.position.z - side.z], [f.position.x - side.x + d.x * c, .06, f.position.z - side.z + d.z * c]], 0x61ebba, .85);
+        if (vault) {const pts = [];for (let i = 0; i <= 24; i++) {const u = i / 24;pts.push([f.position.x - side.x + d.x * c * u, alt + .06 + C.actions.dodge.vaultHeight * Math.sin(Math.PI * u), f.position.z - side.z + d.z * c * u]);}this.line(pts, 0x61ebba, .9);}
+        else this.line([[f.position.x - side.x, alt + .06, f.position.z - side.z], [f.position.x - side.x + d.x * c, alt + .06, f.position.z - side.z + d.z * c]], 0x61ebba, .85);
       }
-      if (O.reach && f.hp > 0) this.ring(f.position.x, f.position.z, nominalDistance(f, 'tackle'), f.id ? 0xff8a8a : 0x8ac4ff);
+      if (O.reach && f.hp > 0) this.ring(f.position.x, f.position.z, nominalDistance(f, 'tackle'), f.id ? 0xff8a8a : 0x8ac4ff, 0, Math.PI * 2, alt + .03);
       if (O.launchArcs && f.flight) this.line(predictFlight(f), 0x9db4ff);
     }
     for (let i = this.normals.length - 1; i >= 0; i--) {

@@ -1,0 +1,15 @@
+{
+  "date": "2026-10-21T03:43:07.569Z",
+  "checks": [
+    {
+      "label": "hitbox acompanha a plataforma",
+      "ok": true,
+      "detail": "{\"groundY\":1,\"bodyHeight\":1.3,\"hitboxY\":1.65,\"expectedY\":1.65,\"fighterX\":-7.777941432036459,\"fighterZ\":7.565392971131951,\"platformHeight\":1}"
+    },
+    {
+      "label": "execução offline sem erros",
+      "ok": true,
+      "detail": "sem erros"
+    }
+  ]
+}

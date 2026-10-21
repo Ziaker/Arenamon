@@ -32,7 +32,9 @@ export function getGroundHeight(pos, world, currentY = null) {
   const destructibles = mapState?.destructibles ?? world?.destructibles;
   if (!platforms && !obstacles && !destructibles) return 0;
   let highest = 0;
-  const footMargin = (C.test?.halfExtent ?? 0.35) * 0.5;
+  // O apoio usa a planta inteira do colisor. Com meia margem, a borda visível tocava os pés, mas a consulta
+  // ainda dizia “sem chão” e expulsava o lutador da face no quadro seguinte ao ápice do salto.
+  const footMargin = C.test?.halfExtent ?? 0.35;
   if (platforms) {
     for (const p of platforms) {
       const px = p.pos ? p.pos.x : p.x;

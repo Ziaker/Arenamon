@@ -91,7 +91,7 @@ export function createWindowsOverlay({root, view, game}) {
       const show = mode === 2 || (mode === 1 && i === 0);
       const list = show && f.hp > 0 ? activeWindows(f, game, memo[i]) : [];
       if (!list.length) {box.hidden = true;continue;}
-      const alt = (f.flight?.y ?? 0) + (f.vaultHeight ?? 0);v.set(f.position.x, alt + C.extras.visual.bodyHeight + .55, f.position.z).project(view.camera);
+      const alt = (f.flight?.y ?? f.groundY ?? 0) + (f.vaultHeight ?? 0);v.set(f.position.x, alt + C.extras.visual.bodyHeight + .55, f.position.z).project(view.camera);
       if (v.z > 1) {box.hidden = true;continue;}
       box.hidden = false;box.style.left = `${(v.x * .5 + .5) * canvas.clientWidth}px`;box.style.top = `${(-v.y * .5 + .5) * canvas.clientHeight}px`;
       box.style.setProperty('--win-scale', W.scale);box.style.opacity = W.opacity;
