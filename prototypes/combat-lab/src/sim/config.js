@@ -219,6 +219,10 @@ export function vfxDefaults() {
     // VFX de ativação de passivas (§16): 0,60 s, círculos brancos 3D + sparkles; variant 0/1/2 = A/B/C
     // (Orbital Halo / Celestial Intersections / Luminous Resonance). Só aparência; não altera regras nem cooldowns.
     passive: {enabled: 1, variant: 0, intensity: 1, size: 1, opacity: 1, duration: 1, sparkles: 1},
+    // Camada experimental three.quarks (Fase 2 da integração open source): efeitos A (carga),
+    // B (impacto), C (pouso) e footstool por partículas GPU, A/B comparativo com o legado.
+    // 0 = desligada (custo zero, nada é instanciado). Só aparência.
+    quarks: {enabled: 0},
   };
 }
 

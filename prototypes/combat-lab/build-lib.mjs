@@ -39,4 +39,11 @@ export async function buildReportsPanel({minify = true} = {}) {
   const [template, css] = await Promise.all([read('reports/template.html'), read('reports/styles.css')]);
   return template.replace('/*__CSS__*/', () => css).replace('/*__BUNDLE__*/', () => inline(bundle.outputFiles[0].text));
 }
-export const OUTPUTS = {lab: 'dist/arenamon-combate-laboratorio.html', reports: 'dist/arenamon-painel-relatorios.html'};
+/** Laboratório three.quarks: HTML único e offline de VFX com gatilho por eventos reais da simulação. */
+export async function buildQuarksLab({minify = true} = {}) {
+  const bundle = await build({entryPoints: [fileURLToPath(new URL('quarks-lab/main.js', root))], bundle: true, write: false, format: 'iife', minify, legalComments: 'inline', target: 'es2022', logLevel: 'silent'});
+  const [template, css, license] = await Promise.all([read('quarks-lab/template.html'), read('quarks-lab/styles.css'), read('../../node_modules/three/LICENSE')]);
+  const version = await versionInfo();
+  return template.replaceAll('__VERSION_DETAIL__', version.detail).replace('/*__CSS__*/', () => css).replace('/*__BUNDLE__*/', () => inline('/*\n' + license + '\n*/' + bundle.outputFiles[0].text));
+}
+export const OUTPUTS = {lab: 'dist/arenamon-combate-laboratorio.html', reports: 'dist/arenamon-painel-relatorios.html', quarks: 'dist/arenamon-vfx-quarks.html'};

@@ -102,6 +102,10 @@ export function createVisualPanel({tuning, view, game, $, hud, download}) {
         <label class="vx-check"><input type="checkbox" data-vfx-a11y="noFlash" ${(C.vfx.master?.noFlash || C.vfx.laser?.noFlash) ? 'checked' : ''}> Sem flash</label>
         <label class="vx-check"><input type="checkbox" data-vfx-a11y="reduceMotion" ${(C.vfx.master?.reduceMotion || C.vfx.laser?.reduceMotion) ? 'checked' : ''}> Reduzir movimento</label>
         <label class="vx-check"><input type="checkbox" data-vfx-a11y="highContrast" ${(C.vfx.master?.highContrast || C.vfx.laser?.highContrast) ? 'checked' : ''}> Alto contraste</label>
+      <div class="vx-card"><h4>Camada three.quarks (experimental)</h4>
+        <div data-quarks-toggle></div>
+        <p class="hint">Partículas GPU para carga (A), impacto (B), pouso (C) e footstool. Roda AO LADO do VFX atual — comparação A/B sem substituir efeitos aprovados. Edite os efeitos no laboratório VFX · Quarks (portal de testes). Ajuste fino: Ajustes › VFX · three.quarks.</p>
+      </div>
       </div></div>`);
     S.rochas.insertAdjacentHTML('beforeend', `<div class="vx-card vx-wide"><h4>Modelo da pedra</h4>
         <div class="seg wide" role="group" aria-label="Modelo 3D da Rocha">
@@ -169,7 +173,8 @@ export function createVisualPanel({tuning, view, game, $, hud, download}) {
           : 'Ativo: renderizador legado. O novo sistema está em repouso como fallback seguro.';
       }
     };
-    renderModeBox.querySelector('[data-vfx-runtime-btn="legacy"]')?.addEventListener('click', () => {
+        {const qt = S.geral.querySelector('[data-quarks-toggle]');if (qt) {try {qt.append(tuning.controlFor('vfx.quarks.enabled'));} catch (e) {qt.textContent = 'Controle indisponível: ' + e.message;}}}
+renderModeBox.querySelector('[data-vfx-runtime-btn="legacy"]')?.addEventListener('click', () => {
       view.useNewVfx = false;
       updateVfxModeButtons();
     });

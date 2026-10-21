@@ -148,7 +148,7 @@ export const EXTRA_SECTIONS = [['Sprint (C mantido)', 'actions.sprint', null], [
   ['Teclas do vermelho (controle manual)', 'extras.bindings2', null], ['VFX · Laser da Arena (BeamRenderer)', 'vfx.laser', null], ['Sombras', 'display.shadow', null], ['HUD', 'display.hud', null], ['Altura visual', 'display.grounding', null], ['Indicador da janela C → X', 'display.cancelRing', null], ['Animação: transições', 'display.animation', null], ['Diagnóstico de comandos', 'display.diagnostics', null], ['Janelas de combate', 'display.windows', null], ['Medidor de desempenho', 'display.perf', null],
   // Passivas (catálogo experimental, §29): uma seção por passiva + VFX de ativação (A/B/C).
   ...PASSIVES.map(p => [`Passivas · ${p.nome}${p.species ? ' (' + p.species + ')' : ''}`, `passivas.${p.id}`, null]),
-  ['Passivas · gerais (detecção)', 'passivas.globals', null], ['VFX · Passivas (ativação A/B/C)', 'vfx.passive', null]];
+  ['Passivas · gerais (detecção)', 'passivas.globals', null], ['VFX · Passivas (ativação A/B/C)', 'vfx.passive', null], ['VFX · three.quarks (experimental)', 'vfx.quarks', null]];
 /** Parâmetros mostrados em outras abas (sem duplicar controles no Ajustes). */
 const ELSEWHERE = new Set(['extras.toggles.enableEnemyAI', 'extras.toggles.enemyManual', 'extras.visual.shadowMin', 'extras.visual.shadowHeightFade']);
 export function createTuning({apply}) {

@@ -14,6 +14,10 @@ import {phaseAt} from '../sim/motion.js';
 // Novo sistema de VFX declarativo (ativado ao lado do legado durante a migração).
 import {VfxRuntime, registerAllEffects} from './vfx/index.js';
 import {CinematicCamera} from './cinematic-camera.js';
+// Camada experimental three.quarks (Fase 2 da integração open source): criada sob
+// demanda quando C.vfx.quarks.enabled = 1; consome os mesmos eventos do legado.
+import * as Quarks from 'three.quarks';
+import {QuarksBridge} from './quarks/bridge.js';
 
 const STATE_COLORS = {invulnerable: 0x58e6ff, tackle: 0xffa040, dodge: 0x61ebba, guard: 0xffe066, guardStun: 0xffb347, recoil: 0xc77dff, airborne: 0x9db4ff, landing: 0x7f93b8, defeated: 0x56616a};
 export const OVERLAYS = [
@@ -57,6 +61,7 @@ export class View {
     registerAllEffects(this.vfxRuntime);
     this.solid = new SolidFx(this.scene); // malhas 3D sólidas (poeira do dash, esquiva, impactos); independe do renderizador de sprites
     this.meteorFx = new MeteorFx(this.scene); // rastro de fogo do meteor slam (só na queda)
+    this.quarks = null; // camada three.quarks (Fase 2): instanciada sob demanda quando C.vfx.quarks.enabled
     this.useNewVfx = false; // trocar para true quando o novo sistema estiver em paridade
     this.overlayGroup = new T.Group();this.overlayGroup.renderOrder = 900;this.scene.add(this.overlayGroup);
     this.worldView = new WorldView(this.scene);
@@ -73,6 +78,7 @@ export class View {
     canvas.addEventListener('wheel', e => {e.preventDefault();this.rig.zoomBy(e.deltaY * C.extras.cameraExtra.wheelSensitivity);}, {passive: false});
   }
   setAccessibility(a = {}) {
+    this._a11y = a;
     this.vfx?.setAccessibility?.(a);
     this.vfxRuntime?.setAccessibility?.(a);
     this.solid?.setAccessibility?.(a);
@@ -124,6 +130,7 @@ export class View {
     this.rig.reset(player);this.seenEvents = new WeakSet();this.legacySeen = new WeakSet();this.cameraShake = 0;for (const e of this.effects) {this.scene.remove(e.mesh);e.mesh.geometry.dispose();e.mesh.material.dispose();}this.effects = [];this.airborneSeen = [];this.invulnerableFx.clear();this.normals = [];this.vfx.reset();
     if (this.canvas) this.canvas.style.filter = '';
     this.vfxRuntime.reset();
+    this.quarks?.reset();
     this.solid.reset();this.meteorFx?.reset();
     this.cinematic?.clearAll();
     this.cinematic?.triggerRoundIntro();
@@ -294,6 +301,16 @@ export class View {
       // Renderizador legado (fallback). O novo runtime permanece inativo.
       t0 = now();this.vfx.update(fighters, events, vfxDt, {characters: this.characters, camera: this.camera});tm.vfx = now() - t0;
       this.vfxRuntime.beamRenderer?.reset();
+    }
+    // Camada three.quarks experimental (A/B): cria/consome só quando ligada; desligada = custo zero.
+    if (C.vfx.quarks?.enabled) {
+      if (!this.quarks) {
+        this.quarks = new QuarksBridge({THREE: T, Quarks, scene: this.scene, accessibility: {reduceMotion: () => !!(this._a11y?.reduceMotion || C.vfx.master?.reduceMotion || C.vfx.laser?.reduceMotion)}});
+      }
+      this.quarks.fx.enabled = !!X.hud.fxVisible; // respeita o mestre de VFX da HUD
+      t0 = now();this.quarks.update(fighters, events, vfxDt);tm.quarks = now() - t0;
+    } else if (this.quarks) {
+      this.quarks.dispose();this.quarks = null;
     }
     this.solid.update(fighters, events, vfxDt, {visible: !!X.hud.fxVisible, world});
     this.meteorFx.update(fighters, vfxDt, this.camera, !!X.hud.fxVisible, this.characters);
