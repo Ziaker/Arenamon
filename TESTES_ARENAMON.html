@@ -572,6 +572,27 @@ PASS: dois blocos, cores, câmera, layout, file:// offline, sem erros.</pre>
         </div>
       </article>
 
+      <!-- SUÍTE 4b: MOVES NOVOS (13) -->
+      <article class="suite-card" data-category="jogo">
+        <div class="suite-header">
+          <div>
+            <h2 class="suite-title">Moves novos — 13 Moves do Laboratório de Combate (v1.14.0)</h2>
+            <div class="suite-meta">
+              <span class="tag success">✓ 100% Aprovados</span>
+              <span class="tag primary">test/moves-*.test.mjs</span>
+              <span class="tag">docs/moves-nao-iniciados/README.md</span>
+            </div>
+          </div>
+        </div>
+        <p class="suite-desc">
+          Harden, Second Wind, Swift, Lunge, Quick Attack, Guard Break, Feint, Riposte, Bounce, Spikes, Sand Wave, Bullet Punch e Emerging Stone: registro, cobrança, regras de cada ficha, sliders capturados no uso (M28.4), paridade (não equipado não muda nada) e determinismo com save/load. O teste de navegador confere que os 13 aparecem nos slots com seus sliders e aciona Lunge, Spikes e os Moves de status pelo teclado. As fichas e as decisões provisórias (MV-P) ficam em docs/moves-nao-iniciados/.
+        </p>
+        <div class="cmd-box">
+          <code>node prototypes/combat-lab/test/moves-emerging-stone.test.mjs</code>
+          <button class="copy-btn" onclick="copyCmd('npm run test:combat-lab:unit', this)">Copiar Comando (suíte completa)</button>
+        </div>
+      </article>
+
       <!-- SUÍTE 5: VERIFICAÇÃO E2E DO JOGO PRINCIPAL (COMBAT LAB + MOVES + VFX SÓLIDOS) -->
       <article class="suite-card" data-category="jogo">
         <div class="suite-header">

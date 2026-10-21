@@ -52,6 +52,32 @@ try {
   const star = await L(() => ({n: window.__lab.game.world.entities.filter(e => e.visual === 'star').length, pl: window.__lab.game.world.entities.find(e => e.visual === 'star').pl, mesh: Object.values(window.__lab.view.worldView).filter(v => v instanceof Map).some(m => [...m.values()].some(x => x?.getObjectByName?.('starCore')))}));
   check('tecla 3 dispara 3 estrelas PL1 com a malha própria no desenho', star.n === 3 && star.pl === 1 && star.mesh, JSON.stringify(star));
 
+  // Os 13 Moves novos: todos listados nos slots e com seus sliders na aba Moves
+  const GROUPS = {harden: 'harden', 'second-wind': 'secondWind', swift: 'swift', lunge: 'lunge', 'quick-attack': 'quickAttack', 'guard-break': 'guardBreak', feint: 'feint', riposte: 'riposte', bounce: 'bounce', spikes: 'spikes', 'sand-wave': 'sandWave', 'bullet-punch': 'bulletPunch', 'emerging-stone': 'emergingStone'};
+  await L(() => {window.__lab.game.setLoadout(0, []);window.__lab.startMatch();});
+  await L(() => {document.getElementById('moves-drawer').hidden || document.getElementById('moves-close').click();});
+  await openDrawer();
+  const missing = [];
+  for (const [id, group] of Object.entries(GROUPS)) {
+    if (await page.locator(`[data-slot-move="0.0"] option[value="${id}"]`).count() !== 1) {missing.push(`slot:${id}`);continue;}
+    await page.selectOption('[data-slot-move="0.0"]', id);
+    if (!await L(g => !!document.querySelector(`#moves-panel [data-p="${g}.cost"]`), group)) missing.push(`slider:${id}`);
+  }
+  check('os 13 Moves novos aparecem nos slots e cada um tem seus sliders na aba Moves', missing.length === 0, missing.join(','));
+  await L(() => document.getElementById('moves-close').click());
+  // Lunge pelo teclado como jogador: vira um Tackle real marcado com o Move
+  await L(() => {window.__lab.game.setLoadout(0, ['lunge', 'spikes']);window.__lab.startMatch();});
+  await key('KeyA');
+  await page.waitForFunction(() => window.__lab.game.fighters[0].action?.move === 'lunge' || window.__lab.game.fighters[0].moveCooldowns?.lunge > 0, null, {timeout: 30000});
+  check('tecla A aciona o Lunge (ação de Tackle real com cooldown)', await L(() => (window.__lab.game.fighters[0].moveCooldowns?.lunge ?? 0) > 5));
+  // Spikes: segurar abre o marcador (verde/vermelho) sem cobrar nada
+  await L(() => {window.__lab.startMatch();});
+  await page.locator('canvas').first().focus();await page.keyboard.down('KeyS');
+  await page.waitForFunction(() => !!window.__lab.game.fighters[0].aim, null, {timeout: 30000});
+  const aimOpen = await L(() => ({stamina: window.__lab.game.fighters[0].stamina, cooldown: window.__lab.game.fighters[0].moveCooldowns?.spikes ?? 0, ring: !!window.__lab.view.aimMarkers}));
+  await page.keyboard.up('KeyS');
+  check('segurar o botão do Spikes abre o marcador visível sem cobrar stamina nem recarga', aimOpen.ring && aimOpen.cooldown === 0 && aimOpen.stamina >= 2.99, JSON.stringify(aimOpen));
+
   // Desligar (tirar do slot): sem aura e sem custo
   await L(() => {window.__lab.game.setLoadout(0, []);window.__lab.startMatch();});
   await page.waitForTimeout(800);

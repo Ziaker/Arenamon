@@ -37,3 +37,17 @@ Não confundir **organizar tarefas futuras** com transferir documentos-mestre qu
 O diretório contém **apenas** [`docs/tackle/VER_TACKLE.html`](../tackle/VER_TACKLE.html), visualizador do **Tackle do Vigoroth — Teste 01**, com selo de **animação aprovada (v26)**. Não contém documentos de outros moves inacabados. O **Tackle de combate já possui implementação** no Combat Lab; integração final dessa animação local específica não foi certificada pela presença do visualizador. **Não foi classificado como move não iniciado nem movido**, porque a operação quebraria seu link existente no portal e as referências relativas a mídia sem oferecer comprovação de status. Consulte a auditoria.
 
 **Escopo desta reorganização:** criação de arquivos de documentação, indexação no portal e auditoria; **nenhum código de simulação, artefato Blender, vídeo, teste ou jogabilidade foi alterado**.
+
+## Moves implementados (branch `feat/moves-novos`, v1.14.0)
+
+Todos no **Laboratório de Combate** (`JOGAR_ARENAMON.html` → aba **Moves**), nenhum equipado por padrão. Cada ficha tem fonte, código, testes, regras e pendências. Nada aqui é homologação do diretor.
+
+| Move | Ficha | Testes |
+|---|---|---|
+| Harden · Second Wind · Swift | [harden](fichas/harden.md) · [second-wind](fichas/second-wind.md) · [swift](fichas/swift.md) | 13 · 11 · 16 |
+| Lunge · Quick Attack | [lunge](fichas/lunge.md) · [quick-attack](fichas/quick-attack.md) | 14 · 17 |
+| Guard Break · Feint · Riposte | [guard-break](fichas/guard-break.md) · [feint](fichas/feint.md) · [riposte](fichas/riposte.md) | 16 · 16 · 15 |
+| Bounce · Spikes | [bounce](fichas/bounce.md) · [spikes](fichas/spikes.md) | 17 · 18 |
+| Sand Wave · Bullet Punch · Emerging Stone | [sand-wave](fichas/sand-wave.md) · [bullet-punch](fichas/bullet-punch.md) · [emerging-stone](fichas/emerging-stone.md) | 24 · 18 · 26 |
+
+**Body Slam:** NÃO implementado — a jogabilidade não está especificada em nenhum documento. Perguntas mínimas: tipo (Melee/Trick), PL, custo, alcance/ângulo, dano, knockback, interação com Guard/Perfect e se vira Tackle real.
