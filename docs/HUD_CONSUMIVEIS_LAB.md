@@ -1,7 +1,8 @@
 # Laboratório visual — HUD de progressão e consumíveis (propostas)
 
-> **Status: seis alternativas visuais NÃO aprovadas.** Este laboratório serve só para avaliação. Nenhuma regra,
-> GDD ou decisão oficial foi alterada, e nenhuma proposta foi escolhida pela IA.
+> **Decisão de 21/10/2026:** o usuário escolheu o **HUD A · Banco de Células** e a **coleção de consumíveis A · Gemas Facetadas**
+> (HUD B/C e itens B/C ficam descartados, preservados só neste laboratório) e pediu o cenário do laboratório no jogo.
+> A escolha já está **integrada ao jogo principal** (seção "No jogo principal" abaixo). Nenhuma regra, GDD ou mecânica mudou.
 
 **Abrir:** `prototypes/hud-consumiveis/dist/hud-consumiveis-laboratorio.html` (duplo clique; HTML único, offline,
 funciona por `file://`). Também pelo portal `ABRIR_ARENAMON.html` › Jogo Principal › **🧪 Laboratório HUD & Consumíveis**
@@ -77,7 +78,24 @@ reinicia), inspeção de item (clique no item ou na lista) e "Simular coleta (de
 Não importa nada de `prototypes/combat-lab`, não altera física, combate, HUD oficial, câmera do jogo nem regras. Usa
 `three` e `three.quarks` já presentes no projeto (empacotados no HTML).
 
-## Pendências para aprovação
+## No jogo principal (integrado em 21/10/2026)
 
-Seis alternativas independentes ainda sem decisão: HUD A, HUD B, HUD C e coleções de itens A, B e C. Cabe ao responsável
-escolher (ou misturar). Só depois disso algo disso entraria no jogo e nos documentos de decisão.
+Abra `JOGAR_ARENAMON.html` (ou `prototypes/combat-lab/dist/arenamon-combate-laboratorio.html`). Tudo é só apresentação e vem **ligado por padrão**, com
+alternância para o visual anterior em **Visualizar › Câmera, tremor e HUD** (três grupos novos) e nos mesmos sliders no Ajustes:
+
+| O quê | Onde fica | Alternar / ajustar |
+|---|---|---|
+| **HUD Banco de Células** | canto inferior esquerdo da arena (jogador; adversário à direita se escolhido) | `display.progress`: ligar/desligar (volta aos selos clássicos do cabeçalho), de quem (jogador/adversário/os dois), escala, animação. Lê `fighter.stages` e os bônus de Mapa › Progressão (os valores acompanham os sliders). |
+| **Consumíveis Gemas Facetadas** | desenham os itens que a simulação já cria (7 tipos) | `display.consumables`: estilo 1 = gemas · 0 = formas clássicas, escala, altura, indicador flutuante (e tamanho), animação, centelhas three.quarks, pedestal. |
+| **Cenário Laboratório técnico** | piso escuro com régua de anéis, anel de blocos, prismas fora do piso, borda luminosa | `display.scenery`: tema 1 = laboratório · 0 = visual clássico cinza, blocos, prismas, legendas, distância dos anéis, altura dos blocos, borda. |
+
+O cenário **respeita os sliders de cenário**: raio da arena (Mapa), cores de piso/grid/fundo/paredes, espessura do piso, divisões do grid e altura/espessura das paredes
+(Ajustes › Visual) viram tons e proporções sobre a paleta do laboratório; com os valores padrão aparece exatamente o visual aprovado. Plataformas, obstáculos e
+destrutíveis mantêm o desenho existente. Os prismas decorativos ficam **fora** do piso para não parecerem obstáculos. Código: `view/scenery.js`,
+`view/consumables-gems.js`, `view/symbols.js`, `ui/progress-hud.js`, `ui/progress-values.js`.
+Testes: `test/progress-scenery.test.mjs` (unitário) e `test/progress-scenery.browser.mjs` (navegador; capturas em `prototypes/combat-lab/evidence/progress-scenery/`).
+
+## Pendências
+
+A integração é **visual**: a coleta, o spawn e os efeitos dos consumíveis continuam sendo os da simulação (`sim/map.js`), sem alteração. As cores, formas e símbolos da
+coleção A passam a ser o visual do jogo; revisar tamanho/altura das gemas e a exposição do piso em hardware real (testes aqui usaram WebGL por software).

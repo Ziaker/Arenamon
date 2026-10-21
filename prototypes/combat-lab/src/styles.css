@@ -849,3 +849,26 @@ button.onoff[aria-checked=true]::after{content:'ON';background:#14593c;color:#72
 .btn-preview:hover{background:#20405d;color:#fff}
 
 
+
+/* HUD de progressão "Banco de Células" (escolhido em 21/10/2026): 5 células verticais com segmentos empilhados. Só apresentação. */
+.pg-root{position:absolute;inset:0;pointer-events:none;z-index:5;--pg-scale:1;--pg-font:Bahnschrift,"Arial Narrow","Segoe UI",system-ui,sans-serif;font-family:var(--pg-font)}.pg-root[hidden]{display:none}
+.pg-bank{position:absolute;bottom:14px;display:flex;flex-direction:column;gap:3px;transform:scale(var(--pg-scale))}
+.pg-bank[data-fighter="0"]{left:12px;transform-origin:left bottom}.pg-bank[data-fighter="1"]{right:12px;transform-origin:right bottom}
+.pg-owner{font:800 10px var(--pg-font);letter-spacing:.14em;color:#c9d8ea;text-shadow:0 1px 3px #000}.pg-bank[data-fighter="1"] .pg-owner{text-align:right}.pg-root[data-multi=false] .pg-owner{display:none}
+.pg-cells{display:flex;gap:8px}
+.pg-cell{--edge:color-mix(in srgb,var(--c) 60%,#0000);width:66px;padding:7px 4px 6px;display:flex;flex-direction:column;align-items:center;gap:4px;background:linear-gradient(180deg,rgba(10,16,34,.86),rgba(5,9,20,.92));border:2px solid var(--edge);border-radius:4px;clip-path:polygon(0 9px,9px 0,calc(100% - 9px) 0,100% 9px,100% 100%,0 100%)}
+.pg-icon{color:var(--c);height:26px}.pg-sym{display:block}
+.pg-tube{display:flex;flex-direction:column;gap:3px;width:30px;height:104px;padding:3px;background:rgba(0,0,0,.5);border-radius:3px}
+.pg-seg{flex:1;position:relative;border:1.6px solid color-mix(in srgb,var(--c) 65%,#0000);border-radius:2px;background:repeating-linear-gradient(135deg,transparent 0 4px,rgba(255,255,255,.09) 4px 6px)}
+.pg-seg.on{background:linear-gradient(180deg,color-mix(in srgb,var(--c) 70%,#fff),var(--c));border-color:#ffffffcc;box-shadow:0 0 9px var(--c)}
+.pg-seg.on::after{content:attr(data-n);position:absolute;inset:0;display:grid;place-items:center;color:#0a1020;font:800 12px var(--pg-font)}
+.pg-val{font:800 16px var(--pg-font);color:#fff;letter-spacing:.01em;white-space:nowrap}
+.pg-name{font:700 11px var(--pg-font);color:var(--c);letter-spacing:.08em;text-align:center;line-height:1.1}.pg-name small{display:block;color:#b8c4e4;font-size:11px;letter-spacing:.04em}
+.pg-cell.zero .pg-val{color:#8a96b6}
+.pg-cell.max{--edge:#ffd23f;box-shadow:0 0 14px rgba(255,210,63,.45)}.pg-cell.max .pg-val,.pg-cell.max .pg-name small{color:#ffd23f}
+.pg-cell.gain{animation:pgSlam .55s cubic-bezier(.2,1.4,.4,1)}.pg-seg.new{animation:pgSegIn .6s ease-out}
+@keyframes pgSlam{0%{transform:translateY(-8px) scale(1.14);filter:brightness(2.2)}100%{transform:none;filter:none}}
+@keyframes pgSegIn{0%{transform:scaleX(1.5) scaleY(.2);filter:brightness(3)}60%{transform:scaleX(1.12) scaleY(1.15)}100%{transform:none;filter:none}}
+@media (prefers-reduced-motion:reduce){.pg-cell.gain,.pg-seg.new{animation:none}}
+/* com o HUD novo ligado, os selos de estágio clássicos do cabeçalho saem (nunca dois indicadores de progressão) */
+.stage[data-progress-hud] .stages-indicator{display:none}
