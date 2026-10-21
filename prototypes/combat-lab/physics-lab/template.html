@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Arenamon · Laboratório de Física — Rapier (prova de conceito)</title>
+<style>/*__CSS__*/</style>
+</head>
+<body>
+<div class="app">
+ <header class="top">
+  <span class="logo">A</span>
+  <strong>ARENAMON <em>FÍSICA · RAPIER</em></strong>
+  <small>Prova de conceito isolada — a física do jogo NÃO é substituída · offline · __VERSION_DETAIL__</small>
+  <span class="spacer"></span>
+  <small id="init-info">carregando WASM…</small>
+ </header>
+ <div class="body">
+  <aside class="side">
+   <section class="card">
+    <h3>Cenário</h3>
+    <select id="scenario" class="btn wide" style="margin-top:0"></select>
+    <p class="hint" id="scenario-hint"></p>
+    <p class="hint" id="scenario-expect"></p>
+   </section>
+   <section class="card">
+    <h3>Reprodução (mesmo roteiro, 120 Hz)</h3>
+    <div class="row"><button id="play" class="btn primary">▶ Reproduzir</button><button id="rerun" class="btn">↺ Reexecutar</button></div>
+    <div class="pfield"><label for="scrub">Tempo</label><output id="scrub-out">0,00 s</output><input type="range" id="scrub" min="0" max="1" step="1" value="0"></div>
+    <div class="pfield"><label for="speed">Velocidade</label><output id="speed-out">1×</output><input type="range" id="speed" min="0.1" max="2" step="0.1" value="1"></div>
+    <div class="legend"><span><i style="background:#4fa3ff"></i>Arenamon (atual)</span><span><i style="background:#ffa94d"></i>Rapier · caixa</span><span><i style="background:#69db7c"></i>Rapier · cápsula</span></div>
+    <label class="chk"><input type="checkbox" id="vis-arenamon" checked> Mostrar Arenamon</label>
+    <label class="chk"><input type="checkbox" id="vis-box" checked> Mostrar Rapier · caixa</label>
+    <label class="chk"><input type="checkbox" id="vis-capsule" checked> Mostrar Rapier · cápsula</label>
+   </section>
+   <section class="card">
+    <h3>Resultado do cenário</h3>
+    <div id="result"></div>
+   </section>
+   <section class="card">
+    <h3>Parâmetros do Rapier</h3>
+    <div id="params"></div>
+    <p class="hint">Os parâmetros de salto (altura e gravidades) valem para as DUAS físicas no experimento; o restante afeta só o Rapier.</p>
+   </section>
+   <section class="card">
+    <h3>Bateria completa</h3>
+    <button class="btn primary wide" id="battery">⚙ Rodar bateria (7 cenários × 3 motores)</button>
+    <div id="battery-result"><p class="hint">Inclui critérios por cenário, determinismo, snapshot/restauração e custo por passo.</p></div>
+   </section>
+  </aside>
+  <main class="main">
+   <canvas id="c"></canvas>
+   <div id="status" class="status">Pronto.</div>
+  </main>
+ </div>
+</div>
+<script>/*__BUNDLE__*/</script>
+</body>
+</html>

@@ -8,6 +8,7 @@ import {emptyCommand} from '../src/sim/entity.js';
 import {registerStandardMoves} from '../src/sim/moves/standard.js';
 import {getNavGraph, clearNavCache, collectSolids} from '../src/nav/nav-graph.js';
 import {NAV_SCENARIOS, NAV_SCENARIO_IDS, setupNavScenario, runNavScenario} from '../src/nav/nav-scenarios.js';
+import {NAV_STATE0, navStep} from '../src/nav/nav-planner.js';
 
 registerStandardMoves();
 let passed = 0, failed = 0;
@@ -114,6 +115,25 @@ test('cada cenário declara resultado esperado coerente com o medido', () => {
     const exp = NAV_SCENARIOS[id].expect, y = outcomes[id].yuka;
     if (exp === 'reach') assert.ok(y.reachedAt !== null, `${id} deveria alcançar`); else assert.equal(y.reachedAt, null, `${id} não deveria alcançar`);
   }
+});
+
+console.log('\n4. Orçamento de desempenho (skill performance-optimization: medir, fixar orçamento, verificar)');
+test('construir o grafo da arena de testes custa < 150 ms e só acontece quando o layout muda', () => {
+  fresh();const g = new Game({seed: 7});g.start();setupNavScenario(g, 'completo');
+  const t0 = performance.now();const nav = getNavGraph(g.mapState);const build = performance.now() - t0;
+  console.log(`      grafo: ${nav.stats().nodes} nós · ${nav.stats().walk + nav.stats().jump + nav.stats().drop} arestas · ${build.toFixed(1)} ms`);
+  assert.ok(build < 150, `${build.toFixed(1)} ms`);
+  const t1 = performance.now();for (let i = 0; i < 1000; i++) getNavGraph(g.mapState);
+  assert.ok((performance.now() - t1) / 1000 < .5, 'consulta ao cache deve ser barata (assinatura do layout)');
+});
+test('replanejar (BFS + A* do Yuka) custa < 3 ms por chamada; com replan de 0,4 s isso é < 0,1 ms/passo de 120 Hz amortizado', () => {
+  fresh();const g = new Game({seed: 7});g.start();setupNavScenario(g, 'completo');
+  const [blue, red] = g.fighters, st = NAV_STATE0();getNavGraph(g.mapState);
+  const N = 200, t0 = performance.now();
+  for (let i = 0; i < N; i++) {st.replanIn = 0;navStep({self: red, target: blue, mapState: g.mapState, state: st, dt: 1 / 120});}
+  const per = (performance.now() - t0) / N;
+  console.log(`      replanejamento: ${per.toFixed(2)} ms/chamada · amortizado ${(per * (1 / 120) / .4).toFixed(3)} ms/passo`);
+  assert.ok(per < 3, `${per.toFixed(2)} ms`);
 });
 
 console.log(`\n${passed} passaram, ${failed} falharam`);

@@ -619,6 +619,102 @@ PASS: dois blocos, cores, câmera, layout, file:// offline, sem erros.</pre>
         </div>
       </article>
 
+      <article class="suite-card" data-category="jogo">
+        <div class="suite-header">
+          <div>
+            <h2 class="suite-title">Navegação Yuka — Grafo de superfícies, rotas com salto/queda &amp; A/B (Fase 3 Open Source)</h2>
+            <div class="tag-group">
+              <span class="tag success">✓ 20 Unitários + 9 de Navegador</span>
+              <span class="tag primary">Node + Playwright</span>
+              <span class="tag">prototypes/combat-lab/test/nav.test.mjs</span>
+            </div>
+          </div>
+        </div>
+        <p class="suite-desc">
+          Grafo de caminhada/salto/queda sobre o A* do Yuka, planejador com detecção de travamento, ponte opcional com a IA (desligada por padrão) e laboratório com cenários sólidos (muro, corredor, rotas, plataforma, torre, arena completa) e comparação A/B. Laboratório: <code>prototypes/combat-lab/dist/arenamon-navegacao-yuka.html</code>.
+        </p>
+        <div class="cmd-box">
+          <code>node prototypes/combat-lab/test/nav.test.mjs</code>
+          <button class="copy-btn" onclick="copyCmd('node prototypes/combat-lab/test/nav.test.mjs', this)">Copiar Comando</button>
+        </div>
+        <div class="cmd-box">
+          <code>node prototypes/combat-lab/test/nav-lab.browser.mjs</code>
+          <button class="copy-btn" onclick="copyCmd('node prototypes/combat-lab/test/nav-lab.browser.mjs', this)">Copiar Comando</button>
+        </div>
+      </article>
+
+      <article class="suite-card" data-category="jogo">
+        <div class="suite-header">
+          <div>
+            <h2 class="suite-title">Pós-processamento — Pipeline cinematográfico pmndrs, A/B &amp; acessibilidade (Fase 4 Open Source)</h2>
+            <div class="tag-group">
+              <span class="tag success">✓ 11 Unitários + 16 de Navegador + 12 no Jogo</span>
+              <span class="tag primary">Node + Playwright</span>
+              <span class="tag">prototypes/combat-lab/test/post-params.test.mjs</span>
+            </div>
+          </div>
+        </div>
+        <p class="suite-desc">
+          Bloom por limiar/seleção, distorção em impactos fortes, aberração cromática, color grading, vinheta e profundidade de campo (só K.O.), com acessibilidade, medição de FPS/tempo de envio e camada opcional no jogo que desvia nos impact frames. Laboratório: <code>prototypes/combat-lab/dist/arenamon-posprocessamento.html</code>.
+        </p>
+        <div class="cmd-box">
+          <code>node prototypes/combat-lab/test/post-params.test.mjs</code>
+          <button class="copy-btn" onclick="copyCmd('node prototypes/combat-lab/test/post-params.test.mjs', this)">Copiar Comando</button>
+        </div>
+        <div class="cmd-box">
+          <code>node prototypes/combat-lab/test/post-lab.browser.mjs</code>
+          <button class="copy-btn" onclick="copyCmd('node prototypes/combat-lab/test/post-lab.browser.mjs', this)">Copiar Comando</button>
+        </div>
+        <div class="cmd-box">
+          <code>node prototypes/combat-lab/test/post-game.browser.mjs</code>
+          <button class="copy-btn" onclick="copyCmd('node prototypes/combat-lab/test/post-game.browser.mjs', this)">Copiar Comando</button>
+        </div>
+      </article>
+
+      <article class="suite-card" data-category="jogo">
+        <div class="suite-header">
+          <div>
+            <h2 class="suite-title">Física Rapier — Prova de conceito isolada (Fase 5 Open Source)</h2>
+            <div class="tag-group">
+              <span class="tag success">✓ 35 Unitários + 11 de Navegador (offline)</span>
+              <span class="tag primary">Node + Playwright</span>
+              <span class="tag">prototypes/combat-lab/test/rapier.test.mjs</span>
+            </div>
+          </div>
+        </div>
+        <p class="suite-desc">
+          Os mesmos 7 cenários (queda, salto, parede, teto, pilar, alta velocidade, borda) na física atual e em Rapier (caixa e cápsula): penetração, tremor, tunelamento, determinismo (repetição, save/load, snapshot) e custo por passo. A física principal NÃO foi substituída. Laboratório: <code>prototypes/combat-lab/dist/arenamon-fisica-rapier.html</code>.
+        </p>
+        <div class="cmd-box">
+          <code>node prototypes/combat-lab/test/rapier.test.mjs</code>
+          <button class="copy-btn" onclick="copyCmd('node prototypes/combat-lab/test/rapier.test.mjs', this)">Copiar Comando</button>
+        </div>
+        <div class="cmd-box">
+          <code>node prototypes/combat-lab/test/physics-lab.browser.mjs</code>
+          <button class="copy-btn" onclick="copyCmd('node prototypes/combat-lab/test/physics-lab.browser.mjs', this)">Copiar Comando</button>
+        </div>
+      </article>
+
+      <article class="suite-card" data-category="jogo">
+        <div class="suite-header">
+          <div>
+            <h2 class="suite-title">GameDev Agent Skills — Instalação e sincronia (Fase 1 Open Source)</h2>
+            <div class="tag-group">
+              <span class="tag success">✓ 12 skills em .claude/skills</span>
+              <span class="tag primary">Node + Playwright</span>
+              <span class="tag">scripts/install-skills.mjs</span>
+            </div>
+          </div>
+        </div>
+        <p class="suite-desc">
+          Verifica que as skills da pasta canônica <code>tools/gamedev-skills/</code> estão instaladas e idênticas em <code>.claude/skills/</code> (carregamento nativo do Claude Code) e que cada <code>SKILL.md</code> tem frontmatter válido. Registro de uso real em <code>docs/GAMEDEV_SKILLS.md</code>.
+        </p>
+        <div class="cmd-box">
+          <code>npm run skills:check</code>
+          <button class="copy-btn" onclick="copyCmd('npm run skills:check', this)">Copiar Comando</button>
+        </div>
+      </article>
+
       <!-- SUÍTE NOVA: CÂMERA CINEMÁTICA ESTILO ZZZ -->
       <article class="suite-card" data-category="jogo">
         <div class="suite-header">

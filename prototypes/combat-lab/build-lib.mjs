@@ -60,4 +60,6 @@ export const buildQuarksLab = o => buildToolLab('quarks-lab', ['three', 'three.q
 export const buildNavLab = o => buildToolLab('nav-lab', ['three', 'yuka'], o);
 /** Laboratório de pós-processamento pmndrs (Fase 4): bloom, distorção, aberração, grading, vinheta, DoF e A/B. */
 export const buildPostLab = o => buildToolLab('post-lab', ['three', 'postprocessing'], o);
-export const OUTPUTS = {lab: 'dist/arenamon-combate-laboratorio.html', reports: 'dist/arenamon-painel-relatorios.html', quarks: 'dist/arenamon-vfx-quarks.html', nav: 'dist/arenamon-navegacao-yuka.html', post: 'dist/arenamon-posprocessamento.html'};
+/** Laboratório de física Rapier (Fase 5): prova de conceito isolada, WASM embutido, comparação com a física atual. */
+export const buildPhysicsLab = o => buildToolLab('physics-lab', ['three', '@dimforge/rapier3d-compat'], o);
+export const OUTPUTS = {lab: 'dist/arenamon-combate-laboratorio.html', reports: 'dist/arenamon-painel-relatorios.html', quarks: 'dist/arenamon-vfx-quarks.html', nav: 'dist/arenamon-navegacao-yuka.html', post: 'dist/arenamon-posprocessamento.html', physics: 'dist/arenamon-fisica-rapier.html'};
