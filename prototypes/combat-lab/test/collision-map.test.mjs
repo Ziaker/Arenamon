@@ -51,5 +51,25 @@ check('cilindro: lançado (não é salto) perde só a parte horizontal que entra
   assert.ok(Math.abs(f.flight.horizontal.x) < 1e-9 && Math.abs(f.flight.horizontal.z - 2) < 1e-9, JSON.stringify(f.flight.horizontal));
 });
 
+check('pilar: salto voluntário (isNormalJump) mantém flight.horizontal intacta, só a posição é corrigida', () => {
+  const o = {shape: 'pillar', pos: {x: 0, y: 0, z: 0}, radius: 1, height: 3}, f = fighter(vec(1.2, 0));
+  f.flight = {y: 0, vy: -1, horizontal: vec(-5, 2), isNormalJump: true};
+  collideMapFighter(world([o]), f, []);
+  assert.deepEqual(f.flight.horizontal, vec(-5, 2));
+  assert.ok(Math.abs(f.position.x - (1 + r)) < 1e-9);
+});
+check('pilar: lutador acima do topo (apoiado sobre ele) não sofre empurrão lateral', () => {
+  const o = {shape: 'pillar', pos: {x: 0, y: 0, z: 0}, radius: 1, height: 1}, f = fighter(vec(.3, 0));
+  f.groundY = 1;
+  collideMapFighter(world([o]), f, []);
+  assert.deepEqual(f.position, vec(.3, 0));
+  assert.equal(f.contacts, 0);
+});
+check('pilar: centro exato resolve sempre na mesma direção (determinístico, compatível com o código anterior: +z)', () => {
+  const o = {shape: 'cylinder', pos: {x: 0, y: 0, z: 0}, radius: 1, height: 3}, f = fighter(vec(0, 0));
+  collideMapFighter(world([o]), f, []);
+  assert.ok(Math.abs(f.position.x) < 1e-12 && Math.abs(f.position.z - (1 + r)) < 1e-9, JSON.stringify(f.position));
+});
+
 console.log(`Colisões de obstáculos do mapa: ${tests} verificações aprovadas, ${failures.length} falhas.`);
 if (failures.length) process.exit(1);

@@ -8,7 +8,7 @@
 import {C} from './config.js';
 import {getFighterMaxStamina} from './entity.js';
 import {sturdyGuard} from './passive-engine.js';
-import {solidContact} from './solid-contact.js';
+import {circleContact} from './solid-contact.js';
 import {vec, add, sub, scale, length, normalize, dot, clamp, direction, angleOf} from './math.js';
 
 export const MAP_DEFAULTS = {
@@ -877,7 +877,7 @@ export function collideMapFighter(mapState, f, events = []) {
       if (risesOver(f, fY, topY)) continue;
       if (o.shape === 'cylinder' || o.shape === 'pillar') {
         // Menor translação real, inclusive com o centro do lutador exatamente no centro do pilar (antes: contato descartado e lutador preso).
-        const contact = solidContact({shape: 'circle', pos: o.pos, radius: o.radius}, f.position, halfExtent);
+        const contact = circleContact(o.pos, o.radius, f.position, halfExtent);
         if (contact) {
           const n = contact.normal;
           f.position.x += n.x * contact.depth;

@@ -121,5 +121,25 @@ check('sólido em outra altura não colide', () => {
   assert.deepEqual(f.position, vec());
 });
 
+check('breakByTackle: tackle quebra a barreira quebrável sem empurrar e sem contar como contato', () => {
+  const w = createWorld(), e = spawn(w, {kind: 'barrier', owner: 1, blocksOwner: true, blocksFighters: true, breakableByTackle: true, pos: vec(), hx: 2, hz: 1, y: 0, height: 2}, []);
+  const events = [], f = fighter(vec(0, .2));
+  f.attributes = {...C.profiles.balanced};f.hp = 100;f.knockRecovery = 0;f.state = 'tackle';
+  f.action = {kind: 'tackle', neutralized: false, heading: 0, elapsed: .1};
+  assert.equal(collideFighter(w, f, events), 0);
+  assert.equal(e.dead, true);
+  assert.deepEqual(f.position, vec(0, .2), 'quebrar não pode empurrar');
+  assert.equal(f.action, null);
+  assert.ok(events.some(x => x.result === 'barrierBroken' && x.by === 'tackle'));
+});
+check('breakByTackle: tackle neutralizado NÃO quebra e a barreira empurra normalmente', () => {
+  const w = createWorld(), e = spawn(w, {kind: 'barrier', owner: 1, blocksOwner: true, blocksFighters: true, breakableByTackle: true, pos: vec(), hx: 2, hz: 1, y: 0, height: 2}, []);
+  const f = fighter(vec(0, 1.2));
+  f.action = {kind: 'tackle', neutralized: true, heading: 0, elapsed: .1};
+  assert.equal(collideFighter(w, f, []), 1);
+  assert.equal(e.dead, undefined);
+  assert.ok(clearOf(e, f.position));
+});
+
 console.log(`Colisões de sólidos XZ: ${tests} verificações aprovadas, ${failures.length} falhas.`);
 if (failures.length) process.exit(1);

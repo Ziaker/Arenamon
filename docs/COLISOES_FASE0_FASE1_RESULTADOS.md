@@ -70,3 +70,16 @@ Ainda **não** invocadas: `requesting-code-review`, `verification-before-complet
 **Não verificado nesta etapa:** testes de navegador (`test:combat-lab:browser`), `npm run verify`, avaliação visual no `JOGAR_ARENAMON.html`, Reflect/Psyshock em partida real além dos testes unitários.
 
 **Achado sobre o PR #100:** o caso de teste "caixa rotacionada" dele usa um empate exato entre duas faces, cujo sinal depende de ruído de ponto flutuante; foi trocado por um ponto sem empate.
+
+## 5. Revisão independente da Fase 1 (skill `requesting-code-review`, subagente somente leitura)
+
+Veredito do revisor: **sem itens críticos; "com ajustes"**. Tratamento:
+
+| Item do revisor | Decisão |
+| --- | --- |
+| Pilares passaram a remover a velocidade que entra no sólido (muda alcance de lançado contra pilar; pilar, caixa do mapa e parede de Move têm restituições diferentes) | **Mantido e registrado como decisão de jogo pendente de confirmação.** Fundamento: o requisito da Fase 1 é remover só a componente violadora, e as caixas do mapa já faziam isso. Ricochete contra pilar (R3.12 "quando autorizado") **não** foi implementado. Se o responsável preferir o comportamento anterior (lançado desliza mantendo o módulo), basta remover o bloco de velocidade do ramo cilindro/pilar em `map.js`. |
+| `locomotionVelocity` não tratada no pilar | **Sem mudança necessária:** `game.js:108` copia `velocity` para `locomotionVelocity` ao fim de cada passo (lutador sem ação/blend/voo); nas ações a velocidade vem da própria ação. Mesmo tratamento das caixas. |
+| Faltavam testes de `breakByTackle`, `isNormalJump`, pilar com altura | **Adicionados** (collision-solid: 17 verificações; collision-map: 12). |
+| Centro exato de círculo: normal (1,0) × código antigo (0,1) | **Corrigido** para (0,1), compatível com replays antigos. |
+| Alocação de objeto por subpasso no pilar | **Corrigido:** `circleContact(centro, raio, p, r)` sem alocação intermediária. |
+| NaN em `p` retorna null sem diagnóstico | Registrado; tratamento de diagnóstico fica para a Fase 7 (ferramentas). |

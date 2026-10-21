@@ -14,17 +14,25 @@ import {clamp} from './math.js';
  */
 
 /**
+ * Disco (centro p, raio `radius`) × círculo sólido. Sem alocar objeto intermediário (caminho quente a 120 Hz).
+ * Centro exatamente coincidente: normal (0,1), a mesma escolha do código anterior (compatível com replays gravados).
+ * @param {Vec} center @param {number} solidRadius @param {Vec} p @param {number} radius
+ * @returns {{normal: Vec, depth: number, inside: boolean} | null}
+ */
+export function circleContact(center, solidRadius, p, radius) {
+  if (!(solidRadius > 0) || !(radius >= 0) || !Number.isFinite(p.x) || !Number.isFinite(p.z)) return null;
+  const dx = p.x - center.x, dz = p.z - center.z, dist = Math.hypot(dx, dz), depth = solidRadius + radius - dist;
+  if (!(depth > 1e-10)) return null;
+  return {normal: dist > 1e-10 ? {x: dx / dist, z: dz / dist} : {x: 0, z: 1}, depth, inside: dist < solidRadius};
+}
+
+/**
  * @param {Solid} solid @param {Vec} p centro do disco @param {number} radius raio do disco
  * @returns {{normal: Vec, depth: number, inside: boolean} | null} null quando não há penetração (tangente também é null)
  */
 export function solidContact(solid, p, radius) {
   if (!(radius >= 0) || !Number.isFinite(p.x) || !Number.isFinite(p.z)) return null;
-  if (solid.shape === 'circle') {
-    if (!(solid.radius > 0)) return null;
-    const dx = p.x - solid.pos.x, dz = p.z - solid.pos.z, dist = Math.hypot(dx, dz), depth = solid.radius + radius - dist;
-    if (!(depth > 1e-10)) return null;
-    return {normal: dist > 1e-10 ? {x: dx / dist, z: dz / dist} : {x: 1, z: 0}, depth, inside: dist < solid.radius};
-  }
+  if (solid.shape === 'circle') return circleContact(solid.pos, solid.radius, p, radius);
   if (solid.shape !== 'box') return null;
   const hx = solid.hx ?? 0, hz = solid.hz ?? 0;
   if (!(hx > 0 && hz > 0)) return null;
