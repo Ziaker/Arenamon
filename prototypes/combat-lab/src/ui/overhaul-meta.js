@@ -98,7 +98,9 @@ const VFX_PARAMS = {
   spread: ['Dispersão / abertura', R(0, 2, .01, m)], interval: ['Intervalo', R(.005, .4, .005, sec)], density: ['Densidade', R(.1, 4, .01, x)], frequency: ['Frequência', R(1, 80, 1, n => n + '/s')],
   expansion: ['Expansão', R(0, 3, .01, x)], scale: ['Escala', R(.2, 3, .01, x)], wave: ['Tamanho da onda', R(.2, 6, .01, m)], flash: ['Intensidade do flash', R(0, 1, .01, pct)],
   freeze: ['Congelamento visual (só poses e efeito)', R(0, .25, .005, n => (n * 1000).toFixed(0) + ' ms')], radius: ['Raio', R(.2, 4, .01, m)], particleSize: ['Tamanho das partículas', R(.02, 1, .01, m)],
-  elevation: ['Elevação', R(0, 3, .01, x)], mixA: ['Combinado (D): poeira (A)', R(0, 2, .01, x)], mixB: ['Combinado (D): anel (B)', R(0, 2, .01, x)], mixC: ['Combinado (D): estilhaços (C)', R(0, 2, .01, x)], minImpact: ['Impacto mínimo para disparar', R(0, 15, .1, n => n.toFixed(1) + ' m/s')], fallSpeed: ['Velocidade de queda', R(.1, 6, .01, n => n.toFixed(2) + ' m/s')],
+  elevation: ['Elevação', R(0, 3, .01, x)], cone: ['Abertura do cone de fagulhas (variante D)', R(0, 1.4, .01, n => (n * 57.3).toFixed(0) + '°')], debris: ['Detritos (variante D)', R(0, 3, .05, x)], dust: ['Poeira rente ao chão (variante D)', R(0, 3, .05, x)],
+  crack: ['Rachadura no chão (variante D)', R(0, 2, .05, x)], byDamage: ['Escala pelo dano e lançamento reais (variante D)', R(0, 1, .01, pct)],
+  mixA: ['Combinado (D): poeira (A)', R(0, 2, .01, x)], mixB: ['Combinado (D): anel (B)', R(0, 2, .01, x)], mixC: ['Combinado (D): estilhaços (C)', R(0, 2, .01, x)], minImpact: ['Impacto mínimo para disparar', R(0, 15, .1, n => n.toFixed(1) + ' m/s')], fallSpeed: ['Velocidade de queda', R(.1, 6, .01, n => n.toFixed(2) + ' m/s')],
   startHeight: ['Altura inicial', R(.3, 4, .01, m)], height: ['Altura', R(.3, 4, .01, m)], scaleWithRate: ['Intensidade acompanha a taxa de recuperação', toggle],
   rotSpeed: ['Velocidade de rotação', R(0, 10, .1, n => n.toFixed(1) + ' rad/s')], trail: ['Rastro de partículas', toggle],
   trailDensity: ['Densidade do rastro', R(1, 30, 1, n => String(n))], shatter: ['Estilhaçar no impacto', toggle],
@@ -131,6 +133,8 @@ const VFX_HELP = {
   target: 'A exaustão é o estado real da simulação (stamina esgotada), não “stamina baixa”.',
   scaleWithRate: 'Liga: mais partículas quando a regeneração está mais rápida (curva da simulação).',
   limit: 'Deslocamento máximo somado de todos os tremores ativos.',
+  cone: 'Variante D: ângulo de abertura (para cada lado) do leque de fagulhas ao redor da direção do golpe. 0° = jato reto.', debris: 'Variante D: quantidade de lascas que quicam no chão. 0 = sem detritos.', dust: 'Variante D: nuvem baixa de poeira empurrada no sentido do golpe. 0 = sem poeira.',
+  crack: 'Variante D: tamanho da rachadura que fica marcada no chão em golpes fortes. 0 = desligada.', byDamage: 'Variante D: quanto a força do efeito segue o dano e o lançamento reais do golpe. 0% = sempre a mesma força; 100% = golpe fraco ou forte se vê diferente.',
   mixA: 'Peso da poeira (componente A) na variante D. 0 = sem esse componente.', mixB: 'Peso do anel (componente B) na variante D. 0 = sem esse componente.', mixC: 'Peso dos estilhaços (componente C) na variante D. 0 = sem esse componente.',
 };
 const SHADOW = {

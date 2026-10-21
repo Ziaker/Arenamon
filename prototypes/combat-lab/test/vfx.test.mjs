@@ -13,6 +13,7 @@ import {VfxTelemetry} from '../src/view/vfx/telemetry.js';
 import {CameraFeedback, CAMERA_PROFILES} from '../src/view/vfx/camera-feedback.js';
 import {PresetManager, PRESET_SCHEMA, PRESET_SCHEMA_VERSION} from '../src/view/vfx/presets.js';
 import {VfxRuntime} from '../src/view/vfx/runtime.js';
+import {VfxSystem, VFX_TYPES} from '../src/view/vfx.js';
 import {registerAllEffects} from '../src/view/vfx/index.js';
 import {buildClashC} from '../src/view/vfx/effects/clash.js';
 import {BeamRenderer, BEAM_PL_COLORS} from '../src/view/vfx/beam-renderer.js';
@@ -1050,6 +1051,40 @@ test('beam: gatilho experimental com simulação física real (Game.step() e Bea
   assert.equal(renderer.beams[0].beamGroup.visible, true);
   assert.equal(renderer.beams[0].segments[0].coreMesh.visible, true);
   renderer.dispose();
+});
+
+// ============ IMPACTO · VARIANTE D (direcional, renderizador legado) ============
+
+test('hit D: nasce da normal real, escala com dano/lançamento e respeita os controles', () => {
+  const hit = VFX_TYPES.find(t => t[0] === 'hit');
+  assert.equal(hit[2].length, 4, 'hit tem 4 variantes (A, B, C, D)');
+  const run = (ctx, patch = {}) => {
+    resetConfig();
+    Object.assign(C.vfx.hit, {variant: 3}, patch);
+    const v = new VfxSystem({add: () => {}, remove: () => {}}, {flashEl: {style: {}}});
+    v.fire('hit', {pos: {x: 0, z: 0}, power: 1, ...ctx}, 'teste');
+    return [...v.add.p, ...v.norm.p];
+  };
+  const normal = {x: 1, z: 0};
+  const base = run({n: normal, damage: C.test.attack, launch: {horizontal: C.rules.launchHorizontal}});
+  assert.ok(base.length > 10, 'variante D produz partículas');
+  const streaks = base.filter(p => p.cell === 1 && p.vx !== 0);
+  assert.ok(streaks.filter(p => p.vx > 0).length > streaks.filter(p => p.vx < 0).length, 'a maioria das faíscas segue a direção da normal (+x)');
+  assert.ok(base.some(p => p.mode === 3 && Math.abs(p.ax - 1) < 1e-9), 'anel de pressão é perpendicular à normal');
+  // Golpe forte (dano e lançamento altos) vira mais partículas que golpe fraco, e o byDamage = 0 iguala os dois.
+  const strong = run({n: normal, damage: C.test.attack * 2, launch: {horizontal: C.rules.launchHorizontal * 2}});
+  const weak = run({n: normal, damage: C.test.attack * .3, launch: {horizontal: C.rules.launchHorizontal * .3}});
+  assert.ok(strong.length > weak.length, `golpe forte (${strong.length}) > fraco (${weak.length})`);
+  assert.ok(strong.some(p => p.cell === 12), 'rachadura aparece só no golpe forte');
+  assert.ok(!weak.some(p => p.cell === 12), 'golpe fraco não racha o chão');
+  const flat1 = run({n: normal, damage: C.test.attack * 2}, {byDamage: 0}), flat2 = run({n: normal, damage: C.test.attack * .3}, {byDamage: 0});
+  assert.equal(flat1.length, flat2.length, 'byDamage = 0 → mesma força independente do dano');
+  // Controles individuais desligam cada camada.
+  const off = run({n: normal, damage: C.test.attack * 2}, {debris: 0, dust: 0, crack: 0});
+  assert.ok(!off.some(p => p.cell === 14 || p.cell === 6 && p.gravity === 14 || p.cell === 8 || p.cell === 12), 'detritos, poeira e rachadura desligáveis');
+  // Normal ausente não quebra (usa +z).
+  assert.ok(run({n: undefined}).length > 0, 'sem normal usa o eixo padrão');
+  resetConfig();
 });
 
 console.log(`\n${passed} testes de VFX aprovados.`);
