@@ -74,10 +74,10 @@ try {
   check('os eventos de ativação carregam a causa do evento origem (R31)', hit.events.length > 0 && hit.events.every(e => e.cause !== null), JSON.stringify(hit.events));
   await page.waitForTimeout(250);
   const hud1 = await L(() => [...document.querySelectorAll('#passives-hud .mvp-row')].map(r => [r.dataset.fighter, r.querySelector('.mvp-slot[data-state="ativa"]')?.textContent ?? '']));
-  const notices = await L(() => [...document.querySelectorAll('#ability-notices .ability-notice')].map(n => `${n.className}="${n.textContent}"`));
-  check('notificação de HUD "Ability: NOME" entra pela direita (oponente) ao ativar (§16)', notices.length > 0 && notices.every(n => n.includes('side-1')) && notices.some(n => /Ability: /.test(n)), notices.join(' | '));
+  const notices = await L(() => [...document.querySelectorAll('.ability-banner.show')].map(n => `${n.className}="${n.textContent.trim()}"`));
+  check('placa metálica "Ability: NOME" usa o evento real e entra pela borda do lutador (§16)', notices.length > 0 && notices.some(n => n.includes('right')) && notices.some(n => /Ability:\s*(Stamina|Rough Skin)/.test(n)), notices.join(' | '));
   check('o HUD reflete o estado ativo com tempo restante (§17)', hud1.some(r => r[0] === '1' && /s$/.test(r[1].trim())), JSON.stringify(hud1));
-  check('VFX de ativação existe na cena (variante configurada)', await L(() => {const v = window.__lab.view.scene.children.length > 0;return v && (window.__lab.C.vfx?.passive?.variant ?? 0) >= 0;}));
+  check('VFX real usa sparkles brancos presos ao lutador por 0,5 s', await L(() => window.__lab.view.passives.fighters.some(fx => fx.active && fx.root.visible && fx.particles.every(p => p.material.color.getHex() === 0xffffff))));
   await page.screenshot({path: out + 'ativacao.png'});
   // cooldown pós-término (R16): efeito acaba, HUD mostra recarga
   await page.waitForFunction(() => {const st = window.__lab.game.fighters[1].passiveState;return st.actives.length === 0 && (st.cooldowns.stamina ?? 0) > 0;}, null, {timeout: 20000});

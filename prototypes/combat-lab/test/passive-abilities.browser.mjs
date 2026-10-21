@@ -19,20 +19,24 @@ try {
   await page.goto(pathToFileURL(root + 'dist/arenamon-combate-laboratorio.html').href);
   await page.waitForFunction(() => window.__lab);
   await page.click('#start-center');
+  await page.evaluate(() => {window.__lab.view.previewPassive(0, 0);window.__lab.view.previewPassive(1, 1);});
   await page.waitForFunction(() => document.querySelectorAll('.ability-banner.show').length === 2);
   await page.waitForFunction(() => [...document.querySelectorAll('.ability-banner.show')].every(bar => getComputedStyle(bar).transform === 'none'));
 
-  const layout = await page.evaluate(() => ({stage: (() => {const r = document.querySelector('.stage').getBoundingClientRect();return {left: r.left, right: r.right, width: r.width, height: r.height};})(), banners: [...document.querySelectorAll('.ability-banner')].map(bar => {
-    const name = bar.querySelector('strong'), r = bar.getBoundingClientRect(), nr = name.getBoundingClientRect(), cs = getComputedStyle(name);
-    return {text: name.textContent, left: r.left, right: r.right, width: r.width, height: r.height, font: parseFloat(cs.fontSize), clipped: name.scrollWidth > name.clientWidth || nr.right > r.right + 1};
+  const layout = await page.evaluate(() => ({oldSystem: !!document.getElementById('ability-notices'), stage: (() => {const r = document.querySelector('.stage').getBoundingClientRect();return {left: r.left, top: r.top, right: r.right, width: r.width, height: r.height};})(), banners: [...document.querySelectorAll('.ability-banner')].map(bar => {
+    const prefix = bar.querySelector('span'), name = bar.querySelector('strong'), r = bar.getBoundingClientRect(), nr = name.getBoundingClientRect(), cs = getComputedStyle(name);
+    return {text: name.textContent, prefixFont: parseFloat(getComputedStyle(prefix).fontSize), top: r.top, left: r.left, right: r.right, width: r.width, height: r.height, font: parseFloat(cs.fontSize), clipped: name.scrollWidth > name.clientWidth || nr.right > r.right + 1};
   })}));
   const banners = layout.banners;
+  assert.equal(layout.oldSystem, false, 'o sistema antigo foi removido do DOM');
   assert.deepEqual(banners.map(b => b.text), ['Órbita', 'Prisma']);
   assert.ok(banners.every(b => /^\S+$/u.test(b.text)), 'todos os nomes usam uma palavra');
   assert.ok(banners.every(b => b.font >= 15), JSON.stringify(banners));
+  assert.ok(banners.every(b => b.prefixFont >= 10), JSON.stringify(banners));
   assert.ok(!banners.some(b => b.clipped), JSON.stringify(banners));
   assert.ok(Math.abs(banners[0].left - layout.stage.left) <= 2 && Math.abs(banners[1].right - layout.stage.right) <= 2, JSON.stringify(layout));
-  assert.ok(banners.every(b => b.width <= 170 && b.height <= 26 && b.width <= layout.stage.width * .15 + 1), JSON.stringify(banners));
+  assert.ok(banners.every(b => b.width >= 210 && b.width <= 270 && b.height === 46), JSON.stringify(banners));
+  assert.ok(banners.every(b => Math.abs(b.top - (layout.stage.top + layout.stage.height * .34)) <= 2), JSON.stringify(layout));
   const occupied = banners.reduce((sum, b) => sum + b.width * b.height, 0) / (layout.stage.width * layout.stage.height);
   assert.ok(occupied <= .1, `as duas notificações ocupam ${(occupied * 100).toFixed(2)}% da área visível`);
 
@@ -62,7 +66,7 @@ try {
   await page.waitForTimeout(360);
   assert.ok(await page.evaluate(() => window.__lab.view.passives.fighters.every(fx => !fx.active)), 'sparkles encerram após 0,5 s');
 
-  const result = {ok: true, names: banners.map(b => b.text), minFontPx: Math.min(...banners.map(b => b.font)), maxBannerPx: {width: 170, height: 26}, maxWidthPerSidePct: 15, occupiedArenaPct: +(occupied * 100).toFixed(2), fullNameAtScale145: tuned.names.every(name => name.scroll <= name.client), sparkleColor: '#ffffff', sparkleDurationSeconds: .5, sparkleCountPerFighter: 28, followsCharacter: true, mirroredEdges: true, borderModes: 3, controls: tuned.controls, errors};
+  const result = {ok: true, names: banners.map(b => b.text), minFontPx: Math.min(...banners.map(b => b.font)), bannerPx: {minWidth: 210, maxWidth: 270, height: 46}, position: 'top 34%, extrema esquerda/direita', occupiedArenaPct: +(occupied * 100).toFixed(2), fullNameAtScale145: tuned.names.every(name => name.scroll <= name.client), sparkleColor: '#ffffff', sparkleDurationSeconds: .5, sparkleCountPerFighter: 28, followsCharacter: true, mirroredEdges: true, borderModes: 3, controls: tuned.controls, errors};
   writeFileSync(evidence + 'resultado.json', JSON.stringify(result, null, 2));
   assert.deepEqual(errors, []);
   console.log('✓ navegador: barras, texto, acompanhamento e controles no jogo real');

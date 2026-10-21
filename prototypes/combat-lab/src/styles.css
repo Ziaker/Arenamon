@@ -101,20 +101,20 @@ pre.diff{max-height:240px;overflow:auto;font-size:11px;background:#0b1118;paddin
 .chip-variant b{color:#8de4d1}.chip-variant button{min-height:20px!important;padding:0 5px!important;font-size:10px}
 .variants select{width:100%;font-size:11px;min-height:26px}.variants tr.playing td:first-child{color:var(--lime);font-weight:700}
 #vfx-flash{position:absolute;inset:0;pointer-events:none;opacity:0;mix-blend-mode:screen;z-index:3}
-.ability-banner{--side:-1;position:absolute;left:0;bottom:92px;width:min(170px,15%);height:26px;z-index:7;pointer-events:none;overflow:hidden;opacity:0;clip-path:polygon(0 0,94% 0,100% 100%,0 100%);filter:drop-shadow(0 2px 3px #0008);background:linear-gradient(110deg,#4d5964,#d8e0e6 12%,#737f8a 24%,#f8fbfd 38%,#65717c 54%,#dce4ea 72%,#4a5661);transform-origin:left center}
-.ability-banner.right{--side:1;left:auto;right:0;clip-path:polygon(6% 0,100% 0,100% 100%,0 100%);transform-origin:right center}
-.ability-banner-inner{position:absolute;inset:2px 2px 2px 0;display:flex;align-items:center;gap:3px;padding:0 8px 0 4px;background:linear-gradient(#fff,#fff 73%,#eceff2);clip-path:polygon(0 0,94% 0,100% 100%,0 100%);color:#17202a;font:italic 800 calc(13px * var(--ability-text-scale,1))/.95 Inter,Arial,sans-serif;white-space:nowrap}
-.ability-banner.right .ability-banner-inner{inset:2px 0 2px 2px;justify-content:flex-end;padding:0 4px 0 8px;clip-path:polygon(6% 0,100% 0,100% 100%,0 100%)}
-.ability-banner span{flex:none;color:#59636c;font-size:.42em;font-weight:650;letter-spacing:.01em}.ability-banner strong{font:inherit;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.ability-banner{--side:-1;position:absolute;left:0;top:34%;width:clamp(210px,22vw,270px);height:46px;z-index:7;pointer-events:none;overflow:hidden;opacity:0;isolation:isolate;clip-path:polygon(0 0,94% 0,100% 50%,94% 100%,0 100%);filter:drop-shadow(0 5px 8px #0009);transform-origin:left center}
+.ability-banner.right{--side:1;left:auto;right:0;clip-path:polygon(6% 0,100% 0,100% 100%,6% 100%,0 50%);transform-origin:right center}
+.ability-banner::before{content:'';position:absolute;inset:0;z-index:0;background:linear-gradient(110deg,#26313a 0%,#8b99a3 10%,#f7fbff 18%,#66747f 29%,#dbe4ea 42%,#4b5862 55%,#fff 68%,#77858f 80%,#252f37 100%);background-size:240% 100%}
+.ability-banner-inner{position:absolute;z-index:1;inset:3px 4px 3px 0;display:flex;align-items:baseline;gap:5px;padding:0 16px 0 12px;background:linear-gradient(180deg,#fff 0%,#f8fafb 60%,#e5e9ec 100%);clip-path:polygon(0 0,94% 0,100% 50%,94% 100%,0 100%);color:#17202a;white-space:nowrap;box-shadow:inset 0 1px #fff,inset 0 -1px #aeb8bf}
+.ability-banner.right .ability-banner-inner{inset:3px 0 3px 4px;justify-content:flex-end;padding:0 12px 0 16px;clip-path:polygon(6% 0,100% 0,100% 100%,6% 100%,0 50%)}
+.ability-banner span{flex:none;color:#5a6670;font:750 11px/1 Inter,Arial,sans-serif;letter-spacing:.035em}.ability-banner strong{min-width:0;overflow:hidden;text-overflow:ellipsis;color:#101820;font:italic 850 calc(18px * var(--ability-text-scale,1))/1 Inter,Arial,sans-serif;letter-spacing:-.015em;text-shadow:0 1px #fff}
 .ability-banner.show{animation:ability-slide 2.3s cubic-bezier(.18,.86,.2,1) both}
 @keyframes ability-slide{0%{opacity:0;transform:translateX(calc(var(--side)*112%)) rotateY(calc(var(--side)*-34deg)) scale(.9)}12%{opacity:1;transform:translateX(calc(var(--side)*2%)) rotateY(calc(var(--side)*2deg)) scale(1.02)}20%,78%{opacity:1;transform:none}100%{opacity:0;transform:translateX(calc(var(--side)*112%)) rotateY(calc(var(--side)*-28deg)) scale(.94)}}
-.ability-banner::after{content:'';position:absolute;inset:0;z-index:2;pointer-events:none;mix-blend-mode:screen}
-.stage[data-ability-border=sweep] .ability-banner::after{background:linear-gradient(110deg,transparent 35%,#fff0 42%,#fff 49%,#bfe8ff 52%,transparent 61%);background-size:250% 100%;animation:ability-metal-sweep 1.2s linear infinite}
-.stage[data-ability-border=pulse] .ability-banner::after{background:linear-gradient(135deg,#9ec5dd,#fff,#6e8799);animation:ability-metal-pulse 1.35s ease-in-out infinite}
-.stage[data-ability-border=chase] .ability-banner::after{inset:-420% -20%;background:conic-gradient(from 0deg,transparent 0 225deg,#b8d6e9 275deg,#fff 310deg,transparent 350deg);animation:ability-metal-chase 2.4s linear infinite}
-.ability-banner.right::after{animation-direction:reverse!important}@keyframes ability-metal-sweep{from{background-position:180% 0}to{background-position:-80% 0}}@keyframes ability-metal-pulse{0%,100%{opacity:.06}50%{opacity:.8}}@keyframes ability-metal-chase{to{transform:rotate(360deg)}}
-@media(max-width:720px){.ability-banner{bottom:76px;width:min(140px,15%);height:25px}.ability-banner-inner{gap:2px;padding:0 6px 0 3px;font-size:calc(10.5px * var(--ability-text-scale,1))}.ability-banner.right .ability-banner-inner{padding:0 3px 0 6px}.ability-banner span{font-size:.38em}}
-@media(prefers-reduced-motion:reduce){.ability-banner.show{animation:ability-banner-fade 2.3s ease both}.ability-banner::after{animation:none!important}@keyframes ability-banner-fade{0%,100%{opacity:0}10%,82%{opacity:1}}}
+.stage[data-ability-border=sweep] .ability-banner::before{animation:ability-metal-sweep 1.25s linear infinite}
+.stage[data-ability-border=pulse] .ability-banner::before{animation:ability-metal-pulse 1.35s ease-in-out infinite}
+.stage[data-ability-border=chase] .ability-banner::before{background:conic-gradient(from 0deg at 50% 50%,#26313a 0 19%,#f8fdff 23%,#82929e 28% 48%,#fff 52%,#63727d 58% 78%,#dce9f0 82%,#26313a 88%);animation:ability-metal-chase 2.4s linear infinite}
+.ability-banner.right::before{animation-direction:reverse!important}@keyframes ability-metal-sweep{from{background-position:180% 0}to{background-position:-80% 0}}@keyframes ability-metal-pulse{0%,100%{filter:brightness(.72)}50%{filter:brightness(1.45)}}@keyframes ability-metal-chase{to{transform:rotate(360deg) scale(3)}}
+@media(max-width:720px){.ability-banner{width:clamp(190px,38vw,220px);height:42px}.ability-banner-inner{gap:4px;padding-left:10px}.ability-banner.right .ability-banner-inner{padding-right:10px}.ability-banner span{font-size:10px}.ability-banner strong{font-size:calc(16px * var(--ability-text-scale,1))}}
+@media(prefers-reduced-motion:reduce){.ability-banner.show{animation:ability-banner-fade 2.3s ease both}.ability-banner::before{animation:none!important}@keyframes ability-banner-fade{0%,100%{opacity:0}10%,82%{opacity:1}}}
 /* Barras do HUD atual: o medidor nativo do Chromium quase some com 5 px; agora com aparência própria. */
 .fighter meter{appearance:none;-webkit-appearance:none;height:10px;border-radius:5px;background:#1d2b38;border:1px solid #ffffff22;overflow:hidden}
 .fighter meter.sta{height:7px;margin-top:5px}
@@ -242,13 +242,6 @@ pre.diff{max-height:240px;overflow:auto;font-size:11px;background:#0b1118;paddin
 #passives-hud .mvp-row{position:static}
 .pvh-toast{position:absolute;left:50%;top:18%;transform:translateX(-50%);background:#ffffffee;color:#0b131c;font:800 15px/1.2 Inter,system-ui,sans-serif;padding:8px 18px;border-radius:999px;box-shadow:0 0 18px #ffffff88;animation:pvh-toast-in .25s ease}
 @keyframes pvh-toast-in{from{opacity:0;transform:translateX(-50%) translateY(-8px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
-#ability-notices{position:absolute;inset:0;z-index:6;pointer-events:none;overflow:hidden}
-#ability-notices .ability-notice{position:absolute;top:34%;background:#fffffff0;color:#0b131c;font:800 15px/1.2 Inter,system-ui,sans-serif;padding:9px 18px;border-radius:12px;box-shadow:0 2px 14px #0008;white-space:nowrap;transition:transform .35s cubic-bezier(.2,.8,.25,1),opacity .3s ease;opacity:0}
-#ability-notices .ability-notice.side-0{left:0;border-left:4px solid #4aa3ff;transform:translateX(-110%)}
-#ability-notices .ability-notice.side-1{right:0;border-right:4px solid #ff6b6b;transform:translateX(110%)}
-#ability-notices .ability-notice.in{transform:translateX(0);opacity:1}
-#ability-notices .ability-notice.side-0.out{transform:translateX(-110%);opacity:0}
-#ability-notices .ability-notice.side-1.out{transform:translateX(110%);opacity:0}
 .passives-panel .passives-slot h3{font:700 12.5px/1.3 Inter,system-ui,sans-serif;color:#cfe2f2;margin:8px 0 4px}
 .passives-panel .passives-slot p{margin:4px 0 0;font:600 11px/1.3 Inter,system-ui,sans-serif}
 .passives-panel p.ok{color:#9fe08a}

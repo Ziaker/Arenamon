@@ -18,7 +18,12 @@ C.display.passive.playerAbility = 0;
 C.display.passive.enemyAbility = 1;
 system.update(fighters, 1 / 60, {characters});
 
+assert.deepEqual(notices, [], 'o jogo não dispara nomes fictícios ao iniciar');
+system.activate(0, C.display.passive.playerAbility);
+system.activate(1, C.display.passive.enemyAbility);
 assert.deepEqual(notices, [{id: 0, name: 'Órbita'}, {id: 1, name: 'Prisma'}]);
+system.activate(0, 0, 'Regenerator');
+assert.equal(notices.at(-1).name, 'Regenerator', 'eventos reais podem informar o nome da passiva equipada');
 assert.deepEqual(system.fighters[0].root.position.toArray(), [1.25, .12, -2.5]);
 assert.deepEqual(system.fighters[1].root.position.toArray(), [-3, 1.2, 4.5]);
 assert.equal(system.fighters[0].root.rotation.y, .4);

@@ -37,8 +37,7 @@ import {MovesHud} from './ui/moves-hud.js';
 import {createPassivesPanel} from './ui/passives-panel.js';
 import {createQuickMenu} from './ui/menu-quick.js';
 import {PassivesHud} from './ui/passives-hud.js';
-import {PassiveVfx} from './view/passive-vfx.js';
-import {AbilityNotices} from './ui/ability-notices.js';
+import {PASSIVE_BY_ID} from './sim/passives.js';
 import {createPerfPanel} from './ui/perf-panel.js';
 import {createAiEvalPanel} from './ui/ai-eval-panel.js';
 import {createProjectFiles} from './ui/project-files.js';
@@ -111,7 +110,7 @@ async function triggerWarmup({force = false} = {}) {
     }
   }
 }
-function resetViewAndLogs() {view.reset(game.fighters[0]);recorder.clear();replay.clear();pushReplay();dock.invalidate();clock.reset();passiveVfx.clear();abilityNotices.clear();}
+function resetViewAndLogs() {view.reset(game.fighters[0]);recorder.clear();replay.clear();pushReplay();dock.invalidate();clock.reset();}
 function startMatch({playback = null} = {}) {
   if (ui.training) {training.end();}
   abortScenario();restorePlaybackValues();ui.playback = playback;
@@ -651,17 +650,14 @@ $('passives-card')?.append(passivesPanel.root);
 // Seleção Rápida do menu: dois blocos (personagem/moves/abilities + prévia 3D). Workspace anexado no boot.
 const quickMenu = createQuickMenu({$, game, ui, passivesPanel});
 const passivesHud = new PassivesHud($('passives-hud'));
-const passiveVfx = new PassiveVfx(view.scene);
-const abilityNotices = new AbilityNotices();
-/** Ativações do passo: som, notificação de HUD "Ability: NOME" (entrada pela esquerda do jogador / direita do
- * oponente) e VFX da variante configurada (A/B/C). */
+/** Ativações reais do passo: som, placa metálica "Ability: NOME" e sparkles brancos presos ao lutador. */
 function passiveFeedback(events) {
   for (const e of events || []) {
-    if (e.result !== 'passiveActivated') continue;
+    if (e.result !== 'passiveActivated' || e.attacker == null) continue;
     soundFx.playPassive(C.vfx?.passive?.variant ?? 0);
+    const kind = e.attacker === 1 ? C.display.passive.enemyAbility : C.display.passive.playerAbility;
+    view.passives.activate(e.attacker, kind, PASSIVE_BY_ID[e.passive]?.nome ?? e.passive);
   }
-  passiveVfx.onEvents(events, game.fighters);
-  abilityNotices.onEvents(events);
 }
 /** Avisos discretos dos Moves (M28.6): falha de execução com o motivo e a devolução da stamina. */
 const seenNotices = new WeakSet(), MOVE_FAIL = {semEspaco: 'sem espaço — stamina devolvida, sem recarga', limiteDeEntidades: 'limite de entidades do mundo — stamina devolvida', semCarga: 'sem carga', effectMissing: 'efeito não registrado'};
@@ -980,7 +976,7 @@ function frame(now) {
   const back = replay.length ? (replay.length - 1 - replay.cursor) : 0;
   hud.render(game, ui.fps, {locked: input.locked, paused: ui.paused && game.phase !== 'menu', replay: back ? `−${back} passos (${(back * C.test.step * 1000).toFixed(0)} ms) · ▶ retoma daqui` : 'último passo · , e . avançam/voltam', playerAI: !!C.extras.toggles.enablePlayerAI});
   movesHud.render(game);moveNotices();
-  passivesHud.render(game, C.extras.toggles.enablePassives !== 0);passiveVfx.update(live ? dt * clock.timeScale : 0);
+  passivesHud.render(game, C.extras.toggles.enablePassives !== 0);
   $('rp-readout').textContent = `passo ${game.tick}${back ? ` · −${(back * C.test.step).toFixed(2)} s` : ''}${clock.timeScale !== 1 ? ` · ${clock.timeScale}×` : ''}`;
   dock.render();updateDojoAdvantageBadge();hudProposals.render(game, live ? dt * clock.timeScale : 0);windowsOverlay.update();perfPanel.frame({frameMs: dt * 1000, simMs, steps});cinePanel?.updateBadge?.();updateOffscreenArrow(canvas.clientWidth, canvas.clientHeight);updateActionHintPill();if (game.phase === 'result' && !lastKoHandled) checkKoTrigger();
   if ((uiTimer += dt) > .1) {uiTimer = 0;renderLive();renderHistory();renderCharacterLive();renderRecStatus();visualPanel.live();diagnostics.live();perfPanel.live();}

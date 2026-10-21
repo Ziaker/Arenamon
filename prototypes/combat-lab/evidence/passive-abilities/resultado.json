@@ -4,13 +4,14 @@
     "Órbita",
     "Prisma"
   ],
-  "minFontPx": 15.6,
-  "maxBannerPx": {
-    "width": 170,
-    "height": 26
+  "minFontPx": 21.6,
+  "bannerPx": {
+    "minWidth": 210,
+    "maxWidth": 270,
+    "height": 46
   },
-  "maxWidthPerSidePct": 15,
-  "occupiedArenaPct": 1.04,
+  "position": "top 34%, extrema esquerda/direita",
+  "occupiedArenaPct": 2.93,
   "fullNameAtScale145": true,
   "sparkleColor": "#ffffff",
   "sparkleDurationSeconds": 0.5,

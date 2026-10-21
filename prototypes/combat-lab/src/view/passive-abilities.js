@@ -56,11 +56,10 @@ class FighterPassive {
 }
 
 export class PassiveAbilitySystem {
-  constructor(scene, {notify = () => {}} = {}) {this.scene = scene;this.notify = notify;this.fighters = [new FighterPassive(scene, 0), new FighterPassive(scene, 1)];this.started = false;}
-  reset() {this.started = false;for (const f of this.fighters) f.reset();}
-  activate(id, kind) {const fx = this.fighters[id];if (!fx || !C.display.passive.enabled) return;fx.activate(kind);this.notify(id, PASSIVE_ABILITIES[fx.kind].name);}
+  constructor(scene, {notify = () => {}} = {}) {this.scene = scene;this.notify = notify;this.fighters = [new FighterPassive(scene, 0), new FighterPassive(scene, 1)];}
+  reset() {for (const f of this.fighters) f.reset();}
+  activate(id, kind, name = null) {const fx = this.fighters[id];if (!fx || !C.display.passive.enabled) return;fx.activate(kind);this.notify(id, name || PASSIVE_ABILITIES[fx.kind].name);}
   update(fighters, dt, {characters = [], visible = true} = {}) {
-    if (!this.started && C.display.passive.enabled) {this.started = true;this.activate(0, C.display.passive.playerAbility);this.activate(1, C.display.passive.enemyAbility);}
     for (const f of fighters) this.fighters[f.id]?.update(f, characters[f.id], dt, visible && !!C.display.passive.enabled);
   }
   dispose() {for (const f of this.fighters) f.dispose(this.scene);}

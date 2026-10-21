@@ -216,8 +216,7 @@ export function vfxDefaults() {
     solidReflect: {...solidFam(), color: 0x73caff},
     shakeMaster: {enabled: 1},
     shakeGuard: shake(.05, .16, 0), shakeHit: shake(.12, .28, 0), shakeGround: shake(.09, .3, 1), shakePerfect: shake(.1, .3, 2), shakeClash: shake(.18, .42, 1),
-    // VFX de ativação de passivas (§16): 0,60 s, círculos brancos 3D + sparkles; variant 0/1/2 = A/B/C
-    // (Orbital Halo / Celestial Intersections / Luminous Resonance). Só aparência; não altera regras nem cooldowns.
+    // Compatibilidade de presets antigos de VFX de passivas. A apresentação ativa usa display.passive.
     passive: {enabled: 1, variant: 0, intensity: 1, size: 1, opacity: 1, duration: 1, sparkles: 1},
     // Camada experimental three.quarks (Fase 2 da integração open source): efeitos A (carga),
     // B (impacto), C (pouso) e footstool por partículas GPU, A/B comparativo com o legado.
