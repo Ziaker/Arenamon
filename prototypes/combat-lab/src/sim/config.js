@@ -139,7 +139,7 @@ export function vfxDefaults() {
   return {
     // legacy: liga também as partículas e o tremor antigos do v6 (parâmetros de Ajustes › Visual › Efeitos e feedback).
     master: {enabled: 1, maxParticles: 1400, debugLog: 1, legacy: 0, noFlash: 0, reduceMotion: 0, highContrast: 0},
-    hit: {enabled: 1, variant: 0, size: 1.3, duration: .38, count: 18, intensity: 1, speed: 6, opacity: .95, color: 0xffb361, glow: 1.2, fade: 1.6},
+    hit: {enabled: 1, variant: 0, size: 1.3, duration: .38, count: 18, intensity: 1, speed: 6, opacity: .95, color: 0xffb361, glow: 1.2, fade: 1.6, color2: 0xfff1c9, cone: .55, debris: 1, dust: 1, crack: 1, byDamage: 1},
     dodge: {enabled: 1, variant: 0, count: 6, length: 1.4, duration: .22, width: .07, opacity: .7, spread: .45, interval: .025, intensity: 1, color: 0x9dffd8},
     sprint: {enabled: 1, variant: 0, density: 1, length: 1.1, speed: 9, spread: .5, intensity: 1, opacity: .55, color: 0xd8f4ff, frequency: 28},
     block: {enabled: 1, variant: 1, size: 1, opacity: .75, duration: .3, color: 0x73caff, intensity: 1, count: 10, expansion: 1},
