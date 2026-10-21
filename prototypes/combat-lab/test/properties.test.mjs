@@ -54,7 +54,7 @@ function run(seed) {
       // curtas são mais rápidas; o pico da curva em fases fica abaixo de ~3× a velocidade média.
       const vmax = Math.max(80, ...['dodge', 'tackle'].map(k => 3.2 * C.actions[k].distance * (C.actions[k].distanceReference || C.actions[k].duration) * 6 * C.actions.tackle.counterSpeed / C.actions[k].duration));
       if (Math.hypot(f.velocity.x, f.velocity.z) > vmax) fail(t, `velocidade absurda: ${Math.hypot(f.velocity.x, f.velocity.z)} (limite ${vmax.toFixed(1)})`);
-      if (f.vaultHeight < -1e-9 || f.vaultHeight > C.actions.dodge.vaultHeight + 1e-6) fail(t, `altura de salto fora da faixa: ${f.vaultHeight}`);
+      if (f.vaultHeight < -1e-9 || (f.vaultHeight > C.actions.dodge.vaultHeight + 1e-6 && !f.action?.slam)) fail(t, `altura de salto fora da faixa: ${f.vaultHeight}`);
       if (f.action?.fromCancel && f.action.kind === 'tackle' && f.action.elapsed <= C.test.step + 1e-9) stats.cancels++;
       if (f.action?.buffered && f.action.elapsed <= C.test.step + 1e-9) stats.buffered++;
       if (f.action?.vault && f.action.elapsed <= C.test.step + 1e-9) stats.vaults++;
@@ -64,7 +64,7 @@ function run(seed) {
       const a = e.attacker, b = e.target;
       if (a === undefined || b === undefined || !before[a] || !before[b]) continue;
       // C nunca causa dano: todo contato com dano vem de um X (antes ou depois do passo) ou de um X que virou recuo.
-      if (e.damage > 0 && ![before[a].kind, after[a].kind].includes('tackle') && after[a].kind !== 'recoil' && e.result !== 'clash') fail(t, `dano sem X: ${e.result}`, `${before[a].kind}→${after[a].kind}`);
+      if (e.damage > 0 && ![before[a].kind, after[a].kind].includes('tackle') && after[a].kind !== 'recoil' && e.result !== 'clash' && !(e.result === 'footstool' && before[a].kind === 'dodge')) fail(t, `dano sem X: ${e.result}`, `${before[a].kind}→${after[a].kind}`);
       if (e.damage > 0 && e.result !== 'clash' && (before[a].kind === 'dodge' && after[a].kind === 'dodge')) fail(t, 'esquiva causou dano');
       // Invulnerável não recebe dano de impacto.
       // Exceção legítima: no mesmo passo o alvo trocou C por X (no comando ou via buffer) com

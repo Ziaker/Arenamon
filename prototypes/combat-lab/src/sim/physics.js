@@ -229,9 +229,9 @@ export function stepPhysics(fighters, dt, world = null) {
         // Controle aéreo por aceleração (2.4): soma aceleração na direção pedida (airMoveDir, do controlador).
         // O teto é o MAIOR entre o momento atual e a velocidade aérea máxima — assim a inércia da corrida é
         // preservada (o vetor gira, não encolhe) e inverter exige desaceleração real ao longo de vários passos.
-        const acc = M.jumpAirAccel ?? 0;
+        const acc = flight.airAccel ?? M.jumpAirAccel ?? 0;   // após o rebote do footstool: mais aceleração e velocidade aérea
         if (acc > 0 && f.airMoveDir) {
-          const maxSpd = (M.jumpAirMaxSpeed ?? 0) > 0 ? M.jumpAirMaxSpeed : stat(f, 'speed', f.attributes.speed);
+          const maxAir = flight.airMaxSpeed ?? M.jumpAirMaxSpeed ?? 0, maxSpd = maxAir > 0 ? maxAir : stat(f, 'speed', f.attributes.speed);
           const cap = Math.max(length(flight.horizontal), maxSpd);
           const nh = add(flight.horizontal, scale(f.airMoveDir, acc * dt));
           const nlen = length(nh);
@@ -317,6 +317,7 @@ export function stepPhysics(fighters, dt, world = null) {
           flight.vy = M.footstoolBounce ?? 3.7;                                // rebote vertical do atacante
           flight.y = Math.max(flight.y, bTop + 0.02);                          // pés apoiados no topo: sem separação lateral no subpasso
           flight.horizontal = scale(flight.horizontal, 0.8);                     // conserva parte do horizontal
+          flight.airAccel = M.footstoolAirAccel ?? 20;flight.airMaxSpeed = M.footstoolAirMaxSpeed ?? 7.5;   // controle aéreo maior até pousar
           break;
         }
       }
@@ -325,6 +326,25 @@ export function stepPhysics(fighters, dt, world = null) {
       // NÃO aplicar queda espúria de borda de plataforma (evita cancelar o slam no ar)!
       const curAlt = (f.groundY ?? 0) + (f.vaultHeight ?? 0);
       const targetGround = getGroundHeight(f.position, world, curAlt);
+      // Footstool pela ESQUIVA (C) por cima do rival: na descida do arco do vault, com os pés acima de (topo − footstoolVaultMargin) e sobre o rival, pisa nele; o vault vira um
+      // salto normal com o rebote e o controle aéreo do footstool. Mesmas regras de dano, stagger, invulnerável e recarga do footstool do salto.
+      const M = C.map ?? {}, J = f.action?.kind === 'dodge' ? f.action.jump : null;
+      if (J && !J.landed && (M.footstoolEnabled ?? 1) && (M.footstoolVault ?? 1) && (f.footstoolCooldownT ?? 0) <= 0 && f.hp > 0 && J.vy < -(M.footstoolMinFallSpeed ?? 1.0)) {
+        const bodyH = C.extras?.visual?.bodyHeight ?? 1.2, tol = M.footstoolTolerance ?? 0.12, reach = 2 * C.test.halfExtent + tol, margin = M.footstoolVaultMargin ?? .35;
+        const feetNow = (f.groundY ?? 0) + J.y, feetPrev = (f.groundY ?? 0) + (J.prevY ?? J.y);
+        for (const b of fighters) {
+          if (b === f || b.hp <= 0 || b.wallSplat || f.footstoolDoneWith === b.id) continue;
+          if (Math.abs(f.position.x - b.position.x) > reach || Math.abs(f.position.z - b.position.z) > reach) continue;
+          const bTop = (b.groundY ?? 0) + (b.flight?.y ?? b.vaultHeight ?? 0) + bodyH, eff = bTop - margin;
+          if (!(feetPrev >= eff - tol && feetNow <= eff + tol)) continue;
+          events.push(resolveFootstool(f, b));
+          const hz = scale(f.velocity, 0.8);
+          f.action = null;f.vaultHeight = 0;f.blend = null;f.guard = false;
+          f.flight = {y: bTop + 0.02, vy: M.footstoolBounce ?? 6.5, horizontal: hz, isNormalJump: true, jumpFeel: !!(M.jumpImprovements ?? 1), jumpHeld: true, airAccel: M.footstoolAirAccel ?? 20, airMaxSpeed: M.footstoolAirMaxSpeed ?? 7.5};
+          f.normalJumpLanding = true;f.footstoolDoneWith = b.id;f.footstoolCooldownT = M.footstoolCooldown ?? 0.5;f.coyoteLeft = 0;f.state = 'airborne';
+          break;
+        }
+      }
       // Se estiver no mergulho do meteor slam e cruzar o solo (plataforma ou arena), aterrissa
       if (f.action?.slam && f.action.slamPrepDone && curAlt <= targetGround + 0.05) {
         f.groundY = targetGround;

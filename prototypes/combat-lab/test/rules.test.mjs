@@ -85,6 +85,7 @@ test('rebote na parede: horizontal e vertical configuráveis', () => {
   check('horizontal invertida pela restituição', f.flight.horizontal.x < 0);
 });
 test('salto sobre o rival: pulo físico (impulso, gravidade, horizontal) que termina ao tocar o chão', () => {
+  C.map.footstoolVault = 0;   // este teste é da física do vault; o pisão pela esquiva tem teste próprio (footstool-vault.test.mjs)
   const D = C.actions.dodge, g = setup(vec(0, 0), vec(0, 2));let peak = 0, airTicks = 0, end = null, x0 = 0;
   run(g, 120, (t, g) => {const f = g.fighters[0];if (f.action?.jump) {peak = Math.max(peak, f.vaultHeight);airTicks++;} else if (airTicks && end === null) end = {z: f.position.z, t};return [cmd({move: vec(0, 1), dodge: t === 1, dodgeDirection: vec(0, 1)})];});
   const tFlight = 2 * D.vaultUp / D.vaultGravity, hPeak = D.vaultUp ** 2 / (2 * D.vaultGravity);
