@@ -220,12 +220,51 @@ O sistema admite tipos diferentes de passivas, conforme a definição individual
 - A pausa do cronômetro **não determina, por si só, se o efeito permanece funcional durante hitstop**, se novos gatilhos são avaliados nesse intervalo ou se existem condições específicas de ativação e suspensão. Esses aspectos continuam pendentes e não devem ser presumidos.
 - Permanecem válidas as regras anteriormente aprovadas de término de efeito, início do cooldown e KO/respawn. **Esta decisão é exclusivamente documental e não autoriza implementação.**
 
+## Rodada 26 — Permanência dos efeitos ativos durante hitstop (opção A aprovada)
+
+- **Durante o hitstop, todos os efeitos já ativos das passivas permanecem aplicados ao estado do personagem**, incluindo bônus, penalidades, proteções e demais modificadores em vigor. Eles não são removidos nem temporariamente suspensos apenas pela ocorrência do hitstop.
+- **O estado dos efeitos já aplicados é preservado enquanto durar essa interrupção**, sem desaparecimento temporário ou necessidade de reaplicação quando o jogo retomar a simulação.
+- Permanecem integralmente válidas as Rodadas 24–25: **o cooldown das passivas e os cronômetros de duração dos efeitos ativos ficam pausados durante hitstop** e retomam suas respectivas contagens com o tempo restante após a interrupção.
+- A permanência dos efeitos **não significa que ocorram novos cálculos, ativações, gatilhos ou eventos de combate durante hitstop**. A possibilidade de novos gatilhos e a forma de processá-los nesse intervalo **continuam pendentes**, sem autorização para presumir seu funcionamento.
+- Esta decisão **não substitui regras específicas de KO, respawn, término real de efeitos ou suspensões por outras causas**, preservando as Rodadas 3, 19 e 22–23. Conflitos entre efeitos incompatíveis continuam sujeitos à aprovação individual prevista na Rodada 14.
+- Esta rodada registra exclusivamente uma decisão de design e **não autoriza implementação de mecânicas**.
+
+## Rodada 27 — Ativação imediata de passivas por gatilhos durante hitstop (opção C aprovada)
+
+- **Novos gatilhos que efetivamente ocorram durante hitstop podem acionar imediatamente as passivas correspondentes nesse mesmo intervalo**, desde que seus requisitos e condições individuais de ativação sejam satisfeitos.
+- **O hitstop, por si só, não bloqueia a ativação** de uma passiva elegível, tampouco impõe o armazenamento obrigatório do gatilho para processamento após a retomada da simulação.
+- A decisão **não cria novos gatilhos nem obriga que eventos de combate inexistentes sejam produzidos durante o hitstop**: apenas estabelece como são tratados gatilhos que realmente ocorram e sejam válidos nesse intervalo.
+- Permanecem válidas as regras individuais de funcionamento por estado (Rodada 3), a ativação independente e a resolução simultânea quando houver acionamento pelo mesmo evento (Rodadas 12–13), a resolução particular de conflitos (Rodada 14) e a proibição de reativar a mesma passiva enquanto seu efeito anterior permanecer ativo (Rodada 20).
+- **O cooldown já iniciado e a duração dos efeitos ativos continuam pausados durante hitstop**, conforme as Rodadas 24–25, e os efeitos anteriores permanecem aplicados ao personagem, conforme a Rodada 26. A permissão de uma nova ativação não revoga essas regras temporais.
+- **Permanece pendente** o momento de aplicação/execução dos efeitos gerados por uma ativação ocorrida durante o hitstop quando a sua natureza exigir processamento próprio, além de interações ainda não aprovadas com o relógio da simulação, conflitos específicos e eventos encadeados. Não presumir uma solução para essas situações apenas a partir da permissão de ativação.
+- Esta aprovação é exclusivamente documental e **não autoriza implementar mecânicas**.
+
+## Rodada 28 — Aplicação imediata dos efeitos de passivas acionadas durante hitstop (opção A aprovada)
+
+- **Quando uma passiva for validamente acionada durante hitstop, os efeitos produzidos por essa ativação são aplicados imediatamente**, ainda durante o mesmo intervalo de hitstop, observadas todas as condições e restrições individuais da passiva.
+- **A aplicação dos efeitos não é adiada até a retomada da simulação.** Por exemplo, se o efeito acionado conceder uma proteção temporária, essa proteção já passa a integrar o estado do personagem durante o hitstop.
+- **Os cronômetros de duração dos novos efeitos temporários permanecem congelados enquanto perdurar o hitstop**, retomando a contagem somente após seu término, conforme a Rodada 25. Os efeitos aplicados permanecem em vigor durante a interrupção, conforme a Rodada 26.
+- Para um **efeito instantâneo** efetivamente aplicado, permanece a regra da Rodada 18 de início do cooldown após sua aplicação; se esse cooldown já tiver começado durante o hitstop, sua **contagem permanece pausada** até terminar a interrupção, conforme a Rodada 24.
+- Permanecem válidas a ativação imediata de gatilhos válidos da Rodada 27, a independência de acionamentos e a resolução simultânea de efeitos compatíveis das Rodadas 12–13, os conflitos individualizados da Rodada 14 e a impossibilidade de reativar a mesma passiva enquanto seu efeito anterior permanecer ativo, conforme a Rodada 20.
+- **Não se aprovam, por esta rodada, novos gatilhos, movimentações, avanços da simulação, execução automática de eventos encadeados ou regras de desempate entre efeitos incompatíveis.** O comportamento concreto dessas situações não definido anteriormente permanece pendente.
+- Esta é uma decisão exclusivamente documental e **não autoriza implementação de mecânicas**.
+
+## Rodada 29 — Encadeamento imediato de ativações de passivas durante hitstop (opção A aprovada)
+
+- **Se o efeito de uma passiva aplicado durante hitstop produzir efetivamente um novo evento que satisfaça o gatilho de outra passiva, essa outra passiva pode ser acionada imediatamente, ainda durante o mesmo hitstop**, desde que todos os seus requisitos e restrições individuais de ativação sejam atendidos.
+- **O novo acionamento não é automaticamente adiado para o fim do hitstop nem descartado somente por ser derivado de uma ativação anterior**; seus efeitos seguem a regra de aplicação imediata já aprovada na Rodada 28.
+- **Exemplo ilustrativo:** uma passiva recupera HP imediatamente durante hitstop; se a recuperação constituir um gatilho válido para a outra passiva equipada, ela também pode ser acionada e ter seu efeito aplicado nesse mesmo intervalo. O exemplo não cria nem aprova gatilhos concretos de passivas ainda não definidas.
+- Mantêm-se a **ativação independente e a resolução conjunta dos efeitos compatíveis** das Rodadas 12–13, as **regras específicas para conflitos incompatíveis** da Rodada 14, as restrições individuais por estado da Rodada 3 e a **proibição de reativar a mesma passiva enquanto seu próprio efeito anterior permanecer ativo** aprovada na Rodada 20.
+- Continuam válidas as Rodadas 24–26: **cooldowns já iniciados e durações de efeitos ativos ficam pausados durante hitstop, sem remover os efeitos aplicados**. Para efeitos instantâneos, aplicam-se as regras de início da recarga das Rodadas 16–18, sem avanço do respectivo cronômetro até terminar o hitstop.
+- **Permanece pendente uma regra explícita de proteção contra ciclos de ativações infinitos, reentrância e cadeias sem término**. A opção A não aprova quantidade máxima de acionamentos, bloqueio de ciclos, critérios de desempate, ordem de execução de gatilhos encadeados concorrentes nem criação de eventos de combate que não ocorram de fato. Essas decisões deverão ser tratadas separadamente antes de eventual implementação.
+- Este registro é exclusivamente uma decisão de design e **não autoriza implementação de mecânicas**.
+
 ## Pontos pendentes — não aprovados
 
 - Identidade, números, magnitude, duração, gatilhos e cooldowns de cada passiva.
 - Catálogo e critérios concretos de resolução para cada combinação de efeitos incompatíveis ou mutuamente exclusivos; casos não previstos permanecem sem regra aprovada.
 - Unidades e conversão para efeitos de natureza diversa, regras de arredondamento específicas quando exigido inteiro, interações entre modificadores incompatíveis e tratamento de casos especiais não cobertos por restrições preexistentes.
-- Comportamento específico de passivas permanentes e condicionais sem efeito ativo temporário, efeitos previamente suspensos, contagem de cooldown durante o intervalo KO–respawn, pausas globais e demais situações não aprovadas; as Rodadas 24–25 pausam, respectivamente, a recarga e a duração dos efeitos ativos durante hitstop, a Rodada 23 encerra os efeitos ativos no KO e a Rodada 22 zera os cooldowns no respawn. Permanecem indefinidos o funcionamento efetivo dos efeitos e a possibilidade de novos gatilhos durante hitstop.
+- Comportamento específico de passivas permanentes e condicionais sem efeito ativo temporário, efeitos previamente suspensos, contagem de cooldown durante o intervalo KO–respawn, pausas globais e demais situações não aprovadas; as Rodadas 24–25 pausam a recarga e a duração dos efeitos ativos durante hitstop, a Rodada 26 mantém seus efeitos aplicados, a Rodada 27 permite ativações imediatas por gatilhos válidos, a Rodada 28 determina a aplicação imediata dos efeitos correspondentes e a Rodada 29 permite ativação em cadeia imediata durante esse intervalo. Continuam pendentes as proteções contra ciclos infinitos e reentrância, a ordem de processamento de eventos encadeados concorrentes, interações especiais com a simulação e demais casos específicos. A Rodada 23 encerra os efeitos ativos no KO e a Rodada 22 zera os cooldowns no respawn.
 - Interface de seleção, apresentação visual e implementação técnica.
 
 ## Governança deste documento
