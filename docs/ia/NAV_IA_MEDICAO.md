@@ -20,3 +20,7 @@ IA × IA, 100 partidas por lado e por mapa (sementes fixas, azul/vermelho altern
 - **Continua desligada por padrão** (`extras.nav.enableNav = 0`); ligue em Ajustes › Navegação para testar. Os sliders de custo de salto e de queda estão no mesmo painel.
 
 Reproduzir: `node prototypes/combat-lab/test/nav-ai-compare.mjs 50 --write` (ajuste com `--set=jumpPenalty=4,dropPenalty=4`, mapas com `--maps=muro,rotas`).
+
+## Tentativa descartada: tática no comando quando já está perto (`engageRange`)
+
+Testei deixar a tática (e não a rota) comandar o movimento a menos de 3, 5, 7 e 8 m do rival, sozinha e só quando a rota não faz desvio. Resultado: corredor melhorou com 5 m (47% × 37%), mas "rotas" continuou pior (23% a 36% contra 43% a 48%) e "muro" piorou com alcances maiores (mais partidas sem desfecho). Sem ganho claro e consistente, **não foi adotada** e o código foi removido.
