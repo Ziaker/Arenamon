@@ -13,3 +13,7 @@
 **Conclusão:** nenhuma variante melhorou a IA; no mapa padrão ela perdeu (31% a 39% contra 47% a 53%). Esconder-se cede a iniciativa e o rival aproveita. **Não adotada**: o código (`ai-cover.js` e a opção no `ai-eval`) foi removido; este registro fica para não repetir o experimento.
 
 **Plataformas de propósito:** não testado. A IA nunca salta hoje, então o ganho de altura só existiria com um ataque aéreo (Footstool ou Meteor Slam) que ela ainda não usa; seria um trabalho de maior porte (decidir saltar, mirar a queda) e fica como próximo passo possível.
+
+## Ataque aéreo (pisão na cabeça / Footstool) — também testado e descartado
+
+A IA saltava na direção do rival parado e caía na cabeça dele (5 HP, sem custo de stamina). Medido IA × IA (100 partidas): a versão solta perdeu (33% × 48%, 0,32 pisões por luta); a versão seletiva (só rival parado, 2,2 a 3,6 m) empatou (40% × 43%) mas quase nunca acerta (0,07 pisões por luta). O salto deixa a IA vulnerável por cerca de 1 s e o golpe é pequeno. **Não adotado**; o código foi removido.
