@@ -588,6 +588,10 @@ export class Character {
     // Sem clone: o mixer cacheia a ação por (clipe, raiz) e o tempo é por ação. Clonar copiava todos os keyframes de
     // todas as tracks a cada troca de estado e fazia o cache interno do mixer crescer sem limite (uma entrada por troca).
     const clip = this.clips[index], action = this.mixer.clipAction(clip);
+    // Em A → B → A antes do fim do fade, clipAction(A) devolve o mesmo objeto que ainda estava na camada A antiga.
+    // Se essa camada permanecesse na lista, blend() chamaria stop() nela ao terminar o fade e desligaria também a A
+    // atual, deixando o modelo sem ação ativa (bind pose/T-pose). A camada obsoleta sai sem parar a ação reutilizada.
+    this.layers = this.layers.filter(layer => layer.action !== action);
     action.reset().play();action.paused = true;action.enabled = true;action.setEffectiveWeight(prev ? 0 : 1);
     this.current = {key, id, index, clip, action, entry, started: this.clock, weight: prev ? 0 : 1, fade: ACTION_KEYS.has(key) || COMBAT_KEYS.has(key) ? Character.options.actionFade : Character.options.fade};
     this.fade = 0;this.timer = 0;this.transitions++;

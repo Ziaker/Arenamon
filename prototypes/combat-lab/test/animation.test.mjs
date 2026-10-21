@@ -248,5 +248,16 @@ test('trocar animação não cria variante; loop, duração e direções cardina
   for (const id of ['walk', 'walk_back', 'walk_left', 'walk_right', 'run', 'run_back', 'run_left', 'run_right', 'sprint', 'sprint_back', 'sprint_left', 'sprint_right'])
     check(`estado cardinal disponível: ${id}`, ch.variants[id] !== undefined || ch.actionFor(id) !== undefined);
 });
+test('A → B → A durante o fade não desliga a animação atual nem cai na T-pose', () => {
+  const {ch, g} = setup(), f = g.fighters[0];
+  ch.enter('idle', 'idle', 0, 'idle#0', f, {tick: 0});ch.clock = .01;ch.blend(f, .01, 'idle', null);
+  ch.enter('walk', 'walk', 1, 'walk#0', f, {tick: 1});ch.clock = .02;ch.blend(f, .01, 'walk', null);
+  ch.enter('idle', 'idle', 0, 'idle#1', f, {tick: 2});
+  check('ação reutilizada não permanece numa camada de fade antiga', !ch.layers.some(layer => layer.action === ch.current.action));
+  ch.clock = 1;ch.blend(f, 1, 'idle', null);
+  const spine = ch.model.getObjectByName('mixamorigSpine');
+  check('ação atual continua agendada depois do fade antigo', ch.current.action.isScheduled());
+  check('pose animada continua aplicada em vez da bind pose', spine.quaternion.angleTo(new T.Quaternion()) > .1, spine.quaternion.angleTo(new T.Quaternion()).toFixed(3));
+});
 writeFileSync(out + 'animation-report.json', JSON.stringify({createdAt: new Date().toISOString(), checks: report}, null, 2));
 console.log(`\n${passed} testes de animação aprovados · ${report.length} verificações.`);
