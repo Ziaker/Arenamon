@@ -13,6 +13,7 @@
 import {C} from './config.js';
 import {isInvulnerable, nominalDistance} from './entity.js';
 import {sweepBox, segmentHitsVolume} from './geometry.js';
+import {solidContact} from './solid-contact.js';
 import {launch} from './combat.js';
 import {traceBeam} from './beam.js';
 import {applyStatus, stat} from './status.js';
@@ -133,13 +134,18 @@ export function collideFighter(world, f, events = null) {
   if (!world?.entities.length) return 0;let contacts = 0;
   const r = C.test.halfExtent, alt = altOf(f), h = fighterHeight();
   for (const e of world.entities) {
+    // Sólidos destruídos neste mesmo passo não podem continuar empurrando lutadores.
+    if (e.dead) continue;
     const solid = e.kind === 'wall' ? e.blocksFighters : e.kind === 'barrier' && e.blocksFighters && (e.blocksOwner || e.owner !== f.id);
     if (!solid || !vOverlap(alt, alt + h, e.y, e.y + e.height)) continue;
-    const c = closestOnShape(e, f.position);if (c.distance >= r) continue;
-    if (e.breakableByTackle && f.action?.kind === 'tackle' && !f.action.neutralized && !e.dead) {breakByTackle(e, f, events);continue;}
-    // Normal de saída: do ponto mais próximo para o centro (dentro da forma, pelo eixo de menor penetração).
-    let n = sub(f.position, c.point);if (length(n) < 1e-9 || c.inside) n = sub(f.position, e.pos);if (length(n) < 1e-9) n = vec(0, 1);n = normalize(n);
-    f.position = add(c.inside ? c.point : f.position, scale(n, c.inside ? r : r - c.distance));
+    const contact = solidContact(e, f.position, r);
+    if (!contact) continue;
+    if (e.breakableByTackle && f.action?.kind === 'tackle' && !f.action.neutralized) {breakByTackle(e, f, events);continue;}
+    const n = contact.normal;
+    // Antes, se o centro estivesse dentro de caixa/círculo, a correção usava o
+    // centro da forma e podia deixá-lo ainda penetrando ou empurrá-lo ao acaso.
+    // A normal/depth agora representam a mínima translação real até sair da forma.
+    f.position = add(f.position, scale(n, contact.depth));
     const into = dot(f.velocity, n);if (into < 0) f.velocity = sub(f.velocity, scale(n, into));
     if (f.flight) {const hv = dot(f.flight.horizontal, n);if (hv < 0) f.flight.horizontal = sub(f.flight.horizontal, scale(n, (1 + C.rules.wallRestitution) * hv));}
     if (f.locomotionVelocity) {const lv = dot(f.locomotionVelocity, n);if (lv < 0) f.locomotionVelocity = sub(f.locomotionVelocity, scale(n, lv));}
