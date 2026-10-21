@@ -71,7 +71,8 @@ function range(key, value, path) {
   }
   if (path && path.startsWith('display.progress.')) {
     if (key === 'pgEnabled' || key === 'pgAnimate') return {min: 0, max: 1, step: 1, fmt: n => n ? 'Ligado' : 'Desligado', kind: 'toggle'};
-    if (key === 'pgScale') return {min: 0.5, max: 2, step: 0.05, fmt: n => Math.round(n * 100) + '%'};
+    if (key === 'pgScale' || key === 'pgScaleEnemy') return {min: 0.4, max: 2, step: 0.05, fmt: n => Math.round(n * 100) + '%'};
+    if (key === 'pgLayout') return {min: 0, max: 1, step: 1, fmt: n => n ? 'Horizontal (compacto)' : 'Vertical (cantos)', kind: 'toggle'};
     if (key === 'pgSubject') return {min: 0, max: 2, step: 1, fmt: n => ['Jogador', 'Adversário', 'Os dois'][n] ?? '?'};
   }
   if (path && path.startsWith('display.consumables.')) {

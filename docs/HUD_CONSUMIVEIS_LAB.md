@@ -85,7 +85,7 @@ alternância para o visual anterior em **Visualizar › Câmera, tremor e HUD** 
 
 | O quê | Onde fica | Alternar / ajustar |
 |---|---|---|
-| **HUD Banco de Células** | canto inferior esquerdo da arena (jogador; adversário à direita se escolhido) | `display.progress`: ligar/desligar (volta aos selos clássicos do cabeçalho), de quem (jogador/adversário/os dois), escala, animação. Lê `fighter.stages` e os bônus de Mapa › Progressão (os valores acompanham os sliders). |
+| **HUD Banco de Células** | **horizontal compacto**, sob a barra de vida de cada lutador (jogador à esquerda, adversário à direita); a versão vertical (cantos inferiores) continua como opção | `display.progress`: ligar/desligar (volta aos selos clássicos do cabeçalho), **disposição** (horizontal/vertical), de quem (jogador/adversário/**os dois**, padrão), **tamanho do jogador** e **tamanho do adversário** (independentes, 40–200%), animação. Lê `fighter.stages` e os bônus de Mapa › Progressão. |
 | **Consumíveis Gemas Facetadas** | desenham os itens que a simulação já cria (7 tipos) | `display.consumables`: estilo 1 = gemas · 0 = formas clássicas, escala, altura, indicador flutuante (e tamanho), animação, centelhas three.quarks, pedestal. |
 | **Cenário Laboratório técnico** | piso escuro com régua de anéis, anel de blocos, prismas fora do piso, borda luminosa | `display.scenery`: tema 1 = laboratório · 0 = visual clássico cinza, blocos, prismas, legendas, distância dos anéis, altura dos blocos, borda. |
 

@@ -51,12 +51,28 @@ try {
   await commit('map.stageAttackBonus', .2);await frames(2);
   check('o HUD acompanha o slider de Mapa › Progressão (ataque 3 × 20% = +60%)', (await hud()).attack.val === '+60%');
   await commit('map.stageAttackBonus', .1);
-  await commit('display.progress.pgSubject', 2);await frames(2);
-  check('"os dois": bancos de células do jogador e do adversário', await L(() => document.querySelectorAll('#progress-hud .pg-bank').length === 2));
-  await commit('display.progress.pgSubject', 0);await frames(2);
+  check('padrão: HUD horizontal compacto, um banco para cada lutador', await L(() => document.getElementById('progress-hud').dataset.layout === 'h' && document.querySelectorAll('#progress-hud .pg-bank').length === 2));
+  const hh = await L(() => Math.round(document.querySelector('#progress-hud .pg-bank[data-fighter="0"]').getBoundingClientRect().height));
+  check('HUD horizontal é compacto (altura do banco ≤ 70 px)', hh <= 70, hh + ' px');
+  const sizeOf = id => page.evaluate(i => {const r = document.querySelector(`#progress-hud .pg-bank[data-fighter="${i}"]`).getBoundingClientRect();return Math.round(r.width);}, id);
+  const w0 = await sizeOf(0), w1 = await sizeOf(1);
+  await commit('display.progress.pgScaleEnemy', .6);await frames(2);
+  const w1b = await sizeOf(1), w0b = await sizeOf(0);
+  check('tamanho do adversário é independente do jogador', w1b < w1 * .7 && Math.abs(w0b - w0) <= 1, `${w1}→${w1b} · jogador ${w0}→${w0b}`);
+  await commit('display.progress.pgScaleEnemy', 1);
   await commit('display.progress.pgScale', 1.5);await frames(2);
-  check('escala do HUD', await L(() => +getComputedStyle(document.getElementById('progress-hud')).getPropertyValue('--pg-scale') >= 1.5));
+  check('tamanho do jogador', (await sizeOf(0)) >= w0 * 1.4);
   await commit('display.progress.pgScale', 1);
+  await commit('display.progress.pgLayout', 0);await frames(2);
+  check('disposição vertical: cantos inferiores', await L(() => document.getElementById('progress-hud').dataset.layout === 'v' && document.querySelectorAll('#progress-hud .pg-cell').length === 10));
+  check('vertical continua mostrando os valores (estágios do jogador)', (await hud()).attack.val === '+30%');
+  await page.screenshot({path: evid + 'hud-vertical-1500x920.png'});
+  await commit('display.progress.pgLayout', 1);await frames(2);
+  await commit('display.progress.pgSubject', 0);await frames(2);
+  check('"só o jogador": um banco', await L(() => document.querySelectorAll('#progress-hud .pg-bank').length === 1));
+  await commit('display.progress.pgSubject', 1);await frames(2);
+  check('"só o adversário": banco do lutador 1', await L(() => document.querySelectorAll('#progress-hud .pg-bank[data-fighter="1"]').length === 1 && document.querySelectorAll('#progress-hud .pg-bank').length === 1));
+  await commit('display.progress.pgSubject', 2);await frames(2);
 
   // ---- 2. consumíveis: 7 tipos como gemas ----
   await page.evaluate(types => {

@@ -62,7 +62,7 @@ test('os 7 tipos de consumível da simulação têm cor, símbolo e identidade p
 
 test('parâmetros novos: padrões aprovados e registrados no ajustador (nome e explicação)', () => {
   const D = defaults().display;
-  assert.equal(D.scenery.labTheme, 1);assert.equal(D.progress.pgEnabled, 1);assert.equal(D.progress.pgSubject, 0);assert.equal(D.consumables.gemStyle, 1);
+  assert.equal(D.scenery.labTheme, 1);assert.equal(D.progress.pgEnabled, 1);assert.equal(D.progress.pgSubject, 2, 'padrão: jogador e adversário');assert.equal(D.progress.pgLayout, 1, 'padrão: horizontal compacto');assert.equal(D.progress.pgScale, 1);assert.equal(D.progress.pgScaleEnemy, 1, 'tamanho do adversário independente');assert.equal(D.consumables.gemStyle, 1);
   for (const group of [D.scenery, D.progress, D.consumables]) for (const key of Object.keys(group)) {
     assert.ok(NAMES[key], 'nome de ' + key);assert.ok(TOOLTIPS[key], 'explicação de ' + key);assert.equal(typeof group[key], 'number', key + ' numérico (vira slider)');
   }

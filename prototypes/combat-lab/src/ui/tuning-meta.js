@@ -31,7 +31,7 @@ export const NAMES={
   enablePassives:'Sistema de passivas (catálogo experimental)',enabled:'Ativado (0/1)',variant:'Variante de ativação (0=A · 1=B · 2=C)',intensity:'Intensidade',size:'Tamanho',opacity:'Opacidade',sparkles:'Quantidade de sparkles',
   speedPct:'Bônus de velocidade (%)',costPct:'Desconto de custo de stamina (%)',reflectDamage:'Dano de retorno (HP)',cooldown:'Recarga (s)',heal:'Cura (HP)',quietTime:'Tempo sem dano para curar (s)',duration:'Duração do efeito (s)',defensePct:'Bônus de defesa (%)',knockbackPct:'Redução de empurrão horizontal (%)',dotReductionPct:'Redução de dano periódico (%)',attackPct:'Bônus de ataque (%)',dps:'Dano por segundo do veneno',windowBonus:'Bônus da janela perfeita (s)',maxDuration:'Duração máxima do efeito (s)',detectDistance:'Distância de detecção (m)',stunPct:'Redução de hit stun (%)',slowPct:'Redução de velocidade do alvo (%)',thresholdPct:'Limiar de stamina (%)',regenPct:'Bônus de regeneração (%)',
   labTheme:'Cenário do laboratório (0 = visual clássico · 1 = laboratório técnico)',labBlocks:'Anel de blocos geométricos ao redor da arena',labProps:'Prismas e pilares decorativos (fora do piso)',labRulers:'Legendas dos anéis de régua (4 m, 8 m…)',labRingStep:'Distância entre os anéis de régua (m)',labBlockScale:'Altura dos blocos do anel (×)',labRimGlow:'Brilho da borda da arena',
-  pgEnabled:'HUD de progressão (Banco de Células)',pgScale:'Escala do HUD de progressão',pgSubject:'HUD de progressão: de quem (0 jogador · 1 adversário · 2 ambos)',pgAnimate:'Animação ao ganhar estágio',
+  pgEnabled:'HUD de progressão (Banco de Células)',pgScale:'Tamanho do HUD de progressão · jogador',pgScaleEnemy:'Tamanho do HUD de progressão · adversário',pgLayout:'Disposição do HUD de progressão (0 = vertical · 1 = horizontal)',pgSubject:'HUD de progressão: de quem (0 jogador · 1 adversário · 2 ambos)',pgAnimate:'Animação ao ganhar estágio',
   gemStyle:'Estilo dos consumíveis (0 = clássico · 1 = Gemas Facetadas)',gemScale:'Escala visual dos consumíveis',gemHover:'Altura de flutuação das gemas (m)',gemIndicators:'Indicadores flutuantes dos consumíveis',gemIndicatorSize:'Tamanho do indicador flutuante',gemAnimate:'Animações dos consumíveis (giro, flutuar, brilho)',gemParticles:'Centelhas dos consumíveis (three.quarks)',gemPedestal:'Pedestal hexagonal sob os consumíveis'
   };
 export const SECTIONS=[
@@ -321,8 +321,10 @@ export const TOOLTIPS={
  "labBlockScale": "Multiplica a altura dos blocos do anel (some-se à altura das paredes de Visualizar). Só aparência.",
  "labRimGlow": "Liga o filete luminoso na borda da arena. Só aparência.",
  "pgEnabled": "Mostra o HUD Banco de Células: cinco células com os estágios (0 a 4) de Ataque, Defesa, Stamina máxima, Cooldown e Velocidade, lidos do estado real do lutador. Desligado, voltam os selos clássicos do cabeçalho.",
- "pgScale": "Tamanho do HUD de progressão (soma-se à escala geral do HUD). Só aparência.",
- "pgSubject": "De quem é o HUD: 0 = jogador (azul) · 1 = adversário (vermelho) · 2 = os dois. Só aparência.",
+ "pgScale": "Tamanho do HUD de progressão do JOGADOR (soma-se à escala geral do HUD). Só aparência.",
+ "pgScaleEnemy": "Tamanho do HUD de progressão do ADVERSÁRIO, independente do jogador. Só aparência.",
+ "pgLayout": "1 = horizontal compacto, embaixo da barra de vida de cada lutador (padrão) · 0 = vertical nos cantos inferiores. Só aparência.",
+ "pgSubject": "De quem é o HUD: 0 = jogador (azul) · 1 = adversário (vermelho) · 2 = os dois (padrão). Só aparência.",
  "pgAnimate": "Animação ao ganhar um estágio (carimbo do segmento). Respeita 'reduzir movimento' do sistema.",
  "gemStyle": "Aparência dos consumíveis da arena: 1 = Gemas Facetadas (aprovado em 21/10/2026) · 0 = formas clássicas. Só aparência: tipo, posição, coleta e efeito vêm da simulação.",
  "gemScale": "Tamanho visual das gemas (1 = tamanho aprovado). Não muda o raio de coleta (Mapa › Consumíveis e drops).",

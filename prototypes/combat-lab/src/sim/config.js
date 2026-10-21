@@ -322,8 +322,9 @@ export function displayDefaults() {
     // labRingStep: distância entre os anéis de régua (m) · labBlockScale: altura dos blocos do anel · labRimGlow: brilho da borda.
     scenery: {labTheme: 1, labBlocks: 1, labProps: 1, labRulers: 1, labRingStep: 4, labBlockScale: 1, labRimGlow: 1},
     // HUD de progressão "Banco de Células" (escolhido em 21/10/2026): 5 atributos, estágios 0–4, lidos de fighter.stages.
-    // pgSubject: 0 = jogador, 1 = adversário, 2 = ambos. Só apresentação.
-    progress: {pgEnabled: 1, pgScale: 1, pgSubject: 0, pgAnimate: 1},
+    // pgLayout: 1 = horizontal compacto (embaixo da barra de vida de cada lutador) · 0 = vertical (cantos inferiores). pgSubject: 0 = jogador, 1 = adversário, 2 = ambos.
+    // pgScale / pgScaleEnemy: tamanho do HUD do jogador e do adversário (independentes). Só apresentação.
+    progress: {pgEnabled: 1, pgLayout: 1, pgSubject: 2, pgScale: 1, pgScaleEnemy: 1, pgAnimate: 1},
     // Consumíveis "Gemas Facetadas" (escolhido em 21/10/2026): gemStyle 0 = formas clássicas · 1 = gemas. Altura em m, escala e indicador em múltiplos.
     consumables: {gemStyle: 1, gemScale: 1, gemHover: .9, gemIndicators: 1, gemIndicatorSize: 1, gemAnimate: 1, gemParticles: 1, gemPedestal: 1},
     windows: {mode: 0, scale: 1, opacity: .9, invulnerable: 1, cancel: 1, chain: 1, recovery: 1, guardStun: 1, recoil: 1, perfect: 1, perfectCooldown: 1, counter: 1, buffer: 1, hitstop: 0, statuses: 1, cooldowns: 1},
