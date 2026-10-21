@@ -40,7 +40,7 @@ export const actionDuration = kind => kind === 'recoil' ? C.rules.recoil : C.act
 export function actionSpec(action) {
   if (action.kind === 'recoil') return {duration: C.rules.recoil, chainAfter: 0, invulnerable: 0, invulnerableFrom: 0, recovery: 0};
   if (action.kind === 'move') return moveSpec(action);
-  const p = C.actions[action.kind];return {duration: p.duration * (action.durationScale ?? 1), chainAfter: p.chainAfter, invulnerable: p.invulnerable, invulnerableFrom: 0, recovery: p.recovery};
+  const p = C.actions[action.kind];return {duration: p.duration * (action.durationScale ?? 1), chainAfter: action.chainAfter ?? p.chainAfter, invulnerable: p.invulnerable, invulnerableFrom: 0, recovery: p.recovery};
 }
 /**
  * Distância nominal: multiplicador próprio × tempo de referência × velocidade do lutador (GDD 7.2: 2,5 × 400 ms).

@@ -183,6 +183,11 @@ export function defaults() {
     secondWind: {cost: .8, cooldown: 12, cast: .35, duration: 5, regenPctPerSecond: .40, mobilityCostPct: .25},
     // Swift: 3 estrelas, 15 m/s, 3 HP nominais cada (× Ataque ÷ referência, MV-P13), homing 0,25 s a 90°/s, alcance 12 m, knockback 0,3 m/s por acerto com teto 0,9 por alvo/execução, vertical 0.
     // cast = tempo da ação (recuperação do Burst; provisório MV-P14). Sem lock-on: leque frontal de fanAngle graus.
+    // Lunge: Tackle de curta distância (3,5 m, total 0,6 s), 8 HP nominais, 4 m/s H sem V, i-frames 0,133 s, cancelável após 0,45 s; janela ativa 0,19–0,26 s só vale com "janelas de combate" ligadas.
+    lunge: {cost: .75, cooldown: 6, cast: .6, range: 3.5, damage: 8, knockbackH: 4, knockbackV: 0, invulnerableSeconds: .1333, chainAfter: .45, hitStart: .19, hitEnd: .26},
+    // Quick Attack: alvo mais próximo a até 7 m, ida ≤ 0,16 s e volta ≤ 0,14 s (velocidades = alcance ÷ tempo), recuperação 0,12 s, 8 HP nominais, 4 m/s H sem V.
+    // Sem i-frames do atacante (o catálogo não define; MV-P16). Ação total = ida + volta + recuperação.
+    quickAttack: {cost: .75, cooldown: 6, acquireRange: 7, approachMax: .16, returnMax: .14, recovery: .12, damage: 8, knockbackH: 4, knockbackV: 0, invulnerableSeconds: 0},
     swift: {cost: .8, cooldown: 7, cast: .25, count: 3, speed: 15, damage: 3, homingSeconds: .25, homingRate: 90, range: 12, knockback: .3, knockbackCap: .9, radius: .2, fanAngle: 20, spawnForward: .9, spawnSpacing: .35, counterStagger: .2},
   });
   return {rules, test, locomotion, camera, profiles: profilesLab, extras, actions, vfx: vfxDefaults(), display: displayDefaults(), world, map: {...MAP_DEFAULTS}, passivas};

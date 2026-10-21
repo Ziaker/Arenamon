@@ -100,6 +100,20 @@ export function hitShapeAllows(attacker, defender, windowIdx = 0) {
   const sh = hitShapeOf(attacker, windowIdx);
   return !sh || Math.hypot(defender.position.x - sh.x, defender.position.z - sh.z) <= sh.radius + C.test.halfExtent;
 }
+/**
+ * Reação a um empurrão calculado (mesma da entidade `applyHit`): com vertical > 0 (ou já no ar) lança; só horizontal vira empurrão deslizante com
+ * recuperação de pouso; zero = nenhuma reação. Usada pelos Moves que viram Tackle com knockback próprio (`action.kb`).
+ */
+export function knockbackReaction(target, dir, hKb, vKb) {
+  const R = C.rules;
+  if (vKb > 1e-6 || target.flight) {launch(target, dir, hKb, vKb);return {direction: normalize(dir), horizontal: hKb, vertical: vKb};}
+  if (hKb > 0) {
+    target.action = null;target.flight = null;target.blend = null;target.guard = false;target.guardSuppressed = true;target.velocity = vec();target.locomotionVelocity = vec();
+    target.push = {direction: dir, distance: Math.max(0.45, hKb * 1.5), elapsed: 0};target.knockRecovery = Math.max(target.knockRecovery, R.landingRecovery);target.state = 'pushed';
+    return {direction: normalize(dir), horizontal: hKb, vertical: 0};
+  }
+  return null;
+}
 /** Resolve um tackle conectado. Devolve o evento ou null. */
 export function resolveHit(attacker, defender, normal, relative, force = false) {
   const R = C.rules, X = C.extras.combat, T = C.extras.toggles;
@@ -161,7 +175,7 @@ export function resolveHit(attacker, defender, normal, relative, force = false) 
     // (meteorDive) ou no chão (meteorGround). Em ambos, bloqueado não troca para recoil:
     // o mergulho segue, aterrissa e o slam finaliza normalmente.
     const slamCommitted = !!attacker.action.slam;
-    if (!slamCommitted) {
+    if (!slamCommitted && !attacker.action.keepOnBlock) {   // keepOnBlock: Moves que seguem a própria sequência mesmo bloqueados (Quick Attack: o retorno acontece de qualquer jeito)
       attacker.action = {kind: 'recoil', elapsed: 0, heading: angleOf(scale(normal, -1)), startAngle: 0, offensive: false, hits: new Set(), from: null};
       attacker.velocity = vec();attacker.state = 'recoil';attacker.blend = null;attacker.vaultHeight = 0;
     }
@@ -179,13 +193,15 @@ export function resolveHit(attacker, defender, normal, relative, force = false) 
     defender.counterWindow = 0;const closing = Math.max(0, dot(relative, normal));
     // Redução de knockback pelos estágios de Defesa (R6.11)
     const defStageKnockbackMult = Math.max(0, 1.0 - (defender.stages?.defense ?? 0) * (C.map?.stageDefenseReduction ?? 0.10));
-    const launchSpeed = (R.launchHorizontal * (X.launchAttackBase + X.launchAttackWeight * attack / X.launchAttackReference) + Math.min(X.launchClosingCap, closing * X.launchClosingMultiplier)) * stat(defender, 'knockbackTaken', 1) * defStageKnockbackMult;
+    const kbo = attacker.action.kb;   // Moves que viram Tackle com knockback próprio {horizontal, vertical} em m/s (Lunge, Quick Attack…)
+    const launchSpeed = kbo ? kbo.horizontal * stat(defender, 'knockbackTaken', 1) * defStageKnockbackMult : (R.launchHorizontal * (X.launchAttackBase + X.launchAttackWeight * attack / X.launchAttackReference) + Math.min(X.launchClosingCap, closing * X.launchClosingMultiplier)) * stat(defender, 'knockbackTaken', 1) * defStageKnockbackMult;
     const toward = normalize(sub(defender.position, attacker.position));
     const departure = normalize(add(scale(normal, X.launchNormalWeight), scale(toward, X.launchCenterWeight)));
     // Meteor slam: o rival é lançado para CIMA com groundBounceForce (ground bounce) e com pouco empurrão horizontal.
-    const slam = !!attacker.action.slam, up = slam ? R.groundBounceForce : R.launchUp * stat(defender, 'knockbackTaken', 1) * defStageKnockbackMult, hSpeed = launchSpeed * (slam ? R.slamLaunchHorizontal : 1) * knockbackFactor(defender);
+    const slam = !!attacker.action.slam, up = slam ? R.groundBounceForce : (kbo ? kbo.vertical : R.launchUp) * stat(defender, 'knockbackTaken', 1) * defStageKnockbackMult, hSpeed = launchSpeed * (slam ? R.slamLaunchHorizontal : 1) * knockbackFactor(defender);
     defender.lastAttacker = attacker.id;
-    if (T.enableLaunch) {const dir = slam ? direction(attacker.facing) : length(departure) > 1e-7 ? departure : normal;launch(defender, dir, hSpeed, up);launchInfo = {direction: normalize(dir), horizontal: hSpeed, vertical: up, ...(slam ? {bounce: true} : {})};}
+    if (T.enableLaunch && kbo && !slam) {const dir = length(departure) > 1e-7 ? departure : normal;launchInfo = knockbackReaction(defender, dir, hSpeed, up);}   // knockback próprio: com V = 0 é empurrão, não voo
+    else if (T.enableLaunch) {const dir = slam ? direction(attacker.facing) : length(departure) > 1e-7 ? departure : normal;launch(defender, dir, hSpeed, up);launchInfo = {direction: normalize(dir), horizontal: hSpeed, vertical: up, ...(slam ? {bounce: true} : {})};}
     else {defender.action = null;defender.knockRecovery = R.landingRecovery;}
   }
   if (defender.hp === 0) {defender.guard = false;defender.guardSuppressed = true;}

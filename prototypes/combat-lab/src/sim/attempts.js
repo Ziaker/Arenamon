@@ -38,6 +38,7 @@ export const REASONS = {
   tackleNoGuard: () => 'a defesa não cancela o tackle (só um toque de defesa perfeita disponível)',
   perfectCooldown: d => `defesa perfeita em recarga (${ms(d.left)} restantes)`,
   sprintStamina: d => `stamina abaixo do mínimo do sprint (${n2(d.value)} / ${n2(d.required)})`,
+  noTarget: d => `nenhum adversário elegível a até ${n2(d.range)} m (vivo, no chão e ao alcance)`,
   noMove: d => `nenhum movimento equipado no slot ${(d.slot ?? 0) + 1}`,
   cooldown: d => `em recarga (${ms(d.left)} restantes)`,
   silenced: () => 'impedido de usar movimentos (efeito de status)',

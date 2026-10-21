@@ -17,6 +17,10 @@ import {validateStatus} from './status.js';
 import {CHARGE_OVERRIDES} from './charge.js';
 
 const REGISTRY = new Map();
+/** Preparações de Moves que viram AÇÃO DE TACKLE (`def.tackle` = nome): (f, action, P, ctx) ajusta duração, distância, dano, knockback e janelas da ação. */
+const TACKLE_SETUPS = new Map();
+export const registerTackleSetup = (/** @type {string} */ name, /** @type {Function} */ fn) => {TACKLE_SETUPS.set(name, fn);return name;};
+export const getTackleSetup = (/** @type {string} */ name) => TACKLE_SETUPS.get(name) ?? null;
 export const MOVE_SCHEMA_VERSION = 1;
 const AIMS = ['target', 'facing', 'input'], MOTIONS = ['none', 'root', 'dash'], TARGETS = ['self', 'opponent'];
 
@@ -45,6 +49,8 @@ export function validateMove(def) {
   }
   if (def.cooldownBoost !== undefined && typeof def.cooldownBoost !== 'boolean') fail('cooldownBoost deve ser booleano');
   if (def.group !== undefined && !(C.world[def.group] && typeof C.world[def.group] === 'object')) fail(`group desconhecido (${def.group}): precisa existir em C.world`);
+  if (def.tackle !== undefined && (typeof def.tackle !== 'string' || !def.tackle)) fail('tackle deve ser o nome de uma preparação registrada');
+  if (def.needsTarget !== undefined && (typeof def.needsTarget !== 'string' || !def.group)) fail('needsTarget deve ser a chave (em C.world[group]) do alcance de aquisição');
   for (const k of ['cost', 'cooldown', 'cancelAfter']) if (def[k] !== undefined && !(def[k] >= 0)) fail(`${k} inválido`);
   if (def.aim && !AIMS.includes(def.aim)) fail(`aim desconhecido (${def.aim})`);
   if (def.motion && !MOTIONS.includes(def.motion.type)) fail(`motion desconhecido (${def.motion.type})`);
@@ -79,6 +85,23 @@ export const getMove = id => {const d = id ? REGISTRY.get(id) : null;return d ? 
 export const listMoves = () => [...REGISTRY.values()];
 /** Esvazia o registro (testes). */
 export const clearMoves = () => REGISTRY.clear();
+
+/**
+ * Adversário ELEGÍVEL mais próximo a até `range` m (distância horizontal): vivo, no chão (o Tackle não alcança quem está em voo) e com diferença de altura
+ * que o corpo alcança. Desempate determinístico pelo id. Usado por Moves com aquisição automática de alvo (Quick Attack).
+ */
+export function nearestEligible(f, fighters, range) {
+  let best = null, bd = Infinity;
+  const bodyH = C.extras?.visual?.bodyHeight ?? 1.2, fy = (f.groundY ?? 0) + (f.flight?.y ?? 0) + (f.vaultHeight ?? 0);
+  for (const o of fighters) {
+    if (o.id === f.id || o.hp <= 0 || o.absent || (o.flight && !o.wallSplat)) continue;
+    const oy = (o.groundY ?? 0) + (o.vaultHeight ?? 0);
+    if (Math.abs(fy - oy) > bodyH) continue;
+    const d = Math.hypot(o.position.x - f.position.x, o.position.z - f.position.z);
+    if (d <= range + 1e-9 && (d < bd - 1e-9 || (Math.abs(d - bd) <= 1e-9 && best && o.id < best.id))) {bd = d;best = o;}
+  }
+  return best;
+}
 
 /** Movimento equipado no slot (ou null). Os slots ficam em f.loadout (ids). */
 export const moveInSlot = (f, slot) => getMove(f.loadout?.[slot]);

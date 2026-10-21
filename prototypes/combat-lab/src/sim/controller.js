@@ -11,7 +11,7 @@
 import {C} from './config.js';
 import {nominalDistance, actionParams, invulnerableWindow, chainOpen, actionSpec, getFighterMaxStamina} from './entity.js';
 import {stat, hasFlag} from './status.js';
-import {moveInSlot, getMove} from './moves.js';
+import {moveInSlot, getMove, getTackleSetup, nearestEligible} from './moves.js';
 import {chargeParams, chargeLevel, interruptCooldown, boostPlan} from './charge.js';
 import {vec, add, scale, sub, dot, length, normalize, clamp, angleOf, direction, angleDelta, smoothstep, actionCurve} from './math.js';
 import {legacyApproach, locomotionStep} from './locomotion.js';
@@ -263,6 +263,7 @@ function startNormalJump(f, move, diag, fromAir = false) {
   if (diag) report(f, {kind: 'jump', result: 'executed', note: `${fromAir ? 'coyote · ' : ''}salto normal h=${h}m vy=${vy.toFixed(1)}m/s`});
 }
 export function updateFighter(f, cmd, fighters, dt, world = null) {
+  CTX_FIGHTERS = fighters;
   const R = C.rules, X = C.extras, T = X.toggles, A = C.actions;
   // Buffer de entrada: o pedido mais recente de X ou C vale por actions.buffer.window, mesmo no ar ou na aterrissagem.
   const requested = cmd.tackle && T.enableTackle ? 'tackle' : cmd.dodge && T.enableDodge ? 'dodge' : null;
@@ -452,7 +453,7 @@ export function updateFighter(f, cmd, fighters, dt, world = null) {
     }
   }
   // Movimento especial (slot): X/C pedidos no mesmo passo têm prioridade. Mesmo controlador, stamina e diagnóstico.
-  if (!kind && cmd.skill != null && f.hp > 0) pressSkill(f, cmd, move, desiredHeading, !!target, diag);
+  if (!kind && cmd.skill != null && f.hp > 0) pressSkill(f, cmd, move, desiredHeading, !!target, diag, fighters);
   else if (!kind && f.skillBuffer && f.hp > 0) bufferedSkill(f, cmd, diag);
   if (f.charge) stepCharge(f, cmd);   // soltar o Move: depois de defesa e X/C (M30.9)
   // Esquiva → sprint: C ainda pressionado, com direção, a partir de entryFraction da esquiva (ou logo depois dela).
@@ -490,7 +491,7 @@ export function updateFighter(f, cmd, fighters, dt, world = null) {
     else if (action.kind === 'dodge' || action.kind === 'tackle') {
       const p = A[action.kind], homing = action.kind === 'tackle' && target && cmd.locked && L.lockTackleHoming;
       const steering = homing ? sub(target.position, f.position) : cmd.dodgeDirection ?? move;
-      if (length(move) > .01 || homing) {
+      if ((length(move) > .01 || homing) && !action.fixedHeading) {
         const desired = action.startAngle + clamp(angleDelta(action.startAngle, angleOf(steering)), -p.steerLimit, p.steerLimit);
         action.heading += clamp(angleDelta(action.heading, desired), -p.steerRate * dt, p.steerRate * dt);
       }
@@ -517,6 +518,7 @@ export function updateFighter(f, cmd, fighters, dt, world = null) {
         const blend = smoothstep((action.elapsed + dt) / blendTime);
         f.velocity = {x: action.from.x * (1 - blend) + f.velocity.x * blend, z: action.from.z * (1 - blend) + f.velocity.z * blend};
       }
+      if (action.stepper) {const v = getTackleSetup(action.stepper)?.(f, action, dt);if (v) f.velocity = v;}   // Moves com movimento próprio dentro da ação de Tackle (Quick Attack: ida e volta)
       if (action.slam) {
         // Preparação: segue com a velocidade herdada menos slamSpeedLoss (a perda é total ao fim dela). Queda: avança o necessário para chegar ao rival no instante em que toca o chão (slamSpeedLoss reduz esse avanço); depois de aterrissar, parado.
         const tLeft = Math.max(dt, R.slamFallTime * f.vaultHeight / Math.max(1e-6, action.slamH0 ?? 0)), left = Math.max(0, (action.slamReach ?? 0) - (action.traveled ?? 0));
@@ -655,6 +657,8 @@ export function advanceAction(f, dt) {
  * encadeável (ou listada em cancelFrom), defesa e guard stun conforme a definição, recarga, status e stamina.
  */
 /** @param {any} f @param {any} def @param {number | null} [slot] */
+/** Lutadores da partida em curso (definido a cada updateFighter): permite que movePermission/HUD/IA avaliem Moves com aquisição de alvo. */
+let CTX_FIGHTERS = [];
 export function movePermission(f, def, slot = null) {
   if (!def) return {ok: false, reason: 'noMove', detail: {slot}};
   if (hasFlag(f, 'stunned')) return {ok: false, reason: 'stunned'};
@@ -668,6 +672,7 @@ export function movePermission(f, def, slot = null) {
     if (!chainOpen(f)) return {ok: false, reason: 'chain', detail: {left: Math.max(0, actionSpec(cur).chainAfter - cur.elapsed)}};
   }
   if (f.stun > 1e-8 && !def.fromGuardStun) return {ok: false, reason: 'guardStun', detail: {left: f.stun}};
+  if (def.needsTarget) {const range = C.world[def.group]?.[def.needsTarget] ?? 0;if (!nearestEligible(f, CTX_FIGHTERS, range)) return {ok: false, reason: 'noTarget', detail: {range}};}
   const cost = costOf(f, def.cost ?? 1);
   if (f.exhausted && cost > 0) return {ok: false, reason: 'exhausted', detail: {value: f.stamina, refill: getFighterMaxStamina(f)}};
   if (f.stamina < cost - 1e-8) return {ok: false, reason: 'stamina', detail: {value: f.stamina, required: cost}};
@@ -682,6 +687,21 @@ function startMove(f, def, slot, dirs, desiredHeading, hasTarget, guardHeld) {
   const cost = costOf(f, def.cost ?? 1);f.stamina = Math.max(0, f.stamina - cost);f.regenBase = f.stamina;f.regenAge = 0;f.exhausted = isDepleted(f.stamina);
   if (def.cooldown > 0) (f.moveCooldowns ??= {})[def.id] = def.cooldown;
   f.guard = false;f.guardSuppressed = guardHeld;f.push = null;f.blend = null;f.vaultHeight = 0;f.bufferedTackle = null;f.inputBuffer = null;f.sprinting = false;f.sprintCarry = false;
+}
+/**
+ * Move que vira uma AÇÃO DE TACKLE com parâmetros próprios (Lunge, Quick Attack, Bullet Punch…): `startAction` cria a ação (colisão real, defesa, defesa
+ * perfeita, i-frames, Clash/Counter, janelas, recuperação — tudo do Tackle); aqui se desfaz o custo do Tackle, cobra-se o do Move (stamina e cooldown no
+ * início do uso, MV-P11) e a preparação registrada em `def.tackle` ajusta duração, distância, dano, knockback e janelas (parâmetros capturados, M28.4).
+ */
+function startTackleMove(f, def, slot, dirs, desiredHeading, hasTarget, guardHeld, fighters) {
+  const before = f.stamina;
+  startAction(f, 'tackle', dirs, fighters, desiredHeading, false, guardHeld, hasTarget);
+  f.stamina = before;
+  const cost = costOf(f, def.cost ?? 1);f.stamina = Math.max(0, f.stamina - cost);f.regenBase = f.stamina;f.regenAge = 0;f.exhausted = isDepleted(f.stamina);
+  if (def.cooldown > 0) (f.moveCooldowns ??= {})[def.id] = def.cooldown;
+  const a = f.action, P = def.group ? structuredClone(C.world[def.group]) : {};
+  a.move = def.id;a.slot = slot;a.params = P;a.moveDef = def;a.pl = 1;a.plSpeed = 1;a.plDamage = 1;
+  getTackleSetup(def.tackle)?.(f, a, P, {fighters, def, hasTarget});
 }
 /** Um passo do movimento em curso: deslocamento (motion), orientação e efeitos da linha do tempo que vencem neste passo. */
 function updateMove(f, action, target, cmd, dt) {
@@ -760,7 +780,7 @@ function boostCooldown(f, def, slot, diag) {
   if (diag) report(f, {kind: 'skill', slot, move: def.id, result: 'executed', note: `recarga encurtada em ${plan.reduce.toFixed(2)} s (−${cost.toFixed(2)} de stamina)`});
 }
 /** Toque num slot (borda do botão): inicia o movimento, encurta a recarga, guarda no buffer ou nega com motivo. */
-function pressSkill(f, cmd, move, desiredHeading, hasTarget, diag) {
+function pressSkill(f, cmd, move, desiredHeading, hasTarget, diag, fighters = []) {
   const slot = cmd.skill, def = moveInSlot(f, slot), onCooldown = !!def && (f.moveCooldowns?.[def.id] ?? 0) > 1e-8;
   const deny = (reason, detail) => {if (diag) report(f, {kind: 'skill', slot, move: def?.id ?? null, result: 'denied', reason, detail});};
   f.skillBuffer = null;
@@ -774,7 +794,8 @@ function pressSkill(f, cmd, move, desiredHeading, hasTarget, diag) {
     return;
   }
   const perm = movePermission(f, def, slot);
-  if (perm.ok) startMove(f, def, slot, {move, dodgeDirection: cmd.dodgeDirection, lock: hasTarget ? cmd.target ?? null : null}, desiredHeading, hasTarget, cmd.guard);
+  if (perm.ok && def.tackle) startTackleMove(f, def, slot, {move, dodgeDirection: cmd.dodgeDirection}, desiredHeading, hasTarget, cmd.guard, fighters);
+  else if (perm.ok) startMove(f, def, slot, {move, dodgeDirection: cmd.dodgeDirection, lock: hasTarget ? cmd.target ?? null : null}, desiredHeading, hasTarget, cmd.guard);
   if (diag) report(f, {kind: 'skill', slot, move: def?.id ?? null, result: perm.ok ? 'executed' : 'denied', reason: perm.reason, detail: perm.detail});
 }
 /** Comando de Move guardado no fim da esquiva (M16.3): sai assim que a esquiva termina o deslocamento principal. */
