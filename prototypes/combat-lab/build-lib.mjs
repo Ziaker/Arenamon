@@ -58,4 +58,6 @@ async function buildToolLab(dir, packages, {minify = true} = {}) {
 export const buildQuarksLab = o => buildToolLab('quarks-lab', ['three', 'three.quarks'], o);
 /** Laboratório de navegação Yuka (Fase 3): cenários sólidos, rotas com salto e comparação A/B. */
 export const buildNavLab = o => buildToolLab('nav-lab', ['three', 'yuka'], o);
-export const OUTPUTS = {lab: 'dist/arenamon-combate-laboratorio.html', reports: 'dist/arenamon-painel-relatorios.html', quarks: 'dist/arenamon-vfx-quarks.html', nav: 'dist/arenamon-navegacao-yuka.html'};
+/** Laboratório de pós-processamento pmndrs (Fase 4): bloom, distorção, aberração, grading, vinheta, DoF e A/B. */
+export const buildPostLab = o => buildToolLab('post-lab', ['three', 'postprocessing'], o);
+export const OUTPUTS = {lab: 'dist/arenamon-combate-laboratorio.html', reports: 'dist/arenamon-painel-relatorios.html', quarks: 'dist/arenamon-vfx-quarks.html', nav: 'dist/arenamon-navegacao-yuka.html', post: 'dist/arenamon-posprocessamento.html'};

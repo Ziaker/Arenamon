@@ -229,6 +229,17 @@ export function vfxDefaults() {
     // B (impacto), C (pouso) e footstool por partículas GPU, A/B comparativo com o legado.
     // 0 = desligada (custo zero, nada é instanciado). Só aparência.
     quarks: {enabled: 0},
+    // Pós-processamento experimental (Fase 4, pmndrs/postprocessing sem React): bloom por limiar/seleção, distorção em impactos fortes,
+    // aberração cromática, color grading, vinheta e profundidade de campo (só K.O.). enabled = 0: renderer atual, custo zero. Só aparência.
+    post: {
+      enabled: 0,
+      bloomOn: 1, bloomMode: 0, bloomIntensity: .9, bloomThreshold: .8, bloomSmoothing: .25, bloomRadius: .7, bloomAttackBoost: 1.8,
+      distortOn: 1, distortStrength: .5, distortSize: .28, distortMinDamage: 12,
+      chromaOn: 1, chromaOffset: .0008, chromaImpact: .004,
+      gradeOn: 1, gradeSaturation: .1, gradeContrast: .06, gradeBrightness: 0, gradeHue: 0,
+      vignetteOn: 1, vignetteDarkness: .4, vignetteOffset: .3,
+      dofOn: 0, dofBokeh: 2.5, dofKoOnly: 1,
+    },
   };
 }
 

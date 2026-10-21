@@ -23,6 +23,10 @@ import * as Quarks from 'three.quarks';
 import {QuarksBridge} from './quarks/bridge.js';
 // Diagnóstico da navegação experimental (Fase 3, Yuka): rotas e pontos; criado só com extras.nav.enableNav + showDebug.
 import {NavDebug} from '../nav/nav-debug.js';
+// Pós-processamento experimental (Fase 4, pmndrs/postprocessing sem React): criado só com C.vfx.post.enabled = 1.
+import * as PP from 'postprocessing';
+import {PostPipeline} from './post/post-pipeline.js';
+import {feedPulses} from './post/post-params.js';
 
 const STATE_COLORS = {invulnerable: 0x58e6ff, tackle: 0xffa040, dodge: 0x61ebba, guard: 0xffe066, guardStun: 0xffb347, recoil: 0xc77dff, airborne: 0x9db4ff, landing: 0x7f93b8, defeated: 0x56616a};
 export const OVERLAYS = [
@@ -69,6 +73,7 @@ export class View {
     this.abilityBanners = createPassiveBanners();
     this.passives = new PassiveAbilitySystem(this.scene, {notify: (id, name) => this.abilityBanners.show(id, name)});
     this.navDebug = null; // rotas Yuka (Fase 3), sob demanda
+    this.post = null;this.postSeen = new WeakSet();this.postSize = '';   // pós-processamento (Fase 4), sob demanda
     this.quarks = null; // camada three.quarks (Fase 2): instanciada sob demanda quando C.vfx.quarks.enabled
     this.useNewVfx = false; // trocar para true quando o novo sistema estiver em paridade
     this.overlayGroup = new T.Group();this.overlayGroup.renderOrder = 900;this.scene.add(this.overlayGroup);
@@ -138,7 +143,7 @@ export class View {
     this.rig.reset(player);this.seenEvents = new WeakSet();this.legacySeen = new WeakSet();this.cameraShake = 0;for (const e of this.effects) {this.scene.remove(e.mesh);e.mesh.geometry.dispose();e.mesh.material.dispose();}this.effects = [];this.airborneSeen = [];this.invulnerableFx.clear();this.normals = [];this.vfx.reset();
     if (this.canvas) this.canvas.style.filter = '';
     this.vfxRuntime.reset();
-    this.quarks?.reset();
+    this.quarks?.reset();this.post?.pulses.reset();
     this.solid.reset();this.meteorFx?.reset();for (const smear of this.smears) smear?.reset();
     this.passives.reset();this.abilityBanners.clear();
     this.cinematic?.clearAll();
@@ -396,7 +401,10 @@ export class View {
 
       try {
         // Tempo de CPU do envio ao WebGL (não é tempo de GPU); o tempo de GPU, quando há suporte, vem da consulta de tempo.
-        this.gpuTimer?.begin();t0 = now();this.renderer.render(this.scene, this.camera);tm.render = now() - t0;this.gpuTimer?.end();
+        this.gpuTimer?.begin();t0 = now();
+        // Pós-processamento experimental: só com C.vfx.post.enabled; impact frames (silhueta pura) e desligado usam o renderer atual.
+        if (!this.renderPost(fighters, events, paused ? 0 : dt, impactPhase, isKoSeq, w, h)) this.renderer.render(this.scene, this.camera);
+        tm.render = now() - t0;this.gpuTimer?.end();
       } finally {
         // Restaura cena ao normal imediatamente após a renderização do quadro mesmo se houver erro
         if (impactPhase === 'white' || impactPhase === 'invert') {
@@ -406,6 +414,23 @@ export class View {
         }
       }
     }
+  }
+  /** Pós-processamento (Fase 4). Devolve true se o quadro foi desenhado pelo pipeline; false = usar renderer.render(). */
+  renderPost(fighters, events, dt, impactPhase, isKoSeq, w, h) {
+    const P = C.vfx.post;
+    if (!P?.enabled) {if (this.post) {this.post.dispose();this.post = null;}return false;}
+    if (impactPhase === 'white' || impactPhase === 'invert') return false;   // C08: silhueta pura, o pós não toca
+    if (!this.post) {
+      const m = C.vfx.master ?? {}, l = C.vfx.laser ?? {}, a = () => this._a11y ?? {};
+      this.post = new PostPipeline({THREE: T, PP, renderer: this.renderer, scene: this.scene, camera: this.camera, params: P, accessibility: () => ({
+        noFlash: !!(a().noFlash || m.noFlash || l.noFlash), reduceMotion: !!(a().reduceMotion || m.reduceMotion || l.reduceMotion), highContrast: !!(a().highContrast || m.highContrast || l.highContrast)})});
+      this.postSize = '';
+    }
+    if (`${w}x${h}` !== this.postSize) {this.post.setSize(w, h);this.postSize = `${w}x${h}`;}
+    feedPulses(this.post, events, fighters, this.postSeen, (pos, s) => this.post.shock(pos, s), P.distortMinDamage);
+    const loser = isKoSeq ? fighters.find(f => f.hp <= 0) : null;
+    this.post.setDof(isKoSeq, loser ? {x: loser.position.x, y: (loser.groundY ?? 0) + 1, z: loser.position.z} : null);
+    return this.post.render(dt);
   }
   // ---------- Sobreposições técnicas (recriadas a cada quadro em um grupo próprio; materiais/geometrias descartados) ----------
   previewPassive(id, kind) {this.passives.activate(id, kind);}
