@@ -173,6 +173,15 @@ export function defaults() {
     'vital-spirit': {thresholdPct: .30, regenPct: .30},
     guts: {attackPct: .15},
   };
+  // Moves NOVOS (docs/moves-nao-iniciados/PROMPT_IMPLEMENTACAO_MOVES_NOVOS.md). Cada grupo traz os sliders do Move: cost/cooldown/cast sobrepõem a
+  // definição NO PRÓXIMO USO (moves.js › effectiveMove) e o resto é lido pelo efeito do Move; a execução guarda uma cópia (M28.4).
+  // Valores iniciais vêm dos catálogos (propostas de balanceamento, NÃO homologadas) — ver DECISOES_PROVISORIAS_MOVES_NOVOS.md.
+  Object.assign(world, {
+    // Harden: +30% Defesa (⇒ dano × 1/1,3, mesma convenção da passiva de Defesa, MV-P01) e nega o knockback ofensivo por 5 s.
+    harden: {cost: .8, cooldown: 10, cast: .35, duration: 5, defensePct: .30, negateKnockback: 1},
+    // Second Wind: +40% da stamina MÁXIMA por segundo (MV-P09) e esquiva/sprint 25% mais baratos por 5 s; não cura HP.
+    secondWind: {cost: .8, cooldown: 12, cast: .35, duration: 5, regenPctPerSecond: .40, mobilityCostPct: .25},
+  });
   return {rules, test, locomotion, camera, profiles: profilesLab, extras, actions, vfx: vfxDefaults(), display: displayDefaults(), world, map: {...MAP_DEFAULTS}, passivas};
 }
 

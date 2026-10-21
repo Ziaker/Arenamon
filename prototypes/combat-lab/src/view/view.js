@@ -24,6 +24,7 @@ import * as Quarks from 'three.quarks';
 import {QuarksBridge} from './quarks/bridge.js';
 // Diagnóstico da navegação experimental (Fase 3, Yuka): rotas e pontos; criado só com extras.nav.enableNav + showDebug.
 import {NavDebug} from '../nav/nav-debug.js';
+import {StatusAura} from './status-aura.js';
 // Pós-processamento experimental (Fase 4, pmndrs/postprocessing sem React): criado só com C.vfx.post.enabled = 1.
 import * as PP from 'postprocessing';
 import {PostPipeline} from './post/post-pipeline.js';
@@ -75,7 +76,8 @@ export class View {
     this.abilityBanners = createPassiveBanners();
     this.passives = new PassiveAbilitySystem(this.scene, {notify: (id, name) => this.abilityBanners.show(id, name)});
     this.navDebug = null; // rotas Yuka (Fase 3), sob demanda
-    this.post = null;this.postSeen = new WeakSet();this.postSize = '';   // pós-processamento (Fase 4), sob demanda
+    this.statusAura = null; // aura dos status dos Moves novos (Harden, Second Wind), sob demanda
+    this.auraSeen = new WeakSet();this.post = null;this.postSeen = new WeakSet();this.postSize = '';   // pós-processamento (Fase 4), sob demanda
     this.quarks = null; // camada three.quarks (Fase 2): instanciada sob demanda quando C.vfx.quarks.enabled
     this.useNewVfx = false; // trocar para true quando o novo sistema estiver em paridade
     this.overlayGroup = new T.Group();this.overlayGroup.renderOrder = 900;this.scene.add(this.overlayGroup);
@@ -331,6 +333,11 @@ export class View {
     } else if (this.quarks) {
       this.quarks.dispose();this.quarks = null;
     }
+    // Aura dos status dos Moves novos: só existe enquanto algum lutador tem Harden/Second Wind (custo zero fora disso).
+    if (fighters.some(f => f.statuses?.some(s => s.id === 'harden' || s.id === 'second-wind'))) {
+      const m = C.vfx.master ?? {}, hitIds = new Set(events.filter(e => (e.result === 'impact' || e.result === 'partial') && !this.auraSeen.has(e)).map(e => {this.auraSeen.add(e);return e.target;}));
+      (this.statusAura ??= new StatusAura(T, this.scene)).update(fighters, paused ? 0 : dt, {bodyHeight: X.visual.bodyHeight, halfExtent: C.test.halfExtent, reduceMotion: !!(this._a11y?.reduceMotion || m.reduceMotion), noFlash: !!(this._a11y?.noFlash || m.noFlash), hits: hitIds});
+    } else if (this.statusAura) {this.statusAura.dispose();this.statusAura = null;}
     // Rotas da navegação experimental (Yuka): só quando ligada e com diagnóstico visível.
     if (navGame && C.extras.nav?.enableNav && C.extras.nav.showDebug) (this.navDebug ??= new NavDebug(T, this.scene)).update(navGame);
     else if (this.navDebug) {this.navDebug.dispose();this.navDebug = null;}

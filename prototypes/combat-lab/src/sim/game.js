@@ -118,7 +118,7 @@ export class Game {
     for (const f of this.fighters) {
       if (!f.moveFx?.length) continue;
       for (const fx of f.moveFx.splice(0)) {
-        const def = getMove(fx.move), ev = def?.timeline?.[fx.index];if (!ev) continue;
+        const def = fx.def ?? getMove(fx.move), ev = def?.timeline?.[fx.index];if (!ev) continue;
         const other = this.fighters.find(o => o.id !== f.id);
         if (ev.spawn) spawn(this.world, placeRelative(f, fx.heading, ev.spawn), events);
         else if (ev.status) {const who = ev.target === 'opponent' ? other : f;if (who && who.hp > 0) {applyStatus(who, ev.status, {source: f.id});events.push({result: 'statusApplied', attacker: f.id, target: who.id, damage: 0, status: ev.status.id});}}

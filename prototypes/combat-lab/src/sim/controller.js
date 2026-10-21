@@ -34,7 +34,7 @@ export const walkSpeed = f => stat(f, 'speed', f.attributes.speed) * (f.guard ? 
 /** Custo de stamina de uma ação com o modificador de status (sem status: o próprio custo). */
 // kind opcional ('dodge' | 'tech'): passivas como Technician alteram o custo efetivo de esquivas e recovery (R10);
 // X/tackles e Moves continuam usando o custo base (C.extras.toggles.enablePassives desligado = paridade exata).
-export const costOf = (f, cost, kind = null) => {const base = stat(f, 'staminaCost', cost);return kind ? passiveCost(f, kind, base) : base;};
+export const costOf = (f, cost, kind = null) => {const base = stat(f, 'staminaCost', cost) * (kind === 'dodge' ? stat(f, 'mobilityCost', 1) : 1);return kind ? passiveCost(f, kind, base) : base;};
 
 /**
  * Stamina esgotada: abaixo do menor custo de X e C (exhaustMode 1) ou exatamente zero (0, Etapa A).
@@ -380,7 +380,7 @@ export function updateFighter(f, cmd, fighters, dt, world = null) {
   f.counterWindow = Math.max(0, f.counterWindow - dt);
   const staminaBefore = f.stamina;
   // Sprint: consumo contínuo; a regeneração fica suspensa enquanto ele dura.
-  if (f.sprinting) {f.regenBase = Math.max(0, f.stamina - A.sprint.staminaDrain * dt);f.regenAge = 0;}
+  if (f.sprinting) {f.regenBase = Math.max(0, f.stamina - A.sprint.staminaDrain * stat(f, 'mobilityCost', 1) * dt);f.regenAge = 0;}
   f.regenAge += dt * (f.guard ? X.combat.guardRegenFactor : 1) * stat(f, 'staminaRegen', 1);
   const regen = clamp((f.regenAge - R.regenDelay) / R.regenTime, 0, 1);
   const maxStam = getFighterMaxStamina(f);
@@ -677,14 +677,15 @@ export function movePermission(f, def, slot = null) {
 function startMove(f, def, slot, dirs, desiredHeading, hasTarget, guardHeld) {
   const aim = def.aim ?? 'target', inputDir = dirs.dodgeDirection ?? dirs.move;
   const heading = aim === 'facing' ? f.facing : aim === 'input' && length(inputDir) > .01 ? angleOf(inputDir) : hasTarget || length(inputDir) <= .01 ? desiredHeading : angleOf(inputDir);
-  f.action = {kind: 'move', move: def.id, slot, elapsed: 0, startAngle: heading, heading, offensive: false, hits: new Set(), fired: [], from: {...f.velocity}};
+  // M28.4: a execução guarda a definição EFETIVA (com os sliders do momento) e os parâmetros do grupo; mexer em slider depois não a altera.
+  f.action = {kind: 'move', move: def.id, slot, elapsed: 0, startAngle: heading, heading, offensive: false, hits: new Set(), fired: [], from: {...f.velocity}, def, params: def.group ? structuredClone(C.world[def.group]) : null};
   const cost = costOf(f, def.cost ?? 1);f.stamina = Math.max(0, f.stamina - cost);f.regenBase = f.stamina;f.regenAge = 0;f.exhausted = isDepleted(f.stamina);
   if (def.cooldown > 0) (f.moveCooldowns ??= {})[def.id] = def.cooldown;
   f.guard = false;f.guardSuppressed = guardHeld;f.push = null;f.blend = null;f.vaultHeight = 0;f.bufferedTackle = null;f.inputBuffer = null;f.sprinting = false;f.sprintCarry = false;
 }
 /** Um passo do movimento em curso: deslocamento (motion), orientação e efeitos da linha do tempo que vencem neste passo. */
 function updateMove(f, action, target, cmd, dt) {
-  const def = getMove(action.move);if (!def) {f.velocity = vec();return;}
+  const def = action.def ?? getMove(action.move);if (!def) {f.velocity = vec();return;}
   const m = def.motion ?? {type: 'none'};
   if (m.type === 'dash' && m.distance) {
     // Deslocamento suave entre start e end (s): mesma distância qualquer que seja o passo.
@@ -693,7 +694,7 @@ function updateMove(f, action, target, cmd, dt) {
   } else if (m.type === 'root') f.velocity = vec();
   else {const from = action.from ?? vec(), k = Math.exp(-12 * dt);f.velocity = scale(from, k);action.from = {...f.velocity};}
   turnToward(f, target && def.aim !== 'facing' ? angleOf(sub(target.position, f.position)) : action.heading, dt);
-  (def.timeline || []).forEach((ev, i) => {if (!action.fired.includes(i) && ev.at <= action.elapsed + dt + 1e-9) {action.fired.push(i);(f.moveFx ??= []).push({index: i, move: def.id, heading: action.heading});}});
+  (def.timeline || []).forEach((ev, i) => {if (!action.fired.includes(i) && ev.at <= action.elapsed + dt + 1e-9) {action.fired.push(i);(f.moveFx ??= []).push({index: i, move: def.id, heading: action.heading, params: action.params ?? null, def});}});
   f.state = 'move';
 }
 // ---------- Movimentos de carga (Charge): segurar o botão carrega, soltar executa ----------

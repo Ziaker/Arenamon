@@ -12,6 +12,8 @@ const STANDARD = [['reflect', 'Reflect', 0], ['psyshock', 'Psyshock', 1]];
 export const MOVE_INFO = {
   reflect: {group: 'Reflect', hint: 'Barreira refletora frontal. Segure para carregar, solte para criar.'},
   psyshock: {group: 'Psyshock', hint: 'Pedras psíquicas com homing. Segure para carregar, solte para disparar.'},
+  harden: {group: 'Harden', hint: 'Normal · Status. Toque para endurecer: +30% de Defesa e nenhum knockback ofensivo por 5 s (cast de 0,35 s).'},
+  'second-wind': {group: 'Second Wind', hint: 'Normal · Status. Toque para regenerar stamina bem mais rápido e gastar 25% menos em esquiva e sprint por 5 s (cast de 0,35 s).'},
 };
 const SKILL_NAMES = ['skill1', 'skill2', 'skill3', 'skill4'];
 const ACTION_NAMES = {forward: 'Mover ↑', back: 'Mover ↓', left: 'Mover ←', right: 'Mover →', tackle: 'Tackle (X)', dodge: 'Esquiva (C)', defend: 'Defesa (D)', lock: 'Travar alvo', pause: 'Pausar', restart: 'Reiniciar', debug: 'Depuração'};
@@ -76,6 +78,22 @@ const PARAMS = [
     ['psyshock', 'knockbackSpeedFactor', 'Empurrão acompanha a velocidade da pedra', 'Quanto o empurrão varia com a velocidade sorteada da pedra em relação à média: 0% = igual para todas; 100% = proporcional (provisório).', 0, 1.6, .05, pct, false],
     ['psyshock', 'counterStagger', 'Counter Stagger', 'Stagger quando uma pedra de PL superior atinge o corpo do derrotado (M21.5).', 0, 1, .01, sec, true],
     ['psyshock', 'radius', 'Raio de colisão da pedra', 'Igual em todas as pedras (o tamanho visual varia sem efeito na física, M30.2).', .05, .5, .01, m, false],
+  ]],
+  ['Harden', [
+    ['harden', 'cost', 'Custo de stamina', 'Cobrado no início do cast (Normal sem marcador); vale nos PRÓXIMOS usos (M28.4). Valor do catálogo — proposta, não homologada.', 0, 5, .05, num, false],
+    ['harden', 'cooldown', 'Cooldown', 'Começa junto com o custo, no início do cast (proposta).', 0, 60, .5, sec, false],
+    ['harden', 'cast', 'Duração do cast', 'Tempo do cast antes do efeito começar; interrupção nesse intervalo cancela sem reembolso (proposta).', .05, 2, .01, sec, false],
+    ['harden', 'duration', 'Duração do efeito', 'Quanto tempo o status dura depois do cast (proposta).', .5, 20, .25, sec, false],
+    ['harden', 'defensePct', 'Bônus de Defesa', '+30% de Defesa = dano recebido × 1/(1+bônus), mesma convenção da passiva de Defesa (MV-P01; proposta).', 0, 2, .05, pct, false],
+    ['harden', 'negateKnockback', 'Anula o knockback ofensivo?', 'Liga a negação do arremesso/empurrão de ataques e projéteis. O empurrão físico do corpo do atacante e a gravidade não são knockback (MV-P12).', 0, 1, 1, yesno, false],
+  ]],
+  ['Second Wind', [
+    ['secondWind', 'cost', 'Custo de stamina', 'Cobrado no início do cast (Normal sem marcador); vale nos PRÓXIMOS usos (M28.4). Valor do catálogo — proposta, não homologada.', 0, 5, .05, num, false],
+    ['secondWind', 'cooldown', 'Cooldown', 'Começa junto com o custo, no início do cast (proposta).', 0, 60, .5, sec, false],
+    ['secondWind', 'cast', 'Duração do cast', 'Tempo do cast antes do efeito começar; interrupção nesse intervalo cancela sem reembolso (proposta).', .05, 2, .01, sec, false],
+    ['secondWind', 'duration', 'Duração do efeito', 'Quanto tempo o status dura depois do cast (proposta).', .5, 20, .25, sec, false],
+    ['secondWind', 'regenPctPerSecond', 'Regeneração extra por segundo', 'Fração da stamina MÁXIMA recuperada por segundo durante o efeito (MV-P09: o documento diz "+40%/s" sem base).', 0, 2, .05, pct, false],
+    ['secondWind', 'mobilityCostPct', 'Desconto em esquiva e sprint', 'Redução do custo da esquiva (C) e do consumo do sprint durante o efeito (proposta: 25%).', 0, .9, .05, pct, false],
   ]],
   ['IA com Moves (decisões do adversário)', [
     ['ai', 'evadeDistance', 'Esquiva emergencial: distância do Tackle rival', 'Durante a carga, se o rival inicia um Tackle a menos desta distância, a IA esquiva cancelando a carga (provisório).', 0, 10, .1, m, false],

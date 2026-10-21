@@ -23,6 +23,7 @@ export const STATS = {
   staminaCost: 'multiplicador do custo de stamina de X, C e movimentos',
   knockbackTaken: 'multiplicador do lançamento recebido',
   cooldownRate: 'velocidade de recarga dos movimentos',
+  mobilityCost: 'multiplicador do custo de stamina da esquiva (C) e do consumo do sprint (Second Wind)',
 };
 /** Flags reconhecidas pelo controlador (bloqueiam ações; o diagnóstico de comandos informa o motivo). */
 export const FLAGS = {

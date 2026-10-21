@@ -6,6 +6,7 @@ import {registerMove} from '../moves.js';
 import {registerEffect} from '../move-effects.js';
 import {reflectDef, reflectEffect} from './reflect.js';
 import {psyshockDef, psyshockEffect} from './psyshock.js';
+import {NEW_MOVES} from './new-moves.js';
 
 export const STANDARD_MOVE_IDS = ['reflect', 'psyshock'];
 /** Registra as definições e os efeitos dos Moves padrão (idempotente: sobrescreve os de mesmo id). */
@@ -14,5 +15,6 @@ export function registerStandardMoves() {
   registerEffect('psyshock', psyshockEffect);
   registerMove(/** @type {any} */ (reflectDef));
   registerMove(/** @type {any} */ (psyshockDef));
+  for (const [def, effect, fn] of NEW_MOVES) {registerEffect(effect, fn);registerMove(def);}   // Moves novos: registrados, nunca equipados por padrão
   return [...STANDARD_MOVE_IDS];
 }

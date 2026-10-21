@@ -44,6 +44,7 @@ export function validateMove(def) {
     for (const k of CHARGE_OVERRIDES) if (def.charge[k] !== undefined && !(def.charge[k] >= 0)) fail(`charge.${k} inválido`);
   }
   if (def.cooldownBoost !== undefined && typeof def.cooldownBoost !== 'boolean') fail('cooldownBoost deve ser booleano');
+  if (def.group !== undefined && !(C.world[def.group] && typeof C.world[def.group] === 'object')) fail(`group desconhecido (${def.group}): precisa existir em C.world`);
   for (const k of ['cost', 'cooldown', 'cancelAfter']) if (def[k] !== undefined && !(def[k] >= 0)) fail(`${k} inválido`);
   if (def.aim && !AIMS.includes(def.aim)) fail(`aim desconhecido (${def.aim})`);
   if (def.motion && !MOTIONS.includes(def.motion.type)) fail(`motion desconhecido (${def.motion.type})`);
@@ -63,7 +64,18 @@ export function validateMove(def) {
  */
 export function registerMove(def) {validateMove(def);REGISTRY.set(def.id, Object.freeze(structuredClone(def)));return def.id;}
 export const unregisterMove = id => REGISTRY.delete(id);
-export const getMove = id => (id ? REGISTRY.get(id) ?? null : null);
+/** Campos da definição que os sliders do grupo (`def.group` → C.world[grupo]) sobrepõem: cost, cooldown, cast (= duration) e cancelAfter. */
+const GROUP_OVERRIDES = {cost: 'cost', cooldown: 'cooldown', cast: 'duration', cancelAfter: 'cancelAfter'};
+/** Definição EFETIVA: a registrada + sliders do grupo do Move. Sem `group` (Reflect/Psyshock) é a própria definição (zero custo, zero mudança). */
+export function effectiveMove(def) {
+  const g = def.group ? C.world[def.group] : null;
+  if (!g) return def;
+  const out = {...def};
+  for (const [k, field] of Object.entries(GROUP_OVERRIDES)) if (typeof g[k] === 'number') out[field] = g[k];
+  if (def.timeline) out.timeline = def.timeline.map(ev => ev.atKey && typeof g[ev.atKey] === 'number' ? {...ev, at: g[ev.atKey]} : ev);   // atKey: o instante vem de um slider (ex.: 'cast')
+  return Object.freeze(out);
+}
+export const getMove = id => {const d = id ? REGISTRY.get(id) : null;return d ? effectiveMove(d) : null;};
 export const listMoves = () => [...REGISTRY.values()];
 /** Esvazia o registro (testes). */
 export const clearMoves = () => REGISTRY.clear();
@@ -78,7 +90,7 @@ export function setLoadout(f, ids) {
 }
 /** Parâmetros de tempo de uma ação 'move' (para o resto do motor tratá-la como qualquer ação). */
 export function moveSpec(action) {
-  const d = getMove(action.move);
+  const d = action.def ?? getMove(action.move);
   if (!d) return {duration: 0, chainAfter: 0, invulnerable: 0, invulnerableFrom: 0, recovery: 0};
   return {duration: d.duration, chainAfter: d.cancelAfter ?? d.duration, invulnerable: d.invulnerable?.[1] ?? 0, invulnerableFrom: d.invulnerable?.[0] ?? 0, recovery: 0};
 }
