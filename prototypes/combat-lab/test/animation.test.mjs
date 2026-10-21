@@ -134,6 +134,16 @@ test('altura visual: ajuste automático por animação, offset manual e independ
 test('sem root motion: deslocamento horizontal do quadril descartado', () => {
   const {ch, g} = setup();run(ch, g, 50, t => [cmd({move: vec(1, 0)}), cmd()]);
   check('quadril sem deslocamento X/Z', Math.abs(ch.hips.position.x - ch.hipsRest.x) < 1e-9 && Math.abs(ch.hips.position.z - ch.hipsRest.z) < 1e-9);
+  check('todos os nós de root motion retornam ao X/Z de repouso', ch.rootMotionNodes.every(({node, rest}) => Math.abs(node.position.x - rest.x) < 1e-9 && Math.abs(node.position.z - rest.z) < 1e-9));
+  const saved = ch.stateData();check('trava horizontal persistida por personagem', saved.lockRootMotion === true);
+});
+test('trava vertical mantém a pose apoiada sem bloquear altitude física', () => {
+  const {ch, g} = setup();ch.variants.idle = [13];ch.groundCurve(13);run(ch, g, 80, () => [cmd(), cmd()]);
+  const expected = -ch.groundAt(ch.current.index, ch.current.action.time) * ch.root.scale.x;
+  check('compensação vertical aplicada integralmente no mesmo quadro', Math.abs(ch.groundOffset - expected) < 1e-6, `${ch.groundOffset.toFixed(4)} × ${expected.toFixed(4)}`);
+  ch.place(g.fighters[0], 2.4, C.test.step);
+  check('salto físico continua elevando o personagem', Math.abs(ch.root.position.y - (2.4 + ch.groundOffset)) < 1e-6, ch.root.position.y.toFixed(4));
+  const saved = ch.stateData();check('trava persistida por personagem', saved.lockToGround === true);
 });
 test('disparo de movimentos: move_1 e move_2 ativam animação própria', () => {
   registerStandardMoves();

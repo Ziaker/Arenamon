@@ -124,7 +124,7 @@ export class Character {
     this.source = source;this.slot = slot;this.persist = persist;
     this.root = clone(source.scene);this.mixer = new T.AnimationMixer(this.root);
     this.clips = source.animations.slice();this.clipInfo = this.clips.map(c => ({name: c.name, origin: 'glb', compatible: true, coverage: 1}));
-    this.variants = autoVariants(source);this.speeds = {};this.playback = {};this.clipOffsets = {};this.visualOffset = 0;this.autoGround = true;
+    this.variants = autoVariants(source);this.speeds = {};this.playback = {};this.clipOffsets = {};this.visualOffset = 0;this.autoGround = true;this.lockRootMotion = true;this.lockToGround = true;
     this.moveAnims = {
       reflect: {chargeClip: null, chargeLoopStart: 0, chargeLoopEnd: null, releaseClip: null},
       psyshock: {chargeClip: null, chargeLoopStart: 0, chargeLoopEnd: null, releaseClip: null}
@@ -141,6 +141,14 @@ export class Character {
     this.hips = null;this.root.traverse(o => {if (!this.hips && o.isBone && /hip|pelvis|root/i.test(o.name)) this.hips = o;});
     if (!this.hips) this.root.traverse(o => {if (!this.hips && o.isBone) this.hips = o;});
     this.hipsRest = this.hips?.position.clone();
+    // Alguns exportadores gravam o deslocamento no quadril; outros, num nó raiz acima do esqueleto.
+    // Guarda todos os alvos de posição capazes de mover o personagem inteiro para neutralizá-los no mesmo quadro.
+    const rootMotionNodes = new Set(this.hips ? [this.hips] : []);
+    for (const clip of this.clips) for (const track of clip.tracks) if (track.name.endsWith('.position')) {
+      const node = this.root.getObjectByName(track.name.slice(0, -9));
+      if (node && (node === this.hips || !node.parent?.isBone)) rootMotionNodes.add(node);
+    }
+    this.rootMotionNodes = [...rootMotionNodes].map(node => ({node, rest: node.position.clone()}));
     this.bones = new Map();this.root.traverse(o => {if (o.isBone) this.bones.set(boneKey(o.name), o.name);});
     // O mixer mantém a raiz GLB; somente os wrappers recebem a deformação.
     this.model = this.root;
@@ -282,7 +290,7 @@ export class Character {
       };
     }
     return {variants: Object.fromEntries(Object.entries(this.variants).map(([id, l]) => [id, l.map(byName).filter(Boolean)])), speeds: {...this.speeds}, playback: JSON.parse(JSON.stringify(this.playback)),
-      clipOffsets: Object.fromEntries(Object.entries(this.clipOffsets).map(([i, v]) => [byName(i), v]).filter(([k]) => k)), visualOffset: this.visualOffset, autoGround: this.autoGround, moveAnims: moveAnimsData};
+      clipOffsets: Object.fromEntries(Object.entries(this.clipOffsets).map(([i, v]) => [byName(i), v]).filter(([k]) => k)), visualOffset: this.visualOffset, autoGround: this.autoGround, lockRootMotion: this.lockRootMotion, lockToGround: this.lockToGround, moveAnims: moveAnimsData};
   }
   save() {
     if (!this.persist) return;
@@ -304,7 +312,7 @@ export class Character {
     }
     Object.assign(this.speeds, data.speeds || {});Object.assign(this.playback, data.playback || {});
     for (const [n, v] of Object.entries(data.clipOffsets || {})) {const i = idx(n);if (i >= 0) this.clipOffsets[i] = v;}
-    if (typeof data.visualOffset === 'number') this.visualOffset = data.visualOffset;if (typeof data.autoGround === 'boolean') this.autoGround = data.autoGround;
+    if (typeof data.visualOffset === 'number') this.visualOffset = data.visualOffset;if (typeof data.autoGround === 'boolean') this.autoGround = data.autoGround;if (typeof data.lockRootMotion === 'boolean') this.lockRootMotion = data.lockRootMotion;if (typeof data.lockToGround === 'boolean') this.lockToGround = data.lockToGround;
     if (data.moveAnims) {
       for (const [m, conf] of Object.entries(data.moveAnims)) {
         this.moveAnims[m] = {
@@ -327,6 +335,11 @@ export class Character {
         const target = this.root.getObjectByName(node) ? node : this.bones.get(boneKey(node));
         if (!target) return false;found++;if (target !== node) renamed.push(node);tr.name = target + prop;return true;
       });
+      // Uma animação importada pode trazer root motion num nó raiz que não aparecia nos clipes do GLB principal.
+      for (const track of c.tracks) if (track.name.endsWith('.position')) {
+        const node = this.root.getObjectByName(track.name.slice(0, -9));
+        if (node && (node === this.hips || !node.parent?.isBone) && !this.rootMotionNodes.some(entry => entry.node === node)) this.rootMotionNodes.push({node, rest: node.position.clone()});
+      }
       const coverage = total ? found / total : 0, compatible = coverage >= .6 && c.tracks.length > 0;
       let name = `${c.name || 'clip'} [${file.name}]`, n = 2;while (this.clips.some(x => x.name === name)) name = `${c.name} [${file.name}] (${n++})`;c.name = name;
       this.clips.push(c);this.clipInfo.push({name, origin: file.name, compatible, coverage, renamed: renamed.length});
@@ -621,8 +634,11 @@ export class Character {
       }
     }
     this.mixer.update(0);
-    // Sem root motion: o deslocamento horizontal da raiz do GLB é descartado (a posição vem da física).
-    if (this.hips && this.hipsRest) {this.hips.position.x = this.hipsRest.x;this.hips.position.z = this.hipsRest.z;}
+    // Sem root motion horizontal: todos os nós raiz animados voltam ao X/Z de repouso; a posição vem da física.
+    if (this.lockRootMotion) {
+      for (const {node, rest} of this.rootMotionNodes) {node.position.x = rest.x;node.position.z = rest.z;node.updateMatrix();}
+      this.model.updateMatrixWorld(true);
+    }
   }
   /**
    * Curva do ponto mais baixo da malha ao longo do clipe (17 amostras, espaço da raiz sem escala), com cache.
@@ -706,7 +722,10 @@ export class Character {
     const manual = (this.current ? this.clipOffsets[this.current.index] ?? 0 : 0) + this.visualOffset + (C.display.grounding.visualOffset || 0);
     updateSquash(this.squash, f, dt, C.extras.visual.squashStretch, C.actions.tackle);
     const target = -ground * scale + manual;
-    this.groundOffset += (target - this.groundOffset) * (dt > 0 ? 1 - Math.exp(-dt / .06) : 1);
+    // A trava elimina a subida/descida produzida pelo root motion do clipe. A altitude física continua vindo de `alt`.
+    // Desligada, mantém o amortecimento anterior para quem quiser preservar o balanço vertical gravado na animação.
+    if (this.lockToGround && this.autoGround && C.display.grounding.autoGround) this.groundOffset = target;
+    else this.groundOffset += (target - this.groundOffset) * (dt > 0 ? 1 - Math.exp(-dt / .06) : 1);
     // Como antes de criar os wrappers, descarta transformações animadas da raiz de apresentação.
     this.model.position.set(0, 0, 0);this.model.rotation.set(0, 0, 0);this.model.scale.setScalar(1);
     this.root.scale.setScalar(scale);
