@@ -18,10 +18,13 @@ const SMEAR = {
   smearWidth: ['Largura da lâmina', 'Largura em metros, independente da escala original do GLB.', R(.05, .4, .01, m)],
   smearColorMode: ['Cor da lâmina', 'Cor média do material/textura do personagem, destaque azul/vermelho do time ou branco.', select(['Cor do personagem', 'Destaque do time', 'Branco'])],
   smearOpacity: ['Opacidade', 'Opacidade inicial; a lâmina desvanece até desaparecer.', R(.2, 1, .05, pct)],
+  smearOnDodge: ['Smear também na esquiva (C)', 'Liga as lâminas de membros durante a esquiva (antes só existiam no Tackle). Usa a mesma largura, opacidade e velocidade mínima.', toggle],
   smearPlBoost: ['Reforço por Power Level', 'PL2: largura +25%. PL3: contorno neon na cor do time.', toggle],
 };
 const SQUASH = {
   enableSquashStretch: ['Deformação elástica do Tackle', 'Deforma somente o modelo 3D durante a investida, sem alterar ossos ou colisões.', toggle],
+  squashOnDodge: ['Squash & stretch também na esquiva (C)', 'Aplica a deformação elástica durante a esquiva, não só no Tackle. Só o modelo 3D; não altera ossos nem colisão.', toggle],
+  dodgeSquashScale: ['Intensidade na esquiva', 'Quanto da compressão e do alongamento do Tackle vale na esquiva: 100% = igual; 80% = um pouco mais discreto (padrão).', R(0, 2, .05, pct)],
   squashIntensity: ['Compressão no arranque', 'Compressão na direção do golpe antes do alongamento.', R(0, .3, .01, pct)],
   stretchIntensity: ['Alongamento no impulso', 'Alongamento na direção do golpe. PL2 e PL3 podem ampliar esta intensidade.', R(0, .4, .01, pct)],
   squashWindow: ['Janela de compressão', 'Duração em ms. Zero remove a compressão; golpes curtos limitam a janela à metade do arranque disponível.', R(0, 150, 1, n => n + ' ms')],

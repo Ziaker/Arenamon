@@ -1,7 +1,9 @@
 // @ts-check
 // Spikes (genérico, Normal · Field · PL1 ofensivo): marcador de colocação (5 m 3D), cast 0,4 s, armadilha de 1,2 m por 8 s, 6 HP nominais, sem knockback, 1 acionamento.
 // Fonte: docs/MOVES_GENERICOS_CATALOGO.md §5. Mira por marcador: soltar confirma (válido) ou cancela sem custo (inválido).
-import {assert, C, Game, cmd, vec, secs, suite, arena, run, fighterHash, HOLD} from './moves-new-helpers.mjs';
+import {assert, C, Game, cmd, vec, secs, suite, arena as arenaBase, run, fighterHash, HOLD} from './moves-new-helpers.mjs';
+/** Estes testes caracterizam o marcador de resposta INSTANTÂNEA (markerAccel = 0); o movimento suave tem teste próprio em moves-marker-smooth.test.mjs. */
+const arena = (o = {}) => arenaBase({...o, setup: () => {o.setup?.();C.world.spikes.markerAccel = 0;}});
 import {getMove} from '../src/sim/moves.js';
 import {spawn} from '../src/sim/world.js';
 

@@ -17,13 +17,14 @@ export function updateSquash(s, f, dt, options, motion) {
   const a = f.action, duration = Math.max(.001, motion.duration);
   const elapsed = a?.elapsed ?? 0;
   const end = duration * (motion.profile === 1 ? Math.max(.02, Math.min(.99, motion.decelStart)) : .8);
-  const active = a?.kind === 'tackle' && f.hp > 0 && !a.hits?.size && elapsed < end;
+  const dodge = a?.kind === 'dodge' && !!options.squashOnDodge, k = dodge ? Math.max(0, options.dodgeSquashScale ?? .8) : 1;   // esquiva: mesma deformação, em escala própria
+  const active = ((a?.kind === 'tackle' && !a.hits?.size) || dodge) && f.hp > 0 && elapsed < end;
   if (active) {
     s.heading = a.heading;
     const window = Math.min(options.squashWindow / 1000, end * .5);
     const power = options.plScaling ? 1 + .25 * (Math.max(1, Math.min(3, a.pl || 1)) - 1) : 1;
-    const compression = Math.max(0, Math.min(.3, options.squashIntensity));
-    const stretch = Math.max(0, Math.min(.4, options.stretchIntensity)) * power;
+    const compression = Math.max(0, Math.min(.3, options.squashIntensity)) * k;
+    const stretch = Math.max(0, Math.min(.4, options.stretchIntensity)) * power * k;
     if (window > 0 && elapsed < window) {
       s.z = 1 - compression * smooth(elapsed / window);
     } else {

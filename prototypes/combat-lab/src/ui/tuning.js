@@ -86,6 +86,19 @@ function range(key, value, path) {
     if (key === 'gemScale' || key === 'gemIndicatorSize') return {min: 0.3, max: 3, step: 0.05, fmt: n => n.toFixed(2) + '×'};
     if (key === 'gemHover') return {min: 0, max: 3, step: 0.05, fmt: n => n.toFixed(2) + ' m'};
   }
+  if (path && path.startsWith('display.rangeRing.')) {
+    if (key === 'rangeOn') return {min: 0, max: 1, step: 1, fmt: n => n ? 'Ligado' : 'Desligado', kind: 'toggle'};
+    if (key === 'flashTime') return {min: 0, max: 3, step: .05, fmt: n => n.toFixed(2) + ' s'};
+    if (key === 'rangeOpacity') return {min: .1, max: 1, step: .05, fmt: n => Math.round(n * 100) + '%'};
+    if (key === 'rangeWidth') return {min: .02, max: .8, step: .01, fmt: n => n.toFixed(2) + ' m'};
+    if (key === 'rangeFill') return {min: 0, max: .6, step: .01, fmt: n => Math.round(n * 100) + '%'};
+    if (key === 'rangeWall') return {min: 0, max: 2, step: .05, fmt: n => n ? n.toFixed(2) + ' m' : 'desligada'};
+  }
+  if (path && path.startsWith('display.occlusion.')) {
+    if (key === 'occEnabled') return {min: 0, max: 1, step: 1, fmt: n => n ? 'Ligado' : 'Desligado', kind: 'toggle'};
+    if (key === 'occOpacity') return {min: 0, max: 1, step: .05, fmt: n => Math.round(n * 100) + '%'};
+    if (key === 'occFade') return {min: .02, max: 1, step: .02, fmt: n => n >= 1 ? 'instantâneo' : Math.round(n * 100) + '% por quadro'};
+  }
   if (path && path.startsWith('display.interpolation.')) {
     if (key === 'maxJump') return {min: .2, max: 4, step: .1, fmt: n => n.toFixed(1) + ' m'};
     if (key === 'enabled') return {min: 0, max: 1, step: 1, fmt: n => n ? 'Ligado' : 'Desligado', kind: 'toggle'};
@@ -208,7 +221,7 @@ export const EXTRA_SECTIONS = [['Smear de Membros', 'extras.visual.smear', null]
   // Passivas (catálogo experimental, §29): uma seção por passiva. A apresentação unificada fica em Visualizar.
   ...PASSIVES.map(p => [`Passivas · ${p.nome}${p.species ? ' (' + p.species + ')' : ''}`, `passivas.${p.id}`, null]),
   ['Passivas · gerais (detecção)', 'passivas.globals', null], ['VFX · three.quarks (experimental)', 'vfx.quarks', null], ['IA · Navegação Yuka (experimental)', 'extras.nav', null], ['VFX · Pós-processamento (experimental)', 'vfx.post', null], ['Hitbox espacial do golpe (experimental)', 'extras.hitbox', null], ['Interpolação do desenho (movimento liso)', 'display.interpolation', null],
-  ['Cenário do laboratório', 'display.scenery', null], ['HUD de progressão (Banco de Células)', 'display.progress', null], ['Consumíveis (Gemas Facetadas)', 'display.consumables', null]];
+  ['Cenário do laboratório', 'display.scenery', null], ['HUD de progressão (Banco de Células)', 'display.progress', null], ['Consumíveis (Gemas Facetadas)', 'display.consumables', null], ['Objetos na frente do lutador (transparência)', 'display.occlusion', null], ['Círculo de alcance dos Moves de alvo único', 'display.rangeRing', null]];
 /** Parâmetros mostrados em outras abas (sem duplicar controles no Ajustes). */
 const ELSEWHERE = new Set(['extras.toggles.enableEnemyAI', 'extras.toggles.enemyManual', 'extras.visual.shadowMin', 'extras.visual.shadowHeightFade']);
 export function createTuning({apply}) {

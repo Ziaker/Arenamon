@@ -747,7 +747,7 @@ export class Character {
       ground = w > 0 ? acc / w : ground;
     }
     const manual = (this.current ? this.clipOffsets[this.current.index] ?? 0 : 0) + this.visualOffset + (C.display.grounding.visualOffset || 0);
-    updateSquash(this.squash, f, dt, C.extras.visual.squashStretch, C.actions.tackle);
+    updateSquash(this.squash, f, dt, C.extras.visual.squashStretch, f.action?.kind === 'dodge' ? C.actions.dodge : C.actions.tackle);
     const target = -ground * scale + manual;
     // A trava elimina a subida/descida produzida pelo root motion do clipe. A altitude física continua vindo de `alt`.
     // Desligada, mantém o amortecimento anterior para quem quiser preservar o balanço vertical gravado na animação.

@@ -21,3 +21,6 @@ Varredura com entradas aleatórias (movimento, esquiva, tackle, defesa, salto e 
 - Item 1: ver no jogo se o tratamento de cada Move no ar (cast × descend) está como você queria; o que o responsável decidir vira `air: 'cast' | 'descend' | 'none'` no registro do Move.
 - Faixa de montagem em caixas de 2,2 m (resíduo de colisão, ver `CALIBRACAO_BASE_V8.md`).
 - Nenhum teste de navegador foi executado nesta rodada.
+
+## Rodada de 22/10/2026 (tarde, v1.20.0)
+Dez pedidos novos, todos feitos e documentados em `docs/RODADA_22_10_TARDE.md`: (1) objeto na frente do lutador translúcido, (2) efeitos de chão na plataforma, (3) squash/smear na esquiva, (4) Bullet Punch como o Quick Attack, com golpe na chegada e dano no caminho, (5) marcador suave, (6) círculo de alcance azul/vermelho, (7) Quick Attack com sumiço em linhas de velocidade, (8) Riposte de grande impacto com explosão provisória, (9) IA sobe plataformas (navegação ligada), (10) rastro de terra do Emerging Stone. **Pendente:** aprovação visual e de sensação do responsável.

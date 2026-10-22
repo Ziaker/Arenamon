@@ -22,8 +22,8 @@ const mapOf = id => {
 };
 
 console.log('\n--- NAVEGAÇÃO NA IA (IA × IA) ---\n');
-test('desligada por padrão: avaliar sem pedir navegação é idêntico a pedir "nenhum lado"', () => {
-  fresh();assert.equal(C.extras.nav.enableNav, 0);
+test('desligada pela opção: avaliar sem pedir navegação é idêntico a pedir "nenhum lado"', () => {
+  fresh();C.extras.nav.enableNav = 0;
   const a = evalMatch({seed: 5, maxSeconds: 20}), b = evalMatch({seed: 5, maxSeconds: 20, nav: [false, false]});
   assert.deepEqual(a.sides.map(s => [s.wins, s.hits, s.damage]), b.sides.map(s => [s.wins, s.hits, s.damage]));
 });

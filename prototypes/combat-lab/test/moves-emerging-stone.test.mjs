@@ -1,7 +1,9 @@
 // @ts-check
 // Emerging Stone (Mushroom, Move 1; cronologia C = ES-D103): cast de 0,55 s que começa ao pressionar, disparo só com cast concluído E botão solto, projétil subterrâneo a 15 m/s,
 // explosão horizontal de 5 m, cenário destruído, rocha 3×3×3 m que emerge em 0,40 s. Fonte: docs/MUSHROOM_MOVES_DECISOES.md §7 e o brief em docs/moves-nao-iniciados/.
-import {assert, C, Game, cmd, vec, secs, suite, arena, run, fighterHash, HOLD} from './moves-new-helpers.mjs';
+import {assert, C, Game, cmd, vec, secs, suite, arena as arenaBase, run, fighterHash, HOLD} from './moves-new-helpers.mjs';
+/** Estes testes caracterizam o marcador de resposta INSTANTÂNEA (markerAccel = 0); o movimento suave tem teste próprio em moves-marker-smooth.test.mjs. */
+const arena = (o = {}) => arenaBase({...o, setup: () => {o.setup?.();C.world.emergingStone.markerAccel = 0;}});
 import {getMove} from '../src/sim/moves.js';
 import {getGroundHeight} from '../src/sim/physics.js';
 import {damageDestructible} from '../src/sim/map.js';

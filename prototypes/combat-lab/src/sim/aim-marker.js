@@ -1,5 +1,5 @@
 // @ts-check
-// Mira por MARCADOR (Moves Normais com destino: Spikes, Bullet Punch, Emerging Stone, Sand Wave): segurar o botão do slot abre o marcador, a direção do input o
+// Mira por MARCADOR (Moves Normais com destino: Spikes e Emerging Stone): segurar o botão do slot abre o marcador, a direção do input o
 // move pelo mundo (o corpo fica parado, MV-P29), soltar CONFIRMA — se o marcador for válido o Move é cobrado (stamina e recarga) e o cast começa; se for inválido
 // (fora do alcance 3D, sem apoio, dentro de parede ou de personagem) soltar apenas cancela, sem custo (MV-P30). O marcador nunca é teleportado para o limite:
 // fica onde está, inválido, até o jogador o trazer de volta. Depois de confirmado o destino é FIXO em coordenadas do mundo (`action.marker`).
@@ -8,7 +8,6 @@ import {C} from './config.js';
 import {getGroundHeight} from './physics.js';
 import {closestOnShape} from './world.js';
 import {effectiveArenaRadius} from './map.js';
-import {solidsOf, insideSolid} from './vision.js';
 import {add, scale, sub, length, normalize, direction} from './math.js';
 
 /**
@@ -47,30 +46,21 @@ export function markerInitial(/** @type {any} */ f, /** @type {Record<string, an
 }
 
 /**
- * Marcador SEGUINDO o lutador (aimMode 'follow', Bullet Punch): distância cresce de `startDistance` a `maxDistance` em `growTime` s com curva QUADRÁTICA
- * (devagar e acelerando), na direção do último input (independente do corpo), e PARA no último ponto válido antes de parede ou borda da arena.
- * `enemyNear` = há adversário vivo dentro de `reach` do marcador (o círculo fica vermelho; não garante alvo nem acerto).
+ * Passo SUAVE do marcador: a velocidade do marcador (`a.mv`) é acelerada em direção a «input × speed» no máximo `accel` m/s² (0 = instantâneo, comportamento antigo).
+ * Trocar a direção do corpo faz o marcador DESLIZAR para o novo lado em vez de aparecer lá; parar o input o freia na mesma taxa.
  */
-export function followMarker(/** @type {any} */ f, /** @type {any} */ a, /** @type {{x: number, z: number}} */ input, /** @type {number} */ dt, /** @type {any} */ world, /** @type {any[]} */ fighters) {
-  const P = a.params;
-  if (length(input) > .01) a.dir = normalize(input);
-  a.t += dt;
-  const u = Math.min(1, a.t / P.growTime), want = P.startDistance + (P.maxDistance - P.startDistance) * u * u;
-  const solids = solidsOf(world), lim = effectiveArenaRadius() - (P.edgeMargin ?? .3);
-  let dist = 0, blocked = false;
-  for (let d = .25; d <= want + 1e-9; d += .25) {
-    const p = {x: f.position.x + a.dir.x * d, z: f.position.z + a.dir.z * d};
-    if (Math.hypot(p.x, p.z) > lim || insideSolid(solids, p, C.test.halfExtent * .6)) {blocked = true;break;}
-    dist = d;
+export function markerStep(/** @type {any} */ a, /** @type {{x: number, z: number}} */ input, /** @type {number} */ speed, /** @type {number} */ accel, /** @type {number} */ dt) {
+  const l = length(input), want = l > .01 ? scale(normalize(input), speed * Math.min(1, l)) : {x: 0, z: 0}, cur = a.mv ?? {x: 0, z: 0};
+  let next = want;
+  if (accel > 0) {
+    const d = sub(want, cur), dl = length(d), max = accel * dt;
+    next = dl <= max ? want : add(cur, scale(d, max / dl));
   }
-  if (!blocked) dist = want;
-  a.pos = {x: f.position.x + a.dir.x * dist, z: f.position.z + a.dir.z * dist};
-  a.distance = dist;a.y = getGroundHeight(a.pos, world, (f.groundY ?? 0) + (P.maxRise ?? 2));
-  a.valid = true;a.reason = null;
-  a.enemyNear = fighters.some(o => o.id !== f.id && o.hp > 0 && !o.absent && Math.hypot(o.position.x - a.pos.x, o.position.z - a.pos.z) <= P.reach);
+  a.mv = next;
+  return add(a.pos, scale(next, dt));
 }
 
-/** Move o marcador pela direção do input (mundo) a `speed` m/s. */
+/** Move o marcador pela direção do input (mundo) a `speed` m/s (instantâneo; use `markerStep` para o movimento suave). */
 export function markerMove(/** @type {{x: number, z: number}} */ pos, /** @type {{x: number, z: number}} */ input, /** @type {number} */ speed, /** @type {number} */ dt) {
   const l = length(input);
   return l > .01 ? add(pos, scale(normalize(input), speed * Math.min(1, l) * dt)) : pos;

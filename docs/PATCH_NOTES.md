@@ -1,8 +1,21 @@
 # Patch notes — Laboratório de Combate
 
-Versão atual: **v1.19.0** (22/10/2026). A versão aparece na barra superior do laboratório (tooltip com data de compilação e commit). Para jogar: `JOGAR_ARENAMON.html`.
+Versão atual: **v1.20.0** (22/10/2026). A versão aparece na barra superior do laboratório (tooltip com data de compilação e commit). Para jogar: `JOGAR_ARENAMON.html`.
 
 ---
+
+## v1.20.0 — Rodada de 22/10 (tarde): dez ajustes (22/10/2026)
+- **Objetos translúcidos de verdade:** o teste câmera → lutador agora usa a caixa real do objeto (antes uma esfera no centro, que falhava em objetos largos e altos); transição suave e controles em Visualizar.
+- **Efeitos de chão na plataforma:** pouso, colisão com o solo, meteor slam, impacto, defesa e clash nascem na altura do apoio (plataforma/caixa), não no chão.
+- **Squash & stretch e smear também na esquiva (C)**, com chave e intensidade próprias.
+- **Bullet Punch reformulado, como o Quick Attack:** alvo = adversário mais próximo no alcance, sem marcador; some numa corrida invisível, golpeia **ao chegar** e quem estiver no caminho leva o golpe e para a corrida.
+- **Círculo de alcance** (azul com alvo, vermelho sem) para Quick Attack e Bullet Punch enquanto o botão está segurado; soltar executa; soltar fora do alcance não gasta e o vermelho pisca.
+- **Quick Attack some em linhas de velocidade** (ida fria, volta quente), como o Bullet Punch.
+- **Marcador suave** no Spikes e no Emerging Stone (aceleração do marcador): ele desliza ao virar em vez de aparecer do outro lado.
+- **Riposte com grande impacto:** 14 HP, knockback maior, pausa e tremor maiores e explosão visual provisória no contra-golpe.
+- **A IA agora sobe plataformas:** navegação Yuka ligada por padrão.
+- **Emerging Stone:** rastro de terra grande (sulco, torrões e montículo 1,8×).
+- Detalhes, controles e limites: `docs/RODADA_22_10_TARDE.md`. Testes: `rodada-b.test.mjs`, `rodada-b.browser.mjs` e os de Bullet Punch, Riposte, Quick Attack, ar e navegação atualizados.
 
 ## v1.19.0 — Ledge Grab & Mantle e faixa de montagem (22/10/2026)
 - **Ledge Grab (issue #95):** ao saltar ou cair contra a lateral de uma plataforma, caixa ou destrutível segurando a direção dela, o lutador **agarra a borda**, fica pendurado e **sobe com Espaço** (ou solta com D, C ou segurando para longe). Todas as decisões que a issue deixava em aberto viraram **parâmetros provisórios** em Ações › Salto › 🧗 Ledge Grab (modo desligado/automático/por botão, alcance, altura, stamina, tempo, comandos, IA, i-frames…). Detalhes e a tabela de decisões em `docs/LEDGE_GRAB.md`.

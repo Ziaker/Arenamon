@@ -32,6 +32,8 @@ export const NAMES={
   speedPct:'Bônus de velocidade (%)',costPct:'Desconto de custo de stamina (%)',reflectDamage:'Dano de retorno (HP)',cooldown:'Recarga (s)',heal:'Cura (HP)',quietTime:'Tempo sem dano para curar (s)',duration:'Duração do efeito (s)',defensePct:'Bônus de defesa (%)',knockbackPct:'Redução de empurrão horizontal (%)',dotReductionPct:'Redução de dano periódico (%)',attackPct:'Bônus de ataque (%)',dps:'Dano por segundo do veneno',windowBonus:'Bônus da janela perfeita (s)',maxDuration:'Duração máxima do efeito (s)',detectDistance:'Distância de detecção (m)',stunPct:'Redução de hit stun (%)',slowPct:'Redução de velocidade do alvo (%)',thresholdPct:'Limiar de stamina (%)',regenPct:'Bônus de regeneração (%)',
   labTheme:'Cenário do laboratório (0 = visual clássico · 1 = laboratório técnico)',labBlocks:'Anel de blocos geométricos ao redor da arena',labProps:'Prismas e pilares decorativos (fora do piso)',labRulers:'Legendas dos anéis de régua (4 m, 8 m…)',labRingStep:'Distância entre os anéis de régua (m)',labBlockScale:'Altura dos blocos do anel (×)',labRimGlow:'Brilho da borda da arena',
   pgEnabled:'HUD de progressão (Banco de Células)',pgScale:'Tamanho do HUD de progressão · jogador',pgScaleEnemy:'Tamanho do HUD de progressão · adversário',pgLayout:'Disposição do HUD de progressão (0 = vertical · 1 = horizontal)',pgSubject:'HUD de progressão: de quem (0 jogador · 1 adversário · 2 ambos)',pgAnimate:'Animação ao ganhar estágio',
+  rangeOn:'Círculo de alcance dos Moves de alvo único',flashTime:'Duração da piscada vermelha ao soltar fora do alcance (s)',rangeOpacity:'Opacidade do círculo de alcance',rangeWidth:'Espessura do círculo de alcance (m)',rangeFill:'Preenchimento do círculo de alcance',rangeWall:'Altura da parede baixa do círculo de alcance (m)',
+  occEnabled:'Objetos na frente do lutador ficam translúcidos',occOpacity:'Opacidade do objeto que cobre o lutador',occFade:'Velocidade da transição de transparência',
   gemStyle:'Estilo dos consumíveis (0 = clássico · 1 = Gemas Facetadas)',gemScale:'Escala visual dos consumíveis',gemHover:'Altura de flutuação das gemas (m)',gemIndicators:'Indicadores flutuantes dos consumíveis',gemIndicatorSize:'Tamanho do indicador flutuante',gemAnimate:'Animações dos consumíveis (giro, flutuar, brilho)',gemParticles:'Centelhas dos consumíveis (three.quarks)',gemPedestal:'Pedestal hexagonal sob os consumíveis'
   };
 export const SECTIONS=[
@@ -326,6 +328,15 @@ export const TOOLTIPS={
  "pgLayout": "1 = horizontal compacto, embaixo da barra de vida de cada lutador (padrão) · 0 = vertical nos cantos inferiores. Só aparência.",
  "pgSubject": "De quem é o HUD: 0 = jogador (azul) · 1 = adversário (vermelho) · 2 = os dois (padrão). Só aparência.",
  "pgAnimate": "Animação ao ganhar um estágio (carimbo do segmento). Respeita 'reduzir movimento' do sistema.",
+ "rangeOn": "Quick Attack e Bullet Punch: enquanto o botão do Move está segurado, um círculo ao redor do lutador mostra o alcance (AZUL = há alvo dentro, VERMELHO = não há). Soltar sem alvo não gasta nada e o círculo vermelho pisca. Só aparência.",
+ "flashTime": "Quanto tempo o círculo vermelho fica piscando depois de soltar o botão sem alvo no alcance. 0 = não pisca.",
+ "rangeOpacity": "Opacidade do círculo de alcance (1 = totalmente opaco).",
+ "rangeWidth": "Espessura do anel do círculo de alcance, em metros (constante, qualquer que seja o raio).",
+ "rangeFill": "Opacidade do disco que preenche o círculo de alcance (0 = só o anel). Ajuda a enxergar o alcance de longe e de lado.",
+ "rangeWall": "Altura da parede translúcida em volta do círculo de alcance, em metros (0 = desligada). Faz o círculo aparecer mesmo com a câmera baixa.",
+ "occEnabled": "Plataformas, caixas, destrutíveis e rochas que ficam entre a câmera e qualquer lutador ficam translúcidos (teste geométrico câmera → pés/meio/cabeça contra a caixa real do objeto). Só aparência.",
+ "occOpacity": "Opacidade do objeto enquanto cobre o lutador: 25% = bem transparente (padrão) · 100% = não muda. Só aparência.",
+ "occFade": "Quanto da diferença fecha a cada quadro: valores pequenos = transição lenta e suave · 100% = instantâneo. Só aparência.",
  "gemStyle": "Aparência dos consumíveis da arena: 1 = Gemas Facetadas (aprovado em 21/10/2026) · 0 = formas clássicas. Só aparência: tipo, posição, coleta e efeito vêm da simulação.",
  "gemScale": "Tamanho visual das gemas (1 = tamanho aprovado). Não muda o raio de coleta (Mapa › Consumíveis e drops).",
  "gemHover": "Altura da gema acima do pedestal, em metros (na escala 1). Só aparência.",

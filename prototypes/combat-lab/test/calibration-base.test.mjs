@@ -19,7 +19,7 @@ const get = (o, path) => path.split('.').reduce((a, k) => a?.[k], o);
 const flat = (o, p = '', out = {}) => {for (const [k, v] of Object.entries(o)) {const q = p ? p + '.' + k : k;if (v && typeof v === 'object' && !Array.isArray(v)) flat(v, q, out);else out[q] = v;}return out;};
 const fac = factoryDefaults(), base = defaults();
 
-assert.equal(CALIBRATION_BASE.length, 184);ok('a tabela tem as 184 linhas (1ª exportação de 21/10 + 2ª exportação de 22/10 12:12, que sobrescreve 34 valores e acrescenta 26)');
+assert.equal(CALIBRATION_BASE.length, 180);ok('a tabela tem as 180 linhas (1ª exportação de 21/10 + 2ª de 22/10 12:12, que sobrescreve 34 valores e acrescenta 26; menos 4 linhas do marcador do Bullet Punch, que deixou de existir em 22/10 tarde)');
 for (const [path, value, old] of CALIBRATION_BASE) {
   assert.notEqual(get(fac, path), undefined, `parâmetro inexistente: ${path}`);
   assert.deepEqual(get(fac, path), old, `valor anterior de ${path} não é o de fábrica`);
@@ -34,7 +34,7 @@ ok('defaults() = fábrica + tabela; nenhuma outra diferença');
 {
   resetConfig(defaults());
   const want = {'rules.staminaMax': 11.1, 'rules.regenTime': 4, 'rules.recoilFraction': 0.8, 'rules.perfect': 0.34, 'extras.combat.perfectGuardCounterWindow': 1.98, 'vfx.hit.size': 2.23, 'rules.launchGravity': 39.6, 'actions.tackle.duration': 0.65, 'actions.tackle.distance': 1.55, 'actions.dodge.duration': 0.5, 'actions.dodge.distance': 2.05, 'test.arenaHalf': 16, 'profiles.balanced.speed': 4.19, 'profiles.agile.speed': 6, 'profiles.resistant.speed': 4.08,
-    'locomotion.acceleration': 40, 'locomotion.braking': 34, 'locomotion.reversal': 62, 'camera.maxDistance': 24, 'camera.closeRange': 1.3, 'map.jumpHeight': 2.4, 'map.jumpAirControl': 0.85, 'map.footstoolBounce': 11.1, 'extras.ai.revision': 1, 'world.riposte.cooldown': 8, 'world.riposte.cost': 1.55, 'world.riposte.knockbackH': 16.8, 'world.bulletPunch.maxDistance': 10, 'world.bulletPunch.impactMult': 2.6};
+    'locomotion.acceleration': 40, 'locomotion.braking': 34, 'locomotion.reversal': 62, 'camera.maxDistance': 24, 'camera.closeRange': 1.3, 'map.jumpHeight': 2.4, 'map.jumpAirControl': 0.85, 'map.footstoolBounce': 11.1, 'extras.ai.revision': 1, 'world.riposte.cooldown': 8, 'world.riposte.cost': 1.55, 'world.riposte.knockbackH': 16.8, 'world.bulletPunch.impactMult': 2.6};
   for (const [p, v] of Object.entries(want)) assert.equal(get(C, p), v, p);
 }
 ok('valores-chave do JSON do responsável (stamina 11,1 · regen 4 s · gravidade de lançamento 39,6 · Tackle 0,65 s/1,55 m · esquiva 0,5 s/2,05 m · perfis · locomoção · câmera · salto 2,3 · IA revisão 1 · Riposte · Bullet Punch)');

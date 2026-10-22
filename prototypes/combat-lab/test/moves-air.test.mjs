@@ -80,6 +80,7 @@ test('salto: Lunge, Guard Break e Quick Attack descem enquanto agem e terminam n
   for (const id of ['lunge', 'guard-break', 'quick-attack']) {
     const g = airborne(id, {red: vec(0, 4)}), f = g.fighters[0], z0 = f.position.z;
     press(g);if (id === 'guard-break') {hold(g, 20);g.step(cmd(), cmd());}
+    if (id === 'quick-attack') g.step(cmd(), cmd());   // alvo único: o círculo de alcance abre ao apertar e o Move sai ao soltar
     assert.ok(f.action?.liftStart > 0 || id === 'guard-break', `${id}: ação não desce do ar`);
     idle(g, 15);
     assert.ok(f.vaultHeight < (f.action?.liftStart ?? 9) || !f.action, `${id}: não desceu`);
@@ -88,7 +89,7 @@ test('salto: Lunge, Guard Break e Quick Attack descem enquanto agem e terminam n
   }
 });
 test('salto: Bullet Punch mira no ar, desaparece, reaparece e não fica preso', () => {
-  const g = airborne('bullet-punch'), f = g.fighters[0];
+  const g = airborne('bullet-punch', {red: vec(0, 2)}), f = g.fighters[0];
   press(g);hold(g, 30);g.step(cmd(), cmd());
   const seen = new Set();for (let i = 0; i < 400; i++) {g.step(cmd(), cmd());evs(g).forEach(e => seen.add(e.result));}
   assert.ok(seen.has('bulletVanish') && seen.has('bulletReturn'), [...seen].join());assert.ok(settled(f));

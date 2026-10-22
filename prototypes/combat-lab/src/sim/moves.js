@@ -51,7 +51,8 @@ export function validateMove(def) {
   if (def.cooldownBoost !== undefined && typeof def.cooldownBoost !== 'boolean') fail('cooldownBoost deve ser booleano');
   if (def.group !== undefined && !(C.world[def.group] && typeof C.world[def.group] === 'object')) fail(`group desconhecido (${def.group}): precisa existir em C.world`);
   if (def.tackle !== undefined && (typeof def.tackle !== 'string' || !def.tackle)) fail('tackle deve ser o nome de uma preparação registrada');
-  if (def.aimMode !== undefined && (!['marker', 'follow'].includes(def.aimMode) || !def.group)) fail("aimMode so aceita 'marker' ou 'follow' e exige group (os parametros do marcador vem de C.world[group])");
+  if (def.aimMode !== undefined && (def.aimMode !== 'marker' || !def.group)) fail("aimMode so aceita 'marker' e exige group (os parametros do marcador vem de C.world[group])");
+  if (def.moveCast !== undefined && typeof def.moveCast !== 'boolean') fail('moveCast deve ser booleano');
   if (def.groundOnly !== undefined && typeof def.groundOnly !== 'boolean') fail('groundOnly deve ser booleano');
   if (def.air !== undefined && !['none', 'cast', 'descend'].includes(def.air)) fail("air deve ser 'none', 'cast' (o corpo segue em voo) ou 'descend' (desce e age), ver air.js");
   if (def.feint !== undefined && typeof def.feint !== 'boolean') fail('feint deve ser booleano');
