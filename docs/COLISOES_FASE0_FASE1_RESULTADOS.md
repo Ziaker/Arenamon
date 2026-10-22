@@ -1,6 +1,6 @@
 # Overhaul de colisões — Fase 0 (auditoria) e Fase 1 (penetrações): resultados
 
-> **Estado:** Fases 1, 2 e 3 implementadas, testadas e revisadas (§4–§10); Fase 4 auditada, com contrato de suporte e guardas (§11); Fases 5–7 pendentes. Este documento registra **evidências medidas**, não intenções. Cada item diz se foi reproduzido, corrigido e por qual teste.
+> **Estado:** Fases 1, 2 e 3 implementadas, testadas e revisadas (§4–§10); Fase 4 auditada, com contrato de suporte e guardas (§11); Fase 5 em andamento (§13); Fases 6–7 pendentes. Este documento registra **evidências medidas**, não intenções. Cada item diz se foi reproduzido, corrigido e por qual teste.
 > **Base:** commit `4634ca2` (linha atual do jogo, v1.15.5). **Branch de trabalho:** `fix/colisoes-overhaul` (worktree `.worktrees/colisoes-overhaul`). **PR de referência:** [#100](https://github.com/Ziaker/Arenamon/pull/100) (branch `fix/collision-overhaul-stage1`, criada sobre `main@68eda6c`, não integrada).
 > **Escopo e decisões:** nenhuma regra aprovada foi alterada (ver `docs/MAPA_COMBAT_LAB_DECISOES_RODADAS.md`). Documento-mestre do plano: `docs/OVERHAUL_COLISOES_AMBIENTE.md` (PR #100).
 
@@ -188,3 +188,20 @@ Cada script de `test:combat-lab:browser` foi executado isolado (o encadeamento d
 | Demais 16 scripts | variam no baseline limpo por faltar `validation/personagem-studio.glb` (arquivo não versionado); passam na branch | passam |
 
 **Conclusão:** nenhuma falha de navegador é atribuível ao overhaul; as duas falhas restantes já existiam em `4634ca2` e **não foram investigadas** (fora do escopo).
+
+## 13. Fase 5 — objetos do cenário (colocação, destrutíveis, rebotes)
+
+**Auditoria da geração (fuzz de 1500 seeds, formas exatas: caixas alinhadas aos eixos e círculos):** nenhuma sobreposição entre plataformas, obstáculos e destrutíveis, nem com 12 + 12 objetos; nenhum objeto fora da arena. Dois defeitos reais:
+
+| ID | Defeito (4634ca2) | Medido | Causa raiz |
+| --- | --- | --- | --- |
+| COL-L | Plataforma gerada **sobre um lutador** | 12 de 1500 seeds (0,8 %) | `initMap` sorteia as plataformas sem olhar as posições iniciais dos lutadores (os spawns são escolhidos antes e só enxergavam um mapa vazio); viola R3.13 («proteger spawn dos lutadores») |
+| COL-M | Destrutível em prévia (ghost) **materializa sobre o lutador** na diagonal | 287 de 3978 posições testadas; até 22 cm de sobreposição | a checagem usava só a distância entre centros (1,5 m), mas o corpo é um quadrado de 1 m e o objeto 1,6 × 1,6 m (R11.9: não materializar sobre personagens) |
+
+**Correção (`map.js`), sem consumir RNG:**
+- Novo parâmetro `map.spawnClearance` (padrão **0,6 m**, no painel «Objetos destrutíveis»): folga mínima entre o corpo do lutador e um objeto sólido recém-colocado (R3.13: «distâncias mínimas configuráveis»).
+- `fighterBlocksBox` / `bodyGapToBox`: folga exata entre o corpo quadrado e a caixa, **na mesma faixa de altura** (lutador no ar acima do topo não bloqueia).
+- `initMap`: plataformas que bloqueiam um lutador são reposicionadas por espiral determinística de 1,5 m (sem posição válida: mantém e conta em `mapState.placementConflicts`).
+- Materialização: usa a folga exata; adia (0,5 s) enquanto houver lutador dentro da folga.
+- Efeito medido: 41 de 1500 seeds (2,7 %) passam a ter um layout diferente (19 só com plataformas movidas; as demais por cascata da validação de obstáculos); posições dos lutadores: **0 alteradas**; 0 conflitos sem posição válida.
+- Teste `map-placement.test.mjs` (5 verificações; 1500 seeds, grade de 2 cm da materialização, determinismo).

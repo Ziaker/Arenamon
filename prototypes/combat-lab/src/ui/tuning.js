@@ -128,6 +128,7 @@ function range(key, value, path) {
     if (key === 'destructibleHp' || key === 'shieldCapacity' || key === 'shieldMaxCap') return {min: 5, max: 300, step: 5, fmt: n => n + ' HP'};
     if (key === 'destructibleRespawnMin' || key === 'destructibleRespawnMax' || key === 'itemSpawnIntervalMin' || key === 'itemSpawnIntervalMax' || key === 'itemLifetime' || key === 'shieldDuration') return {min: 2, max: 120, step: 1, fmt: n => n + ' s'};
     if (key === 'destructibleGhostPreview' || key === 'jumpInterval' || key === 'jumpLandingRecovery') return {min: 0.05, max: 5, step: 0.01, fmt: n => n.toFixed(2) + ' s'};
+    if (key === 'spawnClearance') return {min: 0, max: 3, step: 0.1, fmt: n => n.toFixed(1) + ' m'};
     if (key === 'jumpHeight') return {min: 0.5, max: 5.0, step: 0.1, fmt: n => n.toFixed(1) + ' m'};
     if (key === 'jumpGravity') return {min: 5, max: 40, step: 0.5, fmt: n => n.toFixed(1) + ' m/s²'};
     if (key === 'jumpDrag') return {min: 0, max: 3.0, step: 0.05, fmt: n => n.toFixed(2) + ' s⁻¹'};

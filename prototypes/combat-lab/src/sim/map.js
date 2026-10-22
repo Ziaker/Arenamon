@@ -21,6 +21,7 @@ export const MAP_DEFAULTS = {
   destructibleRespawnMin: 15,
   destructibleRespawnMax: 30,
   destructibleGhostPreview: 2.0,
+  spawnClearance: 0.6,   // folga mínima (m) entre o corpo de um lutador e qualquer objeto sólido recém-colocado (R3.13: distâncias mínimas configuráveis)
   obstacleCount: 4,
   platformCount: 2,   // quantas plataformas do catálogo abaixo entram no mapa (0 desliga; o catálogo consome RNG igual)
   platforms: [
@@ -232,6 +233,51 @@ export function findNearestValidPosition(candidate, radius, mapState, fighters =
   return null; // Adiar geração (R10.6)
 }
 
+/** Folga (m) entre o corpo quadrado de um lutador e uma caixa alinhada aos eixos centrada em (x, z); negativa = sobreposição. */
+export function bodyGapToBox(pos, x, z, hx, hz) {
+  const r = C.test?.halfExtent ?? 0.5;
+  return Math.max(Math.abs(pos.x - x) - hx - r, Math.abs(pos.z - z) - hz - r);
+}
+/**
+ * Algum lutador impede materializar (ou posicionar) uma caixa sólida aqui? Vale se o corpo, na mesma faixa de altura do objeto
+ * (R3.13 em 3D: quem está no ar acima do topo não bloqueia), estiver a menos de `map.spawnClearance` da caixa — sobreposição incluída.
+ */
+export function fighterBlocksBox(fighters, x, z, hx, hz, y0, y1) {
+  const clearance = C.map?.spawnClearance ?? MAP_DEFAULTS.spawnClearance, bodyH = C.extras?.visual?.bodyHeight ?? 1.2;
+  for (const f of fighters) {
+    if (!f?.position || f.hp <= 0) continue;
+    const alt = (f.flight?.y ?? f.groundY ?? 0) + (f.vaultHeight ?? 0);
+    if (alt >= y1 || alt + bodyH <= y0) continue;
+    if (bodyGapToBox(f.position, x, z, hx, hz) < clearance) return true;
+  }
+  return false;
+}
+/**
+ * Reposiciona plataformas que nasceriam sobre (ou colada em) um lutador: espiral determinística de 1,5 m a partir da posição sorteada,
+ * sem consumir RNG (as demais seeds ficam idênticas). Sem posição válida, mantém a sorteada e registra em mapState.placementConflicts.
+ */
+function clearPlatformsOfFighters(mapState, fighters) {
+  const arenaR = effectiveArenaRadius();
+  const clear = (p, pos, placed) => !fighterBlocksBox(fighters, pos.x, pos.z, p.width / 2, p.depth / 2, 0, p.height)
+    && placed.every(o => Math.abs(pos.x - o.pos.x) >= (p.width + o.width) / 2 + 0.5 || Math.abs(pos.z - o.pos.z) >= (p.depth + o.depth) / 2 + 0.5)
+    && Math.hypot(pos.x, pos.z) + Math.hypot(p.width, p.depth) / 2 <= arenaR - 2.0;
+  const placed = [];
+  for (const p of mapState.platforms) {
+    if (!clear(p, p.pos, placed)) {
+      let moved = false;
+      for (let ring = 1; ring <= 8 && !moved; ring++) {
+        const n = ring * 8;
+        for (let i = 0; i < n && !moved; i++) {
+          const theta = (i / n) * Math.PI * 2, pos = {x: p.pos.x + Math.cos(theta) * ring * 1.5, y: p.pos.y, z: p.pos.z + Math.sin(theta) * ring * 1.5};
+          if (clear(p, pos, placed)) {p.pos = pos;moved = true;}
+        }
+      }
+      if (!moved) mapState.placementConflicts = (mapState.placementConflicts ?? 0) + 1;
+    }
+    placed.push(p);
+  }
+}
+
 /** Inicializa a arena completa com plataformas, obstáculos, destrutíveis e itens iniciais. */
 export function initMap(mapState, fighters = []) {
   const M = C.map ?? MAP_DEFAULTS;
@@ -262,6 +308,8 @@ export function initMap(mapState, fighters = []) {
     ...p,
     pos: {x: p.pos.x * arenaScale, y: p.pos.y, z: p.pos.z * arenaScale},
   }));
+
+  clearPlatformsOfFighters(mapState, fighters);   // R3.13: proteger as posições iniciais dos lutadores
 
   // 2. Obstáculos indestrutíveis: mistura de caixas, cilindros e pilares (R1.7, R3.11)
   mapState.obstacles = [];
@@ -396,7 +444,8 @@ export function stepMap(mapState, dt, fighters = [], events = []) {
       d.ghostTimer -= dt;
       if (d.ghostTimer <= 0) {
         // Antes de materializar sólido, verifica se o local não foi bloqueado por combatente (R10.6)
-        if (!isValidSpawnPosition(d.pos, 1.2, mapState, fighters, 1.5)) {
+        // Sem lutador (corpo quadrado, mesma altura) a menos de spawnClearance da caixa do objeto, e sem sobrepor outros sólidos.
+        if (!isValidSpawnPosition(d.pos, 1.2, mapState, [], 0) || fighterBlocksBox(fighters, d.pos.x, d.pos.z, d.size.hx, d.size.hz, d.pos.y ?? 0, (d.pos.y ?? 0) + d.size.height)) {
           d.ghostTimer = 0.5; // Adia a materialização física enquanto houver sobreposição
           continue;
         }
