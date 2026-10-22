@@ -8,7 +8,7 @@ Este arquivo separa **o que foi efetivamente executado** do que **permanece pend
 |---|---|
 | `ledge.test.mjs` | 17 aprovados (agarre, subida, soltar, golpe, bloqueio, apoio destruído, IA, determinismo, fuzz, faixa de montagem) |
 | `ledge.browser.mjs` (Edge real, offline) | 9 aprovados; capturas em `evidence/ledge-grab/` |
-| Suíte unitária, `typecheck` | ver o fim desta seção (preenchido após a rodada completa) |
+| Suíte unitária, `typecheck` | `typecheck` 0 erros; suíte unitária 105/106 na pasta isolada; o 106º (`combat-windows`) precisa do `validation/personagem-studio.glb` local (não versionado) e passou 9/9 na pasta oficial |
 | Ajuste de teste | `physics3d` fixa `jumpPassOver = 1` no teste do teto com o lutador dentro da pegada (a regra estrita o ejetaria antes) |
 
 ## Execução de 2026-10-22 (fechamento, v1.18.3)
