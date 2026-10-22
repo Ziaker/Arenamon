@@ -1,5 +1,7 @@
 # Plano de implementação — Reflect e Psyshock no laboratório de combate
 
+> **Atualização de 22/10/2026 (auditoria `docs/AUDITORIA_DOCUMENTACAO_2026-10-22.md`):** **as Fases 0–7 foram entregues** (charge, Reflect, Psyshock, PL/Clash/Counter, IA, aba Moves, lasers contínuos); o plano é histórico. Para o estado atual veja `prototypes/combat-lab/MOVIMENTOS.md`.
+
 > **Status: PLANO APROVADO em 2026-10-16 (decisões D1–D7 conforme as recomendações; aprovação por fase, D7).** Fase 0 entregue em PR próprio (testes de caracterização, sem alterar código de jogo); **Fases 1–7 aguardam aprovação individual.**
 > **Fonte das regras:** `docs/MOVES_DECISOES_RODADAS.md` (IDs `M<rodada>.<item>`; Rodada 30 = decisões de 16/10/2026). Este plano não cria regras novas: onde falta decisão, aparece como **Decisão pendente (Dn)**.
 > **Base de código lida em 2026-10-16 (`main` @ `a822df7`):** `sim/{moves,world,status,controller,entity,game,config,recording,physics}.js`, `ui/input.js`, `view/world-view.js`, `test/moves.test.mjs`. **Não lidos a fundo:** `tactics.js`/`ai.js` (apenas buscado uso de movimentos: nenhum), `vfx.js`, painéis de `ui/`, `scenarios.js`. Onde isso afeta o plano, está marcado.

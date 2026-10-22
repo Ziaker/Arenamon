@@ -1,5 +1,7 @@
 # Arenamon — Catálogo de moves do Mushroom
 
+> **Atualização de 22/10/2026 (auditoria `docs/AUDITORIA_DOCUMENTACAO_2026-10-22.md`):** **Emerging Stone, Bullet Punch e Sand Wave estão implementados** no laboratório (v1.14.x; Bullet Punch 5× mais rápido e com viagem invisível na v1.14.5; softlock em plataforma corrigido na v1.17.0). **Body Slam continua sem gameplay especificado.** O status «nenhum dos dois foi implementado» abaixo é do momento em que o documento foi consolidado (19/10).
+
 > **Documento de decisões de design — fonte para implementação posterior.**  
 > **Última consolidação:** 19/10/2026. **Status:** Bullet Punch com design principal aprovado; Sand Wave com especificação inicial aprovada e pendências identificadas. **Nenhum dos dois foi implementado ou testado neste documento.**  
 > **Origem:** decisões explícitas do diretor nesta conversa, preservadas em ordem cronológica; informações técnicas do repositório são assinaladas separadamente.  
