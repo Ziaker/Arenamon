@@ -10,4 +10,7 @@ for(const mutation of [
 ]){const bad=structuredClone(one);mutation(bad);assert.throws(()=>parsePreset(JSON.stringify(bad)));}
 assert.throws(()=>parsePreset('{'));
 assert.equal(migrateLocal({values:{sand:{length:5}}}).sand.C.length,5);
+for(const c of ['bulletpunch','quickattack'])for(let v=0;v<3;v++){const x=parsePreset(JSON.stringify(exportSingle(presets,c,v,p)));assert.equal(x.category,c);assert.equal(x.values.travelTime,presets[c]['ABC'[v]].travelTime);}
+const old=exportAll(presets,p);old.atelierVersion='3.0.0';old.presets=structuredClone(presets);delete old.presets.bulletpunch;delete old.presets.quickattack;
+const migrated=parsePreset(JSON.stringify(old));assert.equal(migrated.presets.swift.B.starScale,1.35);assert.ok(migrated.presets.bulletpunch.A.travelTime>0);assert.ok(migrated.presets.quickattack.C.travelTime>0);
 console.log('PASS: JSON individual/todas, round-trip, rejeições e migração local v2');

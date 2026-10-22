@@ -182,3 +182,8 @@ Cada entrada: data · tarefa · skill · o que foi aplicado de fato.
 ### 2026-10-22 — Correção integral do Psyshock
 
 - arenamon-routing e game-feel: substituição das camadas antigas por glifos locais com carga, ecos e impacto; remoção do shader de fundo. Regressão verifica ausência de plano, túnel e giroscópios na construção PSI.
+
+### 2026-10-22 — Bullet Punch e Quick Attack no atelier
+
+- arenamon-routing e game-feel: três propostas por move, antecipação/avanço/impacto e dissipação; rastros ligados ao ator, giros, ecos e trajetórias distintas.
+- Shaders/ribbons existentes reutilizados; controles e JSON mantidos no editor. Galeria revision-5 acessível pelo portal.

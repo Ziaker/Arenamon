@@ -1,7 +1,7 @@
 import {categories, controls, defaults, type Category, type Variant, type Values} from './config.ts';
 
 export const SCHEMA_VERSION=1;
-export const ATELIER_VERSION='3.0.0';
+export const ATELIER_VERSION='5.0.0';
 export type Presets=Record<Category, Record<'A'|'B'|'C', Record<string, number>>>;
 export type Presentation={bloom:number;exposure:number;shake:number;rate:number;reduce:boolean;loop:boolean;model:'match'|'0'|'1'|'2';previewCount:number;camera:'three'|'low'|'top';wire:boolean;grid:boolean};
 export function initialPresets():Presets{return Object.fromEntries(categories.map(c=>[c,Object.fromEntries(['A','B','C'].map(v=>[v,{...defaults[c]}]))])) as Presets;}
@@ -14,7 +14,7 @@ export function exportSingle(presets:Presets,category:Category,variant:Variant,p
 export function exportAll(presets:Presets,presentation:Presentation){return {schemaVersion:SCHEMA_VERSION,atelier:'arenamon-vfx',atelierVersion:ATELIER_VERSION,exportScope:'all-variants',presets,presentation,assets:{embedded:true,externalUrls:[]}};}
 export function parsePreset(raw:string){if(new TextEncoder().encode(raw).length>512000)throw Error('Arquivo acima de 500 KB');let value:unknown;try{value=JSON.parse(raw);}catch{throw Error('JSON inválido');}
  const head=exact(value,['schemaVersion','atelier','atelierVersion','exportScope','presentation','assets',...((value as any)?.exportScope==='single-variant'?['category','variant','presetName','visualParameters']:['presets'])],'Arquivo');
- if(head.schemaVersion!==SCHEMA_VERSION||head.atelier!=='arenamon-vfx'||head.atelierVersion!==ATELIER_VERSION)throw Error('Versão ou atelier incompatível');
+ if(head.schemaVersion!==SCHEMA_VERSION||head.atelier!=='arenamon-vfx'||!['3.0.0',ATELIER_VERSION].includes(head.atelierVersion as string))throw Error('Versão ou atelier incompatível');
  const assets=exact(head.assets,['embedded','externalUrls'],'Recursos');if(assets.embedded!==true||!Array.isArray(assets.externalUrls)||assets.externalUrls.length)throw Error('Recursos externos não são aceitos');
  const presentation=validatePresentation(head.presentation);
  if(head.exportScope==='single-variant'){
@@ -23,7 +23,8 @@ export function parsePreset(raw:string){if(new TextEncoder().encode(raw).length>
   const category=head.category as Category,variant=head.variant as 'A'|'B'|'C';return {scope:'single' as const,category,variant,values:validateParams(category,head.visualParameters),presentation};
  }
  if(head.exportScope!=='all-variants')throw Error('Escopo desconhecido');
- const all=exact(head.presets,categories,'Presets');const presets=initialPresets();for(const c of categories){const variants=exact(all[c],['A','B','C'],`Categoria ${c}`);for(const v of letters)presets[c][v]=validateParams(c,variants[v]);}
+ const sourceCategories=head.atelierVersion==='3.0.0'?categories.filter(c=>c!=='bulletpunch'&&c!=='quickattack'):categories;
+ const all=exact(head.presets,sourceCategories,'Presets');const presets=initialPresets();for(const c of sourceCategories){const variants=exact(all[c],['A','B','C'],`Categoria ${c}`);for(const v of letters)presets[c][v]=validateParams(c,variants[v]);}
  return {scope:'all' as const,presets,presentation};
 }
 export function migrateLocal(data:any){const presets=initialPresets();for(const c of categories){for(const v of letters){const source=data?.presets?.[c]?.[v]??data?.values?.[c];if(!source)continue;for(const [key,,,min,max] of controls[c]){const n=source[key];if(typeof n==='number'&&Number.isFinite(n))presets[c][v][key]=Math.min(max,Math.max(min,n));}}}return presets;}

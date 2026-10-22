@@ -1,5 +1,20 @@
 # Laboratório visual: Sand Wave e Emerging Stone
 
+## VOL. 05 — Bullet Punch e Quick Attack (22/10/2026)
+
+O atelier agora tem sete categorias e 21 propostas. [Comparação das seis opções novas](../prototypes/sand-stone-lab/evidence/revision-5/index.html), com carga, avanço e impacto. Acesso também pelo portal, índice rápido e central de testes.
+
+| Move | A | B | C |
+| --- | --- | --- | --- |
+| Bullet Punch | Pistão de aço: punho metálico, rastros axiais, impacto de pressão | Broca helicoidal: punho giratório com hélices e arcos | Rajada de punhos: ecos deslocados e estilhaços radiais |
+| Quick Attack | Arrancada supersônica: corpo alongado, rastros paralelos | Passo em zigue-zague: trajetória lateral e fitas contínuas | Salto de imagem: passos descontínuos e silhuetas separadas |
+
+Controles: escala, antecipação e duração do avanço em segundos, espessura, abertura lateral, persistência do rastro, cor, opacidade, partículas, impacto e dissipação. Quick Attack possui alongamento; Bullet Punch possui giro helicoidal. As prévias usam personagens geométricos apenas como referência de movimento. Nenhuma regra de combate foi alterada. As categorias anteriores foram preservadas.
+
+JSON do atelier exporta versão 5.0.0. Importação de arquivos 3.0.0 continua disponível: os presets antigos são preservados e as categorias novas recebem os padrões iniciais. O armazenamento local anterior também migra. Os 21 presets exportam individualmente ou em conjunto.
+
+Validação: TypeScript, ciclos CPU com movimento/descarte, JSON com migração 3→5, navegador e galeria de 18 capturas. Desempenho em GPU física e aprovação artística não são inferidos dessas capturas. Script: node prototypes/sand-stone-lab/rush-review.mjs.
+
 ## Correção do Psyshock: substituição integral (22/10/2026)
 
 A versão anterior foi rejeitada por sobrepor um padrão às animações antigas. A correção remove psi-pattern.ts e todo o antigo Psyshock: giroscópios, satélites, gaiolas, lentes, túnel e fundo animado. A construção agora usa somente pedras e glifos locais, ecos de movimento e impactos próprios. A: compressão/expansão de losangos; B: descargas e cortes serrilhados; C: floração hexagonal em pétalas. Os controles de anéis foram renomeados para glifos, preservando as chaves JSON. A galeria vinculada no portal foi atualizada. Teste de regressão verifica ausência do plano/túnel/giroscópios e presença dos glifos em cada pedra.

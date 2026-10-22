@@ -1,9 +1,11 @@
-export type Category = 'sand' | 'stone' | 'rock' | 'swift' | 'psyshock';
+export type Category = 'sand' | 'stone' | 'rock' | 'swift' | 'psyshock' | 'bulletpunch' | 'quickattack';
 export type Variant = 0 | 1 | 2;
 export type Control = readonly [key: string, label: string, unit: string, min: number, max: number, step: number, initial: number];
 export type Values = Record<Category, Record<string, number>>;
 
 export const controls: Record<Category, Control[]> = {
+  bulletpunch: [['scale','Escala do punho','×',.5,1.8,.05,1],['chargeTime','Antecipação visual','s',.1,.8,.05,.35],['travelTime','Duração do avanço','s',.15,1,.05,0.45],['width','Espessura dos rastros','×',.3,2,.05,1],['spread','Abertura lateral','×',.3,2,.05,1],['trailLength','Persistência do rastro','×',.3,1.5,.05,1],['twist','Giro helicoidal','×',.2,2,.05,1],['opacity','Opacidade da energia','×',.1,1,.05,.85],['particleDensity','Densidade de partículas','×',0,2,.05,1],['primaryHue','Cor da energia','°',0,360,1,195],['flash','Força do impacto visual','×',0,2,.05,1],['decay','Dissipação','×',.4,2,.05,1]],
+  quickattack: [['scale','Escala do corpo','×',.5,1.8,.05,1],['chargeTime','Antecipação visual','s',.1,.8,.05,.35],['travelTime','Duração do avanço','s',.15,1,.05,0.55],['width','Espessura dos rastros','×',.3,2,.05,1],['spread','Abertura lateral','×',.3,2,.05,1],['trailLength','Persistência do rastro','×',.3,1.5,.05,1],['stretch','Alongamento do corpo','×',0,2,.05,1],['opacity','Opacidade da energia','×',.1,1,.05,.85],['particleDensity','Densidade de partículas','×',0,2,.05,1],['primaryHue','Cor da energia','°',0,360,1,45],['flash','Força do impacto visual','×',0,2,.05,1],['decay','Dissipação','×',.4,2,.05,1]],
   sand: [
     ['length','Alcance visual','m',2,7,.1,4],['width','Largura visual','m',1.5,5,.1,3.4],['height','Altura da onda','m',.5,2.5,.05,1.25],['density','Grãos e detritos','×',.25,2,.05,1],['smoke','Densidade da poeira','×',0,1.5,.05,.8],
     ['crestCurve','Curvatura da crista','×',.5,1.8,.05,1],['frontTilt','Inclinação frontal','°',-25,25,1,0],['bladeThickness','Espessura da lâmina','×',.5,1.8,.05,1],['undulation','Ondulação','×',0,2,.05,1],['crestCount','Quantidade de cristas','un.',1,5,1,3],
@@ -21,4 +23,4 @@ export const controls: Record<Category, Control[]> = {
   psyshock: [['auraRadius','Raio da aura','×',.4,2,.05,1],['ringThickness','Espessura dos glifos','×',.3,2,.05,1],['ringCount','Camadas de glifos','un.',1,5,1,3],['angularSpeed','Velocidade dos glifos','×',.2,2,.05,1],['spiral','Torção / espiral','×',0,2,.05,1],['opacity','Opacidade','×',.1,1,.05,.85],['pulseRate','Frequência dos pulsos','×',.3,2,.05,1],['emissivity','Emissividade','×',0,2,.05,1],['particleDensity','Densidade de partículas','×',0,2,.05,1],['orbSize','Tamanho dos orbes','×',.3,2,.05,1],['trailGlow','Brilho da cauda','×',0,2,.05,1],['trailLength','Comprimento da cauda','×',.3,2,.05,1],['shards','Densidade de shards','×',0,2,.05,1],['fissureGlow','Brilho de fendas','×',0,2,.05,1],['primaryHue','Cor psíquica principal','°',260,340,1,300],['secondaryHue','Cor psíquica secundária','°',170,310,1,195],['impactDecay','Decaimento do impacto','×',.4,2,.05,1]]
 };
 export const defaults: Values = Object.fromEntries(Object.entries(controls).map(([category, defs]) => [category, Object.fromEntries(defs.map(d => [d[0], d[6]]))])) as Values;
-export const categories: Category[] = ['sand','stone','rock','swift','psyshock'];
+export const categories: Category[] = ['sand','stone','rock','swift','psyshock','bulletpunch','quickattack'];

@@ -9,7 +9,7 @@ const errors=[];page.on('pageerror',e=>errors.push(e.message));
 page.on('console',m=>{if(m.type()==='error'&&/shader|webgl|compile/i.test(m.text()))errors.push(m.text());});
 await page.goto(pathToFileURL(resolve('prototypes/sand-stone-lab/dist/arenamon-areia-pedra.html')).href);
 await page.waitForTimeout(900);
-for(const category of ['sand','stone','rock','swift','psyshock']){
+for(const category of ['sand','stone','rock','swift','psyshock','bulletpunch','quickattack']){
   await page.locator(`#categories [data-category="${category}"]`).click();
   for(let variant=0;variant<3;variant++){
     await page.locator(`#variants [data-variant="${variant}"]`).click();
@@ -39,10 +39,10 @@ await page.locator('#sliders input').first().fill('1.7');page.once('dialog',d=>d
 await page.locator('#import-file').setInputFiles({name:'preset.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(single))});
 await page.waitForFunction(()=>document.querySelector('#sliders input').value==='1.35');
 const allPromise=page.waitForEvent('download');await page.locator('#export-all').click();const all=JSON.parse(await readFile(await (await allPromise).path(),'utf8'));
-if(Object.keys(all.presets).length!==5)throw Error('Exportação total incorreta');
+if(Object.keys(all.presets).length!==7)throw Error('Exportação total incorreta');
 if(errors.length)throw new Error(errors.join('\n'));
 await mkdir('prototypes/sand-stone-lab/evidence',{recursive:true});await page.setViewportSize({width:1280,height:720});
 await page.locator('#categories [data-category="swift"]').click();await page.locator('#variants [data-variant="2"]').click();await page.locator('#scrub').evaluate(el=>{el.value='0.9';el.dispatchEvent(new Event('input',{bubbles:true}));});await page.screenshot({path:'prototypes/sand-stone-lab/evidence/swift-c-720p.png'});
 await page.locator('#categories [data-category="psyshock"]').click();await page.locator('#variants [data-variant="2"]').click();await page.locator('#scrub').evaluate(el=>{el.value='1.55';el.dispatchEvent(new Event('input',{bubbles:true}));});await page.screenshot({path:'prototypes/sand-stone-lab/evidence/psyshock-c-720p.png'});
-console.log('OK: 15 propostas, sliders, replay e emissões reais de three.quarks no HTML offline');
+console.log('OK: 21 propostas, sliders, replay e emissões reais de three.quarks no HTML offline');
 await browser.close();
