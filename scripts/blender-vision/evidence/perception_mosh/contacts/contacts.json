@@ -1,0 +1,3232 @@
+{
+ "schema": "arenamon.perception.contacts/1",
+ "blend_sha256": "bc0da6e4d74ffb223c5e74ad04fcd775305cef395f36aa604ce99a79a1cb8292",
+ "action": "attack 1",
+ "frames": [
+  1,
+  4,
+  7,
+  10,
+  13,
+  16,
+  19,
+  22,
+  25,
+  28,
+  31,
+  34,
+  37,
+  40,
+  43,
+  46,
+  49,
+  52
+ ],
+ "pairs": "arm_R:torso,arm_L:torso,hand_R:torso,hand_L:torso,arm_R:head,arm_L:head,hand_R:head,hand_L:head",
+ "op": "contacts",
+ "rows": [
+  {
+   "frame": 1,
+   "pairs": {
+    "arm_R|torso": {
+     "samples": 400,
+     "inside_normal_frac": 0.25,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.28416,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "arm_L|torso": {
+     "samples": 400,
+     "inside_normal_frac": 0.1475,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.07765,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "hand_R|torso": {
+     "samples": 297,
+     "inside_normal_frac": 0.0,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.0,
+     "min_distance_m": 0.39388,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "hand_L|torso": {
+     "samples": 311,
+     "inside_normal_frac": 0.0,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.0,
+     "min_distance_m": 0.37607,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "arm_R|head": {
+     "samples": 400,
+     "inside_normal_frac": 0.535,
+     "inside_enclosed_frac": 0.3525,
+     "max_inside_depth_m": 0.16019,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 9426
+    },
+    "arm_L|head": {
+     "samples": 400,
+     "inside_normal_frac": 0.065,
+     "inside_enclosed_frac": 0.055,
+     "max_inside_depth_m": 0.05335,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 9426
+    },
+    "hand_R|head": {
+     "samples": 297,
+     "inside_normal_frac": 0.33,
+     "inside_enclosed_frac": 0.0135,
+     "max_inside_depth_m": 0.05869,
+     "min_distance_m": 0.00265,
+     "malha_vizinha_arestas_abertas": 9426
+    },
+    "hand_L|head": {
+     "samples": 311,
+     "inside_normal_frac": 0.328,
+     "inside_enclosed_frac": 0.328,
+     "max_inside_depth_m": 0.06688,
+     "min_distance_m": 0.00181,
+     "malha_vizinha_arestas_abertas": 9426
+    }
+   }
+  },
+  {
+   "frame": 4,
+   "pairs": {
+    "arm_R|torso": {
+     "samples": 400,
+     "inside_normal_frac": 0.32,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.28075,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "arm_L|torso": {
+     "samples": 400,
+     "inside_normal_frac": 0.1375,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.35469,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "hand_R|torso": {
+     "samples": 297,
+     "inside_normal_frac": 0.0,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.0,
+     "min_distance_m": 0.27231,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "hand_L|torso": {
+     "samples": 311,
+     "inside_normal_frac": 0.2733,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.50415,
+     "min_distance_m": 0.37957,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "arm_R|head": {
+     "samples": 400,
+     "inside_normal_frac": 0.4825,
+     "inside_enclosed_frac": 0.305,
+     "max_inside_depth_m": 0.14027,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 9426
+    },
+    "arm_L|head": {
+     "samples": 400,
+     "inside_normal_frac": 0.5625,
+     "inside_enclosed_frac": 0.31,
+     "max_inside_depth_m": 0.19883,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 9426
+    },
+    "hand_R|head": {
+     "samples": 297,
+     "inside_normal_frac": 0.8788,
+     "inside_enclosed_frac": 0.7475,
+     "max_inside_depth_m": 0.12376,
+     "min_distance_m": 0.0003,
+     "malha_vizinha_arestas_abertas": 9426
+    },
+    "hand_L|head": {
+     "samples": 311,
+     "inside_normal_frac": 0.8199,
+     "inside_enclosed_frac": 0.4084,
+     "max_inside_depth_m": 0.15877,
+     "min_distance_m": 0.0008,
+     "malha_vizinha_arestas_abertas": 9426
+    }
+   }
+  },
+  {
+   "frame": 7,
+   "pairs": {
+    "arm_R|torso": {
+     "samples": 400,
+     "inside_normal_frac": 0.475,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.33712,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "arm_L|torso": {
+     "samples": 400,
+     "inside_normal_frac": 0.17,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.35963,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "hand_R|torso": {
+     "samples": 297,
+     "inside_normal_frac": 0.0,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.0,
+     "min_distance_m": 0.18543,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "hand_L|torso": {
+     "samples": 311,
+     "inside_normal_frac": 0.0772,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.53117,
+     "min_distance_m": 0.36934,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "arm_R|head": {
+     "samples": 400,
+     "inside_normal_frac": 0.49,
+     "inside_enclosed_frac": 0.415,
+     "max_inside_depth_m": 0.14044,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 9426
+    },
+    "arm_L|head": {
+     "samples": 400,
+     "inside_normal_frac": 0.82,
+     "inside_enclosed_frac": 0.425,
+     "max_inside_depth_m": 0.22159,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 9426
+    },
+    "hand_R|head": {
+     "samples": 297,
+     "inside_normal_frac": 1.0,
+     "inside_enclosed_frac": 0.7744,
+     "max_inside_depth_m": 0.17574,
+     "min_distance_m": 0.03196,
+     "malha_vizinha_arestas_abertas": 9426
+    },
+    "hand_L|head": {
+     "samples": 311,
+     "inside_normal_frac": 0.717,
+     "inside_enclosed_frac": 0.582,
+     "max_inside_depth_m": 0.12307,
+     "min_distance_m": 0.00031,
+     "malha_vizinha_arestas_abertas": 9426
+    }
+   }
+  },
+  {
+   "frame": 10,
+   "pairs": {
+    "arm_R|torso": {
+     "samples": 400,
+     "inside_normal_frac": 0.175,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.29814,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "arm_L|torso": {
+     "samples": 400,
+     "inside_normal_frac": 0.19,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.13826,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "hand_R|torso": {
+     "samples": 297,
+     "inside_normal_frac": 0.0,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.0,
+     "min_distance_m": 0.30403,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "hand_L|torso": {
+     "samples": 311,
+     "inside_normal_frac": 0.0,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.0,
+     "min_distance_m": 0.37627,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "arm_R|head": {
+     "samples": 400,
+     "inside_normal_frac": 0.32,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.29708,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 9426
+    },
+    "arm_L|head": {
+     "samples": 400,
+     "inside_normal_frac": 0.01,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.08679,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 9426
+    },
+    "hand_R|head": {
+     "samples": 297,
+     "inside_normal_frac": 0.2694,
+     "inside_enclosed_frac": 0.2694,
+     "max_inside_depth_m": 0.08134,
+     "min_distance_m": 0.00025,
+     "malha_vizinha_arestas_abertas": 9426
+    },
+    "hand_L|head": {
+     "samples": 311,
+     "inside_normal_frac": 0.0,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.0,
+     "min_distance_m": 0.00488,
+     "malha_vizinha_arestas_abertas": 9426
+    }
+   }
+  },
+  {
+   "frame": 13,
+   "pairs": {
+    "arm_R|torso": {
+     "samples": 400,
+     "inside_normal_frac": 0.155,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.06974,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "arm_L|torso": {
+     "samples": 400,
+     "inside_normal_frac": 0.3,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.22286,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "hand_R|torso": {
+     "samples": 297,
+     "inside_normal_frac": 0.0,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.0,
+     "min_distance_m": 0.37059,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "hand_L|torso": {
+     "samples": 311,
+     "inside_normal_frac": 0.0,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.0,
+     "min_distance_m": 0.31885,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "arm_R|head": {
+     "samples": 400,
+     "inside_normal_frac": 0.235,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.31248,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 9426
+    },
+    "arm_L|head": {
+     "samples": 400,
+     "inside_normal_frac": 0.02,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.1978,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 9426
+    },
+    "hand_R|head": {
+     "samples": 297,
+     "inside_normal_frac": 0.0606,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.23287,
+     "min_distance_m": 0.07636,
+     "malha_vizinha_arestas_abertas": 9426
+    },
+    "hand_L|head": {
+     "samples": 311,
+     "inside_normal_frac": 0.0,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.0,
+     "min_distance_m": 0.14821,
+     "malha_vizinha_arestas_abertas": 9426
+    }
+   }
+  },
+  {
+   "frame": 16,
+   "pairs": {
+    "arm_R|torso": {
+     "samples": 400,
+     "inside_normal_frac": 0.1425,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.06204,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "arm_L|torso": {
+     "samples": 400,
+     "inside_normal_frac": 0.2625,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.1386,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "hand_R|torso": {
+     "samples": 297,
+     "inside_normal_frac": 0.0,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.0,
+     "min_distance_m": 0.39716,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "hand_L|torso": {
+     "samples": 311,
+     "inside_normal_frac": 0.0,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.0,
+     "min_distance_m": 0.30929,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "arm_R|head": {
+     "samples": 400,
+     "inside_normal_frac": 0.3025,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.30988,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 9426
+    },
+    "arm_L|head": {
+     "samples": 400,
+     "inside_normal_frac": 0.1925,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.33395,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 9426
+    },
+    "hand_R|head": {
+     "samples": 297,
+     "inside_normal_frac": 0.0606,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.36203,
+     "min_distance_m": 0.29696,
+     "malha_vizinha_arestas_abertas": 9426
+    },
+    "hand_L|head": {
+     "samples": 311,
+     "inside_normal_frac": 0.0,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.0,
+     "min_distance_m": 0.32729,
+     "malha_vizinha_arestas_abertas": 9426
+    }
+   }
+  },
+  {
+   "frame": 19,
+   "pairs": {
+    "arm_R|torso": {
+     "samples": 400,
+     "inside_normal_frac": 0.1425,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.06394,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "arm_L|torso": {
+     "samples": 400,
+     "inside_normal_frac": 0.2475,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.13818,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "hand_R|torso": {
+     "samples": 297,
+     "inside_normal_frac": 0.0,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.0,
+     "min_distance_m": 0.39644,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "hand_L|torso": {
+     "samples": 311,
+     "inside_normal_frac": 0.0,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.0,
+     "min_distance_m": 0.31558,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "arm_R|head": {
+     "samples": 400,
+     "inside_normal_frac": 0.3475,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.3099,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 9426
+    },
+    "arm_L|head": {
+     "samples": 400,
+     "inside_normal_frac": 0.1925,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.33774,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 9426
+    },
+    "hand_R|head": {
+     "samples": 297,
+     "inside_normal_frac": 0.0337,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.35811,
+     "min_distance_m": 0.33987,
+     "malha_vizinha_arestas_abertas": 9426
+    },
+    "hand_L|head": {
+     "samples": 311,
+     "inside_normal_frac": 0.0,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.0,
+     "min_distance_m": 0.34615,
+     "malha_vizinha_arestas_abertas": 9426
+    }
+   }
+  },
+  {
+   "frame": 22,
+   "pairs": {
+    "arm_R|torso": {
+     "samples": 400,
+     "inside_normal_frac": 0.125,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.06579,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "arm_L|torso": {
+     "samples": 400,
+     "inside_normal_frac": 0.2725,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.20891,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "hand_R|torso": {
+     "samples": 297,
+     "inside_normal_frac": 0.0,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.0,
+     "min_distance_m": 0.38746,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "hand_L|torso": {
+     "samples": 311,
+     "inside_normal_frac": 0.0,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.0,
+     "min_distance_m": 0.31709,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "arm_R|head": {
+     "samples": 400,
+     "inside_normal_frac": 0.3175,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.31069,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 9426
+    },
+    "arm_L|head": {
+     "samples": 400,
+     "inside_normal_frac": 0.1725,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.33672,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 9426
+    },
+    "hand_R|head": {
+     "samples": 297,
+     "inside_normal_frac": 0.0606,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.33176,
+     "min_distance_m": 0.27766,
+     "malha_vizinha_arestas_abertas": 9426
+    },
+    "hand_L|head": {
+     "samples": 311,
+     "inside_normal_frac": 0.0,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.0,
+     "min_distance_m": 0.35243,
+     "malha_vizinha_arestas_abertas": 9426
+    }
+   }
+  },
+  {
+   "frame": 25,
+   "pairs": {
+    "arm_R|torso": {
+     "samples": 400,
+     "inside_normal_frac": 0.165,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.07607,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "arm_L|torso": {
+     "samples": 400,
+     "inside_normal_frac": 0.22,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.13446,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "hand_R|torso": {
+     "samples": 297,
+     "inside_normal_frac": 0.0,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.0,
+     "min_distance_m": 0.37149,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "hand_L|torso": {
+     "samples": 311,
+     "inside_normal_frac": 0.0,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.0,
+     "min_distance_m": 0.28522,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "arm_R|head": {
+     "samples": 400,
+     "inside_normal_frac": 0.275,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.31344,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 9426
+    },
+    "arm_L|head": {
+     "samples": 400,
+     "inside_normal_frac": 0.055,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.20611,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 9426
+    },
+    "hand_R|head": {
+     "samples": 297,
+     "inside_normal_frac": 0.0236,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.4008,
+     "min_distance_m": 0.22171,
+     "malha_vizinha_arestas_abertas": 9426
+    },
+    "hand_L|head": {
+     "samples": 311,
+     "inside_normal_frac": 0.0,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.0,
+     "min_distance_m": 0.30849,
+     "malha_vizinha_arestas_abertas": 9426
+    }
+   }
+  },
+  {
+   "frame": 28,
+   "pairs": {
+    "arm_R|torso": {
+     "samples": 400,
+     "inside_normal_frac": 0.2,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.08165,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "arm_L|torso": {
+     "samples": 400,
+     "inside_normal_frac": 0.375,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.22409,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "hand_R|torso": {
+     "samples": 297,
+     "inside_normal_frac": 0.0,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.0,
+     "min_distance_m": 0.3476,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "hand_L|torso": {
+     "samples": 311,
+     "inside_normal_frac": 0.0707,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.2795,
+     "min_distance_m": 0.22635,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "arm_R|head": {
+     "samples": 400,
+     "inside_normal_frac": 0.325,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.32308,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 9426
+    },
+    "arm_L|head": {
+     "samples": 400,
+     "inside_normal_frac": 0.0125,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.01931,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 9426
+    },
+    "hand_R|head": {
+     "samples": 297,
+     "inside_normal_frac": 0.1549,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.3935,
+     "min_distance_m": 0.20304,
+     "malha_vizinha_arestas_abertas": 9426
+    },
+    "hand_L|head": {
+     "samples": 311,
+     "inside_normal_frac": 0.0,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.0,
+     "min_distance_m": 0.28041,
+     "malha_vizinha_arestas_abertas": 9426
+    }
+   }
+  },
+  {
+   "frame": 31,
+   "pairs": {
+    "arm_R|torso": {
+     "samples": 400,
+     "inside_normal_frac": 0.2625,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.08754,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "arm_L|torso": {
+     "samples": 400,
+     "inside_normal_frac": 0.2525,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.10077,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "hand_R|torso": {
+     "samples": 297,
+     "inside_normal_frac": 0.0135,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.5192,
+     "min_distance_m": 0.30935,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "hand_L|torso": {
+     "samples": 311,
+     "inside_normal_frac": 0.1672,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.40321,
+     "min_distance_m": 0.222,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "arm_R|head": {
+     "samples": 400,
+     "inside_normal_frac": 0.4825,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.34609,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 9426
+    },
+    "arm_L|head": {
+     "samples": 400,
+     "inside_normal_frac": 0.135,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.32889,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 9426
+    },
+    "hand_R|head": {
+     "samples": 297,
+     "inside_normal_frac": 0.0337,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.47821,
+     "min_distance_m": 0.26657,
+     "malha_vizinha_arestas_abertas": 9426
+    },
+    "hand_L|head": {
+     "samples": 311,
+     "inside_normal_frac": 0.0,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.0,
+     "min_distance_m": 0.29719,
+     "malha_vizinha_arestas_abertas": 9426
+    }
+   }
+  },
+  {
+   "frame": 34,
+   "pairs": {
+    "arm_R|torso": {
+     "samples": 400,
+     "inside_normal_frac": 0.25,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.10003,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "arm_L|torso": {
+     "samples": 400,
+     "inside_normal_frac": 0.3325,
+     "inside_enclosed_frac": 0.095,
+     "max_inside_depth_m": 0.11083,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "hand_R|torso": {
+     "samples": 297,
+     "inside_normal_frac": 0.101,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.43706,
+     "min_distance_m": 0.27787,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "hand_L|torso": {
+     "samples": 311,
+     "inside_normal_frac": 0.0161,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.30045,
+     "min_distance_m": 0.23452,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "arm_R|head": {
+     "samples": 400,
+     "inside_normal_frac": 0.655,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.3611,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 9426
+    },
+    "arm_L|head": {
+     "samples": 400,
+     "inside_normal_frac": 0.1775,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.32322,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 9426
+    },
+    "hand_R|head": {
+     "samples": 297,
+     "inside_normal_frac": 0.0,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.0,
+     "min_distance_m": 0.34531,
+     "malha_vizinha_arestas_abertas": 9426
+    },
+    "hand_L|head": {
+     "samples": 311,
+     "inside_normal_frac": 0.0,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.0,
+     "min_distance_m": 0.3728,
+     "malha_vizinha_arestas_abertas": 9426
+    }
+   }
+  },
+  {
+   "frame": 37,
+   "pairs": {
+    "arm_R|torso": {
+     "samples": 400,
+     "inside_normal_frac": 0.2225,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.1398,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "arm_L|torso": {
+     "samples": 400,
+     "inside_normal_frac": 0.3,
+     "inside_enclosed_frac": 0.05,
+     "max_inside_depth_m": 0.09684,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "hand_R|torso": {
+     "samples": 297,
+     "inside_normal_frac": 0.0,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.0,
+     "min_distance_m": 0.24562,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "hand_L|torso": {
+     "samples": 311,
+     "inside_normal_frac": 0.0322,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.29649,
+     "min_distance_m": 0.22396,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "arm_R|head": {
+     "samples": 400,
+     "inside_normal_frac": 0.6875,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.36754,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 9426
+    },
+    "arm_L|head": {
+     "samples": 400,
+     "inside_normal_frac": 0.36,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.3729,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 9426
+    },
+    "hand_R|head": {
+     "samples": 297,
+     "inside_normal_frac": 0.0,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.0,
+     "min_distance_m": 0.33961,
+     "malha_vizinha_arestas_abertas": 9426
+    },
+    "hand_L|head": {
+     "samples": 311,
+     "inside_normal_frac": 0.0,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.0,
+     "min_distance_m": 0.40915,
+     "malha_vizinha_arestas_abertas": 9426
+    }
+   }
+  },
+  {
+   "frame": 40,
+   "pairs": {
+    "arm_R|torso": {
+     "samples": 400,
+     "inside_normal_frac": 0.23,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.13879,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "arm_L|torso": {
+     "samples": 400,
+     "inside_normal_frac": 0.265,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.10417,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "hand_R|torso": {
+     "samples": 297,
+     "inside_normal_frac": 0.0,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.0,
+     "min_distance_m": 0.22025,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "hand_L|torso": {
+     "samples": 311,
+     "inside_normal_frac": 0.0,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.0,
+     "min_distance_m": 0.20005,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "arm_R|head": {
+     "samples": 400,
+     "inside_normal_frac": 0.6575,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.33121,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 9426
+    },
+    "arm_L|head": {
+     "samples": 400,
+     "inside_normal_frac": 0.4125,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.42779,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 9426
+    },
+    "hand_R|head": {
+     "samples": 297,
+     "inside_normal_frac": 0.0,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.0,
+     "min_distance_m": 0.33306,
+     "malha_vizinha_arestas_abertas": 9426
+    },
+    "hand_L|head": {
+     "samples": 311,
+     "inside_normal_frac": 0.0,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.0,
+     "min_distance_m": 0.4493,
+     "malha_vizinha_arestas_abertas": 9426
+    }
+   }
+  },
+  {
+   "frame": 43,
+   "pairs": {
+    "arm_R|torso": {
+     "samples": 400,
+     "inside_normal_frac": 0.2,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.11662,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "arm_L|torso": {
+     "samples": 400,
+     "inside_normal_frac": 0.285,
+     "inside_enclosed_frac": 0.01,
+     "max_inside_depth_m": 0.1134,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "hand_R|torso": {
+     "samples": 297,
+     "inside_normal_frac": 0.0,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.0,
+     "min_distance_m": 0.20667,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "hand_L|torso": {
+     "samples": 311,
+     "inside_normal_frac": 0.0,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.0,
+     "min_distance_m": 0.16909,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "arm_R|head": {
+     "samples": 400,
+     "inside_normal_frac": 0.655,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.4104,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 9426
+    },
+    "arm_L|head": {
+     "samples": 400,
+     "inside_normal_frac": 0.3825,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.45978,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 9426
+    },
+    "hand_R|head": {
+     "samples": 297,
+     "inside_normal_frac": 0.1414,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.42612,
+     "min_distance_m": 0.35761,
+     "malha_vizinha_arestas_abertas": 9426
+    },
+    "hand_L|head": {
+     "samples": 311,
+     "inside_normal_frac": 0.0,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.0,
+     "min_distance_m": 0.47418,
+     "malha_vizinha_arestas_abertas": 9426
+    }
+   }
+  },
+  {
+   "frame": 46,
+   "pairs": {
+    "arm_R|torso": {
+     "samples": 400,
+     "inside_normal_frac": 0.26,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.23986,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "arm_L|torso": {
+     "samples": 400,
+     "inside_normal_frac": 0.29,
+     "inside_enclosed_frac": 0.02,
+     "max_inside_depth_m": 0.12117,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "hand_R|torso": {
+     "samples": 297,
+     "inside_normal_frac": 0.0,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.0,
+     "min_distance_m": 0.23084,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "hand_L|torso": {
+     "samples": 311,
+     "inside_normal_frac": 0.0161,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.34052,
+     "min_distance_m": 0.14359,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "arm_R|head": {
+     "samples": 400,
+     "inside_normal_frac": 0.4025,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.40829,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 9426
+    },
+    "arm_L|head": {
+     "samples": 400,
+     "inside_normal_frac": 0.405,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.46229,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 9426
+    },
+    "hand_R|head": {
+     "samples": 297,
+     "inside_normal_frac": 0.7576,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.61007,
+     "min_distance_m": 0.41129,
+     "malha_vizinha_arestas_abertas": 9426
+    },
+    "hand_L|head": {
+     "samples": 311,
+     "inside_normal_frac": 0.0,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.0,
+     "min_distance_m": 0.48721,
+     "malha_vizinha_arestas_abertas": 9426
+    }
+   }
+  },
+  {
+   "frame": 49,
+   "pairs": {
+    "arm_R|torso": {
+     "samples": 400,
+     "inside_normal_frac": 0.27,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.21451,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "arm_L|torso": {
+     "samples": 400,
+     "inside_normal_frac": 0.245,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.12147,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "hand_R|torso": {
+     "samples": 297,
+     "inside_normal_frac": 0.5791,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.40751,
+     "min_distance_m": 0.22896,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "hand_L|torso": {
+     "samples": 311,
+     "inside_normal_frac": 0.0129,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.35596,
+     "min_distance_m": 0.15182,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "arm_R|head": {
+     "samples": 400,
+     "inside_normal_frac": 0.45,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.43679,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 9426
+    },
+    "arm_L|head": {
+     "samples": 400,
+     "inside_normal_frac": 0.345,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.43318,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 9426
+    },
+    "hand_R|head": {
+     "samples": 297,
+     "inside_normal_frac": 0.7542,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.66573,
+     "min_distance_m": 0.46933,
+     "malha_vizinha_arestas_abertas": 9426
+    },
+    "hand_L|head": {
+     "samples": 311,
+     "inside_normal_frac": 0.0,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.0,
+     "min_distance_m": 0.49052,
+     "malha_vizinha_arestas_abertas": 9426
+    }
+   }
+  },
+  {
+   "frame": 52,
+   "pairs": {
+    "arm_R|torso": {
+     "samples": 400,
+     "inside_normal_frac": 0.245,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.12565,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "arm_L|torso": {
+     "samples": 400,
+     "inside_normal_frac": 0.275,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.15367,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "hand_R|torso": {
+     "samples": 297,
+     "inside_normal_frac": 0.0,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.0,
+     "min_distance_m": 0.20472,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "hand_L|torso": {
+     "samples": 311,
+     "inside_normal_frac": 0.0,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.0,
+     "min_distance_m": 0.17254,
+     "malha_vizinha_arestas_abertas": 456
+    },
+    "arm_R|head": {
+     "samples": 400,
+     "inside_normal_frac": 0.6225,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.4467,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 9426
+    },
+    "arm_L|head": {
+     "samples": 400,
+     "inside_normal_frac": 0.265,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.36883,
+     "min_distance_m": 0.0,
+     "malha_vizinha_arestas_abertas": 9426
+    },
+    "hand_R|head": {
+     "samples": 297,
+     "inside_normal_frac": 0.835,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.67301,
+     "min_distance_m": 0.47247,
+     "malha_vizinha_arestas_abertas": 9426
+    },
+    "hand_L|head": {
+     "samples": 311,
+     "inside_normal_frac": 0.0,
+     "inside_enclosed_frac": 0.0,
+     "max_inside_depth_m": 0.0,
+     "min_distance_m": 0.48967,
+     "malha_vizinha_arestas_abertas": 9426
+    }
+   }
+  }
+ ],
+ "aviso": "normal assinada e cercado-por-raios dependem de a malha vizinha ser fechada (a primeira tambem de ter normais para fora): tratar como HIPOTESE ate confirmar em imagem",
+ "baseline": {
+  "action": "idle",
+  "frame": 1,
+  "pairs": {
+   "arm_R|torso": {
+    "samples": 400,
+    "inside_normal_frac": 0.2975,
+    "inside_enclosed_frac": 0.0125,
+    "max_inside_depth_m": 0.12022,
+    "min_distance_m": 0.0,
+    "malha_vizinha_arestas_abertas": 456
+   },
+   "arm_L|torso": {
+    "samples": 400,
+    "inside_normal_frac": 0.305,
+    "inside_enclosed_frac": 0.01,
+    "max_inside_depth_m": 0.15559,
+    "min_distance_m": 0.0,
+    "malha_vizinha_arestas_abertas": 456
+   },
+   "hand_R|torso": {
+    "samples": 297,
+    "inside_normal_frac": 0.1852,
+    "inside_enclosed_frac": 0.0,
+    "max_inside_depth_m": 0.14112,
+    "min_distance_m": 0.0375,
+    "malha_vizinha_arestas_abertas": 456
+   },
+   "hand_L|torso": {
+    "samples": 311,
+    "inside_normal_frac": 0.0,
+    "inside_enclosed_frac": 0.0,
+    "max_inside_depth_m": 0.0,
+    "min_distance_m": 0.04136,
+    "malha_vizinha_arestas_abertas": 456
+   },
+   "arm_R|head": {
+    "samples": 400,
+    "inside_normal_frac": 0.8,
+    "inside_enclosed_frac": 0.0,
+    "max_inside_depth_m": 0.44678,
+    "min_distance_m": 0.0,
+    "malha_vizinha_arestas_abertas": 9426
+   },
+   "arm_L|head": {
+    "samples": 400,
+    "inside_normal_frac": 0.3225,
+    "inside_enclosed_frac": 0.0,
+    "max_inside_depth_m": 0.35499,
+    "min_distance_m": 0.0,
+    "malha_vizinha_arestas_abertas": 9426
+   },
+   "hand_R|head": {
+    "samples": 297,
+    "inside_normal_frac": 0.7542,
+    "inside_enclosed_frac": 0.0,
+    "max_inside_depth_m": 0.68659,
+    "min_distance_m": 0.44131,
+    "malha_vizinha_arestas_abertas": 9426
+   },
+   "hand_L|head": {
+    "samples": 311,
+    "inside_normal_frac": 0.0,
+    "inside_enclosed_frac": 0.0,
+    "max_inside_depth_m": 0.0,
+    "min_distance_m": 0.434,
+    "malha_vizinha_arestas_abertas": 9426
+   }
+  }
+ },
+ "classificacao": {
+  "arm_R|torso": {
+   "1": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.28416,
+    "inside_normal": 0.25,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     -0.0475,
+     -0.0125
+    ],
+    "distancia_min_m": 0.0
+   },
+   "4": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.28075,
+    "inside_normal": 0.32,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     0.0225,
+     -0.0125
+    ],
+    "distancia_min_m": 0.0
+   },
+   "7": {
+    "classe": "INCONCLUSIVO",
+    "criterio": "so a normal assinada passou do limite: ela nao e confiavel em malha vizinha aberta/nao orientada nem em costuras de articulacao",
+    "profundidade_max_m": 0.33712,
+    "inside_normal": 0.475,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     0.1775,
+     -0.0125
+    ],
+    "distancia_min_m": 0.0
+   },
+   "10": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.29814,
+    "inside_normal": 0.175,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     -0.1225,
+     -0.0125
+    ],
+    "distancia_min_m": 0.0
+   },
+   "13": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.06974,
+    "inside_normal": 0.155,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     -0.1425,
+     -0.0125
+    ],
+    "distancia_min_m": 0.0
+   },
+   "16": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.06204,
+    "inside_normal": 0.1425,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     -0.155,
+     -0.0125
+    ],
+    "distancia_min_m": 0.0
+   },
+   "19": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.06394,
+    "inside_normal": 0.1425,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     -0.155,
+     -0.0125
+    ],
+    "distancia_min_m": 0.0
+   },
+   "22": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.06579,
+    "inside_normal": 0.125,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     -0.1725,
+     -0.0125
+    ],
+    "distancia_min_m": 0.0
+   },
+   "25": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.07607,
+    "inside_normal": 0.165,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     -0.1325,
+     -0.0125
+    ],
+    "distancia_min_m": 0.0
+   },
+   "28": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.08165,
+    "inside_normal": 0.2,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     -0.0975,
+     -0.0125
+    ],
+    "distancia_min_m": 0.0
+   },
+   "31": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.08754,
+    "inside_normal": 0.2625,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     -0.035,
+     -0.0125
+    ],
+    "distancia_min_m": 0.0
+   },
+   "34": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.10003,
+    "inside_normal": 0.25,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     -0.0475,
+     -0.0125
+    ],
+    "distancia_min_m": 0.0
+   },
+   "37": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.1398,
+    "inside_normal": 0.2225,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     -0.075,
+     -0.0125
+    ],
+    "distancia_min_m": 0.0
+   },
+   "40": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.13879,
+    "inside_normal": 0.23,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     -0.0675,
+     -0.0125
+    ],
+    "distancia_min_m": 0.0
+   },
+   "43": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.11662,
+    "inside_normal": 0.2,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     -0.0975,
+     -0.0125
+    ],
+    "distancia_min_m": 0.0
+   },
+   "46": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.23986,
+    "inside_normal": 0.26,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     -0.0375,
+     -0.0125
+    ],
+    "distancia_min_m": 0.0
+   },
+   "49": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.21451,
+    "inside_normal": 0.27,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     -0.0275,
+     -0.0125
+    ],
+    "distancia_min_m": 0.0
+   },
+   "52": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.12565,
+    "inside_normal": 0.245,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     -0.0525,
+     -0.0125
+    ],
+    "distancia_min_m": 0.0
+   }
+  },
+  "arm_L|torso": {
+   "1": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.07765,
+    "inside_normal": 0.1475,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     -0.1575,
+     -0.01
+    ],
+    "distancia_min_m": 0.0
+   },
+   "4": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.35469,
+    "inside_normal": 0.1375,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     -0.1675,
+     -0.01
+    ],
+    "distancia_min_m": 0.0
+   },
+   "7": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.35963,
+    "inside_normal": 0.17,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     -0.135,
+     -0.01
+    ],
+    "distancia_min_m": 0.0
+   },
+   "10": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.13826,
+    "inside_normal": 0.19,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     -0.115,
+     -0.01
+    ],
+    "distancia_min_m": 0.0
+   },
+   "13": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.22286,
+    "inside_normal": 0.3,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     -0.005,
+     -0.01
+    ],
+    "distancia_min_m": 0.0
+   },
+   "16": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.1386,
+    "inside_normal": 0.2625,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     -0.0425,
+     -0.01
+    ],
+    "distancia_min_m": 0.0
+   },
+   "19": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.13818,
+    "inside_normal": 0.2475,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     -0.0575,
+     -0.01
+    ],
+    "distancia_min_m": 0.0
+   },
+   "22": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.20891,
+    "inside_normal": 0.2725,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     -0.0325,
+     -0.01
+    ],
+    "distancia_min_m": 0.0
+   },
+   "25": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.13446,
+    "inside_normal": 0.22,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     -0.085,
+     -0.01
+    ],
+    "distancia_min_m": 0.0
+   },
+   "28": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.22409,
+    "inside_normal": 0.375,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     0.07,
+     -0.01
+    ],
+    "distancia_min_m": 0.0
+   },
+   "31": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.10077,
+    "inside_normal": 0.2525,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     -0.0525,
+     -0.01
+    ],
+    "distancia_min_m": 0.0
+   },
+   "34": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.11083,
+    "inside_normal": 0.3325,
+    "inside_enclosed": 0.095,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     0.0275,
+     0.085
+    ],
+    "distancia_min_m": 0.0
+   },
+   "37": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.09684,
+    "inside_normal": 0.3,
+    "inside_enclosed": 0.05,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     -0.005,
+     0.04
+    ],
+    "distancia_min_m": 0.0
+   },
+   "40": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.10417,
+    "inside_normal": 0.265,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     -0.04,
+     -0.01
+    ],
+    "distancia_min_m": 0.0
+   },
+   "43": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.1134,
+    "inside_normal": 0.285,
+    "inside_enclosed": 0.01,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     -0.02,
+     0.0
+    ],
+    "distancia_min_m": 0.0
+   },
+   "46": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.12117,
+    "inside_normal": 0.29,
+    "inside_enclosed": 0.02,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     -0.015,
+     0.01
+    ],
+    "distancia_min_m": 0.0
+   },
+   "49": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.12147,
+    "inside_normal": 0.245,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     -0.06,
+     -0.01
+    ],
+    "distancia_min_m": 0.0
+   },
+   "52": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.15367,
+    "inside_normal": 0.275,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     -0.03,
+     -0.01
+    ],
+    "distancia_min_m": 0.0
+   }
+  },
+  "hand_R|torso": {
+   "1": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.0,
+    "inside_normal": 0.0,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     -0.1852,
+     0.0
+    ],
+    "distancia_min_m": 0.39388
+   },
+   "4": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.0,
+    "inside_normal": 0.0,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     -0.1852,
+     0.0
+    ],
+    "distancia_min_m": 0.27231
+   },
+   "7": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.0,
+    "inside_normal": 0.0,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     -0.1852,
+     0.0
+    ],
+    "distancia_min_m": 0.18543
+   },
+   "10": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.0,
+    "inside_normal": 0.0,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     -0.1852,
+     0.0
+    ],
+    "distancia_min_m": 0.30403
+   },
+   "13": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.0,
+    "inside_normal": 0.0,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     -0.1852,
+     0.0
+    ],
+    "distancia_min_m": 0.37059
+   },
+   "16": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.0,
+    "inside_normal": 0.0,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     -0.1852,
+     0.0
+    ],
+    "distancia_min_m": 0.39716
+   },
+   "19": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.0,
+    "inside_normal": 0.0,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     -0.1852,
+     0.0
+    ],
+    "distancia_min_m": 0.39644
+   },
+   "22": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.0,
+    "inside_normal": 0.0,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     -0.1852,
+     0.0
+    ],
+    "distancia_min_m": 0.38746
+   },
+   "25": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.0,
+    "inside_normal": 0.0,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     -0.1852,
+     0.0
+    ],
+    "distancia_min_m": 0.37149
+   },
+   "28": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.0,
+    "inside_normal": 0.0,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     -0.1852,
+     0.0
+    ],
+    "distancia_min_m": 0.3476
+   },
+   "31": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.5192,
+    "inside_normal": 0.0135,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     -0.1717,
+     0.0
+    ],
+    "distancia_min_m": 0.30935
+   },
+   "34": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.43706,
+    "inside_normal": 0.101,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     -0.0842,
+     0.0
+    ],
+    "distancia_min_m": 0.27787
+   },
+   "37": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.0,
+    "inside_normal": 0.0,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     -0.1852,
+     0.0
+    ],
+    "distancia_min_m": 0.24562
+   },
+   "40": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.0,
+    "inside_normal": 0.0,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     -0.1852,
+     0.0
+    ],
+    "distancia_min_m": 0.22025
+   },
+   "43": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.0,
+    "inside_normal": 0.0,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     -0.1852,
+     0.0
+    ],
+    "distancia_min_m": 0.20667
+   },
+   "46": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.0,
+    "inside_normal": 0.0,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     -0.1852,
+     0.0
+    ],
+    "distancia_min_m": 0.23084
+   },
+   "49": {
+    "classe": "INCONCLUSIVO",
+    "criterio": "so a normal assinada passou do limite: ela nao e confiavel em malha vizinha aberta/nao orientada nem em costuras de articulacao",
+    "profundidade_max_m": 0.40751,
+    "inside_normal": 0.5791,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     0.3939,
+     0.0
+    ],
+    "distancia_min_m": 0.22896
+   },
+   "52": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.0,
+    "inside_normal": 0.0,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     -0.1852,
+     0.0
+    ],
+    "distancia_min_m": 0.20472
+   }
+  },
+  "hand_L|torso": {
+   "1": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.0,
+    "inside_normal": 0.0,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     0.0,
+     0.0
+    ],
+    "distancia_min_m": 0.37607
+   },
+   "4": {
+    "classe": "INCONCLUSIVO",
+    "criterio": "so a normal assinada passou do limite: ela nao e confiavel em malha vizinha aberta/nao orientada nem em costuras de articulacao",
+    "profundidade_max_m": 0.50415,
+    "inside_normal": 0.2733,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     0.2733,
+     0.0
+    ],
+    "distancia_min_m": 0.37957
+   },
+   "7": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.53117,
+    "inside_normal": 0.0772,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     0.0772,
+     0.0
+    ],
+    "distancia_min_m": 0.36934
+   },
+   "10": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.0,
+    "inside_normal": 0.0,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     0.0,
+     0.0
+    ],
+    "distancia_min_m": 0.37627
+   },
+   "13": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.0,
+    "inside_normal": 0.0,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     0.0,
+     0.0
+    ],
+    "distancia_min_m": 0.31885
+   },
+   "16": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.0,
+    "inside_normal": 0.0,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     0.0,
+     0.0
+    ],
+    "distancia_min_m": 0.30929
+   },
+   "19": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.0,
+    "inside_normal": 0.0,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     0.0,
+     0.0
+    ],
+    "distancia_min_m": 0.31558
+   },
+   "22": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.0,
+    "inside_normal": 0.0,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     0.0,
+     0.0
+    ],
+    "distancia_min_m": 0.31709
+   },
+   "25": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.0,
+    "inside_normal": 0.0,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     0.0,
+     0.0
+    ],
+    "distancia_min_m": 0.28522
+   },
+   "28": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.2795,
+    "inside_normal": 0.0707,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     0.0707,
+     0.0
+    ],
+    "distancia_min_m": 0.22635
+   },
+   "31": {
+    "classe": "INCONCLUSIVO",
+    "criterio": "so a normal assinada passou do limite: ela nao e confiavel em malha vizinha aberta/nao orientada nem em costuras de articulacao",
+    "profundidade_max_m": 0.40321,
+    "inside_normal": 0.1672,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     0.1672,
+     0.0
+    ],
+    "distancia_min_m": 0.222
+   },
+   "34": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.30045,
+    "inside_normal": 0.0161,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     0.0161,
+     0.0
+    ],
+    "distancia_min_m": 0.23452
+   },
+   "37": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.29649,
+    "inside_normal": 0.0322,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     0.0322,
+     0.0
+    ],
+    "distancia_min_m": 0.22396
+   },
+   "40": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.0,
+    "inside_normal": 0.0,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     0.0,
+     0.0
+    ],
+    "distancia_min_m": 0.20005
+   },
+   "43": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.0,
+    "inside_normal": 0.0,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     0.0,
+     0.0
+    ],
+    "distancia_min_m": 0.16909
+   },
+   "46": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.34052,
+    "inside_normal": 0.0161,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     0.0161,
+     0.0
+    ],
+    "distancia_min_m": 0.14359
+   },
+   "49": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.35596,
+    "inside_normal": 0.0129,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     0.0129,
+     0.0
+    ],
+    "distancia_min_m": 0.15182
+   },
+   "52": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.0,
+    "inside_normal": 0.0,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 456,
+    "excesso_sobre_baseline": [
+     0.0,
+     0.0
+    ],
+    "distancia_min_m": 0.17254
+   }
+  },
+  "arm_R|head": {
+   "1": {
+    "classe": "ATRAVESSAMENTO_PROVAVEL",
+    "criterio": "confianca media: cercado em todas as direcoes pela malha vizinha; a normal assinada nao confirmou (normais invertidas ou faces internas)",
+    "profundidade_max_m": 0.16019,
+    "inside_normal": 0.535,
+    "inside_enclosed": 0.3525,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     -0.265,
+     0.3525
+    ],
+    "distancia_min_m": 0.0
+   },
+   "4": {
+    "classe": "ATRAVESSAMENTO_PROVAVEL",
+    "criterio": "confianca media: cercado em todas as direcoes pela malha vizinha; a normal assinada nao confirmou (normais invertidas ou faces internas)",
+    "profundidade_max_m": 0.14027,
+    "inside_normal": 0.4825,
+    "inside_enclosed": 0.305,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     -0.3175,
+     0.305
+    ],
+    "distancia_min_m": 0.0
+   },
+   "7": {
+    "classe": "ATRAVESSAMENTO_PROVAVEL",
+    "criterio": "confianca media: cercado em todas as direcoes pela malha vizinha; a normal assinada nao confirmou (normais invertidas ou faces internas)",
+    "profundidade_max_m": 0.14044,
+    "inside_normal": 0.49,
+    "inside_enclosed": 0.415,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     -0.31,
+     0.415
+    ],
+    "distancia_min_m": 0.0
+   },
+   "10": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.29708,
+    "inside_normal": 0.32,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     -0.48,
+     0.0
+    ],
+    "distancia_min_m": 0.0
+   },
+   "13": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.31248,
+    "inside_normal": 0.235,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     -0.565,
+     0.0
+    ],
+    "distancia_min_m": 0.0
+   },
+   "16": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.30988,
+    "inside_normal": 0.3025,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     -0.4975,
+     0.0
+    ],
+    "distancia_min_m": 0.0
+   },
+   "19": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.3099,
+    "inside_normal": 0.3475,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     -0.4525,
+     0.0
+    ],
+    "distancia_min_m": 0.0
+   },
+   "22": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.31069,
+    "inside_normal": 0.3175,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     -0.4825,
+     0.0
+    ],
+    "distancia_min_m": 0.0
+   },
+   "25": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.31344,
+    "inside_normal": 0.275,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     -0.525,
+     0.0
+    ],
+    "distancia_min_m": 0.0
+   },
+   "28": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.32308,
+    "inside_normal": 0.325,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     -0.475,
+     0.0
+    ],
+    "distancia_min_m": 0.0
+   },
+   "31": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.34609,
+    "inside_normal": 0.4825,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     -0.3175,
+     0.0
+    ],
+    "distancia_min_m": 0.0
+   },
+   "34": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.3611,
+    "inside_normal": 0.655,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     -0.145,
+     0.0
+    ],
+    "distancia_min_m": 0.0
+   },
+   "37": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.36754,
+    "inside_normal": 0.6875,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     -0.1125,
+     0.0
+    ],
+    "distancia_min_m": 0.0
+   },
+   "40": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.33121,
+    "inside_normal": 0.6575,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     -0.1425,
+     0.0
+    ],
+    "distancia_min_m": 0.0
+   },
+   "43": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.4104,
+    "inside_normal": 0.655,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     -0.145,
+     0.0
+    ],
+    "distancia_min_m": 0.0
+   },
+   "46": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.40829,
+    "inside_normal": 0.4025,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     -0.3975,
+     0.0
+    ],
+    "distancia_min_m": 0.0
+   },
+   "49": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.43679,
+    "inside_normal": 0.45,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     -0.35,
+     0.0
+    ],
+    "distancia_min_m": 0.0
+   },
+   "52": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.4467,
+    "inside_normal": 0.6225,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     -0.1775,
+     0.0
+    ],
+    "distancia_min_m": 0.0
+   }
+  },
+  "arm_L|head": {
+   "1": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.05335,
+    "inside_normal": 0.065,
+    "inside_enclosed": 0.055,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     -0.2575,
+     0.055
+    ],
+    "distancia_min_m": 0.0
+   },
+   "4": {
+    "classe": "ATRAVESSAMENTO_PROVAVEL",
+    "criterio": "confianca alta: normal assinada e cercamento por raios concordam",
+    "profundidade_max_m": 0.19883,
+    "inside_normal": 0.5625,
+    "inside_enclosed": 0.31,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     0.24,
+     0.31
+    ],
+    "distancia_min_m": 0.0
+   },
+   "7": {
+    "classe": "ATRAVESSAMENTO_PROVAVEL",
+    "criterio": "confianca alta: normal assinada e cercamento por raios concordam",
+    "profundidade_max_m": 0.22159,
+    "inside_normal": 0.82,
+    "inside_enclosed": 0.425,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     0.4975,
+     0.425
+    ],
+    "distancia_min_m": 0.0
+   },
+   "10": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.08679,
+    "inside_normal": 0.01,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     -0.3125,
+     0.0
+    ],
+    "distancia_min_m": 0.0
+   },
+   "13": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.1978,
+    "inside_normal": 0.02,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     -0.3025,
+     0.0
+    ],
+    "distancia_min_m": 0.0
+   },
+   "16": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.33395,
+    "inside_normal": 0.1925,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     -0.13,
+     0.0
+    ],
+    "distancia_min_m": 0.0
+   },
+   "19": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.33774,
+    "inside_normal": 0.1925,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     -0.13,
+     0.0
+    ],
+    "distancia_min_m": 0.0
+   },
+   "22": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.33672,
+    "inside_normal": 0.1725,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     -0.15,
+     0.0
+    ],
+    "distancia_min_m": 0.0
+   },
+   "25": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.20611,
+    "inside_normal": 0.055,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     -0.2675,
+     0.0
+    ],
+    "distancia_min_m": 0.0
+   },
+   "28": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.01931,
+    "inside_normal": 0.0125,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     -0.31,
+     0.0
+    ],
+    "distancia_min_m": 0.0
+   },
+   "31": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.32889,
+    "inside_normal": 0.135,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     -0.1875,
+     0.0
+    ],
+    "distancia_min_m": 0.0
+   },
+   "34": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.32322,
+    "inside_normal": 0.1775,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     -0.145,
+     0.0
+    ],
+    "distancia_min_m": 0.0
+   },
+   "37": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.3729,
+    "inside_normal": 0.36,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     0.0375,
+     0.0
+    ],
+    "distancia_min_m": 0.0
+   },
+   "40": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.42779,
+    "inside_normal": 0.4125,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     0.09,
+     0.0
+    ],
+    "distancia_min_m": 0.0
+   },
+   "43": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.45978,
+    "inside_normal": 0.3825,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     0.06,
+     0.0
+    ],
+    "distancia_min_m": 0.0
+   },
+   "46": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.46229,
+    "inside_normal": 0.405,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     0.0825,
+     0.0
+    ],
+    "distancia_min_m": 0.0
+   },
+   "49": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.43318,
+    "inside_normal": 0.345,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     0.0225,
+     0.0
+    ],
+    "distancia_min_m": 0.0
+   },
+   "52": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.36883,
+    "inside_normal": 0.265,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     -0.0575,
+     0.0
+    ],
+    "distancia_min_m": 0.0
+   }
+  },
+  "hand_R|head": {
+   "1": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.05869,
+    "inside_normal": 0.33,
+    "inside_enclosed": 0.0135,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     -0.4242,
+     0.0135
+    ],
+    "distancia_min_m": 0.00265
+   },
+   "4": {
+    "classe": "ATRAVESSAMENTO_PROVAVEL",
+    "criterio": "confianca media: cercado em todas as direcoes pela malha vizinha; a normal assinada nao confirmou (normais invertidas ou faces internas)",
+    "profundidade_max_m": 0.12376,
+    "inside_normal": 0.8788,
+    "inside_enclosed": 0.7475,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     0.1246,
+     0.7475
+    ],
+    "distancia_min_m": 0.0003
+   },
+   "7": {
+    "classe": "ATRAVESSAMENTO_PROVAVEL",
+    "criterio": "confianca alta: normal assinada e cercamento por raios concordam",
+    "profundidade_max_m": 0.17574,
+    "inside_normal": 1.0,
+    "inside_enclosed": 0.7744,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     0.2458,
+     0.7744
+    ],
+    "distancia_min_m": 0.03196
+   },
+   "10": {
+    "classe": "ATRAVESSAMENTO_PROVAVEL",
+    "criterio": "confianca media: cercado em todas as direcoes pela malha vizinha; a normal assinada nao confirmou (normais invertidas ou faces internas)",
+    "profundidade_max_m": 0.08134,
+    "inside_normal": 0.2694,
+    "inside_enclosed": 0.2694,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     -0.4848,
+     0.2694
+    ],
+    "distancia_min_m": 0.00025
+   },
+   "13": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.23287,
+    "inside_normal": 0.0606,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     -0.6936,
+     0.0
+    ],
+    "distancia_min_m": 0.07636
+   },
+   "16": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.36203,
+    "inside_normal": 0.0606,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     -0.6936,
+     0.0
+    ],
+    "distancia_min_m": 0.29696
+   },
+   "19": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.35811,
+    "inside_normal": 0.0337,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     -0.7205,
+     0.0
+    ],
+    "distancia_min_m": 0.33987
+   },
+   "22": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.33176,
+    "inside_normal": 0.0606,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     -0.6936,
+     0.0
+    ],
+    "distancia_min_m": 0.27766
+   },
+   "25": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.4008,
+    "inside_normal": 0.0236,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     -0.7306,
+     0.0
+    ],
+    "distancia_min_m": 0.22171
+   },
+   "28": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.3935,
+    "inside_normal": 0.1549,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     -0.5993,
+     0.0
+    ],
+    "distancia_min_m": 0.20304
+   },
+   "31": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.47821,
+    "inside_normal": 0.0337,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     -0.7205,
+     0.0
+    ],
+    "distancia_min_m": 0.26657
+   },
+   "34": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.0,
+    "inside_normal": 0.0,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     -0.7542,
+     0.0
+    ],
+    "distancia_min_m": 0.34531
+   },
+   "37": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.0,
+    "inside_normal": 0.0,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     -0.7542,
+     0.0
+    ],
+    "distancia_min_m": 0.33961
+   },
+   "40": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.0,
+    "inside_normal": 0.0,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     -0.7542,
+     0.0
+    ],
+    "distancia_min_m": 0.33306
+   },
+   "43": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.42612,
+    "inside_normal": 0.1414,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     -0.6128,
+     0.0
+    ],
+    "distancia_min_m": 0.35761
+   },
+   "46": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.61007,
+    "inside_normal": 0.7576,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     0.0034,
+     0.0
+    ],
+    "distancia_min_m": 0.41129
+   },
+   "49": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.66573,
+    "inside_normal": 0.7542,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     0.0,
+     0.0
+    ],
+    "distancia_min_m": 0.46933
+   },
+   "52": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.67301,
+    "inside_normal": 0.835,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     0.0808,
+     0.0
+    ],
+    "distancia_min_m": 0.47247
+   }
+  },
+  "hand_L|head": {
+   "1": {
+    "classe": "ATRAVESSAMENTO_PROVAVEL",
+    "criterio": "confianca alta: normal assinada e cercamento por raios concordam",
+    "profundidade_max_m": 0.06688,
+    "inside_normal": 0.328,
+    "inside_enclosed": 0.328,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     0.328,
+     0.328
+    ],
+    "distancia_min_m": 0.00181
+   },
+   "4": {
+    "classe": "ATRAVESSAMENTO_PROVAVEL",
+    "criterio": "confianca alta: normal assinada e cercamento por raios concordam",
+    "profundidade_max_m": 0.15877,
+    "inside_normal": 0.8199,
+    "inside_enclosed": 0.4084,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     0.8199,
+     0.4084
+    ],
+    "distancia_min_m": 0.0008
+   },
+   "7": {
+    "classe": "ATRAVESSAMENTO_PROVAVEL",
+    "criterio": "confianca alta: normal assinada e cercamento por raios concordam",
+    "profundidade_max_m": 0.12307,
+    "inside_normal": 0.717,
+    "inside_enclosed": 0.582,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     0.717,
+     0.582
+    ],
+    "distancia_min_m": 0.00031
+   },
+   "10": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.0,
+    "inside_normal": 0.0,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     0.0,
+     0.0
+    ],
+    "distancia_min_m": 0.00488
+   },
+   "13": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.0,
+    "inside_normal": 0.0,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     0.0,
+     0.0
+    ],
+    "distancia_min_m": 0.14821
+   },
+   "16": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.0,
+    "inside_normal": 0.0,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     0.0,
+     0.0
+    ],
+    "distancia_min_m": 0.32729
+   },
+   "19": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.0,
+    "inside_normal": 0.0,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     0.0,
+     0.0
+    ],
+    "distancia_min_m": 0.34615
+   },
+   "22": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.0,
+    "inside_normal": 0.0,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     0.0,
+     0.0
+    ],
+    "distancia_min_m": 0.35243
+   },
+   "25": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.0,
+    "inside_normal": 0.0,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     0.0,
+     0.0
+    ],
+    "distancia_min_m": 0.30849
+   },
+   "28": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.0,
+    "inside_normal": 0.0,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     0.0,
+     0.0
+    ],
+    "distancia_min_m": 0.28041
+   },
+   "31": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.0,
+    "inside_normal": 0.0,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     0.0,
+     0.0
+    ],
+    "distancia_min_m": 0.29719
+   },
+   "34": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.0,
+    "inside_normal": 0.0,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     0.0,
+     0.0
+    ],
+    "distancia_min_m": 0.3728
+   },
+   "37": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.0,
+    "inside_normal": 0.0,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     0.0,
+     0.0
+    ],
+    "distancia_min_m": 0.40915
+   },
+   "40": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.0,
+    "inside_normal": 0.0,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     0.0,
+     0.0
+    ],
+    "distancia_min_m": 0.4493
+   },
+   "43": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.0,
+    "inside_normal": 0.0,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     0.0,
+     0.0
+    ],
+    "distancia_min_m": 0.47418
+   },
+   "46": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.0,
+    "inside_normal": 0.0,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     0.0,
+     0.0
+    ],
+    "distancia_min_m": 0.48721
+   },
+   "49": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.0,
+    "inside_normal": 0.0,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     0.0,
+     0.0
+    ],
+    "distancia_min_m": 0.49052
+   },
+   "52": {
+    "classe": "SEM_INDICIO_MALHA_ABERTA",
+    "criterio": "nenhum teste passou do limite",
+    "profundidade_max_m": 0.0,
+    "inside_normal": 0.0,
+    "inside_enclosed": 0.0,
+    "arestas_abertas": 9426,
+    "excesso_sobre_baseline": [
+     0.0,
+     0.0
+    ],
+    "distancia_min_m": 0.48967
+   }
+  }
+ }
+}

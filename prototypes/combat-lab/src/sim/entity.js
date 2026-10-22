@@ -8,7 +8,7 @@ export function createFighter(id, attributes, position) {
   return {id, attributes: {...attributes}, position, velocity: vec(), facing: id ? Math.PI : 0, desiredMove: vec(), locomotionVelocity: vec(),
     combatHeading: id ? Math.PI : 0, visualFacing: id ? Math.PI : 0, angularSpeed: 0, hp: attributes.hp, stamina: C.rules.staminaMax, exhausted: false,
     regenAge: 0, regenBase: C.rules.staminaMax, state: 'neutral', action: null, guard: false, guardSuppressed: false, perfectLeft: 0, perfectCooldown: 0,
-    perfectSucceeded: false, stun: 0, push: null, blend: null, contacts: 0, flight: null, knockRecovery: 0, vaultHeight: 0, counterWindow: 0, landingSlide: null,
+    perfectSucceeded: false, stun: 0, push: null, blend: null, contacts: 0, surfaceNormals: [], support: null, flight: null, knockRecovery: 0, vaultHeight: 0, counterWindow: 0, landingSlide: null,
     bufferedTackle: null, inputBuffer: null,
     // Locomoção contínua: fase (accel/cruise/brake/reverse/turn/overspeed), sprint e telemetria do último passo.
     turnVelocity: 0, sprinting: false, sprintCarry: false, locoPhase: 'idle', desiredVelocity: vec(), appliedAccel: vec(), inputDir: vec(), staminaTrend: 0, lastLanding: null, faceGoal: id ? Math.PI : 0, recoveryFrom: null,
@@ -31,6 +31,8 @@ export const getFighterMaxStamina = f => f ? C.rules.staminaMax + (f.stages?.sta
 
 // skill: índice do slot de movimento especial pedido neste passo (null = nenhum; só a BORDA do botão). skillHeld: botões de slot mantidos
 // pressionados (array por slot, ou null quando nenhum): é o que mantém e solta um Charge.
+/** Altitude real (m) dos pés: `flight.y` já é ABSOLUTA (voo parte de groundY), então em voo NÃO se soma groundY; no chão vale groundY (+ elevação do vault). */
+export const altitudeOf = f => (f.flight?.y ?? f.groundY ?? 0) + (f.vaultHeight ?? 0);
 export const emptyCommand = () => ({move: vec(), dodge: false, dodgeHeld: false, tackle: false, tackleHeld: false, guard: false, guardPressed: false, jump: false, jumpHeld: false, target: null, skill: null, skillHeld: null});
 /** Parâmetros próprios de uma ação X/C (C.actions.dodge ou C.actions.tackle). */
 export const actionParams = kind => C.actions[kind];

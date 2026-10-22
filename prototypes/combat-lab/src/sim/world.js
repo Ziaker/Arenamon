@@ -13,6 +13,9 @@
 import {C} from './config.js';
 import {isInvulnerable, nominalDistance, riposteIntercept} from './entity.js';
 import {sweepBox, segmentHitsVolume} from './geometry.js';
+import {solidContact} from './solid-contact.js';
+import {noteContact, noteSweep, horizontalOf} from './collision-probe.js';
+import {firstContact} from './ccd.js';
 import {launch} from './combat.js';
 import {traceBeam} from './beam.js';
 import {stepTrap} from './trap.js';
@@ -145,17 +148,18 @@ export function collideFighter(world, f, events = null) {
   if (!world?.entities.length) return 0;let contacts = 0;
   const r = C.test.halfExtent, alt = altOf(f), h = fighterHeight();
   for (const e of world.entities) {
+    if (e.dead) continue;   // destruído neste mesmo passo (ex.: quebrado por tackle num subpasso anterior): não é mais sólido
     const solid = e.kind === 'wall' ? e.blocksFighters : e.kind === 'barrier' && e.blocksFighters && (e.blocksOwner || e.owner !== f.id);
     if (!solid || !vOverlap(alt, alt + h, e.y, e.y + e.height)) continue;
-    const c = closestOnShape(e, f.position);if (c.distance >= r) continue;
-    if (e.breakableByTackle && f.action?.kind === 'tackle' && !f.action.neutralized && !e.dead) {breakByTackle(e, f, events);continue;}
-    // Normal de saída: do ponto mais próximo para o centro (dentro da forma, pelo eixo de menor penetração).
-    let n = sub(f.position, c.point);if (length(n) < 1e-9 || c.inside) n = sub(f.position, e.pos);if (length(n) < 1e-9) n = vec(0, 1);n = normalize(n);
-    f.position = add(c.inside ? c.point : f.position, scale(n, c.inside ? r : r - c.distance));
+    const contact = solidContact(e, f.position, r);if (!contact) continue;
+    if (e.breakableByTackle && f.action?.kind === 'tackle' && !f.action.neutralized) {breakByTackle(e, f, events);continue;}
+    // Saída pela menor translação real (solid-contact.js): vale também com o centro já DENTRO da forma.
+    const n = contact.normal, v0 = horizontalOf(f);   // (dentro do contato: uma alocação só quando há toque)
+    f.position = add(f.position, scale(n, contact.depth));
     const into = dot(f.velocity, n);if (into < 0) f.velocity = sub(f.velocity, scale(n, into));
     if (f.flight) {const hv = dot(f.flight.horizontal, n);if (hv < 0) f.flight.horizontal = sub(f.flight.horizontal, scale(n, (1 + C.rules.wallRestitution) * hv));}
     if (f.locomotionVelocity) {const lv = dot(f.locomotionVelocity, n);if (lv < 0) f.locomotionVelocity = sub(f.locomotionVelocity, scale(n, lv));}
-    f.contacts++;contacts++;
+    f.contacts++;contacts++;noteContact(f, e.kind, e.id, n, contact.depth, v0.x, v0.z);
   }
   return contacts;
 }
@@ -187,6 +191,47 @@ export function stepWorld(game, dt) {
 /** Modelo derivado de outra entidade (ex.: explosão no ponto do impacto), herdando dono e posição. */
 const at = (template, src, pos = src.pos) => ({owner: src.owner, ...template, pos: {...pos}, dir: template.dir ?? src.dir});
 
+/**
+ * CCD (Fase 3). Primeiro bloqueador no caminho from → to (menor tempo de impacto) entre barreiras/paredes do mundo e objetos do mapa, com
+ * o mesmo critério de elegibilidade dos laços de sobreposição de stepProjectile. Só vale se o toque for confirmado pelo teste exato
+ * (`circleTouches`). Devolve {t, point} ou null.
+ */
+function blockerContact(game, p, from, to) {
+  if (from.x === to.x && from.z === to.z) return null;
+  const yLo = p.y - p.radius, yHi = p.y + p.radius, solids = [];
+  for (const b of game.world.entities) {
+    if (b === p || b.dead || !p.blockedBy.includes(b.kind) || !blocks(b, p) || !vOverlap(yLo, yHi, b.y, b.y + b.height)) continue;
+    solids.push(b);
+  }
+  const ms = game.mapState;
+  if (ms) {
+    for (const d of ms.destructibles) if (d.state === 'solid' && vOverlap(yLo, yHi, d.pos.y, d.pos.y + d.size.height)) solids.push({shape: 'box', pos: {x: d.pos.x, z: d.pos.z}, hx: d.size.hx, hz: d.size.hz, angle: 0, kind: 'destructible', id: d.id});
+    for (const o of ms.obstacles) if (vOverlap(yLo, yHi, o.pos.y, o.pos.y + o.height)) solids.push(o.shape === 'cylinder' || o.shape === 'pillar' ? {shape: 'circle', pos: {x: o.pos.x, z: o.pos.z}, radius: o.radius, kind: 'obstacle', id: o.id} : {shape: 'box', pos: {x: o.pos.x, z: o.pos.z}, hx: o.hx, hz: o.hz, angle: 0, kind: 'obstacle', id: o.id});
+    for (const pl of ms.platforms) if (vOverlap(yLo, yHi, 0, pl.height)) solids.push({shape: 'box', pos: {x: pl.pos?.x ?? pl.x, z: pl.pos?.z ?? pl.z}, hx: (pl.width ?? 3) / 2, hz: (pl.depth ?? 3) / 2, angle: 0, kind: 'platform', id: pl.id});
+  }
+  const hit = firstContact(solids, from, to, p.radius);
+  if (!hit || hit.t >= 1) return null;
+  const len = Math.hypot(to.x - from.x, to.z - from.z), t = Math.min(1, hit.t + 1e-6 / Math.max(len, 1e-9));
+  const point = {x: from.x + (to.x - from.x) * t, z: from.z + (to.z - from.z) * t};
+  return circleTouches(hit.solid, point, p.radius) ? {t: hit.t, point, solid: hit.solid} : null;
+}
+/** Menor tempo de impacto de um evento de refletor (reflexão ou neutralização por PL; a face de trás é atravessada, não conta) no caminho from → to; Infinity se não há. */
+function reflectorImpactTime(game, p, from, to) {
+  let best = Infinity;
+  for (const bar of game.world.entities) {
+    if (!bar.reflect || bar.dead || p.through?.includes(bar.id) || !vOverlap(p.y - p.radius, p.y + p.radius, bar.y, bar.y + bar.height)) continue;
+    const h = sweepBox(bar, from, to, p.radius, bar.captured?.tieTolerance ?? .001);
+    if (h && !('inside' in h) && h.face !== 'back' && h.t < best) best = h.t;
+  }
+  return best;
+}
+/** Início da última perna do subpasso: o ponto de partida, ou o ponto da última reflexão (a corda from→pos de um subpasso refletido não é o caminho percorrido). */
+let legStart = null;
+/** Reposiciona o projétil no primeiro contato da última perna para a checagem de sobreposição seguinte ver justamente esse bloqueador. */
+function snapToFirstContact(game, p, from) {
+  const c = blockerContact(game, p, legStart ?? from, p.pos);
+  if (c) p.pos = c.point;
+}
 function stepProjectile(game, p, dt, events, spawnLater) {
   if (p.homing) homingStep(game, p, dt);
   // Subpassos curtos (sem atravessar alvos finos): mesmo critério da física (contactStep).
@@ -195,7 +240,14 @@ function stepProjectile(game, p, dt, events, spawnLater) {
   for (let s = 0; s < steps && !p.dead; s++) {
     const from = {...p.pos};p.pos = add(p.pos, scale(p.vel, dt / steps));if (p.gravity) {p.y = Math.max(0, p.y + (p.vy ?? 0) * dt / steps);if (p.y <= 0 && p.vy < 0) {p.dead = true;events.push({result: 'groundHit', attacker: p.owner ?? null, target: null, damage: 0, entity: p.id, kind: 'projectile'});if (p.onHit) spawnLater.push(at(p.onHit, p));return;}}
     if (!p.gravity && p.vy) {p.y += p.vy * dt / steps;if (p.y <= 0 && p.vy < 0) {p.dead = true;events.push({result: 'groundHit', attacker: p.owner ?? null, target: null, damage: 0, entity: p.id, kind: 'projectile'});return;}}   // voo inclinado sem gravidade (pedras com alvo travado)
+    legStart = null;
+    // Bloqueador ANTES do refletor no caminho (por tempo de impacto): o projétil para nele e nunca chega a refletir. Empate: o refletor vale primeiro.
+    const early = blockerContact(game, p, from, p.pos), reach = {...p.pos};
+    const stopsEarly = early && early.t < reflectorImpactTime(game, p, from, p.pos);
+    noteSweep(p.id, from, reach, stopsEarly ? early : null);   // sonda de colisão: trecho do subpasso e primeiro contato
+    if (stopsEarly) p.pos = early.point;
     if (!reflectPass(game, p, from, events)) return;
+    snapToFirstContact(game, p, from);
     // Limite quadrado SÓ na arena quadrada: em arena circular o meio-lado legado
     // (C.test.arenaHalf, do protótipo de blocos) não é a borda — o raio é (checado abaixo).
     const half = C.test.arenaHalf;
@@ -245,7 +297,7 @@ function stepProjectile(game, p, dt, events, spawnLater) {
         return;
       }
       for (const o of game.mapState.obstacles) {
-        const obsShape = o.shape === 'cylinder'
+        const obsShape = o.shape === 'cylinder' || o.shape === 'pillar'
           ? {shape: 'circle', pos: {x: o.pos.x, z: o.pos.z}, radius: o.radius}
           : {shape: 'box', pos: {x: o.pos.x, z: o.pos.z}, hx: o.hx, hz: o.hz, angle: 0};
         if (!vOverlap(p.y - p.radius, p.y + p.radius, o.pos.y, o.pos.y + o.height) || !circleTouches(obsShape, p.pos, p.radius)) continue;
@@ -460,7 +512,7 @@ function reflectPass(game, p, from, events) {
     }
     const n = best.normal, nv = sub(p.vel, scale(n, 2 * dot(p.vel, n))), rest = (1 - best.t) * best.len, previous = p.owner;
     const dir = normalize(nv);
-    a = add(best.point, scale(n, 1e-7));
+    a = add(best.point, scale(n, 1e-7));legStart = a;
     p.vel = nv;p.dir = dir;p.pos = add(a, scale(dir, rest));
     p.origin ??= previous;p.owner = bar.owner;p.hitLog = [];p.homing = null;
     if (p.captured?.attackFraction != null) {const o = game.fighters[bar.owner];if (o) p.hit = {...p.hit, damage: p.captured.attackFraction * o.attributes.attack};}

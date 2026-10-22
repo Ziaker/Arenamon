@@ -1,7 +1,8 @@
 // Treino de defesa/esquiva perfeitas (sem navegador): o adversário ataca de forma determinística, o impacto previsto
 // pelo motor coincide com o real e a cronometragem concorda com o resultado do motor em todos os deslocamentos.
+// Este teste caracteriza a mecânica nos valores de FÁBRICA do laboratório (factoryDefaults); a base de calibração v8 é coberta por calibration-base.test.mjs e pelos testes de colisão/ambiente.
 import assert from 'node:assert/strict';
-import {C, defaults, resetConfig} from '../src/sim/config.js';
+import {C, factoryDefaults, resetConfig} from '../src/sim/config.js';
 import {Game} from '../src/sim/game.js';
 import {emptyCommand} from '../src/sim/entity.js';
 import {vec, sub, normalize} from '../src/sim/math.js';
@@ -10,7 +11,7 @@ import {Trainer, evaluate, predictImpact} from '../src/sim/training.js';
 let n = 0;const ok = l => {n++;console.log('✓', l);};
 /** Roda o treino com um jogador roteirizado que responde `k` passos antes do impacto previsto (negativo = depois). */
 function drill({mode, offsets, attack = 'front', seed = 4}) {
-  resetConfig(defaults());const g = new Game(), tr = new Trainer({mode, attack, seed, interval: .8}).start(g);const out = [];let plan = null, i = 0;
+  resetConfig(factoryDefaults());const g = new Game(), tr = new Trainer({mode, attack, seed, interval: .8}).start(g);const out = [];let plan = null, i = 0;
     for (let t = 0; t < 120 * 60 && out.length < offsets.length; t++) {
     const c1 = tr.enemyCommand(g), cur = tr.cur;
     // O jogador decide o momento antes do ataque começar (pode responder cedo demais), pelo passo previsto do impacto.
@@ -67,5 +68,5 @@ ok('treino determinístico pela semente (tipo de ataque, intervalos e passos)');
   const cd = drill({mode: 'guard', offsets: [40, 8]}).out[1];assert.ok(!cd.success && cd.timing === 'cooldown' && /recarga/.test(cd.text), JSON.stringify([cd.timing, cd.text]));
 }
 ok('placar: tentativas, acertos e erro médio; toque com a defesa perfeita em recarga é identificado');
-resetConfig(defaults());
+resetConfig(factoryDefaults());
 console.log(`\n${n} verificações do treino aprovadas.`);

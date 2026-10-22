@@ -5,7 +5,7 @@
 // A lógica de cancelamento está em `pressFeint` (controller.js), porque mexe em f.action/f.charge. Fora da janela de cancelamento o Move é GASTO sem efeito e a ação
 // anterior continua (punível, MV-P21); o custo da ação cancelada não volta (MV-P26). Valores: C.world.feint, capturados no uso (M28.4).
 export const feintDef = Object.freeze({
-  id: 'feint', name: 'Feint', group: 'feint', feint: true, cancelFrom: ['tackle'], keepFacing: true, aim: 'input',
+  id: 'feint', name: 'Feint', air: 'cast', group: 'feint', feint: true, cancelFrom: ['tackle'], keepFacing: true, aim: 'input',
   description: 'Burst. Cancela um ataque que ainda está na antecipação (ou a carga em curso) e recua um pouco com i-frames curtos. Fora da janela, gasta o Move e o ataque continua.',
   cost: .3, cooldown: 3, duration: .22, cancelAfter: .0333,
   invulnerable: [.0167, .0833], invulnerableKeys: ['invulnStart', 'invulnEnd'],

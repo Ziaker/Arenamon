@@ -1,6 +1,7 @@
 // Câmera de combate em terceira pessoa (porto do v6): zona morta no lock-on, recentralização sem alvo,
 // elevação durante voos e enquadramento dos dois lutadores.
 import {C} from '../sim/config.js';
+import {altitudeOf} from '../sim/entity.js';
 import {vec, add, scale, sub, length, normalize, clamp, angleOf, direction, angleDelta} from '../sim/math.js';
 
 export class CameraRig {
@@ -30,8 +31,8 @@ export class CameraRig {
     const yawError = angleDelta(this.yaw, this.desiredYaw), rate = locked ? K.maxTurnRate : K.maxTurnRate * X.unlockedTurnMultiplier;
     this.yawVelocity = clamp(yawError * K.yawResponse, -rate, rate);this.yaw += this.yawVelocity * dt;
     if (T.enableCameraFollow) this.anchor = add(this.anchor, scale(sub(player.position, this.anchor), 1 - Math.exp(-K.followResponse * dt)));
-    const playerY = (player.groundY ?? 0) + (player.flight?.y ?? 0) + (player.vaultHeight ?? 0);
-    const targetY = (target.groundY ?? 0) + (target.flight?.y ?? 0) + (target.vaultHeight ?? 0);
+    const playerY = altitudeOf(player);
+    const targetY = altitudeOf(target);
     const midY = (playerY + targetY) * 0.5;
     const vSpan = Math.abs(playerY - targetY);
     const lift = Math.max(player.flight?.y ?? 0, target.flight?.y ?? 0, player.vaultHeight ?? 0, target.vaultHeight ?? 0, vSpan * 0.5);

@@ -1,0 +1,39 @@
+{
+ "titulo": "Percepção ativa no Mushroom (Mosh) — clipe attack 1",
+ "subtitulo": "Blender Vision: a IA passa a saber o que viu e o que não viu. Caso de validação no lugar do Tackle do Vigoroth. Fonte somente leitura: chars/mosh/Cogumelo.glb (54 frames a 30 fps).",
+ "resumo": [
+  "O Mushroom não tem Tackle nem .blend; o caso foi o clipe attack 1 do Cogumelo.glb (malha + esqueleto Mixamo + clipes). Não há briefing nem referência aprovados para ele: nenhuma conclusão artística é certificada.",
+  "O que o clipe mostra em 3–4 vistas independentes: começa já no ar e inclinado (g1–g2), cai na vertical (g6–g7), pousa dobrando o corpo todo e girando o chapéu para cima/trás (g9–g11) e fica agachado apoiado nas mãos (g21–g41), levantando um pouco em g54. Lê como queda e amortecimento de pouso, não como golpe dirigido a um alvo (hipótese, sem briefing).",
+  "Não há antecipação dentro do clipe (ele começa no ar): fato medido (razão de recuo 0,0) e visto nas três vistas; a preparação teria de vir de outro clipe.",
+  "Achado geométrico: as malhas das mãos descem até 0,21 m (D) e 0,26 m (E) abaixo do plano do chão de g11 a g22, e coxas/canelas 8–10 cm; por isso a mão some nas imagens de g11 e g21. O plano é o dos pés da idle (z=0,0087) e pode diferir do chão do jogo.",
+  "Hipótese de contato: o teste classifica braços e mãos × chapéu como ATRAVESSAMENTO_PROVAVEL entre g1 e g10, mas a mão D não foi observada em g6, g7, g9, g11 e g21 em nenhuma vista; a interseção real continua não confirmada.",
+  "A mão é um bloco sem dedos (297 vértices): abrir/fechar garra não é legível nesta malha (limite da topologia).",
+  "Antes × depois: o enquadramento padrão da ferramenta anterior cortava o personagem em 34 de 36 vistas; a câmera ajustada ao corpo, 0 de 48. O Witness anterior só dizia duração, inventário e deslocamento; agora há o que está visível por região e por frame, vistas pedidas automaticamente e o que ficou sem vista (mãos e pé D: PARCIAL).",
+  "Um diagnóstico A–G com 9 entradas foi aceito pelo validador; 9 variações adversárias do mesmo pacote foram recusadas (código de leitura errado, uma só vista, região não observada, aprovação sem referência, texto genérico, medição inexistente, correção aplicada, folhas de outra região, frame com visibilidade 0,59)."
+ ],
+ "nota_benchmark": "Honestidade do benchmark: o conjunto de desenvolvimento precisou de 4 rodadas de ajuste antes de chegar a 19/19 (erro do gerador sintético na ordem das rotações, paridade de raios trocada por cercamento por raios, regra de atravessamento). A avaliação foi rodada depois de congelar (19/19) e nunca serviu para ajustar nada. Depois foram acrescentados casos difíceis (braço pendurado a 3 cm, movimento de 2 frames) e o caso do chão, este último criado DEPOIS de ver o Mosh e, portanto, não independente; ambos os conjuntos fecham 24/24. Os casos são humanoides de caixas fechadas: medem a infraestrutura geométrica/temporal, não a leitura de imagens por um modelo nem malhas reais complexas.",
+ "nao_provado": [
+  "Qualidade artística, peso, agressividade ou impacto de attack 1 (não existe referência aprovada; só observações e riscos).",
+  "Contato com alvo e frame de contato (sem alvo geométrico autorizado o frame de contato é nulo; o pico de velocidade, g7 no quadril, NÃO é contato).",
+  "Interseção real mão × chapéu e perna × chão (testes geométricos são hipótese; a parte abaixo do chão não é visível por definição).",
+  "Que o chão do jogo é o plano calibrado pela idle e como o laboratório (altura visual/apoio no chão) o altera.",
+  "Que as 12 perguntas dos princípios foram respondidas: só as aplicáveis geraram entradas; Appeal não foi julgado (exige referência aprovada); squash & stretch não se aplica (sem escala de pose/esticamento)."
+ ],
+ "limitacoes": [
+  "Workbench headless, não o viewport nem a câmera do jogo; visibilidade geométrica por raio, não percepção humana.",
+  "O código de leitura prova que a folha foi aberta, não que foi compreendida; o validador não sabe se a descrição está certa.",
+  "O rótulo head inclui o chapéu inteiro (ponderado ao osso Head); ids por pixel usam o rótulo dominante de pesos.",
+  "Em malha vizinha aberta o cercamento por raios cai e a normal assinada é descartada; o torso do Mosh tem arestas abertas.",
+  "Mão D difere até 3 cm entre o GLB e o FBX do Mixamo (repouso do esqueleto); a análise vale para o GLB, que é o que o jogo carrega.",
+  "A mudança de base de tempo 24→30 fps foi aplicada só na cópia derivada e verificada contra o FBX original (resíduo 0,00001 m no quadril)."
+ ],
+ "reproduzir": [
+  "python scripts/blender-vision/prep_source.py --src chars/mosh/Cogumelo.glb --out %TEMP%/arenamon-vision/mosh_source.blend --time-scale 1.25 --fps 30 --drop Icosphere",
+  "python scripts/blender-vision/perception.py motion --blend %TEMP%/arenamon-vision/mosh_source.blend --action \"attack 1\" --frames 1-54 --stroke-bone Hips --floor-from-action idle --out PASTA",
+  "python scripts/blender-vision/perception.py investigate --blend %TEMP%/arenamon-vision/mosh_source.blend --action \"attack 1\" --frames 1,2,6,7,9,10,11,21,31,37,41,54 --regions corpo_todo,tronco_quadril,cabeca,mao_D,mao_E,pe_D --floor-from-action idle --out PASTA",
+  "python scripts/blender-vision/perception.py contacts --blend %TEMP%/arenamon-vision/mosh_source.blend --action \"attack 1\" --frames 1-54:3 --pairs arm_R:torso,hand_R:head,... --baseline-action idle --out PASTA",
+  "python scripts/blender-vision/perception.py validate-diagnosis --investigation PASTA_INV --motion PASTA_MOTION --contacts PASTA_CON diagnostico.json",
+  "python scripts/blender-vision/tests/test_perception.py ; python scripts/blender-vision/tests/test_perception_failures.py",
+  "python scripts/blender-vision/tests/run_perception_bench.py --split dev|eval --work PASTA_TEMP"
+ ]
+}

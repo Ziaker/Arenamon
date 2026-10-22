@@ -446,6 +446,7 @@
         <button class="filter-btn" data-filter="rigging">Rigging & Codex</button>
         <button class="filter-btn" data-filter="proposals">Propostas Visuais</button>
         <button class="filter-btn" data-filter="placeholders">Base & Importador</button>
+        <button class="filter-btn" data-filter="vision">Blender Vision</button>
       </div>
       <input type="text" class="search-box" id="search-input" placeholder="Filtrar por nome ou comando...">
     </div>
@@ -866,6 +867,36 @@ PASS: dois blocos, cores, câmera, layout, file:// offline, sem erros.</pre>
         <div class="evidence-row">
           <span style="font-size: 0.8rem; color: var(--text-muted); align-self: center;">Evidência:</span>
           <a href="#" class="evidence-thumb" onclick="openModal('prototypes/placeholders/validation/blocks.png'); return false;">🖼️ Dois Blocos Base</a>
+        </div>
+      </article>
+
+
+      <!-- SUITE: BLENDER VISION / PERCEPCAO ATIVA -->
+      <article class="suite-card" data-category="vision">
+        <div class="suite-header">
+          <div>
+            <h2 class="suite-title">Blender Vision — Percepção Ativa, Movimento e Diagnóstico</h2>
+            <div class="tag-group">
+              <span class="tag success">✓ Aprovados</span>
+              <span class="tag">scripts/blender-vision/tests/</span>
+            </div>
+          </div>
+        </div>
+        <p class="suite-desc">
+          42 testes puros (laço de investigação, vistas independentes, movimento, validador A–G, referências), 7 testes de falha (integridade do .blend, render ausente, entradas inválidas) e dois conjuntos de casos controlados em Blender (desenvolvimento e avaliação, 24 casos cada). Mede a infraestrutura em casos sintéticos; não mede interpretação artística nem malhas reais complexas.
+        </p>
+        <div class="cmd-box">
+          <code>python scripts/blender-vision/tests/test_perception.py; python scripts/blender-vision/tests/test_perception_failures.py</code>
+          <button class="copy-btn" onclick="copyCmd('python scripts/blender-vision/tests/test_perception.py; python scripts/blender-vision/tests/test_perception_failures.py', this)">Copiar Comando</button>
+        </div>
+        <div class="cmd-box">
+          <code>python scripts/blender-vision/tests/run_perception_bench.py --split eval --work %TEMP%/perc-bench</code>
+          <button class="copy-btn" onclick="copyCmd('python scripts/blender-vision/tests/run_perception_bench.py --split eval --work %TEMP%/perc-bench', this)">Copiar Comando</button>
+        </div>
+        <div class="evidence-row">
+          <span style="font-size: 0.8rem; color: var(--text-muted); align-self: center;">Evidência:</span>
+          <a href="scripts/blender-vision/evidence/perception_mosh/relatorio.html" class="evidence-thumb">📄 Relatório do caso Mushroom</a>
+          <a href="scripts/blender-vision/evidence/perception_mosh/bench_eval.json" class="evidence-thumb">📄 Casos de avaliação (JSON)</a>
         </div>
       </article>
 

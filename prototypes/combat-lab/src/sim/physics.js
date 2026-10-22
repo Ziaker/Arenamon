@@ -3,14 +3,17 @@
 import {C} from './config.js';
 import {clashPossible, mutualTackle, clash, resolveHit, resolveFootstool} from './combat.js';
 import {collideFighter} from './world.js';
+import {ageSurfaces} from './solid-contact.js';
+import {collisionProbe, noteContact, horizontalOf} from './collision-probe.js';
 import {collideMapFighter, damageDestructible, processDamageWithShieldAndStages, effectiveArenaRadius} from './map.js';
 import {passiveCost, hitStunFactor} from './passive-engine.js';
+import {altitudeOf} from './entity.js';
 import {stat} from './status.js';
 import {vec, add, scale, sub, dot, length, normalize, clamp, direction, smoothstep} from './math.js';
 
 /** Sonda de diagnóstico (auditoria externa §64): subpassos e contatos do último passo físico.
  * Leitura externa apenas — não entra no estado da simulação, no save nem no replay. */
-export const physicsProbe = {substeps: 0, contacts: 0};
+export const physicsProbe = {substeps: 0, contacts: 0, staticConflicts: 0, staticConflictsTotal: 0};
 /** Componente vertical do rebote: multiplica a velocidade vertical atual e soma um impulso para cima. */
 function wallVertical(f) {const R = C.rules;f.flight.vy = f.flight.vy * R.wallBounceVertical + R.wallBounceUp;}
 /**
@@ -24,27 +27,32 @@ function tryWallSplat(f, normal) {
   f.wallSplat = {t: 0, duration: R.wallSplatDuration, normal: {...normal}, fresh: true};f.state = 'wallSplat';
   return true;
 }
-/** Altura do piso/plataforma na posição XZ. Só considera superfícies válidas para a altura vertical atual do lutador (currentY). */
-export function getGroundHeight(pos, world, currentY = null) {
+const GROUND = Object.freeze({y: 0, kind: 'ground', id: null, normal: Object.freeze({x: 0, y: 1, z: 0})});
+/**
+ * Superfície de APOIO na posição XZ (contrato da Fase 4): a mais alta entre plataformas, obstáculos e destrutíveis sólidos que apoiam um
+ * lutador na altura `currentY` (null = qualquer altura), ou o piso. `y` é a altura real do topo; `normal` aponta para cima (as superfícies de
+ * apoio são topos horizontais). Só considera superfícies válidas para a altura vertical atual do lutador (currentY).
+ * @returns {{y: number, kind: 'ground' | 'platform' | 'obstacle' | 'destructible', id: any, normal: {x: number, y: number, z: number}}}
+ */
+export function groundSurface(pos, world, currentY = null) {
   const mapState = world?.mapState;
   const platforms = mapState?.platforms ?? world?.platforms ?? C.map?.platforms;
   const obstacles = mapState?.obstacles ?? world?.obstacles ?? C.map?.obstacles;
   const destructibles = mapState?.destructibles ?? world?.destructibles;
-  if (!platforms && !obstacles && !destructibles) return 0;
-  let highest = 0;
+  if (!platforms && !obstacles && !destructibles) return GROUND;
+  let best = GROUND;
   const footMargin = (C.test?.halfExtent ?? 0.35) * 0.5;
   const support = (C.map?.mountTolerance ?? 0.25) + 0.10;   // apoio no topo: tolerância de montagem + 10 cm
+  const consider = (h, kind, id) => {
+    if ((currentY === null || currentY >= h - support) && h > best.y) best = {y: h, kind, id, normal: GROUND.normal};
+  };
   if (platforms) {
     for (const p of platforms) {
       const px = p.pos ? p.pos.x : p.x;
       const pz = p.pos ? p.pos.z : p.z;
       const hx = ((p.width ?? 3) / 2) + footMargin;
       const hz = ((p.depth ?? 3) / 2) + footMargin;
-      if (Math.abs(pos.x - px) <= hx && Math.abs(pos.z - pz) <= hz) {
-        if (currentY === null || currentY >= p.height - support) {
-          if (p.height > highest) highest = p.height;
-        }
-      }
+      if (Math.abs(pos.x - px) <= hx && Math.abs(pos.z - pz) <= hz) consider(p.height, 'platform', p.id ?? null);
     }
   }
   if (obstacles) {
@@ -54,19 +62,11 @@ export function getGroundHeight(pos, world, currentY = null) {
       if (o.shape === 'cylinder' || o.shape === 'pillar') {
         const r = (o.radius ?? 1) + footMargin;
         const dx = pos.x - ox, dz = pos.z - oz;
-        if (dx * dx + dz * dz <= r * r) {
-          if (currentY === null || currentY >= h - support) {
-            if (h > highest) highest = h;
-          }
-        }
+        if (dx * dx + dz * dz <= r * r) consider(h, 'obstacle', o.id ?? null);
       } else {
         const hx = (o.hx ?? 1.5) + footMargin;
         const hz = (o.hz ?? 1.5) + footMargin;
-        if (Math.abs(pos.x - ox) <= hx && Math.abs(pos.z - oz) <= hz) {
-          if (currentY === null || currentY >= h - support) {
-            if (h > highest) highest = h;
-          }
-        }
+        if (Math.abs(pos.x - ox) <= hx && Math.abs(pos.z - oz) <= hz) consider(h, 'obstacle', o.id ?? null);
       }
     }
   }
@@ -76,14 +76,14 @@ export function getGroundHeight(pos, world, currentY = null) {
       const h = (d.pos?.y ?? 0) + (d.size?.height ?? 1.6);
       const hx = (d.size?.hx ?? 0.8) + footMargin;
       const hz = (d.size?.hz ?? 0.8) + footMargin;
-      if (Math.abs(pos.x - d.pos.x) <= hx && Math.abs(pos.z - d.pos.z) <= hz) {
-        if (currentY === null || currentY >= h - support) {
-          if (h > highest) highest = h;
-        }
-      }
+      if (Math.abs(pos.x - d.pos.x) <= hx && Math.abs(pos.z - d.pos.z) <= hz) consider(h, 'destructible', d.id ?? null);
     }
   }
-  return highest;
+  return best;
+}
+/** Altura do piso/plataforma na posição XZ (ver `groundSurface`). */
+export function getGroundHeight(pos, world, currentY = null) {
+  return groundSurface(pos, world, currentY).y;
 }
 
 /**
@@ -143,10 +143,10 @@ export function clampToArena(f) {
     const effRadius = effectiveArenaRadius();
     const bound = effRadius - C.test.halfExtent;
     const d = length(f.position);
-    if (d > bound) {
+    if (d > bound + 1e-9) {   // tolerância de 1 nm: o reposicionamento em `bound` pode sobrar 1 ulp e não conta como novo contato
       f.contacts++;
       const nOut = d > 1e-7 ? scale(f.position, 1 / d) : vec(1, 0);
-      const nIn = scale(nOut, -1);
+      const nIn = scale(nOut, -1), v0 = horizontalOf(f), depth = d - bound;   // (só no toque com a borda)
       f.position = scale(nOut, bound);
 
       if (f.flight && tryWallSplat(f, nIn)) {
@@ -167,6 +167,7 @@ export function clampToArena(f) {
           f.velocity = sub(f.velocity, scale(nOut, vDotN));
         }
       }
+      noteContact(f, 'arena', null, nIn, depth, v0.x, v0.z);
     }
     return;
   }
@@ -201,10 +202,57 @@ export function overlap(a, b) {
   const sx = 2 * T.halfExtent - Math.abs(dx), sz = 2 * T.halfExtent - Math.abs(dz);
   return sx < -T.epsilon || sz < -T.epsilon ? null : sx < sz ? {normal: vec(dx >= 0 ? 1 : -1, 0), depth: Math.max(0, sx)} : {normal: vec(0, dz >= 0 ? 1 : -1), depth: Math.max(0, sz)};
 }
+/**
+ * Sólidos estáticos (paredes/barreiras de Moves, objetos do mapa, borda da arena) são restrições DURAS. Alterna as projeções
+ * até convergir (várias paredes, quinas agudas e corredores não deixam resíduo de penetração) e devolve se moveu o lutador.
+ * Sem posição válida (vão menor que o corpo, geometria sobreposta): após STATIC_ROUNDS rodadas mantém o último estado, sem
+ * teletransporte, e conta o conflito em physicsProbe.staticConflicts / staticConflictsTotal (linha «Subpassos físicos» do diagnóstico do laboratório).
+ */
+const STATIC_ROUNDS = 12;
+function settleStatics(f, world, events) {
+  for (let round = 0; round < STATIC_ROUNDS; round++) {
+    // Convergiu = uma rodada inteira sem NENHUM contato penetrante (medir só o deslocamento líquido enganaria: dois sólidos
+    // opostos podem se anular na rodada e deixar o lutador penetrando em ambos).
+    const contacts = f.contacts;
+    if (world.entities?.length) collideFighter(world, f, events);
+    if (world.mapState) collideMapFighter(world.mapState, f, events);
+    clampToArena(f);
+    if (f.contacts === contacts) return round > 0;
+  }
+  physicsProbe.staticConflicts++;physicsProbe.staticConflictsTotal++;
+  return true;
+}
 export function stepPhysics(fighters, dt, world = null) {
-  const R = C.rules, X = C.extras.combat, T = C.extras.toggles, events = [], pushVel = new Map();
+  const R = C.rules, X = C.extras.combat, T = C.extras.toggles, events = [], pushVel = new Map(), startY = new Map();
+  collisionProbe.step++;
+  /** Pouso de um voo: cruzou o topo vindo de cima. Compartilhado pelo teste do início do passo e pela reconferência depois do deslocamento horizontal. */
+  const land = (f, flight, targetGround) => {
+    startY.delete(f.id);   // o voo acabou: um relançamento no mesmo passo não pode ser «pousado» de novo pela reconferência
+    flight.y = targetGround;
+    f.groundY = targetGround;
+    // Evento real de colisão com o solo (usado pelos efeitos visuais): velocidade vertical e horizontal no contato.
+    f.lastLanding = {n: (f.lastLanding?.n ?? 0) + 1, vertical: Math.max(0, -flight.vy), horizontal: length(flight.horizontal), x: f.position.x, z: f.position.z};
+    f.landingSlide = T.enableLandingSkid ? {velocity: scale(flight.horizontal, X.landingSkidFraction)} : null;
+    f.flight = null;f.velocity = vec();
+    const wasNormalJump = !!f.normalJumpLanding;
+    // Inner Focus: hit stun reduzido em 20% quando o lançamento veio de um golpe (launch(); edge-fall/jump não marca).
+    const stunFactor = f.launchedByHit ? hitStunFactor(f) : 1;
+    f.launchedByHit = false;
+    f.knockRecovery = flight.bounce ? (f.hp <= 0 ? 0 : flight.bounce.recovery) : (wasNormalJump || f.hp <= 0) ? 0 : R.landingRecovery * stunFactor; // derrotado não tem recuperação de pouso; Bounce: recuperação própria
+    f.recoveryFrom = null;
+    f.normalJumpLanding = false;
+    f.state = f.hp <= 0 ? 'defeated' : (wasNormalJump ? 'neutral' : 'landing');
+    if (f.jumpState) {
+      f.jumpState.canJump = false;
+      f.jumpState.cooldown = C.map?.jumpInterval ?? 0.25;
+    }
+    f.coyoteLeft = 0;f.footstoolDoneWith = null;f.airMoveDir = null;
+    // Recovery rápido: C apertado a tempo no ar e stamina suficiente: ao tocar o chão, a esquiva sai na hora (o controlador a inicia).
+    const tech = f.tech;f.tech = null;
+    if (T.enableTechRecovery && tech && f.hp > 0 && f.stamina >= passiveCost(f, 'tech', R.techCost) - 1e-8 && (R.techCost <= 0 || !f.exhausted)) {f.knockRecovery = 0;f.landingSlide = null;f.techDodge = {dir: tech.dir};f.state = 'neutral';}
+  };
   for (const f of fighters) {
-    f.contacts = 0;
+    f.contacts = 0;ageSurfaces(f);   // normais de contato (deslize na locomoção): renovadas pelos toques deste passo; o controlador as lê no próximo tick
     // Preso na parede: suspenso (sem gravidade nem movimento) até acabar a janela; depois volta a cair.
     if (f.wallSplat) {
       const w = f.wallSplat;
@@ -241,7 +289,7 @@ export function stepPhysics(fighters, dt, world = null) {
       if (flight.isEdgeFall) f.coyoteLeft = Math.max(0, (f.coyoteLeft ?? 0) - dt);   // coyote só em queda natural
       f.footstoolCooldownT = Math.max(0, (f.footstoolCooldownT ?? 0) - dt);
       // Voo balístico de passo fixo: gravidade na altura e arrasto exponencial no plano.
-      const prevY = flight.y;
+      const prevY = flight.y;startY.set(f.id, prevY);
       flight.y += flight.vy * dt - .5 * g * dt * dt;
       flight.vy -= g * dt;
       // Teto: subindo e cruzando a face inferior de uma plataforma/obstáculo/destrutível sólido, a subida para ali.
@@ -272,28 +320,7 @@ export function stepPhysics(fighters, dt, world = null) {
       // topo em queda livre (ex.: obstáculo de 2,0 m com salto de 2,0 m). 1 mm absorve a discretização sem
       // permitir pouso vindo de baixo (quem sobe tem vy > 0; quem desliza pela lateral já está descendo).
       if (flight.vy <= 0 && flight.y <= targetGround && prevY >= targetGround - 1e-3) {
-        flight.y = targetGround;
-        f.groundY = targetGround;
-        // Evento real de colisão com o solo (usado pelos efeitos visuais): velocidade vertical e horizontal no contato.
-        f.lastLanding = {n: (f.lastLanding?.n ?? 0) + 1, vertical: Math.max(0, -flight.vy), horizontal: length(flight.horizontal), x: f.position.x, z: f.position.z};
-        f.landingSlide = T.enableLandingSkid ? {velocity: scale(flight.horizontal, X.landingSkidFraction)} : null;
-        f.flight = null;f.velocity = vec();
-        const wasNormalJump = !!f.normalJumpLanding;
-        // Inner Focus: hit stun reduzido em 20% quando o lançamento veio de um golpe (launch(); edge-fall/jump não marca).
-        const stunFactor = f.launchedByHit ? hitStunFactor(f) : 1;
-        f.launchedByHit = false;
-        f.knockRecovery = flight.bounce ? (f.hp <= 0 ? 0 : flight.bounce.recovery) : (wasNormalJump || f.hp <= 0) ? 0 : R.landingRecovery * stunFactor; // derrotado não tem recuperação de pouso; Bounce: recuperação própria
-        f.recoveryFrom = null;
-        f.normalJumpLanding = false;
-        f.state = f.hp <= 0 ? 'defeated' : (wasNormalJump ? 'neutral' : 'landing');
-        if (f.jumpState) {
-          f.jumpState.canJump = false;
-          f.jumpState.cooldown = C.map?.jumpInterval ?? 0.25;
-        }
-        f.coyoteLeft = 0;f.footstoolDoneWith = null;f.airMoveDir = null;
-        // Recovery rápido: C apertado a tempo no ar e stamina suficiente: ao tocar o chão, a esquiva sai na hora (o controlador a inicia).
-        const tech = f.tech;f.tech = null;
-        if (T.enableTechRecovery && tech && f.hp > 0 && f.stamina >= passiveCost(f, 'tech', R.techCost) - 1e-8 && (R.techCost <= 0 || !f.exhausted)) {f.knockRecovery = 0;f.landingSlide = null;f.techDodge = {dir: tech.dir};f.state = 'neutral';}
+        land(f, flight, targetGround);
       } else {f.velocity = {...flight.horizontal};f.state = 'airborne';}
       // Footstool (Plano D, Etapa 3): ataque de contato superior do salto normal. Só vale com salto voluntário
       // (isNormalJump — inclui o salto de coyote, que converte o voo): quem apenas caiu da borda de uma plataforma
@@ -308,7 +335,7 @@ export function stepPhysics(fighters, dt, world = null) {
         for (const b of fighters) {
           if (b === f || b.hp <= 0 || b.wallSplat || f.footstoolDoneWith === b.id) continue;
           if (Math.abs(f.position.x - b.position.x) > reach || Math.abs(f.position.z - b.position.z) > reach) continue;
-          const bTop = (b.groundY ?? 0) + (b.flight?.y ?? b.vaultHeight ?? 0) + bodyH;
+          const bTop = altitudeOf(b) + bodyH;
           if (flight.vy > -(M.footstoolMinFallSpeed ?? 1.0)) continue;          // só queda real e suficiente
           if (!(prevY >= bTop - tol && flight.y <= bTop + tol)) continue;       // os pés cruzam o topo vindo de cima
           events.push(resolveFootstool(f, b));
@@ -326,6 +353,11 @@ export function stepPhysics(fighters, dt, world = null) {
       // NÃO aplicar queda espúria de borda de plataforma (evita cancelar o slam no ar)!
       const curAlt = (f.groundY ?? 0) + (f.vaultHeight ?? 0);
       const targetGround = getGroundHeight(f.position, world, curAlt);
+      // Meteor Slam que sai da borda da superfície onde começou: o vault é relativo a groundY, então a base passa a seguir o piso REAL (a altitude dos pés é
+      // preservada: a diferença vira altura de mergulho). Sem isso o lutador ficava suspenso na altura da plataforma até o fim da ação.
+      if (f.action?.slam && f.action.slamPrepDone && !f.action.slamLanded && targetGround < (f.groundY ?? 0) - 0.05) {
+        f.vaultHeight = (f.vaultHeight ?? 0) + ((f.groundY ?? 0) - targetGround);f.groundY = targetGround;
+      }
       // Footstool pela ESQUIVA (C) por cima do rival: na descida do arco do vault, com os pés acima de (topo − footstoolVaultMargin) e sobre o rival, pisa nele; o vault vira um
       // salto normal com o rebote e o controle aéreo do footstool. Mesmas regras de dano, stagger, invulnerável e recarga do footstool do salto.
       const M = C.map ?? {}, J = f.action?.kind === 'dodge' ? f.action.jump : null;
@@ -335,7 +367,7 @@ export function stepPhysics(fighters, dt, world = null) {
         for (const b of fighters) {
           if (b === f || b.hp <= 0 || b.wallSplat || f.footstoolDoneWith === b.id) continue;
           if (Math.abs(f.position.x - b.position.x) > reach || Math.abs(f.position.z - b.position.z) > reach) continue;
-          const bTop = (b.groundY ?? 0) + (b.flight?.y ?? b.vaultHeight ?? 0) + bodyH, eff = bTop - margin;
+          const bTop = altitudeOf(b) + bodyH, eff = bTop - margin;
           if (!(feetPrev >= eff - tol && feetNow <= eff + tol)) continue;
           events.push(resolveFootstool(f, b));
           const hz = scale(f.velocity, 0.8);
@@ -356,7 +388,9 @@ export function stepPhysics(fighters, dt, world = null) {
       const curY = f.groundY ?? 0;
       const targetGround = getGroundHeight(f.position, world, curY);
       f.groundY ??= 0;
-      if (f.groundY > targetGround + 0.1) {
+      if (f.absent) {   // ausente (Bullet Punch): sem corpo, não cai da borda; só acompanha a altura do apoio sob a viagem invisível
+        f.groundY = targetGround;f.coyoteLeft = 0;
+      } else if (f.groundY > targetGround + 0.1) {
         // Entra em queda balística mantendo a velocidade horizontal (R7.10). Queda natural de borda:
         // recebe coyote time (salto logo após a borda) e participa do pacote de sensação do salto.
         // Nunca acontece após knockback/lançamento (esses já entram em voo pelo launch()).
@@ -368,6 +402,12 @@ export function stepPhysics(fighters, dt, world = null) {
         f.groundY = targetGround;
         f.coyoteLeft = 0;
       }
+    }
+    // Contrato de suporte (observacional; nada na simulação lê f.support): superfície que segura o lutador agora e há quantos passos.
+    if (f.flight) f.support = null;
+    else {
+      const surf = groundSurface(f.position, world, f.groundY ?? 0), cur = f.support;
+      f.support = cur && cur.kind === surf.kind && cur.id === surf.id ? {...cur, y: surf.y, age: cur.age + 1} : {kind: surf.kind, id: surf.id, y: surf.y, age: 0};
     }
     if (f.landingSlide) {
       f.landingSlide.velocity = scale(f.landingSlide.velocity, Math.exp(-X.landingSkidDrag * dt));
@@ -381,23 +421,20 @@ export function stepPhysics(fighters, dt, world = null) {
   }
   const speed = Math.max(0, ...fighters.map(f => length(add(f.velocity, pushVel.get(f.id)))));
   const steps = Math.max(1, Math.ceil(speed * dt / C.test.contactStep));
-  physicsProbe.substeps = steps;
+  physicsProbe.substeps = steps;physicsProbe.staticConflicts = 0;   // conflitos de espaço do ÚLTIMO passo (o acumulado fica em staticConflictsTotal)
   for (let s = 0; s < steps; s++) {
     for (const f of fighters) {
       if ((f.hp <= 0 && !f.flight) || f.absent) continue;   // ausente (Bullet Punch): sem corpo, não se move nem colide
       f.position = add(f.position, scale(add(f.velocity, pushVel.get(f.id)), dt / steps));
       clampToArena(f);
-      // Paredes e barreiras sólidas criadas por movimentos (sem elas, nada muda).
-      if (world?.entities.length) {collideFighter(world, f, events);clampToArena(f);}
-      // Obstáculos, plataformas e destrutíveis do mapa (R1.6, R1.8, R7.6, R7.15, R10.7-R10.8)
+      // Paredes e barreiras de movimentos, obstáculos, plataformas e destrutíveis do mapa (R1.6, R1.8, R7.6, R7.15, R10.7-R10.8); sem eles, nada muda.
+      if (world?.entities.length || world?.mapState) settleStatics(f, world, events);
       if (world?.mapState) {
-        collideMapFighter(world.mapState, f, events);
-        clampToArena(f);
         // Tackle danifica destrutíveis sólidos (R1.5, R3.4, R5.14, R9.10)
         if (f.action?.kind === 'tackle' && !f.action.neutralized && world.mapState.destructibles) {
           for (const d of world.mapState.destructibles) {
             if (d.state !== 'solid' || f.action.hits?.has(d.id)) continue;
-            const fY = (f.groundY ?? 0) + (f.flight?.y ?? f.vaultHeight ?? 0);
+            const fY = altitudeOf(f);
             if (fY + C.extras.visual.bodyHeight <= d.pos.y || fY >= d.pos.y + d.size.height) continue;
             const dx = Math.abs(f.position.x - d.pos.x), dz = Math.abs(f.position.z - d.pos.z);
             if (dx <= d.size.hx + C.test.halfExtent && dz <= d.size.hz + C.test.halfExtent) {
@@ -410,18 +447,21 @@ export function stepPhysics(fighters, dt, world = null) {
         }
       }
     }
+    // Lutadores que um sólido (parede de Move, objeto do mapa) devolveu à posição DEPOIS da separação entre lutadores:
+    // estão presos e não podem absorver a sobreposição; o adversário livre absorve o resto (restrição dura × mole).
+    const pinned = new Set();
     for (let pass = 0; pass < X.contactProjectionPasses; pass++) {
       for (let ai = 0; ai < fighters.length; ai++) for (let bi = ai + 1; bi < fighters.length; bi++) {
         const a = fighters[ai], b = fighters[bi];
         if (a.absent || b.absent) continue;   // ausência física: nenhum contato
         // Sobreposição tridimensional real (R7.11)
-        const ya0 = (a.groundY ?? 0) + (a.flight?.y ?? 0) + (a.vaultHeight ?? 0);
+        const ya0 = altitudeOf(a);
         const ya1 = ya0 + C.extras.visual.bodyHeight;
-        const yb0 = (b.groundY ?? 0) + (b.flight?.y ?? 0) + (b.vaultHeight ?? 0);
+        const yb0 = altitudeOf(b);
         const yb1 = yb0 + C.extras.visual.bodyHeight;
         if (ya1 < yb0 || yb1 < ya0) continue;
         // Pulo físico por cima do rival: os dois não se tocam até o pouso.
-        if (a.action?.jump?.over === b.id || b.action?.jump?.over === a.id) continue;
+        if ((a.action?.jump?.over ?? a.flight?.over) === b.id || (b.action?.jump?.over ?? b.flight?.over) === a.id) continue;
         const contact = overlap(a, b);
         if (!contact) continue;
         if (pass === 0) {
@@ -440,7 +480,11 @@ export function stepPhysics(fighters, dt, world = null) {
         const bGuards = a.action?.kind === 'recoil' && b.guard && dot(direction(b.facing), normalize(sub(a.position, b.position))) >= -1e-8;
         const aGuards = b.action?.kind === 'recoil' && a.guard && dot(direction(a.facing), normalize(sub(b.position, a.position))) >= -1e-8;
         let da, db;
-        if (bGuards && !aGuards) {da = Math.min(contact.depth, room(a, scale(contact.normal, -1)));db = Math.min(contact.depth - da, room(b, contact.normal));}
+        const aPinned = pinned.has(a.id), bPinned = pinned.has(b.id);
+        if (aPinned !== bPinned) {
+          if (aPinned) {da = 0;db = Math.min(contact.depth, room(b, contact.normal));}
+          else {db = 0;da = Math.min(contact.depth, room(a, scale(contact.normal, -1)));}
+        } else if (bGuards && !aGuards) {da = Math.min(contact.depth, room(a, scale(contact.normal, -1)));db = Math.min(contact.depth - da, room(b, contact.normal));}
         else if (aGuards && !bGuards) {db = Math.min(contact.depth, room(b, contact.normal));da = Math.min(contact.depth - db, room(a, scale(contact.normal, -1)));}
         else {
           da = Math.min(contact.depth / 2, room(a, scale(contact.normal, -1)));
@@ -454,7 +498,19 @@ export function stepPhysics(fighters, dt, world = null) {
         if (av > 0) a.velocity = sub(a.velocity, scale(contact.normal, av));
         if (bv < 0) b.velocity = sub(b.velocity, scale(contact.normal, bv));
       }
+      // Sólidos são restrições duras: a separação entre lutadores nunca pode deixar alguém dentro deles ao fim do subpasso.
+      if (world?.entities.length || world?.mapState) for (const f of fighters) {
+        if (!f.absent && settleStatics(f, world, events)) pinned.add(f.id);
+      }
     }
+  }
+  // Pouso pela lateral: o teste do início do passo consulta o apoio na posição ANTERIOR ao deslocamento horizontal. Um voo descendo que entra na
+  // faixa de apoio de um topo neste mesmo passo (pés a milímetros acima dele no início) não pousava; afundava até a ejeção lateral. Reconfere com a posição final.
+  for (const f of fighters) {
+    const flight = f.flight, was = startY.get(f.id);
+    if (!flight || was === undefined || f.wallSplat || flight.vy > 0 || f.absent) continue;
+    const target = getGroundHeight(f.position, world, flight.y);
+    if (flight.y <= target && was >= target - 1e-3) land(f, flight, target);
   }
   // Wall-splat que começou neste passo: evento e dano extra (slider; 0 por padrão).
   for (const f of fighters) {

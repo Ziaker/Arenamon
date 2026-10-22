@@ -1,5 +1,7 @@
 # Auditoria de cobertura do roadmap — 13/10/2026
 
+> **Atualização de 22/10/2026 (auditoria `docs/AUDITORIA_DOCUMENTACAO_2026-10-22.md`):** **documento histórico.** A auditoria de 13/10/2026 trata do protótipo legado de blocos (`prototypes/game`, descontinuado). O jogo principal é o Laboratório de Combate (`prototypes/combat-lab`); seu estado atual está em `docs/STATUS_PROJETOS_E_BRANCHES.md` (seção 0) e `docs/PATCH_NOTES.md`. Itens como «Movimentos equipados, cooldowns, buffer» e «Hit stun» constam aqui como **N** mas já existem no laboratório.
+
 Base auditada: commit `1b1da81` (branch `codex/jogavel-blocos`), código em `prototypes/game/`.
 Evidência: `npm run verify` executado em 13/10/2026 (typecheck, 19 cenários mecânicos determinísticos, 16 cenários no Edge offline, regressão do visualizador anterior) — todos aprovados.
 

@@ -13,7 +13,7 @@ import {nearestEligible} from '../moves.js';
 import {sub, length, normalize, angleOf, direction, scale} from '../math.js';
 
 export const quickAttackDef = Object.freeze({
-  id: 'quick-attack', name: 'Quick Attack', group: 'quickAttack', tackle: 'quick-attack', needsTarget: 'acquireRange',
+  id: 'quick-attack', name: 'Quick Attack', air: 'descend', group: 'quickAttack', tackle: 'quick-attack', needsTarget: 'acquireRange',
   description: 'Burst. Acha o adversário mais próximo a até 7 m, investe em altíssima velocidade com um Tackle curto (PL1) e volta na hora ao ponto de partida.',
   cost: .75, cooldown: 6, duration: .42, aim: 'target',
 });

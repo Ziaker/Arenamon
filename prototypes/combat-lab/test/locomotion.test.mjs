@@ -2,11 +2,12 @@
 // saltos e preservação da distância. Grava registros por passo (CSV), gráficos de velocidade × tempo (SVG) e um
 // relatório em validation/locomotion/.
 // Uso: node prototypes/combat-lab/test/locomotion.test.mjs
+// Este teste caracteriza a mecânica nos valores de FÁBRICA do laboratório (factoryDefaults); a base de calibração v8 é coberta por calibration-base.test.mjs e pelos testes de colisão/ambiente.
 import assert from 'node:assert/strict';
 import {mkdirSync, writeFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {Game} from '../src/sim/game.js';
-import {C, resetConfig} from '../src/sim/config.js';
+import {C, resetConfig, factoryDefaults} from '../src/sim/config.js';
 import {nominalDistance} from '../src/sim/entity.js';
 import {locomotionParams, walkSpeed} from '../src/sim/controller.js';
 import {accelerationLimit} from '../src/sim/locomotion.js';
@@ -19,7 +20,7 @@ const out = fileURLToPath(new URL('../validation/locomotion/', import.meta.url))
 const report = [];let passed = 0;
 const STEP = () => C.test.step;
 function check(group, label, ok, expected, actual) {report.push({group, label, ok: !!ok, expected: String(expected), actual: typeof actual === 'number' ? +actual.toFixed(4) : String(actual)});assert.ok(ok, `${group} · ${label}: esperado ${expected}, obtido ${actual}`);}
-function test(name, fn) {resetConfig();fn();passed++;console.log('✓', name);}
+function test(name, fn) {resetConfig(factoryDefaults());fn();passed++;console.log('✓', name);}
 const cmd = (o = {}) => ({move: vec(), dodge: false, dodgeHeld: false, tackle: false, guard: false, guardPressed: false, target: null, ...o});
 
 /** Partida sem IA, lutadores longe um do outro (sem colisão). Mundo neutro: estes testes medem locomoção. */
@@ -118,7 +119,7 @@ test('mudança de 90° gradual (aderência lateral) e frenagem com deslizamento 
 test('lock-on não força órbita: com a câmera seguindo o alvo, o lateral anda reto (referencial travado)', () => {
   // Câmera real do laboratório (rig.js) acompanhando o alvo a cada passo, como na partida.
   const run = on => {
-    resetConfig();C.locomotion.frameLatch = on;C.camera.movingDeadZone = .15;const g = arena({p0: vec(0, -4), p1: vec(0, 2)}), rig = new CameraRig(), latch = {};
+    resetConfig(factoryDefaults());C.locomotion.frameLatch = on;C.camera.movingDeadZone = .15;const g = arena({p0: vec(0, -4), p1: vec(0, 2)}), rig = new CameraRig(), latch = {};
     rig.reset(g.fighters[0]);
     const rows = trace(g, 240, (t, game) => {rig.step(game.fighters[0], game.fighters[1], true, STEP());const intent = {x: 1, forward: 0, tackle: false, dodge: false, guard: false, guardPressed: false};
       return [toCommand(intent, game.fighters[0], game.fighters[1], latchFrame(latch, intent, rig.yaw), true), cmd()];});
@@ -127,7 +128,7 @@ test('lock-on não força órbita: com a câmera seguindo o alvo, o lateral anda
   const latched = run(1), free = run(0);
   check('Lock-on', 'referencial travado: direção da trajetória constante enquanto a seta é mantida', latched.turn < .01, '< 0,01 rad', latched.turn);
   check('Lock-on', 'sem trava (v6): a câmera que gira encurva a trajetória (órbita)', free.turn > .2, '> 0,2 rad', free.turn);
-  resetConfig();
+  resetConfig(factoryDefaults());
   // Corpo olha para o alvo (lock-on) enquanto anda de lado, mas a mira do tackle sem direção continua no alvo.
   const g = arena({p0: vec(0, -4), p1: vec(0, 2)});C.locomotion.lockFacing = 1;
   trace(g, 120, (t, game) => [toCommand({x: 1, forward: 0}, game.fighters[0], game.fighters[1], Math.PI, true), cmd()]);
@@ -211,7 +212,7 @@ test('X/C a partir de uma corrida: continuidade da velocidade residual e mesma d
 });
 test('duração diferente (ex.: clipe sincronizado) não muda a distância; a curva se redistribui', () => {
   for (const d of [.3, .4, .7]) {
-    resetConfig();C.actions.dodge.duration = d;const {f, rows, seg, s0, start} = actionRun('dodge');
+    resetConfig(factoryDefaults());C.actions.dodge.duration = d;const {f, rows, seg, s0, start} = actionRun('dodge');
     const end = rows[start + seg.length - 1], dist = Math.hypot(end.x - s0.x, end.z - s0.z);
     check('Duração × distância', `duração ${d} s: distância`, Math.abs(dist - nominalDistance(f, 'dodge')) < .02 && Math.abs(nominalDistance(f, 'dodge') - 4.8) < 1e-9, '4,8 m', dist);
   }
@@ -243,7 +244,7 @@ test('sprint: C → manter C → sprint; consome stamina; soltar C desacelera; e
   check('Sprint', 'ao soltar C desacelera progressivamente até a caminhada', after[0] > f.attributes.speed && after.at(-1) <= f.attributes.speed + 1e-3 && after.every((v, i) => i === 0 || v <= after[i - 1] + 1e-9), 'queda gradual', `${after[0].toFixed(2)} → ${after.at(-1).toFixed(2)} m/s`);
   check('Sprint', '|Δv| por passo ≤ limite', maxDv(rows.slice(sprintStart)) <= limitFor(f), `≤ ${limitFor(f).toFixed(3)}`, maxDv(rows.slice(sprintStart)));
   // Exaustão: sprint até zerar a stamina.
-  resetConfig();C.actions.sprint.staminaDrain = 1.5;const g2 = arena({p0: vec(-14, 0)});const f2 = g2.fighters[0];
+  resetConfig(factoryDefaults());C.actions.sprint.staminaDrain = 1.5;const g2 = arena({p0: vec(-14, 0)});const f2 = g2.fighters[0];
   const rows2 = trace(g2, 500, t => {const c = cmd({move: right, dodgeHeld: true});if (t === 2) {c.dodge = true;c.dodgeDirection = right;}return [c, cmd()];});
   // Exaustão: stamina abaixo do menor custo de X/C encerra o sprint.
   const ex = rows2.findIndex((r, i) => i > 0 && rows2[i - 1].sprint && !r.sprint);

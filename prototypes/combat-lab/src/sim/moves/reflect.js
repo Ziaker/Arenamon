@@ -10,7 +10,7 @@ import {add, scale, direction} from '../math.js';
 
 /** Definição do movimento (dados puros, clonável). */
 export const reflectDef = Object.freeze({
-  id: 'reflect', name: 'Reflect',
+  id: 'reflect', name: 'Reflect', air: 'cast',
   description: 'Carregue por no mínimo 1,5 s e solte para criar uma barreira que reflete projéteis. Quanto mais carga, maior e mais duradoura; ela é sólida para os dois lutadores.',
   cost: 1, cooldown: 8, cooldownBoost: true,
   charge: {max: 4, min: .9, group: 'reflect'},

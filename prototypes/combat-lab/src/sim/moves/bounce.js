@@ -11,10 +11,11 @@
 import {C} from '../config.js';
 import {applyHit} from '../world.js';
 import {isOffensive} from '../entity.js';
+import {isAirJump} from '../air.js';
 import {sub, add, scale, length, normalize, direction} from '../math.js';
 
 export const bounceDef = Object.freeze({
-  id: 'bounce', name: 'Bounce', group: 'bounce', cooldownOnStart: true,
+  id: 'bounce', name: 'Bounce', air: 'cast', group: 'bounce', cooldownOnStart: true,
   description: 'Charge. Segure para carregar (até 1,2 s), solte para um salto altíssimo em arco rumo ao alvo e caia em cima do adversário. Mais carga = mais altura e mais PL.',
   cost: 1.2, cooldown: 12, charge: {max: 1.2, group: 'bounce'}, duration: .5,
   timeline: [{effect: 'bounce'}],
@@ -26,13 +27,13 @@ export const bounceHeight = (/** @type {Record<string, any>} */ P, /** @type {nu
 /** Efeito da soltura: põe o lutador em voo balístico rumo ao destino e abre o estado do golpe (`f.bounceState`). */
 export function bounceEffect(/** @type {any} */ game, /** @type {any} */ f, /** @type {any} */ def, /** @type {any} */ fx) {
   const rel = fx.charge, P = rel.params.group ?? C.world.bounce;
-  if (f.flight || (f.vaultHeight ?? 0) > 1e-8) return {ok: false, reason: 'noGround'};   // só no chão (MV-P04)
+  if ((f.flight && !isAirJump(f)) || (!f.flight && (f.vaultHeight ?? 0) > 1e-8)) return {ok: false, reason: 'noGround'};   // lançado: sem Bounce. No salto (pedido de 22/10) o novo arco parte da altitude atual
   const g = P.gravity, vy = Math.sqrt(2 * g * bounceHeight(P, rel.level)), airTime = 2 * vy / g;
   const foe = rel.lock != null ? game.fighters.find((/** @type {any} */ o) => o.id === rel.lock && o.hp > 0) : null;
   const toFoe = foe ? sub(foe.position, f.position) : null;
   const dir = toFoe && length(toFoe) > 1e-6 ? normalize(toFoe) : direction(f.facing);
   const dist = toFoe ? Math.min(P.maxDistance, length(toFoe)) : P.maxDistance;
-  f.flight = {y: (f.groundY ?? 0), vy, horizontal: scale(dir, dist / airTime), gravity: g, bounce: {recovery: P.landRecovery}};
+  f.flight = {y: f.flight?.y ?? (f.groundY ?? 0), vy, horizontal: scale(dir, dist / airTime), gravity: g, bounce: {recovery: P.landRecovery}};   // no ar, recomeça da altitude do corpo
   f.bounceState = {pl: rel.level, params: structuredClone(P), hits: [], damage: P.damage * f.attributes.attack / C.test.attackReference, neutralized: false};   // MV-P13
   f.state = 'airborne';f.guard = false;f.guardSuppressed = true;f.push = null;f.blend = null;f.velocity = {...f.flight.horizontal};f.locomotionVelocity = {x: 0, z: 0};
   f.sprinting = false;f.sprintCarry = false;f.footstoolDoneWith = null;f.coyoteLeft = 0;f.airMoveDir = null;f.tech = null;

@@ -1,0 +1,406 @@
+{
+ "reviewer": "Claude (sessao do Blender Vision, percepcao ativa)",
+ "case": "Mosh/Mushroom - attack 1 (chars/mosh/Cogumelo.glb, 54 frames a 30 fps)",
+ "entries": [
+  {
+   "id": "d01",
+   "principio": "anticipation",
+   "region": "corpo_todo",
+   "frames": [
+    1,
+    2
+   ],
+   "A_visivel": {
+    "descricao": "Em g1 e g2, nas folhas frente, lado D e lado E, o personagem ja esta no ar e inclinado: o tronco aparece curvado/inclinado, o chapeu tombado para o lado do corpo e os pes bem acima do chao. Nao ha pose de agachar ou recuar antes dessa pose.",
+    "folhas": [
+     {
+      "file": "sheets/folha_corpo_todo_frente_e12.png",
+      "leitura": "12C5D"
+     },
+     {
+      "file": "sheets/folha_corpo_todo_lado_D_e12.png",
+      "leitura": "2A43B"
+     },
+     {
+      "file": "sheets/folha_corpo_todo_lado_E_e12.png",
+      "leitura": "04FFF"
+     }
+    ]
+   },
+   "B_interpretacao": "O clipe comeca ja em pleno salto/queda: nao existe antecipacao legivel dentro do proprio clipe; qualquer preparacao teria de vir de outro clipe encadeado (charge ou salto).",
+   "C_dados": {
+    "medicoes": [
+     "motion.antecipacao.presente",
+     "motion.antecipacao.razao_recuo_curso",
+     "motion.pe_E.rows.0.folga_m"
+    ]
+   },
+   "D_alternativas": [
+    "A ausencia de preparacao pode ser deliberada: attack 1 pode ser feito para encadear depois de charge ou de um salto, que seriam a preparacao.",
+    "A medicao de recuo usa o quadril como efetuador; um recuo so do chapeu ou dos bracos nao entra nessa medida."
+   ],
+   "E_falta_observar": [
+    "os clipes que precedem attack 1 no jogo (charge/salto) e a transicao entre eles",
+    "o que o diretor quer que attack 1 comunique (nao ha briefing do Mosh)"
+   ],
+   "F_correcao": {
+    "descricao": "Investigar, sem alterar nada agora, se a preparacao deveria vir de uma action encadeada ou se attack 1 precisa de poucos frames de agachamento/recuo antes de g1.",
+    "aplicada": false
+   },
+   "G_sustentacao": {
+    "nivel": "observacao_visual",
+    "justificativa": "A pose inclinada no ar aparece nas tres vistas independentes (frente, lado D, lado E) em g1 e g2, e a medicao do quadril nao mostra recuo (razao 0.0)."
+   }
+  },
+  {
+   "id": "d02",
+   "principio": "staging",
+   "region": "corpo_todo",
+   "frames": [
+    6,
+    7
+   ],
+   "A_visivel": {
+    "descricao": "Em g6 e g7 o personagem esta na vertical: de lado (lado D e lado E) o tronco e estreito e os pes apontam para o chao, com o chapeu como disco largo no topo; de frente o chapeu cobre a parte de cima e o corpo aparece estreito abaixo dele.",
+    "folhas": [
+     {
+      "file": "sheets/folha_corpo_todo_frente_e12.png",
+      "leitura": "12C5D"
+     },
+     {
+      "file": "sheets/folha_corpo_todo_lado_D_e12.png",
+      "leitura": "2A43B"
+     },
+     {
+      "file": "sheets/folha_corpo_todo_lado_E_e12.png",
+      "leitura": "04FFF"
+     }
+    ]
+   },
+   "B_interpretacao": "Uma queda vertical, pes primeiro, legivel nas vistas laterais: o perfil estreito com o chapeu largo comunica \"cai de cima\" antes do contato com o chao.",
+   "C_dados": {
+    "medicoes": [
+     "motion.fases.pico.frame",
+     "motion.fases.pico.passo_m"
+    ]
+   },
+   "D_alternativas": [
+    "O mesmo perfil pode ler como flutuar/pairar se o espectador nao vir o chao; a leitura de queda depende do plano do chao aparecer."
+   ],
+   "E_falta_observar": [
+    "a camera real do jogo (elevacao e angulo) nao foi usada nesta analise"
+   ],
+   "F_correcao": {
+    "descricao": "Se o diretor quiser mais peso na queda, estudar acentuar a aceleracao antes de g9 sem mudar as poses de g6 e g7.",
+    "aplicada": false
+   },
+   "G_sustentacao": {
+    "nivel": "observacao_visual",
+    "justificativa": "A vertical estreita aparece em tres vistas independentes nos dois frames e o pico de velocidade do quadril (g7) coincide."
+   }
+  },
+  {
+   "id": "d03",
+   "principio": "follow_through_overlapping",
+   "region": "tronco_quadril",
+   "frames": [
+    9,
+    10,
+    11
+   ],
+   "A_visivel": {
+    "descricao": "Em g9, g10 e g11, nas vistas lado D e lado E, o tronco (laranja) passa de quase vertical para uma massa arredondada quase horizontal junto ao chao, enquanto o chapeu gira para cima e fica tombado atras do dorso em g10 e g11.",
+    "folhas": [
+     {
+      "file": "sheets/folha_tronco_quadril_lado_D_e12.png",
+      "leitura": "630E9"
+     },
+     {
+      "file": "sheets/folha_tronco_quadril_lado_E_e12.png",
+      "leitura": "177D2"
+     }
+    ]
+   },
+   "B_interpretacao": "O tronco participa fortemente: o corpo todo dobra ao pousar e o chapeu acompanha com atraso de rotacao. A leitura e de amortecer a queda; a energia vai para baixo e para dentro do corpo, nao para um alvo a frente.",
+   "C_dados": {
+    "medicoes": [
+     "motion.sequencia_do_corpo.ordem",
+     "motion.fases.fases"
+    ]
+   },
+   "D_alternativas": [
+    "Pode ser a preparacao de um Body Slam ou de uma investida a partir do agachamento, e nao o golpe em si.",
+    "O atraso do chapeu pode ser peso de skinning do osso Head e nao uma decisao de animacao."
+   ],
+   "E_falta_observar": [
+    "qual movimento o diretor associa a attack 1 (a ficha do Mushroom lista Body Slam sem especificar)",
+    "um alvo geometrico autorizado para ver se a forca aponta para ele"
+   ],
+   "F_correcao": {
+    "descricao": "Investigar se o objetivo e um golpe: nesse caso estudar levar o tronco e o chapeu para a frente e nao para baixo depois do pouso.",
+    "aplicada": false
+   },
+   "G_sustentacao": {
+    "nivel": "hipotese_coreografica",
+    "justificativa": "A rotacao do tronco e do chapeu e visivel nas duas vistas laterais; o significado como \"amortecer\" e hipotese sem briefing nem alvo."
+   }
+  },
+  {
+   "id": "d04",
+   "principio": "solid_drawing",
+   "region": "mao_D",
+   "frames": [
+    11,
+    21
+   ],
+   "A_visivel": {
+    "descricao": "Em g11 e g21, nas vistas lado D e q3 tras D, a mao direita quase nao aparece: so uma ponta laranja junto ao antebraco em g11 e nada alem do antebraco em g21, com o chao liso ao fundo.",
+    "folhas": [
+     {
+      "file": "sheets/folha_mao_D_lado_D_e12.png",
+      "leitura": "A94B4"
+     },
+     {
+      "file": "sheets/folha_mao_D_q3_tras_D_e12.png",
+      "leitura": "BD5A5"
+     }
+    ]
+   },
+   "B_interpretacao": "A mao esta enterrada no plano do chao: os vertices da malha da mao D descem ate cerca de 0,21 m abaixo do plano e ficam abaixo dele de g11 a g22.",
+   "C_dados": {
+    "medicoes": [
+     "motion.chao.por_rotulo.hand_R.prof_max_m",
+     "motion.chao.por_rotulo.hand_R.frames",
+     "motion.chao.plano_z"
+    ]
+   },
+   "D_alternativas": [
+    "O plano do chao foi calibrado pelos pes da idle (z=0,0087) e pode diferir do chao do jogo; se o jogo elevar o personagem (apoio no chao/altura visual), a penetracao diminui.",
+    "O render esconde o que fica abaixo do plano; isso nao prova que o jogo tambem esconda."
+   ],
+   "E_falta_observar": [
+    "o chao real do jogo e a regra de travar no chao do laboratorio",
+    "uma vista com o chao transparente para ver a mao abaixo do plano"
+   ],
+   "F_correcao": {
+    "descricao": "Investigar subir o quadril ou reposicionar as maos entre g11 e g22 para ficarem sobre o chao; nada foi alterado.",
+    "aplicada": false
+   },
+   "G_sustentacao": {
+    "nivel": "fato_geometrico",
+    "justificativa": "A profundidade vem da altura minima dos vertices da malha em relacao ao plano calibrado; as imagens so mostram a ausencia da mao, coerente com isso."
+   }
+  },
+  {
+   "id": "d05",
+   "principio": "solid_drawing",
+   "region": "mao_D",
+   "frames": [
+    31,
+    41,
+    54
+   ],
+   "A_visivel": {
+    "descricao": "Em g31 e g41 a mao D aparece como um bloco quadrado, sem dedos separados, pendurado na ponta do antebraco quase vertical e apoiado perto do chao; em g54 o bloco gira e fica inclinado, com uma pequena saliencia lateral.",
+    "folhas": [
+     {
+      "file": "sheets/folha_mao_D_lado_D_e12.png",
+      "leitura": "A94B4"
+     },
+     {
+      "file": "sheets/folha_mao_D_q3_tras_D_e12.png",
+      "leitura": "BD5A5"
+     }
+    ]
+   },
+   "B_interpretacao": "A malha da mao nao tem dedos individualizados, entao abrir ou fechar a mao nao e legivel: isso limita qualquer julgamento de garra ou de punho fechado nesta animacao.",
+   "C_dados": {
+    "medicoes": [
+     "investigation.rig.label_vertex_counts.hand_R"
+    ]
+   },
+   "D_alternativas": [
+    "O bloco pode ser uma escolha de estilo do personagem e nao uma limitacao a corrigir."
+   ],
+   "E_falta_observar": [
+    "vista da palma/de baixo da mao",
+    "a intencao de arte para as maos do Mushroom (nao ha referencia aprovada)"
+   ],
+   "F_correcao": {
+    "descricao": "Se dedos legiveis forem desejados, seria mudanca de malha/rig: decisao do diretor, fora do escopo desta fase.",
+    "aplicada": false
+   },
+   "G_sustentacao": {
+    "nivel": "observacao_visual",
+    "justificativa": "O bloco sem dedos aparece nas duas vistas independentes nos frames citados; a contagem de 297 vertices na regiao da mao confirma uma malha simples."
+   }
+  },
+  {
+   "id": "d06",
+   "principio": "solid_drawing",
+   "region": "mao_D",
+   "frames": [
+    6,
+    7,
+    10
+   ],
+   "A_visivel": {
+    "descricao": "Em g6, na vista q3 tras D, aparecem dois pequenos fragmentos laranja entre as lamelas do chapeu; em g7 a mao D nao aparece em nenhuma das duas vistas, so lamelas e a face de baixo do chapeu; em g10 a mao aparece sob a borda do chapeu, parcialmente coberta.",
+    "folhas": [
+     {
+      "file": "sheets/folha_mao_D_lado_D_e12.png",
+      "leitura": "A94B4"
+     },
+     {
+      "file": "sheets/folha_mao_D_q3_tras_D_e12.png",
+      "leitura": "BD5A5"
+     }
+    ]
+   },
+   "B_interpretacao": "O teste geometrico classifica mao D contra o chapeu (rotulo head) como ATRAVESSAMENTO_PROVAVEL em g7 e g10: a mao ficaria dentro do volume do chapeu durante a queda.",
+   "C_dados": {
+    "medicoes": [
+     "contacts.classificacao.hand_R|head.7.classe",
+     "contacts.classificacao.hand_R|head.7.criterio",
+     "contacts.classificacao.hand_R|head.10.classe"
+    ]
+   },
+   "D_alternativas": [
+    "Pode ser so oclusao (mao atras ou abaixo do chapeu) sem interpenetracao: as lamelas sao geometria fina e a malha vizinha e aberta, onde o cercamento por raios e menos confiavel.",
+    "O chapeu inteiro esta ponderado ao osso Head, entao o rotulo head inclui o chapeu todo."
+   ],
+   "E_falta_observar": [
+    "a mao D nao foi observada em g6, g7 e g9 em nenhuma vista; falta uma vista de baixo ou um corte do chapeu para ver se ha interseccao"
+   ],
+   "F_correcao": {
+    "descricao": "Se a interseccao for confirmada, considerar tirar os bracos do volume do chapeu entre g1 e g10 (decisao do diretor).",
+    "aplicada": false
+   },
+   "G_sustentacao": {
+    "nivel": "fato_geometrico",
+    "justificativa": "O fato e o resultado do teste (hipotese de contato); a interseccao em si nao foi observada em imagem e continua hipotese."
+   }
+  },
+  {
+   "id": "d07",
+   "principio": "solid_drawing",
+   "region": "pernas_D",
+   "frames": [
+    11,
+    13
+   ],
+   "A_visivel": {
+    "descricao": "Nenhuma folha de pernas foi aberta para esta entrada: a afirmacao vem so da trilha de poses (altura minima dos vertices por rotulo), sem observacao visual.",
+    "folhas": []
+   },
+   "B_interpretacao": "As pernas (coxa e canela) chegam a cerca de 0,08 a 0,10 m abaixo do plano do chao durante o agachamento, enquanto os pes ficam apoiados no plano.",
+   "C_dados": {
+    "medicoes": [
+     "motion.chao.por_rotulo.leg_R.prof_max_m",
+     "motion.chao.por_rotulo.leg_L.prof_max_m",
+     "motion.pe_D.rows.10.classe"
+    ]
+   },
+   "D_alternativas": [
+    "A deformacao do skinning no joelho dobrado pode jogar vertices da perna para baixo do plano sem que o osso atravesse o chao.",
+    "O plano calibrado pela idle pode diferir do chao do jogo."
+   ],
+   "E_falta_observar": [
+    "imagens das pernas nesses frames (a regiao pernas_D nao foi investigada com vistas)",
+    "o chao real do jogo"
+   ],
+   "F_correcao": {
+    "descricao": "Investigar a altura do quadril no agachamento e o skinning do joelho antes de qualquer correcao.",
+    "aplicada": false
+   },
+   "G_sustentacao": {
+    "nivel": "fato_geometrico",
+    "justificativa": "Medicao geometrica dos vertices em relacao ao plano; sem imagem, nao se afirma como a perna aparece."
+   }
+  },
+  {
+   "id": "d08",
+   "principio": "staging",
+   "region": "corpo_todo",
+   "frames": [
+    9,
+    10,
+    11,
+    21
+   ],
+   "A_visivel": {
+    "descricao": "Na vista frente, em g9, g10, g11 e g21, o que se ve e um disco redondo (o topo do chapeu) com so os pes saindo por baixo; tronco e bracos nao aparecem. Nas vistas lado D e lado E os mesmos frames mostram o corpo agachado e os bracos.",
+    "folhas": [
+     {
+      "file": "sheets/folha_corpo_todo_frente_e12.png",
+      "leitura": "12C5D"
+     },
+     {
+      "file": "sheets/folha_corpo_todo_lado_D_e12.png",
+      "leitura": "2A43B"
+     },
+     {
+      "file": "sheets/folha_corpo_todo_lado_E_e12.png",
+      "leitura": "04FFF"
+     }
+    ]
+   },
+   "B_interpretacao": "A leitura da acao depende do angulo: de frente a pose agachada some atras do chapeu e perde clareza; de lado ela e legivel.",
+   "C_dados": {
+    "medicoes": [
+     "investigation.regions.corpo_todo.final.frames_ok"
+    ]
+   },
+   "D_alternativas": [
+    "A camera do jogo costuma ficar acima e atras do personagem, nao frontal e baixa; nessa posicao o chapeu pode ou nao cobrir o corpo."
+   ],
+   "E_falta_observar": [
+    "a camera real do jogo (elevacao e angulo) nao foi usada nesta analise"
+   ],
+   "F_correcao": {
+    "descricao": "Conferir no jogo, com a camera real, se o chapeu esconde a pose; so entao decidir se ajusta a inclinacao do chapeu.",
+    "aplicada": false
+   },
+   "G_sustentacao": {
+    "nivel": "observacao_visual",
+    "justificativa": "A ocultacao frontal e o contraste com as duas vistas laterais aparecem em tres vistas independentes nos quatro frames."
+   }
+  },
+  {
+   "id": "d09",
+   "principio": "timing",
+   "region": "pe_D",
+   "frames": [
+    11,
+    31
+   ],
+   "A_visivel": {
+    "descricao": "Nenhuma folha de pes foi aberta para esta entrada (o pe direito ficou so parcialmente observado: frames 10, 11 e 21 sem vista); a afirmacao vem da altura medida da malha do pe sobre o plano do chao.",
+    "folhas": []
+   },
+   "B_interpretacao": "Os dois pes ficam apoiados no plano a partir de g9 a g11 e o pe D levanta cerca de 2,7 cm em g31 (classe ambigua), sem que a medida decida se e um passo ou apenas peso deslocado.",
+   "C_dados": {
+    "medicoes": [
+     "motion.pe_D.rows.10.classe",
+     "motion.pe_E.rows.10.classe",
+     "motion.pe_D.rows.30.folga_m",
+     "motion.pe_D.rows.30.classe"
+    ]
+   },
+   "D_alternativas": [
+    "A tolerancia de contato (1 cm) e a de suspenso (3 cm) sao propostas; a classe \"proximo_ambiguo\" nao diz se ha toque."
+   ],
+   "E_falta_observar": [
+    "vistas do pe D em g31 (so uma vista boa) para ver se levanta de fato"
+   ],
+   "F_correcao": {
+    "descricao": "Nenhuma correcao sugerida: o deslocamento de 2,7 cm pode ser peso, nao erro.",
+    "aplicada": false
+   },
+   "G_sustentacao": {
+    "nivel": "fato_geometrico",
+    "justificativa": "Altura medida do vertice mais baixo do pe contra o plano calibrado pela idle, com limiares propostos declarados."
+   }
+  }
+ ]
+}

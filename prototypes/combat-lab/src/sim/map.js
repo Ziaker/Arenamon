@@ -8,7 +8,9 @@
 import {C} from './config.js';
 import {getFighterMaxStamina} from './entity.js';
 import {sturdyGuard} from './passive-engine.js';
+import {circleContact, noteSurface} from './solid-contact.js';
 import {vec, add, sub, scale, length, normalize, dot, clamp, direction, angleOf} from './math.js';
+import {noteContact} from './collision-probe.js';
 
 export const MAP_DEFAULTS = {
   arenaRadius: 32.5,
@@ -20,6 +22,11 @@ export const MAP_DEFAULTS = {
   destructibleRespawnMin: 15,
   destructibleRespawnMax: 30,
   destructibleGhostPreview: 2.0,
+  impactMinSpeed: 1.0,           // velocidade horizontal mínima (m/s) para um arremessado machucar um destrutível (R7.15)
+  impactDamageToObject: 6.0,     // dano ao destrutível = velocidade horizontal relativa × este coeficiente (R3.7, R7.15)
+  impactDamageToFighter: 2.5,    // dano ao arremessado = velocidade horizontal relativa × este coeficiente (colisão ambiental)
+  passageClearance: 1.2, // vão mínimo (m) entre dois sólidos do mapa: corpo do lutador (1,0) + folga; vão menor prende o lutador e a IA
+  spawnClearance: 0.6,   // folga mínima (m) entre o corpo de um lutador e qualquer objeto sólido recém-colocado (R3.13: distâncias mínimas configuráveis)
   obstacleCount: 4,
   platformCount: 2,   // quantas plataformas do catálogo abaixo entram no mapa (0 desliga; o catálogo consome RNG igual)
   platforms: [
@@ -104,6 +111,7 @@ export function createMapState(seed = 12345) {
     nextEntityId: 1000,
     itemStats: {spawned: 0, collected: 0, expired: 0},
     destructibleStats: {broken: 0, respawned: 0},
+    placementConflicts: 0, // objetos sólidos sem posição válida (livre de lutadores e com passagem): mantêm a sorteada; contagem visível no diagnóstico
   };
 }
 
@@ -168,7 +176,23 @@ export function dist3D(p1, p2) {
  * Garante que não sobreponha outros objetos, plataformas, spawns de lutadores,
  * e permaneça dentro da arena circular de 50 m.
  */
-export function isValidSpawnPosition(pos, radius, mapState, fighters = [], minDistFighter = 5.0) {
+/** Vão exato (m) entre duas formas do plano XZ: caixa alinhada {x, z, hx, hz} ou círculo {x, z, r}; negativo = sobreposição. */
+export function solidGap(a, b) {
+  if (a.r != null && b.r != null) return Math.hypot(a.x - b.x, a.z - b.z) - a.r - b.r;
+  if (a.r != null || b.r != null) {
+    const [c, k] = a.r != null ? [a, b] : [b, a], dx = Math.max(Math.abs(c.x - k.x) - k.hx, 0), dz = Math.max(Math.abs(c.z - k.z) - k.hz, 0);
+    return dx === 0 && dz === 0 ? -(c.r + Math.min(k.hx - Math.abs(c.x - k.x), k.hz - Math.abs(c.z - k.z))) : Math.hypot(dx, dz) - c.r;
+  }
+  const dx = Math.abs(a.x - b.x) - a.hx - b.hx, dz = Math.abs(a.z - b.z) - a.hz - b.hz;
+  return dx > 0 && dz > 0 ? Math.hypot(dx, dz) : Math.max(dx, dz);
+}
+/** Forma física de um sólido do mapa (obstáculo, destrutível ou plataforma) em XZ. */
+function footprintOf(kind, o, pos = o.pos) {
+  if (kind === 'platform') return {x: pos.x, z: pos.z, hx: o.width / 2, hz: o.depth / 2};
+  if (kind === 'destructible') return {x: pos.x, z: pos.z, hx: o.size.hx, hz: o.size.hz};
+  return o.shape === 'box' ? {x: pos.x, z: pos.z, hx: o.hx, hz: o.hz} : {x: pos.x, z: pos.z, r: o.radius};
+}
+export function isValidSpawnPosition(pos, radius, mapState, fighters = [], minDistFighter = 5.0, solid = /** @type {any} */ (null)) {
   const arenaR = effectiveArenaRadius();
   const dCenter = Math.hypot(pos.x, pos.z);
   // Deve estar dentro da arena com margem
@@ -201,6 +225,17 @@ export function isValidSpawnPosition(pos, radius, mapState, fighters = [], minDi
     }
   }
 
+  // Objeto SÓLIDO: o vão até qualquer outro sólido tem de ser ≥ passageClearance (ou o lutador entra, não cabe e fica preso).
+  if (solid) {
+    const me = {x: pos.x, z: pos.z, ...solid}, need = C.map?.passageClearance ?? MAP_DEFAULTS.passageClearance;
+    for (const p of mapState.platforms) if (solidGap(me, footprintOf('platform', p)) < need) return false;
+    for (const o of mapState.obstacles) if (solidGap(me, footprintOf('obstacle', o)) < need) return false;
+    for (const d of mapState.destructibles) {
+      if (dist2D(pos, d.pos) < 1e-4) continue;
+      if ((d.state === 'solid' || d.state === 'ghost') && solidGap(me, footprintOf('destructible', d)) < need) return false;
+    }
+  }
+
   return true;
 }
 
@@ -209,8 +244,8 @@ export function isValidSpawnPosition(pos, radius, mapState, fighters = [], minDi
  * Se o ponto sorteado for inválido, espirala para fora até encontrar uma válida.
  * Se nenhuma for encontrada após tentativas, retorna null para adiar (R10.6).
  */
-export function findNearestValidPosition(candidate, radius, mapState, fighters = [], maxAttempts = 32) {
-  if (isValidSpawnPosition(candidate, radius, mapState, fighters)) return candidate;
+export function findNearestValidPosition(candidate, radius, mapState, fighters = [], maxAttempts = 32, solid = /** @type {any} */ (null)) {
+  if (isValidSpawnPosition(candidate, radius, mapState, fighters, 5.0, solid)) return candidate;
 
   const stepDist = 1.5;
   for (let ring = 1; ring <= 8; ring++) {
@@ -223,12 +258,59 @@ export function findNearestValidPosition(candidate, radius, mapState, fighters =
         z: candidate.z + Math.sin(theta) * r,
         y: candidate.y ?? 0,
       };
-      if (isValidSpawnPosition(testPos, radius, mapState, fighters)) {
+      if (isValidSpawnPosition(testPos, radius, mapState, fighters, 5.0, solid)) {
         return testPos;
       }
     }
   }
   return null; // Adiar geração (R10.6)
+}
+
+/** Folga (m) entre o corpo quadrado de um lutador e uma caixa alinhada aos eixos centrada em (x, z); negativa = sobreposição. */
+export function bodyGapToBox(pos, x, z, hx, hz) {
+  const r = C.test?.halfExtent ?? 0.5;
+  return Math.max(Math.abs(pos.x - x) - hx - r, Math.abs(pos.z - z) - hz - r);
+}
+/**
+ * Algum lutador impede materializar (ou posicionar) uma caixa sólida aqui? Vale se o corpo, na mesma faixa de altura do objeto
+ * (R3.13 em 3D: quem está no ar acima do topo não bloqueia), estiver a menos de `map.spawnClearance` da caixa — sobreposição incluída.
+ */
+export function fighterBlocksBox(fighters, x, z, hx, hz, y0, y1) {
+  const clearance = C.map?.spawnClearance ?? MAP_DEFAULTS.spawnClearance, bodyH = C.extras?.visual?.bodyHeight ?? 1.2;
+  for (const f of fighters) {
+    if (!f?.position || f.hp <= 0 || f.absent) continue;
+    const alt = (f.flight?.y ?? f.groundY ?? 0) + (f.vaultHeight ?? 0);
+    if (alt >= y1 || alt + bodyH <= y0) continue;
+    if (bodyGapToBox(f.position, x, z, hx, hz) < clearance) return true;
+  }
+  return false;
+}
+/**
+ * Reposiciona plataformas que nasceriam sobre (ou colada em) um lutador: espiral determinística de 1,5 m a partir da posição sorteada,
+ * sem consumir RNG (as demais seeds ficam idênticas). Sem posição válida, mantém a sorteada e registra em mapState.placementConflicts.
+ */
+function clearPlatformsOfFighters(mapState, fighters) {
+  const arenaR = effectiveArenaRadius(), square = (C.map?.arenaShape ?? 'circle') === 'square', half = C.test?.arenaHalf ?? 16, passage = C.map?.passageClearance ?? MAP_DEFAULTS.passageClearance;
+  // Mesmo contorno do clampToArena: circular (raio − 2 m de margem) ou, na arena quadrada, o meio-lado.
+  const inside = (p, pos) => square ? Math.max(Math.abs(pos.x) + p.width / 2, Math.abs(pos.z) + p.depth / 2) <= half : Math.hypot(pos.x, pos.z) + Math.hypot(p.width, p.depth) / 2 <= arenaR - 2.0;
+  const clear = (p, pos, placed) => !fighterBlocksBox(fighters, pos.x, pos.z, p.width / 2, p.depth / 2, 0, p.height)
+    && placed.every(o => Math.abs(pos.x - o.pos.x) >= (p.width + o.width) / 2 + passage || Math.abs(pos.z - o.pos.z) >= (p.depth + o.depth) / 2 + passage)
+    && inside(p, pos);
+  const placed = [];
+  for (const p of mapState.platforms) {
+    if (!clear(p, p.pos, placed)) {
+      let moved = false;
+      for (let ring = 1; ring <= 8 && !moved; ring++) {
+        const n = ring * 8;
+        for (let i = 0; i < n && !moved; i++) {
+          const theta = (i / n) * Math.PI * 2, pos = {x: p.pos.x + Math.cos(theta) * ring * 1.5, y: p.pos.y, z: p.pos.z + Math.sin(theta) * ring * 1.5};
+          if (clear(p, pos, placed)) {p.pos = pos;moved = true;}
+        }
+      }
+      if (!moved) mapState.placementConflicts = (mapState.placementConflicts ?? 0) + 1;
+    }
+    placed.push(p);
+  }
 }
 
 /** Inicializa a arena completa com plataformas, obstáculos, destrutíveis e itens iniciais. */
@@ -262,6 +344,8 @@ export function initMap(mapState, fighters = []) {
     pos: {x: p.pos.x * arenaScale, y: p.pos.y, z: p.pos.z * arenaScale},
   }));
 
+  clearPlatformsOfFighters(mapState, fighters);   // R3.13: proteger as posições iniciais dos lutadores
+
   // 2. Obstáculos indestrutíveis: mistura de caixas, cilindros e pilares (R1.7, R3.11)
   mapState.obstacles = [];
   const obstacleShapes = [
@@ -277,7 +361,10 @@ export function initMap(mapState, fighters = []) {
     const angle = (i / 4) * Math.PI * 2 + randomRange(mapState, -0.4, 0.4);
     const dist = randomRange(mapState, 14, 28) * arenaScale;
     const rawPos = {x: Math.cos(angle) * dist, z: Math.sin(angle) * dist, y: 0};
-    const validPos = findNearestValidPosition(rawPos, 2.0, mapState, fighters) || rawPos;
+    const shapeBox = s.shape === 'box', solid = shapeBox ? {hx: s.hx, hz: s.hz} : {r: s.radius};
+    const found = findNearestValidPosition(rawPos, 2.0, mapState, fighters, 32, solid);
+    if (!found) mapState.placementConflicts = (mapState.placementConflicts ?? 0) + 1;
+    const validPos = found || rawPos;
     mapState.obstacles.push({
       id: `obs_${i + 1}`,
       pos: validPos,
@@ -286,7 +373,7 @@ export function initMap(mapState, fighters = []) {
       hz: s.hz ?? s.radius,
       radius: s.radius ?? Math.max(s.hx, s.hz),
       height: s.height,
-      angle: randomRange(mapState, 0, Math.PI * 2),
+      angle: (randomRange(mapState, 0, Math.PI * 2), 0),   // o sorteio é consumido (sequência da RNG preservada), mas a física sempre tratou caixas como alinhadas aos eixos: o desenho passa a ser igual
     });
   }
 
@@ -297,7 +384,9 @@ export function initMap(mapState, fighters = []) {
     const angle = (i / 4) * Math.PI * 2 + Math.PI / 4 + randomRange(mapState, -0.3, 0.3);
     const dist = randomRange(mapState, 10, 24) * arenaScale;
     const rawPos = {x: Math.cos(angle) * dist, z: Math.sin(angle) * dist, y: 0};
-    const validPos = findNearestValidPosition(rawPos, 1.2, mapState, fighters) || rawPos;
+    const found = findNearestValidPosition(rawPos, 1.2, mapState, fighters, 32, {hx: 0.8, hz: 0.8});
+    if (!found) mapState.placementConflicts = (mapState.placementConflicts ?? 0) + 1;
+    const validPos = found || rawPos;
     const baseHp = M.destructibleHp ?? 30;
     mapState.destructibles.push({
       id: `dest_${i + 1}`,
@@ -306,7 +395,7 @@ export function initMap(mapState, fighters = []) {
       pos: validPos,
       size: {hx: 0.8, hz: 0.8, height: 1.6},
       shape: 'box',
-      angle: randomRange(mapState, 0, Math.PI * 2),
+      angle: (randomRange(mapState, 0, Math.PI * 2), 0),   // idem obstáculos: caixa alinhada aos eixos
       state: 'solid',
       respawnTimer: 0,
       ghostTimer: 0,
@@ -379,7 +468,7 @@ export function stepMap(mapState, dt, fighters = [], events = []) {
         const angle = randomRange(mapState, 0, Math.PI * 2);
         const dist = randomRange(mapState, 10, 24) * getArenaScale();
         const rawPos = {x: Math.cos(angle) * dist, z: Math.sin(angle) * dist, y: 0};
-        const validPos = findNearestValidPosition(rawPos, 1.2, mapState, fighters);
+        const validPos = findNearestValidPosition(rawPos, 1.2, mapState, fighters, 32, {hx: d.size.hx, hz: d.size.hz});
         if (!validPos) {
           // Adia a geração quando não existir posição válida (R10.6, Caso C da auditoria)
           d.respawnTimer = 1.0;
@@ -395,7 +484,8 @@ export function stepMap(mapState, dt, fighters = [], events = []) {
       d.ghostTimer -= dt;
       if (d.ghostTimer <= 0) {
         // Antes de materializar sólido, verifica se o local não foi bloqueado por combatente (R10.6)
-        if (!isValidSpawnPosition(d.pos, 1.2, mapState, fighters, 1.5)) {
+        // Sem lutador (corpo quadrado, mesma altura) a menos de spawnClearance da caixa do objeto, e sem sobrepor outros sólidos.
+        if (!isValidSpawnPosition(d.pos, 1.2, mapState, [], 0, {hx: d.size.hx, hz: d.size.hz}) || fighterBlocksBox(fighters, d.pos.x, d.pos.z, d.size.hx, d.size.hz, d.pos.y ?? 0, (d.pos.y ?? 0) + d.size.height)) {
           d.ghostTimer = 0.5; // Adia a materialização física enquanto houver sobreposição
           continue;
         }
@@ -825,13 +915,27 @@ export function damageDestructible(destructible, baseDamage, category = 'physica
  * Colisão física de um lutador contra plataformas (laterais sólidas), obstáculos e destrutíveis (R1.6, R1.8, R7.6, R7.15, R10.7-R10.8).
  */
 /** Subindo rápido o bastante para passar por cima do topo? Só o salto voluntário (ou tudo, com launchSolidCollision = 0). */
+/** Sobreposição mínima (m) que conta como contato: encostar na face (resíduo de ponto flutuante do reposicionamento) não é penetração. */
+const TOUCH_EPS = 1e-9;
 function risesOver(f, fY, top) {
   const fl = f.flight;
   if (!fl || !(fl.vy > 0) || fY + (fl.vy * fl.vy) / 35 < top) return false;
   return !!fl.isNormalJump || !((C.map?.launchSolidCollision) ?? 1);
 }
+/** Voo de ARREMESSO por golpe (launch() marca launchedByHit); salto voluntário, queda de borda e Move Bounce não são arremesso. */
+const isLaunchThrow = f => !!f.launchedByHit && !f.flight.isNormalJump && !f.flight.bounce && !f.flight.isEdgeFall;
+/** Arremessado contra um sólido indestrutível: reflete a parte horizontal que entra (ângulo especular) escalada pela restituição de parede (R3.12). */
+function bounceOffSolid(f, n) {
+  const h = f.flight.horizontal, hv = h.x * n.x + h.z * n.z;
+  if (!(hv < 0)) return;
+  // Limitado a 1 (rebote perfeito): contra pilares e caixas o arremesso nunca sai com mais velocidade do que entrou, mesmo com restituição × multiplicador > 1.
+  const factor = C.extras.toggles.enableWallBounce ? Math.min(1, C.rules.wallRestitution * (C.map?.wallBounceMultiplier ?? 1)) : 0;
+  f.flight.horizontal = {x: h.x - n.x * hv * (1 + factor), z: h.z - n.z * hv * (1 + factor)};
+  f.velocity = {...f.flight.horizontal};
+}
 export function collideMapFighter(mapState, f, events = []) {
   if (!mapState) return;
+  const hv0 = f.flight?.horizontal ?? f.velocity, v0x = hv0.x, v0z = hv0.z;   // velocidade horizontal antes de qualquer contato desta chamada (sonda de colisão; sem alocação)
   const halfExtent = C.test?.halfExtent ?? 0.35;
   const currentY = f.flight ? (f.flight.y ?? (f.groundY ?? 0)) : (f.groundY ?? 0);
   const fY = currentY + (f.vaultHeight ?? 0);
@@ -848,19 +952,20 @@ export function collideMapFighter(mapState, f, events = []) {
       const dx = f.position.x - px, dz = f.position.z - pz;
       const ox = (hx + halfExtent) - Math.abs(dx);
       const oz = (hz + halfExtent) - Math.abs(dz);
-      if (ox > 0 && oz > 0) {
+      if (ox > TOUCH_EPS && oz > TOUCH_EPS) {
+        let n;
         if (ox < oz) {
-          const sign = dx > 0 ? 1 : -1;
+          const sign = dx > 0 ? 1 : -1;n = {x: sign, z: 0};
           f.position.x = px + sign * (hx + halfExtent);
           if (f.velocity.x * sign < 0) f.velocity.x = 0;
           if (f.flight && !f.flight.isNormalJump && f.flight.horizontal.x * sign < 0) f.flight.horizontal.x = 0;
         } else {
-          const sign = dz > 0 ? 1 : -1;
+          const sign = dz > 0 ? 1 : -1;n = {x: 0, z: sign};
           f.position.z = pz + sign * (hz + halfExtent);
           if (f.velocity.z * sign < 0) f.velocity.z = 0;
           if (f.flight && !f.flight.isNormalJump && f.flight.horizontal.z * sign < 0) f.flight.horizontal.z = 0;
         }
-        f.contacts++;
+        f.contacts++;noteContact(f, 'platform', p.id ?? null, n, Math.min(ox, oz), v0x, v0z);
       }
     }
   }
@@ -875,31 +980,50 @@ export function collideMapFighter(mapState, f, events = []) {
       if (f.flight && f.flight.vy <= 0 && Math.abs(fY + fHeight - (o.pos?.y ?? 0)) <= 1e-6) continue;
       if (risesOver(f, fY, topY)) continue;
       if (o.shape === 'cylinder' || o.shape === 'pillar') {
-        const d = dist2D(f.position, o.pos);
-        const minDist = o.radius + halfExtent;
-        if (d < minDist && d > 1e-6) {
-          const pushDir = {x: (f.position.x - o.pos.x) / d, z: (f.position.z - o.pos.z) / d};
-          f.position.x = o.pos.x + pushDir.x * minDist;
-          f.position.z = o.pos.z + pushDir.z * minDist;
-          f.contacts++;
+        // Menor translação real, inclusive com o centro do lutador exatamente no centro do pilar (antes: contato descartado e lutador preso).
+        const contact = circleContact(o.pos, o.radius, f.position, halfExtent);
+        if (contact) {
+          const n = contact.normal;
+          f.position.x += n.x * contact.depth;
+          f.position.z += n.z * contact.depth;
+          // Resposta DIFERENCIADA por estado (R3.12/R3.7/R7.15): nunca uma resposta genérica única.
+          if (f.flight) {
+            // Arremessado POR GOLPE (launch() marca launchedByHit) contra indestrutível (R3.12): rebote especular pelo ângulo, intensidade pela restituição
+            // de parede. Salto voluntário, queda de borda e Move Bounce não são arremesso: mantêm a própria velocidade (só a posição é corrigida).
+            if (isLaunchThrow(f)) bounceOffSolid(f, n);
+          } else if (!f.action) {
+            // Locomoção livre: remove só a componente que entra; a tangente é preservada e a normal alimenta o deslize do controlador.
+            const into = f.velocity.x * n.x + f.velocity.z * n.z;
+            if (into < 0) {f.velocity.x -= n.x * into;f.velocity.z -= n.z * into;}
+            noteSurface(f, n);
+          }
+          // Ação em curso (tackle, esquiva...): a velocidade pertence à ação; só a posição é corrigida.
+          f.contacts++;noteContact(f, 'obstacle', o.id ?? null, n, contact.depth, v0x, v0z);
         }
       } else {
         const dx = f.position.x - o.pos.x, dz = f.position.z - o.pos.z;
         const ox = (o.hx + halfExtent) - Math.abs(dx);
         const oz = (o.hz + halfExtent) - Math.abs(dz);
-        if (ox > 0 && oz > 0) {
+        if (ox > TOUCH_EPS && oz > TOUCH_EPS) {
+          const n = ox < oz ? {x: dx > 0 ? 1 : -1, z: 0} : {x: 0, z: dz > 0 ? 1 : -1};
           if (ox < oz) {
             const sign = dx > 0 ? 1 : -1;
             f.position.x = o.pos.x + sign * (o.hx + halfExtent);
-            if (f.velocity.x * sign < 0) f.velocity.x = 0;
-            if (f.flight && !f.flight.isNormalJump && f.flight.horizontal.x * sign < 0) f.flight.horizontal.x = 0;
+            if (f.flight && isLaunchThrow(f)) bounceOffSolid(f, {x: sign, z: 0});   // arremesso por golpe contra indestrutível: rebote (R3.12)
+            else {
+              if (f.velocity.x * sign < 0) f.velocity.x = 0;
+              if (f.flight && !f.flight.isNormalJump && f.flight.horizontal.x * sign < 0) f.flight.horizontal.x = 0;
+            }
           } else {
             const sign = dz > 0 ? 1 : -1;
             f.position.z = o.pos.z + sign * (o.hz + halfExtent);
-            if (f.velocity.z * sign < 0) f.velocity.z = 0;
-            if (f.flight && !f.flight.isNormalJump && f.flight.horizontal.z * sign < 0) f.flight.horizontal.z = 0;
+            if (f.flight && isLaunchThrow(f)) bounceOffSolid(f, {x: 0, z: sign});
+            else {
+              if (f.velocity.z * sign < 0) f.velocity.z = 0;
+              if (f.flight && !f.flight.isNormalJump && f.flight.horizontal.z * sign < 0) f.flight.horizontal.z = 0;
+            }
           }
-          f.contacts++;
+          f.contacts++;noteContact(f, 'obstacle', o.id ?? null, n, Math.min(ox, oz), v0x, v0z);
         }
       }
     }
@@ -918,12 +1042,12 @@ export function collideMapFighter(mapState, f, events = []) {
       const dx = f.position.x - d.pos.x, dz = f.position.z - d.pos.z;
       const ox = (d.size.hx + halfExtent) - Math.abs(dx);
       const oz = (d.size.hz + halfExtent) - Math.abs(dz);
-      if (ox > 0 && oz > 0) {
+      if (ox > TOUCH_EPS && oz > TOUCH_EPS) {
         if (f.flight && !f.flight.isNormalJump) {
           const relSpeed = length(f.flight.horizontal);
-          if (relSpeed > 1.0) {
-            const dmgToObj = relSpeed * 6.0;
-            const dmgToFighter = relSpeed * 2.5;
+          if (relSpeed > (C.map?.impactMinSpeed ?? 1.0)) {
+            const dmgToObj = relSpeed * (C.map?.impactDamageToObject ?? 6.0);
+            const dmgToFighter = relSpeed * (C.map?.impactDamageToFighter ?? 2.5);
             damageDestructible(d, dmgToObj, 'environment', f, mapState, events);
             processDamageWithShieldAndStages(f, dmgToFighter, null, false, false);
             events.push({result: 'destructibleSplat', fighter: f.id, destructible: d.id, damage: dmgToFighter});
@@ -932,6 +1056,7 @@ export function collideMapFighter(mapState, f, events = []) {
           }
         }
         if (d.state === 'solid') {
+          const n = ox < oz ? {x: dx > 0 ? 1 : -1, z: 0} : {x: 0, z: dz > 0 ? 1 : -1};
           if (ox < oz) {
             const sign = dx > 0 ? 1 : -1;
             f.position.x = d.pos.x + sign * (d.size.hx + halfExtent);
@@ -943,7 +1068,7 @@ export function collideMapFighter(mapState, f, events = []) {
             if (f.velocity.z * sign < 0) f.velocity.z = 0;
             if (f.flight && !f.flight.isNormalJump && f.flight.horizontal.z * sign < 0) f.flight.horizontal.z = 0;
           }
-          f.contacts++;
+          f.contacts++;noteContact(f, 'destructible', d.id ?? null, n, Math.min(ox, oz), v0x, v0z);
         }
       }
     }

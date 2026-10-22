@@ -455,6 +455,7 @@
           <li><strong>Ações &amp; Moves:</strong> X para tackle ofensivo, C para esquiva defensiva (com C → X), D para defesa e A/S para Moves (Reflect e Psyshock com PL1–PL3).</li>
           <li><strong>Câmera Cinemática (Estilo ZZZ):</strong> 12 efeitos dinâmicos de apresentação (dutch angle, câmera baixa de velocidade, snap lateral, FOV punch/breathing, impact frames, speedlines e letterbox) acessíveis pelo botão 🎬 com painel exclusivo.</li>
           <li><strong>VFX 3D &amp; Visual:</strong> 9 famílias de efeitos 3D sólidos, rochas telecinéticas, barreira de energia, lasers e Modo Arena sem painéis.</li>
+          <li><strong>Cenário, HUD e consumíveis aprovados (21/10/2026):</strong> arena <em>Laboratório técnico</em>, HUD <em>Banco de Células</em> (estágios 0–4 dos 5 atributos) e consumíveis <em>Gemas Facetadas</em>. Alternância para o visual clássico e sliders em <b>Visualizar › Câmera, tremor e HUD</b>.</li>
           <li><strong>Personagens:</strong> importação de GLB do Animation Studio e sincronização das durações de animação.</li>
           <li><strong>Dashboard Bento Zero-Scroll:</strong> 9 abas de calibração, presets, replay, cenários, A × B e exportação sem necessidade de rolagem vertical.</li>
         </ul>
@@ -725,6 +726,27 @@
             Abrir Diagnóstico
           </a>
         </div>
+
+        <!-- Blender Vision: percepcao ativa -->
+        <div class="card card-highlight-accent">
+          <div class="card-top">
+            <span class="card-tag experimental">Blender Vision</span>
+            <span class="card-tag">Somente leitura</span>
+          </div>
+          <h3 class="card-h2">Percepção Ativa — Mushroom</h3>
+          <p class="card-desc">
+            Relatório do caso Mosh/Mushroom (clipe attack 1): o que a IA viu e o que não viu por região do corpo, novas vistas pedidas sozinhas, medidas de movimento, mãos abaixo do chão, diagnóstico validado e testes controlados. Não altera animação nem jogo.
+          </p>
+          <a href="scripts/blender-vision/evidence/perception_mosh/relatorio.html" class="btn-action btn-secondary">
+            Abrir Relatório do Mushroom
+          </a>
+          <a href="scripts/blender-vision/PROTOCOLO_AGENTE_VISUAL.md" class="btn-action btn-secondary" style="margin-top: 8px;">
+            Protocolo do agente (como a IA analisa)
+          </a>
+          <a href="docs/BLENDER_VISION_PERCEPCAO.md" class="btn-action btn-secondary" style="margin-top: 8px;">
+            Documentação e limites
+          </a>
+        </div>
       </div>
     </section>
 
@@ -800,6 +822,10 @@
         <a href="docs/HUD_CONSUMIVEIS_LAB.md" class="doc-item">
           <span class="doc-item-title">📘 Documentação — HUD &amp; Consumíveis (propostas)</span>
           <span class="doc-item-desc">Descrição das 3 propostas de HUD, das 21 representações de consumíveis, controles, valores exibidos e pendências de aprovação.</span>
+        </a>
+        <a href="prototypes/combat-lab/evidence/progress-scenery/jogo-padrao-1500x920.png" class="doc-item">
+          <span class="doc-item-title">🖼️ Evidências — cenário, HUD e consumíveis NO JOGO (capturas)</span>
+          <span class="doc-item-desc">Jogo principal com o cenário Laboratório técnico, o HUD Banco de Células e as Gemas Facetadas (720p, 1080p, e as versões clássicas após a alternância).</span>
         </a>
         <a href="prototypes/hud-consumiveis/evidence/combo-hudB-itensB-720p.png" class="doc-item">
           <span class="doc-item-title">🖼️ Evidências — HUD &amp; Consumíveis (capturas 720p e 1080p)</span>
@@ -892,6 +918,30 @@
         <a href="docs/MUSHROOM_MOVES_DECISOES.md" class="doc-item">
           <span class="doc-item-title">🍄 Mushroom — Moves (Emerging Stone, Bullet Punch e Sand Wave)</span>
           <span class="doc-item-desc">Documento-mestre de decisões dos moves de Mushroom, incluindo Emerging Stone aprovado (ES-D01–ES-D103).</span>
+        </a>
+        <a href="docs/COLISOES_FASE0_FASE1_RESULTADOS.md" class="doc-item">
+          <span class="doc-item-title">🧱 Overhaul de Colisões — Fases 0 a 7 (resultados)</span>
+          <span class="doc-item-desc">Matriz de defeitos reproduzidos, correções (penetração, contatos simultâneos, CCD, apoio 3D, objetos do cenário, feixes e projéteis), testes e registro de skills.</span>
+        </a>
+        <a href="docs/CALIBRACAO_BASE_V8.md" class="doc-item">
+          <span class="doc-item-title">🎚️ Base de calibração v8 e regras de combate (Riposte, Meteor Slam, recarga)</span>
+          <span class="doc-item-desc">Valores do seu export como padrão do jogo e do laboratório (184 linhas reversíveis, 2ª exportação de 22/10 incluída), patch do config.ts, regras novas de PL/clash, aceleração de recarga em todos os Moves e exportação completa.</span>
+        </a>
+        <a href="docs/AUDITORIA_DOCUMENTACAO_2026-10-22.md" class="doc-item">
+          <span class="doc-item-title">🧾 Auditoria de documentação, branches e PRs (22/10/2026)</span>
+          <span class="doc-item-desc">Documentos × código, estado das 148 branches remotas, PRs e issues abertos, links mortos do portal e o que não foi verificado.</span>
+        </a>
+        <a href="docs/PATCH_NOTES.md" class="doc-item">
+          <span class="doc-item-title">📝 Patch notes do Laboratório de Combate (v1.1.0 a v1.18.0)</span>
+          <span class="doc-item-desc">O que mudou em cada versão, em linguagem de jogo.</span>
+        </a>
+        <a href="docs/CHECKLIST_CORRECOES.md" class="doc-item">
+          <span class="doc-item-title">✅ Checklist de correções do laboratório (22/10/2026)</span>
+          <span class="doc-item-desc">Os 9 pedidos da rodada (Moves bloqueados, VFX do Riposte, sliders ×2, duração da animação, botões de IA, tooltips, calibração, softlock do Bullet Punch) com estado, causa e onde conferir.</span>
+        </a>
+        <a href="docs/COLISOES_FERRAMENTAS_LAB.md" class="doc-item">
+          <span class="doc-item-title">🔍 Colisões no Laboratório — cenários de um clique e sobreposições visuais</span>
+          <span class="doc-item-desc">Como abrir os 15 cenários de colisão (aba Cenários), ligar os colisores, o apoio atual, os contatos e as varreduras (aba Visualizar) e ler os números em Dados ao vivo.</span>
         </a>
         <a href="prototypes/combat-lab/OVERHAUL.md" class="doc-item">
           <span class="doc-item-title">🛠️ Overhaul do Laboratório</span>

@@ -1,16 +1,17 @@
 // Regras pedidas em 15/10/2026: cancelamentos do tackle e da esquiva, exaustão, tackle guiado pelo lock-on,
 // orientação estrita com lock-on, rebote vertical na parede e salto físico sobre o rival.
 // Uso: node prototypes/combat-lab/test/rules.test.mjs
+// Este teste caracteriza a mecânica nos valores de FÁBRICA do laboratório (factoryDefaults); a base de calibração v8 é coberta por calibration-base.test.mjs e pelos testes de colisão/ambiente.
 import assert from 'node:assert/strict';
 import {Game} from '../src/sim/game.js';
-import {C, resetConfig} from '../src/sim/config.js';
+import {C, resetConfig, factoryDefaults} from '../src/sim/config.js';
 import {cancelWindow} from '../src/sim/controller.js';
 import {SCENARIOS, runScenario} from '../src/sim/scenarios.js';
 import {vec, angleOf, sub} from '../src/sim/math.js';
 
 let passed = 0, checks = 0;
 const check = (label, ok, detail = '') => {checks++;assert.ok(ok, `${label} ${detail}`);};
-function test(name, fn) {resetConfig();fn();passed++;console.log('✓', name);}
+function test(name, fn) {resetConfig(factoryDefaults());fn();passed++;console.log('✓', name);}
 const cmd = (o = {}) => ({move: vec(), dodge: false, dodgeHeld: false, tackle: false, guard: false, guardPressed: false, target: null, locked: false, ...o});
 const STEP = () => C.test.step, ticks = s => Math.round(s / STEP());
 function setup(p0 = vec(0, -8), p1 = vec(6, 8)) {
@@ -22,7 +23,7 @@ test('X não cancela o próprio X; com o toggle, cancela', () => {
   let g = setup(), starts = 0, prev = null;
   run(g, 140, (t, g) => {const a = g.fighters[0].action;if (a && a !== prev && a.kind === 'tackle') starts++;prev = a;return [cmd({move: vec(0, 1), tackle: t === 2 || t === 25})];});
   check('um único tackle', starts === 1, `${starts}`);
-  resetConfig();C.actions.tackle.selfCancel = 1;g = setup();starts = 0;prev = null;
+  resetConfig(factoryDefaults());C.actions.tackle.selfCancel = 1;g = setup();starts = 0;prev = null;
   run(g, 140, (t, g) => {const a = g.fighters[0].action;if (a && a !== prev && a.kind === 'tackle') starts++;prev = a;return [cmd({move: vec(0, 1), tackle: t === 2 || t === 25})];});
   check('com o toggle: dois tackles', starts === 2, `${starts}`);
 });
@@ -32,9 +33,9 @@ test('defesa não cancela o tackle (padrão); toque de defesa perfeita cancela; 
   check('segurar D: tackle continua', g.fighters[0].action?.kind === 'tackle' && !g.fighters[0].guard);
   g = setup();run(g, mid, (t) => [cmd({move: vec(0, 1), tackle: t === 2, guard: t >= mid - 2, guardPressed: t === mid - 2})]);
   check('toque com defesa perfeita disponível: cancela e abre a janela perfeita', !g.fighters[0].action && g.fighters[0].guard && g.fighters[0].perfectLeft > 0);
-  resetConfig();C.actions.tackle.perfectGuardCancel = 0;g = setup();run(g, mid, (t) => [cmd({move: vec(0, 1), tackle: t === 2, guard: t >= mid - 2, guardPressed: t === mid - 2})]);
+  resetConfig(factoryDefaults());C.actions.tackle.perfectGuardCancel = 0;g = setup();run(g, mid, (t) => [cmd({move: vec(0, 1), tackle: t === 2, guard: t >= mid - 2, guardPressed: t === mid - 2})]);
   check('sem a opção de defesa perfeita: toque não cancela', g.fighters[0].action?.kind === 'tackle');
-  resetConfig();C.actions.tackle.guardCancel = 1;g = setup();run(g, mid, (t) => [cmd({move: vec(0, 1), tackle: t === 2, guard: t > 20})]);
+  resetConfig(factoryDefaults());C.actions.tackle.guardCancel = 1;g = setup();run(g, mid, (t) => [cmd({move: vec(0, 1), tackle: t === 2, guard: t > 20})]);
   check('toggle “Defesa cancela o tackle” ligado: segurar D cancela', !g.fighters[0].action && g.fighters[0].guard);
 });
 test('C → X só nos últimos segundos da esquiva; depois de esquiva perfeita, a qualquer momento', () => {
@@ -58,7 +59,7 @@ test('exaustão: ao sobrar menos que o menor custo (ex.: máximo 5,1 e custo 1)'
   C.rules.staminaMax = 5.1;const g = setup();g.fighters[0].stamina = 5.1;g.fighters[0].regenBase = 5.1;C.rules.regenDelay = 99;
   const at = [2, 60, 118, 176, 234];run(g, 300, (t) => [cmd({move: vec(1, 0), dodge: at.includes(t), dodgeDirection: vec(1, 0)})]);
   const f = g.fighters[0];check('cinco esquivas deixam 0,1 e o lutador exausto', Math.abs(f.stamina - .1) < .02 && f.exhausted, `${f.stamina.toFixed(2)} exausto=${f.exhausted}`);
-  resetConfig();C.rules.staminaMax = 5.1;C.rules.exhaustMode = 0;const g2 = setup();g2.fighters[0].stamina = 5.1;g2.fighters[0].regenBase = 5.1;C.rules.regenDelay = 99;
+  resetConfig(factoryDefaults());C.rules.staminaMax = 5.1;C.rules.exhaustMode = 0;const g2 = setup();g2.fighters[0].stamina = 5.1;g2.fighters[0].regenBase = 5.1;C.rules.regenDelay = 99;
   run(g2, 300, (t) => [cmd({move: vec(1, 0), dodge: at.includes(t), dodgeDirection: vec(1, 0)})]);
   check('modo Etapa A: não fica exausto com 0,1', !g2.fighters[0].exhausted);
 });

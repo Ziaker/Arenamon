@@ -1,0 +1,86 @@
+{
+ "enquadramento": {
+  "antes_ferramenta_anterior": {
+   "vistas": {
+    "front": {
+     "frames_cortados": 12,
+     "frames": 12
+    },
+    "q3": {
+     "frames_cortados": 10,
+     "frames": 12
+    },
+    "side_nX": {
+     "frames_cortados": 12,
+     "frames": 12
+    }
+   },
+   "total_cortados": 34,
+   "total": 36,
+   "metodo": "silhueta binaria (vision.py shot --modes sil, 320 px, camera padrao alinhada ao quadril) tocando a borda do quadro"
+  },
+  "depois_percepcao_ativa": {
+   "vistas": {
+    "frente_e12": {
+     "frames_cortados": 0,
+     "frames": 12
+    },
+    "lado_D_e12": {
+     "frames_cortados": 0,
+     "frames": 12
+    },
+    "lado_E_e12": {
+     "frames_cortados": 0,
+     "frames": 12
+    },
+    "q3_tras_E_e12": {
+     "frames_cortados": 0,
+     "frames": 12
+    }
+   },
+   "total_cortados": 0,
+   "total": 48,
+   "metodo": "ids por pixel (raycast) de quem nao e fundo/chao tocando a borda do quadro; camera ajustada ao corpo, escala unica"
+  }
+ },
+ "witness_anterior_no_mosh": {
+  "resumo": {
+   "COMPROVADO": 2,
+   "MEDIDO_SEM_CRITERIO": 1,
+   "NAO_COMPROVAVEL": 1,
+   "REFUTADO": 0
+  },
+  "claims": [
+   {
+    "id": "duration_54",
+    "status": "COMPROVADO"
+   },
+   {
+    "id": "rig_and_idle",
+    "status": "COMPROVADO"
+   },
+   {
+    "id": "root_displacement",
+    "status": "MEDIDO_SEM_CRITERIO"
+   },
+   {
+    "id": "artistic_quality",
+    "status": "NAO_COMPROVAVEL"
+   }
+  ],
+  "nota": "o Witness anterior nao sabe dizer onde esta a mao, se o chapeu cobre o corpo, nem se algo afunda no chao: so conta frames, inventario e deslocamento do quadril"
+ },
+ "integridade": {
+  "origem": "chars/mosh/Cogumelo.glb",
+  "origem_sha256": "07ef7d6866d467a145698275befe8213186a0452fe6e8f5612674f1464759913",
+  "copia_derivada": "descartavel (prep_source.py --time-scale 1.25 --fps 30 --drop Icosphere)",
+  "copia_sha256": "bc0da6e4d74ffb223c5e74ad04fcd775305cef395f36aa604ce99a79a1cb8292",
+  "origem_sha256_depois_igual": true
+ },
+ "achados_de_ferramenta_corrigidos_durante_o_caso": [
+  "enquadramento padrao cortava o personagem em 34 de 36 vistas (ferramenta anterior nao verifica corte de quadro)",
+  "visibilidade ignorava o chao: maos enterradas contavam como visiveis (0,75) enquanto a imagem mostrava ausencia; chao passou a ser oclusor",
+  "paridade de raios falhava em malhas justapostas; trocada por cercamento por raios; normal assinada sozinha deixou de bastar",
+  "amostragem por vertice deixava a mao sintetica (8 vertices) sem pontos; passou a amostrar a superficie por area"
+ ]
+}

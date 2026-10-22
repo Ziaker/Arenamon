@@ -19,7 +19,7 @@ try {
   page.on('console', m => {if (m.type() === 'error') errors.push(m.text());});
   page.on('request', r => {if (!/^(file|data|blob):/.test(r.url())) requests.push(r.url());});
   await page.context().setOffline(true);
-  await page.goto(labUrl);
+  await page.goto(labUrl + '?fabrica=1');
   await page.waitForFunction(() => window.__lab?.moves && window.__lab.game, null, {timeout: 120000});
 
   const L = (fn, arg) => page.evaluate(fn, arg);

@@ -8,7 +8,7 @@ import {C} from '../config.js';
 import {nominalDistance} from '../entity.js';
 
 export const lungeDef = Object.freeze({
-  id: 'lunge', name: 'Lunge', group: 'lunge', tackle: 'lunge',
+  id: 'lunge', name: 'Lunge', air: 'descend', group: 'lunge', tackle: 'lunge',
   description: 'Burst. Avança em linha reta até 3,5 m aplicando um Tackle curto (PL1) e fica onde parou. Dano 8, empurrão de 4 m/s sem lançar.',
   cost: .75, cooldown: 6, duration: .6, aim: 'target',
 });

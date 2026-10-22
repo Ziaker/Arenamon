@@ -1,5 +1,7 @@
 # Arenamon — Registro de decisões do sistema de Moves (Reflect, Psyshock, Power Level)
 
+> **Atualização de 22/10/2026 (auditoria `docs/AUDITORIA_DOCUMENTACAO_2026-10-22.md`):** o registro continua sendo a fonte das regras (Rodadas 1–30), mas o status de «não é autorização para implementar» ficou histórico: **Reflect, Psyshock, Power Level, Clash/Counter e a IA com Moves estão implementados** (v1.1–v1.10) e os 13 Moves novos, que seguem as mesmas normas, desde a v1.14. Antes de afirmar que algo «falta», confira `prototypes/combat-lab/MOVIMENTOS.md` e o código.
+
 > **Documento oficial de planejamento. Não é autorização para implementar.**
 >
 > **Escopo:** Reflect, Psyshock, Power Level, Clash/Counter, categorias e tipos de Moves, controles, física, IA, interface e validação — Rodadas 1–29.

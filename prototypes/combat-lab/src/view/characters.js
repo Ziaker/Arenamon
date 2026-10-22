@@ -761,12 +761,14 @@ export class Character {
     this.presentation.rotation.set(0, f.visualFacing - this.squash.heading, 0);
   }
   /** Durações das regras derivadas dos clipes (primeira variante ÷ velocidade). Só ações com animação própria. */
-  ruleDurations() {
+  ruleDurations(moves = []) {
     const out = {}, own = id => {const i = this.variantsOf(id)[0];return i != null ? this.clips[i].duration / this.speedOf(id) : null;};
     const set = (path, v, from) => {if (v && Number.isFinite(v)) out[path] = {value: Math.round(v * 1000) / 1000, from};};
     set('actions.tackle.duration', own('tackle'), 'tackle');set('actions.dodge.duration', own('dodge_forward'), 'dodge_forward');
     set('rules.recoil', own('blocked'), 'blocked');set('rules.guardStun', own('guard_impact'), 'guard_impact');
     set('rules.landingRecovery', own('land') ?? own('recover'), this.variantsOf('land').length ? 'land' : 'recover');
+    // Moves equipados com clipe próprio (move_N): a duração do clipe ÷ velocidade vira o tempo de cast do Move; é nele que o término do movimento libera as outras ações.
+    for (const {slot, cast, name} of moves) set(cast, own('move_' + (slot + 1)), `move_${slot + 1} (${name})`);
     // As janelas marcadas no Studio (hitbox, invulnerabilidade) servem só para comparação: nunca alteram as regras.
     return out;
   }

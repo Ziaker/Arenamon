@@ -12,6 +12,7 @@
 // opcional e todos os eventos da linha do tempo disparam NA SOLTURA (`at` é ignorado).
 // Deslocamento opcional (motion) e janelas próprias de invulnerabilidade e de cancelamento.
 import {C} from './config.js';
+import {altitudeOf} from './entity.js';
 import {validateEntity, DEFAULTS} from './world.js';
 import {validateStatus} from './status.js';
 import {CHARGE_OVERRIDES} from './charge.js';
@@ -32,7 +33,7 @@ const AIMS = ['target', 'facing', 'input'], MOTIONS = ['none', 'root', 'dash', '
  *   fromGuard (padrão true), fromGuardStun (padrão false), invulnerable ([t0, t1] em s), aim ('target' | 'facing' | 'input'),
  *   motion ({type: 'none' | 'root' | 'dash', distance, start, end}), animation (id do bloco de animação; padrão move_<slot>),
  *   timeline: [{at, spawn | status (+ target) | hit | effect}],
- *   charge ({max (s, padrão 4) e substituições de C.world.charge}: movimento de carga), cooldownBoost (true: novo toque durante a recarga
+ *   charge ({max (s, padrão 4) e substituições de C.world.charge}: movimento de carga), cooldownBoost (padrão true em TODO Move; false: desliga. Novo toque durante a recarga
  *   gasta stamina para encurtá-la, M2.3)
  * @param {import('./types').MoveDef} def
  */
@@ -52,6 +53,7 @@ export function validateMove(def) {
   if (def.tackle !== undefined && (typeof def.tackle !== 'string' || !def.tackle)) fail('tackle deve ser o nome de uma preparação registrada');
   if (def.aimMode !== undefined && (!['marker', 'follow'].includes(def.aimMode) || !def.group)) fail("aimMode so aceita 'marker' ou 'follow' e exige group (os parametros do marcador vem de C.world[group])");
   if (def.groundOnly !== undefined && typeof def.groundOnly !== 'boolean') fail('groundOnly deve ser booleano');
+  if (def.air !== undefined && !['none', 'cast', 'descend'].includes(def.air)) fail("air deve ser 'none', 'cast' (o corpo segue em voo) ou 'descend' (desce e age), ver air.js");
   if (def.feint !== undefined && typeof def.feint !== 'boolean') fail('feint deve ser booleano');
   if (def.needsTarget !== undefined && (typeof def.needsTarget !== 'string' || !def.group)) fail('needsTarget deve ser a chave (em C.world[group]) do alcance de aquisição');
   for (const k of ['cost', 'cooldown', 'cancelAfter']) if (def[k] !== undefined && !(def[k] >= 0)) fail(`${k} inválido`);
@@ -97,7 +99,7 @@ export const clearMoves = () => REGISTRY.clear();
  */
 export function nearestEligible(f, fighters, range) {
   let best = null, bd = Infinity;
-  const bodyH = C.extras?.visual?.bodyHeight ?? 1.2, fy = (f.groundY ?? 0) + (f.flight?.y ?? 0) + (f.vaultHeight ?? 0);
+  const bodyH = C.extras?.visual?.bodyHeight ?? 1.2, fy = altitudeOf(f);
   for (const o of fighters) {
     if (o.id === f.id || o.hp <= 0 || o.absent || (o.flight && !o.wallSplat)) continue;
     const oy = (o.groundY ?? 0) + (o.vaultHeight ?? 0);

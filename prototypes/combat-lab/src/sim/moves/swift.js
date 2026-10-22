@@ -9,7 +9,7 @@ import {C} from '../config.js';
 import {hash32, rng, uniform} from './rng.js';
 
 export const swiftDef = Object.freeze({
-  id: 'swift', name: 'Swift',
+  id: 'swift', name: 'Swift', air: 'cast',
   group: 'swift',
   description: 'Burst. Dispara três estrelas rápidas, com homing curto e sem garantia de acerto; cada uma causa pouco dano e um empurrão mínimo.',
   cost: .8, cooldown: 7, duration: .25, aim: 'target',

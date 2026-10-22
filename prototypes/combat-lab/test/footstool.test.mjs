@@ -3,8 +3,9 @@
 // Footstool: dano exato 5 em desprotegido, rebote ~3,7, stagger 0,25, um acerto por contato,
 // inválido lateral/subindo, invulnerável rebate sem dano, escudo absorve, sem múltiplos eventos.
 // Salto: curto × completo distintos (salto variável), coyote time, buffer de entrada.
+// Este teste caracteriza a mecânica nos valores de FÁBRICA do laboratório (factoryDefaults); a base de calibração v8 é coberta por calibration-base.test.mjs e pelos testes de colisão/ambiente.
 import assert from 'node:assert/strict';
-import {C, defaults, resetConfig} from '../src/sim/config.js';
+import {C, factoryDefaults, resetConfig} from '../src/sim/config.js';
 import {Game} from '../src/sim/game.js';
 import {createFighter, emptyCommand} from '../src/sim/entity.js';
 import {resolveFootstool} from '../src/sim/combat.js';
@@ -22,7 +23,7 @@ console.log('\n--- PLANO D: SALTO 3D E FOOTSTOOL ---\n');
 // ---------- Auxiliares ----------
 /** Partida nova com os lutadores posicionados e a IA desligada. */
 function setup(seed = 21) {
-  resetConfig(defaults());
+  resetConfig(factoryDefaults());
   C.extras.toggles.enableEnemyAI = 0;
   const g = new Game({seed});
   g.start();
@@ -135,7 +136,7 @@ console.log('\n2. Footstool: pipeline de dano (unitário)');
 // ==========================================
 
 test('Invulnerável: rebate sem dano e sem stagger, evento result invulnerable', () => {
-  resetConfig(defaults());
+  resetConfig(factoryDefaults());
   const a = createFighter(0, {hp: 100, attack: 10, defense: 10, speed: 10}, vec(0, -0.3));
   const d = createFighter(1, {hp: 100, attack: 10, defense: 10, speed: 10}, vec(0, 0));
   d.action = {kind: 'dodge', elapsed: 0, invulnerableFor: 0.5};
@@ -149,7 +150,7 @@ test('Invulnerável: rebate sem dano e sem stagger, evento result invulnerable',
 });
 
 test('Escudo absorve os 5 HP antes do dano ao HP', () => {
-  resetConfig(defaults());
+  resetConfig(factoryDefaults());
   const a = createFighter(0, {hp: 100, attack: 10, defense: 10, speed: 10}, vec(0, -0.3));
   const d = createFighter(1, {hp: 100, attack: 10, defense: 10, speed: 10}, vec(0, 0));
   d.shield = {hp: 40, duration: 10, maxHp: 80};
@@ -164,7 +165,7 @@ test('Escudo absorve os 5 HP antes do dano ao HP', () => {
 });
 
 test('Estágios de defesa reduzem o dano residual (pipeline central)', () => {
-  resetConfig(defaults());
+  resetConfig(factoryDefaults());
   const a = createFighter(0, {hp: 100, attack: 10, defense: 10, speed: 10}, vec(0, -0.3));
   const d = createFighter(1, {hp: 100, attack: 10, defense: 10, speed: 10}, vec(0, 0));
   d.stages.defense = 1;   // -10 pp: 5 × 0,90 = 4,5
@@ -173,7 +174,7 @@ test('Estágios de defesa reduzem o dano residual (pipeline central)', () => {
 });
 
 test('Interrupção: ação e guarda do defensor caem (sem launch/push)', () => {
-  resetConfig(defaults());
+  resetConfig(factoryDefaults());
   const a = createFighter(0, {hp: 100, attack: 10, defense: 10, speed: 10}, vec(0, -0.3));
   const d = createFighter(1, {hp: 100, attack: 10, defense: 10, speed: 10}, vec(0, 0));
   d.action = {kind: 'tackle', elapsed: 0.1, invulnerableFor: 0};   // fora da janela de invulnerabilidade
@@ -190,7 +191,7 @@ console.log('\n3. Salto: salto variável, coyote time e buffer');
 
 test('Salto completo (botão segurado) alcança ~2,0 m; salto curto fica bem menor', () => {
   const apex = hold => {
-    resetConfig(defaults());
+    resetConfig(factoryDefaults());
     C.extras.toggles.enableEnemyAI = 0;
     const g = new Game({seed: 31});
     g.start();
@@ -212,7 +213,7 @@ test('Salto completo (botão segurado) alcança ~2,0 m; salto curto fica bem men
 });
 
 test('Coyote time: salto logo após sair da borda converte a queda em salto normal', () => {
-  resetConfig(defaults());
+  resetConfig(factoryDefaults());
   C.extras.toggles.enableEnemyAI = 0;
   const g = new Game({seed: 33});
   g.start();
@@ -235,7 +236,7 @@ test('Coyote time: salto logo após sair da borda converte a queda em salto norm
 });
 
 test('Buffer: aperto de salto antes do pouso dispara o salto ao aterrissar', () => {
-  resetConfig(defaults());
+  resetConfig(factoryDefaults());
   C.extras.toggles.enableEnemyAI = 0;
   const g = new Game({seed: 35});
   g.start();
@@ -263,7 +264,7 @@ test('Buffer: aperto de salto antes do pouso dispara o salto ao aterrissar', () 
 });
 
 test('Controle aéreo: curvar no ar preserva a velocidade total (sem ganho de momentum)', () => {
-  resetConfig(defaults());
+  resetConfig(factoryDefaults());
   C.extras.toggles.enableEnemyAI = 0;
   const g = new Game({seed: 37});
   g.start();

@@ -1,7 +1,7 @@
 // @ts-check
 // Swift (genérico, Burst · Projectile · PL1): 3 estrelas, 15 m/s, 3 HP nominais, homing 0,25 s a 90°/s, alcance 12 m, knockback 0,3 m/s (teto 0,9).
 // Fonte: docs/MOVES_GENERICOS_CATALOGO.md §3.
-import {assert, C, Game, cmd, vec, secs, suite, arena, step, run, press, fighterHash, resetConfig, defaults} from './moves-new-helpers.mjs';
+import {assert, C, Game, cmd, vec, secs, suite, arena, step, run, press, fighterHash, resetConfig, factoryDefaults} from './moves-new-helpers.mjs';
 import {getMove} from '../src/sim/moves.js';
 import {spawn} from '../src/sim/world.js';
 import {swiftSpread} from '../src/sim/moves/swift.js';
@@ -134,4 +134,4 @@ test('paridade e determinismo: registrado e não equipado não muda nada; save/l
 });
 
 done();
-void secs;void step;void press;void resetConfig;void defaults;
+void secs;void step;void press;void resetConfig;void factoryDefaults;

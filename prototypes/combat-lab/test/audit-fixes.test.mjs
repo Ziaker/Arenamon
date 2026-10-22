@@ -1,6 +1,7 @@
 // Teste unitário para validar as 5 correções apontadas na Auditoria do Combat Lab
+// Este teste caracteriza a mecânica nos valores de FÁBRICA do laboratório (factoryDefaults); a base de calibração v8 é coberta por calibration-base.test.mjs e pelos testes de colisão/ambiente.
 import assert from 'node:assert/strict';
-import {C, defaults, resetConfig} from '../src/sim/config.js';
+import {C, factoryDefaults, resetConfig} from '../src/sim/config.js';
 import {ms} from '../src/sim/telemetry.js';
 
 console.log('--- Iniciando testes das 5 correções da Auditoria do Combat Lab ---');
@@ -50,7 +51,7 @@ function createMockTuning() {
 
 // --- 1. Verificação: Seletor Global de VFX e Suporte a Desfazer (Ctrl+Z) ---
 {
-  resetConfig();
+  resetConfig(factoryDefaults());
   const tuning = createMockTuning();
   const initialVariant = C.vfx.hit?.variant ?? 0;
   const newVariant = (initialVariant + 1) % 3;
@@ -83,7 +84,7 @@ function createMockTuning() {
 
 // --- 2. Verificação: Seletor de VFX da aba Moves com sincronia e tuning ---
 {
-  resetConfig();
+  resetConfig(factoryDefaults());
   const tuning = createMockTuning();
   const initialVariant = C.vfx.hit?.variant ?? 0;
   const targetVariant = (initialVariant + 2) % 3;
@@ -107,7 +108,7 @@ function createMockTuning() {
 
 // --- 3. Verificação: Régua do Dojo calcula quadros reais nominais e medidos ---
 {
-  resetConfig();
+  resetConfig(factoryDefaults());
   const step = C.test.step; // 1/120 = 0.00833s
   const tackleDur = C.actions.tackle.duration; // 0.40s
   const totalNominal = Math.round(tackleDur / step);
@@ -160,7 +161,7 @@ function createMockTuning() {
   const {applyHit} = await import('../src/sim/world.js');
   const {emptyCommand} = await import('../src/sim/entity.js');
 
-  resetConfig(defaults());
+  resetConfig(factoryDefaults());
   const game = new Game();
   game.mode = 'inactive';
   game.reset({positions: [{x: 0, z: -3}, {x: 0, z: 0}]});
@@ -186,7 +187,7 @@ function createMockTuning() {
   const {tacticalCommand} = await import('../src/sim/tactics.js');
   const {movesCommand} = await import('../src/sim/ai-moves.js');
 
-  resetConfig(defaults());
+  resetConfig(factoryDefaults());
   registerMove(psyshockDef);
   const game = new Game();
   game.mode = 'inactive';

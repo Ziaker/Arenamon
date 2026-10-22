@@ -32,8 +32,15 @@
 | `combat.js` · `physics.js` | Contatos ofensivos (lançamento, clash, defesa) · física, subpassos, arena | `core`, `properties` |
 | `world.js` · `geometry.js` | Entidades criadas por movimentos (projétil, barreira, parede, área); `applyHit` único; **reflexão** (`reflectPass`), Tackle×barreira, explosão×barreira · retângulos orientados e varredura de segmento | `moves`, `reflect` |
 | `move-state.js` · `scenarios-moves.js` · `ui/moves-panel.js` · `ui/moves-hud.js` · `view/world-view.js` | Estado dos slots (mesmas permissões do controlador) · cenários técnicos dos Moves · aba Moves · HUD dos slots · desenho das entidades, prévia, orbes e anéis | `moves-ui`, `moves-ui.browser` |
-| `beam.js` | Traçado do laser: segmentos, reflexão em cadeia, troca de dono, neutralização por PL, parada em parede/corpo/arena (sem DOM) | `beam` |
+| `beam.js` | Traçado do laser: segmentos, reflexão em cadeia, troca de dono, neutralização por PL, parada em parede/corpo/**cenário (cobertura)**/borda circular (sem DOM) | `beam` |
+| `solid-contact.js` · `ccd.js` | Contato disco × sólido (normal, profundidade, memória de superfícies para o deslize) · detecção contínua (`sweepCircle`, `sweepRoundedBox`, `firstContact`) | `collision-solid`, `collision-slide`, `ccd`, `collision-ccd` |
+| `collision-probe.js` | **Sonda de colisão** (observacional, fora do save/replay): último contato de cada lutador, varreduras de projéteis, `bodyPenetration` | `collision-probe` |
+| `scenarios-collision.js` | 15 cenários de um clique de colisão (aba Cenários) | `collision-scenarios` |
+| `view/collision-overlays.js` | 5 sobreposições visuais de colisão (aba Visualizar) e linhas de «Dados ao vivo» | `collision-tools`, `collision-tools.browser` |
 | `moves/reflect.js` · `moves/psyshock.js` · `moves/rng.js` · `moves/standard.js` | Definição e efeito do Reflect · do Psyshock · sorteios determinísticos · registro dos Moves padrão (chamado só pelo bootstrap, D2) | `reflect`, `psyshock` |
+| `air.js` | **Moves no ar**: `isAirJump`, `isVaultArc`, `vaultToFlight`, `takeOffToLift`/`applyLift` e o campo `air` das definições (`cast`/`descend`/`none`) | `moves-air`, `moves-softlock` |
+| `calibration-base.js` | Base de calibração do responsável (184 linhas `[caminho, novo, anterior]`, reversíveis) aplicada por `defaults()` | `calibration-base` |
+| `view/riposte-fx.js` · `ui/hover-tip.js` | Visual do Riposte (postura e contra-golpe) · dica flutuante (`data-tip`) usada nas seleções de Moves e passivas | `moves-ui.browser` |
 | `charge.js` · `move-effects.js` | Parâmetros capturados, PL por carga, aceleração de recarga (puro) · manipuladores nomeados de efeitos de Move | `charge` |
 | `moves.js` | Registro de movimentos (vazio), validação, `setLoadout`, posicionamento relativo | `moves`, `moves-contract` (contrato M28.4, caracterização), `moves-order` (ordem das entradas) |
 | `status.js` | Buffs/debuffs (`applyStatus`, `modifier`, `tickStatuses`) | `moves` |
@@ -73,5 +80,6 @@ Detalhes e proposta de tratamento: [PROPOSTA_REFATORACAO_ESTADO_GLOBAL.md](PROPO
 | `prototypes/studio/` | Animation Studio + Rigging; `proposals/` = propostas A/B/C (aguardam decisão do diretor) | `test/ops`, `test/rigging` (unit) · `verify.mjs`, `test/rigging.browser.mjs` |
 | `prototypes/importer/` · `placeholders/` | Importador de modelos · laboratório de blocos | `verify.mjs` (navegador) |
 | `scripts/` | `verify-workspace.mjs` (governança do checkout), `check-offline.mjs` (varredura estática) | `check-offline.test.mjs` |
+| `scripts/blender-vision/` | Blender Vision: capturas, Animation Witness e **percepção ativa** (`perception*.py`: vistas por região com pedido de novas vistas, movimento, diagnóstico A–G validado). Somente leitura; não toca jogo nem Studio. Ver [BLENDER_VISION_PERCEPCAO.md](BLENDER_VISION_PERCEPCAO.md) | `tests/test_perception.py`, `tests/test_perception_failures.py`, `tests/run_perception_bench.py` (Python + Blender 5.2; fora do `npm test`) |
 
 Estado dos testes e do que foi (ou não) executado: [VERIFICACOES.md](VERIFICACOES.md). Linha de base de desempenho da simulação (`npm run measure:sim`): [DESEMPENHO_BASELINE.md](DESEMPENHO_BASELINE.md).

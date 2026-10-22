@@ -1,5 +1,7 @@
 # PROMPT PARA CODEX — IMPLEMENTAR EMERGING STONE (MUSHROOM, MOVE 1)
 
+> **Atualização de 22/10/2026 (auditoria `docs/AUDITORIA_DOCUMENTACAO_2026-10-22.md`):** **Emerging Stone foi implementado** (`sim/moves/emerging-stone.js`, `sim/stone.js`; cronologia C, ES-D103) e usa o ar desde a v1.18.0 (`air: cast`). O texto abaixo é o prompt original; mantido para rastreabilidade. Homologação do responsável pendente.
+
 > **STATUS DESTE DOCUMENTO: PRONTO PARA ENVIO A UM AGENTE; IMPLEMENTAÇÃO NÃO INICIADA NESTA ORGANIZAÇÃO.**  
 > **Última decisão de design aprovada:** ES-D103, **cronologia C**.  
 > **Contrato canônico:** [`docs/MUSHROOM_MOVES_DECISOES.md`](../MUSHROOM_MOVES_DECISOES.md), IDs **ES-D01–ES-D103**, seção **7.21** e diretiva universal de cobrança.  

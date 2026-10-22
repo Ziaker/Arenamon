@@ -1,7 +1,7 @@
 // @ts-check
 // Hitstop por faixa de importância (skill game-feel): golpe forte congela mais que golpe fraco; padrão = hitstop fixo de antes.
 import assert from 'node:assert/strict';
-import {C, defaults, resetConfig} from '../src/sim/config.js';
+import {C, factoryDefaults as defaults, resetConfig} from '../src/sim/config.js';   // caracteriza a mecânica nos valores de FÁBRICA; a base de calibração v8 é coberta por calibration-base.test.mjs
 import {Game} from '../src/sim/game.js';
 import {emptyCommand} from '../src/sim/entity.js';
 import {vec} from '../src/sim/math.js';

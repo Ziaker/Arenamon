@@ -1,18 +1,22 @@
 // Laboratório de combate Arenamon v7 — composição: simulação, câmera, HUD, entrada, replay, telemetria,
 // cenários, ajustador, personagens do Studio, exportação e aviso de alterações não salvas.
 import {applyInterpolation} from './sim/interpolation.js';
-import {C, keyFor, defaults} from './sim/config.js';
+import {C, keyFor, defaults, resetConfig as resetCfg, useFactoryDefaults} from './sim/config.js';
+if (typeof location !== 'undefined' && new URLSearchParams(location.search).has('fabrica')) {useFactoryDefaults(true);resetCfg(defaults());}   // ?fabrica=1: valores de fábrica, sem a base de calibração v8
 import {Game, FixedClock} from './sim/game.js';
 import {AI_MODES, UI_AI_MODES} from './sim/ai.js';
 import {styleLabel} from './sim/tactics.js';
 import {Recorder} from './sim/telemetry.js';
 import {ReplayBuffer} from './sim/replay.js';
 import {SCENARIOS, prepareScenario, runScenario} from './sim/scenarios.js';
+import {collisionRows} from './view/collision-overlays.js';
+import {resetCollisionProbe} from './sim/collision-probe.js';
 import {View, OVERLAYS} from './view/view.js';
 import {Character, loadStudioFile, studioWindows, compareWindows} from './view/characters.js';
 import {createCharacterPanel} from './ui/characters-panel.js';
 import {createVisualPanel} from './ui/visual-panel.js';
 import {HudProposals} from './ui/hud-proposals.js';
+import {ProgressHud} from './ui/progress-hud.js';
 import {Hud} from './ui/hud.js';
 import {Input} from './ui/input.js';
 import {createTuning, escape, pathGet} from './ui/tuning.js';
@@ -36,6 +40,7 @@ import {createTrainingPanel} from './ui/training-panel.js';
 import {createMovesPanel} from './ui/moves-panel.js';
 import {MovesHud} from './ui/moves-hud.js';
 import {createPassivesPanel} from './ui/passives-panel.js';
+import {installHoverTip} from './ui/hover-tip.js';
 import {createQuickMenu} from './ui/menu-quick.js';
 import {PassivesHud} from './ui/passives-hud.js';
 import {PASSIVE_BY_ID} from './sim/passives.js';
@@ -112,7 +117,7 @@ async function triggerWarmup({force = false} = {}) {
     }
   }
 }
-function resetViewAndLogs() {view.reset(game.fighters[0]);recorder.clear();replay.clear();pushReplay();dock.invalidate();clock.reset();}
+function resetViewAndLogs() {resetCollisionProbe();view.reset(game.fighters[0]);recorder.clear();replay.clear();pushReplay();dock.invalidate();clock.reset();}
 function startMatch({playback = null} = {}) {
   if (ui.training) {training.end();}
   abortScenario();restorePlaybackValues();ui.playback = playback;
@@ -151,7 +156,7 @@ function togglePause(force) {
   ui.paused = next;input.clear();syncButtons();
 }
 function pushReplay() {replay.push({tick: game.tick, game: game.save(), rig: view.rig.save()});}
-function loadFrame(frame) {if (!frame) return;game.load(frame.game);view.rig.load(frame.rig);dock.invalidate();}
+function loadFrame(frame) {if (!frame) return;resetCollisionProbe();game.load(frame.game);view.rig.load(frame.rig);dock.invalidate();}
 function playerCommand() {
   const [p, e] = game.fighters;
   if (C.extras.toggles.enablePlayerAI) {input.locked = true;return game.assistNav(game.playerBrain, p, e, game.playerBrain.command(p, e, ui.playerMode, C.test.step));}
@@ -215,12 +220,27 @@ function playSequence(seq, preset) {
 // ---------- Cenários ----------
 function renderScenarios() {
   const box = $('scenario-list');box.replaceChildren();
-  for (const def of SCENARIOS) {
+  $('scenario-all').textContent = `▶ Executar todos (${SCENARIOS.length})`;
+  const add = def => {
     const el = document.createElement('div');el.className = 'scenario';el.dataset.id = def.id;
     const last = ui.lastResult?.id === def.id ? ui.lastResult : null;if (last) el.dataset.result = last.ok ? 'ok' : 'fail';
     el.innerHTML = `<header><strong>${escape(def.name)}</strong><button type="button">▶ Executar</button></header><p>${escape(def.description)}</p>`;
     el.querySelector('button').onclick = () => startScenario(def);box.append(el);
+  };
+  // Colisões e ambiente (overhaul): grupo próprio no topo, com «Executar os N» e dicas de quais sobreposições ligar em «Visualizar».
+  const col = SCENARIOS.filter(d => d.id.startsWith('col-'));
+  if (col.length) {
+    const head = document.createElement('div');head.className = 'scenario-group';head.id = 'scenario-collisions-group';
+    head.innerHTML = `<header><strong>Colisões e ambiente (${col.length})</strong><button type="button" id="scenario-collisions">▶ Executar os ${col.length}</button></header><p class="hint">Contato com paredes, quinas, objetos, plataformas, destrutíveis e projéteis rápidos. Em «Visualizar» ligue <b>Colisores do cenário</b>, <b>Apoio atual</b>, <b>Contatos com o ambiente</b>, <b>Varredura dos projéteis</b> e <b>Sobreposições e vãos</b> para ver o que a física está fazendo; os números ficam em «Dados ao vivo».</p>`;
+    box.append(head);
+    head.querySelector('button').onclick = () => {
+      abortScenario();const results = col.map(def => runScenario(def)), ok = results.filter(r => r.ok).length;
+      $('scenario-report').innerHTML = `<p class="${ok === results.length ? 'ok' : 'bad'}"><b>${ok} de ${results.length} cenários de colisão aprovados</b> com os ajustes atuais.</p>` + reportHtml(results);
+      resetCollisionProbe();game.phase = 'menu';ui.lastResult = null;renderScenarios();
+    };
+    col.forEach(add);
   }
+  for (const def of SCENARIOS) if (!def.id.startsWith('col-')) add(def);
 }
 function startScenario(def) {
   abortScenario();ui.scenario = prepareScenario(def, game);ui.scenario.def = def;ui.paused = false;input.clear();input.locked = true;
@@ -298,7 +318,7 @@ $('balance-run').onclick = () => {
 $('scenario-all').onclick = () => {
   abortScenario();const results = SCENARIOS.map(def => runScenario(def));const ok = results.filter(r => r.ok).length;
   $('scenario-report').innerHTML = `<p class="${ok === results.length ? 'ok' : 'bad'}"><b>${ok} de ${results.length} cenários aprovados</b> com os ajustes atuais.</p>` + reportHtml(results);
-  game.phase = 'menu';ui.lastResult = null;renderScenarios();
+  resetCollisionProbe();game.phase = 'menu';ui.lastResult = null;renderScenarios();
 };
 
 // ---------- Ajustes ----------
@@ -411,8 +431,9 @@ function renderLive() {
   const rows = [['Distância entre centros', `${d.toFixed(2)} m`], ['Espaço entre colisores', `${Math.max(0, d - 2 * C.test.halfExtent).toFixed(2)} m`], ['Velocidade de aproximação', `${dot(rel, n).toFixed(2)} m/s`],
     ['Azul (física)', physLine(a)], ['Vermelho (física)', physLine(b)],
     ['Último contato válido', lastContact],
-    ['Subpassos físicos', `${physicsProbe.substeps} subpasso(s) · ${physicsProbe.contacts} contato(s) no último passo`],
+    ['Subpassos físicos', `${physicsProbe.substeps} subpasso(s) · ${physicsProbe.contacts} contato(s) no último passo · conflitos de espaço: ${physicsProbe.staticConflicts} no passo, ${physicsProbe.staticConflictsTotal} no total`],
     ['Ação', `${a.action ? `${a.action.kind}${a.action.fromCancel ? ' (C→X)' : ''}${a.action.buffered ? ' (buffer)' : ''} ${(a.action.elapsed * 1000).toFixed(0)} ms` : '—'} / ${b.action ? `${b.action.kind}${b.action.fromCancel ? ' (C→X)' : ''}${b.action.buffered ? ' (buffer)' : ''} ${(b.action.elapsed * 1000).toFixed(0)} ms` : '—'}`], ['Estilo da IA (tático)', `${game.playerBrain.t && C.extras.toggles.enablePlayerAI && ui.playerMode === 'tactical' ? styleLabel(game.playerBrain) : '—'} / ${game.mode === 'tactical' ? styleLabel(game.brain) : '—'}`], ['Contra-ataque', `${a.counterWindow.toFixed(2)} s / ${b.counterWindow.toFixed(2)} s`], ['Hitstop', `${(game.hitstop * 1000).toFixed(0)} ms`]];
+  rows.push(...collisionRows(game));   // Fase 7: apoio, último contato com o ambiente, vãos entre objetos e penetrações
   $('live-data').innerHTML = rows.map(([k, v]) => `<dt>${k}</dt><dd>${escape(v)}</dd>`).join('');
 }
 
@@ -442,15 +463,26 @@ for (const [id, key, out, fmt] of ANIM_SLIDERS) {
 }
 function refreshAnimSliders() {for (const [id, key, out, fmt] of ANIM_SLIDERS) {if (document.activeElement !== $(id)) $(id).value = String(C.display.animation[key]);$(out).textContent = fmt(C.display.animation[key]);}}
 tuning.onChange(refreshAnimSliders);
-$('char-sync').onchange = e => {Character.options.syncRules = e.target.checked;syncRuleDurations();};
+$('char-sync').onchange = e => {Character.options.syncRules = e.target.checked;$('act-sync').checked = e.target.checked;syncRuleDurations();};
+// Atalho visível no topo da gaveta Ações: é a MESMA opção «Usar duração dos clipes nas regras» (Personagens › avançado).
+$('act-sync').onchange = e => {$('char-sync').checked = e.target.checked;$('char-sync').dispatchEvent(new Event('change'));};
 $('char-sync-source').onchange = () => syncRuleDurations();
 /** Personagem cujas animações definem as regras (o escolhido; se não houver, o outro). */
 function ruleSource() {const id = Number($('char-sync-source').value);return ui.characters[id] || ui.characters[1 - id];}
+/** Moves do lutador de referência cujo cast pode vir do clipe (sem marcador, sem carga, sem duração composta): [{slot, cast: caminho do slider, name}]. */
+function moveCastTargets(ch) {
+  const src = Number($('char-sync-source').value), id = ui.characters[src] === ch ? src : 1 - src, f = game.fighters[id], out = [];
+  for (let slot = 0; slot < C.world.slots; slot++) {
+    const def = Moves.getMove(f?.loadout?.[slot]);
+    if (def?.group && !def.durationKeys && !def.charge && !def.aimMode && typeof C.world[def.group]?.cast === 'number' && tuning.byPath.has(`world.${def.group}.cast`)) out.push({slot, cast: `world.${def.group}.cast`, name: def.name ?? def.id});
+  }
+  return out;
+}
 /** Durações das ações vindas das animações (duração do clip ÷ velocidade), aplicadas às regras com desfazer. */
 function syncRuleDurations() {
   if (Character.options.syncRules) {
     const ch = ruleSource();
-    const changes = ch ? Object.entries(ch.ruleDurations()).map(([path, {value}]) => {const m = tuning.byPath.get(path);return [path, Math.max(m.min, Math.min(m.max, value))];}) : [];
+    const changes = ch ? Object.entries(ch.ruleDurations(moveCastTargets(ch))).map(([path, {value}]) => {const m = tuning.byPath.get(path);return [path, Math.max(m.min, Math.min(m.max, value))];}) : [];
     if (changes.length) tuning.commit(changes, 'Durações das animações');
   }
   renderRuleDurations();renderStudioEvents();
@@ -458,7 +490,7 @@ function syncRuleDurations() {
 function renderRuleDurations() {
   const ch = ruleSource(), box = $('char-durations');
   if (!ch) {box.innerHTML = '<p class="hint">Carregue um personagem para usar as durações das animações.</p>';return;}
-  const rows = Object.entries(ch.ruleDurations());
+  const rows = Object.entries(ch.ruleDurations(moveCastTargets(ch)));
   box.innerHTML = rows.length ? `<table><tr><th>Regra</th><th>Animação</th><th>Clip ÷ velocidade</th><th>No jogo agora</th></tr>${rows.map(([path, {value, from}]) => {const m = tuning.byPath.get(path);return `<tr><td>${escape(m.label)}</td><td>${escape(from)}</td><td>${value.toFixed(3)} s</td><td>${m.fmt(pathGet(C, path))}</td></tr>`;}).join('')}</table>${Character.options.syncRules ? '<p class="ok">Sincronizado: mudar a animação ou a velocidade atualiza as regras (Ctrl+Z desfaz).</p>' : ''}` : '<p class="hint">Nenhuma ação com duração definida tem animação própria (tackle, dodge_forward, blocked, guard_impact, land/recover).</p>';
 }
 function renderStudioEvents() {
@@ -638,6 +670,7 @@ const dock = createDock({recorder, getCursorTick: () => game.tick, onSeek: seekT
 
 // ---------- Overhaul: Visualizar, Partida, Controles e propostas de HUD ----------
 const hudProposals = new HudProposals($('hud-proposals'));
+const progressHud = new ProgressHud($('progress-hud'));   // HUD de progressão "Banco de Células" (estágios 0–4 dos 5 atributos)
 // Diagnóstico de comandos (relato do controlador) e indicadores das janelas de combate (estado real da simulação).
 const diagnostics = createDiagnostics({$, game, tuning, download});
 const windowsOverlay = createWindowsOverlay({root: $('win-overlay'), view, game});
@@ -647,6 +680,7 @@ const movesPanel = createMovesPanel({$, game, download, tuning, view, ui});
 const actionsDrawer = createActionsDrawer({$, tuning, ui, renderMoves: () => movesPanel.render(), renderAiMoves: c => movesPanel.renderAiParams(c), onCharactersChanged: () => {syncCharacterCombatWindows();syncRuleDurations();dock.invalidate();}});
 const movesHud = new MovesHud($('moves-hud'));
 // Passivas: painel de seleção (Partida), HUD da arena e VFX de ativação (§16/§17).
+installHoverTip();
 const passivesPanel = createPassivesPanel({getCharacterNames: () => [ui.characters[0]?.source?.name ?? null, ui.characters[1]?.source?.name ?? null]});
 $('passives-card')?.append(passivesPanel.root);
 // Seleção Rápida do menu: dois blocos (personagem/moves/abilities + prévia 3D). Workspace anexado no boot.
@@ -979,7 +1013,7 @@ function frame(now) {
   try {view.draw(game.fighters, game.events, live ? dt * clock.timeScale : 0, {paused: !live, realDt: dt, tick: game.tick, sources: [C.extras.toggles.enablePlayerAI || ui.scenario ? 'IA' : 'jogador', 'IA'], world: game.world, navGame: game});} finally {restorePose?.();}
   const back = replay.length ? (replay.length - 1 - replay.cursor) : 0;
   hud.render(game, ui.fps, {locked: input.locked, paused: ui.paused && game.phase !== 'menu', replay: back ? `−${back} passos (${(back * C.test.step * 1000).toFixed(0)} ms) · ▶ retoma daqui` : 'último passo · , e . avançam/voltam', playerAI: !!C.extras.toggles.enablePlayerAI});
-  movesHud.render(game);moveNotices();
+  movesHud.render(game);moveNotices();progressHud.render(game);
   passivesHud.render(game, C.extras.toggles.enablePassives !== 0);
   $('rp-readout').textContent = `passo ${game.tick}${back ? ` · −${(back * C.test.step).toFixed(2)} s` : ''}${clock.timeScale !== 1 ? ` · ${clock.timeScale}×` : ''}`;
   dock.render();updateDojoAdvantageBadge();hudProposals.render(game, live ? dt * clock.timeScale : 0);windowsOverlay.update();perfPanel.frame({frameMs: dt * 1000, simMs, steps});cinePanel?.updateBadge?.();updateOffscreenArrow(canvas.clientWidth, canvas.clientHeight);updateActionHintPill();if (game.phase === 'result' && !lastKoHandled) checkKoTrigger();
@@ -1014,7 +1048,7 @@ function applyDocUi(doc) {
     // Workspaces da fase 1 guardavam as transições aqui; agora são parâmetros do ajustador (restaurados com os ajustes).
     if (!doc.tuning?.values || !('display.animation.fade' in doc.tuning.values)) for (const key of ['fade', 'actionFade', 'locomotionHold', 'speed']) if (typeof a[key] === 'number') C.display.animation[key] = a[key];
     refreshAnimSliders();
-    $('char-sync').checked = !!a.syncRules;Character.options.syncRules = !!a.syncRules;
+    $('char-sync').checked = !!a.syncRules;$('act-sync').checked = !!a.syncRules;Character.options.syncRules = !!a.syncRules;
   }
   if (u.overlays) for (const [k, v] of Object.entries(u.overlays)) if (k in view.overlays) {view.overlays[k] = !!v;const box = document.querySelector(`[data-overlay="${k}"]`);if (box) box.checked = !!v;}
   if (u.timeScale) {$('rp-speed').value = u.timeScale;clock.timeScale = Number(u.timeScale) || 1;}

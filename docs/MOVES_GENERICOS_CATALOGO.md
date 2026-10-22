@@ -1,5 +1,7 @@
 # Arenamon — Catálogo de 5 Moves Genéricos
 
+> **Atualização de 22/10/2026 (auditoria `docs/AUDITORIA_DOCUMENTACAO_2026-10-22.md`):** **Quick Attack, Swift, Harden, Spikes e Bounce estão implementados** (v1.14.0, branch `feat/moves-novos`, integrada à `main`), junto de Lunge, Guard Break, Feint, Riposte e Second Wind (ver `docs/moves-nao-iniciados/5_MOVES_GENERICOS_PROMPT.md`). Os números do catálogo continuam **propostas** até a homologação do responsável; os valores em uso estão em `C.world.<move>` e na base de calibração (`sim/calibration-base.js`). O estado «não implementado por este registro» refere-se só à criação do documento.
+
 **Repositório:** `Ziaker/Arenamon`  
 **Documento:** `docs/MOVES_GENERICOS_CATALOGO.md`  
 **Data:** 20/10/2026  

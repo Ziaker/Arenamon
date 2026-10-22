@@ -7,6 +7,7 @@ import {NAMES, SECTIONS, TOOLTIPS, KEY_HELP} from './tuning-meta.js';
 import {OFFICIAL} from './official.js';
 import {STYLES} from '../sim/tactics.js';
 import {actionMeta, OFFICIAL_MAP, migrateFlat, flatten} from './actions-meta.js';
+import {changedOutsideManifest, importOutsideManifest} from './tuning-io.js';
 import {overhaulMeta} from './overhaul-meta.js';
 import {VFX_TYPES, SHAKE_EVENTS} from '../view/vfx.js';
 import {SOLID_FAMILIES} from '../view/solid-fx.js';
@@ -33,6 +34,10 @@ const RADIANS = ['steerLimit', 'steerRate', 'guardTurn', 'guardAcceleration', 't
 const INTEGERS = ['staminaMax', 'hp', 'attack', 'defense', 'attackReference', 'speedReference', 'defenseMedian', 'contactProjectionPasses', 'impactCount', 'clashCount', 'landingCount', 'evadeCycle', 'evadeCycleIndex', 'noticeFontSize', 'clashNoticeFontSize', 'debugFontSize', 'footerFontSize'];
 const toggled = key => key.startsWith('enable') || ['fxVisible', 'hudVisible', 'debugVisible', 'showHitboxes', 'showAttackVectors', 'jumpImprovements', 'footstoolEnabled', 'footstoolVault'].includes(key);
 const PROFILE_LABEL = ['Equilibrado', 'Ágil', 'Resistente'];
+/** Sliders de COMBATE (regras, ações, Moves, atributos, locomoção, passivas, física, salto/footstool): o limite máximo vale o DOBRO do original (pedido de 22/10/2026: «limite muito pequeno»). Chaves liga/desliga e seletores ficam como estão. */
+export const COMBAT_PATH = /^(rules|actions|world|profiles|locomotion|passivas).|^extras.combat.|^map.(jump|footstool)/;
+export const COMBAT_RANGE_FACTOR = 2;
+export const widenCombatRange = (path, r) => COMBAT_PATH.test(path) && !r.kind && !(r.step >= 1 && r.max <= 3) ? {...r, max: r.max * COMBAT_RANGE_FACTOR} : r;
 
 /** Faixa, passo e formato de cada parâmetro (regras do ajustador v6). */
 function range(key, value, path) {
@@ -63,6 +68,24 @@ function range(key, value, path) {
   if (['lightX', 'lightY', 'lightZ'].includes(key)) return {min: -30, max: 30, step: .5, fmt: n => n.toFixed(1)};
   if (key === 'gridDivisions') return {min: 2, max: 100, step: 1, fmt: n => String(n)};
   if (path && path.startsWith('extras.hitbox.') && (key === 'shapeForward' || key === 'shapeRadius')) return {min: .1, max: 2, step: .05, fmt: n => n.toFixed(2) + ' m'};
+  if (path && path.startsWith('display.scenery.')) {
+    if (key === 'labTheme') return {min: 0, max: 1, step: 1, fmt: n => n ? 'Laboratório técnico' : 'Clássico (cinza)', kind: 'toggle'};
+    if (['labBlocks', 'labProps', 'labRulers', 'labRimGlow'].includes(key)) return {min: 0, max: 1, step: 1, fmt: n => n ? 'Ligado' : 'Desligado', kind: 'toggle'};
+    if (key === 'labRingStep') return {min: 1, max: 16, step: 0.5, fmt: n => n.toFixed(1) + ' m'};
+    if (key === 'labBlockScale') return {min: 0.2, max: 4, step: 0.05, fmt: n => n.toFixed(2) + '×'};
+  }
+  if (path && path.startsWith('display.progress.')) {
+    if (key === 'pgEnabled' || key === 'pgAnimate') return {min: 0, max: 1, step: 1, fmt: n => n ? 'Ligado' : 'Desligado', kind: 'toggle'};
+    if (key === 'pgScale' || key === 'pgScaleEnemy') return {min: 0.4, max: 2, step: 0.05, fmt: n => Math.round(n * 100) + '%'};
+    if (key === 'pgLayout') return {min: 0, max: 1, step: 1, fmt: n => n ? 'Horizontal (compacto)' : 'Vertical (cantos)', kind: 'toggle'};
+    if (key === 'pgSubject') return {min: 0, max: 2, step: 1, fmt: n => ['Jogador', 'Adversário', 'Os dois'][n] ?? '?'};
+  }
+  if (path && path.startsWith('display.consumables.')) {
+    if (key === 'gemStyle') return {min: 0, max: 1, step: 1, fmt: n => n ? 'Gemas Facetadas' : 'Clássico', kind: 'toggle'};
+    if (['gemIndicators', 'gemAnimate', 'gemParticles', 'gemPedestal'].includes(key)) return {min: 0, max: 1, step: 1, fmt: n => n ? 'Ligado' : 'Desligado', kind: 'toggle'};
+    if (key === 'gemScale' || key === 'gemIndicatorSize') return {min: 0.3, max: 3, step: 0.05, fmt: n => n.toFixed(2) + '×'};
+    if (key === 'gemHover') return {min: 0, max: 3, step: 0.05, fmt: n => n.toFixed(2) + ' m'};
+  }
   if (path && path.startsWith('display.interpolation.')) {
     if (key === 'maxJump') return {min: .2, max: 4, step: .1, fmt: n => n.toFixed(1) + ' m'};
     if (key === 'enabled') return {min: 0, max: 1, step: 1, fmt: n => n ? 'Ligado' : 'Desligado', kind: 'toggle'};
@@ -128,6 +151,10 @@ function range(key, value, path) {
     if (key === 'destructibleHp' || key === 'shieldCapacity' || key === 'shieldMaxCap') return {min: 5, max: 300, step: 5, fmt: n => n + ' HP'};
     if (key === 'destructibleRespawnMin' || key === 'destructibleRespawnMax' || key === 'itemSpawnIntervalMin' || key === 'itemSpawnIntervalMax' || key === 'itemLifetime' || key === 'shieldDuration') return {min: 2, max: 120, step: 1, fmt: n => n + ' s'};
     if (key === 'destructibleGhostPreview' || key === 'jumpInterval' || key === 'jumpLandingRecovery') return {min: 0.05, max: 5, step: 0.01, fmt: n => n.toFixed(2) + ' s'};
+    if (key === 'impactMinSpeed') return {min: 0, max: 10, step: 0.1, fmt: n => n.toFixed(1) + ' m/s'};
+    if (key === 'impactDamageToObject' || key === 'impactDamageToFighter') return {min: 0, max: 20, step: 0.25, fmt: n => n.toFixed(2) + ' por m/s'};
+    if (key === 'passageClearance') return {min: 0, max: 3, step: 0.1, fmt: n => n.toFixed(1) + ' m'};
+    if (key === 'spawnClearance') return {min: 0, max: 3, step: 0.1, fmt: n => n.toFixed(1) + ' m'};
     if (key === 'jumpHeight') return {min: 0.5, max: 5.0, step: 0.1, fmt: n => n.toFixed(1) + ' m'};
     if (key === 'jumpGravity') return {min: 5, max: 40, step: 0.5, fmt: n => n.toFixed(1) + ' m/s²'};
     if (key === 'jumpDrag') return {min: 0, max: 3.0, step: 0.05, fmt: n => n.toFixed(2) + ' s⁻¹'};
@@ -180,7 +207,8 @@ export const EXTRA_SECTIONS = [['Smear de Membros', 'extras.visual.smear', null]
   ['Teclas do vermelho (controle manual)', 'extras.bindings2', null], ['VFX · Laser da Arena (BeamRenderer)', 'vfx.laser', null], ['Sombras', 'display.shadow', null], ['HUD', 'display.hud', null], ['Habilidades passivas', 'display.passive', null], ['Altura visual', 'display.grounding', null], ['Indicador da janela C → X', 'display.cancelRing', null], ['Animação: transições', 'display.animation', null], ['Diagnóstico de comandos', 'display.diagnostics', null], ['Janelas de combate', 'display.windows', null], ['Medidor de desempenho', 'display.perf', null],
   // Passivas (catálogo experimental, §29): uma seção por passiva. A apresentação unificada fica em Visualizar.
   ...PASSIVES.map(p => [`Passivas · ${p.nome}${p.species ? ' (' + p.species + ')' : ''}`, `passivas.${p.id}`, null]),
-  ['Passivas · gerais (detecção)', 'passivas.globals', null], ['VFX · three.quarks (experimental)', 'vfx.quarks', null], ['IA · Navegação Yuka (experimental)', 'extras.nav', null], ['VFX · Pós-processamento (experimental)', 'vfx.post', null], ['Hitbox espacial do golpe (experimental)', 'extras.hitbox', null], ['Interpolação do desenho (movimento liso)', 'display.interpolation', null]];
+  ['Passivas · gerais (detecção)', 'passivas.globals', null], ['VFX · three.quarks (experimental)', 'vfx.quarks', null], ['IA · Navegação Yuka (experimental)', 'extras.nav', null], ['VFX · Pós-processamento (experimental)', 'vfx.post', null], ['Hitbox espacial do golpe (experimental)', 'extras.hitbox', null], ['Interpolação do desenho (movimento liso)', 'display.interpolation', null],
+  ['Cenário do laboratório', 'display.scenery', null], ['HUD de progressão (Banco de Células)', 'display.progress', null], ['Consumíveis (Gemas Facetadas)', 'display.consumables', null]];
 /** Parâmetros mostrados em outras abas (sem duplicar controles no Ajustes). */
 const ELSEWHERE = new Set(['extras.toggles.enableEnemyAI', 'extras.toggles.enemyManual', 'extras.visual.shadowMin', 'extras.visual.shadowHeightFade']);
 export function createTuning({apply}) {
@@ -189,7 +217,7 @@ export function createTuning({apply}) {
     const root = pathGet(C, rootPath);
     for (const key of subset ?? Object.keys(root)) {
       const v = root[key];if (typeof v !== 'number') continue;
-      const path = rootPath + '.' + key, am = overhaulMeta(path) || actionMeta(path), r = am ? am.range : range(key, v, path);
+      const path = rootPath + '.' + key, am = overhaulMeta(path) || actionMeta(path), r = {...widenCombatRange(path, am ? am.range : range(key, v, path))};
       r.min = Math.max(r.min, SAFE_MIN[path] ?? -Infinity);r.min = Math.min(r.min, v);r.max = Math.max(r.max, v);
       const label = am ? am.label : path.startsWith('extras.colors.') ? (COLOR_NAMES[key.slice(0, -1)] || key) + ' · ' + ({R: 'Vermelho', G: 'Verde', B: 'Azul'})[key.slice(-1)] : path === 'extras.bindings.dodge' ? 'Tecla de esquiva (C)' : NAMES[key] || key;
       manifest.push({section, path, key, label, help: am ? am.help : help(path, label), initial: pathGet(base, path), official: officialValue(path), ...r});
@@ -387,15 +415,20 @@ export function createTuning({apply}) {
   $('tune-list').addEventListener('scroll', hideTip, {passive: true});
 
   // Presets: ui/presets-panel.js (biblioteca com presets de sensação, categorias, versões e comparação).
-  const known = () => new Set(manifest.map(m => m.path));
+  /** Todos os parâmetros numéricos de C (inclui os que NÃO têm controle no Ajustes, como os dos Moves em `world.*`): a exportação e a importação os levam junto. */
+  const rootsOf = obj => Object.fromEntries(ROOT_KEYS.map(k => [k, obj[k]]));
+  const manifestPaths = () => new Set(manifest.map(m => m.path));
+  const known = () => new Set([...manifestPaths(), ...Object.keys(flatten(rootsOf(base)))]);
   /** Valores de referência para comparações: atuais, padrão do laboratório ou jogo oficial (presets: presets-panel). */
   const valuesOf = id => id === '__current' ? snapshotValues() : id === '__lab' ? Object.fromEntries(manifest.map(m => [m.path, m.initial])) : id === '__game' ? Object.fromEntries(manifest.filter(m => m.official !== undefined).map(m => [m.path, m.official])) : {};
 
   // ---------- JSON ----------
+  /** Parâmetros alterados que o Ajustes não lista (Moves e demais ações em `world.*`, etc.): antes ficavam só em `values` e sumiam de «changedFromLabDefaults». */
+  const extraChanged = () => changedOutsideManifest(rootsOf(C), rootsOf(base), manifestPaths());
   function exportData() {
     const values = Object.fromEntries(ROOT_KEYS.map(k => [k, structuredClone(C[k])]));
     return {schema: 'arenamon-tuning', version: 9, source: 'arenamon-combate-laboratorio (overhaul)', createdAt: new Date().toISOString(), values,
-      changedFromLabDefaults: manifest.filter(changed).map(m => ({path: m.path, lab: m.initial, value: pathGet(C, m.path)})),
+      changedFromLabDefaults: [...manifest.filter(changed).map(m => ({path: m.path, lab: m.initial, value: pathGet(C, m.path)})), ...extraChanged()],
       differencesFromGame: manifest.filter(m => status(m) === 'experimental').map(m => ({path: m.path, game: m.official, lab: pathGet(C, m.path)})),
       labOnlyParameters: manifest.filter(m => m.official === undefined).length,
       note: 'Valores do laboratório. Nada é aplicado ao jogo automaticamente; use differencesFromGame para decidir o que levar ao config.ts.'};
@@ -407,6 +440,9 @@ export function createTuning({apply}) {
     const migration = migrateFlat(flatten(nested), known()), values = migration.values;
     const changes = [], invalid = [];
     for (const m of manifest) {const v = values[m.path];if (v === undefined) continue;if (typeof v !== 'number' || !Number.isFinite(v) || v < m.min - 1e-8 || v > m.max + 1e-8) {invalid.push(`${m.path} = ${v}`);continue;}if (!same(v, pathGet(C, m.path))) changes.push([m.path, v]);}
+    // Parâmetros sem controle no Ajustes (Moves em `world.*` etc.): aceitos se existem no padrão e são números finitos (sem faixa de slider).
+    const extra = importOutsideManifest(values, rootsOf(base), rootsOf(C), manifestPaths());
+    changes.push(...extra.changes);invalid.push(...extra.invalid);
     if (invalid.length) return {error: `Valores inválidos ou fora da faixa (${invalid.length}): ${invalid.slice(0, 5).join(', ')}${invalid.length > 5 ? '…' : ''}`};
     return {changes, schema: data.schema || 'v5/v6', version: data.version ?? '—', converted: migration.converted, ignored: migration.ignored};
   }

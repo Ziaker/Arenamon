@@ -7,7 +7,9 @@
 // - Anéis de impacto e fragmentos físicos reativos para disputas, reflexões e destruições.
 // É só representação: o desenho lê o estado e os eventos da simulação e nunca decide nada.
 import * as T from 'three';
+import {GemConsumable, GemSparkles} from './consumables-gems.js';
 import {C, rgb} from '../sim/config.js';
+import {altitudeOf} from '../sim/entity.js';
 import {reflectPlacement} from '../sim/moves/reflect.js';
 import {stoneCount} from '../sim/moves/psyshock.js';
 
@@ -862,7 +864,7 @@ export class WorldView {
       }
       if (f.shield && f.shield.hp > 0 && f.hp > 0) {
         bubble.visible = true;
-        const fY = (f.groundY ?? 0) + (f.flight?.y ?? f.vaultHeight ?? 0);
+        const fY = altitudeOf(f);
         bubble.position.set(f.position.x, fY + 0.6, f.position.z);
         const ratio = Math.min(1, f.shield.hp / (f.shield.maxHp || 80));
         bubble.material.opacity = 0.22 + 0.28 * ratio + 0.08 * Math.sin(this.time * 5);
@@ -904,7 +906,7 @@ export class WorldView {
       let m = this.mapMeshes.get(o.id);
       if (!m) {
         let geo;
-        if (o.shape === 'cylinder') {
+        if (o.shape === 'cylinder' || o.shape === 'pillar') {   // pilar colide como círculo: desenhado como cilindro (visual = físico)
           geo = new T.CylinderGeometry(o.radius, o.radius, o.height, 24);
         } else {
           geo = new T.BoxGeometry(o.hx * 2, o.height, o.hz * 2);
@@ -992,14 +994,25 @@ export class WorldView {
       }
     }
 
-    // 5. Consumíveis (7 tipos com cores e geometrias únicas, R4.7, R11.5)
+    // 5. Consumíveis (7 tipos com cores e geometrias únicas, R4.7, R11.5). display.consumables.gemStyle: 1 = Gemas Facetadas (aprovado em 21/10/2026), 0 = formas clássicas.
+    const K = C.display.consumables, gemOn = (K?.gemStyle | 0) === 1;
+    this.gems ??= new Set();
+    this.gemSparkles ??= new GemSparkles(this.group);
     for (const it of mapState.items ?? []) {
       aliveMapIds.add(it.id);
       let m = this.mapMeshes.get(it.id);
+      if (m && (m.userData.consStyle ?? 0) !== (gemOn ? 1 : 0)) {this._removeMapMesh(it.id, m);m = undefined;}   // trocou de estilo: recria
       if (!m) {
-        m = this.createConsumableMesh(it.type);
+        if (gemOn) {const gem = new GemConsumable(it.type);m = gem.root;this.gems.add(gem);}
+        else m = this.createConsumableMesh(it.type);
+        m.userData.consStyle = gemOn ? 1 : 0;
         this.mapGroup.add(m);
         this.mapMeshes.set(it.id, m);
+      }
+      if (gemOn) {
+        m.position.set(it.pos.x, it.pos.y, it.pos.z);
+        m.userData.gem.update(this.time, camera);
+        continue;
       }
       const bob = 0.12 * Math.sin(this.time * 3.5 + it.id);
       m.position.set(it.pos.x, it.pos.y + 0.45 + bob, it.pos.z);
@@ -1012,19 +1025,25 @@ export class WorldView {
         ring.scale.set(pScale, pScale, pScale);
       }
     }
+    this.gemSparkles.update(dt, gemOn && !!K.gemParticles, this.gems);
 
     // Limpeza de entidades removidas do mapa
     for (const [id, m] of this.mapMeshes) {
-      if (!aliveMapIds.has(id)) {
-        this.mapGroup.remove(m);
-        m.traverse(o => {
-          o.geometry?.dispose();
-          if (Array.isArray(o.material)) o.material.forEach(mat => mat.dispose());
-          else o.material?.dispose();
-        });
-        this.mapMeshes.delete(id);
-      }
+      if (!aliveMapIds.has(id)) this._removeMapMesh(id, m);
     }
+  }
+
+  /** Remove e libera um desenho do mapa (gemas também saem do conjunto e perdem as centelhas). */
+  _removeMapMesh(id, m) {
+    const gem = m.userData?.gem;
+    if (gem) {this.gems.delete(gem);this.gemSparkles?.detach(gem);}
+    this.mapGroup.remove(m);
+    m.traverse(o => {
+      if (!o.isSprite) o.geometry?.dispose();   // a geometria do Sprite é compartilhada pelo Three
+      if (Array.isArray(o.material)) o.material.forEach(mat => mat.dispose());
+      else o.material?.dispose();
+    });
+    this.mapMeshes.delete(id);
   }
 
   createConsumableMesh(type) {

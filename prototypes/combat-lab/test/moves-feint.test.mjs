@@ -99,11 +99,15 @@ test('encadeia logo depois: a esquiva é aceita a partir de 0,033 s', () => {
   g.step(cmd({dodge: true, move: vec(1, 0)}), cmd());
   assert.equal(b.action?.kind, '  dodge'.trim(), 'esquiva já aceita');
 });
-test('recarga de 3 s e stamina insuficiente bloqueiam o uso', () => {
+test('em recarga um novo toque NÃO reinicia a Finta: acelera a recarga (M5.8: −1 s por 0,5 de stamina) e sem stamina é negado', () => {
   const g = arena({equip: ['feint']});const b = g.fighters[0];
   g.step(pressSlot(0), cmd());run(g, secs(.3));
-  g.step(pressSlot(0), cmd());assert.ok(!b.action || b.action.elapsed > .01, 'em recarga: nada novo começou');
-  assert.ok(b.moveCooldowns.feint > 2);
+  const cd = b.moveCooldowns.feint, st = b.stamina, started = b.action?.elapsed;
+  g.step(pressSlot(0), cmd());assert.ok(!b.action || b.action.elapsed > .01 || b.action.elapsed === started, 'em recarga: nada novo começou');
+  assert.ok(g.lastStepEvents.some(e => e.result === 'cooldownBoost' && e.move === 'feint'), 'evento de aceleração');
+  assert.ok(Math.abs((cd - b.moveCooldowns.feint) - 1) < .05 && Math.abs((st - b.stamina) - .5) < 1e-6, `recarga ${cd} → ${b.moveCooldowns.feint}, stamina ${st} → ${b.stamina}`);
+  b.stamina = b.regenBase = .2;b.regenAge = 0;const cd2 = b.moveCooldowns.feint;
+  g.step(pressSlot(0), cmd());assert.ok(cd2 - b.moveCooldowns.feint < .02, `sem stamina: recarga ${cd2} → ${b.moveCooldowns.feint}, stamina ${b.stamina}`);
 });
 test('M28.4: sliders mexidos depois do uso não alteram o recuo em andamento; o próximo uso lê o novo', () => {
   const g = arena({equip: ['feint']});const b = g.fighters[0], z0 = b.position.z;

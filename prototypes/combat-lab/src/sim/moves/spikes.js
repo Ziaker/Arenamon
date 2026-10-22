@@ -9,7 +9,7 @@ import {spawn} from '../world.js';
 import {markerValidity} from '../aim-marker.js';
 
 export const spikesDef = Object.freeze({
-  id: 'spikes', name: 'Spikes', group: 'spikes', aimMode: 'marker', aim: 'facing',
+  id: 'spikes', name: 'Spikes', air: 'cast', group: 'spikes', aimMode: 'marker', aim: 'facing',
   description: 'Normal · Field. Segure para escolher o local (até 5 m), solte para confirmar: nasce uma armadilha de espinhos que fere o primeiro adversário que pisar nela.',
   cost: 1, cooldown: 10, duration: .4, motion: {type: 'root'},
   timeline: [{at: .4, atKey: 'cast', effect: 'spikes'}],

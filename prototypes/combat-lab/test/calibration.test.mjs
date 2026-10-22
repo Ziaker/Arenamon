@@ -1,7 +1,8 @@
 // Fase 2 (sem navegador): presets de sensação, segurança da troca A × B durante a partida, gravador de movimento
 // determinístico e métricas. Usa o mesmo motor (Game.step) do laboratório.
+// Este teste caracteriza a mecânica nos valores de FÁBRICA do laboratório (factoryDefaults); a base de calibração v8 é coberta por calibration-base.test.mjs e pelos testes de colisão/ambiente.
 import assert from 'node:assert/strict';
-import {C, defaults, resetConfig} from '../src/sim/config.js';
+import {C, factoryDefaults, resetConfig} from '../src/sim/config.js';
 import {Game} from '../src/sim/game.js';
 import {emptyCommand} from '../src/sim/entity.js';
 import {vec, length, sub} from '../src/sim/math.js';
@@ -10,6 +11,7 @@ import {locomotionParams} from '../src/sim/controller.js';
 import {BUILTIN_PRESETS, FEEL_CATEGORIES, categoryOf, presetValues, applyPlan, switchClass, migrateLegacyPreset, safeBoundary} from '../src/sim/presets.js';
 import {ABSwitch, NEVER_SWITCHED} from '../src/sim/ab-switch.js';
 import {standardSequence, runSequence, parseSequence, serializeSequence, samplesCsv, comparability} from '../src/sim/movement.js';
+resetConfig(factoryDefaults());   // parte dos valores de fábrica (a base de calibração v8 tem testes próprios)
 
 let n = 0;const ok = l => {n++;console.log('✓', l);};
 const get = p => p.split('.').reduce((o, k) => o?.[k], C);
@@ -83,7 +85,7 @@ ok('gravação a partir de uma partida em andamento: reexecução reproduz exata
 // ---------- A × B durante a partida ----------
 const heavy = presetValues(BUILTIN_PRESETS.find(p => p.name === 'Pesado'), known), storm = presetValues(BUILTIN_PRESETS[0], known);
 function scenario({toggleAt, tackleAt = null, length: ticks = 360, sides = {A: {name: 'Storm', values: storm}, B: {name: 'Pesado', values: heavy}}} = {}) {
-  resetConfig(defaults());
+  resetConfig(factoryDefaults());
   const g = new Game();g.mode = 'inactive';g.reset({positions: [vec(-6, 0), vec(8, 10)]});
   const ab = new ABSwitch({get, setTransient: pairs => {for (const [p, v] of pairs) set(p, v);}});
   const trace = [];ab.start(sides, {game: g, tick: 0});
@@ -128,7 +130,7 @@ ok('troca A × B durante a locomoção: aplicada no passo seguinte, sem teletran
 ok('troca A × B no meio do tackle: curva/duração de X adiadas até o fim da ação, trajetória e stamina intactas');
 {
   // Só os caminhos de A ou B mudam; passo da simulação e teclas nunca são trocados.
-  resetConfig(defaults());const before = allPaths();
+  resetConfig(factoryDefaults());const before = allPaths();
   const ab = new ABSwitch({get, setTransient: pairs => {for (const [p, v] of pairs) set(p, v);}});
   const info = ab.start({A: {name: 'A', values: {'locomotion.acceleration': 50, 'test.step': 1 / 60, 'extras.bindings.tackle': 11}}, B: {name: 'B', values: {'vfx.hit.size': 2}}});
   assert.deepEqual(info.excluded.sort(), ['extras.bindings.tackle', 'test.step']);
@@ -147,5 +149,5 @@ ok('A × B altera só os parâmetros dos presets; passo, arena, vida/stamina má
   g.fighters[0].action = null;g.fighters[0].stun = .1;assert.ok(!safeBoundary(g), 'em guard stun: não seguro');g.fighters[0].stun = 0;g.hitstop = .02;assert.ok(!safeBoundary(g), 'em hitstop: não seguro');
 }
 ok('limite seguro: nenhuma ação, stun, voo, recuperação, empurrão, buffer ou hitstop');
-resetConfig(defaults());
+resetConfig(factoryDefaults());
 console.log(`\n${n} verificações da calibração aprovadas.`);

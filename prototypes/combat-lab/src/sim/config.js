@@ -3,8 +3,18 @@
 // O jogo oficial (prototypes/game/src/config.ts) é lido por ui/official.js apenas para comparação.
 
 import {MAP_DEFAULTS} from './map.js';
+import {applyCalibrationBase} from './calibration-base.js';
 
+/** Valores de FÁBRICA (laboratório v6 + parâmetros novos), sem a base de calibração v8. Referência e prova de que a tabela guarda os valores anteriores. */
+export function factoryDefaults() {return buildDefaults();}
+let factoryMode = false;
+/** «?fabrica=1» na URL do laboratório: abre com os valores de FÁBRICA (sem a base de calibração v8), para comparar e para os testes que caracterizam a mecânica de fábrica. */
+export function useFactoryDefaults(on = true) {factoryMode = !!on;}
 export function defaults() {
+  if (factoryMode) return buildDefaults();
+  return applyCalibrationBase(buildDefaults());   // base de calibração v8 (decisão de 22/10/2026) por cima dos valores de fábrica; cada linha de calibration-base.js guarda o valor anterior
+}
+function buildDefaults() {
   // Regras gerais. Os parâmetros próprios de C (esquiva) e X (tackle) ficam em `actions`.
   // blend: dissipação da velocidade quando a DEFESA cancela uma esquiva/tackle (GDD 7.3: 100 ms).
   const rules = {recoil: .3, recoilFraction: .15, blend: .1, guardStun: .2,
@@ -187,7 +197,7 @@ export function defaults() {
     lunge: {cost: .75, cooldown: 6, cast: .6, range: 3.5, damage: 8, knockbackH: 4, knockbackV: 0, invulnerableSeconds: .1333, chainAfter: .45, hitStart: .19, hitEnd: .26},
     // Riposte: Normal Status+Melee PL1. Postura de 0,65 s; entre 0,13 e 0,30 s qualquer acerto elegível (menos Guard Break) é anulado e dispara um contra-golpe PL1 de 6 HP
     // (× Ataque ÷ referência), 3 m/s H, na hora do gatilho (MV-P24); strikeRange = alcance do golpe (não definido no documento: MV-P25). Janela fechada sem acerto = recuperação exposta.
-    riposte: {cost: .8, cooldown: 8, cast: .65, windowStart: .13, windowEnd: .30, damage: 6, knockbackH: 3, knockbackV: 0, strikeRange: 1.6},
+    riposte: {cost: .8, cooldown: 8, cast: .65, windowStart: .13, windowEnd: .30, damage: 6, knockbackH: 3, knockbackV: 0, strikeRange: 1.6, fxOn: 1, fxIntensity: 1, fxSize: 1},
     // Emerging Stone (ES-D01…D103, cronologia C): cast 0,55 s (corpo a 30%), marcador 3–10 m 3D, projétil 15 m/s, explosão de 5 m horizontais (20 nominais × Ataque ÷ referência, 8 m/s radial),
     // rocha 3 m × escala (0,25–4×, passo 0,25), emerge em 0,40 s, 5 HP, lançamento da emergência 8 H/14 V, até 3 por dono. markerSpeed/startDistance/rockSearch/maxRise: provisórios.
     emergingStone: {cost: 3, cooldown: 9, cast: .55, castSlow: .7, minRange: 3, range: 10, startDistance: 5, markerSpeed: 8, speed: 15, blastRadius: 5, damage: 20, blastKnockback: 8, rockScale: 1, rockHp: 5, riseTime: .4, launchH: 8, launchV: 14, maxRocks: 3, rockSearch: 4, maxRise: 2, edgeMargin: .3, radius: 0, allowOccupied: 1},
@@ -214,7 +224,7 @@ export function defaults() {
     quickAttack: {cost: .75, cooldown: 6, acquireRange: 7, approachMax: .16, returnMax: .14, recovery: .12, damage: 8, knockbackH: 4, knockbackV: 0, invulnerableSeconds: 0},
     swift: {cost: .8, cooldown: 7, cast: .25, count: 3, speed: 15, damage: 3, homingSeconds: .25, homingRate: 90, range: 12, knockback: .3, knockbackCap: .9, radius: .2, fanAngle: 20, spawnForward: .9, spawnSpacing: .35, counterStagger: .2},
   });
-  return {rules, test, locomotion, camera, profiles: profilesLab, extras, actions, vfx: vfxDefaults(), display: displayDefaults(), world, map: {...MAP_DEFAULTS}, passivas};
+  return ({rules, test, locomotion, camera, profiles: profilesLab, extras, actions, vfx: vfxDefaults(), display: displayDefaults(), world, map: {...MAP_DEFAULTS}, passivas});
 }
 
 /**
@@ -317,6 +327,16 @@ export function displayDefaults() {
     // Indicadores das janelas de combate acima dos lutadores (tempos lidos da simulação). mode: 0 desligado, 1 jogador, 2 ambos.
     // Medidor de desempenho: caixa compacta na arena (0/1). Só apresentação.
     perf: {overlay: 0},
+    // Cenário "Laboratório técnico" (escolhido em 21/10/2026, lab prototypes/hud-consumiveis): piso com réguas, anel de blocos e pilares.
+    // labTheme 0 = visual clássico (cinza/branco). Só apresentação: as cores/luzes/espessuras de Visualizar continuam valendo (viram tons sobre a paleta do laboratório).
+    // labRingStep: distância entre os anéis de régua (m) · labBlockScale: altura dos blocos do anel · labRimGlow: brilho da borda.
+    scenery: {labTheme: 1, labBlocks: 1, labProps: 1, labRulers: 1, labRingStep: 4, labBlockScale: 1, labRimGlow: 1},
+    // HUD de progressão "Banco de Células" (escolhido em 21/10/2026): 5 atributos, estágios 0–4, lidos de fighter.stages.
+    // pgLayout: 1 = horizontal compacto (embaixo da barra de vida de cada lutador) · 0 = vertical (cantos inferiores). pgSubject: 0 = jogador, 1 = adversário, 2 = ambos.
+    // pgScale / pgScaleEnemy: tamanho do HUD do jogador e do adversário (independentes). Só apresentação.
+    progress: {pgEnabled: 1, pgLayout: 1, pgSubject: 2, pgScale: 1, pgScaleEnemy: 1, pgAnimate: 1},
+    // Consumíveis "Gemas Facetadas" (escolhido em 21/10/2026): gemStyle 0 = formas clássicas · 1 = gemas. Altura em m, escala e indicador em múltiplos.
+    consumables: {gemStyle: 1, gemScale: 1, gemHover: .9, gemIndicators: 1, gemIndicatorSize: 1, gemAnimate: 1, gemParticles: 1, gemPedestal: 1},
     windows: {mode: 0, scale: 1, opacity: .9, invulnerable: 1, cancel: 1, chain: 1, recovery: 1, guardStun: 1, recoil: 1, perfect: 1, perfectCooldown: 1, counter: 1, buffer: 1, hitstop: 0, statuses: 1, cooldowns: 1},
   };
 }

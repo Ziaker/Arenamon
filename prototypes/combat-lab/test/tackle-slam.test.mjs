@@ -1,6 +1,7 @@
 // Fase 2 do Tackle: wall-splat (caindo na parede), meteor slam (C → X no vault e X de quem foi lançado) e ground bounce. Sem navegador.
+// Este teste caracteriza a mecânica nos valores de FÁBRICA do laboratório (factoryDefaults); a base de calibração v8 é coberta por calibration-base.test.mjs e pelos testes de colisão/ambiente.
 import assert from 'node:assert/strict';
-import {C, defaults, resetConfig} from '../src/sim/config.js';
+import {C, factoryDefaults, resetConfig} from '../src/sim/config.js';
 import {Game} from '../src/sim/game.js';
 import {emptyCommand} from '../src/sim/entity.js';
 import {vec} from '../src/sim/math.js';
@@ -9,7 +10,7 @@ import {launch} from '../src/sim/combat.js';
 let n = 0;const ok = l => {n++;console.log('✓', l);};
 const cmd = o => ({...emptyCommand(), ...o});
 function arena({blue = vec(0, -3), red = vec(0, 3), over = {}} = {}) {
-  resetConfig(defaults());
+  resetConfig(factoryDefaults());
   for (const [p, v] of Object.entries(over)) {const k = p.split('.'), last = k.pop();k.reduce((a, x) => a[x], C)[last] = v;}
   const g = new Game();g.mode = 'inactive';g.reset({positions: [blue, red]});g.fighters[0].facing = 0;g.fighters[1].facing = Math.PI;return g;
 }

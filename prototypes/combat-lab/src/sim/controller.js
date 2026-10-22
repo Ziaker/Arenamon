@@ -15,6 +15,7 @@ import {moveInSlot, getMove, getTackleSetup, nearestEligible} from './moves.js';
 import {chargeParams, chargeLevel, interruptCooldown, boostPlan} from './charge.js';
 import {vec, add, scale, sub, dot, length, normalize, clamp, angleOf, direction, angleDelta, smoothstep, actionCurve} from './math.js';
 import {legacyApproach, locomotionStep} from './locomotion.js';
+import {slideAlong} from './solid-contact.js';
 import {actionProgress} from './motion.js';
 import {report, attemptsActive} from './attempts.js';
 import {getGroundHeight} from './physics.js';
@@ -22,6 +23,7 @@ import {passiveCost} from './passive-engine.js';
 import {markerValidity, markerInitial, markerMove, followMarker} from './aim-marker.js';
 import {canSee} from './vision.js';
 import {bulletPunchTravel} from './moves/bullet-punch.js';
+import {isAirJump, isVaultArc, airKind, airUsable, vaultToFlight, takeOffToLift, applyLift} from './air.js';
 
 /** Aceleração/frenagem/reversão da locomoção comum no modelo do v6 (mantido para compatibilidade). */
 export function approachVelocity(current, desired, dt) {return legacyApproach(current, desired, C.locomotion, dt);}
@@ -220,7 +222,7 @@ function aimSlamDive(f, fighters) {
 }
 export function startSlam(f, height, dirs, fighters, desiredHeading, guardHeld, locked = false) {
   startAction(f, 'tackle', dirs, fighters, desiredHeading, false, guardHeld, locked);
-  f.vaultHeight = Math.max(0, height);f.action.slam = true;f.action.fromSlam = true;f.action.plDamage = C.rules.slamDamage;aimSlam(f, fighters, height);
+  f.vaultHeight = Math.max(0, height);f.action.slam = true;f.action.fromSlam = true;f.action.plDamage = C.rules.slamDamage;f.action.pl = 2;aimSlam(f, fighters, height);   // Meteor Slam: PL 2
 }
 /** Tempo até o solo (s) de um lutador em voo balístico. */
 export function timeToLand(f) {const g = C.rules.launchGravity, fl = f.flight;return fl ? (fl.vy + Math.sqrt(Math.max(0, fl.vy * fl.vy + 2 * g * fl.y))) / g : 0;}
@@ -266,8 +268,23 @@ function startNormalJump(f, move, diag, fromAir = false) {
   f.sprintCarry = false;
   if (diag) report(f, {kind: 'jump', result: 'executed', note: `${fromAir ? 'coyote · ' : ''}salto normal h=${h}m vy=${vy.toFixed(1)}m/s`});
 }
+/**
+ * Passo dos Moves com o lutador em salto ou queda de borda (o ramo de voo retorna cedo e antes nunca chegava aqui). Mesmas funções do solo: toque no slot,
+ * marcador, carga e soltura; e o relógio da ação 'move' aérea (air: true), cujos efeitos saem da linha do tempo sem tirar o corpo do voo.
+ */
+function airSkillStep(f, cmd, fighters, world, dt, diag) {
+  const move = length(cmd.move) > 1 ? normalize(cmd.move) : cmd.move, target = fighters.find(o => o.id === cmd.target && o.hp > 0);
+  const desiredHeading = target ? angleOf(sub(target.position, f.position)) : length(move) > 0 ? angleOf(move) : f.facing;
+  if (cmd.skill != null) pressSkill(f, cmd, move, desiredHeading, !!target, diag, fighters, world);
+  else if (f.skillBuffer) bufferedSkill(f, cmd, diag);
+  if (f.aim && !f.aim.castFirst) stepAim(f, cmd, move, {desiredHeading, hasTarget: !!target, fighters, world, dt, diag});
+  if (f.charge) stepCharge(f, cmd, {move, desiredHeading, hasTarget: !!target, fighters});
+  const a = f.action;
+  if (a?.kind === 'move' && a.air && f.flight) {updateMove(f, a, target, cmd, dt);if (f.flight) f.state = 'airborne';}
+}
 export function updateFighter(f, cmd, fighters, dt, world = null) {
-  CTX_FIGHTERS = fighters;
+  CTX_FIGHTERS = fighters;CTX_WORLD = world;
+  if (f.absent && !(f.action?.kind === 'move' && f.action.travel)) f.absent = false;   // rede de segurança: a ausência só existe durante a viagem do Bullet Punch; se a ação sumir (cancelada, lançamento, queda), o lutador reaparece em vez de ficar invisível e intangível para sempre
   if (cmd.target != null && fighters.find(o => o.id === cmd.target)?.absent) cmd = {...cmd, target: null, locked: false};   // ausente (Bullet Punch) não pode ser selecionado como alvo
   if (cmd.target != null && hasFlag(f, 'blind')) {   // cegueira: lock-on só em quem o cegado enxerga (10 m, sem parede bloqueando por completo); senão desliga
     const t = fighters.find(o => o.id === cmd.target);
@@ -307,13 +324,9 @@ export function updateFighter(f, cmd, fighters, dt, world = null) {
     }
   }
   if (f.tackleCharge && (f.flight || f.knockRecovery > 0 || f.hp <= 0)) cancelTackleCharge(f, 'hit');   // golpe sofrido: a carga do tackle cai e a stamina gasta não volta
-  if (f.aim && ((f.flight && !f.aim.def?.aimAirOk) || f.knockRecovery > 0 || f.hp <= 0 || f.stun > 1e-8 || hasFlag(f, 'stunned') || hasFlag(f, 'silenced'))) cancelAim(f, f.hp <= 0 ? 'defeated' : 'hit');   // golpe sofrido: o marcador some sem custo
-  if (f.charge && (f.flight || f.knockRecovery > 0 || f.hp <= 0)) cancelCharge(f, f.hp <= 0 ? 'defeated' : 'hit');   // golpe com lançamento, recuperação ou perda de apoio (M15.3, M27.1)
+  if (f.aim && ((f.flight && !(isAirJump(f) && airKind(f.aim.def) !== 'none')) || f.knockRecovery > 0 || f.hp <= 0 || f.stun > 1e-8 || hasFlag(f, 'stunned') || hasFlag(f, 'silenced'))) cancelAim(f, f.hp <= 0 ? 'defeated' : 'hit');   // golpe sofrido: o marcador some sem custo
+  if (f.charge && ((f.flight && !isAirJump(f)) || f.knockRecovery > 0 || f.hp <= 0)) cancelCharge(f, f.hp <= 0 ? 'defeated' : 'hit');   // golpe com lançamento, recuperação ou perda de apoio (M15.3, M27.1)
   if (f.aim?.castFirst && f.hp > 0) stepAim(f, cmd, length(cmd.move) > 1 ? normalize(cmd.move) : cmd.move, {desiredHeading: f.facing, hasTarget: false, fighters, world, dt, diag});   // cast do Emerging Stone corre também no ar
-  if (f.flight && !f.aim && cmd.skill != null && f.hp > 0 && !f.wallSplat) {   // Move com cast que pode começar no ar (Emerging Stone)
-    const d0 = moveInSlot(f, cmd.skill);
-    if (d0?.aimAirOk && !f.charge && movePermission(f, d0, cmd.skill).ok) {startAim(f, d0, cmd.skill, fighters, world, null);if (diag) report(f, {kind: 'skill', slot: cmd.skill, move: d0.id, result: 'executed', note: 'cast iniciado no ar'});}
-  }
   if (f.flight) {
     // Meteor slam de quem está no ar (salto normal com Espaço ou lançado): X no ar vira mergulho oblíquo (não vale preso na parede nem sem stamina).
     if (isSlamTrigger) {
@@ -357,7 +370,9 @@ export function updateFighter(f, cmd, fighters, dt, world = null) {
           );
         }
       }
-      f.action = null;f.push = null;f.guard = false;f.vaultHeight = 0;f.velocity = vec();f.locomotionVelocity = vec();f.bufferedTackle = null;f.state = f.wallSplat ? 'wallSplat' : 'airborne';return;
+      if (isAirJump(f) && f.hp > 0 && !hasFlag(f, 'stunned')) {airSkillStep(f, cmd, fighters, world, dt, diag);if (!f.flight) return;}   // Moves no ar: usar, mirar, carregar e a ação aérea em curso (air.js)
+      if (!(f.action?.kind === 'move' && f.action.air && isAirJump(f))) f.action = null;
+      f.push = null;f.guard = false;f.vaultHeight = 0;f.velocity = vec();f.locomotionVelocity = vec();f.bufferedTackle = null;f.state = f.wallSplat ? 'wallSplat' : 'airborne';return;
     }
   }
   // Derrota tem prioridade sobre recuperação: um lutador derrotado não pode ficar pendurado em
@@ -580,7 +595,7 @@ export function updateFighter(f, cmd, fighters, dt, world = null) {
     else if (hasFlag(f, 'rooted')) {const r = locomotionStep(f.locomotionVelocity, vec(), walk, locomotionParams(f), dt);f.locomotionVelocity = r.velocity;f.desiredVelocity = vec();f.locoPhase = 'rooted';}
     else if (L.model !== 1) {f.locomotionVelocity = approachVelocity(f.locomotionVelocity, scale(move, walk), dt);f.desiredVelocity = scale(move, walk);f.locoPhase = length(move) ? 'legacy' : 'idle';}
     else {
-      const r = locomotionStep(f.locomotionVelocity, move, vMax, locomotionParams(f), dt);
+      const r = locomotionStep(f.locomotionVelocity, slideAlong(move, f.surfaceNormals), vMax, locomotionParams(f), dt);   // contato com sólido redondo: a entrada que empurra para dentro é descartada (deslize)
       f.locomotionVelocity = r.velocity;f.desiredVelocity = r.desired;
       if (f.sprintCarry && length(r.velocity) <= walk + 1e-3) f.sprintCarry = false;
       f.locoPhase = f.sprinting ? 'sprint' : f.sprintCarry ? 'sprintStop' : r.phase;
@@ -639,7 +654,7 @@ function startAction(f, kind, dirs, fighters, desiredHeading, viaCancel, guardHe
   if (invulnerableFor !== undefined) f.action.invulnerableFor = invulnerableFor;
   if (liftStart > 0) {f.action.liftStart = liftStart;f.action.liftTime = liftTime;f.action.fromCancel = true;}
   // Meteor slam: C → X a partir do salto do vault (acima da altura mínima) vira mergulho oblíquo com bônus de dano.
-  if (viaCancel && kind === 'tackle' && T.enableMeteorSlam && liftStart > C.rules.slamMinHeight) {f.action.slam = true;f.action.fromSlam = true;f.action.plDamage = C.rules.slamDamage;aimSlam(f, fighters, liftStart);}
+  if (viaCancel && kind === 'tackle' && T.enableMeteorSlam && liftStart > C.rules.slamMinHeight) {f.action.slam = true;f.action.fromSlam = true;f.action.plDamage = C.rules.slamDamage;f.action.pl = 2;aimSlam(f, fighters, liftStart);}
   if (viaCancel) f.action.fromCancel = true;
   if (countered) f.counterWindow = 0;
   // O custo de C já gasto continua gasto; X cobra o próprio custo. Technician desconta só esquiva ('dodge').
@@ -679,6 +694,8 @@ export function advanceAction(f, dt) {
 /** @param {any} f @param {any} def @param {number | null} [slot] */
 /** Lutadores da partida em curso (definido a cada updateFighter): permite que movePermission/HUD/IA avaliem Moves com aquisição de alvo. */
 let CTX_FIGHTERS = [];
+/** Mundo da partida em curso (definido a cada updateFighter): o apoio real sob o corpo para os Moves que descem do ar (air.js). */
+let CTX_WORLD = null;
 export function movePermission(f, def, slot = null) {
   if (!def) return {ok: false, reason: 'noMove', detail: {slot}};
   if (hasFlag(f, 'stunned')) return {ok: false, reason: 'stunned'};
@@ -686,13 +703,14 @@ export function movePermission(f, def, slot = null) {
   if (f.moveRecovery > 1e-8) return {ok: false, reason: 'moveRecovery', detail: {left: f.moveRecovery}};
   const cd = f.moveCooldowns?.[def.id] ?? 0;if (cd > 1e-8) return {ok: false, reason: 'cooldown', detail: {left: cd}};
   if (f.guard && def.fromGuard === false) return {ok: false, reason: 'guardBlocks'};
-  const cur = f.action;
-  if (cur && !(def.cancelFrom || []).includes(cur.kind) && !(def.fromDodge && cur.kind === 'dodge')) {
+  const cur = f.action, airOk = airUsable(f, def);   // ar utilizável (air.js): salto, queda de borda ou arco do vault
+  if (f.flight && !airOk) return {ok: false, reason: 'noGround'};   // lançado, preso na parede ou Move sem uso no ar
+  if (cur && !(def.cancelFrom || []).includes(cur.kind) && !(def.fromDodge && cur.kind === 'dodge') && !(airOk && isVaultArc(f))) {
     if (cur.kind === 'recoil') return {ok: false, reason: 'recoil', detail: {left: Math.max(0, C.rules.recoil - cur.elapsed)}};
     if (!chainOpen(f)) return {ok: false, reason: 'chain', detail: {left: Math.max(0, actionSpec(cur).chainAfter - cur.elapsed)}};
   }
   if (f.stun > 1e-8 && !def.fromGuardStun) return {ok: false, reason: 'guardStun', detail: {left: f.stun}};
-  if (def.groundOnly && (f.flight || (f.vaultHeight ?? 0) > 1e-8)) return {ok: false, reason: 'noGround'};
+  if (def.groundOnly && !airOk && (f.flight || (f.vaultHeight ?? 0) > 1e-8)) return {ok: false, reason: 'noGround'};
   if (def.needsTarget) {const range = C.world[def.group]?.[def.needsTarget] ?? 0;if (!nearestEligible(f, CTX_FIGHTERS, range)) return {ok: false, reason: 'noTarget', detail: {range}};}
   const cost = costOf(f, def.cost ?? 1);
   if (f.exhausted && cost > 0) return {ok: false, reason: 'exhausted', detail: {value: f.stamina, refill: getFighterMaxStamina(f)}};
@@ -730,6 +748,7 @@ function pressFeint(f, cmd, def, slot, move, desiredHeading, hasTarget, diag) {
 }
 /** Inicia o movimento: cobra a stamina, inicia a recarga e agenda a linha do tempo (disparada em updateMove). */
 function startMove(f, def, slot, dirs, desiredHeading, hasTarget, guardHeld) {
+  const lift = airKind(def) === 'descend' ? takeOffToLift(f, CTX_WORLD) : 0, inAir = airKind(def) === 'cast' && isAirJump(f);
   const aim = def.aim ?? 'target', inputDir = dirs.dodgeDirection ?? dirs.move;
   const heading = aim === 'facing' ? f.facing : aim === 'input' && length(inputDir) > .01 ? angleOf(inputDir) : hasTarget || length(inputDir) <= .01 ? desiredHeading : angleOf(inputDir);
   // M28.4: a execução guarda a definição EFETIVA (com os sliders do momento) e os parâmetros do grupo; mexer em slider depois não a altera.
@@ -737,6 +756,7 @@ function startMove(f, def, slot, dirs, desiredHeading, hasTarget, guardHeld) {
   const cost = costOf(f, def.cost ?? 1);f.stamina = Math.max(0, f.stamina - cost);f.regenBase = f.stamina;f.regenAge = 0;f.exhausted = isDepleted(f.stamina);
   if (def.cooldown > 0) (f.moveCooldowns ??= {})[def.id] = def.cooldown;
   f.guard = false;f.guardSuppressed = guardHeld;f.push = null;f.blend = null;f.vaultHeight = 0;f.bufferedTackle = null;f.inputBuffer = null;f.sprinting = false;f.sprintCarry = false;
+  if (lift > 1e-8) applyLift(f, lift);else if (inAir) f.action.air = true;   // air.js: 'descend' desce enquanto age; 'cast' segue em voo
 }
 /**
  * Move que vira uma AÇÃO DE TACKLE com parâmetros próprios (Lunge, Quick Attack, Bullet Punch…): `startAction` cria a ação (colisão real, defesa, defesa
@@ -744,8 +764,9 @@ function startMove(f, def, slot, dirs, desiredHeading, hasTarget, guardHeld) {
  * início do uso, MV-P11) e a preparação registrada em `def.tackle` ajusta duração, distância, dano, knockback e janelas (parâmetros capturados, M28.4).
  */
 function startTackleMove(f, def, slot, dirs, desiredHeading, hasTarget, guardHeld, fighters) {
-  const before = f.stamina;
+  const before = f.stamina, lift = takeOffToLift(f, CTX_WORLD);   // no ar o Tackle curto começa descendo (air.js), como o C → X do vault
   startAction(f, 'tackle', dirs, fighters, desiredHeading, false, guardHeld, hasTarget);
+  applyLift(f, lift);
   f.stamina = before;
   const cost = costOf(f, def.cost ?? 1);f.stamina = Math.max(0, f.stamina - cost);f.regenBase = f.stamina;f.regenAge = 0;f.exhausted = isDepleted(f.stamina);
   if (def.cooldown > 0) (f.moveCooldowns ??= {})[def.id] = def.cooldown;
@@ -755,8 +776,9 @@ function startTackleMove(f, def, slot, dirs, desiredHeading, hasTarget, guardHel
 }
 /** Soltura de um Charge que vira Tackle (`def.tackle` + `charge`): ação de Tackle com PL da carga; o custo do Tackle volta (o do Move foi cobrado ao apertar). */
 function releaseTackleMove(f, def, ch, rel, cmd, ctx) {
-  const before = f.stamina;
+  const before = f.stamina, lift = takeOffToLift(f, CTX_WORLD);
   startAction(f, 'tackle', {move: ctx.move, dodgeDirection: null}, ctx.fighters, ctx.desiredHeading, false, cmd.guard, ctx.hasTarget);
+  applyLift(f, lift);
   f.stamina = before;
   const a = f.action, P = ch.params.group ?? {};
   a.move = def.id;a.slot = ch.slot;a.params = P;a.moveDef = def;a.pl = rel.level;a.plSpeed = 1;a.plDamage = 1;
@@ -769,12 +791,13 @@ function releaseTackleMove(f, def, ch, rel, cmd, ctx) {
 function startRiposteStrike(f, action) {
   const def = action.def, P = action.params, t = action.elapsed, p = C.actions.tackle;
   const foe = CTX_FIGHTERS.find(o => o.id === action.riposte.target && o.hp > 0), heading = foe ? angleOf(sub(foe.position, f.position)) : f.facing;
-  const before = f.stamina;
+  const before = f.stamina, lift = takeOffToLift(f, CTX_WORLD);   // contra-golpe no ar: desce enquanto ataca (air.js)
   startAction(f, 'tackle', {move: vec(), dodgeDirection: null}, CTX_FIGHTERS, heading, false, false, false);
+  applyLift(f, lift);
   f.stamina = before;
   const a = f.action;
   a.heading = a.startAngle = heading;a.fixedHeading = true;
-  a.move = def.id;a.slot = action.slot;a.params = P;a.moveDef = def;a.pl = 1;a.plSpeed = 1;a.plDamage = P.damage / C.test.attackReference;   // MV-P13
+  a.move = def.id;a.slot = action.slot;a.params = P;a.moveDef = def;a.pl = 4;a.plSpeed = 1;a.plDamage = P.damage / C.test.attackReference;   // MV-P13; contra-ataque: tratado como PL 4 (vence qualquer PL, nunca faz clash)
   a.kb = {horizontal: P.knockbackH, vertical: P.knockbackV};
   a.durationScale = Math.max(.1, P.cast - t) / p.duration;
   a.distanceScale = P.strikeRange / Math.max(1e-6, nominalDistance(f, 'tackle'));
@@ -893,6 +916,7 @@ function updateMove(f, action, target, cmd, dt) {
     if (action.travel) bulletPunchTravel(f, action, dt);   // ausente: viaja invisível até o marcador (a câmera segue a posição)
   } else if (m.type === 'root') f.velocity = vec();
   else {const from = action.from ?? vec(), k = Math.exp(-12 * dt);f.velocity = scale(from, k);action.from = {...f.velocity};}
+  if (action.liftStart > 0) f.vaultHeight = action.liftTime > 0 ? action.liftStart * (1 - smoothstep((action.elapsed + dt) / action.liftTime)) : 0;   // desceu do ar (air.js): sem teletransporte ao chão
   if (!def.keepFacing) turnToward(f, target && def.aim !== 'facing' ? angleOf(sub(target.position, f.position)) : action.heading, dt);   // keepFacing: recuo sem virar o corpo (Feint)
   (def.timeline || []).forEach((ev, i) => {if (!action.fired.includes(i) && ev.at <= action.elapsed + dt + 1e-9) {action.fired.push(i);(f.moveFx ??= []).push({index: i, move: def.id, heading: action.heading, params: action.params ?? null, def, lock: action.lock ?? null, marker: action.marker ?? null});}});
   f.state = 'move';
@@ -913,13 +937,14 @@ export function chargePermission(f, def, slot = null) {
   if (hasFlag(f, 'silenced')) return {ok: false, reason: 'silenced'};
   if (f.charge) return {ok: false, reason: 'charging'};
   const cd = f.moveCooldowns?.[def.id] ?? 0;if (cd > 1e-8) return {ok: false, reason: 'cooldown', detail: {left: cd}};
-  if (f.flight || f.vaultHeight > 1e-8 || f.knockRecovery > 0) return {ok: false, reason: 'noGround'};
+  const airOk = airUsable(f, def);   // carregar no salto, na queda de borda ou no arco do vault (air.js)
+  if (f.knockRecovery > 0 || ((f.flight || f.vaultHeight > 1e-8) && !airOk)) return {ok: false, reason: 'noGround'};
   if (f.moveRecovery > 1e-8) return {ok: false, reason: 'moveRecovery', detail: {left: f.moveRecovery}};
   if (f.guard && def.fromGuard === false) return {ok: false, reason: 'guardBlocks'};
   const cur = f.action;
   if (cur?.kind === 'dodge') {
     const left = dodgeMainEnd() - cur.elapsed;
-    if (left > 1e-8) return {ok: false, reason: 'chain', detail: {left}, buffer: left <= C.world.charge.bufferWindow + 1e-8};
+    if (left > 1e-8 && !(airOk && isVaultArc(f))) return {ok: false, reason: 'chain', detail: {left}, buffer: left <= C.world.charge.bufferWindow + 1e-8};
   } else if (cur?.kind === 'tackle') return {ok: false, reason: 'chain', detail: {left: Math.max(0, C.actions.tackle.duration - cur.elapsed)}};
   else if (cur?.kind === 'recoil') return {ok: false, reason: 'recoil', detail: {left: Math.max(0, C.rules.recoil - cur.elapsed)}};
   else if (cur && !chainOpen(f)) return {ok: false, reason: 'chain', detail: {left: Math.max(0, actionSpec(cur).chainAfter - cur.elapsed)}};
@@ -965,7 +990,8 @@ function pressSkill(f, cmd, move, desiredHeading, hasTarget, diag, fighters = []
   const slot = cmd.skill, def = moveInSlot(f, slot), onCooldown = !!def && (f.moveCooldowns?.[def.id] ?? 0) > 1e-8;
   const deny = (reason, detail) => {if (diag) report(f, {kind: 'skill', slot, move: def?.id ?? null, result: 'denied', reason, detail});};
   f.skillBuffer = null;
-  if (def?.cooldownBoost && onCooldown) return boostCooldown(f, def, slot, diag);
+  if (def && def.cooldownBoost !== false && onCooldown) return boostCooldown(f, def, slot, diag);   // M5.8/M5.9: vale para TODO Move (novo toque + stamina); `cooldownBoost: false` desliga num Move específico
+  if (def && isVaultArc(f) && airKind(def) !== 'none' && (airKind(def) === 'cast' || def.charge || def.aimMode) && (def.charge ? chargePermission(f, def, slot) : movePermission(f, def, slot)).ok) vaultToFlight(f);   // arco do vault: vira voo normal e o Move segue o caminho do salto (air.js)
   if (def?.feint) return pressFeint(f, cmd, def, slot, move, desiredHeading, hasTarget, diag);   // cancela a carga/ação ofensiva em curso (ou só recua)
   if (f.aim) return deny('aiming');                                       // um marcador de cada vez
   if (f.charge) return deny('charging');                                  // sem carregamentos simultâneos (M16.4)

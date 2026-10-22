@@ -1,6 +1,6 @@
 // @ts-check
 // Harden (genérico, Normal · Status · sem PL): +30% Defesa e knockback ofensivo 0 por 5 s, cast 0,35 s. Fonte: docs/MOVES_GENERICOS_CATALOGO.md §4.
-import {assert, C, Game, cmd, vec, DT, secs, suite, arena, step, run, press, status, redTackle, fighterHash, resetConfig, defaults} from './moves-new-helpers.mjs';
+import {assert, C, Game, cmd, vec, DT, secs, suite, arena, step, run, press, status, redTackle, fighterHash, resetConfig, factoryDefaults} from './moves-new-helpers.mjs';
 import {getMove, clearMoves} from '../src/sim/moves.js';
 import {clearEffects} from '../src/sim/move-effects.js';
 import {isInvulnerable} from '../src/sim/entity.js';
@@ -115,7 +115,7 @@ test('hardenStatus é função pura dos parâmetros (serve à prévia e à IA)',
 });
 test('paridade: com Harden registrado e NÃO equipado a partida é idêntica à sem nenhum Move registrado', () => {
   const play = registered => {
-    resetConfig(defaults());clearMoves();clearEffects();
+    resetConfig(factoryDefaults());clearMoves();clearEffects();
     if (registered) import('../src/sim/moves/standard.js').then(m => m.registerStandardMoves());
     return null;
   };
