@@ -73,5 +73,6 @@ Detalhes e proposta de tratamento: [PROPOSTA_REFATORACAO_ESTADO_GLOBAL.md](PROPO
 | `prototypes/studio/` | Animation Studio + Rigging; `proposals/` = propostas A/B/C (aguardam decisão do diretor) | `test/ops`, `test/rigging` (unit) · `verify.mjs`, `test/rigging.browser.mjs` |
 | `prototypes/importer/` · `placeholders/` | Importador de modelos · laboratório de blocos | `verify.mjs` (navegador) |
 | `scripts/` | `verify-workspace.mjs` (governança do checkout), `check-offline.mjs` (varredura estática) | `check-offline.test.mjs` |
+| `scripts/blender-vision/` | Blender Vision: capturas, Animation Witness e **percepção ativa** (`perception*.py`: vistas por região com pedido de novas vistas, movimento, diagnóstico A–G validado). Somente leitura; não toca jogo nem Studio. Ver [BLENDER_VISION_PERCEPCAO.md](BLENDER_VISION_PERCEPCAO.md) | `tests/test_perception.py`, `tests/test_perception_failures.py`, `tests/run_perception_bench.py` (Python + Blender 5.2; fora do `npm test`) |
 
 Estado dos testes e do que foi (ou não) executado: [VERIFICACOES.md](VERIFICACOES.md). Linha de base de desempenho da simulação (`npm run measure:sim`): [DESEMPENHO_BASELINE.md](DESEMPENHO_BASELINE.md).

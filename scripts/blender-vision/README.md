@@ -96,3 +96,30 @@ python scripts/blender-vision/calibrate.py DIR/corpus_report.json --out scripts/
 ### Segurança e honestidade dos resultados (v7)
 
 `cycle --overwrite` só apaga pastas com o marcador `.vision_output`; `footlock --save-as` recusa destinos existentes (`--overwrite-save-as`); relatórios trazem `proveniencia` (hash do código, `.blend`, briefing, critérios); regras trazem `confianca`; interpenetração é sempre HIPOTESE de confiança baixa; `shot --modes ids` grava `visibilidade_por_regiao` (regiões ocultas por câmera: nada pode ser afirmado sobre elas). `tests/run_regression.py` retorna **NAO TESTADO** (exit 3) se qualquer etapa falhar.
+
+## Percepção ativa, movimento e diagnóstico (v8) — `perception.py`
+
+Camada nova **sobre** as anteriores (nada foi reescrito): decide **se uma região foi realmente observada** antes de alguém opinar sobre ela, mede o movimento com sensibilidade declarada e exige que o diagnóstico cite o que foi visto. Protocolo completo: [`PROTOCOLO_AGENTE_VISUAL.md`](PROTOCOLO_AGENTE_VISUAL.md). Visão geral e provas: [`docs/BLENDER_VISION_PERCEPCAO.md`](../../docs/BLENDER_VISION_PERCEPCAO.md).
+
+```bash
+python scripts/blender-vision/prep_source.py --src chars/mosh/Cogumelo.glb --out %TEMP%/arenamon-vision/mosh_source.blend --time-scale 1.25 --fps 30 --drop Icosphere
+python scripts/blender-vision/perception.py motion      --blend B --action "attack 1" --frames 1-54 --stroke-bone Hips --floor-from-action idle --out DIR
+python scripts/blender-vision/perception.py investigate --blend B --action "attack 1" --frames 1,7,10,21 --regions mao_D,tronco_quadril --floor-from-action idle --out DIR
+python scripts/blender-vision/perception.py contacts    --blend B --action "attack 1" --frames 1-54:3 --pairs arm_R:torso,hand_R:head --baseline-action idle --out DIR
+python scripts/blender-vision/perception.py diagnose-template --investigation DIR_INV --questions DIR_MOTION > diag.json
+python scripts/blender-vision/perception.py validate-diagnosis --investigation DIR_INV --motion DIR_MOTION --contacts DIR_CON diag.json
+python scripts/blender-vision/perception.py reference add|list|compare ...      # referências aprovadas pelo diretor (nenhuma é criada automaticamente)
+```
+
+| Módulo | O que faz |
+|---|---|
+| `perception_geom.py` | regiões/rótulos do corpo, câmeras candidatas (8 azimutes × 2 elevações + topo, referencial do próprio personagem), independência ≥ 35°, suficiência **por frame**, laço Observar → pedir vista → reavaliar com freios |
+| `perception_inside.py` | no Blender: visibilidade por raio na malha deformada, passes reais (profundidade, normais, ids), renders com a região em laranja, trilha de poses, contatos (normal assinada + cercamento por raios) |
+| `perception_motion.py` | sequência do corpo (com sensibilidade ao limiar), antecipação, snap × rápido, arco, fases **candidatas**, apoio/massa (proxy), deformação declarada × inesperada. Nunca escolhe frame de contato |
+| `perception_principles.py` | os 12 princípios como **perguntas visuais** com frames/regiões a abrir (sem nota) |
+| `perception_diagnosis.py` | protocolo A–G e validador (código de leitura, 2 vistas independentes, região observada, aprovação artística só com referência) |
+| `perception_refs.py` | referências aprovadas (aprovador + escopo obrigatórios); comparação devolve semelhança medida e `adequacao_artistica: NAO_AVALIADA` |
+| `prep_source.py` | cópia derivada e descartável de GLB/FBX para `.blend` (origem nunca gravada; tempo 24→30 fps documentado) |
+| `tests/` | `test_perception.py` (41 testes puros), `test_perception_failures.py` (7), `perception_synth.py` + `run_perception_bench.py` (casos controlados dev × eval) |
+
+Limites: Workbench headless; visibilidade geométrica (não percepção humana); passes e contatos dependem de rótulos por pesos; em malha vizinha aberta o cercamento por raios cai e a normal assinada é descartada; o código de leitura prova que a folha foi aberta, não entendida.
