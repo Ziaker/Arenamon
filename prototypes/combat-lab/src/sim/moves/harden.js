@@ -10,7 +10,7 @@ import {C} from '../config.js';
 import {applyStatus} from '../status.js';
 
 export const hardenDef = Object.freeze({
-  id: 'harden', name: 'Harden', group: 'harden',
+  id: 'harden', name: 'Harden', air: 'cast', group: 'harden',
   description: 'Endurece o corpo por 5 s: +30% de Defesa e nenhum knockback ofensivo (o dano e o stun continuam). Cast de 0,35 s.',
   cost: .8, cooldown: 10, duration: .35, aim: 'facing',
   timeline: [{at: .35, atKey: 'cast', effect: 'harden'}],

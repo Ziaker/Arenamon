@@ -461,7 +461,7 @@ export function stepPhysics(fighters, dt, world = null) {
         const yb1 = yb0 + C.extras.visual.bodyHeight;
         if (ya1 < yb0 || yb1 < ya0) continue;
         // Pulo físico por cima do rival: os dois não se tocam até o pouso.
-        if (a.action?.jump?.over === b.id || b.action?.jump?.over === a.id) continue;
+        if ((a.action?.jump?.over ?? a.flight?.over) === b.id || (b.action?.jump?.over ?? b.flight?.over) === a.id) continue;
         const contact = overlap(a, b);
         if (!contact) continue;
         if (pass === 0) {

@@ -9,7 +9,7 @@ import {C} from '../config.js';
 import {spawn} from '../world.js';
 
 export const emergingStoneDef = Object.freeze({
-  id: 'emerging-stone', name: 'Emerging Stone', group: 'emergingStone', aimMode: 'marker', castFirst: true, aimAirOk: true, aim: 'facing',
+  id: 'emerging-stone', name: 'Emerging Stone', air: 'cast', group: 'emergingStone', aimMode: 'marker', castFirst: true, aimAirOk: true, aim: 'facing',
   description: 'Normal. Segure para marcar o destino (3–10 m); após 0,55 s de cast e a soltura, um projétil subterrâneo vai ao marcador, explode (5 m) e deixa uma rocha 3×3×3 m.',
   cost: 3, cooldown: 9, duration: .55,
   timeline: [{at: 0, effect: 'emerging-stone'}],

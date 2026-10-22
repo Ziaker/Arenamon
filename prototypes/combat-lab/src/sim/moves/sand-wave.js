@@ -7,9 +7,10 @@
 import {C} from '../config.js';
 import {spawn} from '../world.js';
 import {direction} from '../math.js';
+import {isAirJump} from '../air.js';
 
 export const sandWaveDef = Object.freeze({
-  id: 'sand-wave', name: 'Sand Wave', group: 'sandWave', groundOnly: true, aim: 'target',
+  id: 'sand-wave', name: 'Sand Wave', air: 'cast', group: 'sandWave', groundOnly: true, aim: 'target',
   description: 'Burst. Só no chão: após 0,25 s lança uma barragem de areia (retângulo 4 × 3 m à frente) que fere, empurra e CEGA por 4 s quem estiver no chão dentro dela.',
   cost: 2, cooldown: 10, duration: .25, motion: {type: 'root'},
   timeline: [{at: .25, atKey: 'cast', effect: 'sand-wave'}],
@@ -18,7 +19,7 @@ export const sandWaveDef = Object.freeze({
 /** Efeito do fim da preparação: cria a barragem com a direção e as dimensões fixadas agora. */
 export function sandWaveEffect(/** @type {any} */ game, /** @type {any} */ f, /** @type {any} */ def, /** @type {any} */ fx) {
   const P = fx.params ?? C.world.sandWave;
-  if (f.flight || (f.vaultHeight ?? 0) > 1e-8) return {ok: false, reason: 'noGround'};   // saiu do chão na preparação: cancela (custo mantido)
+  if ((f.flight && !isAirJump(f)) || (!f.flight && (f.vaultHeight ?? 0) > 1e-8)) return {ok: false, reason: 'noGround'};   // lançado ou em outra ação aérea na preparação: cancela (custo mantido). No salto a barragem nasce no chão sob o lutador
   const dir = direction(fx.heading);
   const e = spawn(game.world, {
     kind: 'sandwave', owner: f.id, pos: {x: f.position.x, z: f.position.z}, dir, length: P.length, width: P.width, active: P.active, life: P.active + P.dissipate,

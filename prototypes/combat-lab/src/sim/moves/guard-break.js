@@ -9,7 +9,7 @@ import {C} from '../config.js';
 import {nominalDistance} from '../entity.js';
 
 export const guardBreakDef = Object.freeze({
-  id: 'guard-break', name: 'Guard Break', group: 'guardBreak', tackle: 'guard-break',
+  id: 'guard-break', name: 'Guard Break', air: 'descend', group: 'guardBreak', tackle: 'guard-break',
   description: 'Charge. Segure para carregar (até 1 s, PL1/PL2/PL3), solte para um golpe pesado que derruba a guarda de quem defende e causa guard stun de 0,5 s.',
   cost: 1, cooldown: 10, charge: {max: 1, group: 'guardBreak'}, duration: .7,
 });

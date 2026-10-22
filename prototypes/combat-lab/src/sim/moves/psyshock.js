@@ -11,7 +11,7 @@ import {hash32, rng, uniform} from './rng.js';
 
 /** Definição do movimento (dados puros, clonável). */
 export const psyshockDef = Object.freeze({
-  id: 'psyshock', name: 'Psyshock',
+  id: 'psyshock', name: 'Psyshock', air: 'cast',
   description: 'Carregue e solte para disparar pedras telecinéticas ao mesmo tempo: quanto mais carga, mais pedras e mais Power Level. Com alvo travado elas miram partes diferentes do corpo; sem alvo saem em leque.',
   cost: 1, cooldown: 8, cooldownBoost: true,
   charge: {max: 4, group: 'psyshock'},

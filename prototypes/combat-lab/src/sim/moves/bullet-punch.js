@@ -15,7 +15,7 @@ import {solidsOf, insideSolid} from '../vision.js';
 import {angleOf, sub} from '../math.js';
 
 export const bulletPunchDef = Object.freeze({
-  id: 'bullet-punch', name: 'Bullet Punch', group: 'bulletPunch', aimMode: 'follow', fromDodge: true, tackle: 'bullet-punch', aim: 'facing',
+  id: 'bullet-punch', name: 'Bullet Punch', air: 'descend', group: 'bulletPunch', aimMode: 'follow', fromDodge: true, tackle: 'bullet-punch', aim: 'facing',
   description: 'Normal · PL2. Segure para marcar onde reaparecer (3 a 10 m), solte: some por 0,2 s, viaja até lá e reaparece no marcador investindo contra o adversário mais próximo (se houver).',
   cost: 1.5, cooldown: 8, duration: 1.75, durationKeys: ['cast', 'vanish'], motion: {type: 'walk'},
   timeline: [
