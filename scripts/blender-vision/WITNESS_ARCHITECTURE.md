@@ -44,3 +44,13 @@ O comando nunca salva o `.blend` e compara seu SHA-256 antes/depois.
 Com `--visual`, ele também produz um pacote multivista e `AGENT_REVIEW.md`.
 O spec do Teste 01 aceita por padrão somente o SHA-256 do backup original;
 uma fonte diferente exige `--allow-unpinned-source` explícito.
+
+## Adendo (v8): percepção ativa e diagnóstico ancorado em imagem
+
+**Problema.** O Witness já recusa aprovação falsa, mas ainda deixava um agente descrever uma região que a câmera nunca mostrou, e a câmera adaptativa só cobria a mão.
+
+**Decisão.** `perception.py` (módulos `perception_*`) acrescenta: (1) visibilidade medida por raio na malha deformada, por frame e por região, com pedido de novas vistas até haver 2 vistas independentes ou um freio explícito; (2) passes geométricos reais (profundidade, normais, ids), sem reconstrução; (3) análise temporal com sensibilidade ao limiar e fases só como hipótese; (4) protocolo A–G com validador que só aceita afirmação ancorada em folhas abertas (código de leitura), regiões observadas e referência aprovada para qualquer aprovação artística.
+
+**Compatibilidade.** Não altera `witness*.py`, `vision.py` nem os contratos existentes; `.blend`/GLB/FBX nunca são gravados (SHA-256 antes/depois).
+
+**Consequências.** Região oculta passa a ser `NAO_OBSERVAVEL`/`OBSERVADO_PARCIAL` com a lista de frames, nunca "correta". O frame de contato continua nulo sem alvo autorizado. O sistema melhora a honestidade e a cobertura da evidência; **não** mede interpretação artística nem garante que o modelo entendeu a imagem.

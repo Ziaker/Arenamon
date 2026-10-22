@@ -1,0 +1,84 @@
+{
+ "status": "ACEITO",
+ "aceitas": 9,
+ "rejeitadas": 0,
+ "entries": [
+  {
+   "id": "d01",
+   "status": "ACEITO",
+   "motivos": [],
+   "avisos": [],
+   "frames_sem_2_vistas": []
+  },
+  {
+   "id": "d02",
+   "status": "ACEITO",
+   "motivos": [],
+   "avisos": [],
+   "frames_sem_2_vistas": []
+  },
+  {
+   "id": "d03",
+   "status": "ACEITO",
+   "motivos": [],
+   "avisos": [],
+   "frames_sem_2_vistas": []
+  },
+  {
+   "id": "d04",
+   "status": "ACEITO",
+   "motivos": [],
+   "avisos": [],
+   "frames_sem_2_vistas": [
+    11,
+    21
+   ]
+  },
+  {
+   "id": "d05",
+   "status": "ACEITO",
+   "motivos": [],
+   "avisos": [],
+   "frames_sem_2_vistas": []
+  },
+  {
+   "id": "d06",
+   "status": "ACEITO",
+   "motivos": [],
+   "avisos": [],
+   "frames_sem_2_vistas": [
+    6,
+    7,
+    10
+   ]
+  },
+  {
+   "id": "d07",
+   "status": "ACEITO",
+   "motivos": [],
+   "avisos": [],
+   "frames_sem_2_vistas": [
+    11,
+    13
+   ]
+  },
+  {
+   "id": "d08",
+   "status": "ACEITO",
+   "motivos": [],
+   "avisos": [],
+   "frames_sem_2_vistas": []
+  },
+  {
+   "id": "d09",
+   "status": "ACEITO",
+   "motivos": [],
+   "avisos": [],
+   "frames_sem_2_vistas": [
+    11,
+    31
+   ]
+  }
+ ],
+ "nota": "ACEITO = a afirmacao esta ancorada em folhas abertas, em regioes realmente observadas e sem aprovacao artistica indevida. NAO prova que a descricao esta correta nem que o agente entendeu a imagem."
+}

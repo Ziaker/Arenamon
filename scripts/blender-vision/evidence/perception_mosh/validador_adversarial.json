@@ -1,0 +1,68 @@
+[
+ {
+  "caso": "d05 + g37 (q3 tras so 0.59)",
+  "resultado": "REJEITADO",
+  "motivos": [
+   "regiao 'mao_D' no frame 37 NAO foi observada em 2 vistas independentes com visibilidade >= 60% (1 valida(s)); afirmacao visual proibida"
+  ]
+ },
+ {
+  "caso": "d05 em g7 (mao nao observada) como observacao_visual",
+  "resultado": "REJEITADO",
+  "motivos": [
+   "regiao 'mao_D' no frame 7 NAO foi observada em 2 vistas independentes com visibilidade >= 60% (0 valida(s)); afirmacao visual proibida"
+  ]
+ },
+ {
+  "caso": "codigo de leitura errado",
+  "resultado": "REJEITADO",
+  "motivos": [
+   "folha 'sheets/folha_mao_D_lado_D_e12.png': codigo de leitura ausente/incorreto (a folha nao foi comprovadamente aberta)",
+   "regiao 'mao_D' no frame 31 NAO foi observada em 2 vistas independentes com visibilidade >= 60% (1 valida(s)); afirmacao visual proibida"
+  ]
+ },
+ {
+  "caso": "uma unica vista",
+  "resultado": "REJEITADO",
+  "motivos": [
+   "regiao 'mao_D' no frame 31 NAO foi observada em 2 vistas independentes com visibilidade >= 60% (1 valida(s)); afirmacao visual proibida",
+   "regiao 'mao_D' no frame 41 NAO foi observada em 2 vistas independentes com visibilidade >= 60% (1 valida(s)); afirmacao visual proibida"
+  ]
+ },
+ {
+  "caso": "aprovacao artistica sem referencia",
+  "resultado": "REJEITADO",
+  "motivos": [
+   "aprovacao/preferencia artistica: sem referencia aprovada vinculada"
+  ]
+ },
+ {
+  "caso": "texto generico",
+  "resultado": "REJEITADO",
+  "motivos": [
+   "A: texto generico sem observacao especifica (\\best[aá] fluid)"
+  ]
+ },
+ {
+  "caso": "medicao inexistente",
+  "resultado": "REJEITADO",
+  "motivos": [
+   "C: medicao 'motion.chao.por_rotulo.cabeca_inventada.prof_max_m' nao existe nos relatorios fornecidos"
+  ]
+ },
+ {
+  "caso": "correcao aplicada",
+  "resultado": "REJEITADO",
+  "motivos": [
+   "F: correcao marcada como aplicada; esta fase so SUGERE"
+  ]
+ },
+ {
+  "caso": "folhas de outra regiao",
+  "resultado": "REJEITADO",
+  "motivos": [
+   "folha 'sheets/folha_tronco_quadril_lado_D_e12.png' e da regiao 'tronco_quadril', nao de 'mao_D'",
+   "folha 'sheets/folha_tronco_quadril_lado_E_e12.png' e da regiao 'tronco_quadril', nao de 'mao_D'"
+  ]
+ }
+]
