@@ -30,6 +30,7 @@ export class SwiftEffect {
       const halo=mesh(g,new T.CircleGeometry(.47*p.halo,24),glow(second,.18*p.opacity));halo.position.z=-.012;
       const face=mesh(g,geometry,glow(color,p.opacity));face.scale.setScalar(.28*scale);
       const core=mesh(g,new T.CircleGeometry(.08*p.coreGlow,16),glow(new T.Color(0xffffff),.7*p.opacity));core.position.z=.014;
+      g.traverse(o=>{const material=(o as T.Mesh).material;if(material instanceof T.MeshBasicMaterial)material.userData.baseOpacity=material.opacity;});
       g.scale.setScalar(scale);g.visible=false;
       const tail=mesh(group,new T.PlaneGeometry(.11*p.trailWidth,.8*p.tailLength),glow(second,.45*p.opacity));this.tails.push(tail);tail.visible=false;
     }
@@ -45,7 +46,7 @@ export class SwiftEffect {
     for(let i=0;i<3;i++){
       const delay=this.variant===0?i*.085:this.variant===1?i*.035:i*.14;
       const u=clamp((t-.32-delay)/1.02), x=(i-1)*(.42*this.p.dispersion)+(this.variant===1?Math.sin(i*3)*.18:0);
-      const g=this.stars[i], tail=this.tails[i];g.visible=t>=.32+delay&&t<1.85;g.position.set(x+(this.variant===2?Math.sin(u*8+i)*.18:0),1+(i%2)*.2+(this.variant===1?Math.sin(u*11+i)*.16:0),-2.4+u*5.1);g.rotation.z=t*this.p.rotation*Math.PI/180*(i%2?-1:1);g.scale.z=fade;
+      const g=this.stars[i], tail=this.tails[i];g.visible=t>=.32+delay&&t<1.85;g.position.set(x+(this.variant===2?Math.sin(u*8+i)*.18:0),1+(i%2)*.2+(this.variant===1?Math.sin(u*11+i)*.16:0),-2.4+u*5.1);g.rotation.z=t*this.p.rotation*Math.PI/180*(i%2?-1:1);g.traverse(o=>{const material=(o as T.Mesh).material;if(material instanceof T.MeshBasicMaterial)material.opacity=material.userData.baseOpacity*fade;});
       tail.visible=g.visible&&t<1.35+this.p.trailDuration;tail.position.set(g.position.x,g.position.y,g.position.z-.35*this.p.tailLength);tail.rotation.x=-Math.PI/2;tail.scale.y=.6+u*.4;
     }
     if(this.links){this.links.visible=t>=.6&&t<1.45;const a=this.links.geometry.attributes.position as T.BufferAttribute;this.stars.forEach((s,i)=>a.setXYZ(i,s.position.x,s.position.y,s.position.z));a.needsUpdate=true;}

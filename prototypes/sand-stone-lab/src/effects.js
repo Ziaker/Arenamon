@@ -67,7 +67,7 @@ export class StoneEffect {
     Object.assign(this,{group,particles,variant,p});this.started=false;this.endDust=false;this.phase='Pressão subterrânea';this.punch=0;
     this.duration=p.warning+p.rise+2.4;
     this.rock=rockModel(model,texture);this.rock.scale.setScalar(p.scale);this.rock.visible=false;group.add(this.rock);this.rock.traverse(o=>{if(o.material?.isMeshBasicMaterial&&o.material.toneMapped===false)o.material.opacity*=p.veinGlow;});
-    const energy=new T.Color(variant===2?0x91d4b1:0xf0a443).offsetHSL(p.energyHue/360,0,0);this.cracks=fractures(24+variant,energy);this.cracks.scale.setScalar(p.crackWidth);group.add(this.cracks);
+    const energy=new T.Color(variant===2?0x91d4b1:0xf0a443).offsetHSL(p.energyHue/360,0,0);this.cracks=fractures(24+variant,energy,p.crackWidth);group.add(this.cracks);
     this.rings=[];
     for(let i=0;i<Math.max(1,(variant===2?4:2)+p.shockCount-3);i++){
       const ring=shockRing(energy,(1.15+i*.28)*p.warningRadius,.016+(i===0?.025:0));group.add(ring);this.rings.push(ring);

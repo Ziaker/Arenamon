@@ -34,6 +34,9 @@ for(const category of ['swift','psyshock'])for(let variant=0;variant<3;variant++
   let peak=0;for(let tick=0;tick<=Math.ceil(effect.duration*60);tick++){effect.update(tick/60,1/60);particles.update(1/60);peak=Math.max(peak,particles.count);}
   assert.ok(peak>0,`${category}/${variant}: sem partículas Quarks`);reports.push({category,variant,peak});particles.clear();disposeGroup(stage);assert.equal(particles.count,0);
 }
+const fadeEffect=new SwiftEffect(stage,particles,0,defaults.swift);fadeEffect.update(1.46,0);const star=fadeEffect.stars[0].children.find(o=>o.geometry?.type==='ShapeGeometry'),before=star.material.opacity;fadeEffect.update(1.75,0);assert.ok(star.material.opacity<before,'Dissipação do Swift deve alterar opacidade visível');particles.clear();disposeGroup(stage);
+const narrow=new StoneEffect(stage,particles,0,{...defaults.stone,crackWidth:.4},null,0);const narrowSize=narrow.cracks.children[0].geometry.boundingSphere?.radius??(narrow.cracks.children[0].geometry.computeBoundingSphere(),narrow.cracks.children[0].geometry.boundingSphere.radius);particles.clear();disposeGroup(stage);
+const wide=new StoneEffect(stage,particles,0,{...defaults.stone,crackWidth:2},null,0);wide.cracks.children[0].geometry.computeBoundingSphere();assert.ok(wide.cracks.children[0].geometry.boundingSphere.radius>narrowSize,'Largura das rachaduras deve alterar geometria');particles.clear();disposeGroup(stage);
 // At size/speed extremes, transitions must still emit and finish without NaNs.
 for(const density of [.25,2]){
   const fx=new StoneEffect(stage,particles,1,{...options,density,rise:.2,scale:1.5},null,1);
