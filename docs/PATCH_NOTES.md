@@ -1,8 +1,12 @@
 # Patch notes — Laboratório de Combate
 
-Versão atual: **v1.18.1** (22/10/2026). A versão aparece na barra superior do laboratório (tooltip com data de compilação e commit). Para jogar: `JOGAR_ARENAMON.html`.
+Versão atual: **v1.18.2** (22/10/2026). A versão aparece na barra superior do laboratório (tooltip com data de compilação e commit). Para jogar: `JOGAR_ARENAMON.html`.
 
 ---
+
+## v1.18.2 — Pouso do pulo regular e impacto vertical em paredes e objetos (22/10/2026)
+- **Pulo regular** (e queda de borda) agora termina só com uma **onda circular simples, sem tremor** e sem a poeira de pouso; o efeito de colisão com o chão fica para knockback, Bounce e Meteor Slam.
+- **Impacto vertical** ao bater na **parede da arena** ou em **pilares, caixas, plataformas e destrutíveis**: onda no plano da parede, faixa vertical de luz, faíscas e poeira que sobe, com tamanho vindo do objeto (e da velocidade do choque). Blocos próprios de sliders em Visualizar/Ajustes e um bloco de tremor (desligado por padrão). Detalhes em `docs/VFX_POUSO_E_PAREDES.md`.
 
 ## v1.18.1 — Impacto (hit) variante D: remover círculos e mais controles (22/10/2026)
 - Em **Visualizar › Impacto (hit) › D · Direcional**: liga/desliga do **núcleo de brilho (círculo central)**, do **anel de pressão**, do **anel no chão**, da **lâmina de luz**, das **fagulhas em risco** e das **faíscas que caem**; sliders de tamanho/expansão/espessura de cada peça, opacidade dos anéis, respingo para trás, tamanho de detritos e de poeira. Padrões iguais aos de antes (nada some sozinho).

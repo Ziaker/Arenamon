@@ -205,7 +205,7 @@ export class SolidFx {
         const L = f.lastLanding;
         if (L && this.landings[i] !== undefined && L.n !== this.landings[i]) {
           const minI = C.vfx.ground?.minImpact ?? 2;
-          if (L.vertical >= minI) this.fire('solidLanding', {pos: {x: L.x, z: L.z}, power: Math.min(2, L.vertical / 7)}, `colisão com o solo (${L.vertical.toFixed(1)} m/s)`);
+          if (L.vertical >= minI && !L.regular) this.fire('solidLanding', {pos: {x: L.x, z: L.z}, power: Math.min(2, L.vertical / 7)}, `colisão com o solo (${L.vertical.toFixed(1)} m/s)`);
         }
         this.landings[i] = L?.n ?? 0;
         this.tint(f, () => this.trackDash(f, i, dt));
