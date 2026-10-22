@@ -217,7 +217,7 @@ export function resolveHit(attacker, defender, normal, relative, force = false) 
     else {defender.action = null;defender.knockRecovery = R.landingRecovery;}
   }
   if (defender.hp === 0) {defender.guard = false;defender.guardSuppressed = true;}
-  return {attacker: attacker.id, target: defender.id, result: perfect ? 'perfect' : protectedFront ? 'partial' : 'impact', damage, shieldAbsorbed: dmgResult.absorbedByShield, normal: {...normal}, launch: launchInfo, contact: 'tackle', ...(dmgResult.sturdy ? {sturdy: true} : {}), ...(attacker.action.slam ? {slam: true} : {}), ...(protectedFront && !perfect && attacker.action.guardBreak ? {guardBreak: true, stun: attacker.action.guardBreak.stun} : {})};
+  return {attacker: attacker.id, target: defender.id, result: perfect ? 'perfect' : protectedFront ? 'partial' : 'impact', damage, shieldAbsorbed: dmgResult.absorbedByShield, normal: {...normal}, launch: launchInfo, contact: 'tackle', ...(dmgResult.sturdy ? {sturdy: true} : {}), ...(attacker.action.slam ? {slam: true} : {}), ...(attacker.action.riposteStrike ? {riposte: true} : {}), ...(protectedFront && !perfect && attacker.action.guardBreak ? {guardBreak: true, stun: attacker.action.guardBreak.stun} : {})};
 }
 /**
  * Footstool (Plano D, Etapa 3): pisar na cabeça do adversário vindo de cima com o salto normal.

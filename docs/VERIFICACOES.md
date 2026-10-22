@@ -2,6 +2,18 @@
 
 Este arquivo separa **o que foi efetivamente executado** do que **permanece pendente**. Registre aqui data, commit-base, comando e resultado; nunca marque como executado o que não foi.
 
+## Execução de 2026-10-22 (rodada da tarde, v1.20.0)
+
+| Verificação | Resultado |
+|---|---|
+| `npm run typecheck` | sem erros |
+| Suíte unitária do laboratório (107 arquivos) | 106 aprovados; `combat-windows` falha só nesta pasta isolada por depender do `validation/personagem-studio.glb` local, não versionado (passa na pasta oficial) |
+| `rodada-b.test.mjs` | 9 aprovados (marcador suave, navegação ligada, círculo de alcance, squash na esquiva, altura do apoio no pouso, marca do Riposte) |
+| `moves-bullet-punch.test.mjs` (reescrito) | 15 aprovados |
+| `rodada-b.browser.mjs` (Edge real, offline) | 15 aprovados; capturas em `evidence/rodada-b/` |
+| Navegador de regressão: `ledge` 9, `ui-rodada-22-10` 16, `overhaul` 117, `moves-ui` 31, `moves-new` 13, `moves` 6, `tuning-export`, `smear`, `squash-stretch`, `solid-vfx`, `nav-lab` 9 | todos aprovados |
+| **Não verificado** | aparência/sensação (aprovação é do responsável); squash/smear na esquiva com modelo 3D carregado; transparência do anel de blocos do cenário; `npm test` completo ponta a ponta |
+
 ## Execução de 2026-10-22 (Ledge Grab, v1.19.0)
 
 | Verificação | Resultado |

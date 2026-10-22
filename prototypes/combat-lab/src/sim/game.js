@@ -109,6 +109,7 @@ export class Game {
         // Faixas de importância: golpe fraco = hitstop base; golpe forte = até (1 + boost)× (com boost = 0 é sempre o base, como antes).
         const X = C.extras.combat, dmg = Math.max(0, ...fresh.filter(e => e.result === 'impact').map(e => e.damage ?? 0));
         this.hitstop = X.impactHitstop * (1 + (X.hitstopDamageBoost ?? 0) * Math.min(1, dmg / Math.max(1, X.hitstopDamageRef ?? 30)));
+        if (fresh.some(e => e.result === 'impact' && e.riposte)) this.hitstop *= Math.max(0, C.world.riposte?.hitstopMult ?? 1);   // contra-golpe do Riposte: pausa de impacto maior
       }
     }
     for (const f of this.fighters) if (!f.action && !f.blend && !f.flight) f.locomotionVelocity = {...f.velocity};

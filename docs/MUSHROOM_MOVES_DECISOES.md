@@ -34,6 +34,8 @@ A ordem apresentada acima é a **ordem dos golpes definida pelo diretor**. Assoc
 - **Instrução permanente do diretor:** **não fazer novamente perguntas sobre quando cobrar recursos** em qualquer outro move; aplicar diretamente esta regra por padrão, sem tratá-la como escolha de cada golpe.
 - **Precedência:** esta regra é uma diretriz **posterior** aos históricos individuais de moves deste documento, que permanecem preservados para rastreabilidade. A adoção da diretriz não autoriza alterações de código ou reescrita retroativa dos relatos históricos.
 
+> **Atualização de 22/10/2026 (tarde, v1.20.0):** por decisão do responsável o Bullet Punch **deixou de ter marcador de destino** e passou a funcionar **como o Quick Attack**: alvo = adversário mais próximo dentro do alcance do Move (`reach`), fixado ao soltar o botão; segurar mostra o círculo de alcance (azul com alvo, vermelho sem). A corrida invisível termina colada no alvo, o golpe sai no momento da chegada e quem estiver no caminho leva o golpe e para a corrida. O texto abaixo descreve o contrato anterior (marcador de 3–10 m) e vale só como histórico; a implementação vigente está em `docs/RODADA_22_10_TARDE.md`.
+
 ## 2. Bullet Punch — contrato de gameplay vigente
 
 ### 2.1 Visão geral

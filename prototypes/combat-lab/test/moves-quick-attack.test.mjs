@@ -14,6 +14,7 @@ function qa({dist = 5, tweak = null, red = {}, atk = null, guard = false, extra 
   if (atk) g.fighters[0].attributes.attack = atk;
   Object.assign(g.fighters[1], red);
   g.step(cmd({...press0, ...extra}), guard ? cmd({guard: true, guardPressed: true}) : cmd());
+  g.step(cmd(), guard ? cmd({guard: true}) : cmd());   // alvo único: apertar abre o círculo de alcance; o Move sai ao SOLTAR (passo seguinte)
   return g;
 }
 const play = (g, n, guard = false) => {const ev = [];for (let i = 0; i < n; i++) {g.step(cmd(), guard ? cmd({guard: true}) : cmd());ev.push(...g.lastStepEvents);}return ev;};

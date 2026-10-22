@@ -126,7 +126,7 @@ export class LimbSmear {
       if (!remaining) this.used[i] = 0;
       for (let j = 0; j < VERTICES; j++) this.life[i * VERTICES + j] = remaining;
     }
-    const action = f.action, active = action?.kind === 'tackle' && f.hp > 0 && !action.hits?.size;
+    const action = f.action, active = f.hp > 0 && ((action?.kind === 'tackle' && !action.hits?.size) || (action?.kind === 'dodge' && !!options.smearOnDodge));
     const duration = Math.max(1, Math.min(4, options.smearDurationFrames)) / 60;
     const width = options.smearWidth * (options.smearPlBoost && action?.pl === 2 ? 1.25 : 1);
     this.character.root.updateMatrixWorld(true);

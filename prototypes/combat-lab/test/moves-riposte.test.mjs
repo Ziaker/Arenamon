@@ -1,6 +1,6 @@
 // @ts-check
 // Riposte (genérico, Normal · Status + Melee, PL1 no contra-golpe): postura de 0,65 s; acerto elegível entre 0,13 e 0,30 s é anulado e dispara um Tackle PL1
-// (6 HP, 3 m/s H). Fonte: docs/moves-nao-iniciados/5_MOVES_GENERICOS_PROMPT.md §6. Não anula Guard Break.
+// (14 HP, 9 m/s H e 2,5 V no laboratório desde 22/10/2026; a proposta original era 6 HP e 3 m/s H). Fonte: docs/moves-nao-iniciados/5_MOVES_GENERICOS_PROMPT.md §6. Não anula Guard Break.
 import {assert, C, Game, cmd, vec, secs, suite, arena, run, fighterHash, HOLD} from './moves-new-helpers.mjs';
 import {getMove} from '../src/sim/moves.js';
 import {resolveHit} from '../src/sim/combat.js';
@@ -65,14 +65,15 @@ test('o contra-golpe sai na hora: Tackle marcado com o Move, rumo a quem atacou,
   assert.equal(b.action?.kind, 'tackle');assert.equal(b.action.move, 'riposte');assert.equal(b.action.pl, 4);assert.ok(b.action.riposteStrike);
   assert.ok(Math.abs(b.action.heading - 0) < .2, `rumo ${b.action.heading}`);
 });
-test('o contra-golpe causa 6 HP nominais (× Ataque ÷ referência) e 3 m/s H sem voo', () => {
+test('o contra-golpe é um GRANDE impacto: 14 HP nominais (× Ataque ÷ referência), 9 m/s H e 2,5 m/s V, evento marcado como riposte', () => {
   const dmg = atk => {const {g, ev} = swiftAt({fireAt: 20, atk: null, tweak: () => {}});g.fighters[0].attributes.attack = atk;return {g, ev};};
   void dmg;
   const {g, ev} = swiftAt({fireAt: 20, steps: 200});const r = g.fighters[1];
   const strike = ev.find(e => e.attacker === 0 && e.target === 1 && e.result === 'impact');
   assert.ok(strike, `eventos ${[...new Set(ev.map(e => e.attacker + ':' + e.result))]}`);
-  assert.ok(Math.abs(strike.damage - 6) < 1e-6, `dano ${strike.damage}`);
-  assert.ok(Math.abs(strike.launch.horizontal - 3) < 1e-6 && strike.launch.vertical === 0 && !r.flight);
+  assert.ok(Math.abs(strike.damage - 14) < 1e-6, `dano ${strike.damage}`);
+  assert.ok(Math.abs(strike.launch.horizontal - 9) < 1e-6 && Math.abs(strike.launch.vertical - 2.5) < 1e-6, JSON.stringify(strike.launch));
+  assert.equal(strike.riposte, true, 'o evento de impacto leva a marca riposte (hitstop, tremor e explosão visual dependem dela)');void r;
 });
 test('i-frames até o fim da janela: as outras estrelas do mesmo disparo também são anuladas', () => {
   const {g, ev} = swiftAt({fireAt: 20, count: 3, tweak: () => {C.world.swift.spawnSpacing = 0;}});
@@ -125,7 +126,7 @@ test('M28.4: sliders mexidos depois do uso não alteram o golpe em andamento; o 
   const ev = [];
   for (let i = 1; i < 220; i++) {g.step(cmd(), i === 20 ? cmd({skill: 0, skillHeld: HOLD(0)}) : cmd());ev.push(...g.lastStepEvents);}
   const s = ev.find(e => e.attacker === 0 && e.result === 'impact');
-  assert.ok(!s || Math.abs(s.damage - 6) < 1e-6, `dano ${s?.damage}`);
+  assert.ok(!s || Math.abs(s.damage - 14) < 1e-6, `dano ${s?.damage}`);
 });
 test('sliders têm efeito: damage, windowStart/windowEnd e strikeRange', () => {
   const noWindow = swiftAt({fireAt: 20, tweak: () => {C.world.riposte.windowStart = .4;C.world.riposte.windowEnd = .5;}});
@@ -146,4 +147,16 @@ test('paridade e determinismo: registrado e não equipado não muda nada; save/l
   assert.equal(go(true), go(false));
 });
 
+test('o contra-golpe que acerta pausa mais (hitstopMult) que um golpe comum', () => {
+  const hs = mult => {
+    const g = arena({equip: ['riposte'], positions: [vec(0, -1.6), vec(0, 1.6)], setup: () => {C.extras.toggles.enableHitstop = 1;C.world.riposte.hitstopMult = mult;}});
+    g.step(cmd(press0), cmd());let peak = 0;
+    for (let i = 1; i < 260; i++) {g.step(cmd(), i === 8 ? cmd({tackle: true, move: vec(0, -1)}) : cmd());peak = Math.max(peak, g.hitstop);}
+    return peak;
+  };
+  const a = hs(1), b = hs(3);
+  assert.ok(a > 0 && b > a * 2.5, `hitstop ${a} -> ${b}`);
+});
+
 done();
+

@@ -135,6 +135,7 @@ function buildForceFieldGeometry(segments = 24) {
   return geo;
 }
 
+const OCCLUSION_HEIGHTS = [.25, .8, 1.35];   // pés, meio e cabeça do lutador (m acima do apoio)
 export class WorldView {
   constructor(scene) {
     this.group = new T.Group();
@@ -265,7 +266,11 @@ export class WorldView {
     } else if (e.kind === 'burrow') {
       // Projétil subterrâneo: montículo de terra que corre em linha reta + anel do destino (visível através de paredes até detonar). Arte provisória.
       mesh = new T.Group();
-      const mound = new T.Mesh(new T.ConeGeometry(.45, .5, 7), new T.MeshStandardMaterial({color: 0x6b4f2a, roughness: 1}));mound.name = 'mound';mound.position.y = .25;mesh.add(mound);
+      const dirt = new T.MeshStandardMaterial({color: 0x6b4f2a, roughness: 1, emissive: 0x2a1a08, emissiveIntensity: .5});
+      const mound = new T.Mesh(new T.ConeGeometry(.45, .5, 7), dirt);mound.name = 'mound';mound.position.y = .25;mesh.add(mound);
+      const trail = new T.Mesh(new T.BoxGeometry(1, 1, 1), new T.MeshStandardMaterial({color: 0x7a5a30, roughness: 1, emissive: 0x2a1a08, emissiveIntensity: .45}));trail.name = 'burrowTrail';mesh.add(trail);   // sulco de terra revirada atrás do montículo
+      const clodGeo = new T.BoxGeometry(1, 1, 1);
+      for (let i = 0; i < 16; i++) {const c = new T.Mesh(clodGeo, dirt);c.name = 'burrowClod';c.userData.k = i;mesh.add(c);}   // torrões saltando
       const ringGeo = new T.RingGeometry(.9, 1, 48);ringGeo.rotateX(-Math.PI / 2);
       const ring = new T.Mesh(ringGeo, new T.MeshBasicMaterial({color: 0xffb35a, transparent: true, opacity: .8, depthTest: false, depthWrite: false, side: T.DoubleSide}));ring.name = 'burrowTarget';ring.renderOrder = 950;mesh.add(ring);
     } else if (e.kind === 'sandwave') {
@@ -577,7 +582,18 @@ export class WorldView {
       } else if (e.kind === 'burrow') {
         const ground = (e.alt ?? 0);m.position.set(e.pos.x, 0, e.pos.z);
         for (const c of m.children) {
-          if (c.name === 'mound') {c.position.y = ground + .25;c.rotation.y = Math.atan2(e.to.x - e.from.x, e.to.z - e.from.z);c.scale.setScalar(.85 + .15 * Math.sin(this.time * 18));}
+          const P = e.params ?? {}, fxOn = P.fxTrailOn !== 0, S = fxOn ? (P.fxTrailSize ?? 1.8) : 1, heading = Math.atan2(e.to.x - e.from.x, e.to.z - e.from.z), run = Math.hypot(e.pos.x - e.from.x, e.pos.z - e.from.z);
+          if (c.name === 'mound') {c.position.y = ground + .25 * S;c.rotation.y = heading;c.scale.setScalar((.85 + .15 * Math.sin(this.time * 18)) * S);}
+          else if (c.name === 'burrowTrail') {   // faixa de terra do ponto de partida até o montículo (sobe do chão e vai afundando para trás)
+            c.visible = fxOn && run > .05;c.rotation.y = heading;c.scale.set(.9 * S, .14 * S, Math.max(.01, run));
+            c.position.set((e.from.x - e.pos.x) / 2, ground + .07 * S, (e.from.z - e.pos.z) / 2);
+          } else if (c.name === 'burrowClod') {   // torrões que saltam ao longo do trajeto, na frente do montículo e atrás dele
+            const k = c.userData.k, ph = (this.time * 2.2 + k * .137) % 1, back = ((k * 0.61803) % 1) * Math.min(run, 4 * S), side = (((k * 0.37) % 1) - .5) * 1.4 * S, hop = Math.sin(ph * Math.PI) * (.5 + (k % 4) * .18) * S;
+            c.visible = fxOn && run > .05;
+            const sn = Math.sin(heading), cs = Math.cos(heading);
+            c.position.set(-sn * back + cs * side, ground + .12 * S + hop, -cs * back - sn * side);
+            c.scale.setScalar((.1 + (k % 3) * .05) * S);c.rotation.set(ph * 6, k, ph * 4);
+          }
           else if (c.name === 'burrowTarget') {c.position.set(e.to.x - e.pos.x, (e.to.y ?? 0) + .05, e.to.z - e.pos.z);const r = (e.params?.blastRadius ?? 5);c.scale.set(r, 1, r);c.material.opacity = .45 + .35 * Math.sin(this.time * 6);}
         }
       } else if (e.kind === 'sandwave') {
@@ -1105,40 +1121,39 @@ export class WorldView {
     return group;
   }
 
+  /**
+   * Objeto do mapa na frente de um lutador, visto da câmera, fica translúcido. O teste é geométrico: o segmento câmera→lutador (pés, meio e cabeça) contra a caixa REAL do objeto
+   * (antes era uma esfera em volta do centro, que não pegava objetos largos ou altos). A opacidade desliza até o alvo (sem piscar) e o realce de arestas acompanha.
+   */
   checkOcclusion(mesh, camera, fighters) {
     if (!camera || !fighters?.length) return;
-    const camPos = camera.position;
+    const geo = mesh.geometry;if (!geo) return;
+    if (!geo.boundingBox) geo.computeBoundingBox();
+    const bb = geo.boundingBox, s = mesh.scale, p = mesh.position, pad = .04;
+    const x0 = p.x + bb.min.x * s.x - pad, x1 = p.x + bb.max.x * s.x + pad, y0 = p.y + bb.min.y * s.y - pad, y1 = p.y + bb.max.y * s.y + pad, z0 = p.z + bb.min.z * s.z - pad, z1 = p.z + bb.max.z * s.z + pad;
+    const cx = camera.position.x, cy = camera.position.y, cz = camera.position.z;
+    const inside = cx > x0 && cx < x1 && cy > y0 && cy < y1 && cz > z0 && cz < z1;
     let occludes = false;
-
-    for (const f of fighters) {
-      if (f.hp <= 0) continue;
-      const fPos = {x: f.position.x, y: (f.groundY ?? 0) + 0.8, z: f.position.z};
-      const dx = fPos.x - camPos.x, dy = fPos.y - camPos.y, dz = fPos.z - camPos.z;
-      const dist = Math.hypot(dx, dy, dz);
-      if (dist < 1e-4) continue;
-      const rayDir = {x: dx / dist, y: dy / dist, z: dz / dist};
-
-      const mPos = mesh.position;
-      const cx = mPos.x - camPos.x, cy = mPos.y - camPos.y, cz = mPos.z - camPos.z;
-      const t = cx * rayDir.x + cy * rayDir.y + cz * rayDir.z;
-      if (t > 0.8 && t < dist - 0.8) {
-        const perpX = cx - t * rayDir.x, perpY = cy - t * rayDir.y, perpZ = cz - t * rayDir.z;
-        const perpDist = Math.hypot(perpX, perpY, perpZ);
-        if (perpDist < 1.6) {
-          occludes = true;
-          break;
+    if (!inside) for (const f of fighters) {
+      if (f.hp <= 0 || f.absent) continue;
+      const base = altitudeOf(f);
+      for (const h of OCCLUSION_HEIGHTS) {
+        const dx = f.position.x - cx, dy = base + h - cy, dz = f.position.z - cz;
+        let t0 = 0, t1 = .985;   // só até perto do lutador: o que ele pisa ou encosta não o cobre
+        for (const [o, d, lo, hi] of [[cx, dx, x0, x1], [cy, dy, y0, y1], [cz, dz, z0, z1]]) {
+          if (Math.abs(d) < 1e-9) {if (o < lo || o > hi) {t1 = -1;break;}continue;}
+          let a = (lo - o) / d, b = (hi - o) / d;if (a > b) [a, b] = [b, a];
+          t0 = Math.max(t0, a);t1 = Math.min(t1, b);if (t0 > t1) break;
         }
+        if (t0 <= t1) {occludes = true;break;}
       }
+      if (occludes) break;
     }
-
-    if (occludes) {
-      mesh.material.transparent = true;
-      mesh.material.opacity = 0.25;
-      mesh.material.depthWrite = false;
-    } else {
-      mesh.material.transparent = false;
-      mesh.material.opacity = 1.0;
-      mesh.material.depthWrite = true;
-    }
+    const mat = mesh.material, O = C.display.occlusion ?? {occEnabled: 1, occOpacity: .25, occFade: .3}, want = occludes && O.occEnabled ? O.occOpacity : 1;
+    mat.transparent = true;
+    mat.opacity += (want - mat.opacity) * Math.max(.02, Math.min(1, O.occFade));
+    if (Math.abs(want - mat.opacity) < .01) mat.opacity = want;
+    mat.depthWrite = mat.opacity >= .999;
+    if (mat.opacity >= .999) mat.transparent = false;
   }
 }

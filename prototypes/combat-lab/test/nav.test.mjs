@@ -1,6 +1,6 @@
 // @ts-check
 // Fase 3 (Yuka): grafo de superfícies (caminhada, salto, queda), planejador e integração com a IA.
-// A navegação é opcional (extras.nav.enableNav = 0 por padrão): desligada, nada muda no comportamento.
+// A navegação é opcional (extras.nav.enableNav; LIGADA por padrão desde 22/10/2026 para a IA subir plataformas): desligada, nada muda no comportamento.
 import assert from 'node:assert/strict';
 import {C, defaults, resetConfig} from '../src/sim/config.js';
 import {Game} from '../src/sim/game.js';
@@ -91,8 +91,11 @@ test('duas execuções com a mesma semente produzem a mesma trilha', () => {
   fresh();const a = runNavScenario(Game, 'completo', {nav: 1, seconds: 20}), b = runNavScenario(Game, 'completo', {nav: 1, seconds: 20});
   assert.deepEqual(a.trace, b.trace);
 });
-test('desligado (padrão), a IA produz exatamente os mesmos comandos de antes (nada interfere)', () => {
-  fresh();assert.equal(C.extras.nav.enableNav, 0);
+test('a navegação vem LIGADA por padrão (22/10/2026): a IA sobe plataformas sem o jogador ligar nada, sem sobreposição de depuração', () => {
+  fresh();assert.equal(C.extras.nav.enableNav, 1);assert.equal(C.extras.nav.showDebug, 0);
+});
+test('desligado pela opção, a IA produz exatamente os mesmos comandos de antes (nada interfere)', () => {
+  fresh();C.extras.nav.enableNav = 0;
   const run = () => {const g = new Game({seed: 3});g.start();g.mode = 'tactical';const out = [];for (let i = 0; i < 1500; i++) {g.step(emptyCommand());const c = g.lastCommands[1];out.push([c.move.x, c.move.z, c.tackle, c.jump]);}return JSON.stringify(out) + JSON.stringify(g.fighters.map(f => f.position));};
   assert.equal(run(), run());
   const g = new Game({seed: 3});g.start();for (let i = 0; i < 600; i++) g.step(emptyCommand());

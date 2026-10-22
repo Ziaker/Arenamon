@@ -43,7 +43,7 @@ const RULES = {
   bounce: (x, self) => x.distance > 4 && x.distance < 6.2 && x.tGround && !x.tGuard && !x.tackling && !x.tCharging && self.stamina >= 2.2 ? {p: .12, kind: 'charge', goal: x.distance > 4.6 ? 74 : 14, why: 'salto sobre o rival'} : null,
   'sand-wave': (x, self) => x.distance < 3.4 && x.facing && x.tGround && self.stamina >= 2.2 ? {p: .3, kind: 'tap', why: 'barragem de areia no retângulo'} : null,
   spikes: (x, self) => x.distance > 3 && x.distance < 8 && x.tGround && self.stamina >= 1.5 ? {p: .22, kind: 'aim', mode: 'absolute', why: 'armadilha no caminho do rival'} : null,
-  'bullet-punch': (x, self) => x.distance > 4 && x.distance < 9.5 && x.tGround && self.stamina >= 2.2 ? {p: .25, kind: 'aim', mode: 'follow', why: 'soco-bala: some e reaparece no rival'} : null,
+  'bullet-punch': (x, self) => x.distance > 2.5 && x.distance < (C.world.bulletPunch.reach ?? 6) - .3 && x.tGround && self.stamina >= 2.2 ? {p: .25, kind: 'tap', why: 'soco-bala: some e golpeia o rival ao chegar'} : null,
   'emerging-stone': (x, self) => x.distance > 3.8 && x.distance < 6.4 && x.tGround && self.stamina >= 3 ? {p: .2, kind: 'aim', mode: 'cast', why: 'rocha emergente no rival'} : null,
 };
 
@@ -59,9 +59,6 @@ function driveAim(brain, self, target, c, mv) {
     const to = sub(lead, a.pos), l = length(to);
     c.move = l > .3 ? normalize(to) : {x: 0, z: 0};
     if ((l <= .45 && a.valid) || a.ticks > 90) hold = false;
-  } else if (plan.mode === 'follow') {   // Bullet Punch: a distância cresce sozinha na direção do rival; solta quando o marcador chega nele
-    c.move = dir;
-    if (a.distance >= Math.min(plan.dist, 10) - .2 || a.ticks > 260) hold = false;
   } else {   // Emerging Stone: o cast começa ao pressionar; mantém parado até o cast terminar, mira o marcador no rival e solta
     const to = sub(target.position, a.pos), l = length(to);
     c.move = {x: 0, z: 0};
@@ -83,6 +80,7 @@ export function newMovesCommand(brain, self, target, c, mv, perc, S) {
   if (!slots?.some((/** @type {string} */ id) => NEW_IDS.has(id))) return false;
   const A = C.world.ai;
   if (!(A.newMovesRate > 0)) return false;
+  if (self.aim?.range) {c.tackle = false;c.dodge = false;c.guard = false;c.guardPressed = false;c.skill = null;c.skillHeld = null;return true;}   // círculo de alcance aberto: solta o botão no passo seguinte (executa)
   if (self.aim) return driveAim(brain, self, target, c, mv);
   mv.plan = null;
   if (self.hp <= 0 || target.hp <= 0 || target.absent) return false;

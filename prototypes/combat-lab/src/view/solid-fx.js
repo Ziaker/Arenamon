@@ -3,6 +3,7 @@
 // Geometrias e materiais são criados uma vez e reutilizados; o número de objetos ativos tem teto rígido (C.vfx.solid.maxObjects).
 import * as T from 'three';
 import {C, feintColor} from '../sim/config.js';
+import {altitudeOf} from '../sim/entity.js';
 import {MOTION_SHAPES, DUST_NEW, WIND, RUN_DUST, RUN_WIND} from './solid-motion.js';
 import {SmokeVolume, SMOKE_MAX_SPHERES} from './smoke-volume.js';
 import {REFLECT_FX} from './solid-reflect.js';
@@ -161,26 +162,26 @@ export class SolidFx {
   put(o, F, clone = false) {
     if (this.all.length >= this.cap() || !this.free.length) { this.stats.rejected++; return false; }
     const reduce = this.accessibility.reduceMotion || C.vfx.master?.reduceMotion, hc = this.accessibility.highContrast || C.vfx.master?.highContrast;
-    const kr = reduce ? .25 : 1, vel = (F?.velocity ?? 1) * kr, sc = F?.scatter ?? 1, lift = F?.lift ?? 1, tb = F?.turbulence ?? 1, op = F?.opacity ?? 1, org = this.origin, p = this.free.pop();
+    const kr = reduce ? .25 : 1, vel = (F?.velocity ?? 1) * kr, sc = F?.scatter ?? 1, lift = F?.lift ?? 1, tb = F?.turbulence ?? 1, op = F?.opacity ?? 1, org = this.origin, by = this.baseY ?? 0, p = this.free.pop();
     const col = this.col.set(o.color ?? 0xffffff); if (hc) col.lerp(this.white, .35);
     const jit = clone ? .35 : 0, j = () => (this.rnd() - .5) * 2 * jit;
     let x = o.x, z = o.z; if (org) { x = org.x + (x - org.x) * sc; z = org.z + (z - org.z) * sc; }
     let vx = (o.vx || 0) * vel, vy = (o.vy || 0) * vel * lift, vz = (o.vz || 0) * vel;
     const hv = sc < 1 ? .5 + .5 * sc : 1; vx *= hv; vz *= hv; const sp = Math.hypot(vx, vz), spread = Math.max(0, sc - 1) * .8 + jit;
     vx += (this.rnd() - .5) * 2 * spread * sp; vz += (this.rnd() - .5) * 2 * spread * sp; if (clone) { x += j() * .15; z += j() * .15; vy *= 1 + j(); }
-    let orb = null; if (o.orb) { const b = o.orb; orb = {cx: b.cx, cz: b.cz, vx: b.vx * vel, vz: b.vz * vel, a0: b.a0, w: b.w * tb, r0: b.r0 * sc, r1: b.r1 * sc, y0: b.y0 * lift, rise: b.rise * lift * kr}; }
+    let orb = null; if (o.orb) { const b = o.orb; orb = {cx: b.cx, cz: b.cz, vx: b.vx * vel, vz: b.vz * vel, a0: b.a0, w: b.w * tb, r0: b.r0 * sc, r1: b.r1 * sc, y0: b.y0 * lift + by, rise: b.rise * lift * kr}; }
     const alpha = Math.max(hc && op > 0 ? .85 : 0, (o.alpha ?? 1) * op), blob = (o.shape === 'lump' && o.mat === 'smoke'), squash = blob;
     let cluster = 0; if (blob) { let cl = this.cur; if (!cl || cl.n >= SMOKE_MAX_SPHERES || Math.hypot(x - cl.x, z - cl.z) > 1.8) cl = this.cur = {id: ++this.cid, n: 0, x, z}; cl.n++; cluster = cl.id; }
     const fs0 = clamp(F?.fadeStart ?? .6, 0, .98), fe0 = clamp(F?.fadeEnd ?? 1, fs0 + .02, 1);
-    Object.assign(p, {to: o.to ? {...o.to} : null, tt: Math.max(.01, o.tt || 0), x0: x, y0: (o.y ?? 0) * lift, z0: z, fadeStart: fs0, fadeEnd: fe0, blob, cluster, shape: o.shape ?? 'chunk', mat: (o.mat === 'smoke' && !blob) ? 'lit' : (o.mat ?? 'lit'), x, y: (o.y ?? 0) * lift, z, vx, vy, vz, orb, tbAmp: Math.max(0, tb - 1) * 5,
+    Object.assign(p, {to: o.to ? {...o.to, y: (o.to.y ?? 0) + by} : null, tt: Math.max(.01, o.tt || 0), x0: x, y0: (o.y ?? 0) * lift + by, z0: z, fadeStart: fs0, fadeEnd: fe0, blob, cluster, shape: o.shape ?? 'chunk', mat: (o.mat === 'smoke' && !blob) ? 'lit' : (o.mat ?? 'lit'), x, y: (o.y ?? 0) * lift + by, z, vx, vy, vz, orb, tbAmp: Math.max(0, tb - 1) * 5,
       gx: o.gx || 0, gy: o.gy ?? 0, drag: o.drag ?? 0, swirl: (o.swirl || 0) * tb, life: Math.max(.05, o.life ?? .6), age: -(o.delay || 0),
       sx: (o.sx ?? o.s ?? .1) * (squash ? .95 + this.rnd() * .15 : 1), sy: (o.sy ?? o.s ?? .1) * (squash ? .82 + this.rnd() * .14 : 1), sz: (o.sz ?? o.s ?? .1) * (squash ? .95 + this.rnd() * .15 : 1), grow: o.grow || 0, growY: o.growY ?? o.grow ?? 0, growL: o.growL || 0,
-      rx: o.rx || 0, ry: o.ry ?? (squash ? this.rnd() * 6.28 : 0), rz: o.rz || 0, wx: (o.wx || 0) * kr * tb, wy: (o.wy || 0) * kr * tb, wz: (o.wz || 0) * kr * tb, align: !!o.align, floor: o.floor ?? null,
+      rx: o.rx || 0, ry: o.ry ?? (squash ? this.rnd() * 6.28 : 0), rz: o.rz || 0, wx: (o.wx || 0) * kr * tb, wy: (o.wy || 0) * kr * tb, wz: (o.wz || 0) * kr * tb, align: !!o.align, floor: o.floor == null ? null : o.floor + by,
       pop: o.pop ?? .12, hold: o.hold ?? .5, mode: o.mode || 0, seed: this.rnd(), r: col.r, g: col.g, b: col.b, alpha, bounce: o.bounce ?? .28, rest: false});
     this.all.push(p); this.stats.spawned++; return true;
   }
   /** Agenda uma ação com os mesmos controles de família que estavam ativos no disparo. */
-  after(delay, fn) { const fam = this.fam, origin = this.origin; this.timers.push({at: this.time + delay, fn: () => { const f0 = this.fam, o0 = this.origin; this.fam = fam; this.origin = origin; try { fn(); } finally { this.fam = f0; this.origin = o0; } }}); }
+  after(delay, fn) { const fam = this.fam, origin = this.origin, by = this.baseY ?? 0; this.timers.push({at: this.time + delay, fn: () => { const f0 = this.fam, o0 = this.origin, b0 = this.baseY; this.fam = fam; this.origin = origin; this.baseY = by; try { fn(); } finally { this.fam = f0; this.origin = o0; this.baseY = b0; } }}); }
   r(a, b) { return a + this.rnd() * (b - a); }
   reset() { for (const p of this.all) this.free.push(p); this.all.length = 0; this.timers = []; this.scripts = []; this.state = {}; this.landings = []; this.log = []; this.fam = null; this.origin = null; this.cur = null; this.smoke.clear(); this.group.visible = true; for (const m of this.meshes.values()) m.count = 0; }
   dispose() { this.reset(); for (const g of Object.values(this.geometries)) g.dispose(); for (const g of this.wrappers.values()) g.dispose(); for (const m of Object.values(this.materials)) m.dispose(); for (const m of this.meshes.values()) m.dispose(); this.smoke.dispose(); this.scene.remove(this.group); }
@@ -195,17 +196,17 @@ export class SolidFx {
         if (e.result === 'chargeRelease' && e.move === 'reflect') { this.onReflect(e, world); continue; }
         const a = fighters[e.attacker], b = fighters[e.target]; if (!a || !b) continue;
         const n = e.normal ? this.unit(e.normal.x, e.normal.z) : this.unit(b.position.x - a.position.x, b.position.z - a.position.z);
-        if (e.result === 'impact') {this.fire('solidImpact', {pos: b.position, n, power: 1}, `golpe ${e.attacker}→${e.target}`);}
-        else if (e.result === 'partial') this.fire('solidBlock', {pos: b.position, n, power: 1}, 'defesa parcial');
-        else if (e.result === 'perfect') this.fire('solidBlock', {pos: b.position, n, power: 1.7}, 'defesa perfeita');
-        else if (e.result === 'clash' && e.attacker === 0) this.fire('solidClash', {pos: {x: (a.position.x + b.position.x) / 2, z: (a.position.z + b.position.z) / 2}, n, power: 1}, 'clash');
+        if (e.result === 'impact') {this.fire('solidImpact', {pos: b.position, lift: altitudeOf(b), n, power: 1}, `golpe ${e.attacker}→${e.target}`);}
+        else if (e.result === 'partial') this.fire('solidBlock', {pos: b.position, lift: altitudeOf(b), n, power: 1}, 'defesa parcial');
+        else if (e.result === 'perfect') this.fire('solidBlock', {pos: b.position, lift: altitudeOf(b), n, power: 1.7}, 'defesa perfeita');
+        else if (e.result === 'clash' && e.attacker === 0) this.fire('solidClash', {pos: {x: (a.position.x + b.position.x) / 2, z: (a.position.z + b.position.z) / 2}, lift: (altitudeOf(a) + altitudeOf(b)) / 2, n, power: 1}, 'clash');
       }
       fighters.forEach((f, i) => {
-        if (f.action?.slam && f.action.groundHit && !(this.slamSeen ??= new WeakSet()).has(f.action)) {this.slamSeen.add(f.action);this.fire('solidLanding', {pos: {x: f.position.x, z: f.position.z}, power: C.rules.slamImpactScale}, 'impacto do meteor slam no chão');}
+        if (f.action?.slam && f.action.groundHit && !(this.slamSeen ??= new WeakSet()).has(f.action)) {this.slamSeen.add(f.action);this.fire('solidLanding', {pos: {x: f.position.x, z: f.position.z}, lift: f.groundY ?? 0, power: C.rules.slamImpactScale}, 'impacto do meteor slam no chão');}
         const L = f.lastLanding;
         if (L && this.landings[i] !== undefined && L.n !== this.landings[i]) {
           const minI = C.vfx.ground?.minImpact ?? 2;
-          if (L.vertical >= minI && !L.regular) this.fire('solidLanding', {pos: {x: L.x, z: L.z}, power: Math.min(2, L.vertical / 7)}, `colisão com o solo (${L.vertical.toFixed(1)} m/s)`);
+          if (L.vertical >= minI && !L.regular) this.fire('solidLanding', {pos: {x: L.x, z: L.z}, lift: L.y ?? 0, power: Math.min(2, L.vertical / 7)}, `colisão com o solo (${L.vertical.toFixed(1)} m/s)`);
         }
         this.landings[i] = L?.n ?? 0;
         this.tint(f, () => this.trackDash(f, i, dt));
@@ -308,8 +309,8 @@ export class SolidFx {
     this.record(key, variant, reason);
     const q = C.vfx.solid.quality ?? 1, I = (c.intensity ?? 1) * (ctx.power ?? 1), S = c.size ?? 1, D = c.duration ?? 1, cnt = n => Math.max(1, Math.round(n * (q === 0 ? .55 : q === 2 ? 1.4 : 1) * Math.min(1.6, .6 + .4 * I)));
     const o = {c, I, S, D, cnt, qk: q === 0 ? .55 : q === 2 ? 1.4 : 1, ...ctx};
-    this.fam = c; this.cur = null; this.origin = ctx.pos;
-    try { (key === 'solidReflect' ? REFLECT_FX : BUILD[key])[key === 'solidReflect' ? variant : variant].call(this, o); } finally { this.fam = null; this.origin = null; }
+    this.fam = c; this.cur = null; this.origin = ctx.pos; this.baseY = ctx.lift ?? 0;
+    try { (key === 'solidReflect' ? REFLECT_FX : BUILD[key])[key === 'solidReflect' ? variant : variant].call(this, o); } finally { this.fam = null; this.origin = null; this.baseY = 0; }
   }
 
   // ---------- Prévias e comparação ----------

@@ -74,7 +74,7 @@ function buildDefaults() {
     // spacing: grade de nós do chão (m) · replan: intervalo de replanejamento (s) · jumpReach: alcance horizontal de um salto (m) ·
     // launch: distância ao nó de destino para decolar (m) · stuck*: detecção de travamento · attackMaxHeightDiff: diferença de altura
     // acima da qual o alvo é inalcançável para o tackle (m) · suppressBlockedAttacks: não ataca alvo inalcançável (só impede ataque no vazio).
-    nav: {enableNav: 0, spacing: 1.5, replan: .4, jumpReach: 2.4, jumpMargin: .35, launch: 1.5, arrival: .55, stuckTime: .8, stuckDistance: .12, attackMaxHeightDiff: .8, suppressBlockedAttacks: 1, showDebug: 1, jumpPenalty: 6, dropPenalty: 6},
+    nav: {enableNav: 1, spacing: 1.5, replan: .4, jumpReach: 2.4, jumpMargin: .35, launch: 1.5, arrival: .55, stuckTime: .8, stuckDistance: .12, attackMaxHeightDiff: .8, suppressBlockedAttacks: 1, showDebug: 0, jumpPenalty: 6, dropPenalty: 6},
     // moveSmoothing: giro máximo (rad/s) da intenção de movimento da IA; minDirectionHold: tempo mínimo antes de inverter
     // a intenção (contra zigue-zague). 0 = intenções cruas (v6). Ataques e esquivas nunca são suavizados.
     // revision: 0 = IA tática anterior (15/10/2026); 1 = revisada (valida ações antes de pedir, alcance, sprint, contra-ataque);
@@ -90,7 +90,7 @@ function buildDefaults() {
     cameraExtra: {idleAlignDelay: .85, idleAlignSpeed: 1.5, unlockedTurnMultiplier: 1.2, verticalFollow: 7, flightZoomFactor: .18, flightHeightFactor: .42,
       flightLookFactor: .40, orbitSensitivity: .006, wheelSensitivity: .01, fov: 48, nearClip: .1, farClip: 100, lockTargetBias: .28, lockBiasLimit: 4.7,
       framingSeparationFactor: .45, framingPadding: 1.2, cameraShakeAmount: .12, cameraShakeDecay: 10},
-    visual: {smear: {enableSmear: 1, smearDurationFrames: 2, smearMinVelocity: 12, smearWidth: .18, smearColorMode: 0, smearOpacity: .85, smearPlBoost: 1}, squashStretch: {enableSquashStretch: 1, squashIntensity: .15, stretchIntensity: .20, squashWindow: 60, settleDuration: 80, preserveVolume: 1, plScaling: 1}, bodyWidth: 1, bodyHeight: 1.3, bodyDepth: 1, arrowRadius: .16, arrowLength: .42, arrowOffset: .2, arrowHeight: 1.48, guardScale: 1.03,
+    visual: {smear: {enableSmear: 1, smearDurationFrames: 2, smearMinVelocity: 12, smearWidth: .18, smearColorMode: 0, smearOpacity: .85, smearPlBoost: 1, smearOnDodge: 1}, squashStretch: {enableSquashStretch: 1, squashOnDodge: 1, dodgeSquashScale: .8, squashIntensity: .15, stretchIntensity: .20, squashWindow: 60, settleDuration: 80, preserveVolume: 1, plScaling: 1}, bodyWidth: 1, bodyHeight: 1.3, bodyDepth: 1, arrowRadius: .16, arrowLength: .42, arrowOffset: .2, arrowHeight: 1.48, guardScale: 1.03,
       landingScale: .82, shadowMin: .3, shadowHeightFade: .16, renderPixelRatio: 2, ambientLightIntensity: 2.5, directionalIntensity: 2, floorThickness: .1,
       wallHeight: .35, wallThickness: .15, gridDivisions: 32, lightX: 4, lightY: 12, lightZ: -8},
     fx: {impactCount: 8, clashCount: 12, landingCount: 7, impactDuration: .34, clashDuration: .48, particleWidth: .075, particleHeight: .07, particleLength: .66,
@@ -197,19 +197,20 @@ function buildDefaults() {
     lunge: {cost: .75, cooldown: 6, cast: .6, range: 3.5, damage: 8, knockbackH: 4, knockbackV: 0, invulnerableSeconds: .1333, chainAfter: .45, hitStart: .19, hitEnd: .26},
     // Riposte: Normal Status+Melee PL1. Postura de 0,65 s; entre 0,13 e 0,30 s qualquer acerto elegível (menos Guard Break) é anulado e dispara um contra-golpe PL1 de 6 HP
     // (× Ataque ÷ referência), 3 m/s H, na hora do gatilho (MV-P24); strikeRange = alcance do golpe (não definido no documento: MV-P25). Janela fechada sem acerto = recuperação exposta.
-    riposte: {cost: .8, cooldown: 8, cast: .65, windowStart: .13, windowEnd: .30, damage: 6, knockbackH: 3, knockbackV: 0, strikeRange: 1.6, fxOn: 1, fxIntensity: 1, fxSize: 1},
+    riposte: {cost: .8, cooldown: 8, cast: .65, windowStart: .13, windowEnd: .30, damage: 14, knockbackH: 9, knockbackV: 2.5, strikeRange: 1.6, hitstopMult: 2.5, shakeMult: 2.4, fxOn: 1, fxIntensity: 1, fxSize: 1, blastOn: 1, blastSize: 1.5},
     // Emerging Stone (ES-D01…D103, cronologia C): cast 0,55 s (corpo a 30%), marcador 3–10 m 3D, projétil 15 m/s, explosão de 5 m horizontais (20 nominais × Ataque ÷ referência, 8 m/s radial),
     // rocha 3 m × escala (0,25–4×, passo 0,25), emerge em 0,40 s, 5 HP, lançamento da emergência 8 H/14 V, até 3 por dono. markerSpeed/startDistance/rockSearch/maxRise: provisórios.
-    emergingStone: {cost: 3, cooldown: 9, cast: .55, castSlow: .7, minRange: 3, range: 10, startDistance: 5, markerSpeed: 8, speed: 15, blastRadius: 5, damage: 20, blastKnockback: 8, rockScale: 1, rockHp: 5, riseTime: .4, launchH: 8, launchV: 14, maxRocks: 3, rockSearch: 4, maxRise: 2, edgeMargin: .3, radius: 0, allowOccupied: 1},
-    // Bullet Punch (MUSHROOM_MOVES_DECISOES §2-3): marcador 3→10 m em 2 s (quadrático), corpo a 30% (slow .7), preparação 0,75 s, desaparecimento 1 s, busca 5 m a partir do marcador,
-    // investida PL2 de até 3 m, custo 1,5× o do Tackle (Tackle = 1) e 8 s; impactMult = velocidade de impacto do knockback (1× a referência do Tackle). maxRise/edgeMargin: técnicos.
-    bulletPunch: {cost: 1.5, cooldown: 8, cast: .75, vanish: .2, searchRadius: 5, reach: 3, impactMult: 1, startDistance: 3, maxDistance: 10, growTime: 2, slow: .7, maxRise: 2, edgeMargin: .3},
+    emergingStone: {cost: 3, cooldown: 9, cast: .55, castSlow: .7, minRange: 3, range: 10, startDistance: 5, markerSpeed: 8, markerAccel: 24, fxTrailOn: 1, fxTrailSize: 1.8, speed: 15, blastRadius: 5, damage: 20, blastKnockback: 8, rockScale: 1, rockHp: 5, riseTime: .4, launchH: 8, launchV: 14, maxRocks: 3, rockSearch: 4, maxRise: 2, edgeMargin: .3, radius: 0, allowOccupied: 1},
+    // Bullet Punch (como o Quick Attack, decisão de 22/10/2026): alvo = adversário mais próximo dentro de `reach` (alcance do Move), fixado ao soltar; preparação 0,75 s (corpo a 30%, slow .7),
+    // desaparecimento de `vanish` s numa corrida invisível até `stopShort` m do alvo, golpe PL2 de `strikeReach` m ao chegar (ou no primeiro adversário a `hitRadius` m do caminho),
+    // custo 1,5× o do Tackle (Tackle = 1) e 8 s; impactMult = velocidade de impacto do knockback. fxLines/fxHideBody: visual do sumiço (linhas de velocidade e corpo oculto).
+    bulletPunch: {cost: 1.5, cooldown: 8, cast: .75, vanish: .2, reach: 6, strikeReach: 2.2, stopShort: 1.1, hitRadius: .8, impactMult: 1, slow: .7, maxRise: 2, fxLines: 1, fxHideBody: 1},
     // Sand Wave: Burst PL1 (MUSHROOM_MOVES_DECISOES §6). Prep 0,25 s, barragem 1,5 s (0,75 s de hitbox + 0,75 s de dissipação), retângulo 4 (frente) × 3 (lado) m, 6 HP fixos,
     // empurrão 12 m/s² (×0,5 na parcial), cegueira 4 s, stagger de parede 0,30 s, visão do cegado 10 m, fog = redução de 60% da luz. cell/detour/replanSteps: grade do caminho livre (técnicos).
     sandWave: {cost: 2, cooldown: 10, cast: .25, length: 4, width: 3, active: .75, dissipate: .75, damage: 6, accel: 12, partialFactor: .5, blind: 4, wallStagger: .3, visionRadius: 10, fogDarkness: .6, cell: .25, detour: 3, replanSteps: 6},
     // Spikes: Normal Field PL1. Marcador de colocação (alcance 3D 5 m), cast 0,4 s, armadilha de 1,2 m de raio por 8 s, 6 HP nominais (× Ataque ÷ referência), sem knockback, 1 acionamento.
     // markerSpeed/startDistance/maxRise/armDelay/trapHeight não vêm do documento (MV-P29/MV-P31): provisórios.
-    spikes: {cost: 1, cooldown: 10, cast: .4, range: 5, radius: 1.2, life: 8, damage: 6, knockbackH: 0, knockbackV: 0, armDelay: .25, markerSpeed: 8, startDistance: 3, minRange: 0, maxRise: 2, trapHeight: 1.2},
+    spikes: {cost: 1, cooldown: 10, cast: .4, range: 5, radius: 1.2, life: 8, damage: 6, knockbackH: 0, knockbackV: 0, armDelay: .25, markerSpeed: 8, markerAccel: 24, startDistance: 3, minRange: 0, maxRise: 2, trapHeight: 1.2},
     // Bounce: Charge Trick+Melee. Carga máx. 1,2 s (PL1 <50%, PL2 <100%, PL3 em 100%); alturas 1,5/2,5/3,5 m (experimentais); alcance horizontal máx. 6 m; 12 HP nominais
     // (× Ataque ÷ referência), 3 m/s H e 6 m/s V; recuperação 0,25 s após o pouso. gravity/contactRadius/landRadius não vêm do documento (MV-P27/MV-P28): provisórios.
     bounce: {cost: 1.2, cooldown: 12, maxCharge: 1.2, minCharge: 0, maxDistance: 6, heightPl1: 1.5, heightPl2: 2.5, heightPl3: 3.5, gravity: 17.5, damage: 12, knockbackH: 3, knockbackV: 6, landRecovery: .25, contactRadius: .3, landRadius: 1.4},
@@ -221,7 +222,7 @@ function buildDefaults() {
     guardBreak: {cost: 1, cooldown: 10, maxCharge: 1, minCharge: 0, cast: .7, range: 2.6, damage: 6, knockbackH: 2, knockbackV: 0, stun: .5, invulnerableSeconds: 0, chainAfter: .47, hitStart: .333, hitEnd: .533},
     // Quick Attack: alvo mais próximo a até 7 m, ida ≤ 0,16 s e volta ≤ 0,14 s (velocidades = alcance ÷ tempo), recuperação 0,12 s, 8 HP nominais, 4 m/s H sem V.
     // Sem i-frames do atacante (o catálogo não define; MV-P16). Ação total = ida + volta + recuperação.
-    quickAttack: {cost: .75, cooldown: 6, acquireRange: 7, approachMax: .16, returnMax: .14, recovery: .12, damage: 8, knockbackH: 4, knockbackV: 0, invulnerableSeconds: 0},
+    quickAttack: {cost: .75, cooldown: 6, acquireRange: 7, approachMax: .16, returnMax: .14, recovery: .12, damage: 8, knockbackH: 4, knockbackV: 0, invulnerableSeconds: 0, fxLines: 1, fxHideBody: 1},
     swift: {cost: .8, cooldown: 7, cast: .25, count: 3, speed: 15, damage: 3, homingSeconds: .25, homingRate: 90, range: 12, knockback: .3, knockbackCap: .9, radius: .2, fanAngle: 20, spawnForward: .9, spawnSpacing: .35, counterStagger: .2},
   });
   return ({rules, test, locomotion, camera, profiles: profilesLab, extras, actions, vfx: vfxDefaults(), display: displayDefaults(), world, map: {...MAP_DEFAULTS}, passivas, ledge: ledgeDefaults()});
@@ -341,6 +342,10 @@ export function displayDefaults() {
     progress: {pgEnabled: 1, pgLayout: 1, pgSubject: 2, pgScale: 1, pgScaleEnemy: 1, pgAnimate: 1},
     // Consumíveis "Gemas Facetadas" (escolhido em 21/10/2026): gemStyle 0 = formas clássicas · 1 = gemas. Altura em m, escala e indicador em múltiplos.
     consumables: {gemStyle: 1, gemScale: 1, gemHover: .9, gemIndicators: 1, gemIndicatorSize: 1, gemAnimate: 1, gemParticles: 1, gemPedestal: 1},
+    // Transparência dos objetos do mapa (plataformas, caixas, destrutíveis, rochas) que ficam entre a câmera e um lutador. Só apresentação. occOpacity: opacidade do objeto na frente (0 = some · 1 = não fica translúcido).
+    occlusion: {occEnabled: 1, occOpacity: .25, occFade: .3},
+    // Círculo de alcance dos Moves de alvo único (Quick Attack, Bullet Punch): azul com alvo dentro, vermelho sem alvo; ao soltar fora do alcance o vermelho pisca por flashTime s. Só apresentação.
+    rangeRing: {rangeOn: 1, flashTime: .7, rangeOpacity: .85, rangeWidth: .2, rangeFill: .12, rangeWall: .35},
     windows: {mode: 0, scale: 1, opacity: .9, invulnerable: 1, cancel: 1, chain: 1, recovery: 1, guardStun: 1, recoil: 1, perfect: 1, perfectCooldown: 1, counter: 1, buffer: 1, hitstop: 0, statuses: 1, cooldowns: 1},
   };
 }

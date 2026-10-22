@@ -20,7 +20,7 @@ import {actionProgress} from './motion.js';
 import {report, attemptsActive} from './attempts.js';
 import {getGroundHeight} from './physics.js';
 import {passiveCost} from './passive-engine.js';
-import {markerValidity, markerInitial, markerMove, followMarker} from './aim-marker.js';
+import {markerValidity, markerInitial, markerStep} from './aim-marker.js';
 import {canSee} from './vision.js';
 import {bulletPunchTravel} from './moves/bullet-punch.js';
 import {isAirJump, isVaultArc, airKind, airUsable, vaultToFlight, takeOffToLift, applyLift} from './air.js';
@@ -36,7 +36,7 @@ export function locomotionParams(f) {
     : {acceleration: L.acceleration, braking: L.braking, reversal: L.reversal, turnGrip: L.turnGrip, accelCurve: L.accelCurve, brakeCurve: L.brakeCurve, friction: L.friction, residualSpeed: L.residualSpeed, overspeedBraking: f.sprintCarry ? S.braking : L.braking};
 }
 /** Velocidade máxima de caminhada do lutador agora (defesa e exaustão reduzem). */
-export const walkSpeed = f => stat(f, 'speed', f.attributes.speed) * (f.guard ? C.rules.guardSpeed : 1) * (f.exhausted ? C.rules.exhaustedSpeed : 1) * (f.charge ? f.charge.params.moveSlow : 1) * (f.aim?.follow ? 1 - f.aim.params.slow : 1) * (f.aim?.castLeft > 0 ? 1 - f.aim.params.castSlow : 1);   // Bullet Punch: marcando o destino anda a 30%
+export const walkSpeed = f => stat(f, 'speed', f.attributes.speed) * (f.guard ? C.rules.guardSpeed : 1) * (f.exhausted ? C.rules.exhaustedSpeed : 1) * (f.charge ? f.charge.params.moveSlow : 1) * (f.aim?.castLeft > 0 ? 1 - f.aim.params.castSlow : 1);
 /** Custo de stamina de uma ação com o modificador de status (sem status: o próprio custo). */
 // kind opcional ('dodge' | 'tech'): passivas como Technician alteram o custo efetivo de esquivas e recovery (R10);
 // X/tackles e Moves continuam usando o custo base (C.extras.toggles.enablePassives desligado = paridade exata).
@@ -383,7 +383,7 @@ export function updateFighter(f, cmd, fighters, dt, world = null) {
   if (f.knockRecovery > 0) {f.knockRecovery = Math.max(0, f.knockRecovery - dt);if (f.knockRecovery <= 0) f.recoveryFrom = null;f.vaultHeight = 0;f.velocity = vec();f.locomotionVelocity = vec();f.action = null;f.guard = false;f.bufferedTackle = null;f.state = f.brakeLeft > 0 ? 'brake' : 'landing';f.brakeLeft = Math.max(0, (f.brakeLeft ?? 0) - dt);return;}
   const target = fighters.find(o => o.id === cmd.target && o.hp > 0);
   const inputMove = length(cmd.move) > 1 ? normalize(cmd.move) : cmd.move;
-  const move = f.aim && !f.aim.follow && !f.aim.free ? vec() : inputMove;   // mirando com marcador, a direção move o marcador e o corpo fica parado (MV-P29)
+  const move = f.aim && !f.aim.free ? vec() : inputMove;   // mirando com marcador, a direção move o marcador e o corpo fica parado (MV-P29)
   // Mira (ataques sem direção, prévia): o alvo, se houver. Orientação do corpo: ver faceGoal abaixo.
   const desiredHeading = target ? angleOf(sub(target.position, f.position)) : length(move) > 0 ? angleOf(move) : f.facing;
   // Finta: C ou D no startup do tackle cancelam o ataque (só derrapa, sem esquiva); o acerto já feito ou o mergulho impedem.
@@ -698,7 +698,7 @@ let CTX_FIGHTERS = [];
 /** Mundo da partida em curso (definido a cada updateFighter): o apoio real sob o corpo para os Moves que descem do ar (air.js). */
 let CTX_WORLD = null;
 /** @param {any} f @param {any} def @param {number | null} [slot] */
-export function movePermission(f, def, slot = null) {
+export function movePermission(f, def, slot = null, opts = null) {
   if (!def) return {ok: false, reason: 'noMove', detail: {slot}};
   if (hasFlag(f, 'stunned')) return {ok: false, reason: 'stunned'};
   if (hasFlag(f, 'silenced')) return {ok: false, reason: 'silenced'};
@@ -714,7 +714,7 @@ export function movePermission(f, def, slot = null) {
   }
   if (f.stun > 1e-8 && !def.fromGuardStun) return {ok: false, reason: 'guardStun', detail: {left: f.stun}};
   if (def.groundOnly && !airOk && (f.flight || (f.vaultHeight ?? 0) > 1e-8)) return {ok: false, reason: 'noGround'};
-  if (def.needsTarget) {const range = C.world[def.group]?.[def.needsTarget] ?? 0;if (!nearestEligible(f, CTX_FIGHTERS, range)) return {ok: false, reason: 'noTarget', detail: {range}};}
+  if (def.needsTarget && !opts?.skipTarget) {const range = C.world[def.group]?.[def.needsTarget] ?? 0;if (!nearestEligible(f, CTX_FIGHTERS, range)) return {ok: false, reason: 'noTarget', detail: {range}};}
   const cost = costOf(f, def.cost ?? 1);
   if (f.exhausted && cost > 0) return {ok: false, reason: 'exhausted', detail: {value: f.stamina, refill: getFighterMaxStamina(f)}};
   if (f.stamina < cost - 1e-8) return {ok: false, reason: 'stamina', detail: {value: f.stamina, required: cost}};
@@ -813,13 +813,6 @@ function startRiposteStrike(f, action) {
 /** Abre o marcador: nada é cobrado até a confirmação; os parâmetros do grupo são capturados agora (M28.4). */
 function startAim(f, def, slot, fighters, world, lockId) {
   const P = structuredClone(C.world[def.group]), locked = lockId != null ? fighters.find(o => o.id === lockId && o.hp > 0) : null;
-  if (def.aimMode === 'follow') {   // marcador que segue o lutador: o corpo continua andando (a 30%) e uma esquiva em curso segue intacta
-    f.aim = {move: def.id, slot, ticks: 0, params: P, def, follow: true, dir: direction(f.facing), t: 0, pos: {...f.position}, valid: true, reason: null, y: 0, distance: 0};
-    followMarker(f, f.aim, {x: 0, z: 0}, 0, world, fighters);
-    f.guard = false;f.guardSuppressed = false;
-    moveEvent(f, {result: 'aimStart', move: def.id, slot});
-    return;
-  }
   const pos = markerInitial(f, P, locked), v = markerValidity(f, P, pos, world, fighters);
   f.aim = {move: def.id, slot, ticks: 0, params: P, def, pos, valid: v.valid, reason: v.reason, y: v.y, distance: v.distance};
   if (def.castFirst) {   // cronologia C: o cast físico começa JÁ; o corpo continua livre (a 30% durante o cast)
@@ -831,6 +824,16 @@ function startAim(f, def, slot, fighters, world, lockId) {
   f.guard = false;f.guardSuppressed = false;f.sprinting = false;f.sprintCarry = false;f.velocity = vec();f.locomotionVelocity = vec();
   moveEvent(f, {result: 'aimStart', move: def.id, slot});
 }
+/**
+ * Mira de ALCANCE (Moves de alvo único: Quick Attack, Bullet Punch): segurar o botão só mostra o círculo de alcance ao redor do lutador (azul com alvo dentro, vermelho sem alvo);
+ * o corpo segue livre. Soltar executa na hora se houver alvo no alcance; senão não gasta nada e o círculo vermelho pisca (`f.rangeFlash`). Nada é cobrado ao abrir.
+ */
+function startRangeAim(f, def, slot) {
+  const P = structuredClone(C.world[def.group]), range = P[def.needsTarget] ?? 0;
+  f.aim = {move: def.id, slot, ticks: 0, params: P, def, range: true, free: true, rangeValue: range, inRange: !!nearestEligible(f, CTX_FIGHTERS, range), pos: {x: f.position.x, z: f.position.z}, y: f.groundY ?? 0, valid: true, reason: null, distance: 0};
+  f.guard = false;f.guardSuppressed = false;
+  moveEvent(f, {result: 'aimStart', move: def.id, slot, range: true});
+}
 /** Fecha o marcador sem executar nem cobrar. */
 export function cancelAim(f, why) {
   const a = f.aim;if (!a) return;
@@ -841,12 +844,32 @@ export function cancelAim(f, why) {
 function stepAim(f, cmd, inputMove, ctx) {
   const a = f.aim, def = a.def ?? getMove(a.move);   // a definição EFETIVA do momento em que o marcador abriu (M28.4)
   if (!def) {f.aim = null;return;}
+  if (a.range) {   // mira de alcance: acompanha o alvo mais próximo e executa ao soltar
+    a.rangeValue = a.params[def.needsTarget] ?? 0;
+    const tgt = nearestEligible(f, ctx.fighters, a.rangeValue);a.inRange = !!tgt;
+    if (a.ticks > 0 && !cmd.skillHeld?.[a.slot]) {
+      f.aim = null;
+      const perm = movePermission(f, def, a.slot);
+      if (!perm.ok) {
+        moveEvent(f, {result: 'aimCancel', move: def.id, slot: a.slot, reason: perm.reason, detail: perm.detail});
+        if (perm.reason === 'noTarget') f.rangeFlash = {t: C.display?.rangeRing?.flashTime ?? .7, total: C.display?.rangeRing?.flashTime ?? .7, range: a.rangeValue};   // o círculo vermelho pisca: o alvo está fora do alcance
+        if (ctx.diag) report(f, {kind: 'skill', slot: a.slot, move: def.id, result: 'denied', reason: perm.reason, detail: perm.detail});
+        return;
+      }
+      const heading = angleOf(sub(tgt.position, f.position));
+      if (def.tackle && !def.moveCast) startTackleMove(f, def, a.slot, {move: inputMove, dodgeDirection: cmd.dodgeDirection}, heading, true, cmd.guard, ctx.fighters);
+      else startMove(f, def, a.slot, {move: inputMove, dodgeDirection: cmd.dodgeDirection, lock: tgt.id}, heading, true, cmd.guard);
+      if (ctx.diag) report(f, {kind: 'skill', slot: a.slot, move: def.id, result: 'executed', note: 'soltou com alvo no alcance'});
+      return;
+    }
+    a.ticks++;return;
+  }
   if (a.castFirst) {   // Emerging Stone (ES-D103 C): dispara quando o cast terminou E o botão foi solto com destino válido
     a.castLeft = Math.max(0, a.castLeft - ctx.dt);
     const grounded = !f.flight && !((f.vaultHeight ?? 0) > 1e-8);
     if (grounded) a.hadSupport = true;
     else if (a.hadSupport || a.castLeft <= 1e-9) {cancelAim(f, 'support');return;}   // perder o apoio no cast, ou não estar apoiado ao concluí-lo, cancela
-    a.pos = markerMove(a.pos, inputMove, a.params.markerSpeed, ctx.dt);   // fora do alcance: fica onde está, inválido, sem teleporte para o limite
+    a.pos = markerStep(a, inputMove, a.params.markerSpeed, a.params.markerAccel ?? 0, ctx.dt);   // fora do alcance: fica onde está, inválido, sem teleporte para o limite
     const v = markerValidity(f, a.params, a.pos, ctx.world, ctx.fighters);
     a.valid = v.valid;a.reason = v.reason;a.y = v.y;a.distance = v.distance;
     if (a.ticks > 0 && !cmd.skillHeld?.[a.slot]) a.released = true;
@@ -866,12 +889,9 @@ function stepAim(f, cmd, inputMove, ctx) {
     a.ticks++;
     return;
   }
-  if (a.follow) followMarker(f, a, inputMove, ctx.dt, ctx.world, ctx.fighters);
-  else {
-    a.pos = markerMove(a.pos, inputMove, a.params.markerSpeed, ctx.dt);
-    const v = markerValidity(f, a.params, a.pos, ctx.world, ctx.fighters);
-    a.valid = v.valid;a.reason = v.reason;a.y = v.y;a.distance = v.distance;
-  }
+  a.pos = markerStep(a, inputMove, a.params.markerSpeed, a.params.markerAccel ?? 0, ctx.dt);
+  const v = markerValidity(f, a.params, a.pos, ctx.world, ctx.fighters);
+  a.valid = v.valid;a.reason = v.reason;a.y = v.y;a.distance = v.distance;
   if (a.ticks > 0 && !cmd.skillHeld?.[a.slot]) {
     f.aim = null;
     const perm = a.valid ? movePermission(f, def, a.slot) : {ok: false, reason: 'invalidMarker', detail: {why: a.reason}};
@@ -916,7 +936,14 @@ function updateMove(f, action, target, cmd, dt) {
   } else if (m.type === 'walk') {   // anda com o input a (1 − slow) da velocidade normal (Bullet Punch: preparação a 30%); ausente não se move
     const inp = length(cmd.move) > 1 ? normalize(cmd.move) : cmd.move;
     f.velocity = f.absent ? vec() : scale(inp, walkSpeed(f) * (1 - (action.params?.slow ?? .7)));f.locomotionVelocity = {...f.velocity};
-    if (action.travel) bulletPunchTravel(f, action, dt);   // ausente: viaja invisível até o marcador (a câmera segue a posição)
+    if (action.travel) {   // ausente: viaja invisível até o alvo (a câmera segue a posição); quem estiver no caminho barra a corrida e leva o golpe
+      const hit = bulletPunchTravel(f, action, dt, CTX_FIGHTERS);
+      if (hit) {
+        const idx = (def.timeline || []).findIndex(ev => ev.effect === 'bullet-punch-return');
+        if (idx >= 0 && !action.fired.includes(idx)) {action.fired.push(idx);(f.moveFx ??= []).push({index: idx, move: def.id, heading: action.heading, params: action.params ?? null, def, lock: action.lock ?? null, marker: null, arrive: {hitId: hit.id}});}
+        action.travel = null;
+      }
+    }
   } else if (m.type === 'root') f.velocity = vec();
   else {const from = action.from ?? vec(), k = Math.exp(-12 * dt);f.velocity = scale(from, k);action.from = {...f.velocity};}
   if (action.liftStart > 0) f.vaultHeight = action.liftTime > 0 ? action.liftStart * (1 - smoothstep((action.elapsed + dt) / action.liftTime)) : 0;   // desceu do ar (air.js): sem teletransporte ao chão
@@ -1006,9 +1033,10 @@ function pressSkill(f, cmd, move, desiredHeading, hasTarget, diag, fighters = []
     else deny(perm.reason, perm.detail);
     return;
   }
+  if (def?.needsTarget && movePermission(f, def, slot, {skipTarget: true}).ok) {startRangeAim(f, def, slot);if (diag) report(f, {kind: 'skill', slot, move: def.id, result: 'executed', note: 'círculo de alcance aberto (soltar executa)'});return;}
   const perm = movePermission(f, def, slot);
   if (perm.ok && def.aimMode) {startAim(f, def, slot, fighters, world, hasTarget ? cmd.target : null);if (diag) report(f, {kind: 'skill', slot, move: def.id, result: 'executed', note: 'marcador aberto'});return;}
-  if (perm.ok && def.tackle) startTackleMove(f, def, slot, {move, dodgeDirection: cmd.dodgeDirection}, desiredHeading, hasTarget, cmd.guard, fighters);
+  if (perm.ok && def.tackle && !def.moveCast) startTackleMove(f, def, slot, {move, dodgeDirection: cmd.dodgeDirection}, desiredHeading, hasTarget, cmd.guard, fighters);
   else if (perm.ok) startMove(f, def, slot, {move, dodgeDirection: cmd.dodgeDirection, lock: hasTarget ? cmd.target ?? null : null}, desiredHeading, hasTarget, cmd.guard);
   if (diag) report(f, {kind: 'skill', slot, move: def?.id ?? null, result: perm.ok ? 'executed' : 'denied', reason: perm.reason, detail: perm.detail});
 }
@@ -1049,6 +1077,7 @@ function stepCharge(f, cmd, ctx) {
 
 /** Recargas dos movimentos (chamado por passo; a taxa pode vir de status). */
 export function tickCooldowns(f, dt) {
+  if (f.rangeFlash) {f.rangeFlash.t -= dt;if (f.rangeFlash.t <= 0) f.rangeFlash = null;}
   if (f.moveRecovery > 0) f.moveRecovery = Math.max(0, f.moveRecovery - dt);
   if (f.counterStagger > 0) f.counterStagger = Math.max(0, f.counterStagger - dt);
   const cds = f.moveCooldowns;if (!cds) return;const rate = stat(f, 'cooldownRate', 1);

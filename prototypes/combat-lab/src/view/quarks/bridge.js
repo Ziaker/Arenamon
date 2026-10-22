@@ -77,7 +77,7 @@ export class QuarksBridge {
       if (L && this.state.lastLanding[i] !== undefined && L.n !== this.state.lastLanding[i]) {
         const impact = L.vertical;
         if (impact >= C.vfx.ground.minImpact) {
-          this.fx.emitBurst('landing', {x: L.x, y: 0, z: L.z}, {power: Math.min(2, impact / 7)});
+          this.fx.emitBurst('landing', {x: L.x, y: L.y ?? 0, z: L.z}, {power: Math.min(2, impact / 7)});
         }
       }
       this.state.lastLanding[i] = L?.n ?? 0;

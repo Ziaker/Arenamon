@@ -163,15 +163,11 @@ export const CALIBRATION_BASE = [
   ["world.riposte.cast", 0.65, 0.65],   // fora de changedFromLabDefaults do export (ajuste do usuário no laboratório)
   ["world.riposte.windowStart", 0, 0.13],   // fora de changedFromLabDefaults do export (ajuste do usuário no laboratório)
   ["world.riposte.windowEnd", 0.59, 0.3],   // fora de changedFromLabDefaults do export (ajuste do usuário no laboratório)
-  ["world.riposte.knockbackH", 16.8, 3],   // fora de changedFromLabDefaults do export (ajuste do usuário no laboratório)
-  ["world.riposte.knockbackV", 6.6, 0],   // fora de changedFromLabDefaults do export (ajuste do usuário no laboratório)
+  ["world.riposte.knockbackH", 16.8, 9],   // fora de changedFromLabDefaults do export (ajuste do usuário no laboratório)
+  ["world.riposte.knockbackV", 6.6, 2.5],   // fora de changedFromLabDefaults do export (ajuste do usuário no laboratório)
   ["world.riposte.strikeRange", 3.8, 1.6],   // fora de changedFromLabDefaults do export (ajuste do usuário no laboratório)
   ["world.bulletPunch.cast", 0.2, 0.75],   // fora de changedFromLabDefaults do export (ajuste do usuário no laboratório)
   ["world.bulletPunch.vanish", 0.2, 0.2],   // fora de changedFromLabDefaults do export (ajuste do usuário no laboratório)
-  ["world.bulletPunch.searchRadius", 8.5, 5],   // fora de changedFromLabDefaults do export (ajuste do usuário no laboratório)
-  ["world.bulletPunch.startDistance", 3, 3],   // fora de changedFromLabDefaults do export (ajuste do usuário no laboratório)
-  ["world.bulletPunch.maxDistance", 10, 10],   // fora de changedFromLabDefaults do export (ajuste do usuário no laboratório)
-  ["world.bulletPunch.growTime", 1.1, 2],   // fora de changedFromLabDefaults do export (ajuste do usuário no laboratório)
   // map
   ["map.jumpHeight", 2.4, 2],
   ["map.jumpGravityUp", 17.5, 17.5],
@@ -196,7 +192,7 @@ export const CALIBRATION_BASE = [
   ["extras.visual.squashStretch.squashIntensity", 0.17, 0.15],
   ["extras.visual.squashStretch.stretchIntensity", 0.31, 0.2],
   ["world.riposte.cost", 1.55, 0.8],
-  ["world.bulletPunch.reach", 6, 3],
+  ["world.bulletPunch.reach", 6, 6],
   ["world.bulletPunch.impactMult", 2.6, 1],
   ["map.platformCount", 5, 2],
   ["map.jumpMaxFallSpeed", 15.14, 12],
