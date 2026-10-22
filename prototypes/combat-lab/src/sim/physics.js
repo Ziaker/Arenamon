@@ -81,7 +81,10 @@ export function groundSurface(pos, world, currentY = null) {
   }
   return best;
 }
-/** Altura do piso/plataforma na posição XZ (ver `groundSurface`). */
+/**
+ * Altura do piso/plataforma na posição XZ (ver `groundSurface`).
+ * @param {any} pos @param {any} world @param {number | null} [currentY]
+ */
 export function getGroundHeight(pos, world, currentY = null) {
   return groundSurface(pos, world, currentY).y;
 }

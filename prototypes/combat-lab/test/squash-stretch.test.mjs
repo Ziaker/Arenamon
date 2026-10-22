@@ -1,14 +1,14 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import * as T from 'three';
-import {C, resetConfig} from '../src/sim/config.js';
+import {C, factoryDefaults, resetConfig} from '../src/sim/config.js';   // caracteriza a mecânica nos valores de FÁBRICA; a base de calibração é coberta por calibration-base.test.mjs
 import {Character} from '../src/view/characters.js';
 import {createSquashState, updateSquash} from '../src/view/squash-stretch.js';
 import {overhaulMeta} from '../src/ui/overhaul-meta.js';
 import {mechanicsOf, levelOf} from '../src/ui/organize.js';
 
 const near = (a, b, e = 1e-8) => assert.ok(Math.abs(a - b) < e, `${a} != ${b}`);
-resetConfig();
+resetConfig(factoryDefaults());
 const o = C.extras.visual.squashStretch, motion = C.actions.tackle;
 const f = {hp: 100, state: 'tackle', action: {kind: 'tackle', elapsed: .03, heading: Math.PI / 2, pl: 1, hits: new Set()}, position: {x: 0, z: 0}, visualFacing: 0};
 const s = createSquashState();
@@ -34,7 +34,7 @@ for (const window of [0, 150]) {
   updateSquash(s, f, .01, o, {...motion, duration: .05});assert.ok(Number.isFinite(s.z) && s.z > 0);
 }
 o.enableSquashStretch = 0;updateSquash(s, f, 0, o, motion);assert.equal(s.z, 1);
-resetConfig();
+resetConfig(factoryDefaults());
 
 // Modelo com pés abaixo da origem: verifica a matriz mundial e o apoio.
 const model = new T.Group();const mesh = new T.Mesh(new T.BoxGeometry(1, 2, 1), new T.MeshBasicMaterial());model.add(mesh);

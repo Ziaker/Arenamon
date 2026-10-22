@@ -14,7 +14,7 @@ import {readFileSync} from 'node:fs';
 import * as T from 'three';
 // O fixture do Studio é um módulo ES escrito para o navegador: carregado como texto, como em animation.test.mjs.
 const {syntheticRig} = await import('data:text/javascript,' + encodeURIComponent(readFileSync(new URL('../../studio/test/fixture.js', import.meta.url), 'utf8')));
-import {C, defaults, resetConfig} from '../src/sim/config.js';
+import {C, factoryDefaults as defaults, resetConfig} from '../src/sim/config.js';   // caracteriza a mecânica nos valores de FÁBRICA; a base de calibração é coberta por calibration-base.test.mjs
 import {Game} from '../src/sim/game.js';
 import {emptyCommand} from '../src/sim/entity.js';
 import {vec} from '../src/sim/math.js';

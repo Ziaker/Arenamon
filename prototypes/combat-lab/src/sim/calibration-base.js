@@ -209,7 +209,7 @@ export const CALIBRATION_BASE = [
 /** Aplica a base de calibração a um objeto de configuração recém-criado (muta e devolve). */
 export function applyCalibrationBase(/** @type {any} */ cfg) {
   for (const [path, value] of CALIBRATION_BASE) {
-    const keys = path.split('.'), last = keys.pop();
+    const keys = path.split('.'), last = /** @type {string} */ (keys.pop());
     let o = cfg;
     for (const k of keys) {
       if (o == null || typeof o !== 'object') throw new Error('calibração: caminho inexistente ' + path);

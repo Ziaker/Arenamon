@@ -1,0 +1,86 @@
+{
+  "report": [
+    {
+      "label": "os dois botões de IA estão visíveis na barra superior (fora do menu Ferramentas)",
+      "ok": true,
+      "detail": "{\"bo\":{\"x\":857.515625,\"y\":10.5,\"w\":153.328125,\"h\":30,\"visible\":true,\"inPop\":false},\"bp\":{\"x\":709.296875,\"y\":10.5,\"w\":146.21875,\"h\":30,\"visible\":true,\"inPop\":false}}"
+    },
+    {
+      "label": "ficam ao lado da busca (mesma linha, perto)",
+      "ok": true,
+      "detail": "busca x=603, IA jogador x=709, IA oponente x=858"
+    },
+    {
+      "label": "clicar liga/desliga a IA do oponente e a do jogador e o estado ON/OFF acompanha",
+      "ok": true,
+      "detail": "{\"ai0\":{\"e\":1,\"p\":0},\"ai1\":{\"e\":0,\"p\":1,\"ce\":\"false\",\"cp\":\"true\"}}"
+    },
+    {
+      "label": "clicar de novo volta ao estado anterior",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "a gaveta Ações mostra «Término do movimento trava outras ações pela duração da animação»",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "marcar o atalho liga a mesma opção de Personagens › avançado",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "desmarcar desliga as duas",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "passar o mouse no seletor do Move mostra descrição e uso (custo, recarga, botão)",
+      "ok": true,
+      "detail": "RiposteNormal · Status + Melee. Toque e seja atingido entre 0,13 e 0,30 s: o golpe é anulado e você contra-ataca na hora. Fora do tempo, fica exposto. Custo 1.55 de stamina · recarga 8.0 s · botão A."
+    },
+    {
+      "label": "há uma linha de descrição visível sob cada Move escolhido",
+      "ok": true,
+      "detail": "2"
+    },
+    {
+      "label": "as opções da lista têm title com a descrição",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "o Riposte tem os 3 controles do efeito visual (ligado, intensidade, tamanho)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "apertar o botão do Riposte inicia a postura e o efeito visual dela existe",
+      "ok": true,
+      "detail": "{\"action\":\"riposte\",\"fx\":true,\"stances\":1}"
+    },
+    {
+      "label": "os parâmetros novos existem no ajustador (variante D, pouso do pulo, impacto em paredes, tremor de parede)",
+      "ok": true,
+      "detail": "{\"sections\":[\"vfx-master\",\"vfx-hit\",\"vfx-dodge\",\"vfx-sprint\",\"vfx-block\",\"vfx-perfect\",\"vfx-ground\",\"vfx-jumpLanding\",\"vfx-wallImpact\",\"vfx-clash\",\"vfx-exhaust\",\"vfx-regen\",\"vfx-rock\",\"vfx-barrier\",\"vfx-laser\"],\"hasWall\":true,\"hasLand\":true,\"hasD\":true,\"shake\":true}"
+    },
+    {
+      "label": "os blocos «Pouso do pulo regular» e «Impacto vertical…» aparecem em Visualizar",
+      "ok": true,
+      "detail": "vfx-master,vfx-hit,vfx-dodge,vfx-sprint,vfx-block,vfx-perfect,vfx-ground,vfx-jumpLanding,vfx-wallImpact,vfx-clash,vfx-exhaust,vfx-regen,vfx-rock,vfx-barrier,vfx-laser"
+    },
+    {
+      "label": "os efeitos novos dispararam de verdade na arena",
+      "ok": true,
+      "detail": "{\"regen\":27,\"hit\":2,\"jumpLanding\":1,\"wallImpact\":1}"
+    },
+    {
+      "label": "sem erros de página e sem rede externa",
+      "ok": true,
+      "detail": ""
+    }
+  ],
+  "failures": 0,
+  "errors": []
+}

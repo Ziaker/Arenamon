@@ -97,8 +97,9 @@ export const clearMoves = () => REGISTRY.clear();
  * Adversário ELEGÍVEL mais próximo a até `range` m (distância horizontal): vivo, no chão (o Tackle não alcança quem está em voo) e com diferença de altura
  * que o corpo alcança. Desempate determinístico pelo id. Usado por Moves com aquisição automática de alvo (Quick Attack).
  */
+/** @returns {any} */
 export function nearestEligible(f, fighters, range) {
-  let best = null, bd = Infinity;
+  /** @type {any} */ let best = null, bd = Infinity;
   const bodyH = C.extras?.visual?.bodyHeight ?? 1.2, fy = altitudeOf(f);
   for (const o of fighters) {
     if (o.id === f.id || o.hp <= 0 || o.absent || (o.flight && !o.wallSplat)) continue;
