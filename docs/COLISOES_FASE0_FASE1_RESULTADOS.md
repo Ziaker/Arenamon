@@ -1,6 +1,6 @@
 # Overhaul de colisões — Fase 0 (auditoria) e Fase 1 (penetrações): resultados
 
-> **Estado:** Fases 1 e 2 implementadas, testadas e revisadas (§4–§8); Fase 3 em andamento; Fases 4–7 pendentes. Este documento registra **evidências medidas**, não intenções. Cada item diz se foi reproduzido, corrigido e por qual teste.
+> **Estado:** Fases 1, 2 e 3 implementadas, testadas e revisadas (§4–§10); Fases 4–7 pendentes. Este documento registra **evidências medidas**, não intenções. Cada item diz se foi reproduzido, corrigido e por qual teste.
 > **Base:** commit `4634ca2` (linha atual do jogo, v1.15.5). **Branch de trabalho:** `fix/colisoes-overhaul` (worktree `.worktrees/colisoes-overhaul`). **PR de referência:** [#100](https://github.com/Ziaker/Arenamon/pull/100) (branch `fix/collision-overhaul-stage1`, criada sobre `main@68eda6c`, não integrada).
 > **Escopo e decisões:** nenhuma regra aprovada foi alterada (ver `docs/MAPA_COMBAT_LAB_DECISOES_RODADAS.md`). Documento-mestre do plano: `docs/OVERHAUL_COLISOES_AMBIENTE.md` (PR #100).
 
@@ -129,3 +129,32 @@ O responsável aprovou remover a componente penetrante **na locomoção normal**
 ## 9. Skills (evidência)
 
 Invocadas pela ferramenta Skill nesta tarefa: `systematic-debugging`, `writing-plans`, `test-driven-development`, `requesting-code-review` (duas revisões por subagente somente leitura), `receiving-code-review`. Ainda não: `verification-before-completion`, `finishing-a-development-branch`, `subagent-driven-development`, `executing-plans`.
+
+## 10. Fase 3 — detecção contínua (CCD) de projéteis
+
+**Reprodução (4634ca2), fuzz determinístico:**
+- Barreiras com espessura efetiva `2·(meia-espessura + raio)` < `test.contactStep` (0,1 m): **32 de 222** projéteis rápidos atravessaram (com espessura ≥ 0,1 m: 0 de 378). A causa é matemática: amostrar só a posição final de cada subpasso de 0,1 m pula sólidos mais finos que o passo.
+- Duas barreiras a 6 cm: em **72 de 221 velocidades** (40–260 m/s) o dano ia para a barreira de trás (ou nenhuma), porque quem decidia era a ordem da lista, não a ordem no caminho.
+- Lutadores lançados até 60 m/s contra parede fina de 0,3 m: **0 de 400** atravessaram (refutada a suspeita de CCD para corpos: os subpassos bastam para eles).
+
+**Correção:** `src/sim/ccd.js` (funções puras: `sweepCircle`, `sweepRoundedBox` = soma de Minkowski exata com cantos arredondados, `firstContact` por menor tempo de impacto; empate → menor índice) e `world.js › stepProjectile`: antes da checagem de sobreposição o projétil é reposicionado no **primeiro contato** da última perna do subpasso, confirmado pelo teste exato `circleTouches`. Dano, eventos, `onHit`, pierce e `hitLog` continuam no laço antigo (nenhum acerto novo é criado, logo não há dano duplicado). Bloqueador **antes** do refletor no caminho (por tempo de impacto) é atingido primeiro; empate, o refletor vale primeiro.
+
+**Achados da revisão independente corrigidos:** (1) o retângulo expandido rejeitava toques nas pontas e reabria o tunelamento fino → soma de Minkowski exata; (2) a corda varrida após reflexão no mesmo subpasso era a errada (acerto fantasma) → varre a última perna; (3) refletor × bloqueador ordenados por tempo de impacto.
+
+**Resultados medidos:**
+
+| Medida | 4634ca2 | Fase 3 |
+| --- | --- | --- |
+| Projéteis rápidos × barreira fina (222 casos de espessura < 0,1 m) | 32 atravessam | 0 |
+| Duas barreiras a 6 cm (221 velocidades) | 72 erradas | 0 |
+| `collision-ccd.test.mjs` (29 verificações; 14 eram vermelhas antes da correção) | — | 29/29 |
+| `ccd.test.mjs` (11 verificações, núcleo puro) | — | 11/11 |
+| Fuzz diferencial, 1500 cenários mistos (barreira, parede, pilar, caixa, destrutível, refletor), verdade = passo de 0,002 m do código antigo | 318 divergem no passo padrão | 307 divergem; **0 piores, 11 melhores**; no passo fino o código novo é idêntico ao antigo em 1500/1500 |
+
+As 307 divergências restantes são do mesmo tipo nos dois códigos (posição final de projéteis que ricocheteiam repetidamente na borda e contagem de reflexões dependente do passo); não são tunelamento.
+
+**Mudança de teste feita de propósito:** em `moves-contract.test.mjs` a linha «`test.contactStep = 3` AFETA projétil rápido × barreira fina» documentava o próprio defeito do tunelamento; passou a «não afeta», como o cabeçalho do arquivo prevê quando o comportamento muda de propósito. A revisão independente julgou a edição legítima.
+
+**Efeito colateral aceito e a verificar no jogo:** a posição de `onHit` (explosões) passa a ser o ponto de toque na face, em vez da amostra já penetrada (até 10 cm, às vezes do outro lado de uma barreira fina). A proteção contra explosão por barreira pode ficar mais forte quando antes a explosão nascia atrás dela.
+
+**Limitações:** lutadores continuam sem varredura contínua (não precisam, ver acima); a janela de 1 µm do reposicionamento deixa a ordem da lista decidir só entre barreiras praticamente coplanares (< 1 µm).

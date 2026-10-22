@@ -39,7 +39,9 @@ const CASES = [
   ['projétil: lançamento ligado/desligado', 'extras.toggles.enableLaunch', 0, PROJ, null, false, true],
   ['projétil × defesa: multiplicador de dano da defesa', 'extras.combat.guardDamageMultiplier', .1, PROJ, null, true, true],
   ['projétil × defesa: guard stun', 'rules.guardStun', 1, PROJ, null, true, true],
-  ['projétil rápido × barreira fina: passo de contato (tunelamento)', 'test.contactStep', 3, FAST, BARR, false, true],
+  // Mudou DE PROPÓSITO na Fase 3 do overhaul de colisões (CCD): o primeiro contato é resolvido por tempo de impacto, então o resultado
+  // deixou de depender do passo de contato — antes, contactStep = 3 fazia o projétil rápido atravessar a barreira fina (o defeito corrigido).
+  ['projétil rápido × barreira fina: passo de contato (antes: tunelamento; agora CCD)', 'test.contactStep', 3, FAST, BARR, false, false],
   ['área: meia-largura do corpo', 'test.halfExtent', 1.0, AREAM, null, false, true],
   ['área: altura do corpo (sobreposição vertical)', 'extras.visual.bodyHeight', 1.9, AREAH, null, false, true],
   ['área: lançamento ligado/desligado', 'extras.toggles.enableLaunch', 0, AREA, null, false, true],
