@@ -388,7 +388,9 @@ export function stepPhysics(fighters, dt, world = null) {
       const curY = f.groundY ?? 0;
       const targetGround = getGroundHeight(f.position, world, curY);
       f.groundY ??= 0;
-      if (f.groundY > targetGround + 0.1) {
+      if (f.absent) {   // ausente (Bullet Punch): sem corpo, não cai da borda; só acompanha a altura do apoio sob a viagem invisível
+        f.groundY = targetGround;f.coyoteLeft = 0;
+      } else if (f.groundY > targetGround + 0.1) {
         // Entra em queda balística mantendo a velocidade horizontal (R7.10). Queda natural de borda:
         // recebe coyote time (salto logo após a borda) e participa do pacote de sensação do salto.
         // Nunca acontece após knockback/lançamento (esses já entram em voo pelo launch()).

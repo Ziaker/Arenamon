@@ -269,6 +269,7 @@ function startNormalJump(f, move, diag, fromAir = false) {
 }
 export function updateFighter(f, cmd, fighters, dt, world = null) {
   CTX_FIGHTERS = fighters;
+  if (f.absent && !(f.action?.kind === 'move' && f.action.travel)) f.absent = false;   // rede de segurança: a ausência só existe durante a viagem do Bullet Punch; se a ação sumir (cancelada, lançamento, queda), o lutador reaparece em vez de ficar invisível e intangível para sempre
   if (cmd.target != null && fighters.find(o => o.id === cmd.target)?.absent) cmd = {...cmd, target: null, locked: false};   // ausente (Bullet Punch) não pode ser selecionado como alvo
   if (cmd.target != null && hasFlag(f, 'blind')) {   // cegueira: lock-on só em quem o cegado enxerga (10 m, sem parede bloqueando por completo); senão desliga
     const t = fighters.find(o => o.id === cmd.target);

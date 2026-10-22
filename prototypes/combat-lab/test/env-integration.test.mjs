@@ -61,6 +61,7 @@ for (const [label, first] of [['Tackle', cmd({tackle: true, move: vec(0, 1)})], 
   }
 }
 check('Tackle em destrutível: o dano é aplicado UMA vez por ação (não repete enquanto o lutador continua encostado)', () => {
+  C.actions.tackle.distance = 2.5;   // base v8 (2ª exportação): Tackle de 1,55 m não alcança a face a 3,2 m do ponto de partida; o teste trata do dano único, não do alcance
   const r = run('destrutível', cmd({tackle: true, move: vec(0, 1)}), cmd({move: vec(0, 1)}), 600);
   const d = r.g.mapState.destructibles[0], dmg = C.rules.tackleDamage ?? 10;
   assert.ok(Math.abs((d.maxHp - d.hp) - dmg) < 1e-6, `dano ${d.maxHp - d.hp} (esperado ${dmg} uma vez; estado ${d.state})`);

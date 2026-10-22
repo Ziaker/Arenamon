@@ -111,8 +111,8 @@ ok('reflect.minCharge: define o tempo mínimo segurando para a barreira nascer')
   const sp = kbOf({knockbackSpeedFactor: 1}, 480).map(k => k.horizontal);
   assert.ok(Math.max(...sp) - Math.min(...sp) > .01, 'empurrão varia com a velocidade sorteada da pedra');
   assert.equal(new Set(kbOf({}, 480).map(k => k.horizontal.toFixed(6))).size, 1, 'sem o fator, todas as pedras empurram igual');
-  assert.equal(MOVES_PARAMS.flatMap(g => g[1]).find(r => r[1] === 'knockbackPerStone')[5], 10);
-  assert.equal(MOVES_PARAMS.flatMap(g => g[1]).find(r => r[1] === 'knockbackCap')[5], 10);
+  assert.equal(MOVES_PARAMS.flatMap(g => g[1]).find(r => r[1] === 'knockbackPerStone')[5], 20);   // limite máximo dos sliders de Moves ×2 (pedido de 22/10/2026)
+  assert.equal(MOVES_PARAMS.flatMap(g => g[1]).find(r => r[1] === 'knockbackCap')[5], 20);
 }
 ok('psyshock: limites de knockback até 10 e novos controles (vertical, bônus por PL, velocidade da pedra) alteram o empurrão real');
 

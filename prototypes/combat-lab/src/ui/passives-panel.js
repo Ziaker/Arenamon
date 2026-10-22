@@ -29,9 +29,11 @@ export function createPassivesPanel({getCharacterNames, onChange = null}) {
   root.id = 'passives-panel';
   const SLOT_LABELS = ['Azul', 'Vermelho'];
 
+  /** Descrição e uso da passiva (gatilho + efeito) para dicas e linha de apoio. */
+  const tipOf = p => `Gatilho: ${p.gatilho} Efeito: ${p.efeito}`;
   const optionsFor = species => {
     const opts = [...exclusivePassives(species), ...genericPassives()];
-    return opts.map(p => `<option value="${p.id}">${escape(p.nome)}${p.species ? ` <i>(${escape(p.species)})</i>` : ''}</option>`).join('');
+    return opts.map(p => `<option value="${p.id}" title="${escape(tipOf(p))}">${escape(p.nome)}${p.species ? ` <i>(${escape(p.species)})</i>` : ''}</option>`).join('');
   };
   const validate = (slot) => validateLoadout(state.loadouts[slot], state.identity[slot]);
 
@@ -50,7 +52,8 @@ export function createPassivesPanel({getCharacterNames, onChange = null}) {
       const selects = [];
       for (let i = 0; i < PASSIVE_SLOTS; i++) {
         const val = chosen[i] ?? '';
-        selects.push(`<label class="field">Passiva ${i + 1}<select data-slot="${slot}" data-idx="${i}">
+        const cur = PASSIVE_BY_ID[val];
+        selects.push(`<label class="field">Passiva ${i + 1}<select data-slot="${slot}" data-idx="${i}" ${cur ? `data-tip-title="${escape(cur.nome)}" data-tip="${escape(tipOf(cur))}"` : 'data-tip-title="Habilidade passiva" data-tip="Escolha uma habilidade: passe o mouse para ver o gatilho e o efeito."'}>
           <option value="">— nenhuma —</option>
           <optgroup label="${species ? `Exclusivas de ${escape(species)}` : 'Sem personagem (só genéricas)'}">${optionsFor(species)}</optgroup>
         </select></label>`);
@@ -59,6 +62,7 @@ export function createPassivesPanel({getCharacterNames, onChange = null}) {
       blocks.push(`<div class="passives-slot" data-slot="${slot}">
         <h3>${SLOT_LABELS[slot]} <span class="muted">${species ? `· espécie: <b>${escape(species)}</b>` : '· sem personagem (genéricas apenas)'}</span></h3>
         <div class="row">${selects.join('')}</div>
+        ${chosen.map(id => PASSIVE_BY_ID[id]).filter(Boolean).map(p => `<p class="tip-line"><b>${escape(p.nome)}</b> — ${escape(tipOf(p))}</p>`).join('')}
         <p class="${errors.length ? 'warn' : 'ok'}" data-errors>${errors.length ? escape(errors.join(' · ')) : '✓ loadout válido'}</p>
       </div>`);
     }

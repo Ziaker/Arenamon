@@ -40,6 +40,7 @@ import {createTrainingPanel} from './ui/training-panel.js';
 import {createMovesPanel} from './ui/moves-panel.js';
 import {MovesHud} from './ui/moves-hud.js';
 import {createPassivesPanel} from './ui/passives-panel.js';
+import {installHoverTip} from './ui/hover-tip.js';
 import {createQuickMenu} from './ui/menu-quick.js';
 import {PassivesHud} from './ui/passives-hud.js';
 import {PASSIVE_BY_ID} from './sim/passives.js';
@@ -462,15 +463,26 @@ for (const [id, key, out, fmt] of ANIM_SLIDERS) {
 }
 function refreshAnimSliders() {for (const [id, key, out, fmt] of ANIM_SLIDERS) {if (document.activeElement !== $(id)) $(id).value = String(C.display.animation[key]);$(out).textContent = fmt(C.display.animation[key]);}}
 tuning.onChange(refreshAnimSliders);
-$('char-sync').onchange = e => {Character.options.syncRules = e.target.checked;syncRuleDurations();};
+$('char-sync').onchange = e => {Character.options.syncRules = e.target.checked;$('act-sync').checked = e.target.checked;syncRuleDurations();};
+// Atalho visível no topo da gaveta Ações: é a MESMA opção «Usar duração dos clipes nas regras» (Personagens › avançado).
+$('act-sync').onchange = e => {$('char-sync').checked = e.target.checked;$('char-sync').dispatchEvent(new Event('change'));};
 $('char-sync-source').onchange = () => syncRuleDurations();
 /** Personagem cujas animações definem as regras (o escolhido; se não houver, o outro). */
 function ruleSource() {const id = Number($('char-sync-source').value);return ui.characters[id] || ui.characters[1 - id];}
+/** Moves do lutador de referência cujo cast pode vir do clipe (sem marcador, sem carga, sem duração composta): [{slot, cast: caminho do slider, name}]. */
+function moveCastTargets(ch) {
+  const src = Number($('char-sync-source').value), id = ui.characters[src] === ch ? src : 1 - src, f = game.fighters[id], out = [];
+  for (let slot = 0; slot < C.world.slots; slot++) {
+    const def = Moves.getMove(f?.loadout?.[slot]);
+    if (def?.group && !def.durationKeys && !def.charge && !def.aimMode && typeof C.world[def.group]?.cast === 'number' && tuning.byPath.has(`world.${def.group}.cast`)) out.push({slot, cast: `world.${def.group}.cast`, name: def.name ?? def.id});
+  }
+  return out;
+}
 /** Durações das ações vindas das animações (duração do clip ÷ velocidade), aplicadas às regras com desfazer. */
 function syncRuleDurations() {
   if (Character.options.syncRules) {
     const ch = ruleSource();
-    const changes = ch ? Object.entries(ch.ruleDurations()).map(([path, {value}]) => {const m = tuning.byPath.get(path);return [path, Math.max(m.min, Math.min(m.max, value))];}) : [];
+    const changes = ch ? Object.entries(ch.ruleDurations(moveCastTargets(ch))).map(([path, {value}]) => {const m = tuning.byPath.get(path);return [path, Math.max(m.min, Math.min(m.max, value))];}) : [];
     if (changes.length) tuning.commit(changes, 'Durações das animações');
   }
   renderRuleDurations();renderStudioEvents();
@@ -478,7 +490,7 @@ function syncRuleDurations() {
 function renderRuleDurations() {
   const ch = ruleSource(), box = $('char-durations');
   if (!ch) {box.innerHTML = '<p class="hint">Carregue um personagem para usar as durações das animações.</p>';return;}
-  const rows = Object.entries(ch.ruleDurations());
+  const rows = Object.entries(ch.ruleDurations(moveCastTargets(ch)));
   box.innerHTML = rows.length ? `<table><tr><th>Regra</th><th>Animação</th><th>Clip ÷ velocidade</th><th>No jogo agora</th></tr>${rows.map(([path, {value, from}]) => {const m = tuning.byPath.get(path);return `<tr><td>${escape(m.label)}</td><td>${escape(from)}</td><td>${value.toFixed(3)} s</td><td>${m.fmt(pathGet(C, path))}</td></tr>`;}).join('')}</table>${Character.options.syncRules ? '<p class="ok">Sincronizado: mudar a animação ou a velocidade atualiza as regras (Ctrl+Z desfaz).</p>' : ''}` : '<p class="hint">Nenhuma ação com duração definida tem animação própria (tackle, dodge_forward, blocked, guard_impact, land/recover).</p>';
 }
 function renderStudioEvents() {
@@ -668,6 +680,7 @@ const movesPanel = createMovesPanel({$, game, download, tuning, view, ui});
 const actionsDrawer = createActionsDrawer({$, tuning, ui, renderMoves: () => movesPanel.render(), renderAiMoves: c => movesPanel.renderAiParams(c), onCharactersChanged: () => {syncCharacterCombatWindows();syncRuleDurations();dock.invalidate();}});
 const movesHud = new MovesHud($('moves-hud'));
 // Passivas: painel de seleção (Partida), HUD da arena e VFX de ativação (§16/§17).
+installHoverTip();
 const passivesPanel = createPassivesPanel({getCharacterNames: () => [ui.characters[0]?.source?.name ?? null, ui.characters[1]?.source?.name ?? null]});
 $('passives-card')?.append(passivesPanel.root);
 // Seleção Rápida do menu: dois blocos (personagem/moves/abilities + prévia 3D). Workspace anexado no boot.
@@ -1035,7 +1048,7 @@ function applyDocUi(doc) {
     // Workspaces da fase 1 guardavam as transições aqui; agora são parâmetros do ajustador (restaurados com os ajustes).
     if (!doc.tuning?.values || !('display.animation.fade' in doc.tuning.values)) for (const key of ['fade', 'actionFade', 'locomotionHold', 'speed']) if (typeof a[key] === 'number') C.display.animation[key] = a[key];
     refreshAnimSliders();
-    $('char-sync').checked = !!a.syncRules;Character.options.syncRules = !!a.syncRules;
+    $('char-sync').checked = !!a.syncRules;$('act-sync').checked = !!a.syncRules;Character.options.syncRules = !!a.syncRules;
   }
   if (u.overlays) for (const [k, v] of Object.entries(u.overlays)) if (k in view.overlays) {view.overlays[k] = !!v;const box = document.querySelector(`[data-overlay="${k}"]`);if (box) box.checked = !!v;}
   if (u.timeScale) {$('rp-speed').value = u.timeScale;clock.timeScale = Number(u.timeScale) || 1;}

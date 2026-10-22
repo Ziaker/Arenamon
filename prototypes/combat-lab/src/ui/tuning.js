@@ -34,6 +34,10 @@ const RADIANS = ['steerLimit', 'steerRate', 'guardTurn', 'guardAcceleration', 't
 const INTEGERS = ['staminaMax', 'hp', 'attack', 'defense', 'attackReference', 'speedReference', 'defenseMedian', 'contactProjectionPasses', 'impactCount', 'clashCount', 'landingCount', 'evadeCycle', 'evadeCycleIndex', 'noticeFontSize', 'clashNoticeFontSize', 'debugFontSize', 'footerFontSize'];
 const toggled = key => key.startsWith('enable') || ['fxVisible', 'hudVisible', 'debugVisible', 'showHitboxes', 'showAttackVectors', 'jumpImprovements', 'footstoolEnabled', 'footstoolVault'].includes(key);
 const PROFILE_LABEL = ['Equilibrado', 'Ágil', 'Resistente'];
+/** Sliders de COMBATE (regras, ações, Moves, atributos, locomoção, passivas, física, salto/footstool): o limite máximo vale o DOBRO do original (pedido de 22/10/2026: «limite muito pequeno»). Chaves liga/desliga e seletores ficam como estão. */
+export const COMBAT_PATH = /^(rules|actions|world|profiles|locomotion|passivas).|^extras.combat.|^map.(jump|footstool)/;
+export const COMBAT_RANGE_FACTOR = 2;
+export const widenCombatRange = (path, r) => COMBAT_PATH.test(path) && !r.kind && !(r.step >= 1 && r.max <= 3) ? {...r, max: r.max * COMBAT_RANGE_FACTOR} : r;
 
 /** Faixa, passo e formato de cada parâmetro (regras do ajustador v6). */
 function range(key, value, path) {
@@ -213,7 +217,7 @@ export function createTuning({apply}) {
     const root = pathGet(C, rootPath);
     for (const key of subset ?? Object.keys(root)) {
       const v = root[key];if (typeof v !== 'number') continue;
-      const path = rootPath + '.' + key, am = overhaulMeta(path) || actionMeta(path), r = am ? am.range : range(key, v, path);
+      const path = rootPath + '.' + key, am = overhaulMeta(path) || actionMeta(path), r = {...widenCombatRange(path, am ? am.range : range(key, v, path))};
       r.min = Math.max(r.min, SAFE_MIN[path] ?? -Infinity);r.min = Math.min(r.min, v);r.max = Math.max(r.max, v);
       const label = am ? am.label : path.startsWith('extras.colors.') ? (COLOR_NAMES[key.slice(0, -1)] || key) + ' · ' + ({R: 'Vermelho', G: 'Verde', B: 'Azul'})[key.slice(-1)] : path === 'extras.bindings.dodge' ? 'Tecla de esquiva (C)' : NAMES[key] || key;
       manifest.push({section, path, key, label, help: am ? am.help : help(path, label), initial: pathGet(base, path), official: officialValue(path), ...r});

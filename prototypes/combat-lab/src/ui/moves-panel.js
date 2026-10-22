@@ -2,7 +2,7 @@
 // na partida e rodar os cenários técnicos repetíveis (M28.3, M28.8). Valores marcados “provisório” são pontos de partida (M30.10), não decisões.
 import {C, defaults} from '../sim/config.js';
 import {spawn} from '../sim/world.js';
-import {listMoves} from '../sim/moves.js';
+import {listMoves, getMove} from '../sim/moves.js';
 import {runMoveScenarios} from '../sim/scenarios-moves.js';
 /** Escapa texto para HTML (local: importar o ajustador arrastaria o config.ts do jogo, que só o esbuild lê). */
 const escape = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
@@ -185,6 +185,9 @@ const PARAMS = [
     ['riposte', 'knockbackH', 'Knockback horizontal do contra-golpe', 'Empurrão em quem foi contra-atacado (proposta: 3 m/s).', 0, 20, .1, ms, false],
     ['riposte', 'knockbackV', 'Knockback vertical do contra-golpe', 'Com valor acima de zero o contra-golpe lança o alvo (proposta: 0).', 0, 20, .1, ms, false],
     ['riposte', 'strikeRange', 'Alcance do contra-golpe', 'Distância percorrida pelo golpe rumo a quem atacou; não definida no documento (MV-P25).', .3, 6, .1, m, false],
+    ['riposte', 'fxOn', 'Efeito visual: ligado', 'Liga/desliga o visual da postura (disco de aço e lâmina de guarda, dourados dentro da janela) e do contra-golpe (clarão, anel e corte em X). Só aparência.', 0, 1, 1, yesno, false],
+    ['riposte', 'fxIntensity', 'Efeito visual: intensidade', 'Brilho e opacidade do visual do Riposte (1 = padrão). Só aparência.', 0, 3, .05, num, false],
+    ['riposte', 'fxSize', 'Efeito visual: tamanho', 'Escala da lâmina, do disco e do clarão do Riposte (1 = padrão). Só aparência.', .3, 3, .05, num, false],
   ]],
   ['Emerging Stone', [
     ['emergingStone', 'cost', 'Custo de stamina', 'Cobrado só quando o cast terminou E o botão foi solto com destino válido, antes do disparo; sem reembolso (documento: 3).', 0, 10, .1, num, false],
@@ -304,6 +307,8 @@ const PARAMS = [
 ];
 
 /** Controles da aba (exportado para os testes de cobertura: cada parâmetro da configuração dos Moves precisa de slider). */
+// Pedido de 22/10/2026: o limite máximo dos sliders de Moves vale o DOBRO (liga/desliga e seletores de poucos valores ficam como estão).
+for (const [, rows] of PARAMS) for (const r of rows) if (r[7] !== yesno && !(r[6] >= 1 && r[5] <= 3)) r[5] *= 2;
 export const MOVES_PARAMS = PARAMS;
 
 /** Itens da avaliação jogável e visual dos Moves (M28.9: separada dos testes automáticos; decisão do diretor). */
@@ -328,6 +333,8 @@ export function createMovesPanel({$, game, download, tuning, view, ui}) {
   let results = null, homolog = loadHomolog(), subscribed = false;
   const loadoutOf = id => Array.from({length: C.world.slots}, (_, i) => game.fighters[id]?.loadout?.[i] ?? null);
   const equipped = id => ({reflect: loadoutOf(id).includes('reflect'), psyshock: loadoutOf(id).includes('psyshock')});
+  /** Descrição e uso do Move para dicas e linha de apoio: texto do Move, custo, recarga e botão. */
+  const moveTip = (mid, key) => {const d = mid ? listMoves().find(m => m.id === mid) : null;if (!d) return '';const eff = getMove(mid) ?? d;return `${MOVE_INFO[mid]?.hint ?? d.description ?? ''} Custo ${(eff.cost ?? 1).toFixed(2)} de stamina · recarga ${(eff.cooldown ?? 0).toFixed(1)} s${key ? ` · botão ${key}` : ''}.`;};
   const moveLabel = mid => MOVE_INFO[mid]?.group ?? listMoves().find(m => m.id === mid)?.name ?? mid;
   /** Põe (ou tira, com null) um move num slot; um move não ocupa dois slots do mesmo lutador. */
   function setSlot(id, slot, moveId) {
@@ -420,8 +427,8 @@ export function createMovesPanel({$, game, download, tuning, view, ui}) {
       const myKey = bind[SKILL_NAMES[slot]], clash = used.find(([, i]) => i === myKey) ?? SKILL_NAMES.map((n, j) => [n, bind[n], j]).find(([, i, j]) => j !== slot && i === myKey && list[j]);
       const warn = cur && clash ? `<small class="warn" title="A mesma tecla também é ${escape(ACTION_NAMES[clash[0]] ?? 'outro slot')}">tecla repetida</small>` : '';
       return `<div class="mv-slot" data-slot-row="${id}.${slot}"><span class="mv-slot-n">Slot ${slot + 1}</span>
-        <select data-slot-move="${id}.${slot}" aria-label="Move do slot ${slot + 1} (${escape(title)})"><option value="">— vazio —</option>${moves.map(m => `<option value="${m.id}" ${m.id === cur ? 'selected' : ''} ${list.includes(m.id) && m.id !== cur ? 'disabled' : ''}>${escape(moveLabel(m.id))}</option>`).join('')}</select>
-        <label class="mv-key">Botão <select data-slot-key="${id}.${slot}" aria-label="Botão do slot ${slot + 1} (${escape(title)})">${codes.map((c, i) => `<option value="${i}" ${i === myKey ? 'selected' : ''}>${escape(keyName(c))}</option>`).join('')}</select></label>${warn}</div>`;
+        <select data-slot-move="${id}.${slot}" aria-label="Move do slot ${slot + 1} (${escape(title)})" ${cur ? `data-tip-title="${escape(moveLabel(cur))}" data-tip="${escape(moveTip(cur, keyName(codes[myKey])))}"` : 'data-tip-title="Slot vazio" data-tip="Escolha um Move: passe o mouse sobre o nome para ver a descrição e o uso."'}><option value="">— vazio —</option>${moves.map(m => `<option value="${m.id}" title="${escape(moveTip(m.id, ''))}" ${m.id === cur ? 'selected' : ''} ${list.includes(m.id) && m.id !== cur ? 'disabled' : ''}>${escape(moveLabel(m.id))}</option>`).join('')}</select>
+        <label class="mv-key">Botão <select data-slot-key="${id}.${slot}" aria-label="Botão do slot ${slot + 1} (${escape(title)})">${codes.map((c, i) => `<option value="${i}" ${i === myKey ? 'selected' : ''}>${escape(keyName(c))}</option>`).join('')}</select></label>${warn}</div>${cur ? `<p class="tip-line">${escape(moveTip(cur, keyName(codes[myKey])))}</p>` : ''}`;
     }).join('');
     return `<div class="mv-loadout" data-loadout="${id}"><h4>${escape(title)} <small class="muted">${count} de ${list.length} slots${id ? ' · botões só valem no controle manual do vermelho' : ''}</small></h4>${rows}</div>`;
   }

@@ -26,6 +26,7 @@ import {QuarksBridge} from './quarks/bridge.js';
 // Diagnóstico da navegação experimental (Fase 3, Yuka): rotas e pontos; criado só com extras.nav.enableNav + showDebug.
 import {NavDebug} from '../nav/nav-debug.js';
 import {StatusAura} from './status-aura.js';
+import {RiposteFx} from './riposte-fx.js';
 import {AimMarkers} from './aim-marker-view.js';
 import {ArenaScenery} from './scenery.js';
 // Pós-processamento experimental (Fase 4, pmndrs/postprocessing sem React): criado só com C.vfx.post.enabled = 1.
@@ -351,6 +352,11 @@ export class View {
       const m = C.vfx.master ?? {}, hitIds = new Set(events.filter(e => (e.result === 'impact' || e.result === 'partial') && !this.auraSeen.has(e)).map(e => {this.auraSeen.add(e);return e.target;}));
       (this.statusAura ??= new StatusAura(T, this.scene)).update(fighters, paused ? 0 : dt, {bodyHeight: X.visual.bodyHeight, halfExtent: C.test.halfExtent, reduceMotion: !!(this._a11y?.reduceMotion || m.reduceMotion), noFlash: !!(this._a11y?.noFlash || m.noFlash), hits: hitIds});
     } else if (this.statusAura) {this.statusAura.dispose();this.statusAura = null;}
+    // Riposte: postura (disco + lâmina de guarda) e clarão do contra-golpe; só existe enquanto há Riposte em curso ou clarão ativo.
+    if (fighters.some(f => f.action?.kind === 'move' && f.action.def?.riposte) || this.riposteFx?.active || events.some(e => e.result === 'riposteStrike')) {
+      const m = C.vfx.master ?? {};
+      (this.riposteFx ??= new RiposteFx(T, this.scene)).update(fighters, events, paused ? 0 : dt, {bodyHeight: X.visual.bodyHeight, halfExtent: C.test.halfExtent, reduceMotion: !!(this._a11y?.reduceMotion || m.reduceMotion), noFlash: !!(this._a11y?.noFlash || m.noFlash)});
+    } else if (this.riposteFx) {this.riposteFx.dispose();this.riposteFx = null;}
     // Cegueira do Sand Wave: SÓ a câmera do jogador cegado (lutador 0) recebe névoa densa perto do limite de visão e redução da luz ambiente (SW-D17/D36/D39);
     // os outros observadores não mudam. A cena volta ao normal quando o debuff acaba.
     {
