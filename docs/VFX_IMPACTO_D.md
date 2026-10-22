@@ -19,6 +19,12 @@ Quarta variante do efeito de acerto, no renderizador legado (`prototypes/combat-
 | Rachadura no chão | tamanho da marca em golpe forte (0 = desligada) |
 | Escala pelo dano e lançamento reais | 0% = sempre a mesma força; 100% = golpe fraco e forte se distinguem |
 | Cor / Cor secundária | cor das fagulhas / núcleo quente |
+| **Núcleo de brilho — o círculo central** (liga/desliga) · Tamanho do núcleo | remove ou dimensiona o clarão circular no contato |
+| **Anel de pressão** (círculo vertical) e **Anel no chão** (liga/desliga cada um) · Expansão de cada anel · Opacidade dos anéis | remove os círculos que se abrem ao redor do golpe, ou só reduz |
+| **Lâmina de luz** (liga/desliga) · Comprimento · Espessura | a faixa de luz na direção do golpe |
+| **Fagulhas em risco** (liga/desliga) · Comprimento · Espessura · Respingo para trás (0–100%) | 0% de respingo = todas as fagulhas atravessam o alvo |
+| **Faíscas que caem** (liga/desliga) · Tamanho | os pontos de luz que sobem e caem |
+| Tamanho dos detritos · Tamanho da poeira | complementam Detritos e Poeira (0 = sem) |
 | Tamanho, duração, quantidade, intensidade, velocidade, opacidade, brilho, dissipação | os mesmos das outras variantes |
 
 ## Limites conhecidos

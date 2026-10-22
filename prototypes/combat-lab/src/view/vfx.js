@@ -297,28 +297,30 @@ export class VfxSystem {
     const real = (damage == null ? 1 : .55 + .45 * Math.min(2, damage / Math.max(1, C.test.attack))) * (launch ? .75 + .25 * Math.min(2, launch.horizontal / Math.max(1, C.rules.launchHorizontal)) : 1);
     const S = c.intensity * power * (1 + (real - 1) * c.byDamage), cnt = Math.max(3, Math.round(c.count * S));
     const hot = c.color2, ahead = {x: pos.x + d.x * .35 * c.size, z: pos.z + d.z * .35 * c.size};
+    // Camadas ligáveis e dimensionáveis (valor ausente em ajustes antigos = padrão): o responsável pode remover os círculos (núcleo e anéis) e afinar cada peça.
+    const on = (k) => (c[k] ?? 1) !== 0, num = (k, dflt = 1) => c[k] ?? dflt, ringA = num('ringOpacity');
     // Flash curto: núcleo quente + lâmina de luz alongada na direção do golpe.
-    this.spawn({x: pos.x, y, z: pos.z, life: c.duration * .32, w: .85 * c.size * S, cell: 'dot', color: hot, glow: c.glow * 1.5, alpha: c.opacity, fade: c.fade, grow: .5});
-    this.spawn({x: pos.x, y, z: pos.z, life: c.duration * .4, w: .16 * c.size, h: 1.9 * c.size * S, cell: 'streak', mode: 'axis', ax: d.x, ay: 0, az: d.z, color: hot, glow: c.glow * 1.3, alpha: c.opacity, fade: c.fade, stretchCurve: k => 1.2 - k * .9});
+    if (on('coreOn') && num('coreSize') > 0) this.spawn({x: pos.x, y, z: pos.z, life: c.duration * .32, w: .85 * c.size * S * num('coreSize'), cell: 'dot', color: hot, glow: c.glow * 1.5, alpha: c.opacity, fade: c.fade, grow: .5});
+    if (on('bladeOn') && num('bladeLength') > 0 && num('bladeWidth') > 0) this.spawn({x: pos.x, y, z: pos.z, life: c.duration * .4, w: .16 * c.size * num('bladeWidth'), h: 1.9 * c.size * S * num('bladeLength'), cell: 'streak', mode: 'axis', ax: d.x, ay: 0, az: d.z, color: hot, glow: c.glow * 1.3, alpha: c.opacity, fade: c.fade, stretchCurve: k => 1.2 - k * .9});
     // Anel de pressão perpendicular ao golpe (plano vertical com a normal como eixo) + anel rente ao chão.
-    this.spawn({x: ahead.x, y, z: ahead.z, life: c.duration * .65, w: .3 * c.size, mode: 'plane', ax: d.x, ay: 0, az: d.z, cell: 'ring', color: c.color, glow: c.glow, alpha: c.opacity * .85, fade: c.fade, sizeCurve: k => 1 + ease.outCubic(k) * c.speed * .45 * S});
-    this.spawn({x: pos.x, y: .03, z: pos.z, life: c.duration * .85, w: .4 * c.size, mode: 'ground', cell: 'ring', color: c.color, glow: c.glow * .7, alpha: c.opacity * .55, fade: c.fade, sizeCurve: k => 1 + ease.outCubic(k) * c.speed * .5 * S});
+    if (on('ringPlaneOn') && num('ringPlaneSize') > 0 && ringA > 0) this.spawn({x: ahead.x, y, z: ahead.z, life: c.duration * .65, w: .3 * c.size, mode: 'plane', ax: d.x, ay: 0, az: d.z, cell: 'ring', color: c.color, glow: c.glow, alpha: c.opacity * .85 * ringA, fade: c.fade, sizeCurve: k => 1 + ease.outCubic(k) * c.speed * .45 * S * num('ringPlaneSize')});
+    if (on('ringGroundOn') && num('ringGroundSize') > 0 && ringA > 0) this.spawn({x: pos.x, y: .03, z: pos.z, life: c.duration * .85, w: .4 * c.size, mode: 'ground', cell: 'ring', color: c.color, glow: c.glow * .7, alpha: c.opacity * .55 * ringA, fade: c.fade, sizeCurve: k => 1 + ease.outCubic(k) * c.speed * .5 * S * num('ringGroundSize')});
     // Cone de fagulhas: sai para a frente do golpe (atravessando o alvo) com abertura ajustável; menos para trás (respingo).
     for (let k = 0; k < cnt; k++) {
-      const fwd = k % 4 !== 3, a = rand(-1, 1) * c.cone, e = rand(-.15, .45), dir = fwd ? {x: d.x * Math.cos(a) + side.x * Math.sin(a), z: d.z * Math.cos(a) + side.z * Math.sin(a)} : {x: -d.x * Math.cos(a * 1.8) + side.x * Math.sin(a * 1.8), z: -d.z * Math.cos(a * 1.8) + side.z * Math.sin(a * 1.8)};
+      const fwd = (k * .618034) % 1 >= num('backSplash', .25), a = rand(-1, 1) * c.cone, e = rand(-.15, .45), dir = fwd ? {x: d.x * Math.cos(a) + side.x * Math.sin(a), z: d.z * Math.cos(a) + side.z * Math.sin(a)} : {x: -d.x * Math.cos(a * 1.8) + side.x * Math.sin(a * 1.8), z: -d.z * Math.cos(a * 1.8) + side.z * Math.sin(a * 1.8)};
       const sp = c.speed * rand(.6, 1.25) * S * (fwd ? 1 : .55), v = {x: dir.x * sp, y: e * sp * .6, z: dir.z * sp};
-      this.spawn({x: pos.x, y, z: pos.z, vx: v.x, vy: v.y, vz: v.z, drag: 4.5, life: c.duration * rand(.55, 1), w: .06 * c.size, h: .5 * c.size, cell: 'streak', mode: 'axis', ax: dir.x, ay: e * .6, az: dir.z, color: k % 3 ? c.color : hot, glow: c.glow, alpha: c.opacity, fade: c.fade, stretchCurve: k2 => 1.4 - k2});
-      if (k % 2 === 0) this.spawn({x: pos.x, y, z: pos.z, vx: v.x * .55, vy: v.y * .55 + 1.2, vz: v.z * .55, gravity: 10, life: c.duration * rand(1, 1.5), w: .075 * c.size, cell: 'spark', color: c.color, glow: c.glow, alpha: c.opacity, fade: c.fade, floor: .03});
+      if (on('sparksOn') && num('sparkLength') > 0 && num('sparkWidth') > 0) this.spawn({x: pos.x, y, z: pos.z, vx: v.x, vy: v.y, vz: v.z, drag: 4.5, life: c.duration * rand(.55, 1), w: .06 * c.size * num('sparkWidth'), h: .5 * c.size * num('sparkLength'), cell: 'streak', mode: 'axis', ax: dir.x, ay: e * .6, az: dir.z, color: k % 3 ? c.color : hot, glow: c.glow, alpha: c.opacity, fade: c.fade, stretchCurve: k2 => 1.4 - k2});
+      if (k % 2 === 0 && on('embersOn') && num('emberSize') > 0) this.spawn({x: pos.x, y, z: pos.z, vx: v.x * .55, vy: v.y * .55 + 1.2, vz: v.z * .55, gravity: 10, life: c.duration * rand(1, 1.5), w: .075 * c.size * num('emberSize'), cell: 'spark', color: c.color, glow: c.glow, alpha: c.opacity, fade: c.fade, floor: .03});
     }
     // Detritos: lascas que quicam no chão (não aditivas, para terem corpo).
     const nDeb = Math.round(5 * c.debris * S);
     for (let k = 0; k < nDeb; k++) {
       const a = rand(-1, 1) * c.cone * 1.3, sp = c.speed * rand(.35, .8) * S;
-      this.spawn({x: pos.x, y: y - .1, z: pos.z, vx: (d.x * Math.cos(a) + side.x * Math.sin(a)) * sp, vy: rand(1.5, 4.5) * S, vz: (d.z * Math.cos(a) + side.z * Math.sin(a)) * sp, gravity: 14, drag: 1.2, floor: .03, life: c.duration * rand(1.3, 2.2), w: rand(.06, .13) * c.size, cell: k % 2 ? 'chunk' : 'shard', color: 0xb7a58e, glow: .8, alpha: c.opacity, fade: 1.2, rot: rand(0, 6), spin: rand(-12, 12), additive: false});
+      this.spawn({x: pos.x, y: y - .1, z: pos.z, vx: (d.x * Math.cos(a) + side.x * Math.sin(a)) * sp, vy: rand(1.5, 4.5) * S, vz: (d.z * Math.cos(a) + side.z * Math.sin(a)) * sp, gravity: 14, drag: 1.2, floor: .03, life: c.duration * rand(1.3, 2.2), w: rand(.06, .13) * c.size * num('debrisSize'), cell: k % 2 ? 'chunk' : 'shard', color: 0xb7a58e, glow: .8, alpha: c.opacity, fade: 1.2, rot: rand(0, 6), spin: rand(-12, 12), additive: false});
     }
     // Poeira rente ao chão, empurrada no sentido do golpe.
     const nDust = Math.round(4 * c.dust * S);
-    for (let k = 0; k < nDust; k++) this.spawn({x: pos.x, y: .12, z: pos.z, vx: d.x * rand(.6, 1.6) + side.x * rand(-1, 1), vy: rand(.2, .7), vz: d.z * rand(.6, 1.6) + side.z * rand(-1, 1), drag: 2.4, life: c.duration * rand(1.6, 2.6), w: rand(.35, .6) * c.size, grow: 1.4, cell: 'smoke', color: 0xd9d2c4, glow: .9, alpha: c.opacity * .4, fade: 1.4, rot: rand(0, 6), spin: rand(-1.5, 1.5), additive: false});
+    for (let k = 0; k < nDust; k++) this.spawn({x: pos.x, y: .12, z: pos.z, vx: d.x * rand(.6, 1.6) + side.x * rand(-1, 1), vy: rand(.2, .7), vz: d.z * rand(.6, 1.6) + side.z * rand(-1, 1), drag: 2.4, life: c.duration * rand(1.6, 2.6), w: rand(.35, .6) * c.size * num('dustSize'), grow: 1.4, cell: 'smoke', color: 0xd9d2c4, glow: .9, alpha: c.opacity * .4, fade: 1.4, rot: rand(0, 6), spin: rand(-1.5, 1.5), additive: false});
     // Rachadura marcada no chão só em golpes fortes (força ≥ 1,15).
     if (c.crack > 0 && S >= 1.15) this.spawn({x: pos.x, y: .025, z: pos.z, life: c.duration * 3.2, w: .9 * c.size * Math.min(1.6, S) * c.crack, mode: 'ground', cell: 'crack', rot: Math.atan2(d.x, d.z), color: 0xffd9a0, glow: .7, alpha: c.opacity * .5, fade: 2, additive: false});
   }
