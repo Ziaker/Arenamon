@@ -221,7 +221,7 @@ function aimSlamDive(f, fighters) {
 }
 export function startSlam(f, height, dirs, fighters, desiredHeading, guardHeld, locked = false) {
   startAction(f, 'tackle', dirs, fighters, desiredHeading, false, guardHeld, locked);
-  f.vaultHeight = Math.max(0, height);f.action.slam = true;f.action.fromSlam = true;f.action.plDamage = C.rules.slamDamage;aimSlam(f, fighters, height);
+  f.vaultHeight = Math.max(0, height);f.action.slam = true;f.action.fromSlam = true;f.action.plDamage = C.rules.slamDamage;f.action.pl = 2;aimSlam(f, fighters, height);   // Meteor Slam: PL 2
 }
 /** Tempo até o solo (s) de um lutador em voo balístico. */
 export function timeToLand(f) {const g = C.rules.launchGravity, fl = f.flight;return fl ? (fl.vy + Math.sqrt(Math.max(0, fl.vy * fl.vy + 2 * g * fl.y))) / g : 0;}
@@ -640,7 +640,7 @@ function startAction(f, kind, dirs, fighters, desiredHeading, viaCancel, guardHe
   if (invulnerableFor !== undefined) f.action.invulnerableFor = invulnerableFor;
   if (liftStart > 0) {f.action.liftStart = liftStart;f.action.liftTime = liftTime;f.action.fromCancel = true;}
   // Meteor slam: C → X a partir do salto do vault (acima da altura mínima) vira mergulho oblíquo com bônus de dano.
-  if (viaCancel && kind === 'tackle' && T.enableMeteorSlam && liftStart > C.rules.slamMinHeight) {f.action.slam = true;f.action.fromSlam = true;f.action.plDamage = C.rules.slamDamage;aimSlam(f, fighters, liftStart);}
+  if (viaCancel && kind === 'tackle' && T.enableMeteorSlam && liftStart > C.rules.slamMinHeight) {f.action.slam = true;f.action.fromSlam = true;f.action.plDamage = C.rules.slamDamage;f.action.pl = 2;aimSlam(f, fighters, liftStart);}
   if (viaCancel) f.action.fromCancel = true;
   if (countered) f.counterWindow = 0;
   // O custo de C já gasto continua gasto; X cobra o próprio custo. Technician desconta só esquiva ('dodge').
@@ -775,7 +775,7 @@ function startRiposteStrike(f, action) {
   f.stamina = before;
   const a = f.action;
   a.heading = a.startAngle = heading;a.fixedHeading = true;
-  a.move = def.id;a.slot = action.slot;a.params = P;a.moveDef = def;a.pl = 1;a.plSpeed = 1;a.plDamage = P.damage / C.test.attackReference;   // MV-P13
+  a.move = def.id;a.slot = action.slot;a.params = P;a.moveDef = def;a.pl = 4;a.plSpeed = 1;a.plDamage = P.damage / C.test.attackReference;   // MV-P13; contra-ataque: tratado como PL 4 (vence qualquer PL, nunca faz clash)
   a.kb = {horizontal: P.knockbackH, vertical: P.knockbackV};
   a.durationScale = Math.max(.1, P.cast - t) / p.duration;
   a.distanceScale = P.strikeRange / Math.max(1e-6, nominalDistance(f, 'tackle'));
@@ -966,7 +966,7 @@ function pressSkill(f, cmd, move, desiredHeading, hasTarget, diag, fighters = []
   const slot = cmd.skill, def = moveInSlot(f, slot), onCooldown = !!def && (f.moveCooldowns?.[def.id] ?? 0) > 1e-8;
   const deny = (reason, detail) => {if (diag) report(f, {kind: 'skill', slot, move: def?.id ?? null, result: 'denied', reason, detail});};
   f.skillBuffer = null;
-  if (def?.cooldownBoost && onCooldown) return boostCooldown(f, def, slot, diag);
+  if (def && def.cooldownBoost !== false && onCooldown) return boostCooldown(f, def, slot, diag);   // M5.8/M5.9: vale para TODO Move (novo toque + stamina); `cooldownBoost: false` desliga num Move específico
   if (def?.feint) return pressFeint(f, cmd, def, slot, move, desiredHeading, hasTarget, diag);   // cancela a carga/ação ofensiva em curso (ou só recua)
   if (f.aim) return deny('aiming');                                       // um marcador de cada vez
   if (f.charge) return deny('charging');                                  // sem carregamentos simultâneos (M16.4)

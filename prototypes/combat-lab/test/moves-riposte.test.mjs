@@ -42,10 +42,27 @@ test('acerto DENTRO da janela (0,13–0,30 s): dano e knockback anulados, evento
   assert.equal(h.damage, 0);assert.equal(h.launch, null);
   assert.equal(ev.filter(e => e.target === 0 && e.result === 'impact').length, 0, 'ninguém acertou o azul');
 });
-test('o contra-golpe sai na hora: Tackle PL1 marcado com o Move, rumo a quem atacou', () => {
+test('o contra-golpe NUNCA faz clash: contra um Tackle (PL1 ou carregado) o PL 4 vence, o rival é neutralizado e não há evento de clash', () => {
+  let riposted = 0;
+  for (const pl of [1, 2, 3]) for (const startAt of [6, 10, 14, 18]) {
+    const g = arena({equip: ['riposte'], positions: [vec(0, -1.6), vec(0, 1.6)], setup: () => {C.extras.toggles.enableClash = 1;}});
+    const [b, r] = g.fighters;b.facing = 0;r.facing = Math.PI;
+    const ev = [];
+    for (let i = 0; i < 160; i++) {
+      if (i === startAt) {r.stamina = C.rules.staminaMax;}
+      g.step(i === 0 ? cmd(press0) : cmd(), i === startAt ? cmd({tackle: true, move: vec(0, -1)}) : cmd({move: vec(0, -1)}));
+      if (i === startAt) r.action && (r.action.pl = pl);
+      ev.push(...g.lastStepEvents);
+    }
+    assert.equal(ev.filter(e => e.result === 'clash').length, 0, `clash com PL ${pl} (início em ${startAt})`);
+    if (ev.some(e => e.result === 'riposteStrike')) {riposted++;assert.ok(r.hp < r.attributes.hp || r.plDefeated || ev.some(e => e.target === 1 && ['impact', 'partial'].includes(e.result)), 'o contra-golpe conectou ou o rival foi derrotado pelo PL');}
+  }
+  assert.ok(riposted >= 1, 'o contra-golpe disparou em pelo menos um dos casos');
+});
+test('o contra-golpe sai na hora: Tackle marcado com o Move, rumo a quem atacou, tratado como PL 4', () => {
   const {g, ev} = swiftAt({fireAt: 20, steps: 40});const b = g.fighters[0];
   assert.ok(ev.some(e => e.result === 'riposteStrike'), 'evento do contra-golpe');
-  assert.equal(b.action?.kind, 'tackle');assert.equal(b.action.move, 'riposte');assert.equal(b.action.pl, 1);assert.ok(b.action.riposteStrike);
+  assert.equal(b.action?.kind, 'tackle');assert.equal(b.action.move, 'riposte');assert.equal(b.action.pl, 4);assert.ok(b.action.riposteStrike);
   assert.ok(Math.abs(b.action.heading - 0) < .2, `rumo ${b.action.heading}`);
 });
 test('o contra-golpe causa 6 HP nominais (× Ataque ÷ referência) e 3 m/s H sem voo', () => {

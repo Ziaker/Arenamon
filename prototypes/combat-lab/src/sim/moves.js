@@ -33,7 +33,7 @@ const AIMS = ['target', 'facing', 'input'], MOTIONS = ['none', 'root', 'dash', '
  *   fromGuard (padrão true), fromGuardStun (padrão false), invulnerable ([t0, t1] em s), aim ('target' | 'facing' | 'input'),
  *   motion ({type: 'none' | 'root' | 'dash', distance, start, end}), animation (id do bloco de animação; padrão move_<slot>),
  *   timeline: [{at, spawn | status (+ target) | hit | effect}],
- *   charge ({max (s, padrão 4) e substituições de C.world.charge}: movimento de carga), cooldownBoost (true: novo toque durante a recarga
+ *   charge ({max (s, padrão 4) e substituições de C.world.charge}: movimento de carga), cooldownBoost (padrão true em TODO Move; false: desliga. Novo toque durante a recarga
  *   gasta stamina para encurtá-la, M2.3)
  * @param {import('./types').MoveDef} def
  */

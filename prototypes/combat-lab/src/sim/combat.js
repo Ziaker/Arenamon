@@ -30,6 +30,8 @@ export function pushAway(f, away, distance, duration) {
 const slamPrep = f => !!f.action?.slam && !f.action.slamPrepDone;
 /** Velocidade do deslize (m/s) do empurrão aplicado no defensor que bloqueia o meteor slam. A duração do deslize = distância ÷ esta velocidade. */
 const SLAM_BLOCK_PUSH_SPEED = 12;
+/** Ações que nunca disputam clash: Meteor Slam (PL 2) e o contra-golpe do Riposte (tratado como PL 4). */
+const noClash = f => !!f.action?.slam || !!f.action?.riposteStrike;
 export function clashPossible(a, b, normal, relative) {
   const X = C.extras.combat;
   if (slamPrep(a) || slamPrep(b)) return false;
@@ -39,7 +41,8 @@ export function clashPossible(a, b, normal, relative) {
   if (!facing) return false;
   // Power Levels diferentes: não há clash. O PL maior vence a disputa (o de baixo é neutralizado e só o dele conecta, pelo fluxo normal de acerto).
   const pa = a.action.pl ?? 1, pb = b.action.pl ?? 1;
-  if (pa !== pb) {const loser = pa > pb ? b : a;loser.action.neutralized = true;loser.action.invulnerableFor = 0;loser.plDefeated = true;return false;}   // o derrotado perde a invulnerabilidade do início do tackle: o golpe do vencedor conecta
+  if (pa !== pb) {const loser = pa > pb ? b : a;loser.action.neutralized = true;loser.action.invulnerableFor = 0;loser.plDefeated = true;return false;}
+  if (noClash(a) || noClash(b)) return false;   // Meteor Slam e contra-golpe do Riposte NUNCA fazem clash (mesmo com PL igual)   // o derrotado perde a invulnerabilidade do início do tackle: o golpe do vencedor conecta
   return true;
 }
 /**
@@ -49,6 +52,7 @@ export function clashPossible(a, b, normal, relative) {
  */
 export function mutualTackle(a, b, normal, relative) {
   if (slamPrep(a) || slamPrep(b)) return false;
+  if (noClash(a) || noClash(b)) return false;   // sem troca simultânea «de clash»: o PL decide (clashPossible) e o contra-golpe/slam seguem o fluxo normal de acerto
   if (!C.extras.toggles.enableClash || a.flight || b.flight || a.action?.kind !== 'tackle' || b.action?.kind !== 'tackle') return false;
   if (C.extras.toggles.enableAnimationCombatWindows && (!isOffensive(a) || !isOffensive(b))) return false;
   if (a.action.hits?.has(b.id) || b.action.hits?.has(a.id)) return false;
@@ -73,6 +77,7 @@ export function clash(a, b, normal) {
 export function tackleConnects(attacker, defender, normal, relative) {
   const X = C.extras.combat;
   if (slamPrep(attacker)) return false;
+  if (attacker.action?.slam && !attacker.action.slamLanded) return false;   // a hitbox do Meteor Slam só existe com o personagem NO CHÃO (no mergulho não acerta)
   if (attacker.action?.kind !== 'tackle' || attacker.action.neutralized || attacker.flight || (defender.flight && !defender.wallSplat)) return false;
   // Volume tridimensional real (R7.11-R7.12): não conecta se separados verticalmente fora do meteor slam
   const attY = altitudeOf(attacker);
