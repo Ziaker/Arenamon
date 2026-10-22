@@ -334,7 +334,7 @@ export class View {
       t0 = now();rt = this.vfxRuntime.update(fighters, events, vfxDt, {characters: this.characters, camera: this.camera, paused, tick, world});tm.vfx += now() - t0;
     } else {
       // Renderizador legado (fallback). O novo runtime permanece inativo.
-      t0 = now();this.vfx.update(fighters, events, vfxDt, {characters: this.characters, camera: this.camera});tm.vfx += now() - t0;
+      t0 = now();this.vfx.update(fighters, events, vfxDt, {characters: this.characters, camera: this.camera, world});tm.vfx += now() - t0;
       this.vfxRuntime.beamRenderer?.reset();
     }
     // Camada three.quarks experimental (A/B): cria/consome só quando ligada; desligada = custo zero.

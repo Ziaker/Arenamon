@@ -231,7 +231,7 @@ export function stepPhysics(fighters, dt, world = null) {
     flight.y = targetGround;
     f.groundY = targetGround;
     // Evento real de colisão com o solo (usado pelos efeitos visuais): velocidade vertical e horizontal no contato.
-    f.lastLanding = {n: (f.lastLanding?.n ?? 0) + 1, vertical: Math.max(0, -flight.vy), horizontal: length(flight.horizontal), x: f.position.x, z: f.position.z};
+    f.lastLanding = {n: (f.lastLanding?.n ?? 0) + 1, vertical: Math.max(0, -flight.vy), horizontal: length(flight.horizontal), x: f.position.x, z: f.position.z, regular: !!(flight.isNormalJump || flight.isEdgeFall) && !flight.bounce};   // regular: pulo/queda voluntária, sem golpe (o visual do pouso é só uma onda simples)
     f.landingSlide = T.enableLandingSkid ? {velocity: scale(flight.horizontal, X.landingSkidFraction)} : null;
     f.flight = null;f.velocity = vec();
     const wasNormalJump = !!f.normalJumpLanding;
