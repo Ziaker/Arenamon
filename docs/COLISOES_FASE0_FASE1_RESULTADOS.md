@@ -1,6 +1,6 @@
 # Overhaul de colisões — Fase 0 (auditoria) e Fase 1 (penetrações): resultados
 
-> **Estado:** Fase 1 implementada e testada (ver §4); Fases 2–7 pendentes. Este documento registra **evidências medidas**, não intenções. Cada item diz se foi reproduzido, corrigido e por qual teste.
+> **Estado:** Fases 1 e 2 implementadas, testadas e revisadas (§4–§8); Fase 3 em andamento; Fases 4–7 pendentes. Este documento registra **evidências medidas**, não intenções. Cada item diz se foi reproduzido, corrigido e por qual teste.
 > **Base:** commit `4634ca2` (linha atual do jogo, v1.15.5). **Branch de trabalho:** `fix/colisoes-overhaul` (worktree `.worktrees/colisoes-overhaul`). **PR de referência:** [#100](https://github.com/Ziaker/Arenamon/pull/100) (branch `fix/collision-overhaul-stage1`, criada sobre `main@68eda6c`, não integrada).
 > **Escopo e decisões:** nenhuma regra aprovada foi alterada (ver `docs/MAPA_COMBAT_LAB_DECISOES_RODADAS.md`). Documento-mestre do plano: `docs/OVERHAUL_COLISOES_AMBIENTE.md` (PR #100).
 
@@ -83,3 +83,49 @@ Veredito do revisor: **sem itens críticos; "com ajustes"**. Tratamento:
 | Centro exato de círculo: normal (1,0) × código antigo (0,1) | **Corrigido** para (0,1), compatível com replays antigos. |
 | Alocação de objeto por subpasso no pilar | **Corrigido:** `circleContact(centro, raio, p, r)` sem alocação intermediária. |
 | NaN em `p` retorna null sem diagnóstico | Registrado; tratamento de diagnóstico fica para a Fase 7 (ferramentas). |
+
+## 6. Pilares: resposta por estado e deslize (decisão do responsável, 21/10/2026)
+
+O responsável aprovou remover a componente penetrante **na locomoção normal**, preservando a tangente, e **não** aplicar isso indiscriminadamente a arremessados. Implementado só no ramo cilindro/pilar de `map.js`:
+
+| Estado | Resposta no pilar | Teste |
+| --- | --- | --- |
+| Locomoção livre | remove só a componente que entra; tangente preservada; registra a normal para o controlador | `collision-map` |
+| Arremessado por golpe (`launchedByHit`) | rebote especular pelo ângulo, intensidade = `wallRestitution × wallBounceMultiplier` (R3.12); sem rebote ligado só perde a parte que entra; nunca ganha energia | `collision-map` (inclui restituição 0,84) |
+| Salto voluntário, queda de borda, Move Bounce | mantêm a velocidade; só a posição é corrigida | `collision-map` |
+| Ação em curso (tackle, esquiva) | a velocidade pertence à ação; só a posição é corrigida | `collision-map` |
+| Destrutíveis (R3.7/R7.15) | **não alterado** | testes existentes de `map` |
+
+**Regressão encontrada e causa raiz (systematic-debugging).** Só remover a velocidade fez `rapier.test.mjs › pilar · arenamon: contorna o pilar` falhar (lutador a ~0,0003 m/passo; baseline sai em 60 ticks). O `locomotionStep` amortece como "indesejada" a velocidade lateral que não está alinhada à entrada (turnGrip). Correção: o controlador projeta a **entrada** na tangente usando as normais de contato do passo anterior (`f.surfaceNormals`, memória de 4 passos de envelhecimento, parte do estado salvo). Só reduz a entrada; não cria velocidade nem direção.
+
+**Não alterado (decisão consciente):** caixas, plataformas, destrutíveis e borda da arena continuam sem deslize guiado. Candidato da Fase 7, com medição antes/depois.
+
+## 7. Fase 2 — contatos simultâneos
+
+**Reprodução (4634ca2):** lutador encostado no sólido e empurrado por um adversário penetrava em 465 de 480 ticks; com tackle do adversário, **41 cm**. Bolsão em V deixava 1,9 mm de resíduo.
+
+**Correção (`physics.js`):**
+- `settleStatics`: alterna paredes/barreiras de Moves, objetos do mapa e borda da arena até um passe sem contato (até 12 rodadas). Convergência medida por contatos, não por deslocamento líquido (dois sólidos opostos se anulariam).
+- Sólidos são reaplicados **depois** da separação entre lutadores. Quem um sólido devolveu à posição fica "preso" e o adversário livre absorve a sobreposição restante.
+- Política para posição impossível (vão menor que o corpo, geometria sobreposta): sem teletransporte e sem NaN; mantém o último estado; conta em `physicsProbe.staticConflicts` (passo) e `staticConflictsTotal`, exibidos em «Subpassos físicos» no diagnóstico do laboratório.
+- Borda circular: tolerância de 1 nm para evitar contato falso por 1 ulp.
+
+**Limitações documentadas (não são comportamento final ideal):**
+1. Em vão impossível a posição final depende da **ordem dos sólidos** (determinística, não simétrica).
+2. Com `contactProjectionPasses = 1` o lutador livre absorve só metade da sobreposição na primeira passada (~1 cm); sólidos continuam sem penetração. Padrão do jogo: 4.
+3. Parado de frente contra o pilar a fase de locomoção fica em `brake`/`idle`; conferir a pose visual no jogo.
+
+## 8. Verificação das Fases 1b e 2 (execuções reais)
+
+| Verificação | Resultado |
+| --- | --- |
+| Suíte unitária, arquivo a arquivo, baseline `4634ca2` limpo | 77/77 (com `node_modules` ligado por junção; `devserver.test.mjs` passa) |
+| Suíte unitária no código desta branch | 81/81 (77 + collision-solid 17, collision-map 19, collision-multi 11, collision-slide 7) |
+| `rapier.test.mjs` (regressão do pilar) | 35/0 |
+| Revisões independentes (`requesting-code-review`) | Fase 1: sem críticos; Fase 1b + 2: sem críticos, 2 importantes corrigidos (rebote só em arremesso por golpe; contador de conflitos exposto) e 5 menores tratados |
+
+**Não verificado:** `npm run test:combat-lab:browser`, `npm run verify`, avaliação visual em `JOGAR_ARENAMON.html`.
+
+## 9. Skills (evidência)
+
+Invocadas pela ferramenta Skill nesta tarefa: `systematic-debugging`, `writing-plans`, `test-driven-development`, `requesting-code-review` (duas revisões por subagente somente leitura), `receiving-code-review`. Ainda não: `verification-before-completion`, `finishing-a-development-branch`, `subagent-driven-development`, `executing-plans`.

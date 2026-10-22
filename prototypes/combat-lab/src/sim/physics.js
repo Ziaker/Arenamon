@@ -11,7 +11,7 @@ import {vec, add, scale, sub, dot, length, normalize, clamp, direction, smoothst
 
 /** Sonda de diagnóstico (auditoria externa §64): subpassos e contatos do último passo físico.
  * Leitura externa apenas — não entra no estado da simulação, no save nem no replay. */
-export const physicsProbe = {substeps: 0, contacts: 0};
+export const physicsProbe = {substeps: 0, contacts: 0, staticConflicts: 0, staticConflictsTotal: 0};
 /** Componente vertical do rebote: multiplica a velocidade vertical atual e soma um impulso para cima. */
 function wallVertical(f) {const R = C.rules;f.flight.vy = f.flight.vy * R.wallBounceVertical + R.wallBounceUp;}
 /**
@@ -144,7 +144,7 @@ export function clampToArena(f) {
     const effRadius = effectiveArenaRadius();
     const bound = effRadius - C.test.halfExtent;
     const d = length(f.position);
-    if (d > bound) {
+    if (d > bound + 1e-9) {   // tolerância de 1 nm: o reposicionamento em `bound` pode sobrar 1 ulp e não conta como novo contato
       f.contacts++;
       const nOut = d > 1e-7 ? scale(f.position, 1 / d) : vec(1, 0);
       const nIn = scale(nOut, -1);
@@ -201,6 +201,26 @@ export function overlap(a, b) {
   }
   const sx = 2 * T.halfExtent - Math.abs(dx), sz = 2 * T.halfExtent - Math.abs(dz);
   return sx < -T.epsilon || sz < -T.epsilon ? null : sx < sz ? {normal: vec(dx >= 0 ? 1 : -1, 0), depth: Math.max(0, sx)} : {normal: vec(0, dz >= 0 ? 1 : -1), depth: Math.max(0, sz)};
+}
+/**
+ * Sólidos estáticos (paredes/barreiras de Moves, objetos do mapa, borda da arena) são restrições DURAS. Alterna as projeções
+ * até convergir (várias paredes, quinas agudas e corredores não deixam resíduo de penetração) e devolve se moveu o lutador.
+ * Sem posição válida (vão menor que o corpo, geometria sobreposta): após STATIC_ROUNDS rodadas mantém o último estado, sem
+ * teletransporte, e conta o conflito em physicsProbe.staticConflicts / staticConflictsTotal (linha «Subpassos físicos» do diagnóstico do laboratório).
+ */
+const STATIC_ROUNDS = 12;
+function settleStatics(f, world, events) {
+  for (let round = 0; round < STATIC_ROUNDS; round++) {
+    // Convergiu = uma rodada inteira sem NENHUM contato penetrante (medir só o deslocamento líquido enganaria: dois sólidos
+    // opostos podem se anular na rodada e deixar o lutador penetrando em ambos).
+    const contacts = f.contacts;
+    if (world.entities?.length) collideFighter(world, f, events);
+    if (world.mapState) collideMapFighter(world.mapState, f, events);
+    clampToArena(f);
+    if (f.contacts === contacts) return round > 0;
+  }
+  physicsProbe.staticConflicts++;physicsProbe.staticConflictsTotal++;
+  return true;
 }
 export function stepPhysics(fighters, dt, world = null) {
   const R = C.rules, X = C.extras.combat, T = C.extras.toggles, events = [], pushVel = new Map();
@@ -382,18 +402,15 @@ export function stepPhysics(fighters, dt, world = null) {
   }
   const speed = Math.max(0, ...fighters.map(f => length(add(f.velocity, pushVel.get(f.id)))));
   const steps = Math.max(1, Math.ceil(speed * dt / C.test.contactStep));
-  physicsProbe.substeps = steps;
+  physicsProbe.substeps = steps;physicsProbe.staticConflicts = 0;   // conflitos de espaço do ÚLTIMO passo (o acumulado fica em staticConflictsTotal)
   for (let s = 0; s < steps; s++) {
     for (const f of fighters) {
       if ((f.hp <= 0 && !f.flight) || f.absent) continue;   // ausente (Bullet Punch): sem corpo, não se move nem colide
       f.position = add(f.position, scale(add(f.velocity, pushVel.get(f.id)), dt / steps));
       clampToArena(f);
-      // Paredes e barreiras sólidas criadas por movimentos (sem elas, nada muda).
-      if (world?.entities.length) {collideFighter(world, f, events);clampToArena(f);}
-      // Obstáculos, plataformas e destrutíveis do mapa (R1.6, R1.8, R7.6, R7.15, R10.7-R10.8)
+      // Paredes e barreiras de movimentos, obstáculos, plataformas e destrutíveis do mapa (R1.6, R1.8, R7.6, R7.15, R10.7-R10.8); sem eles, nada muda.
+      if (world?.entities.length || world?.mapState) settleStatics(f, world, events);
       if (world?.mapState) {
-        collideMapFighter(world.mapState, f, events);
-        clampToArena(f);
         // Tackle danifica destrutíveis sólidos (R1.5, R3.4, R5.14, R9.10)
         if (f.action?.kind === 'tackle' && !f.action.neutralized && world.mapState.destructibles) {
           for (const d of world.mapState.destructibles) {
@@ -411,6 +428,9 @@ export function stepPhysics(fighters, dt, world = null) {
         }
       }
     }
+    // Lutadores que um sólido (parede de Move, objeto do mapa) devolveu à posição DEPOIS da separação entre lutadores:
+    // estão presos e não podem absorver a sobreposição; o adversário livre absorve o resto (restrição dura × mole).
+    const pinned = new Set();
     for (let pass = 0; pass < X.contactProjectionPasses; pass++) {
       for (let ai = 0; ai < fighters.length; ai++) for (let bi = ai + 1; bi < fighters.length; bi++) {
         const a = fighters[ai], b = fighters[bi];
@@ -441,7 +461,11 @@ export function stepPhysics(fighters, dt, world = null) {
         const bGuards = a.action?.kind === 'recoil' && b.guard && dot(direction(b.facing), normalize(sub(a.position, b.position))) >= -1e-8;
         const aGuards = b.action?.kind === 'recoil' && a.guard && dot(direction(a.facing), normalize(sub(b.position, a.position))) >= -1e-8;
         let da, db;
-        if (bGuards && !aGuards) {da = Math.min(contact.depth, room(a, scale(contact.normal, -1)));db = Math.min(contact.depth - da, room(b, contact.normal));}
+        const aPinned = pinned.has(a.id), bPinned = pinned.has(b.id);
+        if (aPinned !== bPinned) {
+          if (aPinned) {da = 0;db = Math.min(contact.depth, room(b, contact.normal));}
+          else {db = 0;da = Math.min(contact.depth, room(a, scale(contact.normal, -1)));}
+        } else if (bGuards && !aGuards) {da = Math.min(contact.depth, room(a, scale(contact.normal, -1)));db = Math.min(contact.depth - da, room(b, contact.normal));}
         else if (aGuards && !bGuards) {db = Math.min(contact.depth, room(b, contact.normal));da = Math.min(contact.depth - db, room(a, scale(contact.normal, -1)));}
         else {
           da = Math.min(contact.depth / 2, room(a, scale(contact.normal, -1)));
@@ -454,6 +478,10 @@ export function stepPhysics(fighters, dt, world = null) {
         const av = dot(a.velocity, contact.normal), bv = dot(b.velocity, contact.normal);
         if (av > 0) a.velocity = sub(a.velocity, scale(contact.normal, av));
         if (bv < 0) b.velocity = sub(b.velocity, scale(contact.normal, bv));
+      }
+      // Sólidos são restrições duras: a separação entre lutadores nunca pode deixar alguém dentro deles ao fim do subpasso.
+      if (world?.entities.length || world?.mapState) for (const f of fighters) {
+        if (!f.absent && settleStatics(f, world, events)) pinned.add(f.id);
       }
     }
   }

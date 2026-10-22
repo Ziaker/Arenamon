@@ -411,7 +411,7 @@ function renderLive() {
   const rows = [['Distância entre centros', `${d.toFixed(2)} m`], ['Espaço entre colisores', `${Math.max(0, d - 2 * C.test.halfExtent).toFixed(2)} m`], ['Velocidade de aproximação', `${dot(rel, n).toFixed(2)} m/s`],
     ['Azul (física)', physLine(a)], ['Vermelho (física)', physLine(b)],
     ['Último contato válido', lastContact],
-    ['Subpassos físicos', `${physicsProbe.substeps} subpasso(s) · ${physicsProbe.contacts} contato(s) no último passo`],
+    ['Subpassos físicos', `${physicsProbe.substeps} subpasso(s) · ${physicsProbe.contacts} contato(s) no último passo · conflitos de espaço: ${physicsProbe.staticConflicts} no passo, ${physicsProbe.staticConflictsTotal} no total`],
     ['Ação', `${a.action ? `${a.action.kind}${a.action.fromCancel ? ' (C→X)' : ''}${a.action.buffered ? ' (buffer)' : ''} ${(a.action.elapsed * 1000).toFixed(0)} ms` : '—'} / ${b.action ? `${b.action.kind}${b.action.fromCancel ? ' (C→X)' : ''}${b.action.buffered ? ' (buffer)' : ''} ${(b.action.elapsed * 1000).toFixed(0)} ms` : '—'}`], ['Estilo da IA (tático)', `${game.playerBrain.t && C.extras.toggles.enablePlayerAI && ui.playerMode === 'tactical' ? styleLabel(game.playerBrain) : '—'} / ${game.mode === 'tactical' ? styleLabel(game.brain) : '—'}`], ['Contra-ataque', `${a.counterWindow.toFixed(2)} s / ${b.counterWindow.toFixed(2)} s`], ['Hitstop', `${(game.hitstop * 1000).toFixed(0)} ms`]];
   $('live-data').innerHTML = rows.map(([k, v]) => `<dt>${k}</dt><dd>${escape(v)}</dd>`).join('');
 }
