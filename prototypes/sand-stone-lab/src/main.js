@@ -16,8 +16,8 @@ const descriptions={
  sand:[['Foice do deserto','Uma lâmina de areia em crescente, com borda afiada, rastro de grãos e corte seco no final.','CORTE / VELOCIDADE'],['Muralha de siroco','A frente de areia se enrola em camadas altas. Poeira baixa, volume e detritos dão peso à passagem.','MASSA / TURBULÊNCIA'],['Marcha das dunas','Três cristas dentadas avançam em sequência, como uma barragem que cresce e ocupa o chão.','RITMO / PRESSÃO']],
  stone:[['Falha tectônica','O chão acende pelas fraturas, abre em uma pancada e expulsa uma coroa de pedra e poeira.','PESO / RUPTURA'],['Coroa de obsidiana','Uma erupção vertical lança lascas, partículas quentes e duas ondas de choque rápidas.','EXPLOSÃO / AGRESSIVIDADE'],['Selo de Gaia','Um círculo mineral se forma antes da subida; veios verdes e fragmentos suspensos sustentam a presença da rocha.','RITUAL / PODER']],
  rock:[['Bastião de basalto','Colunas de estratos irregulares, cortes de alturas diferentes e base quebrada.','VOLUME / DEFESA'],['Presa de obsidiana','Lâminas assimétricas, pontas inclinadas e veios quentes entre faces escuras.','SILHUETA / AMEAÇA'],['Relíquia telúrica','Um núcleo mineral antigo com coroa separada, veios frios e fragmentos suspensos.','IDENTIDADE / MISTÉRIO']],
- swift:[['Estrelas clássicas','Três estrelas douradas de recorte nítido, caudas estreitas e impacto breve. Prévia visual do Burst.','SILHUETA / PRECISÃO'],['Chuva de cometas','Três estrelas em profundidades diferentes, caudas alongadas e microfaíscas.','VELOCIDADE / CAMADAS'],['Constelação cinética','Estrelas escalonadas em sequência com órbitas gráficas efêmeras.','RITMO / LEITURA']],
- psyshock:[['Órbita psíquica','Pedras cercadas de anéis finos e orbes magenta.','ÓRBITA / PEDRA'],['Fratura mental','Pedras facetadas com fendas ciano e fragmentos de energia.','TENSÃO / FRATURA'],['Pressão dimensional','Anéis em camadas e pulsos em torno de cada pedra.','PRESSÃO / CAMADAS']]
+ swift:[['Lâminas solares','Estrelas de ouro com volume, fitas de luz e uma coroa cortante que se abre no impacto.','OURO / CORTE / COROA'],['Tempestade de cometas','Três núcleos estelares puxam caudas helicoidais, dispersam brasas e explodem em uma chuva de fragmentos.','HÉLICES / MASSA / EXPLOSÃO'],['Atlas estelar','Estrelas vazadas, órbitas e satélites compõem um mapa vivo. A constelação se rompe em um selo geométrico.','MAPA / GEOMETRIA / SELO']],
+ psyshock:[['Ressonância PSI','Losangos pixelados se propagam em faixas rosa, ciano e âmbar atrás das pedras orbitais. Grafismo inspirado em Mother 3 e EarthBound.','LOSANGOS / ECOS / ÓRBITAS'],['Ruptura PSI','Ondas serrilhadas e mosaicos cromáticos atravessam pedras fraturadas; o impacto explode em lascas e triângulos.','ZIGUE-ZAGUE / MOSAICO / FRATURAS'],['Vertigem PSI','Faixas concêntricas deformadas ondulam em um túnel psicodélico. As pedras avançam entre lentes e ondas cromáticas.','ONDULAÇÃO / PIXELS / TÚNEL']]
 };
 const state={category:'sand',variant:0,model:'match',presets:initialPresets(),time:0,playing:true,rate:.7,exposure:1.1,shake:.35,bloom:.48,reduce:false,loop:true,previewCount:5};
 const values=()=>state.presets[state.category]['ABC'[state.variant]];
@@ -25,6 +25,7 @@ const canvas=$('scene');let renderer;
 try{renderer=new T.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'});}catch(error){$('fatal').hidden=false;$('fatal').textContent='Não foi possível iniciar o 3D. Ative a aceleração gráfica do navegador.';throw error;}
 renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=state.exposure;
 renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFShadowMap;
+renderer.info.autoReset=false;
 const scene=new T.Scene();scene.background=new T.Color(0x0c141d);scene.fog=new T.FogExp2(0x0c141d,.028);
 const camera=new T.PerspectiveCamera(43,1,.1,80);
 const orbit=new OrbitControls(camera,canvas);orbit.enableDamping=true;orbit.minDistance=4;orbit.maxDistance=19;orbit.maxPolarAngle=Math.PI*.48;
@@ -48,8 +49,8 @@ const bloomPass=new UnrealBloomPass(new T.Vector2(1,1),state.bloom,.4,1.05);comp
 let effect=null,last=0,accumulator=0,lastWidth=0,lastHeight=0;
 const fixedStep=1/60;
 function construct(){
- particles.clear();disposeGroup(stage);state.time=0;accumulator=0;
- const p={...values()};if(state.reduce){p.density=(p.density??1)*.45;p.particleDensity=(p.particleDensity??1)*.45;p.sparks=(p.sparks??1)*.45;p.flash=(p.flash??1)*.45;p.impactIntensity=(p.impactIntensity??1)*.7;}
+ particles.clear();disposeGroup(stage);delete stage.userData.visualSignature;state.time=0;accumulator=0;
+ const p={...values()};if(state.reduce){p.density=(p.density??1)*.45;p.particleDensity=(p.particleDensity??1)*.45;p.sparks=(p.sparks??1)*.45;p.flash=(p.flash??1)*.45;p.impactIntensity=(p.impactIntensity??1)*.7;p.emissivity=(p.emissivity??1)*.45;p.shards=(p.shards??1)*.45;}
  effect=state.category==='sand'?new SandEffect(stage,particles,state.variant,p):state.category==='stone'?new StoneEffect(stage,particles,state.variant,p,texture,state.model==='match'?state.variant:Number(state.model)):state.category==='rock'?new RockEffect(stage,state.variant,{...p,wire:$('wire').checked},texture):state.category==='swift'?new SwiftEffect(stage,particles,state.variant,p):new PsyshockEffect(stage,particles,state.variant,p,state.previewCount);
  effect.update(0,0);$('scrub').max=effect.duration.toFixed(2);
 }
@@ -107,10 +108,11 @@ renderer.setAnimationLoop(now=>{
  resize();const elapsed=Math.min(.08,Math.max(0,(now-last)/1000));last=now;
  if(state.playing){accumulator+=elapsed*state.rate*(state.reduce?.65:1);while(accumulator>=fixedStep){accumulator-=fixedStep;state.time+=fixedStep;effect.update(state.time,fixedStep);particles.update(fixedStep);if(state.time>=effect.duration){if(state.loop)construct();else{state.time=effect.duration;state.playing=false;updatePlay();break;}}}}
  orbit.update();renderer.toneMappingExposure=state.exposure;bloomPass.strength=state.bloom;
- const punch=effect.punch??0;blast.intensity=punch*24;blast.position.z=state.category==='sand'?state.presets.sand['ABC'[state.variant]].length/2:0;
+ const punch=effect.punch??0;blast.intensity=punch*24;blast.position.z=state.category==='sand'?state.presets.sand['ABC'[state.variant]].length/2:state.category==='swift'?2.55:state.category==='psyshock'?2.4:0;
+ if(state.category==='swift'||state.category==='psyshock')blast.color.setHSL(values().primaryHue/360,.8,.62);else blast.color.setHex(0xffbb60);
  const shift=state.reduce?0:punch*state.shake*.075,save=camera.position.clone();camera.position.x+=Math.sin(state.time*151)*shift;camera.position.y+=Math.cos(state.time*127)*shift;
- composer.render();camera.position.copy(save);
+ renderer.info.reset();composer.render();camera.position.copy(save);
  $('phase').textContent=effect.phase;$('time').textContent=state.time.toFixed(2)+' / '+effect.duration.toFixed(2)+' s';$('scrub').value=state.time;$('quarks-status').textContent=particles.count+' partículas · '+renderer.info.render.calls+' draw calls · three.quarks';
 });
-window.__labDiagnostics=()=>({category:state.category,variant:state.variant,particleSystems:particles.systems.length,particles:particles.count,time:state.time,hasQuarks:typeof particles.renderer.addSystem==='function',version:3,drawCalls:renderer.info.render.calls});
+window.__labDiagnostics=()=>({category:state.category,variant:state.variant,particleSystems:particles.systems.length,particles:particles.count,time:state.time,hasQuarks:typeof particles.renderer.addSystem==='function',version:3,visualRevision:4,drawCalls:renderer.info.render.calls,geometries:renderer.info.memory.geometries,textures:renderer.info.memory.textures,visualSignature:stage.userData.visualSignature??'legacy'});
 refreshSelection();construct();frameCamera();

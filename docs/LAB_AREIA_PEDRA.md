@@ -1,5 +1,22 @@
 # Laboratório visual: Sand Wave e Emerging Stone
 
+## Revisão visual 4 — Swift e Psyshock (22/10/2026)
+
+Abra o atelier e confira **VOL. 04** no cabeçalho. [Comparação das seis opções em carga, voo e impacto](../prototypes/sand-stone-lab/evidence/revision-4/index.html), também acessível no portal, índice e central de testes.
+
+- Swift A — Lâminas solares: estrelas com volume e chanfro, lâminas de luz e coroa radial.
+- Swift B — Tempestade de cometas: núcleos menores, facetas de chama, caudas âmbar largas e explosão em ondas.
+- Swift C — Atlas estelar: estrelas vazadas, bússolas poligonais, satélites e constelação conectada.
+- Psyshock A — Ressonância PSI: losangos pixelados em expansão, pedras orbitais e ecos cromáticos.
+- Psyshock B — Ruptura PSI: ondas serrilhadas, mosaico, minerais fraturados e estilhaços triangulares.
+- Psyshock C — Vertigem PSI: faixas concêntricas deformadas, lentes e túnel com superfície de energia.
+
+A direção PSI segue o pedido de inspiração em Mother 3 e EarthBound, com grafismos procedurais originais, cores em faixas e animação em passos. Sem sprites extraídos. As pedras continuam legíveis e os sliders de cor, opacidade, emissividade e pulsação afetam as novas camadas. Movimento reduzido também diminui emissividade e fragmentos. A revisão visual é 4; o formato JSON permanece compatível com a versão 3 do atelier.
+
+Implementação: módulos Swift/Psyshock separados, ribbons dinâmicos, fragmentos instanciados e shaders de halo, lente e padrões PSI. Diagnóstico de draw calls agora inclui a cena e o pós-processamento. A galeria contém 18 capturas e diagnóstico de limpeza de geometrias/texturas. Verificação artística por capturas no Edge/SwiftShader; desempenho em GPU física e aprovação artística do usuário não foram verificados. Sem alteração nas regras de combate.
+
+Validação: TypeScript do atelier, 15 ciclos CPU e presets JSON; builds do atelier e combate. O comando global npm run verify continua limitado pelas cópias de skills ausentes/divergentes, problema anterior. Script de inspeção: node prototypes/sand-stone-lab/visual-review.mjs.
+
 ## Ampliação do atelier (22/10/2026)
 
 O mesmo HTML offline agora inclui cinco categorias e 15 alternativas: Sand Wave, Emerging Stone, modelos de rocha, Swift e Psyshock, cada uma em A/B/C. As nove opções anteriores permanecem. Swift mostra três estrelas como prévia do Burst atual; Psyshock apresenta de 3 a 8 pedras conforme o estágio de carga escolhido **apenas para inspeção**, sem executar a simulação. Nenhum parâmetro visual altera dano, trajetória, hitbox ou regras de combate.

@@ -173,3 +173,8 @@ Cada entrada: data · tarefa · skill · o que foi aplicado de fato.
 - `game-feel`: separou preparação, voo, impacto e dissipação; movimento reduzido limita partículas, flash e tremor.
 - `shader-programming`: ampliou o shader da areia com ondulação, cor e brilho de borda controláveis.
 - Three.js compõe as geometrias sólidas; Quarks emite estrelas, orbes, poeira e fragmentos. TypeScript define presets, schema e as seis novas prévias.
+
+### 2026-10-22 — Revisão visual 4 / PSI
+
+- arenamon-routing, game-feel e shader-programming: seis silhuetas e impactos distintos, ribbons com fade, fragmentos instanciados e padrões PSI pixelados inspirados na direção pedida de Mother 3/EarthBound.
+- Evidências: prototypes/sand-stone-lab/evidence/revision-4/index.html; entrada pelo portal oficial.
