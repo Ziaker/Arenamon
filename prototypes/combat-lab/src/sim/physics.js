@@ -264,6 +264,7 @@ export function stepPhysics(fighters, dt, world = null) {
       if (w.t >= w.duration - 1e-8) {f.wallSplat = null;if (f.flight) f.state = 'airborne';}
       continue;
     }
+    if (f.ledge) {f.velocity = vec();pushVel.set(f.id, vec());continue;}   // Ledge Grab: posição e altura conduzidas por ledge.js (sem gravidade nem queda de borda)
     if (f.flight) {
       const flight = f.flight;
       flight.y ??= f.groundY ?? 0;

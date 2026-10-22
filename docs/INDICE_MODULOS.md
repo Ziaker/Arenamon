@@ -38,6 +38,7 @@
 | `scenarios-collision.js` | 15 cenários de um clique de colisão (aba Cenários) | `collision-scenarios` |
 | `view/collision-overlays.js` | 5 sobreposições visuais de colisão (aba Visualizar) e linhas de «Dados ao vivo» | `collision-tools`, `collision-tools.browser` |
 | `moves/reflect.js` · `moves/psyshock.js` · `moves/rng.js` · `moves/standard.js` | Definição e efeito do Reflect · do Psyshock · sorteios determinísticos · registro dos Moves padrão (chamado só pelo bootstrap, D2) | `reflect`, `psyshock` |
+| `ledge.js` | **Ledge Grab & Mantle**: `findLedge`, `ledgeUpdate` (agarrar, encaixe → pendurado → subida, soltar); parâmetros em `C.ledge` | `ledge`, `ledge.browser` |
 | `air.js` | **Moves no ar**: `isAirJump`, `isVaultArc`, `vaultToFlight`, `takeOffToLift`/`applyLift` e o campo `air` das definições (`cast`/`descend`/`none`) | `moves-air`, `moves-softlock` |
 | `calibration-base.js` | Base de calibração do responsável (184 linhas `[caminho, novo, anterior]`, reversíveis) aplicada por `defaults()` | `calibration-base` |
 | `view/riposte-fx.js` · `ui/hover-tip.js` | Visual do Riposte (postura e contra-golpe) · dica flutuante (`data-tip`) usada nas seleções de Moves e passivas | `moves-ui.browser` |

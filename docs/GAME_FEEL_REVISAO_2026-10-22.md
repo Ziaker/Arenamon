@@ -13,7 +13,7 @@ Base: `main` @ v1.18.2. Fontes lidas: PR #98 (`docs/PROPOSTA_RESPONSIVE_MOVEMENT
 | **GF-03 Coyote + Jump Buffer** | «Salto normal planejado, não implementado» | **Implementado** (Plano D, v1.15): coyote 0,10 s, buffer 0,12 s, salto normal, footstool | **Implementado** (valores de ensaio do doc coincidem: 0,08–0,10 e 0,10–0,15) |
 | **GF-04 Ground Snap + Step Assist** | Depende de apoio 3D | Contrato de apoio físico (`groundSurface`, `f.support`, v1.15.10), queda de borda e tolerância de montagem (`map.mountTolerance` 0,25 m). Não há *step assist* nem *snap* dedicados | **Parcial**: apoio sim; degrau e snap não |
 | **GF-05 Adaptive Hitstop** | Hitstop fixo 0,035/0,085 s | Hitstop por faixa de dano existe (`hitstopDamageBoost`/`hitstopDamageRef`, v1.13.0; teste `hitstop-tiers`), **desligado por padrão** (0). Sem assinatura própria por evento (clash, defesa perfeita, slam) | **Parcial** |
-| **#95 Ledge Grab & Mantle** | Ideia | Nenhum código | **Pendente**, não aprovada |
+| **#95 Ledge Grab & Mantle** | Ideia | **Implementado na v1.19.0** com decisões provisórias e controles (`docs/LEDGE_GRAB.md`) | **Implementado, aguardando decisão e homologação** |
 | **#96 Directional Influence** | Ideia | Nenhum código (existe só o controle aéreo do salto e o recovery rápido com C) | **Pendente**, não aprovada |
 | **#97 Wall Tech** | Ideia | Nenhum código (wall-splat existe; tech de chão existe; tech de parede não) | **Pendente**, não aprovada |
 

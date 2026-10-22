@@ -60,6 +60,7 @@ export const invulnerableWindow = action => {
   return C.actions[action?.kind]?.invulnerable ?? 0;
 };
 export function isInvulnerable(f) {
+  if (f?.ledge?.invuln > 0) return true;   // subida da borda com i-frames (ledge.climbInvuln)
   if (!C.extras?.toggles?.enableInvulnerability || !f?.action) return false;
   if (f.action.invulnerableFor === 0) return false;
   const kind = f.action.kind;
