@@ -220,7 +220,32 @@ function settleStatics(f, world, events) {
   return true;
 }
 export function stepPhysics(fighters, dt, world = null) {
-  const R = C.rules, X = C.extras.combat, T = C.extras.toggles, events = [], pushVel = new Map();
+  const R = C.rules, X = C.extras.combat, T = C.extras.toggles, events = [], pushVel = new Map(), startY = new Map();
+  /** Pouso de um voo: cruzou o topo vindo de cima. Compartilhado pelo teste do início do passo e pela reconferência depois do deslocamento horizontal. */
+  const land = (f, flight, targetGround) => {
+    flight.y = targetGround;
+    f.groundY = targetGround;
+    // Evento real de colisão com o solo (usado pelos efeitos visuais): velocidade vertical e horizontal no contato.
+    f.lastLanding = {n: (f.lastLanding?.n ?? 0) + 1, vertical: Math.max(0, -flight.vy), horizontal: length(flight.horizontal), x: f.position.x, z: f.position.z};
+    f.landingSlide = T.enableLandingSkid ? {velocity: scale(flight.horizontal, X.landingSkidFraction)} : null;
+    f.flight = null;f.velocity = vec();
+    const wasNormalJump = !!f.normalJumpLanding;
+    // Inner Focus: hit stun reduzido em 20% quando o lançamento veio de um golpe (launch(); edge-fall/jump não marca).
+    const stunFactor = f.launchedByHit ? hitStunFactor(f) : 1;
+    f.launchedByHit = false;
+    f.knockRecovery = flight.bounce ? (f.hp <= 0 ? 0 : flight.bounce.recovery) : (wasNormalJump || f.hp <= 0) ? 0 : R.landingRecovery * stunFactor; // derrotado não tem recuperação de pouso; Bounce: recuperação própria
+    f.recoveryFrom = null;
+    f.normalJumpLanding = false;
+    f.state = f.hp <= 0 ? 'defeated' : (wasNormalJump ? 'neutral' : 'landing');
+    if (f.jumpState) {
+      f.jumpState.canJump = false;
+      f.jumpState.cooldown = C.map?.jumpInterval ?? 0.25;
+    }
+    f.coyoteLeft = 0;f.footstoolDoneWith = null;f.airMoveDir = null;
+    // Recovery rápido: C apertado a tempo no ar e stamina suficiente: ao tocar o chão, a esquiva sai na hora (o controlador a inicia).
+    const tech = f.tech;f.tech = null;
+    if (T.enableTechRecovery && tech && f.hp > 0 && f.stamina >= passiveCost(f, 'tech', R.techCost) - 1e-8 && (R.techCost <= 0 || !f.exhausted)) {f.knockRecovery = 0;f.landingSlide = null;f.techDodge = {dir: tech.dir};f.state = 'neutral';}
+  };
   for (const f of fighters) {
     f.contacts = 0;ageSurfaces(f);   // normais de contato (deslize na locomoção): renovadas pelos toques deste passo; o controlador as lê no próximo tick
     // Preso na parede: suspenso (sem gravidade nem movimento) até acabar a janela; depois volta a cair.
@@ -259,7 +284,7 @@ export function stepPhysics(fighters, dt, world = null) {
       if (flight.isEdgeFall) f.coyoteLeft = Math.max(0, (f.coyoteLeft ?? 0) - dt);   // coyote só em queda natural
       f.footstoolCooldownT = Math.max(0, (f.footstoolCooldownT ?? 0) - dt);
       // Voo balístico de passo fixo: gravidade na altura e arrasto exponencial no plano.
-      const prevY = flight.y;
+      const prevY = flight.y;startY.set(f.id, prevY);
       flight.y += flight.vy * dt - .5 * g * dt * dt;
       flight.vy -= g * dt;
       // Teto: subindo e cruzando a face inferior de uma plataforma/obstáculo/destrutível sólido, a subida para ali.
@@ -290,28 +315,7 @@ export function stepPhysics(fighters, dt, world = null) {
       // topo em queda livre (ex.: obstáculo de 2,0 m com salto de 2,0 m). 1 mm absorve a discretização sem
       // permitir pouso vindo de baixo (quem sobe tem vy > 0; quem desliza pela lateral já está descendo).
       if (flight.vy <= 0 && flight.y <= targetGround && prevY >= targetGround - 1e-3) {
-        flight.y = targetGround;
-        f.groundY = targetGround;
-        // Evento real de colisão com o solo (usado pelos efeitos visuais): velocidade vertical e horizontal no contato.
-        f.lastLanding = {n: (f.lastLanding?.n ?? 0) + 1, vertical: Math.max(0, -flight.vy), horizontal: length(flight.horizontal), x: f.position.x, z: f.position.z};
-        f.landingSlide = T.enableLandingSkid ? {velocity: scale(flight.horizontal, X.landingSkidFraction)} : null;
-        f.flight = null;f.velocity = vec();
-        const wasNormalJump = !!f.normalJumpLanding;
-        // Inner Focus: hit stun reduzido em 20% quando o lançamento veio de um golpe (launch(); edge-fall/jump não marca).
-        const stunFactor = f.launchedByHit ? hitStunFactor(f) : 1;
-        f.launchedByHit = false;
-        f.knockRecovery = flight.bounce ? (f.hp <= 0 ? 0 : flight.bounce.recovery) : (wasNormalJump || f.hp <= 0) ? 0 : R.landingRecovery * stunFactor; // derrotado não tem recuperação de pouso; Bounce: recuperação própria
-        f.recoveryFrom = null;
-        f.normalJumpLanding = false;
-        f.state = f.hp <= 0 ? 'defeated' : (wasNormalJump ? 'neutral' : 'landing');
-        if (f.jumpState) {
-          f.jumpState.canJump = false;
-          f.jumpState.cooldown = C.map?.jumpInterval ?? 0.25;
-        }
-        f.coyoteLeft = 0;f.footstoolDoneWith = null;f.airMoveDir = null;
-        // Recovery rápido: C apertado a tempo no ar e stamina suficiente: ao tocar o chão, a esquiva sai na hora (o controlador a inicia).
-        const tech = f.tech;f.tech = null;
-        if (T.enableTechRecovery && tech && f.hp > 0 && f.stamina >= passiveCost(f, 'tech', R.techCost) - 1e-8 && (R.techCost <= 0 || !f.exhausted)) {f.knockRecovery = 0;f.landingSlide = null;f.techDodge = {dir: tech.dir};f.state = 'neutral';}
+        land(f, flight, targetGround);
       } else {f.velocity = {...flight.horizontal};f.state = 'airborne';}
       // Footstool (Plano D, Etapa 3): ataque de contato superior do salto normal. Só vale com salto voluntário
       // (isNormalJump — inclui o salto de coyote, que converte o voo): quem apenas caiu da borda de uma plataforma
@@ -487,6 +491,14 @@ export function stepPhysics(fighters, dt, world = null) {
         if (!f.absent && settleStatics(f, world, events)) pinned.add(f.id);
       }
     }
+  }
+  // Pouso pela lateral: o teste do início do passo consulta o apoio na posição ANTERIOR ao deslocamento horizontal. Um voo descendo que entra na
+  // faixa de apoio de um topo neste mesmo passo (pés a milímetros acima dele no início) não pousava; afundava até a ejeção lateral. Reconfere com a posição final.
+  for (const f of fighters) {
+    const flight = f.flight, was = startY.get(f.id);
+    if (!flight || was === undefined || f.wallSplat || flight.vy > 0 || f.absent) continue;
+    const target = getGroundHeight(f.position, world, flight.y);
+    if (flight.y <= target && was >= target - 1e-3) land(f, flight, target);
   }
   // Wall-splat que começou neste passo: evento e dano extra (slider; 0 por padrão).
   for (const f of fighters) {

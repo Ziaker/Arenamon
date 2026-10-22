@@ -68,6 +68,23 @@ check('cenários 3D: plataforma é sólida na lateral; destrutível destruído s
   d.state = 'dead';run(h, 120);
   assert.equal(h.fighters[0].groundY, 0);assert.equal(h.fighters[0].flight, null);assert.equal(h.fighters[0].support.kind, 'ground');
 });
+check('pouso pela lateral: descendo sobre o topo e entrando na faixa de apoio no mesmo passo, pousa (não afunda nem é ejetado de lado)', () => {
+  // Origem (fuzz de partidas da Fase 6, seed 1): a consulta de apoio usava a posição ANTES do deslocamento horizontal do passo; o lutador cruzava a borda do topo
+  // com os pés a milímetros acima dele, entrava na faixa de apoio já abaixo do topo (prevY < topo) e "afundava" até a ejeção lateral de até 78 cm.
+  for (const [vx, vz] of [[6, 0], [-6, 0], [0, 6], [0, -6], [4.2, 4.2], [-4.2, 4.2]]) for (const off of [.001, .005, .02, .04]) {
+    const g = lab({a: vec(0, 0), map: {platforms: [{id: 'pl', pos: {x: 0, z: 0}, width: 3, depth: 3, height: 1.5}]}});
+    const f = g.fighters[0], n = Math.hypot(vx, vz), edge = 1.5 + .25;   // borda da faixa de apoio (meia largura + margem de pé)
+    f.position = vec(-vx / n * (edge + .03), -vz / n * (edge + .03));f.groundY = 0;
+    f.flight = {y: 1.5 + off, vy: -2, horizontal: vec(vx, vz)};f.launchedByHit = true;
+    const start = {...f.position};let maxJump = 0, last = {...f.position};
+    for (let t = 0; t < 40 && f.flight; t++) {g.step(emptyCommand(), emptyCommand());maxJump = Math.max(maxJump, Math.hypot(f.position.x - last.x, f.position.z - last.z));last = {...f.position};}
+    assert.equal(f.flight, null, `vx ${vx} vz ${vz} off ${off}: não pousou`);
+    run(g, 2);
+    assert.equal(f.support?.kind, 'platform', `vx ${vx} vz ${vz} off ${off}: pousou fora da plataforma (${f.support?.kind})`);
+    assert.ok(Math.abs(f.groundY - 1.5) < 1e-9);
+    assert.ok(maxJump < Math.hypot(vx, vz) * C.test.step * 1.5 + 1e-6, `vx ${vx} vz ${vz} off ${off}: deslocamento lateral súbito de ${maxJump.toFixed(3)} m`);
+  }
+});
 check('fuzz determinístico: 400 lançamentos aleatórios em mapas aleatórios terminam apoiados, sem flutuar, afundar nem NaN', () => {
   const rng = seed => () => {seed |= 0;seed = seed + 0x6D2B79F5 | 0;let t = Math.imul(seed ^ seed >>> 15, 1 | seed);t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;return ((t ^ t >>> 14) >>> 0) / 4294967296;};
   const bad = [];
