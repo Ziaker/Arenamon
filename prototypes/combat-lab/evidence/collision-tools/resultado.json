@@ -1,5 +1,5 @@
 {
- "when": "2026-10-22T03:53:16.848Z",
+ "when": "2026-10-22T04:15:00.220Z",
  "failures": 0,
  "report": [
   {
@@ -25,7 +25,7 @@
   {
    "label": "Dados ao vivo: linhas de apoio, último contato e objetos do cenário",
    "ok": true,
-   "detail": "Distância entre centros30.86 mEspaço entre colisores29.86 mVelocidade de aproximação-6.05 m/sAzul (física)neutral · |v| "
+   "detail": "Distância entre centros30.75 mEspaço entre colisores29.75 mVelocidade de aproximação1.45 m/sAzul (física)neutral · |v| 0"
   },
   {
    "label": "Sem erros no console durante os cenários e as sobreposições",

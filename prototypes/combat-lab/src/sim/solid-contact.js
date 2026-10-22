@@ -32,7 +32,7 @@ export function circleContact(center, solidRadius, p, radius) {
  */
 export function solidContact(solid, p, radius) {
   if (!(radius >= 0) || !Number.isFinite(p.x) || !Number.isFinite(p.z)) return null;
-  if (solid.shape === 'circle') return circleContact(solid.pos, solid.radius, p, radius);
+  if (solid.shape === 'circle') return circleContact(solid.pos, solid.radius ?? 0, p, radius);
   if (solid.shape !== 'box') return null;
   const hx = solid.hx ?? 0, hz = solid.hz ?? 0;
   if (!(hx > 0 && hz > 0)) return null;

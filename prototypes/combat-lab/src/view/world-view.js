@@ -904,7 +904,7 @@ export class WorldView {
       let m = this.mapMeshes.get(o.id);
       if (!m) {
         let geo;
-        if (o.shape === 'cylinder') {
+        if (o.shape === 'cylinder' || o.shape === 'pillar') {   // pilar colide como círculo: desenhado como cilindro (visual = físico)
           geo = new T.CylinderGeometry(o.radius, o.radius, o.height, 24);
         } else {
           geo = new T.BoxGeometry(o.hx * 2, o.height, o.hz * 2);

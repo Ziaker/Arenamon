@@ -145,7 +145,7 @@ export function clampToArena(f) {
     if (d > bound + 1e-9) {   // tolerância de 1 nm: o reposicionamento em `bound` pode sobrar 1 ulp e não conta como novo contato
       f.contacts++;
       const nOut = d > 1e-7 ? scale(f.position, 1 / d) : vec(1, 0);
-      const nIn = scale(nOut, -1), v0 = horizontalOf(f), depth = d - bound;
+      const nIn = scale(nOut, -1), v0 = horizontalOf(f), depth = d - bound;   // (só no toque com a borda)
       f.position = scale(nOut, bound);
 
       if (f.flight && tryWallSplat(f, nIn)) {
@@ -166,7 +166,7 @@ export function clampToArena(f) {
           f.velocity = sub(f.velocity, scale(nOut, vDotN));
         }
       }
-      noteContact(f, 'arena', null, nIn, depth, v0);
+      noteContact(f, 'arena', null, nIn, depth, v0.x, v0.z);
     }
     return;
   }
@@ -226,6 +226,7 @@ export function stepPhysics(fighters, dt, world = null) {
   collisionProbe.step++;
   /** Pouso de um voo: cruzou o topo vindo de cima. Compartilhado pelo teste do início do passo e pela reconferência depois do deslocamento horizontal. */
   const land = (f, flight, targetGround) => {
+    startY.delete(f.id);   // o voo acabou: um relançamento no mesmo passo não pode ser «pousado» de novo pela reconferência
     flight.y = targetGround;
     f.groundY = targetGround;
     // Evento real de colisão com o solo (usado pelos efeitos visuais): velocidade vertical e horizontal no contato.

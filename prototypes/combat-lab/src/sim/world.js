@@ -154,12 +154,12 @@ export function collideFighter(world, f, events = null) {
     const contact = solidContact(e, f.position, r);if (!contact) continue;
     if (e.breakableByTackle && f.action?.kind === 'tackle' && !f.action.neutralized) {breakByTackle(e, f, events);continue;}
     // Saída pela menor translação real (solid-contact.js): vale também com o centro já DENTRO da forma.
-    const n = contact.normal, v0 = horizontalOf(f);
+    const n = contact.normal, v0 = horizontalOf(f);   // (dentro do contato: uma alocação só quando há toque)
     f.position = add(f.position, scale(n, contact.depth));
     const into = dot(f.velocity, n);if (into < 0) f.velocity = sub(f.velocity, scale(n, into));
     if (f.flight) {const hv = dot(f.flight.horizontal, n);if (hv < 0) f.flight.horizontal = sub(f.flight.horizontal, scale(n, (1 + C.rules.wallRestitution) * hv));}
     if (f.locomotionVelocity) {const lv = dot(f.locomotionVelocity, n);if (lv < 0) f.locomotionVelocity = sub(f.locomotionVelocity, scale(n, lv));}
-    f.contacts++;contacts++;noteContact(f, e.kind, e.id, n, contact.depth, v0);
+    f.contacts++;contacts++;noteContact(f, e.kind, e.id, n, contact.depth, v0.x, v0.z);
   }
   return contacts;
 }

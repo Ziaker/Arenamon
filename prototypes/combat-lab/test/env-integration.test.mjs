@@ -63,20 +63,21 @@ for (const [label, first] of [['Tackle', cmd({tackle: true, move: vec(0, 1)})], 
 check('Tackle em destrutível: o dano é aplicado UMA vez por ação (não repete enquanto o lutador continua encostado)', () => {
   const r = run('destrutível', cmd({tackle: true, move: vec(0, 1)}), cmd({move: vec(0, 1)}), 600);
   const d = r.g.mapState.destructibles[0], dmg = C.rules.tackleDamage ?? 10;
-  assert.ok(Math.abs((d.maxHp - d.hp) - dmg) < 1e-6 || d.state !== 'solid', `dano ${d.maxHp - d.hp} (esperado ${dmg} uma vez)`);
+  assert.ok(Math.abs((d.maxHp - d.hp) - dmg) < 1e-6, `dano ${d.maxHp - d.hp} (esperado ${dmg} uma vez; estado ${d.state})`);
 });
 for (const kind of Object.keys(WITH)) {
   check(`arremesso por golpe contra ${kind}: não penetra, pousa, estados terminam e só o destrutível causa dano ambiental`, () => {
     const g = lab(kind), f = g.fighters[0];
     f.flight = {y: .01, vy: 6, horizontal: vec(0, 12)};f.launchedByHit = true;f.state = 'airborne';
-    let maxZ = -9, splat = false, hp0 = f.hp;
-    for (let t = 0; t < 600; t++) {fine(g);maxZ = Math.max(maxZ, f.position.z);splat ||= f.state === 'wallSplat' || !!f.wallSplat;}
+    let maxZ = -9, splat = false, hp0 = f.hp, back = false;
+    for (let t = 0; t < 600; t++) {fine(g);maxZ = Math.max(maxZ, f.position.z);splat ||= f.state === 'wallSplat' || !!f.wallSplat;if (f.flight && f.flight.horizontal.z < -0.5) back = true;}
     const onTop = kind === 'plataforma' && f.groundY > 0.5;   // pode pousar no topo da plataforma (R7.14)
     const broken = kind === 'destrutível' && g.mapState.destructibles[0].state !== 'solid';   // destruído pelo impacto: deixa de ser sólido e o corpo segue
     if (!onTop && !broken) assert.ok(maxZ + C.test.halfExtent <= FACE[kind] + 1e-6 || f.groundY > 0.5, `penetrou ${(maxZ + C.test.halfExtent - FACE[kind]).toFixed(4)} m`);
     assert.equal(f.flight, null, 'ainda em voo');
     assert.ok(f.action === null && ['neutral', 'landing'].includes(f.state), `estado final ${f.state}`);
     assert.ok(!splat, 'wall-splat só existe na borda da arena, não em objetos');
+    if (kind === 'pilar' || kind === 'caixa') assert.ok(back, 'R3.12: o arremessado deve rebater (velocidade z invertida)');
     if (kind === 'destrutível') assert.ok(f.hp < hp0 && g.mapState.destructibles[0].hp < 30, 'R3.7/R7.15: dano nos dois lados');
     else assert.equal(f.hp, hp0, 'objeto indestrutível/plataforma não causa dano (rebote R3.12)');
   });

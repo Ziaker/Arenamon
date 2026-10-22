@@ -10,7 +10,7 @@ import {getFighterMaxStamina} from './entity.js';
 import {sturdyGuard} from './passive-engine.js';
 import {circleContact, noteSurface} from './solid-contact.js';
 import {vec, add, sub, scale, length, normalize, dot, clamp, direction, angleOf} from './math.js';
-import {noteContact, horizontalOf} from './collision-probe.js';
+import {noteContact} from './collision-probe.js';
 
 export const MAP_DEFAULTS = {
   arenaRadius: 32.5,
@@ -192,7 +192,7 @@ function footprintOf(kind, o, pos = o.pos) {
   if (kind === 'destructible') return {x: pos.x, z: pos.z, hx: o.size.hx, hz: o.size.hz};
   return o.shape === 'box' ? {x: pos.x, z: pos.z, hx: o.hx, hz: o.hz} : {x: pos.x, z: pos.z, r: o.radius};
 }
-export function isValidSpawnPosition(pos, radius, mapState, fighters = [], minDistFighter = 5.0, solid = null) {
+export function isValidSpawnPosition(pos, radius, mapState, fighters = [], minDistFighter = 5.0, solid = /** @type {any} */ (null)) {
   const arenaR = effectiveArenaRadius();
   const dCenter = Math.hypot(pos.x, pos.z);
   // Deve estar dentro da arena com margem
@@ -244,7 +244,7 @@ export function isValidSpawnPosition(pos, radius, mapState, fighters = [], minDi
  * Se o ponto sorteado for inválido, espirala para fora até encontrar uma válida.
  * Se nenhuma for encontrada após tentativas, retorna null para adiar (R10.6).
  */
-export function findNearestValidPosition(candidate, radius, mapState, fighters = [], maxAttempts = 32, solid = null) {
+export function findNearestValidPosition(candidate, radius, mapState, fighters = [], maxAttempts = 32, solid = /** @type {any} */ (null)) {
   if (isValidSpawnPosition(candidate, radius, mapState, fighters, 5.0, solid)) return candidate;
 
   const stepDist = 1.5;
@@ -290,11 +290,11 @@ export function fighterBlocksBox(fighters, x, z, hx, hz, y0, y1) {
  * sem consumir RNG (as demais seeds ficam idênticas). Sem posição válida, mantém a sorteada e registra em mapState.placementConflicts.
  */
 function clearPlatformsOfFighters(mapState, fighters) {
-  const arenaR = effectiveArenaRadius(), square = (C.map?.arenaShape ?? 'circle') === 'square', half = C.test?.arenaHalf ?? 16;
+  const arenaR = effectiveArenaRadius(), square = (C.map?.arenaShape ?? 'circle') === 'square', half = C.test?.arenaHalf ?? 16, passage = C.map?.passageClearance ?? MAP_DEFAULTS.passageClearance;
   // Mesmo contorno do clampToArena: circular (raio − 2 m de margem) ou, na arena quadrada, o meio-lado.
   const inside = (p, pos) => square ? Math.max(Math.abs(pos.x) + p.width / 2, Math.abs(pos.z) + p.depth / 2) <= half : Math.hypot(pos.x, pos.z) + Math.hypot(p.width, p.depth) / 2 <= arenaR - 2.0;
   const clear = (p, pos, placed) => !fighterBlocksBox(fighters, pos.x, pos.z, p.width / 2, p.depth / 2, 0, p.height)
-    && placed.every(o => Math.abs(pos.x - o.pos.x) >= (p.width + o.width) / 2 + 0.5 || Math.abs(pos.z - o.pos.z) >= (p.depth + o.depth) / 2 + 0.5)
+    && placed.every(o => Math.abs(pos.x - o.pos.x) >= (p.width + o.width) / 2 + passage || Math.abs(pos.z - o.pos.z) >= (p.depth + o.depth) / 2 + passage)
     && inside(p, pos);
   const placed = [];
   for (const p of mapState.platforms) {
@@ -934,7 +934,7 @@ function bounceOffSolid(f, n) {
 }
 export function collideMapFighter(mapState, f, events = []) {
   if (!mapState) return;
-  const v0 = horizontalOf(f);   // velocidade horizontal antes de qualquer contato desta chamada (sonda de colisão)
+  const hv0 = f.flight?.horizontal ?? f.velocity, v0x = hv0.x, v0z = hv0.z;   // velocidade horizontal antes de qualquer contato desta chamada (sonda de colisão; sem alocação)
   const halfExtent = C.test?.halfExtent ?? 0.35;
   const currentY = f.flight ? (f.flight.y ?? (f.groundY ?? 0)) : (f.groundY ?? 0);
   const fY = currentY + (f.vaultHeight ?? 0);
@@ -964,7 +964,7 @@ export function collideMapFighter(mapState, f, events = []) {
           if (f.velocity.z * sign < 0) f.velocity.z = 0;
           if (f.flight && !f.flight.isNormalJump && f.flight.horizontal.z * sign < 0) f.flight.horizontal.z = 0;
         }
-        f.contacts++;noteContact(f, 'platform', p.id ?? null, n, Math.min(ox, oz), v0);
+        f.contacts++;noteContact(f, 'platform', p.id ?? null, n, Math.min(ox, oz), v0x, v0z);
       }
     }
   }
@@ -997,7 +997,7 @@ export function collideMapFighter(mapState, f, events = []) {
             noteSurface(f, n);
           }
           // Ação em curso (tackle, esquiva...): a velocidade pertence à ação; só a posição é corrigida.
-          f.contacts++;noteContact(f, 'obstacle', o.id ?? null, n, contact.depth, v0);
+          f.contacts++;noteContact(f, 'obstacle', o.id ?? null, n, contact.depth, v0x, v0z);
         }
       } else {
         const dx = f.position.x - o.pos.x, dz = f.position.z - o.pos.z;
@@ -1022,7 +1022,7 @@ export function collideMapFighter(mapState, f, events = []) {
               if (f.flight && !f.flight.isNormalJump && f.flight.horizontal.z * sign < 0) f.flight.horizontal.z = 0;
             }
           }
-          f.contacts++;noteContact(f, 'obstacle', o.id ?? null, n, Math.min(ox, oz), v0);
+          f.contacts++;noteContact(f, 'obstacle', o.id ?? null, n, Math.min(ox, oz), v0x, v0z);
         }
       }
     }
@@ -1067,7 +1067,7 @@ export function collideMapFighter(mapState, f, events = []) {
             if (f.velocity.z * sign < 0) f.velocity.z = 0;
             if (f.flight && !f.flight.isNormalJump && f.flight.horizontal.z * sign < 0) f.flight.horizontal.z = 0;
           }
-          f.contacts++;noteContact(f, 'destructible', d.id ?? null, n, Math.min(ox, oz), v0);
+          f.contacts++;noteContact(f, 'destructible', d.id ?? null, n, Math.min(ox, oz), v0x, v0z);
         }
       }
     }

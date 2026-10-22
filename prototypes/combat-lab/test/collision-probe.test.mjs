@@ -58,12 +58,26 @@ check('projétil rápido contra barreira fina: a varredura registra o trecho, o 
   assert.ok(Math.abs(hit.hit.z - (4 - .01 - .035)) < 0.02, `ponto ${hit.hit.z}`);
   assert.ok(hit.a.z < hit.b.z + 1e-9 && hit.by, 'trecho sem origem/bloqueador');
 });
-check('a sonda é limitada (varreduras) e não entra no save: o estado salvo é idêntico com e sem leitura da sonda', () => {
+check('a sonda é limitada (64 varreduras) e fora do save', () => {
   const g = lab();
   for (let i = 0; i < 400; i++) spawn(g.world, {kind: 'projectile', owner: 0, pos: {x: 0, z: -1}, angle: 0, speed: 30, radius: .1, y: .65, life: 1, hit: {damage: 1}}, []);
   run(g, 20);
   assert.ok(collisionProbe.sweeps.length <= 64, `${collisionProbe.sweeps.length} varreduras guardadas`);
   assert.ok(!JSON.stringify(g.save?.() ?? {}).includes('byFighter'));
+});
+check('determinismo: duas partidas iguais, uma com a sonda adulterada/zerada a cada passo, terminam com o MESMO estado (a simulação nunca lê a sonda)', () => {
+  const play = tamper => {
+    resetCollisionProbe();
+    const g = lab({obstacles: [{id: 'pi', shape: 'pillar', pos: {x: 0, y: 0, z: 5}, hx: .9, hz: .9, radius: .9, height: 4.5, angle: 0}], platforms: [{id: 'pl', pos: {x: 6, y: 0, z: 0}, width: 3, depth: 3, height: 1}]}), f = g.fighters[0];
+    f.flight = {y: .01, vy: 5, horizontal: vec(3, 12)};f.launchedByHit = true;f.state = 'airborne';
+    spawn(g.world, {kind: 'projectile', owner: 1, pos: {x: 0, z: -3}, angle: 0, speed: 20, radius: .1, y: .65, life: 2, hit: {damage: 3}}, []);
+    for (let t = 0; t < 600; t++) {
+      if (tamper) {collisionProbe.byFighter[0] = {step: 1e9, kind: 'x', id: 'junk', normal: {x: 9, z: 9}, depth: 99, vBefore: {x: 9, z: 9}, vAfter: {x: 9, z: 9}, x: 0, z: 0};collisionProbe.step += 13;if (t % 50 === 0) resetCollisionProbe();}
+      g.step(t < 300 ? {...emptyCommand(), move: vec(0, 1)} : emptyCommand(), emptyCommand());
+    }
+    return JSON.stringify([g.fighters.map(x => [x.position, x.velocity, x.hp, x.stamina, x.groundY, x.state]), g.mapState.obstacles, g.world.entities.length]);
+  };
+  assert.equal(play(false), play(true));
 });
 
 console.log(`Sonda de colisão: ${tests} verificações aprovadas, ${failures.length} falhas.`);

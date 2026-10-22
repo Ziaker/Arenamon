@@ -9,6 +9,7 @@ import {Recorder} from './sim/telemetry.js';
 import {ReplayBuffer} from './sim/replay.js';
 import {SCENARIOS, prepareScenario, runScenario} from './sim/scenarios.js';
 import {collisionRows} from './view/collision-overlays.js';
+import {resetCollisionProbe} from './sim/collision-probe.js';
 import {View, OVERLAYS} from './view/view.js';
 import {Character, loadStudioFile, studioWindows, compareWindows} from './view/characters.js';
 import {createCharacterPanel} from './ui/characters-panel.js';
@@ -113,7 +114,7 @@ async function triggerWarmup({force = false} = {}) {
     }
   }
 }
-function resetViewAndLogs() {view.reset(game.fighters[0]);recorder.clear();replay.clear();pushReplay();dock.invalidate();clock.reset();}
+function resetViewAndLogs() {resetCollisionProbe();view.reset(game.fighters[0]);recorder.clear();replay.clear();pushReplay();dock.invalidate();clock.reset();}
 function startMatch({playback = null} = {}) {
   if (ui.training) {training.end();}
   abortScenario();restorePlaybackValues();ui.playback = playback;
@@ -152,7 +153,7 @@ function togglePause(force) {
   ui.paused = next;input.clear();syncButtons();
 }
 function pushReplay() {replay.push({tick: game.tick, game: game.save(), rig: view.rig.save()});}
-function loadFrame(frame) {if (!frame) return;game.load(frame.game);view.rig.load(frame.rig);dock.invalidate();}
+function loadFrame(frame) {if (!frame) return;resetCollisionProbe();game.load(frame.game);view.rig.load(frame.rig);dock.invalidate();}
 function playerCommand() {
   const [p, e] = game.fighters;
   if (C.extras.toggles.enablePlayerAI) {input.locked = true;return game.assistNav(game.playerBrain, p, e, game.playerBrain.command(p, e, ui.playerMode, C.test.step));}
@@ -232,7 +233,7 @@ function renderScenarios() {
     head.querySelector('button').onclick = () => {
       abortScenario();const results = col.map(def => runScenario(def)), ok = results.filter(r => r.ok).length;
       $('scenario-report').innerHTML = `<p class="${ok === results.length ? 'ok' : 'bad'}"><b>${ok} de ${results.length} cenários de colisão aprovados</b> com os ajustes atuais.</p>` + reportHtml(results);
-      game.phase = 'menu';ui.lastResult = null;renderScenarios();
+      resetCollisionProbe();game.phase = 'menu';ui.lastResult = null;renderScenarios();
     };
     col.forEach(add);
   }
@@ -314,7 +315,7 @@ $('balance-run').onclick = () => {
 $('scenario-all').onclick = () => {
   abortScenario();const results = SCENARIOS.map(def => runScenario(def));const ok = results.filter(r => r.ok).length;
   $('scenario-report').innerHTML = `<p class="${ok === results.length ? 'ok' : 'bad'}"><b>${ok} de ${results.length} cenários aprovados</b> com os ajustes atuais.</p>` + reportHtml(results);
-  game.phase = 'menu';ui.lastResult = null;renderScenarios();
+  resetCollisionProbe();game.phase = 'menu';ui.lastResult = null;renderScenarios();
 };
 
 // ---------- Ajustes ----------

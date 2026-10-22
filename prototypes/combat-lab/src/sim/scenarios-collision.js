@@ -8,8 +8,8 @@ import {spawn} from './world.js';
 import {solidContact} from './solid-contact.js';
 import {physicsProbe} from './physics.js';
 import {collectSolids} from '../nav/nav-graph.js';
-import {penetration} from '../physics-poc/poc-metrics.js';
 import {damageDestructible} from './map.js';
+import {bodyPenetration} from './collision-probe.js';
 
 const cmd = (/** @type {any} */ o = {}) => ({move: vec(), dodge: false, dodgeHeld: false, tackle: false, tackleHeld: false, guard: false, guardPressed: false, jump: false, jumpHeld: false, target: null, skill: null, skillHeld: null, ...o});
 const fmt = (/** @type {any} */ v) => typeof v === 'number' ? (Math.abs(v) >= 100 ? v.toFixed(0) : v.toFixed(3).replace(/\.?0+$/, '')) : String(v);
@@ -22,10 +22,13 @@ const dest = (/** @type {string} */ id, /** @type {number} */ x, /** @type {numb
 /** Maior penetração 3D do lutador nos sólidos do MAPA neste instante (0 = nenhuma). */
 const mapPen = (/** @type {any} */ g, /** @type {any} */ f) => {
   const y = f.flight ? f.flight.y : f.groundY;let m = 0;
-  for (const s of collectSolids(g.mapState)) m = Math.max(m, penetration({x: f.position.x, y, z: f.position.z}, s, 'box'));
+  for (const s of collectSolids(g.mapState)) m = Math.max(m, bodyPenetration({x: f.position.x, y, z: f.position.z}, s));
   return m;
 };
 /** Acumula, a cada passo (chamado dentro de `script`), o pior caso de um valor medido. */
+/** Referências de montagem de cada cenário, por jogo (WeakMap: nada fica pendurado no Game da interface). */
+const STATE = new WeakMap();
+const st = (/** @type {any} */ g) => {let o = STATE.get(g);if (!o) STATE.set(g, o = {});return o;};
 const track = (/** @type {any} */ s, /** @type {string} */ key, /** @type {number} */ v) => {s[key] = Math.max(s[key] ?? -Infinity, v);};
 
 export const COLLISION_SCENARIOS = [
@@ -33,8 +36,8 @@ export const COLLISION_SCENARIOS = [
     id: 'col-wall-slant', name: 'Colisão: parede reta e inclinada (30°)',
     description: 'O azul corre contra uma parede de Move inclinada a 30°: não pode penetrar e deve deslizar pela tangente (só a componente que entra é removida).',
     positions: [vec(-4, 0), FAR], overrides: CIRCLE, ticks: () => steps(2),
-    setup: (/** @type {any} */ g) => {g.wall = spawn(g.world, {kind: 'wall', pos: {x: 0, z: 0}, hx: .15, hz: 5, angle: Math.PI / 6, y: 0, height: 3}, []);},
-    script: (/** @type {number} */ t, /** @type {any} */ g, /** @type {any} */ s) => {const c = solidContact(wallOf(g.wall), g.fighters[0].position, C.test.halfExtent);track(s, 'pen', c?.depth ?? 0);return [cmd({move: vec(1, 0)}), cmd()];},
+    setup: (/** @type {any} */ g) => {st(g).wall = spawn(g.world, {kind: 'wall', pos: {x: 0, z: 0}, hx: .15, hz: 5, angle: Math.PI / 6, y: 0, height: 3}, []);},
+    script: (/** @type {number} */ t, /** @type {any} */ g, /** @type {any} */ s) => {const c = solidContact(wallOf(st(g).wall), g.fighters[0].position, C.test.halfExtent);track(s, 'pen', c?.depth ?? 0);return [cmd({move: vec(1, 0)}), cmd()];},
     checks: ({game, scratch, start}) => {
       const f = game.fighters[0], moved = Math.hypot(f.position.x - start[0].x, f.position.z - start[0].z);
       return [check('Penetração máxima na parede (m)', (scratch.pen ?? 0) <= 1e-3, '≤ 0,001', scratch.pen ?? 0), check('Deslizou pela tangente (deslocamento ≥ 1,5 m)', moved >= 1.5, '≥ 1,5 m', moved.toFixed(2))];
@@ -44,8 +47,8 @@ export const COLLISION_SCENARIOS = [
     id: 'col-wall-parallel', name: 'Colisão: deslocamento paralelo à parede',
     description: 'O azul anda encostado numa parede reta (com um pouco de input contra ela); o vermelho faz o mesmo no espaço livre. A parede não pode roubar velocidade tangencial.',
     positions: [vec(-.65, -3), vec(10, -3)], overrides: CIRCLE, ticks: () => steps(1.5),
-    setup: (/** @type {any} */ g) => {g.wall = spawn(g.world, {kind: 'wall', pos: {x: 0, z: 0}, hx: .15, hz: 8, angle: 0, y: 0, height: 3}, []);},
-    script: (/** @type {number} */ t, /** @type {any} */ g, /** @type {any} */ s) => {const c = solidContact(wallOf(g.wall), g.fighters[0].position, C.test.halfExtent);track(s, 'pen', c?.depth ?? 0);return [cmd({move: vec(.3, .954)}), cmd({move: vec(.3, .954)})];},
+    setup: (/** @type {any} */ g) => {st(g).wall = spawn(g.world, {kind: 'wall', pos: {x: 0, z: 0}, hx: .15, hz: 8, angle: 0, y: 0, height: 3}, []);},
+    script: (/** @type {number} */ t, /** @type {any} */ g, /** @type {any} */ s) => {const c = solidContact(wallOf(st(g).wall), g.fighters[0].position, C.test.halfExtent);track(s, 'pen', c?.depth ?? 0);return [cmd({move: vec(.3, .954)}), cmd({move: vec(.3, .954)})];},
     checks: ({game, scratch, start}) => {
       const a = game.fighters[0].position.z - start[0].z, b = game.fighters[1].position.z - start[1].z;
       return [check('Penetração máxima na parede (m)', (scratch.pen ?? 0) <= 1e-3, '≤ 0,001', scratch.pen ?? 0), check('Avanço junto à parede ≥ 90 % do avanço livre', a >= .9 * b, `≥ ${(.9 * b).toFixed(2)} m`, a.toFixed(2))];
@@ -55,39 +58,39 @@ export const COLLISION_SCENARIOS = [
     id: 'col-corner', name: 'Colisão: personagem preso em quina',
     description: 'Duas paredes formam um canto em L e o azul empurra na diagonal para dentro dele: sem penetração, sem oscilação no fim e sem «conflito de espaço».',
     positions: [vec(0, 0), FAR], overrides: CIRCLE, ticks: () => steps(2.5),
-    setup: (/** @type {any} */ g) => {g.w1 = spawn(g.world, {kind: 'wall', pos: {x: 0, z: 3}, hx: 6, hz: .15, angle: 0, y: 0, height: 3}, []);g.w2 = spawn(g.world, {kind: 'wall', pos: {x: 3, z: 0}, hx: .15, hz: 6, angle: 0, y: 0, height: 3}, []);g.conf0 = physicsProbe.staticConflictsTotal;},
+    setup: (/** @type {any} */ g) => {st(g).w1 = spawn(g.world, {kind: 'wall', pos: {x: 0, z: 3}, hx: 6, hz: .15, angle: 0, y: 0, height: 3}, []);st(g).w2 = spawn(g.world, {kind: 'wall', pos: {x: 3, z: 0}, hx: .15, hz: 6, angle: 0, y: 0, height: 3}, []);st(g).conf0 = physicsProbe.staticConflictsTotal;},
     script: (/** @type {number} */ t, /** @type {any} */ g, /** @type {any} */ s) => {
-      const p = g.fighters[0].position;for (const w of [g.w1, g.w2]) track(s, 'pen', solidContact(wallOf(w), p, C.test.halfExtent)?.depth ?? 0);
+      const p = g.fighters[0].position;for (const w of [st(g).w1, st(g).w2]) track(s, 'pen', solidContact(wallOf(w), p, C.test.halfExtent)?.depth ?? 0);
       if (t === steps(2) - 1) s.p0 = {...p};return [cmd({move: vec(.7071, .7071)}), cmd()];
     },
     checks: ({game, scratch}) => {
       const p = game.fighters[0].position, drift = Math.hypot(p.x - scratch.p0.x, p.z - scratch.p0.z);
-      return [check('Penetração máxima nas paredes (m)', (scratch.pen ?? 0) <= 1e-3, '≤ 0,001', scratch.pen ?? 0), check('Parado no canto (deriva nos últimos 0,5 s, m)', drift <= 1e-3, '≤ 0,001', drift), check('Conflitos de espaço', physicsProbe.staticConflictsTotal - game.conf0 === 0, 0, physicsProbe.staticConflictsTotal - game.conf0)];
+      return [check('Penetração máxima nas paredes (m)', (scratch.pen ?? 0) <= 1e-3, '≤ 0,001', scratch.pen ?? 0), check('Parado no canto (deriva nos últimos 0,5 s, m)', drift <= 1e-3, '≤ 0,001', drift), check('Conflitos de espaço', physicsProbe.staticConflictsTotal - st(game).conf0 === 0, 0, physicsProbe.staticConflictsTotal - st(game).conf0)];
     },
   },
   {
     id: 'col-two-obstacles', name: 'Colisão: dois obstáculos muito próximos',
     description: 'Duas caixas deixam um vão igual ao «Vão mínimo entre objetos» (padrão 1,2 m). O azul atravessa o vão sem penetrar nem ficar preso.',
     positions: [vec(0, 0), FAR], overrides: CIRCLE, ticks: () => steps(3),
-    setup: (/** @type {any} */ g) => {const half = (C.map.passageClearance ?? 1.2) / 2;g.mapState.obstacles = [1, -1].map((k, i) => ({id: `ob${i}`, shape: 'box', pos: {x: k * (half + 1.5), y: 0, z: 4}, hx: 1.5, hz: 1.5, radius: 1.5, height: 2.2, angle: 0}));g.conf0 = physicsProbe.staticConflictsTotal;},
+    setup: (/** @type {any} */ g) => {const half = (C.map.passageClearance ?? 1.2) / 2;g.mapState.obstacles = [1, -1].map((k, i) => ({id: `ob${i}`, shape: 'box', pos: {x: k * (half + 1.5), y: 0, z: 4}, hx: 1.5, hz: 1.5, radius: 1.5, height: 2.2, angle: 0}));st(g).conf0 = physicsProbe.staticConflictsTotal;},
     script: (/** @type {number} */ t, /** @type {any} */ g, /** @type {any} */ s) => {track(s, 'pen', mapPen(g, g.fighters[0]));return [cmd({move: vec(0, 1)}), cmd()];},
-    checks: ({game, scratch}) => [check('Penetração máxima (m)', (scratch.pen ?? 0) <= 1e-3, '≤ 0,001', scratch.pen ?? 0), check('Atravessou o vão (z > 6,5)', game.fighters[0].position.z > 6.5, '> 6,5 m', game.fighters[0].position.z.toFixed(2)), check('Conflitos de espaço', physicsProbe.staticConflictsTotal - game.conf0 === 0, 0, physicsProbe.staticConflictsTotal - game.conf0)],
+    checks: ({game, scratch}) => [check('Penetração máxima (m)', (scratch.pen ?? 0) <= 1e-3, '≤ 0,001', scratch.pen ?? 0), check('Atravessou o vão (z > 6,5)', game.fighters[0].position.z > 6.5, '> 6,5 m', game.fighters[0].position.z.toFixed(2)), check('Conflitos de espaço', physicsProbe.staticConflictsTotal - st(game).conf0 === 0, 0, physicsProbe.staticConflictsTotal - st(game).conf0)],
   },
   {
     id: 'col-corridor-duel', name: 'Colisão: dois personagens num corredor sem saída (Tackle comprime o azul)',
     description: 'Corredor de 1,8 m fechado no fundo: o vermelho investe e empurra o azul contra a parede do fundo. Os corpos não se sobrepõem, o azul não penetra nenhuma parede e não há conflito de espaço.',
     positions: [vec(0, -5), vec(0, -1)], overrides: CIRCLE, ticks: () => steps(3),
     setup: (/** @type {any} */ g) => {
-      g.ws = [-1, 1].map(k => spawn(g.world, {kind: 'wall', pos: {x: k * 1.0, z: 0}, hx: .1, hz: 7, angle: 0, y: 0, height: 3}, []));
-      g.ws.push(spawn(g.world, {kind: 'wall', pos: {x: 0, z: -6}, hx: 1.1, hz: .1, angle: 0, y: 0, height: 3}, []));g.conf0 = physicsProbe.staticConflictsTotal;g.fighters[0].facing = 0;g.fighters[1].facing = Math.PI;
+      st(g).ws = [-1, 1].map(k => spawn(g.world, {kind: 'wall', pos: {x: k * 1.0, z: 0}, hx: .1, hz: 7, angle: 0, y: 0, height: 3}, []));
+      st(g).ws.push(spawn(g.world, {kind: 'wall', pos: {x: 0, z: -6}, hx: 1.1, hz: .1, angle: 0, y: 0, height: 3}, []));st(g).conf0 = physicsProbe.staticConflictsTotal;g.fighters[0].facing = 0;g.fighters[1].facing = Math.PI;
     },
     script: (/** @type {number} */ t, /** @type {any} */ g, /** @type {any} */ s) => {
-      for (const f of g.fighters) for (const w of g.ws) track(s, 'pen', solidContact(wallOf(w), f.position, C.test.halfExtent)?.depth ?? 0);
+      for (const f of g.fighters) for (const w of st(g).ws) track(s, 'pen', solidContact(wallOf(w), f.position, C.test.halfExtent)?.depth ?? 0);
       const [a, b] = g.fighters, alt = (/** @type {any} */ f) => (f.flight?.y ?? f.groundY ?? 0) + (f.vaultHeight ?? 0);
       if (Math.abs(alt(a) - alt(b)) < (C.extras.visual.bodyHeight ?? 1.2)) track(s, 'overlap', 2 * C.test.halfExtent - Math.max(Math.abs(a.position.x - b.position.x), Math.abs(a.position.z - b.position.z)));   // só conta na mesma altura (R7.11)
       return [cmd(), cmd({tackle: t === 0, move: vec(0, -1)})];
     },
-    checks: ({game, scratch}) => [check('Penetração nas paredes (m)', (scratch.pen ?? 0) <= 1e-3, '≤ 0,001', scratch.pen ?? 0), check('Sobreposição entre os corpos (m)', (scratch.overlap ?? 0) <= 2e-3, '≤ 0,002', scratch.overlap ?? 0), check('Conflitos de espaço', physicsProbe.staticConflictsTotal - game.conf0 === 0, 0, physicsProbe.staticConflictsTotal - game.conf0)],
+    checks: ({game, scratch}) => [check('Penetração nas paredes (m)', (scratch.pen ?? 0) <= 1e-3, '≤ 0,001', scratch.pen ?? 0), check('Sobreposição entre os corpos (m)', (scratch.overlap ?? 0) <= 2e-3, '≤ 0,002', scratch.overlap ?? 0), check('Conflitos de espaço', physicsProbe.staticConflictsTotal - st(game).conf0 === 0, 0, physicsProbe.staticConflictsTotal - st(game).conf0)],
   },
   {
     id: 'col-tackle-destructible', name: 'Colisão: Tackle contra objeto destrutível',
@@ -95,7 +98,7 @@ export const COLLISION_SCENARIOS = [
     positions: [vec(0, 0), FAR], overrides: CIRCLE, ticks: () => steps(2.5),
     setup: (/** @type {any} */ g) => {g.mapState.destructibles = [dest('d1', 0, 3)];},
     script: (/** @type {number} */ t, /** @type {any} */ g, /** @type {any} */ s) => {if (g.mapState.destructibles[0].state === 'solid') track(s, 'pen', mapPen(g, g.fighters[0]));return [t === 0 ? cmd({tackle: true, move: vec(0, 1)}) : cmd({move: vec(0, 1)}), cmd()];},
-    checks: ({game, scratch}) => {const d = game.mapState.destructibles[0], dmg = C.rules.tackleDamage ?? 10;return [check('Penetração enquanto sólido (m)', (scratch.pen ?? 0) <= 1e-3, '≤ 0,001', scratch.pen ?? 0), check('Dano ao objeto: exatamente um Tackle', Math.abs((d.maxHp - d.hp) - dmg) < 1e-6 || d.state !== 'solid', `${dmg} (uma vez)`, d.maxHp - d.hp)];},
+    checks: ({game, scratch}) => {const d = game.mapState.destructibles[0], dmg = C.rules.tackleDamage ?? 10;return [check('Penetração enquanto sólido (m)', (scratch.pen ?? 0) <= 1e-3, '≤ 0,001', scratch.pen ?? 0), check('Dano ao objeto: exatamente um Tackle', Math.abs((d.maxHp - d.hp) - dmg) < 1e-6, `${dmg} (uma vez)`, d.maxHp - d.hp)];},
   },
   {
     id: 'col-throw-pillar', name: 'Colisão: arremesso contra pilar',
@@ -149,13 +152,13 @@ export const COLLISION_SCENARIOS = [
     id: 'col-drop-respawn', name: 'Colisão: drop e respawn de destrutível',
     description: 'O destrutível é destruído: o drop cai até o chão e o objeto reaparece (prévia translúcida e depois sólido) em outra posição com vão livre. Tempos encurtados só neste cenário (1–2 s).',
     positions: [vec(-20, -20), vec(20, 20)], overrides: {...CIRCLE, 'map.destructibleRespawnMin': 1, 'map.destructibleRespawnMax': 2, 'map.destructibleGhostPreview': .5}, ticks: () => steps(6),
-    setup: (/** @type {any} */ g) => {g.mapState.destructibles = [dest('d1', 5, 5)];g.p0 = {x: 5, z: 5};},
+    setup: (/** @type {any} */ g) => {g.mapState.destructibles = [dest('d1', 5, 5)];st(g).p0 = {x: 5, z: 5};},
     script: (/** @type {number} */ t, /** @type {any} */ g, /** @type {any} */ s) => {
       if (t === 10) damageDestructible(g.mapState.destructibles[0], 999, 'physical', null, g.mapState, []);
       const d = g.mapState.destructibles[0];if (d.state === 'ghost') s.ghost = true;
       for (const it of g.mapState.items) if (it.isDrop) s.drop = true;return [cmd(), cmd()];
     },
-    checks: ({game, scratch}) => {const d = game.mapState.destructibles[0], moved = Math.hypot(d.pos.x - game.p0.x, d.pos.z - game.p0.z);return [check('Gerou drop', scratch.drop, 'sim', scratch.drop ? 'sim' : 'não'), check('Passou pela prévia', scratch.ghost, 'sim', scratch.ghost ? 'sim' : 'não'), check('Reapareceu sólido', d.state === 'solid', 'solid', d.state), check('Em outra posição', moved > 0.5, '> 0,5 m', moved.toFixed(2))];},
+    checks: ({game, scratch}) => {const d = game.mapState.destructibles[0], moved = Math.hypot(d.pos.x - st(game).p0.x, d.pos.z - st(game).p0.z);return [check('Gerou drop', scratch.drop, 'sim', scratch.drop ? 'sim' : 'não'), check('Passou pela prévia', scratch.ghost, 'sim', scratch.ghost ? 'sim' : 'não'), check('Reapareceu sólido', d.state === 'solid', 'solid', d.state), check('Em outra posição', moved > 0.5, '> 0,5 m', moved.toFixed(2))];},
   },
   {
     id: 'col-invalid-spawn', name: 'Colisão: objeto gerado em posição inicialmente inválida',
@@ -177,12 +180,12 @@ export const COLLISION_SCENARIOS = [
     setup: (/** @type {any} */ g) => {
       g.mapState.obstacles = [{id: 'o1', shape: 'pillar', pos: {x: 0, y: 0, z: 4}, hx: .9, hz: .9, radius: .9, height: 4, angle: 0}, {id: 'o2', shape: 'box', pos: {x: 0, y: 0, z: -4}, hx: 1.5, hz: 1, radius: 1.5, height: 2, angle: 0}];
       g.mapState.destructibles = [dest('d1', -5, 3), dest('d2', 5, -3)];g.mapState.platforms = [{id: 'pl', pos: {x: 0, y: 0, z: 9}, width: 3, depth: 3, height: 1}];
-      spawn(g.world, {kind: 'projectile', owner: 0, pos: {x: -8, z: 2}, angle: Math.PI / 2, speed: 20, radius: .15, y: .65, life: 3, hit: {damage: 5}}, []);g.conf0 = physicsProbe.staticConflictsTotal;
+      spawn(g.world, {kind: 'projectile', owner: 0, pos: {x: -8, z: 2}, angle: Math.PI / 2, speed: 20, radius: .15, y: .65, life: 3, hit: {damage: 5}}, []);st(g).conf0 = physicsProbe.staticConflictsTotal;
     },
     script: (/** @type {number} */ t, /** @type {any} */ g, /** @type {any} */ s) => {
       for (const f of g.fighters) {if (![f.position.x, f.position.z].every(Number.isFinite)) s.nan = true;if (!f.flight) track(s, 'pen', mapPen(g, f));}
       const a = t % 240 < 120;return [cmd({tackle: t % 120 === 0, move: a ? vec(.5, .87) : vec(-.5, -.87)}), cmd({tackle: t % 150 === 30, move: a ? vec(-.5, .87) : vec(.5, -.87)})];
     },
-    checks: ({game, scratch}) => [check('Sem NaN', !scratch.nan, 'sim', scratch.nan ? 'não' : 'sim'), check('Penetração no chão (m)', (scratch.pen ?? 0) <= 0.02, '≤ 0,02', scratch.pen ?? 0), check('Conflitos de espaço', physicsProbe.staticConflictsTotal - game.conf0 === 0, 0, physicsProbe.staticConflictsTotal - game.conf0)],
+    checks: ({game, scratch}) => [check('Sem NaN', !scratch.nan, 'sim', scratch.nan ? 'não' : 'sim'), check('Penetração no chão (m)', (scratch.pen ?? 0) <= 0.02, '≤ 0,02', scratch.pen ?? 0), check('Conflitos de espaço', physicsProbe.staticConflictsTotal - st(game).conf0 === 0, 0, physicsProbe.staticConflictsTotal - st(game).conf0)],
   },
 ];

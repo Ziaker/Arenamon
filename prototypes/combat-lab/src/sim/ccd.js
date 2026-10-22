@@ -38,10 +38,10 @@ export function sweepCircle(/** @type {V2} */ c, /** @type {number} */ R, /** @t
  * @param {{pos: V2, angle?: number, hx: number, hz: number}} rect @returns {Hit | {inside: true} | null}
  */
 export function sweepRoundedBox(rect, a, b, r) {
-  const pieces = [
+  const pieces = /** @type {any[]} */ ([
     sweepBox({pos: rect.pos, angle: rect.angle ?? 0, hx: rect.hx + r, hz: rect.hz}, a, b, 0, 0),
     sweepBox({pos: rect.pos, angle: rect.angle ?? 0, hx: rect.hx, hz: rect.hz + r}, a, b, 0, 0),
-  ];
+  ]);
   for (const [su, sv] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) pieces.push(sweepCircle(toWorld(rect, su * rect.hx, sv * rect.hz), 0, a, b, r));
   /** @type {Hit | null} */
   let best = null;

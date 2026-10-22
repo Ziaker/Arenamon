@@ -1,11 +1,10 @@
 // Ferramentas visuais de colisão (Fase 7 do overhaul). Desenham no grupo de sobreposições técnicas da View (liga/desliga em «Visualizar») e alimentam o painel
 // «Dados ao vivo». Só LEEM o estado (mapa, lutadores) e a sonda de colisão; não mudam nada na simulação. Sem Three aqui: usa view.line / view.ring.
 import {C} from '../sim/config.js';
-import {collisionProbe} from '../sim/collision-probe.js';
+import {collisionProbe, bodyPenetration} from '../sim/collision-probe.js';
 import {groundSurface} from '../sim/physics.js';
 import {solidGap} from '../sim/map.js';
 import {collectSolids} from '../nav/nav-graph.js';
-import {penetration} from '../physics-poc/poc-metrics.js';
 
 export const COLLISION_OVERLAYS = [
   ['mapSolids', 'Colisores do cenário', 'Contorno físico real de plataformas (verde), obstáculos (azul), destrutíveis sólidos (laranja) e a prévia de respawn (amarelo tracejado), com a altura de cada um. O que está desenhado é o que colide.'],
@@ -16,7 +15,7 @@ export const COLLISION_OVERLAYS = [
 ];
 
 const KIND_COLOR = {ground: 0x8a94a6, platform: 0x6fe28a, obstacle: 0x8fa8d8, destructible: 0xffa040};
-const STEP_RATE = 1 / 120, MAX_AGE_STEPS = Math.round(1.6 / STEP_RATE);
+const MAX_AGE_STEPS = Math.round(1.6 / C.test.step);   // 1,6 s em passos do relógio da simulação
 
 /** Contorno de uma caixa alinhada (3 polilinhas: base, topo e as quatro arestas verticais). */
 function box(view, x, z, hx, hz, y0, y1, color, opacity = .8) {
@@ -41,7 +40,7 @@ export function solidPairs(mapState) {
 /** Maior penetração (m) do corpo do lutador, no chão, em sólidos do cenário. */
 export function groundPenetration(mapState, f) {
   if (f.flight || f.hp <= 0 || f.absent) return 0;
-  let m = 0;for (const s of collectSolids(mapState)) m = Math.max(m, penetration({x: f.position.x, y: f.groundY ?? 0, z: f.position.z}, s, 'box'));
+  let m = 0;for (const s of collectSolids(mapState)) m = Math.max(m, bodyPenetration({x: f.position.x, y: f.groundY ?? 0, z: f.position.z}, s));
   return m;
 }
 

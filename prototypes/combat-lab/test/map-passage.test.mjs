@@ -73,7 +73,9 @@ check('geração densa (8 + 8): a regra vale em todo layout sem conflito registr
   assert.equal(bad.length, 0, `${bad.length} layouts; ex.: ${bad.slice(0, 3).join(' | ')}`);
   assert.ok(conflicts < 400 * 0.25, `${conflicts} de 400 layouts densos sem posição válida`);
 });
-check('geração determinística: mesma seed, mesmo layout; a RNG consumida não muda com a regra (as posições sorteadas seguem a mesma sequência)', () => {
+check('RNG do mapa: o estado final da RNG por seed é IDÊNTICO ao do baseline 4634ca2 (a regra de vão e o ângulo 0 não consomem nem pulam sorteios)', () => {
+  const baseline = {1: 2001984000, 2: 1385973981, 3: 769963962, 7: 2600891182, 99: 1762544282, 1234: 2670841965};   // medido no 4634ca2
+  for (const [seed, rng] of Object.entries(baseline)) {resetConfig(defaults());const g = new Game({seed: +seed});g.start();assert.equal(g.mapState.rngState, rng, `seed ${seed}`);}
   const once = seed => {resetConfig(defaults());const g = new Game({seed});g.start();return JSON.stringify([g.mapState.platforms, g.mapState.obstacles, g.mapState.destructibles, g.mapState.items]);};
   for (const seed of [1, 7, 99]) assert.equal(once(seed), once(seed));
 });
