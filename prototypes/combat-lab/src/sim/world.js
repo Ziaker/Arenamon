@@ -14,6 +14,7 @@ import {C} from './config.js';
 import {isInvulnerable, nominalDistance, riposteIntercept} from './entity.js';
 import {sweepBox, segmentHitsVolume} from './geometry.js';
 import {solidContact} from './solid-contact.js';
+import {noteContact, noteSweep, horizontalOf} from './collision-probe.js';
 import {firstContact} from './ccd.js';
 import {launch} from './combat.js';
 import {traceBeam} from './beam.js';
@@ -153,12 +154,12 @@ export function collideFighter(world, f, events = null) {
     const contact = solidContact(e, f.position, r);if (!contact) continue;
     if (e.breakableByTackle && f.action?.kind === 'tackle' && !f.action.neutralized) {breakByTackle(e, f, events);continue;}
     // Saída pela menor translação real (solid-contact.js): vale também com o centro já DENTRO da forma.
-    const n = contact.normal;
+    const n = contact.normal, v0 = horizontalOf(f);
     f.position = add(f.position, scale(n, contact.depth));
     const into = dot(f.velocity, n);if (into < 0) f.velocity = sub(f.velocity, scale(n, into));
     if (f.flight) {const hv = dot(f.flight.horizontal, n);if (hv < 0) f.flight.horizontal = sub(f.flight.horizontal, scale(n, (1 + C.rules.wallRestitution) * hv));}
     if (f.locomotionVelocity) {const lv = dot(f.locomotionVelocity, n);if (lv < 0) f.locomotionVelocity = sub(f.locomotionVelocity, scale(n, lv));}
-    f.contacts++;contacts++;
+    f.contacts++;contacts++;noteContact(f, e.kind, e.id, n, contact.depth, v0);
   }
   return contacts;
 }
@@ -204,15 +205,15 @@ function blockerContact(game, p, from, to) {
   }
   const ms = game.mapState;
   if (ms) {
-    for (const d of ms.destructibles) if (d.state === 'solid' && vOverlap(yLo, yHi, d.pos.y, d.pos.y + d.size.height)) solids.push({shape: 'box', pos: {x: d.pos.x, z: d.pos.z}, hx: d.size.hx, hz: d.size.hz, angle: 0});
-    for (const o of ms.obstacles) if (vOverlap(yLo, yHi, o.pos.y, o.pos.y + o.height)) solids.push(o.shape === 'cylinder' || o.shape === 'pillar' ? {shape: 'circle', pos: {x: o.pos.x, z: o.pos.z}, radius: o.radius} : {shape: 'box', pos: {x: o.pos.x, z: o.pos.z}, hx: o.hx, hz: o.hz, angle: 0});
-    for (const pl of ms.platforms) if (vOverlap(yLo, yHi, 0, pl.height)) solids.push({shape: 'box', pos: {x: pl.pos?.x ?? pl.x, z: pl.pos?.z ?? pl.z}, hx: (pl.width ?? 3) / 2, hz: (pl.depth ?? 3) / 2, angle: 0});
+    for (const d of ms.destructibles) if (d.state === 'solid' && vOverlap(yLo, yHi, d.pos.y, d.pos.y + d.size.height)) solids.push({shape: 'box', pos: {x: d.pos.x, z: d.pos.z}, hx: d.size.hx, hz: d.size.hz, angle: 0, kind: 'destructible', id: d.id});
+    for (const o of ms.obstacles) if (vOverlap(yLo, yHi, o.pos.y, o.pos.y + o.height)) solids.push(o.shape === 'cylinder' || o.shape === 'pillar' ? {shape: 'circle', pos: {x: o.pos.x, z: o.pos.z}, radius: o.radius, kind: 'obstacle', id: o.id} : {shape: 'box', pos: {x: o.pos.x, z: o.pos.z}, hx: o.hx, hz: o.hz, angle: 0, kind: 'obstacle', id: o.id});
+    for (const pl of ms.platforms) if (vOverlap(yLo, yHi, 0, pl.height)) solids.push({shape: 'box', pos: {x: pl.pos?.x ?? pl.x, z: pl.pos?.z ?? pl.z}, hx: (pl.width ?? 3) / 2, hz: (pl.depth ?? 3) / 2, angle: 0, kind: 'platform', id: pl.id});
   }
   const hit = firstContact(solids, from, to, p.radius);
   if (!hit || hit.t >= 1) return null;
   const len = Math.hypot(to.x - from.x, to.z - from.z), t = Math.min(1, hit.t + 1e-6 / Math.max(len, 1e-9));
   const point = {x: from.x + (to.x - from.x) * t, z: from.z + (to.z - from.z) * t};
-  return circleTouches(hit.solid, point, p.radius) ? {t: hit.t, point} : null;
+  return circleTouches(hit.solid, point, p.radius) ? {t: hit.t, point, solid: hit.solid} : null;
 }
 /** Menor tempo de impacto de um evento de refletor (reflexão ou neutralização por PL; a face de trás é atravessada, não conta) no caminho from → to; Infinity se não há. */
 function reflectorImpactTime(game, p, from, to) {
@@ -241,8 +242,10 @@ function stepProjectile(game, p, dt, events, spawnLater) {
     if (!p.gravity && p.vy) {p.y += p.vy * dt / steps;if (p.y <= 0 && p.vy < 0) {p.dead = true;events.push({result: 'groundHit', attacker: p.owner ?? null, target: null, damage: 0, entity: p.id, kind: 'projectile'});return;}}   // voo inclinado sem gravidade (pedras com alvo travado)
     legStart = null;
     // Bloqueador ANTES do refletor no caminho (por tempo de impacto): o projétil para nele e nunca chega a refletir. Empate: o refletor vale primeiro.
-    const early = blockerContact(game, p, from, p.pos);
-    if (early && early.t < reflectorImpactTime(game, p, from, p.pos)) p.pos = early.point;
+    const early = blockerContact(game, p, from, p.pos), reach = {...p.pos};
+    const stopsEarly = early && early.t < reflectorImpactTime(game, p, from, p.pos);
+    noteSweep(p.id, from, reach, stopsEarly ? early : null);   // sonda de colisão: trecho do subpasso e primeiro contato
+    if (stopsEarly) p.pos = early.point;
     if (!reflectPass(game, p, from, events)) return;
     snapToFirstContact(game, p, from);
     // Limite quadrado SÓ na arena quadrada: em arena circular o meio-lado legado

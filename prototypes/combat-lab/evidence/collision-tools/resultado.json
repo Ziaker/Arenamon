@@ -1,0 +1,36 @@
+{
+ "when": "2026-10-22T03:53:16.848Z",
+ "failures": 0,
+ "report": [
+  {
+   "label": "Visualizar: as 5 sobreposições de colisão existem",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "label": "Cenários: grupo «Colisões e ambiente (15)» no topo da lista",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "label": "Cenários: 15 cenários de colisão listados",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "label": "Um clique roda os 15 e todos passam",
+   "ok": true,
+   "detail": "15 de 15 cenários de colisão aprovados com os ajustes atuais.✓ Colisão: parede r"
+  },
+  {
+   "label": "Dados ao vivo: linhas de apoio, último contato e objetos do cenário",
+   "ok": true,
+   "detail": "Distância entre centros30.86 mEspaço entre colisores29.86 mVelocidade de aproximação-6.05 m/sAzul (física)neutral · |v| "
+  },
+  {
+   "label": "Sem erros no console durante os cenários e as sobreposições",
+   "ok": true,
+   "detail": ""
+  }
+ ]
+}

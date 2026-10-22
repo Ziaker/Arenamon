@@ -8,6 +8,7 @@ import {styleLabel} from './sim/tactics.js';
 import {Recorder} from './sim/telemetry.js';
 import {ReplayBuffer} from './sim/replay.js';
 import {SCENARIOS, prepareScenario, runScenario} from './sim/scenarios.js';
+import {collisionRows} from './view/collision-overlays.js';
 import {View, OVERLAYS} from './view/view.js';
 import {Character, loadStudioFile, studioWindows, compareWindows} from './view/characters.js';
 import {createCharacterPanel} from './ui/characters-panel.js';
@@ -215,12 +216,27 @@ function playSequence(seq, preset) {
 // ---------- Cenários ----------
 function renderScenarios() {
   const box = $('scenario-list');box.replaceChildren();
-  for (const def of SCENARIOS) {
+  $('scenario-all').textContent = `▶ Executar todos (${SCENARIOS.length})`;
+  const add = def => {
     const el = document.createElement('div');el.className = 'scenario';el.dataset.id = def.id;
     const last = ui.lastResult?.id === def.id ? ui.lastResult : null;if (last) el.dataset.result = last.ok ? 'ok' : 'fail';
     el.innerHTML = `<header><strong>${escape(def.name)}</strong><button type="button">▶ Executar</button></header><p>${escape(def.description)}</p>`;
     el.querySelector('button').onclick = () => startScenario(def);box.append(el);
+  };
+  // Colisões e ambiente (overhaul): grupo próprio no topo, com «Executar os N» e dicas de quais sobreposições ligar em «Visualizar».
+  const col = SCENARIOS.filter(d => d.id.startsWith('col-'));
+  if (col.length) {
+    const head = document.createElement('div');head.className = 'scenario-group';head.id = 'scenario-collisions-group';
+    head.innerHTML = `<header><strong>Colisões e ambiente (${col.length})</strong><button type="button" id="scenario-collisions">▶ Executar os ${col.length}</button></header><p class="hint">Contato com paredes, quinas, objetos, plataformas, destrutíveis e projéteis rápidos. Em «Visualizar» ligue <b>Colisores do cenário</b>, <b>Apoio atual</b>, <b>Contatos com o ambiente</b>, <b>Varredura dos projéteis</b> e <b>Sobreposições e vãos</b> para ver o que a física está fazendo; os números ficam em «Dados ao vivo».</p>`;
+    box.append(head);
+    head.querySelector('button').onclick = () => {
+      abortScenario();const results = col.map(def => runScenario(def)), ok = results.filter(r => r.ok).length;
+      $('scenario-report').innerHTML = `<p class="${ok === results.length ? 'ok' : 'bad'}"><b>${ok} de ${results.length} cenários de colisão aprovados</b> com os ajustes atuais.</p>` + reportHtml(results);
+      game.phase = 'menu';ui.lastResult = null;renderScenarios();
+    };
+    col.forEach(add);
   }
+  for (const def of SCENARIOS) if (!def.id.startsWith('col-')) add(def);
 }
 function startScenario(def) {
   abortScenario();ui.scenario = prepareScenario(def, game);ui.scenario.def = def;ui.paused = false;input.clear();input.locked = true;
@@ -412,8 +428,8 @@ function renderLive() {
     ['Azul (física)', physLine(a)], ['Vermelho (física)', physLine(b)],
     ['Último contato válido', lastContact],
     ['Subpassos físicos', `${physicsProbe.substeps} subpasso(s) · ${physicsProbe.contacts} contato(s) no último passo · conflitos de espaço: ${physicsProbe.staticConflicts} no passo, ${physicsProbe.staticConflictsTotal} no total`],
-    ['Colocação de objetos', `${game.mapState.placementConflicts ?? 0} objeto(s) sólido(s) sem posição válida`],
     ['Ação', `${a.action ? `${a.action.kind}${a.action.fromCancel ? ' (C→X)' : ''}${a.action.buffered ? ' (buffer)' : ''} ${(a.action.elapsed * 1000).toFixed(0)} ms` : '—'} / ${b.action ? `${b.action.kind}${b.action.fromCancel ? ' (C→X)' : ''}${b.action.buffered ? ' (buffer)' : ''} ${(b.action.elapsed * 1000).toFixed(0)} ms` : '—'}`], ['Estilo da IA (tático)', `${game.playerBrain.t && C.extras.toggles.enablePlayerAI && ui.playerMode === 'tactical' ? styleLabel(game.playerBrain) : '—'} / ${game.mode === 'tactical' ? styleLabel(game.brain) : '—'}`], ['Contra-ataque', `${a.counterWindow.toFixed(2)} s / ${b.counterWindow.toFixed(2)} s`], ['Hitstop', `${(game.hitstop * 1000).toFixed(0)} ms`]];
+  rows.push(...collisionRows(game));   // Fase 7: apoio, último contato com o ambiente, vãos entre objetos e penetrações
   $('live-data').innerHTML = rows.map(([k, v]) => `<dt>${k}</dt><dd>${escape(v)}</dd>`).join('');
 }
 

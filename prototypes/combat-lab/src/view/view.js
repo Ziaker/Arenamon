@@ -2,6 +2,7 @@
 // técnicas do laboratório (hitboxes por estado, normais de contato, vetor e arco de lançamento, alcance).
 import * as T from 'three';
 import {C, rgb} from '../sim/config.js';
+import {effectiveArenaRadius} from '../sim/map.js';
 import {isInvulnerable, isOffensive, nominalDistance, actionDuration} from '../sim/entity.js';
 import {direction, length, angleOf} from '../sim/math.js';
 import {wouldVault, cancelWindow} from '../sim/controller.js';
@@ -29,6 +30,7 @@ import {AimMarkers} from './aim-marker-view.js';
 // Pós-processamento experimental (Fase 4, pmndrs/postprocessing sem React): criado só com C.vfx.post.enabled = 1.
 import * as PP from 'postprocessing';
 import {PostPipeline} from './post/post-pipeline.js';
+import {COLLISION_OVERLAYS, drawCollisionOverlays} from './collision-overlays.js';
 import {feedPulses} from './post/post-params.js';
 
 const STATE_COLORS = {invulnerable: 0x58e6ff, tackle: 0xffa040, dodge: 0x61ebba, guard: 0xffe066, guardStun: 0xffb347, recoil: 0xc77dff, airborne: 0x9db4ff, landing: 0x7f93b8, defeated: 0x56616a};
@@ -37,11 +39,12 @@ export const OVERLAYS = [
   ['attackVectors', 'Trajetória de X/C', 'Barra com direção e alcance restante do tackle ou da esquiva.'],
   ['guardArcs', 'Arco de defesa', 'Semicírculo frontal coberto pela defesa (ângulo válido configurável em “Ângulo válido para defesa”).'],
   ['contactNormals', 'Normais de contato', 'Setas no ponto de cada impacto, clash ou bloqueio recentes, na direção da normal usada pela física.'],
-  ['launchArcs', 'Arco de lançamento previsto', 'Trajetória balística prevista de quem está no ar, com gravidade, arrasto e rebote nas paredes.'],
+  ['launchArcs', 'Arco de lançamento previsto', 'Trajetória balística prevista de quem está no ar, com gravidade, arrasto e rebote na borda da arena (circular ou quadrada, como a física). Não prevê o choque com objetos do cenário: veja «Contatos com o ambiente».'],
   ['cancelWindow', 'Janela do C → X e buffer', 'Durante a esquiva, anel no chão: cinza = janela do cancelamento ainda fechada; verde = X disponível (o arco mostra o tempo restante); vermelho = janela aberta, mas sem stamina para X. Ponto amarelo acima do lutador = comando guardado no buffer.'],
   ['preview', 'Prévia de X e C (azul)', 'Com o azul livre, mostra no chão para onde X (laranja) e C (verde) iriam na direção atual das setas (ou da frente, parado). Um arco sobre a linha verde indica que C saltaria sobre o rival.'],
   ['hitShapes', 'Hitbox espacial do golpe', 'Círculo laranja à frente de quem faz o tackle: o defensor só é atingido se o centro dele estiver dentro (requer “Hitbox espacial” ligada em Ajustes). Mostra a forma da janela ativa.'],
   ['reach', 'Alcance de X/C', 'Anel com a distância nominal de tackle/esquiva de cada lutador (2,5 × duração × velocidade).'],
+  ...COLLISION_OVERLAYS,   // Fase 7 do overhaul de colisões: colisores do cenário, apoio, contatos, varredura de projéteis, sobreposições
 ];
 
 export class View {
@@ -301,7 +304,7 @@ export class View {
       else if (this.absentSeen?.[f.id]) {shadow.visible = true;if (character?.root) character.root.visible = true;this.absentSeen[f.id] = false;}
       t0 = now();this.smears[f.id]?.update(f, paused ? 0 : animDt, V.smear, tick, !!X.hud.fxVisible && !!C.vfx.master.enabled && !C.vfx.master.reduceMotion);tm.vfx += now() - t0;
     }
-    t0 = now();this.drawOverlays(fighters, paused ? 0 : dt);this.worldView.update(world, {fighters, events, dt: paused ? 0 : dt, skipBeams: this.useNewVfx, camera: this.camera});tm.overlays = now() - t0;
+    t0 = now();this.drawOverlays(fighters, paused ? 0 : dt, world);this.worldView.update(world, {fighters, events, dt: paused ? 0 : dt, skipBeams: this.useNewVfx, camera: this.camera});tm.overlays = now() - t0;
     if (!this.rig.initialized) this.rig.reset(fighters[0]);
     const basePose = this.rig.pose();
     const cinePose = this.cinematic ? this.cinematic.apply(basePose, fighters, events, dt, {camera: this.camera, paused, tick, realDt}) : basePose;
@@ -471,7 +474,7 @@ export class View {
     const l = new T.Line(g, new T.LineBasicMaterial({color, transparent: true, opacity, depthTest: false}));l.renderOrder = 900;this.overlayGroup.add(l);return l;
   }
   ring(x, z, radius, color, from = 0, to = Math.PI * 2, y = .03) {const pts = [];for (let i = 0; i <= 48; i++) {const a = from + (to - from) * i / 48;pts.push([x + Math.sin(a) * radius, y, z + Math.cos(a) * radius]);}return this.line(pts, color, .75);}
-  drawOverlays(fighters, dt) {
+  drawOverlays(fighters, dt, world = null) {
     this.clearOverlays();this.lastFighters = fighters;const O = this.overlays, V = C.extras.visual, half = C.test.halfExtent;
     const legacy = !!C.extras.toggles.showHitboxes;
     for (const f of fighters) {
@@ -530,20 +533,30 @@ export class View {
       this.line([[n.x, .9, n.z], [n.x + n.n.x * 1.4, .9, n.z + n.n.z * 1.4]], color, 1);
       if (n.launch) this.line([[n.x, .9, n.z], [n.x + n.launch.direction.x * n.launch.horizontal * .15, .9 + n.launch.vertical * .15, n.z + n.launch.direction.z * n.launch.horizontal * .15]], 0xff7a3c, 1);
     }
+    if (world) drawCollisionOverlays(this, fighters, world, O);
   }
 }
 
 /** Trajetória prevista de um lutador em voo (mesmas equações da física, com rebote nas paredes). */
 export function predictFlight(f, dt = 1 / 120) {
-  const R = C.rules, bound = C.test.arenaHalf - C.test.halfExtent, pts = [];
+  const R = C.rules, circle = C.map?.arenaShape !== 'square', bound = (circle ? effectiveArenaRadius() : C.test.arenaHalf) - C.test.halfExtent, pts = [];
+  const factor = C.extras.toggles.enableWallBounce ? R.wallRestitution * (circle ? (C.map?.wallBounceMultiplier ?? 1) : 1) : 0;   // o mesmo fator da física na borda
   let {x, z} = f.position, y = f.flight.y, vy = f.flight.vy, hx = f.flight.horizontal.x, hz = f.flight.horizontal.z;
   for (let i = 0; i < 1200; i++) {
     pts.push([x, y + .65, z]);
     y += vy * dt - .5 * R.launchGravity * dt * dt;vy -= R.launchGravity * dt;const k = Math.exp(-R.launchDrag * dt);hx *= k;hz *= k;
     x += hx * dt;z += hz * dt;
     const wb = C.extras.toggles.enableWallBounce;
-    if (Math.abs(x) > bound) {x = Math.sign(x) * bound;hx = wb ? -hx * R.wallRestitution : 0;if (wb) vy = vy * R.wallBounceVertical + R.wallBounceUp;}
-    if (Math.abs(z) > bound) {z = Math.sign(z) * bound;hz = wb ? -hz * R.wallRestitution : 0;if (wb) vy = vy * R.wallBounceVertical + R.wallBounceUp;}
+    if (circle) {
+      const d = Math.hypot(x, z);
+      if (d > bound) {
+        const nx = x / d, nz = z / d, vn = hx * nx + hz * nz;x = nx * bound;z = nz * bound;
+        if (vn > 0) {hx -= nx * vn * (1 + factor);hz -= nz * vn * (1 + factor);if (wb) vy = vy * R.wallBounceVertical + R.wallBounceUp;}
+      }
+    } else {
+      if (Math.abs(x) > bound) {x = Math.sign(x) * bound;hx = wb ? -hx * R.wallRestitution : 0;if (wb) vy = vy * R.wallBounceVertical + R.wallBounceUp;}
+      if (Math.abs(z) > bound) {z = Math.sign(z) * bound;hz = wb ? -hz * R.wallRestitution : 0;if (wb) vy = vy * R.wallBounceVertical + R.wallBounceUp;}
+    }
     if (y <= 0) {pts.push([x, .65, z]);break;}
   }
   return pts;

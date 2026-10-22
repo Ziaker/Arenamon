@@ -244,3 +244,21 @@ Auditoria cruzada: cada objeto (pilar, caixa, plataforma, destrutível) como obs
 - **Defeito P2 — pilar quadrado para projéteis:** projéteis tratavam `pillar` como caixa (cobertura no canto do quadrado circunscrito) enquanto lutadores colidem com o círculo. Corrigido em `blockerContact` e no teste de sobreposição de `stepProjectile`.
 - **Pendências (não verificadas):** Meteor Slam e Tech Recovery junto a objetos só têm cobertura indireta (as partidas IA × IA e `physics3d`); áreas (`kind: 'area'`) não são bloqueadas por cobertura (R7.13 fala só de altura e geometria; sem regra de oclusão aprovada); dano de feixe a destrutível indefinido.
 
+### 15. Fase 7 — ferramentas visuais, cenários de um clique, desempenho e determinismo
+Guia de uso (para abrir pelo portal): [COLISOES_FERRAMENTAS_LAB.md](COLISOES_FERRAMENTAS_LAB.md).
+- **Sonda de colisão** (`src/sim/collision-probe.js`): por lutador, o último contato (bloqueador: parede/barreira de Move, plataforma, obstáculo, destrutível ou borda; normal; profundidade; velocidade horizontal antes e depois) e as varreduras dos projéteis (trecho, primeiro contato, bloqueador). Fica fora do estado, do save e do replay; nada na simulação a lê (`collision-probe` + varredura do código).
+- **5 sobreposições novas em «Visualizar»** (`src/view/collision-overlays.js`): Colisores do cenário, Apoio atual (`f.support` da Fase 4), Contatos com o ambiente, Varredura dos projéteis e Sobreposições e vãos; linhas novas em «Dados ao vivo» (apoio, último contato, objetos do cenário, penetração). O «Arco de lançamento previsto» agora segue a borda circular (antes usava o quadrado legado).
+- **15 cenários** (`src/sim/scenarios-collision.js`), no topo da aba «Cenários» com «Executar os 15». Contra o baseline 4634ca2 (cópia temporária), 5 deles já reprovam por defeito (barreira fina, corredor sem saída, rebote em pilar, suporte de plataforma, suporte destruído); os demais são guardas de regressão e demonstrações.
+- **Testes:** `collision-probe` (5), `collision-scenarios` (17), `collision-tools` (6), `collision-tools.browser` (Edge real: 5 sobreposições, grupo de cenários, 15/15 num clique, «Dados ao vivo», sem erros no console; capturas em `prototypes/combat-lab/evidence/collision-tools/`).
+- **Desempenho (simulação, sem GPU):** 40 partidas IA × IA de 3600 passos em mapa denso: baseline 5,8–6,0 s × branch 6,3–7,0 s (+8 a 15 %, incluindo a sonda e os 12 rounds do `settleStatics` quando há contato); GPU real **não medida**.
+- **Determinismo:** duas execuções idênticas de 30 partidas (3600 passos) produzem o mesmo relatório byte a byte; replay/save-load seguem cobertos por `map.test` (replay 100 % idêntico).
+
+### 16. Registro de skills nesta continuação (evidência, não só rótulo)
+| Skill | Para quê | Resultado |
+|---|---|---|
+| `requesting-code-review` (revisor independente, somente leitura) | Fase 5 (5a + 5b) e depois fases 4-fix/5b/6/7 | achados Important (flag `launchedByHit` obsoleta, arena quadrada, `placementConflicts` invisível, rótulo do multiplicador) aplicados em §13.3 |
+| `receiving-code-review` | avaliar cada achado contra o código antes de aplicar | 1 item mantido como decisão do responsável (limitar rebote a 1); 1 parcialmente aplicado (rótulo de `spawnClearance`) |
+| `systematic-debugging` | fuzz de partidas → causa raiz de 4 defeitos (§13.4) e do feixe/pilar (§14) | todos com teste vermelho antes da correção |
+| `test-driven-development` | cada correção com teste que falha primeiro (RED medido contra o código sem a correção) | exceção registrada: `ccd.js` foi escrito antes dos testes (Fase 3) |
+| `verification-before-completion` | suíte completa a cada fase (87–91 arquivos) e navegador | `npm run verify` e avaliação visual em `JOGAR_ARENAMON.html` ainda pendentes |
+

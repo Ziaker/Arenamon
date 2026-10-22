@@ -8,6 +8,7 @@ import {vec, direction} from './math.js';
 import {TACKLE_SCENARIOS} from './scenarios-tackle.js';
 import {MAP_SCENARIOS} from './scenarios-map.js';
 import {PASSIVE_SCENARIOS} from './scenarios-passives.js';
+import {COLLISION_SCENARIOS} from './scenarios-collision.js';
 
 const cmd = (o = {}) => ({move: vec(), dodge: false, tackle: false, guard: false, guardPressed: false, target: null, ...o});
 const toward = (from, to) => {const dx = to.x - from.x, dz = to.z - from.z, d = Math.hypot(dx, dz) || 1;return vec(dx / d, dz / d);};
@@ -132,8 +133,8 @@ const BASE_SCENARIOS = [
     },
   },
 ];
-/** Cenários base + os do Tackle/meteor slam + os do Novo Mapa + os de Passivas. */
-export const SCENARIOS = [...BASE_SCENARIOS, ...TACKLE_SCENARIOS, ...MAP_SCENARIOS, ...PASSIVE_SCENARIOS];
+/** Cenários base + os do Tackle/meteor slam + os do Novo Mapa + os de Passivas + os de Colisão (overhaul). */
+export const SCENARIOS = [...BASE_SCENARIOS, ...TACKLE_SCENARIOS, ...MAP_SCENARIOS, ...PASSIVE_SCENARIOS, ...COLLISION_SCENARIOS];
 
 const pathGet = (root, path) => path.split('.').reduce((a, k) => a?.[k], root);
 const pathSet = (root, path, v) => {const keys = path.split('.'), last = keys.pop();keys.reduce((a, k) => a[k], root)[last] = v;};

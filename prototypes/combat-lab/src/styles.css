@@ -849,3 +849,6 @@ button.onoff[aria-checked=true]::after{content:'ON';background:#14593c;color:#72
 .btn-preview:hover{background:#20405d;color:#fff}
 
 
+
+/* Grupo «Colisões e ambiente» da lista de cenários (overhaul de colisões) */
+.scenario-group{border:1px solid #3d6a8f;border-radius:10px;padding:8px 10px;margin:6px 0;background:#102233}.scenario-group header{display:flex;justify-content:space-between;align-items:center;gap:8px}.scenario-group strong{font-size:11px}.scenario-group header button{min-height:20px!important;padding:1px 6px!important;font-size:10.5px!important}

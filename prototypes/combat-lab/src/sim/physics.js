@@ -4,6 +4,7 @@ import {C} from './config.js';
 import {clashPossible, mutualTackle, clash, resolveHit, resolveFootstool} from './combat.js';
 import {collideFighter} from './world.js';
 import {ageSurfaces} from './solid-contact.js';
+import {collisionProbe, noteContact, horizontalOf} from './collision-probe.js';
 import {collideMapFighter, damageDestructible, processDamageWithShieldAndStages, effectiveArenaRadius} from './map.js';
 import {passiveCost, hitStunFactor} from './passive-engine.js';
 import {stat} from './status.js';
@@ -144,7 +145,7 @@ export function clampToArena(f) {
     if (d > bound + 1e-9) {   // tolerância de 1 nm: o reposicionamento em `bound` pode sobrar 1 ulp e não conta como novo contato
       f.contacts++;
       const nOut = d > 1e-7 ? scale(f.position, 1 / d) : vec(1, 0);
-      const nIn = scale(nOut, -1);
+      const nIn = scale(nOut, -1), v0 = horizontalOf(f), depth = d - bound;
       f.position = scale(nOut, bound);
 
       if (f.flight && tryWallSplat(f, nIn)) {
@@ -165,6 +166,7 @@ export function clampToArena(f) {
           f.velocity = sub(f.velocity, scale(nOut, vDotN));
         }
       }
+      noteContact(f, 'arena', null, nIn, depth, v0);
     }
     return;
   }
@@ -221,6 +223,7 @@ function settleStatics(f, world, events) {
 }
 export function stepPhysics(fighters, dt, world = null) {
   const R = C.rules, X = C.extras.combat, T = C.extras.toggles, events = [], pushVel = new Map(), startY = new Map();
+  collisionProbe.step++;
   /** Pouso de um voo: cruzou o topo vindo de cima. Compartilhado pelo teste do início do passo e pela reconferência depois do deslocamento horizontal. */
   const land = (f, flight, targetGround) => {
     flight.y = targetGround;

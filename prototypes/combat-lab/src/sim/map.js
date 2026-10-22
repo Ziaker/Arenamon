@@ -10,6 +10,7 @@ import {getFighterMaxStamina} from './entity.js';
 import {sturdyGuard} from './passive-engine.js';
 import {circleContact, noteSurface} from './solid-contact.js';
 import {vec, add, sub, scale, length, normalize, dot, clamp, direction, angleOf} from './math.js';
+import {noteContact, horizontalOf} from './collision-probe.js';
 
 export const MAP_DEFAULTS = {
   arenaRadius: 32.5,
@@ -933,6 +934,7 @@ function bounceOffSolid(f, n) {
 }
 export function collideMapFighter(mapState, f, events = []) {
   if (!mapState) return;
+  const v0 = horizontalOf(f);   // velocidade horizontal antes de qualquer contato desta chamada (sonda de colisão)
   const halfExtent = C.test?.halfExtent ?? 0.35;
   const currentY = f.flight ? (f.flight.y ?? (f.groundY ?? 0)) : (f.groundY ?? 0);
   const fY = currentY + (f.vaultHeight ?? 0);
@@ -950,18 +952,19 @@ export function collideMapFighter(mapState, f, events = []) {
       const ox = (hx + halfExtent) - Math.abs(dx);
       const oz = (hz + halfExtent) - Math.abs(dz);
       if (ox > TOUCH_EPS && oz > TOUCH_EPS) {
+        let n;
         if (ox < oz) {
-          const sign = dx > 0 ? 1 : -1;
+          const sign = dx > 0 ? 1 : -1;n = {x: sign, z: 0};
           f.position.x = px + sign * (hx + halfExtent);
           if (f.velocity.x * sign < 0) f.velocity.x = 0;
           if (f.flight && !f.flight.isNormalJump && f.flight.horizontal.x * sign < 0) f.flight.horizontal.x = 0;
         } else {
-          const sign = dz > 0 ? 1 : -1;
+          const sign = dz > 0 ? 1 : -1;n = {x: 0, z: sign};
           f.position.z = pz + sign * (hz + halfExtent);
           if (f.velocity.z * sign < 0) f.velocity.z = 0;
           if (f.flight && !f.flight.isNormalJump && f.flight.horizontal.z * sign < 0) f.flight.horizontal.z = 0;
         }
-        f.contacts++;
+        f.contacts++;noteContact(f, 'platform', p.id ?? null, n, Math.min(ox, oz), v0);
       }
     }
   }
@@ -994,13 +997,14 @@ export function collideMapFighter(mapState, f, events = []) {
             noteSurface(f, n);
           }
           // Ação em curso (tackle, esquiva...): a velocidade pertence à ação; só a posição é corrigida.
-          f.contacts++;
+          f.contacts++;noteContact(f, 'obstacle', o.id ?? null, n, contact.depth, v0);
         }
       } else {
         const dx = f.position.x - o.pos.x, dz = f.position.z - o.pos.z;
         const ox = (o.hx + halfExtent) - Math.abs(dx);
         const oz = (o.hz + halfExtent) - Math.abs(dz);
         if (ox > TOUCH_EPS && oz > TOUCH_EPS) {
+          const n = ox < oz ? {x: dx > 0 ? 1 : -1, z: 0} : {x: 0, z: dz > 0 ? 1 : -1};
           if (ox < oz) {
             const sign = dx > 0 ? 1 : -1;
             f.position.x = o.pos.x + sign * (o.hx + halfExtent);
@@ -1018,7 +1022,7 @@ export function collideMapFighter(mapState, f, events = []) {
               if (f.flight && !f.flight.isNormalJump && f.flight.horizontal.z * sign < 0) f.flight.horizontal.z = 0;
             }
           }
-          f.contacts++;
+          f.contacts++;noteContact(f, 'obstacle', o.id ?? null, n, Math.min(ox, oz), v0);
         }
       }
     }
@@ -1051,6 +1055,7 @@ export function collideMapFighter(mapState, f, events = []) {
           }
         }
         if (d.state === 'solid') {
+          const n = ox < oz ? {x: dx > 0 ? 1 : -1, z: 0} : {x: 0, z: dz > 0 ? 1 : -1};
           if (ox < oz) {
             const sign = dx > 0 ? 1 : -1;
             f.position.x = d.pos.x + sign * (d.size.hx + halfExtent);
@@ -1062,7 +1067,7 @@ export function collideMapFighter(mapState, f, events = []) {
             if (f.velocity.z * sign < 0) f.velocity.z = 0;
             if (f.flight && !f.flight.isNormalJump && f.flight.horizontal.z * sign < 0) f.flight.horizontal.z = 0;
           }
-          f.contacts++;
+          f.contacts++;noteContact(f, 'destructible', d.id ?? null, n, Math.min(ox, oz), v0);
         }
       }
     }
