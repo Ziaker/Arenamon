@@ -1,4 +1,5 @@
 // CPU-only verification. Does not launch, inspect or control any browser.
+import {RiposteEffect} from './src/riposte-effect.ts';
 import {RushEffect} from './src/rush-effects.ts';
 import assert from 'node:assert/strict';
 import * as T from 'three';
@@ -49,6 +50,17 @@ for(const kind of ['bulletpunch','quickattack'])for(let variant=0;variant<3;vari
  let peak=0;for(let i=0;i<=Math.ceil(fx.duration*60);i++){fx.update(i/60,1/60);particles.update(1/60);peak=Math.max(peak,particles.count);stage.traverse(o=>{assert.ok([o.position.x,o.position.y,o.position.z,o.scale.x,o.scale.y,o.scale.z].every(Number.isFinite));if(o.geometry)for(const v of o.geometry.attributes.position.array)assert.ok(Number.isFinite(v));});}
  assert.ok(peak>0);assert.ok(fx.punch<.01,'Tremor deve decair');assert.equal(fx.actor.visible,false);particles.clear();disposeGroup(stage);
 }
+for(let variant=0;variant<3;variant++)for(let scenario=0;scenario<4;scenario++){
+ const fx=new RiposteEffect(stage,particles,variant,{...defaults.riposte,scenario});
+ fx.update(.04,0);assert.equal(fx.guard.visible,true,'Abertura da guarda precisa ser visível');assert.equal(fx.counter.visible,false);
+ fx.update(.32,0);assert.equal(fx.counter.visible,scenario===0,'Somente acerto elegível dispara contra-ataque');
+ fx.update(.64,0);assert.equal(fx.counter.visible,scenario===0);assert.equal(fx.guard.visible,scenario===1);
+ fx.update(.66,0);assert.equal(fx.guard.visible,false,'Fim do cast encerra guarda');
+ fx.update(fx.duration,0);assert.equal(fx.counter.visible,false);assert.ok(fx.punch<.01);
+ if(scenario!==0)assert.equal(particles.count,0,'Falha não emite faíscas de interceptação/contra-ataque');
+ stage.traverse(o=>assert.ok([o.position.x,o.position.y,o.position.z,o.scale.x,o.scale.y,o.scale.z].every(Number.isFinite)));
+ particles.clear();disposeGroup(stage);
+}
 const fadeEffect=new SwiftEffect(stage,particles,0,defaults.swift);fadeEffect.update(1.46,0);const star=fadeEffect.stars[0].children.find(o=>o.geometry?.type==='ShapeGeometry'),before=star.material.opacity;fadeEffect.update(1.75,0);assert.ok(star.material.opacity<before,'Dissipação do Swift deve alterar opacidade visível');particles.clear();disposeGroup(stage);
 const narrow=new StoneEffect(stage,particles,0,{...defaults.stone,crackWidth:.4},null,0);const narrowSize=narrow.cracks.children[0].geometry.boundingSphere?.radius??(narrow.cracks.children[0].geometry.computeBoundingSphere(),narrow.cracks.children[0].geometry.boundingSphere.radius);particles.clear();disposeGroup(stage);
 const wide=new StoneEffect(stage,particles,0,{...defaults.stone,crackWidth:2},null,0);wide.cracks.children[0].geometry.computeBoundingSphere();assert.ok(wide.cracks.children[0].geometry.boundingSphere.radius>narrowSize,'Largura das rachaduras deve alterar geometria');particles.clear();disposeGroup(stage);
@@ -60,4 +72,4 @@ for(const density of [.25,2]){
 const main=await readFile(new URL('src/main.js',import.meta.url),'utf8'),template=await readFile(new URL('src/template.html',import.meta.url),'utf8');
 for(const [,id] of main.matchAll(/\$\('([\w-]+)'\)/g))assert.ok(template.includes(`id="${id}"`),`Controle ausente: ${id}`);
 const html=await readFile(new URL('dist/arenamon-areia-pedra.html',import.meta.url),'utf8');assert.ok(!/<script[^>]+src\s*=/.test(html));assert.ok(!/<link[^>]+href\s*=/.test(html));
-console.log(JSON.stringify(reports,null,2));console.log('PASS: 21 ciclos, partículas Quarks, geometrias, controles, cleanup e bundle offline. Renderização GPU verificada separadamente.');
+console.log(JSON.stringify(reports,null,2));console.log('PASS: 24 propostas, Riposte nos quatro cenários, partículas Quarks, geometrias, controles, cleanup e bundle offline. Renderização GPU verificada separadamente.');

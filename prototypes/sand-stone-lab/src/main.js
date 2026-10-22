@@ -7,6 +7,7 @@ import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
 import {clamp,mesh,disposeGroup,rockTexture,shockRing} from './art.js';
 import {Particles} from './particles.js';
 import {SandEffect,StoneEffect,RockEffect} from './effects.js';
+import {RiposteEffect} from './riposte-effect.ts';
 import {RushEffect} from './rush-effects.ts';
 import {SwiftEffect,PsyshockEffect} from './new-effects.ts';
 import {controls as definitions,defaults,categories} from './config.ts';
@@ -14,6 +15,7 @@ import {initialPresets,exportSingle,exportAll,parsePreset,migrateLocal} from './
 
 const $=id=>document.getElementById(id);
 const descriptions={
+ riposte:[['Égide de aço','Seis placas se fecham na abertura da guarda; a interceptação converte o escudo em uma estocada radial. Janela: 0–0,59 s.','PLACAS / INTERCEPTAÇÃO / ESTOCADA'],['Guarda cruzada','Duas lâminas formam a guarda em X. Um acerto válido solta dois cortes cruzados que acompanham o contra-ataque.','X / DESVIO / CORTES'],['Mola de retorno','Três crescentes armam a guarda; a interceptação libera uma hélice de energia rumo ao atacante.','CRESCENTES / TENSÃO / RETORNO']],
  bulletpunch:[['Pistão de aço','Um punho metálico recua, dispara com rastros axiais e abre uma coroa de faíscas no contato.','METAL / PISTÃO / PERFURAÇÃO'],['Broca helicoidal','O punho gira entre três hélices de energia. A perfuração termina em arcos de pressão e lascas.','HÉLICES / GIRO / PRESSÃO'],['Rajada de punhos','Ecos de punhos atacam em posições alternadas e convergem numa explosão angular de metal.','RAJADA / ECOS / ESTILHAÇOS']],
  quickattack:[['Arrancada supersônica','O corpo se alonga na arrancada, deixa pós-imagens e linhas paralelas, e freia num choque de ar.','ARRANCADA / RASTROS / FREIO'],['Passo em zigue-zague','O corpo muda de direção num caminho serrilhado; fitas desenham o percurso até o corte final.','CURVAS / FITAS / CORTE'],['Salto de imagem','O corpo aparece em passos descontínuos, deixando silhuetas separadas. O contato se abre em raios finos.','PASSOS / PÓS-IMAGENS / ESTALO']],
  sand:[['Foice do deserto','Uma lâmina de areia em crescente, com borda afiada, rastro de grãos e corte seco no final.','CORTE / VELOCIDADE'],['Muralha de siroco','A frente de areia se enrola em camadas altas. Poeira baixa, volume e detritos dão peso à passagem.','MASSA / TURBULÊNCIA'],['Marcha das dunas','Três cristas dentadas avançam em sequência, como uma barragem que cresce e ocupa o chão.','RITMO / PRESSÃO']],
@@ -54,18 +56,23 @@ const fixedStep=1/60;
 function construct(){
  particles.clear();disposeGroup(stage);delete stage.userData.visualSignature;state.time=0;accumulator=0;
  const p={...values()};if(state.reduce){p.density=(p.density??1)*.45;p.particleDensity=(p.particleDensity??1)*.45;p.sparks=(p.sparks??1)*.45;p.flash=(p.flash??1)*.45;p.impactIntensity=(p.impactIntensity??1)*.7;p.emissivity=(p.emissivity??1)*.45;p.shards=(p.shards??1)*.45;}
- effect=['bulletpunch','quickattack'].includes(state.category)?new RushEffect(stage,particles,state.category,state.variant,p):state.category==='sand'?new SandEffect(stage,particles,state.variant,p):state.category==='stone'?new StoneEffect(stage,particles,state.variant,p,texture,state.model==='match'?state.variant:Number(state.model)):state.category==='rock'?new RockEffect(stage,state.variant,{...p,wire:$('wire').checked},texture):state.category==='swift'?new SwiftEffect(stage,particles,state.variant,p):new PsyshockEffect(stage,particles,state.variant,p,state.previewCount);
+ effect=state.category==='riposte'?new RiposteEffect(stage,particles,state.variant,p):['bulletpunch','quickattack'].includes(state.category)?new RushEffect(stage,particles,state.category,state.variant,p):state.category==='sand'?new SandEffect(stage,particles,state.variant,p):state.category==='stone'?new StoneEffect(stage,particles,state.variant,p,texture,state.model==='match'?state.variant:Number(state.model)):state.category==='rock'?new RockEffect(stage,state.variant,{...p,wire:$('wire').checked},texture):state.category==='swift'?new SwiftEffect(stage,particles,state.variant,p):new PsyshockEffect(stage,particles,state.variant,p,state.previewCount);
  effect.update(0,0);$('scrub').max=effect.duration.toFixed(2);
 }
 function replay(){construct();state.playing=true;updatePlay();}
 function updatePlay(){$('pause').textContent=state.playing?'Ⅱ Pausar':'▶ Continuar';$('pause').setAttribute('aria-pressed',String(!state.playing));}
 function refreshSelection(){
  const c=state.category,v=state.variant,[title,desc,tags]=descriptions[c][v];
- $('proposal-title').textContent=title;$('proposal-desc').textContent=desc;$('tags').textContent=tags;$('hero-title').textContent=title;$('hero-category').textContent=({sand:'SAND WAVE',stone:'EMERGING STONE',rock:'ROCHA',swift:'SWIFT',psyshock:'PSYSHOCK',bulletpunch:'BULLET PUNCH',quickattack:'QUICK ATTACK'}[c])+' / PROPOSTA '+['A','B','C'][v];
+ $('proposal-title').textContent=title;$('proposal-desc').textContent=desc;$('tags').textContent=tags;$('hero-title').textContent=title;$('hero-category').textContent=({sand:'SAND WAVE',stone:'EMERGING STONE',rock:'ROCHA',swift:'SWIFT',psyshock:'PSYSHOCK',bulletpunch:'BULLET PUNCH',quickattack:'QUICK ATTACK',riposte:'RIPOSTE'}[c])+' / PROPOSTA '+['A','B','C'][v];
  document.querySelectorAll('#categories button').forEach(b=>{b.classList.toggle('active',b.dataset.category===c);b.setAttribute('aria-pressed',String(b.dataset.category===c));});
  document.querySelectorAll('#variants button').forEach((b,i)=>{b.classList.toggle('active',i===v);b.setAttribute('aria-pressed',String(i===v));b.querySelector('small').textContent=descriptions[c][i][0];});
  $('model-field').hidden=c!=='stone';$('wire-field').hidden=c!=='rock';$('preview-field').hidden=c!=='psyshock';
  const fields=definitions[c].map(([key,label,unit,min,max,step])=>{
+  if(key==='scenario'){
+   const wrap=document.createElement('label');wrap.className='select-field';wrap.textContent=label;
+   const select=document.createElement('select');select.id='riposte-scenario';select.setAttribute('aria-label',label);
+   ['Acerto na janela → contra-ataque','Sem acerto → janela expira','Golpe tardio (0,62 s)','Guard Break → atravessa'].forEach((name,i)=>{const option=document.createElement('option');option.value=String(i);option.textContent=name;select.append(option);});select.value=String(values()[key]);select.onchange=()=>{values()[key]=Number(select.value);replay();};wrap.append(select);return wrap;
+  }
   const wrap=document.createElement('label');wrap.className='field';const row=document.createElement('span'),caption=document.createElement('span'),out=document.createElement('output'),input=document.createElement('input');
   caption.textContent=label;out.textContent=values()[key]+' '+unit;row.append(caption,out);input.type='range';Object.assign(input,{min,max,step,value:values()[key]});input.setAttribute('aria-label',label+' ('+unit+')');
   input.oninput=()=>{values()[key]=Number(input.value);out.textContent=input.value+' '+unit;replay();};wrap.append(row,input);return wrap;
@@ -101,7 +108,7 @@ function download(data,name){const blob=new Blob([JSON.stringify(data,null,2)+'\
 $('export-one').onclick=()=>download(exportSingle(state.presets,state.category,state.variant,presentation()),`arenamon-${state.category}-${'ABC'[state.variant]}.json`);
 $('export-all').onclick=()=>download(exportAll(state.presets,presentation()),'arenamon-vfx-todas.json');
 $('import').onclick=()=>$('import-file').click();
-$('import-file').onchange=async e=>{const file=e.target.files?.[0];e.target.value='';if(!file)return;try{if(file.size>512000)throw Error('Arquivo acima de 500 KB');const parsed=parsePreset(await file.text());const label=parsed.scope==='single'?`${parsed.category} ${parsed.variant}`:'todas as 21 opções';if(!confirm(`Importar ${label}? Os ajustes locais correspondentes serão substituídos.`))return;
+$('import-file').onchange=async e=>{const file=e.target.files?.[0];e.target.value='';if(!file)return;try{if(file.size>512000)throw Error('Arquivo acima de 500 KB');const parsed=parsePreset(await file.text());const label=parsed.scope==='single'?`${parsed.category} ${parsed.variant}`:'todas as 24 opções';if(!confirm(`Importar ${label}? Os ajustes locais correspondentes serão substituídos.`))return;
  if(parsed.scope==='single'){state.presets[parsed.category][parsed.variant]={...parsed.values};state.category=parsed.category;state.variant='ABC'.indexOf(parsed.variant);}else state.presets=parsed.presets;
  Object.assign(state,parsed.presentation);for(const id of ['rate','bloom','shake','exposure']){$(id).value=state[id];$(id+'-value').textContent=state[id].toFixed(2)+'×';}$('reduced').checked=state.reduce;$('loop').checked=state.loop;$('model').value=state.model;$('preview-count').value=state.previewCount;$('camera').value=parsed.presentation.camera;$('wire').checked=parsed.presentation.wire;$('grid').checked=parsed.presentation.grid;grid.visible=parsed.presentation.grid;refreshSelection();replay();frameCamera(parsed.presentation.camera);$('save-status').textContent=`Importado: ${label}.`;
  }catch(error){$('save-status').textContent='Importação recusada: '+error.message;}};
@@ -111,11 +118,11 @@ renderer.setAnimationLoop(now=>{
  resize();const elapsed=Math.min(.08,Math.max(0,(now-last)/1000));last=now;
  if(state.playing){accumulator+=elapsed*state.rate*(state.reduce?.65:1);while(accumulator>=fixedStep){accumulator-=fixedStep;state.time+=fixedStep;effect.update(state.time,fixedStep);particles.update(fixedStep);if(state.time>=effect.duration){if(state.loop)construct();else{state.time=effect.duration;state.playing=false;updatePlay();break;}}}}
  orbit.update();renderer.toneMappingExposure=state.exposure;bloomPass.strength=state.bloom;
- const punch=effect.punch??0;blast.intensity=punch*24;blast.position.z=state.category==='sand'?state.presets.sand['ABC'[state.variant]].length/2:state.category==='swift'?2.55:state.category==='psyshock'?2.4:['bulletpunch','quickattack'].includes(state.category)?2.35:0;
- if(['swift','psyshock','bulletpunch','quickattack'].includes(state.category))blast.color.setHSL(values().primaryHue/360,.8,.62);else blast.color.setHex(0xffbb60);
+ const punch=effect.punch??0;blast.intensity=punch*24;blast.position.z=state.category==='sand'?state.presets.sand['ABC'[state.variant]].length/2:state.category==='swift'?2.55:state.category==='psyshock'?2.4:state.category==='riposte'?1.9:['bulletpunch','quickattack'].includes(state.category)?2.35:0;
+ if(['swift','psyshock','bulletpunch','quickattack','riposte'].includes(state.category))blast.color.setHSL(values().primaryHue/360,.8,.62);else blast.color.setHex(0xffbb60);
  const shift=state.reduce?0:punch*state.shake*.075,save=camera.position.clone();camera.position.x+=Math.sin(state.time*151)*shift;camera.position.y+=Math.cos(state.time*127)*shift;
  renderer.info.reset();composer.render();camera.position.copy(save);
  $('phase').textContent=effect.phase;$('time').textContent=state.time.toFixed(2)+' / '+effect.duration.toFixed(2)+' s';$('scrub').value=state.time;$('quarks-status').textContent=particles.count+' partículas · '+renderer.info.render.calls+' draw calls · three.quarks';
 });
-window.__labDiagnostics=()=>({category:state.category,variant:state.variant,particleSystems:particles.systems.length,particles:particles.count,time:state.time,hasQuarks:typeof particles.renderer.addSystem==='function',version:3,visualRevision:5,drawCalls:renderer.info.render.calls,geometries:renderer.info.memory.geometries,textures:renderer.info.memory.textures,visualSignature:stage.userData.visualSignature??'legacy'});
+window.__labDiagnostics=()=>({category:state.category,variant:state.variant,particleSystems:particles.systems.length,particles:particles.count,time:state.time,hasQuarks:typeof particles.renderer.addSystem==='function',version:3,visualRevision:6,drawCalls:renderer.info.render.calls,geometries:renderer.info.memory.geometries,textures:renderer.info.memory.textures,visualSignature:stage.userData.visualSignature??'legacy',riposte:state.category==='riposte'?{guardVisible:effect.guard.visible,counterVisible:effect.counter.visible,success:effect.success,contact:effect.contact,scenario:values().scenario}:null});
 refreshSelection();construct();frameCamera();

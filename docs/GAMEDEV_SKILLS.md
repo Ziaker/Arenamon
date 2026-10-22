@@ -187,3 +187,9 @@ Cada entrada: data · tarefa · skill · o que foi aplicado de fato.
 
 - arenamon-routing e game-feel: três propostas por move, antecipação/avanço/impacto e dissipação; rastros ligados ao ator, giros, ecos e trajetórias distintas.
 - Shaders/ribbons existentes reutilizados; controles e JSON mantidos no editor. Galeria revision-5 acessível pelo portal.
+
+### 2026-10-22 — Riposte com guarda e contra-ataque
+
+- arenamon-routing e game-feel: apresentação ligada à janela de interceptação e ao gatilho real; guarda inicial, resposta e falha visualmente separadas.
+- GitHub consultado diretamente: calibration-base.js, entity.js, controller.js e combat.js. Prevalecem PL4 e janela calibrada sobre comentários/fichas antigos.
+- Três propostas e quatro cenários, galeria revision-6 acessível pelo portal.

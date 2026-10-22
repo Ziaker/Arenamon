@@ -1,5 +1,28 @@
 # Laboratório visual: Sand Wave e Emerging Stone
 
+## VOL. 06 — Riposte: abertura da guarda e contra-ataque (22/10/2026)
+
+O atelier passa a 24 propostas. [Galeria Riposte](../prototypes/sand-stone-lab/evidence/revision-6/index.html) com abertura, guarda ativa, interceptação, contra-ataque, impacto, expiração, golpe tardio e Guard Break. Há links no portal, índice e central de testes.
+
+### Regra conferida diretamente no GitHub
+
+- [Calibração atual](https://github.com/Ziaker/Arenamon/blob/main/prototypes/combat-lab/src/sim/calibration-base.js#L162): cast 0,65 s, janela 0–0,59 s e alcance 3,8 m. O atelier usa essa referência para encenar a prévia, sem editar a simulação.
+- [Interceptação](https://github.com/Ziaker/Arenamon/blob/main/prototypes/combat-lab/src/sim/entity.js#L81): apenas dentro da janela; dano e lançamento anulados. Marca o gatilho, processado no passo seguinte do controlador.
+- [Contra-golpe real](https://github.com/Ziaker/Arenamon/blob/main/prototypes/combat-lab/src/sim/controller.js#L790): dirige-se ao atacante, PL4, duração restante do cast (mínimo 0,1 s) e invulnerabilidade até o fim da janela. [Combate](https://github.com/Ziaker/Arenamon/blob/main/prototypes/combat-lab/src/sim/combat.js#L34): nunca faz clash.
+- Guard Break não é interceptado. A ficha e os comentários antigos ainda citam PL1/janela 0,13–0,30 s; esses trechos não foram usados como autoridade sobre a execução atual.
+
+### Três construções completas
+
+A — **Égide de aço:** seis placas se fecham diante do defensor; no acerto válido, a guarda desaparece e vira estocada radial.
+
+B — **Guarda cruzada:** duas lâminas armam o X; a interceptação abre cortes cruzados que seguem o corpo na resposta.
+
+C — **Mola de retorno:** crescentes formam uma guarda em tensão; o gatilho libera uma hélice que avança até o atacante.
+
+O seletor **Cenário de prévia** oferece acerto na janela, sem acerto, golpe tardio em 0,62 s e Guard Break. Só o primeiro produz contra-ataque. A guarda perde intensidade quando a janela fecha e encerra ao fim do cast; um golpe que a atravessa interrompe o visual. O instante do acerto é editável apenas na encenação. Tamanhos da guarda/resposta, lâminas, giro, rastros, cor, partículas, impacto e dissipação possuem controles.
+
+JSON exporta versão 6.0.0 e continua aceitando 3.0.0 e 5.0.0, completando as novas categorias com padrões. Testes CPU verificam os quatro cenários nas três propostas; riposte-review.mjs verifica fases, JSON do cenário e limpeza dos recursos em navegador. Sem teste de desempenho em GPU física ou integração dessas propostas no combate. O VFX do jogo principal permanece independente.
+
 ## VOL. 05 — Bullet Punch e Quick Attack (22/10/2026)
 
 O atelier agora tem sete categorias e 21 propostas. [Comparação das seis opções novas](../prototypes/sand-stone-lab/evidence/revision-5/index.html), com carga, avanço e impacto. Acesso também pelo portal, índice rápido e central de testes.
