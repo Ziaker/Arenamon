@@ -149,6 +149,14 @@ Cada entrada: data · tarefa · skill · o que foi aplicado de fato.
 - **Skill `game-feel`:** preparação, avanço/ruptura, impacto e dissipação em fases legíveis, com opção de movimento reduzido.
 - **Skill `shader-programming`:** mantidos materiais simples e partículas suaves; efeitos animados por tempo em vez de pós-processamento pesado.
 
+#### Revisão visual 2, após reprovação da primeira entrega
+
+- `threejs-materials-lighting`: sombras de contato, luz de recorte fria, luz de impacto, textura e bump procedurais nos estratos de rocha.
+- `shader-programming`: superfícies curvas de areia com ruído animado, erosão das bordas e variação de luz; bloom ajustável separado da poeira.
+- `threejs-scene-setup`: `setAnimationLoop`, resize pelo tamanho CSS e limite de DPR; compositor e câmera orbitável com três enquadramentos.
+- `game-feel`: preparação, ruptura, detritos balísticos e assentamento; tremor ajustável e linha do tempo para inspecionar fases.
+- `verification-before-completion`: teste de CPU dos nove ciclos e contagem de partículas vivas. A inspeção da aba `file://` foi bloqueada pela política do navegador; não houve aprovação visual nem teste GPU desta revisão.
+
 ### 2026-10-21 — Laboratório HUD de vida, stamina e moves (v1.15.5)
 
 - **Tarefa:** protótipo visual de 3 HUDs (Impacto, Quadrinhos, Clássico) para vida, stamina e 4 moves (`docs/HUD_VIDA_STAMINA_MOVES_LAB.md`).

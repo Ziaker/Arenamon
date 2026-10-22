@@ -1,6 +1,8 @@
 # Laboratório visual: Sand Wave e Emerging Stone
 
-Abra [o laboratório](../prototypes/sand-stone-lab/dist/arenamon-areia-pedra.html) diretamente ou pelo `ABRIR_ARENAMON.html`. O arquivo compilado é um HTML único e offline. Escolha uma das três categorias, alterne A/B/C, use os sliders e o botão **Reexecutar**. As teclas 1–3 alternam variantes; espaço reexecuta.
+Abra [o laboratório](../prototypes/sand-stone-lab/dist/arenamon-areia-pedra.html) diretamente ou pelo `ABRIR_ARENAMON.html`. O arquivo compilado é um HTML único e offline. **Revisão visual 2 (21/10/2026):** a primeira proposta foi reprovada pelo usuário por falta de qualidade e identidade. Esta revisão substitui sua construção visual. Recarregue a aba para ver **VOL. 02**.
+
+Escolha uma categoria, alterne A/B/C e ajuste os sliders. A linha do tempo permite inspecionar qualquer instante; espaço pausa, R reexecuta e 1–3 alternam variantes. Há câmera ao nível do chão/superior/¾, tela cheia, opção de salvar/carregar ajustes no navegador e seleção independente da rocha associada ao VFX.
 
 ## Auditoria
 
@@ -13,23 +15,32 @@ Abra [o laboratório](../prototypes/sand-stone-lab/dist/arenamon-areia-pedra.htm
 
 | Categoria | A | B | C |
 |---|---|---|---|
-| Sand Wave | Lâmina baixa com crista contínua | Frente larga, densa e turbulenta | Cristas dentadas e fragmentos |
-| Emerging Stone VFX | Ruptura pesada, poeira baixa | Erupção agressiva com estilhaços | Ascensão telúrica com anéis e fragmentos orbitais |
-| Rocha | Monólito bruto facetado | Obelisco de lâminas minerais | Aglomerado natural irregular |
+| Sand Wave | Foice do deserto: crescente de areia e corte rápido | Muralha de siroco: frente enrolada em camadas | Marcha das dunas: três cristas dentadas em sequência |
+| Emerging Stone VFX | Falha tectônica: fraturas, ruptura e poeira radial | Coroa de obsidiana: estilhaços altos e impacto quente | Selo de Gaia: círculo mineral e partículas ascendentes |
+| Rocha | Bastião de basalto: estratos e colunas assimétricas | Presa de obsidiana: lâminas inclinadas e veios quentes | Relíquia telúrica: núcleo com coroa e peças suspensas |
 
 ## Implementação de partículas
 
-`prototypes/sand-stone-lab/src/main.js` instancia `Q.BatchedRenderer`, `Q.ParticleSystem` e os emissores retornados por `system.emitter`. Usa `presetToSystemParams` do adaptador existente. Sand Wave emite ao longo da frente móvel e no impacto; Emerging Stone emite na ruptura e durante a subida. A, B e C têm contagem, cor, tamanho, velocidade e forma de emissor distintos. Os sliders de **Partículas (×)** ajustam a contagem. O modo **Movimento reduzido** diminui a velocidade da apresentação e a quantidade de partículas.
+`src/particles.js` instancia diretamente `Q.BatchedRenderer` e `Q.ParticleSystem`, usando `system.emitter`. A revisão 2 tem três materiais procedurais: poeira com textura irregular e transparência normal, grãos finos aditivos e riscos de impacto. Emissores ConeEmitter são orientados do eixo Z local para a direção solicitada; a matriz do emissor é atualizada antes da simulação. Há curvas de cor/alfa/tamanho ao longo da vida e gravidade. Cada sistema vive até a última partícula desaparecer.
 
-Os demais controles são: alcance (m), largura (m), velocidade (×) e altura da crista (m) para Sand Wave; aviso (s), subida (s) e escala (×) para Emerging Stone; escala (×) e rotação (°) para a rocha. São parâmetros de comparação visual, sem alterar a configuração do move no jogo.
+Sand Wave usa sete pares de emissores móveis de poeira/grãos, emissão inicial e explosão final. B tem partículas de poeira maiores e mais duradouras. Emerging Stone usa doze emissores radiais no chão e um jato de grãos; B acrescenta riscos de impacto e maior velocidade; C acrescenta emissão ascendente persistente. A contagem de partículas vivas aparece no rodapé.
+
+`src/art.js` contém a geometria de areia curva com shader de ruído animado, modelos de rocha com estratos irregulares, textura/bump procedural, veios, rachaduras, anéis e detritos instanciados com trajetória balística. `src/effects.js` controla a sequência temporal das propostas. Esses sólidos e superfícies complementam as partículas Quarks.
+
+Os controles incluem alcance, largura e altura (m), quantidade de grãos e poeira (×), antecipação e subida (s), escala, ângulo e giro da rocha (°/s), velocidade de reprodução, brilho mineral, luminosidade e tremor. Movimento reduzido diminui partículas e ritmo e desliga o tremor. São parâmetros de apresentação; não alteram o jogo.
 
 ## Arquivos e reprodução
 
 - Fonte: `prototypes/sand-stone-lab/src/`.
 - Build: `npm run build:sand-stone-lab` → `prototypes/sand-stone-lab/dist/arenamon-areia-pedra.html`.
-- Verificação curta: `npm run test:sand-stone-lab`.
+- Verificação de CPU: `node prototypes/sand-stone-lab/test.mjs` (não abre navegador).
+- Verificação de navegador disponível: `npm run test:sand-stone-lab` (não executada nesta revisão por bloqueio da política de inspeção de `file://`).
 - Acesso: `ABRIR_ARENAMON.html`, `HTMLS_ARENAMON.html` e `TESTES_ARENAMON.html`.
 
 ## Limites e recomendação
 
-As nove propostas são visuais. A onda não contorna obstáculos neste laboratório e os modelos não substituem a malha/colisor do jogo. O VFX de cegueira do Sand Wave também não faz parte desta comparação. Para gameplay, a alternativa **A** de Sand Wave tende a ter melhor leitura da frente; a **A** de Emerging Stone sinaliza melhor o ponto de surgimento; a rocha **C** tem silhueta mais orgânica. São recomendações técnicas, não escolhas para o jogo. A seleção final cabe ao usuário após testar.
+As nove propostas são visuais. A onda não contorna obstáculos neste laboratório e os modelos não substituem a malha/colisor do jogo. O VFX de cegueira do Sand Wave também não faz parte desta comparação. A largura visual inicial é 3,4 m e o aviso inicial é 0,70 s, propostas de apresentação (não mudanças dos valores canônicos auditados). A rocha recolhe ao fim do ciclo para repetir a demonstração; no jogo ela continua persistente conforme a regra existente.
+
+Verificações desta revisão: compilação do HTML; nove ciclos em CPU, partículas Quarks vivas com coordenadas e tamanhos finitos, cleanup, controles presentes e dependências embutidas. **Renderização GPU e qualidade visual em tela não foram verificadas nesta revisão:** a inspeção da aba local foi recusada pela política do navegador. Os testes de funcionamento da versão anterior não validam esta nova arte. A recomendação de escolha fica pendente da comparação visual; nenhuma proposta foi aprovada ou aplicada ao jogo.
+
+O build do Combat Lab foi refeito. `npm run verify` foi executado e voltou a parar em `skills:check`, pelas mesmas 11 cópias ausentes/divergentes em `.claude/skills`; as etapas posteriores não executaram.

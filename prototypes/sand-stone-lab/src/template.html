@@ -1,12 +1,27 @@
 <!doctype html>
-<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Arenamon · Areia e Pedra</title><style>/*__CSS__*/</style></head>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Arenamon · Areia e Pedra — Atelier VFX</title><style>/*__CSS__*/</style></head>
 <body><div class="shell">
-<header><div class="brand"><b>A</b><span>ARENAMON <strong>LABORATÓRIO · AREIA & PEDRA</strong></span></div><p>9 propostas visuais · HTML offline · three.quarks</p><a href="../../../ABRIR_ARENAMON.html">← Portal</a></header>
-<div class="layout"><aside>
- <section><h2>Categoria</h2><div class="tabs" id="categories"><button data-category="sand" class="active">Sand Wave</button><button data-category="stone">Emerging Stone · VFX</button><button data-category="rock">Rocha · modelo</button></div></section>
- <section><h2>Alternativa</h2><div class="tabs three" id="variants"><button data-variant="0" class="active">A</button><button data-variant="1">B</button><button data-variant="2">C</button></div><h3 id="proposal-title"></h3><p id="proposal-desc"></p></section>
- <section><h2>Configuração visual</h2><div id="sliders"></div><label class="check"><input id="reduced" type="checkbox"> Movimento reduzido</label></section>
- <section><h2>Reprodução</h2><div class="actions"><button id="replay" class="primary">▶ Reexecutar</button><button id="pause">⏸ Pausar</button></div><label class="check"><input id="loop" type="checkbox" checked> Repetir automaticamente</label><p class="hint">Teclas 1, 2, 3 trocam a alternativa; espaço reexecuta. Arraste para girar, role para aproximar.</p></section>
- </aside><main><canvas id="scene" aria-label="Visualização 3D da proposta ativa"></canvas><div class="badge" id="badge"></div><div class="timeline"><span id="phase">Preparação</span><div class="track"><i id="progress"></i></div><span id="time">0,0 s</span></div></main></div>
-<footer><span>Comparação visual; nenhuma proposta foi aplicada ao jogo.</span><span id="quarks-status">Partículas: three.quarks</span></footer>
+ <header><a class="brand" href="../../../ABRIR_ARENAMON.html"><b>◈</b><span>ARENAMON<small>ATELIER DE EFEITOS</small></span></a><div class="header-caption">AREIA <i>&</i> PEDRA <span>VOL. 02</span></div><span class="offline">● OFFLINE</span></header>
+ <div class="layout">
+  <aside>
+   <section><h2><span>01</span> Escolha o elemento</h2><div id="categories" class="categories"><button data-category="sand" class="active">Sand Wave <span>→</span></button><button data-category="stone">Emerging Stone <span>→</span></button><button data-category="rock">Modelos de rocha <span>→</span></button></div></section>
+   <section><h2><span>02</span> Direção visual</h2><div id="variants" class="variants"><button data-variant="0" class="active"><b>A</b><small></small></button><button data-variant="1"><b>B</b><small></small></button><button data-variant="2"><b>C</b><small></small></button></div><p id="tags" class="tags"></p><h3 id="proposal-title"></h3><p id="proposal-desc" class="description"></p></section>
+   <section><h2><span>03</span> Esculpir o efeito</h2><div id="sliders"></div><label id="model-field" class="select-field" hidden>Rocha associada<select id="model"><option value="match">Mesma proposta do VFX</option value="0">A · Bastião de basalto</option><option value="1">B · Presa de obsidiana</option><option value="2">C · Relíquia telúrica</option></select></label><label id="wire-field" class="check" hidden><input id="wire" type="checkbox"> Inspecionar malha</label><button id="reset" class="text-button">Restaurar valores desta categoria</button></section>
+   <details><summary>Luz, movimento e apresentação</summary><div class="details-body">
+    <label class="field"><span>Velocidade de reprodução <output id="rate-value">0.70×</output></span><input id="rate" aria-label="Velocidade de reprodução" type="range" min=".2" max="1.5" step=".05" value=".7"></label>
+    <label class="field"><span>Brilho mineral <output id="bloom-value">0.48×</output></span><input id="bloom" aria-label="Brilho mineral" type="range" min="0" max="1.2" step=".02" value=".48"></label>
+    <label class="field"><span>Luminosidade <output id="exposure-value">1.10×</output></span><input id="exposure" aria-label="Luminosidade" type="range" min=".6" max="1.8" step=".05" value="1.1"></label>
+    <label class="field"><span>Tremor de impacto <output id="shake-value">0.35×</output></span><input id="shake" aria-label="Tremor de impacto" type="range" min="0" max="1" step=".05" value=".35"></label>
+    <label class="check"><input id="reduced" type="checkbox"> Movimento reduzido</label><label class="check"><input id="grid" type="checkbox"> Grade de escala (1 m)</label>
+   </div></details>
+   <div class="save-row"><button id="save">Salvar ajustes</button><button id="load">Carregar</button></div><p id="save-status" role="status" class="hint"></p>
+  </aside>
+  <main id="viewport">
+   <canvas id="scene" aria-label="Visualização 3D animada da proposta ativa"></canvas><div id="fatal" class="fatal" hidden></div>
+   <div class="hero"><p id="hero-category"></p><h1 id="hero-title"></h1><span>Arraste para orbitar · Role para aproximar</span></div>
+   <div class="view-tools"><select id="camera" aria-label="Ângulo de câmera"><option value="three">Câmera ¾</option><option value="low">Ao nível do chão</option><option value="top">Vista superior</option></select><button id="fullscreen" aria-label="Alternar tela cheia">⛶</button></div>
+   <div class="transport"><div class="transport-top"><span id="phase"></span><span id="time"></span></div><input id="scrub" aria-label="Instante da animação em segundos" type="range" min="0" max="3" step=".01" value="0"><div class="transport-bottom"><button id="replay" class="primary">↻ Reexecutar</button><button id="pause">Ⅱ Pausar</button><label class="check"><input id="loop" type="checkbox" checked> Repetir</label><span class="shortcuts">1 2 3 · alternativas &nbsp; R · reiniciar</span></div></div>
+  </main>
+ </div>
+ <footer><span>9 propostas para comparação. A escolha para o jogo continua sua.</span><span id="quarks-status">three.quarks</span></footer>
 </div><script>/*__BUNDLE__*/</script></body></html>

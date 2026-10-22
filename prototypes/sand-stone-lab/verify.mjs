@@ -5,6 +5,7 @@ import {resolve} from 'node:path';
 const browser = await chromium.launch({channel:'msedge',headless:true,args:['--enable-unsafe-swiftshader','--use-gl=angle','--use-angle=swiftshader']});
 const page = await browser.newPage({viewport:{width:1440,height:900}});
 const errors=[];page.on('pageerror',e=>errors.push(e.message));
+page.on('console',m=>{if(m.type()==='error'&&/shader|webgl|compile/i.test(m.text()))errors.push(m.text());});
 await page.goto(pathToFileURL(resolve('prototypes/sand-stone-lab/dist/arenamon-areia-pedra.html')).href);
 await page.waitForTimeout(900);
 for(const category of ['sand','stone','rock']){
@@ -16,13 +17,13 @@ for(const category of ['sand','stone','rock']){
   }
 }
 await page.locator('#categories [data-category="sand"]').click();
-await page.waitForTimeout(600);
+await page.waitForFunction(()=>window.__labDiagnostics().particles>80);
 const sand=await page.evaluate(()=>window.__labDiagnostics());
-if(sand.particleSystems<1)throw new Error('Sand Wave não emitiu partículas Quarks');
+if(sand.particles<1)throw new Error('Sand Wave não emitiu partículas Quarks');
 await page.locator('#categories [data-category="stone"]').click();
-await page.waitForTimeout(850);
+await page.waitForFunction(()=>window.__labDiagnostics().particles>80);
 const stone=await page.evaluate(()=>window.__labDiagnostics());
-if(stone.particleSystems<1)throw new Error('Emerging Stone não emitiu partículas Quarks');
+if(stone.particles<1)throw new Error('Emerging Stone não emitiu partículas Quarks');
 await page.locator('#sliders input').first().fill('0.8');
 await page.locator('#replay').click();
 if(errors.length)throw new Error(errors.join('\n'));
