@@ -14,8 +14,8 @@ export const CALIBRATION_BASE = [
   ["rules.launchUp", 7.1, 7.3],
   ["rules.launchHorizontal", 19.3, 11],
   ["rules.landingRecovery", 0.629, 0.19],
-  ["rules.staminaMax", 7.1, 3],
-  ["rules.regenTime", 1.25, 5],
+  ["rules.staminaMax", 11.1, 3],
+  ["rules.regenTime", 4, 5],
   // test
   ["test.arenaHalf", 16, 10.4],
   // locomotion
@@ -26,7 +26,7 @@ export const CALIBRATION_BASE = [
   ["locomotion.visualTurnRate", 21.991148575128552, 15.707963267948966],
   ["locomotion.accelCurve", 0.55, 0.45],
   ["locomotion.brakeCurve", 0.5, 0.35],
-  ["locomotion.friction", 1.1, 0.8],
+  ["locomotion.friction", 1.95, 0.8],
   ["locomotion.turnGrip", 52, 34],
   ["locomotion.residualSpeed", 0.35, 0.25],
   ["locomotion.turnAcceleration", 160, 90],
@@ -37,8 +37,8 @@ export const CALIBRATION_BASE = [
   // extras.toggles
   ["extras.toggles.enableClashPush", 1, 0],
   // extras.bindings
-  ["extras.bindings.skill3", 18, 49],
-  ["extras.bindings.skill4", 15, 50],
+  ["extras.bindings.skill3", 49, 49],
+  ["extras.bindings.skill4", 50, 50],
   // extras.bindings2
   ["extras.bindings2.forward", 31, 33],
   ["extras.bindings2.back", 28, 35],
@@ -54,9 +54,9 @@ export const CALIBRATION_BASE = [
   ["actions.dodge.recoveryTime", 0.1, 0.12],
   ["actions.dodge.prepSpeed", 0.6, 0.45],
   ["actions.dodge.travelEnd", 0.78, 0.7],
-  ["actions.tackle.duration", 1.352, 0.4],
+  ["actions.tackle.duration", 0.65, 0.4],
   ["actions.tackle.invulnerable", 0, 0.2],
-  ["actions.tackle.distance", 1.9, 2.5],
+  ["actions.tackle.distance", 1.55, 2.5],
   ["actions.tackle.blend", 0.06, 0.1],
   ["actions.tackle.prepTime", 0.04, 0.06],
   ["actions.tackle.impulseTime", 0.08, 0.1],
@@ -72,20 +72,20 @@ export const CALIBRATION_BASE = [
   ["actions.cancel.windowMode", 0, 1],
   ["actions.cancel.fromEnd", 0.61, 0.15],
   // vfx
-  ["vfx.hit.variant", 3, 0],
-  ["vfx.hit.size", 1.53, 1.3],
-  ["vfx.hit.duration", 1.15, 0.38],
-  ["vfx.hit.count", 50, 18],
+  ["vfx.hit.variant", 1, 0],
+  ["vfx.hit.size", 2.23, 1.3],
+  ["vfx.hit.duration", 0.71, 0.38],
+  ["vfx.hit.count", 18, 18],
   ["vfx.hit.intensity", 2.63, 1],
-  ["vfx.hit.speed", 23.5, 6],
-  ["vfx.hit.opacity", 0.7, 0.95],
-  ["vfx.hit.color", 14401024, 16757601],
+  ["vfx.hit.speed", 6, 6],
+  ["vfx.hit.opacity", 0.95, 0.95],
+  ["vfx.hit.color", 16777215, 16757601],
   ["vfx.hit.fade", 2.58, 1.6],
-  ["vfx.hit.color2", 16759552, 16773577],
-  ["vfx.hit.cone", 1.09, 0.55],
-  ["vfx.hit.debris", 1.8, 1],
-  ["vfx.hit.dust", 1.75, 1],
-  ["vfx.hit.crack", 1.6, 1],
+  ["vfx.hit.color2", 16773577, 16773577],
+  ["vfx.hit.cone", 0.55, 0.55],
+  ["vfx.hit.debris", 1, 1],
+  ["vfx.hit.dust", 1, 1],
+  ["vfx.hit.crack", 1, 1],
   ["vfx.dodge.color", 16777215, 10354648],
   ["vfx.block.variant", 2, 1],
   ["vfx.block.intensity", 1.22, 1],
@@ -159,24 +159,51 @@ export const CALIBRATION_BASE = [
   ["display.animation.speed", 1.75, 1],
   ["display.diagnostics.toast", 1, 0],
   // world
-  ["world.riposte.cooldown", 2, 8],   // fora de changedFromLabDefaults do export (ajuste do usuário no laboratório)
-  ["world.riposte.cast", 1, 0.65],   // fora de changedFromLabDefaults do export (ajuste do usuário no laboratório)
+  ["world.riposte.cooldown", 8, 8],   // fora de changedFromLabDefaults do export (ajuste do usuário no laboratório)
+  ["world.riposte.cast", 0.65, 0.65],   // fora de changedFromLabDefaults do export (ajuste do usuário no laboratório)
   ["world.riposte.windowStart", 0, 0.13],   // fora de changedFromLabDefaults do export (ajuste do usuário no laboratório)
-  ["world.riposte.windowEnd", 0.51, 0.3],   // fora de changedFromLabDefaults do export (ajuste do usuário no laboratório)
-  ["world.riposte.knockbackH", 16.6, 3],   // fora de changedFromLabDefaults do export (ajuste do usuário no laboratório)
-  ["world.riposte.knockbackV", 5, 0],   // fora de changedFromLabDefaults do export (ajuste do usuário no laboratório)
-  ["world.riposte.strikeRange", 2.9, 1.6],   // fora de changedFromLabDefaults do export (ajuste do usuário no laboratório)
+  ["world.riposte.windowEnd", 0.59, 0.3],   // fora de changedFromLabDefaults do export (ajuste do usuário no laboratório)
+  ["world.riposte.knockbackH", 16.8, 3],   // fora de changedFromLabDefaults do export (ajuste do usuário no laboratório)
+  ["world.riposte.knockbackV", 6.6, 0],   // fora de changedFromLabDefaults do export (ajuste do usuário no laboratório)
+  ["world.riposte.strikeRange", 3.8, 1.6],   // fora de changedFromLabDefaults do export (ajuste do usuário no laboratório)
   ["world.bulletPunch.cast", 0.2, 0.75],   // fora de changedFromLabDefaults do export (ajuste do usuário no laboratório)
-  ["world.bulletPunch.vanish", 0.05, 0.2],   // fora de changedFromLabDefaults do export (ajuste do usuário no laboratório)
-  ["world.bulletPunch.searchRadius", 8, 5],   // fora de changedFromLabDefaults do export (ajuste do usuário no laboratório)
-  ["world.bulletPunch.startDistance", 4.25, 3],   // fora de changedFromLabDefaults do export (ajuste do usuário no laboratório)
-  ["world.bulletPunch.maxDistance", 18, 10],   // fora de changedFromLabDefaults do export (ajuste do usuário no laboratório)
-  ["world.bulletPunch.growTime", 1.3, 2],   // fora de changedFromLabDefaults do export (ajuste do usuário no laboratório)
+  ["world.bulletPunch.vanish", 0.2, 0.2],   // fora de changedFromLabDefaults do export (ajuste do usuário no laboratório)
+  ["world.bulletPunch.searchRadius", 8.5, 5],   // fora de changedFromLabDefaults do export (ajuste do usuário no laboratório)
+  ["world.bulletPunch.startDistance", 3, 3],   // fora de changedFromLabDefaults do export (ajuste do usuário no laboratório)
+  ["world.bulletPunch.maxDistance", 10, 10],   // fora de changedFromLabDefaults do export (ajuste do usuário no laboratório)
+  ["world.bulletPunch.growTime", 1.1, 2],   // fora de changedFromLabDefaults do export (ajuste do usuário no laboratório)
   // map
-  ["map.jumpHeight", 2.3, 2],
-  ["map.jumpGravityUp", 14, 17.5],
-  ["map.jumpGravityDown", 25.5, 22],
-  ["map.jumpAirControl", 0.7, 0],
+  ["map.jumpHeight", 2.4, 2],
+  ["map.jumpGravityUp", 17.5, 17.5],
+  ["map.jumpGravityDown", 28.5, 22],
+  ["map.jumpAirControl", 0.85, 0],
+  // 2ª exportação (22/10/2026 12:12 -03): valores acrescentados sobre a base anterior
+  ["rules.recoilFraction", 0.8, 0.15],
+  ["rules.chargeTackleSpeed2", 1.5, 1.25],
+  ["rules.chargeTackleSpeed3", 2.2, 1.6],
+  ["rules.feintWindow", 0.33, 0.12],
+  ["rules.tackleFriction1", 1.8, 0],
+  ["rules.tackleFriction2", 1.2, 0],
+  ["rules.tackleFriction3", 1.8, 0],
+  ["rules.slamFxLength", 1.45, 1],
+  ["rules.perfect", 0.34, 0.2],
+  ["extras.combat.clashHitstop", 0.033, 0.085],
+  ["extras.combat.impactHitstop", 0.008, 0.035],
+  ["extras.combat.perfectGuardCounterWindow", 1.98, 0.7],
+  ["extras.visual.smear.smearDurationFrames", 3, 2],
+  ["extras.visual.smear.smearWidth", 0.24, 0.18],
+  ["extras.visual.smear.smearOpacity", 1, 0.85],
+  ["extras.visual.squashStretch.squashIntensity", 0.17, 0.15],
+  ["extras.visual.squashStretch.stretchIntensity", 0.31, 0.2],
+  ["world.riposte.cost", 1.55, 0.8],
+  ["world.bulletPunch.reach", 6, 3],
+  ["world.bulletPunch.impactMult", 2.6, 1],
+  ["map.platformCount", 5, 2],
+  ["map.jumpMaxFallSpeed", 15.14, 12],
+  ["map.jumpAirAccel", 10.5, 8],
+  ["map.footstoolBounce", 11.1, 6.5],
+  ["map.footstoolAirAccel", 46, 20],
+  ["map.footstoolStagger", 0.55, 0.25],
 ];
 
 /** Aplica a base de calibração a um objeto de configuração recém-criado (muta e devolve). */

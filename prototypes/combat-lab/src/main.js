@@ -16,6 +16,7 @@ import {Character, loadStudioFile, studioWindows, compareWindows} from './view/c
 import {createCharacterPanel} from './ui/characters-panel.js';
 import {createVisualPanel} from './ui/visual-panel.js';
 import {HudProposals} from './ui/hud-proposals.js';
+import {ProgressHud} from './ui/progress-hud.js';
 import {Hud} from './ui/hud.js';
 import {Input} from './ui/input.js';
 import {createTuning, escape, pathGet} from './ui/tuning.js';
@@ -657,6 +658,7 @@ const dock = createDock({recorder, getCursorTick: () => game.tick, onSeek: seekT
 
 // ---------- Overhaul: Visualizar, Partida, Controles e propostas de HUD ----------
 const hudProposals = new HudProposals($('hud-proposals'));
+const progressHud = new ProgressHud($('progress-hud'));   // HUD de progressão "Banco de Células" (estágios 0–4 dos 5 atributos)
 // Diagnóstico de comandos (relato do controlador) e indicadores das janelas de combate (estado real da simulação).
 const diagnostics = createDiagnostics({$, game, tuning, download});
 const windowsOverlay = createWindowsOverlay({root: $('win-overlay'), view, game});
@@ -998,7 +1000,7 @@ function frame(now) {
   try {view.draw(game.fighters, game.events, live ? dt * clock.timeScale : 0, {paused: !live, realDt: dt, tick: game.tick, sources: [C.extras.toggles.enablePlayerAI || ui.scenario ? 'IA' : 'jogador', 'IA'], world: game.world, navGame: game});} finally {restorePose?.();}
   const back = replay.length ? (replay.length - 1 - replay.cursor) : 0;
   hud.render(game, ui.fps, {locked: input.locked, paused: ui.paused && game.phase !== 'menu', replay: back ? `−${back} passos (${(back * C.test.step * 1000).toFixed(0)} ms) · ▶ retoma daqui` : 'último passo · , e . avançam/voltam', playerAI: !!C.extras.toggles.enablePlayerAI});
-  movesHud.render(game);moveNotices();
+  movesHud.render(game);moveNotices();progressHud.render(game);
   passivesHud.render(game, C.extras.toggles.enablePassives !== 0);
   $('rp-readout').textContent = `passo ${game.tick}${back ? ` · −${(back * C.test.step).toFixed(2)} s` : ''}${clock.timeScale !== 1 ? ` · ${clock.timeScale}×` : ''}`;
   dock.render();updateDojoAdvantageBadge();hudProposals.render(game, live ? dt * clock.timeScale : 0);windowsOverlay.update();perfPanel.frame({frameMs: dt * 1000, simMs, steps});cinePanel?.updateBadge?.();updateOffscreenArrow(canvas.clientWidth, canvas.clientHeight);updateActionHintPill();if (game.phase === 'result' && !lastKoHandled) checkKoTrigger();

@@ -1,8 +1,8 @@
 // Approved timings are separate from provisional calibration (GDD §§3, 7–9).
 export const RULES = {
   dodge: .4, invulnerable: .2, steerLimit: Math.PI / 6, steerRate: Math.PI,
-  recoil: .514, recoilFraction: .15, blend: .1, guardStun: .514,
-  perfect: .2, perfectCooldown: 2, staminaMax: 7.1, regenDelay: 1, regenTime: 1.25,
+  recoil: .514, recoilFraction: .8, blend: .1, guardStun: .514,
+  perfect: .34, perfectCooldown: 2, staminaMax: 11.1, regenDelay: 1, regenTime: 4,
   guardSpeed: .6, exhaustedSpeed: .7, guardTurn: 3 * Math.PI, guardAcceleration: 15 * Math.PI,
 };
 export const TEST = {

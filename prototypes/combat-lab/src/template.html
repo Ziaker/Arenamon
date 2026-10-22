@@ -35,6 +35,10 @@
     <button type="button" id="changed-open" data-n="0" title="Parâmetros diferentes do padrão do laboratório">≠ 0</button>
     <button type="button" id="shortcuts-open" aria-label="Atalhos" title="Lista de atalhos (?)">?</button>
    </div>
+   <div class="btn-group top-group-ai" role="group" aria-label="IA dos lutadores">
+    <button type="button" id="arena-autoplay-toggle" class="onoff ai-btn ai-blue" role="switch" aria-checked="false" title="IA do jogador (azul): ligada, a IA joga no seu lugar (IA × IA); desligada, você controla">🤖 IA jogador</button>
+    <button type="button" id="arena-enemy-ai-toggle" class="onoff ai-btn ai-red" role="switch" aria-checked="true" title="IA do oponente (vermelho): desligada, o oponente fica parado">🧠 IA oponente</button>
+   </div>
    <div class="btn-group top-group-match">
     <button type="button" id="pause" title="Pausar / continuar (Esc)">❚❚ Pausar</button>
     <button type="button" id="restart-top" title="Reiniciar a partida (R)">↺ Reiniciar</button>
@@ -47,8 +51,6 @@
    <div id="tools-pop" class="tools-pop" role="menu" hidden>
     <div class="tools-pop-section">
      <div class="tools-pop-title">Assistência e IA</div>
-     <button type="button" id="arena-enemy-ai-toggle" class="onoff" role="switch" aria-checked="true" title="Liga/desliga a IA do oponente (desligada, o oponente fica parado)">🧠 IA oponente</button>
-     <button type="button" id="arena-autoplay-toggle" class="onoff" role="switch" aria-checked="false" title="IA controla o jogador azul (IA × IA)">🤖 IA jogador</button>
      <button type="button" id="arena-toast-toggle" class="onoff" role="switch" aria-checked="false" title="Liga/desliga os avisos de comando negado/guardado no buffer">💬 Avisos de comando</button>
     </div>
     <div class="tools-pop-section">
@@ -324,6 +326,7 @@
    <div id="ability-banner-0" class="ability-banner left" hidden role="status" aria-live="polite"><div class="ability-banner-inner"><span>Ability:</span><strong>Órbita</strong></div></div>
    <div id="ability-banner-1" class="ability-banner right" hidden role="status" aria-live="polite"><div class="ability-banner-inner"><span>Ability:</span><strong>Prisma</strong></div></div>
    <div id="hud-proposals" class="hudp" hidden></div>
+   <div id="progress-hud" class="pg-root" hidden aria-label="Progressão dos atributos (estágios 0 a 4)"></div>
    <header id="hud-root">
     <div class="fighter"><strong id="name0">JOGADOR · AZUL</strong><meter id="hp0" min="0" max="1" value="1" aria-label="Vida jogador"></meter><meter id="stamina0" class="sta" min="0" max="1" value="1" aria-label="Stamina jogador"></meter><span id="state0"></span><div id="stages0" class="stages-indicator"></div></div>
     <div class="fighter enemy"><strong>ADVERSÁRIO · VERMELHO</strong><meter id="hp1" min="0" max="1" value="1" aria-label="Vida adversário"></meter><meter id="stamina1" class="sta" min="0" max="1" value="1" aria-label="Stamina adversário"></meter><span id="state1"></span><div id="stages1" class="stages-indicator"></div></div>

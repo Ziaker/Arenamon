@@ -27,6 +27,7 @@ import {QuarksBridge} from './quarks/bridge.js';
 import {NavDebug} from '../nav/nav-debug.js';
 import {StatusAura} from './status-aura.js';
 import {AimMarkers} from './aim-marker-view.js';
+import {ArenaScenery} from './scenery.js';
 // Pós-processamento experimental (Fase 4, pmndrs/postprocessing sem React): criado só com C.vfx.post.enabled = 1.
 import * as PP from 'postprocessing';
 import {PostPipeline} from './post/post-pipeline.js';
@@ -68,6 +69,7 @@ export class View {
     for (const [x, z, w, d] of [[-16, 0, .15, 32], [16, 0, .15, 32], [0, -16, 32, .15], [0, 16, 32, .15]]) {
       const wall = new T.Mesh(new T.BoxGeometry(w, X.visual.wallHeight, d), new T.MeshStandardMaterial({color: rgb('wall')}));wall.position.set(x, .175, z);this.scene.add(wall);this.walls.push(wall);
     }
+    this.scenery = new ArenaScenery(this.scene, this); // cenário "Laboratório técnico" (display.scenery.labTheme); o visual clássico fica por baixo
     this.legacySeen = new WeakSet();
     this.vfx = new VfxSystem(this.scene, {flashEl: document.getElementById('vfx-flash'), canvas});
     // Novo runtime de VFX declarativo. Registra todas as famílias de efeito.
@@ -140,8 +142,12 @@ export class View {
       });
       this.floor.material.color.setHex(rgb('floor'));
     }
+    // Cenário do laboratório: o piso clássico vira a laje escura, e grid/anel clássicos saem (a régua está na textura do piso).
+    const themed = this.scenery.apply(isCircle, rad);
+    this.grid.visible = !themed;
+    if (themed) {this.circleRing.visible = false;this.circleFloor.material.color.setHex(this.scenery.slabHex());}
     this.camera.fov = X.cameraExtra.fov;this.camera.near = X.cameraExtra.nearClip;this.camera.far = X.cameraExtra.farClip;this.camera.updateProjectionMatrix();
-    this.scene.background.setHex(rgb('background'));
+    this.scene.background.setHex(themed ? this.scenery.backgroundHex() : rgb('background'));
     const gridKey = rgb('gridMajor') + ':' + rgb('gridMinor') + ':' + V.gridDivisions;
     if (this.gridKey !== gridKey) {this.gridKey = gridKey;const fresh = new T.GridHelper(32, V.gridDivisions, rgb('gridMajor'), rgb('gridMinor'));this.grid.geometry.dispose();this.grid.geometry = fresh.geometry;fresh.material.dispose();}
     this.ambientLight.intensity = V.ambientLightIntensity;this.directionalLight.intensity = V.directionalIntensity;this.directionalLight.position.set(V.lightX, V.lightY, V.lightZ);
@@ -414,7 +420,7 @@ export class View {
         this.scene.background = impactPhase === 'white' ? new T.Color(0x050505) : new T.Color(0xffffff);
         const silMat = impactPhase === 'white' ? this.silhouetteWhiteMat : this.silhouetteBlackMat;
 
-        const toHide = [this.floor, this.circleFloor, this.circleRing, this.grid, ...this.walls, this.worldView?.group, ...this.shadows];
+        const toHide = [this.floor, this.circleFloor, this.circleRing, this.grid, ...this.walls, this.scenery?.group, this.worldView?.group, ...this.shadows];
         for (const el of toHide) {
           if (el && el.visible) {
             el.visible = false;

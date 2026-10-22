@@ -64,6 +64,24 @@ function range(key, value, path) {
   if (['lightX', 'lightY', 'lightZ'].includes(key)) return {min: -30, max: 30, step: .5, fmt: n => n.toFixed(1)};
   if (key === 'gridDivisions') return {min: 2, max: 100, step: 1, fmt: n => String(n)};
   if (path && path.startsWith('extras.hitbox.') && (key === 'shapeForward' || key === 'shapeRadius')) return {min: .1, max: 2, step: .05, fmt: n => n.toFixed(2) + ' m'};
+  if (path && path.startsWith('display.scenery.')) {
+    if (key === 'labTheme') return {min: 0, max: 1, step: 1, fmt: n => n ? 'Laboratório técnico' : 'Clássico (cinza)', kind: 'toggle'};
+    if (['labBlocks', 'labProps', 'labRulers', 'labRimGlow'].includes(key)) return {min: 0, max: 1, step: 1, fmt: n => n ? 'Ligado' : 'Desligado', kind: 'toggle'};
+    if (key === 'labRingStep') return {min: 1, max: 16, step: 0.5, fmt: n => n.toFixed(1) + ' m'};
+    if (key === 'labBlockScale') return {min: 0.2, max: 4, step: 0.05, fmt: n => n.toFixed(2) + '×'};
+  }
+  if (path && path.startsWith('display.progress.')) {
+    if (key === 'pgEnabled' || key === 'pgAnimate') return {min: 0, max: 1, step: 1, fmt: n => n ? 'Ligado' : 'Desligado', kind: 'toggle'};
+    if (key === 'pgScale' || key === 'pgScaleEnemy') return {min: 0.4, max: 2, step: 0.05, fmt: n => Math.round(n * 100) + '%'};
+    if (key === 'pgLayout') return {min: 0, max: 1, step: 1, fmt: n => n ? 'Horizontal (compacto)' : 'Vertical (cantos)', kind: 'toggle'};
+    if (key === 'pgSubject') return {min: 0, max: 2, step: 1, fmt: n => ['Jogador', 'Adversário', 'Os dois'][n] ?? '?'};
+  }
+  if (path && path.startsWith('display.consumables.')) {
+    if (key === 'gemStyle') return {min: 0, max: 1, step: 1, fmt: n => n ? 'Gemas Facetadas' : 'Clássico', kind: 'toggle'};
+    if (['gemIndicators', 'gemAnimate', 'gemParticles', 'gemPedestal'].includes(key)) return {min: 0, max: 1, step: 1, fmt: n => n ? 'Ligado' : 'Desligado', kind: 'toggle'};
+    if (key === 'gemScale' || key === 'gemIndicatorSize') return {min: 0.3, max: 3, step: 0.05, fmt: n => n.toFixed(2) + '×'};
+    if (key === 'gemHover') return {min: 0, max: 3, step: 0.05, fmt: n => n.toFixed(2) + ' m'};
+  }
   if (path && path.startsWith('display.interpolation.')) {
     if (key === 'maxJump') return {min: .2, max: 4, step: .1, fmt: n => n.toFixed(1) + ' m'};
     if (key === 'enabled') return {min: 0, max: 1, step: 1, fmt: n => n ? 'Ligado' : 'Desligado', kind: 'toggle'};
@@ -185,7 +203,8 @@ export const EXTRA_SECTIONS = [['Smear de Membros', 'extras.visual.smear', null]
   ['Teclas do vermelho (controle manual)', 'extras.bindings2', null], ['VFX · Laser da Arena (BeamRenderer)', 'vfx.laser', null], ['Sombras', 'display.shadow', null], ['HUD', 'display.hud', null], ['Habilidades passivas', 'display.passive', null], ['Altura visual', 'display.grounding', null], ['Indicador da janela C → X', 'display.cancelRing', null], ['Animação: transições', 'display.animation', null], ['Diagnóstico de comandos', 'display.diagnostics', null], ['Janelas de combate', 'display.windows', null], ['Medidor de desempenho', 'display.perf', null],
   // Passivas (catálogo experimental, §29): uma seção por passiva. A apresentação unificada fica em Visualizar.
   ...PASSIVES.map(p => [`Passivas · ${p.nome}${p.species ? ' (' + p.species + ')' : ''}`, `passivas.${p.id}`, null]),
-  ['Passivas · gerais (detecção)', 'passivas.globals', null], ['VFX · three.quarks (experimental)', 'vfx.quarks', null], ['IA · Navegação Yuka (experimental)', 'extras.nav', null], ['VFX · Pós-processamento (experimental)', 'vfx.post', null], ['Hitbox espacial do golpe (experimental)', 'extras.hitbox', null], ['Interpolação do desenho (movimento liso)', 'display.interpolation', null]];
+  ['Passivas · gerais (detecção)', 'passivas.globals', null], ['VFX · three.quarks (experimental)', 'vfx.quarks', null], ['IA · Navegação Yuka (experimental)', 'extras.nav', null], ['VFX · Pós-processamento (experimental)', 'vfx.post', null], ['Hitbox espacial do golpe (experimental)', 'extras.hitbox', null], ['Interpolação do desenho (movimento liso)', 'display.interpolation', null],
+  ['Cenário do laboratório', 'display.scenery', null], ['HUD de progressão (Banco de Células)', 'display.progress', null], ['Consumíveis (Gemas Facetadas)', 'display.consumables', null]];
 /** Parâmetros mostrados em outras abas (sem duplicar controles no Ajustes). */
 const ELSEWHERE = new Set(['extras.toggles.enableEnemyAI', 'extras.toggles.enemyManual', 'extras.visual.shadowMin', 'extras.visual.shadowHeightFade']);
 export function createTuning({apply}) {
