@@ -7,6 +7,7 @@ import {NAMES, SECTIONS, TOOLTIPS, KEY_HELP} from './tuning-meta.js';
 import {OFFICIAL} from './official.js';
 import {STYLES} from '../sim/tactics.js';
 import {actionMeta, OFFICIAL_MAP, migrateFlat, flatten} from './actions-meta.js';
+import {changedOutsideManifest, importOutsideManifest} from './tuning-io.js';
 import {overhaulMeta} from './overhaul-meta.js';
 import {VFX_TYPES, SHAKE_EVENTS} from '../view/vfx.js';
 import {SOLID_FAMILIES} from '../view/solid-fx.js';
@@ -391,15 +392,20 @@ export function createTuning({apply}) {
   $('tune-list').addEventListener('scroll', hideTip, {passive: true});
 
   // Presets: ui/presets-panel.js (biblioteca com presets de sensação, categorias, versões e comparação).
-  const known = () => new Set(manifest.map(m => m.path));
+  /** Todos os parâmetros numéricos de C (inclui os que NÃO têm controle no Ajustes, como os dos Moves em `world.*`): a exportação e a importação os levam junto. */
+  const rootsOf = obj => Object.fromEntries(ROOT_KEYS.map(k => [k, obj[k]]));
+  const manifestPaths = () => new Set(manifest.map(m => m.path));
+  const known = () => new Set([...manifestPaths(), ...Object.keys(flatten(rootsOf(base)))]);
   /** Valores de referência para comparações: atuais, padrão do laboratório ou jogo oficial (presets: presets-panel). */
   const valuesOf = id => id === '__current' ? snapshotValues() : id === '__lab' ? Object.fromEntries(manifest.map(m => [m.path, m.initial])) : id === '__game' ? Object.fromEntries(manifest.filter(m => m.official !== undefined).map(m => [m.path, m.official])) : {};
 
   // ---------- JSON ----------
+  /** Parâmetros alterados que o Ajustes não lista (Moves e demais ações em `world.*`, etc.): antes ficavam só em `values` e sumiam de «changedFromLabDefaults». */
+  const extraChanged = () => changedOutsideManifest(rootsOf(C), rootsOf(base), manifestPaths());
   function exportData() {
     const values = Object.fromEntries(ROOT_KEYS.map(k => [k, structuredClone(C[k])]));
     return {schema: 'arenamon-tuning', version: 9, source: 'arenamon-combate-laboratorio (overhaul)', createdAt: new Date().toISOString(), values,
-      changedFromLabDefaults: manifest.filter(changed).map(m => ({path: m.path, lab: m.initial, value: pathGet(C, m.path)})),
+      changedFromLabDefaults: [...manifest.filter(changed).map(m => ({path: m.path, lab: m.initial, value: pathGet(C, m.path)})), ...extraChanged()],
       differencesFromGame: manifest.filter(m => status(m) === 'experimental').map(m => ({path: m.path, game: m.official, lab: pathGet(C, m.path)})),
       labOnlyParameters: manifest.filter(m => m.official === undefined).length,
       note: 'Valores do laboratório. Nada é aplicado ao jogo automaticamente; use differencesFromGame para decidir o que levar ao config.ts.'};
@@ -411,6 +417,9 @@ export function createTuning({apply}) {
     const migration = migrateFlat(flatten(nested), known()), values = migration.values;
     const changes = [], invalid = [];
     for (const m of manifest) {const v = values[m.path];if (v === undefined) continue;if (typeof v !== 'number' || !Number.isFinite(v) || v < m.min - 1e-8 || v > m.max + 1e-8) {invalid.push(`${m.path} = ${v}`);continue;}if (!same(v, pathGet(C, m.path))) changes.push([m.path, v]);}
+    // Parâmetros sem controle no Ajustes (Moves em `world.*` etc.): aceitos se existem no padrão e são números finitos (sem faixa de slider).
+    const extra = importOutsideManifest(values, rootsOf(base), rootsOf(C), manifestPaths());
+    changes.push(...extra.changes);invalid.push(...extra.invalid);
     if (invalid.length) return {error: `Valores inválidos ou fora da faixa (${invalid.length}): ${invalid.slice(0, 5).join(', ')}${invalid.length > 5 ? '…' : ''}`};
     return {changes, schema: data.schema || 'v5/v6', version: data.version ?? '—', converted: migration.converted, ignored: migration.ignored};
   }
