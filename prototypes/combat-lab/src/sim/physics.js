@@ -7,6 +7,7 @@ import {ageSurfaces} from './solid-contact.js';
 import {collisionProbe, noteContact, horizontalOf} from './collision-probe.js';
 import {collideMapFighter, damageDestructible, processDamageWithShieldAndStages, effectiveArenaRadius} from './map.js';
 import {passiveCost, hitStunFactor} from './passive-engine.js';
+import {altitudeOf} from './entity.js';
 import {stat} from './status.js';
 import {vec, add, scale, sub, dot, length, normalize, clamp, direction, smoothstep} from './math.js';
 
@@ -334,7 +335,7 @@ export function stepPhysics(fighters, dt, world = null) {
         for (const b of fighters) {
           if (b === f || b.hp <= 0 || b.wallSplat || f.footstoolDoneWith === b.id) continue;
           if (Math.abs(f.position.x - b.position.x) > reach || Math.abs(f.position.z - b.position.z) > reach) continue;
-          const bTop = (b.groundY ?? 0) + (b.flight?.y ?? b.vaultHeight ?? 0) + bodyH;
+          const bTop = altitudeOf(b) + bodyH;
           if (flight.vy > -(M.footstoolMinFallSpeed ?? 1.0)) continue;          // só queda real e suficiente
           if (!(prevY >= bTop - tol && flight.y <= bTop + tol)) continue;       // os pés cruzam o topo vindo de cima
           events.push(resolveFootstool(f, b));
@@ -352,6 +353,11 @@ export function stepPhysics(fighters, dt, world = null) {
       // NÃO aplicar queda espúria de borda de plataforma (evita cancelar o slam no ar)!
       const curAlt = (f.groundY ?? 0) + (f.vaultHeight ?? 0);
       const targetGround = getGroundHeight(f.position, world, curAlt);
+      // Meteor Slam que sai da borda da superfície onde começou: o vault é relativo a groundY, então a base passa a seguir o piso REAL (a altitude dos pés é
+      // preservada: a diferença vira altura de mergulho). Sem isso o lutador ficava suspenso na altura da plataforma até o fim da ação.
+      if (f.action?.slam && f.action.slamPrepDone && !f.action.slamLanded && targetGround < (f.groundY ?? 0) - 0.05) {
+        f.vaultHeight = (f.vaultHeight ?? 0) + ((f.groundY ?? 0) - targetGround);f.groundY = targetGround;
+      }
       // Footstool pela ESQUIVA (C) por cima do rival: na descida do arco do vault, com os pés acima de (topo − footstoolVaultMargin) e sobre o rival, pisa nele; o vault vira um
       // salto normal com o rebote e o controle aéreo do footstool. Mesmas regras de dano, stagger, invulnerável e recarga do footstool do salto.
       const M = C.map ?? {}, J = f.action?.kind === 'dodge' ? f.action.jump : null;
@@ -361,7 +367,7 @@ export function stepPhysics(fighters, dt, world = null) {
         for (const b of fighters) {
           if (b === f || b.hp <= 0 || b.wallSplat || f.footstoolDoneWith === b.id) continue;
           if (Math.abs(f.position.x - b.position.x) > reach || Math.abs(f.position.z - b.position.z) > reach) continue;
-          const bTop = (b.groundY ?? 0) + (b.flight?.y ?? b.vaultHeight ?? 0) + bodyH, eff = bTop - margin;
+          const bTop = altitudeOf(b) + bodyH, eff = bTop - margin;
           if (!(feetPrev >= eff - tol && feetNow <= eff + tol)) continue;
           events.push(resolveFootstool(f, b));
           const hz = scale(f.velocity, 0.8);
@@ -426,7 +432,7 @@ export function stepPhysics(fighters, dt, world = null) {
         if (f.action?.kind === 'tackle' && !f.action.neutralized && world.mapState.destructibles) {
           for (const d of world.mapState.destructibles) {
             if (d.state !== 'solid' || f.action.hits?.has(d.id)) continue;
-            const fY = (f.groundY ?? 0) + (f.flight?.y ?? f.vaultHeight ?? 0);
+            const fY = altitudeOf(f);
             if (fY + C.extras.visual.bodyHeight <= d.pos.y || fY >= d.pos.y + d.size.height) continue;
             const dx = Math.abs(f.position.x - d.pos.x), dz = Math.abs(f.position.z - d.pos.z);
             if (dx <= d.size.hx + C.test.halfExtent && dz <= d.size.hz + C.test.halfExtent) {
@@ -447,9 +453,9 @@ export function stepPhysics(fighters, dt, world = null) {
         const a = fighters[ai], b = fighters[bi];
         if (a.absent || b.absent) continue;   // ausência física: nenhum contato
         // Sobreposição tridimensional real (R7.11)
-        const ya0 = (a.groundY ?? 0) + (a.flight?.y ?? 0) + (a.vaultHeight ?? 0);
+        const ya0 = altitudeOf(a);
         const ya1 = ya0 + C.extras.visual.bodyHeight;
-        const yb0 = (b.groundY ?? 0) + (b.flight?.y ?? 0) + (b.vaultHeight ?? 0);
+        const yb0 = altitudeOf(b);
         const yb1 = yb0 + C.extras.visual.bodyHeight;
         if (ya1 < yb0 || yb1 < ya0) continue;
         // Pulo físico por cima do rival: os dois não se tocam até o pouso.

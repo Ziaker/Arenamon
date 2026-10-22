@@ -8,6 +8,7 @@
 // É só representação: o desenho lê o estado e os eventos da simulação e nunca decide nada.
 import * as T from 'three';
 import {C, rgb} from '../sim/config.js';
+import {altitudeOf} from '../sim/entity.js';
 import {reflectPlacement} from '../sim/moves/reflect.js';
 import {stoneCount} from '../sim/moves/psyshock.js';
 
@@ -862,7 +863,7 @@ export class WorldView {
       }
       if (f.shield && f.shield.hp > 0 && f.hp > 0) {
         bubble.visible = true;
-        const fY = (f.groundY ?? 0) + (f.flight?.y ?? f.vaultHeight ?? 0);
+        const fY = altitudeOf(f);
         bubble.position.set(f.position.x, fY + 0.6, f.position.z);
         const ratio = Math.min(1, f.shield.hp / (f.shield.maxHp || 80));
         bubble.material.opacity = 0.22 + 0.28 * ratio + 0.08 * Math.sin(this.time * 5);

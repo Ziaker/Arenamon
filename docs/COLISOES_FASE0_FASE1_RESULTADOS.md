@@ -47,7 +47,7 @@ Hipóteses **refutadas** durante a Fase 0 (registradas para não serem reabertas
 | `superpowers:writing-plans` | Dividir as 7 fases | Tabela de tarefas deste documento |
 | `superpowers:test-driven-development` | RED → GREEN | `collision-solid.test.mjs` (9 falhas → 0), `collision-map.test.mjs` (6 falhas) |
 
-Ainda **não** invocadas: `requesting-code-review`, `verification-before-completion`, `finishing-a-development-branch`, `subagent-driven-development`.
+Ainda **não** invocadas nesta linha do registro: `finishing-a-development-branch`, `subagent-driven-development` (as demais foram invocadas depois; ver §16 e §18).
 
 ## 4. Fase 1 — o que mudou e como foi verificado
 
@@ -128,7 +128,7 @@ O responsável aprovou remover a componente penetrante **na locomoção normal**
 
 ## 9. Skills (evidência)
 
-Invocadas pela ferramenta Skill nesta tarefa: `systematic-debugging`, `writing-plans`, `test-driven-development`, `requesting-code-review` (duas revisões por subagente somente leitura), `receiving-code-review`. Ainda não: `verification-before-completion`, `finishing-a-development-branch`, `subagent-driven-development`, `executing-plans`.
+Invocadas pela ferramenta Skill nesta tarefa: `systematic-debugging`, `writing-plans`, `test-driven-development`, `requesting-code-review` (duas revisões por subagente somente leitura), `receiving-code-review`. `verification-before-completion` só foi invocada na releitura final (§18). Ainda não: `finishing-a-development-branch`, `subagent-driven-development`, `executing-plans`.
 
 ## 10. Fase 3 — detecção contínua (CCD) de projéteis
 
@@ -260,9 +260,26 @@ Guia de uso (para abrir pelo portal): [COLISOES_FERRAMENTAS_LAB.md](COLISOES_FER
 | `receiving-code-review` | avaliar cada achado contra o código antes de aplicar | 1 item mantido como decisão do responsável (limitar rebote a 1); 1 parcialmente aplicado (rótulo de `spawnClearance`) |
 | `systematic-debugging` | fuzz de partidas → causa raiz de 4 defeitos (§13.4) e do feixe/pilar (§14) | todos com teste vermelho antes da correção |
 | `test-driven-development` | cada correção com teste que falha primeiro (RED medido contra o código sem a correção) | exceção registrada: `ccd.js` foi escrito antes dos testes (Fase 3) |
-| `verification-before-completion` | suíte completa a cada fase (87–91 arquivos) e navegador | `npm run verify` e avaliação visual em `JOGAR_ARENAMON.html` ainda pendentes |
+| `verification-before-completion` | **correção de registro:** a skill NÃO havia sido invocada antes; só na releitura final (§18). Até ali, as rodadas de suíte foram verificações reais, mas sem a skill | checklist requisito a requisito em §18 |
 
 ### 17. Segunda revisão independente (fases 4-fix, 5b, 6 e 7) — achados e destino
 Sem Critical. Aplicados: **I1** pilar passou a ser desenhado como cilindro (`world-view.js`; antes caixa, enquanto a física usa círculo); **I2** a sonda é limpa ao restaurar quadro da linha do tempo, ao reiniciar e depois dos cenários em lote (antes mostrava contatos do «futuro»); **I3** a causa não era a revisão 1 melhorar, e sim vazamento de configuração entre blocos do `ai-eval` (ver §13.3) — guarda original (+20) restaurado com `resetConfig`; **M1** `startY` limpo no pouso; **M2** plataforma × plataforma usa `passageClearance`; **M4** penetração das ferramentas derivada de `test.halfExtent`/`bodyHeight` (`bodyPenetration`) e duração do registro em segundos do relógio; **M5** testes reforçados (determinismo com a sonda adulterada, estado da RNG por seed idêntico ao baseline, dano «uma vez» sem o ramo folgado, asserção de rebote em pilar/caixa); **M6** estado dos cenários fora do `Game` (WeakMap); **M7** sem alocação por chamada em `collideMapFighter`; **M8** teste de navegador no `package.json`, dist reconstruído e capturas regeneradas na v1.15.15.
 Mantidos: **M3** a lateral da plataforma não rebate (R3.12 trata de obstáculos indestrutíveis; plataformas ficam como antes, documentado em §13.1); `noteSweep` ainda aloca por subpasso (custo desprezível); cenários sem `try/finally` (padrão pré-existente do `runScenario`).
 
+### 18. Releitura do documento de execução e do plano do PR #100 — o que faltava
+Checklist contra o prompt (§1–§15) e contra `OVERHAUL_COLISOES_AMBIENTE.md` (COL-A a COL-H, P1 a P6). Tudo abaixo foi medido, não presumido.
+**Defeitos novos (achados ao conferir as matrizes de interação e a R7.11):**
+| # | Defeito (severidade) | Evidência | Correção | Teste |
+|---|---|---|---|---|
+| 1 | **P1 — 3D real entre lutadores em plataforma (COL-C / R7.11):** `flight.y` é ABSOLUTA, mas a colisão entre lutadores e outros pontos somavam `groundY + flight.y`; quem pulava ao lado do rival numa plataforma tinha a altura dobrada e **atravessava o rival** (0,9 m acima do topo: distância 0,6 m em vez de 1,0 m) | 3 casos (plataformas de 1 m e 1,5 m) | `altitudeOf(f)` em `entity.js`, usado em `physics.js` (par de lutadores, footstool, dano ao destrutível), `combat.js`, `moves.js` e na camada visual (`rig.js`, `bridge.js`, `world-view.js`; o ponto de VFX de quem voa numa plataforma também ficava alto) | `env-integration` (3 casos; vermelho medido antes) |
+| 2 | **P1 — Meteor Slam que sai da borda da plataforma ficava suspenso:** o vault é relativo a `groundY`; ao mergulhar para fora da borda, o lutador ficava ~1,00 m acima do piso até o fim da ação | 1,00 m de flutuação | a base do slam passa a seguir o piso real (a altitude dos pés é preservada) | `env-states` |
+**Cobertura que faltava (Fase 6, sem defeito):** Tech Recovery junto a pilar, Meteor Slam ao lado de caixa (o mergulho termina no topo dela, dentro da faixa de montagem), defesa (guard) comprimida por Tackle contra pilar/caixa, **save/load no meio do contato** (estado físico, normais de superfície e apoio idênticos ao continuar direto) e **taxa de quadros de renderização 30/60/144/240 Hz** (mesmo estado na simulação de 120 Hz): `env-states` (6).
+**Validação no HTML construído e com modelo real:** `collision-tools.browser` agora abre `dist/arenamon-combate-laboratorio.html` por `file://` (15/15 num clique, 5 sobreposições, sem erros) e carrega um modelo real de `chars/` (mosh/Cogumelo) no azul rodando «pouso no topo de plataforma» (`evidence/collision-tools/modelo-real-pouso-na-plataforma.png`).
+**Itens do prompt/plano que seguem PENDENTES ou parciais (não marcar como concluídos):**
+- Rampas (Fase 4 lista «deslocamento em rampas»): o jogo não tem rampas; não implementadas (exigiria regra nova).
+- CCD de lutadores: protegidos pelos subpassos de 0,1 m (corpo de 1 m); com `contactStep` absurdo (3 m) o tunelamento reaparece (documentado em `tunneling.test`). Não há TOI de lutador nem alvos em movimento na varredura (só projéteis).
+- Áreas de efeito (`kind: 'area'`) sem oclusão por cobertura (sem regra aprovada); dano de feixe a destrutível indefinido.
+- Autoria de derrota ambiental (R11.2): janela «recente» sem valor aprovado; não inventada.
+- Benchmark de CPU/frametime com alerta quando o número de contatos cresce: só medi o tempo da simulação (sem alerta); GPU real não medida.
+- `docs/OVERHAUL_COLISOES_AMBIENTE.md` (plano do PR #100) só existe naquela branch e ainda diz «NÃO IMPLEMENTADO»; este documento é o registro do que foi feito. Reconciliar ao decidir o destino do PR #100.
+- `npm run verify` completo e avaliação jogável na pasta oficial; rebuild do `dist/` oficial.

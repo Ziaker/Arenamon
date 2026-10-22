@@ -101,6 +101,19 @@ for (const kind of Object.keys(WITH)) {
   });
 }
 
+// ---------- Altitude real (R7.11): flight.y é ABSOLUTA; somar groundY dobrava a altura de quem voa a partir de uma plataforma ----------
+for (const [top, rise] of [[1, .9], [1, 1.1], [1.5, .9]]) {
+  check(`3D real sobre plataforma de ${top} m: quem pula ${rise} m acima do topo ao lado do rival na plataforma é separado dele (volumes se sobrepõem)`, () => {
+    const g = lab(), [a, b] = g.fighters;
+    Object.assign(g.mapState, {platforms: [{id: 'p', pos: {x: 0, y: 0, z: 0}, width: 6, depth: 6, height: top}]});
+    a.position = vec(0, 0);b.position = vec(.6, 0);a.groundY = b.groundY = top;
+    a.flight = {y: top + rise, vy: 0, horizontal: vec(0, 0), isNormalJump: true};
+    g.step(emptyCommand(), emptyCommand());
+    const d = Math.max(Math.abs(a.position.x - b.position.x), Math.abs(a.position.z - b.position.z));
+    assert.ok(d >= 2 * C.test.halfExtent - 1e-6, `atravessou o rival: distância ${d.toFixed(3)} m`);
+  });
+}
+
 // ---------- Cobertura: projéteis e feixes ----------
 for (const kind of Object.keys(WITH)) {
   check(`projétil rasteiro contra ${kind} na frente do alvo: o objeto cobre (alvo sem dano)`, () => {

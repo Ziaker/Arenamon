@@ -12,6 +12,7 @@
 // opcional e todos os eventos da linha do tempo disparam NA SOLTURA (`at` é ignorado).
 // Deslocamento opcional (motion) e janelas próprias de invulnerabilidade e de cancelamento.
 import {C} from './config.js';
+import {altitudeOf} from './entity.js';
 import {validateEntity, DEFAULTS} from './world.js';
 import {validateStatus} from './status.js';
 import {CHARGE_OVERRIDES} from './charge.js';
@@ -97,7 +98,7 @@ export const clearMoves = () => REGISTRY.clear();
  */
 export function nearestEligible(f, fighters, range) {
   let best = null, bd = Infinity;
-  const bodyH = C.extras?.visual?.bodyHeight ?? 1.2, fy = (f.groundY ?? 0) + (f.flight?.y ?? 0) + (f.vaultHeight ?? 0);
+  const bodyH = C.extras?.visual?.bodyHeight ?? 1.2, fy = altitudeOf(f);
   for (const o of fighters) {
     if (o.id === f.id || o.hp <= 0 || o.absent || (o.flight && !o.wallSplat)) continue;
     const oy = (o.groundY ?? 0) + (o.vaultHeight ?? 0);

@@ -2,7 +2,7 @@
 // (um clique roda os 15), «Dados ao vivo» com apoio/último contato, sem erros no console. Gera capturas em evidence/collision-tools/.
 // Uso: node prototypes/combat-lab/test/collision-tools.browser.mjs
 import {chromium} from '@playwright/test';
-import {fileURLToPath} from 'node:url';
+import {fileURLToPath, pathToFileURL} from 'node:url';
 import {mkdirSync, writeFileSync} from 'node:fs';
 import {startDevServer} from '../dev-server.mjs';
 
@@ -40,7 +40,35 @@ try {
   await page.waitForTimeout(1800);
   await page.evaluate(() => {document.getElementById('panel').hidden = true;});
   await page.screenshot({path: out + 'pouso-no-topo-da-plataforma.png'});
+  // Modelo REAL de chars/ no azul (mesmo carregamento do painel «Exportar»), com os cenários e as sobreposições ligadas.
+  await page.evaluate(() => {document.getElementById('panel').hidden = false;});
+  await tab('export');await page.waitForFunction(() => document.querySelectorAll('.pf-area').length === 5);
+  const models = await page.evaluate(() => [...document.querySelectorAll('.pf-area[data-area="characters"] tr[data-file]')].map(r => r.dataset.file));
+  let loaded = '';
+  for (const m of models.slice(0, 4)) {
+    await page.evaluate(() => {document.getElementById('pf-msg').textContent = '';});
+    await page.locator(`.pf-area[data-area="characters"] tr[data-file="${m}"] button[data-act="blue"]`).click();
+    await page.waitForFunction(() => (document.getElementById('pf-msg')?.textContent || '').trim().length > 0, null, {timeout: 30000}).catch(() => {});
+    if (/carregado no azul/.test(await page.textContent('#pf-msg'))) {loaded = m;break;}
+  }
+  check('Modelo real de chars/ carregado no azul', models.length === 0 || loaded !== '', loaded || `sem modelo servível entre ${models.length}`);
+  if (loaded) {
+    await tab('scenarios');
+    await page.locator('#scenario-list .scenario[data-id="col-land-platform-top"] button').click();
+    await page.waitForTimeout(2200);
+    await page.evaluate(() => {document.getElementById('panel').hidden = true;});
+    await page.screenshot({path: out + 'modelo-real-pouso-na-plataforma.png'});
+  }
   check('Sem erros no console durante os cenários e as sobreposições', errors.length === 0, errors.slice(0, 2).join(' | '));
+  // HTML jogável CONSTRUÍDO (file://, sem servidor): as 5 sobreposições, o grupo de cenários e os 15/15 num clique.
+  const built = await browser.newPage({viewport: {width: 1500, height: 920}}), berr = [];
+  built.on('pageerror', e => berr.push(e.message));built.on('console', m => {if (m.type() === 'error') berr.push(m.text());});
+  await built.goto(pathToFileURL(root + 'dist/arenamon-combate-laboratorio.html').href);await built.waitForFunction(() => window.__lab);
+  await built.evaluate(() => document.querySelector('[data-tool="scenarios"]').click());
+  check('HTML construído (file://): grupo «Colisões e ambiente (15)» e 15/15 num clique', await built.locator('#scenario-list .scenario[data-id^="col-"]').count() === 15 && await (async () => {await built.click('#scenario-collisions');return /15 de 15 cenários de colisão aprovados/.test(await built.textContent('#scenario-report'));})());
+  await built.evaluate(() => document.querySelector('[data-tool="overlays"]').click());
+  check('HTML construído (file://): as 5 sobreposições de colisão existem', (await Promise.all(keys.map(k => built.locator(`#overlay-list input[data-overlay="${k}"]`).count()))).every(n => n === 1));
+  check('HTML construído (file://): sem erros no console', berr.length === 0, berr.slice(0, 2).join(' | '));
 } finally {
   await browser.close();srv.close?.();
   writeFileSync(out + 'resultado.json', JSON.stringify({when: new Date().toISOString(), failures, report}, null, 1));

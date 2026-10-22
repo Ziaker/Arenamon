@@ -1,5 +1,5 @@
 {
- "when": "2026-10-22T04:15:00.220Z",
+ "when": "2026-10-22T11:00:35.970Z",
  "failures": 0,
  "report": [
   {
@@ -25,10 +25,30 @@
   {
    "label": "Dados ao vivo: linhas de apoio, último contato e objetos do cenário",
    "ok": true,
-   "detail": "Distância entre centros30.75 mEspaço entre colisores29.75 mVelocidade de aproximação1.45 m/sAzul (física)neutral · |v| 0"
+   "detail": "Distância entre centros30.82 mEspaço entre colisores29.82 mVelocidade de aproximação1.52 m/sAzul (física)neutral · |v| 0"
+  },
+  {
+   "label": "Modelo real de chars/ carregado no azul",
+   "ok": true,
+   "detail": "mosh/Cogumelo.glb"
   },
   {
    "label": "Sem erros no console durante os cenários e as sobreposições",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "label": "HTML construído (file://): grupo «Colisões e ambiente (15)» e 15/15 num clique",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "label": "HTML construído (file://): as 5 sobreposições de colisão existem",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "label": "HTML construído (file://): sem erros no console",
    "ok": true,
    "detail": ""
   }

@@ -1,6 +1,6 @@
 // Resolução de contatos ofensivos: lançamento, clash, invulnerabilidade, defesa parcial/perfeita.
 import {C} from './config.js';
-import {isInvulnerable, isOffensive, riposteIntercept} from './entity.js';
+import {isInvulnerable, isOffensive, riposteIntercept, altitudeOf} from './entity.js';
 import {stat} from './status.js';
 import {vec, add, scale, sub, dot, length, normalize, angleOf, direction} from './math.js';
 
@@ -75,8 +75,8 @@ export function tackleConnects(attacker, defender, normal, relative) {
   if (slamPrep(attacker)) return false;
   if (attacker.action?.kind !== 'tackle' || attacker.action.neutralized || attacker.flight || (defender.flight && !defender.wallSplat)) return false;
   // Volume tridimensional real (R7.11-R7.12): não conecta se separados verticalmente fora do meteor slam
-  const attY = (attacker.groundY ?? 0) + (attacker.flight?.y ?? attacker.vaultHeight ?? 0);
-  const defY = (defender.groundY ?? 0) + (defender.flight?.y ?? defender.vaultHeight ?? 0);
+  const attY = altitudeOf(attacker);
+  const defY = altitudeOf(defender);
   if (Math.abs(attY - defY) > (C.extras?.visual?.bodyHeight ?? 1.2) && !attacker.action?.slam) return false;
 
   const dir = direction(attacker.action.heading), off = sub(defender.position, attacker.position);

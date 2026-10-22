@@ -5,6 +5,7 @@
 // Não altera regras: só lê o estado da simulação.
 
 import {C} from '../../sim/config.js';
+import {altitudeOf} from '../../sim/entity.js';
 import {QuarksFx} from './adapter.js';
 
 /** Nível da carga (1..3), igual ao cálculo do som em main.js. */
@@ -37,7 +38,7 @@ export class QuarksBridge {
    */
   update(fighters, events, dt) {
     fighters.forEach((f, i) => {
-      this.anchors[i].position.set(f.position.x, (f.groundY ?? 0) + (f.flight?.y ?? 0) + (f.vaultHeight ?? 0), f.position.z);
+      this.anchors[i].position.set(f.position.x, altitudeOf(f), f.position.z);
     });
     for (const e of events) {
       if (this.state.seen.has(e)) continue;
