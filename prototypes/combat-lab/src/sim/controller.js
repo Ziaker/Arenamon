@@ -15,6 +15,7 @@ import {moveInSlot, getMove, getTackleSetup, nearestEligible} from './moves.js';
 import {chargeParams, chargeLevel, interruptCooldown, boostPlan} from './charge.js';
 import {vec, add, scale, sub, dot, length, normalize, clamp, angleOf, direction, angleDelta, smoothstep, actionCurve} from './math.js';
 import {legacyApproach, locomotionStep} from './locomotion.js';
+import {slideAlong} from './solid-contact.js';
 import {actionProgress} from './motion.js';
 import {report, attemptsActive} from './attempts.js';
 import {getGroundHeight} from './physics.js';
@@ -580,7 +581,7 @@ export function updateFighter(f, cmd, fighters, dt, world = null) {
     else if (hasFlag(f, 'rooted')) {const r = locomotionStep(f.locomotionVelocity, vec(), walk, locomotionParams(f), dt);f.locomotionVelocity = r.velocity;f.desiredVelocity = vec();f.locoPhase = 'rooted';}
     else if (L.model !== 1) {f.locomotionVelocity = approachVelocity(f.locomotionVelocity, scale(move, walk), dt);f.desiredVelocity = scale(move, walk);f.locoPhase = length(move) ? 'legacy' : 'idle';}
     else {
-      const r = locomotionStep(f.locomotionVelocity, move, vMax, locomotionParams(f), dt);
+      const r = locomotionStep(f.locomotionVelocity, slideAlong(move, f.surfaceNormals), vMax, locomotionParams(f), dt);   // contato com sólido redondo: a entrada que empurra para dentro é descartada (deslize)
       f.locomotionVelocity = r.velocity;f.desiredVelocity = r.desired;
       if (f.sprintCarry && length(r.velocity) <= walk + 1e-3) f.sprintCarry = false;
       f.locoPhase = f.sprinting ? 'sprint' : f.sprintCarry ? 'sprintStop' : r.phase;

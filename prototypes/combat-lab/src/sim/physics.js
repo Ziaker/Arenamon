@@ -3,6 +3,7 @@
 import {C} from './config.js';
 import {clashPossible, mutualTackle, clash, resolveHit, resolveFootstool} from './combat.js';
 import {collideFighter} from './world.js';
+import {ageSurfaces} from './solid-contact.js';
 import {collideMapFighter, damageDestructible, processDamageWithShieldAndStages, effectiveArenaRadius} from './map.js';
 import {passiveCost, hitStunFactor} from './passive-engine.js';
 import {stat} from './status.js';
@@ -204,7 +205,7 @@ export function overlap(a, b) {
 export function stepPhysics(fighters, dt, world = null) {
   const R = C.rules, X = C.extras.combat, T = C.extras.toggles, events = [], pushVel = new Map();
   for (const f of fighters) {
-    f.contacts = 0;
+    f.contacts = 0;ageSurfaces(f);   // normais de contato (deslize na locomoção): renovadas pelos toques deste passo; o controlador as lê no próximo tick
     // Preso na parede: suspenso (sem gravidade nem movimento) até acabar a janela; depois volta a cair.
     if (f.wallSplat) {
       const w = f.wallSplat;

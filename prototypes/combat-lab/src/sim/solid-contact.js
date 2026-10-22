@@ -53,3 +53,40 @@ export function solidContact(solid, p, radius) {
   if (!(depth > 1e-10)) return null;
   return {normal: {x: nu * c + nv * s, z: -nu * s + nv * c}, depth, inside};
 }
+
+/** Passos de envelhecimento que uma normal sobrevive sem novo toque (o controlador a lê com idades 0..4; deslizar pela tangente afasta o corpo do sólido por 1–2 passos). */
+export const SURFACE_MEMORY_TICKS = 4;
+/**
+ * Registra, para o controlador do próximo tick, a normal (do sólido para fora) de um sólido estático que empurrou o lutador na
+ * locomoção livre. Fica no estado do lutador (entra em save/load/replay). Normais quase iguais são atualizadas, não duplicadas.
+ * @param {{surfaceNormals?: (Vec & {age?: number})[]}} f @param {Vec} n
+ */
+export function noteSurface(f, n) {
+  const list = f.surfaceNormals ??= [], same = list.find(m => m.x * n.x + m.z * n.z > .9);
+  if (same) {same.x = n.x;same.z = n.z;same.age = 0;}
+  else if (list.length < 3) list.push({x: n.x, z: n.z, age: 0});
+}
+/** Envelhece as normais (uma vez por passo físico) e descarta as que passaram da memória (no lugar, sem alocar). */
+export function ageSurfaces(/** @type {{surfaceNormals?: (Vec & {age?: number})[]}} */ f) {
+  const list = f.surfaceNormals;
+  if (!list?.length) {f.surfaceNormals = list ?? [];return;}
+  let kept = 0;
+  for (const n of list) {n.age = (n.age ?? 0) + 1;if (n.age <= SURFACE_MEMORY_TICKS) list[kept++] = n;}
+  list.length = kept;
+}
+
+/**
+ * Entrada de movimento descontada da parte que empurra para dentro das superfícies em contato: o lutador desliza pela tangente em
+ * vez de ter o deslize amortecido como "velocidade lateral indesejada". Só reduz a entrada (|resultado| ≤ |move|): não cria
+ * velocidade nem direção que o jogador não pediu.
+ * @param {Vec} move @param {Vec[] | undefined} normals @returns {Vec}
+ */
+export function slideAlong(move, normals) {
+  if (!normals?.length) return move;
+  let m = move;
+  for (const n of normals) {
+    const d = m.x * n.x + m.z * n.z;
+    if (d < 0) m = {x: m.x - n.x * d, z: m.z - n.z * d};
+  }
+  return m;
+}

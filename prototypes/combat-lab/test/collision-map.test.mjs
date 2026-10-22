@@ -44,19 +44,68 @@ check('cilindro: afastando-se do pilar a velocidade não é alterada', () => {
   collideMapFighter(world([o]), f, []);
   assert.deepEqual(f.velocity, vec(2, 1));
 });
-check('cilindro: lançado (não é salto) perde só a parte horizontal que entra no pilar', () => {
-  const o = {shape: 'pillar', pos: {x: 0, y: 0, z: 0}, radius: 1, height: 3}, f = fighter(vec(1.2, 0));
-  f.flight = {y: 0, vy: -1, horizontal: vec(-5, 2)};
-  collideMapFighter(world([o]), f, []);
-  assert.ok(Math.abs(f.flight.horizontal.x) < 1e-9 && Math.abs(f.flight.horizontal.z - 2) < 1e-9, JSON.stringify(f.flight.horizontal));
+// ---------- Resposta física DIFERENCIADA por estado (R3.12, R3.7, R7.15; decisão do responsável de 21/10/2026) ----------
+const pillar = () => ({shape: 'pillar', pos: {x: 0, y: 0, z: 0}, radius: 1, height: 3});
+check('locomoção: remove só a componente que entra no pilar e preserva a tangente (sem rebote)', () => {
+  const f = fighter(vec(1.2, 0));f.velocity = vec(-2, 3);
+  collideMapFighter(world([pillar()]), f, []);
+  assert.ok(Math.abs(f.velocity.x) < 1e-9 && Math.abs(f.velocity.z - 3) < 1e-9, JSON.stringify(f.velocity));
 });
-
-check('pilar: salto voluntário (isNormalJump) mantém flight.horizontal intacta, só a posição é corrigida', () => {
-  const o = {shape: 'pillar', pos: {x: 0, y: 0, z: 0}, radius: 1, height: 3}, f = fighter(vec(1.2, 0));
-  f.flight = {y: 0, vy: -1, horizontal: vec(-5, 2), isNormalJump: true};
-  collideMapFighter(world([o]), f, []);
+check('locomoção: o contato registra a normal da superfície para o controlador deslizar (sem travar)', () => {
+  const f = fighter(vec(1.2, 0));f.velocity = vec(-2, 3);
+  collideMapFighter(world([pillar()]), f, []);
+  assert.equal(f.surfaceNormals.length, 1);
+  assert.ok(Math.abs(f.surfaceNormals[0].x - 1) < 1e-12 && Math.abs(f.surfaceNormals[0].z) < 1e-12 && f.surfaceNormals[0].age === 0);
+});
+check('arremesso contra indestrutível (R3.12): rebote especular pelo ângulo, intensidade pela restituição, tangente preservada', () => {
+  const f = fighter(vec(1.2, 0));f.flight = {y: 0, vy: -1, horizontal: vec(-5, 2)};f.launchedByHit = true;f.velocity = vec(-5, 2);
+  const k = C.rules.wallRestitution * (C.map?.wallBounceMultiplier ?? 1);
+  collideMapFighter(world([pillar()]), f, []);
+  assert.ok(Math.abs(f.flight.horizontal.x - 5 * k) < 1e-9, `normal refletida: ${f.flight.horizontal.x} (esperado ${5 * k})`);
+  assert.ok(Math.abs(f.flight.horizontal.z - 2) < 1e-9, 'tangente preservada');
+  assert.deepEqual(f.velocity, f.flight.horizontal, 'a velocidade do voo segue o rebote nos subpassos restantes');
+  assert.ok(Math.hypot(f.flight.horizontal.x, f.flight.horizontal.z) < Math.hypot(-5, 2), 'nunca ganha energia');
+  assert.equal(f.surfaceNormals?.length ?? 0, 0, 'arremesso não alimenta o deslize da locomoção');
+});
+check('voos que NÃO são arremesso por golpe (queda de borda, Move Bounce) não rebatem: mantêm a própria velocidade', () => {
+  for (const [name, flight] of [['queda de borda', {y: 0, vy: -1, horizontal: vec(-5, 2), isEdgeFall: true}], ['Move Bounce', {y: 0, vy: -1, horizontal: vec(-5, 2), bounce: {recovery: .3}}]]) {
+    const f = fighter(vec(1.2, 0));f.flight = flight;f.velocity = vec(-5, 2);
+    collideMapFighter(world([pillar()]), f, []);
+    assert.deepEqual(f.flight.horizontal, vec(-5, 2), name);
+    assert.ok(Math.abs(f.position.x - (1 + r)) < 1e-9, name);
+  }
+});
+check('restituição máxima aceita (multiplicador 3 × 0,28 = 0,84 < 1): o arremesso nunca ganha energia', () => {
+  C.map.wallBounceMultiplier = 3;
+  const f = fighter(vec(1.2, 0));f.flight = {y: 0, vy: -1, horizontal: vec(-5, 2)};f.launchedByHit = true;
+  collideMapFighter(world([pillar()]), f, []);
+  assert.ok(Math.hypot(f.flight.horizontal.x, f.flight.horizontal.z) < Math.hypot(-5, 2));
+});
+check('arremesso afastando-se do pilar não é alterado', () => {
+  const f = fighter(vec(1.2, 0));f.flight = {y: 0, vy: -1, horizontal: vec(5, 2)};f.launchedByHit = true;
+  collideMapFighter(world([pillar()]), f, []);
+  assert.deepEqual(f.flight.horizontal, vec(5, 2));
+});
+check('rebote desligado (enableWallBounce = 0): o arremesso apenas perde a parte que entra', () => {
+  C.extras.toggles.enableWallBounce = 0;
+  const f = fighter(vec(1.2, 0));f.flight = {y: 0, vy: -1, horizontal: vec(-5, 2)};f.launchedByHit = true;f.velocity = vec(-5, 2);
+  collideMapFighter(world([pillar()]), f, []);
+  assert.ok(Math.abs(f.flight.horizontal.x) < 1e-9 && Math.abs(f.flight.horizontal.z - 2) < 1e-9);
+});
+check('salto voluntário (isNormalJump) mantém flight.horizontal intacta; só a posição é corrigida', () => {
+  const f = fighter(vec(1.2, 0));f.flight = {y: 0, vy: -1, horizontal: vec(-5, 2), isNormalJump: true};
+  collideMapFighter(world([pillar()]), f, []);
   assert.deepEqual(f.flight.horizontal, vec(-5, 2));
   assert.ok(Math.abs(f.position.x - (1 + r)) < 1e-9);
+});
+check('ação especial (tackle/esquiva em curso): a velocidade da ação NÃO é alterada pelo pilar; só a posição', () => {
+  for (const kind of ['tackle', 'dodge']) {
+    const f = fighter(vec(1.2, 0));f.action = {kind, heading: Math.PI / 2, elapsed: .1};f.velocity = vec(-6, 1);
+    collideMapFighter(world([pillar()]), f, []);
+    assert.deepEqual(f.velocity, vec(-6, 1), kind);
+    assert.ok(Math.abs(f.position.x - (1 + r)) < 1e-9, kind);
+    assert.equal(f.surfaceNormals?.length ?? 0, 0, kind);
+  }
 });
 check('pilar: lutador acima do topo (apoiado sobre ele) não sofre empurrão lateral', () => {
   const o = {shape: 'pillar', pos: {x: 0, y: 0, z: 0}, radius: 1, height: 1}, f = fighter(vec(.3, 0));

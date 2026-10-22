@@ -8,7 +8,7 @@
 import {C} from './config.js';
 import {getFighterMaxStamina} from './entity.js';
 import {sturdyGuard} from './passive-engine.js';
-import {circleContact} from './solid-contact.js';
+import {circleContact, noteSurface} from './solid-contact.js';
 import {vec, add, sub, scale, length, normalize, dot, clamp, direction, angleOf} from './math.js';
 
 export const MAP_DEFAULTS = {
@@ -831,6 +831,14 @@ function risesOver(f, fY, top) {
   if (!fl || !(fl.vy > 0) || fY + (fl.vy * fl.vy) / 35 < top) return false;
   return !!fl.isNormalJump || !((C.map?.launchSolidCollision) ?? 1);
 }
+/** Arremessado contra um sólido indestrutível: reflete a parte horizontal que entra (ângulo especular) escalada pela restituição de parede (R3.12). */
+function bounceOffSolid(f, n) {
+  const h = f.flight.horizontal, hv = h.x * n.x + h.z * n.z;
+  if (!(hv < 0)) return;
+  const factor = C.extras.toggles.enableWallBounce ? C.rules.wallRestitution * (C.map?.wallBounceMultiplier ?? 1) : 0;
+  f.flight.horizontal = {x: h.x - n.x * hv * (1 + factor), z: h.z - n.z * hv * (1 + factor)};
+  f.velocity = {...f.flight.horizontal};
+}
 export function collideMapFighter(mapState, f, events = []) {
   if (!mapState) return;
   const halfExtent = C.test?.halfExtent ?? 0.35;
@@ -882,13 +890,18 @@ export function collideMapFighter(mapState, f, events = []) {
           const n = contact.normal;
           f.position.x += n.x * contact.depth;
           f.position.z += n.z * contact.depth;
-          // Só a componente que entra no sólido é removida (como nas caixas); a tangente é preservada.
-          const into = f.velocity.x * n.x + f.velocity.z * n.z;
-          if (into < 0) {f.velocity.x -= n.x * into;f.velocity.z -= n.z * into;}
-          if (f.flight && !f.flight.isNormalJump) {
-            const hv = f.flight.horizontal.x * n.x + f.flight.horizontal.z * n.z;
-            if (hv < 0) {f.flight.horizontal.x -= n.x * hv;f.flight.horizontal.z -= n.z * hv;}
+          // Resposta DIFERENCIADA por estado (R3.12/R3.7/R7.15): nunca uma resposta genérica única.
+          if (f.flight) {
+            // Arremessado POR GOLPE (launch() marca launchedByHit) contra indestrutível (R3.12): rebote especular pelo ângulo, intensidade pela restituição
+            // de parede. Salto voluntário, queda de borda e Move Bounce não são arremesso: mantêm a própria velocidade (só a posição é corrigida).
+            if (f.launchedByHit && !f.flight.isNormalJump && !f.flight.bounce) bounceOffSolid(f, n);
+          } else if (!f.action) {
+            // Locomoção livre: remove só a componente que entra; a tangente é preservada e a normal alimenta o deslize do controlador.
+            const into = f.velocity.x * n.x + f.velocity.z * n.z;
+            if (into < 0) {f.velocity.x -= n.x * into;f.velocity.z -= n.z * into;}
+            noteSurface(f, n);
           }
+          // Ação em curso (tackle, esquiva...): a velocidade pertence à ação; só a posição é corrigida.
           f.contacts++;
         }
       } else {
