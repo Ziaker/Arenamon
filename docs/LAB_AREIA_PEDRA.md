@@ -1,5 +1,17 @@
 # Laboratório visual: Sand Wave e Emerging Stone
 
+## Ampliação do atelier (22/10/2026)
+
+O mesmo HTML offline agora inclui cinco categorias e 15 alternativas: Sand Wave, Emerging Stone, modelos de rocha, Swift e Psyshock, cada uma em A/B/C. As nove opções anteriores permanecem. Swift mostra três estrelas como prévia do Burst atual; Psyshock apresenta de 3 a 8 pedras conforme o estágio de carga escolhido **apenas para inspeção**, sem executar a simulação. Nenhum parâmetro visual altera dano, trajetória, hitbox ou regras de combate.
+
+As seis opções novas usam Three.js para estrelas, pedras, anéis e rastros, e `three.quarks` com `BatchedRenderer` e `ParticleSystem` para estrelas, orbes e fragmentos. Sand Wave e Emerging Stone ganharam controles de forma, partículas, luz e dissipação, agrupados em painéis recolhíveis. Sliders reconstroem a prévia com descarte dos emissores e geometrias anteriores. Valores iniciais antigos foram mantidos.
+
+O editor salva/carrega no navegador e exporta uma alternativa ou todas em arquivo `.json`. A importação valida tamanho máximo de 500 KB, versão 1 do schema, categoria, variante, faixas numéricas, campos conhecidos, recursos embutidos e parâmetros de apresentação. Uma importação individual só substitui a opção indicada, após confirmação visível. O arquivo identifica `atelier: "arenamon-vfx"`, `atelierVersion: "3.0.0"`, `exportScope`, `visualParameters` ou `presets`, `presentation` e `assets`. Arquivos v2 do armazenamento local são migrados para as três variantes de cada categoria, mantendo seus valores comuns. O round-trip numérico preserva os números JSON sem arredondamento adicional.
+
+Comandos desta ampliação: `npx tsc --noEmit -p prototypes/sand-stone-lab/tsconfig.json`, `npm run build:sand-stone-lab`, `node prototypes/sand-stone-lab/test.mjs`, `node prototypes/sand-stone-lab/presets.test.mjs` e `node prototypes/sand-stone-lab/verify.mjs`. O portal `ABRIR_ARENAMON.html` já oferece link direto ao atelier; `HTMLS_ARENAMON.html` também aponta para ele. A homologação artística das seis novas opções permanece com o usuário.
+
+Capturas de 1280 × 720: [Swift C](../prototypes/sand-stone-lab/evidence/swift-c-720p.png) e [Psyshock C](../prototypes/sand-stone-lab/evidence/psyshock-c-720p.png). São evidências da renderização no Edge com SwiftShader; não representam a escolha final. A bateria `npm run verify` parou em `skills:check` por 11 cópias `.claude/skills` ausentes ou divergentes, condição anterior e sem relação com este atelier.
+
 Abra [o laboratório](../prototypes/sand-stone-lab/dist/arenamon-areia-pedra.html) diretamente ou pelo `ABRIR_ARENAMON.html`. O arquivo compilado é um HTML único e offline. **Revisão visual 2 (21/10/2026):** a primeira proposta foi reprovada pelo usuário por falta de qualidade e identidade. Esta revisão substitui sua construção visual. Recarregue a aba para ver **VOL. 02**.
 
 Escolha uma categoria, alterne A/B/C e ajuste os sliders. A linha do tempo permite inspecionar qualquer instante; espaço pausa, R reexecuta e 1–3 alternam variantes. Há câmera ao nível do chão/superior/¾, tela cheia, opção de salvar/carregar ajustes no navegador e seleção independente da rocha associada ao VFX.

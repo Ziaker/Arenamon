@@ -166,3 +166,10 @@ Cada entrada: data · tarefa · skill · o que foi aplicado de fato.
   luzes, para checar a legibilidade dos HUDs contra fundos diferentes.
 - **Skill `game-feel`:** *feedback legível por forma e movimento, não só por cor* (carga treme, vida crítica pulsa, selecionado avança).
 - **Superpowers:** `brainstorming` (dispensada pelo pedido de execução direta), `verification-before-completion` (verify de navegador antes de declarar pronto).
+
+### 2026-10-22 — Ampliação do atelier VFX
+
+- `arenamon-routing`: selecionou as orientações de VFX e manteve o atelier separado da simulação de combate.
+- `game-feel`: separou preparação, voo, impacto e dissipação; movimento reduzido limita partículas, flash e tremor.
+- `shader-programming`: ampliou o shader da areia com ondulação, cor e brilho de borda controláveis.
+- Three.js compõe as geometrias sólidas; Quarks emite estrelas, orbes, poeira e fragmentos. TypeScript define presets, schema e as seis novas prévias.

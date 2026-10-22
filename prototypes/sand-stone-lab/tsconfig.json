@@ -1,0 +1,4 @@
+{
+  "compilerOptions": {"target":"ES2022","module":"ESNext","moduleResolution":"bundler","lib":["ES2022","DOM"],"strict":false,"noEmit":true,"skipLibCheck":true,"allowJs":true,"checkJs":false,"allowImportingTsExtensions":true},
+  "include":["src/config.ts","src/presets.ts","src/new-effects.ts"]
+}

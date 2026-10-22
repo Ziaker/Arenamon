@@ -15,4 +15,4 @@ const script = ('/*\n' + threeLicense + '\n' + quarksLicense + '\n*/\n' + bundle
 const html = template.replace('/*__CSS__*/', () => css).replace('/*__BUNDLE__*/', () => script);
 await mkdir(new URL('dist/', root), {recursive: true});
 await writeFile(new URL('dist/arenamon-areia-pedra.html', root), html);
-console.log(`Sand Wave / Emerging Stone: ${Math.round(Buffer.byteLength(html) / 1024)} KB, HTML offline único`);
+console.log(`Atelier VFX: ${Math.round(Buffer.byteLength(html) / 1024)} KB, HTML offline único`);

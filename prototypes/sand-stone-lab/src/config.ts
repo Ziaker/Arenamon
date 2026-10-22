@@ -1,0 +1,24 @@
+export type Category = 'sand' | 'stone' | 'rock' | 'swift' | 'psyshock';
+export type Variant = 0 | 1 | 2;
+export type Control = readonly [key: string, label: string, unit: string, min: number, max: number, step: number, initial: number];
+export type Values = Record<Category, Record<string, number>>;
+
+export const controls: Record<Category, Control[]> = {
+  sand: [
+    ['length','Alcance visual','m',2,7,.1,4],['width','Largura visual','m',1.5,5,.1,3.4],['height','Altura da onda','m',.5,2.5,.05,1.25],['density','Grãos e detritos','×',.25,2,.05,1],['smoke','Densidade da poeira','×',0,1.5,.05,.8],
+    ['crestCurve','Curvatura da crista','×',.5,1.8,.05,1],['frontTilt','Inclinação frontal','°',-25,25,1,0],['bladeThickness','Espessura da lâmina','×',.5,1.8,.05,1],['undulation','Ondulação','×',0,2,.05,1],['crestCount','Quantidade de cristas','un.',1,5,1,3],
+    ['grainSize','Tamanho dos grãos','×',.4,2,.05,1],['debrisSize','Tamanho dos detritos','×',.4,2,.05,1],['particleSpeed','Velocidade das partículas','×',.4,2,.05,1],['lateralSpread','Dispersão lateral','×',.4,2,.05,1],['turbulence','Turbulência','×',0,2,.05,1],['visualGravity','Gravidade visual','×',.2,2,.05,1],
+    ['dustPersistence','Persistência da poeira','×',.4,2,.05,1],['dustOpacity','Opacidade da poeira','×',0,1.5,.05,1],['edgeGlow','Brilho de borda','×',0,2,.05,1],['sandHue','Cor da areia','°',-40,40,1,0],['impactIntensity','Intensidade do impacto','×',0,2,.05,1]
+  ],
+  stone: [
+    ['warning','Antecipação visual','s',.2,1.5,.05,.7],['rise','Tempo de subida visual','s',.2,1.2,.05,.4],['scale','Escala visual da rocha','×',.6,1.5,.05,1],['density','Grãos e estilhaços','×',.25,2,.05,1],['smoke','Densidade da poeira','×',0,1.5,.05,.8],
+    ['crackIntensity','Intensidade das rachaduras','×',0,2,.05,1],['crackWidth','Largura das rachaduras','×',.4,2,.05,1],['warningRadius','Raio da sinalização','×',.5,2,.05,1],['shockCount','Anéis de choque','un.',1,5,1,3],['shockSpeed','Velocidade dos anéis','×',.4,2,.05,1],
+    ['fragmentSpeed','Velocidade dos fragmentos','×',.4,2,.05,1],['fragmentSize','Tamanho dos fragmentos','×',.4,2,.05,1],['radialSpread','Dispersão radial','×',.4,2,.05,1],['verticalImpulse','Impulso vertical visual','×',.4,2,.05,1],['turbulence','Turbulência','×',0,2,.05,1],['dustPersistence','Persistência da poeira','×',.4,2,.05,1],
+    ['veinGlow','Brilho dos veios','×',0,2,.05,1],['emissivity','Emissividade','×',0,2,.05,1],['energyHue','Cor da energia','°',-60,60,1,0],['flash','Flash de emergência','×',0,2,.05,1],['settling','Amortecimento visual','×',.4,2,.05,1]
+  ],
+  rock: [['scale','Escala da rocha','×',.6,1.5,.05,1],['rotation','Ângulo inicial','°',0,360,1,25],['turn','Giro de inspeção','°/s',0,30,1,10]],
+  swift: [['starScale','Escala das estrelas','×',.5,2,.05,1],['pointRatio','Proporção das pontas','×',.45,1.8,.05,1],['coreGlow','Brilho do núcleo','×',0,2,.05,1],['halo','Halo','×',0,2,.05,1],['opacity','Opacidade','×',.1,1,.05,.9],['tailLength','Comprimento da cauda','×',.3,2,.05,1],['trailWidth','Largura do rastro','×',.3,2,.05,1],['sparks','Densidade de microfaíscas','×',0,2,.05,1],['sizeVariation','Variação de tamanho','×',0,1,.05,.5],['dispersion','Dispersão visual','×',0,2,.05,1],['rotation','Rotação das estrelas','°/s',0,360,5,100],['primaryHue','Cor primária','°',25,65,1,46],['secondaryHue','Cor secundária','°',25,65,1,55],['flash','Intensidade do flash','×',0,2,.05,1],['dissipation','Dissipação','×',.4,2,.05,1],['trailDuration','Duração visual do rastro','s',.1,1.2,.05,.5]],
+  psyshock: [['auraRadius','Raio da aura','×',.4,2,.05,1],['ringThickness','Espessura dos anéis','×',.3,2,.05,1],['ringCount','Número de anéis','un.',1,5,1,3],['angularSpeed','Velocidade angular','×',.2,2,.05,1],['spiral','Torção / espiral','×',0,2,.05,1],['opacity','Opacidade','×',.1,1,.05,.85],['pulseRate','Frequência dos pulsos','×',.3,2,.05,1],['emissivity','Emissividade','×',0,2,.05,1],['particleDensity','Densidade de partículas','×',0,2,.05,1],['orbSize','Tamanho dos orbes','×',.3,2,.05,1],['trailGlow','Brilho da cauda','×',0,2,.05,1],['trailLength','Comprimento da cauda','×',.3,2,.05,1],['shards','Densidade de shards','×',0,2,.05,1],['fissureGlow','Brilho de fendas','×',0,2,.05,1],['primaryHue','Cor psíquica principal','°',260,340,1,300],['secondaryHue','Cor psíquica secundária','°',170,310,1,195],['impactDecay','Decaimento do impacto','×',.4,2,.05,1]]
+};
+export const defaults: Values = Object.fromEntries(Object.entries(controls).map(([category, defs]) => [category, Object.fromEntries(defs.map(d => [d[0], d[6]]))])) as Values;
+export const categories: Category[] = ['sand','stone','rock','swift','psyshock'];

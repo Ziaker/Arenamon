@@ -87,7 +87,7 @@ float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(ha
 float fbm(vec2 p){return noise(p)*.56+noise(p*2.03)*.28+noise(p*4.09)*.14;}
 `;
 
-export function sandSurface(width,height,style=0,offset=0) {
+export function sandSurface(width,height,style=0,offset=0,p={}) {
   const pos=[],uv=[],indices=[],nx=72,ny=26;
   for(let j=0;j<=ny;j++)for(let i=0;i<=nx;i++){
     const u=i/nx,v=j/ny,x=(u-.5)*width,end=Math.pow(Math.max(.02,Math.sin(u*Math.PI)),.32);
@@ -95,13 +95,15 @@ export function sandSurface(width,height,style=0,offset=0) {
     if(style===0){y=Math.sin(v*Math.PI)*height*.62*end;z=(v-.5)*.78+Math.pow((u-.5)*2,2)*.7;}
     else if(style===1){const angle=v*2.4;y=(Math.sin(angle)*1.15+.04)*height*end;z=(1-Math.cos(angle))*.55;}
     else{y=Math.sin(v*Math.PI*.84)*height*end*(.8+.2*Math.cos(u*9*Math.PI));z=(v-.5)*.85+Math.sin(u*Math.PI)*.38;}
+    y*=p.crestCurve??1;z=(z*(p.bladeThickness??1))+(v-.5)*Math.tan((p.frontTilt??0)*Math.PI/180)*.35;
     pos.push(x,y,z+offset);uv.push(u,v);
     if(i<nx&&j<ny){const a=j*(nx+1)+i;indices.push(a,a+nx+1,a+1,a+1,a+nx+1,a+nx+2);}
   }
   const geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(pos,3));geo.setAttribute('uv',new T.Float32BufferAttribute(uv,2));geo.setIndex(indices);geo.computeVertexNormals();
-  const material=new T.ShaderMaterial({transparent:true,depthWrite:false,side:T.DoubleSide,uniforms:{time:{value:0},fade:{value:1},style:{value:style},gold:{value:new T.Color(style===1?0xc28b49:0xe5b45d)}},
-    vertexShader:`varying vec2 vUv;varying float vHeight;uniform float time;void main(){vUv=uv;vec3 p=position;p.y+=sin(uv.x*37.+uv.y*15.-time*12.)*.045*sin(uv.y*3.14159);p.z+=sin(uv.x*22.-time*8.+uv.y*12.)*.04;vHeight=p.y;gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.);}`,
-    fragmentShader:`${noiseGLSL} varying vec2 vUv;varying float vHeight;uniform float time,fade,style;uniform vec3 gold;void main(){vec2 flow=vec2(vUv.x*9.,vUv.y*5.-time*2.);float n=fbm(flow);float fine=noise(vUv*vec2(370.,90.)+vec2(time*15.,-time*26.));float edge=smoothstep(0.,.055,vUv.x)*smoothstep(0.,.055,1.-vUv.x);float band=sin(vUv.y*3.14159);float alpha=smoothstep(.18,.5,n+band*.26)*edge*band*fade*.92;float streak=pow(max(0.,sin(vUv.y*58.+n*10.-time*14.)),13.);vec3 color=mix(gold*.32,gold*1.35,clamp(vHeight*.8+n*.6,0.,1.));color+=gold*(streak*.5+fine*.12);gl_FragColor=vec4(color,alpha);\n#include <tonemapping_fragment>\n#include <colorspace_fragment>\n}`
+  const gold=new T.Color(style===1?0xc28b49:0xe5b45d);gold.offsetHSL((p.sandHue??0)/360,0,0);
+  const material=new T.ShaderMaterial({transparent:true,depthWrite:false,side:T.DoubleSide,uniforms:{time:{value:0},fade:{value:1},style:{value:style},undulation:{value:p.undulation??1},gold:{value:gold},edgeGlow:{value:p.edgeGlow??1}},
+    vertexShader:`varying vec2 vUv;varying float vHeight;uniform float time,undulation;void main(){vUv=uv;vec3 p=position;p.y+=sin(uv.x*37.+uv.y*15.-time*12.)*.045*undulation*sin(uv.y*3.14159);p.z+=sin(uv.x*22.-time*8.+uv.y*12.)*.04*undulation;vHeight=p.y;gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.);}`,
+    fragmentShader:`${noiseGLSL} varying vec2 vUv;varying float vHeight;uniform float time,fade,style,edgeGlow;uniform vec3 gold;void main(){vec2 flow=vec2(vUv.x*9.,vUv.y*5.-time*2.);float n=fbm(flow);float fine=noise(vUv*vec2(370.,90.)+vec2(time*15.,-time*26.));float edge=smoothstep(0.,.055,vUv.x)*smoothstep(0.,.055,1.-vUv.x);float band=sin(vUv.y*3.14159);float alpha=smoothstep(.18,.5,n+band*.26)*edge*band*fade*.92;float streak=pow(max(0.,sin(vUv.y*58.+n*10.-time*14.)),13.);vec3 color=mix(gold*.32,gold*1.35,clamp(vHeight*.8+n*.6,0.,1.));color+=gold*(streak*.5*edgeGlow+fine*.12);gl_FragColor=vec4(color,alpha);\n#include <tonemapping_fragment>\n#include <colorspace_fragment>\n}`
   });return new T.Mesh(geo,material);
 }
 

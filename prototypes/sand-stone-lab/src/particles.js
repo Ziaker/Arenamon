@@ -9,6 +9,10 @@ export function particleTexture(kind) {
       const a=random()*Math.PI*2,r=random()*29,x=64+Math.cos(a)*r,y=64+Math.sin(a)*r,s=13+random()*20;
       const g=ctx.createRadialGradient(x,y,0,x,y,s);g.addColorStop(0,'rgba(255,255,255,.16)');g.addColorStop(.5,'rgba(255,255,255,.09)');g.addColorStop(1,'rgba(255,255,255,0)');ctx.fillStyle=g;ctx.fillRect(0,0,128,128);
     }
+  }else if(kind==='star'){
+    ctx.fillStyle='#fff';ctx.beginPath();for(let i=0;i<10;i++){const a=i*Math.PI/5-Math.PI/2,r=i%2?15:45,x=64+Math.cos(a)*r,y=64+Math.sin(a)*r;if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}ctx.closePath();ctx.fill();
+  }else if(kind==='shard'){
+    ctx.fillStyle='#fff';ctx.beginPath();ctx.moveTo(64,12);ctx.lineTo(83,66);ctx.lineTo(64,116);ctx.lineTo(45,66);ctx.closePath();ctx.fill();
   }else if(kind==='streak'){
     const g=ctx.createLinearGradient(0,0,128,0);g.addColorStop(0,'#fff0');g.addColorStop(.65,'#fffd');g.addColorStop(.92,'#fff');g.addColorStop(1,'#fff0');ctx.fillStyle=g;ctx.beginPath();ctx.moveTo(0,64);ctx.lineTo(106,59);ctx.lineTo(128,64);ctx.lineTo(106,69);ctx.closePath();ctx.fill();
   }else{
@@ -20,7 +24,7 @@ export function particleTexture(kind) {
 export class Particles {
   constructor(scene,{textures=true}={}){
     this.scene=scene;this.renderer=new Q.BatchedRenderer();scene.add(this.renderer);this.systems=[];this.materials={};
-    for(const kind of ['dust','grain','streak'])this.materials[kind]=new T.MeshBasicMaterial({map:textures?particleTexture(kind):null,transparent:true,depthWrite:false,side:T.DoubleSide,blending:kind==='dust'?T.NormalBlending:T.AdditiveBlending,toneMapped:kind==='dust'});
+    for(const kind of ['dust','grain','streak','star','orb','shard'])this.materials[kind]=new T.MeshBasicMaterial({map:textures?particleTexture(kind):null,transparent:true,depthWrite:false,side:T.DoubleSide,blending:kind==='dust'?T.NormalBlending:T.AdditiveBlending,toneMapped:kind==='dust'});
   }
   create({kind='dust',color=0xc49c68,count=0,rate=0,duration=.5,life=1,size=.4,speed=1,radius=.25,angle=.7,gravity=0,opacity=.5,position=[0,0,0],direction=[0,1,0]}={}){
     const c=new T.Color(color),end=c.clone().multiplyScalar(kind==='dust'?.45:.7);
