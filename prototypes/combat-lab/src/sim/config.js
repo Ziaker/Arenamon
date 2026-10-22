@@ -224,7 +224,7 @@ function buildDefaults() {
     quickAttack: {cost: .75, cooldown: 6, acquireRange: 7, approachMax: .16, returnMax: .14, recovery: .12, damage: 8, knockbackH: 4, knockbackV: 0, invulnerableSeconds: 0},
     swift: {cost: .8, cooldown: 7, cast: .25, count: 3, speed: 15, damage: 3, homingSeconds: .25, homingRate: 90, range: 12, knockback: .3, knockbackCap: .9, radius: .2, fanAngle: 20, spawnForward: .9, spawnSpacing: .35, counterStagger: .2},
   });
-  return ({rules, test, locomotion, camera, profiles: profilesLab, extras, actions, vfx: vfxDefaults(), display: displayDefaults(), world, map: {...MAP_DEFAULTS}, passivas});
+  return ({rules, test, locomotion, camera, profiles: profilesLab, extras, actions, vfx: vfxDefaults(), display: displayDefaults(), world, map: {...MAP_DEFAULTS}, passivas, ledge: ledgeDefaults()});
 }
 
 /**
@@ -347,7 +347,20 @@ export function displayDefaults() {
 
 /** Configuração viva compartilhada pela simulação, visualização e ajustador. */
 export const C = defaults();
-export const ROOT_KEYS = ['rules', 'test', 'locomotion', 'camera', 'profiles', 'extras', 'actions', 'vfx', 'display', 'world', 'map', 'passivas'];
+export const ROOT_KEYS = ['rules', 'test', 'locomotion', 'camera', 'profiles', 'extras', 'actions', 'vfx', 'display', 'world', 'map', 'passivas', 'ledge'];
+/**
+ * Ledge Grab & Mantle (issue #95; docs/LEDGE_GRAB.md). Todos os valores são PROVISÓRIOS (a issue deixou as decisões em aberto) e têm controle na interface.
+ * mode: 0 desligado · 1 automático (agarra ao saltar/cair contra a face segurando a direção da parede) · 2 por botão (Espaço no ar perto da borda).
+ */
+export function ledgeDefaults() {
+  return {
+    mode: 1, objects: 1, hint: 1,
+    reach: .35, reachUp: 1.25, minUp: .6, maxRiseSpeed: 1.5, minHangHeight: .2,
+    hangDrop: 1.15, snapTime: .1, grabCost: 0, hangDrain: .3, maxHang: 4, minHang: .15,
+    climbInput: 0, climbHold: .12, climbTime: .45, climbInset: .6, climbInvuln: 0,
+    dropInput: 1, dropHold: .2, dropPush: 1.2, cooldown: .5, hurtDrops: 1, aiClimb: .35,
+  };
+}
 /**
  * Movimento da Etapa A (antes do overhaul): locomoção linear do v6, setas relativas ao alvo com lock-on, corpo sempre
  * voltado ao alvo, curva polinomial de X/C com distância proporcional à duração, IA sem suavização e sem sprint.

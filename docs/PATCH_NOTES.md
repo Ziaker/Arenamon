@@ -1,8 +1,14 @@
 # Patch notes — Laboratório de Combate
 
-Versão atual: **v1.18.3** (22/10/2026). A versão aparece na barra superior do laboratório (tooltip com data de compilação e commit). Para jogar: `JOGAR_ARENAMON.html`.
+Versão atual: **v1.19.0** (22/10/2026). A versão aparece na barra superior do laboratório (tooltip com data de compilação e commit). Para jogar: `JOGAR_ARENAMON.html`.
 
 ---
+
+## v1.19.0 — Ledge Grab & Mantle e faixa de montagem (22/10/2026)
+- **Ledge Grab (issue #95):** ao saltar ou cair contra a lateral de uma plataforma, caixa ou destrutível segurando a direção dela, o lutador **agarra a borda**, fica pendurado e **sobe com Espaço** (ou solta com D, C ou segurando para longe). Todas as decisões que a issue deixava em aberto viraram **parâmetros provisórios** em Ações › Salto › 🧗 Ledge Grab (modo desligado/automático/por botão, alcance, altura, stamina, tempo, comandos, IA, i-frames…). Detalhes e a tabela de decisões em `docs/LEDGE_GRAB.md`.
+- Borda agarrável realçada em verde; ao agarrar, o impacto vertical dos VFX; pendurado, nenhum Move é aceito e a IA sobe sozinha depois de 0,35 s.
+- **Faixa de montagem de 2,2 m corrigida:** o salto deixava o corpo atravessar a lateral de caixas e depois o **ejetava de lado (até 0,41 m)**. Agora a lateral bloqueia o salto até a faixa de montagem (`map.jumpPassOver` = 0): ejeções 35 → 0 em partidas aleatórias, mesma taxa de montagem. `1` volta ao comportamento anterior.
+- Testes: `ledge.test.mjs` (17, incluindo fuzz) e `ledge.browser.mjs` com capturas em `evidence/ledge-grab/`.
 
 ## v1.18.3 — Auditoria de fechamento (22/10/2026)
 - **Efeitos no chão passam a aparecer:** o quad dos efeitos de modo «ground» (anéis e ondas rente ao piso, inclusive o anel no chão da variante D e a onda do pouso do pulo) era descartado pelo culling de faces e **nunca aparecia**. Corrigido com `DoubleSide` no material das partículas; a onda do pouso do pulo ficou um pouco mais clara (opacidade 0,8, intensidade 1,4).

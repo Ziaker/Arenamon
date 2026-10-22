@@ -15,6 +15,7 @@ Verificação: `git fetch --prune`, `git merge-base --is-ancestor` contra `origi
 - **Só documentação, sem integração:** `docs/patch-notes` (integrado a esta auditoria como `docs/PATCH_NOTES.md`), `docs/responsive-movement-v2-proposta` (PR #98) e `docs/game-feel-cinco-melhorias` (PR #99), ambos rascunhos de **propostas não aprovadas**; issues #95 (Ledge Grab), #96 (DI) e #97 (Wall Tech) também são propostas não aprovadas.
 - **PRs:** #101 (overhaul de colisões) e #93 (5 Moves genéricos, docs) foram **integrados**. #100 (etapa 1 de colisões) está **superado** pelo #101. #60 e #58 já têm o conteúdo na `main`. #94, #98 e #99 seguem rascunhos de propostas (ver `docs/GAME_FEEL_REVISAO_2026-10-22.md`).
 - **Verificação estática (22/10, v1.18.3):** `npm run typecheck` sem erros; `check:offline` ok (11 HTMLs); `npm test` inclui todos os testes do combat-lab. `verify:workspace` só passa no checkout oficial.
+- **Ledge Grab (#95):** implementado na v1.19.0 com decisões **provisórias** (`docs/LEDGE_GRAB.md`); a issue continua aberta como registro até o responsável decidir. A faixa de montagem de 2,2 m foi resolvida (`map.jumpPassOver`).
 - **Pendências de produto conhecidas:** gameplay do Body Slam não especificado; IA, SFX e homologação dos 13 Moves novos; faixa de montagem em caixas de 2,2 m (resíduo de colisão); verificação visual na tela e bateria completa de navegador das versões 1.16–1.18.
 
 ## 0-b. Estado verificado em 16/10/2026 (histórico, derivado do Git)

@@ -2,6 +2,15 @@
 
 Este arquivo separa **o que foi efetivamente executado** do que **permanece pendente**. Registre aqui data, commit-base, comando e resultado; nunca marque como executado o que não foi.
 
+## Execução de 2026-10-22 (Ledge Grab, v1.19.0)
+
+| Verificação | Resultado |
+|---|---|
+| `ledge.test.mjs` | 17 aprovados (agarre, subida, soltar, golpe, bloqueio, apoio destruído, IA, determinismo, fuzz, faixa de montagem) |
+| `ledge.browser.mjs` (Edge real, offline) | 9 aprovados; capturas em `evidence/ledge-grab/` |
+| Suíte unitária, `typecheck` | ver o fim desta seção (preenchido após a rodada completa) |
+| Ajuste de teste | `physics3d` fixa `jumpPassOver = 1` no teste do teto com o lutador dentro da pegada (a regra estrita o ejetaria antes) |
+
 ## Execução de 2026-10-22 (fechamento, v1.18.3)
 
 | Verificação | Resultado |

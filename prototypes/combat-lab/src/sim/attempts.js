@@ -48,6 +48,7 @@ export const REASONS = {
   chargeLock: d => `a esquiva só cancela a carga depois de ${ms(d.left)}`,
   moveRecovery: d => `recuperação do movimento (${ms(d.left)} restantes)`,
   noGround: () => 'só é possível carregar com apoio no chão',
+  ledge: () => 'pendurado na borda (suba com Espaço/direção ou solte com D/C)',
   chargeEnded: d => `carga encerrada (${d.why})`,
 };
 const RESULT = {denied: 'ignorado', buffered: 'guardado no buffer', expired: 'buffer expirou', executed: 'executado', partial: 'executado'};

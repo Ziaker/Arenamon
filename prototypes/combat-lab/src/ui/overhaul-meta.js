@@ -193,6 +193,34 @@ const RING = {
   width: ['Largura do indicador C → X', 'Só desenho.', R(.02, 1, .01, m)], opacity: ['Opacidade do indicador C → X', 'Só desenho.', R(0, 1, .01, pct)],
 };
 
+// Ledge Grab & Mantle (issue #95; docs/LEDGE_GRAB.md): todos os valores são provisórios até o responsável decidir.
+const LEDGE = {
+  mode: ['Modo do agarre de borda', '0 = desligado. 1 = automático: ao saltar/cair contra a face de um sólido segurando a direção dela, agarra a borda. 2 = por botão: Espaço no ar perto da borda.', select(['Desligado', 'Automático (direção para a parede)', 'Por botão (Espaço no ar)'])],
+  objects: ['Aceitar caixas e destrutíveis', 'Ligado: plataformas, obstáculos em caixa e destrutíveis têm borda agarrável. Desligado: só plataformas.', toggle],
+  hint: ['Realçar a borda agarrável', 'Mostra uma faixa verde na borda quando ela está ao alcance do lutador em voo (feedback de borda válida). Só visual.', toggle],
+  reach: ['Alcance horizontal', 'Distância máxima do corpo à face do sólido para poder agarrar (encostado ≈ 0).', R(0, 1.5, .01, m)],
+  reachUp: ['Altura máxima da borda acima dos pés', 'Borda mais alta que isso não é alcançada. Define até que altura o salto + agarre chegam.', R(.2, 3, .01, m)],
+  minUp: ['Altura mínima da borda acima dos pés', 'Borda mais baixa que isso é só montar/pousar, não agarrar.', R(0, 2, .01, m)],
+  maxRiseSpeed: ['Velocidade máxima de subida para agarrar', 'Só agarra descendo ou perto do ápice: acima desta velocidade vertical o corpo ainda sobe e não agarra.', R(0, 8, .1, n => n.toFixed(1) + ' m/s')],
+  minHangHeight: ['Altura mínima da pose pendurada', 'A pose pendurada precisa ficar acima do chão por pelo menos isto; plataformas muito baixas só se monta.', R(0, 1, .01, m)],
+  hangDrop: ['Pés abaixo da borda (pendurado)', 'Quanto os pés ficam abaixo da borda enquanto pendurado (≈ altura do corpo).', R(.3, 2.5, .01, m)],
+  snapTime: ['Tempo do encaixe', 'Duração do movimento que leva o corpo da posição do salto à pose pendurada.', R(0, .5, .01, sec)],
+  grabCost: ['Stamina ao agarrar', 'Custo de agarrar. 0 = grátis.', R(0, 3, .05, num)],
+  hangDrain: ['Stamina por segundo pendurado', 'Gasto contínuo enquanto pendurado; stamina zerada solta a borda. 0 = sem gasto.', R(0, 3, .05, n => n.toFixed(2) + '/s')],
+  maxHang: ['Tempo máximo pendurado', 'Depois disto o lutador solta sozinho. 0 = sem limite.', R(0, 15, .1, sec)],
+  minHang: ['Espera antes de aceitar comandos', 'Tempo pendurado antes de subir ou soltar (evita subir sem querer).', R(0, 1, .01, sec)],
+  climbInput: ['Comando para subir', 'Espaço (padrão); a direção para a parede; ou os dois.', select(['Espaço', 'Direção para a parede', 'Espaço ou direção'])],
+  climbHold: ['Tempo segurando a direção para subir', 'Só vale quando a direção sobe.', R(0, 1, .01, sec)],
+  climbTime: ['Duração da subida', 'Tempo do mantle: sobe ao nível da borda e depois avança para cima do sólido.', R(.1, 2, .01, sec)],
+  climbInset: ['Posição final no topo', 'Distância do centro do corpo à borda ao terminar de subir.', R(.1, 1.5, .01, m)],
+  climbInvuln: ['Invulnerabilidade na subida', 'Segundos de i-frames durante a subida. 0 = vulnerável (um golpe derruba).', R(0, 1, .01, sec)],
+  dropInput: ['Comando para soltar', 'D ou C sempre soltam; a opção «+ direção contrária» também solta segurando para longe da parede.', select(['Só D ou C', 'D, C ou direção contrária'])],
+  dropHold: ['Tempo segurando para longe para soltar', 'Só vale com «direção contrária».', R(0, 1, .01, sec)],
+  dropPush: ['Empurrão ao soltar', 'Velocidade para longe da parede ao soltar.', R(0, 6, .1, n => n.toFixed(1) + ' m/s')],
+  cooldown: ['Intervalo até agarrar de novo', 'Depois de soltar ou subir, tempo sem poder agarrar.', R(0, 3, .05, sec)],
+  hurtDrops: ['Golpe derruba da borda', 'Ligado (padrão): qualquer dano ou empurrão solta. Desligado: pendurado aguenta o golpe.', toggle],
+  aiClimb: ['IA sobe depois de', 'A IA pendurada sobe sozinha após este tempo. 0 = a IA nunca sobe (cai pelo tempo máximo).', R(0, 5, .05, sec)],
+};
 const ANIM = {
   fade: ['Transição suave entre estados', 'Tempo de mistura (fade) entre estados comuns da animação. Só visual.', R(.02, .6, .01, sec)],
   actionFade: ['Transição de entrada em X, C e reações', 'Fade curto para as ações e reações prevalecerem visualmente. Só visual.', R(.02, .3, .01, sec)],
@@ -316,6 +344,7 @@ export function overhaulMeta(path) {
   const parts = path.split('.'), key = parts.at(-1), root = parts[0];
   const out = (label, help, range) => range && {label, help, range: {...range}};
   if (root === 'locomotion' && LOCO[key]) return out(...LOCO[key]);
+  if (root === 'ledge' && LEDGE[key]) return out(...LEDGE[key]);
   if (root === 'display' && parts[1] === 'passive' && PASSIVE[key]) return out(...PASSIVE[key]);
   if (root === 'actions' && (parts[1] === 'dodge' || parts[1] === 'tackle') && PHASES[key]) {const [l, h, r] = PHASES[key];return out(`${l} · ${parts[1] === 'dodge' ? 'C' : 'X'}`, h, r);}
   if (root === 'actions' && parts[1] === 'sprint' && SPRINT[key]) return out(...SPRINT[key]);

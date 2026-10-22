@@ -22,7 +22,7 @@ const TABS = [
   ['Combate', ['Regras gerais, defesa e stamina', 'Knockback e clash', 'Combate e colisões']],
   ['Atributos', ['Atributos: equilibrado', 'Atributos: ágil', 'Atributos: resistente']],
   ['Movimento', ['Movimento']], ['IA', ['IA: estratégia e decisões', 'IA: personalidade do vermelho', 'IA: personalidade do azul (IA jogador)']], ['Arena', ['Arena e simulação']],
-  ['Mapa', ['Arena circular', 'Objetos destrutíveis', 'Obstáculos indestrutíveis', 'Plataformas e salto', 'Footstool (pisar no rival)', 'Consumíveis e drops', 'Progressão de estágios e escudo']],
+  ['Mapa', ['Ledge Grab (agarre de borda)', 'Arena circular', 'Objetos destrutíveis', 'Obstáculos indestrutíveis', 'Plataformas e salto', 'Footstool (pisar no rival)', 'Consumíveis e drops', 'Progressão de estágios e escudo']],
   ['Visual', ['Renderizador e personagens', 'Efeitos e feedback', 'HUD e visualização', 'Cores: canais RGB individuais']],
   ['Sistemas', ['Ativar ou desativar sistemas', 'Modos de jogo']],
 ];
@@ -32,7 +32,7 @@ const SAFE_MIN = {'rules.dodge': .05, 'rules.tackleDuration': .05, 'rules.recoil
   'extras.fx.clashDuration': .02, 'extras.visual.bodyWidth': .1, 'extras.visual.bodyHeight': .1, 'extras.visual.bodyDepth': .1, 'profiles.balanced.hp': 1, 'profiles.agile.hp': 1, 'profiles.resistant.hp': 1, 'test.hp': 1};
 const RADIANS = ['steerLimit', 'steerRate', 'guardTurn', 'guardAcceleration', 'turnRate', 'visualTurnRate', 'maxTurnRate', 'deadZone', 'movingDeadZone', 'initialYaw', 'forwardTolerance'];
 const INTEGERS = ['staminaMax', 'hp', 'attack', 'defense', 'attackReference', 'speedReference', 'defenseMedian', 'contactProjectionPasses', 'impactCount', 'clashCount', 'landingCount', 'evadeCycle', 'evadeCycleIndex', 'noticeFontSize', 'clashNoticeFontSize', 'debugFontSize', 'footerFontSize'];
-const toggled = key => key.startsWith('enable') || ['fxVisible', 'hudVisible', 'debugVisible', 'showHitboxes', 'showAttackVectors', 'jumpImprovements', 'footstoolEnabled', 'footstoolVault'].includes(key);
+const toggled = key => key.startsWith('enable') || ['fxVisible', 'hudVisible', 'debugVisible', 'showHitboxes', 'showAttackVectors', 'jumpImprovements', 'jumpPassOver', 'footstoolEnabled', 'footstoolVault'].includes(key);
 const PROFILE_LABEL = ['Equilibrado', 'Ágil', 'Resistente'];
 /** Sliders de COMBATE (regras, ações, Moves, atributos, locomoção, passivas, física, salto/footstool): o limite máximo vale o DOBRO do original (pedido de 22/10/2026: «limite muito pequeno»). Chaves liga/desliga e seletores ficam como estão. */
 export const COMBAT_PATH = /^(rules|actions|world|profiles|locomotion|passivas).|^extras.combat.|^map.(jump|footstool)/;
@@ -202,7 +202,7 @@ export function officialValue(path) {
 const same = (a, b) => Math.abs(a - b) <= 1e-9 * Math.max(1, Math.abs(a), Math.abs(b));
 
 /** Seções do overhaul fora do catálogo original: sprint (Ajustes) e efeitos, sombras, HUD e tremores (Visualizar). */
-export const EXTRA_SECTIONS = [['Smear de Membros', 'extras.visual.smear', null], ['Squash & Stretch do Tackle', 'extras.visual.squashStretch', null], ['Sprint (C mantido)', 'actions.sprint', null], ['VFX · geral', 'vfx.master', null], ['VFX 3D · geral', 'vfx.solid', null], ...SOLID_FAMILIES.map(f => [`VFX 3D · ${f.label}`, `vfx.${f.key}`, null]),
+export const EXTRA_SECTIONS = [['Smear de Membros', 'extras.visual.smear', null], ['Ledge Grab (agarre de borda)', 'ledge', null], ['Squash & Stretch do Tackle', 'extras.visual.squashStretch', null], ['Sprint (C mantido)', 'actions.sprint', null], ['VFX · geral', 'vfx.master', null], ['VFX 3D · geral', 'vfx.solid', null], ...SOLID_FAMILIES.map(f => [`VFX 3D · ${f.label}`, `vfx.${f.key}`, null]),
   ...VFX_TYPES.map(([type, label]) => [`VFX · ${label}`, `vfx.${type}`, null]), ['Tremor · geral', 'vfx.shakeMaster', null], ...SHAKE_EVENTS.map(([key, label]) => [`Tremor · ${label}`, `vfx.${key}`, null]),
   ['Teclas do vermelho (controle manual)', 'extras.bindings2', null], ['VFX · Laser da Arena (BeamRenderer)', 'vfx.laser', null], ['Sombras', 'display.shadow', null], ['HUD', 'display.hud', null], ['Habilidades passivas', 'display.passive', null], ['Altura visual', 'display.grounding', null], ['Indicador da janela C → X', 'display.cancelRing', null], ['Animação: transições', 'display.animation', null], ['Diagnóstico de comandos', 'display.diagnostics', null], ['Janelas de combate', 'display.windows', null], ['Medidor de desempenho', 'display.perf', null],
   // Passivas (catálogo experimental, §29): uma seção por passiva. A apresentação unificada fica em Visualizar.
