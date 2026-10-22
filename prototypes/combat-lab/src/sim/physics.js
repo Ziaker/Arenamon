@@ -25,27 +25,32 @@ function tryWallSplat(f, normal) {
   f.wallSplat = {t: 0, duration: R.wallSplatDuration, normal: {...normal}, fresh: true};f.state = 'wallSplat';
   return true;
 }
-/** Altura do piso/plataforma na posição XZ. Só considera superfícies válidas para a altura vertical atual do lutador (currentY). */
-export function getGroundHeight(pos, world, currentY = null) {
+const GROUND = Object.freeze({y: 0, kind: 'ground', id: null, normal: Object.freeze({x: 0, y: 1, z: 0})});
+/**
+ * Superfície de APOIO na posição XZ (contrato da Fase 4): a mais alta entre plataformas, obstáculos e destrutíveis sólidos que apoiam um
+ * lutador na altura `currentY` (null = qualquer altura), ou o piso. `y` é a altura real do topo; `normal` aponta para cima (as superfícies de
+ * apoio são topos horizontais). Só considera superfícies válidas para a altura vertical atual do lutador (currentY).
+ * @returns {{y: number, kind: 'ground' | 'platform' | 'obstacle' | 'destructible', id: any, normal: {x: number, y: number, z: number}}}
+ */
+export function groundSurface(pos, world, currentY = null) {
   const mapState = world?.mapState;
   const platforms = mapState?.platforms ?? world?.platforms ?? C.map?.platforms;
   const obstacles = mapState?.obstacles ?? world?.obstacles ?? C.map?.obstacles;
   const destructibles = mapState?.destructibles ?? world?.destructibles;
-  if (!platforms && !obstacles && !destructibles) return 0;
-  let highest = 0;
+  if (!platforms && !obstacles && !destructibles) return GROUND;
+  let best = GROUND;
   const footMargin = (C.test?.halfExtent ?? 0.35) * 0.5;
   const support = (C.map?.mountTolerance ?? 0.25) + 0.10;   // apoio no topo: tolerância de montagem + 10 cm
+  const consider = (h, kind, id) => {
+    if ((currentY === null || currentY >= h - support) && h > best.y) best = {y: h, kind, id, normal: GROUND.normal};
+  };
   if (platforms) {
     for (const p of platforms) {
       const px = p.pos ? p.pos.x : p.x;
       const pz = p.pos ? p.pos.z : p.z;
       const hx = ((p.width ?? 3) / 2) + footMargin;
       const hz = ((p.depth ?? 3) / 2) + footMargin;
-      if (Math.abs(pos.x - px) <= hx && Math.abs(pos.z - pz) <= hz) {
-        if (currentY === null || currentY >= p.height - support) {
-          if (p.height > highest) highest = p.height;
-        }
-      }
+      if (Math.abs(pos.x - px) <= hx && Math.abs(pos.z - pz) <= hz) consider(p.height, 'platform', p.id ?? null);
     }
   }
   if (obstacles) {
@@ -55,19 +60,11 @@ export function getGroundHeight(pos, world, currentY = null) {
       if (o.shape === 'cylinder' || o.shape === 'pillar') {
         const r = (o.radius ?? 1) + footMargin;
         const dx = pos.x - ox, dz = pos.z - oz;
-        if (dx * dx + dz * dz <= r * r) {
-          if (currentY === null || currentY >= h - support) {
-            if (h > highest) highest = h;
-          }
-        }
+        if (dx * dx + dz * dz <= r * r) consider(h, 'obstacle', o.id ?? null);
       } else {
         const hx = (o.hx ?? 1.5) + footMargin;
         const hz = (o.hz ?? 1.5) + footMargin;
-        if (Math.abs(pos.x - ox) <= hx && Math.abs(pos.z - oz) <= hz) {
-          if (currentY === null || currentY >= h - support) {
-            if (h > highest) highest = h;
-          }
-        }
+        if (Math.abs(pos.x - ox) <= hx && Math.abs(pos.z - oz) <= hz) consider(h, 'obstacle', o.id ?? null);
       }
     }
   }
@@ -77,14 +74,14 @@ export function getGroundHeight(pos, world, currentY = null) {
       const h = (d.pos?.y ?? 0) + (d.size?.height ?? 1.6);
       const hx = (d.size?.hx ?? 0.8) + footMargin;
       const hz = (d.size?.hz ?? 0.8) + footMargin;
-      if (Math.abs(pos.x - d.pos.x) <= hx && Math.abs(pos.z - d.pos.z) <= hz) {
-        if (currentY === null || currentY >= h - support) {
-          if (h > highest) highest = h;
-        }
-      }
+      if (Math.abs(pos.x - d.pos.x) <= hx && Math.abs(pos.z - d.pos.z) <= hz) consider(h, 'destructible', d.id ?? null);
     }
   }
-  return highest;
+  return best;
+}
+/** Altura do piso/plataforma na posição XZ (ver `groundSurface`). */
+export function getGroundHeight(pos, world, currentY = null) {
+  return groundSurface(pos, world, currentY).y;
 }
 
 /**
@@ -389,6 +386,12 @@ export function stepPhysics(fighters, dt, world = null) {
         f.groundY = targetGround;
         f.coyoteLeft = 0;
       }
+    }
+    // Contrato de suporte (observacional; nada na simulação lê f.support): superfície que segura o lutador agora e há quantos passos.
+    if (f.flight) f.support = null;
+    else {
+      const surf = groundSurface(f.position, world, f.groundY ?? 0), cur = f.support;
+      f.support = cur && cur.kind === surf.kind && cur.id === surf.id ? {...cur, y: surf.y, age: cur.age + 1} : {kind: surf.kind, id: surf.id, y: surf.y, age: 0};
     }
     if (f.landingSlide) {
       f.landingSlide.velocity = scale(f.landingSlide.velocity, Math.exp(-X.landingSkidDrag * dt));

@@ -1,6 +1,6 @@
 # Overhaul de colisões — Fase 0 (auditoria) e Fase 1 (penetrações): resultados
 
-> **Estado:** Fases 1, 2 e 3 implementadas, testadas e revisadas (§4–§10); Fases 4–7 pendentes. Este documento registra **evidências medidas**, não intenções. Cada item diz se foi reproduzido, corrigido e por qual teste.
+> **Estado:** Fases 1, 2 e 3 implementadas, testadas e revisadas (§4–§10); Fase 4 auditada, com contrato de suporte e guardas (§11); Fases 5–7 pendentes. Este documento registra **evidências medidas**, não intenções. Cada item diz se foi reproduzido, corrigido e por qual teste.
 > **Base:** commit `4634ca2` (linha atual do jogo, v1.15.5). **Branch de trabalho:** `fix/colisoes-overhaul` (worktree `.worktrees/colisoes-overhaul`). **PR de referência:** [#100](https://github.com/Ziaker/Arenamon/pull/100) (branch `fix/collision-overhaul-stage1`, criada sobre `main@68eda6c`, não integrada).
 > **Escopo e decisões:** nenhuma regra aprovada foi alterada (ver `docs/MAPA_COMBAT_LAB_DECISOES_RODADAS.md`). Documento-mestre do plano: `docs/OVERHAUL_COLISOES_AMBIENTE.md` (PR #100).
 
@@ -158,3 +158,33 @@ As 307 divergências restantes são do mesmo tipo nos dois códigos (posição f
 **Efeito colateral aceito e a verificar no jogo:** a posição de `onHit` (explosões) passa a ser o ponto de toque na face, em vez da amostra já penetrada (até 10 cm, às vezes do outro lado de uma barreira fina). A proteção contra explosão por barreira pode ficar mais forte quando antes a explosão nascia atrás dela.
 
 **Limitações:** lutadores continuam sem varredura contínua (não precisam, ver acima); a janela de 1 µm do reposicionamento deixa a ordem da lista decidir só entre barreiras praticamente coplanares (< 1 µm).
+
+## 11. Fase 4 — colisão 3D e superfícies de apoio
+
+**Auditoria (4634ca2):** a premissa do PR #100 (COL-F) de que não existia contrato de apoio 3D está **desatualizada**: `physics.js` já tem `getGroundHeight`, `getCeilingHeight`, pouso só na descida, queda de borda com coyote time e `collideMapFighter` com plataformas sólidas em todas as faces. Medido sem alterar nada:
+
+| Verificação | Resultado |
+| --- | --- |
+| 8 cenários (arremessado pousa no topo da plataforma de 1,5 m; destrutível destruído sob os pés; sair andando pela borda; lateral da plataforma de 1 m; lutadores em alturas diferentes; cabeça em obstáculo suspenso; salto sobre obstáculo baixo de 0,8 m — R7.16) | 8/8 corretos |
+| Fuzz de **1200 lançamentos aleatórios** em mapas aleatórios (posição, ângulo, velocidade e impulso vertical sorteados; 600 passos) | 0 flutuando, 0 afundado, 0 NaN, 0 fora da arena, todos pousaram e terminaram apoiados |
+| Rastreio de 3 casos «afundado» apontados pelo primeiro fuzz | **falso positivo do próprio fuzz** (o destrutível foi destruído pelo choque; a lista de sólidos era do início). Sem defeito no motor |
+
+**Conclusão honesta:** nenhum defeito 3D foi reproduzido; a Fase 4 não precisou corrigir física. O que faltava era o **contrato explícito de suporte** e guardas que o protejam:
+- `groundSurface(pos, world, currentY)` em `physics.js` (mesma consulta de `getGroundHeight`, que agora a usa): devolve `{y, kind: 'ground'|'platform'|'obstacle'|'destructible', id, normal}`. A altura é **idêntica** à anterior (provado por teste).
+- `f.support = {kind, id, y, age}` por lutador, atualizado a cada passo físico (`null` em voo; `age` = passos na mesma superfície; reinicia ao trocar). **Observacional:** nenhum código da simulação lê esse campo; ele alimenta as ferramentas visuais da Fase 7 (superfície de apoio atual, momento de aquisição/perda).
+- `test/support-surface.test.mjs` (6 verificações, inclui o fuzz determinístico de 400 lançamentos).
+
+**Não implementado (não aprovado):** Ledge Grab, Step Assist, Wall Tech, Directional Influence e outras técnicas de recovery. A tolerância de montagem já existente (`map.mountTolerance` = 25 cm) não foi alterada.
+
+## 12. Testes de navegador (execução real, 21/10/2026)
+
+Cada script de `test:combat-lab:browser` foi executado isolado (o encadeamento do npm para na primeira falha e esconderia o resto), no baseline limpo e nesta branch:
+
+| Script | Baseline 4634ca2 | Branch |
+| --- | --- | --- |
+| `moves-ui.browser.mjs` — cenário «Tackle × pedra: Clash em PL1, Counter em PL2» | **falha** (idêntica) | **falha** (idêntica) |
+| `cinematic-camera.browser.mjs` — C10 letterbox ultrawide | **falha** (idêntica) | **falha** (idêntica) |
+| `tools`, `moves-new` | passam | passam isolados (3–4 execuções); falharam uma vez só quando duas suítes rodaram em paralelo (corrida de tempo / CPU) |
+| Demais 16 scripts | variam no baseline limpo por faltar `validation/personagem-studio.glb` (arquivo não versionado); passam na branch | passam |
+
+**Conclusão:** nenhuma falha de navegador é atribuível ao overhaul; as duas falhas restantes já existiam em `4634ca2` e **não foram investigadas** (fora do escopo).
