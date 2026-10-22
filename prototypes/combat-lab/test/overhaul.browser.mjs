@@ -18,7 +18,7 @@ const browser = await chromium.launch({channel: 'msedge', headless: true});
 const page = await browser.newPage({viewport: {width: 1500, height: 920}, acceptDownloads: true});
 const errors = [];page.on('pageerror', e => errors.push(e.message));page.on('console', m => {if (m.type() === 'error') errors.push(m.text());});
 await page.context().setOffline(true);
-await page.goto(pathToFileURL(root + 'dist/arenamon-combate-laboratorio.html').href);await page.waitForFunction(() => window.__lab);
+await page.goto(pathToFileURL(root + 'dist/arenamon-combate-laboratorio.html').href + '?fabrica=1');await page.waitForFunction(() => window.__lab);
 const L = (fn, arg) => page.evaluate(fn, arg);
 const openTab = t => L(t => {const p = document.getElementById('panel');if (p.hidden || p.dataset.tool !== t) document.querySelector(`[data-tool="${t}"]`).click();}, t);
 const start = async () => {await openTab('match');await page.click('#start');};

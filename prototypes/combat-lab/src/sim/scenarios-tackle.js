@@ -69,7 +69,7 @@ export const TACKLE_SCENARIOS = [
   },
   {
     id: 'meteor-hit', name: 'Meteor slam: preparação, mergulho e impacto', description: 'O azul faz o dash por cima do vermelho e aperta X no ar: sobe (sem dano), despenca em cima dele e fica no estado do chão causando dano e lançamento.',
-    positions: [vec(0, -3), vec(0, 0)], ticks: () => steps(meteorTotal()), setup: g => {face(g.fighters[0], 0);face(g.fighters[1], Math.PI);},
+    positions: [vec(0, -3.75), vec(0, 0)], ticks: () => steps(meteorTotal()), setup: g => {face(g.fighters[0], 0);face(g.fighters[1], Math.PI);},
     script: (t, g, s) => {if (g.fighters[0].state === 'meteorPrep') s.hpPrep = g.fighters[1].hp;return [meteorBlue(t), cmd()];},
     checks: ({log, start, scratch}) => {
       const hit = log.events.find(e => e.result === 'impact' && e.slam), dmg = ATTACK() * C.rules.slamDamage, S = log.states;
@@ -85,7 +85,7 @@ export const TACKLE_SCENARIOS = [
   },
   {
     id: 'meteor-dodged', name: 'Meteor slam esquivado', description: 'Igual ao anterior, mas o vermelho esquiva quando o mergulho começa: o azul ainda cai no chão (meteorGround), sem dano e sem “aterrissando”.',
-    positions: [vec(0, -3), vec(0, 0)], ticks: () => steps(meteorTotal()), setup: g => {face(g.fighters[0], 0);face(g.fighters[1], Math.PI);},
+    positions: [vec(0, -3.75), vec(0, 0)], ticks: () => steps(meteorTotal()), setup: g => {face(g.fighters[0], 0);face(g.fighters[1], Math.PI);},
     script: (t, g, s) => {if (g.fighters[0].state === 'meteorDive' && s.dodgeAt === undefined) s.dodgeAt = t;
       return [meteorBlue(t), s.dodgeAt !== undefined && t >= s.dodgeAt && t < s.dodgeAt + 3 ? cmd({dodge: true, dodgeHeld: true, move: vec(1, 0), dodgeDirection: vec(1, 0)}) : cmd()];},
     checks: ({log}) => {
@@ -98,7 +98,7 @@ export const TACKLE_SCENARIOS = [
   },
   {
     id: 'meteor-blocked', name: 'Meteor slam bloqueado', description: 'Igual ao anterior, mas o vermelho segura a guarda durante o mergulho: o bloqueio anula o lançamento, o dano vira o reduzido e o vermelho é ARRASTADO para trás deslizando no chão (sem voo), enquanto o azul NÃO recua — o slam continua, aterrissa (meteorGround) e finaliza normalmente.',
-    positions: [vec(0, -3), vec(0, 0)], ticks: () => steps(meteorTotal()), setup: g => {face(g.fighters[0], 0);face(g.fighters[1], Math.PI);},
+    positions: [vec(0, -3.75), vec(0, 0)], ticks: () => steps(meteorTotal()), setup: g => {face(g.fighters[0], 0);face(g.fighters[1], Math.PI);},
     script: (t, g, s) => {if (g.fighters[1].state === 'landing') s.redLanding = true;return [meteorBlue(t), cmd({guard: true, target: 0})];},
     checks: ({log, game, start, scratch}) => {
       const S = log.states, partial = log.events.find(e => e.result === 'partial' && e.slam), after = log.afterHit;

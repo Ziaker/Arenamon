@@ -15,7 +15,7 @@ try {
   const page = await browser.newPage({viewport: {width: 1500, height: 920}, acceptDownloads: true}), errors = [], network = [];
   page.on('pageerror', e => errors.push(e.message));page.on('console', m => {if (m.type() === 'error') errors.push(m.text());});
   page.on('request', r => {if (/^https?:/.test(r.url())) network.push(r.url());});page.on('dialog', d => d.accept());
-  await page.context().setOffline(true);await page.goto(labUrl);await page.waitForFunction(() => window.__lab);
+  await page.context().setOffline(true);await page.goto(labUrl + '?fabrica=1');await page.waitForFunction(() => window.__lab);
   const L = (fn, arg) => page.evaluate(fn, arg);
   await L(() => {window.__lab.C.map.arenaShape = 'square';});
   const tab = t => L(t => {if (t === 'moves') {if (document.getElementById('moves-drawer').hidden) document.getElementById('moves-open').click();return;}const p = document.getElementById('panel');if (p.hidden || p.dataset.tool !== t) document.querySelector(`button[data-tool="${t}"]`).click();}, t);

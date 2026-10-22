@@ -49,7 +49,7 @@ check('Apoio atual: anel na altura da superfície (plataforma) e linha dos pés;
 });
 check('Contatos com o ambiente: seta de normal, barra de profundidade e setas de velocidade antes/depois aparecem depois do toque e somem com o tempo', () => {
   const g = lab({obstacles: [{id: 'pi', shape: 'pillar', pos: {x: 0, y: 0, z: 5}, hx: .9, hz: .9, radius: .9, height: 4.5, angle: 0}]});
-  const f = g.fighters[0];f.flight = {y: .01, vy: 5, horizontal: vec(0, 12)};f.launchedByHit = true;f.state = 'airborne';
+  const f = g.fighters[0];f.flight = {y: .01, vy: 12, horizontal: vec(0, 12)};f.launchedByHit = true;f.state = 'airborne';
   for (let i = 0; i < 100; i++) g.step(emptyCommand(), emptyCommand());
   const v = draw(g, {envContacts: true});
   for (const c of [0x73caff, 0xff4a4a, 0xffffff, 0x5dff9a]) assert.ok(v.lines.some(l => l.color === c), `sem linha ${c.toString(16)}`);

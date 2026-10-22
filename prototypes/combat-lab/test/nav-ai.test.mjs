@@ -1,8 +1,9 @@
 // @ts-check
 // Navegação (Yuka) na IA, medida IA × IA com sementes fixas (ver docs/ia/NAV_IA_MEDICAO.md): (1) com paredes entre os lutadores a IA comum quase nunca chega ao rival e
 // a navegação faz as lutas acontecerem; (2) o custo de salto/queda (padrão 6×) evita que a IA suba em tudo e despenque; (3) desligada, nada muda.
+// Este teste caracteriza a mecânica nos valores de FÁBRICA do laboratório (factoryDefaults); a base de calibração v8 é coberta por calibration-base.test.mjs e pelos testes de colisão/ambiente.
 import assert from 'node:assert/strict';
-import {C, defaults, resetConfig} from '../src/sim/config.js';
+import {C, factoryDefaults, resetConfig} from '../src/sim/config.js';
 import {evalSeries, evalMatch} from '../src/sim/ai-eval.js';
 import {NAV_SCENARIOS} from '../src/nav/nav-scenarios.js';
 import {clearNavCache} from '../src/nav/nav-graph.js';
@@ -11,7 +12,7 @@ import {registerStandardMoves} from '../src/sim/moves/standard.js';
 registerStandardMoves();
 let passed = 0, failed = 0;
 function test(name, fn) {try {fn();passed++;console.log(`  ✓ ${name}`);} catch (e) {failed++;console.error(`  ✗ ${name}: ${e.message}`);}}
-const fresh = () => {resetConfig(defaults());C.map.arenaShape = 'square';clearNavCache();};
+const fresh = () => {resetConfig(factoryDefaults());C.map.arenaShape = 'square';clearNavCache();};
 const mapOf = id => {
   const S = NAV_SCENARIOS[id];
   return {

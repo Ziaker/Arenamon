@@ -1,8 +1,9 @@
 // @ts-check
 // Pegada do contato lutador × lutador (test.contactShape): o legado quadrado dá ao tackle mais alcance nas diagonais e normais
 // alinhadas aos eixos; a pegada circular iguala o alcance em todos os ângulos e põe a normal na linha dos centros.
+// Este teste caracteriza a mecânica nos valores de FÁBRICA do laboratório (factoryDefaults); a base de calibração v8 é coberta por calibration-base.test.mjs e pelos testes de colisão/ambiente.
 import assert from 'node:assert/strict';
-import {C, defaults, resetConfig} from '../src/sim/config.js';
+import {C, factoryDefaults, resetConfig} from '../src/sim/config.js';
 import {Game} from '../src/sim/game.js';
 import {emptyCommand} from '../src/sim/entity.js';
 import {vec} from '../src/sim/math.js';
@@ -16,7 +17,7 @@ console.log('\n--- PEGADA DO CONTATO (quadrada × circular) ---\n');
 
 /** Tackle do azul em (0,0) contra o vermelho parado a distância d e ângulo th; devolve o impacto (ou null). */
 function trial(shape, th, d) {
-  resetConfig(defaults());C.extras.toggles.enableEnemyAI = 0;C.test.contactShape = shape;
+  resetConfig(factoryDefaults());C.extras.toggles.enableEnemyAI = 0;C.test.contactShape = shape;
   const g = new Game({seed: 3});g.start();
   g.mapState.obstacles = [];g.mapState.platforms = [];g.mapState.destructibles = [];g.mapState.items = [];g.mapState.regularSpawnTimer = 1e9;
   const [a, b] = g.fighters, mv = vec(Math.sin(th), Math.cos(th));
@@ -41,13 +42,13 @@ test('circular: a normal do golpe a 45° é a linha dos centros (0,71; 0,71), n�
 });
 test('alinhado a um eixo os dois modelos são idênticos (alcance e normal)', () => assert.ok(Math.abs(r0[0].max - r1[0].max) < 1e-9 && JSON.stringify(r0[0].info.normal) === JSON.stringify(r1[0].info.normal)));
 test('overlap(): profundidade e normal coerentes (círculo) e simetria a ↔ b', () => {
-  resetConfig(defaults());C.test.contactShape = 1;
+  resetConfig(factoryDefaults());C.test.contactShape = 1;
   const A = {position: {x: 0, z: 0}}, B = {position: {x: .6, z: .6}}, ab = overlap(A, B), ba = overlap(B, A);
   assert.ok(Math.abs(ab.depth - (1 - Math.hypot(.6, .6))) < 1e-9);assert.ok(Math.abs(ab.normal.x + ba.normal.x) < 1e-9);
   assert.equal(overlap(A, {position: {x: 1.2, z: 0}}), null);
   assert.deepEqual(overlap(A, {position: {x: 0, z: 0}}).normal, {x: 1, z: 0});   // sobreposição exata: normal determinística
 });
-test('o padrão do jogo é a pegada circular e o interruptor volta ao legado', () => {resetConfig(defaults());assert.equal(C.test.contactShape, 1);C.test.contactShape = 0;assert.equal(C.test.contactShape, 0);});
+test('o padrão do jogo é a pegada circular e o interruptor volta ao legado', () => {resetConfig(factoryDefaults());assert.equal(C.test.contactShape, 1);C.test.contactShape = 0;assert.equal(C.test.contactShape, 0);});
 
 console.log(`\n${passed} passaram, ${failed} falharam`);
 if (failed) process.exit(1);

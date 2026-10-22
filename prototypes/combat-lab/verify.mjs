@@ -40,7 +40,7 @@ try {
   const dialogs = [];page.on('dialog', d => {dialogs.push(d.type());(d.type() === 'beforeunload' && page.__acceptUnload) || (d.type() === 'confirm' && page.__acceptConfirm) ? d.accept() : d.dismiss();});
   await page.context().setOffline(true);
   const url = pathToFileURL(root + 'dist/arenamon-combate-laboratorio.html').href;
-  await page.goto(url);await page.waitForFunction(() => window.__lab);
+  await page.goto(url + (url.includes('?') ? '&' : '?') + 'fabrica=1');await page.waitForFunction(() => window.__lab);
   const L = fn => page.evaluate(fn);
   // Abre uma aba do painel sem alternar (clicar na aba já aberta a recolhe).
   const openTab = t => page.evaluate(t => {const p = document.getElementById('panel');if (p.hidden || p.dataset.tool !== t) document.querySelector(`[data-tool="${t}"]`).click();}, t);
@@ -77,30 +77,31 @@ try {
   assert.equal(await page.getAttribute('#tune-state', 'data-state'), 'dirty');
   await page.click('#tune-undo');assert.equal(await L(() => window.__lab.C.test.arenaHalf), arenaBefore);await page.click('#tune-redo');assert.equal(await L(() => window.__lab.C.test.arenaHalf), arenaAfter);
   // “= jogo” usa o valor do config.ts.
-  await page.locator('.tune-control', {has: page.locator('#tune-test-speed')}).getByRole('button', {name: '= jogo'}).click();
-  assert.equal(await L(() => window.__lab.C.test.speed), 4);
-  await page.click('[data-filter="changed"]');assert.equal(await page.locator('.tune-control.changed').count(), 2);
+  // (com a calibração v8 o config.ts tem velocidade 4,8 = fábrica do laboratório; o que ainda difere nesta aba é a arena: laboratório 10,4 × jogo 16.)
+  await page.locator('.tune-control', {has: page.locator('#tune-test-arenaHalf')}).getByRole('button', {name: '= jogo'}).click();
+  assert.equal(await L(() => window.__lab.C.test.arenaHalf), 16);
+  await page.click('[data-filter="changed"]');assert.equal(await page.locator('.tune-control.changed').count(), 1);   // só a arena (a velocidade do config.ts agora é igual à de fábrica)
   await page.click('[data-filter="all"]');
   // Presets e comparação.
   await page.locator('details.save-preset summary').click();await page.fill('#preset-name', 'Teste A');await page.click('#preset-save');assert.equal(await page.getAttribute('#tune-state', 'data-state'), 'saved');
   await page.selectOption('#preset-a', 'Teste A');await page.selectOption('#preset-b', '__lab');await page.click('#preset-compare');
-  assert.equal(await page.locator('#preset-diff tr').count(), 3);
+  assert.equal(await page.locator('#preset-diff tr').count(), 2);
   await page.selectOption('#preset-b', '__game');await page.click('#preset-compare');assert.ok(await page.locator('#preset-diff tr').count() > 3);
   step('ajustador: busca, filtros (≠ jogo, alterados), desfazer/refazer, “= jogo”, presets e comparação');
 
   // ---------- 10. Exportação, importação e relatório ----------
   await page.click('[data-tool="export"]');
-  assert.match(await page.textContent('#game-diff'), /Metade do lado da arena/);
+  assert.match(await page.textContent('#game-diff'), /Aceleração/);   // a arena foi igualada ao jogo acima; a aceleração (laboratório 26 × jogo 40) ainda difere
   let pending = page.waitForEvent('download');await page.click('#export-json');const json = JSON.parse(await readFile(await (await pending).path(), 'utf8'));
-  assert.equal(json.schema, 'arenamon-tuning');assert.equal(json.version, 9);assert.ok(json.values.vfx?.hit && json.values.display?.shadow && json.values.actions.sprint);assert.equal(json.homologation.summary.total, 17);assert.ok(json.values.actions.dodge && json.values.actions.tackle && json.values.actions.cancel);assert.equal(json.values.test.arenaHalf, arenaAfter);
-  assert.ok(json.differencesFromGame.some(d => d.path === 'test.arenaHalf' && d.game === 10 && d.lab === arenaAfter));assert.ok(!json.differencesFromGame.some(d => d.path === 'test.speed'));
+  assert.equal(json.schema, 'arenamon-tuning');assert.equal(json.version, 9);assert.ok(json.values.vfx?.hit && json.values.display?.shadow && json.values.actions.sprint);assert.equal(json.homologation.summary.total, 17);assert.ok(json.values.actions.dodge && json.values.actions.tackle && json.values.actions.cancel);assert.equal(json.values.test.arenaHalf, 16);   // igualada ao jogo («= jogo»)
+  assert.ok(json.differencesFromGame.some(d => d.path === 'locomotion.acceleration' && d.game === 40 && d.lab === 26) && !json.differencesFromGame.some(d => d.path === 'test.arenaHalf'));assert.ok(!json.differencesFromGame.some(d => d.path === 'test.speed'));
   // Importar um JSON v6 (formato antigo) com valor inválido: rejeitado sem aplicar nada.
   await page.fill('#import-text', JSON.stringify({schema: 'arenamon-tuning-v5', version: 6, values: {rules: {dodge: .5, launchUp: 999}}}));await page.click('#import-preview');
   assert.match(await page.textContent('#import-result'), /fora da faixa/);assert.equal(await L(() => window.__lab.C.actions.dodge.duration), .4);
   await page.fill('#import-text', JSON.stringify({schema: 'arenamon-tuning-v5', version: 6, values: {rules: {dodge: .5}, test: {arenaHalf: 16, speed: 4.8}}}));await page.click('#import-preview');
   // rules.dodge (v6) vira as durações de C e de X, com relatório de migração.
   const importText = await page.textContent('#import-result');
-  assert.match(importText, /Migração de formato antigo/);assert.match(importText, /rules\.dodge/);assert.match(importText, /actions\.tackle\.duration/);assert.match(importText, /4 parâmetros mudariam/);
+  assert.match(importText, /Migração de formato antigo/);assert.match(importText, /rules\.dodge/);assert.match(importText, /actions\.tackle\.duration/);assert.match(importText, /2 parâmetros mudariam/);   // arena (16) e velocidade (4,8) do arquivo já são os valores atuais; mudam só as durações de C e de X
   await page.click('#import-apply');
   assert.deepEqual(await L(() => [window.__lab.C.actions.dodge.duration, window.__lab.C.actions.tackle.duration, window.__lab.C.test.arenaHalf, window.__lab.C.test.speed]), [.5, .5, 16, 4.8]);
   await L(() => window.__lab.tuning.undo());assert.equal(await L(() => window.__lab.C.actions.dodge.duration), .4);

@@ -51,7 +51,7 @@ async function open(dir, {init = null} = {}) {
   const page = ctx.pages()[0] ?? await ctx.newPage(), errors = [];
   page.on('pageerror', e => errors.push(e.message));page.on('console', m => {if (m.type() === 'error') errors.push(m.text());});
   page.on('dialog', d => (page.__accept ? d.accept() : d.dismiss()));
-  await ctx.setOffline(true);await page.goto(labUrl);await page.waitForFunction(() => window.__lab, null, {timeout: 30000});
+  await ctx.setOffline(true);await page.goto(labUrl + '?fabrica=1');await page.waitForFunction(() => window.__lab, null, {timeout: 30000});
   const L = (fn, arg) => page.evaluate(fn, arg);
   const tab = t => L(t => {const p = document.getElementById('panel');if (p.hidden || p.dataset.tool !== t) document.querySelector(`[data-tool="${t}"]`).click();}, t);
   return {ctx, page, L, tab, errors};

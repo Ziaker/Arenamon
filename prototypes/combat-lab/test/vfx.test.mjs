@@ -1,5 +1,6 @@
 // Testes do novo sistema de VFX declarativo (prototypes/combat-lab/src/view/vfx/).
 // Executam em Node sem navegador, sem requests HTTP(S) e sem modificar a simulação.
+// Este teste caracteriza a mecânica nos valores de FÁBRICA do laboratório (factoryDefaults); a base de calibração v8 é coberta por calibration-base.test.mjs e pelos testes de colisão/ambiente.
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {
@@ -19,7 +20,7 @@ import {buildClashC} from '../src/view/vfx/effects/clash.js';
 import {BeamRenderer, BEAM_PL_COLORS} from '../src/view/vfx/beam-renderer.js';
 import * as T from 'three';
 import {Game} from '../src/sim/game.js';
-import {C, resetConfig} from '../src/sim/config.js';
+import {C, resetConfig, factoryDefaults} from '../src/sim/config.js';
 import {WorldView} from '../src/view/world-view.js';
 import {spawn} from '../src/sim/world.js';
 
@@ -471,7 +472,7 @@ test('runtime: fallback de qualidade muda limites', () => {
 
 test('simulação: estado idêntico com VFX ligado e desligado (mesma seed)', () => {
   // Executa duas lutas idênticas; a presença do VFX não deve alterar o resultado mecânico.
-  resetConfig();
+  resetConfig(factoryDefaults());
   const run = (vfxOn) => {
     const g = new Game({seed: 42});
     g.mode = 'combat';
@@ -1059,7 +1060,7 @@ test('hit D: nasce da normal real, escala com dano/lançamento e respeita os con
   const hit = VFX_TYPES.find(t => t[0] === 'hit');
   assert.equal(hit[2].length, 4, 'hit tem 4 variantes (A, B, C, D)');
   const run = (ctx, patch = {}) => {
-    resetConfig();
+    resetConfig(factoryDefaults());
     Object.assign(C.vfx.hit, {variant: 3}, patch);
     const v = new VfxSystem({add: () => {}, remove: () => {}}, {flashEl: {style: {}}});
     v.fire('hit', {pos: {x: 0, z: 0}, power: 1, ...ctx}, 'teste');
@@ -1084,7 +1085,7 @@ test('hit D: nasce da normal real, escala com dano/lançamento e respeita os con
   assert.ok(!off.some(p => p.cell === 14 || p.cell === 6 && p.gravity === 14 || p.cell === 8 || p.cell === 12), 'detritos, poeira e rachadura desligáveis');
   // Normal ausente não quebra (usa +z).
   assert.ok(run({n: undefined}).length > 0, 'sem normal usa o eixo padrão');
-  resetConfig();
+  resetConfig(factoryDefaults());
 });
 
 console.log(`\n${passed} testes de VFX aprovados.`);

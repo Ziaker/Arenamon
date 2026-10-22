@@ -26,7 +26,7 @@ const browser = await chromium.launch({...BROWSER, headless: true});
 try {
   const page = await browser.newPage({viewport: {width: 1500, height: 920}, acceptDownloads: true}), errors = [];
   page.on('pageerror', e => errors.push(e.message));page.on('console', m => {if (m.type() === 'error') errors.push(m.text());});page.on('dialog', d => d.accept());
-  await page.context().setOffline(true);await page.goto(labUrl);await page.waitForFunction(() => window.__lab);
+  await page.context().setOffline(true);await page.goto(labUrl + '?fabrica=1');await page.waitForFunction(() => window.__lab);
   const L = (fn, arg) => page.evaluate(fn, arg), tab = t => L(t => {const p = document.getElementById('panel');if (p.hidden || p.dataset.tool !== t) document.querySelector(`[data-tool="${t}"]`).click();}, t);
   const key = async (code, ms = 0) => {await page.locator('canvas').first().focus();await page.keyboard.down(code);if (ms) await page.waitForTimeout(ms);await page.keyboard.up(code);};
 

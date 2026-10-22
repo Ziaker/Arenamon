@@ -24,7 +24,7 @@ const run = (g, n, c0 = emptyCommand()) => {for (let t = 0; t < n; t++) g.step(c
 
 check('arremesso contra pilar: registra o pilar como bloqueador, normal, profundidade e a velocidade antes/depois (rebote)', () => {
   const g = lab({obstacles: [{id: 'pi', shape: 'pillar', pos: {x: 0, y: 0, z: 5}, hx: .9, hz: .9, radius: .9, height: 4.5, angle: 0}]}), f = g.fighters[0];
-  f.flight = {y: .01, vy: 5, horizontal: vec(0, 12)};f.launchedByHit = true;f.state = 'airborne';
+  f.flight = {y: .01, vy: 12, horizontal: vec(0, 12)};f.launchedByHit = true;f.state = 'airborne';
   run(g, 120);
   const r = collisionProbe.byFighter[0];
   assert.ok(r, 'sem registro');
@@ -69,7 +69,7 @@ check('determinismo: duas partidas iguais, uma com a sonda adulterada/zerada a c
   const play = tamper => {
     resetCollisionProbe();
     const g = lab({obstacles: [{id: 'pi', shape: 'pillar', pos: {x: 0, y: 0, z: 5}, hx: .9, hz: .9, radius: .9, height: 4.5, angle: 0}], platforms: [{id: 'pl', pos: {x: 6, y: 0, z: 0}, width: 3, depth: 3, height: 1}]}), f = g.fighters[0];
-    f.flight = {y: .01, vy: 5, horizontal: vec(3, 12)};f.launchedByHit = true;f.state = 'airborne';
+    f.flight = {y: .01, vy: 12, horizontal: vec(3, 12)};f.launchedByHit = true;f.state = 'airborne';
     spawn(g.world, {kind: 'projectile', owner: 1, pos: {x: 0, z: -3}, angle: 0, speed: 20, radius: .1, y: .65, life: 2, hit: {damage: 3}}, []);
     for (let t = 0; t < 600; t++) {
       if (tamper) {collisionProbe.byFighter[0] = {step: 1e9, kind: 'x', id: 'junk', normal: {x: 9, z: 9}, depth: 99, vBefore: {x: 9, z: 9}, vAfter: {x: 9, z: 9}, x: 0, z: 0};collisionProbe.step += 13;if (t % 50 === 0) resetCollisionProbe();}

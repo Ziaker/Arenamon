@@ -3,8 +3,18 @@
 // O jogo oficial (prototypes/game/src/config.ts) é lido por ui/official.js apenas para comparação.
 
 import {MAP_DEFAULTS} from './map.js';
+import {applyCalibrationBase} from './calibration-base.js';
 
+/** Valores de FÁBRICA (laboratório v6 + parâmetros novos), sem a base de calibração v8. Referência e prova de que a tabela guarda os valores anteriores. */
+export function factoryDefaults() {return buildDefaults();}
+let factoryMode = false;
+/** «?fabrica=1» na URL do laboratório: abre com os valores de FÁBRICA (sem a base de calibração v8), para comparar e para os testes que caracterizam a mecânica de fábrica. */
+export function useFactoryDefaults(on = true) {factoryMode = !!on;}
 export function defaults() {
+  if (factoryMode) return buildDefaults();
+  return applyCalibrationBase(buildDefaults());   // base de calibração v8 (decisão de 22/10/2026) por cima dos valores de fábrica; cada linha de calibration-base.js guarda o valor anterior
+}
+function buildDefaults() {
   // Regras gerais. Os parâmetros próprios de C (esquiva) e X (tackle) ficam em `actions`.
   // blend: dissipação da velocidade quando a DEFESA cancela uma esquiva/tackle (GDD 7.3: 100 ms).
   const rules = {recoil: .3, recoilFraction: .15, blend: .1, guardStun: .2,
@@ -214,7 +224,7 @@ export function defaults() {
     quickAttack: {cost: .75, cooldown: 6, acquireRange: 7, approachMax: .16, returnMax: .14, recovery: .12, damage: 8, knockbackH: 4, knockbackV: 0, invulnerableSeconds: 0},
     swift: {cost: .8, cooldown: 7, cast: .25, count: 3, speed: 15, damage: 3, homingSeconds: .25, homingRate: 90, range: 12, knockback: .3, knockbackCap: .9, radius: .2, fanAngle: 20, spawnForward: .9, spawnSpacing: .35, counterStagger: .2},
   });
-  return {rules, test, locomotion, camera, profiles: profilesLab, extras, actions, vfx: vfxDefaults(), display: displayDefaults(), world, map: {...MAP_DEFAULTS}, passivas};
+  return ({rules, test, locomotion, camera, profiles: profilesLab, extras, actions, vfx: vfxDefaults(), display: displayDefaults(), world, map: {...MAP_DEFAULTS}, passivas});
 }
 
 /**

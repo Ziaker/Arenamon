@@ -1,6 +1,7 @@
 // Auxiliares compartilhados pelos testes dos Moves novos (um arquivo por Move: moves-<id>.test.mjs).
+// Este teste caracteriza a mecânica nos valores de FÁBRICA do laboratório (factoryDefaults); a base de calibração v8 é coberta por calibration-base.test.mjs e pelos testes de colisão/ambiente.
 import assert from 'node:assert/strict';
-import {C, defaults, resetConfig} from '../src/sim/config.js';
+import {C, factoryDefaults, resetConfig} from '../src/sim/config.js';
 import {Game} from '../src/sim/game.js';
 import {emptyCommand} from '../src/sim/entity.js';
 import {vec} from '../src/sim/math.js';
@@ -8,7 +9,7 @@ import {registerStandardMoves} from '../src/sim/moves/standard.js';
 import {clearMoves} from '../src/sim/moves.js';
 import {clearEffects} from '../src/sim/move-effects.js';
 
-export {assert, C, defaults, resetConfig, Game, emptyCommand, vec};
+export {assert, C, factoryDefaults, resetConfig, Game, emptyCommand, vec};
 export const cmd = o => ({...emptyCommand(), ...o});
 export const HOLD = i => [0, 1, 2, 3].map(k => k === i);
 export const DT = 1 / 120;
@@ -29,7 +30,7 @@ export function suite(title) {
  * `equip` equipa os Moves no slot 0 do azul (e `equipRed` no do vermelho).
  */
 export function arena({equip = [], equipRed = [], setup = null, positions = [vec(0, -3), vec(0, 3)]} = {}) {
-  resetConfig(defaults());
+  resetConfig(factoryDefaults());
   clearMoves();clearEffects();registerStandardMoves();
   setup?.();
   C.extras.toggles.enableEnemyAI = 0;

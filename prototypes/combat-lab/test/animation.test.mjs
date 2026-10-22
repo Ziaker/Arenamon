@@ -2,6 +2,7 @@
 // Verifica tackle e esquiva até o fim, ausência de reinícios, esquiva → sprint, freios, variantes sorteadas na
 // entrada (determinísticas), cancelamento legítimo C → X, importação de clipes e ajuste de altura.
 // Uso: node prototypes/combat-lab/test/animation.test.mjs
+// Este teste caracteriza a mecânica nos valores de FÁBRICA do laboratório (factoryDefaults); a base de calibração v8 é coberta por calibration-base.test.mjs e pelos testes de colisão/ambiente.
 import assert from 'node:assert/strict';
 import {mkdirSync, writeFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
@@ -11,14 +12,14 @@ import {readFileSync} from 'node:fs';
 const {syntheticRig} = await import('data:text/javascript,' + encodeURIComponent(readFileSync(new URL('../../studio/test/fixture.js', import.meta.url), 'utf8')));
 import {Character} from '../src/view/characters.js';
 import {Game} from '../src/sim/game.js';
-import {C, resetConfig} from '../src/sim/config.js';
+import {C, resetConfig, factoryDefaults} from '../src/sim/config.js';
 import {vec} from '../src/sim/math.js';
 import {registerStandardMoves} from '../src/sim/moves/standard.js';
 
 const out = fileURLToPath(new URL('../validation/', import.meta.url));mkdirSync(out, {recursive: true});
 let passed = 0;const report = [];
 const check = (label, ok, detail = '') => {report.push({label, ok: !!ok, detail});assert.ok(ok, `${label} ${detail}`);};
-function test(name, fn) {resetConfig();fn();passed++;console.log('✓', name);}
+function test(name, fn) {resetConfig(factoryDefaults());fn();passed++;console.log('✓', name);}
 const cmd = (o = {}) => ({move: vec(), dodge: false, dodgeHeld: false, tackle: false, guard: false, guardPressed: false, target: null, ...o});
 
 /** Clipe sintético: inclina a coluna (amplitude diferente por clipe) e abaixa o quadril em `drop` cm. */

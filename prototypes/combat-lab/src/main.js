@@ -1,7 +1,8 @@
 // Laboratório de combate Arenamon v7 — composição: simulação, câmera, HUD, entrada, replay, telemetria,
 // cenários, ajustador, personagens do Studio, exportação e aviso de alterações não salvas.
 import {applyInterpolation} from './sim/interpolation.js';
-import {C, keyFor, defaults} from './sim/config.js';
+import {C, keyFor, defaults, resetConfig as resetCfg, useFactoryDefaults} from './sim/config.js';
+if (typeof location !== 'undefined' && new URLSearchParams(location.search).has('fabrica')) {useFactoryDefaults(true);resetCfg(defaults());}   // ?fabrica=1: valores de fábrica, sem a base de calibração v8
 import {Game, FixedClock} from './sim/game.js';
 import {AI_MODES, UI_AI_MODES} from './sim/ai.js';
 import {styleLabel} from './sim/tactics.js';

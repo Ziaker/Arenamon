@@ -1,8 +1,9 @@
 // Fase 2 (plano de Reflect/Psyshock) — Reflect, sem navegador. Cobre: M3.x, M4.1–M4.6, M5.1–M5.4, M7.6–M7.8, M13.1–M13.7,
 // M14.1–M14.8, M17.2–M17.4, M19.2–M19.3, M19.7, M19.9, M26s.1–M26s.4, M29.2, M30.1, M30.4–M30.7 e o contrato M28.4.
 // O Reflect é criado pelo fluxo real (segurar → soltar); projéteis e explosões de teste são entidades montadas aqui.
+// Este teste caracteriza a mecânica nos valores de FÁBRICA do laboratório (factoryDefaults); a base de calibração v8 é coberta por calibration-base.test.mjs e pelos testes de colisão/ambiente.
 import assert from 'node:assert/strict';
-import {C, defaults, resetConfig} from '../src/sim/config.js';
+import {C, factoryDefaults, resetConfig} from '../src/sim/config.js';
 import {Game} from '../src/sim/game.js';
 import {emptyCommand} from '../src/sim/entity.js';
 import {vec, length} from '../src/sim/math.js';
@@ -19,7 +20,7 @@ const near = (a, b, e = 1e-6) => assert.ok(Math.abs(a - b) < e, `${a} ≠ ${b}`)
 registerStandardMoves();
 const events = [];
 function arena({blue = vec(0, -3), red = vec(0, 3)} = {}) {
-  resetConfig(defaults());events.length = 0;
+  resetConfig(factoryDefaults());events.length = 0;
   const g = new Game();g.mode = 'inactive';g.reset({positions: [blue, red]});g.fighters[0].facing = 0;g.fighters[1].facing = Math.PI;g.setLoadout(0, ['reflect']);return g;
 }
 const step = (g, c0 = cmd(), c1 = cmd()) => {g.step(c0, c1);events.push(...g.lastStepEvents);return g.lastStepEvents;};
@@ -196,5 +197,5 @@ ok('a barreira expira ao fim de 4 s + carga; definição: custo 1, recarga 8 s, 
 }
 ok('save/load com a barreira viva reproduz a mesma partida');
 
-clearMoves();clearEffects();resetConfig(defaults());
+clearMoves();clearEffects();resetConfig(factoryDefaults());
 console.log(`\n${n} verificações do Reflect (Fase 2) aprovadas.`);

@@ -18,13 +18,13 @@ test('formatação de números (π e decimais)', () => {
 test('substitui só a chave certa de cada objeto', () => {
   const {text, applied, skipped} = patchConfigTs(source, [
     {gamePath: 'rules.dodge', value: .5, from: ['actions.dodge.duration']}, {gamePath: 'rules.steerLimit', value: Math.PI / 4, from: ['x']},
-    {gamePath: 'test.arenaHalf', value: 16, from: ['test.arenaHalf']}, {gamePath: 'camera.distance', value: 7, from: ['camera.distance']},
+    {gamePath: 'test.arenaHalf', value: 18, from: ['test.arenaHalf']}, {gamePath: 'camera.distance', value: 7, from: ['camera.distance']},
     {gamePath: 'profiles.agile.speed', value: 5.5, from: ['profiles.agile.speed']}, {gamePath: 'rules.inexistente', value: 1, from: ['?']},
   ]);
   assert.match(text, /dodge: \.5, invulnerable: \.2, steerLimit: Math\.PI \/ 4, steerRate: Math\.PI,/);
-  assert.match(text, /arenaHalf: 16, halfExtent: \.5,/);assert.match(text, /distance: 7, height: 2\.2/);
-  assert.match(text, /agile: \{ attack: 16, defense: 35, speed: 5\.5, hp: TEST\.hp \}/);assert.match(text, /resistant: \{ attack: 24, defense: 80, speed: 3\.4/);
-  assert.match(text, /minDistance: 4\.8, maxDistance: 16/, 'chaves parecidas (minDistance) intactas');
+  assert.match(text, /arenaHalf: 18, halfExtent: .5,/);assert.match(text, /distance: 7, height: 2\.2/);
+  assert.match(text, /agile: \{ attack: 16, defense: 35, speed: 5\.5, hp: TEST\.hp \}/);assert.match(text, /resistant: \{ attack: 24, defense: 80, speed: 4\.08/);   // config.ts já traz a base de calibração v8 (22/10/2026)
+  assert.match(text, /minDistance: 4\.8, maxDistance: 24/, 'chaves parecidas (minDistance) intactas');
   assert.equal(applied.length, 5);assert.deepEqual(skipped.map(s => s.gamePath), ['rules.inexistente']);
   assert.equal(text.split('\n').length, source.split('\n').length);
 });

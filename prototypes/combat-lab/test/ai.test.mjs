@@ -1,12 +1,13 @@
 // IA tática: determinismo por semente, variedade de estilos, uso de todas as mecânicas, adaptação ao adversário e
 // desempenho contra a IA do v6. Uso: node prototypes/combat-lab/test/ai.test.mjs
+// Este teste caracteriza a mecânica nos valores de FÁBRICA do laboratório (factoryDefaults); a base de calibração v8 é coberta por calibration-base.test.mjs e pelos testes de colisão/ambiente.
 import assert from 'node:assert/strict';
 import {Game} from '../src/sim/game.js';
-import {C, resetConfig} from '../src/sim/config.js';
+import {C, resetConfig, factoryDefaults} from '../src/sim/config.js';
 import {STYLES} from '../src/sim/tactics.js';
 import {runBalance} from '../src/sim/balance.js';
 
-let passed = 0;const test = (name, fn) => {resetConfig();fn();passed++;console.log('✓', name);};
+let passed = 0;const test = (name, fn) => {resetConfig(factoryDefaults());fn();passed++;console.log('✓', name);};
 /** Uma luta IA × IA; devolve o registro de contatos e a luta. */
 function fight(seed, {blue = 'tactical', red = 'tactical', ticks = 120 * 60, until} = {}) {
   const g = new Game({seed});g.mode = red;g.reset();const log = [];

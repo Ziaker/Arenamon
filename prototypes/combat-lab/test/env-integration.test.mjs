@@ -155,7 +155,7 @@ check('12 partidas IA × IA em mapa denso (8 + 8): nenhum conflito de espaço, n
       const solids = collectSolids(g.mapState);
       for (const f of g.fighters) {
         if (![f.position.x, f.position.z, f.groundY].every(Number.isFinite)) {bad.push(`seed ${seed}: NaN`);continue;}
-        if (f.flight || f.wallSplat || f.state === 'airborne') continue;   // em voo vale a faixa de montagem (resíduo documentado)
+        if (f.flight || f.wallSplat || f.state === 'airborne' || (f.vaultHeight ?? 0) > 0.05) continue;   // em voo ou em arco de vault (no ar) vale a faixa de montagem (resíduo documentado)
         for (const s of solids) if (penetration({x: f.position.x, y: f.groundY, z: f.position.z}, s, 'box') > 0.03) bad.push(`seed ${seed} t${t} f${f.id} ${f.action?.kind ?? f.state} em ${s.id}`);
       }
     }

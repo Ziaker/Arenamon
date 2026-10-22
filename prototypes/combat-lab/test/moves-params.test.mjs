@@ -1,9 +1,10 @@
 // Cobertura dos sliders da aba Moves: todo parâmetro de C.world.{charge,reflect,psyshock,beam} que a simulação LÊ tem controle com rótulo,
 // faixa e unidade, e cada controle novo altera de fato o resultado do Move. Roda em Node, sem navegador.
+// Este teste caracteriza a mecânica nos valores de FÁBRICA do laboratório (factoryDefaults); a base de calibração v8 é coberta por calibration-base.test.mjs e pelos testes de colisão/ambiente.
 import assert from 'node:assert/strict';
 import {readdirSync, readFileSync, statSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
-import {C, defaults, resetConfig} from '../src/sim/config.js';
+import {C, factoryDefaults, resetConfig} from '../src/sim/config.js';
 import {Game} from '../src/sim/game.js';
 import {emptyCommand} from '../src/sim/entity.js';
 import {vec} from '../src/sim/math.js';
@@ -16,7 +17,7 @@ registerStandardMoves();
 const cmd = o => ({...emptyCommand(), ...o});
 const HOLD = i => [0, 1, 2, 3].map(k => k === i);
 function arena(setup) {
-  resetConfig(defaults());setup?.();
+  resetConfig(factoryDefaults());setup?.();
   const g = new Game();g.mode = 'inactive';g.reset({positions: [vec(0, -3), vec(0, 3)]});g.fighters[0].facing = 0;g.fighters[1].facing = Math.PI;g.setLoadout(0, ['reflect', 'psyshock']);
   // Estes testes medem os efeitos dos sliders dos Moves: o mundo fica neutro (objetos no
   // caminho gastariam stamina da IA e distorceriam contagens de decisão).
@@ -51,7 +52,7 @@ function sourceFiles(dir) {return readdirSync(dir).flatMap(f => {const p = dir +
 ok('todo parâmetro dos Moves que o código lê tem slider (os 2 campos legados sem leitor ficam de fora de propósito)');
 {
   for (const [id, [g, k, label, tip, min, max, stepv, fmt]] of rows) {
-    const v = defaults().world[g][k];
+    const v = factoryDefaults().world[g][k];
     assert.ok(label.length > 3 && tip.length > 10, `${id}: rótulo e descrição`);
     assert.ok(stepv > 0 && max > min, `${id}: faixa válida`);
     assert.ok(v >= min - 1e-9 && v <= max + 1e-9, `${id}: padrão ${v} fora de ${min}..${max}`);
