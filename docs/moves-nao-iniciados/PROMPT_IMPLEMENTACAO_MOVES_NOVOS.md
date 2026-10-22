@@ -1,5 +1,7 @@
 # PROMPT DE TRABALHO — IMPLEMENTAR OS MOVES NOVOS DO ARENAMON (escrito pelo agente para si mesmo)
 
+> **Atualização de 22/10/2026 (auditoria `docs/AUDITORIA_DOCUMENTACAO_2026-10-22.md`):** **execução concluída:** os 13 Moves novos estão na `main` (v1.14.0 em diante). Ficaram pendentes o Body Slam (sem gameplay especificado), a IA/SFX finais e a homologação do responsável (ver `DECISOES_PROVISORIAS_MOVES_NOVOS.md`).
+
 > **Autoria:** agente Claude, a pedido do diretor ("comece a implementar os moves novos, inclusive os genéricos… mas antes prepare um prompt para si").
 > **Data:** 21/10/2026. **Branch de trabalho:** `feat/moves-novos` (base: `feat/ferramentas-open-source` v1.13.0 + merge de `origin/main`, que só trouxe documentação).
 > **Status:** este prompt é a **minha instrução operacional**. Não é aprovação de gameplay. Onde o documento-fonte diz "pendente", eu **não invento regra**: uso um *padrão provisório documentado*, visível na interface e registrado em `DECISOES_PROVISORIAS_MOVES_NOVOS.md`.

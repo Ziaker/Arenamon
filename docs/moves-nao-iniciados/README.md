@@ -1,5 +1,7 @@
 # Arenamon — Moves ainda não iniciados
 
+> **Atualização de 22/10/2026 (auditoria `docs/AUDITORIA_DOCUMENTACAO_2026-10-22.md`):** esta pasta guarda prompts e propostas de Moves; **quase todos já foram implementados** (tabela abaixo). Só o **Body Slam** continua sem gameplay especificado.
+
 **Pasta:** `docs/moves-nao-iniciados/`  
 **Situação:** organização de documentação e preparação para desenvolvimento — **não significa que os golpes abaixo tenham sido implementados**.  
 **Repositório oficial:** [Ziaker/Arenamon](https://github.com/Ziaker/Arenamon)
@@ -8,10 +10,10 @@
 
 | Arquivo | Conteúdo | Estado |
 |---|---|---|
-| [EMERGING_STONE_PROMPT_IMPLEMENTACAO.md](EMERGING_STONE_PROMPT_IMPLEMENTACAO.md) | Prompt de execução para Codex/agente implementar e testar Emerging Stone (Move 1 de Mushroom), vinculado a **ES-D01–ES-D103** | **Design fechado, implementação não iniciada por esta tarefa** |
-| [PROMPT_IMPLEMENTACAO_MOVES_NOVOS.md](PROMPT_IMPLEMENTACAO_MOVES_NOVOS.md) | Prompt de trabalho do agente para implementar os 13 Moves novos (genéricos, Mushroom e Emerging Stone), com infraestrutura, ordem, protocolo e critérios | **Em execução na branch `feat/moves-novos`** |
+| [EMERGING_STONE_PROMPT_IMPLEMENTACAO.md](EMERGING_STONE_PROMPT_IMPLEMENTACAO.md) | Prompt de execução para Codex/agente implementar e testar Emerging Stone (Move 1 de Mushroom), vinculado a **ES-D01–ES-D103** | **Implementado** (v1.14.x); homologação pendente |
+| [PROMPT_IMPLEMENTACAO_MOVES_NOVOS.md](PROMPT_IMPLEMENTACAO_MOVES_NOVOS.md) | Prompt de trabalho do agente para implementar os 13 Moves novos (genéricos, Mushroom e Emerging Stone), com infraestrutura, ordem, protocolo e critérios | **Concluído e integrado à `main`** (v1.14.0 em diante) |
 | [DECISOES_PROVISORIAS_MOVES_NOVOS.md](DECISOES_PROVISORIAS_MOVES_NOVOS.md) | Registro vivo dos padrões provisórios adotados onde a fonte marca pendência | Atualizado a cada Move |
-| [5_MOVES_GENERICOS_PROMPT.md](5_MOVES_GENERICOS_PROMPT.md) | Proposta dos 5 genéricos adicionais (Lunge, Guard Break, Feint, Riposte, Second Wind) — vinda do branch `docs/5-moves-genericos` | Proposta; não aprovada |
+| [5_MOVES_GENERICOS_PROMPT.md](5_MOVES_GENERICOS_PROMPT.md) | Proposta dos 5 genéricos adicionais (Lunge, Guard Break, Feint, Riposte, Second Wind) — vinda do branch `docs/5-moves-genericos` | **Implementado** (v1.14.0); valores provisórios |
 | [AUDITORIA_PASTA_TACKLE.md](AUDITORIA_PASTA_TACKLE.md) | Verificação da pasta `docs/tackle` e justificativa de classificação dos arquivos encontrados | Auditoria documental |
 
 ## Fontes oficiais que continuam em seus caminhos originais

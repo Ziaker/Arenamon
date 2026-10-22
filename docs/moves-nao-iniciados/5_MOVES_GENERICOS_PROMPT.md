@@ -1,5 +1,7 @@
 # Arenamon — 5 Moves Genéricos Adicionais
 
+> **Atualização de 22/10/2026 (auditoria `docs/AUDITORIA_DOCUMENTACAO_2026-10-22.md`):** **os cinco Moves (Lunge, Guard Break, Feint, Riposte, Second Wind) estão implementados** (v1.14.0). Os valores continuam provisórios até a homologação; Riposte: contra-golpe tratado como PL 4 e **sem clash**, com visual próprio desde a v1.17.0.
+
 > **Documento de decisões de design — fonte para implementação futura.**  
 > **Data:** 21/10/2026. **Status:** proposta de design; valores numéricos e regras adicionais sujeitos à homologação individual. **Não implementado por este registro.**  
 > **Repositório:** `Ziaker/Arenamon`  

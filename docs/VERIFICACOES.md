@@ -2,6 +2,21 @@
 
 Este arquivo separa **o que foi efetivamente executado** do que **permanece pendente**. Registre aqui data, commit-base, comando e resultado; nunca marque como executado o que não foi.
 
+## Execução de 2026-10-22 — `feat/calibracao-v8-base` (v1.18.0) e `main` @ `dff532f`
+
+**Ambiente:** Windows 11, Node 25.8, worktree `.worktrees/calibracao-v8`. **Não executado:** `npm run verify` completo, `npm run typecheck`, `test:combat-lab:browser` completo, verificação visual na tela (o navegador embutido do assistente não abre HTML local).
+
+| Verificação | Resultado |
+|---|---|
+| Testes unitários do combat-lab (`test:combat-lab:unit`, cada arquivo isolado) | **99/99** aprovados após a v1.18.0 |
+| `calibration-base` (base v8 de 184 linhas × JSON do responsável, 6 partidas IA × IA, 15 cenários de colisão) | 7 verificações aprovadas |
+| `moves-softlock` (reprodução do softlock do Bullet Punch + 60 partidas aleatórias com os 15 Moves) | aprovado, nenhum estado preso |
+| `moves-air` (15 Moves no salto e no vault) | 13 aprovados |
+| Navegador: `overhaul` 117/117, `moves-ui` 31/31, `moves` 6/6, `progress-scenery` 38, `tuning-export`, `tools` 18/18 | aprovados |
+| `main` após o merge (`dff532f`): `calibration-base`, `moves-air`, `moves-softlock`, `progress-scenery` | aprovados; build não refeito nesse worktree (sem `node_modules`); o HTML foi compilado na branch, com código idêntico |
+
+**Ajustes de teste causados pela nova base:** `hitstop-tiers` e `hitbox-shapes` fixados em `factoryDefaults()`; `env-integration` usa Tackle de 2,5 m no teste do dano único; `diagnostics` aceita guard stun no mesmo passo; `moves-params` espera o limite ×2 dos sliders.
+
 ## Execução de 2026-10-16 — branch `chore/arquitetura-indice-testes-checkjs` sobre `main` @ `6bcc26d`
 
 **Ambiente:** Windows 11, Node 25.8, TypeScript 7, Edge/Chromium headless via Playwright, execução em worktree temporário (`.worktrees/arq`, com `node_modules` ligado por junção ao checkout oficial).
