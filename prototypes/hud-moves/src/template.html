@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Arenamon — Laboratório HUD de Vida, Stamina e Moves</title>
+<style>
+/*__STYLES__*/
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="stage">
+    <canvas id="gl" tabindex="0" aria-label="Arena 3D de demonstração"></canvas>
+    <div id="hud-root" aria-label="HUD de vida, stamina e moves (demonstração)"></div>
+    <div id="hint">Arraste para girar · roda = zoom · botão direito = mover · 1–3 troca o HUD · 4–7 cenários · P painel</div>
+  </div>
+
+  <header id="topbar">
+    <div class="brand"><a href="../../../ABRIR_ARENAMON.html" title="Voltar ao portal">← Portal</a><b>HUD · Vida, Stamina e Moves</b><small>propostas · nada aprovado</small></div>
+    <div class="grp"><span>HUD</span>
+      <button class="seg-btn on" data-hud-btn="A" title="Tecla 1">A Impacto<kbd>1</kbd></button>
+      <button class="seg-btn" data-hud-btn="B" title="Tecla 2">B Quadrinhos<kbd>2</kbd></button>
+      <button class="seg-btn" data-hud-btn="C" title="Tecla 3">C Clássico<kbd>3</kbd></button>
+    </div>
+    <div class="grp presets"><span>Cenário</span><span id="preset-btns" style="margin:0;display:flex;gap:4px"></span></div>
+    <span class="sp"></span>
+    <span id="caption"></span>
+    <button class="seg-btn" id="btn-anim" title="Anima a recarga e a carga dos moves (tecla N)">▶ Animar<kbd>N</kbd></button>
+    <button class="seg-btn" id="btn-hidehud" title="Tecla H">Ocultar HUD</button>
+    <button class="seg-btn" id="btn-panel" title="Tecla P">Controles</button>
+  </header>
+
+  <aside id="drawer" hidden>
+    <h3>Cenários demonstrativos</h3>
+    <div class="btns" id="preset-list"></div>
+    <div class="btns" style="margin-top:6px"><button id="btn-reset">Resetar para o padrão</button></div>
+
+    <h3>Vida e stamina</h3>
+    <div id="vals"></div>
+
+    <h3>Os 4 moves</h3>
+    <div id="moves"></div>
+
+    <h3>HUD</h3>
+    <div class="row"><label><input type="checkbox" id="chk-hud" checked> Mostrar HUD</label></div>
+    <div class="row"><span>Escala</span><input type="range" id="hud-scale" min="60" max="150" value="100" step="5"><b id="hud-scale-v">100%</b></div>
+
+    <h3>Arena</h3>
+    <div class="row"><span>Fundo</span><select id="theme"><option value="escuro">Escuro</option><option value="claro">Claro</option><option value="quente">Quente</option></select></div>
+    <div class="row"><label><input type="checkbox" id="chk-motion" checked> Lutadores em movimento</label></div>
+    <div class="btns" id="cams"></div>
+
+    <p class="note">Tudo aqui é demonstração visual: nenhum valor, regra ou mecânica do jogo é alterado, e nenhuma das três propostas foi aprovada. Recarga é exibida em segundos fictícios (6 s = 100%). Pronto com stamina menor que o custo aparece como "sem stamina". Teclas: 1–3 HUD · 4–7 cenários · H HUD · N animar · P painel · R câmera.</p>
+  </aside>
+  <div id="toast" hidden></div>
+</div>
+<script>
+/*__BUNDLE__*/
+</script>
+</body>
+</html>

@@ -5,6 +5,10 @@ import {C, ROOT_KEYS} from './config.js';
 import {Game} from './game.js';
 import {Recorder} from './telemetry.js';
 import {vec, direction} from './math.js';
+import {TACKLE_SCENARIOS} from './scenarios-tackle.js';
+import {MAP_SCENARIOS} from './scenarios-map.js';
+import {PASSIVE_SCENARIOS} from './scenarios-passives.js';
+import {COLLISION_SCENARIOS} from './scenarios-collision.js';
 
 const cmd = (o = {}) => ({move: vec(), dodge: false, tackle: false, guard: false, guardPressed: false, target: null, ...o});
 const toward = (from, to) => {const dx = to.x - from.x, dz = to.z - from.z, d = Math.hypot(dx, dz) || 1;return vec(dx / d, dz / d);};
@@ -25,7 +29,7 @@ function timeToContact(a, d) {
 /** Passos suficientes para uma ação completa, recuperação, voo e aterrissagem com os ajustes atuais. */
 const enough = (extra = 0) => Math.ceil((C.actions.tackle.duration + C.actions.tackle.recovery + C.actions.dodge.duration + C.actions.dodge.recovery + 2 * Math.max(C.rules.launchUp, C.rules.clashUp) / C.rules.launchGravity + C.rules.landingRecovery + C.rules.recoil + C.rules.guardStun + extra) / C.test.step) + 60;
 
-export const SCENARIOS = [
+const BASE_SCENARIOS = [
   {
     id: 'guard-partial', name: 'Tackle contra defesa', description: 'O vermelho defende parado (janela perfeita já encerrada); o azul investe de frente.',
     positions: [vec(0, -2.4), vec(0, 0)], ticks: () => enough(), setup: g => {face(g.fighters[0], 0);face(g.fighters[1], Math.PI);},
@@ -107,11 +111,11 @@ export const SCENARIOS = [
     id: 'wall', name: 'Knockback contra a parede', description: 'O vermelho é lançado na direção da parede e deve ricochetear para dentro da arena.',
     positions: [vec(0, 0), vec(0, 2.4)], ticks: () => enough(),
     // Adaptativo: o vermelho perto da parede e o azul a uma distância que o tackle alcança com os ajustes atuais.
-    setup: g => {const h = C.test.arenaHalf - C.test.halfExtent, zr = h - .9, reach = 2 * C.test.halfExtent + Math.min(1.4, .45 * C.actions.tackle.distance * (C.actions.tackle.distanceReference || C.actions.tackle.duration) * C.profiles.balanced.speed);
+    setup: g => {const radius = C.map.arenaShape === 'square' ? C.test.arenaHalf : (C.map.arenaRadius ?? 50), h = radius - C.test.halfExtent, zr = h - .9, reach = 2 * C.test.halfExtent + Math.min(1.4, .45 * C.actions.tackle.distance * (C.actions.tackle.distanceReference || C.actions.tackle.duration) * C.profiles.balanced.speed);
       g.fighters[0].position = vec(0, zr - reach);g.fighters[1].position = vec(0, zr);face(g.fighters[0], 0);face(g.fighters[1], Math.PI);},
     script: (t) => [t === 10 ? cmd({move: vec(0, 1), tackle: true, target: 1}) : cmd({target: 1}), cmd({target: 0})],
     checks: ({log, game}) => {
-      const bound = C.test.arenaHalf - C.test.halfExtent, z = game.fighters[1].position.z;
+      const bound = (C.map?.arenaShape === 'square' ? C.test.arenaHalf : (C.map?.arenaRadius ?? 50)) - C.test.halfExtent, z = game.fighters[1].position.z;
       return [check('Impacto', events(log, 'impact').length, 'impact', log.events[0]?.result ?? 'nenhum'), check('Tocou a parede durante o voo', log.wallHits[1] > 0, '≥ 1', log.wallHits[1]),
         check('Ricochete para dentro', !C.extras.toggles.enableWallBounce || log.bounced, C.extras.toggles.enableWallBounce ? 'sim' : 'desligado', log.bounced ? 'sim' : 'não'),
         check('Termina dentro da arena', Math.abs(z) <= bound + 1e-9, `|z| ≤ ${fmt(bound)}`, Math.abs(z))];
@@ -129,6 +133,8 @@ export const SCENARIOS = [
     },
   },
 ];
+/** Cenários base + os do Tackle/meteor slam + os do Novo Mapa + os de Passivas + os de Colisão (overhaul). */
+export const SCENARIOS = [...BASE_SCENARIOS, ...TACKLE_SCENARIOS, ...MAP_SCENARIOS, ...PASSIVE_SCENARIOS, ...COLLISION_SCENARIOS];
 
 const pathGet = (root, path) => path.split('.').reduce((a, k) => a?.[k], root);
 const pathSet = (root, path, v) => {const keys = path.split('.'), last = keys.pop();keys.reduce((a, k) => a[k], root)[last] = v;};
@@ -137,16 +143,22 @@ const pathSet = (root, path, v) => {const keys = path.split('.'), last = keys.po
 export function prepareScenario(def, game) {
   const saved = Object.fromEntries(Object.keys(def.overrides || {}).map(p => [p, pathGet(C, p)]));
   for (const [p, v] of Object.entries(def.overrides || {})) pathSet(C, p, v);
-  game.mode = 'inactive';game.profile = 'balanced';game.enemyProfile = 'balanced';game.reset({positions: def.positions});def.setup?.(game);
+  game.mode = 'inactive';game.profile = 'balanced';game.enemyProfile = 'balanced';game.reset({positions: def.positions});
+  // Cenários medem mecânica em condições controladas: o mundo fica neutro para não
+  // desviar trajetórias nem curar stamina (os cenários de mapa montam no próprio setup
+  // a geometria de que precisam).
+  game.mapState.platforms = [];game.mapState.obstacles = [];game.mapState.destructibles = [];game.mapState.items = [];
+  def.setup?.(game);
   const start = structuredClone(game.fighters.map(f => ({x: f.position.x, z: f.position.z, hp: f.hp, stamina: f.stamina})));
   const log = {events: [], hitstopTicks: 0, afterHit: null, maxCounter: [0, 0], flew: [false, false], damageTaken: [0, 0], staminaBonus: 0, counterSpeed: 1, airTicks: [0, 0], landingTicks: [0, 0],
-    wallHits: [0, 0], bounced: false, actionsStarted: [0, 0], wasExhausted: [false, false], exhaustTicks: [0, 0], maxZ: -Infinity};
+    wallHits: [0, 0], bounced: false, actionsStarted: [0, 0], wasExhausted: [false, false], exhaustTicks: [0, 0], maxZ: -Infinity, states: new Set()};
   let t = 0, lastAction = [null, null];const scratch = {}, total = typeof def.ticks === 'function' ? def.ticks() : def.ticks;
   return {
     get tick() {return t;}, get done() {return t >= total;}, get total() {return total;},
-    commands() {return def.script(t, game, scratch);},
+    commands() {return def.script ? def.script(t, game, scratch) : [cmd({target: 1}), cmd({target: 0})];},
     /** Chamado depois de cada passo: atualiza o registro do cenário. */
     observe() {
+      log.states.add(game.fighters[0].state);
       for (const e of game.lastStepEvents) {
         log.events.push(e);
         if (!log.afterHit && (e.result === 'partial' || e.result === 'perfect')) {const a = game.fighters[e.attacker], d = game.fighters[e.target];log.afterHit = {attackerState: a.state, defenderStun: d.stun, defenderShift: Math.hypot(d.position.x - start[e.target].x, d.position.z - start[e.target].z)};}
@@ -161,15 +173,17 @@ export function prepareScenario(def, game) {
       });
       if (game.frozen) log.hitstopTicks++;
       log.staminaBefore = game.fighters[0].stamina;
-      const enemy = game.fighters[1], bound = C.test.arenaHalf - C.test.halfExtent;
+      const enemy = game.fighters[1], bound = (C.map?.arenaShape === 'square' ? C.test.arenaHalf : (C.map?.arenaRadius ?? 50)) - C.test.halfExtent;
+      const enemyDist = Math.hypot(enemy.position.x, enemy.position.z);
       // Toque na parede: velocidade horizontal do voo invertida (com subpassos a posição volta para dentro no mesmo passo).
       if (enemy.flight) {const hz = enemy.flight.horizontal.z, hx = enemy.flight.horizontal.x, ph = log.prevH;
-        if ((ph && ((ph.z > .05 && hz < 0) || (ph.x > .05 && hx < 0) || (ph.x < -.05 && hx > 0))) || Math.abs(enemy.position.z) >= bound - 1e-9 || Math.abs(enemy.position.x) >= bound - 1e-9) log.wallHits[1]++;
+        const atWall = C.map?.arenaShape === 'square' ? (Math.abs(enemy.position.z) >= bound - 1e-9 || Math.abs(enemy.position.x) >= bound - 1e-9) : (enemyDist >= bound - 1e-9);
+        if ((ph && ((ph.z > .05 && hz < 0) || (ph.x > .05 && hx < 0) || (ph.x < -.05 && hx > 0))) || atWall) log.wallHits[1]++;
         if (hz < 0 && log.wallHits[1]) log.bounced = true;log.prevH = {x: hx, z: hz};} else log.prevH = null;
       t++;
     },
     finish() {
-      const result = {id: def.id, name: def.name, checks: def.checks({log, game, start})};result.ok = result.checks.every(c => c.ok);
+      const result = {id: def.id, name: def.name, checks: def.checks({log, game, start, scratch})};result.ok = result.checks.every(c => c.ok);
       for (const [p, v] of Object.entries(saved)) pathSet(C, p, v);
       return result;
     },

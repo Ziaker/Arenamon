@@ -1,8 +1,9 @@
 // IA revisada × anterior (sem navegador): mesmas regras do jogador, sementes fixas, várias personalidades.
 // Mede taxas de vitória, ações, stamina desperdiçada, ações negadas e contra-ataques; não exige que a revisada vença
 // por vantagem — exige que não fique mais fraca além do ruído e que use melhor as mecânicas.
+// Este teste caracteriza a mecânica nos valores de FÁBRICA do laboratório (factoryDefaults); a base de calibração v8 é coberta por calibration-base.test.mjs e pelos testes de colisão/ambiente.
 import assert from 'node:assert/strict';
-import {C, defaults, resetConfig} from '../src/sim/config.js';
+import {C, factoryDefaults, resetConfig} from '../src/sim/config.js';
 import {evalSeries, evalMatch} from '../src/sim/ai-eval.js';
 import {REVISION_1, featuresOf} from '../src/sim/tactics.js';
 import {registerStandardMoves} from '../src/sim/moves/standard.js';
@@ -10,7 +11,8 @@ import {registerStandardMoves} from '../src/sim/moves/standard.js';
 registerStandardMoves();
 
 let n = 0;const ok = l => {n++;console.log('✓', l);};
-resetConfig(defaults());
+resetConfig(factoryDefaults());
+C.map.arenaShape = 'square';
 C.extras.toggles.enableTackleFeint = 0;   // a IA ainda não usa a finta (fase 4); sem isso o D/C aleatório dela no startup do X passa a cancelar o próprio tackle e distorce a comparação
 assert.equal(C.extras.ai.revision, 2, 'evoluída por padrão');assert.equal(featuresOf({revisionOverride: 0}).validate, false);assert.equal(REVISION_1.stamina, false);
 {
@@ -129,12 +131,15 @@ ok('Fase 1: ciclo completo de decisão, taxonomia de erros, ranking de piores de
   const scen2 = runDifficultScenarios({candidateRev: 2, baselineRev: 0, loadouts: 'both'});
   assert.equal(scen2.candidateScore, 8, 'revisão 2 passa em 8 de 8 situações difíceis');
 
+  // Estado limpo: os blocos anteriores deixam ajustes alterados em C e, nesse contexto, a contagem da revisão 1 caía de ~57 para ~33 (parecia que a revisão 2
+  // piorava +25). Com a configuração padrão a folga é +9 (66 × 57, seed 100), dentro do guarda original de +20.
+  resetConfig(factoryDefaults());
   const paired = evalPairedSeries({pairs: 10, seed: 100, candidateRev: 2, baselineRev: 1, loadouts: 'both'});
   assert.ok(paired.candidateStats, 'revisão 2 produz estatísticas válidas');
   assert.ok(paired.candidateStats.denied <= paired.baselineStats.denied + 20, 'revisão 2 mantém ações negadas controladas');
 }
 ok('Fases 2, 3 e 4: Revisão 2 (Previsão & Espacial) validada com avaliação pareada e cenários difíceis');
 
-resetConfig(defaults());
+resetConfig(factoryDefaults());
 console.log(`\n${n} verificações da avaliação da IA aprovadas.`);
 

@@ -1,6 +1,7 @@
 // Câmera de combate em terceira pessoa (porto do v6): zona morta no lock-on, recentralização sem alvo,
 // elevação durante voos e enquadramento dos dois lutadores.
 import {C} from '../sim/config.js';
+import {altitudeOf} from '../sim/entity.js';
 import {vec, add, scale, sub, length, normalize, clamp, angleOf, direction, angleDelta} from '../sim/math.js';
 
 export class CameraRig {
@@ -30,19 +31,27 @@ export class CameraRig {
     const yawError = angleDelta(this.yaw, this.desiredYaw), rate = locked ? K.maxTurnRate : K.maxTurnRate * X.unlockedTurnMultiplier;
     this.yawVelocity = clamp(yawError * K.yawResponse, -rate, rate);this.yaw += this.yawVelocity * dt;
     if (T.enableCameraFollow) this.anchor = add(this.anchor, scale(sub(player.position, this.anchor), 1 - Math.exp(-K.followResponse * dt)));
-    const lift = Math.max(player.flight?.y ?? 0, target.flight?.y ?? 0, player.vaultHeight ?? 0, target.vaultHeight ?? 0);
+    const playerY = altitudeOf(player);
+    const targetY = altitudeOf(target);
+    const midY = (playerY + targetY) * 0.5;
+    const vSpan = Math.abs(playerY - targetY);
+    const lift = Math.max(player.flight?.y ?? 0, target.flight?.y ?? 0, player.vaultHeight ?? 0, target.vaultHeight ?? 0, vSpan * 0.5);
     this.airLift += (lift - this.airLift) * (1 - Math.exp(-X.verticalFollow * dt));
+    this.midElevation = (this.midElevation ?? 0) + (midY - (this.midElevation ?? 0)) * (1 - Math.exp(-X.verticalFollow * dt));
     const focus = locked ? scale(normalize(toTarget), Math.min(X.lockBiasLimit, separation * X.lockTargetBias)) : vec();
     this.focusOffset = add(this.focusOffset, scale(sub(focus, this.focusOffset), 1 - Math.exp(-K.followResponse * dt)));
     const base = this.zoom + (locked ? Math.max(0, separation - K.framingRange) * K.distanceScale : 0);
     const framing = locked ? Math.max(base, separation * X.framingSeparationFactor + X.framingPadding) : base;
-    const goal = clamp(framing + this.airLift * X.flightZoomFactor, K.minDistance, K.maxDistance);
+    // R8.11: Aumentar a distância máxima proporcionalmente ao distanciamento dos lutadores na arena de 100 m
+    const maxDist = Math.max(K.maxDistance, separation * 0.75 + 8);
+    const goal = clamp(framing + this.airLift * X.flightZoomFactor, K.minDistance, maxDist);
     this.distance += (goal - this.distance) * (1 - Math.exp(-K.distanceResponse * dt));
   }
   pose() {
     const K = C.camera, X = C.extras.cameraExtra, back = direction(this.yaw), right = vec(back.z, -back.x), shoulder = scale(right, K.shoulder);
-    return {position: add(add(this.anchor, scale(back, this.distance)), shoulder), height: K.height + this.airLift * X.flightHeightFactor,
-      lookAt: add(add(add(this.anchor, scale(back, -K.lookAhead)), shoulder), this.focusOffset), lookHeight: K.lookHeight + this.airLift * X.flightLookFactor};
+    const midY = this.midElevation ?? 0;
+    return {position: add(add(this.anchor, scale(back, this.distance)), shoulder), height: K.height + midY + this.airLift * X.flightHeightFactor,
+      lookAt: add(add(add(this.anchor, scale(back, -K.lookAhead)), shoulder), this.focusOffset), lookHeight: K.lookHeight + midY + this.airLift * X.flightLookFactor};
   }
   save() {const {yaw, desiredYaw, yawVelocity, distance, zoom, anchor, manualLeft, airLift, idleTime, focusOffset, initialized} = this;return structuredClone({yaw, desiredYaw, yawVelocity, distance, zoom, anchor, manualLeft, airLift, idleTime, focusOffset, initialized});}
   load(s) {Object.assign(this, structuredClone(s));}

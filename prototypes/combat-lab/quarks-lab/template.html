@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Arenamon · Laboratório VFX — three.quarks</title>
+<style>/*__CSS__*/</style>
+</head>
+<body>
+<div class="app">
+ <header class="top">
+  <span class="logo">A</span>
+  <strong>ARENAMON <em>VFX · QUARKS</em></strong>
+  <small>Laboratório de partículas three.quarks · offline · __VERSION_DETAIL__</small>
+  <span class="spacer"></span>
+  <label class="switch"><input type="checkbox" id="quarks-enabled" checked> camada quarks</label>
+  <label class="switch"><input type="checkbox" id="reduce-motion"> movimento reduzido</label>
+ </header>
+ <div class="body">
+  <aside class="side">
+   <section class="card">
+    <h3>Efeitos</h3>
+    <div id="effect-tabs" class="tabs"></div>
+    <p class="hint" id="effect-desc"></p>
+   </section>
+   <section class="card">
+    <h3>Gatilhos</h3>
+    <div class="row">
+     <button id="trigger-burst" class="btn primary">Disparar no marcador</button>
+     <button id="trigger-charge" class="btn">Simular carga (3 s)</button>
+    </div>
+    <button id="trigger-sim" class="btn wide">▶ Evento real da simulação (tackle + footstool)</button>
+    <p class="hint">A simulação real roda em segundo plano e dispara os efeitos a partir dos eventos de impacto, pouso, carga e footstool.</p>
+   </section>
+   <section class="card">
+    <h3>Parâmetros do efeito</h3>
+    <div id="params"></div>
+   </section>
+   <section class="card">
+    <h3>Presets</h3>
+    <div class="row">
+     <button id="preset-save" class="btn">Salvar</button>
+     <button id="preset-load" class="btn">Carregar</button>
+     <button id="preset-reset" class="btn">Padrão</button>
+    </div>
+    <div class="row">
+     <button id="preset-export" class="btn">Exportar JSON</button>
+     <span class="btn">Importar JSON<input type="file" id="preset-import" accept=".json,application/json" hidden></span>
+    </div>
+    <p class="hint" id="preset-status"></p>
+   </section>
+  </aside>
+  <main class="main">
+   <canvas id="c"></canvas>
+   <div id="status" class="status">Pronto.</div>
+  </main>
+ </div>
+</div>
+<script>/*__BUNDLE__*/</script>
+</body>
+</html>

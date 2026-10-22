@@ -1,0 +1,15 @@
+{
+  "date": "2026-10-20",
+  "branch": "codex/tackle-limb-smear",
+  "isolated": true,
+  "checks": {
+    "npm test": "passed",
+    "npm run typecheck": "passed",
+    "npm run check:offline": "passed",
+    "npm run build:combat-lab": "passed",
+    "npm run verify": "blocked: workspace checker requires the exact primary checkout path"
+  },
+  "browserEvidence": "resultado.json",
+  "limitations": ["Vigoroth tested with synthetic bones only", "60 FPS measured in the documented two-Mosh scenario, not guaranteed for every model or GPU", "Primary checkout not integrated at user request"],
+  "screenshots": ["smear-pl3.png", "croagunk.png", "controles.png"]
+}

@@ -1,6 +1,7 @@
 // Fase 1 do Tackle carregado: carga estática, níveis de PL, X no sprint, PL nas disputas e interrupção. Sem navegador.
+// Este teste caracteriza a mecânica nos valores de FÁBRICA do laboratório (factoryDefaults); a base de calibração v8 é coberta por calibration-base.test.mjs e pelos testes de colisão/ambiente.
 import assert from 'node:assert/strict';
-import {C, defaults, resetConfig} from '../src/sim/config.js';
+import {C, factoryDefaults, resetConfig} from '../src/sim/config.js';
 import {Game} from '../src/sim/game.js';
 import {emptyCommand} from '../src/sim/entity.js';
 import {vec} from '../src/sim/math.js';
@@ -12,7 +13,7 @@ registerStandardMoves();
 let n = 0;const ok = l => {n++;console.log('✓', l);};
 const cmd = o => ({...emptyCommand(), ...o});
 function arena({blue = vec(0, -6), red = vec(0, 6), over = {}} = {}) {
-  resetConfig(defaults());
+  resetConfig(factoryDefaults());
   for (const [p, v] of Object.entries(over)) {const k = p.split('.'), last = k.pop();k.reduce((a, x) => a[x], C)[last] = v;}
   const g = new Game();g.mode = 'inactive';g.reset({positions: [blue, red]});g.fighters[0].facing = 0;g.fighters[1].facing = Math.PI;return g;
 }
@@ -28,7 +29,7 @@ ok('níveis de PL: abaixo de 50% PL1, de 50% a 99% PL2, 100% PL3');
 {
   const g = arena();const f = g.fighters[0], s0 = f.stamina;hold(g, .3);
   assert.ok(f.tackleCharge && !f.action, 'carregando, sem ação');assert.equal(f.state, 'tackleCharge');
-  const p0 = {...f.position};hold(g, .2);assert.ok(Math.abs(f.position.z - p0.z) < 1e-6 && Math.abs(f.position.x - p0.x) < 1e-6, 'parado enquanto carrega (sem locomoção)');
+  const p0 = {...f.position};hold(g, .2);const moved = Math.hypot(f.position.x - p0.x, f.position.z - p0.z);assert.ok(moved > .05 && moved < 4.8 * .2 * C.rules.chargeTackleMove + 1e-3, 'anda mais devagar enquanto carrega (chargeTackleMove), não fica parado');
   assert.ok(f.stamina < s0 - C.actions.tackle.cost - .2, `dreno durante a carga (${(s0 - f.stamina).toFixed(2)})`);
   step(g, cmd({move: vec(0, 1)}));assert.equal(f.action?.kind, 'tackle', 'soltar dispara');assert.equal(f.action.pl, 1);assert.ok(!f.tackleCharge);
   ok('segurar X: parado, dreno por segundo e disparo ao soltar (PL1 abaixo de 50%)');

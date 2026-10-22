@@ -2,7 +2,7 @@
 // na partida e rodar os cenários técnicos repetíveis (M28.3, M28.8). Valores marcados “provisório” são pontos de partida (M30.10), não decisões.
 import {C, defaults} from '../sim/config.js';
 import {spawn} from '../sim/world.js';
-import {listMoves} from '../sim/moves.js';
+import {listMoves, getMove} from '../sim/moves.js';
 import {runMoveScenarios} from '../sim/scenarios-moves.js';
 /** Escapa texto para HTML (local: importar o ajustador arrastaria o config.ts do jogo, que só o esbuild lê). */
 const escape = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
@@ -12,12 +12,25 @@ const STANDARD = [['reflect', 'Reflect', 0], ['psyshock', 'Psyshock', 1]];
 export const MOVE_INFO = {
   reflect: {group: 'Reflect', hint: 'Barreira refletora frontal. Segure para carregar, solte para criar.'},
   psyshock: {group: 'Psyshock', hint: 'Pedras psíquicas com homing. Segure para carregar, solte para disparar.'},
+  harden: {group: 'Harden', hint: 'Normal · Status. Toque para endurecer: +30% de Defesa e nenhum knockback ofensivo por 5 s (cast de 0,35 s).'},
+  swift: {group: 'Swift', hint: 'Burst · Projectile · PL1. Toque para disparar 3 estrelas com homing curto (com alvo travado) ou em leque (sem alvo).'},
+  riposte: {group: 'Riposte', hint: 'Normal · Status + Melee. Toque e seja atingido entre 0,13 e 0,30 s: o golpe é anulado e você contra-ataca na hora. Fora do tempo, fica exposto.'},
+  'emerging-stone': {group: 'Emerging Stone', hint: 'Normal. Segure: o cast de 0,55 s começa já e as setas movem o marcador (3–10 m); solte com o cast completo para o projétil subterrâneo ir ao marcador, explodir (5 m) e deixar uma rocha 3×3×3 m.'},
+  'bullet-punch': {group: 'Bullet Punch', hint: 'Normal · PL2. Segure para marcar onde reaparecer (3 a 10 m, setas apontam o marcador), solte: some por 1 s e reaparece no marcador investindo no adversário mais próximo (até 5 m do marcador).'},
+  'sand-wave': {group: 'Sand Wave', hint: 'Burst · PL1 · só no chão. Toque: após 0,25 s lança uma barragem de areia 4 × 3 m que fere (6 HP), empurra e cega por 4 s quem estiver no chão dentro dela.'},
+  spikes: {group: 'Spikes', hint: 'Normal · Field. Segure para escolher o local (setas movem o marcador, até 5 m), solte para confirmar: nasce uma armadilha de espinhos que fere o primeiro adversário que pisar nela.'},
+  bounce: {group: 'Bounce', hint: 'Charge · Trick + Melee · PL1–PL3. Segure para carregar (até 1,2 s), solte para saltar em arco rumo ao alvo (até 6 m) e cair em cima do adversário.'},
+  feint: {group: 'Feint', hint: 'Burst · Trick. Toque logo após iniciar um ataque (ou durante a carga) para cancelá-lo e recuar com i-frames curtos. Tarde demais: gasta o Move e o ataque segue.'},
+  'guard-break': {group: 'Guard Break', hint: 'Charge · Melee · PL1–PL3. Segure para carregar (até 1 s), solte para um golpe pesado que derruba a guarda e causa guard stun de 0,5 s.'},
+  lunge: {group: 'Lunge', hint: 'Burst · Melee · PL1. Toque para avançar 3,5 m em linha reta com um Tackle curto e ficar onde parou.'},
+  'quick-attack': {group: 'Quick Attack', hint: 'Burst · Melee · PL1. Toque para investir no adversário mais próximo (até 7 m) e voltar na hora ao ponto de partida. Sem alvo ao alcance, não faz nada.'},
+  'second-wind': {group: 'Second Wind', hint: 'Normal · Status. Toque para regenerar stamina bem mais rápido e gastar 25% menos em esquiva e sprint por 5 s (cast de 0,35 s).'},
 };
 const SKILL_NAMES = ['skill1', 'skill2', 'skill3', 'skill4'];
 const ACTION_NAMES = {forward: 'Mover ↑', back: 'Mover ↓', left: 'Mover ←', right: 'Mover →', tackle: 'Tackle (X)', dodge: 'Esquiva (C)', defend: 'Defesa (D)', lock: 'Travar alvo', pause: 'Pausar', restart: 'Reiniciar', debug: 'Depuração'};
 const keyName = code => String(code ?? '?').replace(/^Key/, '').replace(/^Digit/, '').replace(/^Numpad/, 'Num ').replace('Arrow', 'Seta ').replace('Space', 'Espaço').replace('Escape', 'Esc');
 const yesno = v => v ? '1 · sim' : '0 · não';
-const sec = v => `${v.toFixed(2)} s`, pct = v => `${(v * 100).toFixed(0)}%`, num = v => v.toFixed(2), m = v => `${v.toFixed(2)} m`, deg = v => `${v.toFixed(0)}°`, ms = v => `${v.toFixed(2)} m/s`, x = v => `${v.toFixed(2)}×`, int = v => v.toFixed(0);
+const ms2 = v => `${v.toFixed(2)} m/s²`, sec = v => `${v.toFixed(2)} s`, pct = v => `${(v * 100).toFixed(0)}%`, num = v => v.toFixed(2), m = v => `${v.toFixed(2)} m`, deg = v => `${v.toFixed(0)}°`, ms = v => `${v.toFixed(2)} m/s`, x = v => `${v.toFixed(2)}×`, int = v => v.toFixed(0);
 /** [grupo em C.world, chave, rótulo, descrição, min, max, passo, formato, aprovado?] — “aprovado” = valor decidido pelo diretor; o resto é provisório (M30.10). */
 const PARAMS = [
   ['Carga (compartilhada)', [
@@ -77,7 +90,200 @@ const PARAMS = [
     ['psyshock', 'counterStagger', 'Counter Stagger', 'Stagger quando uma pedra de PL superior atinge o corpo do derrotado (M21.5).', 0, 1, .01, sec, true],
     ['psyshock', 'radius', 'Raio de colisão da pedra', 'Igual em todas as pedras (o tamanho visual varia sem efeito na física, M30.2).', .05, .5, .01, m, false],
   ]],
+  ['Harden', [
+    ['harden', 'cost', 'Custo de stamina', 'Cobrado no início do cast (Normal sem marcador); vale nos PRÓXIMOS usos (M28.4). Valor do catálogo — proposta, não homologada.', 0, 5, .05, num, false],
+    ['harden', 'cooldown', 'Cooldown', 'Começa junto com o custo, no início do cast (proposta).', 0, 60, .5, sec, false],
+    ['harden', 'cast', 'Duração do cast', 'Tempo do cast antes do efeito começar; interrupção nesse intervalo cancela sem reembolso (proposta).', .05, 2, .01, sec, false],
+    ['harden', 'duration', 'Duração do efeito', 'Quanto tempo o status dura depois do cast (proposta).', .5, 20, .25, sec, false],
+    ['harden', 'defensePct', 'Bônus de Defesa', '+30% de Defesa = dano recebido × 1/(1+bônus), mesma convenção da passiva de Defesa (MV-P01; proposta).', 0, 2, .05, pct, false],
+    ['harden', 'negateKnockback', 'Anula o knockback ofensivo?', 'Liga a negação do arremesso/empurrão de ataques e projéteis. O empurrão físico do corpo do atacante e a gravidade não são knockback (MV-P12).', 0, 1, 1, yesno, false],
+  ]],
+  ['Second Wind', [
+    ['secondWind', 'cost', 'Custo de stamina', 'Cobrado no início do cast (Normal sem marcador); vale nos PRÓXIMOS usos (M28.4). Valor do catálogo — proposta, não homologada.', 0, 5, .05, num, false],
+    ['secondWind', 'cooldown', 'Cooldown', 'Começa junto com o custo, no início do cast (proposta).', 0, 60, .5, sec, false],
+    ['secondWind', 'cast', 'Duração do cast', 'Tempo do cast antes do efeito começar; interrupção nesse intervalo cancela sem reembolso (proposta).', .05, 2, .01, sec, false],
+    ['secondWind', 'duration', 'Duração do efeito', 'Quanto tempo o status dura depois do cast (proposta).', .5, 20, .25, sec, false],
+    ['secondWind', 'regenPctPerSecond', 'Regeneração extra por segundo', 'Fração da stamina MÁXIMA recuperada por segundo durante o efeito (MV-P09: o documento diz "+40%/s" sem base).', 0, 2, .05, pct, false],
+    ['secondWind', 'mobilityCostPct', 'Desconto em esquiva e sprint', 'Redução do custo da esquiva (C) e do consumo do sprint durante o efeito (proposta: 25%).', 0, .9, .05, pct, false],
+  ]],
+  ['Swift', [
+    ['swift', 'cost', 'Custo de stamina', 'Cobrado no início do uso (Burst); vale nos PRÓXIMOS usos (M28.4). Valor do catálogo — proposta, não homologada.', 0, 5, .05, num, false],
+    ['swift', 'cooldown', 'Cooldown', 'Começa junto com o custo, no início do uso (proposta).', 0, 60, .5, sec, false],
+    ['swift', 'cast', 'Duração da ação', 'Tempo da ação (recuperação do Burst: não definido no catálogo; provisório MV-P14).', .05, 2, .01, sec, false],
+    ['swift', 'count', 'Quantidade de estrelas', 'Estrelas por uso (catálogo: 3).', 1, 9, 1, int, false],
+    ['swift', 'speed', 'Velocidade', 'Velocidade de cada estrela (catálogo: 15 m/s).', 2, 40, .5, ms, false],
+    ['swift', 'damage', 'Dano nominal por estrela', 'Dano com o Ataque de referência; final = nominal × Ataque ÷ referência (MV-P13). Catálogo: 3 HP.', 0, 30, .5, num, false],
+    ['swift', 'homingSeconds', 'Duração do homing', 'Só com alvo travado; sem garantia de acerto (catálogo: 0,25 s).', 0, 1.5, .05, sec, false],
+    ['swift', 'homingRate', 'Correção angular do homing', 'Graus por segundo (catálogo: 90°/s).', 0, 720, 10, deg, false],
+    ['swift', 'range', 'Alcance máximo', 'Distância percorrida antes de expirar (catálogo: 12 m).', 2, 40, .5, m, false],
+    ['swift', 'knockback', 'Knockback por acerto', 'Empurrão horizontal de cada estrela (catálogo: 0,3 m/s); vertical é sempre 0.', 0, 10, .05, ms, false],
+    ['swift', 'knockbackCap', 'Teto de knockback por alvo e execução', 'Máximo acumulado pelas estrelas de um mesmo uso (catálogo: 0,9 m/s).', 0, 10, .05, ms, false],
+    ['swift', 'radius', 'Raio de colisão da estrela', 'Colisor de cada estrela (provisório).', .05, .5, .01, m, false],
+    ['swift', 'fanAngle', 'Leque sem alvo travado', 'Abertura total do leque frontal quando não há lock-on (provisório).', 0, 90, 1, deg, false],
+    ['swift', 'spawnForward', 'Saída à frente do lançador', 'Distância à frente em que as estrelas nascem (provisório).', .3, 2, .05, m, false],
+    ['swift', 'spawnSpacing', 'Espaçamento lateral na saída', 'Distância lateral entre as estrelas ao nascer (provisório).', 0, 1.5, .05, m, false],
+    ['swift', 'counterStagger', 'Counter Stagger', 'Stagger quando a estrela vence uma disputa de PL e atinge o corpo (M21.5; PL1 não vence PL1).', 0, 1, .01, sec, false],
+  ]],
+  ['Lunge', [
+    ['lunge', 'cost', 'Custo de stamina', 'Cobrado no início do uso (Burst); vale nos PRÓXIMOS usos (M28.4). Valor da proposta — não homologada.', 0, 5, .05, num, false],
+    ['lunge', 'cooldown', 'Cooldown', 'Começa junto com o custo, no início do uso (proposta: 6 s).', 0, 60, .5, sec, false],
+    ['lunge', 'cast', 'Duração total da ação', 'Do início ao fim da recuperação (proposta: 0,6 s).', .1, 2, .01, sec, false],
+    ['lunge', 'range', 'Distância do avanço', 'Distância percorrida em linha reta, sem retorno (proposta: 3,5 m).', .5, 12, .1, m, false],
+    ['lunge', 'damage', 'Dano nominal', 'Com o Ataque de referência; final = nominal × Ataque ÷ referência (MV-P13). Proposta: 8 HP.', 0, 40, .5, num, false],
+    ['lunge', 'knockbackH', 'Knockback horizontal', 'Empurrão deslizante no alvo (proposta: 4 m/s).', 0, 20, .1, ms, false],
+    ['lunge', 'knockbackV', 'Knockback vertical', 'Com valor acima de zero o golpe passa a lançar o alvo (proposta: 0).', 0, 20, .1, ms, false],
+    ['lunge', 'invulnerableSeconds', 'Invulnerabilidade inicial', 'Janela de i-frames do atacante no começo do avanço (proposta: 0,133 s; 0 desliga).', 0, 1, .01, sec, false],
+    ['lunge', 'chainAfter', 'Cancelável após', 'Instante a partir do qual esquiva/outras ações podem cancelar (proposta: 0,45 s).', 0, 2, .01, sec, false],
+    ['lunge', 'hitStart', 'Janela ativa: início', 'Só vale com "janelas de combate" ligadas (proposta: 0,19 s).', 0, 1, .01, sec, false],
+    ['lunge', 'hitEnd', 'Janela ativa: fim', 'Só vale com "janelas de combate" ligadas (proposta: 0,26 s).', 0, 1, .01, sec, false],
+  ]],
+  ['Quick Attack', [
+    ['quickAttack', 'cost', 'Custo de stamina', 'Cobrado no início do uso (Burst); vale nos PRÓXIMOS usos (M28.4). Valor da proposta — não homologada.', 0, 5, .05, num, false],
+    ['quickAttack', 'cooldown', 'Cooldown', 'Começa junto com o custo, no início do uso (proposta: 6 s).', 0, 60, .5, sec, false],
+    ['quickAttack', 'acquireRange', 'Alcance de aquisição do alvo', 'Adversário elegível mais próximo dentro desta distância; sem ninguém o Move nem começa (MV-P17). Proposta: 7 m.', 1, 20, .5, m, false],
+    ['quickAttack', 'approachMax', 'Tempo máximo da ida', 'A ida termina no contato, ao chegar ou neste tempo (proposta: 0,16 s). A velocidade da ida = alcance ÷ este tempo.', .05, 1, .01, sec, false],
+    ['quickAttack', 'returnMax', 'Tempo máximo da volta', 'Retorno ao ponto de partida (proposta: 0,14 s). Sem segundo acerto na volta.', .05, 1, .01, sec, false],
+    ['quickAttack', 'recovery', 'Recuperação final', 'Tempo parado depois de voltar, antes de agir de novo (proposta: 0,12 s).', 0, 1, .01, sec, false],
+    ['quickAttack', 'damage', 'Dano nominal', 'Com o Ataque de referência; final = nominal × Ataque ÷ referência (MV-P13). Proposta: 8 HP.', 0, 40, .5, num, false],
+    ['quickAttack', 'knockbackH', 'Knockback horizontal', 'Empurrão deslizante no alvo (proposta: 4 m/s).', 0, 20, .1, ms, false],
+    ['quickAttack', 'knockbackV', 'Knockback vertical', 'Com valor acima de zero o golpe passa a lançar o alvo (proposta: 0).', 0, 20, .1, ms, false],
+    ['quickAttack', 'invulnerableSeconds', 'Invulnerabilidade do atacante', 'I-frames no começo da ida; o catálogo não define, então o padrão é 0 (MV-P16).', 0, 1, .01, sec, false],
+  ]],
+  ['Guard Break', [
+    ['guardBreak', 'cost', 'Custo de stamina', 'Cobrado ao INICIAR a carga (Charge); interromper a carga não devolve. Valor da proposta — não homologada.', 0, 5, .05, num, false],
+    ['guardBreak', 'cooldown', 'Cooldown', 'Começa junto com o custo, ao iniciar a carga (proposta: 10 s).', 0, 60, .5, sec, false],
+    ['guardBreak', 'cast', 'Duração do golpe (pós-soltura)', 'Do disparo ao fim da recuperação (proposta: 0,7 s).', .2, 3, .01, sec, false],
+    ['guardBreak', 'maxCharge', 'Carga máxima', 'PL1 abaixo de 50%, PL2 de 50% até antes de 100%, PL3 na carga máxima (proposta: 1 s).', .2, 4, .05, sec, false],
+    ['guardBreak', 'minCharge', 'Carga mínima para soltar', '0 = pode soltar a qualquer momento (proposta).', 0, 2, .05, sec, false],
+    ['guardBreak', 'range', 'Distância do avanço', 'Não definida no documento: provisório (MV-P20).', .5, 8, .1, m, false],
+    ['guardBreak', 'damage', 'Dano nominal', 'Com o Ataque de referência; final = nominal × Ataque ÷ referência (MV-P13); não cresce com o PL. Proposta: 6 HP.', 0, 40, .5, num, false],
+    ['guardBreak', 'knockbackH', 'Knockback horizontal (sem guarda)', 'Empurrão em quem NÃO está defendendo (proposta: 2 m/s). Contra guarda o valor é o guard stun.', 0, 20, .1, ms, false],
+    ['guardBreak', 'knockbackV', 'Knockback vertical', 'Com valor acima de zero o golpe passa a lançar o alvo (proposta: 0).', 0, 20, .1, ms, false],
+    ['guardBreak', 'stun', 'Guard stun', 'Tempo que o defensor fica sem agir após ter a guarda quebrada (proposta: 0,5 s, GM-P04). Defesa perfeita anula.', 0, 3, .05, sec, false],
+    ['guardBreak', 'invulnerableSeconds', 'Invulnerabilidade do atacante', 'I-frames no começo do golpe (proposta: nenhum; o startup é punível).', 0, 1, .01, sec, false],
+    ['guardBreak', 'chainAfter', 'Cancelável após', 'Instante a partir do qual esquiva/outras ações podem cancelar (proposta: 0,47 s).', 0, 2, .01, sec, false],
+    ['guardBreak', 'hitStart', 'Janela ativa: início', 'Só vale com "janelas de combate" ligadas (proposta: 0,33 s).', 0, 1.5, .01, sec, false],
+    ['guardBreak', 'hitEnd', 'Janela ativa: fim', 'Só vale com "janelas de combate" ligadas (proposta: 0,53 s).', 0, 1.5, .01, sec, false],
+  ]],
+  ['Feint', [
+    ['feint', 'cost', 'Custo de stamina', 'Cobrado na confirmação (Burst); o custo da ação cancelada não volta (MV-P26). Valor da proposta — não homologada.', 0, 3, .05, num, false],
+    ['feint', 'cooldown', 'Cooldown', 'Começa junto com o custo (proposta: 3 s).', 0, 30, .5, sec, false],
+    ['feint', 'cast', 'Duração do recuo', 'Do disparo até o fim do recuo (proposta: 0,22 s).', .05, 1, .01, sec, false],
+    ['feint', 'cancelAfter', 'Libera outras ações após', 'Instante a partir do qual esquiva/ataque/outro Move podem começar (provisório: 0,033 s).', 0, 1, .01, sec, false],
+    ['feint', 'cancelWindow', 'Janela de cancelamento do ataque', 'Só cancela Tackle/Lunge/Guard Break que ainda estão nesta antecipação (proposta: 4 quadros = 0,133 s); depois o Move é gasto sem efeito (MV-P21). Cargas em curso sempre são canceladas.', 0, 1, .01, sec, false],
+    ['feint', 'retreat', 'Distância do recuo', 'Deslocamento para trás (ou para o lado do input). A proposta varia de 5,5 cm a 40 cm; provisório: 25 cm.', 0, 2, .01, m, false],
+    ['feint', 'invulnStart', 'I-frames: início', 'Micro-janela de invulnerabilidade durante o recuo (proposta: passo 2 = 0,017 s).', 0, .5, .005, sec, false],
+    ['feint', 'invulnEnd', 'I-frames: fim', 'Fim da invulnerabilidade (proposta: passo 10 = 0,083 s).', 0, .5, .005, sec, false],
+  ]],
+  ['Riposte', [
+    ['riposte', 'cost', 'Custo de stamina', 'Cobrado no toque, sem marcador (MV-P11). Valor da proposta — não homologada.', 0, 5, .05, num, false],
+    ['riposte', 'cooldown', 'Cooldown', 'Começa junto com o custo (proposta: 8 s).', 0, 60, .5, sec, false],
+    ['riposte', 'cast', 'Duração total da postura', 'Da postura ao fim da recuperação exposta (proposta: 0,65 s).', .2, 3, .01, sec, false],
+    ['riposte', 'windowStart', 'Janela do contra-ataque: início', 'Acertos antes disto causam dano normal (proposta: 0,13 s).', 0, 2, .01, sec, false],
+    ['riposte', 'windowEnd', 'Janela do contra-ataque: fim', 'Entre início e fim, o acerto é anulado e dispara o contra-golpe; Guard Break não é anulado (proposta: 0,30 s).', 0, 2, .01, sec, false],
+    ['riposte', 'damage', 'Dano nominal do contra-golpe', 'Com o Ataque de referência; final = nominal × Ataque ÷ referência (MV-P13). Proposta: 6 HP.', 0, 40, .5, num, false],
+    ['riposte', 'knockbackH', 'Knockback horizontal do contra-golpe', 'Empurrão em quem foi contra-atacado (proposta: 3 m/s).', 0, 20, .1, ms, false],
+    ['riposte', 'knockbackV', 'Knockback vertical do contra-golpe', 'Com valor acima de zero o contra-golpe lança o alvo (proposta: 0).', 0, 20, .1, ms, false],
+    ['riposte', 'strikeRange', 'Alcance do contra-golpe', 'Distância percorrida pelo golpe rumo a quem atacou; não definida no documento (MV-P25).', .3, 6, .1, m, false],
+    ['riposte', 'fxOn', 'Efeito visual: ligado', 'Liga/desliga o visual da postura (disco de aço e lâmina de guarda, dourados dentro da janela) e do contra-golpe (clarão, anel e corte em X). Só aparência.', 0, 1, 1, yesno, false],
+    ['riposte', 'fxIntensity', 'Efeito visual: intensidade', 'Brilho e opacidade do visual do Riposte (1 = padrão). Só aparência.', 0, 3, .05, num, false],
+    ['riposte', 'fxSize', 'Efeito visual: tamanho', 'Escala da lâmina, do disco e do clarão do Riposte (1 = padrão). Só aparência.', .3, 3, .05, num, false],
+  ]],
+  ['Emerging Stone', [
+    ['emergingStone', 'cost', 'Custo de stamina', 'Cobrado só quando o cast terminou E o botão foi solto com destino válido, antes do disparo; sem reembolso (documento: 3).', 0, 10, .1, num, false],
+    ['emergingStone', 'cooldown', 'Cooldown', 'Começa junto com o custo, no disparo (documento: 9 s).', 0, 60, .5, sec, false],
+    ['emergingStone', 'cast', 'Cast físico', 'Começa ao pressionar; o disparo espera o cast terminar E a soltura (documento: 0,55 s).', .1, 3, .05, sec, false],
+    ['emergingStone', 'castSlow', 'Redução de velocidade no cast', '0,7 = anda a 30% durante o cast; depois não há lentidão extra (documento: 70%).', 0, .95, .05, pct, false],
+    ['emergingStone', 'minRange', 'Alcance mínimo do marcador (3D)', 'Marcador mais perto que isto fica vermelho e não confirma (documento: 3 m).', 0, 10, .25, m, false],
+    ['emergingStone', 'range', 'Alcance máximo do marcador (3D)', 'Inclui a diferença de altura (documento: 10 m).', 1, 30, .5, m, false],
+    ['emergingStone', 'speed', 'Velocidade do projétil', 'Linha reta virtual, atravessa paredes e buracos (documento: 15 m/s).', 2, 60, .5, ms, false],
+    ['emergingStone', 'blastRadius', 'Raio da explosão (horizontal)', 'Independe da altura e atravessa paredes (documento: 5 m).', .5, 20, .25, m, false],
+    ['emergingStone', 'damage', 'Dano nominal da explosão', 'Com o Ataque de referência; final = nominal × Ataque ÷ referência (MV-P13). Documento: 20.', 0, 100, 1, num, false],
+    ['emergingStone', 'blastKnockback', 'Empurrão radial da explosão', 'Horizontal, para fora do centro (documento: 8 m/s).', 0, 30, .5, ms, false],
+    ['emergingStone', 'rockScale', 'Escala do prisma da rocha', 'Prisma 3×3×3 m × escala; colisor, topo e espaço necessário acompanham (documento: 0,25× a 4×, passo 0,25, padrão 1×).', .25, 4, .25, x, false],
+    ['emergingStone', 'rockHp', 'HP da rocha', 'Dano por golpe válido: sem PL 1, PL1 2, PL2 3, PL3 4 (documento: 5 HP).', 1, 30, 1, int, false],
+    ['emergingStone', 'riseTime', 'Tempo de emergência', 'Colisor e topo crescem com a altura exposta (documento: 0,40 s).', .1, 3, .05, sec, false],
+    ['emergingStone', 'launchH', 'Lançamento da emergência: horizontal', 'Uma vez por personagem, na primeira interseção com a parte exposta (documento: 8 m/s).', 0, 30, .5, ms, false],
+    ['emergingStone', 'launchV', 'Lançamento da emergência: vertical', 'Idem (documento: 14 m/s).', 0, 40, .5, ms, false],
+    ['emergingStone', 'maxRocks', 'Rochas simultâneas por dono', 'A nova destrói a mais antiga que sobrou da explosão (documento: 3).', 1, 10, 1, int, false],
+    ['emergingStone', 'rockSearch', 'Busca de lugar válido (m)', 'Se o prisma não couber no marcador, procura o lugar válido mais próximo até esta distância; a explosão fica no marcador (provisório: 4 m).', 0, 10, .25, m, false],
+    ['emergingStone', 'startDistance', 'Distância inicial do marcador', 'Onde o marcador nasce ao pressionar (provisório: 5 m).', 1, 10, .25, m, false],
+    ['emergingStone', 'markerSpeed', 'Velocidade do marcador', 'Quão rápido a direção move o marcador (provisório: 8 m/s).', 1, 30, .5, ms, false],
+    ['emergingStone', 'maxRise', 'Altura de apoio do marcador (técnico)', 'Até que altura acima dos pés o marcador procura apoio.', 0, 6, .25, m, false],
+    ['emergingStone', 'edgeMargin', 'Folga da borda da arena (técnico)', 'O marcador não passa desta distância da borda.', 0, 2, .05, m, false],
+    ['emergingStone', 'radius', 'Folga contra paredes do marcador (técnico)', '0 = o marcador pode ficar colado; a rocha procura lugar se não couber.', 0, 3, .1, m, false],
+    ['emergingStone', 'allowOccupied', 'Marcador sobre personagem?', '1 = pode (a rocha lança quem estiver no local); 0 = marcador inválido sobre corpos.', 0, 1, 1, yesno, false],
+  ]],
+  ['Bullet Punch', [
+    ['bulletPunch', 'cost', 'Custo de stamina (× Tackle)', 'Cobrado na SOLTURA, junto com a recarga; 1,5 = 1,5× o custo do Tackle (documento: 1,5×; faixa 0–5×).', 0, 5, .1, x, false],
+    ['bulletPunch', 'cooldown', 'Cooldown', 'Começa na soltura (documento: 8 s).', 0, 60, .5, sec, false],
+    ['bulletPunch', 'cast', 'Preparação', 'Depois de soltar; anda a 30% e pode ser interrompida mantendo o custo (documento: 0,75 s).', .1, 3, .05, sec, false],
+    ['bulletPunch', 'vanish', 'Tempo até o marcador (desaparecido)', 'Tempo da viagem invisível até o marcador: o lutador não existe fisicamente (sem corpo, colisão, acerto nem alvo) e a câmera o acompanha (padrão: 0,2 s; faixa 0,05–6 s).', .05, 6, .05, sec, false],
+    ['bulletPunch', 'searchRadius', 'Raio de busca de inimigos', 'Medido a partir do MARCADOR, no reaparecimento (documento: 5 m; faixa 0,5–30 m).', .5, 30, .5, m, false],
+    ['bulletPunch', 'reach', 'Alcance físico da investida', 'Distância máxima percorrida; é o círculo do marcador (documento: 3 m; faixa 0,5–20 m).', .5, 20, .25, m, false],
+    ['bulletPunch', 'impactMult', 'Velocidade de impacto do knockback (× Tackle)', 'Multiplica a velocidade de impacto usada na fórmula do Tackle (documento: 1×; faixa 0–5×).', 0, 5, .1, x, false],
+    ['bulletPunch', 'startDistance', 'Distância inicial do marcador', 'Onde o marcador nasce ao segurar o botão (documento: 3 m).', .5, 10, .25, m, false],
+    ['bulletPunch', 'maxDistance', 'Distância máxima do marcador', 'Limite rígido (documento: 10 m).', 1, 30, .5, m, false],
+    ['bulletPunch', 'growTime', 'Tempo até a distância máxima', 'Curva quadrática: começa devagar e acelera (documento: 2 s).', .2, 6, .1, sec, false],
+    ['bulletPunch', 'slow', 'Redução da velocidade ao marcar', '0,7 = anda a 30% enquanto ajusta o marcador e na preparação (documento: 70%).', 0, .95, .05, pct, false],
+    ['bulletPunch', 'maxRise', 'Altura de apoio do marcador (técnico)', 'Até que altura acima dos pés o marcador procura uma plataforma.', 0, 6, .25, m, false],
+    ['bulletPunch', 'edgeMargin', 'Folga da borda da arena (técnico)', 'O marcador para a esta distância da borda.', 0, 2, .05, m, false],
+  ]],
+  ['Sand Wave', [
+    ['sandWave', 'cost', 'Custo de stamina', 'Cobrado na ATIVAÇÃO (t = 0), antes da preparação. Valor do documento (2).', 0, 5, .05, num, false],
+    ['sandWave', 'cooldown', 'Cooldown', 'Começa junto com o custo (documento: 10 s).', 0, 60, .5, sec, false],
+    ['sandWave', 'cast', 'Preparação', 'Único período obrigatório; sair do chão ou ser interrompido cancela sem devolver nada (documento: 0,25 s).', .05, 2, .01, sec, false],
+    ['sandWave', 'length', 'Alcance frontal (ALTURA na vista superior)', 'Comprimento do retângulo à frente do lançador (documento: 4 m; faixa 0,5–30 m). Velocidade da onda = alcance ÷ janela ativa.', .5, 30, .25, m, false],
+    ['sandWave', 'width', 'Largura', 'Extensão lateral do retângulo (documento: 3 m; faixa 0,5–20 m).', .5, 20, .25, m, false],
+    ['sandWave', 'active', 'Janela de acerto (hitbox)', 'Primeiros segundos da barragem: a onda avança e atinge (documento: 0,75 s).', .1, 3, .05, sec, false],
+    ['sandWave', 'dissipate', 'Dissipação visual', 'Tempo extra só de efeito, sem hitbox nem empurrão (documento: 0,75 s).', 0, 3, .05, sec, false],
+    ['sandWave', 'damage', 'Dano fixo', 'HP por inimigo por execução, independente do Ataque (documento: 6 HP).', 0, 40, .5, num, false],
+    ['sandWave', 'accel', 'Empurrão (aceleração)', 'Aceleração horizontal enquanto houver contato na janela; metade sob defesa parcial (documento: 12 m/s²).', 0, 40, .5, ms2, false],
+    ['sandWave', 'partialFactor', 'Fator do empurrão na defesa parcial', 'Multiplica a aceleração quando o alvo defende (documento: 0,5).', 0, 1, .05, num, false],
+    ['sandWave', 'blind', 'Duração da cegueira', 'Reiniciada (não somada) a cada novo acerto válido; defesa perfeita anula (documento: 4 s).', 0, 15, .25, sec, false],
+    ['sandWave', 'wallStagger', 'Stagger contra a parede', 'Sem dano extra; não renova enquanto o alvo continuar pressionado (documento: 0,30 s).', 0, 2, .05, sec, false],
+    ['sandWave', 'visionRadius', 'Raio de visão do cegado', 'Lock-on e IA só enxergam adversários até esta distância e com linha de visão (documento: 10 m).', 2, 30, .5, m, false],
+    ['sandWave', 'fogDarkness', 'Escurecimento do fog (só a câmera do cegado)', 'Redução da luz ambiente na visão do jogador cegado (documento: 60%). A arte final da areia/nuvem ainda não foi aprovada.', 0, 1, .05, pct, false],
+    ['sandWave', 'cell', 'Resolução do caminho livre (técnico)', 'Tamanho da célula da grade que calcula o caminho mais curto da onda ao redor de obstáculos.', .1, 1, .05, m, false],
+    ['sandWave', 'detour', 'Margem de desvio (técnico)', 'Quanto a grade se estende além do retângulo para a areia contornar obstáculos (provisório: 3 m).', 0, 10, .5, m, false],
+    ['sandWave', 'replanSteps', 'Recalcular obstáculos a cada (passos)', 'Obstáculos móveis: o caminho é refeito neste intervalo (SW-D67; provisório: 6).', 1, 60, 1, int, false],
+  ]],
+  ['Spikes', [
+    ['spikes', 'cost', 'Custo de stamina', 'Cobrado ao CONFIRMAR o marcador (Normal); marcador inválido cancela sem custo. Valor do catálogo — proposta, não homologada.', 0, 5, .05, num, false],
+    ['spikes', 'cooldown', 'Cooldown', 'Começa junto com o custo, na confirmação (catálogo: 10 s).', 0, 60, .5, sec, false],
+    ['spikes', 'cast', 'Duração do cast', 'Tempo entre confirmar e a armadilha nascer; interrupção cancela sem reembolso (catálogo: 0,4 s).', .05, 2, .01, sec, false],
+    ['spikes', 'range', 'Alcance de colocação (3D)', 'Distância tridimensional máxima do marcador, incluindo a altura do apoio (catálogo: 5 m).', 1, 15, .5, m, false],
+    ['spikes', 'minRange', 'Alcance mínimo', '0 = pode colocar colada em você (provisório).', 0, 10, .25, m, false],
+    ['spikes', 'radius', 'Raio do campo', 'Região ofensiva da armadilha (catálogo: 1,2 m).', .3, 4, .05, m, false],
+    ['spikes', 'life', 'Duração máxima', 'Tempo até sumir sem acionar (catálogo: 8 s).', 1, 30, .5, sec, false],
+    ['spikes', 'damage', 'Dano nominal', 'Com o Ataque de referência; final = nominal × Ataque ÷ referência (MV-P13); dano comum para Sturdy (MV-P05). Catálogo: 6 HP.', 0, 40, .5, num, false],
+    ['spikes', 'knockbackH', 'Knockback horizontal', 'O catálogo define 0: dano sem empurrão.', 0, 10, .1, ms, false],
+    ['spikes', 'knockbackV', 'Knockback vertical', 'O catálogo define 0.', 0, 10, .1, ms, false],
+    ['spikes', 'armDelay', 'Tempo de armação', 'Depois de nascer, a armadilha só aciona após este tempo (provisório: 0,25 s, MV-P31).', 0, 2, .05, sec, false],
+    ['spikes', 'markerSpeed', 'Velocidade do marcador', 'Quão rápido a direção move o marcador enquanto o botão está segurado (provisório: 8 m/s, MV-P29).', 1, 30, .5, ms, false],
+    ['spikes', 'startDistance', 'Distância inicial do marcador', 'Onde o marcador aparece ao apertar, à frente do corpo (provisório: 3 m).', .5, 10, .25, m, false],
+    ['spikes', 'maxRise', 'Altura máxima de apoio acima dos pés', 'Até que altura de plataforma/rampa o marcador alcança (provisório: 2 m).', 0, 6, .25, m, false],
+    ['spikes', 'trapHeight', 'Altura da região ofensiva', 'Faixa vertical em que a armadilha pega quem pisa (provisório: 1,2 m).', .3, 4, .1, m, false],
+  ]],
+  ['Bounce', [
+    ['bounce', 'cost', 'Custo de stamina', 'Cobrado ao INICIAR a carga (Charge); interromper não devolve. Valor do catálogo — proposta, não homologada.', 0, 5, .05, num, false],
+    ['bounce', 'cooldown', 'Cooldown', 'Começa junto com o custo, ao iniciar a carga (catálogo: 12 s).', 0, 60, .5, sec, false],
+    ['bounce', 'maxCharge', 'Carga máxima', 'PL1 abaixo de 50%, PL2 de 50% até antes de 100%, PL3 na carga máxima (catálogo: 1,2 s).', .2, 4, .05, sec, false],
+    ['bounce', 'minCharge', 'Carga mínima para soltar', '0 = pode soltar a qualquer momento.', 0, 2, .05, sec, false],
+    ['bounce', 'maxDistance', 'Distância horizontal máxima', 'Com alvo travado mais perto, o salto vai só até ele (catálogo: 6 m).', 1, 15, .5, m, false],
+    ['bounce', 'heightPl1', 'Altura do salto PL1', 'Altura máxima inicial com pouca carga (parâmetro experimental: 1,5 m).', .3, 8, .1, m, false],
+    ['bounce', 'heightPl2', 'Altura do salto PL2', 'Altura com carga média (parâmetro experimental: 2,5 m).', .3, 8, .1, m, false],
+    ['bounce', 'heightPl3', 'Altura do salto PL3', 'Altura com carga máxima (parâmetro experimental: 3,5 m).', .3, 8, .1, m, false],
+    ['bounce', 'gravity', 'Gravidade do arco', 'Define o tempo de voo e a velocidade horizontal; não vem do catálogo (provisório: 17,5 m/s²).', 5, 40, .5, num, false],
+    ['bounce', 'damage', 'Dano nominal', 'Com o Ataque de referência; final = nominal × Ataque ÷ referência (MV-P13). Catálogo: 12 HP.', 0, 60, .5, num, false],
+    ['bounce', 'knockbackH', 'Knockback horizontal', 'Empurrão no alvo atingido (catálogo: 3 m/s).', 0, 20, .1, ms, false],
+    ['bounce', 'knockbackV', 'Knockback vertical', 'Lançamento do alvo atingido (catálogo: 6 m/s).', 0, 20, .1, ms, false],
+    ['bounce', 'landRecovery', 'Recuperação após o pouso', 'Tempo sem agir depois de aterrissar (catálogo: 0,25 s).', 0, 2, .01, sec, false],
+    ['bounce', 'contactRadius', 'Folga do contato na descida', 'Margem somada ao corpo para acertar durante a descida (provisório: 0,3 m).', 0, 2, .05, m, false],
+    ['bounce', 'landRadius', 'Raio do impacto do pouso', 'Quem está no chão dentro deste raio ao aterrissar também é atingido (provisório: 1,4 m).', 0, 5, .1, m, false],
+  ]],
   ['IA com Moves (decisões do adversário)', [
+    ['ai', 'newMovesRate', 'Uso dos Moves novos pela IA', 'Multiplica a chance de a IA usar Harden, Second Wind, Swift, Lunge, Quick Attack, Guard Break, Feint, Riposte, Bounce, Spikes, Sand Wave, Bullet Punch e Emerging Stone quando equipados nela (0 = nunca usa; só vale para o que estiver equipado).', 0, 3, .1, x, false],
     ['ai', 'evadeDistance', 'Esquiva emergencial: distância do Tackle rival', 'Durante a carga, se o rival inicia um Tackle a menos desta distância, a IA esquiva cancelando a carga (provisório).', 0, 10, .1, m, false],
     ['ai', 'pl2Distance', 'Psyshock: distância para carregar até PL2', 'A partir desta distância do alvo a IA segura o Psyshock até o PL2 (provisório).', 0, 15, .1, m, false],
     ['ai', 'pl3Distance', 'Psyshock: distância para carregar até PL3', 'A partir desta distância do alvo a IA segura o Psyshock até o PL3 (provisório).', 0, 20, .1, m, false],
@@ -101,6 +307,8 @@ const PARAMS = [
 ];
 
 /** Controles da aba (exportado para os testes de cobertura: cada parâmetro da configuração dos Moves precisa de slider). */
+// Pedido de 22/10/2026: o limite máximo dos sliders de Moves vale o DOBRO (liga/desliga e seletores de poucos valores ficam como estão).
+for (const [, rows] of PARAMS) for (const r of rows) if (r[7] !== yesno && !(r[6] >= 1 && r[5] <= 3)) r[5] *= 2;
 export const MOVES_PARAMS = PARAMS;
 
 /** Itens da avaliação jogável e visual dos Moves (M28.9: separada dos testes automáticos; decisão do diretor). */
@@ -125,6 +333,8 @@ export function createMovesPanel({$, game, download, tuning, view, ui}) {
   let results = null, homolog = loadHomolog(), subscribed = false;
   const loadoutOf = id => Array.from({length: C.world.slots}, (_, i) => game.fighters[id]?.loadout?.[i] ?? null);
   const equipped = id => ({reflect: loadoutOf(id).includes('reflect'), psyshock: loadoutOf(id).includes('psyshock')});
+  /** Descrição e uso do Move para dicas e linha de apoio: texto do Move, custo, recarga e botão. */
+  const moveTip = (mid, key) => {const d = mid ? listMoves().find(m => m.id === mid) : null;if (!d) return '';const eff = getMove(mid) ?? d;return `${MOVE_INFO[mid]?.hint ?? d.description ?? ''} Custo ${(eff.cost ?? 1).toFixed(2)} de stamina · recarga ${(eff.cooldown ?? 0).toFixed(1)} s${key ? ` · botão ${key}` : ''}.`;};
   const moveLabel = mid => MOVE_INFO[mid]?.group ?? listMoves().find(m => m.id === mid)?.name ?? mid;
   /** Põe (ou tira, com null) um move num slot; um move não ocupa dois slots do mesmo lutador. */
   function setSlot(id, slot, moveId) {
@@ -217,8 +427,8 @@ export function createMovesPanel({$, game, download, tuning, view, ui}) {
       const myKey = bind[SKILL_NAMES[slot]], clash = used.find(([, i]) => i === myKey) ?? SKILL_NAMES.map((n, j) => [n, bind[n], j]).find(([, i, j]) => j !== slot && i === myKey && list[j]);
       const warn = cur && clash ? `<small class="warn" title="A mesma tecla também é ${escape(ACTION_NAMES[clash[0]] ?? 'outro slot')}">tecla repetida</small>` : '';
       return `<div class="mv-slot" data-slot-row="${id}.${slot}"><span class="mv-slot-n">Slot ${slot + 1}</span>
-        <select data-slot-move="${id}.${slot}" aria-label="Move do slot ${slot + 1} (${escape(title)})"><option value="">— vazio —</option>${moves.map(m => `<option value="${m.id}" ${m.id === cur ? 'selected' : ''} ${list.includes(m.id) && m.id !== cur ? 'disabled' : ''}>${escape(moveLabel(m.id))}</option>`).join('')}</select>
-        <label class="mv-key">Botão <select data-slot-key="${id}.${slot}" aria-label="Botão do slot ${slot + 1} (${escape(title)})">${codes.map((c, i) => `<option value="${i}" ${i === myKey ? 'selected' : ''}>${escape(keyName(c))}</option>`).join('')}</select></label>${warn}</div>`;
+        <select data-slot-move="${id}.${slot}" aria-label="Move do slot ${slot + 1} (${escape(title)})" ${cur ? `data-tip-title="${escape(moveLabel(cur))}" data-tip="${escape(moveTip(cur, keyName(codes[myKey])))}"` : 'data-tip-title="Slot vazio" data-tip="Escolha um Move: passe o mouse sobre o nome para ver a descrição e o uso."'}><option value="">— vazio —</option>${moves.map(m => `<option value="${m.id}" title="${escape(moveTip(m.id, ''))}" ${m.id === cur ? 'selected' : ''} ${list.includes(m.id) && m.id !== cur ? 'disabled' : ''}>${escape(moveLabel(m.id))}</option>`).join('')}</select>
+        <label class="mv-key">Botão <select data-slot-key="${id}.${slot}" aria-label="Botão do slot ${slot + 1} (${escape(title)})">${codes.map((c, i) => `<option value="${i}" ${i === myKey ? 'selected' : ''}>${escape(keyName(c))}</option>`).join('')}</select></label>${warn}</div>${cur ? `<p class="tip-line">${escape(moveTip(cur, keyName(codes[myKey])))}</p>` : ''}`;
     }).join('');
     return `<div class="mv-loadout" data-loadout="${id}"><h4>${escape(title)} <small class="muted">${count} de ${list.length} slots${id ? ' · botões só valem no controle manual do vermelho' : ''}</small></h4>${rows}</div>`;
   }
@@ -228,6 +438,24 @@ export function createMovesPanel({$, game, download, tuning, view, ui}) {
     return `<details data-k="p:${escape(title)}" ${open ? 'open' : ''}><summary><b>${escape(title)}</b></summary>${g[1].map(paramRow).join('')}</details>`;
   }
 
+  /** Liga os controles de parâmetros (data-p) de um escopo: arrastar mostra o valor ao vivo e, ao soltar, entra UMA entrada no histórico do ajustador (Ctrl+Z / Ctrl+Y). */
+  function bindParams(scope, rerender) {
+    const before = new Map(), label = path => PARAMS.flatMap(p => p[1]).find(r => r[0] + '.' + r[1] === path)?.[2] ?? path;
+    const show = (inp, v) => {const [g, k] = inp.dataset.p.split('.'), spec = PARAMS.flatMap(p => p[1]).find(r => r[0] === g && r[1] === k);scope.querySelector(`[data-o="${inp.dataset.p}"]`).textContent = spec[7](v);scope.querySelector(`[data-reset="${inp.dataset.p}"]`).disabled = v === defaults().world[g][k];};
+    const commit = (changes, text) => tuning ? tuning.commit(changes, text) : changes.forEach(([p, , v]) => {const [g, k] = p.replace(/^world\./, '').split('.');C.world[g][k] = v;});
+    for (const inp of scope.querySelectorAll('[data-p]')) {
+      const [g, k] = inp.dataset.p.split('.'), path = `world.${g}.${k}`;
+      if (inp.type === 'checkbox') {inp.onchange = () => {commit([[path, inp.checked ? 1 : 0]], label(inp.dataset.p));rerender();};continue;}
+      inp.oninput = () => {const v = Number(inp.value);if (!before.has(path)) before.set(path, C.world[g][k]);C.world[g][k] = v;show(inp, v);};
+      inp.onchange = () => {const after = C.world[g][k], was = before.get(path);before.delete(path);if (was !== undefined && was !== after) {C.world[g][k] = was;commit([[path, after]], label(inp.dataset.p));}rerender();};
+    }
+    for (const b of scope.querySelectorAll('[data-reset]')) b.onclick = () => {const [g, k] = b.dataset.reset.split('.');commit([[`world.${g}.${k}`, defaults().world[g][k]]], 'Restaurar ' + label(b.dataset.reset));rerender();};
+  }
+  /** Parâmetros da IA com Moves, para a aba IA da gaveta de Ações (antes ficavam na aba Moves). */
+  function renderAiParams(container) {
+    container.innerHTML = paramGroup('IA com Moves (decisões do adversário)', true);
+    bindParams(container, () => renderAiParams(container));
+  }
   function render() {
     const openKeys = new Set([...root.querySelectorAll('details[open][data-k]')].map(d => d.dataset.k));   // a interface não recolhe os grupos que você abriu
     const l0 = loadoutOf(0), l1 = loadoutOf(1), eqIds = [...new Set([...l0, ...l1].filter(Boolean))];
@@ -236,9 +464,9 @@ export function createMovesPanel({$, game, download, tuning, view, ui}) {
       const info = MOVE_INFO[mid], owners = [[0, l0], [1, l1]].filter(([, l]) => l.includes(mid)).map(([w, l]) => `${w ? 'Vermelho' : 'Azul'}: slot ${l.indexOf(mid) + 1}${w ? '' : ` · botão ${escape(keyName(C.extras.keyCodes[C.extras.bindings[SKILL_NAMES[l.indexOf(mid)]]]))}`}`).join(' · ');
       const anims = [0, 1].filter(w => (w ? l1 : l0).includes(mid)).map(w => animCard(mid, w)).join('');
       return `<section class="mv-move" data-move="${mid}"><header><h3>✦ ${escape(moveLabel(mid))}</h3><small class="muted">${owners}</small></header>
-        ${info?.hint ? `<p class="hint">${escape(info.hint)}</p>` : ''}${anims}${info ? paramGroup(info.group, true) : '<p class="hint">Este move ainda não tem parâmetros ajustáveis nesta tela.</p>'}</section>`;
+        ${info?.hint ? `<p class="hint">${escape(info.hint)}</p>` : ''}${anims}${info ? paramGroup(info.group) : '<p class="hint">Este move ainda não tem parâmetros ajustáveis nesta tela.</p>'}</section>`;
     }).join('');
-    const shared = eqIds.length ? `<section class="mv-move" data-move="_charge"><header><h3>⚙ Carga (todos os moves equipados)</h3></header>${paramGroup('Carga (compartilhada)')}${l1.some(Boolean) ? paramGroup('IA com Moves (decisões do adversário)') : ''}</section>` : '';
+    const shared = eqIds.length ? `<section class="mv-move" data-move="_charge"><header><h3>⚙ Carga (todos os moves equipados)</h3></header>${paramGroup('Carga (compartilhada)')}</section>` : '';
     root.innerHTML = `
       <p class="hint">Escolha até <b>${C.world.slots} moves por personagem</b> e o <b>botão</b> de cada slot. Segure para carregar e solte para executar. Só aparecem os ajustes dos moves equipados.</p>
       <section class="mv-card"><h3>Equipar</h3>${loadoutBox(0, 'Jogador (azul)')}${loadoutBox(1, 'Adversário (vermelho)')}</section>
@@ -355,18 +583,8 @@ export function createMovesPanel({$, game, download, tuning, view, ui}) {
     for (const b of root.querySelectorAll('[data-emit]')) b.onclick = () => {const k = b.dataset.emit;(k === 'boom' ? emitExplosion() : emitProjectile(Number(k)));};
     $('mvp-run').onclick = () => {results = runMoveScenarios();render();};
     $('mvp-export').onclick = () => results && download(JSON.stringify({schema: 'arenamon-lab-report', version: 1, kind: 'moves-scenarios', createdAt: new Date().toISOString(), step: C.test.step, scenarios: results, homologation: MOVES_HOMOLOG.map((t, i) => ({item: t, verdict: homolog[i]?.v || 'pendente', note: homolog[i]?.n || ''}))}, null, 1), 'arenamon-cenarios-moves.json');
-    // Parâmetros dos Moves: arrastar mostra o valor ao vivo e, ao soltar, entra UMA entrada no histórico do ajustador (Ctrl+Z / Ctrl+Y).
-    const before = new Map(), label = path => PARAMS.flatMap(p => p[1]).find(r => r[0] + '.' + r[1] === path)?.[2] ?? path;
-    const show = (inp, v) => {const [g, k] = inp.dataset.p.split('.'), spec = PARAMS.flatMap(p => p[1]).find(r => r[0] === g && r[1] === k);root.querySelector(`[data-o="${inp.dataset.p}"]`).textContent = spec[7](v);root.querySelector(`[data-reset="${inp.dataset.p}"]`).disabled = v === defaults().world[g][k];};
-    const commit = (changes, text) => tuning ? tuning.commit(changes, text) : changes.forEach(([p, , v]) => {const [g, k] = p.replace(/^world\./, '').split('.');C.world[g][k] = v;});
-    for (const inp of root.querySelectorAll('[data-p]')) {
-      const [g, k] = inp.dataset.p.split('.'), path = `world.${g}.${k}`;
-      if (inp.type === 'checkbox') {inp.onchange = () => {commit([[path, inp.checked ? 1 : 0]], label(inp.dataset.p));render();};continue;}
-      inp.oninput = () => {const v = Number(inp.value);if (!before.has(path)) before.set(path, C.world[g][k]);C.world[g][k] = v;show(inp, v);};
-      inp.onchange = () => {const after = C.world[g][k], was = before.get(path);before.delete(path);if (was !== undefined && was !== after) {C.world[g][k] = was;commit([[path, after]], label(inp.dataset.p));}render();};
-    }
-    for (const b of root.querySelectorAll('[data-reset]')) b.onclick = () => {const [g, k] = b.dataset.reset.split('.');commit([[`world.${g}.${k}`, defaults().world[g][k]]], 'Restaurar ' + label(b.dataset.reset));render();};
+    bindParams(root, render);
     $('mvp-reset-all').onclick = () => {const ch = [];for (const g of ['charge', 'reflect', 'psyshock', 'beam', 'ai']) for (const [k, v] of Object.entries(defaults().world[g])) if (C.world[g][k] !== v) ch.push([`world.${g}.${k}`, v]);commit(ch, 'Restaurar os parâmetros dos Moves');render();};
   }
-  return {render, emitProjectile, emitLaser, emitExplosion, setEquip, setSlot, loadoutOf, get results() {return results;}, STANDARD};
+  return {render, renderAiParams, emitProjectile, emitLaser, emitExplosion, setEquip, setSlot, loadoutOf, get results() {return results;}, STANDARD};
 }

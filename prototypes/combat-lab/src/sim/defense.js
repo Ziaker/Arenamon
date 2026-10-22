@@ -11,6 +11,7 @@
 import {C} from './config.js';
 import {canDefenseArrive} from './prediction.js';
 import {isDepleted} from './controller.js';
+import {passiveCost} from './passive-engine.js';
 
 /**
  * Seleciona a melhor resposta defensiva para uma ameaça identificada.
@@ -37,9 +38,10 @@ export function selectDefenseResponse(self, target, threat, S, P, recentResponse
   const last2 = recentResponses.slice(-2);
   const repeatedPerf = last2.length >= 2 && last2.every(r => r === 'perfectGuard');
   const repeatedDodge = last2.length >= 2 && last2.every(r => r === 'sidestep' || r === 'vault');
-  const affordDodge = !self.exhausted && self.stamina >= C.actions.dodge.cost;
-  const dodgeKeeps = isDepleted(self.stamina - C.actions.dodge.cost) ? 0.3 : 1.0;
-  const canDodge = affordDodge && !isDepleted(self.stamina - C.actions.dodge.cost);
+  const dodgeCost = passiveCost(self, 'dodge', C.actions.dodge.cost);   // custo efetivo (Technician, R10/R25)
+  const affordDodge = !self.exhausted && self.stamina >= dodgeCost;
+  const dodgeKeeps = isDepleted(self.stamina - dodgeCost) ? 0.3 : 1.0;
+  const canDodge = affordDodge && !isDepleted(self.stamina - dodgeCost);
   const dodgeViable = (canDodge || affordDodge) && dodgeCheck.canArrive;
 
   const affordTackle = !self.exhausted && self.stamina >= C.actions.tackle.cost;

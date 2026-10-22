@@ -71,6 +71,24 @@ export function getCombatZones(self, target, style = null) {
  * @returns {{x: number, z: number}}
  */
 export function safeArenaDirection(pos, desiredDir, arenaHalf = C.test.arenaHalf, margin = 1.6) {
+  const isCircle = C.map?.arenaShape !== 'square';
+  if (isCircle) {
+    const radius = (arenaHalf != null && arenaHalf !== C.test.arenaHalf) ? arenaHalf : (C.map?.arenaRadius ?? 50);
+    const d = length(pos);
+    const lim = radius - margin;
+    if (d > lim && d > 1e-6) {
+      const wallNormal = {x: -pos.x / d, z: -pos.z / d};
+      const headingIntoWall = dot(desiredDir, wallNormal) < 0;
+      if (headingIntoWall) {
+        const penetration = (d - lim) / margin;
+        const repulsion = 1.2 + penetration * 1.5;
+        const steer = add(desiredDir, scale(wallNormal, repulsion));
+        return length(steer) > 1e-6 ? normalize(steer) : wallNormal;
+      }
+    }
+    return desiredDir;
+  }
+
   const lim = arenaHalf - margin;
   let steer = {...desiredDir};
   let pushX = 0;

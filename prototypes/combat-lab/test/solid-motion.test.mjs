@@ -1,15 +1,16 @@
 // VFX sólidos de movimento (poeira e vento do dash/esquiva e da corrida): geometrias fechadas, estilos distintos, pipeline
 // arrancada → corrida → curva → desaceleração → parada, combinação poeira+vento, sliders com efeito mensurável, sem vazamento de
 // malhas/materiais. Roda em Node, sem navegador.
+// Este teste caracteriza a mecânica nos valores de FÁBRICA do laboratório (factoryDefaults); a base de calibração v8 é coberta por calibration-base.test.mjs e pelos testes de colisão/ambiente.
 import assert from 'node:assert/strict';
 import * as T from 'three';
 import {SolidFx, SOLID_FAMILIES, SOLID_PARAMS} from '../src/view/solid-fx.js';
-import {C, resetConfig} from '../src/sim/config.js';
+import {C, resetConfig, factoryDefaults} from '../src/sim/config.js';
 import {overhaulMeta} from '../src/ui/overhaul-meta.js';
 import {createMockTuningFor} from './solid-tuning-helper.mjs';
 
 let passed = 0;
-const test = (name, fn) => { resetConfig(); fn(); passed++; console.log('✓', name); };
+const test = (name, fn) => { resetConfig(factoryDefaults()); fn(); passed++; console.log('✓', name); };
 const mk = () => new SolidFx(new T.Scene());
 const run = (fx, sec, dt = 1 / 60) => { for (let t = 0; t < sec; t += dt) fx.update([], [], dt); };
 const sig = fx => {
@@ -134,13 +135,13 @@ test('sliders: cada controle de cada família 3D muda o efeito de forma percept�
   for (const f of SOLID_FAMILIES) {
     for (const param of SOLID_PARAMS) {
       const [lo, hi] = LOHI[param] ?? [.5, 2], m = {};
-      for (const [tag, val] of [['lo', lo], ['hi', hi]]) { resetConfig(); C.vfx[f.key][param] = val; m[tag] = metrics(emitFamily(f.key)); }
+      for (const [tag, val] of [['lo', lo], ['hi', hi]]) { resetConfig(factoryDefaults()); C.vfx[f.key][param] = val; m[tag] = metrics(emitFamily(f.key)); }
       const k = METRIC[param], a = m.lo[k], b = m.hi[k], ratio = (Math.max(a, b) + 1e-9) / (Math.min(a, b) + 1e-9);
       if (!(b > a && ratio >= 1.15)) bad.push(`${f.key}.${param} → ${k}: ${a.toFixed(3)} → ${b.toFixed(3)}`);
     }
-    resetConfig(); C.vfx[f.key].color = 0xff0000; const red = metrics(emitFamily(f.key)); C.vfx[f.key].color = 0x0000ff; const blue = metrics(emitFamily(f.key));
+    resetConfig(factoryDefaults()); C.vfx[f.key].color = 0xff0000; const red = metrics(emitFamily(f.key)); C.vfx[f.key].color = 0x0000ff; const blue = metrics(emitFamily(f.key));
     if (!(red.r > blue.r + .05 && blue.b > red.b + .05)) bad.push(`${f.key}.color não muda a cor (r ${red.r.toFixed(2)}/${blue.r.toFixed(2)})`);
-    if (f.key === 'solidDust') { resetConfig(); C.vfx.solidDust.variant = 3; C.vfx.solidDust.color2 = 0xff0000; const a = metrics(emitFamily('solidDust')); C.vfx.solidDust.color2 = 0x0000ff; const b = metrics(emitFamily('solidDust')); if (!(a.r > b.r + .03)) bad.push('solidDust.color2 (estilo D) não muda a cor'); }
+    if (f.key === 'solidDust') { resetConfig(factoryDefaults()); C.vfx.solidDust.variant = 3; C.vfx.solidDust.color2 = 0xff0000; const a = metrics(emitFamily('solidDust')); C.vfx.solidDust.color2 = 0x0000ff; const b = metrics(emitFamily('solidDust')); if (!(a.r > b.r + .03)) bad.push('solidDust.color2 (estilo D) não muda a cor'); }
   }
   assert.deepEqual(bad, [], '\n' + bad.join('\n'));
 });

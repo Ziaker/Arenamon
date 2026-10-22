@@ -1,9 +1,10 @@
 // Cobertura dos sliders da aba Moves: todo parâmetro de C.world.{charge,reflect,psyshock,beam} que a simulação LÊ tem controle com rótulo,
 // faixa e unidade, e cada controle novo altera de fato o resultado do Move. Roda em Node, sem navegador.
+// Este teste caracteriza a mecânica nos valores de FÁBRICA do laboratório (factoryDefaults); a base de calibração v8 é coberta por calibration-base.test.mjs e pelos testes de colisão/ambiente.
 import assert from 'node:assert/strict';
 import {readdirSync, readFileSync, statSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
-import {C, defaults, resetConfig} from '../src/sim/config.js';
+import {C, factoryDefaults, resetConfig} from '../src/sim/config.js';
 import {Game} from '../src/sim/game.js';
 import {emptyCommand} from '../src/sim/entity.js';
 import {vec} from '../src/sim/math.js';
@@ -16,8 +17,12 @@ registerStandardMoves();
 const cmd = o => ({...emptyCommand(), ...o});
 const HOLD = i => [0, 1, 2, 3].map(k => k === i);
 function arena(setup) {
-  resetConfig(defaults());setup?.();
-  const g = new Game();g.mode = 'inactive';g.reset({positions: [vec(0, -3), vec(0, 3)]});g.fighters[0].facing = 0;g.fighters[1].facing = Math.PI;g.setLoadout(0, ['reflect', 'psyshock']);return g;
+  resetConfig(factoryDefaults());setup?.();
+  const g = new Game();g.mode = 'inactive';g.reset({positions: [vec(0, -3), vec(0, 3)]});g.fighters[0].facing = 0;g.fighters[1].facing = Math.PI;g.setLoadout(0, ['reflect', 'psyshock']);
+  // Estes testes medem os efeitos dos sliders dos Moves: o mundo fica neutro (objetos no
+  // caminho gastariam stamina da IA e distorceriam contagens de decisão).
+  g.mapState.platforms = [];g.mapState.obstacles = [];g.mapState.destructibles = [];g.mapState.items = [];
+  return g;
 }
 const step = (g, c = cmd()) => g.step(c, cmd());
 /** Segura o slot por `ticks` passos e solta. */
@@ -28,7 +33,7 @@ const sdOf = a => {const m = mean(a);return Math.sqrt(mean(a.map(v => (v - m) **
 
 // ---------- Cobertura: nada que a simulação lê fica sem slider ----------
 const NEW = new Set(['reflect.burstRadius', 'reflect.burstForce', 'reflect.burstDamage', 'reflect.burstPush', 'reflect.burstHurt', 'psyshock.knockbackVertical', 'psyshock.knockbackLevelBonus', 'psyshock.knockbackSpeedFactor', 'reflect.minCharge', 'psyshock.searchStep', 'psyshock.arc', 'psyshock.ringMin', 'psyshock.ringMax', 'psyshock.heightMin', 'psyshock.heightMax', 'psyshock.scaleMin', 'psyshock.scaleMax']);
-const GROUPS = ['charge', 'reflect', 'psyshock', 'beam', 'ai'];
+const GROUPS = ['charge', 'reflect', 'psyshock', 'beam', 'ai', 'harden', 'secondWind', 'swift', 'lunge', 'quickAttack', 'guardBreak', 'feint', 'riposte', 'bounce', 'spikes', 'sandWave', 'bulletPunch', 'emergingStone'];
 const rows = new Map(MOVES_PARAMS.flatMap(([, list]) => list).map(r => [`${r[0]}.${r[1]}`, r]));
 /** Chaves da configuração que NENHUM código da simulação ou da visão lê (campos legados): sem leitor, um slider seria controle morto. */
 const UNUSED = new Set([]);
@@ -47,7 +52,7 @@ function sourceFiles(dir) {return readdirSync(dir).flatMap(f => {const p = dir +
 ok('todo parâmetro dos Moves que o código lê tem slider (os 2 campos legados sem leitor ficam de fora de propósito)');
 {
   for (const [id, [g, k, label, tip, min, max, stepv, fmt]] of rows) {
-    const v = defaults().world[g][k];
+    const v = factoryDefaults().world[g][k];
     assert.ok(label.length > 3 && tip.length > 10, `${id}: rótulo e descrição`);
     assert.ok(stepv > 0 && max > min, `${id}: faixa válida`);
     assert.ok(v >= min - 1e-9 && v <= max + 1e-9, `${id}: padrão ${v} fora de ${min}..${max}`);
@@ -106,8 +111,8 @@ ok('reflect.minCharge: define o tempo mínimo segurando para a barreira nascer')
   const sp = kbOf({knockbackSpeedFactor: 1}, 480).map(k => k.horizontal);
   assert.ok(Math.max(...sp) - Math.min(...sp) > .01, 'empurrão varia com a velocidade sorteada da pedra');
   assert.equal(new Set(kbOf({}, 480).map(k => k.horizontal.toFixed(6))).size, 1, 'sem o fator, todas as pedras empurram igual');
-  assert.equal(MOVES_PARAMS.flatMap(g => g[1]).find(r => r[1] === 'knockbackPerStone')[5], 10);
-  assert.equal(MOVES_PARAMS.flatMap(g => g[1]).find(r => r[1] === 'knockbackCap')[5], 10);
+  assert.equal(MOVES_PARAMS.flatMap(g => g[1]).find(r => r[1] === 'knockbackPerStone')[5], 20);   // limite máximo dos sliders de Moves ×2 (pedido de 22/10/2026)
+  assert.equal(MOVES_PARAMS.flatMap(g => g[1]).find(r => r[1] === 'knockbackCap')[5], 20);
 }
 ok('psyshock: limites de knockback até 10 e novos controles (vertical, bônus por PL, velocidade da pedra) alteram o empurrão real');
 
@@ -148,7 +153,23 @@ ok('reflect: pulso ao invocar (alcance 0–10 m, força, dano e interruptores de
   assert.equal(starts({psyshockMinDistance: 30}), 0, 'distância mínima maior que a arena: nunca usa');
   assert.equal(starts({psyshockMinStamina: 6}), 0, 'stamina mínima acima do máximo: nunca usa');
   assert.equal(starts({psyshockChanceMax: 0}), 0, 'chance máxima 0: nunca usa');
-  assert.ok(starts({decisionInterval: 3}) < base || base === 1, 'intervalo maior entre decisões: decide menos vezes');
+  // decisionInterval: o portão entre DECISÕES de Move respeita o intervalo configurado (o número
+  // de disparos pode ser igual nas duas configurações quando a stamina limita — por isso mede-se
+  // o espaçamento das decisões na telemetria, não a contagem de chargeStart).
+  const decisionGaps = cfg => {
+    const g = arena(() => Object.assign(C.world.ai, cfg));
+    g.setLoadout(1, ['reflect', 'psyshock']);g.mode = 'tactical';g.fighters[1].position.z = 6;g.fighters[0].position.z = -6;
+    let last = -1;const gaps = [];
+    for (let i = 0; i < 1500; i++) {
+      g.step(cmd(), g.brain.command(g.fighters[1], g.fighters[0], 'tactical', C.test.step));
+      if (g.brain.t.mv.log.length) {if (last >= 0) gaps.push((i - last) * C.test.step);last = i;g.brain.t.mv.log.length = 0;}
+    }
+    return gaps;
+  };
+  const gaps3 = decisionGaps({decisionInterval: 3});
+  assert.ok(gaps3.length > 0 && gaps3.every(g => g >= 3 - 1e-6), `intervalo 3 s: toda decisão de Move vem ≥ 3 s após a anterior (${JSON.stringify(gaps3.map(g => +g.toFixed(2)))})`);
+  const gaps05 = decisionGaps({decisionInterval: .5});
+  assert.ok(gaps05.length > 0 && gaps05.every(g => g >= .5 - 1e-6), `intervalo 0,5 s: toda decisão de Move vem ≥ 0,5 s após a anterior (${JSON.stringify(gaps05.map(g => +g.toFixed(2)))})`);
 }
 ok('IA com Moves: distância mínima, stamina mínima, chance máxima e intervalo de decisão do Psyshock alteram as decisões reais do adversário');
 

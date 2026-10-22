@@ -1,13 +1,14 @@
 // Testes da simulação em Node: cenários, determinismo, replay por estado e telemetria.
+// Este teste caracteriza a mecânica nos valores de FÁBRICA do laboratório (factoryDefaults); a base de calibração v8 é coberta por calibration-base.test.mjs e pelos testes de colisão/ambiente.
 import assert from 'node:assert/strict';
 import {Game} from '../src/sim/game.js';
-import {C, resetConfig, defaults} from '../src/sim/config.js';
+import {C, resetConfig, factoryDefaults} from '../src/sim/config.js';
 import {SCENARIOS, runScenario} from '../src/sim/scenarios.js';
 import {Recorder, frameTable} from '../src/sim/telemetry.js';
 import {ReplayBuffer} from '../src/sim/replay.js';
 import {runBalance, balanceRows} from '../src/sim/balance.js';
 import {compareScenarios, compareMatch, replayMatch} from '../src/sim/compare.js';
-let passed = 0;const test = (name, fn) => {fn();passed++;console.log('✓', name);};
+let passed = 0;const test = (name, fn) => {resetConfig(factoryDefaults());fn();passed++;console.log('✓', name);};
 
 for (const def of SCENARIOS) test(`cenário “${def.name}”`, () => {
   const r = runScenario(def);for (const c of r.checks) console.log(`   ${c.ok ? '·' : '✗'} ${c.label}: esperado ${c.expected} · obtido ${c.actual}`);
@@ -44,8 +45,8 @@ test('telemetria: vantagem de quadros no bloqueio', () => {
   assert.equal(r.recorder.actions.filter(a => a.fighter === 0 && a.kind === 'tackle').length, 1);
 });
 test('tabela de quadros reflete a configuração', () => {
-  const before = frameTable()[0].total;C.actions.tackle.duration = .5;assert.equal(frameTable()[0].total, 60);assert.equal(frameTable()[1].total, 48);resetConfig();assert.equal(frameTable()[0].total, before);
-  assert.deepEqual(JSON.parse(JSON.stringify(C)), JSON.parse(JSON.stringify(defaults())));
+  const before = frameTable()[0].total;C.actions.tackle.duration = .5;assert.equal(frameTable()[0].total, 60);assert.equal(frameTable()[1].total, 48);resetConfig(factoryDefaults());assert.equal(frameTable()[0].total, before);
+  assert.deepEqual(JSON.parse(JSON.stringify(C)), JSON.parse(JSON.stringify(factoryDefaults())));
 });
 function aiDuel(seed, ticks = 120 * 60) {
   const g = new Game({seed});g.mode = 'combat';g.reset();const hits = [];
@@ -64,9 +65,16 @@ test('personalidade: azul e vermelho decidem de forma diferente', () => {
 });
 test('personalidade neutra reproduz o ritmo fixo do v6 (sem aleatoriedade)', () => {
   const saved = structuredClone([C.extras.aiRed, C.extras.aiBlue]);
+  const savedMap = C.map ? structuredClone({shape: C.map.arenaShape, initial: C.map.itemInitialCount, max: C.map.itemMaxRegular, obs: C.map.obstacleCount, dest: C.map.destructibleCount, plat: C.map.platformCount}) : null;
+  if (C.map) C.map.arenaShape = 'square';
+  // Itens, plataformas, obstáculos e destrutíveis fora da comparação: o posicionamento
+  // deles segue o RNG do mapa (seed), então coletas e colisões divergem entre sementes
+  // e contaminam o ritmo de combate que este teste quer fixar.
+  if (C.map) {C.map.itemInitialCount = 0; C.map.itemMaxRegular = 0; C.map.obstacleCount = 0; C.map.destructibleCount = 0; C.map.platformCount = 0;}
   for (const k of ['aiRed', 'aiBlue']) Object.assign(C.extras[k], {reaction: 0, reactionJitter: 0, mistake: 0, aggression: .5, variation: 0, hesitation: 0});
   assert.deepEqual(aiDuel(1, 2400), aiDuel(99, 2400), 'sem aleatoriedade, a semente não muda nada');
   Object.assign(C.extras.aiRed, saved[0]);Object.assign(C.extras.aiBlue, saved[1]);
+  if (C.map && savedMap) Object.assign(C.map, {arenaShape: savedMap.shape, itemInitialCount: savedMap.initial, itemMaxRegular: savedMap.max, obstacleCount: savedMap.obs, destructibleCount: savedMap.dest, platformCount: savedMap.plat});
 });
 test('equilíbrio IA × IA: determinístico, consistente e sem alterar a configuração', () => {
   const before = JSON.stringify(C), a = runBalance({matches: 6, seed: 3}), b = runBalance({matches: 6, seed: 3});

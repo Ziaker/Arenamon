@@ -5,6 +5,7 @@ import {C, vfxDefaults, displayDefaults} from '../sim/config.js';
 import {spawn} from '../sim/world.js';
 import {VFX_TYPES, SHAKE_EVENTS} from '../view/vfx.js';
 import {SOLID_FAMILIES} from '../view/solid-fx.js';
+import {PASSIVE_ABILITIES} from '../view/passive-abilities.js';
 import {fold} from './characters-panel.js';
 import {escape, pathGet as pathGetRoot} from './tuning.js';
 
@@ -102,6 +103,10 @@ export function createVisualPanel({tuning, view, game, $, hud, download}) {
         <label class="vx-check"><input type="checkbox" data-vfx-a11y="noFlash" ${(C.vfx.master?.noFlash || C.vfx.laser?.noFlash) ? 'checked' : ''}> Sem flash</label>
         <label class="vx-check"><input type="checkbox" data-vfx-a11y="reduceMotion" ${(C.vfx.master?.reduceMotion || C.vfx.laser?.reduceMotion) ? 'checked' : ''}> Reduzir movimento</label>
         <label class="vx-check"><input type="checkbox" data-vfx-a11y="highContrast" ${(C.vfx.master?.highContrast || C.vfx.laser?.highContrast) ? 'checked' : ''}> Alto contraste</label>
+      <div class="vx-card"><h4>Camada three.quarks (experimental)</h4>
+        <div data-quarks-toggle></div>
+        <p class="hint">Partículas GPU para carga (A), impacto (B), pouso (C) e footstool. Roda AO LADO do VFX atual — comparação A/B sem substituir efeitos aprovados. Edite os efeitos no laboratório VFX · Quarks (portal de testes). Ajuste fino: Ajustes › VFX · three.quarks.</p>
+      </div>
       </div></div>`);
     S.rochas.insertAdjacentHTML('beforeend', `<div class="vx-card vx-wide"><h4>Modelo da pedra</h4>
         <div class="seg wide" role="group" aria-label="Modelo 3D da Rocha">
@@ -169,7 +174,8 @@ export function createVisualPanel({tuning, view, game, $, hud, download}) {
           : 'Ativo: renderizador legado. O novo sistema está em repouso como fallback seguro.';
       }
     };
-    renderModeBox.querySelector('[data-vfx-runtime-btn="legacy"]')?.addEventListener('click', () => {
+        {const qt = S.geral.querySelector('[data-quarks-toggle]');if (qt) {try {qt.append(tuning.controlFor('vfx.quarks.enabled'));} catch (e) {qt.textContent = 'Controle indisponível: ' + e.message;}}}
+renderModeBox.querySelector('[data-vfx-runtime-btn="legacy"]')?.addEventListener('click', () => {
       view.useNewVfx = false;
       updateVfxModeButtons();
     });
@@ -359,6 +365,15 @@ export function createVisualPanel({tuning, view, game, $, hud, download}) {
     const demo = document.createElement('div');demo.className = 'row';
     for (let i = 0; i < 4; i++) {const b = document.createElement('button');b.type = 'button';b.textContent = `Disparar demo ${i + 1}`;b.dataset.demo = i;b.onclick = () => hud.triggerDemo(i);demo.append(b);}
     extraGrid.append(group('Propostas de HUD', 'hud', tuning.sectionControls('HUD'), [demo], false));
+    const passiveDemo = document.createElement('div');passiveDemo.className = 'vx-btns';
+    PASSIVE_ABILITIES.forEach((ability, kind) => {const b = document.createElement('button');b.type = 'button';b.textContent = `▶ ${ability.name}`;b.onclick = () => view.previewPassive(0, kind);passiveDemo.append(b);});
+    const enemyPassive = document.createElement('button');enemyPassive.type = 'button';enemyPassive.textContent = '▶ Prévia do vermelho';enemyPassive.onclick = () => view.previewPassive(1, C.display.passive.enemyAbility);passiveDemo.append(enemyPassive);
+    extraGrid.append(group('Habilidades passivas', 'passive-abilities', tuning.sectionControls('Habilidades passivas'), [passiveDemo], true));
+    // Cenário "Laboratório técnico", HUD "Banco de Células" e consumíveis "Gemas Facetadas" (aprovados em 21/10/2026): só aparência, com alternância para o visual clássico.
+    const hintP = t => Object.assign(document.createElement('p'), {className: 'hint', textContent: t});
+    extraGrid.append(group('Cenário do laboratório', 'scenery', tuning.sectionControls('Cenário do laboratório'), [hintP('0 em “Cenário do laboratório” volta ao visual clássico cinza. As cores, luzes, espessura do piso, divisões do grid e altura das paredes (Ajustes › Visual) e o raio da arena (Ajustes › Mapa) continuam valendo.')], true));
+    extraGrid.append(group('HUD de progressão (Banco de Células)', 'progress', tuning.sectionControls('HUD de progressão (Banco de Células)'), [hintP('Mostra os estágios reais (0 a 4) de Ataque, Defesa, Stamina máxima, Cooldown e Velocidade. Os valores acompanham Mapa › Progressão de estágios e escudo.')], true));
+    extraGrid.append(group('Consumíveis (Gemas Facetadas)', 'consumables', tuning.sectionControls('Consumíveis (Gemas Facetadas)'), [hintP('Só aparência: tipo, posição, coleta e efeito vêm da simulação. Estilo 0 devolve as formas clássicas.')], true));
     extraGrid.append(group('Altura visual (blocos e modelos)', 'grounding', tuning.sectionControls('Altura visual')), group('Indicador da janela C → X', 'cancel-ring', tuning.sectionControls('Indicador da janela C → X'),
       [Object.assign(document.createElement('p'), {className: 'hint', textContent: 'A reativação do tackle durante a esquiva é decidida por TEMPO (início e fim da janela, em Ajustes › X e C). Não há círculo de distância nas regras: este anel só desenha a janela. Ver relatório técnico.'})]));
     const dbg = document.createElement('div');dbg.id = 'vfx-debug';dbg.className = 'report';extraGrid.append(dbg);
@@ -378,7 +393,6 @@ export function createVisualPanel({tuning, view, game, $, hud, download}) {
     unit('Mundo', 'Barreira (Reflect)', body(S.barreira), {id: 'barrier', prefix: 'vfx.barrier.', on: 'vfx.barrier.enabled'});
     unit('Mundo', 'Laser da arena', body(S.laser), {id: 'laser', prefix: 'vfx.laser.', on: 'vfx.laser.enabled'});
     for (const g of [...extraGrid.children]) if (g !== dbgBox && g.classList.contains('fold')) unit('Câmera, tremor e HUD', foldLabel(g), g, {id: g.dataset.group});
-    for (const d of solidBox.querySelectorAll('details')) d.open = true;
     for (const u of units) if (u.el.classList.contains('fold') || u.el.dataset.group) u.el.setOpen?.(true);
     const md = document.createElement('div');md.className = 'vx-md';
     const list = document.createElement('aside');list.className = 'vx-list';

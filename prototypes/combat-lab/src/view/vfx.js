@@ -6,12 +6,12 @@
 // com atlas de texturas procedural, buffers reaproveitados e limite global de partículas (master.maxParticles).
 import * as T from 'three';
 import {clone} from 'three/addons/utils/SkeletonUtils.js';
-import {C} from '../sim/config.js';
+import {C, feintColor} from '../sim/config.js';
 
 const CELLS = {dot: 0, streak: 1, star4: 2, ring: 3, arrowDown: 4, diamond: 5, shard: 6, spark: 7, smoke: 8, shock: 9, star: 10, arrowUp: 11, crack: 12, hex: 13, chunk: 14, arc: 15};
 const MODE = {billboard: 0, ground: 1, axis: 2, plane: 3};
 export const VFX_TYPES = [
-  ['hit', 'Impacto (hit)', ['A · Impacto radial', 'B · Estrela estilizada', 'C · Ondas de choque']],
+  ['hit', 'Impacto (hit)', ['A · Impacto radial', 'B · Estrela estilizada', 'C · Ondas de choque', 'D · Direcional (normal + força real)']],
   ['dodge', 'Speedlines da esquiva', ['A · Rastros direcionais', 'B · Cortes de velocidade', 'C · Fantasmas cinéticos']],
   ['sprint', 'Speedlines do sprint', ['A · Fluxo contínuo', 'B · Trilhas de energia', 'C · Túnel cinético localizado']],
   ['block', 'Bloqueio normal', ['A · Faíscas defensivas', 'B · Escudo translúcido', 'C · Onda de absorção', 'D · Escudo hexagonal']],
@@ -140,7 +140,7 @@ export class VfxSystem {
   }
   get cfg() {return C.vfx;}
   enabled(type) {return !!C.vfx.master.enabled && !!C.vfx[type]?.enabled;}
-  record(type, reason, extra = {}) {if (!C.vfx.master.debugLog) return;this.log.push({t: +(performance.now() / 1000).toFixed(2), effect: type, variant: 'ABC'[C.vfx[type]?.variant ?? 0] ?? '-', reason, ...extra});if (this.log.length > 120) this.log.shift();}
+  record(type, reason, extra = {}) {if (!C.vfx.master.debugLog) return;this.log.push({t: +(performance.now() / 1000).toFixed(2), effect: type, variant: 'ABCD'[C.vfx[type]?.variant ?? 0] ?? '-', reason, ...extra});if (this.log.length > 120) this.log.shift();}
   /** Uma partícula. o: {x,y,z, vx,vy,vz, life, w,h, cell, mode, color, alpha, additive, …}. */
   spawn(o) {
     const total = this.add.p.length + this.norm.p.length;if (total >= C.vfx.master.maxParticles) return;
@@ -169,13 +169,19 @@ export class VfxSystem {
       if (this.seenEvents.has(e)) continue;this.seenEvents.add(e);
       const a = fighters[e.attacker], b = fighters[e.target];if (!a || !b) continue;
       const tag = `evento ${e.result} (passo ${e.tick ?? '?'}: ${e.attacker === 0 ? 'azul' : 'vermelho'} → ${e.target === 0 ? 'azul' : 'vermelho'})`;
-      if (e.result === 'impact') {this.fire('hit', {pos: b.position, n: e.normal, power: e.slam ? 1.5 : 1}, tag);this.shake(e.slam ? 'shakeGround' : 'shakeHit', e.normal, e.slam ? 1.4 : 1, tag);}
+      if (e.result === 'impact') {this.fire('hit', {pos: b.position, n: e.normal, power: e.slam ? 1.5 : 1, damage: e.damage, launch: e.launch}, tag);this.shake(e.slam ? 'shakeGround' : 'shakeHit', e.normal, e.slam ? 1.4 : 1, tag);}
       else if (e.result === 'wallSplat') {this.fire('hit', {pos: b.position, n: e.normal, power: 1.4}, tag);this.shake('shakeClash', e.normal, 1, tag);}
+      else if (e.result === 'footstool') {const n = e.normal ?? {x: 0, z: 0};this.fire('hit', {pos: {x: b.position.x, z: b.position.z}, n, power: 0.7}, tag);this.shake('shakeHit', n, 0.6, tag);}
       else if (e.result === 'partial') {this.fire('block', {pos: b.position, n: e.normal, power: 1}, tag);this.shake('shakeGuard', e.normal, 1, tag);}
       else if (e.result === 'perfect') {this.fire('perfect', {pos: b.position, n: e.normal, power: 1, fighters}, tag);this.shake('shakePerfect', e.normal, 1, tag);}
       else if (e.result === 'clash' && e.attacker === 0) {const mid = {x: (a.position.x + b.position.x) / 2, z: (a.position.z + b.position.z) / 2};this.fire('clash', {pos: mid, n: e.normal, power: 1}, tag);this.shake('shakeClash', e.normal, 1, tag);}
     }
     fighters.forEach((f, i) => {
+      // Impacto do meteor slam no chão: sempre que o mergulho toca o chão, acertando ou não.
+      if (f.action?.slam && f.action.groundHit && !(this.slamSeen ??= new WeakSet()).has(f.action)) {
+        this.slamSeen.add(f.action);const tag = 'impacto do meteor slam no chão';
+        this.fire('ground', {pos: {x: f.position.x, z: f.position.z}, power: C.rules.slamImpactScale}, tag);this.shake('shakeGround', null, C.rules.slamImpactShake, tag);
+      }
       // Colisão real com o solo depois do voo (evento físico da simulação, não da animação).
       const L = f.lastLanding;
       if (L && this.landings[i] !== undefined && L.n !== this.landings[i]) {
@@ -185,13 +191,14 @@ export class VfxSystem {
       }
       this.landings[i] = L?.n ?? 0;
       // Finta (brake slide): poeira nos pés quando o lutador derrapa para cancelar o tackle.
-      const B = f.lastBrake;
-      if (B && this.brakes[i] !== undefined && B.n !== this.brakes[i]) this.fire('ground', {pos: {x: B.x, z: B.z}, power: Math.min(1.4, .5 + B.speed / 8)}, `finta: derrapagem (${B.speed.toFixed(1)} m/s)`);
-      this.brakes[i] = B?.n ?? 0;
       const prev = this.prevPos[i] ?? {...f.position};const dx = f.position.x - prev.x, dz = f.position.z - prev.z;this.prevPos[i] = {...f.position};
       if (dt <= 0) return;
-      const alt = (f.flight?.y ?? 0) + (f.vaultHeight ?? 0);
-      if (f.action?.kind === 'dodge') this.stream('dodge', f, dt, {alt, dx, dz, i});
+      const alt = (f.flight?.y ?? f.groundY ?? 0) + (f.vaultHeight ?? 0);
+      if (f.action?.kind === 'dodge') {
+        const R = C.rules, tint = !!f.action.feint && !!R.feintFxOn, d = C.vfx.dodge, saved = tint ? {...d} : null;
+        if (tint) {d.color = feintColor(R.feintFxColor);d.intensity = (d.intensity ?? 1) * R.feintFxIntensity;d.length = (d.length ?? 1) * R.feintFxSize;d.width = (d.width ?? 1) * R.feintFxSize;}
+        try {this.stream('dodge', f, dt, {alt, dx, dz, i});} finally {if (tint) Object.assign(d, saved);}
+      }
       else this.emit.delete(`dodge${i}`);
       if (f.sprinting || (this.previewUntil?.sprint > this.time && i === 0)) this.stream('sprint', f, dt, {alt, dx, dz, i});else this.emit.delete('sprint' + i);
       const ex = C.vfx.exhaust, exTarget = ex.target === 1 || (ex.target === 0 ? i === 1 : i === 0);
@@ -212,7 +219,7 @@ export class VfxSystem {
     if (!this.enabled(type)) {this.record(type, `${reason} · desligado`);return;}
     this.record(type, reason);const v = C.vfx[type].variant | 0;this.emitting = type;this.stats.firesByType[type] = (this.stats.firesByType[type] ?? 0) + 1;
     const handlers = {
-      hit: [this.hitA, this.hitB, this.hitC],
+      hit: [this.hitA, this.hitB, this.hitC, this.hitD],
       block: [this.blockA, this.blockB, this.blockC, this.blockD],
       perfect: [this.perfectA, this.perfectB, this.perfectC],
       ground: [this.groundA, this.groundB, this.groundC, this.groundD],
@@ -283,6 +290,37 @@ export class VfxSystem {
     const cnt = Math.round(c.count * .5 * I);
     for (let k = 0; k < cnt; k++) {const a = k / cnt * Math.PI * 2;this.spawn({x: pos.x, y, z: pos.z, vx: Math.cos(a) * c.speed * .8, vy: Math.sin(a) * c.speed * .3, vz: Math.sin(a) * c.speed * .8, drag: 6, life: c.duration * .8, w: .07 * c.size, cell: 'dot', color: 0xffffff, glow: c.glow, alpha: c.opacity, fade: c.fade});}
     void n;
+  }
+  hitD(c, {pos, n, power = 1, damage, launch}) { // Direcional: tudo nasce da normal real do golpe; a força vem do dano e do lançamento reais.
+    const nx = n?.x ?? 0, nz = n?.z ?? 0, len = Math.hypot(nx, nz), d = len > 1e-6 ? {x: nx / len, z: nz / len} : {x: 0, z: 1}, side = {x: d.z, z: -d.x}, y = .8;
+    // Força 0,6–1,8: dano relativo ao ataque padrão + empurrão horizontal relativo ao lançamento padrão (byDamage 0 = sempre 1×).
+    const real = (damage == null ? 1 : .55 + .45 * Math.min(2, damage / Math.max(1, C.test.attack))) * (launch ? .75 + .25 * Math.min(2, launch.horizontal / Math.max(1, C.rules.launchHorizontal)) : 1);
+    const S = c.intensity * power * (1 + (real - 1) * c.byDamage), cnt = Math.max(3, Math.round(c.count * S));
+    const hot = c.color2, ahead = {x: pos.x + d.x * .35 * c.size, z: pos.z + d.z * .35 * c.size};
+    // Flash curto: núcleo quente + lâmina de luz alongada na direção do golpe.
+    this.spawn({x: pos.x, y, z: pos.z, life: c.duration * .32, w: .85 * c.size * S, cell: 'dot', color: hot, glow: c.glow * 1.5, alpha: c.opacity, fade: c.fade, grow: .5});
+    this.spawn({x: pos.x, y, z: pos.z, life: c.duration * .4, w: .16 * c.size, h: 1.9 * c.size * S, cell: 'streak', mode: 'axis', ax: d.x, ay: 0, az: d.z, color: hot, glow: c.glow * 1.3, alpha: c.opacity, fade: c.fade, stretchCurve: k => 1.2 - k * .9});
+    // Anel de pressão perpendicular ao golpe (plano vertical com a normal como eixo) + anel rente ao chão.
+    this.spawn({x: ahead.x, y, z: ahead.z, life: c.duration * .65, w: .3 * c.size, mode: 'plane', ax: d.x, ay: 0, az: d.z, cell: 'ring', color: c.color, glow: c.glow, alpha: c.opacity * .85, fade: c.fade, sizeCurve: k => 1 + ease.outCubic(k) * c.speed * .45 * S});
+    this.spawn({x: pos.x, y: .03, z: pos.z, life: c.duration * .85, w: .4 * c.size, mode: 'ground', cell: 'ring', color: c.color, glow: c.glow * .7, alpha: c.opacity * .55, fade: c.fade, sizeCurve: k => 1 + ease.outCubic(k) * c.speed * .5 * S});
+    // Cone de fagulhas: sai para a frente do golpe (atravessando o alvo) com abertura ajustável; menos para trás (respingo).
+    for (let k = 0; k < cnt; k++) {
+      const fwd = k % 4 !== 3, a = rand(-1, 1) * c.cone, e = rand(-.15, .45), dir = fwd ? {x: d.x * Math.cos(a) + side.x * Math.sin(a), z: d.z * Math.cos(a) + side.z * Math.sin(a)} : {x: -d.x * Math.cos(a * 1.8) + side.x * Math.sin(a * 1.8), z: -d.z * Math.cos(a * 1.8) + side.z * Math.sin(a * 1.8)};
+      const sp = c.speed * rand(.6, 1.25) * S * (fwd ? 1 : .55), v = {x: dir.x * sp, y: e * sp * .6, z: dir.z * sp};
+      this.spawn({x: pos.x, y, z: pos.z, vx: v.x, vy: v.y, vz: v.z, drag: 4.5, life: c.duration * rand(.55, 1), w: .06 * c.size, h: .5 * c.size, cell: 'streak', mode: 'axis', ax: dir.x, ay: e * .6, az: dir.z, color: k % 3 ? c.color : hot, glow: c.glow, alpha: c.opacity, fade: c.fade, stretchCurve: k2 => 1.4 - k2});
+      if (k % 2 === 0) this.spawn({x: pos.x, y, z: pos.z, vx: v.x * .55, vy: v.y * .55 + 1.2, vz: v.z * .55, gravity: 10, life: c.duration * rand(1, 1.5), w: .075 * c.size, cell: 'spark', color: c.color, glow: c.glow, alpha: c.opacity, fade: c.fade, floor: .03});
+    }
+    // Detritos: lascas que quicam no chão (não aditivas, para terem corpo).
+    const nDeb = Math.round(5 * c.debris * S);
+    for (let k = 0; k < nDeb; k++) {
+      const a = rand(-1, 1) * c.cone * 1.3, sp = c.speed * rand(.35, .8) * S;
+      this.spawn({x: pos.x, y: y - .1, z: pos.z, vx: (d.x * Math.cos(a) + side.x * Math.sin(a)) * sp, vy: rand(1.5, 4.5) * S, vz: (d.z * Math.cos(a) + side.z * Math.sin(a)) * sp, gravity: 14, drag: 1.2, floor: .03, life: c.duration * rand(1.3, 2.2), w: rand(.06, .13) * c.size, cell: k % 2 ? 'chunk' : 'shard', color: 0xb7a58e, glow: .8, alpha: c.opacity, fade: 1.2, rot: rand(0, 6), spin: rand(-12, 12), additive: false});
+    }
+    // Poeira rente ao chão, empurrada no sentido do golpe.
+    const nDust = Math.round(4 * c.dust * S);
+    for (let k = 0; k < nDust; k++) this.spawn({x: pos.x, y: .12, z: pos.z, vx: d.x * rand(.6, 1.6) + side.x * rand(-1, 1), vy: rand(.2, .7), vz: d.z * rand(.6, 1.6) + side.z * rand(-1, 1), drag: 2.4, life: c.duration * rand(1.6, 2.6), w: rand(.35, .6) * c.size, grow: 1.4, cell: 'smoke', color: 0xd9d2c4, glow: .9, alpha: c.opacity * .4, fade: 1.4, rot: rand(0, 6), spin: rand(-1.5, 1.5), additive: false});
+    // Rachadura marcada no chão só em golpes fortes (força ≥ 1,15).
+    if (c.crack > 0 && S >= 1.15) this.spawn({x: pos.x, y: .025, z: pos.z, life: c.duration * 3.2, w: .9 * c.size * Math.min(1.6, S) * c.crack, mode: 'ground', cell: 'crack', rot: Math.atan2(d.x, d.z), color: 0xffd9a0, glow: .7, alpha: c.opacity * .5, fade: 2, additive: false});
   }
   // ---------- DODGE ----------
   dodgeA(c, f, {alt}) { // Rastros direcionais longos atrás do personagem, na direção real da esquiva.

@@ -19,7 +19,7 @@ import {predictProjectileTrajectory} from './prediction.js';
 export const LEVEL_TICKS = {1: 30, 2: 240, 3: 480};
 export const REFLECT_TICKS = {1: 180, 2: 240, 3: 480};
 
-const altOf = (/** @type {any} */ f) => (f.flight?.y ?? 0) + (f.vaultHeight ?? 0);
+const altOf = (/** @type {any} */ f) => (f.flight?.y ?? f.groundY ?? 0) + (f.vaultHeight ?? 0);
 
 /**
  * Retorna o perfil tático do movimento com base em seus metadados.

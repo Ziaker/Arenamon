@@ -40,19 +40,21 @@ try {
   const dialogs = [];page.on('dialog', d => {dialogs.push(d.type());(d.type() === 'beforeunload' && page.__acceptUnload) || (d.type() === 'confirm' && page.__acceptConfirm) ? d.accept() : d.dismiss();});
   await page.context().setOffline(true);
   const url = pathToFileURL(root + 'dist/arenamon-combate-laboratorio.html').href;
-  await page.goto(url);await page.waitForFunction(() => window.__lab);
+  await page.goto(url + (url.includes('?') ? '&' : '?') + 'fabrica=1');await page.waitForFunction(() => window.__lab);
   const L = fn => page.evaluate(fn);
   // Abre uma aba do painel sem alternar (clicar na aba já aberta a recolhe).
   const openTab = t => page.evaluate(t => {const p = document.getElementById('panel');if (p.hidden || p.dataset.tool !== t) document.querySelector(`[data-tool="${t}"]`).click();}, t);
+  // O botão de IA do jogador ficou no popup de Ferramentas: abre o popup antes de clicar (regressão de UI).
+  const clickAutoplay = async () => {await page.evaluate(() => {const p = document.getElementById('tools-pop');if (p.hidden) document.getElementById('tools-toggle').click();});await page.click('#arena-autoplay-toggle');};
   assert.equal(await L(() => window.__lab.game.phase), 'menu');assert.equal(await page.isVisible('#menu'), true);
   step('abre offline no menu, sem erros');
   // IA tática: padrão do adversário e da IA do jogador; estilo sorteado aparece nos dados ao vivo.
   assert.equal(await page.inputValue('#mode'), 'tactical');assert.equal(await page.inputValue('#player-mode'), 'tactical');
-  await page.click('#start-center');await page.click('#arena-autoplay-toggle');await page.waitForTimeout(1500);
+  await page.click('#start-center');await clickAutoplay();await page.waitForTimeout(1500);
   const live = await L(() => ({style: window.__lab.game.brain.t?.style?.label, blue: window.__lab.game.playerBrain.t?.style?.label, ticks: window.__lab.game.tick}));
   assert.ok(live.style && live.blue && live.ticks > 100, JSON.stringify(live));
   await page.click('[data-tool="overlays"]');assert.match(await page.textContent('#live-data'), new RegExp(`Estilo da IA[\\s\\S]*${live.blue}[\\s\\S]*${live.style}`));
-  await page.click('#arena-autoplay-toggle');await L(() => {window.__lab.togglePause(true);window.__lab.tuning.resetAll();window.__lab.tuning.markSaved('teste');});
+  await clickAutoplay();await L(() => {window.__lab.togglePause(true);window.__lab.tuning.resetAll();window.__lab.tuning.markSaved('teste');});
   step(`IA tática por padrão: estilos sorteados “${live.blue}” (azul) × “${live.style}” (vermelho), visíveis nos dados ao vivo`);
 
   // ---------- 6/10. Ajustador ----------
@@ -60,6 +62,7 @@ try {
   assert.match(await page.textContent('#tune-counter'), /de \d+ · \d+ ≠ jogo/);
   // Aba “X e C”: parâmetros independentes da esquiva, do tackle e do cancelamento.
   assert.match(await page.locator('#tune-tabs [role=tab]').first().textContent(), /^X e C · \d+$/);
+  await page.evaluate(() => document.querySelectorAll('.fold-btn[aria-expanded="false"]').forEach(b => b.click()));
   for (const id of ['#tune-actions-dodge-duration', '#tune-actions-tackle-duration', '#tune-actions-cancel-windowStart', '#tune-actions-cancel-invulnerability', '#tune-actions-buffer-window']) assert.ok(await page.isVisible(id), id);
   assert.match(await page.textContent('#tune-list'), /Esquiva \(C\)[\s\S]*Tackle \(X\)[\s\S]*Cancelamento C → X/);
   await page.locator('#tune-actions-tackle-duration').fill('0.5');await page.locator('#tune-actions-tackle-duration').dispatchEvent('change');
@@ -67,34 +70,38 @@ try {
   await L(() => window.__lab.tuning.undo());
   await page.fill('#tune-search', 'gravidade');assert.ok(await page.locator('.tune-control').count() >= 1);
   await page.fill('#tune-search', '');await page.click('[data-filter="experimental"]');const exp = await page.locator('#tune-list .tune-control').count();assert.ok(exp >= 1, `≠ jogo: ${exp}`);
+  const arenaBefore = await L(() => window.__lab.C.test.arenaHalf);
   const arena = page.locator('#tune-test-arenaHalf');await arena.focus();await page.keyboard.press('ArrowLeft');
-  assert.equal(await L(() => window.__lab.C.test.arenaHalf), 15);assert.equal(await page.getAttribute('#tune-state', 'data-state'), 'dirty');
-  await page.click('#tune-undo');assert.equal(await L(() => window.__lab.C.test.arenaHalf), 16);await page.click('#tune-redo');assert.equal(await L(() => window.__lab.C.test.arenaHalf), 15);
+  const arenaAfter = await L(() => window.__lab.C.test.arenaHalf);
+  assert.ok(arenaAfter < arenaBefore, `seta esquerda reduz a arena (${arenaBefore} → ${arenaAfter})`);
+  assert.equal(await page.getAttribute('#tune-state', 'data-state'), 'dirty');
+  await page.click('#tune-undo');assert.equal(await L(() => window.__lab.C.test.arenaHalf), arenaBefore);await page.click('#tune-redo');assert.equal(await L(() => window.__lab.C.test.arenaHalf), arenaAfter);
   // “= jogo” usa o valor do config.ts.
-  await page.locator('.tune-control', {has: page.locator('#tune-test-speed')}).getByRole('button', {name: '= jogo'}).click();
-  assert.equal(await L(() => window.__lab.C.test.speed), 4);
-  await page.click('[data-filter="changed"]');assert.equal(await page.locator('.tune-control.changed').count(), 2);
+  // (com a calibração v8 o config.ts tem velocidade 4,8 = fábrica do laboratório; o que ainda difere nesta aba é a arena: laboratório 10,4 × jogo 16.)
+  await page.locator('.tune-control', {has: page.locator('#tune-test-arenaHalf')}).getByRole('button', {name: '= jogo'}).click();
+  assert.equal(await L(() => window.__lab.C.test.arenaHalf), 16);
+  await page.click('[data-filter="changed"]');assert.equal(await page.locator('.tune-control.changed').count(), 1);   // só a arena (a velocidade do config.ts agora é igual à de fábrica)
   await page.click('[data-filter="all"]');
   // Presets e comparação.
   await page.locator('details.save-preset summary').click();await page.fill('#preset-name', 'Teste A');await page.click('#preset-save');assert.equal(await page.getAttribute('#tune-state', 'data-state'), 'saved');
   await page.selectOption('#preset-a', 'Teste A');await page.selectOption('#preset-b', '__lab');await page.click('#preset-compare');
-  assert.equal(await page.locator('#preset-diff tr').count(), 3);
+  assert.equal(await page.locator('#preset-diff tr').count(), 2);
   await page.selectOption('#preset-b', '__game');await page.click('#preset-compare');assert.ok(await page.locator('#preset-diff tr').count() > 3);
   step('ajustador: busca, filtros (≠ jogo, alterados), desfazer/refazer, “= jogo”, presets e comparação');
 
   // ---------- 10. Exportação, importação e relatório ----------
   await page.click('[data-tool="export"]');
-  assert.match(await page.textContent('#game-diff'), /Metade do lado da arena/);
+  assert.match(await page.textContent('#game-diff'), /Aceleração/);   // a arena foi igualada ao jogo acima; a aceleração (laboratório 26 × jogo 40) ainda difere
   let pending = page.waitForEvent('download');await page.click('#export-json');const json = JSON.parse(await readFile(await (await pending).path(), 'utf8'));
-  assert.equal(json.schema, 'arenamon-tuning');assert.equal(json.version, 9);assert.ok(json.values.vfx?.hit && json.values.display?.shadow && json.values.actions.sprint);assert.equal(json.homologation.summary.total, 17);assert.ok(json.values.actions.dodge && json.values.actions.tackle && json.values.actions.cancel);assert.equal(json.values.test.arenaHalf, 15);
-  assert.ok(json.differencesFromGame.some(d => d.path === 'test.arenaHalf' && d.game === 10 && d.lab === 15));assert.ok(!json.differencesFromGame.some(d => d.path === 'test.speed'));
+  assert.equal(json.schema, 'arenamon-tuning');assert.equal(json.version, 9);assert.ok(json.values.vfx?.hit && json.values.display?.shadow && json.values.actions.sprint);assert.equal(json.homologation.summary.total, 17);assert.ok(json.values.actions.dodge && json.values.actions.tackle && json.values.actions.cancel);assert.equal(json.values.test.arenaHalf, 16);   // igualada ao jogo («= jogo»)
+  assert.ok(json.differencesFromGame.some(d => d.path === 'locomotion.acceleration' && d.game === 40 && d.lab === 26) && !json.differencesFromGame.some(d => d.path === 'test.arenaHalf'));assert.ok(!json.differencesFromGame.some(d => d.path === 'test.speed'));
   // Importar um JSON v6 (formato antigo) com valor inválido: rejeitado sem aplicar nada.
   await page.fill('#import-text', JSON.stringify({schema: 'arenamon-tuning-v5', version: 6, values: {rules: {dodge: .5, launchUp: 999}}}));await page.click('#import-preview');
   assert.match(await page.textContent('#import-result'), /fora da faixa/);assert.equal(await L(() => window.__lab.C.actions.dodge.duration), .4);
   await page.fill('#import-text', JSON.stringify({schema: 'arenamon-tuning-v5', version: 6, values: {rules: {dodge: .5}, test: {arenaHalf: 16, speed: 4.8}}}));await page.click('#import-preview');
   // rules.dodge (v6) vira as durações de C e de X, com relatório de migração.
   const importText = await page.textContent('#import-result');
-  assert.match(importText, /Migração de formato antigo/);assert.match(importText, /rules\.dodge/);assert.match(importText, /actions\.tackle\.duration/);assert.match(importText, /4 parâmetros mudariam/);
+  assert.match(importText, /Migração de formato antigo/);assert.match(importText, /rules\.dodge/);assert.match(importText, /actions\.tackle\.duration/);assert.match(importText, /2 parâmetros mudariam/);   // arena (16) e velocidade (4,8) do arquivo já são os valores atuais; mudam só as durações de C e de X
   await page.click('#import-apply');
   assert.deepEqual(await L(() => [window.__lab.C.actions.dodge.duration, window.__lab.C.actions.tackle.duration, window.__lab.C.test.arenaHalf, window.__lab.C.test.speed]), [.5, .5, 16, 4.8]);
   await L(() => window.__lab.tuning.undo());assert.equal(await L(() => window.__lab.C.actions.dodge.duration), .4);
@@ -120,7 +127,7 @@ try {
 
   // ---------- 5. Cenários ----------
   await page.click('[data-tool="scenarios"]');await page.click('#scenario-all');
-  assert.match(await page.textContent('#scenario-report'), /8 de 8 cenários aprovados/);
+  assert.match(await page.textContent('#scenario-report'), /(\d+) de \1 cenários aprovados/);
   await page.locator('.scenario[data-id="clash"] button').click();
   await page.waitForFunction(() => !window.__lab.ui.scenario && window.__lab.ui.lastResult?.id === 'clash', null, {timeout: 15000});
   assert.equal(await L(() => window.__lab.ui.lastResult.ok), true);assert.equal(await page.getAttribute('.scenario[data-id="clash"]', 'data-result'), 'ok');
@@ -214,12 +221,12 @@ try {
   // ---------- Gravação e reprodução de partida ----------
   // O workspace restaura a última configuração de partida (o azul ficou em “aleatório” antes do recarregamento): fixa o modo tático.
   await openTab('controls');await openTab('match');await page.selectOption('#mode', 'offensive');await page.selectOption('#player-mode', 'tactical');
-  await page.click('#arena-autoplay-toggle');await page.click('#start');await page.waitForTimeout(2500);
+  await clickAutoplay();await page.click('#start');await page.waitForTimeout(2500);
   const recorded = await L(() => {window.__lab.togglePause(true);const g = window.__lab.game;return {ticks: window.__labRecording.matchRec.ticks, tick: g.tick, fighters: JSON.stringify(g.fighters)};});
   assert.ok(recorded.ticks > 100 && recorded.ticks === recorded.tick, `gravou ${recorded.ticks} passos`);
   pending = page.waitForEvent('download');await page.click('#rec-save');const recPath = await (await pending).path();
   const recJson = JSON.parse(await readFile(recPath, 'utf8'));assert.equal(recJson.schema, 'arenamon-match');assert.equal(recJson.ticks, recorded.ticks);assert.ok(recJson.commands.length <= recorded.ticks, `comandos comprimidos, nunca expandidos (a IA tática raramente repete o mesmo comando em passos seguidos, então “<” dependia da semente) (${recJson.commands.length} grupos para ${recorded.ticks} passos; modo ${await page.inputValue('#player-mode')}; ${JSON.stringify(recJson.commands.slice(0, 3)).slice(0, 400)})`);
-  await page.click('#arena-autoplay-toggle');await L(() => window.__lab.tuning.commit([['rules.launchUp', 9]], 'muda algo antes de reproduzir'));
+  await clickAutoplay();await L(() => window.__lab.tuning.commit([['rules.launchUp', 9]], 'muda algo antes de reproduzir'));
   await page.selectOption('#rec-values', 'recorded');await page.setInputFiles('#rec-file', recPath);
   await page.waitForFunction(() => window.__labRecording.ui.playback?.ended, null, {timeout: 20000});
   const replayed = await L(() => ({tick: window.__lab.game.tick, fighters: JSON.stringify(window.__lab.game.fighters), launchUp: window.__lab.C.rules.launchUp}));
@@ -229,7 +236,7 @@ try {
   // Comparação A × B com a gravação e com os cenários.
   await page.click('[data-tool="scenarios"]');await page.selectOption('#comp-a', '__current');await page.selectOption('#comp-b', '__game');
   await page.selectOption('#comp-source', 'match');await page.click('#comp-run');assert.match(await page.textContent('#comp-report'), /passos gravados[\s\S]*Vencedor/);
-  await page.selectOption('#comp-source', 'scenarios');await page.click('#comp-run');assert.equal(await page.locator('#comp-report tr').count(), 9);
+  await page.selectOption('#comp-source', 'scenarios');await page.click('#comp-run');assert.ok(await page.locator('#comp-report tr').count() >= 15);
   // Proposta de patch: X e C com durações diferentes = conflito; iguais = muda rules.dodge.
   await L(() => window.__lab.tuning.commit([['actions.dodge.duration', .5]], 'teste patch'));await page.click('[data-tool="export"]');await page.click('#patch-generate');
   assert.match(await page.textContent('#patch-result'), /Conflitos[\s\S]*rules\.dodge/);
@@ -240,8 +247,8 @@ try {
   step(`gravação de partida: ${recorded.ticks} passos IA × IA salvos (comprimidos em ${recJson.commands.length} trechos) e reproduzidos com estado final idêntico; comparação A × B (gravação e cenários) e proposta de patch do config.ts com conflito X/C`);
 
   // ---------- 2/3. Personagem do Studio e eventos ----------
-  await page.click('[data-tool="characters"]');await page.locator('.char-slot').nth(0).locator('input[type=file]').setInputFiles(out + 'personagem-studio.glb');
-  await page.waitForFunction(() => window.__lab.ui.characters[0]);await page.locator('.char-slot').nth(1).getByRole('button', {name: 'Usar o do azul'}).click();
+  await page.evaluate(() => document.querySelector('[data-tool="characters"]').click());await page.locator('.char-slot').nth(0).locator('input[type=file]').setInputFiles(out + 'personagem-studio.glb');
+  await page.waitForFunction(() => window.__lab.ui.characters[0]);await page.evaluate(() => window.__lab.charPanel.selectFighter(1));await page.locator('.char-slot').nth(1).getByRole('button', {name: 'Usar o do azul'}).click();await page.evaluate(() => window.__lab.charPanel.selectFighter(0));
   const ch = await L(() => {const c = window.__lab.ui.characters[0];return {mapping: c.mapping, inScene: !!c.root.parent, blockVisible: window.__lab.view.meshes[0].visible};});
   assert.equal(ch.inScene, true);assert.equal(ch.blockVisible, false);assert.equal(ch.mapping.tackle, 2);assert.equal(ch.mapping.idle, 0);
   const studioText = await page.textContent('#studio-events');assert.match(studioText, /Invulnerabilidade0–200 ms0–200 ms/);assert.match(studioText, /≠ Hitbox ativa80–320 ms0–400 ms/);
@@ -252,7 +259,8 @@ try {
   await page.waitForTimeout(400);await page.screenshot({path: out + 'personagens.png'});
   step('personagens do Studio: mapa de ações, animação sincronizada com o tackle, cópia tingida no vermelho e eventos Studio × jogo');
   // Velocidade por animação e durações das animações como regras.
-  await page.click('[data-tool="characters"]');
+  await page.evaluate(() => document.querySelector('[data-tool="characters"]').click());
+  await page.evaluate(() => document.querySelectorAll('#chars-drawer details').forEach(d=>d.open=true));
   // Velocidade por estado fica no painel “▸” de cada estado.
   for (const a of ['idle', 'tackle']) await page.evaluate(a => {const b = document.querySelectorAll('.char-slot')[0].querySelector(`[data-action="${a}"] [data-more]`);if (b.getAttribute('aria-expanded') !== 'true') b.click();}, a);
   const idleRange = page.locator('.char-slot').nth(0).locator('[data-action="idle"] input[type=range]');
@@ -269,7 +277,7 @@ try {
   const sync = await L(() => {const c = window.__lab.ui.characters[0], f = window.__lab.game.fighters[0];return {t: c.current.action.time, expected: f.action.elapsed / window.__lab.C.actions.tackle.duration * c.current.action.getClip().duration};});
   assert.ok(Math.abs(sync.t - sync.expected) < .15, 'clip inteiro dentro da ação');
   await L(() => window.__lab.tuning.undo());assert.equal(await L(() => window.__lab.C.actions.tackle.duration), 3);
-  await page.click('[data-tool="characters"]');await page.uncheck('#char-sync');await L(() => {window.__lab.tuning.resetAll();});
+  await page.evaluate(() => document.querySelector('[data-tool="characters"]').click());await page.uncheck('#char-sync');await L(() => {window.__lab.tuning.resetAll();});
   step('animações: velocidade por ação e geral; durações das animações definem as durações de X e C (janelas nunca vêm do GLB) (com desfazer)');
 
   // Compatibilidade e layout.

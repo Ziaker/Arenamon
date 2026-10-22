@@ -1,13 +1,14 @@
 // VFX sólidos 3D: volume real, formas distintas por opção, nascimento nos pés, direção/intensidade, fade, teto de objetos,
 // reutilização de geometrias/materiais e coerência do seletor (C.vfx) com o que é disparado. Roda em Node, sem navegador.
+// Este teste caracteriza a mecânica nos valores de FÁBRICA do laboratório (factoryDefaults); a base de calibração v8 é coberta por calibration-base.test.mjs e pelos testes de colisão/ambiente.
 import assert from 'node:assert/strict';
 import * as T from 'three';
 import {SolidFx, SOLID_FAMILIES, SOLID_KEYS} from '../src/view/solid-fx.js';
-import {C, resetConfig, vfxDefaults} from '../src/sim/config.js';
+import {C, resetConfig, factoryDefaults, vfxDefaults} from '../src/sim/config.js';
 import {createMockTuningFor} from './solid-tuning-helper.mjs';
 
 let passed = 0;
-const test = (name, fn) => { resetConfig(); fn(); passed++; console.log('✓', name); };
+const test = (name, fn) => { resetConfig(factoryDefaults()); fn(); passed++; console.log('✓', name); };
 const mk = () => new SolidFx(new T.Scene());
 const fighter = (x = 0, z = 0, extra = {}) => ({id: 0, position: {x, y: 0, z}, state: 'idle', hp: 100, ...extra});
 const sig = fx => [...new Set(fx.all.map(p => p.shape + ':' + p.mat))].sort().join(',');

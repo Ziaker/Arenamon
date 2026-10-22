@@ -56,10 +56,13 @@ function prepare(seq) {
   const g = new Game();g.brain.seed = seq.seed;g.playerBrain.seed = seq.seed + 7919;g.brain.reset();g.playerBrain.reset();
   g.profile = seq.profile || 'balanced';g.enemyProfile = seq.enemyProfile || 'balanced';g.mode = 'inactive';
   if (seq.initial) {
-    g.load(seq.initial);g.phase = 'playing';g.tick = 0;g.events = [];g.hitstop = seq.initial.hitstop ?? 0;
+    g.load(seq.initial);g.phase = 'playing';g.tick = seq.initial.tick ?? 0;g.events = [];g.hitstop = seq.initial.hitstop ?? 0;   // mantém o relógio absoluto do save: a reexecução é um replay fiel (lastDamage*/Regenerator e ticks de evento coincidem com a partida original)
     for (const f of g.fighters) {const p = C.profiles[f.id ? g.enemyProfile : g.profile];if (p) f.attributes = {...p};}
   } else {
     g.reset({positions: seq.positions.map(p => vec(p.x, p.z))});
+    // Medição de locomoção em condições controladas: sem objetos do mundo no caminho
+    // (replay de save carrega o mapa salvo e não passa por aqui).
+    g.mapState.platforms = [];g.mapState.obstacles = [];g.mapState.destructibles = [];g.mapState.items = [];
     g.fighters.forEach((f, i) => {const a = seq.facing?.[i];if (a !== undefined) {f.facing = a;f.visualFacing = a;f.combatHeading = a;f.faceGoal = a;}});
   }
   return g;

@@ -1,0 +1,51 @@
+{
+  "offline": true,
+  "fire": {
+    "pillarMeshes": [
+      55,
+      83,
+      48
+    ],
+    "fireballMeshes": [
+      47,
+      64,
+      39
+    ],
+    "explosionMeshes": [
+      56,
+      84,
+      43
+    ],
+    "emberAuraMeshes": [
+      47,
+      74,
+      37
+    ],
+    "opacityTest": {
+      "opacity": 0.7,
+      "fadeStart": 0.35,
+      "fadeEnd": 0.85,
+      "opStart": 0.7,
+      "opMid": 0.4343012083200572,
+      "opEnd": 0.13999999999999999,
+      "schema": "arenamon-vfx-elemental-v3",
+      "activeElement": "fire"
+    }
+  },
+  "flying": {
+    "tornadoMeshes": [
+      68,
+      69,
+      72
+    ]
+  },
+  "psychic": {
+    "summonMeshes": [
+      19,
+      20,
+      21
+    ]
+  },
+  "errors": [],
+  "external": []
+}

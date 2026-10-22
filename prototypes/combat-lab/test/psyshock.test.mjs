@@ -1,8 +1,9 @@
 // Fase 3 (plano de Reflect/Psyshock) — Psyshock, sem navegador. Cobre: M1.4–M1.7, M4.7–M4.9, M5.5, M6.3–M6.4, M8.1–M8.3, M9.1–M9.3,
 // M10.1–M10.3, M11.1–M11.2, M12.1–M12.6, M26s.5–M26s.7, M27.3, M27.5, M29.3, M30.1–M30.3, M30.8 e o contrato M28.4. As pedras nascem
 // do fluxo real (segurar → soltar o slot 2); Reflect e explosões de teste vêm de entidades montadas aqui.
+// Este teste caracteriza a mecânica nos valores de FÁBRICA do laboratório (factoryDefaults); a base de calibração v8 é coberta por calibration-base.test.mjs e pelos testes de colisão/ambiente.
 import assert from 'node:assert/strict';
-import {C, defaults, resetConfig} from '../src/sim/config.js';
+import {C, factoryDefaults, resetConfig} from '../src/sim/config.js';
 import {Game} from '../src/sim/game.js';
 import {emptyCommand} from '../src/sim/entity.js';
 import {vec, length, angleOf} from '../src/sim/math.js';
@@ -21,7 +22,7 @@ const near = (a, b, e = 1e-6) => assert.ok(Math.abs(a - b) < e, `${a} ≠ ${b}`)
 registerStandardMoves();
 const events = [];
 function arena({blue = vec(0, -3), red = vec(0, 3)} = {}) {
-  resetConfig(defaults());events.length = 0;
+  resetConfig(factoryDefaults());events.length = 0;
   const g = new Game();g.mode = 'inactive';g.reset({positions: [blue, red]});g.fighters[0].facing = 0;g.fighters[1].facing = Math.PI;g.setLoadout(0, ['reflect', 'psyshock']);return g;
 }
 const step = (g, c0 = cmd(), c1 = cmd()) => {g.step(c0, c1);events.push(...g.lastStepEvents);return g.lastStepEvents;};
@@ -179,5 +180,5 @@ ok('M28.4/D1: parâmetros capturados ao apertar; pedras em voo não leem mais os
 }
 ok('save/load com pedras em voo (homing e execução em curso) reproduz a mesma partida');
 
-clearMoves();clearEffects();resetConfig(defaults());
+clearMoves();clearEffects();resetConfig(factoryDefaults());
 console.log(`\n${n} verificações do Psyshock (Fase 3) aprovadas.`);

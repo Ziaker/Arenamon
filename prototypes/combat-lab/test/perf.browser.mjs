@@ -19,10 +19,10 @@ const browser = await chromium.launch({...BROWSER, headless: !HEADED});
 try {
   const page = await browser.newPage({viewport: {width: 1500, height: 920}, acceptDownloads: true}), errors = [];
   page.on('pageerror', e => errors.push(e.message));page.on('console', m => {if (m.type() === 'error') errors.push(m.text());});
-  await page.context().setOffline(true);await page.goto(labUrl);await page.waitForFunction(() => window.__lab);
+  await page.context().setOffline(true);await page.goto(labUrl + '?fabrica=1');await page.waitForFunction(() => window.__lab);
   const L = (fn, arg) => page.evaluate(fn, arg), tab = t => L(t => {const p = document.getElementById('panel');if (p.hidden || p.dataset.tool !== t) document.querySelector(`[data-tool="${t}"]`).click();}, t);
   await tab('characters');await page.locator('.char-slot').nth(0).locator('input[data-model]').setInputFiles(glb);await page.waitForFunction(() => window.__lab.ui.characters[0]);
-  await page.locator('.char-slot').nth(1).getByRole('button', {name: 'Usar o do azul'}).click();await page.waitForFunction(() => window.__lab.ui.characters[1]);
+  await page.evaluate(() => window.__lab.charPanel.selectFighter(1));await page.locator('.char-slot').nth(1).getByRole('button', {name: 'Usar o do azul'}).click();await page.waitForFunction(() => window.__lab.ui.characters[1]);
 
   // ================= Medidor ao vivo =================
   await L(() => window.__lab.tuning.commit([['extras.toggles.enablePlayerAI', 1], ['display.perf.overlay', 1]], 'IA × IA'));await tab('match');await page.selectOption('#mode', 'tactical');await page.click('#start');

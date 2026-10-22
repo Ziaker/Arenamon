@@ -19,13 +19,14 @@ import {perceiveIncomingProjectile} from './perception.js';
 import {predictProjectileTrajectory} from './prediction.js';
 import {featuresOf} from './tactics.js';
 import {evaluateMoveOpportunity, evaluateChargeContinuation} from './move-strategy.js';
+import {newMovesCommand} from './ai-new-moves.js';
 
 /** Passos de carga para chegar a cada Power Level (PL1 curto; PL2 em 2,0 s; PL3 em 4,0 s). */
 const LEVEL_TICKS = {1: 30, 2: 240, 3: 480};
 /** Passos mínimos para o Reflect (mínimo de 1,5 s = 180 passos no PL1). */
 const REFLECT_TICKS = {1: 180, 2: 240, 3: 480};
 const held = (/** @type {number} */ slot) => Array.from({length: C.world.slots}, (_, i) => i === slot);
-const altOf = (/** @type {any} */ f) => (f.flight?.y ?? 0) + (f.vaultHeight ?? 0);
+const altOf = (/** @type {any} */ f) => (f.flight?.y ?? f.groundY ?? 0) + (f.vaultHeight ?? 0);
 
 /** Projétil hostil que vai atingir o lutador: o mais próximo no tempo (com PL e tempo até o impacto), ou null. */
 function incomingProjectile(/** @type {any} */ world, /** @type {any} */ self) {
@@ -72,6 +73,7 @@ export function movesCommand(brain, self, target, c) {
   }
   const defend = () => {c.guard = true;c.guardPressed = !brain.wasGuard;brain.wasGuard = true;};
 
+  if (self.aim && target && newMovesCommand(brain, self, target, c, mv, perc, t.style)) return c;   // marcador dos Moves novos: mantém, aponta e solta
   if (self.charge) {
     mv.phase = 'charging';
     const ch = self.charge;
@@ -129,6 +131,7 @@ export function movesCommand(brain, self, target, c) {
   }
   if (mv.phase === 'charging') {mv.phase = 'idle';mv.wait = A.afterChargeWait;}      // terminou (soltou ou foi interrompida): respira um pouco
   mv.wait = Math.max(0, mv.wait - dt);
+  if (mv.wait <= 0 && target && newMovesCommand(brain, self, target, c, mv, perc, t.style)) return c;   // Moves novos (Harden … Emerging Stone)
   if (mv.wait > 0 || self.action || self.flight || self.knockRecovery > 0 || self.hp <= 0) return c;
 
   const start = (/** @type {number} */ slot, /** @type {number} */ goal, /** @type {string} */ why, /** @type {any} */ extra = {}) => {

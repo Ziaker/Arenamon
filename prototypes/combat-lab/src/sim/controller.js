@@ -9,14 +9,21 @@
 //   • Demais encadeamentos (C → C, X → C, X → X e defesa): janela genérica `chainAfter` da ação em curso (GDD 7.3/7.4).
 // Com os ajustes V6_COMPAT (config.js) o resultado é idêntico ao laboratório v6 (teste de paridade).
 import {C} from './config.js';
-import {nominalDistance, actionParams, invulnerableWindow, chainOpen, actionSpec} from './entity.js';
+import {nominalDistance, actionParams, invulnerableWindow, chainOpen, actionSpec, getFighterMaxStamina} from './entity.js';
 import {stat, hasFlag} from './status.js';
-import {moveInSlot, getMove} from './moves.js';
+import {moveInSlot, getMove, getTackleSetup, nearestEligible} from './moves.js';
 import {chargeParams, chargeLevel, interruptCooldown, boostPlan} from './charge.js';
 import {vec, add, scale, sub, dot, length, normalize, clamp, angleOf, direction, angleDelta, smoothstep, actionCurve} from './math.js';
 import {legacyApproach, locomotionStep} from './locomotion.js';
+import {slideAlong} from './solid-contact.js';
 import {actionProgress} from './motion.js';
 import {report, attemptsActive} from './attempts.js';
+import {getGroundHeight} from './physics.js';
+import {passiveCost} from './passive-engine.js';
+import {markerValidity, markerInitial, markerMove, followMarker} from './aim-marker.js';
+import {canSee} from './vision.js';
+import {bulletPunchTravel} from './moves/bullet-punch.js';
+import {isAirJump, isVaultArc, airKind, airUsable, vaultToFlight, takeOffToLift, applyLift} from './air.js';
 
 /** Aceleração/frenagem/reversão da locomoção comum no modelo do v6 (mantido para compatibilidade). */
 export function approachVelocity(current, desired, dt) {return legacyApproach(current, desired, C.locomotion, dt);}
@@ -28,9 +35,11 @@ export function locomotionParams(f) {
     : {acceleration: L.acceleration, braking: L.braking, reversal: L.reversal, turnGrip: L.turnGrip, accelCurve: L.accelCurve, brakeCurve: L.brakeCurve, friction: L.friction, residualSpeed: L.residualSpeed, overspeedBraking: f.sprintCarry ? S.braking : L.braking};
 }
 /** Velocidade máxima de caminhada do lutador agora (defesa e exaustão reduzem). */
-export const walkSpeed = f => stat(f, 'speed', f.attributes.speed) * (f.guard ? C.rules.guardSpeed : 1) * (f.exhausted ? C.rules.exhaustedSpeed : 1) * (f.charge ? f.charge.params.moveSlow : 1);
+export const walkSpeed = f => stat(f, 'speed', f.attributes.speed) * (f.guard ? C.rules.guardSpeed : 1) * (f.exhausted ? C.rules.exhaustedSpeed : 1) * (f.charge ? f.charge.params.moveSlow : 1) * (f.aim?.follow ? 1 - f.aim.params.slow : 1) * (f.aim?.castLeft > 0 ? 1 - f.aim.params.castSlow : 1);   // Bullet Punch: marcando o destino anda a 30%
 /** Custo de stamina de uma ação com o modificador de status (sem status: o próprio custo). */
-export const costOf = (f, cost) => stat(f, 'staminaCost', cost);
+// kind opcional ('dodge' | 'tech'): passivas como Technician alteram o custo efetivo de esquivas e recovery (R10);
+// X/tackles e Moves continuam usando o custo base (C.extras.toggles.enablePassives desligado = paridade exata).
+export const costOf = (f, cost, kind = null) => {const base = stat(f, 'staminaCost', cost) * (kind === 'dodge' ? stat(f, 'mobilityCost', 1) : 1);return kind ? passiveCost(f, kind, base) : base;};
 
 /**
  * Stamina esgotada: abaixo do menor custo de X e C (exhaustMode 1) ou exatamente zero (0, Etapa A).
@@ -71,11 +80,12 @@ export function startPermission(f, kind) {
     return left > 1e-8 ? {ok: false, reason: 'chargeLock', detail: {left}} : {ok: true, viaCharge: true};
   }
   if (f.moveRecovery > 1e-8 && kind === 'tackle') return {ok: false, reason: 'moveRecovery', detail: {left: f.moveRecovery}};
+  if (f.sandPush && kind === 'dodge') return {ok: false, reason: 'sandPush'};   // sob o empurrão da areia não se inicia esquiva (SW-D58)
   if (f.guard && !p.fromGuard) return {ok: false, reason: 'guardBlocks'};
   if (cur?.kind === 'dodge' && kind === 'tackle') {
     // C → X: só na janela (por padrão, o fim da esquiva). Depois de uma esquiva perfeita, a qualquer momento.
     const c = A.cancel, [w0, w1] = cancelWindow(), perfect = c.perfectAnytime && f.counterWindow > 0;
-    const inWindow = cur.elapsed >= w0 - 1e-8 && cur.elapsed <= w1 + 1e-8, ok = !!c.dodgeToTackle && (perfect || inWindow);
+    const airSlam = !!C.extras.toggles.enableMeteorSlam && f.vaultHeight > C.rules.slamMinHeight, inWindow = airSlam || (cur.elapsed >= w0 - 1e-8 && cur.elapsed <= w1 + 1e-8), ok = !!c.dodgeToTackle && (perfect || inWindow);
     return {ok, viaCancel: true, ...(ok ? {} : c.dodgeToTackle ? {reason: 'cancelWindow', detail: {elapsed: cur.elapsed, open: [w0, w1]}} : {reason: 'cancelDisabled'})};
   }
   // X não cancela o próprio X (selfCancel 0) e C só cancela C nos últimos selfCancelFromEnd segundos.
@@ -87,7 +97,7 @@ export function startPermission(f, kind) {
   return {ok: true};
 }
 /** Motivo da falta de stamina (mesma condição de `affordable` em updateFighter). */
-const staminaReason = (f, p) => f.exhausted ? {reason: 'exhausted', detail: {value: f.stamina, refill: C.rules.staminaMax}} : {reason: 'stamina', detail: {value: f.stamina, required: p.cost}};
+const staminaReason = (f, p, kind) => f.exhausted ? {reason: 'exhausted', detail: {value: f.stamina, refill: getFighterMaxStamina(f)}} : {reason: 'stamina', detail: {value: f.stamina, required: costOf(f, p.cost, kind)}};
 
 // Memória só do diagnóstico (fora do estado do lutador: não entra em save/replay nem altera a simulação).
 const lastBufferReason = new WeakMap(), sprintDenied = new WeakSet();
@@ -113,30 +123,44 @@ function startTackleCharge(f, p) {
   f.guard = false;f.guardSuppressed = false;f.stun = 0;f.push = null;f.blend = null;f.vaultHeight = 0;f.bufferedTackle = null;f.inputBuffer = null;f.sprinting = false;
   f.velocity = vec();f.locomotionVelocity = vec();f.state = 'tackleCharge';
 }
+/** Direção válida da finta: a pedida (setas) só vale para os lados e para trás em relação ao ataque; para a frente (ou sem direção) não há finta. */
+export function feintDirection(cmd, refHeading) {
+  const m = cmd.dodgeDirection && length(cmd.dodgeDirection) > .01 ? cmd.dodgeDirection : length(cmd.move) > .01 ? cmd.move : null;
+  if (!m) return null;
+  return Math.abs(angleDelta(refHeading, angleOf(m))) >= C.rules.feintMinAngle * Math.PI / 180 - 1e-9 ? normalize(m) : null;
+}
+/** A stamina disponível (já contando a devolução do custo do tackle) cobre o custo da finta? */
+export const canFeint = f => f.stamina + costOf(f, C.actions.tackle.cost) >= C.rules.feintCost - 1e-6;
 /**
- * Finta / brake slide: cancela o tackle (no startup ou na carga), devolve a parte do custo acima de feintStaminaCost, derrapa na direção do ataque
- * (o deslizamento usa o mesmo decaimento do pouso) e fica em recuperação curta, bem menor que a de um tackle que erra.
+ * Finta: cancela o tackle (no startup ou na carga) e vira uma esquiva (C) para o lado ou para trás, um pouco mais rápida que a normal:
+ * dura feintDuration × a duração da esquiva, percorre feintDistance × a distância dela e custa feintCost de stamina (o custo do tackle volta).
  */
-export function doFeint(f, from) {
-  const R = C.rules, heading = f.action ? f.action.heading : f.facing, tackleCost = costOf(f, C.actions.tackle.cost);
+export function doFeint(f, from, dir, fighters, desiredHeading, guardHeld) {
+  const R = C.rules, tackleCost = costOf(f, C.actions.tackle.cost);
   if (from === 'charge') cancelTackleCharge(f, 'feint');
-  const sp = Math.max(R.feintSkidSpeed, length(f.velocity) * .5);
-  f.action = null;f.guard = false;f.guardSuppressed = false;f.blend = null;f.vaultHeight = 0;f.bufferedTackle = null;f.inputBuffer = null;f.sprinting = false;
-  f.stamina = clamp(f.stamina + tackleCost - R.feintStaminaCost, 0, R.staminaMax);f.regenBase = f.stamina;f.regenAge = 0;f.exhausted = isDepleted(f.stamina);
-  f.landingSlide = {velocity: scale(direction(heading), sp)};f.velocity = vec();f.locomotionVelocity = vec();
-  f.knockRecovery = Math.max(f.knockRecovery, R.feintRecovery);f.recoveryFrom = null;f.brakeLeft = R.feintRecovery;f.state = 'brake';
-  f.lastBrake = {n: (f.lastBrake?.n ?? 0) + 1, x: f.position.x, z: f.position.z, speed: sp};f.feints = (f.feints ?? 0) + 1;
+  f.action = null;f.guard = false;f.guardSuppressed = false;f.blend = null;f.vaultHeight = 0;f.bufferedTackle = null;f.inputBuffer = null;f.sprinting = false;f.stun = 0;f.push = null;
+  f.stamina = clamp(f.stamina + tackleCost, 0, getFighterMaxStamina(f));
+  startAction(f, 'dodge', {move: dir, dodgeDirection: dir}, fighters, desiredHeading, false, guardHeld);   // cobra o custo normal da esquiva
+  const extra = Math.max(0, R.feintCost - costOf(f, C.actions.dodge.cost));
+  f.stamina = Math.max(0, f.stamina - extra);f.regenBase = f.stamina;f.regenAge = 0;f.exhausted = isDepleted(f.stamina);
+  f.action.feint = true;f.action.durationScale = R.feintDuration;f.action.distanceScale = R.feintDistance;
+  f.feints = (f.feints ?? 0) + 1;
 }
 export function cancelTackleCharge(f, why = 'cancel') {if (!f.tackleCharge) return;f.tackleCharge = null;f.tackleChargeEnd = why;if (f.state === 'tackleCharge') f.state = 'neutral';}
 /** 'charging' (segue carregando, o passo termina aqui), 'fired' (a ação saiu) ou 'cancelled' (D ou C cancelaram; o pedido segue o fluxo normal). */
 function stepTackleCharge(f, cmd, fighters, dt, desiredHeading, target, move, diag) {
   const R = C.rules, ch = f.tackleCharge;
-  if (C.extras.toggles.enableTackleFeint && (cmd.dodge || (cmd.guardPressed && C.extras.toggles.enableDefense))) {doFeint(f, 'charge');if (diag) report(f, {kind: 'tackle', result: 'executed', note: 'finta (cancelou a carga)'});return 'feint';}
+  if (C.extras.toggles.enableTackleFeint && cmd.dodge) {
+    const dir = feintDirection(cmd, f.facing);
+    if (dir && canFeint(f)) {doFeint(f, 'charge', dir, fighters, desiredHeading, cmd.guard);if (diag) report(f, {kind: 'tackle', result: 'executed', note: 'finta (cancelou a carga)'});return 'feint';}
+  }
   if ((cmd.guard && C.extras.toggles.enableDefense) || cmd.dodge) {cancelTackleCharge(f, cmd.dodge ? 'dodge' : 'guard');return 'cancelled';}
   ch.t += dt;ch.level = tackleChargeLevel(ch.t);
   if (ch.t < R.chargeTackleMaxTime) f.stamina = Math.max(0, f.stamina - R.chargeTackleDrain * dt);
   f.regenBase = f.stamina;f.regenAge = 0;f.exhausted = isDepleted(f.stamina) || f.exhausted;
-  f.velocity = vec();f.locomotionVelocity = vec();f.state = 'tackleCharge';
+  // Carregando o tackle o lutador anda mais devagar (chargeTackleMove da velocidade de caminhada), não fica parado.
+  const mv = hasFlag(f, 'rooted') || hasFlag(f, 'stunned') ? vec() : scale(move, walkSpeed(f) * R.chargeTackleMove);
+  f.velocity = mv;f.locomotionVelocity = {...mv};f.desiredVelocity = {...mv};f.state = 'tackleCharge';
   if (target || length(move) > .01) turnToward(f, desiredHeading, dt, R.chargeTackleTurn);
   const empty = f.stamina <= 1e-8 && ch.t < R.chargeTackleMaxTime;
   if (cmd.tackleHeld && !empty) return 'charging';
@@ -152,14 +176,53 @@ function stepTackleCharge(f, cmd, fighters, dt, desiredHeading, target, move, di
  * Meteor slam a partir do voo de lançamento: o lutador sai do voo e mergulha em tackle oblíquo (slamAngle) na altura em que estava.
  * Gancho também para o futuro botão de pular: qualquer ação que deixe o lutador no ar pode chamar startSlam(f, altura, ...).
  */
-export function startSlamFromFlight(f, dirs, fighters, desiredHeading, guardHeld, locked) {
-  const h = f.flight?.y ?? 0;
-  f.flight = null;f.wallSplat = null;f.tech = null;f.techDodge = null;f.knockRecovery = 0;
+export function startSlamFromFlight(f, dirs, fighters, desiredHeading, guardHeld, locked, world = null) {
+  const startAlt = f.flight ? (f.flight.y ?? (f.groundY ?? 0)) : (f.groundY ?? 0);
+  f.flight = null;f.wallSplat = null;f.tech = null;f.techDodge = null;f.knockRecovery = 0;f.normalJumpLanding = false;
+  const targetGround = getGroundHeight(f.position, world, startAlt);
+  f.groundY = targetGround;
+  const h = Math.max(0.3, startAlt - targetGround);
   startSlam(f, h, dirs, fighters, desiredHeading, guardHeld, locked);
+}
+/** Meteor slam: estados 'meteorPrep' (jogado para cima por slamPrepTime) e 'meteorDive' (despenca em cima do rival). Aqui só a preparação; a mira vem em aimSlam. */
+function aimSlam(f, fighters, h = f.vaultHeight) {
+  const a = f.action;if (!a) return;
+  a.slamCarry = a.from ? {...a.from} : {...f.velocity};   // velocidade herdada do dash: segue durante a preparação, reduzida por slamSpeedLoss, e zera ao terminá-la
+  a.slamBase = a.slamH0 = h;a.slamT = 0;a.slamPrepDone = !(C.rules.slamPrepTime > 1e-6) || !(h > 1e-6);
+  if (a.slamPrepDone) aimSlamDive(f, fighters);
+  else if (a.locked) {
+    const foeAngle = slamFoeAngle(f, fighters, true);
+    if (foeAngle != null) a.heading = a.startAngle = foeAngle;
+  }
+}
+const slamFoeAngle = (f, fighters, locked = false) => {
+  if (!locked) return null;
+  const foe = fighters.find(o => o.id !== f.id && o.hp > 0);
+  if (!foe) return null;
+  const d = Math.hypot(foe.position.x - f.position.x, foe.position.z - f.position.z);
+  return d <= 8.0 ? angleOf({x: foe.position.x - f.position.x, z: foe.position.z - f.position.z}) : null;
+};
+/** Início da queda: vira para o rival se houver lock-on e estiver perto (<=8m); sem lock-on ou longe, mergulha na direção do movimento/olhar com alcance fixo. */
+function aimSlamDive(f, fighters) {
+  const a = f.action;if (!a) return;
+  a.slamH0 = Math.max(f.vaultHeight, 1e-6);
+  const foe = fighters.find(o => o.id !== f.id && o.hp > 0);
+  const dist = foe ? Math.hypot(foe.position.x - f.position.x, foe.position.z - f.position.z) : Infinity;
+  if (a.locked && foe && dist <= 8.0) {
+    const dx = foe.position.x - f.position.x, dz = foe.position.z - f.position.z;
+    if (dist > .35) a.heading = a.startAngle = angleOf({x: dx, z: dz});
+    a.slamReach = Math.min(Math.max(.5, dist - .3), 8.0);
+  } else {
+    const mv = a.dirs?.move;
+    if (mv && (mv.x !== 0 || mv.z !== 0)) {
+      a.heading = a.startAngle = Math.atan2(mv.x, mv.z);
+    }
+    a.slamReach = Math.min(C.actions.tackle.distance ?? 4.0, 4.5);
+  }
 }
 export function startSlam(f, height, dirs, fighters, desiredHeading, guardHeld, locked = false) {
   startAction(f, 'tackle', dirs, fighters, desiredHeading, false, guardHeld, locked);
-  f.vaultHeight = Math.max(0, height);f.action.slam = true;f.action.fromSlam = true;f.action.plDamage = (f.action.plDamage ?? 1) * C.rules.slamDamage;
+  f.vaultHeight = Math.max(0, height);f.action.slam = true;f.action.fromSlam = true;f.action.plDamage = C.rules.slamDamage;f.action.pl = 2;aimSlam(f, fighters, height);   // Meteor Slam: PL 2
 }
 /** Tempo até o solo (s) de um lutador em voo balístico. */
 export function timeToLand(f) {const g = C.rules.launchGravity, fl = f.flight;return fl ? (fl.vy + Math.sqrt(Math.max(0, fl.vy * fl.vy + 2 * g * fl.y))) / g : 0;}
@@ -170,7 +233,63 @@ function armTechRecovery(f, cmd, dt) {
   if (cmd.dodge && !f.tech && fl.age >= R.techMinAir - 1e-8 && timeToLand(f) <= R.techWindow + 1e-8) f.tech = {dir: dir ? {...dir} : vec(), at: fl.age};
   else if (f.tech && dir) f.tech.dir = {...dir};
 }
-export function updateFighter(f, cmd, fighters, dt) {
+/**
+ * Salto normal (Plano D — overhaul do salto): decolagem imediata no mesmo passo do comando, preservando o
+ * horizontal atual. O voo nasce marcado com `jumpFeel` quando o pacote experimental está ligado (gravidade
+ * assimétrica, altura variável por botão mantido, velocidade terminal e controle aéreo por aceleração,
+ * aplicados em stepPhysics). Com fromAir (coyote time), preserva a altitude do voo em curso em vez de groundY.
+ */
+function startNormalJump(f, move, diag, fromAir = false) {
+  const M = C.map ?? {}, R = C.rules;
+  const g = M.jumpGravity ?? R.launchGravity;
+  const h = M.jumpHeight ?? 2.0;
+  const vy = Math.sqrt(2 * g * h);
+  const curH = fromAir && f.flight ? {...f.flight.horizontal} : {...f.velocity};
+  const horiz = length(move) > 0
+    ? scale(normalize(move), Math.max(length(curH), walkSpeed(f)))
+    : curH;
+  f.flight = {
+    y: fromAir && f.flight ? f.flight.y : (f.groundY ?? 0),
+    vy,
+    horizontal: horiz,
+    gravity: g,
+    isNormalJump: true,
+    jumpFeel: !!(M.jumpImprovements ?? 1),
+    jumpHeld: true,
+  };
+  f.coyoteLeft = 0;          // coyote consumido (e nunca concede saltos extras no ar)
+  f.airMoveDir = null;
+  f.footstoolDoneWith = null;   // nova trajetória: libera um novo footstool por contato válido
+  f.normalJumpLanding = true;
+  f.jumpState.canJump = false;
+  f.jumpState.cooldown = 0;
+  f.state = 'airborne';
+  f.sprinting = false;
+  f.sprintCarry = false;
+  if (diag) report(f, {kind: 'jump', result: 'executed', note: `${fromAir ? 'coyote · ' : ''}salto normal h=${h}m vy=${vy.toFixed(1)}m/s`});
+}
+/**
+ * Passo dos Moves com o lutador em salto ou queda de borda (o ramo de voo retorna cedo e antes nunca chegava aqui). Mesmas funções do solo: toque no slot,
+ * marcador, carga e soltura; e o relógio da ação 'move' aérea (air: true), cujos efeitos saem da linha do tempo sem tirar o corpo do voo.
+ */
+function airSkillStep(f, cmd, fighters, world, dt, diag) {
+  const move = length(cmd.move) > 1 ? normalize(cmd.move) : cmd.move, target = fighters.find(o => o.id === cmd.target && o.hp > 0);
+  const desiredHeading = target ? angleOf(sub(target.position, f.position)) : length(move) > 0 ? angleOf(move) : f.facing;
+  if (cmd.skill != null) pressSkill(f, cmd, move, desiredHeading, !!target, diag, fighters, world);
+  else if (f.skillBuffer) bufferedSkill(f, cmd, diag);
+  if (f.aim && !f.aim.castFirst) stepAim(f, cmd, move, {desiredHeading, hasTarget: !!target, fighters, world, dt, diag});
+  if (f.charge) stepCharge(f, cmd, {move, desiredHeading, hasTarget: !!target, fighters});
+  const a = f.action;
+  if (a?.kind === 'move' && a.air && f.flight) {updateMove(f, a, target, cmd, dt);if (f.flight) f.state = 'airborne';}
+}
+export function updateFighter(f, cmd, fighters, dt, world = null) {
+  CTX_FIGHTERS = fighters;CTX_WORLD = world;
+  if (f.absent && !(f.action?.kind === 'move' && f.action.travel)) f.absent = false;   // rede de segurança: a ausência só existe durante a viagem do Bullet Punch; se a ação sumir (cancelada, lançamento, queda), o lutador reaparece em vez de ficar invisível e intangível para sempre
+  if (cmd.target != null && fighters.find(o => o.id === cmd.target)?.absent) cmd = {...cmd, target: null, locked: false};   // ausente (Bullet Punch) não pode ser selecionado como alvo
+  if (cmd.target != null && hasFlag(f, 'blind')) {   // cegueira: lock-on só em quem o cegado enxerga (10 m, sem parede bloqueando por completo); senão desliga
+    const t = fighters.find(o => o.id === cmd.target);
+    if (!canSee(f, t, world)) cmd = {...cmd, target: null, locked: false};
+  }
   const R = C.rules, X = C.extras, T = X.toggles, A = C.actions;
   // Buffer de entrada: o pedido mais recente de X ou C vale por actions.buffer.window, mesmo no ar ou na aterrissagem.
   const requested = cmd.tackle && T.enableTackle ? 'tackle' : cmd.dodge && T.enableDodge ? 'dodge' : null;
@@ -185,34 +304,90 @@ export function updateFighter(f, cmd, fighters, dt) {
     if (f.inputBuffer.age > A.buffer.window + 1e-8 || cmd.guardPressed) {if (diag && !requested) report(f, {kind: f.inputBuffer.kind, result: 'expired', ...(f.inputBuffer.age > A.buffer.window + 1e-8 ? lastBufferReason.get(f.inputBuffer) ?? {} : {note: 'substituído pela defesa'})});f.inputBuffer = null;}
   }
   if (requested && A.buffer.window > 0) {const m = length(cmd.move) > 1 ? normalize(cmd.move) : cmd.move;f.inputBuffer = {kind: requested, move: {...m}, dodgeDirection: cmd.dodgeDirection && {...cmd.dodgeDirection}, age: 0};}
+  // Jump buffering (Plano D 2.6): o toque fica guardado por jumpBufferWindow e executa no primeiro passo em que as
+  // regras permitirem — sem contornar stun, guard stun, cooldown, morte nem bloqueio de ação (o canNormalJump mais
+  // abajo vale igual para toque direto e bufferado; o pedido expira e é consumido uma única vez). Fica no topo porque
+  // o ramo de voo retorna cedo: o buffer precisa decair e ser armado também durante o salto (aperto antes do pouso).
+  const MJ = C.map ?? {}, feelJ = !!(MJ.jumpImprovements ?? 1);
+  // Decaimento: congela enquanto o ÚNICO bloqueio é o intervalo entre saltos pós-pouso (o salto bufferado sai
+  // exatamente quando o cooldown termina, sem contorná-lo); no ar, em stun/knockback etc., decai normalmente.
+  const waitingJumpCooldown = !f.flight && (f.jumpState?.cooldown ?? 0) > 0 && f.knockRecovery <= 1e-8 && f.stun <= 1e-8;
+  if (!waitingJumpCooldown) f.jumpBuffered = Math.max(0, (f.jumpBuffered ?? 0) - dt);
+  if (cmd.jump && f.hp > 0 && feelJ) f.jumpBuffered = Math.max(f.jumpBuffered ?? 0, MJ.jumpBufferWindow ?? 0.12);
   // Comandos novos com o lutador indisponível: o motivo é a própria condição que encerra o passo abaixo.
+  const isSlamTrigger = f.flight && requested === 'tackle' && T.enableMeteorSlam && (f.flight.isNormalJump || f.flight.isEdgeFall || T.enableFlightSlam) && !f.wallSplat && f.hp > 0 && !f.exhausted && f.stamina >= costOf(f, A.tackle.cost) - 1e-8 && !hasFlag(f, 'disarmed') && !hasFlag(f, 'stunned');
   if (diag && (requested || cmd.guardPressed) && (f.flight || f.knockRecovery > 0 || f.hp <= 0)) {
-    const why = f.flight ? {reason: 'airborne'} : f.knockRecovery > 0 ? {reason: 'recovery', detail: {left: f.knockRecovery}} : {reason: 'defeated'};
-    if (requested) report(f, {kind: requested, result: A.buffer.window > 0 && f.hp > 0 ? 'buffered' : 'denied', ...why});
-    if (cmd.guardPressed && T.enableDefense) report(f, {kind: 'guard', result: 'denied', ...why});
-  }
-  if (f.tackleCharge && (f.flight || f.knockRecovery > 0 || f.hp <= 0)) cancelTackleCharge(f, 'hit');   // golpe sofrido: a carga do tackle cai e a stamina gasta não volta
-  if (f.charge && (f.flight || f.knockRecovery > 0 || f.hp <= 0)) cancelCharge(f, f.hp <= 0 ? 'defeated' : 'hit');   // golpe com lançamento, recuperação ou perda de apoio (M15.3, M27.1)
-  if (f.flight) {
-    // Meteor slam de quem foi lançado: X no ar vira mergulho oblíquo (não vale preso na parede nem sem stamina).
-    if (T.enableMeteorSlam && cmd.tackle && !f.wallSplat && f.hp > 0 && !f.exhausted && f.stamina >= costOf(f, A.tackle.cost) - 1e-8 && !hasFlag(f, 'disarmed') && !hasFlag(f, 'stunned')) {
-      const target0 = fighters.find(o => o.id === cmd.target && o.hp > 0), mv = length(cmd.move) > 1 ? normalize(cmd.move) : cmd.move;
-      startSlamFromFlight(f, {move: mv, dodgeDirection: cmd.dodgeDirection}, fighters, target0 ? angleOf(sub(target0.position, f.position)) : length(mv) > 0 ? angleOf(mv) : f.facing, cmd.guard, !!target0 && !!cmd.locked);
-      if (diag) report(f, {kind: 'tackle', result: 'executed', note: 'meteor slam (lançado)'});
-    } else {
-      if (T.enableTechRecovery && T.enableDodge && f.hp > 0 && !f.wallSplat) armTechRecovery(f, cmd, dt);
-      f.action = null;f.push = null;f.guard = false;f.vaultHeight = 0;f.velocity = vec();f.locomotionVelocity = vec();f.bufferedTackle = null;f.state = f.wallSplat ? 'wallSplat' : 'airborne';return;
+    if (!isSlamTrigger) {
+      const why = f.flight ? {reason: 'airborne'} : f.knockRecovery > 0 ? {reason: 'recovery', detail: {left: f.knockRecovery}} : {reason: 'defeated'};
+      if (requested) report(f, {kind: requested, result: A.buffer.window > 0 && f.hp > 0 ? 'buffered' : 'denied', ...why});
+      if (cmd.guardPressed && T.enableDefense) report(f, {kind: 'guard', result: 'denied', ...why});
     }
   }
-  if (f.knockRecovery > 0) {f.knockRecovery = Math.max(0, f.knockRecovery - dt);if (f.knockRecovery <= 0) f.recoveryFrom = null;f.vaultHeight = 0;f.velocity = vec();f.locomotionVelocity = vec();f.action = null;f.guard = false;f.bufferedTackle = null;f.state = f.brakeLeft > 0 ? 'brake' : 'landing';f.brakeLeft = Math.max(0, (f.brakeLeft ?? 0) - dt);return;}
+  if (f.tackleCharge && (f.flight || f.knockRecovery > 0 || f.hp <= 0)) cancelTackleCharge(f, 'hit');   // golpe sofrido: a carga do tackle cai e a stamina gasta não volta
+  if (f.aim && ((f.flight && !(isAirJump(f) && airKind(f.aim.def) !== 'none')) || f.knockRecovery > 0 || f.hp <= 0 || f.stun > 1e-8 || hasFlag(f, 'stunned') || hasFlag(f, 'silenced'))) cancelAim(f, f.hp <= 0 ? 'defeated' : 'hit');   // golpe sofrido: o marcador some sem custo
+  if (f.charge && ((f.flight && !isAirJump(f)) || f.knockRecovery > 0 || f.hp <= 0)) cancelCharge(f, f.hp <= 0 ? 'defeated' : 'hit');   // golpe com lançamento, recuperação ou perda de apoio (M15.3, M27.1)
+  if (f.aim?.castFirst && f.hp > 0) stepAim(f, cmd, length(cmd.move) > 1 ? normalize(cmd.move) : cmd.move, {desiredHeading: f.facing, hasTarget: false, fighters, world, dt, diag});   // cast do Emerging Stone corre também no ar
+  if (f.flight) {
+    // Meteor slam de quem está no ar (salto normal com Espaço ou lançado): X no ar vira mergulho oblíquo (não vale preso na parede nem sem stamina).
+    if (isSlamTrigger) {
+      const target0 = fighters.find(o => o.id === cmd.target && o.hp > 0), mv = length(cmd.move) > 1 ? normalize(cmd.move) : cmd.move;
+      const isNormal = !!f.flight?.isNormalJump;
+      const distToTarget = target0 ? Math.hypot(target0.position.x - f.position.x, target0.position.z - f.position.z) : Infinity;
+      const useLock = !!cmd.locked && !!target0 && distToTarget <= 8.0;
+      const desiredHeading = useLock ? angleOf(sub(target0.position, f.position)) : length(mv) > 0 ? angleOf(mv) : f.facing;
+      startSlamFromFlight(f, {move: mv, dodgeDirection: cmd.dodgeDirection}, fighters, desiredHeading, cmd.guard, useLock, world);
+      if (diag) report(f, {kind: 'tackle', result: 'executed', note: isNormal ? 'meteor slam (salto normal)' : 'meteor slam (lançado)'});
+    } else {
+      if (!f.flight.isNormalJump && !f.flight.bounce && T.enableTechRecovery && T.enableDodge && f.hp > 0 && !f.wallSplat) armTechRecovery(f, cmd, dt);
+      const M0 = C.map ?? {}, feel0 = !!(M0.jumpImprovements ?? 1);
+      if (f.flight.isNormalJump || f.flight.isEdgeFall) {
+        // Plano D: o controlador grava o botão de salto mantido e a direção pedida; a física (stepPhysics)
+        // aplica gravidade assimétrica/altura variável e o controle aéreo por aceleração sobre esses sinais.
+        f.flight.jumpHeld = !!cmd.jumpHeld;
+        f.airMoveDir = length(cmd.move) > 0.05 ? (length(cmd.move) > 1 ? normalize(cmd.move) : {...cmd.move}) : null;
+        // Coyote time (2.5): queda natural recente da borda ainda permite o salto, sem saltos extras no ar e
+        // nunca após knockback/lançamento (esses voos não são isEdgeFall). O meteor slam (X no ar) tem prioridade acima.
+        if (f.flight.isEdgeFall && feel0 && f.coyoteLeft > 1e-8 && cmd.jump && f.hp > 0 && !f.wallSplat
+          && !hasFlag(f, 'stunned') && !hasFlag(f, 'rooted') && f.jumpState.canJump) {
+          f.jumpBuffered = 0;
+          startNormalJump(f, length(cmd.move) > 1 ? normalize(cmd.move) : cmd.move, diag, true);
+          return;
+        }
+      }
+      if (f.flight.isNormalJump && !(feel0 && (M0.jumpAirAccel ?? 0) > 0)) {
+        // Controle aéreo legado (blend direcional), mantido quando o pacote novo está desligado ou sem aceleração.
+        const airCtrl = M0.jumpAirControl ?? 0.0;
+        if (length(f.flight.horizontal) < 0.05 && length(cmd.move) > 0.05) {
+          const m = length(cmd.move) > 1 ? normalize(cmd.move) : cmd.move;
+          f.flight.horizontal = scale(m, walkSpeed(f));
+        } else if (airCtrl > 0 && length(cmd.move) > 0.05) {
+          const m = length(cmd.move) > 1 ? normalize(cmd.move) : cmd.move;
+          const targetH = scale(m, walkSpeed(f));
+          const blendRate = Math.min(1, airCtrl * 5.0 * dt);
+          f.flight.horizontal = add(
+            scale(f.flight.horizontal, 1 - blendRate),
+            scale(targetH, blendRate)
+          );
+        }
+      }
+      if (isAirJump(f) && f.hp > 0 && !hasFlag(f, 'stunned')) {airSkillStep(f, cmd, fighters, world, dt, diag);if (!f.flight) return;}   // Moves no ar: usar, mirar, carregar e a ação aérea em curso (air.js)
+      if (!(f.action?.kind === 'move' && f.action.air && isAirJump(f))) f.action = null;
+      f.push = null;f.guard = false;f.vaultHeight = 0;f.velocity = vec();f.locomotionVelocity = vec();f.bufferedTackle = null;f.state = f.wallSplat ? 'wallSplat' : 'airborne';return;
+    }
+  }
+  // Derrota tem prioridade sobre recuperação: um lutador derrotado não pode ficar pendurado em
+  // knockRecovery/landing — o estado físico precisa corresponder ao fato imediatamente (§22/§23).
   if (f.hp <= 0) {f.state = 'defeated';f.velocity = vec();f.action = null;f.push = null;f.vaultHeight = 0;f.bufferedTackle = null;return;}
+  if (f.knockRecovery > 0) {f.knockRecovery = Math.max(0, f.knockRecovery - dt);if (f.knockRecovery <= 0) f.recoveryFrom = null;f.vaultHeight = 0;f.velocity = vec();f.locomotionVelocity = vec();f.action = null;f.guard = false;f.bufferedTackle = null;f.state = f.brakeLeft > 0 ? 'brake' : 'landing';f.brakeLeft = Math.max(0, (f.brakeLeft ?? 0) - dt);return;}
   const target = fighters.find(o => o.id === cmd.target && o.hp > 0);
-  const move = length(cmd.move) > 1 ? normalize(cmd.move) : cmd.move;
+  const inputMove = length(cmd.move) > 1 ? normalize(cmd.move) : cmd.move;
+  const move = f.aim && !f.aim.follow && !f.aim.free ? vec() : inputMove;   // mirando com marcador, a direção move o marcador e o corpo fica parado (MV-P29)
   // Mira (ataques sem direção, prévia): o alvo, se houver. Orientação do corpo: ver faceGoal abaixo.
   const desiredHeading = target ? angleOf(sub(target.position, f.position)) : length(move) > 0 ? angleOf(move) : f.facing;
   // Finta: C ou D no startup do tackle cancelam o ataque (só derrapa, sem esquiva); o acerto já feito ou o mergulho impedem.
-  if (T.enableTackleFeint && f.action?.kind === 'tackle' && !f.action.slam && (f.action.hits?.size ?? 0) === 0 && f.action.elapsed < R.feintWindow - 1e-9 && (cmd.dodge || cmd.guardPressed)) {
-    doFeint(f, 'startup');if (diag) report(f, {kind: 'tackle', result: 'executed', note: 'finta (cancelou o startup)'});return;
+  if (T.enableTackleFeint && f.action?.kind === 'tackle' && !f.action.slam && (f.action.hits?.size ?? 0) === 0 && f.action.elapsed < R.feintWindow - 1e-9 && cmd.dodge) {
+    const dir = feintDirection(cmd, f.action.heading);
+    if (dir && canFeint(f)) {doFeint(f, 'startup', dir, fighters, desiredHeading, cmd.guard);if (diag) report(f, {kind: 'tackle', result: 'executed', note: 'finta (cancelou o startup)'});return;}
   }
   // Tackle carregado: enquanto X segue apertado o lutador fica parado carregando; soltar (ou acabar a stamina) dispara no PL alcançado.
   if (f.tackleCharge) {
@@ -237,12 +412,13 @@ export function updateFighter(f, cmd, fighters, dt) {
   f.counterWindow = Math.max(0, f.counterWindow - dt);
   const staminaBefore = f.stamina;
   // Sprint: consumo contínuo; a regeneração fica suspensa enquanto ele dura.
-  if (f.sprinting) {f.regenBase = Math.max(0, f.stamina - A.sprint.staminaDrain * dt);f.regenAge = 0;}
+  if (f.sprinting) {f.regenBase = Math.max(0, f.stamina - A.sprint.staminaDrain * stat(f, 'mobilityCost', 1) * dt);f.regenAge = 0;}
   f.regenAge += dt * (f.guard ? X.combat.guardRegenFactor : 1) * stat(f, 'staminaRegen', 1);
   const regen = clamp((f.regenAge - R.regenDelay) / R.regenTime, 0, 1);
-  f.stamina = f.regenBase + (R.staminaMax - f.regenBase) * regen ** 3;
+  const maxStam = getFighterMaxStamina(f);
+  f.stamina = f.regenBase + (maxStam - f.regenBase) * regen ** 3;
   if (f.sprinting && isDepleted(f.stamina)) {f.exhausted = true;}
-  if (f.stamina >= R.staminaMax - 1e-8) {f.stamina = R.staminaMax;f.exhausted = false;}
+  if (f.stamina >= maxStam - 1e-8) {f.stamina = maxStam;f.exhausted = false;}
   f.staminaTrend = (f.stamina - staminaBefore) / dt;
   if (!cmd.dodgeHeld) f.sprintArmed = false;
   if (!cmd.guard || !T.enableDefense) {f.guard = false;f.guardSuppressed = false;}
@@ -257,12 +433,32 @@ export function updateFighter(f, cmd, fighters, dt) {
   }
   if (cmd.guard && T.enableDefense && !f.guardSuppressed && open) {
     if (f.charge) cancelCharge(f, 'guard');
+    if (f.aim) cancelAim(f, 'guard');
     if (f.action && (f.action.kind === 'dodge' || f.action.kind === 'tackle')) f.blend = {from: {...f.velocity}, elapsed: 0};
     if (f.action?.kind === 'recoil') {f.velocity = vec();f.blend = null;}
     f.action = null;f.vaultHeight = 0;f.guard = true;
     // Segurar D não apaga o X guardado no guard stun; só um novo toque em D substitui o pedido (GDD 5: vale o último).
     if (cmd.guardPressed) f.bufferedTackle = null;
     if (cmd.guardPressed && f.perfectCooldown <= 0) {f.perfectLeft = R.perfect;f.perfectSucceeded = false;}
+  }
+  // Salto normal (R2.1–R2.8, R7.1–R7.2, R7.7–R7.9 + Plano D): Tecla Espaço em estado livre, caminhando ou correndo.
+  // O jump buffering é armado/decai no topo de updateFighter (o ramo de voo retorna cedo).
+  f.jumpState ??= {canJump: true, cooldown: 0};
+  if (f.jumpState.cooldown > 0) {
+    f.jumpState.cooldown = Math.max(0, f.jumpState.cooldown - dt);
+    if (f.jumpState.cooldown <= 0 && !f.flight) f.jumpState.canJump = true;
+  } else if (!f.flight && !f.action && !f.wallSplat && f.knockRecovery <= 0) {
+    f.jumpState.canJump = true;
+  }
+  const canNormalJump = (cmd.jump || f.jumpBuffered > 1e-8) && f.hp > 0 && !f.action && !f.flight && !f.wallSplat && f.knockRecovery <= 0
+    && !f.guard && !f.tackleCharge && !f.charge && f.stun <= 1e-8
+    && !hasFlag(f, 'stunned') && !hasFlag(f, 'rooted')
+    && f.jumpState.canJump && f.jumpState.cooldown <= 0;
+
+  if (canNormalJump) {
+    f.jumpBuffered = 0;   // consumido (toque direto ou bufferado)
+    startNormalJump(f, move, diag);
+    return;
   }
   // Pedido de ação: X tem prioridade se as duas teclas chegarem no mesmo passo (como no v6).
   let kind = requested, dirs = {move, dodgeDirection: cmd.dodgeDirection}, fromBuffer = false;
@@ -271,11 +467,11 @@ export function updateFighter(f, cmd, fighters, dt) {
   if (!kind && f.bufferedTackle && f.stun <= 1e-8 && !f.action) {kind = 'tackle';dirs = f.bufferedTackle;f.bufferedTackle = null;}
   if (kind) {
     const p = actionParams(kind), disarmed = kind === 'tackle' && (hasFlag(f, 'disarmed') || hasFlag(f, 'stunned')), stunnedC = kind === 'dodge' && hasFlag(f, 'stunned');
-    const permission = disarmed || stunnedC ? {ok: false, reason: disarmed && !hasFlag(f, 'stunned') ? 'disarmed' : 'stunned'} : startPermission(f, kind), affordable = !f.exhausted && f.stamina >= costOf(f, p.cost) - 1e-8;
+    const permission = disarmed || stunnedC ? {ok: false, reason: disarmed && !hasFlag(f, 'stunned') ? 'disarmed' : 'stunned'} : startPermission(f, kind), affordable = !f.exhausted && f.stamina >= costOf(f, p.cost, kind) - 1e-8;
     const fresh = kind === requested && !fromBuffer, fromStun = !requested && !fromBuffer;
     if (permission.buffer) {f.bufferedTackle = {move: {...dirs.move}, dodgeDirection: dirs.dodgeDirection && {...dirs.dodgeDirection}};f.inputBuffer = null;if (diag && fresh) report(f, {kind, result: 'buffered', reason: permission.reason, detail: permission.detail, note: 'sai quando o guard stun acabar'});}
     else if (permission.ok && affordable) {
-      const via = permission.viaCancel;if (f.charge) cancelCharge(f, 'dodge');
+      const via = permission.viaCancel;if (f.charge) cancelCharge(f, 'dodge');if (f.aim) cancelAim(f, 'action');
       const chargeIt = kind === 'tackle' && T.enableChargeTackle && fresh && !via && !f.action && !f.sprinting && !!cmd.tackleHeld && !f.charge, sprintX = kind === 'tackle' && T.enableChargeTackle && fresh && f.sprinting && !via;
       if (chargeIt) {startTackleCharge(f, p);if (diag) report(f, {kind: 'tackle', result: 'executed', note: 'carga iniciada'});return;}
       startAction(f, kind, dirs, fighters, desiredHeading, via, cmd.guard, !!target && !!cmd.locked);if (fromBuffer) f.action.buffered = true;
@@ -283,22 +479,23 @@ export function updateFighter(f, cmd, fighters, dt) {
       if (diag) report(f, {kind, result: 'executed', viaCancel: !!via, fromBuffer, note: fromStun ? 'guardado durante o guard stun' : undefined});
     } else if (diag) {
       // Sem permissão ou sem stamina: a ação atual continua intacta (inclusive a esquiva, no caso de C → X).
-      const why = !permission.ok ? {reason: permission.reason, detail: permission.detail} : staminaReason(f, p);
+      const why = !permission.ok ? {reason: permission.reason, detail: permission.detail} : staminaReason(f, p, kind);
       if (f.inputBuffer && fromBuffer) lastBufferReason.set(f.inputBuffer, why);
       if (fresh) {if (f.inputBuffer) lastBufferReason.set(f.inputBuffer, why);report(f, {kind, result: f.inputBuffer ? 'buffered' : 'denied', viaCancel: !!permission.viaCancel, ...why});}
     }
   }
   // Movimento especial (slot): X/C pedidos no mesmo passo têm prioridade. Mesmo controlador, stamina e diagnóstico.
-  if (!kind && cmd.skill != null && f.hp > 0) pressSkill(f, cmd, move, desiredHeading, !!target, diag);
+  if (!kind && cmd.skill != null && f.hp > 0) pressSkill(f, cmd, move, desiredHeading, !!target, diag, fighters, world);
   else if (!kind && f.skillBuffer && f.hp > 0) bufferedSkill(f, cmd, diag);
-  if (f.charge) stepCharge(f, cmd);   // soltar o Move: depois de defesa e X/C (M30.9)
+  if (f.aim && !f.aim.castFirst) stepAim(f, cmd, inputMove, {desiredHeading, hasTarget: !!target, fighters, world, dt, diag});   // marcador: mover, confirmar ou cancelar
+  if (f.charge) stepCharge(f, cmd, {move, desiredHeading, hasTarget: !!target, fighters});   // soltar o Move: depois de defesa e X/C (M30.9)
   // Esquiva → sprint: C ainda pressionado, com direção, a partir de entryFraction da esquiva (ou logo depois dela).
   const S = A.sprint, L = C.locomotion;
   const sprintReady = !!T.enableSprint && cmd.dodgeHeld && f.sprintArmed && length(move) > .01 && !f.guard && !f.exhausted && !f.charge && f.stamina >= S.minStamina - 1e-8 && f.stun <= 1e-8;
   // Sprint pedido (C mantido com direção no ponto de entrada) e recusado por stamina: relatado uma vez por esquiva.
   if (diag && !sprintReady && T.enableSprint && cmd.dodgeHeld && f.sprintArmed && length(move) > .01 && f.action?.kind === 'dodge' && !f.action.vault && !sprintDenied.has(f.action)
     && f.action.elapsed >= S.entryFraction * A.dodge.duration - 1e-8 && (f.exhausted || f.stamina < S.minStamina - 1e-8)) {
-    sprintDenied.add(f.action);report(f, {kind: 'sprint', result: 'denied', ...(f.exhausted ? {reason: 'exhausted', detail: {value: f.stamina, refill: R.staminaMax}} : {reason: 'sprintStamina', detail: {value: f.stamina, required: S.minStamina}})});
+    sprintDenied.add(f.action);report(f, {kind: 'sprint', result: 'denied', ...(f.exhausted ? {reason: 'exhausted', detail: {value: f.stamina, refill: getFighterMaxStamina(f)}} : {reason: 'sprintStamina', detail: {value: f.stamina, required: S.minStamina}})});
   }
   if (sprintReady && f.action?.kind === 'dodge' && !f.action.vault && f.action.elapsed >= S.entryFraction * A.dodge.duration - 1e-8) {
     f.locomotionVelocity = {...f.velocity};f.action = null;f.vaultHeight = 0;f.sprinting = true;f.sprintCarry = false;
@@ -327,7 +524,7 @@ export function updateFighter(f, cmd, fighters, dt) {
     else if (action.kind === 'dodge' || action.kind === 'tackle') {
       const p = A[action.kind], homing = action.kind === 'tackle' && target && cmd.locked && L.lockTackleHoming;
       const steering = homing ? sub(target.position, f.position) : cmd.dodgeDirection ?? move;
-      if (length(move) > .01 || homing) {
+      if ((length(move) > .01 || homing) && !action.fixedHeading) {
         const desired = action.startAngle + clamp(angleDelta(action.startAngle, angleOf(steering)), -p.steerLimit, p.steerLimit);
         action.heading += clamp(angleDelta(action.heading, desired), -p.steerRate * dt, p.steerRate * dt);
       }
@@ -335,25 +532,36 @@ export function updateFighter(f, cmd, fighters, dt) {
       // No modelo novo, o tackle olha para a própria trajetória (exceto lockFacing = 1) e a esquiva olha para o alvo.
       const facingGoal = target && (L.model !== 1 || action.kind === 'dodge' || L.lockFacing === 1) ? desiredHeading : action.heading;
       turnToward(f, facingGoal, dt);
-      const D = p.duration, u0 = action.elapsed / D, u1 = (action.elapsed + dt) / D, nominal = nominalDistance(f, action.kind) * (action.speedMultiplier ?? 1) * (action.plSpeed ?? 1);
+      const D = p.duration * (action.durationScale ?? 1), u0 = action.elapsed / D, u1 = (action.elapsed + dt) / D, nominal = nominalDistance(f, action.kind) * (action.speedMultiplier ?? 1) * (action.plSpeed ?? 1) * (action.distanceScale ?? 1);
       let speed;
       if (p.profile === 1) {
         // Integração com correção: o restante da distância (pretendida, sem contar colisões) é distribuído pelo restante
         // da curva. A mistura de entrada com a velocidade anterior não encurta nem alonga a ação.
-        const rem = 1 - actionProgress(p, u0), left = Math.max(0, nominal - (action.traveled ?? 0));
+        const rem = 1 - actionProgress(p, u0), left = Math.max(0, nominal - (action.traveled ?? 0) - (action.fricSkipped ?? 0));
         speed = rem > 1e-9 ? left * (actionProgress(p, u1) - actionProgress(p, u0)) / rem / dt : 0;
       } else speed = nominal * (actionProgress(p, u1) - actionProgress(p, u0)) / dt;
+      if (action.kind === 'tackle' && !action.slam) {
+        // Atrito do Tackle (por versão: PL1/PL2/PL3): a velocidade decai com exp(-atrito × tempo); a distância perdida não é compensada pela correção do perfil.
+        const k = action.pl === 3 ? R.tackleFriction3 : action.pl === 2 ? R.tackleFriction2 : R.tackleFriction1;
+        if (k > 0) {const s1 = speed * Math.exp(-k * (action.elapsed + dt));action.fricSkipped = (action.fricSkipped ?? 0) + (speed - s1) * dt;speed = s1;}
+      }
       f.velocity = scale(direction(action.heading), speed);
       const blendTime = action.blendTime ?? p.blend;
       if (action.from && blendTime > 0 && action.elapsed < blendTime) {
         const blend = smoothstep((action.elapsed + dt) / blendTime);
         f.velocity = {x: action.from.x * (1 - blend) + f.velocity.x * blend, z: action.from.z * (1 - blend) + f.velocity.z * blend};
       }
+      if (action.stepper) {const v = getTackleSetup(action.stepper)?.(f, action, dt);if (v) f.velocity = v;}   // Moves com movimento próprio dentro da ação de Tackle (Quick Attack: ida e volta)
+      if (action.slam) {
+        // Preparação: segue com a velocidade herdada menos slamSpeedLoss (a perda é total ao fim dela). Queda: avança o necessário para chegar ao rival no instante em que toca o chão (slamSpeedLoss reduz esse avanço); depois de aterrissar, parado.
+        const tLeft = Math.max(dt, R.slamFallTime * f.vaultHeight / Math.max(1e-6, action.slamH0 ?? 0)), left = Math.max(0, (action.slamReach ?? 0) - (action.traveled ?? 0));
+        f.velocity = action.slamLanded ? vec() : !action.slamPrepDone ? scale(action.slamCarry ?? vec(), 1 - R.slamSpeedLoss) : action.slamReach === undefined ? vec() : scale(direction(action.heading), Math.min(left / dt, left / tLeft));
+      }
       action.traveled = (action.traveled ?? 0) + Math.max(0, dot(f.velocity, direction(action.heading))) * dt;
       if (action.kind === 'dodge' && action.jump) {
         // Pulo físico: altura integrada pela gravidade; deslocamento horizontal constante na direção do salto.
         const J = action.jump, g = A.dodge.vaultGravity;
-        J.y += J.vy * dt - .5 * g * dt * dt;J.vy -= g * dt;
+        J.prevY = J.y;J.y += J.vy * dt - .5 * g * dt * dt;J.vy -= g * dt;
         f.velocity = scale(direction(action.heading), A.dodge.vaultHorizontal);
         if (action.from && (action.blendTime ?? p.blend) > 0 && action.elapsed < (action.blendTime ?? p.blend)) {const b = smoothstep((action.elapsed + dt) / (action.blendTime ?? p.blend));f.velocity = {x: action.from.x * (1 - b) + f.velocity.x * b, z: action.from.z * (1 - b) + f.velocity.z * b};}
         f.vaultHeight = Math.max(0, J.y);
@@ -363,10 +571,16 @@ export function updateFighter(f, cmd, fighters, dt) {
         f.vaultHeight = action.vault ? A.dodge.vaultHeight * Math.sin(Math.PI * clamp((action.elapsed + dt) / A.dodge.duration, 0, 1)) : 0;
       } else {
         // X vindo de um salto (C → X no ar): desce suavemente da altura em que estava, sem teletransporte.
-        if (action.slam) f.vaultHeight = Math.max(0, f.vaultHeight - Math.tan(R.slamAngle) * Math.max(0, dot(f.velocity, direction(action.heading))) * dt);   // mergulho: desce tan(ângulo) por metro andado
-        else f.vaultHeight = action.liftStart > 0 ? (action.liftTime > 0 ? action.liftStart * (1 - smoothstep((action.elapsed + dt) / action.liftTime)) : 0) : 0;
+        if (action.slam && !action.slamPrepDone) {
+          // Jogado para cima: sobe desacelerando (sem pulo), sem andar, até o ponto mais alto; aí mira o rival e despenca.
+          action.slamT += dt;const u = Math.min(1, action.slamT / R.slamPrepTime);
+          f.vaultHeight = action.slamBase + R.slamHop * (1 - (1 - u) * (1 - u));
+          if (u >= 1) {action.slamPrepDone = true;aimSlamDive(f, fighters);}
+        } else if (action.slam) f.vaultHeight = Math.max(0, f.vaultHeight - (R.slamFallTime > 1e-6 ? (action.slamH0 ?? 0) / R.slamFallTime * dt : Infinity));   // despenca a altura inteira em slamFallTime
+        if (action.slam && action.slamPrepDone && f.vaultHeight <= 1e-9 && (action.slamH0 ?? 0) > 1e-6) action.slamLanded = true;
+        if (!action.slam) f.vaultHeight = action.liftStart > 0 ? (action.liftTime > 0 ? action.liftStart * (1 - smoothstep((action.elapsed + dt) / action.liftTime)) : 0) : 0;
       }
-      f.state = action.kind;
+      f.state = action.slam ? (!action.slamPrepDone ? 'meteorPrep' : action.slamLanded ? 'meteorGround' : 'meteorDive') : action.kind;
     } else {
       f.vaultHeight = 0;
       const distance = nominalDistance(f) * R.recoilFraction;
@@ -375,11 +589,13 @@ export function updateFighter(f, cmd, fighters, dt) {
     }
   } else {
     const walk = walkSpeed(f), vMax = f.sprinting ? f.attributes.speed * S.speedMultiplier : walk, before = f.locomotionVelocity;
-    if (f.stun > 1e-8 || hasFlag(f, 'stunned')) {f.locomotionVelocity = vec();f.locoPhase = 'stun';f.desiredVelocity = vec();}
+    if (f.sandPush && !(f.stun > 1e-8 || hasFlag(f, 'stunned'))) {   // empurrado pela areia: sem controle de deslocamento; a velocidade ganha se mantém depois (atrito normal)
+      f.locomotionVelocity = add(f.locomotionVelocity, scale(f.sandPush.dir, f.sandPush.accel * dt));f.desiredVelocity = vec();f.locoPhase = 'sandPush';
+    } else if (f.stun > 1e-8 || hasFlag(f, 'stunned')) {f.locomotionVelocity = vec();f.locoPhase = 'stun';f.desiredVelocity = vec();}
     else if (hasFlag(f, 'rooted')) {const r = locomotionStep(f.locomotionVelocity, vec(), walk, locomotionParams(f), dt);f.locomotionVelocity = r.velocity;f.desiredVelocity = vec();f.locoPhase = 'rooted';}
     else if (L.model !== 1) {f.locomotionVelocity = approachVelocity(f.locomotionVelocity, scale(move, walk), dt);f.desiredVelocity = scale(move, walk);f.locoPhase = length(move) ? 'legacy' : 'idle';}
     else {
-      const r = locomotionStep(f.locomotionVelocity, move, vMax, locomotionParams(f), dt);
+      const r = locomotionStep(f.locomotionVelocity, slideAlong(move, f.surfaceNormals), vMax, locomotionParams(f), dt);   // contato com sólido redondo: a entrada que empurra para dentro é descartada (deslize)
       f.locomotionVelocity = r.velocity;f.desiredVelocity = r.desired;
       if (f.sprintCarry && length(r.velocity) <= walk + 1e-3) f.sprintCarry = false;
       f.locoPhase = f.sprinting ? 'sprint' : f.sprintCarry ? 'sprintStop' : r.phase;
@@ -438,11 +654,11 @@ function startAction(f, kind, dirs, fighters, desiredHeading, viaCancel, guardHe
   if (invulnerableFor !== undefined) f.action.invulnerableFor = invulnerableFor;
   if (liftStart > 0) {f.action.liftStart = liftStart;f.action.liftTime = liftTime;f.action.fromCancel = true;}
   // Meteor slam: C → X a partir do salto do vault (acima da altura mínima) vira mergulho oblíquo com bônus de dano.
-  if (viaCancel && kind === 'tackle' && T.enableMeteorSlam && liftStart > C.rules.slamMinHeight) {f.action.slam = true;f.action.fromSlam = true;f.action.plDamage = C.rules.slamDamage;}
+  if (viaCancel && kind === 'tackle' && T.enableMeteorSlam && liftStart > C.rules.slamMinHeight) {f.action.slam = true;f.action.fromSlam = true;f.action.plDamage = C.rules.slamDamage;f.action.pl = 2;aimSlam(f, fighters, liftStart);}
   if (viaCancel) f.action.fromCancel = true;
   if (countered) f.counterWindow = 0;
-  // O custo de C já gasto continua gasto; X cobra o próprio custo.
-  f.stamina = Math.max(0, f.stamina - costOf(f, p.cost));f.regenBase = f.stamina;f.regenAge = 0;
+  // O custo de C já gasto continua gasto; X cobra o próprio custo. Technician desconta só esquiva ('dodge').
+  f.stamina = Math.max(0, f.stamina - costOf(f, p.cost, kind));f.regenBase = f.stamina;f.regenAge = 0;
   f.exhausted = isDepleted(f.stamina);f.guard = false;f.guardSuppressed = guardHeld;
   f.stun = 0;f.push = null;f.blend = null;f.vaultHeight = liftStart;f.bufferedTackle = null;f.inputBuffer = null;
   f.sprinting = false;f.sprintCarry = false;f.sprintArmed = kind === 'dodge';f.plDefeated = false;
@@ -454,16 +670,19 @@ export function advanceAction(f, dt) {
   f.action.elapsed += dt;
   const kind = f.action.kind, spec = actionSpec(f.action), duration = spec.duration;
   // O pulo físico termina ao tocar o chão (a duração da esquiva não o corta no ar).
-  const done = f.action.jump ? f.action.jump.landed : f.action.elapsed >= duration - 1e-8;
+  const done = f.action.jump ? f.action.jump.landed : (f.action.elapsed >= duration - 1e-8 && !f.action.slam) || (f.action.slamLanded && (f.action.slamHold = (f.action.slamHold ?? 0) + dt) > C.rules.slamGroundTime + (f.action.hits.size === 0 ? C.rules.slamRecovery : 0));   // estado meteorGround: o mergulho segue no chão por slamGroundTime (+ slamRecovery se errou)
   if (done) {
-    const wasExhausted = f.exhausted && (kind === 'dodge' || kind === 'tackle'), slamMissed = !!f.action.slam && f.action.hits.size === 0;
+    const wasExhausted = f.exhausted && (kind === 'dodge' || kind === 'tackle'), wasSlam = !!f.action.slam;
     f.action = null;f.velocity = vec();f.vaultHeight = 0;f.state = f.hp <= 0 ? 'defeated' : 'neutral';
     if (wasExhausted && f.hp > 0) f.knockRecovery = Math.max(f.knockRecovery, C.extras.combat.exhaustRecovery);
     const recovery = spec.recovery;
-    if (recovery > 0 && f.hp > 0) f.knockRecovery = Math.max(f.knockRecovery, recovery);
-    if (slamMissed && f.hp > 0) f.knockRecovery = Math.max(f.knockRecovery, C.rules.slamRecovery);   // errou o mergulho: fica vulnerável ao aterrissar
+    if (recovery > 0 && f.hp > 0 && !wasSlam) f.knockRecovery = Math.max(f.knockRecovery, recovery);   // o meteor slam já passou pelo estado meteorGround: sem recuperação extra de 'aterrissar'
     // A animação segura a pose final da ação durante essa recuperação (não troca para “levantar”).
     f.recoveryFrom = f.knockRecovery > 0 && kind !== 'recoil' && kind !== 'move' ? kind : null;
+    if (wasSlam && f.jumpState) {
+      f.jumpState.canJump = true;
+      f.jumpState.cooldown = C.map?.jumpInterval ?? 0.25;
+    }
   }
 }
 
@@ -473,6 +692,10 @@ export function advanceAction(f, dt) {
  * encadeável (ou listada em cancelFrom), defesa e guard stun conforme a definição, recarga, status e stamina.
  */
 /** @param {any} f @param {any} def @param {number | null} [slot] */
+/** Lutadores da partida em curso (definido a cada updateFighter): permite que movePermission/HUD/IA avaliem Moves com aquisição de alvo. */
+let CTX_FIGHTERS = [];
+/** Mundo da partida em curso (definido a cada updateFighter): o apoio real sob o corpo para os Moves que descem do ar (air.js). */
+let CTX_WORLD = null;
 export function movePermission(f, def, slot = null) {
   if (!def) return {ok: false, reason: 'noMove', detail: {slot}};
   if (hasFlag(f, 'stunned')) return {ok: false, reason: 'stunned'};
@@ -480,38 +703,222 @@ export function movePermission(f, def, slot = null) {
   if (f.moveRecovery > 1e-8) return {ok: false, reason: 'moveRecovery', detail: {left: f.moveRecovery}};
   const cd = f.moveCooldowns?.[def.id] ?? 0;if (cd > 1e-8) return {ok: false, reason: 'cooldown', detail: {left: cd}};
   if (f.guard && def.fromGuard === false) return {ok: false, reason: 'guardBlocks'};
-  const cur = f.action;
-  if (cur && !(def.cancelFrom || []).includes(cur.kind)) {
+  const cur = f.action, airOk = airUsable(f, def);   // ar utilizável (air.js): salto, queda de borda ou arco do vault
+  if (f.flight && !airOk) return {ok: false, reason: 'noGround'};   // lançado, preso na parede ou Move sem uso no ar
+  if (cur && !(def.cancelFrom || []).includes(cur.kind) && !(def.fromDodge && cur.kind === 'dodge') && !(airOk && isVaultArc(f))) {
     if (cur.kind === 'recoil') return {ok: false, reason: 'recoil', detail: {left: Math.max(0, C.rules.recoil - cur.elapsed)}};
     if (!chainOpen(f)) return {ok: false, reason: 'chain', detail: {left: Math.max(0, actionSpec(cur).chainAfter - cur.elapsed)}};
   }
   if (f.stun > 1e-8 && !def.fromGuardStun) return {ok: false, reason: 'guardStun', detail: {left: f.stun}};
+  if (def.groundOnly && !airOk && (f.flight || (f.vaultHeight ?? 0) > 1e-8)) return {ok: false, reason: 'noGround'};
+  if (def.needsTarget) {const range = C.world[def.group]?.[def.needsTarget] ?? 0;if (!nearestEligible(f, CTX_FIGHTERS, range)) return {ok: false, reason: 'noTarget', detail: {range}};}
   const cost = costOf(f, def.cost ?? 1);
-  if (f.exhausted && cost > 0) return {ok: false, reason: 'exhausted', detail: {value: f.stamina, refill: C.rules.staminaMax}};
+  if (f.exhausted && cost > 0) return {ok: false, reason: 'exhausted', detail: {value: f.stamina, refill: getFighterMaxStamina(f)}};
   if (f.stamina < cost - 1e-8) return {ok: false, reason: 'stamina', detail: {value: f.stamina, required: cost}};
   return {ok: true};
 }
+/**
+ * Feint (slot): cancela a antecipação de um Tackle / Move-Tackle (Lunge, Guard Break já solto, Quick Attack) ou a carga em curso (Guard Break, Tackle carregado, qualquer Charge) e
+ * vira um recuo curto com i-frames; sem ação ofensiva é só o recuo. Fora da janela de cancelamento o Move é GASTO sem efeito e a ação anterior continua (punível, MV-P21).
+ * Custo e recarga na confirmação (Burst); o custo da ação cancelada NÃO volta (MV-P26).
+ */
+function pressFeint(f, cmd, def, slot, move, desiredHeading, hasTarget, diag) {
+  const deny = (reason, detail) => {if (diag) report(f, {kind: 'skill', slot, move: def.id, result: 'denied', reason, detail});};
+  const perm = movePermission(f, def, slot);
+  if (!perm.ok) return deny(perm.reason, perm.detail);
+  const P = C.world[def.group], cur = f.action;
+  let cancelled = null, whiff = false;
+  if (f.charge) {cancelCharge(f, 'feint');cancelled = 'charge';}
+  else if (f.tackleCharge) {cancelTackleCharge(f, 'feint');cancelled = 'tackleCharge';}
+  else if (cur?.kind === 'tackle') {
+    if (!cur.slam && (cur.hits?.size ?? 0) === 0 && cur.elapsed < P.cancelWindow - 1e-9) {f.action = null;f.velocity = vec();cancelled = cur.move ?? 'tackle';}
+    else whiff = true;
+  }
+  if (whiff) {   // gasto sem efeito: a animação do Feint acontece e a ação anterior segue
+    const cost = costOf(f, def.cost ?? 1);f.stamina = Math.max(0, f.stamina - cost);f.regenBase = f.stamina;f.regenAge = 0;f.exhausted = isDepleted(f.stamina);
+    if (def.cooldown > 0) (f.moveCooldowns ??= {})[def.id] = def.cooldown;
+    moveEvent(f, {result: 'feintWhiff', move: def.id, slot, interrupted: cur.move ?? 'tackle'});
+  } else {
+    startMove(f, def, slot, {move, dodgeDirection: cmd.dodgeDirection}, desiredHeading, hasTarget, cmd.guard);
+    const dir = feintDirection(cmd, f.facing);
+    f.action.heading = dir ? angleOf(dir) : f.facing + Math.PI;f.action.startAngle = f.action.heading;   // para o lado do input, ou para trás
+    moveEvent(f, {result: 'feint', move: def.id, slot, cancelled});
+  }
+  if (diag) report(f, {kind: 'skill', slot, move: def.id, result: 'executed', note: whiff ? 'fora da janela: gasto sem efeito' : cancelled ? `cancelou ${cancelled}` : 'recuo'});
+}
 /** Inicia o movimento: cobra a stamina, inicia a recarga e agenda a linha do tempo (disparada em updateMove). */
 function startMove(f, def, slot, dirs, desiredHeading, hasTarget, guardHeld) {
+  const lift = airKind(def) === 'descend' ? takeOffToLift(f, CTX_WORLD) : 0, inAir = airKind(def) === 'cast' && isAirJump(f);
   const aim = def.aim ?? 'target', inputDir = dirs.dodgeDirection ?? dirs.move;
   const heading = aim === 'facing' ? f.facing : aim === 'input' && length(inputDir) > .01 ? angleOf(inputDir) : hasTarget || length(inputDir) <= .01 ? desiredHeading : angleOf(inputDir);
-  f.action = {kind: 'move', move: def.id, slot, elapsed: 0, startAngle: heading, heading, offensive: false, hits: new Set(), fired: [], from: {...f.velocity}};
+  // M28.4: a execução guarda a definição EFETIVA (com os sliders do momento) e os parâmetros do grupo; mexer em slider depois não a altera.
+  f.action = {kind: 'move', move: def.id, slot, elapsed: 0, startAngle: heading, heading, offensive: false, hits: new Set(), fired: [], from: {...f.velocity}, def, params: def.group ? structuredClone(C.world[def.group]) : null, lock: dirs.lock ?? null};
   const cost = costOf(f, def.cost ?? 1);f.stamina = Math.max(0, f.stamina - cost);f.regenBase = f.stamina;f.regenAge = 0;f.exhausted = isDepleted(f.stamina);
   if (def.cooldown > 0) (f.moveCooldowns ??= {})[def.id] = def.cooldown;
   f.guard = false;f.guardSuppressed = guardHeld;f.push = null;f.blend = null;f.vaultHeight = 0;f.bufferedTackle = null;f.inputBuffer = null;f.sprinting = false;f.sprintCarry = false;
+  if (lift > 1e-8) applyLift(f, lift);else if (inAir) f.action.air = true;   // air.js: 'descend' desce enquanto age; 'cast' segue em voo
+}
+/**
+ * Move que vira uma AÇÃO DE TACKLE com parâmetros próprios (Lunge, Quick Attack, Bullet Punch…): `startAction` cria a ação (colisão real, defesa, defesa
+ * perfeita, i-frames, Clash/Counter, janelas, recuperação — tudo do Tackle); aqui se desfaz o custo do Tackle, cobra-se o do Move (stamina e cooldown no
+ * início do uso, MV-P11) e a preparação registrada em `def.tackle` ajusta duração, distância, dano, knockback e janelas (parâmetros capturados, M28.4).
+ */
+function startTackleMove(f, def, slot, dirs, desiredHeading, hasTarget, guardHeld, fighters) {
+  const before = f.stamina, lift = takeOffToLift(f, CTX_WORLD);   // no ar o Tackle curto começa descendo (air.js), como o C → X do vault
+  startAction(f, 'tackle', dirs, fighters, desiredHeading, false, guardHeld, hasTarget);
+  applyLift(f, lift);
+  f.stamina = before;
+  const cost = costOf(f, def.cost ?? 1);f.stamina = Math.max(0, f.stamina - cost);f.regenBase = f.stamina;f.regenAge = 0;f.exhausted = isDepleted(f.stamina);
+  if (def.cooldown > 0) (f.moveCooldowns ??= {})[def.id] = def.cooldown;
+  const a = f.action, P = def.group ? structuredClone(C.world[def.group]) : {};
+  a.move = def.id;a.slot = slot;a.params = P;a.moveDef = def;a.pl = 1;a.plSpeed = 1;a.plDamage = 1;
+  getTackleSetup(def.tackle)?.(f, a, P, {fighters, def, hasTarget});
+}
+/** Soltura de um Charge que vira Tackle (`def.tackle` + `charge`): ação de Tackle com PL da carga; o custo do Tackle volta (o do Move foi cobrado ao apertar). */
+function releaseTackleMove(f, def, ch, rel, cmd, ctx) {
+  const before = f.stamina, lift = takeOffToLift(f, CTX_WORLD);
+  startAction(f, 'tackle', {move: ctx.move, dodgeDirection: null}, ctx.fighters, ctx.desiredHeading, false, cmd.guard, ctx.hasTarget);
+  applyLift(f, lift);
+  f.stamina = before;
+  const a = f.action, P = ch.params.group ?? {};
+  a.move = def.id;a.slot = ch.slot;a.params = P;a.moveDef = def;a.pl = rel.level;a.plSpeed = 1;a.plDamage = 1;
+  getTackleSetup(def.tackle)?.(f, a, P, {fighters: ctx.fighters, def, hasTarget: ctx.hasTarget, charge: rel});
+}
+/**
+ * Contra-golpe do Riposte: troca a postura por um Tackle PL1 rumo a quem atacou, com os parâmetros capturados no uso; o custo do Tackle volta (o do Move foi
+ * cobrado ao apertar) e o resto da janela vira invulnerabilidade do golpe. A ação dura até o fim do cast original (0,65 s).
+ */
+function startRiposteStrike(f, action) {
+  const def = action.def, P = action.params, t = action.elapsed, p = C.actions.tackle;
+  const foe = CTX_FIGHTERS.find(o => o.id === action.riposte.target && o.hp > 0), heading = foe ? angleOf(sub(foe.position, f.position)) : f.facing;
+  const before = f.stamina, lift = takeOffToLift(f, CTX_WORLD);   // contra-golpe no ar: desce enquanto ataca (air.js)
+  startAction(f, 'tackle', {move: vec(), dodgeDirection: null}, CTX_FIGHTERS, heading, false, false, false);
+  applyLift(f, lift);
+  f.stamina = before;
+  const a = f.action;
+  a.heading = a.startAngle = heading;a.fixedHeading = true;
+  a.move = def.id;a.slot = action.slot;a.params = P;a.moveDef = def;a.pl = 4;a.plSpeed = 1;a.plDamage = P.damage / C.test.attackReference;   // MV-P13; contra-ataque: tratado como PL 4 (vence qualquer PL, nunca faz clash)
+  a.kb = {horizontal: P.knockbackH, vertical: P.knockbackV};
+  a.durationScale = Math.max(.1, P.cast - t) / p.duration;
+  a.distanceScale = P.strikeRange / Math.max(1e-6, nominalDistance(f, 'tackle'));
+  a.invulnerableFor = Math.max(0, P.windowEnd - t);
+  a.chainAfter = Math.max(.1, P.cast - t);
+  a.riposteStrike = true;
+  moveEvent(f, {result: 'riposteStrike', move: def.id, slot: action.slot, target: action.riposte.target});
+}
+// ---------- Mira por marcador (aimMode 'marker') ----------
+/** Abre o marcador: nada é cobrado até a confirmação; os parâmetros do grupo são capturados agora (M28.4). */
+function startAim(f, def, slot, fighters, world, lockId) {
+  const P = structuredClone(C.world[def.group]), locked = lockId != null ? fighters.find(o => o.id === lockId && o.hp > 0) : null;
+  if (def.aimMode === 'follow') {   // marcador que segue o lutador: o corpo continua andando (a 30%) e uma esquiva em curso segue intacta
+    f.aim = {move: def.id, slot, ticks: 0, params: P, def, follow: true, dir: direction(f.facing), t: 0, pos: {...f.position}, valid: true, reason: null, y: 0, distance: 0};
+    followMarker(f, f.aim, {x: 0, z: 0}, 0, world, fighters);
+    f.guard = false;f.guardSuppressed = false;
+    moveEvent(f, {result: 'aimStart', move: def.id, slot});
+    return;
+  }
+  const pos = markerInitial(f, P, locked), v = markerValidity(f, P, pos, world, fighters);
+  f.aim = {move: def.id, slot, ticks: 0, params: P, def, pos, valid: v.valid, reason: v.reason, y: v.y, distance: v.distance};
+  if (def.castFirst) {   // cronologia C: o cast físico começa JÁ; o corpo continua livre (a 30% durante o cast)
+    Object.assign(f.aim, {castFirst: true, free: true, castLeft: P.cast, hadSupport: !f.flight, released: false});
+    f.guard = false;f.guardSuppressed = false;f.sprinting = false;f.sprintCarry = false;
+    moveEvent(f, {result: 'aimStart', move: def.id, slot});
+    return;
+  }
+  f.guard = false;f.guardSuppressed = false;f.sprinting = false;f.sprintCarry = false;f.velocity = vec();f.locomotionVelocity = vec();
+  moveEvent(f, {result: 'aimStart', move: def.id, slot});
+}
+/** Fecha o marcador sem executar nem cobrar. */
+export function cancelAim(f, why) {
+  const a = f.aim;if (!a) return;
+  f.aim = null;moveEvent(f, {result: 'aimCancel', move: a.move, slot: a.slot, reason: why});
+  if (attemptsActive()) report(f, {kind: 'skill', slot: a.slot, move: a.move, result: 'denied', reason: 'aimEnded', detail: {why}});
+}
+/** Um passo do marcador: move, revalida e, ao SOLTAR o botão, confirma (válido: cobra e começa o cast) ou cancela (inválido: sem custo). */
+function stepAim(f, cmd, inputMove, ctx) {
+  const a = f.aim, def = a.def ?? getMove(a.move);   // a definição EFETIVA do momento em que o marcador abriu (M28.4)
+  if (!def) {f.aim = null;return;}
+  if (a.castFirst) {   // Emerging Stone (ES-D103 C): dispara quando o cast terminou E o botão foi solto com destino válido
+    a.castLeft = Math.max(0, a.castLeft - ctx.dt);
+    const grounded = !f.flight && !((f.vaultHeight ?? 0) > 1e-8);
+    if (grounded) a.hadSupport = true;
+    else if (a.hadSupport || a.castLeft <= 1e-9) {cancelAim(f, 'support');return;}   // perder o apoio no cast, ou não estar apoiado ao concluí-lo, cancela
+    a.pos = markerMove(a.pos, inputMove, a.params.markerSpeed, ctx.dt);   // fora do alcance: fica onde está, inválido, sem teleporte para o limite
+    const v = markerValidity(f, a.params, a.pos, ctx.world, ctx.fighters);
+    a.valid = v.valid;a.reason = v.reason;a.y = v.y;a.distance = v.distance;
+    if (a.ticks > 0 && !cmd.skillHeld?.[a.slot]) a.released = true;
+    if (a.released) {
+      if (!a.valid) {cancelAim(f, 'invalidMarker');return;}
+      if (a.castLeft <= 1e-9) {
+        const perm = movePermission(f, def, a.slot);
+        f.aim = null;
+        if (!perm.ok) {moveEvent(f, {result: 'aimCancel', move: def.id, slot: a.slot, reason: perm.reason, detail: perm.detail});return;}
+        const cost = costOf(f, def.cost ?? 1);f.stamina = Math.max(0, f.stamina - cost);f.regenBase = f.stamina;f.regenAge = 0;f.exhausted = isDepleted(f.stamina);   // cobrança só aqui (soltura confirmada)
+        if (def.cooldown > 0) (f.moveCooldowns ??= {})[def.id] = def.cooldown;
+        (f.moveFx ??= []).push({index: 0, move: def.id, heading: f.facing, params: a.params, def, lock: null, marker: {pos: {...a.pos}, y: a.y}});
+        moveEvent(f, {result: 'aimConfirm', move: def.id, slot: a.slot, x: a.pos.x, z: a.pos.z});
+        if (ctx.diag) report(f, {kind: 'skill', slot: a.slot, move: def.id, result: 'executed', note: 'disparo (cast concluído e botão solto)'});
+      }
+    }
+    a.ticks++;
+    return;
+  }
+  if (a.follow) followMarker(f, a, inputMove, ctx.dt, ctx.world, ctx.fighters);
+  else {
+    a.pos = markerMove(a.pos, inputMove, a.params.markerSpeed, ctx.dt);
+    const v = markerValidity(f, a.params, a.pos, ctx.world, ctx.fighters);
+    a.valid = v.valid;a.reason = v.reason;a.y = v.y;a.distance = v.distance;
+  }
+  if (a.ticks > 0 && !cmd.skillHeld?.[a.slot]) {
+    f.aim = null;
+    const perm = a.valid ? movePermission(f, def, a.slot) : {ok: false, reason: 'invalidMarker', detail: {why: a.reason}};
+    if (!perm.ok) {
+      moveEvent(f, {result: 'aimCancel', move: def.id, slot: a.slot, reason: perm.reason, detail: perm.detail});
+      if (ctx.diag) report(f, {kind: 'skill', slot: a.slot, move: def.id, result: 'denied', reason: perm.reason, detail: perm.detail});
+      return;
+    }
+    const heading = angleOf(sub(a.pos, f.position));
+    startMove(f, def, a.slot, {move: vec(), lock: null}, heading, false, cmd.guard);
+    f.action.params = a.params;
+    f.action.heading = f.action.startAngle = heading;f.action.marker = {pos: {...a.pos}, y: a.y};   // destino FIXO em coordenadas do mundo
+    moveEvent(f, {result: 'aimConfirm', move: def.id, slot: a.slot, x: a.pos.x, z: a.pos.z});
+    if (ctx.diag) report(f, {kind: 'skill', slot: a.slot, move: def.id, result: 'executed', note: 'marcador confirmado'});
+    return;
+  }
+  a.ticks++;
+}
+/**
+ * Move que dispara uma investida de Tackle por conta própria (Bullet Punch ao reaparecer): ação de Tackle real rumo a `heading`, custo do Tackle devolvido,
+ * parâmetros do grupo e preparação registrada em `def.tackle`.
+ */
+export function startTackleAt(f, def, params, heading, fighters) {
+  const before = f.stamina;
+  startAction(f, 'tackle', {move: vec(), dodgeDirection: null}, fighters, heading, false, false, false);
+  f.stamina = before;
+  const a = f.action;
+  a.heading = a.startAngle = heading;a.move = def.id;a.params = params;a.moveDef = def;a.pl = 1;a.plSpeed = 1;a.plDamage = 1;
+  getTackleSetup(def.tackle)?.(f, a, params, {fighters, def});
+  return a;
 }
 /** Um passo do movimento em curso: deslocamento (motion), orientação e efeitos da linha do tempo que vencem neste passo. */
 function updateMove(f, action, target, cmd, dt) {
-  const def = getMove(action.move);if (!def) {f.velocity = vec();return;}
+  const def = action.def ?? getMove(action.move);if (!def) {f.velocity = vec();return;}
+  if (def.riposte && action.riposte) {startRiposteStrike(f, action);return;}   // acerto elegível na janela: vira o contra-golpe
   const m = def.motion ?? {type: 'none'};
   if (m.type === 'dash' && m.distance) {
     // Deslocamento suave entre start e end (s): mesma distância qualquer que seja o passo.
     const t0 = m.start ?? 0, t1 = m.end ?? def.duration, prog = t => smoothstep(clamp((t - t0) / Math.max(1e-6, t1 - t0), 0, 1));
-    f.velocity = scale(direction(action.heading), m.distance * (prog(action.elapsed + dt) - prog(action.elapsed)) / dt);
+    const dist = (m.distanceKey ? action.params?.[m.distanceKey] : undefined) ?? m.distance;   // distanceKey: o alcance vem de um slider do grupo (Feint)
+    f.velocity = scale(direction(action.heading), dist * (prog(action.elapsed + dt) - prog(action.elapsed)) / dt);
+  } else if (m.type === 'walk') {   // anda com o input a (1 − slow) da velocidade normal (Bullet Punch: preparação a 30%); ausente não se move
+    const inp = length(cmd.move) > 1 ? normalize(cmd.move) : cmd.move;
+    f.velocity = f.absent ? vec() : scale(inp, walkSpeed(f) * (1 - (action.params?.slow ?? .7)));f.locomotionVelocity = {...f.velocity};
+    if (action.travel) bulletPunchTravel(f, action, dt);   // ausente: viaja invisível até o marcador (a câmera segue a posição)
   } else if (m.type === 'root') f.velocity = vec();
   else {const from = action.from ?? vec(), k = Math.exp(-12 * dt);f.velocity = scale(from, k);action.from = {...f.velocity};}
-  turnToward(f, target && def.aim !== 'facing' ? angleOf(sub(target.position, f.position)) : action.heading, dt);
-  (def.timeline || []).forEach((ev, i) => {if (!action.fired.includes(i) && ev.at <= action.elapsed + dt + 1e-9) {action.fired.push(i);(f.moveFx ??= []).push({index: i, move: def.id, heading: action.heading});}});
+  if (action.liftStart > 0) f.vaultHeight = action.liftTime > 0 ? action.liftStart * (1 - smoothstep((action.elapsed + dt) / action.liftTime)) : 0;   // desceu do ar (air.js): sem teletransporte ao chão
+  if (!def.keepFacing) turnToward(f, target && def.aim !== 'facing' ? angleOf(sub(target.position, f.position)) : action.heading, dt);   // keepFacing: recuo sem virar o corpo (Feint)
+  (def.timeline || []).forEach((ev, i) => {if (!action.fired.includes(i) && ev.at <= action.elapsed + dt + 1e-9) {action.fired.push(i);(f.moveFx ??= []).push({index: i, move: def.id, heading: action.heading, params: action.params ?? null, def, lock: action.lock ?? null, marker: action.marker ?? null});}});
   f.state = 'move';
 }
 // ---------- Movimentos de carga (Charge): segurar o botão carrega, soltar executa ----------
@@ -530,19 +937,20 @@ export function chargePermission(f, def, slot = null) {
   if (hasFlag(f, 'silenced')) return {ok: false, reason: 'silenced'};
   if (f.charge) return {ok: false, reason: 'charging'};
   const cd = f.moveCooldowns?.[def.id] ?? 0;if (cd > 1e-8) return {ok: false, reason: 'cooldown', detail: {left: cd}};
-  if (f.flight || f.vaultHeight > 1e-8 || f.knockRecovery > 0) return {ok: false, reason: 'noGround'};
+  const airOk = airUsable(f, def);   // carregar no salto, na queda de borda ou no arco do vault (air.js)
+  if (f.knockRecovery > 0 || ((f.flight || f.vaultHeight > 1e-8) && !airOk)) return {ok: false, reason: 'noGround'};
   if (f.moveRecovery > 1e-8) return {ok: false, reason: 'moveRecovery', detail: {left: f.moveRecovery}};
   if (f.guard && def.fromGuard === false) return {ok: false, reason: 'guardBlocks'};
   const cur = f.action;
   if (cur?.kind === 'dodge') {
     const left = dodgeMainEnd() - cur.elapsed;
-    if (left > 1e-8) return {ok: false, reason: 'chain', detail: {left}, buffer: left <= C.world.charge.bufferWindow + 1e-8};
+    if (left > 1e-8 && !(airOk && isVaultArc(f))) return {ok: false, reason: 'chain', detail: {left}, buffer: left <= C.world.charge.bufferWindow + 1e-8};
   } else if (cur?.kind === 'tackle') return {ok: false, reason: 'chain', detail: {left: Math.max(0, C.actions.tackle.duration - cur.elapsed)}};
   else if (cur?.kind === 'recoil') return {ok: false, reason: 'recoil', detail: {left: Math.max(0, C.rules.recoil - cur.elapsed)}};
   else if (cur && !chainOpen(f)) return {ok: false, reason: 'chain', detail: {left: Math.max(0, actionSpec(cur).chainAfter - cur.elapsed)}};
   if (f.stun > 1e-8 && !def.fromGuardStun) return {ok: false, reason: 'guardStun', detail: {left: f.stun}};
   const cost = costOf(f, def.cost ?? 1);
-  if (f.exhausted && cost > 0) return {ok: false, reason: 'exhausted', detail: {value: f.stamina, refill: C.rules.staminaMax}};
+  if (f.exhausted && cost > 0) return {ok: false, reason: 'exhausted', detail: {value: f.stamina, refill: getFighterMaxStamina(f)}};
   if (f.stamina < cost - 1e-8) return {ok: false, reason: 'stamina', detail: {value: f.stamina, required: cost}};
   return {ok: true};
 }
@@ -553,6 +961,7 @@ function startCharge(f, def, slot, guardHeld, fromBuffer = false) {
   f.stamina = Math.max(0, f.stamina - cost);f.regenBase = f.stamina;f.regenAge = 0;f.exhausted = isDepleted(f.stamina);
   if (f.action?.kind === 'dodge') {f.locomotionVelocity = {...f.velocity};f.action = null;}
   f.charge = {move: def.id, slot, ticks: 0, params, cost, fromBuffer};
+  if ((def.tackle || def.cooldownOnStart) && def.cooldown > 0) (f.moveCooldowns ??= {})[def.id] = def.cooldown;   // Charge que vira Tackle: custo e recarga no INÍCIO da carga (interromper mantém os dois)
   f.guard = false;f.guardSuppressed = guardHeld;f.push = null;f.blend = null;f.vaultHeight = 0;f.bufferedTackle = null;f.inputBuffer = null;f.skillBuffer = null;f.sprinting = false;f.sprintCarry = false;
   moveEvent(f, {result: 'chargeStart', move: def.id, slot});
 }
@@ -569,7 +978,7 @@ export function cancelCharge(f, why) {
 function boostCooldown(f, def, slot, diag) {
   const left = f.moveCooldowns?.[def.id] ?? 0, plan = boostPlan(left, chargeParams(def)), cost = costOf(f, plan.cost);
   const deny = why => {if (diag) report(f, {kind: 'skill', slot, move: def.id, result: 'denied', ...why});};
-  if (f.exhausted && cost > 0) return deny({reason: 'exhausted', detail: {value: f.stamina, refill: C.rules.staminaMax}});
+  if (f.exhausted && cost > 0) return deny({reason: 'exhausted', detail: {value: f.stamina, refill: getFighterMaxStamina(f)}});
   if (f.stamina < cost - 1e-8) return deny({reason: 'stamina', detail: {value: f.stamina, required: cost}});
   f.stamina = Math.max(0, f.stamina - cost);f.regenBase = f.stamina;f.regenAge = 0;f.exhausted = isDepleted(f.stamina);
   const rest = left - plan.reduce;if (rest <= 1e-8) delete f.moveCooldowns[def.id];else f.moveCooldowns[def.id] = rest;
@@ -577,11 +986,14 @@ function boostCooldown(f, def, slot, diag) {
   if (diag) report(f, {kind: 'skill', slot, move: def.id, result: 'executed', note: `recarga encurtada em ${plan.reduce.toFixed(2)} s (−${cost.toFixed(2)} de stamina)`});
 }
 /** Toque num slot (borda do botão): inicia o movimento, encurta a recarga, guarda no buffer ou nega com motivo. */
-function pressSkill(f, cmd, move, desiredHeading, hasTarget, diag) {
+function pressSkill(f, cmd, move, desiredHeading, hasTarget, diag, fighters = [], world = null) {
   const slot = cmd.skill, def = moveInSlot(f, slot), onCooldown = !!def && (f.moveCooldowns?.[def.id] ?? 0) > 1e-8;
   const deny = (reason, detail) => {if (diag) report(f, {kind: 'skill', slot, move: def?.id ?? null, result: 'denied', reason, detail});};
   f.skillBuffer = null;
-  if (def?.cooldownBoost && onCooldown) return boostCooldown(f, def, slot, diag);
+  if (def && def.cooldownBoost !== false && onCooldown) return boostCooldown(f, def, slot, diag);   // M5.8/M5.9: vale para TODO Move (novo toque + stamina); `cooldownBoost: false` desliga num Move específico
+  if (def && isVaultArc(f) && airKind(def) !== 'none' && (airKind(def) === 'cast' || def.charge || def.aimMode) && (def.charge ? chargePermission(f, def, slot) : movePermission(f, def, slot)).ok) vaultToFlight(f);   // arco do vault: vira voo normal e o Move segue o caminho do salto (air.js)
+  if (def?.feint) return pressFeint(f, cmd, def, slot, move, desiredHeading, hasTarget, diag);   // cancela a carga/ação ofensiva em curso (ou só recua)
+  if (f.aim) return deny('aiming');                                       // um marcador de cada vez
   if (f.charge) return deny('charging');                                  // sem carregamentos simultâneos (M16.4)
   if (def?.charge) {
     const perm = chargePermission(f, def, slot);
@@ -591,7 +1003,9 @@ function pressSkill(f, cmd, move, desiredHeading, hasTarget, diag) {
     return;
   }
   const perm = movePermission(f, def, slot);
-  if (perm.ok) startMove(f, def, slot, {move, dodgeDirection: cmd.dodgeDirection}, desiredHeading, hasTarget, cmd.guard);
+  if (perm.ok && def.aimMode) {startAim(f, def, slot, fighters, world, hasTarget ? cmd.target : null);if (diag) report(f, {kind: 'skill', slot, move: def.id, result: 'executed', note: 'marcador aberto'});return;}
+  if (perm.ok && def.tackle) startTackleMove(f, def, slot, {move, dodgeDirection: cmd.dodgeDirection}, desiredHeading, hasTarget, cmd.guard, fighters);
+  else if (perm.ok) startMove(f, def, slot, {move, dodgeDirection: cmd.dodgeDirection, lock: hasTarget ? cmd.target ?? null : null}, desiredHeading, hasTarget, cmd.guard);
   if (diag) report(f, {kind: 'skill', slot, move: def?.id ?? null, result: perm.ok ? 'executed' : 'denied', reason: perm.reason, detail: perm.detail});
 }
 /** Comando de Move guardado no fim da esquiva (M16.3): sai assim que a esquiva termina o deslocamento principal. */
@@ -603,7 +1017,7 @@ function bufferedSkill(f, cmd, diag) {
   else if (!perm.buffer) {f.skillBuffer = null;if (diag) report(f, {kind: 'skill', slot: b.slot, move: def.id, result: 'expired', reason: perm.reason, detail: perm.detail});}
 }
 /** Passo do Charge depois de defesa e X/C: soltar executa (efeitos na soltura, M30.9); segurar acumula, parado no máximo (M7.5). */
-function stepCharge(f, cmd) {
+function stepCharge(f, cmd, ctx) {
   const ch = f.charge, def = getMove(ch.move);
   if (!def) {f.charge = null;return;}
   if (ch.ticks > 0 && !cmd.skillHeld?.[ch.slot]) {
@@ -614,8 +1028,13 @@ function stepCharge(f, cmd) {
     }
     const level = chargeLevel(ch.ticks, ch.params), rel = {ticks: ch.ticks, seconds: ch.ticks * ch.params.step, level, params: ch.params, cost: ch.cost, slot: ch.slot, failed: false, lock: cmd.target ?? null};   // lock: alvo travado no instante da soltura (mira do Psyshock)
     f.charge = null;
+    if (def.tackle) {   // soltar vira um Tackle com os parâmetros congelados da carga (Guard Break); sem recarga nova nem recuperação de Move
+      moveEvent(f, {result: 'chargeRelease', move: def.id, slot: ch.slot, level, seconds: rel.seconds});
+      releaseTackleMove(f, def, ch, rel, cmd, ctx);
+      return;
+    }
     // Recarga na materialização/disparo (M2.4/M2.5) e recuperação (M26s.8); o jogo desfaz as duas se o efeito falhar (M13.7, M29.3).
-    if (def.cooldown > 0) (f.moveCooldowns ??= {})[def.id] = def.cooldown;
+    if (def.cooldown > 0 && !def.cooldownOnStart) (f.moveCooldowns ??= {})[def.id] = def.cooldown;
     f.moveRecovery = ch.params.recovery;
     moveEvent(f, {result: 'chargeRelease', move: def.id, slot: ch.slot, level, seconds: rel.seconds});
     (def.timeline || []).forEach((ev, i) => (f.moveFx ??= []).push({index: i, move: def.id, heading: f.facing, charge: rel}));

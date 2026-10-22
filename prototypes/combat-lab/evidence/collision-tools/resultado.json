@@ -1,0 +1,56 @@
+{
+ "when": "2026-10-22T11:00:35.970Z",
+ "failures": 0,
+ "report": [
+  {
+   "label": "Visualizar: as 5 sobreposições de colisão existem",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "label": "Cenários: grupo «Colisões e ambiente (15)» no topo da lista",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "label": "Cenários: 15 cenários de colisão listados",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "label": "Um clique roda os 15 e todos passam",
+   "ok": true,
+   "detail": "15 de 15 cenários de colisão aprovados com os ajustes atuais.✓ Colisão: parede r"
+  },
+  {
+   "label": "Dados ao vivo: linhas de apoio, último contato e objetos do cenário",
+   "ok": true,
+   "detail": "Distância entre centros30.82 mEspaço entre colisores29.82 mVelocidade de aproximação1.52 m/sAzul (física)neutral · |v| 0"
+  },
+  {
+   "label": "Modelo real de chars/ carregado no azul",
+   "ok": true,
+   "detail": "mosh/Cogumelo.glb"
+  },
+  {
+   "label": "Sem erros no console durante os cenários e as sobreposições",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "label": "HTML construído (file://): grupo «Colisões e ambiente (15)» e 15/15 num clique",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "label": "HTML construído (file://): as 5 sobreposições de colisão existem",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "label": "HTML construído (file://): sem erros no console",
+   "ok": true,
+   "detail": ""
+  }
+ ]
+}

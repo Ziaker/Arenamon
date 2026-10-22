@@ -1,6 +1,7 @@
 // Clash por empurrão (sem lançamento) e recovery rápido (C no ar, esquiva imediata ao pousar): sem navegador.
+// Este teste caracteriza a mecânica nos valores de FÁBRICA do laboratório (factoryDefaults); a base de calibração v8 é coberta por calibration-base.test.mjs e pelos testes de colisão/ambiente.
 import assert from 'node:assert/strict';
-import {C, defaults, resetConfig} from '../src/sim/config.js';
+import {C, factoryDefaults, resetConfig} from '../src/sim/config.js';
 import {Game} from '../src/sim/game.js';
 import {emptyCommand} from '../src/sim/entity.js';
 import {vec} from '../src/sim/math.js';
@@ -10,7 +11,7 @@ import {timeToLand} from '../src/sim/controller.js';
 let n = 0;const ok = l => {n++;console.log('✓', l);};
 const cmd = o => ({...emptyCommand(), ...o});
 function arena(positions = [vec(0, -1.6), vec(0, 1.6)], over = {}) {
-  resetConfig(defaults());for (const [p, v] of Object.entries(over)) {const k = p.split('.'), last = k.pop();k.reduce((a, x) => a[x], C)[last] = v;}
+  resetConfig(factoryDefaults());for (const [p, v] of Object.entries(over)) {const k = p.split('.'), last = k.pop();k.reduce((a, x) => a[x], C)[last] = v;}
   const g = new Game();g.mode = 'inactive';g.reset({positions});g.fighters[0].facing = 0;g.fighters[1].facing = Math.PI;return g;
 }
 const stepAll = (g, k, a = () => cmd(), b = () => cmd()) => {const ev = [];for (let i = 0; i < k; i++) {g.step(a(i), b(i));ev.push(...g.lastStepEvents);}return ev;};

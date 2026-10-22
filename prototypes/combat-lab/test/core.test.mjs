@@ -2,15 +2,17 @@
 // oito direções, cancelamento C → X (inclusive aéreo), clash, defesa, stamina, independência dos parâmetros e
 // migração de JSON antigo. Grava o relatório “esperado × obtido” em validation/etapa-a-*.{json,md}.
 // Uso: node prototypes/combat-lab/test/core.test.mjs
+// Este teste caracteriza a mecânica nos valores de FÁBRICA do laboratório (factoryDefaults); a base de calibração v8 é coberta por calibration-base.test.mjs e pelos testes de colisão/ambiente.
 import assert from 'node:assert/strict';
 import {mkdirSync, writeFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {Game} from '../src/sim/game.js';
-import {C, resetConfig, defaults, ETAPA_A_MOTION, ETAPA_A_RULES} from '../src/sim/config.js';
+import {C, resetConfig, factoryDefaults, ETAPA_A_MOTION, ETAPA_A_RULES} from '../src/sim/config.js';
 import {isInvulnerable} from '../src/sim/entity.js';
 import {toCommand} from '../src/ui/input.js';
 import {migrateFlat, flatten} from '../src/ui/actions-meta.js';
 import {vec, length, normalize, angleOf, sub} from '../src/sim/math.js';
+resetConfig(factoryDefaults());   // parte dos valores de fábrica (a base de calibração v8 tem testes próprios)
 
 const out = fileURLToPath(new URL('../validation/', import.meta.url));mkdirSync(out, {recursive: true});
 const report = [];let passed = 0;
@@ -21,7 +23,7 @@ function expect(group, label, ok, expected, actual) {report.push({group, label, 
 function legacyMotion() {for (const [p, v] of Object.entries(ETAPA_A_MOTION)) {const k = p.split('.'), last = k.pop();k.reduce((o, x) => o[x], C)[last] = v;}}
 /** As verificações deste arquivo documentam as regras aprovadas da Etapa A; as regras novas têm testes próprios (rules.test.mjs). */
 function etapaARules() {for (const [p, v] of Object.entries(ETAPA_A_RULES)) {const k = p.split('.'), last = k.pop();k.reduce((o, x) => o[x], C)[last] = v;}}
-function test(name, fn) {resetConfig();etapaARules();fn();passed++;console.log('✓', name);}
+function test(name, fn) {resetConfig(factoryDefaults());etapaARules();fn();passed++;console.log('✓', name);}
 const cmd = (o = {}) => ({move: vec(), dodge: false, tackle: false, guard: false, guardPressed: false, target: null, ...o});
 const DIRS = [['frente', 0, 1], ['trás', 0, -1], ['esquerda', 1, 0], ['direita', -1, 0], ['frente-esquerda', 1, 1], ['frente-direita', -1, 1], ['trás-esquerda', 1, -1], ['trás-direita', -1, -1]]
   .map(([name, x, z]) => ({name, d: normalize(vec(x, z))}));
@@ -29,6 +31,9 @@ const STEP = () => C.test.step;
 /** Partida com posições, orientação (0 = +Z) e stamina definidas; o vermelho fica parado salvo comando. */
 function setup({p0 = vec(0, 0), p1 = vec(0, 3), face0 = 0, face1 = Math.PI, stamina0, stamina1, profile0 = 'balanced', profile1 = 'balanced'} = {}) {
   const g = new Game();g.mode = 'inactive';g.profile = profile0;g.enemyProfile = profile1;g.reset({positions: [p0, p1]});
+  // Estes testes medem a mecânica de combate em si: o mundo (plataformas, obstáculos,
+  // destrutíveis, itens) fica neutro para não bloquear trajetórias nem curar stamina.
+  g.mapState.platforms = [];g.mapState.obstacles = [];g.mapState.destructibles = [];g.mapState.items = [];
   const [a, b] = g.fighters;for (const [f, face] of [[a, face0], [b, face1]]) {f.facing = face;f.visualFacing = face;f.combatHeading = face;}
   if (stamina0 !== undefined) {a.stamina = stamina0;a.regenBase = stamina0;}if (stamina1 !== undefined) {b.stamina = stamina1;b.regenBase = stamina1;}
   return g;
@@ -171,7 +176,7 @@ test('C → X fora da janela ou desligado não interrompe a esquiva', () => {
   C.actions.cancel.windowStart = .1;C.actions.cancel.windowEnd = .2;C.actions.buffer.window = 0;
   let c = cancelCase('fora da janela (50 ms, janela 100–200 ms, sem buffer)', 6);
   expect('C → X', 'antes da janela: X ignorado', !c.S.some(s => s.kind === 'tackle'), 'sem X', c.S.some(s => s.kind === 'tackle') ? 'X' : 'sem X');
-  resetConfig();C.actions.cancel.dodgeToTackle = 0;
+  resetConfig(factoryDefaults());C.actions.cancel.dodgeToTackle = 0;
   c = cancelCase('desligado', 30);
   expect('C → X', 'desligado: X ignorado durante C', !c.S.some(s => s.kind === 'tackle'), 'sem X', c.S.some(s => s.kind === 'tackle') ? 'X' : 'sem X');
 });
@@ -201,7 +206,7 @@ test('buffer de entrada: X antecipado sai no primeiro passo permitido; expira e 
   C.actions.cancel.windowStart = .2;C.actions.cancel.windowEnd = .4;c = cancelCase('buffer: X 150 ms antes da janela (expira)', 6);
   expect('Buffer de entrada', `X ${(.2 - 6 * step) * 1000 | 0} ms antes expira (buffer ${B * 1000} ms)`, !c.S.some(s => s.kind === 'tackle'), 'sem X', c.S.some(s => s.kind === 'tackle') ? 'X' : 'sem X');
   // C apertado durante o próprio tackle antes do encadeamento (200 ms): sai no passo em que o encadeamento abre.
-  resetConfig();
+  resetConfig(factoryDefaults());
   const g = setup({p1: vec(14, 14)}), r = run(g, 80, t => [t === 2 ? cmd({move: vec(1, 0), tackle: true}) : t === 2 + 18 ? cmd({move: vec(0, 1), dodge: true, dodgeDirection: vec(0, 1)}) : cmd(), cmd()]);
   const dodgeAt = r.samples.findIndex(s => s[0].kind === 'dodge');
   expect('Buffer de entrada', 'C 50 ms antes do fim do encadeamento do X sai quando ele abre', Math.abs(dodgeAt - (2 + Math.round(C.actions.tackle.chainAfter / step))) <= 1, 2 + Math.round(C.actions.tackle.chainAfter / step), dodgeAt);
@@ -210,7 +215,7 @@ test('buffer de entrada: X antecipado sai no primeiro passo permitido; expira e 
   const g2 = setup({p1: vec(14, 14)}), r2 = run(g2, 80, t => [t === 2 ? cmd({move: vec(1, 0), tackle: true}) : t === 2 + 18 ? cmd({move: vec(0, 1), dodge: true, dodgeDirection: vec(0, 1)}) : cmd(), cmd()]);
   expect('Buffer de entrada', 'buffer desligado: C antecipado é perdido', !r2.samples.some(s => s[0].kind === 'dodge'), 'sem C', r2.samples.some(s => s[0].kind === 'dodge') ? 'C' : 'sem C');
   // Um toque em D descarta o pedido guardado.
-  resetConfig();
+  resetConfig(factoryDefaults());
   const g3 = setup({p1: vec(14, 14)}), r3 = run(g3, 80, t => [t === 2 ? cmd({move: vec(1, 0), tackle: true}) : t === 20 ? cmd({move: vec(0, 1), dodge: true, dodgeDirection: vec(0, 1)}) : t === 22 ? cmd({guard: true, guardPressed: true}) : cmd(), cmd()]);
   expect('Buffer de entrada', 'toque em D descarta o pedido guardado', !r3.samples.some(s => s[0].kind === 'dodge'), 'sem C', r3.samples.some(s => s[0].kind === 'dodge') ? 'C' : 'sem C');
 });
@@ -225,7 +230,7 @@ test('parâmetros de C e X são independentes', () => {
   g = setup({p1: vec(14, 14)});r = run(g, 100, t => [t === 2 ? cmd({move: vec(1, 0), tackle: true}) : cmd(), cmd()]);
   expect('Independência', 'duração de X continua 0,4 s (47 amostras + passo final)', r.samples.filter(s => s[0].kind === 'tackle').length === 47, 47, r.samples.filter(s => s[0].kind === 'tackle').length);
   expect('Independência', 'custo de X = 2', Math.abs(r.samples[3][0].stamina - 1) < 1e-9, 1, r.samples[3][0].stamina);
-  resetConfig();etapaARules();legacyMotion();C.actions.tackle.steerLimit = 0;C.actions.tackle.curveStart = 3;C.actions.dodge.distance = 1;
+  resetConfig(factoryDefaults());etapaARules();legacyMotion();C.actions.tackle.steerLimit = 0;C.actions.tackle.curveStart = 3;C.actions.dodge.distance = 1;
   g = setup({p1: vec(14, 14)});r = run(g, 70, t => [t === 2 ? cmd({move: vec(1, 0), dodge: true, dodgeDirection: vec(1, 0)}) : t > 2 ? cmd({move: vec(1, 1)}) : cmd(), cmd()]);
   const endOf = (r, kind) => r.samples.find((s, i) => i > 2 && s[0].kind !== kind)[0];const dodgeEnd = endOf(r, 'dodge');
   expect('Independência', 'distância de C = 1 × 0,4 × 4,8', Math.abs(Math.hypot(dodgeEnd.x, dodgeEnd.z) - 1.92) < .2, '≈ 1,92 m (com esterçamento de C intacto)', Math.hypot(dodgeEnd.x, dodgeEnd.z));
@@ -312,7 +317,7 @@ test('stamina: três esquivas, exaustão, velocidade reduzida e regeneração', 
 
 // ---------- Migração de JSON ----------
 test('migração de JSON v6 e v7 para os parâmetros separados, com relatório', () => {
-  const known = new Set(Object.keys(flatten(defaults())));
+  const known = new Set(Object.keys(flatten(factoryDefaults())));
   const v6 = migrateFlat(flatten({rules: {dodge: .5, invulnerable: .25, steerLimit: .3, blend: .12, launchUp: 8, mystery: 3}, extras: {combat: {actionCost: 1.5, counterSpeed: 1.3, vaultReachBonus: .9}}}), known);
   const v = v6.values;
   expect('Migração', 'v6: duração compartilhada → C e X', v['actions.dodge.duration'] === .5 && v['actions.tackle.duration'] === .5, '0,5 / 0,5', `${v['actions.dodge.duration']} / ${v['actions.tackle.duration']}`);

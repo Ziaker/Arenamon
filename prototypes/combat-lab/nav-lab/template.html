@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Arenamon · Laboratório de Navegação — Yuka</title>
+<style>/*__CSS__*/</style>
+</head>
+<body>
+<div class="app">
+ <header class="top">
+  <span class="logo">A</span>
+  <strong>ARENAMON <em>NAVEGAÇÃO · YUKA</em></strong>
+  <small>Planejamento de rotas com salto e queda · offline · __VERSION_DETAIL__</small>
+  <span class="spacer"></span>
+ </header>
+ <div class="body">
+  <aside class="side">
+   <section class="card">
+    <h3>Cenário</h3>
+    <select id="scenario" class="btn wide" style="margin-top:0"></select>
+    <p class="hint" id="scenario-hint"></p>
+    <p class="hint">Clique no piso para mover o <b>alvo azul</b>. Shift + clique move o <b>perseguidor vermelho</b>.</p>
+   </section>
+   <section class="card">
+    <h3>Navegação do perseguidor</h3>
+    <div class="seg" id="nav-mode">
+     <button class="btn active" data-nav="0">Atual (reta)</button>
+     <button class="btn" data-nav="1">Yuka (rota)</button>
+    </div>
+    <div class="row">
+     <button id="run" class="btn primary">▶ Iniciar</button>
+     <button id="restart" class="btn">↺ Reiniciar</button>
+    </div>
+    <div class="pfield"><label for="speed">Velocidade da simulação</label><output id="speed-out">1×</output><input type="range" id="speed" min="0.25" max="4" step="0.25" value="1"></div>
+    <button id="ab" class="btn wide">⚖ Comparar A/B (30 s simulados)</button>
+    <p class="hint">O A/B roda o mesmo cenário nas duas navegações e mede chegada, tempo empurrando parede, saltos e ataques no vazio.</p>
+   </section>
+   <section class="card live">
+    <h3>Ao vivo</h3>
+    <div id="live">—</div>
+   </section>
+   <section class="card">
+    <h3>Diagnóstico visual</h3>
+    <label class="chk"><input type="checkbox" id="show-nodes"> Nós do grafo</label>
+    <label class="chk"><input type="checkbox" id="show-edges"> Arestas (caminhada · salto · queda)</label>
+    <label class="chk"><input type="checkbox" id="show-path" checked> Rota atual</label>
+    <label class="chk"><input type="checkbox" id="show-trail" checked> Trilha percorrida</label>
+    <div class="legend"><span><i style="background:#3b4a63"></i>caminhada</span><span><i style="background:#ffb361"></i>salto</span><span><i style="background:#6fc9ff"></i>queda</span><span><i style="background:#7dffb0"></i>rota</span><span><i style="background:#ff6b6b"></i>zona bloqueada</span></div>
+   </section>
+   <section class="card">
+    <h3>Parâmetros do grafo</h3>
+    <div id="params"></div>
+    <p class="hint">Alterar o espaçamento ou a folga reconstrói o grafo na hora.</p>
+   </section>
+   <section class="card">
+    <h3>Resultado do A/B</h3>
+    <div id="ab-result"><p class="hint">Ainda não executado.</p></div>
+   </section>
+  </aside>
+  <main class="main">
+   <canvas id="c"></canvas>
+   <div id="status" class="status">Pronto.</div>
+  </main>
+ </div>
+</div>
+<script>/*__BUNDLE__*/</script>
+</body>
+</html>

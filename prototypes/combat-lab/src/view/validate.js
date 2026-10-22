@@ -34,13 +34,15 @@ function clipIssues(clip, root, hips, height) {
   else if (clip.duration > 20) issues.push({level: 'warn', text: `duração longa (${clip.duration.toFixed(1)} s)`});
   if (missing.size) issues.push({level: coverage < .6 ? 'bad' : 'warn', text: `${missing.size} osso(s)/nó(s) ausente(s) no modelo: ${[...missing].slice(0, 4).join(', ')}${missing.size > 4 ? '…' : ''} (cobertura ${(coverage * 100).toFixed(0)}%)`});
   if (badProps.size) issues.push({level: 'warn', text: `trilhas incompatíveis: ${[...badProps].slice(0, 3).join(', ')}${badProps.size > 3 ? '…' : ''}`});
-  // Root motion: deslocamento horizontal da raiz ao longo do clipe (o laboratório descarta; a posição vem da física).
+  // Root motion: a posição mundial vem da física; horizontal é descartado e vertical pode ser travado no apoio do chão.
   const hipTrack = hips && clip.tracks.find(t => t.name === `${hips.name}.position`);
   if (hipTrack) {
-    const v = hipTrack.values;let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
-    for (let i = 0; i < v.length; i += 3) {minX = Math.min(minX, v[i]);maxX = Math.max(maxX, v[i]);minZ = Math.min(minZ, v[i + 2]);maxZ = Math.max(maxZ, v[i + 2]);}
+    const v = hipTrack.values;let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity, minZ = Infinity, maxZ = -Infinity;
+    for (let i = 0; i < v.length; i += 3) {minX = Math.min(minX, v[i]);maxX = Math.max(maxX, v[i]);minY = Math.min(minY, v[i + 1]);maxY = Math.max(maxY, v[i + 1]);minZ = Math.min(minZ, v[i + 2]);maxZ = Math.max(maxZ, v[i + 2]);}
     const travel = Math.hypot(maxX - minX, maxZ - minZ) * (hips.parent ? hips.parent.getWorldScale(new T.Vector3()).x : 1);
+    const vertical = (maxY - minY) * (hips.parent ? hips.parent.getWorldScale(new T.Vector3()).y : 1);
     if (travel > .2 * height) issues.push({level: 'info', text: `root motion horizontal (${travel.toFixed(2)} unidades): será neutralizado — a posição vem da física`});
+    if (vertical > .2 * height) issues.push({level: 'info', text: `root motion vertical (${vertical.toFixed(2)} unidades): a trava de chão impede que o clipe levante o personagem`});
   }
   return {issues, coverage, missing: [...missing]};
 }
@@ -72,7 +74,7 @@ export function validateModel(source, character = null, bytes = null) {
   const badClips = clips.filter(c => c.verdict === 2).length, warnClips = clips.filter(c => c.verdict === 1).length;
   if (badClips) issues.push({level: 'warn', text: `${badClips} clipe(s) incompatível(is) com este modelo (ficam na biblioteca, desabilitados para associação)`});
   if (warnClips) issues.push({level: 'info', text: `${warnClips} clipe(s) com ressalvas`});
-  if (clips.some(c => c.issues.some(i => /root motion/.test(i.text)))) issues.push({level: 'info', text: 'há clipes com root motion horizontal (neutralizado)'});
+  if (clips.some(c => c.issues.some(i => /root motion/.test(i.text)))) issues.push({level: 'info', text: 'há clipes com root motion; o laboratório neutraliza o horizontal e oferece trava vertical no chão'});
   const v = Math.max(verdictOf(issues), clips.length && badClips === clips.length ? 2 : 0);
   return {kind: 'model', name: source.name, verdict: v, label: VERDICT[v], issues, clips, height, bones, skinned};
 }

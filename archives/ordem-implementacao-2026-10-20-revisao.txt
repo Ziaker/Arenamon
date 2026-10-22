@@ -1,0 +1,2138 @@
+# ARENAMON — IMPLEMENTAÇÃO INTEGRAL DO SISTEMA DE HABILIDADES PASSIVAS
+
+## ORDEM PRINCIPAL — LEIA ANTES DE ALTERAR QUALQUER ARQUIVO
+
+Você trabalhará no repositório:
+
+**https://github.com/Ziaker/Arenamon**
+
+Sua missão é implementar o sistema de habilidades passivas no **jogo principal Arenamon**, integrado ao Combat Lab, obedecendo integralmente à documentação oficial, às decisões do diretor e às regras preexistentes de combate.
+
+**Esta solicitação autoriza a implementação do sistema de passivas. Não autoriza modificar arbitrariamente mecânicas preexistentes, reescrever decisões aprovadas, homologar propostas experimentais nem implementar funcionalidades externas ao escopo necessário.**
+
+Não quero um protótipo isolado.
+
+Não quero um sistema que apenas exiba nomes de habilidades.
+
+Não quero uma arquitetura vazia com funções preparadas para uma implementação futura.
+
+Não quero habilidades que funcionem apenas quando acionadas por botões de teste.
+
+**Quero o sistema efetivamente conectado ao jogo**, com seleção pré-partida, efeitos mecânicos reais, modificadores corretos, eventos, duração, cooldowns, estados, interação com movimentos, HUD, VFX, sons, IA, persistência, replay, testes e ferramentas de inspeção.
+
+A implementação deve ser completa nos pontos autorizados. O que estiver genuinamente pendente de decisão não pode ser inventado silenciosamente: deverá ser identificado, isolado, documentado e submetido à avaliação do diretor.
+
+A tarefa só poderá ser apresentada como integralmente concluída quando todos os requisitos aplicáveis tiverem sido implementados e verificados. Se existir algum bloqueio real, relate-o explicitamente, distinguindo o que foi implementado do que permanece incompleto.
+
+---
+
+# PARTE I — LEITURA E AUDITORIA OBRIGATÓRIAS
+
+## 1. DOCUMENTO DE AUTORIDADE MÁXIMA
+
+**VOCÊ É OBRIGADO A ABRIR E LER O ARQUIVO COMPLETO:**
+
+`docs/PASSIVAS_DECISOES.md`
+
+Não leia apenas o início.
+
+Não leia apenas os títulos.
+
+Não utilize apenas um resumo produzido por outra IA.
+
+Não utilize apenas a conversa ou este prompt como substituto.
+
+**Leia literalmente todas as Rodadas 1–29, incluindo seus exemplos, ressalvas, exceções, substituições históricas, situações pendentes e regras de governança.**
+
+A versão consultada durante a elaboração deste pedido continha 29 rodadas na `main`, no blob:
+
+`fe0ee67729690b9031f3cc91077fccb4604ad4f5`
+
+A `main` consultada estava no commit:
+
+`334694e3b5899fd26128920c86ab0e75f4960a0f`
+
+Esses identificadores servem como referência de auditoria, não como autorização para substituir uma versão mais recente.
+
+**Primeiro verifique a versão atual do repositório.** Se houver decisões posteriores no arquivo, leia e respeite as decisões mais recentes.
+
+### Procedimento obrigatório
+
+Antes da implementação:
+
+1. Abra o documento inteiro.
+2. Identifique todas as rodadas existentes.
+3. Registre a alternativa aprovada em cada rodada.
+4. Identifique decisões posteriores que complementam ou substituem anteriores.
+5. Identifique as regras ainda pendentes.
+6. Identifique possíveis incompatibilidades entre o documento e o código atual.
+7. Faça uma matriz ligando cada decisão a arquivos, funções e testes previstos.
+8. Verifique essa matriz antes de implementar.
+9. Revise-a após cada etapa.
+10. Ao finalizar, demonstre que nenhuma rodada foi esquecida.
+
+A existência de código não comprova que ele implementa corretamente uma decisão. Cada requisito deve ter evidência funcional.
+
+### Regra de precedência
+
+Respeite esta ordem:
+
+1. Decisões explícitas posteriores do diretor que alterem decisões anteriores.
+2. Decisões aprovadas vigentes do documento oficial.
+3. Outras regras aprovadas do Arenamon que não entrem em conflito.
+4. Contratos técnicos existentes, quando compatíveis.
+5. Propostas experimentais de design, que não equivalem automaticamente a aprovação.
+6. Escolhas técnicas internas que não modifiquem as regras de gameplay.
+
+Quando houver conflito real, não faça uma escolha arbitrária.
+
+---
+
+## 2. OUTROS DOCUMENTOS OBRIGATÓRIOS
+
+Leia os documentos pertinentes antes de definir a arquitetura:
+
+- `docs/INDICE_MODULOS.md`
+- `docs/MAPA_REPOSITORIO.md`
+- `docs/ROSTER.md`
+- `docs/MOVES_DECISOES_RODADAS.md`
+- `docs/MUSHROOM_MOVES_DECISOES.md`
+- `docs/MAPA_COMBAT_LAB_DECISOES_RODADAS.md`
+- `docs/REVISAO_GDD_COMBATE.md`
+- `docs/VFX_SOLIDOS.md`
+- `prototypes/combat-lab/README.md`
+
+Consulte também o GDD quando alguma regra necessária não estiver explicitada em documentação posterior.
+
+Não use decisões antigas que já tenham sido substituídas para desfazer comportamentos atuais.
+
+**O jogo principal é `prototypes/combat-lab/`.**
+
+`prototypes/game/` é um protótipo legado. Não implemente o sistema exclusivamente nele nem substitua o Combat Lab pelo protótipo antigo.
+
+---
+
+## 3. AUDITORIA DOS ARQUIVOS DO MOTOR
+
+Inspecione, no mínimo:
+
+### Simulação
+
+- `src/sim/game.js`
+- `src/sim/entity.js`
+- `src/sim/controller.js`
+- `src/sim/combat.js`
+- `src/sim/physics.js`
+- `src/sim/world.js`
+- `src/sim/status.js`
+- `src/sim/moves.js`
+- `src/sim/move-state.js`
+- `src/sim/move-effects.js`
+- `src/sim/charge.js`
+- `src/sim/locomotion.js`
+- `src/sim/motion.js`
+- `src/sim/config.js`
+- `src/sim/ai.js`
+- `src/sim/ai-moves.js`
+- `src/sim/economy.js`
+- `src/sim/recording.js`
+- `src/sim/replay.js`
+- `src/sim/scenarios.js`
+
+### Interface
+
+- `src/main.js`
+- `src/ui/hud.js`
+- `src/ui/moves-hud.js`
+- `src/ui/moves-panel.js`
+- `src/ui/characters-panel.js`
+- `src/ui/visual-panel.js`
+- `src/ui/tuning.js`
+- `src/ui/diagnostics-panel.js`
+- `src/ui/training-panel.js`
+
+### Audiovisual
+
+- `src/view/view.js`
+- `src/view/characters.js`
+- `src/view/vfx.js`
+- `src/view/vfx/`
+- `src/view/solid-fx.js`
+- `src/view/audio.js`
+
+Todos os caminhos acima são relativos a `prototypes/combat-lab/`.
+
+Inspecione primeiro o código e a estrutura atuais. Não presuma que os nomes ou as responsabilidades permaneceram inalterados.
+
+---
+
+# PARTE II — IMPLEMENTAÇÃO OBRIGATÓRIA DAS 29 RODADAS
+
+## 4. MATRIZ DE DECISÕES — NENHUMA PODE SER IGNORADA
+
+Implemente e verifique integralmente as regras aprovadas nas Rodadas 1–29.
+
+O texto abaixo é um roteiro de auditoria. **O arquivo oficial completo continua sendo a fonte de verdade.**
+
+### R01 — Disponibilidade e equipamento
+
+- Cada personagem possui exatamente duas passivas exclusivas próprias.
+- Existe um catálogo de passivas genéricas compartilhadas.
+- O jogador pode equipar no máximo duas passivas.
+- São permitidas as combinações genérica + genérica, genérica + exclusiva e exclusiva + exclusiva.
+- Não é obrigatório utilizar uma exclusiva.
+- Não permita equipar passivas exclusivas de outro personagem.
+
+### R02 — Categorias
+
+Suportar passivas:
+
+- permanentes;
+- condicionais;
+- automáticas com cooldown.
+
+Uma passiva permanente não deve receber cooldown inventado.
+
+Uma passiva automática deve possuir gatilho explícito.
+
+Uma passiva condicional precisa avaliar corretamente quando sua condição começa e deixa de ser verdadeira.
+
+### R03 — Estados de combate
+
+Cada passiva define individualmente:
+
+- estados em que pode ser acionada;
+- estados em que continua funcionando;
+- condições de suspensão;
+- condições de retomada;
+- condições de término.
+
+Não suspenda universalmente todas as passivas em hit stun, guard stun, esquiva, lançamento ou recuperação.
+
+### R04 — Genéricas disponíveis
+
+Todas as passivas genéricas estão disponíveis desde o início.
+
+Não crie sistema de desbloqueio, experiência, moeda ou progressão para liberá-las.
+
+### R05 — Duplicatas
+
+Os dois slots não podem conter a mesma passiva.
+
+Valide isso na interface e no próprio motor.
+
+A restrição não pode ser burlada por save, replay, presets, importação ou chamada direta de API.
+
+### R06 — Seleção pré-partida
+
+A escolha acontece antes da partida.
+
+O conjunto equipado fica fixo durante a partida.
+
+Não permita troca durante combate, KO, hitstop, pausa, recuperação ou intervalo que ainda pertença à mesma partida.
+
+A seleção da partida seguinte pode ser diferente.
+
+### R07 — Acúmulo entre passivas
+
+Modificadores compatíveis de duas passivas são combinados aditivamente.
+
+Não os multiplique em sequência.
+
+### R08 — Acúmulo com outras origens
+
+Os modificadores compatíveis devem interagir aditivamente com:
+
+- passivas;
+- buffs;
+- debuffs;
+- Moves;
+- consumíveis;
+- progressão de atributos;
+- outros modificadores existentes de mesma natureza e base.
+
+A origem não deve criar uma camada multiplicativa separada.
+
+### R09 — Fórmula dos atributos
+
+A fórmula aprovada é:
+
+`resultado = atributoBase + atributoBase × somaPercentuais + somaAbsolutos`
+
+Todos os percentuais compatíveis usam o atributo-base original.
+
+Modificadores absolutos não devem ser amplificados pelos percentuais.
+
+Exemplo obrigatório de teste:
+
+Base 100, bônus de 20% e acréscimo absoluto de 30 devem produzir 150.
+
+### R10 — Limites
+
+Não crie novos caps nem pisos universais exclusivamente para as passivas.
+
+Respeite os limites já existentes e aplicáveis às mecânicas originais.
+
+Não transforme uma medida interna de segurança num novo limite de gameplay não aprovado.
+
+### R11 — Precisão
+
+Preserve valores fracionários internamente.
+
+Não arredonde a cada operação.
+
+Não use `Math.round`, `Math.floor`, `Math.ceil` ou conversões para inteiro em pontos onde isso alteraria cálculos sem justificativa.
+
+Arredonde apenas onde alguma regra própria exigir, ou para apresentação.
+
+### R12 — Ativação independente
+
+Se um evento satisfizer os gatilhos das duas passivas equipadas, ambas devem ser avaliadas independentemente.
+
+Nenhuma pode bloquear a outra simplesmente por ocupar outro slot.
+
+### R13 — Snapshot simultâneo
+
+Para um mesmo evento:
+
+- capture um estado de referência consistente;
+- avalie os dois gatilhos a partir desse mesmo estado;
+- determine as ativações elegíveis;
+- aplique conjuntamente os efeitos compatíveis.
+
+Não permita que a posição do slot altere o resultado.
+
+### R14 — Conflitos incompatíveis
+
+Não implemente uma prioridade global arbitrária.
+
+Combinações incompatíveis exigem regras específicas aprovadas.
+
+Identifique essas combinações no catálogo e separe claramente os casos ainda pendentes.
+
+Não trate incompatibilidade como permissão para descartar silenciosamente uma habilidade.
+
+### R15 — Cooldowns independentes
+
+A redução de cooldown aplicável aos Moves ou a outras habilidades não acelera o cooldown de passivas.
+
+Não reutilize diretamente o modificador genérico de cooldown dos Moves para aplicar reduções às passivas.
+
+### R16 — Início da recarga
+
+Em passivas com efeito temporário, o cooldown começa quando o efeito termina efetivamente.
+
+Não comece a recarga na ativação quando a passiva produzir um efeito com duração.
+
+### R17 — Término antecipado
+
+Se o efeito encerrar antecipadamente por uma causa realmente válida, inicie o cooldown no momento real desse encerramento.
+
+Não espere o tempo que originalmente faltaria.
+
+Não invente motivos para terminar efeitos antecipadamente.
+
+### R18 — Efeitos instantâneos
+
+Quando uma passiva com efeito instantâneo for acionada e seu efeito realmente aplicado, o cooldown começa imediatamente depois dessa aplicação.
+
+Não espere terminar o ataque ou a animação que originou o gatilho.
+
+### R19 — Suspensão e duração
+
+O comportamento de duração durante suspensão é individual por passiva.
+
+O sistema deve suportar:
+
+- suspensão com cronômetro pausado;
+- suspensão com cronômetro contínuo.
+
+Suspender não significa automaticamente encerrar.
+
+Não inicie cooldown apenas porque um efeito foi temporariamente suspenso.
+
+### R20 — Reativação durante efeito ativo
+
+Enquanto o efeito anterior da mesma passiva estiver ativo:
+
+- ignore novos gatilhos dessa passiva;
+- não renove a duração;
+- não crie duplicatas;
+- não acumule outra instância;
+- não inicie antecipadamente o cooldown.
+
+Isso não impede a ativação da outra passiva equipada.
+
+### R21 — Cooldowns durante estados
+
+Depois de iniciados, os cooldowns continuam avançando durante:
+
+- hit stun;
+- guard stun;
+- recuo;
+- outros estados normais de combate.
+
+A incapacidade de executar ações não congela automaticamente a recarga.
+
+### R22 — Cooldowns no respawn
+
+Ao ocorrer respawn após KO, todos os cooldowns das passivas equipadas são zerados.
+
+Respawn não equivale automaticamente a novo gatilho.
+
+Não zere cooldowns de Moves.
+
+### R23 — Efeitos ativos no KO
+
+Ao ocorrer KO, encerre imediatamente os efeitos ativos das passivas.
+
+Não preserve esses efeitos para o respawn.
+
+O equipamento de passivas permanece selecionado durante a mesma partida.
+
+Respeite o início da recarga após encerramento real, com o zeramento posterior no respawn.
+
+### R24 — Cooldown durante hitstop
+
+Pausar a contagem dos cooldowns das passivas durante hitstop.
+
+Retomar com exatamente o mesmo tempo restante.
+
+### R25 — Duração durante hitstop
+
+Pausar todos os cronômetros dos efeitos ativos das passivas durante hitstop.
+
+A duração restante deve ser idêntica antes e imediatamente depois do período congelado.
+
+### R26 — Efeitos aplicados durante hitstop
+
+Os bônus, penalidades e demais efeitos já ativos continuam aplicados ao personagem durante hitstop.
+
+Não remova nem suspenda esses efeitos apenas porque o jogo está em hitstop.
+
+### R27 — Gatilhos durante hitstop
+
+Se um gatilho válido realmente ocorrer durante hitstop, sua passiva pode ser ativada imediatamente.
+
+Não coloque automaticamente todos os gatilhos em uma fila para execução posterior.
+
+Não fabrique eventos que não ocorreram.
+
+### R28 — Aplicação durante hitstop
+
+Os efeitos das passivas ativadas durante hitstop devem ser aplicados imediatamente.
+
+Os cronômetros correspondentes permanecem congelados enquanto durar o hitstop.
+
+Para efeitos instantâneos, respeitar a regra própria de início do cooldown.
+
+### R29 — Encadeamento durante hitstop
+
+Se uma passiva ativada durante hitstop produzir um evento que satisfaça o gatilho de outra passiva, a nova ativação também pode acontecer imediatamente.
+
+Respeitar:
+
+- condições individuais;
+- ativação independente;
+- avaliação a partir do mesmo estado quando o evento for o mesmo;
+- tratamento específico de conflitos;
+- proibição de duplicar um efeito ativo da própria passiva.
+
+**A Rodada 29 não aprovou uma regra definitiva de bloqueio de ciclos infinitos.**
+
+Portanto, não introduza silenciosamente um limite de ativações ou uma prioridade universal como se fosse uma regra de combate aprovada.
+
+Implemente proteção técnica contra travamentos, telemetria e detecção de cadeias cíclicas. Quando houver um caso cujo resultado de gameplay dependa de uma regra ainda não decidida, sinalize a pendência de forma explícita e não declare esse caso homologado.
+
+---
+
+# PARTE III — CORREÇÕES E ADAPTAÇÕES NECESSÁRIAS DO MOTOR
+
+## 5. PROBLEMA EXISTENTE: MODIFICADORES MULTIPLICATIVOS
+
+Na versão auditada, `src/sim/status.js` possui uma lógica de agregação multiplicativa para certos modificadores.
+
+Isso não atende automaticamente à fórmula aprovada nas Rodadas 7–11.
+
+Você deve auditar todos os caminhos de cálculo, incluindo:
+
+- atributos-base;
+- buffs;
+- debuffs;
+- status;
+- consumíveis;
+- progressão por estágios;
+- atributos de perfil;
+- velocidade;
+- Ataque;
+- Defesa;
+- stamina;
+- regeneração;
+- modificadores de dano;
+- modificadores de knockback;
+- custos de ações.
+
+Implemente um agregador consistente para modificadores compatíveis.
+
+### Exigências
+
+- Todos os modificadores possuem identificação de fonte.
+- Modificadores percentuais usam o atributo-base original.
+- Modificadores absolutos são somados separadamente.
+- Alterações temporárias não reescrevem o atributo-base.
+- Remover um efeito recalcula corretamente o valor resultante.
+- Efeitos simultâneos não dependem de ordem de iteração.
+- Valores fracionários são preservados.
+- Casos incompatíveis são tratados separadamente.
+
+**Não destrua a compatibilidade dos Moves ou dos status existentes para corrigir essa arquitetura.**
+
+Onde houver semânticas historicamente diferentes, investigue os contratos aprovados e implemente uma compatibilização demonstrável, com testes.
+
+Não substitua um bug antigo por outro.
+
+---
+
+## 6. PROBLEMA EXISTENTE: HITSTOP
+
+Na versão auditada, `Game.step()` possui um retorno antecipado enquanto `hitstop > 0`.
+
+Isso atualmente congela o processamento normal da simulação.
+
+Entretanto, as Rodadas 27–29 determinam que passivas possam processar gatilhos que realmente ocorram durante hitstop.
+
+### Requisito obrigatório
+
+Implemente um caminho de processamento de eventos de passivas compatível com hitstop.
+
+Ele deve:
+
+1. Preservar o congelamento das mecânicas que normalmente ficam congeladas.
+2. Não avançar movimentos, física ou cooldowns indevidamente.
+3. Não consumir duração dos efeitos ativos.
+4. Preservar todos os modificadores ativos.
+5. Permitir receber e avaliar eventos legítimos.
+6. Aplicar efeitos das passivas imediatamente quando exigido.
+7. Permitir encadeamentos válidos.
+8. Impedir execução duplicada do mesmo evento.
+9. Não criar eventos artificiais a cada frame.
+10. Manter save/load e replay determinísticos.
+
+**Não resolva esse problema simplesmente removendo o retorno antecipado do hitstop.**
+
+A solução precisa respeitar o funcionamento existente da pausa física.
+
+Teste eventos reais e sintéticos, distinguindo-os explicitamente.
+
+---
+
+## 7. PROBLEMA EXISTENTE: KO, RODADAS E RESPAWN
+
+A versão auditada do `Game` encerra a luta quando um lutador chega a zero HP e entra na fase de resultado.
+
+Portanto, não presuma que já existe um sistema completo de rodadas ou respawn.
+
+### Obrigações
+
+- Identifique a fronteira real entre início de luta, início de rodada, KO, resultado, reinício e nova partida.
+- Conecte os estados das passivas aos eventos realmente existentes.
+- Prepare o contrato de respawn exigido pelo documento.
+- Não invente respawns durante uma luta que atualmente termina no primeiro KO.
+- Não reinicie o consumo de Sturdy em eventos que não representem início de nova rodada.
+- Não interprete automaticamente reset de personagem, replay ou abertura do menu como início de rodada.
+- Preserve o equipamento durante a partida e permita nova escolha apenas na preparação de uma nova partida.
+
+Se o jogo ainda não tiver múltiplas rodadas, **não crie todo um novo modo de múltiplas rodadas apenas para justificar Sturdy**.
+
+Implemente a semântica de uma utilização por rodada sobre o ciclo real disponível, com uma interface de ciclo de rodada preparada para futura expansão.
+
+---
+
+# PARTE IV — CATÁLOGO DE HABILIDADES
+
+## 8. REGRA DE STATUS DAS HABILIDADES INDIVIDUAIS
+
+O documento oficial ainda registra identidade, números, gatilhos e cooldowns das habilidades individuais como pendências de consolidação.
+
+Entretanto, existe um catálogo de 18 passivas discutido com o diretor, incluindo alterações solicitadas explicitamente.
+
+**Implemente as 18 como catálogo experimental e funcional para avaliação no Combat Lab**, sem apresentá-las como um catálogo oficialmente homologado caso não exista aprovação documental posterior.
+
+As decisões explícitas do diretor sobre alterações devem ser preservadas.
+
+Os demais valores sugeridos servem como parâmetros iniciais experimentais e precisam ser identificados como tais.
+
+O objetivo é permitir jogar, observar interações e ajustar valores sem confundir implementação experimental com aprovação definitiva.
+
+Não substitua efeitos por outros apenas porque você considera determinado design mais interessante.
+
+Todos os valores iniciais devem ser parametrizáveis por passiva, sem hardcodes dispersos.
+
+---
+
+# 9. OITO PASSIVAS EXCLUSIVAS
+
+## CROAGUNK
+
+### 9.1 Poison Touch
+
+**Nome:** Poison Touch  
+**Tipo:** automática com cooldown  
+**Identidade:** contato venenoso
+
+Ao acertar um Tackle que efetivamente cause dano ao HP do adversário, Croagunk aplica veneno.
+
+Parâmetros iniciais experimentais:
+
+- Dano periódico: 2 HP por segundo.
+- Duração: 3 segundos.
+- Cooldown: 12 segundos após término do efeito.
+
+### Requisitos
+
+- Exigir contato ofensivo válido.
+- Não ativar quando o ataque for totalmente anulado.
+- Defesa perfeita impede a aplicação.
+- Não aumentar arbitrariamente o dano direto do Tackle.
+- Veneno deve ser dano periódico real e identificado como tal.
+- Dano de veneno não pode ser interpretado como novo ataque direto para Sturdy.
+- Integrar ao sistema de status.
+- Respeitar cooldown, KO, suspensão e duração conforme as regras aplicáveis.
+
+Não aplique veneno por mera proximidade ou sobreposição visual.
+
+### 9.2 Anticipation
+
+**Nome:** Anticipation  
+**Tipo:** automática com cooldown  
+**Identidade:** percepção de ameaças
+
+Ao detectar que um oponente próximo está preparando um ataque de Power Level elevado, PL2 ou PL3, concede um benefício temporário de evasão.
+
+Parâmetros iniciais:
+
+- Bônus de velocidade de movimentação e esquiva: +15%.
+- Duração: 2 segundos.
+- Cooldown: 12 segundos após término.
+
+### Requisitos
+
+- Observar o estado real de preparação do adversário.
+- Utilizar informação real de Power Level.
+- Não confundir uma ameaça PL1 com PL2/PL3.
+- Não conceder o bônus repetidamente a cada frame da mesma preparação.
+- A distância de detecção deve ser um parâmetro específico e testável.
+- O bônus não gera invulnerabilidade nova.
+- Respeitar as limitações normais de movimentação.
+
+---
+
+## DROWZEE
+
+### 9.3 Forewarn
+
+**Nome:** Forewarn  
+**Tipo:** automática com cooldown  
+**Identidade:** premonição
+
+Ao detectar a preparação de um Move ofensivo carregado pelo adversário, Drowzee recebe uma vantagem temporária na janela de defesa perfeita contra aquele ataque.
+
+Parâmetros iniciais:
+
+- Acréscimo da janela de defesa perfeita: +0,06 segundo.
+- Duração máxima: 4 segundos.
+- Cooldown: 12 segundos após término.
+
+### Requisitos
+
+- Relacionar a vantagem ao ataque identificado.
+- Não conceder permanentemente a vantagem contra ataques não relacionados.
+- Respeitar cancelamento ou término da ameaça.
+- Não alterar globalmente a janela de defesa perfeita para todos os personagens.
+- Não criar novos frames de invulnerabilidade por analogia.
+- Aplicar o ajuste na validação real da defesa perfeita, não apenas no HUD.
+
+### 9.4 Inner Focus
+
+**Nome:** Inner Focus  
+**Tipo:** permanente  
+**Identidade:** concentração
+
+Reduz a duração do hit stun recebido em 20%.
+
+### Requisitos
+
+- Reduzir especificamente o tempo de hit stun.
+- Não alterar knockback.
+- Não reduzir guard stun automaticamente.
+- Não conceder imunidade à interrupção.
+- Não alterar dano.
+- Respeitar durações fracionárias.
+- Funcionar em todos os caminhos legítimos que produzem hit stun.
+
+---
+
+## MUSH / MUSHROOM
+
+### 9.5 Effect Spore
+
+**Nome:** Effect Spore  
+**Tipo:** automática com cooldown  
+**Identidade:** esporos defensivos
+
+Quando Mush sofre dano ao HP por um contato físico direto, o agressor recebe um debuff temporário de velocidade.
+
+Parâmetros iniciais:
+
+- Redução da velocidade: 15%.
+- Duração: 3 segundos.
+- Cooldown: 12 segundos após término do debuff.
+
+### Requisitos
+
+- Exigir contato físico ofensivo válido.
+- Não ativar por veneno ou outro dano periódico remoto.
+- Aplicar o debuff ao agressor correto.
+- Não aplicar múltiplas instâncias pelo mesmo impacto.
+- Respeitar imunidades e regras de modificadores.
+- Não inventar sono ou paralisia como efeitos adicionais.
+- Integrar ao mesmo sistema de status utilizado por outras fontes.
+
+### 9.6 Sturdy
+
+**Nome:** Sturdy  
+**Tipo:** proteção automática limitada por rodada  
+**Identidade:** sobreviver a um golpe letal direto
+
+**REGRA EXPRESSAMENTE DEFINIDA PELO DIRETOR:**
+
+**Uma única vez por rodada, Sturdy impede um dano mortal proveniente de um ataque direto e deixa Mush com EXATAMENTE 1 HP.**
+
+Não exige HP cheio.
+
+Não é um escudo que absorve dano genérico.
+
+Não é uma redução percentual de dano.
+
+Não é uma ressurreição após KO.
+
+Não funciona contra dano periódico, como veneno.
+
+Não possui cooldown.
+
+### Testes obrigatórios
+
+- Mush possui 100 HP e recebe 150 de dano direto: termina com 1 HP.
+- Mush possui 37 HP e recebe 50 de dano direto: termina com 1 HP.
+- Mush possui 2 HP e recebe 10 de dano direto: termina com 1 HP.
+- Mush possui 100 HP e recebe 30 de dano: Sturdy não é consumida.
+- Sturdy já foi consumida: um novo golpe letal pode derrotar Mush.
+- Sturdy disponível e Mush morre exclusivamente por veneno: Sturdy não ativa.
+- Sturdy não pode ser consumida duas vezes pela mesma ação.
+- Nova rodada efetiva: disponibilidade restaurada.
+- Cura dentro da mesma rodada: não restaura o uso consumido.
+- Trocar a seleção da próxima partida não altera o resultado da anterior.
+
+### Regras de integração
+
+A verificação deve ocorrer no caminho autorizado de aplicação de dano direto, depois das mitigações pertinentes e antes de finalizar o KO.
+
+A proteção deve operar sobre o dano real que atingiria o HP, sem ignorar a existência de escudos, defesa ou outros mecanismos.
+
+Não impeça automaticamente knockback, lançamento ou hit stun.
+
+Identifique claramente a diferença entre:
+
+- dano direto;
+- dano periódico;
+- dano ambiental;
+- dano refletido;
+- múltiplos impactos;
+- dano de status.
+
+**Não classifique tudo como ataque direto apenas porque subtrai HP.**
+
+Casos não classificados por regras aprovadas devem ser registrados para decisão, não resolvidos por uma condição genérica que conceda proteção indevida.
+
+**Sturdy é exclusiva de Mush. Não deve existir no catálogo de passivas genéricas.**
+
+---
+
+## VIGOROTH
+
+### 9.7 Vital Spirit
+
+**Nome:** Vital Spirit  
+**Tipo:** permanente condicional  
+**Identidade:** energia inesgotável
+
+Quando a stamina está abaixo de 30% da capacidade máxima, a velocidade de regeneração aumenta em 30%.
+
+### Requisitos
+
+- Comparar stamina atual à capacidade máxima vigente.
+- Respeitar aumentos de stamina máxima por outras fontes.
+- Não restaurar stamina instantaneamente.
+- Não anular custo de ações.
+- Não ignorar as regras de exaustão.
+- Não ativar incorretamente quando a stamina estiver acima do limiar.
+- Desativar o bônus ao deixar a condição.
+- Preservar o comportamento normal do sistema de regeneração.
+
+### 9.8 Guts
+
+**Nome:** Guts  
+**Tipo:** permanente condicional  
+**Identidade:** determinação sob condições adversas
+
+Enquanto Vigoroth estiver sofrendo um status negativo válido, recebe +15% de Ataque.
+
+### Requisitos
+
+- Identificar status negativos pelo sistema real de status.
+- Não contar buffs positivos como debuffs.
+- Não remover nem reduzir os status que ativaram a habilidade.
+- Não aplicar o bônus repetidamente a cada frame.
+- Quando não restar nenhum status negativo aplicável, remover o benefício.
+- Utilizar o cálculo aditivo oficial de atributos.
+- Não multiplicar artificialmente o bônus em golpes sucessivos.
+
+---
+
+# 10. DEZ PASSIVAS GENÉRICAS
+
+Todas devem estar disponíveis aos quatro personagens, sujeitas ao limite de dois slots.
+
+## 10.1 Speed Boost
+
+**Tipo:** permanente.
+
+**Regra reformulada:** +15% de velocidade de movimentação e deslocamento do dash, sem cooldown.
+
+- Não requer sprint anterior.
+- Não requer status negativo.
+- Não possui duração limitada.
+- Não requer evento de ativação repetido.
+- Não se transforma em Quick Feet.
+- Não aumenta automaticamente o dano de ataques.
+- Não altera a duração da esquiva ou suas janelas de invulnerabilidade.
+
+Audite as diferenças entre locomoção, sprint, esquiva e Tackle no motor. Aplique o bônus aos componentes de movimentação e dash definidos, sem concedê-lo indevidamente a movimentos ofensivos que usem cálculos diferentes.
+
+## 10.2 Technician
+
+**Tipo:** permanente.
+
+**Regra expressamente reformulada pelo diretor:**
+
+**Reduz em 20% o custo de stamina das esquivas e das ações de recuperação.**
+
+- Não é mais um bônus de dano a Tackles PL1.
+- Não reduz a duração das recuperações.
+- Não aumenta i-frames.
+- Não concede recuperação automática.
+- Ações sem custo de stamina continuam sem custo.
+- A redução deve afetar o débito real de stamina.
+- Checagens de custo suficiente devem utilizar o custo efetivo correto.
+- A IA deve considerar esse custo.
+- Não aplique dois descontos à mesma ação por passar por múltiplas funções.
+
+Audite o que o motor denomina recovery, tech recovery e recuperação de ações, distinguindo custos reais de stamina de simples tempos de animação.
+
+## 10.3 Rough Skin
+
+**Tipo:** automática com cooldown.
+
+Quando o personagem sofre dano direto ao HP de um Tackle de contato físico, o agressor sofre 3 HP de dano de retorno.
+
+Cooldown inicial: 10 segundos.
+
+- Sem knockback adicional.
+- Não ativar por dano periódico.
+- Não ativar sem contato válido.
+- Não reativar indefinidamente por dano refletido.
+- Identificar corretamente o agressor.
+- Iniciar cooldown após a aplicação do efeito instantâneo.
+
+## 10.4 Regenerator
+
+**Tipo:** automática com cooldown.
+
+Após 5 segundos sem causar nem receber dano ao HP, recupera 5 HP.
+
+Cooldown inicial: 15 segundos.
+
+- Rastrear os eventos reais de dano.
+- Não considerar efeitos visuais como dano.
+- Respeitar HP máximo.
+- Não exceder os limites existentes.
+- Não permitir cura duplicada pelo mesmo instante de elegibilidade.
+- A contagem de inatividade não equivale ao cooldown.
+- A cura é instantânea; a recarga começa após ser aplicada.
+
+## 10.5 Unburden
+
+**Tipo:** automática com cooldown.
+
+Ao coletar um consumível da arena, concede +15% de velocidade por 4 segundos.
+
+Cooldown inicial: 14 segundos após término.
+
+- Exigir coleta efetivamente confirmada.
+- Não disparar pela mera proximidade.
+- Não considerar a geração de um item como coleta.
+- Integrar ao sistema de consumíveis quando existente.
+- Não reiniciar duração por coletas repetidas enquanto o efeito está ativo.
+- Não criar novos consumíveis nem alterar taxas de geração.
+
+## 10.6 Stamina
+
+**Tipo:** automática com cooldown.
+
+Após receber dano direto de um ataque, ganha +10% de Defesa durante 4 segundos.
+
+Cooldown inicial: 10 segundos após término.
+
+- Requer dano direto válido.
+- Não disparar por dano periódico.
+- Não impedir automaticamente knockback.
+- Não reduzir hit stun.
+- Não aplicar cumulativamente múltiplas instâncias da mesma passiva enquanto o efeito anterior estiver ativo.
+- Usar a fórmula de modificadores aprovada.
+
+## 10.7 Suction Cups
+
+**Tipo:** permanente condicional.
+
+Reduz em 20% o empurrão horizontal recebido enquanto o personagem estiver apoiado em uma superfície válida.
+
+- Não reduzir automaticamente a componente vertical.
+- Não conceder imunidade a lançamentos.
+- Não impedir queda se o suporte for destruído.
+- Não prender o personagem artificialmente ao chão.
+- Respeitar rampas, plataformas, bordas e outras superfícies.
+- Aplicar somente à componente física especificada.
+
+## 10.8 Magic Guard
+
+**Tipo:** permanente.
+
+Reduz em 50% o dano periódico recebido de veneno e outros efeitos negativos que retirem HP ao longo do tempo.
+
+- Não reduzir ataques diretos.
+- Não remover o status.
+- Não reduzir duração de veneno.
+- Não transformar o efeito em imunidade.
+- Identificar corretamente a origem e a categoria do dano.
+- Preservar fracionários e a ordem de cálculo aprovada.
+
+## 10.9 Clear Body
+
+**Tipo:** permanente.
+
+Impede reduções diretas de Ataque, Defesa e Velocidade provocadas por habilidades inimigas.
+
+- Não impedir aplicação de bônus positivos.
+- Não bloquear veneno automaticamente.
+- Não bloquear cegueira automaticamente.
+- Não bloquear dano.
+- Não impedir outras penalidades fora dos atributos especificados.
+- Diferenciar corretamente a fonte que aplicou o debuff.
+- Não remover modificadores que tenham outras origens não abrangidas.
+
+## 10.10 Defiant
+
+**Tipo:** automática com cooldown.
+
+Quando uma habilidade adversária reduz um dos atributos do personagem, concede +15% de Ataque por 4 segundos.
+
+Cooldown inicial: 12 segundos após término.
+
+- A penalidade original continua existindo.
+- Não remover o debuff.
+- Não ativar por buffs positivos.
+- Não ativar por reduções autoimpostas.
+- Não ativar repetidamente por cada frame em que o debuff permanece ativo.
+- Utilizar evento real de aplicação de redução.
+- Respeitar as regras de acúmulo.
+
+---
+
+# PARTE V — ARQUITETURA DO SISTEMA
+
+## 11. REGISTRO CENTRAL DE PASSIVAS
+
+Crie um registro de definições das habilidades, separado de seus estados por lutador.
+
+Cada definição deve permitir representar:
+
+- ID estável.
+- Nome.
+- Descrição.
+- Categoria.
+- Disponibilidade genérica ou exclusiva.
+- Personagens elegíveis.
+- Gatilhos.
+- Condições de ativação.
+- Estados permitidos.
+- Efeitos produzidos.
+- Modificadores.
+- Duração.
+- Cooldown.
+- Condições de suspensão.
+- Condições de término.
+- Regras específicas de aplicação.
+- Referências às decisões oficiais.
+- Status de aprovação ou experimental.
+- Parâmetros de balanceamento.
+- Identificadores de VFX e SFX.
+
+Não espalhe a definição de cada habilidade por múltiplas condições de interface, física e HUD.
+
+Use uma arquitetura de dados clara, validável e extensível.
+
+As passivas não devem depender da existência de um painel aberto para funcionar.
+
+---
+
+## 12. ESTADO INDIVIDUAL POR LUTADOR
+
+Cada personagem precisa possuir seu próprio estado de passivas.
+
+O estado deve permitir controlar:
+
+- passivas equipadas;
+- instâncias ativas;
+- tempos restantes;
+- cooldowns;
+- marcadores de ativação;
+- efeitos persistentes;
+- condições atuais;
+- consumo de usos limitados por rodada;
+- referências a fontes dos modificadores;
+- eventos já processados;
+- relações causais entre ativações.
+
+Não compartilhe cooldowns entre lutadores.
+
+Não permita que um lutador consuma a disponibilidade de Sturdy do outro.
+
+Não reutilize dados mutáveis de uma partida anterior indevidamente.
+
+O estado precisa ser compatível com:
+
+- `structuredClone`;
+- save/load;
+- replay;
+- snapshots;
+- cenários;
+- gravações;
+- testes determinísticos.
+
+Evite referências a objetos DOM, funções não serializáveis e elementos gráficos dentro da simulação.
+
+---
+
+## 13. PIPELINE CENTRAL DE EVENTOS
+
+Implemente uma integração real com os eventos de combate.
+
+As habilidades precisam receber informações suficientes para distinguir:
+
+- tentativa de ataque;
+- início de preparação;
+- início de Charge;
+- confirmação de Power Level;
+- contato;
+- acerto válido;
+- acerto bloqueado;
+- defesa perfeita;
+- dano calculado;
+- dano efetivamente causado ao HP;
+- dano letal potencial;
+- dano periódico;
+- aplicação de debuff;
+- expiração de debuff;
+- alteração de atributo;
+- gasto de stamina;
+- execução de esquiva;
+- execução de recovery;
+- coleta de consumível;
+- início de hit stun;
+- início de guard stun;
+- KO;
+- início de rodada;
+- respawn, quando existir.
+
+**Não é necessário criar eventos artificiais para cada nome dessa lista.**
+
+Inspecione o que já existe e introduza somente os contratos adicionais necessários para conectar os sistemas de forma correta.
+
+Os eventos precisam transportar, quando pertinentes:
+
+- ID único;
+- tick da simulação;
+- origem;
+- alvo;
+- habilidade ou Move causador;
+- categoria do dano;
+- valor bruto;
+- mitigação;
+- dano ao escudo;
+- dano ao HP;
+- Power Level;
+- condição de defesa;
+- identificação da cadeia causal;
+- flags necessárias à elegibilidade.
+
+Evite emitir eventos duplicados a partir de diferentes camadas do motor.
+
+---
+
+## 14. DANOS E STURDY
+
+Este é um dos pontos mais sensíveis da integração.
+
+Você deve centralizar as verificações de dano letal de Sturdy no ponto correto do pipeline.
+
+Não implemente Sturdy como:
+
+`if (hp <= 0) hp = 1`
+
+Essa abordagem é insuficiente porque perde:
+
+- origem do dano;
+- distinção entre ataque direto e DOT;
+- consumo por rodada;
+- relação com escudos;
+- ordem de mitigação;
+- identidade da habilidade;
+- consequências físicas do golpe;
+- consistência com KO.
+
+### Requisito
+
+Antes de aplicar um dano direto potencialmente letal, a camada responsável deve:
+
+1. Identificar o golpe.
+2. Determinar o dano efetivo que chegaria ao HP.
+3. Verificar elegibilidade da proteção.
+4. Confirmar que Sturdy ainda está disponível na rodada.
+5. Aplicar o resultado de HP exatamente igual a 1.
+6. Consumir sua disponibilidade.
+7. Emitir um evento de ativação de Sturdy uma única vez.
+8. Preservar efeitos do golpe não anulados pela passiva.
+9. Continuar a simulação sem produzir KO indevido.
+
+Dano periódico não deve seguir o caminho de proteção de Sturdy.
+
+O cálculo não pode ser duplicado entre Tackle e Moves especiais.
+
+---
+
+# PARTE VI — SELEÇÃO DE PASSIVAS NO PRÉ-JOGO
+
+## 15. INTERFACE FUNCIONAL DE EQUIPAMENTO
+
+Implemente uma interface de seleção de passivas na preparação pré-partida.
+
+Ela deve permitir escolher exatamente dois slots, podendo deixá-los vazios quando aplicável.
+
+### Informações exibidas
+
+Para cada passiva:
+
+- nome;
+- categoria;
+- descrição objetiva;
+- efeito;
+- condições;
+- duração, quando existir;
+- cooldown, quando existir;
+- identificação genérica ou exclusiva;
+- indicação de disponibilidade;
+- status experimental, se aplicável.
+
+### Regras funcionais
+
+- Selecionar uma passiva em um slot.
+- Remover uma passiva.
+- Substituir uma seleção antes da partida.
+- Impedir duplicatas.
+- Impedir mais de duas equipadas.
+- Impedir exclusivas de outro personagem.
+- Preservar as escolhas durante a partida.
+- Permitir nova seleção somente na preparação de outra partida.
+
+A interface deve funcionar para o jogador azul e para o personagem vermelho controlado por IA ou manualmente.
+
+### Identidade de personagem
+
+Verifique como o jogo identifica os personagens, pois a versão auditada ainda utiliza perfis de atributos e modelos selecionáveis.
+
+Não infira a espécie do personagem apenas pelo nome do arquivo GLB.
+
+Crie uma identidade de gameplay explícita e estável para a seleção das exclusivas.
+
+Personagens previstos:
+
+- Croagunk;
+- Drowzee;
+- Mush/Mushroom;
+- Vigoroth.
+
+**Atenção:** a documentação existente utiliza também o nome Mosh para o cogumelo e ainda contém referências a Gumshoos. Audite e identifique corretamente as relações antes de alterar o roster. Não faça uma substituição global de nomes sem aprovação.
+
+---
+
+# PARTE VII — HUD, VFX E SOM
+
+## 16. INTEGRAÇÃO COM O SISTEMA VISUAL DAS PASSIVAS
+
+Existe um briefing anterior para três variantes audiovisuais de ativação:
+
+- A — Orbital Halo.
+- B — Celestial Intersections.
+- C — Luminous Resonance.
+
+Essas propostas incluem:
+
+- círculos brancos 3D envolvendo o personagem;
+- orientações angulares variadas;
+- sparkles;
+- VFX padrão de 0,60 segundo;
+- toast branco de notificação;
+- três variações de abertura;
+- sons curtos procedurais;
+- sliders próprios;
+- presets;
+- comparação A/B/C.
+
+**Antes de desenvolver novos efeitos, verifique se o trabalho anterior do Kimi já foi implementado no repositório ou no workspace local.**
+
+Se estiver implementado, reutilize o sistema existente.
+
+Se estiver parcialmente implementado, integre o que estiver funcional e reporte as lacunas.
+
+Se não existir, crie o contrato de eventos necessário e implemente a integração audiovisual utilizando as especificações fornecidas, sem inventar uma alternativa aprovada.
+
+### Regras
+
+- Ativação efetiva de passiva deve produzir o evento visual correto.
+- O VFX deve ocorrer no personagem que ativou a habilidade.
+- O toast deve exibir a habilidade correta.
+- O som deve respeitar o controle de áudio.
+- Não reproduzir a animação inteira a cada frame de uma passiva permanente.
+- Não disparar toast continuamente apenas porque uma condição permanece verdadeira.
+- Não gerar notificações em duplicidade por evento.
+- Não utilizar o VFX como fonte de verdade para a ativação mecânica.
+- Não alterar a física por causa de animações audiovisuais.
+- Respeitar a preferência de acessibilidade existente.
+
+### Passivas permanentes
+
+Passivas permanentes como Speed Boost, Technician e Inner Focus não devem disparar repetidamente durante cada passo de simulação.
+
+A apresentação do estado equipado ou aplicado deve ser distinguida de um novo evento de ativação.
+
+Não presuma que toda passiva permanente precisa gerar uma explosão visual ao começar cada partida.
+
+### Passivas temporárias
+
+Ao serem ativadas:
+
+- emitir feedback visual uma única vez;
+- aplicar o efeito real;
+- exibir corretamente duração e cooldown;
+- não renovar a animação por leituras repetidas do mesmo estado.
+
+---
+
+## 17. INFORMAÇÕES NO HUD
+
+Adicionar representação para:
+
+- duas passivas equipadas;
+- nome ou ícone;
+- estado ativo;
+- efeito condicional válido;
+- cooldown restante;
+- passiva pronta;
+- efeito temporário em vigor;
+- habilidade indisponível;
+- Sturdy já consumida na rodada.
+
+O HUD não deve tratar todo efeito permanente como se estivesse aguardando cooldown.
+
+Não ocupe a tela com descrições.
+
+Não esconda informações de HP, stamina, defesa, Moves ou Power Level.
+
+A interface precisa permanecer legível em 720p.
+
+A IA inimiga também utiliza passivas; suas ativações devem ter feedback discernível.
+
+---
+
+# PARTE VIII — INTEGRAÇÃO COM O RESTANTE DO ARENAMON
+
+## 18. TACKLE
+
+Testar interações com:
+
+- Tackle normal;
+- Tackle carregado;
+- PL1, PL2 e PL3;
+- Clash;
+- cancelamentos;
+- finta;
+- sprint Tackle;
+- Meteor Slam;
+- ground bounce;
+- wall-splat;
+- ataques que são bloqueados;
+- ataques que não causam dano ao HP;
+- invulnerabilidade;
+- acertos sucessivos;
+- recovery após ações.
+
+Exemplos obrigatórios:
+
+- Poison Touch ativa apenas com um contato elegível que cause dano.
+- Rough Skin não devolve dano sem contato válido.
+- Technician reduz custos reais de esquiva/recovery.
+- Inner Focus modifica hit stun sem alterar knockback.
+- Sturdy protege corretamente de dano letal direto.
+
+---
+
+## 19. DEFESA E ESQUIVA
+
+Testar:
+
+- defesa parcial;
+- defesa perfeita;
+- esquiva;
+- esquiva perfeita;
+- i-frames;
+- guard stun;
+- hit stun;
+- cancelamento C → X;
+- recuperação no ar;
+- exaustão;
+- stamina insuficiente;
+- ações impedidas por estados.
+
+O sistema de passivas deve consultar o estado real, não uma animação visual.
+
+A redução de custo de Technician não deve permitir uma ação que seja proibida por outro motivo.
+
+O bônus de Forewarn deve alterar a janela real de defesa perfeita.
+
+---
+
+## 20. MOVES ESPECIAIS
+
+Verifique integração com:
+
+- Reflect;
+- Psyshock;
+- cargas;
+- projéteis;
+- barreiras;
+- lasers;
+- dano por área;
+- dano fixo;
+- Power Level;
+- efeitos de status;
+- disparos múltiplos;
+- condições de interrupção.
+
+### Cuidados obrigatórios
+
+- Não transformar um Move de dano fixo em dano escalado por Ataque.
+- Não alterar a regra de custo dos Moves.
+- Não alterar as regras aprovadas de Charge.
+- Não aplicar redução de cooldown de Moves às passivas.
+- Não confundir acerto de projétil com contato físico para Rough Skin ou Effect Spore.
+- Não alterar a lógica de reflexão e propriedade de projéteis sem necessidade.
+- Não fazer Poison Touch aplicar veneno em qualquer ataque sem contato físico.
+
+---
+
+## 21. MUSHROOM E EMERGING STONE
+
+Leia integralmente `docs/MUSHROOM_MOVES_DECISOES.md` antes de integrar passivas com os movimentos de Mush.
+
+As passivas exclusivas definidas nesta tarefa são Effect Spore e Sturdy.
+
+**Solid Rock foi removida das passivas exclusivas e não deve voltar a ser implementada.**
+
+Não acrescente interação especial com Emerging Stone que não pertença às passivas atualmente selecionadas.
+
+Se o trabalho de passivas exigir identificar eventos produzidos por Emerging Stone, preserve as regras próprias daquele Move.
+
+Não aproveite esta tarefa para alterar Sand Wave, Bullet Punch, Body Slam ou os demais golpes sem justificativa de integração.
+
+---
+
+## 22. STATUS E DEBUFFS
+
+A infraestrutura de status deve distinguir claramente:
+
+- status positivo;
+- status negativo;
+- dano periódico;
+- efeito instantâneo;
+- modificador de atributo;
+- duração;
+- fonte;
+- proprietário;
+- tags de aplicação;
+- causa da remoção.
+
+Exemplos:
+
+- Poison Touch produz veneno.
+- Effect Spore produz redução de velocidade.
+- Guts detecta status negativo.
+- Magic Guard reduz dano periódico.
+- Clear Body impede reduções elegíveis de atributos.
+- Defiant responde a reduções efetivamente aplicadas.
+
+Não use simples comparação entre HP atual e anterior para determinar a origem de todos os eventos.
+
+Não classifique todo status como negativo.
+
+---
+
+## 23. MOVIMENTAÇÃO, FÍSICA E PLATAFORMAS
+
+Testar as passivas durante:
+
+- caminhada;
+- corrida;
+- sprint;
+- esquiva;
+- Tackle;
+- lançamento aéreo;
+- queda;
+- aterrissagem;
+- plataformas;
+- inclinações;
+- desníveis;
+- rebotes;
+- obstáculos sólidos;
+- destruição de superfícies.
+
+### Cuidados
+
+Speed Boost modifica velocidade de locomoção e dash conforme sua definição, sem alterar automaticamente dano ou invulnerabilidade.
+
+Suction Cups reduz somente o empurrão horizontal aplicável enquanto há apoio válido.
+
+Não use Suction Cups para impedir a perda de apoio físico.
+
+A aplicação de modificadores de velocidade não pode gerar deslocamento involuntário, teletransporte ou aceleração incorreta.
+
+---
+
+## 24. CONSUMÍVEIS
+
+Unburden depende de um evento legítimo de coleta.
+
+Leia as decisões do mapa sobre consumíveis e progressão antes de integrá-la.
+
+Não considere que o sistema inteiro já está implementado apenas porque foi especificado documentalmente.
+
+Se o sistema de consumíveis estiver incompleto, integre a habilidade ao contrato correto e disponibilize cenários técnicos que demonstrem a condição quando ela existir.
+
+Não crie uma simulação falsa de coleta dentro da partida real apenas para ativar Unburden.
+
+---
+
+# PARTE IX — IA
+
+## 25. PASSIVAS UTILIZADAS PELA INTELIGÊNCIA ARTIFICIAL
+
+A IA deve utilizar o mesmo sistema de passivas do jogador.
+
+Não crie uma versão simplificada das mecânicas apenas para a IA.
+
+Ela precisa:
+
+- receber os benefícios corretos;
+- sofrer penalidades corretas;
+- respeitar cooldowns;
+- consumir Sturdy corretamente;
+- entender seus custos efetivos de stamina;
+- utilizar as exclusivas correspondentes ao personagem;
+- considerar passivas permanentes;
+- reagir a mudanças de atributos;
+- considerar efeitos temporários relevantes para suas decisões.
+
+Exemplo: se Technician reduz o custo da esquiva, a avaliação de economia de stamina da IA deve considerar o custo efetivo.
+
+A IA não deve adquirir automaticamente todas as passivas do catálogo.
+
+Ela utiliza as passivas que foram equipadas para sua partida.
+
+---
+
+# PARTE X — SALVAMENTO, REPLAY E DETERMINISMO
+
+## 26. SAVE/LOAD
+
+As passivas devem sobreviver corretamente a:
+
+- salvar estado;
+- restaurar estado;
+- reiniciar cenário;
+- importar configuração;
+- exportar configuração;
+- reproduzir partida;
+- avançar frames;
+- retroceder no replay.
+
+Verifique que:
+
+- nenhum efeito se duplica após carregar;
+- cooldowns são restaurados;
+- duração restante é restaurada;
+- Sturdy mantém corretamente seu estado de consumo;
+- buffs aplicados não são recalculados duas vezes;
+- IDs de passivas permanecem estáveis;
+- loadouts inválidos são rejeitados ou tratados explicitamente.
+
+---
+
+## 27. DETERMINISMO
+
+A simulação utiliza passo fixo, registros e replay.
+
+A implementação não pode depender de:
+
+- `Date.now()` para gameplay;
+- `performance.now()` para duração de passivas;
+- `Math.random()` não controlado;
+- animações DOM;
+- clocks de áudio;
+- FPS gráfico;
+- ordem acidental de componentes da interface.
+
+Se alguma passiva precisar de variação aleatória, utilize o sistema determinístico do jogo.
+
+O mesmo estado inicial e a mesma sequência de comandos devem produzir o mesmo resultado.
+
+---
+
+# PARTE XI — FERRAMENTAS DE TESTE
+
+## 28. CENÁRIOS REPRODUZÍVEIS
+
+Crie cenários de teste integrados às ferramentas já existentes do Combat Lab.
+
+Eles devem ser fáceis de localizar e reproduzir.
+
+Cenários mínimos:
+
+1. Duas passivas genéricas equipadas.
+2. Uma genérica e uma exclusiva.
+3. Duas exclusivas do mesmo personagem.
+4. Tentativa de equipar duplicata.
+5. Tentativa de equipar exclusiva errada.
+6. Speed Boost durante movimentação e dash.
+7. Technician com stamina insuficiente.
+8. Poison Touch acertando um Tackle.
+9. Poison Touch contra defesa perfeita.
+10. Veneno causando dano periódico.
+11. Magic Guard reduzindo veneno.
+12. Sturdy contra dano letal direto.
+13. Sturdy contra veneno letal.
+14. Sturdy já consumida.
+15. Rough Skin contra Tackle.
+16. Effect Spore contra ataque físico.
+17. Inner Focus durante hit stun.
+18. Forewarn contra Move carregado.
+19. Anticipation contra PL2 e PL3.
+20. Vital Spirit abaixo do limite de stamina.
+21. Guts sob status negativo.
+22. Regenerator após inatividade.
+23. Unburden após coleta real.
+24. Stamina após dano direto.
+25. Suction Cups durante knockback horizontal.
+26. Clear Body contra debuff inimigo.
+27. Defiant após redução de atributo.
+28. Ativações simultâneas.
+29. Cooldown começando ao término.
+30. Cooldown de efeito instantâneo.
+31. Efeito ativo durante hitstop.
+32. Cooldown pausado durante hitstop.
+33. Duração pausada durante hitstop.
+34. Gatilho legítimo durante hitstop.
+35. Efeito aplicado durante hitstop.
+36. Encadeamento entre passivas durante hitstop.
+37. KO encerrando efeitos.
+38. Reset de cooldown em respawn, quando houver esse evento.
+39. Save/load com efeito ativo.
+40. Replay determinístico.
+41. IA × IA com passivas.
+42. Nenhuma passiva equipada: comportamento idêntico ao jogo original.
+
+Os cenários devem ser úteis para localizar erros e calibrar os valores.
+
+---
+
+## 29. SLIDERS E PARÂMETROS DE BALANCEAMENTO
+
+Toda passiva precisa disponibilizar seus parâmetros numéricos relevantes para calibração.
+
+Exemplos:
+
+- bônus percentual;
+- custo reduzido;
+- duração;
+- cooldown;
+- distância de detecção;
+- limiar de stamina;
+- dano periódico;
+- frequência de dano periódico;
+- redução de dano;
+- intensidade de knockback reduzido;
+- duração de status.
+
+Os sliders devem possuir:
+
+- nome compreensível;
+- unidade;
+- descrição;
+- valor padrão;
+- mínimo;
+- máximo;
+- passo;
+- mecanismo de restauração;
+- integração com presets e exportação.
+
+**Não confunda slider de balanceamento da passiva com slider de VFX.**
+
+Os parâmetros de gameplay devem ser aplicados de maneira compatível com o estado da simulação e os contratos de captura já aprovados.
+
+Não permita que alterar um slider modifique retroativamente instâncias temporárias existentes quando a regra do jogo exigir parâmetros capturados na ativação.
+
+Não crie controles duplicados em várias abas que possam divergir.
+
+---
+
+# PARTE XII — AUDITORIA DE CONFLITOS E CASOS-LIMITE
+
+## 30. MATRIZ DE INTERAÇÕES ENTRE PASSIVAS
+
+Audite as combinações permitidas de duas passivas por personagem.
+
+Como existem dez genéricas e duas exclusivas por personagem, cada personagem terá doze opções elegíveis.
+
+Isso resulta em **66 pares diferentes por personagem**, considerando pares sem repetição e dois slots ocupados.
+
+Logo, para os quatro personagens existem 264 combinações elegíveis por personagem/combinação, embora vários pares de genéricas se repitam entre os personagens.
+
+Você não precisa escrever 264 testes inteiramente distintos se puder cobrir equivalências tecnicamente demonstradas.
+
+Mas precisa avaliar todas as combinações possíveis, classificando-as:
+
+- compatíveis;
+- compatíveis com interação;
+- incompatíveis;
+- dependentes de decisão;
+- impossíveis de ocorrer com o catálogo atual.
+
+### Exemplos importantes
+
+- Speed Boost + Unburden.
+- Speed Boost + Anticipation.
+- Technician + Vital Spirit.
+- Magic Guard + Poison Touch, quando utilizados por personagens distintos.
+- Magic Guard + Guts.
+- Clear Body + Defiant.
+- Rough Skin + Effect Spore, quando houver atacante/defensor com essas passivas.
+- Sturdy + Rough Skin, em personagens opostos.
+- Sturdy + dano periódico.
+- Regenerator + efeitos de cura.
+- Stamina + outros bônus de Defesa.
+- Suction Cups + efeitos de knockback.
+- Poison Touch + efeitos de proteção.
+
+Não acrescente efeitos novos para resolver combinações.
+
+Documente conflitos verdadeiros e preserve a regra de que eles exigem resolução específica, não uma prioridade universal.
+
+---
+
+## 31. REENTRÂNCIA E CICLOS
+
+Analise cuidadosamente cadeias em que uma ativação produz outro gatilho.
+
+O sistema precisa garantir integridade de execução e evitar travamentos.
+
+Implemente:
+
+- IDs estáveis de eventos;
+- rastreamento de causa;
+- detecção de processamento repetido do mesmo evento;
+- instrumentação de cadeias;
+- diagnóstico de possíveis ciclos;
+- isolamento de processamento reentrante;
+- testes contra travamento.
+
+Porém, **não considere aprovada uma política de gameplay específica para interromper cadeias infinitas**, pois o documento deixa essa decisão pendente.
+
+Um mecanismo técnico emergencial que evite travar o jogo não pode ser confundido com a regra definitiva de resolução do combate.
+
+Se existir um ciclo legítimo impossível de resolver sem decisão de design, identifique a combinação exata e relate a pendência.
+
+---
+
+# PARTE XIII — VERIFICAÇÃO AUTOMATIZADA
+
+## 32. TESTES UNITÁRIOS
+
+Crie testes para:
+
+- registro das habilidades;
+- IDs;
+- categorias;
+- exclusividade;
+- validação do loadout;
+- limite de slots;
+- duplicatas;
+- modificadores;
+- cálculo aditivo;
+- duração;
+- suspensão;
+- cooldowns;
+- eventos;
+- dano direto;
+- dano periódico;
+- Sturdy;
+- hitstop;
+- KO;
+- persistência;
+- replay.
+
+Inclua casos com valores fracionários.
+
+Inclua comparação de ordem de slots.
+
+Inclua ativação de duas passivas pelo mesmo evento.
+
+Inclua ausência completa de passivas.
+
+---
+
+## 33. TESTES DE INTEGRAÇÃO
+
+Verifique o funcionamento real das passivas com:
+
+- controlador;
+- física;
+- dano;
+- status;
+- HUD;
+- Moves;
+- IA;
+- cenários;
+- carregamento de modelos;
+- eventos de áudio;
+- sistema de VFX.
+
+Os testes não devem usar somente chamadas diretas aos efeitos das passivas.
+
+Eles precisam provar que eventos reais do jogo atravessam o sistema completo.
+
+---
+
+## 34. TESTES NO NAVEGADOR
+
+Execute a compilação e os testes do navegador.
+
+Comandos pertinentes da versão consultada:
+
+`npm run build:combat-lab`
+
+`npm run test:combat-lab:unit`
+
+`npm run test:combat-lab:browser`
+
+`npm run typecheck`
+
+Utilize também as verificações do workspace e demais comandos disponíveis na versão atual do repositório.
+
+Faça testes visuais demonstrando:
+
+- seleção de passivas no menu;
+- passivas equipadas;
+- HUD em combate;
+- ativação real;
+- VFX correto;
+- cooldown;
+- estado ativo;
+- Sturdy impedindo KO;
+- veneno;
+- modificadores de velocidade;
+- interação com hitstop.
+
+Não considere um teste unitário de evento sintético evidência suficiente de que o sistema funciona em uma partida real.
+
+---
+
+## 35. TESTE DE NÃO REGRESSÃO
+
+Com nenhuma passiva equipada, a partida deve manter o comportamento anterior.
+
+Compare:
+
+- movimento;
+- aceleração;
+- velocidade;
+- stamina;
+- esquiva;
+- Tackle;
+- defesa;
+- hit stun;
+- guard stun;
+- Power Level;
+- dano;
+- knockback;
+- física;
+- projéteis;
+- colisões;
+- IA;
+- replay;
+- desempenho.
+
+**A infraestrutura de passivas não pode alterar o jogo quando não houver passivas equipadas.**
+
+Se uma refatoração necessária de modificadores revelar diferenças no comportamento preexistente, explique precisamente a origem, a relação com os contratos aprovados e a correção adotada.
+
+Não esconda diferenças de paridade.
+
+---
+
+# PARTE XIV — RASTREABILIDADE E DOCUMENTAÇÃO
+
+## 36. MATRIZ OBRIGATÓRIA DE COBERTURA
+
+Crie uma matriz com uma linha para cada decisão das 29 rodadas.
+
+Colunas obrigatórias:
+
+- Rodada.
+- Decisão aprovada.
+- Requisito implementável.
+- Arquivo ou módulo responsável.
+- Função relevante.
+- Teste automatizado.
+- Cenário de validação.
+- Resultado.
+- Evidência.
+- Pendência, quando houver.
+
+Não aceite células preenchidas apenas com expressões vagas como:
+
+- OK.
+- Implementado.
+- Verificado.
+- Conforme esperado.
+
+Cada linha deve apontar para algo que possa ser auditado.
+
+### Estados permitidos
+
+- **Implementado e verificado.**
+- **Implementado, mas não verificado.**
+- **Parcial.**
+- **Bloqueado por decisão não aprovada.**
+- **Não aplicável ao estado atual do jogo, com justificativa.**
+- **Falhou.**
+
+Não marque como completo algo que só foi documentado ou preparado.
+
+---
+
+## 37. MATRIZ DE COBERTURA DAS 18 HABILIDADES
+
+Crie uma segunda matriz com uma linha para cada passiva.
+
+Verifique:
+
+- seleção;
+- gatilho;
+- efeito;
+- parâmetros;
+- estados permitidos;
+- duração;
+- cooldown;
+- KO;
+- hitstop;
+- relação com status;
+- relação com dano;
+- VFX;
+- HUD;
+- SFX;
+- IA;
+- replay;
+- testes.
+
+A implementação de uma habilidade exige que seu efeito real funcione.
+
+O fato de aparecer no menu não é suficiente.
+
+---
+
+## 38. DOCUMENTAÇÃO DOS PARÂMETROS
+
+Documente os valores efetivamente utilizados, separando:
+
+- decisão explícita aprovada;
+- proposta experimental;
+- valor técnico do motor;
+- pendência de design.
+
+Não acrescente os números experimentais ao histórico de decisões oficialmente aprovadas como se tivessem sido homologados.
+
+Preserve o conteúdo histórico de `docs/PASSIVAS_DECISOES.md`.
+
+Se criar documentação adicional de implementação, referencie esse arquivo sem substituí-lo.
+
+---
+
+# PARTE XV — REGRAS DE EXECUÇÃO
+
+## 39. NÃO DEIXAR FUNCIONALIDADES PELA METADE
+
+Não conclua a tarefa após:
+
+- criar somente o registro de habilidades;
+- acrescentar somente IDs;
+- criar somente UI;
+- criar somente efeitos VFX;
+- implementar somente genéricas;
+- implementar somente exclusivas;
+- criar somente testes;
+- adicionar apenas a documentação.
+
+O objetivo é entregar o sistema inteiro que estiver tecnicamente e documentalmente autorizado.
+
+**Trabalhe em etapas verificáveis até concluir tudo que puder ser concluído corretamente.**
+
+Quando uma parte depender de uma decisão ainda inexistente, não invente a regra para fazer o relatório parecer completo.
+
+Identifique o bloqueio, apresente seu impacto concreto e mantenha íntegros todos os componentes não dependentes dele.
+
+---
+
+## 40. NÃO TOMAR DECISÕES DE DESIGN EM NOME DO DIRETOR
+
+Você está autorizado a escolher detalhes internos de implementação que não modifiquem o resultado do jogo.
+
+Você não está autorizado a criar, por conta própria:
+
+- novos gatilhos;
+- novos buffs;
+- novas penalidades;
+- imunidades;
+- cooldowns diferentes dos fornecidos;
+- limites de empilhamento não aprovados;
+- novas regras de invulnerabilidade;
+- prioridade global;
+- novas condições de KO;
+- novos respawns;
+- novas formas de acumular atributos;
+- mudança de identidade dos personagens;
+- efeitos adicionais para passivas existentes.
+
+Quando uma questão for apenas técnica, resolva-a.
+
+Quando for uma escolha de gameplay materialmente nova, preserve a pendência.
+
+Evite interromper a implementação com perguntas que já estejam respondidas no repositório.
+
+---
+
+## 41. PRESERVAÇÃO DO REPOSITÓRIO
+
+Antes de alterar código:
+
+- verifique branch e commit;
+- examine alterações locais;
+- confira arquivos não rastreados;
+- identifique trabalho de outras ferramentas;
+- evite sobrescrever alterações preexistentes.
+
+Trabalhe em branch adequada à implementação, sem alterar a `main` diretamente sem autorização para publicação.
+
+Não use comandos destrutivos para simplificar conflitos.
+
+Não altere a estrutura inteira do jogo se uma integração localizada for suficiente.
+
+Não desfaça decisões de Moves, VFX, HUD, câmera, física, animação ou interfaces já aprovadas.
+
+---
+
+## 42. EXIGÊNCIA DE ENTREGA JOGÁVEL
+
+Ao finalizar, o diretor deve conseguir:
+
+1. Abrir o jogo principal.
+2. Escolher o personagem.
+3. Acessar a seleção de passivas.
+4. Equipar até duas habilidades elegíveis.
+5. Iniciar uma partida.
+6. Observar as passivas funcionando realmente.
+7. Visualizar ativações no HUD.
+8. Ver o VFX e ouvir o som correspondente, quando disponíveis.
+9. Acompanhar cooldowns e durações.
+10. Combater adversários que também utilizam passivas.
+11. Testar Sturdy contra um ataque letal.
+12. Testar Poison Touch e o dano periódico.
+13. Testar Technician na economia de stamina.
+14. Testar Speed Boost na movimentação.
+15. Reproduzir cenários de todas as outras habilidades.
+16. Ajustar parâmetros experimentais.
+17. Reiniciar a partida sem estados residuais.
+18. Salvar e restaurar estados sem corromper as passivas.
+
+A entrega deve continuar compatível com o HTML offline compilado do Combat Lab.
+
+---
+
+# PARTE XVI — FORMATO DO RELATÓRIO FINAL
+
+Sua resposta final deve conter:
+
+## A. Auditoria inicial
+
+- Branch inicial.
+- Commit analisado.
+- Estado do workspace.
+- Documentos lidos.
+- Quantidade de rodadas confirmadas.
+- Divergências encontradas.
+
+## B. Arquitetura implementada
+
+- Novos módulos.
+- Módulos modificados.
+- Contratos de eventos.
+- Integração com o motor.
+- Integração com o HUD e VFX.
+
+## C. Habilidades implementadas
+
+Tabela completa das 18 habilidades com seus estados reais.
+
+## D. Matriz das 29 rodadas
+
+Todas as rodadas, sem exceção, com evidências.
+
+## E. Matrizes de interação
+
+- Passivas × mecânicas.
+- Passivas × estados.
+- Passivas × passivas.
+- Passivas × Moves.
+- Passivas × dano.
+- Passivas × hitstop.
+
+## F. Testes
+
+- Comando executado.
+- Quantidade de verificações.
+- Passaram.
+- Falharam.
+- Correções feitas.
+- Evidências de navegador.
+
+## G. Pendências legítimas
+
+Apresente exclusivamente as pendências que realmente necessitem de decisão do diretor.
+
+Explique por que a documentação não resolve cada caso.
+
+Não apresente perguntas repetidas ou redundantes.
+
+## H. Estado final do repositório
+
+- Arquivos adicionados.
+- Arquivos alterados.
+- Branch.
+- Commit, se realizado.
+- Situação de publicação.
+- Situação de sincronização, se efetivamente verificada.
+
+Não afirme que GitHub, repositório local ou branch remota estão sincronizados sem ter confirmado isso.
+
+---
+
+# PARTE XVII — VERIFICAÇÃO FINAL OBRIGATÓRIA
+
+Antes de declarar a tarefa concluída, responda tecnicamente:
+
+1. Todas as 29 rodadas foram lidas?
+2. Cada regra aprovada possui implementação ou justificativa concreta de não aplicabilidade?
+3. As 18 habilidades estão registradas e funcionam nos pontos efetivamente implementáveis?
+4. As passivas exclusivas estão restritas aos personagens corretos?
+5. Os dois slots são validados?
+6. A escolha permanece fixa durante a partida?
+7. Os modificadores seguem a fórmula aditiva?
+8. A precisão fracionária é preservada?
+9. Os cooldowns começam nos momentos corretos?
+10. Os cooldowns são independentes dos Moves?
+11. Os efeitos respeitam hitstop?
+12. Os gatilhos legítimos podem funcionar durante hitstop?
+13. Os eventos encadeados respeitam as decisões aprovadas?
+14. O sistema evita processamento duplicado?
+15. O KO encerra os efeitos ativos?
+16. Sturdy funciona uma vez por rodada e somente contra dano direto letal?
+17. Sturdy é exclusiva de Mush?
+18. Speed Boost possui +15% permanentes sem cooldown?
+19. Technician reduz em 20% os custos reais de esquiva e recovery?
+20. As passivas removidas não foram implementadas inadvertidamente?
+21. O HUD reflete o estado real?
+22. O VFX acompanha as ativações reais?
+23. A IA utiliza o mesmo sistema?
+24. Save/load funciona?
+25. O replay permanece determinístico?
+26. Nenhuma passiva equipada preserva a paridade original?
+27. Os testes relevantes foram executados?
+28. As falhas encontradas foram registradas?
+29. O relatório distingue implementação de aprovação de design?
+
+Se alguma resposta for negativa, investigue, corrija o que for possível dentro das regras autorizadas e informe explicitamente o que permanecer pendente.
+
+---
+
+# ORDEM FINAL
+
+**IMPLEMENTE O SISTEMA DE HABILIDADES PASSIVAS NO JOGO PRINCIPAL ARENAMON.**
+
+Não reduza o escopo a um menu, mockup ou framework vazio.
+
+Não ignore nenhuma das 29 rodadas do documento oficial.
+
+Não implemente passivas incompatíveis com as regras de combate existentes.
+
+Não invente decisões que o diretor não aprovou.
+
+Não confunda propostas experimentais de balanceamento com aprovação definitiva.
+
+Não declare sucesso com base apenas em compilação.
+
+**A implementação precisa ser jogável, testável, determinística, integrada, documentada e auditável.**
+
+O diretor deve conseguir avaliar as passivas funcionando em combate de verdade, com todos os comportamentos autorizados e com identificação precisa dos casos que ainda dependam de aprovação.
+
+O critério de qualidade não é a quantidade de código produzido: **é a correspondência comprovável entre cada decisão oficial, cada habilidade e seu comportamento real dentro do Arenamon.**
+
+
+
+veja isso aqui apenas

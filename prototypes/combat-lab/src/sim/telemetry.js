@@ -14,7 +14,7 @@ export class Recorder {
   record(game) {
     const tick = game.tick;
     const sample = {tick, hitstop: game.hitstop > 0, f: game.fighters.map(f => ({
-      state: f.state, hp: f.hp, stamina: f.stamina, speed: length(f.velocity), x: f.position.x, z: f.position.z, alt: (f.flight?.y ?? 0) + (f.vaultHeight ?? 0),
+      state: f.state, hp: f.hp, stamina: f.stamina, speed: length(f.velocity), x: f.position.x, z: f.position.z, alt: (f.flight?.y ?? f.groundY ?? 0) + (f.vaultHeight ?? 0),
       action: f.action?.kind || null, invulnerable: isInvulnerable(f), offensive: isOffensive(f), guard: f.guard, perfect: f.perfectLeft > 1e-8,
       canAct: canAct(f), canMove: canMove(f), exhausted: f.exhausted, counter: f.counterWindow > 0,
       // Locomoção: velocidade, velocidade desejada, aceleração aplicada, direção de entrada, orientação e fase.
@@ -24,7 +24,7 @@ export class Recorder {
     this.samples.push(sample);if (this.samples.length > this.capacity) this.samples.shift();
     // Eventos primeiro: o segmento aberto ainda é a ação que causou o contato (antes de virar recuo).
     for (const e of game.lastStepEvents || []) {
-      if (e.target == null) continue;   // eventos do mundo e dos Moves sem alvo (criação, expiração, início de carga…) não são contatos entre lutadores
+      if (e.target == null || !game.fighters?.[e.target] || !game.fighters?.[e.attacker]) continue;   // eventos do mundo e contatos que não são entre lutadores não entram na régua de vantagem
       const seg = this.open[e.attacker];
       const hit = {tick: e.tick ?? tick - 1, result: e.result, attacker: e.attacker, target: e.target, damage: e.damage, actionTick: seg ? (e.tick ?? tick - 1) - seg.start : null,
         attackerFree: null, targetFree: null, advantage: null, attackerMove: null, targetMove: null, moveAdvantage: null, launch: e.launch || null};
@@ -42,7 +42,8 @@ export class Recorder {
     });
     // Vantagem: passos até cada lutador poder agir de novo, a partir do contato.
     for (let i = this.pending.length - 1; i >= 0; i--) {
-      const h = this.pending[i], a = game.fighters[h.attacker], t = game.fighters[h.target];
+      const h = this.pending[i], a = game.fighters?.[h.attacker], t = game.fighters?.[h.target];
+      if (!a || !t) {this.pending.splice(i, 1);continue;}
       if (h.attackerFree === null && canAct(a) && tick > h.tick + 1) h.attackerFree = tick - h.tick;
       if (h.targetFree === null && canAct(t) && tick > h.tick + 1) h.targetFree = tick - h.tick;
       if (h.attackerMove === null && canMove(a) && tick > h.tick + 1) h.attackerMove = tick - h.tick;

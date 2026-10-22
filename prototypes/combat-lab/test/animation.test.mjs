@@ -2,6 +2,7 @@
 // Verifica tackle e esquiva até o fim, ausência de reinícios, esquiva → sprint, freios, variantes sorteadas na
 // entrada (determinísticas), cancelamento legítimo C → X, importação de clipes e ajuste de altura.
 // Uso: node prototypes/combat-lab/test/animation.test.mjs
+// Este teste caracteriza a mecânica nos valores de FÁBRICA do laboratório (factoryDefaults); a base de calibração v8 é coberta por calibration-base.test.mjs e pelos testes de colisão/ambiente.
 import assert from 'node:assert/strict';
 import {mkdirSync, writeFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
@@ -11,14 +12,14 @@ import {readFileSync} from 'node:fs';
 const {syntheticRig} = await import('data:text/javascript,' + encodeURIComponent(readFileSync(new URL('../../studio/test/fixture.js', import.meta.url), 'utf8')));
 import {Character} from '../src/view/characters.js';
 import {Game} from '../src/sim/game.js';
-import {C, resetConfig} from '../src/sim/config.js';
+import {C, resetConfig, factoryDefaults} from '../src/sim/config.js';
 import {vec} from '../src/sim/math.js';
 import {registerStandardMoves} from '../src/sim/moves/standard.js';
 
 const out = fileURLToPath(new URL('../validation/', import.meta.url));mkdirSync(out, {recursive: true});
 let passed = 0;const report = [];
 const check = (label, ok, detail = '') => {report.push({label, ok: !!ok, detail});assert.ok(ok, `${label} ${detail}`);};
-function test(name, fn) {resetConfig();fn();passed++;console.log('✓', name);}
+function test(name, fn) {resetConfig(factoryDefaults());fn();passed++;console.log('✓', name);}
 const cmd = (o = {}) => ({move: vec(), dodge: false, dodgeHeld: false, tackle: false, guard: false, guardPressed: false, target: null, ...o});
 
 /** Clipe sintético: inclina a coluna (amplitude diferente por clipe) e abaixa o quadril em `drop` cm. */
@@ -133,7 +134,17 @@ test('altura visual: ajuste automático por animação, offset manual e independ
 });
 test('sem root motion: deslocamento horizontal do quadril descartado', () => {
   const {ch, g} = setup();run(ch, g, 50, t => [cmd({move: vec(1, 0)}), cmd()]);
-  check('quadril sem deslocamento X/Z', Math.abs(ch.hips.position.x - ch.hipsRest.x) < 1e-9 && Math.abs(ch.hips.position.z - ch.hipsRest.z) < 1e-9);
+  check('quadril sem deslocamento X/Z local neste rig', Math.abs(ch.hips.position.x - ch.hipsRest.x) < 1e-9 && Math.abs(ch.hips.position.z - ch.hipsRest.z) < 1e-9);
+  check('todos os nós de root motion sem deslocamento X/Z local neste rig', ch.rootMotionNodes.every(({node, rest}) => Math.abs(node.position.x - rest.x) < 1e-9 && Math.abs(node.position.z - rest.z) < 1e-9));
+  const saved = ch.stateData();check('trava mundial persistida por personagem', saved.lockRootMotion === true && saved.rootMotionLockVersion === 2);
+});
+test('trava vertical mantém a pose apoiada sem bloquear altitude física', () => {
+  const {ch, g} = setup();ch.variants.idle = [13];ch.groundCurve(13);run(ch, g, 80, () => [cmd(), cmd()]);
+  const expected = -ch.groundAt(ch.current.index, ch.current.action.time) * ch.root.scale.x;
+  check('compensação vertical aplicada integralmente no mesmo quadro', Math.abs(ch.groundOffset - expected) < 1e-6, `${ch.groundOffset.toFixed(4)} × ${expected.toFixed(4)}`);
+  ch.place(g.fighters[0], 2.4, C.test.step);
+  check('salto físico continua elevando o personagem', Math.abs(ch.root.position.y - (2.4 + ch.groundOffset)) < 1e-6, ch.root.position.y.toFixed(4));
+  const saved = ch.stateData();check('trava persistida por personagem', saved.lockToGround === true);
 });
 test('disparo de movimentos: move_1 e move_2 ativam animação própria', () => {
   registerStandardMoves();
@@ -226,6 +237,28 @@ test('movimentos especiais na aba moves: carga com loop configurável e disparo'
   check('fim configurado é salvo no estado portátil', ranged.stateData().moveAnims.reflect.chargeLoopEnd === 0.7);
   ranged.setMoveChargeLoopEnd('reflect', 0.3);
   check('intervalo permanece válido ao antecipar o fim', ranged.getMoveAnimConfig('reflect').chargeLoopStart <= 0.28 + 1e-8);
+});
+test('trocar animação não cria variante; loop, duração e direções cardinais permanecem configuráveis', () => {
+  const {ch} = setup();ch.addVariant('tackle', 4);ch.addVariant('tackle', 5);
+  ch.setPrimary('tackle', 3);
+  check('troca remove a principal antiga e preserva só extras explícitas', JSON.stringify(ch.variantsOf('tackle')) === JSON.stringify([3, 4, 5]), JSON.stringify(ch.variantsOf('tackle')));
+  ch.setPrimary('tackle', 6);
+  check('nova troca não transforma a principal anterior em variante', JSON.stringify(ch.variantsOf('tackle')) === JSON.stringify([6, 4, 5]), JSON.stringify(ch.variantsOf('tackle')));
+  ch.playback.tackle = {loop: true, maxDuration: .25};
+  check('opções de reprodução entram no estado portátil', ch.stateData().playback.tackle.loop && ch.stateData().playback.tackle.maxDuration === .25);
+  for (const id of ['walk', 'walk_back', 'walk_left', 'walk_right', 'run', 'run_back', 'run_left', 'run_right', 'sprint', 'sprint_back', 'sprint_left', 'sprint_right'])
+    check(`estado cardinal disponível: ${id}`, ch.variants[id] !== undefined || ch.actionFor(id) !== undefined);
+});
+test('A → B → A durante o fade não desliga a animação atual nem cai na T-pose', () => {
+  const {ch, g} = setup(), f = g.fighters[0];
+  ch.enter('idle', 'idle', 0, 'idle#0', f, {tick: 0});ch.clock = .01;ch.blend(f, .01, 'idle', null);
+  ch.enter('walk', 'walk', 1, 'walk#0', f, {tick: 1});ch.clock = .02;ch.blend(f, .01, 'walk', null);
+  ch.enter('idle', 'idle', 0, 'idle#1', f, {tick: 2});
+  check('ação reutilizada não permanece numa camada de fade antiga', !ch.layers.some(layer => layer.action === ch.current.action));
+  ch.clock = 1;ch.blend(f, 1, 'idle', null);
+  const spine = ch.model.getObjectByName('mixamorigSpine');
+  check('ação atual continua agendada depois do fade antigo', ch.current.action.isScheduled());
+  check('pose animada continua aplicada em vez da bind pose', spine.quaternion.angleTo(new T.Quaternion()) > .1, spine.quaternion.angleTo(new T.Quaternion()).toFixed(3));
 });
 writeFileSync(out + 'animation-report.json', JSON.stringify({createdAt: new Date().toISOString(), checks: report}, null, 2));
 console.log(`\n${passed} testes de animação aprovados · ${report.length} verificações.`);
