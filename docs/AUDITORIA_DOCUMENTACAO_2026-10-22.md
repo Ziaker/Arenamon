@@ -55,3 +55,11 @@ Nenhum código de jogo, PR, issue ou branch foi fechado, apagado ou movido. O St
 ## 5. Não auditados nesta rodada
 
 Documentos do Animation Studio e do rigging (`CONTRATO_TECNICO_RIGGING.md`, `relatorio-auditoria-rig-croagunk.md`), de câmera cinemática, VFX (`VFX_*.md`), passivas (`PASSIVAS_*.md`), HUD (`HUD_*.md`), animações, `prototypes/combat-lab/README.md`, `OVERHAUL.md` e `CALIBRACAO.md`, e os documentos de decisão de Rodadas do mapa. Eles não foram lidos linha a linha contra o código; só entraram na verificação de links.
+
+## 6. Fechamento das pendências (v1.18.3)
+
+- `npm run typecheck` tinha 32 erros: corrigidos.
+- 6 testes unitários e 2 de navegador existiam mas não estavam em nenhum script; 12 unitários e 3 de navegador estavam nas listas do combat-lab mas fora do `npm test`. Todos incluídos (3 deles fixados em valores de fábrica por dependerem da calibração antiga).
+- Faltava verificação visual: o teste `ui-rodada-22-10.browser.mjs` gera capturas reais e achou o bug dos efeitos de chão (ver `docs/PATCH_NOTES.md`).
+- Riposte no ar e Emerging Stone no ar: testados.
+- Sem TODO/FIXME no código do combat-lab.

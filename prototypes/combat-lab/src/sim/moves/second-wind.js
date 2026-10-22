@@ -26,6 +26,6 @@ export function secondWindStatus(P, staminaMax) {
 }
 export function secondWindEffect(game, f, def, fx) {
   const P = fx.params ?? C.world.secondWind;
-  applyStatus(f, secondWindStatus(P, getFighterMaxStamina(f)), {source: f.id});
+  applyStatus(f, /** @type {any} */ (secondWindStatus(P, getFighterMaxStamina(f))), {source: f.id});
   fx.events?.push({result: 'moveEffect', move: 'second-wind', attacker: f.id, target: f.id, damage: 0, status: 'second-wind', duration: P.duration});
 }

@@ -1,8 +1,15 @@
 # Patch notes — Laboratório de Combate
 
-Versão atual: **v1.18.2** (22/10/2026). A versão aparece na barra superior do laboratório (tooltip com data de compilação e commit). Para jogar: `JOGAR_ARENAMON.html`.
+Versão atual: **v1.18.3** (22/10/2026). A versão aparece na barra superior do laboratório (tooltip com data de compilação e commit). Para jogar: `JOGAR_ARENAMON.html`.
 
 ---
+
+## v1.18.3 — Auditoria de fechamento (22/10/2026)
+- **Efeitos no chão passam a aparecer:** o quad dos efeitos de modo «ground» (anéis e ondas rente ao piso, inclusive o anel no chão da variante D e a onda do pouso do pulo) era descartado pelo culling de faces e **nunca aparecia**. Corrigido com `DoubleSide` no material das partículas; a onda do pouso do pulo ficou um pouco mais clara (opacidade 0,8, intensidade 1,4).
+- **`npm run typecheck` volta a passar** (32 erros de tipo corrigidos nos 13 Moves novos, `types.d.ts` do `MoveDef` e `getGroundHeight`).
+- **`npm test` agora roda tudo:** 12 testes unitários e 3 de navegador que não estavam no script, e 6 testes soltos (janelas de combate, interrupções, física 3D, smear, squash & stretch) foram incluídos; os que dependiam de valores de fábrica foram fixados em `factoryDefaults()`.
+- Novo teste de navegador `ui-rodada-22-10` (16 verificações) com capturas em `evidence/ui-22-10/`: botões de IA, atalho da duração da animação, tooltips, Riposte, blocos novos de VFX e os efeitos disparando na arena.
+- Riposte no ar (contra-golpe desce e termina no chão) e Emerging Stone no ar agora têm teste.
 
 ## v1.18.2 — Pouso do pulo regular e impacto vertical em paredes e objetos (22/10/2026)
 - **Pulo regular** (e queda de borda) agora termina só com uma **onda circular simples, sem tremor** e sem a poeira de pouso; o efeito de colisão com o chão fica para knockback, Bounce e Meteor Slam.

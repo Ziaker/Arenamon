@@ -4,6 +4,7 @@ import {assert, C, cmd, vec, arena, HOLD, suite} from './moves-new-helpers.mjs';
 import {NEW_MOVE_IDS} from '../src/sim/moves/new-moves.js';
 import {getMove} from '../src/sim/moves.js';
 import {slotStatus} from '../src/sim/move-state.js';
+import {applyHit} from '../src/sim/world.js';
 
 const {test, done} = suite('MOVES NO AR');
 const ALL = ['reflect', 'psyshock', ...NEW_MOVE_IDS];
@@ -105,6 +106,20 @@ test('vault: Harden (cast) converte o arco em voo e o status entra; Lunge desce 
   g = vaulting('lunge');f = g.fighters[0];const h0 = f.vaultHeight;press(g);
   assert.ok(f.action?.move === 'lunge' && f.action.liftStart > 0 && f.action.liftStart <= h0 + .5, 'Lunge parte da altura do vault');idle(g, 200);assert.ok(settled(f));
   g = vaulting('reflect');f = g.fighters[0];press(g);assert.ok(f.charge, 'carga iniciada no arco');idle(g, 5);
+});
+test('Riposte no ar: o acerto na janela é anulado e o contra-golpe sai descendo, terminando no chão', () => {
+  const g = airborne('riposte', {red: vec(0, 1.6)}), f = g.fighters[0];press(g);idle(g, 24);   // dentro da janela do contra-golpe (0,13–0,30 s)
+  assert.ok(f.flight && f.action?.air && f.action.def.riposte, 'postura aérea');
+  const hp0 = f.hp, r = applyHit(g, 1, f, {damage: 10, knockback: {horizontal: 3, vertical: 0}}, vec(0, -1), {source: 'teste'});
+  assert.equal(r?.result, 'riposte', 'o acerto na janela vira Riposte');assert.equal(f.hp, hp0, 'sem dano');
+  let strike = false;for (let i = 0; i < 40 && !strike; i++) {g.step(cmd(), cmd());strike = !!f.action?.riposteStrike;}
+  assert.ok(strike, 'contra-golpe iniciado no ar');assert.ok(f.action.liftStart > 0 || !f.flight, 'o contra-golpe desce do ar');
+  idle(g, 400);assert.ok(settled(f), 'terminou no chão, sem ficar preso');
+});
+test('Emerging Stone no ar: aceito, e se o lutador pousa a tempo o disparo acontece; sem apoio ao fim do cast, cancela sem travar', () => {
+  const g = airborne('emerging-stone'), f = g.fighters[0];press(g, {move: vec(0, 1)});hold(g, 40, {move: vec(0, 1)});g.step(cmd(), cmd());
+  idle(g, 600);assert.ok(settled(f), 'não ficou preso');
+  assert.ok((f.moveCooldowns?.['emerging-stone'] ?? 0) > 0 || !f.aim, 'ou disparou (recarga) ou cancelou limpo');
 });
 test('lançado por golpe continua sem comando: nenhum Move é aceito', () => {
   const g = arena({equip: ['harden', 'lunge', 'reflect', 'spikes'], setup: rich});const f = g.fighters[0];

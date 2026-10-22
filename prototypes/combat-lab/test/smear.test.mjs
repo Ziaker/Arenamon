@@ -1,13 +1,13 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import * as T from 'three';
-import {C, resetConfig} from '../src/sim/config.js';
+import {C, factoryDefaults, resetConfig} from '../src/sim/config.js';   // caracteriza a mecânica nos valores de FÁBRICA; a base de calibração é coberta por calibration-base.test.mjs
 import {LimbSmear, smearAnchors} from '../src/view/smear-mesh.js';
 import {View} from '../src/view/view.js';
 import {overhaulMeta} from '../src/ui/overhaul-meta.js';
 import {mechanicsOf, levelOf} from '../src/ui/organize.js';
 
-resetConfig();
+resetConfig(factoryDefaults());
 const scene = new T.Scene(), model = new T.Group();scene.add(model);
 const mesh = new T.Mesh(new T.BoxGeometry(1, 2, 1), new T.MeshBasicMaterial({color: 0x896236}));model.add(mesh);
 for (const [name, x, y] of [['LeftHand', -.5, .5], ['RightHand', .5, .5], ['Head', 0, 1]]) {const b = new T.Bone();b.name = name;b.position.set(x, y, 0);model.add(b);}

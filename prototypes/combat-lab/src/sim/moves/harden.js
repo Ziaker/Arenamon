@@ -26,6 +26,6 @@ export function hardenStatus(P) {
 /** Efeito do fim do cast: aplica o status em si mesmo. */
 export function hardenEffect(game, f, def, fx) {
   const P = fx.params ?? C.world.harden;
-  applyStatus(f, hardenStatus(P), {source: f.id});
+  applyStatus(f, /** @type {any} */ (hardenStatus(P)), {source: f.id});
   fx.events?.push({result: 'moveEffect', move: 'harden', attacker: f.id, target: f.id, damage: 0, status: 'harden', duration: P.duration});
 }

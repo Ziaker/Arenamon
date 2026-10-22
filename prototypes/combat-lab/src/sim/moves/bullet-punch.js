@@ -73,7 +73,7 @@ export function bulletPunchReturn(/** @type {any} */ game, /** @type {any} */ f,
   f.velocity = {x: 0, z: 0};f.locomotionVelocity = {x: 0, z: 0};
   fx.events?.push({result: 'bulletReturn', attacker: f.id, target: null, damage: 0, x: f.position.x, z: f.position.z, move: def.id});
   // alvo: o adversário mais próximo A PARTIR DO MARCADOR, com as posições atuais (vivo, presente)
-  let best = null, bd = Infinity;
+  /** @type {any} */ let best = null, bd = Infinity;
   for (const o of game.fighters) {
     if (o === f || o.hp <= 0 || o.absent) continue;
     const d = Math.hypot(o.position.x - m.pos.x, o.position.z - m.pos.z);

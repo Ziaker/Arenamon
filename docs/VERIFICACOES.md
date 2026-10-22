@@ -2,6 +2,20 @@
 
 Este arquivo separa **o que foi efetivamente executado** do que **permanece pendente**. Registre aqui data, commit-base, comando e resultado; nunca marque como executado o que não foi.
 
+## Execução de 2026-10-22 (fechamento, v1.18.3)
+
+| Verificação | Resultado |
+|---|---|
+| `npm run typecheck` | **sem erros** (antes: 32 erros, a `main` não passava no `verify`) |
+| `npm run check:offline` | 11 HTMLs sem dependências externas |
+| `npm run skills:check` | 12 skills em sincronia |
+| `npm run verify:workspace` | falha **apenas** no worktree (exige o checkout oficial); rodar lá |
+| Testes soltos agora no `npm test` | `combat-windows-sim` (14), `combat-windows` (9), `interruptions` (10), `physics3d` (14), `smear`, `squash-stretch` (+ os 2 de navegador) aprovados |
+| `ui-rodada-22-10.browser` (Edge real, offline) | **16/16**: botões de IA, atalho da animação, tooltips, Riposte, blocos de VFX, efeitos na arena, sem erros de página nem rede externa; capturas em `evidence/ui-22-10/` |
+| `moves-air` | 15 aprovados (inclui Riposte e Emerging Stone no ar) |
+
+**Bug encontrado pelas capturas:** efeitos de modo «ground» não apareciam (culling). Corrigido na v1.18.3.
+
 ## Execução de 2026-10-22 — `feat/calibracao-v8-base` (v1.18.0) e `main` @ `dff532f`
 
 **Ambiente:** Windows 11, Node 25.8, worktree `.worktrees/calibracao-v8`. **Não executado:** `npm run verify` completo, `npm run typecheck`, `test:combat-lab:browser` completo, verificação visual na tela (o navegador embutido do assistente não abre HTML local).

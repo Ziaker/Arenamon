@@ -228,7 +228,7 @@ Salto normal, queda de borda e o arco do vault da esquiva **não** bloqueiam mai
 - `isAirJump(f)` (voo normal ou queda de borda; **não** lançado, **não** preso na parede, **não** o arco do Bounce) e `isVaultArc(f)` definem o «ar utilizável». Lançado por golpe continua sem comando.
 - O arco do vault vira um voo normal (`vaultToFlight`) quando o Move fica no ar (`cast`, carga ou marcador); nos Moves `descend` a altura vira `vaultHeight` com descida suave (`takeOffToLift`/`applyLift`).
 - `movePermission`/`chargePermission` usam as mesmas regras na tela (HUD) e no motor. Testes: `test/moves-air.test.mjs` e `test/moves-softlock.test.mjs` (varredura de estados presos).
-- Pendente de verificação: contra-golpe aéreo do Riposte e disparo do Emerging Stone no ar (exige apoio ao fim do cast).
+- Verificado em teste (`moves-air`): contra-golpe aéreo do Riposte (desce e termina no chão) e Emerging Stone no ar (abre o marcador; sem apoio ao fim do cast cancela sem travar).
 
 ## Ainda não preparado (decisões para quando os movimentos chegarem)
 

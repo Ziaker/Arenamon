@@ -244,7 +244,7 @@ export function vfxDefaults() {
     perfect: {enabled: 1, variant: 0, intensity: 1.3, duration: .55, scale: 1.2, count: 26, wave: 2.4, glow: 1.6, color: 0x9dffd2, color2: 0xffffff, fade: 1.4, flash: .55, freeze: .07},
     ground: {enabled: 1, variant: 0, radius: 1.3, density: 1, duration: .55, intensity: 1, speed: 3.5, opacity: .85, particleSize: .22, elevation: .5, color: 0xe6edf2, minImpact: 2, mixA: 1, mixB: .8, mixC: .6},
     // Pouso do pulo regular: só uma onda circular no chão, sem tremor (o efeito de colisão com o chão fica para knockback e meteor slam).
-    jumpLanding: {enabled: 1, variant: 0, radius: 1.3, rings: 1, expansion: 1, duration: .35, intensity: 1, opacity: .55, color: 0xdfe9f5, fade: 1.4, minImpact: 1.5, fallScale: .5},
+    jumpLanding: {enabled: 1, variant: 0, radius: 1.3, rings: 1, expansion: 1, duration: .35, intensity: 1.4, opacity: .8, color: 0xdfe9f5, fade: 1.4, minImpact: 1.5, fallScale: .5},
     // Impacto vertical ao bater em parede da arena ou objeto do cenário (pilar, caixa, plataforma, destrutível); escala com o tamanho do objeto.
     wallImpact: {enabled: 1, variant: 0, size: 1, duration: .45, intensity: 1, opacity: .9, color: 0xdfe9f5, color2: 0xffffff, glow: 1.2, fade: 1.6, minSpeed: 3, cooldown: .35, speedScale: .6, arenaOn: 1, arenaScale: 1, arenaHeight: 2, objectsOn: 1, objectScale: 1, sizeInfluence: 1, refSize: 2, wallRing: 1, wallRingSize: 1, wallStreak: 1, wallStreakLength: 1, wallSparks: 1, wallSparkCount: 10, wallSparkLength: 1, wallDust: 1, wallDustAmount: 1, wallDustRise: 1},
     clash: {enabled: 1, variant: 0, scale: 1.2, duration: .6, intensity: 1.3, count: 30, color: 0xffe58d, color2: 0xff7a3c, radius: 1.6, speed: 7, glow: 1.6},

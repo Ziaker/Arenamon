@@ -25,7 +25,13 @@ export interface MoveDef {
   id: string; name?: string; description?: string; type?: string; category?: 'physical' | 'special' | 'status';
   duration?: number; cost?: number; cooldown?: number; cancelAfter?: number; cancelFrom?: string[];
   fromGuard?: boolean; fromGuardStun?: boolean; invulnerable?: [number, number]; aim?: 'target' | 'facing' | 'input';
-  motion?: {type: 'none' | 'root' | 'dash'; distance?: number; start?: number; end?: number}; animation?: string;
+  motion?: {type: 'none' | 'root' | 'dash' | 'walk'; distanceKey?: string; distance?: number; start?: number; end?: number}; animation?: string;
   timeline?: MoveTimelineEvent[];
   charge?: ChargeDef; cooldownBoost?: boolean;
+  /** Grupo de parâmetros em `C.world[group]` (sliders do Move). */ group?: string;
+  /** Mira por marcador: 'marker' (fixo) ou 'follow' (segue o lutador). */ aimMode?: 'marker' | 'follow'; castFirst?: boolean; aimAirOk?: boolean;
+  /** Move que vira ação de Tackle: nome da preparação registrada. */ tackle?: string;
+  groundOnly?: boolean; feint?: boolean; riposte?: boolean; keepFacing?: boolean; fromDodge?: boolean; cooldownOnStart?: boolean; needsTarget?: string;
+  /** Uso no ar (sim/air.js): 'cast' o corpo segue em voo; 'descend' desce e age; 'none' (padrão) sem uso no ar. */ air?: 'none' | 'cast' | 'descend';
+  durationKeys?: string[]; invulnerableKeys?: string[];
 }

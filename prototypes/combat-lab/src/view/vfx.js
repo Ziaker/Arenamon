@@ -93,7 +93,7 @@ class ParticleBatch {
     this.a = {pos: attr('iPos', 3), axis: attr('iAxis', 3), size: attr('iSize', 2), color: attr('iColor', 4), misc: attr('iMisc', 3)};
     g.instanceCount = 0;this.geometry = g;
     // Brilhos aditivos ficam visíveis através dos corpos (o impacto nunca some atrás do personagem); poeira respeita a profundidade.
-    this.material = new T.ShaderMaterial({vertexShader: VERT, fragmentShader: FRAG, uniforms: {map: {value: atlas}}, transparent: true, depthWrite: false, depthTest: blending !== T.AdditiveBlending, blending});
+    this.material = new T.ShaderMaterial({vertexShader: VERT, fragmentShader: FRAG, uniforms: {map: {value: atlas}}, transparent: true, depthWrite: false, depthTest: blending !== T.AdditiveBlending, blending, side: T.DoubleSide});   // DoubleSide: o quad do modo «ground» (no plano XZ) tem a face de trás voltada para cima e era descartado pelo culling, então anéis e ondas no chão nunca apareciam
     this.mesh = new T.Mesh(g, this.material);this.mesh.frustumCulled = false;this.mesh.renderOrder = 950;this.mesh.visible = !!atlas;
   }
   add(p) {if (this.p.length >= this.capacity) this.p.shift();this.p.push(p);}

@@ -39,9 +39,9 @@ try {
     ch.place(f, 0, .01);
     const unchangedBones = JSON.stringify(pose) === JSON.stringify([...bone.position.toArray(), ...bone.quaternion.toArray()]);
     f.action = null;f.state = 'neutral';for (let i = 0; i < 120; i++) ch.place(f, 0, 1 / 120);
-    return {stretched, volume, unchangedBones, neutral: ch.deformation.scale.z, clips: ch.clips.length};
+    return {stretched, volume, unchangedBones, neutral: ch.deformation.scale.z, clips: ch.clips.length, expected: 1 + L.C.extras.visual.squashStretch.stretchIntensity * 1.5};   // PL3 = 1,5× a intensidade (vale para a base de calibração e para os valores de fábrica)
   }, bytes);
-  assert.ok(Math.abs(result.stretched - 1.3) < 1e-8);assert.ok(Math.abs(result.volume - 1) < 1e-8);
+  assert.ok(Math.abs(result.stretched - result.expected) < 1e-8, `${result.stretched} != ${result.expected}`);assert.ok(Math.abs(result.volume - 1) < 1e-8);
   assert.equal(result.neutral, 1);assert.equal(result.unchangedBones, true);assert.equal(errors.length, 0, errors.join('\n'));
   await page.evaluate(() => {for (const el of document.querySelectorAll('#act-tackle details')) el.open = el.textContent.includes('Deformação elástica do Tackle');});
   await page.locator('#act-tackle details').filter({hasText: 'Deformação elástica do Tackle'}).screenshot({path: fileURLToPath(new URL('controles.png', evidence))});
