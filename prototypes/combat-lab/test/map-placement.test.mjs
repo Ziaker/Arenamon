@@ -61,6 +61,37 @@ check('prévia → sólido: o destrutível só se materializa quando o corpo do 
   }
   assert.ok(materialized > 1000 && waited > 100, `materializou ${materialized}, adiou ${waited}`);
 });
+check('prévia → sólido (inverso): com o corpo a spawnClearance ou mais do quadrado, a materialização nunca é adiada (grade de 2 cm)', () => {
+  for (let a = 0; a <= 2.2; a += 0.02) for (let b = 0; b <= 2.2; b += 0.02) {
+    const gap = gapToBox({x: a, z: b}, {x: 0, z: 0, hx: .8, hz: .8});
+    if (Math.abs(gap - C.map.spawnClearance) < 1e-6) continue;
+    const ms = createMapState(1);ms.platforms = [];ms.obstacles = [];ms.items = [];
+    const d = {id: 'd', hp: 30, maxHp: 30, pos: {x: 0, y: 0, z: 0}, size: {hx: .8, hz: .8, height: 1.6}, shape: 'box', angle: 0, state: 'ghost', respawnTimer: 0, ghostTimer: 0.001, resistances: {}};
+    ms.destructibles = [d];
+    stepMap(ms, 1 / 120, [{id: 0, hp: 100, position: vec(a, b), groundY: 0, flight: null, vaultHeight: 0}], []);
+    assert.equal(d.state === 'solid', gap >= C.map.spawnClearance, `(${a.toFixed(2)}, ${b.toFixed(2)}) folga ${gap.toFixed(3)} m`);
+  }
+});
+check('prévia → sólido: lutador ausente (Bullet Punch, sem corpo) não adia a materialização', () => {
+  const ms = createMapState(1);ms.platforms = [];ms.obstacles = [];ms.items = [];
+  const d = {id: 'd', hp: 30, maxHp: 30, pos: {x: 0, y: 0, z: 0}, size: {hx: .8, hz: .8, height: 1.6}, shape: 'box', angle: 0, state: 'ghost', respawnTimer: 0, ghostTimer: 0.001, resistances: {}};
+  ms.destructibles = [d];
+  stepMap(ms, 1 / 120, [{id: 0, hp: 100, absent: true, position: vec(0, 0), groundY: 0, flight: null, vaultHeight: 0}], []);
+  assert.equal(d.state, 'solid');
+});
+check('arena quadrada (inclusive pequena): o reposicionamento nunca põe plataforma fora do quadrado nem sobre lutador; placementConflicts é declarado', () => {
+  assert.equal(createMapState(1).placementConflicts, 0);
+  for (const half of [4, 6, 10.4]) for (let seed = 1; seed <= 300; seed++) {
+    resetConfig(defaults());C.map.arenaShape = 'square';C.test.arenaHalf = half;
+    const g = new Game({seed});g.start();
+    if (g.mapState.placementConflicts > 0) continue;   // sem posição válida: política documentada (mantém a sorteada e registra)
+    for (const p of g.mapState.platforms) {
+      const out = Math.max(Math.abs(p.pos.x) + p.width / 2, Math.abs(p.pos.z) + p.depth / 2) - half;
+      assert.ok(out <= 1e-9, `seed ${seed} meio-lado ${half}: plataforma ${out.toFixed(2)} m fora do quadrado`);
+      for (const f of g.fighters) assert.ok(gapToBox(f.position, {x: p.pos.x, z: p.pos.z, hx: p.width / 2, hz: p.depth / 2}) >= C.map.spawnClearance - 1e-9, `seed ${seed} meio-lado ${half}: lutador colado`);
+    }
+  }
+});
 check('prévia → sólido: lutador em outra altura (no ar acima do objeto) não adia a materialização', () => {
   const ms = createMapState(1);ms.platforms = [];ms.obstacles = [];ms.items = [];
   const d = {id: 'd', hp: 30, maxHp: 30, pos: {x: 0, y: 0, z: 0}, size: {hx: .8, hz: .8, height: 1.6}, shape: 'box', angle: 0, state: 'ghost', respawnTimer: 0, ghostTimer: 0.001, resistances: {}};

@@ -12,7 +12,12 @@ const r = C.test.halfExtent;
 const fighter = p => ({id: 0, position: {...p}, velocity: vec(), locomotionVelocity: vec(), flight: null, vaultHeight: 0, groundY: 0, contacts: 0, action: null});
 const world = obstacles => ({obstacles, platforms: [], destructibles: []});
 let tests = 0;const failures = [];
-const check = (name, fn) => {try {fn();tests++;console.log('✓', name);} catch (error) {failures.push(name);console.log('✗', name, '—', String(error.message).split(/\r?\n/)[0]);}};
+// resetConfig(defaults()) não restaura valores alterados dentro de um teste (objetos aninhados compartilhados): cada verificação restaura o que mexeu.
+const check = (name, fn) => {
+  const keep = {map: {...C.map}, toggles: {...C.extras.toggles}};
+  try {fn();tests++;console.log('✓', name);} catch (error) {failures.push(name);console.log('✗', name, '—', String(error.message).split(/\r?\n/)[0]);}
+  finally {Object.assign(C.map, keep.map);Object.assign(C.extras.toggles, keep.toggles);}
+};
 
 for (const shape of ['cylinder', 'pillar']) {
   const o = {shape, pos: {x: 2, y: 0, z: -1}, radius: 1, height: 3};
@@ -69,13 +74,13 @@ check('arremesso contra indestrutível (R3.12): rebote especular pelo ângulo, i
 });
 check('voos que NÃO são arremesso por golpe (queda de borda, Move Bounce) não rebatem: mantêm a própria velocidade', () => {
   for (const [name, flight] of [['queda de borda', {y: 0, vy: -1, horizontal: vec(-5, 2), isEdgeFall: true}], ['Move Bounce', {y: 0, vy: -1, horizontal: vec(-5, 2), bounce: {recovery: .3}}]]) {
-    const f = fighter(vec(1.2, 0));f.flight = flight;f.velocity = vec(-5, 2);
+    const f = fighter(vec(1.2, 0));f.flight = flight;f.velocity = vec(-5, 2);f.launchedByHit = true;   // flag obsoleta de um arremesso anterior (só é limpa no pouso)
     collideMapFighter(world([pillar()]), f, []);
     assert.deepEqual(f.flight.horizontal, vec(-5, 2), name);
     assert.ok(Math.abs(f.position.x - (1 + r)) < 1e-9, name);
   }
 });
-check('restituição máxima aceita (multiplicador 3 × 0,28 = 0,84 < 1): o arremesso nunca ganha energia', () => {
+check('multiplicador 3 com a restituição padrão (3 × 0,28 = 0,84 ≤ 1): o arremesso não ganha energia (acima de 1 o fator amplifica, igual à borda circular)', () => {
   C.map.wallBounceMultiplier = 3;
   const f = fighter(vec(1.2, 0));f.flight = {y: 0, vy: -1, horizontal: vec(-5, 2)};f.launchedByHit = true;
   collideMapFighter(world([pillar()]), f, []);
@@ -118,6 +123,61 @@ check('pilar: centro exato resolve sempre na mesma direção (determinístico, c
   const o = {shape: 'cylinder', pos: {x: 0, y: 0, z: 0}, radius: 1, height: 3}, f = fighter(vec(0, 0));
   collideMapFighter(world([o]), f, []);
   assert.ok(Math.abs(f.position.x) < 1e-12 && Math.abs(f.position.z - (1 + r)) < 1e-9, JSON.stringify(f.position));
+});
+
+
+// ---------- Obstáculo em CAIXA (indestrutível): mesma regra por estado (R3.12) ----------
+const box = () => ({shape: 'box', pos: {x: 0, y: 0, z: 0}, hx: 1, hz: 1, height: 3});
+check('caixa: arremessado por golpe rebate pela normal da face (ângulo especular, restituição de parede) e nunca ganha energia', () => {
+  const f = fighter(vec(1.3, .4));f.flight = {y: 0, vy: -1, horizontal: vec(-5, 2)};f.launchedByHit = true;f.velocity = vec(-5, 2);
+  const k = C.rules.wallRestitution * (C.map?.wallBounceMultiplier ?? 1);
+  collideMapFighter(world([box()]), f, []);
+  assert.ok(Math.abs(f.flight.horizontal.x - 5 * k) < 1e-9, `normal refletida: ${f.flight.horizontal.x} (esperado ${5 * k})`);
+  assert.ok(Math.abs(f.flight.horizontal.z - 2) < 1e-9, 'tangente preservada');
+  assert.deepEqual(f.velocity, f.flight.horizontal);
+  assert.ok(Math.hypot(f.flight.horizontal.x, f.flight.horizontal.z) < Math.hypot(-5, 2));
+  assert.ok(Math.abs(f.position.x - (1 + r)) < 1e-9, 'posição corrigida na face');
+});
+check('caixa: face em z também rebate (eixo certo)', () => {
+  const f = fighter(vec(.3, -1.3));f.flight = {y: 0, vy: -1, horizontal: vec(2, 6)};f.launchedByHit = true;f.velocity = vec(2, 6);
+  const k = C.rules.wallRestitution * (C.map?.wallBounceMultiplier ?? 1);
+  collideMapFighter(world([box()]), f, []);
+  assert.ok(Math.abs(f.flight.horizontal.z + 6 * k) < 1e-9 && Math.abs(f.flight.horizontal.x - 2) < 1e-9, JSON.stringify(f.flight.horizontal));
+});
+check('caixa: queda de borda, Move Bounce e salto voluntário mantêm o comportamento anterior (sem rebote)', () => {
+  const legacy = [{y: 0, vy: -1, horizontal: vec(-5, 2), isEdgeFall: true}, {y: 0, vy: -1, horizontal: vec(-5, 2), bounce: {recovery: .3}}];
+  for (const flight of legacy) {
+    const f = fighter(vec(1.3, .4));f.flight = flight;f.velocity = vec(-5, 2);f.launchedByHit = true;   // flag obsoleta (lançado → Meteor Slam → caiu da borda)
+    collideMapFighter(world([box()]), f, []);
+    assert.ok(Math.abs(f.flight.horizontal.x) < 1e-9 && Math.abs(f.flight.horizontal.z - 2) < 1e-9, JSON.stringify(f.flight.horizontal));
+  }
+  const j = fighter(vec(1.3, .4));j.flight = {y: 0, vy: -1, horizontal: vec(-5, 2), isNormalJump: true};
+  collideMapFighter(world([box()]), j, []);
+  assert.deepEqual(j.flight.horizontal, vec(-5, 2));
+});
+check('idempotência: depois de resolvido, uma 2ª chamada não conta contato nem move (caixa, plataforma e destrutível; ruído de ponto flutuante não vira contato)', () => {
+  // Origem (fuzz de partidas da Fase 6): o reposicionamento na face deixava a sobreposição em +1e-16, a 2ª chamada contava contato de novo e o settleStatics nunca
+  // convergia (12 rodadas → «conflito de espaço» falso, ~48 mil por 60 partidas), embora o lutador estivesse só encostado.
+  let seedR = 12345;const rnd = () => (seedR = (seedR * 1664525 + 1013904223) >>> 0) / 4294967296;
+  const defs = [
+    ['caixa', () => ({obstacles: [{shape: 'box', pos: {x: 0.37, y: 0, z: -1.13}, hx: 1.5, hz: 1.0, height: 3}], platforms: [], destructibles: []})],
+    ['plataforma', () => ({obstacles: [], platforms: [{id: 'p', pos: {x: -2.71, z: 3.29}, width: 3, depth: 3, height: 1}], destructibles: []})],
+    ['destrutível', () => ({obstacles: [], platforms: [], destructibles: [{id: 'd', state: 'solid', hp: 30, maxHp: 30, pos: {x: 5.123, y: 0, z: 4.987}, size: {hx: .8, hz: .8, height: 1.6}, resistances: {}}]})],
+  ];
+  const bad = [];
+  for (const [name, mk] of defs) for (let i = 0; i < 4000; i++) {
+    const w = mk(), c = w.obstacles[0]?.pos ?? w.platforms[0]?.pos ?? w.destructibles[0].pos;
+    const f = fighter(vec(c.x + (rnd() - .5) * 4.5, c.z + (rnd() - .5) * 4.5));
+    collideMapFighter(w, f, []);
+    f.contacts = 0;collideMapFighter(w, f, []);
+    if (f.contacts !== 0) bad.push(`${name} #${i} (${f.position.x}, ${f.position.z})`);
+  }
+  assert.equal(bad.length, 0, `${bad.length} reposicionamentos não convergem; ex.: ${bad.slice(0, 2).join(' | ')}`);
+});
+check('caixa: locomoção continua zerando só a componente que entra (comportamento anterior preservado)', () => {
+  const f = fighter(vec(1.3, .4));f.velocity = vec(-2, 3);
+  collideMapFighter(world([box()]), f, []);
+  assert.ok(Math.abs(f.velocity.x) < 1e-9 && Math.abs(f.velocity.z - 3) < 1e-9);
 });
 
 console.log(`Colisões de obstáculos do mapa: ${tests} verificações aprovadas, ${failures.length} falhas.`);

@@ -91,7 +91,7 @@ O responsável aprovou remover a componente penetrante **na locomoção normal**
 | Estado | Resposta no pilar | Teste |
 | --- | --- | --- |
 | Locomoção livre | remove só a componente que entra; tangente preservada; registra a normal para o controlador | `collision-map` |
-| Arremessado por golpe (`launchedByHit`) | rebote especular pelo ângulo, intensidade = `wallRestitution × wallBounceMultiplier` (R3.12); sem rebote ligado só perde a parte que entra; nunca ganha energia | `collision-map` (inclui restituição 0,84) |
+| Arremessado por golpe (`launchedByHit`) | rebote especular pelo ângulo, intensidade = `wallRestitution × wallBounceMultiplier` (R3.12); sem rebote ligado só perde a parte que entra; com os padrões (0,28 × 1) não ganha energia — acima de `wallRestitution × multiplicador > 1` amplifica, igual à borda circular | `collision-map` (inclui restituição 0,84) |
 | Salto voluntário, queda de borda, Move Bounce | mantêm a velocidade; só a posição é corrigida | `collision-map` |
 | Ação em curso (tackle, esquiva) | a velocidade pertence à ação; só a posição é corrigida | `collision-map` |
 | Destrutíveis (R3.7/R7.15) | **não alterado** | testes existentes de `map` |
@@ -205,3 +205,35 @@ Cada script de `test:combat-lab:browser` foi executado isolado (o encadeamento d
 - Materialização: usa a folga exata; adia (0,5 s) enquanto houver lutador dentro da folga.
 - Efeito medido: 41 de 1500 seeds (2,7 %) passam a ter um layout diferente (19 só com plataformas movidas; as demais por cascata da validação de obstáculos); posições dos lutadores: **0 alteradas**; 0 conflitos sem posição válida.
 - Teste `map-placement.test.mjs` (5 verificações; 1500 seeds, grade de 2 cm da materialização, determinismo).
+
+### 13.1 Rebote de arremessado contra obstáculo indestrutível em caixa (R3.12) e coeficientes de impacto (R3.7/R7.15)
+
+- **Decisão do responsável (21/10/2026)** aplicada aos obstáculos em **caixa** (antes só os pilares): arremessado **por golpe** (`launchedByHit`) rebate com ângulo especular e intensidade = `wallRestitution × wallBounceMultiplier` (sem rebote ligado, só perde a parte que entra); com os padrões não ganha energia (fator > 1 amplifica, como já faz a borda circular — decisão de limitar fica com o responsável). Queda de borda, Move Bounce, salto voluntário e ações mantêm o comportamento anterior. Plataformas não mudam (não são «obstáculos» da R3.12).
+- **Coeficientes que estavam fixos no código** (dano ao objeto = vel. horizontal × 6; dano ao lutador = × 2,5; mínimo de 1 m/s) agora são parâmetros do painel («Objetos destrutíveis»): `impactDamageToObject`, `impactDamageToFighter`, `impactMinSpeed`. **Padrões idênticos aos anteriores**; um teste de caracterização fixa os números (8 m/s → 48 ao objeto e 20 ao lutador) antes de qualquer mudança.
+- Testes: `collision-map.test.mjs` (23, com isolamento de configuração entre verificações) e `map-impact.test.mjs` (6).
+
+### 13.2 Itens auditados sem defeito
+Ciclo de vida do destrutível (30 HP, respawn de 15–30 s em outra posição válida, prévia translúcida, adiamento sem posição válida), drops que caem fisicamente até o solo ou topo de plataforma, expiração de 15 s, coleta por distância esférica 3D, ricochete de projétil na borda circular (R11.7) e quantidades configuráveis: cobertos por `map.test.mjs` (64 verificações) e inalterados.
+
+### 13.3 Revisão independente da Fase 5 e ajustes (receiving-code-review)
+Revisor read-only (subagente) rodou 251 mil posições de materialização, 3000 seeds de layout e 312 arremessos contra caixa. Sem Critical. Itens avaliados:
+- **Aplicado — flag `launchedByHit` obsoleta** (lançado → Meteor Slam → queda de borda rebatia na caixa/pilar): `isLaunchThrow` agora exclui `isEdgeFall`. Teste vermelho/verde em `collision-map` (as fixtures de queda de borda e Move Bounce passam a carregar a flag obsoleta).
+- **Aplicado — arena quadrada:** o reposicionamento usava o raio circular; agora usa o mesmo contorno do `clampToArena` por forma (meio-lado na quadrada). Teste em `map-placement` (meio-lados 4, 6 e 10,4; 300 seeds cada).
+- **Aplicado — `placementConflicts` visível:** declarado em `createMapState` e exibido no painel «Dados ao vivo» («Colocação de objetos»).
+- **Aplicado — rótulos:** `wallBounceMultiplier` = «Multiplicador de rebote (borda circular, pilares e caixas)»; descrição de `wallRestitution` atualizada.
+- **Aplicado — menores:** lutador ausente (`absent`) não adia a materialização; teste inverso da grade (folga ≥ `spawnClearance` ⇒ nunca adia).
+- **Ajustado — «nunca ganha energia»:** só vale com `wallRestitution × multiplicador ≤ 1`. Mantive o comportamento (coerente com a borda circular) e corrigi texto e título do teste; limitar o fator a 1 muda o design e fica como decisão do responsável.
+- **Não aplicado:** `spawnClearance` continua só para plataformas e materialização (obstáculos/itens usam a distância fixa de `isValidSpawnPosition`); o rótulo e o limite ficam registrados aqui. Espiral devolve o primeiro candidato válido do anel, não o mais próximo (resolução de 1,5 m).
+- **`ai-eval` (falha da suíte):** «revisão 2 mantém ações negadas controladas» (rev. 2: 58, rev. 1: 33; limite +20). Não é regressão da rev. 2: ela fica estável (57–62 em 5 seeds) e a contagem da rev. 1 oscila entre 33 e 58 com qualquer mudança mínima de trajetória (no 4634ca2 já estava a 19 do limite de 20). O teste agora soma duas séries de 10 pares (seeds 100 e 101) com a mesma tolerância por série (+40). Registrado como mudança de teste, não como correção de física.
+
+### 13.4 Fuzz de partidas completas (início da Fase 6): quatro defeitos novos
+Método: 60 partidas IA × IA de 30 s, mapa denso (8 + 8 objetos + 2 plataformas), dois Moves aleatórios por lutador, a cada tick: penetração em sólidos do mapa, NaN, saltos laterais, `staticConflicts`. Rodado no baseline (4634ca2) e na branch (script do scratchpad `p6-fuzz.mjs`; promovido a testes abaixo).
+| # | Defeito (severidade) | Evidência | Correção | Teste |
+|---|---|---|---|---|
+| 1 | **P1 — «conflitos de espaço» falsos:** o reposicionamento na face de caixa/plataforma/destrutível deixava a sobreposição em +1e-16 e a próxima chamada contava contato de novo; o `settleStatics` nunca convergia (12 rodadas por lutador por passo) | 48 614 conflitos em 60 partidas → **0** | `TOUCH_EPS = 1e-9` nos três ramos de caixa de `collideMapFighter` | `collision-map`: idempotência (12 000 posições aleatórias; vermelho: 1362 não convergiam) |
+| 2 | **P1 — vãos entre sólidos menores que o corpo:** 304 de 1500 layouts padrão (20 %) tinham pelo menos um vão < 1,0 m (mín. 0,31 m); o lutador entra, não cabe, fica espremido (até 7 cm de penetração) e a IA não sai | 304 → 0 layouts com vão < 1,2 m (padrão); denso (8+8): 374/400 → 0 | `map.passageClearance` (1,2 m, no painel «Objetos destrutíveis»): `isValidSpawnPosition` ganha o vão exato entre formas (`solidGap`), usado na geração, no respawn e na materialização; sem posição válida, mantém a sorteada e conta em `placementConflicts` | `map-passage` (6) |
+| 3 | **P1 — visual ≠ físico:** caixas eram sorteadas com ângulo qualquer e desenhadas giradas, mas a física (e a navegação) sempre as trata alinhadas aos eixos | todas as caixas de todas as seeds | o sorteio é consumido (sequência da RNG preservada) e o ângulo da caixa passa a 0; **mudança visível:** caixas e destrutíveis deixam de aparecer giradas. Alternativa (decisão do responsável): fazer a física honrar a rotação em mapa, navegação, projéteis e áreas | `map-passage`: «visual = físico» |
+| 4 | **P1 — pouso perdido pela lateral:** a consulta de apoio usava a posição ANTES do deslocamento horizontal do passo; um voo descendo com os pés a milímetros acima do topo entrava na faixa de apoio no mesmo passo, não pousava, afundava e era ejetado de lado (até **78 cm** em um tick) | caso do fuzz seed 1 (ejeção de 0,78 m) | o pouso foi extraído para `land()` e reconferido depois do deslocamento (cruzou o topo vindo de cima durante o passo) | `support-surface`: pouso pela lateral (24 combinações) |
+**Resíduo conhecido (não corrigido, decisão do responsável):** com os pés até 25 cm abaixo do topo (`mountTolerance`), a lateral da plataforma não bloqueia (desenho do «montar»), mas o apoio só vale com o centro a até 25 cm da borda; no intervalo o corpo sobrepõe o volume e, ao descer da faixa, é ejetado até ~25 cm de lado em um tick (3 ocorrências em 216 mil ticks). Corrigir exige escolher entre apoiar até a borda inteira do corpo (0,5 m) ou bloquear a lateral nesse intervalo.
+**Falha do `ai-eval` explicada:** a revisão 2 fica estável (59 → 61 → 58 negadas) e a revisão 1 cai (49 → 42 → 33) conforme os contatos são corrigidos; o teste soma duas séries com +30 por série (ver §13.3).
+
