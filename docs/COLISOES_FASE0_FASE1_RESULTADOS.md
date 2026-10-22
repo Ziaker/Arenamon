@@ -91,7 +91,7 @@ O responsável aprovou remover a componente penetrante **na locomoção normal**
 | Estado | Resposta no pilar | Teste |
 | --- | --- | --- |
 | Locomoção livre | remove só a componente que entra; tangente preservada; registra a normal para o controlador | `collision-map` |
-| Arremessado por golpe (`launchedByHit`) | rebote especular pelo ângulo, intensidade = `wallRestitution × wallBounceMultiplier` (R3.12); sem rebote ligado só perde a parte que entra; com os padrões (0,28 × 1) não ganha energia — acima de `wallRestitution × multiplicador > 1` amplifica, igual à borda circular | `collision-map` (inclui restituição 0,84) |
+| Arremessado por golpe (`launchedByHit`) | rebote especular pelo ângulo, intensidade = `wallRestitution × wallBounceMultiplier` (R3.12); sem rebote ligado só perde a parte que entra; fator `min(1, wallRestitution × multiplicador)`: nunca ganha energia (limite decidido em 22/10/2026; a borda circular segue sem limite) | `collision-map` (inclui restituição 0,84) |
 | Salto voluntário, queda de borda, Move Bounce | mantêm a velocidade; só a posição é corrigida | `collision-map` |
 | Ação em curso (tackle, esquiva) | a velocidade pertence à ação; só a posição é corrigida | `collision-map` |
 | Destrutíveis (R3.7/R7.15) | **não alterado** | testes existentes de `map` |
@@ -208,7 +208,7 @@ Cada script de `test:combat-lab:browser` foi executado isolado (o encadeamento d
 
 ### 13.1 Rebote de arremessado contra obstáculo indestrutível em caixa (R3.12) e coeficientes de impacto (R3.7/R7.15)
 
-- **Decisão do responsável (21/10/2026)** aplicada aos obstáculos em **caixa** (antes só os pilares): arremessado **por golpe** (`launchedByHit`) rebate com ângulo especular e intensidade = `wallRestitution × wallBounceMultiplier` (sem rebote ligado, só perde a parte que entra); com os padrões não ganha energia (fator > 1 amplifica, como já faz a borda circular — decisão de limitar fica com o responsável). Queda de borda, Move Bounce, salto voluntário e ações mantêm o comportamento anterior. Plataformas não mudam (não são «obstáculos» da R3.12).
+- **Decisão do responsável (21/10/2026)** aplicada aos obstáculos em **caixa** (antes só os pilares): arremessado **por golpe** (`launchedByHit`) rebate com ângulo especular e intensidade = `wallRestitution × wallBounceMultiplier` (sem rebote ligado, só perde a parte que entra); o fator total é limitado a 1 (decisão do responsável, 22/10/2026): nunca ganha energia; a borda circular não foi alterada. Queda de borda, Move Bounce, salto voluntário e ações mantêm o comportamento anterior. Plataformas não mudam (não são «obstáculos» da R3.12).
 - **Coeficientes que estavam fixos no código** (dano ao objeto = vel. horizontal × 6; dano ao lutador = × 2,5; mínimo de 1 m/s) agora são parâmetros do painel («Objetos destrutíveis»): `impactDamageToObject`, `impactDamageToFighter`, `impactMinSpeed`. **Padrões idênticos aos anteriores**; um teste de caracterização fixa os números (8 m/s → 48 ao objeto e 20 ao lutador) antes de qualquer mudança.
 - Testes: `collision-map.test.mjs` (23, com isolamento de configuração entre verificações) e `map-impact.test.mjs` (6).
 
@@ -283,3 +283,6 @@ Checklist contra o prompt (§1–§15) e contra `OVERHAUL_COLISOES_AMBIENTE.md` 
 - Benchmark de CPU/frametime com alerta quando o número de contatos cresce: só medi o tempo da simulação (sem alerta); GPU real não medida.
 - `docs/OVERHAUL_COLISOES_AMBIENTE.md` (plano do PR #100) só existe naquela branch e ainda diz «NÃO IMPLEMENTADO»; este documento é o registro do que foi feito. Reconciliar ao decidir o destino do PR #100.
 - `npm run verify` completo e avaliação jogável na pasta oficial; rebuild do `dist/` oficial.
+
+### 19. Limite do fator de rebote (decisão do responsável, 22/10/2026)
+Em pilares e caixas o fator `restituição × multiplicador` passa a ser `min(1, …)` (`bounceOffSolid` em `map.js`): rebote perfeito no máximo, o arremessado nunca sai mais rápido do que entrou. Medido antes: restituição 1 × multiplicador 3 dava 12,65 → 36,22 m/s no pilar. Teste: `collision-map` (fator 3 não ganha energia em pilar e caixa; fator 0,56 não é cortado). Inalterados: a borda circular (sem limite), a lateral das plataformas (sem rebote) e os padrões (0,28 × 1). Os rótulos do painel foram atualizados.

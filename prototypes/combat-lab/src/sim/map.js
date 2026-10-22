@@ -928,7 +928,8 @@ const isLaunchThrow = f => !!f.launchedByHit && !f.flight.isNormalJump && !f.fli
 function bounceOffSolid(f, n) {
   const h = f.flight.horizontal, hv = h.x * n.x + h.z * n.z;
   if (!(hv < 0)) return;
-  const factor = C.extras.toggles.enableWallBounce ? C.rules.wallRestitution * (C.map?.wallBounceMultiplier ?? 1) : 0;
+  // Limitado a 1 (rebote perfeito): contra pilares e caixas o arremesso nunca sai com mais velocidade do que entrou, mesmo com restituição × multiplicador > 1.
+  const factor = C.extras.toggles.enableWallBounce ? Math.min(1, C.rules.wallRestitution * (C.map?.wallBounceMultiplier ?? 1)) : 0;
   f.flight.horizontal = {x: h.x - n.x * hv * (1 + factor), z: h.z - n.z * hv * (1 + factor)};
   f.velocity = {...f.flight.horizontal};
 }

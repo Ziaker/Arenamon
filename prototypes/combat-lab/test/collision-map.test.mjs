@@ -80,11 +80,31 @@ check('voos que NÃO são arremesso por golpe (queda de borda, Move Bounce) não
     assert.ok(Math.abs(f.position.x - (1 + r)) < 1e-9, name);
   }
 });
-check('multiplicador 3 com a restituição padrão (3 × 0,28 = 0,84 ≤ 1): o arremesso não ganha energia (acima de 1 o fator amplifica, igual à borda circular)', () => {
+check('multiplicador 3 com a restituição padrão (3 × 0,28 = 0,84 ≤ 1): o arremesso não ganha energia', () => {
   C.map.wallBounceMultiplier = 3;
   const f = fighter(vec(1.2, 0));f.flight = {y: 0, vy: -1, horizontal: vec(-5, 2)};f.launchedByHit = true;
   collideMapFighter(world([pillar()]), f, []);
   assert.ok(Math.hypot(f.flight.horizontal.x, f.flight.horizontal.z) < Math.hypot(-5, 2));
+});
+check('fator de rebote limitado a 1 em pilares e caixas: com restituição 1 × multiplicador 3 (fator 3) o arremesso NUNCA sai mais rápido do que entrou', () => {
+  const keepRestitution = C.rules.wallRestitution;
+  try {
+    C.rules.wallRestitution = 1;C.map.wallBounceMultiplier = 3;
+    const speed = f => Math.hypot(f.flight.horizontal.x, f.flight.horizontal.z);
+    for (const [name, obstacle, start] of [['pilar', pillar(), vec(1.2, 0)], ['caixa', {shape: 'box', pos: {x: 0, y: 0, z: 0}, hx: 1, hz: 1, height: 3}, vec(1.3, .4)]]) {
+      const f = fighter(start);f.flight = {y: 0, vy: -1, horizontal: vec(-12, 4)};f.launchedByHit = true;f.velocity = vec(-12, 4);
+      const before = speed(f);collideMapFighter(world([obstacle]), f, []);
+      assert.ok(speed(f) <= before + 1e-9, `${name}: ganhou energia (${before.toFixed(2)} → ${speed(f).toFixed(2)})`);
+      assert.ok(Math.abs(f.flight.horizontal.x - 12) < 1e-9, `${name}: a normal deveria sair com 100 % (reflexão total), saiu ${f.flight.horizontal.x}`);
+      assert.ok(Math.abs(f.flight.horizontal.z - 4) < 1e-9, `${name}: tangente preservada`);
+    }
+  } finally {C.rules.wallRestitution = keepRestitution;}
+});
+check('abaixo do limite o fator continua valendo: restituição 0,28 × multiplicador 2 = 0,56 (não é cortado)', () => {
+  C.map.wallBounceMultiplier = 2;
+  const f = fighter(vec(1.2, 0));f.flight = {y: 0, vy: -1, horizontal: vec(-10, 0)};f.launchedByHit = true;f.velocity = vec(-10, 0);
+  collideMapFighter(world([pillar()]), f, []);
+  assert.ok(Math.abs(f.flight.horizontal.x - 10 * C.rules.wallRestitution * 2) < 1e-9, `saiu ${f.flight.horizontal.x}`);
 });
 check('arremesso afastando-se do pilar não é alterado', () => {
   const f = fighter(vec(1.2, 0));f.flight = {y: 0, vy: -1, horizontal: vec(5, 2)};f.launchedByHit = true;
