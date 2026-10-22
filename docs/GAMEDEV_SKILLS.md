@@ -143,6 +143,12 @@ Cada entrada: data · tarefa · skill · o que foi aplicado de fato.
 - **three.quarks:** emissores localizados por coleção (cada `ParticleSystem` já cria o próprio `emitter`; usar `system.emitter`, e não um
   `new ParticleEmitter(system)` separado, que fica fora da cena e é descartado no primeiro `update`).
 
+### 2026-10-21 — Laboratório visual de Sand Wave e Emerging Stone
+
+- **Tarefa:** nove propostas comparáveis em um HTML offline, com sliders, câmera 3D e emissores `three.quarks`.
+- **Skill `game-feel`:** preparação, avanço/ruptura, impacto e dissipação em fases legíveis, com opção de movimento reduzido.
+- **Skill `shader-programming`:** mantidos materiais simples e partículas suaves; efeitos animados por tempo em vez de pós-processamento pesado.
+
 ### 2026-10-21 — Laboratório HUD de vida, stamina e moves (v1.15.5)
 
 - **Tarefa:** protótipo visual de 3 HUDs (Impacto, Quadrinhos, Clássico) para vida, stamina e 4 moves (`docs/HUD_VIDA_STAMINA_MOVES_LAB.md`).
