@@ -1,5 +1,9 @@
 # Laboratório visual: Sand Wave e Emerging Stone
 
+## Correção do Psyshock: substituição integral (22/10/2026)
+
+A versão anterior foi rejeitada por sobrepor um padrão às animações antigas. A correção remove psi-pattern.ts e todo o antigo Psyshock: giroscópios, satélites, gaiolas, lentes, túnel e fundo animado. A construção agora usa somente pedras e glifos locais, ecos de movimento e impactos próprios. A: compressão/expansão de losangos; B: descargas e cortes serrilhados; C: floração hexagonal em pétalas. Os controles de anéis foram renomeados para glifos, preservando as chaves JSON. A galeria vinculada no portal foi atualizada. Teste de regressão verifica ausência do plano/túnel/giroscópios e presença dos glifos em cada pedra.
+
 ## Revisão visual 4 — Swift e Psyshock (22/10/2026)
 
 Abra o atelier e confira **VOL. 04** no cabeçalho. [Comparação das seis opções em carga, voo e impacto](../prototypes/sand-stone-lab/evidence/revision-4/index.html), também acessível no portal, índice e central de testes.

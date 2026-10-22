@@ -178,3 +178,7 @@ Cada entrada: data · tarefa · skill · o que foi aplicado de fato.
 
 - arenamon-routing, game-feel e shader-programming: seis silhuetas e impactos distintos, ribbons com fade, fragmentos instanciados e padrões PSI pixelados inspirados na direção pedida de Mother 3/EarthBound.
 - Evidências: prototypes/sand-stone-lab/evidence/revision-4/index.html; entrada pelo portal oficial.
+
+### 2026-10-22 — Correção integral do Psyshock
+
+- arenamon-routing e game-feel: substituição das camadas antigas por glifos locais com carga, ecos e impacto; remoção do shader de fundo. Regressão verifica ausência de plano, túnel e giroscópios na construção PSI.

@@ -10,7 +10,7 @@ try{
  const page=await browser.newPage({viewport:{width:1280,height:720}}),errors=[],reports=[];
  page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
  await page.goto(pathToFileURL(resolve('prototypes/sand-stone-lab/dist/arenamon-areia-pedra.html')).href);await page.waitForFunction(()=>!!window.__labDiagnostics);
- const names={swift:['Lâminas solares','Tempestade de cometas','Atlas estelar'],psyshock:['Ressonância PSI','Ruptura PSI','Vertigem PSI']};
+ const names={swift:['Lâminas solares','Tempestade de cometas','Atlas estelar'],psyshock:['Ressonância PSI','Ruptura PSI','Floração PSI']};
  const seek=async time=>{await page.locator('#scrub').evaluate((el,t)=>{el.value=String(t);el.dispatchEvent(new Event('input',{bubbles:true}));},time);await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));};
  for(const category of ['swift','psyshock'])for(let variant=0;variant<3;variant++){
   await page.locator(`[data-category="${category}"]`).click();await page.locator(`[data-variant="${variant}"]`).click();

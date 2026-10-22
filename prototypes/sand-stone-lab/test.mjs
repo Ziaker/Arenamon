@@ -31,6 +31,13 @@ for(const category of ['sand','stone','rock'])for(let variant=0;variant<3;varian
 }
 for(const category of ['swift','psyshock'])for(let variant=0;variant<3;variant++){
   const effect=category==='swift'?new SwiftEffect(stage,particles,variant,defaults.swift):new PsyshockEffect(stage,particles,variant,defaults.psyshock,5);
+  if(category==='psyshock'){
+    const legacy=[];stage.traverse(o=>{if(['PlaneGeometry','TorusGeometry','CylinderGeometry'].includes(o.geometry?.type))legacy.push(o.geometry.type);});
+    // Stage markers have two torus foot rings; PSI itself must have no legacy aura or backdrop.
+    assert.deepEqual(legacy,['TorusGeometry','TorusGeometry'],'PSI não pode reintroduzir fundo, túnel ou giroscópios');
+    assert.equal(effect.stones.length,5);
+    for(const stone of effect.stones)assert.ok(stone.children.some(o=>o.name==='psi-local-glyph'),'Glifo precisa acompanhar cada pedra');
+  }
   let peak=0;for(let tick=0;tick<=Math.ceil(effect.duration*60);tick++){effect.update(tick/60,1/60);particles.update(1/60);peak=Math.max(peak,particles.count);}
   assert.ok(peak>0,`${category}/${variant}: sem partículas Quarks`);reports.push({category,variant,peak});particles.clear();disposeGroup(stage);assert.equal(particles.count,0);
 }
