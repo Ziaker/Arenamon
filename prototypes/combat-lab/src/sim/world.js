@@ -205,7 +205,7 @@ function blockerContact(game, p, from, to) {
   const ms = game.mapState;
   if (ms) {
     for (const d of ms.destructibles) if (d.state === 'solid' && vOverlap(yLo, yHi, d.pos.y, d.pos.y + d.size.height)) solids.push({shape: 'box', pos: {x: d.pos.x, z: d.pos.z}, hx: d.size.hx, hz: d.size.hz, angle: 0});
-    for (const o of ms.obstacles) if (vOverlap(yLo, yHi, o.pos.y, o.pos.y + o.height)) solids.push(o.shape === 'cylinder' ? {shape: 'circle', pos: {x: o.pos.x, z: o.pos.z}, radius: o.radius} : {shape: 'box', pos: {x: o.pos.x, z: o.pos.z}, hx: o.hx, hz: o.hz, angle: 0});
+    for (const o of ms.obstacles) if (vOverlap(yLo, yHi, o.pos.y, o.pos.y + o.height)) solids.push(o.shape === 'cylinder' || o.shape === 'pillar' ? {shape: 'circle', pos: {x: o.pos.x, z: o.pos.z}, radius: o.radius} : {shape: 'box', pos: {x: o.pos.x, z: o.pos.z}, hx: o.hx, hz: o.hz, angle: 0});
     for (const pl of ms.platforms) if (vOverlap(yLo, yHi, 0, pl.height)) solids.push({shape: 'box', pos: {x: pl.pos?.x ?? pl.x, z: pl.pos?.z ?? pl.z}, hx: (pl.width ?? 3) / 2, hz: (pl.depth ?? 3) / 2, angle: 0});
   }
   const hit = firstContact(solids, from, to, p.radius);
@@ -294,7 +294,7 @@ function stepProjectile(game, p, dt, events, spawnLater) {
         return;
       }
       for (const o of game.mapState.obstacles) {
-        const obsShape = o.shape === 'cylinder'
+        const obsShape = o.shape === 'cylinder' || o.shape === 'pillar'
           ? {shape: 'circle', pos: {x: o.pos.x, z: o.pos.z}, radius: o.radius}
           : {shape: 'box', pos: {x: o.pos.x, z: o.pos.z}, hx: o.hx, hz: o.hz, angle: 0};
         if (!vOverlap(p.y - p.radius, p.y + p.radius, o.pos.y, o.pos.y + o.height) || !circleTouches(obsShape, p.pos, p.radius)) continue;

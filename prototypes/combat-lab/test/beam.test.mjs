@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {C, defaults, resetConfig} from '../src/sim/config.js';
 import {Game} from '../src/sim/game.js';
 import {emptyCommand} from '../src/sim/entity.js';
+import {effectiveArenaRadius} from '../src/sim/map.js';
 import {vec} from '../src/sim/math.js';
 import {spawn, ENTITY_KINDS} from '../src/sim/world.js';
 
@@ -116,7 +117,10 @@ ok('espelhos paralelos: segmentos limitados por C.world.beam.maxSegments e um ú
 {
   const g = arena({blue: vec(-3, 0), red: vec(3, 0)});spawn(g.world, {kind: 'wall', pos: {x: 0, z: 0}, hx: 3, hz: .3, angle: 0, y: 0, height: 2.2}, []);
   const b = beam(g, {pos: {x: 0, z: 2}, dir: {x: 0, z: -1}});step(g);assert.equal(b.segments.length, 1);near(b.segments[0].b.z, .3 + b.width, 1e-9);
-  const g2 = arena(), b2 = beam(g2, {pos: {x: 0, z: 0}, dir: {x: 1, z: 0}, owner: 0});step(g2);near(b2.segments[0].b.x, C.test.arenaHalf, 1e-9);
+  // O meio-lado legado (arenaHalf) só limita o feixe na arena QUADRADA; na circular (padrão) a borda é o raio efetivo (sem parede invisível; overhaul de colisões, Fase 6).
+  const g2 = arena();C.map.arenaShape = 'square';
+  const b2 = beam(g2, {pos: {x: 0, z: 0}, dir: {x: 1, z: 0}, owner: 0});step(g2);near(b2.segments[0].b.x, C.test.arenaHalf, 1e-9);
+  const g3 = arena({blue: vec(-3, -3), red: vec(3, -3)}), b3 = beam(g3, {pos: {x: 0, z: 0}, dir: {x: 1, z: 0}, owner: 0, length: 200});step(g3);near(b3.segments[0].b.x, effectiveArenaRadius(), 1e-6);
 }
 {
   const g = arena(), b = beam(g, {turn: Math.PI / 2});const d0 = {...b.dir};steps(g, 120);
