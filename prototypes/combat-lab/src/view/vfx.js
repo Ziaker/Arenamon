@@ -170,6 +170,7 @@ export class VfxSystem {
     this.time = (this.time ?? 0) + dt;this.camera = camera;this.characters = characters;
     for (const e of events) {
       if (this.seenEvents.has(e)) continue;this.seenEvents.add(e);
+      if (e.result === 'ledgeGrab') {this.fire('wallImpact', {pos: {x: e.x, z: e.z}, y: e.y, base: e.base, n: e.n, power: .6, w: e.w, h: e.h, arena: false}, `agarre de borda (${(e.w ?? 0).toFixed(1)} × ${(e.h ?? 0).toFixed(1)} m)`);continue;}   // Ledge Grab: reaproveita o impacto vertical, escalado pelo sólido
       const a = fighters[e.attacker], b = fighters[e.target];if (!a || !b) continue;
       const tag = `evento ${e.result} (passo ${e.tick ?? '?'}: ${e.attacker === 0 ? 'azul' : 'vermelho'} → ${e.target === 0 ? 'azul' : 'vermelho'})`;
       if (e.result === 'impact') {this.fire('hit', {pos: b.position, n: e.normal, power: e.slam ? 1.5 : 1, damage: e.damage, launch: e.launch}, tag);this.shake(e.slam ? 'shakeGround' : 'shakeHit', e.normal, e.slam ? 1.4 : 1, tag);}
@@ -199,6 +200,10 @@ export class VfxSystem {
       this.landings[i] = L?.n ?? 0;
       // Finta (brake slide): poeira nos pés quando o lutador derrapa para cancelar o tackle.
       this.trackWallContact(f, i, world);
+      if (f.ledgeHint && C.ledge?.hint && dt > 0) {   // borda agarrável ao alcance: faixa verde sobre a borda, ao longo da face
+        const h = f.ledgeHint, t = {x: h.n.z, z: -h.n.x};
+        this.spawn({x: h.x, y: h.y + .02, z: h.z, life: .1, w: .07, h: 1.6, cell: 'streak', mode: 'axis', ax: t.x, ay: 0, az: t.z, color: 0x7dffb0, glow: 2.2, alpha: .9, fade: 1});
+      }
       const prev = this.prevPos[i] ?? {...f.position};const dx = f.position.x - prev.x, dz = f.position.z - prev.z;this.prevPos[i] = {...f.position};
       if (dt <= 0) return;
       const alt = (f.flight?.y ?? f.groundY ?? 0) + (f.vaultHeight ?? 0);

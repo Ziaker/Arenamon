@@ -49,7 +49,8 @@ export const ACTION_TABS = {
     sections: [
       ['⚙ Sistemas', ['map.jumpImprovements', 'map.footstoolEnabled', 'map.footstoolVault'], true],
       ['🦘 Salto (gravidade, coyote e buffer)', ['map.jumpHeight', 'map.jumpGravity', 'map.jumpGravityUp', 'map.jumpGravityDown', 'map.jumpReleaseMult', 'map.jumpMaxFallSpeed', 'map.jumpInterval', 'map.jumpLandingRecovery', 'map.jumpCoyoteTime', 'map.jumpBufferWindow'], true],
-      ['🎮 Controle aéreo e colisões', ['map.jumpDrag', 'map.jumpAirControl', 'map.jumpAirAccel', 'map.jumpAirMaxSpeed', 'map.platformCount', 'map.mountTolerance', 'map.launchSolidCollision']],
+      ['🎮 Controle aéreo e colisões', ['map.jumpDrag', 'map.jumpAirControl', 'map.jumpAirAccel', 'map.jumpAirMaxSpeed', 'map.platformCount', 'map.mountTolerance', 'map.jumpPassOver', 'map.launchSolidCollision']],
+      ['🧗 Ledge Grab (agarre de borda)', ['ledge.mode', 'ledge.objects', 'ledge.hint', 'ledge.reach', 'ledge.reachUp', 'ledge.minUp', 'ledge.maxRiseSpeed', 'ledge.minHangHeight', 'ledge.hangDrop', 'ledge.snapTime', 'ledge.grabCost', 'ledge.hangDrain', 'ledge.maxHang', 'ledge.minHang', 'ledge.climbInput', 'ledge.climbHold', 'ledge.climbTime', 'ledge.climbInset', 'ledge.climbInvuln', 'ledge.dropInput', 'ledge.dropHold', 'ledge.dropPush', 'ledge.cooldown', 'ledge.hurtDrops', 'ledge.aiClimb']],
       ['👟 Footstool (pisar no rival)', ['map.footstoolDamage', 'map.footstoolBounce', 'map.footstoolStagger', 'map.footstoolTolerance', 'map.footstoolMinFallSpeed', 'map.footstoolCooldown', 'map.footstoolAirAccel', 'map.footstoolAirMaxSpeed', 'map.footstoolVaultMargin']],
     ],
     anims: ['jump', 'fall', 'land'],

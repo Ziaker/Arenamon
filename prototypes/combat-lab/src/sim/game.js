@@ -70,6 +70,12 @@ export class Game {
     const enemy = () => this.fighters[1].absent || this.fighters[0].absent ? emptyCommand() : isBlind(this.fighters[1]) && !canSee(this.fighters[1], this.fighters[0], this.world) ? blindDefensiveCommand(this.fighters[1]) : C.extras.toggles.enableEnemyAI ? this.assistNav(this.brain, this.fighters[1], this.fighters[0], this.brain.command(this.fighters[1], this.fighters[0], this.mode, C.test.step)) : emptyCommand();
     const commands = finishing ? [emptyCommand(), emptyCommand()] : [cmd0, cmd1 ?? enemy()];
     this.lastCommands = commands;
+    for (const f of this.fighters) {   // Ledge Grab: quem é a IA não sabe «apertar Espaço»; sobe sozinha depois de ledge.aiClimb s pendurada (0 = nunca; cai pelo tempo máximo)
+      const lg = f.ledge, L = C.ledge;
+      if (!lg || lg.phase !== 'hang' || !(L.aiClimb > 0) || lg.t < L.aiClimb || finishing) continue;
+      const ai = f.id === 1 ? !!C.extras.toggles.enableEnemyAI && !C.extras.toggles.enemyManual : !!C.extras.toggles.enablePlayerAI;
+      if (ai) commands[f.id] = {...(commands[f.id] ?? emptyCommand()), jump: true, move: {x: -lg.n.x, z: -lg.n.z}};
+    }
     for (const f of this.fighters) updateFighter(f, commands[f.id] ?? emptyCommand(), this.fighters, C.test.step, this.world);
     const actions = this.fighters.map(f => f.action), worldEvents = [];
     for (const f of this.fighters) if (f.moveEvents?.length) worldEvents.push(...f.moveEvents.splice(0));   // eventos do Charge (início, soltura, cancelamento, recarga acelerada)

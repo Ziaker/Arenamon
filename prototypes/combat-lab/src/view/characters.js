@@ -36,6 +36,7 @@ export const STATE_ACTIONS = {
   guardStun: ['guard_impact', 'blocked', 'block', 'idle'], tackle: ['tackle', 'run', 'idle'],
   // Tackle carregado: sem clipe próprio cada nível cai para o clipe do tackle (PL3 → PL2 → tackle); a carga sem clipe usa a pose parada.
   wallSplat: ['wall_splat', 'hit', 'knockback', 'idle'],
+  ledge_hang: ['ledge_hang', 'wall_splat', 'fall', 'idle'], ledge_climb: ['ledge_climb', 'jump', 'vault', 'idle'],
   meteor_prep: ['meteor_prep', 'knockback', 'fall', 'idle'], meteor_dive: ['meteor_dive', 'tackle', 'fall', 'run', 'idle'], meteor_ground: ['meteor_ground', 'tackle', 'fall', 'idle'],
   tackle_charge: ['tackle_charge', 'idle'], tackle_pl2: ['tackle_pl2', 'tackle', 'run', 'idle'], tackle_pl3: ['tackle_pl3', 'tackle_pl2', 'tackle', 'run', 'idle'], brake: ['brake', 'sprint_stop', 'walk_stop', 'idle'],
   dodge_forward: ['dodge_forward', 'dodge_left', 'jump', 'idle'], dodge_back: ['dodge_back', 'dodge_forward', 'idle'], dodge_left: ['dodge_left', 'dodge_forward', 'idle'],
@@ -378,10 +379,11 @@ export class Character {
   clipFor(stateKey) {const id = this.actionFor(stateKey);return id ? {id, index: this.variantsOf(id)[0]} : null;}
   /** Sorteio determinístico da variante na entrada do estado (mesmo lutador, estado e passo → mesma escolha). */
   pickVariant(id, seed) {const list = this.variantsOf(id);if (list.length <= 1) return list[0];const [r] = mulberry(seed);return list[Math.floor(r * list.length)];}
-  missingStates() {return Object.keys(STATE_ACTIONS).filter(k => k !== 'neutral' && !['meteor_prep', 'meteor_dive', 'meteor_ground', 'tackle_charge', 'tackle_pl2', 'tackle_pl3', 'brake', 'wallSplat'].includes(k) && !TRANSIENT.has(k) && !['walk_stop', 'sprint_stop'].includes(k) && (this.actionFor(k) ?? 'idle') === 'idle');}
+  missingStates() {return Object.keys(STATE_ACTIONS).filter(k => k !== 'neutral' && !['meteor_prep', 'meteor_dive', 'meteor_ground', 'tackle_charge', 'tackle_pl2', 'tackle_pl3', 'brake', 'wallSplat', 'ledge_hang', 'ledge_climb'].includes(k) && !TRANSIENT.has(k) && !['walk_stop', 'sprint_stop'].includes(k) && (this.actionFor(k) ?? 'idle') === 'idle');}
   // ---------- Estado visual ----------
   stateKey(f) {
     if (f.hp <= 0 && !f.flight) return 'defeated';
+    if (f.ledge) return f.ledge.phase === 'climb' ? 'ledge_climb' : 'ledge_hang';   // Ledge Grab (sem clipe próprio cai para wall_splat/jump)
     if (f.flight) {
       if (f.wallSplat) return 'wallSplat';
       if (f.flight.isNormalJump) return 'jump';

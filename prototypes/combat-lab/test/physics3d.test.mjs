@@ -127,6 +127,7 @@ test('subir pela lateral de uma plataforma: pouso só na descida (nenhum "snap" 
 });
 test('salto reto sob uma plataforma alta (1,9 m): cabeça na face inferior e volta ao seu piso, sem atravessar', () => {
   const g = arena({height: 1.9});
+  C.map.jumpPassOver = 1;   // este teste caracteriza o TETO com o lutador no centro da pegada (dentro do sólido); com a regra estrita (jumpPassOver 0, padrão) a lateral o ejetaria antes
   const f = g.fighters[0];
   // Diretamente sob a plataforma, sem avanço horizontal: a única saída da subida é o teto.
   f.position = vec(0, 0);

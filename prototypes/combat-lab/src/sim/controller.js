@@ -24,6 +24,7 @@ import {markerValidity, markerInitial, markerMove, followMarker} from './aim-mar
 import {canSee} from './vision.js';
 import {bulletPunchTravel} from './moves/bullet-punch.js';
 import {isAirJump, isVaultArc, airKind, airUsable, vaultToFlight, takeOffToLift, applyLift} from './air.js';
+import {ledgeUpdate} from './ledge.js';
 
 /** Aceleração/frenagem/reversão da locomoção comum no modelo do v6 (mantido para compatibilidade). */
 export function approachVelocity(current, desired, dt) {return legacyApproach(current, desired, C.locomotion, dt);}
@@ -327,6 +328,7 @@ export function updateFighter(f, cmd, fighters, dt, world = null) {
   if (f.aim && ((f.flight && !(isAirJump(f) && airKind(f.aim.def) !== 'none')) || f.knockRecovery > 0 || f.hp <= 0 || f.stun > 1e-8 || hasFlag(f, 'stunned') || hasFlag(f, 'silenced'))) cancelAim(f, f.hp <= 0 ? 'defeated' : 'hit');   // golpe sofrido: o marcador some sem custo
   if (f.charge && ((f.flight && !isAirJump(f)) || f.knockRecovery > 0 || f.hp <= 0)) cancelCharge(f, f.hp <= 0 ? 'defeated' : 'hit');   // golpe com lançamento, recuperação ou perda de apoio (M15.3, M27.1)
   if (f.aim?.castFirst && f.hp > 0) stepAim(f, cmd, length(cmd.move) > 1 ? normalize(cmd.move) : cmd.move, {desiredHeading: f.facing, hasTarget: false, fighters, world, dt, diag});   // cast do Emerging Stone corre também no ar
+  if (ledgeUpdate(f, cmd, fighters, world, dt, diag)) return;   // Ledge Grab: pendurado/subindo, ou acabou de agarrar neste passo (ledge.js)
   if (f.flight) {
     // Meteor slam de quem está no ar (salto normal com Espaço ou lançado): X no ar vira mergulho oblíquo (não vale preso na parede nem sem stamina).
     if (isSlamTrigger) {
@@ -700,6 +702,7 @@ export function movePermission(f, def, slot = null) {
   if (!def) return {ok: false, reason: 'noMove', detail: {slot}};
   if (hasFlag(f, 'stunned')) return {ok: false, reason: 'stunned'};
   if (hasFlag(f, 'silenced')) return {ok: false, reason: 'silenced'};
+  if (f.ledge) return {ok: false, reason: 'ledge'};
   if (f.moveRecovery > 1e-8) return {ok: false, reason: 'moveRecovery', detail: {left: f.moveRecovery}};
   const cd = f.moveCooldowns?.[def.id] ?? 0;if (cd > 1e-8) return {ok: false, reason: 'cooldown', detail: {left: cd}};
   if (f.guard && def.fromGuard === false) return {ok: false, reason: 'guardBlocks'};
@@ -936,6 +939,7 @@ export function chargePermission(f, def, slot = null) {
   if (hasFlag(f, 'stunned')) return {ok: false, reason: 'stunned'};
   if (hasFlag(f, 'silenced')) return {ok: false, reason: 'silenced'};
   if (f.charge) return {ok: false, reason: 'charging'};
+  if (f.ledge) return {ok: false, reason: 'ledge'};
   const cd = f.moveCooldowns?.[def.id] ?? 0;if (cd > 1e-8) return {ok: false, reason: 'cooldown', detail: {left: cd}};
   const airOk = airUsable(f, def);   // carregar no salto, na queda de borda ou no arco do vault (air.js)
   if (f.knockRecovery > 0 || ((f.flight || f.vaultHeight > 1e-8) && !airOk)) return {ok: false, reason: 'noGround'};
