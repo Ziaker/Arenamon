@@ -1083,6 +1083,21 @@ test('hit D: nasce da normal real, escala com dano/lançamento e respeita os con
   // Controles individuais desligam cada camada.
   const off = run({n: normal, damage: C.test.attack * 2}, {debris: 0, dust: 0, crack: 0});
   assert.ok(!off.some(p => p.cell === 14 || p.cell === 6 && p.gravity === 14 || p.cell === 8 || p.cell === 12), 'detritos, poeira e rachadura desligáveis');
+  // Remoção de camadas e tamanhos (22/10/2026): círculos (núcleo e anéis), lâmina, fagulhas e faíscas se desligam um a um e os tamanhos escalam.
+  const E = {n: normal, damage: C.test.attack}, full = run(E);
+  assert.ok(full.some(p => p.cell === 0) && full.some(p => p.cell === 3) && full.some(p => p.cell === 1 && p.vx === 0) && full.some(p => p.cell === 7), 'padrão: núcleo, anéis, lâmina e faíscas presentes');
+  assert.ok(!run(E, {coreOn: 0}).some(p => p.cell === 0), 'núcleo circular removível');
+  assert.ok(!run(E, {ringPlaneOn: 0, ringGroundOn: 0}).some(p => p.cell === 3), 'os dois anéis removíveis');
+  assert.ok(run(E, {ringPlaneOn: 0}).some(p => p.cell === 3) && run(E, {ringGroundOn: 0}).some(p => p.cell === 3), 'cada anel se remove sozinho');
+  assert.ok(!run(E, {ringOpacity: 0}).some(p => p.cell === 3), 'opacidade 0 remove os anéis');
+  assert.ok(!run(E, {bladeOn: 0}).some(p => p.cell === 1 && p.vx === 0), 'lâmina removível');
+  assert.ok(!run(E, {sparksOn: 0}).some(p => p.cell === 1 && p.vx !== 0), 'fagulhas em risco removíveis');
+  assert.ok(!run(E, {embersOn: 0}).some(p => p.cell === 7), 'faíscas que caem removíveis');
+  const coreW = o => run(E, o).find(p => p.cell === 0).w;
+  assert.ok(Math.abs(coreW({coreSize: 2}) / coreW({coreSize: 1}) - 2) < 1e-6, 'coreSize escala o núcleo');
+  assert.ok(!run(E, {coreSize: 0}).some(p => p.cell === 0), 'coreSize 0 remove o núcleo');
+  const back = o => run(E, o).filter(p => p.cell === 1 && p.vx < 0).length;
+  assert.equal(back({backSplash: 0}), 0, 'respingo 0% = nenhuma fagulha para trás');assert.ok(back({backSplash: 1}) > back({backSplash: .25}), 'respingo 100% manda mais fagulhas para trás');
   // Normal ausente não quebra (usa +z).
   assert.ok(run({n: undefined}).length > 0, 'sem normal usa o eixo padrão');
   resetConfig(factoryDefaults());

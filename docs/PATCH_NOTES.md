@@ -1,8 +1,11 @@
 # Patch notes — Laboratório de Combate
 
-Versão atual: **v1.18.0** (22/10/2026). A versão aparece na barra superior do laboratório (tooltip com data de compilação e commit). Para jogar: `JOGAR_ARENAMON.html`.
+Versão atual: **v1.18.1** (22/10/2026). A versão aparece na barra superior do laboratório (tooltip com data de compilação e commit). Para jogar: `JOGAR_ARENAMON.html`.
 
 ---
+
+## v1.18.1 — Impacto (hit) variante D: remover círculos e mais controles (22/10/2026)
+- Em **Visualizar › Impacto (hit) › D · Direcional**: liga/desliga do **núcleo de brilho (círculo central)**, do **anel de pressão**, do **anel no chão**, da **lâmina de luz**, das **fagulhas em risco** e das **faíscas que caem**; sliders de tamanho/expansão/espessura de cada peça, opacidade dos anéis, respingo para trás, tamanho de detritos e de poeira. Padrões iguais aos de antes (nada some sozinho).
 
 ## v1.18.0 — Moves no ar (22/10/2026)
 - Salto normal, queda de borda e arco do vault da esquiva **deixam de bloquear os Moves**. Cada Move declara `air`: **cast** (o corpo segue em voo: Harden, Second Wind, Swift, Riposte, Feint, Reflect, Psyshock, Spikes, Emerging Stone, Sand Wave, Bounce) ou **descend** (desce em `airDescent` e age: Lunge, Quick Attack, Guard Break, Bullet Punch). Lançado por golpe e preso na parede continuam sem comando.
