@@ -61,3 +61,7 @@ prototypes/croagunk/
 !chars/**/*.obj
 chars/vigor/
 chars/vigor.zip
+
+# Python: cache gerado a cada execucao do Blender Vision
+__pycache__/
+*.pyc
