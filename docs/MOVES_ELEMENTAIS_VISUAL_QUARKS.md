@@ -1,3 +1,22 @@
+# Água: controles completos por fase — 23/10/2026
+
+Abra o portal **ABRIR_ARENAMON.html → Ateliê Elemental Quarks** e selecione **Water Pulse**. Role o painel esquerdo: os novos grupos são **Disparo das argolas**, **Forma e faixas da água**, **Gotas do rastro** e **Contato e explosão**. Cada slider tem explicação e campo numérico. O botão de restauração recupera os padrões da variante atual.
+
+Foram acrescentados **40 sliders**:
+
+- **12 de disparo:** quantidade, atraso inicial, intervalo entre argolas, duração individual, raio, espessura, espaçamento, aumento do raio por argola, escala inicial, expansão, velocidade de avanço e opacidade. Cada argola tem seu próprio relógio. O padrão continua sendo três argolas simultâneas de 0,3 s; atrasos e durações maiores também são respeitados depois do contato.
+- **8 de forma:** ponta, ondulação, afinamento, raio e largura das faixas orbitais, quantidade, comprimento e largura dos jatos da opção C.
+- **5 de rastro:** quantidade, raio de emissão, velocidade, tamanho e vida das gotas.
+- **15 de contato:** duração visual, tempo e velocidade da expansão, escala inicial, duração e força da compressão, quantidade/velocidade/tamanho/vida/raio de emissão das gotas, altura/raio/cristas da coroa e raio da onda.
+
+A duração da coroa é independente da vida das gotas. O descarte aguarda os tempos configurados. Cor, tamanho geral, brilho, velocidade, duração do voo, smear, dispersão e anéis orbitais continuam disponíveis nos controles gerais.
+
+**Limites:** água conserva máximos 300×, inclusive nos controles novos; Fire Spin, Air Slash e Seed Bomb passam a máximos 5× (também o halo: 1,2 → 6). Os valores padrão dos outros Moves não mudaram. A opacidade física satura em 1. Valores extremos podem ultrapassar o enquadramento; não foi validado desempenho com todos os máximos simultâneos.
+
+**Validação:** build, typecheck, 20 testes Quarks e navegador Edge offline. O teste elemental-water-controls.browser.mjs verifica os 40 controles na interface/runtime, limites, sequenciamento de três argolas, contato prolongado e descarte. Capturas e resultados estão na [galeria](../prototypes/combat-lab/evidence/elemental-quarks/index.html). A verificação geral npm run verify para nas 11 skills de .claude ausentes/divergentes, problema anterior a esta alteração.
+
+---
+
 # Revisão de lançamento e controles — 23/10/2026
 
 - **Air Slash:** corte deitado no plano XZ, paralelo ao chão. Surge por escala e opacidade em 0,22 s, com um arco inicial de pressão. As três variantes permanecem disponíveis.
@@ -86,3 +105,18 @@ Novos controles: contraste das faixas/espuma, comprimento do rastro de vento, ha
 Arquivos: `elemental-surfaces.js` concentra as novas superfícies/shaders; `elemental-preview.js` integra as superfícies aos emissores Quarks. A galeria vinculada no portal foi atualizada, incluindo a ruptura de Water Pulse.
 
 Testes da reconstrução: build e typecheck, 20 testes do adaptador e navegador Edge offline (incluindo erros de shader/console, reprodução, PL, controles, acessibilidade e limpeza). A qualidade artística ainda depende da avaliação do usuário. Não medido em máquinas lentas; não validado em outros navegadores.
+
+# Impacto visual do disparo (Water Pulse e Air Slash) — 23/10/2026
+
+Abra **ABRIR_ARENAMON.html → Ateliê Elemental Quarks**, escolha **Water Pulse** ou **Air Slash** e role o painel até o grupo **Impacto do disparo**. A legenda do canto mostra a fase **Disparo (impacto)** enquanto ele acontece.
+
+No instante do disparo, ao mesmo tempo:
+
+- **Clarão** no núcleo (brilho extra que decai) e **halo** luminoso na origem;
+- **Coice do núcleo**: alongamento para a frente que se recupera sozinho;
+- **Ondas de choque**: anéis que se expandem perpendicularmente ao disparo (água em espuma, ar em vento);
+- **Jato de partículas para trás**: gotas na água, riscos de vento no ar.
+
+13 sliders, todos com unidade e explicação: duração, clarão, halo, impulso do núcleo, quantidade, raio, espessura e intervalo das ondas, quantidade, velocidade, tamanho e vida das partículas e abertura do cone do jato. **Duração = 0 desliga todo o impacto.** Limites seguem a regra do ateliê (água 300×, ar 5×; a abertura do jato fica em 180°). **Sem flash** zera clarão e halo e mantém ondas e jato; **Movimento reduzido** reduz a velocidade do jato. Valores padrão: água 0,45 s, 3 ondas, 140 gotas; ar 0,4 s, 3 ondas, 90 riscos.
+
+Teste: `test/elemental-shot.browser.mjs` (Edge offline) confere os 13 sliders na interface e no runtime, os limites, a fase, ondas/clarão/impulso/jato nos primeiros 60 ms, o fim das ondas, o desligamento por duração 0, Sem flash, movimento reduzido e que o jato vai para trás. Capturas na [galeria](../prototypes/combat-lab/evidence/elemental-quarks/index.html). Não foi medido desempenho com os máximos simultâneos nem validado o impacto dentro da partida (só no ateliê).

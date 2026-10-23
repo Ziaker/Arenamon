@@ -58,22 +58,24 @@ const ring=common+`
  float bands=pow(.5+.5*sin(vUv.y*10.+n*8.-time*3.),6.);emit(mix(color,accent,bands)*1.3,a*(.2+bands*.7));}`;
 function surface(fn,segments=160,cross=12){const pos=[],uv=[],idx=[];for(let i=0;i<=segments;i++)for(let j=0;j<=cross;j++){const v=fn(i/segments,j/cross);pos.push(...v);uv.push(i/segments,j/cross);}for(let i=0;i<segments;i++)for(let j=0;j<cross;j++){let k=i*(cross+1)+j;idx.push(k,k+1,k+cross+1,k+1,k+cross+2,k+cross+1);}const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(pos,3));g.setAttribute('uv',new T.Float32BufferAttribute(uv,2));g.setIndex(idx);g.computeVertexNormals();return g;}
 export class ElementalSurfaces {
- constructor(fx){this.fx=fx;this.p=fx.p;this.id=fx.id;this.parts=[];this.uniforms=[];this.impact=new T.Group();fx.root.add(this.impact);this.impact.visible=false;this.core=fx.core;this.launch=new T.Group();fx.root.add(this.launch);this.build();}
+ constructor(fx){this.fx=fx;this.p=fx.p;this.id=fx.id;this.parts=[];this.uniforms=[];this.impact=new T.Group();fx.root.add(this.impact);this.impact.visible=false;this.core=fx.core;this.launch=new T.Group();fx.root.add(this.launch);this.shot=new T.Group();fx.root.add(this.shot);this.build();}
  material(shader,opacity=1,warp=0){const p=this.p;const m=new T.ShaderMaterial({vertexShader:vertex,fragmentShader:shader,transparent:true,depthWrite:false,side:T.DoubleSide,uniforms:{time:{value:0},opacity:{value:opacity},brightness:{value:p.brightness},detail:{value:p.detail??1},warp:{value:warp},elongation:{value:0},bodyRadius:{value:p.size},stretchAxis:{value:new T.Vector3(1,0,0)},bandCount:{value:p.rings},color:{value:new T.Color(p.color)},accent:{value:new T.Color(p.accent)}}});this.fx.materials.push(m);this.uniforms.push(m.uniforms);return m;}
  add(g,shader,parent=this.core,opacity=1,warp=0){const m=new T.Mesh(g,this.material(shader,opacity,warp));parent.add(m);return m;}
  build(){const p=this.p,s=p.size;
+ // Ondas de choque do disparo: anéis de raio 1 perpendiculares ao trajeto (eixo X), escalados por update().
+ if(this.fx.shotOn)for(let i=0;i<p.shotShockCount;i++)this.add(surface((u,v)=>{const a=u*Math.PI*2,r=1-v*Math.min(.98,p.shotShockWidth);return [0,Math.cos(a)*r,Math.sin(a)*r];},96,2),this.id==='waterPulse'?splash:wind,this.shot,.9);
  if(this.id==='waterPulse'){
- for(let i=0;i<3;i++)this.add(surface((u,v)=>{const a=u*Math.PI*2,rad=s*(.8+i*.18+v*.12);return [-i*s*.3,Math.cos(a)*rad,Math.sin(a)*rad];},96,4),splash,this.launch,.9);
+ for(let i=0;i<p.launchCount;i++)this.add(surface((u,v)=>{const a=u*Math.PI*2,rad=s*(p.launchRadius+i*p.launchRadiusStep+v*p.launchWidth);return [-i*s*p.launchSpacing,Math.cos(a)*rad,Math.sin(a)*rad];},96,4),splash,this.launch,.9);
  const geo=new T.SphereGeometry(s,96,64);const pos=geo.attributes.position;
- for(let i=0;i<pos.count;i++){const x=pos.getX(i)/s;pos.setX(i,pos.getX(i)+s*Math.pow(Math.max(0,x),3)*(.65+p.variant*.4));}geo.computeVertexNormals();
- const ball=this.add(geo,water,this.core,1,1);ball.material.depthWrite=true;
- if(p.variant===2){for(let i=0;i<3;i++){const jet=this.add(surface((u,v)=>{const a=u*8+i*2.094,r=s*(.6+u*.3);return [-s*(.5+u*2.5),Math.cos(a)*r+(v-.5)*.13,Math.sin(a)*r];}),ribbon);this.parts.push(jet);}}
+ for(let i=0;i<pos.count;i++){const x=pos.getX(i)/s;pos.setX(i,pos.getX(i)+s*Math.pow(Math.max(0,x),3)*p.waterNose);}geo.computeVertexNormals();
+ const ball=this.add(geo,water,this.core,1,p.waterWarp);ball.material.depthWrite=true;
+ if(p.variant===2){for(let i=0;i<p.jetCount;i++){const jet=this.add(surface((u,v)=>{const a=u*8+i*Math.PI*2/Math.max(1,p.jetCount),r=s*(.6+u*.3);return [-s*(.5+u*p.jetLength),Math.cos(a)*r+(v-.5)*p.jetWidth,Math.sin(a)*r];}),ribbon);this.parts.push(jet);}}
 
- for(let i=0;i<p.rings;i++){const phase=i*2.399;const r=this.add(surface((u,v)=>{const a=u*Math.PI*2.5+phase,lat=(u-.5)*2.2+(v-.5)*.12*Math.sin(u*Math.PI);const rr=s*1.025;return [Math.cos(a)*Math.cos(lat)*rr,Math.sin(lat)*rr,Math.sin(a)*Math.cos(lat)*rr];},Math.max(12,Math.floor(480/Math.max(1,p.rings))),2),ribbon);r.rotation.z=.25+i*.5;this.parts.push(r);}
+ for(let i=0;i<p.rings;i++){const phase=i*2.399;const r=this.add(surface((u,v)=>{const a=u*Math.PI*2.5+phase,lat=(u-.5)*2.2+(v-.5)*p.orbitWidth*Math.sin(u*Math.PI);const rr=s*p.orbitRadius;return [Math.cos(a)*Math.cos(lat)*rr,Math.sin(lat)*rr,Math.sin(a)*Math.cos(lat)*rr];},Math.max(12,Math.floor(480/Math.max(1,p.rings))),2),ribbon);r.rotation.z=.25+i*.5;this.parts.push(r);}
  // Ruptura perpendicular ao disparo: compressão, explosão e spray no contato.
  this.impact.rotation.z=Math.PI/2;
- this.add(surface((u,v)=>{const a=u*Math.PI*2;const r=s*(.6+v*1.2);const crest=(.25+Math.pow(.5+.5*Math.sin(a*7.+Math.sin(a*3.)),3)*.55)*v;return [Math.cos(a)*r,crest*s,Math.sin(a)*r];}),splash,this.impact,1);
- this.add(surface((u,v)=>{const a=u*Math.PI*2,r=s*(1+v*1.5);return [Math.cos(a)*r,.02,Math.sin(a)*r];}),ring,this.impact,.9);
+ this.add(surface((u,v)=>{const a=u*Math.PI*2;const r=s*(.6+v*1.2)*p.crownRadius;const crest=(.25+Math.pow(.5+.5*Math.sin(a*p.crownPeaks+Math.sin(a*3.)),3)*.55)*v;return [Math.cos(a)*r,crest*s*p.crownHeight,Math.sin(a)*r];}),splash,this.impact,1);
+ this.add(surface((u,v)=>{const a=u*Math.PI*2,r=s*(1+v*1.5)*p.waveRadius;return [Math.cos(a)*r,.02,Math.sin(a)*r];}),ring,this.impact,.9);
  }else if(this.id==='fireSpin'){
  const inner=p.opening,outer=inner+s*.8;
  // Todas as superfícies ficam fora do raio interno: o chão permanece visível no centro.
@@ -94,15 +96,23 @@ export class ElementalSurfaces {
  }
  }
  update(t){const p=this.p,motion=this.fx.reduced?.18:1;const envelope=Math.min(1,t/(p.fireRise??.35),Math.max(0,(p.duration-t)/(p.fireFade??.7)));
- if(t===0)this.launch.position.copy(this.core.position);this.launch.visible=t<.3&&this.fx.contactAt===null;this.launch.scale.setScalar(.6+t*4);this.launch.traverse(o=>{if(o.material?.uniforms)o.material.uniforms.opacity.value=Math.max(0,1-t/.3);});
+ if(t===0){this.launch.position.copy(this.core.position);this.shot.position.copy(this.core.position);}
+ this.shot.children.forEach((ring,i)=>{const k=(t-i*p.shotShockStagger)/p.shotDuration;ring.visible=k>=0&&k<1;if(!ring.visible)return;ring.scale.setScalar(Math.max(.01,p.shotShockSize*(1-Math.pow(1-k,3))));ring.material.uniforms.opacity.value=1-k;});
+ const sd=this.fx.shotOn?Math.max(0,1-t/p.shotDuration):0,kick=p.shotKick*sd*sd,flash=this.fx.noFlash?0:p.shotFlash*sd*sd;this.shotKickNow=kick;this.shotFlashNow=flash;
+ if(this.fx.shotOn)this.core.traverse(o=>{if(o.material?.uniforms)o.material.uniforms.brightness.value=p.brightness*(1+flash);});
+ if(this.id==='waterPulse'){
+ this.launch.visible=false;
+ this.launch.children.forEach((ring,i)=>{const age=t-p.launchDelay-i*p.launchInterval;ring.visible=age>=0&&age<p.launchDuration;this.launch.visible ||= ring.visible;if(!ring.visible)return;ring.scale.setScalar(p.launchScale+age*p.launchExpansion*motion);ring.position.x=age*p.launchSpeed*motion;ring.material.uniforms.opacity.value=Math.min(1,p.launchOpacity)*Math.max(0,1-age/p.launchDuration);});
+ }else{this.launch.visible=t<.3&&this.fx.contactAt===null;this.launch.scale.setScalar(.6+t*4);this.launch.traverse(o=>{if(o.material?.uniforms)o.material.uniforms.opacity.value=Math.max(0,1-t/.3);});}
+
  for(const u of this.uniforms)u.time.value=t*p.rotation*.25*motion;
  if(this.id==='fireSpin'){this.core.scale.set(1,Math.max(.001,envelope),1);this.core.rotation.y=t*p.rotation*.5*motion;for(const u of this.uniforms)u.opacity.value=envelope;}
- else if(this.id==='waterPulse'){const amount=this.fx.velocity*p.stretch*(p.variant===1?.3:.17);this.fx.smearAmount=amount;this.core.scale.set(1,1/Math.sqrt(1+amount*.3),1/Math.sqrt(1+amount*.3));this.core.traverse(o=>{if(o.material?.uniforms){o.material.uniforms.elongation.value=amount;o.material.uniforms.stretchAxis.value.set(1,0,0).applyQuaternion(o.quaternion.clone().invert());}});for(let i=0;i<this.parts.length;i++)this.parts[i].rotation.y=t*p.rotation*(i%2?-.35:.4)*motion;}
- if(this.id==='airSlash'&&this.fx.contactAt===null){const birth=Math.min(1,t/.22),ease=1-Math.pow(1-birth,3);this.core.scale.setScalar(.05+.95*ease);this.core.traverse(o=>{if(o.material?.uniforms)o.material.uniforms.opacity.value=birth;});}
+ else if(this.id==='waterPulse'){const amount=this.fx.velocity*p.stretch*(p.variant===1?.3:.17);this.fx.smearAmount=amount;const narrow=1/Math.sqrt(1+(amount+kick)*p.waterContraction);this.core.scale.set(1,narrow,narrow);this.core.traverse(o=>{if(o.material?.uniforms){o.material.uniforms.elongation.value=amount+kick;o.material.uniforms.stretchAxis.value.set(1,0,0).applyQuaternion(o.quaternion.clone().invert());}});for(let i=0;i<this.parts.length;i++)this.parts[i].rotation.y=t*p.rotation*(i%2?-.35:.4)*motion;}
+ if(this.id==='airSlash'&&this.fx.contactAt===null){const birth=Math.min(1,t/.22),ease=1-Math.pow(1-birth,3);const base=.05+.95*ease,thin=1/(1+kick*.3);this.core.scale.set(base*(1+kick),base*thin,base*thin);this.core.traverse(o=>{if(o.material?.uniforms)o.material.uniforms.opacity.value=birth;});}
  if(this.fx.contactAt!==null){const age=t-this.fx.contactAt;
  if(!this.impact.visible){this.impact.position.copy(this.core.position);this.impact.visible=this.id!=='fireSpin';}
- const gain=p.contactSize*(this.id==='waterPulse'?.65:1)*(.3+Math.min(1,age*5)*(1+age*p.spread*.3*motion));this.impact.scale.setScalar(gain);
- if(this.id==='waterPulse'){this.core.visible=age<.12;this.core.scale.x*=Math.max(.1,1-age*8);this.core.scale.y*=1+Math.min(.8,age*8);}
- this.impact.traverse(o=>{if(o.material?.uniforms)o.material.uniforms.opacity.value=Math.max(0,1-age/(this.id==='airSlash'?.65:1.3));});}
+ const gain=p.contactSize*(this.id==='waterPulse'?.65:1)*((this.id==='waterPulse'?p.contactInitial:.3)+Math.min(1,age/(this.id==='waterPulse'?p.contactExpansionTime:.2))*(1+age*p.spread*(this.id==='waterPulse'?p.contactExpansion:.3)*motion));this.impact.scale.setScalar(gain);
+ if(this.id==='waterPulse'){this.core.visible=age<p.squashDuration;this.core.scale.x*=Math.max(.01,1-age/p.squashDuration*p.squashAmount);this.core.scale.y*=1+Math.min(.8,age/p.squashDuration*p.squashAmount);}
+ this.impact.traverse(o=>{if(o.material?.uniforms)o.material.uniforms.opacity.value=Math.max(0,1-age/(this.id==='airSlash'?.65:p.contactDuration));});}
  }
 }

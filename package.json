@@ -1,6 +1,6 @@
 {
   "name": "arenamon",
-  "version": "1.21.0",
+  "version": "1.22.0",
   "description": "Laboratórios offline do projeto Arenamon",
   "scripts": {
     "build": "node prototypes/placeholders/build.mjs && node prototypes/game/build.mjs && node prototypes/importer/build.mjs && node prototypes/studio/build.mjs && node prototypes/combat-lab/build.mjs && node prototypes/vfx-elemental/build.mjs && node prototypes/hud-consumiveis/build.mjs && node prototypes/hud-moves/build.mjs",

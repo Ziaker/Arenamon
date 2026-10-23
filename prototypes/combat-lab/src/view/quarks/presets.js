@@ -152,7 +152,7 @@ export const ELEMENTAL_CONTROLS = [
  ['rotation','Rotação','rad/s',0,8,.1],['height','Altura / arco','m',.5,5,.1],['spread','Dispersão de gotas / folhas','m/s',.2,5,.1],
 ];
 export function elementalSettings(id, overrides={}, pl=1) {
- const p={...fireDefaults(overrides.variant??0),variant:0,stretch:1,opening:1.1,contactSize:1,...ELEMENTAL_PRESETS[id],...overrides};
+ const p={...shotDefaults(id),...waterDefaults(overrides.variant??0),...fireDefaults(overrides.variant??0),variant:0,stretch:1,opening:1.1,contactSize:1,...ELEMENTAL_PRESETS[id],...overrides};
  if(!ELEMENTAL_PRESETS[id]) throw new Error('Move visual desconhecido: '+id);
  if(id==='waterPulse') {const level=Math.max(1,Math.min(3,pl));p.size*=1+(level-1)*.32;p.quantity*=1+(level-1)*.55;p.rings+=level-1;p.brightness*=1+(level-1)*.2;}
  return p;
@@ -178,3 +178,70 @@ export const FIRE_CONTROLS=[
 ];
 export const CONTROL_HELP={stretch:'Alongamento do rastro para trás conforme a velocidade; a frente permanece ancorada.',opening:'Raio livre no centro do vórtice.',contactSize:'Escala da explosão ou do corte no contato.',detail:'Contraste das faixas luminosas e da espuma.',trail:'Comprimento do rastro atrás da lâmina de vento.',size:'Tamanho base da superfície principal do efeito.',quantity:'Taxa de partículas durante o trajeto e quantidade base emitida no contato.',speed:'Velocidade do projétil ou velocidade de subida das partículas de fogo.',duration:'Tempo do trajeto ou da sustentação antes do encerramento automático.',brightness:'Multiplica a luminosidade das superfícies e partículas.',particleSize:'Tamanho de cada gota, brasa, folha ou risco de vento.',life:'Tempo que cada partícula permanece visível.',rings:'Quantidade de faixas orbitais da água.',rotation:'Velocidade das correntes, faixas e órbitas.',height:'Altura do projétil, do arco da semente ou das chamas.',spread:'Velocidade de dispersão das partículas após a emissão.'};
 export function fireDefaults(variant=0){return {fireArms:variant===0?5:variant===1?3:8,fireArc:variant===1?4.4:2.4,fireWidth:1,fireLift:1,fireRadial:variant===1?.88:0,fireRings:variant===2?2:1,fireSpacing:.825,fireRise:.35,fireFade:.7,fireEmbers:1};}
+
+export const WATER_CONTROLS = [
+ ["launchCount","Argolas disparadas","un.",0,12,1,"Quantidade de argolas criadas na origem do disparo."],
+ ["launchDelay","Atraso do primeiro disparo","s",0,2,0.01,"Tempo antes de surgir a primeira argola."],
+ ["launchInterval","Intervalo entre disparos","s",0,1,0.01,"Intervalo entre o surgimento de cada argola."],
+ ["launchDuration","Duração de cada argola","s",0.01,3,0.01,"Tempo de vida e desaparecimento de cada argola, contado do seu disparo."],
+ ["launchRadius","Raio das argolas","× núcleo",0.01,3,0.01,"Raio inicial relativo ao tamanho do núcleo."],
+ ["launchWidth","Espessura das argolas","× núcleo",0.01,1,0.01,"Largura da faixa de água de cada argola."],
+ ["launchSpacing","Distância entre argolas","× núcleo",0,2,0.01,"Separação das argolas para trás da origem."],
+ ["launchRadiusStep","Aumento de raio por argola","× núcleo",0,1,0.01,"Quanto cada argola é maior que a anterior."],
+ ["launchScale","Escala inicial das argolas","×",0.01,2,0.01,"Escala da argola no instante em que surge."],
+ ["launchExpansion","Expansão das argolas","×/s",0,10,0.1,"Velocidade de crescimento radial após cada disparo."],
+ ["launchSpeed","Avanço das argolas","m/s",0,10,0.1,"Velocidade das argolas no sentido do projétil."],
+ ["launchOpacity","Opacidade das argolas","×",0,1,0.01,"Visibilidade inicial; desaparece ao longo da duração."],
+ ["waterNose","Comprimento da ponta","× núcleo",0,3,0.05,"Projeta a ponta para a frente; o smear continua para trás."],
+ ["waterWarp","Ondulação da superfície","×",0,4,0.05,"Amplitude da deformação das correntes na superfície."],
+ ["waterContraction","Afinamento pela velocidade","×",0,2,0.01,"Quanto o núcleo afina lateralmente durante o alongamento."],
+ ["orbitRadius","Raio das faixas orbitais","× núcleo",0.005,3,0.005,"Distância das faixas em relação ao centro da água."],
+ ["orbitWidth","Largura das faixas orbitais","rad",0.01,1,0.01,"Espessura angular das faixas que envolvem o núcleo."],
+ ["jetCount","Jatos da opção Hélice","un.",0,12,1,"Quantidade de jatos traseiros, usada somente na opção C."],
+ ["jetLength","Comprimento dos jatos","× núcleo",0,5,0.1,"Extensão dos jatos atrás da água na opção C."],
+ ["jetWidth","Largura dos jatos","m",0.01,1,0.01,"Espessura dos jatos da opção C."],
+ ["trailRate","Quantidade de gotas no rastro","×",0,4,0.1,"Multiplica a emissão durante o voo sem alterar a explosão."],
+ ["trailRadius","Raio de emissão do rastro","× núcleo",0,3,0.05,"Área em torno do núcleo de onde saem as gotas."],
+ ["trailSpeed","Velocidade das gotas do rastro","× dispersão",0,3,0.05,"Multiplica a velocidade das gotas emitidas durante o voo."],
+ ["trailSize","Tamanho das gotas do rastro","×",0.05,4,0.05,"Multiplica o tamanho base das partículas somente no rastro."],
+ ["trailLife","Vida das gotas do rastro","× vida",0.05,4,0.05,"Multiplica a vida base das partículas somente no rastro."],
+ ["contactDuration","Duração visual do contato","s",0.01,5,0.01,"Tempo até a coroa e a onda da explosão desaparecerem."],
+ ["contactExpansionTime","Tempo de abertura do contato","s",0.01,3,0.01,"Tempo para a explosão atingir sua primeira expansão."],
+ ["contactExpansion","Expansão contínua do contato","×/s",0,3,0.05,"Crescimento após a abertura, multiplicado pela dispersão."],
+ ["contactInitial","Escala inicial do contato","×",0.01,2,0.01,"Tamanho da explosão no primeiro instante do contato."],
+ ["squashDuration","Duração da compressão","s",0.01,2,0.01,"Tempo em que o núcleo permanece visível sendo comprimido no contato."],
+ ["squashAmount","Força da compressão","×",0,1,0.01,"Quanto o núcleo encurta no eixo do disparo antes de desaparecer."],
+ ["burstCount","Quantidade de gotas da explosão","×",0,5,0.1,"Multiplica a quantidade base somente no contato."],
+ ["burstSpeed","Velocidade da explosão","× dispersão",0,5,0.1,"Velocidade das gotas lançadas pelo contato."],
+ ["burstSize","Tamanho das gotas da explosão","×",0.05,5,0.05,"Multiplica o tamanho base das partículas do contato."],
+ ["burstLife","Vida das gotas da explosão","× vida",0.05,5,0.05,"Duração das gotas do contato, independente da coroa."],
+ ["burstRadius","Raio de emissão da explosão","× núcleo",0,2,0.01,"Área inicial de emissão das gotas no contato."],
+ ["crownHeight","Altura da coroa de contato","×",0,3,0.05,"Altura das cristas de água na explosão."],
+ ["crownRadius","Raio da coroa de contato","×",0.05,3,0.05,"Raio da superfície de água que rompe no contato."],
+ ["crownPeaks","Cristas da coroa","un.",1,20,1,"Quantidade de pontas principais da coroa de água."],
+ ["waveRadius","Raio da onda de contato","×",0.05,3,0.05,"Tamanho da onda circular ao redor da explosão."]
+];
+export function waterDefaults(variant=0){return {...{"launchCount":3,"launchDelay":0,"launchInterval":0,"launchDuration":0.3,"launchRadius":0.8,"launchWidth":0.12,"launchSpacing":0.3,"launchRadiusStep":0.18,"launchScale":0.6,"launchExpansion":4,"launchSpeed":0,"launchOpacity":1,"waterNose":0.65,"waterWarp":1,"waterContraction":0.3,"orbitRadius":1.025,"orbitWidth":0.12,"jetCount":3,"jetLength":2.5,"jetWidth":0.13,"trailRate":1,"trailRadius":0.7,"trailSpeed":0.35,"trailSize":1.5,"trailLife":1,"contactDuration":1.3,"contactExpansionTime":0.2,"contactExpansion":0.3,"contactInitial":0.3,"squashDuration":0.12,"squashAmount":0.96,"burstCount":1.8,"burstSpeed":2,"burstSize":1.5,"burstLife":1,"burstRadius":0.15,"crownHeight":1,"crownRadius":1,"crownPeaks":7,"waveRadius":1},waterNose:.65+variant*.4};}
+
+// Impacto do disparo (Water Pulse e Air Slash): clarão, impulso do núcleo, ondas de choque e jato de partículas.
+export const SHOT_CONTROLS = [
+ ["shotDuration","Duração do impacto do disparo","s",0,1.5,0.01,"Tempo do clarão, do impulso e das ondas de choque. Zero desliga todo o impacto do disparo."],
+ ["shotFlash","Clarão no disparo","×",0,3,0.05,"Brilho extra do núcleo no instante do disparo; decai até o fim da duração. Desligado em \"Sem flash\"."],
+ ["shotGlow","Halo do clarão","m",0,4,0.1,"Tamanho do halo luminoso que surge na origem do disparo. Desligado em \"Sem flash\"."],
+ ["shotKick","Impulso do núcleo","×",0,4,0.05,"Alongamento do núcleo para a frente no disparo, como um coice que se recupera sozinho."],
+ ["shotShockCount","Ondas de choque","un.",0,8,1,"Quantidade de anéis que se expandem perpendicularmente ao disparo."],
+ ["shotShockSize","Raio máximo das ondas","m",0.2,6,0.1,"Tamanho final de cada anel de choque."],
+ ["shotShockWidth","Espessura das ondas","× raio",0.02,1,0.01,"Largura da faixa de cada anel, relativa ao seu raio."],
+ ["shotShockStagger","Intervalo entre ondas","s",0,0.3,0.01,"Atraso entre o surgimento de cada anel."],
+ ["shotBurst","Partículas do disparo","un.",0,600,5,"Gotas (água) ou riscos de vento (ar) lançados para trás no instante do disparo."],
+ ["shotBurstSpeed","Velocidade das partículas","m/s",0,20,0.5,"Velocidade inicial do jato de partículas do disparo."],
+ ["shotBurstSize","Tamanho das partículas","×",0.1,5,0.1,"Multiplica o tamanho base das partículas do disparo."],
+ ["shotBurstLife","Vida das partículas","× vida",0.1,4,0.1,"Multiplica a vida base das partículas do disparo."],
+ ["shotAngle","Abertura do jato para trás","°",0,180,1,"Ângulo do cone do jato: 0° é uma linha reta atrás do núcleo; 180° espalha em todas as direções."]
+];
+Object.assign(CONTROL_HELP, Object.fromEntries(SHOT_CONTROLS.map(c => [c[0], c[6]])));
+export function shotDefaults(id) {
+ if (id === 'waterPulse') return {shotDuration:0.45,shotFlash:1.4,shotGlow:1.6,shotKick:1.6,shotShockCount:3,shotShockSize:2.4,shotShockWidth:0.14,shotShockStagger:0.07,shotBurst:140,shotBurstSpeed:8,shotBurstSize:1.6,shotBurstLife:1,shotAngle:50};
+ if (id === 'airSlash') return {shotDuration:0.4,shotFlash:1.2,shotGlow:1.4,shotKick:1.2,shotShockCount:3,shotShockSize:2.8,shotShockWidth:0.1,shotShockStagger:0.06,shotBurst:90,shotBurstSpeed:10,shotBurstSize:2.5,shotBurstLife:1,shotAngle:35};
+ return {};
+}
