@@ -68,7 +68,8 @@ export class ElementalSurfaces {
  if(p.variant===2){for(let i=0;i<3;i++){const jet=this.add(surface((u,v)=>{const a=u*8+i*2.094,r=s*(.6+u*.3);return [-s*(.5+u*2.5),Math.cos(a)*r+(v-.5)*.13,Math.sin(a)*r];}),ribbon);this.parts.push(jet);}}
 
  for(let i=0;i<p.rings;i++){const phase=i*2.399;const r=this.add(surface((u,v)=>{const a=u*Math.PI*2.5+phase,lat=(u-.5)*2.2+(v-.5)*.12*Math.sin(u*Math.PI);const rr=s*1.025;return [Math.cos(a)*Math.cos(lat)*rr,Math.sin(lat)*rr,Math.sin(a)*Math.cos(lat)*rr];}),ribbon);r.rotation.z=.25+i*.5;this.parts.push(r);}
- // Couronne et vague de rupture : uniquement visibles après la fin du trajet.
+ // Ruptura perpendicular ao disparo: compressão, explosão e spray no contato.
+ this.impact.rotation.z=Math.PI/2;
  this.add(surface((u,v)=>{const a=u*Math.PI*2;const r=s*(.6+v*1.2);const crest=(.25+Math.pow(.5+.5*Math.sin(a*7.+Math.sin(a*3.)),3)*.55)*v;return [Math.cos(a)*r,crest*s,Math.sin(a)*r];}),splash,this.impact,1);
  this.add(surface((u,v)=>{const a=u*Math.PI*2,r=s*(1+v*1.5);return [Math.cos(a)*r,.02,Math.sin(a)*r];}),ring,this.impact,.9);
  }else if(this.id==='fireSpin'){
@@ -94,7 +95,7 @@ export class ElementalSurfaces {
  else if(this.id==='waterPulse'){this.core.scale.set(1+this.fx.velocity*p.stretch*(p.variant===1?.3:.17),1/Math.sqrt(1+this.fx.velocity*p.stretch*.1),1/Math.sqrt(1+this.fx.velocity*p.stretch*.1));for(let i=0;i<this.parts.length;i++)this.parts[i].rotation.y=t*p.rotation*(i%2?-.35:.4)*motion;}
  if(this.fx.contactAt!==null){const age=t-this.fx.contactAt;
  if(!this.impact.visible){this.impact.position.copy(this.core.position);this.impact.visible=this.id!=='fireSpin';}
- const gain=p.contactSize*(.3+Math.min(1,age*5)*(1+age*p.spread*.3*motion));this.impact.scale.setScalar(gain);
+ const gain=p.contactSize*(this.id==='waterPulse'?.65:1)*(.3+Math.min(1,age*5)*(1+age*p.spread*.3*motion));this.impact.scale.setScalar(gain);
  if(this.id==='waterPulse'){this.core.visible=age<.12;this.core.scale.x*=Math.max(.1,1-age*8);this.core.scale.y*=1+Math.min(.8,age*8);}
  this.impact.traverse(o=>{if(o.material?.uniforms)o.material.uniforms.opacity.value=Math.max(0,1-age/(this.id==='airSlash'?.65:1.3));});}
  }

@@ -1,3 +1,26 @@
+# Revisão atual — 3 opções por efeito e contatos (23/10/2026)
+
+Abra o **Ateliê Elemental Quarks** no portal. Escolha Água, Fogo ou Vento e use o seletor **Opção visual** (A/B/C). **Contato agora** dispara o contato durante o trajeto; ele também acontece automaticamente ao terminar o trajeto. São animações da prévia, sem regras de colisão ou dano.
+
+| Move | A | B | C |
+|---|---|---|---|
+| Water Pulse | Hadouken compacto | Lança com ponta longa | Hélice com três jatos |
+| Fire Spin | Anel de chamas | Braços espirais abertos | Coroa dupla |
+| Air Slash | Arco único branco | Três navalhas | Arco com rastros longos |
+
+A água mantém seu shader de correntes e espuma. A ponta avança no eixo do disparo e o stretch cresce com a velocidade durante a aceleração. O contato comprime o núcleo e abre uma explosão transversal de água e gotas Quarks. Controles: **Alongamento pela velocidade** e **Tamanho do contato**.
+
+O fogo ocupa uma faixa anular: o centro fica aberto nas três variantes. **Raio do centro aberto** ajusta a abertura. O cone de tornado foi removido.
+
+Air Slash usa superfícies brancas lisas, arcos abertos e retos no plano do corte. O contato usa riscos radiais e arcos de pressão; nenhuma superfície aquática é criada para vento.
+
+[Galeria das nove opções e seis contatos](../prototypes/combat-lab/evidence/elemental-quarks/index.html). [Resultado automatizado](../prototypes/combat-lab/evidence/elemental-quarks/variants-results.json).
+
+Teste: `node prototypes/combat-lab/test/elemental-variants.browser.mjs`: 9 opções, contatos, aceleração/stretch, acessibilidade e limpeza. Build, typecheck e testes Quarks executados. Desempenho em hardware lento não medido.
+
+As seções abaixo registram versões anteriores; esta revisão substitui as descrições antigas de tornado, lâmina inclinada e dissipação aquática.
+
+---
 # Moves elementais — protótipos visuais com three.quarks
 
 ## Abrir
