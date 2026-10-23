@@ -120,3 +120,13 @@ No instante do disparo, ao mesmo tempo:
 13 sliders, todos com unidade e explicação: duração, clarão, halo, impulso do núcleo, quantidade, raio, espessura e intervalo das ondas, quantidade, velocidade, tamanho e vida das partículas e abertura do cone do jato. **Duração = 0 desliga todo o impacto.** Limites seguem a regra do ateliê (água 300×, ar 5×; a abertura do jato fica em 180°). **Sem flash** zera clarão e halo e mantém ondas e jato; **Movimento reduzido** reduz a velocidade do jato. Valores padrão: água 0,45 s, 3 ondas, 140 gotas; ar 0,4 s, 3 ondas, 90 riscos.
 
 Teste: `test/elemental-shot.browser.mjs` (Edge offline) confere os 13 sliders na interface e no runtime, os limites, a fase, ondas/clarão/impulso/jato nos primeiros 60 ms, o fim das ondas, o desligamento por duração 0, Sem flash, movimento reduzido e que o jato vai para trás. Capturas na [galeria](../prototypes/combat-lab/evidence/elemental-quarks/index.html). Não foi medido desempenho com os máximos simultâneos nem validado o impacto dentro da partida (só no ateliê).
+
+# Salvar, exportar e importar configurações do ateliê — 23/10/2026
+
+No painel esquerdo do **Ateliê Elemental Quarks**, grupo **Salvar configurações** (abaixo de "Restaurar este Move"):
+
+- **Salvamento automático:** todo ajuste (sliders, cores, Move e opção escolhidos, PL, halo, sem flash etc.) é guardado no navegador e volta ao reabrir ou recarregar a página. "Restaurar este Move" apaga só os ajustes daquele Move/opção.
+- **Exportar (.json):** baixa `arenamon-elementais-AAAA-MM-DD-HHMM.json` com **todos** os Moves e opções ajustados. É a cópia segura: guarde-a em `docs/` ou na pasta do projeto.
+- **Importar:** carrega um desses arquivos e restaura tudo. Arquivo inválido é recusado com mensagem, sem alterar nada; campos desconhecidos são ignorados e contados.
+
+Limite: o salvamento automático vale só para o mesmo navegador e o mesmo arquivo HTML; trocar de navegador, limpar dados do site ou mover o HTML de pasta o perde — por isso exporte. Os valores exportados ainda não viram o padrão do jogo: isso exige aplicá-los aos presets (peça com o arquivo em mãos). Teste: `test/elemental-export.browser.mjs`.
