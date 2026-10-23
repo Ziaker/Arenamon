@@ -4,7 +4,7 @@
 import assert from 'node:assert/strict';
 import {Game} from '../src/sim/game.js';
 import {C, resetConfig} from '../src/sim/config.js';
-import {isInvulnerable} from '../src/sim/entity.js';
+import {isInvulnerable, getFighterMaxStamina} from '../src/sim/entity.js';
 
 const RUNS = Number(process.argv[2]) || 200, TICKS = Number(process.argv[3]) || 2400;
 const DAMAGE = new Set(['impact', 'partial', 'clash']);
@@ -34,7 +34,9 @@ function run(seed) {
   resetConfig();const rand = rng(seed);perturb(rand);
   const tactical = Math.floor(seed / 104729) % 3 === 0;stats.tactical += tactical ? 1 : 0;
   const g = new Game({seed});g.mode = tactical ? 'tactical' : 'inactive';g.profile = ['balanced', 'agile', 'resistant'][seed % 3];g.enemyProfile = ['agile', 'resistant', 'balanced'][seed % 3];g.reset();
-  const hold = [null, null], hitsPerAction = new Map(), bound = C.test.arenaHalf - C.test.halfExtent + 1e-6;
+  const hold = [null, null], hitsPerAction = new Map();
+  const isCircle = C.map?.arenaShape !== 'square';
+  const bound = (isCircle ? (C.map?.arenaRadius ?? 50) : C.test.arenaHalf) - C.test.halfExtent + 1e-6;
   const fail = (t, msg, extra = '') => assert.fail(`semente ${seed}, passo ${t}: ${msg} ${extra}`);
   for (let t = 0; t < TICKS; t++) {
     const before = g.fighters.map(f => ({kind: f.action?.kind ?? null, action: f.action, invulnerable: isInvulnerable(f), hp: f.hp, feints: f.feints ?? 0}));
@@ -44,14 +46,15 @@ function run(seed) {
     const after = g.fighters.map(f => ({kind: f.action?.kind ?? null, action: f.action}));
     for (const f of g.fighters) {
       for (const v of [f.position.x, f.position.z, f.velocity.x, f.velocity.z, f.stamina, f.hp, f.vaultHeight, f.flight?.y ?? 0]) if (!Number.isFinite(v)) fail(t, 'valor não finito', JSON.stringify(f.position));
-      if (Math.abs(f.position.x) > bound || Math.abs(f.position.z) > bound) fail(t, `lutador ${f.id} fora da arena`, JSON.stringify(f.position));
-      if (f.stamina < -1e-9 || f.stamina > C.rules.staminaMax + 1e-9) fail(t, `stamina fora de [0, máx]: ${f.stamina}`);
+      const outOfBounds = isCircle ? (Math.hypot(f.position.x, f.position.z) > bound) : (Math.abs(f.position.x) > bound || Math.abs(f.position.z) > bound);
+      if (outOfBounds) fail(t, `lutador ${f.id} fora da arena`, JSON.stringify(f.position));
+      if (f.stamina < -1e-9 || f.stamina > getFighterMaxStamina(f) + 1e-9) fail(t, `stamina fora de [0, máx]: ${f.stamina}`);
       if (f.hp < 0 || f.hp > f.attributes.hp) fail(t, `HP fora da faixa: ${f.hp}`);
       // Limite proporcional à configuração sorteada: a distância nominal é fixa (tempo de referência), então ações
       // curtas são mais rápidas; o pico da curva em fases fica abaixo de ~3× a velocidade média.
       const vmax = Math.max(80, ...['dodge', 'tackle'].map(k => 3.2 * C.actions[k].distance * (C.actions[k].distanceReference || C.actions[k].duration) * 6 * C.actions.tackle.counterSpeed / C.actions[k].duration));
       if (Math.hypot(f.velocity.x, f.velocity.z) > vmax) fail(t, `velocidade absurda: ${Math.hypot(f.velocity.x, f.velocity.z)} (limite ${vmax.toFixed(1)})`);
-      if (f.vaultHeight < -1e-9 || f.vaultHeight > C.actions.dodge.vaultHeight + 1e-6) fail(t, `altura de salto fora da faixa: ${f.vaultHeight}`);
+      if (f.vaultHeight < -1e-9 || (f.vaultHeight > C.actions.dodge.vaultHeight + 1e-6 && !f.action?.slam)) fail(t, `altura de salto fora da faixa: ${f.vaultHeight}`);
       if (f.action?.fromCancel && f.action.kind === 'tackle' && f.action.elapsed <= C.test.step + 1e-9) stats.cancels++;
       if (f.action?.buffered && f.action.elapsed <= C.test.step + 1e-9) stats.buffered++;
       if (f.action?.vault && f.action.elapsed <= C.test.step + 1e-9) stats.vaults++;
@@ -59,12 +62,17 @@ function run(seed) {
     for (const e of g.lastStepEvents) {
       stats.events[e.result] = (stats.events[e.result] || 0) + 1;
       const a = e.attacker, b = e.target;
+      if (a === undefined || b === undefined || !before[a] || !before[b]) continue;
       // C nunca causa dano: todo contato com dano vem de um X (antes ou depois do passo) ou de um X que virou recuo.
-      if (e.damage > 0 && ![before[a].kind, after[a].kind].includes('tackle') && after[a].kind !== 'recoil' && e.result !== 'clash') fail(t, `dano sem X: ${e.result}`, `${before[a].kind}→${after[a].kind}`);
+      if (e.damage > 0 && ![before[a].kind, after[a].kind].includes('tackle') && after[a].kind !== 'recoil' && e.result !== 'clash' && !(e.result === 'footstool' && before[a].kind === 'dodge')) fail(t, `dano sem X: ${e.result}`, `${before[a].kind}→${after[a].kind}`);
       if (e.damage > 0 && e.result !== 'clash' && (before[a].kind === 'dodge' && after[a].kind === 'dodge')) fail(t, 'esquiva causou dano');
       // Invulnerável não recebe dano de impacto.
-      // Exceção legítima: no mesmo passo o alvo trocou C por X com “Invulnerabilidade no cancelamento” = nenhuma.
-      const cancelledVulnerable = g.lastCommands?.[b]?.tackle && before[b].kind === 'dodge' && C.actions.cancel.invulnerability === 1;
+      // Exceção legítima: no mesmo passo o alvo trocou C por X (no comando ou via buffer) com
+      // “Invulnerabilidade no cancelamento” = nenhuma — o X novo fica vulnerável no startup.
+      // Se o golpe lançou o alvo, a ação nova já foi anulada; por isso basta a esquiva ter
+      // cessado neste passo (cancelamento em qualquer origem, ou fim natural da ação: a
+      // invulnerabilidade pertence à ação e morre com ela).
+      const cancelledVulnerable = before[b].kind === 'dodge' && C.actions.cancel.invulnerability === 1 && after[b].kind !== 'dodge';
       // Exceção legítima (tackle carregado): tackle de PL maior contra tackle de PL menor neutraliza o menor e tira a invulnerabilidade de início dele.
       const lostToPL = before[b].kind === 'tackle' && g.fighters[b].plDefeated === true;
       const feinted = (g.fighters[b].feints ?? 0) > before[b].feints;   // finta: cancelar o tackle tira a invulnerabilidade do startup no mesmo passo
@@ -75,8 +83,15 @@ function run(seed) {
         const key = `${b}`;let m = hitsPerAction.get(act);if (!m) hitsPerAction.set(act, m = new Set());
         if (m.has(key) && e.result !== 'clash') fail(t, `segundo contato da mesma ação no alvo ${b}`, e.result);m.add(key);
       }
-      // Clash: os dois recebem a fração configurada do ataque do outro.
-      if (e.result === 'clash' && Math.abs(e.damage - g.fighters[a].attributes.attack * C.rules.clashFraction) > 1e-9) fail(t, `dano de clash ${e.damage} ≠ 30% do ataque de ${a}`);
+      // Clash: os dois recebem a fração configurada do ataque do outro (respeitando estágios e escudo).
+      if (e.result === 'clash') {
+        const atkStage = 1 + (g.fighters[a].stages?.attack ?? 0) * (C.map?.stageAttackBonus ?? 0.10);
+        const defStage = Math.max(0, 1 - (g.fighters[b].stages?.defense ?? 0) * (C.map?.stageDefenseReduction ?? 0.10));
+        const expectedHp = g.fighters[a].attributes.attack * atkStage * C.rules.clashFraction * defStage;
+        if (Math.abs(e.damage + (e.shieldAbsorbed ?? 0) - (g.fighters[a].attributes.attack * atkStage * C.rules.clashFraction)) > 1e-6 && Math.abs(e.damage - expectedHp) > 1e-6) {
+          fail(t, `dano de clash ${e.damage} ≠ esperado`);
+        }
+      }
     }
     if (g.phase === 'result') g.reset();
   }

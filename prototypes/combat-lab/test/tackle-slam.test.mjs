@@ -1,6 +1,7 @@
 // Fase 2 do Tackle: wall-splat (caindo na parede), meteor slam (C → X no vault e X de quem foi lançado) e ground bounce. Sem navegador.
+// Este teste caracteriza a mecânica nos valores de FÁBRICA do laboratório (factoryDefaults); a base de calibração v8 é coberta por calibration-base.test.mjs e pelos testes de colisão/ambiente.
 import assert from 'node:assert/strict';
-import {C, defaults, resetConfig} from '../src/sim/config.js';
+import {C, factoryDefaults, resetConfig} from '../src/sim/config.js';
 import {Game} from '../src/sim/game.js';
 import {emptyCommand} from '../src/sim/entity.js';
 import {vec} from '../src/sim/math.js';
@@ -9,12 +10,12 @@ import {launch} from '../src/sim/combat.js';
 let n = 0;const ok = l => {n++;console.log('✓', l);};
 const cmd = o => ({...emptyCommand(), ...o});
 function arena({blue = vec(0, -3), red = vec(0, 3), over = {}} = {}) {
-  resetConfig(defaults());
+  resetConfig(factoryDefaults());
   for (const [p, v] of Object.entries(over)) {const k = p.split('.'), last = k.pop();k.reduce((a, x) => a[x], C)[last] = v;}
   const g = new Game();g.mode = 'inactive';g.reset({positions: [blue, red]});g.fighters[0].facing = 0;g.fighters[1].facing = Math.PI;return g;
 }
 const step = (g, a = cmd(), b = cmd()) => {g.step(a, b);return g.lastStepEvents;};
-const wallX = () => C.test.arenaHalf - C.test.halfExtent;
+const wallX = () => (C.map?.arenaShape === 'square' ? C.test.arenaHalf : (C.map?.arenaRadius ?? 50)) - C.test.halfExtent;
 /** Lutador 0 voando rente à parede +x. */
 function nearWall(flight, over = {}) {
   const g = arena({blue: vec(0, 0), red: vec(-8, 0), over});const f = g.fighters[0];
@@ -63,23 +64,23 @@ const vaulting = (over = {}) => {
   const h0 = f.vaultHeight;step(g, cmd({tackle: true, move: vec(0, 1), dodgeDirection: vec(0, 1)}));
   assert.equal(f.action?.kind, 'tackle');assert.ok(f.action.slam, 'C → X no vault vira meteor slam');assert.equal(f.action.plDamage, C.rules.slamDamage);
   const hs = [h0];let ev = [];for (let i = 0; i < 80; i++) {ev.push(...step(g, cmd({move: vec(0, 1)})));hs.push(f.vaultHeight);}
-  assert.ok(hs.slice(1).every((h, i) => h <= hs[i] + 1e-9), 'mergulho: a altura só desce');assert.ok(hs.some(h => h === 0), 'chega ao solo');
+  const peak = hs.indexOf(Math.max(...hs));assert.ok(hs.slice(1, peak + 1).every((h, i) => h >= hs[i] - 1e-9) && hs[peak] > h0 + C.rules.slamHop * .9, `preparação: sobe ${C.rules.slamHop} m jogado para cima`);assert.ok(hs.slice(peak + 1).every((h, i) => h <= hs[peak + i] + 1e-9), 'mergulho: depois do pico a altura só desce');assert.ok(hs.some(h => h === 0), 'chega ao solo');
   const hit = ev.find(e => e.result === 'impact' && e.slam);assert.ok(hit, 'o slam acerta e marca o evento');assert.equal(hit.launch.bounce, true);
-  assert.ok(Math.abs(hit.damage - C.profiles.balanced.attack * C.rules.slamDamage) < 1e-9, `dano +20% (${hit.damage})`);
+  assert.ok(Math.abs(hit.damage - C.profiles.balanced.attack * C.rules.slamDamage) < 1e-9, `dano = ataque × slamDamage, sem Power Level (${hit.damage})`);
   assert.ok(Math.abs(hit.launch.vertical - C.rules.groundBounceForce) < 1e-9, 'quique: lançamento para cima pelo groundBounceForce');
   assert.ok(hit.launch.horizontal < 11 * .6, 'pouco empurrão horizontal');
-  ok('C → X no salto do vault vira meteor slam: mergulha, causa +20% e lança o rival para cima (ground bounce)');
+  ok('C → X no salto do vault vira meteor slam: mergulha, causa o dano base e lança o rival para cima (ground bounce)');
 }
 {
   const {g, f} = vaulting({'extras.toggles.enableMeteorSlam': 0});g.fighters[1].position = vec(0, 9);step(g, cmd({tackle: true, move: vec(0, 1)}));
   assert.ok(!f.action?.slam, 'toggle desligado: descida suave de sempre');
   const m = vaulting();m.g.fighters[1].position = vec(0, 9);step(m.g, cmd({tackle: true, move: vec(0, 1), dodgeDirection: vec(0, 1)}));
-  assert.ok(m.f.action.slam);let rec = 0;for (let i = 0; i < 200 && m.f.action; i++) step(m.g, cmd({move: vec(0, 1)}));rec = m.f.knockRecovery;
-  assert.ok(rec > C.rules.slamRecovery * .5, `errou o mergulho: recuperação longa (${rec.toFixed(2)} s)`);
-  ok('slam que erra deixa o atacante em recuperação longa; toggle desligado mantém o comportamento antigo');
+  assert.ok(m.f.action.slam);let ground = 0, landing = false;for (let i = 0; i < 300 && m.f.action; i++) {step(m.g, cmd({move: vec(0, 1)}));if (m.f.state === 'meteorGround') ground++;if (m.f.state === 'landing') landing = true;}
+  assert.ok(ground * C.test.step >= (C.rules.slamGroundTime + C.rules.slamRecovery) * .95, `errou o mergulho: fica no estado do chão por mais tempo (${(ground * C.test.step).toFixed(2)} s)`);assert.ok(!landing && m.f.knockRecovery === 0, 'sem estado de aterrissar depois do meteor');
+  ok('slam que erra fica mais tempo no estado do chão (sem aterrissar); toggle desligado mantém o comportamento antigo');
 }
 {
-  const g = arena({blue: vec(0, -2), red: vec(0, 6)});const f = g.fighters[0];launch(f, vec(1, 0), 4, 6);step(g, cmd());
+  const g = arena({blue: vec(0, -2), red: vec(0, 6)});C.extras.toggles.enableFlightSlam = 1;const f = g.fighters[0];launch(f, vec(1, 0), 4, 6);step(g, cmd());
   const y = f.flight.y;assert.ok(y > 0);const s0 = f.stamina;
   step(g, cmd({tackle: true, move: vec(0, 1), dodgeDirection: vec(0, 1)}));
   assert.ok(!f.flight && f.action?.slam, 'X de quem foi lançado: sai do voo e mergulha');assert.ok(f.vaultHeight > 0 && Math.abs(f.vaultHeight - y) < .5, `na altura em que estava (${f.vaultHeight.toFixed(2)} ≈ ${y.toFixed(2)})`);
@@ -87,5 +88,20 @@ const vaulting = (over = {}) => {
   const poor = arena();poor.fighters[0].stamina = .2;launch(poor.fighters[0], vec(1, 0), 4, 6);step(poor);step(poor, cmd({tackle: true}));assert.ok(poor.fighters[0].flight, 'sem stamina não mergulha');
   const stuck = nearWall({});step(stuck.g);step(stuck.g, cmd({tackle: true}));assert.ok(stuck.f.wallSplat && !stuck.f.action, 'preso na parede não mergulha');
   ok('quem foi lançado pode mergulhar com X (custo de stamina; não preso na parede)');
+}
+{
+  // Salto normal (Barra de Espaço) + Tackle (X) no ar vira Meteor Slam
+  const g = arena({blue: vec(0, -2), red: vec(0, 4)});
+  const f = g.fighters[0];
+  step(g, cmd({jump: true}));
+  assert.ok(f.flight && f.flight.isNormalJump, 'lutador está no ar do salto normal');
+  for (let i = 0; i < 4; i++) step(g, cmd());
+  assert.ok(f.flight && f.flight.y > 0.2, 'atingiu altura no salto normal');
+  const yBefore = f.flight.y, s0 = f.stamina;
+  step(g, cmd({tackle: true, move: vec(0, 1)}));
+  assert.ok(!f.flight && f.action?.slam, 'Tackle durante o salto normal vira Meteor Slam');
+  assert.ok(f.vaultHeight > 0 && Math.abs(f.vaultHeight - yBefore) < 0.3, 'assume a altura do salto');
+  assert.ok(s0 - f.stamina >= C.actions.tackle.cost - 1e-6, 'desconta a stamina do tackle');
+  ok('Tackle (X) durante o salto normal (Espaço) vira Meteor Slam com sucesso');
 }
 console.log(`\n${n} verificações do tackle (fase 2) aprovadas.`);

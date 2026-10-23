@@ -1,0 +1,81 @@
+{
+  "report": [
+    {
+      "label": "todos os controles novos existem no ajustador (com rótulo e faixa)",
+      "ok": true,
+      "detail": "ok"
+    },
+    {
+      "label": "o painel Moves tem os sliders novos (Riposte, Emerging Stone, Spikes, Bullet Punch, Quick Attack)",
+      "ok": true,
+      "detail": "ok"
+    },
+    {
+      "label": "os sliders do marcador antigo do Bullet Punch saíram do painel",
+      "ok": true,
+      "detail": "ok"
+    },
+    {
+      "label": "a navegação (IA sobe plataformas) vem ligada por padrão",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "o objeto entre a câmera e o lutador fica translúcido",
+      "ok": true,
+      "detail": "opacidade 0.25 (caixa em x=-0.8 z=-2.7)"
+    },
+    {
+      "label": "fora da frente do lutador volta a ser opaco",
+      "ok": true,
+      "detail": "opacidade 1.00"
+    },
+    {
+      "label": "com «Objetos na frente do lutador ficam translúcidos» desligado nada muda",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "o efeito de pouso do pulo nasce na altura da plataforma (1,5 m), não no chão",
+      "ok": true,
+      "detail": "[{\"type\":\"jumpLanding\",\"lift\":1.5,\"y\":0.03}]"
+    },
+    {
+      "label": "segurando o botão do Quick Attack com alvo no alcance: círculo AZUL com o raio do alcance (7 m)",
+      "ok": true,
+      "detail": "{\"color\":5879039,\"radius\":7,\"op\":0.85}"
+    },
+    {
+      "label": "com o alvo fora do alcance o círculo fica VERMELHO",
+      "ok": true,
+      "detail": "ff5566"
+    },
+    {
+      "label": "soltar fora do alcance: não gasta stamina e o círculo vermelho pisca",
+      "ok": true,
+      "detail": "{\"flash\":true,\"item\":true,\"spent\":11.1}"
+    },
+    {
+      "label": "Quick Attack: a ida gera linhas de velocidade (cor fria) e o corpo some durante o sumiço",
+      "ok": true,
+      "detail": "{\"sawGo\":true,\"sawBack\":false,\"paths\":[15266303],\"tackle\":\"tackle\"}"
+    },
+    {
+      "label": "o contra-golpe do Riposte acerta e dispara a explosão visual provisória",
+      "ok": true,
+      "detail": "{\"got\":true,\"blast\":1}"
+    },
+    {
+      "label": "Emerging Stone: o projétil subterrâneo deixa sulco de terra, torrões saltando e um montículo maior (1,8×)",
+      "ok": true,
+      "detail": "{\"trail\":true,\"len\":4.88,\"clods\":16,\"mound\":1.42}"
+    },
+    {
+      "label": "sem erros de página e sem rede externa",
+      "ok": true,
+      "detail": ""
+    }
+  ],
+  "failures": 0,
+  "errors": []
+}

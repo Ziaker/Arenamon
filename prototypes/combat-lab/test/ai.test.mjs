@@ -1,12 +1,13 @@
 // IA tática: determinismo por semente, variedade de estilos, uso de todas as mecânicas, adaptação ao adversário e
 // desempenho contra a IA do v6. Uso: node prototypes/combat-lab/test/ai.test.mjs
+// Este teste caracteriza a mecânica nos valores de FÁBRICA do laboratório (factoryDefaults); a base de calibração v8 é coberta por calibration-base.test.mjs e pelos testes de colisão/ambiente.
 import assert from 'node:assert/strict';
 import {Game} from '../src/sim/game.js';
-import {C, resetConfig} from '../src/sim/config.js';
+import {C, resetConfig, factoryDefaults} from '../src/sim/config.js';
 import {STYLES} from '../src/sim/tactics.js';
 import {runBalance} from '../src/sim/balance.js';
 
-let passed = 0;const test = (name, fn) => {resetConfig();fn();passed++;console.log('✓', name);};
+let passed = 0;const test = (name, fn) => {resetConfig(factoryDefaults());fn();passed++;console.log('✓', name);};
 /** Uma luta IA × IA; devolve o registro de contatos e a luta. */
 function fight(seed, {blue = 'tactical', red = 'tactical', ticks = 120 * 60, until} = {}) {
   const g = new Game({seed});g.mode = red;g.reset();const log = [];
@@ -46,11 +47,19 @@ test('usa todas as mecânicas: X, C, C → X, salto, defesa (parcial e perfeita)
   console.log(`   60 lutas: X ${sum('tackle')}, C ${sum('dodge')}, C → X ${sum('cancel')}, saltos ${sum('vault')}, bloqueios ${sum('partial')}, defesas perfeitas ${sum('perfect')}, esquivas perfeitas ${sum('perfectDodge')}, clashes ${sum('clash')}, sem vencedor ${r.timeouts}`);
 });
 test('mais forte que a IA do v6, dos dois lados', () => {
+  const savedShape = C.map?.arenaShape;
+  const savedWorld = C.map ? structuredClone({initial: C.map.itemInitialCount, max: C.map.itemMaxRegular, obs: C.map.obstacleCount, dest: C.map.destructibleCount, plat: C.map.platformCount}) : null;
+  if (C.map) C.map.arenaShape = 'square';
+  // Mundo neutro: a comparação é de força das IAs; objetos do mapa (posicionados pelo RNG da
+  // partida) são ruído que distorce a taxa de vitórias.
+  if (C.map) {C.map.itemInitialCount = 0; C.map.itemMaxRegular = 0; C.map.obstacleCount = 0; C.map.destructibleCount = 0; C.map.platformCount = 0;}
   const a = runBalance({matches: 30, seed: 2, mode: 'tactical', enemyMode: 'combat'}), b = runBalance({matches: 30, seed: 3, mode: 'combat', enemyMode: 'tactical'});
   const ra = a.sides[0].wins / a.matches, rb = b.sides[1].wins / b.matches;
   console.log(`   tática (azul) × v6: ${(ra * 100).toFixed(0)}% · v6 × tática (vermelho): ${(rb * 100).toFixed(0)}%`);
   // Com a exaustão abaixo do menor custo (15/10/2026), lutas ficam mais longas e o vermelho (reação lenta, mais erros) empata com o v6.
   assert.ok(ra >= .6 && rb >= .45, 'vence a IA do v6 com folga no azul e não perde no vermelho');
+  if (C.map) C.map.arenaShape = savedShape;
+  if (C.map && savedWorld) Object.assign(C.map, {itemInitialCount: savedWorld.initial, itemMaxRegular: savedWorld.max, obstacleCount: savedWorld.obs, destructibleCount: savedWorld.dest, platformCount: savedWorld.plat});
 });
 test('adaptação: aprende de que distância o adversário ataca e que ele defende muito', () => {
   // Contra a IA do v6 (ataca de ~3,35 m), a distância aprendida converge para perto disso.
@@ -64,7 +73,7 @@ test('adaptação: aprende de que distância o adversário ataca e que ele defen
 test('percepção humana: não reage antes do tempo de reação', () => {
   // Reação longa: a IA não pode responder ao X do adversário antes do atraso configurado.
   C.extras.aiBlue.reaction = .3;C.extras.aiBlue.reactionJitter = 0;C.extras.aiBlue.mistake = 0;C.actions.tackle.duration = .9; // X longo: ainda ativo quando a reação chega
-  const g = new Game({seed: 2});g.mode = 'inactive';g.reset();g.fighters[1].position = {x: 0, z: 5};
+  const g = new Game({seed: 2});g.mode = 'inactive';g.reset({positions: [{x: 0, z: 0}, {x: 0, z: 5}]});
   let start = null, firstReact = null;
   for (let t = 0; t < 120; t++) {
     const red = t === 30 ? {move: {x: 0, z: -1}, dodge: false, tackle: true, guard: false, guardPressed: false, target: 0} : undefined;

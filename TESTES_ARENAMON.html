@@ -446,6 +446,7 @@
         <button class="filter-btn" data-filter="rigging">Rigging & Codex</button>
         <button class="filter-btn" data-filter="proposals">Propostas Visuais</button>
         <button class="filter-btn" data-filter="placeholders">Base & Importador</button>
+        <button class="filter-btn" data-filter="vision">Blender Vision</button>
       </div>
       <input type="text" class="search-box" id="search-input" placeholder="Filtrar por nome ou comando...">
     </div>
@@ -572,6 +573,27 @@ PASS: dois blocos, cores, câmera, layout, file:// offline, sem erros.</pre>
         </div>
       </article>
 
+      <!-- SUÍTE 4b: MOVES NOVOS (13) -->
+      <article class="suite-card" data-category="jogo">
+        <div class="suite-header">
+          <div>
+            <h2 class="suite-title">Moves novos — 13 Moves do Laboratório de Combate (v1.14.0)</h2>
+            <div class="suite-meta">
+              <span class="tag success">✓ 100% Aprovados</span>
+              <span class="tag primary">test/moves-*.test.mjs</span>
+              <span class="tag">docs/moves-nao-iniciados/README.md</span>
+            </div>
+          </div>
+        </div>
+        <p class="suite-desc">
+          Harden, Second Wind, Swift, Lunge, Quick Attack, Guard Break, Feint, Riposte, Bounce, Spikes, Sand Wave, Bullet Punch e Emerging Stone: registro, cobrança, regras de cada ficha, sliders capturados no uso (M28.4), paridade (não equipado não muda nada) e determinismo com save/load. O teste de navegador confere que os 13 aparecem nos slots com seus sliders e aciona Lunge, Spikes e os Moves de status pelo teclado. As fichas e as decisões provisórias (MV-P) ficam em docs/moves-nao-iniciados/.
+        </p>
+        <div class="cmd-box">
+          <code>node prototypes/combat-lab/test/moves-emerging-stone.test.mjs</code>
+          <button class="copy-btn" onclick="copyCmd('npm run test:combat-lab:unit', this)">Copiar Comando (suíte completa)</button>
+        </div>
+      </article>
+
       <!-- SUÍTE 5: VERIFICAÇÃO E2E DO JOGO PRINCIPAL (COMBAT LAB + MOVES + VFX SÓLIDOS) -->
       <article class="suite-card" data-category="jogo">
         <div class="suite-header">
@@ -590,6 +612,169 @@ PASS: dois blocos, cores, câmera, layout, file:// offline, sem erros.</pre>
         <div class="cmd-box">
           <code>node prototypes/combat-lab/verify.mjs; node prototypes/combat-lab/test/moves-ui.browser.mjs; node prototypes/combat-lab/test/solid-vfx.browser.mjs</code>
           <button class="copy-btn" onclick="copyCmd('node prototypes/combat-lab/verify.mjs; node prototypes/combat-lab/test/moves-ui.browser.mjs; node prototypes/combat-lab/test/solid-vfx.browser.mjs', this)">Copiar Comando</button>
+        </div>
+        <div class="evidence-row">
+          <span style="font-size: 0.8rem; color: var(--text-muted); align-self: center;">Evidência nova:</span>
+          <a class="evidence-thumb" href="prototypes/combat-lab/evidence/passive-abilities/index.html">⚡ Passivas no jogo</a>
+          <a href="#" class="evidence-thumb" onclick="openModal('prototypes/combat-lab/evidence/passive-abilities/habilidades-passivas-no-jogo.png'); return false;">🖼️ Captura das notificações</a>
+        </div>
+      </article>
+
+      <!-- SUÍTE NOVA: THREE.QUARKS (FASE 2 DA INTEGRAÇÃO OPEN SOURCE) -->
+      <article class="suite-card" data-category="jogo">
+        <div class="suite-header">
+          <div>
+            <h2 class="suite-title">VFX three.quarks — Adaptador, Ponte de Eventos &amp; Laboratório (Fases 1–2 Open Source)</h2>
+            <div class="tag-group">
+              <span class="tag success">✓ 19 Unitários Aprovados + Smoke Navegador</span>
+              <span class="tag primary">Node + Playwright</span>
+              <span class="tag">prototypes/combat-lab/test/quarks.test.mjs</span>
+            </div>
+          </div>
+        </div>
+        <p class="suite-desc">
+          Adaptador isolado three.quarks (presets declarativos → partículas GPU), ponte que consome eventos REAIS da simulação (carga, impacto, clash, pouso e footstool), toggle A/B no jogo (Visualizar › three.quarks) e laboratório visual com edição de parâmetros e exportação/importação de presets. Laboratório: <code>prototypes/combat-lab/dist/arenamon-vfx-quarks.html</code>.
+        </p>
+        <div class="cmd-box">
+          <code>node prototypes/combat-lab/test/quarks.test.mjs</code>
+          <button class="copy-btn" onclick="copyCmd('node prototypes/combat-lab/test/quarks.test.mjs', this)">Copiar Comando</button>
+        </div>
+      </article>
+
+      <article class="suite-card" data-category="jogo">
+        <div class="suite-header">
+          <div>
+            <h2 class="suite-title">Navegação Yuka — Grafo de superfícies, rotas com salto/queda &amp; A/B (Fase 3 Open Source)</h2>
+            <div class="tag-group">
+              <span class="tag success">✓ 20 Unitários + 9 de Navegador</span>
+              <span class="tag primary">Node + Playwright</span>
+              <span class="tag">prototypes/combat-lab/test/nav.test.mjs</span>
+            </div>
+          </div>
+        </div>
+        <p class="suite-desc">
+          Grafo de caminhada/salto/queda sobre o A* do Yuka, planejador com detecção de travamento, ponte opcional com a IA (desligada por padrão) e laboratório com cenários sólidos (muro, corredor, rotas, plataforma, torre, arena completa) e comparação A/B. Laboratório: <code>prototypes/combat-lab/dist/arenamon-navegacao-yuka.html</code>.
+        </p>
+        <div class="cmd-box">
+          <code>node prototypes/combat-lab/test/nav.test.mjs</code>
+          <button class="copy-btn" onclick="copyCmd('node prototypes/combat-lab/test/nav.test.mjs', this)">Copiar Comando</button>
+        </div>
+        <div class="cmd-box">
+          <code>node prototypes/combat-lab/test/nav-lab.browser.mjs</code>
+          <button class="copy-btn" onclick="copyCmd('node prototypes/combat-lab/test/nav-lab.browser.mjs', this)">Copiar Comando</button>
+        </div>
+      </article>
+
+      <article class="suite-card" data-category="jogo">
+        <div class="suite-header">
+          <div>
+            <h2 class="suite-title">Pós-processamento — Pipeline cinematográfico pmndrs, A/B &amp; acessibilidade (Fase 4 Open Source)</h2>
+            <div class="tag-group">
+              <span class="tag success">✓ 11 Unitários + 16 de Navegador + 12 no Jogo</span>
+              <span class="tag primary">Node + Playwright</span>
+              <span class="tag">prototypes/combat-lab/test/post-params.test.mjs</span>
+            </div>
+          </div>
+        </div>
+        <p class="suite-desc">
+          Bloom por limiar/seleção, distorção em impactos fortes, aberração cromática, color grading, vinheta e profundidade de campo (só K.O.), com acessibilidade, medição de FPS/tempo de envio e camada opcional no jogo que desvia nos impact frames. Laboratório: <code>prototypes/combat-lab/dist/arenamon-posprocessamento.html</code>.
+        </p>
+        <div class="cmd-box">
+          <code>node prototypes/combat-lab/test/post-params.test.mjs</code>
+          <button class="copy-btn" onclick="copyCmd('node prototypes/combat-lab/test/post-params.test.mjs', this)">Copiar Comando</button>
+        </div>
+        <div class="cmd-box">
+          <code>node prototypes/combat-lab/test/post-lab.browser.mjs</code>
+          <button class="copy-btn" onclick="copyCmd('node prototypes/combat-lab/test/post-lab.browser.mjs', this)">Copiar Comando</button>
+        </div>
+        <div class="cmd-box">
+          <code>node prototypes/combat-lab/test/post-game.browser.mjs</code>
+          <button class="copy-btn" onclick="copyCmd('node prototypes/combat-lab/test/post-game.browser.mjs', this)">Copiar Comando</button>
+        </div>
+      </article>
+
+      <article class="suite-card" data-category="jogo">
+        <div class="suite-header">
+          <div>
+            <h2 class="suite-title">Física Rapier — Prova de conceito isolada (Fase 5 Open Source)</h2>
+            <div class="tag-group">
+              <span class="tag success">✓ 35 Unitários + 11 de Navegador (offline)</span>
+              <span class="tag primary">Node + Playwright</span>
+              <span class="tag">prototypes/combat-lab/test/rapier.test.mjs</span>
+            </div>
+          </div>
+        </div>
+        <p class="suite-desc">
+          Os mesmos 7 cenários (queda, salto, parede, teto, pilar, alta velocidade, borda) na física atual e em Rapier (caixa e cápsula): penetração, tremor, tunelamento, determinismo (repetição, save/load, snapshot) e custo por passo. A física principal NÃO foi substituída. Laboratório: <code>prototypes/combat-lab/dist/arenamon-fisica-rapier.html</code>.
+        </p>
+        <div class="cmd-box">
+          <code>node prototypes/combat-lab/test/rapier.test.mjs</code>
+          <button class="copy-btn" onclick="copyCmd('node prototypes/combat-lab/test/rapier.test.mjs', this)">Copiar Comando</button>
+        </div>
+        <div class="cmd-box">
+          <code>node prototypes/combat-lab/test/physics-lab.browser.mjs</code>
+          <button class="copy-btn" onclick="copyCmd('node prototypes/combat-lab/test/physics-lab.browser.mjs', this)">Copiar Comando</button>
+        </div>
+      </article>
+
+      <article class="suite-card" data-category="jogo">
+        <div class="suite-header">
+          <div>
+            <h2 class="suite-title">GameDev Agent Skills — Instalação e sincronia (Fase 1 Open Source)</h2>
+            <div class="tag-group">
+              <span class="tag success">✓ 12 skills em .claude/skills</span>
+              <span class="tag primary">Node + Playwright</span>
+              <span class="tag">scripts/install-skills.mjs</span>
+            </div>
+          </div>
+        </div>
+        <p class="suite-desc">
+          Verifica que as skills da pasta canônica <code>tools/gamedev-skills/</code> estão instaladas e idênticas em <code>.claude/skills/</code> (carregamento nativo do Claude Code) e que cada <code>SKILL.md</code> tem frontmatter válido. Registro de uso real em <code>docs/GAMEDEV_SKILLS.md</code>.
+        </p>
+        <div class="cmd-box">
+          <code>npm run skills:check</code>
+          <button class="copy-btn" onclick="copyCmd('npm run skills:check', this)">Copiar Comando</button>
+        </div>
+      </article>
+
+      <article class="suite-card" data-category="jogo">
+        <div class="suite-header">
+          <div>
+            <h2 class="suite-title">Física, Colisão &amp; Hitbox — Varredura de partidas e melhorias (v1.13.0)</h2>
+            <div class="tag-group">
+              <span class="tag success">✓ 6 arquivos · 40+ verificações</span>
+              <span class="tag primary">Node + Playwright</span>
+              <span class="tag">prototypes/combat-lab/test/collision-invariants.test.mjs</span>
+            </div>
+          </div>
+        </div>
+        <p class="suite-desc">
+          Invariantes medidos em 12+ partidas IA×IA (penetração no chão, salto e lançamento; sobreposição entre lutadores; projétil × caixa), pegada do contato (alcance por ângulo), hitbox espacial por janela, interpolação do desenho, tunelamento de entidades finas e hitstop por dano. Detalhes em <code>docs/MELHORIAS_FISICA_COLISAO.md</code>.
+        </p>
+        <div class="cmd-box">
+          <code>npm run test:physics</code>
+          <button class="copy-btn" onclick="copyCmd('npm run test:physics', this)">Copiar Comando</button>
+        </div>
+      </article>
+
+      <!-- SUÍTE NOVA: CÂMERA CINEMÁTICA ESTILO ZZZ -->
+      <article class="suite-card" data-category="jogo">
+        <div class="suite-header">
+          <div>
+            <h2 class="suite-title">Câmera Cinemática de Combate (Estilo ZZZ) — Unitário &amp; Navegador</h2>
+            <div class="tag-group">
+              <span class="tag success">✓ 21 Unitários + 14 Navegador Aprovados</span>
+              <span class="tag primary">Playwright Edge/Chrome</span>
+              <span class="tag">Efeitos C01 a C12</span>
+            </div>
+          </div>
+        </div>
+        <p class="suite-desc">
+          Valida os 12 efeitos de cinematografia dinâmica (dutch angle na esquiva, worm's-eye view na corrida/tackle, snap lateral 80° em parry/clash, FOV breathing/punch, meteor slam, impact frames, speedlines, letterbox e física de molas), preservação do yaw funcional de movimentação, piso seguro e controles de interface.
+        </p>
+        <div class="cmd-box">
+          <code>node prototypes/combat-lab/test/cinematic-camera.test.mjs; node prototypes/combat-lab/test/cinematic-camera.browser.mjs</code>
+          <button class="copy-btn" onclick="copyCmd('node prototypes/combat-lab/test/cinematic-camera.test.mjs; node prototypes/combat-lab/test/cinematic-camera.browser.mjs', this)">Copiar Comando</button>
         </div>
       </article>
 
@@ -676,6 +861,36 @@ PASS: dois blocos, cores, câmera, layout, file:// offline, sem erros.</pre>
         </div>
       </article>
 
+
+      <!-- SUITE: BLENDER VISION / PERCEPCAO ATIVA -->
+      <article class="suite-card" data-category="vision">
+        <div class="suite-header">
+          <div>
+            <h2 class="suite-title">Blender Vision — Percepção Ativa, Movimento e Diagnóstico</h2>
+            <div class="tag-group">
+              <span class="tag success">✓ Aprovados</span>
+              <span class="tag">scripts/blender-vision/tests/</span>
+            </div>
+          </div>
+        </div>
+        <p class="suite-desc">
+          42 testes puros (laço de investigação, vistas independentes, movimento, validador A–G, referências), 7 testes de falha (integridade do .blend, render ausente, entradas inválidas) e dois conjuntos de casos controlados em Blender (desenvolvimento e avaliação, 24 casos cada). Mede a infraestrutura em casos sintéticos; não mede interpretação artística nem malhas reais complexas.
+        </p>
+        <div class="cmd-box">
+          <code>python scripts/blender-vision/tests/test_perception.py; python scripts/blender-vision/tests/test_perception_failures.py</code>
+          <button class="copy-btn" onclick="copyCmd('python scripts/blender-vision/tests/test_perception.py; python scripts/blender-vision/tests/test_perception_failures.py', this)">Copiar Comando</button>
+        </div>
+        <div class="cmd-box">
+          <code>python scripts/blender-vision/tests/run_perception_bench.py --split eval --work %TEMP%/perc-bench</code>
+          <button class="copy-btn" onclick="copyCmd('python scripts/blender-vision/tests/run_perception_bench.py --split eval --work %TEMP%/perc-bench', this)">Copiar Comando</button>
+        </div>
+        <div class="evidence-row">
+          <span style="font-size: 0.8rem; color: var(--text-muted); align-self: center;">Evidência:</span>
+          <a href="scripts/blender-vision/evidence/perception_mosh/relatorio.html" class="evidence-thumb">📄 Relatório do caso Mushroom</a>
+          <a href="scripts/blender-vision/evidence/perception_mosh/bench_eval.json" class="evidence-thumb">📄 Casos de avaliação (JSON)</a>
+        </div>
+      </article>
+
     </div>
 
     <footer>
@@ -754,5 +969,7 @@ PASS: dois blocos, cores, câmera, layout, file:// offline, sem erros.</pre>
 
     searchInput.addEventListener('input', applyFilters);
   </script>
+<p style="margin:24px;text-align:center"><a style="color:#38bdf8" href="prototypes/combat-lab/evidence/squash-stretch/index.html">↔ Squash & Stretch do Tackle — controles, auditoria e testes</a></p>
+<p style="margin:24px;text-align:center"><a style="color:#38bdf8" href="prototypes/combat-lab/evidence/limb-smear/index.html">✦ Smear 3D de Membros — controles, imagens e testes</a></p>
 </body>
 </html>

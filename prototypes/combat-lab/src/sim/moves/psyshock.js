@@ -11,7 +11,7 @@ import {hash32, rng, uniform} from './rng.js';
 
 /** Definição do movimento (dados puros, clonável). */
 export const psyshockDef = Object.freeze({
-  id: 'psyshock', name: 'Psyshock',
+  id: 'psyshock', name: 'Psyshock', air: 'cast',
   description: 'Carregue e solte para disparar pedras telecinéticas ao mesmo tempo: quanto mais carga, mais pedras e mais Power Level. Com alvo travado elas miram partes diferentes do corpo; sem alvo saem em leque.',
   cost: 1, cooldown: 8, cooldownBoost: true,
   charge: {max: 4, group: 'psyshock'},
@@ -80,7 +80,7 @@ export function psyshockEffect(/** @type {any} */ game, /** @type {any} */ f, /*
     if (locked) {
       // Cada pedra mira um ponto sorteado dentro da caixa lógica do alvo (M30.8); o homing persegue esse mesmo ponto (0,3 s, 180°/s).
       const off = {x: uniform(rand, -B.halfExtent, B.halfExtent), z: uniform(rand, -B.halfExtent, B.halfExtent), y: uniform(rand, .05 * B.height, .95 * B.height)};
-      const alt = (target.flight?.y ?? 0) + (target.vaultHeight ?? 0);
+      const alt = (target.flight?.y ?? target.groundY ?? 0) + (target.vaultHeight ?? 0);
       const dx = target.position.x + off.x - s.x, dz = target.position.z + off.z - s.z, dy = alt + off.y - s.y, len3 = Math.hypot(dx, dy, dz) || 1e-9;
       dir = normalize({x: dx, z: dz});hSpeed = speed * Math.hypot(dx, dz) / len3;vy = speed * dy / len3;
       homing = {target: target.id, ticks: Math.round(G.homingSeconds / P.step), rate: G.homingRate * Math.PI / 180, offset: off};

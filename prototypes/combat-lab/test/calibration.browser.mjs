@@ -16,7 +16,7 @@ const dir = mkdtempSync(join(tmpdir(), 'arenamon-calib-'));
 async function open() {
   const ctx = await chromium.launchPersistentContext(dir, {...BROWSER, headless: true, viewport: {width: 1500, height: 920}, acceptDownloads: true});
   const page = ctx.pages()[0] ?? await ctx.newPage(), errors = [];page.on('pageerror', e => errors.push(e.message));page.on('console', m => {if (m.type() === 'error') errors.push(m.text());});
-  page.on('dialog', d => d.accept());await ctx.setOffline(true);await page.goto(labUrl);await page.waitForFunction(() => window.__lab, null, {timeout: 30000});
+  page.on('dialog', d => d.accept());await ctx.setOffline(true);await page.goto(labUrl + '?fabrica=1');await page.waitForFunction(() => window.__lab, null, {timeout: 30000});
   const L = (fn, arg) => page.evaluate(fn, arg), tab = t => L(t => {const p = document.getElementById('panel');if (p.hidden || p.dataset.tool !== t) document.querySelector(`[data-tool="${t}"]`).click();}, t);
   const key = async (code, ms = 0) => {await page.locator('canvas').first().focus();await page.keyboard.down(code);if (ms) await page.waitForTimeout(ms);await page.keyboard.up(code);};
   return {ctx, page, L, tab, errors, key};

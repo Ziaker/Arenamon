@@ -1,0 +1,51 @@
+{
+  "report": [
+    {
+      "label": "a gaveta Ações › Salto tem o bloco «Ledge Grab (agarre de borda)»",
+      "ok": true,
+      "detail": "ocorrências do título: 1"
+    },
+    {
+      "label": "os parâmetros ledge.* e map.jumpPassOver existem no ajustador (com rótulo, faixa e unidade)",
+      "ok": true,
+      "detail": "true,true,true,true,true,true,true,true"
+    },
+    {
+      "label": "a simulação agarrou a borda ao saltar contra a face da caixa",
+      "ok": true,
+      "detail": "{\"hint\":true,\"grabbedAt\":108,\"phase\":\"snap\",\"y\":1.9687547550042708}"
+    },
+    {
+      "label": "a borda ficou marcada como agarrável (ledgeHint) antes do agarre",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "pendurado: fase «hang», pés 1,15 m abaixo da borda, estado ledgeHang",
+      "ok": true,
+      "detail": "{\"phase\":\"hang\",\"y\":1.45,\"state\":\"ledgeHang\"}"
+    },
+    {
+      "label": "o personagem carregado mostra o estado visual de pendurado (animação com fallback)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "depois da subida o lutador está em cima da caixa (2,6 m), sem estado preso",
+      "ok": true,
+      "detail": "{\"ledge\":false,\"y\":2.6,\"x\":-0.9,\"flight\":false}"
+    },
+    {
+      "label": "com «Modo do agarre» = Desligado nada é agarrado",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "sem erros de página e sem rede externa",
+      "ok": true,
+      "detail": ""
+    }
+  ],
+  "failures": 0,
+  "errors": []
+}

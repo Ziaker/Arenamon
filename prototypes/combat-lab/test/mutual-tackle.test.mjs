@@ -1,6 +1,7 @@
 // Tackle mútuo fora do clash frontal (sem vantagem de índice) e morte por dano periódico: sem navegador.
+// Este teste caracteriza a mecânica nos valores de FÁBRICA do laboratório (factoryDefaults); a base de calibração v8 é coberta por calibration-base.test.mjs e pelos testes de colisão/ambiente.
 import assert from 'node:assert/strict';
-import {C, defaults, resetConfig} from '../src/sim/config.js';
+import {C, factoryDefaults, resetConfig} from '../src/sim/config.js';
 import {Game} from '../src/sim/game.js';
 import {vec} from '../src/sim/math.js';
 import {stepPhysics} from '../src/sim/physics.js';
@@ -11,7 +12,7 @@ const tackle = heading => ({kind: 'tackle', elapsed: 0, heading, offensive: true
 
 // Dois tackles convergentes cuja mira fica entre o alinhamento do tackle (.15) e o do clash (.2): os dois conectam.
 function mutual(swap) {
-  resetConfig(defaults());
+  resetConfig(factoryDefaults());
   const g = new Game();g.mode = 'inactive';g.reset({positions: [vec(0, -.45), vec(0, .45)]});
   const [a, b] = g.fighters, X = C.extras.combat, h = Math.acos((X.tackleTargetAlignment + X.clashFacingAlignment) / 2);
   a.action = tackle(h);b.action = tackle(Math.acos(-(X.tackleTargetAlignment + X.clashFacingAlignment) / 2));
@@ -30,7 +31,7 @@ function mutual(swap) {
 }
 // Só um conecta (o outro está fora da janela/alinhamento): continua sendo um acerto comum.
 {
-  resetConfig(defaults());
+  resetConfig(factoryDefaults());
   const g = new Game();g.mode = 'inactive';g.reset({positions: [vec(0, -.45), vec(0, .45)]});
   const [a, b] = g.fighters;a.action = tackle(0);b.action = null;a.velocity = vec(0, 3);
   const ev = stepPhysics(g.fighters, C.test.step, g.world);
@@ -38,7 +39,7 @@ function mutual(swap) {
 }
 // Morte por dano periódico desarma a guarda (como um golpe que zera a vida).
 {
-  resetConfig(defaults());
+  resetConfig(factoryDefaults());
   const g = new Game();g.mode = 'inactive';g.reset({});
   const f = g.fighters[0];f.hp = 5;f.guard = true;f.guardSuppressed = false;
   applyStatus(f, {id: 'veneno', duration: 1, tick: {interval: .05, damage: 50}, tags: ['debuff']}, {source: 1});

@@ -1,0 +1,121 @@
+// @ts-check
+// IA com os 13 Moves NOVOS (Harden … Emerging Stone). Mesmas regras do jogador: a IA pede pelos campos de comando (`skill`, `skillHeld`, `move`) e só tenta o que a função de
+// permissão do controlador aceitaria agora (custo, recarga, chão, alvo elegível). Sem Moves novos equipados este módulo não faz nada e não consome sorteios.
+// Cada Move tem uma regra de OPORTUNIDADE (quando vale a pena) em `RULES`; a chance final é `taxa × estilo de ataque`, ajustável em Moves › IA com Moves (newMovesRate).
+// Execução: toque (Normal/Burst), carga com PL (Guard Break, Bounce) ou segurar-e-soltar com marcador (Spikes, Bullet Punch, Emerging Stone), esta última guiada por um plano
+// (`mv.plan`) que mantém o botão, aponta o marcador e solta. Percepção: só vê o que o jogador veria (`observedAction` da percepção justa, quando existe).
+import {C} from './config.js';
+import {getMove} from './moves.js';
+import {movePermission, chargePermission} from './controller.js';
+import {hasFlag} from './status.js';
+import {length, sub, normalize, direction, dot, angleDelta, angleOf} from './math.js';
+
+const held = (/** @type {number} */ slot) => Array.from({length: C.world.slots}, (_, i) => i === slot);
+const NEW_IDS = new Set(['harden', 'second-wind', 'swift', 'lunge', 'quick-attack', 'guard-break', 'feint', 'riposte', 'bounce', 'spikes', 'sand-wave', 'bullet-punch', 'emerging-stone']);
+const has = (/** @type {any} */ f, /** @type {string} */ id) => !!f.statuses?.some((/** @type {any} */ s) => s.id === id);
+
+/**
+ * Contexto de decisão (tudo derivado do que um jogador veria).
+ * @param {any} self @param {any} target @param {any} perc
+ */
+function context(self, target, perc) {
+  const d = sub(target.position, self.position), distance = length(d), toward = distance > 1e-6 ? normalize(d) : direction(self.facing);
+  const facing = Math.abs(angleDelta(self.facing, angleOf(d))) < Math.PI / 6;
+  const observed = perc && perc.observedAction !== undefined ? perc.observedAction : (target.action?.kind ?? null);
+  const tackling = observed === 'tackle' || (observed == null && target.action?.kind === 'tackle');
+  const closing = Math.max(0, -dot(target.velocity ?? {x: 0, z: 0}, toward));   // velocidade do rival vindo na minha direção
+  return {distance, toward, facing, tackling, closing, ttc: closing > 1 ? Math.max(0, distance - 1.2) / closing : Infinity, tGround: !target.flight && !(target.vaultHeight > 0), tGuard: !!target.guard, tCharging: !!target.charge || !!target.tackleCharge, stamina: self.stamina};
+}
+
+/**
+ * Regras de oportunidade: devolvem `null` (não agora) ou `{p, kind, ...plano}` — `p` é a chance base antes de taxa e estilo.
+ * kind: 'tap' | 'charge' (goal em passos) | 'aim' (plano de marcador).
+ * @type {Record<string, (x: ReturnType<typeof context>, self: any, target: any) => any>}
+ */
+const RULES = {
+  harden: (x, self) => !has(self, 'harden') && x.distance < 4.5 && (x.tackling || x.tCharging) ? {p: .55, kind: 'tap', why: 'rival atacando perto: endurece'} : null,
+  'second-wind': (x, self) => !has(self, 'second-wind') && self.stamina < 1.3 && x.distance > 3 && !x.tackling ? {p: .6, kind: 'tap', why: 'stamina baixa e rival longe: recupera'} : null,
+  swift: (x) => x.distance > 3.5 && x.distance < 11 && x.tGround ? {p: .4, kind: 'tap', why: 'estrelas à distância'} : null,
+  lunge: (x, self) => x.distance > 1.7 && x.distance < 3.3 && x.facing && x.tGround && !x.tGuard && !x.tackling && self.stamina >= 2 ? {p: .3, kind: 'tap', why: 'fecha a distância com o Lunge'} : null,
+  'quick-attack': (x, self) => x.distance > 3.2 && x.distance < 6.8 && x.tGround && !x.tGuard && !x.tackling && self.stamina >= 2 ? {p: .14, kind: 'tap', why: 'investida rápida e volta'} : null,
+  'guard-break': (x, self) => x.tGuard && x.distance < 3.3 && x.tGround && self.stamina >= 1.6 ? {p: .6, kind: 'charge', goal: x.distance > 2.4 ? 62 : 32, why: 'rival defendendo: quebra a guarda'} : null,
+  riposte: (x, self) => x.tackling && x.ttc > .17 && x.ttc < .3 && x.distance < 4.5 && self.stamina >= 1 ? {p: .7, kind: 'tap', why: 'contra-ataque no tempo do golpe do rival'} : null,
+  bounce: (x, self) => x.distance > 4 && x.distance < 6.2 && x.tGround && !x.tGuard && !x.tackling && !x.tCharging && self.stamina >= 2.2 ? {p: .12, kind: 'charge', goal: x.distance > 4.6 ? 74 : 14, why: 'salto sobre o rival'} : null,
+  'sand-wave': (x, self) => x.distance < 3.4 && x.facing && x.tGround && self.stamina >= 2.2 ? {p: .3, kind: 'tap', why: 'barragem de areia no retângulo'} : null,
+  spikes: (x, self) => x.distance > 3 && x.distance < 8 && x.tGround && self.stamina >= 1.5 ? {p: .22, kind: 'aim', mode: 'absolute', why: 'armadilha no caminho do rival'} : null,
+  'bullet-punch': (x, self) => x.distance > 2.5 && x.distance < (C.world.bulletPunch.reach ?? 6) - .3 && x.tGround && self.stamina >= 2.2 ? {p: .25, kind: 'tap', why: 'soco-bala: some e golpeia o rival ao chegar'} : null,
+  'emerging-stone': (x, self) => x.distance > 3.8 && x.distance < 6.4 && x.tGround && self.stamina >= 3 ? {p: .2, kind: 'aim', mode: 'cast', why: 'rocha emergente no rival'} : null,
+};
+
+/** Mantém o botão, aponta o marcador e solta, conforme o plano. Devolve true se assumiu o comando. */
+function driveAim(brain, self, target, c, mv) {
+  const a = self.aim, plan = mv.plan;
+  if (!a || !plan) {mv.plan = null;return false;}
+  const slot = a.slot, d = sub(target.position, self.position), dist = length(d), dir = dist > 1e-6 ? normalize(d) : direction(self.facing);
+  c.tackle = false;c.dodge = false;c.guard = false;c.guardPressed = false;
+  let hold = true;
+  if (plan.mode === 'absolute') {   // Spikes: leva o marcador até onde o rival está (com um pouco de antecipação) e solta
+    const lead = {x: target.position.x + (target.velocity?.x ?? 0) * .35, z: target.position.z + (target.velocity?.z ?? 0) * .35};
+    const to = sub(lead, a.pos), l = length(to);
+    c.move = l > .3 ? normalize(to) : {x: 0, z: 0};
+    if ((l <= .45 && a.valid) || a.ticks > 90) hold = false;
+  } else {   // Emerging Stone: o cast começa ao pressionar; mantém parado até o cast terminar, mira o marcador no rival e solta
+    const to = sub(target.position, a.pos), l = length(to);
+    c.move = {x: 0, z: 0};
+    if (a.castLeft <= 0 && (l <= 1.2 || a.ticks > 150)) hold = false;
+  }
+  if (hold) c.skillHeld = held(slot);
+  else {c.skillHeld = null;if (!self.aim || a.ticks > 1) {/* solta */}}
+  mv.log.push({time: +(brain.t?.time ?? 0).toFixed(3), move: a.move, why: hold ? 'ajustando o marcador' : 'solta o marcador'});if (mv.log.length > 30) mv.log.shift();
+  return true;
+}
+
+/**
+ * Chamado por `movesCommand` (ai-moves.js) a cada decisão. `mv` é o estado de Moves da IA (`brain.t.mv`).
+ * Devolve true quando assumiu o comando deste passo.
+ * @param {any} brain @param {any} self @param {any} target @param {any} c @param {any} mv @param {any} perc @param {any} S estilo da IA
+ */
+export function newMovesCommand(brain, self, target, c, mv, perc, S) {
+  const slots = self.loadout;
+  if (!slots?.some((/** @type {string} */ id) => NEW_IDS.has(id))) return false;
+  const A = C.world.ai;
+  if (!(A.newMovesRate > 0)) return false;
+  if (self.aim?.range) {c.tackle = false;c.dodge = false;c.guard = false;c.guardPressed = false;c.skill = null;c.skillHeld = null;return true;}   // círculo de alcance aberto: solta o botão no passo seguinte (executa)
+  if (self.aim) return driveAim(brain, self, target, c, mv);
+  mv.plan = null;
+  if (self.hp <= 0 || target.hp <= 0 || target.absent) return false;
+  const x = context(self, target, perc);
+  // Feint: cancela o próprio ataque ainda na antecipação quando o rival acabou de levantar a defesa (janela de defesa perfeita aberta: o golpe seria anulado e punido) — única decisão feita DURANTE uma ação.
+  const fi = slots.indexOf('feint');
+  if (fi >= 0 && self.action?.kind === 'tackle' && self.action.elapsed < .11 && (self.action.hits?.size ?? 0) === 0 && (target.perfectLeft ?? 0) > .03 && movePermission(self, getMove('feint'), fi).ok && brain.random() < .6 * A.newMovesRate) {
+    c.skill = fi;c.skillHeld = held(fi);c.tackle = false;return true;
+  }
+  if (self.action || self.flight || self.knockRecovery > 0 || self.charge) return false;
+  // Riposte: a janela é de 0,13 s, curta demais para a decisão de 0,25 s; avalia a cada passo (chance por passo) enquanto o golpe do rival chega.
+  const ri = slots.indexOf('riposte'), rdef = ri >= 0 ? getMove('riposte') : null;
+  if (rdef && RULES.riposte(x, self, target) && movePermission(self, rdef, ri).ok && brain.random() < .04 * A.newMovesRate) {
+    c.skill = ri;c.skillHeld = held(ri);c.tackle = false;c.dodge = false;c.guard = false;c.guardPressed = false;brain.wasGuard = false;
+    mv.log.push({time: +(brain.t?.time ?? 0).toFixed(3), move: 'riposte', why: RULES.riposte(x, self, target)?.why, distance: +x.distance.toFixed(2)});if (mv.log.length > 30) mv.log.shift();
+    return true;
+  }
+  mv.nroll = Math.max(0, (mv.nroll ?? 0) - Math.max(0, (brain.t?.time ?? 0) - (mv.nlast ?? 0)));mv.nlast = brain.t?.time ?? 0;
+  if (mv.nroll > 0) return false;
+  mv.nroll = .25;   // decide a cada 0,25 s
+  for (let slot = 0; slot < slots.length; slot++) {
+    const id = slots[slot];if (!id || !NEW_IDS.has(id)) continue;
+    const def = getMove(id), rule = RULES[id];if (!def || !rule) continue;
+    const ok = def.charge ? chargePermission(self, def, slot).ok : movePermission(self, def, slot).ok;
+    if (!ok) continue;
+    const r = rule(x, self, target);if (!r) continue;
+    if (brain.random() >= Math.min(.95, r.p * A.newMovesRate * (.6 + .8 * (S?.attack ?? .5)))) continue;
+    const log = {time: +(brain.t?.time ?? 0).toFixed(3), move: id, why: r.why, distance: +x.distance.toFixed(2)};
+    c.tackle = false;c.dodge = false;c.guard = false;c.guardPressed = false;brain.wasGuard = false;
+    if (r.kind === 'tap') {c.skill = slot;c.skillHeld = held(slot);}
+    else if (r.kind === 'charge') {c.skill = slot;c.skillHeld = held(slot);mv.phase = 'charging';mv.slot = slot;mv.goalTicks = r.goal;}
+    else {c.skill = slot;c.skillHeld = held(slot);mv.plan = {mode: r.mode, dist: x.distance};}
+    mv.log.push(log);if (mv.log.length > 30) mv.log.shift();
+    void hasFlag;
+    return true;
+  }
+  return false;
+}

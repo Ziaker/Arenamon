@@ -1,0 +1,1251 @@
+{
+ "efetuador": "Hips",
+ "referencial_do_efetuador": "mundo",
+ "lado": "Right",
+ "frames": [
+  1,
+  54
+ ],
+ "sequencia_do_corpo": {
+  "side": "Right",
+  "window": [
+   1,
+   54
+  ],
+  "onset_by_alpha": {
+   "0.1": {
+    "quadril_deslocamento_m": 3,
+    "quadril_rotacao_graus": 3,
+    "tronco_rot_rel_quadril_graus": 4,
+    "braco_rot_rel_tronco_graus": 3,
+    "antebraco_rot_rel_braco_graus": 3,
+    "mao_pos_rel_quadril_m": 4
+   },
+   "0.2": {
+    "quadril_deslocamento_m": 4,
+    "quadril_rotacao_graus": 7,
+    "tronco_rot_rel_quadril_graus": 7,
+    "braco_rot_rel_tronco_graus": 5,
+    "antebraco_rot_rel_braco_graus": 6,
+    "mao_pos_rel_quadril_m": 6
+   },
+   "0.3": {
+    "quadril_deslocamento_m": 4,
+    "quadril_rotacao_graus": 9,
+    "tronco_rot_rel_quadril_graus": 7,
+    "braco_rot_rel_tronco_graus": 7,
+    "antebraco_rot_rel_braco_graus": 6,
+    "mao_pos_rel_quadril_m": 7
+   }
+  },
+  "ordem": [
+   "quadril_deslocamento_m",
+   "braco_rot_rel_tronco_graus",
+   "antebraco_rot_rel_braco_graus",
+   "mao_pos_rel_quadril_m",
+   "quadril_rotacao_graus",
+   "tronco_rot_rel_quadril_graus"
+  ],
+  "ordem_robusta_entre_alfas": false,
+  "ordens": [
+   [
+    "antebraco_rot_rel_braco_graus",
+    "braco_rot_rel_tronco_graus",
+    "quadril_deslocamento_m",
+    "quadril_rotacao_graus",
+    "mao_pos_rel_quadril_m",
+    "tronco_rot_rel_quadril_graus"
+   ],
+   [
+    "quadril_deslocamento_m",
+    "braco_rot_rel_tronco_graus",
+    "antebraco_rot_rel_braco_graus",
+    "mao_pos_rel_quadril_m",
+    "quadril_rotacao_graus",
+    "tronco_rot_rel_quadril_graus"
+   ],
+   [
+    "quadril_deslocamento_m",
+    "antebraco_rot_rel_braco_graus",
+    "braco_rot_rel_tronco_graus",
+    "mao_pos_rel_quadril_m",
+    "tronco_rot_rel_quadril_graus",
+    "quadril_rotacao_graus"
+   ]
+  ],
+  "defasagem_total_frames": 3,
+  "mao_vs_tronco": "simultaneo",
+  "sem_movimento": [],
+  "nota": "MEDIDA: 'comecou' = atingir fracao alfa do proprio pico na janela; em chaves esparsas o frame de inicio e o da chave (empates frequentes). A leitura de coordenacao exige as imagens."
+ },
+ "antecipacao": {
+  "presente": false,
+  "recuo_m": 0.0,
+  "curso_m": 1.195,
+  "razao_recuo_curso": 0.0,
+  "frames_de_recuo": 0,
+  "frame_do_recuo_maximo": 1,
+  "limiares": {
+   "razao": 0.12,
+   "frames": 2
+  },
+  "peak_index": 6,
+  "peak_frame": 7,
+  "axis": [
+   0.0454,
+   -0.43982,
+   -0.89694
+  ],
+  "peak_step_m": 0.19982,
+  "nota": "medida geometrica no eixo do golpe; 'antecipacao legivel' ainda exige olhar a pose (silhueta, corpo todo)"
+ },
+ "snap": [
+  {
+   "frame": 2,
+   "passo_m": 0.103,
+   "anterior_m": 0.0,
+   "seguinte_m": 0.1218,
+   "classe": "rapido_rampa_parcial"
+  },
+  {
+   "frame": 3,
+   "passo_m": 0.1218,
+   "anterior_m": 0.103,
+   "seguinte_m": 0.1475,
+   "classe": "rapido_com_rampa"
+  },
+  {
+   "frame": 4,
+   "passo_m": 0.1475,
+   "anterior_m": 0.1218,
+   "seguinte_m": 0.1629,
+   "classe": "rapido_com_rampa"
+  },
+  {
+   "frame": 5,
+   "passo_m": 0.1629,
+   "anterior_m": 0.1475,
+   "seguinte_m": 0.1842,
+   "classe": "rapido_com_rampa"
+  },
+  {
+   "frame": 6,
+   "passo_m": 0.1842,
+   "anterior_m": 0.1629,
+   "seguinte_m": 0.1998,
+   "classe": "rapido_com_rampa"
+  },
+  {
+   "frame": 7,
+   "passo_m": 0.1998,
+   "anterior_m": 0.1842,
+   "seguinte_m": 0.1572,
+   "classe": "rapido_com_rampa"
+  },
+  {
+   "frame": 8,
+   "passo_m": 0.1572,
+   "anterior_m": 0.1998,
+   "seguinte_m": 0.095,
+   "classe": "rapido_com_rampa"
+  },
+  {
+   "frame": 9,
+   "passo_m": 0.095,
+   "anterior_m": 0.1572,
+   "seguinte_m": 0.0411,
+   "classe": "rapido_com_rampa"
+  }
+ ],
+ "arco": {
+  "quinas_em_velocidade": [],
+  "virada_max_graus": 80.8,
+  "frame_da_virada_max": 13,
+  "classe": "arco_continuo",
+  "limiar_graus": 60.0,
+  "nota": "mede a trajetoria do efetuador no espaco; um arco 'bonito' ou 'com intencao' ainda depende de ver a pose"
+ },
+ "fases": {
+  "fases": [
+   {
+    "fase": "repouso_inicial",
+    "frames": [
+     1,
+     1
+    ],
+    "base": "velocidade < 10% do pico",
+    "status": "HIPOTESE"
+   },
+   {
+    "fase": "aceleracao_candidata",
+    "frames": [
+     2,
+     6
+    ],
+    "base": "sem recuo mensuravel; do inicio ao pico de velocidade",
+    "status": "HIPOTESE"
+   },
+   {
+    "fase": "pico_de_movimento",
+    "frames": [
+     6,
+     8
+    ],
+    "base": "pico de velocidade do efetuador: NAO e frame de contato",
+    "status": "HIPOTESE"
+   },
+   {
+    "fase": "desaceleracao_candidata",
+    "frames": [
+     9,
+     9
+    ],
+    "base": "queda ate < 50% do pico",
+    "status": "HIPOTESE"
+   },
+   {
+    "fase": "recuperacao_candidata",
+    "frames": [
+     10,
+     36
+    ],
+    "base": "velocidade residual ate < 10% do pico",
+    "status": "HIPOTESE"
+   },
+   {
+    "fase": "repouso_final",
+    "frames": [
+     37,
+     54
+    ],
+    "base": "velocidade < 10% do pico",
+    "status": "HIPOTESE"
+   }
+  ],
+  "contact_frame": null,
+  "motivo_contato": "sem alvo geometrico autorizado: o frame de contato nao e escolhido pelo pico de velocidade",
+  "pico": {
+   "frame": 7,
+   "passo_m": 0.19982
+  }
+ },
+ "pe_E": {
+  "side": "Left",
+  "rows": [
+   {
+    "frame": 1,
+    "folga_m": 1.0676,
+    "classe": "suspenso"
+   },
+   {
+    "frame": 2,
+    "folga_m": 0.9273,
+    "classe": "suspenso"
+   },
+   {
+    "frame": 3,
+    "folga_m": 0.755,
+    "classe": "suspenso"
+   },
+   {
+    "frame": 4,
+    "folga_m": 0.5801,
+    "classe": "suspenso"
+   },
+   {
+    "frame": 5,
+    "folga_m": 0.4091,
+    "classe": "suspenso"
+   },
+   {
+    "frame": 6,
+    "folga_m": 0.2476,
+    "classe": "suspenso"
+   },
+   {
+    "frame": 7,
+    "folga_m": 0.0755,
+    "classe": "suspenso"
+   },
+   {
+    "frame": 8,
+    "folga_m": 0.0006,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 9,
+    "folga_m": 0.0,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 10,
+    "folga_m": -0.0005,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 11,
+    "folga_m": -0.0006,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 12,
+    "folga_m": -0.001,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 13,
+    "folga_m": -0.001,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 14,
+    "folga_m": -0.0009,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 15,
+    "folga_m": -0.0009,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 16,
+    "folga_m": -0.0007,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 17,
+    "folga_m": -0.0006,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 18,
+    "folga_m": -0.0006,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 19,
+    "folga_m": -0.0006,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 20,
+    "folga_m": -0.0006,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 21,
+    "folga_m": -0.0006,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 22,
+    "folga_m": -0.0007,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 23,
+    "folga_m": -0.0008,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 24,
+    "folga_m": -0.001,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 25,
+    "folga_m": -0.0012,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 26,
+    "folga_m": -0.0015,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 27,
+    "folga_m": -0.0019,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 28,
+    "folga_m": -0.0022,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 29,
+    "folga_m": -0.0022,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 30,
+    "folga_m": -0.002,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 31,
+    "folga_m": -0.0015,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 32,
+    "folga_m": -0.0005,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 33,
+    "folga_m": 0.0005,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 34,
+    "folga_m": 0.0016,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 35,
+    "folga_m": 0.0027,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 36,
+    "folga_m": 0.0036,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 37,
+    "folga_m": 0.0042,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 38,
+    "folga_m": 0.0042,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 39,
+    "folga_m": 0.0048,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 40,
+    "folga_m": 0.013,
+    "classe": "proximo_ambiguo"
+   },
+   {
+    "frame": 41,
+    "folga_m": 0.0159,
+    "classe": "proximo_ambiguo"
+   },
+   {
+    "frame": 42,
+    "folga_m": 0.0132,
+    "classe": "proximo_ambiguo"
+   },
+   {
+    "frame": 43,
+    "folga_m": 0.0069,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 44,
+    "folga_m": 0.0035,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 45,
+    "folga_m": 0.0039,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 46,
+    "folga_m": 0.004,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 47,
+    "folga_m": 0.004,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 48,
+    "folga_m": 0.004,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 49,
+    "folga_m": 0.004,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 50,
+    "folga_m": 0.004,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 51,
+    "folga_m": 0.004,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 52,
+    "folga_m": 0.004,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 53,
+    "folga_m": 0.004,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 54,
+    "folga_m": 0.0041,
+    "classe": "apoiado"
+   }
+  ],
+  "tolerancias_m": {
+   "contato": 0.01,
+   "suspenso": 0.03
+  },
+  "nota": "altura do vertice mais baixo do pe sobre o plano z=0.009: toque real exige o chao verdadeiro do jogo; 'proximo_ambiguo' nao e decidido"
+ },
+ "pe_D": {
+  "side": "Right",
+  "rows": [
+   {
+    "frame": 1,
+    "folga_m": 0.9048,
+    "classe": "suspenso"
+   },
+   {
+    "frame": 2,
+    "folga_m": 0.8499,
+    "classe": "suspenso"
+   },
+   {
+    "frame": 3,
+    "folga_m": 0.7794,
+    "classe": "suspenso"
+   },
+   {
+    "frame": 4,
+    "folga_m": 0.6785,
+    "classe": "suspenso"
+   },
+   {
+    "frame": 5,
+    "folga_m": 0.507,
+    "classe": "suspenso"
+   },
+   {
+    "frame": 6,
+    "folga_m": 0.2952,
+    "classe": "suspenso"
+   },
+   {
+    "frame": 7,
+    "folga_m": 0.1057,
+    "classe": "suspenso"
+   },
+   {
+    "frame": 8,
+    "folga_m": 0.0008,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 9,
+    "folga_m": 0.0005,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 10,
+    "folga_m": 0.0005,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 11,
+    "folga_m": 0.0004,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 12,
+    "folga_m": 0.0002,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 13,
+    "folga_m": 0.0004,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 14,
+    "folga_m": 0.0006,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 15,
+    "folga_m": 0.0007,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 16,
+    "folga_m": 0.0008,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 17,
+    "folga_m": 0.0009,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 18,
+    "folga_m": 0.0009,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 19,
+    "folga_m": 0.001,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 20,
+    "folga_m": 0.0011,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 21,
+    "folga_m": 0.0012,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 22,
+    "folga_m": 0.0013,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 23,
+    "folga_m": 0.0015,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 24,
+    "folga_m": 0.0016,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 25,
+    "folga_m": 0.0018,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 26,
+    "folga_m": 0.002,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 27,
+    "folga_m": 0.0052,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 28,
+    "folga_m": 0.0166,
+    "classe": "proximo_ambiguo"
+   },
+   {
+    "frame": 29,
+    "folga_m": 0.0249,
+    "classe": "proximo_ambiguo"
+   },
+   {
+    "frame": 30,
+    "folga_m": 0.0246,
+    "classe": "proximo_ambiguo"
+   },
+   {
+    "frame": 31,
+    "folga_m": 0.0273,
+    "classe": "proximo_ambiguo"
+   },
+   {
+    "frame": 32,
+    "folga_m": 0.034,
+    "classe": "suspenso"
+   },
+   {
+    "frame": 33,
+    "folga_m": 0.0309,
+    "classe": "suspenso"
+   },
+   {
+    "frame": 34,
+    "folga_m": 0.0218,
+    "classe": "proximo_ambiguo"
+   },
+   {
+    "frame": 35,
+    "folga_m": 0.0117,
+    "classe": "proximo_ambiguo"
+   },
+   {
+    "frame": 36,
+    "folga_m": 0.0055,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 37,
+    "folga_m": 0.0052,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 38,
+    "folga_m": 0.0049,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 39,
+    "folga_m": 0.0047,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 40,
+    "folga_m": 0.0046,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 41,
+    "folga_m": 0.0046,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 42,
+    "folga_m": 0.0047,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 43,
+    "folga_m": 0.0048,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 44,
+    "folga_m": 0.0049,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 45,
+    "folga_m": 0.005,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 46,
+    "folga_m": 0.0052,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 47,
+    "folga_m": 0.0053,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 48,
+    "folga_m": 0.0054,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 49,
+    "folga_m": 0.0055,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 50,
+    "folga_m": 0.0055,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 51,
+    "folga_m": 0.0055,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 52,
+    "folga_m": 0.0055,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 53,
+    "folga_m": 0.0055,
+    "classe": "apoiado"
+   },
+   {
+    "frame": 54,
+    "folga_m": 0.0054,
+    "classe": "apoiado"
+   }
+  ],
+  "tolerancias_m": {
+   "contato": 0.01,
+   "suspenso": 0.03
+  },
+  "nota": "altura do vertice mais baixo do pe sobre o plano z=0.009: toque real exige o chao verdadeiro do jogo; 'proximo_ambiguo' nao e decidido"
+ },
+ "apoio_x_massa": {
+  "rows": [
+   {
+    "frame": 1,
+    "pes_apoiados": 0,
+    "dist_horizontal_m": null
+   },
+   {
+    "frame": 2,
+    "pes_apoiados": 0,
+    "dist_horizontal_m": null
+   },
+   {
+    "frame": 3,
+    "pes_apoiados": 0,
+    "dist_horizontal_m": null
+   },
+   {
+    "frame": 4,
+    "pes_apoiados": 0,
+    "dist_horizontal_m": null
+   },
+   {
+    "frame": 5,
+    "pes_apoiados": 0,
+    "dist_horizontal_m": null
+   },
+   {
+    "frame": 6,
+    "pes_apoiados": 0,
+    "dist_horizontal_m": null
+   },
+   {
+    "frame": 7,
+    "pes_apoiados": 0,
+    "dist_horizontal_m": null
+   },
+   {
+    "frame": 8,
+    "pes_apoiados": 2,
+    "dist_horizontal_m": 0.2995
+   },
+   {
+    "frame": 9,
+    "pes_apoiados": 2,
+    "dist_horizontal_m": 0.5158
+   },
+   {
+    "frame": 10,
+    "pes_apoiados": 2,
+    "dist_horizontal_m": 0.6451
+   },
+   {
+    "frame": 11,
+    "pes_apoiados": 2,
+    "dist_horizontal_m": 0.6927
+   },
+   {
+    "frame": 12,
+    "pes_apoiados": 2,
+    "dist_horizontal_m": 0.6988
+   },
+   {
+    "frame": 13,
+    "pes_apoiados": 2,
+    "dist_horizontal_m": 0.6787
+   },
+   {
+    "frame": 14,
+    "pes_apoiados": 2,
+    "dist_horizontal_m": 0.6507
+   },
+   {
+    "frame": 15,
+    "pes_apoiados": 2,
+    "dist_horizontal_m": 0.6241
+   },
+   {
+    "frame": 16,
+    "pes_apoiados": 2,
+    "dist_horizontal_m": 0.6044
+   },
+   {
+    "frame": 17,
+    "pes_apoiados": 2,
+    "dist_horizontal_m": 0.5956
+   },
+   {
+    "frame": 18,
+    "pes_apoiados": 2,
+    "dist_horizontal_m": 0.5977
+   },
+   {
+    "frame": 19,
+    "pes_apoiados": 2,
+    "dist_horizontal_m": 0.6062
+   },
+   {
+    "frame": 20,
+    "pes_apoiados": 2,
+    "dist_horizontal_m": 0.6154
+   },
+   {
+    "frame": 21,
+    "pes_apoiados": 2,
+    "dist_horizontal_m": 0.6193
+   },
+   {
+    "frame": 22,
+    "pes_apoiados": 2,
+    "dist_horizontal_m": 0.6179
+   },
+   {
+    "frame": 23,
+    "pes_apoiados": 2,
+    "dist_horizontal_m": 0.6139
+   },
+   {
+    "frame": 24,
+    "pes_apoiados": 2,
+    "dist_horizontal_m": 0.6071
+   },
+   {
+    "frame": 25,
+    "pes_apoiados": 2,
+    "dist_horizontal_m": 0.5973
+   },
+   {
+    "frame": 26,
+    "pes_apoiados": 2,
+    "dist_horizontal_m": 0.5857
+   },
+   {
+    "frame": 27,
+    "pes_apoiados": 2,
+    "dist_horizontal_m": 0.5769
+   },
+   {
+    "frame": 28,
+    "pes_apoiados": 2,
+    "dist_horizontal_m": 0.577
+   },
+   {
+    "frame": 29,
+    "pes_apoiados": 2,
+    "dist_horizontal_m": 0.5871
+   },
+   {
+    "frame": 30,
+    "pes_apoiados": 2,
+    "dist_horizontal_m": 0.6036
+   },
+   {
+    "frame": 31,
+    "pes_apoiados": 2,
+    "dist_horizontal_m": 0.6162
+   },
+   {
+    "frame": 32,
+    "pes_apoiados": 1,
+    "dist_horizontal_m": 0.5404
+   },
+   {
+    "frame": 33,
+    "pes_apoiados": 1,
+    "dist_horizontal_m": 0.5109
+   },
+   {
+    "frame": 34,
+    "pes_apoiados": 2,
+    "dist_horizontal_m": 0.5757
+   },
+   {
+    "frame": 35,
+    "pes_apoiados": 2,
+    "dist_horizontal_m": 0.5483
+   },
+   {
+    "frame": 36,
+    "pes_apoiados": 2,
+    "dist_horizontal_m": 0.5185
+   },
+   {
+    "frame": 37,
+    "pes_apoiados": 2,
+    "dist_horizontal_m": 0.4931
+   },
+   {
+    "frame": 38,
+    "pes_apoiados": 2,
+    "dist_horizontal_m": 0.479
+   },
+   {
+    "frame": 39,
+    "pes_apoiados": 2,
+    "dist_horizontal_m": 0.4768
+   },
+   {
+    "frame": 40,
+    "pes_apoiados": 2,
+    "dist_horizontal_m": 0.4805
+   },
+   {
+    "frame": 41,
+    "pes_apoiados": 2,
+    "dist_horizontal_m": 0.4802
+   },
+   {
+    "frame": 42,
+    "pes_apoiados": 2,
+    "dist_horizontal_m": 0.4726
+   },
+   {
+    "frame": 43,
+    "pes_apoiados": 2,
+    "dist_horizontal_m": 0.4587
+   },
+   {
+    "frame": 44,
+    "pes_apoiados": 2,
+    "dist_horizontal_m": 0.4413
+   },
+   {
+    "frame": 45,
+    "pes_apoiados": 2,
+    "dist_horizontal_m": 0.4225
+   },
+   {
+    "frame": 46,
+    "pes_apoiados": 2,
+    "dist_horizontal_m": 0.4017
+   },
+   {
+    "frame": 47,
+    "pes_apoiados": 2,
+    "dist_horizontal_m": 0.3803
+   },
+   {
+    "frame": 48,
+    "pes_apoiados": 2,
+    "dist_horizontal_m": 0.3591
+   },
+   {
+    "frame": 49,
+    "pes_apoiados": 2,
+    "dist_horizontal_m": 0.3378
+   },
+   {
+    "frame": 50,
+    "pes_apoiados": 2,
+    "dist_horizontal_m": 0.316
+   },
+   {
+    "frame": 51,
+    "pes_apoiados": 2,
+    "dist_horizontal_m": 0.2935
+   },
+   {
+    "frame": 52,
+    "pes_apoiados": 2,
+    "dist_horizontal_m": 0.2711
+   },
+   {
+    "frame": 53,
+    "pes_apoiados": 2,
+    "dist_horizontal_m": 0.2499
+   },
+   {
+    "frame": 54,
+    "pes_apoiados": 2,
+    "dist_horizontal_m": 0.2334
+   }
+  ],
+  "nota": "centroide dos vertices (proxy); sem pe apoiado nao ha base de apoio para comparar (ex.: salto/voo)"
+ },
+ "deformacao": {
+  "eventos": [],
+  "inesperados": 0,
+  "documentados": 0,
+  "nota": "so compara com janelas declaradas; sem declaracao, toda mudanca e 'inesperada' por construcao (nao e defeito provado)."
+ },
+ "chao": {
+  "plano_z": 0.0087,
+  "por_rotulo": {
+   "head": {
+    "frames": [
+     12
+    ],
+    "prof_max_m": 0.0246,
+    "frame_prof_max": 12,
+    "ignora_pes_ate_m": 0.01
+   },
+   "arm_L": {
+    "frames": [
+     11,
+     12,
+     13
+    ],
+    "prof_max_m": 0.0771,
+    "frame_prof_max": 12,
+    "ignora_pes_ate_m": 0.01
+   },
+   "hand_L": {
+    "frames": [
+     11,
+     12,
+     13,
+     14,
+     15,
+     16,
+     17,
+     18,
+     19,
+     20,
+     21,
+     22,
+     23,
+     24,
+     25,
+     26,
+     27,
+     28,
+     29,
+     30,
+     31
+    ],
+    "prof_max_m": 0.2643,
+    "frame_prof_max": 11,
+    "ignora_pes_ate_m": 0.01
+   },
+   "hand_R": {
+    "frames": [
+     11,
+     12,
+     13,
+     14,
+     15,
+     16,
+     17,
+     18,
+     19,
+     20,
+     21,
+     22,
+     23,
+     24,
+     25,
+     26,
+     27,
+     28,
+     29,
+     30,
+     31,
+     32,
+     33,
+     34,
+     35,
+     36,
+     37,
+     38,
+     39,
+     40,
+     41,
+     42
+    ],
+    "prof_max_m": 0.2138,
+    "frame_prof_max": 19,
+    "ignora_pes_ate_m": 0.01
+   },
+   "leg_L": {
+    "frames": [
+     9,
+     10,
+     11,
+     12,
+     13,
+     14,
+     15,
+     16,
+     17,
+     18,
+     19,
+     20,
+     21,
+     22,
+     23,
+     24,
+     25
+    ],
+    "prof_max_m": 0.0999,
+    "frame_prof_max": 13,
+    "ignora_pes_ate_m": 0.01
+   },
+   "leg_R": {
+    "frames": [
+     9,
+     10,
+     11,
+     12,
+     13,
+     14,
+     15,
+     16,
+     17,
+     18,
+     19,
+     20,
+     21,
+     22
+    ],
+    "prof_max_m": 0.0818,
+    "frame_prof_max": 13,
+    "ignora_pes_ate_m": 0.01
+   }
+  },
+  "nota": "plano do chao assumido (z=0.0087); se o chao do jogo for outro (altura visual/apoio), os numeros mudam"
+ },
+ "frames_sugeridos_para_imagem": [
+  1,
+  2,
+  6,
+  7,
+  9,
+  10,
+  11,
+  21,
+  31,
+  36,
+  37,
+  41,
+  51,
+  54
+ ],
+ "schema": "arenamon.perception.motion/1",
+ "blend": "C:\\Users\\zerke\\AppData\\Local\\Temp\\arenamon-vision\\mosh_source.blend",
+ "blend_sha256": "bc0da6e4d74ffb223c5e74ad04fcd775305cef395f36aa604ce99a79a1cb8292",
+ "action": "attack 1",
+ "offset": 0,
+ "limiares": {
+  "onset_alphas": [
+   0.1,
+   0.2,
+   0.3
+  ],
+  "onset_floor_m": 0.01,
+  "onset_floor_deg": 4.0,
+  "simultaneous_lag_frames": 1,
+  "antic_min_ratio": 0.12,
+  "antic_min_frames": 2,
+  "snap_isolated_ratio": 3.0,
+  "snap_hold_frac": 0.15,
+  "turn_abrupt_deg": 60.0,
+  "turn_min_speed_frac": 0.3,
+  "ground_contact_m": 0.01,
+  "ground_air_m": 0.03,
+  "stretch_ratio": 0.05,
+  "scale_dev": 0.02
+ },
+ "aviso": "medidas e hipoteses; nenhuma frase aqui certifica qualidade artistica"
+}

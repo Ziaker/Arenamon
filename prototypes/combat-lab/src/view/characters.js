@@ -27,13 +27,17 @@ import {sniffFormat} from './validate.js';
 
 /** Ordem de preferência por estado (a primeira ação com animação associada é usada). */
 export const STATE_ACTIONS = {
-  neutral: ['idle'], turn: ['turn', 'idle'], walk: ['walk', 'run', 'idle'], run: ['run', 'walk', 'idle'], walk_back: ['walk_back', 'walk', 'idle'],
-  walk_left: ['walk_left', 'strafe_left', 'walk', 'idle'], walk_right: ['walk_right', 'strafe_right', 'walk', 'idle'],
-  sprint: ['sprint', 'run', 'walk', 'idle'], walk_stop: ['walk_stop'], sprint_stop: ['sprint_stop', 'walk_stop'],
+  neutral: ['idle'], turn: ['turn', 'idle'], walk: ['walk', 'run', 'idle'], run: ['run', 'walk', 'idle'],
+  walk_back: ['walk_back', 'walk', 'idle'], walk_left: ['walk_left', 'walk', 'idle'], walk_right: ['walk_right', 'walk', 'idle'],
+  run_back: ['run_back', 'walk_back', 'run', 'idle'], run_left: ['run_left', 'walk_left', 'run', 'idle'], run_right: ['run_right', 'walk_right', 'run', 'idle'],
+  sprint: ['sprint', 'run', 'walk', 'idle'], sprint_back: ['sprint_back', 'run_back', 'walk_back', 'sprint', 'idle'], sprint_left: ['sprint_left', 'run_left', 'walk_left', 'sprint', 'idle'], sprint_right: ['sprint_right', 'run_right', 'walk_right', 'sprint', 'idle'],
+  walk_stop: ['walk_stop'], sprint_stop: ['sprint_stop', 'walk_stop'],
   guard_enter: ['block_start', 'block', 'idle'], guard: ['block', 'block_start', 'idle'], guard_exit: ['block_end', 'idle'], guard_hit: ['guard_impact', 'blocked', 'block', 'idle'],
   guardStun: ['guard_impact', 'blocked', 'block', 'idle'], tackle: ['tackle', 'run', 'idle'],
   // Tackle carregado: sem clipe próprio cada nível cai para o clipe do tackle (PL3 → PL2 → tackle); a carga sem clipe usa a pose parada.
   wallSplat: ['wall_splat', 'hit', 'knockback', 'idle'],
+  ledge_hang: ['ledge_hang', 'wall_splat', 'fall', 'idle'], ledge_climb: ['ledge_climb', 'jump', 'vault', 'idle'],
+  meteor_prep: ['meteor_prep', 'knockback', 'fall', 'idle'], meteor_dive: ['meteor_dive', 'tackle', 'fall', 'run', 'idle'], meteor_ground: ['meteor_ground', 'tackle', 'fall', 'idle'],
   tackle_charge: ['tackle_charge', 'idle'], tackle_pl2: ['tackle_pl2', 'tackle', 'run', 'idle'], tackle_pl3: ['tackle_pl3', 'tackle_pl2', 'tackle', 'run', 'idle'], brake: ['brake', 'sprint_stop', 'walk_stop', 'idle'],
   dodge_forward: ['dodge_forward', 'dodge_left', 'jump', 'idle'], dodge_back: ['dodge_back', 'dodge_forward', 'idle'], dodge_left: ['dodge_left', 'dodge_forward', 'idle'],
   dodge_right: ['dodge_right', 'dodge_left', 'dodge_forward', 'idle'], vault: ['jump', 'dodge_forward', 'idle'], recoil: ['blocked', 'hit', 'idle'],
@@ -41,27 +45,30 @@ export const STATE_ACTIONS = {
   move_1: ['move_1', 'tackle', 'idle'], move_2: ['move_2', 'tackle', 'idle'], move_3: ['move_3', 'tackle', 'idle'], move_4: ['move_4', 'tackle', 'idle'],
   charge_reflect: ['reflect_charge', 'idle'], release_reflect: ['reflect_release', 'move_1', 'tackle'],
   charge_psyshock: ['psyshock_charge', 'idle'], release_psyshock: ['psyshock_release', 'move_2', 'tackle'],
+  jump: ['jump', 'vault', 'fall', 'idle'],
   airborne: ['knockback', 'fall', 'hit', 'idle'], landing: ['land', 'recover', 'downed', 'idle'], recover: ['recover', 'land', 'idle'], defeated: ['death', 'downed', 'idle'], pushed: ['hit', 'idle'],
 };
-export const STATE_LABELS = {neutral: 'Parado', turn: 'Girando no lugar', walk: 'Andando', run: 'Correndo', walk_back: 'Recuando', walk_left: 'Lateral esquerda', walk_right: 'Lateral direita',
-  sprint: 'Sprint', walk_stop: 'Freio da caminhada', sprint_stop: 'Freio do sprint',
-  guard_enter: 'Entrando na defesa', guard: 'Defendendo', guard_exit: 'Saindo da defesa', guard_hit: 'Defesa perfeita', guardStun: 'Guard stun', tackle: 'Tackle', wallSplat: 'Preso na parede (wall-splat)', tackle_charge: 'Carregando tackle', tackle_pl2: 'Tackle PL2', tackle_pl3: 'Tackle PL3', brake: 'Freio do tackle (finta)', dodge_forward: 'Esquiva frontal',
-  dodge_back: 'Esquiva traseira', dodge_left: 'Esquiva esquerda', dodge_right: 'Esquiva direita', vault: 'Salto sobre o rival', recoil: 'Recuo (bloqueado)', airborne: 'Lançado',
+export const STATE_LABELS = {neutral: 'Parado', turn: 'Girando no lugar', walk: 'Andando para frente', walk_back: 'Andando para trás', walk_left: 'Andando à esquerda', walk_right: 'Andando à direita',
+  run: 'Correndo para frente', run_back: 'Correndo para trás', run_left: 'Correndo à esquerda', run_right: 'Correndo à direita', sprint: 'Sprint para frente', sprint_back: 'Sprint para trás', sprint_left: 'Sprint à esquerda', sprint_right: 'Sprint à direita', walk_stop: 'Freio da caminhada', sprint_stop: 'Freio do sprint',
+  guard_enter: 'Entrando na defesa', guard: 'Defendendo', guard_exit: 'Saindo da defesa', guard_hit: 'Defesa perfeita', guardStun: 'Guard stun', tackle: 'Tackle', meteor_prep: 'Meteor: preparação no ar', meteor_dive: 'Meteor: mergulho', meteor_ground: 'Meteor: no chão', wallSplat: 'Preso na parede (wall-splat)', tackle_charge: 'Carregando tackle', tackle_pl2: 'Tackle PL2', tackle_pl3: 'Tackle PL3', brake: 'Freio do tackle (finta)', dodge_forward: 'Esquiva frontal',
+  dodge_back: 'Esquiva traseira', dodge_left: 'Esquiva esquerda', dodge_right: 'Esquiva direita', vault: 'Salto sobre o rival', jump: 'Pulo', recoil: 'Recuo (bloqueado)', airborne: 'Lançado',
   landing: 'Aterrissando', recover: 'Recuperando (exausto)', defeated: 'Derrotado', pushed: 'Empurrado', __preview: 'Prévia',
   move_1: 'Movimento 1', move_2: 'Movimento 2', move_3: 'Movimento 3', move_4: 'Movimento 4',
   charge_reflect: 'Carregando Reflect', release_reflect: 'Disparo do Reflect',
   charge_psyshock: 'Carregando Psyshock', release_psyshock: 'Disparo do Psyshock'};
 /** Blocos de animação listados no painel (cada um serve a um ou mais estados e aceita várias variantes). */
-export const ACTION_IDS = ['idle', 'turn', 'walk', 'run', 'sprint', 'walk_stop', 'sprint_stop', 'walk_back', 'walk_left', 'walk_right', 'block_start', 'block', 'block_end', 'guard_impact', 'blocked', 'tackle', 'tackle_charge', 'tackle_pl2', 'tackle_pl3', 'brake', 'wall_splat',
+export const ACTION_IDS = ['idle', 'turn', 'walk', 'walk_back', 'walk_left', 'walk_right', 'run', 'run_back', 'run_left', 'run_right', 'sprint', 'sprint_back', 'sprint_left', 'sprint_right', 'walk_stop', 'sprint_stop', 'block_start', 'block', 'block_end', 'guard_impact', 'blocked', 'tackle', 'tackle_charge', 'tackle_pl2', 'tackle_pl3', 'brake', 'wall_splat', 'meteor_prep', 'meteor_dive', 'meteor_ground',
   'dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'jump', 'hit', 'knockback', 'fall', 'land', 'recover', 'downed', 'death', 'move_1', 'move_2', 'move_3', 'move_4'];
 // Sinônimos para associar por nome quando o arquivo não traz o mapa do Studio.
 const ALIASES = {
   idle: ['idle', 'parado', 'stand', 'breathing idle', 'breath'], turn: ['turn', 'girar', 'turn in place'], walk: ['walk', 'walking', 'andar', 'caminhar'], run: ['run', 'running', 'correr'],
-  sprint: ['sprint', 'sprinting', 'fast run', 'dash run'], walk_stop: ['walk stop', 'walking stop', 'walk to stop', 'stop walking', 'freio'], sprint_stop: ['run stop', 'sprint stop', 'run to stop', 'running stop'],
+  sprint: ['sprint', 'sprinting', 'fast run', 'dash run'], sprint_back: ['sprint back', 'sprint backward'], sprint_left: ['sprint left', 'sprint strafe left'], sprint_right: ['sprint right', 'sprint strafe right'],
+  run_back: ['run back', 'running backward'], run_left: ['run left', 'running left', 'run strafe left'], run_right: ['run right', 'running right', 'run strafe right'], walk_stop: ['walk stop', 'walking stop', 'walk to stop', 'stop walking', 'freio'], sprint_stop: ['run stop', 'sprint stop', 'run to stop', 'running stop'],
   walk_back: ['walk back', 'walking backward', 'walk backward', 'backward walk', 'back walk', 'recuar'], walk_left: ['walk left', 'left strafe', 'strafe left', 'left walk'], walk_right: ['walk right', 'right strafe', 'strafe right', 'right walk'],
   block_start: ['block start', 'guard start', 'block idle start'], block: ['block', 'guard', 'defend', 'defesa', 'blocking'], block_end: ['block end', 'guard end'],
   guard_impact: ['guard impact', 'block hit', 'block impact', 'guard hit'], blocked: ['blocked', 'recoil', 'bounce', 'rebote'],
   tackle: ['tackle', 'dash attack', 'charge', 'attack', 'investida'],
+  meteor_prep: ['meteor prep', 'meteor_prep', 'meteor windup', 'slam prep', 'slam windup', 'preparacao meteor'], meteor_ground: ['meteor ground', 'meteor_ground', 'meteor impact', 'slam impact', 'slam ground'], meteor_dive: ['meteor dive', 'meteor_dive', 'meteor slam', 'slam dive', 'meteor', 'mergulho'],
   tackle_charge: ['tackle charge', 'tackle_charge', 'charge up', 'wind up', 'windup', 'power up'], tackle_pl2: ['tackle pl2', 'tackle_pl2', 'tackle 2', 'tackle medium', 'dash attack 2'],
   wall_splat: ['wall splat', 'wall_splat', 'pinned', 'wall hit', 'wall stick'],
   tackle_pl3: ['tackle pl3', 'tackle_pl3', 'tackle 3', 'tackle heavy', 'heavy tackle', 'tackle max'], brake: ['brake', 'skid', 'slide stop', 'brake slide', 'stop slide'], dodge_forward: ['dodge forward', 'dodge', 'front', 'roll forward', 'forward roll', 'esquiva'],
@@ -76,12 +83,12 @@ const ALIASES = {
   psyshock_release: ['psyshock release', 'psyshock_release', 'psychic release', 'psyshock', 'throw', 'cast release', 'cast_release'],
 };
 const MOVE_KEYS = ['move_1', 'move_2', 'move_3', 'move_4'];
-const TIMED = new Set(['tackle', 'tackle_pl2', 'tackle_pl3', 'dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'vault', 'recoil', 'guardStun', 'airborne', 'landing', 'recover', 'defeated', ...MOVE_KEYS]);
+const TIMED = new Set(['tackle', 'tackle_pl2', 'tackle_pl3', 'dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'vault', 'jump', 'recoil', 'guardStun', 'airborne', 'landing', 'recover', 'defeated', ...MOVE_KEYS]);
 const TRANSIENT = new Set(['guard_enter', 'guard_exit', 'guard_hit']);
 /** Tocam uma vez a partir da entrada e seguram a última pose (não repetem em laço). */
-const ONE_SHOT = new Set([...TRANSIENT, 'walk_stop', 'sprint_stop', '__preview', 'release_reflect', 'release_psyshock', ...MOVE_KEYS]);
-const LOCOMOTION = new Set(['neutral', 'turn', 'walk', 'run', 'walk_back', 'walk_left', 'walk_right']);
-const ACTION_KEYS = new Set(['tackle', 'tackle_pl2', 'tackle_pl3', 'dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'vault', ...MOVE_KEYS]);
+const ONE_SHOT = new Set(['meteor_prep', 'meteor_dive', 'meteor_ground', ...TRANSIENT, 'walk_stop', 'sprint_stop', '__preview', 'release_reflect', 'release_psyshock', ...MOVE_KEYS]);
+const LOCOMOTION = new Set(['neutral', 'turn', 'walk', 'walk_back', 'walk_left', 'walk_right', 'run', 'run_back', 'run_left', 'run_right', 'sprint', 'sprint_back', 'sprint_left', 'sprint_right']);
+const ACTION_KEYS = new Set(['meteor_prep', 'meteor_dive', 'meteor_ground', 'tackle', 'tackle_pl2', 'tackle_pl3', 'dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'vault', ...MOVE_KEYS]);
 const COMBAT_KEYS = new Set(['wallSplat', 'airborne', 'landing', 'recover', 'guardStun', 'recoil', 'defeated', 'pushed', 'guard_hit']);
 
 /** Recusa cedo (com motivo legível) o que não é GLB 2.0/glTF, antes de entregar ao carregador. */
@@ -111,12 +118,14 @@ export const boneKey = name => String(name).toLowerCase().replace(/^.*[:|]/, '')
 const hash = (...parts) => {let h = 2166136261;for (const ch of parts.join('|')) {h ^= ch.charCodeAt(0);h = Math.imul(h, 16777619);}return h >>> 0;};
 const STORE = 'arenamon-lab-anim-v1:';
 
+import {createSquashState, resetSquash, updateSquash} from './squash-stretch.js';
+
 export class Character {
   constructor(source, {tint = null, slot = 0, persist = true} = {}) {
     this.source = source;this.slot = slot;this.persist = persist;
     this.root = clone(source.scene);this.mixer = new T.AnimationMixer(this.root);
     this.clips = source.animations.slice();this.clipInfo = this.clips.map(c => ({name: c.name, origin: 'glb', compatible: true, coverage: 1}));
-    this.variants = autoVariants(source);this.speeds = {};this.clipOffsets = {};this.visualOffset = 0;this.autoGround = true;
+    this.variants = autoVariants(source);this.speeds = {};this.playback = {};this.clipOffsets = {};this.visualOffset = 0;this.autoGround = true;this.lockRootMotion = true;this.lockToGround = true;
     this.moveAnims = {
       reflect: {chargeClip: null, chargeLoopStart: 0, chargeLoopEnd: null, releaseClip: null},
       psyshock: {chargeClip: null, chargeLoopStart: 0, chargeLoopEnd: null, releaseClip: null}
@@ -133,7 +142,27 @@ export class Character {
     this.hips = null;this.root.traverse(o => {if (!this.hips && o.isBone && /hip|pelvis|root/i.test(o.name)) this.hips = o;});
     if (!this.hips) this.root.traverse(o => {if (!this.hips && o.isBone) this.hips = o;});
     this.hipsRest = this.hips?.position.clone();
+    // Alguns exportadores gravam o deslocamento no quadril; outros, num nó raiz acima do esqueleto.
+    // Guarda todos os alvos de posição capazes de mover o personagem inteiro para neutralizá-los no mesmo quadro.
+    const rootMotionNodes = new Set(this.hips ? [this.hips] : []);
+    for (const clip of this.clips) for (const track of clip.tracks) if (track.name.endsWith('.position')) {
+      const node = this.root.getObjectByName(track.name.slice(0, -9));
+      if (node && (node === this.hips || !node.parent?.isBone)) rootMotionNodes.add(node);
+    }
+    this.rootMotionNodes = [...rootMotionNodes].map(node => ({node, rest: node.position.clone()}));
+    this.rootMotionAnimated = new T.Vector3();this.rootMotionRestWorld = new T.Vector3();
     this.bones = new Map();this.root.traverse(o => {if (o.isBone) this.bones.set(boneKey(o.name), o.name);});
+    // O mixer mantém a raiz GLB; somente os wrappers recebem a deformação.
+    this.model = this.root;
+    this.root = new T.Group();this.deformation = new T.Group();this.presentation = new T.Group();
+    this.root.add(this.deformation);this.deformation.add(this.presentation);this.presentation.add(this.model);
+    this.model.position.set(0, 0, 0);this.model.rotation.set(0, 0, 0);this.model.scale.setScalar(1);this.model.updateMatrixWorld(true);
+    // O pivô do arquivo pode estar longe do quadril (o Mushroom, por exemplo, vem deslocado no GLB). Centraliza o
+    // quadril no wrapper de apresentação para que girar o lutador não faça a malha orbitar ao redor da hitbox.
+    const anchorWorld = this.hips?.getWorldPosition(new T.Vector3()) ?? new T.Vector3();
+    this.modelAnchor = this.model.worldToLocal(anchorWorld);
+    this.model.position.set(-this.modelAnchor.x, 0, -this.modelAnchor.z);
+    this.squash = createSquashState();this.squashTick = -1;this.squashFighter = null;
     this.restore();
     this.warmGround();
   }
@@ -243,16 +272,17 @@ export class Character {
     }
     return (this.variants[id] || []).filter(i => this.clips[i] && this.clipInfo[i]?.compatible);
   }
-  addVariant(id, index) {if (!this.clipInfo[index]?.compatible) return false;const list = this.variants[id] ??= [];if (!list.includes(index)) list.push(index);this.resetVisual();this.save();return true;}
-  removeVariant(id, index) {this.variants[id] = (this.variants[id] || []).filter(i => i !== index);if (!this.variants[id].length) delete this.variants[id];this.resetVisual();this.save();}
+  refreshVisual() {if (this.current) this.current.entry = '__mapping_changed__';}
+  addVariant(id, index) {if (!this.clipInfo[index]?.compatible) return false;const list = this.variants[id] ??= [];if (!list.includes(index)) list.push(index);this.refreshVisual();this.save();return true;}
+  removeVariant(id, index) {this.variants[id] = (this.variants[id] || []).filter(i => i !== index);if (!this.variants[id].length) delete this.variants[id];this.refreshVisual();this.save();}
   /** Troca a variante principal (posição 0) de um estado. */
-  setPrimary(id, index) {if (index === null) {delete this.variants[id];} else {if (!this.clipInfo[index]?.compatible) return false;const rest = (this.variants[id] || []).filter(i => i !== index);this.variants[id] = [index, ...rest];}this.resetVisual();this.save();return true;}
+  setPrimary(id, index) {if (index === null) {delete this.variants[id];} else {if (!this.clipInfo[index]?.compatible) return false;const extras = (this.variants[id] || []).slice(1).filter(i => i !== index);this.variants[id] = [index, ...extras];}this.refreshVisual();this.save();return true;}
   /**
    * Para e descarta todas as ações do mixer (atual e camadas). Antes, trocar uma associação só esquecia a ação atual,
    * que continuava tocando com peso 1 misturada a todas as outras (“forçando” uma pose).
    */
   resetVisual() {for (const l of [...this.layers, this.current].filter(Boolean)) {l.action.stop();this.mixer.uncacheAction(l.clip);}this.layers = [];this.current = null;this.stableLoco = null;}
-  moveVariant(id, index, delta) {const l = this.variants[id] || [], i = l.indexOf(index), j = i + delta;if (i < 0 || j < 0 || j >= l.length) return;[l[i], l[j]] = [l[j], l[i]];this.resetVisual();this.save();}
+  moveVariant(id, index, delta) {const l = this.variants[id] || [], i = l.indexOf(index), j = i + delta;if (i < 0 || j < 0 || j >= l.length) return;[l[i], l[j]] = [l[j], l[i]];this.refreshVisual();this.save();}
   storeKey() {return STORE + (this.source.name || 'sem-nome');}
   /** Associações, velocidades e offsets em formato portátil (clipes por nome). */
   stateData() {
@@ -266,8 +296,8 @@ export class Character {
         releaseClip: conf.releaseClip != null ? byName(conf.releaseClip) : null
       };
     }
-    return {variants: Object.fromEntries(Object.entries(this.variants).map(([id, l]) => [id, l.map(byName).filter(Boolean)])), speeds: {...this.speeds},
-      clipOffsets: Object.fromEntries(Object.entries(this.clipOffsets).map(([i, v]) => [byName(i), v]).filter(([k]) => k)), visualOffset: this.visualOffset, autoGround: this.autoGround, moveAnims: moveAnimsData};
+    return {variants: Object.fromEntries(Object.entries(this.variants).map(([id, l]) => [id, l.map(byName).filter(Boolean)])), speeds: {...this.speeds}, playback: JSON.parse(JSON.stringify(this.playback)),
+      clipOffsets: Object.fromEntries(Object.entries(this.clipOffsets).map(([i, v]) => [byName(i), v]).filter(([k]) => k)), visualOffset: this.visualOffset, autoGround: this.autoGround, lockRootMotion: this.lockRootMotion, rootMotionLockVersion: 2, lockToGround: this.lockToGround, moveAnims: moveAnimsData};
   }
   save() {
     if (!this.persist) return;
@@ -287,9 +317,13 @@ export class Character {
       const list = names.map(n => {const i = idx(n);if (i < 0) this.missingAssociations.push(`${id}: ${n}`);return i;}).filter(i => i >= 0);
       if (list.length) this.variants[id] = list;else if (names.length === 0) delete this.variants[id];
     }
-    Object.assign(this.speeds, data.speeds || {});
+    Object.assign(this.speeds, data.speeds || {});Object.assign(this.playback, data.playback || {});
     for (const [n, v] of Object.entries(data.clipOffsets || {})) {const i = idx(n);if (i >= 0) this.clipOffsets[i] = v;}
     if (typeof data.visualOffset === 'number') this.visualOffset = data.visualOffset;if (typeof data.autoGround === 'boolean') this.autoGround = data.autoGround;
+    // Estados antigos podiam ter salvo a trava incompleta como desligada. A versão 2 estreia ligada uma vez; depois a
+    // escolha feita no controle novo volta a ser respeitada normalmente.
+    this.lockRootMotion = data.rootMotionLockVersion === 2 && typeof data.lockRootMotion === 'boolean' ? data.lockRootMotion : true;
+    if (typeof data.lockToGround === 'boolean') this.lockToGround = data.lockToGround;
     if (data.moveAnims) {
       for (const [m, conf] of Object.entries(data.moveAnims)) {
         this.moveAnims[m] = {
@@ -312,6 +346,11 @@ export class Character {
         const target = this.root.getObjectByName(node) ? node : this.bones.get(boneKey(node));
         if (!target) return false;found++;if (target !== node) renamed.push(node);tr.name = target + prop;return true;
       });
+      // Uma animação importada pode trazer root motion num nó raiz que não aparecia nos clipes do GLB principal.
+      for (const track of c.tracks) if (track.name.endsWith('.position')) {
+        const node = this.root.getObjectByName(track.name.slice(0, -9));
+        if (node && (node === this.hips || !node.parent?.isBone) && !this.rootMotionNodes.some(entry => entry.node === node)) this.rootMotionNodes.push({node, rest: node.position.clone()});
+      }
       const coverage = total ? found / total : 0, compatible = coverage >= .6 && c.tracks.length > 0;
       let name = `${c.name || 'clip'} [${file.name}]`, n = 2;while (this.clips.some(x => x.name === name)) name = `${c.name} [${file.name}] (${n++})`;c.name = name;
       this.clips.push(c);this.clipInfo.push({name, origin: file.name, compatible, coverage, renamed: renamed.length});
@@ -320,6 +359,7 @@ export class Character {
     this.restore();return report;
   }
   speedOf(id) {return (Character.options.speed || 1) * (this.speeds[id] ?? 1);}
+  playbackOf(id, key = id) {const o = this.playback[id] || {};return {loop: o.loop ?? !(ONE_SHOT.has(key) || TIMED.has(key)), maxDuration: Math.max(0, Number(o.maxDuration) || 0)};}
   /** Ação associada a um estado (primeira da ordem de preferência com variantes). */
   actionFor(stateKey) {
     if (stateKey?.startsWith?.('charge_')) {
@@ -339,19 +379,29 @@ export class Character {
   clipFor(stateKey) {const id = this.actionFor(stateKey);return id ? {id, index: this.variantsOf(id)[0]} : null;}
   /** Sorteio determinístico da variante na entrada do estado (mesmo lutador, estado e passo → mesma escolha). */
   pickVariant(id, seed) {const list = this.variantsOf(id);if (list.length <= 1) return list[0];const [r] = mulberry(seed);return list[Math.floor(r * list.length)];}
-  missingStates() {return Object.keys(STATE_ACTIONS).filter(k => k !== 'neutral' && !['tackle_charge', 'tackle_pl2', 'tackle_pl3', 'brake', 'wallSplat'].includes(k) && !TRANSIENT.has(k) && !['walk_stop', 'sprint_stop'].includes(k) && (this.actionFor(k) ?? 'idle') === 'idle');}
+  missingStates() {return Object.keys(STATE_ACTIONS).filter(k => k !== 'neutral' && !['meteor_prep', 'meteor_dive', 'meteor_ground', 'tackle_charge', 'tackle_pl2', 'tackle_pl3', 'brake', 'wallSplat', 'ledge_hang', 'ledge_climb'].includes(k) && !TRANSIENT.has(k) && !['walk_stop', 'sprint_stop'].includes(k) && (this.actionFor(k) ?? 'idle') === 'idle');}
   // ---------- Estado visual ----------
   stateKey(f) {
     if (f.hp <= 0 && !f.flight) return 'defeated';
-    if (f.flight) return f.wallSplat ? 'wallSplat' : 'airborne';
+    if (f.ledge) return f.ledge.phase === 'climb' ? 'ledge_climb' : 'ledge_hang';   // Ledge Grab (sem clipe próprio cai para wall_splat/jump)
+    if (f.flight) {
+      if (f.wallSplat) return 'wallSplat';
+      if (f.flight.isNormalJump) return 'jump';
+      return 'airborne';
+    }
     if (f.state === 'landing' && f.recoveryFrom && this.current && ACTION_KEYS.has(this.current.key)) return this.current.key;
-    if (f.state === 'landing') return this.clock - this.lastFlight < 1.5 ? 'landing' : 'recover';
+    if (f.state === 'landing' && f.recoveryFrom === 'tackle') return 'tackle';   // recuperação do tackle/mergulho: segura a pose do golpe, sem a animação de aterrissagem
+    if (f.state === 'landing') {
+      if (f.normalJumpLanding) return this.actionFor('land') ? 'landing' : 'neutral';
+      return this.clock - this.lastFlight < 1.5 ? 'landing' : 'recover';
+    }
     if (f.charge) {
       const moveId = f.charge.move || (f.charge.slot === 0 ? 'reflect' : 'psyshock');
       return 'charge_' + moveId;
     }
     if (f.state === 'brake') return 'brake';
     if (f.tackleCharge) return 'tackle_charge';
+    if (f.action?.slam) return !f.action.slamPrepDone ? 'meteor_prep' : f.action.slamLanded ? 'meteor_ground' : 'meteor_dive';
     if (f.action?.kind === 'tackle') return f.action.pl === 3 ? 'tackle_pl3' : f.action.pl === 2 ? 'tackle_pl2' : 'tackle';
     if (f.action?.kind === 'move') return MOVE_KEYS[Math.max(0, Math.min(3, f.action.slot ?? 0))];
     if (f.action?.kind === 'dodge') {
@@ -364,7 +414,6 @@ export class Character {
     if (f.state === 'guardStun') return 'guardStun';
     if (f.guard) {this.guardSeenAt = this.clock;return 'guard';}
     if (this.current?.key === 'guard' && this.clock - (this.guardSeenAt ?? -Infinity) < Character.options.guardHold * .6 && !f.action) return 'guard';
-    if (f.sprinting) return 'sprint';
     const speed = length(f.velocity), walk = f.attributes.speed;
     // Freios: só quando a física está realmente desacelerando (e só se houver animação própria; senão, locomoção normal).
     if (f.locoPhase === 'sprintStop' && speed > walk * .5 && this.actionFor('sprint_stop')) return 'sprint_stop';
@@ -379,10 +428,10 @@ export class Character {
       return diff > (turning ? .08 : .22) ? 'turn' : 'neutral';
     }
     const rel = angleDelta(f.faceGoal ?? f.facing, angleOf(f.velocity));
-    if (Math.abs(rel) > 3 * Math.PI / 4) return 'walk_back';
-    if (Math.abs(rel) > Math.PI / 4) return rel > 0 ? 'walk_left' : 'walk_right';
+    const direction = Math.abs(rel) > 3 * Math.PI / 4 ? 'back' : Math.abs(rel) > Math.PI / 4 ? (rel > 0 ? 'left' : 'right') : '';
+    if (f.sprinting) return direction ? `sprint_${direction}` : 'sprint';
     // Histerese andar/correr: sobe aos 62% da velocidade, desce aos 52%.
-    const wasRun = this.stableLoco === 'run';return speed > walk * (wasRun ? .52 : .62) ? 'run' : 'walk';
+    const wasRun = this.stableLoco?.startsWith('run');const gait = speed > walk * (wasRun ? .52 : .62) ? 'run' : 'walk';return direction ? `${gait}_${direction}` : gait;
   }
   /** Histerese da locomoção: um estado de locomoção novo só vale depois de estável por locomotionHold segundos. */
   smoothLocomotion(key) {
@@ -404,8 +453,13 @@ export class Character {
       return Math.min(1, Math.max(0, (this.clock - (this.current?.started ?? this.clock)) / Math.max(1e-4, d / this.speedOf(this.current?.id || key))));
     }
     // Pulo físico: o clipe de salto acompanha o tempo de voo balístico (2·impulso ÷ gravidade).
+    if (key === 'jump' && f.flight) {
+      const g = f.flight.gravity || C.rules.launchGravity;
+      const initialVy = Math.sqrt(2 * g * (C.map?.jumpHeight ?? 2.0));
+      return Math.min(1, Math.max(0, (initialVy - f.flight.vy) / Math.max(1e-4, 2 * initialVy)));
+    }
     if (key === 'vault' && f.action?.jump) return f.action.elapsed / Math.max(.05, 2 * C.actions.dodge.vaultUp / Math.max(.1, C.actions.dodge.vaultGravity));
-    if (key.startsWith('dodge') || key === 'vault') return f.action ? f.action.elapsed / actionDuration('dodge') : 1;
+    if (key.startsWith('dodge') || key === 'vault') return f.action ? f.action.elapsed / (actionDuration('dodge') * (f.action.durationScale ?? 1)) : 1;
     if (key === 'recoil') return f.action ? f.action.elapsed / R.recoil : 1;
     if (key === 'guardStun') return 1 - f.stun / Math.max(1e-6, R.guardStun);
     if (key === 'landing') return 1 - f.knockRecovery / Math.max(1e-6, R.landingRecovery);
@@ -478,6 +532,8 @@ export class Character {
    * SOMENTE VISUAL: nunca modifica o estado autoritativo do lutador.
    */
   update(f, dt, alt, events = [], ctx = {}) {
+    if (this.squashFighter !== f || (ctx.tick != null && ctx.tick < this.squashTick)) resetSquash(this.squash);
+    this.squashFighter = f;this.squashTick = ctx.tick ?? this.squashTick;
     const opt = Character.options;this.clock += dt;if (dt > 0) this.lastDt = dt;
     if (this.visualFreeze > 0) {this.visualFreeze = Math.max(0, this.visualFreeze - dt);dt = 0;}
     if (f.flight && !this.wasFlying) this.flightV0 = f.flight.vy + C.rules.launchGravity * C.test.step;
@@ -512,6 +568,12 @@ export class Character {
         const index = p ? p.index : (mp ? (mp.phase === 'charge' ? mp.chargeIdx : mp.releaseIdx) : this.pickVariant(id, hash(this.slot, key, ctx.tick ?? Math.round(this.clock * 120), serial)));
         this.enter(key, id, index, entry, f, ctx);
       } else if (this.current) this.current.entry = entry;
+      else {
+        // Um modelo nunca deve cair na bind pose/T-pose por falta de associação. Na primeira exibição usa o
+        // primeiro clipe compatível e continua nele até existir uma troca válida.
+        const index = this.clipInfo.findIndex(info => info.compatible);
+        if (index >= 0) this.enter(key, '__fallback', index, entry, f, ctx);
+      }
     } else if (this.current.key !== key) this.current.key = key;
     this.blend(f, dt, key, p);
     this.place(f, alt, dt);
@@ -519,12 +581,19 @@ export class Character {
   /** Entra num estado: a animação atual vira camada de fade e a nova começa do zero (registro na telemetria). */
   enter(key, id, index, entry, f, ctx) {
     const prev = this.current;
-    if (prev && prev.index === index && LOCOMOTION.has(prev.key) && LOCOMOTION.has(key)) {
-      // Mesmo clipe servindo a outro estado de locomoção (ex.: andar → correr com o mesmo clipe): continua sem reiniciar.
+    if (prev && prev.index === index) {
+      // Mesmo clipe servindo a outro estado (locomoção, ação renascida com outro serial, transição curta): continua de
+      // onde está, sem reiniciar e sem criar camada — o tempo das ações temporais é imposto pela simulação em blend().
       prev.entry = entry;prev.key = key;prev.id = id;this.restartsAvoided++;return;
     }
     if (prev) {prev.fadeStart = this.clock;prev.fadeFrom = prev.weight;this.layers.push(prev);}
-    const clip = this.clips[index].clone(), action = this.mixer.clipAction(clip);
+    // Sem clone: o mixer cacheia a ação por (clipe, raiz) e o tempo é por ação. Clonar copiava todos os keyframes de
+    // todas as tracks a cada troca de estado e fazia o cache interno do mixer crescer sem limite (uma entrada por troca).
+    const clip = this.clips[index], action = this.mixer.clipAction(clip);
+    // Em A → B → A antes do fim do fade, clipAction(A) devolve o mesmo objeto que ainda estava na camada A antiga.
+    // Se essa camada permanecesse na lista, blend() chamaria stop() nela ao terminar o fade e desligaria também a A
+    // atual, deixando o modelo sem ação ativa (bind pose/T-pose). A camada obsoleta sai sem parar a ação reutilizada.
+    this.layers = this.layers.filter(layer => layer.action !== action);
     action.reset().play();action.paused = true;action.enabled = true;action.setEffectiveWeight(prev ? 0 : 1);
     this.current = {key, id, index, clip, action, entry, started: this.clock, weight: prev ? 0 : 1, fade: ACTION_KEYS.has(key) || COMBAT_KEYS.has(key) ? Character.options.actionFade : Character.options.fade};
     this.fade = 0;this.timer = 0;this.transitions++;
@@ -549,17 +618,17 @@ export class Character {
     for (const layer of this.layers) {
       const k = Math.max(0, Math.min(1, (this.clock - layer.fadeStart) / fadeOf(this.current)));layer.weight = layer.fadeFrom * (1 - k);
       if (layer.weight <= 1e-4) {layer.action.stop();layer.dead = true;continue;}
-      const a = layer.action, d = layer.clip.duration || 1;
-      a.time = ONE_SHOT.has(layer.key) || TIMED.has(layer.key) ? Math.min(d, a.time + dt * this.speedOf(layer.id)) : (a.time + dt * this.speedOf(layer.id)) % d;
+      const a = layer.action, d = layer.clip.duration || 1, s = this.speedOf(layer.id), playback = this.playbackOf(layer.id, layer.key), cap = Math.min(d, playback.maxDuration > 0 ? playback.maxDuration * s : d), next = a.time + dt * s;
+      a.time = playback.loop ? next % Math.max(.001, cap) : Math.min(cap, next);
       a.setEffectiveWeight(layer.weight);old += layer.weight;
     }
     this.layers = this.layers.filter(l => !l.dead);
     this.fade += dt;this.timer += dt;
     if (this.current) {
-      const a = this.current.action, d = this.current.clip.duration || 1, s = this.speedOf(this.current.id);
+      const a = this.current.action, d = this.current.clip.duration || 1, s = this.speedOf(this.current.id), playback = this.playbackOf(this.current.id, this.current.key), cap = Math.min(d, playback.maxDuration > 0 ? playback.maxDuration * s : d);
       this.current.weight = Math.max(0, 1 - Math.min(1, old));a.setEffectiveWeight(this.current.weight);
       if (p) {
-        a.time = Math.min(d, (this.clock - p.started) * Character.options.speed);
+        a.time = Math.min(cap, (this.clock - p.started) * Character.options.speed);
       } else if (this.current.key.startsWith('charge_')) {
         const moveId = this.current.key.slice(7);
         const conf = this.moveAnims?.[moveId];
@@ -573,16 +642,30 @@ export class Character {
           a.time = loopStart + ((elapsed - loopEnd) % loopLen);
         }
       } else if (ONE_SHOT.has(this.current.key) || this.current.key.startsWith('release_')) {
-        a.time = Math.min(d, (this.clock - this.current.started) * s);
+        const elapsed = (this.clock - this.current.started) * s;a.time = playback.loop ? elapsed % Math.max(.001, cap) : Math.min(cap, elapsed);
       } else if (TIMED.has(this.current.key)) {
-        a.time = Math.min(d, Math.max(0, this.progress(f, this.current.key)) * d);
+        const timed = Math.max(0, this.progress(f, this.current.key)) * cap;a.time = playback.loop ? timed % Math.max(.001, cap) : Math.min(cap, timed);
       } else {
-        a.time = (a.time + dt * s) % d;
+        const next = a.time + dt * s;a.time = playback.loop ? next % Math.max(.001, cap) : Math.min(cap, next);
       }
     }
     this.mixer.update(0);
-    // Sem root motion: o deslocamento horizontal da raiz do GLB é descartado (a posição vem da física).
-    if (this.hips && this.hipsRest) {this.hips.position.x = this.hipsRest.x;this.hips.position.z = this.hipsRest.z;}
+    // Sem root motion horizontal: projeta a posição no espaço mundial e remove X/Z ali. Não basta zerar X/Z local,
+    // pois rigs com um ancestral rotacionado podem transformar o Y local em deslocamento horizontal no mundo
+    // (caso real do Mushroom). O componente vertical continua disponível para o apoio no chão neutralizá-lo.
+    if (this.lockRootMotion) {
+      this.model.updateMatrixWorld(true);
+      for (const {node, rest} of this.rootMotionNodes) {
+        const parent = node.parent;
+        if (!parent) {node.position.x = rest.x;node.position.z = rest.z;node.updateMatrix();continue;}
+        parent.updateWorldMatrix(true, false);
+        this.rootMotionAnimated.copy(node.position).applyMatrix4(parent.matrixWorld);
+        this.rootMotionRestWorld.copy(rest).applyMatrix4(parent.matrixWorld);
+        this.rootMotionAnimated.x = this.rootMotionRestWorld.x;this.rootMotionAnimated.z = this.rootMotionRestWorld.z;
+        node.position.copy(parent.worldToLocal(this.rootMotionAnimated));node.updateMatrix();
+      }
+      this.model.updateMatrixWorld(true);
+    }
   }
   /**
    * Curva do ponto mais baixo da malha ao longo do clipe (17 amostras, espaço da raiz sem escala), com cache.
@@ -603,12 +686,36 @@ export class Character {
     }
     this.groundCache.set(index, curve);return curve;
   }
+  /** Pré-calcula imediatamente as curvas de solo das ações de combate essenciais para evitar engasgos na partida. */
+  warmEssentialGround() {
+    const priority = [
+      'idle', 'turn', 'walk', 'run', 'sprint', 'walk_back', 'walk_left', 'walk_right',
+      'tackle', 'tackle_pl2', 'tackle_pl3', 'tackle_charge', 'brake',
+      'block_start', 'block', 'guard_impact', 'blocked',
+      'dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'jump',
+      'hit', 'knockback', 'fall', 'land', 'recover'
+    ];
+    for (const act of priority) {
+      const list = this.variants[act] || [];
+      for (const idx of list) {
+        if (!this.groundCache.has(idx) && this.clips[idx]) {
+          this.groundCurve(idx);
+        }
+      }
+    }
+  }
   /** Pré-calcula as curvas de apoio em segundo plano (um clipe por vez), para a luta nunca pagar esse custo. */
   warmGround(delay = 60) {
     // Só os clipes associados a estados (os demais calculam na primeira vez que tocarem), em momentos ociosos do navegador.
     const queue = [...new Set(Object.values(this.variants).flat())].filter(i => !this.groundCache.has(i));
-    const idle = typeof requestIdleCallback === 'function' ? fn => requestIdleCallback(fn, {timeout: 1500}) : fn => setTimeout(fn, delay);
-    const next = () => {if (this.disposed || !queue.length) return;this.groundCurve(queue.shift());this.warmTimer = setTimeout(() => idle(next), delay);};
+    const idle = typeof requestIdleCallback === 'function' ? fn => requestIdleCallback(fn, {timeout: Character.isLiveCombat ? 4000 : 1500}) : fn => setTimeout(fn, Character.isLiveCombat ? 350 : delay);
+    const next = () => {
+      if (this.disposed || !queue.length) return;
+      // Se houver combate intenso em tempo real, espaça o processamento para não disputar o orçamento de 16ms
+      const actualDelay = Character.isLiveCombat ? 300 : delay;
+      this.groundCurve(queue.shift());
+      this.warmTimer = setTimeout(() => idle(next), actualDelay);
+    };
     this.warmTimer = setTimeout(() => idle(next), delay);
   }
   /** Ponto mais baixo do clipe no instante t (interpolado); clipGround(index) = mínimo do clipe inteiro. */
@@ -622,7 +729,11 @@ export class Character {
   groundAtFrame(index, t) {
     if (this.groundCache.has(index)) return this.groundAt(index, t);
     this.groundPending ??= new Set();
-    if (!this.groundPending.has(index)) {this.groundPending.add(index);const run = () => {if (this.disposed) return;this.groundCurve(index);this.groundPending.delete(index);};typeof requestIdleCallback === 'function' ? requestIdleCallback(run, {timeout: 400}) : setTimeout(run, 0);}
+    if (!this.groundPending.has(index)) {
+      this.groundPending.add(index);
+      const run = () => {if (this.disposed) return;this.groundCurve(index);this.groundPending.delete(index);};
+      typeof requestIdleCallback === 'function' ? requestIdleCallback(run, {timeout: Character.isLiveCombat ? 2000 : 400}) : setTimeout(run, 0);
+    }
     return this.restMinY;
   }
   /** Posição, escala e orientação. Altura visual independente da física: o colisor e a sombra não se movem. */
@@ -636,25 +747,39 @@ export class Character {
       ground = w > 0 ? acc / w : ground;
     }
     const manual = (this.current ? this.clipOffsets[this.current.index] ?? 0 : 0) + this.visualOffset + (C.display.grounding.visualOffset || 0);
+    updateSquash(this.squash, f, dt, C.extras.visual.squashStretch, f.action?.kind === 'dodge' ? C.actions.dodge : C.actions.tackle);
     const target = -ground * scale + manual;
-    this.groundOffset += (target - this.groundOffset) * (dt > 0 ? 1 - Math.exp(-dt / .06) : 1);
-    this.root.scale.setScalar(scale);this.root.position.set(f.position.x, alt + this.groundOffset, f.position.z);this.root.rotation.set(0, f.visualFacing, 0);
+    // A trava elimina a subida/descida produzida pelo root motion do clipe. A altitude física continua vindo de `alt`.
+    // Desligada, mantém o amortecimento anterior para quem quiser preservar o balanço vertical gravado na animação.
+    if (this.lockToGround && this.autoGround && C.display.grounding.autoGround) this.groundOffset = target;
+    else this.groundOffset += (target - this.groundOffset) * (dt > 0 ? 1 - Math.exp(-dt / .06) : 1);
+    // Como antes de criar os wrappers, descarta transformações animadas da raiz de apresentação.
+    this.model.position.set(-this.modelAnchor.x, 0, -this.modelAnchor.z);this.model.rotation.set(0, 0, 0);this.model.scale.setScalar(1);
+    this.root.scale.setScalar(scale);
+    // Corrige somente o deslocamento causado pela deformação; mantém o amortecimento do apoio original.
+    this.root.position.set(f.position.x, alt + this.groundOffset - ground * scale * (this.squash.transverse - 1), f.position.z);
+    this.root.rotation.set(0, this.squash.heading, 0);
+    this.deformation.scale.set(this.squash.transverse, this.squash.transverse, this.squash.z);
+    this.presentation.rotation.set(0, f.visualFacing - this.squash.heading, 0);
   }
   /** Durações das regras derivadas dos clipes (primeira variante ÷ velocidade). Só ações com animação própria. */
-  ruleDurations() {
+  ruleDurations(moves = []) {
     const out = {}, own = id => {const i = this.variantsOf(id)[0];return i != null ? this.clips[i].duration / this.speedOf(id) : null;};
     const set = (path, v, from) => {if (v && Number.isFinite(v)) out[path] = {value: Math.round(v * 1000) / 1000, from};};
     set('actions.tackle.duration', own('tackle'), 'tackle');set('actions.dodge.duration', own('dodge_forward'), 'dodge_forward');
     set('rules.recoil', own('blocked'), 'blocked');set('rules.guardStun', own('guard_impact'), 'guard_impact');
     set('rules.landingRecovery', own('land') ?? own('recover'), this.variantsOf('land').length ? 'land' : 'recover');
+    // Moves equipados com clipe próprio (move_N): a duração do clipe ÷ velocidade vira o tempo de cast do Move; é nele que o término do movimento libera as outras ações.
+    for (const {slot, cast, name} of moves) set(cast, own('move_' + (slot + 1)), `move_${slot + 1} (${name})`);
     // As janelas marcadas no Studio (hitbox, invulnerabilidade) servem só para comparação: nunca alteram as regras.
     return out;
   }
-  dispose() {this.disposed = true;clearTimeout(this.warmTimer);this.mixer.stopAllAction();this.mixer.uncacheRoot(this.root);this.root.removeFromParent();}
+  dispose() {this.disposed = true;clearTimeout(this.warmTimer);this.mixer.stopAllAction();this.mixer.uncacheRoot(this.model);this.root.removeFromParent();}
 }
 // fade: transição entre estados comuns; actionFade: entrada em X/C e reações de combate (curta, para prevalecer).
 // fade, actionFade, locomotionHold e speed são os parâmetros oficiais C.display.animation (ajustador, presets, desfazer).
 Character.options = {lockRoot: true, fit: true, syncRules: false, guardHold: .25};
+Character.isLiveCombat = false;
 for (const key of ['fade', 'actionFade', 'locomotionHold', 'speed']) Object.defineProperty(Character.options, key, {enumerable: true, get: () => C.display.animation[key], set: v => {C.display.animation[key] = v;}});
 /** Armazenamento das associações por modelo (instalado pelo workspace): {get(character), set(character, data)}. */
 Character.stateStore = null;

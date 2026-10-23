@@ -2,6 +2,56 @@
 
 Este arquivo separa **o que foi efetivamente executado** do que **permanece pendente**. Registre aqui data, commit-base, comando e resultado; nunca marque como executado o que não foi.
 
+## Execução de 2026-10-22 (rodada da tarde, v1.20.0)
+
+| Verificação | Resultado |
+|---|---|
+| `npm run typecheck` | sem erros |
+| Suíte unitária do laboratório (107 arquivos) | 106 aprovados; `combat-windows` falha só nesta pasta isolada por depender do `validation/personagem-studio.glb` local, não versionado (passa na pasta oficial) |
+| `rodada-b.test.mjs` | 9 aprovados (marcador suave, navegação ligada, círculo de alcance, squash na esquiva, altura do apoio no pouso, marca do Riposte) |
+| `moves-bullet-punch.test.mjs` (reescrito) | 15 aprovados |
+| `rodada-b.browser.mjs` (Edge real, offline) | 15 aprovados; capturas em `evidence/rodada-b/` |
+| Navegador de regressão: `ledge` 9, `ui-rodada-22-10` 16, `overhaul` 117, `moves-ui` 31, `moves-new` 13, `moves` 6, `tuning-export`, `smear`, `squash-stretch`, `solid-vfx`, `nav-lab` 9 | todos aprovados |
+| **Não verificado** | aparência/sensação (aprovação é do responsável); squash/smear na esquiva com modelo 3D carregado; transparência do anel de blocos do cenário; `npm test` completo ponta a ponta |
+
+## Execução de 2026-10-22 (Ledge Grab, v1.19.0)
+
+| Verificação | Resultado |
+|---|---|
+| `ledge.test.mjs` | 17 aprovados (agarre, subida, soltar, golpe, bloqueio, apoio destruído, IA, determinismo, fuzz, faixa de montagem) |
+| `ledge.browser.mjs` (Edge real, offline) | 9 aprovados; capturas em `evidence/ledge-grab/` |
+| Suíte unitária, `typecheck` | ver o fim desta seção (preenchido após a rodada completa) |
+| Ajuste de teste | `physics3d` fixa `jumpPassOver = 1` no teste do teto com o lutador dentro da pegada (a regra estrita o ejetaria antes) |
+
+## Execução de 2026-10-22 (fechamento, v1.18.3)
+
+| Verificação | Resultado |
+|---|---|
+| `npm run typecheck` | **sem erros** (antes: 32 erros, a `main` não passava no `verify`) |
+| `npm run check:offline` | 11 HTMLs sem dependências externas |
+| `npm run skills:check` | 12 skills em sincronia |
+| `npm run verify:workspace` | falha **apenas** no worktree (exige o checkout oficial); rodar lá |
+| Testes soltos agora no `npm test` | `combat-windows-sim` (14), `combat-windows` (9), `interruptions` (10), `physics3d` (14), `smear`, `squash-stretch` (+ os 2 de navegador) aprovados |
+| `ui-rodada-22-10.browser` (Edge real, offline) | **16/16**: botões de IA, atalho da animação, tooltips, Riposte, blocos de VFX, efeitos na arena, sem erros de página nem rede externa; capturas em `evidence/ui-22-10/` |
+| `moves-air` | 15 aprovados (inclui Riposte e Emerging Stone no ar) |
+
+**Bug encontrado pelas capturas:** efeitos de modo «ground» não apareciam (culling). Corrigido na v1.18.3.
+
+## Execução de 2026-10-22 — `feat/calibracao-v8-base` (v1.18.0) e `main` @ `dff532f`
+
+**Ambiente:** Windows 11, Node 25.8, worktree `.worktrees/calibracao-v8`. **Não executado:** `npm run verify` completo, `npm run typecheck`, `test:combat-lab:browser` completo, verificação visual na tela (o navegador embutido do assistente não abre HTML local).
+
+| Verificação | Resultado |
+|---|---|
+| Testes unitários do combat-lab (`test:combat-lab:unit`, cada arquivo isolado) | **99/99** aprovados após a v1.18.0 |
+| `calibration-base` (base v8 de 184 linhas × JSON do responsável, 6 partidas IA × IA, 15 cenários de colisão) | 7 verificações aprovadas |
+| `moves-softlock` (reprodução do softlock do Bullet Punch + 60 partidas aleatórias com os 15 Moves) | aprovado, nenhum estado preso |
+| `moves-air` (15 Moves no salto e no vault) | 13 aprovados |
+| Navegador: `overhaul` 117/117, `moves-ui` 31/31, `moves` 6/6, `progress-scenery` 38, `tuning-export`, `tools` 18/18 | aprovados |
+| `main` após o merge (`dff532f`): `calibration-base`, `moves-air`, `moves-softlock`, `progress-scenery` | aprovados; build não refeito nesse worktree (sem `node_modules`); o HTML foi compilado na branch, com código idêntico |
+
+**Ajustes de teste causados pela nova base:** `hitstop-tiers` e `hitbox-shapes` fixados em `factoryDefaults()`; `env-integration` usa Tackle de 2,5 m no teste do dano único; `diagnostics` aceita guard stun no mesmo passo; `moves-params` espera o limite ×2 dos sliders.
+
 ## Execução de 2026-10-16 — branch `chore/arquitetura-indice-testes-checkjs` sobre `main` @ `6bcc26d`
 
 **Ambiente:** Windows 11, Node 25.8, TypeScript 7, Edge/Chromium headless via Playwright, execução em worktree temporário (`.worktrees/arq`, com `node_modules` ligado por junção ao checkout oficial).

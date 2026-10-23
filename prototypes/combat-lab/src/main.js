@@ -1,17 +1,22 @@
 // Laboratório de combate Arenamon v7 — composição: simulação, câmera, HUD, entrada, replay, telemetria,
 // cenários, ajustador, personagens do Studio, exportação e aviso de alterações não salvas.
-import {C, keyFor, defaults} from './sim/config.js';
+import {applyInterpolation} from './sim/interpolation.js';
+import {C, keyFor, defaults, resetConfig as resetCfg, useFactoryDefaults} from './sim/config.js';
+if (typeof location !== 'undefined' && new URLSearchParams(location.search).has('fabrica')) {useFactoryDefaults(true);resetCfg(defaults());}   // ?fabrica=1: valores de fábrica, sem a base de calibração v8
 import {Game, FixedClock} from './sim/game.js';
 import {AI_MODES, UI_AI_MODES} from './sim/ai.js';
 import {styleLabel} from './sim/tactics.js';
 import {Recorder} from './sim/telemetry.js';
 import {ReplayBuffer} from './sim/replay.js';
 import {SCENARIOS, prepareScenario, runScenario} from './sim/scenarios.js';
+import {collisionRows} from './view/collision-overlays.js';
+import {resetCollisionProbe} from './sim/collision-probe.js';
 import {View, OVERLAYS} from './view/view.js';
 import {Character, loadStudioFile, studioWindows, compareWindows} from './view/characters.js';
 import {createCharacterPanel} from './ui/characters-panel.js';
 import {createVisualPanel} from './ui/visual-panel.js';
 import {HudProposals} from './ui/hud-proposals.js';
+import {ProgressHud} from './ui/progress-hud.js';
 import {Hud} from './ui/hud.js';
 import {Input} from './ui/input.js';
 import {createTuning, escape, pathGet} from './ui/tuning.js';
@@ -34,15 +39,22 @@ import {createDiagnostics, createWindowsOverlay} from './ui/diagnostics-panel.js
 import {createTrainingPanel} from './ui/training-panel.js';
 import {createMovesPanel} from './ui/moves-panel.js';
 import {MovesHud} from './ui/moves-hud.js';
+import {createPassivesPanel} from './ui/passives-panel.js';
+import {installHoverTip} from './ui/hover-tip.js';
+import {createQuickMenu} from './ui/menu-quick.js';
+import {PassivesHud} from './ui/passives-hud.js';
+import {PASSIVE_BY_ID} from './sim/passives.js';
 import {createPerfPanel} from './ui/perf-panel.js';
 import {createAiEvalPanel} from './ui/ai-eval-panel.js';
 import {createProjectFiles} from './ui/project-files.js';
+import {createCinematicPanel} from './ui/cinematic-camera-panel.js';
 import * as Moves from './sim/moves.js';
 import {registerStandardMoves, STANDARD_MOVE_IDS} from './sim/moves/standard.js';
 /* global __GAME_CONFIG_TS__ */
 const GAME_CONFIG_TS = typeof __GAME_CONFIG_TS__ === 'string' ? __GAME_CONFIG_TS__ : '';
 import {length, sub, dot} from './sim/math.js';
 import {spawn} from './sim/world.js';
+import {physicsProbe} from './sim/physics.js';
 import * as T from 'three';
 import {soundFx} from './view/audio.js';
 
@@ -61,7 +73,7 @@ const ui = {playback: null, paused: false, scenario: null, playerMode: 'tactical
 // Vermelho no controle manual (Partida › Controle manual do vermelho): teclas e gamepad próprios.
 const input2 = new Input(canvas, () => {}, {slot: 1});
 const input = new Input(canvas, code => {
-  if (code === keyFor('pause') || code === 'Space') togglePause();
+  if (code === keyFor('pause')) togglePause();
   if ((code === keyFor('restart') || code === 'KeyR') && game.phase !== 'menu') {if (ui.training) training.begin();else startMatch();}
   if (code === keyFor('debug') || code === 'F3') {hud.debug = !hud.debug;C.extras.hud.debugVisible = Number(hud.debug);}
   if (code === 'KeyH') {
@@ -73,16 +85,51 @@ const input = new Input(canvas, code => {
     toggleZenMode();
   }
 });
+input.visionWorld = () => game.world;   // lock-on do cegado precisa conferir paredes no mundo da partida
 
 // ---------- Partida ----------
-function resetViewAndLogs() {view.reset(game.fighters[0]);recorder.clear();replay.clear();pushReplay();dock.invalidate();clock.reset();}
+let warmingUp = false;
+async function triggerWarmup({force = false} = {}) {
+  if (warmingUp) return;
+  if (!force && view.isWarmedUp) return;
+  const hasModels = ui.characters[0] || ui.characters[1];
+  if (!hasModels && !force) return;
+  const loader = $('arena-loader'), msg = $('loader-msg'), bar = $('loader-bar');
+  if (loader && !navigator.webdriver) {
+    loader.hidden = false;
+    loader.style.opacity = '1';
+  }
+  warmingUp = true;
+  try {
+    await view.warmUp(ui.characters, {
+      onProgress: (p, text) => {
+        if (bar) bar.style.width = `${Math.round(p * 100)}%`;
+        if (msg && text) msg.textContent = text;
+      }
+    });
+  } catch (err) {
+    console.warn('warmup error:', err);
+  } finally {
+    warmingUp = false;
+    if (loader) {
+      loader.style.opacity = '0';
+      setTimeout(() => { loader.hidden = true; }, 280);
+    }
+  }
+}
+function resetViewAndLogs() {resetCollisionProbe();view.reset(game.fighters[0]);recorder.clear();replay.clear();pushReplay();dock.invalidate();clock.reset();}
 function startMatch({playback = null} = {}) {
   if (ui.training) {training.end();}
   abortScenario();restorePlaybackValues();ui.playback = playback;
   if (!playback && !$('seed-fixed').checked) $('seed').value = String(1 + Math.floor(Math.random() * 99999));
   applySeed();game.profile = $('profile').value;game.enemyProfile = $('enemy-profile').value;game.mode = $('mode').value;
+  passivesPanel.applyTo(game);   // identidade + loadouts validados (R5: recusa duplicata/exclusiva errada)
   game.reset();ui.paused = false;input.clear();input.locked = false;resetViewAndLogs();canvas.focus();syncButtons();resetMatchStats();
-  matchRec.start({seed: Number($('seed').value), profile: game.profile, enemyProfile: game.enemyProfile, mode: game.mode, values: tuning.snapshotValues()});renderRecStatus();
+  matchRec.start({seed: Number($('seed').value), profile: game.profile, enemyProfile: game.enemyProfile, mode: game.mode, values: tuning.snapshotValues(),
+    loadouts: game.passiveLoadouts, identity: game.passiveIdentity});renderRecStatus();
+  if (!view.isWarmedUp && (ui.characters[0] || ui.characters[1]) && !navigator.webdriver) {
+    triggerWarmup();
+  }
 }
 function toggleZenMode(force) {
   const lab = document.querySelector('.lab');
@@ -109,10 +156,10 @@ function togglePause(force) {
   ui.paused = next;input.clear();syncButtons();
 }
 function pushReplay() {replay.push({tick: game.tick, game: game.save(), rig: view.rig.save()});}
-function loadFrame(frame) {if (!frame) return;game.load(frame.game);view.rig.load(frame.rig);dock.invalidate();}
+function loadFrame(frame) {if (!frame) return;resetCollisionProbe();game.load(frame.game);view.rig.load(frame.rig);dock.invalidate();}
 function playerCommand() {
   const [p, e] = game.fighters;
-  if (C.extras.toggles.enablePlayerAI) {input.locked = true;return game.playerBrain.command(p, e, ui.playerMode, C.test.step);}
+  if (C.extras.toggles.enablePlayerAI) {input.locked = true;return game.assistNav(game.playerBrain, p, e, game.playerBrain.command(p, e, ui.playerMode, C.test.step));}
   return input.command(p, e, view.rig.yaw, game.tick);
 }
 /** Um passo de simulação ao vivo (jogo normal ou cenário). */
@@ -133,7 +180,7 @@ function stepOnce() {
   const c1 = ui.training && !ui.playback ? ui.training.enemyCommand(game) : ui.playback ? ui.playback.commands1?.[game.tick] ?? undefined : C.extras.toggles.enemyManual ? input2.command(game.fighters[1], game.fighters[0], view.rig.yaw, game.tick) : undefined;
   presets.ab.beforeStep(game);
   const tickBefore = game.tick;game.step(c0, c1 ?? undefined);if (game.tick > tickBefore) {matchRec.record(tickBefore, c0, c1);if (!ui.playback) movement.onStep(c0, game.lastCommands?.[1]);if (ui.training) training.afterStep(c0);}view.rig.step(game.fighters[0], game.fighters[1], input.locked, C.test.step);
-  if (game.lastStepEvents?.length) {handleSoundEvents(game.lastStepEvents);trackMatchEvents(game.lastStepEvents);}
+  if (game.lastStepEvents?.length) {handleSoundEvents(game.lastStepEvents);trackMatchEvents(game.lastStepEvents);passiveFeedback(game.lastStepEvents);}
 trackChargeSounds();trackExhaustionSounds();checkKoTrigger();
 recorder.record(game);pushReplay();
 }
@@ -173,12 +220,27 @@ function playSequence(seq, preset) {
 // ---------- Cenários ----------
 function renderScenarios() {
   const box = $('scenario-list');box.replaceChildren();
-  for (const def of SCENARIOS) {
+  $('scenario-all').textContent = `▶ Executar todos (${SCENARIOS.length})`;
+  const add = def => {
     const el = document.createElement('div');el.className = 'scenario';el.dataset.id = def.id;
     const last = ui.lastResult?.id === def.id ? ui.lastResult : null;if (last) el.dataset.result = last.ok ? 'ok' : 'fail';
     el.innerHTML = `<header><strong>${escape(def.name)}</strong><button type="button">▶ Executar</button></header><p>${escape(def.description)}</p>`;
     el.querySelector('button').onclick = () => startScenario(def);box.append(el);
+  };
+  // Colisões e ambiente (overhaul): grupo próprio no topo, com «Executar os N» e dicas de quais sobreposições ligar em «Visualizar».
+  const col = SCENARIOS.filter(d => d.id.startsWith('col-'));
+  if (col.length) {
+    const head = document.createElement('div');head.className = 'scenario-group';head.id = 'scenario-collisions-group';
+    head.innerHTML = `<header><strong>Colisões e ambiente (${col.length})</strong><button type="button" id="scenario-collisions">▶ Executar os ${col.length}</button></header><p class="hint">Contato com paredes, quinas, objetos, plataformas, destrutíveis e projéteis rápidos. Em «Visualizar» ligue <b>Colisores do cenário</b>, <b>Apoio atual</b>, <b>Contatos com o ambiente</b>, <b>Varredura dos projéteis</b> e <b>Sobreposições e vãos</b> para ver o que a física está fazendo; os números ficam em «Dados ao vivo».</p>`;
+    box.append(head);
+    head.querySelector('button').onclick = () => {
+      abortScenario();const results = col.map(def => runScenario(def)), ok = results.filter(r => r.ok).length;
+      $('scenario-report').innerHTML = `<p class="${ok === results.length ? 'ok' : 'bad'}"><b>${ok} de ${results.length} cenários de colisão aprovados</b> com os ajustes atuais.</p>` + reportHtml(results);
+      resetCollisionProbe();game.phase = 'menu';ui.lastResult = null;renderScenarios();
+    };
+    col.forEach(add);
   }
+  for (const def of SCENARIOS) if (!def.id.startsWith('col-')) add(def);
 }
 function startScenario(def) {
   abortScenario();ui.scenario = prepareScenario(def, game);ui.scenario.def = def;ui.paused = false;input.clear();input.locked = true;
@@ -206,6 +268,7 @@ $('rec-file').onchange = async e => {
     if (changes.length) tuning.commit(changes, 'ajustes da gravação');
   }
   $('seed').value = String(data.seed);$('seed-fixed').checked = true;$('profile').value = data.profile;$('enemy-profile').value = data.enemyProfile;$('mode').value = data.mode;
+  if (Array.isArray(data.loadouts)) passivesPanel.setFromRecording({loadouts: data.loadouts, identity: data.identity});   // reprodução exata (§27)
   startMatch({playback: {commands, commands1: parsed.commands1, source: file.name}});
   $('rec-result').innerHTML = `<p class="ok">Reproduzindo ${escape(file.name)}: ${commands.length} passos, semente ${data.seed}, ${$('rec-values').value === 'recorded' ? 'ajustes da gravação (Ctrl+Z desfaz)' : 'ajustes atuais'}.</p>`;
 };
@@ -255,12 +318,13 @@ $('balance-run').onclick = () => {
 $('scenario-all').onclick = () => {
   abortScenario();const results = SCENARIOS.map(def => runScenario(def));const ok = results.filter(r => r.ok).length;
   $('scenario-report').innerHTML = `<p class="${ok === results.length ? 'ok' : 'bad'}"><b>${ok} de ${results.length} cenários aprovados</b> com os ajustes atuais.</p>` + reportHtml(results);
-  game.phase = 'menu';ui.lastResult = null;renderScenarios();
+  resetCollisionProbe();game.phase = 'menu';ui.lastResult = null;renderScenarios();
 };
 
 // ---------- Ajustes ----------
 function applyConfig() {
   view.applyConfig();const root = document.documentElement.style, X = C.extras;
+  view.abilityBanners?.applyConfig();
   root.setProperty('--arena-hud-scale', X.hud.uiScale);root.setProperty('--arena-notice-font', X.fx.noticeFontSize + 'px');root.setProperty('--arena-clash-font', X.fx.clashNoticeFontSize + 'px');
   for (const f of game.fighters) {
     const profile = C.profiles[f.id === 0 ? game.profile : game.enemyProfile] || C.profiles.balanced;
@@ -349,9 +413,27 @@ for (const [key, label, help] of OVERLAYS) {
 }
 function renderLive() {
   const [a, b] = game.fighters;if (!a) return;const d = length(sub(b.position, a.position)), rel = sub(a.velocity, b.velocity), n = d > 1e-6 ? {x: (b.position.x - a.position.x) / d, z: (b.position.z - a.position.z) / d} : {x: 0, z: 0};
+  // Diagnóstico físico por lutador (auditoria externa §64): apoio, altitude, velocidade vertical,
+  // gravidade e impulso em efeito, e último contato válido registrado pela física.
+  const physLine = f => {
+    const fl = f.flight, alt = (fl?.y ?? 0) + (f.vaultHeight ?? 0);
+    const parts = [f.state, `|v| ${length(f.velocity).toFixed(2)} m/s`, `apoio ${(f.groundY ?? 0).toFixed(2)} m`];
+    if (fl) parts.push(`alt ${alt.toFixed(2)} m`, `vy ${fl.vy >= 0 ? '+' : ''}${fl.vy.toFixed(2)} m/s`, `g ${(fl.gravity ?? C.rules.launchGravity).toFixed(1)} m/s²`, `impulso ${length(fl.horizontal).toFixed(2)} m/s`);
+    else if ((f.vaultHeight ?? 0) > 0.01) parts.push(`alt ${alt.toFixed(2)} m`);
+    return parts.join(' · ');
+  };
+  const lastContact = [a, b].map((f, i) => {
+    const bits = [];
+    if (f.lastLanding) bits.push(`pouso (vertical ${f.lastLanding.vertical.toFixed(1)}, horizontal ${f.lastLanding.horizontal.toFixed(1)} m/s)`);
+    if (f.lastCeilingBump) bits.push(`teto (face ${f.lastCeilingBump.face.toFixed(2)} m)`);
+    return bits.length ? `${i ? 'Vermelho' : 'Azul'}: ${bits.join(' + ')}` : null;
+  }).filter(Boolean).join(' | ') || '—';
   const rows = [['Distância entre centros', `${d.toFixed(2)} m`], ['Espaço entre colisores', `${Math.max(0, d - 2 * C.test.halfExtent).toFixed(2)} m`], ['Velocidade de aproximação', `${dot(rel, n).toFixed(2)} m/s`],
-    ['Azul', `${a.state} · ${length(a.velocity).toFixed(2)} m/s · alt ${((a.flight?.y ?? 0) + a.vaultHeight).toFixed(2)} m`], ['Vermelho', `${b.state} · ${length(b.velocity).toFixed(2)} m/s · alt ${((b.flight?.y ?? 0) + b.vaultHeight).toFixed(2)} m`],
+    ['Azul (física)', physLine(a)], ['Vermelho (física)', physLine(b)],
+    ['Último contato válido', lastContact],
+    ['Subpassos físicos', `${physicsProbe.substeps} subpasso(s) · ${physicsProbe.contacts} contato(s) no último passo · conflitos de espaço: ${physicsProbe.staticConflicts} no passo, ${physicsProbe.staticConflictsTotal} no total`],
     ['Ação', `${a.action ? `${a.action.kind}${a.action.fromCancel ? ' (C→X)' : ''}${a.action.buffered ? ' (buffer)' : ''} ${(a.action.elapsed * 1000).toFixed(0)} ms` : '—'} / ${b.action ? `${b.action.kind}${b.action.fromCancel ? ' (C→X)' : ''}${b.action.buffered ? ' (buffer)' : ''} ${(b.action.elapsed * 1000).toFixed(0)} ms` : '—'}`], ['Estilo da IA (tático)', `${game.playerBrain.t && C.extras.toggles.enablePlayerAI && ui.playerMode === 'tactical' ? styleLabel(game.playerBrain) : '—'} / ${game.mode === 'tactical' ? styleLabel(game.brain) : '—'}`], ['Contra-ataque', `${a.counterWindow.toFixed(2)} s / ${b.counterWindow.toFixed(2)} s`], ['Hitstop', `${(game.hitstop * 1000).toFixed(0)} ms`]];
+  rows.push(...collisionRows(game));   // Fase 7: apoio, último contato com o ambiente, vãos entre objetos e penetrações
   $('live-data').innerHTML = rows.map(([k, v]) => `<dt>${k}</dt><dd>${escape(v)}</dd>`).join('');
 }
 
@@ -367,7 +449,7 @@ function syncCharacterCombatWindows() {
 }
 const charPanel = createCharacterPanel({ui, view, $, hooks: charHooks, onCharactersChanged: () => {syncCharacterCombatWindows();syncRuleDurations();dock.invalidate();movesPanel?.render?.();actionsDrawer?.render?.();}});
 syncCharacterCombatWindows();
-const renderCharacters = () => {charPanel.render();renderStudioEvents();renderRuleDurations();};
+const renderCharacters = () => {charPanel.render();renderStudioEvents();renderRuleDurations();passivesPanel.render();};
 const setCharacter = (id, source) => charPanel.setCharacter(id, source);
 const renderCharacterLive = () => charPanel.live();
 $('char-fit').onchange = e => {Character.options.fit = e.target.checked;};
@@ -381,15 +463,26 @@ for (const [id, key, out, fmt] of ANIM_SLIDERS) {
 }
 function refreshAnimSliders() {for (const [id, key, out, fmt] of ANIM_SLIDERS) {if (document.activeElement !== $(id)) $(id).value = String(C.display.animation[key]);$(out).textContent = fmt(C.display.animation[key]);}}
 tuning.onChange(refreshAnimSliders);
-$('char-sync').onchange = e => {Character.options.syncRules = e.target.checked;syncRuleDurations();};
+$('char-sync').onchange = e => {Character.options.syncRules = e.target.checked;$('act-sync').checked = e.target.checked;syncRuleDurations();};
+// Atalho visível no topo da gaveta Ações: é a MESMA opção «Usar duração dos clipes nas regras» (Personagens › avançado).
+$('act-sync').onchange = e => {$('char-sync').checked = e.target.checked;$('char-sync').dispatchEvent(new Event('change'));};
 $('char-sync-source').onchange = () => syncRuleDurations();
 /** Personagem cujas animações definem as regras (o escolhido; se não houver, o outro). */
 function ruleSource() {const id = Number($('char-sync-source').value);return ui.characters[id] || ui.characters[1 - id];}
+/** Moves do lutador de referência cujo cast pode vir do clipe (sem marcador, sem carga, sem duração composta): [{slot, cast: caminho do slider, name}]. */
+function moveCastTargets(ch) {
+  const src = Number($('char-sync-source').value), id = ui.characters[src] === ch ? src : 1 - src, f = game.fighters[id], out = [];
+  for (let slot = 0; slot < C.world.slots; slot++) {
+    const def = Moves.getMove(f?.loadout?.[slot]);
+    if (def?.group && !def.durationKeys && !def.charge && !def.aimMode && typeof C.world[def.group]?.cast === 'number' && tuning.byPath.has(`world.${def.group}.cast`)) out.push({slot, cast: `world.${def.group}.cast`, name: def.name ?? def.id});
+  }
+  return out;
+}
 /** Durações das ações vindas das animações (duração do clip ÷ velocidade), aplicadas às regras com desfazer. */
 function syncRuleDurations() {
   if (Character.options.syncRules) {
     const ch = ruleSource();
-    const changes = ch ? Object.entries(ch.ruleDurations()).map(([path, {value}]) => {const m = tuning.byPath.get(path);return [path, Math.max(m.min, Math.min(m.max, value))];}) : [];
+    const changes = ch ? Object.entries(ch.ruleDurations(moveCastTargets(ch))).map(([path, {value}]) => {const m = tuning.byPath.get(path);return [path, Math.max(m.min, Math.min(m.max, value))];}) : [];
     if (changes.length) tuning.commit(changes, 'Durações das animações');
   }
   renderRuleDurations();renderStudioEvents();
@@ -397,7 +490,7 @@ function syncRuleDurations() {
 function renderRuleDurations() {
   const ch = ruleSource(), box = $('char-durations');
   if (!ch) {box.innerHTML = '<p class="hint">Carregue um personagem para usar as durações das animações.</p>';return;}
-  const rows = Object.entries(ch.ruleDurations());
+  const rows = Object.entries(ch.ruleDurations(moveCastTargets(ch)));
   box.innerHTML = rows.length ? `<table><tr><th>Regra</th><th>Animação</th><th>Clip ÷ velocidade</th><th>No jogo agora</th></tr>${rows.map(([path, {value, from}]) => {const m = tuning.byPath.get(path);return `<tr><td>${escape(m.label)}</td><td>${escape(from)}</td><td>${value.toFixed(3)} s</td><td>${m.fmt(pathGet(C, path))}</td></tr>`;}).join('')}</table>${Character.options.syncRules ? '<p class="ok">Sincronizado: mudar a animação ou a velocidade atualiza as regras (Ctrl+Z desfaz).</p>' : ''}` : '<p class="hint">Nenhuma ação com duração definida tem animação própria (tackle, dodge_forward, blocked, guard_impact, land/recover).</p>';
 }
 function renderStudioEvents() {
@@ -434,7 +527,7 @@ function renderHistory() {$('input-history').innerHTML = input.history.map(h => 
 // ---------- Barra superior, painéis e doca ----------
 function syncButtons() {
   const hb = $('arena-hitboxes-toggle'), on = !!C.extras.toggles.showHitboxes;hb.setAttribute('aria-checked', String(on));
-  const eb = $('arena-enemy-ai-toggle');eb.setAttribute('aria-checked', String(!!C.extras.toggles.enableEnemyAI));
+  $('arena-toast-toggle').setAttribute('aria-checked', String(!!C.display.diagnostics.toast));const eb = $('arena-enemy-ai-toggle');eb.setAttribute('aria-checked', String(!!C.extras.toggles.enableEnemyAI));
   const ab = $('arena-autoplay-toggle'), ai = !!C.extras.toggles.enablePlayerAI;ab.setAttribute('aria-checked', String(ai));$('name0').textContent = ai ? 'JOGADOR IA · AZUL' : 'JOGADOR · AZUL';
   $('pause').textContent = ui.paused ? '▶ Continuar' : '❚❚ Pausar';$('rp-play').textContent = ui.paused ? '▶' : '❚❚';
   const zb = $('arena-zen-toggle');
@@ -451,6 +544,7 @@ function closeTools() {if (toolsPop.hidden) return;toolsPop.hidden = true;toolsB
 toolsBtn.onclick = e => {e.stopPropagation();if (!toolsPop.hidden) {closeTools();return;}toolsPop.hidden = false;toolsBtn.setAttribute('aria-expanded', 'true');const r = toolsBtn.getBoundingClientRect(), w = toolsPop.getBoundingClientRect().width;toolsPop.style.top = (r.bottom + 6) + 'px';toolsPop.style.left = Math.max(8, Math.min(innerWidth - w - 8, r.right - w)) + 'px';};
 document.addEventListener('pointerdown', e => {if (!toolsPop.hidden && !toolsPop.contains(e.target) && e.target !== toolsBtn) closeTools();});
 window.addEventListener('keydown', e => {if (e.key === 'Escape' && !toolsPop.hidden) {e.preventDefault();e.stopImmediatePropagation();closeTools();}}, true);
+$('arena-toast-toggle').onclick = () => {tuning.commit([['display.diagnostics.toast', C.display.diagnostics.toast ? 0 : 1]], 'Avisos de comando');syncButtons();canvas.focus();};
 $('arena-enemy-ai-toggle').onclick = () => {tuning.commit([['extras.toggles.enableEnemyAI', C.extras.toggles.enableEnemyAI ? 0 : 1]], 'IA do oponente');game.brain.reset();syncButtons();canvas.focus();};
 $('arena-autoplay-toggle').onclick = () => {tuning.commit([['extras.toggles.enablePlayerAI', C.extras.toggles.enablePlayerAI ? 0 : 1]], 'IA do jogador');game.playerBrain.reset();input.clear();canvas.focus();};
 $('pause').onclick = () => togglePause();$('restart-top').onclick = startMatch;$('restart').onclick = startMatch;$('start').onclick = startMatch;$('start-center').onclick = onQuickStart;
@@ -522,13 +616,23 @@ if ($('panel-hints-toggle')) {
 }
 /** Moves: gaveta própria no canto da arena (fora da barra esquerda). */
 function toggleMoves(open = $('moves-drawer').hidden) {
+  if (open) toggleChars(false);
   $('moves-drawer').hidden = !open;$('moves-open').setAttribute('aria-expanded', String(open));$('moves-open').classList.toggle('active', open);
   if (open) actionsDrawer.render();
 }
 $('moves-open').onclick = () => toggleMoves();$('moves-close').onclick = () => toggleMoves(false);
+/** Personagens: gaveta larga própria (modelos, biblioteca de clipes e a animação de cada estado). */
+function toggleChars(open = $('chars-drawer').hidden) {
+  if (open) toggleMoves(false);
+  $('chars-drawer').hidden = !open;$('chars-open').setAttribute('aria-expanded', String(open));$('chars-open').classList.toggle('active', open);
+  if (open) {renderCharacters();renderStudioEvents();}
+}
+$('chars-open').onclick = () => toggleChars();$('chars-close').onclick = () => toggleChars(false);
+window.addEventListener('keydown', e => {if (e.key === 'Escape' && !$('chars-drawer').hidden && !e.target.matches?.('input[type=text],input[type=search]')) {e.preventDefault();e.stopImmediatePropagation();toggleChars(false);}}, true);
 window.addEventListener('keydown', e => {if (e.key === 'Escape' && !$('moves-drawer').hidden && !e.target.matches?.('input[type=text],input[type=search]')) {e.preventDefault();e.stopImmediatePropagation();toggleMoves(false);}}, true);
 function openTool(tool) {
   if (tool === 'moves') {toggleMoves();return;}
+  if (tool === 'characters') {toggleChars(true);return;}   // abre a gaveta (o botão da barra é só compatibilidade e fica oculto)
   const same = !$('panel').hidden && $('panel').dataset.tool === tool;$('panel').hidden = same;$('panel').dataset.tool = tool;
   for (const b of document.querySelectorAll('[data-tool]')) b.classList.toggle('active', !same && b.dataset.tool === tool);
   for (const s of document.querySelectorAll('[data-section]')) s.hidden = s.dataset.section !== tool;$('panel-title').textContent = TITLES[tool];
@@ -566,14 +670,31 @@ const dock = createDock({recorder, getCursorTick: () => game.tick, onSeek: seekT
 
 // ---------- Overhaul: Visualizar, Partida, Controles e propostas de HUD ----------
 const hudProposals = new HudProposals($('hud-proposals'));
+const progressHud = new ProgressHud($('progress-hud'));   // HUD de progressão "Banco de Células" (estágios 0–4 dos 5 atributos)
 // Diagnóstico de comandos (relato do controlador) e indicadores das janelas de combate (estado real da simulação).
 const diagnostics = createDiagnostics({$, game, tuning, download});
 const windowsOverlay = createWindowsOverlay({root: $('win-overlay'), view, game});
 $('win-controls').append(...tuning.sectionControls('Janelas de combate'));
 // Treino de defesa/esquiva perfeitas: o vermelho segue o roteiro do treino; tudo cronometrado em passos de simulação.
 const movesPanel = createMovesPanel({$, game, download, tuning, view, ui});
-const actionsDrawer = createActionsDrawer({$, tuning, ui, renderMoves: () => movesPanel.render(), onCharactersChanged: () => {syncCharacterCombatWindows();syncRuleDurations();dock.invalidate();}});
+const actionsDrawer = createActionsDrawer({$, tuning, ui, renderMoves: () => movesPanel.render(), renderAiMoves: c => movesPanel.renderAiParams(c), onCharactersChanged: () => {syncCharacterCombatWindows();syncRuleDurations();dock.invalidate();}});
 const movesHud = new MovesHud($('moves-hud'));
+// Passivas: painel de seleção (Partida), HUD da arena e VFX de ativação (§16/§17).
+installHoverTip();
+const passivesPanel = createPassivesPanel({getCharacterNames: () => [ui.characters[0]?.source?.name ?? null, ui.characters[1]?.source?.name ?? null]});
+$('passives-card')?.append(passivesPanel.root);
+// Seleção Rápida do menu: dois blocos (personagem/moves/abilities + prévia 3D). Workspace anexado no boot.
+const quickMenu = createQuickMenu({$, game, ui, passivesPanel});
+const passivesHud = new PassivesHud($('passives-hud'));
+/** Ativações reais do passo: som, placa metálica "Ability: NOME" e sparkles brancos presos ao lutador. */
+function passiveFeedback(events) {
+  for (const e of events || []) {
+    if (e.result !== 'passiveActivated' || e.attacker == null) continue;
+    soundFx.playPassive(C.vfx?.passive?.variant ?? 0);
+    const kind = e.attacker === 1 ? C.display.passive.enemyAbility : C.display.passive.playerAbility;
+    view.passives.activate(e.attacker, kind, PASSIVE_BY_ID[e.passive]?.nome ?? e.passive);
+  }
+}
 /** Avisos discretos dos Moves (M28.6): falha de execução com o motivo e a devolução da stamina. */
 const seenNotices = new WeakSet(), MOVE_FAIL = {semEspaco: 'sem espaço — stamina devolvida, sem recarga', limiteDeEntidades: 'limite de entidades do mundo — stamina devolvida', semCarga: 'sem carga', effectMissing: 'efeito não registrado'};
 function moveNotices() {
@@ -589,6 +710,7 @@ const aiEval = createAiEvalPanel({$, download});
 // Medidor de desempenho, perfis gráficos e benchmark (IA × IA com semente fixa no laço real).
 let benchRestore = null;
 const perfPanel = createPerfPanel({$, view, game, tuning, ui, download, getWs: () => wsRef.ws,
+  onWarmup: () => triggerWarmup({force: true}),
   startBench: ({seed, characters}) => {
     if (!benchRestore) benchRestore = {toggles: [['extras.toggles.enablePlayerAI', C.extras.toggles.enablePlayerAI], ['extras.toggles.enableEnemyAI', C.extras.toggles.enableEnemyAI], ['extras.toggles.enemyManual', C.extras.toggles.enemyManual]], mode: $('mode').value, playerMode: ui.playerMode, seed: $('seed').value, fixed: $('seed-fixed').checked};
     tuning.setTransient([['extras.toggles.enablePlayerAI', 1], ['extras.toggles.enableEnemyAI', 1], ['extras.toggles.enemyManual', 0]]);ui.playerMode = 'tactical';
@@ -601,6 +723,9 @@ const perfPanel = createPerfPanel({$, view, game, tuning, ui, download, getWs: (
     game.phase = 'menu';
   }});
 const visualPanel = createVisualPanel({tuning, view, game, $, hud: hudProposals, download});
+const cinePanel = createCinematicPanel({$, view, getWs: () => wsRef.ws});
+$('cinematic-camera-btn')?.addEventListener('click', () => cinePanel?.toggle());
+$('tools-cine-btn')?.addEventListener('click', () => {closeTools(); cinePanel?.toggle(true);});
 $('enemy-ai-control').append(tuning.controlFor('extras.toggles.enableEnemyAI'), tuning.controlFor('extras.toggles.enemyManual'));
 $('bindings-controls').append(...tuning.sectionControls('Teclas: índices configuráveis'));
 $('bindings2-controls').append(...tuning.sectionControls('Teclas do vermelho (controle manual)'));
@@ -627,6 +752,8 @@ function handleSoundEvents(events) {
     if (ev.result === 'impact') {
       if ((ev.damage ?? 0) >= 15) soundFx.playHeavyHit();
       else soundFx.playHit();
+    } else if (ev.result === 'footstool') {
+      soundFx.playHit();
     } else if (ev.result === 'partial') {
       soundFx.playBlock();
     } else if (ev.result === 'perfect') {
@@ -688,6 +815,8 @@ function trackMatchEvents(events) {
   for (const ev of events) {
     const atk = ev.attacker, tgt = ev.target;
     if (ev.result === 'impact') {
+      if (atk === 0 || atk === 1) {matchStats.damageDealt[atk] += ev.damage ?? 0; matchStats.hitsLanded[atk]++;}
+    } else if (ev.result === 'footstool') {
       if (atk === 0 || atk === 1) {matchStats.damageDealt[atk] += ev.damage ?? 0; matchStats.hitsLanded[atk]++;}
     } else if (ev.result === 'partial') {
       if (tgt === 0 || tgt === 1) matchStats.blocks[tgt]++;
@@ -829,24 +958,14 @@ function cycleOpponentAiMode() {
 function onQuickStart() {
   if ($('quick-profile')) $('profile').value = $('quick-profile').value;
   if ($('quick-enemy-profile')) $('enemy-profile').value = $('quick-enemy-profile').value;
-  if ($('quick-ai-mode')) {
-    $('mode').value = $('quick-ai-mode').value;
+  if ($('quick-mode')) {
+    $('mode').value = $('quick-mode').value;
     game.mode = $('mode').value;
     C.extras.gameModes.enemyMode = AI_MODES.findIndex(([id]) => id === game.mode);
   }
-  const equipReflect = $('quick-reflect')?.checked;
-  const equipPsyshock = $('quick-psyshock')?.checked;
-  if (equipReflect || equipPsyshock) {
-    const loadout = [
-      equipReflect ? 'reflect' : null,
-      equipPsyshock ? 'psyshock' : null,
-      null,
-      null
-    ];
-    game.setLoadout(0, loadout);
-  }
-  if ($('quick-zen')?.checked) toggleZenMode(true);
-  if ($('quick-autolock')?.checked) input.locked = true;
+  quickMenu.applyAll();   // moves dos dois lutadores + passivas (identidade e validação do painel, R5)
+  if ($('quick-auto-zen')?.checked) toggleZenMode(true);
+  if ($('quick-auto-lock')?.checked) input.locked = true;
   startMatch();
 }
 
@@ -884,27 +1003,33 @@ let last = performance.now(), uiTimer = 0;
 function frame(now) {
   const dt = Math.max(0, (now - last) / 1000);last = now;
   const live = !ui.paused && (game.phase === 'playing' || game.phase === 'finishing');
+  Character.isLiveCombat = live;
   const tSim = performance.now();let steps = 0;
   if (live) clock.advance(dt, () => {steps++;stepOnce();});else clock.reset();
   const simMs = performance.now() - tSim;
   ui.fps += (1 / Math.max(.001, dt) - ui.fps) * C.extras.hud.fpsSmoothing;
-  view.draw(game.fighters, game.events, live ? dt * clock.timeScale : 0, {paused: !live, realDt: dt, tick: game.tick, sources: [C.extras.toggles.enablePlayerAI || ui.scenario ? 'IA' : 'jogador', 'IA'], world: game.world});
+  // Interpolação do desenho (só visual): pose entre o passo anterior e o atual; a simulação é restaurada logo depois.
+  const interp = C.display.interpolation, restorePose = live && interp?.enabled ? applyInterpolation(game.fighters, game.prevPose, clock.accumulator / C.test.step, interp.maxJump) : null;
+  try {view.draw(game.fighters, game.events, live ? dt * clock.timeScale : 0, {paused: !live, realDt: dt, tick: game.tick, sources: [C.extras.toggles.enablePlayerAI || ui.scenario ? 'IA' : 'jogador', 'IA'], world: game.world, navGame: game});} finally {restorePose?.();}
   const back = replay.length ? (replay.length - 1 - replay.cursor) : 0;
   hud.render(game, ui.fps, {locked: input.locked, paused: ui.paused && game.phase !== 'menu', replay: back ? `−${back} passos (${(back * C.test.step * 1000).toFixed(0)} ms) · ▶ retoma daqui` : 'último passo · , e . avançam/voltam', playerAI: !!C.extras.toggles.enablePlayerAI});
-  movesHud.render(game);moveNotices();
+  movesHud.render(game);moveNotices();progressHud.render(game);
+  passivesHud.render(game, C.extras.toggles.enablePassives !== 0);
   $('rp-readout').textContent = `passo ${game.tick}${back ? ` · −${(back * C.test.step).toFixed(2)} s` : ''}${clock.timeScale !== 1 ? ` · ${clock.timeScale}×` : ''}`;
-  dock.render();updateDojoAdvantageBadge();hudProposals.render(game, live ? dt * clock.timeScale : 0);windowsOverlay.update();perfPanel.frame({frameMs: dt * 1000, simMs, steps});updateOffscreenArrow(canvas.clientWidth, canvas.clientHeight);updateActionHintPill();if (game.phase === 'result' && !lastKoHandled) checkKoTrigger();
+  dock.render();updateDojoAdvantageBadge();hudProposals.render(game, live ? dt * clock.timeScale : 0);windowsOverlay.update();perfPanel.frame({frameMs: dt * 1000, simMs, steps});cinePanel?.updateBadge?.();updateOffscreenArrow(canvas.clientWidth, canvas.clientHeight);updateActionHintPill();if (game.phase === 'result' && !lastKoHandled) checkKoTrigger();
   if ((uiTimer += dt) > .1) {uiTimer = 0;renderLive();renderHistory();renderCharacterLive();renderRecStatus();visualPanel.live();diagnostics.live();perfPanel.live();}
   ui.frame++;requestAnimationFrame(frame);
 }
 applyConfig();renderScenarios();renderCharacters();syncTuneState();openTool('match');syncButtons();
+// IA do Vermelho na Seleção Rápida: mesmo valor do seletor da Partida (applyConfig define o modo efetivo).
+$('quick-mode').replaceChildren(...UI_AI_MODES.map(([id, label]) => new Option(label, id)));$('quick-mode').value = game.mode;
 requestAnimationFrame(frame);
 
 // ---------- Workspace persistente: preferências de interface, última partida e opções de animação ----------
 function collectUi() {
   const pressed = document.querySelector('[data-dock][aria-pressed="true"]');
   return {tool: $('panel').hidden ? null : $('panel').dataset.tool, dockCollapsed: $('dock').classList.contains('collapsed'), dockView: pressed?.dataset.dock ?? 'timeline', timeScale: $('rp-speed').value,
-    overlays: {...view.overlays}, showHistory: $('show-history').checked, charSyncSource: $('char-sync-source').value, previewSlot: $('char-preview-slot').value, tuneMode: presets.mode, abKey: presets.abKey, vfxMode: visualPanel.vfxMode};
+    overlays: {...view.overlays}, showHistory: $('show-history').checked, charSyncSource: $('char-sync-source').value, previewSlot: $('char-preview-slot').value, tuneMode: presets.mode, abKey: presets.abKey, vfxMode: visualPanel.vfxMode, quick: quickMenu.collect()};
 }
 const collectMatch = () => ({enemyProfile: $('enemy-profile').value, playerMode: $('player-mode').value, seed: $('seed').value, seedFixed: $('seed-fixed').checked, recValues: $('rec-values').value});
 const collectAnim = () => {const o = Character.options;return {fit: o.fit, fade: o.fade, actionFade: o.actionFade, locomotionHold: o.locomotionHold, speed: o.speed, syncRules: o.syncRules};};
@@ -923,7 +1048,7 @@ function applyDocUi(doc) {
     // Workspaces da fase 1 guardavam as transições aqui; agora são parâmetros do ajustador (restaurados com os ajustes).
     if (!doc.tuning?.values || !('display.animation.fade' in doc.tuning.values)) for (const key of ['fade', 'actionFade', 'locomotionHold', 'speed']) if (typeof a[key] === 'number') C.display.animation[key] = a[key];
     refreshAnimSliders();
-    $('char-sync').checked = !!a.syncRules;Character.options.syncRules = !!a.syncRules;
+    $('char-sync').checked = !!a.syncRules;$('act-sync').checked = !!a.syncRules;Character.options.syncRules = !!a.syncRules;
   }
   if (u.overlays) for (const [k, v] of Object.entries(u.overlays)) if (k in view.overlays) {view.overlays[k] = !!v;const box = document.querySelector(`[data-overlay="${k}"]`);if (box) box.checked = !!v;}
   if (u.timeScale) {$('rp-speed').value = u.timeScale;clock.timeScale = Number(u.timeScale) || 1;}
@@ -932,10 +1057,11 @@ function applyDocUi(doc) {
   if (u.tuneMode) presets.setMode(u.tuneMode);
   if (u.vfxMode) visualPanel.setMode(u.vfxMode);
   if (u.abKey) {presets.setABKey(u.abKey);$('ab-key').value = u.abKey;}
+  if (u.quick) quickMenu.apply(u.quick);
   if (u.previewSlot) $('char-preview-slot').value = u.previewSlot;
   if (typeof u.dockCollapsed === 'boolean' && u.dockCollapsed !== $('dock').classList.contains('collapsed')) $('dock-toggle').click();
   if (u.dockView) document.querySelector(`[data-dock="${u.dockView}"]`)?.click();
-  if (u.tool === null) $('panel-close').click();else if (u.tool && TITLES[u.tool] && ($('panel').hidden || $('panel').dataset.tool !== u.tool)) openTool(u.tool);
+  if (u.tool === null) $('panel-close').click();else if (u.tool && TITLES[u.tool] && u.tool !== 'characters' && u.tool !== 'moves' && ($('panel').hidden || $('panel').dataset.tool !== u.tool)) openTool(u.tool);
 }
 const collectApp = () => ({name: 'arenamon-combate-laboratorio', build: document.title, userAgent: navigator.userAgent});
 
@@ -957,7 +1083,7 @@ async function applyInitialWorkspace(ws, wsUI) {
 async function bootWorkspace() {
   const store = await openStore();let ls = null;try {ls = localStorage;} catch {ls = null;}
   const ws = await Workspace.open(store, {ls});wsRef.store = store;
-  const wsUI = createWorkspaceUI({ws, store, ui, tuning, $, download, presets: presets.api, homologation, applyDocUi, collectApp, onCharactersChanged: () => {syncCharacterCombatWindows();syncRuleDurations();dock.invalidate();}});
+  const wsUI = createWorkspaceUI({ws, store, ui, tuning, $, download, presets: presets.api, homologation, applyDocUi, collectApp, onCharactersChanged: () => {syncCharacterCombatWindows();syncRuleDurations();dock.invalidate();quickMenu.refresh();}});
   Object.assign(charHooks, wsUI.hooks);wsUI.setPanel(charPanel);presets.attachWorkspace(ws);
   await ws.batch(async () => {
     if (ws.doc.prefs.autoRestoreSession) applyDocUi(ws.doc);
@@ -981,6 +1107,9 @@ async function bootWorkspace() {
   // Pastas do projeto (servidor local opcional ou pasta autorizada no navegador).
   projectFiles = createProjectFiles({$, ui, presets: presets.api, wsUI, charPanel, reportsOf});
   if (window.__ARENAMON_DEV__) $('reports-link').href = '/relatorios';
+  if (restored.length && !navigator.webdriver) {
+    setTimeout(() => triggerWarmup(), 120);
+  }
   return {ws, store, wsUI, restored};
 }
 let projectFiles = null;
@@ -1000,7 +1129,8 @@ window.__arenamon = {snapshot: () => ({...game.snapshot(), frame: ui.frame, came
 window.__arenaLive = {rules: C.rules, test: C.test, locomotion: C.locomotion, camera: C.camera, profiles: C.profiles, extras: C.extras, game, view, input, clock, reset: startMatch, apply: applyConfig};
 // window.__lab só aparece depois da restauração do workspace (os testes esperam por ele).
 bootWorkspace().catch(e => {console.error('workspace:', e);ui.workspaceError = e.message;return null;}).then(boot => {
+  if (boot) quickMenu.attachWorkspace(boot);   // Seleção Rápida: personagens salvos + prévia 3D
   // API dos movimentos especiais (registro vazio): registerMove, listMoves, validateMove; equipar com setLoadout.
-  window.__lab = {moves: {...Moves, setLoadout: (id, ids) => game.setLoadout(id, ids), standard: STANDARD_MOVE_IDS, equipStandard: id => game.setLoadout(id, STANDARD_MOVE_IDS)}, C, game, view, hudProposals, presets, movement, playSequence, diagnostics, training, perf: perfPanel, aiEval, projectFiles, reportsOf, visualPanel, recorder, replay, tuning, ui, startMatch, startScenario: id => startScenario(SCENARIOS.find(s => s.id === id)), stepFrames, seekTick, goLive, togglePause, setCharacter, loadStudioFile, SCENARIOS, runScenario, spawn, openTool,
+  window.__lab = {charPanel, moves: {...Moves, setLoadout: (id, ids) => game.setLoadout(id, ids), standard: STANDARD_MOVE_IDS, equipStandard: id => game.setLoadout(id, STANDARD_MOVE_IDS)}, C, game, view, cinematic: view.cinematic, cinePanel, hudProposals, presets, movement, playSequence, diagnostics, training, perf: perfPanel, aiEval, projectFiles, reportsOf, visualPanel, recorder, replay, tuning, ui, startMatch, startScenario: id => startScenario(SCENARIOS.find(s => s.id === id)), stepFrames, seekTick, goLive, togglePause, setCharacter, loadStudioFile, triggerWarmup, SCENARIOS, runScenario, spawn, openTool,
     ws: boot?.ws ?? null, store: boot?.store ?? null, wsUI: boot?.wsUI ?? null, workspaceBoot: boot};
 });

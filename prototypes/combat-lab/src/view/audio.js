@@ -174,6 +174,24 @@ class SoundFX {
   }
 
   /**
+   * Ativação de passiva (§16): sino curto 100% procedural com 3 variações de pitch (variantes A/B/C do VFX).
+   */
+  playPassive(variant = 0) {
+    if (!this.enabled || !this.ctx) return;
+    this.ensureContext();
+    const t = this.ctx.currentTime;
+    const base = [740, 880, 990][((variant % 3) + 3) % 3] || 820;
+    const osc = this.ctx.createOscillator(), osc2 = this.ctx.createOscillator(), gain = this.ctx.createGain();
+    osc.type = 'sine';osc.frequency.setValueAtTime(base, t);
+    osc2.type = 'sine';osc2.frequency.setValueAtTime(base * 1.5, t);
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(0.14, t + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+    osc.connect(gain);osc2.connect(gain);gain.connect(this.masterGain);
+    osc.start(t);osc.stop(t + 0.35);osc2.start(t);osc2.stop(t + 0.35);
+  }
+
+  /**
    * Carga de Move subindo de nível (PL1 -> PL2 -> PL3).
    */
   playCharge(pl = 1) {

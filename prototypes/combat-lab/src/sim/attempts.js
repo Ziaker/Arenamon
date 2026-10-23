@@ -38,6 +38,7 @@ export const REASONS = {
   tackleNoGuard: () => 'a defesa não cancela o tackle (só um toque de defesa perfeita disponível)',
   perfectCooldown: d => `defesa perfeita em recarga (${ms(d.left)} restantes)`,
   sprintStamina: d => `stamina abaixo do mínimo do sprint (${n2(d.value)} / ${n2(d.required)})`,
+  noTarget: d => `nenhum adversário elegível a até ${n2(d.range)} m (vivo, no chão e ao alcance)`,
   noMove: d => `nenhum movimento equipado no slot ${(d.slot ?? 0) + 1}`,
   cooldown: d => `em recarga (${ms(d.left)} restantes)`,
   silenced: () => 'impedido de usar movimentos (efeito de status)',
@@ -47,6 +48,7 @@ export const REASONS = {
   chargeLock: d => `a esquiva só cancela a carga depois de ${ms(d.left)}`,
   moveRecovery: d => `recuperação do movimento (${ms(d.left)} restantes)`,
   noGround: () => 'só é possível carregar com apoio no chão',
+  ledge: () => 'pendurado na borda (suba com Espaço/direção ou solte com D/C)',
   chargeEnded: d => `carga encerrada (${d.why})`,
 };
 const RESULT = {denied: 'ignorado', buffered: 'guardado no buffer', expired: 'buffer expirou', executed: 'executado', partial: 'executado'};

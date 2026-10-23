@@ -59,7 +59,7 @@ registerMove({id: 'teste:projetil', name: 'Projétil de teste', duration: .4, co
   ev = steps(g, 60);const hit = ev.find(e => e.result === 'impact' && e.entity);
   assert.ok(hit && Math.abs(hit.damage - 12) < 1e-9 && g.fighters[1].hp === 88, 'acerto: dano da definição');
   assert.ok(hit.launch && g.world.entities.every(e => e.kind !== 'projectile'), 'lançamento e projétil consumido (pierce 1)');
-  g.step(cmd({skill: 0}));assert.ok(log.some(t => /Movimento 1 \(teste:projetil\) ignorado: em recarga/.test(t)), 'recarga: negado com motivo');setAttemptSink(null);
+  const cdLeft = g.fighters[0].moveCooldowns['teste:projetil'];g.step(cmd({skill: 0}));assert.ok(g.lastStepEvents.some(e => e.result === 'cooldownBoost' && e.move === 'teste:projetil'), 'recarga: novo toque acelera a recarga (M5.8), sem iniciar outro uso');assert.ok((g.fighters[0].moveCooldowns['teste:projetil'] ?? 0) < cdLeft, 'a recarga encurtou');setAttemptSink(null);
   g.fighters[1].hp = 100;const tickB = g.tick;steps(g, 130);g.step(cmd({skill: 0}));assert.equal(g.fighters[0].action?.kind, 'move', 'depois da recarga, sai de novo');void tickB;
 }
 ok('projétil: slot, custo, recarga, criação relativa ao lutador, voo em subpassos, dano, lançamento e consumo');

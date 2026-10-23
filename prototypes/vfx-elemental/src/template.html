@@ -1,0 +1,932 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Arenamon — Studio VFX 3D Elemental (Psíquico & Voador)</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #060810;
+      --bg-panel: #0d1220;
+      --bg-card: #12192b;
+      --bg-card-alt: #172036;
+      --border: #243252;
+      --border-strong: #3b5284;
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --opt-a: #38bdf8;
+      --opt-b: #a855f7;
+      --opt-c: #10b981;
+      --accent: #38bdf8;
+      --radius: 12px;
+      --radius-sm: 8px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: radial-gradient(circle at 50% 0%, #161b33 0%, var(--bg) 70%);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 13px;
+      line-height: 1.4;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    /* Top Header & Navigation */
+    .topbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 16px;
+      background: rgba(10, 14, 24, 0.94);
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(10px);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .back-link {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 12px;
+      padding: 5px 10px;
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      background: rgba(56, 189, 248, 0.1);
+      transition: all 0.15s;
+    }
+    .back-link:hover {
+      background: rgba(56, 189, 248, 0.22);
+    }
+    .title-block h1 {
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .element-pills {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .el-pill {
+      appearance: none;
+      padding: 5px 12px;
+      border-radius: 999px;
+      font-size: 11.5px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .el-pill:hover:not(.soon) {
+      border-color: var(--border-strong);
+      color: #fff;
+    }
+    .el-pill.active[data-el="psychic"] {
+      background: linear-gradient(135deg, rgba(244, 63, 94, 0.32), rgba(168, 85, 247, 0.36));
+      border-color: #e879f9;
+      color: #fdf4ff;
+      box-shadow: 0 0 14px rgba(217, 70, 239, 0.4);
+    }
+    .el-pill.active[data-el="flying"] {
+      background: linear-gradient(135deg, rgba(14, 165, 233, 0.34), rgba(16, 185, 129, 0.36));
+      border-color: #38bdf8;
+      color: #f0f9ff;
+      box-shadow: 0 0 14px rgba(56, 189, 248, 0.42);
+    }
+    .el-pill.active[data-el="fire"] {
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.38), rgba(249, 115, 22, 0.42));
+      border-color: #fb923c;
+      color: #fff7ed;
+      box-shadow: 0 0 14px rgba(249, 115, 22, 0.45);
+    }
+    .el-pill.soon {
+      opacity: 0.45;
+      cursor: default;
+    }
+
+    /* Category & Toolbar Row */
+    .control-strip {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 8px 16px;
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border);
+    }
+    .tab-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .tab-btn {
+      appearance: none;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      color: var(--text-muted);
+      padding: 7px 12px;
+      border-radius: var(--radius-sm);
+      font-weight: 700;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .tab-btn:hover {
+      border-color: var(--border-strong);
+      color: var(--text);
+    }
+    .tab-btn.active {
+      background: linear-gradient(135deg, #0284c7, #6366f1);
+      border-color: #7dd3fc;
+      color: #ffffff;
+      box-shadow: 0 2px 12px rgba(14, 165, 233, 0.38);
+    }
+
+    .playback-group {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-tool {
+      appearance: none;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      color: var(--text);
+      padding: 6px 11px;
+      border-radius: var(--radius-sm);
+      font-weight: 700;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .btn-tool:hover {
+      background: var(--bg-card-alt);
+      border-color: var(--border-strong);
+    }
+    .btn-tool.primary-export {
+      background: linear-gradient(135deg, #10b981, #059669);
+      border-color: #34d399;
+      color: #022c22;
+      font-weight: 800;
+      box-shadow: 0 2px 10px rgba(16, 185, 129, 0.35);
+    }
+    .btn-tool.primary-export:hover {
+      filter: brightness(1.1);
+    }
+    select.select-tool {
+      background: var(--bg-card);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 5px 9px;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* Viewport Stage */
+    .stage-wrapper {
+      position: relative;
+      width: 100%;
+      height: 420px;
+      min-height: 320px;
+      background: #05070e;
+      border-bottom: 1px solid var(--border);
+      user-select: none;
+    }
+    #vfx-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      cursor: grab;
+    }
+    #vfx-canvas:active {
+      cursor: grabbing;
+    }
+    .viewport-overlays {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+    }
+    .viewport-overlays.single-mode {
+      grid-template-columns: 1fr;
+    }
+    .vp-Overlay {
+      border-right: 1px solid rgba(148, 163, 184, 0.16);
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+    }
+    .vp-Overlay:last-child {
+      border-right: none;
+    }
+    .vp-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .vp-badge {
+      pointer-events: auto;
+      background: rgba(9, 13, 24, 0.86);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 6px 10px;
+      backdrop-filter: blur(6px);
+      max-width: 78%;
+    }
+    .vp-badge.opt-0 { border-left: 4px solid var(--opt-a); }
+    .vp-badge.opt-1 { border-left: 4px solid var(--opt-b); }
+    .vp-badge.opt-2 { border-left: 4px solid var(--opt-c); }
+    .vp-title {
+      font-weight: 800;
+      font-size: 13px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .vp-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+    .vp-actions {
+      pointer-events: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      align-items: flex-end;
+    }
+    .btn-pick {
+      appearance: none;
+      border: 1px solid var(--border);
+      background: rgba(15, 23, 42, 0.88);
+      color: var(--text-muted);
+      padding: 4px 9px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-pick.selected {
+      background: rgba(16, 185, 129, 0.25);
+      border-color: #34d399;
+      color: #6ee7b7;
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.35);
+    }
+    .btn-focus-vp {
+      appearance: none;
+      border: 1px solid var(--border);
+      background: rgba(15, 23, 42, 0.8);
+      color: var(--text-muted);
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .btn-focus-vp:hover {
+      color: #fff;
+      border-color: var(--accent);
+    }
+
+    .vp-foot {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      background: rgba(9, 13, 24, 0.82);
+      border: 1px solid rgba(36, 50, 82, 0.75);
+      border-radius: 8px;
+      padding: 5px 10px;
+      font-size: 11px;
+      color: var(--text-muted);
+      backdrop-filter: blur(4px);
+    }
+    .alpha-meter {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+      color: #e2e8f0;
+    }
+    .alpha-bar-bg {
+      width: 64px;
+      height: 7px;
+      background: #1e293b;
+      border-radius: 999px;
+      overflow: hidden;
+      border: 1px solid #334155;
+    }
+    .alpha-bar-fill {
+      height: 100%;
+      width: 100%;
+      background: linear-gradient(90deg, #38bdf8, #34d399);
+      transition: width 0.04s linear;
+    }
+
+    /* Timeline Scrubber Bar */
+    .scrubber-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 6px 16px;
+      background: #0a0f1c;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+    }
+    .scrubber-label {
+      font-weight: 700;
+      color: var(--text-muted);
+      white-space: nowrap;
+      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    }
+
+    /* 3-Column Sliders Deck */
+    .sliders-deck {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      padding: 12px 16px 32px;
+      max-width: 1920px;
+      width: 100%;
+      margin: 0 auto;
+    }
+    @media (max-width: 1180px) {
+      .sliders-deck {
+        grid-template-columns: 1fr;
+      }
+      .viewport-overlays {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .option-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+    }
+    .option-card.opt-0 { border-top: 3px solid var(--opt-a); }
+    .option-card.opt-1 { border-top: 3px solid var(--opt-b); }
+    .option-card.opt-2 { border-top: 3px solid var(--opt-c); }
+
+    .opt-card-header {
+      padding: 12px 14px;
+      background: rgba(15, 23, 42, 0.65);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .opt-card-title {
+      font-size: 14px;
+      font-weight: 800;
+      color: #fff;
+    }
+    .opt-card-ref {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .opt-card-btns {
+      display: flex;
+      gap: 6px;
+    }
+    .btn-mini {
+      appearance: none;
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .btn-mini:hover {
+      color: #fff;
+      border-color: var(--border-strong);
+    }
+
+    /* Opacity Curve Graph Box */
+    .curve-box {
+      padding: 10px 14px;
+      background: #0a0e19;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .curve-canvas {
+      width: 140px;
+      height: 52px;
+      background: #060911;
+      border: 1px solid #1e293b;
+      border-radius: 6px;
+      flex-shrink: 0;
+    }
+    .curve-info {
+      flex: 1;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .curve-info strong {
+      color: #e2e8f0;
+      display: block;
+      margin-bottom: 2px;
+    }
+
+    /* Slider Sections */
+    .slider-section {
+      padding: 10px 14px;
+      border-bottom: 1px solid rgba(36, 50, 82, 0.55);
+    }
+    .slider-section:last-child {
+      border-bottom: none;
+    }
+    .sec-label {
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #cbd5e1;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .slider-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px 12px;
+    }
+    .slider-item {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .slider-item.full-width {
+      grid-column: 1 / -1;
+    }
+    .slider-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      font-size: 11.5px;
+    }
+    .slider-top label {
+      color: #cbd5e1;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .slider-val {
+      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+      font-size: 11px;
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    /* Brand-Consistent Range Slider (Modern Web Guidance compliant) */
+    input[type="range"] {
+      --slider-track-size: 0.38rem;
+      --slider-thumb-size: 1.0rem;
+      --slider-track-radius: 999px;
+      --slider-thumb-radius: 50%;
+      --slider-track-color: #1e293b;
+      --slider-fill-color: #38bdf8;
+      --slider-thumb-color: var(--slider-fill-color);
+      --slider-direction: to right;
+
+      &:dir(rtl) {
+        --slider-direction: to left;
+      }
+
+      --attr-min: attr(min type(<number>), 0);
+      --attr-max: attr(max type(<number>), 100);
+      --control-value: attr(value type(<number>), 50);
+      --slider-progress: calc(
+        progress(var(--control-value), var(--attr-min), var(--attr-max)) * 100%
+      );
+
+      appearance: none;
+      inline-size: 100%;
+      block-size: 1.45rem;
+      margin: 0;
+      padding: 0;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      cursor: pointer;
+    }
+    @supports not (opacity: progress(1, 0, 100)) {
+      input[type="range"] {
+        --slider-progress: calc(
+          (var(--control-value) - var(--attr-min)) /
+          (var(--attr-max) - var(--attr-min)) * 100%
+        );
+      }
+    }
+    .opt-0 input[type="range"] { --slider-fill-color: #38bdf8; }
+    .opt-1 input[type="range"] { --slider-fill-color: #a855f7; }
+    .opt-2 input[type="range"] { --slider-fill-color: #10b981; }
+
+    /* WebKit/Blink */
+    input[type="range"]::-webkit-slider-runnable-track {
+      block-size: var(--slider-track-size);
+      border: 0;
+      border-radius: var(--slider-track-radius);
+      background: linear-gradient(
+        var(--slider-direction),
+        var(--slider-fill-color) var(--slider-progress),
+        var(--slider-track-color) var(--slider-progress)
+      );
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      inline-size: var(--slider-thumb-size);
+      block-size: var(--slider-thumb-size);
+      margin-block-start: calc(
+        (var(--slider-track-size) - var(--slider-thumb-size)) / 2
+      );
+      border: 2px solid #0f172a;
+      border-radius: var(--slider-thumb-radius);
+      background: var(--slider-thumb-color);
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+    }
+
+    /* Firefox */
+    input[type="range"]::-moz-range-track {
+      block-size: var(--slider-track-size);
+      border: 0;
+      border-radius: var(--slider-track-radius);
+      background: var(--slider-track-color);
+    }
+    input[type="range"]::-moz-range-progress {
+      block-size: var(--slider-track-size);
+      border-radius: var(--slider-track-radius);
+      background: var(--slider-fill-color);
+    }
+    input[type="range"]::-moz-range-thumb {
+      inline-size: var(--slider-thumb-size);
+      block-size: var(--slider-thumb-size);
+      border: 2px solid #0f172a;
+      border-radius: var(--slider-thumb-radius);
+      background: var(--slider-thumb-color);
+    }
+
+    input[type="range"]:focus-visible {
+      outline: 2px solid var(--slider-fill-color);
+      outline-offset: 4px;
+    }
+
+    /* Color Pickers Row */
+    .color-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 4px;
+    }
+    .color-cell {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--bg-panel);
+      padding: 4px 8px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+    .color-cell input[type="color"] {
+      width: 22px;
+      height: 22px;
+      border: none;
+      background: none;
+      cursor: pointer;
+      padding: 0;
+    }
+    .color-cell span {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    /* JSON & Prompt Exporter Modal */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(3, 6, 14, 0.82);
+      backdrop-filter: blur(6px);
+      z-index: 200;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-backdrop.open {
+      display: flex;
+    }
+    .modal-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border-strong);
+      border-radius: 16px;
+      max-width: 980px;
+      width: 100%;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+      overflow: hidden;
+    }
+    .modal-header {
+      padding: 16px 20px;
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .modal-header h2 {
+      font-size: 16px;
+      font-weight: 800;
+    }
+    .modal-body {
+      padding: 18px 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .export-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    @media (max-width: 760px) {
+      .export-grid { grid-template-columns: 1fr; }
+    }
+    .export-col {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .export-col h3 {
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--accent);
+    }
+    textarea.export-area {
+      width: 100%;
+      height: 300px;
+      background: #060913;
+      color: #e2e8f0;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px;
+      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+      font-size: 11.5px;
+      resize: vertical;
+      line-height: 1.45;
+    }
+    .modal-footer {
+      padding: 12px 20px;
+      background: var(--bg-panel);
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+    .toast-status {
+      font-size: 12px;
+      font-weight: 700;
+      color: #34d399;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation & Element Switcher -->
+  <header class="topbar">
+    <div class="brand-group">
+      <a href="../../ABRIR_ARENAMON.html" class="back-link">← Central Arenamon</a>
+      <a href="../../HTMLS_ARENAMON.html" class="back-link">⚡ Índice HTMLs</a>
+      <div class="title-block">
+        <h1>🎬 Studio VFX 3D — Protótipos de Efeitos Visuais &amp; Elementais</h1>
+      </div>
+    </div>
+
+    <div class="element-pills" role="tablist" aria-label="Abas de Tipos e Sistemas VFX">
+      <button type="button" class="el-pill" data-el="psychic" id="el-tab-psychic" title="Aba 1: Efeitos 3D Psíquicos (Invocação, Hit e Aura)">
+        🧠 1. Psíquico (PSI)
+      </button>
+      <button type="button" class="el-pill" data-el="flying" id="el-tab-flying" title="Aba 2: Efeitos 3D Voador (Vento, Poeira, Tornados, Vendavais e Tufões)">
+        🌪️ 2. Voador (Vento · Poeira · Tornados · Tufões)
+      </button>
+      <button type="button" class="el-pill active" data-el="fire" id="el-tab-fire" title="Aba 3: Efeitos 3D de Fogo (Mitológico Japonês, Tinta Sumi-e e Fogo Mágico)">
+        🔥 3. Fogo (Mitológico Japonês · Tinta · Mágico)
+      </button>
+      <span class="el-pill soon" title="Próximas abas planejadas no Studio VFX">⚡ Elétrico</span>
+      <span class="el-pill soon" title="Próximas abas planejadas no Studio VFX">🌊 Água / Gelo</span>
+    </div>
+  </header>
+
+  <!-- Category Selector & Playback Controls -->
+  <section class="control-strip" aria-label="Controles de Categoria e Reprodução">
+    <div class="tab-group" role="tablist" id="category-tabs" aria-label="Categorias de Efeito"></div>
+
+    <div class="playback-group">
+      <button type="button" class="btn-tool" id="btn-play-pause" title="Pausar ou continuar animação 3D">⏸️ Pausar</button>
+      <button type="button" class="btn-tool" id="btn-restart" title="Reiniciar ciclo da animação do zero">🔄 Reiniciar</button>
+
+      <label for="sel-submode" id="lbl-submode" style="font-size:11.5px;color:var(--text-muted);font-weight:700;">Camadas:</label>
+      <select id="sel-submode" class="select-tool" title="Configuração de objeto ou camadas visuais"></select>
+
+      <label for="sel-view" style="font-size:11.5px;color:var(--text-muted);font-weight:700;">Visão:</label>
+      <select id="sel-view" class="select-tool" title="Alternar entre as 3 opções lado a lado ou foco em uma única opção">
+        <option value="triple">⚖️ 3 Opções Lado a Lado (A × B × C)</option>
+        <option value="focus-0">🔍 Foco: Opção A</option>
+        <option value="focus-1">🔍 Foco: Opção B</option>
+        <option value="focus-2">🔍 Foco: Opção C</option>
+      </select>
+
+      <label for="sel-cam" style="font-size:11.5px;color:var(--text-muted);font-weight:700;">Câmera:</label>
+      <select id="sel-cam" class="select-tool" title="Ângulo da câmera 3D">
+        <option value="combat">🎥 3/4 Combate (Padrão)</option>
+        <option value="side">📐 Lateral (Trajetória)</option>
+        <option value="front">👁️ Frontal (Impacto/Aura)</option>
+        <option value="top">🛰️ Vista Superior (Ondas/Raio)</option>
+        <option value="orbit">🔄 Giro Orbital Automático</option>
+      </select>
+
+      <button type="button" class="btn-tool" id="btn-toggle-dummies" title="Mostrar/ocultar manequins 3D de referência de escala">🧍 Lutadores: ON</button>
+      <button type="button" class="btn-tool primary-export" id="btn-open-export">📋 Exportar JSON &amp; Prompt</button>
+    </div>
+  </section>
+
+  <!-- 3D Real-Time Animated Stage -->
+  <div class="stage-wrapper" id="stage-wrapper">
+    <canvas id="vfx-canvas"></canvas>
+
+    <div class="viewport-overlays" id="viewport-overlays">
+      <!-- Overlay A -->
+      <div class="vp-Overlay" data-vp="0">
+        <div class="vp-head">
+          <div class="vp-badge opt-0">
+            <div class="vp-title" id="vp-title-0">OPÇÃO A</div>
+            <div class="vp-sub" id="vp-sub-0"></div>
+          </div>
+          <div class="vp-actions">
+            <button type="button" class="btn-pick selected" data-pick="0">★ Favorita na Categoria</button>
+            <button type="button" class="btn-focus-vp" data-focus="0">🔍 Expandir A</button>
+          </div>
+        </div>
+        <div class="vp-foot">
+          <span id="stat-0">Malhas 3D ativas: --</span>
+          <div class="alpha-meter">
+            <span>Opacidade ao vivo:</span>
+            <div class="alpha-bar-bg"><div class="alpha-bar-fill" id="alpha-bar-0"></div></div>
+            <span id="alpha-txt-0">1.00</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Overlay B -->
+      <div class="vp-Overlay" data-vp="1">
+        <div class="vp-head">
+          <div class="vp-badge opt-1">
+            <div class="vp-title" id="vp-title-1">OPÇÃO B</div>
+            <div class="vp-sub" id="vp-sub-1"></div>
+          </div>
+          <div class="vp-actions">
+            <button type="button" class="btn-pick" data-pick="1">☆ Marcar Favorita</button>
+            <button type="button" class="btn-focus-vp" data-focus="1">🔍 Expandir B</button>
+          </div>
+        </div>
+        <div class="vp-foot">
+          <span id="stat-1">Malhas 3D ativas: --</span>
+          <div class="alpha-meter">
+            <span>Opacidade ao vivo:</span>
+            <div class="alpha-bar-bg"><div class="alpha-bar-fill" id="alpha-bar-1"></div></div>
+            <span id="alpha-txt-1">1.00</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Overlay C -->
+      <div class="vp-Overlay" data-vp="2">
+        <div class="vp-head">
+          <div class="vp-badge opt-2">
+            <div class="vp-title" id="vp-title-2">OPÇÃO C</div>
+            <div class="vp-sub" id="vp-sub-2"></div>
+          </div>
+          <div class="vp-actions">
+            <button type="button" class="btn-pick" data-pick="2">☆ Marcar Favorita</button>
+            <button type="button" class="btn-focus-vp" data-focus="2">🔍 Expandir C</button>
+          </div>
+        </div>
+        <div class="vp-foot">
+          <span id="stat-2">Malhas 3D ativas: --</span>
+          <div class="alpha-meter">
+            <span>Opacidade ao vivo:</span>
+            <div class="alpha-bar-bg"><div class="alpha-bar-fill" id="alpha-bar-2"></div></div>
+            <span id="alpha-txt-2">1.00</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Timeline Scrubber & Global Speed -->
+  <div class="scrubber-bar">
+    <span class="scrubber-label" id="scrubber-time">Ciclo: 0.00s / 100%</span>
+    <label for="global-scrub" style="font-weight:700;color:var(--text-muted);">Linha do Tempo (Arraste p/ Inspecionar Decaimento de Opacidade):</label>
+    <input type="range" id="global-scrub" min="0" max="1" step="0.002" value="0" style="flex:1;" aria-label="Linha do tempo do ciclo">
+    <label for="global-speed" style="font-weight:700;color:var(--text-muted);">Vel. Global:</label>
+    <input type="range" id="global-speed" min="0.1" max="2.0" step="0.05" value="1.0" style="width:110px;" aria-label="Velocidade global">
+    <span class="scrubber-label" id="global-speed-val">1.00×</span>
+  </div>
+
+  <!-- 3 Independent Slider Columns (Options A, B, C) -->
+  <main class="sliders-deck" id="sliders-deck" aria-label="Painéis de Sliders das 3 Opções"></main>
+
+  <!-- JSON & Implementation Prompt Exporter Modal -->
+  <div class="modal-backdrop" id="export-modal" role="dialog" aria-modal="true" aria-labelledby="export-modal-title">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2 id="export-modal-title">📋 Exportador JSON &amp; Gerador de Prompt para Implementação no Jogo</h2>
+        <button type="button" class="btn-tool" id="btn-close-export">✕ Fechar</button>
+      </div>
+      <div class="modal-body">
+        <p style="color:var(--text-muted);font-size:12.5px;">
+          Todos os sliders das 3 opções nas abas <strong>Psíquico (PSI)</strong> e <strong>Voador (Vento, Poeira, Tornados, Vendavais e Tufões)</strong> — incluindo <strong>Opacidade Total</strong> e <strong>Redução de Opacidade durante a Duração</strong> — já estão prontos abaixo para exportação e implementação.
+        </p>
+        <div class="export-grid">
+          <div class="export-col">
+            <h3>1. JSON Calibrado Completo (Compatível com C.vfx do Combat Lab)</h3>
+            <textarea class="export-area" id="txt-export-json" readonly></textarea>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button type="button" class="btn-tool primary-export" id="btn-copy-json">📋 Copiar JSON</button>
+              <button type="button" class="btn-tool" id="btn-download-json">💾 Baixar JSON Calibrado</button>
+              <button type="button" class="btn-tool" id="btn-import-json">📂 Importar JSON colado</button>
+            </div>
+          </div>
+          <div class="export-col">
+            <h3>2. Prompt Pronto para Implementação no Jogo (Copiar e Colar)</h3>
+            <textarea class="export-area" id="txt-export-prompt" readonly></textarea>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button type="button" class="btn-tool primary-export" id="btn-copy-prompt">🚀 Copiar Prompt de Implementação</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <span class="toast-status" id="export-status">✓ Sincronizado em tempo real com todos os sliders de Psíquico e Voador.</span>
+        <button type="button" class="btn-tool" id="btn-reset-all">↺ Restaurar Todos os Padrões de Fábrica</button>
+      </div>
+    </div>
+  </div>
+
+  <script>/*__BUNDLE__*/</script>
+</body>
+</html>

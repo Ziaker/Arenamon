@@ -2,8 +2,9 @@
 // (prefixo “teste:”), com um efeito de teste: o núcleo do laboratório continua sem registrar nenhum Move (D2).
 // Cobre: M2.3–M2.6, M5.8–M5.9, M7.1–M7.5, M7.9, M13.7, M15.1–M15.4, M16.1–M16.5, M16.8, M17.8, M19.1, M26s.8, M27.1, M27.4,
 // M28.4 (instantâneo de parâmetros, D1), M30.9 (ordem das entradas) e M30.10 (valores provisórios).
+// Este teste caracteriza a mecânica nos valores de FÁBRICA do laboratório (factoryDefaults); a base de calibração v8 é coberta por calibration-base.test.mjs e pelos testes de colisão/ambiente.
 import assert from 'node:assert/strict';
-import {C, defaults, resetConfig, keyFor} from '../src/sim/config.js';
+import {C, factoryDefaults, resetConfig, keyFor} from '../src/sim/config.js';
 import {Game} from '../src/sim/game.js';
 import {emptyCommand} from '../src/sim/entity.js';
 import {vec} from '../src/sim/math.js';
@@ -26,7 +27,7 @@ registerEffect('teste:fx', (g, f, def, fx) => {calls.push({move: def.id, level: 
 registerMove({id: 'teste:a', charge: {max: 4}, cost: 1, cooldown: 8, cooldownBoost: true, timeline: [{effect: 'teste:fx'}]});
 registerMove({id: 'teste:b', charge: {max: 4}, cost: 1, cooldown: 8, cooldownBoost: true, timeline: [{effect: 'teste:fx'}, {effect: 'teste:fx'}]});
 function arena() {
-  resetConfig(defaults());calls.length = 0;behavior.result = {ok: true};
+  resetConfig(factoryDefaults());calls.length = 0;behavior.result = {ok: true};
   const g = new Game();g.mode = 'inactive';g.reset({positions: [vec(0, -3), vec(0, 3)]});g.fighters[0].facing = 0;g.fighters[1].facing = Math.PI;g.setLoadout(0, ['teste:a', 'teste:b']);return g;
 }
 const events = [];
@@ -233,5 +234,5 @@ ok('entrada: o comando carrega os botões de slot mantidos; padrão A e S nos sl
 }
 ok('validação: charge, cooldownBoost e efeito nomeado; movimento comum continua exigindo duração');
 
-clearMoves();clearEffects();resetConfig(defaults());
+clearMoves();clearEffects();resetConfig(factoryDefaults());
 console.log(`\n${n} verificações do Charge (Fase 1) aprovadas.`);

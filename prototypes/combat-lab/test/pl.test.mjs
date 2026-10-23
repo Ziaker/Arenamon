@@ -1,8 +1,9 @@
 // Fase 4 (plano de Reflect/Psyshock) — Power Level, Clash e Counter, sem navegador. Cobre: M18.4–M18.8, M19.2–M19.9, M20.1–M20.2, M20.4,
 // M20.8–M20.9, M21.1, M21.3–M21.7, M21.9, M22.5 e M28.4 (Counter Stagger capturado). Tackle PL1 fixo; pedras do Psyshock com PL próprio.
 // Interações de Fields/explosões entre si (M22.2–M22.4) dependem de Moves ofensivos de área que ainda não existem (nem Reflect nem Psyshock são).
+// Este teste caracteriza a mecânica nos valores de FÁBRICA do laboratório (factoryDefaults); a base de calibração v8 é coberta por calibration-base.test.mjs e pelos testes de colisão/ambiente.
 import assert from 'node:assert/strict';
-import {C, defaults, resetConfig} from '../src/sim/config.js';
+import {C, factoryDefaults, resetConfig} from '../src/sim/config.js';
 import {Game} from '../src/sim/game.js';
 import {emptyCommand} from '../src/sim/entity.js';
 import {vec} from '../src/sim/math.js';
@@ -17,7 +18,7 @@ const cmd = o => ({...emptyCommand(), ...o});
 registerStandardMoves();
 const events = [];
 function arena({blue = vec(0, -3), red = vec(0, 3)} = {}) {
-  resetConfig(defaults());events.length = 0;
+  resetConfig(factoryDefaults());events.length = 0;
   const g = new Game();g.mode = 'inactive';g.reset({positions: [blue, red]});g.fighters[0].facing = 0;g.fighters[1].facing = Math.PI;g.setLoadout(0, ['reflect', 'psyshock']);return g;
 }
 const step = (g, c0 = cmd(), c1 = cmd()) => {g.step(c0, c1);events.push(...g.lastStepEvents);return g.lastStepEvents;};
@@ -107,5 +108,5 @@ ok('o Tackle (PL1) ainda destrói o Reflect de qualquer PL (M19.9)');
 }
 ok('o Counter Stagger é capturado na criação das pedras; eventos de acerto trazem o PL');
 
-clearMoves();clearEffects();resetConfig(defaults());
+clearMoves();clearEffects();resetConfig(factoryDefaults());
 console.log(`\n${n} verificações de Power Level, Clash e Counter (Fase 4) aprovadas.`);

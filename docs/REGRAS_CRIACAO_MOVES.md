@@ -181,6 +181,8 @@ Todo Move físico deve funcionar em **X/Z/Y**: distância horizontal sozinha nã
 
 Regras do mapa aprovadas incluem **salto normal no Espaço, um salto normal até pousar, sem stamina, sem i-frames e sem ações ofensivas/defensivas no salto normal; impulso horizontal da decolagem preservado sem correção aérea**. Tricks podem ter exceções **específicas aprovadas**, não mudar o salto normal globalmente.
 
+**Uso no ar (norma de 22/10/2026, v1.18.0):** todo Move novo precisa declarar `air` na definição — `cast` (o corpo segue em voo), `descend` (desce e age, como o C → X do vault) ou `none` — e tratar o salto, a queda de borda e o arco do vault. Lançado por golpe e preso na parede continuam sem comando. Cada Move deve ter teste no ar (`test/moves-air.test.mjs`) e entrar na varredura de travamentos (`test/moves-softlock.test.mjs`: ausência, ação, voo, invulnerabilidade, mira, carga e recuperação presos). Estados que escondem o lutador (ex.: Bullet Punch) precisam de **rede de segurança** que os encerre se a ação sumir.
+
 **Bullet Punch não estabelece regra universal de desaparecimento físico:** nele há fase individual em que corpo/hitbox/hurtbox deixam de existir. **Invisibilidade visual, invulnerabilidade e ausência física são estados distintos**.
 
 **Emerging Stone:** apoio integral e rochas empilhadas têm regras específicas, inclusive consequência da destruição de suporte (ES-D87, ES-D93–ES-D103). Não transferir essas decisões para Spikes sem análise/decisão própria. Algumas mecânicas do mapa ainda podem estar só documentadas; **verificar implementação real antes de alegar funcionamento**.

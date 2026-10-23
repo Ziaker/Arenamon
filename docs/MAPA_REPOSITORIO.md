@@ -25,6 +25,7 @@ Arenamon/
 │   ├── STATUS_PROJETOS_E_BRANCHES.md # Estado das branches paralelas e roadmap
 │   ├── GUIA_COLABORACAO_AGENTES.md   # Guia rápido de colaboração sem conflitos
 │   ├── CONTRATO_TECNICO_RIGGING.md   # Contrato canônico de telemetria, patch e auto-rig
+│   ├── OTIMIZACAO_DESEMPENHO_WARMUP.md # Diagnóstico de stuttering e arquitetura de warm-up/loading
 │   ├── REVISAO_GDD_COMBATE.md    # Revisão do GDD de Combate (Etapa A aprovada)
 │   ├── ROSTER.md                 # Personagens e atributos planejados
 │   └── GDD_Pokemon_Arena_Fighter_v0_1.docx # Game Design Document original
@@ -121,4 +122,8 @@ Para garantir **estabilidade absoluta** e não quebrar o trabalho paralelo dos o
 | **Protótipo antigo de blocos** | `prototypes/game/dist/arenamon-jogavel.html` | `prototypes/game/src/` | `prototypes/game/README.md` |
 | **Importador de Modelos** | `prototypes/importer/dist/importador-prototipo.html` | `prototypes/importer/src/` | `prototypes/importer/README.md` |
 | **Visualizador de Blocos** | `prototypes/placeholders/dist/criaturas-laboratorio.html`| `prototypes/placeholders/src/`| `prototypes/placeholders/README.md`|
+| **VFX 3D Elemental (Psíquico)** | `prototypes/vfx-elemental/dist/vfx-elemental-psiquico.html` | `prototypes/vfx-elemental/src/` | `docs/VFX_ELEMENTAL_PSIQUICO.md` |
+| **HUD de Vida, Stamina & Moves (propostas)** | `prototypes/hud-moves/dist/hud-moves-laboratorio.html` | `prototypes/hud-moves/src/` | `docs/HUD_VIDA_STAMINA_MOVES_LAB.md` |
+| **HUD de Progressão & Consumíveis (propostas)** | `prototypes/hud-consumiveis/dist/hud-consumiveis-laboratorio.html` | `prototypes/hud-consumiveis/src/` | `docs/HUD_CONSUMIVEIS_LAB.md` |
+| **Câmera Cinemática (ZZZ)** | Botão 🎬 em `arenamon-combate-laboratorio.html` | `prototypes/combat-lab/src/view/cinematic-camera.js` | `docs/CAMERA_CINEMATICA_ZZZ.md` |
 | **Matriz de Testes** | `TESTES_ARENAMON.html` | `test*.mjs` em cada pasta | `docs/CENTRAL_DE_TESTES.md` |

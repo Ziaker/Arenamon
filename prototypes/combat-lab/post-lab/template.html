@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Arenamon · Laboratório de Pós-processamento</title>
+<style>/*__CSS__*/</style>
+</head>
+<body>
+<div class="app">
+ <header class="top">
+  <span class="logo">A</span>
+  <strong>ARENAMON <em>PÓS-PROCESSAMENTO</em></strong>
+  <small>pmndrs/postprocessing (sem React) · offline · __VERSION_DETAIL__</small>
+  <span class="spacer"></span>
+ </header>
+ <div class="body">
+  <aside class="side">
+   <section class="card">
+    <h3>Comparação A/B</h3>
+    <div class="seg" id="view-mode">
+     <button class="btn" data-m="off">Atual</button>
+     <button class="btn active" data-m="split">Dividido</button>
+     <button class="btn" data-m="on">Pós</button>
+    </div>
+    <p class="hint">Dividido: esquerda = renderer atual, direita = com pós-processamento. Arraste o divisor pelo controle abaixo.</p>
+    <div class="pfield"><label for="split">Posição do divisor</label><output id="split-out">50%</output><input type="range" id="split" min="10" max="90" step="1" value="50"></div>
+   </section>
+   <section class="card">
+    <h3>Eventos de combate</h3>
+    <div class="row"><button class="btn primary" id="ev-impact">💥 Impacto forte</button><button class="btn" id="ev-clash">⚔ Clash</button></div>
+    <div class="row"><button class="btn" id="ev-charge">⚡ Carga (3 s)</button><button class="btn" id="ev-ko">🎬 K.O. (profundidade de campo)</button></div>
+    <button class="btn wide" id="ev-sim">▶ Evento real da simulação (tackle)</button>
+    <label class="chk"><input type="checkbox" id="dom-overlays" checked> Letterbox + speedlines + HUD (camadas DOM)</label>
+    <p class="hint">As camadas DOM (HUD, letterbox, speedlines, impact-frame) ficam por cima do canvas: o pós-processamento não as altera.</p>
+   </section>
+   <section class="card">
+    <h3>Predefinições</h3>
+    <div class="row"><button class="btn" data-preset="sutil">Sutil</button><button class="btn" data-preset="cinema">Cinemático</button><button class="btn" data-preset="intenso">Intenso</button></div>
+   </section>
+   <section class="card">
+    <h3>Acessibilidade</h3>
+    <label class="chk"><input type="checkbox" id="a-noFlash"> Sem flash (sem pulso de brilho)</label>
+    <label class="chk"><input type="checkbox" id="a-reduceMotion"> Reduzir movimento (sem distorção, aberração em pulso, DoF)</label>
+    <label class="chk"><input type="checkbox" id="a-highContrast"> Alto contraste (sem bloom, vinheta e grading)</label>
+   </section>
+   <section class="card">
+    <h3>Efeitos e parâmetros</h3>
+    <div id="params"></div>
+   </section>
+   <section class="card">
+    <h3>Desempenho (A/B)</h3>
+    <button class="btn wide" id="measure">⏱ Medir (3 s cada)</button>
+    <div id="perf-result"><p class="hint">Mede quadros por segundo e tempo de envio ao WebGL com e sem pós-processamento neste computador.</p></div>
+   </section>
+  </aside>
+  <main class="main">
+   <div class="stage">
+    <canvas id="c"></canvas>
+    <div class="hud" id="hud"><div class="l">AZUL<div class="bar"><i></i></div></div><div class="r">VERMELHO<div class="bar"><i></i></div></div></div>
+    <div class="letter top" id="lt"></div><div class="letter bot" id="lb"></div><div class="speed" id="sp"></div>
+    <div class="split" id="split-line"></div>
+    <div class="tag" id="tag-l" style="left:12px">ATUAL</div><div class="tag" id="tag-r" style="right:12px">PÓS</div>
+   </div>
+   <div id="status" class="status">Pronto.</div>
+  </main>
+ </div>
+</div>
+<script>/*__BUNDLE__*/</script>
+</body>
+</html>

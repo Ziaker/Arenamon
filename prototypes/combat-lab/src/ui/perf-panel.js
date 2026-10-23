@@ -12,7 +12,7 @@ export const BENCH_CASES = [
 ];
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-export function createPerfPanel({$, view, game, tuning, ui, download, startBench, endBench, getWs}) {
+export function createPerfPanel({$, view, game, tuning, ui, download, startBench, endBench, getWs, onWarmup}) {
   const meter = new PerfMeter(), info = rendererInfo(view.renderer), gpu = createGpuTimer(view.renderer);
   view.gpuTimer = gpu.available ? gpu : null;
   let bench = null, lastBench = null;
@@ -30,6 +30,7 @@ export function createPerfPanel({$, view, game, tuning, ui, download, startBench
     return [['FPS (suavizado)', s.fps.toFixed(1)], ['Tempo de quadro médio', fmtMs(s.frameAvg)], ['P95 do tempo de quadro', fmtMs(s.frameP95)], ['Pior quadro do período', fmtMs(s.frameWorst)],
       ['Trabalho de CPU por quadro (média / P95)', `${fmtMs(s.workAvg)} / ${fmtMs(s.workP95)}`], ['Simulação (passos/quadro)', `${fmtMs(s.simAvg)} (${s.stepsAvg.toFixed(2)})`], ['Animação dos modelos', fmtMs(s.animAvg)], ['Atualização dos VFX', fmtMs(s.vfxAvg)],
       ['Sobreposições técnicas', fmtMs(s.overlayAvg)], ['Renderização (CPU, envio ao WebGL)', fmtMs(s.renderAvg)], [info.software ? 'Tempo de “GPU” (software: CPU emulando a GPU)' : 'Tempo de GPU', gpu.available ? fmtMs(s.gpuAvg) : 'indisponível'],
+      ['Shaders WebGL / Warm-up', view.isWarmedUp ? '✓ Pré-compilados (GPU pronta)' : '⚠ Pendente (compilação sob demanda)'],
       ['Draw calls (média / máx.)', `${s.callsAvg.toFixed(0)} / ${s.callsMax}`], ['Triângulos renderizados', s.trianglesAvg.toFixed(0)], ['Partículas ativas (média / pico)', `${s.activeAvg.toFixed(0)} / ${s.activePeak}`], ['Partículas geradas no período', s.spawned]];
   }
   function live() {
@@ -101,7 +102,7 @@ export function createPerfPanel({$, view, game, tuning, ui, download, startBench
   function render() {
     const root = $('perf-panel');if (!root) return;
     root.innerHTML = `<div id="perf-controls"></div><p class="muted">${escape(info.renderer)}${info.software ? ' · <span class="warn">renderização por software (CPU) — não representa GPU dedicada</span>' : ''} · WebGL${info.webgl2 ? '2' : '1'} · GPU timer: ${gpu.available ? 'disponível' : 'indisponível'}</p>
-      <dl class="live" id="perf-live"></dl><div class="row"><button type="button" id="perf-reset">Zerar período</button></div>
+      <dl class="live" id="perf-live"></dl><div class="row"><button type="button" id="perf-reset">Zerar período</button><button type="button" id="perf-warmup" title="Pré-compila shaders WebGL e aquece dados de solo dos lutadores">⚡ Pré-compilar Shaders</button></div>
       <h4>Perfis gráficos</h4><div class="seg wide" role="group" aria-label="Perfil gráfico">${GRAPHICS_PROFILES.map(p => `<button type="button" data-gprofile="${p.id}" title="${escape(p.description)}">${p.label}</button>`).join('')}<button type="button" data-gprofile="custom" disabled title="Ajuste manual">Personalizado</button></div>
       <p class="hint" id="gprofile-info"></p><p class="hint">Só resolução, partículas e sombra: nunca física, dano, stamina, IA ou tempos das ações.</p>
       <h4>Benchmark comparativo</h4><p class="hint">IA × IA com semente fixa, aquecimento antes de medir; casos: sem VFX, leves, médios e todos os efeitos, com uma e duas personagens. A partida atual é encerrada.</p>
@@ -110,6 +111,7 @@ export function createPerfPanel({$, view, game, tuning, ui, download, startBench
       <p class="hint" id="bench-progress"></p><div id="bench-report" class="report"></div>`;
     $('perf-controls').append(...tuning.sectionControls('Medidor de desempenho'));
     $('perf-reset').onclick = () => meter.reset();
+    if ($('perf-warmup')) $('perf-warmup').onclick = () => onWarmup?.();
     for (const b of root.querySelectorAll('[data-gprofile]')) if (b.dataset.gprofile !== 'custom') b.onclick = () => applyProfile(b.dataset.gprofile);
     $('bench-run').onclick = async () => {
       $('bench-run').disabled = true;$('bench-abort').disabled = false;

@@ -1,5 +1,6 @@
 // Testes do novo sistema de VFX declarativo (prototypes/combat-lab/src/view/vfx/).
 // Executam em Node sem navegador, sem requests HTTP(S) e sem modificar a simulação.
+// Este teste caracteriza a mecânica nos valores de FÁBRICA do laboratório (factoryDefaults); a base de calibração v8 é coberta por calibration-base.test.mjs e pelos testes de colisão/ambiente.
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {
@@ -19,7 +20,7 @@ import {buildClashC} from '../src/view/vfx/effects/clash.js';
 import {BeamRenderer, BEAM_PL_COLORS} from '../src/view/vfx/beam-renderer.js';
 import * as T from 'three';
 import {Game} from '../src/sim/game.js';
-import {C, resetConfig} from '../src/sim/config.js';
+import {C, resetConfig, factoryDefaults} from '../src/sim/config.js';
 import {WorldView} from '../src/view/world-view.js';
 import {spawn} from '../src/sim/world.js';
 
@@ -471,7 +472,7 @@ test('runtime: fallback de qualidade muda limites', () => {
 
 test('simulação: estado idêntico com VFX ligado e desligado (mesma seed)', () => {
   // Executa duas lutas idênticas; a presença do VFX não deve alterar o resultado mecânico.
-  resetConfig();
+  resetConfig(factoryDefaults());
   const run = (vfxOn) => {
     const g = new Game({seed: 42});
     g.mode = 'combat';
@@ -1059,7 +1060,7 @@ test('hit D: nasce da normal real, escala com dano/lançamento e respeita os con
   const hit = VFX_TYPES.find(t => t[0] === 'hit');
   assert.equal(hit[2].length, 4, 'hit tem 4 variantes (A, B, C, D)');
   const run = (ctx, patch = {}) => {
-    resetConfig();
+    resetConfig(factoryDefaults());
     Object.assign(C.vfx.hit, {variant: 3}, patch);
     const v = new VfxSystem({add: () => {}, remove: () => {}}, {flashEl: {style: {}}});
     v.fire('hit', {pos: {x: 0, z: 0}, power: 1, ...ctx}, 'teste');
@@ -1082,9 +1083,74 @@ test('hit D: nasce da normal real, escala com dano/lançamento e respeita os con
   // Controles individuais desligam cada camada.
   const off = run({n: normal, damage: C.test.attack * 2}, {debris: 0, dust: 0, crack: 0});
   assert.ok(!off.some(p => p.cell === 14 || p.cell === 6 && p.gravity === 14 || p.cell === 8 || p.cell === 12), 'detritos, poeira e rachadura desligáveis');
+  // Remoção de camadas e tamanhos (22/10/2026): círculos (núcleo e anéis), lâmina, fagulhas e faíscas se desligam um a um e os tamanhos escalam.
+  const E = {n: normal, damage: C.test.attack}, full = run(E);
+  assert.ok(full.some(p => p.cell === 0) && full.some(p => p.cell === 3) && full.some(p => p.cell === 1 && p.vx === 0) && full.some(p => p.cell === 7), 'padrão: núcleo, anéis, lâmina e faíscas presentes');
+  assert.ok(!run(E, {coreOn: 0}).some(p => p.cell === 0), 'núcleo circular removível');
+  assert.ok(!run(E, {ringPlaneOn: 0, ringGroundOn: 0}).some(p => p.cell === 3), 'os dois anéis removíveis');
+  assert.ok(run(E, {ringPlaneOn: 0}).some(p => p.cell === 3) && run(E, {ringGroundOn: 0}).some(p => p.cell === 3), 'cada anel se remove sozinho');
+  assert.ok(!run(E, {ringOpacity: 0}).some(p => p.cell === 3), 'opacidade 0 remove os anéis');
+  assert.ok(!run(E, {bladeOn: 0}).some(p => p.cell === 1 && p.vx === 0), 'lâmina removível');
+  assert.ok(!run(E, {sparksOn: 0}).some(p => p.cell === 1 && p.vx !== 0), 'fagulhas em risco removíveis');
+  assert.ok(!run(E, {embersOn: 0}).some(p => p.cell === 7), 'faíscas que caem removíveis');
+  const coreW = o => run(E, o).find(p => p.cell === 0).w;
+  assert.ok(Math.abs(coreW({coreSize: 2}) / coreW({coreSize: 1}) - 2) < 1e-6, 'coreSize escala o núcleo');
+  assert.ok(!run(E, {coreSize: 0}).some(p => p.cell === 0), 'coreSize 0 remove o núcleo');
+  const back = o => run(E, o).filter(p => p.cell === 1 && p.vx < 0).length;
+  assert.equal(back({backSplash: 0}), 0, 'respingo 0% = nenhuma fagulha para trás');assert.ok(back({backSplash: 1}) > back({backSplash: .25}), 'respingo 100% manda mais fagulhas para trás');
   // Normal ausente não quebra (usa +z).
   assert.ok(run({n: undefined}).length > 0, 'sem normal usa o eixo padrão');
-  resetConfig();
+  resetConfig(factoryDefaults());
+});
+
+// ============ POUSO DO PULO REGULAR E IMPACTO EM PAREDES/OBJETOS (22/10/2026) ============
+import {collisionProbe} from '../src/sim/collision-probe.js';
+const fakeFighter = (id, extra = {}) => ({id, position: {x: id * 5, z: 0}, groundY: 0, vaultHeight: 0, flight: null, action: null, hp: 100, stamina: 3, staminaTrend: 0, exhausted: false, sprinting: false, statuses: [], lastLanding: {n: 0}, ...extra});
+const newSystem = () => {resetConfig(factoryDefaults());collisionProbe.byFighter = {};collisionProbe.step = 0;return new VfxSystem({add: () => {}, remove: () => {}}, {flashEl: {style: {}}});};
+const parts = v => [...v.add.p, ...v.norm.p];
+test('pouso do pulo regular: só uma onda circular, sem tremor, sem efeito de colisão com o chão; knockback continua com o efeito completo', () => {
+  const land = regular => {const v = newSystem(), a = fakeFighter(0), b = fakeFighter(1);v.update([a, b], [], .016);a.lastLanding = {n: 1, vertical: 7, horizontal: 0, x: 0, z: 0, regular};v.update([a, b], [], .016);return v;};
+  const reg = land(true), kb = land(false);
+  assert.ok(parts(reg).length > 0 && parts(reg).every(p => p.cell === 3 && p.mode === 1), 'pulo regular: só anéis rentes ao chão');
+  assert.equal(reg.shakes.length, 0, 'pulo regular: nenhum tremor');
+  assert.ok(parts(kb).length > parts(reg).length && kb.shakes.length > 0, 'knockback: efeito de chão completo e tremor');
+  const v0 = newSystem();C.vfx.jumpLanding.enabled = 0;const a0 = fakeFighter(0);v0.update([a0, fakeFighter(1)], [], .016);a0.lastLanding = {n: 1, vertical: 7, horizontal: 0, x: 0, z: 0, regular: true};v0.update([a0, fakeFighter(1)], [], .016);
+  assert.equal(parts(v0).length, 0, 'desligável');
+  const rings = n => {const v = newSystem();C.vfx.jumpLanding.rings = n;const a = fakeFighter(0);v.update([a, fakeFighter(1)], [], .016);a.lastLanding = {n: 1, vertical: 7, horizontal: 0, x: 0, z: 0, regular: true};v.update([a, fakeFighter(1)], [], .016);return parts(v).length;};
+  assert.equal(rings(3), 3 * rings(1), 'rings controla a quantidade de ondas');
+});
+test('impacto vertical em paredes e objetos: escala com o tamanho, respeita velocidade mínima, intervalo e toggles, e não repete encostando', () => {
+  const world = {mapState: {obstacles: [{id: 'p1', shape: 'cylinder', radius: .5, height: 1, pos: {x: 0, y: 0, z: 0}}, {id: 'big', shape: 'box', hx: 3, hz: 3, height: 5, pos: {x: 0, y: 0, z: 0}}], platforms: [], destructibles: []}};
+  const hit = (id, o = {}, speed = 8, kind = 'obstacle') => {
+    const v = newSystem();Object.assign(C.vfx.wallImpact, o);const a = fakeFighter(0), b = fakeFighter(1);
+    v.update([a, b], [], .016, {world});
+    collisionProbe.byFighter[0] = {step: 500, kind, id, normal: {x: -1, z: 0}, depth: .02, vBefore: {x: speed, z: 0}, vAfter: {x: 0, z: 0}, x: 4, z: 0};
+    v.update([a, b], [], .016, {world});return v;
+  };
+  const small = parts(hit('p1')), big = parts(hit('big'));
+  assert.ok(small.length > 0 && big.length > small.length, `objeto grande (${big.length}) gera mais efeito que o pequeno (${small.length})`);
+  const ringW = ps => ps.find(p => p.cell === 3 && p.mode === 3).w;
+  assert.ok(ringW(big) > ringW(small), 'a onda do objeto grande é maior');
+  assert.ok(big.some(p => p.cell === 1 && p.ay === 1 && p.ax === 0), 'faixa vertical de luz');
+  assert.ok(big.some(p => p.cell === 3 && p.mode === 3 && Math.abs(p.ax + 1) < 1e-9), 'a onda fica no plano da parede (eixo = normal)');
+  assert.equal(ringW(parts(hit('big', {sizeInfluence: 0}))), ringW(parts(hit('p1', {sizeInfluence: 0}))), 'sizeInfluence 0 = mesmo tamanho para qualquer objeto');
+  assert.equal(parts(hit('big', {}, 1.5)).length, 0, 'abaixo da velocidade mínima: nada');
+  assert.equal(parts(hit('big', {objectsOn: 0})).length, 0, 'objetos desligáveis');
+  assert.ok(parts(hit('', {}, 8, 'arena')).length > 0, 'parede da arena dispara');assert.equal(parts(hit('', {arenaOn: 0}, 8, 'arena')).length, 0, 'parede da arena desligável');
+  const none = parts(hit('big', {wallRing: 0, wallStreak: 0, wallSparks: 0, wallDust: 0}));assert.equal(none.length, 0, 'todas as peças removíveis');
+  assert.ok(!parts(hit('big', {wallRing: 0})).some(p => p.cell === 3), 'só a onda removida');
+  assert.ok(!parts(hit('big', {wallSparks: 0})).some(p => p.cell === 1 && p.gravity === 9), 'faíscas removíveis');
+  assert.ok(!parts(hit('big', {wallDust: 0})).some(p => p.cell === 8), 'poeira removível');
+  // encostar na parede (contato contínuo) não repete; nova batida depois do intervalo repete
+  const v = newSystem(), a = fakeFighter(0), b = fakeFighter(1);v.update([a, b], [], .016, {world});
+  collisionProbe.byFighter[0] = {step: 500, kind: 'obstacle', id: 'big', normal: {x: -1, z: 0}, depth: .02, vBefore: {x: 8, z: 0}, vAfter: {x: 0, z: 0}, x: 4, z: 0};v.update([a, b], [], .016, {world});const n1 = parts(v).length;
+  for (let s = 502; s < 520; s += 2) {collisionProbe.byFighter[0] = {...collisionProbe.byFighter[0], step: s, vBefore: {x: 8, z: 0}};v.update([a, b], [], .016, {world});}
+  assert.ok(n1 > 0 && v.stats.firesByType.wallImpact === 1, 'contato contínuo dispara uma vez só');
+  for (let i = 0; i < 40; i++) v.update([a, b], [], .016, {world});collisionProbe.byFighter[0] = {...collisionProbe.byFighter[0], step: 900};v.update([a, b], [], .016, {world});
+  assert.equal(v.stats.firesByType.wallImpact, 2, 'nova batida depois do intervalo dispara de novo');
+  // sem tremor por padrão; o bloco de Tremor tem o controle
+  assert.equal(C.vfx.shakeWall.enabled, 0);
+  resetConfig(factoryDefaults());
 });
 
 console.log(`\n${passed} testes de VFX aprovados.`);

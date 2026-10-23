@@ -1,0 +1,24 @@
+{
+  "ok": true,
+  "names": [
+    "Órbita",
+    "Prisma"
+  ],
+  "minFontPx": 21.6,
+  "bannerPx": {
+    "minWidth": 210,
+    "maxWidth": 270,
+    "height": 46
+  },
+  "position": "top 34%, extrema esquerda/direita",
+  "occupiedArenaPct": 2.93,
+  "fullNameAtScale145": true,
+  "sparkleColor": "#ffffff",
+  "sparkleDurationSeconds": 0.5,
+  "sparkleCountPerFighter": 28,
+  "followsCharacter": true,
+  "mirroredEdges": true,
+  "borderModes": 3,
+  "controls": 5,
+  "errors": []
+}

@@ -1,5 +1,7 @@
 # Arenamon — Catálogo de moves do Mushroom
 
+> **Atualização de 22/10/2026 (auditoria `docs/AUDITORIA_DOCUMENTACAO_2026-10-22.md`):** **Emerging Stone, Bullet Punch e Sand Wave estão implementados** no laboratório (v1.14.x; Bullet Punch 5× mais rápido e com viagem invisível na v1.14.5; softlock em plataforma corrigido na v1.17.0). **Body Slam continua sem gameplay especificado.** O status «nenhum dos dois foi implementado» abaixo é do momento em que o documento foi consolidado (19/10).
+
 > **Documento de decisões de design — fonte para implementação posterior.**  
 > **Última consolidação:** 19/10/2026. **Status:** Bullet Punch com design principal aprovado; Sand Wave com especificação inicial aprovada e pendências identificadas. **Nenhum dos dois foi implementado ou testado neste documento.**  
 > **Origem:** decisões explícitas do diretor nesta conversa, preservadas em ordem cronológica; informações técnicas do repositório são assinaladas separadamente.  
@@ -31,6 +33,8 @@ A ordem apresentada acima é a **ordem dos golpes definida pelo diretor**. Assoc
 - **A regra de cobrança é independente da cronologia do cast de Emerging Stone:** o diretor **aprovou expressamente a opção C** da Rodada 1, questão 1, em 20/10/2026, documentada como **ES-D103 / §7.21**. Na cronologia C, o cast de **0,55 s começa ao pressionar**, a mira continua ajustável enquanto o botão estiver pressionado e o projétil só dispara após **cast concluído E botão solto**. **A cobrança de recursos de move não-Charge continua após confirmação/soltura na etapa de preparação, antes do disparo** — nunca automaticamente na pressão inicial, mesmo que o cast físico já esteja em execução. A opção B foi **rejeitada**. Este item atualiza somente o estado da pendência, sem alterar os dois gatilhos universais de cobrança aprovados acima.
 - **Instrução permanente do diretor:** **não fazer novamente perguntas sobre quando cobrar recursos** em qualquer outro move; aplicar diretamente esta regra por padrão, sem tratá-la como escolha de cada golpe.
 - **Precedência:** esta regra é uma diretriz **posterior** aos históricos individuais de moves deste documento, que permanecem preservados para rastreabilidade. A adoção da diretriz não autoriza alterações de código ou reescrita retroativa dos relatos históricos.
+
+> **Atualização de 22/10/2026 (tarde, v1.20.0):** por decisão do responsável o Bullet Punch **deixou de ter marcador de destino** e passou a funcionar **como o Quick Attack**: alvo = adversário mais próximo dentro do alcance do Move (`reach`), fixado ao soltar o botão; segurar mostra o círculo de alcance (azul com alvo, vermelho sem). A corrida invisível termina colada no alvo, o golpe sai no momento da chegada e quem estiver no caminho leva o golpe e para a corrida. O texto abaixo descreve o contrato anterior (marcador de 3–10 m) e vale só como histórico; a implementação vigente está em `docs/RODADA_22_10_TARDE.md`.
 
 ## 2. Bullet Punch — contrato de gameplay vigente
 
@@ -73,7 +77,7 @@ O Bullet Punch é um move com **marcação manual de destino**, seguida de **pre
 
 ### 2.5 Fase 3 — desaparecimento (sem presença física)
 
-1. Depois dos **0,75 s de preparação**, Mushroom **desaparece** por **1,00 s inicialmente**, tempo configurável por slider.
+1. Depois dos **0,75 s de preparação**, Mushroom **desaparece** por **0,20 s** (era 1,00 s; ajuste de 21/10/2026: 5× mais rápido), tempo configurável por slider. **Durante esse intervalo o lutador VIAJA em linha reta, invisível e intangível, até o marcador, e a câmera o acompanha** (não fica parado no ponto de partida).
 2. Durante toda essa fase existem **VFX de speedlines**.
 3. A especificação do diretor é literal: **o personagem “para de existir” durante o movimento e só “volta a existir” ao final**. Isso não é apenas invisibilidade ou invulnerabilidade visual: **não há corpo/colisor/hitbox/hurtbox fisicamente ativo** nesse intervalo.
 4. Consequentemente, enquanto ausente, Mushroom **não pode receber ataques/dano, sofrer colisões ou ser selecionado como alvo**. O estado lógico indispensável para o término e o reaparecimento deve ser preservado internamente; os efeitos de speedlines podem continuar existindo visualmente.
@@ -111,7 +115,7 @@ Em seguida à consulta sobre limites, o diretor autorizou expressamente **as rec
 
 | Parâmetro | Valor inicial | Mínimo | Máximo | Passo | Natureza |
 |---|---:|---:|---:|---:|---|
-| Duração do desaparecimento | **1,00 s** | **0,10 s** | **6,00 s** | **0,05 s** | Slider |
+| Duração do desaparecimento (viagem invisível até o marcador) | **0,20 s** | **0,10 s** | **6,00 s** | **0,05 s** | Slider |
 | Raio de busca de inimigos | **5,00 m** | **0,50 m** | **30,00 m** | **0,50 m** | Slider |
 | Alcance físico / distância máxima da investida | **3,00 m** | **0,50 m** | **20,00 m** | **0,25 m** | Slider |
 | Custo de stamina | **1,5× o Tackle** | **0×** | **5× o Tackle** | **0,1×** | Slider independente |

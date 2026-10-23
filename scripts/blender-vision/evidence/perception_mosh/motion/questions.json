@@ -1,0 +1,262 @@
+[
+ {
+  "principio": "squash_and_stretch",
+  "aplicavel": false,
+  "pergunta_visual": "O volume da malha se comprime/estica de modo coerente com o impacto, ou a deformacao observada nas imagens e um defeito de rig?",
+  "frames": [
+   5,
+   6,
+   7,
+   8,
+   9
+  ],
+  "regioes_para_abrir": [
+   "corpo_todo"
+  ],
+  "medidas_relacionadas": [
+   "motion.deformacao.eventos",
+   "motion.deformacao.inesperados"
+  ],
+  "a_medida_nao_responde": "se a deformacao foi pedida pelo diretor; 'documentada' so significa que foi declarada",
+  "status": "pendente_de_leitura_visual",
+  "nota": "sem escala de pose nem esticamento de osso acima do limite: nada a avaliar (nao significa ausencia de squash/stretch no desenho da pose)"
+ },
+ {
+  "principio": "anticipation",
+  "aplicavel": true,
+  "pergunta_visual": "Antes da acao principal, o corpo INTEIRO (nao so o efetuador) se prepara de modo que um observador entenda o que vem? Ou a acao ja comeca sem aviso?",
+  "frames": [
+   1,
+   2,
+   6
+  ],
+  "regioes_para_abrir": [
+   "corpo_todo",
+   "tronco_quadril"
+  ],
+  "medidas_relacionadas": [
+   "motion.antecipacao.razao_recuo_curso",
+   "motion.antecipacao.frames_de_recuo",
+   "motion.fases.fases"
+  ],
+  "a_medida_nao_responde": "se o recuo medido e LEGIVEL, exagerado ou longo demais; um clipe que comeca ja em movimento pode ser escolha deliberada",
+  "status": "pendente_de_leitura_visual"
+ },
+ {
+  "principio": "staging",
+  "aplicavel": true,
+  "pergunta_visual": "A silhueta dos frames-chave comunica a acao e quem a faz? Alguma parte importante fica escondida (cabeca/chapeu, braco atras do tronco)?",
+  "frames": [
+   1,
+   5,
+   7,
+   54
+  ],
+  "regioes_para_abrir": [
+   "corpo_todo"
+  ],
+  "medidas_relacionadas": [
+   "investigation.regions.*.views.*.occluded_by",
+   "investigation.regions.*.final.frames_not_observed"
+  ],
+  "a_medida_nao_responde": "legibilidade para uma pessoa; a ocultacao medida diz O QUE esconde e em que fracao, nao se isso prejudica",
+  "status": "pendente_de_leitura_visual"
+ },
+ {
+  "principio": "straight_ahead_pose_to_pose",
+  "aplicavel": true,
+  "pergunta_visual": "A sequencia parece feita por poses-chave com interpolacao, ou por quadros continuos? Ha poses de 'parada' que dao ritmo ou congelamentos acidentais?",
+  "frames": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12
+  ],
+  "regioes_para_abrir": [
+   "corpo_todo"
+  ],
+  "medidas_relacionadas": [
+   "pose_track.key_frames"
+  ],
+  "a_medida_nao_responde": "intencao; poucas chaves podem ser decisao de estilo",
+  "status": "pendente_de_leitura_visual"
+ },
+ {
+  "principio": "follow_through_overlapping",
+  "aplicavel": true,
+  "pergunta_visual": "Apos o pico, partes do corpo continuam e assentam em tempos diferentes (arrasto), ou tudo para junto? A cabeca/chapeu acompanha?",
+  "frames": [
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13,
+   14
+  ],
+  "regioes_para_abrir": [
+   "corpo_todo",
+   "cabeca"
+  ],
+  "medidas_relacionadas": [
+   "motion.fases.fases",
+   "motion.sequencia_do_corpo.defasagem_total_frames"
+  ],
+  "a_medida_nao_responde": "se o arrasto e agradavel; so mostra se existe e quando",
+  "status": "pendente_de_leitura_visual"
+ },
+ {
+  "principio": "slow_in_slow_out",
+  "aplicavel": true,
+  "pergunta_visual": "Nos extremos do golpe a velocidade aumenta e diminui gradualmente (entrada/saida suave) ou ha arranque/parada secos?",
+  "frames": [
+   5,
+   6,
+   7,
+   8,
+   9
+  ],
+  "regioes_para_abrir": [
+   "corpo_todo"
+  ],
+  "medidas_relacionadas": [
+   "motion.snap"
+  ],
+  "a_medida_nao_responde": "o gosto por arranque seco (impacto) ou suave; so classifica rampa x salto isolado",
+  "status": "pendente_de_leitura_visual"
+ },
+ {
+  "principio": "arcs",
+  "aplicavel": true,
+  "pergunta_visual": "O caminho da mao/membro e do corpo forma um arco natural ou tem quinas? Veja varios frames consecutivos na mesma vista.",
+  "frames": [
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11
+  ],
+  "regioes_para_abrir": [
+   "ombros_bracos_D",
+   "ombros_bracos_E"
+  ],
+  "medidas_relacionadas": [
+   "motion.arco.quinas_em_velocidade",
+   "motion.arco.virada_max_graus"
+  ],
+  "a_medida_nao_responde": "se a quina e erro ou escolha; a trajetoria do efetuador nao e o arco do corpo inteiro",
+  "status": "pendente_de_leitura_visual"
+ },
+ {
+  "principio": "secondary_action",
+  "aplicavel": true,
+  "pergunta_visual": "Alem da acao principal, ha acao secundaria (cabeca, braco livre, tronco) que reforca ou compete com a leitura?",
+  "frames": [
+   7,
+   54
+  ],
+  "regioes_para_abrir": [
+   "cabeca",
+   "ombros_bracos_E",
+   "tronco_quadril"
+  ],
+  "medidas_relacionadas": [
+   "motion.sequencia_do_corpo.onset_by_alpha"
+  ],
+  "a_medida_nao_responde": "se ajuda ou atrapalha; so diz quando cada segmento comeca a se mover",
+  "status": "pendente_de_leitura_visual"
+ },
+ {
+  "principio": "timing",
+  "aplicavel": true,
+  "pergunta_visual": "A distribuicao de tempo entre preparar, executar e recuperar deixa a acao legivel? Alguma fase e curta demais para ser percebida?",
+  "frames": [
+   1,
+   2,
+   6,
+   9,
+   10,
+   37,
+   54
+  ],
+  "regioes_para_abrir": [
+   "corpo_todo"
+  ],
+  "medidas_relacionadas": [
+   "motion.fases.fases"
+  ],
+  "a_medida_nao_responde": "o ritmo desejado; duracao total ~1.80 s (54 frames a 30 fps)",
+  "status": "pendente_de_leitura_visual"
+ },
+ {
+  "principio": "exaggeration",
+  "aplicavel": true,
+  "pergunta_visual": "O exagero (queda, extensao, escala do gesto) e claramente intencional e coerente com o personagem, ou parece deformacao acidental?",
+  "frames": [
+   1,
+   7,
+   54
+  ],
+  "regioes_para_abrir": [
+   "corpo_todo"
+  ],
+  "medidas_relacionadas": [
+   "motion.antecipacao.curso_m",
+   "motion.deformacao.eventos"
+  ],
+  "a_medida_nao_responde": "o limite aceitavel de exagero: e decisao artistica do diretor",
+  "status": "pendente_de_leitura_visual"
+ },
+ {
+  "principio": "solid_drawing",
+  "aplicavel": true,
+  "pergunta_visual": "Em vistas independentes, o volume do corpo permanece claro (nenhuma parte colapsa, atravessa ou some)? Em caso de atravessamento, distinga de oclusao.",
+  "frames": [
+   5,
+   6,
+   7,
+   8,
+   9
+  ],
+  "regioes_para_abrir": [
+   "tronco_quadril",
+   "ombros_bracos_D",
+   "ombros_bracos_E"
+  ],
+  "medidas_relacionadas": [
+   "contacts.rows",
+   "motion.chao.por_rotulo",
+   "investigation.regions.*.views.*.occluded_by"
+  ],
+  "a_medida_nao_responde": "penetracao so e HIPOTESE geometrica; confirme em imagem onde a interseccao e visivel",
+  "status": "pendente_de_leitura_visual"
+ },
+ {
+  "principio": "appeal",
+  "aplicavel": true,
+  "pergunta_visual": "O conjunto e carismatico e consistente com o personagem?",
+  "frames": [
+   7
+  ],
+  "regioes_para_abrir": [
+   "corpo_todo"
+  ],
+  "medidas_relacionadas": [],
+  "a_medida_nao_responde": "tudo: e preferencia estetica e exige referencia aprovada pelo diretor; sem referencia, so descrever, nunca aprovar",
+  "status": "pendente_de_leitura_visual",
+  "nota": "sem referencia aprovada: nao ha como julgar"
+ }
+]

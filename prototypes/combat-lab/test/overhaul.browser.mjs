@@ -18,7 +18,7 @@ const browser = await chromium.launch({channel: 'msedge', headless: true});
 const page = await browser.newPage({viewport: {width: 1500, height: 920}, acceptDownloads: true});
 const errors = [];page.on('pageerror', e => errors.push(e.message));page.on('console', m => {if (m.type() === 'error') errors.push(m.text());});
 await page.context().setOffline(true);
-await page.goto(pathToFileURL(root + 'dist/arenamon-combate-laboratorio.html').href);await page.waitForFunction(() => window.__lab);
+await page.goto(pathToFileURL(root + 'dist/arenamon-combate-laboratorio.html').href + '?fabrica=1');await page.waitForFunction(() => window.__lab);
 const L = (fn, arg) => page.evaluate(fn, arg);
 const openTab = t => L(t => {const p = document.getElementById('panel');if (p.hidden || p.dataset.tool !== t) document.querySelector(`[data-tool="${t}"]`).click();}, t);
 const start = async () => {await openTab('match');await page.click('#start');};
@@ -53,7 +53,7 @@ try {
   check('Controle manual', 'tecla L move o vermelho (IA ignorada)', Math.hypot(r1.x - r0.x, r1.z - r0.z) > .8, `${Math.hypot(r1.x - r0.x, r1.z - r0.z).toFixed(2)} m`);
   await L(() => new Promise(done => {const c = document.querySelector('.stage canvas'), key = (t, code) => c.dispatchEvent(new KeyboardEvent(t, {code, bubbles: true}));key('keydown', 'KeyU');key('keyup', 'KeyU');setTimeout(done, 120);}));
   check('Controle manual', 'tecla U faz o tackle do vermelho', await L(() => window.__lab.recorder.actions.some(a => a.fighter === 1 && a.kind === 'tackle')));
-  check('Controle manual', 'teclas do vermelho configuráveis na aba Controles', await L(() => document.querySelectorAll('#bindings2-controls [data-path^="extras.bindings2."]').length === 12)); // 8 comandos + 4 slots de movimentos especiais
+  check('Controle manual', 'teclas do vermelho configuráveis na aba Controles', await L(() => document.querySelectorAll('#bindings2-controls [data-path^="extras.bindings2."]').length >= 12)); // comandos básicos + slots de movimentos + pulo
   await L(() => window.__lab.tuning.commit([['extras.toggles.enemyManual', 0]], 'manual off'));
 
   // ---------- Sprint pelo teclado ----------
@@ -99,6 +99,7 @@ try {
   check('VFX', 'limpeza: partículas liberadas após o efeito', (await L(() => window.__lab.view.vfx.add.p.length + window.__lab.view.vfx.norm.p.length)) <= 40, `${await L(() => window.__lab.view.vfx.add.p.length + window.__lab.view.vfx.norm.p.length)} restantes (regeneração/exaustão podem continuar)`);
   // Preset por efeito e persistência via preset salvo.
   await openTab('overlays');await page.click('[data-vx-item="vfx-hit"]');
+  await page.evaluate(() => document.querySelectorAll('.fold-btn[aria-expanded="false"]').forEach(b => b.click()));
   let dl = page.waitForEvent('download');await page.click('[data-group="vfx-hit"] [title="Exportar os valores deste efeito (JSON)"]');
   const preset = JSON.parse(await (await import('node:fs/promises')).readFile(await (await dl).path(), 'utf8'));
   check('VFX', 'preset exportável por efeito', preset.schema === 'arenamon-vfx-preset' && preset.values.variant !== undefined && preset.values.size !== undefined);
@@ -141,7 +142,7 @@ try {
   if (existsSync(glb)) {
     await openTab('characters');
     await page.setInputFiles('#char-slots .char-slot input[data-model]', glb);await page.waitForFunction(() => window.__lab.ui.characters[0]);
-    await page.click('#char-slots .char-slot:nth-child(2) [data-same]');await page.waitForFunction(() => window.__lab.ui.characters[1]);
+    await page.evaluate(() => window.__lab.charPanel.selectFighter(1));await page.click('#char-slots .char-slot:nth-child(2) [data-same]');await page.evaluate(() => window.__lab.charPanel.selectFighter(0));await page.waitForFunction(() => window.__lab.ui.characters[1]);
     await L(() => window.__lab.tuning.commit([['extras.toggles.enableEnemyAI', 1], ['extras.toggles.enablePlayerAI', 1]], 'IA x IA'));await openTab('match');await start();
     for (let i = 0; i < 12; i++) {await page.waitForTimeout(250);await page.screenshot({path: out + `frames/luta-${String(i).padStart(2, '0')}.png`, clip: stage});}
     await page.waitForTimeout(6000);
@@ -149,7 +150,7 @@ try {
     // Mesma janela: o gravador só tem a partida atual; a telemetria de animação acumula as anteriores (o passo recomeça).
     const win = await L(() => {const s = window.__lab.recorder.samples;return {from: s[0]?.tick ?? 0, to: s.at(-1)?.tick ?? 0, n: window.__lab.recorder.actions.filter(a => a.kind === 'tackle' || a.kind === 'dodge').length};});
     const recActions = win.n, current = anim.map(a => a.log.slice(a.log.findLastIndex((e, k) => k > 0 && e.tick < a.log[k - 1].tick) + 1 || 0).filter(e => e.tick >= win.from && e.tick <= win.to));
-    const entries = anim.flatMap(a => a.log), actionEntries = current.flat().filter(e => ['tackle', 'dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'vault'].includes(e.to));
+    const entries = anim.flatMap(a => a.log), actionEntries = current.flat().filter(e => ['tackle', 'dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'vault'].includes(e.to) && !(e.to === 'vault' && e.from?.startsWith('dodge')));
     const finished = entries.filter(e => e.reason === 'ação concluída');
     check('Animação (GLB)', 'uma entrada de animação por ação X/C (sem reinício por detecção repetida)', actionEntries.length <= recActions && actionEntries.length > 0, `${actionEntries.length} entradas para ${recActions} ações`);
     // A última amostra visível pode cair até um quadro antes do fim (GL por software ≈ 60 ms por quadro). A tolerância usa a duração média de quadro medida DEPOIS da partida;

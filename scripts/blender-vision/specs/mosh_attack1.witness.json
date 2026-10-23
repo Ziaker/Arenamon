@@ -1,0 +1,35 @@
+{
+  "schema": "arenamon.animation-witness.spec/1",
+  "name": "Mosh (Mushroom) — attack 1 (caso de validacao da percepcao; sem briefing aprovado)",
+  "note": "Nao existe briefing nem referencia aprovados para este clipe. Todas as afirmacoes abaixo sao medidas da fonte (chars/mosh/Cogumelo.glb) e nenhuma e criterio do diretor. A fonte e uma copia derivada e descartavel (prep_source.py), por isso nao ha hash de .blend fixado.",
+  "claims": [
+    {
+      "id": "duration_54",
+      "type": "frame_count",
+      "statement": "O clipe medido no FBX original tem 54 frames (1..54 a 30 fps)",
+      "expected": 54,
+      "criterion_status": "proposed",
+      "criterion_origin": "medido em chars/mosh/attack 1.fbx; nao e briefing aprovado"
+    },
+    {
+      "id": "rig_and_idle",
+      "type": "inventory",
+      "statement": "O arquivo contem a action idle (referencia de repouso para baseline)",
+      "required_actions": ["idle"],
+      "criterion_status": "proposed",
+      "criterion_origin": "necessidade da ferramenta (baseline), nao do diretor"
+    },
+    {
+      "id": "root_displacement",
+      "type": "root_displacement",
+      "statement": "O deslocamento real do quadril e medido, sem criterio de aprovacao",
+      "criterion_origin": "sem briefing: deslocamento nao tem criterio aprovado"
+    },
+    {
+      "id": "artistic_quality",
+      "type": "artistic_judgement",
+      "statement": "O ataque parece pesado, legivel e com bom impacto",
+      "criterion_origin": "nao existe referencia aprovada"
+    }
+  ]
+}

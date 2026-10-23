@@ -453,7 +453,9 @@
 
         <ul class="feature-list">
           <li><strong>Ações &amp; Moves:</strong> X para tackle ofensivo, C para esquiva defensiva (com C → X), D para defesa e A/S para Moves (Reflect e Psyshock com PL1–PL3).</li>
+          <li><strong>Câmera Cinemática (Estilo ZZZ):</strong> 12 efeitos dinâmicos de apresentação (dutch angle, câmera baixa de velocidade, snap lateral, FOV punch/breathing, impact frames, speedlines e letterbox) acessíveis pelo botão 🎬 com painel exclusivo.</li>
           <li><strong>VFX 3D &amp; Visual:</strong> 9 famílias de efeitos 3D sólidos, rochas telecinéticas, barreira de energia, lasers e Modo Arena sem painéis.</li>
+          <li><strong>Cenário, HUD e consumíveis aprovados (21/10/2026):</strong> arena <em>Laboratório técnico</em>, HUD <em>Banco de Células</em> (estágios 0–4 dos 5 atributos) e consumíveis <em>Gemas Facetadas</em>. Alternância para o visual clássico e sliders em <b>Visualizar › Câmera, tremor e HUD</b>.</li>
           <li><strong>Personagens:</strong> importação de GLB do Animation Studio e sincronização das durações de animação.</li>
           <li><strong>Dashboard Bento Zero-Scroll:</strong> 9 abas de calibração, presets, replay, cenários, A × B e exportação sem necessidade de rolagem vertical.</li>
         </ul>
@@ -461,6 +463,33 @@
         <div class="btn-row">
           <a href="prototypes/combat-lab/dist/arenamon-combate-laboratorio.html" class="btn-action btn-primary">
             ▶️ Jogar Arenamon (Abrir Jogo Principal)
+          </a>
+          <a href="prototypes/vfx-elemental/dist/vfx-elemental-psiquico.html" class="btn-action btn-accent">
+            🔮 Laboratório VFX 3D Elemental (Psíquico · A/B/C)
+          </a>
+          <a href="prototypes/combat-lab/dist/arenamon-vfx-quarks.html" class="btn-action btn-accent">
+            ✨ Laboratório VFX · Quarks (partículas A/B/C)
+          </a>
+          <a href="prototypes/hud-consumiveis/dist/hud-consumiveis-laboratorio.html" class="btn-action btn-accent">
+            🧪 Laboratório HUD de Progressão &amp; Consumíveis (3 HUDs × 3 coleções · propostas)
+          </a>
+          <a href="prototypes/hud-moves/dist/hud-moves-laboratorio.html" class="btn-action btn-accent">
+            🎛️ Laboratório HUD de Vida, Stamina &amp; Moves (A Impacto · B Quadrinhos · C Clássico · propostas)
+          </a>
+          <a href="prototypes/combat-lab/dist/arenamon-navegacao-yuka.html" class="btn-action btn-accent">
+            🧭 Laboratório de Navegação · Yuka (rotas, salto e queda · A/B)
+          </a>
+          <a href="prototypes/combat-lab/dist/arenamon-posprocessamento.html" class="btn-action btn-accent">
+            🎞️ Laboratório de Pós-processamento (bloom, distorção, grading · A/B)
+          </a>
+          <a href="prototypes/combat-lab/dist/arenamon-fisica-rapier.html" class="btn-action btn-accent">
+            🧱 Laboratório de Física · Rapier (prova de conceito)
+          </a>
+          <a href="docs/INTEGRACAO_OPEN_SOURCE.md" class="btn-action btn-secondary">
+            🧰 Ferramentas open source: o que foi integrado
+          </a>
+          <a href="docs/MELHORIAS_FISICA_COLISAO.md" class="btn-action btn-secondary">
+            🛠️ Melhorias de física, colisão e hitbox (v1.13.0)
           </a>
           <a href="prototypes/combat-lab/dist/arenamon-painel-relatorios.html" class="btn-action btn-secondary">
             📊 Painel de Relatórios
@@ -690,6 +719,27 @@
             Abrir Diagnóstico
           </a>
         </div>
+
+        <!-- Blender Vision: percepcao ativa -->
+        <div class="card card-highlight-accent">
+          <div class="card-top">
+            <span class="card-tag experimental">Blender Vision</span>
+            <span class="card-tag">Somente leitura</span>
+          </div>
+          <h3 class="card-h2">Percepção Ativa — Mushroom</h3>
+          <p class="card-desc">
+            Relatório do caso Mosh/Mushroom (clipe attack 1): o que a IA viu e o que não viu por região do corpo, novas vistas pedidas sozinhas, medidas de movimento, mãos abaixo do chão, diagnóstico validado e testes controlados. Não altera animação nem jogo.
+          </p>
+          <a href="scripts/blender-vision/evidence/perception_mosh/relatorio.html" class="btn-action btn-secondary">
+            Abrir Relatório do Mushroom
+          </a>
+          <a href="scripts/blender-vision/PROTOCOLO_AGENTE_VISUAL.md" class="btn-action btn-secondary" style="margin-top: 8px;">
+            Protocolo do agente (como a IA analisa)
+          </a>
+          <a href="docs/BLENDER_VISION_PERCEPCAO.md" class="btn-action btn-secondary" style="margin-top: 8px;">
+            Documentação e limites
+          </a>
+        </div>
       </div>
     </section>
 
@@ -734,9 +784,69 @@
       </div>
 
       <div class="doc-grid">
+        <a href="docs/AUDITORIA_FISICA_3D_2026-10-20.md" class="doc-item">
+          <span class="doc-item-title">🧱 Auditoria da Infraestrutura Física 3D (20/10/2026)</span>
+          <span class="doc-item-desc">Relatório técnico da auditoria sistêmica: altitude no lançamento, teto de plataformas, pouso só na descida, arena circular, wall-splat sem autoria inventada e mixer de animação sem vazamento — com matriz de classificação e pendências.</span>
+        </a>
+        <a href="docs/CAMERA_CINEMATICA_ZZZ.md" class="doc-item">
+          <span class="doc-item-title">🎬 Câmera Cinemática de Combate (ZZZ)</span>
+          <span class="doc-item-desc">Especificação dos 12 efeitos de apresentação visual (C01–C12), arquitetura de desacoplamento do yaw funcional, limites do solo e controles.</span>
+        </a>
+        <a href="prototypes/vfx-elemental/dist/vfx-elemental-psiquico.html" class="doc-item">
+          <span class="doc-item-title">🔮 VFX 3D Elemental — Tipo Psíquico (A / B / C)</span>
+          <span class="doc-item-desc">3 opções animadas em 3D (EarthBound/Mother 3, Persona 4/5, Parasite Eve) para Invocação, Hit e Aura, com sliders de opacidade/duração e exportador JSON.</span>
+        </a>
+        <a href="prototypes/hud-consumiveis/dist/hud-consumiveis-laboratorio.html" class="doc-item">
+          <span class="doc-item-title">🧪 Laboratório HUD de Progressão &amp; Consumíveis (A / B / C)</span>
+          <span class="doc-item-desc">Arena 3D com 3 propostas de HUD para os 5 atributos (estágios 0–4) e 3 coleções de 7 consumíveis em 3D, com indicadores flutuantes, partículas three.quarks e 9 combinações. Todas as alternativas ainda não aprovadas.</span>
+        </a>
+        <a href="prototypes/hud-moves/dist/hud-moves-laboratorio.html" class="doc-item">
+          <span class="doc-item-title">🎛️ Laboratório HUD de Vida, Stamina &amp; Moves (A / B / C)</span>
+          <span class="doc-item-desc">Arena 3D com 3 propostas bem diferentes de HUD (Impacto, Quadrinhos, Clássico) para vida, stamina e 4 moves, com estados de recarga, carga, bloqueio e sem stamina, 4 cenários e controles em tempo real. Nada aprovado.</span>
+        </a>
+        <a href="docs/HUD_VIDA_STAMINA_MOVES_LAB.md" class="doc-item">
+          <span class="doc-item-title">📘 Documentação — HUD de Vida, Stamina &amp; Moves</span>
+          <span class="doc-item-desc">Descrição das 3 propostas, estados dos moves, controles, testes e limites do protótipo.</span>
+        </a>
+        <a href="prototypes/hud-moves/evidence/hudA-neutro-720p.png" class="doc-item">
+          <span class="doc-item-title">🖼️ Evidências — HUD de Vida, Stamina &amp; Moves (capturas 720p e 1080p)</span>
+          <span class="doc-item-desc">Capturas da verificação de navegador: cada HUD nos 4 cenários, em 720p e 1080p, com a câmera em posições diferentes.</span>
+        </a>
+        <a href="docs/HUD_CONSUMIVEIS_LAB.md" class="doc-item">
+          <span class="doc-item-title">📘 Documentação — HUD &amp; Consumíveis (propostas)</span>
+          <span class="doc-item-desc">Descrição das 3 propostas de HUD, das 21 representações de consumíveis, controles, valores exibidos e pendências de aprovação.</span>
+        </a>
+        <a href="prototypes/combat-lab/evidence/progress-scenery/jogo-padrao-1500x920.png" class="doc-item">
+          <span class="doc-item-title">🖼️ Evidências — cenário, HUD e consumíveis NO JOGO (capturas)</span>
+          <span class="doc-item-desc">Jogo principal com o cenário Laboratório técnico, o HUD Banco de Células e as Gemas Facetadas (720p, 1080p, e as versões clássicas após a alternância).</span>
+        </a>
+        <a href="prototypes/hud-consumiveis/evidence/combo-hudB-itensB-720p.png" class="doc-item">
+          <span class="doc-item-title">🖼️ Evidências — HUD &amp; Consumíveis (capturas 720p e 1080p)</span>
+          <span class="doc-item-desc">Capturas geradas pela verificação de navegador: 9 combinações, cada HUD em 720p/1080p, vitrines das 3 coleções, painel e inspeção.</span>
+        </a>
+        <a href="docs/VFX_ELEMENTAL_PSIQUICO.md" class="doc-item">
+          <span class="doc-item-title">📘 Documentação VFX Elemental Psíquico</span>
+          <span class="doc-item-desc">Especificação das 3 opções 3D, shaders GLSL, curva de redução de opacidade na duração e formato de exportação JSON/Prompt.</span>
+        </a>
+        <a href="prototypes/combat-lab/evidence/passive-abilities/index.html" class="doc-item">
+          <span class="doc-item-title">⚡ Habilidades passivas — No jogo</span>
+          <span class="doc-item-desc">Veja as placas laterais metálicas animadas e os sparkles brancos acompanhando os personagens no Combat Lab.</span>
+        </a>
+        <a href="docs/VFX_HABILIDADES_PASSIVAS.md" class="doc-item">
+          <span class="doc-item-title">📘 Habilidades passivas — VFX e interface</span>
+          <span class="doc-item-desc">Controles, nomes de uma palavra, animações da moldura e procedimento de verificação.</span>
+        </a>
         <a href="prototypes/combat-lab/evidence/vfx-solido/comparacao-poeira.html" class="doc-item">
           <span class="doc-item-title">🌫️ VFX 3D — Comparação visual</span>
           <span class="doc-item-desc">Todos os estilos de poeira, vento, esquiva, aterrissagem, impacto, bloqueio, colisão e invocação do Reflect, em vários ângulos e clipes.</span>
+        </a>
+        <a href="docs/MATRIZ_RASTREAMENTO_NOVO_MAPA.md" class="doc-item">
+          <span class="doc-item-title">🗺️ Novo Mapa — Matriz de Rastreabilidade</span>
+          <span class="doc-item-desc">Rastreamento completo das 152 decisões (R1.1 a R11.9) e 24 casos de aceitação (MAP-T01 a MAP-T24).</span>
+        </a>
+        <a href="docs/MAPA_COMBAT_LAB_DECISOES_RODADAS.md" class="doc-item">
+          <span class="doc-item-title">📋 Novo Mapa — Decisões das 11 Rodadas</span>
+          <span class="doc-item-desc">Documento oficial das decisões aprovadas da arena circular, plataformas, pulo, itens e escudos.</span>
         </a>
         <a href="docs/VFX_SOLIDOS.md" class="doc-item">
           <span class="doc-item-title">✨ VFX 3D — Documentação</span>
@@ -754,21 +864,109 @@
           <span class="doc-item-title">🧬 Passivas — Decisões de Design</span>
           <span class="doc-item-desc">Regras aprovadas de seleção, tipos de funcionamento e interação individual com estados de combate.</span>
         </a>
+        <a href="docs/PASSIVAS_IMPLEMENTACAO.md" class="doc-item">
+          <span class="doc-item-title">✅ Passivas — Implementação (29 rodadas)</span>
+          <span class="doc-item-desc">Matriz de cobertura R01–R29, matriz das 18 habilidades, testes (42 cenários pv-01…pv-42 + 9 unitários) e pendências. Jogável em Partida › Passivas.</span>
+        </a>
+        <a href="docs/ia/COBERTURA_IA_MEDICAO.md" class="doc-item">
+          <span class="doc-item-title">🧱 IA — Cobertura (tentativa descartada)</span>
+          <span class="doc-item-desc">Testes de a IA se esconder atrás de paredes e de atacar pulando na cabeça do rival: nenhum melhorou, nenhum foi adotado; números e motivo.</span>
+        </a>
+        <a href="docs/ia/BALANCEAMENTO_SECOND_WIND_SWIFT.md" class="doc-item">
+          <span class="doc-item-title">⚖️ Balanceamento — Second Wind e Swift</span>
+          <span class="doc-item-desc">Varredura dos sliders medida com a IA: onde cada Move fica forte demais, leve ou neutro. Sugestão de valores; os padrões não foram alterados.</span>
+        </a>
+        <a href="docs/ia/NEW_MOVES_IA_MEDICAO.md" class="doc-item">
+          <span class="doc-item-title">🤖 IA — Uso dos 13 Moves novos (medição)</span>
+          <span class="doc-item-desc">Quanto a IA usa cada Move novo e o efeito dele nas vitórias, com a leitura dos números. Slider de uso em Moves › IA com Moves.</span>
+        </a>
+        <a href="docs/ia/NAV_IA_MEDICAO.md" class="doc-item">
+          <span class="doc-item-title">🧭 IA — Medição da navegação (Yuka)</span>
+          <span class="doc-item-desc">IA × IA com e sem navegação em 6 mapas: vitórias, quedas, pressão e partidas sem desfecho. Mostra onde a navegação ajuda e como reproduzir.</span>
+        </a>
         <a href="docs/moves-nao-iniciados/README.md" class="doc-item">
           <span class="doc-item-title">📂 Moves não iniciados — Inventário e prompts</span>
           <span class="doc-item-desc">Prompt de implementação do Emerging Stone, documentos de referência e auditoria do Tackle.</span>
         </a>
+        <a href="docs/moves-nao-iniciados/PROMPT_IMPLEMENTACAO_MOVES_NOVOS.md" class="doc-item">
+          <span class="doc-item-title">🧭 Moves novos — Prompt de trabalho do agente</span>
+          <span class="doc-item-desc">Ordem, infraestrutura, protocolo por Move e critérios de aceitação dos 13 Moves em implementação (feat/moves-novos).</span>
+        </a>
+        <a href="docs/moves-nao-iniciados/DECISOES_PROVISORIAS_MOVES_NOVOS.md" class="doc-item">
+          <span class="doc-item-title">📝 Moves novos — Decisões provisórias</span>
+          <span class="doc-item-desc">Padrões provisórios adotados onde a fonte marca pendência, com o controle que permite trocá-los.</span>
+        </a>
+        <a href="docs/moves-nao-iniciados/README.md#moves-implementados-branch-featmoves-novos-v1140" class="doc-item">
+          <span class="doc-item-title">✅ Moves novos — Fichas dos 13 Moves implementados</span>
+          <span class="doc-item-desc">Regras, testes, sliders e pendências de Harden a Emerging Stone (v1.14.0, branch feat/moves-novos). Nenhum vem equipado: use a aba Moves do jogo.</span>
+        </a>
         <a href="docs/moves-nao-iniciados/EMERGING_STONE_PROMPT_IMPLEMENTACAO.md" class="doc-item">
           <span class="doc-item-title">🪨 Emerging Stone — Prompt para implementação</span>
-          <span class="doc-item-desc">Especificação de execução e testes baseada nas 103 decisões aprovadas, ainda sem implementação.</span>
+          <span class="doc-item-desc">Especificação de execução e testes baseada nas 103 decisões aprovadas (já implementada: ver a ficha em fichas/emerging-stone.md).</span>
         </a>
         <a href="docs/MUSHROOM_MOVES_DECISOES.md" class="doc-item">
           <span class="doc-item-title">🍄 Mushroom — Moves (Emerging Stone, Bullet Punch e Sand Wave)</span>
           <span class="doc-item-desc">Documento-mestre de decisões dos moves de Mushroom, incluindo Emerging Stone aprovado (ES-D01–ES-D103).</span>
         </a>
+        <a href="docs/COLISOES_FASE0_FASE1_RESULTADOS.md" class="doc-item">
+          <span class="doc-item-title">🧱 Overhaul de Colisões — Fases 0 a 7 (resultados)</span>
+          <span class="doc-item-desc">Matriz de defeitos reproduzidos, correções (penetração, contatos simultâneos, CCD, apoio 3D, objetos do cenário, feixes e projéteis), testes e registro de skills.</span>
+        </a>
+        <a href="docs/CALIBRACAO_BASE_V8.md" class="doc-item">
+          <span class="doc-item-title">🎚️ Base de calibração v8 e regras de combate (Riposte, Meteor Slam, recarga)</span>
+          <span class="doc-item-desc">Valores do seu export como padrão do jogo e do laboratório (184 linhas reversíveis, 2ª exportação de 22/10 incluída), patch do config.ts, regras novas de PL/clash, aceleração de recarga em todos os Moves e exportação completa.</span>
+        </a>
+        <a href="prototypes/combat-lab/evidence/ui-22-10/README.md" class="doc-item">
+          <span class="doc-item-title">📸 Capturas reais da rodada de 22/10 (botões de IA, tooltips, Riposte, VFX novos)</span>
+          <span class="doc-item-desc">Imagens geradas pelo teste de navegador, com o resultado das 16 verificações.</span>
+        </a>
+        <a href="docs/LEDGE_GRAB.md" class="doc-item">
+          <span class="doc-item-title">🧗 Ledge Grab & Mantle — decisões propostas e implementação (v1.19.0)</span>
+          <span class="doc-item-desc">Tabela das decisões que a issue #95 deixou em aberto, com o padrão provisório e o controle de cada uma, a correção da faixa de montagem de 2,2 m e como testar.</span>
+        </a>
+        <a href="prototypes/combat-lab/evidence/ledge-grab/README.md" class="doc-item">
+          <span class="doc-item-title">📸 Capturas do Ledge Grab (pendurado, subindo, no topo)</span>
+          <span class="doc-item-desc">Geradas pelo teste de navegador, com o resultado das verificações.</span>
+        </a>
+        <a href="docs/RODADA_22_10_TARDE.md" class="doc-item">
+          <span class="doc-item-title">🛠️ Rodada de 22/10 (tarde, v1.20.0): transparência, pouso na plataforma, Bullet Punch, círculo de alcance, Riposte, IA</span>
+          <span class="doc-item-desc">Os dez pedidos com o que mudou, onde ajustar cada um na interface, o que não foi verificado e os testes.</span>
+        </a>
+        <a href="prototypes/combat-lab/evidence/rodada-b/README.md" class="doc-item">
+          <span class="doc-item-title">📸 Capturas da rodada de 22/10 (tarde)</span>
+          <span class="doc-item-desc">Objeto translúcido, pouso na plataforma, círculo de alcance azul/vermelho, explosão do Riposte e rastro do Emerging Stone, geradas pelo teste de navegador.</span>
+        </a>
+        <a href="docs/GAME_FEEL_REVISAO_2026-10-22.md" class="doc-item">
+          <span class="doc-item-title">🎮 Revisão das propostas de game feel pendentes no GitHub (22/10/2026)</span>
+          <span class="doc-item-desc">Responsive Movement V2, os cinco GF e as issues #95 a #97 comparados com o código atual: o que já foi feito, o que é parcial e o que continua pendente.</span>
+        </a>
+        <a href="docs/VFX_POUSO_E_PAREDES.md" class="doc-item">
+          <span class="doc-item-title">🌊 VFX do pouso do pulo e do impacto em paredes e objetos (v1.18.2)</span>
+          <span class="doc-item-desc">Pulo regular com onda simples sem tremor; impacto vertical com tamanho do objeto, sliders e liga/desliga de cada camada.</span>
+        </a>
+        <a href="docs/AUDITORIA_DOCUMENTACAO_2026-10-22.md" class="doc-item">
+          <span class="doc-item-title">🧾 Auditoria de documentação, branches e PRs (22/10/2026)</span>
+          <span class="doc-item-desc">Documentos × código, estado das 148 branches remotas, PRs e issues abertos, links mortos do portal e o que não foi verificado.</span>
+        </a>
+        <a href="docs/PATCH_NOTES.md" class="doc-item">
+          <span class="doc-item-title">📝 Patch notes do Laboratório de Combate (v1.1.0 a v1.18.0)</span>
+          <span class="doc-item-desc">O que mudou em cada versão, em linguagem de jogo.</span>
+        </a>
+        <a href="docs/CHECKLIST_CORRECOES.md" class="doc-item">
+          <span class="doc-item-title">✅ Checklist de correções do laboratório (22/10/2026)</span>
+          <span class="doc-item-desc">Os 9 pedidos da rodada (Moves bloqueados, VFX do Riposte, sliders ×2, duração da animação, botões de IA, tooltips, calibração, softlock do Bullet Punch) com estado, causa e onde conferir.</span>
+        </a>
+        <a href="docs/COLISOES_FERRAMENTAS_LAB.md" class="doc-item">
+          <span class="doc-item-title">🔍 Colisões no Laboratório — cenários de um clique e sobreposições visuais</span>
+          <span class="doc-item-desc">Como abrir os 15 cenários de colisão (aba Cenários), ligar os colisores, o apoio atual, os contatos e as varreduras (aba Visualizar) e ler os números em Dados ao vivo.</span>
+        </a>
         <a href="prototypes/combat-lab/OVERHAUL.md" class="doc-item">
           <span class="doc-item-title">🛠️ Overhaul do Laboratório</span>
           <span class="doc-item-desc">Locomoção, esquiva, sprint, IA e ajustes do jogo principal.</span>
+        </a>
+        <a href="docs/ANIMACOES_PERSONAGENS.md" class="doc-item">
+          <span class="doc-item-title">🎞️ Animações dos personagens</span>
+          <span class="doc-item-desc">Estados cardinais, troca e variantes, loop, duração, prevenção de T-pose e organização da aba.</span>
         </a>
         <a href="docs/tackle/VER_TACKLE.html" class="doc-item">
           <span class="doc-item-title">🎞️ Player do Tackle (Vigoroth, Teste 01)</span>
@@ -819,5 +1017,7 @@
   </div>
 
 <script>for (const a of document.querySelectorAll('a[href$=".html"]')) a.addEventListener("click", () => {a.href = a.getAttribute("href").split("?")[0] + "?v=" + Date.now();});</script>
+<p style="margin:24px;text-align:center"><a style="color:#38bdf8" href="prototypes/combat-lab/evidence/squash-stretch/index.html">↔ Squash & Stretch do Tackle — controles, auditoria e testes</a></p>
+<p style="margin:24px;text-align:center"><a style="color:#38bdf8" href="prototypes/combat-lab/evidence/limb-smear/index.html">✦ Smear 3D de Membros — controles, imagens e testes</a></p>
 </body>
 </html>

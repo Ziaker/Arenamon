@@ -1,0 +1,2718 @@
+# ARENAMON — AUDITORIA SISTÊMICA, RECONSTRUÇÃO DA INFRAESTRUTURA FÍSICA 3D E VALIDAÇÃO EXAUSTIVA DE TODAS AS INTERAÇÕES
+
+## ORDEM PRINCIPAL
+
+Você atuará como **engenheiro principal de gameplay, arquiteto de sistemas físicos 3D, especialista em máquinas de estados, engenheiro de integração e responsável pela garantia de qualidade do Arenamon**.
+
+**Repositório oficial:** https://github.com/Ziaker/Arenamon
+
+**Projeto principal:** `prototypes/combat-lab/`
+
+Esta tarefa exige uma investigação profunda do sistema de jogo e a correção das deficiências estruturais que impedem mecânicas comuns de um jogo de combate tridimensional de interagirem corretamente.
+
+Não quero mais funcionalidades que funcionam apenas isoladamente. Não quero mais saltos que ignoram plataformas, objetos que bloqueiam horizontalmente mas não oferecem superfície de apoio, lançamentos que descartam a altitude anterior, ataques que ignoram desníveis, estados que mudam sem correspondência física ou testes que aprovam componentes individuais enquanto suas interações estão incorretas.
+
+O objetivo não é adicionar dezenas de condições especiais para mascarar os sintomas.
+
+**O objetivo é construir uma infraestrutura física e de gameplay consistente, integrada, determinística e verificável, capaz de sustentar as mecânicas presentes e aquelas já aprovadas na documentação do Arenamon.**
+
+Trate cada comportamento de jogo como parte de um sistema interdependente.
+
+Uma plataforma não é somente um objeto visual. Um salto não é somente uma animação. Uma colisão não é somente impedir que duas posições se sobreponham. Um estado de aterrissagem não é somente um nome atribuído depois de um temporizador.
+
+Cada um desses elementos precisa funcionar fisicamente e respeitar as regras do restante do jogo.
+
+Execute a investigação e as correções autorizadas com profundidade, sem encerrar artificialmente a tarefa após corrigir alguns exemplos.
+
+---
+
+# PARTE I — FONTES DE VERDADE, ESCOPO E OBRIGAÇÕES
+
+## 1. Verificação obrigatória do repositório
+
+Antes de modificar qualquer arquivo:
+
+1. Acesse o repositório oficial.
+2. Confirme sua branch principal e o commit atual.
+3. Inspecione a estrutura real de diretórios.
+4. Identifique a pasta local oficial, se acessível.
+5. Execute `git status --short --branch`.
+6. Consulte remotos, branches relevantes, commits recentes e alterações locais.
+7. Não descarte, substitua ou sobrescreva trabalho existente.
+8. Verifique alterações não publicadas e possíveis trabalhos de outros agentes.
+9. Leia `AGENTS.md` e `docs/GUIA_COLABORACAO_AGENTES.md`.
+10. Identifique e relate qualquer conflito entre instruções desses documentos.
+11. Não considere automaticamente o checkout local sincronizado com o GitHub.
+12. Não presuma que informações de auditorias anteriores continuam atuais.
+
+Uma inspeção anterior identificou a `main` no commit `e0bef4b1237dbd35aa4a5e667d84c44f48f7e812`, em 20/10/2026. **Esse hash é referência histórica, não uma ordem para trabalhar numa versão desatualizada. Confirme novamente o HEAD antes de executar.**
+
+Não invente arquivos, APIs, módulos, estados ou capacidades.
+
+## 2. Documentação obrigatória
+
+Leia integralmente, conforme a relação com a tarefa:
+
+- `AGENTS.md`
+- `docs/GUIA_COLABORACAO_AGENTES.md`
+- `docs/MAPA_COMBAT_LAB_DECISOES_RODADAS.md`
+- `docs/MOVES_DECISOES_RODADAS.md`
+- `docs/MUSHROOM_MOVES_DECISOES.md`
+- `docs/PASSIVAS_DECISOES.md`
+- `docs/INDICE_MODULOS.md`
+- `docs/MAPA_REPOSITORIO.md`
+- `docs/REVISAO_GDD_COMBATE.md`
+- `docs/STATUS_PROJETOS_E_BRANCHES.md`
+- `docs/VERIFICACOES.md`
+- `docs/CENTRAL_DE_TESTES.md`
+- `docs/MOVES_TEST_MATRIX.md`
+- `prototypes/combat-lab/README.md`
+- `prototypes/combat-lab/OVERHAUL.md`
+- `prototypes/combat-lab/MOVIMENTOS.md`
+- `prototypes/combat-lab/CALIBRACAO.md`
+- GDD e demais especificações pertinentes.
+
+**Extremamente importante:** o registro oficial do mapa já contém 152 decisões aprovadas distribuídas em 11 rodadas e uma especificação técnica consolidada com a matriz MAP-T01–MAP-T24.
+
+Essas decisões não são sugestões.
+
+Também não significam que as funcionalidades estejam implementadas.
+
+Você deverá distinguir rigorosamente:
+
+- Comportamento aprovado e implementado corretamente.
+- Comportamento aprovado, mas ainda não implementado.
+- Comportamento parcialmente implementado.
+- Comportamento implementado incorretamente.
+- Defeito de integração entre funcionalidades existentes.
+- Requisito funcional ainda pendente.
+- Solução técnica proposta, mas não aprovada.
+- Comportamento convencional de física necessário para realizar um requisito já aprovado.
+- Nova mecânica de gameplay que exige aprovação do diretor.
+
+**Não confunda autorização para corrigir a física existente com autorização para inventar regras de combate.**
+
+## 3. Limites da autorização
+
+Esta instrução autoriza:
+
+- Auditoria do jogo principal.
+- Identificação e reprodução de defeitos.
+- Criação de testes pertinentes.
+- Correção de defeitos nas mecânicas existentes.
+- Implementação dos fundamentos físicos necessários ao funcionamento consistente das mecânicas já aprovadas.
+- Integração entre sistemas existentes ou expressamente aprovados para este escopo.
+- Criação de cenários técnicos de validação.
+- Ajustes mínimos diretamente necessários nas interfaces de diagnóstico e visualização.
+- Atualização pontual da documentação técnica relacionada ao trabalho efetivamente executado.
+
+Esta instrução **não autoriza**:
+
+- Reescrever o jogo inteiro sem demonstrar necessidade.
+- Migrar para Godot, Unity ou outra engine.
+- Adicionar silenciosamente uma biblioteca ou engine física externa.
+- Alterar o sistema de combate aprovado.
+- Rebalancear ataques, defesa, stamina, cooldowns ou personagens.
+- Criar movimentos especiais adicionais.
+- Implementar passivas ainda não autorizadas.
+- Alterar a estética oficialmente escolhida.
+- Refazer o Animation Studio.
+- Substituir modelos ou animações.
+- Criar novas regras de double jump, wall-running, escalada, agarrar bordas, natação, dano de queda ou outras habilidades não aprovadas.
+- Alterar o mapa oficial além de sua especificação aprovada sem consultar o diretor.
+- Modificar documentação de decisões de design como se novas opções tivessem sido aprovadas.
+- Substituir conteúdo documental não relacionado.
+- Modificar diretamente a `main` se as regras atuais do projeto exigirem branch de trabalho.
+- Publicar ou integrar alterações sem respeitar o procedimento de autorização do projeto.
+
+Quando um comportamento técnico tiver solução convencional e nenhuma decisão de design for necessária, implemente corretamente.
+
+Quando houver uma escolha que mude materialmente as regras do jogo, apresente as alternativas e aguarde aprovação específica.
+
+**Não transforme toda decisão técnica pequena numa pergunta, mas também não utilize o argumento de que algo é óbvio para criar mecânicas novas.**
+
+---
+
+# PARTE II — AUDITORIA DE ARQUITETURA E RESPONSABILIDADES
+
+## 4. Identificar o verdadeiro motor do Arenamon
+
+O jogo principal usa simulação própria em JavaScript/TypeScript e renderização com Three.js.
+
+Não confunda a biblioteca gráfica com o sistema que decide colisões, movimentos e estados.
+
+Audite especificamente:
+
+- `src/sim/entity.js`
+- `src/sim/game.js`
+- `src/sim/controller.js`
+- `src/sim/physics.js`
+- `src/sim/world.js`
+- `src/sim/combat.js`
+- `src/sim/geometry.js`
+- `src/sim/motion.js`
+- `src/sim/locomotion.js`
+- `src/sim/status.js`
+- `src/sim/defense.js`
+- `src/sim/moves.js`
+- `src/sim/charge.js`
+- `src/sim/spatial.js`
+- `src/sim/perception.js`
+- `src/sim/prediction.js`
+- `src/sim/ai.js`
+- `src/sim/tactics.js`
+- `src/sim/ai-moves.js`
+- `src/sim/scenarios.js`
+- `src/sim/recording.js`
+- `src/sim/replay.js`
+- `src/view/view.js`
+- `src/view/world-view.js`
+- `src/view/characters.js`
+- `src/view/rig.js`
+- `src/ui/input.js`
+
+Esses caminhos foram identificados no repositório, mas devem ser reconfirmados.
+
+Verifique a responsabilidade efetiva de cada módulo e de todas as funções relacionadas. Não assuma que os nomes dos arquivos descrevem integralmente sua implementação.
+
+Investigue especialmente onde cada um dos seguintes elementos é criado, atualizado, sobrescrito e destruído:
+
+- Posição física.
+- Altura física.
+- Posição visual.
+- Orientação.
+- Velocidade horizontal.
+- Velocidade vertical.
+- Aceleração.
+- Gravidade.
+- Impulso.
+- Forças externas.
+- Contato com o chão.
+- Contato com plataformas.
+- Colisões horizontais.
+- Colisões verticais.
+- Estado do personagem.
+- Ação atual.
+- Invulnerabilidade.
+- Recuperação.
+- Lançamento.
+- Queda.
+- Salto.
+- Aterrissagem.
+- Deslizamento.
+- Empurrão.
+- Interrupção.
+- Animação.
+- Estados de IA.
+- Hitboxes e hurtboxes.
+- Entidades e obstáculos persistentes.
+
+## 5. Eliminar contradições estruturais
+
+Uma inspeção anterior identificou mecanismos separados para representar a altura de um lutador:
+
+- `flight.y`
+- `vaultHeight`
+- `action.jump.y`
+- Posição horizontal `position.x/z`.
+
+Verifique novamente a implementação atual.
+
+Determine se essa separação causa perda de altitude, divergências de colisão, transições inválidas ou erros ao combinar salto, lançamento e ataques.
+
+No código anteriormente consultado, `launch()` iniciava `flight.y` em zero e zerava `vaultHeight`. Trate isso como um defeito candidato a reproduzir e confirmar, não como conclusão automaticamente válida para todo o código futuro.
+
+Investigue:
+
+1. Como representar consistentemente a posição física tridimensional.
+2. Como preservar a altura ao mudar de estado.
+3. Como preservar ou modificar corretamente velocidades após impactos.
+4. Como integrar impulsos voluntários e externos.
+5. Como evitar que dois sistemas atualizem a mesma posição de formas contraditórias.
+6. Como impedir que o sistema visual influencie indevidamente a física.
+7. Como evitar que temporizadores de animação determinem falsamente contatos físicos.
+8. Como garantir que todas as funcionalidades utilizem a mesma realidade física do jogo.
+
+Uma reconstrução interna pode ser proposta se a implementação atual não suportar esses contratos, mas deve ser delimitada e justificada antes de uma mudança estrutural ampla.
+
+Não crie um segundo motor de física paralelo e desconectado do jogo principal.
+
+---
+
+# PARTE III — CONTRATO FÍSICO FUNDAMENTAL
+
+## 6. Invariantes físicos obrigatórios
+
+Estabeleça propriedades verificáveis que todas as mecânicas relevantes precisam respeitar.
+
+### 6.1 Continuidade espacial
+
+Um personagem não pode mudar de posição instantaneamente sem uma causa explícita.
+
+Mudanças de estado não devem causar teletransporte involuntário.
+
+Mudanças de animação não devem redefinir a posição física.
+
+Mudanças de velocidade não devem provocar deslocamentos incompatíveis com o passo da simulação.
+
+Exceções, como teletransporte autorizado por um Move específico, devem ser explícitas e isoladas.
+
+### 6.2 Conservação coerente da velocidade
+
+A velocidade anterior não deve desaparecer arbitrariamente.
+
+O comportamento precisa considerar a natureza do evento:
+
+- Aceleração voluntária.
+- Frenagem.
+- Atrito.
+- Colisão.
+- Impulso de salto.
+- Knockback.
+- Lançamento.
+- Rebote.
+- Empurrão contínuo.
+- Deslizamento.
+- Mudança de superfície.
+- Entrada e saída de ações.
+
+Preserve os contratos de continuidade e dissipação já aprovados.
+
+Não invente conservação absoluta de momento quando uma mecânica aprovada determina perda de impulso.
+
+### 6.3 Gravidade consistente
+
+A gravidade deve ter efeito previsível sobre corpos e ações que estejam sujeitos a ela.
+
+Considere:
+
+- Queda livre.
+- Saltos.
+- Arremessos.
+- Drops.
+- Projéteis sujeitos à gravidade.
+- Aterrissagens em diferentes alturas.
+- Choques contra tetos.
+- Saída de plataformas.
+- Mudanças de altura do piso.
+
+A gravidade não pode depender de uma animação ter terminado.
+
+### 6.4 Geometria autoritativa
+
+As colisões devem utilizar geometria física identificada e documentada.
+
+O objeto visual não deve ser considerado sólido apenas porque é desenhado.
+
+O colisor físico não deve ser implicitamente associado ao objeto visual por aproximações ocultas.
+
+Toda divergência intencional entre malha visual e colisor deve ser conhecida e testável.
+
+### 6.5 Separação de responsabilidades
+
+O estado físico responde onde o personagem está, como se move e com o que está em contato.
+
+O sistema de gameplay decide o que ele pode fazer.
+
+A animação representa o resultado.
+
+A câmera observa esse resultado.
+
+A IA utiliza informações físicas e de gameplay autorizadas.
+
+Nenhum desses sistemas deve manter uma interpretação incompatível da posição, do apoio ou do estado do personagem.
+
+---
+
+# PARTE IV — CHÃO, APOIO E CONTATOS FÍSICOS
+
+## 7. Sistema universal de superfícies de apoio
+
+Implementar ou consolidar um conceito real de superfície física de apoio.
+
+Não utilizar simplesmente `altura <= 0` para determinar todos os pousos.
+
+A simulação precisa reconhecer:
+
+- Solo principal.
+- Topos de plataformas.
+- Topos de objetos sólidos caminháveis.
+- Rampas.
+- Degraus.
+- Escadarias.
+- Superfícies inclinadas.
+- Superfícies rotacionadas.
+- Bordas.
+- Transições entre superfícies.
+- Superfícies móveis, caso façam parte do escopo implementado.
+- Superfícies criadas ou destruídas durante a partida, caso aprovadas como caminháveis.
+
+A abstração de apoio deve responder, quando necessário:
+
+- Existe contato de suporte?
+- Qual superfície sustenta o personagem?
+- Qual é sua altura física?
+- Qual é sua normal?
+- O contato é superior, lateral ou inferior?
+- Qual é o ponto de contato?
+- O contato ainda é válido?
+- O personagem está subindo, descendo ou parado?
+- Qual é sua velocidade relativa à superfície?
+- A superfície está se movendo?
+- Ela pode desaparecer?
+- Qual foi a causa da perda de contato?
+- A perda de contato ocorreu antes ou depois de determinado evento de combate?
+
+Não use o nome de uma ação como prova de contato com o chão.
+
+Um personagem em recuperação pode estar apoiado.
+
+Um personagem em estado neutro pode estar fisicamente caindo, se a transição ainda não foi resolvida corretamente.
+
+**O apoio deve ser determinado por contato físico real.**
+
+## 8. Contato estável
+
+Verifique e corrija:
+
+- Personagem flutuando alguns centímetros acima do chão.
+- Personagem parcialmente afundado no piso.
+- Vibração vertical ao permanecer parado.
+- Alternância falsa entre apoiado e no ar.
+- Queda acionada repetidamente por erros numéricos.
+- Aterrissagens repetidas no mesmo contato.
+- Velocidade vertical residual indevida após um pouso estável.
+- Personagem sendo empurrado lateralmente ao aterrissar sobre um objeto.
+- Penetração progressiva durante vários passos.
+- Oscilação nas transições entre dois colisores adjacentes.
+- Contato registrado com a face lateral de um objeto como se fosse o topo.
+- Contato superior confundido com colisão de teto.
+- Inconsistência nas quinas.
+
+Defina critérios físicos consistentes para permanência sobre o chão.
+
+Tolerâncias numéricas e correções técnicas não podem ser usadas como justificativa para adicionar automaticamente coyote time, salto extra ou outros comportamentos não aprovados.
+
+## 9. Perda de apoio
+
+Quando o personagem deixa uma superfície:
+
+1. O sistema deve reconhecer a perda real do suporte.
+2. A posição vertical deve ser preservada.
+3. A velocidade horizontal deve obedecer às regras aprovadas.
+4. A gravidade deve começar a atuar adequadamente.
+5. O estado físico de queda deve tornar-se válido.
+6. A animação correspondente deve reagir.
+7. A câmera deve manter enquadramento adequado.
+8. A colisão com outras superfícies deve continuar funcionando.
+9. A IA deve reconhecer a nova situação.
+10. As permissões de ações devem ser recalculadas conforme as regras existentes.
+
+Não exigir que o personagem aperte um botão para começar a cair.
+
+Não permitir caminhar indefinidamente no vazio porque a ação anterior terminou em `neutral`.
+
+Não permitir queda com atraso artificial por ausência de verificação física.
+
+---
+
+# PARTE V — GEOMETRIA 3D, DESNÍVEIS, RAMPAS E ESCADAS
+
+## 10. Sistema geométrico de colisão
+
+A infraestrutura precisa ser capaz de lidar com objetos sólidos de diferentes tamanhos, orientações e alturas.
+
+Verificar suporte necessário a:
+
+- Caixas alinhadas aos eixos.
+- Caixas rotacionadas.
+- Cilindros.
+- Pilares.
+- Plataformas retangulares.
+- Superfícies planas.
+- Rampas.
+- Planos inclinados.
+- Conjuntos de degraus.
+- Escadas rotacionadas.
+- Geometrias compostas.
+- Superfícies trianguladas, quando necessárias.
+- Colisores de personagens.
+- Volumes de ataques.
+- Volumes de coleta.
+- Objetos com múltiplos colisores.
+- Corpos com diferentes dimensões físicas.
+
+Não é obrigatório adicionar todas essas formas como objetos de produção.
+
+**É obrigatório que a infraestrutura seja testada contra as formas necessárias ao cenário e às interações requeridas.**
+
+Não substitua uma malha complexa por um único colisor simplificado se isso produzir comportamento fisicamente incorreto.
+
+Não substitua automaticamente escadas reais por uma rampa invisível se isso alterar contatos ou jogabilidade; apresente a alternativa e suas consequências.
+
+## 11. Rampas
+
+Criar cenários técnicos que verifiquem:
+
+1. Aproximação frontal.
+2. Aproximação lateral.
+3. Aproximação diagonal.
+4. Entrada pelo ponto mais baixo.
+5. Entrada pelo ponto mais alto.
+6. Caminhada subindo.
+7. Caminhada descendo.
+8. Parada no meio da inclinação.
+9. Inversão de direção.
+10. Corrida.
+11. Frenagem.
+12. Esquiva sobre a superfície.
+13. Salto iniciado na inclinação.
+14. Aterrissagem na inclinação.
+15. Lançamento contra a inclinação.
+16. Queda sobre a parte mais baixa.
+17. Queda sobre a parte mais alta.
+18. Aproximação pela lateral sólida.
+19. Aproximação por baixo, quando existir face inferior.
+20. Saída pela borda.
+21. Transição da rampa para um piso horizontal.
+22. Transição da rampa para outra rampa.
+23. Colisão na conexão entre superfícies com normais diferentes.
+24. Interação com obstáculos sobre a rampa.
+25. Interação com adversário em altura diferente.
+
+Não permitir:
+
+- Subida instantânea.
+- Atravessar a rampa.
+- Quicar involuntariamente.
+- Perder o apoio em cada mudança mínima de altura.
+- Ser lançado lateralmente apenas por entrar numa inclinação.
+- Ficar preso na junção geométrica.
+- Atravessar a face inferior.
+- Subir superfícies que ultrapassem o limite caminhável definido pelo sistema.
+
+Se o ângulo máximo de superfície caminhável ainda não tiver sido aprovado, não atribua silenciosamente um valor definitivo. Exponha essa dependência como parâmetro ou decisão pendente conforme sua consequência de gameplay.
+
+## 12. Escadas reais
+
+**Este é um requisito explícito de robustez. Não o substitua por um teste genérico de piso inclinado.**
+
+Testar escadarias formadas por degraus individuais sólidos.
+
+Verificar:
+
+- Subida frontal.
+- Descida frontal.
+- Subida diagonal.
+- Descida diagonal.
+- Aproximação lateral.
+- Aproximação perpendicular ao sentido de subida.
+- Entrada pela quina de um degrau.
+- Entrada no meio de um degrau.
+- Mudança de direção durante a subida.
+- Corrida subindo.
+- Frenagem descendo.
+- Parada sobre um degrau intermediário.
+- Salto iniciado em um degrau.
+- Aterrissagem sobre um degrau.
+- Aterrissagem entre degraus.
+- Queda sobre o primeiro degrau.
+- Queda sobre o último.
+- Colisão com a face vertical de um degrau.
+- Colisão com a face inferior de uma estrutura de escada.
+- Deslocamento lateral sobre um degrau.
+- Saída lateral da escadaria.
+- Descida após perder contato com um degrau.
+- Inversão de direção exatamente na transição de altura.
+- Contato simultâneo com dois degraus.
+
+O personagem não pode subir paredes verticais arbitrárias apenas porque existe um mecanismo para vencer degraus baixos.
+
+A capacidade de subir um degrau deve estar sujeita a critérios geométricos configuráveis e consistentes.
+
+## 13. Escadas diagonais e rotacionadas
+
+Teste uma escadaria cujo eixo de subida não esteja alinhado aos eixos globais X e Z.
+
+Use diferentes orientações geométricas de teste, incluindo 15°, 30°, 45°, 60° e 90°, sem tratar esses ângulos como propriedades obrigatórias do mapa oficial.
+
+Repita os cenários de subida, descida, frenagem, salto, queda e colisão.
+
+Verifique especificamente:
+
+- Transformação correta de coordenadas locais e globais.
+- Cálculo das normais.
+- Detecção de faces superiores.
+- Identificação de faces laterais.
+- Projeção correta da velocidade.
+- Ausência de viés para X ou Z.
+- Comportamento espelhado.
+- Comportamento com orientação oposta.
+- Comportamento nas diagonais de movimento.
+- Contato com quinas.
+- Transição entre degraus rotacionados.
+- Colisões contra personagens e objetos posicionados sobre os degraus.
+
+**A mesma escada não pode funcionar corretamente a 0° e falhar a 45° por pressupostos ocultos sobre eixos globais.**
+
+## 14. Desníveis e conexões
+
+Testar:
+
+- Dois pisos em alturas diferentes.
+- Plataforma elevada sobre piso comum.
+- Rampa conectando dois pisos.
+- Escada conectando duas superfícies.
+- Piso com pequeno ressalto.
+- Piso com pequeno rebaixo.
+- Piso com várias mudanças consecutivas de altitude.
+- Duas plataformas adjacentes.
+- Duas plataformas separadas por um vão.
+- Plataforma que termina acima de outra.
+- Superfícies com pequenas frestas.
+- Superfícies que se sobrepõem parcialmente.
+- Piso inclinado terminando numa borda.
+- Piso plano terminando numa parede.
+- Plataforma com quinas acessíveis.
+- Superfícies próximas em altura, mas não conectadas fisicamente.
+
+Distinga rigorosamente:
+
+**Mudança caminhável de altura** versus **obstáculo que exige salto** versus **queda real**.
+
+Não invente uma regra de subida automática que permita atravessar objetos sólidos.
+
+---
+
+# PARTE VI — SALTO NORMAL, VOO, QUEDA E ATERRISSAGEM
+
+## 15. Implementar exatamente o salto normal aprovado
+
+Consultar R2 e R7 do registro oficial.
+
+Os requisitos aprovados incluem:
+
+- Tecla padrão: **Espaço**.
+- Altura máxima inicial: **2 metros**.
+- Sem consumo de stamina.
+- Apenas um salto normal antes de novo contato válido com o chão.
+- Intervalo mínimo: **0,25 segundo após aterrissagem**.
+- Início somente livre, caminhando ou correndo.
+- Não pode começar durante outra ação de combate.
+- Nenhuma invulnerabilidade especial.
+- Sem ataques e defesa durante o salto normal.
+- Conservação da velocidade horizontal existente no instante da decolagem.
+- Sem redirecionamento aéreo horizontal durante o salto normal.
+- Gravidade de referência compartilhada com o sistema de lançamento, mas ajustável independentemente.
+- Recuperação de aterrissagem configurável separadamente.
+- Saltos adicionais somente quando um Move específico e aprovado os conceder.
+
+Não alterar essas decisões.
+
+Especialmente:
+
+**Não adicionar controle aéreo ao salto normal.**
+
+**Não permitir ataques durante o salto normal simplesmente porque outros jogos permitem.**
+
+**Não confundir esse salto com o vault da esquiva ou com ações especiais aéreas existentes.**
+
+## 16. Dinâmica do salto
+
+Verificar:
+
+1. Impulso vertical inicial.
+2. Altura máxima efetiva.
+3. Tempo de subida.
+4. Ápice.
+5. Tempo de descida.
+6. Gravidade.
+7. Trajetória horizontal.
+8. Continuidade de velocidade.
+9. Colisões durante a subida.
+10. Colisões durante a descida.
+11. Aterrissagem em altura diferente.
+12. Aterrissagem na plataforma de origem.
+13. Aterrissagem em plataforma superior.
+14. Aterrissagem em superfície inferior.
+15. Salto iniciado sobre plataformas de 1 m e 1,5 m.
+16. Salto iniciado sobre inclinação.
+17. Salto em direção a parede.
+18. Salto sob um teto.
+19. Salto contra a face inferior de uma plataforma.
+20. Salto próximo à borda circular.
+21. Salto com velocidade horizontal zero.
+22. Salto com velocidade horizontal máxima normal.
+23. Salto durante corrida com bônus de velocidade.
+24. Salto após frenagem.
+25. Salto após aterrissagem anterior.
+26. Comando de salto recebido durante recuperação.
+27. Comando repetido no ar.
+28. Botão mantido pressionado.
+29. Repetição automática do teclado.
+30. Entrada perdida por mudança de foco ou pausa.
+
+Não presumir salto automático por botão mantido, buffer de salto ou coyote time sem decisão existente.
+
+## 17. Queda livre
+
+Testar quedas originadas por:
+
+- Caminhar para fora de uma plataforma.
+- Correr para fora.
+- Ser empurrado.
+- Ser lançado.
+- Perder a superfície de apoio.
+- Destruição ou desaparecimento de uma superfície.
+- Saída lateral de uma escada.
+- Saída de uma rampa.
+- Movimento iniciado em superfície elevada.
+- Interrupção de uma ação que estava no ar.
+
+A regra aprovada ao sair da borda é queda balística, preservando velocidade horizontal anterior.
+
+A queda não deve simplesmente definir altura zero nem ativar instantaneamente a aterrissagem.
+
+## 18. Aterrissagem tridimensional
+
+O personagem deve poder aterrissar quando sua trajetória fisicamente encontra uma superfície válida.
+
+O sistema deve:
+
+1. Reconhecer a superfície correta.
+2. Determinar o instante do contato.
+3. Resolver a posição sem penetração inválida.
+4. Resolver a velocidade normal ao contato.
+5. Preservar os componentes de movimento permitidos.
+6. Registrar a superfície de apoio.
+7. Emitir evento de aterrissagem uma única vez por contato válido.
+8. Aplicar a recuperação correspondente à causa da queda.
+9. Atualizar o estado de gameplay.
+10. Atualizar a animação.
+11. Atualizar os efeitos físicos e visuais.
+12. Atualizar as permissões de movimento e combate.
+13. Permitir novas ações somente quando autorizadas.
+14. Manter o personagem apoiado nos passos seguintes.
+15. Atualizar a IA.
+16. Atualizar as informações de câmera e HUD.
+
+Diferenciar:
+
+- Aterrissagem de salto normal.
+- Aterrissagem de lançamento.
+- Aterrissagem de queda de plataforma.
+- Aterrissagem após vault.
+- Aterrissagem após Meteor Slam.
+- Recuperação aérea especial.
+- Pouso de personagem derrotado.
+
+Não usar uma única recuperação arbitrária para todas essas situações.
+
+## 19. Tetos e superfícies inferiores
+
+Uma plataforma totalmente sólida tem face superior, laterais e face inferior.
+
+Verificar:
+
+- Cabeça atingindo o teto.
+- Salto contra a parte inferior.
+- Lançamento vertical contra a parte inferior.
+- Movimento diagonal contra teto e parede.
+- Queda após colisão com o teto.
+- Ausência de atravessamento durante alta velocidade.
+- Ausência de teletransporte para cima da plataforma.
+- Resolução de contato quando um personagem fica temporariamente entre duas superfícies.
+- Respeito às regras de dano/impacto apenas quando existirem definições aprovadas.
+
+Não converter uma colisão com teto em aterrissagem.
+
+---
+
+# PARTE VII — MÁQUINA DE ESTADOS E TRANSIÇÕES
+
+## 20. Auditoria completa de estados
+
+Levantar todos os estados realmente presentes no motor.
+
+Investigar especialmente:
+
+- Neutral.
+- Moving.
+- Sprint.
+- Brake.
+- Dodge.
+- Vault.
+- Tackle.
+- Tackle Charge.
+- Move.
+- Charge.
+- Guard.
+- Guard Stun.
+- Hit Stun.
+- Recoil.
+- Pushed.
+- Airborne.
+- Falling.
+- Landing.
+- Recovery.
+- Wall Splat.
+- Meteor Slam.
+- Defeated.
+- Estados de status temporário.
+- Estados derivados de habilidades especiais.
+
+Não assumir que todos esses nomes existem como valores de `fighter.state`. Alguns podem representar ações, flags, propriedades ou subestados.
+
+Mapeie a representação real.
+
+## 21. Separar estado físico de estado de ação
+
+O personagem pode possuir simultaneamente:
+
+- Uma condição física.
+- Uma ação.
+- Uma condição defensiva.
+- Um status temporário.
+- Uma condição de recuperação.
+- Uma animação ativa.
+
+Esses elementos não devem ser tratados como mutuamente exclusivos por acidente.
+
+Por exemplo, estar em recuperação de aterrissagem não significa necessariamente perder o contato com a plataforma.
+
+Estar sob efeito de status não significa necessariamente cancelar uma ação.
+
+Estar visualmente no ar não significa necessariamente ter recebido um lançamento.
+
+O motor precisa representar combinações legítimas sem destruir informações físicas.
+
+## 22. Transições válidas
+
+Investigue e teste cada transição relevante:
+
+- Apoiado → salto.
+- Apoiado → queda.
+- Apoiado → esquiva.
+- Apoiado → ataque.
+- Apoiado → defesa.
+- Corrida → salto.
+- Corrida → queda.
+- Salto → subida.
+- Subida → ápice.
+- Ápice → descida.
+- Descida → contato.
+- Contato → aterrissagem.
+- Aterrissagem → recuperação.
+- Recuperação → neutro.
+- Neutro → movimento.
+- Salto → impacto.
+- Salto → lançamento.
+- Salto → derrota.
+- Queda → impacto.
+- Queda → aterrissagem elevada.
+- Lançamento → colisão com parede.
+- Lançamento → wall-splat.
+- Lançamento → rebote.
+- Lançamento → aterrissagem.
+- Lançamento → Meteor Slam, conforme regras existentes.
+- Esquiva → vault.
+- Vault → queda.
+- Vault → aterrissagem.
+- Vault → Tackle, quando permitido.
+- Tackle → impacto.
+- Tackle → interrupção.
+- Tackle → recuperação.
+- Defesa → impacto.
+- Guard Stun → liberação.
+- Hit Stun → recuperação.
+- Recuperação → ação guardada.
+- Qualquer estado elegível → derrota.
+
+Para cada transição verifique:
+
+- Condição de entrada.
+- Prioridade.
+- Estado de origem.
+- Estado de destino.
+- Posição antes/depois.
+- Velocidade antes/depois.
+- Altura antes/depois.
+- Contato físico.
+- Animação.
+- Efeitos.
+- Stamina.
+- Cooldown.
+- Invulnerabilidade.
+- Buffer.
+- Permissões de ações.
+- Determinismo.
+
+Nenhuma transição pode simplesmente sobrescrever campos que não lhe pertencem sem justificativa.
+
+## 23. Interrupções simultâneas
+
+Testar quando, no mesmo passo físico:
+
+- O personagem aterrissa e é atingido.
+- O personagem perde o chão e inicia um Move.
+- A defesa começa e ocorre um impacto.
+- Um golpe é interrompido na ativação.
+- O personagem recebe dois ataques.
+- Uma plataforma desaparece enquanto ocorre um impacto.
+- O personagem coleta item e sofre dano.
+- O personagem recebe cura e entra em derrota.
+- A ação termina no mesmo passo da colisão.
+- Um ataque destrói o objeto em que ocorreria outro contato.
+- Uma habilidade termina durante hitstop.
+- Um comando armazenado torna-se elegível na aterrissagem.
+
+Preserve a ordem de eventos aprovada e a ordem atual do passo determinístico enquanto não houver autorização para modificá-la.
+
+Se precisar mudar essa ordem, demonstre as consequências sobre todas as mecânicas existentes.
+
+---
+
+# PARTE VIII — COLISÃO ENTRE PERSONAGENS E COMBATE 3D
+
+## 24. Colisão física entre lutadores
+
+O contato entre personagens deve considerar a sobreposição real dos volumes físicos.
+
+Testar:
+
+- Ambos no mesmo chão.
+- Um no chão, outro no ar.
+- Ambos no ar.
+- Um sobre plataforma.
+- Outro abaixo da plataforma.
+- Ambos em plataformas de alturas diferentes.
+- Dois personagens em uma escada.
+- Dois personagens em uma rampa.
+- Personagem parado e outro correndo.
+- Ambos correndo.
+- Aproximação frontal.
+- Aproximação lateral.
+- Colisão diagonal.
+- Colisão nas quinas.
+- Inversão de sentido.
+- Personagens de dimensões diferentes.
+- Personagem sendo lançado contra outro.
+- Personagem aterrissando próximo de outro.
+- Personagem sobreposto inicialmente por cenário de teste.
+- Múltiplas colisões no mesmo passo.
+
+Não bloquear horizontalmente dois personagens cujos volumes tridimensionais não se tocam.
+
+Não permitir atravessamento quando os volumes efetivamente colidem.
+
+## 25. Hitboxes e hurtboxes tridimensionais
+
+Auditar se os ataques usam realmente altura e alcance 3D.
+
+Testar:
+
+- Ataque horizontal no mesmo nível.
+- Ataque com atacante acima.
+- Ataque com atacante abaixo.
+- Ataque sobre escada.
+- Ataque numa rampa.
+- Ataque através de borda.
+- Ataque sobre obstáculo.
+- Ataque através de parede.
+- Ataque atingindo teto.
+- Ataque em alvo no ar.
+- Ataque em alvo caindo.
+- Ataque em alvo aterrissando.
+- Ataque próximo à quina da plataforma.
+- Ataque de baixo para cima.
+- Ataque de cima para baixo.
+- Ataque contra alvo atrás de cobertura.
+- Ataque contra objeto destrutível.
+- Ataque contra múltiplos alvos ou colisores.
+- Ataque com diferentes alturas de personagens.
+
+Distinguir colisão física de corpos e colisão ofensiva.
+
+Uma hitbox pode existir sem representar um corpo sólido.
+
+Um objeto sólido não deve automaticamente causar dano.
+
+Um efeito visual não deve automaticamente determinar a área de acerto.
+
+## 26. Knockback e lançamentos
+
+Verificar:
+
+- Knockback horizontal sem lançamento vertical.
+- Lançamento vertical.
+- Lançamento diagonal.
+- Lançamento a partir do solo.
+- Lançamento de quem está numa plataforma.
+- Lançamento durante queda.
+- Lançamento durante salto.
+- Lançamento de quem já está em voo.
+- Lançamentos consecutivos.
+- Contato com teto.
+- Contato com parede.
+- Contato com borda circular.
+- Contato com objeto destrutível.
+- Aterrissagem sobre uma plataforma.
+- Queda depois de colidir com obstáculo.
+- Deslizamento após pouso.
+- Recuperação técnica.
+- Wall-splat.
+- Ground bounce.
+- Meteor Slam.
+
+A altura de origem não pode ser descartada sem regra expressa.
+
+Preservar as regras existentes de proteção contra combos, interrupções, recuperações e limites de lançamento.
+
+## 27. Defesa, esquiva e invulnerabilidade
+
+Cruzar cada uma com:
+
+- Chão.
+- Plataforma.
+- Escada.
+- Rampa.
+- Ar.
+- Queda.
+- Lançamento.
+- Parede.
+- Obstáculo.
+- Ataque frontal.
+- Ataque lateral.
+- Ataque traseiro.
+- Ataque vindo de cima.
+- Ataque vindo de baixo.
+- Projétil.
+- Explosão.
+- Empurrão contínuo.
+- Status.
+- Colisão simultânea.
+- Transição de estado.
+- Hitstop.
+
+Não inferir regras novas de cobertura vertical ou cancelamento quando a documentação já especificar o comportamento.
+
+Quando houver lacuna de gameplay, evidencie-a.
+
+---
+
+# PARTE IX — OBJETOS, OBSTÁCULOS E ARENA
+
+## 28. Arena oficial aprovada
+
+O documento de mapa estabelece:
+
+- Arena circular.
+- Raio 50 m.
+- Diâmetro 100 m.
+- Estilo técnico minimalista.
+- Quatro objetos destrutíveis iniciais.
+- Quatro obstáculos indestrutíveis iniciais.
+- Duas plataformas elevadas.
+- Distribuição aleatória válida conforme seed e restrições.
+- Barreira circular invisível com indicação visual discreta.
+
+Não transformar a arena oficial em um mapa diferente sem aprovação.
+
+**Rampas, escadarias e geometrias diagonais desta tarefa devem ser utilizadas como cenários técnicos de robustez.** A inclusão permanente delas no mapa principal é uma questão distinta de level design.
+
+## 29. Plataformas aprovadas
+
+As duas plataformas iniciais possuem:
+
+- Alturas de 1 m e 1,5 m.
+- Topos de 3 × 3 m.
+- Colisões em todas as faces.
+- Capacidade de sustentar personagens.
+- Possibilidade de combate sobre elas.
+- Possibilidade de sair pelas bordas.
+- Possibilidade de receber personagens lançados.
+
+Crie testes específicos para todas essas propriedades.
+
+Verifique também se o salto normal de 2 m permite fisicamente chegar às plataformas nas condições de deslocamento aprovadas, sem auxílio artificial oculto.
+
+## 30. Objetos destrutíveis
+
+Auditar e implementar, dentro do escopo aprovado:
+
+- HP inicial de 30 por objeto.
+- HP individual configurável.
+- Resistências conforme categoria de entrega de dano.
+- Dano de ataques.
+- Dano por colisões ambientais.
+- Dano proporcional à velocidade relativa de impacto.
+- Dano ao lutador quando lançado contra objeto, conforme regra aprovada.
+- Interrupção do impulso naquele contato mesmo que o objeto seja destruído.
+- Destruição física.
+- Remoção do colisor no momento correto.
+- Persistência dos eventos do impacto destruidor.
+- Efeitos de destruição selecionáveis.
+- Reaparecimento entre 15 e 30 s.
+- Nova posição válida.
+- Prévia translúcida antes do reaparecimento sólido.
+- Interação com projéteis.
+- Interação com explosões.
+- Interação com IA.
+- Interação com navegação.
+- Interação com geração de itens.
+- Interação com câmera.
+- Interação com replay.
+
+O objeto não pode ser visualmente destruído enquanto seu colisor continua bloqueando sem uma regra que justifique isso.
+
+Também não pode ser visualmente sólido e fisicamente inexistente por erro de sincronização.
+
+## 31. Obstáculos indestrutíveis
+
+Testar blocos, cilindros e pilares.
+
+Verificar:
+
+- Colisão de personagem.
+- Colisão de projétil.
+- Bloqueio de ataques conforme geometria.
+- Cobertura.
+- Linha de visão.
+- Rebote.
+- Quinas.
+- Superfícies rotacionadas.
+- Superfícies superiores.
+- Passagem sob saliências.
+- Salto sobre obstáculos suficientemente baixos.
+- Movimento de IA ao redor.
+- Câmera obstruída.
+- Cenários de spawn.
+- Reação a impactos.
+- Comportamento quando obstáculos estão muito próximos.
+
+Não assumir que todo obstáculo é caminhável. Determinar o comportamento com base na geometria física e nas regras aprovadas.
+
+## 32. Limite circular
+
+Testar:
+
+- Aproximação normal.
+- Aproximação tangencial.
+- Aproximação diagonal.
+- Movimento em alta velocidade.
+- Corrida rente à borda.
+- Frenagem junto à borda.
+- Esquiva contra a borda.
+- Tackle contra a borda.
+- Salto junto à borda.
+- Lançamento contra a borda.
+- Queda próxima à borda.
+- Projétil atingindo a borda.
+- Projétil atingindo em ângulo.
+- Rebote repetido.
+- Ataque de área próximo da borda.
+- Obstáculo posicionado perto do limite.
+- Personagem pressionado entre obstáculo e borda.
+- Corpo em contato com a borda e outro personagem.
+
+A lógica deve ser circular, não simplesmente uma caixa quadrada invisível.
+
+Projetar o contato conforme a geometria circular, respeitando as regras configuráveis de impacto e rebote.
+
+O ricochete de projéteis na borda está aprovado em R11.7.
+
+---
+
+# PARTE X — MÓVEIS, ENTIDADES ESPECIAIS E ESTRUTURAS DINÂMICAS
+
+## 33. Geometria dinâmica
+
+Audite a capacidade de atualização quando:
+
+- Um objeto é destruído.
+- Um objeto reaparece.
+- Uma barreira é criada.
+- Uma barreira desaparece.
+- Um campo é criado.
+- Um colisor muda de posição por uma mecânica autorizada.
+- Um obstáculo deixa de bloquear uma trajetória.
+- Uma entidade muda de altura.
+- Um novo corpo surge próximo a um personagem.
+
+Se houver objetos móveis ou plataformas móveis na implementação atual ou em uma mecânica aprovada, teste também:
+
+- Movimento do suporte.
+- Transporte do personagem apoiado.
+- Velocidade relativa.
+- Desacoplamento ao saltar.
+- Desacoplamento ao cair.
+- Mudanças bruscas de direção.
+- Reversão.
+- Parada.
+- Colisão com teto.
+- Compressão entre superfícies.
+- Colisões de alta velocidade.
+- Perda ou destruição do suporte.
+
+**Não adicionar plataformas móveis como nova mecânica de mapa sem aprovação.** Esses casos devem existir como testes condicionais ou propostas de capacidade técnica, conforme o escopo real.
+
+## 34. Aparição de corpos sólidos
+
+Um objeto não deve reaparecer diretamente dentro do volume ocupado por um lutador.
+
+Verifique:
+
+- Ocupação do espaço.
+- Posição válida.
+- Distância mínima.
+- Relação com plataformas.
+- Relação com paredes.
+- Relação com outros objetos.
+- Relação com itens.
+- Relação com a arena circular.
+- Rotas de passagem.
+- Situações em que não exista espaço.
+- Atraso obrigatório da geração.
+- Prévia visual antes da colisão, quando aprovado.
+
+Não resolver geração inválida simplesmente empurrando violentamente o lutador para fora do objeto que apareceu.
+
+---
+
+# PARTE XI — MOVES, STATUS E INTERAÇÕES AMBIENTAIS
+
+## 35. Compatibilidade com os Moves existentes
+
+Audite os contratos já implementados de:
+
+- Reflect.
+- Psyshock.
+- Tackle.
+- Dodge.
+- Charge.
+- Meteor Slam.
+- Ground bounce.
+- Wall-splat.
+- Outros sistemas efetivamente presentes.
+
+Os seguintes registros são fontes de design, mas não autorizam automaticamente sua implementação nesta tarefa:
+
+- Mushroom / Bullet Punch.
+- Sand Wave.
+- Emerging Stone.
+- Body Slam.
+- Passivas em planejamento.
+- Demais Moves ainda não implementados.
+
+A nova infraestrutura física deve permitir futura integração sem contrariar esses contratos.
+
+## 36. Reflect e Psyshock
+
+Observar as decisões já aprovadas:
+
+- Contato com superfície de apoio.
+- Altitude de origem.
+- Desníveis.
+- Interrupção do Charge quando o apoio é perdido.
+- Colisão com objetos.
+- Geometria tridimensional de barreiras.
+- Posicionamento válido.
+- Projéteis com trajetórias físicas.
+- Interação com paredes.
+- Colisões sucessivas.
+- Reflexão.
+- Neutralização.
+- Ordem determinística de contatos.
+
+Em especial, `M26s.2` estabelece que Reflect utiliza a altitude da superfície de apoio do personagem.
+
+`M27.1` estabelece interrupção do Charge quando essa superfície é perdida.
+
+`M27.2` admite desníveis dentro de tolerância configurável.
+
+Esses contratos tornam indispensável que o motor tenha uma definição real e compartilhada de superfície de apoio.
+
+## 37. Sand Wave — compatibilidade futura
+
+O registro aprovado exige interação específica com contato físico com o chão.
+
+O golpe considera o ponto de apoio do alvo, sua posição dentro da área lógica e se existe contato com uma superfície.
+
+Isso não deve ser confundido com sobreposição genérica de uma hitbox vertical.
+
+Audite se a infraestrutura física será capaz de fornecer essa informação corretamente em:
+
+- Piso plano.
+- Plataforma elevada.
+- Degrau.
+- Rampa.
+- Queda.
+- Aterrissagem.
+- Vault.
+- Esquiva.
+- Lançamento.
+- Contato de parede.
+- Desníveis.
+
+Preserve a distinção entre golpes que usam colisão tridimensional volumétrica e golpes que possuem regras particulares de elegibilidade por contato com o chão.
+
+Não force todos os Moves a compartilharem uma regra ofensiva incompatível com suas especificações.
+
+## 38. Emerging Stone — compatibilidade futura
+
+O registro do Mushroom estabelece conceitos de:
+
+- Projétil subterrâneo.
+- Explosão.
+- Objetos físicos.
+- Rocha persistente.
+- Destruição de obstáculos.
+- Interações com personagens no chão.
+- Restrições próprias de Power Level.
+
+Existem decisões pendentes específicas que não devem ser resolvidas nesta tarefa por suposição.
+
+Verifique apenas se o motor físico poderá futuramente distinguir:
+
+- Solo.
+- Superfície de apoio.
+- Altitude.
+- Objeto sólido.
+- Colisão lateral.
+- Colisão superior.
+- Obstáculo destrutível.
+- Barreira indestrutível.
+- Volume de explosão.
+- Estado de contato físico.
+
+Não implemente o Move sem autorização própria.
+
+## 39. Status, buffs e passivas
+
+O sistema físico deve oferecer eventos confiáveis para habilidades que dependam de:
+
+- Entrar em contato.
+- Sair de contato.
+- Aterrissar.
+- Cair.
+- Sofrer impacto.
+- Ser lançado.
+- Receber dano.
+- Defender.
+- Desviar.
+- Perder apoio.
+- Entrar em recuperação.
+- Mudar de estado.
+- Colidir com objeto.
+- Cruzar um volume.
+- Atingir um alvo.
+- Ser derrotado.
+
+Não crie efeitos de passivas automaticamente ao detectar esses eventos.
+
+As passivas devem obedecer às definições e permissões individuais aprovadas, e não a uma regra geral inventada.
+
+---
+
+# PARTE XII — CONSUMÍVEIS E PROGRESSÃO
+
+## 40. Integração completa com a física 3D
+
+O registro de mapa aprova consumíveis no solo e sobre plataformas.
+
+Auditar:
+
+- Posição tridimensional.
+- Distância esférica de coleta.
+- Prioridade de coleta.
+- Coleta em qualquer estado elegível.
+- Coleta durante salto.
+- Coleta durante queda.
+- Coleta durante lançamento.
+- Coleta durante ataque.
+- Coleta durante defesa.
+- Coleta durante recuperação.
+- Coleta junto a obstáculos.
+- Coleta através de diferença de altura.
+- Coleta perto de borda.
+- Dois lutadores tentando coletar simultaneamente.
+- Coleta por personagem derrotado.
+- Coleta no mesmo passo de um impacto.
+- Coleta após aterrissagem.
+- Drop sobre plataforma.
+- Drop que precisa cair até uma superfície válida.
+
+Não usar apenas distância horizontal para coletar itens.
+
+## 41. Regras aprovadas de geração
+
+Preservar:
+
+- Dois consumíveis iniciais.
+- Seleção independente dos tipos.
+- Probabilidades iguais para os tipos aprovados.
+- Intervalos regulares de 20–40 s.
+- Permanência por 15 s.
+- Limite de quatro itens para geração regular.
+- Drops de destruição podendo exceder temporariamente esse limite.
+- Suspensão da geração regular quando houver quatro ou mais.
+- Reinício do temporizador ao surgir uma vaga.
+- Posicionamento válido e acessível.
+- Geração em solo e plataformas.
+- Busca sistemática da posição válida mais próxima.
+- Adiamento da geração quando não existir posição válida.
+- Seed reproduzível.
+- Congelamento dos temporizadores em pausa, hitstop e fim de luta.
+
+## 42. Progressão por atributos
+
+Preservar as cinco categorias:
+
+- Ataque.
+- Defesa.
+- Capacidade máxima de stamina.
+- Redução de cooldown.
+- Velocidade.
+
+Quatro estágios por categoria e vinte no total.
+
+Verificar especialmente o efeito físico dos bônus de velocidade.
+
+O documento aprova que obter velocidade adicional durante um salto ou lançamento **não altera a velocidade balística já em curso**.
+
+Não escalar retroativamente trajetórias existentes.
+
+Verificar também:
+
+- Efeitos futuros na locomoção.
+- Efeitos futuros na esquiva.
+- Cálculo de distâncias.
+- Aceleração.
+- Velocidade máxima.
+- Interação com estados.
+- Efeito no momento da coleta.
+- Reset na próxima partida.
+- Replays e snapshots.
+- Compatibilidade com status temporários.
+
+## 43. Dano e escudos
+
+A nova física deve integrar danos ambientais e de colisão ao sistema oficial de dano.
+
+Não criar uma rota separada que ignore:
+
+- Invulnerabilidade.
+- Defesa.
+- Mitigação.
+- Escudos.
+- Status.
+- Resistências.
+- Autoria de dano.
+- Derrota.
+- Proteção contra efeitos repetidos.
+
+As regras já aprovadas determinam que o escudo absorve dano bruto ao HP antes da Defesa, inclusive danos periódicos e ambientais, mas não bloqueia empurrões ou lançamentos.
+
+Verificar essa distinção.
+
+---
+
+# PARTE XIII — IA TRIDIMENSIONAL E NAVEGAÇÃO
+
+## 44. Percepção física correta
+
+A IA não pode tomar decisões baseadas numa representação espacial diferente da utilizada pela física.
+
+Verificar:
+
+- Posição tridimensional.
+- Altura própria.
+- Altura do adversário.
+- Superfície de apoio.
+- Posição de plataformas.
+- Topologia das rotas.
+- Obstáculos.
+- Cobertura.
+- Linha de visão.
+- Rotas bloqueadas.
+- Rotas liberadas.
+- Destruição.
+- Reaparecimento.
+- Colisões previstas.
+- Saltos viáveis.
+- Quedas.
+- Alcance real dos ataques.
+- Distância efetivamente percorrível.
+
+Não interpretar dois personagens como imediatamente acessíveis só porque estão próximos em XZ.
+
+## 45. Navegação em múltiplos níveis
+
+A IA precisa conseguir planejar trajetórias que considerem:
+
+- Piso principal.
+- Plataformas.
+- Desníveis.
+- Subidas.
+- Descidas.
+- Saltos necessários.
+- Quedas permitidas.
+- Obstáculos contornáveis.
+- Passagens bloqueadas.
+- Mudanças de geometria.
+
+Testar cenários técnicos com rampas e escadas para validar o modelo espacial, sem adicionar esses elementos ao mapa oficial sem aprovação.
+
+A IA não pode:
+
+- Caminhar eternamente contra uma parede.
+- Tentar subir uma plataforma impossível.
+- Ficar presa num degrau.
+- Alternar infinitamente entre duas rotas.
+- Seguir um caminho que deixou de existir.
+- Ignorar um caminho livre porque está num nível diferente.
+- Utilizar informações de posição exata que a mecânica de percepção não permite.
+
+## 46. Estratégia de combate vertical
+
+Conforme os requisitos aprovados, a IA deve considerar:
+
+- Subir plataformas.
+- Descer plataformas.
+- Perseguir adversários em alturas distintas.
+- Evitar ficar presa.
+- Utilizar cobertura.
+- Avaliar oportunidades de ataque.
+- Evitar obstáculos.
+- Disputar consumíveis.
+- Avaliar risco/benefício.
+- Replanejar quando o mapa mudar.
+- Saltar estrategicamente quando permitido.
+
+Não implementar navegação como teletransporte disfarçado.
+
+A IA deve estar sujeita às mesmas regras físicas do jogador.
+
+## 47. Replanejamento
+
+Testar:
+
+- Objeto destruído bloqueando antiga rota.
+- Objeto reaparecendo numa nova posição.
+- Alvo subindo plataforma.
+- Alvo descendo plataforma.
+- Personagem caindo de uma borda.
+- Rota tornando-se temporariamente inválida.
+- Caminho livre surgindo.
+- Consumível desaparecendo.
+- Alvo entrando em cobertura.
+- Obstáculo móvel modificando caminho, se existir no escopo.
+
+Os critérios de desempate devem ser determinísticos.
+
+---
+
+# PARTE XIV — CÂMERA, VISUALIZAÇÃO E ANIMAÇÕES
+
+## 48. Câmera em diferentes alturas
+
+Testar:
+
+- Ambos os lutadores no mesmo piso.
+- Um no alto e outro embaixo.
+- Ambos em plataformas.
+- Um saltando.
+- Um caindo.
+- Um lançado.
+- Um em wall-splat.
+- Um em escada ou rampa técnica.
+- Personagens com grande separação horizontal.
+- Personagens com grande separação vertical.
+- Personagem junto a parede.
+- Obstáculo entre câmera e jogador.
+- Obstáculo entre câmera e adversário.
+- Câmera próxima à borda da arena.
+- Transições rápidas de altitude.
+
+Preservar os requisitos existentes de câmera.
+
+Os requisitos do mapa já aprovam:
+
+- Ajuste vertical de enquadramento.
+- Manter o adversário visível.
+- Afastamento automático conforme distância.
+- Transparência temporária para obstáculos que ocultem o personagem.
+- Regras de lock-on diante de oclusão.
+
+Não redesenhar toda a câmera sem verificar a implementação existente e os comportamentos aprovados.
+
+## 49. Animações
+
+Verificar correspondência entre:
+
+- Velocidade física.
+- Direção de deslocamento.
+- Giro.
+- Altitude.
+- Contato com chão.
+- Salto.
+- Queda.
+- Pouso.
+- Corrida.
+- Frenagem.
+- Ataque.
+- Defesa.
+- Esquiva.
+- Recuo.
+- Lançamento.
+- Recuperação.
+- Derrota.
+
+A animação não deve:
+
+- Alterar silenciosamente a posição lógica.
+- Criar impulsos inexistentes.
+- Reiniciar a queda.
+- Fazer o corpo atravessar o chão.
+- Permanecer reproduzindo corrida quando fisicamente parado.
+- Produzir aterrissagem antes do contato.
+- Reproduzir aterrissagem repetidamente.
+- Teletransportar a raiz do personagem.
+- Recriar o estado físico ao trocar de clipe.
+- Alterar a hitbox sem contrato explícito.
+
+Separar deslocamento visual de deslocamento físico autoritativo.
+
+## 50. Modelos de diferentes proporções
+
+Auditar os contratos atuais entre malha, escala visual e colisores.
+
+Criar cenários com diferentes:
+
+- Alturas.
+- Larguras.
+- Profundidades.
+- Centros geométricos.
+- Comprimentos de pernas.
+- Volumes de corpo.
+- Proporções de rig.
+- Poses.
+
+Não assumir que todos os lutadores são cubos de um metro.
+
+Não confundir o ponto mais baixo de uma animação com a altitude física da superfície de apoio.
+
+Se for necessária uma revisão material do sistema de colisores de personagens, documentar e submeter a proposta correspondente.
+
+## 51. VFX e indicadores
+
+Verificar:
+
+- Poeira no pouso real.
+- Efeito na superfície correta.
+- Impacto em plataforma elevada.
+- Sombra coerente com altitude.
+- Sombra coerente com superfície de apoio.
+- Efeito de colisão lateral.
+- Efeito de colisão superior.
+- Destruição de objeto.
+- Reaparecimento.
+- Trajetória de projétil.
+- VFX de lançamento.
+- VFX de queda.
+- VFX de contato com teto.
+- VFX de defesa.
+- VFX de invulnerabilidade.
+
+Não criar efeitos apenas porque o estado textual recebeu um nome.
+
+O evento físico ou de gameplay correspondente deve existir de verdade.
+
+---
+
+# PARTE XV — CONTROLES E PERMISSÕES
+
+## 52. Entrada de comandos
+
+Auditar:
+
+- Teclas pressionadas.
+- Teclas mantidas.
+- Keydown.
+- Keyup.
+- Autorepeat.
+- Comandos simultâneos.
+- Buffer.
+- Prioridades.
+- Comandos durante pausa.
+- Perda de foco da janela.
+- Retorno do foco.
+- Recuperação.
+- Hitstop.
+- Transição entre estados.
+- Comando de salto.
+- Comando de defesa.
+- Comando de ataque.
+- Comando de esquiva.
+- Comandos de Moves.
+- Lock-on.
+
+Não inserir salto pelo Espaço em conflito com comandos efetivamente existentes sem verificar.
+
+A retirada de gamepad do planejamento do mapa permanece vigente. Não reintroduzir suporte ou testes de gamepad nesta tarefa.
+
+## 53. Negação correta de ações
+
+Se uma ação não pode começar, o sistema deve saber por quê.
+
+Exemplos:
+
+- Não existe apoio físico para iniciar um salto.
+- Intervalo entre saltos ainda não terminou.
+- Lutador está durante outra ação.
+- Lutador está lançado.
+- Lutador está em recuperação.
+- Lutador está derrotado.
+- Falta stamina.
+- Move está em cooldown.
+- Estado impede o uso.
+- O alvo não é elegível.
+- Existe obstrução física.
+- Existe restrição específica do Move.
+
+O diagnóstico exibido deve corresponder à mesma condição usada pela simulação.
+
+Não mostrar motivo fictício ou genérico quando a causa real é conhecida.
+
+---
+
+# PARTE XVI — TEMPO, DETERMINISMO E INTEGRIDADE DA SIMULAÇÃO
+
+## 54. Passo físico
+
+Preservar a simulação fixa de **120 Hz**.
+
+Auditar:
+
+- Ordem de atualização.
+- Subpassos de colisão.
+- Aceleração.
+- Integração de velocidade.
+- Integração de posição.
+- Contato.
+- Resolução de penetração.
+- Eventos.
+- Estados.
+- Cooldowns.
+- Status.
+- Câmera.
+- Animação.
+- Renderização.
+
+Não alterar a frequência fixa sem decisão expressa.
+
+Não permitir que FPS visual modifique a simulação.
+
+## 55. Colisões de alta velocidade
+
+Testar *tunneling* e resolução contínua ou subpassos adequados para:
+
+- Lutadores rápidos.
+- Tackle.
+- Esquiva.
+- Knockback.
+- Lançamentos.
+- Projéteis.
+- Objetos finos.
+- Quinas.
+- Tetos.
+- Degraus.
+- Plataformas estreitas.
+- Barreiras.
+- Limite circular.
+
+Um objeto não pode atravessar outro apenas porque sua velocidade permite passar completamente por ele entre dois quadros de simulação.
+
+## 56. Robustez numérica
+
+Testar:
+
+- Velocidades próximas de zero.
+- Alturas próximas de zero.
+- Penetração mínima.
+- Contatos simultâneos.
+- Normais quase paralelas.
+- Normais opostas.
+- Superfícies quase coplanares.
+- Inclinações próximas dos limites.
+- Ângulos de rotação extremos.
+- Pequenas diferenças de escala.
+- Pontos exatamente sobre quinas.
+- Objetos muito próximos.
+- Objetos parcialmente sobrepostos.
+- Muitos passos de simulação.
+- Grandes velocidades.
+- Valores configuráveis extremos e válidos.
+
+Detectar e impedir NaN, Infinity e divergência numérica não controlada.
+
+Não corrigir erros numéricos com impulsos aleatórios ou mudanças de posição arbitrárias.
+
+## 57. Seed, save/load e replay
+
+Todo estado relevante deve ser serializável e restaurável, incluindo:
+
+- Posição.
+- Altura.
+- Velocidades.
+- Impulsos.
+- Estado de apoio.
+- Identificação do suporte.
+- Estado físico.
+- Estado de ação.
+- Temporizadores.
+- Entidades.
+- Objetos destruídos.
+- Objetos reaparecendo.
+- Itens.
+- Drops.
+- Progressão.
+- Escudos.
+- Estados da IA.
+- Semente e estado do gerador pseudoaleatório.
+- Eventos necessários à reprodução.
+
+Verificar save/load:
+
+- No meio de um salto.
+- Durante queda.
+- No instante anterior ao pouso.
+- Durante lançamento.
+- Durante wall-splat.
+- Durante colisões.
+- Após destruição de objeto.
+- Durante respawn.
+- No meio da geração de itens.
+- Durante recuperação.
+- Durante hitstop.
+- Durante pausa.
+
+A mesma semente, mesmo estado e mesmos comandos devem produzir o mesmo resultado lógico.
+
+---
+
+# PARTE XVII — MATRIZ DE INTERAÇÕES OBRIGATÓRIA
+
+## 58. Não testar apenas uma mecânica por vez
+
+A partir deste ponto, cada mecanismo implementado deverá ser testado em combinação com outros.
+
+Crie uma matriz rastreável de interações.
+
+Não considero suficiente comprovar que:
+
+- Pular funciona.
+- Colidir funciona.
+- Cair funciona.
+- Atacar funciona.
+
+É necessário demonstrar, por exemplo, que um personagem pode saltar de uma plataforma, ser atingido durante a queda, sofrer lançamento lateral contra um obstáculo, rebater conforme as regras aprovadas e aterrissar corretamente em outra superfície.
+
+A combinação precisa funcionar sem perda de altura, velocidade, contato, estado, invulnerabilidade, dano ou recuperação.
+
+## 59. Matriz mínima de cenários
+
+Todos os cenários abaixo devem ser investigados e classificados como:
+
+- Implementado e aprovado por teste.
+- Implementado com falha.
+- Não implementado.
+- Bloqueado por decisão pendente.
+- Não aplicável ao escopo atual.
+
+Não marque uma funcionalidade não implementada como aprovada porque um teste foi ignorado.
+
+### Grupo A — Contato com superfícies
+
+- A01 — Parado no piso horizontal.
+- A02 — Caminhando no piso horizontal.
+- A03 — Correndo no piso horizontal.
+- A04 — Parando sobre plataforma.
+- A05 — Caminhando sobre plataforma.
+- A06 — Correndo sobre plataforma.
+- A07 — Freando sobre plataforma.
+- A08 — Aterrissando sobre plataforma.
+- A09 — Aterrissando perto da quina.
+- A10 — Saindo da borda.
+- A11 — Caindo sobre plataforma inferior.
+- A12 — Caindo sobre piso principal.
+- A13 — Encostando lateralmente numa plataforma.
+- A14 — Colidindo contra a face inferior.
+- A15 — Encostando simultaneamente em piso e parede.
+
+### Grupo B — Escadas e rampas
+
+- B01 — Subida de escada frontal.
+- B02 — Descida de escada frontal.
+- B03 — Subida diagonal.
+- B04 — Descida diagonal.
+- B05 — Escadaria rotacionada.
+- B06 — Parada em degrau.
+- B07 — Corrida em degraus.
+- B08 — Frenagem em degraus.
+- B09 — Inversão em degrau.
+- B10 — Salto de degrau.
+- B11 — Aterrissagem em degrau.
+- B12 — Queda lateral da escada.
+- B13 — Colisão contra espelho vertical do degrau.
+- B14 — Entrada numa rampa.
+- B15 — Saída de rampa.
+- B16 — Corrida em rampa.
+- B17 — Salto em rampa.
+- B18 — Aterrissagem em rampa.
+- B19 — Rampa rotacionada.
+- B20 — Transição rampa/degrau/plataforma.
+
+### Grupo C — Salto e queda
+
+- C01 — Salto parado.
+- C02 — Salto caminhando.
+- C03 — Salto correndo.
+- C04 — Salto de plataforma elevada.
+- C05 — Salto para plataforma superior.
+- C06 — Salto para plataforma inferior.
+- C07 — Salto com obstáculo frontal.
+- C08 — Salto com teto.
+- C09 — Salto perto da borda circular.
+- C10 — Queda sem comando.
+- C11 — Queda após sair correndo da borda.
+- C12 — Salto com mudança de entrada horizontal no ar.
+- C13 — Repetição de comando de salto no ar.
+- C14 — Intervalo de 0,25 s após pouso.
+- C15 — Altura configurada em 2 m.
+- C16 — Velocidade horizontal preservada.
+- C17 — Salto sem i-frames.
+- C18 — Tentativa de ataque durante salto normal.
+- C19 — Tentativa de defesa durante salto normal.
+- C20 — Salto após recuperação.
+
+### Grupo D — Interações com combate
+
+- D01 — Ataque no mesmo nível.
+- D02 — Ataque de cima.
+- D03 — Ataque de baixo.
+- D04 — Ataque na escada.
+- D05 — Ataque sobre plataforma.
+- D06 — Ataque em alvo no ar.
+- D07 — Ataque em alvo caindo.
+- D08 — Ataque durante aterrissagem.
+- D09 — Knockback de plataforma.
+- D10 — Lançamento iniciado em altura elevada.
+- D11 — Lançamento de alvo que já está no ar.
+- D12 — Lançamento contra teto.
+- D13 — Lançamento contra parede.
+- D14 — Lançamento contra plataforma.
+- D15 — Lançamento contra obstáculo destrutível.
+- D16 — Lançamento contra limite circular.
+- D17 — Lançamento terminando sobre plataforma.
+- D18 — Lançamento terminando sobre escada.
+- D19 — Lançamento terminando sobre rampa.
+- D20 — Colisão com dois obstáculos durante um único lançamento.
+
+### Grupo E — Estados
+
+- E01 — Salto → queda.
+- E02 — Queda → aterrissagem.
+- E03 — Aterrissagem → recuperação.
+- E04 — Recuperação → movimento.
+- E05 — Corrida → queda.
+- E06 — Esquiva → vault.
+- E07 — Vault → aterrissagem.
+- E08 — Vault → Tackle permitido.
+- E09 — Lançamento → Meteor Slam permitido.
+- E10 — Lançamento → wall-splat.
+- E11 — Wall-splat → queda.
+- E12 — Hit Stun → recuperação.
+- E13 — Guard Stun → comando armazenado.
+- E14 — Ação terminando no momento do pouso.
+- E15 — Impacto no momento do pouso.
+- E16 — Derrota durante queda.
+- E17 — Derrota durante lançamento.
+- E18 — Perda de apoio durante Charge.
+- E19 — Queda durante recuperação.
+- E20 — Restauração de save durante transição.
+
+### Grupo F — Objetos
+
+- F01 — Corpo contra bloco.
+- F02 — Corpo contra cilindro.
+- F03 — Corpo contra pilar.
+- F04 — Corpo contra caixa rotacionada.
+- F05 — Projétil contra bloco.
+- F06 — Projétil contra obstáculo elevado.
+- F07 — Projétil contra plataforma.
+- F08 — Projétil contra teto.
+- F09 — Projétil contra borda circular.
+- F10 — Explosão com objetos em alturas distintas.
+- F11 — Objeto destruído durante colisão.
+- F12 — Objeto destruído durante lançamento.
+- F13 — Objeto reaparecendo próximo a lutador.
+- F14 — Objeto reaparecendo próximo a plataforma.
+- F15 — Drop caindo sobre plataforma.
+- F16 — Drop caindo sobre rampa.
+- F17 — Drop caindo sobre piso principal.
+- F18 — Objeto obstruindo câmera.
+- F19 — Objeto obstruindo linha de visão da IA.
+- F20 — Objeto destruído liberando rota.
+
+### Grupo G — Itens e progressão
+
+- G01 — Coleta no chão.
+- G02 — Coleta em plataforma.
+- G03 — Coleta durante salto.
+- G04 — Coleta durante queda.
+- G05 — Coleta durante lançamento.
+- G06 — Coleta durante ataque.
+- G07 — Coleta durante defesa.
+- G08 — Coleta por dois lutadores no mesmo instante.
+- G09 — Tentativa de coleta por derrotado.
+- G10 — Item em altura diferente, fora do raio esférico.
+- G11 — Estágio de velocidade adquirido em voo.
+- G12 — Stamina máxima aumentada.
+- G13 — Cooldown alterado durante cooldown existente.
+- G14 — Cura acima do HP máximo.
+- G15 — Escudo absorvendo dano ambiental.
+- G16 — Escudo absorvendo dano periódico.
+- G17 — Escudo sem bloquear empurrão.
+- G18 — Drops excedendo quatro itens.
+- G19 — Suspensão de geração com quatro ou mais.
+- G20 — Geração adiada sem posição válida.
+
+### Grupo H — IA
+
+- H01 — IA contornando parede.
+- H02 — IA atravessando rota diagonal válida.
+- H03 — IA subindo plataforma.
+- H04 — IA descendo plataforma.
+- H05 — IA perseguindo alvo elevado.
+- H06 — IA perseguindo alvo abaixo.
+- H07 — IA escolhendo salto viável.
+- H08 — IA evitando salto inviável.
+- H09 — IA lidando com escada técnica.
+- H10 — IA lidando com rampa técnica.
+- H11 — IA perdendo linha de visão.
+- H12 — IA utilizando cobertura.
+- H13 — IA replanejando após destruição.
+- H14 — IA replanejando após reaparecimento.
+- H15 — IA disputando item elevado.
+- H16 — IA evitando ficar presa entre obstáculos.
+- H17 — IA mantendo comportamento determinístico.
+- H18 — IA não atravessando geometria.
+- H19 — IA não ignorando colisores.
+- H20 — IA respeitando permissões de ações.
+
+### Grupo I — Câmera e animação
+
+- I01 — Câmera acompanhando salto.
+- I02 — Câmera acompanhando queda.
+- I03 — Câmera com lutadores em alturas diferentes.
+- I04 — Câmera contra parede.
+- I05 — Transparência de obstáculo oclusor.
+- I06 — Lock-on temporariamente obstruído.
+- I07 — Transição de animação na aterrissagem.
+- I08 — Animação de queda prolongada.
+- I09 — Animação após lançamento.
+- I10 — Personagem com modelo alto sobre plataforma.
+- I11 — Personagem baixo sobre plataforma.
+- I12 — Sombra na superfície correta.
+- I13 — Poeira na altitude do impacto.
+- I14 — Visual sem flutuação dos pés.
+- I15 — Animação sem teletransporte de raiz.
+
+### Grupo J — Determinismo e estabilidade
+
+- J01 — Mesmo cenário e seed.
+- J02 — Replay após salto.
+- J03 — Replay durante queda.
+- J04 — Replay durante lançamento.
+- J05 — Replay após destruição.
+- J06 — Replay durante reaparecimento.
+- J07 — Save/load sobre plataforma.
+- J08 — Save/load no ar.
+- J09 — Save/load durante múltiplas colisões.
+- J10 — Colisão a alta velocidade.
+- J11 — Contato com geometria muito fina.
+- J12 — Contato com quina exata.
+- J13 — Contato simultâneo de múltiplas superfícies.
+- J14 — Simulação de longa duração.
+- J15 — Muitos objetos e projéteis.
+- J16 — Pausa durante queda.
+- J17 — Hitstop durante geração.
+- J18 — Reinício durante estados físicos especiais.
+- J19 — Desempenho em 1080p.
+- J20 — Integridade de estados e ausência de valores inválidos.
+
+Esses cenários constituem uma **matriz inicial obrigatória, não um limite máximo**.
+
+Adicionar cenários quando a investigação revelar novos caminhos de interação.
+
+---
+
+# PARTE XVIII — TESTES COMBINATÓRIOS E CASOS-LIMITE
+
+## 60. Gerar testes de duas e três mecânicas combinadas
+
+Além dos cenários anteriores, construa um modelo de cobertura por combinações.
+
+Dimensões mínimas:
+
+**Superfície:**
+- Piso.
+- Plataforma baixa.
+- Plataforma alta.
+- Rampa.
+- Escada.
+- Borda.
+- Ausência de suporte.
+
+**Estado físico:**
+- Apoiado.
+- Subindo.
+- Caindo.
+- Lançado.
+- Deslizando.
+- Em contato com parede.
+- Aterrissando.
+
+**Ação:**
+- Neutro.
+- Movimento.
+- Corrida.
+- Salto.
+- Esquiva.
+- Tackle.
+- Defesa.
+- Move.
+- Recuperação.
+
+**Interação:**
+- Sem contato.
+- Colisão lateral.
+- Colisão superior.
+- Colisão inferior.
+- Ataque.
+- Projétil.
+- Explosão.
+- Empurrão.
+- Destruição.
+- Coleta.
+
+**Velocidade:**
+- Zero.
+- Baixa.
+- Nominal.
+- Alta.
+- Extrema dentro dos limites válidos.
+
+**Orientação:**
+- Frontal.
+- Traseira.
+- Lateral.
+- Diagonal.
+- Superfície rotacionada.
+
+Não é necessário testar cegamente o produto cartesiano completo de todas as combinações.
+
+Utilize análise de risco, cobertura de pares, trios críticos, transições de estado e invariantes.
+
+Justifique os casos excluídos por impossibilidade lógica, falta de aprovação ou irrelevância demonstrada.
+
+## 61. Testes metamórficos
+
+Verifique propriedades que devem permanecer válidas ao transformar o cenário.
+
+Exemplos:
+
+- Rotacionar a geometria e os comandos equivalentemente não deve criar viés físico inesperado.
+- Espelhar um cenário deve produzir resposta espelhada, ressalvadas regras direcionais explícitas.
+- Repetir o cenário com a mesma seed deve reproduzir o resultado.
+- Dividir uma trajetória em subpassos menores não deve produzir atravessamento.
+- Alterar apenas a câmera não deve modificar a simulação.
+- Alterar apenas VFX não deve modificar a simulação.
+- Trocar um modelo visual por outro com o mesmo contrato físico não deve alterar resultados lógicos inesperadamente.
+- Salvar/restaurar estado no meio da simulação não deve mudar seu futuro lógico.
+- Reproduzir ações em diferentes FPS visuais não deve mudar seu resultado.
+
+## 62. Testes de propriedades
+
+Criar verificações automatizadas como:
+
+- Posição finita.
+- Velocidade finita.
+- Altura finita.
+- Nenhuma penetração inválida persistente.
+- Nenhuma transição proibida.
+- Nenhuma ação iniciada sem permissão.
+- Nenhum salto normal adicional sem pouso válido.
+- Nenhuma coleta por personagem derrotado.
+- Nenhum dano de ataque fora do volume autorizado.
+- Nenhum atravessamento de obstáculo sólido.
+- Nenhuma criação inválida de objetos.
+- Nenhuma alteração retroativa de parâmetros capturados.
+- Nenhum evento de aterrissagem duplicado para o mesmo contato.
+- Nenhum cooldown negativo indevido.
+- Nenhuma stamina acima do máximo válido.
+- Nenhum HP acima do máximo válido.
+- Nenhum resultado diferente para a mesma simulação determinística.
+
+Usar seeds reproduzíveis e registrar casos mínimos de falha.
+
+---
+
+# PARTE XIX — CENÁRIOS DE DEPURAÇÃO JOGÁVEIS
+
+## 63. Laboratório de física 3D
+
+Utilize o sistema de cenários existente e os pontos de entrada oficiais do projeto.
+
+Prepare cenários técnicos acessíveis para inspeção física:
+
+1. Piso plano e personagem isolado.
+2. Bloco sólido.
+3. Duas plataformas oficiais.
+4. Salto para plataforma.
+5. Queda entre plataformas.
+6. Rampa simples.
+7. Rampa diagonal.
+8. Escada reta.
+9. Escada diagonal rotacionada.
+10. Escada com quinas expostas.
+11. Plataformas adjacentes.
+12. Plataformas separadas.
+13. Plataforma com teto inferior acessível.
+14. Obstáculos próximos.
+15. Obstáculos destrutíveis.
+16. Corredor estreito.
+17. Contato com limite circular.
+18. Lançamento contra parede.
+19. Lançamento contra teto.
+20. Lançamento sobre plataforma.
+21. Ataque entre alturas diferentes.
+22. IA navegando entre níveis.
+23. Coleta de item elevado.
+24. Respawn de objeto.
+25. Múltiplos eventos simultâneos.
+
+Esses cenários são ferramentas de verificação e não autorizam modificar o layout oficial da arena.
+
+## 64. Ferramentas de diagnóstico
+
+Expor, quando tecnicamente necessário e compatível com a interface existente:
+
+- Colisor do lutador.
+- Colisores de obstáculos.
+- Volume de plataformas.
+- Ponto de contato.
+- Normal de contato.
+- Superfície atual de apoio.
+- Altitude física.
+- Velocidade horizontal.
+- Velocidade vertical.
+- Força de gravidade.
+- Impulso aplicado.
+- Estado físico.
+- Estado de ação.
+- Motivo de transição.
+- Motivo de ação negada.
+- Identificador de colisão.
+- Identificador da entidade.
+- Tempo do evento.
+- Último contato válido.
+- Trajetória prevista.
+- Posição do próximo contato.
+- Hitboxes e hurtboxes.
+- Rota de navegação da IA.
+- Razão para replanejamento.
+- Contagem de subpassos.
+- Informações de performance.
+
+Não poluir a interface normal de gameplay.
+
+As ferramentas devem poder ser ativadas individualmente para testes.
+
+Parâmetros ajustáveis aprovados precisam continuar acessíveis em controles apropriados, com unidades e valores claros.
+
+---
+
+# PARTE XX — DESEMPENHO, MEMÓRIA E QUALIDADE DE EXECUÇÃO
+
+## 65. Desempenho físico
+
+A correção da física não justifica introduzir processamento desnecessário.
+
+Investigue:
+
+- Custo por passo.
+- Número de contatos avaliados.
+- Número de subpassos.
+- Custo de detecção de colisões.
+- Custo de projeção de contatos.
+- Atualização de objetos estáticos.
+- Atualização de objetos dinâmicos.
+- Reaproveitamento de dados.
+- Alocações transitórias.
+- Coleta de lixo.
+- Custos de navegação.
+- Custos de raycasts.
+- Custos de VFX.
+- Custos de sincronização com a cena.
+
+A meta oficial de referência é **60 FPS em 1080p**, mantendo a simulação a **120 Hz**.
+
+Não declarar a meta atingida sem medir no hardware efetivamente utilizado e registrar esse hardware.
+
+Se algum cenário ainda não possuir referência de desempenho comparável, registrar a limitação.
+
+## 66. Separar simulação e renderização
+
+A simulação deve continuar determinística e independente da taxa de quadros.
+
+Não utilizar informações variáveis da renderização como fonte autoritativa da física.
+
+Não incluir aleatoriedade visual na simulação lógica.
+
+Não introduzir referências ao DOM, elementos Three.js ou funções não serializáveis no estado físico usado pelo replay.
+
+Preservar a capacidade do projeto de executar cenários e verificações em Node.
+
+## 67. Execução offline
+
+O Arenamon é utilizado como HTML acessível localmente.
+
+Preservar os requisitos existentes de execução offline, builds reproduzíveis e abertura pelo usuário sem dependência obrigatória de terminal ou servidor.
+
+Não adicionar dependências externas em tempo de execução sem justificativa e autorização.
+
+---
+
+# PARTE XXI — PROCEDIMENTO DE IMPLEMENTAÇÃO
+
+## 68. Fase 0 — Auditoria factual obrigatória
+
+Antes de implementar, entregar internamente uma matriz de evidências com:
+
+- Requisito.
+- ID de decisão aprovada.
+- Arquivo de implementação atual.
+- Função responsável.
+- Estado observado.
+- Testes existentes.
+- Testes ausentes.
+- Defeito concreto.
+- Impacto em outros sistemas.
+- Dependências.
+- Necessidade de decisão do diretor.
+- Solução técnica proposta.
+
+Inspecionar o estado atual de Git e preservar trabalhos paralelos.
+
+Não reescrever documentação aprovada.
+
+## 69. Fase 1 — Contrato de integração
+
+Especificar claramente:
+
+- Representação da posição 3D.
+- Representação da velocidade 3D.
+- Origem da gravidade.
+- Representação de superfícies.
+- Identificação do apoio.
+- Detecção de colisão.
+- Resolução de contatos.
+- Eventos físicos.
+- Atualização das ações.
+- Atualização da IA.
+- Atualização da animação.
+- Atualização da câmera.
+- Ordem de processamento.
+- Serialização.
+- Estratégia de determinismo.
+
+Não escolher silenciosamente entre uma refatoração extensa e uma integração incremental caso isso afete significativamente a arquitetura.
+
+Apresentar a comparação técnica, a extensão das mudanças, os riscos e a justificativa.
+
+## 70. Fase 2 — Reproduzir os defeitos
+
+Criar testes que reproduzam os problemas efetivamente encontrados antes de corrigi-los, sempre que possível.
+
+Não marcar como falha confirmada um problema que ainda é apenas hipótese de inspeção.
+
+Para cada defeito:
+
+1. Identificar entrada.
+2. Estado inicial.
+3. Resultado esperado.
+4. Resultado obtido.
+5. Arquivos responsáveis.
+6. Causa raiz.
+7. Teste que reproduz.
+8. Modificação necessária.
+
+## 71. Fase 3 — Corrigir a infraestrutura fundamental
+
+Prioridade:
+
+1. Posição e altitude coerentes.
+2. Velocidade e gravidade.
+3. Geometria de colisão.
+4. Contato com superfícies.
+5. Detecção e manutenção de apoio.
+6. Perda de apoio.
+7. Salto normal aprovado.
+8. Queda.
+9. Aterrissagem tridimensional.
+10. Integração com estados.
+11. Lançamentos e colisões ambientais.
+
+Não passar para sistemas dependentes enquanto a infraestrutura básica ainda apresenta falhas conhecidas que invalidam esses sistemas.
+
+## 72. Fase 4 — Integração com combate
+
+Executar os testes de regressão de:
+
+- X.
+- C.
+- Sprint.
+- Defesa.
+- Invulnerabilidade.
+- Guard Stun.
+- Hit Stun.
+- Clash.
+- Knockback.
+- Wall-splat.
+- Meteor Slam.
+- Ground bounce.
+- Charge.
+- Reflect.
+- Psyshock.
+- Status.
+- Cooldowns.
+- Buffer.
+- IA.
+
+Qualquer alteração involuntária deve ser identificada antes de prosseguir.
+
+## 73. Fase 5 — Ambiente e mapa aprovado
+
+Integrar o sistema às decisões existentes sobre:
+
+- Arena circular.
+- Plataformas.
+- Objetos destrutíveis.
+- Obstáculos sólidos.
+- Dano ambiental.
+- Respawn.
+- Drops.
+- Consumíveis.
+- Progressão.
+- Escudo.
+- Geração por seed.
+- Navegação.
+- Câmera.
+- HUD.
+
+Respeitar a ordem de dependências.
+
+Não introduzir novos objetos de mapa apenas porque aparecem nos cenários técnicos.
+
+## 74. Fase 6 — Testes exaustivos de integração
+
+Executar a matriz oficial MAP-T01–MAP-T24 e a matriz ampliada deste comando.
+
+Adicionar testes para causas raiz não antecipadas.
+
+Executar testes de regressão de funcionalidades preexistentes.
+
+Verificar cenários positivos, negativos, extremos e simultâneos.
+
+## 75. Fase 7 — Build e validação jogável
+
+Consultar os scripts atuais de `package.json`.
+
+Na versão previamente inspecionada existiam, entre outros:
+
+- `npm run build:combat-lab`
+- `npm run typecheck`
+- `npm run test:combat-lab:unit`
+- `npm run test:combat-lab:browser`
+- `npm run check:offline`
+- `npm run verify`
+
+Confirmar que os scripts ainda existem antes de executá-los.
+
+Não afirmar que uma suíte passou caso ela não tenha sido executada.
+
+Distinguir testes automatizados de aprovação jogável do diretor.
+
+Os artefatos de teste devem ser acessíveis pelos pontos de entrada oficiais, respeitando as regras atuais do repositório.
+
+## 76. Fase 8 — Verificação do resultado
+
+Após cada conjunto de alterações:
+
+- Inspecionar o diff.
+- Identificar exatamente os arquivos modificados.
+- Confirmar que não houve remoções indevidas.
+- Rodar os testes pertinentes.
+- Conferir os resultados.
+- Investigar regressões.
+- Confirmar que o build utiliza o código atualizado.
+- Confirmar que os cenários funcionam no navegador, se o ambiente permitir.
+- Confirmar que a implementação permanece determinística.
+- Atualizar somente os registros técnicos autorizados.
+- Preservar as decisões de design.
+- Informar o que ainda não foi validado.
+
+Não considerar a tarefa concluída com testes falhando, testes ignorados sem justificativa ou funcionalidades fundamentais apenas parcialmente integradas.
+
+---
+
+# PARTE XXII — RELATÓRIOS E RASTREABILIDADE
+
+## 77. Entregáveis obrigatórios
+
+O relatório técnico precisa incluir:
+
+**A. Identificação**
+- Repositório.
+- Branch.
+- Commit inicial.
+- Commit final, se houver.
+- Ambiente utilizado.
+- Estado do checkout.
+- Diferenças em relação à origem.
+
+**B. Auditoria**
+- Arquivos examinados.
+- Sistemas examinados.
+- Defeitos confirmados.
+- Defeitos suspeitos.
+- Deficiências estruturais.
+- Lacunas de implementação.
+- Lacunas de testes.
+- Conflitos documentais.
+- Decisões ainda pendentes.
+
+**C. Implementação**
+- Arquivos alterados.
+- Motivo de cada alteração.
+- Mecânica afetada.
+- Dependências.
+- Compatibilidade.
+- Funcionalidade adicionada.
+- Funcionalidade corrigida.
+- Funcionalidade preservada.
+
+**D. Testes**
+- Cenário.
+- Requisito correspondente.
+- Condição inicial.
+- Comando executado.
+- Resultado esperado.
+- Resultado observado.
+- Passou ou falhou.
+- Evidência.
+- Limitações.
+
+**E. Resultados**
+- Testes unitários.
+- Testes de integração.
+- Testes de propriedades.
+- Testes de navegador.
+- Replay.
+- Seeds.
+- Desempenho.
+- Regressão do combate.
+- Avaliação das interações.
+
+**F. Pendências**
+- O que não foi implementado.
+- O que não foi testado.
+- O que exige aprovação.
+- O que depende de outro sistema.
+- Qual decisão específica está faltando.
+- Qual seria o próximo passo tecnicamente necessário.
+
+Não registrar uma funcionalidade como aprovada só porque o código compila.
+
+Não registrar uma funcionalidade como pronta só porque existe uma função com nome correspondente.
+
+## 78. Rastreabilidade das decisões
+
+Todas as 152 decisões do mapa devem receber classificação de cobertura.
+
+O resultado deve permitir consultar cada requisito e descobrir:
+
+- Onde ele está documentado.
+- Onde está implementado.
+- Qual teste o protege.
+- Qual evidência o comprova.
+- Se está completo.
+- Se está parcial.
+- Se não está implementado.
+- Se depende de autorização.
+
+A ausência de qualquer implementação deve ser declarada, nunca omitida para melhorar artificialmente o relatório.
+
+---
+
+# PARTE XXIII — CONDIÇÕES DE PARADA E CRITÉRIOS DE CONCLUSÃO
+
+## 79. Não finalizar apenas porque passou a suíte antiga
+
+As suítes existentes podem validar adequadamente aquilo que já foi implementado e, ainda assim, não abranger as funcionalidades que faltam.
+
+Portanto:
+
+**Suíte antiga verde não significa que a física 3D está correta.**
+
+A validação precisa incluir os novos comportamentos e suas interações.
+
+## 80. Não substituir testes por argumentos
+
+Não aceite justificativas como:
+
+- “A física já usa gravidade.”
+- “A plataforma possui um colisor.”
+- “O personagem possui estado airborne.”
+- “O Three.js suporta 3D.”
+- “O vault já funciona.”
+- “O lançamento já foi testado.”
+- “O objeto está visivelmente sólido.”
+- “Todos os testes antigos passaram.”
+- “O erro só acontece em uma combinação rara.”
+
+Nenhuma dessas afirmações, isoladamente, comprova a integração exigida.
+
+Demonstre os comportamentos reais.
+
+## 81. Critérios finais de aceitação
+
+A parte implementada desta tarefa somente poderá ser considerada tecnicamente concluída quando:
+
+1. A física utilizar informações espaciais coerentes.
+2. Personagens reconhecerem superfícies de apoio válidas.
+3. Personagens permanecerem sobre plataformas.
+4. Personagens saírem das bordas e caírem corretamente.
+5. Saltos respeitarem as decisões aprovadas.
+6. Aterrissagens funcionarem em alturas diferentes.
+7. Colisões superiores, laterais e inferiores forem diferenciadas.
+8. Lançamentos preservarem a posição física corretamente.
+9. Mudanças de estado não produzirem teletransportes indevidos.
+10. Ataques respeitarem seus volumes reais e as exceções aprovadas.
+11. Obstáculos bloquearem adequadamente corpos e projéteis.
+12. Os cenários técnicos de rampas e escadas, inclusive diagonais, demonstrarem robustez geométrica.
+13. A IA reconhecer o espaço físico e não tentar ações geometricamente impossíveis.
+14. A câmera acompanhar corretamente diferenças de altitude.
+15. Animações representarem os estados físicos sem controlá-los indevidamente.
+16. O sistema funcionar com replays e estados restaurados.
+17. Os testes de regressão não evidenciarem alterações involuntárias.
+18. Os testes novos cobrirem as interações críticas.
+19. Os resultados forem verificáveis.
+20. Todas as limitações e pendências forem explicitamente registradas.
+
+Os critérios referentes a funcionalidades que dependem de design ainda não aprovado não devem ser declarados cumpridos artificialmente.
+
+## 82. Regra de engenharia para evitar novas obviedades esquecidas
+
+A partir desta tarefa, adote permanentemente o seguinte procedimento para qualquer mecânica física nova no Arenamon:
+
+**Ao adicionar ou modificar uma mecânica, verificar obrigatoriamente como ela interage com todas as categorias relevantes:**
+
+- Física.
+- Gravidade.
+- Geometria.
+- Contatos.
+- Plataformas.
+- Desníveis.
+- Locomoção.
+- Salto.
+- Queda.
+- Aterrissagem.
+- Impulso.
+- Colisão.
+- Combate.
+- Defesa.
+- Invulnerabilidade.
+- Esquiva.
+- Knockback.
+- Interrupção.
+- Estados.
+- Animação.
+- IA.
+- Câmera.
+- Objetos.
+- Projéteis.
+- Áreas.
+- Status.
+- Recursos.
+- Temporizadores.
+- Replay.
+- Desempenho.
+- Interface.
+- Cenários e testes.
+
+Para cada categoria, marcar:
+
+- Interação necessária.
+- Não aplicável, com justificativa.
+- Depende de decisão.
+- Implementada.
+- Testada.
+
+**Nunca deixar uma interação relevante sem classificação.**
+
+Isso deve se tornar um contrato verificável de desenvolvimento, não apenas uma recomendação textual.
+
+---
+
+# INSTRUÇÃO FINAL
+
+Quero que você trate o Arenamon como **um jogo de combate 3D completo em desenvolvimento**, não como um conjunto de protótipos independentes sem obrigações de integração.
+
+Não confunda ausência de uma decisão específica com autorização para ignorar a física convencional necessária ao funcionamento de uma mecânica aprovada.
+
+Não confunda também uma expectativa convencional com autorização para inventar regras novas de combate.
+
+**Sua responsabilidade é antecipar e testar as consequências normais das funcionalidades que implementa.**
+
+Se um personagem pode saltar, ele precisa interagir corretamente com geometria sólida.
+
+Se existem plataformas, elas precisam funcionar como plataformas.
+
+Se existem diferenças de altura, elas precisam afetar contatos e colisões de maneira coerente.
+
+Se existe gravidade, ela precisa atuar corretamente sobre todos os sistemas aos quais se aplica.
+
+Se existe uma máquina de estados, os estados precisam corresponder a fatos físicos e regras de gameplay, não apenas a mudanças de nomes.
+
+Se existe um objeto tridimensional sólido, suas faces e sua geometria precisam ser respeitadas.
+
+Se existe uma IA, ela precisa compreender o mesmo mundo físico no qual o jogador se move.
+
+Se existe uma suíte de testes, ela precisa verificar as interações e não somente casos isolados.
+
+Não encerre com um resumo otimista de testes antigos.
+
+**Investigue, reproduza, corrija, integre, teste, valide e documente cada parte efetivamente trabalhada, preservando todas as decisões já aprovadas.**
+
+A profundidade da investigação deve ser proporcional à complexidade real encontrada.
+
+Caso haja uma decisão indispensável e não aprovada, apresente exatamente o conflito, as alternativas e seu impacto, sem escolher por mim.
+
+Caso faltem ferramentas ou acesso, identifique o bloqueio específico.
+
+Caso a execução não esteja completa, relate o progresso real sem afirmar conclusão.
+
+O resultado esperado é uma base física e lógica confiável, sobre a qual novas mecânicas possam ser construídas **sem que comportamentos elementares precisem ser solicitados ou corrigidos repetidamente**.

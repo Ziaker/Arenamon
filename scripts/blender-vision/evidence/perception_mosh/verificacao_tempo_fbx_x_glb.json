@@ -1,0 +1,11 @@
+{
+ "metodo": "posicao mundial do quadril e da mao D nos frames 1..54: FBX original x GLB reescalado (x1,25)",
+ "offset_constante_quadril_m": [
+  0.05719592592592588,
+  -0.015548888888888966,
+  0.00037814814814814444
+ ],
+ "residuo_max_quadril_m": 1.2728029835142807e-05,
+ "residuo_max_mao_D_m": 0.03035792949172738,
+ "conclusao": "quadril: mesma trajetoria frame a frame (residuo 0,00001 m) a menos de um deslocamento constante da origem entre importadores, o que confirma a base de tempo 1..54 a 30 fps. Mao D: residuo maximo de 3,0 cm, porque o esqueleto do GLB (o que o jogo carrega e o que foi analisado) tem repouso/escala de osso um pouco diferente do FBX do Mixamo; a analise vale para o GLB."
+}

@@ -14,6 +14,14 @@ export const registerEffect = (name, fn) => {EFFECTS.set(name, fn);return name;}
 /** @param {string} name */
 export const getEffect = name => EFFECTS.get(name) ?? null;
 export const unregisterEffect = (/** @type {string} */ name) => EFFECTS.delete(name);
-/** Esvazia os manipuladores (testes). */
-export const clearEffects = () => EFFECTS.clear();
+/**
+ * Ganchos de passo: `(game) => evento[] | void`, chamados pelo jogo logo depois da física dos lutadores em TODO passo normal. Servem a Moves cujo efeito
+ * continua depois do disparo e depende do estado físico (ex.: o Bounce confere o contato na descida e no pouso). Sem Move equipado, não fazem nada.
+ * @type {Map<string, Function>}
+ */
+const STEP_HOOKS = new Map();
+export const registerStepHook = (/** @type {string} */ name, /** @type {Function} */ fn) => {STEP_HOOKS.set(name, fn);return name;};
+export const stepHooks = () => [...STEP_HOOKS.values()];
+/** Esvazia os manipuladores e ganchos (testes). */
+export const clearEffects = () => {EFFECTS.clear();STEP_HOOKS.clear();};
 export const listEffects = () => [...EFFECTS.keys()];

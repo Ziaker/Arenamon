@@ -7,19 +7,22 @@ import {NAMES, SECTIONS, TOOLTIPS, KEY_HELP} from './tuning-meta.js';
 import {OFFICIAL} from './official.js';
 import {STYLES} from '../sim/tactics.js';
 import {actionMeta, OFFICIAL_MAP, migrateFlat, flatten} from './actions-meta.js';
+import {changedOutsideManifest, importOutsideManifest} from './tuning-io.js';
 import {overhaulMeta} from './overhaul-meta.js';
 import {VFX_TYPES, SHAKE_EVENTS} from '../view/vfx.js';
 import {SOLID_FAMILIES} from '../view/solid-fx.js';
 import {MECHANIC_ORDER, mechanicLabel, mechanicsOf, levelVisible, levelOf, LEVELS, derivedText, loadTags, saveTags, allTags, nestedFrom} from './organize.js';
+import {PASSIVES} from '../sim/passives.js';
 
 const $ = id => document.getElementById(id);
 export const pathGet = (root, path) => path.split('.').reduce((a, k) => a?.[k], root);
 export const pathSet = (root, path, value) => {const keys = path.split('.'), last = keys.pop();const obj = keys.reduce((a, k) => a?.[k], root);if (!obj || !(last in obj)) return false;obj[last] = value;return true;};
 const TABS = [
-  ['X e C', ['Esquiva (C)', 'Tackle (X)', 'Tackle carregado (PL)', 'Finta e brake slide', 'Wall-splat e meteor slam', 'Sprint (C mantido)', 'Cancelamento C → X', 'Buffer de entrada']],
+  ['X e C', ['Smear de Membros', 'Squash & Stretch do Tackle', 'Esquiva (C)', 'Tackle (X)', 'Tackle carregado (PL)', 'Finta e brake slide', 'Wall-splat e meteor slam', 'Sprint (C mantido)', 'Cancelamento C → X', 'Buffer de entrada']],
   ['Combate', ['Regras gerais, defesa e stamina', 'Knockback e clash', 'Combate e colisões']],
   ['Atributos', ['Atributos: equilibrado', 'Atributos: ágil', 'Atributos: resistente']],
   ['Movimento', ['Movimento']], ['IA', ['IA: estratégia e decisões', 'IA: personalidade do vermelho', 'IA: personalidade do azul (IA jogador)']], ['Arena', ['Arena e simulação']],
+  ['Mapa', ['Ledge Grab (agarre de borda)', 'Arena circular', 'Objetos destrutíveis', 'Obstáculos indestrutíveis', 'Plataformas e salto', 'Footstool (pisar no rival)', 'Consumíveis e drops', 'Progressão de estágios e escudo']],
   ['Visual', ['Renderizador e personagens', 'Efeitos e feedback', 'HUD e visualização', 'Cores: canais RGB individuais']],
   ['Sistemas', ['Ativar ou desativar sistemas', 'Modos de jogo']],
 ];
@@ -29,8 +32,12 @@ const SAFE_MIN = {'rules.dodge': .05, 'rules.tackleDuration': .05, 'rules.recoil
   'extras.fx.clashDuration': .02, 'extras.visual.bodyWidth': .1, 'extras.visual.bodyHeight': .1, 'extras.visual.bodyDepth': .1, 'profiles.balanced.hp': 1, 'profiles.agile.hp': 1, 'profiles.resistant.hp': 1, 'test.hp': 1};
 const RADIANS = ['steerLimit', 'steerRate', 'guardTurn', 'guardAcceleration', 'turnRate', 'visualTurnRate', 'maxTurnRate', 'deadZone', 'movingDeadZone', 'initialYaw', 'forwardTolerance'];
 const INTEGERS = ['staminaMax', 'hp', 'attack', 'defense', 'attackReference', 'speedReference', 'defenseMedian', 'contactProjectionPasses', 'impactCount', 'clashCount', 'landingCount', 'evadeCycle', 'evadeCycleIndex', 'noticeFontSize', 'clashNoticeFontSize', 'debugFontSize', 'footerFontSize'];
-const toggled = key => key.startsWith('enable') || ['fxVisible', 'hudVisible', 'debugVisible', 'showHitboxes', 'showAttackVectors'].includes(key);
+const toggled = key => key.startsWith('enable') || ['fxVisible', 'hudVisible', 'debugVisible', 'showHitboxes', 'showAttackVectors', 'jumpImprovements', 'jumpPassOver', 'footstoolEnabled', 'footstoolVault'].includes(key);
 const PROFILE_LABEL = ['Equilibrado', 'Ágil', 'Resistente'];
+/** Sliders de COMBATE (regras, ações, Moves, atributos, locomoção, passivas, física, salto/footstool): o limite máximo vale o DOBRO do original (pedido de 22/10/2026: «limite muito pequeno»). Chaves liga/desliga e seletores ficam como estão. */
+export const COMBAT_PATH = /^(rules|actions|world|profiles|locomotion|passivas).|^extras.combat.|^map.(jump|footstool)/;
+export const COMBAT_RANGE_FACTOR = 2;
+export const widenCombatRange = (path, r) => COMBAT_PATH.test(path) && !r.kind && !(r.step >= 1 && r.max <= 3) ? {...r, max: r.max * COMBAT_RANGE_FACTOR} : r;
 
 /** Faixa, passo e formato de cada parâmetro (regras do ajustador v6). */
 function range(key, value, path) {
@@ -45,6 +52,9 @@ function range(key, value, path) {
   if (['recoil', 'guardStun', 'landingRecovery'].includes(key) && path.startsWith('rules.')) return {min: 0, max: 4, step: .01, fmt: n => n.toFixed(2) + ' s'};
   if (key === 'epsilon') return {min: 0, max: .000001, step: .000000001, fmt: n => n.toExponential(2)};
   if (key === 'step') return {min: 1 / 240, max: 1 / 30, step: 1 / 24000, fmt: n => (1000 * n).toFixed(2) + ' ms'};
+  if (key === 'hitstopDamageBoost') return {min: 0, max: 3, step: .1, fmt: n => n ? '+' + (n * 100).toFixed(0) + '% no dano de referência' : 'Desligado (hitstop fixo)'};
+  if (key === 'hitstopDamageRef') return {min: 5, max: 100, step: 1, fmt: n => n + ' HP'};
+  if (key === 'contactShape') return {min: 0, max: 1, step: 1, fmt: n => n ? 'Circular (alcance igual em todos os ângulos)' : 'Quadrado (legado)'};
   if (key === 'arenaHalf') return {min: 6, max: 100, step: 1, fmt: n => (n * 2) + ' × ' + (n * 2) + ' m'};
   if (INTEGERS.includes(key)) {const upper = key === 'staminaMax' ? 12 : key === 'contactProjectionPasses' ? 10 : key === 'evadeCycle' || key === 'evadeCycleIndex' ? 12 : /Count$/.test(key) ? 64 : key.endsWith('Size') ? 56 : key === 'hp' ? 800 : 200;return {min: key === 'contactProjectionPasses' ? 1 : 0, max: upper, step: 1, fmt: n => String(n)};}
   if (['invulnRepeatDelay', 'impactNoticeMs', 'clashNoticeMs', 'invulnNoticeMs'].includes(key)) return {min: 0, max: 5000, step: 10, fmt: n => n + ' ms'};
@@ -57,6 +67,61 @@ function range(key, value, path) {
   if (['reversal', 'acceleration', 'braking'].includes(key)) return {min: 0, max: 400, step: 1, fmt: n => String(n)};
   if (['lightX', 'lightY', 'lightZ'].includes(key)) return {min: -30, max: 30, step: .5, fmt: n => n.toFixed(1)};
   if (key === 'gridDivisions') return {min: 2, max: 100, step: 1, fmt: n => String(n)};
+  if (path && path.startsWith('extras.hitbox.') && (key === 'shapeForward' || key === 'shapeRadius')) return {min: .1, max: 2, step: .05, fmt: n => n.toFixed(2) + ' m'};
+  if (path && path.startsWith('display.scenery.')) {
+    if (key === 'labTheme') return {min: 0, max: 1, step: 1, fmt: n => n ? 'Laboratório técnico' : 'Clássico (cinza)', kind: 'toggle'};
+    if (['labBlocks', 'labProps', 'labRulers', 'labRimGlow'].includes(key)) return {min: 0, max: 1, step: 1, fmt: n => n ? 'Ligado' : 'Desligado', kind: 'toggle'};
+    if (key === 'labRingStep') return {min: 1, max: 16, step: 0.5, fmt: n => n.toFixed(1) + ' m'};
+    if (key === 'labBlockScale') return {min: 0.2, max: 4, step: 0.05, fmt: n => n.toFixed(2) + '×'};
+  }
+  if (path && path.startsWith('display.progress.')) {
+    if (key === 'pgEnabled' || key === 'pgAnimate') return {min: 0, max: 1, step: 1, fmt: n => n ? 'Ligado' : 'Desligado', kind: 'toggle'};
+    if (key === 'pgScale' || key === 'pgScaleEnemy') return {min: 0.4, max: 2, step: 0.05, fmt: n => Math.round(n * 100) + '%'};
+    if (key === 'pgLayout') return {min: 0, max: 1, step: 1, fmt: n => n ? 'Horizontal (compacto)' : 'Vertical (cantos)', kind: 'toggle'};
+    if (key === 'pgSubject') return {min: 0, max: 2, step: 1, fmt: n => ['Jogador', 'Adversário', 'Os dois'][n] ?? '?'};
+  }
+  if (path && path.startsWith('display.consumables.')) {
+    if (key === 'gemStyle') return {min: 0, max: 1, step: 1, fmt: n => n ? 'Gemas Facetadas' : 'Clássico', kind: 'toggle'};
+    if (['gemIndicators', 'gemAnimate', 'gemParticles', 'gemPedestal'].includes(key)) return {min: 0, max: 1, step: 1, fmt: n => n ? 'Ligado' : 'Desligado', kind: 'toggle'};
+    if (key === 'gemScale' || key === 'gemIndicatorSize') return {min: 0.3, max: 3, step: 0.05, fmt: n => n.toFixed(2) + '×'};
+    if (key === 'gemHover') return {min: 0, max: 3, step: 0.05, fmt: n => n.toFixed(2) + ' m'};
+  }
+  if (path && path.startsWith('display.rangeRing.')) {
+    if (key === 'rangeOn') return {min: 0, max: 1, step: 1, fmt: n => n ? 'Ligado' : 'Desligado', kind: 'toggle'};
+    if (key === 'flashTime') return {min: 0, max: 3, step: .05, fmt: n => n.toFixed(2) + ' s'};
+    if (key === 'rangeOpacity') return {min: .1, max: 1, step: .05, fmt: n => Math.round(n * 100) + '%'};
+    if (key === 'rangeWidth') return {min: .02, max: .8, step: .01, fmt: n => n.toFixed(2) + ' m'};
+    if (key === 'rangeFill') return {min: 0, max: .6, step: .01, fmt: n => Math.round(n * 100) + '%'};
+    if (key === 'rangeWall') return {min: 0, max: 2, step: .05, fmt: n => n ? n.toFixed(2) + ' m' : 'desligada'};
+  }
+  if (path && path.startsWith('display.occlusion.')) {
+    if (key === 'occEnabled') return {min: 0, max: 1, step: 1, fmt: n => n ? 'Ligado' : 'Desligado', kind: 'toggle'};
+    if (key === 'occOpacity') return {min: 0, max: 1, step: .05, fmt: n => Math.round(n * 100) + '%'};
+    if (key === 'occFade') return {min: .02, max: 1, step: .02, fmt: n => n >= 1 ? 'instantâneo' : Math.round(n * 100) + '% por quadro'};
+  }
+  if (path && path.startsWith('display.interpolation.')) {
+    if (key === 'maxJump') return {min: .2, max: 4, step: .1, fmt: n => n.toFixed(1) + ' m'};
+    if (key === 'enabled') return {min: 0, max: 1, step: 1, fmt: n => n ? 'Ligado' : 'Desligado', kind: 'toggle'};
+  }
+  if (path && path.startsWith('extras.nav.')) {
+    if (key === 'spacing') return {min: .75, max: 4, step: .25, fmt: n => n.toFixed(2) + ' m'};
+    if (key === 'replan' || key === 'stuckTime') return {min: .1, max: 3, step: .05, fmt: n => n.toFixed(2) + ' s'};
+    if (['jumpReach', 'launch', 'arrival', 'stuckDistance', 'attackMaxHeightDiff', 'jumpMargin'].includes(key)) return {min: .05, max: 6, step: .05, fmt: n => n.toFixed(2) + ' m'};
+    if (key === 'jumpPenalty' || key === 'dropPenalty') return {min: 1, max: 20, step: .5, fmt: n => n.toFixed(1) + '×'};
+    if (['suppressBlockedAttacks', 'showDebug'].includes(key)) return {min: 0, max: 1, step: 1, fmt: n => n ? 'Ligado' : 'Desligado', kind: 'toggle'};
+  }
+  if (path && path.startsWith('vfx.post.')) {
+    if (['enabled', 'bloomOn', 'distortOn', 'chromaOn', 'gradeOn', 'vignetteOn', 'dofOn', 'dofKoOnly'].includes(key)) return {min: 0, max: 1, step: 1, fmt: n => n ? 'Ligado' : 'Desligado', kind: 'toggle'};
+    if (key === 'bloomMode') return {min: 0, max: 1, step: 1, fmt: n => n ? 'Por seleção' : 'Por limiar de brilho'};
+    if (['bloomIntensity', 'distortStrength', 'bloomAttackBoost'].includes(key)) return {min: 0, max: 4, step: .05, fmt: n => n.toFixed(2) + '×'};
+    if (['bloomThreshold', 'bloomSmoothing', 'bloomRadius', 'distortSize', 'vignetteDarkness', 'vignetteOffset'].includes(key)) return {min: 0, max: 1.5, step: .01, fmt: n => n.toFixed(2)};
+    if (key === 'distortMinDamage') return {min: 0, max: 40, step: 1, fmt: n => n + ' HP'};
+    if (key === 'chromaOffset') return {min: 0, max: .006, step: .0001, fmt: n => n.toFixed(4)};
+    if (key === 'chromaImpact') return {min: 0, max: .02, step: .0005, fmt: n => n.toFixed(4)};
+    if (['gradeSaturation', 'gradeContrast', 'gradeBrightness'].includes(key)) return {min: -1, max: 1, step: .02, fmt: n => n.toFixed(2)};
+    if (key === 'gradeHue') return {min: -180, max: 180, step: 1, fmt: n => n + '°'};
+    if (key === 'dofBokeh') return {min: .5, max: 8, step: .1, fmt: n => n.toFixed(1) + '×'};
+  }
   if (path && path.startsWith('vfx.laser.')) {
     if (key.startsWith('coreWidth') || key.startsWith('haloWidth') || key === 'muzzleSize' || key === 'contactSize') {
       return {min: 0.01, max: 0.8, step: 0.005, fmt: n => n.toFixed(3) + ' m'};
@@ -90,6 +155,44 @@ function range(key, value, path) {
     if (['enabled', 'ripples'].includes(key)) return {min: 0, max: 1, step: 1, fmt: n => n ? 'Ligado' : 'Desligado'};
     if (key === 'variant') return {min: 0, max: 2, step: 1, fmt: n => ['A · Hex-Grid', 'B · Cristal de Quartzo', 'C · Campo de Força'][n] || 'A'};
   }
+  if (path && path.startsWith('map.')) {
+    if (key === 'arenaRadius') return {min: 15, max: 100, step: 1, fmt: n => n + ' m'};
+    if (key === 'mountTolerance') return {min: 0.05, max: 0.5, step: 0.01, fmt: n => n.toFixed(2) + ' m'};
+    if (key === 'launchSolidCollision') return {min: 0, max: 1, step: 1, fmt: n => n ? 'Ligado' : 'Desligado', kind: 'toggle'};
+    if (key === 'wallBounceMultiplier' || key === 'wallDamageMultiplier') return {min: 0, max: 3, step: 0.1, fmt: n => n.toFixed(1) + '×'};
+    if (key === 'destructibleCount' || key === 'obstacleCount' || key === 'platformCount' || key === 'itemInitialCount' || key === 'itemMaxRegular' || key === 'stageStaminaBonus' || key === 'stagesMax') return {min: 0, max: 20, step: 1, fmt: n => String(n)};
+    if (key === 'destructibleHp' || key === 'shieldCapacity' || key === 'shieldMaxCap') return {min: 5, max: 300, step: 5, fmt: n => n + ' HP'};
+    if (key === 'destructibleRespawnMin' || key === 'destructibleRespawnMax' || key === 'itemSpawnIntervalMin' || key === 'itemSpawnIntervalMax' || key === 'itemLifetime' || key === 'shieldDuration') return {min: 2, max: 120, step: 1, fmt: n => n + ' s'};
+    if (key === 'destructibleGhostPreview' || key === 'jumpInterval' || key === 'jumpLandingRecovery') return {min: 0.05, max: 5, step: 0.01, fmt: n => n.toFixed(2) + ' s'};
+    if (key === 'impactMinSpeed') return {min: 0, max: 10, step: 0.1, fmt: n => n.toFixed(1) + ' m/s'};
+    if (key === 'impactDamageToObject' || key === 'impactDamageToFighter') return {min: 0, max: 20, step: 0.25, fmt: n => n.toFixed(2) + ' por m/s'};
+    if (key === 'passageClearance') return {min: 0, max: 3, step: 0.1, fmt: n => n.toFixed(1) + ' m'};
+    if (key === 'spawnClearance') return {min: 0, max: 3, step: 0.1, fmt: n => n.toFixed(1) + ' m'};
+    if (key === 'jumpHeight') return {min: 0.5, max: 5.0, step: 0.1, fmt: n => n.toFixed(1) + ' m'};
+    if (key === 'jumpGravity') return {min: 5, max: 40, step: 0.5, fmt: n => n.toFixed(1) + ' m/s²'};
+    if (key === 'jumpDrag') return {min: 0, max: 3.0, step: 0.05, fmt: n => n.toFixed(2) + ' s⁻¹'};
+    if (key === 'jumpAirControl') return {min: 0, max: 1.0, step: 0.05, fmt: n => Math.round(n * 100) + '%'};
+    if (key === 'jumpGravityUp' || key === 'jumpGravityDown') return {min: 5, max: 40, step: 0.5, fmt: n => n.toFixed(1) + ' m/s²'};
+    if (key === 'jumpReleaseMult') return {min: 1, max: 4, step: 0.1, fmt: n => n.toFixed(1) + '×'};
+    if (key === 'jumpMaxFallSpeed') return {min: 2, max: 30, step: 0.5, fmt: n => n.toFixed(1) + ' m/s'};
+    if (key === 'jumpAirAccel') return {min: 0, max: 40, step: 0.5, fmt: n => n.toFixed(1) + ' m/s²'};
+    if (key === 'jumpAirMaxSpeed') return {min: 0, max: 15, step: 0.1, fmt: n => n.toFixed(1) + ' m/s'};
+    if (key === 'jumpCoyoteTime' || key === 'jumpBufferWindow') return {min: 0, max: 0.5, step: 0.01, fmt: n => n.toFixed(2) + ' s'};
+    if (key === 'footstoolDamage') return {min: 0, max: 30, step: 1, fmt: n => n + ' HP'};
+    if (key === 'footstoolBounce') return {min: 0, max: 14, step: 0.1, fmt: n => n.toFixed(1) + ' m/s'};
+    if (key === 'footstoolAirAccel') return {min: 0, max: 60, step: 0.5, fmt: n => n.toFixed(1) + ' m/s²'};
+    if (key === 'footstoolAirMaxSpeed') return {min: 0, max: 20, step: 0.1, fmt: n => n.toFixed(1) + ' m/s'};
+    if (key === 'footstoolVaultMargin') return {min: 0, max: 1.2, step: 0.01, fmt: n => n.toFixed(2) + ' m'};
+    if (key === 'footstoolStagger') return {min: 0, max: 2, step: 0.05, fmt: n => n.toFixed(2) + ' s'};
+    if (key === 'footstoolTolerance') return {min: 0, max: 1, step: 0.01, fmt: n => n.toFixed(2) + ' m'};
+    if (key === 'footstoolMinFallSpeed') return {min: 0, max: 10, step: 0.1, fmt: n => n.toFixed(1) + ' m/s'};
+    if (key === 'footstoolCooldown') return {min: 0, max: 3, step: 0.05, fmt: n => n.toFixed(2) + ' s'};
+    if (key === 'itemPickupRadius') return {min: 0.5, max: 5.0, step: 0.1, fmt: n => n.toFixed(1) + ' m'};
+    if (key === 'healHp') return {min: 5, max: 100, step: 5, fmt: n => n + ' HP'};
+    if (key === 'healStamina') return {min: 1, max: 10, step: 1, fmt: n => n + ' pontos'};
+    if (key === 'stageAttackBonus' || key === 'stageCooldownReduction' || key === 'stageSpeedBonus') return {min: 0.01, max: 0.50, step: 0.01, fmt: n => '+' + (n * 100).toFixed(0) + '%'};
+    if (key === 'stageDefenseReduction') return {min: 0.01, max: 0.50, step: 0.01, fmt: n => '-' + (n * 100).toFixed(0) + ' pp'};
+  }
   if (/Fraction|Multiplier|Restitution|Scale|Weight|Base$|Opacity|Strength|Smoothing|Alignment|Dot$|Visible$/.test(key)) return {min: /Alignment|Dot/.test(key) ? -1 : 0, max: key === 'uiScale' ? 3 : 2, step: .01, fmt: n => n.toFixed(2)};
   const s = Math.abs(value), max = s >= 50 ? s * 3 : s >= 10 ? s * 4 : s >= 1 ? Math.max(10, s * 4) : s >= .1 ? Math.max(2, s * 5) : Math.max(.5, s * 8), step = s >= 20 ? .5 : s >= 1 ? .05 : s >= .1 ? .01 : .001;
   return {min: 0, max: Math.ceil(max / step) * step, step, fmt: n => n.toFixed(step >= .5 ? 1 : step >= .01 ? 2 : 3)};
@@ -112,9 +215,13 @@ export function officialValue(path) {
 const same = (a, b) => Math.abs(a - b) <= 1e-9 * Math.max(1, Math.abs(a), Math.abs(b));
 
 /** Seções do overhaul fora do catálogo original: sprint (Ajustes) e efeitos, sombras, HUD e tremores (Visualizar). */
-export const EXTRA_SECTIONS = [['Sprint (C mantido)', 'actions.sprint', null], ['VFX · geral', 'vfx.master', null], ['VFX 3D · geral', 'vfx.solid', null], ...SOLID_FAMILIES.map(f => [`VFX 3D · ${f.label}`, `vfx.${f.key}`, null]),
+export const EXTRA_SECTIONS = [['Smear de Membros', 'extras.visual.smear', null], ['Ledge Grab (agarre de borda)', 'ledge', null], ['Squash & Stretch do Tackle', 'extras.visual.squashStretch', null], ['Sprint (C mantido)', 'actions.sprint', null], ['VFX · geral', 'vfx.master', null], ['VFX 3D · geral', 'vfx.solid', null], ...SOLID_FAMILIES.map(f => [`VFX 3D · ${f.label}`, `vfx.${f.key}`, null]),
   ...VFX_TYPES.map(([type, label]) => [`VFX · ${label}`, `vfx.${type}`, null]), ['Tremor · geral', 'vfx.shakeMaster', null], ...SHAKE_EVENTS.map(([key, label]) => [`Tremor · ${label}`, `vfx.${key}`, null]),
-  ['Teclas do vermelho (controle manual)', 'extras.bindings2', null], ['VFX · Laser da Arena (BeamRenderer)', 'vfx.laser', null], ['Sombras', 'display.shadow', null], ['HUD', 'display.hud', null], ['Altura visual', 'display.grounding', null], ['Indicador da janela C → X', 'display.cancelRing', null], ['Animação: transições', 'display.animation', null], ['Diagnóstico de comandos', 'display.diagnostics', null], ['Janelas de combate', 'display.windows', null], ['Medidor de desempenho', 'display.perf', null]];
+  ['Teclas do vermelho (controle manual)', 'extras.bindings2', null], ['VFX · Laser da Arena (BeamRenderer)', 'vfx.laser', null], ['Sombras', 'display.shadow', null], ['HUD', 'display.hud', null], ['Habilidades passivas', 'display.passive', null], ['Altura visual', 'display.grounding', null], ['Indicador da janela C → X', 'display.cancelRing', null], ['Animação: transições', 'display.animation', null], ['Diagnóstico de comandos', 'display.diagnostics', null], ['Janelas de combate', 'display.windows', null], ['Medidor de desempenho', 'display.perf', null],
+  // Passivas (catálogo experimental, §29): uma seção por passiva. A apresentação unificada fica em Visualizar.
+  ...PASSIVES.map(p => [`Passivas · ${p.nome}${p.species ? ' (' + p.species + ')' : ''}`, `passivas.${p.id}`, null]),
+  ['Passivas · gerais (detecção)', 'passivas.globals', null], ['VFX · three.quarks (experimental)', 'vfx.quarks', null], ['IA · Navegação Yuka (experimental)', 'extras.nav', null], ['VFX · Pós-processamento (experimental)', 'vfx.post', null], ['Hitbox espacial do golpe (experimental)', 'extras.hitbox', null], ['Interpolação do desenho (movimento liso)', 'display.interpolation', null],
+  ['Cenário do laboratório', 'display.scenery', null], ['HUD de progressão (Banco de Células)', 'display.progress', null], ['Consumíveis (Gemas Facetadas)', 'display.consumables', null], ['Objetos na frente do lutador (transparência)', 'display.occlusion', null], ['Círculo de alcance dos Moves de alvo único', 'display.rangeRing', null]];
 /** Parâmetros mostrados em outras abas (sem duplicar controles no Ajustes). */
 const ELSEWHERE = new Set(['extras.toggles.enableEnemyAI', 'extras.toggles.enemyManual', 'extras.visual.shadowMin', 'extras.visual.shadowHeightFade']);
 export function createTuning({apply}) {
@@ -123,7 +230,7 @@ export function createTuning({apply}) {
     const root = pathGet(C, rootPath);
     for (const key of subset ?? Object.keys(root)) {
       const v = root[key];if (typeof v !== 'number') continue;
-      const path = rootPath + '.' + key, am = overhaulMeta(path) || actionMeta(path), r = am ? am.range : range(key, v, path);
+      const path = rootPath + '.' + key, am = overhaulMeta(path) || actionMeta(path), r = {...widenCombatRange(path, am ? am.range : range(key, v, path))};
       r.min = Math.max(r.min, SAFE_MIN[path] ?? -Infinity);r.min = Math.min(r.min, v);r.max = Math.max(r.max, v);
       const label = am ? am.label : path.startsWith('extras.colors.') ? (COLOR_NAMES[key.slice(0, -1)] || key) + ' · ' + ({R: 'Vermelho', G: 'Verde', B: 'Azul'})[key.slice(-1)] : path === 'extras.bindings.dodge' ? 'Tecla de esquiva (C)' : NAMES[key] || key;
       manifest.push({section, path, key, label, help: am ? am.help : help(path, label), initial: pathGet(base, path), official: officialValue(path), ...r});
@@ -195,7 +302,7 @@ export function createTuning({apply}) {
       const reset = document.createElement('button');reset.type = 'button';reset.textContent = '↺ grupo';reset.title = 'Restaurar este grupo aos padrões do laboratório';
       reset.onclick = () => commit(members.map(m => [m.path, m.initial]), 'Restaurar ' + section);
       const body = document.createElement('div');body.className = 'tune-body';for (const m of members) body.append(control(m));
-      if (members.length > 2) {const fold = document.createElement('button');fold.type = 'button';fold.className = 'fold-btn';const set = open => {state.folds.set(section, open);body.hidden = !open;fold.textContent = open ? '▼' : '▶';fold.title = (open ? 'Recolher ' : 'Expandir ') + section;fold.setAttribute('aria-expanded', String(open));};fold.onclick = () => set(body.hidden);set(state.folds.get(section) ?? true);head.prepend(fold);}
+      if (members.length > 2) {const fold = document.createElement('button');fold.type = 'button';fold.className = 'fold-btn';const set = open => {state.folds.set(section, open);body.hidden = !open;fold.textContent = open ? '▼' : '▶';fold.title = (open ? 'Recolher ' : 'Expandir ') + section;fold.setAttribute('aria-expanded', String(open));};fold.onclick = () => set(body.hidden);set(state.folds.get(section) ?? false);head.prepend(fold);}
       head.append(title, reset);group.append(head, body);
       list.append(group);
     }
@@ -321,15 +428,20 @@ export function createTuning({apply}) {
   $('tune-list').addEventListener('scroll', hideTip, {passive: true});
 
   // Presets: ui/presets-panel.js (biblioteca com presets de sensação, categorias, versões e comparação).
-  const known = () => new Set(manifest.map(m => m.path));
+  /** Todos os parâmetros numéricos de C (inclui os que NÃO têm controle no Ajustes, como os dos Moves em `world.*`): a exportação e a importação os levam junto. */
+  const rootsOf = obj => Object.fromEntries(ROOT_KEYS.map(k => [k, obj[k]]));
+  const manifestPaths = () => new Set(manifest.map(m => m.path));
+  const known = () => new Set([...manifestPaths(), ...Object.keys(flatten(rootsOf(base)))]);
   /** Valores de referência para comparações: atuais, padrão do laboratório ou jogo oficial (presets: presets-panel). */
   const valuesOf = id => id === '__current' ? snapshotValues() : id === '__lab' ? Object.fromEntries(manifest.map(m => [m.path, m.initial])) : id === '__game' ? Object.fromEntries(manifest.filter(m => m.official !== undefined).map(m => [m.path, m.official])) : {};
 
   // ---------- JSON ----------
+  /** Parâmetros alterados que o Ajustes não lista (Moves e demais ações em `world.*`, etc.): antes ficavam só em `values` e sumiam de «changedFromLabDefaults». */
+  const extraChanged = () => changedOutsideManifest(rootsOf(C), rootsOf(base), manifestPaths());
   function exportData() {
     const values = Object.fromEntries(ROOT_KEYS.map(k => [k, structuredClone(C[k])]));
     return {schema: 'arenamon-tuning', version: 9, source: 'arenamon-combate-laboratorio (overhaul)', createdAt: new Date().toISOString(), values,
-      changedFromLabDefaults: manifest.filter(changed).map(m => ({path: m.path, lab: m.initial, value: pathGet(C, m.path)})),
+      changedFromLabDefaults: [...manifest.filter(changed).map(m => ({path: m.path, lab: m.initial, value: pathGet(C, m.path)})), ...extraChanged()],
       differencesFromGame: manifest.filter(m => status(m) === 'experimental').map(m => ({path: m.path, game: m.official, lab: pathGet(C, m.path)})),
       labOnlyParameters: manifest.filter(m => m.official === undefined).length,
       note: 'Valores do laboratório. Nada é aplicado ao jogo automaticamente; use differencesFromGame para decidir o que levar ao config.ts.'};
@@ -341,6 +453,9 @@ export function createTuning({apply}) {
     const migration = migrateFlat(flatten(nested), known()), values = migration.values;
     const changes = [], invalid = [];
     for (const m of manifest) {const v = values[m.path];if (v === undefined) continue;if (typeof v !== 'number' || !Number.isFinite(v) || v < m.min - 1e-8 || v > m.max + 1e-8) {invalid.push(`${m.path} = ${v}`);continue;}if (!same(v, pathGet(C, m.path))) changes.push([m.path, v]);}
+    // Parâmetros sem controle no Ajustes (Moves em `world.*` etc.): aceitos se existem no padrão e são números finitos (sem faixa de slider).
+    const extra = importOutsideManifest(values, rootsOf(base), rootsOf(C), manifestPaths());
+    changes.push(...extra.changes);invalid.push(...extra.invalid);
     if (invalid.length) return {error: `Valores inválidos ou fora da faixa (${invalid.length}): ${invalid.slice(0, 5).join(', ')}${invalid.length > 5 ? '…' : ''}`};
     return {changes, schema: data.schema || 'v5/v6', version: data.version ?? '—', converted: migration.converted, ignored: migration.ignored};
   }

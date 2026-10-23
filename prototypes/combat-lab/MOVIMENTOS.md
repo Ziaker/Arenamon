@@ -215,9 +215,24 @@ Um **feixe** é uma fonte (`kind: 'beam'`: dono, origem, direção, `pl`, `lengt
 - Golpe corpo a corpo, status no adversário, deslocamento (dash) e cancelamento a partir da esquiva.
 - Determinismo e save/load (replay) com projéteis no ar, áreas, status e recargas.
 
+## Moves no ar (`sim/air.js`, v1.18.0)
+
+Salto normal, queda de borda e o arco do vault da esquiva **não** bloqueiam mais os Moves. Cada definição declara `air`:
+
+| Valor | Significado | Moves |
+|---|---|---|
+| `cast` | o corpo **continua em voo**; a ação `move` aérea (`action.air`) roda a linha do tempo sem tirar o corpo do voo | Harden, Second Wind, Swift, Riposte, Feint, Reflect, Psyshock, Spikes, Emerging Stone, Sand Wave (nasce no chão sob o corpo), Bounce (novo arco a partir da altitude atual) |
+| `descend` | precisa do chão: o corpo **desce** em `actions.cancel.airDescent` s enquanto a ação começa (como o C → X a partir do vault) | Lunge, Quick Attack, Guard Break, Bullet Punch |
+| `none` (padrão) | sem uso no ar | — |
+
+- `isAirJump(f)` (voo normal ou queda de borda; **não** lançado, **não** preso na parede, **não** o arco do Bounce) e `isVaultArc(f)` definem o «ar utilizável». Lançado por golpe continua sem comando.
+- O arco do vault vira um voo normal (`vaultToFlight`) quando o Move fica no ar (`cast`, carga ou marcador); nos Moves `descend` a altura vira `vaultHeight` com descida suave (`takeOffToLift`/`applyLift`).
+- `movePermission`/`chargePermission` usam as mesmas regras na tela (HUD) e no motor. Testes: `test/moves-air.test.mjs` e `test/moves-softlock.test.mjs` (varredura de estados presos).
+- Verificado em teste (`moves-air`): contra-golpe aéreo do Riposte (desce e termina no chão) e Emerging Stone no ar (abre o marcador; sem apoio ao fim do cast cancela sem travar).
+
 ## Ainda não preparado (decisões para quando os movimentos chegarem)
 
-- **IA:** a IA tática ainda não usa movimentos especiais nem desvia de projéteis. O mundo já é legível por ela (`game.world`).
+- **IA:** a IA já usa os Moves (`sim/ai-moves.js`, `sim/ai-new-moves.js`: regras por Move, marcador guiado, Riposte por passo). Ainda não desvia de projéteis de forma dedicada; a calibração fina e a homologação seguem pendentes.
 - **Esquiva perfeita contra projéteis:** hoje um projétil atravessado durante a invulnerabilidade só é ignorado; não dá bônus de contra-ataque. É uma regra a decidir.
 - **HUD:** as propostas A, B e C ainda mostram cooldowns de demonstração. A ligação aos slots reais é simples: `f.loadout` e `f.moveCooldowns`.
 - **Jogo oficial** (`prototypes/game`): não foi alterado. O porte depende de autorização.

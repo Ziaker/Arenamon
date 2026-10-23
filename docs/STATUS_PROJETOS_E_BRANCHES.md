@@ -4,7 +4,22 @@ Este documento mapeia o estado atual de desenvolvimento do Arenamon em suas dife
 
 ---
 
-## 0. Estado verificado em 16/10/2026 (derivado do Git; prevalece sobre a tabela da seção 1)
+## 0. Estado verificado em 22/10/2026 (derivado do Git e do código; prevalece sobre as seções 0 de 16/10 e 1)
+
+Verificação: `git fetch --prune`, `git merge-base --is-ancestor` contra `origin/main` (v1.18.3), comparação de arquivos e leitura do código. Detalhes e evidências em `docs/AUDITORIA_DOCUMENTACAO_2026-10-22.md`.
+
+- **Jogo principal:** `prototypes/combat-lab` (v1.18.0), aberto por `JOGAR_ARENAMON.html`. Base de calibração do responsável (`sim/calibration-base.js`, 184 linhas) é o padrão do jogo e do laboratório. Os 15 Moves (Reflect, Psyshock e os 13 novos) estão implementados e usáveis também no ar (`sim/air.js`). O que mudou por versão está em `docs/PATCH_NOTES.md`.
+- **Integradas à `main` (116 branches remotas):** todo o combate/laboratório até a v1.18.0 (`feat/calibracao-v8-base`, `feat/hud-*`, `feat/moves-*`, `feat/ferramentas-open-source`, overhaul de colisões, tackle fases 1–4, passivas, biblioteca de personagens, Blender Vision), as rodadas de documentação de Moves (`docs/moves-*`, `docs/emerging-stone-*`, `docs/sand-wave-*`, `docs/mushroom-*`) e a reorganização de acesso.
+- **Código de combate ainda fora da `main` (decisão pendente):** `codex/physics-colliders` (alinha hitboxes e colisores do mapa; **sobrepõe** o overhaul de colisões já integrado), `fix/collision-overhaul-stage1` (PR #100, rascunho; implementação paralela da etapa 1, provavelmente superada), `claude/elegant-carson-vzdxvo` (PR #94, variante D do VFX de impacto; o código da variante já existe na `main`), `codex/sand-stone-lab` (atelier de VFX de Sand Wave/Emerging Stone/Swift/Psyshock, **trabalho ativo, não integrar sem pedido**), `chore/ci-runner-mosh` (workflow `verify` e conversor Mosh).
+- **Branches antigas do Studio/rigging e da Etapa A (≈ 25 de 13–15/10):** continuam sem integração (`feat/studio-*`, `codex/rig-editor-*`, `feat/combat-core-etapa-a*`, `feat/game-etapa-a`, `fix/studio-*`, `integration/*`). O Studio não foi tocado nesta rodada.
+- **Só documentação, sem integração:** `docs/patch-notes` (integrado a esta auditoria como `docs/PATCH_NOTES.md`), `docs/responsive-movement-v2-proposta` (PR #98) e `docs/game-feel-cinco-melhorias` (PR #99), ambos rascunhos de **propostas não aprovadas**; issues #95 (Ledge Grab), #96 (DI) e #97 (Wall Tech) também são propostas não aprovadas.
+- **PRs:** #101 (overhaul de colisões) e #93 (5 Moves genéricos, docs) foram **integrados**. #100 (etapa 1 de colisões) está **superado** pelo #101. #60 e #58 já têm o conteúdo na `main`. #94, #98 e #99 seguem rascunhos de propostas (ver `docs/GAME_FEEL_REVISAO_2026-10-22.md`).
+- **Verificação estática (22/10, v1.18.3):** `npm run typecheck` sem erros; `check:offline` ok (11 HTMLs); `npm test` inclui todos os testes do combat-lab. `verify:workspace` só passa no checkout oficial.
+- **Rodada de 22/10 (tarde, v1.20.0):** dez ajustes entregues (`docs/RODADA_22_10_TARDE.md`): objetos translúcidos, efeitos de chão na plataforma, squash/smear na esquiva, **Bullet Punch como o Quick Attack (sem marcador)**, círculo de alcance dos Moves de alvo único, Quick Attack com sumiço em linhas de velocidade, marcador suave, Riposte de grande impacto, **IA sobe plataformas (navegação ligada por padrão)** e rastro do Emerging Stone. Pendente: aprovação visual do responsável.
+- **Ledge Grab (#95):** implementado na v1.19.0 com decisões **provisórias** (`docs/LEDGE_GRAB.md`); a issue continua aberta como registro até o responsável decidir. A faixa de montagem de 2,2 m foi resolvida (`map.jumpPassOver`).
+- **Pendências de produto conhecidas:** gameplay do Body Slam não especificado; IA, SFX e homologação dos 13 Moves novos; faixa de montagem em caixas de 2,2 m (resíduo de colisão); verificação visual na tela e bateria completa de navegador das versões 1.16–1.18.
+
+## 0-b. Estado verificado em 16/10/2026 (histórico, derivado do Git)
 
 Verificação: `git fetch` e `git merge-base --is-ancestor` contra `origin/main`. A tabela da seção 1 é anterior e **parcialmente desatualizada** (ex.: o laboratório de combate já está na `main`; hashes de commit de branches mudaram).
 
@@ -15,7 +30,7 @@ Verificação: `git fetch` e `git merge-base --is-ancestor` contra `origin/main`
 
 ---
 
-## 1. Mapa de Branches Ativas
+## 1. Mapa de Branches Ativas (tabela histórica de 14–15/10/2026: hashes e status antigos; vale a seção 0)
 
 | Branch | Responsável / Agente | Foco Principal | Status Atual | Último Commit |
 |---|---|---|---|---|

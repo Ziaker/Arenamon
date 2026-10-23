@@ -6,7 +6,9 @@
 // com atlas de texturas procedural, buffers reaproveitados e limite global de partículas (master.maxParticles).
 import * as T from 'three';
 import {clone} from 'three/addons/utils/SkeletonUtils.js';
-import {C} from '../sim/config.js';
+import {C, feintColor} from '../sim/config.js';
+import {collisionProbe} from '../sim/collision-probe.js';
+import {altitudeOf} from '../sim/entity.js';
 
 const CELLS = {dot: 0, streak: 1, star4: 2, ring: 3, arrowDown: 4, diamond: 5, shard: 6, spark: 7, smoke: 8, shock: 9, star: 10, arrowUp: 11, crack: 12, hex: 13, chunk: 14, arc: 15};
 const MODE = {billboard: 0, ground: 1, axis: 2, plane: 3};
@@ -17,13 +19,15 @@ export const VFX_TYPES = [
   ['block', 'Bloqueio normal', ['A · Faíscas defensivas', 'B · Escudo translúcido', 'C · Onda de absorção', 'D · Escudo hexagonal']],
   ['perfect', 'Bloqueio perfeito', ['A · Explosão de contra-impacto', 'B · Ruptura temporal', 'C · Deflexão monumental']],
   ['ground', 'Colisão com o chão (knockback)', ['A · Explosão de poeira', 'B · Anel de impacto', 'C · Impacto fragmentado', 'D · Combinado (A + B + C)']],
+  ['jumpLanding', 'Pouso do pulo regular', ['A · Onda circular simples']],
+  ['wallImpact', 'Impacto vertical em paredes e objetos', ['A · Onda vertical + faísca + poeira']],
   ['clash', 'Clash entre tackles', ['A · Explosão central simétrica', 'B · Cruzamento de energia', 'C · Compressão e liberação']],
   ['exhaust', 'Exaustão (indicadores azuis)', ['A · Cachoeira de setas', 'B · Chuva de fragmentos', 'C · Cascata enfraquecida']],
   ['regen', 'Regeneração de stamina (amarelo)', ['A · Setas ascendentes', 'B · Linhas energéticas', 'C · Pulsos de recuperação']],
   ['rock', 'Rochas telecinéticas (Psyshock)', ['A · Boulder Facetado', 'B · Cristal Psíquico', 'C · Meteorito Runas']],
   ['barrier', 'Barreira de energia (Reflect)', ['A · Hex-Grid Ciclado', 'B · Cristal de Quartzo', 'C · Campo de Força Vibrante']],
 ];
-export const SHAKE_EVENTS = [['shakeGuard', 'Tremor ao defender'], ['shakeHit', 'Tremor ao sofrer hit'], ['shakeGround', 'Tremor ao colidir com o chão'], ['shakePerfect', 'Tremor na defesa perfeita'], ['shakeClash', 'Tremor no clash entre tackles']];
+export const SHAKE_EVENTS = [['shakeGuard', 'Tremor ao defender'], ['shakeHit', 'Tremor ao sofrer hit'], ['shakeGround', 'Tremor ao colidir com o chão'], ['shakePerfect', 'Tremor na defesa perfeita'], ['shakeClash', 'Tremor no clash entre tackles'], ['shakeWall', 'Tremor ao bater em parede ou objeto']];
 export const SHAKE_PROFILES = ['A · Impacto seco', 'B · Oscilação amortecida', 'C · Pulso direcional'];
 
 // ---------- Atlas procedural (4 × 4 células de 128 px) ----------
@@ -90,7 +94,7 @@ class ParticleBatch {
     this.a = {pos: attr('iPos', 3), axis: attr('iAxis', 3), size: attr('iSize', 2), color: attr('iColor', 4), misc: attr('iMisc', 3)};
     g.instanceCount = 0;this.geometry = g;
     // Brilhos aditivos ficam visíveis através dos corpos (o impacto nunca some atrás do personagem); poeira respeita a profundidade.
-    this.material = new T.ShaderMaterial({vertexShader: VERT, fragmentShader: FRAG, uniforms: {map: {value: atlas}}, transparent: true, depthWrite: false, depthTest: blending !== T.AdditiveBlending, blending});
+    this.material = new T.ShaderMaterial({vertexShader: VERT, fragmentShader: FRAG, uniforms: {map: {value: atlas}}, transparent: true, depthWrite: false, depthTest: blending !== T.AdditiveBlending, blending, side: T.DoubleSide});   // DoubleSide: o quad do modo «ground» (no plano XZ) tem a face de trás voltada para cima e era descartado pelo culling, então anéis e ondas no chão nunca apareciam
     this.mesh = new T.Mesh(g, this.material);this.mesh.frustumCulled = false;this.mesh.renderOrder = 950;this.mesh.visible = !!atlas;
   }
   add(p) {if (this.p.length >= this.capacity) this.p.shift();this.p.push(p);}
@@ -128,7 +132,7 @@ export class VfxSystem {
     this.add = new ParticleBatch(4096, T.AdditiveBlending, this.atlas);this.norm = new ParticleBatch(2048, T.NormalBlending, this.atlas);
     scene.add(this.add.mesh, this.norm.mesh);
     this.log = [];this.timers = [];this.emit = new Map();this.shakes = [];this.ghosts = [];this.stats = {spawned: 0, peak: 0};
-    this.seenEvents = new WeakSet();this.landings = [];this.brakes = [];this.prevPos = [];this.prevStamina = [];this.flash = null;this.freezeUntil = 0;
+    this.seenEvents = new WeakSet();this.contactSeen = [];this.wallLastFire = [];this.landings = [];this.brakes = [];this.prevPos = [];this.prevStamina = [];this.flash = null;this.freezeUntil = 0;
     this.accessibility = {noFlash: false, reduceMotion: false, highContrast: false};
     // Custo por tipo (medidor de desempenho e filtro “mais caros”): partículas criadas e disparos.
     this.stats.byType = {};this.stats.firesByType = {};this.emitting = null;
@@ -151,47 +155,65 @@ export class VfxSystem {
     const isHighContrast = !!(this.accessibility?.highContrast || C.vfx.master?.highContrast || C.vfx.laser?.highContrast);
     if (isReduceMotion) {vx *= 0.25;vy *= 0.25;vz *= 0.25;}
     if (isHighContrast) {alpha = Math.max(0.85, alpha);glow = Math.max(1.8, glow);}
-    const p = {age: -(o.delay || 0), life: Math.max(.02, o.life ?? .4), x: o.x, y: o.y ?? 0, z: o.z, vx, vy, vz, gravity: o.gravity, drag: o.drag, floor: o.floor,
+    const lift = this.lift ?? 0;   // altura do apoio (plataforma, caixa) sob o efeito: tudo que nasce "no chão" nasce NO apoio
+    const p = {age: -(o.delay || 0), life: Math.max(.02, o.life ?? .4), x: o.x, y: (o.y ?? 0) + lift, z: o.z, vx, vy, vz, gravity: o.gravity, drag: o.drag, floor: o.floor === undefined ? o.floor : o.floor + lift,
       w: o.w ?? .3, h: o.h ?? o.w ?? .3, grow: o.grow, sizeCurve: o.sizeCurve, stretchCurve: o.stretchCurve, alphaCurve: o.alphaCurve, fade: o.fade, alpha,
       r: Math.min(4, c.r * glow), g: Math.min(4, c.g * glow), b: Math.min(4, c.b * glow), cell: CELLS[o.cell ?? 'dot'], mode: MODE[o.mode ?? 'billboard'], rot: o.rot ?? 0, spin: o.spin, ax: o.ax, ay: o.ay, az: o.az, follow: o.follow};
     (o.additive === false ? this.norm : this.add).add(p);this.stats.spawned++;if (this.emitting) this.stats.byType[this.emitting] = (this.stats.byType[this.emitting] ?? 0) + 1;
   }
-  after(delay, fn) {this.timers.push({at: this.time + delay, fn});}
+  after(delay, fn) {const lift = this.lift ?? 0;this.timers.push({at: this.time + delay, fn: lift ? () => {const s = this.lift;this.lift = lift;try {fn();} finally {this.lift = s;}} : fn});}
   reset() {this.add.clear();this.norm.clear();this.timers = [];this.shakes = [];this.emit.clear();this.flash = null;for (const g of this.ghosts) g.obj.visible = false;}
   // ---------- Disparo por eventos da simulação ----------
   /**
    * Chamado a cada quadro com os lutadores, os eventos recentes e os personagens (para fantasmas e trilhas).
    * dt = 0 com a partida pausada (os efeitos congelam junto).
    */
-  update(fighters, events, dt, {characters = [], camera = null} = {}) {
+  update(fighters, events, dt, {characters = [], camera = null, world = null} = {}) {
     this.time = (this.time ?? 0) + dt;this.camera = camera;this.characters = characters;
     for (const e of events) {
       if (this.seenEvents.has(e)) continue;this.seenEvents.add(e);
+      if (e.result === 'ledgeGrab') {this.fire('wallImpact', {pos: {x: e.x, z: e.z}, y: e.y, base: e.base, n: e.n, power: .6, w: e.w, h: e.h, arena: false}, `agarre de borda (${(e.w ?? 0).toFixed(1)} × ${(e.h ?? 0).toFixed(1)} m)`);continue;}   // Ledge Grab: reaproveita o impacto vertical, escalado pelo sólido
       const a = fighters[e.attacker], b = fighters[e.target];if (!a || !b) continue;
       const tag = `evento ${e.result} (passo ${e.tick ?? '?'}: ${e.attacker === 0 ? 'azul' : 'vermelho'} → ${e.target === 0 ? 'azul' : 'vermelho'})`;
-      if (e.result === 'impact') {this.fire('hit', {pos: b.position, n: e.normal, power: e.slam ? 1.5 : 1, damage: e.damage, launch: e.launch}, tag);this.shake(e.slam ? 'shakeGround' : 'shakeHit', e.normal, e.slam ? 1.4 : 1, tag);}
-      else if (e.result === 'wallSplat') {this.fire('hit', {pos: b.position, n: e.normal, power: 1.4}, tag);this.shake('shakeClash', e.normal, 1, tag);}
-      else if (e.result === 'partial') {this.fire('block', {pos: b.position, n: e.normal, power: 1}, tag);this.shake('shakeGuard', e.normal, 1, tag);}
-      else if (e.result === 'perfect') {this.fire('perfect', {pos: b.position, n: e.normal, power: 1, fighters}, tag);this.shake('shakePerfect', e.normal, 1, tag);}
-      else if (e.result === 'clash' && e.attacker === 0) {const mid = {x: (a.position.x + b.position.x) / 2, z: (a.position.z + b.position.z) / 2};this.fire('clash', {pos: mid, n: e.normal, power: 1}, tag);this.shake('shakeClash', e.normal, 1, tag);}
+      if (e.result === 'impact') {this.fire('hit', {pos: b.position, lift: altitudeOf(b), n: e.normal, power: e.slam ? 1.5 : e.riposte ? 1.9 : 1, damage: e.damage, launch: e.launch}, tag);this.shake(e.slam ? 'shakeGround' : 'shakeHit', e.normal, e.slam ? 1.4 : e.riposte ? (C.world.riposte?.shakeMult ?? 1) : 1, tag);}
+      else if (e.result === 'wallSplat') {this.fire('hit', {pos: b.position, lift: altitudeOf(b), n: e.normal, power: 1.4}, tag);this.shake('shakeClash', e.normal, 1, tag);}
+      else if (e.result === 'footstool') {const n = e.normal ?? {x: 0, z: 0};this.fire('hit', {pos: {x: b.position.x, z: b.position.z}, lift: altitudeOf(b), n, power: 0.7}, tag);this.shake('shakeHit', n, 0.6, tag);}
+      else if (e.result === 'partial') {this.fire('block', {pos: b.position, lift: altitudeOf(b), n: e.normal, power: 1}, tag);this.shake('shakeGuard', e.normal, 1, tag);}
+      else if (e.result === 'perfect') {this.fire('perfect', {pos: b.position, lift: altitudeOf(b), n: e.normal, power: 1, fighters}, tag);this.shake('shakePerfect', e.normal, 1, tag);}
+      else if (e.result === 'clash' && e.attacker === 0) {const mid = {x: (a.position.x + b.position.x) / 2, z: (a.position.z + b.position.z) / 2};this.fire('clash', {pos: mid, lift: (altitudeOf(a) + altitudeOf(b)) / 2, n: e.normal, power: 1}, tag);this.shake('shakeClash', e.normal, 1, tag);}
     }
     fighters.forEach((f, i) => {
+      // Impacto do meteor slam no chão: sempre que o mergulho toca o chão, acertando ou não.
+      if (f.action?.slam && f.action.groundHit && !(this.slamSeen ??= new WeakSet()).has(f.action)) {
+        this.slamSeen.add(f.action);const tag = 'impacto do meteor slam no chão';
+        this.fire('ground', {pos: {x: f.position.x, z: f.position.z}, lift: f.groundY ?? 0, power: C.rules.slamImpactScale}, tag);this.shake('shakeGround', null, C.rules.slamImpactShake, tag);
+      }
       // Colisão real com o solo depois do voo (evento físico da simulação, não da animação).
       const L = f.lastLanding;
       if (L && this.landings[i] !== undefined && L.n !== this.landings[i]) {
         const impact = L.vertical, cfg = C.vfx.ground;
-        if (impact >= cfg.minImpact) {const power = Math.min(2, impact / 7);const tag = `colisão com o solo (vertical ${impact.toFixed(1)} m/s)`;this.fire('ground', {pos: {x: L.x, z: L.z}, power}, tag);this.shake('shakeGround', null, power, tag);}
+        if (L.regular) {   // pulo regular: só a onda circular simples, sem tremor (o efeito de colisão com o chão é de knockback e meteor slam)
+          const jl = C.vfx.jumpLanding;
+          if (impact >= (jl.minImpact ?? 0)) this.fire('jumpLanding', {pos: {x: L.x, z: L.z}, lift: L.y ?? 0, power: Math.min(2, impact / 7)}, `pouso do pulo regular (vertical ${impact.toFixed(1)} m/s)`);
+          else this.record('jumpLanding', `pouso abaixo do mínimo (${impact.toFixed(1)} < ${jl.minImpact} m/s): sem efeito`);
+        } else if (impact >= cfg.minImpact) {const power = Math.min(2, impact / 7);const tag = `colisão com o solo (vertical ${impact.toFixed(1)} m/s)`;this.fire('ground', {pos: {x: L.x, z: L.z}, lift: L.y ?? 0, power}, tag);this.shake('shakeGround', null, power, tag);}
         else this.record('ground', `colisão abaixo do mínimo (${impact.toFixed(1)} < ${cfg.minImpact} m/s): sem efeito`);
       }
       this.landings[i] = L?.n ?? 0;
       // Finta (brake slide): poeira nos pés quando o lutador derrapa para cancelar o tackle.
-      const B = f.lastBrake;
-      if (B && this.brakes[i] !== undefined && B.n !== this.brakes[i]) this.fire('ground', {pos: {x: B.x, z: B.z}, power: Math.min(1.4, .5 + B.speed / 8)}, `finta: derrapagem (${B.speed.toFixed(1)} m/s)`);
-      this.brakes[i] = B?.n ?? 0;
+      this.trackWallContact(f, i, world);
+      if (f.ledgeHint && C.ledge?.hint && dt > 0) {   // borda agarrável ao alcance: faixa verde sobre a borda, ao longo da face
+        const h = f.ledgeHint, t = {x: h.n.z, z: -h.n.x};
+        this.spawn({x: h.x, y: h.y + .02, z: h.z, life: .1, w: .07, h: 1.6, cell: 'streak', mode: 'axis', ax: t.x, ay: 0, az: t.z, color: 0x7dffb0, glow: 2.2, alpha: .9, fade: 1});
+      }
       const prev = this.prevPos[i] ?? {...f.position};const dx = f.position.x - prev.x, dz = f.position.z - prev.z;this.prevPos[i] = {...f.position};
       if (dt <= 0) return;
-      const alt = (f.flight?.y ?? 0) + (f.vaultHeight ?? 0);
-      if (f.action?.kind === 'dodge') this.stream('dodge', f, dt, {alt, dx, dz, i});
+      const alt = (f.flight?.y ?? f.groundY ?? 0) + (f.vaultHeight ?? 0);
+      if (f.action?.kind === 'dodge') {
+        const R = C.rules, tint = !!f.action.feint && !!R.feintFxOn, d = C.vfx.dodge, saved = tint ? {...d} : null;
+        if (tint) {d.color = feintColor(R.feintFxColor);d.intensity = (d.intensity ?? 1) * R.feintFxIntensity;d.length = (d.length ?? 1) * R.feintFxSize;d.width = (d.width ?? 1) * R.feintFxSize;}
+        try {this.stream('dodge', f, dt, {alt, dx, dz, i});} finally {if (tint) Object.assign(d, saved);}
+      }
       else this.emit.delete(`dodge${i}`);
       if (f.sprinting || (this.previewUntil?.sprint > this.time && i === 0)) this.stream('sprint', f, dt, {alt, dx, dz, i});else this.emit.delete('sprint' + i);
       const ex = C.vfx.exhaust, exTarget = ex.target === 1 || (ex.target === 0 ? i === 1 : i === 0);
@@ -207,16 +229,49 @@ export class VfxSystem {
     const n = this.add.update(dt) + this.norm.update(dt);this.stats.peak = Math.max(this.stats.peak, n);this.stats.active = n;
     this.updateGhosts(dt);this.updateFlash(dt);
   }
+  /**
+   * Contato real com a parede da arena ou com um objeto do cenário (sonda de colisão da física): dispara o impacto vertical só na PRIMEIRA batida depois de um intervalo sem contato
+   * e acima da velocidade mínima do choque (andar encostado na parede não repete). O tamanho do objeto vem do mapa (largura e altura).
+   */
+  trackWallContact(f, i, world) {
+    const W = C.vfx.wallImpact, c = collisionProbe.byFighter[f.id], last = this.contactSeen[i];
+    if (!W || !c || (last && c.step === last.step)) return;
+    const fresh = !last || c.step < last.step || c.step - last.step > 12 || last.kind !== c.kind || last.id !== c.id;
+    this.contactSeen[i] = {step: c.step, kind: c.kind, id: c.id};
+    if (!fresh) return;
+    const arena = c.kind === 'arena';
+    if (!(arena ? W.arenaOn : ['platform', 'obstacle', 'destructible'].includes(c.kind) && W.objectsOn)) return;
+    const speed = Math.max(0, -(c.vBefore.x * c.normal.x + c.vBefore.z * c.normal.z));
+    if (speed < W.minSpeed) {this.record('wallImpact', `contato abaixo da velocidade mínima (${speed.toFixed(1)} < ${W.minSpeed} m/s): sem efeito`);return;}
+    if ((this.time ?? 0) - (this.wallLastFire[i] ?? -9) < W.cooldown) return;
+    this.wallLastFire[i] = this.time ?? 0;
+    const sz = this.contactSize(c, world, W), bodyH = C.extras?.visual?.bodyHeight ?? 1.2, alt = (f.flight?.y ?? f.groundY ?? 0) + (f.vaultHeight ?? 0);
+    const y = Math.max(sz.base + .15, Math.min(alt + bodyH * .55, sz.base + sz.h - .1)), he = C.test.halfExtent;
+    const tag = `${arena ? 'parede da arena' : c.kind} ${c.id ?? ''} (choque ${speed.toFixed(1)} m/s · ${sz.w.toFixed(1)} × ${sz.h.toFixed(1)} m)`;
+    this.fire('wallImpact', {pos: {x: c.x - c.normal.x * he, z: c.z - c.normal.z * he}, y, base: sz.base, n: c.normal, power: Math.min(2.5, speed / 8), w: sz.w, h: sz.h, arena}, tag);
+    this.shake('shakeWall', c.normal, Math.min(2, speed / 8), tag);
+  }
+  /** Largura, altura e base (m) do objeto tocado, lidas do mapa (a parede da arena usa a «altura equivalente» dos controles). */
+  contactSize(c, world, W) {
+    const ms = world?.mapState, ref = W.refSize, dflt = {w: ref, h: ref, base: 0};
+    if (c.kind === 'arena') return {w: W.arenaHeight, h: W.arenaHeight, base: 0};
+    if (c.kind === 'platform') {const p = ms?.platforms?.find(o => o.id === c.id);return p ? {w: Math.max(p.width ?? ref, p.depth ?? ref), h: p.height ?? ref, base: p.pos?.y ?? 0} : dflt;}
+    if (c.kind === 'obstacle') {const o = ms?.obstacles?.find(q => q.id === c.id);return o ? {w: o.shape === 'box' ? 2 * Math.max(o.hx ?? 1, o.hz ?? 1) : 2 * (o.radius ?? 1), h: o.height ?? ref, base: o.pos?.y ?? 0} : dflt;}
+    if (c.kind === 'destructible') {const d = ms?.destructibles?.find(q => q.id === c.id);return d?.size ? {w: 2 * Math.max(d.size.hx ?? 1, d.size.hz ?? 1), h: d.size.height ?? ref, base: d.pos?.y ?? 0} : dflt;}
+    return dflt;
+  }
   /** Efeito pontual (hit, bloqueios, chão, clash): respeita toggle e variante, registra o motivo. */
   fire(type, ctx, reason) {
     if (!this.enabled(type)) {this.record(type, `${reason} · desligado`);return;}
-    this.record(type, reason);const v = C.vfx[type].variant | 0;this.emitting = type;this.stats.firesByType[type] = (this.stats.firesByType[type] ?? 0) + 1;
+    this.record(type, reason);const v = C.vfx[type].variant | 0;this.emitting = type;this.lift = ctx?.lift ?? 0;this.stats.firesByType[type] = (this.stats.firesByType[type] ?? 0) + 1;
     const handlers = {
       hit: [this.hitA, this.hitB, this.hitC, this.hitD],
       block: [this.blockA, this.blockB, this.blockC, this.blockD],
       perfect: [this.perfectA, this.perfectB, this.perfectC],
       ground: [this.groundA, this.groundB, this.groundC, this.groundD],
       clash: [this.clashA, this.clashB, this.clashC],
+      jumpLanding: [this.jumpLandA],
+      wallImpact: [this.wallImpactA],
       rock: [this.rockA, this.rockB, this.rockC],
       barrier: [this.barrierA, this.barrierB, this.barrierC]
     };
@@ -224,7 +279,7 @@ export class VfxSystem {
     if (list) (list[v] ?? list[0]).call(this, C.vfx[type], ctx);
     // Bloqueio: brilho de contato sempre voltado para a câmera, para o feedback nunca sumir (escudos planos podem ficar de perfil).
     if (type === 'block' && v !== 0) {const p = this.frontOf(ctx.pos, ctx.n, .5), c = C.vfx.block;this.spawn({x: p.x, y: .8, z: p.z, life: c.duration * .4, w: .55 * c.size, cell: 'spark', color: c.color, glow: 1.3 * c.intensity, alpha: c.opacity, grow: .6 * c.expansion, fade: 1.5});}
-    this.emitting = null;
+    this.emitting = null;this.lift = 0;
   }
   /** Efeitos contínuos (esquiva, sprint, exaustão, regeneração): emissão por intervalo, por lutador. */
   stream(type, f, dt, ctx) {
@@ -257,7 +312,27 @@ export class VfxSystem {
       if (this.view?.worldView?.emitBarrierShatter) this.view.worldView.emitBarrierShatter(f.position.x, 0.8, f.position.z, 0x59d6e6);
     }
     else this.fire(type, {pos: f.position, n, power: 1, fighters}, tag);
-    const shakeFor = {hit: 'shakeHit', block: 'shakeGuard', perfect: 'shakePerfect', ground: 'shakeGround', clash: 'shakeClash'}[type];if (shakeFor) this.shake(shakeFor, n, 1, tag);
+    const shakeFor = {hit: 'shakeHit', block: 'shakeGuard', perfect: 'shakePerfect', ground: 'shakeGround', clash: 'shakeClash', wallImpact: 'shakeWall'}[type];if (shakeFor) this.shake(shakeFor, n, 1, tag);
+  }
+  // ---------- POUSO DO PULO REGULAR ----------
+  jumpLandA(c, {pos, power = 1}) { // Só uma onda circular rente ao chão (sem tremor, poeira, fagulhas nem rachadura).
+    const k = 1 + (power - 1) * (c.fallScale ?? .5), n = Math.max(1, Math.round(c.rings ?? 1));
+    for (let r = 0; r < n; r++) this.spawn({x: pos.x, y: .03, z: pos.z, delay: r * c.duration * .18, life: c.duration, w: .4, mode: 'ground', cell: 'ring', color: c.color, glow: .8 * c.intensity, alpha: c.opacity * (1 - r * .25), fade: c.fade, sizeCurve: t => 1 + ease.outCubic(t) * 4 * c.radius * k * (c.expansion ?? 1)});
+  }
+  // ---------- IMPACTO VERTICAL EM PAREDES E OBJETOS ----------
+  wallImpactA(c, ctx) { // Onda no plano da parede + faixa vertical de luz + faíscas ao longo da parede + poeira que sobe. Tudo escala com o tamanho do objeto e a velocidade do choque.
+    const nx = ctx.n?.x ?? 0, nz = ctx.n?.z ?? 1, len = Math.hypot(nx, nz) || 1, n = {x: nx / len, z: nz / len}, t = {x: n.z, z: -n.x};
+    const w = ctx.w ?? c.refSize, h = ctx.h ?? c.refSize, sz = Math.max(.4, Math.min(2.5, Math.sqrt(Math.max(.01, w * h)) / Math.max(.1, c.refSize)));
+    const S = c.size * c.intensity * (1 + (sz - 1) * c.sizeInfluence) * (ctx.arena ? c.arenaScale : c.objectScale) * (1 + ((ctx.power ?? 1) - 1) * c.speedScale);
+    if (!(S > 0)) return;
+    const px = ctx.pos.x + n.x * .04, pz = ctx.pos.z + n.z * .04, y = ctx.y ?? .75, base = ctx.base ?? 0, rise = Math.min(h, 4);
+    if (c.wallRing && c.wallRingSize > 0) this.spawn({x: px, y, z: pz, life: c.duration * .7, w: .35 * S, mode: 'plane', ax: n.x, ay: 0, az: n.z, cell: 'ring', color: c.color, glow: c.glow, alpha: c.opacity, fade: c.fade, sizeCurve: k => 1 + ease.outCubic(k) * 3 * c.wallRingSize});
+    if (c.wallStreak && c.wallStreakLength > 0) this.spawn({x: px, y: y + .1 * rise * c.wallStreakLength, z: pz, life: c.duration * .55, w: .13 * S, h: (.7 + .3 * rise) * S * c.wallStreakLength, cell: 'streak', mode: 'axis', ax: 0, ay: 1, az: 0, color: c.color2, glow: c.glow * 1.2, alpha: c.opacity, fade: c.fade, stretchCurve: k => 1.1 - k * .8});
+    if (c.wallSparks && c.wallSparkLength > 0) for (let k = 0, cnt = Math.round(c.wallSparkCount * S); k < cnt; k++) {
+      const a = rand(-1, 1) * 1.3, e = rand(-.2, 1), sp = 6 * rand(.6, 1.2) * Math.min(2, S), v = {x: t.x * Math.sin(a) * sp + n.x * rand(.15, .6) * sp, y: e * sp * .9, z: t.z * Math.sin(a) * sp + n.z * rand(.15, .6) * sp}, vl = Math.hypot(v.x, v.y, v.z) || 1;
+      this.spawn({x: px, y, z: pz, vx: v.x, vy: v.y, vz: v.z, gravity: 9, drag: 3.2, life: c.duration * rand(.6, 1.1), w: .05 * S, h: .45 * c.wallSparkLength * Math.min(2, S), cell: 'streak', mode: 'axis', ax: v.x / vl, ay: v.y / vl, az: v.z / vl, color: k % 3 ? c.color : c.color2, glow: c.glow, alpha: c.opacity, fade: c.fade, floor: .03});
+    }
+    if (c.wallDust && c.wallDustAmount > 0) for (let k = 0, cnt = Math.round(5 * c.wallDustAmount * S); k < cnt; k++) this.spawn({x: px + t.x * rand(-.6, .6) * S, y: base + .12, z: pz + t.z * rand(-.6, .6) * S, vx: n.x * rand(.2, .9), vy: rand(.6, 1.6) * c.wallDustRise * Math.min(2, S), vz: n.z * rand(.2, .9), drag: 1.6, life: c.duration * rand(1.8, 3), w: rand(.3, .55) * S, grow: 1.5, cell: 'smoke', color: 0xd9d2c4, glow: .9, alpha: c.opacity * .4, fade: 1.4, rot: rand(0, 6), spin: rand(-1.5, 1.5), additive: false});
   }
   // ---------- HIT ----------
   hitA(c, {pos, n}) { // Impacto radial: linhas radiais curtas + partículas, com núcleo brilhante.
@@ -290,28 +365,30 @@ export class VfxSystem {
     const real = (damage == null ? 1 : .55 + .45 * Math.min(2, damage / Math.max(1, C.test.attack))) * (launch ? .75 + .25 * Math.min(2, launch.horizontal / Math.max(1, C.rules.launchHorizontal)) : 1);
     const S = c.intensity * power * (1 + (real - 1) * c.byDamage), cnt = Math.max(3, Math.round(c.count * S));
     const hot = c.color2, ahead = {x: pos.x + d.x * .35 * c.size, z: pos.z + d.z * .35 * c.size};
+    // Camadas ligáveis e dimensionáveis (valor ausente em ajustes antigos = padrão): o responsável pode remover os círculos (núcleo e anéis) e afinar cada peça.
+    const on = (k) => (c[k] ?? 1) !== 0, num = (k, dflt = 1) => c[k] ?? dflt, ringA = num('ringOpacity');
     // Flash curto: núcleo quente + lâmina de luz alongada na direção do golpe.
-    this.spawn({x: pos.x, y, z: pos.z, life: c.duration * .32, w: .85 * c.size * S, cell: 'dot', color: hot, glow: c.glow * 1.5, alpha: c.opacity, fade: c.fade, grow: .5});
-    this.spawn({x: pos.x, y, z: pos.z, life: c.duration * .4, w: .16 * c.size, h: 1.9 * c.size * S, cell: 'streak', mode: 'axis', ax: d.x, ay: 0, az: d.z, color: hot, glow: c.glow * 1.3, alpha: c.opacity, fade: c.fade, stretchCurve: k => 1.2 - k * .9});
+    if (on('coreOn') && num('coreSize') > 0) this.spawn({x: pos.x, y, z: pos.z, life: c.duration * .32, w: .85 * c.size * S * num('coreSize'), cell: 'dot', color: hot, glow: c.glow * 1.5, alpha: c.opacity, fade: c.fade, grow: .5});
+    if (on('bladeOn') && num('bladeLength') > 0 && num('bladeWidth') > 0) this.spawn({x: pos.x, y, z: pos.z, life: c.duration * .4, w: .16 * c.size * num('bladeWidth'), h: 1.9 * c.size * S * num('bladeLength'), cell: 'streak', mode: 'axis', ax: d.x, ay: 0, az: d.z, color: hot, glow: c.glow * 1.3, alpha: c.opacity, fade: c.fade, stretchCurve: k => 1.2 - k * .9});
     // Anel de pressão perpendicular ao golpe (plano vertical com a normal como eixo) + anel rente ao chão.
-    this.spawn({x: ahead.x, y, z: ahead.z, life: c.duration * .65, w: .3 * c.size, mode: 'plane', ax: d.x, ay: 0, az: d.z, cell: 'ring', color: c.color, glow: c.glow, alpha: c.opacity * .85, fade: c.fade, sizeCurve: k => 1 + ease.outCubic(k) * c.speed * .45 * S});
-    this.spawn({x: pos.x, y: .03, z: pos.z, life: c.duration * .85, w: .4 * c.size, mode: 'ground', cell: 'ring', color: c.color, glow: c.glow * .7, alpha: c.opacity * .55, fade: c.fade, sizeCurve: k => 1 + ease.outCubic(k) * c.speed * .5 * S});
+    if (on('ringPlaneOn') && num('ringPlaneSize') > 0 && ringA > 0) this.spawn({x: ahead.x, y, z: ahead.z, life: c.duration * .65, w: .3 * c.size, mode: 'plane', ax: d.x, ay: 0, az: d.z, cell: 'ring', color: c.color, glow: c.glow, alpha: c.opacity * .85 * ringA, fade: c.fade, sizeCurve: k => 1 + ease.outCubic(k) * c.speed * .45 * S * num('ringPlaneSize')});
+    if (on('ringGroundOn') && num('ringGroundSize') > 0 && ringA > 0) this.spawn({x: pos.x, y: .03, z: pos.z, life: c.duration * .85, w: .4 * c.size, mode: 'ground', cell: 'ring', color: c.color, glow: c.glow * .7, alpha: c.opacity * .55 * ringA, fade: c.fade, sizeCurve: k => 1 + ease.outCubic(k) * c.speed * .5 * S * num('ringGroundSize')});
     // Cone de fagulhas: sai para a frente do golpe (atravessando o alvo) com abertura ajustável; menos para trás (respingo).
     for (let k = 0; k < cnt; k++) {
-      const fwd = k % 4 !== 3, a = rand(-1, 1) * c.cone, e = rand(-.15, .45), dir = fwd ? {x: d.x * Math.cos(a) + side.x * Math.sin(a), z: d.z * Math.cos(a) + side.z * Math.sin(a)} : {x: -d.x * Math.cos(a * 1.8) + side.x * Math.sin(a * 1.8), z: -d.z * Math.cos(a * 1.8) + side.z * Math.sin(a * 1.8)};
+      const fwd = (k * .618034) % 1 >= num('backSplash', .25), a = rand(-1, 1) * c.cone, e = rand(-.15, .45), dir = fwd ? {x: d.x * Math.cos(a) + side.x * Math.sin(a), z: d.z * Math.cos(a) + side.z * Math.sin(a)} : {x: -d.x * Math.cos(a * 1.8) + side.x * Math.sin(a * 1.8), z: -d.z * Math.cos(a * 1.8) + side.z * Math.sin(a * 1.8)};
       const sp = c.speed * rand(.6, 1.25) * S * (fwd ? 1 : .55), v = {x: dir.x * sp, y: e * sp * .6, z: dir.z * sp};
-      this.spawn({x: pos.x, y, z: pos.z, vx: v.x, vy: v.y, vz: v.z, drag: 4.5, life: c.duration * rand(.55, 1), w: .06 * c.size, h: .5 * c.size, cell: 'streak', mode: 'axis', ax: dir.x, ay: e * .6, az: dir.z, color: k % 3 ? c.color : hot, glow: c.glow, alpha: c.opacity, fade: c.fade, stretchCurve: k2 => 1.4 - k2});
-      if (k % 2 === 0) this.spawn({x: pos.x, y, z: pos.z, vx: v.x * .55, vy: v.y * .55 + 1.2, vz: v.z * .55, gravity: 10, life: c.duration * rand(1, 1.5), w: .075 * c.size, cell: 'spark', color: c.color, glow: c.glow, alpha: c.opacity, fade: c.fade, floor: .03});
+      if (on('sparksOn') && num('sparkLength') > 0 && num('sparkWidth') > 0) this.spawn({x: pos.x, y, z: pos.z, vx: v.x, vy: v.y, vz: v.z, drag: 4.5, life: c.duration * rand(.55, 1), w: .06 * c.size * num('sparkWidth'), h: .5 * c.size * num('sparkLength'), cell: 'streak', mode: 'axis', ax: dir.x, ay: e * .6, az: dir.z, color: k % 3 ? c.color : hot, glow: c.glow, alpha: c.opacity, fade: c.fade, stretchCurve: k2 => 1.4 - k2});
+      if (k % 2 === 0 && on('embersOn') && num('emberSize') > 0) this.spawn({x: pos.x, y, z: pos.z, vx: v.x * .55, vy: v.y * .55 + 1.2, vz: v.z * .55, gravity: 10, life: c.duration * rand(1, 1.5), w: .075 * c.size * num('emberSize'), cell: 'spark', color: c.color, glow: c.glow, alpha: c.opacity, fade: c.fade, floor: .03});
     }
     // Detritos: lascas que quicam no chão (não aditivas, para terem corpo).
     const nDeb = Math.round(5 * c.debris * S);
     for (let k = 0; k < nDeb; k++) {
       const a = rand(-1, 1) * c.cone * 1.3, sp = c.speed * rand(.35, .8) * S;
-      this.spawn({x: pos.x, y: y - .1, z: pos.z, vx: (d.x * Math.cos(a) + side.x * Math.sin(a)) * sp, vy: rand(1.5, 4.5) * S, vz: (d.z * Math.cos(a) + side.z * Math.sin(a)) * sp, gravity: 14, drag: 1.2, floor: .03, life: c.duration * rand(1.3, 2.2), w: rand(.06, .13) * c.size, cell: k % 2 ? 'chunk' : 'shard', color: 0xb7a58e, glow: .8, alpha: c.opacity, fade: 1.2, rot: rand(0, 6), spin: rand(-12, 12), additive: false});
+      this.spawn({x: pos.x, y: y - .1, z: pos.z, vx: (d.x * Math.cos(a) + side.x * Math.sin(a)) * sp, vy: rand(1.5, 4.5) * S, vz: (d.z * Math.cos(a) + side.z * Math.sin(a)) * sp, gravity: 14, drag: 1.2, floor: .03, life: c.duration * rand(1.3, 2.2), w: rand(.06, .13) * c.size * num('debrisSize'), cell: k % 2 ? 'chunk' : 'shard', color: 0xb7a58e, glow: .8, alpha: c.opacity, fade: 1.2, rot: rand(0, 6), spin: rand(-12, 12), additive: false});
     }
     // Poeira rente ao chão, empurrada no sentido do golpe.
     const nDust = Math.round(4 * c.dust * S);
-    for (let k = 0; k < nDust; k++) this.spawn({x: pos.x, y: .12, z: pos.z, vx: d.x * rand(.6, 1.6) + side.x * rand(-1, 1), vy: rand(.2, .7), vz: d.z * rand(.6, 1.6) + side.z * rand(-1, 1), drag: 2.4, life: c.duration * rand(1.6, 2.6), w: rand(.35, .6) * c.size, grow: 1.4, cell: 'smoke', color: 0xd9d2c4, glow: .9, alpha: c.opacity * .4, fade: 1.4, rot: rand(0, 6), spin: rand(-1.5, 1.5), additive: false});
+    for (let k = 0; k < nDust; k++) this.spawn({x: pos.x, y: .12, z: pos.z, vx: d.x * rand(.6, 1.6) + side.x * rand(-1, 1), vy: rand(.2, .7), vz: d.z * rand(.6, 1.6) + side.z * rand(-1, 1), drag: 2.4, life: c.duration * rand(1.6, 2.6), w: rand(.35, .6) * c.size * num('dustSize'), grow: 1.4, cell: 'smoke', color: 0xd9d2c4, glow: .9, alpha: c.opacity * .4, fade: 1.4, rot: rand(0, 6), spin: rand(-1.5, 1.5), additive: false});
     // Rachadura marcada no chão só em golpes fortes (força ≥ 1,15).
     if (c.crack > 0 && S >= 1.15) this.spawn({x: pos.x, y: .025, z: pos.z, life: c.duration * 3.2, w: .9 * c.size * Math.min(1.6, S) * c.crack, mode: 'ground', cell: 'crack', rot: Math.atan2(d.x, d.z), color: 0xffd9a0, glow: .7, alpha: c.opacity * .5, fade: 2, additive: false});
   }

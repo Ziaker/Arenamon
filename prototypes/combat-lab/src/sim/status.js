@@ -11,6 +11,9 @@
 // Sem nenhum status ativo, todos os modificadores valem exatamente 1 (multiplicação) e 0 (soma): o motor fica
 // idêntico ao de antes (verificado nos testes de paridade e regressão).
 
+import {processDamageWithShieldAndStages} from './map.js';
+import {dotFactor, passiveContribute} from './passive-engine.js';
+
 /** Atributos que os modificadores podem alterar e onde o motor os usa. */
 export const STATS = {
   speed: 'velocidade de locomoção (caminhada e sprint); não altera a distância nominal de X/C',
@@ -20,6 +23,7 @@ export const STATS = {
   staminaCost: 'multiplicador do custo de stamina de X, C e movimentos',
   knockbackTaken: 'multiplicador do lançamento recebido',
   cooldownRate: 'velocidade de recarga dos movimentos',
+  mobilityCost: 'multiplicador do custo de stamina da esquiva (C) e do consumo do sprint (Second Wind)',
 };
 /** Flags reconhecidas pelo controlador (bloqueiam ações; o diagnóstico de comandos informa o motivo). */
 export const FLAGS = {
@@ -27,6 +31,7 @@ export const FLAGS = {
   silenced: 'não usa movimentos especiais',
   disarmed: 'não usa o tackle (X)',
   stunned: 'não age nem anda',
+  blind: 'cegueira do Sand Wave: só enxerga a 10 m (lock-on e IA), sem alterar a simulação por si só',
 };
 const STACKING = ['refresh', 'stack', 'independent', 'ignore'];
 
@@ -76,10 +81,14 @@ export function modifier(f, stat) {
   for (const s of f.statuses || []) {const m = s.mul[stat], a = s.add[stat];if (m !== undefined) mul *= m ** s.stacks;if (a !== undefined) add += a * s.stacks;}
   return {mul, add};
 }
-/** Valor efetivo: base × multiplicadores + somas. Sem status, devolve exatamente `base`. */
+/** Valor efetivo: base × (Π mul^pilhas legado) × (1 + Σ pct das fontes novas) + Σ add. Sem status nem passivas, devolve exatamente `base`
+ * (paridade verificada nos testes de não-regressão). Regra das passivas (R7–R11): acúmulo ADITIVO por fonte,
+ * sem caps novos e sem arredondamento (ex.: 100 +20% +30abs = 150; 87×1,15 = 100,05 preservado). */
 export function stat(f, key, base) {
-  if (!f.statuses?.length) return base;
-  const {mul, add} = modifier(f, key);return base * mul + add;
+  if (!f.statuses?.length && !f.passiveState) return base;
+  const {mul, add} = modifier(f, key);
+  const p = passiveContribute(f, key);
+  return base * mul * (1 + p.pct) + add + p.add;
 }
 export const hasFlag = (f, flag) => !!f.statuses?.some(s => s.flags[flag]);
 
@@ -96,11 +105,16 @@ export function tickStatuses(f, dt, staminaMax) {
       s.acc += dt;
       while (s.acc >= s.tick.interval - 1e-9 && f.hp > 0) {
         s.acc -= s.tick.interval;
-        const dmg = (s.tick.damage ?? 0) * s.stacks * stat(f, 'damageTaken', 1), heal = (s.tick.heal ?? 0) * s.stacks;
-        if (dmg) {f.hp = Math.max(0, f.hp - dmg);if (f.hp === 0) {f.guard = false;f.guardSuppressed = true;}}   // mesma regra do golpe letal (combat.js)
+        const dmg = (s.tick.damage ?? 0) * s.stacks * stat(f, 'damageTaken', 1) * dotFactor(f), heal = (s.tick.heal ?? 0) * s.stacks;
+        let actualDmg = dmg;
+        if (dmg > 0) {
+          const res = processDamageWithShieldAndStages(f, dmg, s.source !== undefined ? {id: s.source} : null, false, false, {category: 'periodic'});
+          actualDmg = res.hpDamage;
+          if (f.hp === 0) {f.guard = false;f.guardSuppressed = true;}
+        }
         if (heal) f.hp = Math.min(f.attributes.hp, f.hp + heal);
         if (s.tick.stamina) {f.stamina = Math.max(0, Math.min(staminaMax, f.stamina + s.tick.stamina * s.stacks));f.regenBase = f.stamina;}
-        events.push({result: 'statusTick', target: f.id, attacker: s.source, status: s.id, damage: dmg, heal});
+        events.push({result: 'statusTick', target: f.id, attacker: s.source, status: s.id, damage: actualDmg, heal});
       }
     }
   }

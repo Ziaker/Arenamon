@@ -1,0 +1,285 @@
+{
+ "split": "dev",
+ "total": 24,
+ "ok": 24,
+ "falsos_negativos": [],
+ "falsos_positivos": [],
+ "inconclusivos_errados": [],
+ "resultados": [
+  {
+   "id": "T1a",
+   "descricao": "braco atravessando o tronco",
+   "tipo": "positivo",
+   "esperado": "ATRAVESSAMENTO_PROVAVEL",
+   "observado": "ATRAVESSAMENTO_PROVAVEL",
+   "ok": true
+  },
+  {
+   "id": "T1b",
+   "descricao": "braco apenas oculto atras do tronco (sem atravessar)",
+   "tipo": "negativo",
+   "esperado": "SEM_INDICIO",
+   "observado": "SEM_INDICIO",
+   "ok": true
+  },
+  {
+   "id": "T1c",
+   "descricao": "mao oculta atras do tronco: vista frontal detecta oclusao pelo tronco",
+   "tipo": "negativo",
+   "esperado": "visivel<0.6 e ocluida pelo corpo (tronco/cabeca), nao por si mesma",
+   "observado": {
+    "visible": 0.1477,
+    "occluded_by": {
+     "head": 0.909,
+     "arm_R": 0.091
+    }
+   },
+   "ok": true
+  },
+  {
+   "id": "T3a",
+   "descricao": "pose frontal ambigua: o laco pede nova vista e chega a evidencia suficiente",
+   "tipo": "positivo",
+   "esperado": "rodadas>=2 e SUFICIENTE",
+   "observado": {
+    "rodadas": 2,
+    "final": "OBSERVADO_SUFICIENTE",
+    "pedidas": [
+     [
+      "frente_e12",
+      "lado_D_e12"
+     ],
+     [
+      "q3_tras_D_e12",
+      "tras_e12"
+     ]
+    ]
+   },
+   "ok": true
+  },
+  {
+   "id": "T1d",
+   "descricao": "mao dentro do tronco: geometria acusa atravessamento",
+   "tipo": "positivo",
+   "esperado": "ATRAVESSAMENTO_PROVAVEL",
+   "observado": "ATRAVESSAMENTO_PROVAVEL",
+   "ok": true
+  },
+  {
+   "id": "T1e",
+   "descricao": "mao dentro do tronco: nenhuma vista a observa -> NAO afirma ver (inconclusivo)",
+   "tipo": "inconclusivo",
+   "esperado": "NAO_OBSERVAVEL e sem 'suficiente'",
+   "observado": {
+    "final": "NAO_OBSERVAVEL",
+    "parou": "nenhuma vista candidata acrescenta evidencia independente nos frames que faltam"
+   },
+   "ok": true
+  },
+  {
+   "id": "T2-foot_planted",
+   "descricao": "pe foot_planted",
+   "tipo": "positivo",
+   "esperado": "apoiado",
+   "observado": {
+    "folga_m": -0.0,
+    "classe": "apoiado"
+   },
+   "ok": true
+  },
+  {
+   "id": "T2-foot_near",
+   "descricao": "pe foot_near",
+   "tipo": "inconclusivo",
+   "esperado": "proximo_ambiguo",
+   "observado": {
+    "folga_m": 0.02,
+    "classe": "proximo_ambiguo"
+   },
+   "ok": true
+  },
+  {
+   "id": "T2-foot_air",
+   "descricao": "pe foot_air",
+   "tipo": "positivo",
+   "esperado": "suspenso",
+   "observado": {
+    "folga_m": 0.08,
+    "classe": "suspenso"
+   },
+   "ok": true
+  },
+  {
+   "id": "T4a",
+   "descricao": "snap de interpolacao (1 frame)",
+   "tipo": "positivo",
+   "esperado": "salto_isolado",
+   "observado": [
+    "salto_isolado"
+   ],
+   "ok": true
+  },
+  {
+   "id": "T4b",
+   "descricao": "acao rapida intencional (rampa de 5 frames)",
+   "tipo": "negativo",
+   "esperado": "sem salto_isolado e com rampa",
+   "observado": [
+    "rapido_com_rampa",
+    "rapido_com_rampa",
+    "rapido_com_rampa"
+   ],
+   "ok": true
+  },
+  {
+   "id": "T5a",
+   "descricao": "sem antecipacao",
+   "tipo": "negativo",
+   "esperado": false,
+   "observado": false,
+   "ok": true
+  },
+  {
+   "id": "T5b",
+   "descricao": "com antecipacao (recuo antes do golpe)",
+   "tipo": "positivo",
+   "esperado": true,
+   "observado": {
+    "p": true,
+    "razao": 0.24
+   },
+   "ok": true
+  },
+  {
+   "id": "T6a",
+   "descricao": "arco continuo",
+   "tipo": "negativo",
+   "esperado": "arco_continuo",
+   "observado": "arco_continuo",
+   "ok": true
+  },
+  {
+   "id": "T6b",
+   "descricao": "trajetoria com quina de 90 graus em velocidade",
+   "tipo": "positivo",
+   "esperado": "mudanca_abrupta",
+   "observado": {
+    "classe": "mudanca_abrupta",
+    "quinas": [
+     {
+      "frame": 12,
+      "virada_graus": 94.5,
+      "velocidade_rel": 0.84
+     }
+    ]
+   },
+   "ok": true
+  },
+  {
+   "id": "T7a",
+   "descricao": "braco inicia antes do tronco",
+   "tipo": "positivo",
+   "esperado": "mao_antes_do_tronco",
+   "observado": {
+    "rel": "mao_antes_do_tronco",
+    "ordem": [
+     "braco_rot_rel_tronco_graus",
+     "mao_pos_rel_quadril_m",
+     "tronco_rot_rel_quadril_graus"
+    ]
+   },
+   "ok": true
+  },
+  {
+   "id": "T7b",
+   "descricao": "braco e tronco simultaneos",
+   "tipo": "negativo",
+   "esperado": "simultaneo",
+   "observado": {
+    "rel": "simultaneo",
+    "ordem": [
+     "braco_rot_rel_tronco_graus",
+     "mao_pos_rel_quadril_m",
+     "tronco_rot_rel_quadril_graus"
+    ]
+   },
+   "ok": true
+  },
+  {
+   "id": "T8a",
+   "descricao": "esticamento declarado/documentado",
+   "tipo": "positivo",
+   "esperado": "inesperados=0 e documentados>0",
+   "observado": {
+    "inesp": 0,
+    "doc": 25
+   },
+   "ok": true
+  },
+  {
+   "id": "T8b",
+   "descricao": "mesmo esticamento SEM declaracao",
+   "tipo": "positivo",
+   "esperado": "inesperados>0",
+   "observado": {
+    "inesp": 25
+   },
+   "ok": true
+  },
+  {
+   "id": "T9a",
+   "descricao": "braco pendurado a ~3 cm do tronco (nao atravessa)",
+   "tipo": "negativo",
+   "esperado": "SEM_INDICIO",
+   "observado": "SEM_INDICIO",
+   "ok": true
+  },
+  {
+   "id": "T9b",
+   "descricao": "movimento rapido em 2 frames nao e 'salto isolado de 1 frame'",
+   "tipo": "negativo",
+   "esperado": "sem salto_isolado",
+   "observado": [
+    "rapido_rampa_parcial",
+    "rapido_rampa_parcial"
+   ],
+   "ok": true
+  },
+  {
+   "id": "T10a",
+   "descricao": "mao enterrada: penetracao no chao medida",
+   "tipo": "positivo",
+   "esperado": "hand_R prof_max > 0.10 m",
+   "observado": 0.23,
+   "ok": true
+  },
+  {
+   "id": "T10b",
+   "descricao": "mao enterrada: nenhuma vista a observa e o oclusor e o chao",
+   "tipo": "inconclusivo",
+   "esperado": "NAO_OBSERVAVEL e 'chao' entre os oclusores",
+   "observado": {
+    "final": "NAO_OBSERVAVEL",
+    "ocluida_por": {
+     "frente_e12": [
+      "chao"
+     ],
+     "lado_D_e12": [
+      "chao"
+     ]
+    }
+   },
+   "ok": true
+  },
+  {
+   "id": "T10c",
+   "descricao": "pe apoiado nao gera 'penetracao no chao' falsa",
+   "tipo": "negativo",
+   "esperado": "sem rotulos afundados",
+   "observado": [],
+   "ok": true
+  }
+ ],
+ "data": "2026-10-22 01:53",
+ "aviso": "mede a infraestrutura em casos sinteticos de caixas fechadas; nao mede interpretacao de imagem por modelo nem desempenho em malhas reais"
+}
