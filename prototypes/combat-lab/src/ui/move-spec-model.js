@@ -5,9 +5,10 @@
 // Não cria o Move: gera a especificação e o comando/rascunho para `npm run novo-move`.
 
 export const SPEC_SCHEMA = 'arenamon-move-spec';
-export const SPEC_VERSION = 1;
-/** Os quatro status independentes + pendente (REGRAS_CRIACAO_MOVES §1). */
-export const FIELD_STATUS = ['pendente', 'proposto', 'aprovado', 'implementado', 'homologado'];
+export const SPEC_VERSION = 2;   // v2: quatro status independentes por campo (a v1 tinha um só e ainda é lida)
+/** Os QUATRO status independentes de governança (REGRAS_CRIACAO_MOVES §1): um campo pode ser proposto e implementado sem estar aprovado, por exemplo. "Pendente" = sem valor. */
+export const GOV_FLAGS = ['proposto', 'aprovado', 'implementado', 'homologado'];
+export const noFlags = () => ({proposto: false, aprovado: false, implementado: false, homologado: false});
 
 /** @typedef {{key: string, label: string, help: string, kind: 'text' | 'long' | 'select' | 'number', options?: string[], required?: boolean, unit?: string}} SpecField */
 /** @type {{id: string, title: string, fields: SpecField[]}[]} */
@@ -64,7 +65,7 @@ export const ALL_FIELDS = SPEC_SECTIONS.flatMap(s => s.fields);
 
 /** Especificação vazia: todo campo pendente, sem valor. */
 export function newSpec() {
-  return {schema: SPEC_SCHEMA, version: SPEC_VERSION, createdAt: new Date().toISOString(), fields: Object.fromEntries(ALL_FIELDS.map(f => [f.key, {value: '', status: 'pendente', source: ''}]))};
+  return {schema: SPEC_SCHEMA, version: SPEC_VERSION, createdAt: new Date().toISOString(), fields: Object.fromEntries(ALL_FIELDS.map(f => [f.key, {value: '', flags: noFlags(), source: ''}]))};
 }
 
 /**
@@ -80,14 +81,20 @@ export function validateSpec(spec) {
   if (cat === 'Charge' && val('cast') && !/carg|segur|máx|max|mín|min/.test(cast)) out.push({kind: 'conflito', field: 'cast', message: 'Charge precisa descrever a carga (mínimo/máximo e progressão) no campo de cast'});
   if (cat === 'Burst' && /carg|segur/.test(cast)) out.push({kind: 'conflito', field: 'category', message: 'Burst não tem carga progressiva: o cast fala em carga/segurar. Categoria ou cast está errado'});
   if (pl.includes('sem pl') && /clash|counter/.test(val('refs').toLowerCase() + val('purpose').toLowerCase())) out.push({kind: 'conflito', field: 'pl', message: '"SEM PL" mas o texto cita Clash/Counter, que dependem de PL'});
-  for (const [k, v] of Object.entries(spec.fields)) if (v.status !== 'pendente' && !String(v.value).trim()) out.push({kind: 'conflito', field: k, message: `${k}: status "${v.status}" sem valor`});
+  for (const [k, v] of Object.entries(spec.fields)) {
+    const on = GOV_FLAGS.filter(g => v.flags[g]);
+    if (on.length && !String(v.value).trim()) out.push({kind: 'conflito', field: k, message: `${k}: marcado como ${on.join(' e ')} mas sem valor`});
+  }
   return out;
 }
 
-/** Resumo de governança: quantos campos em cada status. */
+/** Resumo de governança: campos sem valor (pendentes) e quantos campos têm cada status ligado (independentes: um campo pode contar em vários). */
 export function statusCounts(/** @type {ReturnType<typeof newSpec>} */ spec) {
-  const c = Object.fromEntries(FIELD_STATUS.map(s => [s, 0]));
-  for (const v of Object.values(spec.fields)) c[v.status] = (c[v.status] ?? 0) + 1;
+  const c = {pendente: 0, ...Object.fromEntries(GOV_FLAGS.map(s => [s, 0]))};
+  for (const v of Object.values(spec.fields)) {
+    if (!String(v.value).trim()) c.pendente++;
+    for (const g of GOV_FLAGS) if (v.flags[g]) c[g]++;
+  }
   return c;
 }
 
@@ -95,15 +102,16 @@ export function specToMarkdown(/** @type {ReturnType<typeof newSpec>} */ spec) {
   const name = String(spec.fields.name?.value || spec.fields.id?.value || 'Move sem nome');
   const gaps = validateSpec(spec), counts = statusCounts(spec);
   const out = [`# Ficha de Move — ${name}`, '', `Gerada pelo assistente de ficha (Combat Lab) em ${spec.createdAt}. **Proposta**: não aprova nada por si; cada campo carrega o próprio status.`, '',
-    `Status dos campos: ${FIELD_STATUS.map(s => `${s} ${counts[s]}`).join(' · ')}.`, ''];
+    `Status dos campos (independentes): pendente ${counts.pendente} · ${GOV_FLAGS.map(s => `${s} ${counts[s]}`).join(' · ')}.`, ''];
   for (const s of SPEC_SECTIONS) {
-    out.push(`## ${s.title}`, '', '| Campo | Valor | Status | Fonte |', '|---|---|---|---|');
-    for (const f of s.fields) {const v = spec.fields[f.key];out.push(`| ${f.label} | ${String(v.value).replace(/\|/g, '\\|').replace(/\n/g, ' ') || '**PENDENTE**'} | ${v.status} | ${String(v.source).replace(/\|/g, '\\|') || '—'} |`);}
+    out.push(`## ${s.title}`, '', '| Campo | Valor | Governança | Fonte |', '|---|---|---|---|');
+    for (const f of s.fields) {const v = spec.fields[f.key];out.push(`| ${f.label} | ${String(v.value).replace(/\|/g, '\\|').replace(/\n/g, ' ') || '**PENDENTE**'} | ${GOV_FLAGS.filter(g => v.flags[g]).join(', ') || '—'} | ${String(v.source).replace(/\|/g, '\\|') || '—'} |`);}
     out.push('');
   }
   out.push('## Decisões abertas e conflitos', '', gaps.length ? gaps.map(g => `- **${g.kind}** · ${g.message}`).join('\n') : '(nenhuma)', '');
   const id = String(spec.fields.id?.value || '').trim();
-  out.push('## Para criar o Move', '', id && name ? `\`\`\`bash\nnpm run novo-move -- "${name}"\n\`\`\`\n\nDepois abra \`src/sim/moves/${id}.js\` e \`${id}.params.js\`, implemente o efeito e ajuste os parâmetros (veja \`docs/COMO_CRIAR_UM_MOVE.md\`).` : 'Preencha ID e nome primeiro.', '');
+  const safeName = name.replace(/[^\p{L}\p{N} _-]/gu, '').trim();   // nome vindo de um arquivo importado: sem aspas, $ nem crases no comando que será copiado
+  out.push('## Para criar o Move', '', id && name ? `\`\`\`bash\nnpm run novo-move -- "${safeName}"\n\`\`\`\n\nDepois abra \`src/sim/moves/${id}.js\` e \`${id}.params.js\`, implemente o efeito e ajuste os parâmetros (veja \`docs/COMO_CRIAR_UM_MOVE.md\`).` : 'Preencha ID e nome primeiro.', '');
   return out.join('\n');
 }
 
@@ -120,7 +128,11 @@ export function parseSpec(/** @type {any} */ raw) {
   for (const f of ALL_FIELDS) {
     const v = data.fields?.[f.key];
     if (!v) continue;
-    spec.fields[f.key] = {value: String(v.value ?? ''), status: FIELD_STATUS.includes(v.status) ? v.status : 'pendente', source: String(v.source ?? '')};
+    // v1 guardava um status só (string): vira o status correspondente ligado; v2 guarda os quatro.
+    const flags = noFlags();
+    if (v.flags && typeof v.flags === 'object') for (const g of GOV_FLAGS) flags[g] = v.flags[g] === true;
+    else if (typeof v.status === 'string' && GOV_FLAGS.includes(v.status)) flags[v.status] = true;
+    spec.fields[f.key] = {value: String(v.value ?? ''), flags, source: String(v.source ?? '')};
   }
   return {spec};
 }

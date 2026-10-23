@@ -28,11 +28,12 @@ try {
   await page.fill('[data-spec-value="name"]', 'Meu Move');
   await page.selectOption('[data-spec-value="category"]', 'Burst');
   const pend1 = await page.textContent('[data-spec-summary] b');
-  check('responder campos reduz as pendências e o status vira "proposto" (nunca aprovado sozinho)', Number(pend1) === Number(pend0) - 3 && await page.inputValue('[data-spec-status="name"]') === 'proposto', `${pend0} → ${pend1}`);
+  check('responder campos reduz as pendências e o status vira "proposto" (nunca aprovado sozinho)', Number(pend1) === Number(pend0) - 3 && await page.isChecked('[data-spec-flag="name|proposto"]') && !(await page.isChecked('[data-spec-flag="name|aprovado"]')), `${pend0} → ${pend1}`);
+  await page.check('[data-spec-flag="name|implementado"]');   // os status são independentes: implementado sem aprovado
   await page.fill('[data-spec-source="name"]', 'M18.1');
   const [dlJson] = await Promise.all([page.waitForEvent('download'), page.click('[data-spec-json]')]);
   const spec = JSON.parse(readFileSync(await dlJson.path(), 'utf8'));
-  check('o JSON exportado guarda valor, status e fonte', spec.schema === 'arenamon-move-spec' && spec.fields.name.value === 'Meu Move' && spec.fields.name.status === 'proposto' && spec.fields.name.source === 'M18.1');
+  check('o JSON exportado guarda valor, os quatro status independentes e a fonte', spec.schema === 'arenamon-move-spec' && spec.fields.name.value === 'Meu Move' && spec.version === 2 && spec.fields.name.flags.proposto === true && spec.fields.name.flags.implementado === true && spec.fields.name.flags.aprovado === false && spec.fields.name.source === 'M18.1');
   const [dlMd] = await Promise.all([page.waitForEvent('download'), page.click('[data-spec-md]')]);
   const md = readFileSync(await dlMd.path(), 'utf8');
   check('o Markdown lista o que está pendente e o comando para criar o Move', /PENDENTE/.test(md) && /npm run novo-move -- "Meu Move"/.test(md));

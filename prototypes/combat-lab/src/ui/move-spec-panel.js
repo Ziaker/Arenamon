@@ -1,6 +1,6 @@
 // @ts-check
 // Painel do assistente de ficha de Move (#02): formulário guiado na aba Moves. A lógica está em move-spec-model.js (testada em Node).
-import {SPEC_SECTIONS, FIELD_STATUS, newSpec, validateSpec, statusCounts, specToMarkdown, specToJSON, parseSpec} from './move-spec-model.js';
+import {SPEC_SECTIONS, GOV_FLAGS, noFlags, newSpec, validateSpec, statusCounts, specToMarkdown, specToJSON, parseSpec} from './move-spec-model.js';
 
 const esc = (/** @type {any} */ s) => String(s ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c] ?? c));
 const DRAFT_KEY = 'arenamon-move-spec-draft';
@@ -12,7 +12,7 @@ export function createMoveSpecPanel({download}) {
   let spec = loadDraft() ?? newSpec();
   const summary = () => {
     const gaps = validateSpec(spec), c = statusCounts(spec);
-    return `<p class="hint"><b>${gaps.filter(g => g.kind === 'lacuna').length}</b> decisões pendentes · <b>${gaps.filter(g => g.kind !== 'lacuna').length}</b> conflitos/avisos · ${FIELD_STATUS.map(s => `${s} ${c[s]}`).join(' · ')}</p>`
+    return `<p class="hint"><b>${gaps.filter(g => g.kind === 'lacuna').length}</b> decisões pendentes · <b>${gaps.filter(g => g.kind !== 'lacuna').length}</b> conflitos/avisos · pendente ${c.pendente} · ${GOV_FLAGS.map(s => `${s} ${c[s]}`).join(' · ')}</p>`
       + (gaps.length ? `<ul class="mv-spec-gaps">${gaps.slice(0, 40).map(g => `<li class="${g.kind === 'lacuna' ? 'muted' : 'warn'}">${esc(g.kind)} · ${esc(g.message)}</li>`).join('')}</ul>` : '<p class="ok">Nenhuma lacuna nem conflito.</p>');
   };
   return {
@@ -27,7 +27,7 @@ export function createMoveSpecPanel({download}) {
             ? `<select data-spec-value="${f.key}"><option value="">— pendente —</option>${f.options?.map(o => `<option ${v.value === o ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select>`
             : f.kind === 'long' ? `<textarea rows="2" data-spec-value="${f.key}">${esc(v.value)}</textarea>` : `<input type="text" data-spec-value="${f.key}" value="${esc(v.value)}">`;
           return `<div class="mv-spec-field"><label title="${esc(f.help)}"><span>${esc(f.label)}${f.required ? ' *' : ''}</span>${input}</label>
-            <select data-spec-status="${f.key}" aria-label="Status de ${esc(f.label)}">${FIELD_STATUS.map(st => `<option ${v.status === st ? 'selected' : ''}>${st}</option>`).join('')}</select>
+            <span class="mv-spec-flags" role="group" aria-label="Governança de ${esc(f.label)}">${GOV_FLAGS.map(g => `<label title="${g}"><input type="checkbox" data-spec-flag="${f.key}|${g}" ${v.flags[g] ? 'checked' : ''}>${g}</label>`).join('')}</span>
             <input type="text" data-spec-source="${f.key}" value="${esc(v.source)}" placeholder="fonte (ex.: M18.1)" aria-label="Fonte de ${esc(f.label)}"><small class="muted">${esc(f.help)}</small></div>`;
         }).join('')}</details>`).join('')}
         <div data-spec-result class="report" aria-live="polite"></div></details>`;
@@ -38,12 +38,13 @@ export function createMoveSpecPanel({download}) {
       for (const el of root.querySelectorAll('[data-spec-value]')) /** @type {HTMLElement} */ (el).oninput = () => {
         const k = /** @type {HTMLElement} */ (el).dataset.specValue ?? '', v = /** @type {HTMLInputElement} */ (el).value;
         spec.fields[k].value = v;
-        // Responder um campo sem escolher status não o deixa "pendente": vira "proposto" (nunca aprovado sozinho).
-        if (v.trim() && spec.fields[k].status === 'pendente') {spec.fields[k].status = 'proposto';const st = /** @type {HTMLSelectElement | null} */ (root.querySelector(`[data-spec-status="${k}"]`));if (st) st.value = 'proposto';}
-        if (!v.trim()) {spec.fields[k].status = 'pendente';const st = /** @type {HTMLSelectElement | null} */ (root.querySelector(`[data-spec-status="${k}"]`));if (st) st.value = 'pendente';}
+        // Responder um campo sem marcar nada o deixa só "proposto" (nunca aprovado sozinho); apagar o valor desliga todos os status.
+        const setFlag = (g, on) => {spec.fields[k].flags[g] = on;const cb = /** @type {HTMLInputElement | null} */ (root.querySelector(`[data-spec-flag="${k}|${g}"]`));if (cb) cb.checked = on;};
+        if (v.trim() && !GOV_FLAGS.some(g => spec.fields[k].flags[g])) setFlag('proposto', true);
+        if (!v.trim()) for (const g of GOV_FLAGS) setFlag(g, false);
         refresh();
       };
-      for (const el of root.querySelectorAll('[data-spec-status]')) /** @type {HTMLElement} */ (el).onchange = () => {spec.fields[/** @type {HTMLElement} */ (el).dataset.specStatus ?? ''].status = /** @type {HTMLSelectElement} */ (el).value;refresh();};
+      for (const el of root.querySelectorAll('[data-spec-flag]')) /** @type {HTMLElement} */ (el).onchange = () => {const [k, g] = (/** @type {HTMLElement} */ (el).dataset.specFlag ?? '|').split('|');spec.fields[k].flags[g] = /** @type {HTMLInputElement} */ (el).checked;refresh();};
       for (const el of root.querySelectorAll('[data-spec-source]')) /** @type {HTMLElement} */ (el).oninput = () => {spec.fields[/** @type {HTMLElement} */ (el).dataset.specSource ?? ''].source = /** @type {HTMLInputElement} */ (el).value;saveDraft(spec);};
       const name = () => String(spec.fields.id.value || 'move-novo');
       const md = root.querySelector('[data-spec-md]'), js = root.querySelector('[data-spec-json]'), clr = root.querySelector('[data-spec-clear]'), file = /** @type {HTMLInputElement | null} */ (root.querySelector('[data-spec-file]'));
