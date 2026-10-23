@@ -14,6 +14,7 @@ import {vec} from './math.js';
 import {navAssist} from '../nav/nav-assist.js';
 import {poseOf} from './interpolation.js';
 import {isBlind, canSee, blindDefensiveCommand} from './vision.js';
+import {newCombos, observeCombos} from './combo.js';
 
 const finishingNow = g => g.phase === 'finishing';
 export class Game {
@@ -31,7 +32,7 @@ export class Game {
     this.combatWindows = [null, null];
     // R31: IDs estáveis de eventos (sequência determinística) e registro do passo de eventos de
     // passivas já processados (detecção de processamento duplicado do mesmo evento).
-    this.eventSeq = 0;this.passiveProcessed = new Set();
+    this.eventSeq = 0;this.passiveProcessed = new Set();this.combos = newCombos();
     this.mode = 'combat';this.profile = 'balanced';this.enemyProfile = 'balanced';
     this.mapState = createMapState(seed);
     this.reset();this.phase = 'menu';
@@ -50,7 +51,7 @@ export class Game {
     this.world.mapState = this.mapState;
     initMap(this.mapState, this.fighters);
     attachPassives(this);   // liga loadouts de passivas e restaura Sturdy (fronteira de rodada, §7/R22)
-    this.tick = 0;this.events = [];this.winner = null;this.hitstop = 0;this.phase = 'playing';this.lastStepEvents = [];this.prevPose = null;
+    this.tick = 0;this.events = [];this.winner = null;this.hitstop = 0;this.phase = 'playing';this.lastStepEvents = [];this.prevPose = null;this.combos = newCombos();
   }
   start() {this.phase = 'playing';}
   pause() {if (this.phase === 'playing') this.phase = 'paused';else if (this.phase === 'paused') this.phase = 'playing';}
@@ -105,6 +106,7 @@ export class Game {
     const koNow = this.fighters.find(f => f.hp <= 0);
     if (koNow) fresh.push(...passiveOnKO(this, koNow));   // R23: KO encerra efeitos ativos imediatamente
     for (const e of fresh) {e.tick = this.tick;if (e.id == null) e.id = ++this.eventSeq;}   // R31: ID estável por evento
+    observeCombos(this, fresh);   // só leitura: nada do combate muda por causa do contador
     this.events.push(...fresh);this.events = this.events.slice(-12);this.lastStepEvents = fresh;
     if (C.extras.toggles.enableHitstop) {
       if (fresh.some(e => e.result === 'clash')) this.hitstop = C.extras.combat.clashHitstop;
@@ -171,7 +173,7 @@ export class Game {
   }
   /** Visão para o HUD e para testes (mesma forma do v6). */
   snapshot() {
-    return {phase: this.phase, tick: this.tick, winner: this.winner, mode: this.mode, hitstop: this.hitstop, events: this.events,
+    return {phase: this.phase, tick: this.tick, winner: this.winner, mode: this.mode, hitstop: this.hitstop, events: this.events, combos: this.combos,
       mapState: this.mapState,
       fighters: this.fighters.map(f => ({...f, action: f.action ? {...f.action, hits: [...f.action.hits], hitWindows: f.action.hitWindows ? f.action.hitWindows.map(s => [...s]) : null} : null,
         invulnerable: isInvulnerable(f), offensive: isOffensive(f)}))};
@@ -180,7 +182,7 @@ export class Game {
   save() {
     return structuredClone({fighters: this.fighters, tick: this.tick, events: this.events, winner: this.winner, hitstop: this.hitstop, phase: this.phase, eventSeq: this.eventSeq, world: this.world ?? createWorld(), mapState: this.mapState, loadouts: this.loadouts,
       passiveLoadouts: this.passiveLoadouts, passiveIdentity: this.passiveIdentity,
-      combatWindows: this.combatWindows, brain: this.brain.save(), playerBrain: this.playerBrain.save(), lastStepEvents: this.lastStepEvents});
+      combatWindows: this.combatWindows, combos: this.combos, brain: this.brain.save(), playerBrain: this.playerBrain.save(), lastStepEvents: this.lastStepEvents});
   }
   load(state) {
     const s = structuredClone(state);
@@ -196,6 +198,7 @@ export class Game {
     if (s.loadouts) this.loadouts = s.loadouts;
     if (s.passiveLoadouts) this.passiveLoadouts = s.passiveLoadouts;
     if (s.passiveIdentity) this.passiveIdentity = s.passiveIdentity;
+    this.combos = s.combos ?? newCombos();   // saves antigos não têm o contador
     this.combatWindows = s.combatWindows ? structuredClone(s.combatWindows) : [null, null];
     for (const f of this.fighters) {
       f.statuses ??= [];f.moveCooldowns ??= {};f.loadout ??= [];f.moveFx ??= [];

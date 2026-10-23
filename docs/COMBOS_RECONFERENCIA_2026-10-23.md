@@ -29,3 +29,10 @@ O teste `prototypes/combat-lab/test/combo-contact-characterization.test.mjs` mon
 Definir e testar a disponibilidade legal de defesa, esquiva e contra-ataque em todos os estados relevantes. Em seguida, introduzir um contador observacional, sem mudar dano, física, permissões ou IA. Integrar o contador ao save/load e à interface somente após verificar deduplicação, reset por resposta legal e elegibilidade de contato corpo a corpo.
 
 O DOCX de origem está em [ARENAMON_SISTEMA_COMBOS_AUDITORIA_PLANO_PROMPT.docx](ARENAMON_SISTEMA_COMBOS_AUDITORIA_PLANO_PROMPT.docx). O trabalho nesta etapa é reconferência; nenhum combo confirmado novo foi implementado neste relatório.
+
+## Etapa 1 entregue: contrato de resposta defensiva e contador observacional
+
+- `test/combo-defense-availability.test.mjs` caracteriza quando D, C e X são aceitos: livre (todos), recuperação de knockback (nenhum), guard stun (D e C; X só entra no buffer), recoil (D e C), e depois de um Tackle que acerta (nenhum durante o voo de ~0,88 s e a recuperação; D, C e X abrem juntos ~1,07 s após o impacto, com 1 passo de diferença entre C e D).
+- Descoberta: a esquiva C **encerra** o guard stun (`stun` vai a 0). Isso permite escapar de uma sequência de golpes bloqueados; decidir se é intencional antes de definir o que encerra um combo.
+- `src/sim/combo.js` + `game.js`: contador **somente leitura** (`game.combos`, com `active` e `last` por atacante). Conta `impact` com dano ao HP e contato `tackle`/`melee`; termina quando o defensor volta a poder agir (`canAct`) ou cai. Entra em `save/load` (saves antigos carregam vazios), `reset` e `snapshot`. Não emite eventos novos, então ids e ticks dos eventos existentes não mudam (testado: Tackle → Quick Attack segue em ids 1 e 3, ticks 9 e 16).
+- Não feito: interface (HUD), tratamento de multi-hit de um mesmo Move, juggle/scaling (D5) e a decisão sobre C no guard stun.
