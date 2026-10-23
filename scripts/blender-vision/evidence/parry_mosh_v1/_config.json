@@ -1,0 +1,28 @@
+{
+ "offset": 0,
+ "size": 480,
+ "armature": null,
+ "mode": "shot",
+ "action": "parry_mosh_v1",
+ "views": [
+  "front",
+  "side_nX",
+  "q3"
+ ],
+ "modes": [
+  "solid"
+ ],
+ "align": "hips",
+ "zoom": null,
+ "zoom_radii": null,
+ "bone_cam": false,
+ "onion_step": 1,
+ "frames": [
+  1,
+  6,
+  14,
+  24
+ ],
+ "out": "C:\\Users\\zerke\\OneDrive\\\u00c1rea de Trabalho\\Arenamon\\scripts\\blender-vision\\evidence\\parry_mosh_v1.tmp-8512",
+ "blend": "C:\\Users\\zerke\\OneDrive\\\u00c1rea de Trabalho\\Arenamon\\chars\\mosh\\Cogumelo_work.blend"
+}
