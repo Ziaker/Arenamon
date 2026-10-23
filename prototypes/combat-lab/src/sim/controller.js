@@ -828,10 +828,10 @@ function startAim(f, def, slot, fighters, world, lockId) {
  * Mira de ALCANCE (Moves de alvo único: Quick Attack, Bullet Punch): segurar o botão só mostra o círculo de alcance ao redor do lutador (azul com alvo dentro, vermelho sem alvo);
  * o corpo segue livre. Soltar executa na hora se houver alvo no alcance; senão não gasta nada e o círculo vermelho pisca (`f.rangeFlash`). Nada é cobrado ao abrir.
  */
-function startRangeAim(f, def, slot) {
+function startRangeAim(f, def, slot, guardHeld = false) {
   const P = structuredClone(C.world[def.group]), range = P[def.needsTarget] ?? 0;
   f.aim = {move: def.id, slot, ticks: 0, params: P, def, range: true, free: true, rangeValue: range, inRange: !!nearestEligible(f, CTX_FIGHTERS, range), pos: {x: f.position.x, z: f.position.z}, y: f.groundY ?? 0, valid: true, reason: null, distance: 0};
-  f.guard = false;f.guardSuppressed = false;
+  f.guard = false;f.guardSuppressed = !!guardHeld;   // com D segurada o toque no slot não é cancelado pela defesa no passo seguinte (como startMove)
   moveEvent(f, {result: 'aimStart', move: def.id, slot, range: true});
 }
 /** Fecha o marcador sem executar nem cobrar. */
@@ -1033,7 +1033,7 @@ function pressSkill(f, cmd, move, desiredHeading, hasTarget, diag, fighters = []
     else deny(perm.reason, perm.detail);
     return;
   }
-  if (def?.needsTarget && movePermission(f, def, slot, {skipTarget: true}).ok) {startRangeAim(f, def, slot);if (diag) report(f, {kind: 'skill', slot, move: def.id, result: 'executed', note: 'círculo de alcance aberto (soltar executa)'});return;}
+  if (def?.needsTarget && movePermission(f, def, slot, {skipTarget: true}).ok) {startRangeAim(f, def, slot, cmd.guard);if (diag) report(f, {kind: 'skill', slot, move: def.id, result: 'executed', note: 'círculo de alcance aberto (soltar executa)'});return;}
   const perm = movePermission(f, def, slot);
   if (perm.ok && def.aimMode) {startAim(f, def, slot, fighters, world, hasTarget ? cmd.target : null);if (diag) report(f, {kind: 'skill', slot, move: def.id, result: 'executed', note: 'marcador aberto'});return;}
   if (perm.ok && def.tackle && !def.moveCast) startTackleMove(f, def, slot, {move, dodgeDirection: cmd.dodgeDirection}, desiredHeading, hasTarget, cmd.guard, fighters);

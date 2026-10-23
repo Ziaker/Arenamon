@@ -1,8 +1,15 @@
 # Patch notes — Laboratório de Combate
 
-Versão atual: **v1.20.0** (22/10/2026). A versão aparece na barra superior do laboratório (tooltip com data de compilação e commit). Para jogar: `JOGAR_ARENAMON.html`.
+Versão atual: **v1.20.1** (22/10/2026). A versão aparece na barra superior do laboratório (tooltip com data de compilação e commit). Para jogar: `JOGAR_ARENAMON.html`.
 
 ---
+
+## v1.20.1 — Caçada de bugs (22/10/2026)
+- **A transparência dos objetos agora funciona de verdade** (plataformas e caixas só mudavam um número; o material opaco ignorava a opacidade). Destrutíveis e rochas chegam à opacidade configurada; arestas acompanham.
+- **Bullet Punch:** a corrida invisível não atravessa mais paredes, não sobe plataforma alta de graça, não pode ser pisada, funciona com a defesa segurada e com dois Bullet Punch ao mesmo tempo.
+- **IA e navegação:** corrigida uma exceção rara que congelaria o jogo quando uma plataforma, obstáculo ou rocha sumia no meio da rota; a rocha do Emerging Stone crescendo deixou de custar ~13 ms por passo; a IA agora sobe a borda (18% → ~76%), sobe em caixas de 2,2 m, não dispara Moves no vazio contra alvo inalcançável e não atrapalha o movimento de Moves em uso; a IA do Emerging Stone conduz o marcador.
+- **Efeitos visuais:** poeira, vento, corrida e esquiva do VFX sólido nascem na plataforma; estilhaços não quicam no ar.
+- Detalhes e causas: `docs/CACADA_BUGS_2026-10-22.md`. Testes: `bugs-cacada.test.mjs` (12) e a ferramenta `fuzz-partidas.mjs`.
 
 ## v1.20.0 — Rodada de 22/10 (tarde): dez ajustes (22/10/2026)
 - **Objetos translúcidos de verdade:** o teste câmera → lutador agora usa a caixa real do objeto (antes uma esfera no centro, que falhava em objetos largos e altos); transição suave e controles em Visualizar.

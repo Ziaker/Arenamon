@@ -74,7 +74,7 @@ function buildDefaults() {
     // spacing: grade de nós do chão (m) · replan: intervalo de replanejamento (s) · jumpReach: alcance horizontal de um salto (m) ·
     // launch: distância ao nó de destino para decolar (m) · stuck*: detecção de travamento · attackMaxHeightDiff: diferença de altura
     // acima da qual o alvo é inalcançável para o tackle (m) · suppressBlockedAttacks: não ataca alvo inalcançável (só impede ataque no vazio).
-    nav: {enableNav: 1, spacing: 1.5, replan: .4, jumpReach: 2.4, jumpMargin: .35, launch: 1.5, arrival: .55, stuckTime: .8, stuckDistance: .12, attackMaxHeightDiff: .8, suppressBlockedAttacks: 1, showDebug: 0, jumpPenalty: 6, dropPenalty: 6},
+    nav: {enableNav: 1, spacing: 1.5, replan: .4, jumpReach: 2.4, jumpMargin: .1, launch: 1.5, arrival: .55, stuckTime: .8, stuckDistance: .12, attackMaxHeightDiff: .8, suppressBlockedAttacks: 1, showDebug: 0, jumpPenalty: 6, dropPenalty: 6},
     // moveSmoothing: giro máximo (rad/s) da intenção de movimento da IA; minDirectionHold: tempo mínimo antes de inverter
     // a intenção (contra zigue-zague). 0 = intenções cruas (v6). Ataques e esquivas nunca são suavizados.
     // revision: 0 = IA tática anterior (15/10/2026); 1 = revisada (valida ações antes de pedir, alcance, sprint, contra-ataque);

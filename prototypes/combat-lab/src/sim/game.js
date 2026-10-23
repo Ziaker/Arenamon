@@ -72,9 +72,12 @@ export class Game {
     this.lastCommands = commands;
     for (const f of this.fighters) {   // Ledge Grab: quem é a IA não sabe «apertar Espaço»; sobe sozinha depois de ledge.aiClimb s pendurada (0 = nunca; cai pelo tempo máximo)
       const lg = f.ledge, L = C.ledge;
-      if (!lg || lg.phase !== 'hang' || !(L.aiClimb > 0) || lg.t < L.aiClimb || finishing) continue;
+      if (!lg || (lg.phase !== 'hang' && lg.phase !== 'snap') || !(L.aiClimb > 0) || finishing) continue;
       const ai = f.id === 1 ? !!C.extras.toggles.enableEnemyAI && !C.extras.toggles.enemyManual : !!C.extras.toggles.enablePlayerAI;
-      if (ai) commands[f.id] = {...(commands[f.id] ?? emptyCommand()), jump: true, move: {x: -lg.n.x, z: -lg.n.z}};
+      if (!ai) continue;
+      // IA pendurada: espera em silêncio (a guarda/esquiva do comando dela contava como «soltar» e ela largava a borda: só 18% de subidas), sobe com Espaço + direção da parede
+      // depois de aiClimb s e, com o topo bloqueado há tempo, larga de propósito.
+      commands[f.id] = lg.t < L.aiClimb ? emptyCommand() : lg.blocked && lg.t >= L.aiClimb + .6 ? {...emptyCommand(), guard: true} : {...emptyCommand(), jump: true, move: {x: -lg.n.x, z: -lg.n.z}};
     }
     for (const f of this.fighters) updateFighter(f, commands[f.id] ?? emptyCommand(), this.fighters, C.test.step, this.world);
     const actions = this.fighters.map(f => f.action), worldEvents = [];

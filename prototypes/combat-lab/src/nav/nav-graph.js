@@ -47,7 +47,7 @@ export function collectSolids(mapState) {
   for (const d of mapState?.destructibles ?? []) {
     if (d.state !== 'solid') continue;   // quebrado/fantasma não bloqueia
     const base = d.pos?.y ?? 0;
-    out.push({id: d.id, kind: 'destructible', shape: 'box', x: d.pos.x, z: d.pos.z, hx: d.size?.hx ?? .8, hz: d.size?.hz ?? .8, r: 0, base, top: base + (d.size?.height ?? 1.6)});
+    out.push({id: d.id, kind: 'destructible', shape: 'box', x: d.pos.x, z: d.pos.z, hx: d.size?.hx ?? .8, hz: d.size?.hz ?? .8, r: 0, base, top: base + (d.targetHeight ?? d.size?.height ?? 1.6)});   // rocha crescendo: o topo FINAL entra no grafo (a altura que cresce a cada passo reconstruía o grafo 49 vezes, ~13 ms por passo)
   }
   return out;
 }

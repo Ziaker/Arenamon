@@ -61,7 +61,7 @@ function driveAim(brain, self, target, c, mv) {
     if ((l <= .45 && a.valid) || a.ticks > 90) hold = false;
   } else {   // Emerging Stone: o cast começa ao pressionar; mantém parado até o cast terminar, mira o marcador no rival e solta
     const to = sub(target.position, a.pos), l = length(to);
-    c.move = {x: 0, z: 0};
+    c.move = a.castLeft <= 0 && l > .6 ? {x: to.x / l, z: to.z / l} : {x: 0, z: 0};   // depois do cast, conduz o marcador até o rival (antes ficava parado e soltava por tempo)
     if (a.castLeft <= 0 && (l <= 1.2 || a.ticks > 150)) hold = false;
   }
   if (hold) c.skillHeld = held(slot);

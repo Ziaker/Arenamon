@@ -5,7 +5,7 @@
 import {C} from '../sim/config.js';
 import {getNavGraph} from './nav-graph.js';
 
-export const NAV_STATE0 = () => ({path: [], i: 0, goal: -1, status: 'idle', age: 0, replanIn: 0, lastX: 0, lastZ: 0, stuckT: 0, stuckCount: 0, jumpCool: 0, plans: 0, hold: false});
+export const NAV_STATE0 = () => ({sig: null, path: [], i: 0, goal: -1, status: 'idle', age: 0, replanIn: 0, lastX: 0, lastZ: 0, stuckT: 0, stuckCount: 0, jumpCool: 0, plans: 0, hold: false});
 
 const cfg = () => Object.assign({replan: .4, arrival: .55, launch: 1.5, stuckTime: .8, stuckDistance: .12, attackMaxHeightDiff: .8}, C.extras.nav ?? {});
 const supportY = f => f.groundY ?? 0;
@@ -25,6 +25,8 @@ export function directlyReachable(nav, a, b) {
 export function navStep({self, target, mapState, state, dt}) {
   const K = cfg(), nav = getNavGraph(mapState);
   const px = self.position.x, pz = self.position.z, py = supportY(self);
+  // O caminho guarda ÍNDICES de nós do grafo: se o layout mudou (rocha/destrutível destruído, plataforma removida) os índices velhos apontam para outro lugar ou para nó inexistente (TypeError).
+  if (state.sig !== nav.signature) {state.sig = nav.signature;state.path = [];state.i = 0;state.replanIn = 0;state.stuckT = 0;}
   state.age += dt;state.replanIn -= dt;state.jumpCool = Math.max(0, state.jumpCool - dt);
   const airborne = !!self.flight;
   const dh = Math.abs(supportY(target) - py);
@@ -52,6 +54,7 @@ export function navStep({self, target, mapState, state, dt}) {
     const nxt = nav.nodes[path[state.i + 1]], e = nav.edgeInfo(path[state.i], path[state.i + 1]), cur = nav.nodes[path[state.i]];
     if (e?.type === 'walk' && Math.abs(py - nxt.y) <= .3 && Math.abs(py - cur.y) <= .3 && nav.clearLine(px, pz, nxt.x, nxt.z, py, cur.surface === 'ground' ? null : cur.surface)) state.i++;
   }
+  if (!nav.nodes[path[state.i]]) {state.path = [];state.i = 0;state.replanIn = 0;return {move: null, jump: false, jumpHeld: false, status: 'noPath', blockAttack: dh > K.attackMaxHeightDiff || !direct, hold: false, nextNode: -1};}
   const node = nav.nodes[path[state.i]], edge = state.i > 0 ? nav.edgeInfo(path[state.i - 1], path[state.i]) : nav.edgeInfo(nav.nearest(px, pz, py).index, path[state.i]);
   const dx = node.x - px, dz = node.z - pz, dist = Math.hypot(dx, dz);
   const atGoal = state.i === path.length - 1 && dist <= K.arrival;

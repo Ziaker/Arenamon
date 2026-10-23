@@ -136,6 +136,14 @@ function buildForceFieldGeometry(segments = 24) {
 }
 
 const OCCLUSION_HEIGHTS = [.25, .8, 1.35];   // pés, meio e cabeça do lutador (m acima do apoio)
+let slabT0 = 0, slabT1 = 1;
+/** Um eixo do teste raio × caixa (sem alocar): estreita [slabT0, slabT1]; false se o raio paralelo está fora da caixa. */
+function slab(o, d, lo, hi) {
+  if (Math.abs(d) < 1e-9) return o >= lo && o <= hi;
+  let a = (lo - o) / d, b = (hi - o) / d;if (a > b) {const t = a;a = b;b = t;}
+  if (a > slabT0) slabT0 = a;if (b < slabT1) slabT1 = b;
+  return slabT0 <= slabT1;
+}
 export class WorldView {
   constructor(scene) {
     this.group = new T.Group();
@@ -581,8 +589,8 @@ export class WorldView {
         }
       } else if (e.kind === 'burrow') {
         const ground = (e.alt ?? 0);m.position.set(e.pos.x, 0, e.pos.z);
+        const P = e.params ?? {}, fxOn = P.fxTrailOn !== 0, S = fxOn ? (P.fxTrailSize ?? 1.8) : 1, heading = Math.atan2(e.to.x - e.from.x, e.to.z - e.from.z), run = Math.hypot(e.pos.x - e.from.x, e.pos.z - e.from.z);
         for (const c of m.children) {
-          const P = e.params ?? {}, fxOn = P.fxTrailOn !== 0, S = fxOn ? (P.fxTrailSize ?? 1.8) : 1, heading = Math.atan2(e.to.x - e.from.x, e.to.z - e.from.z), run = Math.hypot(e.pos.x - e.from.x, e.pos.z - e.from.z);
           if (c.name === 'mound') {c.position.y = ground + .25 * S;c.rotation.y = heading;c.scale.setScalar((.85 + .15 * Math.sin(this.time * 18)) * S);}
           else if (c.name === 'burrowTrail') {   // faixa de terra do ponto de partida até o montículo (sobe do chão e vai afundando para trás)
             c.visible = fxOn && run > .05;c.rotation.y = heading;c.scale.set(.9 * S, .14 * S, Math.max(.01, run));
@@ -979,7 +987,7 @@ export class WorldView {
       if (d.rock) {   // rocha do Emerging Stone: o desenho cresce com a altura exposta (o colisor é o mesmo); rachaduras = escurecer conforme o HP cai, sem encolher
         m.scale.set(d.size.hx * 2, Math.max(.01, d.size.height), d.size.hz * 2);
         const k = Math.max(0, d.hp / (d.maxHp || 5));m.material.color.setRGB(.55 * (.45 + .55 * k), .56 * (.45 + .55 * k), .6 * (.45 + .55 * k));
-        m.visible = true;m.material.opacity = 1;this.checkOcclusion(m, camera, fighters);
+        m.visible = true;this.checkOcclusion(m, camera, fighters);
         continue;
       }
 
@@ -987,8 +995,7 @@ export class WorldView {
       if (d.state === 'solid') {
         m.visible = true;
         m.material.color.setHex(0xd97706);
-        m.material.opacity = 1.0;
-        m.material.depthWrite = true;
+        if (m.userData.wasGhost) {m.material.opacity = 1;m.userData.wasGhost = false;}   // sai da prévia: opaco uma vez; depois a transparência da oclusão manda
         if (hpBar) {
           hpBar.visible = true;
           const hpRatio = Math.max(0, d.hp / (d.maxHp || 30));
@@ -1001,6 +1008,8 @@ export class WorldView {
         // Prévia translúcida antes de tornar sólido (R11.9)
         m.visible = true;
         m.material.color.setHex(0xfef08a);
+        if (!m.material.transparent) {m.material.transparent = true;m.material.needsUpdate = true;}
+        m.userData.wasGhost = true;
         m.material.opacity = 0.32 + 0.22 * Math.sin(this.time * 8);
         m.material.depthWrite = false;
         if (hpBar) hpBar.visible = false;
@@ -1137,23 +1146,21 @@ export class WorldView {
     if (!inside) for (const f of fighters) {
       if (f.hp <= 0 || f.absent) continue;
       const base = altitudeOf(f);
-      for (const h of OCCLUSION_HEIGHTS) {
-        const dx = f.position.x - cx, dy = base + h - cy, dz = f.position.z - cz;
-        let t0 = 0, t1 = .985;   // só até perto do lutador: o que ele pisa ou encosta não o cobre
-        for (const [o, d, lo, hi] of [[cx, dx, x0, x1], [cy, dy, y0, y1], [cz, dz, z0, z1]]) {
-          if (Math.abs(d) < 1e-9) {if (o < lo || o > hi) {t1 = -1;break;}continue;}
-          let a = (lo - o) / d, b = (hi - o) / d;if (a > b) [a, b] = [b, a];
-          t0 = Math.max(t0, a);t1 = Math.min(t1, b);if (t0 > t1) break;
-        }
-        if (t0 <= t1) {occludes = true;break;}
+      for (let hi = 0; hi < OCCLUSION_HEIGHTS.length && !occludes; hi++) {
+        const dx = f.position.x - cx, dy = base + OCCLUSION_HEIGHTS[hi] - cy, dz = f.position.z - cz;
+        slabT0 = 0;slabT1 = .985;   // só até perto do lutador: o que ele pisa ou encosta não o cobre
+        if (slab(cx, dx, x0, x1) && slab(cy, dy, y0, y1) && slab(cz, dz, z0, z1) && slabT0 <= slabT1) occludes = true;
       }
       if (occludes) break;
     }
     const mat = mesh.material, O = C.display.occlusion ?? {occEnabled: 1, occOpacity: .25, occFade: .3}, want = occludes && O.occEnabled ? O.occOpacity : 1;
-    mat.transparent = true;
+    // O material PRECISA nascer/virar transparente com needsUpdate: sem isso o shader opaco (`#define OPAQUE`) força alfa 1 e a opacidade não tem efeito visual (verificado em GPU real).
+    if (!mat.transparent) {mat.transparent = true;mat.needsUpdate = true;}
     mat.opacity += (want - mat.opacity) * Math.max(.02, Math.min(1, O.occFade));
     if (Math.abs(want - mat.opacity) < .01) mat.opacity = want;
     mat.depthWrite = mat.opacity >= .999;
-    if (mat.opacity >= .999) mat.transparent = false;
+    for (const ch of mesh.children) if (ch.isLineSegments && ch.material) {   // o realce de arestas acompanha a transparência
+      const u = ch.userData;u.baseOp ??= ch.material.opacity;ch.material.opacity = u.baseOp * (.25 + .75 * mat.opacity);
+    }
   }
 }

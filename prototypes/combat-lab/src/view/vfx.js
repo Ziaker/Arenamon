@@ -156,12 +156,12 @@ export class VfxSystem {
     if (isReduceMotion) {vx *= 0.25;vy *= 0.25;vz *= 0.25;}
     if (isHighContrast) {alpha = Math.max(0.85, alpha);glow = Math.max(1.8, glow);}
     const lift = this.lift ?? 0;   // altura do apoio (plataforma, caixa) sob o efeito: tudo que nasce "no chão" nasce NO apoio
-    const p = {age: -(o.delay || 0), life: Math.max(.02, o.life ?? .4), x: o.x, y: (o.y ?? 0) + lift, z: o.z, vx, vy, vz, gravity: o.gravity, drag: o.drag, floor: o.floor === undefined ? o.floor : o.floor + lift,
+    const p = {age: -(o.delay || 0), life: Math.max(.02, o.life ?? .4), x: o.x, y: (o.y ?? 0) + lift, z: o.z, vx, vy, vz, gravity: o.gravity, drag: o.drag, floor: o.floor === undefined ? o.floor : o.floor + (this.floorLift ?? lift),
       w: o.w ?? .3, h: o.h ?? o.w ?? .3, grow: o.grow, sizeCurve: o.sizeCurve, stretchCurve: o.stretchCurve, alphaCurve: o.alphaCurve, fade: o.fade, alpha,
       r: Math.min(4, c.r * glow), g: Math.min(4, c.g * glow), b: Math.min(4, c.b * glow), cell: CELLS[o.cell ?? 'dot'], mode: MODE[o.mode ?? 'billboard'], rot: o.rot ?? 0, spin: o.spin, ax: o.ax, ay: o.ay, az: o.az, follow: o.follow};
     (o.additive === false ? this.norm : this.add).add(p);this.stats.spawned++;if (this.emitting) this.stats.byType[this.emitting] = (this.stats.byType[this.emitting] ?? 0) + 1;
   }
-  after(delay, fn) {const lift = this.lift ?? 0;this.timers.push({at: this.time + delay, fn: lift ? () => {const s = this.lift;this.lift = lift;try {fn();} finally {this.lift = s;}} : fn});}
+  after(delay, fn) {const lift = this.lift ?? 0, fl = this.floorLift ?? lift;this.timers.push({at: this.time + delay, fn: lift ? () => {const s = this.lift, sf = this.floorLift;this.lift = lift;this.floorLift = fl;try {fn();} finally {this.lift = s;this.floorLift = sf;}} : fn});}
   reset() {this.add.clear();this.norm.clear();this.timers = [];this.shakes = [];this.emit.clear();this.flash = null;for (const g of this.ghosts) g.obj.visible = false;}
   // ---------- Disparo por eventos da simulação ----------
   /**
@@ -175,11 +175,11 @@ export class VfxSystem {
       if (e.result === 'ledgeGrab') {this.fire('wallImpact', {pos: {x: e.x, z: e.z}, y: e.y, base: e.base, n: e.n, power: .6, w: e.w, h: e.h, arena: false}, `agarre de borda (${(e.w ?? 0).toFixed(1)} × ${(e.h ?? 0).toFixed(1)} m)`);continue;}   // Ledge Grab: reaproveita o impacto vertical, escalado pelo sólido
       const a = fighters[e.attacker], b = fighters[e.target];if (!a || !b) continue;
       const tag = `evento ${e.result} (passo ${e.tick ?? '?'}: ${e.attacker === 0 ? 'azul' : 'vermelho'} → ${e.target === 0 ? 'azul' : 'vermelho'})`;
-      if (e.result === 'impact') {this.fire('hit', {pos: b.position, lift: altitudeOf(b), n: e.normal, power: e.slam ? 1.5 : e.riposte ? 1.9 : 1, damage: e.damage, launch: e.launch}, tag);this.shake(e.slam ? 'shakeGround' : 'shakeHit', e.normal, e.slam ? 1.4 : e.riposte ? (C.world.riposte?.shakeMult ?? 1) : 1, tag);}
-      else if (e.result === 'wallSplat') {this.fire('hit', {pos: b.position, lift: altitudeOf(b), n: e.normal, power: 1.4}, tag);this.shake('shakeClash', e.normal, 1, tag);}
-      else if (e.result === 'footstool') {const n = e.normal ?? {x: 0, z: 0};this.fire('hit', {pos: {x: b.position.x, z: b.position.z}, lift: altitudeOf(b), n, power: 0.7}, tag);this.shake('shakeHit', n, 0.6, tag);}
-      else if (e.result === 'partial') {this.fire('block', {pos: b.position, lift: altitudeOf(b), n: e.normal, power: 1}, tag);this.shake('shakeGuard', e.normal, 1, tag);}
-      else if (e.result === 'perfect') {this.fire('perfect', {pos: b.position, lift: altitudeOf(b), n: e.normal, power: 1, fighters}, tag);this.shake('shakePerfect', e.normal, 1, tag);}
+      if (e.result === 'impact') {this.fire('hit', {pos: b.position, lift: altitudeOf(b), floorLift: b.groundY ?? 0, n: e.normal, power: e.slam ? 1.5 : e.riposte ? 1.9 : 1, damage: e.damage, launch: e.launch}, tag);this.shake(e.slam ? 'shakeGround' : 'shakeHit', e.normal, e.slam ? 1.4 : e.riposte ? (C.world.riposte?.shakeMult ?? 1) : 1, tag);}
+      else if (e.result === 'wallSplat') {this.fire('hit', {pos: b.position, lift: altitudeOf(b), floorLift: b.groundY ?? 0, n: e.normal, power: 1.4}, tag);this.shake('shakeClash', e.normal, 1, tag);}
+      else if (e.result === 'footstool') {const n = e.normal ?? {x: 0, z: 0};this.fire('hit', {pos: {x: b.position.x, z: b.position.z}, lift: altitudeOf(b), floorLift: b.groundY ?? 0, n, power: 0.7}, tag);this.shake('shakeHit', n, 0.6, tag);}
+      else if (e.result === 'partial') {this.fire('block', {pos: b.position, lift: altitudeOf(b), floorLift: b.groundY ?? 0, n: e.normal, power: 1}, tag);this.shake('shakeGuard', e.normal, 1, tag);}
+      else if (e.result === 'perfect') {this.fire('perfect', {pos: b.position, lift: altitudeOf(b), floorLift: b.groundY ?? 0, n: e.normal, power: 1, fighters}, tag);this.shake('shakePerfect', e.normal, 1, tag);}
       else if (e.result === 'clash' && e.attacker === 0) {const mid = {x: (a.position.x + b.position.x) / 2, z: (a.position.z + b.position.z) / 2};this.fire('clash', {pos: mid, lift: (altitudeOf(a) + altitudeOf(b)) / 2, n: e.normal, power: 1}, tag);this.shake('shakeClash', e.normal, 1, tag);}
     }
     fighters.forEach((f, i) => {
@@ -263,7 +263,7 @@ export class VfxSystem {
   /** Efeito pontual (hit, bloqueios, chão, clash): respeita toggle e variante, registra o motivo. */
   fire(type, ctx, reason) {
     if (!this.enabled(type)) {this.record(type, `${reason} · desligado`);return;}
-    this.record(type, reason);const v = C.vfx[type].variant | 0;this.emitting = type;this.lift = ctx?.lift ?? 0;this.stats.firesByType[type] = (this.stats.firesByType[type] ?? 0) + 1;
+    this.record(type, reason);const v = C.vfx[type].variant | 0;this.emitting = type;this.lift = ctx?.lift ?? 0;this.floorLift = ctx?.floorLift ?? ctx?.lift ?? 0;this.stats.firesByType[type] = (this.stats.firesByType[type] ?? 0) + 1;
     const handlers = {
       hit: [this.hitA, this.hitB, this.hitC, this.hitD],
       block: [this.blockA, this.blockB, this.blockC, this.blockD],
@@ -275,11 +275,13 @@ export class VfxSystem {
       rock: [this.rockA, this.rockB, this.rockC],
       barrier: [this.barrierA, this.barrierB, this.barrierC]
     };
-    const list = handlers[type];
-    if (list) (list[v] ?? list[0]).call(this, C.vfx[type], ctx);
-    // Bloqueio: brilho de contato sempre voltado para a câmera, para o feedback nunca sumir (escudos planos podem ficar de perfil).
-    if (type === 'block' && v !== 0) {const p = this.frontOf(ctx.pos, ctx.n, .5), c = C.vfx.block;this.spawn({x: p.x, y: .8, z: p.z, life: c.duration * .4, w: .55 * c.size, cell: 'spark', color: c.color, glow: 1.3 * c.intensity, alpha: c.opacity, grow: .6 * c.expansion, fade: 1.5});}
-    this.emitting = null;this.lift = 0;
+    try {
+      const list = handlers[type];
+      if (list) (list[v] ?? list[0]).call(this, C.vfx[type], ctx);
+      // Bloqueio: brilho de contato sempre voltado para a câmera, para o feedback nunca sumir (escudos planos podem ficar de perfil).
+      if (type === 'block' && v !== 0) {const p = this.frontOf(ctx.pos, ctx.n, .5), c = C.vfx.block;this.spawn({x: p.x, y: .8, z: p.z, life: c.duration * .4, w: .55 * c.size, cell: 'spark', color: c.color, glow: 1.3 * c.intensity, alpha: c.opacity, grow: .6 * c.expansion, fade: 1.5});}
+
+    } finally {this.emitting = null;this.lift = 0;this.floorLift = 0;}
   }
   /** Efeitos contínuos (esquiva, sprint, exaustão, regeneração): emissão por intervalo, por lutador. */
   stream(type, f, dt, ctx) {

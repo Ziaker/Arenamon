@@ -337,7 +337,7 @@ export function stepPhysics(fighters, dt, world = null) {
         const bodyH = C.extras?.visual?.bodyHeight ?? 1.2, tol = M.footstoolTolerance ?? 0.12;
         const reach = 2 * C.test.halfExtent + tol;
         for (const b of fighters) {
-          if (b === f || b.hp <= 0 || b.wallSplat || f.footstoolDoneWith === b.id) continue;
+          if (b === f || b.hp <= 0 || b.absent || b.wallSplat || f.footstoolDoneWith === b.id) continue;   // ausente (Bullet Punch): sem corpo, não pode ser pisado
           if (Math.abs(f.position.x - b.position.x) > reach || Math.abs(f.position.z - b.position.z) > reach) continue;
           const bTop = altitudeOf(b) + bodyH;
           if (flight.vy > -(M.footstoolMinFallSpeed ?? 1.0)) continue;          // só queda real e suficiente
@@ -369,7 +369,7 @@ export function stepPhysics(fighters, dt, world = null) {
         const bodyH = C.extras?.visual?.bodyHeight ?? 1.2, tol = M.footstoolTolerance ?? 0.12, reach = 2 * C.test.halfExtent + tol, margin = M.footstoolVaultMargin ?? .35;
         const feetNow = (f.groundY ?? 0) + J.y, feetPrev = (f.groundY ?? 0) + (J.prevY ?? J.y);
         for (const b of fighters) {
-          if (b === f || b.hp <= 0 || b.wallSplat || f.footstoolDoneWith === b.id) continue;
+          if (b === f || b.hp <= 0 || b.absent || b.wallSplat || f.footstoolDoneWith === b.id) continue;   // ausente (Bullet Punch): sem corpo, não pode ser pisado
           if (Math.abs(f.position.x - b.position.x) > reach || Math.abs(f.position.z - b.position.z) > reach) continue;
           const bTop = altitudeOf(b) + bodyH, eff = bTop - margin;
           if (!(feetPrev >= eff - tol && feetNow <= eff + tol)) continue;

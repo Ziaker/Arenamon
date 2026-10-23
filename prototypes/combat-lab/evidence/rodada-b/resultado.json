@@ -26,6 +26,11 @@
       "detail": "opacidade 0.25 (caixa em x=-0.8 z=-2.7)"
     },
     {
+      "label": "pixel real: com a oclusão ligada o lutador (azul) aparece através do objeto; desligada, o objeto o esconde",
+      "ok": true,
+      "detail": "{\"on\":[47,106,190,255],\"off\":[40,51,66,255]}"
+    },
+    {
       "label": "fora da frente do lutador volta a ser opaco",
       "ok": true,
       "detail": "opacidade 1.00"
@@ -68,7 +73,7 @@
     {
       "label": "Emerging Stone: o projétil subterrâneo deixa sulco de terra, torrões saltando e um montículo maior (1,8×)",
       "ok": true,
-      "detail": "{\"trail\":true,\"len\":4.88,\"clods\":16,\"mound\":1.42}"
+      "detail": "{\"trail\":true,\"len\":4.75,\"clods\":16,\"mound\":1.32}"
     },
     {
       "label": "sem erros de página e sem rede externa",

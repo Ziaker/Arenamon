@@ -50,7 +50,7 @@ export class RiposteFx {
     for (const e of events) {
       if (e.result !== 'impact' || !e.riposte || this.seen.has(e)) continue;
       this.seen.add(e);
-      const me = fighters[e.attacker], foe = fighters[e.target], P = me?.action?.params ?? C_RIPOSTE(), k = P.fxOn === 0 || P.blastOn === 0 ? 0 : (P.fxIntensity ?? 1);
+      const me = fighters[e.attacker], foe = fighters[e.target], P = me?.action?.def?.riposte ? me.action.params : C_RIPOSTE(), k = P.fxOn === 0 || P.blastOn === 0 ? 0 : (P.fxIntensity ?? 1);
       if (!foe || !k) continue;
       this.blasts.push(this.makeBlast(o, foe.position, (foe.flight?.y ?? foe.groundY ?? 0) + (foe.vaultHeight ?? 0), (P.blastSize ?? 1.5) * (P.fxSize ?? 1), k * cap, e.normal));
     }

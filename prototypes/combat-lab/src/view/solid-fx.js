@@ -162,7 +162,7 @@ export class SolidFx {
   put(o, F, clone = false) {
     if (this.all.length >= this.cap() || !this.free.length) { this.stats.rejected++; return false; }
     const reduce = this.accessibility.reduceMotion || C.vfx.master?.reduceMotion, hc = this.accessibility.highContrast || C.vfx.master?.highContrast;
-    const kr = reduce ? .25 : 1, vel = (F?.velocity ?? 1) * kr, sc = F?.scatter ?? 1, lift = F?.lift ?? 1, tb = F?.turbulence ?? 1, op = F?.opacity ?? 1, org = this.origin, by = this.baseY ?? 0, p = this.free.pop();
+    const kr = reduce ? .25 : 1, vel = (F?.velocity ?? 1) * kr, sc = F?.scatter ?? 1, lift = F?.lift ?? 1, tb = F?.turbulence ?? 1, op = F?.opacity ?? 1, org = this.origin, by = this.baseY ?? 0, fby = this.floorY ?? by, p = this.free.pop();
     const col = this.col.set(o.color ?? 0xffffff); if (hc) col.lerp(this.white, .35);
     const jit = clone ? .35 : 0, j = () => (this.rnd() - .5) * 2 * jit;
     let x = o.x, z = o.z; if (org) { x = org.x + (x - org.x) * sc; z = org.z + (z - org.z) * sc; }
@@ -176,12 +176,12 @@ export class SolidFx {
     Object.assign(p, {to: o.to ? {...o.to, y: (o.to.y ?? 0) + by} : null, tt: Math.max(.01, o.tt || 0), x0: x, y0: (o.y ?? 0) * lift + by, z0: z, fadeStart: fs0, fadeEnd: fe0, blob, cluster, shape: o.shape ?? 'chunk', mat: (o.mat === 'smoke' && !blob) ? 'lit' : (o.mat ?? 'lit'), x, y: (o.y ?? 0) * lift + by, z, vx, vy, vz, orb, tbAmp: Math.max(0, tb - 1) * 5,
       gx: o.gx || 0, gy: o.gy ?? 0, drag: o.drag ?? 0, swirl: (o.swirl || 0) * tb, life: Math.max(.05, o.life ?? .6), age: -(o.delay || 0),
       sx: (o.sx ?? o.s ?? .1) * (squash ? .95 + this.rnd() * .15 : 1), sy: (o.sy ?? o.s ?? .1) * (squash ? .82 + this.rnd() * .14 : 1), sz: (o.sz ?? o.s ?? .1) * (squash ? .95 + this.rnd() * .15 : 1), grow: o.grow || 0, growY: o.growY ?? o.grow ?? 0, growL: o.growL || 0,
-      rx: o.rx || 0, ry: o.ry ?? (squash ? this.rnd() * 6.28 : 0), rz: o.rz || 0, wx: (o.wx || 0) * kr * tb, wy: (o.wy || 0) * kr * tb, wz: (o.wz || 0) * kr * tb, align: !!o.align, floor: o.floor == null ? null : o.floor + by,
+      rx: o.rx || 0, ry: o.ry ?? (squash ? this.rnd() * 6.28 : 0), rz: o.rz || 0, wx: (o.wx || 0) * kr * tb, wy: (o.wy || 0) * kr * tb, wz: (o.wz || 0) * kr * tb, align: !!o.align, floor: o.floor == null ? null : o.floor + fby,
       pop: o.pop ?? .12, hold: o.hold ?? .5, mode: o.mode || 0, seed: this.rnd(), r: col.r, g: col.g, b: col.b, alpha, bounce: o.bounce ?? .28, rest: false});
     this.all.push(p); this.stats.spawned++; return true;
   }
   /** Agenda uma ação com os mesmos controles de família que estavam ativos no disparo. */
-  after(delay, fn) { const fam = this.fam, origin = this.origin, by = this.baseY ?? 0; this.timers.push({at: this.time + delay, fn: () => { const f0 = this.fam, o0 = this.origin, b0 = this.baseY; this.fam = fam; this.origin = origin; this.baseY = by; try { fn(); } finally { this.fam = f0; this.origin = o0; this.baseY = b0; } }}); }
+  after(delay, fn) { const fam = this.fam, origin = this.origin, by = this.baseY ?? 0, fy = this.floorY ?? by; this.timers.push({at: this.time + delay, fn: () => { const f0 = this.fam, o0 = this.origin, b0 = this.baseY, y0 = this.floorY; this.fam = fam; this.origin = origin; this.baseY = by; this.floorY = fy; try { fn(); } finally { this.fam = f0; this.origin = o0; this.baseY = b0; this.floorY = y0; } }}); }
   r(a, b) { return a + this.rnd() * (b - a); }
   reset() { for (const p of this.all) this.free.push(p); this.all.length = 0; this.timers = []; this.scripts = []; this.state = {}; this.landings = []; this.log = []; this.fam = null; this.origin = null; this.cur = null; this.smoke.clear(); this.group.visible = true; for (const m of this.meshes.values()) m.count = 0; }
   dispose() { this.reset(); for (const g of Object.values(this.geometries)) g.dispose(); for (const g of this.wrappers.values()) g.dispose(); for (const m of Object.values(this.materials)) m.dispose(); for (const m of this.meshes.values()) m.dispose(); this.smoke.dispose(); this.scene.remove(this.group); }
@@ -196,9 +196,9 @@ export class SolidFx {
         if (e.result === 'chargeRelease' && e.move === 'reflect') { this.onReflect(e, world); continue; }
         const a = fighters[e.attacker], b = fighters[e.target]; if (!a || !b) continue;
         const n = e.normal ? this.unit(e.normal.x, e.normal.z) : this.unit(b.position.x - a.position.x, b.position.z - a.position.z);
-        if (e.result === 'impact') {this.fire('solidImpact', {pos: b.position, lift: altitudeOf(b), n, power: 1}, `golpe ${e.attacker}→${e.target}`);}
-        else if (e.result === 'partial') this.fire('solidBlock', {pos: b.position, lift: altitudeOf(b), n, power: 1}, 'defesa parcial');
-        else if (e.result === 'perfect') this.fire('solidBlock', {pos: b.position, lift: altitudeOf(b), n, power: 1.7}, 'defesa perfeita');
+        if (e.result === 'impact') {this.fire('solidImpact', {pos: b.position, lift: altitudeOf(b), floorLift: b.groundY ?? 0, n, power: 1}, `golpe ${e.attacker}→${e.target}`);}
+        else if (e.result === 'partial') this.fire('solidBlock', {pos: b.position, lift: altitudeOf(b), floorLift: b.groundY ?? 0, n, power: 1}, 'defesa parcial');
+        else if (e.result === 'perfect') this.fire('solidBlock', {pos: b.position, lift: altitudeOf(b), floorLift: b.groundY ?? 0, n, power: 1.7}, 'defesa perfeita');
         else if (e.result === 'clash' && e.attacker === 0) this.fire('solidClash', {pos: {x: (a.position.x + b.position.x) / 2, z: (a.position.z + b.position.z) / 2}, lift: (altitudeOf(a) + altitudeOf(b)) / 2, n, power: 1}, 'clash');
       }
       fighters.forEach((f, i) => {
@@ -258,7 +258,7 @@ export class SolidFx {
       if (kind === 'dodge') this.burst(f, s, 'dash', key); else this.runTick(f, s, kind === 'coast' ? clamp((s.speed - 1.2) / 4, 0, 1) : 1);
     }
   }
-  dodgeFx(f, s, key) { if (!s.solo || s.solo === 'solidDodge') this.fire('solidDodge', {pos: f.position, dir: s.dir, power: 1}, `esquiva ${key === 1 ? 'vermelho' : 'azul'}`); }
+  dodgeFx(f, s, key) { if (!s.solo || s.solo === 'solidDodge') this.fire('solidDodge', {pos: f.position, lift: altitudeOf(f), dir: s.dir, power: 1}, `esquiva ${key === 1 ? 'vermelho' : 'azul'}`); }
   /** Rajada de dash/arrancada/parada: poeira e vento (cada família com o seu estilo, intensidade e cores). */
   burst(f, s, phase, i) { this.dust(f, s, phase, i); this.wind(f, s, phase, i); }
 
@@ -309,7 +309,7 @@ export class SolidFx {
     this.record(key, variant, reason);
     const q = C.vfx.solid.quality ?? 1, I = (c.intensity ?? 1) * (ctx.power ?? 1), S = c.size ?? 1, D = c.duration ?? 1, cnt = n => Math.max(1, Math.round(n * (q === 0 ? .55 : q === 2 ? 1.4 : 1) * Math.min(1.6, .6 + .4 * I)));
     const o = {c, I, S, D, cnt, qk: q === 0 ? .55 : q === 2 ? 1.4 : 1, ...ctx};
-    this.fam = c; this.cur = null; this.origin = ctx.pos; this.baseY = ctx.lift ?? 0;
+    this.fam = c; this.cur = null; this.origin = ctx.pos; this.baseY = ctx.lift ?? 0; this.floorY = ctx.floorLift ?? ctx.lift ?? 0;
     try { (key === 'solidReflect' ? REFLECT_FX : BUILD[key])[key === 'solidReflect' ? variant : variant].call(this, o); } finally { this.fam = null; this.origin = null; this.baseY = 0; }
   }
 
@@ -362,16 +362,16 @@ export class SolidFx {
     if (!this.on('solidDust') || this.muted(s, 'solidDust')) return;
     const c = C.vfx.solidDust, v = s.ov?.solidDust ?? clamp(c.variant | 0, 0, BUILD_DUST.length - 1), ctx = this.motionCtx('solidDust', f, s, phase);
     this.logMotion('solidDust', v, phase, s);
-    this.fam = c; this.cur = null; this.origin = f.position;
-    try { BUILD_DUST[v].call(this, ctx); } finally { this.fam = null; this.origin = null; }
+    this.fam = c; this.cur = null; this.origin = f.position; this.baseY = this.floorY = altitudeOf(f);
+    try { BUILD_DUST[v].call(this, ctx); } finally { this.fam = null; this.origin = null; this.baseY = this.floorY = 0; }
   }
   /** Vento (dash, arrancada, parada). */
   wind(f, s, phase, i) {
     if (!this.on('solidWind') || this.muted(s, 'solidWind')) return;
     const c = C.vfx.solidWind, v = s.ov?.solidWind ?? clamp(c.variant | 0, 0, WIND.length - 1), ctx = this.motionCtx('solidWind', f, s, phase);
     this.logMotion('solidWind', v, phase, s);
-    this.fam = c; this.cur = null; this.origin = f.position;
-    try { WIND[v].call(this, ctx); } finally { this.fam = null; this.origin = null; }
+    this.fam = c; this.cur = null; this.origin = f.position; this.baseY = this.floorY = altitudeOf(f);
+    try { WIND[v].call(this, ctx); } finally { this.fam = null; this.origin = null; this.baseY = this.floorY = 0; }
   }
   /** Emissão contínua da corrida (um tick): poeira e vento próprios do sprint; `taper` < 1 na desaceleração. */
   runTick(f, s, taper) {
@@ -379,8 +379,8 @@ export class SolidFx {
       if (!this.on(key) || this.muted(s, key)) continue;
       const c = C.vfx[key], v = s.ov?.[key] ?? clamp(c.variant | 0, 0, list.length - 1), ctx = {...this.motionCtx(key, f, s, 'run'), taper};
       this.logMotion(key, v, taper < 1 ? 'desaceleração' : 'corrida', s);
-      this.fam = c; this.cur = null; this.origin = f.position;
-      try { list[v].call(this, ctx); } finally { this.fam = null; this.origin = null; }
+      this.fam = c; this.cur = null; this.origin = f.position; this.baseY = this.floorY = altitudeOf(f);
+      try { list[v].call(this, ctx); } finally { this.fam = null; this.origin = null; this.baseY = this.floorY = 0; }
     }
   }
   logMotion(key, v, phase, s) {

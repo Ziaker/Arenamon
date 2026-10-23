@@ -2,6 +2,17 @@
 
 Este arquivo separa **o que foi efetivamente executado** do que **permanece pendente**. Registre aqui data, commit-base, comando e resultado; nunca marque como executado o que não foi.
 
+## Execução de 2026-10-22 (caçada de bugs, v1.20.1)
+
+| Verificação | Resultado |
+|---|---|
+| `bugs-cacada.test.mjs` | 12 aprovados; B1–B5 e as de navegação **falham no código anterior** (confirmado revertendo as correções) |
+| `npm run typecheck` | sem erros |
+| Suíte unitária do laboratório (108 arquivos) | 107 aprovados; `combat-windows` falha só na pasta isolada (GLB local não versionado) |
+| Varredura `fuzz-partidas.mjs` | ~150 partidas por rodada, 0 achados após as correções |
+| Navegador: `rodada-b` 16 (agora com leitura de PIXEL real da transparência), `ledge` 9, `ui-rodada-22-10` 16, `overhaul` 117, `moves-ui` 31, `moves-new` 13, `nav-lab` 9, `tuning-export` | todos aprovados |
+| **Não verificado** | aparência/sensação; `npm test` completo; congelamento do laço por exceção (inferido do código, não rodado no navegador) |
+
 ## Execução de 2026-10-22 (rodada da tarde, v1.20.0)
 
 | Verificação | Resultado |
