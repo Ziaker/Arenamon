@@ -2,6 +2,17 @@
 
 Este arquivo separa **o que foi efetivamente executado** do que **permanece pendente**. Registre aqui data, commit-base, comando e resultado; nunca marque como executado o que não foi.
 
+## Execução de 2026-10-22 (pré-jogo A/B/C, v1.21.0)
+
+| Verificação | Resultado |
+|---|---|
+| `prejogo.test.mjs` (modelo: registro × catálogo, passivas, regras) | 6 aprovados |
+| `prejogo.browser.mjs` (Edge real, offline, modelos reais) | 40 aprovados; capturas em `evidence/prejogo/` |
+| `animation.test.mjs` (novo teste: modelo sem idle) | 16 testes / 72 verificações |
+| Crash `clipAction` com Cogumelo × drowzee-knockback | 11/12 na build oficial v1.20.1 → 0/12 na nova |
+| Revisão independente (superpowers:requesting-code-review) | 16 itens; importantes corrigidos (ver `docs/PREJOGO_3_ESTILOS.md`) |
+| **Não verificado** | aparência/sensação; zoom do navegador a 200%; gamepad no menu; `npm test` completo; «Superskills» (recurso inexistente no ambiente) |
+
 ## Execução de 2026-10-22 (caçada de bugs, v1.20.1)
 
 | Verificação | Resultado |

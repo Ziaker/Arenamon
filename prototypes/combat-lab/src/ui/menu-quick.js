@@ -46,17 +46,30 @@ export function createQuickMenu({$, game, ui, passivesPanel}) {
     previews[slot].setCharacter(ui.characters[slot]);
     updateCharLabel(slot);
   }
-  async function selectChar(slot, modelId) {
+  /** O <select> nativo acompanha SEMPRE o estado (senão refreshModels() leria o valor velho e desfaria a escolha feita nas telas A/B/C). */
+  function syncCharSelect(slot, modelId) {
+    const sel = $(`quick-char-${slot}`);
+    if (sel && [...sel.options].some(o => o.value === (modelId ?? ''))) sel.value = modelId ?? '';
+  }
+  const charBusy = [Promise.resolve(), Promise.resolve()];   // uma troca de personagem por vez em cada lutador (cliques rápidos não competem)
+  function selectChar(slot, modelId) {
     state.char[slot] = modelId;
-    if (!modelId) return;   // “manter o carregado”
-    if (ui.sources[slot]?.assetId !== modelId) {
-      const sel = $(`quick-char-${slot}`);
-      if (sel) sel.disabled = true;
-      try {if (wsUI) await wsUI.reopen(slot, {modelId});} finally {if (sel) sel.disabled = false;}
-    }
-    renderPassives(slot);   // a espécie pode mudar com o modelo
-    updatePreview(slot);
-    emit('char', slot);
+    syncCharSelect(slot, modelId);
+    const done = () => {renderPassives(slot);updatePreview(slot);emit('char', slot);};   // a espécie pode mudar com o modelo
+    if (!modelId) {done();return Promise.resolve();}   // “manter o carregado”
+    const run = async () => {
+      if (ui.sources[slot]?.assetId !== modelId) {
+        const sel = $(`quick-char-${slot}`);
+        if (sel) sel.disabled = true;
+        try {const r = wsUI ? await wsUI.reopen(slot, {modelId}) : null;if (r?.error) throw new Error(String(r.error));} catch (e) {
+          console.error('menu-quick: não foi possível abrir o personagem', e);
+          if (ui.sources[slot]?.assetId !== modelId) {state.char[slot] = null;syncCharSelect(slot, null);}   // a escolha não vale: o carregado continua
+        } finally {if (sel) sel.disabled = false;}
+      }
+      done();
+    };
+    charBusy[slot] = charBusy[slot].then(run, run);
+    return charBusy[slot];
   }
   /** Repõe a lista de personagens salvos; reaplica a escolha pendente (vinda da persistência). */
   async function refreshModels() {
@@ -159,8 +172,8 @@ export function createQuickMenu({$, game, ui, passivesPanel}) {
     const dt = Math.min(.05, Math.max(0, (now - lastT) / 1000));
     lastT = now;
     const menu = $('menu');
-    if (menu && !menu.hidden) for (const p of previews) p.tick(dt);
-    requestAnimationFrame(loop);
+    requestAnimationFrame(loop);   // primeiro: uma falha numa prévia não pode parar o laço das duas
+    if (menu && !menu.hidden) for (const p of previews) {try {p.tick(dt);} catch (e) {console.error('menu-quick: prévia falhou', e);}}
   })(performance.now());
 
   // ---------- Inicialização dos controles ----------
@@ -171,7 +184,7 @@ export function createQuickMenu({$, game, ui, passivesPanel}) {
     /** Chamar quando o workspace terminar de inicializar (store/wsUI disponíveis). */
     attachWorkspace(boot) {store = boot?.store ?? null;wsUI = boot?.wsUI ?? null;return refreshModels();},
     /** Modelos/personagens mudaram (carregado, removido, importado): repõe lista e prévias. */
-    refresh() {renderPassives(0);renderPassives(1);updatePreview(0);updatePreview(1);return refreshModels();},
+    refresh() {renderPassives(0);renderPassives(1);updatePreview(0);updatePreview(1);emit('char', -1);return refreshModels();},
     /** Aplica tudo no jogo (chamar antes de startMatch): moves dos dois lutadores + passivas no painel. */
     applyAll() {
       for (const slot of SLOTS) game.setLoadout(slot, state.moves[slot]);

@@ -2,10 +2,11 @@
   "controls": 7,
   "undo": "Ctrl+Z aprovado nos sete controles",
   "model": "chars/mosh/Cogumelo.glb",
-  "stretched": 1.3,
+  "stretched": 1.4649999999999999,
   "volume": 1,
   "unchangedBones": true,
   "neutral": 1,
   "clips": 47,
+  "expected": 1.4649999999999999,
   "errors": []
 }

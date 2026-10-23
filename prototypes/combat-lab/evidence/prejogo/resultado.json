@@ -16,6 +16,11 @@
       "detail": "{\"visible\":true,\"classic\":true,\"ids0\":true,\"ids1\":true,\"canv\":[true,true],\"sp\":[[\"effect-spore\",\"sturdy\"],[\"forewarn\",\"inner-focus\"]],\"species\":[\"mush\",\"drowzee\"],\"cls\":\"qs qs-a\"}"
     },
     {
+      "label": "estilo A: Moves em 4 cores (Normal · Burst · Charge · Destino) e passivas em 2 (Permanente · Gatilho), todas diferentes entre si",
+      "ok": true,
+      "detail": "{\"moves\":[\"#ff7a1a\",\"#ff2b3f\",\"#ffd400\",\"#19c8ff\"],\"passives\":[\"#ffd400\",\"#19c8ff\"]}"
+    },
+    {
       "label": "estilo A: passivas exclusivas só da espécie atual (azul mush, vermelho drowzee) e genéricas sempre",
       "ok": true,
       "detail": "[[\"effect-spore\",\"sturdy\"],[\"forewarn\",\"inner-focus\"]]"
@@ -26,6 +31,11 @@
       "detail": "{\"visible\":true,\"classic\":true,\"ids0\":true,\"ids1\":true,\"canv\":[true,true],\"sp\":[[\"effect-spore\",\"sturdy\"],[\"forewarn\",\"inner-focus\"]],\"species\":[\"mush\",\"drowzee\"],\"cls\":\"qs qs-b\"}"
     },
     {
+      "label": "estilo B: Moves em 4 cores (Normal · Burst · Charge · Destino) e passivas em 2 (Permanente · Gatilho), todas diferentes entre si",
+      "ok": true,
+      "detail": "{\"moves\":[\"#ff4fa3\",\"#ffd60a\",\"#ff3b30\",\"#19b5e8\"],\"passives\":[\"#ff3b30\",\"#19b5e8\"]}"
+    },
+    {
       "label": "estilo B: passivas exclusivas só da espécie atual (azul mush, vermelho drowzee) e genéricas sempre",
       "ok": true,
       "detail": "[[\"effect-spore\",\"sturdy\"],[\"forewarn\",\"inner-focus\"]]"
@@ -34,6 +44,11 @@
       "label": "estilo C: tela visível, menu atual escondido, candidatos = registro executável (azul e vermelho), canvases das prévias reparentados",
       "ok": true,
       "detail": "{\"visible\":true,\"classic\":true,\"ids0\":true,\"ids1\":true,\"canv\":[true,true],\"sp\":[[\"effect-spore\",\"sturdy\"],[\"forewarn\",\"inner-focus\"]],\"species\":[\"mush\",\"drowzee\"],\"cls\":\"qs qs-c\"}"
+    },
+    {
+      "label": "estilo C: Moves em 4 cores (Normal · Burst · Charge · Destino) e passivas em 2 (Permanente · Gatilho), todas diferentes entre si",
+      "ok": true,
+      "detail": "{\"moves\":[\"#a78bfa\",\"#5aa9ff\",\"#fbbf24\",\"#2dd4bf\"],\"passives\":[\"#fbbf24\",\"#4ade80\"]}"
     },
     {
       "label": "estilo C: passivas exclusivas só da espécie atual (azul mush, vermelho drowzee) e genéricas sempre",
@@ -73,7 +88,7 @@
     {
       "label": "three.quarks: cada seleção dispara rajadas na cena da prévia (contagem emitida > 0)",
       "ok": true,
-      "detail": "[{\"emitted\":12,\"active\":5},{\"emitted\":4,\"active\":0}]"
+      "detail": "[{\"emitted\":12,\"active\":4},{\"emitted\":4,\"active\":0}]"
     },
     {
       "label": "A→B→C→A (e passando por «Atual»): seleções, loadout do jogo, tick, fase e vida idênticos — nenhum reset, nenhuma partida iniciada",
@@ -96,9 +111,9 @@
       "detail": "[\"reflect\",\"psyshock\",\"second-wind\",null]"
     },
     {
-      "label": "o foco do teclado tem contorno visível",
+      "label": "o foco do teclado é visível (contorno; no estilo A, onde o recorte corta o contorno, fundo amarelo)",
       "ok": true,
-      "detail": "solid"
+      "detail": "none|rgb(255, 212, 0)"
     },
     {
       "label": "teclado: setas no seletor de estilo trocam A → B (grupo de rádio)",
@@ -106,9 +121,19 @@
       "detail": ""
     },
     {
+      "label": "«Carregado» (selectCharacter null) emite a mudança e mantém o <select> nativo em sincronia; um gancho que lança não para a prévia",
+      "ok": true,
+      "detail": "{\"evs\":[\"char:0\"],\"sel\":\"\",\"ticks\":24}"
+    },
+    {
+      "label": "esvaziar um slot pelo teclado não joga o foco para fora do menu (o foco volta ao botão do mesmo slot)",
+      "ok": true,
+      "detail": "{\"inMenu\":true,\"tag\":\"qs-slot-main\"}"
+    },
+    {
       "label": "Iniciar combate usa EXATAMENTE as escolhas visíveis (Moves dos dois lutadores no motor)",
       "ok": true,
-      "detail": "[[\"quick-attack\",null,null,\"harden\"],[\"reflect\",\"psyshock\",\"second-wind\",null]]"
+      "detail": "[[\"reflect\",null,null,\"harden\"],[\"reflect\",\"psyshock\",\"second-wind\",null]]"
     },
     {
       "label": "as passivas escolhidas chegam ao motor (mesmo conjunto)",
@@ -123,7 +148,7 @@
     {
       "label": "prefers-reduced-motion: sem animações CSS e sem rajadas three.quarks (a seleção segue legível por forma, cor e texto)",
       "ok": true,
-      "detail": "{\"anim\":\"\",\"before\":20,\"after\":20}"
+      "detail": "{\"anim\":\"\",\"before\":23,\"after\":23}"
     },
     {
       "label": "1280×720 estilo A: sem rolagem horizontal, dentro da área do menu, botão Iniciar acessível",
@@ -166,7 +191,7 @@
       "detail": ""
     },
     {
-      "label": "sem erros de página e sem rede externa (menu com modelos)",
+      "label": "sem erros de página e sem rede externa (menu com modelos, partida de 5 s incluída)",
       "ok": true,
       "detail": ""
     },

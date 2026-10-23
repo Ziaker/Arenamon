@@ -10,8 +10,9 @@
 .qs-sw:focus-visible,.qs button:focus-visible{outline:3px solid #5fe1ff;outline-offset:2px}
 
 /* ---------- estrutura comum ---------- */
+.card .qs button,.card .qs-switch button{margin:0}   /* `.card button` (styles.css) dava 4px de margem aos botões novos */
 .card.quick-start-card.qs-on{max-width:min(1560px,100%);width:100%;max-height:100%;overflow:auto;padding:14px 18px;box-sizing:border-box}
-#menu:has(.qs-on){z-index:45;padding:6px;box-sizing:border-box}
+#menu:has(.qs-on){z-index:12;padding:6px;box-sizing:border-box}
 .qs-on h1{font-size:20px;margin:0}.qs-on .subtitle{margin:0 0 6px;font-size:11px}.qs-on .qs-switch{margin-bottom:8px}   /* o menu estilizado fica acima das placas de passivas/HUD que o laboratório desenha atrás do menu */
 .qs-on .quick-actions{position:sticky;bottom:-14px;z-index:5;padding:10px 0 6px;margin-top:8px}
 .qs-on[data-qs-style="a"] .quick-actions{background:linear-gradient(#14141c00,#14141c 38%)}.qs-on[data-qs-style="b"] .quick-actions{background:linear-gradient(#fff4d600,#fff4d6 38%)}.qs-on[data-qs-style="c"] .quick-actions{background:linear-gradient(#0e142100,#0e1421f0 38%)}
@@ -85,6 +86,7 @@
 .qs-a .qs-status{font-family:"Segoe UI",sans-serif;font-style:normal;font-weight:700;display:inline-block;padding:2px 10px;transform:skewX(-14deg)}
 .qs-a .qs-status.ok{background:var(--yel);color:var(--ink)}.qs-a .qs-status.warn{background:var(--red);color:#fff;animation:qsApulse .55s steps(2) infinite}   /* .a-badge e aPulse */
 @keyframes qsApulse{50%{opacity:.55}}@keyframes qsAglint{0%{background-position:130% 0}100%{background-position:-30% 0}}
+.qs-a .qs-slot-main:focus-visible,.qs-a .qs-pslot:focus-visible,.qs-a .qs-card:focus-visible,.qs-a .qs-clear:focus-visible{outline:none;background-color:var(--yel);color:var(--ink)}   /* o contorno é cortado pelo clip-path: o foco do teclado vira fundo amarelo */
 .qs-a .qs-sw[aria-checked="true"]{background:var(--red,#ff2b3f);border-color:#0a0a0f}
 .qs-on[data-qs-style="a"]{background:#14141c;border:3px solid #f8f5ee;outline:3px solid #0a0a0f}.qs-on[data-qs-style="a"] h1{font-family:Impact,sans-serif;font-style:italic;color:#f8f5ee;text-shadow:3px 3px 0 #ff2b3f}
 .qs-on[data-qs-style="a"] .qs-sw{font-family:Impact,sans-serif;font-style:italic;background:#0a0a0f;color:#f8f5ee;border:2px solid #f8f5ee;transform:skewX(-14deg)}.qs-on[data-qs-style="a"] .qs-sw[aria-checked="true"]{background:#ff2b3f;color:#fff}
@@ -161,6 +163,30 @@
 .qs-c .qs-status.ok{color:var(--ok)}.qs-c .qs-status.warn{color:var(--bad);font-weight:600}
 .qs-on[data-qs-style="c"]{background:rgba(14,20,33,.94);border:1px solid rgba(255,255,255,.14);border-radius:14px}
 .qs-on[data-qs-style="c"] .qs-sw{border-radius:99px}
+
+/* ---------- cores por CLASSE do Move (Normal · Burst · Charge · Destino) e por categoria da passiva (Permanente · Gatilho) ----------
+   Classes derivadas dos dados reais (menu-styles-model.js: moveClass); cada estilo usa as cores da PRÓPRIA identidade (tokens dos HUDs) estendidas só o necessário. */
+.qs-legend{display:flex;flex-wrap:wrap;gap:3px 12px;margin:0 0 6px;font-size:10.5px;font-style:normal;font-family:"Segoe UI",system-ui,sans-serif;font-weight:600}
+.qs-legend span{display:inline-flex;align-items:center;gap:5px}.qs-legend i{width:11px;height:11px;border-radius:50%;background:var(--kc);box-shadow:0 0 0 1.5px currentColor inset}.qs-leg-note{opacity:.75;font-weight:400}
+/* A · vermelho (Normal), amarelo (Burst), laranja (Charge), ciano (Destino) · passivas: ciano (Permanente), amarelo (Gatilho) */
+.qs-a [data-k="normal"]{--kc:#ff2b3f}.qs-a [data-k="burst"]{--kc:#ffd400}.qs-a [data-k="charge"]{--kc:#ff7a1a}.qs-a [data-k="campo"]{--kc:#19c8ff}.qs-a [data-k="permanente"]{--kc:#19c8ff}.qs-a [data-k="gatilho"]{--kc:#ffd400}
+.qs-a .qs-slot-main::after,.qs-a .qs-pslot::after,.qs-a .qs-card::after{background:var(--kc,var(--red))}
+.qs-a .qs-ico{color:var(--kc,var(--red))}.qs-a .qs-key{-webkit-text-stroke:1px var(--kc,var(--red))}
+.qs-a .qs-card.used .qs-ico{color:var(--kc,var(--yel))}.qs-a .qs-card.used::after{background:var(--kc,var(--yel))}
+.qs-a .qs-legend{color:var(--paper)}.qs-a .qs-legend i{box-shadow:0 0 0 1.5px var(--paper) inset}
+/* B · amarelo (Normal), vermelho (Burst), magenta (Charge), ciano (Destino) · passivas: ciano (Permanente), vermelho (Gatilho) */
+.qs-b [data-k="normal"]{--kc:#ffd60a}.qs-b [data-k="burst"]{--kc:#ff3b30}.qs-b [data-k="charge"]{--kc:#ff4fa3}.qs-b [data-k="campo"]{--kc:#19b5e8}.qs-b [data-k="permanente"]{--kc:#19b5e8}.qs-b [data-k="gatilho"]{--kc:#ff3b30}
+.qs-b .qs-ico{background:var(--kc,var(--yel))}
+.qs-b .qs-slot:not(.empty) .qs-slot-main,.qs-b .qs-pslot:not(.empty),.qs-b .qs-card{box-shadow:4px 4px 0 var(--ink),inset 9px 0 0 var(--kc,transparent)}
+.qs-b .qs-card{padding-left:14px}.qs-b .qs-slot-main{padding-left:18px}.qs-b .qs-pslot:not(.empty){padding-left:20px}
+.qs-b .qs-legend{color:var(--ink)}.qs-b .qs-legend i{box-shadow:0 0 0 2px var(--ink) inset}
+/* C · azul (Normal), âmbar (Burst), violeta (Charge), verde-água (Destino) · passivas: verde (Permanente), âmbar (Gatilho) */
+.qs-c [data-k="normal"]{--kc:#5aa9ff}.qs-c [data-k="burst"]{--kc:#fbbf24}.qs-c [data-k="charge"]{--kc:#a78bfa}.qs-c [data-k="campo"]{--kc:#2dd4bf}.qs-c [data-k="permanente"]{--kc:#4ade80}.qs-c [data-k="gatilho"]{--kc:#fbbf24}
+.qs-c .qs-ico{color:var(--kc,#dce8fb)}
+.qs-c .qs-card{border-color:color-mix(in srgb,var(--kc,#fff) 55%,transparent)}
+.qs-c .qs-slot:not(.empty) .qs-slot-main,.qs-c .qs-pslot:not(.empty){border-color:var(--kc,rgba(90,169,255,.7));box-shadow:0 0 0 1px color-mix(in srgb,var(--kc,#5aa9ff) 28%,transparent),0 0 14px color-mix(in srgb,var(--kc,#5aa9ff) 24%,transparent)}
+.qs-c .qs-card.used{border-color:var(--kc,var(--st));box-shadow:0 0 0 1px var(--kc,var(--st)),0 0 12px color-mix(in srgb,var(--kc,var(--st)) 30%,transparent)}.qs-c .qs-mark{color:var(--kc,var(--st))}
+.qs-c .qs-legend{color:var(--mut)}.qs-c .qs-legend i{box-shadow:none}
 
 /* ---------- movimento reduzido: sem animação, sem rotação (a seleção continua legível por forma, cor e texto) ---------- */
 @media (prefers-reduced-motion:reduce){.qs *,.qs{animation:none!important;transition:none!important}.qs-b .qs-fighter,.qs-b .qs-slot-main,.qs-b .qs-chip,.qs-b .qs-title{rotate:none!important;transform:none!important}}

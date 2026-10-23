@@ -7,7 +7,7 @@ import {clearEffects} from '../src/sim/move-effects.js';
 import {registerStandardMoves} from '../src/sim/moves/standard.js';
 import {registerMove} from '../src/sim/moves.js';
 import {MOVE_INFO} from '../src/ui/moves-panel.js';
-import {moveCatalog, passiveCatalog, invalidReasons, iconForMove, keyLabel, usageLine, MOVE_ICON} from '../src/ui/menu-styles-model.js';
+import {moveCatalog, passiveCatalog, invalidReasons, iconForMove, keyLabel, usageLine, MOVE_ICON, moveClass, MOVE_CLASSES, PASSIVE_CLASSES} from '../src/ui/menu-styles-model.js';
 import {genericPassives, exclusivePassives, PASSIVE_SPECIES, PASSIVES} from '../src/sim/passives.js';
 
 let passed = 0, failed = 0;
@@ -37,6 +37,19 @@ test('ícones são decoração com fallback; rótulo de tecla', () => {
   assert.equal(iconForMove('quick-attack'), 'raio');assert.equal(iconForMove('inexistente'), 'impacto');
   assert.equal(keyLabel('KeyA'), 'A');assert.equal(keyLabel('Digit3'), '3');assert.equal(keyLabel(undefined), '');
   boot();for (const m of listMoves()) assert.ok(MOVE_ICON[m.id], `Move ${m.id} sem ícone mapeado (cai no padrão)`);
+});
+test('classes de cor dos Moves vêm dos dados reais (Charge, Destino, Burst, Normal) e cobrem o registro; as passivas usam a categoria real', () => {
+  boot();
+  const by = Object.fromEntries(moveCatalog(MOVE_INFO).map(m => [m.id, m.classe]));
+  assert.deepEqual([by.reflect, by.psyshock, by['guard-break'], by.bounce], ['charge', 'charge', 'charge', 'charge'], 'Moves de carga');
+  assert.deepEqual([by.spikes, by['emerging-stone']], ['campo', 'campo'], 'Moves com marcador de destino');
+  assert.deepEqual([by.swift, by.lunge, by['sand-wave'], by.feint, by['quick-attack']], ['burst', 'burst', 'burst', 'burst', 'burst'], 'Moves Burst');
+  assert.deepEqual([by.harden, by['bullet-punch'], by.riposte], ['normal', 'normal', 'normal'], 'Moves Normais');
+  assert.ok(Object.values(by).every(k => k in MOVE_CLASSES), 'toda classe tem rótulo');
+  assert.equal(moveClass({charge: {}}), 'charge');assert.equal(moveClass({description: 'sem etiqueta'}), 'normal');
+  const p = passiveCatalog('mush');
+  assert.ok([...p.exclusive, ...p.generic].every(x => x.categoria in PASSIVE_CLASSES), 'categoria da passiva = permanente | gatilho');
+  assert.ok(new Set([...p.exclusive, ...p.generic].map(x => x.categoria)).size === 2, 'as duas categorias existem no catálogo');
 });
 test('passivas: exclusivas SÓ da espécie atual e genéricas sempre; sem espécie = só genéricas', () => {
   for (const sp of PASSIVE_SPECIES) {

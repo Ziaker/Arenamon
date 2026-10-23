@@ -10,6 +10,15 @@ export const MOVE_ICON = Object.freeze({
   'quick-attack': 'raio', psyshock: 'espiral', harden: 'escudo', 'sand-wave': 'onda', 'bullet-punch': 'punho', reflect: 'escudo', 'second-wind': 'gota', lunge: 'impacto', riposte: 'estrela',
   bounce: 'onda', swift: 'estrela', 'guard-break': 'impacto', feint: 'espiral', spikes: 'pedra', 'emerging-stone': 'pedra',
 });
+/**
+ * Classe de uso de um Move, derivada do que o motor/registro JÁ declara (não há «elemento» nem tipo Pokémon nos dados dos Moves): Charge (segura e solta), Destino (marcador no mundo),
+ * Burst ou Normal (primeira palavra da descrição do Move: «Burst · …», «Normal · …»; sem etiqueta = Normal). Só para colorir e rotular; não altera regra alguma.
+ * @param {any} d definição do Move @returns {'charge' | 'campo' | 'burst' | 'normal'}
+ */
+export const moveClass = d => d?.charge ? 'charge' : d?.aimMode ? 'campo' : /^\s*Burst\b/i.test(String(d?.description ?? '')) ? 'burst' : 'normal';
+export const MOVE_CLASSES = Object.freeze({normal: 'Normal', burst: 'Burst', charge: 'Charge', campo: 'Destino (marcador)'});
+/** Classes de passiva = a categoria real do catálogo (`permanente` | `gatilho`). */
+export const PASSIVE_CLASSES = Object.freeze({permanente: 'Permanente', gatilho: 'Gatilho'});
 /** @param {string} id */
 export const iconForMove = id => MOVE_ICON[id] ?? 'impacto';
 /** @param {string} category */
@@ -21,12 +30,12 @@ export const keyLabel = code => !code ? '' : String(code).replace(/^Key/, '').re
 /**
  * Cartas dos Moves SELECIONÁVEIS: exatamente o que está registrado agora. Campos: id, name, description (texto do Move/painel), cost, cooldown (do Move EFETIVO), icon.
  * @param {Record<string, {hint?: string}>} [info] MOVE_INFO do painel de Moves (texto de uso)
- * @returns {{id: string, name: string, description: string, cost: number, cooldown: number, icon: string}[]}
+ * @returns {{id: string, name: string, description: string, cost: number, cooldown: number, icon: string, classe: 'charge' | 'campo' | 'burst' | 'normal'}[]}
  */
 export function moveCatalog(info = {}) {
   return listMoves().map(d => {
     const eff = getMove(d.id) ?? d;
-    return {id: d.id, name: d.name ?? d.id, description: String(info[d.id]?.hint ?? d.description ?? ''), cost: eff.cost ?? 1, cooldown: eff.cooldown ?? 0, icon: iconForMove(d.id)};
+    return {id: d.id, name: d.name ?? d.id, description: String(info[d.id]?.hint ?? d.description ?? ''), cost: eff.cost ?? 1, cooldown: eff.cooldown ?? 0, icon: iconForMove(d.id), classe: moveClass(eff)};
   });
 }
 /** Linha de uso («Custo X de stamina · recarga Y s») no mesmo formato da dica do painel de Moves. @param {{cost: number, cooldown: number}} m */

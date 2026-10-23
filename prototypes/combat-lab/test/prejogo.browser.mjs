@@ -49,6 +49,8 @@ try {
       return {visible: !root.hidden, classic: document.querySelector('.quick-fighters').hidden, ids0: ids(0).join() === reg.join(), ids1: ids(1).join() === reg.join(), canv, sp, species: [window.__lab.quickMenu.speciesOf(0), window.__lab.quickMenu.speciesOf(1)], cls: root.className};
     }, registry);
     check(`estilo ${st.toUpperCase()}: tela visível, menu atual escondido, candidatos = registro executável (azul e vermelho), canvases das prévias reparentados`, r.visible && r.classic && r.ids0 && r.ids1 && r.canv.every(Boolean), JSON.stringify(r));
+    const kc = await L(() => {const col = sel => new Set([...document.querySelectorAll(`.qs-fighter[data-fighter="0"] ${sel}`)].map(c => getComputedStyle(c).getPropertyValue('--kc').trim()));return {moves: [...col('.qs-card[data-act="pick-move"]')], passives: [...col('.qs-pcard')]};});
+    check(`estilo ${st.toUpperCase()}: Moves em 4 cores (Normal · Burst · Charge · Destino) e passivas em 2 (Permanente · Gatilho), todas diferentes entre si`, kc.moves.length === 4 && kc.passives.length === 2 && kc.moves.every(Boolean) && kc.passives.every(Boolean), JSON.stringify(kc));
     check(`estilo ${st.toUpperCase()}: passivas exclusivas só da espécie atual (azul ${r.species[0]}, vermelho ${r.species[1]}) e genéricas sempre`, r.species[0] === 'mush' && r.species[1] === 'drowzee' && r.sp[0].length === 2 && r.sp[1].length === 2, JSON.stringify(r.sp));
   }
 
@@ -93,15 +95,31 @@ try {
   await page.keyboard.press('Enter');
   const kb = await state();
   check('teclado: Enter na carta focada atribui ao slot do lutador vermelho (estado único)', !!focusedId && kb.moves[1].includes(focusedId), JSON.stringify(kb.moves[1]));
-  const outline = await L(() => getComputedStyle(document.activeElement).outlineStyle);
-  check('o foco do teclado tem contorno visível', outline !== 'none', outline);
+  const outline = await L(() => {const cs = getComputedStyle(document.activeElement);return cs.outlineStyle + '|' + cs.backgroundColor;});
+  check('o foco do teclado é visível (contorno; no estilo A, onde o recorte corta o contorno, fundo amarelo)', !outline.startsWith('none') || outline.endsWith('rgb(255, 212, 0)'), outline);
   await page.focus('.qs-sw[data-style="a"]');await page.keyboard.press('ArrowRight');
   check('teclado: setas no seletor de estilo trocam A → B (grupo de rádio)', (await L(() => window.__lab.menuStyles.style)) === 'b');
   await L(s => window.__lab.menuStyles.setStyle(s), 'a');
 
+  // ======================= robustez (revisão de código) =======================
+  const rob = await L(async () => {
+    const q = window.__lab.quickMenu, evs = [];const off = q.onChange(e => evs.push(e.type + ':' + e.slot));
+    await q.selectCharacter(0, null);off();
+    let n = 0;const p = q.previews[0];p.onTick(() => {throw new Error('gancho de teste');});p.onTick(() => {n++;});
+    await new Promise(r => setTimeout(r, 400));
+    return {evs, sel: document.getElementById('quick-char-0').value, ticks: n};
+  });
+  check('«Carregado» (selectCharacter null) emite a mudança e mantém o <select> nativo em sincronia; um gancho que lança não para a prévia', rob.evs.includes('char:0') && rob.sel === '' && rob.ticks >= 3, JSON.stringify(rob));
+  await page.click('.qs-fighter[data-fighter="0"] .qs-slot-main[data-i="0"]');   // arma o slot 1 (sai do «armado» ao esvaziar)
+  const clearSel = '.qs-fighter[data-fighter="0"] .qs-slot:has(.qs-slot-main[data-i="0"]) .qs-clear';
+  if (await page.locator(clearSel).count()) {await page.focus(clearSel);await page.keyboard.press('Enter');}
+  const foc = await L(() => ({inMenu: !!document.activeElement?.closest?.('#menu-styled'), tag: document.activeElement?.className}));
+  check('esvaziar um slot pelo teclado não joga o foco para fora do menu (o foco volta ao botão do mesmo slot)', foc.inMenu, JSON.stringify(foc));
+  await L(() => {window.__lab.quickMenu.setMove(0, 0, 'reflect');});
+
   // ======================= partida integrada =======================
   const chosen = await state();
-  await page.click('#start-center');await page.waitForTimeout(500);
+  await page.click('#start-center');await page.waitForTimeout(5000);
   const play = await L(() => ({phase: window.__lab.game.phase, lo: [0, 1].map(i => [...(window.__lab.game.fighters[i].loadout ?? [])]), pas: window.__lab.game.fighters.map(f => (f.passiveState?.loadout ?? f.passives ?? null))}));
   check('Iniciar combate usa EXATAMENTE as escolhas visíveis (Moves dos dois lutadores no motor)', play.phase === 'playing' && JSON.stringify(play.lo[0]) === JSON.stringify(chosen.moves[0]) && JSON.stringify(play.lo[1]) === JSON.stringify(chosen.moves[1]), JSON.stringify(play.lo));
   const pcheck = await L(() => window.__lab.game.fighters.map(f => JSON.stringify(f.passiveState?.loadout ?? f.passives ?? null)));
@@ -125,6 +143,7 @@ try {
     for (const st of ['a', 'b', 'c']) {
       await L(s => window.__lab.menuStyles.setStyle(s), st);await page.waitForTimeout(900);
       await page.screenshot({path: `${out}pre-jogo-${st.toUpperCase()}-${w}x${h}.png`});
+      if (w === 1920) await page.locator('.quick-start-card').screenshot({path: `${out}pre-jogo-${st.toUpperCase()}-cartao-1920.png`});
       const ov = await L(() => {const c = document.querySelector('.quick-start-card'), r = c.getBoundingClientRect(), m = document.getElementById('menu').getBoundingClientRect();return {over: c.scrollWidth - c.clientWidth, inside: r.left >= m.left - 1 && r.right <= m.right + 1, btn: (() => {const b = document.getElementById('start-center').getBoundingClientRect();return b.width > 0 && b.height > 0 ? true : JSON.stringify([b.width, b.height, document.getElementById('menu').hidden, getComputedStyle(document.getElementById('start-center')).display, window.__lab.game.phase]);})()};});
       check(`${w}×${h} estilo ${st.toUpperCase()}: sem rolagem horizontal, dentro da área do menu, botão Iniciar acessível`, ov.over <= 1 && ov.inside && ov.btn === true, JSON.stringify(ov));
     }
@@ -139,14 +158,15 @@ try {
   // lado a lado com as capturas originais
   const cmp = await ctx.newPage();
   for (const [st, orig] of [['A', 'hudA-neutro-720p.png'], ['B', 'hudB-neutro-720p.png'], ['C', 'hudC-neutro-720p.png']]) {
-    const o = readFileSync(hudDir + orig).toString('base64'), n = readFileSync(`${out}pre-jogo-${st}-1920x1080.png`).toString('base64');
-    await cmp.setViewportSize({width: 1700, height: 520});
-    await cmp.setContent(`<body style="margin:0;background:#070b16;color:#eef3ff;font:13px Segoe UI"><div style="display:flex;gap:10px;padding:8px;align-items:flex-start"><figure style="margin:0"><figcaption style="padding:4px 0">Original: HUD ${st} (prototypes/hud-moves/evidence/${orig})</figcaption><img style="width:760px" src="data:image/png;base64,${o}"></figure><figure style="margin:0"><figcaption style="padding:4px 0">Novo: pré-jogo ${st} (1920×1080)</figcaption><img style="width:900px" src="data:image/png;base64,${n}"></figure></div></body>`);
+    const o = readFileSync(hudDir + orig).toString('base64'), n = readFileSync(`${out}pre-jogo-${st}-cartao-1920.png`).toString('base64');
+    await cmp.setViewportSize({width: 1900, height: 700});
+    await cmp.setContent(`<body style="margin:0;background:#070b16;color:#eef3ff;font:13px Segoe UI"><div style="display:flex;gap:10px;padding:8px;align-items:flex-start"><figure style="margin:0"><figcaption style="padding:4px 0">Original: HUD ${st} (prototypes/hud-moves/evidence/${orig})</figcaption><img style="width:820px" src="data:image/png;base64,${o}"></figure><figure style="margin:0"><figcaption style="padding:4px 0">Novo: tela de seleção ${st} (1920×1080, cartão do menu)</figcaption><img style="width:1050px" src="data:image/png;base64,${n}"></figure></div></body>`);
     await cmp.waitForTimeout(300);await cmp.screenshot({path: `${out}fidelidade-${st}-original-x-novo.png`});
   }
   await cmp.close();
   check('capturas 720p/1080p das três telas e as três comparações lado a lado com os HUDs originais foram geradas', ['A', 'B', 'C'].every(s => existsSync(`${out}pre-jogo-${s}-1280x720.png`) && existsSync(`${out}pre-jogo-${s}-1920x1080.png`) && existsSync(`${out}fidelidade-${s}-original-x-novo.png`)));
-  check('sem erros de página e sem rede externa (menu com modelos)', errors.length === 0 && network.length === 0, errors.concat(network).join(' | '));
+  const realErrors = errors.filter(e => !/gancho de teste/.test(e));   // o gancho que lança é proposital (teste de robustez)
+  check('sem erros de página e sem rede externa (menu com modelos, partida de 5 s incluída)', realErrors.length === 0 && network.length === 0, realErrors.concat(network).join(' | '));
   await ctx.close();
 
   // ======================= sem modelo salvo / carregado =======================

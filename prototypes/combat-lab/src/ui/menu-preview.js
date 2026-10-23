@@ -29,7 +29,7 @@ export function createMenuPreview(canvas, {tint = null} = {}) {
     const disc = new T.Mesh(new T.CircleGeometry(1.15, 40), new T.MeshBasicMaterial({color: 0x9fc4e8, transparent: true, opacity: .1}));
     disc.rotation.x = -Math.PI / 2;scene.add(disc);
   }
-  const reduceMotion = () => !!(C.vfx?.master?.reduceMotion);
+  const reduceMotion = () => !!(C.vfx?.master?.reduceMotion || (typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches));
 
   /** Troca o personagem exibido. `ch` é a instância Character do lutador (ou null para esvaziar). */
   function setCharacter(ch) {
@@ -58,7 +58,7 @@ export function createMenuPreview(canvas, {tint = null} = {}) {
     if (!renderer) return;
     if (mixer) mixer.update(dt);
     if (obj && !reduceMotion()) obj.rotation.y += dt * .6;
-    for (const fn of tickHooks) fn(dt);
+    for (const fn of [...tickHooks]) {try {fn(dt);} catch (e) {tickHooks.delete(fn);console.error('menu-preview: gancho de tick removido após falha', e);}}
     renderer.render(scene, camera);
   }
   /** Muda o tamanho de desenho (px CSS) mantendo a proporção da câmera. */

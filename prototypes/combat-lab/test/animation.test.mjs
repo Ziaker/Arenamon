@@ -260,5 +260,20 @@ test('A → B → A durante o fade não desliga a animação atual nem cai na T-
   check('ação atual continua agendada depois do fade antigo', ch.current.action.isScheduled());
   check('pose animada continua aplicada em vez da bind pose', spine.quaternion.angleTo(new T.Quaternion()) > .1, spine.quaternion.angleTo(new T.Quaternion()).toFixed(3));
 });
+test('modelo SEM clipe de idle (ex.: um GLB de um clipe só) não derruba o laço ao carregar um Move: cai no primeiro clipe compatível', () => {
+  // Defeito de 22/10/2026: actionFor('charge_psyshock') devolvia o id literal 'idle' mesmo sem variante de idle; enter() recebia índice indefinido e clipAction(undefined) lançava
+  // TypeError no laço de desenho (o jogo parava). Reproduzido com Cogumelo × drowzee-knockback.glb (1 clipe) quando a IA usa o Psyshock.
+  const {root} = syntheticRig(T);
+  const source = {name: 'um-clipe.glb', scene: root, animations: [clip('Knockback', 1.2, 30)], manifest: null, eventsByClip: []};
+  const {ch, g} = setup(source);
+  const f = g.fighters[0];f.charge = {move: 'psyshock', slot: 1, ticks: 3};
+  let threw = null;
+  try {for (let i = 0; i < 12; i++) ch.update(f, C.test.step, 0, [], {tick: i, source: 'IA'});} catch (e) {threw = e;}
+  check('carregar o Psyshock com um modelo sem idle não lança exceção', threw === null, threw?.message);
+  check('o personagem segue com uma ação ativa (nunca a bind pose)', !!ch.current && !!ch.current.clip, ch.current?.key);
+  f.charge = null;f.action = {kind: 'move', move: 'psyshock', elapsed: .1, def: {id: 'psyshock'}};f.state = 'move';
+  let threw2 = null;try {for (let i = 0; i < 6; i++) ch.update(f, C.test.step, 0, [], {tick: 20 + i, source: 'IA'});} catch (e) {threw2 = e;}
+  check('liberar o Move (release_) também não lança', threw2 === null, threw2?.message);
+});
 writeFileSync(out + 'animation-report.json', JSON.stringify({createdAt: new Date().toISOString(), checks: report}, null, 2));
 console.log(`\n${passed} testes de animação aprovados · ${report.length} verificações.`);
