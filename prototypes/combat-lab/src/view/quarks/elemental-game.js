@@ -12,10 +12,10 @@ import {C} from '../../sim/config.js';
 import {ElementalPreview} from './elemental-preview.js';
 import {ELEMENTAL_GAME_PARAMS} from './elemental-game-params.js';
 
-const MOVES = {waterorb: 'waterPulse', airslash: 'airSlash', firespin: 'fireSpin'};
+const MOVES = {waterorb: 'waterPulse', airslash: 'airSlash', firespin: 'fireSpin', seed: 'seedBomb'};
 const VARIANT_KEY = {waterPulse: 'waterVariant', airSlash: 'airVariant', fireSpin: 'fireVariant'};
 /** Tempo (s) que o efeito continua depois que a entidade some: cobre a explosão/o corte do contato. */
-const TAIL = {waterPulse: 2.4, airSlash: 2.0, fireSpin: 1.2};
+const TAIL = {waterPulse: 2.4, airSlash: 2.0, fireSpin: 1.2, seedBomb: 2.6};
 
 const elementalCfg = () => C.vfx?.elemental ?? {};
 
@@ -34,12 +34,13 @@ export class ElementalGameFx {
   /** A entidade é desenhada por esta camada? (Seed Bomb e Seed Blast ficam de fora.) */
   handles(e) {
     if (!this.enabled || !e) return false;
-    if (e.kind === 'projectile') return e.visual === 'waterorb' || e.visual === 'airslash';
+    if (e.kind === 'projectile') return e.visual === 'waterorb' || e.visual === 'airslash' || e.visual === 'seed';
+    if (e.kind === 'area' && e.visual === 'seedblast') return true;   // sem preview proprio: a explosao vem do contato() da semente
     if (e.kind === 'area') return e.visual === 'firespin';
     return false;
   }
   /** Variante A/B/C escolhida no painel (0, 1 ou 2). */
-  variantOf(move) {return Math.max(0, Math.min(2, Math.round(elementalCfg()[VARIANT_KEY[move]] ?? 0)));}
+  variantOf(move) {if (move === 'seedBomb') return 0; return Math.max(0, Math.min(2, Math.round(elementalCfg()[VARIANT_KEY[move]] ?? 0)));}
   /** Escala do efeito para casar com o volume que a simulação já usa (raio/altura da entidade). */
   scaleOf(move, e, base, pl) {
     if (move === 'waterPulse') {
@@ -47,6 +48,7 @@ export class ElementalGameFx {
       return Math.max(.05, (e.radius ?? .38) * (e.visualScale ?? 1) / eff);
     }
     if (move === 'airSlash') return Math.max(.05, (e.radius ?? .6) / Math.max(.05, base.size));
+    if (move === 'seedBomb') return Math.max(.05, (e.radius ?? .24) / Math.max(.05, base.size ?? 1.2));
     return Math.max(.05, (e.radius ?? 1.6) / Math.max(.05, base.opening + base.size * .8));
   }
   /** Gira o eixo +X do ateliê para a direção real do projétil (nariz, jato de disparo e corte). */
@@ -57,8 +59,9 @@ export class ElementalGameFx {
   }
   /** Cria o efeito de uma entidade (uma vez, no primeiro quadro em que ela aparece). */
   spawn(e, acc) {
+    if (e.visual === 'seedblast') return null;   // sem preview: a explosao visual vem do contato() da semente
     const move = MOVES[e.visual];
-    const base = ELEMENTAL_GAME_PARAMS[move]?.[this.variantOf(move)];
+    const base = ELEMENTAL_GAME_PARAMS[move]?.[this.variantOf(move) ?? 0];
     if (!base) return null;
     const pl = e.pl ?? 1, variant = this.variantOf(move);
     /** @type {any} */

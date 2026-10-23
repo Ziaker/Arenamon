@@ -121,7 +121,7 @@ export class ElementalPreview {
  const born=rise>0?Math.min(1,t/rise):1,ease=born*born*(3-2*born);
  const grow=p.seedStartScale+(1-p.seedStartScale)*ease;
  this.velocity=p.speed*motion;
- this.core.position.set((u-.5)*travel-kick*p.size*1.2,p.size+arch*p.arcHeight+tilt,0);
+ if(!this.follow)this.core.position.set((u-.5)*travel-kick*p.size*1.2,p.size+arch*p.arcHeight+tilt,0);
  this.core.scale.set(grow*(1+kick*.5),grow*Math.max(.01,1-kick*.25),grow*Math.max(.01,1-kick*.25));
  const w=p.spinSpeed*motion;
  if(p.spinAxis==='X')this.core.rotation.set(tFly*w,0,0);
@@ -129,7 +129,7 @@ export class ElementalPreview {
  else if(p.spinAxis==='Diagonal')this.core.rotation.set(tFly*w*.6,tFly*w*.8,tFly*w*.4);
  else this.core.rotation.set(0,0,tFly*w);
  for(const system of this.trails)system.emitter.position.copy(this.core.position);
- if(u>=1)this.contact();
+  if(u>=1&&!this.follow)this.contact();
  }
  diagnostics(){return {...(this.shotFx?.diagnostics()??{}),seedScale:this.seedMesh?this.seedMesh.scale.toArray():null,flashParticles:this.flashFx?.particleNum??0,leafTrailParticles:this.trails.reduce((n,s)=>n+s.particleNum,0),spawnParticles:this.spawnFx?.particleNum??0,groundWave:this.groundWave?{scale:this.groundWave.scale.x,opacity:this.groundWave.material.opacity}:null,seedPhase:this.phase(),coreX:this.core?.position.x,coreY:this.core?.position.y,coreZ:this.core?.position.z,coreRotationY:this.core?.rotation.y,coreRotationZ:this.core?.rotation.z,variant:this.p?.variant,contactAt:this.contactAt,velocity:this.velocity,stretch:1+(this.smearAmount??0),launchVisible:this.surfaces?.launch.visible,visibleLaunchRings:this.surfaces?.launch.children.filter(r=>r.visible).length,impactOpacity:this.surfaces?.impact.children[0]?.material.uniforms.opacity.value,launchMeshes:this.surfaces?.launch.children.length,shotOn:this.shotOn,shotRings:this.surfaces?.shot?.children.filter(r=>r.visible).length,shotFlash:this.surfaces?.shotFlashNow,shotKick:this.surfaces?.shotKickNow,shotJet:this.shotJet?.particleNum,shotJetDx:this.shotJet?.particleNum?this.shotJet.particles.slice(0,this.shotJet.particleNum).reduce((n,q)=>n+q.position.x,0)/this.shotJet.particleNum-this.shotJet.emitter.position.x:null,coreRotationX:this.core?.rotation.x,coreScale:this.core?.scale.x,move:this.id,active:this.active,time:this.time,systems:this.systems.length,particles:this.systems.reduce((n,s)=>n+s.particleNum,0),positiveSizes:this.systems.reduce((n,s)=>n+s.particles.slice(0,s.particleNum).filter(p=>p.size.x>0).length,0),settings:this.p,phase:this.phase()};}
  /** Fase exibida na legenda do ateliê. O Seed Bomb usa as quatro fases pedidas. */
