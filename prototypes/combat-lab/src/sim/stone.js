@@ -38,7 +38,7 @@ function detonate(/** @type {any} */ game, /** @type {any} */ e, /** @type {any[
     if (f.id === e.owner || f.hp <= 0 || f.absent || f.flight || (f.vaultHeight ?? 0) > 1e-8) continue;
     if (Math.hypot(f.position.x - c.x, f.position.z - c.z) > P.blastRadius + 1e-9) continue;
     const away = sub(f.position, c), normal = length(away) > 1e-6 ? normalize(away) : direction(owner?.facing ?? 0);
-    const ev = applyHit(game, e.owner, f, {damage: e.damage, knockback: {horizontal: P.blastKnockback, vertical: 0}}, normal, {entity: e.id, source: 'stone', contact: 'area', origin: c});
+    const ev = applyHit(game, e.owner, f, {damage: e.damage, knockback: {horizontal: P.blastKnockback, vertical: P.blastKnockbackV ?? 0}}, normal, {entity: e.id, source: 'stone', contact: 'area', origin: c, move: 'emerging-stone'});
     if (ev) events.push({...ev, phase: 'blast'});
   }
   // 2. cenário tocado pelo círculo horizontal

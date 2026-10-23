@@ -1,50 +1,73 @@
 import {C} from '../sim/config.js';
-import {ELEMENTAL_CONTROLS, FIRE_CONTROLS, WATER_CONTROLS, SHOT_CONTROLS, SEED_CONTROLS, SHOT_RING_CONTROLS, SHOT_CONE_CONTROLS} from '../view/quarks/presets.js';
+import {ELEMENTAL_VARIANTS} from '../view/quarks/presets.js';
 import {elementalVisualKey} from '../sim/elemental-visual-config.js';
+import {elementalRows, sliderRange, MOVE_KEYS, VARIANT_PATH} from './elemental-visual-model.js';
 
-const MOVES = {'water-pulse':'waterPulse','fire-spin':'fireSpin','air-slash':'airSlash','seed-bomb':'seedBomb'};
-const LABELS = {waterPulse:'Water Pulse',fireSpin:'Fire Spin',airSlash:'Air Slash',seedBomb:'Seed Bomb'};
-const META = new Map([...ELEMENTAL_CONTROLS,...FIRE_CONTROLS,...WATER_CONTROLS,...SHOT_CONTROLS,...SEED_CONTROLS,...SHOT_RING_CONTROLS,...SHOT_CONE_CONTROLS].map(row => [row[0],row]));
-const isColor = key => /color|accent|palette/i.test(key);
 const safe = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const hex = value => `#${Math.max(0,Math.min(0xffffff,value)).toString(16).padStart(6,'0')}`;
-const fields = (object, path) => Object.entries(object).map(([key,value]) => {
-  const full = `${path}.${key}`;
-  if (value && typeof value === 'object') return `<details data-k="visual:${full}"><summary>${safe(key === 'shotRing' ? 'Argolas de disparo' : key === 'shotCone' ? 'Cone de disparo' : key)}</summary>${fields(value,full)}</details>`;
-  if (typeof value !== 'number') return '';
-  const meta = META.get(key), label = meta?.[1] ?? key, unit = meta?.[2] ?? '';
-  if (isColor(key)) return `<label class="mv-visual-field"><span>${safe(label)}</span><input type="color" data-visual="${full}" value="${hex(value)}"><output>${hex(value)}</output></label>`;
-  const min = key === 'opacity' ? 0 : Math.min(meta?.[3] ?? (value < 0 ? value * 5 : 0),value < 0 ? value * 5 : 0);
-  const max = key === 'opacity' ? 1 : Math.max(meta?.[4] ? meta[4] * 5 : 0,Math.abs(value) * 5,1);
-  const step = meta?.[5] || (Number.isInteger(value) ? 1 : .01);
-  return `<label class="mv-visual-field" title="${safe(meta?.[6] ?? '')}"><span>${safe(label)}${unit && unit !== 'cor' ? ` (${safe(unit)})` : ''}</span><input type="range" data-visual="${full}" min="${min}" max="${max}" step="${step}" value="${value}"><output>${value}</output></label>`;
-}).join('');
+const get = path => path.split('.').reduce((o,k) => o?.[k],C);
 
-export function elementalVisualMarkup(moveId) {
-  const move = MOVES[moveId];if (!move) return '';
-  return `<details data-k="visual:${move}"><summary><b>Visual · ${LABELS[move]}</b></summary><p class="hint">Opacidade, luz, cores e parâmetros do efeito. Cada valor entra no JSON de ajustes.</p>
-    ${move !== 'seedBomb' ? `<label class="mv-visual-field"><span>Paleta / variante ativa</span><select data-visual="vfx.elemental.${move === 'waterPulse' ? 'waterVariant' : move === 'fireSpin' ? 'fireVariant' : 'airVariant'}">${[0,1,2].map(n=>`<option value="${n}" ${C.vfx.elemental[move === 'waterPulse' ? 'waterVariant' : move === 'fireSpin' ? 'fireVariant' : 'airVariant']===n?'selected':''}>${['A','B','C'][n]}</option>`).join('')}</select></label>` : ''}
-    ${Array.from({length:move === 'seedBomb' ? 1 : 3},(_,variant) => {
-      const key = elementalVisualKey(move,variant), data = C.vfx.elemental.visual[key];
-      return `<details data-k="visual:${key}"><summary>Paleta e efeito ${['A','B','C'][variant]}</summary>${fields(data,`vfx.elemental.visual.${key}`)}</details>`;
-    }).join('')}
-    ${move === 'seedBomb' ? `<label class="mv-visual-field"><span>Efeito de disparo</span><select data-visual="vfx.elemental.seedShotEffect"><option value="0" ${!C.vfx.elemental.seedShotEffect?'selected':''}>Nenhum</option><option value="1" ${C.vfx.elemental.seedShotEffect===1?'selected':''}>Argolas</option><option value="2" ${C.vfx.elemental.seedShotEffect===2?'selected':''}>Cone</option></select></label>` : ''}</details>`;
+/**
+ * Um controle visual (slider, interruptor ou seletor de cor) ligado a um caminho de C por `data-visual`.
+ * `dep`: caminho do interruptor que o libera (some enquanto estiver desligado). `unit` aparece no rótulo e no valor.
+ */
+export function visualField({path, label, unit = '', min = 0, max = 1, step = .01, help = '', kind = 'range', dep = ''}) {
+  const value = get(path), hidden = dep && !get(dep) ? 'hidden' : '', attrs = `class="mv-visual-field" ${hidden} data-dep="${safe(dep)}" title="${safe(help)}"`;
+  if (kind === 'color') return `<label ${attrs}><span>${safe(label)}</span><input type="color" data-visual="${path}" value="${hex(value ?? 0)}"><output>${hex(value ?? 0)}</output></label>`;
+  if (kind === 'toggle') return `<label ${attrs}><span>${safe(label)}</span><input type="checkbox" data-visual="${path}" ${value ? 'checked' : ''}></label>`;
+  const range = sliderRange({unit, min, max}, value), shown = unit && unit !== 'cor' ? ` (${safe(unit)})` : '';
+  return `<label ${attrs}><span>${safe(label)}${shown}</span><input type="range" data-visual="${path}" min="${range.min}" max="${range.max}" step="${step}" value="${value ?? 0}" data-unit="${safe(unit === 'cor' ? '' : unit)}"><output>${value ?? 0}${unit && unit !== 'cor' ? ` ${safe(unit)}` : ''}</output></label>`;
 }
 
+/**
+ * Subgrupos visuais de um Move elemental, só com os parâmetros que o desenho dele realmente lê (mesma lista do Ateliê Elemental).
+ * Devolve [{sub, html}] na ordem de aparição; o painel Moves os aninha por nome.
+ */
+export function elementalSubs(moveId) {
+  const move = MOVE_KEYS[moveId];if (!move) return [];
+  const el = C.vfx.elemental, effect = el.seedShotEffect | 0;
+  const variant = move === 'seedBomb' ? 0 : Math.max(0, Math.min(2, el[VARIANT_PATH[move]] | 0)), key = elementalVisualKey(move, variant), data = el.visual[key];
+  if (!data) return [];
+  const subs = new Map(), add = (sub, html) => subs.set(sub, (subs.get(sub) ?? '') + html);
+  if (move !== 'seedBomb') {
+    const names = ELEMENTAL_VARIANTS[move] ?? ['A', 'B', 'C'], vp = `vfx.elemental.${VARIANT_PATH[move]}`;
+    add('Efeito principal', `<label class="mv-visual-field" title="Cada opção tem forma e valores próprios; os controles abaixo editam a opção escolhida."><span>Opção ativa</span><select data-visual="${vp}">${names.map((n, i) => `<option value="${i}" ${el[VARIANT_PATH[move]] === i ? 'selected' : ''}>${safe(n)}</option>`).join('')}</select></label>`);
+  }
+  let lastSection = null, lastSub = null;
+  for (const r of elementalRows(move, effect)) {
+    if (r.sub !== lastSub) lastSection = null;
+    lastSub = r.sub;
+    const section = r.section ? `<h5 class="mv-section">${safe(r.section)}</h5>` : '';
+    const head = r.section !== lastSection && r.section ? section : '';lastSection = r.section;
+    if (r.key === '__shotEffect') {
+      add(r.sub, `${head}<label class="mv-visual-field" title="${safe(r.help)}"><span>Efeito de disparo</span><select data-visual="vfx.elemental.seedShotEffect"><option value="0" ${!effect ? 'selected' : ''}>Nenhum</option><option value="1" ${effect === 1 ? 'selected' : ''}>Argolas</option><option value="2" ${effect === 2 ? 'selected' : ''}>Cone</option></select></label>`);
+      continue;
+    }
+    const base = `vfx.elemental.visual.${key}`, path = r.shotKind ? `${base}.${r.shotKind === 'ring' ? 'shotRing' : 'shotCone'}.${r.key}` : `${base}.${r.key}`, value = get(path);
+    if (typeof value !== 'number') continue;
+    add(r.sub, head + visualField({path, label: r.label, unit: r.unit, min: r.min, max: r.max, step: r.step, help: r.help, kind: r.unit === 'cor' ? 'color' : 'range'}));
+  }
+  return [...subs].map(([sub, html]) => ({sub, html}));
+}
+
+/** Controles que valem para todos os disparos e projéteis elementais. */
 export function elementalGlobalMarkup() {
-  const value = C.vfx.elemental.shotFollowTime;
-  return `<details data-k="visual:shared"><summary><b>Visual dos disparos e projéteis</b></summary><label class="mv-visual-field"><span>Tempo de seguimento de argolas e cones (s)</span><input type="range" data-visual="vfx.elemental.shotFollowTime" min="0" max="2" step="0.01" value="${value}"><output>${value} s</output></label><label class="mv-visual-field"><span>Borda com cor do PL nos projéteis</span><input type="checkbox" data-visual="vfx.projectilePlBorder" ${C.vfx.projectilePlBorder?'checked':''}></label></details>`;
+  return `<details data-k="visual:shared"><summary><b>Visual dos projéteis</b></summary><label class="mv-visual-field"><span>Borda com cor do PL nos projéteis</span><input type="checkbox" data-visual="vfx.projectilePlBorder" ${C.vfx.projectilePlBorder?'checked':''}></label><p class="hint">O tempo de seguimento do efeito de disparo agora é por Move: Visual › Disparo.</p></details>`;
 }
 
 export function bindElementalVisual(root,tuning) {
   for (const input of root.querySelectorAll('[data-visual]')) {
     const path = input.dataset.visual;
-    const get = () => path.split('.').reduce((o,k) => o[k],C);
+    const getv = () => get(path);
     const set = value => {const parts = path.split('.'), key = parts.pop();parts.reduce((o,k) => o[k],C)[key] = value;};
     const numeric = () => input.type === 'color' ? Number.parseInt(input.value.slice(1),16) : input.type === 'checkbox' ? Number(input.checked) : Number(input.value);
     const output = input.parentElement.querySelector('output');
     let before;
-    input.oninput = () => {if (before === undefined) before = get();const value = numeric();set(value);if(output) output.textContent = input.type === 'color' ? input.value : `${value}${path.endsWith('shotFollowTime')?' s':input.dataset.unit?` ${input.dataset.unit}`:''}`;};
-    input.onchange = () => {const value = numeric(), old = before ?? get();before = undefined;if (old === value) return;set(old);if(tuning) tuning.commit([[path,value]],`Visual: ${path.split('.').pop()}`);else set(value);};
+    input.oninput = () => {if (before === undefined) before = getv();const value = numeric();set(value);if(output) output.textContent = input.type === 'color' ? input.value : `${value}${input.dataset.unit?` ${input.dataset.unit}`:''}`;};
+    input.onchange = () => {
+      const value = numeric(), old = before ?? getv();before = undefined;
+      if (input.type === 'checkbox') for (const dep of root.querySelectorAll('[data-dep]')) if (dep.dataset.dep === path) dep.hidden = !input.checked;   // libera/esconde os sliders dependentes na hora
+      if (old === value) return;set(old);if(tuning) tuning.commit([[path,value]],`Visual: ${path.split('.').pop()}`);else set(value);
+    };
   }
 }

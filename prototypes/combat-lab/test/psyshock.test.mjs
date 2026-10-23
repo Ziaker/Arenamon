@@ -15,6 +15,7 @@ import {hash32, rng} from '../src/sim/moves/rng.js';
 import {chargeParams} from '../src/sim/charge.js';
 import {spawn} from '../src/sim/world.js';
 
+globalThis.__legacyFractionalDamage = true;   // este teste caracteriza a matemática de dano fracionária, anterior à regra de dano inteiro (ver sim/damage-rule.js)
 let n = 0;const ok = l => {n++;console.log('✓', l);};
 const cmd = o => ({...emptyCommand(), ...o});
 const H = [false, true, false, false];

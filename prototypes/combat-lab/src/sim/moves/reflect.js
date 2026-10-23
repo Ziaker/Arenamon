@@ -81,9 +81,9 @@ export function reflectEffect(/** @type {any} */ game, /** @type {any} */ f, /**
   }, fx.events ?? []);
   // Pulso ao materializar (opcional): empurra e/ou fere quem está ao redor da barreira, num círculo de `burstRadius` m. Não é explosão:
   // a própria barreira não quebra e o pulso não é bloqueado por ela. Com raio 0, ou com os dois interruptores desligados, não há pulso.
-  const R = G.burstRadius ?? 0, force = G.burstPush ? (G.burstForce ?? 0) : 0, dmg = G.burstHurt ? (G.burstDamage ?? 0) * (f.attributes?.attack ?? 1) : 0;
-  if (e && R > 1e-6 && (force > 0 || dmg > 0))
+  const R = G.burstRadius ?? 0, force = G.burstPush ? (G.burstForce ?? 0) : 0, lift = G.burstPush ? (G.burstVertical ?? 0) : 0, dmg = G.burstHurt ? (G.burstDamage ?? 0) * (f.attributes?.attack ?? 1) : 0;
+  if (e && R > 1e-6 && (force > 0 || lift > 0 || dmg > 0))
     spawn(game.world, {kind: 'area', owner: f.id, affectsOwner: false, pos: {...place.center}, radius: R, y: Math.max(0, place.base - .5), height: 3, life: .1, pulses: 1, falloff: 'linear', pl: ch.level,
-      hit: {damage: dmg, knockback: force > 0 ? {horizontal: force, vertical: 0} : undefined}}, fx.events ?? []);
+      hit: {damage: dmg, knockback: force > 0 || lift > 0 ? {horizontal: force, vertical: lift} : undefined}, captured: {move: def.id}}, fx.events ?? []);
   return e ? {ok: true} : {ok: false, reason: 'limiteDeEntidades'};
 }

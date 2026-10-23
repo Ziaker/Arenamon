@@ -8,6 +8,7 @@ import {effectiveArenaRadius} from '../src/sim/map.js';
 import {vec} from '../src/sim/math.js';
 import {spawn, ENTITY_KINDS} from '../src/sim/world.js';
 
+globalThis.__legacyFractionalDamage = true;   // este teste caracteriza a matemática de dano fracionária, anterior à regra de dano inteiro (ver sim/damage-rule.js)
 let n = 0;const ok = l => {n++;console.log('✓', l);};
 const near = (a, b, e = 1e-6) => assert.ok(Math.abs(a - b) < e, `${a} ≠ ${b}`);
 const events = [];

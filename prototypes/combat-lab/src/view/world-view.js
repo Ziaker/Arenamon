@@ -840,7 +840,7 @@ export class WorldView {
         if (p.p?.variant !== 0) { /* keep variant 0 */ }
         const chargeSignature = JSON.stringify(base);
         if (!p.active || p.chargeSignature !== chargeSignature || p.chargeLevel !== level) {
-          p.play('waterPulse', {...base, variant: 0, shotFollowTime: C.vfx.elemental?.shotFollowTime ?? .3}, level, {noFlash: !!acc.noFlash, reduced: !!acc.reduceMotion, follow: true});
+          p.play('waterPulse', {...base, variant: 0, shotFollowTime: base.shotFollowTime ?? C.vfx.elemental?.shotFollowTime ?? .3}, level, {noFlash: !!acc.noFlash, reduced: !!acc.reduceMotion, follow: true});
           p.chargeSignature = chargeSignature;p.chargeLevel = level;
         }
         p.noFlash = !!acc.noFlash; p.reduced = !!acc.reduceMotion;

@@ -52,7 +52,7 @@ function strike(/** @type {any} */ game, /** @type {any} */ f, /** @type {any} *
   }
   const normal = (() => {const d = sub(o.position, f.position);return length(d) > 1e-6 ? normalize(d) : direction(f.facing);})();
   const P = st.params;
-  const ev = applyHit(game, f.id, o, {damage: st.damage, knockback: {horizontal: P.knockbackH, vertical: P.knockbackV}}, normal, {source: 'bounce', contact: 'bounce', pl: st.pl, origin: add(f.position, scale(normal, -1))});
+  const ev = applyHit(game, f.id, o, {damage: st.damage, knockback: {horizontal: P.knockbackH, vertical: P.knockbackV}}, normal, {source: 'bounce', contact: 'bounce', move: 'bounce', pl: st.pl, origin: add(f.position, scale(normal, -1))});
   if (ev) {events.push({...ev, phase});st.connected = true;}
   return events;
 }

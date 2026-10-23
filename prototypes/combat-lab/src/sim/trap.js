@@ -26,7 +26,7 @@ export function stepTrap(/** @type {any} */ game, /** @type {any} */ e, /** @typ
     const c = closestOnShape(box, e.pos), dist = Math.max(0, c.inside ? 0 : c.distance);
     if (dist > e.radius) continue;
     const away = sub(f.position, e.pos), normal = length(away) > 1e-6 ? normalize(away) : direction(f.facing + Math.PI);
-    const ev = applyHit(game, e.owner, f, e.hit, normal, {entity: e.id, source: 'trap', origin: e.pos, pl: e.pl, contact: 'trap'});
+    const ev = applyHit(game, e.owner, f, e.hit, normal, {entity: e.id, source: 'trap', origin: e.pos, pl: e.pl, contact: 'trap', move: 'spikes'});
     if (ev && CONSUMING.has(ev.result)) {
       events.push(ev, {result: 'trapTrigger', attacker: e.owner ?? null, target: f.id, damage: 0, entity: e.id, kind: 'trap', x: e.pos.x, z: e.pos.z});
       e.dead = true;

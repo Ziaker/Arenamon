@@ -31,8 +31,14 @@ test('apertar abre o marcador a 3 m SEM cobrar; soltar com marcador válido cobr
   assert.ok(Math.abs(s0 - f.stamina - 1) < 1e-9, 'cobrado na confirmação');assert.ok(f.moveCooldowns['fire-spin'] > 10.9);
 });
 
-test('marcador inválido (sobre o adversário) cancela SEM custo e nenhuma zona nasce', () => {
+test('por padrão o marcador pode ficar sobre o adversário (allowOccupied = 1) e a zona nasce', () => {
   const g = arena({positions: [vec(0, -4), vec(0, -1)]});const f = g.fighters[0], s0 = f.stamina;
+  g.step(cmd(press0), cmd());for (let i = 0; i < 3; i++) g.step(cmd(held), cmd());g.step(cmd(), cmd());run(g, 80);
+  assert.ok(Math.abs(s0 - f.stamina - 1) < 1e-9, 'cobrado');assert.ok(zones(g).length > 0, 'zona sobre o adversário');
+});
+
+test('com allowOccupied desligado, marcador sobre o adversário é inválido: cancela SEM custo e nenhuma zona nasce', () => {
+  const g = arena({positions: [vec(0, -4), vec(0, -1)]});C.world.fireSpin.allowOccupied = 0;const f = g.fighters[0], s0 = f.stamina;
   g.step(cmd(press0), cmd());for (let i = 0; i < 3; i++) g.step(cmd(held), cmd());g.step(cmd(), cmd());run(g, 80);
   assert.equal(f.stamina, s0);assert.equal(zones(g).length, 0);assert.ok(!f.moveCooldowns['fire-spin']);
 });

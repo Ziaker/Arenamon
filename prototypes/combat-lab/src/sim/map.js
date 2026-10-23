@@ -8,6 +8,7 @@
 import {C} from './config.js';
 import {getFighterMaxStamina} from './entity.js';
 import {sturdyGuard} from './passive-engine.js';
+import {wholeDamage} from './damage-rule.js';
 import {circleContact, noteSurface} from './solid-contact.js';
 import {vec, add, sub, scale, length, normalize, dot, clamp, direction, angleOf} from './math.js';
 import {noteContact} from './collision-probe.js';
@@ -803,6 +804,7 @@ export function processDamageWithShieldAndStages(arg0, arg1, arg2 = null, isBloc
 
   if (!defender || defender.hp <= 0) return {absorbedByShield: 0, hpDamage: 0};
   if (isPerfect) return {absorbedByShield: 0, hpDamage: 0};
+  rawDamage = wholeDamage(rawDamage);   // regra de 23/10/2026: todo dano é número inteiro, arredondado SEMPRE para baixo
 
   defender.shield ??= {hp: 0, duration: 0, maxHp: 80};
   defender.stages ??= {attack: 0, defense: 0, staminaMax: 0, cooldown: 0, speed: 0};
@@ -836,7 +838,7 @@ export function processDamageWithShieldAndStages(arg0, arg1, arg2 = null, isBloc
     const stageReduction = (defender.stages.defense ?? 0) * (C.map?.stageDefenseReduction ?? 0.10);
     const defenseFactor = Math.max(0, 1.0 - stageReduction);
 
-    finalHpDamage = unshieldedRaw * guardMultiplier * defenseFactor;
+    finalHpDamage = wholeDamage(unshieldedRaw * guardMultiplier * defenseFactor);
     // Sturdy (R6/§7): dano letal DIRETO de ataque deixa exatamente 1 HP, 1× por rodada (DOT/ambiental/refletido não protege).
     sg = sturdyGuard(defender, finalHpDamage, {...ctx, attacker});
     finalHpDamage = sg.hpDamage;
@@ -882,7 +884,7 @@ export function damageDestructible(destructible, baseDamage, category = 'physica
 
   // Multiplicador de resistência do objeto por categoria (R9.10)
   const res = destructible.resistances?.[category] ?? 1.0;
-  const dmg = baseDamage * atkMult * res;
+  const dmg = wholeDamage(baseDamage * atkMult * res);
 
   destructible.hp = Math.max(0, destructible.hp - dmg);
   events.push({result: 'destructibleDamaged', id: destructible.id, damage: dmg, remainingHp: destructible.hp});

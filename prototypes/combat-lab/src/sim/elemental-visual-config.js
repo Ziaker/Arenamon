@@ -4,6 +4,7 @@
 import {ELEMENTAL_GAME_PARAMS} from '../view/quarks/elemental-game-params.js';
 import {seedDefaults} from '../view/quarks/presets.js';
 
+const C_FOLLOW_DEFAULT = .3;
 export const elementalVisualKey = (move, variant = 0) => `${move}${variant}`;
 
 export function elementalVisualDefaults() {
@@ -18,6 +19,8 @@ export function elementalVisualDefaults() {
     variants.forEach((raw, variant) => {
       const values = numbers(move === 'seedBomb' ? {...seedDefaults(), ...raw} : raw);
       values.opacity = 1;
+      // Tempo (s) que argolas, ondas e cone do disparo acompanham o projétil: um valor por Move e por variante (pedido de 23/10/2026).
+      if (move !== 'fireSpin') values.shotFollowTime = C_FOLLOW_DEFAULT;
       // A lâmina era pequena e pouco contrastada em relação à arena.
       if (move === 'airSlash') values.brightness = Math.max(1.6, values.brightness);
       visual[elementalVisualKey(move, variant)] = values;

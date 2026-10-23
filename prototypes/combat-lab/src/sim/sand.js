@@ -81,7 +81,7 @@ export function stepSand(/** @type {any} */ game, /** @type {any} */ e, /** @typ
     if (!st) {   // primeiro contato: tenta o acerto (invulnerável não gasta nada)
        // Limpa a velocidade propria (caminhada/corrida/esquiva) para o empurrao sobrepujar o movimento.
        f.locomotionVelocity = {x: 0, z: 0};f.velocity = {x: 0, z: 0};
-      const ev = applyHit(game, e.owner, f, {damage: e.damage, knockback: null}, {x: e.dir.x, z: e.dir.z}, {entity: e.id, source: 'sand', origin: {x: e.pos.x, z: e.pos.z}, pl: 1, contact: 'area'});
+      const ev = applyHit(game, e.owner, f, {damage: e.damage, knockback: (e.knockbackH > 0 || e.knockbackV > 0) ? {horizontal: e.knockbackH ?? 0, vertical: e.knockbackV ?? 0} : null}, {x: e.dir.x, z: e.dir.z}, {entity: e.id, source: 'sand', origin: {x: e.pos.x, z: e.pos.z}, pl: 1, contact: 'area', move: 'sand-wave'});
       if (!ev || ev.result === 'invulnerable') continue;
       events.push(ev);
       e.targets[f.id] = {partial: ev.result === 'partial', perfect: ev.result === 'perfect', pinned: false, last: {x: f.position.x, z: f.position.z}, riposte: ev.result === 'riposte'};

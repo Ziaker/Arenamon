@@ -11,6 +11,7 @@
 // Determinismo: nenhum Date.now/Math.random aqui (timers em ticks do jogo e dt do passo fixo).
 
 import {C} from './config.js';
+import {wholeDamage} from './damage-rule.js';
 import {length, sub} from './math.js';
 import {applyStatus} from './status.js';
 import {chargeLevel} from './charge.js';
@@ -93,7 +94,7 @@ function activate(game, owner, id, {target = null, events = [], depth = 0} = {})
     case 'effect-spore': if (!target || !p.duration) return false; pushActive(target, p.duration); break;
     case 'rough-skin': {
       if (!target || target.hp <= 0 || !p.reflectDamage) return false;
-      const dmg = Math.min(target.hp, p.reflectDamage);
+      const dmg = Math.min(target.hp, wholeDamage(p.reflectDamage));
       target.hp = Math.max(0, target.hp - dmg);
       target.lastAttacker = owner.id;
       const tst = ensureState(target);tst.lastDamageReceived = game.tick;

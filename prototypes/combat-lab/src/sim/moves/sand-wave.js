@@ -23,7 +23,7 @@ export function sandWaveEffect(/** @type {any} */ game, /** @type {any} */ f, /*
   const dir = direction(fx.heading);
   const e = spawn(game.world, {
     kind: 'sandwave', owner: f.id, pos: {x: f.position.x, z: f.position.z}, dir, length: P.length, width: P.width, active: P.active, life: P.active + P.dissipate,
-    speed: P.length / P.active, damage: P.damage, accel: P.accel, partialFactor: P.partialFactor, blind: P.blind, wallStagger: P.wallStagger, cell: P.cell, detour: P.detour,
+    speed: P.length / P.active, damage: P.damage, accel: P.accel, knockbackH: P.knockbackH ?? 0, knockbackV: P.knockbackV ?? 0, partialFactor: P.partialFactor, blind: P.blind, wallStagger: P.wallStagger, cell: P.cell, detour: P.detour,
     replanSteps: P.replanSteps, y: 0, height: .35, visual: 'sand', captured: {move: def.id},
   }, fx.events ?? []);
   if (!e) return {ok: false, reason: 'entityLimit'};

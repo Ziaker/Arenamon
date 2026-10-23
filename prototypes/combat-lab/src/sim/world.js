@@ -95,7 +95,7 @@ export function spawn(world, t, events = []) {
  */
 export function applyHit(game, ownerId, target, hit, normal, info = {}) {
   const R = C.rules, X = C.extras.combat, T = C.extras.toggles, owner = ownerId == null ? null : game.fighters[ownerId];
-  const base = {attacker: ownerId, target: target.id, normal: {...normal}, entity: info.entity ?? null, source: info.source ?? 'world', pl: info.pl ?? null};
+  const base = {attacker: ownerId, target: target.id, normal: {...normal}, entity: info.entity ?? null, source: info.source ?? 'world', pl: info.pl ?? null, move: info.move ?? null};   // move = id do Move que causou o acerto (null = Tackle/corpo): o VFX escolhe cor de hit e tremor por ele
   if (target.hp <= 0 || target.absent) return null;
   if (!hit.ignoreInvulnerability) {const rip = riposteIntercept(target, ownerId, normal, base);if (rip) return rip;}   // Riposte: janela aberta anula o acerto e dispara o contra-golpe
   if (!hit.ignoreInvulnerability && isInvulnerable(target)) return {...base, result: 'invulnerable', damage: 0};
@@ -245,7 +245,7 @@ function stepProjectile(game, p, dt, events, spawnLater) {
   const travel = length(p.vel) * dt, steps = Math.max(1, Math.ceil(travel / C.test.contactStep));
   if (p.gravity) p.vy = (p.vy ?? 0) - p.gravity * dt;
   for (let s = 0; s < steps && !p.dead; s++) {
-    const from = {...p.pos};p.pos = add(p.pos, scale(p.vel, dt / steps));if (p.gravity) {p.y = Math.max(0, p.y + (p.vy ?? 0) * dt / steps);if (p.y <= 0 && p.vy < 0) {p.dead = true;events.push({result: 'groundHit', attacker: p.owner ?? null, target: null, damage: 0, entity: p.id, kind: 'projectile'});if (p.onHit) spawnLater.push(at(p.onHit, p));return;}}
+    const from = {...p.pos};p.pos = add(p.pos, scale(p.vel, dt / steps));if (p.gravity) {p.y = Math.max(0, p.y + (p.vy ?? 0) * dt / steps);if (p.y <= 0 && p.vy < 0) {p.dead = true;events.push({result: 'groundHit', attacker: p.owner ?? null, target: null, damage: 0, entity: p.id, kind: 'projectile'});if (p.onHit) spawnLater.push(at({...p.onHit, groundHit: true}, p));return;}}
     if (!p.gravity && p.vy) {p.y += p.vy * dt / steps;if (p.y <= 0 && p.vy < 0) {p.dead = true;events.push({result: 'groundHit', attacker: p.owner ?? null, target: null, damage: 0, entity: p.id, kind: 'projectile'});return;}}   // voo inclinado sem gravidade (pedras com alvo travado)
     legStart = null;
     // Bloqueador ANTES do refletor no caminho (por tempo de impacto): o projétil para nele e nunca chega a refletir. Empate: o refletor vale primeiro.
@@ -318,7 +318,8 @@ function stepProjectile(game, p, dt, events, spawnLater) {
         if (!vOverlap(p.y - p.radius, p.y + p.radius, 0, plat.height) || !circleTouches(pBox, p.pos, p.radius)) continue;
         events.push({result: 'platformHit', attacker: p.owner ?? null, target: plat.id, damage: 0, entity: p.id, kind: 'projectile'});
         p.dead = true;
-        if (p.onHit) spawnLater.push(at(p.onHit, p));
+        const onTop = (p.vy ?? 0) < 0 && p.y - p.radius >= plat.height - .35;   // caiu em cima da plataforma = pouso no chão (Seed Bomb mostra também o efeito provisório)
+        if (p.onHit) spawnLater.push(at(onTop ? {...p.onHit, groundHit: true} : p.onHit, p));
         return;
       }
     }
@@ -338,7 +339,7 @@ function stepProjectile(game, p, dt, events, spawnLater) {
       if (p.detonateOnly) {p.dead = true;events.push({result: 'detonate', attacker: p.owner ?? null, target: f.id, damage: 0, entity: p.id, kind: 'projectile'});if (p.onHit) spawnLater.push(at(p.onHit, p));return;}   // projétil explosivo (M22.7): o contato só detona; quem causa dano é a explosão, uma vez
       p.hitLog.push(f.id);
       const hit = p.exec != null ? execHit(game.world, p, f) : (p.hit || {});
-      const ev = applyHit(game, p.owner, f, hit, normalize(p.vel), {entity: p.id, origin: sub(f.position, scale(normalize(p.vel), 1)), pl: p.pl, contact: 'projectile'});
+      const ev = applyHit(game, p.owner, f, hit, normalize(p.vel), {entity: p.id, origin: sub(f.position, scale(normalize(p.vel), 1)), pl: p.pl, contact: 'projectile', move: p.captured?.move});
       if (p.exec != null) execRecord(game.world, p, f, ev, hit);
       if (ev) events.push(ev);
       if (ev && p.counterWon && p.defeated?.includes(f.id) && (ev.result === 'impact' || ev.result === 'partial')) applyCounterStagger(f, p.captured?.counterStagger ?? 0, events, p.owner ?? null);
@@ -358,7 +359,7 @@ function stepBeam(game, e, dt, events) {
     e.nextHit[h.target] = e.age + e.interval;
     const f = game.fighters[h.target], seg = segments[h.seg], dir = normalize(sub(seg.b, seg.a)), o = h.owner != null ? game.fighters[h.owner] : null;
     const hit = e.captured?.attackFraction != null && o ? {...e.hit, damage: e.captured.attackFraction * o.attributes.attack} : e.hit;
-    const ev = applyHit(game, h.owner, f, hit, dir, {entity: e.id, source: 'laser', origin: seg.a, pl: seg.pl, contact: 'beam'});
+    const ev = applyHit(game, h.owner, f, hit, dir, {entity: e.id, source: 'laser', origin: seg.a, pl: seg.pl, contact: 'beam', move: 'laser'});
     if (ev) events.push({...ev, seg: h.seg, kind: 'beam'});
   }
 }
@@ -370,7 +371,7 @@ function stepArea(game, a, dt, events) {
   if (a.grow > 0) a.radius = a.baseRadius * Math.min(1, a.age / a.grow) + (a.startRadius ?? 0) * Math.max(0, 1 - a.age / a.grow);
   // Pulsos: o primeiro no instante da criação; os seguintes a cada `interval` (0 = um só). Cada alvo é atingido no máximo uma vez por pulso.
   const startup = a.startup ?? 0;
-  const due = a.age < startup ? 0 : (a.interval > 0 ? 1 + Math.floor((a.age - startup - dt + 1e-9) / a.interval) : 1);
+  const due = a.age < startup + dt - 1e-9 ? 0 : Math.min(a.pulses ?? Infinity, a.interval > 0 ? 1 + Math.floor((a.age - startup - dt + 1e-9) / a.interval) : 1);   // o 1º pulso cai no 1º passo depois do start-up; os outros, a cada `interval`
   while (a.pulsesDone < due) {
     a.pulsesDone++;
     const shields = a.explosion ? game.world.entities.filter(e => e.shields && !e.dead) : [];
@@ -390,7 +391,7 @@ function stepArea(game, a, dt, events) {
       if (shield) {events.push({result: 'shielded', attacker: a.owner ?? null, target: f.id, damage: 0, entity: a.id, by: shield.id, pulse: a.pulsesDone});continue;}
       // Efeito radial: empurra do centro para fora; a intensidade cai com a distância conforme `falloff`.
       const k = a.falloff === 'linear' ? Math.max(0, 1 - dist / Math.max(1e-6, a.radius)) : 1, away = sub(f.position, a.pos);
-      const ev = applyHit(game, a.owner, f, a.hit, length(away) > 1e-6 ? normalize(away) : direction(f.facing + Math.PI), {entity: a.id, scale: k, origin: a.pos, contact: 'area'});
+      const ev = applyHit(game, a.owner, f, a.hit, length(away) > 1e-6 ? normalize(away) : direction(f.facing + Math.PI), {entity: a.id, scale: k, origin: a.pos, contact: 'area', move: a.captured?.move});
       if (ev) events.push({...ev, pulse: a.pulsesDone});
     }
     if (a.hit && game.mapState?.destructibles) {

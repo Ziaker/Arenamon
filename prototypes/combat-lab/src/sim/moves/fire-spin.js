@@ -23,11 +23,12 @@ export function fireSpinEffect(/** @type {any} */ game, /** @type {any} */ f, /*
   if (!v.valid) return {ok: false, reason: 'invalidPlacement', detail: {why: v.reason}};
   const mine = game.world.entities.filter((/** @type {any} */ e) => !e.dead && e.kind === 'area' && e.visual === 'firespin' && e.owner === f.id);
   while (mine.length >= Math.max(1, Math.round(P.maxActive))) {const old = mine.shift();old.dead = true;(fx.events ?? []).push({result: 'fieldReplaced', attacker: f.id, target: null, damage: 0, entity: old.id, kind: 'area'});}   // FS-P04: por padrão 1 zona por dono (a nova substitui a antiga)
-  const pulses = Math.max(1, Math.min(Math.round(P.pulses), Math.floor((P.life - 1e-6) / Math.max(1e-3, P.interval)) + 1));   // o último pulso precisa cair antes da expiração
+  // Sem limite de pulsos configurável (pedido de 23/10/2026): quantos cabem vem da duração da zona, do start-up e do intervalo; o último precisa cair antes da expiração.
+  const startup = Math.max(0, P.startup ?? 0), pulses = Math.max(0, Math.floor((P.life - startup - 1e-6) / Math.max(1e-3, P.interval)) + 1);
   const damage = P.damage * f.attributes.attack / C.test.attackReference;   // MV-P13
   const e = spawn(game.world, {
-    kind: 'area', owner: f.id, pos: {...m.pos}, y: v.y, radius: P.zoneRadius, height: P.zoneHeight, life: P.life, pulses, interval: P.interval, falloff: 'none',
-    hit: {damage, knockback: {horizontal: 0, vertical: 0}, guardStun: P.guardStun}, support: true, occlusion: P.occlusion ? 1 : 0, pl: 1, visual: 'firespin', captured: {move: def.id},
+    kind: 'area', owner: f.id, pos: {...m.pos}, y: v.y, radius: P.zoneRadius, height: P.zoneHeight, life: P.life, pulses, interval: P.interval, startup, falloff: 'none',
+    hit: {damage, knockback: {horizontal: P.knockbackH ?? 0, vertical: P.knockbackV ?? 0}, guardStun: P.guardStun}, support: true, occlusion: P.occlusion ? 1 : 0, pl: 1, visual: 'firespin', captured: {move: def.id},
   }, fx.events ?? []);
   if (!e) return {ok: false, reason: 'entityLimit'};
 }

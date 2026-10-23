@@ -38,7 +38,8 @@ export class ElementalGameFx {
   handles(e) {
     if (!this.enabled || !e) return false;
     if (e.kind === 'projectile') return e.visual === 'waterorb' || e.visual === 'airslash' || e.visual === 'seed';
-    if (e.kind === 'area' && e.visual === 'seedblast') return true;   // sem preview proprio: a explosao vem do contato() da semente
+    // Explosão da semente: o efeito novo vem do contato() da semente. Quando a semente toca o CHÃO (groundHit), o desenho provisório antigo também aparece, junto com o novo.
+    if (e.kind === 'area' && e.visual === 'seedblast') return !e.groundHit;
     if (e.kind === 'area') return e.visual === 'firespin';
     return false;
   }
@@ -77,7 +78,7 @@ export class ElementalGameFx {
     if (!base) return null;
     const pl = e.pl ?? 1, variant = this.variantOf(move);
     /** @type {any} */
-    const params = {...base, variant, shotFollowTime: elementalCfg().shotFollowTime ?? .3};
+    const params = {...base, variant, shotFollowTime: base.shotFollowTime ?? elementalCfg().shotFollowTime ?? .3};
     if (move === 'seedBomb') params.shotEffect = ['none','ring','cone'][elementalCfg().seedShotEffect ?? 0] ?? 'none';
     const settingsSignature = JSON.stringify(params);
     // No jogo a zona do Fire Spin vive o tempo da simulação (2,4 s), não os 20,8 s do ateliê:
@@ -106,7 +107,7 @@ export class ElementalGameFx {
       seen.add(e.id);
       let it = this.items.get(e.id);
       // O mundo reinicia a numeração das entidades: o mesmo id pode ser outra entidade.
-      if (it && (it.entity !== e || it.variant !== this.variantOf(it.move) || it.settings !== JSON.stringify({...this.paramsOf(it.move), variant: it.variant, shotFollowTime: elementalCfg().shotFollowTime ?? .3, ...(it.move === 'seedBomb' ? {shotEffect: ['none','ring','cone'][elementalCfg().seedShotEffect ?? 0] ?? 'none'} : {})}))) {this.disposeItem(it);this.items.delete(e.id);it = null;}
+      if (it && (it.entity !== e || it.variant !== this.variantOf(it.move) || it.settings !== JSON.stringify({...this.paramsOf(it.move), variant: it.variant, shotFollowTime: this.paramsOf(it.move)?.shotFollowTime ?? elementalCfg().shotFollowTime ?? .3, ...(it.move === 'seedBomb' ? {shotEffect: ['none','ring','cone'][elementalCfg().seedShotEffect ?? 0] ?? 'none'} : {})}))) {this.disposeItem(it);this.items.delete(e.id);it = null;}
       if (!it) {it = this.spawn(e, acc);if (!it) continue;this.items.set(e.id, it);}
       it.preview.root.position.set(e.pos.x, e.y ?? 0, e.pos.z);
       it.preview.root.rotation.y = this.headingOf(e);

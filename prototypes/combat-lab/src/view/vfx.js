@@ -9,6 +9,7 @@ import {clone} from 'three/addons/utils/SkeletonUtils.js';
 import {C, feintColor} from '../sim/config.js';
 import {collisionProbe} from '../sim/collision-probe.js';
 import {altitudeOf} from '../sim/entity.js';
+import {MOVE_GROUP, MELEE_MOVES, MOVE_ELEMENT} from '../sim/move-hit-map.js';
 
 const CELLS = {dot: 0, streak: 1, star4: 2, ring: 3, arrowDown: 4, diamond: 5, shard: 6, spark: 7, smoke: 8, shock: 9, star: 10, arrowUp: 11, crack: 12, hex: 13, chunk: 14, arc: 15};
 const MODE = {billboard: 0, ground: 1, axis: 2, plane: 3};
@@ -27,6 +28,24 @@ export const VFX_TYPES = [
   ['rock', 'Rochas telecinéticas (Psyshock)', ['A · Boulder Facetado', 'B · Cristal Psíquico', 'C · Meteorito Runas']],
   ['barrier', 'Barreira de energia (Reflect)', ['A · Hex-Grid Ciclado', 'B · Cristal de Quartzo', 'C · Campo de Força Vibrante']],
 ];
+/**
+ * Gancho para o VFX de hit por ELEMENTO (preparado em 23/10/2026, ainda sem efeitos próprios): quando um elemento ganhar um hit dele, registre aqui
+ * `HIT_BY_ELEMENT.fire = function (cfg, ctx) {...}` (chamada com o VFX como `this`); enquanto não houver entrada, o Move usa o hit normal do Tackle
+ * com a COR do Move (C.vfx.moveHit). Chaves: ver MOVE_ELEMENT em sim/move-hit-map.js.
+ * @type {Record<string, ((cfg: any, ctx: any) => void) | null>}
+ */
+export const HIT_BY_ELEMENT = {water: null, fire: null, air: null, grass: null, psychic: null, ground: null, normal: null};
+/** Configuração do hit para um acerto: o hit do Tackle, com a cor do Move quando houver (e estiver ligada). */
+function hitConfigFor(move) {
+  const group = MOVE_GROUP[move], tint = group ? C.vfx.moveHit?.[group] : null;
+  return tint && tint.enabled ? {...C.vfx.hit, color: tint.color, color2: tint.color2} : C.vfx.hit;
+}
+/** Tremor de câmera do hit: Moves corpo a corpo (e o Tackle) mantêm o padrão; os demais só tremem com o interruptor do Move ligado, com intensidade e duração próprias. */
+function hitShakeFor(move) {
+  if (!move || MELEE_MOVES.has(move)) return {on: true, power: 1, dur: 1};
+  const w = C.world[MOVE_GROUP[move]];
+  return w?.hitShakeOn ? {on: true, power: w.hitShakeAmount ?? 1, dur: w.hitShakeDuration ?? 1} : {on: false, power: 0, dur: 1};
+}
 export const SHAKE_EVENTS = [['shakeGuard', 'Tremor ao defender'], ['shakeHit', 'Tremor ao sofrer hit'], ['shakeGround', 'Tremor ao colidir com o chão'], ['shakePerfect', 'Tremor na defesa perfeita'], ['shakeClash', 'Tremor no clash entre tackles'], ['shakeWall', 'Tremor ao bater em parede ou objeto']];
 export const SHAKE_PROFILES = ['A · Impacto seco', 'B · Oscilação amortecida', 'C · Pulso direcional'];
 
@@ -175,7 +194,7 @@ export class VfxSystem {
       if (e.result === 'ledgeGrab') {this.fire('wallImpact', {pos: {x: e.x, z: e.z}, y: e.y, base: e.base, n: e.n, power: .6, w: e.w, h: e.h, arena: false}, `agarre de borda (${(e.w ?? 0).toFixed(1)} × ${(e.h ?? 0).toFixed(1)} m)`);continue;}   // Ledge Grab: reaproveita o impacto vertical, escalado pelo sólido
       const a = fighters[e.attacker], b = fighters[e.target];if (!a || !b) continue;
       const tag = `evento ${e.result} (passo ${e.tick ?? '?'}: ${e.attacker === 0 ? 'azul' : 'vermelho'} → ${e.target === 0 ? 'azul' : 'vermelho'})`;
-      if (e.result === 'impact') {this.fire('hit', {pos: b.position, lift: altitudeOf(b), floorLift: b.groundY ?? 0, n: e.normal, power: e.slam ? 1.5 : e.riposte ? 1.9 : 1, damage: e.damage, launch: e.launch}, tag);this.shake(e.slam ? 'shakeGround' : 'shakeHit', e.normal, e.slam ? 1.4 : e.riposte ? (C.world.riposte?.shakeMult ?? 1) : 1, tag);}
+      if (e.result === 'impact') {const hs = hitShakeFor(e.move);this.fire('hit', {pos: b.position, lift: altitudeOf(b), floorLift: b.groundY ?? 0, n: e.normal, power: e.slam ? 1.5 : e.riposte ? 1.9 : 1, damage: e.damage, launch: e.launch, move: e.move}, tag);if (hs.on) this.shake(e.slam ? 'shakeGround' : 'shakeHit', e.normal, (e.slam ? 1.4 : e.riposte ? (C.world.riposte?.shakeMult ?? 1) : 1) * hs.power, tag, hs.dur);}
       else if (e.result === 'wallSplat') {this.fire('hit', {pos: b.position, lift: altitudeOf(b), floorLift: b.groundY ?? 0, n: e.normal, power: 1.4}, tag);this.shake('shakeClash', e.normal, 1, tag);}
       else if (e.result === 'footstool') {const n = e.normal ?? {x: 0, z: 0};this.fire('hit', {pos: {x: b.position.x, z: b.position.z}, lift: altitudeOf(b), floorLift: b.groundY ?? 0, n, power: 0.7}, tag);this.shake('shakeHit', n, 0.6, tag);}
       else if (e.result === 'partial') {this.fire('block', {pos: b.position, lift: altitudeOf(b), floorLift: b.groundY ?? 0, n: e.normal, power: 1}, tag);this.shake('shakeGuard', e.normal, 1, tag);}
@@ -277,7 +296,9 @@ export class VfxSystem {
     };
     try {
       const list = handlers[type];
-      if (list) (list[v] ?? list[0]).call(this, C.vfx[type], ctx);
+      const byElement = type === 'hit' && ctx?.move ? HIT_BY_ELEMENT[MOVE_ELEMENT[ctx.move]] : null;   // hit próprio do elemento (futuro); null = hit do Tackle
+      if (byElement) byElement.call(this, hitConfigFor(ctx.move), ctx);
+      else if (list) (list[v] ?? list[0]).call(this, type === 'hit' ? hitConfigFor(ctx?.move) : C.vfx[type], ctx);
       // Bloqueio: brilho de contato sempre voltado para a câmera, para o feedback nunca sumir (escudos planos podem ficar de perfil).
       if (type === 'block' && v !== 0) {const p = this.frontOf(ctx.pos, ctx.n, .5), c = C.vfx.block;this.spawn({x: p.x, y: .8, z: p.z, life: c.duration * .4, w: .55 * c.size, cell: 'spark', color: c.color, glow: 1.3 * c.intensity, alpha: c.opacity, grow: .6 * c.expansion, fade: 1.5});}
 
@@ -678,26 +699,26 @@ export class VfxSystem {
   }
   canvasFilter(css, duration) {if (!this.canvas) return;this.canvas.style.filter = css;this.filterUntil = (this.time ?? 0) + duration;}
   // ---------- Tremor de câmera (transformação visual temporária; nunca toca no rig nem na entrada) ----------
-  shake(key, n, power = 1, reason = '') {
+  shake(key, n, power = 1, reason = '', durMult = 1) {
     if (this.accessibility?.reduceMotion || C.vfx.master?.reduceMotion || C.vfx.laser?.reduceMotion) return;
     const s = C.vfx[key];if (!C.vfx.shakeMaster.enabled || !s?.enabled) return;
     this.record(key, `${reason}${power !== 1 ? ` · força ${power.toFixed(2)}` : ''}`, {variant: 'ABC'[s.profile | 0]});
-    this.shakes.push({key, t: 0, power, n: n ? {x: n.x, z: n.z} : null, phase: Math.random() * 100, ax: rand(-1, 1)});
+    this.shakes.push({key, t: 0, power, dur: durMult, n: n ? {x: n.x, z: n.z} : null, phase: Math.random() * 100, ax: rand(-1, 1)});
   }
   /** Deslocamento {x,y,z} e rotação (roll) da câmera neste quadro, somando os tremores ativos (limitado). */
   shakeOffset(dt, camera) {
     if (this.accessibility?.reduceMotion || C.vfx.master?.reduceMotion || C.vfx.laser?.reduceMotion || !C.vfx.shakeMaster.enabled) {this.shakes = [];return {x: 0, y: 0, z: 0, roll: 0};}
     let x = 0, y = 0, z = 0, roll = 0, limit = 0;
     for (const s of this.shakes) {
-      const c = C.vfx[s.key];s.t += dt;if (s.t > c.duration) {s.dead = true;continue;}
-      const k = s.t / c.duration, A = c.amplitude * c.intensity * s.power, w = c.frequency * Math.PI * 2;limit = Math.max(limit, c.limit);
+      const c = C.vfx[s.key], D = c.duration * Math.max(.01, s.dur ?? 1);s.t += dt;if (s.t > D) {s.dead = true;continue;}
+      const k = s.t / D, A = c.amplitude * c.intensity * s.power, w = c.frequency * Math.PI * 2;limit = Math.max(limit, c.limit);
       let ox = 0, oy = 0, oz = 0, env;
       if ((c.profile | 0) === 0) { // Seco: ruído de alta frequência, recuperação rápida.
         env = Math.pow(1 - k, 2.5);ox = (Math.sin(s.t * w + s.phase) + .5 * Math.sin(s.t * w * 2.3 + s.phase * 2)) * A * env;oy = Math.sin(s.t * w * 1.3 + s.phase * 3) * A * env;oz = Math.cos(s.t * w * .9 + s.phase) * A * env * .6;
       } else if ((c.profile | 0) === 1) { // Amortecido: oscilação senoidal com decaimento exponencial.
         env = Math.exp(-c.damping * s.t);oy = Math.sin(s.t * w * .5) * A * env;ox = Math.sin(s.t * w * .5 + 1.3) * A * env * .5 * s.ax;
       } else { // Pulso direcional: empurra na direção da força e volta suavizado.
-        const peak = .18;env = k < peak ? Math.sin(k / peak * Math.PI / 2) : Math.exp(-c.damping * (s.t - peak * c.duration));
+        const peak = .18;env = k < peak ? Math.sin(k / peak * Math.PI / 2) : Math.exp(-c.damping * (s.t - peak * D));
         const d = s.n ?? {x: 0, z: 1};ox = d.x * A * env;oz = d.z * A * env;oy = -A * .3 * env;
       }
       x += ox;y += oy;z += oz;roll += c.angular * .25 * (ox + oy);

@@ -23,10 +23,11 @@ test('registrado: Normal · Projectile + Field por marcador, 1 de stamina, 8 s, 
   assert.ok(g.fighters.every(f => (f.loadout ?? []).every(x => !x)));
 });
 
-test('cobrança na confirmação (stamina e 8 s); marcador inválido (sobre o adversário) cancela sem custo', () => {
+test('cobrança na confirmação (stamina e 8 s); com allowOccupied desligado, marcador sobre o adversário cancela sem custo', () => {
   const g = arena();const f = g.fighters[0], s0 = f.stamina;g.step(cmd(press0), cmd());for (let i = 0; i < 3; i++) g.step(cmd(held), cmd());assert.equal(f.stamina, s0);
   g.step(cmd(), cmd());assert.ok(Math.abs(s0 - f.stamina - 1) < 1e-9 && f.moveCooldowns['seed-bomb'] > 7.9);
-  const g2 = arena({positions: [vec(0, -6), vec(0, 1)]});const f2 = g2.fighters[0], s2 = f2.stamina;confirm(g2);run(g2, 100);
+  const g2 = arena({positions: [vec(0, -6), vec(0, 1)]});C.world.seedBomb.allowOccupied = 0;   // a regra padrão agora permite lançar sobre o adversário; desligada, o marcador ocupado é inválido
+  const f2 = g2.fighters[0], s2 = f2.stamina;confirm(g2);run(g2, 100);
   assert.equal(f2.stamina, s2);assert.equal(seeds(g2).length + blasts(g2).length, 0);
 });
 

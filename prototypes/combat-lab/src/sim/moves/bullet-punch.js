@@ -28,6 +28,7 @@ export const bulletPunchDef = Object.freeze({
 export function bulletPunchSetup(/** @type {any} */ f, /** @type {any} */ a, /** @type {Record<string, any>} */ P) {
   const k = (P.strikeReach ?? 2.2) / Math.max(1e-6, nominalDistance(f, 'tackle'));   // MV-P34: velocidade do Tackle preservada; só a distância total muda
   a.pl = 2;a.fixedHeading = true;a.durationScale = k;a.distanceScale = k;a.impactMult = P.impactMult;
+  if (P.knockbackOwn) a.kb = {horizontal: P.knockbackH ?? 0, vertical: P.knockbackV ?? 0};   // knockback próprio (como o Lunge) em vez da fórmula do Tackle
 }
 
 /** Alvo do golpe: o adversário fixado ao soltar (`fx.lock`), se ainda estiver vivo e presente. */

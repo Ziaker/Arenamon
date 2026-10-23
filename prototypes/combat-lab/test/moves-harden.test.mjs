@@ -7,6 +7,7 @@ import {isInvulnerable} from '../src/sim/entity.js';
 import {hardenStatus} from '../src/sim/moves/harden.js';
 import {spawn} from '../src/sim/world.js';
 
+globalThis.__legacyFractionalDamage = true;   // este teste caracteriza a matemática de dano fracionária, anterior à regra de dano inteiro (ver sim/damage-rule.js)
 const {test, done} = suite('HARDEN');
 const CAST = secs(.35);
 

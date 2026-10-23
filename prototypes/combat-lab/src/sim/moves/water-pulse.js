@@ -33,7 +33,7 @@ export function waterPulseEffect(/** @type {any} */ game, /** @type {any} */ f, 
   const damage = nominal * f.attributes.attack / C.test.attackReference;   // MV-P13: nominal × Ataque ÷ referência, gravado no disparo (o Ataque não entra de novo no acerto)
   const e = spawn(game.world, {
     kind: 'projectile', owner: f.id, pos, y: y0, radius: P.radius, dir, speed: hSpeed, vy, life: P.range / P.speed + dt * .5, pierce: 1, blockedBy: ['barrier', 'wall'],
-    hit: {damage, knockback: {horizontal: kbH, vertical: 0}}, pl: level, clashable: true, visual: 'waterorb', visualScale: 1 + (level - 1) * .25,
+    hit: {damage, knockback: {horizontal: kbH, vertical: P.knockbackV ?? 0}}, pl: level, clashable: true, visual: 'waterorb', visualScale: 1 + (level - 1) * .25,
     captured: {attackFraction: nominal / C.test.attackReference, successiveFactor: 1, level, move: def.id, speed: P.speed, counterStagger: P.counterStagger},
   }, fx.events ?? []);
   if (!e) return {ok: false, reason: 'entityLimit'};

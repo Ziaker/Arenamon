@@ -7,6 +7,7 @@ import {Game} from './game.js';
 import {emptyCommand} from './entity.js';
 import {vec} from './math.js';
 import {spawn} from './world.js';
+import {wholeDamage} from './damage-rule.js';
 
 const cmd = (/** @type {any} */ o) => ({...emptyCommand(), ...o});
 const HELD = (/** @type {number} */ slot) => Array.from({length: C.world.slots}, (_, i) => i === slot);
@@ -86,7 +87,7 @@ export const MOVE_SCENARIOS = [
   {id: 'psyshock-acertos', name: 'Psyshock: dano × fator por acerto e teto de knockback', run() {
     const P = C.world.psyshock, g = duel(), base = P.damageFraction * g.fighters[0].attributes.attack;cast(g, 1, 480, {target: 1, locked: true});
     const ev = steps(g, 160), hits = ev.filter(e => e.result === 'impact' && e.target === 1), kb = hits.reduce((s, e) => s + (e.launch?.horizontal ?? 0), 0);
-    const expected = Array.from({length: hits.length}, (_, i) => base * P.successiveFactor ** i);
+    const expected = Array.from({length: hits.length}, (_, i) => wholeDamage(base * P.successiveFactor ** i));   // dano sempre inteiro, arredondado para baixo
     return [row('número de pedras que acertam o alvo travado', `${Math.min(P.maxStones, P.minStones + 5)}`, `${hits.length}`, hits.length >= 1),
       row('dano de cada acerto = base × fator^n', expected.map(v => r2(v)).join(' · '), hits.map(e => r2(e.damage)).join(' · '), hits.every((e, i) => near(e.damage, expected[i], 1e-6))),
       row('knockback total no alvo ≤ teto por execução', `≤ ${P.knockbackCap} m/s`, `${r2(kb)} m/s`, kb <= P.knockbackCap + 1e-6)];

@@ -10,6 +10,7 @@ import {emptyCommand} from '../src/sim/entity.js';
 import {vec} from '../src/sim/math.js';
 import {registerStandardMoves} from '../src/sim/moves/standard.js';
 import {spawn} from '../src/sim/world.js';
+import {listMoves} from '../src/sim/moves.js';
 import {MOVES_PARAMS} from '../src/ui/moves-panel.js';
 
 let n = 0;const ok = l => {n++;console.log('✓', l);};
@@ -33,7 +34,8 @@ const sdOf = a => {const m = mean(a);return Math.sqrt(mean(a.map(v => (v - m) **
 
 // ---------- Cobertura: nada que a simulação lê fica sem slider ----------
 const NEW = new Set(['reflect.burstRadius', 'reflect.burstForce', 'reflect.burstDamage', 'reflect.burstPush', 'reflect.burstHurt', 'psyshock.knockbackVertical', 'psyshock.knockbackLevelBonus', 'psyshock.knockbackSpeedFactor', 'reflect.minCharge', 'psyshock.searchStep', 'psyshock.arc', 'psyshock.ringMin', 'psyshock.ringMax', 'psyshock.heightMin', 'psyshock.heightMax', 'psyshock.scaleMin', 'psyshock.scaleMax']);
-const GROUPS = ['charge', 'reflect', 'psyshock', 'beam', 'ai', 'harden', 'secondWind', 'swift', 'lunge', 'quickAttack', 'guardBreak', 'feint', 'riposte', 'bounce', 'spikes', 'sandWave', 'bulletPunch', 'emergingStone'];
+/** Grupos globais dos Moves + o grupo de CADA Move registrado (deriva do registro: Move novo entra sozinho, sem lista para esquecer). */
+const GROUPS = [...new Set(['charge', 'beam', 'ai', ...listMoves().map(m => m.group).filter(Boolean)])];
 const rows = new Map(MOVES_PARAMS.flatMap(([, list]) => list).map(r => [`${r[0]}.${r[1]}`, r]));
 /** Chaves da configuração que NENHUM código da simulação ou da visão lê (campos legados): sem leitor, um slider seria controle morto. */
 const UNUSED = new Set([]);
@@ -42,7 +44,7 @@ function sourceFiles(dir) {return readdirSync(dir).flatMap(f => {const p = dir +
   const src = sourceFiles(fileURLToPath(new URL('../src', import.meta.url))).filter(f => !/sim[\/]config\.js$/.test(f)).map(f => readFileSync(f, 'utf8')).join('\n');
   const missing = [], deadButListed = [];
   for (const g of GROUPS) for (const k of Object.keys(C.world[g])) {
-    const id = `${g}.${k}`, used = new RegExp(`\b${k}\b`).test(src);
+    const id = `${g}.${k}`, used = new RegExp(String.raw`\b${k}\b`).test(src);
     if (UNUSED.has(id)) {if (used) deadButListed.push(id);continue;}
     if (!rows.has(id)) missing.push(id);
   }
@@ -111,8 +113,8 @@ ok('reflect.minCharge: define o tempo mínimo segurando para a barreira nascer')
   const sp = kbOf({knockbackSpeedFactor: 1}, 480).map(k => k.horizontal);
   assert.ok(Math.max(...sp) - Math.min(...sp) > .01, 'empurrão varia com a velocidade sorteada da pedra');
   assert.equal(new Set(kbOf({}, 480).map(k => k.horizontal.toFixed(6))).size, 1, 'sem o fator, todas as pedras empurram igual');
-  assert.equal(MOVES_PARAMS.flatMap(g => g[1]).find(r => r[1] === 'knockbackPerStone')[5], 20);   // limite máximo dos sliders de Moves ×2 (pedido de 22/10/2026)
-  assert.equal(MOVES_PARAMS.flatMap(g => g[1]).find(r => r[1] === 'knockbackCap')[5], 20);
+  assert.equal(MOVES_PARAMS.flatMap(g => g[1]).find(r => r[1] === 'knockbackPerStone')[5], 15);   // knockback de todos os Moves: limite fixo de 15 (pedido de 23/10/2026)
+  assert.equal(MOVES_PARAMS.flatMap(g => g[1]).find(r => r[1] === 'knockbackCap')[5], 15);
 }
 ok('psyshock: limites de knockback até 10 e novos controles (vertical, bônus por PL, velocidade da pedra) alteram o empurrão real');
 

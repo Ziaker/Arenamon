@@ -1,8 +1,8 @@
 # Integração no jogo principal — 23/10/2026
 
-O botão **⚔ Ações → Moves** mantém equipagem, atribuição de botões, seleção de animações de carga/disparo e teste da animação. Os sliders dos Moves permanecem nas abas **Moves** (mecânica e loop de animação) e **VFX dos Moves** (aparência), na barra esquerda.
+O botão **⚔ Ações → Moves** mantém equipagem, atribuição de botões, seleção de animações de carga/disparo e teste da animação. Os sliders dos Moves ficam numa só aba **Moves** na barra esquerda, em que cada Move tem um cartão com as abas **Mecânica**, **Visual (VFX)** e **Animação**, o botão **▶ Disparar** (segura a tecla do slot pelo tempo ajustado; opção de redisparar ao soltar um slider) e atalhos **Equipar / animar ↗** e, em Ações, **⚙ Parâmetros ↗ / ◈ Visual ↗**; o loop da animação de carga fica em **⚔ Ações → Moves**.
 
-Abra `ABRIR_ARENAMON.html` → **Jogar Arenamon**. No painel esquerdo, **Moves** contém slots, animações e parâmetros mecânicos; **VFX dos Moves** contém os controles de aparência. Cada Move tem um grupo expansível na aba visual. Water Pulse, Fire Spin, Air Slash e Seed Bomb incluem variantes A/B/C quando aplicável, parâmetros de emissão, opacidade, iluminação, cores e efeitos de disparo. Reflect, Psyshock e os demais Moves mostram os efeitos compartilhados que usam; o rótulo **compartilhado** avisa quando um ajuste afeta mais de um Move. Os botões de exportação nas duas abas geram o JSON completo de ajustes, e a importação continua em Ajustes. O tempo de seguimento das argolas e cones começa em **0,3 s**, pode ser ajustado em VFX dos Moves → Visual dos disparos e projéteis e também vai no JSON. No mesmo grupo há o toggle da borda colorida por PL dos projéteis.
+Abra `ABRIR_ARENAMON.html` → **Jogar Arenamon**. No painel esquerdo, **Moves** reúne parâmetros mecânicos (aba Mecânica) e controles de aparência (aba Visual (VFX)); slots e animações ficam em **Ações → Moves**. Cada Move tem um grupo expansível na aba visual. Water Pulse, Fire Spin, Air Slash e Seed Bomb incluem variantes A/B/C quando aplicável, parâmetros de emissão, opacidade, iluminação, cores e efeitos de disparo. Reflect, Psyshock e os demais Moves mostram os efeitos compartilhados que usam; o rótulo **compartilhado** avisa quando um ajuste afeta mais de um Move. Os botões de exportação no topo da aba Moves geram o JSON completo de ajustes, e a importação continua em Ajustes. O tempo de seguimento das argolas e cones começa em **0,3 s**, pode ser ajustado em Moves → Visual dos disparos e projéteis dos disparos e projéteis e também vai no JSON. No mesmo grupo há o toggle da borda colorida por PL dos projéteis.
 
 O Air Slash agora usa brilho padrão mínimo 1,6× e escala visual maior; largura, altura e espessura do desenho também afetam a camada Quarks. O Water Pulse carrega a esfera de água do ateliê e reage ao PL. O alcance do Seed Bomb e Fire Spin foi ampliado na rodada anterior. Os valores visuais alteram apenas o desenho; dano e colisão continuam na simulação.
 
@@ -222,3 +222,14 @@ Os mesmos valores estão em **Ajustes → VFX · Elementais (Água, Fogo, Vento)
 ## Validação
 
 Build (`npm run build:combat-lab`) e typecheck passaram. A camada expõe `view.worldView.elementalFx.diagnostics()` para os testes de navegador. O desempenho com vários efeitos simultâneos não foi medido.
+
+
+## Rodada de 23/10/2026 (v1.26.0)
+
+- **Dano inteiro:** todo dano (golpes, Moves, veneno, Rough Skin, objetos) é arredondado para baixo (`src/sim/damage-rule.js`; interruptor `Dano sempre inteiro` em Ações → Sistemas).
+- **Fire Spin:** o start-up agora atrasa o primeiro pulso (antes não era repassado à zona); não existe mais limite de pulsos — a quantidade é o que couber entre start-up e duração, um a cada intervalo.
+- **Tremor de hit:** só Moves corpo a corpo (e o Tackle) tremem por padrão; nos demais, Moves → Visual → *Hit (cor e tremor)* tem o interruptor que libera intensidade e duração.
+- **Cor do hit por Move:** `C.vfx.moveHit.<move>`; gancho para hit por elemento em `HIT_BY_ELEMENT` (`src/view/vfx.js`), mapa em `src/sim/move-hit-map.js`.
+- **Seed Bomb:** ao tocar o chão, a explosão provisória antiga aparece junto com a nova.
+- **Knockback:** sliders H e V (0–15) em todos os Moves que causam dano; Bullet Punch ganhou *Knockback próprio*.
+- **Aba Moves:** Mecânica e Visual em subgrupos; o Visual dos elementais mostra só os sliders que o Move realmente usa; o tempo de seguimento do efeito de disparo é por Move (Visual → Disparo).
