@@ -58,7 +58,7 @@ export const DEFAULTS = {
   barrier: {shape: 'box', hx: .9, hz: .15, y: 0, height: 1.8, life: 3, hp: Infinity, blocksProjectiles: true, blocksFighters: false, blocksOwner: false},
   wall: {shape: 'box', hx: 1.5, hz: .3, y: 0, height: 2.2, life: Infinity, blocksProjectiles: true, blocksFighters: true},
   beam: {y: .9, life: 2, length: 24, width: .04, pl: 1, interval: .25, turn: 0, hitsOwner: false, hit: {damage: 0}},
-  area: {shape: 'circle', radius: 2, y: 0, height: 2, life: .3, grow: 0, pulses: 1, interval: 0, falloff: 'none', affectsOwner: false, follow: false},
+  area: {shape: 'circle', radius: 2, y: 0, height: 2, life: .3, grow: 0, pulses: 1, interval: 0, startup: 0, falloff: 'none', affectsOwner: false, follow: false},
   burrow: {shape: 'circle', radius: 0, y: 0, height: 0, life: 120},
   sandwave: {shape: 'box', y: 0, height: .35, life: 1.5, active: .75},
   trap: {shape: 'circle', radius: 1.2, y: 0, height: 1.2, life: 8, armDelay: 0, pl: 1, support: true, affectsOwner: false},
@@ -369,7 +369,8 @@ function stepArea(game, a, dt, events) {
   }
   if (a.grow > 0) a.radius = a.baseRadius * Math.min(1, a.age / a.grow) + (a.startRadius ?? 0) * Math.max(0, 1 - a.age / a.grow);
   // Pulsos: o primeiro no instante da criação; os seguintes a cada `interval` (0 = um só). Cada alvo é atingido no máximo uma vez por pulso.
-  const due = a.interval > 0 ? Math.min(a.pulses, 1 + Math.floor((a.age - dt + 1e-9) / a.interval)) : Math.min(a.pulses, 1);
+  const startup = a.startup ?? 0;
+  const due = a.age < startup ? 0 : (a.interval > 0 ? 1 + Math.floor((a.age - startup - dt + 1e-9) / a.interval) : 1);
   while (a.pulsesDone < due) {
     a.pulsesDone++;
     const shields = a.explosion ? game.world.entities.filter(e => e.shields && !e.dead) : [];

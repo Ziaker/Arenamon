@@ -298,7 +298,7 @@ export function updateFighter(f, cmd, fighters, dt, world = null) {
   }
   const R = C.rules, X = C.extras, T = X.toggles, A = C.actions;
   // Buffer de entrada: o pedido mais recente de X ou C vale por actions.buffer.window, mesmo no ar ou na aterrissagem.
-  const requested = cmd.tackle && T.enableTackle ? 'tackle' : cmd.dodge && T.enableDodge ? 'dodge' : null;
+  const requested = (f.action?.slam) ? null : (cmd.tackle && T.enableTackle ? 'tackle' : cmd.dodge && T.enableDodge ? 'dodge' : null);   // Meteor Slam: nenhum botao durante o slam (ar e chao)
   const diag = attemptsActive();
   if (diag) {
     if (cmd.tackle && !T.enableTackle) report(f, {kind: 'tackle', result: 'denied', reason: 'disabled'});
@@ -319,7 +319,7 @@ export function updateFighter(f, cmd, fighters, dt, world = null) {
   // exatamente quando o cooldown termina, sem contorná-lo); no ar, em stun/knockback etc., decai normalmente.
   const waitingJumpCooldown = !f.flight && (f.jumpState?.cooldown ?? 0) > 0 && f.knockRecovery <= 1e-8 && f.stun <= 1e-8;
   if (!waitingJumpCooldown) f.jumpBuffered = Math.max(0, (f.jumpBuffered ?? 0) - dt);
-  if (cmd.jump && f.hp > 0 && feelJ) f.jumpBuffered = Math.max(f.jumpBuffered ?? 0, MJ.jumpBufferWindow ?? 0.12);
+  if (cmd.jump && !f.action?.slam && f.hp > 0 && feelJ) f.jumpBuffered = Math.max(f.jumpBuffered ?? 0, MJ.jumpBufferWindow ?? 0.12);
   // Comandos novos com o lutador indisponível: o motivo é a própria condição que encerra o passo abaixo.
   const isSlamTrigger = f.flight && requested === 'tackle' && T.enableMeteorSlam && (f.flight.isNormalJump || f.flight.isEdgeFall || T.enableFlightSlam) && !f.wallSplat && f.hp > 0 && !f.exhausted && f.stamina >= costOf(f, A.tackle.cost) - 1e-8 && !hasFlag(f, 'disarmed') && !hasFlag(f, 'stunned');
   if (diag && (requested || cmd.guardPressed) && (f.flight || f.knockRecovery > 0 || f.hp <= 0)) {
@@ -440,7 +440,7 @@ export function updateFighter(f, cmd, fighters, dt, world = null) {
       report(f, f.perfectCooldown <= 0 ? {kind: 'perfectGuard', result: 'executed', note: `janela de ${Math.round(R.perfect * 1000)} ms aberta`} : {kind: 'perfectGuard', result: 'denied', reason: 'perfectCooldown', detail: {left: f.perfectCooldown}});
     } else if (!f.guardSuppressed) report(f, {kind: 'guard', result: 'denied', ...(!tackleGuard ? {reason: 'tackleNoGuard'} : {reason: 'chain', detail: {left: Math.max(0, actionSpec(f.action).chainAfter - f.action.elapsed)}})});
   }
-  if (cmd.guard && T.enableDefense && !f.guardSuppressed && open) {
+  if (!f.action?.slam && cmd.guard && T.enableDefense && !f.guardSuppressed && open) {
     if (f.charge) cancelCharge(f, 'guard');
     if (f.aim) cancelAim(f, 'guard');
     if (f.action && (f.action.kind === 'dodge' || f.action.kind === 'tackle')) f.blend = {from: {...f.velocity}, elapsed: 0};
@@ -765,6 +765,7 @@ function pressFeint(f, cmd, def, slot, move, desiredHeading, hasTarget, diag) {
 }
 /** Inicia o movimento: cobra a stamina, inicia a recarga e agenda a linha do tempo (disparada em updateMove). */
 function startMove(f, def, slot, dirs, desiredHeading, hasTarget, guardHeld) {
+  if (f.action?.slam) return {ok: false, reason: 'slam'};   // Meteor Slam: nenhum Move durante o slam
   const lift = airKind(def) === 'descend' ? takeOffToLift(f, CTX_WORLD) : 0, inAir = airKind(def) === 'cast' && isAirJump(f);
   const aim = def.aim ?? 'target', inputDir = dirs.dodgeDirection ?? dirs.move;
   const heading = aim === 'facing' ? f.facing : aim === 'input' && length(inputDir) > .01 ? angleOf(inputDir) : hasTarget || length(inputDir) <= .01 ? desiredHeading : angleOf(inputDir);

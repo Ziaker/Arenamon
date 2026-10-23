@@ -328,6 +328,7 @@ const PARAMS = [
     ['fireSpin', 'life', 'Duração da zona', 'Vida da entidade em tempo LOCAL (cada acerto congela o mundo 1 passo de hitstop). Prompt: 2,4 s = 288 passos.', .5, 8, .1, sec, false],
     ['fireSpin', 'pulses', 'Número de pulsos', 'O último pulso precisa cair antes de a zona expirar: pulsos serão limitados a (duração ÷ intervalo). Prompt: 4.', 1, 12, 1, int, false],
     ['fireSpin', 'interval', 'Intervalo entre pulsos', 'O primeiro pulso sai no primeiro passo da zona (prompt: 0,6 s = 72 passos).', .1, 2, .05, sec, false],
+    ['fireSpin', 'startup', 'Atraso do primeiro pulso (start-up)', 'Tempo antes do primeiro pulso de dano (s). 0 = dano imediato.', 0, 3, .05, sec, false],
     ['fireSpin', 'damage', 'Dano por pulso (nominal)', 'Final = nominal × Ataque ÷ referência (MV-P13); uma vez por alvo por pulso. Prompt: 2 HP (o teto de 8 HP por alvo é igual a 4 × 2, redundante).', 0, 10, .25, num, false],
     ['fireSpin', 'guardStun', 'Guard stun por pulso', '0 = quem defende toma o dano reduzido e continua livre (FS-P07 A, provisório). Com o valor do motor (0,514 s) a guarda trava ≈83% do tempo.', 0, 1, .01, sec, false],
     ['fireSpin', 'occlusion', 'Paredes bloqueiam os pulsos', 'Liga: sólidos de chão entre o centro e o alvo impedem o dano (plano XZ). Desligado: o dano atravessa (padrão do motor).', 0, 1, 1, yesno, false],
