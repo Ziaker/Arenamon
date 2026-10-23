@@ -19,7 +19,18 @@ Todo efeito de ataque, projétil ou objeto precisa ter, nesta ordem, e **não po
 5. **Finalização ou contato:** como ele termina ou atinge algo.
 6. **Efeito de contato / explosão / finalização:** o que acontece ao atingir (só quando há contato; sem contato, a finalização).
 
-Cada fase tem **seu grupo de sliders** no painel e **seu nome na legenda** do canto da tela (ex.: *Surgimento · Disparo (impacto) · Voo · Contato / dissipação*). Quem pede um efeito costuma deixar de fora o disparo e o contato: **estas duas fases nunca podem faltar**.
+Cada fase tem **seu grupo de sliders** no painel e **seu nome na legenda** do canto da tela (ex.: *Surgimento · Disparo (impacto) · Voo · Contato / dissipação*). Quem pede um efeito costuma deixar de fora o disparo e o contato: **estas duas fases nunca podem faltar no protótipo**.
+
+### 1.1 Cada fase é desligável **[regra]**
+
+Nem todo efeito precisa de todas as fases (uma aura contínua não tem contato; um raio pode não ter conjuração). Por isso **cada fase tem um interruptor “Ligar esta fase”** no topo do seu grupo de sliders:
+
+- **Padrão: ligada.** Desligar é uma escolha de quem ajusta, não um esquecimento de quem construiu. O protótipo sempre entrega as seis fases construídas e desligáveis; a fase só some quando alguém a desliga.
+- Fase desligada **não executa e não aparece na legenda**; o efeito segue direto para a próxima fase ligada.
+- Os sliders da fase desligada **continuam visíveis, esmaecidos, e guardam os valores**; ao religar, voltam como estavam.
+- O estado de cada interruptor entra no **Exportar/Importar** e no **salvamento automático**, junto com os demais valores.
+- Isso substitui os “desligadores” avulsos de hoje (duração 0 do impacto do disparo, opção “Nenhum” do seletor de disparo): todos passam a ser o mesmo interruptor.
+- Se o usuário desligar todas as fases que desenham algo, o painel avisa que não há nada para mostrar, em vez de ficar em branco sem explicação. **[proposta]**
 
 ## 2. Slider para tudo, com explicação **[regra]**
 
@@ -30,6 +41,7 @@ Cada controle tem:
 - **explicação curta** logo abaixo (o que muda na tela);
 - **slider e campo numérico** sincronizados;
 - **agrupamento por fase** (títulos de seção no painel);
+- **interruptor “Ligar esta fase”** no grupo de cada fase (seção 1.1);
 - botão **Restaurar** do efeito.
 
 Parâmetros de qualquer efeito, por fase **[proposta]** (os que fizerem sentido para o efeito):
@@ -95,7 +107,7 @@ Clarão, halo, coice do núcleo, ondas de choque e jato de partículas para trá
 ## 4. Salvar o trabalho **[regra]**
 
 Todo ateliê deve ter, no painel:
-- **Salvamento automático** de tudo (sliders, cores, efeito e opção escolhidos, preferências de tela);
+- **Salvamento automático** de tudo (sliders, cores, efeito e opção escolhidos, interruptores das fases, preferências de tela);
 - **Exportar (.json)** com todos os efeitos e opções ajustados, com data no nome;
 - **Importar**, que valida o arquivo, recusa o que não for do ateliê e conta o que ignorou;
 - aviso de **onde** foi salvo e do **limite** (o salvamento automático vale para o mesmo navegador e o mesmo arquivo HTML; só o arquivo exportado é cópia segura).
@@ -114,7 +126,7 @@ Superfícies contínuas desenhadas por shader para a silhueta do elemento; **par
 ## 7. Entrega de cada ateliê ou efeito **[regra do projeto, AGENTS.md]**
 
 1. Abre por arquivo da pasta oficial, **sem rodar comandos**, com **link no portal** (`ABRIR_ARENAMON.html`) a no máximo 2 cliques.
-2. **Teste de navegador** (padrão `test/*.browser.mjs`, Edge offline) que confira cada slider na interface e no runtime, os limites (inclusive negativos), as fases, o salvar/exportar e a limpeza.
+2. **Teste de navegador** (padrão `test/*.browser.mjs`, Edge offline) que confira cada slider na interface e no runtime, os limites (inclusive negativos), as fases, **o liga/desliga de cada fase (a legenda a pula e os valores sobrevivem)**, o salvar/exportar e a limpeza.
 3. **Capturas** na galeria de evidências (`prototypes/<sistema>/evidence/`).
 4. **Documentação** em `docs/` e versão do `package.json` aumentada.
 5. `npm run build:combat-lab` e `npm run typecheck` antes de entregar.
@@ -127,16 +139,18 @@ Superfícies contínuas desenhadas por shader para a silhueta do elemento; **par
 | Sliders por fase | 40 + 13 | 10 de forma | 13 de disparo | só os genéricos |
 | Impacto do disparo | sim | não se aplica | sim | não |
 | Seletor Argola / Tiro em cone | **não** | **não** | **não** | **não** |
+| Interruptor por fase | **não** | **não** | **não** | **não** |
 | Exportar / importar / automático | sim (ateliê todo) | sim | sim | sim |
 | Limites 5× / sinal negativo | 300×, sem sinal | 5×, sem sinal | 5×, sem sinal | 5×, sem sinal |
 | Fases na legenda | Disparo / Início / Trajeto / Contato | Início / Sustentação | Disparo / Início / Trajeto / Contato | Início / Trajeto / Contato |
 
-O seletor, os controles com sinal e as fases de surgimento e duração **ainda não existem em nenhum Move**: este documento define o padrão para quando forem implementados. O Seed Bomb é o primeiro candidato (prompt pronto fora deste documento).
+O seletor, o interruptor por fase, os controles com sinal e as fases de surgimento e duração **ainda não existem em nenhum Move**: este documento define o padrão para quando forem implementados. O Seed Bomb é o primeiro candidato (prompt pronto fora deste documento).
 
 ## 9. Ficha copiável para pedir um efeito novo
 
 ```
 Efeito: <nome e elemento>
+Fases a desligar (se houver): <quais não se aplicam>
 Surgimento: <como aparece>
 Disparo: <Nenhum | Argola | Tiro em cone> + <clarão/coice/ondas, se quiser>
 Efeito em voo: <aparência, duração média>
@@ -149,6 +163,7 @@ Entrega: teste de navegador, capturas, docs, versão, link no portal
 
 ## 10. O que ainda falta decidir
 
+- Se desligar a fase “efeito em si” deve ser permitido (hoje a regra permite, com aviso).
 - Se o impacto do disparo vira terceira opção do seletor ou soma às outras.
 - Padrões de cada parâmetro dos extras marcados como **[proposta]**.
 - Estilo visual definitivo (seção 6).
