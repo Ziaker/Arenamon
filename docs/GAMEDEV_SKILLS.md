@@ -154,3 +154,5 @@ Cada entrada: data · tarefa · skill · o que foi aplicado de fato.
 - **Superpowers:** `brainstorming` (dispensada pelo pedido de execução direta), `verification-before-completion` (verify de navegador antes de declarar pronto).
 
 - 2026-10-22 — Reconstrução visual de Water Pulse, Fire Spin e Air Slash: `arenamon-routing`, `game-feel` e `shader-programming`; aplicados envelopes de nascimento/dissipação, UVs animadas, Fresnel, ruído e faixas curvas. Partículas continuam em three.quarks; prévia sem mecânica.
+
+- 2026-10-23 — Reconferência do sistema de combos: `arenamon-routing` orientou a auditoria do Combat Lab e o teste direcionado antes de qualquer mudança de gameplay.
