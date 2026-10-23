@@ -6,11 +6,12 @@ Este arquivo separa **o que foi efetivamente executado** do que **permanece pend
 
 | Verificação | Resultado |
 |---|---|
-| `prejogo.test.mjs` (modelo: registro × catálogo, passivas, regras) | 6 aprovados |
-| `prejogo.browser.mjs` (Edge real, offline, modelos reais) | 40 aprovados; capturas em `evidence/prejogo/` |
+| `prejogo.test.mjs` (modelo: registro × catálogo, classes de cor, passivas, regras) | 7 aprovados |
+| `prejogo.browser.mjs` (Edge real, offline, modelos reais) | 43 aprovados; capturas em `evidence/prejogo/` |
 | `animation.test.mjs` (novo teste: modelo sem idle) | 16 testes / 72 verificações |
 | Crash `clipAction` com Cogumelo × drowzee-knockback | 11/12 na build oficial v1.20.1 → 0/12 na nova |
 | Revisão independente (superpowers:requesting-code-review) | 16 itens; importantes corrigidos (ver `docs/PREJOGO_3_ESTILOS.md`) |
+| Teste instável `overhaul.browser.mjs` (semente aleatória por partida, sensível a carga) | falhou em ~20% das execuções durante esta rodada (116/117, «5 entradas para 4 ações») e passou 10/10 numa bateria posterior em máquina quieta; a base v1.20.1 passou 20/20. Bisect: com `characters.js` antigo 7/8, sem a camada de estilos 7/8, com a base-fonte no mesmo worktree 8/8 — **causa não atribuída**; registrado como pendência |
 | **Não verificado** | aparência/sensação; zoom do navegador a 200%; gamepad no menu; `npm test` completo; «Superskills» (recurso inexistente no ambiente) |
 
 ## Execução de 2026-10-22 (caçada de bugs, v1.20.1)

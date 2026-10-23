@@ -64,6 +64,18 @@ Fonte dos originais: `prototypes/hud-moves/src/css/hud-a.css`, `hud-b.css`, `hud
 
 **Desvios relevantes (mostrados, não escondidos):** (1) os originais são HUDs de combate sobre a arena; aqui o mesmo vocabulário é aplicado a um menu de seleção, então cartas viram grade de candidatos e slots viram botões; (2) o painel do A usa recortes nos quatro cantos; (3) tamanhos de fonte/ícone menores nas cartas. Não há asset de terceiros nem fonte proprietária.
 
+## Cores por classe (pedido do diretor, 23/10/2026)
+Cada carta/slot tem a cor da sua **classe**, derivada dos dados reais (`menu-styles-model.js`): **Moves** = Charge (segura e solta), Destino (marcador no mundo), Burst, Normal (etiqueta «Burst/Normal» da descrição); **passivas** = a categoria real do catálogo, Permanente ou Gatilho (e o selo EXCL./GEN. mostra a origem). **Não existe «elemento» (tipo Pokémon) nos dados dos Moves**; se o diretor quiser cores por elemento, é preciso definir esse dado antes. Paleta de cada estilo, dentro da identidade do respectivo HUD:
+| Classe | A Impacto | B Quadrinhos | C Clássico |
+|---|---|---|---|
+| Normal | vermelho `#ff2b3f` | amarelo `#ffd60a` | azul `#5aa9ff` |
+| Burst | amarelo `#ffd400` | vermelho `#ff3b30` | âmbar `#fbbf24` |
+| Charge | laranja `#ff7a1a` | magenta `#ff4fa3` | violeta `#a78bfa` |
+| Destino | ciano `#19c8ff` | ciano `#19b5e8` | verde-água `#2dd4bf` |
+| Passiva Permanente | ciano | ciano | verde `#4ade80` |
+| Passiva Gatilho | amarelo | vermelho | âmbar |
+Uma legenda de cores aparece acima de cada lista. A moldura do estilo (painéis, nomes) mantém a cor-assinatura do HUD.
+
 ## Comportamento
 - **Lutadores:** chips de personagem (carregado + salvos no workspace); sem salvos há aviso; sem modelo a prévia mostra «Prévia 3D indisponível»; sem WebGL o canvas some e o menu segue funcional.
 - **Moves (4 slots):** clique num slot para «armá-lo» e depois na carta (o Move muda de lugar); sem slot armado a carta vai ao primeiro slot livre; clicar numa carta equipada a desequipa; ✕ esvazia. Duplicata no mesmo lutador é impossível (o slot antigo esvazia); id inválido é recusado.
@@ -73,7 +85,7 @@ Fonte dos originais: `prototypes/hud-moves/src/css/hud-a.css`, `hud-b.css`, `hud
 - **three.quarks:** ao trocar personagem/Move/passiva (e ao trocar de estilo) nasce uma rajada curta no modelo: A faíscas vermelho/amarelo, B estrelas ciano/amarelo/magenta, C partículas suaves verde-água/azul (`ui/menu-fx.js`, presets `menuA/B/C`).
 
 ## Testes e evidências
-`test/prejogo.test.mjs` (Node, catálogo/regras) e `test/prejogo.browser.mjs` (Edge real, offline: 40 verificações — registro × candidatos, estado único, A→B→C→A sem perder nada, partida com o loadout visível, voltar ao menu, teclado, movimento reduzido, sem modelo, sem WebGL, 1280×720, 1920×1080 e viewport reduzida). Capturas: `prototypes/combat-lab/evidence/prejogo/` (`pre-jogo-{A,B,C}-{1280x720,1920x1080}.png`, `fidelidade-{A,B,C}-original-x-novo.png`).
+`test/prejogo.test.mjs` (Node, catálogo/regras) e `test/prejogo.browser.mjs` (Edge real, offline: 43 verificações — registro × candidatos, estado único, A→B→C→A sem perder nada, partida com o loadout visível, voltar ao menu, teclado, movimento reduzido, sem modelo, sem WebGL, 1280×720, 1920×1080 e viewport reduzida). Capturas: `prototypes/combat-lab/evidence/prejogo/` (`pre-jogo-{A,B,C}-{1280x720,1920x1080}.png`, `fidelidade-{A,B,C}-original-x-novo.png`).
 
 ## Defeitos achados no caminho (revisão e testes)
 - **Pré-existente e grave — o jogo parava com um modelo sem clipe de «idle»:** com Cogumelo × `drowzee-knockback.glb` (1 clipe) a partida lançava `TypeError` no laço de desenho em ~90% das tentativas (11/12 na build oficial v1.20.1) quando alguém carregava um Move (ex.: Psyshock da IA). Causa: `Character.actionFor` devolvia o texto `'idle'` (e `'tackle'`) como reserva mesmo sem variante, e `enter()` recebia índice indefinido. Corrigido em `view/characters.js`; teste novo em `animation.test.mjs`; confirmado 0/12 na build nova.
