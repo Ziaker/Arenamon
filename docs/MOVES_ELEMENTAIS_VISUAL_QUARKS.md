@@ -1,7 +1,7 @@
 # Moves elementais — protótipos visuais com three.quarks
 
 ## Abrir
-No `ABRIR_ARENAMON.html`, clique **Ateliê Elemental Quarks · 4 Moves visuais**.
+No `ABRIR_ARENAMON.html`, clique **Ateliê Elemental Quarks · Água, Fogo e Vento refeitos**.
 Arquivo direto: `prototypes/combat-lab/dist/arenamon-elementais-quarks.html`.
 Escolha o Move, ajuste os controles e clique **Reproduzir**. A repetição começa ativada; **Parar** limpa a cena. O seletor PL aparece somente para Water Pulse. Arraste a cena para mudar a câmera.
 
@@ -34,3 +34,18 @@ A ponte do jogo e seu comportamento de fallback não foram modificados.
 Limitações: protótipos para ajuste visual; não foi medido desempenho em computadores lentos, nem feita integração dos elementais ao combate. O fallback sem Quarks não sofreu alterações; não foi injetada falha de carregamento no jogo nesta tarefa. Base: `origin/main` em `0ed46dc`; sem uso do PR #94.
 
 Verificação geral: `npm run verify` interrompido em `skills:check` por 11 skills preexistentes ausentes/divergentes em `.claude/skills`. O typecheck executado separadamente passou.
+
+## Reconstrução visual — água, fogo e vento
+
+Revisão a partir das sete referências fornecidas pelo usuário, com direção visual inspirada em Genshin Impact e Naruto Ultimate Ninja Storm 4. As imagens orientaram forma, cor e movimento; não foram usadas como texturas.
+
+As três construções anteriores foram removidas do runtime e substituídas:
+- **Água:** esfera com deformação suave, sombreamento azul, correntes procedurais, espuma e borda luminosa. Faixas orbitais se acomodam à esfera. A ruptura abre uma coroa curva, onda e gotas Quarks.
+- **Fogo:** tornado com volume cônico irregular, três faixas largas em espiral, recortes animados, tons quentes e anéis no solo. Chamas menores e brasas continuam no Quarks. Cresce na entrada e se contrai no encerramento.
+- **Vento:** lâmina inclinada com borda afiada, várias superfícies translúcidas que formam um rastro longo e dissipação circular. As linhas de velocidade são emitidas pelo Quarks.
+
+Novos controles: contraste das faixas/espuma, comprimento do rastro de vento, halo luminoso e acompanhamento da câmera. O halo é desligado por **Sem flash**. As superfícies usam UVs animadas, ruído, transparência e Fresnel; suas animações também respeitam movimento reduzido. Nenhuma malha antiga dos três efeitos continua sendo criada.
+
+Arquivos: `elemental-surfaces.js` concentra as novas superfícies/shaders; `elemental-preview.js` integra as superfícies aos emissores Quarks. A galeria vinculada no portal foi atualizada, incluindo a ruptura de Water Pulse.
+
+Testes da reconstrução: build e typecheck, 20 testes do adaptador e navegador Edge offline (incluindo erros de shader/console, reprodução, PL, controles, acessibilidade e limpeza). A qualidade artística ainda depende da avaliação do usuário. Não medido em máquinas lentas; não validado em outros navegadores.

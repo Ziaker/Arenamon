@@ -2,15 +2,17 @@ import * as THREE from 'three';
 import * as Q from 'three.quarks';
 import {presetToSystemParams} from './adapter.js';
 import {elementalSettings} from './presets.js';
+import {ElementalSurfaces} from './elemental-surfaces.js';
 
 // Geometrias contínuas são superfícies; toda partícula é simulada por three.quarks.
 export class ElementalPreview {
  constructor(scene){this.scene=scene;this.batch=new Q.BatchedRenderer();scene.add(this.batch);this.systems=[];this.materials=[];this.root=new THREE.Group();scene.add(this.root);this.time=0;this.active=false;}
- clear(){for(const s of this.systems){this.batch.deleteSystem(s);s.emitter.removeFromParent();s.dispose();}this.systems=[];this.root.traverse(o=>{o.geometry?.dispose();});this.root.clear();for(const m of this.materials){m.map?.dispose();m.dispose();}this.materials=[];this.active=false;}
+ clear(){for(const s of this.systems){this.batch.deleteSystem(s);s.emitter.removeFromParent();s.dispose();}this.systems=[];this.surfaces=null;this.root.traverse(o=>{o.geometry?.dispose();});this.root.clear();for(const m of this.materials){m.map?.dispose();m.dispose();}this.materials=[];this.active=false;}
  material(color,opacity=1){const m=new THREE.MeshBasicMaterial({color,transparent:true,opacity:Math.min(1,opacity*(this.p?.brightness??1)),depthWrite:false,side:THREE.DoubleSide});this.materials.push(m);return m;}
  mesh(g,color,opacity=1,parent=this.root){const m=new THREE.Mesh(g,this.material(color,opacity));parent.add(m);return m;}
  sprite(kind,color){const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d');
  if(kind==='leaf'){x.fillStyle='white';x.beginPath();x.moveTo(8,52);x.bezierCurveTo(2,13,35,4,58,6);x.bezierCurveTo(57,40,33,62,8,52);x.fill();x.strokeStyle='#8a8a8a';x.lineWidth=3;x.beginPath();x.moveTo(10,51);x.lineTo(52,13);x.stroke();}
+ else if(kind==='droplet'){x.fillStyle='white';x.beginPath();x.moveTo(32,3);x.bezierCurveTo(22,29,6,44,23,58);x.bezierCurveTo(55,69,61,40,32,3);x.fill();}
  else if(kind==='flame'){const g=x.createLinearGradient(0,64,0,0);g.addColorStop(0,'#ffffff00');g.addColorStop(.25,'white');g.addColorStop(.65,'#ffffffaa');g.addColorStop(1,'#ffffff00');x.fillStyle=g;x.beginPath();x.moveTo(32,64);x.bezierCurveTo(-5,55,15,30,37,0);x.bezierCurveTo(22,28,72,50,32,64);x.fill();}
  else if(kind==='streak'){const g=x.createLinearGradient(0,0,64,0);g.addColorStop(0,'transparent');g.addColorStop(.6,'white');g.addColorStop(1,'transparent');x.fillStyle=g;x.fillRect(0,28,64,8);}
  else {const g=x.createRadialGradient(32,32,0,32,32,32);g.addColorStop(0,'white');g.addColorStop(kind==='flame'?.35:.12,'#ffffffcc');g.addColorStop(1,'#ffffff00');x.fillStyle=g;x.fillRect(0,0,64,64);}
@@ -28,20 +30,12 @@ export class ElementalPreview {
  play(id,overrides,pl=1,{noFlash=false,reduced=false}={}){
  this.clear();this.id=id;this.p=elementalSettings(id,overrides,pl);this.noFlash=noFlash;this.reduced=reduced;if(noFlash)this.p.brightness=Math.min(.65,this.p.brightness);this.time=0;this.active=true;this.hit=false;this.rings=[];this.trails=[];const p=this.p;
  this.core=new THREE.Group();this.root.add(this.core);
- if(id==='waterPulse'){
- this.mesh(new THREE.SphereGeometry(p.size,48,32),p.color,.22,this.core);
- this.mesh(new THREE.SphereGeometry(p.size*.91,24,16),p.accent,.11,this.core);
- for(let i=0;i<p.rings;i++){const r=this.ring(p.size*(1.12+i*.09),p.accent,this.core);r.rotation.set(i*.9,.5+i*.7,0);this.rings.push(r);}
- this.trails.push(this.particles({rate:p.quantity,radius:p.size*.5,speed:p.spread,size:1}));
- }else if(id==='fireSpin'){
- const f=this.particles({kind:'flame',rate:p.quantity,radius:p.size*.72,speed:p.speed*(this.reduced?.4:1),size:1.8,life:Math.min(2,p.height/(p.speed*p.life)),world:false,orbit:p.rotation,cone:true});f.emitter.rotation.x=-Math.PI/2;this.flame=f;
- const e=this.particles({rate:p.quantity*.22,radius:p.size,speed:p.speed*1.4,size:.3,world:false,orbit:p.rotation,cone:true,color:p.accent});e.emitter.rotation.x=-Math.PI/2;
- for(let i=0;i<p.rings;i++){const r=this.ring(p.size*(1+i*.22),p.color);r.rotation.x=-Math.PI/2;r.position.y=.04+i*.015;this.rings.push(r);}
- }else if(id==='airSlash'){
- const sh=new THREE.Shape();sh.moveTo(0,-p.size);sh.bezierCurveTo(p.size*1.5,-p.size*.55,p.size*1.5,p.size*.55,0,p.size);sh.bezierCurveTo(p.size*.55,p.size*.35,p.size*.55,-p.size*.35,0,-p.size);
- this.mesh(new THREE.ExtrudeGeometry(sh,{depth:.035,bevelEnabled:true,bevelSize:.018,bevelThickness:.018,bevelSegments:2,steps:1}),p.accent,.85,this.core);
- for(let i=0;i<p.rings;i++){const r=this.mesh(new THREE.TorusGeometry(p.size*(.7+i*.18),.012,6,80,Math.PI*.85),p.color,.55,this.core);r.rotation.z=-Math.PI*.42;r.position.z=-.1*i;this.rings.push(r);}
- this.trails.push(this.particles({kind:'streak',rate:p.quantity,radius:p.size*.6,speed:p.spread*.3,size:2}));
+ if(id!=='seedBomb'){
+ this.surfaces=new ElementalSurfaces(this);if(id==='airSlash')this.core.rotation.x=-.9;
+ if(id==='fireSpin'){
+ const flame=this.particles({kind:'flame',rate:p.quantity*.45,radius:p.size,speed:p.speed,size:.8,world:false,orbit:p.rotation,cone:true});flame.emitter.rotation.x=-Math.PI/2;this.flame=flame;
+ const embers=this.particles({kind:'streak',rate:p.quantity*.25,radius:p.size*1.25,speed:p.speed*1.3,size:.25,world:false,orbit:p.rotation*.5,cone:true,color:p.accent});embers.emitter.rotation.x=-Math.PI/2;
+ }else{this.trails.push(this.particles({kind:id==='waterPulse'?'droplet':'streak',rate:p.quantity,radius:p.size*.7,speed:p.spread*.35,size:id==='waterPulse'?1.5:2.8,life:id==='airSlash'?p.trail/2:1}));}
  }else{
  const seed=this.mesh(new THREE.SphereGeometry(p.size,24,20),p.accent,1,this.core);const skin=new THREE.MeshPhongMaterial({color:p.accent,shininess:45});this.materials.push(skin);seed.material=skin;seed.scale.set(.72,1.2,.72);
  const seam=this.ring(p.size*.78,p.color,this.core);seam.scale.y=1.3;
@@ -57,14 +51,15 @@ export class ElementalPreview {
  }else{
  const travel=Math.min(8,p.speed*p.duration)*motion;
  this.core.position.set((u-.5)*travel,this.id==='seedBomb'?p.size+Math.sin(u*Math.PI)*p.height:p.height,0);
- this.core.rotation.z=t*p.rotation*.12*motion;
+ this.core.rotation.z=this.id==='seedBomb'?t*p.rotation*.12*motion:this.id==='airSlash'?-.16:0;
  for(const s of this.trails)s.emitter.position.copy(this.core.position);
  for(let i=0;i<this.rings.length;i++){this.rings[i].rotation.y+=dt*p.rotation*motion;this.rings[i].rotation.z+=dt*p.rotation*.4*motion;}
  if(u>=1&&!this.hit){this.hit=true;this.core.visible=false;for(const s of this.trails){s.emissionOverTime=new Q.ConstantValue(0);s.looping=false;}
- const s=this.particles({kind:this.id==='seedBomb'?'leaf':'soft',count:p.quantity*(this.id==='airSlash'?.3:1),radius:p.size*.2,speed:p.spread*motion,size:this.id==='seedBomb'?1.4:1});s.emitter.position.copy(this.core.position);
+ const s=this.particles({kind:this.id==='seedBomb'?'leaf':this.id==='waterPulse'?'droplet':'streak',count:p.quantity*(this.id==='airSlash'?.3:1),radius:p.size*.2,speed:p.spread*motion,size:this.id==='seedBomb'?1.4:1});s.emitter.position.copy(this.core.position);
  if(this.id==='seedBomb'){const dust=this.particles({count:p.quantity*.45,radius:p.size,speed:p.spread*.5,size:3,color:'#8b9d58'});dust.emitter.position.copy(this.core.position);}
  }
  }
+ this.surfaces?.update(t);
  this.scene.updateMatrixWorld(true);this.batch.update(dt);
  if(t>p.duration+p.life*2+1){this.clear();}
  }

@@ -152,3 +152,5 @@ Cada entrada: data · tarefa · skill · o que foi aplicado de fato.
   luzes, para checar a legibilidade dos HUDs contra fundos diferentes.
 - **Skill `game-feel`:** *feedback legível por forma e movimento, não só por cor* (carga treme, vida crítica pulsa, selecionado avança).
 - **Superpowers:** `brainstorming` (dispensada pelo pedido de execução direta), `verification-before-completion` (verify de navegador antes de declarar pronto).
+
+- 2026-10-22 — Reconstrução visual de Water Pulse, Fire Spin e Air Slash: `arenamon-routing`, `game-feel` e `shader-programming`; aplicados envelopes de nascimento/dissipação, UVs animadas, Fresnel, ruído e faixas curvas. Partículas continuam em three.quarks; prévia sem mecânica.
