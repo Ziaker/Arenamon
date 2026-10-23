@@ -173,6 +173,7 @@ export function createVisualPanel({tuning, view, game, $, hud, download}) {
     const elemBox = document.createElement('div');elemBox.className = 'vx-card vx-wide';
     elemBox.innerHTML = `<h4>Moves elementais (three.quarks)</h4>
       <label class="vx-check"><input type="checkbox" data-elemental-on ${C.vfx.elemental?.enabled ? 'checked' : ''}> Água, Fogo e Vento com o visual do Ateliê</label>
+      <label class="vx-check"><input type="checkbox" data-pl-border ${C.vfx?.projectilePlBorder ? 'checked' : ''}> Borda com cores dos PLs (Tackle) em todos os projéteis</label>
       <p class="hint">Escolha a opção de cada Move; a prévia dispara uma entidade real e inofensiva. O Seed Bomb continua com o desenho provisório e não muda.</p>
       ${ELEMENTAL_CARDS.map(c => `<div class="vx-elem" data-elemental="${c.key}">
         <b>${escape(c.label)}</b>
@@ -198,6 +199,7 @@ export function createVisualPanel({tuning, view, game, $, hud, download}) {
     };
     for (const b of elemBox.querySelectorAll('[data-elemental-preview]')) b.onclick = () => spawnElemental(b.dataset.elementalPreview);
     elemBox.querySelector('[data-elemental-on]').onchange = e => tuning.commit([['vfx.elemental.enabled', e.target.checked ? 1 : 0]], 'Elementais three.quarks');
+    elemBox.querySelector('[data-pl-border]').onchange = e => tuning.commit([['vfx.projectilePlBorder', e.target.checked ? 1 : 0]], 'Borda PL nos projéteis');
     const updateVfxModeButtons = () => {
       const legBtn = renderModeBox.querySelector('[data-vfx-runtime-btn="legacy"]');
       const newBtn = renderModeBox.querySelector('[data-vfx-runtime-btn="new"]');
@@ -513,6 +515,7 @@ renderModeBox.querySelector('[data-vfx-runtime-btn="legacy"]')?.addEventListener
     }
     for (const b of root.querySelectorAll('[data-elemental-variant]')) {const [k, v] = b.dataset.elementalVariant.split(':');b.setAttribute('aria-pressed', String((C.vfx.elemental?.[k + 'Variant'] | 0) === Number(v)));}
     const elementalOn = root.querySelector('[data-elemental-on]');if (elementalOn) elementalOn.checked = !!C.vfx.elemental?.enabled;
+    const plBorder = root.querySelector('[data-pl-border]');if (plBorder) plBorder.checked = !!C.vfx?.projectilePlBorder;
   });
   return {render, live, setMode, setFilter, select: id => api.select?.(id), get vfxMode() {return state.mode;}};
 }

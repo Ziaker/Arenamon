@@ -312,6 +312,8 @@ export function vfxDefaults() {
     // B (impacto), C (pouso) e footstool por partículas GPU, A/B comparativo com o legado.
     // 0 = desligada (custo zero, nada é instanciado). Só aparência.
     quarks: {enabled: 0},
+    // Borda com as cores dos PLs do Tackle em todos os projeteis (toggle visual): 0 = desligado, 1 = ligado.
+    projectilePlBorder: 0,
     // Moves elementais (Água, Fogo e Vento) com o renderizador do Ateliê Elemental (three.quarks).
     // enabled = 0 devolve o desenho provisório antigo de view/elemental-fx.js; 0/1/2 escolhe a opção A/B/C.
     // O Seed Bomb não usa estes valores (permanece no desenho provisório, por decisão de 23/10/2026).
