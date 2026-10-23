@@ -5,7 +5,7 @@ import {mkdir,writeFile} from 'node:fs/promises';
 const root=new URL('.',import.meta.url);
 await mkdir(new URL('validation/',root),{recursive:true});
 await build({stdin:{contents:`export * from './src/game'; export * from './src/entity'; export * from './src/config'; export * from './src/math'; export * from './src/physics'; export * from './src/combat'; export * from './src/commands'; export * from './src/camera'; export * from './src/locomotion';`,resolveDir:fileURLToPath(root)},bundle:true,platform:'node',format:'esm',outfile:fileURLToPath(new URL('validation/simulation.mjs',root))});
-const {Game,FixedClock,TEST,RULES,idle,vec,length,sub,scale,unit,dot,direction,invulnerable,offensive,contact,pushDistance,contactDirection,nominalDistance,strike}=await import(new URL('validation/simulation.mjs',root));
+const {Game,FixedClock,TEST,RULES,LOCOMOTION,idle,vec,length,sub,scale,unit,dot,direction,invulnerable,offensive,contact,pushDistance,contactDirection,nominalDistance,strike}=await import(new URL('validation/simulation.mjs',root));
 const passed=[];
 const test=(name,fn)=>{fn();passed.push(name);console.log('PASS',name);};
 const near=(a,b,e=1e-6)=>assert.ok(Math.abs(a-b)<e,`${a} != ${b}`);
@@ -14,7 +14,7 @@ const cmd=(move=vec(),extra={})=>({...idle(),move,...extra});
 const run=(g,n,c=idle(),enemy)=>{for(let i=0;i<n;i++)g.step(typeof c==='function'?c(i):c,enemy);};
 test('movement forward/lateral/diagonal normalized and release/reverse',()=>{
  const distances=[];
- for(const v of [vec(0,1),vec(1,0),vec(1,1)]){const g=setup(),p={...g.fighters[0].position};run(g,120,cmd(v));distances.push(length(sub(g.fighters[0].position,p)));assert.ok(distances.at(-1)>3.85&&distances.at(-1)<4);const stop={...g.fighters[0].position};run(g,12);assert.ok(length(sub(g.fighters[0].position,stop))<.09);near(length(g.fighters[0].velocity),0);run(g,12,cmd(vec(-v.x,-v.z)));assert.ok(length(sub(g.fighters[0].position,stop))>.2);}
+ for(const v of [vec(0,1),vec(1,0),vec(1,1)]){const g=setup(),p={...g.fighters[0].position};run(g,120,cmd(v));distances.push(length(sub(g.fighters[0].position,p)));assert.ok(distances.at(-1)>3.85&&distances.at(-1)<4);const stop={...g.fighters[0].position},v0=length(g.fighters[0].velocity);run(g,24);assert.ok(Math.abs(length(sub(g.fighters[0].position,stop))-v0*v0/(2*LOCOMOTION.braking))<.04);near(length(g.fighters[0].velocity),0);const parado={...g.fighters[0].position};run(g,12,cmd(vec(-v.x,-v.z)));assert.ok(length(sub(g.fighters[0].position,parado))>.2);}
  near(distances[0],distances[1]);near(distances[0],distances[2]);
 });
 test('400ms dodge, 200ms immunity, 70/30 distance and no residual',()=>{
