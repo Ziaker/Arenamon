@@ -280,5 +280,16 @@ test('evento real: carga contínua com intensidade e encerramento controlado', (
   bridge.dispose();
 });
 
+
+test('regressão: curvas começam em zero e partículas têm tamanho visível', () => {
+ const {fx,scene}=makeFx();const system=fx.emitBurst('impact',{x:2,y:0,z:0});
+ assert.equal(fx.bursts[0].emitter,system.emitter);
+ scene.updateMatrixWorld(true);fx.update(.016);fx.update(.016);
+ assert(system.particleNum>0);assert(system.particles[0].size.x>0);
+ fx.attach('charge',new THREE.Object3D(),{key:'regression'});
+ assert.equal(fx.continuous.get('regression').emitter,fx.continuous.get('regression').system.emitter);
+ const burst=fx.emitBurst('charge',{x:0,y:0,z:0});assert.equal(fx.bursts.at(-1).emitter,burst.emitter);
+ fx.dispose();
+});
 console.log(`\n${passed} passaram, ${failed} falharam\n`);
 process.exit(failed ? 1 : 0);

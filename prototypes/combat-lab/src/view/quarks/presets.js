@@ -134,3 +134,24 @@ export const QUARKS_PRESETS = {
 export function defaultQuarksPresets() {
   return JSON.parse(JSON.stringify(QUARKS_PRESETS));
 }
+
+// Protótipos exclusivamente visuais: parâmetros compartilhados pela tela e runtime.
+export const ELEMENTAL_PRESETS = {
+  waterPulse: {label:'Water Pulse · Água', color:'#48bfff', accent:'#d0f8ff', size:.65, quantity:100, speed:2.2, duration:3, brightness:1, particleSize:.12, life:.65, rings:3, rotation:2, height:1.8, spread:1.2},
+  fireSpin: {label:'Fire Spin · Fogo', color:'#ff571c', accent:'#ffda68', size:1, quantity:210, speed:2.6, duration:4, brightness:1, particleSize:.42, life:1.4, rings:2, rotation:6, height:3.4, spread:1},
+  airSlash: {label:'Air Slash · Voador', color:'#c6eeff', accent:'#ffffff', size:1.1, quantity:110, speed:3, duration:2.6, brightness:1, particleSize:.13, life:.55, rings:3, rotation:1.2, height:1.8, spread:1.5},
+  seedBomb: {label:'Seed Bomb · Grama', color:'#77d535', accent:'#805326', size:.45, quantity:85, speed:2.5, duration:3, brightness:1, particleSize:.2, life:1.1, rings:3, rotation:4, height:2.8, spread:2.5},
+};
+export const ELEMENTAL_CONTROLS = [
+ ['size','Tamanho do núcleo','m',.15,2,.05],['quantity','Emissão / quantidade da explosão','partículas',10,400,5],
+ ['speed','Velocidade de deslocamento / subida','m/s',.2,6,.1],['duration','Duração da emissão / trajeto','s',1,7,.1],
+ ['brightness','Intensidade luminosa','×',.1,2.5,.1],['particleSize','Tamanho das partículas','m',.03,.8,.01],
+ ['life','Vida das partículas','s',.2,2.5,.1],['rings','Anéis / faixas de vento','un.',0,6,1],
+ ['rotation','Rotação','rad/s',0,8,.1],['height','Altura / arco','m',.5,5,.1],['spread','Dispersão de gotas / folhas','m/s',.2,5,.1],
+];
+export function elementalSettings(id, overrides={}, pl=1) {
+ const p={...ELEMENTAL_PRESETS[id],...overrides};
+ if(!ELEMENTAL_PRESETS[id]) throw new Error('Move visual desconhecido: '+id);
+ if(id==='waterPulse') {const level=Math.max(1,Math.min(3,pl));p.size*=1+(level-1)*.32;p.quantity*=1+(level-1)*.55;p.rings+=level-1;p.brightness*=1+(level-1)*.2;}
+ return p;
+}

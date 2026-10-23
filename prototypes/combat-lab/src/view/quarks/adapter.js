@@ -29,7 +29,7 @@ function hexToV4(THREE, hex, alpha = 1) {
 
 function bezierFn(Quarks, p) {
   const {PiecewiseBezier, Bezier} = Quarks;
-  return new PiecewiseBezier([[new Bezier(p[0], p[1], p[2], p[3]), 1]]);
+  return new PiecewiseBezier([[new Bezier(p[0], p[1], p[2], p[3]), 0]]);
 }
 
 /** Cria a forma do emissor a partir do preset. */
@@ -167,7 +167,7 @@ export class QuarksFx {
       scale: (scale ?? 1) * Math.min(2, Math.max(.5, power)), countScale: countScale * k,
     });
     const system = new this.Quarks.ParticleSystem(params);
-    const emitter = new this.Quarks.ParticleEmitter(system);
+    const emitter = system.emitter;
     this._place(emitter, preset, position);
     this.scene.add(emitter);
     this.renderer.addSystem(system);
@@ -187,7 +187,7 @@ export class QuarksFx {
       scale: Math.min(2, Math.max(.5, power)), countScale: countScale * k,
     });
     const system = new this.Quarks.ParticleSystem(params);
-    const emitter = new this.Quarks.ParticleEmitter(system);
+    const emitter = system.emitter;
     this._place(emitter, preset, position);
     this.scene.add(emitter);
     this.renderer.addSystem(system);
@@ -213,7 +213,7 @@ export class QuarksFx {
         emissionScale: k,
       });
       const system = new this.Quarks.ParticleSystem(params);
-      const emitter = new this.Quarks.ParticleEmitter(system);
+      const emitter = system.emitter;
       emitter.position.set(preset.emitterOffset?.x ?? 0, preset.emitterOffset?.y ?? 0, preset.emitterOffset?.z ?? 0);
       if (preset.emitterRotation) emitter.rotation.set(preset.emitterRotation.x ?? 0, preset.emitterRotation.y ?? 0, preset.emitterRotation.z ?? 0);
       object3D.add(emitter);
