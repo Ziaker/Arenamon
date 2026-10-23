@@ -8,19 +8,21 @@
 //   • a defesa do alvo não faz o atacante recuar (`keepOnBlock`): o retorno acontece sempre;
 //   • sem adversário elegível o Move nem começa (motivo `noTarget`, sem custo — MV-P17 provisório).
 // Origem inacessível ou retorno barrado: o corpo para onde parar, sem teletransporte (MV-P02). Valores: C.world.quickAttack, capturados no uso (M28.4).
+// Anti-aéreo (23/10/2026): alvos em voo dentro de `airReach` m contam no alcance e o corpo sobe até a altura deles na ida (volta ao chão no retorno).
 import {C} from '../config.js';
-import {nearestEligible} from '../moves.js';
+import {nearestEligible, targetReachOf} from '../moves.js';
+import {altitudeOf} from '../entity.js';
 import {sub, length, normalize, angleOf, direction, scale} from '../math.js';
 
 export const quickAttackDef = Object.freeze({
-  id: 'quick-attack', name: 'Quick Attack', air: 'descend', group: 'quickAttack', tackle: 'quick-attack', needsTarget: 'acquireRange',
-  description: 'Burst. Acha o adversário mais próximo a até 7 m, investe em altíssima velocidade com um Tackle curto (PL1) e volta na hora ao ponto de partida.',
+  id: 'quick-attack', name: 'Quick Attack', air: 'descend', group: 'quickAttack', tackle: 'quick-attack', needsTarget: 'acquireRange', antiAir: true,
+  description: 'Burst. Acha o adversário mais próximo a até 7 m (inclusive em voo baixo), investe em altíssima velocidade com um Tackle curto (PL1) e volta na hora ao ponto de partida.',
   cost: .75, cooldown: 6, duration: .42, aim: 'target',
 });
 
 /** Preparação da ação (captura alvo, origem e velocidades). */
-export function quickAttackSetup(/** @type {any} */ f, /** @type {any} */ a, /** @type {Record<string, any>} */ P, /** @type {{fighters: any[]}} */ ctx) {
-  const p = C.actions.tackle, target = nearestEligible(f, ctx.fighters, P.acquireRange);
+export function quickAttackSetup(/** @type {any} */ f, /** @type {any} */ a, /** @type {Record<string, any>} */ P, /** @type {{fighters: any[], def: any}} */ ctx) {
+  const p = C.actions.tackle, target = nearestEligible(f, ctx.fighters, P.acquireRange, targetReachOf(ctx.def));
   const ahead = direction(f.facing);
   const tpos = target ? {x: target.position.x, z: target.position.z} : {x: f.position.x + ahead.x * P.acquireRange, z: f.position.z + ahead.z * P.acquireRange};
   a.heading = a.startAngle = angleOf(sub(tpos, f.position));
@@ -31,6 +33,9 @@ export function quickAttackSetup(/** @type {any} */ f, /** @type {any} */ a, /**
   a.durationScale = (P.approachMax + P.returnMax + P.recovery + .05) / p.duration;
   a.chainAfter = P.approachMax + P.returnMax + P.recovery;         // só depois da sequência completa pode encadear
   a.qa = {phase: 'approach', origin: {x: f.position.x, z: f.position.z}, target: tpos, last: {x: f.position.x, z: f.position.z}, stuck: 0, speedA: P.acquireRange / P.approachMax, speedR: P.acquireRange / P.returnMax, returnAt: null, targetId: target?.id ?? null};
+  // Anti-aéreo: sobe até os pés do alvo durante a ida e desce de volta durante o retorno (sem teletransporte vertical).
+  const ground = f.groundY ?? 0, from = f.vaultHeight ?? 0, to = target ? Math.max(0, altitudeOf(target) - ground) : 0;
+  if (to > from + .05) a.airCurve = {from, to, up: P.approachMax, hold: 0, down: P.returnMax};
   a.stepper = 'quick-attack:step';
   a.from = null;   // sem mistura com a velocidade anterior: a ida começa na velocidade própria
 }

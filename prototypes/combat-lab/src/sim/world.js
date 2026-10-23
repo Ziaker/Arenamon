@@ -21,6 +21,8 @@ import {traceBeam} from './beam.js';
 import {stepTrap} from './trap.js';
 import {stepSand} from './sand.js';
 import {stepBurrow} from './stone.js';
+import {getGroundHeight} from './physics.js';
+import {solidsOf, segmentClear} from './vision.js';
 import {applyStatus, stat} from './status.js';
 import {processDamageWithShieldAndStages, damageDestructible, effectiveArenaRadius} from './map.js';
 import {knockbackFactor} from './passive-engine.js';
@@ -189,7 +191,12 @@ export function stepWorld(game, dt) {
   return events;
 }
 /** Modelo derivado de outra entidade (ex.: explosão no ponto do impacto), herdando dono e posição. */
-const at = (template, src, pos = src.pos) => ({owner: src.owner, ...template, pos: {...pos}, dir: template.dir ?? src.dir});
+const at = (template, src, pos = src.pos) => {
+  const t = {owner: src.owner, ...template, pos: {...pos}, dir: template.dir ?? src.dir};
+  if (template.sphere) {t.y = (src.y ?? 0) - template.radius;t.height = 2 * template.radius;}   // esfera centrada no ponto do impacto (Seed Bomb)
+  else if (template.inheritY) t.y = Math.max(0, (src.y ?? 0) - (template.height ?? 2) / 2);   // volume centrado na altitude do impacto
+  return t;
+};
 
 /**
  * CCD (Fase 3). Primeiro bloqueador no caminho from → to (menor tempo de impacto) entre barreiras/paredes do mundo e objetos do mapa, com
@@ -328,6 +335,7 @@ function stepProjectile(game, p, dt, events, spawnLater) {
       const alt = altOf(f), box = {shape: 'box', pos: f.position, hx: C.test.halfExtent, hz: C.test.halfExtent, angle: 0};
       if (!vOverlap(p.y - p.radius, p.y + p.radius, alt, alt + fighterHeight()) || !circleTouches(box, p.pos, p.radius)) continue;
       if (p.clashable && f.action?.kind === 'tackle' && !f.action.neutralized && !isInvulnerable(f) && tackleDispute(p, f, events)) return;   // disputa de PL contra o Tackle em curso
+      if (p.detonateOnly) {p.dead = true;events.push({result: 'detonate', attacker: p.owner ?? null, target: f.id, damage: 0, entity: p.id, kind: 'projectile'});if (p.onHit) spawnLater.push(at(p.onHit, p));return;}   // projétil explosivo (M22.7): o contato só detona; quem causa dano é a explosão, uma vez
       p.hitLog.push(f.id);
       const hit = p.exec != null ? execHit(game.world, p, f) : (p.hit || {});
       const ev = applyHit(game, p.owner, f, hit, normalize(p.vel), {entity: p.id, origin: sub(f.position, scale(normalize(p.vel), 1)), pl: p.pl, contact: 'projectile'});
@@ -356,17 +364,27 @@ function stepBeam(game, e, dt, events) {
 }
 function stepArea(game, a, dt, events) {
   if (a.follow && a.owner != null) a.pos = {...game.fighters[a.owner].position};
+  if (a.support && getGroundHeight(a.pos, game.world, a.y + .3) < a.y - .06) {   // Field sobre apoio: perdeu a superfície (plataforma destruída) → some sem efeito, sem flutuar
+    a.dead = true;events.push({result: 'fieldLost', attacker: a.owner ?? null, target: null, damage: 0, entity: a.id, kind: 'area'});return;
+  }
   if (a.grow > 0) a.radius = a.baseRadius * Math.min(1, a.age / a.grow) + (a.startRadius ?? 0) * Math.max(0, 1 - a.age / a.grow);
   // Pulsos: o primeiro no instante da criação; os seguintes a cada `interval` (0 = um só). Cada alvo é atingido no máximo uma vez por pulso.
   const due = a.interval > 0 ? Math.min(a.pulses, 1 + Math.floor((a.age - dt + 1e-9) / a.interval)) : Math.min(a.pulses, 1);
   while (a.pulsesDone < due) {
     a.pulsesDone++;
     const shields = a.explosion ? game.world.entities.filter(e => e.shields && !e.dead) : [];
+    const blockers = a.occlusion ? solidsOf(game.world) : null;   // oclusão por paredes/obstáculos no plano XZ (Fire Spin e Seed Bomb): o dano não atravessa sólidos
     if (a.hit) for (const f of game.fighters) {
       if (f.hp <= 0 || f.absent || (f.id === a.owner && !a.affectsOwner)) continue;
       const alt = altOf(f);if (!vOverlap(alt, alt + fighterHeight(), a.y, a.y + a.height)) continue;
       const box = {shape: 'box', pos: f.position, hx: C.test.halfExtent, hz: C.test.halfExtent, angle: 0};
-      const c = closestOnShape(box, a.pos), dist = Math.max(0, c.inside ? 0 : c.distance);if (dist > a.radius) continue;
+      let dist;
+      if (a.sphere) {   // esfera 3D: distância do centro ao paralelepípedo do corpo (explosão com volume esférico de verdade)
+        const cy = a.y + a.radius, dx = Math.max(Math.abs(a.pos.x - f.position.x) - C.test.halfExtent, 0), dz = Math.max(Math.abs(a.pos.z - f.position.z) - C.test.halfExtent, 0), dy = Math.max(alt - cy, 0, cy - (alt + fighterHeight()));
+        dist = Math.hypot(dx, dy, dz);
+      } else {const c = closestOnShape(box, a.pos);dist = Math.max(0, c.inside ? 0 : c.distance);}
+      if (dist > a.radius) continue;
+      if (blockers && !segmentClear(blockers, a.pos, f.position)) {events.push({result: 'occluded', attacker: a.owner ?? null, target: f.id, damage: 0, entity: a.id, pulse: a.pulsesDone});continue;}
       const shield = shields.length ? shieldedFromBlast(a, f, shields) : null;
       if (shield) {events.push({result: 'shielded', attacker: a.owner ?? null, target: f.id, damage: 0, entity: a.id, by: shield.id, pulse: a.pulsesDone});continue;}
       // Efeito radial: empurra do centro para fora; a intensidade cai com a distância conforme `falloff`.
@@ -516,6 +534,7 @@ function reflectPass(game, p, from, events) {
     p.vel = nv;p.dir = dir;p.pos = add(a, scale(dir, rest));
     p.origin ??= previous;p.owner = bar.owner;p.hitLog = [];p.homing = null;
     if (p.captured?.attackFraction != null) {const o = game.fighters[bar.owner];if (o) p.hit = {...p.hit, damage: p.captured.attackFraction * o.attributes.attack};}
+    if (p.captured?.explosionFraction != null && p.onHit?.hit) {const o = game.fighters[bar.owner];if (o) p.onHit = {...p.onHit, hit: {...p.onHit.hit, damage: p.captured.explosionFraction * o.attributes.attack}};}   // a explosão herda o Ataque de quem refletiu
     events.push({result: 'reflected', attacker: bar.owner ?? null, target: previous ?? null, damage: 0, entity: p.id, by: bar.id, face: best.face, kind: 'projectile', pl: p.pl ?? 1, barrierPl: bar.pl ?? 1});
   }
   return true;

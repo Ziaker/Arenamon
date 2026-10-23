@@ -27,6 +27,8 @@ export const ACTION_TABS = {
     sections: [
       ['⚙ Sistemas', [T + 'enableDodge', T + 'enableInvulnerability', T + 'enableVault', T + 'enableSprint', T + 'enableTechRecovery'], true],
       ['💨 Esquiva (C)', '@Esquiva (C)', true],
+      ['✦ Smear de Membros (inclui a esquiva)', '@Smear de Membros', true],
+      ['↔ Squash & Stretch (inclui a esquiva)', '@Squash & Stretch do Tackle', true],
       ['🔀 Cancelamento C → X', '@Cancelamento C → X'],
       ['🏃 Sprint (C mantido)', '@Sprint (C mantido)'],
       ['🛟 Recovery rápido (C no ar)', ['rules.techWindow', 'rules.techMinAir', 'rules.techCost']],
@@ -60,7 +62,7 @@ export const ACTION_TABS = {
     sections: [
       ['⚙ Sistemas', [T + 'enableDefense', T + 'enableCounterBonus'], true],
       ['🛡 Defesa e defesa perfeita', ['rules.guardStun', 'rules.perfect', 'rules.perfectCooldown', 'rules.guardSpeed', 'rules.guardTurn', 'rules.guardAcceleration', 'extras.combat.guardDamageMultiplier', 'extras.combat.guardFrontAlignment', 'extras.combat.perfectGuardCounterWindow', 'extras.combat.guardRegenFactor'], true],
-      ['⚡ Stamina', ['rules.staminaMax', 'rules.regenDelay', 'rules.regenTime', 'rules.exhaustMode', 'rules.exhaustedSpeed', 'extras.combat.exhaustRecovery']],
+      ['⚡ Stamina', [T + 'enableInfiniteStamina', 'rules.staminaMax', 'rules.regenDelay', 'rules.regenTime', 'rules.comboWindow', 'rules.exhaustMode', 'rules.exhaustedSpeed', 'extras.combat.exhaustRecovery']],
     ],
     anims: ['block_start', 'block', 'block_end', 'guard_impact', 'blocked'],
   },

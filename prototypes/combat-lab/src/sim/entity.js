@@ -24,7 +24,7 @@ export function createFighter(id, attributes, position) {
     jumpState: {canJump: true, cooldown: 0},
     // Plano D (salto/footstool): coyote time, jump buffering e controle de repetição do footstool.
     coyoteLeft: 0, jumpBuffered: 0, airMoveDir: null, footstoolCooldownT: 0, footstoolDoneWith: null,
-    lastAttacker: null, lastDamagedTick: 0};
+    lastAttacker: null, lastDamagedTick: 0, comboLeft: 0};
 }
 /** Stamina máxima individual de um combatente (inclui seus estágios permanentes individuais sem alterar C.rules.staminaMax). */
 export const getFighterMaxStamina = f => f ? C.rules.staminaMax + (f.stages?.staminaMax ?? 0) * (C.map?.stageStaminaBonus ?? 1) : C.rules.staminaMax;
@@ -102,8 +102,8 @@ export function isOffensive(f) {
   const curStep = Math.round((f.action.elapsed ?? 0) / stepSec);
   return f.action.combatWindows.activeWindows.some(([s, e]) => curStep >= s && curStep < e);
 }
-/** Janela genérica de encadeamento: a ação atual já pode ser substituída por outra (ou pela defesa)? */
-export const chainOpen = f => !f.action || f.action.kind === 'recoil' || f.action.elapsed >= actionSpec(f.action).chainAfter - 1e-8;
+/** Janela genérica de encadeamento: a ação atual já pode ser substituída por outra (ou pela defesa)? O combo aberto por um acerto recente também libera. */
+export const chainOpen = f => (f.comboLeft ?? 0) > 1e-8 || !f.action || f.action.kind === 'recoil' || f.action.elapsed >= actionSpec(f.action).chainAfter - 1e-8;
 /** Pode iniciar X/C/defesa agora (telemetria de vantagem): no chão, sem recuperação e com a janela de encadeamento aberta. */
 export const canAct = f => f.hp > 0 && !f.flight && f.knockRecovery <= 0 && chainOpen(f);
 /** Livre para se mover: sem ação, sem guard stun, no chão e sem recuperação de queda. */

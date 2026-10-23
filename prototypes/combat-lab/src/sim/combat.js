@@ -75,14 +75,15 @@ export function clash(a, b, normal) {
 }
 /** O tackle do atacante conecta no defensor, dado a normal e a velocidade relativa do contato? */
 export function tackleConnects(attacker, defender, normal, relative) {
-  const X = C.extras.combat;
+  const X = C.extras.combat, antiAir = !!attacker.action?.antiAir;
   if (slamPrep(attacker)) return false;
   if (attacker.action?.slam && !attacker.action.slamLanded) return false;   // a hitbox do Meteor Slam só existe com o personagem NO CHÃO (no mergulho não acerta)
-  if (attacker.action?.kind !== 'tackle' || attacker.action.neutralized || attacker.flight || (defender.flight && !defender.wallSplat)) return false;
-  // Volume tridimensional real (R7.11-R7.12): não conecta se separados verticalmente fora do meteor slam
+  if (attacker.action?.kind !== 'tackle' || attacker.action.neutralized || attacker.flight || (defender.flight && !defender.wallSplat && !antiAir)) return false;   // anti-aéreo (Quick Attack/Bullet Punch) alcança quem está em voo
+  // Volume tridimensional real (R7.11-R7.12): não conecta se separados verticalmente fora do meteor slam (anti-aéreo usa o airReach do Move)
   const attY = altitudeOf(attacker);
   const defY = altitudeOf(defender);
-  if (Math.abs(attY - defY) > (C.extras?.visual?.bodyHeight ?? 1.2) && !attacker.action?.slam) return false;
+  const reachY = antiAir ? Math.max(C.extras?.visual?.bodyHeight ?? 1.2, attacker.action?.airReach ?? 0) : (C.extras?.visual?.bodyHeight ?? 1.2);
+  if (Math.abs(attY - defY) > reachY && !attacker.action?.slam) return false;
 
   const dir = direction(attacker.action.heading), off = sub(defender.position, attacker.position);
   const towards = length(off) > 1e-6 ? normalize(off) : normal;
@@ -217,6 +218,7 @@ export function resolveHit(attacker, defender, normal, relative, force = false) 
     else {defender.action = null;defender.knockRecovery = R.landingRecovery;}
   }
   if (defender.hp === 0) {defender.guard = false;defender.guardSuppressed = true;}
+  if (damage > 0) attacker.comboLeft = Math.max(attacker.comboLeft ?? 0, C.rules.comboWindow ?? 0);   // acertou um golpe corpo a corpo: abre a janela de combo
   return {attacker: attacker.id, target: defender.id, result: perfect ? 'perfect' : protectedFront ? 'partial' : 'impact', damage, shieldAbsorbed: dmgResult.absorbedByShield, normal: {...normal}, launch: launchInfo, contact: 'tackle', ...(dmgResult.sturdy ? {sturdy: true} : {}), ...(attacker.action.slam ? {slam: true} : {}), ...(attacker.action.riposteStrike ? {riposte: true} : {}), ...(protectedFront && !perfect && attacker.action.guardBreak ? {guardBreak: true, stun: attacker.action.guardBreak.stun} : {})};
 }
 /**

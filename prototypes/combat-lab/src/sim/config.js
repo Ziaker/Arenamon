@@ -31,6 +31,8 @@ function buildDefaults() {
     feintFxOn: 1, feintFxIntensity: 1, feintFxSize: 1, feintFxColor: .5, feintWindow: .12, feintMinAngle: 60, feintDuration: .8, feintDistance: 1, feintCost: 1.6,
     wallSplatMinSpeed: 6, wallSplatDuration: .7, wallSplatDamage: 0, slamAngle: Math.PI / 4, slamMinHeight: .3, slamDamage: 1, tackleFriction1: 0, tackleFriction2: 0, tackleFriction3: 0, slamRingOn: 1, slamRingStart: .6, slamRingRadius: 4, slamRingDuration: .7, slamRingThickness: .35, slamRingIntensity: 1, slamRingOpacity: .9, slamRingFade: 1, slamFxOn: 1, slamFxSize: 1, slamFxLength: 1, slamFxIntensity: 1, slamFxHeat: .5, slamFxSparks: 1, slamFxFlicker: .5, slamFxFadeOut: .25, slamGroundTime: .45, slamGroundRadius: 1.4, slamPrepTime: .5, slamHop: .8, slamFallTime: .12, slamSpeedLoss: .6, slamImpactScale: 1.2, slamImpactShake: 1.2, slamRecovery: .6, slamLaunchHorizontal: .4, groundBounceForce: 9, slamBlockPushDistance: 5,
     landingRecovery: .19, wallRestitution: .28, perfect: .2, perfectCooldown: 2, staminaMax: 3, regenDelay: 1, regenTime: 5, guardSpeed: .6,
+    // comboWindow: depois de um golpe corpo a corpo/tackle que ACERTA, o atacante pode cancelar a recuperação e encadear outra ação por esta janela (0 = sem combo).
+    comboWindow: .7,
     exhaustedSpeed: .7, guardTurn: 3 * Math.PI, guardAcceleration: 15 * Math.PI,
     // exhaustMode 1: exausto quando sobra menos que o menor custo de X/C (0 = só em zero, Etapa A). Rebote na parede: vertical.
     exhaustMode: 1, wallBounceVertical: 1, wallBounceUp: 0};
@@ -102,6 +104,8 @@ function buildDefaults() {
     toggles: {enableTackle: 1, enableDodge: 1, enableDefense: 1, enableClash: 1, enableInvulnerability: 1, enableLaunch: 1, enableVault: 1, enableWallBounce: 1,
       enableAIAttack: 1, enableAIReactive: 1, enableCameraFollow: 1, enableCameraRecenter: 1, enablePlayerAI: 0, showHitboxes: 0, showAttackVectors: 0,
       enableHitstop: 1, enableCounterBonus: 1, enableLandingSkid: 1, enableEnemyAI: 1, enableSprint: 1, enemyManual: 0, enableAnimationCombatWindows: 0, enableClashPush: 0, enableTechRecovery: 1, enableChargeTackle: 1, enableWallSplat: 1, enableMeteorSlam: 1, enableFlightSlam: 0, enableTackleFeint: 1,
+      // enableInfiniteStamina: stamina sempre no máximo (nenhum custo esgota nem bloqueia ações). 0 = regra normal.
+      enableInfiniteStamina: 0,
       // Sistema de passivas (catálogo experimental). 0 = motor idêntico ao anterior (cenário de paridade, §32).
       enablePassives: 1},
     // skill1–4: slots de movimentos especiais (padrão A, S, 3 e 4 do teclado; A e S = Reflect e Psyshock, D3). Sem movimento equipado, a tecla não faz nada.
@@ -204,7 +208,7 @@ function buildDefaults() {
     // Bullet Punch (como o Quick Attack, decisão de 22/10/2026): alvo = adversário mais próximo dentro de `reach` (alcance do Move), fixado ao soltar; preparação 0,75 s (corpo a 30%, slow .7),
     // desaparecimento de `vanish` s numa corrida invisível até `stopShort` m do alvo, golpe PL2 de `strikeReach` m ao chegar (ou no primeiro adversário a `hitRadius` m do caminho),
     // custo 1,5× o do Tackle (Tackle = 1) e 8 s; impactMult = velocidade de impacto do knockback. fxLines/fxHideBody: visual do sumiço (linhas de velocidade e corpo oculto).
-    bulletPunch: {cost: 1.5, cooldown: 8, cast: .75, vanish: .2, reach: 6, strikeReach: 2.2, stopShort: 1.1, hitRadius: .8, impactMult: 1, slow: .7, maxRise: 2, fxLines: 1, fxHideBody: 1},
+    bulletPunch: {cost: 1.5, cooldown: 8, cast: .75, vanish: .2, reach: 6, strikeReach: 2.2, stopShort: 1.1, hitRadius: .8, impactMult: 1, slow: .7, maxRise: 2, airReach: 3, fxLines: 1, fxHideBody: 1},
     // Sand Wave: Burst PL1 (MUSHROOM_MOVES_DECISOES §6). Prep 0,25 s, barragem 1,5 s (0,75 s de hitbox + 0,75 s de dissipação), retângulo 4 (frente) × 3 (lado) m, 6 HP fixos,
     // empurrão 12 m/s² (×0,5 na parcial), cegueira 4 s, stagger de parede 0,30 s, visão do cegado 10 m, fog = redução de 60% da luz. cell/detour/replanSteps: grade do caminho livre (técnicos).
     sandWave: {cost: 2, cooldown: 10, cast: .25, length: 4, width: 3, active: .75, dissipate: .75, damage: 6, accel: 12, partialFactor: .5, blind: 4, wallStagger: .3, visionRadius: 10, fogDarkness: .6, cell: .25, detour: 3, replanSteps: 6},
@@ -222,8 +226,21 @@ function buildDefaults() {
     guardBreak: {cost: 1, cooldown: 10, maxCharge: 1, minCharge: 0, cast: .7, range: 2.6, damage: 6, knockbackH: 2, knockbackV: 0, stun: .5, invulnerableSeconds: 0, chainAfter: .47, hitStart: .333, hitEnd: .533},
     // Quick Attack: alvo mais próximo a até 7 m, ida ≤ 0,16 s e volta ≤ 0,14 s (velocidades = alcance ÷ tempo), recuperação 0,12 s, 8 HP nominais, 4 m/s H sem V.
     // Sem i-frames do atacante (o catálogo não define; MV-P16). Ação total = ida + volta + recuperação.
-    quickAttack: {cost: .75, cooldown: 6, acquireRange: 7, approachMax: .16, returnMax: .14, recovery: .12, damage: 8, knockbackH: 4, knockbackV: 0, invulnerableSeconds: 0, fxLines: 1, fxHideBody: 1},
+    quickAttack: {cost: .75, cooldown: 6, acquireRange: 7, approachMax: .16, returnMax: .14, recovery: .12, damage: 8, knockbackH: 4, knockbackV: 0, invulnerableSeconds: 0, airReach: 3, fxLines: 1, fxHideBody: 1},
     swift: {cost: .8, cooldown: 7, cast: .25, count: 3, speed: 15, damage: 3, homingSeconds: .25, homingRate: 90, range: 12, knockback: .3, knockbackCap: .9, radius: .2, fanAngle: 20, spawnForward: .9, spawnSpacing: .35, counterStagger: .2},
+    // Moves elementais (protótipo de 23/10/2026; números do prompt de 22/10, NÃO homologados; padrões das decisões provisórias MV-P36…MV-P41).
+    // Water Pulse: Charge Projectile. Carga máx. 1,5 s (180 passos; PL2 em 90, PL3 em 180), custo e recarga na ativação, 6/9/12 HP nominais, empurrão H 2/3/4 (V 0 ⇒ o motor empurra 1,5 × H m),
+    // projétil de raio 0,38 m a 14 m/s e alcance 12 m (lifetime = alcance ÷ velocidade), recuperação de 0,30 s a partir da soltura. originHeight/spawnForward: nascimento (não definidos no prompt).
+    waterPulse: {cost: 1, cooldown: 9, maxCharge: 1.5, minCharge: 0, chargeRecovery: .3, damagePl1: 6, damagePl2: 9, damagePl3: 12, knockbackPl1: 2, knockbackPl2: 3, knockbackPl3: 4, speed: 14, radius: .38, range: 12, originHeight: .8, spawnForward: .7, counterStagger: .2},
+    // Fire Spin: Normal Field. Marcador de colocação (alcance 3D 10 m — pedido de 23/10 dobrou os 5 m do protótipo), cast 0,4 s + recovery 0,2 s, zona cilíndrica de 1,6 m de raio × 2,4 m,
+    // 2,4 s de vida, 4 pulsos a cada 0,6 s de 2 HP nominais, sem knockback e (padrão provisório) sem guard stun; occlusion = paredes bloqueiam o pulso; maxActive = zonas simultâneas por dono.
+    fireSpin: {cost: 1, cooldown: 11, cast: .4, recovery: .2, range: 10, markerSpeed: 8, markerAccel: 24, startDistance: 3, minRange: 0, maxRise: 2, allowOccupied: 0, zoneRadius: 1.6, zoneHeight: 2.4, life: 2.4, pulses: 4, interval: .6, damage: 2, guardStun: 0, occlusion: 1, maxActive: 1},
+    // Air Slash: Burst Projectile PL1. Startup 8 passos + recovery 20 passos, lâmina a 22 m/s com alcance 10 m (lifetime = alcance ÷ velocidade), colisor = círculo equivalente de raio 0,6 m,
+    // 8 HP nominais, empurrão H 2,5 (V 0). visualWidth/Height/Thickness: só o desenho da lâmina (1,20 × 0,70 × 0,22 m).
+    airSlash: {cost: .8, cooldown: 6, startup: 8 / 120, recovery: 20 / 120, speed: 22, range: 10, radius: .6, damage: 8, knockbackH: 2.5, originHeight: .8, spawnForward: .6, counterStagger: .2, visualWidth: 1.2, visualHeight: .7, visualThickness: .22},
+    // Seed Bomb: Normal Projectile + Field instantâneo. Marcador (alcance 3D 16 m — pedido de 23/10 dobrou os 8 m do protótipo), cast 0,3 s + recovery 0,2 s, arco balístico de 0,65 s
+    // (gravidade 17,5 = a do salto/Bounce) com velocidade máx. 20 m/s, semente de raio 0,24 m (vida 1,25 s), explosão ESFÉRICA de 1,8 m, 10 HP nominais, empurrão 3 H / 1 V, oclusão por paredes.
+    seedBomb: {cost: 1, cooldown: 8, cast: .3, recovery: .2, range: 16, markerSpeed: 8, markerAccel: 24, startDistance: 3, minRange: 0, maxRise: 2, allowOccupied: 0, flightTime: .65, gravity: 17.5, maxSpeed: 20, seedRadius: .24, lifetime: 1.25, explosionRadius: 1.8, damage: 10, knockbackH: 3, knockbackV: 1, occlusion: 1, blastLife: .3, originHeight: .8, spawnForward: .5, counterStagger: .2},
   });
   return ({rules, test, locomotion, camera, profiles: profilesLab, extras, actions, vfx: vfxDefaults(), display: displayDefaults(), world, map: {...MAP_DEFAULTS}, passivas, ledge: ledgeDefaults()});
 }

@@ -82,6 +82,7 @@ const AI = {
   minDirectionHold: ['Retenção contra zigue-zague (IA)', 'Tempo mínimo antes de a IA voltar à direção anterior logo depois de mudar.', R(0, .6, .01, sec)],
 };
 const TOGGLES = {
+  enableInfiniteStamina: ['Stamina infinita (nunca gasta)', 'Ligado: nenhuma ação consome stamina, o lutador nunca fica exausto e a barra fica sempre cheia. Desligado: regra normal de custo e recarga.', toggle],
   enableTackleFeint: ['Finta do tackle (C ou D cancelam)', 'Ligado: C ou D no startup do tackle ou durante a carga cancelam o ataque e o lutador só derrapa, voltando ao neutro rápido. Desligado: C durante a carga esquiva e D defende.', toggle],
   enableWallSplat: ['Wall-splat (preso na parede)', 'Ligado: lançado que bate na parede já caindo e rápido fica suspenso e indefeso (janela de combo). Subindo, vale o ricochete.', toggle],
   enableFlightSlam: ['Mergulho no ar para quem foi lançado (X)', 'Desligado (padrão): quem leva knockback não pode fazer nada no ar, nem cancelar com X. Ligado: X durante o voo vira meteor slam.', toggle],
@@ -258,6 +259,7 @@ const WIN = {
   cooldowns: ['Recargas dos movimentos', 'Tempo até cada movimento especial poder ser usado de novo.', toggle],
 };
 const RULES2 = {
+  comboWindow: ['Janela de combo após acertar', 'Depois de um golpe corpo a corpo/Tackle que ACERTA, o atacante pode encadear outra ação imediatamente por este tempo, cancelando a recuperação. 0 = sem combo. O Quick Attack, o Bullet Punch e os demais Moves de contato contam; projéteis não abrem a janela.', R(0, 2, .05, sec)],
   exhaustMode: ['Quando fica exausto', 'Abaixo do menor custo: ao sobrar menos stamina que a ação mais barata (X ou C), o lutador fica exausto até recuperar toda a stamina. Só em zero: regra da Etapa A (com máximos fracionários, ex.: 5,1, nunca acontecia).', select(['Só em zero (Etapa A)', 'Abaixo do menor custo de X/C'])],
   wallRestitution: ['Rebote na parede: horizontal', 'Fração da velocidade horizontal devolvida ao bater na parede durante o voo (0 = gruda, 1 = rebote total).', R(0, 2, .01, x)],
   wallBounceVertical: ['Rebote na parede: vertical (× velocidade vertical)', 'Multiplica a velocidade vertical no momento do choque com a parede (1 = mantém, 0 = zera, negativo inverte).', R(-1, 2, .01, x)],

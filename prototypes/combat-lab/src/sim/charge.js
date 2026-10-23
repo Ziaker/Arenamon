@@ -33,6 +33,7 @@ export function chargeParams(def) {
   p.pl2Ticks = Math.round(p.maxTicks / 2);          // PL2 a partir de 50% da carga (M19.1): 2,0 s para a carga de 4 s
   p.dodgeLockTicks = Math.round(p.dodgeCancelAfter / step);
   p.bufferTicks = Math.round(p.bufferWindow / step);
+  if (typeof grp?.chargeRecovery === 'number') p.recovery = grp.chargeRecovery;   // slider de recuperação do próprio Move (Water Pulse); os demais grupos não têm a chave
   p.recoveryTicks = Math.round(p.recovery / step);
   // Referências lógicas do corpo (M30.4) e, se a definição nomear um grupo (ex.: 'reflect'), uma cópia congelada dele (M28.4).
   p.body = Object.freeze({halfExtent: C.test.halfExtent, height: C.extras.visual.bodyHeight});

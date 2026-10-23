@@ -1,5 +1,5 @@
 // @ts-check
-// IA com os 13 Moves NOVOS (Harden … Emerging Stone). Mesmas regras do jogador: a IA pede pelos campos de comando (`skill`, `skillHeld`, `move`) e só tenta o que a função de
+// IA com os 13 Moves NOVOS (Harden … Emerging Stone) e os 4 elementais (Water Pulse, Fire Spin, Air Slash, Seed Bomb; protótipo de 23/10/2026). Mesmas regras do jogador: a IA pede pelos campos de comando (`skill`, `skillHeld`, `move`) e só tenta o que a função de
 // permissão do controlador aceitaria agora (custo, recarga, chão, alvo elegível). Sem Moves novos equipados este módulo não faz nada e não consome sorteios.
 // Cada Move tem uma regra de OPORTUNIDADE (quando vale a pena) em `RULES`; a chance final é `taxa × estilo de ataque`, ajustável em Moves › IA com Moves (newMovesRate).
 // Execução: toque (Normal/Burst), carga com PL (Guard Break, Bounce) ou segurar-e-soltar com marcador (Spikes, Bullet Punch, Emerging Stone), esta última guiada por um plano
@@ -11,7 +11,7 @@ import {hasFlag} from './status.js';
 import {length, sub, normalize, direction, dot, angleDelta, angleOf} from './math.js';
 
 const held = (/** @type {number} */ slot) => Array.from({length: C.world.slots}, (_, i) => i === slot);
-const NEW_IDS = new Set(['harden', 'second-wind', 'swift', 'lunge', 'quick-attack', 'guard-break', 'feint', 'riposte', 'bounce', 'spikes', 'sand-wave', 'bullet-punch', 'emerging-stone']);
+const NEW_IDS = new Set(['harden', 'second-wind', 'swift', 'lunge', 'quick-attack', 'guard-break', 'feint', 'riposte', 'bounce', 'spikes', 'sand-wave', 'bullet-punch', 'emerging-stone', 'water-pulse', 'fire-spin', 'air-slash', 'seed-bomb']);
 const has = (/** @type {any} */ f, /** @type {string} */ id) => !!f.statuses?.some((/** @type {any} */ s) => s.id === id);
 
 /**
@@ -44,7 +44,11 @@ const RULES = {
   'sand-wave': (x, self) => x.distance < 3.4 && x.facing && x.tGround && self.stamina >= 2.2 ? {p: .3, kind: 'tap', why: 'barragem de areia no retângulo'} : null,
   spikes: (x, self) => x.distance > 3 && x.distance < 8 && x.tGround && self.stamina >= 1.5 ? {p: .22, kind: 'aim', mode: 'absolute', why: 'armadilha no caminho do rival'} : null,
   'bullet-punch': (x, self) => x.distance > 2.5 && x.distance < (C.world.bulletPunch.reach ?? 6) - .3 && x.tGround && self.stamina >= 2.2 ? {p: .25, kind: 'tap', why: 'soco-bala: some e golpeia o rival ao chegar'} : null,
-  'emerging-stone': (x, self) => x.distance > 3.8 && x.distance < 6.4 && x.tGround && self.stamina >= 3 ? {p: .2, kind: 'aim', mode: 'cast', why: 'rocha emergente no rival'} : null,
+  'emerging-stone': (x, self) => x.distance > 3.8 && x.distance < 6.4 && x.tGround && self.stamina >= 3 ? {p: .2, kind: 'aim', mode: 'cast', why: 'rocha emergente no rival'} : null,  // Elementais (protótipo): Water Pulse carrega mais quanto mais longe o rival (PL pela distância); Fire Spin e Seed Bomb põem o marcador AO LADO do rival (o marcador é inválido sobre personagens)
+  'water-pulse': (x, self) => x.distance > 3 && x.distance < 12 && self.stamina >= 1.5 ? {p: .3, kind: 'charge', goal: x.distance > 8 ? 100 : x.distance > 5 ? 50 : 20, why: 'esfera de água à distância'} : null,
+  'fire-spin': (x, self) => x.distance > 2.2 && x.distance < 4.8 && x.tGround && self.stamina >= 1.5 ? {p: .22, kind: 'aim', mode: 'near', offset: 1.1, why: 'zona de fogo ao lado do rival'} : null,
+  'air-slash': (x, self) => x.distance > 3 && x.distance < 9.5 && x.facing && self.stamina >= 1.2 ? {p: .4, kind: 'tap', why: 'lâmina de ar à distância'} : null,
+  'seed-bomb': (x, self) => x.distance > 3 && x.distance < 7.5 && x.tGround && self.stamina >= 1.5 ? {p: .22, kind: 'aim', mode: 'near', offset: .9, why: 'semente explosiva perto do rival'} : null,
 };
 
 /** Mantém o botão, aponta o marcador e solta, conforme o plano. Devolve true se assumiu o comando. */
@@ -59,6 +63,11 @@ function driveAim(brain, self, target, c, mv) {
     const to = sub(lead, a.pos), l = length(to);
     c.move = l > .3 ? normalize(to) : {x: 0, z: 0};
     if ((l <= .45 && a.valid) || a.ticks > 90) hold = false;
+  } else if (plan.mode === 'near') {   // Fire Spin / Seed Bomb: marcador junto do rival, do lado de quem atira (offset m), com antecipação de 0,35 s
+    const lead = {x: target.position.x + (target.velocity?.x ?? 0) * .35 - dir.x * (plan.offset ?? 1), z: target.position.z + (target.velocity?.z ?? 0) * .35 - dir.z * (plan.offset ?? 1)};
+    const to = sub(lead, a.pos), l = length(to);
+    c.move = l > .3 ? normalize(to) : {x: 0, z: 0};
+    if ((l <= .5 && a.valid) || a.ticks > 90) hold = false;
   } else {   // Emerging Stone: o cast começa ao pressionar; mantém parado até o cast terminar, mira o marcador no rival e solta
     const to = sub(target.position, a.pos), l = length(to);
     c.move = a.castLeft <= 0 && l > .6 ? {x: to.x / l, z: to.z / l} : {x: 0, z: 0};   // depois do cast, conduz o marcador até o rival (antes ficava parado e soltava por tempo)
@@ -112,7 +121,7 @@ export function newMovesCommand(brain, self, target, c, mv, perc, S) {
     c.tackle = false;c.dodge = false;c.guard = false;c.guardPressed = false;brain.wasGuard = false;
     if (r.kind === 'tap') {c.skill = slot;c.skillHeld = held(slot);}
     else if (r.kind === 'charge') {c.skill = slot;c.skillHeld = held(slot);mv.phase = 'charging';mv.slot = slot;mv.goalTicks = r.goal;}
-    else {c.skill = slot;c.skillHeld = held(slot);mv.plan = {mode: r.mode, dist: x.distance};}
+    else {c.skill = slot;c.skillHeld = held(slot);mv.plan = {mode: r.mode, dist: x.distance, offset: r.offset};}
     mv.log.push(log);if (mv.log.length > 30) mv.log.shift();
     void hasFlag;
     return true;

@@ -12,6 +12,7 @@ import {C, rgb} from '../sim/config.js';
 import {altitudeOf} from '../sim/entity.js';
 import {reflectPlacement} from '../sim/moves/reflect.js';
 import {stoneCount} from '../sim/moves/psyshock.js';
+import {makeElemental, updateElemental} from './elemental-fx.js';
 
 export const PL_HEX = [0xffffff, 0x59d6e6, 0xffcf6a, 0xff6adf];
 const RING = {
@@ -155,6 +156,7 @@ export class WorldView {
     this.rings = [];
     this.particles = [];
     this.orbs = [[], []];
+    this.waterOrbs = [null, null];   // esfera de água que cresce na mão durante a carga do Water Pulse
     this.preview = new T.Mesh(
       new T.BoxGeometry(1, 1, 1),
       new T.MeshBasicMaterial({color: 0x59e68a, transparent: true, opacity: .26, depthWrite: false, side: T.DoubleSide})
@@ -207,7 +209,10 @@ export class WorldView {
     const color = this.colorOf(e);
     let mesh;
 
-    if (e.kind === 'projectile' && e.visual === 'star') {
+    const elemental = makeElemental(e);   // Water Pulse, Fire Spin, Air Slash e Seed Bomb (elemental-fx.js)
+    if (elemental) {
+      mesh = elemental;
+    } else if (e.kind === 'projectile' && e.visual === 'star') {
       // Estrela do Swift: duas pirâmides cruzadas branco-douradas com núcleo luminoso e giro individual (só aparência; colisão é o raio da entidade).
       mesh = new T.Group();
       const geo = new T.OctahedronGeometry(.9, 0);geo.scale(1, 1, .45);
@@ -547,6 +552,7 @@ export class WorldView {
     for (const e of world?.entities ?? []) {
       alive.add(e.id);
       let m = this.meshes.get(e.id) ?? this.make(e);
+      if (updateElemental(m, e, this.time, dt, {...this.accessibility, noFlash: !!(this.accessibility?.noFlash || C.vfx.master?.noFlash), reduceMotion: !!(this.accessibility?.reduceMotion || C.vfx.master?.reduceMotion)})) continue;
 
       if (e.kind === 'beam') {
         if (skipBeams) {
@@ -765,6 +771,7 @@ export class WorldView {
   /** Prévia da barreira (com indicação de carga mínima de 1,5 s) e pedras que se formam ao redor do lutador. */
   drawCharging(world, fighters, dt = 0) {
     let showPreview = false;
+    const acc = {...this.accessibility, noFlash: !!(this.accessibility?.noFlash || C.vfx.master?.noFlash), reduceMotion: !!(this.accessibility?.reduceMotion || C.vfx.master?.reduceMotion)};
     for (const f of fighters) {
       const ring = this.chargeRings?.[f.id];
       const ch = f.charge, tc = f.tackleCharge;
@@ -784,6 +791,24 @@ export class WorldView {
       }
       const orbs = this.orbs[f.id] ??= [];
       let want = 0;
+
+      // Water Pulse: a esfera de água cresce na mão enquanto a carga corre (só aparência; PL muda a cor do anel).
+      const ball = this.waterOrbs[f.id] ??= (() => {
+        const g = makeElemental({kind: 'projectile', visual: 'waterorb', pl: 1});
+        if (g) {g.visible = false;this.group.add(g);}
+        return g;
+      })();
+      if (ball) {
+        if (ch && ch.move === 'water-pulse') {
+          const maxTicks = Math.max(1, ch.params?.maxTicks ?? 180), ratio = Math.min(1, ch.ticks / maxTicks);
+          const level = ratio >= 1 ? 3 : ratio >= .5 ? 2 : 1, reach = .62;
+          const fake = {kind: 'projectile', visual: 'waterorb', pl: level, radius: .14 + .3 * ratio, visualScale: 1, pos: {x: f.position.x + Math.sin(f.facing) * reach, z: f.position.z + Math.cos(f.facing) * reach}, y: altitudeOf(f) + .58 + .12 * ratio};
+          updateElemental(ball, fake, this.time, dt, acc);
+          ball.visible = true;
+        } else {
+          ball.visible = false;
+        }
+      }
 
       if (ch && ch.move === 'reflect') {
         const P = ch.params, place = reflectPlacement({world, fighters}, f, P, ch.ticks / P.maxTicks, f.facing), p = this.preview;

@@ -1,5 +1,6 @@
 // @ts-check
-// Marcador de mira dos Moves com destino (Spikes e Emerging Stone): anel no chão no ponto escolhido (verde = válido, vermelho = inválido), coluna de luz.
+// Marcador de mira dos Moves com destino (Spikes, Emerging Stone, Fire Spin e Seed Bomb): anel no chão no ponto escolhido (verde = válido, vermelho = inválido), coluna de luz.
+// O raio do anel mostra o EFEITO REAL da zona/explosão (zoneRadius/explosionRadius) quando o Move os tem.
 // Também desenha (22/10/2026): o CÍRCULO DE ALCANCE dos Moves de alvo único (Quick Attack, Bullet Punch) ao redor do lutador enquanto o botão está segurado (azul = há alvo dentro,
 // vermelho = não há; pisca vermelho ao soltar sem alvo) e as LINHAS DE VELOCIDADE do sumiço (Bullet Punch e Quick Attack: linhas na ida, outras de cor quente na volta do Quick Attack).
 // Só aparência: lê `f.aim`, `f.rangeFlash` e a ação em curso (estado da simulação) e nunca os altera. Criado sob demanda pela View e descartado quando
@@ -19,7 +20,7 @@ export class AimMarkers {
       live.add(f.id);
       let it = this.items.get(f.id);
       if (!it) {it = this.make();this.items.set(f.id, it);this.group.add(it.root);}
-      const col = a.valid ? OK : BAD, r = Math.max(.3, a.params?.radius ?? .6), pulse = o.reduceMotion ? 1 : 1 + Math.sin(this.t * 8) * .04;
+      const col = a.valid ? OK : BAD, r = Math.max(.3, a.params?.zoneRadius ?? a.params?.explosionRadius ?? a.params?.radius ?? .6), pulse = o.reduceMotion ? 1 : 1 + Math.sin(this.t * 8) * .04;
       it.root.position.set(a.pos.x, a.y + .04, a.pos.z);
       it.ring.scale.set(r * pulse, 1, r * pulse);
       it.pillar.scale.set(1, 1.4, 1);it.pillar.position.y = .7;

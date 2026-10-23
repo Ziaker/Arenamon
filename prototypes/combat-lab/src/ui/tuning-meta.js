@@ -41,7 +41,7 @@ export const SECTIONS=[
   ['Tackle (X)','actions.tackle',null],
   ['Cancelamento C → X','actions.cancel',null],
   ['Buffer de entrada','actions.buffer',null],
-  ['Regras gerais, defesa e stamina','rules',['recoil','recoilFraction','blend','guardStun','perfect','perfectCooldown','staminaMax','regenDelay','regenTime','exhaustMode','guardSpeed','exhaustedSpeed','guardTurn','guardAcceleration']],
+  ['Regras gerais, defesa e stamina','rules',['recoil','recoilFraction','blend','guardStun','perfect','perfectCooldown','staminaMax','regenDelay','regenTime','exhaustMode','comboWindow','guardSpeed','exhaustedSpeed','guardTurn','guardAcceleration']],
   ['Tackle carregado (PL)','rules',['tackleFriction1','tackleFriction2','tackleFriction3','chargeTackleMaxTime','chargeTackleDrain','chargeTackleMove','chargeTackleTurn','chargeTackleSpeed2','chargeTackleSpeed3','chargeTackleDamage2','chargeTackleDamage3','sprintTacklePL']],
   ['Finta (esquiva rápida)','rules',['feintWindow','feintMinAngle','feintDuration','feintDistance','feintCost','feintFxOn','feintFxIntensity','feintFxSize','feintFxColor']],
   ['Wall-splat e meteor slam','rules',['wallSplatMinSpeed','wallSplatDuration','wallSplatDamage','slamAngle','slamMinHeight','slamDamage','slamSpeedLoss','slamRingOn','slamRingStart','slamRingRadius','slamRingDuration','slamRingThickness','slamRingIntensity','slamRingOpacity','slamRingFade','slamFxOn','slamFxSize','slamFxLength','slamFxIntensity','slamFxHeat','slamFxSparks','slamFxFlicker','slamFxFadeOut','slamGroundTime','slamGroundRadius','slamPrepTime','slamHop','slamFallTime','slamImpactScale','slamImpactShake','slamRecovery','slamLaunchHorizontal','groundBounceForce','slamBlockPushDistance']],

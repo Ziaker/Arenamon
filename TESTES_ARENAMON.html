@@ -594,6 +594,28 @@ PASS: dois blocos, cores, câmera, layout, file:// offline, sem erros.</pre>
         </div>
       </article>
 
+      <!-- SUÍTE 4c: MOVES ELEMENTAIS + AJUSTES DE COMBATE (23/10/2026) -->
+      <article class="suite-card" data-category="jogo">
+        <div class="suite-header">
+          <div>
+            <h2 class="suite-title">Moves elementais + anti-aéreo, combo e stamina infinita</h2>
+            <div class="suite-meta">
+              <span class="tag success">✓ Aprovados</span>
+              <span class="tag primary">moves-{water-pulse,fire-spin,air-slash,seed-bomb}.test.mjs</span>
+              <span class="tag">moves-anti-air-combo-stamina.test.mjs</span>
+              <span class="tag">docs/MOVES_ELEMENTAIS_PROTOTIPO.md</span>
+            </div>
+          </div>
+        </div>
+        <p class="suite-desc">
+          Water Pulse (esfera que cresce na mão), Fire Spin e Seed Bomb (alcance dobrado, anel da prévia no raio real), Air Slash, anti-aéreo do Quick Attack/Bullet Punch, janela de combo de 0,7 s e interruptor de stamina infinita. Inclui os testes de navegador <code>moves-elementais.browser.mjs</code> (7 verificações) e a cobertura dos sliders na aba Moves.
+        </p>
+        <div class="cmd-box">
+          <code>node prototypes/combat-lab/test/moves-anti-air-combo-stamina.test.mjs</code>
+          <button class="copy-btn" onclick="copyCmd('node prototypes/combat-lab/test/moves-elementais.browser.mjs', this)">Copiar teste de navegador</button>
+        </div>
+      </article>
+
       <!-- SUÍTE 5: VERIFICAÇÃO E2E DO JOGO PRINCIPAL (COMBAT LAB + MOVES + VFX SÓLIDOS) -->
       <article class="suite-card" data-category="jogo">
         <div class="suite-header">

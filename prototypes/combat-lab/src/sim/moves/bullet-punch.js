@@ -8,15 +8,15 @@
 // A velocidade de impacto do knockback tem slider próprio (`impactMult`). Valores: C.world.bulletPunch, capturados no uso.
 import {C} from '../config.js';
 import {startTackleAt} from '../controller.js';
-import {nominalDistance} from '../entity.js';
+import {nominalDistance, altitudeOf} from '../entity.js';
 import {getGroundHeight} from '../physics.js';
 import {effectiveArenaRadius} from '../map.js';
 import {solidsOf, insideSolid} from '../vision.js';
 import {angleOf, sub} from '../math.js';
 
 export const bulletPunchDef = Object.freeze({
-  id: 'bullet-punch', name: 'Bullet Punch', air: 'descend', group: 'bulletPunch', needsTarget: 'reach', moveCast: true, fromDodge: true, tackle: 'bullet-punch', aim: 'target',
-  description: 'Normal · PL2. Como o Quick Attack: acha o adversário mais próximo dentro do alcance (segure para ver o círculo), prepara 0,75 s, some por 0,2 s numa corrida invisível até ele e o golpeia ao chegar (quem estiver no caminho leva o golpe e para a corrida).',
+  id: 'bullet-punch', name: 'Bullet Punch', air: 'descend', group: 'bulletPunch', needsTarget: 'reach', moveCast: true, fromDodge: true, tackle: 'bullet-punch', aim: 'target', antiAir: true,
+  description: 'Normal · PL2. Como o Quick Attack: acha o adversário mais próximo dentro do alcance (segure para ver o círculo), prepara 0,75 s, some por 0,2 s numa corrida invisível até ele e o golpeia ao chegar (quem estiver no caminho leva o golpe e para a corrida). Alcança rivais em voo baixo.',
   cost: 1.5, cooldown: 8, duration: 1.75, durationKeys: ['cast', 'vanish'], motion: {type: 'walk'},
   timeline: [
     {at: .75, atKey: 'cast', effect: 'bullet-punch-vanish'},
@@ -45,7 +45,8 @@ export function bulletPunchVanish(/** @type {any} */ game, /** @type {any} */ f,
     const dx = tgt.position.x - f.position.x, dz = tgt.position.z - f.position.z, d = Math.hypot(dx, dz) || 1e-6, stop = P.stopShort ?? 1.1, run = Math.min(Math.max(0, d - stop), (P.reach ?? 6) + stop);
     to = nearestFree(game, f, firstFree(game, f.position, {x: f.position.x + dx / d * run, z: f.position.z + dz / d * run}));
   }
-  if (f.action) f.action.travel = {from: {x: f.position.x, z: f.position.z}, to, t0: f.action.elapsed, time: Math.max(1e-6, P.vanish)};
+  if (f.action) f.action.travel = {from: {x: f.position.x, z: f.position.z}, to, t0: f.action.elapsed, time: Math.max(1e-6, P.vanish),
+    airFrom: f.vaultHeight ?? 0, airTo: tgt ? Math.max(0, altitudeOf(tgt) - (f.groundY ?? 0)) : 0};   // anti-aéreo: a corrida invisível sobe até o alvo
   fx.events?.push({result: 'bulletVanish', attacker: f.id, target: tgt?.id ?? null, damage: 0, x: f.position.x, z: f.position.z, move: def.id});
 }
 
@@ -82,10 +83,13 @@ function nearestFree(/** @type {any} */ game, /** @type {any} */ f, /** @type {{
 export function bulletPunchTravel(/** @type {any} */ f, /** @type {any} */ action, /** @type {number} */ dt, /** @type {any[]} */ fighters = []) {
   const t = action.travel;if (!t || !f.absent) return null;
   const k = Math.max(0, Math.min(1, (action.elapsed + dt - t.t0) / t.time)), next = {x: t.from.x + (t.to.x - t.from.x) * k, z: t.from.z + (t.to.z - t.from.z) * k};
+  if (t.airTo !== undefined) f.vaultHeight = Math.max(0, t.airFrom + (t.airTo - t.airFrom) * k);   // anti-aéreo: sobe junto com a corrida
   const R = action.params?.hitRadius ?? .8, ax = f.position.x, az = f.position.z, bx = next.x - ax, bz = next.z - az, len2 = bx * bx + bz * bz;
+  const antiAir = (action.params?.airReach ?? 0) > 0, reachY = Math.max(C.extras?.visual?.bodyHeight ?? 1.2, action.params?.airReach ?? 0), fy = altitudeOf(f);
   /** @type {any} */ let hit = null, hitU = Infinity;
   for (const o of fighters) {
-    if (o === f || o.hp <= 0 || o.absent || (o.flight && !o.wallSplat)) continue;
+    if (o === f || o.hp <= 0 || o.absent || ((o.flight && !o.wallSplat) && !antiAir)) continue;
+    if (Math.abs(altitudeOf(o) - fy) > reachY) continue;
     const u = len2 > 1e-12 ? Math.max(0, Math.min(1, ((o.position.x - ax) * bx + (o.position.z - az) * bz) / len2)) : 0;
     if (Math.hypot(o.position.x - (ax + bx * u), o.position.z - (az + bz * u)) <= R && u < hitU) {hit = o;hitU = u;}
   }
@@ -111,5 +115,7 @@ export function bulletPunchReturn(/** @type {any} */ game, /** @type {any} */ f,
   f.velocity = {x: 0, z: 0};f.locomotionVelocity = {x: 0, z: 0};
   fx.events?.push({result: 'bulletReturn', attacker: f.id, target: tgt?.id ?? null, damage: 0, x: f.position.x, z: f.position.z, move: def.id, blocked: !!blocker});
   if (!tgt) {fx.events?.push({result: 'bulletNoTarget', attacker: f.id, target: null, damage: 0, move: def.id});return;}   // alvo derrotado durante o preparo: reaparece sem golpe
-  startTackleAt(f, def, P, angleOf(sub(tgt.position, f.position)), game.fighters);
+  const lift = Math.max(0, altitudeOf(tgt) - f.groundY);   // alvo em voo: o golpe começa na altura dele e desce durante o Tackle
+  const strike = startTackleAt(f, def, P, angleOf(sub(tgt.position, f.position)), game.fighters);
+  if (lift > 1e-6) {f.vaultHeight = lift;strike.liftStart = lift;strike.liftTime = C.actions.tackle.duration;}
 }

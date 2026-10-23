@@ -11,7 +11,7 @@
 import {C} from './config.js';
 import {nominalDistance, actionParams, invulnerableWindow, chainOpen, actionSpec, getFighterMaxStamina} from './entity.js';
 import {stat, hasFlag} from './status.js';
-import {moveInSlot, getMove, getTackleSetup, nearestEligible} from './moves.js';
+import {moveInSlot, getMove, getTackleSetup, nearestEligible, targetReachOf} from './moves.js';
 import {chargeParams, chargeLevel, interruptCooldown, boostPlan} from './charge.js';
 import {vec, add, scale, sub, dot, length, normalize, clamp, angleOf, direction, angleDelta, smoothstep, actionCurve} from './math.js';
 import {legacyApproach, locomotionStep} from './locomotion.js';
@@ -40,13 +40,17 @@ export const walkSpeed = f => stat(f, 'speed', f.attributes.speed) * (f.guard ? 
 /** Custo de stamina de uma ação com o modificador de status (sem status: o próprio custo). */
 // kind opcional ('dodge' | 'tech'): passivas como Technician alteram o custo efetivo de esquivas e recovery (R10);
 // X/tackles e Moves continuam usando o custo base (C.extras.toggles.enablePassives desligado = paridade exata).
-export const costOf = (f, cost, kind = null) => {const base = stat(f, 'staminaCost', cost) * (kind === 'dodge' ? stat(f, 'mobilityCost', 1) : 1);return kind ? passiveCost(f, kind, base) : base;};
+export const costOf = (f, cost, kind = null) => {
+  if (C.extras?.toggles?.enableInfiniteStamina) return 0;   // stamina infinita: nenhuma ação consome
+  const base = stat(f, 'staminaCost', cost) * (kind === 'dodge' ? stat(f, 'mobilityCost', 1) : 1);return kind ? passiveCost(f, kind, base) : base;
+};
 
 /**
  * Stamina esgotada: abaixo do menor custo de X e C (exhaustMode 1) ou exatamente zero (0, Etapa A).
  * Com máximos fracionários (ex.: 5,1 e custo 1) a stamina nunca chega a zero; agora a exaustão ocorre ao sobrar menos que uma ação.
  */
 export function isDepleted(stamina) {
+  if (C.extras?.toggles?.enableInfiniteStamina) return false;
   const A = C.actions, min = Math.min(A.dodge.cost, A.tackle.cost);
   return C.rules.exhaustMode === 1 && min > 1e-8 ? stamina < min - 1e-8 : stamina < 1e-8;
 }
@@ -285,6 +289,7 @@ function airSkillStep(f, cmd, fighters, world, dt, diag) {
 }
 export function updateFighter(f, cmd, fighters, dt, world = null) {
   CTX_FIGHTERS = fighters;CTX_WORLD = world;
+  if (C.extras?.toggles?.enableInfiniteStamina) {f.stamina = getFighterMaxStamina(f);f.regenBase = f.stamina;f.exhausted = false;}   // stamina infinita: sempre cheia
   if (f.absent && !(f.action?.kind === 'move' && f.action.travel)) f.absent = false;   // rede de segurança: a ausência só existe durante a viagem do Bullet Punch; se a ação sumir (cancelada, lançamento, queda), o lutador reaparece em vez de ficar invisível e intangível para sempre
   if (cmd.target != null && fighters.find(o => o.id === cmd.target)?.absent) cmd = {...cmd, target: null, locked: false};   // ausente (Bullet Punch) não pode ser selecionado como alvo
   if (cmd.target != null && hasFlag(f, 'blind')) {   // cegueira: lock-on só em quem o cegado enxerga (10 m, sem parede bloqueando por completo); senão desliga
@@ -409,6 +414,7 @@ export function updateFighter(f, cmd, fighters, dt, world = null) {
   }
   f.desiredMove = {...move};f.combatHeading = desiredHeading;f.inputDir = {...move};
   f.perfectCooldown = Math.max(0, f.perfectCooldown - dt);
+  f.comboLeft = Math.max(0, (f.comboLeft ?? 0) - dt);   // janela de combo aberta por um acerto corpo a corpo recente
   if (f.perfectLeft > 0) {f.perfectLeft = Math.max(0, f.perfectLeft - dt);if (f.perfectLeft < 1e-8 && !f.perfectSucceeded) f.perfectCooldown = R.perfectCooldown;}
   f.stun = Math.max(0, f.stun - dt);
   f.counterWindow = Math.max(0, f.counterWindow - dt);
@@ -421,6 +427,7 @@ export function updateFighter(f, cmd, fighters, dt, world = null) {
   f.stamina = f.regenBase + (maxStam - f.regenBase) * regen ** 3;
   if (f.sprinting && isDepleted(f.stamina)) {f.exhausted = true;}
   if (f.stamina >= maxStam - 1e-8) {f.stamina = maxStam;f.exhausted = false;}
+  if (C.extras?.toggles?.enableInfiniteStamina) {f.stamina = maxStam;f.regenBase = maxStam;f.exhausted = false;}
   f.staminaTrend = (f.stamina - staminaBefore) / dt;
   if (!cmd.dodgeHeld) f.sprintArmed = false;
   if (!cmd.guard || !T.enableDefense) {f.guard = false;f.guardSuppressed = false;}
@@ -580,7 +587,13 @@ export function updateFighter(f, cmd, fighters, dt, world = null) {
           if (u >= 1) {action.slamPrepDone = true;aimSlamDive(f, fighters);}
         } else if (action.slam) f.vaultHeight = Math.max(0, f.vaultHeight - (R.slamFallTime > 1e-6 ? (action.slamH0 ?? 0) / R.slamFallTime * dt : Infinity));   // despenca a altura inteira em slamFallTime
         if (action.slam && action.slamPrepDone && f.vaultHeight <= 1e-9 && (action.slamH0 ?? 0) > 1e-6) action.slamLanded = true;
-        if (!action.slam) f.vaultHeight = action.liftStart > 0 ? (action.liftTime > 0 ? action.liftStart * (1 - smoothstep((action.elapsed + dt) / action.liftTime)) : 0) : 0;
+        if (!action.slam) {
+          if (action.airCurve) {   // Quick Attack anti-aéreo: sobe até o alvo na ida e desce na volta
+            const c = action.airCurve, t = action.elapsed + dt, u = c.up > 1e-9 ? Math.min(1, t / c.up) : 1;
+            const down = Math.max(0, Math.min(1, (t - c.up - (c.hold ?? 0)) / Math.max(1e-9, c.down ?? 0)));
+            f.vaultHeight = c.from + (c.to - c.from) * (1 - (1 - u) * (1 - u)) * (1 - down);
+          } else f.vaultHeight = action.liftStart > 0 ? (action.liftTime > 0 ? action.liftStart * (1 - smoothstep((action.elapsed + dt) / action.liftTime)) : 0) : 0;
+        }
       }
       f.state = action.slam ? (!action.slamPrepDone ? 'meteorPrep' : action.slamLanded ? 'meteorGround' : 'meteorDive') : action.kind;
     } else {
@@ -650,6 +663,7 @@ function startAction(f, kind, dirs, fighters, desiredHeading, viaCancel, guardHe
   f.action = {kind, elapsed: 0, startAngle: heading, heading, offensive: kind === 'tackle', vault, hits: new Set(), from, speedMultiplier: countered ? A.tackle.counterSpeed : 1,
     combatWindows: combatWindows ? structuredClone(combatWindows) : null,
     hitWindows: combatWindows?.activeWindows?.length ? combatWindows.activeWindows.map(() => new Set()) : []};
+  f.comboLeft = 0;   // a janela de combo é consumida pela ação que ela permitiu
   // Salto sobre o rival: pulo balístico (impulso vertical, gravidade e velocidade horizontal próprias).
   if (vault && A.dodge.vaultPhysics) f.action.jump = {y: 0, vy: A.dodge.vaultUp, over: vaultTarget(f, heading, fighters)};
   if (blendTime !== undefined) f.action.blendTime = blendTime;
@@ -714,7 +728,7 @@ export function movePermission(f, def, slot = null, opts = null) {
   }
   if (f.stun > 1e-8 && !def.fromGuardStun) return {ok: false, reason: 'guardStun', detail: {left: f.stun}};
   if (def.groundOnly && !airOk && (f.flight || (f.vaultHeight ?? 0) > 1e-8)) return {ok: false, reason: 'noGround'};
-  if (def.needsTarget && !opts?.skipTarget) {const range = C.world[def.group]?.[def.needsTarget] ?? 0;if (!nearestEligible(f, CTX_FIGHTERS, range)) return {ok: false, reason: 'noTarget', detail: {range}};}
+  if (def.needsTarget && !opts?.skipTarget) {const range = C.world[def.group]?.[def.needsTarget] ?? 0;if (!nearestEligible(f, CTX_FIGHTERS, range, targetReachOf(def))) return {ok: false, reason: 'noTarget', detail: {range}};}
   const cost = costOf(f, def.cost ?? 1);
   if (f.exhausted && cost > 0) return {ok: false, reason: 'exhausted', detail: {value: f.stamina, refill: getFighterMaxStamina(f)}};
   if (f.stamina < cost - 1e-8) return {ok: false, reason: 'stamina', detail: {value: f.stamina, required: cost}};
@@ -756,10 +770,15 @@ function startMove(f, def, slot, dirs, desiredHeading, hasTarget, guardHeld) {
   const heading = aim === 'facing' ? f.facing : aim === 'input' && length(inputDir) > .01 ? angleOf(inputDir) : hasTarget || length(inputDir) <= .01 ? desiredHeading : angleOf(inputDir);
   // M28.4: a execução guarda a definição EFETIVA (com os sliders do momento) e os parâmetros do grupo; mexer em slider depois não a altera.
   f.action = {kind: 'move', move: def.id, slot, elapsed: 0, startAngle: heading, heading, offensive: false, hits: new Set(), fired: [], from: {...f.velocity}, def, params: def.group ? structuredClone(C.world[def.group]) : null, lock: dirs.lock ?? null};
+  f.comboLeft = 0;
   const cost = costOf(f, def.cost ?? 1);f.stamina = Math.max(0, f.stamina - cost);f.regenBase = f.stamina;f.regenAge = 0;f.exhausted = isDepleted(f.stamina);
   if (def.cooldown > 0) (f.moveCooldowns ??= {})[def.id] = def.cooldown;
   f.guard = false;f.guardSuppressed = guardHeld;f.push = null;f.blend = null;f.vaultHeight = 0;f.bufferedTackle = null;f.inputBuffer = null;f.sprinting = false;f.sprintCarry = false;
   if (lift > 1e-8) applyLift(f, lift);else if (inAir) f.action.air = true;   // air.js: 'descend' desce enquanto age; 'cast' segue em voo
+  if (def.captureAim && dirs.lock != null) {   // Burst com mira capturada na CONFIRMAÇÃO (Air Slash): ponto do alvo no instante do toque, sem perseguir depois
+    const o = CTX_FIGHTERS.find(x => x.id === dirs.lock && x.hp > 0);
+    if (o) f.action.aimAt = {x: o.position.x, z: o.position.z, y: (o.flight?.y ?? o.groundY ?? 0) + (o.vaultHeight ?? 0) + (C.extras?.visual?.bodyHeight ?? 1.2) / 2};
+  }
 }
 /**
  * Move que vira uma AÇÃO DE TACKLE com parâmetros próprios (Lunge, Quick Attack, Bullet Punch…): `startAction` cria a ação (colisão real, defesa, defesa
@@ -775,6 +794,7 @@ function startTackleMove(f, def, slot, dirs, desiredHeading, hasTarget, guardHel
   if (def.cooldown > 0) (f.moveCooldowns ??= {})[def.id] = def.cooldown;
   const a = f.action, P = def.group ? structuredClone(C.world[def.group]) : {};
   a.move = def.id;a.slot = slot;a.params = P;a.moveDef = def;a.pl = 1;a.plSpeed = 1;a.plDamage = 1;
+  a.antiAir = !!def.antiAir;a.airReach = def.group ? (C.world[def.group]?.airReach ?? 0) : 0;
   getTackleSetup(def.tackle)?.(f, a, P, {fighters, def, hasTarget});
 }
 /** Soltura de um Charge que vira Tackle (`def.tackle` + `charge`): ação de Tackle com PL da carga; o custo do Tackle volta (o do Move foi cobrado ao apertar). */
@@ -830,7 +850,7 @@ function startAim(f, def, slot, fighters, world, lockId) {
  */
 function startRangeAim(f, def, slot, guardHeld = false) {
   const P = structuredClone(C.world[def.group]), range = P[def.needsTarget] ?? 0;
-  f.aim = {move: def.id, slot, ticks: 0, params: P, def, range: true, free: true, rangeValue: range, inRange: !!nearestEligible(f, CTX_FIGHTERS, range), pos: {x: f.position.x, z: f.position.z}, y: f.groundY ?? 0, valid: true, reason: null, distance: 0};
+  f.aim = {move: def.id, slot, ticks: 0, params: P, def, range: true, free: true, rangeValue: range, inRange: !!nearestEligible(f, CTX_FIGHTERS, range, targetReachOf(def)), pos: {x: f.position.x, z: f.position.z}, y: f.groundY ?? 0, valid: true, reason: null, distance: 0};
   f.guard = false;f.guardSuppressed = !!guardHeld;   // com D segurada o toque no slot não é cancelado pela defesa no passo seguinte (como startMove)
   moveEvent(f, {result: 'aimStart', move: def.id, slot, range: true});
 }
@@ -846,7 +866,7 @@ function stepAim(f, cmd, inputMove, ctx) {
   if (!def) {f.aim = null;return;}
   if (a.range) {   // mira de alcance: acompanha o alvo mais próximo e executa ao soltar
     a.rangeValue = a.params[def.needsTarget] ?? 0;
-    const tgt = nearestEligible(f, ctx.fighters, a.rangeValue);a.inRange = !!tgt;
+    const tgt = nearestEligible(f, ctx.fighters, a.rangeValue, targetReachOf(def));a.inRange = !!tgt;
     if (a.ticks > 0 && !cmd.skillHeld?.[a.slot]) {
       f.aim = null;
       const perm = movePermission(f, def, a.slot);
@@ -920,6 +940,7 @@ export function startTackleAt(f, def, params, heading, fighters) {
   f.stamina = before;
   const a = f.action;
   a.heading = a.startAngle = heading;a.move = def.id;a.params = params;a.moveDef = def;a.pl = 1;a.plSpeed = 1;a.plDamage = 1;
+  a.antiAir = !!def.antiAir;a.airReach = def.group ? (C.world[def.group]?.airReach ?? 0) : 0;
   getTackleSetup(def.tackle)?.(f, a, params, {fighters, def});
   return a;
 }
@@ -948,7 +969,7 @@ function updateMove(f, action, target, cmd, dt) {
   else {const from = action.from ?? vec(), k = Math.exp(-12 * dt);f.velocity = scale(from, k);action.from = {...f.velocity};}
   if (action.liftStart > 0) f.vaultHeight = action.liftTime > 0 ? action.liftStart * (1 - smoothstep((action.elapsed + dt) / action.liftTime)) : 0;   // desceu do ar (air.js): sem teletransporte ao chão
   if (!def.keepFacing) turnToward(f, target && def.aim !== 'facing' ? angleOf(sub(target.position, f.position)) : action.heading, dt);   // keepFacing: recuo sem virar o corpo (Feint)
-  (def.timeline || []).forEach((ev, i) => {if (!action.fired.includes(i) && ev.at <= action.elapsed + dt + 1e-9) {action.fired.push(i);(f.moveFx ??= []).push({index: i, move: def.id, heading: action.heading, params: action.params ?? null, def, lock: action.lock ?? null, marker: action.marker ?? null});}});
+  (def.timeline || []).forEach((ev, i) => {if (!action.fired.includes(i) && ev.at <= action.elapsed + dt + 1e-9) {action.fired.push(i);(f.moveFx ??= []).push({index: i, move: def.id, heading: action.heading, params: action.params ?? null, def, lock: action.lock ?? null, marker: action.marker ?? null, aimAt: action.aimAt ?? null});}});
   f.state = 'move';
 }
 // ---------- Movimentos de carga (Charge): segurar o botão carrega, soltar executa ----------
@@ -992,6 +1013,7 @@ function startCharge(f, def, slot, guardHeld, fromBuffer = false) {
   f.stamina = Math.max(0, f.stamina - cost);f.regenBase = f.stamina;f.regenAge = 0;f.exhausted = isDepleted(f.stamina);
   if (f.action?.kind === 'dodge') {f.locomotionVelocity = {...f.velocity};f.action = null;}
   f.charge = {move: def.id, slot, ticks: 0, params, cost, fromBuffer};
+  f.comboLeft = 0;
   if ((def.tackle || def.cooldownOnStart) && def.cooldown > 0) (f.moveCooldowns ??= {})[def.id] = def.cooldown;   // Charge que vira Tackle: custo e recarga no INÍCIO da carga (interromper mantém os dois)
   f.guard = false;f.guardSuppressed = guardHeld;f.push = null;f.blend = null;f.vaultHeight = 0;f.bufferedTackle = null;f.inputBuffer = null;f.skillBuffer = null;f.sprinting = false;f.sprintCarry = false;
   moveEvent(f, {result: 'chargeStart', move: def.id, slot});

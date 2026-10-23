@@ -95,21 +95,39 @@ export const listMoves = () => [...REGISTRY.values()];
 export const clearMoves = () => REGISTRY.clear();
 
 /**
- * Adversário ELEGÍVEL mais próximo a até `range` m (distância horizontal): vivo, no chão (o Tackle não alcança quem está em voo) e com diferença de altura
- * que o corpo alcança. Desempate determinístico pelo id. Usado por Moves com aquisição automática de alvo (Quick Attack).
+ * Adversário ELEGÍVEL mais próximo a até `range` m (distância horizontal): vivo, no chão (por padrão o Tackle não alcança quem está em voo) e com diferença de
+ * altura que o corpo alcança. `opts.allowAir` + `opts.airReach` abrem a aquisição para alvos em voo dentro dessa altura (Quick Attack / Bullet Punch anti-aéreos).
+ * Desempate determinístico pelo id. Usado por Moves com aquisição automática de alvo.
  */
-/** @returns {any} */
-export function nearestEligible(f, fighters, range) {
+/**
+ * @param {any} f
+ * @param {any[]} fighters
+ * @param {number} range
+ * @param {{allowAir?: boolean, airReach?: number}|null} [opts]
+ * @returns {any}
+ */
+export function nearestEligible(f, fighters, range, opts = null) {
   /** @type {any} */ let best = null, bd = Infinity;
-  const bodyH = C.extras?.visual?.bodyHeight ?? 1.2, fy = altitudeOf(f);
+  const bodyH = C.extras?.visual?.bodyHeight ?? 1.2, allowAir = !!opts?.allowAir, reach = allowAir ? Math.max(bodyH, opts.airReach ?? 0) : bodyH, fy = altitudeOf(f);
   for (const o of fighters) {
-    if (o.id === f.id || o.hp <= 0 || o.absent || (o.flight && !o.wallSplat)) continue;
-    const oy = (o.groundY ?? 0) + (o.vaultHeight ?? 0);
-    if (Math.abs(fy - oy) > bodyH) continue;
+    if (o.id === f.id || o.hp <= 0 || o.absent || ((o.flight && !o.wallSplat) && !allowAir)) continue;
+    const oy = altitudeOf(o);
+    if (Math.abs(fy - oy) > reach) continue;
     const d = Math.hypot(o.position.x - f.position.x, o.position.z - f.position.z);
     if (d <= range + 1e-9 && (d < bd - 1e-9 || (Math.abs(d - bd) <= 1e-9 && best && o.id < best.id))) {bd = d;best = o;}
   }
   return best;
+}
+
+/**
+ * Opções de aquisição de alvo de um Move: `{allowAir, airReach}` quando ele é anti-aéreo (`def.antiAir`), senão null.
+ * @param {any} def
+ * @returns {{allowAir: boolean, airReach: number}|null}
+ */
+export function targetReachOf(def) {
+  if (!def?.antiAir) return null;
+  const g = def.group ? C.world[def.group] : null;
+  return {allowAir: true, airReach: g?.airReach ?? 0};
 }
 
 /** Movimento equipado no slot (ou null). Os slots ficam em f.loadout (ids). */
