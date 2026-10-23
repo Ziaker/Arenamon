@@ -44,7 +44,7 @@ export function bindElementalVisual(root,tuning) {
     const numeric = () => input.type === 'color' ? Number.parseInt(input.value.slice(1),16) : input.type === 'checkbox' ? Number(input.checked) : Number(input.value);
     const output = input.parentElement.querySelector('output');
     let before;
-    input.oninput = () => {if (before === undefined) before = get();const value = numeric();set(value);if(output) output.textContent = input.type === 'color' ? input.value : `${value}${path.endsWith('shotFollowTime')?' s':''}`;};
+    input.oninput = () => {if (before === undefined) before = get();const value = numeric();set(value);if(output) output.textContent = input.type === 'color' ? input.value : `${value}${path.endsWith('shotFollowTime')?' s':input.dataset.unit?` ${input.dataset.unit}`:''}`;};
     input.onchange = () => {const value = numeric(), old = before ?? get();before = undefined;if (old === value) return;set(old);if(tuning) tuning.commit([[path,value]],`Visual: ${path.split('.').pop()}`);else set(value);};
   }
 }

@@ -38,6 +38,7 @@ import {createMovementPanel} from './ui/movement-panel.js';
 import {createDiagnostics, createWindowsOverlay} from './ui/diagnostics-panel.js';
 import {createTrainingPanel} from './ui/training-panel.js';
 import {createMovesPanel, MOVE_INFO} from './ui/moves-panel.js';
+import {createMovesVfxPanel} from './ui/moves-vfx-panel.js';
 import {MovesHud} from './ui/moves-hud.js';
 import {createPassivesPanel} from './ui/passives-panel.js';
 import {installHoverTip} from './ui/hover-tip.js';
@@ -579,7 +580,7 @@ const stored = k => {try {return Number(localStorage.getItem(k)) || 0;} catch {r
   const dockEl = $('dock'), h0 = stored('arenamon.dockH'), root = document.documentElement;if (h0 >= 90) root.style.setProperty('--dock-h', h0 + 'px');
   dragResize($('dock-resizer'), e => ({y: e.clientY, h: dockEl.getBoundingClientRect().height}), (s, ev) => {root.style.setProperty('--dock-h', Math.max(90, Math.min(window.innerHeight * .75, s.h - (ev.clientY - s.y))) + 'px');}, () => store('arenamon.dockH', Math.round(dockEl.getBoundingClientRect().height)), () => {root.style.removeProperty('--dock-h');store('arenamon.dockH', null);});
 }
-const TITLES = {match: 'Partida', moves: 'Moves', scenarios: 'Cenários', tuning: 'Ajustes', overlays: 'Visualizar', characters: 'Personagens', controls: 'Controles', export: 'Exportar', homolog: 'Homologação'};
+const TITLES = {match: 'Partida', moves: 'Moves', 'moves-vfx': 'VFX dos Moves', scenarios: 'Cenários', tuning: 'Ajustes', overlays: 'Visualizar', characters: 'Personagens', controls: 'Controles', export: 'Exportar', homolog: 'Homologação'};
 function setSubCardFilter(tool, sub) {
   const panel = $('panel'), sec = document.querySelector(`.panel-body section[data-section="${tool}"]`);
   panel.dataset.subcard = sub;
@@ -639,6 +640,7 @@ function openTool(tool) {
   for (const s of document.querySelectorAll('[data-section]')) s.hidden = s.dataset.section !== tool;$('panel-title').textContent = TITLES[tool];
   if (tool === 'homolog') homologation.render();
   if (tool === 'moves') movesPanel.render();
+  if (tool === 'moves-vfx') movesVfxPanel.render();
   if (tool === 'scenarios') {syncCompareOptions();movement.render();}
   if (tool === 'tuning') presets.render();
   if (tool === 'export') renderGameDiff();if (tool === 'tuning') tuning.render();if (tool === 'overlays') {diagnostics.live();perfPanel.live();}
@@ -678,6 +680,7 @@ const windowsOverlay = createWindowsOverlay({root: $('win-overlay'), view, game}
 $('win-controls').append(...tuning.sectionControls('Janelas de combate'));
 // Treino de defesa/esquiva perfeitas: o vermelho segue o roteiro do treino; tudo cronometrado em passos de simulação.
 const movesPanel = createMovesPanel({$, game, download, tuning, view, ui});
+const movesVfxPanel = createMovesVfxPanel({$, tuning, download});
 const actionsDrawer = createActionsDrawer({$, tuning, ui, renderMoves: () => movesPanel.render(), renderAiMoves: c => movesPanel.renderAiParams(c), onCharactersChanged: () => {syncCharacterCombatWindows();syncRuleDurations();dock.invalidate();}});
 const movesHud = new MovesHud($('moves-hud'));
 // Passivas: painel de seleção (Partida), HUD da arena e VFX de ativação (§16/§17).
@@ -1064,7 +1067,7 @@ function applyDocUi(doc) {
   if (u.previewSlot) $('char-preview-slot').value = u.previewSlot;
   if (typeof u.dockCollapsed === 'boolean' && u.dockCollapsed !== $('dock').classList.contains('collapsed')) $('dock-toggle').click();
   if (u.dockView) document.querySelector(`[data-dock="${u.dockView}"]`)?.click();
-  if (u.tool === null) $('panel-close').click();else if (u.tool && TITLES[u.tool] && u.tool !== 'characters' && u.tool !== 'moves' && ($('panel').hidden || $('panel').dataset.tool !== u.tool)) openTool(u.tool);
+  if (u.tool === null) $('panel-close').click();else if (u.tool && TITLES[u.tool] && u.tool !== 'characters' && ($('panel').hidden || $('panel').dataset.tool !== u.tool)) openTool(u.tool);
 }
 const collectApp = () => ({name: 'arenamon-combate-laboratorio', build: document.title, userAgent: navigator.userAgent});
 

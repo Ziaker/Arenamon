@@ -73,7 +73,8 @@
    <button type="button" role="tab" data-tool="scenarios" title="Cenários de teste repetíveis com esperado × obtido"><i>◎</i><span>Cenários</span></button>
    <button type="button" role="tab" data-tool="tuning" title="Ajustes: todos os parâmetros, por grupo"><i>⚙</i><span>Ajustes</span></button>
    <button type="button" role="tab" data-tool="overlays" title="Hitboxes, normais, lançamento e alcance"><i>▧</i><span>Visualizar</span></button>
-   <button type="button" role="tab" data-tool="moves" title="Parâmetros mecânicos e visuais de todos os Moves"><i>✦</i><span>Moves</span></button>
+   <button type="button" role="tab" data-tool="moves" title="Parâmetros mecânicos e animações dos Moves"><i>✦</i><span>Moves</span></button>
+   <button type="button" role="tab" data-tool="moves-vfx" title="Parâmetros visuais dos Moves"><i>◈</i><span>VFX dos Moves</span></button>
    <button type="button" role="tab" data-tool="characters" hidden aria-hidden="true" tabindex="-1" title="Personagens (abre a gaveta)"><i>♙</i><span>Personagens</span></button>
    <button type="button" role="tab" data-tool="controls" title="Dummy, IA, dificuldade, gamepad e histórico de comandos"><i>🎮</i><span>Controles</span></button>
    <button type="button" role="tab" data-tool="export" title="Exportar/importar ajustes e relatório de diferenças para o jogo"><i>↗</i><span>Exportar</span></button>
@@ -261,6 +262,11 @@
      <section data-section="moves" hidden>
       <div class="bento-card bento-wide" data-subcard="moves" data-sublabel="Parâmetros dos Moves">
        <div id="moves-panel"></div>
+      </div>
+     </section>
+     <section data-section="moves-vfx" hidden>
+      <div class="bento-card bento-wide" data-subcard="moves-vfx" data-sublabel="VFX dos Moves">
+       <div id="moves-vfx-panel"></div>
       </div>
      </section>
      <section data-section="controls" hidden>

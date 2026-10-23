@@ -4,7 +4,6 @@ import {C, defaults} from '../sim/config.js';
 import {spawn} from '../sim/world.js';
 import {listMoves, getMove} from '../sim/moves.js';
 import {runMoveScenarios} from '../sim/scenarios-moves.js';
-import {elementalVisualMarkup, elementalGlobalMarkup, bindElementalVisual} from './elemental-move-controls.js';
 /** Escapa texto para HTML (local: importar o ajustador arrastaria o config.ts do jogo, que só o esbuild lê). */
 const escape = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
 
@@ -413,6 +412,17 @@ const PARAMS = [
 // Pedido de 22/10/2026: o limite máximo dos sliders de Moves vale o DOBRO (liga/desliga e seletores de poucos valores ficam como estão).
 for (const [, rows] of PARAMS) for (const r of rows) if (r[7] !== yesno && !(r[6] >= 1 && r[5] <= 3)) r[5] *= 2;
 export const MOVES_PARAMS = PARAMS;
+const VISUAL_WORLD_KEYS = new Set([
+  'psyshock.scaleMin','psyshock.scaleMax',
+  'quickAttack.fxLines','quickAttack.fxHideBody',
+  'riposte.blastOn','riposte.blastSize','riposte.fxOn','riposte.fxIntensity','riposte.fxSize',
+  'emergingStone.fxTrailOn','emergingStone.fxTrailSize',
+  'bulletPunch.fxLines','bulletPunch.fxHideBody',
+  'sandWave.dissipate',
+  'airSlash.visualWidth','airSlash.visualHeight','airSlash.visualThickness',
+  'seedBomb.blastLife',
+]);
+export const isVisualWorldParam = row => VISUAL_WORLD_KEYS.has(`${row[0]}.${row[1]}`);
 
 /** Itens da avaliação jogável e visual dos Moves (M28.9: separada dos testes automáticos; decisão do diretor). */
 export const MOVES_HOMOLOG = [
@@ -538,7 +548,8 @@ export function createMovesPanel({$, game, download, tuning, view, ui}) {
 
   function paramGroup(title, open = false) {
     const g = PARAMS.find(([t]) => t === title);if (!g) return '';
-    return `<details data-k="p:${escape(title)}" ${open ? 'open' : ''}><summary><b>${escape(title)}</b></summary>${g[1].map(paramRow).join('')}</details>`;
+    const rows = g[1].filter(row => !isVisualWorldParam(row));
+    return `<details data-k="p:${escape(title)}" ${open ? 'open' : ''}><summary><b>${escape(title)}</b></summary>${rows.map(paramRow).join('')}</details>`;
   }
 
   /** Liga os controles de parâmetros (data-p) de um escopo: arrastar mostra o valor ao vivo e, ao soltar, entra UMA entrada no histórico do ajustador (Ctrl+Z / Ctrl+Y). */
@@ -567,23 +578,15 @@ export function createMovesPanel({$, game, download, tuning, view, ui}) {
       const info = MOVE_INFO[mid], owners = [[0, l0], [1, l1]].filter(([, l]) => l.includes(mid)).map(([w, l]) => `${w ? 'Vermelho' : 'Azul'}: slot ${l.indexOf(mid) + 1}${w ? '' : ` · botão ${escape(keyName(C.extras.keyCodes[C.extras.bindings[SKILL_NAMES[l.indexOf(mid)]]]))}`}`).join(' · ');
       const anims = [0, 1].filter(w => (w ? l1 : l0).includes(mid)).map(w => animCard(mid, w)).join('');
       return `<details class="mv-move" data-move="${mid}" data-k="move:${mid}"><summary><b>✦ ${escape(moveLabel(mid))}</b><small class="muted">${owners || 'Não equipado'}</small></summary>
-        ${info?.hint ? `<p class="hint">${escape(info.hint)}</p>` : ''}${anims}${info ? paramGroup(info.group) : '<p class="hint">Este move ainda não tem parâmetros ajustáveis nesta tela.</p>'}${elementalVisualMarkup(mid)}</details>`;
+        ${info?.hint ? `<p class="hint">${escape(info.hint)}</p>` : ''}${anims}${info ? paramGroup(info.group) : '<p class="hint">Este move ainda não tem parâmetros mecânicos ajustáveis nesta tela.</p>'}</details>`;
     }).join('');
     const shared = eqIds.length ? `<section class="mv-move" data-move="_charge"><header><h3>⚙ Carga (todos os moves equipados)</h3></header>${paramGroup('Carga (compartilhada)')}</section>` : '';
     root.innerHTML = `
       <p class="hint">Escolha até <b>${C.world.slots} moves por personagem</b> e o <b>botão</b> de cada slot. Todos os Moves têm grupos expansíveis abaixo; os valores entram no JSON de Exportar.</p>
       <div class="row"><button type="button" id="mvp-export-params">↓ Exportar parâmetros dos Moves (JSON)</button></div>
       <section class="mv-card"><h3>Equipar</h3>${loadoutBox(0, 'Jogador (azul)')}${loadoutBox(1, 'Adversário (vermelho)')}</section>
-      ${elementalGlobalMarkup()}${cards}${shared}
+      ${cards}${shared}
       <details class="mv-tools" data-k="tools"><summary><b>Ferramentas de teste</b> <small class="muted">emissores, laser, cenários técnicos, estilo dos efeitos e avaliação</small></summary>
-      <div class="vfx-quick-style">
-        <b>Estilo VFX dos Golpes:</b>
-        <div class="seg" role="group" aria-label="Variante dos Moves">
-          <button type="button" data-moves-vfx="0" ${(C.vfx.hit?.variant === 0) ? 'aria-pressed="true"' : 'aria-pressed="false"'}>A (Arcade)</button>
-          <button type="button" data-moves-vfx="1" ${(C.vfx.hit?.variant === 1) ? 'aria-pressed="true"' : 'aria-pressed="false"'}>B (Halo)</button>
-          <button type="button" data-moves-vfx="2" ${(C.vfx.hit?.variant === 2) ? 'aria-pressed="true"' : 'aria-pressed="false"'}>C (Tático)</button>
-        </div>
-      </div>
       <h3>Emissores técnicos & Laser (Simulação Física Real)</h3>
       <div class="row"><button type="button" data-emit="1">Projétil hostil PL1</button><button type="button" data-emit="2">PL2</button><button type="button" data-emit="3">PL3</button><button type="button" data-emit="boom">Explosão no centro (PL2)</button></div>
       <div class="row">
@@ -647,39 +650,8 @@ export function createMovesPanel({$, game, download, tuning, view, ui}) {
     for (const s of root.querySelectorAll('[data-hom]')) s.onchange = () => {homolog[s.dataset.hom] = {...homolog[s.dataset.hom], v: s.value};saveHomolog(homolog);};
     for (const s of root.querySelectorAll('[data-hom-note]')) s.onchange = () => {homolog[s.dataset.homNote] = {...homolog[s.dataset.homNote], n: s.value};saveHomolog(homolog);};
     
-    for (const b of root.querySelectorAll('[data-moves-vfx]')) {
-      b.onclick = () => {
-        const v = Number(b.dataset.movesVfx) || 0;
-        const targets = ['hit', 'dodge', 'sprint', 'block', 'clash'];
-        if (tuning) {
-          const changes = [];
-          for (const t of targets) {
-            if (C.vfx[t] && C.vfx[t].variant !== v) {
-              changes.push([`vfx.${t}.variant`, v]);
-            }
-          }
-          if (changes.length) {
-            tuning.commit(changes, 'VFX dos Moves ' + ['A', 'B', 'C'][v]);
-          }
-        } else {
-          for (const t of targets) {
-            if (C.vfx[t]) C.vfx[t].variant = v;
-          }
-        }
-        for (const t of targets) {
-          view?.vfxRuntime?.setVariant?.(t, v);
-        }
-        for (const x of root.querySelectorAll('[data-moves-vfx]')) {
-          x.setAttribute('aria-pressed', String(x === b));
-        }
-      };
-    }
     if (!subscribed && tuning?.onChange) {subscribed = true;tuning.onChange(() => {
       if (!root.closest('[data-section="moves"]')?.hidden && !root.querySelector('[data-p]:active')) render();
-      const activeVar = C.vfx.hit?.variant ?? 0;
-      for (const x of root.querySelectorAll('[data-moves-vfx]')) {
-        x.setAttribute('aria-pressed', String(Number(x.dataset.movesVfx) === activeVar));
-      }
     });}
     
     for (const b of root.querySelectorAll('[data-laser]')) b.onclick = () => {const k = b.dataset.laser;(k === 'sweep' ? emitLaser(1, .8) : emitLaser(Number(k)));};
@@ -689,7 +661,6 @@ export function createMovesPanel({$, game, download, tuning, view, ui}) {
     $('mvp-export').onclick = () => results && download(JSON.stringify({schema: 'arenamon-lab-report', version: 1, kind: 'moves-scenarios', createdAt: new Date().toISOString(), step: C.test.step, scenarios: results, homologation: MOVES_HOMOLOG.map((t, i) => ({item: t, verdict: homolog[i]?.v || 'pendente', note: homolog[i]?.n || ''}))}, null, 1), 'arenamon-cenarios-moves.json');
     $('mvp-export-params').onclick = () => download(JSON.stringify(tuning.exportData(), null, 2), 'arenamon-parametros-moves.json');
     bindParams(root, render);
-    bindElementalVisual(root, tuning);
     $('mvp-reset-all').onclick = () => {const ch = [];for (const g of ['charge', 'reflect', 'psyshock', 'beam', 'ai']) for (const [k, v] of Object.entries(defaults().world[g])) if (C.world[g][k] !== v) ch.push([`world.${g}.${k}`, v]);commit(ch, 'Restaurar os parâmetros dos Moves');render();};
   }
   return {render, renderAiParams, emitProjectile, emitLaser, emitExplosion, setEquip, setSlot, loadoutOf, get results() {return results;}, STANDARD};

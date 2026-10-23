@@ -24,7 +24,7 @@ try {
   const L = (fn, arg) => page.evaluate(fn, arg);
   const hold = async (code, ms) => {await page.locator('canvas').first().focus();await page.keyboard.down(code);await page.waitForTimeout(ms);await page.keyboard.up(code);};
   const reset = () => L(() => {const {game, C} = window.__lab;C.extras.toggles.enableEnemyAI = 0;game.setLoadout(0, ['water-pulse', 'fire-spin', 'air-slash', 'seed-bomb']);window.__lab.startMatch();});
-  const shot = name => page.screenshot({path: `${out}${name}.png`});
+  const shot = name => process.env.ARENAMON_SKIP_SCREENSHOTS === '1' ? Promise.resolve() : page.screenshot({path: `${out}${name}.png`});
 
   await reset();
   check('os 4 Moves equipam nos slots 1–4', JSON.stringify(await L(() => window.__lab.game.fighters[0].loadout)) === JSON.stringify(['water-pulse', 'fire-spin', 'air-slash', 'seed-bomb']));
@@ -74,9 +74,14 @@ try {
     if (!await L(g => !!document.querySelector(`#moves-panel [data-p="${g}.cost"]`) && document.querySelectorAll(`#moves-panel [data-p^="${g}."]`).length >= 6, g)) missing.push(id);
   }
   check('a aba Moves mostra os sliders dos 4 Moves', missing.length === 0, missing.join(','));
-  check('os controles visuais e o tempo de seguimento estão em Moves', await L(() => !!document.querySelector('#moves-panel [data-visual="vfx.elemental.visual.airSlash0.opacity"]') && !!document.querySelector('#moves-panel [data-visual="vfx.elemental.shotFollowTime"]')));
+  check('a aba Moves contém só controles mecânicos', await L(() => !document.querySelector('#moves-panel [data-visual]') && !document.querySelector('#moves-panel [data-p="airSlash.visualWidth"]') && !document.querySelector('#moves-panel [data-p="riposte.fxIntensity"]')));
   check('os sliders de alcance incluem os padrões ampliados', await L(() => [['fireSpin',20],['seedBomb',32]].every(([move,expected]) => {const input=document.querySelector(`#moves-panel [data-p="${move}.range"]`);return input && Number(input.value)===expected && Number(input.max)>=expected;})));
-  check('tempo de seguimento ajusta e exporta 0,5 s', await L(() => {const input = document.querySelector('#moves-panel [data-visual="vfx.elemental.shotFollowTime"]');input.value = '0.5';input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new Event('change',{bubbles:true}));return window.__lab.C.vfx.elemental.shotFollowTime === .5 && window.__lab.tuning.exportData().values.vfx.elemental.shotFollowTime === .5;}));
+  await L(() => document.querySelector('[data-tool="moves-vfx"]')?.click());
+  check('todos os Moves listados na mecânica aparecem na aba VFX', await L(() => {const ids=[...document.querySelectorAll('#moves-panel details.mv-move[data-move]')].map(x=>x.dataset.move);return ids.length>10 && ids.every(id=>document.querySelector(`#moves-vfx-panel details.mv-move[data-move="${id}"]`));}));
+  check('VFX dos Moves tem os controles visuais elementais e compartilhados', await L(() => !!document.querySelector('#moves-vfx-panel [data-visual="vfx.elemental.visual.airSlash0.opacity"]') && !!document.querySelector('#moves-vfx-panel [data-visual="vfx.elemental.shotFollowTime"]') && !!document.querySelector('#moves-vfx-panel [data-visual="vfx.barrier.opacity"]') && !!document.querySelector('#moves-vfx-panel [data-visual="vfx.rock.scale"]')));
+  check('ajustes visuais antes misturados aos Moves foram movidos', await L(() => !!document.querySelector('#moves-vfx-panel [data-visual="world.airSlash.visualWidth"]') && !!document.querySelector('#moves-vfx-panel [data-visual="world.riposte.fxIntensity"]') && !!document.querySelector('#moves-vfx-panel [data-visual="world.seedBomb.blastLife"]')));
+  check('ajuste visual próprio atualiza a configuração e o JSON', await L(() => {const input=document.querySelector('#moves-vfx-panel [data-visual="world.airSlash.visualWidth"]');input.value='1.4';input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new Event('change',{bubbles:true}));return window.__lab.C.world.airSlash.visualWidth===1.4&&window.__lab.tuning.exportData().values.world.airSlash.visualWidth===1.4;}));
+  check('tempo de seguimento ajusta e exporta 0,5 s', await L(() => {const input = document.querySelector('#moves-vfx-panel [data-visual="vfx.elemental.shotFollowTime"]');input.value = '0.5';input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new Event('change',{bubbles:true}));return window.__lab.C.vfx.elemental.shotFollowTime === .5 && window.__lab.tuning.exportData().values.vfx.elemental.shotFollowTime === .5;}));
   check('nenhum erro de página nem de console', errors.length === 0, errors.slice(0, 3).join(' | '));
 } finally {
   await browser.close();

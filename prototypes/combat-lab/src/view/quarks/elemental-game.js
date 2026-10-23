@@ -56,6 +56,13 @@ export class ElementalGameFx {
     if (move === 'seedBomb') return Math.max(.05, (e.radius ?? .24) / Math.max(.05, base.size ?? 1.2));
     return Math.max(.05, (e.radius ?? 1.6) / Math.max(.05, base.opening + base.size * .8));
   }
+  applyScale(preview, move, e, base, pl) {
+    const scale = this.scaleOf(move, e, base, pl);
+    if (move === 'airSlash') {
+      const c = e.captured ?? {};
+      preview.root.scale.set(scale * (c.w ?? 1.2) / 1.2, scale * (c.h ?? .7) / .7, scale * (c.t ?? .22) / .22);
+    } else preview.root.scale.setScalar(scale);
+  }
   /** Gira o eixo +X do ateliê para a direção real do projétil (nariz, jato de disparo e corte). */
   headingOf(e) {
     const dx = e?.dir?.x ?? 0, dz = e?.dir?.z ?? 0;
@@ -79,7 +86,7 @@ export class ElementalGameFx {
     const preview = new ElementalPreview(this.parent, {batch: this.batch, parent: this.parent});
     preview.root.position.set(e.pos.x, e.y ?? 0, e.pos.z);
     preview.root.rotation.y = this.headingOf(e);
-    preview.root.scale.setScalar(this.scaleOf(move, e, base, pl));
+    this.applyScale(preview, move, e, base, pl);
     preview.play(move, params, pl, {noFlash: !!acc?.noFlash, reduced: !!acc?.reduceMotion, follow: true});
     // O ateliê calcula o "smear" pela velocidade do trajeto; no jogo a velocidade vem do parâmetro aprovado.
     preview.velocity = preview.p.speed;
