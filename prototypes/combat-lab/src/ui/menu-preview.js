@@ -6,11 +6,12 @@ import * as T from 'three';
 import {clone} from 'three/addons/utils/SkeletonUtils.js';
 import {C} from '../sim/config.js';
 
-const W = 230, H = 170;
+let W0 = 230, H0 = 170;   // tamanho padrão da prévia do menu atual; as telas A/B/C pedem outro por `resize`
 
 export function createMenuPreview(canvas, {tint = null} = {}) {
-  let renderer = null, scene = null, camera = null;
-  let obj = null, mixer = null;
+  let renderer = null, scene = null, camera = null, W = W0, H = H0;
+  let obj = null, mixer = null, modelH = 1.2;
+  const tickHooks = new Set();   // ganchos por quadro (feedback three.quarks das telas A/B/C)
   try {
     renderer = new T.WebGLRenderer({canvas, antialias: true, alpha: true});
     renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
@@ -44,6 +45,7 @@ export function createMenuPreview(canvas, {tint = null} = {}) {
     const box = new T.Box3().setFromObject(obj), size = box.getSize(new T.Vector3()), center = box.getCenter(new T.Vector3());
     // apoia no disco e centraliza horizontalmente
     obj.position.set(-center.x, -box.min.y, -center.z);
+    modelH = size.y;
     const maxDim = Math.max(size.x, size.y, size.z, .4);
     const dist = maxDim * 2.1;
     camera.position.set(dist * .5, size.y * .72 + dist * .18, dist * .82);
@@ -56,7 +58,13 @@ export function createMenuPreview(canvas, {tint = null} = {}) {
     if (!renderer) return;
     if (mixer) mixer.update(dt);
     if (obj && !reduceMotion()) obj.rotation.y += dt * .6;
+    for (const fn of tickHooks) fn(dt);
     renderer.render(scene, camera);
   }
-  return {setCharacter, tick, get ok() {return !!renderer;}};
+  /** Muda o tamanho de desenho (px CSS) mantendo a proporção da câmera. */
+  function resize(w, h) {
+    if (!renderer || (w === W && h === H)) return;
+    W = w;H = h;renderer.setSize(W, H, false);camera.aspect = W / H;camera.updateProjectionMatrix();
+  }
+  return {setCharacter, tick, resize, onTick: fn => {tickHooks.add(fn);return () => tickHooks.delete(fn);}, canvas, get scene() {return scene;}, get camera() {return camera;}, get ok() {return !!renderer;}, get hasModel() {return !!obj;}, get modelHeight() {return modelH;}};
 }

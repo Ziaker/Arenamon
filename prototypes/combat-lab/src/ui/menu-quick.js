@@ -30,8 +30,11 @@ export function createQuickMenu({$, game, ui, passivesPanel}) {
     if (pl?.length) state.passives[s] = [0, 1].map(i => pl[i] ?? null);
   }
 
-  let store = null, wsUI = null;
+  let store = null, wsUI = null, modelsCache = [];
   const pendingChar = [undefined, undefined];
+  // Eventos de mudança (as telas A/B/C se redesenham a partir do MESMO estado; nada é guardado por tema).
+  const listeners = new Set();
+  const emit = (type, slot) => {for (const fn of [...listeners]) {try {fn({type, slot});} catch (e) {console.error('menu-quick: ouvinte falhou', e);}}};
   const previews = [createMenuPreview($('quick-preview-0')), createMenuPreview($('quick-preview-1'), {tint: '#ff5a4a'})];
 
   // ---------- Personagem (modelo) ----------
@@ -53,12 +56,14 @@ export function createQuickMenu({$, game, ui, passivesPanel}) {
     }
     renderPassives(slot);   // a espécie pode mudar com o modelo
     updatePreview(slot);
+    emit('char', slot);
   }
   /** Repõe a lista de personagens salvos; reaplica a escolha pendente (vinda da persistência). */
   async function refreshModels() {
     if (!store) return;
     let models = [];
     try {models = (await store.listAssets()).filter(a => a.kind === 'model').sort((a, b) => (b.lastUsedAt ?? b.addedAt ?? 0) - (a.lastUsedAt ?? a.addedAt ?? 0));} catch {models = [];}
+    modelsCache = models;
     for (const slot of SLOTS) {
       const sel = $(`quick-char-${slot}`);
       if (!sel) continue;
@@ -72,6 +77,7 @@ export function createQuickMenu({$, game, ui, passivesPanel}) {
       if (wanted) await selectChar(slot, wanted);
       else {renderPassives(slot);updatePreview(slot);}
     }
+    emit('char', -1);
   }
 
   // ---------- Moves (4 slots por lutador) ----------
@@ -84,16 +90,23 @@ export function createQuickMenu({$, game, ui, passivesPanel}) {
       sel.setAttribute('aria-label', `Move do slot ${i + 1}`);
       sel.append(new Option('— vazio —', ''), ...moves.map(m => new Option(m.name ?? m.id, m.id)));
       sel.value = mid && moves.some(m => m.id === mid) ? mid : '';
-      sel.onchange = () => {
-        const arr = [...state.moves[slot]];
-        arr[i] = sel.value || null;
-        if (arr[i]) for (let k = 0; k < arr.length; k++) if (k !== i && arr[k] === arr[i]) arr[k] = null;   // um move não ocupa dois slots
-        state.moves[slot] = arr;
-        game.setLoadout(slot, arr);
-        renderMoves(slot);
-      };
+      sel.onchange = () => setMove(slot, i, sel.value || null);
       return sel;
     }));
+  }
+
+  /** Atribui (ou esvazia) o Move de um slot; é o ÚNICO caminho de escrita dos Moves (selects e telas A/B/C). Id fora do registro é recusado. */
+  function setMove(slot, i, id) {
+    if (!SLOTS.includes(slot) || !(i >= 0 && i < 4)) return false;
+    if (id && !listMoves().some(m => m.id === id)) return false;
+    const arr = [...state.moves[slot]];
+    arr[i] = id || null;
+    if (arr[i]) for (let k = 0; k < arr.length; k++) if (k !== i && arr[k] === arr[i]) arr[k] = null;   // um move não ocupa dois slots
+    state.moves[slot] = arr;
+    game.setLoadout(slot, arr);
+    renderMoves(slot);
+    emit('move', slot);
+    return true;
   }
 
   // ---------- Abilities / passivas (2 por lutador) ----------
@@ -101,7 +114,7 @@ export function createQuickMenu({$, game, ui, passivesPanel}) {
     const box = $(`quick-passives-${slot}`);
     if (!box) return;
     const species = speciesFromName(ui.sources[slot]?.name ?? null);
-    const opts = [...exclusivePassives(species), ...genericPassives()];
+    const opts = [...(species ? exclusivePassives(species) : []), ...genericPassives()];   // sem espécie não há exclusivas (exclusivePassives(null) devolveria as genéricas de novo)
     const chosen = state.passives[slot];
     box.replaceChildren(...Array.from({length: PASSIVE_SLOTS}, (_, i) => {
       const sel = document.createElement('select');
@@ -110,20 +123,28 @@ export function createQuickMenu({$, game, ui, passivesPanel}) {
       const val = chosen[i] && opts.some(p => p.id === chosen[i]) ? chosen[i] : '';
       if (chosen[i] && !val) chosen[i] = null;   // exclusiva que não pertence mais à espécie
       sel.value = val;
-      sel.onchange = () => {
-        const arr = [...state.passives[slot]];
-        arr[i] = sel.value || null;
-        const seen = new Set(), compact = [];
-        for (const x of arr) {if (!x || seen.has(x)) continue;seen.add(x);compact.push(x);}   // a escolha anterior perde (sem duplicata)
-        while (compact.length < PASSIVE_SLOTS) compact.push(null);
-        state.passives[slot] = compact.slice(0, PASSIVE_SLOTS);
-        renderPassives(slot);
-      };
+      sel.onchange = () => setPassive(slot, i, sel.value || null);
       return sel;
     }));
     const errors = validateLoadout(state.passives[slot].filter(Boolean), species);
     const st = $(`quick-passive-status-${slot}`);
     if (st) {st.className = 'qf-passive-status ' + (errors.length ? 'warn' : 'ok');st.textContent = errors.length ? errors.join(' · ') : '✓ loadout válido';}
+  }
+
+  /** Atribui (ou esvazia) a passiva de um espaço; sem duplicata (a escolha anterior perde) e só do catálogo/espécie válidos. */
+  function setPassive(slot, i, id) {
+    if (!SLOTS.includes(slot) || !(i >= 0 && i < PASSIVE_SLOTS)) return false;
+    const species = speciesFromName(ui.sources[slot]?.name ?? null);
+    if (id && ![...(species ? exclusivePassives(species) : []), ...genericPassives()].some(p => p.id === id)) return false;
+    const arr = [...state.passives[slot]];
+    arr[i] = id || null;
+    const seen = new Set(), compact = [];
+    for (const x of arr) {if (!x || seen.has(x)) continue;seen.add(x);compact.push(x);}   // a escolha anterior perde (sem duplicata)
+    while (compact.length < PASSIVE_SLOTS) compact.push(null);
+    state.passives[slot] = compact.slice(0, PASSIVE_SLOTS);
+    renderPassives(slot);
+    emit('passive', slot);
+    return true;
   }
 
   // ---------- Ligação dos seletores de personagem ----------
@@ -157,6 +178,15 @@ export function createQuickMenu({$, game, ui, passivesPanel}) {
       for (const slot of SLOTS) passivesPanel.state.loadouts[slot] = state.passives[slot].filter(Boolean);
       passivesPanel.render();   // recalcula identidade pelos nomes, valida (R5) e persiste em localStorage
     },
+    setMove, setPassive,
+    /** Seleciona o personagem (modelo salvo) do lutador; null = manter o carregado. */
+    selectCharacter: (slot, modelId) => selectChar(slot, modelId || null),
+    /** Personagens disponíveis (modelos salvos no workspace) + o que está carregado agora. */
+    characters(slot) {return {loaded: ui.sources[slot]?.name ?? null, loadedId: ui.sources[slot]?.assetId ?? null, saved: modelsCache.map(a => ({id: a.id, name: a.name}))};},
+    speciesOf: slot => speciesFromName(ui.sources[slot]?.name ?? null),
+    /** Assina mudanças (tipo: 'move' | 'passive' | 'char'); devolve a função que cancela. */
+    onChange(fn) {listeners.add(fn);return () => listeners.delete(fn);},
+    get previews() {return previews;},
     collect() {return {char: [...state.char], moves: state.moves.map(a => [...a]), passives: state.passives.map(a => [...a])};},
     apply(saved) {
       if (!saved) return;
@@ -176,6 +206,7 @@ export function createQuickMenu({$, game, ui, passivesPanel}) {
         }
         if (typeof saved.char?.[slot] === 'string' && saved.char[slot]) pendingChar[slot] = saved.char[slot];
       }
+      emit('init', -1);
     },
     get state() {return state;},
   };

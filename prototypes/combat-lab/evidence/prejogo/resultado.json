@@ -1,0 +1,195 @@
+{
+  "report": [
+    {
+      "label": "o registro real de Moves está acessível e tem os 15 Moves",
+      "ok": true,
+      "detail": "15"
+    },
+    {
+      "label": "o menu tem o seletor Atual · A · B · C (radiogroup) e o padrão é «Atual» (nenhum estilo oficial)",
+      "ok": true,
+      "detail": "[\"none:true\",\"a:false\",\"b:false\",\"c:false\"]"
+    },
+    {
+      "label": "estilo A: tela visível, menu atual escondido, candidatos = registro executável (azul e vermelho), canvases das prévias reparentados",
+      "ok": true,
+      "detail": "{\"visible\":true,\"classic\":true,\"ids0\":true,\"ids1\":true,\"canv\":[true,true],\"sp\":[[\"effect-spore\",\"sturdy\"],[\"forewarn\",\"inner-focus\"]],\"species\":[\"mush\",\"drowzee\"],\"cls\":\"qs qs-a\"}"
+    },
+    {
+      "label": "estilo A: passivas exclusivas só da espécie atual (azul mush, vermelho drowzee) e genéricas sempre",
+      "ok": true,
+      "detail": "[[\"effect-spore\",\"sturdy\"],[\"forewarn\",\"inner-focus\"]]"
+    },
+    {
+      "label": "estilo B: tela visível, menu atual escondido, candidatos = registro executável (azul e vermelho), canvases das prévias reparentados",
+      "ok": true,
+      "detail": "{\"visible\":true,\"classic\":true,\"ids0\":true,\"ids1\":true,\"canv\":[true,true],\"sp\":[[\"effect-spore\",\"sturdy\"],[\"forewarn\",\"inner-focus\"]],\"species\":[\"mush\",\"drowzee\"],\"cls\":\"qs qs-b\"}"
+    },
+    {
+      "label": "estilo B: passivas exclusivas só da espécie atual (azul mush, vermelho drowzee) e genéricas sempre",
+      "ok": true,
+      "detail": "[[\"effect-spore\",\"sturdy\"],[\"forewarn\",\"inner-focus\"]]"
+    },
+    {
+      "label": "estilo C: tela visível, menu atual escondido, candidatos = registro executável (azul e vermelho), canvases das prévias reparentados",
+      "ok": true,
+      "detail": "{\"visible\":true,\"classic\":true,\"ids0\":true,\"ids1\":true,\"canv\":[true,true],\"sp\":[[\"effect-spore\",\"sturdy\"],[\"forewarn\",\"inner-focus\"]],\"species\":[\"mush\",\"drowzee\"],\"cls\":\"qs qs-c\"}"
+    },
+    {
+      "label": "estilo C: passivas exclusivas só da espécie atual (azul mush, vermelho drowzee) e genéricas sempre",
+      "ok": true,
+      "detail": "[[\"effect-spore\",\"sturdy\"],[\"forewarn\",\"inner-focus\"]]"
+    },
+    {
+      "label": "clicar nas cartas põe os Moves nos slots (estado único) e o loadout do jogo acompanha",
+      "ok": true,
+      "detail": "{\"estado\":[\"quick-attack\",\"harden\",null,null],\"jogo\":[\"quick-attack\",\"harden\",null,null]}"
+    },
+    {
+      "label": "o mesmo Move não ocupa dois slots do mesmo lutador (o antigo esvazia)",
+      "ok": true,
+      "detail": "[\"quick-attack\",null,null,\"harden\"]"
+    },
+    {
+      "label": "ids inválidos (Move/passiva inexistente, slot fora da faixa) são recusados",
+      "ok": true,
+      "detail": "[false,false,false]"
+    },
+    {
+      "label": "passivas: no máximo 2, distintas, a mais antiga cede quando não há espaço",
+      "ok": true,
+      "detail": "[\"effect-spore\",\"speed-boost\"]"
+    },
+    {
+      "label": "a caixa de detalhe mostra a descrição REAL e o uso (custo e recarga do Move efetivo)",
+      "ok": true,
+      "detail": "Quick AttackBurst · Melee · PL1. Toque para investir no adversário mais próximo (até 7 m) e voltar na hora ao ponto de partida. Sem alvo ao "
+    },
+    {
+      "label": "a passiva mostra gatilho, efeito, origem (exclusiva/genérica) e «experimental»",
+      "ok": true,
+      "detail": "Effect SporeGatilho: Receber acerto de contato físico (tackle corpo a corpo).Efeito: O agressor sofre −15% de velocidade"
+    },
+    {
+      "label": "three.quarks: cada seleção dispara rajadas na cena da prévia (contagem emitida > 0)",
+      "ok": true,
+      "detail": "[{\"emitted\":12,\"active\":5},{\"emitted\":4,\"active\":0}]"
+    },
+    {
+      "label": "A→B→C→A (e passando por «Atual»): seleções, loadout do jogo, tick, fase e vida idênticos — nenhum reset, nenhuma partida iniciada",
+      "ok": true,
+      "detail": "{\"fase\":\"menu\",\"tick\":0}"
+    },
+    {
+      "label": "só a preferência de estilo é guardada (nenhum loadout por tema)",
+      "ok": true,
+      "detail": "a"
+    },
+    {
+      "label": "teclado: setas percorrem as cartas (foco rotativo) e o foco é visível",
+      "ok": true,
+      "detail": "second-wind"
+    },
+    {
+      "label": "teclado: Enter na carta focada atribui ao slot do lutador vermelho (estado único)",
+      "ok": true,
+      "detail": "[\"reflect\",\"psyshock\",\"second-wind\",null]"
+    },
+    {
+      "label": "o foco do teclado tem contorno visível",
+      "ok": true,
+      "detail": "solid"
+    },
+    {
+      "label": "teclado: setas no seletor de estilo trocam A → B (grupo de rádio)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "Iniciar combate usa EXATAMENTE as escolhas visíveis (Moves dos dois lutadores no motor)",
+      "ok": true,
+      "detail": "[[\"quick-attack\",null,null,\"harden\"],[\"reflect\",\"psyshock\",\"second-wind\",null]]"
+    },
+    {
+      "label": "as passivas escolhidas chegam ao motor (mesmo conjunto)",
+      "ok": true,
+      "detail": "[\"effect-spore\",\"speed-boost\"]"
+    },
+    {
+      "label": "voltar ao menu mantém o estilo e a seleção; a tela reflete o estado atual",
+      "ok": true,
+      "detail": "{\"fase\":\"menu\",\"estilo\":\"a\"}"
+    },
+    {
+      "label": "prefers-reduced-motion: sem animações CSS e sem rajadas three.quarks (a seleção segue legível por forma, cor e texto)",
+      "ok": true,
+      "detail": "{\"anim\":\"\",\"before\":20,\"after\":20}"
+    },
+    {
+      "label": "1280×720 estilo A: sem rolagem horizontal, dentro da área do menu, botão Iniciar acessível",
+      "ok": true,
+      "detail": "{\"over\":0,\"inside\":true,\"btn\":true}"
+    },
+    {
+      "label": "1280×720 estilo B: sem rolagem horizontal, dentro da área do menu, botão Iniciar acessível",
+      "ok": true,
+      "detail": "{\"over\":0,\"inside\":true,\"btn\":true}"
+    },
+    {
+      "label": "1280×720 estilo C: sem rolagem horizontal, dentro da área do menu, botão Iniciar acessível",
+      "ok": true,
+      "detail": "{\"over\":0,\"inside\":true,\"btn\":true}"
+    },
+    {
+      "label": "1920×1080 estilo A: sem rolagem horizontal, dentro da área do menu, botão Iniciar acessível",
+      "ok": true,
+      "detail": "{\"over\":0,\"inside\":true,\"btn\":true}"
+    },
+    {
+      "label": "1920×1080 estilo B: sem rolagem horizontal, dentro da área do menu, botão Iniciar acessível",
+      "ok": true,
+      "detail": "{\"over\":0,\"inside\":true,\"btn\":true}"
+    },
+    {
+      "label": "1920×1080 estilo C: sem rolagem horizontal, dentro da área do menu, botão Iniciar acessível",
+      "ok": true,
+      "detail": "{\"over\":0,\"inside\":true,\"btn\":true}"
+    },
+    {
+      "label": "viewport reduzida (960×640): um lutador por linha, sem rolagem horizontal",
+      "ok": true,
+      "detail": "{\"over\":0,\"cols\":1,\"tpl\":\"834px\",\"w\":834}"
+    },
+    {
+      "label": "capturas 720p/1080p das três telas e as três comparações lado a lado com os HUDs originais foram geradas",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "sem erros de página e sem rede externa (menu com modelos)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "sem personagem carregado nem salvo: a tela abre, avisa «prévia indisponível» e não fabrica modelo nem seleção",
+      "ok": true,
+      "detail": "{\"visible\":true,\"noModel\":[true,true],\"note\":\"Nenhum personagem salvo no workspace: usando o carregado.\",\"name\":\"Sem modelo carregado\",\"cards\":50}"
+    },
+    {
+      "label": "sem modelo: sem erros de página",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "WebGL indisponível nas prévias: o menu segue funcional (seleção por clique/estado) e mostra «prévia 3D indisponível»",
+      "ok": true,
+      "detail": "{\"ok\":[false,false],\"noModel\":[true,true],\"move\":\"swift\",\"fx\":[null,null]}"
+    },
+    {
+      "label": "WebGL indisponível: sem exceções de página",
+      "ok": true,
+      "detail": "THREE.WebGLRenderer: THREE.WebGLRenderer: Error creating WebGL context. | THREE.WebGLRenderer: THREE.WebGLRenderer: Error creating WebGL context."
+    }
+  ],
+  "failures": 0
+}

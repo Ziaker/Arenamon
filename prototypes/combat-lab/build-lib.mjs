@@ -28,7 +28,8 @@ export async function buildLab({minify = true} = {}) {
   // O texto do config.ts do jogo entra no bundle só para gerar a proposta de patch (comparação; nunca é alterado).
   const gameConfig = await read('../game/src/config.ts');
   const bundle = await build({entryPoints: [fileURLToPath(new URL('src/main.js', root))], bundle: true, write: false, format: 'iife', minify, legalComments: 'inline', target: 'es2022', define: {__GAME_CONFIG_TS__: JSON.stringify(gameConfig)}, logLevel: 'silent'});
-  const [template, css, license] = await Promise.all([read('src/template.html'), read('src/styles.css'), read('../../node_modules/three/LICENSE')]);
+  const [template, baseCss, menuCss, license] = await Promise.all([read('src/template.html'), read('src/styles.css'), read('src/menu-styles.css'), read('../../node_modules/three/LICENSE')]);
+  const css = baseCss + String.fromCharCode(10) + menuCss;   // telas A/B/C do pré-jogo (menu-styles.css) entram no mesmo <style>
   // O aviso “modelo-fonte” só aparece se alguém abrir src/template.html diretamente; o build o remove.
   const version = await versionInfo();
   return template.replace(/<!--DEV-->[\s\S]*?<!--\/DEV-->\n?/, '').replaceAll('<!--INITIAL_WORKSPACE-->', await initialWorkspaceTag()).replaceAll('__VERSION_DETAIL__', version.detail).replaceAll('__VERSION__', version.label).replace('/*__CSS__*/', () => css).replace('/*__BUNDLE__*/', () => inline('/*\n' + license + '\n*/' + bundle.outputFiles[0].text));

@@ -44,6 +44,8 @@ export class Input {
     this.canvas = canvas;this.shortcut = slot ? () => {} : shortcut;this.held = new Set();this.pressed = new Set();this.locked = false;this.history = [];this.lastIntent = '';
     this.padPrev = [];this.padName = '';
     window.addEventListener('keydown', e => {
+      // Menu de seleção estilizado (telas A/B/C): o foco do teclado fica lá dentro (setas, Tab, Enter, Espaço); as teclas do combate não valem nele.
+      if (e.target instanceof Element && e.target.closest('#menu-styled, .qs-switch')) return;
       const isTyping = e.target && e.target.matches('input[type=text],input[type=search],input[type=number],input[type=file],textarea');
       if (isTyping && e.code !== 'Escape') return;
       if (e.target && e.target.matches('input,select,button') && !isTyping) {
