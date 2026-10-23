@@ -46,11 +46,8 @@ const fireRibbon=common+`
  float hot=smoothstep(.58,.82,n+(.5-vUv.y)*.45);vec3 c=mix(color*.12,color*1.1,smoothstep(.12,.4,n));
  c=mix(c,accent*1.35,clamp(hot*detail,0.,1.));emit(c,a);}`;
 const wind=common+`
- void main(){float n=fbm(vec2(vUv.x*18.-time*3.,vUv.y*7.));float edge=pow(sin(vUv.x*3.14159),.6);
- float a=smoothstep(0.,.08,vUv.y)*(1.-smoothstep(edge*.7,edge,vUv.y));
- float stream=pow(.5+.5*sin(vUv.y*32.+n*8.+vUv.x*11.-time*5.),8.);
- float blade=1.-smoothstep(.02,.12,vUv.y);vec3 c=mix(color,accent,blade*.9+stream*.5);
- emit(c*(.6+blade*1.2+stream*.45),a*(.045+blade*.87+stream*.2*detail)*(1.-vUv.y*.85));}`;
+ void main(){float ends=pow(max(0.,sin(vUv.x*3.14159)),.65);float edge=1.-smoothstep(.04,.85,vUv.y);float a=ends*edge;
+ emit(mix(vec3(.8),vec3(1.5),edge),a);}`;
 const splash=common+`
  void main(){float n=fbm(vec2(vUv.x*28.+time*.6,vUv.y*7.-time));float foam=smoothstep(.5,.75,n+vUv.y*.12);float a=(1.-smoothstep(.65+n*.3,1.,vUv.y))*smoothstep(0.,.12,vUv.y);
  emit(mix(color*.6,accent*1.2,foam),a*(.45+foam*.55));}`;
@@ -65,28 +62,40 @@ export class ElementalSurfaces {
  add(g,shader,parent=this.core,opacity=1,warp=0){const m=new T.Mesh(g,this.material(shader,opacity,warp));parent.add(m);return m;}
  build(){const p=this.p,s=p.size;
  if(this.id==='waterPulse'){
- const ball=this.add(new T.SphereGeometry(s,96,64),water,this.core,1,1);ball.material.depthWrite=true;
+ const geo=new T.SphereGeometry(s,96,64);const pos=geo.attributes.position;
+ for(let i=0;i<pos.count;i++){const x=pos.getX(i)/s;pos.setX(i,pos.getX(i)+s*Math.pow(Math.max(0,x),3)*(.65+p.variant*.4));}geo.computeVertexNormals();
+ const ball=this.add(geo,water,this.core,1,1);ball.material.depthWrite=true;
+ if(p.variant===2){for(let i=0;i<3;i++){const jet=this.add(surface((u,v)=>{const a=u*8+i*2.094,r=s*(.6+u*.3);return [-s*(.5+u*2.5),Math.cos(a)*r+(v-.5)*.13,Math.sin(a)*r];}),ribbon);this.parts.push(jet);}}
+
  for(let i=0;i<p.rings;i++){const phase=i*2.399;const r=this.add(surface((u,v)=>{const a=u*Math.PI*2.5+phase,lat=(u-.5)*2.2+(v-.5)*.12*Math.sin(u*Math.PI);const rr=s*1.025;return [Math.cos(a)*Math.cos(lat)*rr,Math.sin(lat)*rr,Math.sin(a)*Math.cos(lat)*rr];}),ribbon);r.rotation.z=.25+i*.5;this.parts.push(r);}
  // Couronne et vague de rupture : uniquement visibles après la fin du trajet.
  this.add(surface((u,v)=>{const a=u*Math.PI*2;const r=s*(.6+v*1.2);const crest=(.25+Math.pow(.5+.5*Math.sin(a*7.+Math.sin(a*3.)),3)*.55)*v;return [Math.cos(a)*r,crest*s,Math.sin(a)*r];}),splash,this.impact,1);
  this.add(surface((u,v)=>{const a=u*Math.PI*2,r=s*(1+v*1.5);return [Math.cos(a)*r,.02,Math.sin(a)*r];}),ring,this.impact,.9);
  }else if(this.id==='fireSpin'){
- const geo=new T.CylinderGeometry(s*1.35,s*.55,p.height,96,32,true);const pos=geo.attributes.position;
- for(let i=0;i<pos.count;i++){const x=pos.getX(i),z=pos.getZ(i),y=pos.getY(i),a=Math.atan2(z,x),h=y/p.height+.5;const k=1+.06*Math.sin(a*5+h*9)+.025*Math.sin(a*11-h*12);pos.setXYZ(i,x*k,y+Math.pow(h,6)*.18*Math.sin(a*9),z*k);}geo.computeVertexNormals();const shell=this.add(geo,fire);shell.position.y=p.height*.5;
- for(let i=0;i<3;i++){const r=this.add(surface((u,v)=>{const a=u*Math.PI*5+i*Math.PI*2/3;const rad=s*(.55+u*.8);const y=u*p.height+(v-.5)*p.height*.25*Math.sin(Math.PI*u);return [Math.cos(a)*rad,y,Math.sin(a)*rad];}),fireRibbon);this.parts.push(r);}
- for(let i=0;i<p.rings;i++){this.add(surface((u,v)=>{const a=u*Math.PI*2,r=s*(.8+i*.32+v*.35);return [Math.cos(a)*r,.035+i*.012,Math.sin(a)*r];}),ring);}
+ const inner=p.opening,outer=inner+s*.8;
+ // Todas as superfícies ficam fora do raio interno: o chão permanece visível no centro.
+ const arms=p.variant===0?5:p.variant===1?3:8;
+ for(let i=0;i<arms;i++){const r=this.add(surface((u,v)=>{const a=i*Math.PI*2/arms+u*(p.variant===1?4.4:2.4);const rad=inner+s*.15+v*s*.65+u*(p.variant===1?s*.8:0);const y=.1+Math.sin(u*Math.PI)*p.height*.18+v*p.height*.12;return [Math.cos(a)*rad,y,Math.sin(a)*rad];}),fireRibbon);this.parts.push(r);}
+ for(let i=0;i<(p.variant===2?2:1);i++){this.add(surface((u,v)=>{const a=u*Math.PI*2,r=inner+i*s*.75+v*s*.55;return [Math.cos(a)*r,.035+v*.12,Math.sin(a)*r];}),fire);}
  }else if(this.id==='airSlash'){
- // Frente afiada e cauda larga, tangenciais ao caminho, em vez de uma lua sólida.
- const blade=this.add(surface((u,v)=>{const a=(u-.5)*Math.PI*1.4;const r=s*(1.35-v*.38);return [Math.cos(a)*r-v*p.trail*.8,Math.sin(a)*r,.05*Math.sin(a*2.)*v];}),wind);blade.rotation.x=-.25;
- for(let i=0;i<p.rings;i++){const r=this.add(surface((u,v)=>{const a=(u-.5)*Math.PI*1.55;const rr=s*(1.2+i*.15);return [Math.cos(a)*rr-v*p.trail*(1+i*.12),Math.sin(a)*rr,.15+i*.13+Math.sin(u*6.)*.07];}),wind,this.core,.32);this.parts.push(r);}
- this.add(surface((u,v)=>{const a=u*Math.PI*2,r=s*(.4+v*1.4);return [Math.cos(a)*r,.02,Math.sin(a)*r];}),ring,this.impact,.8);
+ const cuts=p.variant===1?3:1;
+ for(let i=0;i<cuts;i++){const blade=this.add(surface((u,v)=>{const a=(u-.5)*Math.PI*1.15,r=s*(1.5-v*.22*Math.sin(u*Math.PI));return [Math.cos(a)*r-i*.28,Math.sin(a)*r,0];}),wind);blade.position.z=i*.16;}
+ const trails=p.variant===2?5:2;
+ for(let i=0;i<trails;i++){this.add(surface((u,v)=>{const a=(u-.5)*Math.PI*1.12,r=s*(1.46-i*.08);return [Math.cos(a)*r-u*p.trail*(p.variant===2?.65:.3)-v*.04,Math.sin(a)*r,i*.04];}),wind,this.core,.18);}
+ // Contact de corte: raios tangenciais e arcos abertos; nenhuma onda no chão.
+ for(let i=0;i<(p.variant===1?9:6);i++){const theta=i*Math.PI*2/6;const cut=this.add(surface((u,v)=>{const r=s*(.15+u*1.8),w=Math.sin(u*Math.PI)*.075;return [0,Math.cos(theta)*r-Math.sin(theta)*(v-.5)*w,Math.sin(theta)*r+Math.cos(theta)*(v-.5)*w];},48,2),wind,this.impact);cut.rotation.y=.4;}
+ for(let i=0;i<2;i++)this.add(surface((u,v)=>{const a=(u-.5)*Math.PI*1.3,r=s*(.5+i*.35+v*.045);return [0,Math.cos(a)*r,Math.sin(a)*r];}),wind,this.impact,.7);
+
  }
  }
  update(t){const p=this.p,motion=this.fx.reduced?.18:1;const envelope=Math.min(1,t/.35,Math.max(0,(p.duration-t)/.7));
  for(const u of this.uniforms)u.time.value=t*p.rotation*.25*motion;
  if(this.id==='fireSpin'){this.core.scale.set(1,Math.max(.001,envelope),1);this.core.rotation.y=t*p.rotation*.5*motion;for(const u of this.uniforms)u.opacity.value=envelope;}
- else if(this.id==='waterPulse'){for(let i=0;i<this.parts.length;i++)this.parts[i].rotation.y=t*p.rotation*(i%2?-.35:.4)*motion;}
- if(t>=p.duration){if(!this.impact.visible){this.impact.position.copy(this.core.position);this.impact.position.y=this.id==='waterPulse'?Math.max(.1,this.core.position.y-p.size):.1;this.impact.visible=this.id!=='fireSpin';}
- const age=t-p.duration;this.impact.scale.setScalar(1+age*p.spread*.7*motion);this.impact.traverse(o=>{if(o.material?.uniforms)o.material.uniforms.opacity.value=Math.max(0,1-age/1.25);});}
+ else if(this.id==='waterPulse'){this.core.scale.set(1+this.fx.velocity*p.stretch*(p.variant===1?.3:.17),1/Math.sqrt(1+this.fx.velocity*p.stretch*.1),1/Math.sqrt(1+this.fx.velocity*p.stretch*.1));for(let i=0;i<this.parts.length;i++)this.parts[i].rotation.y=t*p.rotation*(i%2?-.35:.4)*motion;}
+ if(this.fx.contactAt!==null){const age=t-this.fx.contactAt;
+ if(!this.impact.visible){this.impact.position.copy(this.core.position);this.impact.visible=this.id!=='fireSpin';}
+ const gain=p.contactSize*(.3+Math.min(1,age*5)*(1+age*p.spread*.3*motion));this.impact.scale.setScalar(gain);
+ if(this.id==='waterPulse'){this.core.visible=age<.12;this.core.scale.x*=Math.max(.1,1-age*8);this.core.scale.y*=1+Math.min(.8,age*8);}
+ this.impact.traverse(o=>{if(o.material?.uniforms)o.material.uniforms.opacity.value=Math.max(0,1-age/(this.id==='airSlash'?.65:1.3));});}
  }
 }

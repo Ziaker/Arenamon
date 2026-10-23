@@ -28,13 +28,13 @@ export class ElementalPreview {
  }
  ring(radius,color,parent=this.root){return this.mesh(new THREE.TorusGeometry(radius,.018*this.p.size,8,100),color,.75,parent);}
  play(id,overrides,pl=1,{noFlash=false,reduced=false}={}){
- this.clear();this.id=id;this.p=elementalSettings(id,overrides,pl);this.noFlash=noFlash;this.reduced=reduced;if(noFlash)this.p.brightness=Math.min(.65,this.p.brightness);this.time=0;this.active=true;this.hit=false;this.rings=[];this.trails=[];const p=this.p;
+ this.clear();this.id=id;this.p=elementalSettings(id,overrides,pl);this.noFlash=noFlash;this.reduced=reduced;if(noFlash)this.p.brightness=Math.min(.65,this.p.brightness);this.time=0;this.active=true;this.hit=false;this.contactAt=null;this.velocity=0;this.rings=[];this.trails=[];const p=this.p;
  this.core=new THREE.Group();this.root.add(this.core);
  if(id!=='seedBomb'){
- this.surfaces=new ElementalSurfaces(this);if(id==='airSlash')this.core.rotation.x=-.9;
+ this.surfaces=new ElementalSurfaces(this);
  if(id==='fireSpin'){
- const flame=this.particles({kind:'flame',rate:p.quantity*.45,radius:p.size,speed:p.speed,size:.8,world:false,orbit:p.rotation,cone:true});flame.emitter.rotation.x=-Math.PI/2;this.flame=flame;
- const embers=this.particles({kind:'streak',rate:p.quantity*.25,radius:p.size*1.25,speed:p.speed*1.3,size:.25,world:false,orbit:p.rotation*.5,cone:true,color:p.accent});embers.emitter.rotation.x=-Math.PI/2;
+ const flame=this.particles({kind:'flame',rate:p.quantity*.45,radius:p.opening+p.size*.5,speed:p.speed*.3,size:.8,world:false,orbit:p.rotation,cone:true});flame.emitter.rotation.x=-Math.PI/2;this.flame=flame;
+ const embers=this.particles({kind:'streak',rate:p.quantity*.25,radius:p.opening+p.size*.6,speed:p.speed*.45,size:.25,world:false,orbit:p.rotation*.5,cone:true,color:p.accent});embers.emitter.rotation.x=-Math.PI/2;
  }else{this.trails.push(this.particles({kind:id==='waterPulse'?'droplet':'streak',rate:p.quantity,radius:p.size*.7,speed:p.spread*.35,size:id==='waterPulse'?1.5:2.8,life:id==='airSlash'?p.trail/2:1}));}
  }else{
  const seed=this.mesh(new THREE.SphereGeometry(p.size,24,20),p.accent,1,this.core);const skin=new THREE.MeshPhongMaterial({color:p.accent,shininess:45});this.materials.push(skin);seed.material=skin;seed.scale.set(.72,1.2,.72);
@@ -43,26 +43,29 @@ export class ElementalPreview {
  }
  this.update(0);
  }
+ contact(){
+ if(!this.active||this.hit||this.id==='fireSpin')return;
+ this.hit=true;this.contactAt=this.time;this.core.visible=false;
+ for(const system of this.trails){system.emissionOverTime=new Q.ConstantValue(0);system.looping=false;}
+ const p=this.p,motion=this.reduced?.2:1;
+ const burst=this.particles({kind:this.id==='seedBomb'?'leaf':this.id==='waterPulse'?'droplet':'streak',count:p.quantity*(this.id==='airSlash'?.6:1.8),radius:p.size*.15,speed:p.spread*2*motion,size:this.id==='airSlash'?3:1.5});burst.emitter.position.copy(this.core.position);
+ if(this.id==='seedBomb'){const dust=this.particles({count:p.quantity*.45,radius:p.size,speed:p.spread*.5,size:3,color:'#8b9d58'});dust.emitter.position.copy(this.core.position);}
+ }
  update(dt){if(!this.active)return;this.time+=dt;const p=this.p,t=this.time,u=Math.min(1,t/p.duration),motion=this.reduced?.2:1;
  if(this.id==='fireSpin'){
  const envelope=Math.min(1,t/.6,Math.max(0,(p.duration-t)/.8));
- for(const s of this.systems)s.emissionOverTime=new Q.ConstantValue((s===this.flame?p.quantity:p.quantity*.22)*envelope*(this.reduced?.35:1));
- for(const r of this.rings){r.scale.setScalar(.95+(this.noFlash?0:.06*Math.sin(t*3)));r.material.opacity=.65*envelope;}
- }else{
- const travel=Math.min(8,p.speed*p.duration)*motion;
- this.core.position.set((u-.5)*travel,this.id==='seedBomb'?p.size+Math.sin(u*Math.PI)*p.height:p.height,0);
- this.core.rotation.z=this.id==='seedBomb'?t*p.rotation*.12*motion:this.id==='airSlash'?-.16:0;
- for(const s of this.trails)s.emitter.position.copy(this.core.position);
- for(let i=0;i<this.rings.length;i++){this.rings[i].rotation.y+=dt*p.rotation*motion;this.rings[i].rotation.z+=dt*p.rotation*.4*motion;}
- if(u>=1&&!this.hit){this.hit=true;this.core.visible=false;for(const s of this.trails){s.emissionOverTime=new Q.ConstantValue(0);s.looping=false;}
- const s=this.particles({kind:this.id==='seedBomb'?'leaf':this.id==='waterPulse'?'droplet':'streak',count:p.quantity*(this.id==='airSlash'?.3:1),radius:p.size*.2,speed:p.spread*motion,size:this.id==='seedBomb'?1.4:1});s.emitter.position.copy(this.core.position);
- if(this.id==='seedBomb'){const dust=this.particles({count:p.quantity*.45,radius:p.size,speed:p.spread*.5,size:3,color:'#8b9d58'});dust.emitter.position.copy(this.core.position);}
+ for(const system of this.systems)system.emissionOverTime=new Q.ConstantValue((system===this.flame?p.quantity*.45:p.quantity*.25)*envelope*(this.reduced?.35:1));
+ }else if(!this.hit){
+ const travel=p.speed*p.duration*.5*motion,progress=this.id==='waterPulse'?u*u:u;
+ this.velocity=this.id==='waterPulse'?p.speed*u*motion:p.speed*.5*motion;
+ this.core.position.set((progress-.5)*travel,this.id==='seedBomb'?p.size+Math.sin(u*Math.PI)*p.height:p.height,0);
+ this.core.rotation.z=this.id==='seedBomb'?t*p.rotation*.12*motion:0;
+ for(const system of this.trails)system.emitter.position.copy(this.core.position);
+ if(u>=1)this.contact();
  }
+ this.surfaces?.update(t);this.scene.updateMatrixWorld(true);this.batch.update(dt);
+ if(t>(this.contactAt??p.duration)+p.life*2+1)this.clear();
  }
- this.surfaces?.update(t);
- this.scene.updateMatrixWorld(true);this.batch.update(dt);
- if(t>p.duration+p.life*2+1){this.clear();}
- }
- diagnostics(){return {move:this.id,active:this.active,time:this.time,systems:this.systems.length,particles:this.systems.reduce((n,s)=>n+s.particleNum,0),positiveSizes:this.systems.reduce((n,s)=>n+s.particles.slice(0,s.particleNum).filter(p=>p.size.x>0).length,0),settings:this.p,phase:!this.active?'Pronto':this.time>this.p.duration?'Dissipação':this.time<.6?'Início':this.id==='fireSpin'?'Sustentação':'Trajeto'};}
+ diagnostics(){return {variant:this.p?.variant,contactAt:this.contactAt,velocity:this.velocity,stretch:this.core?.scale.x,move:this.id,active:this.active,time:this.time,systems:this.systems.length,particles:this.systems.reduce((n,s)=>n+s.particleNum,0),positiveSizes:this.systems.reduce((n,s)=>n+s.particles.slice(0,s.particleNum).filter(p=>p.size.x>0).length,0),settings:this.p,phase:!this.active?'Pronto':this.hit?'Contato / dissipação':this.time>this.p.duration?'Dissipação':this.time<.6?'Início':this.id==='fireSpin'?'Sustentação':'Trajeto'};}
  dispose(){this.clear();this.batch.removeFromParent();this.root.removeFromParent();}
 }

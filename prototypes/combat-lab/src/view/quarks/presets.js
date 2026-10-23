@@ -143,6 +143,7 @@ export const ELEMENTAL_PRESETS = {
   seedBomb: {label:'Seed Bomb · Grama', color:'#77d535', accent:'#805326', size:.45, quantity:85, speed:2.5, duration:3, brightness:1, particleSize:.2, life:1.1, rings:3, rotation:4, height:2.8, spread:2.5},
 };
 export const ELEMENTAL_CONTROLS = [
+ ['stretch','Alongamento pela velocidade','×',0,2.5,.1],['opening','Raio do centro aberto','m',.5,2.5,.1],['contactSize','Tamanho do contato','×',.3,2,.1],
  ['detail','Contraste das faixas / espuma','×',.1,2,.1],['trail','Comprimento do rastro de vento','m',.5,5,.1],
  ['size','Tamanho do núcleo','m',.15,2,.05],['quantity','Emissão / quantidade da explosão','partículas',10,400,5],
  ['speed','Velocidade de deslocamento / subida','m/s',.2,6,.1],['duration','Duração da emissão / trajeto','s',1,7,.1],
@@ -151,8 +152,14 @@ export const ELEMENTAL_CONTROLS = [
  ['rotation','Rotação','rad/s',0,8,.1],['height','Altura / arco','m',.5,5,.1],['spread','Dispersão de gotas / folhas','m/s',.2,5,.1],
 ];
 export function elementalSettings(id, overrides={}, pl=1) {
- const p={...ELEMENTAL_PRESETS[id],...overrides};
+ const p={variant:0,stretch:1,opening:1.1,contactSize:1,...ELEMENTAL_PRESETS[id],...overrides};
  if(!ELEMENTAL_PRESETS[id]) throw new Error('Move visual desconhecido: '+id);
  if(id==='waterPulse') {const level=Math.max(1,Math.min(3,pl));p.size*=1+(level-1)*.32;p.quantity*=1+(level-1)*.55;p.rings+=level-1;p.brightness*=1+(level-1)*.2;}
  return p;
 }
+
+export const ELEMENTAL_VARIANTS={
+ waterPulse:['A · Hadouken — núcleo compacto','B · Lança — ponta longa','C · Hélice — jatos orbitais'],
+ fireSpin:['A · Vórtice — anel de chamas','B · Espiral — braços abertos','C · Coroa — dupla borda'],
+ airSlash:['A · Corte — arco único','B · Navalhas — três cortes','C · Rajada — arco e rastros longos'],
+};
