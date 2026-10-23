@@ -27,9 +27,9 @@ export const MOVE_INFO = {
   'quick-attack': {group: 'Quick Attack', hint: 'Burst · Melee · PL1. Toque para investir no adversário mais próximo (até 7 m) e voltar na hora ao ponto de partida. Sem alvo ao alcance, não faz nada.'},
   'second-wind': {group: 'Second Wind', hint: 'Normal · Status. Toque para regenerar stamina bem mais rápido e gastar 25% menos em esquiva e sprint por 5 s (cast de 0,35 s).'},
   'water-pulse': {group: 'Water Pulse', hint: 'Charge · Projectile · PL1–PL3. Segure para carregar (até 1,5 s; PL2 em 0,75 s, PL3 em 1,5 s) — a esfera de água cresce na mão — e solte para disparar UMA esfera reta, sem homing. Mais carga = mais dano e empurrão. Protótipo: números do prompt de 22/10, não homologados.'},
-  'fire-spin': {group: 'Fire Spin', hint: 'Normal · Field. Segure para escolher o local (setas movem o marcador, até 10 m), solte para confirmar: após 0,4 s nasce um tornado de fogo (1,6 m de raio) que dá 4 pulsos de dano em 2,4 s. O anel da prévia mostra o raio real da zona. Protótipo: números não homologados.'},
+  'fire-spin': {group: 'Fire Spin', hint: 'Normal · Field. Segure para escolher o local (setas movem o marcador, até 20 m), solte para confirmar: após 0,4 s nasce um tornado de fogo (1,6 m de raio) que dá 4 pulsos de dano em 2,4 s. O anel da prévia mostra o raio real da zona. Protótipo: números não homologados.'},
   'air-slash': {group: 'Air Slash', hint: 'Burst · Projectile · PL1. Toque: após 8 passos (0,067 s) nasce uma lâmina de ar rápida em linha reta, sem homing; com alvo travado a mira é a do instante do toque. Protótipo: números não homologados.'},
-  'seed-bomb': {group: 'Seed Bomb', hint: 'Normal · Projectile + Field. Segure para escolher o destino (até 16 m, setas movem o marcador), solte para confirmar: após 0,3 s uma semente voa em arco e explode ao tocar algo, num raio esférico de 1,8 m. O anel da prévia mostra o raio real da explosão. Protótipo: números não homologados.'},
+  'seed-bomb': {group: 'Seed Bomb', hint: 'Normal · Projectile + Field. Segure para escolher o destino (até 32 m, setas movem o marcador), solte para confirmar: após 0,3 s uma semente voa em arco e explode ao tocar algo, num raio esférico de 1,8 m. O anel da prévia mostra o raio real da explosão. Protótipo: números não homologados.'},
 };
 const SKILL_NAMES = ['skill1', 'skill2', 'skill3', 'skill4'];
 const ACTION_NAMES = {forward: 'Mover ↑', back: 'Mover ↓', left: 'Mover ←', right: 'Mover →', tackle: 'Tackle (X)', dodge: 'Esquiva (C)', defend: 'Defesa (D)', lock: 'Travar alvo', pause: 'Pausar', restart: 'Reiniciar', debug: 'Depuração'};
@@ -323,7 +323,7 @@ const PARAMS = [
     ['fireSpin', 'cooldown', 'Cooldown', 'Começa junto com o custo, na confirmação (prompt: 11 s).', 0, 60, .5, sec, false],
     ['fireSpin', 'cast', 'Cast (até a zona nascer)', 'Entre confirmar e a zona nascer (prompt: 0,4 s = 48 passos).', .05, 2, .01, sec, false],
     ['fireSpin', 'recovery', 'Recovery depois da zona nascer', 'Tempo até recuperar o controle; a zona vive sozinha (prompt: 0,2 s = 24 passos).', 0, 1, .01, sec, false],
-    ['fireSpin', 'range', 'Alcance do marcador (3D)', 'Inclui a altura do apoio. Padrão: 10 m (o protótipo dobrou os 5 m do prompt).', 1, 15, .5, m, false],
+    ['fireSpin', 'range', 'Alcance do marcador (3D)', 'Inclui a altura do apoio. Padrão atual: 20 m.', 1, 40, .5, m, false],
     ['fireSpin', 'zoneRadius', 'Raio da zona', 'Região ofensiva cilíndrica (prompt: 1,6 m). O anel da prévia usa este raio real.', .5, 4, .05, m, false],
     ['fireSpin', 'zoneHeight', 'Altura da zona', 'Faixa vertical que pega quem está dentro, a partir do apoio (prompt: 2,4 m).', .5, 5, .1, m, false],
     ['fireSpin', 'life', 'Duração da zona', 'Vida da entidade em tempo LOCAL (cada acerto congela o mundo 1 passo de hitstop). Prompt: 2,4 s = 288 passos.', .5, 8, .1, sec, false],
@@ -363,7 +363,7 @@ const PARAMS = [
     ['seedBomb', 'cooldown', 'Cooldown', 'Começa junto com o custo, na confirmação (prompt: 8 s).', 0, 60, .5, sec, false],
     ['seedBomb', 'cast', 'Cast (até a semente sair)', 'Prompt: 0,3 s = 36 passos.', .05, 2, .01, sec, false],
     ['seedBomb', 'recovery', 'Recovery', 'Prompt: 0,2 s = 24 passos (ação total 0,5 s).', 0, 1, .01, sec, false],
-    ['seedBomb', 'range', 'Alcance do marcador (3D)', 'Padrão: 16 m (o protótipo dobrou os 8 m do prompt). O destino precisa de apoio sólido (não mira o ar).', 2, 15, .5, m, false],
+    ['seedBomb', 'range', 'Alcance do marcador (3D)', 'Padrão atual: 32 m. O destino precisa de apoio sólido (não mira o ar).', 2, 64, .5, m, false],
     ['seedBomb', 'flightTime', 'Tempo de voo (arco)', 'Fixo: quanto mais longe, mais rápida a semente (prompt: 0,65 s = 78 passos).', .2, 1.5, .01, sec, false],
     ['seedBomb', 'gravity', 'Gravidade do arco', 'Não definida no prompt: 17,5 é a do salto e do Bounce. Com 28,5 ou 39,6 destinos altos passam da velocidade máxima.', 5, 60, .5, ms2, false],
     ['seedBomb', 'maxSpeed', 'Velocidade inicial máxima', 'Destino que exigir mais FALHA (sem corrigir a trajetória em silêncio). Prompt: 20 m/s.', 5, 35, .5, ms, false],
