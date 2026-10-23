@@ -31,7 +31,8 @@ export function bulletPunchSetup(/** @type {any} */ f, /** @type {any} */ a, /**
 }
 
 /** Alvo do golpe: o adversário fixado ao soltar (`fx.lock`), se ainda estiver vivo e presente. */
-const targetOf = (/** @type {any} */ game, /** @type {any} */ f, /** @type {any} */ fx) => game.fighters.find((/** @type {any} */ o) => o !== f && o.id === fx.lock && o.hp > 0 && !o.absent) ?? null;
+// (um alvo também em corrida invisível vale: ele reaparece em até `vanish` s; sem isso dois Bullet Punch simultâneos dependiam só do índice do lutador)
+const targetOf = (/** @type {any} */ game, /** @type {any} */ f, /** @type {any} */ fx) => game.fighters.find((/** @type {any} */ o) => o !== f && o.id === fx.lock && o.hp > 0) ?? null;
 
 /** Fim da preparação: o lutador deixa de existir fisicamente e parte rumo ao alvo. */
 export function bulletPunchVanish(/** @type {any} */ game, /** @type {any} */ f, /** @type {any} */ def, /** @type {any} */ fx) {
@@ -42,10 +43,19 @@ export function bulletPunchVanish(/** @type {any} */ game, /** @type {any} */ f,
   let to = {x: f.position.x, z: f.position.z};
   if (tgt) {
     const dx = tgt.position.x - f.position.x, dz = tgt.position.z - f.position.z, d = Math.hypot(dx, dz) || 1e-6, stop = P.stopShort ?? 1.1, run = Math.min(Math.max(0, d - stop), (P.reach ?? 6) + stop);
-    to = nearestFree(game, f, {x: f.position.x + dx / d * run, z: f.position.z + dz / d * run});
+    to = nearestFree(game, f, firstFree(game, f.position, {x: f.position.x + dx / d * run, z: f.position.z + dz / d * run}));
   }
   if (f.action) f.action.travel = {from: {x: f.position.x, z: f.position.z}, to, t0: f.action.elapsed, time: Math.max(1e-6, P.vanish)};
   fx.events?.push({result: 'bulletVanish', attacker: f.id, target: tgt?.id ?? null, damage: 0, x: f.position.x, z: f.position.z, move: def.id});
+}
+
+/** Último ponto da reta a→b antes do primeiro sólido (parede, obstáculo, destrutível): a corrida invisível NÃO atravessa paredes (como o Quick Attack). Plataformas não bloqueiam. */
+function firstFree(/** @type {any} */ game, /** @type {{x: number, z: number}} */ a, /** @type {{x: number, z: number}} */ b) {
+  const solids = solidsOf(game.world);if (!solids.length) return b;
+  const len = Math.hypot(b.x - a.x, b.z - a.z), n = Math.max(1, Math.ceil(len / .25)), m = C.test.halfExtent * .9;
+  let last = {x: a.x, z: a.z};
+  for (let i = 1; i <= n; i++) {const p = {x: a.x + (b.x - a.x) * i / n, z: a.z + (b.z - a.z) * i / n};if (insideSolid(solids, p, m)) return last;last = p;}
+  return b;
 }
 
 /** Ponto livre mais próximo do desejado (arena, sólidos e outros corpos), em anéis de 0,25 m; determinístico. */
@@ -97,7 +107,7 @@ export function bulletPunchReturn(/** @type {any} */ game, /** @type {any} */ f,
   const tgt = blocker ?? targetOf(game, f, fx);
   const pos = nearestFree(game, f, f.position);
   f.position = {x: pos.x, z: pos.z};
-  f.groundY = getGroundHeight(f.position, game.world, (tgt?.groundY ?? f.groundY ?? 0) + .3);
+  f.groundY = getGroundHeight(f.position, game.world, (f.groundY ?? 0) + (P.maxRise ?? 2));   // sem subir plataformas altas de graça: o apoio vale até `maxRise` acima de onde o lutador estava
   f.velocity = {x: 0, z: 0};f.locomotionVelocity = {x: 0, z: 0};
   fx.events?.push({result: 'bulletReturn', attacker: f.id, target: tgt?.id ?? null, damage: 0, x: f.position.x, z: f.position.z, move: def.id, blocked: !!blocker});
   if (!tgt) {fx.events?.push({result: 'bulletNoTarget', attacker: f.id, target: null, damage: 0, move: def.id});return;}   // alvo derrotado durante o preparo: reaparece sem golpe

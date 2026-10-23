@@ -58,6 +58,20 @@ try {
   const op1 = await L(() => window.__lab.view.worldView.mapMeshes.get('tela')?.material.opacity);
   await page.screenshot({path: out + 'objeto-transparente.png'});
   check('o objeto entre a câmera e o lutador fica translúcido', typeof op1 === 'number' && op1 < .5, `opacidade ${op1?.toFixed?.(2)} (caixa em x=${place.x.toFixed(1)} z=${place.z.toFixed(1)})`);
+  // O número da opacidade não basta: o shader opaco ignorava a transparência. Lê o PIXEL onde está o lutador, com a oclusão ligada e desligada.
+  const px = await L(() => {
+    const L = window.__lab, v = L.view, a = L.game.fighters[0], T = v.camera.position.constructor;
+    const read = () => {
+      v.renderer.render(v.scene, v.camera);
+      const gl = v.renderer.getContext(), cv = v.renderer.domElement, p = new T(a.position.x, (a.groundY ?? 0) + .65, a.position.z).project(v.camera);
+      const x = Math.round((p.x * .5 + .5) * cv.width), y = Math.round((1 - (p.y * .5 + .5)) * cv.height), buf = new Uint8Array(4);
+      gl.readPixels(x, cv.height - y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);return Array.from(buf);
+    };
+    const on = read();L.C.display.occlusion.occEnabled = 0;for (let i = 0; i < 60; i++) v.worldView.checkOcclusion(v.worldView.mapMeshes.get('tela'), v.camera, L.game.fighters);
+    const off = read();L.C.display.occlusion.occEnabled = 1;
+    return {on, off};
+  });
+  check('pixel real: com a oclusão ligada o lutador (azul) aparece através do objeto; desligada, o objeto o esconde', px.on[2] > px.off[2] + 25, JSON.stringify(px));
   await L(() => {window.__lab.game.mapState.obstacles = [{id: 'tela', pos: {x: 14, y: 0, z: -14}, shape: 'box', hx: 1.2, hz: 1.2, height: 3, angle: 0}];});
   await frames(60);
   const op2 = await L(() => window.__lab.view.worldView.mapMeshes.get('tela')?.material.opacity);

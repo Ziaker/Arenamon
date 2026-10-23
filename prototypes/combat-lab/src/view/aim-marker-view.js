@@ -34,7 +34,7 @@ export class AimMarkers {
       let it = this.items.get(key);
       if (!it) {it = this.makeRange();this.items.set(key, it);this.group.add(it.root);}
       const radius = Math.max(.5, a ? a.rangeValue : fl.range), col = a ? (a.inRange ? BLUE : BAD) : BAD, pulse = o.reduceMotion || !a ? 1 : 1 + Math.sin(this.t * 7) * .012, wallH = R.rangeWall ?? .35;
-      if (Math.abs(it.radius - radius) > .005 || it.width !== R.rangeWidth || it.wallH !== wallH) this.rebuildRing(it, radius, Math.max(.02, R.rangeWidth), wallH);
+      if (Math.abs(it.radius - radius) > .005 || it.width !== Math.max(.02, R.rangeWidth) || it.wallH !== wallH) this.rebuildRing(it, radius, Math.max(.02, R.rangeWidth), wallH);
       it.root.position.set(f.position.x, (f.flight?.y ?? f.groundY ?? 0) + (f.vaultHeight ?? 0) + .05, f.position.z);
       it.root.scale.set(pulse, 1, pulse);
       const k = (a ? 1 : Math.max(0, fl.t / Math.max(1e-6, fl.total))) * R.rangeOpacity;
