@@ -1,0 +1,92 @@
+name: Arenamon Combat Lab
+
+# CI do laboratório de combate (#14 do plano de 23/10/2026). Só roda em PR/push que tocam o Combat Lab. NÃO mexe no CI do Studio.
+# Etapas separadas para a falha dizer onde está: tipos, build offline, contratos/índice/fichas dos Moves, testes de unidade e, à parte, navegador.
+# Nenhuma etapa é repetida até ficar verde: falha intermitente aparece como falha. Testes que dependem de arquivos locais (GLBs de chars/)
+# ficam fora do job de unidade; o job de navegador roda sob demanda (workflow_dispatch) até haver fixtures versionáveis autorizadas.
+
+on:
+  pull_request:
+    paths:
+      - 'prototypes/combat-lab/**'
+      - 'docs/INDICE_VIVO_MOVES.md'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/combat-lab.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'prototypes/combat-lab/**'
+  workflow_dispatch:
+    inputs:
+      browser:
+        description: 'Rodar também os testes de navegador (Edge/Chromium)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: combat-lab-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit:
+    name: Tipos, build offline e testes de unidade
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Instalar
+        run: npm ci
+      - name: Fichas dos Moves em dia
+        run: node prototypes/combat-lab/gen-fichas.mjs && git diff --exit-code -- prototypes/combat-lab/src/sim/moves/fichas.generated.js
+      - name: Tipos (Combat Lab)
+        run: npx tsc --noEmit -p prototypes/combat-lab/tsconfig.json
+      - name: Build offline do laboratório
+        run: npm run build:combat-lab
+      - name: Contratos, fichas e índice dos Moves
+        run: >-
+          node prototypes/combat-lab/test/moves-contracts.test.mjs &&
+          node prototypes/combat-lab/test/moves-fichas.test.mjs &&
+          node prototypes/combat-lab/test/moves-indice.test.mjs &&
+          node prototypes/combat-lab/test/moves-params.test.mjs
+      - name: Testes de unidade do Combat Lab
+        run: npm run test:combat-lab:unit
+      - name: Guardar o HTML gerado
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: arenamon-combate-laboratorio
+          path: prototypes/combat-lab/dist/arenamon-combate-laboratorio.html
+          retention-days: 14
+          if-no-files-found: warn
+
+  browser:
+    name: Testes de navegador (sob demanda)
+    if: github.event_name == 'workflow_dispatch' && inputs.browser
+    needs: unit
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run build:combat-lab
+      - name: Moves no navegador
+        env:
+          ARENAMON_SKIP_SCREENSHOTS: '1'
+        run: >-
+          node prototypes/combat-lab/test/moves-elementais.browser.mjs &&
+          node prototypes/combat-lab/test/moves-ui.browser.mjs &&
+          node prototypes/combat-lab/test/moves.browser.mjs &&
+          node prototypes/combat-lab/test/moves-new.browser.mjs &&
+          node prototypes/combat-lab/test/tuning-export.browser.mjs
