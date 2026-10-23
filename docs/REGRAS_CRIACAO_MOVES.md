@@ -209,8 +209,6 @@ Além disso: não aplicar cooldown de passivas como cooldown de Move; não trans
 
 ## 14. Audiovisual obrigatório: VFX, SFX, animações e HUD
 
-> **Protótipos de VFX:** a construção e a entrega dos protótipos visuais seguem `docs/REGRAS_PROTOTIPOS_VFX.md` (estilo visual, 6 fases obrigatórias e sliders explicados).
-
 Toda ficha inclui apresentação **completa** e ligada a eventos mecânicos reais:
 
 | Fase/resultado | O que especificar |
