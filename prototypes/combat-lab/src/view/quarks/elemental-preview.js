@@ -17,9 +17,9 @@ export class ElementalPreview {
  else if(kind==='streak'){const g=x.createLinearGradient(0,0,64,0);g.addColorStop(0,'transparent');g.addColorStop(.6,'white');g.addColorStop(1,'transparent');x.fillStyle=g;x.fillRect(0,28,64,8);}
  else {const g=x.createRadialGradient(32,32,0,32,32,32);g.addColorStop(0,'white');g.addColorStop(kind==='flame'?.35:.12,'#ffffffcc');g.addColorStop(1,'#ffffff00');x.fillStyle=g;x.fillRect(0,0,64,64);}
  const m=this.material(color,this.p.brightness);m.map=new THREE.CanvasTexture(c);m.blending=this.noFlash||kind==='leaf'?THREE.NormalBlending:THREE.AdditiveBlending;return m;}
- particles({kind='soft',rate=0,count=0,radius=.2,speed=1,size=1,life=1,world=true,orbit=0,cone=false,color=this.p.color}={}){
+ particles({kind='soft',rate=0,count=0,radius=.2,speed=1,size=1,life=1,world=true,orbit=0,cone=false,jet=null,color=this.p.color}={}){
  const p=this.p,k=this.reduced?.35:1;const fadeColor=kind==='leaf'?'#bcf77a':p.accent;
- const preset={duration:p.duration,looping:rate>0,worldSpace:world,shape:{type:cone?'cone':'sphere',radius,angle:9},startLife:[p.life*.65*life,p.life*life],startSpeed:[speed*.65,speed],startSize:[p.particleSize*.5*size,p.particleSize*size],startColor:{a:'#ffffff',b:'#ffffff'},emissionOverTime:rate*k,burst:count?{count:count*k}:undefined,sizeOverLife:[.4,1,.7,0],colorOverLife:{stops:[{t:0,color,alpha:0},{t:.12,color,alpha:Math.min(1,p.brightness)},{t:.7,color:fadeColor,alpha:.6},{t:1,color:fadeColor,alpha:0}]}};
+ const preset={duration:p.duration,looping:rate>0,worldSpace:world,shape:{type:cone||jet!==null?'cone':'sphere',radius,angle:jet??9},startLife:[p.life*.65*life,p.life*life],startSpeed:[speed*.65,speed],startSize:[p.particleSize*.5*size,p.particleSize*size],startColor:{a:'#ffffff',b:'#ffffff'},emissionOverTime:rate*k,burst:count?{count:count*k}:undefined,sizeOverLife:[.4,1,.7,0],colorOverLife:{stops:[{t:0,color,alpha:0},{t:.12,color,alpha:Math.min(1,p.brightness)},{t:.7,color:fadeColor,alpha:.6},{t:1,color:fadeColor,alpha:0}]}};
  const params=presetToSystemParams(preset,{Quarks:Q,THREE,material:this.sprite(kind,'#ffffff')});
  params.startColor=new Q.ConstantColor(new Q.Vector4(p.brightness,p.brightness,p.brightness,1));
  if(cone){params.shape=new Q.ConeEmitter({radius,angle:.04,thickness:.08,mode:Q.EmitterMode.Loop,spread:.06,speed:new Q.ConstantValue(Math.abs(orbit)*.2/(Math.PI*2))});}
@@ -28,33 +28,39 @@ export class ElementalPreview {
  }
  ring(radius,color,parent=this.root){return this.mesh(new THREE.TorusGeometry(radius,.018*this.p.size,8,100),color,.75,parent);}
  play(id,overrides,pl=1,{noFlash=false,reduced=false}={}){
- this.clear();this.id=id;this.p=elementalSettings(id,overrides,pl);this.noFlash=noFlash;this.reduced=reduced;if(noFlash)this.p.brightness=Math.min(.65,this.p.brightness);this.time=0;this.active=true;this.hit=false;this.contactAt=null;this.velocity=0;this.rings=[];this.trails=[];const p=this.p;
+ this.clear();this.id=id;this.p=elementalSettings(id,overrides,pl);this.noFlash=noFlash;this.reduced=reduced;if(noFlash)this.p.brightness=Math.min(.65,this.p.brightness);this.time=0;this.active=true;this.hit=false;this.contactAt=null;this.velocity=0;this.smearAmount=0;this.rings=[];this.trails=[];const p=this.p;this.shotJet=null;this.shotOn=['waterPulse','airSlash'].includes(id)&&p.shotDuration>0;
  this.core=new THREE.Group();this.root.add(this.core);
  if(id!=='seedBomb'){
  this.surfaces=new ElementalSurfaces(this);
  if(id==='fireSpin'){
  const flame=this.particles({kind:'flame',rate:p.quantity*.45,radius:p.opening+p.size*.5,speed:p.speed*.3,size:.8,world:false,orbit:p.rotation,cone:true});flame.emitter.rotation.x=-Math.PI/2;this.flame=flame;
  const embers=this.particles({kind:'streak',rate:p.quantity*.25,radius:p.opening+p.size*.6,speed:p.speed*.45,size:.25,world:false,orbit:p.rotation*.5,cone:true,color:p.accent});embers.emitter.rotation.x=-Math.PI/2;
- }else{this.trails.push(this.particles({kind:id==='waterPulse'?'droplet':'streak',rate:p.quantity,radius:p.size*.7,speed:p.spread*.35,size:id==='waterPulse'?1.5:2.8,life:id==='airSlash'?p.trail/2:1}));}
+ }else{this.trails.push(this.particles({kind:id==='waterPulse'?'droplet':'streak',rate:p.quantity*(id==='waterPulse'?p.trailRate:1),radius:p.size*(id==='waterPulse'?p.trailRadius:.7),speed:p.spread*(id==='waterPulse'?p.trailSpeed:.35),size:id==='waterPulse'?p.trailSize:2.8,life:id==='airSlash'?p.trail/2:p.trailLife}));}
  }else{
  const seed=this.mesh(new THREE.SphereGeometry(p.size,24,20),p.accent,1,this.core);const skin=new THREE.MeshPhongMaterial({color:p.accent,shininess:45});this.materials.push(skin);seed.material=skin;seed.scale.set(.72,1.2,.72);
  const seam=this.ring(p.size*.78,p.color,this.core);seam.scale.y=1.3;
  this.trails.push(this.particles({kind:'leaf',rate:p.quantity*.55,radius:p.size*.3,speed:p.spread*.25}));
  }
- this.update(0);
+ this.update(0);this.shotStart();
+ }
+ // Impacto do disparo: jato de partículas para trás e halo; anéis e clarão vivem em ElementalSurfaces.
+ shotStart(){
+ if(!this.shotOn)return;const p=this.p,water=this.id==='waterPulse',motion=this.reduced?.2:1,at=this.core.position;
+ if(p.shotBurst>0){const jet=this.particles({kind:water?'droplet':'streak',count:p.shotBurst,radius:p.size*.2,speed:p.shotBurstSpeed*motion,size:p.shotBurstSize,life:p.shotBurstLife,jet:Math.min(180,p.shotAngle)});jet.emitter.position.copy(at);jet.emitter.rotation.y=-Math.PI/2;this.shotJet=jet;}
+ if(p.shotGlow>0&&!this.noFlash){const glow=this.particles({kind:'soft',count:3,radius:.02,speed:0,size:p.shotGlow/Math.max(.02,p.particleSize),life:p.shotDuration/p.life});glow.emitter.position.copy(at);}
  }
  contact(){
  if(!this.active||this.hit||this.id==='fireSpin')return;
  this.hit=true;this.contactAt=this.time;this.core.visible=false;
  for(const system of this.trails){system.emissionOverTime=new Q.ConstantValue(0);system.looping=false;}
  const p=this.p,motion=this.reduced?.2:1;
- const burst=this.particles({kind:this.id==='seedBomb'?'leaf':this.id==='waterPulse'?'droplet':'streak',count:p.quantity*(this.id==='airSlash'?.6:1.8),radius:p.size*.15,speed:p.spread*2*motion,size:this.id==='airSlash'?3:1.5});burst.emitter.position.copy(this.core.position);
+ const burst=this.particles({kind:this.id==='seedBomb'?'leaf':this.id==='waterPulse'?'droplet':'streak',count:p.quantity*(this.id==='waterPulse'?p.burstCount:this.id==='airSlash'?.6:1.8),radius:p.size*(this.id==='waterPulse'?p.burstRadius:.15),speed:p.spread*(this.id==='waterPulse'?p.burstSpeed:2)*motion,size:this.id==='waterPulse'?p.burstSize:this.id==='airSlash'?3:1.5,life:this.id==='waterPulse'?p.burstLife:1});burst.emitter.position.copy(this.core.position);
  if(this.id==='seedBomb'){const dust=this.particles({count:p.quantity*.45,radius:p.size,speed:p.spread*.5,size:3,color:'#8b9d58'});dust.emitter.position.copy(this.core.position);}
  }
  update(dt){if(!this.active)return;this.time+=dt;const p=this.p,t=this.time,u=Math.min(1,t/p.duration),motion=this.reduced?.2:1;
  if(this.id==='fireSpin'){
- const envelope=Math.min(1,t/.6,Math.max(0,(p.duration-t)/.8));
- for(const system of this.systems)system.emissionOverTime=new Q.ConstantValue((system===this.flame?p.quantity*.45:p.quantity*.25)*envelope*(this.reduced?.35:1));
+ const envelope=Math.min(1,t/p.fireRise,Math.max(0,(p.duration-t)/p.fireFade));
+ for(const system of this.systems)system.emissionOverTime=new Q.ConstantValue((system===this.flame?p.quantity*.45:p.quantity*.25*p.fireEmbers)*envelope*(this.reduced?.35:1));
  }else if(!this.hit){
  const travel=p.speed*p.duration*.5*motion,progress=this.id==='waterPulse'?u*u:u;
  this.velocity=this.id==='waterPulse'?p.speed*u*motion:p.speed*.5*motion;
@@ -64,8 +70,9 @@ export class ElementalPreview {
  if(u>=1)this.contact();
  }
  this.surfaces?.update(t);this.scene.updateMatrixWorld(true);this.batch.update(dt);
- if(t>(this.contactAt??p.duration)+p.life*2+1)this.clear();
+ const tail=this.id==='waterPulse'?Math.max(p.contactDuration,p.squashDuration,p.life*Math.max(p.trailLife,p.burstLife)+1):p.life*2+1;const launchEnd=this.id==='waterPulse'&&p.launchCount>0?p.launchDelay+(p.launchCount-1)*p.launchInterval+p.launchDuration:0,shotEnd=this.shotOn?p.shotDuration+p.shotShockStagger*p.shotShockCount+p.life*p.shotBurstLife+.2:0;
+ if(t>Math.max((this.contactAt??p.duration)+tail,launchEnd,shotEnd))this.clear();
  }
- diagnostics(){return {variant:this.p?.variant,contactAt:this.contactAt,velocity:this.velocity,stretch:this.core?.scale.x,move:this.id,active:this.active,time:this.time,systems:this.systems.length,particles:this.systems.reduce((n,s)=>n+s.particleNum,0),positiveSizes:this.systems.reduce((n,s)=>n+s.particles.slice(0,s.particleNum).filter(p=>p.size.x>0).length,0),settings:this.p,phase:!this.active?'Pronto':this.hit?'Contato / dissipação':this.time>this.p.duration?'Dissipação':this.time<.6?'Início':this.id==='fireSpin'?'Sustentação':'Trajeto'};}
+ diagnostics(){return {variant:this.p?.variant,contactAt:this.contactAt,velocity:this.velocity,stretch:1+(this.smearAmount??0),launchVisible:this.surfaces?.launch.visible,visibleLaunchRings:this.surfaces?.launch.children.filter(r=>r.visible).length,impactOpacity:this.surfaces?.impact.children[0]?.material.uniforms.opacity.value,launchMeshes:this.surfaces?.launch.children.length,shotOn:this.shotOn,shotRings:this.surfaces?.shot?.children.filter(r=>r.visible).length,shotFlash:this.surfaces?.shotFlashNow,shotKick:this.surfaces?.shotKickNow,shotJet:this.shotJet?.particleNum,shotJetDx:this.shotJet?.particleNum?this.shotJet.particles.slice(0,this.shotJet.particleNum).reduce((n,q)=>n+q.position.x,0)/this.shotJet.particleNum-this.shotJet.emitter.position.x:null,coreRotationX:this.core?.rotation.x,coreScale:this.core?.scale.x,move:this.id,active:this.active,time:this.time,systems:this.systems.length,particles:this.systems.reduce((n,s)=>n+s.particleNum,0),positiveSizes:this.systems.reduce((n,s)=>n+s.particles.slice(0,s.particleNum).filter(p=>p.size.x>0).length,0),settings:this.p,phase:!this.active?'Pronto':this.hit?'Contato / dissipação':this.time>this.p.duration?'Dissipação':this.shotOn&&this.time<this.p.shotDuration+this.p.shotShockStagger*this.p.shotShockCount?'Disparo (impacto)':this.time<.6?'Início':this.id==='fireSpin'?'Sustentação':'Trajeto'};}
  dispose(){this.clear();this.batch.removeFromParent();this.root.removeFromParent();}
 }
