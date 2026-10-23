@@ -173,3 +173,44 @@ No painel esquerdo do **Ateliê Elemental Quarks**, grupo **Salvar configuraçõ
 - **Importar:** carrega um desses arquivos e restaura tudo. Arquivo inválido é recusado com mensagem, sem alterar nada; campos desconhecidos são ignorados e contados.
 
 Limite: o salvamento automático vale só para o mesmo navegador e o mesmo arquivo HTML; trocar de navegador, limpar dados do site ou mover o HTML de pasta o perde — por isso exporte. Os valores exportados ainda não viram o padrão do jogo: isso exige aplicá-los aos presets (peça com o arquivo em mãos). Teste: `test/elemental-export.browser.mjs`.
+
+
+---
+
+# Elementais no jogo — 23/10/2026
+
+A partir desta rodada, **Água (Water Pulse), Fogo (Fire Spin) e Vento (Air Slash)** usam o renderizador completo do ateliê (three.quarks) dentro da partida. O **Seed Bomb não foi alterado**: continua com o desenho provisório de `src/view/elemental-fx.js`.
+
+## Onde escolher
+
+Abra **ABRIR_ARENAMON.html → Visualizar** e abra a unidade **Moves elementais (Água, Fogo, Vento)** (grupo Mundo). Lá há:
+
+- **Água, Fogo e Vento com o visual do Ateliê** (caixa) — desligar volta ao desenho provisório antigo.
+- **A/B/C** para cada Move (mesmas opções do ateliê).
+- **▶ Prévia** que dispara uma entidade real e inofensiva (dano 0) para ver o efeito.
+
+Os mesmos valores estão em **Ajustes → VFX · Elementais (Água, Fogo, Vento)**, e as variantes entram no salvamento automático e no exportar/importar.
+
+## Como funciona
+
+- `src/view/quarks/elemental-game.js` (`ElementalGameFx`) cria um único `Q.BatchedRenderer` compartilhado e um `ElementalPreview` em modo **seguir entidade** para cada projétil/área vivo. A posição, o raio, a vida e o contato vêm da simulação; nada aqui decide regra, dano, colisão ou cooldown.
+- `src/view/quarks/elemental-game-params.js` contém os parâmetros aprovados em `param.txt` (83/70/83 chaves por variante). A variante ativa é lida ao vivo de `C.vfx.elemental`, então trocar A/B/C afeta o próximo disparo.
+- `ElementalPreview` ganhou as opções `{batch, parent}` e o modo `follow` (root na posição da entidade, núcleo em 0,0,0; trajetória e contato automático desligados; o chamador decide quando contatar). O ateliê continua criando o próprio batch e root, como antes.
+- O Fire Spin usa a vida da zona (2,4 s) em vez dos 20,8 s do ateliê; a subida e o apagar aprovados (`fireRise`/`fireFade`) continuam valendo dentro dessa vida.
+- A escala do efeito casa com o volume da simulação (raio do projétil / raio da zona), e o eixo +X do ateliê é girado para a direção real do projétil (nariz, jato de disparo, corte).
+- Quando a entidade some, o efeito continua por 2,4 s (água), 2,0 s (vento) ou 1,2 s (fogo) para mostrar a explosão/corte/contato.
+
+## Correções de jogabilidade (mesma rodada)
+
+- **Emerging Stone:** o bloco pilar só lança quem estiver na parte exposta **durante a emergência**. Rocha já totalmente invocada não derruba mais ninguém (antes derrubava quem entrasse no bloco depois da subida).
+- **Sand Wave:** o empurrão cancela esquiva em andamento e zera a velocidade própria (caminhada/corrida/esquiva) no primeiro contato, para sobrepujar qualquer movimentação enquanto houver contato na janela.
+
+## O que não foi alterado
+
+- Seed Bomb (visual e regras).
+- Regras, dano, colisão, cooldown, custo e tempos de Water Pulse, Fire Spin e Air Slash.
+- O desenho provisório de `src/view/elemental-fx.js` (ainda usado pelo Seed Bomb e pela esfera de carga do Water Pulse, e como fallback quando os elementais estão desligados).
+
+## Validação
+
+Build (`npm run build:combat-lab`) e typecheck passaram. A camada expõe `view.worldView.elementalFx.diagnostics()` para os testes de navegador. O desempenho com vários efeitos simultâneos não foi medido.

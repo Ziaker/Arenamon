@@ -79,6 +79,8 @@ export function stepSand(/** @type {any} */ game, /** @type {any} */ e, /** @typ
     if (!inside) {if (st) st.pinned = false;continue;}
     if (pathDistance(e, cache.field, solids, f.position) > front + 1e-9) continue;   // a frente ainda não chegou
     if (!st) {   // primeiro contato: tenta o acerto (invulnerável não gasta nada)
+       // Limpa a velocidade propria (caminhada/corrida/esquiva) para o empurrao sobrepujar o movimento.
+       f.locomotionVelocity = {x: 0, z: 0};f.velocity = {x: 0, z: 0};
       const ev = applyHit(game, e.owner, f, {damage: e.damage, knockback: null}, {x: e.dir.x, z: e.dir.z}, {entity: e.id, source: 'sand', origin: {x: e.pos.x, z: e.pos.z}, pl: 1, contact: 'area'});
       if (!ev || ev.result === 'invulnerable') continue;
       events.push(ev);
@@ -87,6 +89,8 @@ export function stepSand(/** @type {any} */ game, /** @type {any} */ e, /** @typ
       if (ev.result === 'perfect' || ev.result === 'riposte') continue;
     }
     const t = e.targets[f.id];if (t.perfect || t.riposte) continue;
+    // O empurrao sobrepuja qualquer movimentacao (caminhada, corrida, esquiva): cancela esquiva em andamento.
+    if (f.action && f.action.kind === 'dodge') { if (!f.sandPush) f.locomotionVelocity = {x: 0, z: 0}; f.action = null; }
     // empurrão contínuo para a frente da direção fixada
     const accel = e.accel * (t.partial ? e.partialFactor : 1);
     f.sandPush = {by: e.id, dir: {x: e.dir.x, z: e.dir.z}, accel};still.add(f.id);

@@ -13,6 +13,7 @@ import {altitudeOf} from '../sim/entity.js';
 import {reflectPlacement} from '../sim/moves/reflect.js';
 import {stoneCount} from '../sim/moves/psyshock.js';
 import {makeElemental, updateElemental} from './elemental-fx.js';
+import {ElementalGameFx} from './quarks/elemental-game.js';
 
 export const PL_HEX = [0xffffff, 0x59d6e6, 0xffcf6a, 0xff6adf];
 const RING = {
@@ -172,6 +173,8 @@ export class WorldView {
     this.rockGeos = [buildRockGeometry(0), buildRockGeometry(1), buildRockGeometry(2)];
     this.trailTimer = 0;
     this.accessibility = {noFlash: false, reduceMotion: false, highContrast: false};
+    // Água, Fogo e Vento com o renderizador do Ateliê Elemental (three.quarks). O Seed Bomb não entra aqui.
+    this.elementalFx = new ElementalGameFx(this.group);
   }
 
   createChargeRing() {
@@ -549,10 +552,21 @@ export class WorldView {
     if (emitTrailsNow) this.trailTimer = 0;
 
     const alive = new Set();
+    const fxAcc = {...this.accessibility, noFlash: !!(this.accessibility?.noFlash || C.vfx.master?.noFlash), reduceMotion: !!(this.accessibility?.reduceMotion || C.vfx.master?.reduceMotion)};
     for (const e of world?.entities ?? []) {
       alive.add(e.id);
+      // Água/Fogo/Vento são desenhados pela camada three.quarks (elemental-game.js); o Seed Bomb segue no desenho provisório.
+      if (this.elementalFx.handles(e)) {
+        const stale = this.meshes.get(e.id);
+        if (stale) {
+          this.group.remove(stale);
+          stale.traverse(o => {o.geometry?.dispose();if (Array.isArray(o.material)) o.material.forEach(mat => mat.dispose());else o.material?.dispose();});
+          this.meshes.delete(e.id);
+        }
+        continue;
+      }
       let m = this.meshes.get(e.id) ?? this.make(e);
-      if (updateElemental(m, e, this.time, dt, {...this.accessibility, noFlash: !!(this.accessibility?.noFlash || C.vfx.master?.noFlash), reduceMotion: !!(this.accessibility?.reduceMotion || C.vfx.master?.reduceMotion)})) continue;
+      if (updateElemental(m, e, this.time, dt, fxAcc)) continue;
 
       if (e.kind === 'beam') {
         if (skipBeams) {
@@ -674,6 +688,9 @@ export class WorldView {
       }
     }
 
+    // Efeitos elementais em three.quarks: cria/atualiza os que seguem entidades e mantém o contato delas.
+    this.elementalFx.sync(world?.entities ?? [], dt, fxAcc);
+
     // Eventos novos viram anéis e geram estilhaços/shatter de rochas e barreiras
     for (const ev of events) {
       if (this.seen.has(ev)) continue;
@@ -681,7 +698,7 @@ export class WorldView {
       const spec = RING[ev.result];
       const m = this.meshes.get(ev.entity), f = FIGHTER_EVENTS.has(ev.result) ? fighters[ev.target] : null;
       const be = ev.kind === 'beam' && ev.seg != null ? world?.entities.find(x => x.id === ev.entity) : null, bp = be?.segments?.[ev.seg]?.b;
-      const pos = bp ? {x: bp.x, y: be.y, z: bp.z} : f ? {x: f.position.x, y: .6, z: f.position.z} : m ? m.position : null;
+      const pos = bp ? {x: bp.x, y: be.y, z: bp.z} : f ? {x: f.position.x, y: .6, z: f.position.z} : m ? m.position : this.elementalFx.positionOf(ev.entity);
       if (!pos) continue;
 
       const evColor = spec ? (spec[0] ?? PL_HEX[Math.min(3, ev.barrierPl ?? ev.pl ?? 1)]) : 0xffffff;

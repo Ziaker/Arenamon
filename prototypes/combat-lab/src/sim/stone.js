@@ -147,6 +147,8 @@ export function stoneStep(/** @type {any} */ game) {
       if (!inside) continue;
       const fy = f.flight ? f.flight.y : (f.groundY ?? 0) + (f.vaultHeight ?? 0);
       if (!f.flight && Math.abs((f.groundY ?? 0) - (d.pos.y + prev)) < .06 && prev > .01) {f.groundY = d.pos.y + d.size.height;continue;}   // em cima: o topo o carrega durante a subida
+      // Lancamento so durante a emergencia (invocacao): rocha ja totalmente invocada nao derruba mais ninguem.
+      if (d.size.height >= d.targetHeight - 1e-6) continue;
       if (d.launched.includes(f.id)) continue;
       if (fy < d.pos.y + d.size.height - .02 && fy + bodyH() > d.pos.y + .02) {   // primeira interseção válida com a parte exposta
         d.launched.push(f.id);

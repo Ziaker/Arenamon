@@ -7,7 +7,9 @@ import {ShotEffect} from './shot-effect.js';
 
 // Geometrias contínuas são superfícies; toda partícula é simulada por three.quarks.
 export class ElementalPreview {
- constructor(scene){this.scene=scene;this.batch=new Q.BatchedRenderer();scene.add(this.batch);this.systems=[];this.materials=[];this.root=new THREE.Group();scene.add(this.root);this.time=0;this.active=false;}
+ // `batch`/`parent` permitem ao jogo compartilhar um único BatchedRenderer entre vários efeitos
+ // (o ateliê continua criando o próprio batch e o próprio root, como antes).
+ constructor(scene,{batch=null,parent=null}={}){this.scene=scene;this.batch=batch??new Q.BatchedRenderer();this.ownsBatch=!batch;if(!batch)scene.add(this.batch);this.systems=[];this.materials=[];this.root=new THREE.Group();(parent??scene).add(this.root);this.time=0;this.active=false;this.follow=false;this.followPos=new THREE.Vector3();}
  clear(){for(const s of this.systems){this.batch.deleteSystem(s);s.emitter.removeFromParent();s.dispose();}this.systems=[];this.surfaces=null;this.shotFx=null;this.spawnFx=null;this.flashFx=null;this.seedMesh=null;this.groundWave=null;this.root.traverse(o=>{o.geometry?.dispose();});this.root.clear();for(const m of this.materials){m.map?.dispose();m.dispose();}this.materials=[];this.active=false;}
  material(color,opacity=1){const m=new THREE.MeshBasicMaterial({color,transparent:true,opacity:Math.min(1,opacity*(this.p?.brightness??1)),depthWrite:false,side:THREE.DoubleSide});this.materials.push(m);return m;}
  mesh(g,color,opacity=1,parent=this.root){const m=new THREE.Mesh(g,this.material(color,opacity));parent.add(m);return m;}
@@ -25,11 +27,11 @@ export class ElementalPreview {
  params.startColor=new Q.ConstantColor(new Q.Vector4(p.brightness,p.brightness,p.brightness,1));
  if(cone){params.shape=new Q.ConeEmitter({radius,angle:.04,thickness:.08,mode:Q.EmitterMode.Loop,spread:.06,speed:new Q.ConstantValue(Math.abs(orbit)*.2/(Math.PI*2))});}
  if(orbit)params.behaviors.push(new Q.OrbitOverLife(new Q.ConstantValue(orbit*(this.reduced?.2:1)),new Q.Vector3(0,0,1)));
- const s=new Q.ParticleSystem(params);this.scene.add(s.emitter);this.batch.addSystem(s);this.systems.push(s);return s;
+ const s=new Q.ParticleSystem(params);this.root.add(s.emitter);this.batch.addSystem(s);this.systems.push(s);return s;
  }
  ring(radius,color,parent=this.root){return this.mesh(new THREE.TorusGeometry(radius,.018*this.p.size,8,100),color,.75,parent);}
- play(id,overrides,pl=1,{noFlash=false,reduced=false}={}){
- this.clear();this.id=id;this.p=elementalSettings(id,overrides,pl);this.noFlash=noFlash;this.reduced=reduced;if(noFlash)this.p.brightness=Math.min(.65,this.p.brightness);this.time=0;this.active=true;this.hit=false;this.contactAt=null;this.velocity=0;this.smearAmount=0;this.rings=[];this.trails=[];const p=this.p;this.shotJet=null;this.shotOn=['waterPulse','airSlash'].includes(id)&&p.shotDuration>0;
+ play(id,overrides,pl=1,{noFlash=false,reduced=false,follow=false}={}){
+ this.clear();this.id=id;this.p=elementalSettings(id,overrides,pl);this.noFlash=noFlash;this.reduced=reduced;this.follow=!!follow;this.followPos.set(0,0,0);if(noFlash)this.p.brightness=Math.min(.65,this.p.brightness);this.time=0;this.active=true;this.hit=false;this.contactAt=null;this.velocity=0;this.smearAmount=0;this.rings=[];this.trails=[];const p=this.p;this.shotJet=null;this.shotOn=['waterPulse','airSlash'].includes(id)&&p.shotDuration>0;
  this.core=new THREE.Group();this.root.add(this.core);
  if(id!=='seedBomb'){
  this.surfaces=new ElementalSurfaces(this);
@@ -78,17 +80,22 @@ export class ElementalPreview {
  const burst=this.particles({kind:this.id==='waterPulse'?'droplet':'streak',count:p.quantity*(this.id==='waterPulse'?p.burstCount:.6),radius:p.size*(this.id==='waterPulse'?p.burstRadius:.15),speed:p.spread*(this.id==='waterPulse'?p.burstSpeed:2)*motion,size:this.id==='waterPulse'?p.burstSize:3,life:this.id==='waterPulse'?p.burstLife:1});burst.emitter.position.copy(this.core.position);
  }
  update(dt){if(!this.active)return;this.time+=dt;const p=this.p,t=this.time,u=Math.min(1,t/p.duration),motion=this.reduced?.2:1;
+ // Modo "seguir entidade" (jogo): o root fica na posição da entidade e o núcleo em (0,0,0);
+ // a trajetória e o contato automático do ateliê ficam desligados (o chamador decide quando contatar).
+ if(this.follow)this.core.position.copy(this.followPos);
  if(this.id==='fireSpin'){
  const envelope=Math.min(1,t/p.fireRise,Math.max(0,(p.duration-t)/p.fireFade));
  for(const system of this.systems)system.emissionOverTime=new Q.ConstantValue((system===this.flame?p.quantity*.45:p.quantity*.25*p.fireEmbers)*envelope*(this.reduced?.35:1));
  }else if(!this.hit&&this.id==='seedBomb'){
  this.updateSeed(t,p,motion);
  }else if(!this.hit){
+ if(!this.follow){
  const travel=p.speed*p.duration*.5*motion,progress=this.id==='waterPulse'?u*u:u;
  this.velocity=this.id==='waterPulse'?p.speed*u*motion:p.speed*.5*motion;
  this.core.position.set((progress-.5)*travel,this.id==='waterPulse'?p.height:p.height,0);
- for(const system of this.trails)system.emitter.position.copy(this.core.position);
  if(u>=1)this.contact();
+ }
+ for(const system of this.trails)system.emitter.position.copy(this.core.position);
  }
  this.shotFx?.update(Math.max(0,t-(p.seedRise??0)));
  this.surfaces?.update(t);
@@ -99,9 +106,9 @@ export class ElementalPreview {
  if(this.core.visible){const k=Math.min(1,age/Math.max(.01,p.squashDuration));this.core.scale.set(Math.max(.01,1-k*p.squashAmount),1+k*p.squashAmount*.5,1+k*p.squashAmount*.5);}
  if(this.groundWave){const open=Math.min(1,age/Math.max(.01,p.contactOpening)),scale=Math.max(.01,p.size*p.groundWave*(p.contactInitial+open*(1+age*p.groundWaveSpeed*motion)));this.groundWave.scale.setScalar(scale);this.groundWave.material.opacity=Math.max(0,1-age/Math.max(.01,p.contactDuration));}
  }
- this.scene.updateMatrixWorld(true);this.batch.update(dt);
+ this.root.updateWorldMatrix(true,true);if(this.ownsBatch)this.batch.update(dt);
  const tail=this.id==='waterPulse'?Math.max(p.contactDuration,p.squashDuration,p.life*Math.max(p.trailLife,p.burstLife)+1):this.id==='seedBomb'?Math.max(p.contactDuration,p.squashDuration,p.life*Math.max(p.leafLife,p.burstLife,p.dustLife)+1):p.life*2+1;const launchEnd=this.id==='waterPulse'&&p.launchCount>0?p.launchDelay+(p.launchCount-1)*p.launchInterval+p.launchDuration:0,shotEnd=this.shotOn?p.shotDuration+p.shotShockStagger*p.shotShockCount+p.life*p.shotBurstLife+.2:0;
- if(t>Math.max((this.contactAt??p.duration)+tail,launchEnd,shotEnd))this.clear();
+ if(!this.follow&&t>Math.max((this.contactAt??p.duration)+tail,launchEnd,shotEnd))this.clear();
  }
  // Semente em voo: surgimento, arco, giro, coice do disparo e rastro de folhas.
  updateSeed(t,p,motion){
@@ -134,5 +141,5 @@ export class ElementalPreview {
  if(this.time<.6)return 'Início';
  return this.id==='fireSpin'?'Sustentação':'Trajeto';
  }
- dispose(){this.clear();this.batch.removeFromParent();this.root.removeFromParent();}
+ dispose(){this.clear();if(this.ownsBatch)this.batch.removeFromParent();this.root.removeFromParent();}
 }

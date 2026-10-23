@@ -6,6 +6,7 @@ import {spawn} from '../sim/world.js';
 import {VFX_TYPES, SHAKE_EVENTS} from '../view/vfx.js';
 import {SOLID_FAMILIES} from '../view/solid-fx.js';
 import {PASSIVE_ABILITIES} from '../view/passive-abilities.js';
+import {ELEMENTAL_VARIANTS} from '../view/quarks/presets.js';
 import {fold} from './characters-panel.js';
 import {escape, pathGet as pathGetRoot} from './tuning.js';
 
@@ -68,10 +69,11 @@ export function createVisualPanel({tuning, view, game, $, hud, download}) {
       ['rochas', 'Rochas (Psyshock)', 'Modelo da pedra, rastro e estilhaços.'],
       ['barreira', 'Barreira (Reflect)', 'Estilo, brilho, pulsação e quebra da barreira.'],
       ['laser', 'Laser da arena', 'Prévias visuais e disparos reais na simulação.'],
+      ['elementais', 'Moves elementais', 'Água, Fogo e Vento com o renderizador do Ateliê Elemental (three.quarks), nas opções A/B/C. O Seed Bomb permanece exatamente como estava.'],
       ['extras', 'Câmera, tremor e HUD', 'Tremores, sombras, câmera, HUD, altura visual e depuração.'],
     ];
     const nav = document.createElement('nav');nav.className = 'vx-nav';nav.setAttribute('aria-label', 'Seções de Visualizar');
-    const SHORT = {combate: 'Combate', extras: 'Câmera e HUD', rochas: 'Rochas', barreira: 'Barreira'};
+    const SHORT = {combate: 'Combate', extras: 'Câmera e HUD', rochas: 'Rochas', barreira: 'Barreira', elementais: 'Elementais'};
     nav.innerHTML = SECS.map(([id, t]) => `<button type="button" data-vx-go="${id}">${escape(SHORT[id] ?? t)}</button>`).join('');root.append(nav);
     const S = {};
     for (const [id, title, hint] of SECS) {
@@ -162,6 +164,40 @@ export function createVisualPanel({tuning, view, game, $, hud, download}) {
     for (const b of solidBox.querySelectorAll('[data-solid-combo-prev]')) b.onclick = () => view.solid?.preview('all', game.fighters, b.dataset.solidComboPrev);
     for (const c of solidBox.querySelectorAll('[data-solid-on]')) c.onchange = () => tuning.commit([[`vfx.${c.dataset.solidOn}.enabled`, c.checked ? 1 : 0]], 'Efeito 3D ' + c.dataset.solidOn);
     solidBox.querySelector('[data-solid-master]').onchange = e => tuning.commit([['vfx.solid.enabled', e.target.checked ? 1 : 0]], 'Efeitos 3D sólidos');
+    // ---------- Moves elementais: Água, Fogo e Vento com o renderizador do Ateliê (three.quarks) ----------
+    const ELEMENTAL_CARDS = [
+      {key: 'water', label: 'Água · Water Pulse', names: ELEMENTAL_VARIANTS.waterPulse},
+      {key: 'fire', label: 'Fogo · Fire Spin', names: ELEMENTAL_VARIANTS.fireSpin},
+      {key: 'air', label: 'Vento · Air Slash', names: ELEMENTAL_VARIANTS.airSlash},
+    ];
+    const elemBox = document.createElement('div');elemBox.className = 'vx-card vx-wide';
+    elemBox.innerHTML = `<h4>Moves elementais (three.quarks)</h4>
+      <label class="vx-check"><input type="checkbox" data-elemental-on ${C.vfx.elemental?.enabled ? 'checked' : ''}> Água, Fogo e Vento com o visual do Ateliê</label>
+      <p class="hint">Escolha a opção de cada Move; a prévia dispara uma entidade real e inofensiva. O Seed Bomb continua com o desenho provisório e não muda.</p>
+      ${ELEMENTAL_CARDS.map(c => `<div class="vx-elem" data-elemental="${c.key}">
+        <b>${escape(c.label)}</b>
+        <div class="seg wide" role="group" aria-label="${escape(c.label)}">${c.names.map((n, v) => `<button type="button" data-elemental-variant="${c.key}:${v}" aria-pressed="${(C.vfx.elemental?.[c.key + 'Variant'] | 0) === v}" title="${escape(n)}">${escape(n.split(':')[0])}</button>`).join('')}</div>
+        <div class="vx-btns"><button type="button" data-elemental-preview="${c.key}">▶ Prévia</button></div>
+      </div>`).join('')}`;
+    S.elementais.append(elemBox);
+    const spawnElemental = key => {
+      const card = ELEMENTAL_CARDS.find(c => c.key === key);if (!card) return;
+      if (game.phase !== 'playing') game.startMatch?.('center');
+      const [blue, red] = game.fighters, target = red ?? blue;
+      const dx = target.position.x - blue.position.x, dz = target.position.z - blue.position.z, d = Math.hypot(dx, dz) || 1, dir = {x: dx / d, z: dz / d};
+      const at = k => ({x: blue.position.x + dir.x * k, z: blue.position.z + dir.z * k});
+      if (key === 'water') spawn(game.world, {kind: 'projectile', owner: 0, pos: at(1.2), y: 1.2, radius: .38, dir, speed: 7, vy: 0, life: 4, pierce: 1, blockedBy: [], hit: {damage: 0, knockback: {horizontal: 0, vertical: 0}}, pl: 1, visual: 'waterorb', visualScale: 1, captured: {move: 'water-pulse'}}, game.lastStepEvents);
+      else if (key === 'air') spawn(game.world, {kind: 'projectile', owner: 0, pos: at(1.2), y: 1.2, radius: .6, dir, speed: 12, vy: 0, life: 3, pierce: 1, blockedBy: [], hit: {damage: 0, knockback: {horizontal: 0, vertical: 0}}, pl: 1, visual: 'airslash', captured: {move: 'air-slash', w: 1.2, h: .7, t: .22}}, game.lastStepEvents);
+      else if (key === 'fire') spawn(game.world, {kind: 'area', owner: 0, pos: at(3), y: 0, radius: 1.6, height: 2.4, life: 2.4, pulses: 4, interval: .6, falloff: 'none', hit: {damage: 0, knockback: {horizontal: 0, vertical: 0}, guardStun: 0}, support: true, occlusion: 0, pl: 1, visual: 'firespin', captured: {move: 'fire-spin'}}, game.lastStepEvents);
+    };
+    for (const b of elemBox.querySelectorAll('[data-elemental-variant]')) b.onclick = () => {
+      const [key, v] = b.dataset.elementalVariant.split(':'), card = ELEMENTAL_CARDS.find(c => c.key === key);
+      tuning.commit([[`vfx.elemental.${key}Variant`, Number(v)]], `${card.label}: ${card.names[Number(v)].split(':')[0]}`);
+      for (const x of elemBox.querySelectorAll(`[data-elemental-variant^="${key}:"]`)) x.setAttribute('aria-pressed', String(x === b));
+      spawnElemental(key);
+    };
+    for (const b of elemBox.querySelectorAll('[data-elemental-preview]')) b.onclick = () => spawnElemental(b.dataset.elementalPreview);
+    elemBox.querySelector('[data-elemental-on]').onchange = e => tuning.commit([['vfx.elemental.enabled', e.target.checked ? 1 : 0]], 'Elementais three.quarks');
     const updateVfxModeButtons = () => {
       const legBtn = renderModeBox.querySelector('[data-vfx-runtime-btn="legacy"]');
       const newBtn = renderModeBox.querySelector('[data-vfx-runtime-btn="new"]');
@@ -392,6 +428,7 @@ renderModeBox.querySelector('[data-vfx-runtime-btn="legacy"]')?.addEventListener
     unit('Mundo', 'Rochas (Psyshock)', body(S.rochas), {id: 'rock', prefix: 'vfx.rock.', on: 'vfx.rock.enabled'});
     unit('Mundo', 'Barreira (Reflect)', body(S.barreira), {id: 'barrier', prefix: 'vfx.barrier.', on: 'vfx.barrier.enabled'});
     unit('Mundo', 'Laser da arena', body(S.laser), {id: 'laser', prefix: 'vfx.laser.', on: 'vfx.laser.enabled'});
+    unit('Mundo', 'Moves elementais (Água, Fogo, Vento)', body(S.elementais), {id: 'elementais', prefix: 'vfx.elemental.', on: 'vfx.elemental.enabled'});
     for (const g of [...extraGrid.children]) if (g !== dbgBox && g.classList.contains('fold')) unit('Câmera, tremor e HUD', foldLabel(g), g, {id: g.dataset.group});
     for (const u of units) if (u.el.classList.contains('fold') || u.el.dataset.group) u.el.setOpen?.(true);
     const md = document.createElement('div');md.className = 'vx-md';
@@ -474,6 +511,8 @@ renderModeBox.querySelector('[data-vfx-runtime-btn="legacy"]')?.addEventListener
       view.vfxRuntime.beamRenderer.setConfig(C.vfx.laser);
       view.vfxRuntime.beamRenderer.setQuality(['low', 'medium', 'high'][C.vfx.laser.quality] || 'medium');
     }
+    for (const b of root.querySelectorAll('[data-elemental-variant]')) {const [k, v] = b.dataset.elementalVariant.split(':');b.setAttribute('aria-pressed', String((C.vfx.elemental?.[k + 'Variant'] | 0) === Number(v)));}
+    const elementalOn = root.querySelector('[data-elemental-on]');if (elementalOn) elementalOn.checked = !!C.vfx.elemental?.enabled;
   });
   return {render, live, setMode, setFilter, select: id => api.select?.(id), get vfxMode() {return state.mode;}};
 }

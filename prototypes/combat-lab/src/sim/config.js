@@ -312,6 +312,10 @@ export function vfxDefaults() {
     // B (impacto), C (pouso) e footstool por partículas GPU, A/B comparativo com o legado.
     // 0 = desligada (custo zero, nada é instanciado). Só aparência.
     quarks: {enabled: 0},
+    // Moves elementais (Água, Fogo e Vento) com o renderizador do Ateliê Elemental (three.quarks).
+    // enabled = 0 devolve o desenho provisório antigo de view/elemental-fx.js; 0/1/2 escolhe a opção A/B/C.
+    // O Seed Bomb não usa estes valores (permanece no desenho provisório, por decisão de 23/10/2026).
+    elemental: {enabled: 1, waterVariant: 0, fireVariant: 0, airVariant: 0},
     // Pós-processamento experimental (Fase 4, pmndrs/postprocessing sem React): bloom por limiar/seleção, distorção em impactos fortes,
     // aberração cromática, color grading, vinheta e profundidade de campo (só K.O.). enabled = 0: renderer atual, custo zero. Só aparência.
     post: {
