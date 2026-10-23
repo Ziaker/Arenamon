@@ -1,3 +1,46 @@
+# Seed Bomb: controles completos por fase e efeito de disparo selecionável — 23/10/2026
+
+Abra **ABRIR_ARENAMON.html → Ateliê Elemental Quarks** (`prototypes/combat-lab/dist/arenamon-elementais-quarks.html`), escolha **Seed Bomb** e role o painel esquerdo. O painel agora abre com **Base (vale para todas as fases)** e segue as fases pedidas: **Surgimento**, **Disparo**, **Voo**, **Rastro de folhas** e **Contato / explosão**. A legenda sobre a cena mostra a fase atual (`Surgimento`, `Disparo`, `Voo`, `Contato`).
+
+## Efeito de disparo (novo, reutilizável)
+
+Em **Disparo** há o seletor **Efeito de disparo** com três opções:
+
+- **Nenhum** — desliga o disparo (padrão).
+- **Argola** — anéis que saem da semente: raio, deslocamento vertical, deslocamento no trajeto, achatamento horizontal, impulso horizontal (positivo avança, negativo recua), espessura, quantidade, intervalo, duração, expansão, opacidade, tempo de aparecimento, inclinação, cor e brilho.
+- **Tiro em cone** — jato de partículas: direção horizontal e vertical (graus, com sinal), raio de abertura, comprimento, abertura do cone, quantidade, tamanho, vida, impulso horizontal e vertical (m/s, com sinal), dispersão, duração da emissão, atraso, gravidade, cor e brilho.
+
+Só os sliders do efeito escolhido aparecem. Os dois efeitos guardam valores **independentes** (`shotRing` e `shotCone` no arquivo exportado), então trocar de efeito nunca apaga os ajustes do outro. O módulo é `src/view/quarks/shot-effect.js` (`ShotEffect`), sem nenhum nome de Move fixo: para aplicar em Water Pulse/Air Slash basta criar `new ShotEffect(preview)` e chamar `start(settings.shotEffect, settings)` / `update(t)`. Neste pedido ele está ativo **somente no Seed Bomb**.
+
+## Controles por fase
+
+**89 controles** no total: 58 do Seed Bomb (incluindo 8 seletores de cor), 15 da Argola e 16 do Tiro em cone. Todos têm nome, unidade, explicação curta e campo numérico.
+
+- **Base (5):** quantidade base de partículas, intensidade luminosa, tamanho base, vida base e dispersão base.
+- **Surgimento (8):** duração do surgimento, escala inicial, quantidade/raio/velocidade/tamanho/vida/cor das partículas de surgimento.
+- **Disparo (6):** o seletor + clarão, duração do clarão e do coice, coice, ângulo de lançamento e velocidade de lançamento.
+- **Voo (13):** tamanho geral, comprimento, largura, formato (redonda → ponta), espessura/brilho/cor da costura, eixo e velocidade do giro, altura e posição do ponto mais alto do arco, velocidade ao longo do arco e duração do voo.
+- **Rastro de folhas (7):** quantidade, raio de emissão, velocidade, tamanho, vida, giro e cor.
+- **Contato / explosão (21):** duração visual, tempo de abertura, escala inicial, expansão contínua, folhas da explosão (quantidade/velocidade/tamanho/vida/raio/cor), poeira (quantidade/velocidade/tamanho/vida/cor), anel no chão (tamanho/expansão/espessura/cor), duração e força da compressão da semente.
+
+## Padrões preservam o visual atual
+
+Tudo que é novo nasce neutro ou desligado, para o Seed Bomb continuar idêntico ao anterior: `shotEffect: none`, surgimento em 0 s e 0 partículas, clarão e coice em 0, anel no chão em 0, formato 0 (redonda), comprimento 1,2 e largura 0,72 (a semente atual), giro 0,48 rad/s no eixo Z, arco 2,8 m com topo no meio, rastro e explosão com os mesmos números de antes. Para ver cada novidade, aumente o slider correspondente.
+
+## Limites, acessibilidade e persistência
+
+- Máximo **5×** em todos os sliders do Seed Bomb e dos dois efeitos de disparo; nos sliders com sinal o mínimo também é 5× (ex.: impulso da argola −6 a +6 vira −30 a +30). Ângulos de direção ficam em **±180°**; aberturas em 0..180°.
+- **Sem flash / pulsação** desliga o clarão do disparo e troca a mistura aditiva das argolas. **Movimento reduzido** diminui impulsos, expansão e giro; a contagem de partículas do cone também cai.
+- A escolha do efeito e os valores dos dois efeitos entram no **Exportar/Importar** e no **salvamento automático** (`arenamon.elementais.config.v1`). Um override parcial de `shotRing`/`shotCone` é mesclado com os padrões, sem perder chaves.
+
+## Validação
+
+`npm run build:combat-lab`, `npm run typecheck`, 20 testes Quarks, 74 de VFX e 14 de VFX sólidos. O teste novo `test/elemental-seed-controls.browser.mjs` (Edge offline) confere os 89 controles na interface e no runtime, os limites 5×/negativos/±180°, o seletor e os dois efeitos, a troca sem perder valores, as quatro fases na legenda, clarão/coice/arco/giro/contato/anel no chão, "Sem flash", movimento reduzido, exportar/importar e o autosave após recarregar a página. Os testes anteriores de água, disparo, lançamento e variantes continuam passando. Capturas e `seed-controls-results.json` estão na [galeria](../prototypes/combat-lab/evidence/elemental-quarks/index.html).
+
+**Não verificado:** desempenho com todos os sliders no máximo ao mesmo tempo, uso em celular/toque e o efeito dentro do jogo (o pedido era só o ateliê; Water Pulse, Fire Spin, Air Slash e o jogo não foram alterados).
+
+---
+
 # Água: controles completos por fase — 23/10/2026
 
 Abra o portal **ABRIR_ARENAMON.html → Ateliê Elemental Quarks** e selecione **Water Pulse**. Role o painel esquerdo: os novos grupos são **Disparo das argolas**, **Forma e faixas da água**, **Gotas do rastro** e **Contato e explosão**. Cada slider tem explicação e campo numérico. O botão de restauração recupera os padrões da variante atual.

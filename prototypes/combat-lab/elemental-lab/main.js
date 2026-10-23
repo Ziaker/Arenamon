@@ -4,7 +4,7 @@ import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
 import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
 import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
-import {ELEMENTAL_PRESETS,ELEMENTAL_CONTROLS,ELEMENTAL_VARIANTS,FIRE_CONTROLS,CONTROL_HELP,fireDefaults,WATER_CONTROLS,waterDefaults,SHOT_CONTROLS,shotDefaults} from '../src/view/quarks/presets.js';
+import {ELEMENTAL_PRESETS,ELEMENTAL_CONTROLS,ELEMENTAL_VARIANTS,FIRE_CONTROLS,CONTROL_HELP,fireDefaults,WATER_CONTROLS,waterDefaults,SHOT_CONTROLS,shotDefaults,SEED_CONTROLS,SHOT_EFFECTS,SHOT_EFFECT_IDS,SHOT_RING_CONTROLS,SHOT_CONE_CONTROLS,shotRingDefaults,shotConeDefaults} from '../src/view/quarks/presets.js';
 import {ElementalPreview} from '../src/view/quarks/elemental-preview.js';
 const $=s=>document.querySelector(s),canvas=$('#c');
 const renderer=new THREE.WebGLRenderer({canvas,antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.1;
@@ -17,7 +17,7 @@ const grid=new THREE.GridHelper(20,20,0x27313f,0x202632);scene.add(grid);
 const fx=new ElementalPreview(scene),saved={},STORE='arenamon.elementais.config.v1',FORMAT='arenamon-elementais-config';let id='waterPulse',playing=true,variant=0,frozen=false;
 $('#reduced').checked=matchMedia('(prefers-reduced-motion: reduce)').matches;
 for(const [key,p] of Object.entries(ELEMENTAL_PRESETS))$('#move').add(new Option(p.label,key));
-function base(move,v){return {...shotDefaults(move),...waterDefaults(v),...fireDefaults(v),stretch:1,opening:1.1,contactSize:1,...ELEMENTAL_PRESETS[move],variant:v};}
+function base(move,v){return {...waterDefaults(v),...fireDefaults(v),...shotDefaults(move),stretch:1,opening:1.1,contactSize:1,...ELEMENTAL_PRESETS[move],variant:v};}
 function values(){return saved[id+variant]??=base(id,variant);}
 // Salvar: tudo que foi ajustado fica no navegador (automático) e pode ser exportado/importado como arquivo .json.
 const UI_IDS=['pl','no-flash','reduced','loop','follow','bloom','background'];
@@ -28,10 +28,21 @@ function persist(){try{localStorage.setItem(STORE,JSON.stringify(snapshot()));no
 function applyConfig(data){
  if(data?.format!==FORMAT||!Array.isArray(data.entries))throw new Error('O arquivo não é uma configuração do Ateliê Elemental.');
  let count=0,ignored=0;
+ const mergeShot=(target,source,defaults)=>{
+  if(!source||typeof source!=='object'){ignored++;return;}
+  for(const [k,x] of Object.entries(source)){
+   if(!(k in defaults)){ignored++;continue;}
+   if(typeof defaults[k]==='number'?Number.isFinite(x):typeof x===typeof defaults[k])target[k]=x;else ignored++;
+  }
+ };
  for(const e of data.entries){
   if(!ELEMENTAL_PRESETS[e?.move]||!Number.isInteger(e.variant)||e.variant<0||e.variant>2||typeof e.values!=='object'||!e.values){ignored++;continue;}
   const b=base(e.move,e.variant),v={...b};
-  for(const [k,x] of Object.entries(e.values)){if(k!=='label'&&k!=='variant'&&k in b&&typeof x===typeof b[k]&&(typeof x!=='number'||Number.isFinite(x)))v[k]=x;else ignored++;}
+  for(const [k,x] of Object.entries(e.values)){
+   if(k==='shotRing'||k==='shotCone'){mergeShot(v[k],x,b[k]);continue;}
+   if(k==='shotEffect'){if(SHOT_EFFECT_IDS.includes(x))v[k]=x;else ignored++;continue;}
+   if(k!=='label'&&k!=='variant'&&k in b&&typeof x===typeof b[k]&&(typeof x!=='number'||Number.isFinite(x)))v[k]=x;else ignored++;
+  }
   saved[e.move+e.variant]=v;count++;
  }
  const c=data.current;if(c&&ELEMENTAL_PRESETS[c.move]&&Number.isInteger(c.variant)&&c.variant>=0&&c.variant<=2){id=c.move;variant=c.variant;}
@@ -43,8 +54,46 @@ function applyUi(){if(!pendingUi)return;for(const n of UI_IDS){const e=$('#'+n),
 function restore(){$('#move').value=id;renderControls();applyUi();}
 try{const stored=localStorage.getItem(STORE);if(stored)applyConfig(JSON.parse(stored));}catch{}
 function play(){frozen=false;playing=true;fx.play(id,values(),+$('#pl').value,{noFlash:$('#no-flash').checked,reduced:$('#reduced').checked});persist();}
-function renderControls(){const p=values();$('#variant-label').hidden=!ELEMENTAL_VARIANTS[id];$('#contact').hidden=!['waterPulse','airSlash'].includes(id);$('#variant').replaceChildren();(ELEMENTAL_VARIANTS[id]??[]).forEach((name,i)=>$('#variant').add(new Option(name,String(i))));$('#variant').value=String(variant);$('#params').replaceChildren();$('#pl-label').hidden=id!=='waterPulse';$('#title').textContent=p.label;$('#bloom').max=id==='waterPulse'?360:6;
- for(const [key,label,unit,min,max,step] of [...ELEMENTAL_CONTROLS,...(id==='fireSpin'?FIRE_CONTROLS:id==='waterPulse'?WATER_CONTROLS:[]),...(['waterPulse','airSlash'].includes(id)?SHOT_CONTROLS:[])]){if((key==='stretch'&&id!=='waterPulse')||(key==='opening'&&id!=='fireSpin')||(key==='contactSize'&&!['waterPulse','airSlash'].includes(id)))continue;if((key==='detail'&&id==='seedBomb')||(key==='trail'&&id!=='airSlash'))continue;if((key==='rings'&&id==='seedBomb')||(key==='spread'&&id==='fireSpin'))continue;const section={stretch:'Núcleo e movimento',launchCount:'Disparo das argolas',waterNose:'Forma e faixas da água',trailRate:'Gotas do rastro',contactDuration:'Contato e explosão',shotDuration:'Impacto do disparo'}[key];if(section){const h=document.createElement('h3');h.textContent=section;$('#params').append(h);}const l=document.createElement('label'),o=document.createElement('output'),input=document.createElement('input');l.append(`${label} (${unit})`,o,input);input.type='range';input.min=min;input.max=key==='shotAngle'?max:id==='waterPulse'?max*300:max*5;input.step=step;input.value=p[key];input.id=key;o.value=String(p[key]);const numeric=document.createElement('input');numeric.type='number';numeric.className='param-value';numeric.min=input.min;numeric.max=input.max;numeric.step=input.step;numeric.value=input.value;numeric.setAttribute('aria-label',label+' ('+unit+')');l.insertBefore(numeric,input);o.hidden=true;input.oninput=()=>{p[key]=+input.value;o.value=input.value;numeric.value=input.value;play();};numeric.onchange=()=>{if(!Number.isFinite(numeric.valueAsNumber))return;input.value=String(Math.min(+input.max,Math.max(+input.min,numeric.valueAsNumber)));input.oninput();};const help=document.createElement('small');help.id=key+'-help';help.textContent=CONTROL_HELP[key]??WATER_CONTROLS.find(c=>c[0]===key)?.[6]??FIRE_CONTROLS.find(c=>c[0]===key)?.[6]??'Ajusta a aparência deste parâmetro.';input.setAttribute('aria-describedby',help.id);input.title=help.textContent;l.append(help);$('#params').append(l);}
+// Um controle = rótulo + campo numérico + slider + explicação. Os limites seguem a
+// regra do ateliê: máximo ×5 (e mínimo ×5 quando negativo); ângulos de direção em ±180°.
+function addControl({key,label,unit,min,max,step,help,target,cap=5}){
+ const p=target??values();
+ if(unit==='cor'){const l=document.createElement('label');l.append(label);const i=document.createElement('input');i.type='color';i.value=p[key];i.id=key;i.oninput=()=>{p[key]=i.value;play();};l.append(i);const h=document.createElement('small');h.id=key+'-help';h.textContent=help??'Cor deste parâmetro.';l.append(h);$('#params').append(l);return;}
+ if(unit==='efeito'){const l=document.createElement('label');l.append('Efeito de disparo');const s=document.createElement('select');s.id='shot-effect';for(const [v,t] of SHOT_EFFECTS)s.add(new Option(t,v));s.value=p.shotEffect;s.onchange=()=>{p.shotEffect=s.value;renderControls();play();};l.append(s);const h=document.createElement('small');h.id='shot-effect-help';h.textContent=help??'Escolhe o efeito do disparo.';l.append(h);$('#params').append(l);return;}
+ if(unit==='eixo'){const l=document.createElement('label');l.append(label);const s=document.createElement('select');s.id=key;for(const v of ['X','Y','Z','Diagonal'])s.add(new Option(v,v));s.value=p[key];s.onchange=()=>{p[key]=s.value;play();};l.append(s);const h=document.createElement('small');h.id=key+'-help';h.textContent=help??'Eixo do giro.';l.append(h);$('#params').append(l);return;}
+ const angle=unit==='°',mn=angle?(min<0?-180:0):(min<0?min*cap:min),mx=angle?180:max*cap;
+ const l=document.createElement('label'),o=document.createElement('output'),input=document.createElement('input');
+ l.append(`${label} (${unit})`,o,input);input.type='range';input.min=mn;input.max=mx;input.step=step;input.value=p[key];input.id=key;o.value=String(p[key]);
+ const numeric=document.createElement('input');numeric.type='number';numeric.className='param-value';numeric.min=mn;numeric.max=mx;numeric.step=step;numeric.value=input.value;numeric.setAttribute('aria-label',label+' ('+unit+')');
+ l.insertBefore(numeric,input);o.hidden=true;
+ input.oninput=()=>{p[key]=+input.value;o.value=input.value;numeric.value=input.value;play();};
+ numeric.onchange=()=>{if(!Number.isFinite(numeric.valueAsNumber))return;input.value=String(Math.min(mx,Math.max(mn,numeric.valueAsNumber)));input.oninput();};
+ const helpEl=document.createElement('small');helpEl.id=key+'-help';helpEl.textContent=help??'Ajusta a aparência deste parâmetro.';
+ input.setAttribute('aria-describedby',helpEl.id);input.title=helpEl.textContent;l.append(helpEl);$('#params').append(l);
+}
+function renderLegacy(p){
+ for(const [key,label,unit,min,max,step] of [...ELEMENTAL_CONTROLS,...(id==='fireSpin'?FIRE_CONTROLS:id==='waterPulse'?WATER_CONTROLS:[]),...(['waterPulse','airSlash'].includes(id)?SHOT_CONTROLS:[])]){if((key==='stretch'&&id!=='waterPulse')||(key==='opening'&&id!=='fireSpin')||(key==='contactSize'&&!['waterPulse','airSlash'].includes(id)))continue;if((key==='detail'&&id==='seedBomb')||(key==='trail'&&id!=='airSlash'))continue;if((key==='rings'&&id==='seedBomb')||(key==='spread'&&id==='fireSpin'))continue;const section={stretch:'Núcleo e movimento',launchCount:'Disparo das argolas',waterNose:'Forma e faixas da água',trailRate:'Gotas do rastro',contactDuration:'Contato e explosão',shotDuration:'Impacto do disparo'}[key];if(section){const h=document.createElement('h3');h.textContent=section;$('#params').append(h);}addControl({key,label,unit,min,max,step,target:p,cap:id==='waterPulse'?300:5,help:CONTROL_HELP[key]??WATER_CONTROLS.find(c=>c[0]===key)?.[6]??FIRE_CONTROLS.find(c=>c[0]===key)?.[6]??'Ajusta a aparência deste parâmetro.'});}
+}
+// Seed Bomb: fases na ordem do pedido e, no Disparo, só os sliders do efeito escolhido.
+// Os valores dos dois efeitos ficam em p.shotRing/p.shotCone, então trocar não apaga nada.
+function renderSeed(p){
+ let phase=null;
+ for(const [key,label,unit,min,max,step,help,group] of SEED_CONTROLS){
+  if(group!==phase){phase=group;const h=document.createElement('h3');h.textContent=group;$('#params').append(h);}
+  if(key==='__shotEffect'){
+   addControl({key,label,unit,min,max,step,help,target:p});
+   if(p.shotEffect==='ring'||p.shotEffect==='cone'){
+    const h=document.createElement('h3');h.textContent=p.shotEffect==='ring'?'Efeito de disparo · Argola':'Efeito de disparo · Tiro em cone';$('#params').append(h);
+    const list=p.shotEffect==='ring'?SHOT_RING_CONTROLS:SHOT_CONE_CONTROLS,target=p.shotEffect==='ring'?p.shotRing:p.shotCone;
+    for(const [k,l,u,mn,mx,st,hp] of list)addControl({key:k,label:l,unit:u,min:mn,max:mx,step:st,help:hp,target});
+   }else{const note=document.createElement('small');note.id='shot-none-note';note.textContent='Nenhum: a semente parte sem efeito de disparo. Escolha Argola ou Tiro em cone para abrir os controles do efeito.';$('#params').append(note);}
+   continue;
+  }
+  addControl({key,label,unit,min,max,step,help,target:p});
+ }
+}
+function renderControls(){const p=values();$('#variant-label').hidden=!ELEMENTAL_VARIANTS[id];$('#contact').hidden=!['waterPulse','airSlash','seedBomb'].includes(id);$('#variant').replaceChildren();(ELEMENTAL_VARIANTS[id]??[]).forEach((name,i)=>$('#variant').add(new Option(name,String(i))));$('#variant').value=String(variant);$('#params').replaceChildren();$('#pl-label').hidden=id!=='waterPulse';$('#title').textContent=p.label;$('#bloom').max=id==='waterPulse'?360:6;
+ if(id==='seedBomb')renderSeed(p);else renderLegacy(p);
  for(const [key,label] of [['color','Cor principal'],['accent','Cor secundária']]){const l=document.createElement('label'),i=document.createElement('input');l.textContent=label;i.type='color';i.value=p[key];i.id=key;i.oninput=()=>{p[key]=i.value;play();};l.append(i);$('#params').append(l);}
 }
 $('#move').onchange=()=>{id=$('#move').value;variant=0;renderControls();play();};$('#play').onclick=play;$('#variant').onchange=()=>{variant=+$('#variant').value;renderControls();play();};$('#contact').onclick=()=>fx.contact();$('#stop').onclick=()=>{playing=false;fx.clear();};$('#reset').onclick=()=>{delete saved[id+variant];renderControls();play();};
