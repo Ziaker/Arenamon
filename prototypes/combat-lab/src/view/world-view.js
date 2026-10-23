@@ -14,6 +14,8 @@ import {reflectPlacement} from '../sim/moves/reflect.js';
 import {stoneCount} from '../sim/moves/psyshock.js';
 import {makeElemental, updateElemental} from './elemental-fx.js';
 import {ElementalGameFx} from './quarks/elemental-game.js';
+import {ElementalPreview} from './quarks/elemental-preview.js';
+import {ELEMENTAL_GAME_PARAMS} from './quarks/elemental-game-params.js';
 
 export const PL_HEX = [0xffffff, 0x59d6e6, 0xffcf6a, 0xff6adf];
 const RING = {
@@ -175,6 +177,8 @@ export class WorldView {
     this.accessibility = {noFlash: false, reduceMotion: false, highContrast: false};
     // Água, Fogo e Vento com o renderizador do Ateliê Elemental (three.quarks). O Seed Bomb não entra aqui.
     this.elementalFx = new ElementalGameFx(this.group);
+    // Esfera de carga do Water Pulse (visual do ateliê, cresce com a carga/PL).
+    this.waterChargePreview = null;this.waterChargeLevel = 0;
   }
 
   createChargeRing() {
@@ -810,21 +814,26 @@ export class WorldView {
       let want = 0;
 
       // Water Pulse: a esfera de água cresce na mão enquanto a carga corre (só aparência; PL muda a cor do anel).
-      const ball = this.waterOrbs[f.id] ??= (() => {
-        const g = makeElemental({kind: 'projectile', visual: 'waterorb', pl: 1});
-        if (g) {g.visible = false;this.group.add(g);}
-        return g;
-      })();
-      if (ball) {
-        if (ch && ch.move === 'water-pulse') {
-          const maxTicks = Math.max(1, ch.params?.maxTicks ?? 180), ratio = Math.min(1, ch.ticks / maxTicks);
-          const level = ratio >= 1 ? 3 : ratio >= .5 ? 2 : 1, reach = .62;
-          const fake = {kind: 'projectile', visual: 'waterorb', pl: level, radius: .14 + .3 * ratio, visualScale: 1, pos: {x: f.position.x + Math.sin(f.facing) * reach, z: f.position.z + Math.cos(f.facing) * reach}, y: altitudeOf(f) + .58 + .12 * ratio};
-          updateElemental(ball, fake, this.time, dt, acc);
-          ball.visible = true;
-        } else {
-          ball.visible = false;
+      // Esfera de carga do Water Pulse com o visual do ateliê (three.quarks), cresce com a carga/PL.
+      if (ch && ch.move === 'water-pulse') {
+        const maxTicks = Math.max(1, ch.params?.maxTicks ?? 180), ratio = Math.min(1, ch.ticks / maxTicks);
+        const level = ratio >= 1 ? 3 : ratio >= .5 ? 2 : 1, reach = .62;
+        const base = ELEMENTAL_GAME_PARAMS.waterPulse?.[Math.max(0, level - 1)] ?? ELEMENTAL_GAME_PARAMS.waterPulse[0];
+        if (!this.waterChargePreview) {
+          this.waterChargePreview = new ElementalPreview(this.group, {batch: this.elementalFx.batch, parent: this.group});
+          this.waterChargePreview.root.visible = true;
         }
+        const p = this.waterChargePreview;
+        p.root.visible = true;
+        p.root.position.set(f.position.x + Math.sin(f.facing) * reach, altitudeOf(f) + .58 + .12 * ratio, f.position.z + Math.cos(f.facing) * reach);
+        p.root.scale.setScalar(.4 + .9 * ratio);
+        if (p.p?.variant !== 0) { /* keep variant 0 */ }
+        if (!p.active) p.play('waterPulse', {...base, variant: 0}, level, {noFlash: !!acc.noFlash, reduced: !!acc.reduceMotion, follow: true});
+        p.noFlash = !!acc.noFlash; p.reduced = !!acc.reduceMotion;
+        p.velocity = (p.p?.speed ?? base.speed);
+        p.update(dt);
+      } else if (this.waterChargePreview) {
+        this.waterChargePreview.root.visible = false;
       }
 
       if (ch && ch.move === 'reflect') {
