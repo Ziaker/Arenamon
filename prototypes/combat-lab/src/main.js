@@ -681,7 +681,7 @@ $('win-controls').append(...tuning.sectionControls('Janelas de combate'));
 // Treino de defesa/esquiva perfeitas: o vermelho segue o roteiro do treino; tudo cronometrado em passos de simulação.
 const movesPanel = createMovesPanel({$, game, download, tuning, view, ui});
 const movesVfxPanel = createMovesVfxPanel({$, tuning, download});
-const actionsDrawer = createActionsDrawer({$, tuning, ui, renderMoves: () => movesPanel.render(), renderAiMoves: c => movesPanel.renderAiParams(c), onCharactersChanged: () => {syncCharacterCombatWindows();syncRuleDurations();dock.invalidate();}});
+const actionsDrawer = createActionsDrawer({$, tuning, ui, renderMoves: c => movesPanel.renderActions(c), renderAiMoves: c => movesPanel.renderAiParams(c), onCharactersChanged: () => {syncCharacterCombatWindows();syncRuleDurations();dock.invalidate();}});
 const movesHud = new MovesHud($('moves-hud'));
 // Passivas: painel de seleção (Partida), HUD da arena e VFX de ativação (§16/§17).
 installHoverTip();

@@ -26,6 +26,12 @@ try {
   const reset = () => L(() => {const {game, C} = window.__lab;C.extras.toggles.enableEnemyAI = 0;game.setLoadout(0, ['water-pulse', 'fire-spin', 'air-slash', 'seed-bomb']);window.__lab.startMatch();});
   const shot = name => process.env.ARENAMON_SKIP_SCREENSHOTS === '1' ? Promise.resolve() : page.screenshot({path: `${out}${name}.png`});
 
+  await page.locator('#moves-open').click();
+  check('Ações conserva a aba Moves', await page.locator('#act-tabs [data-act="moves"]').isVisible());
+  check('Ações › Moves conserva equipagem e botões', await page.locator('#act-moves [data-slot-move]').count() > 0 && await page.locator('#act-moves [data-slot-key]').count() > 0);
+  check('Ações › Moves não contém sliders', await page.locator('#act-moves input[type="range"]').count() === 0);
+  await page.locator('#moves-close').click();
+
   await reset();
   check('os 4 Moves equipam nos slots 1–4', JSON.stringify(await L(() => window.__lab.game.fighters[0].loadout)) === JSON.stringify(['water-pulse', 'fire-spin', 'air-slash', 'seed-bomb']));
 

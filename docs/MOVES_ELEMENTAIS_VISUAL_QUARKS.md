@@ -1,5 +1,7 @@
 # Integração no jogo principal — 23/10/2026
 
+O botão **⚔ Ações → Moves** mantém equipagem, atribuição de botões, seleção de animações de carga/disparo e teste da animação. Os sliders dos Moves permanecem nas abas **Moves** (mecânica e loop de animação) e **VFX dos Moves** (aparência), na barra esquerda.
+
 Abra `ABRIR_ARENAMON.html` → **Jogar Arenamon**. No painel esquerdo, **Moves** contém slots, animações e parâmetros mecânicos; **VFX dos Moves** contém os controles de aparência. Cada Move tem um grupo expansível na aba visual. Water Pulse, Fire Spin, Air Slash e Seed Bomb incluem variantes A/B/C quando aplicável, parâmetros de emissão, opacidade, iluminação, cores e efeitos de disparo. Reflect, Psyshock e os demais Moves mostram os efeitos compartilhados que usam; o rótulo **compartilhado** avisa quando um ajuste afeta mais de um Move. Os botões de exportação nas duas abas geram o JSON completo de ajustes, e a importação continua em Ajustes. O tempo de seguimento das argolas e cones começa em **0,3 s**, pode ser ajustado em VFX dos Moves → Visual dos disparos e projéteis e também vai no JSON. No mesmo grupo há o toggle da borda colorida por PL dos projéteis.
 
 O Air Slash agora usa brilho padrão mínimo 1,6× e escala visual maior; largura, altura e espessura do desenho também afetam a camada Quarks. O Water Pulse carrega a esfera de água do ateliê e reage ao PL. O alcance do Seed Bomb e Fire Spin foi ampliado na rodada anterior. Os valores visuais alteram apenas o desenho; dano e colisão continuam na simulação.

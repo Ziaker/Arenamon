@@ -500,7 +500,7 @@ export function createMovesPanel({$, game, download, tuning, view, ui}) {
       <div class="row">${min === 0 && max === 1 && step === 1 ? `<input type="checkbox" data-p="${group}.${key}" ${v ? 'checked' : ''}>` : `<input type="range" data-p="${group}.${key}" min="${min}" max="${max}" step="${step}" value="${v}">`}<output data-o="${group}.${key}">${fmt(v)}</output><button type="button" data-reset="${group}.${key}" title="Padrão: ${escape(fmt(def))}" ${v === def ? 'disabled' : ''}>↺</button></div></div>`;
   }
   /** Cartão de animação (carga com loop + disparo) de um move para o personagem de um lado (0 azul, 1 vermelho). */
-  function animCard(moveId, who) {
+  function animCard(moveId, who, showSliders = true) {
     const ch = ui?.characters?.[who], who_ = who ? 'Vermelho' : 'Azul';
     if (!ch) return `<div class="moves-anim-card"><small class="muted">${who_}: nenhum modelo GLB carregado. Carregue em <b>Personagens</b> para associar as animações deste move.</small></div>`;
     const conf = ch.getMoveAnimConfig(moveId), key = `${who}|${moveId}`;
@@ -514,7 +514,7 @@ export function createMovesPanel({$, game, download, tuning, view, ui}) {
       <div class="moves-anim-grid">
         <div class="moves-anim-col"><label>1. Animação de carga (segurar a tecla)</label>
           <select data-anim-select="charge" data-key="${key}">${clipOptions(conf.chargeClip, '— selecionar animação de carga —')}</select>
-          <div class="moves-loop-slider-box">
+          ${showSliders ? `<div class="moves-loop-slider-box">
             <label>Início do loop <output data-loop-out="${key}|start">${loopStart.toFixed(2)} s</output></label>
             <input type="range" data-loop-range="${key}" data-loop-edge="start" min="0" max="${Math.max(0, loopEnd - 0.02).toFixed(2)}" step="0.01" value="${loopStart.toFixed(2)}" ${chargeClip ? '' : 'disabled'}>
             <label>Fim do loop <output data-loop-out="${key}|end">${loopEnd.toFixed(2)} s</output></label>
@@ -524,7 +524,7 @@ export function createMovesPanel({$, game, download, tuning, view, ui}) {
               <div class="loop-repeat" style="flex:${Math.max(0.001, loopEnd - loopStart)}" title="Trecho repetido: ${loopStart.toFixed(2)} s a ${loopEnd.toFixed(2)} s">🔁 Loop (${(loopEnd - loopStart).toFixed(2)}s)</div>
               <div class="loop-tail" style="flex:${Math.max(0.001, chargeDur - loopEnd)}" title="Depois do loop: ${loopEnd.toFixed(2)} s a ${chargeDur.toFixed(2)} s">${chargeDur - loopEnd > 0.15 ? 'Final' : ''}</div>
             </div>
-          </div></div>
+          </div>` : ''}</div>
         <div class="moves-anim-col"><label>2. Animação de disparo (ao soltar a tecla)</label>
           <select data-anim-select="release" data-key="${key}">${clipOptions(conf.releaseClip, '— selecionar animação de disparo —')}</select>
           <p class="hint">Dispara ao soltar, com blend suave a partir da pose de carga, sem esperar o clipe de carga terminar.</p></div>
@@ -544,6 +544,44 @@ export function createMovesPanel({$, game, download, tuning, view, ui}) {
         <label class="mv-key">Botão <select data-slot-key="${id}.${slot}" aria-label="Botão do slot ${slot + 1} (${escape(title)})">${codes.map((c, i) => `<option value="${i}" ${i === myKey ? 'selected' : ''}>${escape(keyName(c))}</option>`).join('')}</select></label>${warn}</div>${cur ? `<p class="tip-line">${escape(moveTip(cur, keyName(codes[myKey])))}</p>` : ''}`;
     }).join('');
     return `<div class="mv-loadout" data-loadout="${id}"><h4>${escape(title)} <small class="muted">${count} de ${list.length} slots${id ? ' · botões só valem no controle manual do vermelho' : ''}</small></h4>${rows}</div>`;
+  }
+
+  /** Ações conserva a equipagem e as animações; os controles numéricos ficam nas abas à esquerda. */
+  function renderActions(container) {
+    if (!container) return;
+    const openMoves = new Set([...container.querySelectorAll('details[open][data-action-move]')].map(d => d.dataset.actionMove));
+    const equipped = [...new Set([...loadoutOf(0), ...loadoutOf(1)].filter(Boolean))];
+    container.innerHTML = `<h2 class="act-title">✦ Moves</h2>
+      <p class="hint">Equipe Moves e escolha os botões aqui. Ajustes e sliders estão nas abas Moves e VFX dos Moves à esquerda.</p>
+      <section class="act-card"><h3>Equipar</h3>${loadoutBox(0, 'Jogador (azul)')}${loadoutBox(1, 'Adversário (vermelho)')}</section>
+      ${equipped.map(mid => `<details class="act-card" data-action-move="${mid}" ${openMoves.has(mid) ? 'open' : ''}><summary><b>${escape(moveLabel(mid))}</b></summary>${[0, 1].filter(w => loadoutOf(w).includes(mid)).map(w => animCard(mid, w, false)).join('')}</details>`).join('')}`;
+    for (const sel of container.querySelectorAll('[data-slot-move]')) sel.onchange = () => {
+      const [id, slot] = sel.dataset.slotMove.split('.').map(Number);
+      setSlot(id, slot, sel.value || null);
+      renderActions(container);
+      render();
+    };
+    for (const sel of container.querySelectorAll('[data-slot-key]')) sel.onchange = () => {
+      const [id, slot] = sel.dataset.slotKey.split('.').map(Number);
+      const path = `extras.${id ? 'bindings2' : 'bindings'}.${SKILL_NAMES[slot]}`;
+      if (tuning) tuning.commit([[path, Number(sel.value)]], `Botão do slot ${slot + 1}`);
+      else C.extras[id ? 'bindings2' : 'bindings'][SKILL_NAMES[slot]] = Number(sel.value);
+      renderActions(container);
+      render();
+    };
+    for (const sel of container.querySelectorAll('[data-anim-select]')) sel.onchange = () => {
+      const [who, moveId] = sel.dataset.key.split('|');
+      ui?.characters?.[Number(who)]?.setMoveAnim(moveId, sel.dataset.animSelect, sel.value === '' ? null : Number(sel.value));
+      renderActions(container);
+      render();
+    };
+    for (const button of container.querySelectorAll('[data-preview]')) button.onclick = () => {
+      const [who, moveId] = button.dataset.preview.split('|'), ch = ui?.characters?.[Number(who)];
+      if (!ch) return;
+      if (ch.movePreview?.moveId === moveId) ch.stopMovePreview();
+      else ch.startMovePreview(moveId, () => renderActions(container));
+      renderActions(container);
+    };
   }
 
   function paramGroup(title, open = false) {
@@ -663,5 +701,5 @@ export function createMovesPanel({$, game, download, tuning, view, ui}) {
     bindParams(root, render);
     $('mvp-reset-all').onclick = () => {const ch = [];for (const g of ['charge', 'reflect', 'psyshock', 'beam', 'ai']) for (const [k, v] of Object.entries(defaults().world[g])) if (C.world[g][k] !== v) ch.push([`world.${g}.${k}`, v]);commit(ch, 'Restaurar os parâmetros dos Moves');render();};
   }
-  return {render, renderAiParams, emitProjectile, emitLaser, emitExplosion, setEquip, setSlot, loadoutOf, get results() {return results;}, STANDARD};
+  return {render, renderActions, renderAiParams, emitProjectile, emitLaser, emitExplosion, setEquip, setSlot, loadoutOf, get results() {return results;}, STANDARD};
 }
