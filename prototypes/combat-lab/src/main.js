@@ -1,7 +1,7 @@
 // Laboratório de combate Arenamon v7 — composição: simulação, câmera, HUD, entrada, replay, telemetria,
 // cenários, ajustador, personagens do Studio, exportação e aviso de alterações não salvas.
 import {applyInterpolation} from './sim/interpolation.js';
-import {C, keyFor, defaults, resetConfig as resetCfg, useFactoryDefaults} from './sim/config.js';
+import {C, keyFor, keyFor2, defaults, resetConfig as resetCfg, useFactoryDefaults} from './sim/config.js';
 if (typeof location !== 'undefined' && new URLSearchParams(location.search).has('fabrica')) {useFactoryDefaults(true);resetCfg(defaults());}   // ?fabrica=1: valores de fábrica, sem a base de calibração v8
 import {Game, FixedClock} from './sim/game.js';
 import {AI_MODES, UI_AI_MODES} from './sim/ai.js';
@@ -37,11 +37,13 @@ import {createActionsDrawer} from './ui/actions-drawer.js';
 import {createMovementPanel} from './ui/movement-panel.js';
 import {createDiagnostics, createWindowsOverlay} from './ui/diagnostics-panel.js';
 import {createTrainingPanel} from './ui/training-panel.js';
-import {createMovesPanel} from './ui/moves-panel.js';
+import {createMovesPanel, MOVE_INFO} from './ui/moves-panel.js';
 import {MovesHud} from './ui/moves-hud.js';
 import {createPassivesPanel} from './ui/passives-panel.js';
 import {installHoverTip} from './ui/hover-tip.js';
 import {createQuickMenu} from './ui/menu-quick.js';
+import {createMenuStyles} from './ui/menu-styles.js';
+import {keyLabel} from './ui/menu-styles-model.js';
 import {PassivesHud} from './ui/passives-hud.js';
 import {PASSIVE_BY_ID} from './sim/passives.js';
 import {createPerfPanel} from './ui/perf-panel.js';
@@ -685,6 +687,8 @@ const passivesPanel = createPassivesPanel({getCharacterNames: () => [ui.characte
 $('passives-card')?.append(passivesPanel.root);
 // Seleção Rápida do menu: dois blocos (personagem/moves/abilities + prévia 3D). Workspace anexado no boot.
 const quickMenu = createQuickMenu({$, game, ui, passivesPanel});
+// Telas A/B/C do pré-jogo (22/10/2026): só visão sobre o estado do quickMenu; padrão = menu atual. Teclas dos slots = as configuradas (azul e vermelho).
+const menuStyles = createMenuStyles({$, quickMenu, ui, info: MOVE_INFO, keys: (slot, i) => keyLabel((slot === 1 ? keyFor2 : keyFor)(`skill${i + 1}`))});
 const passivesHud = new PassivesHud($('passives-hud'));
 /** Ativações reais do passo: som, placa metálica "Ability: NOME" e sparkles brancos presos ao lutador. */
 function passiveFeedback(events) {
@@ -1131,6 +1135,6 @@ window.__arenaLive = {rules: C.rules, test: C.test, locomotion: C.locomotion, ca
 bootWorkspace().catch(e => {console.error('workspace:', e);ui.workspaceError = e.message;return null;}).then(boot => {
   if (boot) quickMenu.attachWorkspace(boot);   // Seleção Rápida: personagens salvos + prévia 3D
   // API dos movimentos especiais (registro vazio): registerMove, listMoves, validateMove; equipar com setLoadout.
-  window.__lab = {charPanel, moves: {...Moves, setLoadout: (id, ids) => game.setLoadout(id, ids), standard: STANDARD_MOVE_IDS, equipStandard: id => game.setLoadout(id, STANDARD_MOVE_IDS)}, C, game, view, cinematic: view.cinematic, cinePanel, hudProposals, presets, movement, playSequence, diagnostics, training, perf: perfPanel, aiEval, projectFiles, reportsOf, visualPanel, recorder, replay, tuning, ui, startMatch, startScenario: id => startScenario(SCENARIOS.find(s => s.id === id)), stepFrames, seekTick, goLive, togglePause, setCharacter, loadStudioFile, triggerWarmup, SCENARIOS, runScenario, spawn, openTool,
+  window.__lab = {quickMenu, menuStyles, charPanel, moves: {...Moves, setLoadout: (id, ids) => game.setLoadout(id, ids), standard: STANDARD_MOVE_IDS, equipStandard: id => game.setLoadout(id, STANDARD_MOVE_IDS)}, C, game, view, cinematic: view.cinematic, cinePanel, hudProposals, presets, movement, playSequence, diagnostics, training, perf: perfPanel, aiEval, projectFiles, reportsOf, visualPanel, recorder, replay, tuning, ui, startMatch, startScenario: id => startScenario(SCENARIOS.find(s => s.id === id)), stepFrames, seekTick, goLive, togglePause, setCharacter, loadStudioFile, triggerWarmup, SCENARIOS, runScenario, spawn, openTool,
     ws: boot?.ws ?? null, store: boot?.store ?? null, wsUI: boot?.wsUI ?? null, workspaceBoot: boot};
 });

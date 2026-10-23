@@ -366,11 +366,11 @@ export class Character {
       const moveId = stateKey.slice(7);
       const conf = this.moveAnims?.[moveId];
       if (conf?.chargeClip != null && this.clips[conf.chargeClip]) return stateKey;
-      return this.actionFor('idle') || 'idle';
+      return this.actionFor('idle');   // null se o modelo não tem idle: o chamador cai no primeiro clipe compatível (antes devolvia o texto 'idle' sem variante e clipAction(undefined) derrubava o laço)
     }
     if (stateKey?.startsWith?.('release_')) {
       if (this.variantsOf(stateKey).length) return stateKey;
-      return this.actionFor('tackle') || 'tackle';
+      return this.actionFor('tackle');
     }
     for (const id of STATE_ACTIONS[stateKey] || ['idle']) if (this.variantsOf(id).length) return id;
     return null;

@@ -4,14 +4,14 @@
   "emitted": 2,
   "neon": true,
   "before": {
-    "geometries": 18,
-    "programs": 8,
-    "children": 25
+    "geometries": 39,
+    "programs": 18,
+    "children": 33
   },
   "after": {
-    "geometries": 18,
-    "programs": 8,
-    "children": 25
+    "geometries": 39,
+    "programs": 18,
+    "children": 33
   },
   "stableBuffers": true,
   "expired": 0,
@@ -40,13 +40,13 @@
     "renderer": "ANGLE (Intel, Intel(R) UHD Graphics (0x000046A3) Direct3D11 vs_5_0 ps_5_0, D3D11)",
     "baseline": {
       "fps": 60,
-      "frameP95ms": 17,
+      "frameP95ms": 16.9,
       "activeFrames": 0
     },
     "smear": {
       "fps": 60,
-      "frameP95ms": 17.1,
-      "activeFrames": 98
+      "frameP95ms": 16.9,
+      "activeFrames": 106
     }
   },
   "errors": []

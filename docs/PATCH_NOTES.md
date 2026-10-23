@@ -1,8 +1,17 @@
 # Patch notes — Laboratório de Combate
 
-Versão atual: **v1.20.1** (22/10/2026). A versão aparece na barra superior do laboratório (tooltip com data de compilação e commit). Para jogar: `JOGAR_ARENAMON.html`.
+Versão atual: **v1.21.0** (22/10/2026). A versão aparece na barra superior do laboratório (tooltip com data de compilação e commit). Para jogar: `JOGAR_ARENAMON.html`.
 
 ---
+
+## v1.21.0 — Pré-jogo em três identidades visuais (22/10/2026)
+- **Seletor «Estilo: Atual · A Impacto · B Quadrinhos · C Clássico»** na tela inicial (Seleção Rápida). As três telas herdam a identidade dos HUDs do laboratório (`prototypes/hud-moves`) e trabalham sobre o MESMO estado do menu: trocar de estilo não perde escolhas, não reinicia nada e não inicia partida. Nenhum estilo é o oficial; o padrão continua «Atual».
+- Conteúdo real: personagens (modelos salvos + carregado) com prévia 3D, os Moves do registro executável (15), passivas genéricas e exclusivas da espécie com gatilho/efeito reais, validação do motor, teclado e movimento reduzido.
+- **Cores por classe:** Moves em 4 cores (Normal · Burst · Charge · Destino) e passivas em 2 (Permanente · Gatilho), com legenda, na paleta de cada estilo.
+- Feedback de seleção com **three.quarks** na prévia 3D (faíscas A, estrelas B, partículas suaves C).
+- **Correção grave pré-existente:** com um modelo sem clipe de «idle» (ex.: um GLB de um clipe só) o jogo parava com `TypeError` quando um Move era carregado (11 de 12 tentativas com Cogumelo × drowzee-knockback); `Character.actionFor` não devolve mais o texto `'idle'`/`'tackle'` sem variante.
+- Correções de passagem: sem espécie identificada as passivas genéricas apareciam duas vezes na lista; as teclas do combate roubavam o foco do teclado dentro dos menus estilizados.
+- Detalhes, matriz de fidelidade e limites: `docs/PREJOGO_3_ESTILOS.md`. Testes: `prejogo.test.mjs` e `prejogo.browser.mjs`.
 
 ## v1.20.1 — Caçada de bugs (22/10/2026)
 - **A transparência dos objetos agora funciona de verdade** (plataformas e caixas só mudavam um número; o material opaco ignorava a opacidade). Destrutíveis e rochas chegam à opacidade configurada; arestas acompanham.
