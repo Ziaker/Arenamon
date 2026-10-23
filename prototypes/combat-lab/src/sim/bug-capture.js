@@ -8,6 +8,8 @@ import {configHash, runRecording, normalizeState, firstDivergence} from './repla
 
 export const BUG_SCHEMA = 'arenamon-bug';
 export const BUG_VERSION = 1;
+/** Tira caminhos locais (file:///C:/Users/...) das mensagens de erro: o pacote não pode levar dados do computador de quem capturou. */
+export const scrubPaths = (/** @type {any} */ s) => String(s).replace(/file:\/\/\/[^\s)]*\//g, '<local>/').replace(/[A-Za-z]:[\\/][^\s)]*[\\/]/g, '<local>/');
 
 /** JSON que preserva Set e Map (o snapshot do motor guarda conjuntos de acertos). */
 export const encodeBug = (/** @type {any} */ data) => JSON.stringify(data, (_, v) => v instanceof Set ? {__set: [...v]} : v instanceof Map ? {__map: [...v]} : v);
@@ -36,7 +38,7 @@ export function captureBug({game, recording, appVersion = 'desconhecida', note =
     recentEvents: structuredClone(game.events ?? []),
     fighters: game.fighters.map((/** @type {any} */ f) => ({id: f.id, hp: f.hp, stamina: f.stamina, state: f.state, action: f.action?.kind ?? null, move: f.action?.move ?? null, loadout: f.loadout, statuses: (f.statuses ?? []).map((/** @type {any} */ s) => ({id: s.id, remaining: s.remaining}))})),
     entities: (game.world?.entities ?? []).slice(0, 64).map(near),
-    errors: errors.slice(0, 20).map(e => String(e).slice(0, 500)),
+    errors: errors.slice(0, 20).map(e => scrubPaths(e).slice(0, 500)),
   };
 }
 
@@ -47,6 +49,7 @@ export function parseBugCapture(/** @type {any} */ raw) {
   if (data?.schema !== BUG_SCHEMA) return {error: 'Não é uma captura de bug do Arenamon.'};
   if (!Number.isInteger(data.version) || data.version < 1) return {error: `Versão de captura inválida (${data.version}).`};
   if (data.version > BUG_VERSION) return {error: `Captura da versão ${data.version}; este laboratório lê até a ${BUG_VERSION}. Atualize o laboratório.`};
+  if (data.seed !== null && data.seed !== undefined && !Number.isFinite(data.seed)) return {error: 'Captura inválida: a semente precisa ser um número.'};
   if (!data.snapshot || !Array.isArray(data.snapshot.fighters) || !Number.isInteger(data.tick) || !data.recording) return {error: 'Captura incompleta (faltam snapshot, tick ou gravação).'};
   return {data: /** @type {any} */ (revive(data))};
 }

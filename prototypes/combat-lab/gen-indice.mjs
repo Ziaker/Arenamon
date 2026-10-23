@@ -2,6 +2,7 @@
 // documentos que citam cada Move). Nada é escrito à mão: rode `npm run indice` depois de mexer em Moves. O teste moves-indice.test.mjs falha se o
 // arquivo estiver desatualizado ou citar caminho que não existe.
 import {readdirSync, readFileSync, writeFileSync, statSync, existsSync} from 'node:fs';
+import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 
 const labDir = fileURLToPath(new URL('.', import.meta.url)).replace(/\\/g, '/').replace(/\/$/, '');
@@ -17,6 +18,13 @@ const rel = p => p.slice(repoDir.length + 1);
 const AREAS = [[/\/src\/sim\//, 'sim (regras)'], [/\/src\/ui\//, 'ui (painéis)'], [/\/src\/view\//, 'view (desenho)'], [/\/src\//, 'src (outros)'], [/\/test\//, 'testes'], [/\/docs\//, 'documentos']];
 const areaOf = p => (p.endsWith('.md') ? AREAS[5] : AREAS.find(([re]) => re.test(p)))[1];
 
+/** Arquivos versionados ou novos e não ignorados (caminhos absolutos); null se o git não estiver disponível. Evita que um rascunho local mude o índice. */
+function trackedOrNew() {
+  try {
+    const out = execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard', '-z'], {cwd: repoDir, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024});
+    return new Set(out.split('\0').filter(Boolean).map(f => `${repoDir}/${f}`));
+  } catch {return null;}
+}
 export async function buildIndex() {
   const {C} = await import('./src/sim/config.js');
   const {registerStandardMoves} = await import('./src/sim/moves/standard.js');
@@ -28,7 +36,8 @@ export async function buildIndex() {
   const moves = listMoves();
   const camel = id => id.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
   const pascal = id => { const c = camel(id); return c[0].toUpperCase() + c.slice(1); };
-  const files = [...walk(`${labDir}/src`, /\.(js|css|html)$/), ...walk(`${labDir}/test`, /\.mjs$|\.js$/), ...walk(`${repoDir}/docs`, /\.md$/), `${labDir}/MOVIMENTOS.md`].filter(f => existsSync(f) && f !== INDEX_PATH).sort();
+  const gitFiles = trackedOrNew();
+  const files = [...walk(`${labDir}/src`, /\.(js|css|html)$/), ...walk(`${labDir}/test`, /\.mjs$|\.js$/), ...walk(`${repoDir}/docs`, /\.md$/), `${labDir}/MOVIMENTOS.md`].filter(f => existsSync(f) && f !== INDEX_PATH && (!gitFiles || gitFiles.has(f))).sort();
   const text = new Map(files.map(f => [f, readFileSync(f, 'utf8')]));
   const generated = `${labDir}/src/sim/moves/fichas.generated.js`;
   const out = [];

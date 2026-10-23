@@ -18,12 +18,11 @@ import {normalizeState, firstDivergence, configHash, hashText} from './replay-di
  */
 export function runMoveVariant(moveId, values, o = {}) {
   const seed = o.seed ?? 7, ticks = o.ticks ?? 480, distance = o.distance ?? 4;
-  return withValues(values, () => {
+  return withValues({...values, 'extras.toggles.enableEnemyAI': 0}, () => {   // restaurado no fim: a partida ao vivo não perde a IA do rival
     const def = getMove(moveId);
     if (!def) throw new Error('Move não registrado: ' + moveId);
     const g = new Game({seed});g.start();
     g.reset({positions: [{x: 0, z: -distance / 2}, {x: 0, z: distance / 2}]});
-    C.extras.toggles.enableEnemyAI = 0;
     g.mapState.platforms = [];g.mapState.obstacles = [];g.mapState.destructibles = [];g.mapState.items = [];g.mapState.regularSpawnTimer = 1e9;
     g.fighters[0].facing = 0;g.fighters[1].facing = Math.PI;
     g.setLoadout(0, [moveId]);

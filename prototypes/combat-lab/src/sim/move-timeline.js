@@ -7,6 +7,7 @@ import {Game} from './game.js';
 import {emptyCommand} from './entity.js';
 import {getMove} from './moves.js';
 import {usageOf} from './move-matrix.js';
+import {withValues} from './compare.js';
 
 export const TICK_RATE = 120;
 const toTick = (/** @type {number} */ s) => Math.round(s * TICK_RATE);
@@ -55,11 +56,13 @@ export function buildMoveTimeline(moveId) {
  * @param {string} moveId @param {number} [seed]
  */
 export function measureMoveRun(moveId, seed = 7) {
+  return withValues({'extras.toggles.enableEnemyAI': 0}, () => measureInner(moveId, seed));   // restaura a IA do rival no fim
+}
+function measureInner(/** @type {string} */ moveId, /** @type {number} */ seed) {
   const def = getMove(moveId);
   if (!def) throw new Error('Move não registrado: ' + moveId);
   const g = new Game({seed});g.start();
   g.reset({positions: [{x: 0, z: -3}, {x: 0, z: 3}]});   // rival longe: entidades do Move aparecem antes de qualquer impacto
-  C.extras.toggles.enableEnemyAI = 0;
   g.mapState.platforms = [];g.mapState.obstacles = [];g.mapState.destructibles = [];g.mapState.items = [];g.mapState.regularSpawnTimer = 1e9;
   g.fighters[0].facing = 0;g.fighters[1].facing = Math.PI;
   g.setLoadout(0, [def.id]);

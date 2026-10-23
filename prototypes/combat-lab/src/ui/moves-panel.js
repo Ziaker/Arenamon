@@ -757,6 +757,7 @@ export function createMovesPanel({$, game, download, tuning, view, ui, canvas, s
     for (const b of root.querySelectorAll('[data-fire]')) b.onclick = () => fire(b.dataset.fire);
     for (const b of root.querySelectorAll('[data-ab-run]')) b.onclick = () => {
       const id = b.dataset.abRun, g = getMove(id)?.group, out = root.querySelector(`[data-ab-result="${id}"]`), sel = root.querySelector(`[data-ab-b="${id}"]`).value;
+      if (!g || !C.world[g]) {out.innerHTML = '<p class="warn">Este Move não tem grupo de parâmetros: nada para comparar.</p>';return;}
       const prefix = `world.${g}.`, only = vals => Object.fromEntries(Object.entries(vals).filter(([p]) => p.startsWith(prefix)));
       const A = Object.fromEntries(Object.entries(C.world[g]).map(([k, v]) => [prefix + k, v]));
       const B = sel === '__factory' ? Object.fromEntries(Object.entries(factoryDefaults().world[g] ?? {}).map(([k, v]) => [prefix + k, v])) : { ...A, ...only(presetValues.valuesOf(sel) ?? {}) };

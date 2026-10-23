@@ -369,7 +369,7 @@ function stepArea(game, a, dt, events) {
     a.dead = true;events.push({result: 'fieldLost', attacker: a.owner ?? null, target: null, damage: 0, entity: a.id, kind: 'area'});return;
   }
   if (a.grow > 0) a.radius = a.baseRadius * Math.min(1, a.age / a.grow) + (a.startRadius ?? 0) * Math.max(0, 1 - a.age / a.grow);
-  // Pulsos: o primeiro no instante da criação; os seguintes a cada `interval` (0 = um só). Cada alvo é atingido no máximo uma vez por pulso.
+  // Pulsos: o primeiro no 1º passo depois do start-up (startup + dt); os seguintes a cada `interval` (0 = um só). Cada alvo é atingido no máximo uma vez por pulso.
   const startup = a.startup ?? 0;
   const due = a.age < startup + dt - 1e-9 ? 0 : Math.min(a.pulses ?? Infinity, a.interval > 0 ? 1 + Math.floor((a.age - startup - dt + 1e-9) / a.interval) : 1);   // o 1º pulso cai no 1º passo depois do start-up; os outros, a cada `interval`
   while (a.pulsesDone < due) {

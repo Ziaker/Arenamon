@@ -45,7 +45,7 @@ jobs:
       - name: Instalar
         run: npm ci
       - name: Fichas dos Moves em dia
-        run: node prototypes/combat-lab/gen-fichas.mjs && git diff --exit-code -- prototypes/combat-lab/src/sim/moves/fichas.generated.js
+        run: node prototypes/combat-lab/gen-fichas.mjs && git diff --exit-code -- prototypes/combat-lab/src/sim/moves/fichas.generated.js prototypes/combat-lab/src/sim/moves/params.generated.js
       - name: Tipos (Combat Lab)
         run: npx tsc --noEmit -p prototypes/combat-lab/tsconfig.json
       - name: Build offline do laboratório

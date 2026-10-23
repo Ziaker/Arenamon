@@ -48,6 +48,8 @@ export function defineMoveParams(group, spec) {
   GROUPS.set(group, entry);
   return entry;
 }
+/** Remove uma ficha do registro (testes que registram fichas de mentira). */
+export const removeMoveParams = group => GROUPS.delete(group);
 export const moveParamGroups = () => [...GROUPS.values()];
 /** Padrões de todas as fichas no formato de C.world: {grupo: {chave: valor}}. */
 export const moveParamDefaults = () => Object.fromEntries([...GROUPS.values()].map(g => [g.group, Object.fromEntries(g.rows.map(r => [r.key, r.value]))]));

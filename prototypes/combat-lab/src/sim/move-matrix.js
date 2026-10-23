@@ -10,6 +10,7 @@ import {emptyCommand, getFighterMaxStamina} from './entity.js';
 import {getMove} from './moves.js';
 import {effectiveArenaRadius} from './map.js';
 import {normalizeState, hashText} from './replay-diff.js';
+import {withValues} from './compare.js';
 
 /** Escopos da matriz, na ordem em que aparecem no relatório. */
 export const SCOPES = ['ground', 'air', 'platform', 'wall', 'guard', 'dodge-cancel', 'hitstop', 'lock-on', 'determinism', 'save-load', 'simultaneous'];
@@ -46,7 +47,6 @@ export function notApplicable(/** @type {any} */ def) {
 function build(/** @type {any} */ def, /** @type {number} */ seed, /** @type {{red?: string | null, platform?: boolean, wall?: boolean, air?: boolean, lock?: boolean, close?: boolean}} */ o = {}) {
   const g = new Game({seed});g.start();
   g.reset({positions: [{x: 0, z: -3}, {x: 0, z: o.close ? -1.6 : 3}]});
-  C.extras.toggles.enableEnemyAI = 0;
   /** @type {any} */ (g.mapState).platforms = o.platform ? [{id: 'p', pos: {x: 0, y: 0, z: -3}, width: 5, depth: 5, height: 1}] : [];
   g.mapState.obstacles = [];g.mapState.destructibles = [];g.mapState.items = [];g.mapState.regularSpawnTimer = 1e9;
   if (o.wall) g.world.entities.push({id: 9001, kind: 'wall', owner: 1, pos: {x: 0, z: -1.2}, hx: 3, hz: .2, height: 2.2, angle: 0, life: 99, age: 0});
@@ -88,6 +88,11 @@ function run(/** @type {any} */ g, /** @type {number} */ ticks, /** @type {(t: n
  * @returns {MatrixResult[]}
  */
 export function runMoveMatrix(moveId, seed = 7) {
+  // IA do rival desligada e hitstop ligado só durante a matriz; a configuração viva volta ao que era
+  return withValues({'extras.toggles.enableEnemyAI': 0, 'extras.toggles.enableHitstop': 1}, () => matrixInner(moveId, seed));
+}
+/** @returns {MatrixResult[]} */
+function matrixInner(/** @type {string} */ moveId, /** @type {number} */ seed) {
   const def = getMove(moveId);
   if (!def) throw new Error('Move não registrado: ' + moveId);
   const na = notApplicable(def), use = scriptFor(def);
@@ -115,7 +120,7 @@ export function runMoveMatrix(moveId, seed = 7) {
   check('wall', () => {const g = build(def, seed, {wall: true});return {violation: run(g, TICKS, use).violation ?? settles(g)};});
   check('guard', () => {const g = build(def, seed, {close: true});return {violation: run(g, TICKS, use, () => cmd({guard: true, guardPressed: false})).violation ?? settles(g)};});
   check('dodge-cancel', () => {const g = build(def, seed, {close: true});return {violation: run(g, TICKS, t => t === 12 ? cmd({dodge: true}) : use(t)).violation};});
-  check('hitstop', () => {const g = build(def, seed, {close: true});C.extras.toggles.enableHitstop = 1;return {violation: run(g, TICKS, use).violation};});
+  check('hitstop', () => {const g = build(def, seed, {close: true});return {violation: run(g, TICKS, use).violation};});
   check('lock-on', () => {const g = build(def, seed, {close: true});return {violation: run(g, TICKS, t => ({...use(t), target: 1, locked: true})).violation};});
   check('determinism', () => {
     const a = run(build(def, seed, {close: true}), TICKS, use).states, b = run(build(def, seed, {close: true}), TICKS, use).states;

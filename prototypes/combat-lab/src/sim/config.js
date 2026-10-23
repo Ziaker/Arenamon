@@ -239,6 +239,7 @@ function buildDefaults() {
     // (gravidade 17,5 = a do salto/Bounce) com velocidade máx. 20 m/s, semente de raio 0,24 m (vida 1,25 s), explosão ESFÉRICA de 1,8 m, 10 HP nominais, empurrão 3 H / 1 V, oclusão por paredes.
     seedBomb: {cost: 1, cooldown: 8, cast: .3, recovery: .2, range: 32, markerSpeed: 8, markerAccel: 24, startDistance: 3, minRange: 3, maxRise: 2, allowOccupied: 1, flightTime: .65, gravity: 17.5, maxSpeed: 20, seedRadius: .24, lifetime: 1.25, explosionRadius: 1.8, damage: 10, knockbackH: 3, knockbackV: 1, occlusion: 1, blastLife: .3, originHeight: .8, spawnForward: .5, counterStagger: .2, hitShakeOn: 0, hitShakeAmount: 1, hitShakeDuration: 1},
   });
+  for (const g of Object.keys(moveParamDefaults())) if (g in world) throw new Error(`ficha de Move usa o grupo "${g}", que já existe em C.world (regras compartilhadas). Escolha outro nome para o Move.`);
   Object.assign(world, moveParamDefaults());   // grupos dos Moves em ficha (um arquivo por Move): src/sim/moves/params-registry.js
   return ({rules, test, locomotion, camera, profiles: profilesLab, extras, actions, vfx: vfxDefaults(), display: displayDefaults(), world, map: {...MAP_DEFAULTS}, passivas, ledge: ledgeDefaults()});
 }

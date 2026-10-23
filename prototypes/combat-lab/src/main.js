@@ -293,7 +293,7 @@ $('bug-file').onchange = async e => {
   ui.playback = null;
   const out = reproduceBugCapture(parsed.data, game, {appVersion: appVersion()});
   recorder.clear();replay.clear();resetViewAndLogs();togglePause(true);renderRecStatus();
-  $('bug-result').innerHTML = `<p class="ok">Captura aberta no passo ${out.tick} (semente ${parsed.data.seed}); o jogo ficou pausado nesse instante.${parsed.data.note ? ` Nota: ${escape(parsed.data.note)}` : ''}</p>`
+  $('bug-result').innerHTML = `<p class="ok">Captura aberta no passo ${out.tick} (semente ${escape(String(parsed.data.seed))}); o jogo ficou pausado nesse instante.${parsed.data.note ? ` Nota: ${escape(parsed.data.note)}` : ''}</p>`
     + (out.replayMatches === true ? '<p class="ok">Refazer a gravação desde o início chega ao mesmo estado: o defeito é reproduzível.</p>' : '')
     + out.warnings.map(w => `<p class="warn">${escape(w)}</p>`).join('')
     + (parsed.data.errors?.length ? `<p class="warn">Erros capturados: ${parsed.data.errors.map(escape).join(' · ')}</p>` : '');

@@ -3,6 +3,7 @@
 // Depois: abra a ficha, troque o efeito pelo que o Move faz, ajuste os parâmetros e rode  npm run build:combat-lab.
 import {existsSync, writeFileSync} from 'node:fs';
 import {writeIndex} from './gen-fichas.mjs';
+import {factoryDefaults} from './src/sim/config.js';
 
 const name = process.argv.slice(2).join(' ').trim();
 if (!name) {console.error('Uso: npm run novo-move -- "Nome do Move"');process.exit(1);}
@@ -10,6 +11,7 @@ const words = name.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().split(
 if (!words.length || /^[0-9]/.test(words[0])) {console.error('O nome precisa começar com letra.');process.exit(1);}
 const id = words.join('-'), group = words.map((w, i) => i ? w[0].toUpperCase() + w.slice(1) : w).join(''), fn = group;
 const file = new URL(`./src/sim/moves/${id}.js`, import.meta.url), paramsFile = new URL(`./src/sim/moves/${id}.params.js`, import.meta.url), testFile = new URL(`./test/moves-${id}.test.mjs`, import.meta.url);
+if (group in factoryDefaults().world) {console.error(`O nome "${name}" vira o grupo "${group}", que já existe em C.world (regras compartilhadas). Escolha outro nome.`);process.exit(1);}
 for (const f of [file, paramsFile, testFile]) if (existsSync(f)) {console.error(`Já existe: ${f.pathname}. Escolha outro nome ou apague os arquivos do Move "${id}".`);process.exit(1);}
 
 writeFileSync(paramsFile, `// @ts-check
@@ -18,7 +20,7 @@ writeFileSync(paramsFile, `// @ts-check
 import {defineMoveParams, standardRows, paramRow} from './params-registry.js';
 
 export const params = defineMoveParams('${group}', {
-  id: '${id}', title: '${name}',
+  id: '${id}', title: ${JSON.stringify(name)},
   hint: 'TODO: texto de apoio da aba Moves (tipo · categoria · como usar).',
   rows: [
     ...standardRows({cost: .8, cooldown: 10, cast: .35}),
@@ -38,8 +40,8 @@ import {defineFicha} from './params-registry.js';
 import {params} from './${id}.params.js';
 
 export const ${fn}Def = Object.freeze({
-  id: '${id}', name: '${name}', air: 'cast', group: '${group}',
-  description: 'TODO: descreva o que o ${name} faz em uma frase.',
+  id: '${id}', name: ${JSON.stringify(name)}, air: 'cast', group: '${group}',
+  description: ${JSON.stringify(`TODO: descreva o que o ${name} faz em uma frase.`)},
   cost: .8, cooldown: 10, duration: .35, aim: 'facing',
   timeline: [{at: .35, atKey: 'cast', effect: '${id}'}],
 });
@@ -64,7 +66,7 @@ writeFileSync(testFile, `// @ts-check
 import {assert, suite, arena, press, run, secs, status} from './moves-new-helpers.mjs';
 import {getMove} from '../src/sim/moves.js';
 
-const {test, done} = suite('${name.toUpperCase()}');
+const {test, done} = suite(${JSON.stringify(name.toUpperCase())});
 
 test('registrado pela ficha e nada equipado por padrão', () => {
   const g = arena();
