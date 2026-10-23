@@ -25,6 +25,8 @@ import {createHomologation} from './ui/homologation.js';
 import {runBalance, balanceRows} from './sim/balance.js';
 import {compareScenarios, compareMatch} from './sim/compare.js';
 import {MatchRecording, parseRecording} from './sim/recording.js';
+import {captureBug, parseBugCapture, reproduceBugCapture, encodeBug} from './sim/bug-capture.js';
+import {diffRecording} from './sim/replay-diff.js';
 import {emptyCommand} from './sim/entity.js';
 import {patchConfigTs, unifiedDiff, collectChanges} from './ui/gamepatch.js';
 import {OFFICIAL_MAP} from './ui/actions-meta.js';
@@ -38,7 +40,7 @@ import {createMovementPanel} from './ui/movement-panel.js';
 import {createDiagnostics, createWindowsOverlay} from './ui/diagnostics-panel.js';
 import {createTrainingPanel} from './ui/training-panel.js';
 import {createMovesPanel, MOVE_INFO} from './ui/moves-panel.js';
-import {createMovesVfxPanel} from './ui/moves-vfx-panel.js';
+import {createMovesVisual} from './ui/moves-vfx-panel.js';
 import {MovesHud} from './ui/moves-hud.js';
 import {createPassivesPanel} from './ui/passives-panel.js';
 import {installHoverTip} from './ui/hover-tip.js';
@@ -258,7 +260,7 @@ function finishScenario() {
   $('scenario-report').innerHTML = reportHtml([result]) + '<p class="hint">Use ◂/▸ e a linha do tempo para inspecionar o cenário passo a passo.</p>';renderScenarios();syncButtons();
 }
 function renderRecStatus() {
-  $('rec-save').disabled = !matchRec.ticks;
+  $('rec-save').disabled = !matchRec.ticks;$('bug-capture').disabled = !matchRec.ticks;
   $('rec-status').textContent = ui.playback && !ui.playback.ended ? `Reproduzindo: passo ${game.tick} de ${ui.playback.commands.length}` : matchRec.ticks ? `${matchRec.ticks} passos gravados (${(matchRec.ticks * C.test.step).toFixed(1)} s)` : 'Nenhuma partida gravada.';
 }
 $('rec-save').onclick = () => {download(JSON.stringify(matchRec.toJSON()), `arenamon-partida-${matchRec.meta.seed}.json`);};
@@ -274,6 +276,27 @@ $('rec-file').onchange = async e => {
   if (Array.isArray(data.loadouts)) passivesPanel.setFromRecording({loadouts: data.loadouts, identity: data.identity});   // reprodução exata (§27)
   startMatch({playback: {commands, commands1: parsed.commands1, source: file.name}});
   $('rec-result').innerHTML = `<p class="ok">Reproduzindo ${escape(file.name)}: ${commands.length} passos, semente ${data.seed}, ${$('rec-values').value === 'recorded' ? 'ajustes da gravação (Ctrl+Z desfaz)' : 'ajustes atuais'}.</p>`;
+};
+// Captura de bug reproduzível (#11): erros da página ficam guardados para entrar no pacote.
+const pageErrors = [];
+window.addEventListener('error', e => {pageErrors.push(`${e.message} (${(e.filename || '').split('/').pop()}:${e.lineno})`);if (pageErrors.length > 20) pageErrors.shift();});
+window.addEventListener('unhandledrejection', e => {pageErrors.push('Promessa rejeitada: ' + String(e.reason?.message ?? e.reason));if (pageErrors.length > 20) pageErrors.shift();});
+const appVersion = () => ($('app-version')?.textContent ?? '').replace(/^Combate\s*·\s*/, '') || 'desconhecida';
+$('bug-capture').onclick = () => {
+  const pkg = captureBug({game, recording: matchRec, appVersion: appVersion(), note: $('bug-note').value, errors: pageErrors});
+  download(encodeBug(pkg), `arenamon-bug-${pkg.seed ?? 'x'}-t${pkg.tick}.json`);
+  $('bug-result').innerHTML = `<p class="ok">Captura salva: passo ${pkg.tick}, semente ${pkg.seed}, ${pkg.errors.length} erro(s) da página, config ${pkg.configHash}.</p>`;
+};
+$('bug-file').onchange = async e => {
+  const file = e.target.files[0];if (!file) return;const parsed = parseBugCapture(await file.text());e.target.value = '';
+  if (parsed.error) {$('bug-result').innerHTML = `<p class="warn">${escape(parsed.error)}</p>`;return;}
+  ui.playback = null;
+  const out = reproduceBugCapture(parsed.data, game, {appVersion: appVersion()});
+  recorder.clear();replay.clear();resetViewAndLogs();togglePause(true);renderRecStatus();
+  $('bug-result').innerHTML = `<p class="ok">Captura aberta no passo ${out.tick} (semente ${parsed.data.seed}); o jogo ficou pausado nesse instante.${parsed.data.note ? ` Nota: ${escape(parsed.data.note)}` : ''}</p>`
+    + (out.replayMatches === true ? '<p class="ok">Refazer a gravação desde o início chega ao mesmo estado: o defeito é reproduzível.</p>' : '')
+    + out.warnings.map(w => `<p class="warn">${escape(w)}</p>`).join('')
+    + (parsed.data.errors?.length ? `<p class="warn">Erros capturados: ${parsed.data.errors.map(escape).join(' · ')}</p>` : '');
 };
 window.__labRecording = {matchRec, parseRecording, ui};
 /** Caminho equivalente no config.ts do jogo (ou null para parâmetros só do laboratório). */
@@ -306,7 +329,9 @@ $('comp-run').onclick = () => {
   if ($('comp-source').value === 'match') {
     if (!matchRec.ticks) {$('comp-report').innerHTML = '<p class="warn">Nenhuma partida gravada: jogue uma partida (aba Partida) e volte aqui.</p>';return;}
     const r = compareMatch(A, B, matchRec.meta, matchRec.commands);window.__lab.lastCompare = r;
-    $('comp-report').innerHTML = `<p>${matchRec.ticks} passos gravados (semente ${matchRec.meta.seed}). O vermelho reage de novo pela IA em cada lado.</p><table><tr><th></th><th>A · ${name(ida)}</th><th>B · ${name(idb)}</th></tr>${r.rows.map(([k, a, b]) => `<tr><td>${escape(k)}</td><td>${a}</td><td class="${String(a) !== String(b) ? 'warn' : ''}">${b}</td></tr>`).join('')}</table>`;
+    const dv = diffRecording({meta: {...matchRec.meta, moveLoadouts: game.loadouts}, commands: matchRec.commands}, {values: A}, {values: B}).divergence;   // #12: primeiro tick em que A e B se separam
+    r.divergence = dv;
+    $('comp-report').innerHTML = `<p>${matchRec.ticks} passos gravados (semente ${matchRec.meta.seed}). O vermelho reage de novo pela IA em cada lado.</p><table><tr><th></th><th>A · ${name(ida)}</th><th>B · ${name(idb)}</th></tr>${r.rows.map(([k, a, b]) => `<tr><td>${escape(k)}</td><td>${a}</td><td class="${String(a) !== String(b) ? 'warn' : ''}">${b}</td></tr>`).join('')}</table>${r.divergence.identical ? '<p class="muted">A e B percorrem a gravação inteira com o mesmo estado (nenhum tick diverge).</p>' : `<p>Primeiro tick em que A e B se separam: <b>passo ${r.divergence.tick}</b>, campo <code>${escape(r.divergence.field)}</code> (A ${escape(String(r.divergence.a))} · B ${escape(String(r.divergence.b))}).</p>`}`;
     return;
   }
   const rows = compareScenarios(A, B);window.__lab.lastCompare = rows;
@@ -580,7 +605,7 @@ const stored = k => {try {return Number(localStorage.getItem(k)) || 0;} catch {r
   const dockEl = $('dock'), h0 = stored('arenamon.dockH'), root = document.documentElement;if (h0 >= 90) root.style.setProperty('--dock-h', h0 + 'px');
   dragResize($('dock-resizer'), e => ({y: e.clientY, h: dockEl.getBoundingClientRect().height}), (s, ev) => {root.style.setProperty('--dock-h', Math.max(90, Math.min(window.innerHeight * .75, s.h - (ev.clientY - s.y))) + 'px');}, () => store('arenamon.dockH', Math.round(dockEl.getBoundingClientRect().height)), () => {root.style.removeProperty('--dock-h');store('arenamon.dockH', null);});
 }
-const TITLES = {match: 'Partida', moves: 'Moves', 'moves-vfx': 'VFX dos Moves', scenarios: 'Cenários', tuning: 'Ajustes', overlays: 'Visualizar', characters: 'Personagens', controls: 'Controles', export: 'Exportar', homolog: 'Homologação'};
+const TITLES = {match: 'Partida', moves: 'Moves (mecânica e VFX)', scenarios: 'Cenários', tuning: 'Ajustes', overlays: 'Visualizar', characters: 'Personagens', controls: 'Controles', export: 'Exportar', homolog: 'Homologação'};
 function setSubCardFilter(tool, sub) {
   const panel = $('panel'), sec = document.querySelector(`.panel-body section[data-section="${tool}"]`);
   panel.dataset.subcard = sub;
@@ -640,7 +665,6 @@ function openTool(tool) {
   for (const s of document.querySelectorAll('[data-section]')) s.hidden = s.dataset.section !== tool;$('panel-title').textContent = TITLES[tool];
   if (tool === 'homolog') homologation.render();
   if (tool === 'moves') movesPanel.render();
-  if (tool === 'moves-vfx') movesVfxPanel.render();
   if (tool === 'scenarios') {syncCompareOptions();movement.render();}
   if (tool === 'tuning') presets.render();
   if (tool === 'export') renderGameDiff();if (tool === 'tuning') tuning.render();if (tool === 'overlays') {diagnostics.live();perfPanel.live();}
@@ -679,8 +703,11 @@ const diagnostics = createDiagnostics({$, game, tuning, download});
 const windowsOverlay = createWindowsOverlay({root: $('win-overlay'), view, game});
 $('win-controls').append(...tuning.sectionControls('Janelas de combate'));
 // Treino de defesa/esquiva perfeitas: o vermelho segue o roteiro do treino; tudo cronometrado em passos de simulação.
-const movesPanel = createMovesPanel({$, game, download, tuning, view, ui});
-const movesVfxPanel = createMovesVfxPanel({$, tuning, download});
+const movesPanel = createMovesPanel({$, game, download, tuning, view, ui, canvas, startMatch, visual: createMovesVisual({tuning}),
+  presetValues: {options: () => [...$('preset-a').options].map(o => [o.value, o.textContent]), valuesOf: id => presets.valuesOf(id)},
+  nav: {openParams: (id, tab) => {toggleMoves(false);if ($('panel').hidden || $('panel').dataset.tool !== 'moves') openTool('moves');movesPanel.focusMove(id, tab);},
+    openActions: id => {movesPanel.ensureEquipped(id);toggleMoves(true);actionsDrawer.show('moves');movesPanel.focusAction(id);},
+    refreshActions: () => {if (!$('moves-drawer').hidden) actionsDrawer.render();}}});
 const actionsDrawer = createActionsDrawer({$, tuning, ui, renderMoves: c => movesPanel.renderActions(c), renderAiMoves: c => movesPanel.renderAiParams(c), onCharactersChanged: () => {syncCharacterCombatWindows();syncRuleDurations();dock.invalidate();}});
 const movesHud = new MovesHud($('moves-hud'));
 // Passivas: painel de seleção (Partida), HUD da arena e VFX de ativação (§16/§17).

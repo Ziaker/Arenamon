@@ -1,9 +1,14 @@
 // Aba Moves: equipar Reflect e Psyshock, ajustar os parâmetros (valem só para os PRÓXIMOS usos, M28.4), emitir projéteis e explosões de teste
 // na partida e rodar os cenários técnicos repetíveis (M28.3, M28.8). Valores marcados “provisório” são pontos de partida (M30.10), não decisões.
-import {C, defaults} from '../sim/config.js';
+import {C, defaults, factoryDefaults} from '../sim/config.js';
 import {spawn} from '../sim/world.js';
 import {listMoves, getMove} from '../sim/moves.js';
 import {runMoveScenarios} from '../sim/scenarios-moves.js';
+import {moveParamGroups} from '../sim/moves/params-registry.js';
+import {createMoveSpecPanel} from './move-spec-panel.js';
+import {buildMoveTimeline, measureMoveRun, TICK_RATE} from '../sim/move-timeline.js';
+import {compareMoveVariants} from '../sim/move-ab.js';
+import {SHAKE_GROUPS} from '../sim/move-hit-map.js';
 /** Escapa texto para HTML (local: importar o ajustador arrastaria o config.ts do jogo, que só o esbuild lê). */
 const escape = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
 
@@ -12,8 +17,6 @@ const STANDARD = [['reflect', 'Reflect', 0], ['psyshock', 'Psyshock', 1]];
 export const MOVE_INFO = {
   reflect: {group: 'Reflect', hint: 'Barreira refletora frontal. Segure para carregar, solte para criar.'},
   psyshock: {group: 'Psyshock', hint: 'Pedras psíquicas com homing. Segure para carregar, solte para disparar.'},
-  harden: {group: 'Harden', hint: 'Normal · Status. Toque para endurecer: +30% de Defesa e nenhum knockback ofensivo por 5 s (cast de 0,35 s).'},
-  swift: {group: 'Swift', hint: 'Burst · Projectile · PL1. Toque para disparar 3 estrelas com homing curto (com alvo travado) ou em leque (sem alvo).'},
   riposte: {group: 'Riposte', hint: 'Normal · Status + Melee. Toque e seja atingido entre 0,13 e 0,30 s: o golpe é anulado e você contra-ataca na hora. Fora do tempo, fica exposto.'},
   'emerging-stone': {group: 'Emerging Stone', hint: 'Normal. Segure: o cast de 0,55 s começa já e as setas movem o marcador (3–10 m); solte com o cast completo para o projétil subterrâneo ir ao marcador, explodir (5 m) e deixar uma rocha 3×3×3 m.'},
   'bullet-punch': {group: 'Bullet Punch', hint: 'Normal · PL2. Como o Quick Attack: segure para ver o círculo de alcance (azul = alvo dentro, vermelho = fora), solte: prepara 0,75 s, some por 0,2 s numa corrida invisível até o adversário mais próximo e golpeia ao chegar (quem estiver no caminho leva o golpe).'},
@@ -21,12 +24,10 @@ export const MOVE_INFO = {
   spikes: {group: 'Spikes', hint: 'Normal · Field. Segure para escolher o local (setas movem o marcador, até 5 m), solte para confirmar: nasce uma armadilha de espinhos que fere o primeiro adversário que pisar nela.'},
   bounce: {group: 'Bounce', hint: 'Charge · Trick + Melee · PL1–PL3. Segure para carregar (até 1,2 s), solte para saltar em arco rumo ao alvo (até 6 m) e cair em cima do adversário.'},
   feint: {group: 'Feint', hint: 'Burst · Trick. Toque logo após iniciar um ataque (ou durante a carga) para cancelá-lo e recuar com i-frames curtos. Tarde demais: gasta o Move e o ataque segue.'},
-  'guard-break': {group: 'Guard Break', hint: 'Charge · Melee · PL1–PL3. Segure para carregar (até 1 s), solte para um golpe pesado que derruba a guarda e causa guard stun de 0,5 s.'},
   lunge: {group: 'Lunge', hint: 'Burst · Melee · PL1. Toque para avançar 3,5 m em linha reta com um Tackle curto e ficar onde parou.'},
   'quick-attack': {group: 'Quick Attack', hint: 'Burst · Melee · PL1. Toque para investir no adversário mais próximo (até 7 m) e voltar na hora ao ponto de partida. Sem alvo ao alcance, não faz nada.'},
-  'second-wind': {group: 'Second Wind', hint: 'Normal · Status. Toque para regenerar stamina bem mais rápido e gastar 25% menos em esquiva e sprint por 5 s (cast de 0,35 s).'},
   'water-pulse': {group: 'Water Pulse', hint: 'Charge · Projectile · PL1–PL3. Segure para carregar (até 1,5 s; PL2 em 0,75 s, PL3 em 1,5 s) — a esfera de água cresce na mão — e solte para disparar UMA esfera reta, sem homing. Mais carga = mais dano e empurrão. Protótipo: números do prompt de 22/10, não homologados.'},
-  'fire-spin': {group: 'Fire Spin', hint: 'Normal · Field. Segure para escolher o local (setas movem o marcador, até 20 m), solte para confirmar: após 0,4 s nasce um tornado de fogo (1,6 m de raio) que dá 4 pulsos de dano em 2,4 s. O anel da prévia mostra o raio real da zona. Protótipo: números não homologados.'},
+  'fire-spin': {group: 'Fire Spin', hint: 'Normal · Field. Segure para escolher o local (setas movem o marcador, até 20 m), solte para confirmar: após 0,4 s nasce um tornado de fogo (1,6 m de raio) que dá um pulso de dano a cada 0,6 s enquanto durar (2,4 s). O anel da prévia mostra o raio real da zona. Protótipo: números não homologados.'},
   'air-slash': {group: 'Air Slash', hint: 'Burst · Projectile · PL1. Toque: após 8 passos (0,067 s) nasce uma lâmina de ar rápida em linha reta, sem homing; com alvo travado a mira é a do instante do toque. Protótipo: números não homologados.'},
   'seed-bomb': {group: 'Seed Bomb', hint: 'Normal · Projectile + Field. Segure para escolher o destino (até 32 m, setas movem o marcador), solte para confirmar: após 0,3 s uma semente voa em arco e explode ao tocar algo, num raio esférico de 1,8 m. O anel da prévia mostra o raio real da explosão. Protótipo: números não homologados.'},
 };
@@ -62,6 +63,7 @@ const PARAMS = [
     ['reflect', 'maxReflections', 'Limite de reflexões por passo', 'Salvaguarda contra ciclos degenerados (M17.2; provisório).', 1, 64, 1, int, false],
     ['reflect', 'burstRadius', 'Pulso ao invocar: alcance', 'Raio, a partir do centro da barreira, em que o pulso atinge os lutadores ao materializar (0 = sem pulso). A própria barreira não quebra (provisório).', 0, 10, .25, m, false],
     ['reflect', 'burstForce', 'Pulso ao invocar: força do empurrão', 'Empurrão horizontal do pulso (cai com a distância). Só vale com “Causa empurrão” ligado (provisório).', 0, 10, .05, ms, false],
+    ['reflect', 'burstVertical', 'Pulso ao invocar: lançamento vertical', 'Componente vertical do pulso (cai com a distância). Só vale com “Causa empurrão” ligado (provisório).', 0, 15, .05, ms, false],
     ['reflect', 'burstDamage', 'Pulso ao invocar: dano', 'Dano do pulso como fração do Ataque do lançador (0 = nenhum; cai com a distância). Só vale com “Causa dano” ligado (provisório).', 0, 2, .01, pct, false],
     ['reflect', 'burstPush', 'Pulso ao invocar: causa empurrão?', 'Liga o empurrão do pulso (provisório).', 0, 1, 1, yesno, false],
     ['reflect', 'burstHurt', 'Pulso ao invocar: causa dano?', 'Liga o dano do pulso (provisório).', 0, 1, 1, yesno, false],
@@ -94,40 +96,6 @@ const PARAMS = [
     ['psyshock', 'counterStagger', 'Counter Stagger', 'Stagger quando uma pedra de PL superior atinge o corpo do derrotado (M21.5).', 0, 1, .01, sec, true],
     ['psyshock', 'radius', 'Raio de colisão da pedra', 'Igual em todas as pedras (o tamanho visual varia sem efeito na física, M30.2).', .05, .5, .01, m, false],
   ]],
-  ['Harden', [
-    ['harden', 'cost', 'Custo de stamina', 'Cobrado no início do cast (Normal sem marcador); vale nos PRÓXIMOS usos (M28.4). Valor do catálogo — proposta, não homologada.', 0, 5, .05, num, false],
-    ['harden', 'cooldown', 'Cooldown', 'Começa junto com o custo, no início do cast (proposta).', 0, 60, .5, sec, false],
-    ['harden', 'cast', 'Duração do cast', 'Tempo do cast antes do efeito começar; interrupção nesse intervalo cancela sem reembolso (proposta).', .05, 2, .01, sec, false],
-    ['harden', 'duration', 'Duração do efeito', 'Quanto tempo o status dura depois do cast (proposta).', .5, 20, .25, sec, false],
-    ['harden', 'defensePct', 'Bônus de Defesa', '+30% de Defesa = dano recebido × 1/(1+bônus), mesma convenção da passiva de Defesa (MV-P01; proposta).', 0, 2, .05, pct, false],
-    ['harden', 'negateKnockback', 'Anula o knockback ofensivo?', 'Liga a negação do arremesso/empurrão de ataques e projéteis. O empurrão físico do corpo do atacante e a gravidade não são knockback (MV-P12).', 0, 1, 1, yesno, false],
-  ]],
-  ['Second Wind', [
-    ['secondWind', 'cost', 'Custo de stamina', 'Cobrado no início do cast (Normal sem marcador); vale nos PRÓXIMOS usos (M28.4). Valor do catálogo — proposta, não homologada.', 0, 5, .05, num, false],
-    ['secondWind', 'cooldown', 'Cooldown', 'Começa junto com o custo, no início do cast (proposta).', 0, 60, .5, sec, false],
-    ['secondWind', 'cast', 'Duração do cast', 'Tempo do cast antes do efeito começar; interrupção nesse intervalo cancela sem reembolso (proposta).', .05, 2, .01, sec, false],
-    ['secondWind', 'duration', 'Duração do efeito', 'Quanto tempo o status dura depois do cast (proposta).', .5, 20, .25, sec, false],
-    ['secondWind', 'regenPctPerSecond', 'Regeneração extra por segundo', 'Fração da stamina MÁXIMA recuperada por segundo durante o efeito (MV-P09: o documento diz "+40%/s" sem base).', 0, 2, .05, pct, false],
-    ['secondWind', 'mobilityCostPct', 'Desconto em esquiva e sprint', 'Redução do custo da esquiva (C) e do consumo do sprint durante o efeito (proposta: 25%).', 0, .9, .05, pct, false],
-  ]],
-  ['Swift', [
-    ['swift', 'cost', 'Custo de stamina', 'Cobrado no início do uso (Burst); vale nos PRÓXIMOS usos (M28.4). Valor do catálogo — proposta, não homologada.', 0, 5, .05, num, false],
-    ['swift', 'cooldown', 'Cooldown', 'Começa junto com o custo, no início do uso (proposta).', 0, 60, .5, sec, false],
-    ['swift', 'cast', 'Duração da ação', 'Tempo da ação (recuperação do Burst: não definido no catálogo; provisório MV-P14).', .05, 2, .01, sec, false],
-    ['swift', 'count', 'Quantidade de estrelas', 'Estrelas por uso (catálogo: 3).', 1, 9, 1, int, false],
-    ['swift', 'speed', 'Velocidade', 'Velocidade de cada estrela (catálogo: 15 m/s).', 2, 40, .5, ms, false],
-    ['swift', 'damage', 'Dano nominal por estrela', 'Dano com o Ataque de referência; final = nominal × Ataque ÷ referência (MV-P13). Catálogo: 3 HP.', 0, 30, .5, num, false],
-    ['swift', 'homingSeconds', 'Duração do homing', 'Só com alvo travado; sem garantia de acerto (catálogo: 0,25 s).', 0, 1.5, .05, sec, false],
-    ['swift', 'homingRate', 'Correção angular do homing', 'Graus por segundo (catálogo: 90°/s).', 0, 720, 10, deg, false],
-    ['swift', 'range', 'Alcance máximo', 'Distância percorrida antes de expirar (catálogo: 12 m).', 2, 40, .5, m, false],
-    ['swift', 'knockback', 'Knockback por acerto', 'Empurrão horizontal de cada estrela (catálogo: 0,3 m/s); vertical é sempre 0.', 0, 10, .05, ms, false],
-    ['swift', 'knockbackCap', 'Teto de knockback por alvo e execução', 'Máximo acumulado pelas estrelas de um mesmo uso (catálogo: 0,9 m/s).', 0, 10, .05, ms, false],
-    ['swift', 'radius', 'Raio de colisão da estrela', 'Colisor de cada estrela (provisório).', .05, .5, .01, m, false],
-    ['swift', 'fanAngle', 'Leque sem alvo travado', 'Abertura total do leque frontal quando não há lock-on (provisório).', 0, 90, 1, deg, false],
-    ['swift', 'spawnForward', 'Saída à frente do lançador', 'Distância à frente em que as estrelas nascem (provisório).', .3, 2, .05, m, false],
-    ['swift', 'spawnSpacing', 'Espaçamento lateral na saída', 'Distância lateral entre as estrelas ao nascer (provisório).', 0, 1.5, .05, m, false],
-    ['swift', 'counterStagger', 'Counter Stagger', 'Stagger quando a estrela vence uma disputa de PL e atinge o corpo (M21.5; PL1 não vence PL1).', 0, 1, .01, sec, false],
-  ]],
   ['Lunge', [
     ['lunge', 'cost', 'Custo de stamina', 'Cobrado no início do uso (Burst); vale nos PRÓXIMOS usos (M28.4). Valor da proposta — não homologada.', 0, 5, .05, num, false],
     ['lunge', 'cooldown', 'Cooldown', 'Começa junto com o custo, no início do uso (proposta: 6 s).', 0, 60, .5, sec, false],
@@ -155,22 +123,6 @@ const PARAMS = [
     ['quickAttack', 'fxLines', 'Linhas de velocidade no sumiço', 'O lutador some em linhas de velocidade na ida e volta com outras linhas no retorno, como o Bullet Punch. Só aparência.', 0, 1, 1, yesno, false],
     ['quickAttack', 'fxHideBody', 'Ocultar o corpo durante o sumiço', 'Liga/desliga o desaparecimento visual do corpo durante a ida e a volta. Só aparência.', 0, 1, 1, yesno, false],
     ['quickAttack', 'airReach', 'Alcance vertical anti-aéreo', 'Altura de alvo em voo que o Move consegue adquirir e acertar (0 = só no chão, como antes). Padrão: 3 m.', 0, 8, .25, m, false],
-  ]],
-  ['Guard Break', [
-    ['guardBreak', 'cost', 'Custo de stamina', 'Cobrado ao INICIAR a carga (Charge); interromper a carga não devolve. Valor da proposta — não homologada.', 0, 5, .05, num, false],
-    ['guardBreak', 'cooldown', 'Cooldown', 'Começa junto com o custo, ao iniciar a carga (proposta: 10 s).', 0, 60, .5, sec, false],
-    ['guardBreak', 'cast', 'Duração do golpe (pós-soltura)', 'Do disparo ao fim da recuperação (proposta: 0,7 s).', .2, 3, .01, sec, false],
-    ['guardBreak', 'maxCharge', 'Carga máxima', 'PL1 abaixo de 50%, PL2 de 50% até antes de 100%, PL3 na carga máxima (proposta: 1 s).', .2, 4, .05, sec, false],
-    ['guardBreak', 'minCharge', 'Carga mínima para soltar', '0 = pode soltar a qualquer momento (proposta).', 0, 2, .05, sec, false],
-    ['guardBreak', 'range', 'Distância do avanço', 'Não definida no documento: provisório (MV-P20).', .5, 8, .1, m, false],
-    ['guardBreak', 'damage', 'Dano nominal', 'Com o Ataque de referência; final = nominal × Ataque ÷ referência (MV-P13); não cresce com o PL. Valor do laboratório: 14 HP (a proposta original era 6; subiu para o contra-golpe ser um grande impacto).', 0, 40, .5, num, false],
-    ['guardBreak', 'knockbackH', 'Knockback horizontal (sem guarda)', 'Empurrão em quem NÃO está defendendo (proposta: 2 m/s). Contra guarda o valor é o guard stun.', 0, 20, .1, ms, false],
-    ['guardBreak', 'knockbackV', 'Knockback vertical', 'Com valor acima de zero o golpe passa a lançar o alvo (proposta: 0).', 0, 20, .1, ms, false],
-    ['guardBreak', 'stun', 'Guard stun', 'Tempo que o defensor fica sem agir após ter a guarda quebrada (proposta: 0,5 s, GM-P04). Defesa perfeita anula.', 0, 3, .05, sec, false],
-    ['guardBreak', 'invulnerableSeconds', 'Invulnerabilidade do atacante', 'I-frames no começo do golpe (proposta: nenhum; o startup é punível).', 0, 1, .01, sec, false],
-    ['guardBreak', 'chainAfter', 'Cancelável após', 'Instante a partir do qual esquiva/outras ações podem cancelar (proposta: 0,47 s).', 0, 2, .01, sec, false],
-    ['guardBreak', 'hitStart', 'Janela ativa: início', 'Só vale com "janelas de combate" ligadas (proposta: 0,33 s).', 0, 1.5, .01, sec, false],
-    ['guardBreak', 'hitEnd', 'Janela ativa: fim', 'Só vale com "janelas de combate" ligadas (proposta: 0,53 s).', 0, 1.5, .01, sec, false],
   ]],
   ['Feint', [
     ['feint', 'cost', 'Custo de stamina', 'Cobrado na confirmação (Burst); o custo da ação cancelada não volta (MV-P26). Valor da proposta — não homologada.', 0, 3, .05, num, false],
@@ -210,7 +162,8 @@ const PARAMS = [
     ['emergingStone', 'speed', 'Velocidade do projétil', 'Linha reta virtual, atravessa paredes e buracos (documento: 15 m/s).', 2, 60, .5, ms, false],
     ['emergingStone', 'blastRadius', 'Raio da explosão (horizontal)', 'Independe da altura e atravessa paredes (documento: 5 m).', .5, 20, .25, m, false],
     ['emergingStone', 'damage', 'Dano nominal da explosão', 'Com o Ataque de referência; final = nominal × Ataque ÷ referência (MV-P13). Documento: 20.', 0, 100, 1, num, false],
-    ['emergingStone', 'blastKnockback', 'Empurrão radial da explosão', 'Horizontal, para fora do centro (documento: 8 m/s).', 0, 30, .5, ms, false],
+    ['emergingStone', 'blastKnockback', 'Empurrão radial da explosão (horizontal)', 'Horizontal, para fora do centro (documento: 8 m/s).', 0, 15, .5, ms, false],
+    ['emergingStone', 'blastKnockbackV', 'Empurrão radial da explosão (vertical)', 'Com valor acima de 0 a explosão também lança o alvo para cima. Padrão 0.', 0, 15, .1, ms, false],
     ['emergingStone', 'rockScale', 'Escala do prisma da rocha', 'Prisma 3×3×3 m × escala; colisor, topo e espaço necessário acompanham (documento: 0,25× a 4×, passo 0,25, padrão 1×).', .25, 4, .25, x, false],
     ['emergingStone', 'rockHp', 'HP da rocha', 'Dano por golpe válido: sem PL 1, PL1 2, PL2 3, PL3 4 (documento: 5 HP).', 1, 30, 1, int, false],
     ['emergingStone', 'riseTime', 'Tempo de emergência', 'Colisor e topo crescem com a altura exposta (documento: 0,40 s).', .1, 3, .05, sec, false],
@@ -238,6 +191,9 @@ const PARAMS = [
     ['bulletPunch', 'stopShort', 'Distância de parada antes do alvo', 'A corrida invisível termina a esta distância do alvo (centro a centro), para o golpe acertar na hora (padrão 1,1 m; abaixo de 0,8 m a corrida já conta como contato).', .6, 4, .1, m, false],
     ['bulletPunch', 'hitRadius', 'Raio de contato no caminho', 'Quem ficar a menos desta distância do trecho da corrida invisível leva o golpe e a corrida para ali (padrão 0,8 m).', .3, 3, .05, m, false],
     ['bulletPunch', 'impactMult', 'Velocidade de impacto do knockback (× Tackle)', 'Multiplica a velocidade de impacto usada na fórmula do Tackle (documento: 1×; faixa 0–5×).', 0, 5, .1, x, false],
+    ['bulletPunch', 'knockbackOwn', 'Knockback próprio (em vez da fórmula do Tackle)', 'Desligado (padrão): o empurrão vem da fórmula do Tackle × a velocidade de impacto acima. Ligado: usa o Knockback horizontal e vertical abaixo, como o Lunge.', 0, 1, 1, yesno, false],
+    ['bulletPunch', 'knockbackH', 'Knockback horizontal (próprio)', 'Empurrão deslizante no alvo; só vale com “Knockback próprio” ligado.', 0, 15, .1, ms, false],
+    ['bulletPunch', 'knockbackV', 'Knockback vertical (próprio)', 'Com valor acima de 0 o golpe lança o alvo; só vale com “Knockback próprio” ligado.', 0, 15, .1, ms, false],
     ['bulletPunch', 'slow', 'Redução da velocidade na preparação', '0,7 = anda a 30% durante a preparação (documento: 70%).', 0, .95, .05, pct, false],
     ['bulletPunch', 'maxRise', 'Altura de apoio na chegada (técnico)', 'Até que altura acima dos pés o lutador procura apoio ao reaparecer.', 0, 6, .25, m, false],
     ['bulletPunch', 'fxLines', 'Linhas de velocidade no sumiço', 'Desenha linhas de velocidade do ponto de partida até o alvo enquanto o lutador some (e outras na volta, no Quick Attack). Só aparência.', 0, 1, 1, yesno, false],
@@ -253,6 +209,8 @@ const PARAMS = [
     ['sandWave', 'active', 'Janela de acerto (hitbox)', 'Primeiros segundos da barragem: a onda avança e atinge (documento: 0,75 s).', .1, 3, .05, sec, false],
     ['sandWave', 'dissipate', 'Dissipação visual', 'Tempo extra só de efeito, sem hitbox nem empurrão (documento: 0,75 s).', 0, 3, .05, sec, false],
     ['sandWave', 'damage', 'Dano fixo', 'HP por inimigo por execução, independente do Ataque (documento: 6 HP).', 0, 40, .5, num, false],
+    ['sandWave', 'knockbackH', 'Knockback horizontal (golpe inicial)', 'Empurrão único no primeiro contato, além da aceleração contínua da onda. Padrão 0 (documento: só a aceleração).', 0, 15, .1, ms, false],
+    ['sandWave', 'knockbackV', 'Knockback vertical (golpe inicial)', 'Com valor acima de 0 o primeiro contato lança o alvo para cima. Padrão 0.', 0, 15, .1, ms, false],
     ['sandWave', 'accel', 'Empurrão (aceleração)', 'Aceleração horizontal enquanto houver contato na janela; metade sob defesa parcial (documento: 12 m/s²).', 0, 40, .5, ms2, false],
     ['sandWave', 'partialFactor', 'Fator do empurrão na defesa parcial', 'Multiplica a aceleração quando o alvo defende (documento: 0,5).', 0, 1, .05, num, false],
     ['sandWave', 'blind', 'Duração da cegueira', 'Reiniciada (não somada) a cada novo acerto válido; defesa perfeita anula (documento: 4 s).', 0, 15, .25, sec, false],
@@ -310,6 +268,7 @@ const PARAMS = [
     ['waterPulse', 'knockbackPl1', 'Empurrão H, PL1', 'ATENÇÃO: sem vertical, o motor empurra o alvo 1,5 × este valor em METROS (2 → 3 m) e dá 0,63 s de recuperação (EL-P04 A, provisório). Prompt: 2.', 0, 10, .1, ms, false],
     ['waterPulse', 'knockbackPl2', 'Empurrão H, PL2', 'Mesma regra do PL1: 1,5 × este valor em metros (prompt: 3).', 0, 10, .1, ms, false],
     ['waterPulse', 'knockbackPl3', 'Empurrão H, PL3', 'Mesma regra do PL1: 1,5 × este valor em metros (prompt: 4).', 0, 10, .1, ms, false],
+    ['waterPulse', 'knockbackV', 'Empurrão V (todos os PL)', 'Componente vertical do empurrão. Acima de 0 o projétil LANÇA o alvo (voo) em vez de só deslizá-lo (prompt: 0).', 0, 15, .1, ms, false],
     ['waterPulse', 'speed', 'Velocidade do projétil', 'Velocidade escalar 3D (prompt: 14 m/s).', 5, 30, .5, ms, false],
     ['waterPulse', 'radius', 'Raio do projétil', 'Colisor circular (prompt: 0,38 m).', .1, .8, .01, m, false],
     ['waterPulse', 'range', 'Alcance', 'Distância máxima; a vida do projétil é alcance ÷ velocidade (o prompt tinha 12 m e 1,0 s, incoerentes a 14 m/s).', 3, 20, .5, m, false],
@@ -325,11 +284,12 @@ const PARAMS = [
     ['fireSpin', 'range', 'Alcance do marcador (3D)', 'Inclui a altura do apoio. Padrão atual: 20 m.', 1, 40, .5, m, false],
     ['fireSpin', 'zoneRadius', 'Raio da zona', 'Região ofensiva cilíndrica (prompt: 1,6 m). O anel da prévia usa este raio real.', .5, 4, .05, m, false],
     ['fireSpin', 'zoneHeight', 'Altura da zona', 'Faixa vertical que pega quem está dentro, a partir do apoio (prompt: 2,4 m).', .5, 5, .1, m, false],
-    ['fireSpin', 'life', 'Duração da zona', 'Vida da entidade em tempo LOCAL (cada acerto congela o mundo 1 passo de hitstop). Prompt: 2,4 s = 288 passos.', .5, 8, .1, sec, false],
-    ['fireSpin', 'pulses', 'Número de pulsos', 'O último pulso precisa cair antes de a zona expirar: pulsos serão limitados a (duração ÷ intervalo). Prompt: 4.', 1, 12, 1, int, false],
-    ['fireSpin', 'interval', 'Intervalo entre pulsos', 'O primeiro pulso sai no primeiro passo da zona (prompt: 0,6 s = 72 passos).', .1, 2, .05, sec, false],
-    ['fireSpin', 'startup', 'Atraso do primeiro pulso (start-up)', 'Tempo antes do primeiro pulso de dano (s). 0 = dano imediato.', 0, 3, .05, sec, false],
+    ['fireSpin', 'life', 'Duração da zona', 'Vida da entidade em tempo LOCAL (cada acerto congela o mundo 1 passo de hitstop). Não há limite de pulsos: a zona dá quantos pulsos couberem entre o start-up e o fim desta duração, um a cada intervalo (prompt: 2,4 s = 288 passos).', .5, 8, .1, sec, false],
+    ['fireSpin', 'interval', 'Intervalo entre pulsos', 'Tempo entre um pulso e o seguinte. Quantidade de pulsos = o que couber na duração da zona (prompt: 0,6 s = 72 passos).', .1, 2, .05, sec, false],
+    ['fireSpin', 'startup', 'Atraso do primeiro pulso (start-up)', 'Tempo, contado do nascimento da zona, antes do primeiro pulso de dano. 0 = o primeiro pulso sai logo que a zona nasce; os demais seguem a cada intervalo.', 0, 3, .05, sec, false],
     ['fireSpin', 'damage', 'Dano por pulso (nominal)', 'Final = nominal × Ataque ÷ referência (MV-P13); uma vez por alvo por pulso. Prompt: 2 HP (o teto de 8 HP por alvo é igual a 4 × 2, redundante).', 0, 10, .25, num, false],
+    ['fireSpin', 'knockbackH', 'Knockback horizontal por pulso', 'Empurrão radial (para fora do centro da zona) em cada pulso. Padrão 0: a zona fere sem empurrar (prompt).', 0, 15, .1, ms, false],
+    ['fireSpin', 'knockbackV', 'Knockback vertical por pulso', 'Com valor acima de 0 cada pulso lança o alvo para cima. Padrão 0.', 0, 15, .1, ms, false],
     ['fireSpin', 'guardStun', 'Guard stun por pulso', '0 = quem defende toma o dano reduzido e continua livre (FS-P07 A, provisório). Com o valor do motor (0,514 s) a guarda trava ≈83% do tempo.', 0, 1, .01, sec, false],
     ['fireSpin', 'occlusion', 'Paredes bloqueiam os pulsos', 'Liga: sólidos de chão entre o centro e o alvo impedem o dano (plano XZ). Desligado: o dano atravessa (padrão do motor).', 0, 1, 1, yesno, false],
     ['fireSpin', 'maxActive', 'Zonas simultâneas por dono', 'A mais antiga some quando o limite é passado (FS-P04, provisório: 1).', 1, 4, 1, int, false],
@@ -350,6 +310,7 @@ const PARAMS = [
     ['airSlash', 'radius', 'Raio do colisor (equivalente)', 'O motor colide projéteis como CÍRCULO; a caixa 1,20 × 0,70 × 0,22 do prompt é só o desenho (AS-P02 A, provisório). Alcança 0,5 m + este raio do centro do alvo.', .1, 1.5, .05, m, false],
     ['airSlash', 'damage', 'Dano (nominal)', 'Final = nominal × Ataque ÷ referência (MV-P13). Prompt: 8 HP.', 0, 40, .5, num, false],
     ['airSlash', 'knockbackH', 'Empurrão H', 'ATENÇÃO: sem vertical, o motor empurra 1,5 × este valor em METROS (2,5 → 3,75 m) e dá 0,63 s de recuperação (EL-P04 A, provisório). Prompt: 2,5.', 0, 12, .1, ms, false],
+    ['airSlash', 'knockbackV', 'Empurrão V', 'Componente vertical do empurrão. Acima de 0 a lâmina LANÇA o alvo (voo) em vez de só deslizá-lo (prompt: 0).', 0, 15, .1, ms, false],
     ['airSlash', 'originHeight', 'Altura de nascimento (mão)', 'Acima da altitude do atirador.', .2, 1.3, .05, m, false],
     ['airSlash', 'spawnForward', 'Distância de nascimento', 'À frente do corpo; sólido ali = a lâmina se dissipa (Burst gasto sem efeito).', .3, 1.5, .05, m, false],
     ['airSlash', 'counterStagger', 'Counter Stagger', 'Stagger do derrotado quando este projétil vence um Counter (M21.5: 0,2 s).', 0, 1, .01, sec, true],
@@ -410,7 +371,27 @@ const PARAMS = [
 
 /** Controles da aba (exportado para os testes de cobertura: cada parâmetro da configuração dos Moves precisa de slider). */
 // Pedido de 22/10/2026: o limite máximo dos sliders de Moves vale o DOBRO (liga/desliga e seletores de poucos valores ficam como estão).
-for (const [, rows] of PARAMS) for (const r of rows) if (r[7] !== yesno && !(r[6] >= 1 && r[5] <= 3)) r[5] *= 2;
+// Pedido de 23/10/2026: todo knockback (horizontal e vertical) vai de 0 a 15 em TODOS os Moves que causam dano; estes sliders não dobram.
+/** Chaves de knockback/lançamento: limite fixo de 15. */
+export const KNOCKBACK_KEY = /^(knockbackH|knockbackV|knockback|knockbackPl\d|knockbackPerStone|knockbackVertical|knockbackCap|blastKnockback|blastKnockbackV|burstForce|burstVertical|launchH|launchV)$/;
+export const KNOCKBACK_MAX = 15;
+// Moves em FICHA (um arquivo por Move em src/sim/moves/): título, texto de apoio e sliders vêm da própria ficha, sem tabela aqui.
+const FORMATTERS = {num, int, sec, pct, m, ms, ms2, deg, x, yesno};
+for (const g of moveParamGroups()) {
+  MOVE_INFO[g.id] = {group: g.title, hint: g.hint ?? '', meta: g.meta};
+  PARAMS.push([g.title, g.rows.map(r => [g.group, r.key, r.label, r.tip, r.min, r.max, r.step, FORMATTERS[r.unit], !!r.approved])]);
+}
+for (const [, rows] of PARAMS) for (const r of rows) {
+  if (KNOCKBACK_KEY.test(r[1])) r[5] = KNOCKBACK_MAX;
+  else if (r[7] !== yesno && !(r[6] >= 1 && r[5] <= 3)) r[5] *= 2;
+}
+// Tremor de câmera ao acertar (pedido de 23/10/2026): Moves que NÃO são corpo a corpo não tremem por padrão; o interruptor libera a intensidade e a duração (valem sobre o tremor padrão de hit).
+const SHAKE_TITLES = {reflect: 'Reflect', psyshock: 'Psyshock', swift: 'Swift', emergingStone: 'Emerging Stone', sandWave: 'Sand Wave', spikes: 'Spikes', waterPulse: 'Water Pulse', fireSpin: 'Fire Spin', airSlash: 'Air Slash', seedBomb: 'Seed Bomb'};
+for (const g of SHAKE_GROUPS) if (!PARAMS.find(([t]) => t === SHAKE_TITLES[g])[1].some(r => r[1] === 'hitShakeOn')) PARAMS.find(([t]) => t === SHAKE_TITLES[g])[1].push(   // Moves em ficha trazem as próprias linhas (hitShakeRows)
+  [g, 'hitShakeOn', 'Tremor de câmera ao acertar', 'Desligado (padrão): este Move não treme a câmera ao acertar. Ligado: libera a intensidade e a duração do tremor. Só aparência.', 0, 1, 1, yesno, false],
+  [g, 'hitShakeAmount', 'Tremor ao acertar: intensidade', 'Multiplica o tremor de hit padrão (1 = igual ao do Tackle). Só aparência.', 0, 6, .05, x, false],
+  [g, 'hitShakeDuration', 'Tremor ao acertar: duração', 'Multiplica a duração do tremor de hit padrão (1 = igual ao do Tackle). Só aparência.', .1, 5, .05, x, false],
+);
 export const MOVES_PARAMS = PARAMS;
 const VISUAL_WORLD_KEYS = new Set([
   'psyshock.scaleMin','psyshock.scaleMax',
@@ -421,8 +402,33 @@ const VISUAL_WORLD_KEYS = new Set([
   'sandWave.dissipate',
   'airSlash.visualWidth','airSlash.visualHeight','airSlash.visualThickness',
   'seedBomb.blastLife',
+  ...SHAKE_GROUPS.flatMap(g => [`${g}.hitShakeOn`, `${g}.hitShakeAmount`, `${g}.hitShakeDuration`]),
 ]);
+/** Sliders que só aparecem quando o interruptor indicado está ligado (chave do dependente → chave do interruptor, no mesmo grupo). */
+export const DEPENDS_ON = Object.freeze({
+  'bulletPunch.knockbackH': 'knockbackOwn', 'bulletPunch.knockbackV': 'knockbackOwn',
+  ...Object.fromEntries(SHAKE_GROUPS.flatMap(g => [[`${g}.hitShakeAmount`, 'hitShakeOn'], [`${g}.hitShakeDuration`, 'hitShakeOn']])),
+});
 export const isVisualWorldParam = row => VISUAL_WORLD_KEYS.has(`${row[0]}.${row[1]}`);
+
+/**
+ * Subgrupos da aba Mecânica (pedido de 23/10/2026): cada parâmetro vai para o primeiro subgrupo cujo padrão casar com a chave; o que sobrar fica em “Outros”.
+ * `ONLY` fixa subgrupos de chaves ambíguas (grupo.chave) quando a regra geral erra.
+ */
+export const MECH_SUBS = [
+  ['Custo e recarga', /^(cost|cooldown)$/],
+  ['Carga', /^(maxCharge|minCharge|minStones|maxStones|stoneSeconds)$/],
+  ['Tempos e duração', /^(cast|castSlow|recovery|startup|duration|durationBase|life|lifetime|flightTime|vanish|active|dissipate|riseTime|armDelay|landRecovery|approachMax|returnMax|chainAfter|hitStart|hitEnd|cancelAfter|cancelWindow|windowStart|windowEnd|invulnStart|invulnEnd|invulnerableSeconds|retreat|homingSeconds|slow|blastLife|interval|chargeRecovery)$/],
+    ['Knockback', /^(knockback\w*|blastKnockback\w*|burstForce|burstVertical|burstPush|launchH|launchV|accel|partialFactor|impactMult)$/],
+  ['Dano e efeitos de acerto', /^(damage\w*|burstDamage|burstHurt|successiveFactor|counterStagger|stun|guardStun|tackleStagger|tackleRecoil|wallStagger|blind|visionRadius|fogDarkness|rockHp|hitstopMult|shakeMult|regenPctPerSecond|mobilityCostPct|defensePct|negateKnockback)$/],
+  ['Alcance e área', /^(range|minRange|reach|strikeReach|strikeRange|acquireRange|airReach|maxDistance|radius|seedRadius|zoneRadius|zoneHeight|explosionRadius|blastRadius|burstRadius|landRadius|contactRadius|hitRadius|stopShort|length|width|trapHeight|width\w*|height\w*|thickness|gapFraction|rockScale|rockSearch|scale\w*|searchRange|searchStep|detour|cell|occlusion|stopShort)$/],
+  ['Marcador de mira', /^(marker\w*|startDistance|maxRise|edgeMargin|allowOccupied)$/],
+  ['Projétil e disparo', /^(speed|speedMin|speedMax|maxSpeed|gravity|count|fanAngle|spawn\w*|originHeight|homingRate|arc|ring\w*|spacing|maxActive|maxRocks|maxReflections|tieTolerance|replanSteps|fx\w*|blast\w*)$/],
+];
+const ONLY = {'reflect.minCharge': 'Carga', 'fireSpin.life': 'Pulsos de dano', 'fireSpin.interval': 'Pulsos de dano', 'fireSpin.startup': 'Pulsos de dano'};
+/** Ordem de exibição dos subgrupos. */
+export const SUB_ORDER = ['Custo e recarga', 'Carga', 'Tempos e duração', 'Pulsos de dano', 'Dano e efeitos de acerto', 'Knockback', 'Alcance e área', 'Marcador de mira', 'Projétil e disparo', 'Outros'];
+export const subOfParam = (group, key) => ONLY[`${group}.${key}`] ?? MECH_SUBS.find(([, re]) => re.test(key))?.[0] ?? 'Outros';
 
 /** Itens da avaliação jogável e visual dos Moves (M28.9: separada dos testes automáticos; decisão do diretor). */
 export const MOVES_HOMOLOG = [
@@ -441,8 +447,11 @@ const HOMOLOG_KEY = 'arenamon-moves-homolog';
 const loadHomolog = () => {try {return JSON.parse(localStorage.getItem(HOMOLOG_KEY) ?? '{}');} catch {return {};}};
 const saveHomolog = h => {try {localStorage.setItem(HOMOLOG_KEY, JSON.stringify(h));} catch {/* sem armazenamento: a avaliação vale só nesta sessão */}};
 
-export function createMovesPanel({$, game, download, tuning, view, ui}) {
+export function createMovesPanel({$, game, download, tuning, view, ui, canvas, startMatch, visual, nav = {}, presetValues = null}) {
   const root = $('moves-panel');
+  const tabOf = new Map(), fireOpts = {hold: .4, auto: false};
+  const specPanel = createMoveSpecPanel({download});
+  let fireTimer = 0;
   let results = null, homolog = loadHomolog(), subscribed = false;
   const loadoutOf = id => Array.from({length: C.world.slots}, (_, i) => game.fighters[id]?.loadout?.[i] ?? null);
   const equipped = id => ({reflect: loadoutOf(id).includes('reflect'), psyshock: loadoutOf(id).includes('psyshock')});
@@ -495,8 +504,8 @@ export function createMovesPanel({$, game, download, tuning, view, ui}) {
     return true;
   }
   function paramRow([group, key, label, tip, min, max, step, fmt, approved]) {
-    const v = C.world[group][key], def = defaults().world[group][key];
-    return `<div class="mvp-param" title="${escape(tip)}"><label>${escape(label)} <small class="${approved ? 'ok' : 'warn'}">${approved ? 'aprovado' : 'provisório'}</small></label>
+    const v = C.world[group][key], def = defaults().world[group][key], sw = DEPENDS_ON[`${group}.${key}`], hidden = sw && !C.world[group][sw];
+    return `<div class="mvp-param" ${hidden ? 'hidden' : ''} data-dep="${sw ? `${group}.${sw}` : ''}" title="${escape(tip)}"><label>${escape(label)} <small class="${approved ? 'ok' : 'warn'}">${approved ? 'aprovado' : 'provisório'}</small></label>
       <div class="row">${min === 0 && max === 1 && step === 1 ? `<input type="checkbox" data-p="${group}.${key}" ${v ? 'checked' : ''}>` : `<input type="range" data-p="${group}.${key}" min="${min}" max="${max}" step="${step}" value="${v}">`}<output data-o="${group}.${key}">${fmt(v)}</output><button type="button" data-reset="${group}.${key}" title="Padrão: ${escape(fmt(def))}" ${v === def ? 'disabled' : ''}>↺</button></div></div>`;
   }
   /** Cartão de animação (carga com loop + disparo) de um move para o personagem de um lado (0 azul, 1 vermelho). */
@@ -546,15 +555,44 @@ export function createMovesPanel({$, game, download, tuning, view, ui}) {
     return `<div class="mv-loadout" data-loadout="${id}"><h4>${escape(title)} <small class="muted">${count} de ${list.length} slots${id ? ' · botões só valem no controle manual do vermelho' : ''}</small></h4>${rows}</div>`;
   }
 
+  /** Garante o Move num slot do azul (primeiro livre) para poder testá-lo ou animá-lo. */
+  function ensureEquipped(id) {
+    if (loadoutOf(0).includes(id) || loadoutOf(1).includes(id)) return true;
+    const slot = loadoutOf(0).findIndex(v => !v);if (slot < 0) return false;
+    setSlot(0, slot, id);nav.refreshActions?.();return true;
+  }
+  /** Dispara o Move no azul com a tecla real do slot (segura `hold` s): vale a mesma regra de custo, recarga e cast de uma partida. */
+  function fire(id) {
+    if (!ensureEquipped(id) && !loadoutOf(0).includes(id)) {setSlot(0, 0, id);nav.refreshActions?.();}   // sem slot livre, o Move toma o slot 1
+    if (game.phase !== 'playing') startMatch?.();
+    const slot = loadoutOf(0).indexOf(id), code = C.extras.keyCodes[C.extras.bindings[SKILL_NAMES[slot]]];
+    if (slot < 0 || !canvas) return;
+    canvas.focus?.();canvas.dispatchEvent(new KeyboardEvent('keydown', {code, bubbles: true, cancelable: true}));
+    setTimeout(() => canvas.dispatchEvent(new KeyboardEvent('keyup', {code, bubbles: true})), Math.max(40, fireOpts.hold * 1000));
+    lastFired = id;
+  }
+  let lastFired = null;
+  function focusMove(id, tab = 'mec') {
+    tabOf.set(id, tab);render();
+    const d = root.querySelector(`details.mv-move[data-move="${id}"]`);if (!d) return;
+    d.open = true;d.scrollIntoView?.({block: 'start', behavior: 'smooth'});
+  }
+  function focusAction(id) {
+    const d = $('act-moves').querySelector(`details[data-action-move="${id}"]`);if (!d) return;
+    d.open = true;d.scrollIntoView?.({block: 'start', behavior: 'smooth'});
+  }
+
   /** Ações conserva a equipagem e as animações; os controles numéricos ficam nas abas à esquerda. */
   function renderActions(container) {
     if (!container) return;
     const openMoves = new Set([...container.querySelectorAll('details[open][data-action-move]')].map(d => d.dataset.actionMove));
     const equipped = [...new Set([...loadoutOf(0), ...loadoutOf(1)].filter(Boolean))];
     container.innerHTML = `<h2 class="act-title">✦ Moves</h2>
-      <p class="hint">Equipe Moves e escolha os botões aqui. Ajustes e sliders estão nas abas Moves e VFX dos Moves à esquerda.</p>
+      <p class="hint">Equipe Moves, escolha os botões e as animações (carga, loop e disparo) aqui. Parâmetros mecânicos e visuais ficam na aba Moves à esquerda.</p>
       <section class="act-card"><h3>Equipar</h3>${loadoutBox(0, 'Jogador (azul)')}${loadoutBox(1, 'Adversário (vermelho)')}</section>
-      ${equipped.map(mid => `<details class="act-card" data-action-move="${mid}" ${openMoves.has(mid) ? 'open' : ''}><summary><b>${escape(moveLabel(mid))}</b></summary>${[0, 1].filter(w => loadoutOf(w).includes(mid)).map(w => animCard(mid, w, false)).join('')}</details>`).join('')}`;
+      ${equipped.map(mid => `<details class="act-card" data-action-move="${mid}" ${openMoves.has(mid) ? 'open' : ''}><summary><b>${escape(moveLabel(mid))}</b></summary><div class="mv-actions"><button type="button" data-goto-params="${mid}" title="Abre os sliders de mecânica deste Move na aba Moves">⚙ Parâmetros ↗</button><button type="button" data-goto-vfx="${mid}" title="Abre os controles visuais deste Move na aba Moves">◈ Visual ↗</button></div>${[0, 1].filter(w => loadoutOf(w).includes(mid)).map(w => animCard(mid, w)).join('')}</details>`).join('')}`;
+    for (const b of container.querySelectorAll('[data-goto-params]')) b.onclick = () => nav.openParams?.(b.dataset.gotoParams, 'mec');
+    for (const b of container.querySelectorAll('[data-goto-vfx]')) b.onclick = () => nav.openParams?.(b.dataset.gotoVfx, 'vis');
     for (const sel of container.querySelectorAll('[data-slot-move]')) sel.onchange = () => {
       const [id, slot] = sel.dataset.slotMove.split('.').map(Number);
       setSlot(id, slot, sel.value || null);
@@ -575,6 +613,20 @@ export function createMovesPanel({$, game, download, tuning, view, ui}) {
       renderActions(container);
       render();
     };
+    const chOf = key => ui?.characters?.[Number(key.split('|')[0])], moveOf = key => key.split('|')[1];
+    for (const inp of container.querySelectorAll('[data-loop-range]')) inp.oninput = () => {
+      const key = inp.dataset.loopRange, ch = chOf(key), moveId = moveOf(key);if (!ch) return;
+      const conf0 = ch.getMoveAnimConfig(moveId), chargeClip = conf0.chargeClip != null ? ch.clips[conf0.chargeClip] : null, chargeDur = chargeClip?.duration || 1.0;
+      if (inp.dataset.loopEdge === 'start') ch.setMoveChargeLoopStart(moveId, Number(inp.value));else ch.setMoveChargeLoopEnd(moveId, Number(inp.value));
+      const conf = ch.getMoveAnimConfig(moveId), start = conf.chargeLoopStart || 0, end = conf.chargeLoopEnd ?? chargeDur;
+      const st = container.querySelector(`[data-loop-range="${key}"][data-loop-edge="start"]`), en = container.querySelector(`[data-loop-range="${key}"][data-loop-edge="end"]`);
+      st.max = Math.max(0, end - 0.02).toFixed(2);en.min = Math.min(chargeDur, start + 0.02).toFixed(2);st.value = start.toFixed(2);en.value = end.toFixed(2);
+      container.querySelector(`[data-loop-out="${key}|start"]`).textContent = `${start.toFixed(2)} s`;container.querySelector(`[data-loop-out="${key}|end"]`).textContent = `${end.toFixed(2)} s`;
+      const tl = container.querySelector(`[data-loop-timeline="${key}"]`), intro = tl?.querySelector('.loop-intro'), rep = tl?.querySelector('.loop-repeat'), tail = tl?.querySelector('.loop-tail');
+      if (intro) {intro.style.flex = String(Math.max(0.001, start));intro.textContent = start > 0.15 ? `Intro (${start.toFixed(2)}s)` : '';}
+      if (rep) {rep.style.flex = String(Math.max(0.001, end - start));rep.textContent = `🔁 Loop (${(end - start).toFixed(2)}s)`;}
+      if (tail) {tail.style.flex = String(Math.max(0.001, chargeDur - end));tail.textContent = chargeDur - end > 0.15 ? 'Final' : '';}
+    };
     for (const button of container.querySelectorAll('[data-preview]')) button.onclick = () => {
       const [who, moveId] = button.dataset.preview.split('|'), ch = ui?.characters?.[Number(who)];
       if (!ch) return;
@@ -584,10 +636,44 @@ export function createMovesPanel({$, game, download, tuning, view, ui}) {
     };
   }
 
+  /** Comparador A/B do Move: A = valores atuais; B = padrão de fábrica ou um preset. Mesmo cenário, semente e entradas. */
+  function abMarkup(mid) {
+    const m = getMove(mid);
+    if (!m?.group) return '';
+    const opts = presetValues ? presetValues.options() : [];
+    return `<details class="mv-ab" data-k="ab:${mid}"><summary>⚖ Comparar variantes (A/B)</summary>
+      <p class="hint">Roda o Move no mesmo cenário (semente 7, rival a 4 m, mesmas entradas) com dois conjuntos de valores. <b>A</b> = valores atuais; <b>B</b> escolhido abaixo. Mede dano, stamina, recarga, entidades e o primeiro tick em que as duas execuções se separam. Não mede FPS nem render.</p>
+      <div class="row"><label class="field">B<select data-ab-b="${mid}"><option value="__factory">Padrão de fábrica do Move</option>${opts.map(([v, t]) => `<option value="${escape(v)}">${escape(t)}</option>`).join('')}</select></label><button type="button" data-ab-run="${mid}">▶ Comparar A × B</button></div>
+      <div class="report" data-ab-result="${mid}" aria-live="polite"></div></details>`;
+  }
+  /** Barra da linha do tempo em ticks de 120 Hz (definição + sliders); "Medir no motor" roda o Move de verdade e compara as marcas. */
+  function timelineMarkup(mid) {
+    const tl = buildMoveTimeline(mid);
+    if (!tl || tl.totalTicks <= 0) return '<p class="hint">Este Move não tem duração fixa (Charge): a linha do tempo vale depois de soltar.</p>';
+    const pct = t => `${(Math.min(tl.totalTicks, Math.max(0, t)) / tl.totalTicks * 100).toFixed(2)}%`;
+    const spans = tl.spans.filter(sp => sp.kind !== 'cast').map(sp => `<i class="mv-tl-span ${sp.kind}" style="left:${pct(sp.from)};width:${(Math.max(0, sp.to - sp.from) / tl.totalTicks * 100).toFixed(2)}%" title="${escape(sp.label)}: tick ${sp.from} a ${sp.to}"></i>`).join('');
+    const marks = tl.marks.map(k => `<b class="mv-tl-mark ${k.kind}" style="left:${pct(k.tick)}" title="${escape(k.label)} · tick ${k.tick} (${(k.tick / TICK_RATE).toFixed(3)} s)"></b>`).join('');
+    return `<p class="hint">Ticks de ${TICK_RATE} Hz (passo fixo da simulação), não frames de animação. Fonte: ${escape(tl.source)}. Mude os sliders da Mecânica e a barra acompanha.</p>
+      <div class="mv-tl" data-tl="${mid}"><div class="mv-tl-bar">${spans}${marks}</div><div class="mv-tl-scale"><span>0</span><span>${Math.round(tl.totalTicks / 2)}</span><span>${tl.totalTicks} ticks</span></div></div>
+      <ul class="mv-tl-list">${tl.marks.map(k => `<li><code>tick ${k.tick}</code> · ${(k.tick / TICK_RATE).toFixed(3)} s · ${escape(k.label)}</li>`).join('')}</ul>
+      <div class="mv-actions"><button type="button" data-tl-measure="${mid}" title="Usa o Move numa partida isolada e mede quando a ação começa, as entidades nascem e a ação termina">⏱ Medir no motor</button></div><div class="report" data-tl-result="${mid}" aria-live="polite"></div>`;
+  }
+  /** Etiqueta da ficha: categoria · tipos · PL, com os quatro status de governança na dica (proposto / aprovado / implementado / homologado). */
+  function metaBadge(meta) {
+    if (!meta) return '';
+    const st = meta.status;
+    const tip = `Proposto ${st.proposto ? '✓' : '✗'} · Aprovado ${st.aprovado ? '✓' : '✗'} · Implementado ${st.implementado ? '✓' : '✗'} · Homologado ${st.homologado ? '✓' : '✗'}`;
+    return `<small class="mv-badge" title="${escape(tip)}">${escape(meta.category)} · ${escape(meta.types.join('+'))} · ${escape(meta.pl)}${st.homologado ? ' · homologado' : st.aprovado ? ' · aprovado' : ' · proposto'}</small>`;
+  }
   function paramGroup(title, open = false) {
     const g = PARAMS.find(([t]) => t === title);if (!g) return '';
     const rows = g[1].filter(row => !isVisualWorldParam(row));
-    return `<details data-k="p:${escape(title)}" ${open ? 'open' : ''}><summary><b>${escape(title)}</b></summary>${rows.map(paramRow).join('')}</details>`;
+    const grouped = rows.length > 5 && !rows.some(r => ['charge', 'ai', 'beam'].includes(r[0]));
+    if (!grouped) return `<details data-k="p:${escape(title)}" ${open ? 'open' : ''}><summary><b>${escape(title)}</b></summary>${rows.map(paramRow).join('')}</details>`;
+    const subs = new Map();
+    for (const r of rows) {const k = subOfParam(r[0], r[1]);if (!subs.has(k)) subs.set(k, []);subs.get(k).push(r);}
+    const body = [...subs.entries()].sort((a, b) => SUB_ORDER.indexOf(a[0]) - SUB_ORDER.indexOf(b[0])).map(([name, list]) => `<details class="mv-sub" data-k="psub:${escape(title)}:${escape(name)}" data-sub-default="open" open><summary>${escape(name)} <small class="muted">${list.length}</small></summary>${list.map(paramRow).join('')}</details>`).join('');
+    return `<details data-k="p:${escape(title)}" ${open ? 'open' : ''}><summary><b>${escape(title)}</b></summary>${body}</details>`;
   }
 
   /** Liga os controles de parâmetros (data-p) de um escopo: arrastar mostra o valor ao vivo e, ao soltar, entra UMA entrada no histórico do ajustador (Ctrl+Z / Ctrl+Y). */
@@ -609,21 +695,28 @@ export function createMovesPanel({$, game, download, tuning, view, ui}) {
     bindParams(container, () => renderAiParams(container));
   }
   function render() {
+    const closedSubs = new Set([...root.querySelectorAll('details.mv-sub[data-k]:not([open])')].map(d => d.dataset.k));   // subgrupos nascem abertos; só ficam fechados os que você fechou
     const openKeys = new Set([...root.querySelectorAll('details[open][data-k]')].map(d => d.dataset.k));   // a interface não recolhe os grupos que você abriu
     const l0 = loadoutOf(0), l1 = loadoutOf(1), eqIds = listMoves().map(m => m.id);
     const scen = results ? results.map(s => `<details data-k="s:${s.id}" ${s.ok ? '' : 'open'}><summary class="${s.ok ? 'ok' : 'warn'}">${s.ok ? '✓' : '✗'} ${escape(s.name)}</summary><table><tr><th>Verificação</th><th>Esperado</th><th>Obtido</th></tr>${s.rows.map(r => `<tr class="${r.ok ? 'ok' : 'warn'}"><td>${r.ok ? '✓' : '✗'} ${escape(r.what)}</td><td>${escape(r.expected)}</td><td>${escape(r.got)}</td></tr>`).join('')}</table></details>`).join('') : '<p class="hint">Cada cenário roda num duelo isolado, com semente fixa e os ajustes atuais, e compara esperado × obtido.</p>';
     const cards = eqIds.map(mid => {
       const info = MOVE_INFO[mid], owners = [[0, l0], [1, l1]].filter(([, l]) => l.includes(mid)).map(([w, l]) => `${w ? 'Vermelho' : 'Azul'}: slot ${l.indexOf(mid) + 1}${w ? '' : ` · botão ${escape(keyName(C.extras.keyCodes[C.extras.bindings[SKILL_NAMES[l.indexOf(mid)]]]))}`}`).join(' · ');
-      const anims = [0, 1].filter(w => (w ? l1 : l0).includes(mid)).map(w => animCard(mid, w)).join('');
-      return `<details class="mv-move" data-move="${mid}" data-k="move:${mid}"><summary><b>✦ ${escape(moveLabel(mid))}</b><small class="muted">${owners || 'Não equipado'}</small></summary>
-        ${info?.hint ? `<p class="hint">${escape(info.hint)}</p>` : ''}${anims}${info ? paramGroup(info.group) : '<p class="hint">Este move ainda não tem parâmetros mecânicos ajustáveis nesta tela.</p>'}</details>`;
+      const tab = tabOf.get(mid) ?? 'mec', pane = (k, html) => `<div class="mv-pane" data-pane="${k}" ${tab === k ? '' : 'hidden'}>${html}</div>`;
+      return `<details class="mv-move" data-move="${mid}" data-k="move:${mid}"><summary><b>✦ ${escape(moveLabel(mid))}</b>${metaBadge(info?.meta)}<small class="muted">${owners || 'Não equipado'}</small></summary>
+        <div class="mv-actions"><button type="button" data-fire="${mid}" title="Dispara este Move no azul contra o vermelho, com a tecla real do slot">▶ Disparar</button><button type="button" data-goto-actions="${mid}" title="Abre Ações → Moves neste Move (equipagem, botão e animações)">🎞 Equipar / animar ↗</button></div>
+        <div class="mv-tabs" role="tablist">${[['mec', 'Mecânica'], ['vis', 'Visual (VFX)'], ['anim', 'Animação'], ['time', 'Linha do tempo']].map(([k, t]) => `<button type="button" role="tab" data-mvtab="${mid}|${k}" aria-pressed="${tab === k}">${t}</button>`).join('')}</div>
+        ${pane('mec', `${info?.hint ? `<p class="hint">${escape(info.hint)}</p>` : ''}${info ? paramGroup(info.group) : '<p class="hint">Este move ainda não tem parâmetros mecânicos ajustáveis nesta tela.</p>'}${abMarkup(mid)}`)}
+        ${pane('vis', visual.markup(mid))}
+        ${pane('time', timelineMarkup(mid))}
+        ${pane('anim', '<p class="hint">As animações de carga, loop e disparo ficam em Ações, junto da equipagem e dos botões.</p><div class="mv-actions"><button type="button" data-goto-actions="' + mid + '">🎞 Abrir animações deste Move ↗</button></div>')}</details>`;
     }).join('');
     const shared = eqIds.length ? `<section class="mv-move" data-move="_charge"><header><h3>⚙ Carga (todos os moves equipados)</h3></header>${paramGroup('Carga (compartilhada)')}</section>` : '';
     root.innerHTML = `
-      <p class="hint">Escolha até <b>${C.world.slots} moves por personagem</b> e o <b>botão</b> de cada slot. Todos os Moves têm grupos expansíveis abaixo; os valores entram no JSON de Exportar.</p>
-      <div class="row"><button type="button" id="mvp-export-params">↓ Exportar parâmetros dos Moves (JSON)</button></div>
-      <section class="mv-card"><h3>Equipar</h3>${loadoutBox(0, 'Jogador (azul)')}${loadoutBox(1, 'Adversário (vermelho)')}</section>
-      ${cards}${shared}
+      <p class="hint">Cada Move tem um cartão com <b>Mecânica</b>, <b>Visual (VFX)</b> e <b>Animação</b>, e o botão <b>▶ Disparar</b> para testar na hora. Equipagem, botões e animações ficam em <b>⚔ Ações → Moves</b>. Os valores entram no JSON de Exportar.</p>
+      <div class="row"><button type="button" id="mvp-export-params">↓ Exportar parâmetros e VFX dos Moves (JSON)</button></div>
+      <div class="mv-fire-opts"><label>Segurar a tecla (s) <input type="range" id="mv-hold" min="0" max="2" step=".05" value="${fireOpts.hold}"><output id="mv-hold-out">${fireOpts.hold.toFixed(2)} s</output></label><label><input type="checkbox" id="mv-auto" ${fireOpts.auto ? 'checked' : ''}> Redisparar ao soltar um slider</label></div>
+      ${specPanel.markup()}
+      ${visual.globalMarkup()}${cards}${shared}
       <details class="mv-tools" data-k="tools"><summary><b>Ferramentas de teste</b> <small class="muted">emissores, laser, cenários técnicos, estilo dos efeitos e avaliação</small></summary>
       <h3>Emissores técnicos & Laser (Simulação Física Real)</h3>
       <div class="row"><button type="button" data-emit="1">Projétil hostil PL1</button><button type="button" data-emit="2">PL2</button><button type="button" data-emit="3">PL3</button><button type="button" data-emit="boom">Explosão no centro (PL2)</button></div>
@@ -649,6 +742,37 @@ export function createMovesPanel({$, game, download, tuning, view, ui}) {
       ${MOVES_HOMOLOG.map((t, i) => `<div class="mvp-hom"><div>${escape(t)}</div><div class="row"><select data-hom="${i}"><option value="">pendente</option><option value="ok" ${homolog[i]?.v === 'ok' ? 'selected' : ''}>aprovado</option><option value="no" ${homolog[i]?.v === 'no' ? 'selected' : ''}>reprovado</option></select><input type="text" data-hom-note="${i}" placeholder="observação" value="${escape(homolog[i]?.n ?? '')}"></div></div>`).join('')}</details>
       <div class="row"><button type="button" id="mvp-reset-all">Restaurar todos os padrões dos moves</button></div></details>`;
     for (const d of root.querySelectorAll('details[data-k]')) if (openKeys.has(d.dataset.k)) d.open = true;
+    for (const d of root.querySelectorAll('details.mv-sub[data-k]')) if (closedSubs.has(d.dataset.k)) d.open = false;
+    visual.bind(root);
+    specPanel.bind(root);
+    $('mv-hold').oninput = e => {fireOpts.hold = Number(e.target.value);$('mv-hold-out').textContent = `${fireOpts.hold.toFixed(2)} s`;};
+    $('mv-auto').onchange = e => {fireOpts.auto = e.target.checked;};
+    root.onchange = e => {if (fireOpts.auto && lastFired && e.target.matches?.('[data-p],[data-visual]')) {clearTimeout(fireTimer);fireTimer = setTimeout(() => fire(lastFired), 300);}};
+    for (const b of root.querySelectorAll('[data-mvtab]')) b.onclick = () => {
+      const [id, k] = b.dataset.mvtab.split('|');tabOf.set(id, k);
+      const card = b.closest('.mv-move');
+      for (const p of card.querySelectorAll(':scope > .mv-pane')) p.hidden = p.dataset.pane !== k;
+      for (const o of card.querySelectorAll('[data-mvtab]')) o.setAttribute('aria-pressed', String(o === b));
+    };
+    for (const b of root.querySelectorAll('[data-fire]')) b.onclick = () => fire(b.dataset.fire);
+    for (const b of root.querySelectorAll('[data-ab-run]')) b.onclick = () => {
+      const id = b.dataset.abRun, g = getMove(id)?.group, out = root.querySelector(`[data-ab-result="${id}"]`), sel = root.querySelector(`[data-ab-b="${id}"]`).value;
+      const prefix = `world.${g}.`, only = vals => Object.fromEntries(Object.entries(vals).filter(([p]) => p.startsWith(prefix)));
+      const A = Object.fromEntries(Object.entries(C.world[g]).map(([k, v]) => [prefix + k, v]));
+      const B = sel === '__factory' ? Object.fromEntries(Object.entries(factoryDefaults().world[g] ?? {}).map(([k, v]) => [prefix + k, v])) : { ...A, ...only(presetValues.valuesOf(sel) ?? {}) };
+      let r;try {r = compareMoveVariants(id, A, B);} catch (e) {out.innerHTML = `<p class="warn">${escape(String(e.message ?? e))}</p>`;return;}
+      const LABEL = {damage: 'Dano causado', hits: 'Acertos', blocked: 'Bloqueados', firstImpactTick: '1º impacto (tick)', entities: 'Entidades criadas', actionTicks: 'Duração da ação (ticks)', maxDisplacement: 'Deslocamento máx. (m)', foeHpLoss: 'HP perdido pelo rival', staminaSpent: 'Stamina gasta', cooldown: 'Recarga (s)'};
+      out.innerHTML = `<table><tr><th>Métrica</th><th>A · atual</th><th>B</th></tr>${r.rows.map(x => `<tr class="${x.same ? '' : 'warn'}"><td>${escape(LABEL[x.metric] ?? x.metric)}</td><td>${x.a ?? '—'}</td><td>${x.b ?? '—'}</td></tr>`).join('')}</table>`
+        + (r.divergence.identical ? '<p class="muted">As duas execuções são idênticas: os valores escolhidos não mudam este cenário.</p>' : `<p>Primeiro tick em que A e B se separam: <b>${r.divergence.tick}</b>, campo <code>${escape(r.divergence.field)}</code>.</p>`)
+        + `<p class="muted">${r.warnings.map(escape).join(' ')}</p>`;
+    };
+    for (const b of root.querySelectorAll('[data-tl-measure]')) b.onclick = () => {
+      const id = b.dataset.tlMeasure, out = root.querySelector(`[data-tl-result="${id}"]`), tl = buildMoveTimeline(id);
+      let m;try {m = measureMoveRun(id);} catch (e) {out.innerHTML = `<p class="warn">${escape(String(e.message ?? e))}</p>`;return;}
+      const eff = tl.marks.find(k => k.kind === 'effect' || k.kind === 'spawn' || k.kind === 'status'), real = m.spawns[0]?.tick ?? m.statusAt;
+      out.innerHTML = `<p>Medido: ação de <b>${m.actionStart ?? '—'}</b> a <b>${m.actionEnd ?? '—'}</b> (${m.actionEnd != null ? m.actionEnd - (m.actionStart ?? 0) : '—'} ticks; a ficha diz ${tl.totalTicks}). ${eff && real != null ? `Efeito: ficha tick ${eff.tick} × motor tick ${real}${Math.abs(real - eff.tick) <= 1 ? ' ✓' : ' ⚠'}.` : ''} Entidades: ${m.spawns.length ? m.spawns.map(sp => `${escape(sp.kind)}@${sp.tick}`).join(', ') : 'nenhuma'}. Impactos nos ticks: ${m.impacts.length ? m.impacts.join(', ') : 'nenhum'}.</p>`;
+    };
+    for (const b of root.querySelectorAll('[data-goto-actions]')) b.onclick = () => nav.openActions?.(b.dataset.gotoActions);
 
     // Slots: move e botão de cada um (o botão é o mesmo de Controles › Teclas e entra no desfazer).
     for (const sel of root.querySelectorAll('[data-slot-move]')) sel.onchange = () => {const [id, slot] = sel.dataset.slotMove.split('.').map(Number);setSlot(id, slot, sel.value || null);render();};
@@ -658,38 +782,11 @@ export function createMovesPanel({$, game, download, tuning, view, ui}) {
       render();
     };
 
-    // Animação de carga (loop) e disparo, por lado.
-    const chOf = key => ui?.characters?.[Number(key.split('|')[0])], moveOf = key => key.split('|')[1];
-    for (const sel of root.querySelectorAll('[data-anim-select]')) sel.onchange = () => {
-      const ch = chOf(sel.dataset.key);if (!ch) return;
-      ch.setMoveAnim(moveOf(sel.dataset.key), sel.dataset.animSelect, sel.value === '' ? null : Number(sel.value));render();
-    };
-    for (const inp of root.querySelectorAll('[data-loop-range]')) inp.oninput = () => {
-      const key = inp.dataset.loopRange, ch = chOf(key), moveId = moveOf(key);if (!ch) return;
-      const conf0 = ch.getMoveAnimConfig(moveId), chargeClip = conf0.chargeClip != null ? ch.clips[conf0.chargeClip] : null, chargeDur = chargeClip?.duration || 1.0;
-      if (inp.dataset.loopEdge === 'start') ch.setMoveChargeLoopStart(moveId, Number(inp.value));else ch.setMoveChargeLoopEnd(moveId, Number(inp.value));
-      const conf = ch.getMoveAnimConfig(moveId), start = conf.chargeLoopStart || 0, end = conf.chargeLoopEnd ?? chargeDur;
-      const st = root.querySelector(`[data-loop-range="${key}"][data-loop-edge="start"]`), en = root.querySelector(`[data-loop-range="${key}"][data-loop-edge="end"]`);
-      st.max = Math.max(0, end - 0.02).toFixed(2);en.min = Math.min(chargeDur, start + 0.02).toFixed(2);st.value = start.toFixed(2);en.value = end.toFixed(2);
-      root.querySelector(`[data-loop-out="${key}|start"]`).textContent = `${start.toFixed(2)} s`;root.querySelector(`[data-loop-out="${key}|end"]`).textContent = `${end.toFixed(2)} s`;
-      const tl = root.querySelector(`[data-loop-timeline="${key}"]`), intro = tl?.querySelector('.loop-intro'), rep = tl?.querySelector('.loop-repeat'), tail = tl?.querySelector('.loop-tail');
-      if (intro) {intro.style.flex = String(Math.max(0.001, start));intro.textContent = start > 0.15 ? `Intro (${start.toFixed(2)}s)` : '';}
-      if (rep) {rep.style.flex = String(Math.max(0.001, end - start));rep.textContent = `🔁 Loop (${(end - start).toFixed(2)}s)`;}
-      if (tail) {tail.style.flex = String(Math.max(0.001, chargeDur - end));tail.textContent = chargeDur - end > 0.15 ? 'Final' : '';}
-    };
-    const previewIdle = '▶ Testar carga (com loop) ➔ disparo';
-    for (const b of root.querySelectorAll('[data-preview]')) b.onclick = () => {
-      const key = b.dataset.preview, ch = chOf(key), moveId = moveOf(key);if (!ch) return;
-      if (ch.movePreview?.moveId === moveId) {ch.stopMovePreview();b.classList.remove('active');b.textContent = previewIdle;return;}
-      for (const o of root.querySelectorAll('[data-preview]')) {o.classList.remove('active');o.textContent = previewIdle;}
-      b.classList.add('active');b.textContent = '⏹ Parar teste';
-      ch.startMovePreview(moveId, () => {b.classList.remove('active');b.textContent = previewIdle;});
-    };
     for (const s of root.querySelectorAll('[data-hom]')) s.onchange = () => {homolog[s.dataset.hom] = {...homolog[s.dataset.hom], v: s.value};saveHomolog(homolog);};
     for (const s of root.querySelectorAll('[data-hom-note]')) s.onchange = () => {homolog[s.dataset.homNote] = {...homolog[s.dataset.homNote], n: s.value};saveHomolog(homolog);};
     
     if (!subscribed && tuning?.onChange) {subscribed = true;tuning.onChange(() => {
-      if (!root.closest('[data-section="moves"]')?.hidden && !root.querySelector('[data-p]:active')) render();
+      if (!root.closest('[data-section="moves"]')?.hidden && !root.querySelector('[data-p]:active, [data-visual]:active')) render();
     });}
     
     for (const b of root.querySelectorAll('[data-laser]')) b.onclick = () => {const k = b.dataset.laser;(k === 'sweep' ? emitLaser(1, .8) : emitLaser(Number(k)));};
@@ -701,5 +798,5 @@ export function createMovesPanel({$, game, download, tuning, view, ui}) {
     bindParams(root, render);
     $('mvp-reset-all').onclick = () => {const ch = [];for (const g of ['charge', 'reflect', 'psyshock', 'beam', 'ai']) for (const [k, v] of Object.entries(defaults().world[g])) if (C.world[g][k] !== v) ch.push([`world.${g}.${k}`, v]);commit(ch, 'Restaurar os parâmetros dos Moves');render();};
   }
-  return {render, renderActions, renderAiParams, emitProjectile, emitLaser, emitExplosion, setEquip, setSlot, loadoutOf, get results() {return results;}, STANDARD};
+  return {render, renderActions, focusMove, focusAction, ensureEquipped, fire, renderAiParams, emitProjectile, emitLaser, emitExplosion, setEquip, setSlot, loadoutOf, get results() {return results;}, STANDARD};
 }

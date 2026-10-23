@@ -9,7 +9,7 @@ export const ACTION_TABS = {
   tackle: {
     icon: '💥', label: 'Tackle', title: 'Tackle (X)',
     sections: [
-      ['⚙ Sistemas', [T + 'enableTackle', T + 'enableChargeTackle', T + 'enableTackleFeint', T + 'enableWallSplat', T + 'enableMeteorSlam', T + 'enableFlightSlam', T + 'enableClash', T + 'enableClashPush', T + 'enableHitstop'], true],
+      ['⚙ Sistemas', [T + 'enableTackle', T + 'enableChargeTackle', T + 'enableTackleFeint', T + 'enableWallSplat', T + 'enableMeteorSlam', T + 'enableFlightSlam', T + 'enableClash', T + 'enableClashPush', T + 'enableHitstop', T + 'integerDamage'], true],
       ['✦ Smear de Membros', '@Smear de Membros', true],
       ['↔ Squash & Stretch do modelo', '@Squash & Stretch do Tackle', true],
       ['⚡ Carga e Power Level', '@Tackle carregado (PL)', true],

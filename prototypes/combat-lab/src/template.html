@@ -73,8 +73,7 @@
    <button type="button" role="tab" data-tool="scenarios" title="Cenários de teste repetíveis com esperado × obtido"><i>◎</i><span>Cenários</span></button>
    <button type="button" role="tab" data-tool="tuning" title="Ajustes: todos os parâmetros, por grupo"><i>⚙</i><span>Ajustes</span></button>
    <button type="button" role="tab" data-tool="overlays" title="Hitboxes, normais, lançamento e alcance"><i>▧</i><span>Visualizar</span></button>
-   <button type="button" role="tab" data-tool="moves" title="Parâmetros mecânicos e animações dos Moves"><i>✦</i><span>Moves</span></button>
-   <button type="button" role="tab" data-tool="moves-vfx" title="Parâmetros visuais dos Moves"><i>◈</i><span>VFX dos Moves</span></button>
+   <button type="button" role="tab" data-tool="moves" title="Parâmetros mecânicos e visuais (VFX) dos Moves"><i>✦</i><span>Moves</span></button>
    <button type="button" role="tab" data-tool="characters" hidden aria-hidden="true" tabindex="-1" title="Personagens (abre a gaveta)"><i>♙</i><span>Personagens</span></button>
    <button type="button" role="tab" data-tool="controls" title="Dummy, IA, dificuldade, gamepad e histórico de comandos"><i>🎮</i><span>Controles</span></button>
    <button type="button" role="tab" data-tool="export" title="Exportar/importar ajustes e relatório de diferenças para o jogo"><i>↗</i><span>Exportar</span></button>
@@ -125,6 +124,11 @@
         <label class="field">Ajustes<select id="rec-values"><option value="recorded">Da gravação (exato)</option><option value="current">Atuais (outra config)</option></select></label>
        </div>
        <div id="rec-result" class="report" aria-live="polite"></div>
+       <h3>Captura de bug (um clique)</h3>
+       <p class="hint">Gera um pacote JSON com tudo para ver o defeito de novo: semente, comandos, ajustes, equipamento, o estado exato do motor neste instante, eventos recentes e erros. Não leva dados pessoais. Para reproduzir, abra o pacote no campo ao lado.</p>
+       <div class="row"><input type="text" id="bug-note" placeholder="O que deu errado? (opcional)" maxlength="500"><button type="button" id="bug-capture" disabled>🐞 Capturar bug</button></div>
+       <div class="row"><label class="field">Abrir captura de bug (.json)<input type="file" id="bug-file" accept=".json,application/json"></label></div>
+       <div id="bug-result" class="report" aria-live="polite"></div>
        <h3>Controles</h3>
        <p class="keys">↑↓←→ mover · <b>X</b> tackle · <b>C</b> esquiva/sprint (C→X cancela) · <b>D</b> defender · <b>Tab</b> alvo · <b>Esc</b> pausar · <b>R</b> reiniciar.</p>
        <p class="hint">Pausado: ◂/▸ na linha do tempo (ou , e .) voltam e avançam um passo de simulação. Os últimos 12 s ficam gravados.</p>
@@ -260,13 +264,8 @@
       </div>
      </section>
      <section data-section="moves" hidden>
-      <div class="bento-card bento-wide" data-subcard="moves" data-sublabel="Parâmetros dos Moves">
+      <div class="bento-card bento-wide" data-subcard="moves" data-sublabel="Moves">
        <div id="moves-panel"></div>
-      </div>
-     </section>
-     <section data-section="moves-vfx" hidden>
-      <div class="bento-card bento-wide" data-subcard="moves-vfx" data-sublabel="VFX dos Moves">
-       <div id="moves-vfx-panel"></div>
       </div>
      </section>
      <section data-section="controls" hidden>
