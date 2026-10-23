@@ -6,6 +6,8 @@
 // (não recua); contra defesa PERFEITA anula dano e stun (GM-P05, proposta) e o atacante recua como num Tackle; sem guarda: dano e 2 m/s H como qualquer golpe.
 // Harden anula o knockback mas NÃO o guard stun (GM-P06, proposta). Valores: C.world.guardBreak, capturados ao apertar o botão (M28.4).
 import {C} from '../config.js';
+import {defineFicha} from './params-registry.js';
+import {params} from './guard-break.params.js';
 import {nominalDistance} from '../entity.js';
 
 export const guardBreakDef = Object.freeze({
@@ -30,3 +32,10 @@ export function guardBreakSetup(/** @type {any} */ f, /** @type {any} */ a, /** 
   a.combatWindows = {activeWindows: [[toStep(P.hitStart), Math.max(toStep(P.hitStart) + 1, toStep(P.hitEnd))]], invulnerabilityWindows: P.invulnerableSeconds > 0 ? [[0, toStep(P.invulnerableSeconds)]] : []};
   a.hitWindows = [new Set()];
 }
+
+/** FICHA do Move (ver docs/COMO_CRIAR_UM_MOVE.md): `params` gera o padrão em C.world.guardBreak e os sliders da aba Moves. */
+export const ficha = defineFicha({
+  def: guardBreakDef, tackle: ['guard-break', guardBreakSetup],
+  params,
+  ai: {kind: 'charge', p: .6, why: 'rival defendendo: quebra a guarda', distance: {max: 3.3}, requires: ['tGuard', 'tGround'], minStamina: 1.6, goal: x => x.distance > 2.4 ? 62 : 32},
+});

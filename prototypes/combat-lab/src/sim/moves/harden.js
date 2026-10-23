@@ -8,6 +8,8 @@
 // capturados no início do uso (M28.4). Fonte: docs/MOVES_GENERICOS_CATALOGO.md; pendência MV-P03 (empurrões contínuos de Fields: NÃO negados).
 import {C} from '../config.js';
 import {applyStatus} from '../status.js';
+import {defineFicha} from './params-registry.js';
+import {params} from './harden.params.js';
 
 export const hardenDef = Object.freeze({
   id: 'harden', name: 'Harden', air: 'cast', group: 'harden',
@@ -29,3 +31,15 @@ export function hardenEffect(game, f, def, fx) {
   applyStatus(f, /** @type {any} */ (hardenStatus(P)), {source: f.id});
   fx.events?.push({result: 'moveEffect', move: 'harden', attacker: f.id, target: f.id, damage: 0, status: 'harden', duration: P.duration});
 }
+
+/**
+ * FICHA do Move: tudo o que o Move precisa para existir. `def`/`effect` são registrados sozinhos (fichas.generated.js); `params` vira o padrão
+ * em C.world.harden e os sliders da aba Moves (nenhuma outra tabela precisa ser editada).
+ */
+export const ficha = defineFicha({
+  def: hardenDef,
+  effect: ['harden', hardenEffect],
+  params,
+  // Quando a IA usa o Move (perfil declarativo, ver ai-profile.js): rival atacando ou carregando de perto.
+  ai: {kind: 'tap', p: .55, why: 'rival atacando perto: endurece', notStatus: 'harden', distance: {max: 4.5}, anyOf: ['tackling', 'tCharging']},
+});

@@ -7,6 +7,8 @@
 import {C} from '../config.js';
 import {applyStatus} from '../status.js';
 import {getFighterMaxStamina} from '../entity.js';
+import {defineFicha} from './params-registry.js';
+import {params} from './second-wind.params.js';
 
 export const secondWindDef = Object.freeze({
   id: 'second-wind', name: 'Second Wind', air: 'cast', group: 'secondWind',
@@ -29,3 +31,11 @@ export function secondWindEffect(game, f, def, fx) {
   applyStatus(f, /** @type {any} */ (secondWindStatus(P, getFighterMaxStamina(f))), {source: f.id});
   fx.events?.push({result: 'moveEffect', move: 'second-wind', attacker: f.id, target: f.id, damage: 0, status: 'second-wind', duration: P.duration});
 }
+
+/** FICHA do Move (ver harden.js): `params` gera o padrão em C.world.secondWind e os sliders; `def`/`effect` são registrados sozinhos. */
+export const ficha = defineFicha({
+  def: secondWindDef,
+  effect: ['second-wind', secondWindEffect],
+  params,
+  ai: {kind: 'tap', p: .6, why: 'stamina baixa e rival longe: recupera', notStatus: 'second-wind', maxStamina: 1.3, distance: {min: 3}, forbids: ['tackling']},
+});

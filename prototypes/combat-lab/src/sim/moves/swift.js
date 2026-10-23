@@ -6,6 +6,8 @@
 import {spawn} from '../world.js';
 import {direction, normalize} from '../math.js';
 import {C} from '../config.js';
+import {defineFicha} from './params-registry.js';
+import {params} from './swift.params.js';
 import {hash32, rng, uniform} from './rng.js';
 
 export const swiftDef = Object.freeze({
@@ -42,9 +44,16 @@ export function swiftEffect(/** @type {any} */ game, /** @type {any} */ f, /** @
     } else dir = direction(heading + swiftSpread(i, n, P.fanAngle * Math.PI / 180));
     spawn(game.world, {
       kind: 'projectile', owner: f.id, pos, y, radius: P.radius, dir, speed: hSpeed, vy, life: P.range / P.speed, pierce: 1, blockedBy: ['barrier', 'wall'],
-      hit: {damage, knockback: {horizontal: P.knockback, vertical: 0}}, pl: 1, clashable: true, exec: execId, homing, visualScale: 1, visual: 'star',
+      hit: {damage, knockback: {horizontal: P.knockback, vertical: P.knockbackV ?? 0}}, pl: 1, clashable: true, exec: execId, homing, visualScale: 1, visual: 'star',
       captured: {attackFraction: P.damage / C.test.attackReference, successiveFactor: 1, knockbackCap: P.knockbackCap, knockbackPerStone: P.knockback, counterStagger: P.counterStagger, level: 1, move: def.id, speed: P.speed},
     }, fx.events ?? []);
   }
   return {ok: true};
 }
+
+/** FICHA do Move (ver docs/COMO_CRIAR_UM_MOVE.md): `params` gera o padrão em C.world.swift e os sliders da aba Moves. */
+export const ficha = defineFicha({
+  def: swiftDef, effect: ['swift', swiftEffect],
+  params,
+  ai: {kind: 'tap', p: .4, why: 'estrelas à distância', distance: {min: 3.5, max: 11}, requires: ['tGround']},
+});

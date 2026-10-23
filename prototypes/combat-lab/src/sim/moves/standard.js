@@ -7,14 +7,18 @@ import {registerEffect, registerStepHook} from '../move-effects.js';
 import {reflectDef, reflectEffect} from './reflect.js';
 import {psyshockDef, psyshockEffect} from './psyshock.js';
 import {NEW_MOVES} from './new-moves.js';
+import {registerAiProfile} from '../ai-profile.js';
+import {C} from '../config.js';
+import {syncMoveParams} from './params-registry.js';
 
 export const STANDARD_MOVE_IDS = ['reflect', 'psyshock'];
 /** Registra as definições e os efeitos dos Moves padrão (idempotente: sobrescreve os de mesmo id). */
 export function registerStandardMoves() {
+  syncMoveParams(C.world);   // as fichas trazem os próprios parâmetros: o grupo precisa existir em C.world antes de validateMove
   registerEffect('reflect', reflectEffect);
   registerEffect('psyshock', psyshockEffect);
   registerMove(/** @type {any} */ (reflectDef));
   registerMove(/** @type {any} */ (psyshockDef));
-  for (const {def, effect, tackle, hooks, steps, effects} of NEW_MOVES) {if (effect) registerEffect(effect[0], effect[1]);for (const [n, fn] of effects ?? []) registerEffect(n, fn);for (const [n, fn] of steps ?? []) registerStepHook(n, fn);if (tackle) registerTackleSetup(tackle[0], tackle[1]);for (const [n, fn] of hooks ?? []) registerTackleSetup(n, fn);registerMove(def);}   // Moves novos: registrados, nunca equipados por padrão
+  for (const {def, effect, tackle, hooks, steps, effects, ai} of NEW_MOVES) {if (ai) registerAiProfile(def.id, ai);if (effect) registerEffect(effect[0], effect[1]);for (const [n, fn] of effects ?? []) registerEffect(n, fn);for (const [n, fn] of steps ?? []) registerStepHook(n, fn);if (tackle) registerTackleSetup(tackle[0], tackle[1]);for (const [n, fn] of hooks ?? []) registerTackleSetup(n, fn);registerMove(def);}   // Moves novos: registrados, nunca equipados por padrão
   return [...STANDARD_MOVE_IDS];
 }

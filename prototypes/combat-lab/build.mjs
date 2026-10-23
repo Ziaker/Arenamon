@@ -4,6 +4,9 @@
 import {writeFile, mkdir} from 'node:fs/promises';
 import {buildElementalLab, buildLab, buildReportsPanel, buildQuarksLab, buildNavLab, buildPostLab, buildPhysicsLab, OUTPUTS} from './build-lib.mjs';
 
+import {writeIndex} from './gen-fichas.mjs';
+writeIndex();   // índice automático das fichas de Moves (src/sim/moves/fichas.generated.js)
+
 const root = new URL('.', import.meta.url);
 await mkdir(new URL('dist/', root), {recursive: true});
 const [lab, reports, quarks, nav, post, physics] = await Promise.all([buildLab(), buildReportsPanel(), buildQuarksLab(), buildNavLab(), buildPostLab(), buildPhysicsLab()]);
