@@ -420,6 +420,14 @@ pre.diff{max-height:240px;overflow:auto;font-size:11px;background:#0b1118;paddin
 /* Bento Cards e Grades Multi-Coluna por Seção */
 .bento-card{background:#0e1925;border:1px solid #24394d;border-radius:8px;padding:5px 7px;min-width:0;align-self:start}
 #moves-panel{display:contents}
+section[data-section="moves"] #moves-panel{display:flex;flex-direction:column;gap:10px;min-width:0}
+section[data-section="moves"] .mv-visual-field{display:grid;grid-template-columns:minmax(0,1fr) minmax(100px,1fr) auto;align-items:center;gap:8px;margin:6px 0;font-size:12px}
+section[data-section="moves"] .mv-visual-field input[type="range"]{width:100%;min-width:90px}
+section[data-section="moves"] .mv-visual-field output{min-width:42px;text-align:right;font-variant-numeric:tabular-nums}
+section[data-section="moves"] .mv-visual-field input[type="color"]{width:100%;height:28px}
+section[data-section="moves"] details[data-k^="visual:"]{padding:6px 8px;margin:5px 0;border:1px solid var(--border,#ffffff20);border-radius:7px}
+section[data-section="moves"] .mv-move>summary{cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;color:var(--cyan);font-size:13px}
+section[data-section="moves"] .mv-move>summary small{font-size:11px;color:var(--muted)}
 .panel[data-layout="bento"] .panel-body section[data-section]:not([hidden]){display:grid;gap:6px;align-items:start}
 .panel[data-layout="bento"][data-subcard="all"] .panel-body section[data-section="match"]:not([hidden]){grid-template-columns:1fr;gap:4px}
 .panel[data-layout="bento"][data-subcard="all"] .panel-body section[data-section="scenarios"]:not([hidden]){grid-template-columns:1.2fr 1fr 1fr}

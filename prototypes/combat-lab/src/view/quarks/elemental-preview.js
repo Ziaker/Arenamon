@@ -11,7 +11,7 @@ export class ElementalPreview {
  // (o ateliê continua criando o próprio batch e o próprio root, como antes).
  constructor(scene,{batch=null,parent=null}={}){this.scene=scene;this.batch=batch??new Q.BatchedRenderer();this.ownsBatch=!batch;if(!batch)scene.add(this.batch);this.systems=[];this.materials=[];this.root=new THREE.Group();(parent??scene).add(this.root);this.time=0;this.active=false;this.follow=false;this.followPos=new THREE.Vector3();}
  clear(){for(const s of this.systems){this.batch.deleteSystem(s);s.emitter.removeFromParent();s.dispose();}this.systems=[];this.surfaces=null;this.shotFx=null;this.spawnFx=null;this.flashFx=null;this.seedMesh=null;this.groundWave=null;this.root.traverse(o=>{o.geometry?.dispose();});this.root.clear();for(const m of this.materials){m.map?.dispose();m.dispose();}this.materials=[];this.active=false;}
- material(color,opacity=1){const m=new THREE.MeshBasicMaterial({color,transparent:true,opacity:Math.min(1,opacity*(this.p?.brightness??1)),depthWrite:false,side:THREE.DoubleSide});this.materials.push(m);return m;}
+ material(color,opacity=1){const m=new THREE.MeshBasicMaterial({color,transparent:true,opacity:Math.min(1,opacity*(this.p?.brightness??1))*(this.p?.opacity??1),depthWrite:false,side:THREE.DoubleSide});this.materials.push(m);return m;}
  mesh(g,color,opacity=1,parent=this.root){const m=new THREE.Mesh(g,this.material(color,opacity));parent.add(m);return m;}
  sprite(kind,color){const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d');
  if(kind==='leaf'){x.fillStyle='white';x.beginPath();x.moveTo(8,52);x.bezierCurveTo(2,13,35,4,58,6);x.bezierCurveTo(57,40,33,62,8,52);x.fill();x.strokeStyle='#8a8a8a';x.lineWidth=3;x.beginPath();x.moveTo(10,51);x.lineTo(52,13);x.stroke();}

@@ -66,7 +66,7 @@ try {
 
   // Painel: sliders dos 4 Moves
   await L(() => {window.__lab.game.setLoadout(0, []);window.__lab.startMatch();});
-  await L(() => {if (document.getElementById('moves-drawer').hidden) document.getElementById('moves-open').click();});
+  await L(() => document.querySelector('[data-tool="moves"]')?.click());
   const groups = {'water-pulse': 'waterPulse', 'fire-spin': 'fireSpin', 'air-slash': 'airSlash', 'seed-bomb': 'seedBomb'};
   const missing = [];
   for (const [id, g] of Object.entries(groups)) {
@@ -74,6 +74,8 @@ try {
     if (!await L(g => !!document.querySelector(`#moves-panel [data-p="${g}.cost"]`) && document.querySelectorAll(`#moves-panel [data-p^="${g}."]`).length >= 6, g)) missing.push(id);
   }
   check('a aba Moves mostra os sliders dos 4 Moves', missing.length === 0, missing.join(','));
+  check('os controles visuais e o tempo de seguimento estão em Moves', await L(() => !!document.querySelector('#moves-panel [data-visual="vfx.elemental.visual.airSlash0.opacity"]') && !!document.querySelector('#moves-panel [data-visual="vfx.elemental.shotFollowTime"]')));
+  check('tempo de seguimento ajusta e exporta 0,5 s', await L(() => {const input = document.querySelector('#moves-panel [data-visual="vfx.elemental.shotFollowTime"]');input.value = '0.5';input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new Event('change',{bubbles:true}));return window.__lab.C.vfx.elemental.shotFollowTime === .5 && window.__lab.tuning.exportData().values.vfx.elemental.shotFollowTime === .5;}));
   check('nenhum erro de página nem de console', errors.length === 0, errors.slice(0, 3).join(' | '));
 } finally {
   await browser.close();

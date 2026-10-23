@@ -4,6 +4,7 @@
 
 import {MAP_DEFAULTS} from './map.js';
 import {applyCalibrationBase} from './calibration-base.js';
+import {elementalVisualDefaults} from './elemental-visual-config.js';
 
 /** Valores de FÁBRICA (laboratório v6 + parâmetros novos), sem a base de calibração v8. Referência e prova de que a tabela guarda os valores anteriores. */
 export function factoryDefaults() {return buildDefaults();}
@@ -317,7 +318,7 @@ export function vfxDefaults() {
     // Moves elementais (Água, Fogo e Vento) com o renderizador do Ateliê Elemental (three.quarks).
     // enabled = 0 devolve o desenho provisório antigo de view/elemental-fx.js; 0/1/2 escolhe a opção A/B/C.
     // O Seed Bomb não usa estes valores (permanece no desenho provisório, por decisão de 23/10/2026).
-    elemental: {enabled: 1, waterVariant: 0, fireVariant: 0, airVariant: 0},
+    elemental: {enabled: 1, waterVariant: 0, fireVariant: 0, airVariant: 0, seedShotEffect: 0, shotFollowTime: .3, visual: elementalVisualDefaults()},
     // Pós-processamento experimental (Fase 4, pmndrs/postprocessing sem React): bloom por limiar/seleção, distorção em impactos fortes,
     // aberração cromática, color grading, vinheta e profundidade de campo (só K.O.). enabled = 0: renderer atual, custo zero. Só aparência.
     post: {

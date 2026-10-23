@@ -53,6 +53,9 @@ export class ShotEffect {
     /** @type {T.BufferGeometry | null} */
     this.geo = null;
     this.origin = new T.Vector3();
+    this.anchorWorld = null;
+    this.localAnchor = new T.Vector3();
+    this.emitterAnchor = new T.Vector3();
     this.spawned = false;
   }
 
@@ -64,6 +67,7 @@ export class ShotEffect {
   start(effect, settings) {
     this.effect = effect === 'ring' || effect === 'cone' ? effect : 'none';
     this.p = settings;
+    this.anchorWorld = null;
     this.origin.copy(this.fx.core.position);
     this.group.position.copy(this.origin);
     if (this.effect === 'ring') this.buildRings();
@@ -123,7 +127,9 @@ export class ShotEffect {
     const params = presetToSystemParams(preset, {Quarks: Q, THREE: T, material: fx.sprite('leaf', '#ffffff')});
     params.startColor = new Q.ConstantColor(new Q.Vector4(this.p.brightness, this.p.brightness, this.p.brightness, 1));
     const system = new Q.ParticleSystem(params);
-    system.emitter.position.copy(this.origin);
+    this.group.updateWorldMatrix(true, false);
+    this.group.getWorldPosition(this.emitterAnchor);
+    system.emitter.position.copy(this.fx.scene.worldToLocal(this.emitterAnchor));
     // Nesta versão do three.quarks o ConeEmitter emite no +Z local e ignora
     // `direction`; giramos o emissor para o +Z apontar na direção calculada.
     system.emitter.quaternion.setFromUnitVectors(new T.Vector3(0, 0, 1), dir);
@@ -143,6 +149,18 @@ export class ShotEffect {
    */
   update(t) {
     if (this.effect === 'none' || !this.p) return;
+    const followTime = Math.max(0, this.p.shotFollowTime ?? .3);
+    if (t >= followTime) {
+      if (!this.anchorWorld) {this.group.updateWorldMatrix(true, false);this.anchorWorld = this.group.getWorldPosition(new T.Vector3());}
+      this.localAnchor.copy(this.anchorWorld);
+      this.fx.root.worldToLocal(this.localAnchor);
+      this.group.position.copy(this.localAnchor);
+    }
+    if (this.cone && t < followTime) {
+      this.group.updateWorldMatrix(true, false);
+      this.group.getWorldPosition(this.emitterAnchor);
+      this.cone.emitter.position.copy(this.fx.scene.worldToLocal(this.emitterAnchor));
+    }
     const motion = this.fx.reduced ? .2 : 1;
     if (this.effect === 'ring') {
       const r = this.p.shotRing;

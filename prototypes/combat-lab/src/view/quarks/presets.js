@@ -152,7 +152,7 @@ export const ELEMENTAL_CONTROLS = [
  ['rotation','Rotação','rad/s',0,8,.1],['height','Altura / arco','m',.5,5,.1],['spread','Dispersão de gotas / folhas','m/s',.2,5,.1],
 ];
 export function elementalSettings(id, overrides={}, pl=1) {
- const p={...waterDefaults(overrides.variant??0),...fireDefaults(overrides.variant??0),...shotDefaults(id),variant:0,stretch:1,opening:1.1,contactSize:1,...ELEMENTAL_PRESETS[id],...overrides};
+ const p={...waterDefaults(overrides.variant??0),...fireDefaults(overrides.variant??0),...shotDefaults(id),variant:0,stretch:1,opening:1.1,contactSize:1,shotFollowTime:.3,opacity:1,...ELEMENTAL_PRESETS[id],...overrides};
  if(!ELEMENTAL_PRESETS[id]) throw new Error('Move visual desconhecido: '+id);
  // Os dois efeitos de disparo guardam valores independentes: mescla em profundidade
  // para que um override parcial não apague as chaves que faltam.

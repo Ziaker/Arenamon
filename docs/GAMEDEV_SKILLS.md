@@ -154,3 +154,4 @@ Cada entrada: data · tarefa · skill · o que foi aplicado de fato.
 - **Superpowers:** `brainstorming` (dispensada pelo pedido de execução direta), `verification-before-completion` (verify de navegador antes de declarar pronto).
 
 - 2026-10-22 — Reconstrução visual de Water Pulse, Fire Spin e Air Slash: `arenamon-routing`, `game-feel` e `shader-programming`; aplicados envelopes de nascimento/dissipação, UVs animadas, Fresnel, ruído e faixas curvas. Partículas continuam em three.quarks; prévia sem mecânica.
+- 2026-10-23 — Integração dos controles visuais no jogo: `arenamon-routing`, `game-feel`, `shader-programming` e `threejs-materials-lighting`; opacidade mestre no shader, mais brilho/escala para Air Slash e ancoragem temporal dos efeitos de disparo após 0,3 s.

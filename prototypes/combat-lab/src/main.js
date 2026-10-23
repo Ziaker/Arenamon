@@ -633,7 +633,6 @@ $('chars-open').onclick = () => toggleChars();$('chars-close').onclick = () => t
 window.addEventListener('keydown', e => {if (e.key === 'Escape' && !$('chars-drawer').hidden && !e.target.matches?.('input[type=text],input[type=search]')) {e.preventDefault();e.stopImmediatePropagation();toggleChars(false);}}, true);
 window.addEventListener('keydown', e => {if (e.key === 'Escape' && !$('moves-drawer').hidden && !e.target.matches?.('input[type=text],input[type=search]')) {e.preventDefault();e.stopImmediatePropagation();toggleMoves(false);}}, true);
 function openTool(tool) {
-  if (tool === 'moves') {toggleMoves();return;}
   if (tool === 'characters') {toggleChars(true);return;}   // abre a gaveta (o botão da barra é só compatibilidade e fica oculto)
   const same = !$('panel').hidden && $('panel').dataset.tool === tool;$('panel').hidden = same;$('panel').dataset.tool = tool;
   for (const b of document.querySelectorAll('[data-tool]')) b.classList.toggle('active', !same && b.dataset.tool === tool);

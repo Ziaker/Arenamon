@@ -570,6 +570,16 @@ export class WorldView {
         continue;
       }
       let m = this.meshes.get(e.id) ?? this.make(e);
+      if (e.kind === 'projectile') {
+        let border = m.getObjectByName('plBorder');
+        if (C.vfx?.projectilePlBorder && !border) {
+          border = new T.Mesh(new T.TorusGeometry(1.35, .06, 8, 32), new T.MeshBasicMaterial({color: PL_HEX[Math.max(0, Math.min(3, e.pl ?? 1))], transparent: true, opacity: .9, depthWrite: false}));
+          border.rotation.x = Math.PI / 2;border.name = 'plBorder';m.add(border);
+        } else if (!C.vfx?.projectilePlBorder && border) {
+          border.removeFromParent();border.geometry.dispose();border.material.dispose();
+        }
+        if (border && C.vfx?.projectilePlBorder) border.material.color.setHex(PL_HEX[Math.max(0, Math.min(3, e.pl ?? 1))]);
+      }
       if (updateElemental(m, e, this.time, dt, fxAcc)) continue;
 
       if (e.kind === 'beam') {
@@ -818,7 +828,7 @@ export class WorldView {
       if (ch && ch.move === 'water-pulse') {
         const maxTicks = Math.max(1, ch.params?.maxTicks ?? 180), ratio = Math.min(1, ch.ticks / maxTicks);
         const level = ratio >= 1 ? 3 : ratio >= .5 ? 2 : 1, reach = .62;
-        const base = ELEMENTAL_GAME_PARAMS.waterPulse?.[Math.max(0, level - 1)] ?? ELEMENTAL_GAME_PARAMS.waterPulse[0];
+        const base = C.vfx.elemental?.visual?.[`waterPulse${Math.max(0, level - 1)}`] ?? ELEMENTAL_GAME_PARAMS.waterPulse[Math.max(0, level - 1)];
         if (!this.waterChargePreview) {
           this.waterChargePreview = new ElementalPreview(this.group, {batch: this.elementalFx.batch, parent: this.group});
           this.waterChargePreview.root.visible = true;
@@ -828,7 +838,11 @@ export class WorldView {
         p.root.position.set(f.position.x + Math.sin(f.facing) * reach, altitudeOf(f) + .58 + .12 * ratio, f.position.z + Math.cos(f.facing) * reach);
         p.root.scale.setScalar(.4 + .9 * ratio);
         if (p.p?.variant !== 0) { /* keep variant 0 */ }
-        if (!p.active) p.play('waterPulse', {...base, variant: 0}, level, {noFlash: !!acc.noFlash, reduced: !!acc.reduceMotion, follow: true});
+        const chargeSignature = JSON.stringify(base);
+        if (!p.active || p.chargeSignature !== chargeSignature || p.chargeLevel !== level) {
+          p.play('waterPulse', {...base, variant: 0, shotFollowTime: C.vfx.elemental?.shotFollowTime ?? .3}, level, {noFlash: !!acc.noFlash, reduced: !!acc.reduceMotion, follow: true});
+          p.chargeSignature = chargeSignature;p.chargeLevel = level;
+        }
         p.noFlash = !!acc.noFlash; p.reduced = !!acc.reduceMotion;
         p.velocity = (p.p?.speed ?? base.speed);
         p.update(dt);

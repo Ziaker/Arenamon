@@ -69,8 +69,8 @@ export const ACTION_TABS = {
 };
 
 export function createActionsDrawer({$, tuning, ui, onCharactersChanged = () => {}, renderMoves = () => {}, renderAiMoves = () => {}}) {
-  const tabs = $('act-tabs'), views = {moves: $('moves-panel'), tackle: $('act-tackle'), dodge: $('act-dodge'), jump: $('act-jump'), block: $('act-block'), ai: $('act-ai')};
-  let current = 'moves';
+  const tabs = $('act-tabs'), views = {tackle: $('act-tackle'), dodge: $('act-dodge'), jump: $('act-jump'), block: $('act-block'), ai: $('act-ai')};
+  let current = 'tackle';
   const escape = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
 
   function pathsOf(spec) {
@@ -117,8 +117,8 @@ export function createActionsDrawer({$, tuning, ui, onCharactersChanged = () => 
     $('moves-drawer').dataset.tab = name;
     render();
   }
-  function render() {if (current === 'moves') renderMoves();else renderTab(current);}
+  function render() {renderTab(current);}
   for (const b of tabs.querySelectorAll('[data-act]')) b.onclick = () => show(b.dataset.act);
-  show('moves');
+  show('tackle');
   return {show, render, get current() {return current;}};
 }

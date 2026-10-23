@@ -4,6 +4,7 @@ import {C, defaults} from '../sim/config.js';
 import {spawn} from '../sim/world.js';
 import {listMoves, getMove} from '../sim/moves.js';
 import {runMoveScenarios} from '../sim/scenarios-moves.js';
+import {elementalVisualMarkup, elementalGlobalMarkup, bindElementalVisual} from './elemental-move-controls.js';
 /** Escapa texto para HTML (local: importar o ajustador arrastaria o config.ts do jogo, que só o esbuild lê). */
 const escape = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
 
@@ -560,19 +561,20 @@ export function createMovesPanel({$, game, download, tuning, view, ui}) {
   }
   function render() {
     const openKeys = new Set([...root.querySelectorAll('details[open][data-k]')].map(d => d.dataset.k));   // a interface não recolhe os grupos que você abriu
-    const l0 = loadoutOf(0), l1 = loadoutOf(1), eqIds = [...new Set([...l0, ...l1].filter(Boolean))];
+    const l0 = loadoutOf(0), l1 = loadoutOf(1), eqIds = listMoves().map(m => m.id);
     const scen = results ? results.map(s => `<details data-k="s:${s.id}" ${s.ok ? '' : 'open'}><summary class="${s.ok ? 'ok' : 'warn'}">${s.ok ? '✓' : '✗'} ${escape(s.name)}</summary><table><tr><th>Verificação</th><th>Esperado</th><th>Obtido</th></tr>${s.rows.map(r => `<tr class="${r.ok ? 'ok' : 'warn'}"><td>${r.ok ? '✓' : '✗'} ${escape(r.what)}</td><td>${escape(r.expected)}</td><td>${escape(r.got)}</td></tr>`).join('')}</table></details>`).join('') : '<p class="hint">Cada cenário roda num duelo isolado, com semente fixa e os ajustes atuais, e compara esperado × obtido.</p>';
     const cards = eqIds.map(mid => {
       const info = MOVE_INFO[mid], owners = [[0, l0], [1, l1]].filter(([, l]) => l.includes(mid)).map(([w, l]) => `${w ? 'Vermelho' : 'Azul'}: slot ${l.indexOf(mid) + 1}${w ? '' : ` · botão ${escape(keyName(C.extras.keyCodes[C.extras.bindings[SKILL_NAMES[l.indexOf(mid)]]]))}`}`).join(' · ');
       const anims = [0, 1].filter(w => (w ? l1 : l0).includes(mid)).map(w => animCard(mid, w)).join('');
-      return `<section class="mv-move" data-move="${mid}"><header><h3>✦ ${escape(moveLabel(mid))}</h3><small class="muted">${owners}</small></header>
-        ${info?.hint ? `<p class="hint">${escape(info.hint)}</p>` : ''}${anims}${info ? paramGroup(info.group) : '<p class="hint">Este move ainda não tem parâmetros ajustáveis nesta tela.</p>'}</section>`;
+      return `<details class="mv-move" data-move="${mid}" data-k="move:${mid}"><summary><b>✦ ${escape(moveLabel(mid))}</b><small class="muted">${owners || 'Não equipado'}</small></summary>
+        ${info?.hint ? `<p class="hint">${escape(info.hint)}</p>` : ''}${anims}${info ? paramGroup(info.group) : '<p class="hint">Este move ainda não tem parâmetros ajustáveis nesta tela.</p>'}${elementalVisualMarkup(mid)}</details>`;
     }).join('');
     const shared = eqIds.length ? `<section class="mv-move" data-move="_charge"><header><h3>⚙ Carga (todos os moves equipados)</h3></header>${paramGroup('Carga (compartilhada)')}</section>` : '';
     root.innerHTML = `
-      <p class="hint">Escolha até <b>${C.world.slots} moves por personagem</b> e o <b>botão</b> de cada slot. Segure para carregar e solte para executar. Só aparecem os ajustes dos moves equipados.</p>
+      <p class="hint">Escolha até <b>${C.world.slots} moves por personagem</b> e o <b>botão</b> de cada slot. Todos os Moves têm grupos expansíveis abaixo; os valores entram no JSON de Exportar.</p>
+      <div class="row"><button type="button" id="mvp-export-params">↓ Exportar parâmetros dos Moves (JSON)</button></div>
       <section class="mv-card"><h3>Equipar</h3>${loadoutBox(0, 'Jogador (azul)')}${loadoutBox(1, 'Adversário (vermelho)')}</section>
-      ${cards || '<p class="hint mv-empty">Nenhum move equipado. Escolha um nos slots acima para ver os ajustes, animações e loops dele.</p>'}${shared}
+      ${elementalGlobalMarkup()}${cards}${shared}
       <details class="mv-tools" data-k="tools"><summary><b>Ferramentas de teste</b> <small class="muted">emissores, laser, cenários técnicos, estilo dos efeitos e avaliação</small></summary>
       <div class="vfx-quick-style">
         <b>Estilo VFX dos Golpes:</b>
@@ -673,7 +675,7 @@ export function createMovesPanel({$, game, download, tuning, view, ui}) {
       };
     }
     if (!subscribed && tuning?.onChange) {subscribed = true;tuning.onChange(() => {
-      if (!root.closest('#moves-drawer')?.hidden && !root.querySelector('[data-p]:active')) render();
+      if (!root.closest('[data-section="moves"]')?.hidden && !root.querySelector('[data-p]:active')) render();
       const activeVar = C.vfx.hit?.variant ?? 0;
       for (const x of root.querySelectorAll('[data-moves-vfx]')) {
         x.setAttribute('aria-pressed', String(Number(x.dataset.movesVfx) === activeVar));
@@ -685,7 +687,9 @@ export function createMovesPanel({$, game, download, tuning, view, ui}) {
     for (const b of root.querySelectorAll('[data-emit]')) b.onclick = () => {const k = b.dataset.emit;(k === 'boom' ? emitExplosion() : emitProjectile(Number(k)));};
     $('mvp-run').onclick = () => {results = runMoveScenarios();render();};
     $('mvp-export').onclick = () => results && download(JSON.stringify({schema: 'arenamon-lab-report', version: 1, kind: 'moves-scenarios', createdAt: new Date().toISOString(), step: C.test.step, scenarios: results, homologation: MOVES_HOMOLOG.map((t, i) => ({item: t, verdict: homolog[i]?.v || 'pendente', note: homolog[i]?.n || ''}))}, null, 1), 'arenamon-cenarios-moves.json');
+    $('mvp-export-params').onclick = () => download(JSON.stringify(tuning.exportData(), null, 2), 'arenamon-parametros-moves.json');
     bindParams(root, render);
+    bindElementalVisual(root, tuning);
     $('mvp-reset-all').onclick = () => {const ch = [];for (const g of ['charge', 'reflect', 'psyshock', 'beam', 'ai']) for (const [k, v] of Object.entries(defaults().world[g])) if (C.world[g][k] !== v) ch.push([`world.${g}.${k}`, v]);commit(ch, 'Restaurar os parâmetros dos Moves');render();};
   }
   return {render, renderAiParams, emitProjectile, emitLaser, emitExplosion, setEquip, setSlot, loadoutOf, get results() {return results;}, STANDARD};

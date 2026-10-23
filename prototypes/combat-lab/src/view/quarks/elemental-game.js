@@ -7,12 +7,15 @@
 // Só aparência: a posição, o raio, a vida e o contato vêm da simulação; nada aqui decide regra, dano,
 // colisão ou cooldown. Cada efeito é um ElementalPreview em modo "seguir entidade" (root na posição da
 // entidade, núcleo em 0,0,0), com um único BatchedRenderer compartilhado por todos.
+import * as THREE from 'three';
 import * as Q from 'three.quarks';
 import {C} from '../../sim/config.js';
 import {ElementalPreview} from './elemental-preview.js';
 import {ELEMENTAL_GAME_PARAMS} from './elemental-game-params.js';
+import {elementalVisualKey} from '../../sim/elemental-visual-config.js';
 
 const MOVES = {waterorb: 'waterPulse', airslash: 'airSlash', firespin: 'fireSpin', seed: 'seedBomb'};
+const PL_HEX = [0xffffff, 0x59d6e6, 0xffcf6a, 0xff6adf];
 const VARIANT_KEY = {waterPulse: 'waterVariant', airSlash: 'airVariant', fireSpin: 'fireVariant'};
 /** Tempo (s) que o efeito continua depois que a entidade some: cobre a explosão/o corte do contato. */
 const TAIL = {waterPulse: 2.4, airSlash: 2.0, fireSpin: 1.2, seedBomb: 2.6};
@@ -41,13 +44,15 @@ export class ElementalGameFx {
   }
   /** Variante A/B/C escolhida no painel (0, 1 ou 2). */
   variantOf(move) {if (move === 'seedBomb') return 0; return Math.max(0, Math.min(2, Math.round(elementalCfg()[VARIANT_KEY[move]] ?? 0)));}
+  paramsOf(move, variant = this.variantOf(move)) {return elementalCfg().visual?.[elementalVisualKey(move, variant)] ?? ELEMENTAL_GAME_PARAMS[move]?.[variant];}
+  disposeItem(it) {it.preview.root.getObjectByName('plBorder')?.material?.dispose();it.preview.dispose();}
   /** Escala do efeito para casar com o volume que a simulação já usa (raio/altura da entidade). */
   scaleOf(move, e, base, pl) {
     if (move === 'waterPulse') {
       const eff = Math.max(.05, base.size * (1 + (Math.max(1, Math.min(3, pl)) - 1) * .32));
       return Math.max(.05, (e.radius ?? .38) * (e.visualScale ?? 1) / eff);
     }
-    if (move === 'airSlash') return Math.max(.05, (e.radius ?? .6) / Math.max(.05, base.size));
+    if (move === 'airSlash') return Math.max(.05, 1.45 * (e.radius ?? .6) / Math.max(.05, base.size));
     if (move === 'seedBomb') return Math.max(.05, (e.radius ?? .24) / Math.max(.05, base.size ?? 1.2));
     return Math.max(.05, (e.radius ?? 1.6) / Math.max(.05, base.opening + base.size * .8));
   }
@@ -61,11 +66,13 @@ export class ElementalGameFx {
   spawn(e, acc) {
     if (e.visual === 'seedblast') return null;   // sem preview: a explosao visual vem do contato() da semente
     const move = MOVES[e.visual];
-    const base = ELEMENTAL_GAME_PARAMS[move]?.[this.variantOf(move) ?? 0];
+    const base = this.paramsOf(move);
     if (!base) return null;
     const pl = e.pl ?? 1, variant = this.variantOf(move);
     /** @type {any} */
-    const params = {...base, variant};
+    const params = {...base, variant, shotFollowTime: elementalCfg().shotFollowTime ?? .3};
+    if (move === 'seedBomb') params.shotEffect = ['none','ring','cone'][elementalCfg().seedShotEffect ?? 0] ?? 'none';
+    const settingsSignature = JSON.stringify(params);
     // No jogo a zona do Fire Spin vive o tempo da simulação (2,4 s), não os 20,8 s do ateliê:
     // a subida e o apagar aprovados (fireRise/fireFade) continuam valendo dentro dessa vida.
     if (move === 'fireSpin') params.duration = Math.max(.3, e.life ?? 2.4);
@@ -76,7 +83,7 @@ export class ElementalGameFx {
     preview.play(move, params, pl, {noFlash: !!acc?.noFlash, reduced: !!acc?.reduceMotion, follow: true});
     // O ateliê calcula o "smear" pela velocidade do trajeto; no jogo a velocidade vem do parâmetro aprovado.
     preview.velocity = preview.p.speed;
-    return {id: e.id, entity: e, move, variant, preview, dying: false, age: 0};
+    return {id: e.id, entity: e, move, variant, settings: settingsSignature, preview, dying: false, age: 0};
   }
   /**
    * Cria/atualiza os efeitos das entidades vivas e mantém os que estão terminando (contato).
@@ -92,10 +99,24 @@ export class ElementalGameFx {
       seen.add(e.id);
       let it = this.items.get(e.id);
       // O mundo reinicia a numeração das entidades: o mesmo id pode ser outra entidade.
-      if (it && it.entity !== e) {it.preview.dispose();this.items.delete(e.id);it = null;}
+      if (it && (it.entity !== e || it.variant !== this.variantOf(it.move) || it.settings !== JSON.stringify({...this.paramsOf(it.move), variant: it.variant, shotFollowTime: elementalCfg().shotFollowTime ?? .3, ...(it.move === 'seedBomb' ? {shotEffect: ['none','ring','cone'][elementalCfg().seedShotEffect ?? 0] ?? 'none'} : {})}))) {this.disposeItem(it);this.items.delete(e.id);it = null;}
       if (!it) {it = this.spawn(e, acc);if (!it) continue;this.items.set(e.id, it);}
       it.preview.root.position.set(e.pos.x, e.y ?? 0, e.pos.z);
       it.preview.root.rotation.y = this.headingOf(e);
+      // Borda com a cor do PL (toggle visual): anel ao redor do projétil.
+      const borderOn = !!C.vfx?.projectilePlBorder;
+      let border = it.preview.root.getObjectByName('plBorder');
+      if (borderOn && !border && it.move !== 'fireSpin') {
+        const plIdx = Math.max(0, Math.min(3, e.pl ?? 1));
+        const ring = new THREE.Mesh(new THREE.TorusGeometry(1.1, .06, 8, 32), new THREE.MeshBasicMaterial({color: PL_HEX[plIdx], transparent: true, opacity: .9, depthWrite: false}));
+        ring.rotation.x = Math.PI / 2; ring.name = 'plBorder';
+        it.preview.root.add(ring);
+      } else if (!borderOn && border) {
+        border.removeFromParent(); border.geometry?.dispose(); border.material?.dispose();
+      } else if (borderOn && border) {
+        const plIdx = Math.max(0, Math.min(3, e.pl ?? 1));
+        if (border.material?.color) border.material.color.setHex(PL_HEX[plIdx]);
+      }
       it.preview.noFlash = !!acc?.noFlash;
       it.preview.reduced = !!acc?.reduceMotion;
       it.preview.update(dt);
@@ -110,13 +131,13 @@ export class ElementalGameFx {
         it.age += dt;
         it.preview.update(dt);
       }
-      if (it.age >= TAIL[it.move]) {it.preview.dispose();this.items.delete(id);}
+      if (it.age >= TAIL[it.move]) {this.disposeItem(it);this.items.delete(id);}
     }
     this.batch.update(dt);
   }
   /** Posição do efeito (para os anéis de evento do WorldView). */
   positionOf(id) {return this.items.get(id)?.preview.root.position ?? null;}
-  clear() {for (const it of this.items.values()) it.preview.dispose();this.items.clear();}
+  clear() {for (const it of this.items.values()) this.disposeItem(it);this.items.clear();}
   /** Diagnóstico para os testes de navegador. */
   diagnostics() {
     const items = [...this.items.values()].map(it => ({
