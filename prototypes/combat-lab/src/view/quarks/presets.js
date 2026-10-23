@@ -152,7 +152,7 @@ export const ELEMENTAL_CONTROLS = [
  ['rotation','Rotação','rad/s',0,8,.1],['height','Altura / arco','m',.5,5,.1],['spread','Dispersão de gotas / folhas','m/s',.2,5,.1],
 ];
 export function elementalSettings(id, overrides={}, pl=1) {
- const p={variant:0,stretch:1,opening:1.1,contactSize:1,...ELEMENTAL_PRESETS[id],...overrides};
+ const p={...fireDefaults(overrides.variant??0),variant:0,stretch:1,opening:1.1,contactSize:1,...ELEMENTAL_PRESETS[id],...overrides};
  if(!ELEMENTAL_PRESETS[id]) throw new Error('Move visual desconhecido: '+id);
  if(id==='waterPulse') {const level=Math.max(1,Math.min(3,pl));p.size*=1+(level-1)*.32;p.quantity*=1+(level-1)*.55;p.rings+=level-1;p.brightness*=1+(level-1)*.2;}
  return p;
@@ -163,3 +163,18 @@ export const ELEMENTAL_VARIANTS={
  fireSpin:['A · Vórtice — anel de chamas','B · Espiral — braços abertos','C · Coroa — dupla borda'],
  airSlash:['A · Corte — arco único','B · Navalhas — três cortes','C · Rajada — arco e rastros longos'],
 };
+
+export const FIRE_CONTROLS=[
+ ['fireArms','Braços de fogo','un.',1,16,1,'Quantidade de braços distribuídos ao redor do centro aberto.'],
+ ['fireArc','Volta de cada braço','rad',.3,8,.1,'Quanto cada braço contorna o centro antes de terminar.'],
+ ['fireWidth','Largura das chamas','×',.1,3,.1,'Alarga a faixa para fora, preservando a abertura central.'],
+ ['fireLift','Elevação dos braços','×',0,3,.1,'Eleva as cristas das chamas acima do anel no chão.'],
+ ['fireRadial','Abertura da espiral','m',0,4,.1,'Afasta progressivamente a ponta de cada braço do centro.'],
+ ['fireRings','Coroas no chão','un.',0,6,1,'Quantidade de coroas concêntricas de fogo na base.'],
+ ['fireSpacing','Distância entre coroas','m',.05,2,.05,'Espaçamento radial entre as coroas da base.'],
+ ['fireRise','Tempo para surgir','s',.05,2,.05,'Tempo da expansão inicial do vórtice.'],
+ ['fireFade','Tempo para apagar','s',.1,3,.1,'Duração da redução de emissão e das superfícies no final.'],
+ ['fireEmbers','Quantidade de brasas','×',0,4,.1,'Multiplica somente a emissão de brasas, sem mudar os braços de fogo.'],
+];
+export const CONTROL_HELP={stretch:'Alongamento do rastro para trás conforme a velocidade; a frente permanece ancorada.',opening:'Raio livre no centro do vórtice.',contactSize:'Escala da explosão ou do corte no contato.',detail:'Contraste das faixas luminosas e da espuma.',trail:'Comprimento do rastro atrás da lâmina de vento.',size:'Tamanho base da superfície principal do efeito.',quantity:'Taxa de partículas durante o trajeto e quantidade base emitida no contato.',speed:'Velocidade do projétil ou velocidade de subida das partículas de fogo.',duration:'Tempo do trajeto ou da sustentação antes do encerramento automático.',brightness:'Multiplica a luminosidade das superfícies e partículas.',particleSize:'Tamanho de cada gota, brasa, folha ou risco de vento.',life:'Tempo que cada partícula permanece visível.',rings:'Quantidade de faixas orbitais da água.',rotation:'Velocidade das correntes, faixas e órbitas.',height:'Altura do projétil, do arco da semente ou das chamas.',spread:'Velocidade de dispersão das partículas após a emissão.'};
+export function fireDefaults(variant=0){return {fireArms:variant===0?5:variant===1?3:8,fireArc:variant===1?4.4:2.4,fireWidth:1,fireLift:1,fireRadial:variant===1?.88:0,fireRings:variant===2?2:1,fireSpacing:.825,fireRise:.35,fireFade:.7,fireEmbers:1};}

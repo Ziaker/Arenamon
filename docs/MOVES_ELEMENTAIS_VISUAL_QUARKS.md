@@ -1,3 +1,17 @@
+# Revisão de lançamento e controles — 23/10/2026
+
+- **Air Slash:** corte deitado no plano XZ, paralelo ao chão. Surge por escala e opacidade em 0,22 s, com um arco inicial de pressão. As três variantes permanecem disponíveis.
+- **Water Pulse:** a frente do projétil permanece ancorada; o smear se estende para trás (oposto ao vetor de deslocamento). Três argolas de água expandem no ponto de lançamento e desaparecem aos **0,3 s**. O acabamento da água foi mantido.
+- **Limites da água:** máximos de todos os sliders exibidos para Water Pulse multiplicados por **300**, inclusive o halo. Mínimos, passos e valores padrão preservados. Campos numéricos permitem precisão sem arrastar uma escala tão ampla. A contagem de anéis não é truncada; sua malha usa menos subdivisões quando a contagem sobe.
+- **Fire Spin:** dez controles adicionais: braços, volta de cada braço, largura, elevação, abertura radial, coroas, espaçamento, tempo de surgimento, tempo de apagamento e multiplicador de brasas. Todos conectados à geometria, emissão ou animação correspondente. O centro aberto permanece preservado.
+- **Explicações:** texto visível abaixo de todos os sliders, incluindo os controles antigos e o halo, com associação acessível ao campo.
+
+Teste dedicado: prototypes/combat-lab/test/elemental-launch-controls.browser.mjs. Verifica limites 300×, três malhas de argolas, presença aos 100 ms/ausência aos 301 ms, orientação horizontal e crescimento do Air Slash, dez controles do fogo e descrições. A galeria do portal inclui capturas e o JSON do teste.
+
+Não foi validado o uso simultâneo de todos os máximos ampliados, nem desempenho em máquinas lentas. Build, typecheck, testes Quarks e validação offline no Edge foram executados. A verificação geral permanece interrompida pelas 11 skills preexistentes de .claude.
+
+---
+
 # Revisão atual — 3 opções por efeito e contatos (23/10/2026)
 
 Abra o **Ateliê Elemental Quarks** no portal. Escolha Água, Fogo ou Vento e use o seletor **Opção visual** (A/B/C). **Contato agora** dispara o contato durante o trajeto; ele também acontece automaticamente ao terminar o trajeto. São animações da prévia, sem regras de colisão ou dano.
