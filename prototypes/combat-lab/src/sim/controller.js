@@ -759,7 +759,11 @@ function startMove(f, def, slot, dirs, desiredHeading, hasTarget, guardHeld) {
   const cost = costOf(f, def.cost ?? 1);f.stamina = Math.max(0, f.stamina - cost);f.regenBase = f.stamina;f.regenAge = 0;f.exhausted = isDepleted(f.stamina);
   if (def.cooldown > 0) (f.moveCooldowns ??= {})[def.id] = def.cooldown;
   f.guard = false;f.guardSuppressed = guardHeld;f.push = null;f.blend = null;f.vaultHeight = 0;f.bufferedTackle = null;f.inputBuffer = null;f.sprinting = false;f.sprintCarry = false;
-  if (lift > 1e-8) applyLift(f, lift);else if (inAir) f.action.air = true;   // air.js: 'descend' desce enquanto age; 'cast' segue em voo
+  if (lift > 1e-8) applyLift(f, lift);else if (inAir) f.action.air = true;
+  if (def.captureAim && dirs.lock != null) {   // Burst com mira capturada na CONFIRMAÇÃO (Air Slash): ponto do alvo no instante do toque, sem perseguir depois
+    const o = CTX_FIGHTERS.find(x => x.id === dirs.lock && x.hp > 0);
+    if (o) f.action.aimAt = {x: o.position.x, z: o.position.z, y: (o.flight?.y ?? o.groundY ?? 0) + (o.vaultHeight ?? 0) + (C.extras?.visual?.bodyHeight ?? 1.2) / 2};
+  }   // air.js: 'descend' desce enquanto age; 'cast' segue em voo
 }
 /**
  * Move que vira uma AÇÃO DE TACKLE com parâmetros próprios (Lunge, Quick Attack, Bullet Punch…): `startAction` cria a ação (colisão real, defesa, defesa
@@ -948,7 +952,7 @@ function updateMove(f, action, target, cmd, dt) {
   else {const from = action.from ?? vec(), k = Math.exp(-12 * dt);f.velocity = scale(from, k);action.from = {...f.velocity};}
   if (action.liftStart > 0) f.vaultHeight = action.liftTime > 0 ? action.liftStart * (1 - smoothstep((action.elapsed + dt) / action.liftTime)) : 0;   // desceu do ar (air.js): sem teletransporte ao chão
   if (!def.keepFacing) turnToward(f, target && def.aim !== 'facing' ? angleOf(sub(target.position, f.position)) : action.heading, dt);   // keepFacing: recuo sem virar o corpo (Feint)
-  (def.timeline || []).forEach((ev, i) => {if (!action.fired.includes(i) && ev.at <= action.elapsed + dt + 1e-9) {action.fired.push(i);(f.moveFx ??= []).push({index: i, move: def.id, heading: action.heading, params: action.params ?? null, def, lock: action.lock ?? null, marker: action.marker ?? null});}});
+  (def.timeline || []).forEach((ev, i) => {if (!action.fired.includes(i) && ev.at <= action.elapsed + dt + 1e-9) {action.fired.push(i);(f.moveFx ??= []).push({index: i, move: def.id, heading: action.heading, params: action.params ?? null, def, lock: action.lock ?? null, marker: action.marker ?? null, aimAt: action.aimAt ?? null});}});
   f.state = 'move';
 }
 // ---------- Movimentos de carga (Charge): segurar o botão carrega, soltar executa ----------

@@ -12,7 +12,7 @@ const IDS = ['reflect', 'psyshock', ...NEW_MOVES.map(m => m.def.id)];
 const press = {skill: 0, skillHeld: HOLD(0)};
 
 test(`são ${IDS.length} Moves e nenhum desliga a aceleração (cooldownBoost !== false)`, () => {
-  assert.equal(IDS.length, 15);
+  assert.equal(IDS.length, 19);
   arena();   // registra
   for (const id of IDS) assert.notEqual(getMove(id).cooldownBoost, false, id);
 });

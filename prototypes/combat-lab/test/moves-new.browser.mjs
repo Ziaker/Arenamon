@@ -52,8 +52,8 @@ try {
   const star = await L(() => ({n: window.__lab.game.world.entities.filter(e => e.visual === 'star').length, pl: window.__lab.game.world.entities.find(e => e.visual === 'star').pl, mesh: Object.values(window.__lab.view.worldView).filter(v => v instanceof Map).some(m => [...m.values()].some(x => x?.getObjectByName?.('starCore')))}));
   check('tecla 3 dispara 3 estrelas PL1 com a malha própria no desenho', star.n === 3 && star.pl === 1 && star.mesh, JSON.stringify(star));
 
-  // Os 13 Moves novos: todos listados nos slots e com seus sliders na aba Moves
-  const GROUPS = {harden: 'harden', 'second-wind': 'secondWind', swift: 'swift', lunge: 'lunge', 'quick-attack': 'quickAttack', 'guard-break': 'guardBreak', feint: 'feint', riposte: 'riposte', bounce: 'bounce', spikes: 'spikes', 'sand-wave': 'sandWave', 'bullet-punch': 'bulletPunch', 'emerging-stone': 'emergingStone'};
+  // Os 17 Moves novos: todos listados nos slots e com seus sliders na aba Moves
+  const GROUPS = {harden: 'harden', 'second-wind': 'secondWind', swift: 'swift', lunge: 'lunge', 'quick-attack': 'quickAttack', 'guard-break': 'guardBreak', feint: 'feint', riposte: 'riposte', bounce: 'bounce', spikes: 'spikes', 'sand-wave': 'sandWave', 'bullet-punch': 'bulletPunch', 'emerging-stone': 'emergingStone', 'water-pulse': 'waterPulse', 'fire-spin': 'fireSpin', 'air-slash': 'airSlash', 'seed-bomb': 'seedBomb'};
   await L(() => {window.__lab.game.setLoadout(0, []);window.__lab.startMatch();});
   await L(() => {document.getElementById('moves-drawer').hidden || document.getElementById('moves-close').click();});
   await openDrawer();
@@ -63,7 +63,7 @@ try {
     await page.selectOption('[data-slot-move="0.0"]', id);
     if (!await L(g => !!document.querySelector(`#moves-panel [data-p="${g}.cost"]`), group)) missing.push(`slider:${id}`);
   }
-  check('os 13 Moves novos aparecem nos slots e cada um tem seus sliders na aba Moves', missing.length === 0, missing.join(','));
+  check('os 17 Moves novos aparecem nos slots e cada um tem seus sliders na aba Moves', missing.length === 0, missing.join(','));
   await L(() => document.getElementById('moves-close').click());
   // Lunge pelo teclado como jogador: vira um Tackle real marcado com o Move
   await L(() => {window.__lab.game.setLoadout(0, ['lunge', 'spikes']);window.__lab.startMatch();});

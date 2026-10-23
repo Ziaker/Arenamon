@@ -13,6 +13,7 @@
 | [EMERGING_STONE_PROMPT_IMPLEMENTACAO.md](EMERGING_STONE_PROMPT_IMPLEMENTACAO.md) | Prompt de execução para Codex/agente implementar e testar Emerging Stone (Move 1 de Mushroom), vinculado a **ES-D01–ES-D103** | **Implementado** (v1.14.x); homologação pendente |
 | [PROMPT_IMPLEMENTACAO_MOVES_NOVOS.md](PROMPT_IMPLEMENTACAO_MOVES_NOVOS.md) | Prompt de trabalho do agente para implementar os 13 Moves novos (genéricos, Mushroom e Emerging Stone), com infraestrutura, ordem, protocolo e critérios | **Concluído e integrado à `main`** (v1.14.0 em diante) |
 | [DECISOES_PROVISORIAS_MOVES_NOVOS.md](DECISOES_PROVISORIAS_MOVES_NOVOS.md) | Registro vivo dos padrões provisórios adotados onde a fonte marca pendência | Atualizado a cada Move |
+| [../MOVES_ELEMENTAIS_PROTOTIPO.md](../MOVES_ELEMENTAIS_PROTOTIPO.md) | Protótipo dos 4 Moves elementais (Water Pulse, Fire Spin, Air Slash, Seed Bomb) de 23/10/2026: como testar, decisões provisórias e limites; fichas em `fichas/` | **Implementado (protótipo), homologação pendente** |
 | [5_MOVES_GENERICOS_PROMPT.md](5_MOVES_GENERICOS_PROMPT.md) | Proposta dos 5 genéricos adicionais (Lunge, Guard Break, Feint, Riposte, Second Wind) — vinda do branch `docs/5-moves-genericos` | **Implementado** (v1.14.0); valores provisórios |
 | [AUDITORIA_PASTA_TACKLE.md](AUDITORIA_PASTA_TACKLE.md) | Verificação da pasta `docs/tackle` e justificativa de classificação dos arquivos encontrados | Auditoria documental |
 

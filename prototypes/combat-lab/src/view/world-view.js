@@ -12,6 +12,7 @@ import {C, rgb} from '../sim/config.js';
 import {altitudeOf} from '../sim/entity.js';
 import {reflectPlacement} from '../sim/moves/reflect.js';
 import {stoneCount} from '../sim/moves/psyshock.js';
+import {makeElemental, updateElemental} from './elemental-fx.js';
 
 export const PL_HEX = [0xffffff, 0x59d6e6, 0xffcf6a, 0xff6adf];
 const RING = {
@@ -199,7 +200,10 @@ export class WorldView {
     const color = this.colorOf(e);
     let mesh;
 
-    if (e.kind === 'projectile' && e.visual === 'star') {
+    const elemental = makeElemental(e);   // Water Pulse, Fire Spin, Air Slash e Seed Bomb (elemental-fx.js)
+    if (elemental) {
+      mesh = elemental;
+    } else if (e.kind === 'projectile' && e.visual === 'star') {
       // Estrela do Swift: duas pirâmides cruzadas branco-douradas com núcleo luminoso e giro individual (só aparência; colisão é o raio da entidade).
       mesh = new T.Group();
       const geo = new T.OctahedronGeometry(.9, 0);geo.scale(1, 1, .45);
@@ -539,6 +543,7 @@ export class WorldView {
     for (const e of world?.entities ?? []) {
       alive.add(e.id);
       let m = this.meshes.get(e.id) ?? this.make(e);
+      if (updateElemental(m, e, this.time, dt, {...this.accessibility, noFlash: !!(this.accessibility?.noFlash || C.vfx.master?.noFlash), reduceMotion: !!(this.accessibility?.reduceMotion || C.vfx.master?.reduceMotion)})) continue;
 
       if (e.kind === 'beam') {
         if (skipBeams) {

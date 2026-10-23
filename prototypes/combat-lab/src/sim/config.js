@@ -224,6 +224,19 @@ function buildDefaults() {
     // Sem i-frames do atacante (o catálogo não define; MV-P16). Ação total = ida + volta + recuperação.
     quickAttack: {cost: .75, cooldown: 6, acquireRange: 7, approachMax: .16, returnMax: .14, recovery: .12, damage: 8, knockbackH: 4, knockbackV: 0, invulnerableSeconds: 0, fxLines: 1, fxHideBody: 1},
     swift: {cost: .8, cooldown: 7, cast: .25, count: 3, speed: 15, damage: 3, homingSeconds: .25, homingRate: 90, range: 12, knockback: .3, knockbackCap: .9, radius: .2, fanAngle: 20, spawnForward: .9, spawnSpacing: .35, counterStagger: .2},
+    // Moves elementais (protótipo de 23/10/2026; números do prompt de 22/10, NÃO homologados; padrões das decisões provisórias MV-P36…MV-P41).
+    // Water Pulse: Charge Projectile. Carga máx. 1,5 s (180 passos; PL2 em 90, PL3 em 180), custo e recarga na ativação, 6/9/12 HP nominais, empurrão H 2/3/4 (V 0 ⇒ o motor empurra 1,5 × H m),
+    // projétil de raio 0,38 m a 14 m/s e alcance 12 m (lifetime = alcance ÷ velocidade), recuperação de 0,30 s a partir da soltura. originHeight/spawnForward: nascimento (não definidos no prompt).
+    waterPulse: {cost: 1, cooldown: 9, maxCharge: 1.5, minCharge: 0, chargeRecovery: .3, damagePl1: 6, damagePl2: 9, damagePl3: 12, knockbackPl1: 2, knockbackPl2: 3, knockbackPl3: 4, speed: 14, radius: .38, range: 12, originHeight: .8, spawnForward: .7, counterStagger: .2},
+    // Fire Spin: Normal Field. Marcador de colocação (alcance 3D 5 m), cast 0,4 s + recovery 0,2 s, zona cilíndrica de 1,6 m de raio × 2,4 m, 2,4 s de vida, 4 pulsos a cada 0,6 s de 2 HP nominais,
+    // sem knockback e (padrão provisório) sem guard stun; occlusion = paredes bloqueiam o pulso; maxActive = zonas simultâneas por dono; allowOccupied = permite colocar sobre um lutador.
+    fireSpin: {cost: 1, cooldown: 11, cast: .4, recovery: .2, range: 5, markerSpeed: 8, markerAccel: 24, startDistance: 3, minRange: 0, maxRise: 2, allowOccupied: 0, zoneRadius: 1.6, zoneHeight: 2.4, life: 2.4, pulses: 4, interval: .6, damage: 2, guardStun: 0, occlusion: 1, maxActive: 1},
+    // Air Slash: Burst Projectile PL1. Startup 8 passos + recovery 20 passos, lâmina a 22 m/s com alcance 10 m (lifetime = alcance ÷ velocidade), colisor = círculo equivalente de raio 0,6 m,
+    // 8 HP nominais, empurrão H 2,5 (V 0). visualWidth/Height/Thickness: só o desenho da lâmina (1,20 × 0,70 × 0,22 m).
+    airSlash: {cost: .8, cooldown: 6, startup: 8 / 120, recovery: 20 / 120, speed: 22, range: 10, radius: .6, damage: 8, knockbackH: 2.5, originHeight: .8, spawnForward: .6, counterStagger: .2, visualWidth: 1.2, visualHeight: .7, visualThickness: .22},
+    // Seed Bomb: Normal Projectile + Field instantâneo. Marcador (alcance 3D 8 m), cast 0,3 s + recovery 0,2 s, arco balístico de 0,65 s (gravidade 17,5 = a do salto/Bounce) com velocidade máx. 20 m/s,
+    // semente de raio 0,24 m (vida 1,25 s), explosão ESFÉRICA de 1,8 m, 10 HP nominais, empurrão 3 H / 1 V, oclusão por paredes. blastLife: duração visual da explosão.
+    seedBomb: {cost: 1, cooldown: 8, cast: .3, recovery: .2, range: 8, markerSpeed: 8, markerAccel: 24, startDistance: 3, minRange: 0, maxRise: 2, allowOccupied: 0, flightTime: .65, gravity: 17.5, maxSpeed: 20, seedRadius: .24, lifetime: 1.25, explosionRadius: 1.8, damage: 10, knockbackH: 3, knockbackV: 1, occlusion: 1, blastLife: .3, originHeight: .8, spawnForward: .5, counterStagger: .2},
   });
   return ({rules, test, locomotion, camera, profiles: profilesLab, extras, actions, vfx: vfxDefaults(), display: displayDefaults(), world, map: {...MAP_DEFAULTS}, passivas, ledge: ledgeDefaults()});
 }

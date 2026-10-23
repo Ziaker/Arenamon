@@ -43,3 +43,10 @@ Atualizar esta tabela a cada Move entregue (status: planejado → implementado �
 | MV-P33 | Sand Wave | "reposicionamento" da IA cegada | guarda levantada e passos lentos ao centro, sem perseguir | — | adotado |
 | MV-P34 | Bullet Punch | velocidade/recuperação da investida de 3 m | velocidade do Tackle preservada (duração e distância escalam juntas) | slider `reach` | adotado |
 | MV-P35 | Emerging Stone | dano "20 × Ataque"; busca da rocha; rocha só em plataformas planas | 20 nominais × Ataque ÷ 20; busca até 4 m; sem rampas/plataformas móveis | sliders | adotado (limitações declaradas na ficha) |
+| MV-P36 | Water Pulse, Air Slash | Knockback horizontal com vertical 0 (EL-P04) | usar o empurrão do motor: 1,5 × H metros + 0,63 s de recuperação (o mesmo do Lunge); o slider mostra a consequência | sliders `knockbackPl1…3` / `knockbackH` | adotado |
+| MV-P37 | Water Pulse | "Emissão no passo 12 depois da soltura" (WP-P08) | o projétil sai **no passo da soltura**; recuperação de 36 passos a partir dela | slider `chargeRecovery` | adotado |
+| MV-P38 | Air Slash | Colisor orientado 1,20 × 0,70 × 0,22 m (AS-P02); "mira na soltura" (AS-P08) | colisor = círculo de raio 0,6 m (o desenho tem a caixa); Burst por **pressão**, mira do alvo capturada no toque | slider `radius` | adotado |
+| MV-P39 | Seed Bomb | Volume da explosão (SB-P04); gravidade e destino inviável (SB-P03) | esfera 3D de 1,8 m com y herdado e oclusão; g = 17,5; destino acima da velocidade máx. falha | sliders `explosionRadius`, `gravity`, `maxSpeed`, `occlusion` | adotado |
+| MV-P40 | Fire Spin | Guard stun nos pulsos (FS-P07); Clash de área (FS-P01); múltiplas zonas (FS-P04) | pulsos sem guard stun; sem Clash de área; 1 zona por dono | sliders `guardStun`, `maxActive` | adotado |
+| MV-P41 | os 4 elementais | Origem do projétil e spawn inválido (WP-P05, AS-P04, SB-P02) | nasce na altitude real do atirador + 0,8 m (o padrão do Swift usava y absoluto e morria em plataforma); sólido no ponto de nascimento: Charge/Normal falham com reembolso onde o motor reembolsa, Burst é gasto sem efeito | sliders `originHeight`, `spawnForward` | adotado |
+

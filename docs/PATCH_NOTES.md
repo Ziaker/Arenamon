@@ -1,8 +1,15 @@
 # Patch notes — Laboratório de Combate
 
-Versão atual: **v1.20.0** (22/10/2026). A versão aparece na barra superior do laboratório (tooltip com data de compilação e commit). Para jogar: `JOGAR_ARENAMON.html`.
+Versão atual: **v1.21.0** (23/10/2026). A versão aparece na barra superior do laboratório (tooltip com data de compilação e commit). Para jogar: `JOGAR_ARENAMON.html`.
 
 ---
+
+## v1.21.0 — 4 Moves elementais: protótipo jogável (23/10/2026)
+- **Water Pulse (Água), Fire Spin (Fogo), Air Slash (Voador) e Seed Bomb (Grama)** implementados no laboratório, com visual provisório, painel de sliders na aba Moves e IA (os 23 Moves ao todo; nenhum vem equipado).
+- Water Pulse: Charge de 1,5 s (PL1/2/3), projétil com Clash. Fire Spin: zona de fogo por marcador, com pulsos, sem stun. Air Slash: Burst rápido, lâmina de colisor circular mirada no toque. Seed Bomb: semente em arco que explode ao chegar/bater (esfera 3D com oclusão).
+- Motor: projéteis nascem na **altitude real** do atirador (antes nasciam em y absoluto e morriam na plataforma); novo `detonateOnly`, área esférica 3D, oclusão, `chargeRecovery` e mira capturada no toque (`captureAim`).
+- Números e regras ainda **não homologados**: ver `docs/MOVES_ELEMENTAIS_PROTOTIPO.md` e as decisões MV-P36–P41.
+- Testes novos: `moves-water-pulse`, `moves-fire-spin`, `moves-air-slash`, `moves-seed-bomb`, `ai-elemental`; `moves-cooldown-boost` atualizado para 19 Moves.
 
 ## v1.20.0 — Rodada de 22/10 (tarde): dez ajustes (22/10/2026)
 - **Objetos translúcidos de verdade:** o teste câmera → lutador agora usa a caixa real do objeto (antes uma esfera no centro, que falhava em objetos largos e altos); transição suave e controles em Visualizar.
