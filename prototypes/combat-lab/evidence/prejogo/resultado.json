@@ -3,7 +3,7 @@
     {
       "label": "o registro real de Moves está acessível e tem os 15 Moves",
       "ok": true,
-      "detail": "15"
+      "detail": "19"
     },
     {
       "label": "o menu tem o seletor Atual · A · B · C (radiogroup) e o padrão é «Atual» (nenhum estilo oficial)",
@@ -198,7 +198,7 @@
     {
       "label": "sem personagem carregado nem salvo: a tela abre, avisa «prévia indisponível» e não fabrica modelo nem seleção",
       "ok": true,
-      "detail": "{\"visible\":true,\"noModel\":[true,true],\"note\":\"Nenhum personagem salvo no workspace: usando o carregado.\",\"name\":\"Sem modelo carregado\",\"cards\":50}"
+      "detail": "{\"visible\":true,\"noModel\":[true,true],\"note\":\"Nenhum personagem salvo no workspace: usando o carregado.\",\"name\":\"Sem modelo carregado\",\"cards\":58}"
     },
     {
       "label": "sem modelo: sem erros de página",

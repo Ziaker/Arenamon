@@ -9,6 +9,7 @@ import {PASSIVE_SLOTS, exclusivePassives, genericPassives, validateLoadout} from
 export const MOVE_ICON = Object.freeze({
   'quick-attack': 'raio', psyshock: 'espiral', harden: 'escudo', 'sand-wave': 'onda', 'bullet-punch': 'punho', reflect: 'escudo', 'second-wind': 'gota', lunge: 'impacto', riposte: 'estrela',
   bounce: 'onda', swift: 'estrela', 'guard-break': 'impacto', feint: 'espiral', spikes: 'pedra', 'emerging-stone': 'pedra',
+  'water-pulse': 'gota', 'fire-spin': 'chama', 'air-slash': 'espiral', 'seed-bomb': 'pedra',
 });
 /**
  * Classe de uso de um Move, derivada do que o motor/registro JÁ declara (não há «elemento» nem tipo Pokémon nos dados dos Moves): Charge (segura e solta), Destino (marcador no mundo),
