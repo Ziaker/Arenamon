@@ -77,3 +77,11 @@
 ## Fora deste plano (continua decisão do responsável)
 
 Estilo visual definitivo (§6 do padrão); aplicar o seletor ao Water Pulse e ao Air Slash do jogo; qualquer mudança em hitbox/dano; medição de desempenho em GPU (Tarefa 6 do plano restante).
+
+---
+
+## Estado final (24/10/2026)
+
+Tarefas 1 a 10 concluídas. Lote 1: `phases.ts`, `shot-effect.ts`, Sand Wave. Lote 2: painel por fase (`panel-model.ts`, `main.js`), salvamento automático, exportação datada, importação tolerante (`presets.ts`, atelier 7.0.0), Sem flash e Movimento reduzido. Lote 3: Emerging Stone (com trajeto subterrâneo), Rocha (inspeção), Quick Attack (retorno), Bullet Punch (corpo ausente), Riposte, Swift e Psyshock; `timelines.test.mjs` cobre as 24 propostas; teste de navegador e capturas em `prototypes/sand-stone-lab/evidence/fases-24-10/`. Desvios: seletor com 3 opções (Nenhum é o padrão); disparo e contato são camadas de evento; o retorno do Quick Attack e o corpo ausente do Bullet Punch mudam o visual padrão de propósito.
+
+**Não feito / pendente:** aprovação visual do responsável; desempenho em GPU nos limites ampliados; aplicar o padrão aos Moves elementais do ateliê Quarks e ao jogo; estilo visual definitivo.

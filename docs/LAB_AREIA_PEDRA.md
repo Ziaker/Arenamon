@@ -1,5 +1,18 @@
 # Laboratório visual: Sand Wave e Emerging Stone
 
+## VOL. 07 — Seis fases desligáveis em todos os efeitos (24/10/2026)
+
+O atelier (versão 7.0.0 dos arquivos exportados) passa a cumprir [PADRAO_ATELIES_VFX.md](PADRAO_ATELIES_VFX.md) nas 24 propostas. Plano e decisões: [plans/2026-10-24-vfx-por-fase-atelier.md](plans/2026-10-24-vfx-por-fase-atelier.md). [Galeria de capturas](../prototypes/sand-stone-lab/evidence/fases-24-10/index.html).
+
+- **Seis fases por efeito**, cada uma com o interruptor «Ligar esta fase» (ligada por padrão): Surgimento / preparação, Disparo / lançamento, Corpo e trajeto, Duração em cena, Finalização / retorno e Impacto / explosão / hit. Fase desligada não executa e não aparece na legenda; os sliders dela ficam esmaecidos e guardam os valores. Se todas ficarem desligadas, o painel avisa que não há nada para mostrar.
+- **Todo controle** tem nome, unidade, explicação curta, slider e campo numérico sincronizados, agrupado pela fase. Ângulos em ±180°; impulsos e deslocamentos aceitam sinal (positivo à frente, negativo para trás).
+- **Efeito de disparo**: Nenhum (padrão, o visual atual não muda), Argola ou Tiro em cone. Os valores de cada opção ficam guardados ao trocar. O clarão/impacto do disparo continua uma camada à parte.
+- **Ciclo real de cada Move**: Quick Attack volta à origem depois do contato (sem segundo hit); Bullet Punch some durante a corrida e reaparece no golpe (o punho estilizado é só um efeito); Emerging Stone ganhou o trajeto subterrâneo (0 s por padrão: ajuste «Duração do trajeto»); Riposte mantém os quatro cenários; só o Psyshock tem carga; Swift é Burst (o surgimento não é carga); a **Rocha** é inspeção de objeto, não um ataque, e só tem a fase de duração em cena (as outras ficam desabilitadas com a razão).
+- **Salvar**: salvamento automático neste navegador (vale só para o mesmo navegador e o mesmo arquivo HTML), exportação com a data no nome do arquivo e importação que valida o arquivo, **ignora e conta** campos desconhecidos e completa os que faltam com o padrão. O .json exportado é a cópia segura. Arquivos das versões 3, 5 e 6 continuam entrando.
+- **Acessibilidade**: «Sem flash / pulsação» (zera clarão e halo, limita o brilho, mantém ondas e partículas) e «Movimento reduzido» (valor inicial vem da preferência do sistema).
+- **Com os valores padrão o visual não muda**, com duas exceções pedidas pela auditoria de 24/10: o retorno do Quick Attack e o corpo ausente do Bullet Punch na corrida. Um golden de cada efeito (`golden/*.json`) foi gravado antes das mudanças e os testes conferem.
+- **Testes**: `npm run test:sand-stone` (build, 12 testes em Node e o teste de navegador `phases.browser.mjs`, GPU real por padrão). **Não verificado:** desempenho em GPU nos limites ampliados dos sliders; a aprovação visual é do responsável.
+
 ## VOL. 06 — Riposte: abertura da guarda e contra-ataque (22/10/2026)
 
 O atelier passa a 24 propostas. [Galeria Riposte](../prototypes/sand-stone-lab/evidence/revision-6/index.html) com abertura, guarda ativa, interceptação, contra-ataque, impacto, expiração, golpe tardio e Guard Break. Há links no portal, índice e central de testes.

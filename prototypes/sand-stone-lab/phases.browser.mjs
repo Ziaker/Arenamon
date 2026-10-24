@@ -115,6 +115,34 @@ try {
   check('a preferência do sistema «reduzir movimento» é o valor inicial', await p2.evaluate(() => window.__labDiagnostics().reduce === true && document.getElementById('reduced').checked));
   await ctx2.close();
 
+  // ---------- As 8 categorias obedecem às fases ----------
+  const NAMES = {sand: 'Sand Wave', stone: 'Emerging Stone', rock: 'Rocha', swift: 'Swift', psyshock: 'Psyshock', bulletpunch: 'Bullet Punch', quickattack: 'Quick Attack', riposte: 'Riposte'};
+  for (const c of Object.keys(NAMES)) {
+    await pickCategory(c);
+    const st = await L(() => ({groups: document.querySelectorAll('#sliders .phase-group').length, note: !document.getElementById('phase-warning').hidden, disabled: [...document.querySelectorAll('#sliders [data-phase-toggle]')].filter(x => x.disabled).length, warn: document.getElementById('phase-warning').textContent}));
+    check(`${NAMES[c]}: seis fases, e os interruptores obedecem (sem aviso de «ainda não obedece»)`, st.groups === 6 && !st.note && st.disabled === (c === 'rock' ? 5 : 0), JSON.stringify(st));
+  }
+  await pickCategory('rock');
+  const rockWhy = await L(() => document.querySelector('#sliders [data-phase="launch"] .help')?.textContent ?? '');
+  check('a Rocha explica que é inspeção de objeto e não um ataque', /não um ataque/.test(rockWhy), rockWhy);
+  await pickCategory('stone');
+  await L(() => {const r = document.querySelector('#sliders [data-key="flightTime"] input[type=range]');r.value = '0.8';r.dispatchEvent(new Event('input', {bubbles: true}));});
+  const stoneLegend = new Set();
+  for (let x = 0; x <= 4.2; x += .15) {await page.locator('#scrub').evaluate((el, v) => {el.value = String(v);el.dispatchEvent(new Event('input', {bubbles: true}));}, x);stoneLegend.add(await page.locator('#phase').textContent());}
+  check('Emerging Stone com trajeto: a legenda passa por Corpo e trajeto', [...stoneLegend].includes('Corpo e trajeto'), [...stoneLegend].join(' | '));
+
+  // ---------- Capturas (evidência) ----------
+  const { mkdirSync } = await import('node:fs');
+  const evidence = root + 'evidence/fases-24-10/';mkdirSync(evidence, {recursive: true});
+  const snap = async (name, o = {}) => {for (let a = 1; ; a++) {try {return await page.screenshot({path: evidence + name, ...o});} catch (e) {if (a >= 5 || !/UNKNOWN|EBUSY|EPERM/.test(String(e))) throw e;await new Promise(r => setTimeout(r, 600 * a));}}};
+  const scrubTo = x => page.locator('#scrub').evaluate((el, v) => {el.value = String(v);el.dispatchEvent(new Event('input', {bubbles: true}));}, x);
+  await pickCategory('sand');await page.locator('#variants [data-variant="0"]').click();await openAll();await scrubTo(.9);await page.waitForTimeout(250);await snap('sand-padrao.png');
+  await page.locator('#sliders [data-key="shotKind"] select').selectOption('1');await page.locator('#phase-start-on').uncheck();await scrubTo(.1);await page.waitForTimeout(250);await snap('sand-sem-surgimento-com-argola.png');
+  await page.locator('#phase-start-on').check();await page.locator('#sliders [data-key="shotKind"] select').selectOption('0');
+  await pickCategory('stone');await scrubTo(1.1);await page.waitForTimeout(250);await snap('stone-trajeto-subterraneo.png');
+  await pickCategory('rock');await page.waitForTimeout(250);await snap('rocha-inspecao.png');
+  check('capturas gravadas em evidence/fases-24-10/', true);
+
   check('sem erros de página/console e sem requisições externas', errors.length === 0 && network.length === 0, errors.concat(network).slice(0, 3).join(' | '));
 } finally {
   await browser.close();

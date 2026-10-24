@@ -1,11 +1,13 @@
 {
   "name": "arenamon",
-  "version": "1.30.5",
+  "version": "1.31.0",
   "description": "Laboratórios offline do projeto Arenamon",
   "scripts": {
     "build": "node prototypes/placeholders/build.mjs && node prototypes/game/build.mjs && node prototypes/importer/build.mjs && node prototypes/studio/build.mjs && node prototypes/combat-lab/build.mjs && node prototypes/vfx-elemental/build.mjs && node prototypes/hud-consumiveis/build.mjs && node prototypes/hud-moves/build.mjs",
     "bench:moves": "node prototypes/combat-lab/bench-moves.mjs --write",
     "indice": "node prototypes/combat-lab/gen-indice.mjs",
+    "build:sand-stone": "node prototypes/sand-stone-lab/build.mjs",
+    "test:sand-stone": "npm run build:sand-stone && node prototypes/sand-stone-lab/phases.test.mjs && node prototypes/sand-stone-lab/shot.test.mjs && node prototypes/sand-stone-lab/panel-model.test.mjs && node prototypes/sand-stone-lab/sand-phases.test.mjs && node prototypes/sand-stone-lab/stone-phases.test.mjs && node prototypes/sand-stone-lab/rock-phases.test.mjs && node prototypes/sand-stone-lab/rush-phases.test.mjs && node prototypes/sand-stone-lab/riposte-phases.test.mjs && node prototypes/sand-stone-lab/swift-psyshock-phases.test.mjs && node prototypes/sand-stone-lab/timelines.test.mjs && node prototypes/sand-stone-lab/limits.test.mjs && node prototypes/sand-stone-lab/presets.test.mjs && node prototypes/sand-stone-lab/test.mjs && node prototypes/sand-stone-lab/phases.browser.mjs",
     "matriz": "node prototypes/combat-lab/matriz-relatorio.mjs",
     "fichas": "node prototypes/combat-lab/gen-fichas.mjs",
     "novo-move": "node prototypes/combat-lab/novo-move.mjs",

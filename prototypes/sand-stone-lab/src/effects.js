@@ -9,7 +9,7 @@ const glow=color=>new T.MeshBasicMaterial({color:new T.Color(color).multiplyScal
 export class SandEffect {
   constructor(group,particles,variant,p){
     Object.assign(this,{group,particles,variant,p});this.streams=[];this.started=false;this.hit=false;this.ended=false;
-    this.cast=p.startTime??.25;this.travel=p.flightTime??.75;this.hold=p.holdTime??0;this.fadeTime=p.finishTime??.65;this.impactLife=p.impactTime??.55;
+    this.cast=p.startTime??.25;this.travel=Math.max(.01,p.flightTime??.75);this.hold=p.holdTime??0;this.fadeTime=p.finishTime??.65;this.impactLife=p.impactTime??.55;
     this.duration=this.cast+this.travel+this.hold+this.fadeTime+1;
     this.shot=new ShotEffect(group,particles,p,{origin:[0,.4,-p.length/2],direction:[0,0,1]});
     this.fronts=[];const styles=Array.from({length:Math.max(1,(variant===0?2:3)+Math.round(p.crestCount)-3)},()=>variant===2?2:variant===1?1:0);

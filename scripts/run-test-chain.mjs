@@ -177,7 +177,8 @@ const COMMANDS = [
   "node prototypes/combat-lab/test/ledge.browser.mjs",
   "node prototypes/combat-lab/test/rodada-b.browser.mjs",
   "node prototypes/combat-lab/test/prejogo.browser.mjs",
-  "node prototypes/combat-lab/test/passives.browser.mjs"
+  "node prototypes/combat-lab/test/passives.browser.mjs",
+  "npm run test:sand-stone"
 ];
 
 for (const cmd of COMMANDS) {

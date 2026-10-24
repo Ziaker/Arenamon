@@ -146,6 +146,10 @@ Superfícies contínuas desenhadas por shader para a silhueta do elemento; **par
 
 O seletor, o interruptor por fase, os controles com sinal e as fases de surgimento e duração **ainda não existem em nenhum Move**: este documento define o padrão para quando forem implementados. O Seed Bomb é o primeiro candidato (prompt pronto fora deste documento).
 
+## 8.1 Adoção no Atelier Areia/Pedra (24/10/2026)
+
+O [Atelier Areia/Pedra](LAB_AREIA_PEDRA.md) (VOL. 07) já tem, nas 24 propostas: interruptor por fase, sliders por fase com campo numérico e explicação, seletor de disparo Nenhum / Argola / Tiro em cone (decisão: o impacto do disparo é uma camada à parte que soma ao seletor), controles com sinal, limites expandidos, aviso ao desligar tudo, salvamento automático, exportação datada, importação que ignora e conta, Sem flash e Movimento reduzido. Continuam **sem** isso os Moves elementais do ateliê Quarks (Water Pulse, Fire Spin, Air Slash, Seed Bomb) e o jogo. O estilo visual definitivo (§6) segue em aberto.
+
 ## 9. Ficha copiável para pedir um efeito novo
 
 ```

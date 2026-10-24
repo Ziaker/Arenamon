@@ -39,7 +39,7 @@ export const help:Record<string,string> = {
 const row=(key:string,label:string,unit:string,min:number,max:number,step:number,value:number):Control=>[key,label,unit,min,max,step,value];
 const extras:Control[]=[
  ...phases.map(p=>row(p+'On','Ligar esta fase','',0,1,1,1)),
- row('flightTime','Duração do trajeto','s',.05,2,.01,.75),row('holdTime','Permanência na chegada','s',0,3,.05,.15),row('finishTime','Finalização / retorno','s',.05,2,.01,.45),
+ row('flightTime','Duração do trajeto','s',0,2,.01,.75),row('holdTime','Permanência na chegada','s',0,3,.05,.15),row('finishTime','Finalização / retorno','s',.05,2,.01,.45),
  row('impactTime','Duração do contato','s',.05,2,.01,.8),row('impactSize','Escala do contato','×',.1,3,.05,1),row('impactParticles','Partículas do contato','×',0,2,.05,1),row('hitOn','Mostrar hit no alvo','',0,1,1,1),row('outcome','Resultado da prévia','',0,2,1,0),
  row('rotationX','Rotação X · inclinação','°',-180,180,1,0),row('rotationY','Rotação Y · direção','°',-180,180,1,0),row('rotationZ','Rotação Z · silhueta','°',-180,180,1,0),
  row('shotKind','Efeito de disparo','',0,2,1,0),row('shotRadius','Tamanho do disparo','m',.02,2,.01,.4),row('shotHorizontal','Deslocamento horizontal','m',-2,2,.05,0),row('shotVertical','Deslocamento vertical','m',-2,2,.05,0),row('shotSquash','Achatamento horizontal','×',.05,3,.05,1),row('shotThickness','Espessura da argola','m',.005,.15,.005,.025),
@@ -57,5 +57,5 @@ export const controls:Record<Category,Control[]> = Object.fromEntries(categories
  return [c,defs.filter(d=>!(d[0]==='flightTime'&&['bulletpunch','quickattack'].includes(c))).map(d=>expand(d))];
 })) as Record<Category,Control[]>;
 export const defaults: Values = Object.fromEntries(Object.entries(controls).map(([category, defs]) => [category, Object.fromEntries(defs.map(d => [d[0], d[6]]))])) as Values;
-defaults.sand.holdTime=0;defaults.sand.finishTime=.65;defaults.sand.impactTime=.55;defaults.riposte.holdTime=0;defaults.quickattack.holdTime=0;defaults.bulletpunch.holdTime=0;defaults.stone.warning=.55;defaults.stone.holdTime=1.85;defaults.stone.finishTime=.55;defaults.stone.flightTime=0;defaults.quickattack.chargeTime=.1;defaults.quickattack.travelTime=.16;defaults.quickattack.finishTime=.14;defaults.bulletpunch.chargeTime=.75;defaults.bulletpunch.travelTime=.2;
+defaults.sand.holdTime=0;defaults.sand.finishTime=.65;defaults.sand.impactTime=.55;defaults.riposte.holdTime=0;defaults.swift.holdTime=0;defaults.swift.startTime=.42;defaults.swift.flightTime=.95;defaults.psyshock.holdTime=0;defaults.psyshock.startTime=1.15;defaults.psyshock.flightTime=.85;defaults.quickattack.holdTime=0;defaults.bulletpunch.holdTime=0;defaults.stone.warning=.55;defaults.stone.holdTime=1.85;defaults.stone.finishTime=.55;defaults.stone.flightTime=0;defaults.quickattack.chargeTime=.1;defaults.quickattack.travelTime=.16;defaults.quickattack.finishTime=.14;defaults.bulletpunch.chargeTime=.75;defaults.bulletpunch.travelTime=.2;
 export function variantDefaults(c:Category,v:string){return {...defaults[c],...(c==='sand'&&v==='A'?{rotationZ:90}: {})};}
