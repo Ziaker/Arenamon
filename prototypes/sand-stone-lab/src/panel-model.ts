@@ -27,7 +27,7 @@ const STAR_ONLY = ['shotCrossArms', 'shotCrossAngle', 'shotCoreGlow', 'shotCross
 
 /** Só aparecem os sliders do efeito de disparo escolhido (0 Nenhum, 1 Argola, 2 Tiro em cone, 3 Burst anime, 4 Jato pressurizado, 5 Impacto estelar); os valores ficam guardados ao trocar. */
 export function shotKeyVisible(key: string, kind: number): boolean {
-  if (key === 'shotKind' || !key.startsWith('shot')) return true;
+  if (key === 'shotKind' || key.startsWith('shotRecoil') || !key.startsWith('shot')) return true;   // Recoil & Flash soma a qualquer opção, inclusive «Nenhum»
   if (kind === 0) return false;
   if (RING_ONLY.includes(key)) return kind === 1;
   if (CONE_ONLY.includes(key)) return kind === 2;

@@ -14,7 +14,7 @@ export class RiposteEffect {
  private p:Params;private variant:Variant;private particles:Particles;private attacker:T.Group;private incoming:T.Mesh;private petals:T.Mesh[]=[];private cuts:T.Mesh[]=[];private impacts:T.Mesh[]=[];private impact=new T.Group();private ribbons:Ribbon[]=[];private debris:Shards;private blocked=false;private hit=false;private floor:T.Mesh;private color:T.Color;private failed:T.Color;
  constructor(group:T.Group,particles:Particles,variant:Variant,p:Params){
   Object.assign(this,{p,variant,particles});this.contact=p.scenario===2?.62:p.contactTime;this.success=p.scenario===0;this.duration=RIPOSTE_TIMING.cast+.75*p.decay;
-  this.shot=new ShotEffect(group,particles,p,{origin:[0,.9,-1.9],direction:[0,0,1]});
+  this.shot=new ShotEffect(group,particles,p,{origin:[0,.9,-1.9],direction:[0,0,1],element:'fighting'});
   this.color=hue(p.primaryHue,.65);this.failed=new T.Color(0xf56c65);const white=new T.Color(0xf5f5dd),steel=new T.Color(0x96bed9);
   this.defender=fighter(group,0xa2b4c3);this.defender.position.z=-1.9;this.attacker=fighter(group,0x785959);this.attacker.position.z=1.9;this.attacker.rotation.y=Math.PI;
   group.add(this.guard,this.counter,this.impact);this.guard.position.set(0,.9,-1.45);this.counter.position.set(0,.9,-1.9);this.impact.position.set(0,.9,1.9);
@@ -42,8 +42,8 @@ export class RiposteEffect {
  /** Janelas das fases sequenciais por cenário: só o 0 (acerto na janela) tem contra-ataque em movimento; os cenários de falha têm a consequência; a cauda fecha na duração. */
  timeline(){
   const cast=RIPOSTE_TIMING.cast,c=this.contact;type Id='start'|'body'|'finish'|'impact';
-  const spans:{id:Id|'sustain';from:number;to:number;freeze?:number}[]=this.success?[{id:'start',from:0,to:c},{id:'body',from:c,to:cast}]:this.p.scenario===1?[{id:'start',from:0,to:cast}]:[{id:'start',from:0,to:c},{id:'finish',from:c,to:cast}];
-  if((this.p.holdTime??0)>0)spans.push({id:'sustain',from:cast,to:cast,freeze:this.p.holdTime});spans.push({id:'impact',from:cast,to:this.duration});return spans.filter(x=>x.to>x.from||(x.freeze??0)>0);
+  const spans:{id:Id|'hold';from:number;to:number;freeze?:number}[]=this.success?[{id:'start',from:0,to:c},{id:'body',from:c,to:cast}]:this.p.scenario===1?[{id:'start',from:0,to:cast}]:[{id:'start',from:0,to:c},{id:'finish',from:c,to:cast}];
+  if((this.p.holdTime??0)>0)spans.push({id:'hold',from:cast,to:cast,freeze:this.p.holdTime});spans.push({id:'impact',from:cast,to:this.duration});return spans.filter(x=>x.to>x.from||(x.freeze??0)>0);
  }
  update(t:number,_dt:number){
   this.shot.update(_dt);

@@ -24,7 +24,7 @@ export class PsyshockEffect {
   private group:T.Group;private particles:Particles;private variant:Variant;private p:Params;private count:number;
   constructor(group:T.Group,particles:Particles,variant:Variant,p:Params,previewCount=5){
     Object.assign(this,{group,particles,variant,p,count:previewCount});this.out=outcomeOf(p);this.holdT=p.holdTime??0;this.chargeT=p.startTime??1.15;this.flightT=Math.max(.01,(p.flightTime??.85)*this.out.reach);this.duration=this.chargeT+this.flightT+(.2+1.2*p.impactDecay);this.fin=Math.min(p.finishTime??.45,.2+1.2*p.impactDecay);
-    this.shot=new ShotEffect(group,particles,p,{origin:[0,1.4,-1.7],direction:[0,0,1]});this.fired=false;
+    this.shot=new ShotEffect(group,particles,p,{origin:[0,1.4,-1.7],direction:[0,0,1],element:'psychic'});this.fired=false;
     stageMarkers(group);
     const colors=[hue(p.primaryHue,.58),hue(p.secondaryHue,.64),hue(p.primaryHue+65,.65)];
     for(let i=0;i<previewCount;i++){
@@ -47,7 +47,7 @@ export class PsyshockEffect {
   }
   private fired=false;
   /** Janelas das fases sequenciais: a CARGA (única do atelier) é o surgimento; depois o voo, a finalização e a cauda de contato. */
-  timeline(){const a=this.chargeT+this.flightT,h=this.holdT,hit=this.out.hits;return [{id:'start',from:0,to:this.chargeT},{id:'body',from:this.chargeT,to:a},{id:'sustain',from:a,to:a,freeze:h},{id:'finish',from:a,to:hit?a+this.fin:this.duration},{id:'impact',from:a+this.fin,to:hit?this.duration:a+this.fin}].filter(x=>x.to>x.from||(x.freeze??0)>0) as {id:'start'|'body'|'sustain'|'finish'|'impact';from:number;to:number;freeze?:number}[];}
+  timeline(){const a=this.chargeT+this.flightT,h=this.holdT,hit=this.out.hits;return [{id:'start',from:0,to:this.chargeT},{id:'body',from:this.chargeT,to:a},{id:'hold',from:a,to:a,freeze:h},{id:'finish',from:a,to:hit?a+this.fin:this.duration},{id:'impact',from:a+this.fin,to:hit?this.duration:a+this.fin}].filter(x=>x.to>x.from||(x.freeze??0)>0) as {id:'start'|'body'|'hold'|'finish'|'impact';from:number;to:number;freeze?:number}[];}
   private path(t:number,i:number,out:T.Vector3){
     const u=smooth((t-this.chargeT)/this.flightT),a=i-(this.count-1)/2;
     out.set(a*.64*(1-u*.35),1.12+(i%3)*.29+Math.sin(t*3+i)*.06*(1-u),-1.7+4.1*u*this.out.reach);

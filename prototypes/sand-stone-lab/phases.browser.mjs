@@ -23,7 +23,7 @@ try {
   // ---------- Fases na interface ----------
   await pickCategory('sand');
   const order = await L(() => [...document.querySelectorAll('#sliders .phase-group')].map(g => g.dataset.phase));
-  check('Sand Wave mostra as seis fases na ordem do padrão', order.join() === 'start,launch,body,sustain,finish,impact', order.join());
+  check('Sand Wave mostra as seis fases na ordem do padrão', order.join() === 'start,launch,body,hold,finish,impact', order.join());
   const toggles = await L(() => [...document.querySelectorAll('#sliders [data-phase-toggle]')].map(c => c.checked));
   check('cada fase tem «Ligar esta fase», ligada por padrão', toggles.length === 6 && toggles.every(Boolean));
   const explained = await L(() => [...document.querySelectorAll('#sliders .phase-field')].every(f => f.querySelector('.help')?.textContent.length > 5));
@@ -58,7 +58,7 @@ try {
   // ---------- Seletor de disparo ----------
   const shot = async () => L(() => [...document.querySelectorAll('#sliders .phase-field[data-key^="shot"]')].filter(f => !f.hidden).map(f => f.dataset.key));
   const initial = await shot();
-  check('disparo começa em Nenhum: só o seletor aparece', initial.join() === 'shotKind', initial.join());
+  check('disparo começa em Nenhum: só o seletor e a camada Recoil & Flash aparecem', initial.join() === 'shotKind,shotRecoilFlash,shotRecoilHalo,shotRecoilKick,shotRecoilWaves,shotRecoilPlume', initial.join());
   await page.locator('#sliders [data-key="shotKind"] select').selectOption('1');
   const ring = await shot();
   check('Argola mostra os sliders da argola e esconde os do cone', ring.includes('shotThickness') && ring.includes('shotSquash') && !ring.includes('shotCount'), ring.join());
@@ -71,11 +71,11 @@ try {
   await page.locator('#sliders [data-key="shotKind"] select').selectOption('0');
 
   // ---------- Nada para mostrar ----------
-  for (const p of ['start', 'launch', 'body', 'sustain', 'finish', 'impact']) await page.locator(`#phase-${p}-on`).uncheck();
+  for (const p of ['start', 'launch', 'body', 'hold', 'finish', 'impact']) await page.locator(`#phase-${p}-on`).uncheck();
   await page.waitForTimeout(250);
   const warn = await L(() => ({hidden: document.getElementById('phase-warning').hidden, text: document.getElementById('phase-warning').textContent, playing: document.getElementById('pause').textContent}));
   check('com todas as fases visuais desligadas o painel avisa', !warn.hidden && /nada para mostrar/.test(warn.text), warn.text);
-  for (const p of ['start', 'launch', 'body', 'sustain', 'finish', 'impact']) await page.locator(`#phase-${p}-on`).check();
+  for (const p of ['start', 'launch', 'body', 'hold', 'finish', 'impact']) await page.locator(`#phase-${p}-on`).check();
   await page.waitForTimeout(250);
   check('religar tira o aviso', await L(() => document.getElementById('phase-warning').hidden));
 

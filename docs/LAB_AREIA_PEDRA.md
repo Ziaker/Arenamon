@@ -128,3 +128,6 @@ As nove propostas são visuais. A onda não contorna obstáculos neste laborató
 Verificações desta revisão: compilação do HTML; nove ciclos em CPU, partículas Quarks vivas com coordenadas e tamanhos finitos, cleanup, controles presentes e dependências embutidas. **Renderização GPU e qualidade visual em tela não foram verificadas nesta revisão:** a inspeção da aba local foi recusada pela política do navegador. Os testes de funcionamento da versão anterior não validam esta nova arte. A recomendação de escolha fica pendente da comparação visual; nenhuma proposta foi aprovada ou aplicada ao jogo.
 
 O build do Combat Lab foi refeito. `npm run verify` foi executado e voltou a parar em `skills:check`, pelas mesmas 11 cópias ausentes/divergentes em `.claude/skills`; as etapas posteriores não executaram.
+
+## Atualização 24/10 (v1.33.0)
+Camada Recoil & Flash (5 controles, nascem em 0), tema por elemento nos disparos e fase `hold` (antes `sustain`, com migração de presets antigos). Detalhes em [AUDITORIA_ATELIER_VFX_V2_2026-10-24.md](AUDITORIA_ATELIER_VFX_V2_2026-10-24.md).

@@ -15,6 +15,7 @@ function asObject(obj:unknown,label:string){if(!obj||typeof obj!=='object'||Arra
 function pick(obj:unknown,expected:string[],label:string,stats:ImportStats,required:string[]=expected){const o=asObject(obj,label);for(const key of keys(o))if(!expected.includes(key))stats.ignored++;for(const key of required)if(!(key in o))throw Error(`${label}: falta “${key}”`);return o;}
 function validateParams(category:Category,input:unknown,stats:ImportStats){
   const map=asObject(input,'Controles'),known=controls[category].map(d=>d[0]),out:Record<string,number>={};
+  if('sustainOn' in map&&!('holdOn' in map)){map.holdOn=map.sustainOn;delete map.sustainOn;}   // nome antigo da fase «Permanência»
   for(const key of keys(map))if(!known.includes(key))stats.ignored++;
   for(const [key,,unit,min,max] of controls[category]){
     if(!(key in map)){out[key]=defaults[category][key];stats.filled++;continue;}
@@ -71,4 +72,4 @@ export function restoreLocal(data:any){
  let presentation:Presentation|null=null;try{presentation=validatePresentation(data.presentation,newStats());}catch{presentation=null;}
  return {presets:migrateLocal(data),category,variant,model,presentation};
 }
-export function migrateLocal(data:any){const presets=initialPresets();for(const c of categories){for(const v of letters){const source=data?.presets?.[c]?.[v]??data?.values?.[c];if(!source)continue;for(const [key,,,min,max] of controls[c]){const n=source[key];if(typeof n==='number'&&Number.isFinite(n))presets[c][v][key]=Math.min(max,Math.max(min,n));}}}return presets;}
+export function migrateLocal(data:any){const presets=initialPresets();for(const c of categories){for(const v of letters){const source=data?.presets?.[c]?.[v]??data?.values?.[c];if(!source)continue;if(typeof source==='object'&&'sustainOn' in source&&!('holdOn' in source))source.holdOn=source.sustainOn;for(const [key,,,min,max] of controls[c]){const n=source[key];if(typeof n==='number'&&Number.isFinite(n))presets[c][v][key]=Math.min(max,Math.max(min,n));}}}return presets;}

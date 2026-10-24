@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {PhaseClock, enabledPhases} from './src/phases.ts';
 
 const spans = [{id: 'start', from: 0, to: .25}, {id: 'body', from: .25, to: 1}, {id: 'finish', from: 1, to: 1.65}];
-const on = {startOn: 1, launchOn: 1, bodyOn: 1, sustainOn: 1, finishOn: 1, impactOn: 1};
+const on = {startOn: 1, launchOn: 1, bodyOn: 1, holdOn: 1, finishOn: 1, impactOn: 1};
 
 // tudo ligado: o relógio é a identidade
 const all = new PhaseClock(spans, on);
@@ -27,17 +27,17 @@ assert.equal(noBody.map(.3), 1.05, 'depois do surgimento (.25) segue direto para
 assert.equal(noBody.phaseAt(.3), 'finish');
 
 // nada ligado
-const none = new PhaseClock(spans, {startOn: 0, launchOn: 0, bodyOn: 0, sustainOn: 0, finishOn: 0, impactOn: 0});
+const none = new PhaseClock(spans, {startOn: 0, launchOn: 0, bodyOn: 0, holdOn: 0, finishOn: 0, impactOn: 0});
 assert.equal(none.nothingToShow, true);
 assert.equal(none.duration, 0);
 assert.equal(none.map(1), 0);
 assert.equal(none.phaseAt(1), null);
 
 // a fase sem janela no efeito (ex.: disparo instantâneo) não conta como «algo para mostrar»
-const onlyLaunch = new PhaseClock(spans, {startOn: 0, launchOn: 1, bodyOn: 0, sustainOn: 0, finishOn: 0, impactOn: 0});
+const onlyLaunch = new PhaseClock(spans, {startOn: 0, launchOn: 1, bodyOn: 0, holdOn: 0, finishOn: 0, impactOn: 0});
 assert.equal(onlyLaunch.nothingToShow, true);
 
 // valor ausente = ligada (compatibilidade com presets antigos)
-assert.deepEqual(enabledPhases({}), ['start', 'launch', 'body', 'sustain', 'finish', 'impact']);
-assert.deepEqual(enabledPhases({startOn: 0, impactOn: 0}), ['launch', 'body', 'sustain', 'finish']);
+assert.deepEqual(enabledPhases({}), ['start', 'launch', 'body', 'hold', 'finish', 'impact']);
+assert.deepEqual(enabledPhases({startOn: 0, impactOn: 0}), ['launch', 'body', 'hold', 'finish']);
 console.log('PASS: relógio de fases');

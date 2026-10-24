@@ -35,7 +35,7 @@ export class RushEffect {
   private fired=false;private hit=false;private charge:number;private travel:number;private arrival:number;
   constructor(group:T.Group,particles:Particles,kind:Kind,variant:Variant,p:Params){
     Object.assign(this,{p,kind,variant,particles});this.out=outcomeOf(p);this.holdT=p.holdTime??0;this.charge=p.chargeTime;this.travel=Math.max(.01,p.travelTime*this.out.reach);this.arrival=this.charge+this.travel;this.hold=0;this.tail=.85*p.decay;this.fin=Math.min(p.finishTime??.45,this.tail);this.duration=this.arrival+this.hold+this.tail;
-    this.shot=new ShotEffect(group,particles,p,{origin:[0,.4,-2.4],direction:[0,0,1]});
+    this.shot=new ShotEffect(group,particles,p,{origin:[0,.4,-2.4],direction:[0,0,1],element:kind==='quickattack'?'wind':'steel'});
     const color=hue(p.primaryHue,.62),white=new T.Color(0xe8faff),gold=new T.Color(0xffc46d),quick=kind==='quickattack';
     const target=addMesh(group,new T.CapsuleGeometry(.23,.65,5,10),new T.MeshStandardMaterial({color:0x556371,roughness:.8}));target.position.set(0,.6,2.7);
     const marker=arc(group,.43,.012,new T.Color(0x69818c),.4);marker.rotation.x=-Math.PI/2;marker.position.set(0,.025,2.7);
@@ -62,7 +62,7 @@ export class RushEffect {
     out.set(lateral,quick?.68:1.05,z);if(t<this.charge&&this.p.startOn!==0)out.z-=Math.sin(t/this.charge*Math.PI)*.25;
   }
   /** Janelas das fases sequenciais no tempo do efeito (a permanência de tamanho zero não entra). Disparo e contato são camadas de evento. */
-  timeline(){const a=this.arrival,h=this.holdT,f=this.fin,hit=this.out.hits;return [{id:'start',from:0,to:this.charge},{id:'body',from:this.charge,to:a},{id:'sustain',from:a,to:a,freeze:h},{id:'finish',from:a,to:hit?a+f:this.duration},{id:'impact',from:a+f,to:hit?this.duration:a+f}].filter(x=>x.to>x.from||(x.freeze??0)>0) as {id:'start'|'body'|'sustain'|'finish'|'impact';from:number;to:number;freeze?:number}[];}
+  timeline(){const a=this.arrival,h=this.holdT,f=this.fin,hit=this.out.hits;return [{id:'start',from:0,to:this.charge},{id:'body',from:this.charge,to:a},{id:'hold',from:a,to:a,freeze:h},{id:'finish',from:a,to:hit?a+f:this.duration},{id:'impact',from:a+f,to:hit?this.duration:a+f}].filter(x=>x.to>x.from||(x.freeze??0)>0) as {id:'start'|'body'|'hold'|'finish'|'impact';from:number;to:number;freeze?:number}[];}
   update(t:number,_dt:number){
     this.shot.update(_dt);
     const {p,kind,variant}=this,quick=kind==='quickattack',post=t-this.arrival,u=saturate((t-this.charge)/this.travel),fade=1-smooth((post-this.hold)/((p.impactTime??.7)*p.decay));

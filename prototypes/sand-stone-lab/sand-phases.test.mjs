@@ -27,10 +27,10 @@ for (let v = 0; v < 3; v++) {
 for (let v = 0; v < 3; v++) {
   // janelas por fase, no tempo do efeito
   const h = make(v), tl = h.fx.timeline();
-  assert.deepEqual(tl.map(s => s.id), ['start', 'body', 'finish', 'impact'], 'sustain de duração zero não entra; a cauda de contato fecha a linha');
+  assert.deepEqual(tl.map(s => s.id), ['start', 'body', 'finish', 'impact'], 'hold de duração zero não entra; a cauda de contato fecha a linha');
   assert.deepEqual([tl[0].from, tl[0].to, tl[1].to], [0, .25, 1]);
   const withHold = make(v, {holdTime: .4}).fx.timeline();
-  assert.deepEqual(withHold.map(s => s.id), ['start', 'body', 'sustain', 'finish', 'impact']);
+  assert.deepEqual(withHold.map(s => s.id), ['start', 'body', 'hold', 'finish', 'impact']);
   assert.ok(Math.abs(withHold[2].to - withHold[2].from - .4) < 1e-9);
 
   // tempos dos sliders mandam no efeito

@@ -16,7 +16,7 @@ export class SwiftEffect {
   private cast=.42;private flight=.95;private fin=0;private holdT=0;private out=outcomeOf({});private shot:ShotEffect;
   constructor(group:T.Group,particles:Particles,variant:Variant,p:Params){
     Object.assign(this,{p,variant,particles});this.out=outcomeOf(p);this.holdT=p.holdTime??0;this.cast=p.startTime??.42;this.flight=Math.max(.01,(p.flightTime??.95)*this.out.reach);this.duration=this.cast+this.flight+(.73+.8*p.dissipation);this.fin=Math.min(p.finishTime??.45,.73+.8*p.dissipation);
-    this.shot=new ShotEffect(group,particles,p,{origin:[0,1.2,-2.45],direction:[0,0,1]});
+    this.shot=new ShotEffect(group,particles,p,{origin:[0,1.2,-2.45],direction:[0,0,1],element:'star'});
     const primary=hue(p.primaryHue),secondary=hue(p.secondaryHue,.7),white=new T.Color(0xfff6d8),star=starShape(p.pointRatio);
     stageMarkers(group);group.add(this.source,this.impact);this.source.position.set(0,1.2,-2.45);this.impact.position.set(0,1.3,2.55);
     this.source.name=['swift-solar-aperture','swift-comet-vortex','swift-stellar-map'][variant];
@@ -57,7 +57,7 @@ export class SwiftEffect {
     out.set((i-1)*(this.variant===2?.8:.52)*(1-s*.4)+Math.sin(u*Math.PI)*(i-1)*(this.variant===1?.65:.25)*this.p.dispersion,1.2+(i===1?(this.variant===2?.6:.22):0)+Math.sin(u*Math.PI)*(this.variant===1?.65:this.variant===2?.18:.3),-2.45+s*5*this.out.reach);
   }
   /** Janelas das fases sequenciais (Burst: o surgimento NÃO é carga). Disparo e contato são camadas de evento. */
-  timeline(){const a=this.cast+this.flight,h=this.holdT,hit=this.out.hits;return [{id:'start',from:0,to:this.cast},{id:'body',from:this.cast,to:a},{id:'sustain',from:a,to:a,freeze:h},{id:'finish',from:a,to:hit?a+this.fin:this.duration},{id:'impact',from:a+this.fin,to:hit?this.duration:a+this.fin}].filter(x=>x.to>x.from||(x.freeze??0)>0) as {id:'start'|'body'|'sustain'|'finish'|'impact';from:number;to:number;freeze?:number}[];}
+  timeline(){const a=this.cast+this.flight,h=this.holdT,hit=this.out.hits;return [{id:'start',from:0,to:this.cast},{id:'body',from:this.cast,to:a},{id:'hold',from:a,to:a,freeze:h},{id:'finish',from:a,to:hit?a+this.fin:this.duration},{id:'impact',from:a+this.fin,to:hit?this.duration:a+this.fin}].filter(x=>x.to>x.from||(x.freeze??0)>0) as {id:'start'|'body'|'hold'|'finish'|'impact';from:number;to:number;freeze?:number}[];}
   update(t:number,_dt:number){
     this.shot.update(_dt);
     const {p,variant}=this,post=t-(this.cast+this.flight),fade=1-smooth((t-(this.cast+this.flight+.18))/(.6*p.dissipation));

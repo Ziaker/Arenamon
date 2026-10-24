@@ -27,6 +27,8 @@ function measure(values, kind, followMoves = false) {
     if (blades) out.push(['blades', blades.position.toArray().map(n => +n.toFixed(4)), blades.scale.toArray().map(n => +n.toFixed(4)), blades.children.length, +(blades.children[0]?.rotation.z ?? 0).toFixed(4), +(blades.children[0]?.geometry.parameters.width ?? 0).toFixed(4), +(blades.children[0]?.material.color.r ?? 0).toFixed(4), blades.visible]);
     const cross = stage.getObjectByName('shot-cross');
     if (cross) out.push(['cross', cross.position.toArray().map(n => +n.toFixed(4)), cross.scale.toArray().map(n => +n.toFixed(4)), +cross.rotation.z.toFixed(4), +(cross.children[0]?.material.color.r ?? 0).toFixed(4), cross.visible]);
+    const recoil = stage.getObjectByName('shot-recoil');
+    if (recoil) out.push(['recoil', recoil.visible, recoil.children.map(c => [c.userData.id, ...c.position.toArray(), ...c.scale.toArray(), c.material.opacity, c.visible].map(n => typeof n === 'number' ? +n.toFixed(4) : n))]);
     for (const e of particles.systems) {
       const sys = e.system, dir = new T.Vector3(0, 0, 1).applyQuaternion(e.emitter.quaternion);
       out.push(['cone', e.emitter.position.toArray().map(n => +n.toFixed(4)), dir.toArray().map(n => +n.toFixed(4)), +sys.duration.toFixed(4), sys.emissionOverTime?.value ?? 0, particles.count, +(sys.startSize?.a ?? 0).toFixed(4), +(sys.startSpeed?.b ?? 0).toFixed(4), +(sys.startLife?.b ?? 0).toFixed(4), +(sys.emitterShape?.radius ?? 0).toFixed(4), +(sys.emitterShape?.angle ?? 0).toFixed(4)]);

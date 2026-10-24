@@ -12,7 +12,7 @@ export class SandEffect {
     Object.assign(this,{group,particles,variant,p});this.streams=[];this.started=false;this.hit=false;this.ended=false;
     this.out=outcomeOf(p);this.cast=p.startTime??.25;this.travel=Math.max(.01,(p.flightTime??.75)*this.out.reach);this.hold=p.holdTime??0;this.fadeTime=p.finishTime??.65;this.impactLife=p.impactTime??.55;
     this.duration=this.cast+this.travel+this.hold+this.fadeTime+(this.out.hits?1:0);
-    this.shot=new ShotEffect(group,particles,p,{origin:[0,.4,-p.length/2],direction:[0,0,1]});
+    this.shot=new ShotEffect(group,particles,p,{origin:[0,.4,-p.length/2],direction:[0,0,1],element:'earth'});
     this.fronts=[];const styles=Array.from({length:Math.max(1,(variant===0?2:3)+Math.round(p.crestCount)-3)},()=>variant===2?2:variant===1?1:0);
     styles.forEach((style,i)=>{
       const head=new T.Group();group.add(head);head.visible=false;
@@ -31,7 +31,7 @@ export class SandEffect {
     this.phase='Concentração';this.punch=0;
   }
   /** Janelas das fases sequenciais no tempo do efeito (a fase de duração de tamanho zero não entra). Disparo e contato são camadas de evento. */
-  timeline(){const c=this.cast,tr=this.travel,h=this.hold,f=this.fadeTime;return [{id:'start',from:0,to:c},{id:'body',from:c,to:c+tr},{id:'sustain',from:c+tr,to:c+tr+h},{id:'finish',from:c+tr+h,to:c+tr+h+f},{id:'impact',from:c+tr+h+f,to:this.duration}].filter(x=>x.to>x.from);}
+  timeline(){const c=this.cast,tr=this.travel,h=this.hold,f=this.fadeTime;return [{id:'start',from:0,to:c},{id:'body',from:c,to:c+tr},{id:'hold',from:c+tr,to:c+tr+h},{id:'finish',from:c+tr+h,to:c+tr+h+f},{id:'impact',from:c+tr+h+f,to:this.duration}].filter(x=>x.to>x.from);}
   launch(){
     const {p,particles,variant}=this,n=p.bodyOn===0?0:7;
     for(let i=0;i<n;i++){
@@ -73,7 +73,7 @@ export class StoneEffect {
     Object.assign(this,{group,particles,variant,p});this.started=false;this.endDust=false;this.phase='Pressão subterrânea';this.punch=0;
     this.impactLifeS=p.impactTime??.7;this.fl=p.flightTime??0;this.hold=p.holdTime??1.85;this.fin=p.finishTime??.55;this.t0=p.warning+this.fl;this.travelLen=4;this.fired=false;this.acc=0;
     this.duration=p.warning+this.fl+p.rise+this.hold+this.fin;
-    this.shot=new ShotEffect(group,particles,p,{origin:[0,.4,-this.travelLen],direction:[0,0,1]});
+    this.shot=new ShotEffect(group,particles,p,{origin:[0,.4,-this.travelLen],direction:[0,0,1],element:'earth'});
     this.trail=new T.Group();this.trail.visible=false;group.add(this.trail);
     const furrowColor=new T.Color(variant===2?0x91d4b1:0xf0a443).offsetHSL(p.energyHue/360,0,0);
     this.furrow=mesh(this.trail,new T.PlaneGeometry(1,1),new T.MeshBasicMaterial({color:furrowColor,transparent:true,opacity:.45,depthWrite:false,blending:T.AdditiveBlending,toneMapped:false}),[0,.025,0]);this.furrow.rotation.x=-Math.PI/2;
@@ -104,7 +104,7 @@ export class StoneEffect {
     }
   }
   /** Janelas das fases sequenciais no tempo do efeito. A erupção (contato) acontece no começo da permanência; o disparo sai ao fim do surgimento. */
-  timeline(){const w=this.p.warning,fl=this.fl,r=this.p.rise,h=this.hold;return [{id:'start',from:0,to:w},{id:'body',from:w,to:w+fl},{id:'sustain',from:w+fl,to:w+fl+r+h},{id:'finish',from:w+fl+r+h,to:this.duration}].filter(x=>x.to>x.from);}
+  timeline(){const w=this.p.warning,fl=this.fl,r=this.p.rise,h=this.hold;return [{id:'start',from:0,to:w},{id:'body',from:w,to:w+fl},{id:'hold',from:w+fl,to:w+fl+r+h},{id:'finish',from:w+fl+r+h,to:this.duration}].filter(x=>x.to>x.from);}
   /** Projétil subterrâneo: sulco de energia e poeira que anda da origem até o alvo durante a fase Corpo e trajeto. */
   updateTrail(t,dt){
     const {p,particles}=this,tf=t-p.warning,L=this.travelLen,on=this.fl>0&&p.bodyOn!==0&&tf>=0&&tf<this.fl;
@@ -144,7 +144,7 @@ export class StoneEffect {
     const {p,variant}=this,post=t-this.t0,u=clamp(post/p.rise),end=p.finishOn===0?0:clamp((t-(this.duration-this.fin))/this.fin);
     if(post>=0&&!this.started){if(p.impactOn!==0)this.erupt();else this.started=true;}
     if(t>=p.warning&&!this.fired){this.fired=true;this.shot.fire();}
-    this.rock.visible=p.sustainOn!==0&&post>=0&&!(p.finishOn===0&&t>=this.duration-this.fin);this.rock.position.y=-4.3*p.scale*(1-easeOut(u))-end*end*4.3*p.scale;
+    this.rock.visible=p.holdOn!==0&&post>=0&&!(p.finishOn===0&&t>=this.duration-this.fin);this.rock.position.y=-4.3*p.scale*(1-easeOut(u))-end*end*4.3*p.scale;
     this.rock.rotation.z=variant===1?Math.sin(post*22)*Math.exp(-Math.max(0,post)*9)*.035:0;
     for(const piece of this.rock.userData.pieces){if(piece.userData.floating){if(piece.userData.baseY===undefined)piece.userData.baseY=piece.position.y;piece.position.y=piece.userData.baseY+Math.sin(t*2+piece.id)*.06;}}
     this.cracks.userData.dark.opacity=(post<0?(p.startOn===0?0:clamp(t/p.warning)**2):1)*(1-end);
@@ -162,6 +162,6 @@ export class StoneEffect {
 export class RockEffect {
   constructor(group,variant,p,texture){this.rock=rockModel(variant,texture);this.rock.scale.setScalar(p.scale);group.add(this.rock);this.p=p;this.duration=12;this.phase='Inspeção do modelo';this.punch=0;this.rock.traverse(o=>{if(o.isMesh&&o.material.isMeshStandardMaterial)o.material.wireframe=!!p.wire;});}
   /** Inspeção de objeto, NÃO é um ataque: só existe a fase «Duração em cena» (o modelo à mostra). */
-  timeline(){return [{id:'sustain',from:0,to:this.duration}];}
-  update(t){this.rock.visible=this.p.sustainOn!==0;this.rock.rotation.y=this.p.rotation*Math.PI/180+t*this.p.turn*Math.PI/180;for(const m of this.rock.userData.pieces)if(m.userData.floating){if(m.userData.baseY===undefined)m.userData.baseY=m.position.y;m.position.y=m.userData.baseY+Math.sin(t*2+m.id)*.06;}}
+  timeline(){return [{id:'hold',from:0,to:this.duration}];}
+  update(t){this.rock.visible=this.p.holdOn!==0;this.rock.rotation.y=this.p.rotation*Math.PI/180+t*this.p.turn*Math.PI/180;for(const m of this.rock.userData.pieces)if(m.userData.floating){if(m.userData.baseY===undefined)m.userData.baseY=m.position.y;m.position.y=m.userData.baseY+Math.sin(t*2+m.id)*.06;}}
 }

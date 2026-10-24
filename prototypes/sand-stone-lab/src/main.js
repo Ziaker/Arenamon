@@ -59,7 +59,7 @@ const fixedStep=1/60;
 function construct(){
  particles.clear();disposeGroup(stage);delete stage.userData.visualSignature;state.time=0;accumulator=0;
  const p={...values()};if(state.reduce){p.density=(p.density??1)*.45;p.particleDensity=(p.particleDensity??1)*.45;p.sparks=(p.sparks??1)*.45;p.flash=(p.flash??1)*.45;p.impactIntensity=(p.impactIntensity??1)*.7;p.emissivity=(p.emissivity??1)*.45;p.shards=(p.shards??1)*.45;}
- if(state.noFlash){for(const k of ['flash','halo'])if(k in p)p[k]=0;for(const k of ['coreGlow','edgeGlow','veinGlow','emissivity','glow'])if(k in p)p[k]*=.4;if('pulseRate' in p)p.pulseRate=0;}
+ if(state.noFlash){for(const k of ['flash','halo','shotRecoilFlash'])if(k in p)p[k]=0;for(const k of ['coreGlow','edgeGlow','veinGlow','emissivity','glow'])if(k in p)p[k]*=.4;if('pulseRate' in p)p.pulseRate=0;}
  if(state.reduce){for(const k of ['turn','angularSpeed','twist','spiral','undulation'])if(k in p)p[k]*=.3;}
  effect=state.category==='riposte'?new RiposteEffect(stage,particles,state.variant,p):['bulletpunch','quickattack'].includes(state.category)?new RushEffect(stage,particles,state.category,state.variant,p):state.category==='sand'?new SandEffect(stage,particles,state.variant,p):state.category==='stone'?new StoneEffect(stage,particles,state.variant,p,texture,state.model==='match'?state.variant:Number(state.model)):state.category==='rock'?new RockEffect(stage,state.variant,{...p,wire:$('wire').checked},texture):state.category==='swift'?new SwiftEffect(stage,particles,state.variant,p):new PsyshockEffect(stage,particles,state.variant,p,state.previewCount);
  clock=effect.timeline?new PhaseClock(effect.timeline(),p):null;

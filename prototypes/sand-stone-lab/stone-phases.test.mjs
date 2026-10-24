@@ -23,9 +23,9 @@ for (let v = 0; v < 3; v++) {
   for (const g of golden[v].rows) {const {t, ...want} = g;run(h, t);assert.deepEqual(row(h.fx), want, `v${v} em t=${t}`);}
 }
 for (let v = 0; v < 3; v++) {
-  assert.deepEqual(make(v).fx.timeline().map(s => s.id), ['start', 'sustain', 'finish'], 'sem trajeto subterrâneo por padrão');
+  assert.deepEqual(make(v).fx.timeline().map(s => s.id), ['start', 'hold', 'finish'], 'sem trajeto subterrâneo por padrão');
   const fl = make(v, {flightTime: .8});
-  assert.deepEqual(fl.fx.timeline().map(s => s.id), ['start', 'body', 'sustain', 'finish']);
+  assert.deepEqual(fl.fx.timeline().map(s => s.id), ['start', 'body', 'hold', 'finish']);
   assert.ok(Math.abs(fl.fx.duration - (golden[v].duration + .8)) < 1e-9, 'o trajeto soma à duração');
 
   // (a) surgimento desligado: sem rachaduras nem anéis de sinalização
@@ -44,7 +44,7 @@ for (let v = 0; v < 3; v++) {
   assert.ok(off.fx.shocks.every(s => !s.visible));assert.equal(off.fx.punch, 0);assert.equal(off.fx.rock.visible, true, 'a rocha segue subindo');
 
   // (d) duração desligada: sem rocha
-  const sus = make(v, {sustainOn: 0});run(sus, 1.5);assert.equal(sus.fx.rock.visible, false);
+  const sus = make(v, {holdOn: 0});run(sus, 1.5);assert.equal(sus.fx.rock.visible, false);
 
   // (e) finalização desligada: ao fim da permanência a rocha some sem afundar
   const fin = make(v), nofin = make(v, {finishOn: 0});const tEnd = golden[v].duration - .55 + .2;run(fin, tEnd);run(nofin, tEnd);
@@ -56,5 +56,5 @@ for (let v = 0; v < 3; v++) {
 // padrão NOVO (24/10, pedido do responsável): o trajeto subterrâneo vem ligado
 assert.ok(defaults.stone.flightTime >= .5, 'o padrão tem trajeto subterrâneo');
 const real = new StoneEffect(stage, new Particles(scene, {textures: false}), 0, {...defaults.stone}, null, 0);
-assert.deepEqual(real.timeline().map(s => s.id), ['start', 'body', 'sustain', 'finish'], 'com o padrão há fase de trajeto');
+assert.deepEqual(real.timeline().map(s => s.id), ['start', 'body', 'hold', 'finish'], 'com o padrão há fase de trajeto');
 console.log('PASS: Emerging Stone com fases desligáveis');

@@ -10,7 +10,7 @@ try {
   page.on('pageerror', e => errors.push(e.message));page.on('console', m => {if (m.type() === 'error') errors.push(m.text());});
   await page.goto(pathToFileURL(root + 'dist/arenamon-areia-pedra.html').href);await page.waitForFunction(() => window.__labDiagnostics);
   const categories = ['sand', 'stone', 'swift', 'psyshock', 'bulletpunch', 'quickattack', 'riposte'];
-  const KEYS = ['shotRadius', 'shotHorizontal', 'shotVertical', 'shotImpulseH', 'shotImpulseV', 'shotTime', 'shotFollow', 'shotSquash', 'shotThickness', 'shotAngleH', 'shotAngleV', 'shotCount', 'shotLength', 'shotParticleSize', 'shotParticleLife'];
+  const KEYS = ['shotRadius', 'shotHorizontal', 'shotVertical', 'shotImpulseH', 'shotImpulseV', 'shotTime', 'shotSquash', 'shotThickness', 'shotAngleH', 'shotAngleV', 'shotCount', 'shotLength', 'shotParticleSize', 'shotParticleLife'];
   const RING = ['shotSquash', 'shotThickness'], CONE = ['shotAngleH', 'shotAngleV', 'shotCount', 'shotLength', 'shotParticleSize', 'shotParticleLife'];
   const dead = [];
   for (const c of categories) {
