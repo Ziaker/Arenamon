@@ -15,7 +15,7 @@ Moves registrados: **19**. Em ficha única (um arquivo): 17. Veja `docs/COMO_CRI
 | `guard-break` | `guardBreak` | 7 | 1 | 15 | 7 |
 | `bounce` | `bounce` | 16 | 8 | 12 | 20 |
 | `spikes` | `spikes` | 10 | 3 | 14 | 21 |
-| `sand-wave` | `sandWave` | 9 | 3 | 12 | 6 |
+| `sand-wave` | `sandWave` | 9 | 3 | 14 | 7 |
 | `bullet-punch` | `bulletPunch` | 9 | 2 | 17 | 6 |
 | `emerging-stone` | `emergingStone` | 8 | 2 | 13 | 9 |
 | `feint` | `feint` | 13 | 5 | 11 | 16 |
@@ -140,11 +140,11 @@ Testes executáveis: `node prototypes/combat-lab/test/ai-new-moves.test.mjs` · 
 - **sim (regras):** `prototypes/combat-lab/src/sim/ai-new-moves.js`, `prototypes/combat-lab/src/sim/move-hit-map.js`, `prototypes/combat-lab/src/sim/move-vfx-map.js`, `prototypes/combat-lab/src/sim/moves/new-moves.js`, `prototypes/combat-lab/src/sim/moves/params.generated.js`, `prototypes/combat-lab/src/sim/moves/sand-wave.js`, `prototypes/combat-lab/src/sim/moves/sand-wave.params.js`, `prototypes/combat-lab/src/sim/sand.js`, `prototypes/combat-lab/src/sim/vision.js`
 - **ui (painéis):** `prototypes/combat-lab/src/ui/menu-styles-model.js`, `prototypes/combat-lab/src/ui/moves-panel.js`
 - **view (desenho):** `prototypes/combat-lab/src/view/view.js`
-- **src (outros):** `prototypes/combat-lab/src/nav/nav-assist.js`
-- **testes:** `prototypes/combat-lab/test/ai-new-moves-eval.mjs`, `prototypes/combat-lab/test/ai-new-moves.test.mjs`, `prototypes/combat-lab/test/atelier-game.browser.mjs`, `prototypes/combat-lab/test/bugs-cacada.test.mjs`, `prototypes/combat-lab/test/env-integration.test.mjs`, `prototypes/combat-lab/test/move-data.test.mjs`, `prototypes/combat-lab/test/moves-air.test.mjs`, `prototypes/combat-lab/test/moves-new.browser.mjs`, `prototypes/combat-lab/test/moves-revisao.test.mjs`, `prototypes/combat-lab/test/moves-rodada-23-10.test.mjs`, `prototypes/combat-lab/test/moves-sand-wave.test.mjs`, `prototypes/combat-lab/test/prejogo.test.mjs`
-- **documentos:** `docs/CODIGO_SEM_USO_KNIP.md`, `docs/LAB_AREIA_PEDRA.md`, `docs/MATRIZ_MOVES_2026-10-23.md`, `docs/ia/NEW_MOVES_IA_MEDICAO.md`, `docs/moves-nao-iniciados/README.md`, `docs/moves-nao-iniciados/fichas/sand-wave.md`
+- **src (outros):** `prototypes/combat-lab/src/editor/editable-moves.js`, `prototypes/combat-lab/src/nav/nav-assist.js`
+- **testes:** `prototypes/combat-lab/test/ai-new-moves-eval.mjs`, `prototypes/combat-lab/test/ai-new-moves.test.mjs`, `prototypes/combat-lab/test/atelier-game.browser.mjs`, `prototypes/combat-lab/test/bugs-cacada.test.mjs`, `prototypes/combat-lab/test/env-integration.test.mjs`, `prototypes/combat-lab/test/move-data.test.mjs`, `prototypes/combat-lab/test/move-editor.browser.mjs`, `prototypes/combat-lab/test/move-editor.test.mjs`, `prototypes/combat-lab/test/moves-air.test.mjs`, `prototypes/combat-lab/test/moves-new.browser.mjs`, `prototypes/combat-lab/test/moves-revisao.test.mjs`, `prototypes/combat-lab/test/moves-rodada-23-10.test.mjs`, `prototypes/combat-lab/test/moves-sand-wave.test.mjs`, `prototypes/combat-lab/test/prejogo.test.mjs`
+- **documentos:** `docs/CODIGO_SEM_USO_KNIP.md`, `docs/LAB_AREIA_PEDRA.md`, `docs/MATRIZ_MOVES_2026-10-23.md`, `docs/PLANO_EDITOR_DE_MOVES.md`, `docs/ia/NEW_MOVES_IA_MEDICAO.md`, `docs/moves-nao-iniciados/README.md`, `docs/moves-nao-iniciados/fichas/sand-wave.md`
 
-Testes executáveis: `node prototypes/combat-lab/test/ai-new-moves.test.mjs` · `node prototypes/combat-lab/test/bugs-cacada.test.mjs` · `node prototypes/combat-lab/test/env-integration.test.mjs` · `node prototypes/combat-lab/test/move-data.test.mjs` · `node prototypes/combat-lab/test/moves-air.test.mjs` · `node prototypes/combat-lab/test/moves-revisao.test.mjs` · `node prototypes/combat-lab/test/moves-rodada-23-10.test.mjs` · `node prototypes/combat-lab/test/moves-sand-wave.test.mjs` · `node prototypes/combat-lab/test/prejogo.test.mjs`
+Testes executáveis: `node prototypes/combat-lab/test/ai-new-moves.test.mjs` · `node prototypes/combat-lab/test/bugs-cacada.test.mjs` · `node prototypes/combat-lab/test/env-integration.test.mjs` · `node prototypes/combat-lab/test/move-data.test.mjs` · `node prototypes/combat-lab/test/move-editor.test.mjs` · `node prototypes/combat-lab/test/moves-air.test.mjs` · `node prototypes/combat-lab/test/moves-revisao.test.mjs` · `node prototypes/combat-lab/test/moves-rodada-23-10.test.mjs` · `node prototypes/combat-lab/test/moves-sand-wave.test.mjs` · `node prototypes/combat-lab/test/prejogo.test.mjs`
 
 ### `bullet-punch` · grupo `bulletPunch`
 
