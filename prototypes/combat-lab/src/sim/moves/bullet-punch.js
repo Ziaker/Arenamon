@@ -13,6 +13,8 @@ import {getGroundHeight} from '../physics.js';
 import {effectiveArenaRadius} from '../map.js';
 import {solidsOf, insideSolid} from '../vision.js';
 import {angleOf, sub} from '../math.js';
+import {defineFicha} from './params-registry.js';
+import {params} from './bullet-punch.params.js';
 
 export const bulletPunchDef = Object.freeze({
   id: 'bullet-punch', name: 'Bullet Punch', air: 'descend', group: 'bulletPunch', needsTarget: 'reach', moveCast: true, fromDodge: true, tackle: 'bullet-punch', aim: 'target', antiAir: true,
@@ -120,3 +122,9 @@ export function bulletPunchReturn(/** @type {any} */ game, /** @type {any} */ f,
   const strike = startTackleAt(f, def, P, angleOf(sub(tgt.position, f.position)), game.fighters);
   if (lift > 1e-6) {f.vaultHeight = lift;strike.liftStart = lift;strike.liftTime = C.actions.tackle.duration;}
 }
+
+/** FICHA do Move (ver docs/COMO_CRIAR_UM_MOVE.md): `params` gera o padrão em C.world.bulletPunch e os sliders da aba Moves; `def` e os manipuladores são registrados sozinhos. */
+export const ficha = defineFicha({
+  def: bulletPunchDef, tackle: ['bullet-punch', bulletPunchSetup], effects: [['bullet-punch-vanish', bulletPunchVanish], ['bullet-punch-return', bulletPunchReturn]],
+  params,
+});

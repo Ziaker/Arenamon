@@ -2,7 +2,7 @@
 
 > **GERADO** por `npm run indice` (`prototypes/combat-lab/gen-indice.mjs`) a partir do código real. Não edite à mão. Serve para um agente (ou pessoa) saber, antes de mexer em um Move, **quais arquivos, testes e documentos** o citam. O índice só encontra citações textuais (id, grupo de `C.world` ou nome de função); leia o código atual antes de editar.
 
-Moves registrados: **19**. Em ficha única (um arquivo): 11. Veja `docs/COMO_CRIAR_UM_MOVE.md`.
+Moves registrados: **19**. Em ficha única (um arquivo): 12. Veja `docs/COMO_CRIAR_UM_MOVE.md`.
 
 | Move | Grupo em `C.world` | Arquivos de regra (sim) | Painéis/visão | Testes | Documentos |
 |---|---|---|---|---|---|
@@ -11,12 +11,12 @@ Moves registrados: **19**. Em ficha única (um arquivo): 11. Veja `docs/COMO_CRI
 | `harden` | `harden` | 10 | 5 | 17 | 21 |
 | `second-wind` | `secondWind` | 6 | 5 | 8 | 6 |
 | `swift` | `swift` | 8 | 4 | 22 | 23 |
-| `lunge` | `lunge` | 12 | 3 | 12 | 17 |
+| `lunge` | `lunge` | 13 | 3 | 12 | 17 |
 | `guard-break` | `guardBreak` | 6 | 2 | 15 | 6 |
 | `bounce` | `bounce` | 14 | 9 | 12 | 19 |
 | `spikes` | `spikes` | 9 | 4 | 14 | 19 |
 | `sand-wave` | `sandWave` | 8 | 4 | 10 | 4 |
-| `bullet-punch` | `bulletPunch` | 7 | 3 | 17 | 4 |
+| `bullet-punch` | `bulletPunch` | 8 | 3 | 17 | 4 |
 | `emerging-stone` | `emergingStone` | 6 | 3 | 12 | 6 |
 | `feint` | `feint` | 10 | 6 | 10 | 14 |
 | `riposte` | `riposte` | 14 | 6 | 17 | 22 |
@@ -91,7 +91,7 @@ Testes executáveis: `node prototypes/combat-lab/test/ai-new-moves.test.mjs` · 
 
 **Ficha:** Burst · Melee · PL1 · proposto ✓ · aprovado ✗ · implementado ✓ · homologado ✗
 
-- **sim (regras):** `prototypes/combat-lab/src/sim/ai-new-moves.js`, `prototypes/combat-lab/src/sim/combat.js`, `prototypes/combat-lab/src/sim/controller.js`, `prototypes/combat-lab/src/sim/move-hit-map.js`, `prototypes/combat-lab/src/sim/moves/bullet-punch.js`, `prototypes/combat-lab/src/sim/moves/feint.js`, `prototypes/combat-lab/src/sim/moves/feint.params.js`, `prototypes/combat-lab/src/sim/moves/lunge.js`, `prototypes/combat-lab/src/sim/moves/lunge.params.js`, `prototypes/combat-lab/src/sim/moves/new-moves.js`, `prototypes/combat-lab/src/sim/moves/params.generated.js`, `prototypes/combat-lab/src/sim/moves/quick-attack.js`
+- **sim (regras):** `prototypes/combat-lab/src/sim/ai-new-moves.js`, `prototypes/combat-lab/src/sim/combat.js`, `prototypes/combat-lab/src/sim/controller.js`, `prototypes/combat-lab/src/sim/move-hit-map.js`, `prototypes/combat-lab/src/sim/moves/bullet-punch.js`, `prototypes/combat-lab/src/sim/moves/bullet-punch.params.js`, `prototypes/combat-lab/src/sim/moves/feint.js`, `prototypes/combat-lab/src/sim/moves/feint.params.js`, `prototypes/combat-lab/src/sim/moves/lunge.js`, `prototypes/combat-lab/src/sim/moves/lunge.params.js`, `prototypes/combat-lab/src/sim/moves/new-moves.js`, `prototypes/combat-lab/src/sim/moves/params.generated.js`, `prototypes/combat-lab/src/sim/moves/quick-attack.js`
 - **ui (painéis):** `prototypes/combat-lab/src/ui/menu-styles-model.js`, `prototypes/combat-lab/src/ui/moves-panel.js`, `prototypes/combat-lab/src/ui/moves-vfx-panel.js`
 - **src (outros):** `prototypes/combat-lab/src/nav/nav-assist.js`
 - **testes:** `prototypes/combat-lab/test/ai-new-moves-eval.mjs`, `prototypes/combat-lab/test/ai-new-moves.test.mjs`, `prototypes/combat-lab/test/bugs-cacada.test.mjs`, `prototypes/combat-lab/test/env-integration.test.mjs`, `prototypes/combat-lab/test/ledge.test.mjs`, `prototypes/combat-lab/test/moves-air.test.mjs`, `prototypes/combat-lab/test/moves-feint.test.mjs`, `prototypes/combat-lab/test/moves-lunge.test.mjs`, `prototypes/combat-lab/test/moves-new.browser.mjs`, `prototypes/combat-lab/test/moves-revisao.test.mjs`, `prototypes/combat-lab/test/moves-rodada-23-10.test.mjs`, `prototypes/combat-lab/test/prejogo.test.mjs`
@@ -148,7 +148,7 @@ Testes executáveis: `node prototypes/combat-lab/test/ai-new-moves.test.mjs` · 
 
 ### `bullet-punch` · grupo `bulletPunch`
 
-- **sim (regras):** `prototypes/combat-lab/src/sim/ai-new-moves.js`, `prototypes/combat-lab/src/sim/calibration-base.js`, `prototypes/combat-lab/src/sim/config.js`, `prototypes/combat-lab/src/sim/controller.js`, `prototypes/combat-lab/src/sim/move-hit-map.js`, `prototypes/combat-lab/src/sim/moves/bullet-punch.js`, `prototypes/combat-lab/src/sim/moves/new-moves.js`
+- **sim (regras):** `prototypes/combat-lab/src/sim/ai-new-moves.js`, `prototypes/combat-lab/src/sim/calibration-base.js`, `prototypes/combat-lab/src/sim/controller.js`, `prototypes/combat-lab/src/sim/move-hit-map.js`, `prototypes/combat-lab/src/sim/moves/bullet-punch.js`, `prototypes/combat-lab/src/sim/moves/bullet-punch.params.js`, `prototypes/combat-lab/src/sim/moves/new-moves.js`, `prototypes/combat-lab/src/sim/moves/params.generated.js`
 - **ui (painéis):** `prototypes/combat-lab/src/ui/menu-styles-model.js`, `prototypes/combat-lab/src/ui/moves-panel.js`, `prototypes/combat-lab/src/ui/moves-vfx-panel.js`
 - **testes:** `prototypes/combat-lab/test/ai-new-moves-eval.mjs`, `prototypes/combat-lab/test/ai-new-moves.test.mjs`, `prototypes/combat-lab/test/bugs-cacada.test.mjs`, `prototypes/combat-lab/test/calibration-base.test.mjs`, `prototypes/combat-lab/test/env-integration.test.mjs`, `prototypes/combat-lab/test/moves-air.test.mjs`, `prototypes/combat-lab/test/moves-anti-air-combo-stamina.test.mjs`, `prototypes/combat-lab/test/moves-bullet-punch.test.mjs`, `prototypes/combat-lab/test/moves-new.browser.mjs`, `prototypes/combat-lab/test/moves-revisao.test.mjs`, `prototypes/combat-lab/test/moves-rodada-23-10.test.mjs`, `prototypes/combat-lab/test/moves-softlock.test.mjs`, `prototypes/combat-lab/test/prejogo.test.mjs`, `prototypes/combat-lab/test/rodada-b.browser.mjs`, `prototypes/combat-lab/test/tuning-export.browser.mjs`, `prototypes/combat-lab/test/tuning-io.test.mjs`, `prototypes/combat-lab/test/ui-rodada-22-10.browser.mjs`
 - **documentos:** `docs/MATRIZ_MOVES_2026-10-23.md`, `docs/ia/NEW_MOVES_IA_MEDICAO.md`, `docs/moves-nao-iniciados/README.md`, `docs/moves-nao-iniciados/fichas/bullet-punch.md`
