@@ -217,9 +217,6 @@ function buildDefaults() {
     // Bounce: Charge Trick+Melee. Carga máx. 1,2 s (PL1 <50%, PL2 <100%, PL3 em 100%); alturas 1,5/2,5/3,5 m (experimentais); alcance horizontal máx. 6 m; 12 HP nominais
     // (× Ataque ÷ referência), 3 m/s H e 6 m/s V; recuperação 0,25 s após o pouso. gravity/contactRadius/landRadius não vêm do documento (MV-P27/MV-P28): provisórios.
     bounce: {cost: 1.2, cooldown: 12, maxCharge: 1.2, minCharge: 0, maxDistance: 6, heightPl1: 1.5, heightPl2: 2.5, heightPl3: 3.5, gravity: 17.5, damage: 12, knockbackH: 3, knockbackV: 6, landRecovery: .25, contactRadius: .3, landRadius: 1.4},
-    // Feint: Burst Trick sem PL. Cancela Tackle/Lunge/Guard Break (e a carga de Tackle) só na antecipação (cancelWindow = 4 quadros a 30 fps = 0,133 s) e vira um recuo curto
-    // (retreat m, para trás ou para o lado do input) com i-frames de 2 a 10 passos a 120 Hz. Fora da janela o Move é gasto sem efeito e o golpe segue (punível; MV-P21).
-    feint: {cost: .3, cooldown: 3, cast: .22, cancelAfter: .0333, cancelWindow: .1333, retreat: .25, invulnStart: .0167, invulnEnd: .0833},
     // Moves elementais (protótipo de 23/10/2026; números do prompt de 22/10, NÃO homologados; padrões das decisões provisórias MV-P36…MV-P41).
     // Water Pulse: Charge Projectile. Carga máx. 1,5 s (180 passos; PL2 em 90, PL3 em 180), custo e recarga na ativação, 6/9/12 HP nominais, empurrão H 2/3/4 (V 0 ⇒ o motor empurra 1,5 × H m),
     // projétil de raio 0,38 m a 14 m/s e alcance 12 m (lifetime = alcance ÷ velocidade), recuperação de 0,30 s a partir da soltura. originHeight/spawnForward: nascimento (não definidos no prompt).
