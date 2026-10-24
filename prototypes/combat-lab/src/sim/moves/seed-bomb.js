@@ -9,6 +9,8 @@ import {spawn} from '../world.js';
 import {direction, normalize, length, sub} from '../math.js';
 import {markerValidity} from '../aim-marker.js';
 import {emitterAltitude, spawnPoint, spawnBlocked} from './projectile-util.js';
+import {defineFicha} from './params-registry.js';
+import {params} from './seed-bomb.params.js';
 
 export const seedBombDef = Object.freeze({
   id: 'seed-bomb', name: 'Seed Bomb', air: 'cast', group: 'seedBomb', aimMode: 'marker', aim: 'facing',
@@ -50,3 +52,9 @@ export function seedBombEffect(/** @type {any} */ game, /** @type {any} */ f, /*
   if (!e) return {ok: false, reason: 'entityLimit'};
   fx.events?.push({result: 'moveEffect', move: 'seed-bomb', attacker: f.id, target: null, damage: 0, level: 1, entity: e.id, speed: shot.speed});
 }
+
+/** FICHA do Move (ver docs/COMO_CRIAR_UM_MOVE.md): `params` gera o padrão em C.world.seedBomb e os sliders da aba Moves; `def` e os manipuladores são registrados sozinhos. */
+export const ficha = defineFicha({
+  def: seedBombDef, effect: ['seed-bomb', seedBombEffect],
+  params,
+});

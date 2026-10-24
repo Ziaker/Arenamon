@@ -17,7 +17,6 @@ const STANDARD = [['reflect', 'Reflect', 0], ['psyshock', 'Psyshock', 1]];
 export const MOVE_INFO = {
   reflect: {group: 'Reflect', hint: 'Barreira refletora frontal. Segure para carregar, solte para criar.'},
   psyshock: {group: 'Psyshock', hint: 'Pedras psíquicas com homing. Segure para carregar, solte para disparar.'},
-  'seed-bomb': {group: 'Seed Bomb', hint: 'Normal · Projectile + Field. Segure para escolher o destino (até 32 m, setas movem o marcador), solte para confirmar: após 0,3 s uma semente voa em arco e explode ao tocar algo, num raio esférico de 1,8 m. O anel da prévia mostra o raio real da explosão. Protótipo: números não homologados.'},
 };
 const SKILL_NAMES = ['skill1', 'skill2', 'skill3', 'skill4'];
 const ACTION_NAMES = {forward: 'Mover ↑', back: 'Mover ↓', left: 'Mover ←', right: 'Mover →', tackle: 'Tackle (X)', dodge: 'Esquiva (C)', defend: 'Defesa (D)', lock: 'Travar alvo', pause: 'Pausar', restart: 'Reiniciar', debug: 'Depuração'};
@@ -83,33 +82,6 @@ const PARAMS = [
     ['psyshock', 'knockbackSpeedFactor', 'Empurrão acompanha a velocidade da pedra', 'Quanto o empurrão varia com a velocidade sorteada da pedra em relação à média: 0% = igual para todas; 100% = proporcional (provisório).', 0, 1.6, .05, pct, false],
     ['psyshock', 'counterStagger', 'Counter Stagger', 'Stagger quando uma pedra de PL superior atinge o corpo do derrotado (M21.5).', 0, 1, .01, sec, true],
     ['psyshock', 'radius', 'Raio de colisão da pedra', 'Igual em todas as pedras (o tamanho visual varia sem efeito na física, M30.2).', .05, .5, .01, m, false],
-  ]],
-  ['Seed Bomb', [
-    ['seedBomb', 'cost', 'Custo de stamina', 'Cobrado ao CONFIRMAR o marcador (Normal). Prompt: 1,0.', 0, 5, .05, num, false],
-    ['seedBomb', 'cooldown', 'Cooldown', 'Começa junto com o custo, na confirmação (prompt: 8 s).', 0, 60, .5, sec, false],
-    ['seedBomb', 'cast', 'Cast (até a semente sair)', 'Prompt: 0,3 s = 36 passos.', .05, 2, .01, sec, false],
-    ['seedBomb', 'recovery', 'Recovery', 'Prompt: 0,2 s = 24 passos (ação total 0,5 s).', 0, 1, .01, sec, false],
-    ['seedBomb', 'range', 'Alcance do marcador (3D)', 'Padrão atual: 32 m. O destino precisa de apoio sólido (não mira o ar).', 2, 64, .5, m, false],
-    ['seedBomb', 'flightTime', 'Tempo de voo (arco)', 'Fixo: quanto mais longe, mais rápida a semente (prompt: 0,65 s = 78 passos).', .2, 1.5, .01, sec, false],
-    ['seedBomb', 'gravity', 'Gravidade do arco', 'Não definida no prompt: 17,5 é a do salto e do Bounce. Com 28,5 ou 39,6 destinos altos passam da velocidade máxima.', 5, 60, .5, ms2, false],
-    ['seedBomb', 'maxSpeed', 'Velocidade inicial máxima', 'Destino que exigir mais FALHA (sem corrigir a trajetória em silêncio). Prompt: 20 m/s.', 5, 35, .5, ms, false],
-    ['seedBomb', 'seedRadius', 'Raio da semente', 'Colisor circular (prompt: 0,24 m). A semente só detona; não causa dano por contato.', .1, .6, .01, m, false],
-    ['seedBomb', 'lifetime', 'Vida máxima da semente', 'Sem contato até aqui, ela se dissolve SEM explodir (prompt: 1,25 s).', .5, 3, .05, sec, false],
-    ['seedBomb', 'explosionRadius', 'Raio da explosão (esfera 3D)', 'Volume ESFÉRICO de verdade (SB-P04 B, provisório): conta a altura do alvo. Prompt: 1,8 m. O anel da prévia usa este raio real.', .5, 4, .05, m, false],
-    ['seedBomb', 'damage', 'Dano da explosão (nominal)', 'UM evento por alvo; final = nominal × Ataque ÷ referência (MV-P13); na reflexão usa o Ataque de quem refletiu. Prompt: 10 HP.', 0, 40, .5, num, false],
-    ['seedBomb', 'knockbackH', 'Empurrão H', 'Radial a partir do centro. Com V > 0 vira um salto físico (prompt: 3).', 0, 12, .1, ms, false],
-    ['seedBomb', 'knockbackV', 'Empurrão V', 'ATENÇÃO: 1 m/s sob a gravidade de lançamento dá um salto de ≈1 cm (prompt: 1).', 0, 12, .1, ms, false],
-    ['seedBomb', 'occlusion', 'Paredes bloqueiam a explosão', 'Liga: sólidos de chão entre o centro e o alvo impedem o dano (plano XZ).', 0, 1, 1, yesno, false],
-    ['seedBomb', 'blastLife', 'Duração visual da explosão', 'Só aparência: o dano é um único pulso no instante do contato.', .1, 1.5, .05, sec, false],
-    ['seedBomb', 'originHeight', 'Altura de lançamento (mão)', 'Acima da altitude do atirador.', .2, 1.3, .05, m, false],
-    ['seedBomb', 'spawnForward', 'Distância de nascimento', 'À frente do corpo; sólido ali = o Move falha.', .3, 1.5, .05, m, false],
-    ['seedBomb', 'markerSpeed', 'Velocidade do marcador', 'Quão rápido a direção move o marcador com o botão segurado (8 m/s, MV-P29).', 1, 30, .5, ms, false],
-    ['seedBomb', 'markerAccel', 'Aceleração do marcador', '0 = instantâneo; o padrão desliza para o novo lado em vez de aparecer lá.', 0, 100, 1, ms2, false],
-    ['seedBomb', 'startDistance', 'Distância inicial do marcador', 'Onde o marcador aparece ao apertar, à frente do corpo (3 m).', .5, 10, .25, m, false],
-    ['seedBomb', 'minRange', 'Alcance mínimo do marcador', '0 = pode colocar o destino colado em você.', 0, 10, .25, m, false],
-    ['seedBomb', 'maxRise', 'Altura máxima de apoio acima dos pés', 'Até que altura de plataforma o marcador alcança (2 m).', 0, 6, .25, m, false],
-    ['seedBomb', 'allowOccupied', 'Permitir destino sobre um lutador', 'Desligado: marcador inválido sobre personagens.', 0, 1, 1, yesno, false],
-    ['seedBomb', 'counterStagger', 'Counter Stagger', 'Stagger do derrotado quando este projétil vence um Counter (M21.5: 0,2 s).', 0, 1, .01, sec, true],
   ]],
   ['IA com Moves (decisões do adversário)', [
     ['ai', 'newMovesRate', 'Uso dos Moves novos pela IA', 'Multiplica a chance de a IA usar Harden, Second Wind, Swift, Lunge, Quick Attack, Guard Break, Feint, Riposte, Bounce, Spikes, Sand Wave, Bullet Punch e Emerging Stone quando equipados nela (0 = nunca usa; só vale para o que estiver equipado).', 0, 3, .1, x, false],
