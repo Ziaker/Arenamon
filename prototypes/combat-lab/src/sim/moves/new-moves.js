@@ -3,7 +3,6 @@
 // (regra D2 do teste de arquitetura: só ele chama registerMove) e só o bootstrap do laboratório chama registerStandardMoves. Registrar não equipa: os slots
 // continuam vazios e, sem equipar, nada muda no jogo (paridade testada). Plano e ordem: docs/moves-nao-iniciados/PROMPT_IMPLEMENTACAO_MOVES_NOVOS.md.
 import {FICHAS} from './fichas.generated.js';
-import {lungeDef, lungeSetup} from './lunge.js';
 import {feintDef} from './feint.js';
 import {emergingStoneDef, emergingStoneEffect} from './emerging-stone.js';
 import {stoneStep} from '../stone.js';
@@ -20,7 +19,6 @@ import {seedBombDef, seedBombEffect} from './seed-bomb.js';
 
 /** @type {import('./params-registry.js').Ficha[]} */
 export const NEW_MOVES = [
-  {def: lungeDef, tackle: ['lunge', lungeSetup]},
   {def: bounceDef, effect: ['bounce', bounceEffect], steps: [['bounce', bounceStep]]},
   {def: spikesDef, effect: ['spikes', spikesEffect]},
   {def: sandWaveDef, effect: ['sand-wave', sandWaveEffect]},

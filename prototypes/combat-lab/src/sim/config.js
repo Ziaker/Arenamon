@@ -198,8 +198,6 @@ function buildDefaults() {
     // Harden: +30% Defesa (⇒ dano × 1/1,3, mesma convenção da passiva de Defesa, MV-P01) e nega o knockback ofensivo por 5 s.
     // Swift: 3 estrelas, 15 m/s, 3 HP nominais cada (× Ataque ÷ referência, MV-P13), homing 0,25 s a 90°/s, alcance 12 m, knockback 0,3 m/s por acerto com teto 0,9 por alvo/execução, vertical 0.
     // cast = tempo da ação (recuperação do Burst; provisório MV-P14). Sem lock-on: leque frontal de fanAngle graus.
-    // Lunge: Tackle de curta distância (3,5 m, total 0,6 s), 8 HP nominais, 4 m/s H sem V, i-frames 0,133 s, cancelável após 0,45 s; janela ativa 0,19–0,26 s só vale com "janelas de combate" ligadas.
-    lunge: {cost: .75, cooldown: 6, cast: .6, range: 3.5, damage: 8, knockbackH: 4, knockbackV: 0, invulnerableSeconds: .1333, chainAfter: .45, hitStart: .19, hitEnd: .26},
     // Riposte: Normal Status+Melee PL1. Postura de 0,65 s; entre 0,13 e 0,30 s qualquer acerto elegível (menos Guard Break) é anulado e dispara um contra-golpe PL1 de 6 HP
     // (× Ataque ÷ referência), 3 m/s H, na hora do gatilho (MV-P24); strikeRange = alcance do golpe (não definido no documento: MV-P25). Janela fechada sem acerto = recuperação exposta.
     riposte: {cost: .8, cooldown: 8, cast: .65, windowStart: .13, windowEnd: .30, damage: 14, knockbackH: 9, knockbackV: 2.5, strikeRange: 1.6, hitstopMult: 2.5, shakeMult: 2.4, fxOn: 1, fxIntensity: 1, fxSize: 1, blastOn: 1, blastSize: 1.5},

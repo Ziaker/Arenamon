@@ -1,7 +1,7 @@
 // @ts-check
 // Regressões achadas na revisão independente de 23/10/2026: a configuração viva não pode ser alterada por A/B, linha do tempo e matriz;
 // grupo de ficha não pode sobrescrever regras compartilhadas; gerador com apóstrofo; captura sem caminhos locais e com semente validada;
-// comando do Markdown sem caracteres perigosos; ordem dos Moves nos menus; paridade dos 4 Moves migrados com os valores de ANTES da ficha.
+// comando do Markdown sem caracteres perigosos; ordem dos Moves nos menus; paridade dos Moves migrados com os valores de ANTES da ficha.
 import {execFileSync} from 'node:child_process';
 import {existsSync, readFileSync, rmSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
@@ -75,12 +75,13 @@ test('a ordem dos Moves novos nos menus é a de antes das fichas (migrados mant�
   const antes = ['harden', 'second-wind', 'swift', 'lunge', 'guard-break', 'bounce', 'spikes', 'sand-wave', 'bullet-punch', 'emerging-stone', 'feint', 'riposte', 'quick-attack', 'water-pulse', 'fire-spin', 'air-slash', 'seed-bomb'];
   assert.deepEqual(NEW_MOVE_IDS.slice(0, antes.length), antes);
 });
-test('PARIDADE: os 4 Moves migrados mantêm os valores de fábrica que tinham em config.js ANTES da ficha (commit 5b4343a)', () => {
+test('PARIDADE: os Moves migrados mantêm os valores de fábrica que tinham em config.js ANTES da ficha (commit 5b4343a)', () => {
   const antes = {
     harden: {cost: .8, cooldown: 10, cast: .35, duration: 5, defensePct: .30, negateKnockback: 1},
     secondWind: {cost: .8, cooldown: 12, cast: .35, duration: 5, regenPctPerSecond: .40, mobilityCostPct: .25},
     guardBreak: {cost: 1, cooldown: 10, maxCharge: 1, minCharge: 0, cast: .7, range: 2.6, damage: 6, knockbackH: 2, knockbackV: 0, stun: .5, invulnerableSeconds: 0, chainAfter: .47, hitStart: .333, hitEnd: .533},
     swift: {cost: .8, cooldown: 7, cast: .25, count: 3, speed: 15, damage: 3, homingSeconds: .25, homingRate: 90, range: 12, knockback: .3, knockbackCap: .9, radius: .2, fanAngle: 20, spawnForward: .9, spawnSpacing: .35, counterStagger: .2},
+    lunge: {cost: 0.75, cooldown: 6, cast: 0.6, range: 3.5, damage: 8, knockbackH: 4, knockbackV: 0, invulnerableSeconds: 0.1333, chainAfter: 0.45, hitStart: 0.19, hitEnd: 0.26},
   };
   const hoje = factoryDefaults().world;
   for (const [g, vals] of Object.entries(antes)) for (const [k, v] of Object.entries(vals)) assert.equal(hoje[g][k], v, `${g}.${k}`);
