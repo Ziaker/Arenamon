@@ -4,7 +4,7 @@
 import {C, keyFor, keyFor2, defaults, resetConfig as resetCfg, useFactoryDefaults} from './sim/config.js';
 if (typeof location !== 'undefined' && new URLSearchParams(location.search).has('fabrica')) {useFactoryDefaults(true);resetCfg(defaults());}   // ?fabrica=1: valores de fábrica, sem a base de calibração v8
 import {Game, FixedClock} from './sim/game.js';
-import {UI_AI_MODES} from './sim/ai.js';
+
 
 import {Recorder} from './sim/telemetry.js';
 import {ReplayBuffer} from './sim/replay.js';
@@ -67,6 +67,7 @@ import {wireRecording} from './app/wire-recording.js';
 import {wireExport, wireOverlays, wireTuningPersistence} from './app/wire-settings.js';
 import {wireCharacters} from './app/wire-characters.js';
 import {wireControls, wireDrawers, wireKeyboard, wireToolbar} from './app/wire-controls.js';
+import {startApp, wireExtras} from './app/wire-startup.js';
 
 // Moves padrão (D2): registrados aqui, no bootstrap do laboratório, nunca no núcleo da simulação. Registrar não equipa nenhum slot.
 registerStandardMoves();
@@ -119,7 +120,7 @@ wireCharacters();
 wireControls();
 
 const toolsPop = $('tools-pop'), toolsBtn = $('tools-toggle');
-function closeTools() {if (toolsPop.hidden) return;toolsPop.hidden = true;toolsBtn.setAttribute('aria-expanded', 'false');}
+export function closeTools() {if (toolsPop.hidden) return;toolsPop.hidden = true;toolsBtn.setAttribute('aria-expanded', 'false');}
 toolsBtn.onclick = e => {e.stopPropagation();if (!toolsPop.hidden) {closeTools();return;}toolsPop.hidden = false;toolsBtn.setAttribute('aria-expanded', 'true');const r = toolsBtn.getBoundingClientRect(), w = toolsPop.getBoundingClientRect().width;toolsPop.style.top = (r.bottom + 6) + 'px';toolsPop.style.left = Math.max(8, Math.min(innerWidth - w - 8, r.right - w)) + 'px';};
 document.addEventListener('pointerdown', e => {if (!toolsPop.hidden && !toolsPop.contains(e.target) && e.target !== toolsBtn) closeTools();});
 window.addEventListener('keydown', e => {if (e.key === 'Escape' && !toolsPop.hidden) {e.preventDefault();e.stopImmediatePropagation();closeTools();}}, true);
@@ -178,16 +179,10 @@ export const perfPanel = createPerfPanel({$, view, game, tuning, ui, download, g
   }});
 export const visualPanel = createVisualPanel({tuning, view, game, $, hud: hudProposals, download});
 export const cinePanel = createCinematicPanel({$, view, getWs: () => wsRef.ws});
-$('cinematic-camera-btn')?.addEventListener('click', () => cinePanel?.toggle());
-$('tools-cine-btn')?.addEventListener('click', () => {closeTools(); cinePanel?.toggle(true);});
-$('enemy-ai-control').append(tuning.controlFor('extras.toggles.enableEnemyAI'), tuning.controlFor('extras.toggles.enemyManual'));
-$('bindings-controls').append(...tuning.sectionControls('Teclas: índices configuráveis'));
-$('bindings2-controls').append(...tuning.sectionControls('Teclas do vermelho (controle manual)'));
-foldStaticSections();
-applyConfig();renderScenarios();renderCharacters();syncTuneState();openTool('match');syncButtons();
-// IA do Vermelho na Seleção Rápida: mesmo valor do seletor da Partida (applyConfig define o modo efetivo).
-$('quick-mode').replaceChildren(...UI_AI_MODES.map(([id, label]) => new Option(label, id)));$('quick-mode').value = game.mode;
-requestAnimationFrame(frame);
+wireExtras();
+
+startApp();
+
 
 // ---------- Interfaces para testes e compatibilidade com o v6 ----------
 window.__arenamon = {snapshot: () => ({...game.snapshot(), frame: ui.frame, camera: view.rig.snapshot(), locked: input.locked, hitboxDebug: !!C.extras.toggles.showHitboxes, playerAI: !!C.extras.toggles.enablePlayerAI})};
