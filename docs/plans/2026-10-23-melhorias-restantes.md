@@ -21,6 +21,7 @@
 - Esperado: `npm test` chega ao fim; só então os testes depois dele passam a contar.
 - **Medido (Edge, SwiftShader):** hoje 1778–1784 ms; em 5b4343a 1809–1819 ms: a falha é anterior, não regressão. Com a GPU real (Intel UHD) o mesmo quadro leva ~55 ms.
 - **Decidido:** o limite de 1500 ms continua, mas só é cobrado com GPU real (modo padrão do teste desde 24/10/2026; `ARENAMON_GL=software` força SwiftShader e aí o teste só registra o tempo). Rodado em GPU (padrão): tudo aprovado, quadro com fumaça em 47,84 ms. **Pendente:** em software o teste completo derruba o renderizador do Edge (`Target crashed`) nesta máquina, nos trechos de capturas/clipes, antes de chegar à medição; o modo software continua instável aqui, mas deixou de ser o padrão.
+- **npm test até o fim (24/10/2026):** corrigida a expectativa de `post-game.browser.mjs` (navegação Yuka agora vem ligada por padrão). Rodando o resto da cadeia sem parar: ainda falham 4 testes de navegador que já falhavam em 2b50697 (antes das migrações): `smear.browser` e `squash-stretch.browser` (a aba «Tackle» de `#act-tabs` não está visível), `ui-rodada-22-10.browser` (linha de descrição sob o Move escolhido; controles visuais do Riposte) e `rodada-b.browser` (sliders visuais riposte.blastOn/blastSize, emergingStone.fxTrail*, bulletPunch.fx* esperados no painel Mecânica, mas hoje ficam na aba Visual). São expectativas desatualizadas; nenhuma foi alterada.
 
 ### Tarefa 2: Migrar os outros 15 Moves para ficha — 13 FEITOS em 23/10/2026; faltam Reflect e Psyshock
 
