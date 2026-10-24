@@ -73,9 +73,19 @@
 - Passo 2: provocar uma quebra de propósito (um teste falhando) e conferir que a CI fica vermelha.
 - Passo 3: ajustar Node 22 / caminhos / tempo; testes de navegador só por `workflow_dispatch`.
 
-### Tarefa 8: #06 e #03 (dependem de decisão)
+### Tarefa 8: #06 (VFX por fase) e #03 (Workbench) — 8a DESTRAVADA, 8b bloqueada (24/10/2026)
 
-Não iniciar sem o responsável definir (a) as fases de VFX de cada Move e (b) o desenho do Workbench (viewport dominante, comparação A/B lado a lado). Registrar a decisão em `docs/` antes de editar.
+**8a, VFX por fase (#06): as fases estão decididas em documento.**
+- Norma: `docs/PADRAO_ATELIES_VFX.md` (23/10): seis fases obrigatórias (surgimento, disparo, efeito em si, duração, finalização/contato, efeito de contato), cada uma desligável, com sliders completos, limites 5× (água 300×), ângulos ±180°, sinais nos impulsos, seletor de disparo Argola / Tiro em cone, salvar/exportar/importar e acessibilidade (Sem flash, Movimento reduzido).
+- Ciclo Move a Move: `docs/AUDITORIA_ATELIER_VFX_2026-10-24.html` (commit eced91a): Sand Wave, Emerging Stone, Quick Attack, Bullet Punch, Riposte, Psyshock/Swift e modelos de rocha. Regra: carga só onde o Move é Charge; VFX nasce no evento; sem hit visual quando não houve acerto.
+- Regras do jogo: `docs/REGRAS_CRIACAO_MOVES.md` §§14, 15 e 29. Revogado, não usar: `REGRAS_PROTOTIPOS_VFX.md`.
+- Ainda **[proposta]** no padrão (decidir antes de implementar): lista exata de controles extras por fase; aviso ao desligar tudo; se o impacto do disparo vira terceira opção do seletor; padrões dos extras; estilo visual definitivo (§6).
+- Estado: nenhum Move tem seletor, interruptor por fase nem sinais (padrão §8). A atualização funcional do atelier está pendente. Primeira candidata sugerida pelo padrão: Seed Bomb.
+- Antes de editar: registrar em `docs/` a decisão sobre os itens [proposta] acima. Documentos desatualizados a corrigir junto: `MOVES_ELEMENTAIS_VISUAL_QUARKS.md` (diz que o seletor não existe) e `MOVES_ELEMENTAIS_PROTOTIPO.md` (Seed Bomb 16 m; o código tem 32 m, decisão do responsável).
+
+**8b, Workbench visual (#03): continua bloqueada.** Nenhum documento define viewport dominante nem A/B visual lado a lado; o plano de 15 diz que esboço não é design aprovado e depende de decisões de UX do responsável. Registrar a decisão em `docs/` antes de editar.
+
+Documentos recentes sem link no portal foram ligados em 24/10/2026 (Central de Documentação): REGRAS_CRIACAO_MOVES, MOVES_DECISOES_RODADAS, MOVES_GENERICOS_CATALOGO, fichas (moves-nao-iniciados), PLANO_IMPLEMENTACAO_REFLECT_PSYSHOCK, MOVES_TEST_MATRIX, LAB_AREIA_PEDRA, VERIFICACOES, INDICE_MODULOS e AUDITORIA_CONSOLIDACAO_LOCAL.
 
 ---
 
