@@ -4,7 +4,7 @@
 
 ## VOL. 07 — Seis fases desligáveis em todos os efeitos (24/10/2026)
 
-O atelier (versão 7.0.0 dos arquivos exportados) passa a cumprir [PADRAO_ATELIES_VFX.md](PADRAO_ATELIES_VFX.md) nas 24 propostas. Plano e decisões: [plans/2026-10-24-vfx-por-fase-atelier.md](../historico/PLANO_VFX_FASES_AREIA_PEDRA_2026-10-24.md). [Galeria de capturas](../../../prototypes/sand-stone-lab/evidence/fases-24-10/index.html).
+O atelier (versão 7.0.0 dos arquivos exportados) passa a cumprir [PADRAO_ATELIES_VFX.md](PADRAO_ATELIES_VFX.md) nas 24 propostas. Plano e decisões: [plans/2026-10-24-vfx-por-fase-atelier.md](../historico/PLANO_VFX_FASES_AREIA_PEDRA_2026-10-24.md). [Galeria de capturas](https://github.com/Ziaker/Arenamon/blob/01790355de9534ae0b5ec2dc10418f9f05f7d233/prototypes/sand-stone-lab/evidence/fases-24-10/index.html).
 
 - **Seis fases por efeito**, cada uma com o interruptor «Ligar esta fase» (ligada por padrão): Surgimento / preparação, Disparo / lançamento, Corpo e trajeto, Duração em cena, Finalização / retorno e Impacto / explosão / hit. Fase desligada não executa e não aparece na legenda; os sliders dela ficam esmaecidos e guardam os valores. Se todas ficarem desligadas, o painel avisa que não há nada para mostrar.
 - **Todo controle** tem nome, unidade, explicação curta, slider e campo numérico sincronizados, agrupado pela fase. Ângulos em ±180°; impulsos e deslocamentos aceitam sinal (positivo à frente, negativo para trás).
@@ -17,7 +17,7 @@ O atelier (versão 7.0.0 dos arquivos exportados) passa a cumprir [PADRAO_ATELIE
 
 ## VOL. 06 — Riposte: abertura da guarda e contra-ataque (22/10/2026)
 
-O atelier passa a 24 propostas. [Galeria Riposte](../../../prototypes/sand-stone-lab/evidence/revision-6/index.html) com abertura, guarda ativa, interceptação, contra-ataque, impacto, expiração, golpe tardio e Guard Break. Há links no portal, índice e central de testes.
+O atelier passa a 24 propostas. [Galeria Riposte](https://github.com/Ziaker/Arenamon/blob/01790355de9534ae0b5ec2dc10418f9f05f7d233/prototypes/sand-stone-lab/evidence/revision-6/index.html) com abertura, guarda ativa, interceptação, contra-ataque, impacto, expiração, golpe tardio e Guard Break. Há links no portal, índice e central de testes.
 
 ### Regra conferida diretamente no GitHub
 
@@ -40,7 +40,7 @@ JSON exporta versão 6.0.0 e continua aceitando 3.0.0 e 5.0.0, completando as no
 
 ## VOL. 05 — Bullet Punch e Quick Attack (22/10/2026)
 
-O atelier agora tem sete categorias e 21 propostas. [Comparação das seis opções novas](../../../prototypes/sand-stone-lab/evidence/revision-5/index.html), com carga, avanço e impacto. Acesso também pelo portal, índice rápido e central de testes.
+O atelier agora tem sete categorias e 21 propostas. [Comparação das seis opções novas](https://github.com/Ziaker/Arenamon/blob/01790355de9534ae0b5ec2dc10418f9f05f7d233/prototypes/sand-stone-lab/evidence/revision-5/index.html), com carga, avanço e impacto. Acesso também pelo portal, índice rápido e central de testes.
 
 | Move | A | B | C |
 | --- | --- | --- | --- |
@@ -59,7 +59,7 @@ A versão anterior foi rejeitada por sobrepor um padrão às animações antigas
 
 ## Revisão visual 4 — Swift e Psyshock (22/10/2026)
 
-Abra o atelier e confira **VOL. 04** no cabeçalho. [Comparação das seis opções em carga, voo e impacto](../../../prototypes/sand-stone-lab/evidence/revision-4/index.html), também acessível no portal, índice e central de testes.
+Abra o atelier e confira **VOL. 04** no cabeçalho. [Comparação das seis opções em carga, voo e impacto](https://github.com/Ziaker/Arenamon/blob/01790355de9534ae0b5ec2dc10418f9f05f7d233/prototypes/sand-stone-lab/evidence/revision-4/index.html), também acessível no portal, índice e central de testes.
 
 - Swift A — Lâminas solares: estrelas com volume e chanfro, lâminas de luz e coroa radial.
 - Swift B — Tempestade de cometas: núcleos menores, facetas de chama, caudas âmbar largas e explosão em ondas.
@@ -84,9 +84,9 @@ O editor salva/carrega no navegador e exporta uma alternativa ou todas em arquiv
 
 Comandos desta ampliação: `npx tsc --noEmit -p prototypes/sand-stone-lab/tsconfig.json`, `npm run build:sand-stone-lab`, `node prototypes/sand-stone-lab/test.mjs`, `node prototypes/sand-stone-lab/presets.test.mjs` e `node prototypes/sand-stone-lab/verify.mjs`. O portal `ABRIR_ARENAMON.html` já oferece link direto ao atelier; `HTMLS_ARENAMON.html` também aponta para ele. A homologação artística das seis novas opções permanece com o usuário.
 
-Capturas de 1280 × 720: [Swift C](../../../prototypes/sand-stone-lab/evidence/swift-c-720p.png) e [Psyshock C](../../../prototypes/sand-stone-lab/evidence/psyshock-c-720p.png). São evidências da renderização no Edge com SwiftShader; não representam a escolha final. A bateria `npm run verify` parou em `skills:check` por 11 cópias `.claude/skills` ausentes ou divergentes, condição anterior e sem relação com este atelier.
+Capturas de 1280 × 720: [Swift C](https://github.com/Ziaker/Arenamon/blob/01790355de9534ae0b5ec2dc10418f9f05f7d233/prototypes/sand-stone-lab/evidence/swift-c-720p.png) e [Psyshock C](https://github.com/Ziaker/Arenamon/blob/01790355de9534ae0b5ec2dc10418f9f05f7d233/prototypes/sand-stone-lab/evidence/psyshock-c-720p.png). São evidências da renderização no Edge com SwiftShader; não representam a escolha final. A bateria `npm run verify` parou em `skills:check` por 11 cópias `.claude/skills` ausentes ou divergentes, condição anterior e sem relação com este atelier.
 
-Abra [o laboratório](../../../prototypes/sand-stone-lab/dist/arenamon-areia-pedra.html) diretamente ou pelo `ABRIR_ARENAMON.html`. O arquivo compilado é um HTML único e offline. **Revisão visual 2 (21/10/2026):** a primeira proposta foi reprovada pelo usuário por falta de qualidade e identidade. Esta revisão substitui sua construção visual. Recarregue a aba para ver **VOL. 02**.
+No checkout original da branch de origem, o laboratório era acessado pelo HTML offline gerado em `prototypes/sand-stone-lab/dist/arenamon-areia-pedra.html` ou pelo portal. **Esse compilado não está versionado na `main` nem na branch documental;** os [fontes do ateliê](https://github.com/Ziaker/Arenamon/tree/01790355de9534ae0b5ec2dc10418f9f05f7d233/prototypes/sand-stone-lab) permanecem na branch consultada. **Revisão visual 2 (21/10/2026):** a primeira proposta foi reprovada pelo usuário por falta de qualidade e identidade. Esta revisão substitui sua construção visual. Recarregue a aba para ver **VOL. 02**.
 
 Escolha uma categoria, alterne A/B/C e ajuste os sliders. A linha do tempo permite inspecionar qualquer instante; espaço pausa, R reexecuta e 1–3 alternam variantes. Há câmera ao nível do chão/superior/¾, tela cheia, opção de salvar/carregar ajustes no navegador e seleção independente da rocha associada ao VFX.
 
