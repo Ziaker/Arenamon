@@ -12,13 +12,15 @@
 
 ---
 
-### Tarefa 1: Destravar o `npm test` (solid-vfx)
+### Tarefa 1: Destravar o `npm test` (solid-vfx) — DECIDIDO em 23/10/2026
 
 **Arquivos:** `prototypes/combat-lab/test/solid-vfx.browser.mjs` (verificação «quadro completo com fumaça raymarched abaixo de 1500 ms»), `src/view/smoke-volume.js`.
 - Passo 1: rodar `node prototypes/combat-lab/test/solid-vfx.browser.mjs` e anotar o tempo (hoje 2164 a 2434 ms).
 - Passo 2: rodar o mesmo teste no commit `5b4343a` (worktree em `.worktrees/` com `build:studio` e `build:combat-lab` completos) para provar se a falha é anterior.
 - Passo 3: **decisão do responsável**: corrigir a causa (custo da fumaça por software) ou rever o limite de tempo. Não alterar o limite sem decisão.
 - Esperado: `npm test` chega ao fim; só então os testes depois dele passam a contar.
+- **Medido (Edge, SwiftShader):** hoje 1778–1784 ms; em 5b4343a 1809–1819 ms: a falha é anterior, não regressão. Com a GPU real (Intel UHD) o mesmo quadro leva ~55 ms.
+- **Decidido:** o limite de 1500 ms continua, mas só é cobrado com GPU real (`ARENAMON_GL=gpu node prototypes/combat-lab/test/solid-vfx.browser.mjs`); em software o teste só registra o tempo. Rodado em GPU: tudo aprovado. **Pendente:** em software o teste completo derruba o renderizador do Edge (`Target crashed`) nesta máquina, nos trechos de capturas/clipes, antes de chegar à medição; o `npm test` padrão ainda usa software.
 
 ### Tarefa 2: Migrar os outros 15 Moves para ficha — 13 FEITOS em 23/10/2026; faltam Reflect e Psyshock
 
