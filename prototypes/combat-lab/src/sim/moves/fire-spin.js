@@ -7,6 +7,8 @@
 import {C} from '../config.js';
 import {spawn} from '../world.js';
 import {markerValidity} from '../aim-marker.js';
+import {defineFicha} from './params-registry.js';
+import {params} from './fire-spin.params.js';
 
 export const fireSpinDef = Object.freeze({
   id: 'fire-spin', name: 'Fire Spin', air: 'cast', group: 'fireSpin', aimMode: 'marker', aim: 'facing',
@@ -32,3 +34,9 @@ export function fireSpinEffect(/** @type {any} */ game, /** @type {any} */ f, /*
   }, fx.events ?? []);
   if (!e) return {ok: false, reason: 'entityLimit'};
 }
+
+/** FICHA do Move (ver docs/COMO_CRIAR_UM_MOVE.md): `params` gera o padrão em C.world.fireSpin e os sliders da aba Moves; `def` e os manipuladores são registrados sozinhos. */
+export const ficha = defineFicha({
+  def: fireSpinDef, effect: ['fire-spin', fireSpinEffect],
+  params,
+});

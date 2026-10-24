@@ -199,9 +199,6 @@ function buildDefaults() {
     // Swift: 3 estrelas, 15 m/s, 3 HP nominais cada (× Ataque ÷ referência, MV-P13), homing 0,25 s a 90°/s, alcance 12 m, knockback 0,3 m/s por acerto com teto 0,9 por alvo/execução, vertical 0.
     // cast = tempo da ação (recuperação do Burst; provisório MV-P14). Sem lock-on: leque frontal de fanAngle graus.
     // Moves elementais (protótipo de 23/10/2026; números do prompt de 22/10, NÃO homologados; padrões das decisões provisórias MV-P36…MV-P41).
-    // Fire Spin: Normal Field. Marcador de colocação (alcance 3D 10 m — pedido de 23/10 dobrou os 5 m do protótipo), cast 0,4 s + recovery 0,2 s, zona cilíndrica de 1,6 m de raio × 2,4 m,
-    // 2,4 s de vida, 4 pulsos a cada 0,6 s de 2 HP nominais, sem knockback e (padrão provisório) sem guard stun; occlusion = paredes bloqueiam o pulso; maxActive = zonas simultâneas por dono.
-    fireSpin: {cost: 1, cooldown: 11, cast: .4, recovery: .2, range: 20, markerSpeed: 8, markerAccel: 24, startDistance: 3, minRange: 3, maxRise: 2, allowOccupied: 1, zoneRadius: 1.6, zoneHeight: 2.4, life: 2.4, interval: .6, startup: 0, damage: 2, guardStun: 0, occlusion: 1, maxActive: 1, knockbackH: 0, knockbackV: 0, hitShakeOn: 0, hitShakeAmount: 1, hitShakeDuration: 1},
     // Air Slash: Burst Projectile PL1. Startup 8 passos + recovery 20 passos, lâmina a 22 m/s com alcance 10 m (lifetime = alcance ÷ velocidade), colisor = círculo equivalente de raio 0,6 m,
     // 8 HP nominais, empurrão H 2,5 (V 0). visualWidth/Height/Thickness: só o desenho da lâmina (1,20 × 0,70 × 0,22 m).
     airSlash: {cost: .8, cooldown: 6, startup: 8 / 120, recovery: 20 / 120, speed: 22, range: 10, radius: .6, damage: 8, knockbackH: 2.5, originHeight: .8, spawnForward: .6, counterStagger: .2, visualWidth: 1.2, visualHeight: .7, visualThickness: .22, knockbackV: 0, hitShakeOn: 0, hitShakeAmount: 1, hitShakeDuration: 1},
