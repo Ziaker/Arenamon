@@ -72,6 +72,7 @@
 - Passo 1: abrir um PR de teste que toca `prototypes/combat-lab/**` e observar o workflow.
 - Passo 2: provocar uma quebra de propósito (um teste falhando) e conferir que a CI fica vermelha.
 - Passo 3: ajustar Node 22 / caminhos / tempo; testes de navegador só por `workflow_dispatch`.
+- **Concluída em 24/10/2026.** 1ª execução (PR #103) vermelha: `combat-windows.test.mjs` lia `validation/personagem-studio.glb` (pasta ignorada pelo Git); o teste agora é pulado só na CI (199b2c7). 2ª e 3ª execuções verdes (199b2c7 e a909943). Quebra de propósito (PR #104, asserção falsa em `moves-contracts.test.mjs`): vermelha na etapa «Contratos, fichas e índice dos Moves», e a etapa seguinte foi pulada. PRs #103 e #104 fechados; branches de teste e `CI_TESTE.md` apagados. **Não feito:** testes de navegador na CI (só sob demanda, nunca rodaram) e a troca das actions por versões sem Node 20 (as actions avisam a descontinuação).
 
 ### Tarefa 8: #06 (VFX por fase) e #03 (Workbench) — 8a DESTRAVADA, 8b bloqueada (24/10/2026)
 
