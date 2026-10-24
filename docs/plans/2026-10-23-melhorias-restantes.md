@@ -80,3 +80,36 @@ Não iniciar sem o responsável definir (a) as fases de VFX de cada Move e (b) o
 ---
 
 **Validação do plano:** cada tarefa termina com os testes dela + `npx tsc --noEmit -p prototypes/combat-lab/tsconfig.json` + `npm run build:combat-lab`; ao fim de todas, `npm run verify` (hoje bloqueado por `skills:check` e `solid-vfx`).
+
+---
+
+## Itens esquecidos (auditoria de 24/10/2026)
+
+Levantados por uma auditoria independente deste plano; o que já foi resolvido está marcado.
+
+- **IA dos Moves migrados (#09):** a Tarefa 2 migrou só a ficha. Dos 17 Moves em ficha, só Harden, Second Wind, Swift e Guard Break têm perfil tático declarativo (`ficha.ai`); os outros 13 seguem nas regras antigas de `ai-new-moves.js`. Migrar a IA é tarefa à parte.
+- **Gizmos de colisão (#05):** parciais. Faltam beams e a comparação lado a lado com o VFX; ninguém conferiu o desenho na tela.
+- **Estado isolado por partida (#12):** `C` e os registros continuam globais; exige decisão separada.
+- **`npm run verify` travado em `skills:check`:** 11 diferenças entre `.claude/skills` e a fonte. Sem tarefa para resolver.
+- **Dica do Guard Break (resolvido em 24/10):** dizia «14 HP» (texto do Riposte copiado); o valor sempre foi 6. Texto corrigido, valor intacto.
+- **Decisões suas sem dono:** Riposte (recuo padrão `knockbackH` 16,8 com slider até 15; custo da definição 0,8 × custo do grupo 1,55); motor sem trava contra velocidade infinita; esquiva encerra o guard stun; tipos (Melee/Projectile/Field…) de Sand Wave, Bullet Punch e Emerging Stone.
+- **Tarefa 6:** não começou (precisa da sua GPU; metas por perfil são decisão sua).
+- **Tarefa 7 (CI):** primeira execução (PR #103) ficou vermelha porque `combat-windows.test.mjs` lê `validation/personagem-studio.glb` (pasta ignorada pelo Git). Corrigido em 199b2c7 (o teste é pulado só na CI). Faltam: CI verde, quebra de propósito, fechar o PR #103 e apagar `prototypes/combat-lab/CI_TESTE.md` e a branch de teste. Os testes de navegador da CI nunca rodaram. As actions avisam que Node 20 está sendo descontinuado.
+- **Organização:** a branch `codex/elemental-quarks-visual` está ~47 commits à frente da `main` (o trabalho das Tarefas 1 a 5 e este plano só existem nela); há evidências regravadas pela bateria e arquivos soltos em `chars/mosh/` (`.blend`, `.blend1`, `slap attack 2.fbx`) sem commit.
+
+## Segunda auditoria (do .docx do plano de 15, 24/10/2026): itens novos
+
+O .docx enviado é idêntico a `docs/ARENAMON_PLANO_15_MELHORIAS_IA_MOVES_DEBUG_PERFORMANCE_2026-10-23.docx`. A auditoria comparou cada item com o critério de aceite do documento: 3 completos (#08, #12, #02), 9 parciais, 3 não feitos (#14 CI até a quebra de propósito, #06, #15). Fatos dela que já estão desatualizados: a correção da CI e a dica do Guard Break foram commitadas (199b2c7). Itens que NÃO estavam nesta lista:
+
+- **Nada das 15 melhorias está na `main`** (só em `codex/elemental-quarks-visual` e `ci/teste-combat-lab`). Decidir quando e como abrir PRs pequenos para a `main`.
+- **#13 índice vivo:** falta avisar PRs que mexem nos mesmos arquivos; documento sem referência deveria falhar a geração (hoje só aparece como «candidato»); não registra quais documentos o agente leu.
+- **#14 CI:** typecheck progressivo e linter não existem (`tsconfig` com `checkJs: false` e `strict: false`).
+- **#11 captura de bug:** falta a captura de imagem opcional.
+- **#10 matriz:** falta o escopo «gravidade» e integrar o fuzz à matriz.
+- **#04 linha do tempo:** sem arrastar marcas, versões e desfazer (decisão sua).
+- **#05 gizmos:** faltam comparação VFX × colisor (Air Slash), hurtbox e deslocamento pretendido × real; ninguém conferiu na tela.
+- **#07 A/B:** mede só a simulação (sem render/FPS/P95); não avisa quando versão ou ambiente divergem.
+- **#03 Workbench:** sem área de visualização dominante, sem A/B visual lado a lado, sem teste de desfazer/restaurar/recarregar.
+- **#15 benchmark:** só CPU da simulação em Node; sem FPS, P95, draw calls, memória, placa de vídeo nem metas por perfil.
+- **Processo:** o Gate 1 (bloquear sem Superpowers/Superskills) e o Gate 2 (alternativas para mudanças estruturais: dois arquivos por Move, formato v1 da captura) não foram cumpridos; a revisão independente cobriu só os 5 primeiros commits; #04 e #05 foram declarados entregues sem ninguém ver a tela.
+- **Seed Bomb:** o alcance padrão hoje é 32 m; `docs/MOVES_ELEMENTAIS_PROTOTIPO.md` diz 16 m (dobrado de 8). Não achei registro de quem aprovou o 32. **Confirmar com o responsável**; nada foi alterado.
