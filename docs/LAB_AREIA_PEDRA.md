@@ -131,3 +131,7 @@ O build do Combat Lab foi refeito. `npm run verify` foi executado e voltou a par
 
 ## Atualização 24/10 (v1.33.0)
 Camada Recoil & Flash (5 controles, nascem em 0), tema por elemento nos disparos e fase `hold` (antes `sustain`, com migração de presets antigos). Detalhes em [AUDITORIA_ATELIER_VFX_V2_2026-10-24.md](AUDITORIA_ATELIER_VFX_V2_2026-10-24.md).
+
+## Sand Wave e Emerging Stone no jogo (24/10/2026, v1.36.0)
+O jogo (`JOGAR_ARENAMON.html`) passou a desenhar a barragem do **Sand Wave** (proposta C) e o trajeto/erupção do **Emerging Stone** (proposta A) com o renderizador deste atelier, usando os parâmetros exportados por você em 24/10 (`prototypes/combat-lab/src/view/quarks/atelier-game-params.js`). A simulação continua mandando: posição, alcance, tempo, dano, cegueira e a rocha 3×3×3 são os de sempre; só a aparência mudou (`view/quarks/atelier-game.js`). Os outros Moves ficam como estavam.
+**Psyshock e Swift ainda NÃO foram para o jogo:** no atelier eles são coreografias de cena (3 estrelas / pedras em trajetos roteirizados), e no jogo cada estrela/pedra é uma entidade com mira e física própria; isso pede um renderizador por entidade e ficou para a próxima etapa. Teste: `prototypes/combat-lab/test/atelier-game.browser.mjs`.

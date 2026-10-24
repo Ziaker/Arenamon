@@ -14,6 +14,7 @@ import {reflectPlacement} from '../sim/moves/reflect.js';
 import {stoneCount} from '../sim/moves/psyshock.js';
 import {makeElemental, updateElemental} from './elemental-fx.js';
 import {ElementalGameFx} from './quarks/elemental-game.js';
+import {AtelierGameFx} from './quarks/atelier-game.js';
 import {ElementalPreview} from './quarks/elemental-preview.js';
 import {ELEMENTAL_GAME_PARAMS} from './quarks/elemental-game-params.js';
 
@@ -177,6 +178,7 @@ export class WorldView {
     this.accessibility = {noFlash: false, reduceMotion: false, highContrast: false};
     // Água, Fogo e Vento com o renderizador do Ateliê Elemental (three.quarks). O Seed Bomb não entra aqui.
     this.elementalFx = new ElementalGameFx(this.group);
+    this.atelierFx = new AtelierGameFx(this.group);   // Sand Wave e Emerging Stone com o renderizador do atelier Areia/Pedra
     // Esfera de carga do Water Pulse (visual do ateliê, cresce com a carga/PL).
     this.waterChargePreview = null;this.waterChargeLevel = 0;
   }
@@ -560,7 +562,7 @@ export class WorldView {
     for (const e of world?.entities ?? []) {
       alive.add(e.id);
       // Água/Fogo/Vento são desenhados pela camada three.quarks (elemental-game.js); o Seed Bomb segue no desenho provisório.
-      if (this.elementalFx.handles(e)) {
+      if (this.elementalFx.handles(e) || this.atelierFx.handles(e)) {
         const stale = this.meshes.get(e.id);
         if (stale) {
           this.group.remove(stale);
@@ -704,6 +706,7 @@ export class WorldView {
 
     // Efeitos elementais em three.quarks: cria/atualiza os que seguem entidades e mantém o contato delas.
     this.elementalFx.sync(world?.entities ?? [], dt, fxAcc);
+    this.atelierFx.sync(world?.entities ?? [], dt, fxAcc);
 
     // Eventos novos viram anéis e geram estilhaços/shatter de rochas e barreiras
     for (const ev of events) {
@@ -712,7 +715,7 @@ export class WorldView {
       const spec = RING[ev.result];
       const m = this.meshes.get(ev.entity), f = FIGHTER_EVENTS.has(ev.result) ? fighters[ev.target] : null;
       const be = ev.kind === 'beam' && ev.seg != null ? world?.entities.find(x => x.id === ev.entity) : null, bp = be?.segments?.[ev.seg]?.b;
-      const pos = bp ? {x: bp.x, y: be.y, z: bp.z} : f ? {x: f.position.x, y: .6, z: f.position.z} : m ? m.position : this.elementalFx.positionOf(ev.entity);
+      const pos = bp ? {x: bp.x, y: be.y, z: bp.z} : f ? {x: f.position.x, y: .6, z: f.position.z} : m ? m.position : this.elementalFx.positionOf(ev.entity) ?? this.atelierFx.positionOf(ev.entity);
       if (!pos) continue;
 
       const evColor = spec ? (spec[0] ?? PL_HEX[Math.min(3, ev.barrierPl ?? ev.pl ?? 1)]) : 0xffffff;

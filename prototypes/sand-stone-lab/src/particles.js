@@ -21,10 +21,14 @@ export function particleTexture(kind) {
   return new T.CanvasTexture(c);
 }
 
+const TEX_CACHE={};
+const cachedTexture=kind=>TEX_CACHE[kind]??(TEX_CACHE[kind]=particleTexture(kind));
+
+/** `renderer`/`emitterParent`: uso dentro do jogo (renderizador compartilhado e emissores dentro do grupo posicionado do efeito). */
 export class Particles {
-  constructor(scene,{textures=true}={}){
-    this.scene=scene;this.renderer=new Q.BatchedRenderer();scene.add(this.renderer);this.systems=[];this.materials={};
-    for(const kind of ['dust','grain','streak','star','orb','shard'])this.materials[kind]=new T.MeshBasicMaterial({map:textures?particleTexture(kind):null,transparent:true,depthWrite:false,side:T.DoubleSide,blending:kind==='dust'?T.NormalBlending:T.AdditiveBlending,toneMapped:kind==='dust'});
+  constructor(scene,{textures=true,renderer=null,emitterParent=null}={}){
+    this.scene=scene;this.shared=!!renderer;this.renderer=renderer??new Q.BatchedRenderer();if(!renderer)scene.add(this.renderer);this.emitterParent=emitterParent??scene;this.systems=[];this.materials={};
+    for(const kind of ['dust','grain','streak','star','orb','shard'])this.materials[kind]=new T.MeshBasicMaterial({map:textures?cachedTexture(kind):null,transparent:true,depthWrite:false,side:T.DoubleSide,blending:kind==='dust'?T.NormalBlending:T.AdditiveBlending,toneMapped:kind==='dust'});
   }
   create({kind='dust',color=0xc49c68,count=0,rate=0,duration=.5,life=1,size=.4,speed=1,radius=.25,angle=.7,gravity=0,opacity=.5,position=[0,0,0],direction=[0,1,0]}={}){
     const c=new T.Color(color),end=c.clone().multiplyScalar(kind==='dust'?.45:.7);
@@ -38,11 +42,11 @@ export class Particles {
     if(gravity)params.behaviors.push(new Q.ApplyForce(new T.Vector3(0,gravity>0?1:-1,0),new Q.ConstantValue(Math.abs(gravity))));
     const system=new Q.ParticleSystem(params),emitter=system.emitter;
     emitter.position.set(...position);emitter.quaternion.setFromUnitVectors(new T.Vector3(0,0,1),new T.Vector3(...direction).normalize());
-    this.scene.add(emitter);emitter.updateMatrixWorld(true);this.renderer.addSystem(system);
+    this.emitterParent.add(emitter);this.emitterParent.updateWorldMatrix(true,false);emitter.updateMatrixWorld(true);this.renderer.addSystem(system);
     const entry={system,emitter,age:0,ttl:duration+life+.15,kind};this.systems.push(entry);return entry;
   }
   update(dt){
-    this.scene.updateMatrixWorld(true);this.renderer.update(dt);
+    this.emitterParent.updateWorldMatrix(true,true);if(!this.shared)this.renderer.update(dt);
     for(let i=this.systems.length-1;i>=0;i--){const p=this.systems[i];p.age+=dt;if(p.age>p.ttl){this.renderer.deleteSystem(p.system);p.emitter.removeFromParent();p.system.dispose();this.systems.splice(i,1);}}
   }
   clear(){for(const p of this.systems){this.renderer.deleteSystem(p.system);p.emitter.removeFromParent();p.system.dispose();}this.systems=[];}
