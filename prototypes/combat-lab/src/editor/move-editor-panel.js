@@ -6,14 +6,15 @@ import {escape} from '../ui/tuning.js';
 import {controls as atelierControls, help as atelierHelp, phaseOf, phaseNames} from '../../../sand-stone-lab/src/config.ts';
 import {ATELIER_APPROVED, ATELIER_GAME_PARAMS} from '../view/quarks/atelier-game-params.js';
 import {EDITABLE_MOVES, editableMove} from './editable-moves.js';
+import {traceMove, compareTraces, currentValues, defaultValues, diffCount} from './move-trace.js';
 import {makeMoveScenario, currentMoveJson, TARGET_STATES, DEFAULT_STAGE, DISTANCE_RANGE, HOLD_RANGE, needsHold, suggestedHold, holdHint} from './move-editor-model.js';
 
 /**
- * @param {{getWorld: () => any, $: (id: string) => any, tuning: any, startScenario: (def: any) => void, abortScenario: () => void, getScenario: () => any, getLastResult: () => any, download: (data: string, name: string, type?: string) => void, setTimeScale: (v: number) => void}} deps
+ * @param {{getWorld: () => any, $: (id: string) => any, tuning: any, startScenario: (def: any) => void, abortScenario: () => void, getScenario: () => any, getLastResult: () => any, seekToTime?: (seconds: number) => boolean, download: (data: string, name: string, type?: string) => void, setTimeScale: (v: number) => void}} deps
  */
-export function createMoveEditor({getWorld, $, tuning, startScenario, abortScenario, getScenario, getLastResult, download, setTimeScale}) {
+export function createMoveEditor({getWorld, $, tuning, startScenario, abortScenario, getScenario, getLastResult, seekToTime, download, setTimeScale}) {
   const root = $('move-editor-body');
-  const state = {moveId: (EDITABLE_MOVES.find(m => m.id === 'sand-wave') ?? EDITABLE_MOVES[0]).id, distance: DEFAULT_STAGE.distance, target: DEFAULT_STAGE.target, hold: 0, loop: false, speed: 1, running: false};
+  const state = {moveId: (EDITABLE_MOVES.find(m => m.id === 'sand-wave') ?? EDITABLE_MOVES[0]).id, distance: DEFAULT_STAGE.distance, target: DEFAULT_STAGE.target, hold: 0, loop: false, speed: 1, running: false, pinned: /** @type {Record<string, number> | null} */ (null)};
   const move = () => /** @type {any} */ (editableMove(state.moveId));
   const el = (/** @type {string} */ tag, /** @type {Record<string, any>} */ attrs = {}, /** @type {(Node | string)[]} */ kids = []) => {
     const e = document.createElement(tag);
@@ -48,19 +49,19 @@ export function createMoveEditor({getWorld, $, tuning, startScenario, abortScena
   function stageSection() {
     const sec = el('section', {class: 'editor-sec'}, [el('h4', {text: 'Palco'})]);
     const sel = /** @type {HTMLSelectElement} */ (el('select', {id: 'editor-move'}, EDITABLE_MOVES.map(m => el('option', {value: m.id, text: m.name}))));
-    sel.value = state.moveId;sel.onchange = () => {state.moveId = sel.value;state.hold = suggestedHold(move());render();};
+    sel.value = state.moveId;sel.onchange = () => {state.moveId = sel.value;state.hold = suggestedHold(move());state.pinned = null;render();};
     const dist = /** @type {HTMLInputElement} */ (el('input', {type: 'range', id: 'editor-distance', min: DISTANCE_RANGE.min, max: DISTANCE_RANGE.max, step: DISTANCE_RANGE.step, value: state.distance}));
     const distOut = el('output', {text: `${state.distance} m`});
-    dist.oninput = () => {state.distance = Number(dist.value);distOut.textContent = `${state.distance} m`;};
+    dist.oninput = () => {state.distance = Number(dist.value);distOut.textContent = `${state.distance} m`;scheduleAnalysis();};
     const holdRow = needsHold(move()) ? [(() => {
       const hold = /** @type {HTMLInputElement} */ (el('input', {type: 'range', id: 'editor-hold', min: HOLD_RANGE.min, max: HOLD_RANGE.max, step: HOLD_RANGE.step, value: state.hold || suggestedHold(move())}));
       const out = el('output', {text: `${(+hold.value).toFixed(2)} s`});
       state.hold = Number(hold.value);
-      hold.oninput = () => {state.hold = Number(hold.value);out.textContent = `${state.hold.toFixed(2)} s`;};
+      hold.oninput = () => {state.hold = Number(hold.value);out.textContent = `${state.hold.toFixed(2)} s`;scheduleAnalysis();};
       return el('label', {class: 'editor-row', title: holdHint(move())}, [el('span', {text: 'Segurar o botão'}), hold, out]);
     })(), el('p', {class: 'hint', text: holdHint(move())})] : [];
     const tgt = /** @type {HTMLSelectElement} */ (el('select', {id: 'editor-target'}, TARGET_STATES.map(([v, l]) => el('option', {value: v, text: l}))));
-    tgt.value = state.target;tgt.onchange = () => {state.target = tgt.value;};
+    tgt.value = state.target;tgt.onchange = () => {state.target = tgt.value;scheduleAnalysis();};
     const spd = /** @type {HTMLSelectElement} */ (el('select', {id: 'editor-speed'}, [['1', 'Normal'], ['0.5', 'Câmera lenta (0,5×)'], ['0.25', 'Muito lenta (0,25×)']].map(([v, l]) => el('option', {value: v, text: l}))));
     spd.value = String(state.speed);spd.onchange = () => {state.speed = Number(spd.value);setTimeScale(state.speed);};
     const loop = /** @type {HTMLInputElement} */ (el('input', {type: 'checkbox', id: 'editor-loop'}));
@@ -85,6 +86,67 @@ export function createMoveEditor({getWorld, $, tuning, startScenario, abortScena
   const UNIT = {num: '', int: '', sec: 's', pct: '%', m: 'm', ms: 'm/s', ms2: 'm/s²', deg: '°', x: '×', yesno: ''};
   const show = (/** @type {number} */ v, /** @type {string} */ unit) => unit === 'pct' ? `${+(v * 100).toFixed(1)} %` : `${+(+v).toFixed(3)} ${UNIT[/** @type {keyof typeof UNIT} */ (unit)] ?? ''}`.trim();
   /** Sliders de mecânica: gravam em C.world[grupo][chave] como a aba Moves (arrastar = prévia; soltar = UMA entrada no histórico, Ctrl+Z desfaz). */
+  // ---------- Análise: linha do tempo, números e comparação A × B ----------
+  const stageOf = () => ({distance: state.distance, target: state.target, hold: needsHold(move()) ? state.hold : 0});
+  const fmt = (/** @type {number | null} */ v) => v == null ? '—' : String(+(+v).toFixed(3));
+  let analysisTimer = 0;
+  function scheduleAnalysis() {clearTimeout(analysisTimer);analysisTimer = /** @type {any} */ (setTimeout(analyze, 120));}
+  function analyze() {
+    const box = $('editor-analysis');
+    if (!box || !box.isConnected) return;
+    const m = move(), valuesA = state.pinned ?? defaultValues(m), valuesB = currentValues(m);
+    let A, B;
+    try {A = traceMove(m, stageOf(), valuesA);B = traceMove(m, stageOf(), valuesB);}
+    catch (e) {box.textContent = 'Não foi possível analisar: ' + /** @type {Error} */ (e).message;return;}
+    const same = diffCount(valuesA, valuesB) === 0, total = Math.max(A.total, B.total, 0.5);
+    const pct = (/** @type {number} */ v) => `${Math.max(0, Math.min(100, v / total * 100)).toFixed(2)}%`;
+    const lane = (/** @type {import('./move-trace.js').Lane} */ l, /** @type {string} */ tag) => {
+      const bar = el('div', {class: 'tl-bar tl-' + l.kind});
+      for (const sp of l.spans) {
+        const seg = el('span', {class: 'tl-seg', title: l.label + ': ' + sp.from.toFixed(2) + ' s → ' + sp.to.toFixed(2) + ' s (clique para ir a ' + sp.from.toFixed(2) + ' s)', 'data-from': sp.from});
+        seg.style.left = pct(sp.from);seg.style.width = pct(Math.max(sp.to - sp.from, total * 0.004));
+        seg.onclick = () => goTo(sp.from);bar.append(seg);
+      }
+      return el('div', {class: 'tl-lane'}, [el('span', {class: 'tl-label', title: l.label, text: tag + ' · ' + l.label}), bar]);
+    };
+    const group = (/** @type {import('./move-trace.js').MoveTrace} */ T, /** @type {string} */ tag) => {
+      const rows = T.lanes.map(l => lane(l, tag));
+      const hitBar = el('div', {class: 'tl-bar tl-hits'});
+      for (const h of T.hits) {
+        const mk = el('span', {class: 'tl-hit', title: 'Acerto em ' + h.t.toFixed(2) + ' s: ' + h.damage.toFixed(1) + ' HP (' + h.result + ')', 'data-t': h.t, text: '◆'});
+        mk.style.left = pct(h.t);mk.onclick = () => goTo(h.t);hitBar.append(mk);
+      }
+      const press = el('span', {class: 'tl-press', title: 'Botão apertado em ' + T.press.toFixed(2) + ' s', text: '▼'});press.style.left = pct(T.press);hitBar.append(press);
+      rows.push(el('div', {class: 'tl-lane'}, [el('span', {class: 'tl-label', text: tag + ' · Acertos (◆) e botão (▼)'}), hitBar]));
+      return el('div', {class: 'tl-group', 'data-tag': tag}, rows);
+    };
+    const axis = el('div', {class: 'tl-axis'});
+    for (let t = 0; t <= total + 1e-9; t += total > 6 ? 1 : 0.5) {const tick = el('span', {text: t.toFixed(1) + 's'});tick.style.left = pct(t);axis.append(tick);}
+    const rows = compareTraces(A, B);
+    const table = el('table', {class: 'editor-table editor-ab'}, [
+      el('tr', {}, [el('th', {text: 'Medida'}), el('th', {text: state.pinned ? 'A (fixado)' : 'A (padrão)'}), el('th', {text: 'B (atual)'}), el('th', {text: 'Δ'})]),
+      ...rows.map(r => el('tr', {class: r.delta ? 'changed' : ''}, [el('td', {text: r.label}), el('td', {text: fmt(r.a)}), el('td', {text: fmt(r.b)}), el('td', {class: r.better === 'b' ? 'good' : r.better === 'a' ? 'bad' : '', text: r.delta == null || r.delta === 0 ? '' : (r.delta > 0 ? '+' : '') + fmt(r.delta)})])),
+    ]);
+    box.replaceChildren(
+      el('p', {class: 'hint', text: same ? 'A e B são iguais: mude um slider de mecânica (ou fixe outro A) para comparar.' : 'A × B: ' + diffCount(valuesA, valuesB) + ' valor(es) diferente(s). Verde = B melhora, vermelho = B piora (a leitura de «melhor» é só uma dica).'}),
+      el('div', {class: 'tl'}, [axis, group(B, 'B'), ...(same ? [] : [group(A, 'A')])]),
+      table,
+    );
+  }
+  function goTo(/** @type {number} */ seconds) {
+    const ok = seekToTime ? seekToTime(seconds) : false;
+    status(ok ? 'Replay pausado em ' + seconds.toFixed(2) + ' s.' : 'Execute o Move uma vez (▶) para poder navegar no tempo.');
+  }
+  function analysisSection() {
+    const sec = el('section', {class: 'editor-sec'}, [el('h4', {text: 'Análise'})]);
+    const pin = el('button', {type: 'button', id: 'editor-pin', text: 'Fixar A = valores atuais'});
+    pin.onclick = () => {state.pinned = currentValues(move());analyze();status('A fixado com os valores atuais. Mude os sliders: B segue os valores atuais.');};
+    const def = el('button', {type: 'button', id: 'editor-unpin', text: 'A = padrão do Move'});
+    def.onclick = () => {state.pinned = null;analyze();};
+    sec.append(el('div', {class: 'editor-actions'}, [pin, def]), el('div', {id: 'editor-analysis'}));
+    return sec;
+  }
+
   function mechanicsSection() {
     const m = move();
     const world = /** @type {any} */ (tuning.world ?? null);
@@ -157,8 +219,10 @@ export function createMoveEditor({getWorld, $, tuning, startScenario, abortScena
   }
 
   function render() {
-    root.replaceChildren(stageSection(), mechanicsSection(), visualSection(), exportSection());
+    root.replaceChildren(stageSection(), analysisSection(), mechanicsSection(), visualSection(), exportSection());
+    analyze();
   }
   render();
-  return {render, play, state, poll};
+  tuning.onChange?.(() => {if (root.isConnected) scheduleAnalysis();});
+  return {render, play, state, poll, analyze};
 }

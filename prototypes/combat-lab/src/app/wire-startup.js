@@ -8,6 +8,7 @@ import {createMoveEditor} from '../editor/move-editor-panel.js';
 import {applyConfig, download, syncTuneState} from './tuning-sync.js';
 import {foldStaticSections, openTool, syncButtons, toggleChars, toggleMoves} from './live-panels.js';
 import {frame} from './main-loop.js';
+import {seekTick} from './match-flow.js';
 import {$, cinePanel, clock, closeTools, game, renderCharacters, tuning, ui} from '../main.js';
 
 export function wireExtras() {
@@ -35,7 +36,7 @@ requestAnimationFrame(frame);
 
 /** Editor de Moves (fase 2): gaveta própria, aberta pelo botão «🛠 Editor» no canto da arena. */
 export function wireMoveEditor() {
-  const editor = createMoveEditor({getWorld: () => C.world, $, tuning, startScenario: def => startScenario(def), abortScenario, getScenario: () => ui.scenario, getLastResult: () => ui.lastResult, download, setTimeScale: v => {clock.timeScale = v;$('rp-speed').value = String(v);}});
+  const editor = createMoveEditor({getWorld: () => C.world, $, tuning, startScenario: def => startScenario(def), abortScenario, getScenario: () => ui.scenario, getLastResult: () => ui.lastResult, seekToTime: sec => {if (!ui.lastResult?.id?.startsWith('editor-')) return false;seekTick(Math.round(sec / C.test.step));return true;}, download, setTimeScale: v => {clock.timeScale = v;$('rp-speed').value = String(v);}});
   const toggle = (open = $('move-editor').hidden) => {
     if (open) {toggleMoves(false);toggleChars(false);}
     $('move-editor').hidden = !open;$('editor-open').setAttribute('aria-expanded', String(open));$('editor-open').classList.toggle('active', open);

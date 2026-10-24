@@ -54,6 +54,31 @@ try {
   await page.waitForFunction(() => /14\.0 HP/.test(document.getElementById('editor-result').textContent), null, {timeout: 10000});
   check('a nova execução causa 14 HP', true);
 
+  // Fase 3: análise (linha do tempo, números e A × B)
+  await page.waitForFunction(() => document.querySelector('#editor-analysis .editor-ab'), null, {timeout: 10000});
+  const rowsAB = () => L(() => [...document.querySelectorAll('#editor-analysis .editor-ab tr')].map(r => r.textContent));
+  const setDamage = async v => {await L(v => {const el = document.querySelector('#editor-mechanics [data-path="world.sandWave.damage"]');el.value = String(v);el.dispatchEvent(new Event('input', {bubbles: true}));el.dispatchEvent(new Event('change', {bubbles: true}));}, v);await page.waitForTimeout(400);};
+  let ab = await rowsAB();
+  check('Análise: a tabela A × B mostra o dano padrão 6 contra o atual 14 (+8)', ab.some(r => /Dano total \(HP\)614\+8/.test(r)), ab.find(r => /Dano total/.test(r)));
+  check('Análise: a linha do tempo tem as faixas de A e de B (ação, efeito, status) e o acerto', await page.locator('.tl-group[data-tag="B"] .tl-lane').count() >= 4 && await page.locator('.tl-group[data-tag="A"]').count() === 1 && await page.locator('.tl-group[data-tag="B"] .tl-hit').count() === 1);
+  // clicar no acerto leva o replay até lá (pausado)
+  const hitT = await L(() => Number(document.querySelector('.tl-group[data-tag="B"] .tl-hit').dataset.t));
+  await page.click('.tl-group[data-tag="B"] .tl-hit');
+  const seek = await L(() => ({paused: window.__lab.ui.paused, tick: window.__lab.game.tick}));
+  const expectTick = Math.round(hitT / 0.0083333);
+  check('Análise: clicar no acerto pausa e leva o replay ao tick do acerto (±3)', seek.paused && Math.abs(seek.tick - expectTick) <= 3, JSON.stringify(seek) + ' esperado ' + expectTick);
+  // fixar A = atual (14) e subir o dano para 20
+  await page.click('#editor-pin');
+  await setDamage(20);
+  ab = await rowsAB();
+  check('Análise: com A fixado em 14 e B em 20 o delta é +6', ab.some(r => /Dano total \(HP\)1420\+6/.test(r)) && /A \(fixado\)/.test(ab[0]), ab.find(r => /Dano total/.test(r)));
+  await page.click('#editor-unpin');
+  await page.waitForTimeout(300);
+  ab = await rowsAB();
+  check('Análise: «A = padrão» volta a comparar com 6', ab.some(r => /Dano total \(HP\)620\+14/.test(r)) && /A \(padrão\)/.test(ab[0]), ab.find(r => /Dano total/.test(r)));
+  await setDamage(14);
+  await page.waitForFunction(() => document.querySelector('.tl-group[data-tag="B"]'), null, {timeout: 5000});
+
   // Alvo fora do alcance
   await L(() => {const d = document.getElementById('editor-distance');d.value = '12';d.dispatchEvent(new Event('input', {bubbles: true}));window.__lab.ui.lastResult = null;});
   await page.click('#editor-play');
@@ -95,7 +120,16 @@ try {
   await page.selectOption('#editor-move', 'sand-wave');
 
   mkdirSync(root + 'evidence/editor', {recursive: true});
-  if (!process.env.ARENAMON_SKIP_SCREENSHOTS) await page.screenshot({path: root + 'evidence/editor/editor-sand-wave.png'});
+  if (!process.env.ARENAMON_SKIP_SCREENSHOTS) {
+    await page.screenshot({path: root + 'evidence/editor/editor-sand-wave.png'});
+    await L(() => {document.getElementById('editor-play');});
+    await page.selectOption('#editor-move', 'sand-wave');
+    await L(() => {const d = document.getElementById('editor-distance');d.value = '3';d.dispatchEvent(new Event('input', {bubbles: true}));});
+    await L(() => {const el = document.querySelector('#editor-mechanics [data-path="world.sandWave.damage"]');el.value = '12';el.dispatchEvent(new Event('input', {bubbles: true}));el.dispatchEvent(new Event('change', {bubbles: true}));const c = document.querySelector('#editor-mechanics [data-path="world.sandWave.cast"]');c.value = '0.5';c.dispatchEvent(new Event('input', {bubbles: true}));c.dispatchEvent(new Event('change', {bubbles: true}));});
+    await page.waitForTimeout(500);
+    await L(() => document.getElementById('editor-analysis').scrollIntoView({block: 'start'}));
+    await page.screenshot({path: root + 'evidence/editor/editor-analise-ab.png'});
+  }
 
   check('sem erros de página/console', errors.length === 0, errors.slice(0, 2).join(' | '));
   check('sem requisições externas', requests.length === 0, requests.slice(0, 2).join(' | '));
