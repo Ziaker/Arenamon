@@ -3,7 +3,6 @@
 // (regra D2 do teste de arquitetura: só ele chama registerMove) e só o bootstrap do laboratório chama registerStandardMoves. Registrar não equipa: os slots
 // continuam vazios e, sem equipar, nada muda no jogo (paridade testada). Plano e ordem: docs/moves-nao-iniciados/PROMPT_IMPLEMENTACAO_MOVES_NOVOS.md.
 import {FICHAS} from './fichas.generated.js';
-import {waterPulseDef, waterPulseEffect} from './water-pulse.js';
 import {fireSpinDef, fireSpinEffect} from './fire-spin.js';
 import {airSlashDef, airSlashEffect} from './air-slash.js';
 import {seedBombDef, seedBombEffect} from './seed-bomb.js';
@@ -11,7 +10,6 @@ import {seedBombDef, seedBombEffect} from './seed-bomb.js';
 /** @type {import('./params-registry.js').Ficha[]} */
 export const NEW_MOVES = [
   // Moves elementais (protótipo de 23/10/2026; números do prompt de 22/10, não homologados)
-  {def: waterPulseDef, effect: ['water-pulse', waterPulseEffect]},
   {def: fireSpinDef, effect: ['fire-spin', fireSpinEffect]},
   {def: airSlashDef, effect: ['air-slash', airSlashEffect]},
   {def: seedBombDef, effect: ['seed-bomb', seedBombEffect]},

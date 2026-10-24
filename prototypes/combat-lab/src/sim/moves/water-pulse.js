@@ -7,6 +7,8 @@ import {C} from '../config.js';
 import {spawn} from '../world.js';
 import {direction} from '../math.js';
 import {emitterAltitude, spawnPoint, spawnBlocked, straightLaunch, bodyHeight} from './projectile-util.js';
+import {defineFicha} from './params-registry.js';
+import {params} from './water-pulse.params.js';
 
 export const waterPulseDef = Object.freeze({
   id: 'water-pulse', name: 'Water Pulse', air: 'cast', group: 'waterPulse', cooldownOnStart: true,
@@ -39,3 +41,9 @@ export function waterPulseEffect(/** @type {any} */ game, /** @type {any} */ f, 
   if (!e) return {ok: false, reason: 'entityLimit'};
   fx.events?.push({result: 'moveEffect', move: 'water-pulse', attacker: f.id, target: null, damage: 0, level, entity: e.id});
 }
+
+/** FICHA do Move (ver docs/COMO_CRIAR_UM_MOVE.md): `params` gera o padrão em C.world.waterPulse e os sliders da aba Moves; `def` e os manipuladores são registrados sozinhos. */
+export const ficha = defineFicha({
+  def: waterPulseDef, effect: ['water-pulse', waterPulseEffect],
+  params,
+});
