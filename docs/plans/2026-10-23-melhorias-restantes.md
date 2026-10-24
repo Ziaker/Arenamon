@@ -112,4 +112,4 @@ O .docx enviado é idêntico a `docs/ARENAMON_PLANO_15_MELHORIAS_IA_MOVES_DEBUG_
 - **#03 Workbench:** sem área de visualização dominante, sem A/B visual lado a lado, sem teste de desfazer/restaurar/recarregar.
 - **#15 benchmark:** só CPU da simulação em Node; sem FPS, P95, draw calls, memória, placa de vídeo nem metas por perfil.
 - **Processo:** o Gate 1 (bloquear sem Superpowers/Superskills) e o Gate 2 (alternativas para mudanças estruturais: dois arquivos por Move, formato v1 da captura) não foram cumpridos; a revisão independente cobriu só os 5 primeiros commits; #04 e #05 foram declarados entregues sem ninguém ver a tela.
-- **Seed Bomb:** o alcance padrão hoje é 32 m; `docs/MOVES_ELEMENTAIS_PROTOTIPO.md` diz 16 m (dobrado de 8). Não achei registro de quem aprovou o 32. **Confirmar com o responsável**; nada foi alterado.
+- **Seed Bomb (esclarecido):** o alcance padrão de 32 m é decisão do responsável (ele mesmo mudou); a auditoria não deve tratá-lo como pendente. O texto de `docs/MOVES_ELEMENTAIS_PROTOTIPO.md` (16 m) é que está desatualizado.
