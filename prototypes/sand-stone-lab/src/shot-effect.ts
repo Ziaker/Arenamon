@@ -1,7 +1,7 @@
 import * as T from 'three';
 
 // Camada de DISPARO reutilizável (docs/PADRAO_ATELIES_VFX.md §3): «Argola» (anel que sai da origem) ou «Tiro em cone» (jato de partículas Quarks).
-// «Nenhum» é o interruptor da fase Disparo (launchOn = 0). A camada só LÊ os valores: os dois tipos guardam os próprios números ao trocar de opção.
+// shotKind: 0 Nenhum (padrão, não muda o visual atual), 1 Argola, 2 Tiro em cone; o interruptor da fase Disparo (launchOn = 0) desliga tudo. A camada só LÊ os valores: os dois tipos guardam os próprios números ao trocar de opção.
 // Deslocamentos, impulsos e ângulos têm sinal: positivo vai à frente / para cima / para a direita; negativo, o contrário.
 type Vec3 = [number, number, number];
 type Options = {origin: Vec3; direction: Vec3; follow?: () => Vec3; color?: number};
@@ -23,15 +23,16 @@ export class ShotEffect {
     this.dir = new T.Vector3(...opts.direction).normalize();
     this.base = new T.Vector3(...opts.origin);
   }
-  private get kind() { return (this.values.shotKind ?? 0) >= .5 ? 1 : 0; }
+  /** 0 = Nenhum, 1 = Argola, 2 = Tiro em cone. */
+  private get kind() { return Math.max(0, Math.min(2, Math.round(this.values.shotKind ?? 0))); }
   private get enabled() { return this.values.launchOn !== 0; }
   private anchor(): T.Vector3 { return this.base.clone().addScaledVector(this.dir, this.values.shotHorizontal ?? 0).add(new T.Vector3(0, this.values.shotVertical ?? 0, 0)); }
 
   /** Dispara no começo da fase Disparo. Fase desligada: não cria nada. */
   fire() {
-    if (!this.enabled || this.fired) return;
+    if (!this.enabled || this.kind === 0 || this.fired) return;
     this.fired = true;this.age = 0;
-    if (this.kind === 0) this.fireRing();else this.fireCone();
+    if (this.kind === 1) this.fireRing();else this.fireCone();
   }
   private fireRing() {
     const v = this.values, color = this.opts.color ?? 0xffd58a;

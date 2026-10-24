@@ -18,7 +18,7 @@
 
 ---
 
-## Lote 1: fundação + Sand Wave (detalhado)
+## Lote 1: fundação + Sand Wave (detalhado) — CONCLUÍDO em 24/10/2026
 
 ### Tarefa 1: relógio de fases (módulo puro)
 
@@ -55,7 +55,9 @@
 
 **Step 2:** FAIL. **Step 3:** `SandEffect` passa a usar `p.startTime`, `p.flightTime`, `p.finishTime`, `p.impactTime` no lugar das constantes `.25/.75/.65`; expõe `timeline()` com as janelas por fase; chama `ShotEffect` no fim do surgimento. **Step 4:** PASS (e `test.mjs` inteiro). **Step 5:** commit `feat(atelier): Sand Wave com seis fases desligaveis`.
 
-**Relatório do lote 1** (parar e reportar): fundação testada, Sand Wave nas 3 propostas. Ainda sem interface.
+**Relatório do lote 1:** `phases.ts` (+ `phases.test.mjs`), `shot-effect.ts` (+ `shot.test.mjs`) e Sand Wave com fases (+ `sand-phases.test.mjs`, golden `golden/sand-padrao.json` gravado antes da mudança: com os padrões o visual não mudou). Ainda sem interface: a tela do atelier continua igual.
+
+**Desvios do plano (decisão registrada):** (1) o seletor de disparo ficou com 3 opções (0 Nenhum = padrão, 1 Argola, 2 Tiro em cone) para o visual padrão não mudar; o interruptor da fase Disparo desliga também o disparo antigo do efeito. (2) Disparo e contato são camadas de evento ligadas por `launchOn`/`impactOn`; o relógio `PhaseClock` costura só as fases sequenciais (surgimento, corpo, duração, finalização). (3) Os testes de fase do Sand ficaram em `sand-phases.test.mjs` (não em `test.mjs`).
 
 ---
 

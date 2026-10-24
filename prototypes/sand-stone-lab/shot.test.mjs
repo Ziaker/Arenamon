@@ -12,8 +12,8 @@ const make = (over = {}, opts = {}) => new ShotEffect(stage, particles, {...base
 const ring = () => stage.getObjectByName('shot-ring');
 const cleanup = fx => {fx.dispose();assert.equal(stage.children.length, 0, 'estágio limpo');assert.equal(particles.count, 0, 'sem partículas');particles.clear();};
 
-// Argola (shotKind 0): desenhada na origem + deslocamentos COM SINAL
-let fx = make({shotKind: 0, shotRadius: .5, shotHorizontal: -.5, shotVertical: .25, shotSquash: 2});
+// Argola (shotKind 1): desenhada na origem + deslocamentos COM SINAL
+let fx = make({shotKind: 1, shotRadius: .5, shotHorizontal: -.5, shotVertical: .25, shotSquash: 2});
 fx.fire();
 assert.ok(ring(), 'argola existe depois do disparo');
 assert.equal(ring().geometry.type, 'TorusGeometry');
@@ -25,39 +25,43 @@ cleanup(fx);
 
 // Impulso com sinal: positivo à frente, negativo para trás
 const z0 = -2;
-fx = make({shotKind: 0, shotHorizontal: 0, shotImpulseH: 2, shotImpulseV: 0});fx.fire();fx.update(.1);
+fx = make({shotKind: 1, shotHorizontal: 0, shotImpulseH: 2, shotImpulseV: 0});fx.fire();fx.update(.1);
 assert.ok(Math.abs(ring().position.z - (z0 + .2)) < 1e-9, 'impulso positivo à frente');cleanup(fx);
-fx = make({shotKind: 0, shotHorizontal: 0, shotImpulseH: -2, shotImpulseV: 0});fx.fire();fx.update(.1);
+fx = make({shotKind: 1, shotHorizontal: 0, shotImpulseH: -2, shotImpulseV: 0});fx.fire();fx.update(.1);
 assert.ok(Math.abs(ring().position.z - (z0 - .2)) < 1e-9, 'impulso negativo para trás');cleanup(fx);
 
 // A argola some ao fim de shotTime
-fx = make({shotKind: 0, shotTime: .25});fx.fire();fx.update(.1);assert.ok(ring().material.opacity > 0);
+fx = make({shotKind: 1, shotTime: .25});fx.fire();fx.update(.1);assert.ok(ring().material.opacity > 0);
 fx.update(.3);assert.ok(!ring() || ring().visible === false || ring().material.opacity === 0, 'argola apagada ao fim do tempo');cleanup(fx);
 
-// Tiro em cone (shotKind 1): jato de partículas, sem argola; ângulo com sinal
-fx = make({shotKind: 1, shotCount: 40});fx.fire();
+// Tiro em cone (shotKind 2): jato de partículas, sem argola; ângulo com sinal
+fx = make({shotKind: 2, shotCount: 40});fx.fire();
 assert.equal(ring(), undefined, 'cone não desenha argola');
 assert.equal(particles.systems.length, 1, 'um sistema Quarks');
 for (let i = 0; i < 10; i++) particles.update(1 / 60);
 assert.ok(particles.count > 0, 'partículas nasceram');cleanup(fx);
 const dirOf = fx => {const e = particles.systems[0].emitter;return new T.Vector3(0, 0, 1).applyQuaternion(e.quaternion);};
-fx = make({shotKind: 1, shotAngleH: 40});fx.fire();const right = dirOf(fx);cleanup(fx);
-fx = make({shotKind: 1, shotAngleH: -40});fx.fire();const left = dirOf(fx);cleanup(fx);
+fx = make({shotKind: 2, shotAngleH: 40});fx.fire();const right = dirOf(fx);cleanup(fx);
+fx = make({shotKind: 2, shotAngleH: -40});fx.fire();const left = dirOf(fx);cleanup(fx);
 assert.ok(right.x > .3 && left.x < -.3 && Math.abs(right.x + left.x) < 1e-6, `ângulo horizontal com sinal: ${right.x} / ${left.x}`);
-fx = make({shotKind: 1, shotAngleV: 30});fx.fire();assert.ok(dirOf(fx).y > .3, 'ângulo vertical positivo sobe');cleanup(fx);
-fx = make({shotKind: 1, shotImpulseH: -3, shotLength: 1});fx.fire();assert.ok(dirOf(fx).z < 0, 'impulso negativo dominante inverte o jato');cleanup(fx);
+fx = make({shotKind: 2, shotAngleV: 30});fx.fire();assert.ok(dirOf(fx).y > .3, 'ângulo vertical positivo sobe');cleanup(fx);
+fx = make({shotKind: 2, shotImpulseH: -3, shotLength: 1});fx.fire();assert.ok(dirOf(fx).z < 0, 'impulso negativo dominante inverte o jato');cleanup(fx);
+
+// Nenhum (shotKind 0, o padrão): não desenha nem emite nada, mesmo com a fase ligada
+fx = make({shotKind: 0});fx.fire();assert.equal(stage.children.length, 0);assert.equal(particles.systems.length, 0);cleanup(fx);
+assert.equal(defaults.sand.shotKind, 0, 'o padrão é Nenhum: o visual atual não muda');
 
 // Fase de disparo desligada: não executa nada
-fx = make({launchOn: 0});fx.fire();assert.equal(stage.children.length, 0);assert.equal(particles.systems.length, 0);cleanup(fx);
+fx = make({launchOn: 0, shotKind: 1});fx.fire();assert.equal(stage.children.length, 0);cleanup(fx);
 
 // Trocar o tipo não mexe nos valores do outro (a camada nunca escreve nos valores)
-const values = {...base, shotKind: 0, shotCount: 77, shotRadius: .9};
+const values = {...base, shotKind: 1, shotCount: 77, shotRadius: .9};
 const before = JSON.stringify(values);
 fx = new ShotEffect(stage, particles, values, {origin: [0, 0, 0], direction: [0, 0, 1]});fx.fire();cleanup(fx);
 assert.equal(JSON.stringify(values), before, 'valores intactos');
 
 // Segue a origem durante shotFollow
 let originZ = -2;
-fx = make({shotKind: 0, shotFollow: .5, shotImpulseH: 0, shotHorizontal: 0}, {follow: () => [0, .4, originZ]});fx.fire();originZ = 3;fx.update(.1);
+fx = make({shotKind: 1, shotFollow: .5, shotImpulseH: 0, shotHorizontal: 0}, {follow: () => [0, .4, originZ]});fx.fire();originZ = 3;fx.update(.1);
 assert.ok(Math.abs(ring().position.z - 3) < 1e-9, 'argola acompanha a origem enquanto durar o seguimento');cleanup(fx);
 console.log('PASS: camada de disparo');
