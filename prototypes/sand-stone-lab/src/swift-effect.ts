@@ -1,4 +1,5 @@
 import * as T from 'three';
+import {outcomeOf} from './outcome.ts';
 import {ShotEffect} from './shot-effect.ts';
 import {Particles} from './particles.js';
 import type {Variant} from './config.ts';
@@ -12,9 +13,9 @@ export class SwiftEffect {
   private ribbons:Ribbon[][]=[];private streams:Stream[]=[];private source=new T.Group();private impact=new T.Group();private echo:T.Mesh;
   private rays:T.Mesh[]=[];private impactRings:T.Object3D[]=[];private debris:Shards;private constellation:T.Line|null=null;private satellites:T.Mesh[]=[];
   private launched=false;private hit=false;private point=new T.Vector3();private p:Params;private variant:Variant;private particles:Particles;
-  private cast=.42;private flight=.95;private fin=0;private shot:ShotEffect;
+  private cast=.42;private flight=.95;private fin=0;private holdT=0;private out=outcomeOf({});private shot:ShotEffect;
   constructor(group:T.Group,particles:Particles,variant:Variant,p:Params){
-    Object.assign(this,{p,variant,particles});this.cast=p.startTime??.42;this.flight=Math.max(.01,p.flightTime??.95);this.duration=this.cast+this.flight+(.73+.8*p.dissipation);this.fin=Math.min(p.finishTime??.45,.73+.8*p.dissipation);
+    Object.assign(this,{p,variant,particles});this.out=outcomeOf(p);this.holdT=p.holdTime??0;this.cast=p.startTime??.42;this.flight=Math.max(.01,(p.flightTime??.95)*this.out.reach);this.duration=this.cast+this.flight+(.73+.8*p.dissipation);this.fin=Math.min(p.finishTime??.45,.73+.8*p.dissipation);
     this.shot=new ShotEffect(group,particles,p,{origin:[0,1.2,-2.45],direction:[0,0,1]});
     const primary=hue(p.primaryHue),secondary=hue(p.secondaryHue,.7),white=new T.Color(0xfff6d8),star=starShape(p.pointRatio);
     stageMarkers(group);group.add(this.source,this.impact);this.source.position.set(0,1.2,-2.45);this.impact.position.set(0,1.3,2.55);
@@ -53,25 +54,25 @@ export class SwiftEffect {
   private arrival(i:number){return this.cast+this.flight+(this.variant===0?i*.055:0);}
   private path(t:number,i:number,out:T.Vector3){
     const delay=this.variant===0?i*.055:0,u=saturate((t-this.cast-delay)/this.flight),s=smooth(u);
-    out.set((i-1)*(this.variant===2?.8:.52)*(1-s*.4)+Math.sin(u*Math.PI)*(i-1)*(this.variant===1?.65:.25)*this.p.dispersion,1.2+(i===1?(this.variant===2?.6:.22):0)+Math.sin(u*Math.PI)*(this.variant===1?.65:this.variant===2?.18:.3),-2.45+s*5);
+    out.set((i-1)*(this.variant===2?.8:.52)*(1-s*.4)+Math.sin(u*Math.PI)*(i-1)*(this.variant===1?.65:.25)*this.p.dispersion,1.2+(i===1?(this.variant===2?.6:.22):0)+Math.sin(u*Math.PI)*(this.variant===1?.65:this.variant===2?.18:.3),-2.45+s*5*this.out.reach);
   }
   /** Janelas das fases sequenciais (Burst: o surgimento NÃO é carga). Disparo e contato são camadas de evento. */
-  timeline(){const a=this.cast+this.flight;return [{id:'start',from:0,to:this.cast},{id:'body',from:this.cast,to:a},{id:'finish',from:a,to:a+this.fin},{id:'impact',from:a+this.fin,to:this.duration}].filter(x=>x.to>x.from) as {id:'start'|'body'|'finish'|'impact';from:number;to:number}[];}
+  timeline(){const a=this.cast+this.flight,h=this.holdT,hit=this.out.hits;return [{id:'start',from:0,to:this.cast},{id:'body',from:this.cast,to:a},{id:'sustain',from:a,to:a,freeze:h},{id:'finish',from:a,to:hit?a+this.fin:this.duration},{id:'impact',from:a+this.fin,to:hit?this.duration:a+this.fin}].filter(x=>x.to>x.from||(x.freeze??0)>0) as {id:'start'|'body'|'sustain'|'finish'|'impact';from:number;to:number;freeze?:number}[];}
   update(t:number,_dt:number){
     this.shot.update(_dt);
     const {p,variant}=this,post=t-(this.cast+this.flight),fade=1-smooth((t-(this.cast+this.flight+.18))/(.6*p.dissipation));
     this.source.visible=p.startOn!==0&&t<this.cast+.22;this.source.scale.setScalar(.12+.88*smooth(t/this.cast));this.source.rotation.z=t*(variant===1?3:-1.2);fadeTree(this.source,(1-smooth((t-this.cast)/.22))*p.opacity);
     if(t>=this.cast&&!this.launched){this.shot.fire();for(let i=0;i<(p.launchOn===0?0:3);i++){this.path(this.cast,i,this.point);this.streams.push(this.particles.create({kind:variant===1?'streak':'star',color:hue(p.secondaryHue).getHex(),rate:Math.round((variant===1?85:40)*p.sparks),duration:this.flight,life:p.trailDuration,size:variant===1?.15:.07,speed:.8,radius:.09,angle:.5,position:this.point.toArray(),direction:[0,.25,-1],opacity:.8*p.opacity}));}this.particles.create({kind:'star',color:hue(p.primaryHue).getHex(),count:Math.round(28*p.sparks),duration:.05,life:.45,size:.12,speed:2.5,radius:.35,position:[0,1.2,-2.45],opacity:.9});this.launched=true;}
     for(let i=0;i<3;i++){
-      const star=this.stars[i],arrival=this.arrival(i);this.path(t,i,star.position);star.visible=!(p.bodyOn===0&&t<arrival)&&!(p.finishOn===0&&t>=arrival)&&t>=.05&&fade>.005;star.scale.setScalar((.15+.85*smooth(t/this.cast))*(1-smooth((t-arrival)/(.55*p.dissipation))*.9));star.rotation.z=(variant===2?-.2:1)*t*p.rotation*Math.PI/180+(i-1)*.18;star.rotation.y=variant===1?Math.sin(t*9+i)*.22:.1;fadeTree(star,fade);
+      const star=this.stars[i],arrival=this.arrival(i);this.path(t,i,star.position);star.visible=!(p.bodyOn===0&&t<arrival)&&!(p.finishOn===0&&t>=arrival)&&t>=.05&&fade>.005;star.scale.setScalar((.15+.85*smooth(t/this.cast))*(1-smooth((t-arrival)/((p.finishTime??.55)*p.dissipation))*.9));star.rotation.z=(variant===2?-.2:1)*t*p.rotation*Math.PI/180+(i-1)*.18;star.rotation.y=variant===1?Math.sin(t*9+i)*.22:.1;fadeTree(star,fade);
       if(this.streams[i])this.streams[i].emitter.position.copy(star.position);
       this.ribbons[i].forEach((r,j)=>{r.mesh.visible=p.bodyOn!==0&&t>=this.cast&&t<arrival+p.trailDuration;r.update((at,v)=>{this.path(at,i,v);if(variant===1&&j>0){const coil=Math.sin(saturate((at-this.cast)/this.flight)*Math.PI)*.18*p.dispersion;v.x+=Math.cos(at*21+j*Math.PI)*coil;v.y+=Math.sin(at*21+j*Math.PI)*coil;}},Math.min(t,arrival),(variant===1?.85:variant===2?.3:.48)*p.tailLength,(variant===0?(j===0?.13:.025):variant===1?(j===0?.32:.055):.035)*p.trailWidth,(1-smooth((t-arrival)/p.trailDuration))*p.opacity*(j===0?.8:.65));});
     }
     if(this.constellation){this.constellation.visible=t>.12&&post<.3;const a=this.constellation.geometry.attributes.position as T.BufferAttribute;[0,1,2,0,2,1].forEach((n,j)=>{const s=this.stars[n].position;a.setXYZ(j,s.x,s.y,s.z);});a.needsUpdate=true;this.satellites.forEach((s,i)=>{s.visible=t>.12&&post<.4;s.position.copy(this.stars[i%3].position);const r=(.55+(i%4)*.1)*p.halo;s.position.x+=Math.cos(t*2+i)*r;s.position.y+=Math.sin(t*2+i)*r;s.position.z+=Math.sin(i*2)*.15;s.rotation.z=-t*2;});}
-    if(post>=0&&!this.hit){if(p.impactOn!==0)this.particles.create({kind:'star',color:hue(p.primaryHue).getHex(),count:Math.round((variant===1?130:70)*p.flash*p.sparks),duration:.05,life:.75*p.dissipation,size:variant===1?.14:.1,speed:variant===1?5.2:3.4,radius:.2,angle:1.6,position:[0,1.3,2.55],opacity:.9*p.opacity});this.hit=true;}
-    const impactFade=1-smooth(post/(.85*p.dissipation));this.impact.visible=p.impactOn!==0&&post>=0&&impactFade>.001;
+    if(post>=0&&!this.hit){if(p.impactOn!==0&&this.out.hits)this.particles.create({kind:'star',color:hue(p.primaryHue).getHex(),count:Math.round((variant===1?130:70)*p.flash*p.sparks*(p.impactParticles??1)),duration:.05,life:.75*p.dissipation,size:variant===1?.14:.1,speed:variant===1?5.2:3.4,radius:.2,angle:1.6,position:[0,1.3,2.55],opacity:.9*p.opacity});this.hit=true;}
+    const impactFade=1-smooth(post/((p.impactTime??.85)*p.dissipation));this.impact.visible=p.impactOn!==0&&this.out.hits&&post>=0&&impactFade>.001;this.impact.scale.setScalar(p.impactSize??1);
     if(post>=0){fadeTree(this.impact,impactFade*p.flash);const swell=1+smooth(post/.28)*.8;this.rays.forEach((ray,i)=>{ray.scale.set(variant===1?1.6:1,(.5+(i%4)*.18)*swell,1);ray.position.set(Math.sin(-ray.rotation.z)*post*.35,Math.cos(ray.rotation.z)*post*.35,0);});this.impactRings.forEach((r,i)=>{r.scale.setScalar(.3+post*(variant===1?4:2.4)+i*.07);r.rotation.z=post*(i%2?-1:1);});this.debris.update(post,'burst',.65,variant===1?.11:.06,impactFade);}
-    this.echo.visible=p.impactOn!==0&&post>=0&&post<.65;this.echo.scale.setScalar(1+Math.max(0,post)*5);fadeTree(this.echo,impactFade*.6);this.punch=p.impactOn!==0&&post>=0?Math.exp(-post*14)*(variant===1?.85:.55)*p.flash:0;
+    this.echo.visible=p.impactOn!==0&&this.out.hits&&post>=0&&post<.65;this.echo.scale.setScalar(1+Math.max(0,post)*5);fadeTree(this.echo,impactFade*.6);this.punch=p.impactOn!==0&&this.out.hits&&post>=0?Math.exp(-post*14)*(variant===1?.85:.55)*p.flash:0;
     this.phase=t<this.cast?['Abertura solar','Vórtice de cometas','Montagem do atlas'][variant]:post<0?['Lâminas em voo','Caudas helicoidais','Constelação em deslocamento'][variant]:post<.4?['Coroa de impacto','Explosão meteórica','Ruptura da constelação'][variant]:'Dissipação';
   }
 }

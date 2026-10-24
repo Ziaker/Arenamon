@@ -1,4 +1,5 @@
 import * as T from 'three';
+import {outcomeOf} from './outcome.ts';
 import {ShotEffect} from './shot-effect.ts';
 import {Particles} from './particles.js';
 import type {Variant} from './config.ts';
@@ -27,13 +28,13 @@ function runner(parent:T.Object3D,color:T.Color,ghost=false){
 /** Visual studies only. The moving fist/body is the source of every trail and impact. */
 export class RushEffect {
   duration:number;phase='Preparação';punch=0;readonly actor:T.Group;
-  caster:T.Group|null=null;private hold=0;private tail=0;private fin=0;private shot:ShotEffect;
+  caster:T.Group|null=null;private holdT=0;private out=outcomeOf({});private hold=0;private tail=0;private fin=0;private shot:ShotEffect;
   private p:Params;private kind:Kind;private variant:Variant;private particles:Particles;
   private ghosts:T.Group[]=[];private trails:Ribbon[]=[];private fins:T.Mesh[]=[];
   private impact=new T.Group();private launch=new T.Group();private rings:T.Mesh[]=[];private rays:T.Mesh[]=[];private debris:Shards;
   private fired=false;private hit=false;private charge:number;private travel:number;private arrival:number;
   constructor(group:T.Group,particles:Particles,kind:Kind,variant:Variant,p:Params){
-    Object.assign(this,{p,kind,variant,particles});this.charge=p.chargeTime;this.travel=p.travelTime;this.arrival=this.charge+this.travel;this.hold=p.holdTime??0;this.tail=.85*p.decay;this.fin=Math.min(p.finishTime??.45,this.tail);this.duration=this.arrival+this.hold+this.tail;
+    Object.assign(this,{p,kind,variant,particles});this.out=outcomeOf(p);this.holdT=p.holdTime??0;this.charge=p.chargeTime;this.travel=Math.max(.01,p.travelTime*this.out.reach);this.arrival=this.charge+this.travel;this.hold=0;this.tail=.85*p.decay;this.fin=Math.min(p.finishTime??.45,this.tail);this.duration=this.arrival+this.hold+this.tail;
     this.shot=new ShotEffect(group,particles,p,{origin:[0,.4,-2.4],direction:[0,0,1]});
     const color=hue(p.primaryHue,.62),white=new T.Color(0xe8faff),gold=new T.Color(0xffc46d),quick=kind==='quickattack';
     const target=addMesh(group,new T.CapsuleGeometry(.23,.65,5,10),new T.MeshStandardMaterial({color:0x556371,roughness:.8}));target.position.set(0,.6,2.7);
@@ -56,19 +57,19 @@ export class RushEffect {
   }
   private path(t:number,out:T.Vector3){
     const u=saturate((t-this.charge)/this.travel),quick=this.kind==='quickattack';
-    const z=-2.35+4.7*(quick&&this.variant===2?Math.min(1,Math.floor(u*5)/4):smooth(u));
+    const z=-2.35+4.7*this.out.reach*(quick&&this.variant===2?Math.min(1,Math.floor(u*5)/4):smooth(u));
     const lateral=quick&&this.variant===1?Math.sin(u*TAU*1.5)*Math.sin(u*Math.PI)*this.p.spread:0;
     out.set(lateral,quick?.68:1.05,z);if(t<this.charge&&this.p.startOn!==0)out.z-=Math.sin(t/this.charge*Math.PI)*.25;
   }
   /** Janelas das fases sequenciais no tempo do efeito (a permanência de tamanho zero não entra). Disparo e contato são camadas de evento. */
-  timeline(){const a=this.arrival,h=this.hold,f=this.fin;return [{id:'start',from:0,to:this.charge},{id:'body',from:this.charge,to:a},{id:'sustain',from:a,to:a+h},{id:'finish',from:a+h,to:a+h+f},{id:'impact',from:a+h+f,to:this.duration}].filter(x=>x.to>x.from) as {id:'start'|'body'|'sustain'|'finish'|'impact';from:number;to:number}[];}
+  timeline(){const a=this.arrival,h=this.holdT,f=this.fin,hit=this.out.hits;return [{id:'start',from:0,to:this.charge},{id:'body',from:this.charge,to:a},{id:'sustain',from:a,to:a,freeze:h},{id:'finish',from:a,to:hit?a+f:this.duration},{id:'impact',from:a+f,to:hit?this.duration:a+f}].filter(x=>x.to>x.from||(x.freeze??0)>0) as {id:'start'|'body'|'sustain'|'finish'|'impact';from:number;to:number;freeze?:number}[];}
   update(t:number,_dt:number){
     this.shot.update(_dt);
-    const {p,kind,variant}=this,quick=kind==='quickattack',post=t-this.arrival,u=saturate((t-this.charge)/this.travel),fade=1-smooth((post-this.hold)/(.7*p.decay));
+    const {p,kind,variant}=this,quick=kind==='quickattack',post=t-this.arrival,u=saturate((t-this.charge)/this.travel),fade=1-smooth((post-this.hold)/((p.impactTime??.7)*p.decay));
     this.path(t,this.actor.position);
     // Quick Attack: depois do contato o corpo VOLTA à origem (sem segundo hit); fase de finalização desligada = comportamento antigo (some no alvo)
     const travelling=t>=this.charge&&t<this.arrival,ret=quick&&p.finishOn!==0;
-    this.actor.visible=!(p.bodyOn===0&&travelling)&&(ret?t<this.arrival+this.hold+this.fin:t<this.arrival+.3*p.decay);
+    this.actor.visible=!(p.bodyOn===0&&travelling)&&(ret?t<this.arrival+this.hold+this.fin:t<this.arrival+(p.finishTime??.3)*p.decay);
     if(ret&&post>this.hold){const r=smooth(saturate((post-this.hold)/Math.max(.001,this.fin)));this.actor.position.z+=(-2.35-this.actor.position.z)*r;}
     // Bullet Punch: o corpo some durante a corrida e reaparece perto do alvo no golpe
     if(this.caster){this.caster.visible=!travelling;this.caster.position.z=t>=this.arrival?1.55:-2.7;}
@@ -89,12 +90,12 @@ export class RushEffect {
       r.update((at,out)=>{this.path(at,out);const a=i/Math.max(1,this.trails.length)*TAU;if(!quick&&variant===1){out.x+=Math.cos(at*20*p.twist+a)*.4;out.y+=Math.sin(at*20*p.twist+a)*.4;}else{out.x+=Math.cos(a)*.3*p.spread;out.y+=Math.sin(a)*.32*p.spread;}},Math.min(t,this.arrival),this.travel*.7*p.trailLength,(quick&&variant===1?.12:.035)*p.width,p.opacity*fade);
     });
     if(t>=this.charge&&!this.fired){this.shot.fire();if(p.launchOn!==0)this.particles.create({kind:quick?'grain':'streak',color:hue(p.primaryHue).getHex(),count:Math.round(35*p.particleDensity),duration:.05,life:.4,size:.08,speed:2,radius:.3,position:[0,.12,-2.4],opacity:p.opacity});this.fired=true;}
-    this.impact.visible=p.impactOn!==0&&post>=0&&fade>.001;
+    this.impact.visible=p.impactOn!==0&&this.out.hits&&post>=0&&fade>.001;this.impact.scale.setScalar(p.impactSize??1);
     if(post>=0){fadeTree(this.impact,fade*p.flash);this.rings.forEach((r,i)=>{r.scale.setScalar(.2+post*(quick?4:3)+i*.18);r.rotation.z=post*(variant===1?8:1)*(i%2?1:-1);});
       this.rays.forEach((r,i)=>{const a=i/this.rays.length*TAU,d=.15+post*(variant===2?2:1.1);r.position.set(Math.sin(a)*d,Math.cos(a)*d,variant===1?Math.sin(a*3)*post:0);r.rotation.z=-a;r.scale.set(1,(.4+(i%3)*.3)*(1+post*2),1);});this.debris.update(post,'burst',.6,quick?.05:.1,fade);
-      if(!this.hit){if(p.impactOn!==0)this.particles.create({kind:quick?'streak':'shard',color:hue(p.primaryHue).getHex(),count:Math.round((quick?50:85)*p.particleDensity),duration:.05,life:.5*p.decay,size:quick?.1:.15,speed:quick?3:4,radius:.2,position:[0,quick?.8:1.05,2.35],opacity:p.opacity});this.hit=true;}
+      if(!this.hit){if(p.impactOn!==0&&this.out.hits)this.particles.create({kind:quick?'streak':'shard',color:hue(p.primaryHue).getHex(),count:Math.round((quick?50:85)*p.particleDensity*(p.impactParticles??1)),duration:.05,life:.5*p.decay,size:quick?.1:.15,speed:quick?3:4,radius:.2,position:[0,quick?.8:1.05,2.35],opacity:p.opacity});this.hit=true;}
     }
-    this.punch=p.impactOn!==0&&post>=0?Math.exp(-post*13)*p.flash*(quick?.4:.75):0;
+    this.punch=p.impactOn!==0&&this.out.hits&&post>=0?Math.exp(-post*13)*p.flash*(quick?.4:.75):0;
     this.phase=t<this.charge?'Antecipação':post<0?(quick?['Arrancada','Mudanças de direção','Passos instantâneos'][variant]:['Disparo do pistão','Perfuração helicoidal','Rajada de punhos'][variant]):post<.3?'Impacto':'Dissipação';
   }
 }

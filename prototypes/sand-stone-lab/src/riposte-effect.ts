@@ -42,13 +42,13 @@ export class RiposteEffect {
  /** Janelas das fases sequenciais por cenário: só o 0 (acerto na janela) tem contra-ataque em movimento; os cenários de falha têm a consequência; a cauda fecha na duração. */
  timeline(){
   const cast=RIPOSTE_TIMING.cast,c=this.contact;type Id='start'|'body'|'finish'|'impact';
-  const spans:{id:Id;from:number;to:number}[]=this.success?[{id:'start',from:0,to:c},{id:'body',from:c,to:cast}]:this.p.scenario===1?[{id:'start',from:0,to:cast}]:[{id:'start',from:0,to:c},{id:'finish',from:c,to:cast}];
-  spans.push({id:'impact',from:cast,to:this.duration});return spans.filter(x=>x.to>x.from);
+  const spans:{id:Id|'sustain';from:number;to:number;freeze?:number}[]=this.success?[{id:'start',from:0,to:c},{id:'body',from:c,to:cast}]:this.p.scenario===1?[{id:'start',from:0,to:cast}]:[{id:'start',from:0,to:c},{id:'finish',from:c,to:cast}];
+  if((this.p.holdTime??0)>0)spans.push({id:'sustain',from:cast,to:cast,freeze:this.p.holdTime});spans.push({id:'impact',from:cast,to:this.duration});return spans.filter(x=>x.to>x.from||(x.freeze??0)>0);
  }
  update(t:number,_dt:number){
   this.shot.update(_dt);
   const {p,variant,contact,success}=this,cast=RIPOSTE_TIMING.cast,post=t-cast,triggered=success&&t>=contact,window=t<RIPOSTE_TIMING.windowEnd;
-  const fade=1-smooth(post/(.6*p.decay)),opening=.25+.75*smooth(t/.1),guardEnd=p.scenario!==1?contact:cast;
+  const fade=1-smooth(post/((p.impactTime??.6)*p.decay)),opening=.25+.75*smooth(t/.1),guardEnd=p.scenario!==1?contact:cast;
   this.guard.visible=p.startOn!==0&&t<guardEnd;this.guard.scale.setScalar(p.guardSize*opening);
   fadeTree(this.guard,p.opacity*(window?1:.18));this.petals.forEach((g,i)=>{
    if(variant===0){const a=i/6*TAU,r=(1-opening)*.55;g.position.set(Math.sin(-a)*r,Math.cos(a)*r,0);}
@@ -61,14 +61,14 @@ export class RiposteEffect {
   this.incoming.visible=p.scenario!==1&&t>=Math.max(0,contact-.22)&&t<contact;
   this.incoming.position.set(0,.9,1.9-3.35*smooth((t-contact+.22)/.22));this.incoming.scale.setScalar(p.scenario===3?1.8:1);
   if(triggered){const pos=new T.Vector3();this.strikePath(t,pos);this.defender.position.z=pos.z;this.counter.position.copy(pos);}
-  if(p.finishOn!==0&&!success&&p.scenario!==1&&t>=contact){this.defender.position.z-=smooth((t-contact)/.2)*.3;this.defender.rotation.x=-Math.sin(smooth((t-contact)/.3)*Math.PI)*.25;}
+  if(p.finishOn!==0&&!success&&p.scenario!==1&&t>=contact){this.defender.position.z-=smooth((t-contact)/(.2*(p.finishTime??.3)/.3))*.3;this.defender.rotation.x=-Math.sin(smooth((t-contact)/(p.finishTime??.3))*Math.PI)*.25;}
   this.counter.visible=p.bodyOn!==0&&triggered&&post<.25*p.decay;this.counter.scale.setScalar(p.counterSize);this.counter.rotation.z=variant===2?Math.max(0,t-contact)*12*p.rotation:0;fadeTree(this.counter,fade*p.opacity);
   if(variant===1)this.cuts.forEach((g,i)=>g.rotation.z=(i?1:-1)*(Math.PI/4+Math.max(0,t-contact)*5*p.rotation));
   this.ribbons.forEach((r,i)=>{r.mesh.visible=p.bodyOn!==0&&triggered&&post<.25*p.decay;r.update((at,out)=>{this.strikePath(at,out);const a=i/this.ribbons.length*TAU;out.x+=Math.cos(a)*.22*p.counterSize;out.y+=Math.sin(a)*.22*p.counterSize;},Math.min(t,cast),.2*p.trailLength,.045*p.width,fade*p.opacity);});
   if(triggered&&!this.blocked){this.shot.fire();if(p.launchOn!==0)this.particles.create({kind:'shard',color:this.color.getHex(),count:Math.round(35*p.particleDensity),duration:.05,life:.28,size:.09,speed:2,radius:.15,position:[0,.9,-1.45],opacity:p.opacity});this.blocked=true;}
-  this.impact.visible=p.impactOn!==0&&success&&post>=0&&fade>.001;
+  this.impact.visible=p.impactOn!==0&&success&&post>=0&&fade>.001;this.impact.scale.setScalar(p.impactSize??1);
   if(success&&post>=0){fadeTree(this.impact,fade*p.flash);this.impacts.forEach((g,i)=>{if(variant===2){g.scale.setScalar(.3+post*4+i*.2);g.position.z=-post*i*.4;}else{g.scale.set(p.width*(variant===1?.7:.3),(.45+post*2)*p.counterSize,1);g.position.set(Math.sin(-g.rotation.z)*post,Math.cos(g.rotation.z)*post,0);}});this.debris.update(post,'burst',.5,.08,fade);
-   if(!this.hit){if(p.impactOn!==0)this.particles.create({kind:'streak',color:this.color.getHex(),count:Math.round(65*p.particleDensity),duration:.05,life:.45*p.decay,size:.12,speed:4,radius:.2,position:[0,.9,1.9],opacity:p.opacity});this.hit=true;}
+   if(!this.hit){if(p.impactOn!==0)this.particles.create({kind:'streak',color:this.color.getHex(),count:Math.round(65*p.particleDensity*(p.impactParticles??1)),duration:.05,life:.45*p.decay,size:.12,speed:4,radius:.2,position:[0,.9,1.9],opacity:p.opacity});this.hit=true;}
   }
   this.punch=p.impactOn!==0&&success&&post>=0?Math.exp(-post*13)*.65*p.flash:triggered?Math.exp(-(t-contact)*22)*.2*p.flash:0;
   this.phase=t<.1?'Abertura da guarda · janela ativa':triggered?(t<cast?'Acerto anulado → contra-ataque PL4':'Impacto do contra-ataque · sem clash'):!success&&p.scenario!==1&&t>=contact?(p.scenario===3?'Guard Break atravessa · sem contra-ataque':'Golpe tardio · sem proteção'):window?'Janela de interceptação ativa':t<cast?'Janela encerrada · recuperação exposta':'Sem acerto elegível · encerrado';

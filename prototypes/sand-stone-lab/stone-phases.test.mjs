@@ -12,7 +12,7 @@ const scene = new T.Scene(), stage = new T.Group();scene.add(stage);
 function make(variant, over = {}) {
   const particles = new Particles(scene, {textures: false});
   let created = 0;const create = particles.create.bind(particles);particles.create = o => {created++;return create(o);};
-  const fx = new StoneEffect(stage, particles, variant, {...defaults.stone, ...over}, null, variant);
+  const fx = new StoneEffect(stage, particles, variant, {...defaults.stone, flightTime: 0, ...over}, null, variant);   // golden e asserções partem do trajeto 0 (visual legado)
   return {fx, particles, created: () => created};
 }
 function run(h, to) {let t = h.t ?? 0;while (t + 1 / 60 <= to + 1e-9) {t += 1 / 60;h.fx.update(t, 1 / 60);h.particles.update(1 / 60);}h.fx.update(to, 0);h.t = to;}
@@ -53,4 +53,8 @@ for (let v = 0; v < 3; v++) {
   // (f) disparo: argola na origem quando escolhida
   const shot = make(v, {shotKind: 1});run(shot, .6);assert.ok(stage.getObjectByName('shot-ring'), 'argola do disparo');
 }
+// padrão NOVO (24/10, pedido do responsável): o trajeto subterrâneo vem ligado
+assert.ok(defaults.stone.flightTime >= .5, 'o padrão tem trajeto subterrâneo');
+const real = new StoneEffect(stage, new Particles(scene, {textures: false}), 0, {...defaults.stone}, null, 0);
+assert.deepEqual(real.timeline().map(s => s.id), ['start', 'body', 'sustain', 'finish'], 'com o padrão há fase de trajeto');
 console.log('PASS: Emerging Stone com fases desligáveis');

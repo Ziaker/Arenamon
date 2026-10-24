@@ -60,8 +60,35 @@ const before = JSON.stringify(values);
 fx = new ShotEffect(stage, particles, values, {origin: [0, 0, 0], direction: [0, 0, 1]});fx.fire();cleanup(fx);
 assert.equal(JSON.stringify(values), before, 'valores intactos');
 
+// Burst de vento anime (shotKind 3): lâminas radiais e speedlines
+fx = make({shotKind: 3, shotWindBlades: 6, shotBladeCurve: 45, shotSnapTime: .15});fx.fire();
+const blades = stage.getObjectByName('shot-blades');
+assert.ok(blades, 'shot-blades existe para o burst anime');
+assert.equal(blades.children.length, 6, '6 lâminas radiais criadas');
+assert.ok(particles.systems.length > 0, 'partículas streak do burst criadas');
+fx.update(.08);
+assert.ok(blades.scale.x > 1, 'lâminas expandiram com snap');
+fx.update(.2);
+assert.ok(!blades.visible, 'lâminas dissiparam após snapTime');
+cleanup(fx);
+
+// Jato pressurizado perfurante (shotKind 4): afunilamento métrico e cavitação
+fx = make({shotKind: 4, shotRadius: .5, shotRadiusEnd: .1, shotFocalDist: 2.0, shotCavitation: 6});fx.fire();
+assert.equal(particles.systems.length, 2, 'núcleo concentrado + estrias de cavitação');
+assert.equal(stage.getObjectByName('shot-ring'), undefined);
+cleanup(fx);
+
+// Impacto estelar em cruz (shotKind 5): cruz ortogonal de detonação
+fx = make({shotKind: 5, shotCrossArms: 1.2, shotCrossAngle: 45, shotCrossSparks: 18});fx.fire();
+const cross = stage.getObjectByName('shot-cross');
+assert.ok(cross, 'shot-cross existe');
+assert.equal(cross.children.length, 2, 'braço horizontal e vertical');
+assert.ok(Math.abs(cross.rotation.z - 45 * Math.PI / 180) < 1e-6, 'rotação inicial em cruz X');
+assert.ok(particles.systems.length > 0, 'centelhas em cruz emitidas');
+cleanup(fx);
+
 // Segue a origem durante shotFollow
 let originZ = -2;
 fx = make({shotKind: 1, shotFollow: .5, shotImpulseH: 0, shotHorizontal: 0}, {follow: () => [0, .4, originZ]});fx.fire();originZ = 3;fx.update(.1);
 assert.ok(Math.abs(ring().position.z - 3) < 1e-9, 'argola acompanha a origem enquanto durar o seguimento');cleanup(fx);
-console.log('PASS: camada de disparo');
+console.log('PASS: camada de disparo com 5 opções e afunilamento');

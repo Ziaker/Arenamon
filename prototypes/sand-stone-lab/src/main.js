@@ -92,7 +92,7 @@ function buildGroups(c){
   if(key.startsWith('shot')&&key!=='shotKind')shotFields.push({key,el:wrap});
   return wrap;
  };
- const groups=buildPanel(definitions[c]).map(g=>{
+ const groups=buildPanel(definitions[c],c,state.variant).map(g=>{
   const box=document.createElement('details');box.className='phase-group';box.dataset.phase=g.phase;box.open=g.phase==='start'||g.phase==='body';
   const summary=document.createElement('summary');summary.textContent=g.title;box.append(summary);
   const on=values()[g.phase+'On']!==0;
@@ -163,6 +163,7 @@ renderer.setAnimationLoop(now=>{
  renderer.info.reset();composer.render();camera.position.copy(save);
  $('phase').textContent=clock?(clock.nothingToShow?'—':phaseNames[clock.phaseAt(state.time)]??'—'):effect.phase;$('time').textContent=state.time.toFixed(2)+' / '+fxDur().toFixed(2)+' s';$('scrub').value=state.time;$('quarks-status').textContent=particles.count+' partículas · '+renderer.info.render.calls+' draw calls · three.quarks';
 });
+window.__labShotSignature=()=>effect?.shot?.signature?.()??null;
 window.__labDiagnostics=()=>({noFlash:state.noFlash,reduce:state.reduce,startOn:values().startOn,shotKind:values().shotKind,category:state.category,variant:state.variant,particleSystems:particles.systems.length,particles:particles.count,time:state.time,hasQuarks:typeof particles.renderer.addSystem==='function',version:3,visualRevision:6,drawCalls:renderer.info.render.calls,geometries:renderer.info.memory.geometries,textures:renderer.info.memory.textures,visualSignature:stage.userData.visualSignature??'legacy',riposte:state.category==='riposte'?{guardVisible:effect.guard.visible,counterVisible:effect.counter.visible,success:effect.success,contact:effect.contact,scenario:values().scenario}:null});
 try{applySaved(readSaved());}catch{}
 $('reduced').checked=state.reduce;$('noflash').checked=!!state.noFlash;

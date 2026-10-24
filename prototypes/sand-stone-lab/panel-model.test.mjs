@@ -17,14 +17,21 @@ for (const c of categories) {
   assert.deepEqual([...seen].sort(), [...expected].sort(), `${c}: nenhum controle se perde`);
   for (const d of controls[c]) assert.ok(isToggle(d[0]) || help[d[0]], `${c}/${d[0]}: falta a explicação curta`);
 }
-// disparo: só os sliders do efeito escolhido
-const ring = ['shotThickness', 'shotSquash'], cone = ['shotAngleH', 'shotAngleV', 'shotCount', 'shotLength', 'shotParticleSize', 'shotParticleLife'], common = ['shotRadius', 'shotHorizontal', 'shotVertical', 'shotImpulseH', 'shotImpulseV', 'shotTime', 'shotFollow'];
-for (const k of common) for (const kind of [0, 1, 2]) assert.equal(shotKeyVisible(k, kind), kind !== 0, `${k} aparece com Argola e com Cone, não com Nenhum`);
-for (const k of ring) {assert.equal(shotKeyVisible(k, 1), true);assert.equal(shotKeyVisible(k, 2), false);assert.equal(shotKeyVisible(k, 0), false);}
-for (const k of cone) {assert.equal(shotKeyVisible(k, 2), true);assert.equal(shotKeyVisible(k, 1), false);assert.equal(shotKeyVisible(k, 0), false);}
+// disparo: só os sliders do efeito escolhido (os testes completos dos 27 sliders estão em shot-sliders.test.mjs)
 assert.equal(shotKeyVisible('shotKind', 0), true, 'o seletor sempre aparece');
 assert.equal(shotKeyVisible('length', 0), true, 'chave que não é de disparo sempre aparece');
-assert.deepEqual(selectorLabels.shotKind, ['Nenhum', 'Argola', 'Tiro em cone']);
+for (const k of ['shotRadius', 'shotHorizontal', 'shotImpulseH']) {assert.equal(shotKeyVisible(k, 0), false, k + ' escondido com Nenhum');assert.equal(shotKeyVisible(k, 1), true, k + ' aparece com Argola');}
+assert.equal(shotKeyVisible('shotThickness', 1), true);assert.equal(shotKeyVisible('shotThickness', 2), false);
+assert.equal(shotKeyVisible('shotCount', 2), true);assert.equal(shotKeyVisible('shotCount', 1), false);
+assert.equal(shotKeyVisible('shotWindBlades', 3), true);assert.equal(shotKeyVisible('shotCavitation', 4), true);assert.equal(shotKeyVisible('shotCrossArms', 5), true);assert.equal(shotKeyVisible('shotCrossArms', 4), false);
+assert.deepEqual(selectorLabels.shotKind, ['Nenhum', 'Argola', 'Tiro em cone', 'Burst de vento anime', 'Jato pressurizado', 'Impacto estelar']);
 assert.equal(selectorLabels.scenario.length, 4);
 assert.equal(selectorLabels.outcome.length, 3);
+// controles que não se aplicam ficam escondidos (slider sem efeito seria «morto»)
+const keysOf = (c, v) => buildPanel(controls[c], c, v).flatMap(g => g.controls.map(d => d[0]));
+assert.ok(keysOf('sand', 0).includes('outcome'), 'Sand Wave tem o resultado da prévia');
+assert.ok(!keysOf('rock', 0).includes('outcome') && !keysOf('rock', 0).includes('shotKind') && !keysOf('rock', 0).includes('flightTime'), 'Rocha: sem resultado, disparo nem trajeto');
+assert.ok(!keysOf('stone', 0).includes('outcome') && !keysOf('riposte', 0).includes('outcome'));
+assert.ok(keysOf('psyshock', 0).includes('ringThickness') && !keysOf('psyshock', 1).includes('ringThickness'), 'espessura dos glifos só nas propostas A e C');
+assert.ok(!keysOf('sand', 0).includes('rotationX') && !keysOf('sand', 0).includes('hitOn'), 'controles mortos foram removidos');
 console.log('PASS: modelo do painel por fase');

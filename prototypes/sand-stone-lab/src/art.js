@@ -114,13 +114,13 @@ export function shockRing(color,radius=1,thickness=.2) {
 }
 
 export function fractures(seed=3,color=0xe6a453,width=1) {
-  const group=new T.Group(),random=rng(seed),dark=new T.MeshBasicMaterial({color:0x080a0a,side:T.DoubleSide}),lit=new T.MeshBasicMaterial({color,transparent:true,opacity:0,side:T.DoubleSide,toneMapped:false});
+  const group=new T.Group(),random=rng(seed),dark=new T.MeshBasicMaterial({color:0x080a0a,side:T.DoubleSide,transparent:true,opacity:0}),lit=new T.MeshBasicMaterial({color,transparent:true,opacity:0,side:T.DoubleSide,toneMapped:false});
   for(let i=0;i<11;i++){
     const a=i/11*Math.PI*2,points=[];
     for(let k=0;k<5;k++){const r=.45+k*.45;points.push(new T.Vector3(Math.cos(a)*r+Math.sin(a)*(random()-.5)*.3,.018,Math.sin(a)*r+Math.cos(a)*(random()-.5)*.3));}
     const curve=new T.CatmullRomCurve3(points);mesh(group,new T.TubeGeometry(curve,12,.035*width,3,false),dark);mesh(group,new T.TubeGeometry(curve,12,.012*width,3,false),lit,[0,.016,0]);
   }
-  group.userData.glow=lit;return group;
+  group.userData.glow=lit;group.userData.dark=dark;return group;
 }
 
 // One instanced draw for tumbling debris. Fixed trajectories let pause/seek remain stable.

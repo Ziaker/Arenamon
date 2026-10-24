@@ -2,7 +2,7 @@
 
 ## VOL. 07 — Seis fases desligáveis em todos os efeitos (24/10/2026)
 
-O atelier (versão 7.0.0 dos arquivos exportados) passa a cumprir [PADRAO_ATELIES_VFX.md](PADRAO_ATELIES_VFX.md) nas 24 propostas. Plano e decisões: [plans/2026-10-24-vfx-por-fase-atelier.md](plans/2026-10-24-vfx-por-fase-atelier.md). [Galeria de capturas](../prototypes/sand-stone-lab/evidence/fases-24-10/index.html).
+O atelier (versão 7.0.0 dos arquivos exportados) passa a cumprir [PADRAO_ATELIES_VFX.md](PADRAO_ATELIES_VFX.md) nas 24 propostas. Auditoria v2.0: [AUDITORIA_ATELIER_VFX_V2_2026-10-24.md](AUDITORIA_ATELIER_VFX_V2_2026-10-24.md). Plano e decisões: [plans/2026-10-24-vfx-por-fase-atelier.md](plans/2026-10-24-vfx-por-fase-atelier.md). [Galeria de capturas](../prototypes/sand-stone-lab/evidence/fases-24-10/index.html).
 
 - **Seis fases por efeito**, cada uma com o interruptor «Ligar esta fase» (ligada por padrão): Surgimento / preparação, Disparo / lançamento, Corpo e trajeto, Duração em cena, Finalização / retorno e Impacto / explosão / hit. Fase desligada não executa e não aparece na legenda; os sliders dela ficam esmaecidos e guardam os valores. Se todas ficarem desligadas, o painel avisa que não há nada para mostrar.
 - **Todo controle** tem nome, unidade, explicação curta, slider e campo numérico sincronizados, agrupado pela fase. Ângulos em ±180°; impulsos e deslocamentos aceitam sinal (positivo à frente, negativo para trás).
