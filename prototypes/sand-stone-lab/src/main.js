@@ -13,6 +13,7 @@ import {SwiftEffect,PsyshockEffect} from './new-effects.ts';
 import {controls as definitions,defaults,categories,help,phaseNames} from './config.ts';
 import {PhaseClock} from './phases.ts';
 import {buildPanel,shotKeyVisible,selectorLabels,notApplicable} from './panel-model.ts';
+import {withApproved} from './approved.ts';
 import {initialPresets,exportSingle,exportAll,parsePreset,migrateLocal,exportFileName,serializeLocal,restoreLocal} from './presets.ts';
 
 const $=id=>document.getElementById(id);
@@ -26,7 +27,7 @@ const descriptions={
  swift:[['Lâminas solares','Estrelas de ouro com volume, fitas de luz e uma coroa cortante que se abre no impacto.','OURO / CORTE / COROA'],['Tempestade de cometas','Três núcleos estelares puxam caudas helicoidais, dispersam brasas e explodem em uma chuva de fragmentos.','HÉLICES / MASSA / EXPLOSÃO'],['Atlas estelar','Estrelas vazadas, órbitas e satélites compõem um mapa vivo. A constelação se rompe em um selo geométrico.','MAPA / GEOMETRIA / SELO']],
  psyshock:[['Ressonância PSI','Losangos comprimem cada pedra, deixam ecos no trajeto e se expandem no impacto. Animação PSI integrada aos projéteis.','LOSANGOS / COMPRESSÃO / ECOS'],['Ruptura PSI','Descargas serrilhadas se acumulam junto às pedras, riscam o trajeto e se abrem em cortes radiais no impacto.','DESCARGAS / CORTES / RUPTURA'],['Floração PSI','Hexágonos crescem e se alternam ao redor de cada pedra, deixam ecos e se abrem em pétalas cromáticas no impacto.','HEXÁGONOS / ECOS / PÉTALAS']]
 };
-const state={category:'sand',variant:0,model:'match',presets:initialPresets(),time:0,playing:true,rate:.7,exposure:1.1,shake:.35,bloom:.48,reduce:matchMedia('(prefers-reduced-motion: reduce)').matches,noFlash:false,loop:true,previewCount:5};
+const state={category:'sand',variant:0,model:'match',presets:withApproved(initialPresets()),time:0,playing:true,rate:.7,exposure:1.1,shake:.35,bloom:.48,reduce:matchMedia('(prefers-reduced-motion: reduce)').matches,noFlash:false,loop:true,previewCount:5};
 const values=()=>state.presets[state.category]['ABC'[state.variant]];
 const canvas=$('scene');let renderer;
 try{renderer=new T.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'});}catch(error){$('fatal').hidden=false;$('fatal').textContent='Não foi possível iniciar o 3D. Ative a aceleração gráfica do navegador.';throw error;}
