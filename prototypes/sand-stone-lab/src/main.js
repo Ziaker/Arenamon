@@ -13,7 +13,7 @@ import {SwiftEffect,PsyshockEffect} from './new-effects.ts';
 import {controls as definitions,defaults,categories,help,phaseNames} from './config.ts';
 import {PhaseClock} from './phases.ts';
 import {buildPanel,shotKeyVisible,selectorLabels} from './panel-model.ts';
-import {initialPresets,exportSingle,exportAll,parsePreset,migrateLocal} from './presets.ts';
+import {initialPresets,exportSingle,exportAll,parsePreset,migrateLocal,exportFileName,serializeLocal,restoreLocal} from './presets.ts';
 
 const $=id=>document.getElementById(id);
 const descriptions={
@@ -26,7 +26,7 @@ const descriptions={
  swift:[['Lâminas solares','Estrelas de ouro com volume, fitas de luz e uma coroa cortante que se abre no impacto.','OURO / CORTE / COROA'],['Tempestade de cometas','Três núcleos estelares puxam caudas helicoidais, dispersam brasas e explodem em uma chuva de fragmentos.','HÉLICES / MASSA / EXPLOSÃO'],['Atlas estelar','Estrelas vazadas, órbitas e satélites compõem um mapa vivo. A constelação se rompe em um selo geométrico.','MAPA / GEOMETRIA / SELO']],
  psyshock:[['Ressonância PSI','Losangos comprimem cada pedra, deixam ecos no trajeto e se expandem no impacto. Animação PSI integrada aos projéteis.','LOSANGOS / COMPRESSÃO / ECOS'],['Ruptura PSI','Descargas serrilhadas se acumulam junto às pedras, riscam o trajeto e se abrem em cortes radiais no impacto.','DESCARGAS / CORTES / RUPTURA'],['Floração PSI','Hexágonos crescem e se alternam ao redor de cada pedra, deixam ecos e se abrem em pétalas cromáticas no impacto.','HEXÁGONOS / ECOS / PÉTALAS']]
 };
-const state={category:'sand',variant:0,model:'match',presets:initialPresets(),time:0,playing:true,rate:.7,exposure:1.1,shake:.35,bloom:.48,reduce:false,loop:true,previewCount:5};
+const state={category:'sand',variant:0,model:'match',presets:initialPresets(),time:0,playing:true,rate:.7,exposure:1.1,shake:.35,bloom:.48,reduce:matchMedia('(prefers-reduced-motion: reduce)').matches,noFlash:false,loop:true,previewCount:5};
 const values=()=>state.presets[state.category]['ABC'[state.variant]];
 const canvas=$('scene');let renderer;
 try{renderer=new T.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'});}catch(error){$('fatal').hidden=false;$('fatal').textContent='Não foi possível iniciar o 3D. Ative a aceleração gráfica do navegador.';throw error;}
@@ -59,12 +59,14 @@ const fixedStep=1/60;
 function construct(){
  particles.clear();disposeGroup(stage);delete stage.userData.visualSignature;state.time=0;accumulator=0;
  const p={...values()};if(state.reduce){p.density=(p.density??1)*.45;p.particleDensity=(p.particleDensity??1)*.45;p.sparks=(p.sparks??1)*.45;p.flash=(p.flash??1)*.45;p.impactIntensity=(p.impactIntensity??1)*.7;p.emissivity=(p.emissivity??1)*.45;p.shards=(p.shards??1)*.45;}
+ if(state.noFlash){for(const k of ['flash','halo'])if(k in p)p[k]=0;for(const k of ['coreGlow','edgeGlow','veinGlow','emissivity','glow'])if(k in p)p[k]*=.4;if('pulseRate' in p)p.pulseRate=0;}
+ if(state.reduce){for(const k of ['turn','angularSpeed','twist','spiral','undulation'])if(k in p)p[k]*=.3;}
  effect=state.category==='riposte'?new RiposteEffect(stage,particles,state.variant,p):['bulletpunch','quickattack'].includes(state.category)?new RushEffect(stage,particles,state.category,state.variant,p):state.category==='sand'?new SandEffect(stage,particles,state.variant,p):state.category==='stone'?new StoneEffect(stage,particles,state.variant,p,texture,state.model==='match'?state.variant:Number(state.model)):state.category==='rock'?new RockEffect(stage,state.variant,{...p,wire:$('wire').checked},texture):state.category==='swift'?new SwiftEffect(stage,particles,state.variant,p):new PsyshockEffect(stage,particles,state.variant,p,state.previewCount);
  clock=effect.timeline?new PhaseClock(effect.timeline(),p):null;
  effect.update(fxTime(0),0);$('scrub').max=fxDur().toFixed(2);showPhaseNote();
 }
 function showPhaseNote(){const n=$('phase-warning');n.hidden=false;if(clock&&clock.nothingToShow)n.textContent='Nenhuma fase visual ligada: não há nada para mostrar. Ligue ao menos uma fase.';else if(!clock)n.textContent='Esta proposta ainda não obedece aos interruptores das fases.';else n.hidden=true;}
-function replay(){construct();state.playing=true;updatePlay();}
+function replay(){scheduleSave();construct();state.playing=true;updatePlay();}
 function updatePlay(){$('pause').textContent=state.playing?'Ⅱ Pausar':'▶ Continuar';$('pause').setAttribute('aria-pressed',String(!state.playing));}
 function buildGroups(c){
  const shotFields=[],kindOf=()=>Math.round(values().shotKind??0);
@@ -127,22 +129,24 @@ $('scrub').oninput=e=>{
  while(state.time+fixedStep<target){state.time+=fixedStep;effect.update(fxTime(state.time),fixedStep);particles.update(fixedStep);}
  const rest=target-state.time;state.time=target;effect.update(fxTime(target),rest);if(rest>0)particles.update(rest);
 };
-$('save').onclick=()=>{try{localStorage.setItem('arenamon.sand-stone.v3',JSON.stringify({presets:state.presets,category:state.category,variant:state.variant,model:state.model}));$('save-status').textContent='Configuração salva neste navegador.';}catch{$('save-status').textContent='O navegador não permitiu salvar.';}};
-$('load').onclick=()=>{
- try{const data=JSON.parse(localStorage.getItem('arenamon.sand-stone.v3')||localStorage.getItem('arenamon.sand-stone.v2'));if(!data)throw Error();
-  state.presets=migrateLocal(data);
-  if(descriptions[data.category])state.category=data.category;if(Number.isInteger(data.variant))state.variant=clamp(data.variant,0,2);if(['match','0','1','2'].includes(data.model))state.model=data.model;
-  $('model').value=state.model;refreshSelection();replay();frameCamera();$('save-status').textContent='Configuração carregada.';
- }catch{$('save-status').textContent='Nenhuma configuração válida salva.';}
-};
-function presentation(){return {bloom:state.bloom,exposure:state.exposure,shake:state.shake,rate:state.rate,reduce:state.reduce,loop:state.loop,model:state.model,previewCount:state.previewCount,camera:$('camera').value,wire:$('wire').checked,grid:grid.visible};}
+const SAVE_KEY='arenamon.sand-stone.v4',today=()=>new Date().toLocaleDateString('sv-SE');let saveTimer=0;
+function autosave(){try{localStorage.setItem(SAVE_KEY,JSON.stringify(serializeLocal({presets:state.presets,category:state.category,variant:state.variant,model:state.model,presentation:presentation()})));$('save-status').textContent='Salvo automaticamente neste navegador (vale só para este navegador e este arquivo HTML; o .json exportado é a cópia segura).';}catch{$('save-status').textContent='O navegador não permitiu salvar automaticamente; use Exportar.';}}
+function scheduleSave(){clearTimeout(saveTimer);saveTimer=setTimeout(autosave,300);}
+function syncPresentation(pr){Object.assign(state,pr);for(const id of ['rate','bloom','shake','exposure']){$(id).value=state[id];$(id+'-value').textContent=state[id].toFixed(2)+'×';}$('reduced').checked=state.reduce;$('noflash').checked=!!state.noFlash;$('loop').checked=state.loop;$('model').value=state.model;$('preview-count').value=state.previewCount;$('camera').value=pr.camera;$('wire').checked=pr.wire;$('grid').checked=pr.grid;grid.visible=pr.grid;}
+function applySaved(data){const r=restoreLocal(data);if(!r)return false;state.presets=r.presets;state.category=r.category;state.variant=r.variant;state.model=r.model;if(r.presentation)syncPresentation(r.presentation);else $('model').value=state.model;return true;}
+const readSaved=()=>JSON.parse(localStorage.getItem(SAVE_KEY)||localStorage.getItem('arenamon.sand-stone.v3')||localStorage.getItem('arenamon.sand-stone.v2')||'null');
+$('save').onclick=()=>{clearTimeout(saveTimer);autosave();};
+$('load').onclick=()=>{try{if(!applySaved(readSaved()))throw Error();refreshSelection();replay();frameCamera();$('save-status').textContent='Configuração salva recarregada.';}catch{$('save-status').textContent='Nenhuma configuração válida salva.';}};
+document.addEventListener('input',scheduleSave);document.addEventListener('change',scheduleSave);
+$('noflash').onchange=e=>{state.noFlash=e.target.checked;replay();};
+function presentation(){return {bloom:state.bloom,exposure:state.exposure,shake:state.shake,rate:state.rate,reduce:state.reduce,loop:state.loop,model:state.model,previewCount:state.previewCount,camera:$('camera').value,wire:$('wire').checked,grid:grid.visible,noFlash:!!state.noFlash};}
 function download(data,name){const blob=new Blob([JSON.stringify(data,null,2)+'\n'],{type:'application/json;charset=utf-8'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=name;document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}
-$('export-one').onclick=()=>download(exportSingle(state.presets,state.category,state.variant,presentation()),`arenamon-${state.category}-${'ABC'[state.variant]}.json`);
-$('export-all').onclick=()=>download(exportAll(state.presets,presentation()),'arenamon-vfx-todas.json');
+$('export-one').onclick=()=>download(exportSingle(state.presets,state.category,state.variant,presentation()),exportFileName({scope:'single',category:state.category,variant:state.variant},today()));
+$('export-all').onclick=()=>download(exportAll(state.presets,presentation()),exportFileName({scope:'all'},today()));
 $('import').onclick=()=>$('import-file').click();
 $('import-file').onchange=async e=>{const file=e.target.files?.[0];e.target.value='';if(!file)return;try{if(file.size>512000)throw Error('Arquivo acima de 500 KB');const parsed=parsePreset(await file.text());const label=parsed.scope==='single'?`${parsed.category} ${parsed.variant}`:'todas as 24 opções';if(!confirm(`Importar ${label}? Os ajustes locais correspondentes serão substituídos.`))return;
  if(parsed.scope==='single'){state.presets[parsed.category][parsed.variant]={...parsed.values};state.category=parsed.category;state.variant='ABC'.indexOf(parsed.variant);}else state.presets=parsed.presets;
- Object.assign(state,parsed.presentation);for(const id of ['rate','bloom','shake','exposure']){$(id).value=state[id];$(id+'-value').textContent=state[id].toFixed(2)+'×';}$('reduced').checked=state.reduce;$('loop').checked=state.loop;$('model').value=state.model;$('preview-count').value=state.previewCount;$('camera').value=parsed.presentation.camera;$('wire').checked=parsed.presentation.wire;$('grid').checked=parsed.presentation.grid;grid.visible=parsed.presentation.grid;refreshSelection();replay();frameCamera(parsed.presentation.camera);$('save-status').textContent=`Importado: ${label}.`;
+ syncPresentation(parsed.presentation);refreshSelection();replay();frameCamera(parsed.presentation.camera);$('save-status').textContent=`Importado: ${label}.${parsed.ignored?` ${parsed.ignored} campo(s) desconhecido(s) ignorado(s).`:''}${parsed.filled?` ${parsed.filled} valor(es) ausente(s) completado(s) com o padrão.`:''}`;
  }catch(error){$('save-status').textContent='Importação recusada: '+error.message;}};
 document.addEventListener('keydown',e=>{if(e.target.matches('input,select,button'))return;if(['1','2','3'].includes(e.key)){state.variant=Number(e.key)-1;refreshSelection();replay();}if(e.code==='Space'){e.preventDefault();state.playing=!state.playing;updatePlay();}if(e.key.toLowerCase()==='r')replay();});
 function resize(){const {width,height}=canvas.getBoundingClientRect(),w=Math.max(1,Math.floor(width)),h=Math.max(1,Math.floor(height));if(w===lastWidth&&h===lastHeight)return;lastWidth=w;lastHeight=h;renderer.setSize(w,h,false);composer.setSize(w,h);camera.aspect=w/h;camera.updateProjectionMatrix();}
@@ -150,12 +154,14 @@ renderer.setAnimationLoop(now=>{
  resize();const elapsed=Math.min(.08,Math.max(0,(now-last)/1000));last=now;
  if(state.playing&&clock?.nothingToShow){state.playing=false;updatePlay();}
  if(state.playing){accumulator+=elapsed*state.rate*(state.reduce?.65:1);while(accumulator>=fixedStep){accumulator-=fixedStep;state.time+=fixedStep;effect.update(fxTime(state.time),fixedStep);particles.update(fixedStep);if(state.time>=fxDur()){if(state.loop)construct();else{state.time=fxDur();state.playing=false;updatePlay();break;}}}}
- orbit.update();renderer.toneMappingExposure=state.exposure;bloomPass.strength=state.bloom;
- const punch=effect.punch??0;blast.intensity=punch*24;blast.position.z=state.category==='sand'?state.presets.sand['ABC'[state.variant]].length/2:state.category==='swift'?2.55:state.category==='psyshock'?2.4:state.category==='riposte'?1.9:['bulletpunch','quickattack'].includes(state.category)?2.35:0;
+ orbit.update();renderer.toneMappingExposure=state.exposure;bloomPass.strength=state.noFlash?Math.min(state.bloom,.25):state.bloom;
+ const punch=effect.punch??0;blast.intensity=state.noFlash?0:punch*24;blast.position.z=state.category==='sand'?state.presets.sand['ABC'[state.variant]].length/2:state.category==='swift'?2.55:state.category==='psyshock'?2.4:state.category==='riposte'?1.9:['bulletpunch','quickattack'].includes(state.category)?2.35:0;
  if(['swift','psyshock','bulletpunch','quickattack','riposte'].includes(state.category))blast.color.setHSL(values().primaryHue/360,.8,.62);else blast.color.setHex(0xffbb60);
  const shift=state.reduce?0:punch*state.shake*.075,save=camera.position.clone();camera.position.x+=Math.sin(state.time*151)*shift;camera.position.y+=Math.cos(state.time*127)*shift;
  renderer.info.reset();composer.render();camera.position.copy(save);
  $('phase').textContent=clock?(clock.nothingToShow?'—':phaseNames[clock.phaseAt(state.time)]??'—'):effect.phase;$('time').textContent=state.time.toFixed(2)+' / '+fxDur().toFixed(2)+' s';$('scrub').value=state.time;$('quarks-status').textContent=particles.count+' partículas · '+renderer.info.render.calls+' draw calls · three.quarks';
 });
-window.__labDiagnostics=()=>({category:state.category,variant:state.variant,particleSystems:particles.systems.length,particles:particles.count,time:state.time,hasQuarks:typeof particles.renderer.addSystem==='function',version:3,visualRevision:6,drawCalls:renderer.info.render.calls,geometries:renderer.info.memory.geometries,textures:renderer.info.memory.textures,visualSignature:stage.userData.visualSignature??'legacy',riposte:state.category==='riposte'?{guardVisible:effect.guard.visible,counterVisible:effect.counter.visible,success:effect.success,contact:effect.contact,scenario:values().scenario}:null});
+window.__labDiagnostics=()=>({noFlash:state.noFlash,reduce:state.reduce,startOn:values().startOn,shotKind:values().shotKind,category:state.category,variant:state.variant,particleSystems:particles.systems.length,particles:particles.count,time:state.time,hasQuarks:typeof particles.renderer.addSystem==='function',version:3,visualRevision:6,drawCalls:renderer.info.render.calls,geometries:renderer.info.memory.geometries,textures:renderer.info.memory.textures,visualSignature:stage.userData.visualSignature??'legacy',riposte:state.category==='riposte'?{guardVisible:effect.guard.visible,counterVisible:effect.counter.visible,success:effect.success,contact:effect.contact,scenario:values().scenario}:null});
+try{applySaved(readSaved());}catch{}
+$('reduced').checked=state.reduce;$('noflash').checked=!!state.noFlash;
 refreshSelection();construct();frameCamera();

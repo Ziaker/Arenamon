@@ -12,9 +12,9 @@
     <label class="field"><span>Brilho mineral <output id="bloom-value">0.48×</output></span><input id="bloom" aria-label="Brilho mineral" type="range" min="0" max="1.2" step=".02" value=".48"></label>
     <label class="field"><span>Luminosidade <output id="exposure-value">1.10×</output></span><input id="exposure" aria-label="Luminosidade" type="range" min=".6" max="1.8" step=".05" value="1.1"></label>
     <label class="field"><span>Tremor de impacto <output id="shake-value">0.35×</output></span><input id="shake" aria-label="Tremor de impacto" type="range" min="0" max="1" step=".05" value=".35"></label>
-    <label class="check"><input id="reduced" type="checkbox"> Movimento reduzido</label><label class="check"><input id="grid" type="checkbox"> Grade de escala (1 m)</label>
+    <label class="check"><input id="reduced" type="checkbox"> Movimento reduzido</label><label class="check"><input id="noflash" type="checkbox"> Sem flash / pulsação</label><label class="check"><input id="grid" type="checkbox"> Grade de escala (1 m)</label>
    </div></details>
-   <div class="save-row"><button id="save">Salvar no navegador</button><button id="load">Carregar do navegador</button></div><div class="save-row json-row"><button id="export-one">Exportar esta opção (.json)</button><button id="export-all">Exportar todas (.json)</button><button id="import">Importar configuração (.json)</button><input id="import-file" type="file" accept=".json,application/json" hidden></div><p id="save-status" role="status" class="hint"></p>
+   <div class="save-row"><button id="save">Salvar agora</button><button id="load">Recarregar o salvo</button></div><div class="save-row json-row"><button id="export-one">Exportar esta opção (.json)</button><button id="export-all">Exportar todas (.json)</button><button id="import">Importar configuração (.json)</button><input id="import-file" type="file" accept=".json,application/json" hidden></div><p id="save-status" role="status" class="hint"></p>
   </aside>
   <main id="viewport">
    <canvas id="scene" aria-label="Visualização 3D animada da proposta ativa"></canvas><div id="fatal" class="fatal" hidden></div>

@@ -79,6 +79,42 @@ try {
   await page.waitForTimeout(250);
   check('religar tira o aviso', await L(() => document.getElementById('phase-warning').hidden));
 
+  // ---------- Salvar automático, exportar datado, importar contando ----------
+  await pickCategory('sand');
+  await page.locator('#phase-start-on').uncheck();
+  await page.locator('#sliders [data-key="shotKind"] select').selectOption('2');
+  await L(() => {const r = document.querySelector('#sliders [data-key="length"] input[type=range]');r.value = '5.4';r.dispatchEvent(new Event('input', {bubbles: true}));});
+  await page.waitForTimeout(700);
+  check('o salvamento automático avisa onde guardou e o limite', /automaticamente neste navegador/.test(await page.locator('#save-status').textContent()) && /cópia segura/.test(await page.locator('#save-status').textContent()));
+  await page.reload();await page.waitForFunction(() => window.__labDiagnostics);await openAll();
+  const restored = await L(() => ({d: window.__labDiagnostics(), length: document.querySelector('#sliders [data-key="length"] input[type=range]').value, toggle: document.getElementById('phase-start-on').checked}));
+  check('depois de recarregar, a página volta como estava (fase desligada, disparo escolhido, valor do slider)', restored.d.startOn === 0 && restored.d.shotKind === 2 && restored.length === '5.4' && restored.toggle === false, JSON.stringify({s: restored.d.startOn, k: restored.d.shotKind, l: restored.length}));
+  const downloadFile = async sel => {const p = page.waitForEvent('download');await page.locator(sel).click();const d = await p;return {name: d.suggestedFilename(), data: JSON.parse(await (await import('node:fs/promises')).readFile(await d.path(), 'utf8'))};};
+  const one = await downloadFile('#export-one'), all = await downloadFile('#export-all');
+  check('os nomes dos arquivos exportados levam a data', /^arenamon-sand-[ABC]-\d{4}-\d{2}-\d{2}\.json$/.test(one.name) && /^arenamon-vfx-todas-\d{4}-\d{2}-\d{2}\.json$/.test(all.name), one.name + ' · ' + all.name);
+  check('a exportação leva interruptores das fases e o disparo escolhido', one.data.visualParameters.startOn === 0 && one.data.visualParameters.shotKind === 2 && one.data.presentation.noFlash === false);
+  const noisy = structuredClone(one.data);noisy.visualParameters.camponovo = 7;noisy.extra = true;delete noisy.visualParameters.holdTime;
+  page.once('dialog', d => d.accept());
+  await page.locator('#import-file').setInputFiles({name: 'novo.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(noisy))});
+  await page.waitForFunction(() => /Importado/.test(document.getElementById('save-status').textContent));
+  const imp = await page.locator('#save-status').textContent();
+  check('a importação ignora e CONTA o que não conhece e completa o que faltava', /2 campo\(s\) desconhecido\(s\) ignorado\(s\)/.test(imp) && /1 valor\(es\) ausente\(s\)/.test(imp), imp);
+  page.once('dialog', d => d.accept());
+  await page.locator('#import-file').setInputFiles({name: 'ruim.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify({...one.data, atelier: 'outro'}))});
+  await page.waitForFunction(() => /recusada/.test(document.getElementById('save-status').textContent));
+  check('arquivo que não é do atelier é recusado', true);
+
+  // ---------- Acessibilidade ----------
+  check('Sem flash e Movimento reduzido existem', await page.locator('#noflash').count() === 1 && await page.locator('#reduced').count() === 1);
+  await L(() => {document.querySelector('aside details:not(.phase-group)').open = true;});   // «Luz, movimento e apresentação»
+  await page.locator('#noflash').check();
+  check('Sem flash liga o modo e ele é guardado na exportação', (await L(() => window.__labDiagnostics().noFlash)) === true && (await downloadFile('#export-one')).data.presentation.noFlash === true);
+  await page.locator('#noflash').uncheck();
+  const ctx2 = await browser.newContext({reducedMotion: 'reduce', viewport: {width: 1200, height: 800}});await ctx2.setOffline(true);
+  const p2 = await ctx2.newPage();await p2.goto(html);await p2.waitForFunction(() => window.__labDiagnostics);
+  check('a preferência do sistema «reduzir movimento» é o valor inicial', await p2.evaluate(() => window.__labDiagnostics().reduce === true && document.getElementById('reduced').checked));
+  await ctx2.close();
+
   check('sem erros de página/console e sem requisições externas', errors.length === 0 && network.length === 0, errors.concat(network).slice(0, 3).join(' | '));
 } finally {
   await browser.close();
