@@ -51,7 +51,8 @@ ok('JSON inválido é recusado com a lista dos problemas', () => {
   const cases = [
     [d => {d.schemaVersion = 2;}, 'schemaVersion'],
     [d => {d.extra = 1;}, 'campo desconhecido: extra'],
-    [d => {delete d.def.cost;}, 'def.cost'],
+    [d => {delete d.def.name;}, 'def.name'],
+    [d => {d.def.cost = 'caro';}, 'def.cost precisa ser número'],
     [d => {d.def.id = 'Sand Wave';}, 'kebab-case'],
     [d => {d.params.rows = [];}, 'params.rows'],
     [d => {delete d.params.rows[0].label;}, 'falta label'],
