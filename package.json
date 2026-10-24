@@ -3,7 +3,7 @@
   "version": "1.36.0",
   "description": "Laboratórios offline do projeto Arenamon",
   "scripts": {
-    "morto": "knip --no-progress --reporter compact",
+    "morto": "npx --yes knip@5 --no-progress --reporter compact",
     "vigia": "node scripts/vigia.mjs",
     "rapido": "node scripts/rapido.mjs",
     "rapido:tudo": "node scripts/rapido.mjs --tudo",
