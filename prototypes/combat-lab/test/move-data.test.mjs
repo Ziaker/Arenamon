@@ -34,7 +34,7 @@ ok('custo, recarga e preparação da definição batem com os sliders (mesma fon
 });
 ok('a referência de visual aponta para um arquivo aprovado do atelier que existe e combina', () => {
   assert.deepEqual(visual, raw.visual);
-  const doc = JSON.parse(readFileSync(new URL(`../../../sand-stone-lab/approved/${raw.visual.atelier}.json`, here), 'utf8'));
+  const doc = JSON.parse(readFileSync(new URL(`../../../../sand-stone-lab/approved/${raw.visual.atelier}.json`, here), 'utf8'));
   assert.equal(doc.category, raw.visual.atelier);
   assert.equal(doc.variant, raw.visual.variant);
 });
