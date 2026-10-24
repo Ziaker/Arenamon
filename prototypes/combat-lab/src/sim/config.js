@@ -208,9 +208,6 @@ function buildDefaults() {
     // Sand Wave: Burst PL1 (MUSHROOM_MOVES_DECISOES §6). Prep 0,25 s, barragem 1,5 s (0,75 s de hitbox + 0,75 s de dissipação), retângulo 4 (frente) × 3 (lado) m, 6 HP fixos,
     // empurrão 12 m/s² (×0,5 na parcial), cegueira 4 s, stagger de parede 0,30 s, visão do cegado 10 m, fog = redução de 60% da luz. cell/detour/replanSteps: grade do caminho livre (técnicos).
     sandWave: {cost: 2, cooldown: 10, cast: .25, length: 4, width: 3, active: .75, dissipate: .75, damage: 6, accel: 12, partialFactor: .5, blind: 4, wallStagger: .3, visionRadius: 10, fogDarkness: .6, cell: .25, detour: 3, replanSteps: 6, knockbackH: 0, knockbackV: 0, hitShakeOn: 0, hitShakeAmount: 1, hitShakeDuration: 1},
-    // Spikes: Normal Field PL1. Marcador de colocação (alcance 3D 5 m), cast 0,4 s, armadilha de 1,2 m de raio por 8 s, 6 HP nominais (× Ataque ÷ referência), sem knockback, 1 acionamento.
-    // markerSpeed/startDistance/maxRise/armDelay/trapHeight não vêm do documento (MV-P29/MV-P31): provisórios.
-    spikes: {cost: 1, cooldown: 10, cast: .4, range: 5, radius: 1.2, life: 8, damage: 6, knockbackH: 0, knockbackV: 0, armDelay: .25, markerSpeed: 8, markerAccel: 24, startDistance: 3, minRange: 0, maxRise: 2, trapHeight: 1.2, hitShakeOn: 0, hitShakeAmount: 1, hitShakeDuration: 1},
     // Moves elementais (protótipo de 23/10/2026; números do prompt de 22/10, NÃO homologados; padrões das decisões provisórias MV-P36…MV-P41).
     // Water Pulse: Charge Projectile. Carga máx. 1,5 s (180 passos; PL2 em 90, PL3 em 180), custo e recarga na ativação, 6/9/12 HP nominais, empurrão H 2/3/4 (V 0 ⇒ o motor empurra 1,5 × H m),
     // projétil de raio 0,38 m a 14 m/s e alcance 12 m (lifetime = alcance ÷ velocidade), recuperação de 0,30 s a partir da soltura. originHeight/spawnForward: nascimento (não definidos no prompt).
