@@ -8,14 +8,9 @@ import {spawn} from '../world.js';
 import {direction} from '../math.js';
 import {emitterAltitude, spawnPoint, spawnBlocked, straightLaunch} from './projectile-util.js';
 import {defineFicha} from './params-registry.js';
-import {params} from './air-slash.params.js';
+import {params, def as airSlashDef} from './air-slash.params.js';
 
-export const airSlashDef = Object.freeze({
-  id: 'air-slash', name: 'Air Slash', air: 'cast', group: 'airSlash', aim: 'target', captureAim: true,
-  description: 'Burst · Projectile · PL1. Toque: após um instante nasce uma lâmina de ar rápida, em linha reta, sem homing. O alvo travado é o do instante do toque.',
-  cost: .8, cooldown: 6, duration: 28 / 120, durationKeys: ['startup', 'recovery'],
-  timeline: [{at: 8 / 120, atKey: 'startup', effect: 'air-slash'}],
-});
+export {airSlashDef};   // definição (id, fases, custo…) vem de air-slash.move.json
 
 export function airSlashEffect(/** @type {any} */ game, /** @type {any} */ f, /** @type {any} */ def, /** @type {any} */ fx) {
   const P = fx.params ?? C.world.airSlash, dt = C.test.step;
