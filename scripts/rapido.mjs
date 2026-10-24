@@ -6,7 +6,7 @@
 //   node scripts/rapido.mjs --lento    -> também mostra os 10 testes mais lentos
 // Os testes de navegador (*.browser.mjs) NÃO entram: rode só o que tocar, ex. node prototypes/combat-lab/test/ledge.browser.mjs
 import {spawn} from 'node:child_process';
-import {readdirSync, readFileSync, writeFileSync, mkdirSync} from 'node:fs';
+import {existsSync, readdirSync, readFileSync, writeFileSync, mkdirSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {build as esbuild} from 'esbuild';
 import {cpus} from 'node:os';
@@ -16,7 +16,9 @@ import path from 'node:path';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const args = new Set(process.argv.slice(2));
 const RETRY_FS = new URL('./retry-fs.mjs', import.meta.url).href;
-const env = {...process.env, NODE_OPTIONS: `${process.env.NODE_OPTIONS ?? ''} --import=${RETRY_FS}`.trim()};
+// O GLB real do estúdio só existe na máquina do projeto; sem ele o teste se pula sozinho (mesmo modo da CI).
+const haveGlb = existsSync(path.join(root, 'prototypes/combat-lab/validation/personagem-studio.glb'));
+const env = {...process.env, ...(haveGlb ? {} : {CI: '1'}), NODE_OPTIONS: `${process.env.NODE_OPTIONS ?? ''} --import=${RETRY_FS}`.trim()};
 
 const run = (cmd, argv) => new Promise(resolve => {
   const t0 = Date.now(); let out = '';
