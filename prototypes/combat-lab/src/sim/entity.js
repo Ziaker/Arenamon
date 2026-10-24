@@ -1,3 +1,4 @@
+// @ts-check
 // Lutadores, comandos e predicados de estado.
 import {C} from './config.js';
 import {vec} from './math.js';

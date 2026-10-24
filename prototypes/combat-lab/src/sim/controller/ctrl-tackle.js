@@ -1,3 +1,4 @@
+// @ts-check
 // Dividido de controller.js (comportamento idêntico): ctrl-tackle.
 
 import {C} from '../config.js';

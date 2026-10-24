@@ -1,3 +1,4 @@
+// @ts-check
 // Dados puros para os controles visuais dos quatro Moves elementais no jogo.
 // As chaves são objetos, e não arrays, para que o export/import do ajustador
 // consiga percorrer todos os valores por caminho estável.

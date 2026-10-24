@@ -5,6 +5,8 @@
   "scripts": {
     "morto": "npx --yes knip@5 --no-progress --reporter compact",
     "vigia": "node scripts/vigia.mjs",
+    "estrito": "node scripts/estrito.mjs",
+    "ciclos": "node scripts/ciclos.mjs prototypes/combat-lab/src/sim/game.js",
     "rapido": "node scripts/rapido.mjs",
     "rapido:tudo": "node scripts/rapido.mjs --tudo",
     "rapido:build": "node scripts/rapido.mjs --so-build",

@@ -1,3 +1,4 @@
+// @ts-check
 // Replay por estado: guarda o estado completo de cada passo (últimos N segundos). Voltar e avançar
 // quadro a quadro restaura estados exatos; retomar a partir de um ponto descarta o futuro gravado.
 export class ReplayBuffer {

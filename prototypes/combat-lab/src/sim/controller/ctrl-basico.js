@@ -1,3 +1,4 @@
+// @ts-check
 // Dividido de controller.js (comportamento idêntico): ctrl-basico.
 
 import {C} from '../config.js';

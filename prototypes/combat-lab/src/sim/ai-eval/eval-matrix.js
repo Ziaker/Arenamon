@@ -1,3 +1,4 @@
+// @ts-check
 // Dividido de ai-eval.js (comportamento idêntico): eval-matrix.
 
 import {evalPairedSeries} from './eval-series.js';
