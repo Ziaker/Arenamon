@@ -8,14 +8,9 @@ import {C} from '../config.js';
 import {spawn} from '../world.js';
 import {markerValidity} from '../aim-marker.js';
 import {defineFicha} from './params-registry.js';
-import {params} from './fire-spin.params.js';
+import {params, def as fireSpinDef} from './fire-spin.params.js';
 
-export const fireSpinDef = Object.freeze({
-  id: 'fire-spin', name: 'Fire Spin', air: 'cast', group: 'fireSpin', aimMode: 'marker', aim: 'facing',
-  description: 'Normal · Field. Segure para escolher o local (até 5 m), solte para confirmar: nasce um tornado de fogo que dá 4 pulsos de dano a quem estiver dentro. Não prende nem empurra.',
-  cost: 1, cooldown: 11, duration: .6, durationKeys: ['cast', 'recovery'], motion: {type: 'root'},
-  timeline: [{at: .4, atKeys: ['cast'], effect: 'fire-spin'}],
-});
+export {fireSpinDef};   // definição (id, fases, custo…) vem de fire-spin.move.json
 
 /** Efeito do fim do cast: revalida o local (como o Spikes), respeita o limite de zonas por dono e cria a zona. */
 export function fireSpinEffect(/** @type {any} */ game, /** @type {any} */ f, /** @type {any} */ def, /** @type {any} */ fx) {
