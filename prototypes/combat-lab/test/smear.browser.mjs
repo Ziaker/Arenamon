@@ -10,7 +10,8 @@ const page = await browser.newPage({viewport: {width: 1440, height: 1000}}), err
 page.on('pageerror', e => errors.push(e.message));page.on('console', m => {if (m.type() === 'error') errors.push(m.text());});
 try {
   await page.goto(new URL('dist/arenamon-combate-laboratorio.html', root).href);await page.waitForFunction(() => window.__lab);
-  await page.evaluate(() => {window.__lab.ui.paused = true;window.__lab.openTool('moves');});
+  // As abas de ações (Tackle, Esquiva…) moram na gaveta «Ações»; ela abre por #moves-open (o painel esquerdo «Moves» é outro).
+  await page.evaluate(() => {window.__lab.ui.paused = true;if (document.getElementById('moves-drawer').hidden) document.getElementById('moves-open').click();});
   await page.click('#act-tabs [data-act="tackle"]');
   for (const [key, value] of Object.entries({enableSmear: 0, smearDurationFrames: 4, smearMinVelocity: 20, smearWidth: .3, smearColorMode: 2, smearOpacity: .5, smearPlBoost: 0})) {
     const input = page.locator(`#act-tackle [data-path="extras.visual.smear.${key}"]`).filter({visible: true});

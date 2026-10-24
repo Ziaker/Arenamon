@@ -5,6 +5,10 @@
 // aparece na linha 7 do teste, `near`). Execução manual: node prototypes/game/test.mjs.
 import { spawnSync } from "node:child_process";
 
+// Regrava arquivos com nova tentativa quando o OneDrive os trava por instantes (ver scripts/retry-fs.mjs).
+const RETRY_FS = new URL("./retry-fs.mjs", import.meta.url).href;
+const ENV = { ...process.env, NODE_OPTIONS: `${process.env.NODE_OPTIONS ?? ""} --import=${RETRY_FS}`.trim() };
+
 const COMMANDS = [
   "npm run build",
   "node prototypes/placeholders/verify.mjs",
@@ -178,7 +182,7 @@ const COMMANDS = [
 
 for (const cmd of COMMANDS) {
   console.log("\n> " + cmd);
-  const r = spawnSync(cmd, { shell: true, stdio: "inherit" });
+  const r = spawnSync(cmd, { shell: true, stdio: "inherit", env: ENV });
   if (r.status !== 0) process.exit(r.status ?? 1);
 }
 console.log("\n✓ " + COMMANDS.length + " comandos de teste concluídos.");

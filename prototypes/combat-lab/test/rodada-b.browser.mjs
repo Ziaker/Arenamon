@@ -13,6 +13,8 @@ const check = (label, ok, detail = '') => {report.push({label, ok: !!ok, detail:
 const browser = await chromium.launch({...BROWSER, headless: true});
 try {
   const page = await browser.newPage({viewport: {width: 1500, height: 920}}), errors = [], network = [];
+  // O OneDrive às vezes trava o arquivo de evidência por instantes (UNKNOWN -4094 ao gravar o PNG): tenta de novo antes de falhar.
+  const snap = async o => {for (let t = 1; ; t++) {try {return await page.screenshot(o);} catch (e) {if (t >= 5 || !/UNKNOWN|EBUSY|EPERM/.test(String(e))) throw e;await new Promise(r => setTimeout(r, 600 * t));}}};
   page.on('pageerror', e => errors.push(e.message));page.on('console', m => {if (m.type() === 'error') errors.push(m.text());});
   page.on('request', r => {if (/^https?:/.test(r.url())) network.push(r.url());});page.on('dialog', d => d.accept());
   await page.context().setOffline(true);await page.goto(labUrl);await page.waitForFunction(() => window.__lab);await page.waitForTimeout(1500);
@@ -29,7 +31,8 @@ try {
   });
   check('todos os controles novos existem no ajustador (com rótulo e faixa)', paths.length === 0, paths.join(', ') || 'ok');
   await page.click('#moves-open');await page.waitForTimeout(400);
-  const rows = keys => L(keys => keys.filter(k => !document.querySelector(`#moves-panel [data-p="${k}"]`)), keys);
+  // Cada slider vive na aba Mecânica (data-p) ou, se for de aparência, na aba Visual do cartão (data-visual="world.<grupo>.<chave>").
+  const rows = keys => L(keys => keys.filter(k => !document.querySelector(`#moves-panel [data-p="${k}"], #moves-panel [data-visual="world.${k}"]`)), keys);
   await page.selectOption('[data-slot-move="0.0"]', 'riposte');await page.selectOption('[data-slot-move="0.1"]', 'emerging-stone');await page.selectOption('[data-slot-move="0.2"]', 'spikes');await page.selectOption('[data-slot-move="0.3"]', 'bullet-punch');await page.waitForTimeout(300);
   const miss = [...await rows(['riposte.hitstopMult', 'riposte.shakeMult', 'riposte.blastOn', 'riposte.blastSize', 'emergingStone.fxTrailOn', 'emergingStone.fxTrailSize', 'emergingStone.markerAccel', 'spikes.markerAccel', 'bulletPunch.reach', 'bulletPunch.strikeReach', 'bulletPunch.stopShort', 'bulletPunch.hitRadius', 'bulletPunch.fxLines', 'bulletPunch.fxHideBody'])];
   await page.selectOption('[data-slot-move="0.0"]', 'quick-attack');await page.waitForTimeout(300);
@@ -56,7 +59,7 @@ try {
   }, cam);
   await frames(40);
   const op1 = await L(() => window.__lab.view.worldView.mapMeshes.get('tela')?.material.opacity);
-  await page.screenshot({path: out + 'objeto-transparente.png'});
+  await snap({path: out + 'objeto-transparente.png'});
   check('o objeto entre a câmera e o lutador fica translúcido', typeof op1 === 'number' && op1 < .5, `opacidade ${op1?.toFixed?.(2)} (caixa em x=${place.x.toFixed(1)} z=${place.z.toFixed(1)})`);
   // O número da opacidade não basta: o shader opaco ignorava a transparência. Lê o PIXEL onde está o lutador, com a oclusão ligada e desligada.
   const px = await L(() => {
@@ -96,7 +99,7 @@ try {
   await frames(30);
   const rec = await L(() => window.__rec);
   check('o efeito de pouso do pulo nasce na altura da plataforma (1,5 m), não no chão', rec.some(r => r.type === 'jumpLanding' && Math.abs(r.lift - 1.5) < .05), JSON.stringify(rec.slice(0, 3)));
-  await page.screenshot({path: out + 'pouso-na-plataforma.png'});
+  await snap({path: out + 'pouso-na-plataforma.png'});
   await L(() => {window.__lab.game.mapState.platforms = [];window.__lab.game.fighters[0].groundY = 0;});
 
   // ---------- 6/7. Quick Attack: círculo de alcance e sumiço com linhas de velocidade ----------
@@ -112,13 +115,13 @@ try {
   });
   await frames(25);
   const ring1 = await L(() => {const it = window.__lab.view.aimMarkers?.items.get('r0');return it ? {color: it.mat.color.getHex(), radius: +it.radius.toFixed(2), op: +it.mat.opacity.toFixed(2)} : null;});
-  await page.screenshot({path: out + 'circulo-alcance-azul.png'});
+  await snap({path: out + 'circulo-alcance-azul.png'});
   check('segurando o botão do Quick Attack com alvo no alcance: círculo AZUL com o raio do alcance (7 m)', !!ring1 && ring1.color === 0x59b4ff && Math.abs(ring1.radius - 7) < .01, JSON.stringify(ring1));
   await L(() => {window.__lab.game.fighters[1].position = {x: 14, z: 0};});
   await L(() => {const g = window.__lab.game, e = () => ({move: {x: 0, z: 0}, dodge: false, dodgeHeld: false, tackle: false, tackleHeld: false, guard: false, guardPressed: false, jump: false, jumpHeld: false, target: null, skill: null, skillHeld: null});g.step({...e(), skillHeld: [true, false, false, false]}, e());});
   await frames(25);
   const ring2 = await L(() => {const it = window.__lab.view.aimMarkers?.items.get('r0');return it ? it.mat.color.getHex() : null;});
-  await page.screenshot({path: out + 'circulo-alcance-vermelho.png'});
+  await snap({path: out + 'circulo-alcance-vermelho.png'});
   check('com o alvo fora do alcance o círculo fica VERMELHO', ring2 === 0xff5566, ring2?.toString(16));
   await L(() => {const g = window.__lab.game, e = () => ({move: {x: 0, z: 0}, dodge: false, dodgeHeld: false, tackle: false, tackleHeld: false, guard: false, guardPressed: false, jump: false, jumpHeld: false, target: null, skill: null, skillHeld: null});g.step(e(), e());});
   await frames(6);
@@ -151,10 +154,13 @@ try {
     await new Promise(r => setTimeout(r, 120));blast = window.__lab.view.riposteFx?.blasts.length ?? 0;
     return {got, blast};
   });
-  await page.screenshot({path: out + 'riposte-explosao.png'});
+  await snap({path: out + 'riposte-explosao.png'});
   check('o contra-golpe do Riposte acerta e dispara a explosão visual provisória', rip.got && rip.blast >= 1, JSON.stringify(rip));
 
   // ---------- 10. Emerging Stone: rastro de terra bem visível ----------
+  // Pausa o laço do laboratório: os passos abaixo são manuais; com o laço solto, o tempo real dos quadros (mais lento em máquina lenta) deixava o
+  // projétil subterrâneo terminar antes de a visão desenhar o rastro (teste intermitente).
+  await L(() => {window.__labRecording.ui.paused = true;});
   await L(() => {
     const L = window.__lab, g = L.game, a = g.fighters[0], b = g.fighters[1];g.setLoadout(0, ['emerging-stone', null, null, null]);
     a.position = {x: -6, z: 0};a.groundY = 0;a.flight = null;a.action = null;a.velocity = {x: 0, z: 0};a.stamina = 11;a.moveCooldowns = {};a.facing = Math.PI / 2;b.position = {x: 8, z: 6};
@@ -171,7 +177,7 @@ try {
     const tr = m.children.find(c => c.name === 'burrowTrail'), clods = m.children.filter(c => c.name === 'burrowClod' && c.visible).length, mound = m.children.find(c => c.name === 'mound');
     return {trail: !!tr?.visible, len: +(tr?.scale.z ?? 0).toFixed(2), clods, mound: +(mound?.scale.x ?? 0).toFixed(2)};
   });
-  await page.screenshot({path: out + 'emerging-stone-rastro.png'});
+  await snap({path: out + 'emerging-stone-rastro.png'});
   check('Emerging Stone: o projétil subterrâneo deixa sulco de terra, torrões saltando e um montículo maior (1,8×)', !!trail && trail.trail && trail.len > 1 && trail.clods >= 8 && trail.mound > 1.2, JSON.stringify(trail));
 
   check('sem erros de página e sem rede externa', errors.length === 0 && network.length === 0, errors.concat(network).join(' | '));
