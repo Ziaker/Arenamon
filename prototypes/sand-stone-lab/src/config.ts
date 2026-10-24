@@ -57,5 +57,5 @@ export const controls:Record<Category,Control[]> = Object.fromEntries(categories
  return [c,defs.filter(d=>!(d[0]==='flightTime'&&['bulletpunch','quickattack'].includes(c))).map(d=>expand(d))];
 })) as Record<Category,Control[]>;
 export const defaults: Values = Object.fromEntries(Object.entries(controls).map(([category, defs]) => [category, Object.fromEntries(defs.map(d => [d[0], d[6]]))])) as Values;
-defaults.sand.holdTime=0;defaults.sand.finishTime=.65;defaults.sand.impactTime=.55;defaults.stone.warning=.55;defaults.stone.holdTime=1.6;defaults.quickattack.chargeTime=.1;defaults.quickattack.travelTime=.16;defaults.quickattack.finishTime=.14;defaults.bulletpunch.chargeTime=.75;defaults.bulletpunch.travelTime=.2;
+defaults.sand.holdTime=0;defaults.sand.finishTime=.65;defaults.sand.impactTime=.55;defaults.stone.warning=.55;defaults.stone.holdTime=1.85;defaults.stone.finishTime=.55;defaults.stone.flightTime=0;defaults.quickattack.chargeTime=.1;defaults.quickattack.travelTime=.16;defaults.quickattack.finishTime=.14;defaults.bulletpunch.chargeTime=.75;defaults.bulletpunch.travelTime=.2;
 export function variantDefaults(c:Category,v:string){return {...defaults[c],...(c==='sand'&&v==='A'?{rotationZ:90}: {})};}

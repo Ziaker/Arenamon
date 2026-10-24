@@ -12,7 +12,7 @@ import {RushEffect} from './rush-effects.ts';
 import {SwiftEffect,PsyshockEffect} from './new-effects.ts';
 import {controls as definitions,defaults,categories,help,phaseNames} from './config.ts';
 import {PhaseClock} from './phases.ts';
-import {buildPanel,shotKeyVisible,selectorLabels} from './panel-model.ts';
+import {buildPanel,shotKeyVisible,selectorLabels,notApplicable} from './panel-model.ts';
 import {initialPresets,exportSingle,exportAll,parsePreset,migrateLocal,exportFileName,serializeLocal,restoreLocal} from './presets.ts';
 
 const $=id=>document.getElementById(id);
@@ -99,6 +99,8 @@ function buildGroups(c){
   const body=document.createElement('div');body.className='phase-body';
   const tog=document.createElement('label');tog.className='check phase-toggle';const cb=document.createElement('input');cb.type='checkbox';cb.id='phase-'+g.phase+'-on';cb.checked=on;cb.dataset.phaseToggle=g.phase;
   tog.append(cb,document.createTextNode(' Ligar esta fase'));
+  const na=notApplicable[c]?.phases.includes(g.phase)?notApplicable[c].reason:'';
+  if(na){cb.disabled=true;tog.title=na;const why=document.createElement('small');why.className='help';why.textContent=na;tog.append(why);box.classList.add('na');}
   cb.onchange=()=>{values()[g.phase+'On']=cb.checked?1:0;box.classList.toggle('off',!cb.checked);replay();};
   box.classList.toggle('off',!on);
   body.append(tog,...g.controls.map(field));box.append(body);return box;

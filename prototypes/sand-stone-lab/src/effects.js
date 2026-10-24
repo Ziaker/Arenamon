@@ -70,7 +70,13 @@ export class SandEffect {
 export class StoneEffect {
   constructor(group,particles,variant,p,texture,model){
     Object.assign(this,{group,particles,variant,p});this.started=false;this.endDust=false;this.phase='Pressão subterrânea';this.punch=0;
-    this.duration=p.warning+p.rise+2.4;
+    this.fl=p.flightTime??0;this.hold=p.holdTime??1.85;this.fin=p.finishTime??.55;this.t0=p.warning+this.fl;this.travelLen=4;this.fired=false;this.acc=0;
+    this.duration=p.warning+this.fl+p.rise+this.hold+this.fin;
+    this.shot=new ShotEffect(group,particles,p,{origin:[0,.4,-this.travelLen],direction:[0,0,1]});
+    this.trail=new T.Group();this.trail.visible=false;group.add(this.trail);
+    const furrowColor=new T.Color(variant===2?0x91d4b1:0xf0a443).offsetHSL(p.energyHue/360,0,0);
+    this.furrow=mesh(this.trail,new T.PlaneGeometry(1,1),new T.MeshBasicMaterial({color:furrowColor,transparent:true,opacity:.45,depthWrite:false,blending:T.AdditiveBlending,toneMapped:false}),[0,.025,0]);this.furrow.rotation.x=-Math.PI/2;
+    const head=new T.Group();this.trail.add(head);this.trail.userData.head=head;
     this.rock=rockModel(model,texture);this.rock.scale.setScalar(p.scale);this.rock.visible=false;group.add(this.rock);this.rock.traverse(o=>{if(o.material?.isMeshBasicMaterial&&o.material.toneMapped===false)o.material.opacity*=p.veinGlow;});
     const energy=new T.Color(variant===2?0x91d4b1:0xf0a443).offsetHSL(p.energyHue/360,0,0);this.cracks=fractures(24+variant,energy,p.crackWidth);group.add(this.cracks);
     this.rings=[];
@@ -88,6 +94,16 @@ export class StoneEffect {
       }
     }
   }
+  /** Janelas das fases sequenciais no tempo do efeito. A erupção (contato) acontece no começo da permanência; o disparo sai ao fim do surgimento. */
+  timeline(){const w=this.p.warning,fl=this.fl,r=this.p.rise,h=this.hold;return [{id:'start',from:0,to:w},{id:'body',from:w,to:w+fl},{id:'sustain',from:w+fl,to:w+fl+r+h},{id:'finish',from:w+fl+r+h,to:this.duration}].filter(x=>x.to>x.from);}
+  /** Projétil subterrâneo: sulco de energia e poeira que anda da origem até o alvo durante a fase Corpo e trajeto. */
+  updateTrail(t,dt){
+    const {p,particles}=this,tf=t-p.warning,L=this.travelLen,on=this.fl>0&&p.bodyOn!==0&&tf>=0&&tf<this.fl;
+    this.trail.visible=on;if(!on)return;
+    const u=clamp(tf/this.fl),z=-L+u*L,head=this.trail.userData.head;head.position.set(0,-(p.undergroundDepth??.12),z);
+    this.furrow.scale.set(p.undergroundWidth??.24,Math.max(.01,u*L),1);this.furrow.position.z=-L+u*L/2;
+    this.acc+=dt*(p.undergroundParticles??28);while(this.acc>=1){this.acc-=1;particles.create({kind:'dust',color:0xb99a6f,count:2,duration:.05,life:.7,size:.3*(p.undergroundWidth??.24)/.24,speed:.8,radius:(p.undergroundWidth??.24)*.5,angle:.9,opacity:.45,position:[0,.08,z],direction:[0,1,0]});}
+  }
   erupt(){
     const {particles,p,variant}=this,color=variant===1?0xd0a071:0xc6b18a;
     for(let i=0;i<12;i++){
@@ -100,22 +116,26 @@ export class StoneEffect {
     this.started=true;
   }
   update(t,dt){
-    const {p,variant}=this,post=t-p.warning,u=clamp(post/p.rise),end=clamp((t-(this.duration-.55))/.55);
-    if(post>=0&&!this.started)this.erupt();
-    this.rock.visible=post>=0;this.rock.position.y=-4.3*p.scale*(1-easeOut(u))-end*end*4.3*p.scale;
+    const {p,variant}=this,post=t-this.t0,u=clamp(post/p.rise),end=p.finishOn===0?0:clamp((t-(this.duration-this.fin))/this.fin);
+    if(post>=0&&!this.started){if(p.impactOn!==0)this.erupt();else this.started=true;}
+    if(t>=p.warning&&!this.fired){this.fired=true;this.shot.fire();}
+    this.rock.visible=p.sustainOn!==0&&post>=0&&!(p.finishOn===0&&t>=this.duration-this.fin);this.rock.position.y=-4.3*p.scale*(1-easeOut(u))-end*end*4.3*p.scale;
     this.rock.rotation.z=variant===1?Math.sin(post*22)*Math.exp(-Math.max(0,post)*9)*.035:0;
     for(const piece of this.rock.userData.pieces){if(piece.userData.floating){if(piece.userData.baseY===undefined)piece.userData.baseY=piece.position.y;piece.position.y=piece.userData.baseY+Math.sin(t*2+piece.id)*.06;}}
-    this.cracks.userData.glow.opacity=(post<0?clamp(t/p.warning)**2*.85:Math.exp(-post*1.4)*.8)*p.crackIntensity;
-    this.rings.forEach((r,i)=>{r.material.opacity=(post<0?clamp(t/p.warning)*.5:(variant===2?.4:.1)*Math.exp(-post))*(1-end)*p.emissivity;r.rotation.z=t*(i%2?.1:-.1)*p.shockSpeed;r.scale.setScalar(1+Math.sin(t*5*p.shockSpeed+i)*.015);});
+    this.cracks.userData.glow.opacity=(post<0?(p.startOn===0?0:clamp(t/p.warning)**2*.85):Math.exp(-post*1.4)*.8)*p.crackIntensity;
+    this.rings.forEach((r,i)=>{r.material.opacity=(post<0?(p.startOn===0?0:clamp(t/p.warning)*.5):(variant===2?.4:.1)*Math.exp(-post))*(1-end)*p.emissivity;r.rotation.z=t*(i%2?.1:-.1)*p.shockSpeed;r.scale.setScalar(1+Math.sin(t*5*p.shockSpeed+i)*.015);});
     this.runes.rotation.y=t*.16;this.runes.visible=t<this.duration-.2;
-    this.shocks.forEach((s,i)=>{const q=post-i*.08;s.visible=q>=0&&q<.7&&(i<2||variant===2);s.scale.setScalar(.85+Math.max(0,q)*(variant===1?7.5:5)*p.shockSpeed);s.material.opacity=clamp(1-q/.7)*(i===1?.28:.65)*p.flash;});
-    this.rubble.update(post);
-    this.punch=post>=0?Math.exp(-post*15*p.settling)*(variant===1?1:.65)*p.flash:0;
+    this.shocks.forEach((s,i)=>{const q=post-i*.08;s.visible=p.impactOn!==0&&q>=0&&q<.7&&(i<2||variant===2);s.scale.setScalar(.85+Math.max(0,q)*(variant===1?7.5:5)*p.shockSpeed);s.material.opacity=clamp(1-q/.7)*(i===1?.28:.65)*p.flash;});
+    this.rubble.mesh.visible=p.impactOn!==0;this.rubble.update(post);
+    this.punch=post>=0&&p.impactOn!==0?Math.exp(-post*15*p.settling)*(variant===1?1:.65)*p.flash:0;
+    this.updateTrail(t,dt);this.shot.update(dt);
     this.phase=post<0?'Pressão subterrânea':post<p.rise?'Ruptura do solo':end>0?'Fim da demonstração':'Rocha estabelecida';
   }
 }
 
 export class RockEffect {
   constructor(group,variant,p,texture){this.rock=rockModel(variant,texture);this.rock.scale.setScalar(p.scale);group.add(this.rock);this.p=p;this.duration=12;this.phase='Inspeção do modelo';this.punch=0;this.rock.traverse(o=>{if(o.isMesh&&o.material.isMeshStandardMaterial)o.material.wireframe=!!p.wire;});}
-  update(t){this.rock.rotation.y=this.p.rotation*Math.PI/180+t*this.p.turn*Math.PI/180;for(const m of this.rock.userData.pieces)if(m.userData.floating){if(m.userData.baseY===undefined)m.userData.baseY=m.position.y;m.position.y=m.userData.baseY+Math.sin(t*2+m.id)*.06;}}
+  /** Inspeção de objeto, NÃO é um ataque: só existe a fase «Duração em cena» (o modelo à mostra). */
+  timeline(){return [{id:'sustain',from:0,to:this.duration}];}
+  update(t){this.rock.visible=this.p.sustainOn!==0;this.rock.rotation.y=this.p.rotation*Math.PI/180+t*this.p.turn*Math.PI/180;for(const m of this.rock.userData.pieces)if(m.userData.floating){if(m.userData.baseY===undefined)m.userData.baseY=m.position.y;m.position.y=m.userData.baseY+Math.sin(t*2+m.id)*.06;}}
 }

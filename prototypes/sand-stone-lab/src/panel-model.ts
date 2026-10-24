@@ -1,8 +1,13 @@
-import {phases, phaseNames, phaseOf, isToggle, type Control, type Phase} from './config.ts';
+import {phases, phaseNames, phaseOf, isToggle, type Category, type Control, type Phase} from './config.ts';
 
 // Modelo PURO do painel (sem DOM): agrupa os controles por fase, com o interruptor «Ligar esta fase» de cada uma, e diz quais sliders do disparo
 // aparecem para o efeito escolhido. A interface (main.js) só desenha o que este modelo devolve.
 export type PanelGroup = {phase: Phase; title: string; toggle: Control | null; controls: Control[]};
+
+/** Fases que NÃO se aplicam à categoria (o interruptor fica desabilitado, com a razão). Rocha é inspeção de objeto, não um ataque. */
+export const notApplicable: Partial<Record<Category, {phases: Phase[]; reason: string}>> = {
+  rock: {phases: ['start', 'launch', 'body', 'finish', 'impact'], reason: 'Não se aplica: a rocha é um modelo para inspeção, não um ataque; só existe a fase de duração em cena.'},
+};
 
 export function buildPanel(defs: readonly Control[]): PanelGroup[] {
   return phases.map(phase => ({
