@@ -14,17 +14,9 @@ import {effectiveArenaRadius} from '../map.js';
 import {solidsOf, insideSolid} from '../vision.js';
 import {angleOf, sub} from '../math.js';
 import {defineFicha} from './params-registry.js';
-import {params} from './bullet-punch.params.js';
+import {params, def as bulletPunchDef} from './bullet-punch.params.js';
 
-export const bulletPunchDef = Object.freeze({
-  id: 'bullet-punch', name: 'Bullet Punch', air: 'descend', group: 'bulletPunch', needsTarget: 'reach', moveCast: true, fromDodge: true, tackle: 'bullet-punch', aim: 'target', antiAir: true,
-  description: 'Normal · PL2. Como o Quick Attack: acha o adversário mais próximo dentro do alcance (segure para ver o círculo), prepara 0,75 s, some por 0,2 s numa corrida invisível até ele e o golpeia ao chegar (quem estiver no caminho leva o golpe e para a corrida). Alcança rivais em voo baixo.',
-  cost: 1.5, cooldown: 8, duration: 1.75, durationKeys: ['cast', 'vanish'], motion: {type: 'walk'},
-  timeline: [
-    {at: .75, atKey: 'cast', effect: 'bullet-punch-vanish'},
-    {at: 1.75, atKeys: ['cast', 'vanish'], effect: 'bullet-punch-return'},
-  ],
-});
+export {bulletPunchDef};   // definição (id, fases, custo…) vem de bullet-punch.move.json
 
 /** Preparação do Tackle do golpe: PL2, rumo fixo, mesma velocidade do Tackle (duração e distância escalam juntas até `strikeReach`). */
 export function bulletPunchSetup(/** @type {any} */ f, /** @type {any} */ a, /** @type {Record<string, any>} */ P) {
