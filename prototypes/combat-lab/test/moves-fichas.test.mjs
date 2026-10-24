@@ -30,9 +30,12 @@ test('toda ficha tem def e, se declara effect ou tackle, com função e é regis
     assert.ok(f.def?.id, 'def.id');for (const k of ['effect', 'tackle']) if (f[k] !== undefined) assert.ok(Array.isArray(f[k]) && typeof f[k][1] === 'function', `${f.def.id}: ${k} deve ser [nome, função]`);
     // Feint e Riposte são só definição: o comportamento está no controlador (como antes da ficha)
     if (!f.effect && !f.tackle) assert.ok(['feint', 'riposte'].includes(f.def.id), `${f.def.id}: sem effect nem tackle`);
-    assert.ok(NEW_MOVES.some(m => m.def === f.def), `${f.def.id} fora de NEW_MOVES`);
+    // Reflect e Psyshock (Moves padrão) também são fichas, mas standard.js os registra: não entram em NEW_MOVES e o grupo está em def.charge.group
+    const padrao = ['reflect', 'psyshock'].includes(f.def.id);
+    if (padrao) assert.ok(!NEW_MOVES.some(m => m.def === f.def), `${f.def.id} é Move padrão: não deve estar em NEW_MOVES`);
+    else assert.ok(NEW_MOVES.some(m => m.def === f.def), `${f.def.id} fora de NEW_MOVES`);
     assert.ok(arena() && getMove(f.def.id), `${f.def.id} não registrado`);
-    assert.equal(f.def.group, f.params.group, `${f.def.id}: def.group deve ser o grupo dos parâmetros`);
+    assert.equal(padrao ? f.def.charge.group : f.def.group, f.params.group, `${f.def.id}: o grupo da definição deve ser o grupo dos parâmetros`);
   }
 });
 test('os parâmetros da ficha viram o padrão em C.world, na fábrica e no formato do painel', () => {

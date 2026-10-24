@@ -8,7 +8,8 @@ import {FICHAS} from './fichas.generated.js';
 export const NEW_MOVES = [
   // Moves elementais (protótipo de 23/10/2026; números do prompt de 22/10, não homologados)
   // Moves em FICHA (um arquivo só, índice automático): ver docs/COMO_CRIAR_UM_MOVE.md
-  ...FICHAS,
+  // Reflect e Psyshock também são fichas (Move como dado), mas NÃO são «novos»: standard.js os registra e a IA os trata à parte.
+  ...FICHAS.filter(f => !['reflect', 'psyshock'].includes(f.def.id)),
 ];
 /** Ordem histórica dos Moves nos menus: os migrados para ficha mantêm o lugar de antes; Moves novos em ficha vêm depois. */
 const ORDEM = ['harden', 'second-wind', 'swift', 'lunge', 'guard-break', 'bounce', 'spikes', 'sand-wave', 'bullet-punch', 'emerging-stone', 'feint', 'riposte', 'quick-attack', 'water-pulse', 'fire-spin', 'air-slash', 'seed-bomb'];

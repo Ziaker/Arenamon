@@ -8,15 +8,11 @@ import {spawn, closestOnShape} from '../world.js';
 import {add, scale, direction, normalize} from '../math.js';
 import {C} from '../config.js';
 import {hash32, rng, uniform} from './rng.js';
+import {defineFicha} from './params-registry.js';
+import {params, def as psyshockDef} from './psyshock.params.js';
 
 /** Definição do movimento (dados puros, clonável). */
-export const psyshockDef = Object.freeze({
-  id: 'psyshock', name: 'Psyshock', air: 'cast',
-  description: 'Carregue e solte para disparar pedras telecinéticas ao mesmo tempo: quanto mais carga, mais pedras e mais Power Level. Com alvo travado elas miram partes diferentes do corpo; sem alvo saem em leque.',
-  cost: 1, cooldown: 8, cooldownBoost: true,
-  charge: {max: 4, group: 'psyshock'},
-  timeline: [{effect: 'psyshock'}],
-});
+export {psyshockDef};   // definição (id, carga, custo…) vem de psyshock.move.json
 
 /** Quantidade de pedras pela carga: 3 + 1 a cada `stoneSeconds` (por contagem de passos), no máximo `maxStones` (M11.1–M11.2). */
 export const stoneCount = (/** @type {number} */ ticks, /** @type {Record<string, any>} */ P) => {
@@ -98,3 +94,6 @@ export function psyshockEffect(/** @type {any} */ game, /** @type {any} */ f, /*
   }
   return {ok: true};
 }
+
+/** FICHA do Move (índice automático): definição e parâmetros vêm do psyshock.move.json. O registro continua em standard.js (Moves padrão, não «novos»). */
+export const ficha = defineFicha({def: psyshockDef, effect: ['psyshock', psyshockEffect], params});
