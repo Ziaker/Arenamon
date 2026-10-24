@@ -211,9 +211,6 @@ function buildDefaults() {
     // Spikes: Normal Field PL1. Marcador de colocação (alcance 3D 5 m), cast 0,4 s, armadilha de 1,2 m de raio por 8 s, 6 HP nominais (× Ataque ÷ referência), sem knockback, 1 acionamento.
     // markerSpeed/startDistance/maxRise/armDelay/trapHeight não vêm do documento (MV-P29/MV-P31): provisórios.
     spikes: {cost: 1, cooldown: 10, cast: .4, range: 5, radius: 1.2, life: 8, damage: 6, knockbackH: 0, knockbackV: 0, armDelay: .25, markerSpeed: 8, markerAccel: 24, startDistance: 3, minRange: 0, maxRise: 2, trapHeight: 1.2, hitShakeOn: 0, hitShakeAmount: 1, hitShakeDuration: 1},
-    // Bounce: Charge Trick+Melee. Carga máx. 1,2 s (PL1 <50%, PL2 <100%, PL3 em 100%); alturas 1,5/2,5/3,5 m (experimentais); alcance horizontal máx. 6 m; 12 HP nominais
-    // (× Ataque ÷ referência), 3 m/s H e 6 m/s V; recuperação 0,25 s após o pouso. gravity/contactRadius/landRadius não vêm do documento (MV-P27/MV-P28): provisórios.
-    bounce: {cost: 1.2, cooldown: 12, maxCharge: 1.2, minCharge: 0, maxDistance: 6, heightPl1: 1.5, heightPl2: 2.5, heightPl3: 3.5, gravity: 17.5, damage: 12, knockbackH: 3, knockbackV: 6, landRecovery: .25, contactRadius: .3, landRadius: 1.4},
     // Moves elementais (protótipo de 23/10/2026; números do prompt de 22/10, NÃO homologados; padrões das decisões provisórias MV-P36…MV-P41).
     // Water Pulse: Charge Projectile. Carga máx. 1,5 s (180 passos; PL2 em 90, PL3 em 180), custo e recarga na ativação, 6/9/12 HP nominais, empurrão H 2/3/4 (V 0 ⇒ o motor empurra 1,5 × H m),
     // projétil de raio 0,38 m a 14 m/s e alcance 12 m (lifetime = alcance ÷ velocidade), recuperação de 0,30 s a partir da soltura. originHeight/spawnForward: nascimento (não definidos no prompt).

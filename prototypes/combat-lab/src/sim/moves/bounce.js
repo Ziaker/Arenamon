@@ -13,6 +13,8 @@ import {applyHit} from '../world.js';
 import {isOffensive} from '../entity.js';
 import {isAirJump} from '../air.js';
 import {sub, add, scale, length, normalize, direction} from '../math.js';
+import {defineFicha} from './params-registry.js';
+import {params} from './bounce.params.js';
 
 export const bounceDef = Object.freeze({
   id: 'bounce', name: 'Bounce', air: 'cast', group: 'bounce', cooldownOnStart: true,
@@ -94,3 +96,9 @@ export function bounceStep(/** @type {any} */ game) {
   }
   return events;
 }
+
+/** FICHA do Move (ver docs/COMO_CRIAR_UM_MOVE.md): `params` gera o padrão em C.world.bounce e os sliders da aba Moves; `def` e os manipuladores são registrados sozinhos. */
+export const ficha = defineFicha({
+  def: bounceDef, effect: ['bounce', bounceEffect], steps: [['bounce', bounceStep]],
+  params,
+});
