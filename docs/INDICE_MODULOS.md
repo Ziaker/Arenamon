@@ -53,6 +53,8 @@
 
 **Build:** `build-lib.mjs` (esbuild → IIFE → HTML único; embute CSS e a licença do Three) · `build.mjs` (grava `dist/`) · `dev-server.mjs` (servidor local **opcional**, só para desenvolvimento).
 
+**Documentação de VFX:** [central e índice](vfx/README.md) · [manual transversal](vfx/MANUAL_VFX.md) · [renderizadores](vfx/SISTEMAS_E_RENDERIZADORES.md) · [matriz de rastreabilidade](vfx/MATRIZ_RASTREABILIDADE.md). O manual descreve apresentação, não substitui decisões mecânicas dos Moves.
+
 **Documentos de domínio:** `MOVIMENTOS.md` (formato e garantias dos Moves) · `OVERHAUL.md` · `CALIBRACAO.md` · `README.md` · decisões em `docs/MOVES_DECISOES_RODADAS.md` (Moves) e `docs/MAPA_COMBAT_LAB_DECISOES_RODADAS.md` (mapa da arena).
 
 ## 3. Contratos e acoplamentos (para não quebrar)

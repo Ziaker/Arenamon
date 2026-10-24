@@ -16,7 +16,7 @@ Fontes que devem ser lidas quando pertinentes:
 - [`MAPA_COMBAT_LAB_DECISOES_RODADAS.md`](MAPA_COMBAT_LAB_DECISOES_RODADAS.md): decisões de arena, salto, rampas, plataformas, objetos, escudos, consumíveis, colisão 3D e física.
 - [`PASSIVAS_DECISOES.md`](PASSIVAS_DECISOES.md): interações com modificadores, Sturdy, status, passivas, duração/cooldowns e hitstop.
 - [`JANELAS_COMBATE_RESOLVE_HIT.md`](JANELAS_COMBATE_RESOLVE_HIT.md): janelas de impacto associadas à animação.
-- [`INDICE_MODULOS.md`](INDICE_MODULOS.md), [`GUIA_COLABORACAO_AGENTES.md`](GUIA_COLABORACAO_AGENTES.md), [`VFX_SOLIDOS.md`](VFX_SOLIDOS.md) e [`MOVES_TEST_MATRIX.md`](MOVES_TEST_MATRIX.md).
+- [`INDICE_MODULOS.md`](INDICE_MODULOS.md), [`GUIA_COLABORACAO_AGENTES.md`](GUIA_COLABORACAO_AGENTES.md), [`VFX_SOLIDOS.md`](vfx/efeitos/VFX_SOLIDOS.md) e [`MOVES_TEST_MATRIX.md`](MOVES_TEST_MATRIX.md).
 - [`../prototypes/combat-lab/MOVIMENTOS.md`](../prototypes/combat-lab/MOVIMENTOS.md): contratos técnicos de registro, timeline, Charge, Status e entidades existentes.
 
 **Ordem de precedência:** (1) decisão **expressa e posterior** do diretor sobre o mesmo tema; (2) regra aprovada **específica do Move** sem contradizer norma geral posterior; (3) regras aprovadas gerais; (4) contratos técnicos existentes; (5) propostas experimentais. **Código existente não é prova de aprovação**. Guardar histórico e marcar substituições, sem apagar as versões antigas.
@@ -208,6 +208,9 @@ O `src/sim/status.js` auditado historicamente multiplica os fatores. **Não decl
 Além disso: não aplicar cooldown de passivas como cooldown de Move; não transformar Poison Touch, Sturdy ou Magic Guard em efeitos novos simplesmente porque o golpe tem tema veneno ou escudo.
 
 ## 14. Audiovisual obrigatório: VFX, SFX, animações e HUD
+
+**Norma transversal de VFX:** consultar [MANUAL_VFX.md](vfx/MANUAL_VFX.md), [sistemas ativos](vfx/SISTEMAS_E_RENDERIZADORES.md) e [pendências](vfx/DECISOES_PENDENTES.md) para criação, prototipação, rastreabilidade e integração audiovisual. Isso não modifica as regras mecânicas específicas de cada Move.
+
 
 Toda ficha inclui apresentação **completa** e ligada a eventos mecânicos reais:
 
