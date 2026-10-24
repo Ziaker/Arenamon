@@ -6,7 +6,6 @@ import {FICHAS} from './fichas.generated.js';
 import {emergingStoneDef, emergingStoneEffect} from './emerging-stone.js';
 import {stoneStep} from '../stone.js';
 import {bulletPunchDef, bulletPunchSetup, bulletPunchVanish, bulletPunchReturn} from './bullet-punch.js';
-import {sandWaveDef, sandWaveEffect} from './sand-wave.js';
 import {waterPulseDef, waterPulseEffect} from './water-pulse.js';
 import {fireSpinDef, fireSpinEffect} from './fire-spin.js';
 import {airSlashDef, airSlashEffect} from './air-slash.js';
@@ -14,7 +13,6 @@ import {seedBombDef, seedBombEffect} from './seed-bomb.js';
 
 /** @type {import('./params-registry.js').Ficha[]} */
 export const NEW_MOVES = [
-  {def: sandWaveDef, effect: ['sand-wave', sandWaveEffect]},
   {def: bulletPunchDef, tackle: ['bullet-punch', bulletPunchSetup], effects: [['bullet-punch-vanish', bulletPunchVanish], ['bullet-punch-return', bulletPunchReturn]]},
   {def: emergingStoneDef, effect: ['emerging-stone', emergingStoneEffect], steps: [['stone', stoneStep]]},
   // Moves elementais (protótipo de 23/10/2026; números do prompt de 22/10, não homologados)

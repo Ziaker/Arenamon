@@ -87,6 +87,7 @@ test('PARIDADE: os Moves migrados mantêm os valores de fábrica que tinham em c
     riposte: {cost: 0.8, cooldown: 8, cast: 0.65, windowStart: 0.13, windowEnd: 0.3, damage: 14, knockbackH: 9, knockbackV: 2.5, strikeRange: 1.6, hitstopMult: 2.5, shakeMult: 2.4, fxOn: 1, fxIntensity: 1, fxSize: 1, blastOn: 1, blastSize: 1.5},
     bounce: {cost: 1.2, cooldown: 12, maxCharge: 1.2, minCharge: 0, maxDistance: 6, heightPl1: 1.5, heightPl2: 2.5, heightPl3: 3.5, gravity: 17.5, damage: 12, knockbackH: 3, knockbackV: 6, landRecovery: 0.25, contactRadius: 0.3, landRadius: 1.4},
     spikes: {cost: 1, cooldown: 10, cast: 0.4, range: 5, radius: 1.2, life: 8, damage: 6, knockbackH: 0, knockbackV: 0, armDelay: 0.25, markerSpeed: 8, markerAccel: 24, startDistance: 3, minRange: 0, maxRise: 2, trapHeight: 1.2, hitShakeOn: 0, hitShakeAmount: 1, hitShakeDuration: 1},
+    sandWave: {cost: 2, cooldown: 10, cast: 0.25, length: 4, width: 3, active: 0.75, dissipate: 0.75, damage: 6, accel: 12, partialFactor: 0.5, blind: 4, wallStagger: 0.3, visionRadius: 10, fogDarkness: 0.6, cell: 0.25, detour: 3, replanSteps: 6, knockbackH: 0, knockbackV: 0, hitShakeOn: 0, hitShakeAmount: 1, hitShakeDuration: 1},
   };
   const hoje = factoryDefaults().world;
   for (const [g, vals] of Object.entries(antes)) for (const [k, v] of Object.entries(vals)) assert.equal(hoje[g][k], v, `${g}.${k}`);

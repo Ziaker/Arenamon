@@ -8,6 +8,8 @@ import {C} from '../config.js';
 import {spawn} from '../world.js';
 import {direction} from '../math.js';
 import {isAirJump} from '../air.js';
+import {defineFicha} from './params-registry.js';
+import {params} from './sand-wave.params.js';
 
 export const sandWaveDef = Object.freeze({
   id: 'sand-wave', name: 'Sand Wave', air: 'cast', group: 'sandWave', groundOnly: true, aim: 'target',
@@ -28,3 +30,9 @@ export function sandWaveEffect(/** @type {any} */ game, /** @type {any} */ f, /*
   }, fx.events ?? []);
   if (!e) return {ok: false, reason: 'entityLimit'};
 }
+
+/** FICHA do Move (ver docs/COMO_CRIAR_UM_MOVE.md): `params` gera o padrão em C.world.sandWave e os sliders da aba Moves; `def` e os manipuladores são registrados sozinhos. */
+export const ficha = defineFicha({
+  def: sandWaveDef, effect: ['sand-wave', sandWaveEffect],
+  params,
+});
