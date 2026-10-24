@@ -84,7 +84,7 @@ export class StoneEffect {
     // cicatriz do trajeto: faixa de terra revirada que cresce com o projétil e torrões que o solo expele pelo caminho (função do tempo: seguro ao arrastar a barra)
     this.scar=new T.Group();group.add(this.scar);
     this.soil=mesh(this.scar,new T.PlaneGeometry(1,1),new T.MeshBasicMaterial({color:variant===2?0x2d3a30:0x2b2218,transparent:true,opacity:.75,depthWrite:false}),[0,.022,0]);this.soil.rotation.x=-Math.PI/2;
-    this.clodN=56;this.clodData=[];{const r=rng(variant*17+5);for(let i=0;i<this.clodN;i++)this.clodData.push({side:r()*2-1,vy:1.4+r()*2.4,vs:(r()-.5)*1.6,size:.035+r()**2*.11,spin:r()*9});}
+    this.ridge=mesh(this.scar,new T.SphereGeometry(.16,14,8),new T.MeshStandardMaterial({color:variant===2?0x4c5a4a:0x7a6650,roughness:1,transparent:true}),[0,.02,0]);this.clodN=90;this.clodData=[];{const r=rng(variant*17+5);for(let i=0;i<this.clodN;i++)this.clodData.push({side:r()*2-1,vy:1.4+r()*2.4,vs:(r()-.5)*1.6,size:.06+r()**2*.17,spin:r()*9});}
     this.clods=new T.InstancedMesh(new T.IcosahedronGeometry(1,0),new T.MeshStandardMaterial({color:variant===2?0x4c5a4a:0x6b5a46,roughness:1,flatShading:true}),this.clodN);this.clods.frustumCulled=false;this.clods.visible=false;this.clods.instanceMatrix.setUsage(T.DynamicDrawUsage);this.scar.add(this.clods);this.clodDummy=new T.Object3D();
     this.rock=rockModel(model,texture);this.rock.scale.setScalar(p.scale);this.rock.visible=false;group.add(this.rock);this.rock.traverse(o=>{if(o.material?.isMeshBasicMaterial&&o.material.toneMapped===false)o.material.opacity*=p.veinGlow;});
     const energy=new T.Color(variant===2?0x91d4b1:0xf0a443).offsetHSL(p.energyHue/360,0,0);this.cracks=fractures(24+variant,energy,p.crackWidth);group.add(this.cracks);
@@ -118,7 +118,7 @@ export class StoneEffect {
     const {p}=this,tf=t-p.warning,L=this.travelLen,fl=this.fl,on=fl>0&&p.bodyOn!==0&&tf>=0&&tf<fl+.9;
     this.scar.visible=on;this.clods.visible=on;if(!on)return;
     const fade=clamp(1-(tf-fl)/.9),u=clamp(tf/fl),w=p.undergroundWidth??.24,up=p.undergroundParticles??28,amount=clamp(up/70);
-    this.soil.material.opacity=.75*fade*Math.min(1,.35+amount);this.soil.scale.set(w*2.4,Math.max(.01,u*L),1);this.soil.position.z=-L+u*L/2;
+    this.soil.material.opacity=.75*fade*Math.min(1,.35+amount);this.soil.scale.set(w*3.6,Math.max(.01,u*L),1);this.ridge.scale.set(w*1.5,.55+.1*Math.sin(tf*20),Math.max(.01,u*L/2/.16));this.ridge.position.z=-L+u*L/2;this.ridge.material.opacity=.95*fade;this.soil.position.z=-L+u*L/2;
     const side=Math.max(.15,w*1.2);let i=0;
     for(const c of this.clodData){
       const born=i/this.clodN*fl,age=tf-born,show=age>=0&&i<Math.round(this.clodN*Math.min(1,.25+amount*.9));
