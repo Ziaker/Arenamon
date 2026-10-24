@@ -1,0 +1,6 @@
+{"arquivo":"prototypes/combat-lab/src/sim/ai-eval.js","pasta":"prototypes/combat-lab/src/sim/ai-eval","modulos":{
+"eval-loadout":["LOADOUT_PRESETS","resolveLoadout","ERROR_TAXONOMY","explainDefeat"],
+"eval-match":["side","evalMatch"],
+"eval-series":["evalSeries","mergeSideStats","evalPairedSeries"],
+"eval-scenarios":["DIFFICULT_SCENARIOS","runDifficultScenarios"],
+"eval-matrix":["evalLoadoutMatrix","evalStyleMatrix","evalRows"]}}
