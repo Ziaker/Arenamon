@@ -3,6 +3,8 @@
 // como decisão pendente do responsável (o teste não corrige valor nenhum); qualquer problema novo derruba o teste.
 import {assert, C, suite, arena, resetConfig} from './moves-new-helpers.mjs';
 import {defaults} from '../src/sim/config.js';
+// QUEBRA DE PROPÓSITO (Tarefa 7, descartável): esta linha precisa derrubar a CI. Não mesclar.
+assert.equal(1, 2, "QUEBRA DE PROPOSITO da Tarefa 7: a CI deve ficar vermelha aqui");
 import {listMoves, validateMove, getTackleSetup} from '../src/sim/moves.js';
 import {getEffect} from '../src/sim/move-effects.js';
 import {MOVES_PARAMS} from '../src/ui/moves-panel.js';
