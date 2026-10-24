@@ -67,9 +67,11 @@ if (missing.length) fail(`sliders sem valor nos padrões: ${missing.join(', ')}`
 for (const r of rows) {r.value = before[r.key];if (typeof r.value !== 'number') fail(`${r.key}: valor não numérico`);}
 
 // 4) metadados a partir do texto de apoio ("Burst · Melee · PL1. ...")
-const mm = /^(Normal|Burst|Charge) · ([A-Za-z]+(?: \+ [A-Za-z]+)*)(?: · (PL\d(?:–PL\d)?|SEM PL))?/.exec(info.hint ?? '');
-if (!mm) fail(`texto de apoio sem "Categoria · Tipos · PL": ${info.hint}`);
-const meta = {category: mm[1], types: mm[2].split(' + '), pl: mm[3] ?? 'SEM PL'};
+// Os tipos (Melee/Projectile/Status/Field/Trick) só entram se o texto de apoio os traz; NÃO invento tipo: sem eles a ficha fica sem `meta` (como antes, sem etiqueta).
+const T = '(?:Melee|Projectile|Status|Field|Trick)';
+const mm = new RegExp(`^(Normal|Burst|Charge) · (${T}(?: \\+ ${T})*)(?: · (PL\\d(?:–PL\\d)?|SEM PL))?`).exec(info.hint ?? '');
+const meta = mm ? {category: mm[1], types: mm[2].split(' + '), pl: mm[3] ?? 'SEM PL'} : null;
+if (!meta) console.log(`aviso: ${id} sem tipos no texto de apoio; a ficha fica sem meta (decisão pendente do responsável)`);
 
 // 5) comentário que precedia a entrada em config.js e a própria entrada (pode ocupar várias linhas)
 const cLines = raw.cfg.split('\n');
@@ -99,12 +101,10 @@ const prm = [
   ...cfgComment.map(c => `// ${c}`.trimEnd()),
   `import {defineMoveParams, paramRow${withShake ? ', hitShakeRows' : ''}} from './params-registry.js';`,
   '',
-  '/** Estado de governança dos valores do catálogo: implementado e testado, mas ainda NÃO aprovado nem homologado pelo diretor. */',
-  'const PROPOSTO = {proposto: true, aprovado: false, implementado: true, homologado: false};',
-  '',
+  ...(meta ? ['/** Estado de governança dos valores do catálogo: implementado e testado, mas ainda NÃO aprovado nem homologado pelo diretor. */', 'const PROPOSTO = {proposto: true, aprovado: false, implementado: true, homologado: false};', ''] : []),
   `export const params = defineMoveParams('${group}', {`,
   `    id: ${q(id)}, title: ${q(title)},`,
-  `    meta: {category: '${meta.category}', types: [${meta.types.map(t => `'${t}'`).join(', ')}], pl: ${q(meta.pl)}, status: PROPOSTO},`,
+  ...(meta ? [`    meta: {category: '${meta.category}', types: [${meta.types.map(t => `'${t}'`).join(', ')}], pl: ${q(meta.pl)}, status: PROPOSTO},`] : []),
   `    hint: ${q(info.hint ?? '')},`,
   '    rows: [',
   ...rows.map(rowSrc),
@@ -119,7 +119,12 @@ const mvText = raw.mv;
 const mvLines = mvText.split('\n');
 let lastImport = -1;
 mvLines.forEach((l, i) => {if (/^import .* from .*;$/.test(l)) lastImport = i;});
-if (lastImport < 0) fail(`${id}.js não tem imports (esperava ao menos um)`);
+let insertBlank = false;
+if (lastImport < 0) {   // arquivo sem imports: entram depois do comentário de cabeçalho
+  lastImport = mvLines.findIndex(l => l.trim() !== '' && !l.startsWith('//')) - 1;
+  while (lastImport >= 0 && mvLines[lastImport].trim() === '') lastImport--;
+  insertBlank = true;
+}
 if (/^(export )?(const|let|function) params\b/m.test(mvText)) fail(`${id}.js já declara "params"`);
 if (/^export const ficha\b/m.test(mvText)) fail(`${id}.js já exporta ficha`);
 // nomes usados na entrada que vêm de OUTROS módulos (importados em new-moves.js) precisam ser importados também em <id>.js
@@ -132,7 +137,7 @@ for (const imp of nmImports) {
 }
 const importAdds = [`import {defineFicha} from './params-registry.js';`, `import {params} from './${id}.params.js';`];
 for (const n of needImports) if (!mvLines.some(l => new RegExp(`from '${n.from.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')}';$`).test(l) && n.names.every(x => new RegExp(`\\b${x}\\b`).test(l)))) importAdds.push(`import {${n.names.join(', ')}} from '${n.from}';`);
-mvLines.splice(lastImport + 1, 0, ...importAdds);
+mvLines.splice(lastImport + 1, 0, ...(insertBlank ? [''] : []), ...importAdds);
 const fichaBlock = [
   '',
   `/** FICHA do Move (ver docs/COMO_CRIAR_UM_MOVE.md): \`params\` gera o padrão em C.world.${group} e os sliders da aba Moves; \`def\` e os manipuladores são registrados sozinhos. */`,
@@ -177,7 +182,7 @@ const out = {
   [P.prm]: prm, [P.mv]: mvOut, [P.nm]: nmOut, [P.cfg]: cfgOut, [P.panel]: panelOut, [P.test]: testOut,
 };
 const eolOf = {[P.prm]: '\n', [P.mv]: eol.mv, [P.nm]: eol.nm, [P.cfg]: eol.cfg, [P.panel]: eol.panel, [P.test]: eol.test};
-console.log(`${id}: grupo ${group} · ${rows.length} sliders${withShake ? ' + tremor' : ''} · ${meta.category} · ${meta.types.join('+')} · ${meta.pl} · antes: ${JSON.stringify(before)}`);
+console.log(`${id}: grupo ${group} · ${rows.length} sliders${withShake ? ' + tremor' : ''} · ${meta ? `${meta.category} · ${meta.types.join('+')} · ${meta.pl}` : 'sem meta'} · antes: ${JSON.stringify(before)}`);
 if (dry) {console.log('--dry: nada escrito');process.exit(0);}
 for (const [f, text] of Object.entries(out)) writeFileSync(f, text.replace(/\n/g, eolOf[f]));
 console.log('escrito. Rode: npm run fichas · testes do Move · commit.');

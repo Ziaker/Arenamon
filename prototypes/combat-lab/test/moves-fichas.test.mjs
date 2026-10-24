@@ -24,10 +24,12 @@ test('os parâmetros existem em C.world mesmo sem registrar nenhum Move (process
   const counts = JSON.parse(out).split(',').map(Number);
   assert.ok(counts.every(n => n > 5), 'grupos ausentes sem registrar Moves: ' + out);
 });
-test('toda ficha tem def e effect (ou tackle) e é registrada junto dos Moves novos', () => {
+test('toda ficha tem def e, se declara effect ou tackle, com função e é registrada junto dos Moves novos', () => {
   assert.ok(FICHAS.length >= 2);
   for (const f of FICHAS) {
-    assert.ok(f.def?.id, 'def.id');assert.ok((Array.isArray(f.effect) && typeof f.effect[1] === 'function') || (Array.isArray(f.tackle) && typeof f.tackle[1] === 'function'), `${f.def?.id}: effect ou tackle`);
+    assert.ok(f.def?.id, 'def.id');for (const k of ['effect', 'tackle']) if (f[k] !== undefined) assert.ok(Array.isArray(f[k]) && typeof f[k][1] === 'function', `${f.def.id}: ${k} deve ser [nome, função]`);
+    // Feint e Riposte são só definição: o comportamento está no controlador (como antes da ficha)
+    if (!f.effect && !f.tackle) assert.ok(['feint', 'riposte'].includes(f.def.id), `${f.def.id}: sem effect nem tackle`);
     assert.ok(NEW_MOVES.some(m => m.def === f.def), `${f.def.id} fora de NEW_MOVES`);
     assert.ok(arena() && getMove(f.def.id), `${f.def.id} não registrado`);
     assert.equal(f.def.group, f.params.group, `${f.def.id}: def.group deve ser o grupo dos parâmetros`);

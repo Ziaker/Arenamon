@@ -20,7 +20,7 @@
 - Passo 3: **decisão do responsável**: corrigir a causa (custo da fumaça por software) ou rever o limite de tempo. Não alterar o limite sem decisão.
 - Esperado: `npm test` chega ao fim; só então os testes depois dele passam a contar.
 
-### Tarefa 2: Migrar os outros 15 Moves para ficha
+### Tarefa 2: Migrar os outros 15 Moves para ficha — 13 FEITOS em 23/10/2026; faltam Reflect e Psyshock
 
 **Arquivos por Move:** `src/sim/moves/<id>.js`, `<id>.params.js`, linhas em `config.js`, `ui/moves-panel.js`, `new-moves.js`.
 - Passo 1: para cada Move, fixar no `moves-revisao.test.mjs` os valores de fábrica de antes (como nos 4 pilotos).
@@ -28,6 +28,7 @@
 - Passo 3: `node prototypes/combat-lab/test/moves-<id>.test.mjs`, `moves-contracts`, `move-matrix`, `moves-params`.
 - Passo 4: um commit por Move. Um Move por vez: ordem sugerida do mais simples ao mais ligado ao motor (Lunge, Quick Attack, Feint, Riposte, Bounce, Spikes, Sand Wave, Bullet Punch, Emerging Stone, elementais, Reflect, Psyshock).
 - Esperado: o painel, a exportação e a matriz continuam iguais; paridade de valores provada por teste.
+- **Feito:** Lunge, Quick Attack, Feint, Riposte, Bounce, Spikes, Sand Wave, Bullet Punch, Emerging Stone, Water Pulse, Fire Spin, Air Slash e Seed Bomb, um commit por Move, com `prototypes/combat-lab/migrar-ficha.mjs <id>` (use `--dry` para ver antes). Valores de fábrica fixados em `moves-revisao.test.mjs`; bateria unitária do laboratório: 129 arquivos, 0 falhas. Sand Wave, Bullet Punch e Emerging Stone ficaram SEM `meta` (os documentos não dizem os tipos Melee/Projectile/Field…; decisão do responsável). **Faltam Reflect e Psyshock:** moram em `standard.js`, dividem o bloco «Carga (compartilhada)» e o mapa `ONLY` do painel; exigem decisão de desenho antes de migrar.
 
 ### Tarefa 3: Replay de referência (#12) — FEITA em 23/10/2026
 
