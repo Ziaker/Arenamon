@@ -25,6 +25,17 @@ export function renderParamsIndex(files = fichaFiles()) {
 ${files.map((f, i) => `import {params as ${names[i]}} from './${f.replace(/\.js$/, '.params.js')}';`).join('\n')}
 
 export const FICHAS_PARAMS = [${names.join(', ')}];
+${dataBlock(files)}`;
+}
+/** Moves já migrados para «Move como dado» (o <id>.params.js exporta `def`): o Editor de Moves lê daqui (def, params, visual de cada um). */
+function dataBlock(files) {
+  const asData = files.filter(f => /^export const def\b/m.test(readFileSync(new URL(f.replace(/\.js$/, '.params.js'), dir), 'utf8')));
+  if (!asData.length) return '';
+  const nm = f => 'data_' + f.replace(/\.js$/, '').replace(/[^a-zA-Z0-9]+/g, '_');
+  return `
+// Moves como dado (def + params + visual de cada <id>.params.js), para o Editor de Moves.
+${asData.map(f => `import * as ${nm(f)} from './${f.replace(/\.js$/, '.params.js')}';`).join('\n')}
+export const MOVES_DATA = [${asData.map(nm).join(', ')}];
 `;
 }
 export function writeIndex() {

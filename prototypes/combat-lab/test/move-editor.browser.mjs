@@ -73,6 +73,27 @@ try {
   const json = JSON.parse(await L(() => window.__copied));
   check('«Copiar move.json» gera um arquivo válido com o dano editado', json.schemaVersion === 1 && json.params.rows.find(r => r.key === 'damage')?.value === 14 && json.def.id === 'sand-wave');
 
+  // Outros Moves migrados: lista completa, controle de «segurar o botão» e execução de um buff e de um projétil de carga
+  const nMoves = await page.locator('#editor-move option').count();
+  check('a lista tem os 17 Moves migrados', nMoves >= 17, `${nMoves} Moves`);
+  await page.selectOption('#editor-move', 'harden');
+  check('Harden: sem o controle de segurar o botão', await page.locator('#editor-hold').count() === 0);
+  await L(() => {window.__lab.ui.lastResult = null;});
+  await page.click('#editor-play');
+  await page.waitForFunction(() => window.__lab.ui.lastResult?.id === 'editor-harden', null, {timeout: 120000});
+  await page.waitForFunction(() => /Status no azul/.test(document.getElementById('editor-result').textContent), null, {timeout: 10000});
+  check('Harden: o resumo mostra o status «harden» no azul', await L(() => /Status no azuls*harden/.test(document.getElementById('editor-result').textContent)));
+  await page.selectOption('#editor-move', 'water-pulse');
+  check('Water Pulse (carga): aparece o controle de segurar o botão e a dica', await page.locator('#editor-hold').count() === 1 && /carga/i.test(await L(() => document.getElementById('move-editor-body').textContent)));
+  await L(() => {window.__lab.ui.lastResult = null;});
+  await page.click('#editor-play');
+  await page.waitForFunction(() => window.__lab.ui.lastResult?.id === 'editor-water-pulse', null, {timeout: 120000});
+  await page.waitForFunction(() => /Entidades criadas/.test(document.getElementById('editor-result').textContent), null, {timeout: 10000});
+  check('Water Pulse: cria o projétil e acerta', await L(() => /Entidades criadass*projectile/.test(document.getElementById('editor-result').textContent) && /Acertou o alvosim/.test(document.getElementById('editor-result').textContent)));
+  const nMech2 = await page.locator('#editor-mechanics [data-path^="world.waterPulse."]').count();
+  check('os sliders de mecânica trocam para os do Water Pulse', nMech2 >= 10, `${nMech2} controles`);
+  await page.selectOption('#editor-move', 'sand-wave');
+
   mkdirSync(root + 'evidence/editor', {recursive: true});
   if (!process.env.ARENAMON_SKIP_SCREENSHOTS) await page.screenshot({path: root + 'evidence/editor/editor-sand-wave.png'});
 

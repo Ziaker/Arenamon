@@ -5,7 +5,7 @@ import {runScenario} from '../src/sim/scenarios.js';
 import {C, resetConfig, defaults} from '../src/sim/config.js';
 import {registerStandardMoves} from '../src/sim/moves/standard.js';
 import {EDITABLE_MOVES, editableMove} from '../src/editor/editable-moves.js';
-import {makeMoveScenario, currentMoveJson, observeSeconds, DISTANCE_RANGE} from '../src/editor/move-editor-model.js';
+import {makeMoveScenario, currentMoveJson, observeSeconds, needsHold, suggestedHold, DISTANCE_RANGE} from '../src/editor/move-editor-model.js';
 import {validateMoveData} from '../src/sim/moves/move-data.js';
 
 registerStandardMoves();
@@ -15,7 +15,7 @@ const ok = (name, fn) => {try {fn();n++;console.log('  ✓ ' + name);} catch (e)
 const run = stage => { resetConfig(defaults()); return runScenario(makeMoveScenario(sand, stage)); };
 const val = (r, label) => r.checks.find(c => c.label === label).actual;
 
-ok('o Sand Wave está na lista de Moves editáveis', () => { assert.ok(sand); assert.equal(EDITABLE_MOVES.length, 1); assert.equal(sand.group, 'sandWave'); });
+ok('todos os Moves migrados estão na lista do editor (17)', () => { assert.ok(sand); assert.equal(sand.group, 'sandWave'); assert.ok(EDITABLE_MOVES.length >= 17, String(EDITABLE_MOVES.length)); });
 ok('executar com o alvo perto: acerta, causa o dano do slider e cega', () => {
   const r = run({distance: 3});
   assert.equal(val(r, 'Acertou o alvo').startsWith('sim'), true);
@@ -58,5 +58,55 @@ ok('o move.json exportado é válido e carrega os valores atuais dos sliders', (
   assert.equal(doc.params.rows.find(r => r.key === 'damage').value, 11);
   assert.equal(doc.def.cooldown, 7);
   resetConfig(defaults());
+});
+
+// ---- Todos os Moves no palco ----
+const val2 = (r, label) => r.checks.find(c => c.label === label)?.actual;
+ok('cada Move migrado roda no palco sem erro, com o resumo completo e custo igual ao slider', () => {
+  for (const m of EDITABLE_MOVES) {
+    resetConfig(defaults());
+    const r = runScenario(makeMoveScenario(m, {distance: 3}));
+    assert.ok(r.checks.length >= 9, m.id);
+    const cost = (C.world[m.group]?.cost ?? m.def.cost ?? 0).toFixed(2);
+    assert.equal(val2(r, 'Custo de stamina do Move'), cost, m.id);
+  }
+});
+ok('golpes e projéteis acertam o alvo a 3 m (Sand Wave, Air Slash, Lunge, Quick Attack, Swift, Water Pulse)', () => {
+  for (const id of ['sand-wave', 'air-slash', 'lunge', 'quick-attack', 'swift', 'water-pulse']) {
+    resetConfig(defaults());
+    const r = runScenario(makeMoveScenario(editableMove(id), {distance: 3}));
+    assert.ok(val2(r, 'Acertou o alvo').startsWith('sim'), id + ': ' + val2(r, 'Acertou o alvo'));
+    assert.ok(parseFloat(val2(r, 'Dano causado ao alvo')) > 0, id);
+  }
+});
+ok('buffs mostram o status no azul (Harden, Second Wind)', () => {
+  for (const [id, st] of [['harden', 'harden'], ['second-wind', 'second-wind']]) {
+    resetConfig(defaults());
+    const r = runScenario(makeMoveScenario(editableMove(id), {distance: 3}));
+    assert.ok(val2(r, 'Status no azul').includes(st), id + ': ' + val2(r, 'Status no azul'));
+  }
+});
+ok('campos e projéteis mostram as entidades criadas (Fire Spin, Seed Bomb, Emerging Stone, Air Slash)', () => {
+  const want = {'fire-spin': 'area', 'seed-bomb': 'projectile', 'emerging-stone': 'burrow', 'air-slash': 'projectile'};
+  for (const [id, kind] of Object.entries(want)) {
+    resetConfig(defaults());
+    const r = runScenario(makeMoveScenario(editableMove(id), {distance: 3}));
+    assert.ok(val2(r, 'Entidades criadas').includes(kind), id + ': ' + val2(r, 'Entidades criadas'));
+  }
+});
+ok('Spikes avisa o motivo quando o marcador cai em cima do alvo e arma quando o alvo está longe', () => {
+  resetConfig(defaults());
+  const perto = runScenario(makeMoveScenario(editableMove('spikes'), {distance: 3}));
+  assert.ok(val2(perto, 'Falha ao usar o Move').includes('marcador inválido'), val2(perto, 'Falha ao usar o Move'));
+  resetConfig(defaults());
+  const longe = runScenario(makeMoveScenario(editableMove('spikes'), {distance: 12}));
+  assert.ok(val2(longe, 'Entidades criadas').includes('trap'), val2(longe, 'Entidades criadas'));
+});
+ok('Moves de carga/mira têm tempo de botão segurado e os demais não', () => {
+  assert.equal(needsHold(editableMove('water-pulse')), true);
+  assert.equal(needsHold(editableMove('spikes')), true);
+  assert.equal(needsHold(editableMove('sand-wave')), false);
+  assert.ok(suggestedHold(editableMove('water-pulse')) > 0);
+  assert.equal(makeMoveScenario(editableMove('sand-wave'), {hold: 2}).name.includes('botão'), false);
 });
 console.log(`${n} verificações do Editor de Moves.`);
