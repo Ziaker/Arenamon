@@ -3,6 +3,10 @@
   "version": "1.36.0",
   "description": "Laboratórios offline do projeto Arenamon",
   "scripts": {
+    "vigia": "node scripts/vigia.mjs",
+    "rapido": "node scripts/rapido.mjs",
+    "rapido:tudo": "node scripts/rapido.mjs --tudo",
+    "rapido:build": "node scripts/rapido.mjs --so-build",
     "build": "node prototypes/placeholders/build.mjs && node prototypes/game/build.mjs && node prototypes/importer/build.mjs && node prototypes/studio/build.mjs && node prototypes/combat-lab/build.mjs && node prototypes/vfx-elemental/build.mjs && node prototypes/hud-consumiveis/build.mjs && node prototypes/hud-moves/build.mjs",
     "bench:moves": "node prototypes/combat-lab/bench-moves.mjs --write",
     "indice": "node prototypes/combat-lab/gen-indice.mjs",
