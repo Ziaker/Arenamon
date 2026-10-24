@@ -1,6 +1,6 @@
 # Plano: Editor de Moves (janela única que dá play no Move)
 
-Status: **plano, nada implementado**. Escrito em 24/10/2026.
+Status (24/10/2026): **fases 1 e 2 entregues para o Sand Wave** (ver «Andamento» no fim). Fases 3 a 7 ainda são plano.
 
 ## Objetivo
 
@@ -143,3 +143,9 @@ Alvo parado, andando, em guarda, esquivando, no ar, perto de parede/borda/plataf
 
 ## Extras que entram se sobrar fôlego
 Modo escuro/claro, painel redimensionável e lembrado, janela destacável por painel, importar parâmetros de outro Move ("copiar do Water Pulse"), histórico de versões aprovadas com data e quem aprovou, e modo apresentação (esconde painéis, só o play).
+
+## Andamento
+
+- **Fase 1 (Move como dado)** — `src/sim/moves/move-data.js` + `sand-wave.move.json`: definição, sliders de mecânica e referência ao visual aprovado num arquivo só. Teste: `test/move-data.test.mjs`.
+- **Fase 2 (editor mínimo)** — botão **🛠 Editor** no canto da arena (ao lado de «Personagens» e «Ações»). Abre a gaveta com: palco (Move, distância do alvo, alvo parado/defendendo, velocidade, repetir em laço), **▶ Executar** (roda o Move de verdade no `World` da partida e mostra dano, cegueira, custo e recarga), sliders de **mecânica** (Ctrl+Z desfaz, ↺ volta ao padrão) e de **visual** (parâmetros aprovados do atelier, valem na sessão), e **Copiar move.json / Copiar visual** para guardar. Código em `src/editor/` (modelo sem interface + painel). Testes: `test/move-editor.test.mjs` (modelo, sem navegador) e `test/move-editor.browser.mjs` (16 verificações no navegador). Evidência: `evidence/editor/editor-sand-wave.png`.
+- **Limites atuais:** só o Sand Wave está no editor (os demais Moves entram na fase 5); gravar direto no disco, linha do tempo e comparação A/B (fase 3), e a vitrine de Moves na aba (fase 4) ainda não existem.
