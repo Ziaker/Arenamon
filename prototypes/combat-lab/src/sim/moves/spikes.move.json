@@ -1,0 +1,208 @@
+{
+  "schemaVersion": 1,
+  "def": {
+    "id": "spikes",
+    "name": "Spikes",
+    "air": "cast",
+    "group": "spikes",
+    "aimMode": "marker",
+    "aim": "facing",
+    "description": "Normal · Field. Segure para escolher o local (até 5 m), solte para confirmar: nasce uma armadilha de espinhos que fere o primeiro adversário que pisar nela.",
+    "cost": 1,
+    "cooldown": 10,
+    "duration": 0.4,
+    "motion": {
+      "type": "root"
+    },
+    "timeline": [
+      {
+        "at": 0.4,
+        "atKey": "cast",
+        "effect": "spikes"
+      }
+    ]
+  },
+  "params": {
+    "group": "spikes",
+    "title": "Spikes",
+    "hint": "Normal · Field. Segure para escolher o local (setas movem o marcador, até 5 m), solte para confirmar: nasce uma armadilha de espinhos que fere o primeiro adversário que pisar nela.",
+    "meta": {
+      "category": "Normal",
+      "types": [
+        "Field"
+      ],
+      "pl": "SEM PL",
+      "status": {
+        "proposto": true,
+        "aprovado": false,
+        "implementado": true,
+        "homologado": false
+      }
+    },
+    "rows": [
+      {
+        "min": 0,
+        "max": 5,
+        "step": 0.05,
+        "key": "cost",
+        "label": "Custo de stamina",
+        "tip": "Cobrado ao CONFIRMAR o marcador (Normal); marcador inválido cancela sem custo. Valor do catálogo — proposta, não homologada.",
+        "unit": "num",
+        "value": 1
+      },
+      {
+        "min": 0,
+        "max": 60,
+        "step": 0.5,
+        "key": "cooldown",
+        "label": "Cooldown",
+        "tip": "Começa junto com o custo, na confirmação (catálogo: 10 s).",
+        "unit": "sec",
+        "value": 10
+      },
+      {
+        "min": 0.05,
+        "max": 2,
+        "step": 0.01,
+        "key": "cast",
+        "label": "Duração do cast",
+        "tip": "Tempo entre confirmar e a armadilha nascer; interrupção cancela sem reembolso (catálogo: 0,4 s).",
+        "unit": "sec",
+        "value": 0.4
+      },
+      {
+        "min": 1,
+        "max": 15,
+        "step": 0.5,
+        "key": "range",
+        "label": "Alcance de colocação (3D)",
+        "tip": "Distância tridimensional máxima do marcador, incluindo a altura do apoio (catálogo: 5 m).",
+        "unit": "m",
+        "value": 5
+      },
+      {
+        "min": 0,
+        "max": 10,
+        "step": 0.25,
+        "key": "minRange",
+        "label": "Alcance mínimo",
+        "tip": "0 = pode colocar colada em você (provisório).",
+        "unit": "m",
+        "value": 0
+      },
+      {
+        "min": 0.3,
+        "max": 4,
+        "step": 0.05,
+        "key": "radius",
+        "label": "Raio do campo",
+        "tip": "Região ofensiva da armadilha (catálogo: 1,2 m).",
+        "unit": "m",
+        "value": 1.2
+      },
+      {
+        "min": 1,
+        "max": 30,
+        "step": 0.5,
+        "key": "life",
+        "label": "Duração máxima",
+        "tip": "Tempo até sumir sem acionar (catálogo: 8 s).",
+        "unit": "sec",
+        "value": 8
+      },
+      {
+        "min": 0,
+        "max": 40,
+        "step": 0.5,
+        "key": "damage",
+        "label": "Dano nominal",
+        "tip": "Com o Ataque de referência; final = nominal × Ataque ÷ referência (MV-P13); dano comum para Sturdy (MV-P05). Catálogo: 6 HP.",
+        "unit": "num",
+        "value": 6
+      },
+      {
+        "min": 0,
+        "max": 10,
+        "step": 0.1,
+        "key": "knockbackH",
+        "label": "Knockback horizontal",
+        "tip": "O catálogo define 0: dano sem empurrão.",
+        "unit": "ms",
+        "value": 0
+      },
+      {
+        "min": 0,
+        "max": 10,
+        "step": 0.1,
+        "key": "knockbackV",
+        "label": "Knockback vertical",
+        "tip": "O catálogo define 0.",
+        "unit": "ms",
+        "value": 0
+      },
+      {
+        "min": 0,
+        "max": 2,
+        "step": 0.05,
+        "key": "armDelay",
+        "label": "Tempo de armação",
+        "tip": "Depois de nascer, a armadilha só aciona após este tempo (provisório: 0,25 s, MV-P31).",
+        "unit": "sec",
+        "value": 0.25
+      },
+      {
+        "min": 0,
+        "max": 200,
+        "step": 1,
+        "key": "markerAccel",
+        "label": "Aceleração do marcador",
+        "tip": "Quão rápido o marcador ganha velocidade ao mudar a direção do corpo: ele DESLIZA para o novo lado em vez de aparecer lá. 0 = instantâneo (como antes); padrão 24 m/s².",
+        "unit": "num",
+        "value": 24
+      },
+      {
+        "min": 1,
+        "max": 30,
+        "step": 0.5,
+        "key": "markerSpeed",
+        "label": "Velocidade do marcador",
+        "tip": "Quão rápido a direção move o marcador enquanto o botão está segurado (provisório: 8 m/s, MV-P29).",
+        "unit": "ms",
+        "value": 8
+      },
+      {
+        "min": 0.5,
+        "max": 10,
+        "step": 0.25,
+        "key": "startDistance",
+        "label": "Distância inicial do marcador",
+        "tip": "Onde o marcador aparece ao apertar, à frente do corpo (provisório: 3 m).",
+        "unit": "m",
+        "value": 3
+      },
+      {
+        "min": 0,
+        "max": 6,
+        "step": 0.25,
+        "key": "maxRise",
+        "label": "Altura máxima de apoio acima dos pés",
+        "tip": "Até que altura de plataforma/rampa o marcador alcança (provisório: 2 m).",
+        "unit": "m",
+        "value": 2
+      },
+      {
+        "min": 0.3,
+        "max": 4,
+        "step": 0.1,
+        "key": "trapHeight",
+        "label": "Altura da região ofensiva",
+        "tip": "Faixa vertical em que a armadilha pega quem pisa (provisório: 1,2 m).",
+        "unit": "m",
+        "value": 1.2
+      },
+      {
+        "preset": "hitShake"
+      }
+    ]
+  }
+}
