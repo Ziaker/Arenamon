@@ -74,7 +74,7 @@
 - Passo 3: ajustar Node 22 / caminhos / tempo; testes de navegador só por `workflow_dispatch`.
 - **Concluída em 24/10/2026.** 1ª execução (PR #103) vermelha: `combat-windows.test.mjs` lia `validation/personagem-studio.glb` (pasta ignorada pelo Git); o teste agora é pulado só na CI (199b2c7). 2ª e 3ª execuções verdes (199b2c7 e a909943). Quebra de propósito (PR #104, asserção falsa em `moves-contracts.test.mjs`): vermelha na etapa «Contratos, fichas e índice dos Moves», e a etapa seguinte foi pulada. PRs #103 e #104 fechados; branches de teste e `CI_TESTE.md` apagados. **Não feito:** testes de navegador na CI (só sob demanda, nunca rodaram) e a troca das actions por versões sem Node 20 (as actions avisam a descontinuação).
 
-### Tarefa 8: #06 (VFX por fase) e #03 (Workbench) — 8a DESTRAVADA, 8b bloqueada (24/10/2026)
+### Tarefa 8: #06 (VFX por fase) e #03 (Workbench) — 8a CONCLUÍDA no Atelier Areia/Pedra, 8b bloqueada (24/10/2026)
 
 **8a, VFX por fase (#06): as fases estão decididas em documento.**
 - Norma: `docs/PADRAO_ATELIES_VFX.md` (23/10): seis fases obrigatórias (surgimento, disparo, efeito em si, duração, finalização/contato, efeito de contato), cada uma desligável, com sliders completos, limites 5× (água 300×), ângulos ±180°, sinais nos impulsos, seletor de disparo Argola / Tiro em cone, salvar/exportar/importar e acessibilidade (Sem flash, Movimento reduzido).
@@ -83,6 +83,8 @@
 - Ainda **[proposta]** no padrão (decidir antes de implementar): lista exata de controles extras por fase; aviso ao desligar tudo; se o impacto do disparo vira terceira opção do seletor; padrões dos extras; estilo visual definitivo (§6).
 - Estado: nenhum Move tem seletor, interruptor por fase nem sinais (padrão §8). A atualização funcional do atelier está pendente. Primeira candidata sugerida pelo padrão: Seed Bomb.
 - Antes de editar: registrar em `docs/` a decisão sobre os itens [proposta] acima. Documentos desatualizados a corrigir junto: `MOVES_ELEMENTAIS_VISUAL_QUARKS.md` (diz que o seletor não existe) e `MOVES_ELEMENTAIS_PROTOTIPO.md` (Seed Bomb 16 m; o código tem 32 m, decisão do responsável).
+
+**8a, entrega (24/10/2026, v1.31.0):** as seis fases desligáveis, sliders por fase, seletor Nenhum/Argola/Cone, salvar/exportar/importar e acessibilidade estão nas 24 propostas do Atelier Areia/Pedra (VOL. 07). Plano e estado final: `docs/plans/2026-10-24-vfx-por-fase-atelier.md`; guia: `docs/LAB_AREIA_PEDRA.md`; capturas: `prototypes/sand-stone-lab/evidence/fases-24-10/index.html`; `npm run test:sand-stone` entrou na cadeia do `npm test`. **Fica de fora:** os Moves elementais do ateliê Quarks e o jogo; aprovação visual; desempenho em GPU; estilo visual definitivo.
 
 **8b, Workbench visual (#03): continua bloqueada.** Nenhum documento define viewport dominante nem A/B visual lado a lado; o plano de 15 diz que esboço não é design aprovado e depende de decisões de UX do responsável. Registrar a decisão em `docs/` antes de editar.
 
