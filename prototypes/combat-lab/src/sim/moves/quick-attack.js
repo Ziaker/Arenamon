@@ -14,13 +14,9 @@ import {nearestEligible, targetReachOf} from '../moves.js';
 import {altitudeOf} from '../entity.js';
 import {sub, length, normalize, angleOf, direction, scale} from '../math.js';
 import {defineFicha} from './params-registry.js';
-import {params} from './quick-attack.params.js';
+import {params, def as quickAttackDef} from './quick-attack.params.js';
 
-export const quickAttackDef = Object.freeze({
-  id: 'quick-attack', name: 'Quick Attack', air: 'descend', group: 'quickAttack', tackle: 'quick-attack', needsTarget: 'acquireRange', antiAir: true,
-  description: 'Burst. Acha o adversário mais próximo a até 7 m (inclusive em voo baixo), investe em altíssima velocidade com um Tackle curto (PL1) e volta na hora ao ponto de partida.',
-  cost: .75, cooldown: 6, duration: .42, aim: 'target',
-});
+export {quickAttackDef};   // definição (id, fases, custo…) vem de quick-attack.move.json
 
 /** Preparação da ação (captura alvo, origem e velocidades). */
 export function quickAttackSetup(/** @type {any} */ f, /** @type {any} */ a, /** @type {Record<string, any>} */ P, /** @type {{fighters: any[], def: any}} */ ctx) {
