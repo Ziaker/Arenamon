@@ -48,12 +48,13 @@
 - Esperado: nenhum escopo pulado sem razão; relatório regenerável.
 - **Feito:** 16 escopos (novos: ceiling, arena-edge, destructible, reflect, status); `matrix.na` na ficha do Move; relatório `docs/MATRIZ_MOVES_2026-10-23.md` via `npm run matriz`. Resultado: 303 ok, 0 falhas, 1 N/A (semente 7). Escopos novos são genéricos (invariantes), sem regra de produto nova.
 
-### Tarefa 5: Linha do tempo com câmera, VFX e animação (#04)
+### Tarefa 5: Linha do tempo com câmera, VFX e animação (#04) — FEITA em 23/10/2026 (sem arrastar marcas)
 
 **Arquivos:** `src/sim/move-timeline.js`, `src/ui/moves-panel.js`.
 - Passo 1: fonte dos eventos de câmera/VFX (hooks em `view/`) e do clipe animado por Move.
 - Passo 2 (RED): marca de VFX/animação no tick certo, distinguindo tick mecânico de frame de animação.
 - Passo 3: pausar o replay no tick da marca. Arrastar marca **só** com decisão do responsável.
+- **Feito:** `buildMoveTimeline` agora devolve `cues` (VFX e câmera em ticks; animação com relógio próprio, convertida em quadros por `clipFrameAtTick`); `src/sim/move-vfx-map.js` (mapa puro de VFX); botão «⏸ pausar aqui» em Moves › Linha do tempo (usa `findMoveRunStart` + replay de 12 s); campo «Quadros do clipe». Testes em `move-timeline.test.mjs` (13) e conferido no Edge: VFX/câmera/animação em linhas separadas e pausa no tick 154 com o status já ativo. Não feito: arrastar marcas (decisão do responsável); tick de câmera/VFX de acerto à distância fica «no acerto» (sem tick fixo).
 
 ### Tarefa 6: Benchmark de render com GPU real (#15)
 

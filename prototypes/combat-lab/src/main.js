@@ -27,6 +27,7 @@ import {compareScenarios, compareMatch} from './sim/compare.js';
 import {MatchRecording, parseRecording} from './sim/recording.js';
 import {captureBug, parseBugCapture, reproduceBugCapture, encodeBug} from './sim/bug-capture.js';
 import {diffRecording} from './sim/replay-diff.js';
+import {findMoveRunStart} from './sim/move-timeline.js';
 import {emptyCommand} from './sim/entity.js';
 import {patchConfigTs, unifiedDiff, collectChanges} from './ui/gamepatch.js';
 import {OFFICIAL_MAP} from './ui/actions-meta.js';
@@ -200,6 +201,16 @@ function seekTick(tick) {
   if (!replay.length) return;togglePause(true);
   let lo = 0, hi = replay.length - 1;while (lo < hi) {const mid = (lo + hi) >> 1;if (replay.frames[mid].tick < tick) lo = mid + 1;else hi = mid;}
   loadFrame(replay.seek(lo));
+}
+/** Aba Moves › linha do tempo: pausa o replay no tick (relativo ao começo da ação) da última vez que o Move foi usado pelo azul. */
+function seekMoveTick(moveId, rel) {
+  if (!replay.length) return {ok: false, msg: 'Ainda não há replay: inicie uma partida e use o Move.'};
+  const start = findMoveRunStart(replay.frames, moveId, 0);
+  if (start === null) return {ok: false, msg: 'Este Move não aparece nos últimos 12 s do replay: use-o na partida e tente de novo.'};
+  const tick = start + rel;
+  if (tick > replay.frames[replay.length - 1].tick) return {ok: false, msg: `O replay termina no tick ${replay.frames[replay.length - 1].tick}; a marca cairia no tick ${tick}, depois do fim.`};
+  seekTick(tick);
+  return {ok: true, msg: `Replay pausado no tick ${tick} da partida (começo da ação: tick ${start}; marca +${rel}). A conversão pode variar ±1 tick; use os botões de quadro para ajustar.`};
 }
 function goLive() {if (!replay.length) return;loadFrame(replay.seek(replay.length - 1));togglePause(false);}
 
@@ -707,6 +718,7 @@ const movesPanel = createMovesPanel({$, game, download, tuning, view, ui, canvas
   presetValues: {options: () => [...$('preset-a').options].map(o => [o.value, o.textContent]), valuesOf: id => presets.valuesOf(id)},
   nav: {openParams: (id, tab) => {toggleMoves(false);if ($('panel').hidden || $('panel').dataset.tool !== 'moves') openTool('moves');movesPanel.focusMove(id, tab);},
     openActions: id => {movesPanel.ensureEquipped(id);toggleMoves(true);actionsDrawer.show('moves');movesPanel.focusAction(id);},
+    seekMoveTick,
     refreshActions: () => {if (!$('moves-drawer').hidden) actionsDrawer.render();}}});
 const actionsDrawer = createActionsDrawer({$, tuning, ui, renderMoves: c => movesPanel.renderActions(c), renderAiMoves: c => movesPanel.renderAiParams(c), onCharactersChanged: () => {syncCharacterCombatWindows();syncRuleDurations();dock.invalidate();}});
 const movesHud = new MovesHud($('moves-hud'));

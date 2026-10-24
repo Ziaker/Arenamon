@@ -6,7 +6,7 @@ import {listMoves, getMove} from '../sim/moves.js';
 import {runMoveScenarios} from '../sim/scenarios-moves.js';
 import {moveParamGroups} from '../sim/moves/params-registry.js';
 import {createMoveSpecPanel} from './move-spec-panel.js';
-import {buildMoveTimeline, measureMoveRun, TICK_RATE} from '../sim/move-timeline.js';
+import {buildMoveTimeline, measureMoveRun, TICK_RATE, clipFrameAtTick} from '../sim/move-timeline.js';
 import {compareMoveVariants} from '../sim/move-ab.js';
 import {SHAKE_GROUPS} from '../sim/move-hit-map.js';
 /** Escapa texto para HTML (local: importar o ajustador arrastaria o config.ts do jogo, que só o esbuild lê). */
@@ -392,8 +392,13 @@ export function createMovesPanel({$, game, download, tuning, view, ui, canvas, s
     const spans = tl.spans.filter(sp => sp.kind !== 'cast').map(sp => `<i class="mv-tl-span ${sp.kind}" style="left:${pct(sp.from)};width:${(Math.max(0, sp.to - sp.from) / tl.totalTicks * 100).toFixed(2)}%" title="${escape(sp.label)}: tick ${sp.from} a ${sp.to}"></i>`).join('');
     const marks = tl.marks.map(k => `<b class="mv-tl-mark ${k.kind}" style="left:${pct(k.tick)}" title="${escape(k.label)} · tick ${k.tick} (${(k.tick / TICK_RATE).toFixed(3)} s)"></b>`).join('');
     return `<p class="hint">Ticks de ${TICK_RATE} Hz (passo fixo da simulação), não frames de animação. Fonte: ${escape(tl.source)}. Mude os sliders da Mecânica e a barra acompanha.</p>
-      <div class="mv-tl" data-tl="${mid}"><div class="mv-tl-bar">${spans}${marks}</div><div class="mv-tl-scale"><span>0</span><span>${Math.round(tl.totalTicks / 2)}</span><span>${tl.totalTicks} ticks</span></div></div>
-      <ul class="mv-tl-list">${tl.marks.map(k => `<li><code>tick ${k.tick}</code> · ${(k.tick / TICK_RATE).toFixed(3)} s · ${escape(k.label)}</li>`).join('')}</ul>
+      <div class="mv-tl" data-tl="${mid}" data-tl-total="${tl.totalTicks}"><div class="mv-tl-bar">${spans}${marks}</div><div class="mv-tl-scale"><span>0</span><span>${Math.round(tl.totalTicks / 2)}</span><span>${tl.totalTicks} ticks</span></div>
+        ${['vfx', 'camera'].map(d => `<div class="mv-tl-lane" title="${d === 'vfx' ? 'VFX: disparados pelos eventos da simulação (tick)' : 'Câmera: tremor de hit (tick)'}"><em>${d === 'vfx' ? 'VFX' : 'Câmera'}</em>${tl.cues.filter(c => c.domain === d && c.tick !== null).map(c => `<b class="mv-tl-mark cue-${d}" style="left:${pct(c.tick)}" title="${escape(c.label)} · tick ${c.tick}"></b>`).join('')}</div>`).join('')}
+        <div class="mv-tl-lane" title="Animação: o relógio é o do clipe (quadros), não o tick"><em>Animação</em>${tl.cues.filter(c => c.domain === 'animation' && c.tick !== null).map(c => `<i class="mv-tl-clip" style="left:${pct(c.tick)};width:${(100 - Number(pct(c.tick).slice(0, -1))).toFixed(2)}%" title="${escape(c.label)}"></i>`).join('')}</div></div>
+      <ul class="mv-tl-list">${tl.marks.map(k => `<li><code>tick ${k.tick}</code> · ${(k.tick / TICK_RATE).toFixed(3)} s · ${escape(k.label)} <button type="button" class="mv-tl-seek" data-tl-seek="${mid}:${k.tick}" title="Pausa o replay da partida no momento em que este Move foi usado por último, neste tick da marca">⏸ pausar aqui</button></li>`).join('')}</ul>
+      <p class="hint">VFX, câmera e animação (os dois primeiros seguem o tick; a animação segue o clipe).
+        <label class="field">Quadros do clipe <input type="number" min="2" max="600" step="1" value="30" data-tl-clipframes="${mid}" title="Quantos quadros tem o clipe de animação deste Move (para converter tick em quadro; padrão 30)"></label></p>
+      <ul class="mv-tl-list">${tl.cues.map(c => `<li><span class="mv-tl-dom ${c.domain}">${c.domain === 'vfx' ? 'VFX' : c.domain === 'camera' ? 'Câmera' : 'Animação'}</span> ${c.tick === null ? '<code>no acerto / durante a carga</code>' : `<code>${c.clock === 'animation' ? 'quadro ' : 'tick '}${c.clock === 'animation' ? `<span data-tl-frame="${c.tick}">0</span>` : c.tick}</code>`} · ${escape(c.label)}${c.tick !== null && c.clock === 'tick' ? ` <button type="button" class="mv-tl-seek" data-tl-seek="${mid}:${c.tick}" title="Pausa o replay neste tick">⏸ pausar aqui</button>` : ''}</li>`).join('')}${tl.marks.filter(k => ['spawn', 'effect', 'status', 'hit'].includes(k.kind)).map(k => `<li><span class="mv-tl-dom animation">Animação</span> <code>tick ${k.tick} → quadro <span data-tl-frame="${k.tick}">0</span></code> · onde o clipe está quando acontece «${escape(k.label)}»</li>`).join('')}</ul>
       <div class="mv-actions"><button type="button" data-tl-measure="${mid}" title="Usa o Move numa partida isolada e mede quando a ação começa, as entidades nascem e a ação termina">⏱ Medir no motor</button></div><div class="report" data-tl-result="${mid}" aria-live="polite"></div>`;
   }
   /** Etiqueta da ficha: categoria · tipos · PL, com os quatro status de governança na dica (proposto / aprovado / implementado / homologado). */
@@ -505,6 +510,18 @@ export function createMovesPanel({$, game, download, tuning, view, ui, canvas, s
         + (r.divergence.identical ? '<p class="muted">As duas execuções são idênticas: os valores escolhidos não mudam este cenário.</p>' : `<p>Primeiro tick em que A e B se separam: <b>${r.divergence.tick}</b>, campo <code>${escape(r.divergence.field)}</code>.</p>`)
         + `<p class="muted">${r.warnings.map(escape).join(' ')}</p>`;
     };
+    // Pausar o replay no tick de uma marca: a partida guarda os últimos 12 s; o tick da marca é relativo ao começo da última vez que o Move foi usado.
+    for (const b of root.querySelectorAll('[data-tl-seek]')) b.onclick = () => {
+      const [id, tick] = b.dataset.tlSeek.split(':'), out = root.querySelector(`[data-tl-result="${id}"]`);
+      const r = nav.seekMoveTick?.(id, Number(tick)) ?? {ok: false, msg: 'Esta tela não tem replay ligado.'};
+      if (out) out.innerHTML = `<p class="${r.ok ? '' : 'warn'}">${escape(r.msg)}</p>`;
+    };
+    // Conversão tick → quadro do clipe (a animação tem relógio próprio; o valor é só uma conversão de exibição).
+    for (const inp of root.querySelectorAll('[data-tl-clipframes]')) {
+      const box = inp.closest('.mv-tl') ?? root.querySelector(`[data-tl="${inp.dataset.tlClipframes}"]`), total = Number(box?.dataset.tlTotal ?? 0);
+      const upd = () => { for (const sp of root.querySelectorAll('[data-tl-frame]')) sp.textContent = `${clipFrameAtTick(Number(sp.dataset.tlFrame), total, Number(inp.value))} de ${inp.value}`; };
+      inp.oninput = upd; upd();
+    }
     for (const b of root.querySelectorAll('[data-tl-measure]')) b.onclick = () => {
       const id = b.dataset.tlMeasure, out = root.querySelector(`[data-tl-result="${id}"]`), tl = buildMoveTimeline(id);
       let m;try {m = measureMoveRun(id);} catch (e) {out.innerHTML = `<p class="warn">${escape(String(e.message ?? e))}</p>`;return;}

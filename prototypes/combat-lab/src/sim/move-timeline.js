@@ -8,6 +8,8 @@ import {emptyCommand} from './entity.js';
 import {getMove} from './moves.js';
 import {usageOf} from './move-matrix.js';
 import {withValues} from './compare.js';
+import {MOVE_GROUP, MELEE_MOVES, SHAKE_GROUPS} from './move-hit-map.js';
+import {MOVE_VFX, VFX_NAMES} from './move-vfx-map.js';
 
 export const TICK_RATE = 120;
 const toTick = (/** @type {number} */ s) => Math.round(s * TICK_RATE);
@@ -15,13 +17,54 @@ const toTick = (/** @type {number} */ s) => Math.round(s * TICK_RATE);
 /**
  * @typedef {{tick: number, label: string, kind: 'cast' | 'spawn' | 'status' | 'hit' | 'effect' | 'cancel' | 'end' | 'invuln'}} TimelineMark
  * @typedef {{from: number, to: number, label: string, kind: 'cast' | 'active' | 'invuln' | 'recovery' | 'cancel'}} TimelineSpan
+ * @typedef {{domain: 'vfx' | 'camera' | 'animation', clock: 'tick' | 'animation', tick: number | null, label: string, keys?: string[], clip?: string}} TimelineCue
+ *   cue = momento de VFX, câmera ou animação. `clock: 'tick'` = tick mecânico (120 Hz, relativo ao início da ação; null = «quando acertar», sem tick fixo);
+ *   `clock: 'animation'` = relógio do clipe, normalizado pela duração da ação (NÃO é tick; converta com clipFrameAtTick).
  */
+/** Quadro do clipe de animação que corresponde a um tick da ação: o clipe é esticado à duração da ação (progresso = tempo ÷ duração). */
+export function clipFrameAtTick(/** @type {number} */ tick, /** @type {number} */ totalTicks, /** @type {number} */ clipFrames) {
+  if (!(totalTicks > 0) || !(clipFrames > 1)) return 0;
+  return Math.min(clipFrames - 1, Math.max(0, Math.round(tick / totalTicks * (clipFrames - 1))));
+}
+/** Clipe tocado pela visão (view/characters.js): na carga `charge_<id>`; ao agir, `move_<slot+1>` (Reflect e Psyshock têm `release_<id>`). */
+function animationCues(/** @type {any} */ def, /** @type {number} */ slot) {
+  const own = def.id === 'reflect' || def.id === 'psyshock';
+  const action = own ? 'release_' + def.id : 'move_' + (Math.max(0, Math.min(3, slot)) + 1);
+  /** @type {TimelineCue[]} */ const cues = [];
+  if (def.charge) cues.push({domain: 'animation', clock: 'animation', tick: null, clip: 'charge_' + def.id, label: `animação: durante a carga toca o clipe charge_${def.id} (em laço; não é tick)`});
+  cues.push({domain: 'animation', clock: 'animation', tick: 0, clip: action, label: `animação: o clipe ${action} começa com a ação; o progresso dele é normalizado pela duração da ação (não é tick: converta com «Quadros do clipe»)`});
+  return cues;
+}
+/** Cues de VFX (nos eventos da simulação) e de câmera (tremor de hit) a partir das marcas mecânicas e dos sliders vivos. */
+function eventCues(/** @type {string} */ moveId, /** @type {TimelineMark[]} */ marks) {
+  /** @type {TimelineCue[]} */ const cues = [];
+  const keys = [...(MOVE_VFX[/** @type {keyof typeof MOVE_VFX} */ (moveId)] ?? [])];
+  const names = keys.map(k => VFX_NAMES[/** @type {keyof typeof VFX_NAMES} */ (k)] ?? k).join(', ') || 'efeito próprio do Move (aba Visual)';
+  for (const k of marks) if (k.kind === 'spawn' || k.kind === 'effect' || k.kind === 'status' || k.kind === 'hit') cues.push({domain: 'vfx', clock: 'tick', tick: k.tick, keys, label: `VFX no evento «${k.label}»: ${names}`});
+  const group = /** @type {Record<string, string>} */ (MOVE_GROUP)[moveId], w = group ? C.world[group] : null, hit = marks.find(k => k.kind === 'hit');
+  if (MELEE_MOVES.has(moveId)) cues.push({domain: 'camera', clock: 'tick', tick: hit?.tick ?? null, label: 'câmera: tremor de hit padrão ao acertar (corpo a corpo)'});
+  else if (w && SHAKE_GROUPS.includes(group)) cues.push({domain: 'camera', clock: 'tick', tick: hit?.tick ?? null, label: w.hitShakeOn ? `câmera: tremor de hit ligado (intensidade ×${w.hitShakeAmount}, duração ×${w.hitShakeDuration}) quando acertar` : 'câmera: sem tremor de hit (interruptor do Move desligado)'});
+  return cues;
+}
+/**
+ * Primeiro tick (da partida) da execução MAIS RECENTE do Move no buffer de replay do lutador `fighter`; null se o Move não foi usado.
+ * `frames` = [{tick, game: {fighters: [{action}]}}] (o que main.js guarda). Soma a isso o tick relativo de uma marca para pausar o replay nela.
+ * @param {{tick: number, game: any}[]} frames @param {string} moveId @param {number} [fighter]
+ */
+export function findMoveRunStart(frames, moveId, fighter = 0) {
+  const isRun = (/** @type {any} */ fr) => { const a = fr?.game?.fighters?.[fighter]?.action; return a?.kind === 'move' && a.move === moveId; };
+  let i = frames.length - 1;
+  while (i >= 0 && !isRun(frames[i])) i--;
+  if (i < 0) return null;
+  while (i > 0 && isRun(frames[i - 1])) i--;
+  return frames[i].tick;
+}
 /**
  * Linha do tempo estática (a partir da definição efetiva e dos parâmetros do grupo).
- * @param {string} moveId
- * @returns {{id: string, tickRate: number, totalTicks: number, marks: TimelineMark[], spans: TimelineSpan[], source: string, charge: boolean} | null}
+ * @param {string} moveId @param {{slot?: number}} [opts] slot do Move (0–3): define o clipe `move_<slot+1>`
+ * @returns {{id: string, tickRate: number, totalTicks: number, marks: TimelineMark[], spans: TimelineSpan[], cues: TimelineCue[], source: string, charge: boolean} | null}
  */
-export function buildMoveTimeline(moveId) {
+export function buildMoveTimeline(moveId, {slot = 0} = {}) {
   const def = getMove(moveId);
   if (!def) return null;
   const g = def.group ? C.world[def.group] : null;
@@ -47,7 +90,8 @@ export function buildMoveTimeline(moveId) {
   }
   marks.push({tick: total, label: 'fim da ação', kind: 'end'});
   marks.sort((a, b) => a.tick - b.tick);
-  return {id: moveId, tickRate: TICK_RATE, totalTicks: total, marks, spans, source: def.group ? `definição + sliders de C.world.${def.group}` : 'definição', charge: !!def.charge};
+  const cues = [...eventCues(moveId, marks), ...animationCues(def, slot)];
+  return {id: moveId, tickRate: TICK_RATE, totalTicks: total, marks, spans, cues, source: def.group ? `definição + sliders de C.world.${def.group}` : 'definição', charge: !!def.charge};
 }
 
 /**

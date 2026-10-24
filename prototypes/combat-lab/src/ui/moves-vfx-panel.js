@@ -5,18 +5,12 @@ import {MOVE_INFO,MOVES_PARAMS,isVisualWorldParam,DEPENDS_ON} from './moves-pane
 import {elementalSubs, elementalGlobalMarkup, bindElementalVisual, visualField} from './elemental-move-controls.js';
 import {VISUAL_SUB_ORDER, MOVE_KEYS} from './elemental-visual-model.js';
 import {MOVE_GROUP, SHAKE_GROUPS, MOVE_ELEMENT} from '../sim/move-hit-map.js';
+import {MOVE_VFX, VFX_NAMES} from '../sim/move-vfx-map.js';
 
 // Efeitos globais efetivamente reutilizados por vários Moves. A interface deixa
 // explícito que mudar um deles afeta todos os Moves que disparam esse efeito.
-const SHARED = {
-  reflect:['barrier','solidReflect'], psyshock:['rock','solidImpact'], harden:['block'],
-  swift:['hit'], riposte:['hit','clash'], 'emerging-stone':['rock','ground'],
-  'bullet-punch':['hit','rangeRing'], 'sand-wave':['ground','solidDust'],
-  spikes:['ground'], bounce:['ground','jumpLanding'], feint:['dodge'],
-  'guard-break':['hit','block'], lunge:['hit'], 'quick-attack':['hit','rangeRing'],
-  'second-wind':['regen'],
-};
-const NAMES = {barrier:'Barreira do Reflect',solidReflect:'Superfície 3D da defesa',rock:'Pedras e estilhaços',solidImpact:'Impacto sólido',hit:'Impacto compartilhado',clash:'Colisão de ataques',ground:'Contato com o chão',solidDust:'Poeira sólida',rangeRing:'Círculo de alcance',jumpLanding:'Pouso',dodge:'Esquiva',block:'Bloqueio',regen:'Regeneração'};
+const SHARED = MOVE_VFX;
+const NAMES = VFX_NAMES;
 const ELEMENT_NAMES = {water:'Água',fire:'Fogo',air:'Voador',grass:'Planta',psychic:'Psíquico',ground:'Terra',normal:'Normal'};
 const ESC = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const labelOf = (key, manifest) => manifest?.label ?? key.replace(/([a-z])([A-Z])/g,'$1 $2').replace(/^./,s=>s.toUpperCase());
