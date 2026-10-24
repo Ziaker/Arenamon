@@ -7,13 +7,9 @@
 import {C} from '../config.js';
 import {nominalDistance} from '../entity.js';
 import {defineFicha} from './params-registry.js';
-import {params} from './lunge.params.js';
+import {params, def as lungeDef} from './lunge.params.js';
 
-export const lungeDef = Object.freeze({
-  id: 'lunge', name: 'Lunge', air: 'descend', group: 'lunge', tackle: 'lunge',
-  description: 'Burst. Avança em linha reta até 3,5 m aplicando um Tackle curto (PL1) e fica onde parou. Dano 8, empurrão de 4 m/s sem lançar.',
-  cost: .75, cooldown: 6, duration: .6, aim: 'target',
-});
+export {lungeDef};   // definição (id, fases, custo…) vem de lunge.move.json
 
 /** Prepara a ação de Tackle do Lunge com os parâmetros capturados. */
 export function lungeSetup(/** @type {any} */ f, /** @type {any} */ a, /** @type {Record<string, any>} */ P) {
