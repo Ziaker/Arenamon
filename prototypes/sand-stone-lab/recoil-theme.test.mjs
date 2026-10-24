@@ -28,6 +28,6 @@ fx = make({shotKind: 2}, {element: 'earth'});fx.fire();assert.equal(particles.sy
 assert.ok(particles.systems.some(e => e.kind === 'grain'), 'terra usa grãos');clean(fx);
 fx = make({shotKind: 1}, {element: 'psychic'});fx.fire();assert.equal(stage.getObjectByName('shot-ring').children.length, 1, 'fio interno claro');clean(fx);
 fx = make({shotKind: 1});fx.fire();assert.equal(stage.getObjectByName('shot-ring').children.length, 0);clean(fx);
-const colors = el => {const f = make({shotKind: 5, shotCoreGlow: .5}, {element: el});f.fire();const c = stage.getObjectByName('shot-cross').children[0].material.color.getHex();clean(f);return c;};
+const colors = el => {const f = make({shotKind: 5, shotCoreGlow: .5}, {element: el});f.fire();const c = stage.getObjectByName('shot-cross').getObjectByName('star-body').material.color.getHex();clean(f);return c;};
 assert.equal(new Set(['earth', 'psychic', 'steel', 'star', 'wind', 'fighting'].map(colors)).size, 6, 'cada elemento tem a sua cor');
 console.log('PASS: Recoil & Flash e tema por elemento dos disparos');

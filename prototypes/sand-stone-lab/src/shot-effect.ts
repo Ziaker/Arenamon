@@ -11,6 +11,50 @@ import * as T from 'three';
 //
 // O interruptor da fase Disparo (launchOn = 0) desliga tudo.
 // Deslocamentos, impulsos e ângulos têm sinal: positivo vai à frente / para cima / para a direita; negativo, o contrário.
+
+// ---- Formas de anime (cel-shading): lâmina em crescente e estrela de 4 pontas -------------------------------------------------------------
+const CEL_VERT = 'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}';
+// núcleo branco no centro, corpo na cor do elemento, borda escura (rastro): três faixas duras, como no desenho de anime
+const CEL_FRAG = 'varying vec2 vUv;uniform vec3 core;uniform vec3 body;uniform vec3 rim;uniform float fade;uniform float taper;uniform float time;void main(){float across=abs(vUv.y*2.-1.);float lim=mix(1.,clamp(vUv.x,0.,1.),taper);float a=across/max(lim,.001);if(a>1.)discard;float st=sin(vUv.x*16.-time*34.+vUv.y*4.);vec3 c=a<.3?core:(a<.74?(st>.82?core:body):rim);gl_FragColor=vec4(c,fade*(.3+.7*vUv.x));}';
+function celMaterial(core: T.Color, body: T.Color, rim: T.Color, taper: number) {
+  return new T.ShaderMaterial({uniforms: {core: {value: core}, body: {value: body}, rim: {value: rim}, fade: {value: 1}, taper: {value: taper}, time: {value: 0}}, vertexShader: CEL_VERT, fragmentShader: CEL_FRAG, transparent: true, depthWrite: false, side: T.DoubleSide});
+}
+/** Lâmina de vento: arco de círculo (crescente) afinando nas duas pontas; o centro vai à frente e as pontas ficam para trás. uv.x: 0 nas pontas, 1 no centro. */
+function crescentGeometry(radius: number, sweep: number, width: number, seg = 20) {
+  const pos: number[] = [], uv: number[] = [], idx: number[] = [];
+  for (let i = 0; i <= seg; i++) {
+    const s = i / seg * 2 - 1, a = s * sweep, cx = radius * Math.sin(a), cz = -radius * (1 - Math.cos(a)), nx = Math.sin(a), nz = Math.cos(a);
+    const w = width * Math.pow(Math.max(0, 1 - s * s), .75) / 2, x = 1 - Math.abs(s);
+    pos.push(cx + nx * w * .12, 0, cz + nz * w * .12, cx - nx * w * 1.88, 0, cz - nz * w * 1.88);uv.push(x, 1, x, 0);
+    if (i < seg) {const k = i * 2;idx.push(k, k + 1, k + 2, k + 1, k + 3, k + 2);}
+  }
+  const g = new T.BufferGeometry();g.setAttribute('position', new T.Float32BufferAttribute(pos, 3));g.setAttribute('uv', new T.Float32BufferAttribute(uv, 2));g.setIndex(idx);return g;
+}
+/** Estrela de quatro pontas finas (agulhas): pontas em 0°, 90°, 180° e 270° (+rot), cintura fina entre elas. */
+function starGeometry(outer: number, inner: number, rot = 0) {
+  const sh = new T.Shape();
+  for (let i = 0; i < 8; i++) {const a = i * Math.PI / 4 + rot, r = i % 2 ? inner : outer, x = Math.cos(a) * r, y = Math.sin(a) * r;if (i) sh.lineTo(x, y);else sh.moveTo(x, y);}
+  sh.closePath();return new T.ShapeGeometry(sh);
+}
+/** Explosão irregular de espinhos duros (a forma desenhada à mão dos impactos de mangá). */
+function jaggedGeometry(spikes: number, inner: number, lo: number, hi: number, seed: number) {
+  let q = seed;const rnd = () => (q = (Math.imul(q, 1664525) + 1013904223) >>> 0) / 4294967296;
+  const sh = new T.Shape();
+  for (let i = 0; i < spikes * 2; i++) {const a = i * Math.PI / spikes, r = i % 2 ? inner * (.8 + rnd() * .4) : lo + (hi - lo) * rnd(), x = Math.cos(a) * r, y = Math.sin(a) * r;if (i) sh.lineTo(x, y);else sh.moveTo(x, y);}
+  sh.closePath();return new T.ShapeGeometry(sh);
+}
+/** Linhas de ação radiais (mangá): fios finos que saem do centro, cada um com comprimento próprio. */
+function radialLinesGeometry(n: number, r0: number, r1: number, seed: number) {
+  let q = seed;const rnd = () => (q = (Math.imul(q, 1664525) + 1013904223) >>> 0) / 4294967296;
+  const pos: number[] = [];
+  for (let i = 0; i < n; i++) {
+    const a = (i + rnd() * .6) / n * Math.PI * 2, L = r0 + (r1 - r0) * (.35 + .65 * rnd()), b = r0 * (1 + rnd() * .4), da = .012 + .012 * rnd();
+    pos.push(Math.cos(a - da) * b, Math.sin(a - da) * b, 0, Math.cos(a + da) * b, Math.sin(a + da) * b, 0, Math.cos(a) * L, Math.sin(a) * L, 0);
+  }
+  const g = new T.BufferGeometry();g.setAttribute('position', new T.Float32BufferAttribute(pos, 3));return g;
+}
+const ease = (k: number) => 1 - Math.pow(1 - Math.max(0, Math.min(1, k)), 3);
+const back = (k: number) => {const c = 1.9, x = Math.max(0, Math.min(1, k)) - 1;return 1 + (c + 1) * x * x * x + c * x * x;};
 type Vec3 = [number, number, number];
 type Options = {origin: Vec3; direction: Vec3; follow?: () => Vec3; color?: number; element?: string};
 // Tema por elemento (PADRAO §7.3 e anti-«carimbo»): gradiente de 3 níveis (núcleo claro, corpo saturado, rastro escuro) e o tipo de partícula do próprio Move.
@@ -30,6 +74,7 @@ export class ShotEffect {
   private bladesGroup: T.Group | null = null;
   private crossMesh: T.Group | null = null;
   private recoil: T.Group | null = null;
+  private flat: T.Group | null = null;
   private age = 0;
   private fired = false;
   private readonly entries: any[] = [];
@@ -146,37 +191,39 @@ export class ShotEffect {
 
   private fireWindBurst() {
     const v = this.values, a = this.anchor();
-    const r = v.shotRadius ?? .4, blades = Math.max(3, Math.round(v.shotWindBlades ?? 8));
-    const contour = v.shotContour ?? 2, bladeLen = (v.shotLength ?? 1.5) * .7;
-    const color = new T.Color(this.body(0xe0f7fa)).multiplyScalar(contour);
-
-    this.bladesGroup = new T.Group();
-    this.bladesGroup.name = 'shot-blades';
-    this.bladesGroup.position.copy(a);
-    this.bladesGroup.quaternion.setFromUnitVectors(new T.Vector3(0, 0, 1), this.dir);
-
-    // Fitas radiais de vácuo / lâminas curvas
-    const curveRad = (v.shotBladeCurve ?? 30) * Math.PI / 180;
-    const mat = new T.MeshBasicMaterial({color, transparent: true, opacity: .9, side: T.DoubleSide, blending: T.AdditiveBlending, depthWrite: false});
-    for (let i = 0; i < blades; i++) {
-      const geo = new T.PlaneGeometry(bladeLen, .05);
-      geo.translate(bladeLen * .5, 0, 0);
-      const m = new T.Mesh(geo, mat);
-      const angle = (i / blades) * Math.PI * 2 + curveRad;
-      m.rotation.z = angle;
-      this.bladesGroup.add(m);
+    const r = v.shotRadius ?? .4, n = Math.max(3, Math.round(v.shotWindBlades ?? 8)), contour = v.shotContour ?? 2, len = v.shotLength ?? 1.5, rEnd = v.shotRadiusEnd ?? .8;
+    const th = this.theme, bodyC = new T.Color(this.body(0xcfeff5)), coreC = new T.Color(th?.core ?? 0xffffff).multiplyScalar(contour), rimC = new T.Color(th?.trail ?? 0x35505c);
+    const g = new T.Group();g.name = 'shot-blades';g.position.copy(a);g.quaternion.setFromUnitVectors(new T.Vector3(0, 0, 1), this.dir);
+    const bladeMat = celMaterial(coreC, bodyC, rimC, 0), lineMat = celMaterial(coreC, bodyC, rimC, 1);
+    const twist = (v.shotBladeCurve ?? 30) * Math.PI / 180, snap = Math.max(.04, v.shotSnapTime ?? .12);
+    const crescent = crescentGeometry(r * 1.5 + .35, 1.1, .26 + .06 * contour), plane = new T.PlaneGeometry(1, 1);
+    // lâminas em crescente ao redor do eixo, cada uma com tamanho e atraso próprios
+    for (let i = 0; i < n; i++) {
+      const pivot = new T.Group(), tw = new T.Group(), m = new T.Mesh(crescent, bladeMat);
+      m.rotation.z = Math.PI / 2;tw.rotation.x = twist;tw.add(m);pivot.add(tw);pivot.name = 'blade';
+      pivot.userData = {phi: i / n * Math.PI * 2, tw, size: .75 + (i % 3) * .17, lag: (i % 2) * .1};g.add(pivot);
     }
-    if (this.theme) {   // contorno escuro do vácuo atrás das lâminas
-      const dark = new T.Mesh(new T.RingGeometry(r * .85, r, 48), new T.MeshBasicMaterial({color: this.theme.trail, transparent: true, opacity: .6, side: T.DoubleSide, depthWrite: false}));
-      this.bladesGroup.add(dark);
+    // linhas de velocidade: faixas finas que afinam para trás, correndo ao longo do eixo
+    const lines = n * 2;
+    for (let i = 0; i < lines; i++) {
+      const pivot = new T.Group(), tw = new T.Group(), m = new T.Mesh(plane, lineMat);
+      m.rotation.y = -Math.PI / 2;m.scale.set(len * (.5 + (i % 3) * .22), .018 + .012 * contour, 1);tw.add(m);pivot.add(tw);pivot.name = 'line';
+      pivot.userData = {phi: (i + .5) / lines * Math.PI * 2 + .2, tw, mesh: m, rho: .75 + (i % 3) * .25, lag: (i % 3) * .05};g.add(pivot);
     }
-    this.parent.add(this.bladesGroup);
-
-    // Speedlines e centelhas de vento com Three.quarks
-    const snap = Math.max(.04, v.shotSnapTime ?? .12);
+    // anel de choque fino e branco
+    const ring = new T.Mesh(new T.RingGeometry(.93, 1, 64), new T.MeshBasicMaterial({color: new T.Color(th?.core ?? 0xffffff).multiplyScalar(2), transparent: true, opacity: .85, side: T.DoubleSide, depthWrite: false, blending: T.AdditiveBlending, toneMapped: false}));
+    ring.name = 'ring';g.add(ring);
+    g.userData = {r, len, rEnd, life: Math.max(.2, snap * 2.2 + .12), twist, bladeMat, lineMat};
+    this.parent.add(g);this.bladesGroup = g;
+    // linhas de ação radiais (mangá), sempre voltadas para a câmera
+    const flat = new T.Group();flat.name = 'shot-actionlines';flat.position.copy(a);
+    const lines3 = new T.Mesh(radialLinesGeometry(n * 3, r * .7, r * 2.2 + len * .6, 7), new T.MeshBasicMaterial({color: new T.Color(th?.core ?? 0xffffff).multiplyScalar(2), transparent: true, opacity: .9, side: T.DoubleSide, blending: T.AdditiveBlending, depthWrite: false, toneMapped: false}));
+    lines3.onBeforeRender = (_r, _s, cam) => {flat.quaternion.copy(cam.quaternion);};
+    flat.add(lines3);this.parent.add(flat);this.flat = flat;
+    // fagulhas de vento (Quarks)
     this.entries.push(this.particles.create({
-      kind: 'streak', color: this.body(0xe0f7fa), count: blades * 2, duration: snap, life: snap * 1.5,
-      size: r * .35, speed: (v.shotRadiusEnd ?? .8) * 5 + (v.shotImpulseH ?? 0), radius: r * .2, angle: Math.PI / 3,
+      kind: 'streak', color: this.body(0xcfeff5), count: n * 2, duration: snap, life: snap * 1.5,
+      size: r * .35, speed: rEnd * 5 + (v.shotImpulseH ?? 0), radius: r * .2, angle: Math.PI / 3,
       opacity: 1, position: [a.x, a.y, a.z], direction: [this.dir.x, this.dir.y, this.dir.z]
     }));
   }
@@ -206,32 +253,27 @@ export class ShotEffect {
 
   private fireStarburst() {
     const v = this.values, a = this.anchor();
-    const armsLen = v.shotCrossArms ?? .8;
-    const angleRad = (v.shotCrossAngle ?? 0) * Math.PI / 180;
-    const glow = v.shotCoreGlow ?? 2.5;
-    const color = new T.Color(this.body(0xfff08a)).multiplyScalar(glow);
-
-    this.crossMesh = new T.Group();
-    this.crossMesh.name = 'shot-cross';
-    this.crossMesh.position.copy(a);
-    this.crossMesh.quaternion.setFromUnitVectors(new T.Vector3(0, 0, 1), this.dir);
-    this.crossMesh.rotation.z = angleRad;
-
-    const mat = new T.MeshBasicMaterial({color, transparent: true, opacity: .95, side: T.DoubleSide, blending: T.AdditiveBlending, depthWrite: false});
-    const hArm = new T.Mesh(new T.PlaneGeometry(armsLen * 2, .05), mat);
-    const vArm = new T.Mesh(new T.PlaneGeometry(.05, armsLen * 2), mat);
-    this.crossMesh.add(hArm, vArm);
-    if (this.theme) {   // diamante central claro
-      const core = new T.Mesh(new T.PlaneGeometry(.22, .22), new T.MeshBasicMaterial({color: new T.Color(this.theme.core).multiplyScalar(glow), transparent: true, opacity: .95, side: T.DoubleSide, blending: T.AdditiveBlending, depthWrite: false}));
-      core.rotation.z = Math.PI / 4;this.crossMesh.add(core);
-    }
-    this.parent.add(this.crossMesh);
-
-    // Centelhas estelares ortogonais em cruz
+    const arms = v.shotCrossArms ?? .8, glow = v.shotCoreGlow ?? 2.5, th = this.theme;
+    const bodyC = new T.Color(this.body(0xfff08a)).multiplyScalar(glow), coreC = new T.Color(th?.core ?? 0xffffff).multiplyScalar(glow);
+    const mat = (c: T.Color, o = 1) => new T.MeshBasicMaterial({color: c, transparent: true, opacity: o, side: T.DoubleSide, blending: T.AdditiveBlending, depthWrite: false, toneMapped: false});
+    // grupo que sempre encara a câmera (a estrela é um desenho plano; de lado ela sumiria)
+    const g = new T.Group();g.name = 'shot-cross';g.position.copy(a);
+    const spin = new T.Group();spin.name = 'spin';spin.rotation.z = (v.shotCrossAngle ?? 0) * Math.PI / 180;g.add(spin);
+    const body = new T.Mesh(starGeometry(arms, arms * .17), mat(bodyC));body.name = 'star-body';
+    const diag = new T.Mesh(starGeometry(arms * .5, arms * .06, Math.PI / 4), mat(bodyC.clone().multiplyScalar(.8), .9));diag.name = 'star-diag';
+    const core = new T.Mesh(starGeometry(arms * .6, arms * .2), mat(coreC));core.name = 'star-core';core.position.z = .002;
+    const flash = new T.Mesh(new T.CircleGeometry(arms * .12, 28), mat(coreC));flash.name = 'flash';flash.position.z = .004;
+    const jag = new T.Mesh(jaggedGeometry(11, arms * .22, arms * .45, arms * .85, 11), mat(bodyC.clone().multiplyScalar(.55), .7));jag.name = 'jag';jag.position.z = -.002;
+    spin.add(jag, body, diag, core, flash);
+    const lines = new T.Mesh(radialLinesGeometry(28, arms * .5, arms * 1.9, 3), mat(coreC.clone().multiplyScalar(.7), .85));lines.name = 'lines';lines.position.z = -.004;g.add(lines);
+    const ring = new T.Mesh(new T.RingGeometry(.94, 1, 56), mat(bodyC.clone().multiplyScalar(.7), .8));ring.name = 'ring';g.add(ring);
+    body.onBeforeRender = (_r, _s, cam) => {g.quaternion.copy(cam.quaternion);};
+    g.userData = {spin, arms, angle: (v.shotCrossAngle ?? 0) * Math.PI / 180};
+    this.parent.add(g);this.crossMesh = g;
     const sparks = Math.max(1, Math.round(v.shotCrossSparks ?? 24));
     this.entries.push(this.particles.create({
       kind: 'star', color: this.body(0xfff08a), count: sparks, duration: .1, life: .35,
-      size: .2, speed: armsLen * 3.5 + (v.shotImpulseH ?? 0), radius: .1, angle: Math.PI / 4,
+      size: .2, speed: arms * 3.5 + (v.shotImpulseH ?? 0), radius: .1, angle: Math.PI / 4,
       opacity: 1, position: [a.x, a.y, a.z], direction: [this.dir.x, this.dir.y, this.dir.z]
     }));
   }
@@ -264,35 +306,45 @@ export class ShotEffect {
       this.ring.visible = k < 1;
     }
 
-    // 3. Burst de vento anime (snap rápido de vácuo)
+    // 3. Burst de vento anime: lâminas em crescente que abrem e giram, linhas de velocidade e anel de choque
     if (this.bladesGroup) {
-      const snapDur = Math.max(.02, v.shotSnapTime ?? .12);
-      const kSnap = Math.min(1, t / snapDur);
-      const sSnap = 1 + Math.sin(kSnap * Math.PI * .5) * (v.shotRadiusEnd ?? .8);
-      this.bladesGroup.scale.set(sSnap, sSnap, sSnap);
-      this.bladesGroup.position.copy(a)
-        .addScaledVector(this.dir, (v.shotImpulseH ?? 0) * t)
-        .add(new T.Vector3(0, (v.shotImpulseV ?? 0) * t, 0));
-      const op = Math.max(0, 1 - kSnap) * .9;
-      for (const child of this.bladesGroup.children as T.Mesh[]) {
-        if (child.material) (child.material as T.MeshBasicMaterial).opacity = op;
+      const g = this.bladesGroup, u = g.userData, k = Math.min(1, t / u.life), imp = v.shotImpulseH ?? 0;
+      const base = u.r * .5, far = u.r + u.rEnd * 1.8;
+      for (const c of g.children as T.Group[]) {
+        const d = c.userData, kk = Math.min(1, Math.max(0, (t - (d.lag ?? 0)) / u.life)), e = ease(kk);
+        if (c.name === 'blade') {
+          d.tw.position.set(base + (far - base) * e, 0, u.len * .5 * e + imp * t);d.tw.scale.set(d.size * (.5 + .5 * e), d.size * (.5 + .5 * e), d.size * (.6 + 1.6 * e));c.rotation.z = d.phi + u.twist * 1.6 * e;
+        } else if (c.name === 'line') {
+          d.tw.position.set(u.r * d.rho + u.rEnd * 1.1 * e, 0, 0);d.mesh.position.z = u.len * (.15 + .9 * e) + imp * t;c.rotation.z = d.phi + u.twist * .8 * e;
+        } else if (c.name === 'ring') {
+          const s = u.r * (.4 + e * (u.rEnd * 1.1 + .5));c.scale.set(s, s, s);(c as unknown as T.Mesh).material = (c as unknown as T.Mesh).material;((c as unknown as T.Mesh).material as T.MeshBasicMaterial).opacity = Math.pow(1 - k, 2) * .5;
+        }
       }
-      this.bladesGroup.visible = kSnap < 1;
+      g.position.copy(a).add(new T.Vector3(0, (v.shotImpulseV ?? 0) * t, 0));
+      u.bladeMat.uniforms.fade.value = Math.pow(1 - k, 1.2);u.lineMat.uniforms.fade.value = Math.pow(1 - k, 1.2) * .9;
+      u.bladeMat.uniforms.time.value = t;u.lineMat.uniforms.time.value = t;
+      if (this.flat) {
+        const fk = Math.min(1, t / (u.life * .55)), m = (this.flat.children[0] as T.Mesh);
+        this.flat.position.copy(g.position);this.flat.scale.setScalar(.55 + ease(fk) * 1.1);(m.material as T.MeshBasicMaterial).opacity = Math.pow(1 - fk, 2) * .9;this.flat.visible = fk < 1;
+      }
+      g.visible = k < 1;
     }
 
-    // 5. Impacto estelar em cruz
+    // 5. Impacto estelar: estrela de 4 pontas que estoura com leve exagero, estreita e some; núcleo branco e anel
     if (this.crossMesh) {
-      const k = Math.min(1, t / dur);
-      const s = 1 + k * .8;
-      this.crossMesh.scale.set(s, s, s);
-      this.crossMesh.position.copy(a)
-        .addScaledVector(this.dir, (v.shotImpulseH ?? 0) * t)
-        .add(new T.Vector3(0, (v.shotImpulseV ?? 0) * t, 0));
-      const op = Math.max(0, 1 - k) * .95;
-      for (const child of this.crossMesh.children as T.Mesh[]) {
-        if (child.material) (child.material as T.MeshBasicMaterial).opacity = op;
+      const g = this.crossMesh, u = g.userData, k = Math.min(1, t / Math.max(.12, dur));
+      const pop = k < .2 ? back(k / .2) * 1.1 : 1.1 - (k - .2) * .45;
+      g.position.copy(a).addScaledVector(this.dir, (v.shotImpulseH ?? 0) * t).add(new T.Vector3(0, (v.shotImpulseV ?? 0) * t, 0));
+      u.spin.scale.setScalar(Math.max(.01, pop));u.spin.rotation.z = u.angle + k * .35;
+      const op = k < .45 ? 1 : Math.max(0, 1 - (k - .45) / .55);
+      for (const c of [...u.spin.children, ...g.children] as T.Mesh[]) {
+        if (c.name === 'lines') {const s = .5 + ease(k) * .9;c.scale.set(s, s, s);(c.material as T.MeshBasicMaterial).opacity = Math.pow(1 - k, 2) * .85;continue;}
+        if (c.name === 'flash') {c.scale.setScalar(1 + (k < .08 ? 5 * (1 - k / .08) : 0));(c.material as T.MeshBasicMaterial).opacity = k < .08 ? 1 : op * .8;continue;}
+        if (c.name === 'jag') {c.scale.setScalar(.4 + ease(k * 1.6) * .9);(c.material as T.MeshBasicMaterial).opacity = op * .7;continue;}
+        if (c.name === 'ring') {const s = u.arms * (.25 + ease(k) * .8);c.scale.set(s, s, s);(c.material as T.MeshBasicMaterial).opacity = (1 - k) * .8;}
+        else if (c.material) (c.material as T.MeshBasicMaterial).opacity = c.name === 'star-diag' ? op * .9 : op;
       }
-      this.crossMesh.visible = k < 1;
+      g.visible = k < 1;
     }
   }
 
@@ -306,7 +358,7 @@ export class ShotEffect {
       out.push(['blades', this.bladesGroup.position.toArray().map(n => +n.toFixed(4)), this.bladesGroup.scale.toArray().map(n => +n.toFixed(4)), this.bladesGroup.children.length, this.bladesGroup.visible]);
     }
     if (this.crossMesh) {
-      out.push(['cross', this.crossMesh.position.toArray().map(n => +n.toFixed(4)), this.crossMesh.scale.toArray().map(n => +n.toFixed(4)), +this.crossMesh.rotation.z.toFixed(4), this.crossMesh.visible]);
+      out.push(['cross', this.crossMesh.position.toArray().map(n => +n.toFixed(4)), this.crossMesh.scale.toArray().map(n => +n.toFixed(4)), +(this.crossMesh.userData.spin.rotation.z).toFixed(4), this.crossMesh.visible]);
     }
     if (this.recoil) {
       out.push(['recoil', this.recoil.visible, this.recoil.children.map(c => [c.userData.id, ...c.position.toArray().map(n => +n.toFixed(4)), ...c.scale.toArray().map(n => +n.toFixed(4)), +((c as T.Mesh).material as T.MeshBasicMaterial).opacity.toFixed(4), +((c as T.Mesh).geometry as any).boundingSphere?.radius?.toFixed?.(4) ?? 0, c.visible])]);
@@ -329,22 +381,13 @@ export class ShotEffect {
       (this.ring.material as T.Material).dispose();
       this.ring = null;
     }
-    if (this.bladesGroup) {
-      for (const c of this.bladesGroup.children as T.Mesh[]) {
-        c.geometry?.dispose();
-        (c.material as T.Material)?.dispose();
-      }
-      this.bladesGroup.removeFromParent();
-      this.bladesGroup = null;
+    for (const grp of [this.bladesGroup, this.crossMesh, this.flat]) {
+      if (!grp) continue;
+      const geos = new Set<T.BufferGeometry>(), mats = new Set<T.Material>();
+      grp.traverse(o => {const m = o as T.Mesh;if (m.geometry) geos.add(m.geometry);for (const x of ([] as T.Material[]).concat(m.material ?? [])) mats.add(x);});
+      geos.forEach(x => x.dispose());mats.forEach(x => x.dispose());grp.removeFromParent();
     }
-    if (this.crossMesh) {
-      for (const c of this.crossMesh.children as T.Mesh[]) {
-        c.geometry?.dispose();
-        (c.material as T.Material)?.dispose();
-      }
-      this.crossMesh.removeFromParent();
-      this.crossMesh = null;
-    }
+    this.bladesGroup = null;this.crossMesh = null;this.flat = null;
     for (const e of this.entries) {
       this.particles.renderer.deleteSystem(e.system);
       e.emitter.removeFromParent();

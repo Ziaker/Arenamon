@@ -12,6 +12,7 @@ const particles = new Particles(scene, {textures: false});
 const shotKeys = controls.sand.map(d => d[0]).filter(k => k.startsWith('shot') && k !== 'shotKind');
 
 /** Roda o disparo e mede o resultado: forma da argola (posição, escala, raio, espessura, opacidade) ou do jato (emissão, direção, velocidade, tamanho, vida). */
+const dump = o => {const a = [];o.traverse(c => {a.push(c.name, ...c.position.toArray(), ...c.scale.toArray(), c.rotation.x, c.rotation.y, c.rotation.z, c.visible);for (const m of [].concat(c.material ?? [])) {a.push(m.opacity ?? 1);if (m.color) a.push(m.color.r, m.color.g, m.color.b);if (m.uniforms) for (const u of Object.values(m.uniforms)) {const x = u.value;if (typeof x === 'number') a.push(x);else if (x?.isColor) a.push(x.r, x.g, x.b);}}const g = c.geometry;if (g) {if (!g.boundingBox) g.computeBoundingBox();const b = g.boundingBox;a.push(b.max.x - b.min.x, b.max.y - b.min.y, g.attributes?.position?.count ?? 0);}});return a.map(x => typeof x === 'number' ? +x.toFixed(4) : x).join(',');};
 function measure(values, kind, followMoves = false) {
   stage.clear();particles.clear();
   let z = -2;
@@ -24,9 +25,9 @@ function measure(values, kind, followMoves = false) {
     const ring = stage.getObjectByName('shot-ring');
     if (ring) out.push(['ring', ring.position.toArray().map(n => +n.toFixed(4)), ring.scale.toArray().map(n => +n.toFixed(4)), +ring.geometry.parameters.radius.toFixed(4), +ring.geometry.parameters.tube.toFixed(4), +ring.material.opacity.toFixed(4), ring.visible]);
     const blades = stage.getObjectByName('shot-blades');
-    if (blades) out.push(['blades', blades.position.toArray().map(n => +n.toFixed(4)), blades.scale.toArray().map(n => +n.toFixed(4)), blades.children.length, +(blades.children[0]?.rotation.z ?? 0).toFixed(4), +(blades.children[0]?.geometry.parameters.width ?? 0).toFixed(4), +(blades.children[0]?.material.color.r ?? 0).toFixed(4), blades.visible]);
+    if (blades) out.push(['blades', dump(blades)]);
     const cross = stage.getObjectByName('shot-cross');
-    if (cross) out.push(['cross', cross.position.toArray().map(n => +n.toFixed(4)), cross.scale.toArray().map(n => +n.toFixed(4)), +cross.rotation.z.toFixed(4), +(cross.children[0]?.material.color.r ?? 0).toFixed(4), cross.visible]);
+    if (cross) out.push(['cross', dump(cross)]);
     const recoil = stage.getObjectByName('shot-recoil');
     if (recoil) out.push(['recoil', recoil.visible, recoil.children.map(c => [c.userData.id, ...c.position.toArray(), ...c.scale.toArray(), c.material.opacity, c.visible].map(n => typeof n === 'number' ? +n.toFixed(4) : n))]);
     for (const e of particles.systems) {

@@ -64,12 +64,13 @@ assert.equal(JSON.stringify(values), before, 'valores intactos');
 fx = make({shotKind: 3, shotWindBlades: 6, shotBladeCurve: 45, shotSnapTime: .15});fx.fire();
 const blades = stage.getObjectByName('shot-blades');
 assert.ok(blades, 'shot-blades existe para o burst anime');
-assert.equal(blades.children.length, 6, '6 lâminas radiais criadas');
+assert.equal(blades.children.filter(c => c.name === 'blade').length, 6, '6 lâminas em crescente criadas');
+assert.ok(blades.children.some(c => c.name === 'line') && blades.children.some(c => c.name === 'ring'), 'linhas de velocidade e anel de choque');
 assert.ok(particles.systems.length > 0, 'partículas streak do burst criadas');
 fx.update(.08);
-assert.ok(blades.scale.x > 1, 'lâminas expandiram com snap');
-fx.update(.2);
-assert.ok(!blades.visible, 'lâminas dissiparam após snapTime');
+const b0 = blades.children.find(c => c.name === 'blade').userData.tw.position.x;fx.update(.05);assert.ok(blades.children.find(c => c.name === 'blade').userData.tw.position.x > b0, 'lâminas abrem para fora');
+fx.update(2);
+assert.ok(!blades.visible, 'lâminas dissiparam depois do estalo');
 cleanup(fx);
 
 // Jato pressurizado perfurante (shotKind 4): afunilamento métrico e cavitação
@@ -82,8 +83,8 @@ cleanup(fx);
 fx = make({shotKind: 5, shotCrossArms: 1.2, shotCrossAngle: 45, shotCrossSparks: 18});fx.fire();
 const cross = stage.getObjectByName('shot-cross');
 assert.ok(cross, 'shot-cross existe');
-assert.equal(cross.children.length, 2, 'braço horizontal e vertical');
-assert.ok(Math.abs(cross.rotation.z - 45 * Math.PI / 180) < 1e-6, 'rotação inicial em cruz X');
+assert.ok(cross.getObjectByName('star-body') && cross.getObjectByName('star-core') && cross.getObjectByName('ring'), 'estrela, núcleo branco e anel');
+assert.ok(Math.abs(cross.userData.spin.rotation.z - 45 * Math.PI / 180) < 1e-6, 'rotação inicial em cruz X');
 assert.ok(particles.systems.length > 0, 'centelhas em cruz emitidas');
 cleanup(fx);
 
