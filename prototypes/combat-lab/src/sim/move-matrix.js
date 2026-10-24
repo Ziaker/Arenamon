@@ -11,9 +11,12 @@ import {getMove} from './moves.js';
 import {effectiveArenaRadius} from './map.js';
 import {normalizeState, hashText} from './replay-diff.js';
 import {withValues} from './compare.js';
+import {applyStatus} from './status.js';
+import {hardenStatus} from './moves/harden.js';
+import {secondWindStatus} from './moves/second-wind.js';
 
 /** Escopos da matriz, na ordem em que aparecem no relatório. */
-export const SCOPES = ['ground', 'air', 'platform', 'wall', 'guard', 'dodge-cancel', 'hitstop', 'lock-on', 'determinism', 'save-load', 'simultaneous'];
+export const SCOPES = ['ground', 'air', 'platform', 'ceiling', 'wall', 'arena-edge', 'destructible', 'guard', 'dodge-cancel', 'hitstop', 'lock-on', 'reflect', 'status', 'determinism', 'save-load', 'simultaneous'];
 const TICKS = 360;   // 3 s de simulação por cenário (passo fixo de 1/120 s)
 
 /** @typedef {{move: string, scope: string, status: 'ok' | 'fail' | 'na', reason?: string, seed: number, tick?: number, expected?: string, got?: string}} MatrixResult */
@@ -41,19 +44,31 @@ function scriptFor(/** @type {any} */ def, start = 0) {
 export function notApplicable(/** @type {any} */ def) {
   /** @type {Record<string, string>} */ const na = {};
   if (def.air === 'none' || def.groundOnly) na.air = 'Move só no chão (air: none / groundOnly)';
+  // N/A declarado na ficha (def.matrix.na = {escopo: 'razão'}): vale o que a ficha diz, mas escopo desconhecido ou sem razão é erro
+  for (const [scope, reason] of Object.entries(def.matrix?.na ?? {})) {
+    if (!SCOPES.includes(scope)) throw new Error(`Move ${def.id}: matrix.na com escopo desconhecido (${scope})`);
+    if (typeof reason !== 'string' || reason.trim().length < 6) throw new Error(`Move ${def.id}: matrix.na.${scope} precisa de uma razão (mínimo 6 caracteres)`);
+    na[scope] = reason;
+  }
   return na;
 }
 
-function build(/** @type {any} */ def, /** @type {number} */ seed, /** @type {{red?: string | null, platform?: boolean, wall?: boolean, air?: boolean, lock?: boolean, close?: boolean}} */ o = {}) {
+function build(/** @type {any} */ def, /** @type {number} */ seed, /** @type {{red?: string | null, platform?: boolean, ceiling?: boolean, wall?: boolean, edge?: boolean, destructible?: boolean, status?: boolean, air?: boolean, lock?: boolean, close?: boolean}} */ o = {}) {
+  const edgeZ = -(effectiveArenaRadius() - .6);
   const g = new Game({seed});g.start();
-  g.reset({positions: [{x: 0, z: -3}, {x: 0, z: o.close ? -1.6 : 3}]});
-  /** @type {any} */ (g.mapState).platforms = o.platform ? [{id: 'p', pos: {x: 0, y: 0, z: -3}, width: 5, depth: 5, height: 1}] : [];
+  g.reset({positions: o.edge ? [{x: 0, z: edgeZ}, {x: 0, z: edgeZ + 1.6}] : [{x: 0, z: -3}, {x: 0, z: o.close ? -1.6 : 3}]});
+  /** @type {any} */ (g.mapState).platforms = o.platform ? [{id: 'p', pos: {x: 0, y: 0, z: -3}, width: 5, depth: 5, height: 1}] : o.ceiling ? [{id: 'c', pos: {x: 0, y: 2.2, z: -3}, width: 5, depth: 5, height: 1}] : [];
   g.mapState.obstacles = [];g.mapState.destructibles = [];g.mapState.items = [];g.mapState.regularSpawnTimer = 1e9;
   if (o.wall) g.world.entities.push({id: 9001, kind: 'wall', owner: 1, pos: {x: 0, z: -1.2}, hx: 3, hz: .2, height: 2.2, angle: 0, life: 99, age: 0});
-  g.fighters[0].facing = 0;g.fighters[1].facing = Math.PI;
+  if (o.destructible) /** @type {any[]} */ (g.mapState.destructibles).push({id: 'dest_m', hp: 30, maxHp: 30, pos: {x: 0, y: 0, z: -1.6}, size: {hx: .8, hz: .8, height: 1.6}, shape: 'box', angle: 0, state: 'solid', respawnTimer: 0, ghostTimer: 0, resistances: {physical: 1, projectile: 1, area: 1, environmental: 1}});
+  g.fighters[0].facing = o.edge ? Math.PI : 0;g.fighters[1].facing = o.edge ? 0 : Math.PI;
   if (o.platform) g.fighters[0].groundY = 1;
   g.setLoadout(0, [def.id]);
   if (o.red) g.setLoadout(1, [o.red]);
+  if (o.status) {
+    applyStatus(g.fighters[0], /** @type {any} */ (hardenStatus(C.world.harden)), {source: 0});
+    applyStatus(g.fighters[0], /** @type {any} */ (secondWindStatus(C.world.secondWind, getFighterMaxStamina(g.fighters[0]))), {source: 0});
+  }
   return g;
 }
 
@@ -117,11 +132,25 @@ function matrixInner(/** @type {string} */ moveId, /** @type {number} */ seed) {
     return {violation: r.violation ?? (g.fighters[0].action ? settles(g) : null)};
   });
   check('platform', () => {const g = build(def, seed, {platform: true, close: true});return {violation: run(g, TICKS, use).violation ?? settles(g)};});
+  check('ceiling', () => {
+    const g = build(def, seed, {ceiling: true, close: true});
+    const r = run(g, TICKS, t => t === 0 ? cmd({jump: true, jumpHeld: true}) : t < 12 ? cmd({jumpHeld: true}) : use(t - 20));
+    return {violation: r.violation ?? (g.fighters[0].action ? settles(g) : null)};
+  });
   check('wall', () => {const g = build(def, seed, {wall: true});return {violation: run(g, TICKS, use).violation ?? settles(g)};});
+  check('arena-edge', () => {const g = build(def, seed, {edge: true});return {violation: run(g, TICKS, use).violation ?? settles(g)};});
+  check('destructible', () => {const g = build(def, seed, {destructible: true});return {violation: run(g, TICKS, use).violation ?? settles(g)};});
   check('guard', () => {const g = build(def, seed, {close: true});return {violation: run(g, TICKS, use, () => cmd({guard: true, guardPressed: false})).violation ?? settles(g)};});
   check('dodge-cancel', () => {const g = build(def, seed, {close: true});return {violation: run(g, TICKS, t => t === 12 ? cmd({dodge: true}) : use(t)).violation};});
   check('hitstop', () => {const g = build(def, seed, {close: true});return {violation: run(g, TICKS, use).violation};});
   check('lock-on', () => {const g = build(def, seed, {close: true});return {violation: run(g, TICKS, t => ({...use(t), target: 1, locked: true})).violation};});
+  check('reflect', () => {
+    // o rival ergue uma barreira refletora (Reflect carregado por 120 ticks) e o azul usa o Move depois, contra ela
+    const g = build(def, seed, {red: 'reflect'});
+    const redScript = (/** @type {number} */ t) => t < 120 ? cmd({skill: t === 0 ? 0 : null, skillHeld: held(0)}) : cmd();
+    return {violation: run(g, TICKS + 130, t => use(t - 130), redScript).violation ?? settles(g)};
+  });
+  check('status', () => {const g = build(def, seed, {close: true, status: true});return {violation: run(g, TICKS, use).violation ?? settles(g)};});
   check('determinism', () => {
     const a = run(build(def, seed, {close: true}), TICKS, use).states, b = run(build(def, seed, {close: true}), TICKS, use).states;
     const h = (/** @type {any[]} */ s) => hashText(JSON.stringify(s));
@@ -146,4 +175,31 @@ export function runAllMatrices(/** @type {string[]} */ ids, seed = 7) {
   const results = ids.flatMap(id => runMoveMatrix(id, seed));
   const count = (/** @type {string} */ s) => results.filter(r => r.status === s).length;
   return {results, ok: count('ok'), fail: count('fail'), na: count('na'), failures: results.filter(r => r.status === 'fail')};
+}
+
+/**
+ * Relatório em Markdown de uma execução de matrizes (regenerável: mesma entrada, mesmo texto). Falhas trazem semente, tick, esperado e obtido;
+ * N/A traz a razão. `date` entra no cabeçalho para o arquivo datado em docs/.
+ * @param {ReturnType<typeof runAllMatrices>} r @param {{seed: number, date: string}} o
+ */
+export function renderMatrixReport(r, {seed, date}) {
+  const moves = [...new Set(r.results.map(x => x.move))];
+  const cell = (/** @type {MatrixResult | undefined} */ x) => !x ? '' : x.status === 'ok' ? 'ok' : x.status === 'na' ? 'N/A' : 'FALHA';
+  const lines = [
+    `# Matriz de cenários por Move (${date})`, '',
+    `Semente: ${seed} · ${moves.length} Moves · ${SCOPES.length} escopos · ${r.ok} ok · ${r.fail} falhas · ${r.na} N/A`, '',
+    'Gerado por `renderMatrixReport` (src/sim/move-matrix.js); regenerar: `node prototypes/combat-lab/matriz-relatorio.mjs`.', '',
+    `| Move | ${SCOPES.join(' | ')} |`, `|---|${SCOPES.map(() => '---').join('|')}|`,
+    ...moves.map(m => `| ${m} | ${SCOPES.map(s => cell(r.results.find(x => x.move === m && x.scope === s))).join(' | ')} |`), '',
+  ];
+  if (r.failures.length) {
+    lines.push('## Falhas', '', '| Move | Escopo | Semente | Tick | Esperado | Obtido |', '|---|---|---|---|---|---|');
+    for (const f of r.failures) lines.push(`| ${f.move} | ${f.scope} | ${f.seed} | ${f.tick ?? ''} | ${f.expected ?? ''} | ${String(f.got ?? '').replace(/\|/g, '/')} |`);
+    lines.push('');
+  }
+  const na = r.results.filter(x => x.status === 'na');
+  lines.push('## N/A e a razão', '');
+  if (!na.length) lines.push('Nenhum.');
+  else {lines.push('| Move | Escopo | Razão |', '|---|---|---|');for (const x of na) lines.push(`| ${x.move} | ${x.scope} | ${x.reason} |`);}
+  return lines.join('\n') + '\n';
 }

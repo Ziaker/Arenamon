@@ -1,11 +1,12 @@
 {
   "name": "arenamon",
-  "version": "1.27.0",
+  "version": "1.28.0",
   "description": "Laboratórios offline do projeto Arenamon",
   "scripts": {
     "build": "node prototypes/placeholders/build.mjs && node prototypes/game/build.mjs && node prototypes/importer/build.mjs && node prototypes/studio/build.mjs && node prototypes/combat-lab/build.mjs && node prototypes/vfx-elemental/build.mjs && node prototypes/hud-consumiveis/build.mjs && node prototypes/hud-moves/build.mjs",
     "bench:moves": "node prototypes/combat-lab/bench-moves.mjs --write",
     "indice": "node prototypes/combat-lab/gen-indice.mjs",
+    "matriz": "node prototypes/combat-lab/matriz-relatorio.mjs",
     "fichas": "node prototypes/combat-lab/gen-fichas.mjs",
     "novo-move": "node prototypes/combat-lab/novo-move.mjs",
     "build:combat-lab": "node prototypes/combat-lab/build.mjs",

@@ -29,21 +29,23 @@
 - Passo 4: um commit por Move. Um Move por vez: ordem sugerida do mais simples ao mais ligado ao motor (Lunge, Quick Attack, Feint, Riposte, Bounce, Spikes, Sand Wave, Bullet Punch, Emerging Stone, elementais, Reflect, Psyshock).
 - Esperado: o painel, a exportação e a matriz continuam iguais; paridade de valores provada por teste.
 
-### Tarefa 3: Replay de referência (#12)
+### Tarefa 3: Replay de referência (#12) — FEITA em 23/10/2026
 
 **Arquivos:** `src/sim/replay-diff.js`, novo `test/replays/referencia-*.json`, `test/replay-referencia.test.mjs`.
 - Passo 1 (RED): teste que roda uma gravação guardada e compara com o hash/estados esperados; falha se não houver referência.
 - Passo 2: gravar 3 referências (duelo com Tackle, com Quick Attack, com Reflect) e guardar os estados normalizados em intervalos.
 - Passo 3: o teste acusa o primeiro tick divergente quando uma regra muda. Atualizar a referência exige decisão explícita (`--atualizar`).
 - Esperado: mudar uma regra faz o teste apontar tick e campo.
+- **Feito:** `src/sim/replay-referencia.js`, `test/replay-referencia.test.mjs` e 3 gravações em `test/replays/` (hash por grupo em cada tick + estado completo a cada 30 ticks). Acusa tick e grupo (e o campo quando há estado guardado). Atualizar: `node prototypes/combat-lab/test/replay-referencia.test.mjs --atualizar`.
 
-### Tarefa 4: Matriz mais completa (#10)
+### Tarefa 4: Matriz mais completa (#10) — FEITA em 23/10/2026
 
 **Arquivos:** `src/sim/move-matrix.js`, campo opcional `matrix: {na: {escopo: 'razão'}}` na ficha.
 - Passo 1 (RED): teste de um Move com `matrix.na.air` declarado: hoje o N/A só vem de `def.air`.
 - Passo 2: escopos novos: teto, borda da arena, destrutível, refletir/neutralizar, status (Harden/Second Wind ativos). Cada um com razão de N/A quando não se aplica.
 - Passo 3: gerar relatório (`docs/MATRIZ_MOVES_<data>.md`) com seed, tick, esperado e obtido.
 - Esperado: nenhum escopo pulado sem razão; relatório regenerável.
+- **Feito:** 16 escopos (novos: ceiling, arena-edge, destructible, reflect, status); `matrix.na` na ficha do Move; relatório `docs/MATRIZ_MOVES_2026-10-23.md` via `npm run matriz`. Resultado: 303 ok, 0 falhas, 1 N/A (semente 7). Escopos novos são genéricos (invariantes), sem regra de produto nova.
 
 ### Tarefa 5: Linha do tempo com câmera, VFX e animação (#04)
 
