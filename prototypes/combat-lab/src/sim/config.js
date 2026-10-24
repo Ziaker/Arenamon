@@ -199,9 +199,6 @@ function buildDefaults() {
     // Swift: 3 estrelas, 15 m/s, 3 HP nominais cada (× Ataque ÷ referência, MV-P13), homing 0,25 s a 90°/s, alcance 12 m, knockback 0,3 m/s por acerto com teto 0,9 por alvo/execução, vertical 0.
     // cast = tempo da ação (recuperação do Burst; provisório MV-P14). Sem lock-on: leque frontal de fanAngle graus.
     // Moves elementais (protótipo de 23/10/2026; números do prompt de 22/10, NÃO homologados; padrões das decisões provisórias MV-P36…MV-P41).
-    // Air Slash: Burst Projectile PL1. Startup 8 passos + recovery 20 passos, lâmina a 22 m/s com alcance 10 m (lifetime = alcance ÷ velocidade), colisor = círculo equivalente de raio 0,6 m,
-    // 8 HP nominais, empurrão H 2,5 (V 0). visualWidth/Height/Thickness: só o desenho da lâmina (1,20 × 0,70 × 0,22 m).
-    airSlash: {cost: .8, cooldown: 6, startup: 8 / 120, recovery: 20 / 120, speed: 22, range: 10, radius: .6, damage: 8, knockbackH: 2.5, originHeight: .8, spawnForward: .6, counterStagger: .2, visualWidth: 1.2, visualHeight: .7, visualThickness: .22, knockbackV: 0, hitShakeOn: 0, hitShakeAmount: 1, hitShakeDuration: 1},
     // Seed Bomb: Normal Projectile + Field instantâneo. Marcador (alcance 3D 16 m — pedido de 23/10 dobrou os 8 m do protótipo), cast 0,3 s + recovery 0,2 s, arco balístico de 0,65 s
     // (gravidade 17,5 = a do salto/Bounce) com velocidade máx. 20 m/s, semente de raio 0,24 m (vida 1,25 s), explosão ESFÉRICA de 1,8 m, 10 HP nominais, empurrão 3 H / 1 V, oclusão por paredes.
     seedBomb: {cost: 1, cooldown: 8, cast: .3, recovery: .2, range: 32, markerSpeed: 8, markerAccel: 24, startDistance: 3, minRange: 3, maxRise: 2, allowOccupied: 1, flightTime: .65, gravity: 17.5, maxSpeed: 20, seedRadius: .24, lifetime: 1.25, explosionRadius: 1.8, damage: 10, knockbackH: 3, knockbackV: 1, occlusion: 1, blastLife: .3, originHeight: .8, spawnForward: .5, counterStagger: .2, hitShakeOn: 0, hitShakeAmount: 1, hitShakeDuration: 1},

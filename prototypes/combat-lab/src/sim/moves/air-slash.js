@@ -7,6 +7,8 @@ import {C} from '../config.js';
 import {spawn} from '../world.js';
 import {direction} from '../math.js';
 import {emitterAltitude, spawnPoint, spawnBlocked, straightLaunch} from './projectile-util.js';
+import {defineFicha} from './params-registry.js';
+import {params} from './air-slash.params.js';
 
 export const airSlashDef = Object.freeze({
   id: 'air-slash', name: 'Air Slash', air: 'cast', group: 'airSlash', aim: 'target', captureAim: true,
@@ -31,3 +33,9 @@ export function airSlashEffect(/** @type {any} */ game, /** @type {any} */ f, /*
   if (!e) return {ok: false, reason: 'entityLimit'};
   fx.events?.push({result: 'moveEffect', move: 'air-slash', attacker: f.id, target: null, damage: 0, level: 1, entity: e.id});
 }
+
+/** FICHA do Move (ver docs/COMO_CRIAR_UM_MOVE.md): `params` gera o padrão em C.world.airSlash e os sliders da aba Moves; `def` e os manipuladores são registrados sozinhos. */
+export const ficha = defineFicha({
+  def: airSlashDef, effect: ['air-slash', airSlashEffect],
+  params,
+});

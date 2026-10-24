@@ -2,7 +2,7 @@
 
 > **GERADO** por `npm run indice` (`prototypes/combat-lab/gen-indice.mjs`) a partir do código real. Não edite à mão. Serve para um agente (ou pessoa) saber, antes de mexer em um Move, **quais arquivos, testes e documentos** o citam. O índice só encontra citações textuais (id, grupo de `C.world` ou nome de função); leia o código atual antes de editar.
 
-Moves registrados: **19**. Em ficha única (um arquivo): 15. Veja `docs/COMO_CRIAR_UM_MOVE.md`.
+Moves registrados: **19**. Em ficha única (um arquivo): 16. Veja `docs/COMO_CRIAR_UM_MOVE.md`.
 
 | Move | Grupo em `C.world` | Arquivos de regra (sim) | Painéis/visão | Testes | Documentos |
 |---|---|---|---|---|---|
@@ -23,7 +23,7 @@ Moves registrados: **19**. Em ficha única (um arquivo): 15. Veja `docs/COMO_CRI
 | `quick-attack` | `quickAttack` | 6 | 3 | 16 | 5 |
 | `water-pulse` | `waterPulse` | 6 | 10 | 10 | 2 |
 | `fire-spin` | `fireSpin` | 7 | 9 | 11 | 2 |
-| `air-slash` | `airSlash` | 6 | 9 | 12 | 2 |
+| `air-slash` | `airSlash` | 7 | 9 | 12 | 2 |
 | `seed-bomb` | `seedBomb` | 6 | 9 | 9 | 2 |
 
 ## Detalhe por Move
@@ -225,7 +225,9 @@ Testes executáveis: `node prototypes/combat-lab/test/ai-elemental.test.mjs` · 
 
 ### `air-slash` · grupo `airSlash`
 
-- **sim (regras):** `prototypes/combat-lab/src/sim/ai-new-moves.js`, `prototypes/combat-lab/src/sim/config.js`, `prototypes/combat-lab/src/sim/elemental-visual-config.js`, `prototypes/combat-lab/src/sim/move-hit-map.js`, `prototypes/combat-lab/src/sim/moves/air-slash.js`, `prototypes/combat-lab/src/sim/moves/new-moves.js`
+**Ficha:** Burst · Projectile · PL1 · proposto ✓ · aprovado ✗ · implementado ✓ · homologado ✗
+
+- **sim (regras):** `prototypes/combat-lab/src/sim/ai-new-moves.js`, `prototypes/combat-lab/src/sim/elemental-visual-config.js`, `prototypes/combat-lab/src/sim/move-hit-map.js`, `prototypes/combat-lab/src/sim/moves/air-slash.js`, `prototypes/combat-lab/src/sim/moves/air-slash.params.js`, `prototypes/combat-lab/src/sim/moves/new-moves.js`, `prototypes/combat-lab/src/sim/moves/params.generated.js`
 - **ui (painéis):** `prototypes/combat-lab/src/ui/elemental-visual-model.js`, `prototypes/combat-lab/src/ui/menu-styles-model.js`, `prototypes/combat-lab/src/ui/moves-panel.js`, `prototypes/combat-lab/src/ui/visual-panel.js`
 - **view (desenho):** `prototypes/combat-lab/src/view/quarks/elemental-game-params.js`, `prototypes/combat-lab/src/view/quarks/elemental-game.js`, `prototypes/combat-lab/src/view/quarks/elemental-preview.js`, `prototypes/combat-lab/src/view/quarks/elemental-surfaces.js`, `prototypes/combat-lab/src/view/quarks/presets.js`
 - **testes:** `prototypes/combat-lab/test/ai-elemental.test.mjs`, `prototypes/combat-lab/test/elemental-export.browser.mjs`, `prototypes/combat-lab/test/elemental-launch-controls.browser.mjs`, `prototypes/combat-lab/test/elemental-quarks.browser.mjs`, `prototypes/combat-lab/test/elemental-shot.browser.mjs`, `prototypes/combat-lab/test/elemental-variants.browser.mjs`, `prototypes/combat-lab/test/elemental-water-controls.browser.mjs`, `prototypes/combat-lab/test/moves-air-slash.test.mjs`, `prototypes/combat-lab/test/moves-contracts.test.mjs`, `prototypes/combat-lab/test/moves-elementais.browser.mjs`, `prototypes/combat-lab/test/moves-revisao.test.mjs`, `prototypes/combat-lab/test/moves-rodada-23-10.test.mjs`

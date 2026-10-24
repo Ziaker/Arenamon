@@ -17,7 +17,6 @@ const STANDARD = [['reflect', 'Reflect', 0], ['psyshock', 'Psyshock', 1]];
 export const MOVE_INFO = {
   reflect: {group: 'Reflect', hint: 'Barreira refletora frontal. Segure para carregar, solte para criar.'},
   psyshock: {group: 'Psyshock', hint: 'Pedras psíquicas com homing. Segure para carregar, solte para disparar.'},
-  'air-slash': {group: 'Air Slash', hint: 'Burst · Projectile · PL1. Toque: após 8 passos (0,067 s) nasce uma lâmina de ar rápida em linha reta, sem homing; com alvo travado a mira é a do instante do toque. Protótipo: números não homologados.'},
   'seed-bomb': {group: 'Seed Bomb', hint: 'Normal · Projectile + Field. Segure para escolher o destino (até 32 m, setas movem o marcador), solte para confirmar: após 0,3 s uma semente voa em arco e explode ao tocar algo, num raio esférico de 1,8 m. O anel da prévia mostra o raio real da explosão. Protótipo: números não homologados.'},
 };
 const SKILL_NAMES = ['skill1', 'skill2', 'skill3', 'skill4'];
@@ -84,24 +83,6 @@ const PARAMS = [
     ['psyshock', 'knockbackSpeedFactor', 'Empurrão acompanha a velocidade da pedra', 'Quanto o empurrão varia com a velocidade sorteada da pedra em relação à média: 0% = igual para todas; 100% = proporcional (provisório).', 0, 1.6, .05, pct, false],
     ['psyshock', 'counterStagger', 'Counter Stagger', 'Stagger quando uma pedra de PL superior atinge o corpo do derrotado (M21.5).', 0, 1, .01, sec, true],
     ['psyshock', 'radius', 'Raio de colisão da pedra', 'Igual em todas as pedras (o tamanho visual varia sem efeito na física, M30.2).', .05, .5, .01, m, false],
-  ]],
-  ['Air Slash', [
-    ['airSlash', 'cost', 'Custo de stamina', 'Cobrado NO TOQUE (Burst, MV-P11). Prompt: 0,8.', 0, 5, .05, num, false],
-    ['airSlash', 'cooldown', 'Cooldown', 'Começa no toque (prompt: 6 s).', 0, 60, .5, sec, false],
-    ['airSlash', 'startup', 'Startup (sem hitbox)', 'Do toque até a lâmina nascer (prompt: 8 passos = 0,067 s).', 0, .5, .005, sec, false],
-    ['airSlash', 'recovery', 'Recovery', 'Depois da lâmina nascer, até recuperar o controle (prompt: 20 passos = 0,167 s).', 0, 1, .005, sec, false],
-    ['airSlash', 'speed', 'Velocidade da lâmina', 'Prompt: 22 m/s.', 5, 50, .5, ms, false],
-    ['airSlash', 'range', 'Alcance', 'A vida da lâmina é alcance ÷ velocidade (o prompt tinha 10 m e 0,60 s, incoerentes a 22 m/s).', 2, 25, .5, m, false],
-    ['airSlash', 'radius', 'Raio do colisor (equivalente)', 'O motor colide projéteis como CÍRCULO; a caixa 1,20 × 0,70 × 0,22 do prompt é só o desenho (AS-P02 A, provisório). Alcança 0,5 m + este raio do centro do alvo.', .1, 1.5, .05, m, false],
-    ['airSlash', 'damage', 'Dano (nominal)', 'Final = nominal × Ataque ÷ referência (MV-P13). Prompt: 8 HP.', 0, 40, .5, num, false],
-    ['airSlash', 'knockbackH', 'Empurrão H', 'ATENÇÃO: sem vertical, o motor empurra 1,5 × este valor em METROS (2,5 → 3,75 m) e dá 0,63 s de recuperação (EL-P04 A, provisório). Prompt: 2,5.', 0, 12, .1, ms, false],
-    ['airSlash', 'knockbackV', 'Empurrão V', 'Componente vertical do empurrão. Acima de 0 a lâmina LANÇA o alvo (voo) em vez de só deslizá-lo (prompt: 0).', 0, 15, .1, ms, false],
-    ['airSlash', 'originHeight', 'Altura de nascimento (mão)', 'Acima da altitude do atirador.', .2, 1.3, .05, m, false],
-    ['airSlash', 'spawnForward', 'Distância de nascimento', 'À frente do corpo; sólido ali = a lâmina se dissipa (Burst gasto sem efeito).', .3, 1.5, .05, m, false],
-    ['airSlash', 'counterStagger', 'Counter Stagger', 'Stagger do derrotado quando este projétil vence um Counter (M21.5: 0,2 s).', 0, 1, .01, sec, true],
-    ['airSlash', 'visualWidth', 'Desenho: largura (só aparência)', 'Largura do crescente (prompt: 1,20 m). Não muda a colisão.', .2, 3, .05, m, false],
-    ['airSlash', 'visualHeight', 'Desenho: altura (só aparência)', 'Altura do crescente (prompt: 0,70 m).', .2, 2, .05, m, false],
-    ['airSlash', 'visualThickness', 'Desenho: espessura (só aparência)', 'Espessura do crescente (prompt: 0,22 m).', .05, 1, .01, m, false],
   ]],
   ['Seed Bomb', [
     ['seedBomb', 'cost', 'Custo de stamina', 'Cobrado ao CONFIRMAR o marcador (Normal). Prompt: 1,0.', 0, 5, .05, num, false],
