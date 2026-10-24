@@ -9,7 +9,6 @@ import {bulletPunchDef, bulletPunchSetup, bulletPunchVanish, bulletPunchReturn} 
 import {sandWaveDef, sandWaveEffect} from './sand-wave.js';
 import {spikesDef, spikesEffect} from './spikes.js';
 import {bounceDef, bounceEffect, bounceStep} from './bounce.js';
-import {riposteDef} from './riposte.js';
 import {waterPulseDef, waterPulseEffect} from './water-pulse.js';
 import {fireSpinDef, fireSpinEffect} from './fire-spin.js';
 import {airSlashDef, airSlashEffect} from './air-slash.js';
@@ -22,7 +21,6 @@ export const NEW_MOVES = [
   {def: sandWaveDef, effect: ['sand-wave', sandWaveEffect]},
   {def: bulletPunchDef, tackle: ['bullet-punch', bulletPunchSetup], effects: [['bullet-punch-vanish', bulletPunchVanish], ['bullet-punch-return', bulletPunchReturn]]},
   {def: emergingStoneDef, effect: ['emerging-stone', emergingStoneEffect], steps: [['stone', stoneStep]]},
-  {def: riposteDef},
   // Moves elementais (protótipo de 23/10/2026; números do prompt de 22/10, não homologados)
   {def: waterPulseDef, effect: ['water-pulse', waterPulseEffect]},
   {def: fireSpinDef, effect: ['fire-spin', fireSpinEffect]},

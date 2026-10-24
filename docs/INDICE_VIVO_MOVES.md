@@ -2,7 +2,7 @@
 
 > **GERADO** por `npm run indice` (`prototypes/combat-lab/gen-indice.mjs`) a partir do código real. Não edite à mão. Serve para um agente (ou pessoa) saber, antes de mexer em um Move, **quais arquivos, testes e documentos** o citam. O índice só encontra citações textuais (id, grupo de `C.world` ou nome de função); leia o código atual antes de editar.
 
-Moves registrados: **19**. Em ficha única (um arquivo): 7. Veja `docs/COMO_CRIAR_UM_MOVE.md`.
+Moves registrados: **19**. Em ficha única (um arquivo): 8. Veja `docs/COMO_CRIAR_UM_MOVE.md`.
 
 | Move | Grupo em `C.world` | Arquivos de regra (sim) | Painéis/visão | Testes | Documentos |
 |---|---|---|---|---|---|
@@ -19,7 +19,7 @@ Moves registrados: **19**. Em ficha única (um arquivo): 7. Veja `docs/COMO_CRIA
 | `bullet-punch` | `bulletPunch` | 7 | 3 | 17 | 4 |
 | `emerging-stone` | `emergingStone` | 6 | 3 | 12 | 6 |
 | `feint` | `feint` | 10 | 6 | 10 | 14 |
-| `riposte` | `riposte` | 13 | 6 | 17 | 22 |
+| `riposte` | `riposte` | 14 | 6 | 17 | 22 |
 | `quick-attack` | `quickAttack` | 6 | 3 | 16 | 5 |
 | `water-pulse` | `waterPulse` | 5 | 10 | 10 | 2 |
 | `fire-spin` | `fireSpin` | 6 | 9 | 11 | 2 |
@@ -174,7 +174,9 @@ Testes executáveis: `node prototypes/combat-lab/test/ai-new-moves.test.mjs` · 
 
 ### `riposte` · grupo `riposte`
 
-- **sim (regras):** `prototypes/combat-lab/src/sim/ai-new-moves.js`, `prototypes/combat-lab/src/sim/calibration-base.js`, `prototypes/combat-lab/src/sim/combat.js`, `prototypes/combat-lab/src/sim/config.js`, `prototypes/combat-lab/src/sim/controller.js`, `prototypes/combat-lab/src/sim/entity.js`, `prototypes/combat-lab/src/sim/game.js`, `prototypes/combat-lab/src/sim/move-hit-map.js`, `prototypes/combat-lab/src/sim/moves/new-moves.js`, `prototypes/combat-lab/src/sim/moves/riposte.js`, `prototypes/combat-lab/src/sim/sand.js`, `prototypes/combat-lab/src/sim/trap.js`, `prototypes/combat-lab/src/sim/world.js`
+**Ficha:** Normal · Status+Melee · SEM PL · proposto ✓ · aprovado ✗ · implementado ✓ · homologado ✗
+
+- **sim (regras):** `prototypes/combat-lab/src/sim/ai-new-moves.js`, `prototypes/combat-lab/src/sim/calibration-base.js`, `prototypes/combat-lab/src/sim/combat.js`, `prototypes/combat-lab/src/sim/controller.js`, `prototypes/combat-lab/src/sim/entity.js`, `prototypes/combat-lab/src/sim/game.js`, `prototypes/combat-lab/src/sim/move-hit-map.js`, `prototypes/combat-lab/src/sim/moves/new-moves.js`, `prototypes/combat-lab/src/sim/moves/params.generated.js`, `prototypes/combat-lab/src/sim/moves/riposte.js`, `prototypes/combat-lab/src/sim/moves/riposte.params.js`, `prototypes/combat-lab/src/sim/sand.js`, `prototypes/combat-lab/src/sim/trap.js`, `prototypes/combat-lab/src/sim/world.js`
 - **ui (painéis):** `prototypes/combat-lab/src/ui/menu-styles-model.js`, `prototypes/combat-lab/src/ui/moves-panel.js`, `prototypes/combat-lab/src/ui/moves-vfx-panel.js`
 - **view (desenho):** `prototypes/combat-lab/src/view/riposte-fx.js`, `prototypes/combat-lab/src/view/vfx.js`, `prototypes/combat-lab/src/view/view.js`
 - **testes:** `prototypes/combat-lab/test/ai-new-moves-eval.mjs`, `prototypes/combat-lab/test/ai-new-moves.test.mjs`, `prototypes/combat-lab/test/calibration-base.test.mjs`, `prototypes/combat-lab/test/moves-air.test.mjs`, `prototypes/combat-lab/test/moves-contracts.test.mjs`, `prototypes/combat-lab/test/moves-elementais.browser.mjs`, `prototypes/combat-lab/test/moves-new.browser.mjs`, `prototypes/combat-lab/test/moves-revisao.test.mjs`, `prototypes/combat-lab/test/moves-riposte.test.mjs`, `prototypes/combat-lab/test/moves-rodada-23-10.test.mjs`, `prototypes/combat-lab/test/prejogo.test.mjs`, `prototypes/combat-lab/test/rodada-b.browser.mjs`, `prototypes/combat-lab/test/rodada-b.test.mjs`, `prototypes/combat-lab/test/slam-riposte-rules.test.mjs`, `prototypes/combat-lab/test/tuning-export.browser.mjs`, `prototypes/combat-lab/test/tuning-io.test.mjs`, `prototypes/combat-lab/test/ui-rodada-22-10.browser.mjs`

@@ -84,6 +84,7 @@ test('PARIDADE: os Moves migrados mantêm os valores de fábrica que tinham em c
     lunge: {cost: 0.75, cooldown: 6, cast: 0.6, range: 3.5, damage: 8, knockbackH: 4, knockbackV: 0, invulnerableSeconds: 0.1333, chainAfter: 0.45, hitStart: 0.19, hitEnd: 0.26},
     quickAttack: {cost: 0.75, cooldown: 6, acquireRange: 7, approachMax: 0.16, returnMax: 0.14, recovery: 0.12, damage: 8, knockbackH: 4, knockbackV: 0, invulnerableSeconds: 0, airReach: 3, fxLines: 1, fxHideBody: 1},
     feint: {cost: 0.3, cooldown: 3, cast: 0.22, cancelAfter: 0.0333, cancelWindow: 0.1333, retreat: 0.25, invulnStart: 0.0167, invulnEnd: 0.0833},
+    riposte: {cost: 0.8, cooldown: 8, cast: 0.65, windowStart: 0.13, windowEnd: 0.3, damage: 14, knockbackH: 9, knockbackV: 2.5, strikeRange: 1.6, hitstopMult: 2.5, shakeMult: 2.4, fxOn: 1, fxIntensity: 1, fxSize: 1, blastOn: 1, blastSize: 1.5},
   };
   const hoje = factoryDefaults().world;
   for (const [g, vals] of Object.entries(antes)) for (const [k, v] of Object.entries(vals)) assert.equal(hoje[g][k], v, `${g}.${k}`);

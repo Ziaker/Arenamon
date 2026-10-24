@@ -198,9 +198,6 @@ function buildDefaults() {
     // Harden: +30% Defesa (⇒ dano × 1/1,3, mesma convenção da passiva de Defesa, MV-P01) e nega o knockback ofensivo por 5 s.
     // Swift: 3 estrelas, 15 m/s, 3 HP nominais cada (× Ataque ÷ referência, MV-P13), homing 0,25 s a 90°/s, alcance 12 m, knockback 0,3 m/s por acerto com teto 0,9 por alvo/execução, vertical 0.
     // cast = tempo da ação (recuperação do Burst; provisório MV-P14). Sem lock-on: leque frontal de fanAngle graus.
-    // Riposte: Normal Status+Melee PL1. Postura de 0,65 s; entre 0,13 e 0,30 s qualquer acerto elegível (menos Guard Break) é anulado e dispara um contra-golpe PL1 de 6 HP
-    // (× Ataque ÷ referência), 3 m/s H, na hora do gatilho (MV-P24); strikeRange = alcance do golpe (não definido no documento: MV-P25). Janela fechada sem acerto = recuperação exposta.
-    riposte: {cost: .8, cooldown: 8, cast: .65, windowStart: .13, windowEnd: .30, damage: 14, knockbackH: 9, knockbackV: 2.5, strikeRange: 1.6, hitstopMult: 2.5, shakeMult: 2.4, fxOn: 1, fxIntensity: 1, fxSize: 1, blastOn: 1, blastSize: 1.5},
     // Emerging Stone (ES-D01…D103, cronologia C): cast 0,55 s (corpo a 30%), marcador 3–10 m 3D, projétil 15 m/s, explosão de 5 m horizontais (20 nominais × Ataque ÷ referência, 8 m/s radial),
     // rocha 3 m × escala (0,25–4×, passo 0,25), emerge em 0,40 s, 5 HP, lançamento da emergência 8 H/14 V, até 3 por dono. markerSpeed/startDistance/rockSearch/maxRise: provisórios.
     emergingStone: {cost: 3, cooldown: 9, cast: .55, castSlow: .7, minRange: 3, range: 10, startDistance: 5, markerSpeed: 8, markerAccel: 24, fxTrailOn: 1, fxTrailSize: 1.8, speed: 15, blastRadius: 5, damage: 20, blastKnockback: 8, rockScale: 1, rockHp: 5, riseTime: .4, launchH: 8, launchV: 14, maxRocks: 3, rockSearch: 4, maxRise: 2, edgeMargin: .3, radius: 0, allowOccupied: 1, blastKnockbackV: 0, hitShakeOn: 0, hitShakeAmount: 1, hitShakeDuration: 1},
