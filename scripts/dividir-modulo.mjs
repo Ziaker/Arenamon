@@ -39,10 +39,13 @@ const importedNames = new Map();   // nome local -> statement de import
 for (const imp of imports) for (const sp of imp.specifiers) importedNames.set(sp.local.name, imp);
 const items = [];   // {names, start, end, node, exported}
 let prevEnd = 0;
+// o comentário que fecha a MESMA linha do statement vai com ele (não com o próximo)
+const lineEnd = pos => { const nl = src.indexOf('\n', pos), stop = nl < 0 ? src.length : nl; return /^[ \t]*(\/\/[^\n]*)?\r?$/.test(src.slice(pos, stop)) ? stop : pos; };
 for (const st of body) {
-  if (st.type === 'ImportDeclaration') {prevEnd = st.end; continue;}
-  items.push({names: declNames(st), start: prevEnd, end: st.end, node: st, exported: st.type === 'ExportNamedDeclaration'});
-  prevEnd = st.end;
+  if (st.type === 'ImportDeclaration') {prevEnd = lineEnd(st.end); continue;}
+  const end = lineEnd(st.end);
+  items.push({names: declNames(st), start: prevEnd, end, node: st, exported: st.type === 'ExportNamedDeclaration'});
+  prevEnd = end;
 }
 // Identificadores referenciados (aproximação segura: todo Identifier/JSXIdentifier no trecho; sobrar import não faz mal, faltar sim)
 function identsIn(node, out = new Set()) {

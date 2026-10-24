@@ -1,0 +1,5 @@
+{"arquivo":"prototypes/combat-lab/src/view/world-view.js","classe":"WorldView","pasta":"prototypes/combat-lab/src/view/world-view","modulos":{
+"wv-entities":{"metodos":["createChargeRing","getRockGeo","colorOf","make","makeChargingRockOrb"]},
+"wv-particles":{"metodos":["ring","emitRockTrail","emitRockShatter","emitBarrierShatter"]},
+"wv-update":{"metodos":["update","drawCharging"]},
+"wv-map":{"metodos":["drawMap","_removeMapMesh","createConsumableMesh","checkOcclusion"],"declaracoes":["slabT0","slab"]}}}
