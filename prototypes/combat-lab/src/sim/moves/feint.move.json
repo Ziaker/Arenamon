@@ -1,0 +1,135 @@
+{
+  "schemaVersion": 1,
+  "def": {
+    "id": "feint",
+    "name": "Feint",
+    "air": "cast",
+    "group": "feint",
+    "feint": true,
+    "cancelFrom": [
+      "tackle"
+    ],
+    "keepFacing": true,
+    "aim": "input",
+    "description": "Burst. Cancela um ataque que ainda está na antecipação (ou a carga em curso) e recua um pouco com i-frames curtos. Fora da janela, gasta o Move e o ataque continua.",
+    "cost": 0.3,
+    "cooldown": 3,
+    "duration": 0.22,
+    "cancelAfter": 0.0333,
+    "invulnerable": [
+      0.0167,
+      0.0833
+    ],
+    "invulnerableKeys": [
+      "invulnStart",
+      "invulnEnd"
+    ],
+    "motion": {
+      "type": "dash",
+      "distance": 0.25,
+      "start": 0.03,
+      "end": 0.15,
+      "distanceKey": "retreat"
+    }
+  },
+  "params": {
+    "group": "feint",
+    "title": "Feint",
+    "hint": "Burst · Trick. Toque logo após iniciar um ataque (ou durante a carga) para cancelá-lo e recuar com i-frames curtos. Tarde demais: gasta o Move e o ataque segue.",
+    "meta": {
+      "category": "Burst",
+      "types": [
+        "Trick"
+      ],
+      "pl": "SEM PL",
+      "status": {
+        "proposto": true,
+        "aprovado": false,
+        "implementado": true,
+        "homologado": false
+      }
+    },
+    "rows": [
+      {
+        "min": 0,
+        "max": 3,
+        "step": 0.05,
+        "key": "cost",
+        "label": "Custo de stamina",
+        "tip": "Cobrado na confirmação (Burst); o custo da ação cancelada não volta (MV-P26). Valor da proposta — não homologada.",
+        "unit": "num",
+        "value": 0.3
+      },
+      {
+        "min": 0,
+        "max": 30,
+        "step": 0.5,
+        "key": "cooldown",
+        "label": "Cooldown",
+        "tip": "Começa junto com o custo (proposta: 3 s).",
+        "unit": "sec",
+        "value": 3
+      },
+      {
+        "min": 0.05,
+        "max": 1,
+        "step": 0.01,
+        "key": "cast",
+        "label": "Duração do recuo",
+        "tip": "Do disparo até o fim do recuo (proposta: 0,22 s).",
+        "unit": "sec",
+        "value": 0.22
+      },
+      {
+        "min": 0,
+        "max": 1,
+        "step": 0.01,
+        "key": "cancelAfter",
+        "label": "Libera outras ações após",
+        "tip": "Instante a partir do qual esquiva/ataque/outro Move podem começar (provisório: 0,033 s).",
+        "unit": "sec",
+        "value": 0.0333
+      },
+      {
+        "min": 0,
+        "max": 1,
+        "step": 0.01,
+        "key": "cancelWindow",
+        "label": "Janela de cancelamento do ataque",
+        "tip": "Só cancela Tackle/Lunge/Guard Break que ainda estão nesta antecipação (proposta: 4 quadros = 0,133 s); depois o Move é gasto sem efeito (MV-P21). Cargas em curso sempre são canceladas.",
+        "unit": "sec",
+        "value": 0.1333
+      },
+      {
+        "min": 0,
+        "max": 2,
+        "step": 0.01,
+        "key": "retreat",
+        "label": "Distância do recuo",
+        "tip": "Deslocamento para trás (ou para o lado do input). A proposta varia de 5,5 cm a 40 cm; provisório: 25 cm.",
+        "unit": "m",
+        "value": 0.25
+      },
+      {
+        "min": 0,
+        "max": 0.5,
+        "step": 0.005,
+        "key": "invulnStart",
+        "label": "I-frames: início",
+        "tip": "Micro-janela de invulnerabilidade durante o recuo (proposta: passo 2 = 0,017 s).",
+        "unit": "sec",
+        "value": 0.0167
+      },
+      {
+        "min": 0,
+        "max": 0.5,
+        "step": 0.005,
+        "key": "invulnEnd",
+        "label": "I-frames: fim",
+        "tip": "Fim da invulnerabilidade (proposta: passo 10 = 0,083 s).",
+        "unit": "sec",
+        "value": 0.0833
+      }
+    ]
+  }
+}
