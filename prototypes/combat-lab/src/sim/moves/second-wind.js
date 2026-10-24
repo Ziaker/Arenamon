@@ -8,14 +8,9 @@ import {C} from '../config.js';
 import {applyStatus} from '../status.js';
 import {getFighterMaxStamina} from '../entity.js';
 import {defineFicha} from './params-registry.js';
-import {params} from './second-wind.params.js';
+import {params, def as secondWindDef} from './second-wind.params.js';
 
-export const secondWindDef = Object.freeze({
-  id: 'second-wind', name: 'Second Wind', air: 'cast', group: 'secondWind',
-  description: 'Por 5 s regenera stamina bem mais rápido (+40% da máxima por segundo) e gasta 25% menos em esquiva e sprint. Não cura HP. Cast de 0,35 s.',
-  cost: .8, cooldown: 12, duration: .35, aim: 'facing',
-  timeline: [{at: .35, atKey: 'cast', effect: 'second-wind'}],
-});
+export {secondWindDef};   // definição (id, fases, custo…) vem de second-wind.move.json
 
 /** Passo de regeneração (a cada 0,1 s) em pontos de stamina para um lutador com `staminaMax`. */
 export const REGEN_TICK = .1;
