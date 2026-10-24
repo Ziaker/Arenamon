@@ -30,7 +30,7 @@ export class SandEffect {
     this.phase='Concentração';this.punch=0;
   }
   /** Janelas das fases sequenciais no tempo do efeito (a fase de duração de tamanho zero não entra). Disparo e contato são camadas de evento. */
-  timeline(){const c=this.cast,tr=this.travel,h=this.hold,f=this.fadeTime;return [{id:'start',from:0,to:c},{id:'body',from:c,to:c+tr},{id:'sustain',from:c+tr,to:c+tr+h},{id:'finish',from:c+tr+h,to:c+tr+h+f}].filter(x=>x.to>x.from);}
+  timeline(){const c=this.cast,tr=this.travel,h=this.hold,f=this.fadeTime;return [{id:'start',from:0,to:c},{id:'body',from:c,to:c+tr},{id:'sustain',from:c+tr,to:c+tr+h},{id:'finish',from:c+tr+h,to:c+tr+h+f},{id:'impact',from:c+tr+h+f,to:this.duration}].filter(x=>x.to>x.from);}
   launch(){
     const {p,particles,variant}=this,n=p.bodyOn===0?0:7;
     for(let i=0;i<n;i++){

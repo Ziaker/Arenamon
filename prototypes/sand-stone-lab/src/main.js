@@ -10,7 +10,9 @@ import {SandEffect,StoneEffect,RockEffect} from './effects.js';
 import {RiposteEffect} from './riposte-effect.ts';
 import {RushEffect} from './rush-effects.ts';
 import {SwiftEffect,PsyshockEffect} from './new-effects.ts';
-import {controls as definitions,defaults,categories} from './config.ts';
+import {controls as definitions,defaults,categories,help,phaseNames} from './config.ts';
+import {PhaseClock} from './phases.ts';
+import {buildPanel,shotKeyVisible,selectorLabels} from './panel-model.ts';
 import {initialPresets,exportSingle,exportAll,parsePreset,migrateLocal} from './presets.ts';
 
 const $=id=>document.getElementById(id);
@@ -51,34 +53,64 @@ const grid=new T.GridHelper(12,12,0x3e565c,0x293c44);grid.position.y=.002;grid.v
 const stage=new T.Group();scene.add(stage);const particles=new Particles(scene);
 const composer=new EffectComposer(renderer);composer.addPass(new RenderPass(scene,camera));
 const bloomPass=new UnrealBloomPass(new T.Vector2(1,1),state.bloom,.4,1.05);composer.addPass(bloomPass);composer.addPass(new OutputPass());
+let clock=null;const fxDur=()=>clock?clock.duration:effect.duration,fxTime=t=>clock?clock.map(t):t;
 let effect=null,last=0,accumulator=0,lastWidth=0,lastHeight=0;
 const fixedStep=1/60;
 function construct(){
  particles.clear();disposeGroup(stage);delete stage.userData.visualSignature;state.time=0;accumulator=0;
  const p={...values()};if(state.reduce){p.density=(p.density??1)*.45;p.particleDensity=(p.particleDensity??1)*.45;p.sparks=(p.sparks??1)*.45;p.flash=(p.flash??1)*.45;p.impactIntensity=(p.impactIntensity??1)*.7;p.emissivity=(p.emissivity??1)*.45;p.shards=(p.shards??1)*.45;}
  effect=state.category==='riposte'?new RiposteEffect(stage,particles,state.variant,p):['bulletpunch','quickattack'].includes(state.category)?new RushEffect(stage,particles,state.category,state.variant,p):state.category==='sand'?new SandEffect(stage,particles,state.variant,p):state.category==='stone'?new StoneEffect(stage,particles,state.variant,p,texture,state.model==='match'?state.variant:Number(state.model)):state.category==='rock'?new RockEffect(stage,state.variant,{...p,wire:$('wire').checked},texture):state.category==='swift'?new SwiftEffect(stage,particles,state.variant,p):new PsyshockEffect(stage,particles,state.variant,p,state.previewCount);
- effect.update(0,0);$('scrub').max=effect.duration.toFixed(2);
+ clock=effect.timeline?new PhaseClock(effect.timeline(),p):null;
+ effect.update(fxTime(0),0);$('scrub').max=fxDur().toFixed(2);showPhaseNote();
 }
+function showPhaseNote(){const n=$('phase-warning');n.hidden=false;if(clock&&clock.nothingToShow)n.textContent='Nenhuma fase visual ligada: não há nada para mostrar. Ligue ao menos uma fase.';else if(!clock)n.textContent='Esta proposta ainda não obedece aos interruptores das fases.';else n.hidden=true;}
 function replay(){construct();state.playing=true;updatePlay();}
 function updatePlay(){$('pause').textContent=state.playing?'Ⅱ Pausar':'▶ Continuar';$('pause').setAttribute('aria-pressed',String(!state.playing));}
+function buildGroups(c){
+ const shotFields=[],kindOf=()=>Math.round(values().shotKind??0);
+ const fmt=(v,unit)=>String(v)+(unit?' '+unit:'');
+ const sync=()=>{for(const {key,el} of shotFields)el.hidden=!shotKeyVisible(key,kindOf());};
+ const field=([key,label,unit,min,max,step,initial])=>{
+  const v=values();if(v[key]===undefined)v[key]=initial;
+  const wrap=document.createElement('div');wrap.className='field phase-field';wrap.dataset.key=key;
+  const note=document.createElement('small');note.className='help';note.textContent=help[key]??'';
+  if(selectorLabels[key]){
+   wrap.classList.replace('field','select-field');const caption=document.createElement('span');caption.textContent=label;
+   const select=document.createElement('select');select.setAttribute('aria-label',label);if(key==='scenario')select.id='riposte-scenario';
+   selectorLabels[key].forEach((name,i)=>{const o=document.createElement('option');o.value=String(i);o.textContent=name;select.append(o);});select.value=String(v[key]);
+   select.onchange=()=>{v[key]=Number(select.value);if(key==='shotKind')sync();replay();};wrap.append(caption,select,note);
+  }else{
+   const row=document.createElement('span'),caption=document.createElement('span'),out=document.createElement('output'),range=document.createElement('input'),num=document.createElement('input');
+   caption.textContent=label+(unit?' ('+unit+')':'');out.textContent=fmt(v[key],unit);row.append(caption,out);
+   Object.assign(range,{type:'range',min,max,step,value:v[key]});range.setAttribute('aria-label',label+(unit?' ('+unit+')':''));
+   Object.assign(num,{type:'number',min,max,step,value:v[key]});num.className='num';num.setAttribute('aria-label',label+' — valor numérico');
+   const set=x=>{const n=clamp(Number(x),min,max);if(!Number.isFinite(n))return;v[key]=n;range.value=String(n);num.value=String(n);out.textContent=fmt(n,unit);replay();};
+   range.oninput=()=>set(range.value);num.onchange=()=>set(num.value);wrap.append(row,range,num,note);
+  }
+  if(key.startsWith('shot')&&key!=='shotKind')shotFields.push({key,el:wrap});
+  return wrap;
+ };
+ const groups=buildPanel(definitions[c]).map(g=>{
+  const box=document.createElement('details');box.className='phase-group';box.dataset.phase=g.phase;box.open=g.phase==='start'||g.phase==='body';
+  const summary=document.createElement('summary');summary.textContent=g.title;box.append(summary);
+  const on=values()[g.phase+'On']!==0;
+  const body=document.createElement('div');body.className='phase-body';
+  const tog=document.createElement('label');tog.className='check phase-toggle';const cb=document.createElement('input');cb.type='checkbox';cb.id='phase-'+g.phase+'-on';cb.checked=on;cb.dataset.phaseToggle=g.phase;
+  tog.append(cb,document.createTextNode(' Ligar esta fase'));
+  cb.onchange=()=>{values()[g.phase+'On']=cb.checked?1:0;box.classList.toggle('off',!cb.checked);replay();};
+  box.classList.toggle('off',!on);
+  body.append(tog,...g.controls.map(field));box.append(body);return box;
+ });
+ sync();return groups;
+}
+
 function refreshSelection(){
  const c=state.category,v=state.variant,[title,desc,tags]=descriptions[c][v];
  $('proposal-title').textContent=title;$('proposal-desc').textContent=desc;$('tags').textContent=tags;$('hero-title').textContent=title;$('hero-category').textContent=({sand:'SAND WAVE',stone:'EMERGING STONE',rock:'ROCHA',swift:'SWIFT',psyshock:'PSYSHOCK',bulletpunch:'BULLET PUNCH',quickattack:'QUICK ATTACK',riposte:'RIPOSTE'}[c])+' / PROPOSTA '+['A','B','C'][v];
  document.querySelectorAll('#categories button').forEach(b=>{b.classList.toggle('active',b.dataset.category===c);b.setAttribute('aria-pressed',String(b.dataset.category===c));});
  document.querySelectorAll('#variants button').forEach((b,i)=>{b.classList.toggle('active',i===v);b.setAttribute('aria-pressed',String(i===v));b.querySelector('small').textContent=descriptions[c][i][0];});
  $('model-field').hidden=c!=='stone';$('wire-field').hidden=c!=='rock';$('preview-field').hidden=c!=='psyshock';
- const fields=definitions[c].map(([key,label,unit,min,max,step])=>{
-  if(key==='scenario'){
-   const wrap=document.createElement('label');wrap.className='select-field';wrap.textContent=label;
-   const select=document.createElement('select');select.id='riposte-scenario';select.setAttribute('aria-label',label);
-   ['Acerto na janela → contra-ataque','Sem acerto → janela expira','Golpe tardio (0,62 s)','Guard Break → atravessa'].forEach((name,i)=>{const option=document.createElement('option');option.value=String(i);option.textContent=name;select.append(option);});select.value=String(values()[key]);select.onchange=()=>{values()[key]=Number(select.value);replay();};wrap.append(select);return wrap;
-  }
-  const wrap=document.createElement('label');wrap.className='field';const row=document.createElement('span'),caption=document.createElement('span'),out=document.createElement('output'),input=document.createElement('input');
-  caption.textContent=label;out.textContent=values()[key]+' '+unit;row.append(caption,out);input.type='range';Object.assign(input,{min,max,step,value:values()[key]});input.setAttribute('aria-label',label+' ('+unit+')');
-  input.oninput=()=>{values()[key]=Number(input.value);out.textContent=input.value+' '+unit;replay();};wrap.append(row,input);return wrap;
- });
- const base=c==='sand'||c==='stone'?5:c==='rock'?3:5;
- const groups=[...fields.slice(0,base)];for(let i=base;i<fields.length;i+=5){const details=document.createElement('details'),summary=document.createElement('summary');summary.textContent=['Forma e fluxo','Partículas','Dissipação e cor'][Math.floor((i-base)/5)]||'Mais controles';details.append(summary,...fields.slice(i,i+5));groups.push(details);}$('sliders').replaceChildren(...groups);
+ $('sliders').replaceChildren(...buildGroups(c));
 }
 for(const b of document.querySelectorAll('#categories button'))b.onclick=()=>{state.category=b.dataset.category;refreshSelection();replay();frameCamera();};
 for(const b of document.querySelectorAll('#variants button'))b.onclick=()=>{state.variant=Number(b.dataset.variant);refreshSelection();replay();};
@@ -92,8 +124,8 @@ $('camera').onchange=e=>frameCamera(e.target.value);
 $('fullscreen').onclick=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await $('viewport').requestFullscreen();}catch{$('save-status').textContent='Tela cheia indisponível neste navegador.';}};
 $('scrub').oninput=e=>{
  const target=Number(e.target.value);construct();state.playing=false;updatePlay();
- while(state.time+fixedStep<target){state.time+=fixedStep;effect.update(state.time,fixedStep);particles.update(fixedStep);}
- const rest=target-state.time;state.time=target;effect.update(target,rest);if(rest>0)particles.update(rest);
+ while(state.time+fixedStep<target){state.time+=fixedStep;effect.update(fxTime(state.time),fixedStep);particles.update(fixedStep);}
+ const rest=target-state.time;state.time=target;effect.update(fxTime(target),rest);if(rest>0)particles.update(rest);
 };
 $('save').onclick=()=>{try{localStorage.setItem('arenamon.sand-stone.v3',JSON.stringify({presets:state.presets,category:state.category,variant:state.variant,model:state.model}));$('save-status').textContent='Configuração salva neste navegador.';}catch{$('save-status').textContent='O navegador não permitiu salvar.';}};
 $('load').onclick=()=>{
@@ -116,13 +148,14 @@ document.addEventListener('keydown',e=>{if(e.target.matches('input,select,button
 function resize(){const {width,height}=canvas.getBoundingClientRect(),w=Math.max(1,Math.floor(width)),h=Math.max(1,Math.floor(height));if(w===lastWidth&&h===lastHeight)return;lastWidth=w;lastHeight=h;renderer.setSize(w,h,false);composer.setSize(w,h);camera.aspect=w/h;camera.updateProjectionMatrix();}
 renderer.setAnimationLoop(now=>{
  resize();const elapsed=Math.min(.08,Math.max(0,(now-last)/1000));last=now;
- if(state.playing){accumulator+=elapsed*state.rate*(state.reduce?.65:1);while(accumulator>=fixedStep){accumulator-=fixedStep;state.time+=fixedStep;effect.update(state.time,fixedStep);particles.update(fixedStep);if(state.time>=effect.duration){if(state.loop)construct();else{state.time=effect.duration;state.playing=false;updatePlay();break;}}}}
+ if(state.playing&&clock?.nothingToShow){state.playing=false;updatePlay();}
+ if(state.playing){accumulator+=elapsed*state.rate*(state.reduce?.65:1);while(accumulator>=fixedStep){accumulator-=fixedStep;state.time+=fixedStep;effect.update(fxTime(state.time),fixedStep);particles.update(fixedStep);if(state.time>=fxDur()){if(state.loop)construct();else{state.time=fxDur();state.playing=false;updatePlay();break;}}}}
  orbit.update();renderer.toneMappingExposure=state.exposure;bloomPass.strength=state.bloom;
  const punch=effect.punch??0;blast.intensity=punch*24;blast.position.z=state.category==='sand'?state.presets.sand['ABC'[state.variant]].length/2:state.category==='swift'?2.55:state.category==='psyshock'?2.4:state.category==='riposte'?1.9:['bulletpunch','quickattack'].includes(state.category)?2.35:0;
  if(['swift','psyshock','bulletpunch','quickattack','riposte'].includes(state.category))blast.color.setHSL(values().primaryHue/360,.8,.62);else blast.color.setHex(0xffbb60);
  const shift=state.reduce?0:punch*state.shake*.075,save=camera.position.clone();camera.position.x+=Math.sin(state.time*151)*shift;camera.position.y+=Math.cos(state.time*127)*shift;
  renderer.info.reset();composer.render();camera.position.copy(save);
- $('phase').textContent=effect.phase;$('time').textContent=state.time.toFixed(2)+' / '+effect.duration.toFixed(2)+' s';$('scrub').value=state.time;$('quarks-status').textContent=particles.count+' partículas · '+renderer.info.render.calls+' draw calls · three.quarks';
+ $('phase').textContent=clock?(clock.nothingToShow?'—':phaseNames[clock.phaseAt(state.time)]??'—'):effect.phase;$('time').textContent=state.time.toFixed(2)+' / '+fxDur().toFixed(2)+' s';$('scrub').value=state.time;$('quarks-status').textContent=particles.count+' partículas · '+renderer.info.render.calls+' draw calls · three.quarks';
 });
 window.__labDiagnostics=()=>({category:state.category,variant:state.variant,particleSystems:particles.systems.length,particles:particles.count,time:state.time,hasQuarks:typeof particles.renderer.addSystem==='function',version:3,visualRevision:6,drawCalls:renderer.info.render.calls,geometries:renderer.info.memory.geometries,textures:renderer.info.memory.textures,visualSignature:stage.userData.visualSignature??'legacy',riposte:state.category==='riposte'?{guardVisible:effect.guard.visible,counterVisible:effect.counter.visible,success:effect.success,contact:effect.contact,scenario:values().scenario}:null});
 refreshSelection();construct();frameCamera();
