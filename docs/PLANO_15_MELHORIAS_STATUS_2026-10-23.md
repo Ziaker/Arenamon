@@ -1,6 +1,6 @@
 # Plano de 15 melhorias: o que foi entregue (23/10/2026)
 
-Base: `docs/ARENAMON_PLANO_15_MELHORIAS_IA_MOVES_DEBUG_PERFORMANCE_2026-10-23.docx` (proposta; o responsável aprovou todas as 15 e mandou iniciar). Versão do laboratório: **1.27.0**. Tudo está na pasta oficial, **sem commit**. Cada item abaixo diz o que existe, onde abrir e como provar; o que **não** foi feito está dito sem rodeios.
+Base: `docs/ARENAMON_PLANO_15_MELHORIAS_IA_MOVES_DEBUG_PERFORMANCE_2026-10-23.docx` (proposta; o responsável aprovou todas as 15 e mandou iniciar). Versão do laboratório: **1.27.0**. Tudo está na branch `codex/elemental-quarks-visual` (commits `292b16c` a `366c961`). Cada item abaixo diz o que existe, onde abrir e como provar; o que **não** foi feito está dito sem rodeios.
 
 | # | Melhoria | Estado | Onde / como ver | Prova (comando) |
 |---|---|---|---|---|
@@ -52,3 +52,12 @@ npm run fichas                    # regenera os índices das fichas
 npm run novo-move -- "Nome"       # cria um Move novo
 npm run bench:moves               # mede a simulação e grava docs/DESEMPENHO_MOVES_<data>.md
 ```
+
+## Atualização: revisão independente e integração (23/10/2026, à noite)
+
+- **Revisão de código independente** (subagente, skill `requesting-code-review` do Superpowers) sobre os 5 primeiros commits: 1 problema crítico, 4 importantes, 9 menores. **Corrigidos** em `366c961`, cada um com teste de regressão em `moves-revisao.test.mjs`: A/B, linha do tempo e matriz desligavam a IA do rival da partida ao vivo; CRLF da CI no Windows (`.gitattributes`); índice vivo lendo arquivos não versionados; grupo de ficha que sobrescreveria `charge`/`ai`/`beam`; `novo-move` quebrando com apóstrofo; semente da captura sem validação/escape; caminhos locais nas mensagens de erro; comando do Markdown com caracteres perigosos; ordem dos Moves nos menus; imports mortos; paridade dos 4 Moves migrados com os valores de antes (teste novo).
+- **Não corrigido (informação desatualizada que já existia):** a dica de `guardBreak.damage` diz «Valor do laboratório: 14 HP», mas o valor de fábrica e o calibrado são 6 (já era assim em `5b4343a`). Decidir qual dos dois vale.
+- **Integração:** os testes novos agora estão em `scripts/run-test-chain.mjs` (o `npm test` real) e os de navegador (`bug-capture`, `move-spec`, `move-gizmos`) também; a CI confere os dois índices gerados.
+- **#02:** o assistente passou a ter os **quatro status independentes** por campo (proposto, aprovado, implementado, homologado); fichas antigas (um status só) continuam abrindo.
+- **`npm run verify`:** parou na etapa `skills:check` (`.claude/skills` difere da fonte; já estava alterado antes deste trabalho). Rodei as demais etapas à parte: typecheck (ok), `npm test` (passou até `solid-vfx.browser`, que tem uma verificação de **tempo** em renderização por software, «quadro completo com fumaça raymarched abaixo de 1500 ms»: **falhou nas duas vezes** que rodei, 2434 ms e depois 2164 ms numa máquina livre; não toca em nada que eu mudei (fumaça volumétrica), mas **não consegui provar** que já falhava antes: a tentativa de rodar o mesmo teste no commit `6d4ad50` não compilou na worktree. Os testes seguintes da cadeia não rodaram por isso) e `check:offline` (18 HTMLs sem dependência externa, ok).
+- **Claude Superskills:** o instalador (`npx claude-superskills`) foi bloqueado pelo classificador de permissões do Claude Code por ser código de terceiros; **não está instalado**. Para instalar, rode no seu terminal: `npx claude-superskills install -y`.
