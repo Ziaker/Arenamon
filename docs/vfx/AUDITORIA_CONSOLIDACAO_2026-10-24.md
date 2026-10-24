@@ -2,14 +2,14 @@
 
 ## Escopo verificado e execução
 
-- Fonte de partida: \`Ziaker/Arenamon\`, \`main\` @ \`052b4fe19b094aadc57972c43b8311d361ee5f8f\`, \`package.json\` versão 1.22.1 na leitura inicial.
+- Fonte de partida: `Ziaker/Arenamon`, `main` @ `052b4fe19b094aadc57972c43b8311d361ee5f8f`, `package.json` versão 1.22.1 na leitura inicial.
 - Inspecionados: árvore Git, sete documentos principais, [REGRAS_CRIACAO_MOVES](../REGRAS_CRIACAO_MOVES.md), documentos de passivas, fontes do legado, runtime, Quarks, sólidos e interface de seleção de renderizador.
-- Conferidas fontes exclusivas: \`docs/regras-prototipos-vfx\` (\`REGRAS_PROTOTIPOS_VFX.md\`), \`codex/elemental-quarks-visual\` (\`LAB_AREIA_PEDRA.md\` e plano datado). **Somente documentação** copiada, não runtime ou protótipos.
-- Acesso e mutação realizados diretamente no GitHub; o checkout local oficial e seu \`git status\` não estavam disponíveis. **Nenhum teste de jogo/browser, benchmark ou aprovação visual foi executado nesta tarefa.**
+- Conferidas fontes exclusivas: `docs/regras-prototipos-vfx` (`REGRAS_PROTOTIPOS_VFX.md`), `codex/elemental-quarks-visual` (`LAB_AREIA_PEDRA.md` e plano datado). **Somente documentação** copiada, não runtime ou protótipos.
+- Acesso e mutação realizados diretamente no GitHub; o checkout local oficial e seu `git status` não estavam disponíveis. **Nenhum teste de jogo/browser, benchmark ou aprovação visual foi executado nesta tarefa.**
 
 ## Método de consolidação
 
-1. Preservar especificações detalhadas em \`docs/vfx/efeitos/\` e o padrão de ateliês em \`docs/vfx/atelies/\`.
+1. Preservar especificações detalhadas em `docs/vfx/efeitos/` e o padrão de ateliês em `docs/vfx/atelies/`.
 2. Manter arquivos de encaminhamento nos sete caminhos originais, para compatibilidade de referências antigas.
 3. Copiar material de branches com identificação expressa de proveniência, distinguindo observação, declaração histórica e aprovação.
 4. Corrigir **somente links Markdown relativos** necessários devido ao novo diretório dos documentos transferidos.
@@ -19,11 +19,11 @@
 
 ## Inconsistências e limites encontrados
 
-- Históricos de versões convivem com descrições correntes em \`MOVES_ELEMENTAIS_VISUAL_QUARKS.md\`.
-- Padrão da \`main\` possui regras e \`[proposta]\` no mesmo documento; norma de outra branch acrescenta regras potencialmente conflitantes.
-- Impacto de disparo: composição aberta na \`main\`, definida em registro de outra branch, sem adoção global presumida.
-- \`VfxRuntime\` não apresenta paridade comprovada do legado; impacto D e variantes específicas de pouso/parede merecem revisão.
-- \`PASSIVAS_IMPLEMENTACAO.md\` contém referência a wrapper ausente em \`main\` (\`src/view/passive-vfx.js\`).
+- Históricos de versões convivem com descrições correntes em `MOVES_ELEMENTAIS_VISUAL_QUARKS.md`.
+- Padrão da `main` possui regras e `[proposta]` no mesmo documento; norma de outra branch acrescenta regras potencialmente conflitantes.
+- Impacto de disparo: composição aberta na `main`, definida em registro de outra branch, sem adoção global presumida.
+- `VfxRuntime` não apresenta paridade comprovada do legado; impacto D e variantes específicas de pouso/parede merecem revisão.
+- `PASSIVAS_IMPLEMENTACAO.md` contém referência a wrapper ausente em `main` (`src/view/passive-vfx.js`).
 - Benchmarks de todos os máximos simultâneos, GPU física e qualidade artística **não** foram confirmados.
 - Branches examinadas podem seguir recebendo commits depois do snapshot auditado; reavaliar antes de integrar código.
 

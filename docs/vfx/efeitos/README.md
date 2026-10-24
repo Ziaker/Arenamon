@@ -13,4 +13,4 @@ As fichas abaixo mantêm seu conteúdo especializado e histórico; **não** são
 
 **Não transferidos por pertencerem à mecânica de Moves:** [REGRAS_CRIACAO_MOVES](../../REGRAS_CRIACAO_MOVES.md), [MOVES_DECISOES_RODADAS](../../MOVES_DECISOES_RODADAS.md), [MUSHROOM_MOVES_DECISOES](../../MUSHROOM_MOVES_DECISOES.md), [PASSIVAS_DECISOES](../../PASSIVAS_DECISOES.md) e fichas individuais. A matriz central aponta para esses documentos sem duplicá-los.
 
-Leia também [MANUAL_VFX](../MANUAL_VFX.md) e [SISTEMAS_E_RENDERIZADORES](../SISTEMAS_E_RENDERIZADORES.md). Nos documentos transferidos, caminhos técnicos abreviados como \`src/view/...\` continuam designando o Combat Lab, não esta pasta.
+Leia também [MANUAL_VFX](../MANUAL_VFX.md) e [SISTEMAS_E_RENDERIZADORES](../SISTEMAS_E_RENDERIZADORES.md). Nos documentos transferidos, caminhos técnicos abreviados como `src/view/...` continuam designando o Combat Lab, não esta pasta.
