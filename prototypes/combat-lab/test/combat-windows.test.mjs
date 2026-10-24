@@ -226,8 +226,10 @@ test('seleção de variante distingue execução real (com serial) de simulaçã
 });
 
 // 9. TESTE COM GLB REAL: personagem-studio.glb (duração de 3 s e janela [10, 38))
-test('GLB real (personagem-studio.glb): duração real de 3 s, janela ativa [10, 38) e zero erros', () => {
-  const glbPath = path.resolve('prototypes/combat-lab/validation/personagem-studio.glb');
+// O GLB mora em validation/ (pasta ignorada pelo Git, só existe na máquina local): na CI (variável CI) o teste é PULADO de forma visível; localmente continua obrigatório.
+const glbPath = path.resolve('prototypes/combat-lab/validation/personagem-studio.glb');
+if (process.env.CI && !fs.existsSync(glbPath)) console.log('- PULADO na CI: GLB real (personagem-studio.glb) não está no repositório (validation/ é local)');
+else test('GLB real (personagem-studio.glb): duração real de 3 s, janela ativa [10, 38) e zero erros', () => {
   assert.ok(fs.existsSync(glbPath), 'Arquivo GLB oficial deve existir');
 
   const buf = fs.readFileSync(glbPath);
