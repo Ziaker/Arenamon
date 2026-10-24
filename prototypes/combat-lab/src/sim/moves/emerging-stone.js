@@ -7,6 +7,9 @@
 // rocha está em stone.js. Valores: C.world.emergingStone, capturados ao apertar (M28.4).
 import {C} from '../config.js';
 import {spawn} from '../world.js';
+import {defineFicha} from './params-registry.js';
+import {params} from './emerging-stone.params.js';
+import {stoneStep} from '../stone.js';
 
 export const emergingStoneDef = Object.freeze({
   id: 'emerging-stone', name: 'Emerging Stone', air: 'cast', group: 'emergingStone', aimMode: 'marker', castFirst: true, aimAirOk: true, aim: 'facing',
@@ -28,3 +31,9 @@ export function emergingStoneEffect(/** @type {any} */ game, /** @type {any} */ 
   }, fx.events ?? []);
   if (!e) return {ok: false, reason: 'entityLimit'};
 }
+
+/** FICHA do Move (ver docs/COMO_CRIAR_UM_MOVE.md): `params` gera o padrão em C.world.emergingStone e os sliders da aba Moves; `def` e os manipuladores são registrados sozinhos. */
+export const ficha = defineFicha({
+  def: emergingStoneDef, effect: ['emerging-stone', emergingStoneEffect], steps: [['stone', stoneStep]],
+  params,
+});
