@@ -1,0 +1,5 @@
+{"arquivo":"prototypes/combat-lab/src/sim/controller.js","pasta":"prototypes/combat-lab/src/sim/controller","modulos":{
+"ctrl-basico":["approachVelocity","locomotionParams","walkSpeed","costOf","isDepleted","turnToward","cancelWindow","startPermission","staminaReason","lastBufferReason","sprintDenied","bufferDuringHitstop"],
+"ctrl-tackle":["tackleChargeLevel","applyTacklePL","startTackleCharge","feintDirection","canFeint","doFeint","cancelTackleCharge","stepTackleCharge","startSlamFromFlight","aimSlam","slamFoeAngle","aimSlamDive","startSlam","timeToLand","armTechRecovery","startNormalJump","airSkillStep"],
+"ctrl-update":["updateFighter","vaultTarget","wouldVault","startAction","advanceAction","CTX_FIGHTERS","CTX_WORLD"],
+"ctrl-moves":["movePermission","pressFeint","startMove","startTackleMove","releaseTackleMove","startRiposteStrike","startAim","startRangeAim","cancelAim","stepAim","startTackleAt","updateMove","dodgeMainEnd","chargePermission","moveEvent","startCharge","cancelCharge","boostCooldown","pressSkill","bufferedSkill","stepCharge","tickCooldowns"]}}
