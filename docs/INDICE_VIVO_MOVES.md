@@ -2,7 +2,7 @@
 
 > **GERADO** por `npm run indice` (`prototypes/combat-lab/gen-indice.mjs`) a partir do código real. Não edite à mão. Serve para um agente (ou pessoa) saber, antes de mexer em um Move, **quais arquivos, testes e documentos** o citam. O índice só encontra citações textuais (id, grupo de `C.world` ou nome de função); leia o código atual antes de editar.
 
-Moves registrados: **19**. Em ficha única (um arquivo): 5. Veja `docs/COMO_CRIAR_UM_MOVE.md`.
+Moves registrados: **19**. Em ficha única (um arquivo): 6. Veja `docs/COMO_CRIAR_UM_MOVE.md`.
 
 | Move | Grupo em `C.world` | Arquivos de regra (sim) | Painéis/visão | Testes | Documentos |
 |---|---|---|---|---|---|
@@ -20,7 +20,7 @@ Moves registrados: **19**. Em ficha única (um arquivo): 5. Veja `docs/COMO_CRIA
 | `emerging-stone` | `emergingStone` | 6 | 3 | 12 | 6 |
 | `feint` | `feint` | 9 | 6 | 10 | 14 |
 | `riposte` | `riposte` | 13 | 6 | 17 | 22 |
-| `quick-attack` | `quickAttack` | 5 | 3 | 16 | 5 |
+| `quick-attack` | `quickAttack` | 6 | 3 | 16 | 5 |
 | `water-pulse` | `waterPulse` | 5 | 10 | 10 | 2 |
 | `fire-spin` | `fireSpin` | 6 | 9 | 11 | 2 |
 | `air-slash` | `airSlash` | 6 | 9 | 12 | 2 |
@@ -182,7 +182,9 @@ Testes executáveis: `node prototypes/combat-lab/test/ai-new-moves.test.mjs` · 
 
 ### `quick-attack` · grupo `quickAttack`
 
-- **sim (regras):** `prototypes/combat-lab/src/sim/ai-new-moves.js`, `prototypes/combat-lab/src/sim/config.js`, `prototypes/combat-lab/src/sim/move-hit-map.js`, `prototypes/combat-lab/src/sim/moves/new-moves.js`, `prototypes/combat-lab/src/sim/moves/quick-attack.js`
+**Ficha:** Burst · Melee · PL1 · proposto ✓ · aprovado ✗ · implementado ✓ · homologado ✗
+
+- **sim (regras):** `prototypes/combat-lab/src/sim/ai-new-moves.js`, `prototypes/combat-lab/src/sim/move-hit-map.js`, `prototypes/combat-lab/src/sim/moves/new-moves.js`, `prototypes/combat-lab/src/sim/moves/params.generated.js`, `prototypes/combat-lab/src/sim/moves/quick-attack.js`, `prototypes/combat-lab/src/sim/moves/quick-attack.params.js`
 - **ui (painéis):** `prototypes/combat-lab/src/ui/menu-styles-model.js`, `prototypes/combat-lab/src/ui/moves-panel.js`, `prototypes/combat-lab/src/ui/moves-vfx-panel.js`
 - **testes:** `prototypes/combat-lab/test/ai-new-moves-eval.mjs`, `prototypes/combat-lab/test/ai-new-moves.test.mjs`, `prototypes/combat-lab/test/bug-capture.test.mjs`, `prototypes/combat-lab/test/bugs-cacada.test.mjs`, `prototypes/combat-lab/test/env-integration.test.mjs`, `prototypes/combat-lab/test/moves-air.test.mjs`, `prototypes/combat-lab/test/moves-anti-air-combo-stamina.test.mjs`, `prototypes/combat-lab/test/moves-new.browser.mjs`, `prototypes/combat-lab/test/moves-quick-attack.test.mjs`, `prototypes/combat-lab/test/moves-revisao.test.mjs`, `prototypes/combat-lab/test/moves-rodada-23-10.test.mjs`, `prototypes/combat-lab/test/prejogo.browser.mjs`, `prototypes/combat-lab/test/prejogo.test.mjs`, `prototypes/combat-lab/test/replay-diff.test.mjs`, `prototypes/combat-lab/test/rodada-b.browser.mjs`, `prototypes/combat-lab/test/rodada-b.test.mjs`
 - **documentos:** `docs/MATRIZ_MOVES_2026-10-23.md`, `docs/ia/NEW_MOVES_IA_MEDICAO.md`, `docs/moves-nao-iniciados/DECISOES_PROVISORIAS_MOVES_NOVOS.md`, `docs/moves-nao-iniciados/README.md`, `docs/moves-nao-iniciados/fichas/quick-attack.md`

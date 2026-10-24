@@ -13,6 +13,8 @@ import {C} from '../config.js';
 import {nearestEligible, targetReachOf} from '../moves.js';
 import {altitudeOf} from '../entity.js';
 import {sub, length, normalize, angleOf, direction, scale} from '../math.js';
+import {defineFicha} from './params-registry.js';
+import {params} from './quick-attack.params.js';
 
 export const quickAttackDef = Object.freeze({
   id: 'quick-attack', name: 'Quick Attack', air: 'descend', group: 'quickAttack', tackle: 'quick-attack', needsTarget: 'acquireRange', antiAir: true,
@@ -64,3 +66,9 @@ export function quickAttackStep(/** @type {any} */ f, /** @type {any} */ a, /** 
   }
   return {x: 0, z: 0};
 }
+
+/** FICHA do Move (ver docs/COMO_CRIAR_UM_MOVE.md): `params` gera o padrão em C.world.quickAttack e os sliders da aba Moves; `def` e os manipuladores são registrados sozinhos. */
+export const ficha = defineFicha({
+  def: quickAttackDef, tackle: ['quick-attack', quickAttackSetup], hooks: [['quick-attack:step', quickAttackStep]],
+  params,
+});

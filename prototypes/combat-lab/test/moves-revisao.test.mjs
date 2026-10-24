@@ -82,6 +82,7 @@ test('PARIDADE: os Moves migrados mantêm os valores de fábrica que tinham em c
     guardBreak: {cost: 1, cooldown: 10, maxCharge: 1, minCharge: 0, cast: .7, range: 2.6, damage: 6, knockbackH: 2, knockbackV: 0, stun: .5, invulnerableSeconds: 0, chainAfter: .47, hitStart: .333, hitEnd: .533},
     swift: {cost: .8, cooldown: 7, cast: .25, count: 3, speed: 15, damage: 3, homingSeconds: .25, homingRate: 90, range: 12, knockback: .3, knockbackCap: .9, radius: .2, fanAngle: 20, spawnForward: .9, spawnSpacing: .35, counterStagger: .2},
     lunge: {cost: 0.75, cooldown: 6, cast: 0.6, range: 3.5, damage: 8, knockbackH: 4, knockbackV: 0, invulnerableSeconds: 0.1333, chainAfter: 0.45, hitStart: 0.19, hitEnd: 0.26},
+    quickAttack: {cost: 0.75, cooldown: 6, acquireRange: 7, approachMax: 0.16, returnMax: 0.14, recovery: 0.12, damage: 8, knockbackH: 4, knockbackV: 0, invulnerableSeconds: 0, airReach: 3, fxLines: 1, fxHideBody: 1},
   };
   const hoje = factoryDefaults().world;
   for (const [g, vals] of Object.entries(antes)) for (const [k, v] of Object.entries(vals)) assert.equal(hoje[g][k], v, `${g}.${k}`);
