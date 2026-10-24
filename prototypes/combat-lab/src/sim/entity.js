@@ -2,6 +2,7 @@
 import {C} from './config.js';
 import {vec} from './math.js';
 import {moveSpec} from './moves.js';
+import {altitudeOf} from './altitude.js';
 import {stat} from './status.js';
 
 export function createFighter(id, attributes, position) {
@@ -32,7 +33,7 @@ export const getFighterMaxStamina = f => f ? C.rules.staminaMax + (f.stages?.sta
 // skill: índice do slot de movimento especial pedido neste passo (null = nenhum; só a BORDA do botão). skillHeld: botões de slot mantidos
 // pressionados (array por slot, ou null quando nenhum): é o que mantém e solta um Charge.
 /** Altitude real (m) dos pés: `flight.y` já é ABSOLUTA (voo parte de groundY), então em voo NÃO se soma groundY; no chão vale groundY (+ elevação do vault). */
-export const altitudeOf = f => (f.flight?.y ?? f.groundY ?? 0) + (f.vaultHeight ?? 0);
+export {altitudeOf};   // definido em altitude.js (folha) para quebrar o ciclo entity ↔ moves
 export const emptyCommand = () => ({move: vec(), dodge: false, dodgeHeld: false, tackle: false, tackleHeld: false, guard: false, guardPressed: false, jump: false, jumpHeld: false, target: null, skill: null, skillHeld: null});
 /** Parâmetros próprios de uma ação X/C (C.actions.dodge ou C.actions.tackle). */
 export const actionParams = kind => C.actions[kind];

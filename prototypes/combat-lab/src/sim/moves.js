@@ -12,12 +12,36 @@
 // opcional e todos os eventos da linha do tempo disparam NA SOLTURA (`at` é ignorado).
 // Deslocamento opcional (motion) e janelas próprias de invulnerabilidade e de cancelamento.
 import {C} from './config.js';
-import {altitudeOf} from './entity.js';
-import {validateEntity, DEFAULTS} from './world.js';
+import {altitudeOf} from './altitude.js';
+import {validateEntity, DEFAULTS} from './world/world-schema.js';
 import {validateStatus} from './status.js';
 import {CHARGE_OVERRIDES} from './charge.js';
 
-const REGISTRY = new Map();
+/**
+ * Registro de Moves como OBJETO: o laboratório usa a instância padrão (defaultRegistry); testes e simulações paralelas podem criar outra e
+ * ativá-la com withRegistry(reg, () => …) sem tocar no registro do jogo. A API do módulo (registerMove, getMove…) age sobre o registro ATIVO.
+ */
+export class MoveRegistry {
+  constructor() {/** @type {Map<string, any>} */ this.map = new Map();}
+  set(id, def) {this.map.set(id, def);return this;}
+  get(id) {return this.map.get(id);}
+  has(id) {return this.map.has(id);}
+  delete(id) {return this.map.delete(id);}
+  clear() {this.map.clear();}
+  values() {return this.map.values();}
+}
+export const defaultRegistry = new MoveRegistry();
+/** @type {MoveRegistry} */
+let REGISTRY = defaultRegistry;
+/** Registro ativo (o padrão, salvo dentro de withRegistry). */
+export const activeRegistry = () => REGISTRY;
+/** Executa fn com outro registro ativo e restaura o anterior ao terminar (também se fn lançar ou for assíncrona). */
+export function withRegistry(/** @type {MoveRegistry} */ reg, /** @type {() => any} */ fn) {
+  const prev = REGISTRY;REGISTRY = reg;
+  let out;try {out = fn();} catch (e) {REGISTRY = prev;throw e;}
+  if (out && typeof out.then === 'function') return out.finally(() => {REGISTRY = prev;});
+  REGISTRY = prev;return out;
+}
 /** Preparações de Moves que viram AÇÃO DE TACKLE (`def.tackle` = nome): (f, action, P, ctx) ajusta duração, distância, dano, knockback e janelas da ação. */
 const TACKLE_SETUPS = new Map();
 export const registerTackleSetup = (/** @type {string} */ name, /** @type {Function} */ fn) => {TACKLE_SETUPS.set(name, fn);return name;};

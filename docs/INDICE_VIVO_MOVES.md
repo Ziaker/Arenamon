@@ -180,7 +180,7 @@ Testes executáveis: `node prototypes/combat-lab/test/ai-new-moves.test.mjs` · 
 
 **Ficha:** Normal · Status+Melee · SEM PL · proposto ✓ · aprovado ✗ · implementado ✓ · homologado ✗
 
-- **sim (regras):** `prototypes/combat-lab/src/sim/ai-new-moves.js`, `prototypes/combat-lab/src/sim/calibration-base.js`, `prototypes/combat-lab/src/sim/combat.js`, `prototypes/combat-lab/src/sim/controller/ctrl-moves.js`, `prototypes/combat-lab/src/sim/entity.js`, `prototypes/combat-lab/src/sim/game.js`, `prototypes/combat-lab/src/sim/move-hit-map.js`, `prototypes/combat-lab/src/sim/move-vfx-map.js`, `prototypes/combat-lab/src/sim/moves/new-moves.js`, `prototypes/combat-lab/src/sim/moves/params.generated.js`, `prototypes/combat-lab/src/sim/moves/riposte.js`, `prototypes/combat-lab/src/sim/moves/riposte.params.js`, `prototypes/combat-lab/src/sim/sand.js`, `prototypes/combat-lab/src/sim/trap.js`, `prototypes/combat-lab/src/sim/world.js`
+- **sim (regras):** `prototypes/combat-lab/src/sim/ai-new-moves.js`, `prototypes/combat-lab/src/sim/calibration-base.js`, `prototypes/combat-lab/src/sim/combat.js`, `prototypes/combat-lab/src/sim/controller/ctrl-moves.js`, `prototypes/combat-lab/src/sim/entity.js`, `prototypes/combat-lab/src/sim/game.js`, `prototypes/combat-lab/src/sim/move-hit-map.js`, `prototypes/combat-lab/src/sim/move-vfx-map.js`, `prototypes/combat-lab/src/sim/moves/new-moves.js`, `prototypes/combat-lab/src/sim/moves/params.generated.js`, `prototypes/combat-lab/src/sim/moves/riposte.js`, `prototypes/combat-lab/src/sim/moves/riposte.params.js`, `prototypes/combat-lab/src/sim/sand.js`, `prototypes/combat-lab/src/sim/trap.js`, `prototypes/combat-lab/src/sim/world/world-hit.js`
 - **ui (painéis):** `prototypes/combat-lab/src/ui/menu-styles-model.js`, `prototypes/combat-lab/src/ui/moves-panel.js`
 - **view (desenho):** `prototypes/combat-lab/src/view/riposte-fx.js`, `prototypes/combat-lab/src/view/vfx.js`, `prototypes/combat-lab/src/view/view.js`
 - **testes:** `prototypes/combat-lab/test/ai-new-moves-eval.mjs`, `prototypes/combat-lab/test/ai-new-moves.test.mjs`, `prototypes/combat-lab/test/calibration-base.test.mjs`, `prototypes/combat-lab/test/moves-air.test.mjs`, `prototypes/combat-lab/test/moves-contracts.test.mjs`, `prototypes/combat-lab/test/moves-elementais.browser.mjs`, `prototypes/combat-lab/test/moves-fichas.test.mjs`, `prototypes/combat-lab/test/moves-new.browser.mjs`, `prototypes/combat-lab/test/moves-revisao.test.mjs`, `prototypes/combat-lab/test/moves-riposte.test.mjs`, `prototypes/combat-lab/test/moves-rodada-23-10.test.mjs`, `prototypes/combat-lab/test/prejogo.test.mjs`, `prototypes/combat-lab/test/rodada-b.browser.mjs`, `prototypes/combat-lab/test/rodada-b.test.mjs`, `prototypes/combat-lab/test/slam-riposte-rules.test.mjs`, `prototypes/combat-lab/test/tuning-export.browser.mjs`, `prototypes/combat-lab/test/tuning-io.test.mjs`, `prototypes/combat-lab/test/ui-rodada-22-10.browser.mjs`
@@ -250,9 +250,6 @@ Testes executáveis: `node prototypes/combat-lab/test/ai-elemental.test.mjs` · 
 ## Documentos de `docs/` sem nenhuma citação (nem no portal, nem em outro documento)
 
 - `docs/ARENA_PAREDE_FISICA_IGUAL_VISUAL.md`
-- `docs/CODIGO_SEM_USO_KNIP.md`
-- `docs/ESTRUTURA_DO_MAIN.md`
-- `docs/PLANO_EDITOR_DE_MOVES.md`
 - `docs/SALTO_FOOTSTOOL_IMPLEMENTACAO.md`
 - `docs/SMEAR_MEMBROS_TACKLE.md`
 - `docs/SQUASH_STRETCH_TACKLE.md`
