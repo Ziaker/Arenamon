@@ -10,23 +10,21 @@ import {Recorder} from './sim/telemetry.js';
 import {ReplayBuffer} from './sim/replay.js';
 import {SCENARIOS, runScenario} from './sim/scenarios.js';
 
-import {resetCollisionProbe} from './sim/collision-probe.js';
-import {View, OVERLAYS} from './view/view.js';
-import {Character, loadStudioFile, studioWindows} from './view/characters.js';
+
+import {View} from './view/view.js';
+import {loadStudioFile, studioWindows} from './view/characters.js';
 import {createCharacterPanel} from './ui/characters-panel.js';
 import {createVisualPanel} from './ui/visual-panel.js';
 import {HudProposals} from './ui/hud-proposals.js';
 import {ProgressHud} from './ui/progress-hud.js';
 import {Hud} from './ui/hud.js';
 import {Input} from './ui/input.js';
-import {createTuning, escape, pathGet} from './ui/tuning.js';
+import {createTuning} from './ui/tuning.js';
 import {createDock} from './ui/dock.js';
 import {createHomologation} from './ui/homologation.js';
-import {runBalance, balanceRows} from './sim/balance.js';
-import {compareScenarios, compareMatch} from './sim/compare.js';
-import {MatchRecording, parseRecording} from './sim/recording.js';
-import {captureBug, parseBugCapture, reproduceBugCapture, encodeBug} from './sim/bug-capture.js';
-import {diffRecording} from './sim/replay-diff.js';
+
+
+import {MatchRecording} from './sim/recording.js';
 
 
 import {createPresetsPanel} from './ui/presets-panel.js';
@@ -66,6 +64,9 @@ import {ANIM_SLIDERS, charHooks, refreshAnimSliders, renderRuleDurations, render
 import {updateAudioBtn} from './app/match-stats.js';
 import {frame} from './app/main-loop.js';
 import {bootWorkspace, projectFiles, reportsOf} from './app/workspace-boot.js';
+import {wireRecording} from './app/wire-recording.js';
+import {wireExport, wireOverlays, wireTuningPersistence} from './app/wire-settings.js';
+import {wireCharacters} from './app/wire-characters.js';
 
 // Moves padrão (D2): registrados aqui, no bootstrap do laboratório, nunca no núcleo da simulação. Registrar não equipa nenhum slot.
 registerStandardMoves();
@@ -95,130 +96,27 @@ export const input = new Input(canvas, code => {
   }
 });
 input.visionWorld = () => game.world;   // lock-on do cegado precisa conferir paredes no mundo da partida
-$('rec-save').onclick = () => {download(JSON.stringify(matchRec.toJSON()), `arenamon-partida-${matchRec.meta.seed}.json`);};
-$('rec-file').onchange = async e => {
-  const file = e.target.files[0];if (!file) return;const parsed = parseRecording(await file.text());e.target.value = '';
-  if (parsed.error) {$('rec-result').innerHTML = `<p class="warn">${escape(parsed.error)}</p>`;return;}
-  const {data, commands} = parsed;
-  if ($('rec-values').value === 'recorded') {
-    const changes = Object.entries(data.values || {}).filter(([path, v]) => tuning.byPath.has(path) && pathGet(C, path) !== v);
-    if (changes.length) tuning.commit(changes, 'ajustes da gravação');
-  }
-  $('seed').value = String(data.seed);$('seed-fixed').checked = true;$('profile').value = data.profile;$('enemy-profile').value = data.enemyProfile;$('mode').value = data.mode;
-  if (Array.isArray(data.loadouts)) passivesPanel.setFromRecording({loadouts: data.loadouts, identity: data.identity});   // reprodução exata (§27)
-  startMatch({playback: {commands, commands1: parsed.commands1, source: file.name}});
-  $('rec-result').innerHTML = `<p class="ok">Reproduzindo ${escape(file.name)}: ${commands.length} passos, semente ${data.seed}, ${$('rec-values').value === 'recorded' ? 'ajustes da gravação (Ctrl+Z desfaz)' : 'ajustes atuais'}.</p>`;
-};
-// Captura de bug reproduzível (#11): erros da página ficam guardados para entrar no pacote.
-const pageErrors = [];
-window.addEventListener('error', e => {pageErrors.push(`${e.message} (${(e.filename || '').split('/').pop()}:${e.lineno})`);if (pageErrors.length > 20) pageErrors.shift();});
-window.addEventListener('unhandledrejection', e => {pageErrors.push('Promessa rejeitada: ' + String(e.reason?.message ?? e.reason));if (pageErrors.length > 20) pageErrors.shift();});
-const appVersion = () => ($('app-version')?.textContent ?? '').replace(/^Combate\s*·\s*/, '') || 'desconhecida';
-$('bug-capture').onclick = () => {
-  const pkg = captureBug({game, recording: matchRec, appVersion: appVersion(), note: $('bug-note').value, errors: pageErrors});
-  download(encodeBug(pkg), `arenamon-bug-${pkg.seed ?? 'x'}-t${pkg.tick}.json`);
-  $('bug-result').innerHTML = `<p class="ok">Captura salva: passo ${pkg.tick}, semente ${pkg.seed}, ${pkg.errors.length} erro(s) da página, config ${pkg.configHash}.</p>`;
-};
-$('bug-file').onchange = async e => {
-  const file = e.target.files[0];if (!file) return;const parsed = parseBugCapture(await file.text());e.target.value = '';
-  if (parsed.error) {$('bug-result').innerHTML = `<p class="warn">${escape(parsed.error)}</p>`;return;}
-  ui.playback = null;
-  const out = reproduceBugCapture(parsed.data, game, {appVersion: appVersion()});
-  recorder.clear();replay.clear();resetViewAndLogs();togglePause(true);renderRecStatus();
-  $('bug-result').innerHTML = `<p class="ok">Captura aberta no passo ${out.tick} (semente ${escape(String(parsed.data.seed))}); o jogo ficou pausado nesse instante.${parsed.data.note ? ` Nota: ${escape(parsed.data.note)}` : ''}</p>`
-    + (out.replayMatches === true ? '<p class="ok">Refazer a gravação desde o início chega ao mesmo estado: o defeito é reproduzível.</p>' : '')
-    + out.warnings.map(w => `<p class="warn">${escape(w)}</p>`).join('')
-    + (parsed.data.errors?.length ? `<p class="warn">Erros capturados: ${parsed.data.errors.map(escape).join(' · ')}</p>` : '');
-};
-window.__labRecording = {matchRec, parseRecording, ui};
-$('patch-generate').onclick = () => {
-  if (!GAME_CONFIG_TS) {$('patch-result').innerHTML = '<p class="warn">O texto do config.ts não está neste build.</p>';return;}
-  const p = gamePatch($('patch-defaults').checked);window.__lab.lastPatch = p;
-  const label = path => escape(tuning.byPath.get(path)?.label ?? path);
-  $('patch-result').innerHTML = (p.applied.length ? `<p>${p.applied.length} valor(es) mudariam no jogo:</p><table><tr><th>config.ts</th><th>Jogo</th><th>Proposto</th><th>Origem</th></tr>${p.applied.map(a => `<tr><td><code>${a.gamePath}</code></td><td>${escape(a.before)}</td><td class="warn">${escape(a.after)}</td><td>${a.from.map(label).join('<br>')}</td></tr>`).join('')}</table>` : '<p class="ok">Nenhum valor do jogo mudaria.</p>')
-    + (p.conflicts.length ? `<p class="warn"><b>Conflitos (fora da proposta):</b></p><ul>${p.conflicts.map(c => `<li><code>${c.gamePath}</code>: ${c.list.map(e => `${label(e.path)} = ${+e.value.toFixed(4)}`).join(' · ')}</li>`).join('')}</ul>` : '')
-    + (p.skipped.length ? `<p class="warn">Sem equivalente no config.ts: ${p.skipped.map(s => `<code>${s.gamePath}</code>`).join(', ')}</p>` : '')
-    + (p.diff ? `<pre class="diff">${escape(p.diff)}</pre><div class="row"><button type="button" id="patch-download">↓ Baixar .patch</button><button type="button" id="patch-copy">Copiar diff</button></div>` : '');
-  if (p.diff) {
-    $('patch-download').onclick = () => download(p.diff, 'config-ts-proposta.patch');
-    $('patch-copy').onclick = async () => {try {await navigator.clipboard.writeText(p.diff);} catch {/* sem área de transferência: o diff continua visível */}};
-  }
-};
-$('comp-run').onclick = () => {
-  syncCompareOptions();const ida = $('comp-a').value, idb = $('comp-b').value, A = presets.valuesOf(ida), B = presets.valuesOf(idb), name = id => escape($('comp-a').querySelector(`option[value="${CSS.escape(id)}"]`)?.textContent ?? id);
-  if ($('comp-source').value === 'match') {
-    if (!matchRec.ticks) {$('comp-report').innerHTML = '<p class="warn">Nenhuma partida gravada: jogue uma partida (aba Partida) e volte aqui.</p>';return;}
-    const r = compareMatch(A, B, matchRec.meta, matchRec.commands);window.__lab.lastCompare = r;
-    const dv = diffRecording({meta: {...matchRec.meta, moveLoadouts: game.loadouts}, commands: matchRec.commands}, {values: A}, {values: B}).divergence;   // #12: primeiro tick em que A e B se separam
-    r.divergence = dv;
-    $('comp-report').innerHTML = `<p>${matchRec.ticks} passos gravados (semente ${matchRec.meta.seed}). O vermelho reage de novo pela IA em cada lado.</p><table><tr><th></th><th>A · ${name(ida)}</th><th>B · ${name(idb)}</th></tr>${r.rows.map(([k, a, b]) => `<tr><td>${escape(k)}</td><td>${a}</td><td class="${String(a) !== String(b) ? 'warn' : ''}">${b}</td></tr>`).join('')}</table>${r.divergence.identical ? '<p class="muted">A e B percorrem a gravação inteira com o mesmo estado (nenhum tick diverge).</p>' : `<p>Primeiro tick em que A e B se separam: <b>passo ${r.divergence.tick}</b>, campo <code>${escape(r.divergence.field)}</code> (A ${escape(String(r.divergence.a))} · B ${escape(String(r.divergence.b))}).</p>`}`;
-    return;
-  }
-  const rows = compareScenarios(A, B);window.__lab.lastCompare = rows;
-  $('comp-report').innerHTML = `<table><tr><th>Cenário</th><th>A · ${name(ida)}</th><th>B · ${name(idb)}</th></tr>${rows.map(r => `<tr><td><b>${escape(r.name)}</b>${r.diffs.map(d => `<br><small>${escape(d.label)}</small>`).join('')}</td><td>${r.okA ? '✓' : '✗'}${r.diffs.map(d => `<br><small>${escape(String(d.a))}</small>`).join('')}</td><td class="${r.okA !== r.okB ? 'warn' : ''}">${r.okB ? '✓' : '✗'}${r.diffs.map(d => `<br><small>${escape(String(d.b))}</small>`).join('')}</td></tr>`).join('')}</table><p class="hint">✓/✗ = esperado × obtido de cada cenário com aqueles ajustes; abaixo, só as medições que diferem entre A e B.</p>`;
-};
-$('balance-run').onclick = () => {
-  const matches = Math.max(1, Math.min(200, Number($('balance-matches').value) || 20)), seed = Math.max(1, Number($('balance-seed').value) || 1);
-  const t0 = performance.now(), r = runBalance({matches, seed, profile: $('profile').value, enemyProfile: $('enemy-profile').value, mode: $('player-mode').value, enemyMode: $('mode').value === 'inactive' ? 'tactical' : $('mode').value});window.__lab.lastBalance = r;
-  $('balance-report').innerHTML = `<p>${r.matches} lutas · ${((performance.now() - t0) / 1000).toFixed(1)} s · duração média ${r.avgSeconds.toFixed(1)} s (${r.minSeconds.toFixed(1)}–${r.maxSeconds.toFixed(1)}) · ${r.timeouts ? `<span class="warn">${r.timeouts} sem vencedor em 90 s</span>` : 'todas com vencedor'}</p>
-    <table><tr><th></th><th>Azul</th><th>Vermelho</th></tr>${balanceRows(r).map(([k, a, b]) => `<tr><td>${escape(k)}</td><td>${a}</td><td>${b}</td></tr>`).join('')}</table>`;
-};
-$('scenario-all').onclick = () => {
-  abortScenario();const results = SCENARIOS.map(def => runScenario(def));const ok = results.filter(r => r.ok).length;
-  $('scenario-report').innerHTML = `<p class="${ok === results.length ? 'ok' : 'bad'}"><b>${ok} de ${results.length} cenários aprovados</b> com os ajustes atuais.</p>` + reportHtml(results);
-  resetCollisionProbe();game.phase = 'menu';ui.lastResult = null;renderScenarios();
-};
+wireRecording();
+
 export const tuning = createTuning({apply: applyConfig});
 // Presets (sensação, completos e por categoria), calibração simplificada, modo simples/avançado e A × B jogável.
 export const presets = createPresetsPanel({tuning, $, game, download: (...a) => download(...a)});
 export const quick = createQuickPanel({$, tuning, presets, onOpen: () => input.clear()});
 export const movement = createMovementPanel({$, game, ui, presets, tuning, download: (...a) => download(...a), playSequence: (...a) => playSequence(...a), getWs: () => wsRef.ws});
-tuning.onChange(syncTuneState);
-// Aviso ao fechar: sempre que o workspace não conseguiu salvar (ou só existe na memória); com a preferência ligada,
-// também quando há ajustes não exportados em JSON (comportamento anterior).
-window.addEventListener('beforeunload', e => {
-  const ws = wsRef.ws, unsafe = !ws || ws.status.state === 'error' || ws.store.kind === 'memory';
-  if (ws?.status.pending) ws.saveNow();
-  if (tuning.dirty() && (unsafe || ws.doc.prefs.warnOnClose)) {e.preventDefault();e.returnValue = '';}
-});
-for (const ev of ['pagehide', 'visibilitychange']) window.addEventListener(ev, () => {if ((ev === 'pagehide' || document.hidden) && wsRef.ws?.status.pending) wsRef.ws.saveNow();});
-export const homologation = createHomologation($('homolog-list'));
-const exportAll = () => ({...tuning.exportData(), homologation: homologation.exportData()});
-$('export-json').onclick = () => {download(JSON.stringify(exportAll(), null, 2), 'arenamon-calibracao-v8.json');tuning.markSaved('JSON exportado');wsRef.ui?.saveCalibration('JSON exportado', 'auto');$('import-result').innerHTML = '<p class="ok">JSON enviado para Downloads. O navegador não confirma a gravação: verifique o arquivo.</p>';};
-$('copy-json').onclick = async () => {try {await navigator.clipboard.writeText(JSON.stringify(exportAll(), null, 2));$('import-result').innerHTML = '<p class="ok">JSON copiado.</p>';} catch {$('import-text').value = JSON.stringify(exportAll(), null, 2);$('import-text').select();$('import-result').innerHTML = '<p class="warn">Sem acesso à área de transferência: o JSON está na caixa abaixo, selecionado.</p>';}};
-$('import-file').onchange = async () => {const f = $('import-file').files[0];if (f) $('import-text').value = await f.text();$('import-preview').click();};
-$('import-preview').onclick = () => {
-  const p = tuning.preview($('import-text').value);
-  if (p.error) {$('import-result').innerHTML = `<p class="bad">${escape(p.error)}</p>`;return;}
-  if (!p.changes.length) {$('import-result').innerHTML = (p.converted.length ? `<p class="warn">${p.converted.length} campo(s) de formato antigo convertido(s).</p>` : '') + '<p class="ok">O JSON é igual aos ajustes atuais.</p>';return;}
-  const migration = (p.converted.length ? `<p class="warn"><b>Migração de formato antigo:</b> ${p.converted.length} campo(s) convertido(s).</p><table><tr><th>Campo antigo</th><th>Novo</th><th>Valor</th></tr>${p.converted.map(c => `<tr><td><code>${escape(c.from)}</code></td><td><code>${escape(c.to)}</code></td><td>${c.value}</td></tr>`).join('')}</table>` : '') + (p.ignored.length ? `<p class="warn"><b>Campos não reconhecidos</b> (não aplicados): ${p.ignored.map(i => `<code>${escape(i.path)}</code>`).join(', ')}</p>` : '');
-  $('import-result').innerHTML = migration + `<p>${p.changes.length} parâmetros mudariam (schema ${escape(p.schema)}, versão ${escape(p.version)}):</p><table><tr><th>Parâmetro</th><th>Atual</th><th>JSON</th></tr>${p.changes.slice(0, 40).map(([path, v]) => {const m = tuning.byPath.get(path);return `<tr><td title="${path}">${escape(m.label)}</td><td>${m.fmt(pathGet(C, path))}</td><td>${m.fmt(v)}</td></tr>`;}).join('')}</table>${p.changes.length > 40 ? '<p class="hint">…</p>' : ''}<button type="button" class="primary" id="import-apply">Aplicar ${p.changes.length} ajustes</button>`;
-  $('import-apply').onclick = () => {const n = tuning.applyChanges(p.changes, 'JSON importado');$('import-result').innerHTML = `<p class="ok">${n} ajustes aplicados (Ctrl+Z desfaz).</p>`;};
-};
-$('reset-all').onclick = () => tuning.resetAll();
+wireTuningPersistence();
 
-// ---------- Visualizar ----------
-for (const [key, label, help] of OVERLAYS) {
-  const row = document.createElement('label');row.className = 'check';row.title = help;
-  row.innerHTML = `<input type="checkbox" data-overlay="${key}"><span><b>${escape(label)}</b><br><small class="muted">${escape(help)}</small></span>`;
-  row.querySelector('input').onchange = e => {view.overlays[key] = e.target.checked;};$('overlay-list').append(row);
-}
+export const homologation = createHomologation($('homolog-list'));
+wireExport();
+
+wireOverlays();
+
 export const charPanel = createCharacterPanel({ui, view, $, hooks: charHooks, onCharactersChanged: () => {syncCharacterCombatWindows();syncRuleDurations();dock.invalidate();movesPanel?.render?.();actionsDrawer?.render?.();}});
 syncCharacterCombatWindows();
 export const renderCharacters = () => {charPanel.render();renderStudioEvents();renderRuleDurations();passivesPanel.render();};
 const setCharacter = (id, source) => charPanel.setCharacter(id, source);
 export const renderCharacterLive = () => charPanel.live();
-$('char-fit').onchange = e => {Character.options.fit = e.target.checked;};
-for (const [id, key, out, fmt] of ANIM_SLIDERS) {
-  const path = 'display.animation.' + key;let before = null;
-  $(id).oninput = e => {if (before === null) before = C.display.animation[key];C.display.animation[key] = Number(e.target.value) || (key === 'speed' ? 1 : 0);$(out).textContent = fmt(C.display.animation[key]);};
-  $(id).onchange = () => {const after = C.display.animation[key];if (before !== null && before !== after) {C.display.animation[key] = before;tuning.commit([[path, after]], tuning.byPath.get(path).label);}before = null;if (key === 'speed') syncRuleDurations();};
-}
-tuning.onChange(refreshAnimSliders);
-$('char-sync').onchange = e => {Character.options.syncRules = e.target.checked;$('act-sync').checked = e.target.checked;syncRuleDurations();};
-// Atalho visível no topo da gaveta Ações: é a MESMA opção «Usar duração dos clipes nas regras» (Personagens › avançado).
-$('act-sync').onchange = e => {$('char-sync').checked = e.target.checked;$('char-sync').dispatchEvent(new Event('change'));};
-$('char-sync-source').onchange = () => syncRuleDurations();
+wireCharacters();
+
 
 // ---------- Controles ----------
 // Atalho da troca A × B: qualquer tecla que não seja usada pelo jogador (avisa se coincidir).
