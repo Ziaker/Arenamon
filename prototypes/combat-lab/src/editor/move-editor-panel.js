@@ -224,5 +224,10 @@ export function createMoveEditor({getWorld, $, tuning, startScenario, abortScena
   }
   render();
   tuning.onChange?.(() => {if (root.isConnected) scheduleAnalysis();});
-  return {render, play, state, poll, analyze};
+  /** Abre o editor neste Move (usado pela vitrine da aba Moves). */
+  function select(/** @type {string} */ id) {
+    if (!editableMove(id)) return false;
+    state.moveId = id;state.hold = suggestedHold(move());state.pinned = null;render();return true;
+  }
+  return {render, play, state, poll, analyze, select};
 }

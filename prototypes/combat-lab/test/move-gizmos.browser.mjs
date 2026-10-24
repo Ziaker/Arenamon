@@ -21,7 +21,7 @@ try {
   await page.evaluate(() => {const {C} = window.__lab;C.extras.toggles.enableEnemyAI = 0;window.__lab.startMatch();});
 
   // #04 linha do tempo
-  await page.evaluate(() => {const p = document.getElementById('panel');if (p.hidden || p.dataset.tool !== 'moves') document.querySelector('button[data-tool="moves"]').click();});
+  await page.evaluate(() => {const p = document.getElementById('panel');if (p.hidden || p.dataset.tool !== 'moves') (document.querySelector('button[data-tool="moves"]').click(), document.getElementById('moves-legacy').open = true);});
   await page.click('details.mv-move[data-move="swift"] > summary');
   await page.click('[data-mvtab="swift|time"]');
   check('a aba Linha do tempo mostra a barra e as marcas em ticks', await page.locator('details.mv-move[data-move="swift"] .mv-tl-bar .mv-tl-mark').count() >= 2 && /ticks de 120 Hz/i.test(await page.locator('details.mv-move[data-move="swift"] [data-pane="time"]').textContent() ?? ''));

@@ -1,6 +1,6 @@
 # Plano: Editor de Moves (janela única que dá play no Move)
 
-Status (24/10/2026): **fases 1, 2, 3 e 5 entregues (17 Moves)** (ver «Andamento» no fim). Fases 3 a 7 ainda são plano.
+Status (24/10/2026): **fases 1 a 5 entregues (17 Moves)** (ver «Andamento» no fim). Fases 3 a 7 ainda são plano.
 
 ## Objetivo
 
@@ -155,4 +155,9 @@ Modo escuro/claro, painel redimensionável e lembrado, janela destacável por pa
   - **Resultado numérico**: tempo até o efeito e até o primeiro acerto, acertos, dano total, dano por stamina, dano por segundo de efeito, duração do efeito, tempo do azul ocupado, custo e recarga.
   - **A × B**: A = padrão do Move (move.json) ou **«Fixar A = valores atuais»**; B = valores atuais dos sliders. A tabela mostra Δ com cor (verde = B melhora, vermelho = B piora; é só uma dica) e a linha do tempo desenha A e B lado a lado.
   - Código: `src/editor/move-trace.js` (rastreio e comparação, sem interface). Testes: `test/move-trace.test.mjs` (11 verificações, 17 Moves) e 5 verificações novas em `test/move-editor.browser.mjs` (27 no total). Evidência: `evidence/editor/editor-analise-ab.png`.
-- **Limites atuais:** Reflect e Psyshock ainda não estão no editor; a IA (`ficha.ai`) e a lógica dos efeitos seguem em código; o visual do atelier só está ligado a Sand Wave, Emerging Stone e Swift; gravar direto no disco, e a vitrine de Moves na aba (fase 4) ainda não existem.
+- **Fase 4 (vitrine)** — a aba **Moves** da barra esquerda deixou de ser uma parede de sliders e virou **vitrine**:
+  - **Equipados (em destaque)**: um cartão por slot, com o botão do jogo (A, S, D, F…), nome, categoria (Burst/Normal/Charge), tipos, PL, selo de governança (proposto, implementado, aprovado, homologado), custo e recarga atuais. Slots vazios têm «+ Equipar um Move…». «✕» tira o Move do slot.
+  - **Não equipados**: os demais Moves, com «Equipar…» (escolhe o slot; ocupado = troca). Seletor **Azul | Vermelho** para os dois lutadores. A vitrine acompanha mudanças de loadout feitas pela gaveta Ações ou pela Seleção Rápida.
+  - **Clicar num cartão abre o Editor de Moves naquele Move** (equipado ou não). Reflect e Psyshock (ainda em código; selo «em código») abrem o painel antigo.
+  - O **painel antigo** (sliders de todos os Moves, testes, IA) continua disponível, **recolhido**, logo abaixo da vitrine; some quando Reflect e Psyshock forem migrados. Código: `src/editor/move-showcase-model.js` (puro) e `move-showcase.js` (interface). Testes: `test/move-showcase.test.mjs` (7) e `test/move-showcase.browser.mjs` (19). Evidência: `evidence/editor/vitrine-moves.png`.
+- **Limites atuais:** Reflect e Psyshock ainda não estão no editor (abrem o painel antigo); a IA (`ficha.ai`) e a lógica dos efeitos seguem em código; o visual do atelier só está ligado a Sand Wave, Emerging Stone e Swift; não há gravação direta no disco (copiar o JSON e colar no arquivo); pendentes do plano: fases 6 e 7 (janela separada, atalhos, gerador de Move completo) e os QoLs.

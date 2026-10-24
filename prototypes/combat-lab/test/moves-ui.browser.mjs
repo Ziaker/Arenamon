@@ -19,11 +19,11 @@ try {
   const L = (fn, arg) => page.evaluate(fn, arg);
   await L(() => {window.__lab.C.map.arenaShape = 'square';});
   const tab = t => L(t => {if (t === 'moves') {if (document.getElementById('moves-drawer').hidden) document.getElementById('moves-open').click();return;}const p = document.getElementById('panel');if (p.hidden || p.dataset.tool !== t) document.querySelector(`button[data-tool="${t}"]`).click();}, t);
-  const leftMoves = () => L(() => {const p = document.getElementById('panel');if (p.hidden || p.dataset.tool !== 'moves') document.querySelector('button[data-tool="moves"]').click();document.querySelector('#moves-panel details[data-k="tools"]').open = true;});
+  const leftMoves = () => L(() => {const p = document.getElementById('panel');if (p.hidden || p.dataset.tool !== 'moves') (document.querySelector('button[data-tool="moves"]').click(), document.getElementById('moves-legacy').open = true);document.querySelector('#moves-panel details[data-k="tools"]').open = true;});
   const key = async (code, down) => {await page.locator('canvas').first().focus();await (down ? page.keyboard.down(code) : page.keyboard.up(code));};
 
   // ---------- Aba Moves ----------
-  await L(() => document.querySelector('button[data-tool="moves"]').click());
+  await L(() => (document.querySelector('button[data-tool="moves"]').click(), document.getElementById('moves-legacy').open = true));
   check('a aba Moves (barra esquerda) lista um cartão por Move, com sliders de todos, e sem equipagem', await page.locator('#moves-panel .mv-move').count() > 10 && await page.locator('#moves-panel .mv-move [data-p^="reflect."]').count() > 10 && await page.locator('#moves-panel .mv-move [data-p^="psyshock."]').count() > 10 && await page.locator('#moves-panel [data-slot-move]').count() === 0);
   await tab('moves');   // gaveta de Ações › Moves: equipagem e botões
   await page.selectOption('#act-moves [data-slot-move="0.0"]', 'reflect');await page.selectOption('#act-moves [data-slot-move="0.1"]', 'psyshock');
