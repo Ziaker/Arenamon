@@ -20,7 +20,7 @@
 - Passo 3: **decisão do responsável**: corrigir a causa (custo da fumaça por software) ou rever o limite de tempo. Não alterar o limite sem decisão.
 - Esperado: `npm test` chega ao fim; só então os testes depois dele passam a contar.
 - **Medido (Edge, SwiftShader):** hoje 1778–1784 ms; em 5b4343a 1809–1819 ms: a falha é anterior, não regressão. Com a GPU real (Intel UHD) o mesmo quadro leva ~55 ms.
-- **Decidido:** o limite de 1500 ms continua, mas só é cobrado com GPU real (`ARENAMON_GL=gpu node prototypes/combat-lab/test/solid-vfx.browser.mjs`); em software o teste só registra o tempo. Rodado em GPU: tudo aprovado. **Pendente:** em software o teste completo derruba o renderizador do Edge (`Target crashed`) nesta máquina, nos trechos de capturas/clipes, antes de chegar à medição; o `npm test` padrão ainda usa software.
+- **Decidido:** o limite de 1500 ms continua, mas só é cobrado com GPU real (modo padrão do teste desde 24/10/2026; `ARENAMON_GL=software` força SwiftShader e aí o teste só registra o tempo). Rodado em GPU (padrão): tudo aprovado, quadro com fumaça em 47,84 ms. **Pendente:** em software o teste completo derruba o renderizador do Edge (`Target crashed`) nesta máquina, nos trechos de capturas/clipes, antes de chegar à medição; o modo software continua instável aqui, mas deixou de ser o padrão.
 
 ### Tarefa 2: Migrar os outros 15 Moves para ficha — 13 FEITOS em 23/10/2026; faltam Reflect e Psyshock
 

@@ -16,9 +16,10 @@ const BROWSER = process.env.ARENAMON_BROWSER === 'chromium' ? {} : {channel: pro
 const ffmpeg = spawnSync('ffmpeg', ['-version']).status === 0;
 let failures = 0;
 const check = (label, ok, detail = '') => {console.log(`${ok ? '✓' : '✗'} ${label}${detail !== '' ? ` — ${detail}` : ''}`);if (!ok) failures++;};
-// Por padrão força o WebGL por software (SwiftShader), que é reprodutível em qualquer máquina. `ARENAMON_GL=gpu` deixa o Edge usar a GPU real
-// (único modo em que o limite de tempo do quadro com fumaça é cobrado; em software o tempo só é registrado).
-const browser = await chromium.launch({...BROWSER, headless: true, args: process.env.ARENAMON_GL === 'gpu' ? [] : ['--use-angle=swiftshader', '--enable-unsafe-swiftshader']});
+// Por padrão o Edge usa a GPU real (decisão de 24/10/2026; o limite de tempo do quadro com fumaça só é cobrado assim). `ARENAMON_GL=software` força
+// o WebGL por software (SwiftShader): reprodutível sem GPU, mas lento e instável nesta máquina; nesse modo o tempo só é registrado. Sem GPU
+// disponível o próprio Edge cai para software e o teste trata como software (renderizador identificado em perf.env).
+const browser = await chromium.launch({...BROWSER, headless: true, args: process.env.ARENAMON_GL === 'software' ? ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] : []});
 try {
   const page = await browser.newPage({viewport: {width: 1500, height: 920}}), errors = [], network = [];
   page.on('pageerror', e => errors.push(e.message));page.on('console', m => {if (m.type() === 'error') errors.push(m.text());});
@@ -175,9 +176,9 @@ try {
   check('pior caso respeita o teto de objetos', w.peakActive <= w.cap, `pico ${w.peakActive}/${w.cap}, rejeitados ${w.rejected}`);
   check('chamadas de desenho dos sólidos limitadas (≤ 24 a mais, em qualquer renderizador de sprites)', dl.withSolid.calls - dl.withoutSolid.calls <= 24 && dn.withSolid.calls - dn.withoutSolid.calls <= 24, `legado +${dl.withSolid.calls - dl.withoutSolid.calls} · VfxRuntime +${dn.withSolid.calls - dn.withoutSolid.calls}`);
   // Limite de 1500 ms só vale com GPU real (decisão de 23/10/2026): em software (SwiftShader) o quadro com fumaça fica perto de 1800 ms desde antes
-  // (também em 5b4343a), então aqui só se REGISTRA o número. Rode com ARENAMON_GL=gpu para cobrar o limite.
+  // (também em 5b4343a), então aqui só se REGISTRA o número. O limite é cobrado no modo padrão (GPU real).
   const frameInfo = `com ${perf.frameMs.withSolid} ms · sem ${perf.frameMs.withoutSolid} ms por quadro`;
-  if (perf.env.software) console.log(`· quadro com fumaça raymarched (software, limite de 1500 ms NÃO cobrado; use ARENAMON_GL=gpu): ${frameInfo}`);
+  if (perf.env.software) console.log(`· quadro com fumaça raymarched (software, limite de 1500 ms NÃO cobrado; só vale com GPU real): ${frameInfo}`);
   else check('quadro completo com fumaça raymarched no pior caso (GPU real) abaixo de 1500 ms', perf.frameMs.withSolid < 1500, frameInfo);
   check('custo de CPU da atualização no pior caso < 4 ms por quadro', w.p95 < 4, `média ${w.avg} ms · p95 ${w.p95} ms · máx ${w.max} ms`);
 
