@@ -19,15 +19,15 @@ export function buildPanel(defs: readonly Control[], category?: Category, varian
   }));
 }
 
-const RING_ONLY = ['shotThickness', 'shotSquash'];
-const CONE_ONLY = ['shotAngleH', 'shotAngleV', 'shotCount', 'shotParticleSize', 'shotParticleLife'];
-const WIND_ONLY = ['shotWindBlades', 'shotBladeCurve', 'shotSnapTime', 'shotContour'];
-const JET_ONLY = ['shotCavitation', 'shotJetPressure'];
-const STAR_ONLY = ['shotCrossArms', 'shotCrossAngle', 'shotCoreGlow', 'shotCrossSparks'];
+const RING_ONLY = ['shotThickness'];
+const CONE_ONLY = ['shotAngleH', 'shotAngleV', 'shotCount', 'shotParticleSize', 'shotParticleLife', 'shotConeAngle'];
+const WIND_ONLY = ['shotWindBlades', 'shotBladeCurve', 'shotSnapTime', 'shotContour', 'shotBladeWidth', 'shotFan'];
+const JET_ONLY = ['shotCavitation', 'shotJetPressure', 'shotContraction'];
+const STAR_ONLY = ['shotCrossArms', 'shotCrossAngle', 'shotCoreGlow', 'shotCrossSparks', 'shotCoreThickness'];
 
 /** Só aparecem os sliders do efeito de disparo escolhido (0 Nenhum, 1 Argola, 2 Tiro em cone, 3 Burst anime, 4 Jato pressurizado, 5 Impacto estelar); os valores ficam guardados ao trocar. */
 export function shotKeyVisible(key: string, kind: number): boolean {
-  if (key === 'shotKind' || key.startsWith('shotRecoil') || !key.startsWith('shot')) return true;   // Recoil & Flash soma a qualquer opção, inclusive «Nenhum»
+  if (key === 'shotKind' || key.startsWith('shotRecoil') || key === 'shotDelay' || !key.startsWith('shot')) return true;   // Recoil & Flash soma a qualquer opção, inclusive «Nenhum»
   if (kind === 0) return false;
   if (RING_ONLY.includes(key)) return kind === 1;
   if (CONE_ONLY.includes(key)) return kind === 2;
@@ -35,7 +35,8 @@ export function shotKeyVisible(key: string, kind: number): boolean {
   if (JET_ONLY.includes(key)) return kind === 4;
   if (STAR_ONLY.includes(key)) return kind === 5;
   if (key === 'shotTime') return kind !== 3;
-  if (key === 'shotFocalDist') return kind === 2 || kind === 4;
+  if (key === 'shotFocalDist' || key === 'shotTaperProfile' || key === 'shotFocalOffset') return kind === 2 || kind === 4;
+  if (key === 'shotSquash') return kind === 1 || kind === 2 || kind === 4;
   if (key === 'shotRadiusEnd') return kind === 2 || kind === 3 || kind === 4;
   if (key === 'shotRadius') return kind === 1 || kind === 2 || kind === 3 || kind === 4;
   if (key === 'shotLength') return kind === 2 || kind === 3 || kind === 4;
@@ -44,6 +45,7 @@ export function shotKeyVisible(key: string, kind: number): boolean {
 
 /** Rótulos dos seletores (controles de poucos valores inteiros). */
 export const selectorLabels: Record<string, string[]> = {
+  shotTaperProfile: ['Linear (cone reto)', 'Parabólico (bico de alta pressão)', 'Exponencial (ponta afiada)'],
   shotKind: ['Nenhum', 'Argola', 'Tiro em cone', 'Burst de vento anime', 'Jato pressurizado', 'Impacto estelar'],
   scenario: ['Acerto na janela → contra-ataque', 'Sem acerto → janela expira', 'Golpe tardio (0,62 s)', 'Guard Break → atravessa'],
   outcome: ['Acerta o alvo', 'Expira sem acertar', 'Interrompido no caminho'],

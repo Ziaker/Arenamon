@@ -53,6 +53,27 @@ function radialLinesGeometry(n: number, r0: number, r1: number, seed: number) {
   }
   const g = new T.BufferGeometry();g.setAttribute('position', new T.Float32BufferAttribute(pos, 3));return g;
 }
+// ---- Funil (afunilamento métrico, PADRAO §3): raio inicial → raio final ao longo da distância focal, com perfil e offset ---------------------
+const PROFILES: ((u: number) => number)[] = [u => u, u => 1 - (1 - u) * (1 - u), u => u * u * u];   // Linear, Parabólico (Laval), Exponencial
+/** Raio do funil a uma distância z da boca. Antes do offset fica no raio inicial; depois da distância focal, no final. Nunca negativo. */
+export function funnelRadius(z: number, r0: number, r1: number, focal: number, offset: number, profile: number) {
+  const u = Math.max(0, Math.min(1, (z - offset) / Math.max(.05, focal)));
+  return Math.max(.005, r0 + (r1 - r0) * (PROFILES[Math.max(0, Math.min(2, Math.round(profile)))](u)));
+}
+function funnelGeometry(r0: number, r1: number, focal: number, offset: number, length: number, profile: number, xscale: number, segZ = 32, segA = 28) {
+  const pos: number[] = [], uv: number[] = [], idx: number[] = [];
+  for (let i = 0; i <= segZ; i++) {
+    const z = i / segZ * length, R = funnelRadius(z, r0, r1, focal, offset, profile);
+    for (let j = 0; j <= segA; j++) {const th = j / segA * Math.PI * 2;pos.push(Math.cos(th) * R * xscale, Math.sin(th) * R, z);uv.push(i / segZ, j / segA);}
+  }
+  for (let i = 0; i < segZ; i++) for (let j = 0; j < segA; j++) {const a = i * (segA + 1) + j, b = a + segA + 1;idx.push(a, b, a + 1, b, b + 1, a + 1);}
+  const g = new T.BufferGeometry();g.setAttribute('position', new T.Float32BufferAttribute(pos, 3));g.setAttribute('uv', new T.Float32BufferAttribute(uv, 2));g.setIndex(idx);g.computeVertexNormals();return g;
+}
+const FUN_VERT = 'varying vec2 vUv;varying vec3 vN;varying vec3 vP;void main(){vUv=uv;vN=normalize(normalMatrix*normal);vec4 mv=modelViewMatrix*vec4(position,1.);vP=mv.xyz;gl_Position=projectionMatrix*mv;}';
+const FUN_FRAG = 'varying vec2 vUv;varying vec3 vN;varying vec3 vP;uniform vec3 core;uniform vec3 body;uniform float front;uniform float fade;uniform float stripes;void main(){float al=vUv.x;if(al>front)discard;float rim=pow(1.-abs(dot(normalize(vN),normalize(-vP))),1.3);float head=smoothstep(front-.3,front,al);float s=stripes>.5?(.45+.55*step(.5,fract(vUv.y*stripes))):1.;float a=fade*(.22+.78*rim)*(1.-al*.75)*s;vec3 c=mix(body,core,pow(1.-rim,2.)*.8)*(1.+head*1.2);gl_FragColor=vec4(c,a);}';
+function funnelMaterial(core: T.Color, body: T.Color, stripes: number) {
+  return new T.ShaderMaterial({uniforms: {core: {value: core}, body: {value: body}, front: {value: 0}, fade: {value: 1}, stripes: {value: stripes}}, vertexShader: FUN_VERT, fragmentShader: FUN_FRAG, transparent: true, depthWrite: false, side: T.DoubleSide, blending: T.AdditiveBlending});
+}
 const ease = (k: number) => 1 - Math.pow(1 - Math.max(0, Math.min(1, k)), 3);
 const back = (k: number) => {const c = 1.9, x = Math.max(0, Math.min(1, k)) - 1;return 1 + (c + 1) * x * x * x + c * x * x;};
 type Vec3 = [number, number, number];
@@ -75,6 +96,8 @@ export class ShotEffect {
   private crossMesh: T.Group | null = null;
   private recoil: T.Group | null = null;
   private flat: T.Group | null = null;
+  private funnel: T.Group | null = null;
+  private waiting = 0;
   private age = 0;
   private fired = false;
   private readonly entries: any[] = [];
@@ -108,6 +131,12 @@ export class ShotEffect {
   fire() {
     if (!this.enabled || this.fired || (this.kind === 0 && !this.recoilOn)) return;
     this.fired = true;this.age = 0;
+    const delay = this.values.shotDelay ?? 0;
+    if (delay > 0) {this.waiting = delay;return;}   // «Atraso do disparo»: nada nasce antes da hora
+    this.release();
+  }
+
+  private release() {
     if (this.recoilOn) this.fireRecoil();
     if (this.kind === 0) return;
     switch (this.kind) {
@@ -177,7 +206,7 @@ export class ShotEffect {
     const a = this.anchor();
     // Afunilamento métrico: raio inicial v.shotRadius -> raio final v.shotRadiusEnd sobre v.shotFocalDist
     const r0 = v.shotRadius ?? .4, r1 = v.shotRadiusEnd ?? .8, focal = Math.max(.1, v.shotFocalDist ?? 1.5);
-    const chokeAngle = Math.max(.05, Math.atan2(Math.abs(r1 - r0), focal));
+    const chokeAngle = Math.max(.05, Math.atan2(Math.abs(r1 - r0), focal)) + (v.shotConeAngle ?? 0) * Math.PI / 180;
     const dur = Math.max(.05, v.shotTime ?? .35), n = Math.max(1, Math.round(v.shotCount ?? 60));
     this.entries.push(this.particles.create({
       kind: this.theme?.particle ?? 'orb', color: this.body(0xffd58a), rate: Math.max(1, Math.round(n / dur)), duration: dur, life,
@@ -187,6 +216,22 @@ export class ShotEffect {
       kind: 'dust', color: this.theme.trail, rate: Math.max(1, Math.round(n / dur / 3)), duration: dur, life: life * 1.4,
       size: (v.shotParticleSize ?? .18) * 1.6, speed: speed * .6, radius: r0 * .25, angle: chokeAngle, opacity: .5, position: [a.x, a.y, a.z], direction: [d.x, d.y, d.z]
     }));
+    this.makeFunnel(a, d, 0);
+  }
+
+  /** Funil translúcido do disparo (cone ou jato): largo na boca, afunilando pelo perfil escolhido; `shotSquash` alarga na horizontal. */
+  private makeFunnel(a: T.Vector3, d: T.Vector3, stripes: number) {
+    const v = this.values, th = this.theme;
+    const geo = funnelGeometry(v.shotRadius ?? .4, v.shotRadiusEnd ?? .8, v.shotFocalDist ?? 1.5, v.shotFocalOffset ?? 0, Math.max(.2, v.shotLength ?? 2.2), v.shotTaperProfile ?? 0, v.shotSquash ?? 1);
+    const body = new T.Color(this.body(0xffd58a)).multiplyScalar(1.4), core = new T.Color(th?.core ?? 0xffffff).multiplyScalar(2);
+    const mat = funnelMaterial(core, body, stripes), mesh = new T.Mesh(geo, mat);mesh.frustumCulled = false;
+    const g = new T.Group();g.name = 'shot-funnel';g.position.copy(a);g.quaternion.setFromUnitVectors(new T.Vector3(0, 0, 1), d);g.add(mesh);
+    g.userData = {mat, dur: Math.max(.05, v.shotTime ?? .35), impulse: v.shotImpulseH ?? 0, contraction: v.shotContraction ?? 0, r0: v.shotRadius ?? .4, focal: v.shotFocalDist ?? 1.5, length: Math.max(.2, v.shotLength ?? 2.2)};
+    if ((v.shotContraction ?? 0) > 0) {   // anel que se fecha rumo à ponta: contração radial
+      const ring = new T.Mesh(new T.TorusGeometry(1, .02, 6, 40), new T.MeshBasicMaterial({color: core, transparent: true, opacity: .9, depthWrite: false, blending: T.AdditiveBlending, toneMapped: false}));
+      ring.name = 'contraction';g.add(ring);
+    }
+    this.parent.add(g);this.funnel = g;
   }
 
   private fireWindBurst() {
@@ -195,20 +240,20 @@ export class ShotEffect {
     const th = this.theme, bodyC = new T.Color(this.body(0xcfeff5)), coreC = new T.Color(th?.core ?? 0xffffff).multiplyScalar(contour), rimC = new T.Color(th?.trail ?? 0x35505c);
     const g = new T.Group();g.name = 'shot-blades';g.position.copy(a);g.quaternion.setFromUnitVectors(new T.Vector3(0, 0, 1), this.dir);
     const bladeMat = celMaterial(coreC, bodyC, rimC, 0), lineMat = celMaterial(coreC, bodyC, rimC, 1);
-    const twist = (v.shotBladeCurve ?? 30) * Math.PI / 180, snap = Math.max(.04, v.shotSnapTime ?? .12);
-    const crescent = crescentGeometry(r * 1.5 + .35, 1.1, .26 + .06 * contour), plane = new T.PlaneGeometry(1, 1);
+    const fan = (v.shotFan ?? 360) * Math.PI / 180 * (180 / Math.PI), twist = (v.shotBladeCurve ?? 30) * Math.PI / 180, snap = Math.max(.04, v.shotSnapTime ?? .12);
+    const crescent = crescentGeometry(r * 1.5 + .35, 1.1, v.shotBladeWidth ?? .38), plane = new T.PlaneGeometry(1, 1);
     // lâminas em crescente ao redor do eixo, cada uma com tamanho e atraso próprios
     for (let i = 0; i < n; i++) {
       const pivot = new T.Group(), tw = new T.Group(), m = new T.Mesh(crescent, bladeMat);
       m.rotation.z = Math.PI / 2;tw.rotation.x = twist;tw.add(m);pivot.add(tw);pivot.name = 'blade';
-      pivot.userData = {phi: i / n * Math.PI * 2, tw, size: .75 + (i % 3) * .17, lag: (i % 2) * .1};g.add(pivot);
+      pivot.userData = {phi: fan >= 359 ? i / n * Math.PI * 2 : Math.PI / 2 - fan * Math.PI / 360 + (i + .5) / n * fan * Math.PI / 180, tw, size: .75 + (i % 3) * .17, lag: (i % 2) * .1};g.add(pivot);
     }
     // linhas de velocidade: faixas finas que afinam para trás, correndo ao longo do eixo
     const lines = n * 2;
     for (let i = 0; i < lines; i++) {
       const pivot = new T.Group(), tw = new T.Group(), m = new T.Mesh(plane, lineMat);
       m.rotation.y = -Math.PI / 2;m.scale.set(len * (.5 + (i % 3) * .22), .018 + .012 * contour, 1);tw.add(m);pivot.add(tw);pivot.name = 'line';
-      pivot.userData = {phi: (i + .5) / lines * Math.PI * 2 + .2, tw, mesh: m, rho: .75 + (i % 3) * .25, lag: (i % 3) * .05};g.add(pivot);
+      pivot.userData = {phi: fan >= 359 ? (i + .5) / lines * Math.PI * 2 + .2 : Math.PI / 2 - fan * Math.PI / 360 + (i + .5) / lines * fan * Math.PI / 180, tw, mesh: m, rho: .75 + (i % 3) * .25, lag: (i % 3) * .05};g.add(pivot);
     }
     // anel de choque fino e branco
     const ring = new T.Mesh(new T.RingGeometry(.93, 1, 64), new T.MeshBasicMaterial({color: new T.Color(th?.core ?? 0xffffff).multiplyScalar(2), transparent: true, opacity: .85, side: T.DoubleSide, depthWrite: false, blending: T.AdditiveBlending, toneMapped: false}));
@@ -235,6 +280,7 @@ export class ShotEffect {
     const speed = (v.shotLength ?? 2.2) * 3 + (v.shotJetPressure ?? 10) + (v.shotImpulseH ?? 0);
     const chokeAngle = Math.max(.02, Math.atan2(Math.abs(r1 - r0), focal));
 
+    this.makeFunnel(a, this.dir, Math.max(1, Math.round(v.shotCavitation ?? 8)) * 1.5);
     // Jato central denso em alta velocidade
     this.entries.push(this.particles.create({
       kind: this.theme?.particle === 'grain' ? 'grain' : 'orb', color: this.body(0x73caff), rate: 70, duration: dur, life: .3,
@@ -259,9 +305,9 @@ export class ShotEffect {
     // grupo que sempre encara a câmera (a estrela é um desenho plano; de lado ela sumiria)
     const g = new T.Group();g.name = 'shot-cross';g.position.copy(a);
     const spin = new T.Group();spin.name = 'spin';spin.rotation.z = (v.shotCrossAngle ?? 0) * Math.PI / 180;g.add(spin);
-    const body = new T.Mesh(starGeometry(arms, arms * .17), mat(bodyC));body.name = 'star-body';
+    const body = new T.Mesh(starGeometry(arms, Math.min(arms * .45, v.shotCoreThickness ?? .14)), mat(bodyC));body.name = 'star-body';
     const diag = new T.Mesh(starGeometry(arms * .5, arms * .06, Math.PI / 4), mat(bodyC.clone().multiplyScalar(.8), .9));diag.name = 'star-diag';
-    const core = new T.Mesh(starGeometry(arms * .6, arms * .2), mat(coreC));core.name = 'star-core';core.position.z = .002;
+    const core = new T.Mesh(starGeometry(arms * .6, Math.min(arms * .3, (v.shotCoreThickness ?? .14) * 1.4)), mat(coreC));core.name = 'star-core';core.position.z = .002;
     const flash = new T.Mesh(new T.CircleGeometry(arms * .12, 28), mat(coreC));flash.name = 'flash';flash.position.z = .004;
     const jag = new T.Mesh(jaggedGeometry(11, arms * .22, arms * .45, arms * .85, 11), mat(bodyC.clone().multiplyScalar(.55), .7));jag.name = 'jag';jag.position.z = -.002;
     spin.add(jag, body, diag, core, flash);
@@ -280,6 +326,7 @@ export class ShotEffect {
 
   update(dt: number) {
     if (!this.fired) return;
+    if (this.waiting > 0) {this.waiting -= dt;if (this.waiting > 0) return;this.waiting = 0;this.age = 0;this.release();return;}
     this.age += dt;
     const v = this.values, follow = v.shotFollow ?? 0;
     if (follow > 0 && this.age <= follow && this.opts.follow) this.base.set(...this.opts.follow());
@@ -293,6 +340,12 @@ export class ShotEffect {
     }
 
     this.updateRecoil(t);
+    if (this.funnel) {
+      const f = this.funnel, u = f.userData, k = Math.min(1, t / u.dur), fade = t < u.dur ? 1 : Math.max(0, 1 - (t - u.dur) / .3);
+      u.mat.uniforms.front.value = ease(k) * 1.001;u.mat.uniforms.fade.value = fade;f.visible = fade > 0;
+      const ring = f.getObjectByName('contraction') as T.Mesh | undefined;
+      if (ring) {const sc = Math.max(.06, u.r0 * (1 - Math.min(.95, u.contraction * t * .5)));ring.scale.set(sc, sc, sc);ring.position.z = u.length * ease(k);(ring.material as T.MeshBasicMaterial).opacity = fade * .9;}
+    }
 
     // 1. Argola
     if (this.ring) {
@@ -360,6 +413,10 @@ export class ShotEffect {
     if (this.crossMesh) {
       out.push(['cross', this.crossMesh.position.toArray().map(n => +n.toFixed(4)), this.crossMesh.scale.toArray().map(n => +n.toFixed(4)), +(this.crossMesh.userData.spin.rotation.z).toFixed(4), this.crossMesh.visible]);
     }
+    if (this.funnel) {
+      const m = (this.funnel.children[0] as T.Mesh), p = (m.geometry.attributes.position.array as ArrayLike<number>);let sum = 0;for (let i = 0; i < p.length; i++) sum += p[i] * ((i % 7) + 1);
+      out.push(['funnel', this.funnel.visible, +sum.toFixed(3), +(m.material as T.ShaderMaterial).uniforms.front.value.toFixed(4), +(m.material as T.ShaderMaterial).uniforms.stripes.value, this.funnel.children.length]);
+    }
     if (this.recoil) {
       out.push(['recoil', this.recoil.visible, this.recoil.children.map(c => [c.userData.id, ...c.position.toArray().map(n => +n.toFixed(4)), ...c.scale.toArray().map(n => +n.toFixed(4)), +((c as T.Mesh).material as T.MeshBasicMaterial).opacity.toFixed(4), +((c as T.Mesh).geometry as any).boundingSphere?.radius?.toFixed?.(4) ?? 0, c.visible])]);
     }
@@ -381,13 +438,13 @@ export class ShotEffect {
       (this.ring.material as T.Material).dispose();
       this.ring = null;
     }
-    for (const grp of [this.bladesGroup, this.crossMesh, this.flat]) {
+    for (const grp of [this.bladesGroup, this.crossMesh, this.flat, this.funnel]) {
       if (!grp) continue;
       const geos = new Set<T.BufferGeometry>(), mats = new Set<T.Material>();
       grp.traverse(o => {const m = o as T.Mesh;if (m.geometry) geos.add(m.geometry);for (const x of ([] as T.Material[]).concat(m.material ?? [])) mats.add(x);});
       geos.forEach(x => x.dispose());mats.forEach(x => x.dispose());grp.removeFromParent();
     }
-    this.bladesGroup = null;this.crossMesh = null;this.flat = null;
+    this.bladesGroup = null;this.crossMesh = null;this.flat = null;this.funnel = null;this.waiting = 0;
     for (const e of this.entries) {
       this.particles.renderer.deleteSystem(e.system);
       e.emitter.removeFromParent();

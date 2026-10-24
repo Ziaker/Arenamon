@@ -58,7 +58,7 @@ try {
   // ---------- Seletor de disparo ----------
   const shot = async () => L(() => [...document.querySelectorAll('#sliders .phase-field[data-key^="shot"]')].filter(f => !f.hidden).map(f => f.dataset.key));
   const initial = await shot();
-  check('disparo começa em Nenhum: só o seletor e a camada Recoil & Flash aparecem', initial.join() === 'shotKind,shotRecoilFlash,shotRecoilHalo,shotRecoilKick,shotRecoilWaves,shotRecoilPlume', initial.join());
+  check('disparo começa em Nenhum: só o seletor, o atraso e a camada Recoil & Flash aparecem', initial.join() === 'shotKind,shotDelay,shotRecoilFlash,shotRecoilHalo,shotRecoilKick,shotRecoilWaves,shotRecoilPlume', initial.join());
   await page.locator('#sliders [data-key="shotKind"] select').selectOption('1');
   const ring = await shot();
   check('Argola mostra os sliders da argola e esconde os do cone', ring.includes('shotThickness') && ring.includes('shotSquash') && !ring.includes('shotCount'), ring.join());
