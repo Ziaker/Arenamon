@@ -66,6 +66,7 @@
   "devDependencies": {
     "@playwright/test": "^1.64.0",
     "@types/three": "^0.186.0",
+    "acorn": "^8.19.0",
     "esbuild": "^0.28.2",
     "typescript": "^7.0.2"
   },
