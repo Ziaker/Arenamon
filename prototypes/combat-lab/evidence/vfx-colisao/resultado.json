@@ -1,0 +1,224 @@
+{
+  "date": "2026-10-25",
+  "gl": "gpu",
+  "moves": [
+    {
+      "move": "air-slash",
+      "file": "air-slash.png",
+      "tick": 73,
+      "entities": [
+        {
+          "id": 1,
+          "kind": "projectile",
+          "shape": "circle",
+          "collisionRadius": 0.6,
+          "visualRadius": null,
+          "hasMesh": false,
+          "pos": {
+            "x": 0,
+            "z": -0.65
+          }
+        }
+      ],
+      "visualOverCollision": []
+    },
+    {
+      "move": "swift",
+      "file": "swift.png",
+      "tick": 83,
+      "entities": [
+        {
+          "id": 1,
+          "kind": "projectile",
+          "shape": "circle",
+          "collisionRadius": 0.2,
+          "visualRadius": 0.544,
+          "hasMesh": true,
+          "pos": {
+            "x": -1.04,
+            "z": 0.84
+          }
+        },
+        {
+          "id": 2,
+          "kind": "projectile",
+          "shape": "circle",
+          "collisionRadius": 0.2,
+          "visualRadius": 0.56,
+          "hasMesh": true,
+          "pos": {
+            "x": 0,
+            "z": 0.9
+          }
+        },
+        {
+          "id": 3,
+          "kind": "projectile",
+          "shape": "circle",
+          "collisionRadius": 0.2,
+          "visualRadius": 0.538,
+          "hasMesh": true,
+          "pos": {
+            "x": 1.04,
+            "z": 0.84
+          }
+        }
+      ],
+      "visualOverCollision": [
+        2.72,
+        2.8,
+        2.69
+      ]
+    },
+    {
+      "move": "water-pulse",
+      "file": "water-pulse.png",
+      "tick": 157,
+      "entities": [
+        {
+          "id": 1,
+          "kind": "projectile",
+          "shape": "circle",
+          "collisionRadius": 0.38,
+          "visualRadius": null,
+          "hasMesh": false,
+          "pos": {
+            "x": 0,
+            "z": -0.73
+          }
+        }
+      ],
+      "visualOverCollision": []
+    },
+    {
+      "move": "psyshock",
+      "file": "psyshock.png",
+      "tick": 91,
+      "entities": [
+        {
+          "id": 1,
+          "kind": "projectile",
+          "shape": "circle",
+          "collisionRadius": 0.2,
+          "visualRadius": 0.333,
+          "hasMesh": true,
+          "pos": {
+            "x": -1.6,
+            "z": 0.35
+          }
+        },
+        {
+          "id": 2,
+          "kind": "projectile",
+          "shape": "circle",
+          "collisionRadius": 0.2,
+          "visualRadius": 0.533,
+          "hasMesh": true,
+          "pos": {
+            "x": 0,
+            "z": -0.09
+          }
+        },
+        {
+          "id": 3,
+          "kind": "projectile",
+          "shape": "circle",
+          "collisionRadius": 0.2,
+          "visualRadius": 0.351,
+          "hasMesh": true,
+          "pos": {
+            "x": 1.4,
+            "z": -0.25
+          }
+        }
+      ],
+      "visualOverCollision": [
+        1.66,
+        2.67,
+        1.75
+      ]
+    },
+    {
+      "move": "sand-wave",
+      "file": "sand-wave.png",
+      "tick": 91,
+      "entities": [
+        {
+          "id": 1,
+          "kind": "sandwave",
+          "shape": "box",
+          "collisionRadius": null,
+          "visualRadius": null,
+          "hasMesh": false,
+          "pos": {
+            "x": 0,
+            "z": -4
+          }
+        }
+      ],
+      "visualOverCollision": []
+    },
+    {
+      "move": "seed-bomb",
+      "file": "seed-bomb.png",
+      "tick": 141,
+      "entities": [
+        {
+          "id": 1,
+          "kind": "projectile",
+          "shape": "circle",
+          "collisionRadius": 0.24,
+          "visualRadius": null,
+          "hasMesh": false,
+          "pos": {
+            "x": 0,
+            "z": -3.47
+          }
+        }
+      ],
+      "visualOverCollision": []
+    },
+    {
+      "move": "fire-spin",
+      "file": "fire-spin.png",
+      "tick": 151,
+      "entities": [
+        {
+          "id": 1,
+          "kind": "area",
+          "shape": "circle",
+          "collisionRadius": 1.6,
+          "visualRadius": null,
+          "hasMesh": false,
+          "pos": {
+            "x": 0,
+            "z": -1
+          }
+        }
+      ],
+      "visualOverCollision": []
+    },
+    {
+      "move": "spikes",
+      "file": "spikes.png",
+      "tick": 245,
+      "entities": [
+        {
+          "id": 1,
+          "kind": "trap",
+          "shape": "circle",
+          "collisionRadius": 1.2,
+          "visualRadius": 1.2,
+          "hasMesh": true,
+          "pos": {
+            "x": 0,
+            "z": -1
+          }
+        }
+      ],
+      "visualOverCollision": [
+        1
+      ]
+    }
+  ]
+}

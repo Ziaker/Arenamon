@@ -82,3 +82,15 @@ Auditoria item a item do `.docx` contra a `main` (c461241). Já estavam fechados
 **Continua de fora (decisão sua, não tarefa):** metas de desempenho por perfil (#15); arrastar marcas, versões e desfazer na linha do tempo (#04); área de visualização dominante e A/B visual lado a lado (#03); VFX por fase no jogo e nos ateliês Quarks (#06); Riposte (recuo 16,8 × slider 15; custo 0,8 × 1,55), trava contra velocidade infinita e esquiva encerrando o guard stun. **Não feito:** comparação VFX × colisor lado a lado em movimento (a captura do Air Slash mostra o anel de colisão, mas o VFX não aparece com o jogo pausado passo a passo); aviso de PRs que mexem nos mesmos arquivos e registro de documentos lidos pelo agente (#13, processo); `skills:check` do `npm run verify`.
 
 **Decidido em 25/10/2026 (v1.38.1):** Riposte com exceção ao limite de 15 (slider do recuo horizontal até 17, o jogo segue com 16,8) e custo de fábrica = valor do jogo (1,55). O teste de contratos não tem mais conflitos conhecidos.
+
+## Efeito visual × área de colisão em movimento (25/10/2026, v1.38.2)
+
+Fecha o que faltava do #05. `node prototypes/combat-lab/test/vfx-colisao.browser.mjs` roda o jogo ao vivo com a GPU, dispara 8 Moves pela tecla, pausa no meio do voo e fotografa o efeito com o gizmo por cima. Página: `prototypes/combat-lab/evidence/vfx-colisao/index.html` (link no portal).
+
+- **Corrigido:** o gizmo «Hitbox das entidades dos Moves» não desenhava o **Sand Wave**; agora mostra o retângulo real do acerto e a frente atual (linha amarela).
+- **Swift:** a estrela desenhada tem raio ~0,55 m e a colisão 0,2 m (visual ≈ 2,7× maior).
+- **Psyshock:** cristais de 0,35–0,56 m contra colisão de 0,2 m (1,8× a 2,8×).
+- **Air Slash:** o arco do efeito é bem maior que a esfera de colisão de 0,6 m (partículas: comparação só pela foto).
+- **Sand Wave:** as dunas do efeito passam das laterais e vão à frente da frente real do acerto.
+- **Spikes:** visual = colisão (1,2 m). **Fire Spin:** no instante da foto só o cilindro de 1,6 m aparece (o fogo ainda não tinha surgido).
+- Nada foi alterado em tamanho de efeito nem de colisão: decidir se o visual encolhe ou a colisão cresce é escolha sua.
