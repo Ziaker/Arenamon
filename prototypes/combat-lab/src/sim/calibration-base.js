@@ -191,7 +191,7 @@ export const CALIBRATION_BASE = [
   ["extras.visual.smear.smearOpacity", 1, 0.85],
   ["extras.visual.squashStretch.squashIntensity", 0.17, 0.15],
   ["extras.visual.squashStretch.stretchIntensity", 0.31, 0.2],
-  ["world.riposte.cost", 1.55, 0.8],
+  ["world.riposte.cost", 1.55, 1.55],
   ["world.bulletPunch.reach", 6, 6],
   ["world.bulletPunch.impactMult", 2.6, 1],
   ["map.platformCount", 5, 2],

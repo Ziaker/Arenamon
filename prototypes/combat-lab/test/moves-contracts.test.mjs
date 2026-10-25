@@ -14,10 +14,8 @@ const rows = () => MOVES_PARAMS.flatMap(g => g[1]);
 const realEnv = () => ({moves: listMoves(), world: C.world, rows: rows(), hasEffect: n => !!getEffect(n), hasTackleSetup: n => !!getTackleSetup(n), validateMove});
 
 /** DECISÃO PENDENTE do responsável (plano de 23/10, #08): reportados, nunca corrigidos em silêncio. */
-const KNOWN = new Map([
-  ['riposte|riposte.knockbackH', 'padrão 16,8 m/s contra o limite 15 do slider de knockback (regra de 23/10): subir o limite ou baixar o padrão?'],
-  ['riposte|riposte.cost', 'definição diz 0,8 e o grupo 1,55: em jogo vale o grupo; atualizar a definição ou o valor?'],
-]);
+// Riposte (recuo 16,8 × slider 15; custo 0,8 × 1,55) decidido em 25/10/2026: slider até 17 e fábrica = 1,55.
+const KNOWN = new Map([]);
 
 test('registro real, fábrica: nenhum erro de contrato', () => {
   arena();
