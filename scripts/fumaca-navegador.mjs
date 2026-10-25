@@ -3,7 +3,7 @@
 //   node scripts/fumaca-navegador.mjs            -> conjunto padrão
 // As imagens de evidência regravadas pelos testes são restauradas ao final (git checkout das pastas evidence/).
 import {spawnSync} from 'node:child_process';
-const SET = ['verify', 'overhaul', 'workspace', 'tools', 'moves-ui', 'passives', 'prejogo', 'calibration'];
+const SET = ['verify', 'overhaul', 'workspace', 'tools', 'moves-ui', 'passives', 'prejogo', 'calibration', 'move-editor', 'move-showcase'];
 const files = SET.map(n => n === 'verify' ? 'prototypes/combat-lab/verify.mjs' : `prototypes/combat-lab/test/${n}.browser.mjs`);
 let bad = 0;
 for (const f of files) {

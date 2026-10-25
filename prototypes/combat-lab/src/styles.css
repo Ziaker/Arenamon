@@ -956,3 +956,35 @@ button.onoff[aria-checked=true]::after{content:'ON';background:#14593c;color:#72
 .move-editor .tl-hit{color:#ff6b6b}.move-editor .tl-press{color:#7ee787}
 .move-editor .editor-ab td.good{color:#7ee787}.move-editor .editor-ab td.bad{color:#ff7b72}
 .move-editor .editor-ab tr.changed td:first-child{color:#ffd166}
+
+/* Vitrine de Moves (fase 4) */
+#moves-showcase .mvs-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+#moves-showcase .mvs-head h3{margin:0}
+#moves-showcase .mvs-who{display:flex;gap:4px}
+#moves-showcase .mvs-who button{padding:3px 10px;border-radius:999px;border:1px solid #ffffff2a;background:#10202e;color:#c6d4e2;cursor:pointer}
+#moves-showcase .mvs-who button[aria-pressed=true]{background:#1b4552;border-color:var(--cyan);color:#fff}
+#moves-showcase .mvs-sec{margin:12px 0 6px;font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:#9fd8ff}
+#moves-showcase .mvs-grid{display:grid;gap:8px;grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}
+#moves-showcase .mvs-grid-eq{grid-template-columns:repeat(auto-fill,minmax(250px,1fr))}
+#moves-showcase .mvs-card{position:relative;display:flex;gap:8px;align-items:stretch;border:1px solid #ffffff1f;border-radius:12px;background:#0b1620}
+#moves-showcase .mvs-equipped{border-color:#6cb7ff88;background:linear-gradient(180deg,#12293c,#0c1a27);box-shadow:0 0 0 1px #6cb7ff22 inset,0 6px 18px #0006}
+#moves-showcase .mvs-empty{align-items:center;padding:10px;border-style:dashed;flex-wrap:wrap}
+#moves-showcase .mvs-other{flex-direction:column;gap:4px;padding:0 0 6px}
+#moves-showcase .mvs-key{display:grid;place-items:center;min-width:34px;font-weight:800;font-size:15px;color:#7ee787;background:#0a141d;border-radius:11px 0 0 11px;border-right:1px solid #ffffff14}
+#moves-showcase .mvs-open{flex:1;display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:9px 10px;text-align:left;background:transparent;border:0;color:inherit;cursor:pointer;border-radius:12px}
+#moves-showcase .mvs-open:hover,#moves-showcase .mvs-open:focus-visible{background:#ffffff0d;outline:2px solid #6cb7ff66}
+#moves-showcase .mvs-name{font-weight:700;font-size:14px}
+#moves-showcase .mvs-num{font-size:11px;color:#9db0c6}
+#moves-showcase .mvs-go{font-size:11px;color:#6cb7ff;font-weight:700}
+#moves-showcase .mvs-badges{display:flex;gap:4px;flex-wrap:wrap}
+#moves-showcase .mvs-badge{font-size:10px;padding:1px 6px;border-radius:999px;background:#ffffff14;color:#c6d4e2}
+#moves-showcase .mvs-cat-burst{background:#ff7b7233;color:#ffb3ad}#moves-showcase .mvs-cat-charge{background:#c77dff33;color:#e0b6ff}#moves-showcase .mvs-cat-normal{background:#58a6ff33;color:#a5d0ff}
+#moves-showcase .mvs-st-3{background:#2ea04355;color:#7ee787}#moves-showcase .mvs-st-2{background:#d2992244;color:#f2cc60}#moves-showcase .mvs-code{background:#8b949e33;color:#b1bac4}
+#moves-showcase .mvs-off{align-self:flex-start;margin:6px 6px 0 0;padding:0 6px;border:0;background:transparent;color:#9db0c6;cursor:pointer;font-size:13px}
+#moves-showcase .mvs-off:hover{color:#ff7b72}
+#moves-showcase select.mvs-equip{margin:0 8px;font-size:12px}
+#moves-legacy{margin-top:10px}#moves-legacy>summary{cursor:pointer;font-size:12px;color:#9db0c6}
+
+/* Aba Moves como vitrine: uma coluna e painel estreito (sobra espaço para a arena e para o Editor ao lado) */
+.panel[data-layout="bento"][data-tool="moves"][data-subcard]{width:min(560px,calc(100vw - var(--rail) - 140px))}
+.panel[data-layout="bento"][data-subcard="all"] .panel-body section[data-section="moves"]:not([hidden]){grid-template-columns:1fr}
