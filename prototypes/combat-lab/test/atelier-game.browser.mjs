@@ -69,6 +69,27 @@ try {
   s = await info();
   check('Emerging Stone: o efeito termina e é descartado sem vazar', s.atelier.count === 0, JSON.stringify(s.atelier));
 
+  // Swift e Psyshock: visual aprovado do atelier preso às posições reais dos projéteis (sem a estrela/rocha provisória)
+  for (const [move, label, hold] of [['swift', 'Swift', 1], ['psyshock', 'Psyshock', 70]]) {
+    await setup(move);await L(() => {const b = window.__lab.game.fighters[1];b.position = {x: 4, z: 0};});await frames(6);
+    await steps(hold, hold > 1 ? 'hold' : 'once');await steps(1);
+    const has = await L(([idle]) => {const g = window.__lab.game, e = () => eval(idle);for (let i = 0; i < 90 && !g.world.entities.some(x => x.kind === 'projectile'); i++) {g.step(e(), e());window.__lab.view.worldView.update(g.world, {fighters: g.fighters, events: [], dt: 1 / 60});}return g.world.entities.some(x => x.kind === 'projectile');}, [idle]);
+    check(`${label}: projéteis nascem na simulação`, has);
+    await steps(8);await frames(6);
+    const v = await L(() => {
+      const wv = window.__lab.view.worldView, d = wv.atelierFx.diagnostics(), ps = window.__lab.game.world.entities.filter(e => e.kind === 'projectile');
+      const pos = ps.map(e => {const p = wv.atelierFx.positionOf(e.id);return p ? Math.hypot(p.x - e.pos.x, p.z - e.pos.z) : 99;});
+      return {volleys: d.volleys, old: ps.some(e => !!wv.meshes.get(e.id)), maxGap: Math.max(0, ...pos, ...d.volleys.map(x => x.nodeGap)), n: ps.length};
+    });
+    check(`${label}: a rajada é desenhada pela camada do atelier, sem o desenho provisório`, v.volleys.some(x => x.move === move && x.samples > 0) && !v.old, JSON.stringify(v));
+    check(`${label}: o visual acompanha a posição real de cada projétil (≤ 0,6 m)`, v.n > 0 && v.maxGap <= .6, `maior distância ${v.maxGap.toFixed(2)} m`);
+    await page.screenshot({path: out + `${move}-aprovado-jogo.png`});
+    await L(() => {const g = window.__lab.game;g.world.entities.length = 0;});
+    await steps(400);await frames(10);
+    const end = await info();
+    check(`${label}: o efeito termina e é descartado sem vazar`, !(end.atelier.volleys ?? []).length, JSON.stringify(end.atelier.volleys));
+  }
+
   check('sem erros de página/console', errors.length === 0, errors.slice(0, 3).join(' | '));
   check('sem requisições externas', requests.length === 0, requests.slice(0, 3).join(' | '));
 } finally {

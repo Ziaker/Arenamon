@@ -5,7 +5,7 @@
     {
       "move": "air-slash",
       "file": "air-slash.png",
-      "tick": 73,
+      "tick": 85,
       "entities": [
         {
           "id": 1,
@@ -16,7 +16,7 @@
           "hasMesh": false,
           "pos": {
             "x": 0,
-            "z": -0.65
+            "z": 2.65
           }
         }
       ],
@@ -25,18 +25,18 @@
     {
       "move": "swift",
       "file": "swift.png",
-      "tick": 83,
+      "tick": 67,
       "entities": [
         {
           "id": 1,
           "kind": "projectile",
           "shape": "circle",
           "collisionRadius": 0.2,
-          "visualRadius": 0.544,
-          "hasMesh": true,
+          "visualRadius": null,
+          "hasMesh": false,
           "pos": {
-            "x": -1.04,
-            "z": 0.84
+            "x": -0.65,
+            "z": -1.38
           }
         },
         {
@@ -44,11 +44,11 @@
           "kind": "projectile",
           "shape": "circle",
           "collisionRadius": 0.2,
-          "visualRadius": 0.56,
-          "hasMesh": true,
+          "visualRadius": null,
+          "hasMesh": false,
           "pos": {
             "x": 0,
-            "z": 0.9
+            "z": -1.35
           }
         },
         {
@@ -56,24 +56,20 @@
           "kind": "projectile",
           "shape": "circle",
           "collisionRadius": 0.2,
-          "visualRadius": 0.538,
-          "hasMesh": true,
+          "visualRadius": null,
+          "hasMesh": false,
           "pos": {
-            "x": 1.04,
-            "z": 0.84
+            "x": 0.65,
+            "z": -1.38
           }
         }
       ],
-      "visualOverCollision": [
-        2.72,
-        2.8,
-        2.69
-      ]
+      "visualOverCollision": []
     },
     {
       "move": "water-pulse",
       "file": "water-pulse.png",
-      "tick": 157,
+      "tick": 53,
       "entities": [
         {
           "id": 1,
@@ -84,7 +80,7 @@
           "hasMesh": false,
           "pos": {
             "x": 0,
-            "z": -0.73
+            "z": 1.13
           }
         }
       ],
@@ -93,18 +89,18 @@
     {
       "move": "psyshock",
       "file": "psyshock.png",
-      "tick": 91,
+      "tick": 65,
       "entities": [
         {
           "id": 1,
           "kind": "projectile",
           "shape": "circle",
           "collisionRadius": 0.2,
-          "visualRadius": 0.333,
-          "hasMesh": true,
+          "visualRadius": null,
+          "hasMesh": false,
           "pos": {
-            "x": -1.6,
-            "z": 0.35
+            "x": -0.91,
+            "z": -3.31
           }
         },
         {
@@ -112,11 +108,11 @@
           "kind": "projectile",
           "shape": "circle",
           "collisionRadius": 0.2,
-          "visualRadius": 0.533,
-          "hasMesh": true,
+          "visualRadius": null,
+          "hasMesh": false,
           "pos": {
             "x": 0,
-            "z": -0.09
+            "z": -2.84
           }
         },
         {
@@ -124,24 +120,20 @@
           "kind": "projectile",
           "shape": "circle",
           "collisionRadius": 0.2,
-          "visualRadius": 0.351,
-          "hasMesh": true,
+          "visualRadius": null,
+          "hasMesh": false,
           "pos": {
-            "x": 1.4,
-            "z": -0.25
+            "x": 0.81,
+            "z": -3.38
           }
         }
       ],
-      "visualOverCollision": [
-        1.66,
-        2.67,
-        1.75
-      ]
+      "visualOverCollision": []
     },
     {
       "move": "sand-wave",
       "file": "sand-wave.png",
-      "tick": 91,
+      "tick": 97,
       "entities": [
         {
           "id": 1,
@@ -161,7 +153,7 @@
     {
       "move": "seed-bomb",
       "file": "seed-bomb.png",
-      "tick": 141,
+      "tick": 169,
       "entities": [
         {
           "id": 1,
@@ -172,7 +164,7 @@
           "hasMesh": false,
           "pos": {
             "x": 0,
-            "z": -3.47
+            "z": -3.02
           }
         }
       ],
@@ -181,7 +173,7 @@
     {
       "move": "fire-spin",
       "file": "fire-spin.png",
-      "tick": 151,
+      "tick": 155,
       "entities": [
         {
           "id": 1,
@@ -201,7 +193,7 @@
     {
       "move": "spikes",
       "file": "spikes.png",
-      "tick": 245,
+      "tick": 235,
       "entities": [
         {
           "id": 1,
