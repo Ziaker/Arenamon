@@ -13,21 +13,16 @@ import {getGroundHeight} from '../physics.js';
 import {effectiveArenaRadius} from '../map.js';
 import {solidsOf, insideSolid} from '../vision.js';
 import {angleOf, sub} from '../math.js';
+import {defineFicha} from './params-registry.js';
+import {params, def as bulletPunchDef} from './bullet-punch.params.js';
 
-export const bulletPunchDef = Object.freeze({
-  id: 'bullet-punch', name: 'Bullet Punch', air: 'descend', group: 'bulletPunch', needsTarget: 'reach', moveCast: true, fromDodge: true, tackle: 'bullet-punch', aim: 'target', antiAir: true,
-  description: 'Normal · PL2. Como o Quick Attack: acha o adversário mais próximo dentro do alcance (segure para ver o círculo), prepara 0,75 s, some por 0,2 s numa corrida invisível até ele e o golpeia ao chegar (quem estiver no caminho leva o golpe e para a corrida). Alcança rivais em voo baixo.',
-  cost: 1.5, cooldown: 8, duration: 1.75, durationKeys: ['cast', 'vanish'], motion: {type: 'walk'},
-  timeline: [
-    {at: .75, atKey: 'cast', effect: 'bullet-punch-vanish'},
-    {at: 1.75, atKeys: ['cast', 'vanish'], effect: 'bullet-punch-return'},
-  ],
-});
+export {bulletPunchDef};   // definição (id, fases, custo…) vem de bullet-punch.move.json
 
 /** Preparação do Tackle do golpe: PL2, rumo fixo, mesma velocidade do Tackle (duração e distância escalam juntas até `strikeReach`). */
 export function bulletPunchSetup(/** @type {any} */ f, /** @type {any} */ a, /** @type {Record<string, any>} */ P) {
   const k = (P.strikeReach ?? 2.2) / Math.max(1e-6, nominalDistance(f, 'tackle'));   // MV-P34: velocidade do Tackle preservada; só a distância total muda
   a.pl = 2;a.fixedHeading = true;a.durationScale = k;a.distanceScale = k;a.impactMult = P.impactMult;
+  if (P.knockbackOwn) a.kb = {horizontal: P.knockbackH ?? 0, vertical: P.knockbackV ?? 0};   // knockback próprio (como o Lunge) em vez da fórmula do Tackle
 }
 
 /** Alvo do golpe: o adversário fixado ao soltar (`fx.lock`), se ainda estiver vivo e presente. */
@@ -119,3 +114,9 @@ export function bulletPunchReturn(/** @type {any} */ game, /** @type {any} */ f,
   const strike = startTackleAt(f, def, P, angleOf(sub(tgt.position, f.position)), game.fighters);
   if (lift > 1e-6) {f.vaultHeight = lift;strike.liftStart = lift;strike.liftTime = C.actions.tackle.duration;}
 }
+
+/** FICHA do Move (ver docs/COMO_CRIAR_UM_MOVE.md): `params` gera o padrão em C.world.bulletPunch e os sliders da aba Moves; `def` e os manipuladores são registrados sozinhos. */
+export const ficha = defineFicha({
+  def: bulletPunchDef, tackle: ['bullet-punch', bulletPunchSetup], effects: [['bullet-punch-vanish', bulletPunchVanish], ['bullet-punch-return', bulletPunchReturn]],
+  params,
+});

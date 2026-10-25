@@ -7,13 +7,10 @@
 import {C} from '../config.js';
 import {spawn} from '../world.js';
 import {markerValidity} from '../aim-marker.js';
+import {defineFicha} from './params-registry.js';
+import {params, def as spikesDef} from './spikes.params.js';
 
-export const spikesDef = Object.freeze({
-  id: 'spikes', name: 'Spikes', air: 'cast', group: 'spikes', aimMode: 'marker', aim: 'facing',
-  description: 'Normal · Field. Segure para escolher o local (até 5 m), solte para confirmar: nasce uma armadilha de espinhos que fere o primeiro adversário que pisar nela.',
-  cost: 1, cooldown: 10, duration: .4, motion: {type: 'root'},
-  timeline: [{at: .4, atKey: 'cast', effect: 'spikes'}],
-});
+export {spikesDef};   // definição (id, fases, custo…) vem de spikes.move.json
 
 /** Efeito do fim do cast: confere de novo o local fixado e cria a armadilha. */
 export function spikesEffect(/** @type {any} */ game, /** @type {any} */ f, /** @type {any} */ def, /** @type {any} */ fx) {
@@ -28,3 +25,9 @@ export function spikesEffect(/** @type {any} */ game, /** @type {any} */ f, /** 
   }, fx.events ?? []);
   if (!e) return {ok: false, reason: 'entityLimit'};
 }
+
+/** FICHA do Move (ver docs/COMO_CRIAR_UM_MOVE.md): `params` gera o padrão em C.world.spikes e os sliders da aba Moves; `def` e os manipuladores são registrados sozinhos. */
+export const ficha = defineFicha({
+  def: spikesDef, effect: ['spikes', spikesEffect],
+  params,
+});

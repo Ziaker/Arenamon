@@ -3,7 +3,7 @@
 // destrutíveis ainda sólidos); `canSee` é a regra de percepção da cegueira do Sand Wave (SW-D15/SW-D45/SW-D64): alcance de 10 m a partir do cegado e linha de visão
 // que não esteja TOTALMENTE bloqueada por parede sólida — basta ver UMA parte do corpo do alvo. Usada pelo lock-on do jogador, pelo controlador e pela IA.
 import {C} from './config.js';
-import {closestOnShape} from './world.js';
+import {closestOnShape} from './world/world-hit.js';
 import {hasFlag} from './status.js';
 import {emptyCommand} from './entity.js';
 

@@ -7,15 +7,11 @@ import {C} from '../config.js';
 import {spawn} from '../world.js';
 import {rectsOverlap} from '../geometry.js';
 import {add, scale, direction} from '../math.js';
+import {defineFicha} from './params-registry.js';
+import {params, def as reflectDef} from './reflect.params.js';
 
 /** Definição do movimento (dados puros, clonável). */
-export const reflectDef = Object.freeze({
-  id: 'reflect', name: 'Reflect', air: 'cast',
-  description: 'Carregue por no mínimo 1,5 s e solte para criar uma barreira que reflete projéteis. Quanto mais carga, maior e mais duradoura; ela é sólida para os dois lutadores.',
-  cost: 1, cooldown: 8, cooldownBoost: true,
-  charge: {max: 4, min: .9, group: 'reflect'},
-  timeline: [{effect: 'reflect'}],
-});
+export {reflectDef};   // definição (id, carga, custo…) vem de reflect.move.json
 
 /**
  * A caixa cabe? Dentro da arena e sem sobrepor paredes, barreiras sólidas não refletoras nem lutadores (M13.6, M26s.3, M8.7).
@@ -81,9 +77,12 @@ export function reflectEffect(/** @type {any} */ game, /** @type {any} */ f, /**
   }, fx.events ?? []);
   // Pulso ao materializar (opcional): empurra e/ou fere quem está ao redor da barreira, num círculo de `burstRadius` m. Não é explosão:
   // a própria barreira não quebra e o pulso não é bloqueado por ela. Com raio 0, ou com os dois interruptores desligados, não há pulso.
-  const R = G.burstRadius ?? 0, force = G.burstPush ? (G.burstForce ?? 0) : 0, dmg = G.burstHurt ? (G.burstDamage ?? 0) * (f.attributes?.attack ?? 1) : 0;
-  if (e && R > 1e-6 && (force > 0 || dmg > 0))
+  const R = G.burstRadius ?? 0, force = G.burstPush ? (G.burstForce ?? 0) : 0, lift = G.burstPush ? (G.burstVertical ?? 0) : 0, dmg = G.burstHurt ? (G.burstDamage ?? 0) * (f.attributes?.attack ?? 1) : 0;
+  if (e && R > 1e-6 && (force > 0 || lift > 0 || dmg > 0))
     spawn(game.world, {kind: 'area', owner: f.id, affectsOwner: false, pos: {...place.center}, radius: R, y: Math.max(0, place.base - .5), height: 3, life: .1, pulses: 1, falloff: 'linear', pl: ch.level,
-      hit: {damage: dmg, knockback: force > 0 ? {horizontal: force, vertical: 0} : undefined}}, fx.events ?? []);
+      hit: {damage: dmg, knockback: force > 0 || lift > 0 ? {horizontal: force, vertical: lift} : undefined}, captured: {move: def.id}}, fx.events ?? []);
   return e ? {ok: true} : {ok: false, reason: 'limiteDeEntidades'};
 }
+
+/** FICHA do Move (índice automático): definição e parâmetros vêm do reflect.move.json. O registro continua em standard.js (Moves padrão, não «novos»). */
+export const ficha = defineFicha({def: reflectDef, effect: ['reflect', reflectEffect], params});

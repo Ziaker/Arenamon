@@ -1,3 +1,4 @@
+// @ts-check
 // Métricas de equilíbrio: várias lutas IA × IA, sem renderização, com os ajustes atuais. Mostra se um ajuste fez
 // alguma mecânica dominar (vitórias, uso de X/C/C → X/buffer, contatos, clashes, exaustão e duração das lutas).
 import {C} from './config.js';

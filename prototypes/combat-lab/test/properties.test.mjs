@@ -6,6 +6,7 @@ import {Game} from '../src/sim/game.js';
 import {C, resetConfig} from '../src/sim/config.js';
 import {isInvulnerable, getFighterMaxStamina} from '../src/sim/entity.js';
 
+globalThis.__legacyFractionalDamage = true;   // este teste caracteriza a matemática de dano fracionária, anterior à regra de dano inteiro (ver sim/damage-rule.js)
 const RUNS = Number(process.argv[2]) || 200, TICKS = Number(process.argv[3]) || 2400;
 const DAMAGE = new Set(['impact', 'partial', 'clash']);
 

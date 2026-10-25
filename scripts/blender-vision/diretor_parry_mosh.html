@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Diretor de Poses ZZZ — Piloto Parry do Mushroom</title>
+  <style>
+    :root {
+      --bg: #111215;
+      --panel: #1b1c22;
+      --border: #2e303d;
+      --accent: #ff4757;
+      --accent2: #2ed573;
+      --text: #f1f2f6;
+      --muted: #a4b0be;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background: var(--bg); color: var(--text); padding: 24px; }
+    header { margin-bottom: 24px; border-bottom: 1px solid var(--border); padding-bottom: 16px; display: flex; justify-content: space-between; align-items: flex-start; }
+    h1 { font-size: 24px; color: #fff; margin-bottom: 6px; }
+    p.desc { color: var(--muted); font-size: 14px; max-width: 800px; line-height: 1.5; }
+    .badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; text-transform: uppercase; margin-bottom: 8px; background: rgba(255, 71, 87, 0.2); color: var(--accent); }
+    .container { display: grid; grid-template-columns: 420px 1fr; gap: 24px; }
+    
+    .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 18px; }
+    .panel h2 { font-size: 16px; margin-bottom: 14px; border-bottom: 1px solid var(--border); padding-bottom: 8px; display: flex; justify-content: space-between; }
+    
+    .briefing-box { margin-bottom: 18px; }
+    .briefing-box label { font-size: 12px; color: var(--muted); font-weight: bold; display: block; margin-bottom: 6px; }
+    .briefing-box textarea, .briefing-box input { width: 100%; background: #0c0d10; border: 1px solid var(--border); border-radius: 6px; color: #fff; padding: 10px; font-size: 13px; }
+    
+    .pose-selector { display: flex; gap: 8px; margin-bottom: 16px; overflow-x: auto; padding-bottom: 4px; }
+    .pose-btn { background: #252732; border: 1px solid var(--border); color: var(--text); padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; white-space: nowrap; }
+    .pose-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: bold; }
+    
+    .slider-group { margin-bottom: 14px; background: #14151a; padding: 10px; border-radius: 6px; border: 1px solid #232530; }
+    .slider-group h4 { font-size: 12px; color: var(--accent2); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .slider-row { display: grid; grid-template-columns: 90px 1fr 45px; align-items: center; gap: 10px; margin-bottom: 6px; }
+    .slider-row label { font-size: 11px; color: var(--muted); }
+    .slider-row input[type=range] { width: 100%; accent-color: var(--accent); }
+    .slider-row .val { font-size: 11px; text-align: right; font-family: monospace; color: #fff; }
+
+    .actions { display: flex; gap: 10px; margin-top: 18px; }
+    .btn { padding: 10px 16px; border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer; border: none; transition: 0.2s; }
+    .btn-primary { background: var(--accent); color: #fff; flex: 1; }
+    .btn-secondary { background: #2f3542; color: #fff; }
+    .btn:hover { opacity: 0.9; }
+
+    .views-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 20px; }
+    .view-card { background: #14151a; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+    .view-card img { width: 100%; height: auto; display: block; background: #000; }
+    .view-card .label { padding: 8px 12px; font-size: 12px; font-weight: bold; color: var(--muted); border-top: 1px solid var(--border); background: #1c1d24; display: flex; justify-content: space-between; }
+    
+    .sheets-area { margin-top: 24px; }
+    .sheets-area img { width: 100%; border-radius: 6px; border: 1px solid var(--border); margin-bottom: 12px; }
+
+    pre.json-view { background: #0c0d10; border: 1px solid var(--border); border-radius: 6px; padding: 12px; font-family: monospace; font-size: 12px; color: #a4b0be; max-height: 220px; overflow: auto; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div>
+      <span class="badge">Fase 1 • Piloto ZZZ</span>
+      <h1>Diretor de Poses: Parry do Mushroom</h1>
+      <p class="desc">
+        Ajuste a intenção, marcos de tempo e rotações das juntas-chave em coordenadas de corpo. A simulação mecânica do Combat Lab (0.2s = 24 frames @ 120Hz) define os pontos de impacto e retorno para garantir impacto brutal e coerência física.
+      </p>
+    </div>
+    <div style="text-align: right;">
+      <a href="../../ABRIR_ARENAMON.html" style="color: var(--muted); text-decoration: none; font-size: 13px; font-weight: bold;">← Voltar ao Portal</a>
+    </div>
+  </header>
+
+  <div class="container">
+    <!-- Painel de Controles do Diretor -->
+    <div class="panel">
+      <h2>Direção da Ação <span id="poseTag" style="font-size: 12px; color: var(--accent);">Pose 1</span></h2>
+      
+      <div class="briefing-box">
+        <label>Briefing Artístico da Ação</label>
+        <textarea id="briefingDesc" rows="3">Parry de combate estilo ZZZ: Recuo rápido de tronco, bloqueio e impacto potente com braço direito, sustentação de choque e postura ameaçadora pronta para contra-ataque.</textarea>
+      </div>
+
+      <div class="pose-selector" id="poseButtons">
+        <!-- Botoes inseridos dinamicamente -->
+      </div>
+
+      <div class="briefing-box">
+        <label>Intenção Específica desta Pose</label>
+        <input type="text" id="poseIntent" value="">
+      </div>
+
+      <div class="slider-group">
+        <h4>Tronco e Quadril</h4>
+        <div class="slider-row">
+          <label>Lean (Frente/Trás)</label>
+          <input type="range" id="sl_hips_lean" min="-30" max="30" value="0">
+          <span class="val" id="val_hips_lean">0°</span>
+        </div>
+        <div class="slider-row">
+          <label>Yaw (Torção)</label>
+          <input type="range" id="sl_hips_yaw" min="-45" max="45" value="0">
+          <span class="val" id="val_hips_yaw">0°</span>
+        </div>
+        <div class="slider-row">
+          <label>Offset Y (Profundidade)</label>
+          <input type="range" id="sl_hips_y" min="-30" max="30" value="0">
+          <span class="val" id="val_hips_y">0.00m</span>
+        </div>
+        <div class="slider-row">
+          <label>Offset Z (Altura)</label>
+          <input type="range" id="sl_hips_z" min="-20" max="20" value="0">
+          <span class="val" id="val_hips_z">0.00m</span>
+        </div>
+      </div>
+
+      <div class="slider-group">
+        <h4>Braço Direito (Defesa / Impacto)</h4>
+        <div class="slider-row">
+          <label>Braço (X - Esq/Dir)</label>
+          <input type="range" id="sl_rarm_x" min="-100" max="100" value="0">
+          <span class="val" id="val_rarm_x">0.0</span>
+        </div>
+        <div class="slider-row">
+          <label>Braço (Y - Baixo/Cima)</label>
+          <input type="range" id="sl_rarm_y" min="-100" max="100" value="0">
+          <span class="val" id="val_rarm_y">0.0</span>
+        </div>
+        <div class="slider-row">
+          <label>Braço (Z - Trás/Frente)</label>
+          <input type="range" id="sl_rarm_z" min="-100" max="100" value="0">
+          <span class="val" id="val_rarm_z">0.0</span>
+        </div>
+      </div>
+
+      <div class="slider-group">
+        <h4>Braço Esquerdo (Contrapeso / Silhueta)</h4>
+        <div class="slider-row">
+          <label>Braço (X - Esq/Dir)</label>
+          <input type="range" id="sl_larm_x" min="-100" max="100" value="0">
+          <span class="val" id="val_larm_x">0.0</span>
+        </div>
+        <div class="slider-row">
+          <label>Braço (Y - Baixo/Cima)</label>
+          <input type="range" id="sl_larm_y" min="-100" max="100" value="0">
+          <span class="val" id="val_larm_y">0.0</span>
+        </div>
+        <div class="slider-row">
+          <label>Braço (Z - Trás/Frente)</label>
+          <input type="range" id="sl_larm_z" min="-100" max="100" value="0">
+          <span class="val" id="val_larm_z">0.0</span>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-primary" onclick="exportJSON()">Salvar / Exportar JSON</button>
+        <button class="btn btn-secondary" onclick="resetDefaults()">Reset Padrão</button>
+      </div>
+
+      <h4 style="margin-top: 18px; margin-bottom: 8px; font-size: 11px; color: var(--muted); text-transform: uppercase;">JSON das Poses</h4>
+      <pre class="json-view" id="jsonPreview"></pre>
+    </div>
+
+    <!-- Painel de Visualização Tripla das Poses -->
+    <div class="panel">
+      <h2>Vistas da Pose Atual (Frente, Perfil, 3/4)</h2>
+      
+      <div class="views-grid">
+        <div class="view-card">
+          <img id="imgFront" src="evidence/parry_mosh_v1/front_solid_t001_g001.png" alt="Vista Frontal">
+          <div class="label"><span>FRENTE</span><span id="tagFront">Frame 1</span></div>
+        </div>
+        <div class="view-card">
+          <img id="imgSide" src="evidence/parry_mosh_v1/side_nX_solid_t001_g001.png" alt="Vista Lateral">
+          <div class="label"><span>LADO (-X)</span><span id="tagSide">Frame 1</span></div>
+        </div>
+        <div class="view-card">
+          <img id="imgQ3" src="evidence/parry_mosh_v1/q3_solid_t001_g001.png" alt="Perspectiva 3/4">
+          <div class="label"><span>PERSPECTIVA (Q3)</span><span id="tagQ3">Frame 1</span></div>
+        </div>
+      </div>
+
+      <div class="sheets-area">
+        <h3 style="font-size: 14px; margin-bottom: 12px; color: #fff;">Pranchas de Contato (Contact Sheets Renderizadas no Blender)</h3>
+        <p style="font-size: 12px; color: var(--muted); margin-bottom: 12px;">Visualização sequencial das poses-chave geradas pelo script dentro do Blender via <code>vision.py shot</code>:</p>
+        
+        <h4 style="font-size: 12px; color: var(--muted); margin-bottom: 4px;">Visão 3/4 Dinâmica (Q3)</h4>
+        <img src="evidence/parry_mosh_v1/sheet_q3_solid.png" alt="Sheet Q3">
+
+        <h4 style="font-size: 12px; color: var(--muted); margin-bottom: 4px;">Visão Lateral (Silhueta e Alavanca)</h4>
+        <img src="evidence/parry_mosh_v1/sheet_side_nX_solid.png" alt="Sheet Lateral">
+
+        <h4 style="font-size: 12px; color: var(--muted); margin-bottom: 4px;">Visão Frontal (Impacto e Abertura)</h4>
+        <img src="evidence/parry_mosh_v1/sheet_front_solid.png" alt="Sheet Frontal">
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let spec = {
+      "action_name": "parry_mosh_v1",
+      "base_action": "idle",
+      "total_frames": 24,
+      "description": "Parry de combate estilo ZZZ: Recuo com tronco encurvado, bloqueio e impacto potente com braço direito, postura firme e ameaçadora.",
+      "keyframes": [
+        {
+          "frame": 1,
+          "name": "Antecipação / Encolhimento",
+          "desc": "Recuo rápido do tronco, centro de gravidade abaixa, braço direito engatilha para o golpe de defesa.",
+          "hips_offset": [0.0, 0.08, -0.05],
+          "hips_yaw": -5.0,
+          "hips_lean": -10.0,
+          "dirs": {
+            "RightArm": [-0.3, 0.2, -0.9],
+            "LeftArm": [0.7, -0.2, 0.6]
+          }
+        },
+        {
+          "frame": 6,
+          "name": "Impacto Brutal (Parry)",
+          "desc": "Tronco avança de repente, braço direito estocado à frente como escudo/choque, silhueta sólida, punho cerrado.",
+          "hips_offset": [0.0, -0.12, -0.02],
+          "hips_yaw": 15.0,
+          "hips_lean": 12.0,
+          "dirs": {
+            "RightArm": [-0.1, 0.3, 0.95],
+            "LeftArm": [0.8, -0.4, -0.45]
+          }
+        },
+        {
+          "frame": 14,
+          "name": "Sustentação de Choque",
+          "desc": "Tremor/resistência na postura de parry absorvendo a força do oponente.",
+          "hips_offset": [0.0, -0.08, -0.03],
+          "hips_yaw": 12.0,
+          "hips_lean": 10.0,
+          "dirs": {
+            "RightArm": [-0.15, 0.35, 0.92],
+            "LeftArm": [0.75, -0.35, -0.5]
+          }
+        },
+        {
+          "frame": 24,
+          "name": "Postura Ameaçadora (Pronto)",
+          "desc": "Retorno rápido para base agressiva pronta para contra-ataque.",
+          "hips_offset": [0.0, -0.02, 0.0],
+          "hips_yaw": 5.0,
+          "hips_lean": 2.0,
+          "dirs": {
+            "RightArm": [-0.4, -0.4, 0.82],
+            "LeftArm": [0.5, -0.4, 0.77]
+          }
+        }
+      ]
+    };
+
+    let activeIndex = 0;
+
+    function renderButtons() {
+      const container = document.getElementById("poseButtons");
+      container.innerHTML = "";
+      spec.keyframes.forEach((kf, idx) => {
+        const btn = document.createElement("button");
+        btn.className = "pose-btn " + (idx === activeIndex ? "active" : "");
+        btn.innerText = `F${kf.frame}: ${kf.name.split(' ')[0]}`;
+        btn.onclick = () => selectPose(idx);
+        container.appendChild(btn);
+      });
+    }
+
+    function selectPose(idx) {
+      activeIndex = idx;
+      renderButtons();
+      const kf = spec.keyframes[idx];
+      document.getElementById("poseTag").innerText = `Pose ${idx + 1} (F${kf.frame})`;
+      document.getElementById("poseIntent").value = kf.desc;
+
+      // Hips
+      document.getElementById("sl_hips_lean").value = kf.hips_lean || 0;
+      document.getElementById("val_hips_lean").innerText = `${kf.hips_lean || 0}°`;
+      
+      document.getElementById("sl_hips_yaw").value = kf.hips_yaw || 0;
+      document.getElementById("val_hips_yaw").innerText = `${kf.hips_yaw || 0}°`;
+
+      const offY = Math.round((kf.hips_offset?.[1] || 0) * 100);
+      document.getElementById("sl_hips_y").value = offY;
+      document.getElementById("val_hips_y").innerText = `${(kf.hips_offset?.[1] || 0).toFixed(2)}m`;
+
+      const offZ = Math.round((kf.hips_offset?.[2] || 0) * 100);
+      document.getElementById("sl_hips_z").value = offZ;
+      document.getElementById("val_hips_z").innerText = `${(kf.hips_offset?.[2] || 0).toFixed(2)}m`;
+
+      // RightArm
+      const rarm = kf.dirs?.RightArm || [0, 0, 0];
+      document.getElementById("sl_rarm_x").value = Math.round(rarm[0] * 100);
+      document.getElementById("val_rarm_x").innerText = rarm[0].toFixed(2);
+      document.getElementById("sl_rarm_y").value = Math.round(rarm[1] * 100);
+      document.getElementById("val_rarm_y").innerText = rarm[1].toFixed(2);
+      document.getElementById("sl_rarm_z").value = Math.round(rarm[2] * 100);
+      document.getElementById("val_rarm_z").innerText = rarm[2].toFixed(2);
+
+      // LeftArm
+      const larm = kf.dirs?.LeftArm || [0, 0, 0];
+      document.getElementById("sl_larm_x").value = Math.round(larm[0] * 100);
+      document.getElementById("val_larm_x").innerText = larm[0].toFixed(2);
+      document.getElementById("sl_larm_y").value = Math.round(larm[1] * 100);
+      document.getElementById("val_larm_y").innerText = larm[1].toFixed(2);
+      document.getElementById("sl_larm_z").value = Math.round(larm[2] * 100);
+      document.getElementById("val_larm_z").innerText = larm[2].toFixed(2);
+
+      // Imagens correspondentes
+      const pad = String(kf.frame).padStart(3, '0');
+      document.getElementById("imgFront").src = `evidence/parry_mosh_v1/front_solid_t${pad}_g${pad}.png`;
+      document.getElementById("imgSide").src = `evidence/parry_mosh_v1/side_nX_solid_t${pad}_g${pad}.png`;
+      document.getElementById("imgQ3").src = `evidence/parry_mosh_v1/q3_solid_t${pad}_g${pad}.png`;
+
+      document.getElementById("tagFront").innerText = `Frame ${kf.frame}`;
+      document.getElementById("tagSide").innerText = `Frame ${kf.frame}`;
+      document.getElementById("tagQ3").innerText = `Frame ${kf.frame}`;
+
+      updateJSONPreview();
+    }
+
+    function syncSliders() {
+      const kf = spec.keyframes[activeIndex];
+      kf.desc = document.getElementById("poseIntent").value;
+      kf.hips_lean = parseFloat(document.getElementById("sl_hips_lean").value);
+      document.getElementById("val_hips_lean").innerText = `${kf.hips_lean}°`;
+
+      kf.hips_yaw = parseFloat(document.getElementById("sl_hips_yaw").value);
+      document.getElementById("val_hips_yaw").innerText = `${kf.hips_yaw}°`;
+
+      const offY = parseFloat(document.getElementById("sl_hips_y").value) / 100.0;
+      const offZ = parseFloat(document.getElementById("sl_hips_z").value) / 100.0;
+      kf.hips_offset = [0.0, offY, offZ];
+      document.getElementById("val_hips_y").innerText = `${offY.toFixed(2)}m`;
+      document.getElementById("val_hips_z").innerText = `${offZ.toFixed(2)}m`;
+
+      const rx = parseFloat(document.getElementById("sl_rarm_x").value) / 100.0;
+      const ry = parseFloat(document.getElementById("sl_rarm_y").value) / 100.0;
+      const rz = parseFloat(document.getElementById("sl_rarm_z").value) / 100.0;
+      kf.dirs.RightArm = [rx, ry, rz];
+      document.getElementById("val_rarm_x").innerText = rx.toFixed(2);
+      document.getElementById("val_rarm_y").innerText = ry.toFixed(2);
+      document.getElementById("val_rarm_z").innerText = rz.toFixed(2);
+
+      const lx = parseFloat(document.getElementById("sl_larm_x").value) / 100.0;
+      const ly = parseFloat(document.getElementById("sl_larm_y").value) / 100.0;
+      const lz = parseFloat(document.getElementById("sl_larm_z").value) / 100.0;
+      kf.dirs.LeftArm = [lx, ly, lz];
+      document.getElementById("val_larm_x").innerText = lx.toFixed(2);
+      document.getElementById("val_larm_y").innerText = ly.toFixed(2);
+      document.getElementById("val_larm_z").innerText = lz.toFixed(2);
+
+      updateJSONPreview();
+    }
+
+    // Registra listeners nos inputs
+    document.querySelectorAll("input[type=range], input[type=text], textarea").forEach(el => {
+      el.addEventListener("input", syncSliders);
+    });
+
+    function updateJSONPreview() {
+      document.getElementById("jsonPreview").innerText = JSON.stringify(spec, null, 2);
+    }
+
+    function exportJSON() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(spec, null, 2));
+      const dlAnchor = document.createElement('a');
+      dlAnchor.setAttribute("href", dataStr);
+      dlAnchor.setAttribute("download", `${spec.action_name}.json`);
+      dlAnchor.click();
+    }
+
+    function resetDefaults() {
+      location.reload();
+    }
+
+    // Init
+    renderButtons();
+    selectPose(0);
+  </script>
+</body>
+</html>

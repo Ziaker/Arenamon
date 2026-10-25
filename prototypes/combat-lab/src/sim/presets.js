@@ -1,3 +1,4 @@
+// @ts-check
 // Presets de sensação: categorias de parâmetros, segurança da troca durante a partida e presets iniciais.
 // Um preset tem nome, versão, descrição, datas, escopo (completo ou por categorias) e valores. Aplicar um preset por
 // categorias muda SÓ os caminhos dessas categorias (aplicar locomoção nunca mexe em VFX, HUD ou câmera).

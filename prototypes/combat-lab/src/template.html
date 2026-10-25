@@ -45,6 +45,7 @@
     <button type="button" id="arena-zen-toggle" role="switch" aria-checked="false" title="Modo Arena (F2): tela cheia limpa para focar no combate">⚔ Modo Arena</button>
    </div>
    <div class="btn-group top-group-actions">
+    <button type="button" id="editor-open" class="cine-btn" aria-expanded="false" aria-controls="move-editor" title="Editor de Moves: executa o Move na arena e ajusta mecânica e visual">🛠 Editor</button>
     <button type="button" id="cinematic-camera-btn" class="cine-btn" aria-haspopup="dialog" title="Câmera Cinemática (estilo anime/ZZZ: inclinações, enquadramentos, impact frames e FOV)">🎬 Cine</button>
     <button type="button" id="tools-toggle" aria-haspopup="true" aria-expanded="false" title="Assistência, IA, câmera, depuração e som">⋯ Ferramentas ▾</button>
    </div>
@@ -73,6 +74,7 @@
    <button type="button" role="tab" data-tool="scenarios" title="Cenários de teste repetíveis com esperado × obtido"><i>◎</i><span>Cenários</span></button>
    <button type="button" role="tab" data-tool="tuning" title="Ajustes: todos os parâmetros, por grupo"><i>⚙</i><span>Ajustes</span></button>
    <button type="button" role="tab" data-tool="overlays" title="Hitboxes, normais, lançamento e alcance"><i>▧</i><span>Visualizar</span></button>
+   <button type="button" role="tab" data-tool="moves" title="Parâmetros mecânicos e visuais (VFX) dos Moves"><i>✦</i><span>Moves</span></button>
    <button type="button" role="tab" data-tool="characters" hidden aria-hidden="true" tabindex="-1" title="Personagens (abre a gaveta)"><i>♙</i><span>Personagens</span></button>
    <button type="button" role="tab" data-tool="controls" title="Dummy, IA, dificuldade, gamepad e histórico de comandos"><i>🎮</i><span>Controles</span></button>
    <button type="button" role="tab" data-tool="export" title="Exportar/importar ajustes e relatório de diferenças para o jogo"><i>↗</i><span>Exportar</span></button>
@@ -123,6 +125,11 @@
         <label class="field">Ajustes<select id="rec-values"><option value="recorded">Da gravação (exato)</option><option value="current">Atuais (outra config)</option></select></label>
        </div>
        <div id="rec-result" class="report" aria-live="polite"></div>
+       <h3>Captura de bug (um clique)</h3>
+       <p class="hint">Gera um pacote JSON com tudo para ver o defeito de novo: semente, comandos, ajustes, equipamento, o estado exato do motor neste instante, eventos recentes e erros. Não leva dados pessoais. Para reproduzir, abra o pacote no campo ao lado.</p>
+       <div class="row"><input type="text" id="bug-note" placeholder="O que deu errado? (opcional)" maxlength="500"><button type="button" id="bug-capture" disabled>🐞 Capturar bug</button></div>
+       <div class="row"><label class="field">Abrir captura de bug (.json)<input type="file" id="bug-file" accept=".json,application/json"></label></div>
+       <div id="bug-result" class="report" aria-live="polite"></div>
        <h3>Controles</h3>
        <p class="keys">↑↓←→ mover · <b>X</b> tackle · <b>C</b> esquiva/sprint (C→X cancela) · <b>D</b> defender · <b>Tab</b> alvo · <b>Esc</b> pausar · <b>R</b> reiniciar.</p>
        <p class="hint">Pausado: ◂/▸ na linha do tempo (ou , e .) voltam e avançam um passo de simulação. Os últimos 12 s ficam gravados.</p>
@@ -257,6 +264,15 @@
        <div id="diag-panel"></div>
       </div>
      </section>
+     <section data-section="moves" hidden>
+      <div class="bento-card bento-wide" id="moves-showcase-card">
+       <div id="moves-showcase"></div>
+      </div>
+      <details class="bento-card bento-wide" id="moves-tools">
+       <summary>Ajustes compartilhados e ferramentas de teste (carga, estilo dos efeitos, laser, cenários técnicos, avaliação)</summary>
+       <div id="moves-panel"></div>
+      </details>
+     </section>
      <section data-section="controls" hidden>
       <div class="bento-card" data-subcard="teclas-azul" data-sublabel="Teclas Azul">
        <h3>Teclas</h3>
@@ -386,8 +402,9 @@
      </details>
     </div></div>
    </aside>
-   <button type="button" id="moves-open" class="corner-btn" aria-expanded="false" aria-controls="moves-drawer" title="Ações: Moves (até 4 por personagem, com o botão de cada um), Tackle, Esquiva e Bloqueio: sliders e animações">⚔ Ações</button>
-   <aside id="moves-drawer" class="moves-drawer" hidden aria-label="Ações"><header><strong>⚔ Ações</strong><button type="button" id="moves-close" aria-label="Fechar Ações" title="Fechar (Esc)">✕</button></header><nav id="act-tabs" class="act-tabs" aria-label="Seções das ações"><button type="button" data-act="moves" aria-pressed="true">✦ Moves</button><button type="button" data-act="tackle" aria-pressed="false">💥 Tackle</button><button type="button" data-act="dodge" aria-pressed="false">💨 Esquiva</button><button type="button" data-act="jump" aria-pressed="false" title="Salto 3D (coyote, buffer, controle aéreo) e Footstool">🦘 Salto</button><button type="button" data-act="block" aria-pressed="false">🛡 Bloqueio</button><button type="button" data-act="ai" aria-pressed="false" title="IA: modos, personalidade, estratégia e decisões com Moves">🤖 IA</button></nav><label class="check act-sync" title="O fim do movimento (X, C, recuo, guard stun, pouso e o cast dos Moves com animação própria) passa a durar o que o clipe de animação dura ÷ velocidade, e só então libera outras ações. Mesma opção de Personagens › avançado."><input type="checkbox" id="act-sync"> Término do movimento trava outras ações pela duração da animação</label><div class="act-views"><div id="moves-panel"></div><div id="act-tackle" hidden></div><div id="act-dodge" hidden></div><div id="act-jump" hidden></div><div id="act-block" hidden></div><div id="act-ai" hidden></div></div></aside>
+   <button type="button" id="moves-open" class="corner-btn" aria-expanded="false" aria-controls="moves-drawer" title="Ações: equipar Moves, escolher botões e animações; parâmetros e VFX ficam nas abas da esquerda">⚔ Ações</button>
+   <aside id="move-editor" class="moves-drawer move-editor" hidden aria-label="Editor de Moves"><header><strong>🛠 Editor de Moves</strong><button type="button" id="editor-close" aria-label="Fechar o Editor de Moves" title="Fechar (Esc)">✕</button></header><div id="move-editor-body"></div></aside>
+   <aside id="moves-drawer" class="moves-drawer" hidden aria-label="Ações"><header><strong>⚔ Ações</strong><button type="button" id="moves-close" aria-label="Fechar Ações" title="Fechar (Esc)">✕</button></header><nav id="act-tabs" class="act-tabs" aria-label="Seções das ações"><button type="button" data-act="moves" aria-pressed="true">✦ Moves</button><button type="button" data-act="tackle" aria-pressed="false">💥 Tackle</button><button type="button" data-act="dodge" aria-pressed="false">💨 Esquiva</button><button type="button" data-act="jump" aria-pressed="false" title="Salto 3D (coyote, buffer, controle aéreo) e Footstool">🦘 Salto</button><button type="button" data-act="block" aria-pressed="false">🛡 Bloqueio</button><button type="button" data-act="ai" aria-pressed="false" title="IA: modos, personalidade, estratégia e decisões com Moves">🤖 IA</button></nav><label class="check act-sync" title="O fim do movimento (X, C, recuo, guard stun, pouso e o cast dos Moves com animação própria) passa a durar o que o clipe de animação dura ÷ velocidade, e só então libera outras ações. Mesma opção de Personagens › avançado."><input type="checkbox" id="act-sync"> Término do movimento trava outras ações pela duração da animação</label><div class="act-views"><div id="act-moves" hidden></div><div id="act-tackle" hidden></div><div id="act-dodge" hidden></div><div id="act-jump" hidden></div><div id="act-block" hidden></div><div id="act-ai" hidden></div></div></aside>
     <div id="offscreen-arrow" hidden><span class="arrow-icon">◀</span> <span class="arrow-dist"></span></div>
     <div id="action-hint-pill">↑↓←→ Mover · X Tackle · C Esquiva · D Defesa · A/S Moves</div>
     <div id="ko-banner" hidden>K.O.</div>

@@ -5,7 +5,7 @@
 //   3. ACIONAMENTO: o primeiro adversário em terra que entra no círculo (e na faixa de altura) leva o golpe pela MESMA função de acerto das entidades
 //      (`applyHit`: defesa parcial/perfeita, status, Sturdy como dano comum); a armadilha é consumida quando o golpe CONECTA ou é defendido/anulado. Quem
 //      está invulnerável não aciona (a armadilha espera). Sem knockback (0 H e 0 V), sem Clash/Counter (não é Tackle nem projétil).
-import {applyHit, closestOnShape} from './world.js';
+import {applyHit, closestOnShape} from './world/world-hit.js';
 import {getGroundHeight} from './physics.js';
 import {C} from './config.js';
 import {sub, length, normalize, direction} from './math.js';
@@ -26,7 +26,7 @@ export function stepTrap(/** @type {any} */ game, /** @type {any} */ e, /** @typ
     const c = closestOnShape(box, e.pos), dist = Math.max(0, c.inside ? 0 : c.distance);
     if (dist > e.radius) continue;
     const away = sub(f.position, e.pos), normal = length(away) > 1e-6 ? normalize(away) : direction(f.facing + Math.PI);
-    const ev = applyHit(game, e.owner, f, e.hit, normal, {entity: e.id, source: 'trap', origin: e.pos, pl: e.pl, contact: 'trap'});
+    const ev = applyHit(game, e.owner, f, e.hit, normal, {entity: e.id, source: 'trap', origin: e.pos, pl: e.pl, contact: 'trap', move: 'spikes'});
     if (ev && CONSUMING.has(ev.result)) {
       events.push(ev, {result: 'trapTrigger', attacker: e.owner ?? null, target: f.id, damage: 0, entity: e.id, kind: 'trap', x: e.pos.x, z: e.pos.z});
       e.dead = true;

@@ -11,7 +11,8 @@ page.on('pageerror', e => errors.push(e.message));
 try {
   await page.goto(pathToFileURL(fileURLToPath(new URL('dist/arenamon-combate-laboratorio.html', root))).href);
   await page.waitForFunction(() => window.__lab);
-  await page.evaluate(() => {window.__lab.ui.paused = true;window.__lab.openTool('moves');});
+  // As abas de ações (Tackle, Esquiva…) moram na gaveta «Ações»; ela abre por #moves-open (o painel esquerdo «Moves» é outro).
+  await page.evaluate(() => {window.__lab.ui.paused = true;if (document.getElementById('moves-drawer').hidden) document.getElementById('moves-open').click();});
   await page.click('#act-tabs [data-act="tackle"]');
   const prefix = 'extras.visual.squashStretch.';
   for (const [key, value] of Object.entries({squashIntensity: .23, stretchIntensity: .31, squashWindow: 100, settleDuration: 160, enableSquashStretch: 0, preserveVolume: 0, plScaling: 0})) {

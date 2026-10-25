@@ -1,0 +1,5 @@
+{
+  "entry": ["prototypes/*/build.mjs", "prototypes/*/src/main.js", "prototypes/*/main.js", "prototypes/*/test/**/*.mjs", "prototypes/*/*.test.mjs", "prototypes/*/*.browser.mjs", "prototypes/*/verify.mjs", "scripts/*.mjs"],
+  "project": ["prototypes/combat-lab/src/**/*.{js,ts}", "prototypes/sand-stone-lab/src/**/*.{js,ts}"],
+  "ignore": ["**/*.generated.js", "**/dist/**", "**/evidence/**", "chars/**", "archives/**", "validation/**"]
+}

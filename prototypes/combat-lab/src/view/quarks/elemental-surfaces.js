@@ -10,12 +10,12 @@ const vertex = `
  p+=normal*warp*(sin(position.y*8.0+time*2.0)+sin(position.x*11.0-position.z*7.0-time*1.4))*.025;
  vec4 view=modelViewMatrix*vec4(p,1.0);vEye=-view.xyz;vN=normalMatrix*normal;gl_Position=projectionMatrix*view;}`;
 const common=`
- uniform float time,opacity,brightness,detail,bandCount;uniform vec3 color,accent;
+ uniform float time,opacity,masterOpacity,brightness,detail,bandCount;uniform vec3 color,accent;
  varying vec2 vUv;varying vec3 vN,vEye;
  float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
  float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y);}
  float fbm(vec2 p){return noise(p)*.57+noise(p*2.03)*.28+noise(p*4.01)*.15;}
- void emit(vec3 c,float a){gl_FragColor=vec4(c*brightness,a*opacity);}
+ void emit(vec3 c,float a){gl_FragColor=vec4(c*brightness,a*opacity*masterOpacity);}
 `;
 const water=common+`
  void main(){vec2 p=vec2(vUv.x*8.-time*.65,vUv.y*12.);
@@ -58,8 +58,16 @@ const ring=common+`
  float bands=pow(.5+.5*sin(vUv.y*10.+n*8.-time*3.),6.);emit(mix(color,accent,bands)*1.3,a*(.2+bands*.7));}`;
 function surface(fn,segments=160,cross=12){const pos=[],uv=[],idx=[];for(let i=0;i<=segments;i++)for(let j=0;j<=cross;j++){const v=fn(i/segments,j/cross);pos.push(...v);uv.push(i/segments,j/cross);}for(let i=0;i<segments;i++)for(let j=0;j<cross;j++){let k=i*(cross+1)+j;idx.push(k,k+1,k+cross+1,k+1,k+cross+2,k+cross+1);}const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(pos,3));g.setAttribute('uv',new T.Float32BufferAttribute(uv,2));g.setIndex(idx);g.computeVertexNormals();return g;}
 export class ElementalSurfaces {
- constructor(fx){this.fx=fx;this.p=fx.p;this.id=fx.id;this.parts=[];this.uniforms=[];this.impact=new T.Group();fx.root.add(this.impact);this.impact.visible=false;this.core=fx.core;this.launch=new T.Group();fx.root.add(this.launch);this.shot=new T.Group();fx.root.add(this.shot);this.build();}
- material(shader,opacity=1,warp=0){const p=this.p;const m=new T.ShaderMaterial({vertexShader:vertex,fragmentShader:shader,transparent:true,depthWrite:false,side:T.DoubleSide,uniforms:{time:{value:0},opacity:{value:opacity},brightness:{value:p.brightness},detail:{value:p.detail??1},warp:{value:warp},elongation:{value:0},bodyRadius:{value:p.size},stretchAxis:{value:new T.Vector3(1,0,0)},bandCount:{value:p.rings},color:{value:new T.Color(p.color)},accent:{value:new T.Color(p.accent)}}});this.fx.materials.push(m);this.uniforms.push(m.uniforms);return m;}
+ constructor(fx){this.fx=fx;this.p=fx.p;this.id=fx.id;this.parts=[];this.uniforms=[];this.impact=new T.Group();fx.root.add(this.impact);this.impact.visible=false;this.core=fx.core;this.launch=new T.Group();fx.root.add(this.launch);this.shot=new T.Group();fx.root.add(this.shot);this.shotAnchors=new Map();this.anchorLocal=new T.Vector3();this.build();}
+ pinAfterFollow(group,t){
+  if(!this.fx.follow||t<(this.p.shotFollowTime??.3))return;
+  this.fx.root.updateWorldMatrix(true,false);
+  if(!this.shotAnchors.has(group))this.shotAnchors.set(group,group.getWorldPosition(new T.Vector3()));
+  this.anchorLocal.copy(this.shotAnchors.get(group));
+  this.fx.root.worldToLocal(this.anchorLocal);
+  group.position.copy(this.anchorLocal);
+ }
+ material(shader,opacity=1,warp=0){const p=this.p;const m=new T.ShaderMaterial({vertexShader:vertex,fragmentShader:shader,transparent:true,depthWrite:false,side:T.DoubleSide,uniforms:{time:{value:0},opacity:{value:opacity},masterOpacity:{value:p.opacity??1},brightness:{value:p.brightness},detail:{value:p.detail??1},warp:{value:warp},elongation:{value:0},bodyRadius:{value:p.size},stretchAxis:{value:new T.Vector3(1,0,0)},bandCount:{value:p.rings},color:{value:new T.Color(p.color)},accent:{value:new T.Color(p.accent)}}});this.fx.materials.push(m);this.uniforms.push(m.uniforms);return m;}
  add(g,shader,parent=this.core,opacity=1,warp=0){const m=new T.Mesh(g,this.material(shader,opacity,warp));parent.add(m);return m;}
  build(){const p=this.p,s=p.size;
  // Ondas de choque do disparo: anéis de raio 1 perpendiculares ao trajeto (eixo X), escalados por update().
@@ -105,6 +113,7 @@ export class ElementalSurfaces {
  this.launch.children.forEach((ring,i)=>{const age=t-p.launchDelay-i*p.launchInterval;ring.visible=age>=0&&age<p.launchDuration;this.launch.visible ||= ring.visible;if(!ring.visible)return;ring.scale.setScalar(p.launchScale+age*p.launchExpansion*motion);ring.position.x=age*p.launchSpeed*motion;ring.material.uniforms.opacity.value=Math.min(1,p.launchOpacity)*Math.max(0,1-age/p.launchDuration);});
  }else{this.launch.visible=t<.3&&this.fx.contactAt===null;this.launch.scale.setScalar(.6+t*4);this.launch.traverse(o=>{if(o.material?.uniforms)o.material.uniforms.opacity.value=Math.max(0,1-t/.3);});}
 
+ this.pinAfterFollow(this.shot,t);this.pinAfterFollow(this.launch,t);
  for(const u of this.uniforms)u.time.value=t*p.rotation*.25*motion;
  if(this.id==='fireSpin'){this.core.scale.set(1,Math.max(.001,envelope),1);this.core.rotation.y=t*p.rotation*.5*motion;for(const u of this.uniforms)u.opacity.value=envelope;}
  else if(this.id==='waterPulse'){const amount=this.fx.velocity*p.stretch*(p.variant===1?.3:.17);this.fx.smearAmount=amount;const narrow=1/Math.sqrt(1+(amount+kick)*p.waterContraction);this.core.scale.set(1,narrow,narrow);this.core.traverse(o=>{if(o.material?.uniforms){o.material.uniforms.elongation.value=amount+kick;o.material.uniforms.stretchAxis.value.set(1,0,0).applyQuaternion(o.quaternion.clone().invert());}});for(let i=0;i<this.parts.length;i++)this.parts[i].rotation.y=t*p.rotation*(i%2?-.35:.4)*motion;}

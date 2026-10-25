@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Atelier VFX — fases desligáveis (24/10/2026)</title>
+<style>
+:root{--bg:#0c141d;--fg:#e6eef5;--mut:#9fb4c6;--card:#111d29;--line:#2b3d49;--acc:#e0b863}
+@media (prefers-color-scheme:light){:root{--bg:#f4f6f8;--fg:#14202b;--mut:#4d6173;--card:#fff;--line:#cfd8e0;--acc:#8a5d00}}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,sans-serif;padding:24px 16px}
+main{max-width:980px;margin:auto}h1{font-size:1.5rem;margin:.2rem 0}p{color:var(--mut)}a{color:var(--acc)}
+figure{background:var(--card);border:1px solid var(--line);border-radius:10px;margin:16px 0;padding:12px}
+img{width:100%;height:auto;border-radius:6px}figcaption{margin-top:8px;color:var(--mut);font-size:.9rem}
+</style></head><body><main>
+<p><a href="../../../../ABRIR_ARENAMON.html">← Portal</a> · <a href="../../dist/arenamon-areia-pedra.html">Abrir o Atelier</a> · <a href="../../../../docs/LAB_AREIA_PEDRA.md">Guia do Atelier</a> · <a href="../../../../docs/plans/2026-10-24-vfx-por-fase-atelier.md">Plano</a></p>
+<h1>Atelier VFX: seis fases desligáveis (24/10/2026)</h1>
+<p>Capturas feitas pelo teste de navegador (<code>prototypes/sand-stone-lab/phases.browser.mjs</code>, Edge offline). Verificação técnica: a aprovação visual é do responsável.</p>
+<figure><img src="sand-padrao.png" alt="Sand Wave com os valores padrão"><figcaption>Sand Wave, valores padrão (o visual não mudou: um golden gravado antes da mudança confere os números).</figcaption></figure>
+<figure><img src="sand-sem-surgimento-com-argola.png" alt="Sand Wave sem a fase de surgimento e com a Argola de disparo"><figcaption>Sand Wave com a fase «Surgimento / preparação» desligada (o grupo aparece esmaecido e a legenda pula direto para «Corpo e trajeto») e o disparo em «Argola».</figcaption></figure>
+<figure><img src="stone-trajeto-subterraneo.png" alt="Emerging Stone com o trajeto subterrâneo"><figcaption>Emerging Stone com 0,8 s de trajeto subterrâneo: o sulco de energia anda da origem até o alvo antes da rocha emergir.</figcaption></figure>
+<figure><img src="rocha-inspecao.png" alt="Modelo de rocha para inspeção"><figcaption>Rocha: inspeção de objeto, não um ataque; as outras cinco fases aparecem desabilitadas com a razão.</figcaption></figure>
+</main></body></html>

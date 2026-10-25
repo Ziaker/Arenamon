@@ -8,13 +8,11 @@ import {C} from '../config.js';
 import {spawn} from '../world.js';
 import {direction} from '../math.js';
 import {isAirJump} from '../air.js';
+import {defineFicha} from './params-registry.js';
+import {params, def as sandWaveDef} from './sand-wave.params.js';
 
-export const sandWaveDef = Object.freeze({
-  id: 'sand-wave', name: 'Sand Wave', air: 'cast', group: 'sandWave', groundOnly: true, aim: 'target',
-  description: 'Burst. Só no chão: após 0,25 s lança uma barragem de areia (retângulo 4 × 3 m à frente) que fere, empurra e CEGA por 4 s quem estiver no chão dentro dela.',
-  cost: 2, cooldown: 10, duration: .25, motion: {type: 'root'},
-  timeline: [{at: .25, atKey: 'cast', effect: 'sand-wave'}],
-});
+export {sandWaveDef};   // definição (id, fases, custo…) vem de sand-wave.move.json
+
 
 /** Efeito do fim da preparação: cria a barragem com a direção e as dimensões fixadas agora. */
 export function sandWaveEffect(/** @type {any} */ game, /** @type {any} */ f, /** @type {any} */ def, /** @type {any} */ fx) {
@@ -23,8 +21,14 @@ export function sandWaveEffect(/** @type {any} */ game, /** @type {any} */ f, /*
   const dir = direction(fx.heading);
   const e = spawn(game.world, {
     kind: 'sandwave', owner: f.id, pos: {x: f.position.x, z: f.position.z}, dir, length: P.length, width: P.width, active: P.active, life: P.active + P.dissipate,
-    speed: P.length / P.active, damage: P.damage, accel: P.accel, partialFactor: P.partialFactor, blind: P.blind, wallStagger: P.wallStagger, cell: P.cell, detour: P.detour,
+    speed: P.length / P.active, damage: P.damage, accel: P.accel, knockbackH: P.knockbackH ?? 0, knockbackV: P.knockbackV ?? 0, partialFactor: P.partialFactor, blind: P.blind, wallStagger: P.wallStagger, cell: P.cell, detour: P.detour,
     replanSteps: P.replanSteps, y: 0, height: .35, visual: 'sand', captured: {move: def.id},
   }, fx.events ?? []);
   if (!e) return {ok: false, reason: 'entityLimit'};
 }
+
+/** FICHA do Move (ver docs/COMO_CRIAR_UM_MOVE.md): `params` gera o padrão em C.world.sandWave e os sliders da aba Moves; `def` e os manipuladores são registrados sozinhos. */
+export const ficha = defineFicha({
+  def: sandWaveDef, effect: ['sand-wave', sandWaveEffect],
+  params,
+});

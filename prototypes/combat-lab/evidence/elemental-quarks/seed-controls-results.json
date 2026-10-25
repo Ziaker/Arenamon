@@ -1,0 +1,49 @@
+{
+  "generatedAt": "2026-10-23T12:57:46.956Z",
+  "sliders": 89,
+  "checks": 129,
+  "limits": [
+    [
+      "launchAngle",
+      -180,
+      180
+    ],
+    [
+      "launchSpeed",
+      -50,
+      50
+    ],
+    [
+      "spinSpeed",
+      -60,
+      60
+    ],
+    [
+      "leafSpin",
+      -40,
+      40
+    ]
+  ],
+  "phases": [
+    "Base (vale para todas as fases)",
+    "Surgimento",
+    "Disparo",
+    "Voo",
+    "Rastro de folhas",
+    "Contato / explosão",
+    "Surgimento",
+    "Disparo",
+    "Voo",
+    "Contato"
+  ],
+  "effects": [
+    {
+      "effect": "ring",
+      "controls": 15
+    },
+    {
+      "effect": "cone",
+      "controls": 16
+    }
+  ]
+}

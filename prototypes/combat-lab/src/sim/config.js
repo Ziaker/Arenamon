@@ -1,9 +1,14 @@
+// @ts-check
 // Configuração viva do laboratório.
 // Os valores iniciais reproduzem exatamente o laboratório v6 (arenamon-combate-laboratorio-v6.html).
 // O jogo oficial (prototypes/game/src/config.ts) é lido por ui/official.js apenas para comparação.
 
 import {MAP_DEFAULTS} from './map.js';
 import {applyCalibrationBase} from './calibration-base.js';
+import {elementalVisualDefaults} from './elemental-visual-config.js';
+import {HIT_COLOR_DEFAULTS} from './move-hit-map.js';
+import {moveParamDefaults} from './moves/params-registry.js';
+import './moves/params.generated.js';   // declarações puras de parâmetros das fichas de Moves: C.world sempre tem os grupos
 
 /** Valores de FÁBRICA (laboratório v6 + parâmetros novos), sem a base de calibração v8. Referência e prova de que a tabela guarda os valores anteriores. */
 export function factoryDefaults() {return buildDefaults();}
@@ -103,7 +108,7 @@ function buildDefaults() {
     gameModes: {enemyMode: 8, playerProfile: 0},
     toggles: {enableTackle: 1, enableDodge: 1, enableDefense: 1, enableClash: 1, enableInvulnerability: 1, enableLaunch: 1, enableVault: 1, enableWallBounce: 1,
       enableAIAttack: 1, enableAIReactive: 1, enableCameraFollow: 1, enableCameraRecenter: 1, enablePlayerAI: 0, showHitboxes: 0, showAttackVectors: 0,
-      enableHitstop: 1, enableCounterBonus: 1, enableLandingSkid: 1, enableEnemyAI: 1, enableSprint: 1, enemyManual: 0, enableAnimationCombatWindows: 0, enableClashPush: 0, enableTechRecovery: 1, enableChargeTackle: 1, enableWallSplat: 1, enableMeteorSlam: 1, enableFlightSlam: 0, enableTackleFeint: 1,
+      enableHitstop: 1, integerDamage: 1, enableCounterBonus: 1, enableLandingSkid: 1, enableEnemyAI: 1, enableSprint: 1, enemyManual: 0, enableAnimationCombatWindows: 0, enableClashPush: 0, enableTechRecovery: 1, enableChargeTackle: 1, enableWallSplat: 1, enableMeteorSlam: 1, enableFlightSlam: 0, enableTackleFeint: 1,
       // enableInfiniteStamina: stamina sempre no máximo (nenhum custo esgota nem bloqueia ações). 0 = regra normal.
       enableInfiniteStamina: 0,
       // Sistema de passivas (catálogo experimental). 0 = motor idêntico ao anterior (cenário de paridade, §32).
@@ -156,10 +161,8 @@ function buildDefaults() {
   // (acima dele a criação é recusada com evento). slots: quantidade de movimentos equipáveis por lutador.
   // charge: regras compartilhadas dos movimentos de carga (Reflect/Psyshock). PROVISÓRIOS (M30.10), configuráveis; cada uso captura uma cópia congelada no início (M28.4, D1).
   const world = {maxEntities: 64, slots: 4, charge: {moveSlow: .75, turnSlow: .75, dodgeCancelAfter: .2, interruptCooldownFactor: .5, recovery: .25, bufferWindow: .15, boostStaminaPerSecond: .5, boostStep: 1},
-    // reflect: valores iniciais PROVISÓRIOS do Reflect (M30.10); largura/altura em múltiplos das dimensões lógicas do motor (M30.4); crescimento linear com a carga.
-    reflect: {widthMin: 1.5, widthMax: 3, heightMin: 1.5, heightMax: 2.5, thickness: .1, gapFraction: .5, durationBase: 4, minCharge: .9, tackleRecoil: .15, tackleStagger: .25, burstRadius: 0, burstForce: 3, burstDamage: 0, burstPush: 0, burstHurt: 0, tieTolerance: .001, maxReflections: 16},
-    // psyshock: valores iniciais PROVISÓRIOS do Psyshock (M30.10): pedras (3 a 8, +1 por 0,8 s), velocidade sorteada por pedra (D4), homing 0,3 s a 180°/s, leque de 20° sem alvo, busca de espaço de 3 m, dano 0,2 × Ataque, fator 0,8 por acerto no mesmo alvo, knockback 0,3 m/s por pedra com teto de 0,9 m/s por alvo.
-    psyshock: {minStones: 3, maxStones: 8, stoneSeconds: .8, speedMin: 10, speedMax: 14, homingSeconds: .3, homingRate: 180, fanAngle: 20, searchRange: 3, searchStep: .25, arc: 120, ringMin: .8, ringMax: 1.1, heightMin: .35, heightMax: 1.1, scaleMin: .7, scaleMax: 1.3, radius: .2, damageFraction: .2, successiveFactor: .8, knockbackPerStone: .3, knockbackCap: .9, knockbackVertical: 0, knockbackLevelBonus: 0, knockbackSpeedFactor: 0, counterStagger: .2},
+    // reflect: padrões vêm de moves/reflect.move.json (Move como dado; syncMoveParams)
+    // psyshock: padrões vêm de moves/psyshock.move.json (Move como dado; syncMoveParams)
     // beam: lasers contínuos e emissores técnicos (Fase 7). PROVISÓRIOS: comprimento máximo, segmentos refletidos por passo e intervalo entre danos por alvo.
     beam: {length: 24, maxSegments: 8, interval: .25, damage: 2},
     // ai: como a IA decide usar os Moves (sim/ai-moves.js). Distâncias em m, tempos em s. Os padrões reproduzem o comportamento anterior.
@@ -192,56 +195,12 @@ function buildDefaults() {
   // Valores iniciais vêm dos catálogos (propostas de balanceamento, NÃO homologadas) — ver DECISOES_PROVISORIAS_MOVES_NOVOS.md.
   Object.assign(world, {
     // Harden: +30% Defesa (⇒ dano × 1/1,3, mesma convenção da passiva de Defesa, MV-P01) e nega o knockback ofensivo por 5 s.
-    harden: {cost: .8, cooldown: 10, cast: .35, duration: 5, defensePct: .30, negateKnockback: 1},
-    // Second Wind: +40% da stamina MÁXIMA por segundo (MV-P09) e esquiva/sprint 25% mais baratos por 5 s; não cura HP.
-    secondWind: {cost: .8, cooldown: 12, cast: .35, duration: 5, regenPctPerSecond: .40, mobilityCostPct: .25},
     // Swift: 3 estrelas, 15 m/s, 3 HP nominais cada (× Ataque ÷ referência, MV-P13), homing 0,25 s a 90°/s, alcance 12 m, knockback 0,3 m/s por acerto com teto 0,9 por alvo/execução, vertical 0.
     // cast = tempo da ação (recuperação do Burst; provisório MV-P14). Sem lock-on: leque frontal de fanAngle graus.
-    // Lunge: Tackle de curta distância (3,5 m, total 0,6 s), 8 HP nominais, 4 m/s H sem V, i-frames 0,133 s, cancelável após 0,45 s; janela ativa 0,19–0,26 s só vale com "janelas de combate" ligadas.
-    lunge: {cost: .75, cooldown: 6, cast: .6, range: 3.5, damage: 8, knockbackH: 4, knockbackV: 0, invulnerableSeconds: .1333, chainAfter: .45, hitStart: .19, hitEnd: .26},
-    // Riposte: Normal Status+Melee PL1. Postura de 0,65 s; entre 0,13 e 0,30 s qualquer acerto elegível (menos Guard Break) é anulado e dispara um contra-golpe PL1 de 6 HP
-    // (× Ataque ÷ referência), 3 m/s H, na hora do gatilho (MV-P24); strikeRange = alcance do golpe (não definido no documento: MV-P25). Janela fechada sem acerto = recuperação exposta.
-    riposte: {cost: .8, cooldown: 8, cast: .65, windowStart: .13, windowEnd: .30, damage: 14, knockbackH: 9, knockbackV: 2.5, strikeRange: 1.6, hitstopMult: 2.5, shakeMult: 2.4, fxOn: 1, fxIntensity: 1, fxSize: 1, blastOn: 1, blastSize: 1.5},
-    // Emerging Stone (ES-D01…D103, cronologia C): cast 0,55 s (corpo a 30%), marcador 3–10 m 3D, projétil 15 m/s, explosão de 5 m horizontais (20 nominais × Ataque ÷ referência, 8 m/s radial),
-    // rocha 3 m × escala (0,25–4×, passo 0,25), emerge em 0,40 s, 5 HP, lançamento da emergência 8 H/14 V, até 3 por dono. markerSpeed/startDistance/rockSearch/maxRise: provisórios.
-    emergingStone: {cost: 3, cooldown: 9, cast: .55, castSlow: .7, minRange: 3, range: 10, startDistance: 5, markerSpeed: 8, markerAccel: 24, fxTrailOn: 1, fxTrailSize: 1.8, speed: 15, blastRadius: 5, damage: 20, blastKnockback: 8, rockScale: 1, rockHp: 5, riseTime: .4, launchH: 8, launchV: 14, maxRocks: 3, rockSearch: 4, maxRise: 2, edgeMargin: .3, radius: 0, allowOccupied: 1},
-    // Bullet Punch (como o Quick Attack, decisão de 22/10/2026): alvo = adversário mais próximo dentro de `reach` (alcance do Move), fixado ao soltar; preparação 0,75 s (corpo a 30%, slow .7),
-    // desaparecimento de `vanish` s numa corrida invisível até `stopShort` m do alvo, golpe PL2 de `strikeReach` m ao chegar (ou no primeiro adversário a `hitRadius` m do caminho),
-    // custo 1,5× o do Tackle (Tackle = 1) e 8 s; impactMult = velocidade de impacto do knockback. fxLines/fxHideBody: visual do sumiço (linhas de velocidade e corpo oculto).
-    bulletPunch: {cost: 1.5, cooldown: 8, cast: .75, vanish: .2, reach: 6, strikeReach: 2.2, stopShort: 1.1, hitRadius: .8, impactMult: 1, slow: .7, maxRise: 2, airReach: 3, fxLines: 1, fxHideBody: 1},
-    // Sand Wave: Burst PL1 (MUSHROOM_MOVES_DECISOES §6). Prep 0,25 s, barragem 1,5 s (0,75 s de hitbox + 0,75 s de dissipação), retângulo 4 (frente) × 3 (lado) m, 6 HP fixos,
-    // empurrão 12 m/s² (×0,5 na parcial), cegueira 4 s, stagger de parede 0,30 s, visão do cegado 10 m, fog = redução de 60% da luz. cell/detour/replanSteps: grade do caminho livre (técnicos).
-    sandWave: {cost: 2, cooldown: 10, cast: .25, length: 4, width: 3, active: .75, dissipate: .75, damage: 6, accel: 12, partialFactor: .5, blind: 4, wallStagger: .3, visionRadius: 10, fogDarkness: .6, cell: .25, detour: 3, replanSteps: 6},
-    // Spikes: Normal Field PL1. Marcador de colocação (alcance 3D 5 m), cast 0,4 s, armadilha de 1,2 m de raio por 8 s, 6 HP nominais (× Ataque ÷ referência), sem knockback, 1 acionamento.
-    // markerSpeed/startDistance/maxRise/armDelay/trapHeight não vêm do documento (MV-P29/MV-P31): provisórios.
-    spikes: {cost: 1, cooldown: 10, cast: .4, range: 5, radius: 1.2, life: 8, damage: 6, knockbackH: 0, knockbackV: 0, armDelay: .25, markerSpeed: 8, markerAccel: 24, startDistance: 3, minRange: 0, maxRise: 2, trapHeight: 1.2},
-    // Bounce: Charge Trick+Melee. Carga máx. 1,2 s (PL1 <50%, PL2 <100%, PL3 em 100%); alturas 1,5/2,5/3,5 m (experimentais); alcance horizontal máx. 6 m; 12 HP nominais
-    // (× Ataque ÷ referência), 3 m/s H e 6 m/s V; recuperação 0,25 s após o pouso. gravity/contactRadius/landRadius não vêm do documento (MV-P27/MV-P28): provisórios.
-    bounce: {cost: 1.2, cooldown: 12, maxCharge: 1.2, minCharge: 0, maxDistance: 6, heightPl1: 1.5, heightPl2: 2.5, heightPl3: 3.5, gravity: 17.5, damage: 12, knockbackH: 3, knockbackV: 6, landRecovery: .25, contactRadius: .3, landRadius: 1.4},
-    // Feint: Burst Trick sem PL. Cancela Tackle/Lunge/Guard Break (e a carga de Tackle) só na antecipação (cancelWindow = 4 quadros a 30 fps = 0,133 s) e vira um recuo curto
-    // (retreat m, para trás ou para o lado do input) com i-frames de 2 a 10 passos a 120 Hz. Fora da janela o Move é gasto sem efeito e o golpe segue (punível; MV-P21).
-    feint: {cost: .3, cooldown: 3, cast: .22, cancelAfter: .0333, cancelWindow: .1333, retreat: .25, invulnStart: .0167, invulnEnd: .0833},
-    // Guard Break (Charge → Tackle ao soltar): carga máx. 1 s (PL1 <50%, PL2 <100%, PL3 em 100%), custo e recarga no INÍCIO da carga, golpe de 0,7 s pós-soltura, 6 HP nominais,
-    // 2 m/s H sem V; contra guarda comum: guard stun de 0,5 s e guarda derrubada, sem empurrão (MV-P18). range = distância do avanço (não definida no documento: MV-P20).
-    guardBreak: {cost: 1, cooldown: 10, maxCharge: 1, minCharge: 0, cast: .7, range: 2.6, damage: 6, knockbackH: 2, knockbackV: 0, stun: .5, invulnerableSeconds: 0, chainAfter: .47, hitStart: .333, hitEnd: .533},
-    // Quick Attack: alvo mais próximo a até 7 m, ida ≤ 0,16 s e volta ≤ 0,14 s (velocidades = alcance ÷ tempo), recuperação 0,12 s, 8 HP nominais, 4 m/s H sem V.
-    // Sem i-frames do atacante (o catálogo não define; MV-P16). Ação total = ida + volta + recuperação.
-    quickAttack: {cost: .75, cooldown: 6, acquireRange: 7, approachMax: .16, returnMax: .14, recovery: .12, damage: 8, knockbackH: 4, knockbackV: 0, invulnerableSeconds: 0, airReach: 3, fxLines: 1, fxHideBody: 1},
-    swift: {cost: .8, cooldown: 7, cast: .25, count: 3, speed: 15, damage: 3, homingSeconds: .25, homingRate: 90, range: 12, knockback: .3, knockbackCap: .9, radius: .2, fanAngle: 20, spawnForward: .9, spawnSpacing: .35, counterStagger: .2},
     // Moves elementais (protótipo de 23/10/2026; números do prompt de 22/10, NÃO homologados; padrões das decisões provisórias MV-P36…MV-P41).
-    // Water Pulse: Charge Projectile. Carga máx. 1,5 s (180 passos; PL2 em 90, PL3 em 180), custo e recarga na ativação, 6/9/12 HP nominais, empurrão H 2/3/4 (V 0 ⇒ o motor empurra 1,5 × H m),
-    // projétil de raio 0,38 m a 14 m/s e alcance 12 m (lifetime = alcance ÷ velocidade), recuperação de 0,30 s a partir da soltura. originHeight/spawnForward: nascimento (não definidos no prompt).
-    waterPulse: {cost: 1, cooldown: 9, maxCharge: 1.5, minCharge: 0, chargeRecovery: .3, damagePl1: 6, damagePl2: 9, damagePl3: 12, knockbackPl1: 2, knockbackPl2: 3, knockbackPl3: 4, speed: 14, radius: .38, range: 12, originHeight: .8, spawnForward: .7, counterStagger: .2},
-    // Fire Spin: Normal Field. Marcador de colocação (alcance 3D 10 m — pedido de 23/10 dobrou os 5 m do protótipo), cast 0,4 s + recovery 0,2 s, zona cilíndrica de 1,6 m de raio × 2,4 m,
-    // 2,4 s de vida, 4 pulsos a cada 0,6 s de 2 HP nominais, sem knockback e (padrão provisório) sem guard stun; occlusion = paredes bloqueiam o pulso; maxActive = zonas simultâneas por dono.
-    fireSpin: {cost: 1, cooldown: 11, cast: .4, recovery: .2, range: 10, markerSpeed: 8, markerAccel: 24, startDistance: 3, minRange: 0, maxRise: 2, allowOccupied: 0, zoneRadius: 1.6, zoneHeight: 2.4, life: 2.4, pulses: 4, interval: .6, damage: 2, guardStun: 0, occlusion: 1, maxActive: 1},
-    // Air Slash: Burst Projectile PL1. Startup 8 passos + recovery 20 passos, lâmina a 22 m/s com alcance 10 m (lifetime = alcance ÷ velocidade), colisor = círculo equivalente de raio 0,6 m,
-    // 8 HP nominais, empurrão H 2,5 (V 0). visualWidth/Height/Thickness: só o desenho da lâmina (1,20 × 0,70 × 0,22 m).
-    airSlash: {cost: .8, cooldown: 6, startup: 8 / 120, recovery: 20 / 120, speed: 22, range: 10, radius: .6, damage: 8, knockbackH: 2.5, originHeight: .8, spawnForward: .6, counterStagger: .2, visualWidth: 1.2, visualHeight: .7, visualThickness: .22},
-    // Seed Bomb: Normal Projectile + Field instantâneo. Marcador (alcance 3D 16 m — pedido de 23/10 dobrou os 8 m do protótipo), cast 0,3 s + recovery 0,2 s, arco balístico de 0,65 s
-    // (gravidade 17,5 = a do salto/Bounce) com velocidade máx. 20 m/s, semente de raio 0,24 m (vida 1,25 s), explosão ESFÉRICA de 1,8 m, 10 HP nominais, empurrão 3 H / 1 V, oclusão por paredes.
-    seedBomb: {cost: 1, cooldown: 8, cast: .3, recovery: .2, range: 16, markerSpeed: 8, markerAccel: 24, startDistance: 3, minRange: 0, maxRise: 2, allowOccupied: 0, flightTime: .65, gravity: 17.5, maxSpeed: 20, seedRadius: .24, lifetime: 1.25, explosionRadius: 1.8, damage: 10, knockbackH: 3, knockbackV: 1, occlusion: 1, blastLife: .3, originHeight: .8, spawnForward: .5, counterStagger: .2},
   });
+  for (const g of Object.keys(moveParamDefaults())) if (g in world) throw new Error(`ficha de Move usa o grupo "${g}", que já existe em C.world (regras compartilhadas). Escolha outro nome para o Move.`);
+  Object.assign(world, moveParamDefaults());   // grupos dos Moves em ficha (um arquivo por Move): src/sim/moves/params-registry.js
   return ({rules, test, locomotion, camera, profiles: profilesLab, extras, actions, vfx: vfxDefaults(), display: displayDefaults(), world, map: {...MAP_DEFAULTS}, passivas, ledge: ledgeDefaults()});
 }
 
@@ -305,6 +264,8 @@ export function vfxDefaults() {
     solidClash: {...solidFam(), color: 0xffe58d},
     solidReflect: {...solidFam(), color: 0x73caff},
     shakeMaster: {enabled: 1},
+    // Cor do VFX de hit por Move (Moves que não são corpo a corpo): o hit deixa de usar sempre a cor do Tackle. `enabled` 0 = volta à cor do Tackle. Ver sim/move-hit-map.js.
+    moveHit: Object.fromEntries(Object.entries(HIT_COLOR_DEFAULTS).map(([g, c]) => [g, {enabled: 1, ...c}])),
     shakeGuard: shake(.05, .16, 0), shakeHit: shake(.12, .28, 0), shakeGround: shake(.09, .3, 1), shakePerfect: shake(.1, .3, 2), shakeClash: shake(.18, .42, 1), shakeWall: shake(.06, .2, 0, 0),
     // Compatibilidade de presets antigos de VFX de passivas. A apresentação ativa usa display.passive.
     passive: {enabled: 1, variant: 0, intensity: 1, size: 1, opacity: 1, duration: 1, sparkles: 1},
@@ -312,6 +273,12 @@ export function vfxDefaults() {
     // B (impacto), C (pouso) e footstool por partículas GPU, A/B comparativo com o legado.
     // 0 = desligada (custo zero, nada é instanciado). Só aparência.
     quarks: {enabled: 0},
+    // Borda com as cores dos PLs do Tackle em todos os projeteis (toggle visual): 0 = desligado, 1 = ligado.
+    projectilePlBorder: 0,
+    // Moves elementais (Água, Fogo e Vento) com o renderizador do Ateliê Elemental (three.quarks).
+    // enabled = 0 devolve o desenho provisório antigo de view/elemental-fx.js; 0/1/2 escolhe a opção A/B/C.
+    // O Seed Bomb não usa estes valores (permanece no desenho provisório, por decisão de 23/10/2026).
+    elemental: {enabled: 1, waterVariant: 0, fireVariant: 0, airVariant: 0, seedShotEffect: 0, shotFollowTime: .3, visual: elementalVisualDefaults()},
     // Pós-processamento experimental (Fase 4, pmndrs/postprocessing sem React): bloom por limiar/seleção, distorção em impactos fortes,
     // aberração cromática, color grading, vinheta e profundidade de campo (só K.O.). enabled = 0: renderer atual, custo zero. Só aparência.
     post: {

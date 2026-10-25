@@ -1,0 +1,1 @@
+{"arquivo":"prototypes/combat-lab/src/sim/world.js","pasta":"prototypes/combat-lab/src/sim/world","modulos":{"world-schema":["ENTITY_KINDS","DEFAULTS","validateEntity"],"world-hit":["closestOnShape","applyHit"]}}

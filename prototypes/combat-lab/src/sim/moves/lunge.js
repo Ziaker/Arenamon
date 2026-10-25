@@ -6,12 +6,10 @@
 // janela da proposta, MV-P10); janela ativa recalculada por proporção das fases (o documento-fonte erra a conversão g→passos, ver REGRAS_CRIACAO_MOVES §22.1).
 import {C} from '../config.js';
 import {nominalDistance} from '../entity.js';
+import {defineFicha} from './params-registry.js';
+import {params, def as lungeDef} from './lunge.params.js';
 
-export const lungeDef = Object.freeze({
-  id: 'lunge', name: 'Lunge', air: 'descend', group: 'lunge', tackle: 'lunge',
-  description: 'Burst. Avança em linha reta até 3,5 m aplicando um Tackle curto (PL1) e fica onde parou. Dano 8, empurrão de 4 m/s sem lançar.',
-  cost: .75, cooldown: 6, duration: .6, aim: 'target',
-});
+export {lungeDef};   // definição (id, fases, custo…) vem de lunge.move.json
 
 /** Prepara a ação de Tackle do Lunge com os parâmetros capturados. */
 export function lungeSetup(/** @type {any} */ f, /** @type {any} */ a, /** @type {Record<string, any>} */ P) {
@@ -26,3 +24,9 @@ export function lungeSetup(/** @type {any} */ f, /** @type {any} */ a, /** @type
   a.combatWindows = {activeWindows: [[toStep(P.hitStart), Math.max(toStep(P.hitStart) + 1, toStep(P.hitEnd))]], invulnerabilityWindows: P.invulnerableSeconds > 0 ? [[0, toStep(P.invulnerableSeconds)]] : []};
   a.hitWindows = [new Set()];
 }
+
+/** FICHA do Move (ver docs/COMO_CRIAR_UM_MOVE.md): `params` gera o padrão em C.world.lunge e os sliders da aba Moves; `def` e os manipuladores são registrados sozinhos. */
+export const ficha = defineFicha({
+  def: lungeDef, tackle: ['lunge', lungeSetup],
+  params,
+});

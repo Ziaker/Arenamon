@@ -17,7 +17,8 @@ try {
   page.on('request', r => {if (/^https?:/.test(r.url())) network.push(r.url());});page.on('dialog', d => d.accept());
   await page.context().setOffline(true);await page.goto(labUrl);await page.waitForFunction(() => window.__lab);await page.waitForTimeout(1500);
   const L = (fn, arg) => page.evaluate(fn, arg);
-  const shot = (name, opts = {}) => page.screenshot({path: out + name, ...opts});
+  // O OneDrive às vezes trava o arquivo de evidência por instantes (erro UNKNOWN -4094 ao gravar o PNG): tenta de novo antes de falhar.
+  const shot = async (name, opts = {}) => {for (let t = 1; ; t++) {try {return await page.screenshot({path: out + name, ...opts});} catch (e) {if (t >= 5 || !/UNKNOWN|EBUSY|EPERM/.test(String(e))) throw e;await new Promise(r => setTimeout(r, 600 * t));}}};
 
   // ---------- 5. Botões de IA na barra superior, ao lado da busca ----------
   const box = id => L(id => {const el = document.getElementById(id);if (!el) return null;const r = el.getBoundingClientRect(), s = getComputedStyle(el);return {x: r.x, y: r.y, w: r.width, h: r.height, visible: s.visibility !== 'hidden' && s.display !== 'none' && r.width > 0, inPop: !!el.closest('#tools-pop')};}, id);
@@ -47,14 +48,15 @@ try {
   await page.hover('[data-slot-move="0.0"]');await page.waitForTimeout(250);
   const tip = await L(() => {const t = document.getElementById('hover-tip');return t && !t.hidden ? t.textContent : null;});
   check('passar o mouse no seletor do Move mostra descrição e uso (custo, recarga, botão)', !!tip && /Custo/.test(tip) && /recarga/.test(tip) && /Riposte/.test(tip), tip);
-  const lines = await page.locator('#moves-panel .tip-line').count();
+  const lines = await page.locator('[data-loadout="0"] .tip-line').count();   // a linha mora na caixa de slots do azul (gaveta Ações), não mais em #moves-panel
   check('há uma linha de descrição visível sob cada Move escolhido', lines >= 2, lines);
   await shot('gaveta-acoes-tooltip.png');
   check('as opções da lista têm title com a descrição', await L(() => [...document.querySelectorAll('[data-slot-move="0.0"] option')].filter(o => o.value && o.title.length > 20).length >= 10));
   await page.mouse.move(5, 5);
 
   // ---------- 2. Riposte: bloco de controles + visual da postura ----------
-  const rip = await L(() => ['fxOn', 'fxIntensity', 'fxSize'].every(k => document.querySelector(`#moves-panel [data-p="riposte.${k}"]`)));
+  // Os controles visuais do Riposte ficam na seção de VFX do Editor (data-visual), fora da lista de mecânica.
+  const rip = await L(() => {const p = document.getElementById('panel');if (p.hidden || p.dataset.tool !== 'moves') document.querySelector('button[data-tool="moves"]').click();document.querySelector('#moves-showcase .mvs-card[data-move="riposte"] .mvs-open').click();return ['fxOn', 'fxIntensity', 'fxSize'].every(k => document.querySelector(`#editor-vfx [data-visual="world.riposte.${k}"]`));});
   check('o Riposte tem os 3 controles do efeito visual (ligado, intensidade, tamanho)', rip);
   await L(() => document.getElementById('moves-close')?.click());
   await L(() => {const L = window.__lab;L.C.extras.toggles.enableEnemyAI = 0;if (L.game.phase !== 'playing') L.game.start();L.game.setLoadout(0, ['riposte', null, null, null]);});await page.waitForTimeout(400);

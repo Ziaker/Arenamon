@@ -26,9 +26,6 @@ Todo código-fonte, documentação, recurso permitido, teste e entrega final dev
 
 ## Política Obrigatória de Diretórios e Workspaces
 
-0. **Escritor único no checkout oficial:**
-   Somente um agente pode modificar `C:\Users\zerke\OneDrive\Área de Trabalho\Arenamon` por vez. Antes de editar, o agente deve verificar `git status --short --branch`; se surgirem mudanças durante a tarefa, deve interromper edições sobrepostas, auditar o diff e coordenar a continuidade. Outros agentes podem fazer auditorias somente leitura e preparar instruções, mas não podem alterar simultaneamente o checkout oficial nem criar clones ou worktrees permanentes.
-
 1. **Proibição de Pastas Externas e Worktrees Particulares:**
    Fica expressamente proibido utilizar pastas como:
    - `.codex/worktrees/`
@@ -61,14 +58,25 @@ Todo código-fonte, documentação, recurso permitido, teste e entrega final dev
 1. Execute `git status --short --branch`, `git remote -v` e `git fetch origin`.
 2. Verifique o workspace atual com `npm run verify:workspace`. Confirme que está operando na pasta local oficial.
 3. Leia as mudanças locais existentes e não as sobrescreva.
-4. Se outro agente estiver trabalhando no checkout oficial, não edite em paralelo. Coordene a passagem do controle; uma branch separada não autoriza dois escritores simultâneos na mesma pasta.
-5. Cada agente deverá trabalhar apenas nos seus arquivos e áreas de responsabilidade:
+4. Cada agente deverá trabalhar apenas nos seus arquivos e áreas de responsabilidade:
    - **Codex:** Núcleo de rigging estrutural, biblioteca de animações CC0 e CI Windows Server.
    - **Claude:** Workbench de prototipagem, integração de telemetria no studio e balanceamento de combate.
    - **Antigravity:** Propostas visuais de rigging (A/B/C), telemetria programática e auto-rig adaptativo.
-6. Nunca use force push, descarte mudanças ou reescreva histórico sem autorização expressa.
+5. Nunca use force push, descarte mudanças ou reescreva histórico sem autorização expressa.
 
-## Antes de entregar
+## Fluxo rápido de entrega (padrão; mudança comum deve sair em ~1 minuto)
+
+O build leva ~2 s; o que atrasava era a cadeia `npm test` sequencial (~130 testes, navegadores, 5+ min). Use:
+
+0. **Vigia (melhor caminho):** `npm run vigia` (ou duplo clique em `INICIAR_VIGIA.bat`) fica ligado e refaz o jogo a cada arquivo salvo (~1,5 s). Com ele ligado, a entrega de qualquer mudança é só dar F5 em `JOGAR_ARENAMON.html`. Se o build quebrar, a janela mostra o erro e o jogo anterior continua valendo.
+1. `npm run rapido:build` — só recompila (~2 s). Já dá para abrir `JOGAR_ARENAMON.html`.
+2. `npm run rapido` — build + typecheck + testes unitários rápidos **em paralelo**, pulando os que não dependem do que mudou (cache por importação; ~35 s na 1ª vez, ~4 s sem mudança). `--sem-cache` força tudo. Falha só reexecutada sozinha antes de acusar.
+3. `npm run rapido:tudo` — inclui os testes lentos de IA/propriedades (~5 min). Só quando mexer em IA, regras ou simulação.
+4. Testes de navegador (`*.browser.mjs`): rode **só o da área tocada**, nunca a bateria inteira.
+5. `npm run verify` completo fica para marcos grandes (release, mudança de arquitetura), não para cada entrega.
+6. Commit pequeno e direto; sem reler/relatar toda a bateria. Diga na resposta qual teste rodou.
+
+## Antes de entregar (marcos grandes; em mudança comum vale o fluxo rápido acima)
 
 1. Revise `git diff` e `git status --short`.
 2. Confirme que nenhum segredo (chaves, tokens, senhas) foi incluído; nunca use `git add -f` para contornar as exclusões.

@@ -14,6 +14,7 @@ import {spawn} from '../src/sim/world.js';
 import {walkSpeed} from '../src/sim/controller.js';
 import {setAttemptSink, describe} from '../src/sim/attempts.js';
 
+globalThis.__legacyFractionalDamage = true;   // este teste caracteriza a matemática de dano fracionária, anterior à regra de dano inteiro (ver sim/damage-rule.js)
 let n = 0;const ok = l => {n++;console.log('✓', l);};
 const cmd = o => ({...emptyCommand(), ...o});
 /** Partida limpa: azul em (0,-3) olhando +Z, vermelho parado em (0,3) olhando −Z. */
@@ -112,7 +113,7 @@ registerMove({id: 'teste:pulso', name: 'Pulso radial de teste', duration: .3, co
   assert.ok(direct && blast, 'acerto direto e explosão no ponto do impacto');assert.ok(blast.damage < 20 && blast.damage > 0, `queda linear com a distância (${blast.damage.toFixed(2)})`);
   assert.ok(blast.normal.z > .5, 'empurrão radial, do centro para fora');
   const g2 = arena({blue: vec(0, -1), red: vec(0, 1)});g2.setLoadout(0, ['teste:pulso']);g2.step(cmd({skill: 0}));const ev2 = [...g2.lastStepEvents, ...steps(g2, 120)]; // o 1º pulso sai no próprio passo do movimento
-  assert.equal(ev2.filter(e => e.entity && e.result === 'impact').length, 3, '3 pulsos = 3 acertos');assert.equal(g2.fighters[0].hp, 100, 'área não atinge o dono');
+  assert.equal(ev2.filter(e => e.entity && e.result === 'impact').length, 3, `3 pulsos = 3 acertos (obtido ${ev2.filter(e => e.entity && e.result === 'impact').length})`);assert.equal(g2.fighters[0].hp, 100, 'área não atinge o dono');
 }
 ok('explosão no impacto (queda linear, empurrão radial) e pulsos radiais (intervalo, uma vez por alvo por pulso, sem atingir o dono)');
 

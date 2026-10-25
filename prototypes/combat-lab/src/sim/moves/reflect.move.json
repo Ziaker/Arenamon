@@ -1,0 +1,247 @@
+{
+  "schemaVersion": 1,
+  "def": {
+    "id": "reflect",
+    "name": "Reflect",
+    "air": "cast",
+    "description": "Carregue por no mínimo 1,5 s e solte para criar uma barreira que reflete projéteis. Quanto mais carga, maior e mais duradoura; ela é sólida para os dois lutadores.",
+    "cost": 1,
+    "cooldown": 8,
+    "cooldownBoost": true,
+    "charge": {
+      "max": 4,
+      "min": 0.9,
+      "group": "reflect"
+    },
+    "timeline": [
+      {
+        "effect": "reflect"
+      }
+    ]
+  },
+  "params": {
+    "group": "reflect",
+    "title": "Reflect",
+    "hint": "Barreira refletora frontal. Segure para carregar, solte para criar.",
+    "rows": [
+      {
+        "key": "widthMin",
+        "label": "Largura mínima",
+        "tip": "Múltiplo da largura lógica do personagem com carga mínima (M5.2, M30.4).",
+        "min": 0.5,
+        "max": 3,
+        "step": 0.05,
+        "unit": "x",
+        "value": 1.5,
+        "approved": true
+      },
+      {
+        "key": "widthMax",
+        "label": "Largura máxima",
+        "tip": "Múltiplo da largura lógica com carga máxima (M5.2).",
+        "min": 1,
+        "max": 6,
+        "step": 0.05,
+        "unit": "x",
+        "value": 3,
+        "approved": true
+      },
+      {
+        "key": "heightMin",
+        "label": "Altura mínima",
+        "tip": "Múltiplo da altura lógica com carga mínima (M5.3).",
+        "min": 0.5,
+        "max": 3,
+        "step": 0.05,
+        "unit": "x",
+        "value": 1.5,
+        "approved": true
+      },
+      {
+        "key": "heightMax",
+        "label": "Altura máxima",
+        "tip": "Múltiplo da altura lógica com carga máxima (M5.3).",
+        "min": 1,
+        "max": 5,
+        "step": 0.05,
+        "unit": "x",
+        "value": 2.5,
+        "approved": true
+      },
+      {
+        "key": "thickness",
+        "label": "Espessura",
+        "tip": "Espessura física do painel (M29.2: 0,10 m sugerido).",
+        "min": 0.02,
+        "max": 0.5,
+        "step": 0.01,
+        "unit": "m",
+        "value": 0.1,
+        "approved": true
+      },
+      {
+        "key": "gapFraction",
+        "label": "Distância livre à frente",
+        "tip": "Fração da profundidade do personagem entre ele e a barreira (M26s.4).",
+        "min": 0,
+        "max": 2,
+        "step": 0.05,
+        "unit": "pct",
+        "value": 0.5,
+        "approved": true
+      },
+      {
+        "key": "durationBase",
+        "label": "Duração base",
+        "tip": "Segundos de duração com carga zero; soma o tempo carregado (M4.2–M4.4).",
+        "min": 1,
+        "max": 10,
+        "step": 0.25,
+        "unit": "sec",
+        "value": 4,
+        "approved": true
+      },
+      {
+        "key": "minCharge",
+        "label": "Carga mínima para materializar",
+        "tip": "Tempo mínimo segurando o botão; soltar antes disso falha e devolve a stamina (M4.1; provisório).",
+        "min": 0,
+        "max": 4,
+        "step": 0.05,
+        "unit": "sec",
+        "value": 0.9
+      },
+      {
+        "key": "tackleRecoil",
+        "label": "Recuo do Tackle ao destruir",
+        "tip": "Fração do deslocamento nominal do Tackle (provisório, M30.10).",
+        "min": 0,
+        "max": 0.6,
+        "step": 0.01,
+        "unit": "pct",
+        "value": 0.15
+      },
+      {
+        "key": "tackleStagger",
+        "label": "Stagger do Tackle ao destruir",
+        "tip": "Tempo em stagger do atacante (M14.3).",
+        "min": 0,
+        "max": 1,
+        "step": 0.01,
+        "unit": "sec",
+        "value": 0.25,
+        "approved": true
+      },
+      {
+        "key": "tieTolerance",
+        "label": "Tolerância de empate geométrico",
+        "tip": "Distância dentro da qual frente > borda > verso (M30.5; provisório).",
+        "min": 0,
+        "max": 0.05,
+        "step": 0.001,
+        "unit": "m",
+        "value": 0.001
+      },
+      {
+        "key": "maxReflections",
+        "label": "Limite de reflexões por passo",
+        "tip": "Salvaguarda contra ciclos degenerados (M17.2; provisório).",
+        "min": 1,
+        "max": 64,
+        "step": 1,
+        "unit": "int",
+        "value": 16
+      },
+      {
+        "key": "burstRadius",
+        "label": "Pulso ao invocar: alcance",
+        "tip": "Raio, a partir do centro da barreira, em que o pulso atinge os lutadores ao materializar (0 = sem pulso). A própria barreira não quebra (provisório).",
+        "min": 0,
+        "max": 10,
+        "step": 0.25,
+        "unit": "m",
+        "value": 0
+      },
+      {
+        "key": "burstForce",
+        "label": "Pulso ao invocar: força do empurrão",
+        "tip": "Empurrão horizontal do pulso (cai com a distância). Só vale com “Causa empurrão” ligado (provisório).",
+        "min": 0,
+        "max": 10,
+        "step": 0.05,
+        "unit": "ms",
+        "value": 3
+      },
+      {
+        "key": "burstVertical",
+        "label": "Pulso ao invocar: lançamento vertical",
+        "tip": "Componente vertical do pulso (cai com a distância). Só vale com “Causa empurrão” ligado (provisório).",
+        "min": 0,
+        "max": 15,
+        "step": 0.05,
+        "unit": "ms",
+        "value": 0
+      },
+      {
+        "key": "burstDamage",
+        "label": "Pulso ao invocar: dano",
+        "tip": "Dano do pulso como fração do Ataque do lançador (0 = nenhum; cai com a distância). Só vale com “Causa dano” ligado (provisório).",
+        "min": 0,
+        "max": 2,
+        "step": 0.01,
+        "unit": "pct",
+        "value": 0
+      },
+      {
+        "key": "burstPush",
+        "label": "Pulso ao invocar: causa empurrão?",
+        "tip": "Liga o empurrão do pulso (provisório).",
+        "min": 0,
+        "max": 1,
+        "step": 1,
+        "unit": "yesno",
+        "value": 0
+      },
+      {
+        "key": "burstHurt",
+        "label": "Pulso ao invocar: causa dano?",
+        "tip": "Liga o dano do pulso (provisório).",
+        "min": 0,
+        "max": 1,
+        "step": 1,
+        "unit": "yesno",
+        "value": 0
+      },
+      {
+        "key": "hitShakeOn",
+        "label": "Tremor de câmera ao acertar",
+        "tip": "Desligado (padrão): este Move não treme a câmera ao acertar. Ligado: libera a intensidade e a duração do tremor. Só aparência.",
+        "min": 0,
+        "max": 1,
+        "step": 1,
+        "unit": "yesno",
+        "value": 0
+      },
+      {
+        "key": "hitShakeAmount",
+        "label": "Tremor ao acertar: intensidade",
+        "tip": "Multiplica o tremor de hit padrão (1 = igual ao do Tackle). Só aparência.",
+        "min": 0,
+        "max": 3,
+        "step": 0.05,
+        "unit": "x",
+        "value": 1
+      },
+      {
+        "key": "hitShakeDuration",
+        "label": "Tremor ao acertar: duração",
+        "tip": "Multiplica a duração do tremor de hit padrão (1 = igual ao do Tackle). Só aparência.",
+        "min": 0.1,
+        "max": 2.5,
+        "step": 0.05,
+        "unit": "x",
+        "value": 1
+      }
+    ]
+  }
+}

@@ -7,13 +7,10 @@ import {C} from '../config.js';
 import {spawn} from '../world.js';
 import {direction} from '../math.js';
 import {emitterAltitude, spawnPoint, spawnBlocked, straightLaunch, bodyHeight} from './projectile-util.js';
+import {defineFicha} from './params-registry.js';
+import {params, def as waterPulseDef} from './water-pulse.params.js';
 
-export const waterPulseDef = Object.freeze({
-  id: 'water-pulse', name: 'Water Pulse', air: 'cast', group: 'waterPulse', cooldownOnStart: true,
-  description: 'Charge · Projectile. Segure para carregar (até 1,5 s), solte para disparar uma esfera de água reta, sem homing. Mais carga = mais PL, dano e empurrão.',
-  cost: 1, cooldown: 9, charge: {max: 1.5, group: 'waterPulse'},
-  timeline: [{effect: 'water-pulse'}],
-});
+export {waterPulseDef};   // definição (id, fases, custo…) vem de water-pulse.move.json
 
 /** Efeito da soltura: cria o projétil (ou falha com reembolso se o ponto de nascimento estiver num sólido). */
 export function waterPulseEffect(/** @type {any} */ game, /** @type {any} */ f, /** @type {any} */ def, /** @type {any} */ fx) {
@@ -33,9 +30,15 @@ export function waterPulseEffect(/** @type {any} */ game, /** @type {any} */ f, 
   const damage = nominal * f.attributes.attack / C.test.attackReference;   // MV-P13: nominal × Ataque ÷ referência, gravado no disparo (o Ataque não entra de novo no acerto)
   const e = spawn(game.world, {
     kind: 'projectile', owner: f.id, pos, y: y0, radius: P.radius, dir, speed: hSpeed, vy, life: P.range / P.speed + dt * .5, pierce: 1, blockedBy: ['barrier', 'wall'],
-    hit: {damage, knockback: {horizontal: kbH, vertical: 0}}, pl: level, clashable: true, visual: 'waterorb', visualScale: 1 + (level - 1) * .25,
+    hit: {damage, knockback: {horizontal: kbH, vertical: P.knockbackV ?? 0}}, pl: level, clashable: true, visual: 'waterorb', visualScale: 1 + (level - 1) * .25,
     captured: {attackFraction: nominal / C.test.attackReference, successiveFactor: 1, level, move: def.id, speed: P.speed, counterStagger: P.counterStagger},
   }, fx.events ?? []);
   if (!e) return {ok: false, reason: 'entityLimit'};
   fx.events?.push({result: 'moveEffect', move: 'water-pulse', attacker: f.id, target: null, damage: 0, level, entity: e.id});
 }
+
+/** FICHA do Move (ver docs/COMO_CRIAR_UM_MOVE.md): `params` gera o padrão em C.world.waterPulse e os sliders da aba Moves; `def` e os manipuladores são registrados sozinhos. */
+export const ficha = defineFicha({
+  def: waterPulseDef, effect: ['water-pulse', waterPulseEffect],
+  params,
+});

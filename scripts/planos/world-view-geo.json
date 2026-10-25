@@ -1,0 +1,2 @@
+{"arquivo":"prototypes/combat-lab/src/view/world-view.js","pasta":"prototypes/combat-lab/src/view/world-view","modulos":{
+"wv-geometry":["PL_HEX","RING","FIGHTER_EVENTS","buildRockGeometry","buildHexGridGeometry","buildQuartzGeometry","buildForceFieldGeometry","OCCLUSION_HEIGHTS"]}}

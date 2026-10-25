@@ -7,13 +7,10 @@
 import {C} from '../config.js';
 import {applyStatus} from '../status.js';
 import {getFighterMaxStamina} from '../entity.js';
+import {defineFicha} from './params-registry.js';
+import {params, def as secondWindDef} from './second-wind.params.js';
 
-export const secondWindDef = Object.freeze({
-  id: 'second-wind', name: 'Second Wind', air: 'cast', group: 'secondWind',
-  description: 'Por 5 s regenera stamina bem mais rápido (+40% da máxima por segundo) e gasta 25% menos em esquiva e sprint. Não cura HP. Cast de 0,35 s.',
-  cost: .8, cooldown: 12, duration: .35, aim: 'facing',
-  timeline: [{at: .35, atKey: 'cast', effect: 'second-wind'}],
-});
+export {secondWindDef};   // definição (id, fases, custo…) vem de second-wind.move.json
 
 /** Passo de regeneração (a cada 0,1 s) em pontos de stamina para um lutador com `staminaMax`. */
 export const REGEN_TICK = .1;
@@ -29,3 +26,11 @@ export function secondWindEffect(game, f, def, fx) {
   applyStatus(f, /** @type {any} */ (secondWindStatus(P, getFighterMaxStamina(f))), {source: f.id});
   fx.events?.push({result: 'moveEffect', move: 'second-wind', attacker: f.id, target: f.id, damage: 0, status: 'second-wind', duration: P.duration});
 }
+
+/** FICHA do Move (ver harden.js): `params` gera o padrão em C.world.secondWind e os sliders; `def`/`effect` são registrados sozinhos. */
+export const ficha = defineFicha({
+  def: secondWindDef,
+  effect: ['second-wind', secondWindEffect],
+  params,
+  ai: {kind: 'tap', p: .6, why: 'stamina baixa e rival longe: recupera', notStatus: 'second-wind', maxStamina: 1.3, distance: {min: 3}, forbids: ['tackling']},
+});

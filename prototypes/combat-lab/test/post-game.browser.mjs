@@ -22,7 +22,8 @@ try {
   await page.goto(labUrl);
   await page.waitForFunction(() => window.__lab && window.__lab.cinematic, null, {timeout: 120000});
 
-  check('padrão: pós-processamento e navegação Yuka desligados, nada instanciado', await page.evaluate(() => !window.__lab.C.vfx.post.enabled && !window.__lab.C.extras.nav.enableNav && !window.__lab.view.post && !window.__lab.view.navDebug));
+  // Navegação Yuka vem LIGADA por padrão desde 22/10/2026 (588bbe7, «IA sobe plataformas»); o diagnóstico visual dela (navDebug) e o pós seguem desligados.
+  check('padrão: pós-processamento desligado, navegação Yuka ligada, diagnóstico e pós não instanciados', await page.evaluate(() => !window.__lab.C.vfx.post.enabled && !!window.__lab.C.extras.nav.enableNav && !window.__lab.view.post && !window.__lab.view.navDebug));
 
   // Controles de Ajustes existem para as duas ferramentas (regra: todo parâmetro tem controle na interface)
   const sections = await page.evaluate(() => {

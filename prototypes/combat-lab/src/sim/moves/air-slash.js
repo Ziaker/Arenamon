@@ -7,13 +7,10 @@ import {C} from '../config.js';
 import {spawn} from '../world.js';
 import {direction} from '../math.js';
 import {emitterAltitude, spawnPoint, spawnBlocked, straightLaunch} from './projectile-util.js';
+import {defineFicha} from './params-registry.js';
+import {params, def as airSlashDef} from './air-slash.params.js';
 
-export const airSlashDef = Object.freeze({
-  id: 'air-slash', name: 'Air Slash', air: 'cast', group: 'airSlash', aim: 'target', captureAim: true,
-  description: 'Burst · Projectile · PL1. Toque: após um instante nasce uma lâmina de ar rápida, em linha reta, sem homing. O alvo travado é o do instante do toque.',
-  cost: .8, cooldown: 6, duration: 28 / 120, durationKeys: ['startup', 'recovery'],
-  timeline: [{at: 8 / 120, atKey: 'startup', effect: 'air-slash'}],
-});
+export {airSlashDef};   // definição (id, fases, custo…) vem de air-slash.move.json
 
 export function airSlashEffect(/** @type {any} */ game, /** @type {any} */ f, /** @type {any} */ def, /** @type {any} */ fx) {
   const P = fx.params ?? C.world.airSlash, dt = C.test.step;
@@ -25,9 +22,15 @@ export function airSlashEffect(/** @type {any} */ game, /** @type {any} */ f, /*
   const damage = P.damage * f.attributes.attack / C.test.attackReference;   // MV-P13
   const e = spawn(game.world, {
     kind: 'projectile', owner: f.id, pos, y: y0, radius: P.radius, dir, speed: hSpeed, vy, life: P.range / P.speed + dt * .5, pierce: 1, blockedBy: ['barrier', 'wall'],
-    hit: {damage, knockback: {horizontal: P.knockbackH, vertical: 0}}, pl: 1, clashable: true, visual: 'airslash',
+    hit: {damage, knockback: {horizontal: P.knockbackH, vertical: P.knockbackV ?? 0}}, pl: 1, clashable: true, visual: 'airslash',
     captured: {attackFraction: P.damage / C.test.attackReference, successiveFactor: 1, level: 1, move: def.id, speed: P.speed, counterStagger: P.counterStagger, w: P.visualWidth, h: P.visualHeight, t: P.visualThickness},
   }, fx.events ?? []);
   if (!e) return {ok: false, reason: 'entityLimit'};
   fx.events?.push({result: 'moveEffect', move: 'air-slash', attacker: f.id, target: null, damage: 0, level: 1, entity: e.id});
 }
+
+/** FICHA do Move (ver docs/COMO_CRIAR_UM_MOVE.md): `params` gera o padrão em C.world.airSlash e os sliders da aba Moves; `def` e os manipuladores são registrados sozinhos. */
+export const ficha = defineFicha({
+  def: airSlashDef, effect: ['air-slash', airSlashEffect],
+  params,
+});

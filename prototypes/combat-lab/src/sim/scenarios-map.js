@@ -73,8 +73,8 @@ export const MAP_SCENARIOS = [
   // 3. SALTO: Salto parado
   {
     id: 'map-jump-standing',
-    name: 'Salto: Salto normal parado (2,0 m)',
-    description: 'O azul pressiona Espaço parado; decola verticalmente atingindo aproximadamente 2,0 m de altitude sem deslocamento lateral.',
+    name: 'Salto: Salto normal parado (altura configurada)',
+    description: 'O azul pressiona Espaço parado; decola verticalmente atingindo aproximadamente a altura de salto configurada (map.jumpHeight) sem deslocamento lateral.',
     positions: [vec(0, 0), vec(5, 5)],
     ticks: () => steps(1.5),
     setup: g => {
@@ -91,7 +91,7 @@ export const MAP_SCENARIOS = [
       const f = game.fighters[0];
       const peakY = scratch.peakY ?? f.position.y ?? 0;
       return [
-        check('Atingiu altitude do salto normal (~2 m)', peakY >= 1.6 && peakY <= 2.3, '~ 2,0 m', peakY.toFixed(2)),
+        check(`Atingiu altitude do salto normal (~${C.map.jumpHeight.toFixed(1).replace('.', ',')} m)`, peakY >= C.map.jumpHeight * .8 && peakY <= C.map.jumpHeight * 1.05, `~ ${C.map.jumpHeight.toFixed(1).replace('.', ',')} m`, peakY.toFixed(2)),
         check('Deslocamento horizontal mínimo', Math.hypot(f.position.x, f.position.z) < 0.2, '< 0,2 m', Math.hypot(f.position.x, f.position.z).toFixed(2)),
         check('Sem custo de stamina', near(f.stamina, 3, 0.01), 3.0, f.stamina.toFixed(2)),
       ];
@@ -253,18 +253,19 @@ export const MAP_SCENARIOS = [
     id: 'map-combat-launch-platform',
     name: 'Combate: Pouso físico sobre plataforma',
     description: 'Um lutador lançado para cima que cruza a área da plataforma aterrissa solidamente sobre seu topo elevado.',
-    positions: [vec(0, -1), vec(0, 1)],
+    positions: [vec(-6, -6), vec(0, 1)],
     ticks: () => steps(1.6),
     setup: g => {
       g.mapState.platforms = [{id: 'p1', pos: {x: 0, z: 3}, width: 4, depth: 4, height: 1.0}];
       const victim = g.fighters[1];
+      // O azul fica longe (senão o voo bate nele) e a velocidade horizontal vence o arrasto e a gravidade de lançamento da calibração v8.
       // Lançado de FORA da área da plataforma: o arco sobe, cruza a borda acima do topo e aterrissa no topo.
       // (O ponto de partida original, colado na face lateral, só "pousava no topo" por causa do defeito de
       // pouso durante a subida; com a física corrigida ele bate na face inferior e cai ao solo — comportamento certo.)
       victim.position = vec(0, -1.5);
       victim.flight = {
         y: 0,
-        horizontal: vec(0, 6),
+        horizontal: vec(0, 9),
         vy: 10,
         targetVy: 0,
         t: 0,

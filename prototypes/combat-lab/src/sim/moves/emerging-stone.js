@@ -7,13 +7,11 @@
 // rocha está em stone.js. Valores: C.world.emergingStone, capturados ao apertar (M28.4).
 import {C} from '../config.js';
 import {spawn} from '../world.js';
+import {defineFicha} from './params-registry.js';
+import {params, def as emergingStoneDef} from './emerging-stone.params.js';
+import {stoneStep} from '../stone.js';
 
-export const emergingStoneDef = Object.freeze({
-  id: 'emerging-stone', name: 'Emerging Stone', air: 'cast', group: 'emergingStone', aimMode: 'marker', castFirst: true, aimAirOk: true, aim: 'facing',
-  description: 'Normal. Segure para marcar o destino (3–10 m); após 0,55 s de cast e a soltura, um projétil subterrâneo vai ao marcador, explode (5 m) e deixa uma rocha 3×3×3 m.',
-  cost: 3, cooldown: 9, duration: .55,
-  timeline: [{at: 0, effect: 'emerging-stone'}],
-});
+export {emergingStoneDef};   // definição (id, fases, custo…) vem de emerging-stone.move.json
 
 /** Efeito do disparo: cria o projétil subterrâneo na posição real do lutador agora, rumo ao marcador confirmado. */
 export function emergingStoneEffect(/** @type {any} */ game, /** @type {any} */ f, /** @type {any} */ def, /** @type {any} */ fx) {
@@ -28,3 +26,9 @@ export function emergingStoneEffect(/** @type {any} */ game, /** @type {any} */ 
   }, fx.events ?? []);
   if (!e) return {ok: false, reason: 'entityLimit'};
 }
+
+/** FICHA do Move (ver docs/COMO_CRIAR_UM_MOVE.md): `params` gera o padrão em C.world.emergingStone e os sliders da aba Moves; `def` e os manipuladores são registrados sozinhos. */
+export const ficha = defineFicha({
+  def: emergingStoneDef, effect: ['emerging-stone', emergingStoneEffect], steps: [['stone', stoneStep]],
+  params,
+});

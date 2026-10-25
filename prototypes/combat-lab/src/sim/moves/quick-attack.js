@@ -13,12 +13,10 @@ import {C} from '../config.js';
 import {nearestEligible, targetReachOf} from '../moves.js';
 import {altitudeOf} from '../entity.js';
 import {sub, length, normalize, angleOf, direction, scale} from '../math.js';
+import {defineFicha} from './params-registry.js';
+import {params, def as quickAttackDef} from './quick-attack.params.js';
 
-export const quickAttackDef = Object.freeze({
-  id: 'quick-attack', name: 'Quick Attack', air: 'descend', group: 'quickAttack', tackle: 'quick-attack', needsTarget: 'acquireRange', antiAir: true,
-  description: 'Burst. Acha o adversário mais próximo a até 7 m (inclusive em voo baixo), investe em altíssima velocidade com um Tackle curto (PL1) e volta na hora ao ponto de partida.',
-  cost: .75, cooldown: 6, duration: .42, aim: 'target',
-});
+export {quickAttackDef};   // definição (id, fases, custo…) vem de quick-attack.move.json
 
 /** Preparação da ação (captura alvo, origem e velocidades). */
 export function quickAttackSetup(/** @type {any} */ f, /** @type {any} */ a, /** @type {Record<string, any>} */ P, /** @type {{fighters: any[], def: any}} */ ctx) {
@@ -64,3 +62,9 @@ export function quickAttackStep(/** @type {any} */ f, /** @type {any} */ a, /** 
   }
   return {x: 0, z: 0};
 }
+
+/** FICHA do Move (ver docs/COMO_CRIAR_UM_MOVE.md): `params` gera o padrão em C.world.quickAttack e os sliders da aba Moves; `def` e os manipuladores são registrados sozinhos. */
+export const ficha = defineFicha({
+  def: quickAttackDef, tackle: ['quick-attack', quickAttackSetup], hooks: [['quick-attack:step', quickAttackStep]],
+  params,
+});

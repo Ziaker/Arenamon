@@ -1,3 +1,4 @@
+// @ts-check
 // Curva física em fases das ações X (tackle) e C (esquiva):
 //   Preparação → Impulso → Deslocamento → Desaceleração → Recuperação.
 // A forma da velocidade s(u) (u = tempo/duração) é normalizada para ∫s du = 1. O deslocamento de cada passo é

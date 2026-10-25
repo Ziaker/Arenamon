@@ -9,13 +9,10 @@ import {spawn} from '../world.js';
 import {direction, normalize, length, sub} from '../math.js';
 import {markerValidity} from '../aim-marker.js';
 import {emitterAltitude, spawnPoint, spawnBlocked} from './projectile-util.js';
+import {defineFicha} from './params-registry.js';
+import {params, def as seedBombDef} from './seed-bomb.params.js';
 
-export const seedBombDef = Object.freeze({
-  id: 'seed-bomb', name: 'Seed Bomb', air: 'cast', group: 'seedBomb', aimMode: 'marker', aim: 'facing',
-  description: 'Normal · Projectile + Field. Segure para escolher o local (até 8 m), solte para confirmar: uma semente voa em arco e explode ao tocar algo, num raio esférico de 1,8 m.',
-  cost: 1, cooldown: 8, duration: .5, durationKeys: ['cast', 'recovery'], motion: {type: 'root'},
-  timeline: [{at: .3, atKeys: ['cast'], effect: 'seed-bomb'}],
-});
+export {seedBombDef};   // definição (id, fases, custo…) vem de seed-bomb.move.json
 
 /**
  * Velocidade inicial do arco: tempo de voo T fixo, gravidade g. A integração do motor é Euler semi-implícita (a velocidade vertical é atualizada antes da posição), então
@@ -50,3 +47,9 @@ export function seedBombEffect(/** @type {any} */ game, /** @type {any} */ f, /*
   if (!e) return {ok: false, reason: 'entityLimit'};
   fx.events?.push({result: 'moveEffect', move: 'seed-bomb', attacker: f.id, target: null, damage: 0, level: 1, entity: e.id, speed: shot.speed});
 }
+
+/** FICHA do Move (ver docs/COMO_CRIAR_UM_MOVE.md): `params` gera o padrão em C.world.seedBomb e os sliders da aba Moves; `def` e os manipuladores são registrados sozinhos. */
+export const ficha = defineFicha({
+  def: seedBombDef, effect: ['seed-bomb', seedBombEffect],
+  params,
+});

@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "def": {
+    "id": "second-wind",
+    "name": "Second Wind",
+    "air": "cast",
+    "group": "secondWind",
+    "description": "Por 5 s regenera stamina bem mais rápido (+40% da máxima por segundo) e gasta 25% menos em esquiva e sprint. Não cura HP. Cast de 0,35 s.",
+    "cost": 0.8,
+    "cooldown": 12,
+    "duration": 0.35,
+    "aim": "facing",
+    "timeline": [
+      {
+        "at": 0.35,
+        "atKey": "cast",
+        "effect": "second-wind"
+      }
+    ]
+  },
+  "params": {
+    "group": "secondWind",
+    "title": "Second Wind",
+    "hint": "Normal · Status. Toque para regenerar stamina bem mais rápido e gastar 25% menos em esquiva e sprint por 5 s (cast de 0,35 s).",
+    "meta": {
+      "category": "Normal",
+      "types": [
+        "Status"
+      ],
+      "pl": "SEM PL",
+      "status": {
+        "proposto": true,
+        "aprovado": false,
+        "implementado": true,
+        "homologado": false
+      }
+    },
+    "rows": [
+      {
+        "min": 0,
+        "max": 5,
+        "step": 0.05,
+        "key": "cost",
+        "label": "Custo de stamina",
+        "tip": "Cobrado no início do cast (Normal sem marcador); vale nos PRÓXIMOS usos (M28.4). Valor do catálogo — proposta, não homologada.",
+        "unit": "num",
+        "value": 0.8
+      },
+      {
+        "min": 0,
+        "max": 60,
+        "step": 0.5,
+        "key": "cooldown",
+        "label": "Cooldown",
+        "tip": "Começa junto com o custo, no início do cast (proposta).",
+        "unit": "sec",
+        "value": 12
+      },
+      {
+        "min": 0.05,
+        "max": 2,
+        "step": 0.01,
+        "key": "cast",
+        "label": "Duração do cast",
+        "tip": "Tempo do cast antes do efeito começar; interrupção nesse intervalo cancela sem reembolso (proposta).",
+        "unit": "sec",
+        "value": 0.35
+      },
+      {
+        "min": 0.5,
+        "max": 20,
+        "step": 0.25,
+        "key": "duration",
+        "label": "Duração do efeito",
+        "tip": "Quanto tempo o status dura depois do cast (proposta).",
+        "unit": "sec",
+        "value": 5
+      },
+      {
+        "min": 0,
+        "max": 2,
+        "step": 0.05,
+        "key": "regenPctPerSecond",
+        "label": "Regeneração extra por segundo",
+        "tip": "Fração da stamina MÁXIMA recuperada por segundo durante o efeito (MV-P09: o documento diz \"+40%/s\" sem base).",
+        "unit": "pct",
+        "value": 0.4
+      },
+      {
+        "min": 0,
+        "max": 0.9,
+        "step": 0.05,
+        "key": "mobilityCostPct",
+        "label": "Desconto em esquiva e sprint",
+        "tip": "Redução do custo da esquiva (C) e do consumo do sprint durante o efeito (proposta: 25%).",
+        "unit": "pct",
+        "value": 0.25
+      }
+    ]
+  }
+}

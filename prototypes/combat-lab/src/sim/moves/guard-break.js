@@ -6,13 +6,11 @@
 // (não recua); contra defesa PERFEITA anula dano e stun (GM-P05, proposta) e o atacante recua como num Tackle; sem guarda: dano e 2 m/s H como qualquer golpe.
 // Harden anula o knockback mas NÃO o guard stun (GM-P06, proposta). Valores: C.world.guardBreak, capturados ao apertar o botão (M28.4).
 import {C} from '../config.js';
+import {defineFicha} from './params-registry.js';
+import {params, def as guardBreakDef} from './guard-break.params.js';
 import {nominalDistance} from '../entity.js';
 
-export const guardBreakDef = Object.freeze({
-  id: 'guard-break', name: 'Guard Break', air: 'descend', group: 'guardBreak', tackle: 'guard-break',
-  description: 'Charge. Segure para carregar (até 1 s, PL1/PL2/PL3), solte para um golpe pesado que derruba a guarda de quem defende e causa guard stun de 0,5 s.',
-  cost: 1, cooldown: 10, charge: {max: 1, group: 'guardBreak'}, duration: .7,
-});
+export {guardBreakDef};   // definição (id, fases, custo…) vem de guard-break.move.json
 
 /** Preparação do Tackle do golpe, com os parâmetros congelados no início da carga e o nível de PL da soltura. */
 export function guardBreakSetup(/** @type {any} */ f, /** @type {any} */ a, /** @type {Record<string, any>} */ P, /** @type {{charge?: {level: number}}} */ ctx) {
@@ -30,3 +28,10 @@ export function guardBreakSetup(/** @type {any} */ f, /** @type {any} */ a, /** 
   a.combatWindows = {activeWindows: [[toStep(P.hitStart), Math.max(toStep(P.hitStart) + 1, toStep(P.hitEnd))]], invulnerabilityWindows: P.invulnerableSeconds > 0 ? [[0, toStep(P.invulnerableSeconds)]] : []};
   a.hitWindows = [new Set()];
 }
+
+/** FICHA do Move (ver docs/COMO_CRIAR_UM_MOVE.md): `params` gera o padrão em C.world.guardBreak e os sliders da aba Moves. */
+export const ficha = defineFicha({
+  def: guardBreakDef, tackle: ['guard-break', guardBreakSetup],
+  params,
+  ai: {kind: 'charge', p: .6, why: 'rival defendendo: quebra a guarda', distance: {max: 3.3}, requires: ['tGuard', 'tGround'], minStamina: 1.6, goal: x => x.distance > 2.4 ? 62 : 32},
+});

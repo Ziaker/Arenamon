@@ -1,0 +1,6 @@
+{"arquivo":"prototypes/combat-lab/src/main.js","pasta":"prototypes/combat-lab/src/app","modulos":{},"fios":[
+{"modulo":"wire-recording","funcao":"wireRecording","de":"$('rec-save').onclick","ate":"$('scenario-all').onclick"},
+{"modulo":"wire-settings","funcao":"wireTuningPersistence","de":"tuning.onChange(syncTuneState)","ate":"for (const ev of ['pagehide'"},
+{"modulo":"wire-settings","funcao":"wireExport","de":"const exportAll","ate":"$('reset-all').onclick"},
+{"modulo":"wire-settings","funcao":"wireOverlays","de":"for (const [key, label, help] of OVERLAYS)","ate":"for (const [key, label, help] of OVERLAYS)"},
+{"modulo":"wire-characters","funcao":"wireCharacters","de":"$('char-fit').onchange","ate":"$('char-sync-source').onchange"}]}

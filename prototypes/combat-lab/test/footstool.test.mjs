@@ -11,6 +11,7 @@ import {createFighter, emptyCommand} from '../src/sim/entity.js';
 import {resolveFootstool} from '../src/sim/combat.js';
 import {vec} from '../src/sim/math.js';
 
+globalThis.__legacyFractionalDamage = true;   // este teste caracteriza a matemática de dano fracionária, anterior à regra de dano inteiro (ver sim/damage-rule.js)
 let passed = 0, failed = 0;
 function test(name, fn) {
   try {fn();passed++;console.log(`  ✓ ${name}`);}

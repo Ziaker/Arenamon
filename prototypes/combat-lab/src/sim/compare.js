@@ -1,3 +1,4 @@
+// @ts-check
 // Comparação A × B: executa a MESMA situação (todos os cenários roteirizados ou a mesma gravação de partida) com dois
 // conjuntos de ajustes, sem renderização, e devolve os resultados lado a lado. A configuração é restaurada no fim.
 import {C} from './config.js';

@@ -10,6 +10,7 @@ export const COLLISION_OVERLAYS = [
   ['mapSolids', 'Colisores do cenário', 'Contorno físico real de plataformas (verde), obstáculos (azul), destrutíveis sólidos (laranja) e a prévia de respawn (amarelo tracejado), com a altura de cada um. O que está desenhado é o que colide.'],
   ['support', 'Apoio atual', 'Anel na superfície que segura cada lutador (cinza = chão, verde = plataforma, azul = obstáculo, laranja = destrutível) e linha dos pés até ela; em voo, linha até a superfície que seria o próximo apoio.'],
   ['envContacts', 'Contatos com o ambiente', 'Último contato de cada lutador com parede, obstáculo, plataforma, destrutível ou borda: seta ciano = normal; barra vermelha = profundidade corrigida; seta branca = velocidade antes; seta verde = velocidade depois. Dura 1,6 s.'],
+  ['moveEntities', 'Hitbox das entidades dos Moves', 'Geometria REAL de cada entidade criada por um Move (só leitura): projétil = esfera/anel do raio de colisão (laranja) na altura em que voa; área = círculo ou caixa com altura (vermelho; amarelo antes de ativar); barreira/parede = caixa (azul); feixe = segmentos (magenta). É o volume que a física usa, não o desenho do efeito: se o VFX parecer maior ou menor, esta é a medida certa.'],
   ['sweeps', 'Varredura dos projéteis', 'Trecho percorrido por cada projétil em cada subpasso (amarelo) e o ponto do primeiro contato (anel vermelho) com o objeto que o barrou.'],
   ['overlaps', 'Sobreposições e vãos', 'Linha vermelha entre dois sólidos do cenário que se sobrepõem, laranja quando o vão é menor que o «Vão mínimo entre objetos»; anel vermelho em lutador penetrando um sólido no chão.'],
 ];
@@ -76,6 +77,21 @@ export function drawCollisionOverlays(view, fighters, world, O) {
       view.line([[px, y + .08, pz], [px - r.normal.x * Math.max(.08, r.depth * 4), y + .08, pz - r.normal.z * Math.max(.08, r.depth * 4)]], 0xff4a4a, 1);
       view.line([[r.x, y + .25, r.z], [r.x + r.vBefore.x * k, y + .25, r.z + r.vBefore.z * k]], 0xffffff, .95);
       view.line([[r.x, y + .35, r.z], [r.x + r.vAfter.x * k, y + .35, r.z + r.vAfter.z * k]], 0x5dff9a, .95);
+    }
+  }
+  if (O.moveEntities && world?.entities) {
+    for (const e of world.entities) {
+      if (e.dead) continue;
+      const x = e.pos?.x ?? 0, z = e.pos?.z ?? 0, y0 = e.y ?? 0;
+      if (e.kind === 'projectile') {view.ring(x, z, e.radius ?? .25, 0xffa040, 0, Math.PI * 2, y0);view.line([[x, y0 - (e.radius ?? .25), z], [x, y0 + (e.radius ?? .25), z]], 0xffa040, .9);}
+      else if (e.kind === 'beam') {for (const seg of e.segments ?? []) view.line([[seg.a.x, e.y ?? .9, seg.a.z], [seg.b.x, e.y ?? .9, seg.b.z]], 0xff5de8, .9);}
+      else if (e.shape === 'circle' && (e.radius ?? 0) > 0) cylinder(view, x, z, e.radius, y0, y0 + (e.height ?? 2), e.kind === 'area' || e.kind === 'trap' ? ((e.startup ?? 0) > (e.age ?? 0) ? 0xffe08a : 0xff4a4a) : 0x73caff, .85);
+      else if (e.shape === 'box' && e.hx) {
+        const a = e.angle ?? 0, c = Math.cos(a), sn = Math.sin(a), corner = (u, v) => [x + u * c + v * sn, z - u * sn + v * c];
+        const pts = [corner(-e.hx, -e.hz), corner(e.hx, -e.hz), corner(e.hx, e.hz), corner(-e.hx, e.hz)];
+        for (const yy of [y0, y0 + (e.height ?? 1)]) view.line([...pts, pts[0]].map(([px, pz]) => [px, yy, pz]), e.kind === 'area' ? 0xff4a4a : 0x73caff, .85);
+        for (const [px, pz] of pts) view.line([[px, y0, pz], [px, y0 + (e.height ?? 1), pz]], e.kind === 'area' ? 0xff4a4a : 0x73caff, .6);
+      }
     }
   }
   if (O.sweeps) {

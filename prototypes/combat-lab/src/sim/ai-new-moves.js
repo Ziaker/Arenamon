@@ -1,17 +1,21 @@
 // @ts-check
 // IA com os 13 Moves NOVOS (Harden … Emerging Stone) e os 4 elementais (Water Pulse, Fire Spin, Air Slash, Seed Bomb; protótipo de 23/10/2026). Mesmas regras do jogador: a IA pede pelos campos de comando (`skill`, `skillHeld`, `move`) e só tenta o que a função de
 // permissão do controlador aceitaria agora (custo, recarga, chão, alvo elegível). Sem Moves novos equipados este módulo não faz nada e não consome sorteios.
-// Cada Move tem uma regra de OPORTUNIDADE (quando vale a pena) em `RULES`; a chance final é `taxa × estilo de ataque`, ajustável em Moves › IA com Moves (newMovesRate).
+// Cada Move tem uma regra de OPORTUNIDADE (quando vale a pena): em `RULES` (regras antigas, em código) ou no PERFIL declarativo da própria ficha (`ficha.ai`, ver ai-profile.js); a chance final é `taxa × estilo de ataque`, ajustável em Moves › IA com Moves (newMovesRate).
 // Execução: toque (Normal/Burst), carga com PL (Guard Break, Bounce) ou segurar-e-soltar com marcador (Spikes, Bullet Punch, Emerging Stone), esta última guiada por um plano
 // (`mv.plan`) que mantém o botão, aponta o marcador e solta. Percepção: só vê o que o jogador veria (`observedAction` da percepção justa, quando existe).
 import {C} from './config.js';
 import {getMove} from './moves.js';
 import {movePermission, chargePermission} from './controller.js';
 import {hasFlag} from './status.js';
+import {getAiRule, hasAiProfile} from './ai-profile.js';
 import {length, sub, normalize, direction, dot, angleDelta, angleOf} from './math.js';
 
 const held = (/** @type {number} */ slot) => Array.from({length: C.world.slots}, (_, i) => i === slot);
-const NEW_IDS = new Set(['harden', 'second-wind', 'swift', 'lunge', 'quick-attack', 'guard-break', 'feint', 'riposte', 'bounce', 'spikes', 'sand-wave', 'bullet-punch', 'emerging-stone', 'water-pulse', 'fire-spin', 'air-slash', 'seed-bomb']);
+const NEW_IDS = new Set(['lunge', 'quick-attack', 'feint', 'riposte', 'bounce', 'spikes', 'sand-wave', 'bullet-punch', 'emerging-stone', 'water-pulse', 'fire-spin', 'air-slash', 'seed-bomb']);
+/** O Move é da IA de Moves novos: regra antiga em código ou perfil declarativo na ficha. */
+const isAiMove = (/** @type {string} */ id) => NEW_IDS.has(id) || hasAiProfile(id);
+const ruleOf = (/** @type {string} */ id) => RULES[id] ?? getAiRule(id);
 const has = (/** @type {any} */ f, /** @type {string} */ id) => !!f.statuses?.some((/** @type {any} */ s) => s.id === id);
 
 /**
@@ -33,12 +37,8 @@ function context(self, target, perc) {
  * @type {Record<string, (x: ReturnType<typeof context>, self: any, target: any) => any>}
  */
 const RULES = {
-  harden: (x, self) => !has(self, 'harden') && x.distance < 4.5 && (x.tackling || x.tCharging) ? {p: .55, kind: 'tap', why: 'rival atacando perto: endurece'} : null,
-  'second-wind': (x, self) => !has(self, 'second-wind') && self.stamina < 1.3 && x.distance > 3 && !x.tackling ? {p: .6, kind: 'tap', why: 'stamina baixa e rival longe: recupera'} : null,
-  swift: (x) => x.distance > 3.5 && x.distance < 11 && x.tGround ? {p: .4, kind: 'tap', why: 'estrelas à distância'} : null,
   lunge: (x, self) => x.distance > 1.7 && x.distance < 3.3 && x.facing && x.tGround && !x.tGuard && !x.tackling && self.stamina >= 2 ? {p: .3, kind: 'tap', why: 'fecha a distância com o Lunge'} : null,
   'quick-attack': (x, self) => x.distance > 3.2 && x.distance < 6.8 && x.tGround && !x.tGuard && !x.tackling && self.stamina >= 2 ? {p: .14, kind: 'tap', why: 'investida rápida e volta'} : null,
-  'guard-break': (x, self) => x.tGuard && x.distance < 3.3 && x.tGround && self.stamina >= 1.6 ? {p: .6, kind: 'charge', goal: x.distance > 2.4 ? 62 : 32, why: 'rival defendendo: quebra a guarda'} : null,
   riposte: (x, self) => x.tackling && x.ttc > .17 && x.ttc < .3 && x.distance < 4.5 && self.stamina >= 1 ? {p: .7, kind: 'tap', why: 'contra-ataque no tempo do golpe do rival'} : null,
   bounce: (x, self) => x.distance > 4 && x.distance < 6.2 && x.tGround && !x.tGuard && !x.tackling && !x.tCharging && self.stamina >= 2.2 ? {p: .12, kind: 'charge', goal: x.distance > 4.6 ? 74 : 14, why: 'salto sobre o rival'} : null,
   'sand-wave': (x, self) => x.distance < 3.4 && x.facing && x.tGround && self.stamina >= 2.2 ? {p: .3, kind: 'tap', why: 'barragem de areia no retângulo'} : null,
@@ -86,7 +86,7 @@ function driveAim(brain, self, target, c, mv) {
  */
 export function newMovesCommand(brain, self, target, c, mv, perc, S) {
   const slots = self.loadout;
-  if (!slots?.some((/** @type {string} */ id) => NEW_IDS.has(id))) return false;
+  if (!slots?.some((/** @type {string} */ id) => isAiMove(id))) return false;
   const A = C.world.ai;
   if (!(A.newMovesRate > 0)) return false;
   if (self.aim?.range) {c.tackle = false;c.dodge = false;c.guard = false;c.guardPressed = false;c.skill = null;c.skillHeld = null;return true;}   // círculo de alcance aberto: solta o botão no passo seguinte (executa)
@@ -111,8 +111,8 @@ export function newMovesCommand(brain, self, target, c, mv, perc, S) {
   if (mv.nroll > 0) return false;
   mv.nroll = .25;   // decide a cada 0,25 s
   for (let slot = 0; slot < slots.length; slot++) {
-    const id = slots[slot];if (!id || !NEW_IDS.has(id)) continue;
-    const def = getMove(id), rule = RULES[id];if (!def || !rule) continue;
+    const id = slots[slot];if (!id || !isAiMove(id)) continue;
+    const def = getMove(id), rule = ruleOf(id);if (!def || !rule) continue;
     const ok = def.charge ? chargePermission(self, def, slot).ok : movePermission(self, def, slot).ok;
     if (!ok) continue;
     const r = rule(x, self, target);if (!r) continue;

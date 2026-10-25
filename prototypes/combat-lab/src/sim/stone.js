@@ -12,7 +12,7 @@
 // Fora deste entrega (declarado): plataformas MÓVEIS (o mapa atual só tem plataformas fixas), rampas/terreno inclinado (as plataformas do motor são planas) e o atraso
 // de visibilidade dos adversários na mira são tratados só no que o motor suporta — ver docs/moves-nao-iniciados/fichas/emerging-stone.md.
 import {C} from './config.js';
-import {applyHit, closestOnShape} from './world.js';
+import {applyHit, closestOnShape} from './world/world-hit.js';
 import {getGroundHeight} from './physics.js';
 import {effectiveArenaRadius} from './map.js';
 import {launch} from './combat.js';
@@ -38,7 +38,7 @@ function detonate(/** @type {any} */ game, /** @type {any} */ e, /** @type {any[
     if (f.id === e.owner || f.hp <= 0 || f.absent || f.flight || (f.vaultHeight ?? 0) > 1e-8) continue;
     if (Math.hypot(f.position.x - c.x, f.position.z - c.z) > P.blastRadius + 1e-9) continue;
     const away = sub(f.position, c), normal = length(away) > 1e-6 ? normalize(away) : direction(owner?.facing ?? 0);
-    const ev = applyHit(game, e.owner, f, {damage: e.damage, knockback: {horizontal: P.blastKnockback, vertical: 0}}, normal, {entity: e.id, source: 'stone', contact: 'area', origin: c});
+    const ev = applyHit(game, e.owner, f, {damage: e.damage, knockback: {horizontal: P.blastKnockback, vertical: P.blastKnockbackV ?? 0}}, normal, {entity: e.id, source: 'stone', contact: 'area', origin: c, move: 'emerging-stone'});
     if (ev) events.push({...ev, phase: 'blast'});
   }
   // 2. cenário tocado pelo círculo horizontal
@@ -147,6 +147,8 @@ export function stoneStep(/** @type {any} */ game) {
       if (!inside) continue;
       const fy = f.flight ? f.flight.y : (f.groundY ?? 0) + (f.vaultHeight ?? 0);
       if (!f.flight && Math.abs((f.groundY ?? 0) - (d.pos.y + prev)) < .06 && prev > .01) {f.groundY = d.pos.y + d.size.height;continue;}   // em cima: o topo o carrega durante a subida
+      // Lancamento so durante a emergencia (invocacao): rocha ja totalmente invocada nao derruba mais ninguem.
+      if (d.size.height >= d.targetHeight - 1e-6) continue;
       if (d.launched.includes(f.id)) continue;
       if (fy < d.pos.y + d.size.height - .02 && fy + bodyH() > d.pos.y + .02) {   // primeira interseção válida com a parte exposta
         d.launched.push(f.id);

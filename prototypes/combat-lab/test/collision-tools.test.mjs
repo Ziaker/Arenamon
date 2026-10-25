@@ -24,8 +24,25 @@ const lab = (map = {}) => {
 };
 const draw = (g, which) => {const v = fakeView();drawCollisionOverlays(v, g.fighters, g.world, {...off(), ...which});return v;};
 
-check('5 sobreposições, com chave, rótulo e descrição; desligadas não desenham nada', () => {
-  assert.equal(COLLISION_OVERLAYS.length, 5);
+check('moveEntities: a geometria desenhada é a do colisor (projétil, área circular, parede girada) e some quando desligada', () => {
+  const g = lab();
+  g.world.entities.push({id: 501, kind: 'projectile', owner: 1, pos: {x: 3, z: 4}, y: .65, radius: .37, life: 5, age: 0});
+  g.world.entities.push({id: 502, kind: 'area', shape: 'circle', owner: 1, pos: {x: -3, z: 2}, y: 0, radius: 1.6, height: 2.4, life: 5, age: 1, startup: 0});
+  g.world.entities.push({id: 503, kind: 'wall', shape: 'box', owner: 1, pos: {x: 0, z: -5}, y: 0, hx: 2, hz: .2, height: 2.2, angle: Math.PI / 2, life: 99, age: 0});
+  const v = draw(g, {moveEntities: true});
+  assert.ok(v.rings.some(r => r.x === 3 && r.z === 4 && Math.abs(r.r - .37) < 1e-9), 'anel do projétil com o raio real');
+  assert.equal(v.rings.filter(r => r.x === -3 && r.z === 2 && Math.abs(r.r - 1.6) < 1e-9).length, 2, 'cilindro da área: anel embaixo e em cima');
+  const ys = v.rings.filter(r => r.x === -3 && r.z === 2).map(r => r.y).sort((a, b) => a - b);
+  assert.deepEqual(ys, [0, 2.4], 'alturas do cilindro = y e y + height');
+  // parede girada em 90°: o lado longo (hx = 2) passa a correr ao longo de z
+  const base = v.lines.find(l => l.p.length === 5 && l.p[0][1] === 0 && Math.abs(l.p[0][0]) < 1);
+  assert.ok(base, 'contorno da base da parede');
+  const zs = base.p.map(p => p[2]), xs = base.p.map(p => p[0]);
+  assert.ok(Math.max(...zs) - Math.min(...zs) > 3.9 && Math.max(...xs) - Math.min(...xs) < .5, 'parede girada ocupa 4 m em z e 0,4 m em x');
+  const off2 = draw(g, {});assert.equal(off2.lines.length + off2.rings.length, 0);
+});
+check('6 sobreposições, com chave, rótulo e descrição; desligadas não desenham nada', () => {
+  assert.equal(COLLISION_OVERLAYS.length, 6);
   for (const [k, label, desc] of COLLISION_OVERLAYS) assert.ok(k && label && desc.length > 40, k);
   const g = lab({platforms: [{id: 'p', pos: {x: 0, y: 0, z: 4}, width: 3, depth: 3, height: 1}]});
   const v = draw(g, {});assert.equal(v.lines.length + v.rings.length, 0);

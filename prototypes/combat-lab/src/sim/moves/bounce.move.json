@@ -1,0 +1,194 @@
+{
+  "schemaVersion": 1,
+  "def": {
+    "id": "bounce",
+    "name": "Bounce",
+    "air": "cast",
+    "group": "bounce",
+    "cooldownOnStart": true,
+    "description": "Charge. Segure para carregar (até 1,2 s), solte para um salto altíssimo em arco rumo ao alvo e caia em cima do adversário. Mais carga = mais altura e mais PL.",
+    "cost": 1.2,
+    "cooldown": 12,
+    "charge": {
+      "max": 1.2,
+      "group": "bounce"
+    },
+    "duration": 0.5,
+    "timeline": [
+      {
+        "effect": "bounce"
+      }
+    ]
+  },
+  "params": {
+    "group": "bounce",
+    "title": "Bounce",
+    "hint": "Charge · Trick + Melee · PL1–PL3. Segure para carregar (até 1,2 s), solte para saltar em arco rumo ao alvo (até 6 m) e cair em cima do adversário.",
+    "meta": {
+      "category": "Charge",
+      "types": [
+        "Trick",
+        "Melee"
+      ],
+      "pl": "PL1–PL3",
+      "status": {
+        "proposto": true,
+        "aprovado": false,
+        "implementado": true,
+        "homologado": false
+      }
+    },
+    "rows": [
+      {
+        "min": 0,
+        "max": 5,
+        "step": 0.05,
+        "key": "cost",
+        "label": "Custo de stamina",
+        "tip": "Cobrado ao INICIAR a carga (Charge); interromper não devolve. Valor do catálogo — proposta, não homologada.",
+        "unit": "num",
+        "value": 1.2
+      },
+      {
+        "min": 0,
+        "max": 60,
+        "step": 0.5,
+        "key": "cooldown",
+        "label": "Cooldown",
+        "tip": "Começa junto com o custo, ao iniciar a carga (catálogo: 12 s).",
+        "unit": "sec",
+        "value": 12
+      },
+      {
+        "min": 0.2,
+        "max": 4,
+        "step": 0.05,
+        "key": "maxCharge",
+        "label": "Carga máxima",
+        "tip": "PL1 abaixo de 50%, PL2 de 50% até antes de 100%, PL3 na carga máxima (catálogo: 1,2 s).",
+        "unit": "sec",
+        "value": 1.2
+      },
+      {
+        "min": 0,
+        "max": 2,
+        "step": 0.05,
+        "key": "minCharge",
+        "label": "Carga mínima para soltar",
+        "tip": "0 = pode soltar a qualquer momento.",
+        "unit": "sec",
+        "value": 0
+      },
+      {
+        "min": 1,
+        "max": 15,
+        "step": 0.5,
+        "key": "maxDistance",
+        "label": "Distância horizontal máxima",
+        "tip": "Com alvo travado mais perto, o salto vai só até ele (catálogo: 6 m).",
+        "unit": "m",
+        "value": 6
+      },
+      {
+        "min": 0.3,
+        "max": 8,
+        "step": 0.1,
+        "key": "heightPl1",
+        "label": "Altura do salto PL1",
+        "tip": "Altura máxima inicial com pouca carga (parâmetro experimental: 1,5 m).",
+        "unit": "m",
+        "value": 1.5
+      },
+      {
+        "min": 0.3,
+        "max": 8,
+        "step": 0.1,
+        "key": "heightPl2",
+        "label": "Altura do salto PL2",
+        "tip": "Altura com carga média (parâmetro experimental: 2,5 m).",
+        "unit": "m",
+        "value": 2.5
+      },
+      {
+        "min": 0.3,
+        "max": 8,
+        "step": 0.1,
+        "key": "heightPl3",
+        "label": "Altura do salto PL3",
+        "tip": "Altura com carga máxima (parâmetro experimental: 3,5 m).",
+        "unit": "m",
+        "value": 3.5
+      },
+      {
+        "min": 5,
+        "max": 40,
+        "step": 0.5,
+        "key": "gravity",
+        "label": "Gravidade do arco",
+        "tip": "Define o tempo de voo e a velocidade horizontal; não vem do catálogo (provisório: 17,5 m/s²).",
+        "unit": "num",
+        "value": 17.5
+      },
+      {
+        "min": 0,
+        "max": 60,
+        "step": 0.5,
+        "key": "damage",
+        "label": "Dano nominal",
+        "tip": "Com o Ataque de referência; final = nominal × Ataque ÷ referência (MV-P13). Catálogo: 12 HP.",
+        "unit": "num",
+        "value": 12
+      },
+      {
+        "min": 0,
+        "max": 20,
+        "step": 0.1,
+        "key": "knockbackH",
+        "label": "Knockback horizontal",
+        "tip": "Empurrão no alvo atingido (catálogo: 3 m/s).",
+        "unit": "ms",
+        "value": 3
+      },
+      {
+        "min": 0,
+        "max": 20,
+        "step": 0.1,
+        "key": "knockbackV",
+        "label": "Knockback vertical",
+        "tip": "Lançamento do alvo atingido (catálogo: 6 m/s).",
+        "unit": "ms",
+        "value": 6
+      },
+      {
+        "min": 0,
+        "max": 2,
+        "step": 0.01,
+        "key": "landRecovery",
+        "label": "Recuperação após o pouso",
+        "tip": "Tempo sem agir depois de aterrissar (catálogo: 0,25 s).",
+        "unit": "sec",
+        "value": 0.25
+      },
+      {
+        "min": 0,
+        "max": 2,
+        "step": 0.05,
+        "key": "contactRadius",
+        "label": "Folga do contato na descida",
+        "tip": "Margem somada ao corpo para acertar durante a descida (provisório: 0,3 m).",
+        "unit": "m",
+        "value": 0.3
+      },
+      {
+        "min": 0,
+        "max": 5,
+        "step": 0.1,
+        "key": "landRadius",
+        "label": "Raio do impacto do pouso",
+        "tip": "Quem está no chão dentro deste raio ao aterrissar também é atingido (provisório: 1,4 m).",
+        "unit": "m",
+        "value": 1.4
+      }
+    ]
+  }
+}

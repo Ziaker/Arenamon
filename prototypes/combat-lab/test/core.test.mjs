@@ -12,6 +12,7 @@ import {isInvulnerable} from '../src/sim/entity.js';
 import {toCommand} from '../src/ui/input.js';
 import {migrateFlat, flatten} from '../src/ui/actions-meta.js';
 import {vec, length, normalize, angleOf, sub} from '../src/sim/math.js';
+globalThis.__legacyFractionalDamage = true;   // este teste caracteriza a matemática de dano fracionária, anterior à regra de dano inteiro (ver sim/damage-rule.js)
 resetConfig(factoryDefaults());   // parte dos valores de fábrica (a base de calibração v8 tem testes próprios)
 
 const out = fileURLToPath(new URL('../validation/', import.meta.url));mkdirSync(out, {recursive: true});

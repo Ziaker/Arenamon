@@ -152,8 +152,11 @@ export const ELEMENTAL_CONTROLS = [
  ['rotation','Rotação','rad/s',0,8,.1],['height','Altura / arco','m',.5,5,.1],['spread','Dispersão de gotas / folhas','m/s',.2,5,.1],
 ];
 export function elementalSettings(id, overrides={}, pl=1) {
- const p={...shotDefaults(id),...waterDefaults(overrides.variant??0),...fireDefaults(overrides.variant??0),variant:0,stretch:1,opening:1.1,contactSize:1,...ELEMENTAL_PRESETS[id],...overrides};
+ const p={...waterDefaults(overrides.variant??0),...fireDefaults(overrides.variant??0),...shotDefaults(id),variant:0,stretch:1,opening:1.1,contactSize:1,shotFollowTime:.3,opacity:1,...ELEMENTAL_PRESETS[id],...overrides};
  if(!ELEMENTAL_PRESETS[id]) throw new Error('Move visual desconhecido: '+id);
+ // Os dois efeitos de disparo guardam valores independentes: mescla em profundidade
+ // para que um override parcial não apague as chaves que faltam.
+ if(id==='seedBomb'){p.shotRing={...shotRingDefaults(),...(overrides.shotRing??{})};p.shotCone={...shotConeDefaults(),...(overrides.shotCone??{})};}
  if(id==='waterPulse') {const level=Math.max(1,Math.min(3,pl));p.size*=1+(level-1)*.32;p.quantity*=1+(level-1)*.55;p.rings+=level-1;p.brightness*=1+(level-1)*.2;}
  return p;
 }
@@ -243,5 +246,166 @@ Object.assign(CONTROL_HELP, Object.fromEntries(SHOT_CONTROLS.map(c => [c[0], c[6
 export function shotDefaults(id) {
  if (id === 'waterPulse') return {shotDuration:0.45,shotFlash:1.4,shotGlow:1.6,shotKick:1.6,shotShockCount:3,shotShockSize:2.4,shotShockWidth:0.14,shotShockStagger:0.07,shotBurst:140,shotBurstSpeed:8,shotBurstSize:1.6,shotBurstLife:1,shotAngle:50};
  if (id === 'airSlash') return {shotDuration:0.4,shotFlash:1.2,shotGlow:1.4,shotKick:1.2,shotShockCount:3,shotShockSize:2.8,shotShockWidth:0.1,shotShockStagger:0.06,shotBurst:90,shotBurstSpeed:10,shotBurstSize:2.5,shotBurstLife:1,shotAngle:35};
+ if (id === 'seedBomb') return seedDefaults();
  return {};
+}
+
+// ---------------------------------------------------------------------------
+// Seed Bomb — controles completos por fase (23/10/2026)
+//
+// Formato da tupla: [chave, rótulo, unidade, min, max, passo, explicação, fase].
+// `unidade` especial: 'cor' (seletor de cor), 'efeito' (seletor de disparo),
+// 'eixo' (seletor X/Y/Z/Diagonal). A fase vira um título no painel.
+// Os limites da interface seguem a regra do ateliê: máximo ×5 (e mínimo ×5
+// quando negativo); ângulos de direção ficam em ±180° e aberturas em 0..180°.
+// ---------------------------------------------------------------------------
+export const SEED_PHASES = ['Base (vale para todas as fases)','Surgimento','Disparo','Voo','Rastro de folhas','Contato / explosão'];
+
+export const SEED_CONTROLS = [
+ // Base: multiplicadores que valem para o efeito inteiro.
+ ['quantity','Quantidade base de partículas','partículas',10,400,5,'Multiplica o rastro de folhas e a explosão de uma vez. Cada fase tem o seu próprio multiplicador.','Base (vale para todas as fases)'],
+ ['brightness','Intensidade luminosa','×',.1,2.5,.1,'Multiplica o brilho das partículas e da semente em todas as fases.','Base (vale para todas as fases)'],
+ ['particleSize','Tamanho base das partículas','m',.03,.8,.01,'Tamanho de referência; cada fase multiplica este valor.','Base (vale para todas as fases)'],
+ ['life','Vida base das partículas','s',.2,2.5,.1,'Vida de referência; cada fase multiplica este valor.','Base (vale para todas as fases)'],
+ ['spread','Dispersão base','m/s',.2,5,.1,'Velocidade de referência da dispersão; cada fase multiplica este valor.','Base (vale para todas as fases)'],
+
+ // 1. Surgimento / conjuração.
+ ['seedRise','Duração do surgimento','s',0,2,.01,'Tempo para a semente aparecer crescendo. 0 = aparece já no tamanho final (visual atual).','Surgimento'],
+ ['seedStartScale','Escala inicial da semente','×',0,1,.01,'Tamanho da semente no primeiro instante do surgimento; cresce até 1×.','Surgimento'],
+ ['spawnCount','Partículas de surgimento','partículas',0,200,1,'Quantidade de folhas que aparecem junto da semente. 0 = nenhuma (visual atual).','Surgimento'],
+ ['spawnRadius','Raio das partículas de surgimento','m',0,2,.01,'Área em volta da semente de onde saem as folhas do surgimento.','Surgimento'],
+ ['spawnSpeed','Velocidade das partículas de surgimento','m/s',0,10,.1,'Velocidade com que as folhas do surgimento se afastam.','Surgimento'],
+ ['spawnSize','Tamanho das partículas de surgimento','×',.05,4,.05,'Multiplica o tamanho base das folhas do surgimento.','Surgimento'],
+ ['spawnLife','Vida das partículas de surgimento','s',.05,3,.05,'Tempo que as folhas do surgimento permanecem visíveis.','Surgimento'],
+ ['spawnColor','Cor das partículas de surgimento','cor',0,0,0,'Cor das folhas que aparecem na conjuração.','Surgimento'],
+
+ // 2. Disparo / lançamento.
+ ['__shotEffect','Efeito de disparo','efeito',0,0,0,'Escolhe o efeito que sai da semente no disparo. Nenhum desliga o disparo. Cada efeito guarda os próprios valores.','Disparo'],
+ ['launchFlash','Clarão no disparo','×',0,3,.05,'Brilho extra da semente no instante do disparo; decai em "Duração do clarão". Desligado em "Sem flash".','Disparo'],
+ ['launchFlashTime','Duração do clarão e do coice','s',0,2,.01,'Tempo do clarão e da recuperação do coice. 0 desliga os dois.','Disparo'],
+ ['launchKick','Coice (recuo da semente)','×',0,3,.05,'Quanto a semente recua e se estica para trás no disparo antes de partir.','Disparo'],
+ ['launchAngle','Ângulo de lançamento','°',-180,180,1,'Inclina o trajeto inteiro. Positivo sobe para a frente; negativo desce para a frente; 0 mantém o arco atual.','Disparo'],
+ ['launchSpeed','Velocidade de lançamento','m/s',-10,10,.1,'Velocidade somada ao trajeto no disparo. Positivo vai à frente; negativo sai para trás; 0 mantém o visual atual.','Disparo'],
+
+ // 3. Semente em voo.
+ ['size','Tamanho geral da semente','m',.15,2,.05,'Raio de referência da semente; comprimento e largura são múltiplos deste valor.','Voo'],
+ ['seedLength','Comprimento (eixo vertical)','× tamanho',.05,3,.01,'Estica a semente no eixo mais longo. O padrão 1,2 reproduz a semente atual.','Voo'],
+ ['seedWidth','Largura (espessura)','× tamanho',.05,3,.01,'Engrossa a semente nos eixos do voo e da profundidade. O padrão 0,72 reproduz a semente atual.','Voo'],
+ ['seedShape','Formato (0 = redonda, 1 = ponta)','×',0,1,.01,'0 deixa a semente esférica; 1 afina a frente em ponta. O padrão 0 mantém o visual atual.','Voo'],
+ ['seamThickness','Espessura da costura','×',0,4,.05,'Engrossa o anel que desenha a costura da semente.','Voo'],
+ ['seamBrightness','Brilho da costura','×',0,4,.05,'Luminosidade da costura, independente do brilho geral.','Voo'],
+ ['seamColor','Cor da costura','cor',0,0,0,'Cor do anel da costura.','Voo'],
+ ['spinAxis','Eixo do giro','eixo',0,0,0,'Eixo em que a semente gira durante o voo. Diagonal combina os três eixos.','Voo'],
+ ['spinSpeed','Velocidade do giro','rad/s',-12,12,.01,'Quanto a semente gira por segundo. Positivo e negativo giram em sentidos opostos; 0 não gira. O padrão 0,48 reproduz o giro atual.','Voo'],
+ ['arcHeight','Altura do ponto mais alto','m',0,10,.05,'Altura máxima do arco acima do ponto de partida. O padrão 2,8 mantém o arco atual.','Voo'],
+ ['arcPeak','Posição do ponto mais alto','× trajeto',.05,.95,.01,'Onde o arco atinge o topo: 0,5 no meio; perto de 0 sobe cedo e cai longo; perto de 1 sobe tarde.','Voo'],
+ ['speed','Velocidade ao longo do arco','m/s',.2,6,.1,'Velocidade horizontal média do voo. O padrão 2,5 mantém o trajeto atual.','Voo'],
+ ['duration','Duração do voo','s',1,7,.1,'Tempo total do trajeto até o contato. O padrão 3 s mantém o visual atual.','Voo'],
+
+ // 4. Rastro de folhas.
+ ['leafRate','Quantidade de folhas','×',0,4,.05,'Multiplica a emissão de folhas durante o voo. 0 = sem rastro.','Rastro de folhas'],
+ ['leafRadius','Raio de emissão','× tamanho',0,3,.05,'Área em volta da semente de onde saem as folhas do rastro.','Rastro de folhas'],
+ ['leafSpeed','Velocidade das folhas','× dispersão',0,3,.05,'Multiplica a velocidade com que as folhas do rastro se afastam.','Rastro de folhas'],
+ ['leafSize','Tamanho das folhas','×',.05,4,.05,'Multiplica o tamanho base das folhas do rastro.','Rastro de folhas'],
+ ['leafLife','Vida das folhas','× vida',.05,4,.05,'Multiplica a vida base das folhas do rastro.','Rastro de folhas'],
+ ['leafSpin','Giro das folhas','rad/s',-8,8,.1,'Faz as folhas orbitarem a semente. Positivo e negativo giram em sentidos opostos; 0 não gira.','Rastro de folhas'],
+ ['leafColor','Cor das folhas do rastro','cor',0,0,0,'Cor das folhas emitidas durante o voo.','Rastro de folhas'],
+
+ // 5. Contato / explosão.
+ ['contactDuration','Duração visual do contato','s',.01,5,.01,'Tempo até o anel do chão e as folhas da explosão desaparecerem.','Contato / explosão'],
+ ['contactOpening','Tempo de abertura','s',.01,3,.01,'Tempo para a explosão atingir a primeira expansão.','Contato / explosão'],
+ ['contactInitial','Escala inicial','×',.01,2,.01,'Tamanho da explosão no primeiro instante do contato.','Contato / explosão'],
+ ['contactExpansion','Expansão contínua','×/s',0,3,.05,'Crescimento do anel do chão depois da abertura.','Contato / explosão'],
+ ['burstCount','Folhas da explosão','×',0,5,.1,'Multiplica a quantidade de folhas lançadas no contato.','Contato / explosão'],
+ ['burstSpeed','Velocidade das folhas da explosão','× dispersão',0,5,.1,'Multiplica a velocidade das folhas do contato.','Contato / explosão'],
+ ['burstSize','Tamanho das folhas da explosão','×',.05,5,.05,'Multiplica o tamanho das folhas do contato.','Contato / explosão'],
+ ['burstLife','Vida das folhas da explosão','× vida',.05,5,.05,'Multiplica a vida das folhas do contato.','Contato / explosão'],
+ ['burstRadius','Raio de emissão da explosão','× tamanho',0,2,.01,'Área inicial de onde saem as folhas do contato.','Contato / explosão'],
+ ['burstColor','Cor das folhas da explosão','cor',0,0,0,'Cor das folhas lançadas no contato.','Contato / explosão'],
+ ['dustCount','Poeira da explosão','×',0,3,.05,'Multiplica a quantidade de poeira levantada no contato.','Contato / explosão'],
+ ['dustSpeed','Velocidade da poeira','× dispersão',0,3,.05,'Multiplica a velocidade da poeira do contato.','Contato / explosão'],
+ ['dustSize','Tamanho da poeira','×',.1,6,.05,'Multiplica o tamanho dos tufos de poeira.','Contato / explosão'],
+ ['dustLife','Vida da poeira','× vida',.05,4,.05,'Multiplica a vida da poeira do contato.','Contato / explosão'],
+ ['dustColor','Cor da poeira','cor',0,0,0,'Cor da poeira levantada no contato.','Contato / explosão'],
+ ['groundWave','Anel no chão','×',0,4,.05,'Tamanho do anel que se abre no chão no contato. 0 = desligado (padrão atual).','Contato / explosão'],
+ ['groundWaveSpeed','Expansão do anel no chão','×/s',0,6,.05,'Velocidade com que o anel do chão cresce.','Contato / explosão'],
+ ['groundWaveThickness','Espessura do anel no chão','× raio',.02,1,.01,'Espessura da faixa do anel no chão.','Contato / explosão'],
+ ['groundWaveColor','Cor do anel no chão','cor',0,0,0,'Cor do anel que se abre no chão.','Contato / explosão'],
+ ['squashDuration','Duração da compressão','s',0,1,.01,'Tempo em que a semente continua visível sendo comprimida no contato.','Contato / explosão'],
+ ['squashAmount','Força da compressão','×',0,1,.01,'Quanto a semente encurta no eixo do voo antes de desaparecer.','Contato / explosão'],
+];
+
+export function seedDefaults() {
+ return {
+  quantity:85, brightness:1, particleSize:.2, life:1.1, spread:2.5,
+  seedRise:0, seedStartScale:1, spawnCount:0, spawnRadius:.25, spawnSpeed:1.6, spawnSize:1.2, spawnLife:.7, spawnColor:'#bcf77a',
+  launchFlash:0, launchFlashTime:.25, launchKick:0, launchAngle:0, launchSpeed:0,
+  size:.45, seedLength:1.2, seedWidth:.72, seedShape:0, seamThickness:1, seamBrightness:1, seamColor:'#77d535', spinAxis:'Z', spinSpeed:.48, arcHeight:2.8, arcPeak:.5, speed:2.5, duration:3,
+  leafRate:1, leafRadius:.3, leafSpeed:.25, leafSize:1, leafLife:1, leafSpin:0, leafColor:'#77d535',
+  contactDuration:1.3, contactOpening:.2, contactInitial:.3, contactExpansion:.3,
+  burstCount:1.8, burstSpeed:2, burstSize:1.5, burstLife:1, burstRadius:.15, burstColor:'#77d535',
+  dustCount:.45, dustSpeed:.5, dustSize:3, dustLife:1, dustColor:'#8b9d58',
+  groundWave:0, groundWaveSpeed:2.5, groundWaveThickness:.12, groundWaveColor:'#77d535',
+  squashDuration:.12, squashAmount:.8,
+  ...shotEffectDefaults(),
+ };
+}
+
+// ---------------------------------------------------------------------------
+// Efeitos de disparo SELECIONÁVEIS — módulo reutilizável (shot-effect.js).
+// Neste pedido só o Seed Bomb os usa; Water Pulse e Air Slash continuam com o
+// impacto próprio deles, intocado.
+// ---------------------------------------------------------------------------
+export const SHOT_EFFECTS = [
+ ['none','Nenhum (desligado)'],
+ ['ring','Argola — anel que sai da semente'],
+ ['cone','Tiro em cone — jato de partículas'],
+];
+export const SHOT_EFFECT_IDS = SHOT_EFFECTS.map(([id]) => id);
+
+export const SHOT_RING_CONTROLS = [
+ ['ringRadius','Raio da argola','m',.05,1.2,.01,'Raio do anel no instante em que sai da semente.'],
+ ['ringVertical','Deslocamento vertical','m',-1,1,.01,'Sobe ou desce a argola. Positivo sobe; negativo desce; 0 sai na altura da semente.'],
+ ['ringHorizontal','Deslocamento no trajeto','m',-1,1,.01,'Adianta ou recua o ponto de nascimento da argola. Positivo à frente; negativo atrás; 0 na semente.'],
+ ['ringSquash','Achatamento horizontal','×',.05,3,.05,'Comprime ou estica a argola no eixo do trajeto. Abaixo de 1 achata; acima de 1 estica.'],
+ ['ringImpulse','Impulso horizontal','m/s',-6,6,.1,'Velocidade de avanço da argola. Positivo vai à frente; negativo vai para trás; 0 fica parada.'],
+ ['ringThickness','Espessura','× raio',.01,.5,.01,'Espessura da faixa que desenha o anel.'],
+ ['ringCount','Quantidade de argolas','un.',1,8,1,'Quantas argolas saem em sequência.'],
+ ['ringInterval','Intervalo entre argolas','s',0,.5,.01,'Tempo entre o nascimento de uma argola e a seguinte.'],
+ ['ringDuration','Duração','s',.05,2,.01,'Tempo de vida de cada argola, contado do próprio nascimento.'],
+ ['ringExpansion','Expansão','×/s',0,6,.1,'Velocidade com que o raio da argola cresce depois de nascer.'],
+ ['ringOpacity','Opacidade','×',0,1,.01,'Visibilidade inicial da argola; desaparece até o fim da duração.'],
+ ['ringFadeIn','Tempo de aparecimento','s',0,1,.01,'Tempo para a argola atingir a opacidade cheia. 0 = aparece de uma vez.'],
+ ['ringTilt','Inclinação','°',-180,180,1,'Inclina o plano da argola. Positivo e negativo inclinam para lados opostos; 0 fica perpendicular ao trajeto.'],
+ ['ringColor','Cor da argola','cor',0,0,0,'Cor do anel. A luminosidade é ajustada em Brilho da argola.'],
+ ['ringBrightness','Brilho da argola','×',.2,3,.05,'Luminosidade do anel, independente do brilho geral.'],
+];
+
+export const SHOT_CONE_CONTROLS = [
+ ['coneAngleH','Direção horizontal','°',-180,180,1,'Gira o cone no plano do chão. Positivo aponta para um lado; negativo para o outro; 0 segue o trajeto.'],
+ ['coneAngleV','Direção vertical','°',-180,180,1,'Inclina o cone para cima ou para baixo. Positivo sobe; negativo desce; 0 na horizontal.'],
+ ['coneRadius','Raio de abertura','m',0,1.5,.01,'Área de onde as partículas nascem na boca do cone.'],
+ ['coneLength','Comprimento do cone','m',0,6,.05,'Distância que o jato percorre. Vira velocidade junto com a vida das partículas.'],
+ ['coneSpread','Abertura do cone','°',0,180,1,'Quanto o jato se abre. 0 = linha reta; 180 = espalha em todas as direções.'],
+ ['coneCount','Quantidade de partículas','partículas',0,400,1,'Total de partículas emitidas durante a duração do disparo.'],
+ ['coneSize','Tamanho das partículas','×',.05,4,.05,'Multiplica o tamanho base das partículas do cone.'],
+ ['coneLife','Vida das partículas','× vida',.05,4,.05,'Multiplica a vida base das partículas do cone.'],
+ ['coneImpulseH','Impulso horizontal','m/s',-12,12,.1,'Velocidade inicial no eixo do trajeto. Positivo acelera à frente; negativo puxa para trás; 0 usa só o comprimento.'],
+ ['coneImpulseV','Impulso vertical','m/s',-12,12,.1,'Velocidade inicial para cima ou para baixo. Positivo sobe; negativo desce; 0 não altera a altura.'],
+ ['coneDispersion','Dispersão','×',0,3,.05,'Variação de velocidade entre as partículas: 0 = todas iguais; 3 = muito irregulares.'],
+ ['coneDuration','Duração da emissão','s',.05,3,.01,'Tempo durante o qual o cone continua emitindo partículas.'],
+ ['coneDelay','Atraso','s',0,2,.01,'Tempo de espera antes de o cone começar a emitir.'],
+ ['coneGravity','Gravidade','m/s²',-8,8,.1,'Puxa as partículas para baixo (positivo) ou para cima (negativo). 0 = sem gravidade.'],
+ ['coneColor','Cor das partículas','cor',0,0,0,'Cor do jato de partículas.'],
+ ['coneBrightness','Brilho das partículas','×',.2,3,.05,'Luminosidade do jato, independente do brilho geral.'],
+];
+
+export function shotRingDefaults() {
+ return {ringRadius:.5,ringVertical:0,ringHorizontal:0,ringSquash:1,ringImpulse:0,ringThickness:.08,ringCount:1,ringInterval:.08,ringDuration:.4,ringExpansion:2,ringOpacity:.9,ringFadeIn:.05,ringTilt:0,ringColor:'#77d535',ringBrightness:1.4};
+}
+export function shotConeDefaults() {
+ return {coneAngleH:0,coneAngleV:0,coneRadius:.3,coneLength:1.2,coneSpread:30,coneCount:120,coneSize:1.2,coneLife:1,coneImpulseH:4,coneImpulseV:0,coneDispersion:1,coneDuration:.35,coneDelay:0,coneGravity:0,coneColor:'#77d535',coneBrightness:1.2};
+}
+export function shotEffectDefaults() {
+ return {shotEffect:'none',shotRing:shotRingDefaults(),shotCone:shotConeDefaults()};
 }

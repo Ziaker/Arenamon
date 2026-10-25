@@ -13,13 +13,10 @@ import {applyHit} from '../world.js';
 import {isOffensive} from '../entity.js';
 import {isAirJump} from '../air.js';
 import {sub, add, scale, length, normalize, direction} from '../math.js';
+import {defineFicha} from './params-registry.js';
+import {params, def as bounceDef} from './bounce.params.js';
 
-export const bounceDef = Object.freeze({
-  id: 'bounce', name: 'Bounce', air: 'cast', group: 'bounce', cooldownOnStart: true,
-  description: 'Charge. Segure para carregar (até 1,2 s), solte para um salto altíssimo em arco rumo ao alvo e caia em cima do adversário. Mais carga = mais altura e mais PL.',
-  cost: 1.2, cooldown: 12, charge: {max: 1.2, group: 'bounce'}, duration: .5,
-  timeline: [{effect: 'bounce'}],
-});
+export {bounceDef};   // definição (id, fases, custo…) vem de bounce.move.json
 
 /** Altura inicial do salto pela carga (nível de PL 1 a 3). */
 export const bounceHeight = (/** @type {Record<string, any>} */ P, /** @type {number} */ level) => [P.heightPl1, P.heightPl2, P.heightPl3][Math.max(0, Math.min(2, level - 1))];
@@ -52,7 +49,7 @@ function strike(/** @type {any} */ game, /** @type {any} */ f, /** @type {any} *
   }
   const normal = (() => {const d = sub(o.position, f.position);return length(d) > 1e-6 ? normalize(d) : direction(f.facing);})();
   const P = st.params;
-  const ev = applyHit(game, f.id, o, {damage: st.damage, knockback: {horizontal: P.knockbackH, vertical: P.knockbackV}}, normal, {source: 'bounce', contact: 'bounce', pl: st.pl, origin: add(f.position, scale(normal, -1))});
+  const ev = applyHit(game, f.id, o, {damage: st.damage, knockback: {horizontal: P.knockbackH, vertical: P.knockbackV}}, normal, {source: 'bounce', contact: 'bounce', move: 'bounce', pl: st.pl, origin: add(f.position, scale(normal, -1))});
   if (ev) {events.push({...ev, phase});st.connected = true;}
   return events;
 }
@@ -94,3 +91,9 @@ export function bounceStep(/** @type {any} */ game) {
   }
   return events;
 }
+
+/** FICHA do Move (ver docs/COMO_CRIAR_UM_MOVE.md): `params` gera o padrão em C.world.bounce e os sliders da aba Moves; `def` e os manipuladores são registrados sozinhos. */
+export const ficha = defineFicha({
+  def: bounceDef, effect: ['bounce', bounceEffect], steps: [['bounce', bounceStep]],
+  params,
+});
