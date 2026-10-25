@@ -6,6 +6,7 @@ import * as Q from 'three.quarks';
 import {SandEffect, StoneEffect} from '../../../../sand-stone-lab/src/effects.js';
 import {SwiftEffect} from '../../../../sand-stone-lab/src/swift-effect.ts';
 import {PsyshockEffect} from '../../../../sand-stone-lab/src/psyshock-effect.ts';
+import {RushEffect} from '../../../../sand-stone-lab/src/rush-effects.ts';
 import {Particles} from '../../../../sand-stone-lab/src/particles.js';
 import {PhaseClock} from '../../../../sand-stone-lab/src/phases.ts';
 import {defaults} from '../../../../sand-stone-lab/src/config.ts';
@@ -78,9 +79,10 @@ export class AtelierGameFx {
     disposeGroup(it.group);
     it.group.removeFromParent();
   }
-  sync(entities, dt, acc) {
+  sync(entities, dt, acc, fighters = []) {
     const seen = new Set();
     this.syncVolleys(entities, dt, acc);
+    this.syncRushes(fighters, dt, acc);
     for (const e of entities ?? []) {
       if (!this.handles(e) || volleyMove(e)) continue;
       seen.add(e.id);
@@ -175,6 +177,75 @@ export class AtelierGameFx {
       if (this.advanceVolley(v, byId, dt)) {v.particles.clear();disposeGroup(v.group);v.group.removeFromParent();this.volleys.delete(key);}
     }
   }
+  // ---------- Quick Attack e Bullet Punch: o efeito aprovado do atelier SOMADO ao visual que o jogo já tinha (pedido de 25/10/2026) ----------
+  // Uma ação do Move = uma instância. O grupo fica onde a ação começou, virado para a direção dela; o «ator» do atelier (punho do Bullet Punch)
+  // e os rastros seguem o histórico REAL do lutador; o corpo de corrida do Quick Attack (o próprio lutador) e os bonecos do palco não entram.
+  // Antecipação dura até o lutador sair do lugar; o avanço, até ele parar de se afastar da origem (o contato fica nesse ponto).
+  spawnRush(f, move, acc) {
+    const kind = move === 'quick-attack' ? 'quickattack' : 'bulletpunch', quick = kind === 'quickattack';
+    const group = new T.Group();
+    this.parent.add(group);
+    const heading = f.action?.startAngle ?? f.action?.heading ?? f.facing ?? 0;
+    group.position.set(f.position.x, f.groundY ?? 0, f.position.z);
+    group.rotation.y = heading;
+    group.updateMatrixWorld(true);
+    const particles = new Particles(group, {renderer: this.batch, emitterParent: group});
+    const p = accessible(this.paramsOf(kind), acc);
+    const fx = new RushEffect(group, particles, kind, ATELIER_GAME_VARIANT[kind], p);
+    // Fora do jogo: alvo e marca do palco (z ≈ 2,7), boneco lançador do Bullet Punch e o corpo do Quick Attack (é o lutador real).
+    for (const o of [...group.children]) if (Math.abs(o.position.z - 2.7) < 1e-6) o.visible = false;
+    if (fx.caster) fx.caster.visible = false;
+    const y = quick ? .68 : 1.05, impactY = quick ? .8 : 1.05;
+    const r = {f, move, kind, quick, group, particles, fx, action: f.action, age: 0, hist: [], moved: false, out: 0, done: false, y, impact: new T.Vector3(0, impactY, .6)};
+    fx.launch.position.set(0, .04, 0);
+    if (fx.shot) {fx.shot.base.set(0, .4, 0);fx.shot.dir.set(0, 0, 1);}
+    const sameAs = (a, b) => Array.isArray(a) && a.length === 3 && a.every((x, i) => Math.abs(x - b[i]) < 1e-9);
+    const create = particles.create.bind(particles);
+    particles.create = (o = {}) => create({...o, position: sameAs(o.position, [0, .12, -2.4]) ? [0, .12, 0] : sameAs(o.position, [0, impactY, 2.35]) ? r.impact.toArray() : o.position});
+    fx.path = (t, out) => {
+      const h = r.hist;if (!h.length) return out.set(0, y, 0);
+      let k = 0;while (k < h.length - 1 && h[k + 1].t <= t) k++;
+      const a = h[k], b = h[Math.min(h.length - 1, k + 1)], u = b.t > a.t ? Math.min(1, Math.max(0, (t - a.t) / (b.t - a.t))) : 0;
+      return out.set(a.x + (b.x - a.x) * u, y + a.y + (b.y - a.y) * u, a.z + (b.z - a.z) * u);
+    };
+    return r;
+  }
+  advanceRush(r, dt) {
+    r.age += dt;
+    const f = r.f, same = f.action === r.action && f.action?.move === r.move;
+    if (same && !r.done) {
+      const q = r.group.worldToLocal(new T.Vector3(f.position.x, (f.flight?.y ?? f.groundY ?? 0) + (f.vaultHeight ?? 0), f.position.z));
+      const d = Math.hypot(q.x, q.z);
+      r.hist.push({t: r.age, x: q.x, y: q.y, z: q.z});
+      if (!r.moved && d > .05) {r.moved = true;r.fx.charge = r.age;}
+      if (r.moved && d + 1e-4 < r.out) r.done = true;   // começou a voltar (Quick Attack) ou parou: o contato é aqui
+      r.out = Math.max(r.out, d);
+    } else r.done = true;
+    const fx = r.fx;
+    if (!r.moved) fx.charge = r.age + .02;
+    if (!r.done) fx.travel = Math.max(.01, r.age - fx.charge + .02);
+    fx.arrival = fx.charge + fx.travel;
+    fx.duration = fx.arrival + fx.tail;
+    const far = r.hist.reduce((m, q) => Math.hypot(q.x, q.z) > Math.hypot(m.x, m.z) ? q : m, {x: 0, y: 0, z: 0});
+    r.impact.set(far.x, (r.quick ? .8 : 1.05) + far.y, far.z + .6);
+    fx.impact.position.copy(r.impact);
+    const t = Math.min(fx.duration, r.age);
+    fx.update(t, dt);
+    if (r.quick) fx.actor.visible = false;
+    r.particles.update(dt);
+    return r.done && r.age >= fx.duration + .4;
+  }
+  syncRushes(fighters, dt, acc) {
+    this.rushes ??= [];
+    for (const f of fighters ?? []) {
+      const m = f?.action?.move;
+      if ((m === 'quick-attack' || m === 'bullet-punch') && !this.rushes.some(r => r.action === f.action)) this.rushes.push(this.spawnRush(f, m, acc));
+    }
+    this.rushes = this.rushes.filter(r => {
+      if (!this.advanceRush(r, dt)) return true;
+      r.particles.clear();disposeGroup(r.group);r.group.removeFromParent();return false;
+    });
+  }
   positionOf(id) {
     const it = this.items.get(id);if (it) return it.group.position;
     for (const v of this.volleys?.values() ?? []) {
@@ -186,13 +257,17 @@ export class AtelierGameFx {
   clear() {
     for (const it of this.items.values()) this.disposeItem(it);this.items.clear();
     for (const v of this.volleys?.values() ?? []) {v.particles.clear();disposeGroup(v.group);v.group.removeFromParent();}this.volleys?.clear();
+    for (const r of this.rushes ?? []) {r.particles.clear();disposeGroup(r.group);r.group.removeFromParent();}this.rushes = [];
   }
   /** Diagnóstico para os testes de navegador. */
   diagnostics() {
     return {count: this.items.size, items: [...this.items.values()].map(it => ({id: it.id, kind: it.kind, age: +it.age.toFixed(3), dying: !!it.dying, x: +it.group.position.x.toFixed(2), z: +it.group.position.z.toFixed(2), particles: it.particles.count})),
       volleys: [...(this.volleys?.values() ?? [])].map(v => ({move: v.move, projectiles: v.ids.length, alive: v.alive, age: +v.age.toFixed(3), samples: v.hist.reduce((s, h) => s + h.length, 0),
         // distância (m, no chão) entre cada estrela/pedra DESENHADA e a última posição real do seu projétil
-        nodeGap: +Math.max(0, ...v.ids.map((_, i) => {const node = (v.fx.stars ?? v.fx.stones)?.[i], q = v.hist[i][v.hist[i].length - 1];if (!node || !q) return 0;const w = node.getWorldPosition(new T.Vector3()), r = v.group.localToWorld(new T.Vector3(q.x, q.y, q.z));return Math.hypot(w.x - r.x, w.z - r.z);})).toFixed(3)}))};
+        nodeGap: +Math.max(0, ...v.ids.map((_, i) => {const node = (v.fx.stars ?? v.fx.stones)?.[i], q = v.hist[i][v.hist[i].length - 1];if (!node || !q) return 0;const w = node.getWorldPosition(new T.Vector3()), r = v.group.localToWorld(new T.Vector3(q.x, q.y, q.z));return Math.hypot(w.x - r.x, w.z - r.z);})).toFixed(3)})),
+      rushes: (this.rushes ?? []).map(r => ({move: r.move, age: +r.age.toFixed(3), moved: r.moved, done: r.done, samples: r.hist.length, out: +r.out.toFixed(2), particles: r.particles.count,
+        // distância (m, no chão) entre o «ator» do atelier (punho) e o lutador real enquanto a ação avança
+        actorGap: r.hist.length ? +Math.hypot(r.fx.actor.position.x - r.hist[r.hist.length - 1].x, r.fx.actor.position.z - r.hist[r.hist.length - 1].z).toFixed(3) : null}))};
   }
 }
 

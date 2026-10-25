@@ -5,8 +5,10 @@ import sand from '../../../../sand-stone-lab/approved/sand.json' with {type: 'js
 import stone from '../../../../sand-stone-lab/approved/stone.json' with {type: 'json'};
 import psyshock from '../../../../sand-stone-lab/approved/psyshock.json' with {type: 'json'};
 import swift from '../../../../sand-stone-lab/approved/swift.json' with {type: 'json'};
+import quickattack from '../../../../sand-stone-lab/approved/quickattack.json' with {type: 'json'};
+import bulletpunch from '../../../../sand-stone-lab/approved/bulletpunch.json' with {type: 'json'};
 
-export const ATELIER_APPROVED = {sand, stone, psyshock, swift};
+export const ATELIER_APPROVED = {sand, stone, psyshock, swift, quickattack, bulletpunch};
 const LETTER = {A: 0, B: 1, C: 2};
 export const ATELIER_GAME_VARIANT = Object.fromEntries(Object.entries(ATELIER_APPROVED).map(([k, doc]) => [k, LETTER[doc.variant]]));
 export const ATELIER_GAME_PARAMS = Object.fromEntries(Object.entries(ATELIER_APPROVED).map(([k, doc]) => [k, doc.visualParameters]));

@@ -168,7 +168,7 @@ update(world, {fighters = [], events = [], dt = 0, skipBeams = false, camera = n
 
     // Efeitos elementais em three.quarks: cria/atualiza os que seguem entidades e mantém o contato delas.
     this.elementalFx.sync(world?.entities ?? [], dt, fxAcc);
-    this.atelierFx.sync(world?.entities ?? [], dt, fxAcc);
+    this.atelierFx.sync(world?.entities ?? [], dt, fxAcc, fighters);
 
     // Eventos novos viram anéis e geram estilhaços/shatter de rochas e barreiras
     for (const ev of events) {

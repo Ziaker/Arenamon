@@ -90,6 +90,22 @@ try {
     check(`${label}: o efeito termina e é descartado sem vazar`, !(end.atelier.volleys ?? []).length, JSON.stringify(end.atelier.volleys));
   }
 
+  // Quick Attack e Bullet Punch: efeito aprovado do atelier SOMADO ao visual que já existia (nada é removido)
+  for (const [move, label] of [['quick-attack', 'Quick Attack'], ['bullet-punch', 'Bullet Punch']]) {
+    await setup(move);await L(() => {const b = window.__lab.game.fighters[1];b.position = {x: 1, z: 0};});await frames(6);
+    await steps(1, 'once');
+    let r = null;
+    for (let k = 0; k < 60 && !(r?.moved); k++) {await steps(4);r = (await info()).atelier.rushes?.find(x => x.move === move);}
+    await steps(6);await frames(6);
+    const mid = await L(([move]) => {const wv = window.__lab.view.worldView, d = wv.atelierFx.diagnostics(), f = window.__lab.game.fighters[0];return {rush: d.rushes.find(x => x.move === move), action: f.action?.move ?? f.action?.kind ?? null};}, [move]);
+    check(`${label}: a ação gera o efeito do atelier, que acompanha o lutador`, !!mid.rush && mid.rush.moved && mid.rush.samples > 3, JSON.stringify(mid));
+    if (move === 'bullet-punch') check(`${label}: o punho do atelier está sobre o caminho real (≤ 0,6 m)`, mid.rush?.actorGap != null && mid.rush.actorGap <= .6, `distância ${mid.rush?.actorGap}`);
+    await page.screenshot({path: out + `${move}-aprovado-jogo.png`});
+    await steps(500);await frames(10);
+    const end = await info();
+    check(`${label}: o efeito termina e é descartado sem vazar`, !(end.atelier.rushes ?? []).length, JSON.stringify(end.atelier.rushes));
+  }
+
   check('sem erros de página/console', errors.length === 0, errors.slice(0, 3).join(' | '));
   check('sem requisições externas', requests.length === 0, requests.slice(0, 3).join(' | '));
 } finally {
