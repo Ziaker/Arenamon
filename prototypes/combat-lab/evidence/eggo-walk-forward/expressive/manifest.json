@@ -1,0 +1,947 @@
+{
+ "blend": "C:\\Users\\zerke\\OneDrive\\Área de Trabalho\\Arenamon\\chars\\Eggo\\Eggo_Walk_Forward.blend",
+ "armature": "AlienRig",
+ "meshes": [
+  "output_unwrapped"
+ ],
+ "mode_run": "shot",
+ "engine": "BLENDER_WORKBENCH",
+ "size": 800,
+ "offset": 0,
+ "frame_note": "frame_autoral = frame_timeline - offset",
+ "render_note": "Workbench headless, NAO e o viewport real do Blender. Camera, luz e grade de chao sao proprias da ferramenta.",
+ "views": {
+  "side_nX": "lado, camera em -X (lado DIREITO do personagem)",
+  "back": "tras (camera em +Y)"
+ },
+ "items": [
+  {
+   "file": "side_nX_solid_t001_g001.png",
+   "view": "side_nX",
+   "mode": "solid",
+   "frame_timeline": 1,
+   "frame_autoral": 1,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "side_nX",
+    "type": "ORTHO",
+    "ortho_scale": 1.7433,
+    "lens": 50.0,
+    "center": [
+     0.017,
+     0.01,
+     0.4303
+    ],
+    "location": [
+     -6.2129,
+     0.01,
+     0.4303
+    ]
+   },
+   "bbox_min_z_m": -0.01,
+   "bbox_size_m": [
+    0.93,
+    0.832,
+    0.822
+   ]
+  },
+  {
+   "file": "side_nX_contact_t001_g001.png",
+   "view": "side_nX",
+   "mode": "contact",
+   "frame_timeline": 1,
+   "frame_autoral": 1,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "side_nX",
+    "type": "ORTHO",
+    "ortho_scale": 1.7433,
+    "lens": 50.0,
+    "center": [
+     0.017,
+     0.01,
+     0.4303
+    ],
+    "location": [
+     -6.2129,
+     0.01,
+     0.4303
+    ]
+   },
+   "bbox_min_z_m": -0.01,
+   "bbox_size_m": [
+    0.93,
+    0.832,
+    0.822
+   ],
+   "pe_esq": "no_ar",
+   "pe_dir": "no_chao_parado"
+  },
+  {
+   "file": "back_solid_t001_g001.png",
+   "view": "back",
+   "mode": "solid",
+   "frame_timeline": 1,
+   "frame_autoral": 1,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "back",
+    "type": "ORTHO",
+    "ortho_scale": 1.7433,
+    "lens": 50.0,
+    "center": [
+     0.017,
+     0.01,
+     0.4303
+    ],
+    "location": [
+     0.017,
+     6.2399,
+     0.4303
+    ]
+   },
+   "bbox_min_z_m": -0.01,
+   "bbox_size_m": [
+    0.93,
+    0.832,
+    0.822
+   ]
+  },
+  {
+   "file": "back_contact_t001_g001.png",
+   "view": "back",
+   "mode": "contact",
+   "frame_timeline": 1,
+   "frame_autoral": 1,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "back",
+    "type": "ORTHO",
+    "ortho_scale": 1.7433,
+    "lens": 50.0,
+    "center": [
+     0.017,
+     0.01,
+     0.4303
+    ],
+    "location": [
+     0.017,
+     6.2399,
+     0.4303
+    ]
+   },
+   "bbox_min_z_m": -0.01,
+   "bbox_size_m": [
+    0.93,
+    0.832,
+    0.822
+   ],
+   "pe_esq": "no_ar",
+   "pe_dir": "no_chao_parado"
+  },
+  {
+   "file": "side_nX_solid_t004_g004.png",
+   "view": "side_nX",
+   "mode": "solid",
+   "frame_timeline": 4,
+   "frame_autoral": 4,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "side_nX",
+    "type": "ORTHO",
+    "ortho_scale": 1.7433,
+    "lens": 50.0,
+    "center": [
+     0.0085,
+     0.0205,
+     0.4303
+    ],
+    "location": [
+     -6.2214,
+     0.0205,
+     0.4303
+    ]
+   },
+   "bbox_min_z_m": -0.047,
+   "bbox_size_m": [
+    0.956,
+    0.827,
+    0.909
+   ]
+  },
+  {
+   "file": "side_nX_contact_t004_g004.png",
+   "view": "side_nX",
+   "mode": "contact",
+   "frame_timeline": 4,
+   "frame_autoral": 4,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "side_nX",
+    "type": "ORTHO",
+    "ortho_scale": 1.7433,
+    "lens": 50.0,
+    "center": [
+     0.0085,
+     0.0205,
+     0.4303
+    ],
+    "location": [
+     -6.2214,
+     0.0205,
+     0.4303
+    ]
+   },
+   "bbox_min_z_m": -0.047,
+   "bbox_size_m": [
+    0.956,
+    0.827,
+    0.909
+   ],
+   "pe_esq": "deslizando",
+   "pe_dir": "no_ar"
+  },
+  {
+   "file": "back_solid_t004_g004.png",
+   "view": "back",
+   "mode": "solid",
+   "frame_timeline": 4,
+   "frame_autoral": 4,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "back",
+    "type": "ORTHO",
+    "ortho_scale": 1.7433,
+    "lens": 50.0,
+    "center": [
+     0.0085,
+     0.0205,
+     0.4303
+    ],
+    "location": [
+     0.0085,
+     6.2504,
+     0.4303
+    ]
+   },
+   "bbox_min_z_m": -0.047,
+   "bbox_size_m": [
+    0.956,
+    0.827,
+    0.909
+   ]
+  },
+  {
+   "file": "back_contact_t004_g004.png",
+   "view": "back",
+   "mode": "contact",
+   "frame_timeline": 4,
+   "frame_autoral": 4,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "back",
+    "type": "ORTHO",
+    "ortho_scale": 1.7433,
+    "lens": 50.0,
+    "center": [
+     0.0085,
+     0.0205,
+     0.4303
+    ],
+    "location": [
+     0.0085,
+     6.2504,
+     0.4303
+    ]
+   },
+   "bbox_min_z_m": -0.047,
+   "bbox_size_m": [
+    0.956,
+    0.827,
+    0.909
+   ],
+   "pe_esq": "deslizando",
+   "pe_dir": "no_ar"
+  },
+  {
+   "file": "side_nX_solid_t007_g007.png",
+   "view": "side_nX",
+   "mode": "solid",
+   "frame_timeline": 7,
+   "frame_autoral": 7,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "side_nX",
+    "type": "ORTHO",
+    "ortho_scale": 1.7433,
+    "lens": 50.0,
+    "center": [
+     -0.0085,
+     0.0205,
+     0.4303
+    ],
+    "location": [
+     -6.2384,
+     0.0205,
+     0.4303
+    ]
+   },
+   "bbox_min_z_m": -0.006,
+   "bbox_size_m": [
+    0.924,
+    0.823,
+    0.92
+   ]
+  },
+  {
+   "file": "side_nX_contact_t007_g007.png",
+   "view": "side_nX",
+   "mode": "contact",
+   "frame_timeline": 7,
+   "frame_autoral": 7,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "side_nX",
+    "type": "ORTHO",
+    "ortho_scale": 1.7433,
+    "lens": 50.0,
+    "center": [
+     -0.0085,
+     0.0205,
+     0.4303
+    ],
+    "location": [
+     -6.2384,
+     0.0205,
+     0.4303
+    ]
+   },
+   "bbox_min_z_m": -0.006,
+   "bbox_size_m": [
+    0.924,
+    0.823,
+    0.92
+   ],
+   "pe_esq": "deslizando",
+   "pe_dir": "deslizando"
+  },
+  {
+   "file": "back_solid_t007_g007.png",
+   "view": "back",
+   "mode": "solid",
+   "frame_timeline": 7,
+   "frame_autoral": 7,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "back",
+    "type": "ORTHO",
+    "ortho_scale": 1.7433,
+    "lens": 50.0,
+    "center": [
+     -0.0085,
+     0.0205,
+     0.4303
+    ],
+    "location": [
+     -0.0085,
+     6.2504,
+     0.4303
+    ]
+   },
+   "bbox_min_z_m": -0.006,
+   "bbox_size_m": [
+    0.924,
+    0.823,
+    0.92
+   ]
+  },
+  {
+   "file": "back_contact_t007_g007.png",
+   "view": "back",
+   "mode": "contact",
+   "frame_timeline": 7,
+   "frame_autoral": 7,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "back",
+    "type": "ORTHO",
+    "ortho_scale": 1.7433,
+    "lens": 50.0,
+    "center": [
+     -0.0085,
+     0.0205,
+     0.4303
+    ],
+    "location": [
+     -0.0085,
+     6.2504,
+     0.4303
+    ]
+   },
+   "bbox_min_z_m": -0.006,
+   "bbox_size_m": [
+    0.924,
+    0.823,
+    0.92
+   ],
+   "pe_esq": "deslizando",
+   "pe_dir": "deslizando"
+  },
+  {
+   "file": "side_nX_solid_t010_g010.png",
+   "view": "side_nX",
+   "mode": "solid",
+   "frame_timeline": 10,
+   "frame_autoral": 10,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "side_nX",
+    "type": "ORTHO",
+    "ortho_scale": 1.7433,
+    "lens": 50.0,
+    "center": [
+     -0.017,
+     0.01,
+     0.4303
+    ],
+    "location": [
+     -6.2469,
+     0.01,
+     0.4303
+    ]
+   },
+   "bbox_min_z_m": -0.026,
+   "bbox_size_m": [
+    0.904,
+    0.815,
+    0.937
+   ]
+  },
+  {
+   "file": "side_nX_contact_t010_g010.png",
+   "view": "side_nX",
+   "mode": "contact",
+   "frame_timeline": 10,
+   "frame_autoral": 10,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "side_nX",
+    "type": "ORTHO",
+    "ortho_scale": 1.7433,
+    "lens": 50.0,
+    "center": [
+     -0.017,
+     0.01,
+     0.4303
+    ],
+    "location": [
+     -6.2469,
+     0.01,
+     0.4303
+    ]
+   },
+   "bbox_min_z_m": -0.026,
+   "bbox_size_m": [
+    0.904,
+    0.815,
+    0.937
+   ],
+   "pe_esq": "no_ar",
+   "pe_dir": "no_chao_parado"
+  },
+  {
+   "file": "back_solid_t010_g010.png",
+   "view": "back",
+   "mode": "solid",
+   "frame_timeline": 10,
+   "frame_autoral": 10,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "back",
+    "type": "ORTHO",
+    "ortho_scale": 1.7433,
+    "lens": 50.0,
+    "center": [
+     -0.017,
+     0.01,
+     0.4303
+    ],
+    "location": [
+     -0.017,
+     6.2399,
+     0.4303
+    ]
+   },
+   "bbox_min_z_m": -0.026,
+   "bbox_size_m": [
+    0.904,
+    0.815,
+    0.937
+   ]
+  },
+  {
+   "file": "back_contact_t010_g010.png",
+   "view": "back",
+   "mode": "contact",
+   "frame_timeline": 10,
+   "frame_autoral": 10,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "back",
+    "type": "ORTHO",
+    "ortho_scale": 1.7433,
+    "lens": 50.0,
+    "center": [
+     -0.017,
+     0.01,
+     0.4303
+    ],
+    "location": [
+     -0.017,
+     6.2399,
+     0.4303
+    ]
+   },
+   "bbox_min_z_m": -0.026,
+   "bbox_size_m": [
+    0.904,
+    0.815,
+    0.937
+   ],
+   "pe_esq": "no_ar",
+   "pe_dir": "no_chao_parado"
+  },
+  {
+   "file": "side_nX_solid_t013_g013.png",
+   "view": "side_nX",
+   "mode": "solid",
+   "frame_timeline": 13,
+   "frame_autoral": 13,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "side_nX",
+    "type": "ORTHO",
+    "ortho_scale": 1.7433,
+    "lens": 50.0,
+    "center": [
+     -0.0085,
+     0.0205,
+     0.4303
+    ],
+    "location": [
+     -6.2384,
+     0.0205,
+     0.4303
+    ]
+   },
+   "bbox_min_z_m": 0.014,
+   "bbox_size_m": [
+    0.949,
+    0.81,
+    0.908
+   ]
+  },
+  {
+   "file": "side_nX_contact_t013_g013.png",
+   "view": "side_nX",
+   "mode": "contact",
+   "frame_timeline": 13,
+   "frame_autoral": 13,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "side_nX",
+    "type": "ORTHO",
+    "ortho_scale": 1.7433,
+    "lens": 50.0,
+    "center": [
+     -0.0085,
+     0.0205,
+     0.4303
+    ],
+    "location": [
+     -6.2384,
+     0.0205,
+     0.4303
+    ]
+   },
+   "bbox_min_z_m": 0.014,
+   "bbox_size_m": [
+    0.949,
+    0.81,
+    0.908
+   ],
+   "pe_esq": "no_ar",
+   "pe_dir": "deslizando"
+  },
+  {
+   "file": "back_solid_t013_g013.png",
+   "view": "back",
+   "mode": "solid",
+   "frame_timeline": 13,
+   "frame_autoral": 13,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "back",
+    "type": "ORTHO",
+    "ortho_scale": 1.7433,
+    "lens": 50.0,
+    "center": [
+     -0.0085,
+     0.0205,
+     0.4303
+    ],
+    "location": [
+     -0.0085,
+     6.2504,
+     0.4303
+    ]
+   },
+   "bbox_min_z_m": 0.014,
+   "bbox_size_m": [
+    0.949,
+    0.81,
+    0.908
+   ]
+  },
+  {
+   "file": "back_contact_t013_g013.png",
+   "view": "back",
+   "mode": "contact",
+   "frame_timeline": 13,
+   "frame_autoral": 13,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "back",
+    "type": "ORTHO",
+    "ortho_scale": 1.7433,
+    "lens": 50.0,
+    "center": [
+     -0.0085,
+     0.0205,
+     0.4303
+    ],
+    "location": [
+     -0.0085,
+     6.2504,
+     0.4303
+    ]
+   },
+   "bbox_min_z_m": 0.014,
+   "bbox_size_m": [
+    0.949,
+    0.81,
+    0.908
+   ],
+   "pe_esq": "no_ar",
+   "pe_dir": "deslizando"
+  },
+  {
+   "file": "side_nX_solid_t016_g016.png",
+   "view": "side_nX",
+   "mode": "solid",
+   "frame_timeline": 16,
+   "frame_autoral": 16,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "side_nX",
+    "type": "ORTHO",
+    "ortho_scale": 1.7433,
+    "lens": 50.0,
+    "center": [
+     0.0085,
+     0.0205,
+     0.4303
+    ],
+    "location": [
+     -6.2214,
+     0.0205,
+     0.4303
+    ]
+   },
+   "bbox_min_z_m": 0.004,
+   "bbox_size_m": [
+    0.956,
+    0.808,
+    0.87
+   ]
+  },
+  {
+   "file": "side_nX_contact_t016_g016.png",
+   "view": "side_nX",
+   "mode": "contact",
+   "frame_timeline": 16,
+   "frame_autoral": 16,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "side_nX",
+    "type": "ORTHO",
+    "ortho_scale": 1.7433,
+    "lens": 50.0,
+    "center": [
+     0.0085,
+     0.0205,
+     0.4303
+    ],
+    "location": [
+     -6.2214,
+     0.0205,
+     0.4303
+    ]
+   },
+   "bbox_min_z_m": 0.004,
+   "bbox_size_m": [
+    0.956,
+    0.808,
+    0.87
+   ],
+   "pe_esq": "no_ar",
+   "pe_dir": "deslizando"
+  },
+  {
+   "file": "back_solid_t016_g016.png",
+   "view": "back",
+   "mode": "solid",
+   "frame_timeline": 16,
+   "frame_autoral": 16,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "back",
+    "type": "ORTHO",
+    "ortho_scale": 1.7433,
+    "lens": 50.0,
+    "center": [
+     0.0085,
+     0.0205,
+     0.4303
+    ],
+    "location": [
+     0.0085,
+     6.2504,
+     0.4303
+    ]
+   },
+   "bbox_min_z_m": 0.004,
+   "bbox_size_m": [
+    0.956,
+    0.808,
+    0.87
+   ]
+  },
+  {
+   "file": "back_contact_t016_g016.png",
+   "view": "back",
+   "mode": "contact",
+   "frame_timeline": 16,
+   "frame_autoral": 16,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "back",
+    "type": "ORTHO",
+    "ortho_scale": 1.7433,
+    "lens": 50.0,
+    "center": [
+     0.0085,
+     0.0205,
+     0.4303
+    ],
+    "location": [
+     0.0085,
+     6.2504,
+     0.4303
+    ]
+   },
+   "bbox_min_z_m": 0.004,
+   "bbox_size_m": [
+    0.956,
+    0.808,
+    0.87
+   ],
+   "pe_esq": "no_ar",
+   "pe_dir": "deslizando"
+  },
+  {
+   "file": "side_nX_solid_t019_g019.png",
+   "view": "side_nX",
+   "mode": "solid",
+   "frame_timeline": 19,
+   "frame_autoral": 19,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "side_nX",
+    "type": "ORTHO",
+    "ortho_scale": 1.7433,
+    "lens": 50.0,
+    "center": [
+     0.017,
+     0.01,
+     0.4303
+    ],
+    "location": [
+     -6.2129,
+     0.01,
+     0.4303
+    ]
+   },
+   "bbox_min_z_m": -0.01,
+   "bbox_size_m": [
+    0.93,
+    0.832,
+    0.822
+   ]
+  },
+  {
+   "file": "side_nX_contact_t019_g019.png",
+   "view": "side_nX",
+   "mode": "contact",
+   "frame_timeline": 19,
+   "frame_autoral": 19,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "side_nX",
+    "type": "ORTHO",
+    "ortho_scale": 1.7433,
+    "lens": 50.0,
+    "center": [
+     0.017,
+     0.01,
+     0.4303
+    ],
+    "location": [
+     -6.2129,
+     0.01,
+     0.4303
+    ]
+   },
+   "bbox_min_z_m": -0.01,
+   "bbox_size_m": [
+    0.93,
+    0.832,
+    0.822
+   ],
+   "pe_esq": "no_ar",
+   "pe_dir": "no_chao_parado"
+  },
+  {
+   "file": "back_solid_t019_g019.png",
+   "view": "back",
+   "mode": "solid",
+   "frame_timeline": 19,
+   "frame_autoral": 19,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "back",
+    "type": "ORTHO",
+    "ortho_scale": 1.7433,
+    "lens": 50.0,
+    "center": [
+     0.017,
+     0.01,
+     0.4303
+    ],
+    "location": [
+     0.017,
+     6.2399,
+     0.4303
+    ]
+   },
+   "bbox_min_z_m": -0.01,
+   "bbox_size_m": [
+    0.93,
+    0.832,
+    0.822
+   ]
+  },
+  {
+   "file": "back_contact_t019_g019.png",
+   "view": "back",
+   "mode": "contact",
+   "frame_timeline": 19,
+   "frame_autoral": 19,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "back",
+    "type": "ORTHO",
+    "ortho_scale": 1.7433,
+    "lens": 50.0,
+    "center": [
+     0.017,
+     0.01,
+     0.4303
+    ],
+    "location": [
+     0.017,
+     6.2399,
+     0.4303
+    ]
+   },
+   "bbox_min_z_m": -0.01,
+   "bbox_size_m": [
+    0.93,
+    0.832,
+    0.822
+   ],
+   "pe_esq": "no_ar",
+   "pe_dir": "no_chao_parado"
+  }
+ ],
+ "extra": {
+  "contact_legend": "verde=no chao e parado, amarelo=no chao deslizando, vermelho=penetrando, azul=no ar, pontos cinza=trilha no piso"
+ },
+ "action": "Walk Forward 4 Expressive",
+ "smart_reasons": {},
+ "align": "root",
+ "scale_ref_m": 1.557,
+ "camera_policy": "alinhamento=root; escala e lente fixas para todos os frames",
+ "blend_untouched": true,
+ "blend_sha256": "98a6f3ee73fdb789d36c6958eec184b31e7ec98250779d1e8e5ed7b41c68c945",
+ "proveniencia": {
+  "codigo_sha256_16": {
+   "vision.py": "71458c847f9fac6a",
+   "check_inside.py": "0993180e3af357f9",
+   "inside_blender.py": "50ad1505d16eb142",
+   "dense_inside.py": "d6177b61c174fcef",
+   "vision_common.py": "4be620e547d6faca"
+  },
+  "blend": "Eggo_Walk_Forward.blend",
+  "blend_sha256_16": "98a6f3ee73fdb789",
+  "entradas_sha256_16": {
+   "interp_envelope.json": "e018d38c8cec3d46",
+   "corpus_envelope.json": "02a8e8ebe7f10265"
+  },
+  "quando": "2026-10-25 00:00:32"
+ },
+ "sheets": [
+  "sheet_side_nX_solid.png",
+  "sheet_side_nX_contact.png",
+  "sheet_back_solid.png",
+  "sheet_back_contact.png"
+ ]
+}

@@ -1,0 +1,38 @@
+MOTION LENS 0.3 - diagnostico priorizado
+Armature: AlienRig
+Frames: 1..19 (19) | 24.000 FPS | 0.792 s
+Ossos extras: Crest=ausente, Tail1=ausente, Tail2=ausente, Tail3=ausente, Tail4=ausente
+
+FRAMES SUSPEITOS (ordenados por relevancia; sao alertas, nao julgamento artistico)
+  [ALTO] f6    deslizamento  LeftFoot   0.118 m entre frames baixos consecutivos
+  [ALTO] f7    deslizamento  LeftFoot   0.105 m entre frames baixos consecutivos
+  [ALTO] f10   equilibrio    COM        centro aproximado 0.371 m fora do apoio simplificado
+  [ALTO] f11   equilibrio    COM        centro aproximado 0.365 m fora do apoio simplificado
+  [ALTO] f9    equilibrio    COM        centro aproximado 0.363 m fora do apoio simplificado
+  [MEDIO] f15   deslizamento  RightFoot  0.073 m entre frames baixos consecutivos
+  [MEDIO] f12   equilibrio    COM        centro aproximado 0.346 m fora do apoio simplificado
+  [MEDIO] f8    equilibrio    COM        centro aproximado 0.343 m fora do apoio simplificado
+  [MEDIO] f14   deslizamento  RightFoot  0.070 m entre frames baixos consecutivos
+  [MEDIO] f16   deslizamento  RightFoot  0.066 m entre frames baixos consecutivos
+  [MEDIO] f13   equilibrio    COM        centro aproximado 0.317 m fora do apoio simplificado
+  [MEDIO] f1    equilibrio    COM        centro aproximado 0.296 m fora do apoio simplificado
+  ... 28 alertas de menor prioridade omitidos
+
+RESUMO POR JUNTA
+  Hips       pico 0.021 m/frame em f4 | media 0.011
+  Head       pico 0.027 m/frame em f17 | media 0.013
+  LeftHand   pico 0.027 m/frame em f4 | media 0.014
+  RightHand  pico 0.027 m/frame em f4 | media 0.014
+  LeftFoot   pico 0.119 m/frame em f6 | media 0.067
+  RightFoot  pico 0.076 m/frame em f6 | media 0.047
+
+CONTATO (limiar relativo ao minimo de cada pe)
+  LeftFoot: 3 baixos, 0 quase travados, slide max 0.118 m/frame, z<=0.073
+  RightFoot: 13 baixos, 4 quase travados, slide max 0.073 m/frame, z<=0.092
+  Malha: z minimo -0.0469 m
+
+CONTRATO
+  Nenhuma violacao objetiva detectada.
+  Nota: Nenhum contrato carregado.
+
+LIMITES: estes dados detectam descontinuidades e riscos mensuraveis; nao avaliam peso percebido, ritmo, intencao, silhueta ou gosto.

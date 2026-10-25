@@ -1,0 +1,31 @@
+{
+ "offset": 0,
+ "size": 800,
+ "armature": null,
+ "mode": "shot",
+ "action": "Walk Forward 4 Expressive",
+ "views": [
+  "side_nX",
+  "back"
+ ],
+ "modes": [
+  "solid",
+  "contact"
+ ],
+ "align": "root",
+ "zoom": null,
+ "zoom_radii": null,
+ "bone_cam": false,
+ "onion_step": 1,
+ "frames": [
+  1,
+  4,
+  7,
+  10,
+  13,
+  16,
+  19
+ ],
+ "out": "C:\\Users\\zerke\\OneDrive\\\u00c1rea de Trabalho\\Arenamon\\prototypes\\combat-lab\\evidence\\eggo-walk-forward\\expressive.tmp-15392",
+ "blend": "C:\\Users\\zerke\\OneDrive\\\u00c1rea de Trabalho\\Arenamon\\chars\\Eggo\\Eggo_Walk_Forward.blend"
+}
