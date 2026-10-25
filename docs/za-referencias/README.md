@@ -73,7 +73,7 @@ Novos módulos em `tools/za-referencias/`, cada um com testes em `tests/` (rigs 
 
 **1E, locomoção** (1.490 loops):
 - 938 saem `real` e 552 `SEM_INFORMACAO`. Destes, 245 não têm pernas, há pés que nunca levantam, pés apoiando em alturas diferentes e pulos.
-- Escorregão inferido em 4% dos loops (7% no conjunto 0), com deslize mediano de 0,056 H.
+- Escorregão inferido em 65 de 736 loops reais do conjunto 0 (9%): 129 trechos de deslize lento e 41 de patinação (pé rente ao chão andando junto com o corpo).
 - Cadência mediana: 2,9 passos/s.
 
 **1G, poses-chave:** no ataque físico, mediana de 53% dos quadros (dentro de 1% de H e 3°). Concordância com os "quadros fortes" do arquivo entre 30% e 57% conforme a categoria.
@@ -83,7 +83,7 @@ Novos módulos em `tools/za-referencias/`, cada um com testes em `tests/` (rigs 
 **1I, lote de rotulagem:** em `dumper test/za-referencias/avaliacao/lote_01/`.
 - Divisão sem vazamento: 189 grupos, teste com 30%.
 - Folhas em modo cego, sem cor, sem estado e com quadros espaçados.
-- As previsões do sistema ficam em `_sistema/` e não devem ser abertas antes de rotular.
+- As previsões do sistema ficam **fora** da pasta dos revisores, em `avaliacao/lote_01_sistema/`.
 
 ### Achados que mudaram o código durante a execução (todos com teste que falhou antes)
 
@@ -97,12 +97,27 @@ Novos módulos em `tools/za-referencias/`, cada um com testes em `tests/` (rigs 
 | A divisão dev/teste juntava o corpus num componente só | Quase duplicata exige correlação ≥ 0,9999 + mesmos quadros + mesma energia de pico |
 | Folhas com o executor pintado entregariam a resposta ao revisor | Modo `cego` |
 
+### Revisão independente da branch
+
+Um revisor novo (outro modelo, sem o contexto da execução) leu o código e rodou os testes: 0 críticos, 10 importantes e 8 menores. Os 10 importantes foram corrigidos, cada um com um teste que falhou antes:
+- ponta de região escondida por escala apagava o braço;
+- o cache ignorava regras e revisões;
+- a revisão humana entrava pela metade;
+- normas abaixo do mínimo saíam MEDIDO;
+- faltava n de clipes no relatório;
+- a página de rotulagem não tinha todas as regiões nem lados claros;
+- as previsões ficavam na pasta dos revisores;
+- patinação passava despercebida;
+- só um executor era medido.
+
+A exceção foi a quase duplicata (item 8): ficou como está, e a decisão é sua (abaixo). Os 5 menores adiados estão no ledger.
+
 ### Não verificado
 
 - O acerto de executores, iniciador, antecipação e apoio. Depende dos rótulos humanos do lote 01 e do A/B.
 - Escorregão conferido no visual: 2 tentativas, ambas inconclusivas (câmera seguindo o pé). Continua `INFERIDO`.
 - O significado dos conjuntos 1xxxx–4xxxx. Há um indício, não confirmado: no conjunto 1 a raiz fica mais alta e os pés mais longe do chão em 3 de 4 espécies amostradas.
-- Animação retargetada entre rigs diferentes não é detectada como duplicata; para isso seria preciso comparar curvas por osso.
+- **Decisão sua:** a quase duplicata mudou em relação ao plano. O plano pedia correlação ≥ 0,98 da curva de energia e da curva do executor; a implementação usa ≥ 0,9999 + mesmos quadros + energia de pico a até 1%, porque a regra do plano juntava o corpus inteiro num grupo só. Com isso, uma animação retargetada para outro rig não é detectada e pode cair nos dois lados da divisão (registrado em `relatorio_vazamento.json`).
 - O "A" do A/B (Blender Vision atual) só entende rigs com nomes humanoides (`Hips`, `RightArm`…). Na maioria dos Pokémon ele vai sair sem resposta, e isso precisa entrar na leitura do A/B.
 
 
