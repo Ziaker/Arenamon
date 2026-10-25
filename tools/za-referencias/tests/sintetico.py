@@ -277,7 +277,7 @@ def um_quadro():
 
 
 def andar(esteira=False, deslize_pe=None, perna_oculta=None, n=60, periodo=30, v=1.2, fps=60, balanco=0.0,
-          mergulho_no_ar=0.0):
+          mergulho_no_ar=0.0, altura_passo=0.12, rasante_frac=0.0):
     """Ciclo de passo do humanoide. Real: origem avança a v m/s e o pé de apoio fica parado no mundo.
     Esteira: origem parada e o pé de apoio escorrega para trás a v (como numa esteira).
     deslize_pe: nome do pé que desliza para frente 0,15 m durante o apoio (escorregão de verdade).
@@ -306,9 +306,11 @@ def andar(esteira=False, deslize_pe=None, perna_oculta=None, n=60, periodo=30, v
                 z += dz
             mundo[f, 2] = z
             u = (fase[f] - periodo // 2) / (periodo // 2)
-            arco = 0.12 * _np.sin(_np.pi * u)
+            arco = altura_passo * _np.sin(_np.pi * u)
             if mergulho_no_ar:   # pé faz um "vale" no ar: dois arcos com mínimo local a `mergulho_no_ar` m do chão
                 arco = arco - (0.12 - mergulho_no_ar) * _np.exp(-((u - 0.5) / 0.12) ** 2)
+            if rasante_frac and u >= 1 - rasante_frac:   # fim do balanço rente ao chão, ainda avançando rápido
+                arco = 0.0
             mundo[f, 1] = 0.0 if apoio[f] else arco
         mover[pe] = mundo - origem
     esc = None
@@ -375,3 +377,11 @@ def antena_balanca_nucleo_prepara():
     antena[:, 0] = 0.25 * _np.sin(_np.arange(n) * 2 * _np.pi / 12)
     return esq, clipe(esq, n, {"left_feeler_b": antena, "waist": frente(n, 22, 0.15, largura=4.0),
                                "right_hand": frente(n, 32, 0.6)})
+
+
+def deslizar_sem_levantar(n=60, v=1.2, fps=60):
+    """Criatura que 'patina': a origem avança e os pés acompanham sem nunca sair do chão."""
+    esq = humanoide()
+    o = _np.zeros((n, 3))
+    o[:, 2] = v * _np.arange(n) / fps
+    return esq, clipe(esq, n, {"origin": o})

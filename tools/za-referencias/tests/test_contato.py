@@ -55,6 +55,15 @@ class TestLocomocao(unittest.TestCase):
         _, _, _, ch, _, _ = analisar(S.andar(mergulho_no_ar=0.06))
         self.assertTrue(ch["estavel"])
 
+    def test_pe_que_nunca_levanta_nao_vira_escorregao(self):
+        r = analisar(S.deslizar_sem_levantar())[5]
+        self.assertEqual(r["escorregoes"], [])
+        self.assertTrue(any("não levanta" in m for m in r["motivos"]))
+
+    def test_passo_rasante_rapido_nao_e_escorregao(self):
+        r = analisar(S.andar(rasante_frac=0.3))[5]   # o fim do balanço avança rente ao chão, rápido
+        self.assertEqual(r["escorregoes"], [])
+
     def test_serpente_sem_informacao(self):
         self.assertEqual(analisar(S.serpente_bote())[4]["status"], "SEM_INFORMACAO")
 

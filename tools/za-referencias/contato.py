@@ -17,6 +17,9 @@ TOL_DESLIZE = 0.03     # fração de H de deslize horizontal num apoio (modo rea
 INSTAVEL_RAIZ = 0.25   # a raiz sobe/desce mais que isto (fração de H): pulo/queda, plano instável
 INSTAVEL_MINIMOS = 0.02  # faixas de apoio dos pés (percentil 5 da altura de cada pé) diferem mais que isto
 DESLOC_REAL = 0.10     # deslocamento horizontal da raiz (fração de H) para o modo "real"
+APOIO_SEMPRE = 0.90    # pé "apoiado" em >= 90% dos quadros no modo real: o passo não é observável nesta escala
+APOIO_MIN_Q = 4        # apoios mais curtos que isto (decolagem/pouso) não entram no teste de escorregão
+VEL_HORIZ_APOIO = 0.5  # H/s: no modo real, pé rente ao chão mais rápido que isto está em balanço rasante, não apoiado
 
 
 def _pontas_de_apoio(esq, regs):
@@ -119,20 +122,26 @@ def locomocao(apoios, clipe, esq, chao):
     passos = 0
     fracs = []
     escorregoes = []
+    motivos = []
     for nome, est in apoios["por_pe"].items():
         trechos = _trechos(est, "CONTATO_INFERIDO")
         passos += sum(1 for a, _ in trechos if a > 0 and est[a - 1] == "BALANCO")
         fracs.append(sum(1 for s in est if s == "CONTATO_INFERIDO") / len(est))
         if modo == "real":
+            if fracs[-1] >= APOIO_SEMPRE:
+                motivos.append("%s não levanta (apoiado em %d%% dos quadros): passo não observável" % (nome, round(100 * fracs[-1])))
+                continue
             p = apoios["pos_H"][nome]
-            for a, b in trechos:
+            vh = np.linalg.norm(np.gradient(p[:, [0, 2]], axis=0), axis=1) * max(clipe.fps, 1)
+            lento = ["APOIO" if (e == "CONTATO_INFERIDO" and vh[f] <= VEL_HORIZ_APOIO) else "-" for f, e in enumerate(est)]
+            for a, b in _trechos(lento, "APOIO"):
                 deslize = float(np.linalg.norm((p[b] - p[a])[[0, 2]]))
-                if b > a and deslize > TOL_DESLIZE:
+                if b - a + 1 >= APOIO_MIN_Q and deslize > TOL_DESLIZE:
                     escorregoes.append({"osso": nome, "quadros": [a, b], "deslize_H": round(deslize, 4),
                                         "nivel": "INFERIDO"})
     simetria = round(min(fracs) / max(fracs), 3) if fracs and max(fracs) > 0 else None
     return {"modo": modo, "cadencia_passos_s": round(passos / dur, 3) if dur else None, "simetria": simetria,
-            "escorregoes": escorregoes, "motivos": []}
+            "escorregoes": escorregoes, "motivos": motivos}
 
 
 def massa_sobre_base(clipe, esq, apoios, margem=0.05):

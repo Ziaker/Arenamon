@@ -41,6 +41,24 @@ Este é o item 1 do plano de melhorar o Motion Lens e o Blender Vision. Cada ani
 - **Limite:** "paridade" significa igual ao que o addon importa no Blender. A semântica real do jogo (curva entre chaves, escala) não pode ser conferida sem o motor do jogo.
 - **Pendente (decisão sua):** os `.blend` do extrator (`montar_blend.py`) ficam com Bézier entre chaves e, entre as chaves, se afastam até ~0,6% de H do linear.
 
+## Fase 1: subfases 1C a 1I (25/10/2026)
+
+Novos módulos em `tools/za-referencias/`, cada um com testes em `tests/` (rigs sintéticos; 118 testes):
+
+| Subfase | Módulo | O que mede | Estado de evidência |
+|---|---|---|---|
+| 1C | `ontologia.py`, `regras_papeis.json`, `revisoes_efetor.json` | Região de cada osso, classe do corpo pelo esqueleto, **papéis** na ação: executores (um ou mais), iniciador, acompanhantes | `CANDIDATO` até revisão humana (`REVISADO`) |
+| 1D | `cinematica.py` | Curvas por região, eventos com vários picos, ordem de ativação, follow-through, squash/stretch × partes escondidas | `CANDIDATO` |
+| 1E | `contato.py` | Chão estimado, apoio por pé, modo real/esteira, cadência, escorregão | `CONTATO_INFERIDO` / `SEM_INFORMACAO` (nunca confirmado sozinho) |
+| 1F | `folhas_visuais.py` | Folhas em 2 vistas independentes, executor em laranja, código de leitura; modo `cego` para rotulagem | `OBSERVAVEL` / `NAO_OBSERVAVEL` / `OCULTO_POR_ESCALA` |
+| 1G | `poses_chave.py` | Menor conjunto de quadros que reconstrói o clipe (≤ 1% de H e ≤ 3°) | `APROXIMACAO` |
+| 1H | `normas.py`, `aprovacoes_za.json` | Grupos com n de clipes, espécies, rigs; MAD/IQR; `SEM_BASE_COMPARAVEL` abaixo de 8 espécies | Medido, **não aprovado** (`NAO_AVALIADA`) |
+| 1I | `avaliacao.py`, `gerar_lote.py`, `rotulagem.html` | Divisão sem vazamento, placar, kappa, A/B com McNemar; lote de 40 para rotular | Aguarda rótulos humanos |
+
+**Máscara de visibilidade:** o Z-A esconde partes zerando a escala. Todo osso com escala < 0,1 (nele ou num ancestral) sai das medidas nesses quadros (`za_anim.ocultos`).
+
+{{RESULTADOS_1C_1I}}
+
 ## Próxima fase
 
 O plano de implementação das subfases 1A–1J (resposta à auditoria REV2) está em [`docs/superpowers/plans/2026-10-25-za-referencias-fase1.md`](../superpowers/plans/2026-10-25-za-referencias-fase1.md). Ele aguarda aprovação para ser executado.
