@@ -82,7 +82,7 @@ Novos módulos em `tools/za-referencias/`, cada um com testes em `tests/` (rigs 
 
 **1I, lote de rotulagem:** em `dumper test/za-referencias/avaliacao/lote_01/`.
 - Divisão sem vazamento: 189 grupos, teste com 30%.
-- Folhas em modo cego, sem cor, sem estado e com quadros espaçados.
+- Cada animação tem **vídeo nas duas vistas, sincronizado**: play/pausa, câmera lenta (0,1–1×), quadro a quadro, barra de posição e contador de quadro. Os quadros fixos continuam disponíveis em "Ver quadros fixos". Tudo em modo cego: sem cor e sem nada calculado. Os vídeos são WebM com todo quadro sendo chave, gerados por `gerar_videos_lote.py`, sem mudar os 40 itens.
 - As previsões do sistema ficam **fora** da pasta dos revisores, em `avaliacao/lote_01_sistema/`.
 
 ### Achados que mudaram o código durante a execução (todos com teste que falhou antes)
