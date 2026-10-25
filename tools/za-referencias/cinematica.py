@@ -13,12 +13,17 @@ VALE_SEPARA = 0.5     # dois picos são eventos diferentes se o vale entre eles 
 LIMIAR_BORDA = 0.10   # início/fim do evento: velocidade < 10% do pico do evento
 
 
-def _ponta(esq, regs, regiao):
+def _ponta(esq, regs, regiao, ocultos=None):
+    """Osso mais profundo da região. Ossos escondidos por escala em algum quadro (malhas alternativas, dedos
+    trocados) não servem de ponta: se a ponta some, a região inteira pareceria parada."""
     prof = {}
     for i in esq.ordem:
         p = esq.pais[i]
         prof[i] = prof[p] + 1 if 0 <= p < len(regs) else 0
     cand = [i for i, r in enumerate(regs) if r == regiao]
+    if ocultos is not None:
+        nunca = [i for i in cand if not ocultos[:, i].any()]
+        cand = nunca or cand
     return max(cand, key=lambda i: (prof[i], float(np.linalg.norm(esq.posicoes_repouso[i])))) if cand else None
 
 
@@ -32,7 +37,7 @@ def curvas_regiao(clipe, esq, regs, raiz, ocultos):
     for reg in sorted(set(regs)):
         if reg in ("raiz", "auxiliar"):
             continue
-        k = _ponta(esq, regs, reg)
+        k = _ponta(esq, regs, reg, ocultos)
         serie = pos[:, k] if reg == "nucleo" else rel[:, k]
         v = np.gradient(serie, axis=0) * fps if n >= 2 else np.zeros_like(serie)
         o = ocultos[:, k].copy()

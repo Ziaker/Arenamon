@@ -63,6 +63,20 @@ class TestGrupo(unittest.TestCase):
         self.assertEqual(g["adequacao_artistica"], "NAO_AVALIADA")
 
 
+class TestNormasNoRelatorio(unittest.TestCase):
+    def test_grupo_tem_fracao_com_hold(self):
+        g = normas.grupo([linha(i, "pm%04d_00_00" % i, holds=1 if i < 5 else 0) for i in range(1, 11)], "attack", "")
+        self.assertEqual(g["com_hold_frac"], 0.4)
+
+
+class TestGruposDoRelatorio(unittest.TestCase):
+    def test_grupo_com_5_especies_sai_sem_base(self):
+        import gerar_relatorio
+        g = gerar_relatorio.grupos_normas([linha(i, "pm%04d_00_00" % i) for i in range(1, 6)], aprovacoes={"aprovacoes": []})
+        self.assertEqual(g[("attack", "")]["status"], "SEM_BASE_COMPARAVEL")
+        self.assertIn("n_clipes", g[("attack", "")])
+
+
 class TestAprovar(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.mkdtemp()

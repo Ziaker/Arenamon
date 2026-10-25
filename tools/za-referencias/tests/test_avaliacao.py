@@ -74,6 +74,19 @@ class TestPlacar(unittest.TestCase):
         self.assertEqual(p["executores"]["precisao"], 1.0)
 
 
+class TestRespostasVazias(unittest.TestCase):
+    def test_resposta_vazia_nao_conta(self):
+        p = avaliacao.placar([{"id": 1, "x": "sim"}], [{"id": 1, "x": ""}])
+        self.assertEqual(p["x"]["n"], 0)
+
+    def test_previsao_ignora_revisado_e_mapeia_lado(self):
+        import gerar_lote
+        p = gerar_lote.previsao({"id": "a", "papeis_status": "REVISADO", "executores": ["cabeca"], "status": "MEDIDO"})
+        self.assertNotIn("executores", p)
+        q = gerar_lote.previsao({"id": "b", "papeis_status": "CANDIDATO", "executores": ["braco_C", "lingua"], "status": "MEDIDO"})
+        self.assertEqual(q["executores"], ["braco_C", "lingua"])
+
+
 class TestConcordancia(unittest.TestCase):
     def test_kappa_concordancia_perfeita_e_1(self):
         rot = [{"id": i, "antecipacao": "sim" if i % 2 else "nao"} for i in range(10)]

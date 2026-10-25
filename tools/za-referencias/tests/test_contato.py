@@ -64,6 +64,10 @@ class TestLocomocao(unittest.TestCase):
         r = analisar(S.andar(rasante_frac=0.3))[5]   # o fim do balanço avança rente ao chão, rápido
         self.assertEqual(r["escorregoes"], [])
 
+    def test_patinacao_com_o_corpo_e_escorregao(self):
+        e = analisar(S.patinar_com_o_corpo())[5]["escorregoes"]
+        self.assertTrue(any(x["osso"] == "left_foot" and x.get("tipo") == "patinacao" for x in e))
+
     def test_serpente_sem_informacao(self):
         self.assertEqual(analisar(S.serpente_bote())[4]["status"], "SEM_INFORMACAO")
 

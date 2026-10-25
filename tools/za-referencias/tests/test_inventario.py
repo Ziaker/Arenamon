@@ -77,3 +77,16 @@ class TestManifesto(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+
+
+class TestCacheVeArquivosEditaveis(unittest.TestCase):
+    def test_hash_muda_quando_regras_mudam(self):
+        import config
+        a = config.hash_config()
+        p = os.path.join(os.path.dirname(AQUI), "regras_papeis.json")
+        orig = open(p, encoding="utf-8").read()
+        try:
+            open(p, "w", encoding="utf-8").write(orig.replace('"limiar_executor_frac": 0.6', '"limiar_executor_frac": 0.61'))
+            self.assertNotEqual(a, config.hash_config())
+        finally:
+            open(p, "w", encoding="utf-8").write(orig)

@@ -19,7 +19,7 @@ textarea{width:100%;min-height:52px}
 .prog{color:var(--mut)}
 </style></head><body><main>
 <h1>Rotulagem cega · lote Z-A</h1>
-<p>Clique numa folha para vê-la em tamanho real. Para cada animação, olhe as folhas (duas vistas, quadros espaçados pelo clipe) e responda o que <b>você</b> vê. A página não mostra o que o sistema calculou. Use "Inconclusivo" sempre que não der para ver. Suas respostas ficam salvas neste navegador; no fim, clique em <b>Baixar rótulos</b> e guarde o arquivo. Lote <code>{{HASH}}</code>.</p>
+<p><b>Direita e esquerda são do Pokémon</b> (como se você fosse ele), não de quem olha a folha. Clique numa folha para vê-la em tamanho real. Para cada animação, olhe as folhas (duas vistas, quadros espaçados pelo clipe) e responda o que <b>você</b> vê. A página não mostra o que o sistema calculou. Use "Inconclusivo" sempre que não der para ver. Suas respostas ficam salvas neste navegador; no fim, clique em <b>Baixar rótulos</b> e guarde o arquivo. Lote <code>{{HASH}}</code>.</p>
 <div class="barra">
   <label>Seu nome <input id="revisor" placeholder="ex.: Rafael" required></label>
   <span class="prog" id="prog"></span>
@@ -30,7 +30,8 @@ textarea{width:100%;min-height:52px}
 </main>
 <script>
 const LOTE = /*LOTE*/null;
-const REGIOES = [["braco_D","braço direito"],["braco_E","braço esquerdo"],["perna_D","perna direita"],["perna_E","perna esquerda"],["cabeca","cabeça"],["mandibula","boca/mandíbula"],["cauda","cauda"],["asa_D","asa direita"],["asa_E","asa esquerda"],["nucleo","tronco/quadril"],["apendice_sensorial","antena/orelha"],["outro","outra parte"]];
+// lados = do PRÓPRIO Pokémon (não de quem olha a folha)
+const REGIOES = [["braco_D","braço direito do Pokémon"],["braco_E","braço esquerdo do Pokémon"],["braco_C","braço (sem lado / central)"],["perna_D","perna direita do Pokémon"],["perna_E","perna esquerda do Pokémon"],["perna_C","perna (sem lado / central)"],["cabeca","cabeça"],["pescoco","pescoço"],["mandibula","boca/mandíbula"],["lingua","língua"],["cauda","cauda"],["asa_D","asa direita do Pokémon"],["asa_E","asa esquerda do Pokémon"],["asa_C","asa (sem lado)"],["nucleo","tronco/quadril"],["apendice_sensorial","antena/orelha"],["outro","outra parte"]];
 const CHAVE = "rotulagem_za_" + "{{HASH}}";
 let estado = {};
 try { estado = JSON.parse(localStorage.getItem(CHAVE) || "{}"); } catch (e) { estado = {}; }
@@ -63,9 +64,9 @@ function render() {
     sec.querySelectorAll("[data-exec]").forEach(i => { i.checked = (r.executores || []).includes(i.dataset.exec) || (r.executores === "INCONCLUSIVO" && i.dataset.exec === "INCONCLUSIVO"); });
     sec.addEventListener("input", () => {
       const o = estado[id] = estado[id] || {};
-      sec.querySelectorAll("[data-campo]").forEach(i => { o[i.dataset.campo] = i.value; });
+      sec.querySelectorAll("[data-campo]").forEach(i => { if (i.value === "") delete o[i.dataset.campo]; else o[i.dataset.campo] = i.value; });
       const ex = [...sec.querySelectorAll("[data-exec]:checked")].map(i => i.dataset.exec);
-      o.executores = ex.includes("INCONCLUSIVO") ? "INCONCLUSIVO" : ex.sort();
+      if (ex.includes("INCONCLUSIVO")) o.executores = "INCONCLUSIVO"; else if (ex.length) o.executores = ex.sort(); else delete o.executores;
       salvar();
     });
   });

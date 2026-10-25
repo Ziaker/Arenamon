@@ -224,6 +224,7 @@ def papeis(clipe, esq, regs, categoria, anat, regras=None, ocultos=None):
                 executores.append({"regiao": r, "osso_ponta": esq.nomes[vels[r]["osso"]], "status": "CANDIDATO",
                                    "evidencia": {"pico_H_s": round(pv, 3), "quadro_pico": pf,
                                                  "frac_do_maior": round(pv / melhor[0], 3)}})
+    executores.sort(key=lambda e: (-e["evidencia"]["frac_do_maior"], e["regiao"]))
     status = "CANDIDATO" if executores else "INCONCLUSIVO"
     motivo = None if executores else (
         "nenhuma região candidata com pico de avanço >= %.2f H/s" % R["pico_minimo_H_s"])

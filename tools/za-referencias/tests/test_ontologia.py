@@ -142,6 +142,16 @@ class TestPapeis(unittest.TestCase):
         self.assertEqual(r["iniciadores"][0]["regiao"], "nucleo")
         self.assertNotIn("apendice_sensorial", [x["regiao"] for x in r["iniciadores"]])
 
+    def test_dedo_escondido_nao_apaga_o_braco(self):
+        r = papeis(S.soco_com_dedo_escondido())
+        self.assertEqual(regs_exec(r), ["braco_D"])
+
+    def test_executores_ordenados_pelo_maior_pico(self):
+        esq = S.humanoide()
+        c = S.clipe(esq, 60, {"left_hand": S.frente(60, 30, 0.8), "right_hand": S.frente(60, 31, 0.6)})
+        r = ontologia.papeis(c, esq, ontologia.regioes(esq), "attack", ontologia.anatomia(esq, ontologia.regioes(esq)))
+        self.assertEqual([e["regiao"] for e in r["executores"]], ["braco_E", "braco_D"])
+
     def test_serpente_bote_executor_cabeca(self):
         r = papeis(S.serpente_bote())
         self.assertEqual(r["executores"][0]["regiao"], "cabeca")

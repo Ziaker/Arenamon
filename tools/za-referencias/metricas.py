@@ -97,8 +97,13 @@ def _reamostrar(curva, n=AMOSTRAS_CURVA):
     return [round(float(v), 4) for v in np.interp(x, np.arange(len(curva)), curva)]
 
 
-def medir(clipe, esq, raiz=None, categoria=None, regs=None, anat=None):
+def medir(clipe, esq, raiz=None, categoria=None, regs=None, anat=None, revisao=None):
+    """revisao: {"executores": [regiões], "por": nome} (revisoes_efetor.json) — entra ANTES das medidas que
+    dependem do executor, para que antecipação, eventos e follow-through usem o executor revisado."""
     import cinematica
+    if clipe.quadros == 0:
+        return {"fps": clipe.fps, "quadros": 0, "duracao_s": 0.0, "parado": True, "status": "INCONCLUSIVO",
+                "motivo": "clipe sem quadros", "executores": [], "papeis_status": "INCONCLUSIVO"}
     import ontologia
     import za_anim
     n, fps = clipe.quadros, max(clipe.fps, 1)
@@ -130,6 +135,10 @@ def medir(clipe, esq, raiz=None, categoria=None, regs=None, anat=None):
         "descida_max_H": round(float(traj[0, 1] - traj[:, 1].min()), 4),
     }
     out.update(_camada_papeis(clipe, esq, categoria, regs, anat, oc))
+    if revisao:
+        regs_rev = [r for r in revisao.get("executores", []) if r in regs]
+        out.update({"executores": regs_rev, "papeis_status": "REVISADO", "revisado_por": revisao.get("por"),
+                    "executores_ossos": [esq.nomes[cinematica._ponta(esq, regs, r, oc)] for r in regs_rev]})
     if n < 3 or not animados:
         out.update({"parado": True, "status": "INCONCLUSIVO"})
         return out
@@ -187,6 +196,8 @@ def medir(clipe, esq, raiz=None, categoria=None, regs=None, anat=None):
     out["antecipacao_base"] = "executor" if exec_ossos else "maior_percurso"
     out["antecipacao_osso"] = esq.nomes[k_ex]
     out.update(_antecipacao(rel, vel_todos, mask, k_ex, ini))
+    out["antecipacao_por_executor"] = [dict(_antecipacao(rel, vel_todos, mask, k, ini), efetor=esq.nomes[k])
+                                       for k in exec_ossos]
     out["efetor"] = esq.nomes[k_ex]
 
     # camada cinemática (Task 4)

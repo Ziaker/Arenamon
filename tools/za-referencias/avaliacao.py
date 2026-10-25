@@ -104,6 +104,10 @@ def dividir(clipes, frac_teste=0.3, semente=1025):
                                     "frac_teste_real": round(len(teste) / n, 3) if n else None}}
 
 
+def _vazio(v):
+    return v is None or v == "" or v == []
+
+
 def _norm(v):
     return tuple(sorted(v)) if isinstance(v, (list, tuple)) else v
 
@@ -116,7 +120,7 @@ def placar(previsoes, rotulos):
         acertos = fp = inc_ok = inc_err = com_resposta = n = 0
         for p in previsoes:
             r = gab.get(p["id"])
-            if r is None or pr not in r or pr not in p:
+            if r is None or pr not in r or pr not in p or _vazio(r[pr]) or _vazio(p[pr]):
                 continue
             n += 1
             pv, rv = _norm(p[pr]), _norm(r[pr])
@@ -163,7 +167,7 @@ def concordancia(rotulos_por_revisor):
     probs = sorted({k for r in revs for x in rotulos_por_revisor[r] for k in x if k != "id"})
     out = {}
     for pr in probs:
-        itens = [i for i in ids if all(pr in por_rev[r][i] for r in revs)]
+        itens = [i for i in ids if all(pr in por_rev[r][i] and not _vazio(por_rev[r][i][pr]) for r in revs)]
         if not itens:
             continue
         mat = [[_norm(por_rev[r][i][pr]) for r in revs] for i in itens]
@@ -194,7 +198,7 @@ def ab(previsoes_a, previsoes_b, gabarito):
     for pr in probs:
         b = c = 0
         for i, r in gab.items():
-            if i not in pa or i not in pb or pr not in pa[i] or pr not in pb[i]:
+            if i not in pa or i not in pb or pr not in pa[i] or pr not in pb[i] or _vazio(r.get(pr)):
                 continue
             ca = _norm(pa[i][pr]) == _norm(r[pr])
             cb = _norm(pb[i][pr]) == _norm(r[pr])

@@ -15,6 +15,7 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import inventario  # noqa: E402
+import config  # noqa: E402
 import normas as normas_mod  # noqa: E402
 
 MEDIDAS = [
@@ -125,7 +126,7 @@ def svg_curva(c, w=220, h=64):
 
 
 def fmt(r, unidade=""):
-    if not r:
+    if not r or r.get("mediana") is None:
         return '<span class="vazio">—</span>'
     return ('<b>%s</b><small> %s–%s</small>' % (_n(r["mediana"]), _n(r["p10"]), _n(r["p90"])))
 
@@ -152,9 +153,12 @@ def main():
         "faixas_sem_osso": sum(l.get("faixas_sem_osso", 0) for l in todas),
         "formas_corpo": dict(Counter(l["forma_corpo"] for l in um_por_especie(corpo) if l["categoria"] == "attack")),
     }
+    grupos = grupos_normas(corpo)
+    curvas = {k: {"curva": v.get("curva")} for k, v in norm["conjunto_0"].items() if v.get("curva")}
     with open(os.path.join(saida, "normas_za.json"), "w", encoding="utf-8") as fh:
-        json.dump({"sobre": info, "medidas": {m: [r, u] for m, r, u in MEDIDAS}, "normas": norm}, fh,
-                  ensure_ascii=False, indent=1)
+        json.dump({"sobre": info, "medidas": {m: [r, u] for m, r, u in MEDIDAS}, "n_especies_min": config.N_ESPECIES_MIN,
+                   "grupos": {"%s|%s" % k: v for k, v in grupos.items()}, "curvas_conjunto_0": curvas,
+                   "por_conjunto_legado": norm}, fh, ensure_ascii=False, indent=1)
 
     # por forma do corpo, só ataques físicos (conjunto 0)
     por_forma = defaultdict(list)
@@ -168,15 +172,23 @@ def main():
               l.get("overshoot_rel"), l.get("efetor", ""), l["conjunto"]]
              for l in corpo if not l.get("parado")]
     info["reconciliacao"] = inventario.reconciliar(todas)
-    grupos = {}
-    for cat in CATEGORIAS_DESTAQUE:
-        for fase in ("", "start", "loop", "end"):
-            grupos[(cat, fase)] = normas_mod.grupo(corpo, cat, fase, n_min=1)
     with open(os.path.join(saida, "normas_grupos_za.json"), "w", encoding="utf-8") as fh:
         json.dump({"%s|%s" % k: v for k, v in grupos.items() if v["n_clipes"]}, fh, ensure_ascii=False, indent=1)
     escrever_html(os.path.join(saida, "relatorio.html"), info, norm, por_forma, busca,
                   fase1=secoes_fase1(corpo, por_conj[0]), grupos=grupos)
     print("relatório e normas em", saida)
+
+
+def grupos_normas(corpo, aprovacoes=None):
+    """Grupos (categoria, fase) do conjunto 0 pelo normas.grupo: status com config.N_ESPECIES_MIN e aprovações."""
+    apr = normas_mod.carregar_aprovacoes() if aprovacoes is None else aprovacoes
+    out = {}
+    for cat in sorted({l["categoria"] for l in corpo}):
+        for fase in ("", "start", "loop", "end"):
+            g = normas_mod.grupo(corpo, cat, fase, aprovacoes=apr)
+            if g["n_clipes"]:
+                out[(cat, fase)] = g
+    return out
 
 
 def _pct(a, b):
@@ -289,16 +301,20 @@ def escrever_html(caminho, info, norm, por_forma, busca, fase1="", grupos=None):
             if not g or g["especies"] < 5:
                 continue
             nome = ROTULOS.get(cat, cat) + (" · " + fase if fase else "")
-            gn = (grupos or {}).get((cat, fase), {})
+            gn = (grupos or {}).get((cat, fase))
+            if not gn:
+                continue
+            md = gn["medidas"]
+            rotulo = "MEDIDO, NÃO APROVADO" if gn["status"] == "MEDIDO" else "SEM BASE COMPARÁVEL"
             linhas.append(
-                "<tr data-n=\"%d\"><th>%s<small>%d espécies · %s rigs · %s</small></th><td>%s</td><td>%s</td><td>%s</td><td>%s</td>"
+                "<tr data-n=\"%d\"><th>%s<small>%d clipes · %d espécies · %d rigs · %s</small></th><td>%s</td><td>%s</td><td>%s</td><td>%s</td>"
                 "<td>%d%%<small> %s q</small></td><td>%s</td><td>%d%%</td><td>%s</td><td>%s</td></tr>" % (
-                    gn.get("n_especies", g["especies"]), html.escape(nome), g["especies"], gn.get("n_rigs_estruturais", "—"),
-                    "MEDIDO, NÃO APROVADO", svg_curva(g.get("curva")), fmt(g["duracao_s"]),
-                    fmt(g["ate_pico_s"]), fmt(g["pico_rel"]), round(100 * g["com_antecipacao"]),
-                    _n(g["antecipacao_q"]["mediana"]) if g.get("antecipacao_q") else "—",
-                    fmt(g["antecipacao_ate_golpe_q"]), round(100 * g["com_hold"]),
-                    fmt(g["overshoot_rel"]), fmt(g["ease"])))
+                    gn["n_especies"], html.escape(nome), gn["n_clipes"], gn["n_especies"], gn["n_rigs_estruturais"], rotulo,
+                    svg_curva(g.get("curva")), fmt(md["duracao_s"]), fmt(md["ate_pico_s"]), fmt(md["pico_rel"]),
+                    round(100 * (gn["com_antecipacao_frac"] or 0)),
+                    _n(md["antecipacao_q"]["mediana"]) if md["antecipacao_q"].get("mediana") is not None else "—",
+                    fmt(md["antecipacao_ate_golpe_q"]), round(100 * (gn["com_hold_frac"] or 0)),
+                    fmt(md["overshoot_rel"]), fmt(md["ease"])))
     formas = []
     for f, ls in sorted(por_forma.items(), key=lambda kv: -len(kv[1])):
         if len(ls) < 3:
@@ -416,7 +432,7 @@ dl{{display:grid;grid-template-columns:max-content 1fr;gap:4px 14px;color:var(--
 <h2>Limites</h2>
 <ul>
 <li>As medidas são geométricas, sem julgamento artístico. Em clipes de loop (andar, esperar), "antecipação" e "overshoot" medem oscilação, não golpe.</li>
-<li>Escala de osso é ignorada (quase sempre 1). Contato com o chão e passos por ciclo ainda não são medidos.</li>
+<li>A escala dos ossos entra na cinemática (com a compensação por osso do rig); partes escondidas por escala ficam fora das medidas de movimento. O contato com o chão é inferido de um chão estimado, nunca confirmado sem revisão visual.</li>
 <li>A forma do corpo é a da espécie, não a de cada forma ou Mega.</li>
 <li>Curvas .trcrv, efeitos .traef e câmera não entram.</li>
 </ul>

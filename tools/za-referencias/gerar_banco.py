@@ -71,12 +71,9 @@ def medir_forma(args):
         try:
             c = za_anim.Clipe(os.path.join(pasta, f), esq)
             c.eh_loop = cls["fase"] == "loop"
-            m = metricas.medir(c, esq, raiz, categoria=cls["categoria"], regs=regs, anat=anat)
+            m = metricas.medir(c, esq, raiz, categoria=cls["categoria"], regs=regs, anat=anat,
+                               revisao=revisoes.get("%s/%s" % (base, nome)))
             animados_forma |= c.ossos_animados
-            if "%s/%s" % (base, nome) in revisoes:
-                rv = revisoes["%s/%s" % (base, nome)]
-                m.update({"executores": rv.get("executores", []), "papeis_status": "REVISADO",
-                          "revisado_por": rv.get("por")})
         except Exception as ex:
             linhas.append({"_falha": {"arquivo": "%s/%s" % (base, f), "sha256": hashes[f], "etapa": "medir",
                                       "erro": repr(ex), "traceback_curto": traceback.format_exc(limit=3)[-600:]}})
@@ -103,6 +100,8 @@ def montar_tarefas(dump, catalogo):
     with open(os.path.join(AQUI, "especies.json"), encoding="utf-8") as fh:
         especies = json.load(fh)["especies"]
     cat = mapa_catalogo(catalogo)
+    import ontologia
+    revisoes = ontologia.carregar_revisoes()
     tarefas = []
     for sp in sorted(os.listdir(dump)):
         d = os.path.join(dump, sp)
@@ -123,6 +122,9 @@ def montar_tarefas(dump, catalogo):
             for x in sorted(skl):
                 h.update((x + _sha(os.path.join(p, x))).encode())
             especie, forma = cat.get(fm, (0, 0))
+            # revisões humanas desta forma, catálogo e espécie também entram na chave (mudam o resultado)
+            revs = {k: v for k, v in revisoes.items() if k.startswith(fm + "/")}
+            h.update(json.dumps([revs, especie, forma, especies.get(str(especie), {})], sort_keys=True).encode())
             tarefas.append({"chave": h.hexdigest()[:32], "arquivo": "%s/%s" % (sp, fm),
                             "args": {"pasta": p, "especie": especie, "forma": forma,
                                      "info": especies.get(str(especie), {}), "hashes": hashes}})

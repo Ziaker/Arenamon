@@ -84,6 +84,7 @@ def grupo(clipes, categoria, fase, classe_anatomica=None, conjunto=0, n_min=None
         "com_escala_animada_frac": round(sum(1 for l in sel if l.get("escala_animada")) / n, 3) if n else None,
         "com_partes_ocultas_frac": round(sum(1 for l in sel if l.get("partes_ocultas")) / n, 3) if n else None,
         "com_antecipacao_frac": round(sum(1 for l in sel if l.get("antecipacao")) / n, 3) if n else None,
+        "com_hold_frac": round(sum(1 for l in sel if l.get("holds")) / n, 3) if n else None,
         "medidas": medidas,
         "aprovacao": {"aspectos_aprovados": sorted({a["aspecto"] for a in aprov}),
                       "art_approved_by": aprov[-1]["por"] if aprov else None},

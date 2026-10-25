@@ -7,7 +7,7 @@
    com pelo menos 5 com partes ocultas por escala e 5 com squash/stretch, e o resto de outras categorias.
 3. Renderiza as folhas visuais de cada clipe (folhas_visuais.py, Blender em segundo plano).
 4. Grava lote.json (sem nenhum valor calculado: avaliação cega), rotulagem.html e o hash do lote.
-   As previsões do sistema ficam à parte em _sistema/previsoes_b.json, para o A/B depois dos rótulos.
+   As previsões do sistema ficam FORA da pasta do lote, em <saida_lote>_sistema/, para o A/B depois dos rótulos.
 """
 import hashlib
 import json
@@ -30,11 +30,14 @@ OUTRAS = ["walk", "run", "damage", "roar", "land", "rangeattack", "jumpup", "dow
 
 def previsao(l):
     """O que o sistema (com corpus) responde para as mesmas perguntas da página de rotulagem."""
-    return {"id": l["id"],
-            "executores": l.get("executores") if l.get("papeis_status") != "INCONCLUSIVO" else "INCONCLUSIVO",
-            "iniciador": l.get("iniciador") or "INCONCLUSIVO",
-            "antecipacao": ("sim" if l.get("antecipacao") else "nao") if l.get("status") == "MEDIDO" else "INCONCLUSIVO",
-            "parte_some_aparece": "sim" if l.get("trocas_visibilidade_n") else "nao"}
+    p = {"id": l["id"],
+         "executores": l.get("executores") if l.get("papeis_status") != "INCONCLUSIVO" else "INCONCLUSIVO",
+         "iniciador": l.get("iniciador") or "INCONCLUSIVO",
+         "antecipacao": ("sim" if l.get("antecipacao") else "nao") if l.get("status") == "MEDIDO" else "INCONCLUSIVO",
+         "parte_some_aparece": "sim" if l.get("trocas_visibilidade_n") else "nao"}
+    if l.get("papeis_status") == "REVISADO":   # rótulo humano, não previsão do sistema
+        del p["executores"]
+    return p
 
 
 def escolher(teste, semente=1025):
@@ -94,7 +97,9 @@ def main():
         l["cadeia"] = (esp.get(str(l.get("especie"))) or {}).get("cadeia")
     corpo = [l for l in clipes if l.get("codigo") and not l["codigo"].startswith("08") and not l.get("parado")]
     div = avaliacao.dividir(corpo)
-    os.makedirs(os.path.join(saida, "_sistema"), exist_ok=True)
+    sistema = saida.rstrip("/\\") + "_sistema"   # FORA da pasta entregue aos revisores (avaliação cega)
+    os.makedirs(sistema, exist_ok=True)
+    os.makedirs(saida, exist_ok=True)
     lote = escolher(div["teste"])
     print("divisão: %d grupos, teste %.1f%%; lote %d clipes" % (div["grupos"], 100 * div["relatorio_vazamento"]["frac_teste_real"], len(lote)), flush=True)
     itens = []
@@ -116,20 +121,24 @@ def main():
         fh.write(texto)
     with open(os.path.join(saida, "lote.sha256"), "w") as fh:
         fh.write(h + "\n")
-    with open(os.path.join(saida, "_sistema", "previsoes_b.json"), "w", encoding="utf-8") as fh:
+    with open(os.path.join(sistema, "previsoes_b.json"), "w", encoding="utf-8") as fh:
         json.dump([previsao(l) for l in lote], fh, ensure_ascii=False, indent=1)
-    with open(os.path.join(saida, "_sistema", "LEIA.txt"), "w", encoding="utf-8") as fh:
+    with open(os.path.join(sistema, "LEIA.txt"), "w", encoding="utf-8") as fh:
         fh.write("Previsões do sistema para o A/B. NÃO abra antes de terminar a rotulagem (avaliação cega).\n")
     with open(os.path.join(saida, "relatorio_vazamento.json"), "w", encoding="utf-8") as fh:
         json.dump({"grupos": div["grupos"], **div["relatorio_vazamento"], "n_dev": len(div["dev"]),
-                   "n_teste": len(div["teste"])}, fh, ensure_ascii=False, indent=1)
+                   "n_teste": len(div["teste"]),
+                   "limites": ["quase duplicata = correlação >= 0,9999 da curva de energia + mesmos quadros + energia de pico "
+                               "a até 1%: só pega cópias quase exatas; animação retargetada para outro rig/proporção NÃO é "
+                               "detectada (precisaria comparar curvas por osso). Desvio do plano (0,98 + curva do executor) "
+                               "aguardando confirmação do responsável."]}, fh, ensure_ascii=False, indent=1)
     with open(os.path.join(AQUI, "rotulagem.html"), encoding="utf-8") as fh:
         pagina = fh.read().replace("/*LOTE*/null", texto).replace("{{HASH}}", h[:12])
     with open(os.path.join(saida, "rotulagem.html"), "w", encoding="utf-8") as fh:
         fh.write(pagina)
     for f in os.listdir(saida):
         if f.startswith("indice_") and f.endswith(".json"):
-            shutil.move(os.path.join(saida, f), os.path.join(saida, "_sistema", f))
+            shutil.move(os.path.join(saida, f), os.path.join(sistema, f))
     print("lote congelado: sha256 %s" % h)
 
 

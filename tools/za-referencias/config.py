@@ -21,9 +21,23 @@ def limiares():
             "amostras_curva": AMOSTRAS_CURVA, "tol_escala": TOL_ESCALA}
 
 
+ARQUIVOS_NO_HASH = ("regras_papeis.json", "za_anim.py", "metricas.py", "ontologia.py", "cinematica.py", "contato.py",
+                    "poses_chave.py", "config.py")
+
+
 def hash_config():
+    """Chave do cache: limiares, versões E o conteúdo das regras editáveis e do código das medidas (mudar qualquer
+    um invalida o cache sem depender de alguém lembrar de subir METRICAS_VERSAO)."""
+    aqui = os.path.dirname(os.path.abspath(__file__))
+    conteudo = {}
+    for nome in ARQUIVOS_NO_HASH:
+        try:
+            with open(os.path.join(aqui, nome), "rb") as fh:
+                conteudo[nome] = hashlib.sha256(fh.read()).hexdigest()
+        except OSError:
+            conteudo[nome] = None
     dados = {"limiares": limiares(), "decoder": DECODER_VERSAO, "metricas": METRICAS_VERSAO, "espaco": ESPACO,
-             "interp": INTERPOLACAO}
+             "interp": INTERPOLACAO, "arquivos": conteudo}
     return hashlib.sha256(json.dumps(dados, sort_keys=True).encode()).hexdigest()[:16]
 
 

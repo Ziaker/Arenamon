@@ -7,7 +7,7 @@ pacote `flatbuffers` e do numpy. O Python do Blender 5.2 já tem os dois:
 Convenções (iguais às do addon, conferidas contra o Blender em conferir_fk.py):
   - Trinity é Y-up; aqui nada é girado: altura = eixo Y.
   - Pose local de cada osso = translação/rotação da faixa, ou a de repouso quando a faixa não existe.
-  - Escala é ignorada na cinemática (quase sempre 1; as medidas são de posição).
+  - Escala entra na cinemática com a compensação por osso do trskl (InheritScale); ver Esqueleto.fk_completa.
   - Faixas "Framed" (chaves esparsas) são interpoladas: linear na posição, slerp na rotação.
 """
 import math
@@ -228,7 +228,7 @@ def _faixa(tab, tipo, n, eh_rot):
 
 class Clipe:
     """Clipe decodificado. Atributos principais:
-    loc/rot [F, B, 3|4] locais; escala [F, B, 3] (não entra na cinemática); posicoes [F, B, 3];
+    loc/rot [F, B, 3|4] locais; escala [F, B, 3] (entra na cinemática, com compensação por osso); posicoes [F, B, 3];
     faixas {fixa, densa, esparsa} contando translação e rotação separadas (escala fora da conta);
     faixas_sem_osso = faixas cujo nome não existe no esqueleto (ignoradas);
     escala_animada / escala_max_desvio = max |escala - 1| entre todos os ossos e quadros."""

@@ -101,6 +101,25 @@ class TestMedir(unittest.TestCase):
         self.assertEqual(m["ordem_ativacao"][0], "nucleo")
         self.assertNotIn("apendice_sensorial", m["ordem_ativacao"])
 
+    def test_revisao_humana_entra_antes_das_medidas(self):
+        esq, c = S.golpe_com_antena()
+        m = metricas.medir(c, esq, categoria="attack", revisao={"executores": ["cabeca"], "por": "Rafael"})
+        self.assertEqual(m["executores"], ["cabeca"])
+        self.assertEqual(m["papeis_status"], "REVISADO")
+        self.assertEqual(m["antecipacao_osso"], "head")
+
+    def test_mede_antecipacao_de_cada_executor(self):
+        esq, c = S.golpe_dois_bracos()
+        m = metricas.medir(c, esq, categoria="attack")
+        self.assertEqual(len(m["antecipacao_por_executor"]), 2)
+
+    def test_clipe_sem_quadros_inconclusivo(self):
+        esq = S.humanoide()
+        c = S.clipe(esq, 1)
+        c.quadros = 0
+        c.posicoes = c.posicoes[:0]; c.loc = c.loc[:0]; c.rot = c.rot[:0]; c.escala = c.escala[:0]; c.rot_mundo = c.rot_mundo[:0]
+        self.assertEqual(metricas.medir(c, esq, categoria="attack")["status"], "INCONCLUSIVO")
+
     def test_medir_grava_eventos_e_ordem(self):
         esq, c = S.cadeia_defasada(atraso=3)
         m = metricas.medir(c, esq, categoria="attack")

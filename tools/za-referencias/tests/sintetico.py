@@ -385,3 +385,27 @@ def deslizar_sem_levantar(n=60, v=1.2, fps=60):
     o = _np.zeros((n, 3))
     o[:, 2] = v * _np.arange(n) / fps
     return esq, clipe(esq, n, {"origin": o})
+
+
+def soco_com_dedo_escondido():
+    """Braço direito golpeia; um dedo filho da mão fica com escala 0,01 o clipe todo (malha alternativa escondida)."""
+    tab = _HUMANOIDE + [("right_finger", "right_hand", (-0.1, 0, 0))]
+    esq = _rig(tab)
+    n = 60
+    return esq, clipe(esq, n, {"right_hand": frente(n, 30, 0.6)}, escala={"right_finger": _np.full((n, 3), 0.01)})
+
+
+def patinar_com_o_corpo(n=60, v=1.2, fps=60):
+    """Andar real em que um pé, num trecho de 12 quadros, fica rente ao chão e anda junto com o corpo (patinação)."""
+    esq, c0 = andar(n=n, v=v, fps=fps)
+    import za_anim
+    loc = c0.loc.copy()
+    k = esq.indice["left_foot"]
+    o = esq.indice["origin"]
+    # entre q20 e q31 o pé esquerdo acompanha a origem colado ao chão
+    base = c0.posicoes[20, k].copy()
+    for f in range(20, 32):
+        alvo = base + (c0.posicoes[f, o] - c0.posicoes[20, o])
+        alvo[1] = 0.0
+        loc[f, k] += alvo - c0.posicoes[f, k]
+    return esq, za_anim.Clipe.de_arrays(esq, fps, loc, c0.rot, animados=c0.ossos_animados)

@@ -20,9 +20,10 @@ DESLOC_REAL = 0.10     # deslocamento horizontal da raiz (fração de H) para o 
 APOIO_SEMPRE = 0.90    # pé "apoiado" em >= 90% dos quadros no modo real: o passo não é observável nesta escala
 APOIO_MIN_Q = 4        # apoios mais curtos que isto (decolagem/pouso) não entram no teste de escorregão
 VEL_HORIZ_APOIO = 0.5  # H/s: no modo real, pé rente ao chão mais rápido que isto está em balanço rasante, não apoiado
+PATINA_TOL = 0.3       # pé rente ao chão andando a ±30% da velocidade da raiz por >= APOIO_MIN_Q quadros = patinação
 
 
-def _pontas_de_apoio(esq, regs):
+def _pontas_de_apoio(esq, regs, ocultos=None):
     """Ponta de cada cadeia de perna (e de braço que toca o chão em repouso, nos quadrúpedes)."""
     import ontologia
     rep = esq.posicoes_repouso
@@ -32,6 +33,8 @@ def _pontas_de_apoio(esq, regs):
     for fam in ("perna", "braco"):
         for raiz in ontologia._raizes_de_cadeia(esq, regs, fam):
             cadeia = ontologia._descendentes_na_regiao(esq, regs, raiz)
+            if ocultos is not None:
+                cadeia = [k for k in cadeia if not ocultos[:, k].any()] or cadeia
             ponta = min(cadeia, key=lambda k: rep[k, 1])
             if fam == "perna" or rep[ponta, 1] - chao <= 0.15 * altura:
                 out.append(ponta)
@@ -41,11 +44,11 @@ def _pontas_de_apoio(esq, regs):
 def plano_chao(clipe, esq, regs, ocultos=None):
     rep = esq.posicoes_repouso
     altura = float(np.ptp(rep[:, 1])) or 1.0
-    pontas = _pontas_de_apoio(esq, regs)
+    oc = za_anim.ocultos(clipe, esq) if ocultos is None else ocultos
+    pontas = _pontas_de_apoio(esq, regs, oc)
     if not pontas:
         return {"y": None, "fonte": None, "estavel": False, "dispersao_H": None, "pontas": [],
                 "motivo": "sem pernas"}
-    oc = za_anim.ocultos(clipe, esq) if ocultos is None else ocultos
     alt = clipe.posicoes[:, pontas, 1]
     vis = ~oc[:, pontas]
     valores = alt[vis]
@@ -133,12 +136,21 @@ def locomocao(apoios, clipe, esq, chao):
                 continue
             p = apoios["pos_H"][nome]
             vh = np.linalg.norm(np.gradient(p[:, [0, 2]], axis=0), axis=1) * max(clipe.fps, 1)
+            # patinação: rente ao chão, rápido, mas na velocidade do corpo (o balanço rasante vai ~2x mais rápido)
+            vraiz = np.linalg.norm(np.gradient(traj[:, [0, 2]], axis=0), axis=1) * max(clipe.fps, 1)
+            patina = ["P" if (e == "CONTATO_INFERIDO" and vh[f] > VEL_HORIZ_APOIO and
+                              abs(vh[f] - vraiz[f]) <= PATINA_TOL * max(vraiz[f], 1e-9)) else "-"
+                      for f, e in enumerate(est)]
+            for a, b in _trechos(patina, "P"):
+                if b - a + 1 >= APOIO_MIN_Q:
+                    escorregoes.append({"osso": nome, "quadros": [a, b], "nivel": "INFERIDO", "tipo": "patinacao",
+                                        "deslize_H": round(float(np.linalg.norm((p[b] - p[a])[[0, 2]])), 4)})
             lento = ["APOIO" if (e == "CONTATO_INFERIDO" and vh[f] <= VEL_HORIZ_APOIO) else "-" for f, e in enumerate(est)]
             for a, b in _trechos(lento, "APOIO"):
                 deslize = float(np.linalg.norm((p[b] - p[a])[[0, 2]]))
                 if b - a + 1 >= APOIO_MIN_Q and deslize > TOL_DESLIZE:
                     escorregoes.append({"osso": nome, "quadros": [a, b], "deslize_H": round(deslize, 4),
-                                        "nivel": "INFERIDO"})
+                                        "nivel": "INFERIDO", "tipo": "deslize_lento"})
     simetria = round(min(fracs) / max(fracs), 3) if fracs and max(fracs) > 0 else None
     return {"modo": modo, "cadencia_passos_s": round(passos / dur, 3) if dur else None, "simetria": simetria,
             "escorregoes": escorregoes, "motivos": motivos}
