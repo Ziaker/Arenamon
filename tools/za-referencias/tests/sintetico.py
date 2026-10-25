@@ -276,7 +276,8 @@ def um_quadro():
     return esq, clipe(esq, 1)
 
 
-def andar(esteira=False, deslize_pe=None, perna_oculta=None, n=60, periodo=30, v=1.2, fps=60):
+def andar(esteira=False, deslize_pe=None, perna_oculta=None, n=60, periodo=30, v=1.2, fps=60, balanco=0.0,
+          mergulho_no_ar=0.0):
     """Ciclo de passo do humanoide. Real: origem avança a v m/s e o pé de apoio fica parado no mundo.
     Esteira: origem parada e o pé de apoio escorrega para trás a v (como numa esteira).
     deslize_pe: nome do pé que desliza para frente 0,15 m durante o apoio (escorregão de verdade).
@@ -286,6 +287,7 @@ def andar(esteira=False, deslize_pe=None, perna_oculta=None, n=60, periodo=30, v
     origem = _np.zeros((n, 3))
     if not esteira:
         origem[:, 2] = v * t
+    origem[:, 1] = balanco * _np.sin(2 * _np.pi * _np.arange(n) / (periodo / 2))
     mover = {"origin": origem}
     passo = v * periodo / fps
     for k, pe in enumerate(("left_foot", "right_foot")):
@@ -303,7 +305,11 @@ def andar(esteira=False, deslize_pe=None, perna_oculta=None, n=60, periodo=30, v
                     dz = (passo / (periodo // 2)) if not esteira else (v / fps)
                 z += dz
             mundo[f, 2] = z
-            mundo[f, 1] = 0.0 if apoio[f] else 0.12 * _np.sin(_np.pi * (fase[f] - periodo // 2) / (periodo // 2))
+            u = (fase[f] - periodo // 2) / (periodo // 2)
+            arco = 0.12 * _np.sin(_np.pi * u)
+            if mergulho_no_ar:   # pé faz um "vale" no ar: dois arcos com mínimo local a `mergulho_no_ar` m do chão
+                arco = arco - (0.12 - mergulho_no_ar) * _np.exp(-((u - 0.5) / 0.12) ** 2)
+            mundo[f, 1] = 0.0 if apoio[f] else arco
         mover[pe] = mundo - origem
     esc = None
     if perna_oculta:

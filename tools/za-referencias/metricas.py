@@ -241,7 +241,7 @@ def _camada_locomocao(clipe, esq, regs, oc):
     return {"chao_estavel": ch["estavel"], "apoio_status": ap["status"], "locomocao_modo": lo["modo"],
             "cadencia_passos_s": lo["cadencia_passos_s"], "simetria_apoio": lo["simetria"],
             "escorregoes_n": len(lo["escorregoes"]), "escorregoes": lo["escorregoes"][:6],
-            "locomocao_motivos": (ap["motivos"] or []) + (lo.get("motivos") or []),
+            "locomocao_motivos": list(dict.fromkeys((ap["motivos"] or []) + (lo.get("motivos") or []))),
             "massa_dentro_da_base_frac": ms["dentro_da_base_frac"]}
 
 

@@ -14,8 +14,8 @@ import za_anim
 TOL_ALTURA = 0.02      # fração de H acima do plano que ainda conta como apoio
 TOL_VEL_VERT = 0.15    # H/s: velocidade vertical máxima do pé apoiado
 TOL_DESLIZE = 0.03     # fração de H de deslize horizontal num apoio (modo real) para virar escorregão
-INSTAVEL_RAIZ = 0.10   # a raiz sobe/desce mais que isto (fração de H): pulo/queda, plano instável
-INSTAVEL_MINIMOS = 0.02
+INSTAVEL_RAIZ = 0.25   # a raiz sobe/desce mais que isto (fração de H): pulo/queda, plano instável
+INSTAVEL_MINIMOS = 0.02  # faixas de apoio dos pés (percentil 5 da altura de cada pé) diferem mais que isto
 DESLOC_REAL = 0.10     # deslocamento horizontal da raiz (fração de H) para o modo "real"
 
 
@@ -50,17 +50,15 @@ def plano_chao(clipe, esq, regs, ocultos=None):
     import metricas
     raiz = metricas.raiz_do_corpo(esq)
     sobe_desce = float(np.ptp(clipe.posicoes[:, raiz, 1])) / altura
-    minimos = []
-    for j in range(len(pontas)):
-        a = alt[:, j]
-        for f in range(1, len(a) - 1):
-            if vis[f, j] and a[f] <= a[f - 1] and a[f] <= a[f + 1]:
-                minimos.append(a[f])
-    disp = float(np.ptp(minimos)) / altura if len(minimos) > 1 else 0.0
+    # faixa de apoio de cada pé = percentil 5 da altura dele (mínimos no ar, durante o balanço, não contam)
+    faixas = [float(np.percentile(alt[vis[:, j], j], 5)) for j in range(len(pontas)) if vis[:, j].any()]
+    disp = float(np.ptp(faixas)) / altura if len(faixas) > 1 else 0.0
     estavel = sobe_desce <= INSTAVEL_RAIZ and disp <= INSTAVEL_MINIMOS
     return {"y": y, "fonte": "minimos_do_clipe", "estavel": bool(estavel), "dispersao_H": round(disp, 4),
             "sobe_desce_raiz_H": round(sobe_desce, 4), "pontas": [esq.nomes[k] for k in pontas],
-            "motivo": None if estavel else "plano instável (raiz sobe/desce ou mínimos dos pés variam)"}
+            "motivo": None if estavel else ("pulo/queda: a raiz sobe/desce %.0f%% da altura" % (100 * sobe_desce)
+                                            if sobe_desce > INSTAVEL_RAIZ else
+                                            "pés apoiam em alturas diferentes (%.1f%% da altura)" % (100 * disp))}
 
 
 def apoio_por_pe(clipe, esq, regs, chao, tol_altura=TOL_ALTURA, tol_vel=TOL_VEL_VERT, ocultos=None):

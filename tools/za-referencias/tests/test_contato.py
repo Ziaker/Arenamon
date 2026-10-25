@@ -46,6 +46,15 @@ class TestLocomocao(unittest.TestCase):
         self.assertFalse(ch["estavel"])
         self.assertEqual(loc["modo"], "SEM_INFORMACAO")
 
+    def test_balanco_normal_do_corpo_nao_vira_pulo(self):
+        _, _, _, ch, _, loc = analisar(S.andar(balanco=0.25))
+        self.assertTrue(ch["estavel"])
+        self.assertEqual(loc["modo"], "real")
+
+    def test_mergulho_do_pe_no_ar_nao_desestabiliza_o_chao(self):
+        _, _, _, ch, _, _ = analisar(S.andar(mergulho_no_ar=0.06))
+        self.assertTrue(ch["estavel"])
+
     def test_serpente_sem_informacao(self):
         self.assertEqual(analisar(S.serpente_bote())[4]["status"], "SEM_INFORMACAO")
 
