@@ -142,6 +142,15 @@ Gerado com `gerar_lote.py --diverso <banco> <dump> <saida> <lotes anteriores…>
 - **Previsões do sistema:** ficam em `avaliacao/lote_02_sistema/`, fora da pasta do revisor.
 - **Itens ignorados por decisão sua:** a página mostra só 1 (Lucario, ataque), 7 (Hawlucha, charge), 9 (Groudon, charge) e 14 (Sawk, rugido). A lista está em `avaliacao/lote_02_ignorados.json`; o hash do lote não mudou.
 
+### Filtro pedido para os próximos lotes (guardado, ainda não aplicado)
+
+Pedido do revisor em 25/10/2026, para o lote 03 em diante:
+- cortar todo Pokémon **baby**;
+- manter só Pokémon no **2º ou 3º estágio** da linha evolutiva;
+- Pokémon **sem evolução**: manter só se o egg group for **Humanoide** ou **Monster**.
+
+Para aplicar, `especies.json` precisa ganhar da PokeAPI o estágio na linha (`evolves_from`), o `is_baby` e os egg groups. Depois, `escolher_diverso` filtra antes de sortear.
+
 ### Achados que mudaram o código durante a execução (todos com teste que falhou antes)
 
 | Achado no corpus | Correção |
