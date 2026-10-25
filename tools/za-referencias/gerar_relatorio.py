@@ -90,7 +90,8 @@ def normas(linhas):
             else:
                 vals = [l.get(m) for l in ls]
             g[m] = resumo(vals)
-        g["com_antecipacao"] = round(sum(1 for l in ls if l.get("antecipacao")) / len(ls), 3)
+        nsa = all(l.get("antecipacao_status") == "NAO_SE_APLICA" for l in ls)
+        g["com_antecipacao"] = None if nsa else round(sum(1 for l in ls if l.get("antecipacao")) / len(ls), 3)
         g["com_hold"] = round(sum(1 for l in ls if l.get("holds")) / len(ls), 3)
         curvas = np.array([l["curva_energia"] for l in ls if l.get("curva_energia")])
         if len(curvas):
@@ -191,6 +192,11 @@ def grupos_normas(corpo, aprovacoes=None):
     return out
 
 
+def ontologia_regras():
+    import ontologia
+    return ontologia.carregar_regras()
+
+
 def _pct(a, b):
     return "%d%%" % round(100 * a / b) if b else "—"
 
@@ -223,6 +229,29 @@ def secoes_fase1(corpo, por_conj0):
                        na, face_antigo, face_novo, _pct(inc, na), _pct(dois, na)))
         out.append(_tabela(["Região executora", "Ataques", "%"], [[html.escape(r), n, _pct(n, na)] for r, n in ex.most_common(12)]))
         out.append(_tabela(["Quem começa a se mover", "Ataques", "%"], [[html.escape(r), n, _pct(n, na)] for r, n in ini.most_common(8)]))
+        com_ap = sum(1 for l in ataques if l.get("apoio_impulso"))
+        ap = Counter(r for l in ataques for r in (l.get("apoio_impulso") or []))
+        out.append("<h3>Pernas de apoio/impulso</h3>")
+        out.append("<p class=\"nota\">Executor é só quem golpeia. Perna que não golpeia mas dobra ≥ %s° da preparação ao golpe "
+                   "(sustenta o peso ou empurra) fica em <code>apoio_impulso</code>. Ataques com pelo menos uma perna de apoio: <b>%s</b>. "
+                   "Status: <b>CANDIDATO</b>; o limiar ainda não foi calibrado com rótulos.</p>" % (
+                       _n(ontologia_regras().get("apoio_impulso", {}).get("flexao_minima_graus", "?")), _pct(com_ap, na)))
+        if ap:
+            out.append(_tabela(["Perna de apoio/impulso", "Ataques", "%"], [[html.escape(r), n, _pct(n, na)] for r, n in ap.most_common(6)]))
+    cats_loco = set(ontologia_regras().get("locomocao", {}).get("categorias", []))
+    loops = [l for l in por_conj0 if l["categoria"] in cats_loco and l.get("fase") == "loop" and l.get("status") == "MEDIDO"]
+    if loops:
+        linhas_l = []
+        for cat in sorted({l["categoria"] for l in loops}):
+            ls = [l for l in loops if l["categoria"] == cat]
+            sem = sum(1 for l in ls if not l.get("executores"))
+            reg = Counter(r for l in ls for r in (l.get("executores") or []))
+            linhas_l.append([html.escape(cat), len(ls), _pct(sem, len(ls)),
+                             html.escape(", ".join("%s %s" % (r, _pct(n, len(ls))) for r, n in reg.most_common(4)))])
+        out.append("<h2>Papéis na locomoção</h2>")
+        out.append("<p class=\"nota\">Em loops de locomoção (%s) todo membro que cicla é executor e a antecipação <b>não se aplica</b>. "
+                   "Sem executor = nenhum membro passa do pico mínimo (corpo avançando inteiro ou pose quase parada).</p>" % html.escape(", ".join(sorted(cats_loco))))
+        out.append(_tabela(["Categoria (loop)", "Clipes", "Sem executor", "Membros mais comuns"], linhas_l))
     fr = [l.get("ontologia_outro_frac") for l in corpo if l.get("ontologia_outro_frac") is not None]
     if fr:
         por_rig = {}
@@ -287,7 +316,7 @@ def secoes_fase1(corpo, por_conj0):
                    "dentro de 1% da altura e 3°. A concordância compara com os quadros em que pelo menos metade das faixas do arquivo têm chave.</p>")
         out.append(_tabela(["Categoria", "Clipes", "Quadros-chave (% do clipe)", "Nº mediano", "Concordância com o arquivo"], linhas))
     out.append("<h2>Avaliação cega (1I)</h2>")
-    out.append("<p>Lote de 40 animações para rotulagem humana: <a href=\"avaliacao/lote_01/rotulagem.html\">abrir a página de rotulagem</a>. "
+    out.append("<p>Lote de 40 animações para rotulagem humana (a página mostra só os itens mantidos pelo revisor): <a href=\"avaliacao/lote_01/rotulagem.html\">abrir a página de rotulagem</a>. "
                "As previsões do sistema ficam guardadas à parte e só são comparadas depois dos rótulos (A/B com McNemar).</p>")
     return "\n".join(out)
 
@@ -308,10 +337,10 @@ def escrever_html(caminho, info, norm, por_forma, busca, fase1="", grupos=None):
             rotulo = "MEDIDO, NÃO APROVADO" if gn["status"] == "MEDIDO" else "SEM BASE COMPARÁVEL"
             linhas.append(
                 "<tr data-n=\"%d\"><th>%s<small>%d clipes · %d espécies · %d rigs · %s</small></th><td>%s</td><td>%s</td><td>%s</td><td>%s</td>"
-                "<td>%d%%<small> %s q</small></td><td>%s</td><td>%d%%</td><td>%s</td><td>%s</td></tr>" % (
+                "<td>%s<small> %s q</small></td><td>%s</td><td>%d%%</td><td>%s</td><td>%s</td></tr>" % (
                     gn["n_especies"], html.escape(nome), gn["n_clipes"], gn["n_especies"], gn["n_rigs_estruturais"], rotulo,
                     svg_curva(g.get("curva")), fmt(md["duracao_s"]), fmt(md["ate_pico_s"]), fmt(md["pico_rel"]),
-                    round(100 * (gn["com_antecipacao_frac"] or 0)),
+                    "%d%%" % round(100 * gn["com_antecipacao_frac"]) if gn["com_antecipacao_frac"] is not None else "não se aplica",
                     _n(md["antecipacao_q"]["mediana"]) if md["antecipacao_q"].get("mediana") is not None else "—",
                     fmt(md["antecipacao_ate_golpe_q"]), round(100 * (gn["com_hold_frac"] or 0)),
                     fmt(md["overshoot_rel"]), fmt(md["ease"])))
@@ -336,7 +365,7 @@ def escrever_html(caminho, info, norm, por_forma, busca, fase1="", grupos=None):
         a = norm[chave].get("attack|", {})
         conj.append("<tr><th>%dxxxx</th><td>%d</td><td>%d</td><td>%s</td><td>%s</td><td>%s</td></tr>" % (
             c, info["por_conjunto"].get(c, 0), a.get("especies", 0), m(a, "duracao_s"), m(a, "ate_pico_s"),
-            "%d%%" % round(100 * a["com_antecipacao"]) if a else "—"))
+            "%d%%" % round(100 * a["com_antecipacao"]) if a and a.get("com_antecipacao") is not None else "—"))
 
     rec = info["reconciliacao"]
     cob = "".join(

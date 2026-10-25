@@ -69,6 +69,37 @@ class TestNormasNoRelatorio(unittest.TestCase):
         self.assertEqual(g["com_hold_frac"], 0.4)
 
 
+class TestAntecipacaoNaoSeAplica(unittest.TestCase):
+    def test_loop_sai_sem_fracao_de_antecipacao(self):
+        ls = [linha(i, "pm%04d_00_00" % i, antecipacao=False, antecipacao_status="NAO_SE_APLICA") for i in range(1, 11)]
+        g = normas.grupo(ls, "attack", "")
+        self.assertIsNone(g["com_antecipacao_frac"])
+        self.assertEqual(g["antecipacao_status"], "NAO_SE_APLICA")
+
+    def test_golpe_continua_medido(self):
+        g = normas.grupo([linha(i, "pm%04d_00_00" % i) for i in range(1, 11)], "attack", "")
+        self.assertEqual(g["com_antecipacao_frac"], 1.0)
+        self.assertEqual(g["antecipacao_status"], "MEDIDO")
+
+    def test_relatorio_mostra_nao_se_aplica(self):
+        import gerar_relatorio
+        ls = [linha(i, "pm%04d_00_00" % i, antecipacao=False, antecipacao_status="NAO_SE_APLICA") for i in range(1, 11)]
+        self.assertIsNone(gerar_relatorio.normas(ls)["attack|"]["com_antecipacao"])
+
+
+class TestSecaoApoio(unittest.TestCase):
+    def test_secao_de_papeis_mostra_apoio_e_locomocao(self):
+        import gerar_relatorio
+        ataques = [linha(i, "pm%04d_00_00" % i, status="MEDIDO", fase="", executores=["braco_D"],
+                         apoio_impulso=["perna_D", "perna_E"] if i < 6 else []) for i in range(1, 11)]
+        loops = [c("pm%04d_00_00" % i, "00030_walk01_loop", especie=i, status="MEDIDO", fase="loop",
+                   executores=["perna_D", "perna_E"] if i < 4 else []) for i in range(1, 6)]
+        h = gerar_relatorio.secoes_fase1(ataques + loops, ataques + loops)
+        self.assertIn("Pernas de apoio/impulso", h)
+        self.assertIn("50%", h)
+        self.assertIn("Papéis na locomoção", h)
+
+
 class TestGruposDoRelatorio(unittest.TestCase):
     def test_grupo_com_5_especies_sai_sem_base(self):
         import gerar_relatorio

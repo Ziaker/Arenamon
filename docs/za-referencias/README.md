@@ -43,7 +43,7 @@ Este é o item 1 do plano de melhorar o Motion Lens e o Blender Vision. Cada ani
 
 ## Fase 1: subfases 1C a 1I (25/10/2026)
 
-Novos módulos em `tools/za-referencias/`, cada um com testes em `tests/` (rigs sintéticos; 118 testes):
+Novos módulos em `tools/za-referencias/`, cada um com testes em `tests/` (rigs sintéticos; 150 testes em 25/10/2026):
 
 | Subfase | Módulo | O que mede | Estado de evidência |
 |---|---|---|---|
@@ -107,7 +107,8 @@ Novos módulos em `tools/za-referencias/`, cada um com testes em `tests/` (rigs 
 - **Executor é só quem golpeia.** As pernas que sustentam o peso ou empurram, sem golpear, vão para `apoio_impulso`.
 - **Regra do sistema** (`regras_papeis.json` → `apoio_impulso`): perna não executora com algum osso que gira ≥ 10° entre o início da preparação (30 q antes do pico) e o golpe. Em locomoção não se aplica, porque lá os membros que ciclam já são executores.
 - **Página de rotulagem:** ganhou a pergunta "Pernas de apoio/impulso", com a opção "nenhuma". Os rótulos do revisor zac foram migrados: as pernas dos 2 ataques saíram de executores e foram para `apoio_impulso`.
-- **Banco refeito:** 41.790 clipes, 0 falhas. 1.786 dos 2.764 ataques com executor têm pelo menos uma perna de apoio.
+- **Banco refeito:** 41.790 clipes, 0 falhas. 1.786 dos 2.764 ataques com executor têm pelo menos uma perna de apoio; no relatório (um ataque por espécie, conjunto 0), 84%.
+- **Relatório:** seção "Pernas de apoio/impulso" e seção "Papéis na locomoção" (charge, run, walk...). Nos loops, a coluna de antecipação mostra "não se aplica" (`normas.grupo` → `antecipacao_status`).
 - **Comparação depois da mudança:**
   - executores iguais nos 2 ataques e no andar;
   - apoio/impulso igual no Meditite;
@@ -120,7 +121,7 @@ Novos módulos em `tools/za-referencias/`, cada um com testes em `tests/` (rigs 
 - A camada de contato e passos (`CATEGORIAS_LOCOMOCAO` em `metricas.py`) **não** mudou.
 - Banco refeito: 41.790 clipes, 0 falhas.
 - **Achado:** 471 dos 738 `charge01_loop` ficam sem executor, porque nenhum membro passa de 0,5 H/s. Muitos devem ser um avanço do corpo inteiro, ou uma pose de carga quase parada, e não membros ciclando. Precisa de rótulos para confirmar.
-- **pm0965:** o sistema dá executores braço D, braço E, perna C, perna D e perna E, sem apoio. O revisor marcou 2 "pernas", que são os tentáculos. No rig eles se chamam `shoulder`, por isso o sistema os conta como braço. Os tentáculos do pm0965 se chamam `shoulder` no rig, por isso viram "braço", e `charge` não está na lista de locomoção.
+- **pm0965:** o sistema dá executores braço D, braço E, perna C, perna D e perna E, sem apoio. O revisor marcou 2 "pernas", que são os tentáculos. No rig eles se chamam `shoulder`, por isso o sistema os conta como braço.
 
 ### Achados que mudaram o código durante a execução (todos com teste que falhou antes)
 
@@ -160,7 +161,14 @@ A exceção foi a quase duplicata (item 8): ficou como está, e a decisão é su
 
 ## Próxima fase
 
-O plano de implementação das subfases 1A–1J (resposta à auditoria REV2) está em [`docs/superpowers/plans/2026-10-25-za-referencias-fase1.md`](../superpowers/plans/2026-10-25-za-referencias-fase1.md). Ele aguarda aprovação para ser executado.
+O plano das subfases 1A–1J (resposta à auditoria REV2) está em [`docs/superpowers/plans/2026-10-25-za-referencias-fase1.md`](../superpowers/plans/2026-10-25-za-referencias-fase1.md). As Tasks 1–9 (1A–1I) foram executadas. A Task 10 (1J, integração com Motion Lens, Blender Vision e Direction Lines) espera a escolha do Motion Lens oficial.
+
+Ainda falta, comparando com o REV2:
+- A/B cego com mais revisores e mais itens. Hoje há 4 itens rotulados por 1 revisor.
+- L07 (silhueta, linhas de ação, espaço negativo).
+- L09 (intenção medida pelo sistema).
+- Curvas `.trcrv`, efeitos `.traef` e câmeras.
+- Iniciador: discorda nos 3 itens rotulados, ainda não investigado.
 
 ## Gerar de novo
 
@@ -174,7 +182,7 @@ Tudo roda com o Python do Blender 5.2, que já tem `numpy` e `flatbuffers`:
 python -I tools/za-referencias/gerar_relatorio.py "dumper test/za-referencias/clipes.jsonl" "dumper test/za-referencias"
 ```
 
-Depois copie `dumper test/za-referencias/normas_za.json` para `tools/za-referencias/`.
+Depois copie `dumper test/za-referencias/normas_za.json` e `normas_grupos_za.json` para `tools/za-referencias/`.
 
 ## Peças
 
@@ -201,9 +209,9 @@ Depois copie `dumper test/za-referencias/normas_za.json` para `tools/za-referenc
 - **Andar (loop):** 1,02 s por ciclo. **Correr (loop):** 0,55 s.
 - **Nenhum Pokémon do elenco atual do Arenamon está no Z-A:** Vigoroth, Croagunk, Drowzee, Gumshoos e Exeggcute. A comparação terá de ser feita com Pokémon de forma de corpo parecida.
 
-## Limitações conhecidas (para o item 2)
+## Limitações conhecidas (da primeira rodada)
 
-- O "efetor" escolhido costuma ser um apêndice de movimento secundário: antenas do Lucario, dedos do Golisopod, caudas. Para medir golpe e antecipação de verdade, ele deveria ser escolhido entre mãos e pés, e os apêndices deveriam ser medidos à parte, como follow-through.
+- ~~O "efetor" era o osso de maior percurso (antenas, dedos, caudas).~~ Resolvido na 1C: executores por regra de ação + anatomia; o maior percurso continua só como métrica de trajetória.
 - "Ease" e "hold" usam como limiar o pico da energia. Em ataques com um chicote muito rápido, quase tudo fica abaixo do limiar.
 - O significado dos conjuntos 1xxxx, 2xxxx, 3xxxx e 4xxxx não foi confirmado.
 

@@ -76,6 +76,8 @@ def grupo(clipes, categoria, fase, classe_anatomica=None, conjunto=0, n_min=None
     gid = grupo_id(categoria, fase, classe_anatomica, conjunto)
     aprov = [a for a in (aprovacoes or {}).get("aprovacoes", []) if a["grupo_id"] == gid]
     n = len(sel)
+    # loops: antecipação não se aplica (metricas.medir); não vira "0% com antecipação"
+    nsa = bool(sel) and all(l.get("antecipacao_status") == "NAO_SE_APLICA" for l in sel)
     return {
         "grupo_id": gid, "status": "SEM_BASE_COMPARAVEL" if motivos else "MEDIDO", "motivos": motivos,
         "n_clipes": n, "n_especies": n_esp,
@@ -83,7 +85,8 @@ def grupo(clipes, categoria, fase, classe_anatomica=None, conjunto=0, n_min=None
         "n_poses_repouso": len({l.get("pose_repouso_hash") for l in sel if l.get("pose_repouso_hash")}),
         "com_escala_animada_frac": round(sum(1 for l in sel if l.get("escala_animada")) / n, 3) if n else None,
         "com_partes_ocultas_frac": round(sum(1 for l in sel if l.get("partes_ocultas")) / n, 3) if n else None,
-        "com_antecipacao_frac": round(sum(1 for l in sel if l.get("antecipacao")) / n, 3) if n else None,
+        "com_antecipacao_frac": round(sum(1 for l in sel if l.get("antecipacao")) / n, 3) if n and not nsa else None,
+        "antecipacao_status": "NAO_SE_APLICA" if nsa else "MEDIDO",
         "com_hold_frac": round(sum(1 for l in sel if l.get("holds")) / n, 3) if n else None,
         "medidas": medidas,
         "aprovacao": {"aspectos_aprovados": sorted({a["aspecto"] for a in aprov}),
