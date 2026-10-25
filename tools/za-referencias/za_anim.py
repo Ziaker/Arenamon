@@ -303,6 +303,17 @@ class Clipe:
         self.posicoes, self.rot_mundo = esq.fk_completa(self.loc, self.rot, self.escala)
 
 
+def ocultos(clipe, esq, limiar=0.1):
+    """bool [F, B]: o osso está escondido por escala (algum eixo < limiar no próprio osso ou num ancestral).
+    O Z-A esconde partes (cauda, asas, dedos) zerando a escala; os filhos colapsam sobre o pai."""
+    proprio = clipe.escala.min(axis=2) < limiar
+    out = np.zeros_like(proprio)
+    for i in esq.ordem:
+        p = esq.pais[i]
+        out[:, i] = proprio[:, i] | (out[:, p] if 0 <= p < len(esq.nomes) else False)
+    return out
+
+
 def esqueleto_do_modelo(pasta):
     """Acha o .trskl que o .trmdl da pasta usa."""
     for f in os.listdir(pasta):

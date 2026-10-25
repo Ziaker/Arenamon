@@ -1,0 +1,25 @@
+{
+  "_sobre": "Regras de papel na ação (Task 3). Editável: cada saída de ontologia.papeis cita a regra aplicada. Frações são do maior pico entre as candidatas; velocidades em alturas do esqueleto por segundo (H/s).",
+  "limiar_executor_frac": 0.6,
+  "janela_executor_q": 4,
+  "abertura_mandibula_graus": 15,
+  "janela_mandibula_q": 6,
+  "limiar_inicio_frac": 0.2,
+  "limiar_movimento_frac": 0.1,
+  "pico_minimo_H_s": 0.5,
+  "candidatas": {
+    "attack": ["braco", "perna", "cabeca", "cauda", "asa"],
+    "rangeattack": ["braco", "perna", "cabeca", "cauda", "asa"],
+    "walk": ["perna"],
+    "run": ["perna"],
+    "backwalk": ["perna"],
+    "fly": ["asa"],
+    "_padrao": ["braco", "perna", "cabeca", "cauda", "asa", "pescoco", "nucleo"]
+  },
+  "condicionais": {
+    "mandibula": "abre_no_pico",
+    "lingua": "abre_no_pico",
+    "apendice_sensorial": "unica_cadeia"
+  },
+  "nunca_executa": ["olho_palpebra", "cabelo_pelagem", "auxiliar", "raiz", "outro"]
+}

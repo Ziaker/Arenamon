@@ -52,8 +52,13 @@ def medir_forma(args):
     import za_anim
     pasta, especie, forma, info, hashes = args["pasta"], args["especie"], args["forma"], args["info"], args["hashes"]
     base = os.path.basename(pasta)
+    import ontologia
     esq = za_anim.Esqueleto(za_anim.esqueleto_do_modelo(pasta))
     raiz = metricas.raiz_do_corpo(esq)
+    regs = ontologia.regioes(esq)
+    anat = ontologia.anatomia(esq, regs)
+    revisoes = ontologia.carregar_revisoes()
+    animados_forma = set()
     linhas = []
     for f in sorted(hashes):
         nome = f[len(base) + 1:-6] if f.startswith(base + "_") else f[:-6]
@@ -61,7 +66,12 @@ def medir_forma(args):
         try:
             c = za_anim.Clipe(os.path.join(pasta, f), esq)
             c.eh_loop = cls["fase"] == "loop"
-            m = metricas.medir(c, esq, raiz)
+            m = metricas.medir(c, esq, raiz, categoria=cls["categoria"], regs=regs, anat=anat)
+            animados_forma |= c.ossos_animados
+            if "%s/%s" % (base, nome) in revisoes:
+                rv = revisoes["%s/%s" % (base, nome)]
+                m.update({"executores": rv.get("executores", []), "papeis_status": "REVISADO",
+                          "revisado_por": rv.get("por")})
         except Exception as ex:
             linhas.append({"_falha": {"arquivo": "%s/%s" % (base, f), "sha256": hashes[f], "etapa": "medir",
                                       "erro": repr(ex), "traceback_curto": traceback.format_exc(limit=3)[-600:]}})
@@ -72,7 +82,14 @@ def medir_forma(args):
                  "espaco": config.ESPACO, "interpolacao": config.INTERPOLACAO, "limiares": config.limiares()}
         linha.update(cls)
         linha.update(m)
+        linha["assinatura_rig"] = ontologia.assinatura_rig(esq)
         linhas.append(linha)
+    frac = round(ontologia.fracao_outro(animados_forma, regs), 4)
+    outros = sorted({esq.nomes[i] for i in animados_forma if regs[i] == "outro"})
+    for l in linhas:
+        if "_falha" not in l:
+            l["ontologia_outro_frac"] = frac
+            l["ontologia_outro_ossos"] = outros[:40]
     return linhas
 
 

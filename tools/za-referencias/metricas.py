@@ -97,11 +97,17 @@ def _reamostrar(curva, n=AMOSTRAS_CURVA):
     return [round(float(v), 4) for v in np.interp(x, np.arange(len(curva)), curva)]
 
 
-def medir(clipe, esq, raiz=None):
+def medir(clipe, esq, raiz=None, categoria=None, regs=None, anat=None):
+    import cinematica
+    import ontologia
+    import za_anim
     n, fps = clipe.quadros, max(clipe.fps, 1)
     rep = esq.posicoes_repouso
     altura = float(np.ptp(rep[:, 1])) or 1.0
     raiz = raiz_do_corpo(esq) if raiz is None else raiz
+    regs = regs or ontologia.regioes(esq)
+    anat = anat or ontologia.anatomia(esq, regs)
+    oc = za_anim.ocultos(clipe, esq)
     pos = clipe.posicoes / altura
     traj = pos[:, raiz]
     rel = pos - traj[:, None, :]
@@ -123,11 +129,19 @@ def medir(clipe, esq, raiz=None):
         "subida_max_H": round(float(traj[:, 1].max() - traj[0, 1]), 4),
         "descida_max_H": round(float(traj[0, 1] - traj[:, 1].min()), 4),
     }
+    out.update(_camada_papeis(clipe, esq, categoria, regs, anat, oc))
     if n < 3 or not animados:
-        out["parado"] = True
+        out.update({"parado": True, "status": "INCONCLUSIVO"})
         return out
 
-    vel = np.gradient(rel[:, animados], axis=0) * fps  # [F, A, 3]
+    # velocidade com máscara de visibilidade: osso oculto (ou na troca) não conta como movimento
+    vis = ~oc
+    troca = np.zeros_like(oc)
+    troca[1:] = oc[1:] != oc[:-1]
+    troca[:-1] |= troca[1:]
+    mask = (vis & ~troca).astype(float)
+    vel_todos = np.gradient(rel, axis=0) * fps  # [F, B, 3]
+    vel = vel_todos[:, animados] * mask[:, animados][:, :, None]
     vel_raiz = np.gradient(traj, axis=0) * fps
     e = np.linalg.norm(vel, axis=2).mean(axis=1)
     pico = int(np.argmax(e))
@@ -136,8 +150,9 @@ def medir(clipe, esq, raiz=None):
     out["vel_raiz_max_H_s"] = round(float(np.linalg.norm(vel_raiz, axis=1).max()), 4)
     out["curva_energia"] = _reamostrar(e / e_pico if e_pico > 0 else e)
     if e_pico < 1e-4:
-        out["parado"] = True
+        out.update({"parado": True, "status": "INCONCLUSIVO"})
         return out
+    out["status"] = "MEDIDO"
 
     ativo = e >= LIMIAR_ATIVO * e_pico
     ini = int(np.argmax(ativo))
@@ -159,36 +174,104 @@ def medir(clipe, esq, raiz=None):
     out["hold_total_q"] = int(sum(b - a + 1 for a, b in holds))
     out["hold_maior_q"] = int(max((b - a + 1 for a, b in holds), default=0))
 
-    # efetor principal
-    caminho = np.linalg.norm(np.diff(rel[:, animados], axis=0), axis=2).sum(axis=0)
-    k = int(np.argmax(caminho))
-    ef = animados[k]
-    p = rel[:, ef]
-    v = np.linalg.norm(vel[:, k], axis=1)
-    fp = int(np.argmax(v))
-    d = vel[fp, k] / max(v[fp], 1e-9)
-    s = (p - p[0]) @ d
-    out.update({
-        "efetor": esq.nomes[ef], "efetor_caminho_H": round(float(caminho[k]), 4),
-        "efetor_vel_max_H_s": round(float(v[fp]), 4), "efetor_quadro_pico": fp,
-    })
-    antes = s[:fp + 1]
-    j = int(np.argmin(antes))
-    recuo = float(-antes[j])
-    golpe = float(s.max() - s.min()) or 1e-9
-    tem_antec = recuo > 0.01 and recuo > 0.05 * golpe and j < fp
-    out["antecipacao"] = bool(tem_antec)
-    out["antecipacao_H"] = round(recuo, 4) if tem_antec else 0.0
-    out["antecipacao_q"] = int(max(j - ini, 0)) if tem_antec else 0
-    out["antecipacao_rel_golpe"] = round(recuo / golpe, 3) if tem_antec else 0.0
-    out["antecipacao_ate_golpe_q"] = int(fp - j) if tem_antec else 0
-    alem = float(s[fp:].max() - s[-1])
-    out["overshoot_rel"] = round(max(alem, 0.0) / golpe, 3)
+    # antecipação/overshoot: pelo executor (Task 3) e, para comparação, pelo osso de maior percurso
+    caminho = np.linalg.norm(np.diff(rel[:, animados], axis=0), axis=2) * mask[1:, animados]
+    caminho = caminho.sum(axis=0)
+    k_mp = animados[int(np.argmax(caminho))]
+    mp = _antecipacao(rel, vel_todos, mask, k_mp, ini)
+    out.update({"efetor_maior_percurso": esq.nomes[k_mp],
+                "efetor_caminho_H": round(float(caminho.max()), 4)})
+    out.update({k + "_maior_percurso": v for k, v in mp.items() if k != "efetor"})
+    exec_ossos = [esq.indice[o] for o in out.get("executores_ossos", []) if o in esq.indice]
+    k_ex = exec_ossos[0] if exec_ossos else k_mp
+    out["antecipacao_base"] = "executor" if exec_ossos else "maior_percurso"
+    out["antecipacao_osso"] = esq.nomes[k_ex]
+    out.update(_antecipacao(rel, vel_todos, mask, k_ex, ini))
+    out["efetor"] = esq.nomes[k_ex]
+
+    # camada cinemática (Task 4)
+    curvas = cinematica.curvas_regiao(clipe, esq, regs, raiz, oc)
+    reg_ex = out["executores"][0] if out.get("executores") else None
+    base_ev = curvas[reg_ex]["vel"] if reg_ex in curvas else e
+    ev = cinematica.eventos(base_ev, fps)
+    out["eventos"] = ev[:6]
+    out["n_eventos"] = len(ev)
+    out["ordem_ativacao"] = [x["regiao"] for x in cinematica.ordem_ativacao(curvas, (0, n - 1))]
+    if reg_ex in curvas:
+        apend = [r for r in curvas if r in ("cauda", "apendice_sensorial", "cabelo_pelagem") or
+                 (r.startswith("asa") and r not in out["executores"])]
+        out["follow_through"] = cinematica.follow_through(curvas, reg_ex, apend)
+    esc = cinematica.escala_regiao(clipe, esq, regs, oc, quadro_evento=ev[0]["pico"] if ev else None)
+    out["escala_regioes"] = esc
+    out["squash_stretch_regioes"] = sorted(r for r, d in esc.items() if d["tipo"] == "squash_stretch")
+    out["trocas_visibilidade_n"] = len(cinematica.trocas_de_visibilidade(oc, esq))
+
+    if categoria in CATEGORIAS_LOCOMOCAO:
+        out.update(_camada_locomocao(clipe, esq, regs, oc))
 
     if classificar_fase_loop(clipe):
         dif = np.linalg.norm(rel[-1, sorted(corpo)] - rel[0, sorted(corpo)], axis=1).max()
         out["erro_loop_H"] = round(float(dif), 4)
     return out
+
+
+CATEGORIAS_LOCOMOCAO = ("walk", "run", "backwalk", "turnmove", "dash", "fly")
+
+
+def _camada_locomocao(clipe, esq, regs, oc):
+    """Apoio e locomoção (Task 5): três níveis de contato; escorregão só com plano estável."""
+    import contato
+    ch = contato.plano_chao(clipe, esq, regs, oc)
+    ap = contato.apoio_por_pe(clipe, esq, regs, ch, ocultos=oc)
+    lo = contato.locomocao(ap, clipe, esq, ch)
+    ms = contato.massa_sobre_base(clipe, esq, ap)
+    return {"chao_estavel": ch["estavel"], "apoio_status": ap["status"], "locomocao_modo": lo["modo"],
+            "cadencia_passos_s": lo["cadencia_passos_s"], "simetria_apoio": lo["simetria"],
+            "escorregoes_n": len(lo["escorregoes"]), "escorregoes": lo["escorregoes"][:6],
+            "locomocao_motivos": (ap["motivos"] or []) + (lo.get("motivos") or []),
+            "massa_dentro_da_base_frac": ms["dentro_da_base_frac"]}
+
+
+def _antecipacao(rel, vel_todos, mask, k, ini):
+    """Recuo do osso k contra a direção do golpe antes do pico de velocidade dele (e overshoot depois)."""
+    p = rel[:, k]
+    vv = vel_todos[:, k] * mask[:, k][:, None]
+    v = np.linalg.norm(vv, axis=1)
+    fp = int(np.argmax(v))
+    d = vv[fp] / max(v[fp], 1e-9)
+    s = (p - p[0]) @ d
+    antes = s[:fp + 1]
+    j = int(np.argmin(antes))
+    recuo = float(-antes[j])
+    golpe = float(s.max() - s.min()) or 1e-9
+    tem = recuo > 0.01 and recuo > 0.05 * golpe and j < fp
+    alem = float(s[fp:].max() - s[-1])
+    return {"efetor": None, "efetor_vel_max_H_s": round(float(v[fp]), 4), "efetor_quadro_pico": fp,
+            "antecipacao": bool(tem), "antecipacao_H": round(recuo, 4) if tem else 0.0,
+            "antecipacao_q": int(max(j - ini, 0)) if tem else 0,
+            "antecipacao_rel_golpe": round(recuo / golpe, 3) if tem else 0.0,
+            "antecipacao_ate_golpe_q": int(fp - j) if tem else 0,
+            "overshoot_rel": round(max(alem, 0.0) / golpe, 3)}
+
+
+def _camada_papeis(clipe, esq, categoria, regs=None, anat=None, oc=None):
+    """Papéis na ação (Task 3): executores, iniciador, maior percurso, anatomia, partes ocultas."""
+    import ontologia
+    import za_anim
+    regs = regs or ontologia.regioes(esq)
+    anat = anat or ontologia.anatomia(esq, regs)
+    oc = za_anim.ocultos(clipe, esq) if oc is None else oc
+    if clipe.quadros < 3:
+        return {"papeis_status": "INCONCLUSIVO", "executores": [], "iniciador": None,
+                "maior_percurso_regiao": None, "anatomia_classe": anat["classe"], "partes_ocultas": bool(oc.any())}
+    p = ontologia.papeis(clipe, esq, regs, categoria or "_padrao", anat, ocultos=oc)
+    return {"papeis_status": p["status"], "executores": [e["regiao"] for e in p["executores"]],
+            "executores_ossos": [e["osso_ponta"] for e in p["executores"]],
+            "iniciador": p["iniciadores"][0]["regiao"] if p["iniciadores"] else None,
+            "acompanhantes": [a["regiao"] for a in p["acompanhantes"]],
+            "maior_percurso_regiao": p["maior_percurso"]["regiao"], "maior_percurso_osso": p["maior_percurso"]["osso"],
+            "anatomia_classe": anat["classe"], "partes_ocultas": bool(oc.any()),
+            "partes_ocultas_ossos": int(oc.any(axis=0).sum())}
 
 
 def classificar_fase_loop(clipe):
