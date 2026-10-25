@@ -22,6 +22,7 @@ const COMMANDS = [
   "node prototypes/combat-lab/test/import-cycles.test.mjs",
   "node prototypes/combat-lab/test/move-data.test.mjs",
   "node prototypes/combat-lab/test/move-editor.test.mjs",
+  "node prototypes/combat-lab/test/move-trace.test.mjs",
   "node prototypes/combat-lab/test/sim.test.mjs",
   "node prototypes/combat-lab/test/core.test.mjs",
   "node prototypes/combat-lab/test/properties.test.mjs",
