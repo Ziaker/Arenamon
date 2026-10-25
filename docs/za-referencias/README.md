@@ -140,6 +140,7 @@ Gerado com `gerar_lote.py --diverso <banco> <dump> <saida> <lotes anteriores…>
 - **Vídeos:** vista de frente e 3/4, com a bolinha azul do lado esquerdo, câmera lenta e avanço quadro a quadro. A página já traz a pergunta de apoio/impulso.
 - **Pokémon sem braço, perna ou asa** (Qwilfish): a bolinha fica ao lado do corpo, no lado esquerdo, e gira junto com ele. Os 15 itens foram conferidos com quadros extraídos dos vídeos.
 - **Previsões do sistema:** ficam em `avaliacao/lote_02_sistema/`, fora da pasta do revisor.
+- **Itens ignorados por decisão sua:** a página mostra só 1 (Lucario, ataque), 7 (Hawlucha, charge), 9 (Groudon, charge) e 14 (Sawk, rugido). A lista está em `avaliacao/lote_02_ignorados.json`; o hash do lote não mudou.
 
 ### Achados que mudaram o código durante a execução (todos com teste que falhou antes)
 
