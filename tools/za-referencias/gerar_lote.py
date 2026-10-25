@@ -106,11 +106,60 @@ def refazer_previsoes(banco, saida):
     return len(prev), len(ids)
 
 
+# lote diverso (lote 02): (categoria, classe anatômica ou None, condição extra ou None) por vaga
+VAGAS_DIVERSO = [("attack", c, None) for c in ("bipede", "quadrupede", "serpentino", "alado", "outro", "sem_membros")] + [
+    ("walk", "quadrupede", None), ("walk", "serpentino", None), ("run", "bipede", None),
+    ("charge", None, "com_executor"), ("charge", None, "sem_executor"), ("charge", None, None),
+    ("damage", None, None), ("rangeattack", None, None), ("land", None, None)]
+# completam o lote quando uma vaga não tem candidato na parte de teste (classe rara)
+RESERVA_DIVERSO = [("attack", None, None), ("roar", None, None), ("jumpup", None, None), ("stun", None, None),
+                   ("eat", None, None), ("turnmove", None, None), ("down", None, None), ("rangeattack", None, None)]
+
+
+def escolher_diverso(teste, excluir_especies=(), semente=2026, n=15, excluir_cadeias=()):
+    """~15 itens variados para rotular: uma espécie e uma linha evolutiva por item (nada redundante), formas comuns
+    (_00_00), conjunto 0, revezando classes do corpo e categorias. Espécies de lotes anteriores ficam de fora.
+    'charge' entra com e sem executor previsto, para conferir os charge sem membro que cicla."""
+    rnd = random.Random(semente)
+    medidos = sorted((l for l in teste if l.get("status") == "MEDIDO" and l.get("especie") not in excluir_especies),
+                     key=lambda l: l["id"])
+    rnd.shuffle(medidos)
+    base = [l for l in medidos if l.get("conjunto", 0) == 0 and l["modelo"].endswith("_00_00")]
+    usadas_esp, usadas_cad, escolha = set(), set(excluir_cadeias), []
+    for cat, classe, cond in VAGAS_DIVERSO + RESERVA_DIVERSO:
+        if len(escolha) >= n:
+            break
+        cands = [l for l in base if l["categoria"] == cat and (classe is None or l.get("anatomia_classe") == classe)
+                 and l["especie"] not in usadas_esp and (l.get("cadeia") or l["especie"]) not in usadas_cad
+                 and (cond != "com_executor" or l.get("executores")) and (cond != "sem_executor" or not l.get("executores"))]
+        if classe is None:   # sem classe pedida: prefere uma classe ainda pouco usada
+            cont = defaultdict(int)
+            for e in escolha:
+                cont[e.get("anatomia_classe")] += 1
+            cands.sort(key=lambda l: cont[l.get("anatomia_classe")])
+        if not cands and classe is not None:
+            # classe rara esgotada no conjunto 0: aceita outra categoria, conjunto ou forma da mesma classe
+            cands = [l for l in medidos if l.get("anatomia_classe") == classe and l["especie"] not in usadas_esp
+                     and (l.get("cadeia") or l["especie"]) not in usadas_cad]
+            cands.sort(key=lambda l: (l["categoria"] != cat, l.get("conjunto", 0) != 0))
+        cands.sort(key=lambda l: l.get("variante") != "01")   # variante 01 primeiro (sort estável)
+        if cands:
+            l = cands[0]
+            escolha.append(l)
+            usadas_esp.add(l["especie"])
+            usadas_cad.add(l.get("cadeia") or l["especie"])
+    return escolha
+
+
 def main():
     if sys.argv[1] == "--previsoes":
         print("previsões: %d de %d itens" % refazer_previsoes(sys.argv[2], sys.argv[3]))
         return
+    diverso = sys.argv[1] == "--diverso"
+    if diverso:
+        sys.argv.pop(1)
     banco, dump, saida = sys.argv[1:4]
+    anteriores = sys.argv[4:]   # pastas de lotes anteriores: espécies que não podem repetir
     with open(os.path.join(AQUI, "especies.json"), encoding="utf-8") as fh:
         esp = json.load(fh)["especies"]
     with open(banco, encoding="utf-8") as fh:
@@ -123,7 +172,16 @@ def main():
     sistema = saida.rstrip("/\\") + "_sistema"   # FORA da pasta entregue aos revisores (avaliação cega)
     os.makedirs(sistema, exist_ok=True)
     os.makedirs(saida, exist_ok=True)
-    lote = escolher(div["teste"])
+    if diverso:
+        excl, excl_cad = set(), set()
+        for pasta in anteriores:
+            with open(os.path.join(pasta, "lote.json"), encoding="utf-8") as fh:
+                ids = {it["id"] for it in json.load(fh)["itens"]}
+            excl |= {l["especie"] for l in clipes if l["id"] in ids}
+            excl_cad |= {l.get("cadeia") or l["especie"] for l in clipes if l["id"] in ids}
+        lote = escolher_diverso(div["teste"], excl, excluir_cadeias=excl_cad)
+    else:
+        lote = escolher(div["teste"])
     print("divisão: %d grupos, teste %.1f%%; lote %d clipes" % (div["grupos"], 100 * div["relatorio_vazamento"]["frac_teste_real"], len(lote)), flush=True)
     itens = []
     for n, l in enumerate(lote, 1):
@@ -137,7 +195,7 @@ def main():
         itens.append({"id": l["id"], "n": n, "pokemon": l.get("nome"), "clipe": l["clipe"], "categoria": l["categoria"],
                       "folhas": info["arquivos"], "codigo_leitura": info["codigo"], "quadros": info.get("quadros")})
         print("  %d/%d %s %s" % (n, len(lote), l["id"], "ok" if linha else "SEM FOLHA"), flush=True)
-    corpo_lote = {"versao": 1, "semente": 1025, "itens": itens}
+    corpo_lote = {"versao": 1, "semente": 2026 if diverso else 1025, "itens": itens}
     texto = json.dumps(corpo_lote, ensure_ascii=False, indent=1)
     h = hashlib.sha256(texto.encode()).hexdigest()
     with open(os.path.join(saida, "lote.json"), "w", encoding="utf-8") as fh:

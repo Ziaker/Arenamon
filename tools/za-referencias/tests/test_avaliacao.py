@@ -103,6 +103,62 @@ class TestPrevisaoApoio(unittest.TestCase):
         self.assertEqual(p["apoio_impulso"], ["perna_E"])
 
 
+class TestEscolherDiverso(unittest.TestCase):
+    def _banco(self):
+        from sintetico import c
+        out = []
+        classes = ["bipede", "quadrupede", "serpentino", "alado", "outro", "sem_membros"]
+        clipes = ["00400_attack01", "00030_walk01_loop", "10100_run01_loop", "00490_charge01_loop",
+                  "00500_damage01", "00450_rangeattack01", "00155_land02"]
+        for i in range(1, 121):
+            for cl in clipes:
+                out.append(c("pm%04d_00_00" % i, cl, especie=i, status="MEDIDO", conjunto=0,
+                             anatomia_classe=classes[i % len(classes)], cadeia=(i + 1) // 2,
+                             executores=["perna_D"] if i % 3 else [], id="pm%04d_00_00/%s" % (i, cl)))
+        return out
+
+    def test_quinze_itens_variados_sem_redundancia(self):
+        import gerar_lote
+        lote = gerar_lote.escolher_diverso(self._banco(), excluir_especies={1, 2, 3})
+        self.assertEqual(len(lote), 15)
+        esp = [l["especie"] for l in lote]
+        self.assertEqual(len(set(esp)), 15, "uma espécie por item")
+        self.assertEqual(len({l["cadeia"] for l in lote}), 15, "uma linha evolutiva por item")
+        self.assertFalse({1, 2, 3} & set(esp))
+        ataques = [l for l in lote if l["categoria"] == "attack"]
+        self.assertEqual(len({l["anatomia_classe"] for l in ataques}), 6)
+        cats = {l["categoria"] for l in lote}
+        self.assertTrue({"attack", "walk", "run", "charge", "damage", "rangeattack", "land"} <= cats)
+        charge = [l for l in lote if l["categoria"] == "charge"]
+        self.assertTrue(any(l["executores"] for l in charge) and any(not l["executores"] for l in charge))
+
+    def test_classe_rara_ausente_completa_com_reserva(self):
+        import gerar_lote
+        b = [l for l in self._banco() if not (l["categoria"] == "attack" and l["anatomia_classe"] == "alado")]
+        b += [dict(l, clipe="00300_roar01", categoria="roar", id=l["id"].replace("00400_attack01", "00300_roar01"))
+              for l in b if l["categoria"] == "attack"]
+        self.assertEqual(len(gerar_lote.escolher_diverso(b, set())), 15)
+
+    def test_linha_evolutiva_de_lote_anterior_fica_de_fora(self):
+        import gerar_lote
+        lote = gerar_lote.escolher_diverso(self._banco(), set(), excluir_cadeias={5, 6, 7})
+        self.assertFalse({5, 6, 7} & {l["cadeia"] for l in lote})
+
+    def test_classe_rara_so_em_outro_conjunto_entra(self):
+        import gerar_lote
+        b = [l for l in self._banco() if l["anatomia_classe"] != "alado"]
+        b.append(dict(b[0], modelo="pm0999_00_00", especie=999, cadeia=999, anatomia_classe="alado", conjunto=1,
+                      clipe="10030_walk01_loop", categoria="walk", id="pm0999_00_00/10030_walk01_loop"))
+        lote = gerar_lote.escolher_diverso(b, set())
+        self.assertIn(999, {l["especie"] for l in lote})
+
+    def test_deterministico(self):
+        import gerar_lote
+        b = self._banco()
+        self.assertEqual([l["id"] for l in gerar_lote.escolher_diverso(b, set())],
+                         [l["id"] for l in gerar_lote.escolher_diverso(b, set())])
+
+
 class TestRefazerPrevisoes(unittest.TestCase):
     def test_regrava_so_previsoes_sem_tocar_no_lote(self):
         import json, os, tempfile
