@@ -123,6 +123,24 @@ Novos módulos em `tools/za-referencias/`, cada um com testes em `tests/` (rigs 
 - **Achado:** 471 dos 738 `charge01_loop` ficam sem executor, porque nenhum membro passa de 0,5 H/s. Muitos devem ser um avanço do corpo inteiro, ou uma pose de carga quase parada, e não membros ciclando. Precisa de rótulos para confirmar.
 - **pm0965:** o sistema dá executores braço D, braço E, perna C, perna D e perna E, sem apoio. O revisor marcou 2 "pernas", que são os tentáculos. No rig eles se chamam `shoulder`, por isso o sistema os conta como braço.
 
+### Lote 02 de rotulagem (25/10/2026)
+
+**Abrir:** `dumper test/za-referencias/avaliacao/lote_02/rotulagem.html`. Também está no portal: Banco de Referências → "Rotulagem cega (lote 02, 15 variados)".
+
+Gerado com `gerar_lote.py --diverso <banco> <dump> <saida> <lotes anteriores…>`, depois `gerar_videos_lote.py`.
+
+- **15 itens sem redundância:** uma espécie e uma linha evolutiva por item. Nenhuma espécie nem linha do lote 01 se repete. Todos vêm da parte de teste da divisão, então não há vazamento.
+- **Formas do corpo:** bípede, quadrúpede, serpente (Qwilfish de Hisui, conjunto 1) e "outro" (Vanillite, conjunto 2).
+- **Formas raras:** o lote 01 já tinha usado quase todas da parte de teste, por isso essas vagas aceitam outro conjunto ou outra forma da mesma classe. Não sobrou nenhum Pokémon alado.
+- **Categorias:**
+  - ataque (5);
+  - andar, correr e pouso;
+  - charge (3): 1 com executor previsto e 2 sem, para conferir os 70% de charge sem executor;
+  - dano, ataque à distância, rugido e pulo.
+- **Vídeos:** vista de frente e 3/4, com a bolinha azul do lado esquerdo, câmera lenta e avanço quadro a quadro. A página já traz a pergunta de apoio/impulso.
+- **Pokémon sem braço, perna ou asa** (Qwilfish): a bolinha fica ao lado do corpo, no lado esquerdo, e gira junto com ele. Os 15 itens foram conferidos com quadros extraídos dos vídeos.
+- **Previsões do sistema:** ficam em `avaliacao/lote_02_sistema/`, fora da pasta do revisor.
+
 ### Achados que mudaram o código durante a execução (todos com teste que falhou antes)
 
 | Achado no corpus | Correção |

@@ -119,8 +119,10 @@ def _marca_lado_esquerdo(bpy, sc, arm, esq, regs, c, altura):
     O esquerdo do Pokémon é +X no Trinity e continua +X na cena girada."""
     from mathutils import Vector
     k = osso_da_marca_esquerda(esq, regs)
-    if k is None:
-        return None
+    lateral = k is None   # sem braço/perna/asa (peixe, bola): bolinha ao lado do corpo, no esquerdo dele
+    if lateral:
+        import metricas
+        k = metricas.raiz_do_corpo(esq)
     import bmesh
     me = bpy.data.meshes.new("marca_lado_esquerdo")
     bm = bmesh.new()
@@ -135,9 +137,15 @@ def _marca_lado_esquerdo(bpy, sc, arm, esq, regs, c, altura):
     nome = esq.nomes[k]
     for f in range(c.quadros):
         sc.frame_set(f)
-        marca.location = (arm.matrix_world @ arm.pose.bones[nome].head) + Vector((0.08 * altura, 0, 0))
+        pb = arm.pose.bones[nome]
+        if lateral:
+            # +X do modelo girado junto com o corpo (pose atual × repouso⁻¹), longe o bastante para sair da malha
+            giro = arm.matrix_world.to_3x3() @ pb.matrix.to_3x3() @ pb.bone.matrix_local.to_3x3().inverted() @ arm.matrix_world.to_3x3().inverted()
+            marca.location = (arm.matrix_world @ pb.head) + (giro @ Vector((1, 0, 0))).normalized() * (0.35 * altura)
+        else:
+            marca.location = (arm.matrix_world @ pb.head) + Vector((0.08 * altura, 0, 0))
         marca.keyframe_insert("location", frame=f)
-    print("[marca] osso=%s raio=%.4f" % (nome, 0.035 * altura))
+    print("[marca] osso=%s raio=%.4f%s" % (nome, 0.035 * altura, " (ao lado do corpo)" if lateral else ""))
     return nome
 
 
