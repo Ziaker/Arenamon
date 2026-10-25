@@ -5,6 +5,7 @@
   "abertura_mandibula_graus": 15,
   "janela_mandibula_q": 6,
   "limiar_inicio_frac": 0.2,
+  "janela_preparacao_q": 30,
   "limiar_movimento_frac": 0.1,
   "pico_minimo_H_s": 0.5,
   "candidatas": {
@@ -21,5 +22,5 @@
     "lingua": "abre_no_pico",
     "apendice_sensorial": "unica_cadeia"
   },
-  "nunca_executa": ["olho_palpebra", "cabelo_pelagem", "auxiliar", "raiz", "outro"]
+  "nunca_executa": ["olho_palpebra", "cabelo_pelagem", "acessorio", "auxiliar", "raiz", "outro"]
 }

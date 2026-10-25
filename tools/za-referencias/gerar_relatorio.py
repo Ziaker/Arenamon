@@ -15,6 +15,7 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import inventario  # noqa: E402
+import normas as normas_mod  # noqa: E402
 
 MEDIDAS = [
     ("duracao_s", "Duração", "s"),
@@ -167,11 +168,119 @@ def main():
               l.get("overshoot_rel"), l.get("efetor", ""), l["conjunto"]]
              for l in corpo if not l.get("parado")]
     info["reconciliacao"] = inventario.reconciliar(todas)
-    escrever_html(os.path.join(saida, "relatorio.html"), info, norm, por_forma, busca)
+    grupos = {}
+    for cat in CATEGORIAS_DESTAQUE:
+        for fase in ("", "start", "loop", "end"):
+            grupos[(cat, fase)] = normas_mod.grupo(corpo, cat, fase, n_min=1)
+    with open(os.path.join(saida, "normas_grupos_za.json"), "w", encoding="utf-8") as fh:
+        json.dump({"%s|%s" % k: v for k, v in grupos.items() if v["n_clipes"]}, fh, ensure_ascii=False, indent=1)
+    escrever_html(os.path.join(saida, "relatorio.html"), info, norm, por_forma, busca,
+                  fase1=secoes_fase1(corpo, por_conj[0]), grupos=grupos)
     print("relatório e normas em", saida)
 
 
-def escrever_html(caminho, info, norm, por_forma, busca):
+def _pct(a, b):
+    return "%d%%" % round(100 * a / b) if b else "—"
+
+
+def _tabela(cab, linhas):
+    return ('<div class="wrap"><table><thead><tr>%s</tr></thead><tbody>%s</tbody></table></div>' % (
+        "".join("<th>%s</th>" % html.escape(c) for c in cab),
+        "".join("<tr>%s</tr>" % "".join("<td>%s</td>" % c for c in l) for l in linhas)))
+
+
+def secoes_fase1(corpo, por_conj0):
+    """Camadas 1C–1G no relatório: papéis, ontologia, eventos, escala, locomoção e poses-chave."""
+    out = []
+    ataques = [l for l in por_conj0 if l["categoria"] == "attack" and not l["fase"] and l.get("status") == "MEDIDO"]
+    na = len(ataques)
+    if na:
+        ex = Counter(r for l in ataques for r in (l.get("executores") or []))
+        inc = sum(1 for l in ataques if l.get("papeis_status") == "INCONCLUSIVO")
+        dois = sum(1 for l in ataques if len(l.get("executores") or []) >= 2)
+        ini = Counter(l.get("iniciador") for l in ataques if l.get("iniciador"))
+        face_antigo = sum(1 for l in ataques if any(t in (l.get("efetor_maior_percurso") or "")
+                                                   for t in ("eye", "ear", "feeler")))
+        face_novo = sum(1 for l in ataques if any(r in ("olho_palpebra", "apendice_sensorial")
+                                                 for r in (l.get("executores") or [])))
+        out.append("<h2>Quem executa o ataque físico (1C)</h2>")
+        out.append("<p class=\"nota\">%d ataques físicos (um por espécie, conjunto 0). O executor é escolhido por regras de ação + anatomia "
+                   "(<code>regras_papeis.json</code>), nunca pelo osso que mais se move. Olho/orelha/antena como “efetor” pelo critério antigo: "
+                   "<b>%d</b>; como executor agora: <b>%d</b>. Inconclusivo: <b>%s</b>. Com 2 ou mais executores: <b>%s</b>. "
+                   "Status: <b>CANDIDATO</b> até o gabarito humano da avaliação cega.</p>" % (
+                       na, face_antigo, face_novo, _pct(inc, na), _pct(dois, na)))
+        out.append(_tabela(["Região executora", "Ataques", "%"], [[html.escape(r), n, _pct(n, na)] for r, n in ex.most_common(12)]))
+        out.append(_tabela(["Quem começa a se mover", "Ataques", "%"], [[html.escape(r), n, _pct(n, na)] for r, n in ini.most_common(8)]))
+    fr = [l.get("ontologia_outro_frac") for l in corpo if l.get("ontologia_outro_frac") is not None]
+    if fr:
+        por_rig = {}
+        for l in corpo:
+            if l.get("ontologia_outro_frac") is not None:
+                por_rig[l["modelo"]] = (l["ontologia_outro_frac"], l.get("ontologia_outro_ossos") or [])
+        piores = sorted(por_rig.items(), key=lambda kv: -kv[1][0])[:8]
+        med = float(np.median([v[0] for v in por_rig.values()]))
+        acima = sum(1 for v in por_rig.values() if v[0] > 0.05)
+        out.append("<h2>Cobertura da ontologia</h2>")
+        out.append("<p>Fração dos ossos animados que nenhuma regra classificou (região <code>outro</code>), por modelo: mediana <b>%.1f%%</b>; "
+                   "modelos acima da meta de 5%%: <b>%d de %d</b>. Os piores e alguns ossos sem região:</p>" % (100 * med, acima, len(por_rig)))
+        out.append(_tabela(["Modelo", "Em 'outro'", "Exemplos de ossos"],
+                           [[m, "%.0f%%" % (100 * v[0]), html.escape(", ".join(v[1][:6]))] for m, v in piores]))
+    if na:
+        multi = sum(1 for l in ataques if (l.get("n_eventos") or 0) > 1)
+        por_classe = defaultdict(Counter)
+        for l in ataques:
+            if l.get("ordem_ativacao"):
+                por_classe[l.get("anatomia_classe", "?")][l["ordem_ativacao"][0]] += 1
+        out.append("<h2>Eventos e ordem de ativação (1D)</h2>")
+        out.append("<p>Ataques com mais de um pico de movimento (golpe duplo, rebote): <b>%s</b>. Região que se move primeiro, por classe do corpo:</p>" % _pct(multi, na))
+        out.append(_tabela(["Classe", "1ª região (mais comum)", "n"],
+                           [[c, html.escape(", ".join("%s %d" % kv for kv in cnt.most_common(3))), sum(cnt.values())]
+                            for c, cnt in sorted(por_classe.items(), key=lambda kv: -sum(kv[1].values()))]))
+    cats = Counter(l["categoria"] for l in corpo)
+    linhas = []
+    for cat, _ in cats.most_common(12):
+        ls = [l for l in corpo if l["categoria"] == cat and l.get("status") == "MEDIDO"]
+        if not ls:
+            continue
+        linhas.append([html.escape(cat), len(ls), _pct(sum(1 for l in ls if l.get("squash_stretch_regioes")), len(ls)),
+                       _pct(sum(1 for l in ls if l.get("partes_ocultas")), len(ls))])
+    out.append("<h2>Squash/stretch e partes escondidas (L08)</h2>")
+    out.append("<p>Squash/stretch = região com escala ≠ 1 que volta ao normal. Parte escondida = o jogo zera a escala (cauda, asas…); "
+               "esses quadros ficam fora de todas as medidas de movimento.</p>")
+    out.append(_tabela(["Categoria", "Clipes", "Com squash/stretch", "Com partes escondidas"], linhas))
+    loc = [l for l in corpo if l["categoria"] in ("walk", "run") and l.get("fase") == "loop" and l.get("locomocao_modo")]
+    if loc:
+        modo = Counter(l["locomocao_modo"] for l in loc)
+        mot = Counter(m for l in loc for m in (l.get("locomocao_motivos") or []))
+        esc = sum(1 for l in loc if (l.get("escorregoes_n") or 0) > 0)
+        cad = [l["cadencia_passos_s"] for l in loc if l.get("cadencia_passos_s")]
+        out.append("<h2>Locomoção e apoio (1E)</h2>")
+        out.append("<p class=\"nota\">%d loops de andar/correr. O contato é <b>inferido</b> de um chão estimado (o Z-A não traz o chão); "
+                   "nunca é confirmado sem revisão visual. Modo: %s. Com escorregão inferido: <b>%s</b>. Cadência mediana: <b>%s passos/s</b>.</p>" % (
+                       len(loc), html.escape(", ".join("%s %d" % kv for kv in modo.most_common())), _pct(esc, len(loc)),
+                       _n(float(np.median(cad))) if cad else "—"))
+        if mot:
+            out.append(_tabela(["Motivo de SEM_INFORMACAO", "Clipes"], [[html.escape(m), n] for m, n in mot.most_common(6)]))
+    pc = [l for l in corpo if l.get("poses_chave_n")]
+    if pc:
+        linhas = []
+        for cat, _ in Counter(l["categoria"] for l in pc).most_common(10):
+            ls = [l for l in pc if l["categoria"] == cat]
+            conc = [l["poses_chave_concordancia_arquivo"] for l in ls if l.get("poses_chave_concordancia_arquivo") is not None]
+            linhas.append([html.escape(cat), len(ls), "%.0f%%" % (100 * float(np.median([l["poses_chave_frac"] for l in ls]))),
+                           _n(float(np.median([l["poses_chave_n"] for l in ls]))),
+                           "%.0f%%" % (100 * float(np.median(conc))) if conc else "—"])
+        out.append("<h2>Poses-chave (1G)</h2>")
+        out.append("<p class=\"nota\"><b>Aproximação, não o blocking do animador.</b> Menor conjunto de quadros que reconstrói o clipe "
+                   "dentro de 1%% da altura e 3°. A concordância compara com os quadros em que pelo menos metade das faixas do arquivo têm chave.</p>")
+        out.append(_tabela(["Categoria", "Clipes", "Quadros-chave (% do clipe)", "Nº mediano", "Concordância com o arquivo"], linhas))
+    out.append("<h2>Avaliação cega (1I)</h2>")
+    out.append("<p>Lote de 40 animações para rotulagem humana: <a href=\"avaliacao/lote_01/rotulagem.html\">abrir a página de rotulagem</a>. "
+               "As previsões do sistema ficam guardadas à parte e só são comparadas depois dos rótulos (A/B com McNemar).</p>")
+    return "\n".join(out)
+
+
+def escrever_html(caminho, info, norm, por_forma, busca, fase1="", grupos=None):
     n0 = norm["conjunto_0"]
     linhas = []
     for cat in CATEGORIAS_DESTAQUE:
@@ -180,10 +289,12 @@ def escrever_html(caminho, info, norm, por_forma, busca):
             if not g or g["especies"] < 5:
                 continue
             nome = ROTULOS.get(cat, cat) + (" · " + fase if fase else "")
+            gn = (grupos or {}).get((cat, fase), {})
             linhas.append(
-                "<tr><th>%s<small>%d espécies</small></th><td>%s</td><td>%s</td><td>%s</td><td>%s</td>"
+                "<tr data-n=\"%d\"><th>%s<small>%d espécies · %s rigs · %s</small></th><td>%s</td><td>%s</td><td>%s</td><td>%s</td>"
                 "<td>%d%%<small> %s q</small></td><td>%s</td><td>%d%%</td><td>%s</td><td>%s</td></tr>" % (
-                    html.escape(nome), g["especies"], svg_curva(g.get("curva")), fmt(g["duracao_s"]),
+                    gn.get("n_especies", g["especies"]), html.escape(nome), g["especies"], gn.get("n_rigs_estruturais", "—"),
+                    "MEDIDO, NÃO APROVADO", svg_curva(g.get("curva")), fmt(g["duracao_s"]),
                     fmt(g["ate_pico_s"]), fmt(g["pico_rel"]), round(100 * g["com_antecipacao"]),
                     _n(g["antecipacao_q"]["mediana"]) if g.get("antecipacao_q") else "—",
                     fmt(g["antecipacao_ate_golpe_q"]), round(100 * g["com_hold"]),
@@ -230,7 +341,7 @@ def escrever_html(caminho, info, norm, por_forma, busca):
         cpq=round(100 * cpq.get("mediana", 0)), cpq10=round(100 * cpq.get("p10", 0)), cpq90=round(100 * cpq.get("p90", 0)),
         conj="\n".join(conj),
         linhas="\n".join(linhas), formas="\n".join(formas),
-        busca=json.dumps(busca, ensure_ascii=False, separators=(",", ":")),
+        busca=json.dumps(busca, ensure_ascii=False, separators=(",", ":")), fase1=fase1,
     )
     with open(caminho, "w", encoding="utf-8") as fh:
         fh.write(doc)
@@ -275,9 +386,12 @@ dl{{display:grid;grid-template-columns:max-content 1fr;gap:4px 14px;color:var(--
 <div class="wrap"><table><thead><tr><th>Conjunto</th><th>Clipes</th><th>Espécies com ataque físico</th><th>Duração do ataque (s)</th><th>Início → pico (s)</th><th>Com antecipação</th></tr></thead><tbody>{conj}</tbody></table></div>
 
 <h2>Normas por tipo de clipe (conjunto 0, um clipe por espécie)</h2>
+<p><label>Mostrar só grupos com pelo menos <input id="nmin" type="number" min="1" max="400" value="8" style="width:70px"> espécies</label> (abaixo disso o grupo é <b>SEM_BASE_COMPARAVEL</b>). Todas as normas são <b>medidas, não aprovadas</b>: a adequação artística fica <b>NÃO AVALIADA</b> até alguém aprovar um aspecto com nome.</p>
 <p>Cada célula: <b>mediana</b> e faixa p10–p90. A curva é a energia típica do movimento ao longo do clipe (linha = mediana, faixa = p25–p75).</p>
 <div class="wrap"><table><thead><tr><th>Tipo</th><th>Curva de energia</th><th>Duração (s)</th><th>Início → pico (s)</th><th>Pico no clipe (0–1)</th><th>Com antecipação</th><th>Recuo → golpe (q)</th><th>Com hold</th><th>Overshoot (×)</th><th>Ease (0–1)</th></tr></thead>
 <tbody>{linhas}</tbody></table></div>
+
+{fase1}
 
 <h2>Ataque físico por forma do corpo</h2>
 <p>A forma do corpo vem da classificação da PokeAPI (humanoide, quadrúpede, asas…). Use para escolher referência parecida com o Pokémon do Arenamon.</p>
@@ -316,6 +430,9 @@ if(!t.length){{res.innerHTML='<tr><td colspan="9" class="vazio">Digite para busc
 const out=[];for(const r of D){{const s=(r[0]+' '+r[1]+' '+r[2]).toLowerCase();if(t.every(x=>s.includes(x))){{out.push(r);if(out.length>=200)break}}}}
 res.innerHTML=out.map(r=>`<tr><th>${{r[0]}}</th><td>${{r[1]}}</td><td>${{r[2]}}</td><td>${{f(r[3])}}</td><td>${{f(r[4])}}</td><td>${{f(r[5])}}</td><td>${{f(r[6])}}</td><td>${{f(r[7])}}</td><td>${{r[8]}}</td></tr>`).join('')||'<tr><td colspan="9" class="vazio">Nada encontrado.</td></tr>'}}
 q.addEventListener('input',render);render();
+const nmin=document.getElementById('nmin');
+function filtrar(){{const v=+nmin.value||1;document.querySelectorAll('tr[data-n]').forEach(r=>{{r.style.display=(+r.dataset.n>=v)?'':'none'}})}}
+nmin.addEventListener('input',filtrar);filtrar();
 </script></body></html>
 """
 

@@ -59,6 +59,14 @@ class TestRegioes(unittest.TestCase):
         self.assertEqual(r["right_foot_claw"], "perna_D")
 
 
+    def test_roupa_e_acessorio(self):
+        nomes = ["origin", "waist", "left_skirt_a_01", "cloth_b_02", "belt", "hat_01"]
+        pais = [-1, 0, 1, 1, 1, 1]
+        esq = za_anim.Esqueleto.de_arrays(nomes, pais, np.zeros((6, 3)), np.tile([1.0, 0, 0, 0], (6, 1)))
+        r = dict(zip(nomes, ontologia.regioes(esq)))
+        self.assertEqual({r[n] for n in nomes[2:]}, {"acessorio"})
+
+
 class TestAnatomia(unittest.TestCase):
     def test_anatomia_quadrupede(self):
         esq = S.quadrupede()
@@ -124,6 +132,11 @@ class TestPapeis(unittest.TestCase):
     def test_nucleo_inicia_antes_do_braco(self):
         r = papeis(S.cadeia_quadril_braco(atraso=3))
         self.assertEqual(r["iniciadores"][0]["regiao"], "nucleo")
+
+    def test_antena_balancando_nao_e_iniciador(self):
+        r = papeis(S.antena_balanca_nucleo_prepara())
+        self.assertEqual(r["iniciadores"][0]["regiao"], "nucleo")
+        self.assertNotIn("apendice_sensorial", [x["regiao"] for x in r["iniciadores"]])
 
     def test_serpente_bote_executor_cabeca(self):
         r = papeis(S.serpente_bote())

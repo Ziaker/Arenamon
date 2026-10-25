@@ -359,3 +359,13 @@ def torcao_de_mao(n=60):
 def cabeca_inclina(pico_q=25, graus=20, n=60):
     esq = humanoide()
     return esq, clipe(esq, n, rot={"head": giro_x(n, pico_q, graus, largura=4.0)})
+
+
+def antena_balanca_nucleo_prepara():
+    """Antena balança o clipe inteiro (idle); o núcleo prepara a partir do q15; a mão golpeia no q32."""
+    esq = humanoide()
+    n = 60
+    antena = _np.zeros((n, 3))
+    antena[:, 0] = 0.25 * _np.sin(_np.arange(n) * 2 * _np.pi / 12)
+    return esq, clipe(esq, n, {"left_feeler_b": antena, "waist": frente(n, 22, 0.15, largura=4.0),
+                               "right_hand": frente(n, 32, 0.6)})

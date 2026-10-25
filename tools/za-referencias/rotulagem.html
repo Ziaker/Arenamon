@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Rotulagem Z-A</title>
+<style>
+:root{--bg:#0f1419;--card:#171d24;--tx:#e6e9ee;--mut:#8b96a5;--ac:#38bdf8;--ln:#26303b;--ok:#22c55e}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){--bg:#f6f7f9;--card:#fff;--tx:#14181d;--mut:#5d6773;--ac:#0369a1;--ln:#e3e7ec;--ok:#15803d}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 system-ui,Segoe UI,sans-serif}
+main{max-width:1200px;margin:0 auto;padding:20px 16px 80px}h1{font-size:1.5em;margin:.2em 0}p{color:var(--mut)}
+.barra{position:sticky;top:0;z-index:2;background:var(--bg);padding:10px 0;display:flex;gap:10px;flex-wrap:wrap;align-items:center;border-bottom:1px solid var(--ln)}
+input,select,textarea,button{font:inherit;color:var(--tx);background:var(--card);border:1px solid var(--ln);border-radius:8px;padding:7px 10px}
+button{cursor:pointer;border-color:var(--ac)}button.prim{background:var(--ac);color:#fff}
+.item{background:var(--card);border:1px solid var(--ln);border-radius:12px;padding:14px;margin:16px 0}
+.item.feito{border-color:var(--ok)}
+.folhas img{width:100%;display:block;border-radius:6px;margin:6px 0;background:#222}
+.grade{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px 18px;margin-top:10px}
+label{display:block;font-size:13px;color:var(--mut)}fieldset{border:0;padding:0;margin:0}
+.chips label{display:inline-flex;gap:4px;align-items:center;margin:2px 10px 2px 0;color:var(--tx);font-size:14px}
+textarea{width:100%;min-height:52px}
+.prog{color:var(--mut)}
+</style></head><body><main>
+<h1>Rotulagem cega · lote Z-A</h1>
+<p>Para cada animação, olhe as folhas (duas vistas, quadros espaçados pelo clipe) e responda o que <b>você</b> vê. A página não mostra o que o sistema calculou. Use "Inconclusivo" sempre que não der para ver. Suas respostas ficam salvas neste navegador; no fim, clique em <b>Baixar rótulos</b> e guarde o arquivo. Lote <code>{{HASH}}</code>.</p>
+<div class="barra">
+  <label>Seu nome <input id="revisor" placeholder="ex.: Rafael" required></label>
+  <span class="prog" id="prog"></span>
+  <button class="prim" id="baixar">Baixar rótulos</button>
+  <button id="limpar" title="Apaga as respostas salvas neste navegador">Recomeçar</button>
+</div>
+<div id="itens"></div>
+</main>
+<script>
+const LOTE = /*LOTE*/null;
+const REGIOES = [["braco_D","braço direito"],["braco_E","braço esquerdo"],["perna_D","perna direita"],["perna_E","perna esquerda"],["cabeca","cabeça"],["mandibula","boca/mandíbula"],["cauda","cauda"],["asa_D","asa direita"],["asa_E","asa esquerda"],["nucleo","tronco/quadril"],["apendice_sensorial","antena/orelha"],["outro","outra parte"]];
+const CHAVE = "rotulagem_za_" + "{{HASH}}";
+let estado = {};
+try { estado = JSON.parse(localStorage.getItem(CHAVE) || "{}"); } catch (e) { estado = {}; }
+const salvar = () => { try { localStorage.setItem(CHAVE, JSON.stringify(estado)); } catch (e) {} atualizar(); };
+const sel = (nome, opcoes, id) => `<label>${nome}<select data-campo="${id}"><option value="">—</option>${opcoes.map(o => `<option value="${o[0]}">${o[1]}</option>`).join("")}</select></label>`;
+function render() {
+  const el = document.getElementById("itens");
+  el.innerHTML = LOTE.itens.map(it => `
+  <section class="item" data-id="${it.id}">
+    <b>${it.n}. ${it.pokemon || ""}</b> · <code>${it.clipe}</code> <span class="prog">código ${it.codigo_leitura || "—"}</span>
+    <div class="folhas">${it.folhas.map(f => `<img loading="lazy" src="${f}" alt="folha ${f}">`).join("") || "<p>Sem folha gerada.</p>"}</div>
+    <div class="grade">
+      <fieldset class="chips"><label>Quem executa a ação? (marque todas)</label>
+        ${REGIOES.map(r => `<label><input type="checkbox" data-exec="${r[0]}">${r[1]}</label>`).join("")}
+        <label><input type="checkbox" data-exec="INCONCLUSIVO">inconclusivo</label></fieldset>
+      ${sel("Que parte começa a se mover primeiro?", REGIOES.concat([["INCONCLUSIVO","inconclusivo"]]), "iniciador")}
+      ${sel("Há antecipação (recuo antes do golpe)?", [["sim","sim"],["nao","não"],["INCONCLUSIVO","inconclusivo"]], "antecipacao")}
+      <label>Se sim, mais ou menos quantos quadros? <input type="number" min="0" max="200" data-campo="antecipacao_q"></label>
+      ${sel("Alguma parte some ou aparece?", [["sim","sim"],["nao","não"],["INCONCLUSIVO","inconclusivo"]], "parte_some_aparece")}
+      ${sel("Os pés estão apoiados no chão?", [["sim","sim"],["nao","não"],["INCONCLUSIVO","inconclusivo"]], "apoio")}
+      ${sel("A pose se lê com clareza?", [["clara","clara"],["confusa","confusa"],["INCONCLUSIVO","inconclusivo"]], "leitura_pose")}
+      ${sel("Peso aparente", [["leve","leve"],["medio","médio"],["pesado","pesado"],["INCONCLUSIVO","inconclusivo"]], "massa_aparente")}
+      ${sel("Intenção/personalidade (só sua leitura)", [["agressivo","agressivo"],["brincalhao","brincalhão"],["cauteloso","cauteloso"],["neutro","neutro"],["INCONCLUSIVO","inconclusivo"]], "intencao")}
+      <label style="grid-column:1/-1">Discordo / observação<textarea data-campo="observacao"></textarea></label>
+    </div>
+  </section>`).join("");
+  el.querySelectorAll(".item").forEach(sec => {
+    const id = sec.dataset.id, r = estado[id] || {};
+    sec.querySelectorAll("[data-campo]").forEach(i => { if (r[i.dataset.campo] !== undefined) i.value = r[i.dataset.campo]; });
+    sec.querySelectorAll("[data-exec]").forEach(i => { i.checked = (r.executores || []).includes(i.dataset.exec) || (r.executores === "INCONCLUSIVO" && i.dataset.exec === "INCONCLUSIVO"); });
+    sec.addEventListener("input", () => {
+      const o = estado[id] = estado[id] || {};
+      sec.querySelectorAll("[data-campo]").forEach(i => { o[i.dataset.campo] = i.value; });
+      const ex = [...sec.querySelectorAll("[data-exec]:checked")].map(i => i.dataset.exec);
+      o.executores = ex.includes("INCONCLUSIVO") ? "INCONCLUSIVO" : ex.sort();
+      salvar();
+    });
+  });
+  atualizar();
+}
+function atualizar() {
+  let feitos = 0;
+  document.querySelectorAll(".item").forEach(sec => {
+    const r = estado[sec.dataset.id] || {};
+    const ok = r.antecipacao && (r.executores === "INCONCLUSIVO" || (r.executores || []).length);
+    sec.classList.toggle("feito", !!ok); feitos += ok ? 1 : 0;
+  });
+  document.getElementById("prog").textContent = `${feitos} de ${LOTE.itens.length} respondidas`;
+}
+document.getElementById("revisor").value = estado.__revisor || "";
+document.getElementById("revisor").addEventListener("input", e => { estado.__revisor = e.target.value; salvar(); });
+document.getElementById("baixar").addEventListener("click", () => {
+  const nome = (estado.__revisor || "").trim();
+  if (!nome) { alert("Escreva seu nome antes de baixar."); return; }
+  const rot = LOTE.itens.map(it => Object.assign({ id: it.id }, estado[it.id] || {}));
+  const blob = new Blob([JSON.stringify({ lote: "{{HASH}}", revisor: nome, rotulos: rot }, null, 1)], { type: "application/json" });
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+  a.download = `rotulos_${nome.replace(/\W+/g, "_")}_{{HASH}}.json`; a.click();
+});
+document.getElementById("limpar").addEventListener("click", () => { if (confirm("Apagar todas as respostas salvas neste navegador?")) { estado = {}; salvar(); render(); } });
+render();
+</script></body></html>

@@ -2,7 +2,10 @@
 
 Parte pura (testada sem Blender): quadros_para_folha, vistas_independentes, par_de_vistas, estado_regiao.
 Parte Blender (CLI):
-  blender.exe -b --factory-startup --addons PokemonSwitchV3 --python folhas_visuais.py -- <pasta_modelo> <clipe> <saida>
+  blender.exe -b --factory-startup --addons PokemonSwitchV3 --python folhas_visuais.py -- <pasta_modelo> <clipe> <saida> [cego]
+
+"cego": para a rotulagem humana — nada pintado, 10 quadros espaçados pelo clipe (não os eventos calculados) e a
+estampa só traz código, vista e quadro (não revela o que o sistema calculou).
 
 Monta uma cena DERIVADA (nada do usuário é aberto ou salvo): importa o modelo com o addon, força chaves LINEAR
 (igual ao banco), gira a armature para Z-up só nesta cena, pinta de laranja a região que executa a ação e
@@ -117,6 +120,7 @@ def main():
 
     args = sys.argv[sys.argv.index("--") + 1:]
     pasta, clipe_nome, saida = os.path.abspath(args[0]), args[1], os.path.abspath(args[2])
+    cego = len(args) > 3 and args[3] == "cego"
     os.makedirs(saida, exist_ok=True)
     base = os.path.basename(pasta)
     for ob in list(bpy.data.objects):
@@ -145,10 +149,11 @@ def main():
     executores = m.get("executores") or []
     ossos_exec = {esq.nomes[i] for i, r in enumerate(regs) if r in executores}
     ponta = esq.indice.get((m.get("executores_ossos") or [None])[0]) if m.get("executores_ossos") else None
-    quadros = quadros_para_folha(m.get("eventos") or [], c.quadros)
+    # cego: quadros espaçados pelo clipe todo (os eventos calculados também dariam pista ao revisor)
+    quadros = quadros_para_folha([], c.quadros, limite=10) if cego else quadros_para_folha(m.get("eventos") or [], c.quadros)
 
     malhas = [o for o in bpy.data.objects if o.type == "MESH"]
-    _pintar_regiao(bpy, malhas, ossos_exec)
+    _pintar_regiao(bpy, malhas, set() if cego else ossos_exec)
     sc = bpy.context.scene
     sc.render.engine = "BLENDER_WORKBENCH"
     sc.display.shading.light = "STUDIO"
@@ -200,7 +205,8 @@ def main():
                 estados[f] = estado_regiao(bool(oc[f, ponta]), visivel)
             else:
                 estados[f] = "SEM_EXECUTOR"
-            sc.render.stamp_note_text = "%s  %s  q%d  %s" % (codigo, v["name"], f, estados[f])
+            sc.render.stamp_note_text = ("%s  %s  q%d" % (codigo, v["name"], f) if cego else
+                                         "%s  %s  q%d  %s" % (codigo, v["name"], f, estados[f]))
             caminho = os.path.join(saida, "_q%03d_%s.png" % (f, v["name"]))
             sc.render.filepath = caminho
             bpy.ops.render.render(write_still=True)

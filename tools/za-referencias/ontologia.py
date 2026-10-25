@@ -20,7 +20,7 @@ AQUI = os.path.dirname(os.path.abspath(__file__))
 
 REGIOES = ("nucleo", "pescoco", "cabeca", "mandibula", "lingua", "olho_palpebra",
            "braco_E", "braco_D", "braco_C", "perna_E", "perna_D", "perna_C", "cauda",
-           "asa_E", "asa_D", "asa_C", "apendice_sensorial", "cabelo_pelagem", "auxiliar", "raiz", "outro")
+           "asa_E", "asa_D", "asa_C", "apendice_sensorial", "cabelo_pelagem", "acessorio", "auxiliar", "raiz", "outro")
 
 _AUX = {"lod", "mesh", "vis", "sorting", "tex", "group", "mod", "particle", "particlea", "particleb", "eff"}
 _REGRAS_TOKEN = [
@@ -29,6 +29,8 @@ _REGRAS_TOKEN = [
     ("mandibula", {"jaw", "mouth", "teeth", "tooth", "fang", "beak"}),
     ("apendice_sensorial", {"feeler", "ear", "antenna", "whisker", "hige"}),
     ("cabelo_pelagem", {"hair", "fur", "mane", "mustache"}),
+    ("acessorio", {"cloth", "skirt", "belt", "cowl", "hat", "shield", "weapon", "scarf", "cape", "ribbon", "bag",
+                   "coin", "lamp", "stick", "blaster", "cover", "mask", "firemask", "bodyarmor"}),
     # perna antes de braço: "foot_index"/"foot_claw" são dedos do pé, não da mão
     ("perna", {"leg", "foot", "toe", "thigh", "knee"}),
     ("braco", {"arm", "hand", "shoulder", "finger", "fingerbase", "index", "middle", "ring", "thumb", "pinky",
@@ -38,8 +40,10 @@ _REGRAS_TOKEN = [
 ]
 _PREFIXOS = [("cauda", "tail"), ("asa", "wing"), ("cabeca", "head")]
 _EXTRAS = {"sippo": "cauda", "fin": "asa", "horn": "cabeca", "nose": "cabeca", "face": "cabeca"}
-_HERDAVEIS = ("braco", "perna", "asa", "cauda", "apendice_sensorial", "cabelo_pelagem", "mandibula", "lingua",
-              "cabeca", "olho_palpebra")
+_HERDAVEIS = ("braco", "perna", "asa", "cauda", "apendice_sensorial", "cabelo_pelagem", "acessorio", "mandibula",
+              "lingua", "cabeca", "olho_palpebra")
+# regiões que contam para "quem inicia o movimento" (mecânica do corpo; expressão e balanço secundário não)
+_MOTORAS = ("nucleo", "pescoco", "cabeca", "braco", "perna", "cauda", "asa", "mandibula", "lingua")
 _LADO = ("braco", "perna", "asa")
 
 
@@ -227,12 +231,24 @@ def papeis(clipe, esq, regs, categoria, anat, regras=None, ocultos=None):
     # referência de movimento para iniciadores/acompanhantes: maior pico de qualquer região
     ref = max([float(v["vel"].max()) for v in vels.values()] + [0.0])
     movem = [r for r, v in vels.items() if ref > 0 and float(v["vel"].max()) >= R["limiar_movimento_frac"] * ref]
+    # iniciador: só regiões motoras, na janela de preparação antes do pico do executor; o início de cada região
+    # é onde a subida que leva ao pico dela (dentro da janela) cruza 20% desse pico (busca para trás)
+    t_ref = melhor[1] if executores else (int(max(vels[r]["vel"].argmax() for r in movem)) if movem else 0)
+    a_jan = max(0, t_ref - R.get("janela_preparacao_q", 30))
     inicio = {}
     for r in movem:
-        v = vels[r]["vel"]
-        lim = R["limiar_inicio_frac"] * float(v.max())
-        inicio[r] = int(np.argmax(v >= lim))
-    iniciadores = [{"regiao": r, "quadro_inicio": inicio[r]} for r in sorted(movem, key=lambda r: (inicio[r], r))]
+        if _familia(r) not in _MOTORAS:
+            continue
+        v = vels[r]["vel"][a_jan:t_ref + 1]
+        if len(v) == 0 or v.max() <= 0:
+            continue
+        pk = int(np.argmax(v))
+        lim = R["limiar_inicio_frac"] * float(v[pk])
+        k = pk
+        while k > 0 and v[k - 1] >= lim:
+            k -= 1
+        inicio[r] = a_jan + k
+    iniciadores = [{"regiao": r, "quadro_inicio": inicio[r]} for r in sorted(inicio, key=lambda r: (inicio[r], r))]
     exec_regs = {e["regiao"] for e in executores}
     t_exec = min((e["evidencia"]["quadro_pico"] for e in executores), default=None)
     acompanhantes = []
@@ -241,8 +257,8 @@ def papeis(clipe, esq, regs, categoria, anat, regras=None, ocultos=None):
             continue
         if r == "olho_palpebra":
             m = "expressão (olho/pálpebra nunca executa golpe)"
-        elif r in ("apendice_sensorial", "cabelo_pelagem"):
-            m = "movimento secundário de apêndice/cabelo"
+        elif r in ("apendice_sensorial", "cabelo_pelagem", "acessorio"):
+            m = "movimento secundário de apêndice/cabelo/acessório"
         elif t_exec is not None and int(vels[r]["vel"].argmax()) > t_exec:
             m = "pico %d q depois do executor" % (int(vels[r]["vel"].argmax()) - t_exec)
         else:
