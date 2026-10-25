@@ -38,6 +38,14 @@ class TestDividir(unittest.TestCase):
         lados = {lado for lado in ("dev", "teste") for c in d[lado] if c["id"] in ("c0", "c1")}
         self.assertEqual(len(lados), 1)
 
+    def test_curvas_suaves_parecidas_nao_unem_especies(self):
+        # dois golpes "suaves" de espécies diferentes: curva quase igual, mas picos de energia diferentes
+        base = [float(np.exp(-0.5 * ((k - 12) / 4) ** 2)) for k in range(24)]
+        a = item(0, 0, "a", curva=base); a["energia_pico_H_s"] = 3.0
+        b = item(1, 1, "b", curva=[v * 1.001 for v in base]); b["energia_pico_H_s"] = 5.0
+        d = avaliacao.dividir([a, b] + [item(i, i, "r%d" % i) for i in range(2, 40)])
+        self.assertEqual(d["relatorio_vazamento"]["unioes_por_chave"].get("origem_quase_duplicata", 0), 0)
+
     def test_mesmo_arquivo_fica_junto(self):
         cl = [item(0, 0, "a", sha="X"), item(1, 1, "b", sha="X")] + [item(i, i, "r%d" % i) for i in range(2, 40)]
         d = avaliacao.dividir(cl)

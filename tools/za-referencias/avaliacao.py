@@ -13,7 +13,8 @@ from collections import Counter, defaultdict
 
 import numpy as np
 
-CORR_QUASE_IDENTICA = 0.98
+CORR_QUASE_IDENTICA = 0.9999
+PICO_TOL = 0.01   # energia de pico a até 1% (a curva reamostrada sozinha não separa animações suaves)
 ALFA = 0.05
 INCONCLUSIVO = "INCONCLUSIVO"
 
@@ -60,9 +61,11 @@ def origem_de_animacao(clipes):
         m[ok] /= nrm[ok][:, None]
         corr = m @ m.T
         quadros = np.array([clipes[i].get("quadros", 0) for i in idx])
+        pico = np.array([clipes[i].get("energia_pico_H_s") or 0.0 for i in idx], dtype=float)
         a, b = np.where(np.triu(corr, 1) >= CORR_QUASE_IDENTICA)
         for x, y in zip(a, b):
-            if ok[x] and ok[y] and abs(quadros[x] - quadros[y]) <= 1 and uf.unir(idx[x], idx[y]):
+            mesmo_pico = abs(pico[x] - pico[y]) <= PICO_TOL * max(pico[x], pico[y], 1e-9)
+            if ok[x] and ok[y] and quadros[x] == quadros[y] and mesmo_pico and uf.unir(idx[x], idx[y]):
                 quase += 1
     return {clipes[i]["id"]: uf.achar(i) for i in range(len(clipes))}, quase
 
