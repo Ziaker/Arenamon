@@ -8,6 +8,39 @@ Este é o item 1 do plano de melhorar o Motion Lens e o Blender Vision. Cada ani
 - **Normas (JSON, versionado):** [`tools/za-referencias/normas_za.json`](../../tools/za-referencias/normas_za.json). É o arquivo que os addons vão ler.
 - **Banco completo:** `dumper test/za-referencias/clipes.jsonl`, uma linha por clipe. Fica só no local porque é grande e pode ser gerado de novo.
 
+## Fase 1: subfases 1A e 1B (25/10/2026)
+
+**1A, inventário e reconciliação** (`inventario.py`, seção "Cobertura" do relatório):
+- 41.790 arquivos `.tranm` no disco = 41.790 linhas no banco. Nenhum arquivo sem linha e nenhuma linha sem arquivo (manifesto com SHA-256 em `dumper test/za-referencias/inventario.json`).
+- Busca = 40.811. Os 979 restantes são 463 clipes de rosto (08xxx, todos do grupo 0) e 516 parados (g0 90, g1 8, g2 383, g3 35).
+- Fora da busca: `pm0000_00_00` e `pm0544_00_00`. Rótulos técnicos: `pm0770_14_00`, `pm0770_15_00`, `pm9999_00_00`.
+- **Denominador das chaves:** as faixas de translação e rotação são contadas separadamente; escala fora da conta. Esparsa = Framed8/16, densa = Dynamic, fixa = Fixed.
+- **Lote retomável** (`lote.py`): cache por hash do conteúdo + configuração, retomada depois de interrupção, falha registrada por arquivo, escrita atômica. Uma rodada completa leva cerca de 10 min; uma rodada sem mudanças sai toda do cache.
+
+**1B, decodificador e paridade com o Blender** (`za_anim.py`, `paridade_fk.py`):
+- A primeira conferência em todos os quadros **falhou**: Golisopod `walk01_loop` com 9,7% de H. A investigação (registrada no ledger) testou 4 hipóteses:
+  - A: propagar a escala total. Rejeitada: o erro piorou para 10,5%.
+  - B: canal sem chave no importador. Rejeitada: os canais tinham chave e o erro era constante em todos os quadros.
+  - C: compensação de escala por osso (flag `InheritScale` do trskl). Confirmada: a escala do pai move a posição do filho, mas não escala os eixos dele. Isso explica o grosso do erro (9,7% → 0,59% de H).
+  - D: interpolação entre chaves esparsas. Confirmada: o Blender usa Bézier, o decodificador usa linear/slerp. Com as duas correções, o erro cai para 0,0005% de H.
+- A cinemática agora aplica a escala com essa compensação (`DECODER_VERSAO = za_anim-2`).
+- **Paridade final:** 8 rigs × 2 clipes (`attack01`, `walk01_loop`), todos os quadros, posição e orientação. A conferência força interpolação linear numa cena derivada, sem abrir nem salvar arquivo do usuário.
+
+  | Rig | Forma | Posição máx. (% H) | Ângulo máx. (°) |
+  |---|---|---|---|
+  | pm0867_00_00 Golisopod | humanoide | 0,0005 | 0,021 |
+  | pm0001_00_00 Bulbasaur | quadrúpede | 0,0006 | 0,024 |
+  | pm0016_00_00 Pidgey | asas | 0,0003 | 0,026 |
+  | pm0014_00_00 Kakuna | serpente | 0,0004 | 0,014 |
+  | pm0544_00_00 Whirlipede | bola | 0,0000 | 0,015 |
+  | pm0703_00_00 Trevenant | tentáculos | 0,0007 | 0,021 |
+  | pm0129_00_00 Magikarp | peixe | 0,0006 | 0,019 |
+  | pm0867_51_00 Mega Golisopod | Mega | 0,0005 | 0,022 |
+
+  As tolerâncias eram 0,25% de H e 0,5° (máximos), e 0,01% de H e 0,05° (medianas); todos os casos passaram. Os JSON estão em `dumper test/za-referencias/evidencia/paridade/`.
+- **Limite:** "paridade" significa igual ao que o addon importa no Blender. A semântica real do jogo (curva entre chaves, escala) não pode ser conferida sem o motor do jogo.
+- **Pendente (decisão sua):** os `.blend` do extrator (`montar_blend.py`) ficam com Bézier entre chaves e, entre as chaves, se afastam até ~0,6% de H do linear.
+
 ## Próxima fase
 
 O plano de implementação das subfases 1A–1J (resposta à auditoria REV2) está em [`docs/superpowers/plans/2026-10-25-za-referencias-fase1.md`](../superpowers/plans/2026-10-25-za-referencias-fase1.md). Ele aguarda aprovação para ser executado.

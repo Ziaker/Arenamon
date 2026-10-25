@@ -147,6 +147,8 @@ def main():
         "por_conjunto": dict(Counter(l["conjunto"] for l in todas)),
         "fps": dict(Counter(l["fps"] for l in todas)),
         "chaves": chaves(todas),
+        "escala_animada": sum(1 for l in todas if l.get("escala_animada")),
+        "faixas_sem_osso": sum(l.get("faixas_sem_osso", 0) for l in todas),
         "formas_corpo": dict(Counter(l["forma_corpo"] for l in um_por_especie(corpo) if l["categoria"] == "attack")),
     }
     with open(os.path.join(saida, "normas_za.json"), "w", encoding="utf-8") as fh:
@@ -216,6 +218,7 @@ def escrever_html(caminho, info, norm, por_forma, busca):
     cob += "<tr><th>Total</th><td><b>%d</b></td><td><b>%d</b></td><td><b>%d</b></td><td><b>%d</b></td></tr>" % (
         rec["total"], rec["na_busca"], rec["excluidos"]["rosto"], rec["excluidos"]["parado"])
     doc = TEMPLATE.format(
+        esc_anim=f"{info['escala_animada']:,}".replace(",", "."), sem_osso=info["faixas_sem_osso"],
         cobertura=cob, fora_busca=", ".join(rec["modelos_fora_da_busca"]) or "nenhum",
         rotulos=", ".join(rec["rotulos_tecnicos"]) or "nenhum", fora_padrao=rec["excluidos"]["fora_do_padrao"],
         esp_ids=rec["especies_ids_nao_zero"], rot_busca=rec["rotulos_na_busca"],
@@ -252,7 +255,7 @@ dl{{display:grid;grid-template-columns:max-content 1fr;gap:4px 14px;color:var(--
 .nota{{border-left:3px solid var(--ac);padding:6px 12px;background:var(--card);border-radius:0 8px 8px 0}}
 </style></head><body><main>
 <h1>Banco de referências de animação · Pokémon Legends: Z-A</h1>
-<p>Cada animação do jogo virou números de timing e espaçamento, calculados a partir do esqueleto real (cinemática direta conferida contra o Blender: erro máximo de 0,2% da altura). Estas são as normas profissionais que o Motion Lens e o Blender Vision podem usar como referência.</p>
+<p>Cada animação do jogo virou números de timing e espaçamento, calculados a partir do esqueleto real. A cinemática direta (com a compensação de escala do rig) foi conferida contra o Blender em 8 rigs e 16 clipes, em todos os quadros: erro máximo de 0,0007% da altura e 0,026° (detalhe em <code>evidencia/paridade/</code>). Estas são as normas profissionais que o Motion Lens e o Blender Vision podem usar como referência.</p>
 <div class="cards">
 <div class="card"><b>{clipes}</b>clipes medidos</div><div class="card"><b>{especies}</b>espécies</div>
 <div class="card"><b>{modelos}</b>modelos (formas)</div><div class="card"><b>{pct_esp}%</b>das faixas têm chaves esparsas</div></div>
@@ -265,6 +268,7 @@ dl{{display:grid;grid-template-columns:max-content 1fr;gap:4px 14px;color:var(--
 <h2>Como o jogo guarda as chaves</h2>
 <p class="nota">As animações <b>não</b> são todas "assadas". <b>{pct_esp}%</b> das faixas de osso guardam só algumas chaves (esparsas), <b>{pct_dens}%</b> têm chave em todo quadro e <b>{pct_fixa}%</b> são um valor fixo. Nas esparsas, a mediana é <b>{cpq}%</b> dos quadros com chave (p10–p90: {cpq10}%–{cpq90}%). Essa é uma redução automática de chaves, não necessariamente a escolha do animador, mas mostra a densidade que o jogo aceita sem perder o movimento. {fps}.</p>
 <p><b>Denominador:</b> cada osso tem até duas faixas contadas separadamente, translação e rotação. A escala não entra na conta. "Esparsa" = faixa com lista de quadros (Framed8/Framed16); "densa" = um valor por quadro (Dynamic); "fixa" = um valor só (Fixed). Ossos sem faixa no clipe não são contados.</p>
+<p><b>Escala animada:</b> {esc_anim} clipes têm algum osso com escala diferente de 1 (mais de 2%), o que indica squash/stretch ou crescimento de partes. A cinemática aplica essa escala com a compensação por osso do rig. Faixas com nome de osso que não existe no esqueleto: {sem_osso}, ignoradas. São nós de controle de expressão (<code>exp_ops_root</code>, <code>exp_op_000</code>…), não ossos.</p>
 
 <h2>Conjuntos de clipes (primeiro dígito do código)</h2>
 <p>O mesmo clipe aparece com códigos 0xxxx, 1xxxx, 2xxxx…: são animações diferentes, não cópias. O jogo não diz o que cada conjunto é (campo, batalha, variante?). Isso <b>não foi confirmado</b>. As normas abaixo usam o conjunto 0; os outros estão em <code>normas_za.json</code>.</p>

@@ -67,16 +67,32 @@ class Esqueleto:
     def __init__(self, caminho_trskl):
         with open(caminho_trskl, "rb") as fh:
             sk = TRSKL.GetRootAsTRSKL(bytearray(fh.read()), 0)
-        self.nomes, self.pais, loc, rot = [], [], [], []
+        nomes, pais, loc, rot, compensa = [], [], [], [], []
         for i in range(sk.TransformNodesLength()):
             n = sk.TransformNodes(i)
             t = n.Transform()
-            self.nomes.append(n.Name().decode("utf-8"))
-            self.pais.append(n.ParentIdx())
+            nomes.append(n.Name().decode("utf-8"))
+            pais.append(n.ParentIdx())
+            rig = n.RigIdx()
+            compensa.append(bool(sk.Bones(rig).InheritScale()) if 0 <= rig < sk.BonesLength() else False)
             v = t.VecTranslate()
             loc.append((v.X(), v.Y(), v.Z()))
             r = t.VecRot()
             rot.append(euler_xyz_para_quat(r.X(), r.Y(), r.Z()))
+        self._montar(nomes, pais, loc, rot, compensa)
+
+    @classmethod
+    def de_arrays(cls, nomes, pais, loc, rot_quat, compensa_escala=None):
+        """Esqueleto sem arquivo (testes): rotações de repouso já em quaternion (w, x, y, z)."""
+        esq = cls.__new__(cls)
+        esq._montar(list(nomes), list(pais), loc, rot_quat, compensa_escala)
+        return esq
+
+    def _montar(self, nomes, pais, loc, rot, compensa=None):
+        self.nomes, self.pais = nomes, pais
+        # Bone.InheritScale do trskl (o addon o traduz para inherit_scale = NONE no Blender): a escala do pai
+        # move a posição do osso, mas não escala os eixos dele.
+        self.compensa_escala = list(compensa) if compensa is not None else [False] * len(nomes)
         self.loc_repouso = np.array(loc, dtype=np.float64)
         self.rot_repouso = np.array(rot, dtype=np.float64)
         self.indice = {n: i for i, n in enumerate(self.nomes)}
@@ -98,19 +114,35 @@ class Esqueleto:
 
     def fk(self, loc, rot):
         """loc [F, B, 3], rot [F, B, 4] locais -> posições no espaço do modelo [F, B, 3]."""
+        return self.fk_completa(loc, rot)[0]
+
+    def fk_completa(self, loc, rot, escala=None):
+        """loc [F, B, 3], rot [F, B, 4], escala [F, B, 3] locais -> (posições [F, B, 3], rotação no mundo [F, B, 3, 3]).
+
+        Matriz linear do mundo A_i = A_pai @ R_i @ S_i; com compensação, A_i = rot(A_pai) @ R_i @ S_i (o osso não
+        herda a escala do pai). Posição: p_i = p_pai + A_pai @ t_i (a escala do pai sempre move o filho).
+        A rotação devolvida é a parte pura de A (colunas normalizadas). Conferido contra o Blender em paridade_fk.py."""
         f, b = loc.shape[:2]
         mrot = quat_para_matriz(rot)
-        wr = np.zeros((f, b, 3, 3))
+        if escala is not None:
+            mlin = mrot * escala[:, :, None, :]
+        else:
+            mlin = mrot
+        A = np.zeros((f, b, 3, 3))
         wp = np.zeros((f, b, 3))
         for i in self.ordem:
             p = self.pais[i]
             if 0 <= p < b:
-                wr[:, i] = wr[:, p] @ mrot[:, i]
-                wp[:, i] = wp[:, p] + np.einsum("fij,fj->fi", wr[:, p], loc[:, i])
+                wp[:, i] = wp[:, p] + np.einsum("fij,fj->fi", A[:, p], loc[:, i])
+                base = A[:, p]
+                if self.compensa_escala[i]:
+                    base = base / np.linalg.norm(base, axis=-2, keepdims=True)
+                A[:, i] = base @ mlin[:, i]
             else:
-                wr[:, i] = mrot[:, i]
+                A[:, i] = mlin[:, i]
                 wp[:, i] = loc[:, i]
-        return wp
+        wr = A / np.linalg.norm(A, axis=-2, keepdims=True)
+        return wp, wr
 
 
 def _desempacotar_quat(x, y, z):
@@ -195,24 +227,25 @@ def _faixa(tab, tipo, n, eh_rot):
 
 
 class Clipe:
+    """Clipe decodificado. Atributos principais:
+    loc/rot [F, B, 3|4] locais; escala [F, B, 3] (não entra na cinemática); posicoes [F, B, 3];
+    faixas {fixa, densa, esparsa} contando translação e rotação separadas (escala fora da conta);
+    faixas_sem_osso = faixas cujo nome não existe no esqueleto (ignoradas);
+    escala_animada / escala_max_desvio = max |escala - 1| entre todos os ossos e quadros."""
+
     def __init__(self, caminho_tranm, esq):
         with open(caminho_tranm, "rb") as fh:
             an = Animation.GetRootAs(bytearray(fh.read()), 0)
         info = an.Info()
-        self.fps = int(info.FrameRate())
-        self.quadros = int(info.KeyFrames())
-        n, b = self.quadros, len(esq.nomes)
-        self.loc = np.repeat(esq.loc_repouso[None], n, axis=0)
-        self.rot = np.repeat(esq.rot_repouso[None], n, axis=0)
-        self.faixas = {"fixa": 0, "densa": 0, "esparsa": 0}
-        self.chaves_esparsas = []  # chaves por faixa esparsa
-        self.ossos_animados = set()
+        self._iniciar(esq, int(info.FrameRate()), int(info.KeyFrames()))
+        n = self.quadros
         sk = an.Skeleton()
         for i in range(sk.TracksLength() if sk else 0):
             tr = sk.Tracks(i)
             nome = tr.Name().decode("utf-8") if tr.Name() else ""
             bi = esq.indice.get(nome)
             if bi is None:
+                self.faixas_sem_osso += 1
                 continue
             for tipo, tab, eh_rot, destino in ((tr.TranslateType(), tr.Translate(), False, self.loc),
                                                (tr.RotateType(), tr.Rotate(), True, self.rot)):
@@ -229,11 +262,45 @@ class Clipe:
                     self.faixas["esparsa"] += 1
                     self.chaves_esparsas.append(chaves)
                     self.ossos_animados.add(bi)
+            arr, _ = _faixa(tr.Scale(), tr.ScaleType(), n, False)
+            if arr is not None:
+                self.escala[:, bi] = arr
+        self._finalizar(esq)
+
+    @classmethod
+    def de_arrays(cls, esq, fps, loc, rot, escala=None, animados=None):
+        """Clipe sem arquivo (testes): arrays locais já prontos."""
+        c = cls.__new__(cls)
+        c._iniciar(esq, fps, len(loc))
+        c.loc = np.array(loc, dtype=np.float64)
+        c.rot = np.array(rot, dtype=np.float64)
+        if escala is not None:
+            c.escala = np.array(escala, dtype=np.float64)
+        c.ossos_animados = set(range(len(esq.nomes))) if animados is None else set(animados)
+        c._finalizar(esq)
+        return c
+
+    def _iniciar(self, esq, fps, quadros):
+        self.fps, self.quadros = fps, quadros
+        n = quadros
+        self.loc = np.repeat(esq.loc_repouso[None], n, axis=0)
+        self.rot = np.repeat(esq.rot_repouso[None], n, axis=0)
+        self.escala = np.ones((n, len(esq.nomes), 3))
+        self.faixas = {"fixa": 0, "densa": 0, "esparsa": 0}
+        self.chaves_esparsas = []  # chaves por faixa esparsa
+        self.ossos_animados = set()
+        self.faixas_sem_osso = 0
+
+    def _finalizar(self, esq):
+        from config import TOL_ESCALA
+        n = self.quadros
         # quaternions contínuos (sem troca de sinal entre quadros) para medir velocidade angular
         for f in range(1, n):
             troca = np.einsum("bi,bi->b", self.rot[f], self.rot[f - 1]) < 0
             self.rot[f, troca] *= -1
-        self.posicoes = esq.fk(self.loc, self.rot)
+        self.escala_max_desvio = float(np.abs(self.escala - 1.0).max()) if n else 0.0
+        self.escala_animada = self.escala_max_desvio > TOL_ESCALA
+        self.posicoes, self.rot_mundo = esq.fk_completa(self.loc, self.rot, self.escala)
 
 
 def esqueleto_do_modelo(pasta):
