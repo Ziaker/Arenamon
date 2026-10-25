@@ -84,6 +84,23 @@ Novos módulos em `tools/za-referencias/`, cada um com testes em `tests/` (rigs 
 - Divisão sem vazamento: 189 grupos, teste com 30%.
 - Cada animação tem **vídeo nas duas vistas, sincronizado**: play/pausa, câmera lenta (0,1–1×), quadro a quadro, barra de posição e contador de quadro. Os quadros fixos continuam disponíveis em "Ver quadros fixos". Tudo em modo cego: sem cor e sem nada calculado. Os vídeos são WebM com todo quadro sendo chave, gerados por `gerar_videos_lote.py`, sem mudar os 40 itens.
 - As previsões do sistema ficam **fora** da pasta dos revisores, em `avaliacao/lote_01_sistema/`.
+- Itens ignorados por decisão sua (Pokémon redundantes): a página mostra só 12, 30, 32 e 35 (`avaliacao/lote_01_ignorados.json`). A chave de armazenamento e o hash do lote não mudaram.
+- **Bolinha azul = lado ESQUERDO do Pokémon** (no ombro esquerdo; se não houver braço, no quadril ou na asa esquerda). Ela aparece por cima do corpo e só orienta: não diz nada do que o sistema calculou. Os vídeos dos 4 itens mantidos foram refeitos com ela. Conferido no Blastoise: na vista de frente a bolinha fica à direita de quem olha, e o braço que sobe antes do golpe fica do outro lado, ou seja, é o braço **direito** do Pokémon.
+
+### Ajustes depois dos primeiros rótulos (25/10/2026)
+
+- **Antecipação não se aplica em loops:** `antecipacao_status = NAO_SE_APLICA` e a previsão é "não".
+- **Locomoção conta todos os membros que ciclam** (walk, run, backwalk, turnmove, dash, fly): braços, pernas e asas com pico ≥ 40% do maior viram executores (`regras_papeis.json` → `locomocao`).
+- Previsões refeitas com o banco novo (`gerar_lote.py --previsoes`, sem mudar o lote). Comparação com os 4 rótulos:
+
+| Item | Executores | Antecipação |
+|---|---|---|
+| Blastoise, ataque | você: braço E + perna D; sistema: braço D | igual (sim) |
+| Meditite, ataque | você: braço E + 2 pernas; sistema: braço D | igual (sim) |
+| pm0965, charge (loop) | você: 2 "pernas" (tentáculos); sistema: braço E | igual (não) |
+| Meditite, andar (loop) | **igual** (2 braços + 2 pernas) | igual (não) |
+
+  Os lados dos ataques divergem. A bolinha permite conferir de quem é o lado. Os tentáculos do pm0965 se chamam `shoulder` no rig, por isso viram "braço", e `charge` não está na lista de locomoção.
 
 ### Achados que mudaram o código durante a execução (todos com teste que falhou antes)
 
