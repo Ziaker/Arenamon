@@ -23,6 +23,11 @@
     "candidatas": ["braco", "perna", "asa"],
     "limiar_frac": 0.4
   },
+  "apoio_impulso": {
+    "_sobre": "Fora da locomoção: perna que NÃO golpeia mas dobra (sustenta o peso ou empurra) da preparação até o golpe. Campo separado dos executores; executor é só quem golpeia.",
+    "familias": ["perna"],
+    "flexao_minima_graus": 10
+  },
   "condicionais": {
     "mandibula": "abre_no_pico",
     "lingua": "abre_no_pico",

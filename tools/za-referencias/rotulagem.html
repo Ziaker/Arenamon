@@ -44,6 +44,7 @@ const CHAVE = "rotulagem_za_" + "{{HASH}}";
 let estado = {};
 try { estado = JSON.parse(localStorage.getItem(CHAVE) || "{}"); } catch (e) { estado = {}; }
 const salvar = () => { try { localStorage.setItem(CHAVE, JSON.stringify(estado)); } catch (e) {} atualizar(); };
+const APOIO = [["perna_D","perna direita do Pokémon"],["perna_E","perna esquerda do Pokémon"],["perna_C","perna (sem lado / central)"],["nenhuma","nenhuma"]];
 const sel = (nome, opcoes, id) => `<label>${nome}<select data-campo="${id}"><option value="">—</option>${opcoes.map(o => `<option value="${o[0]}">${o[1]}</option>`).join("")}</select></label>`;
 // itens que o responsável decidiu não usar (LOTE.ignorados): somem da página e do arquivo baixado
 const IGNORADOS = new Set(LOTE.ignorados || []);
@@ -67,9 +68,11 @@ function render() {
     <div class="folhas">${it.folhas.map(f => `<a href="${f}" target="_blank" title="abrir em tamanho real"><img loading="lazy" src="${f}" alt="folha ${f}"></a>`).join("") || "<p>Sem folha gerada.</p>"}</div>
     ${(it.videos || []).length ? "</details>" : ""}
     <div class="grade">
-      <fieldset class="chips"><label>Quem executa a ação? (marque todas)</label>
+      <fieldset class="chips"><label>Quem executa a ação? Só quem golpeia (em andar/correr: todos os membros que ciclam)</label>
         ${REGIOES.map(r => `<label><input type="checkbox" data-exec="${r[0]}">${r[1]}</label>`).join("")}
         <label><input type="checkbox" data-exec="INCONCLUSIVO">inconclusivo</label></fieldset>
+      <fieldset class="chips"><label>Pernas de apoio/impulso (sustentam o peso ou empurram, sem golpear)</label>
+        ${APOIO.map(r => `<label><input type="checkbox" data-apoio="${r[0]}">${r[1]}</label>`).join("")}</fieldset>
       ${sel("Que parte começa a se mover primeiro?", REGIOES.concat([["INCONCLUSIVO","inconclusivo"]]), "iniciador")}
       ${sel("Há antecipação (recuo antes do golpe)?", [["sim","sim"],["nao","não"],["INCONCLUSIVO","inconclusivo"]], "antecipacao")}
       <label>Se sim, mais ou menos quantos quadros? <input type="number" min="0" max="200" data-campo="antecipacao_q"></label>
@@ -85,11 +88,14 @@ function render() {
     const id = sec.dataset.id, r = estado[id] || {};
     sec.querySelectorAll("[data-campo]").forEach(i => { if (r[i.dataset.campo] !== undefined) i.value = r[i.dataset.campo]; });
     sec.querySelectorAll("[data-exec]").forEach(i => { i.checked = (r.executores || []).includes(i.dataset.exec) || (r.executores === "INCONCLUSIVO" && i.dataset.exec === "INCONCLUSIVO"); });
+    sec.querySelectorAll("[data-apoio]").forEach(i => { i.checked = (r.apoio_impulso || []).includes(i.dataset.apoio) || (i.dataset.apoio === "nenhuma" && Array.isArray(r.apoio_impulso) && !r.apoio_impulso.length); });
     sec.addEventListener("input", () => {
       const o = estado[id] = estado[id] || {};
       sec.querySelectorAll("[data-campo]").forEach(i => { if (i.value === "") delete o[i.dataset.campo]; else o[i.dataset.campo] = i.value; });
       const ex = [...sec.querySelectorAll("[data-exec]:checked")].map(i => i.dataset.exec);
       if (ex.includes("INCONCLUSIVO")) o.executores = "INCONCLUSIVO"; else if (ex.length) o.executores = ex.sort(); else delete o.executores;
+      const ap = [...sec.querySelectorAll("[data-apoio]:checked")].map(i => i.dataset.apoio);
+      if (ap.includes("nenhuma")) o.apoio_impulso = []; else if (ap.length) o.apoio_impulso = ap.sort(); else delete o.apoio_impulso;
       salvar();
     });
   });

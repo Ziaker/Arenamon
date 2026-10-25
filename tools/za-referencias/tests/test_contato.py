@@ -99,6 +99,31 @@ class TestPapeisNaLocomocao(unittest.TestCase):
         self.assertEqual(sorted(e["regiao"] for e in r["executores"]), ["braco_D", "braco_E", "perna_D", "perna_E"])
 
 
+class TestApoioImpulso(unittest.TestCase):
+    def _p(self, esq, c, cat="attack"):
+        regs = ontologia.regioes(esq)
+        return ontologia.papeis(c, esq, regs, cat, ontologia.anatomia(esq, regs))
+
+    def test_perna_que_dobra_no_golpe_e_apoio_nao_executor(self):
+        esq, c = S.soco_com_apoio()
+        r = self._p(esq, c)
+        self.assertEqual([e["regiao"] for e in r["executores"]], ["braco_D"])
+        self.assertEqual([a["regiao"] for a in r["apoio_impulso"]], ["perna_E"])
+
+    def test_perna_quase_parada_nao_e_apoio(self):
+        esq, c = S.soco_com_apoio(graus_perna=3.0)
+        self.assertEqual(self._p(esq, c)["apoio_impulso"], [])
+
+    def test_locomocao_nao_tem_apoio_separado(self):
+        esq, c = S.andar()
+        self.assertEqual(self._p(esq, c, "walk")["apoio_impulso"], [])
+
+    def test_medir_expoe_apoio_impulso(self):
+        import metricas
+        esq, c = S.soco_com_apoio()
+        self.assertEqual(metricas.medir(c, esq, categoria="attack")["apoio_impulso"], ["perna_E"])
+
+
 class TestAntecipacaoEmLoop(unittest.TestCase):
     def test_loop_antecipacao_nao_se_aplica(self):
         import metricas

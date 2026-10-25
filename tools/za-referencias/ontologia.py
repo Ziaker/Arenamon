@@ -184,6 +184,16 @@ def _percursos(clipe, esq, regs, ocultos):
     return {"osso": esq.nomes[i], "regiao": regs[i], "caminho_H": round(float(caminho[i]), 4)}
 
 
+def _flexao_regiao(clipe, esq, regs, reg, a, b):
+    """Maior giro (graus) de um osso da região dentro da janela [a, b], medido contra o próprio osso no quadro a."""
+    maior = 0.0
+    for k in (i for i, r in enumerate(regs) if r == reg):
+        q = clipe.rot[a:b + 1, k] / np.linalg.norm(clipe.rot[a:b + 1, k], axis=1, keepdims=True)
+        d = np.abs(q @ q[0])
+        maior = max(maior, float(np.degrees(2 * np.arccos(np.clip(d, 0, 1))).max()))
+    return maior
+
+
 def papeis(clipe, esq, regs, categoria, anat, regras=None, ocultos=None):
     R = regras or carregar_regras()
     if ocultos is None:
@@ -266,6 +276,19 @@ def papeis(clipe, esq, regs, categoria, anat, regras=None, ocultos=None):
     iniciadores = [{"regiao": r, "quadro_inicio": inicio[r]} for r in sorted(inicio, key=lambda r: (inicio[r], r))]
     exec_regs = {e["regiao"] for e in executores}
     t_exec = min((e["evidencia"]["quadro_pico"] for e in executores), default=None)
+    # apoio/impulso: pernas que não golpeiam mas dobram (sustentam o peso ou empurram) da preparação até o golpe.
+    # Em locomoção não se aplica: lá todo membro que cicla já é executor.
+    apoio = []
+    ap = R.get("apoio_impulso", {})
+    if executores and categoria not in loco.get("categorias", []):
+        b_jan = min(clipe.quadros - 1, t_ref + R["janela_executor_q"])
+        for r in sorted(presentes):
+            if _familia(r) not in ap.get("familias", []) or r in exec_regs:
+                continue
+            g = _flexao_regiao(clipe, esq, regs, r, a_jan, b_jan)
+            if g >= ap["flexao_minima_graus"]:
+                apoio.append({"regiao": r, "status": "CANDIDATO",
+                              "evidencia": {"flexao_graus": round(g, 1), "janela": [a_jan, b_jan]}})
     acompanhantes = []
     for r in sorted(movem):
         if r in exec_regs:
@@ -279,7 +302,7 @@ def papeis(clipe, esq, regs, categoria, anat, regras=None, ocultos=None):
         else:
             m = "sem avanço próprio que cumpra a regra"
         acompanhantes.append({"regiao": r, "motivo": m})
-    return {"executores": executores, "iniciadores": iniciadores, "acompanhantes": acompanhantes,
+    return {"executores": executores, "apoio_impulso": apoio, "iniciadores": iniciadores, "acompanhantes": acompanhantes,
             "maior_percurso": _percursos(clipe, esq, regs, ocultos), "status": status, "motivo": motivo,
             "regra_aplicada": regra}
 

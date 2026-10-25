@@ -34,6 +34,7 @@ def previsao(l):
          "executores": l.get("executores") if l.get("papeis_status") != "INCONCLUSIVO" else "INCONCLUSIVO",
          "iniciador": l.get("iniciador") or "INCONCLUSIVO",
          "antecipacao": ("sim" if l.get("antecipacao") else "nao") if l.get("status") == "MEDIDO" else "INCONCLUSIVO",
+         "apoio_impulso": l.get("apoio_impulso") or [],
          "parte_some_aparece": "sim" if l.get("trocas_visibilidade_n") else "nao"}
     if l.get("papeis_status") == "REVISADO":   # rótulo humano, não previsão do sistema
         del p["executores"]

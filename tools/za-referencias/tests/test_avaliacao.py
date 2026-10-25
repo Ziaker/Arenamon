@@ -95,6 +95,14 @@ class TestPrevisaoLoop(unittest.TestCase):
         self.assertEqual(p["antecipacao"], "nao")
 
 
+class TestPrevisaoApoio(unittest.TestCase):
+    def test_previsao_leva_apoio_impulso(self):
+        import gerar_lote
+        p = gerar_lote.previsao({"id": "a", "papeis_status": "CANDIDATO", "executores": ["braco_D"], "status": "MEDIDO",
+                                 "antecipacao": True, "apoio_impulso": ["perna_E"]})
+        self.assertEqual(p["apoio_impulso"], ["perna_E"])
+
+
 class TestRefazerPrevisoes(unittest.TestCase):
     def test_regrava_so_previsoes_sem_tocar_no_lote(self):
         import json, os, tempfile

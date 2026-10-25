@@ -421,3 +421,10 @@ def andar_com_bracos(n=60, periodo=30, fps=60):
         loc[:, esq.indice[nome], 2] += 0.25 * _np.sin(2 * _np.pi * f / periodo + fase)
     animados = set(c0.ossos_animados) | {esq.indice["left_hand"], esq.indice["right_hand"]}
     return esq, za_anim.Clipe.de_arrays(esq, fps, loc, c0.rot, animados=animados)
+
+
+def soco_com_apoio(graus_perna=25.0):
+    """Soco do braço direito; a perna esquerda dobra (apoio/impulso) antes do golpe e a direita fica parada."""
+    esq = humanoide()
+    n = 60
+    return esq, clipe(esq, n, {"right_hand": frente(n, 30, 0.6)}, rot={"left_leg": giro_x(n, 26, graus_perna, largura=5.0)})

@@ -294,11 +294,12 @@ def _camada_papeis(clipe, esq, categoria, regs=None, anat=None, oc=None):
     anat = anat or ontologia.anatomia(esq, regs)
     oc = za_anim.ocultos(clipe, esq) if oc is None else oc
     if clipe.quadros < 3:
-        return {"papeis_status": "INCONCLUSIVO", "executores": [], "iniciador": None,
+        return {"papeis_status": "INCONCLUSIVO", "executores": [], "apoio_impulso": [], "iniciador": None,
                 "maior_percurso_regiao": None, "anatomia_classe": anat["classe"], "partes_ocultas": bool(oc.any())}
     p = ontologia.papeis(clipe, esq, regs, categoria or "_padrao", anat, ocultos=oc)
     return {"papeis_status": p["status"], "executores": [e["regiao"] for e in p["executores"]],
             "executores_ossos": [e["osso_ponta"] for e in p["executores"]],
+            "apoio_impulso": [a["regiao"] for a in p.get("apoio_impulso", [])],
             "iniciador": p["iniciadores"][0]["regiao"] if p["iniciadores"] else None,
             "acompanhantes": [a["regiao"] for a in p["acompanhantes"]],
             "maior_percurso_regiao": p["maior_percurso"]["regiao"], "maior_percurso_osso": p["maior_percurso"]["osso"],
