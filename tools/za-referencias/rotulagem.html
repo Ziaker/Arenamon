@@ -12,6 +12,14 @@ button{cursor:pointer;border-color:var(--ac)}button.prim{background:var(--ac);co
 .item{background:var(--card);border:1px solid var(--ln);border-radius:12px;padding:14px;margin:16px 0}
 .item.feito{border-color:var(--ok)}
 .folhas img{width:100%;display:block;border-radius:6px;margin:6px 0;background:#222}
+.videos{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.videos video{width:100%;border-radius:8px;background:#222;display:block;cursor:pointer}
+.player{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin:8px 0 2px}
+.player button{min-width:44px}.player input[type=range]{accent-color:var(--ac)}
+.player .barra-q{flex:1;min-width:180px}.player .vel{width:120px}
+.quadro{font-variant-numeric:tabular-nums;color:var(--mut);min-width:120px}
+details summary{cursor:pointer;color:var(--mut);margin-top:6px}
+@media (max-width:700px){.videos{grid-template-columns:1fr}}
 .grade{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px 18px;margin-top:10px}
 label{display:block;font-size:13px;color:var(--mut)}fieldset{border:0;padding:0;margin:0}
 .chips label{display:inline-flex;gap:4px;align-items:center;margin:2px 10px 2px 0;color:var(--tx);font-size:14px}
@@ -19,7 +27,7 @@ textarea{width:100%;min-height:52px}
 .prog{color:var(--mut)}
 </style></head><body><main>
 <h1>Rotulagem cega · lote Z-A</h1>
-<p><b>Direita e esquerda são do Pokémon</b> (como se você fosse ele), não de quem olha a folha. Clique numa folha para vê-la em tamanho real. Para cada animação, olhe as folhas (duas vistas, quadros espaçados pelo clipe) e responda o que <b>você</b> vê. A página não mostra o que o sistema calculou. Use "Inconclusivo" sempre que não der para ver. Suas respostas ficam salvas neste navegador; no fim, clique em <b>Baixar rótulos</b> e guarde o arquivo. Lote <code>{{HASH}}</code>.</p>
+<p><b>Assista ao vídeo</b>: as duas vistas andam juntas. Use a câmera lenta e os botões de quadro a quadro para ver a antecipação e quem começa o movimento (espaço toca/pausa a animação que está no meio da tela). <b>Direita e esquerda são do Pokémon</b> (como se você fosse ele), não de quem olha a folha. Clique numa folha para vê-la em tamanho real. Para cada animação, olhe as folhas (duas vistas, quadros espaçados pelo clipe) e responda o que <b>você</b> vê. A página não mostra o que o sistema calculou. Use "Inconclusivo" sempre que não der para ver. Suas respostas ficam salvas neste navegador; no fim, clique em <b>Baixar rótulos</b> e guarde o arquivo. Lote <code>{{HASH}}</code>.</p>
 <div class="barra">
   <label>Seu nome <input id="revisor" placeholder="ex.: Rafael" required></label>
   <span class="prog" id="prog"></span>
@@ -42,7 +50,19 @@ function render() {
   el.innerHTML = LOTE.itens.map(it => `
   <section class="item" data-id="${it.id}">
     <b>${it.n}. ${it.pokemon || ""}</b> · <code>${it.clipe}</code> <span class="prog">código ${it.codigo_leitura || "—"}</span>
+    ${(it.videos || []).length ? `
+    <div class="videos">${it.videos.map(v => `<video muted playsinline loop preload="auto" data-src="${v}"></video>`).join("")}</div>
+    <div class="player">
+      <button data-acao="play" title="tocar / pausar">▶</button>
+      <button data-acao="menos" title="volta 1 quadro">◀ 1</button>
+      <button data-acao="mais" title="avança 1 quadro">1 ▶</button>
+      <input class="barra-q" type="range" min="0" max="${(it.quadros_total || 1) - 1}" value="0" data-acao="barra" aria-label="posição no clipe">
+      <span class="quadro">quadro 0 de ${(it.quadros_total || 1) - 1}</span>
+      <label>Velocidade <input class="vel" type="range" min="0.1" max="1" step="0.05" value="0.5" data-acao="vel"> <b class="velv">0,50×</b></label>
+    </div>
+    <details><summary>Ver quadros fixos</summary>` : ""}
     <div class="folhas">${it.folhas.map(f => `<a href="${f}" target="_blank" title="abrir em tamanho real"><img loading="lazy" src="${f}" alt="folha ${f}"></a>`).join("") || "<p>Sem folha gerada.</p>"}</div>
+    ${(it.videos || []).length ? "</details>" : ""}
     <div class="grade">
       <fieldset class="chips"><label>Quem executa a ação? (marque todas)</label>
         ${REGIOES.map(r => `<label><input type="checkbox" data-exec="${r[0]}">${r[1]}</label>`).join("")}
@@ -70,8 +90,58 @@ function render() {
       salvar();
     });
   });
+  el.querySelectorAll(".item").forEach(prepararPlayer);
   atualizar();
 }
+// Cada vídeo é carregado inteiro na memória quando o item aparece na tela: assim avançar quadro a quadro funciona
+// em qualquer servidor (alguns não deixam o navegador pular dentro do arquivo). Aberto direto do disco (file://),
+// o fetch é bloqueado e o vídeo usa o arquivo direto, que já permite pular.
+const carregarVideo = v => {
+  if (v.dataset.carregado) return;
+  v.dataset.carregado = "1";
+  fetch(v.dataset.src).then(r => { if (!r.ok) throw new Error(r.status); return r.blob(); })
+    .then(b => { v.src = URL.createObjectURL(b); })
+    .catch(() => { v.src = v.dataset.src; });
+};
+const observador = "IntersectionObserver" in window ? new IntersectionObserver(es => es.forEach(e => {
+  if (e.isIntersecting) { e.target.querySelectorAll("video").forEach(carregarVideo); observador.unobserve(e.target); }
+}), { rootMargin: "600px" }) : null;
+function prepararPlayer(sec) {
+  const vids = [...sec.querySelectorAll("video")];
+  if (!vids.length) return;
+  if (observador) observador.observe(sec); else vids.forEach(carregarVideo);
+  const it = LOTE.itens.find(x => x.id === sec.dataset.id);
+  const fps = it.fps || 60, ultimo = (it.quadros_total || 1) - 1;
+  const btn = sec.querySelector('[data-acao="play"]'), barra = sec.querySelector('[data-acao="barra"]');
+  const vel = sec.querySelector('[data-acao="vel"]'), velv = sec.querySelector(".velv"), qd = sec.querySelector(".quadro");
+  const mestre = vids[0];
+  const q = () => Math.min(ultimo, Math.floor(mestre.currentTime * fps + 1e-6));
+  const ir = f => { const t = (Math.max(0, Math.min(ultimo, f)) + 0.5) / fps; vids.forEach(v => { v.currentTime = t; }); };
+  const mostrar = () => { const f = q(); barra.value = f; qd.textContent = "quadro " + f + " de " + ultimo; };
+  const taxa = () => { vids.forEach(v => { v.playbackRate = +vel.value; }); velv.textContent = (+vel.value).toFixed(2).replace(".", ",") + "×"; };
+  const pausar = () => { vids.forEach(v => v.pause()); btn.textContent = "▶"; };
+  taxa();
+  btn.onclick = () => {
+    if (mestre.paused) { taxa(); vids.forEach(v => { v.currentTime = mestre.currentTime; v.play(); }); btn.textContent = "⏸"; }
+    else pausar();
+  };
+  sec.querySelector('[data-acao="menos"]').onclick = () => { pausar(); ir(q() - 1); };
+  sec.querySelector('[data-acao="mais"]').onclick = () => { pausar(); ir(q() + 1); };
+  barra.oninput = () => { pausar(); ir(+barra.value); };
+  vel.oninput = taxa;
+  mestre.addEventListener("timeupdate", () => {
+    mostrar();
+    vids.slice(1).forEach(v => { if (Math.abs(v.currentTime - mestre.currentTime) > 1.5 / fps) v.currentTime = mestre.currentTime; });
+  });
+  mestre.addEventListener("seeked", mostrar);
+  vids.forEach(v => v.addEventListener("click", () => btn.click()));
+}
+document.addEventListener("keydown", e => {
+  if (e.code !== "Space" || /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return;
+  const alvo = [...document.querySelectorAll(".item")].find(s => { const r = s.getBoundingClientRect(); return r.top < innerHeight / 2 && r.bottom > innerHeight / 2; });
+  const b = alvo && alvo.querySelector('[data-acao="play"]');
+  if (b) { e.preventDefault(); b.click(); }
+});
 function atualizar() {
   let feitos = 0;
   document.querySelectorAll(".item").forEach(sec => {

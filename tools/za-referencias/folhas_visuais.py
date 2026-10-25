@@ -4,6 +4,7 @@ Parte pura (testada sem Blender): quadros_para_folha, vistas_independentes, par_
 Parte Blender (CLI):
   blender.exe -b --factory-startup --addons PokemonSwitchV3 --python folhas_visuais.py -- <pasta_modelo> <clipe> <saida> [cego]
 
+"video": como "cego", mas renderiza o clipe inteiro animado (WebM) nas duas vistas, para a página de rotulagem.
 "cego": para a rotulagem humana — nada pintado, 10 quadros espaçados pelo clipe (não os eventos calculados) e a
 estampa só traz código, vista e quadro (não revela o que o sistema calculou).
 
@@ -103,6 +104,32 @@ def _face_da_regiao(obj, face, deps):
     return laranja * 2 >= len(vs)
 
 
+def _render_video(bpy, sc, saida, base, clipe_nome, vista, codigo, c):
+    """Anima o clipe inteiro numa vista: WebM (VP9), todo quadro é chave (permite avançar quadro a quadro na página)."""
+    im = sc.render.image_settings
+    if hasattr(im, "media_type"):
+        im.media_type = "VIDEO"
+    im.file_format = "FFMPEG"
+    ff = sc.render.ffmpeg
+    ff.format, ff.codec = "WEBM", "WEBM"
+    ff.gopsize = 1
+    if hasattr(ff, "constant_rate_factor"):
+        ff.constant_rate_factor = "HIGH"
+    sc.render.fps, sc.render.fps_base = max(c.fps, 1), 1.0
+    sc.frame_start, sc.frame_end = 0, c.quadros - 1
+    sc.render.stamp_note_text = "%s  %s" % (codigo, vista)
+    prefixo = "video_%s_%s_%s_" % (base, clipe_nome, vista)
+    for f in os.listdir(saida):
+        if f.startswith(prefixo):
+            os.remove(os.path.join(saida, f))
+    sc.render.filepath = os.path.join(saida, prefixo)
+    bpy.ops.render.render(animation=True)
+    gerado = next(f for f in os.listdir(saida) if f.startswith(prefixo))
+    final = "video_%s_%s_%s.webm" % (base, clipe_nome, vista)
+    os.replace(os.path.join(saida, gerado), os.path.join(saida, final))
+    return final
+
+
 def main():
     import secrets
 
@@ -120,7 +147,8 @@ def main():
 
     args = sys.argv[sys.argv.index("--") + 1:]
     pasta, clipe_nome, saida = os.path.abspath(args[0]), args[1], os.path.abspath(args[2])
-    cego = len(args) > 3 and args[3] == "cego"
+    video = len(args) > 3 and args[3] == "video"   # vídeo para a rotulagem: sempre cego
+    cego = video or (len(args) > 3 and args[3] == "cego")
     os.makedirs(saida, exist_ok=True)
     base = os.path.basename(pasta)
     for ob in list(bpy.data.objects):
@@ -174,9 +202,10 @@ def main():
     sc.camera = cam
     cam.data.type = "ORTHO"
 
-    # enquadramento: todos os quadros escolhidos cabem nas duas vistas
+    # enquadramento: todos os quadros escolhidos (no vídeo, o clipe todo) cabem nas duas vistas
     pts = []
-    for f in quadros:
+    quadros_enq = list(range(0, c.quadros, max(1, c.quadros // 40))) + [c.quadros - 1] if video else quadros
+    for f in quadros_enq:
         sc.frame_set(f)
         pts += [arm.matrix_world @ pb.head for pb in arm.pose.bones]
     centro = sum(pts, Vector()) / len(pts)
@@ -192,6 +221,10 @@ def main():
         cam.data.ortho_scale = G.fit_span(rel, basis)
         cam.location = centro + d * (altura * 6)
         cam.rotation_euler = (-d).to_track_quat("-Z", "Y").to_euler()
+        if video:
+            arquivo = _render_video(bpy, sc, saida, base, clipe_nome, v["name"], codigo, c)
+            indice["vistas"].append({"nome": v["name"], "direcao": v["direction"], "arquivo": arquivo})
+            continue
         tiles, estados = [], {}
         for f in quadros:
             sc.frame_set(f)
@@ -227,6 +260,11 @@ def main():
         indice["estados"][v["name"]] = {str(k): s for k, s in estados.items()}
     with open(os.path.join(saida, "indice_%s_%s.json" % (base, clipe_nome)), "w", encoding="utf-8") as fh:
         json.dump(indice, fh, ensure_ascii=False, indent=1)
+    if video:
+        os.remove(os.path.join(saida, "indice_%s_%s.json" % (base, clipe_nome)))  # nada calculado junto do vídeo
+        print("[videos] " + json.dumps({"codigo": codigo, "quadros": c.quadros, "fps": c.fps,
+                                        "arquivos": [x["arquivo"] for x in indice["vistas"]]}, ensure_ascii=False))
+        return
     print("[folhas] " + json.dumps({"codigo": codigo, "quadros": quadros, "executores": executores,
                                     "arquivos": [x["arquivo"] for x in indice["vistas"]]}, ensure_ascii=False))
 
