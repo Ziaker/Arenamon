@@ -29,6 +29,8 @@ export function emergingStoneEffect(/** @type {any} */ game, /** @type {any} */ 
 
 /** FICHA do Move (ver docs/COMO_CRIAR_UM_MOVE.md): `params` gera o padrão em C.world.emergingStone e os sliders da aba Moves; `def` e os manipuladores são registrados sozinhos. */
 export const ficha = defineFicha({
+  // Quando a IA usa o Move (perfil declarativo, ver ai-profile.js): rival no chão a 3,8–6,4 m: cast e marcador nele.
+  ai: {kind: 'aim', p: .2, why: 'rocha emergente no rival', mode: 'cast', distance: {min: 3.8, max: 6.4}, requires: ['tGround'], minStamina: 3},
   def: emergingStoneDef, effect: ['emerging-stone', emergingStoneEffect], steps: [['stone', stoneStep]],
   params,
 });

@@ -27,6 +27,8 @@ export function lungeSetup(/** @type {any} */ f, /** @type {any} */ a, /** @type
 
 /** FICHA do Move (ver docs/COMO_CRIAR_UM_MOVE.md): `params` gera o padrão em C.world.lunge e os sliders da aba Moves; `def` e os manipuladores são registrados sozinhos. */
 export const ficha = defineFicha({
+  // Quando a IA usa o Move (perfil declarativo, ver ai-profile.js): rival no chão, de frente e sem defender: fecha a distância.
+  ai: {kind: 'tap', p: .3, why: 'fecha a distância com o Lunge', distance: {min: 1.7, max: 3.3}, requires: ['facing', 'tGround'], forbids: ['tGuard', 'tackling'], minStamina: 2},
   def: lungeDef, tackle: ['lunge', lungeSetup],
   params,
 });

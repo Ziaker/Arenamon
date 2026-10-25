@@ -1,7 +1,7 @@
 // @ts-check
 // IA com os 13 Moves NOVOS (Harden … Emerging Stone) e os 4 elementais (Water Pulse, Fire Spin, Air Slash, Seed Bomb; protótipo de 23/10/2026). Mesmas regras do jogador: a IA pede pelos campos de comando (`skill`, `skillHeld`, `move`) e só tenta o que a função de
 // permissão do controlador aceitaria agora (custo, recarga, chão, alvo elegível). Sem Moves novos equipados este módulo não faz nada e não consome sorteios.
-// Cada Move tem uma regra de OPORTUNIDADE (quando vale a pena): em `RULES` (regras antigas, em código) ou no PERFIL declarativo da própria ficha (`ficha.ai`, ver ai-profile.js); a chance final é `taxa × estilo de ataque`, ajustável em Moves › IA com Moves (newMovesRate).
+// Cada Move tem uma regra de OPORTUNIDADE (quando vale a pena) no PERFIL declarativo da própria ficha (`ficha.ai`, ver ai-profile.js; desde 25/10/2026 todos os Moves com IA); a chance final é `taxa × estilo de ataque`, ajustável em Moves › IA com Moves (newMovesRate).
 // Execução: toque (Normal/Burst), carga com PL (Guard Break, Bounce) ou segurar-e-soltar com marcador (Spikes, Bullet Punch, Emerging Stone), esta última guiada por um plano
 // (`mv.plan`) que mantém o botão, aponta o marcador e solta. Percepção: só vê o que o jogador veria (`observedAction` da percepção justa, quando existe).
 import {C} from './config.js';
@@ -12,10 +12,8 @@ import {getAiRule, hasAiProfile} from './ai-profile.js';
 import {length, sub, normalize, direction, dot, angleDelta, angleOf} from './math.js';
 
 const held = (/** @type {number} */ slot) => Array.from({length: C.world.slots}, (_, i) => i === slot);
-const NEW_IDS = new Set(['lunge', 'quick-attack', 'feint', 'riposte', 'bounce', 'spikes', 'sand-wave', 'bullet-punch', 'emerging-stone', 'water-pulse', 'fire-spin', 'air-slash', 'seed-bomb']);
-/** O Move é da IA de Moves novos: regra antiga em código ou perfil declarativo na ficha. */
-const isAiMove = (/** @type {string} */ id) => NEW_IDS.has(id) || hasAiProfile(id);
-const ruleOf = (/** @type {string} */ id) => RULES[id] ?? getAiRule(id);
+/** O Move é da IA de Moves novos: perfil declarativo na ficha, ou o Feint (decisão feita DURANTE o Tackle, tratada à parte abaixo). */
+const isAiMove = (/** @type {string} */ id) => id === 'feint' || hasAiProfile(id);
 const has = (/** @type {any} */ f, /** @type {string} */ id) => !!f.statuses?.some((/** @type {any} */ s) => s.id === id);
 
 /**
@@ -30,26 +28,6 @@ function context(self, target, perc) {
   const closing = Math.max(0, -dot(target.velocity ?? {x: 0, z: 0}, toward));   // velocidade do rival vindo na minha direção
   return {distance, toward, facing, tackling, closing, ttc: closing > 1 ? Math.max(0, distance - 1.2) / closing : Infinity, tGround: !target.flight && !(target.vaultHeight > 0), tGuard: !!target.guard, tCharging: !!target.charge || !!target.tackleCharge, stamina: self.stamina};
 }
-
-/**
- * Regras de oportunidade: devolvem `null` (não agora) ou `{p, kind, ...plano}` — `p` é a chance base antes de taxa e estilo.
- * kind: 'tap' | 'charge' (goal em passos) | 'aim' (plano de marcador).
- * @type {Record<string, (x: ReturnType<typeof context>, self: any, target: any) => any>}
- */
-const RULES = {
-  lunge: (x, self) => x.distance > 1.7 && x.distance < 3.3 && x.facing && x.tGround && !x.tGuard && !x.tackling && self.stamina >= 2 ? {p: .3, kind: 'tap', why: 'fecha a distância com o Lunge'} : null,
-  'quick-attack': (x, self) => x.distance > 3.2 && x.distance < 6.8 && x.tGround && !x.tGuard && !x.tackling && self.stamina >= 2 ? {p: .14, kind: 'tap', why: 'investida rápida e volta'} : null,
-  riposte: (x, self) => x.tackling && x.ttc > .17 && x.ttc < .3 && x.distance < 4.5 && self.stamina >= 1 ? {p: .7, kind: 'tap', why: 'contra-ataque no tempo do golpe do rival'} : null,
-  bounce: (x, self) => x.distance > 4 && x.distance < 6.2 && x.tGround && !x.tGuard && !x.tackling && !x.tCharging && self.stamina >= 2.2 ? {p: .12, kind: 'charge', goal: x.distance > 4.6 ? 74 : 14, why: 'salto sobre o rival'} : null,
-  'sand-wave': (x, self) => x.distance < 3.4 && x.facing && x.tGround && self.stamina >= 2.2 ? {p: .3, kind: 'tap', why: 'barragem de areia no retângulo'} : null,
-  spikes: (x, self) => x.distance > 3 && x.distance < 8 && x.tGround && self.stamina >= 1.5 ? {p: .22, kind: 'aim', mode: 'absolute', why: 'armadilha no caminho do rival'} : null,
-  'bullet-punch': (x, self) => x.distance > 2.5 && x.distance < (C.world.bulletPunch.reach ?? 6) - .3 && x.tGround && self.stamina >= 2.2 ? {p: .25, kind: 'tap', why: 'soco-bala: some e golpeia o rival ao chegar'} : null,
-  'emerging-stone': (x, self) => x.distance > 3.8 && x.distance < 6.4 && x.tGround && self.stamina >= 3 ? {p: .2, kind: 'aim', mode: 'cast', why: 'rocha emergente no rival'} : null,  // Elementais (protótipo): Water Pulse carrega mais quanto mais longe o rival (PL pela distância); Fire Spin e Seed Bomb põem o marcador AO LADO do rival (o marcador é inválido sobre personagens)
-  'water-pulse': (x, self) => x.distance > 3 && x.distance < 12 && self.stamina >= 1.5 ? {p: .3, kind: 'charge', goal: x.distance > 8 ? 100 : x.distance > 5 ? 50 : 20, why: 'esfera de água à distância'} : null,
-  'fire-spin': (x, self) => x.distance > 2.2 && x.distance < 4.8 && x.tGround && self.stamina >= 1.5 ? {p: .22, kind: 'aim', mode: 'near', offset: 1.1, why: 'zona de fogo ao lado do rival'} : null,
-  'air-slash': (x, self) => x.distance > 3 && x.distance < 9.5 && x.facing && self.stamina >= 1.2 ? {p: .4, kind: 'tap', why: 'lâmina de ar à distância'} : null,
-  'seed-bomb': (x, self) => x.distance > 3 && x.distance < 7.5 && x.tGround && self.stamina >= 1.5 ? {p: .22, kind: 'aim', mode: 'near', offset: .9, why: 'semente explosiva perto do rival'} : null,
-};
 
 /** Mantém o botão, aponta o marcador e solta, conforme o plano. Devolve true se assumiu o comando. */
 function driveAim(brain, self, target, c, mv) {
@@ -101,10 +79,10 @@ export function newMovesCommand(brain, self, target, c, mv, perc, S) {
   }
   if (self.action || self.flight || self.knockRecovery > 0 || self.charge) return false;
   // Riposte: a janela é de 0,13 s, curta demais para a decisão de 0,25 s; avalia a cada passo (chance por passo) enquanto o golpe do rival chega.
-  const ri = slots.indexOf('riposte'), rdef = ri >= 0 ? getMove('riposte') : null;
-  if (rdef && RULES.riposte(x, self, target) && movePermission(self, rdef, ri).ok && brain.random() < .04 * A.newMovesRate) {
+  const ri = slots.indexOf('riposte'), rdef = ri >= 0 ? getMove('riposte') : null, rrule = rdef ? getAiRule('riposte') : null, rr = rrule ? rrule(x, self, target) : null;
+  if (rr && movePermission(self, rdef, ri).ok && brain.random() < .04 * A.newMovesRate) {
     c.skill = ri;c.skillHeld = held(ri);c.tackle = false;c.dodge = false;c.guard = false;c.guardPressed = false;brain.wasGuard = false;
-    mv.log.push({time: +(brain.t?.time ?? 0).toFixed(3), move: 'riposte', why: RULES.riposte(x, self, target)?.why, distance: +x.distance.toFixed(2)});if (mv.log.length > 30) mv.log.shift();
+    mv.log.push({time: +(brain.t?.time ?? 0).toFixed(3), move: 'riposte', why: rr.why, distance: +x.distance.toFixed(2)});if (mv.log.length > 30) mv.log.shift();
     return true;
   }
   mv.nroll = Math.max(0, (mv.nroll ?? 0) - Math.max(0, (brain.t?.time ?? 0) - (mv.nlast ?? 0)));mv.nlast = brain.t?.time ?? 0;
@@ -112,7 +90,7 @@ export function newMovesCommand(brain, self, target, c, mv, perc, S) {
   mv.nroll = .25;   // decide a cada 0,25 s
   for (let slot = 0; slot < slots.length; slot++) {
     const id = slots[slot];if (!id || !isAiMove(id)) continue;
-    const def = getMove(id), rule = ruleOf(id);if (!def || !rule) continue;
+    const def = getMove(id), rule = getAiRule(id);if (!def || !rule) continue;
     const ok = def.charge ? chargePermission(self, def, slot).ok : movePermission(self, def, slot).ok;
     if (!ok) continue;
     const r = rule(x, self, target);if (!r) continue;

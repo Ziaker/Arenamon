@@ -32,6 +32,8 @@ export function fireSpinEffect(/** @type {any} */ game, /** @type {any} */ f, /*
 
 /** FICHA do Move (ver docs/COMO_CRIAR_UM_MOVE.md): `params` gera o padrão em C.world.fireSpin e os sliders da aba Moves; `def` e os manipuladores são registrados sozinhos. */
 export const ficha = defineFicha({
+  // Quando a IA usa o Move (perfil declarativo, ver ai-profile.js): rival no chão a 2,2–4,8 m: marcador AO LADO dele (o marcador é inválido sobre personagens).
+  ai: {kind: 'aim', p: .22, why: 'zona de fogo ao lado do rival', mode: 'near', offset: 1.1, distance: {min: 2.2, max: 4.8}, requires: ['tGround'], minStamina: 1.5},
   def: fireSpinDef, effect: ['fire-spin', fireSpinEffect],
   params,
 });

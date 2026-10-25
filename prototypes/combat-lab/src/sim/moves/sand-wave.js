@@ -29,6 +29,8 @@ export function sandWaveEffect(/** @type {any} */ game, /** @type {any} */ f, /*
 
 /** FICHA do Move (ver docs/COMO_CRIAR_UM_MOVE.md): `params` gera o padrão em C.world.sandWave e os sliders da aba Moves; `def` e os manipuladores são registrados sozinhos. */
 export const ficha = defineFicha({
+  // Quando a IA usa o Move (perfil declarativo, ver ai-profile.js): rival perto, de frente e no chão.
+  ai: {kind: 'tap', p: .3, why: 'barragem de areia no retângulo', distance: {max: 3.4}, requires: ['facing', 'tGround'], minStamina: 2.2},
   def: sandWaveDef, effect: ['sand-wave', sandWaveEffect],
   params,
 });
