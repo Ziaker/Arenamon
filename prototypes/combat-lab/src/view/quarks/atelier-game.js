@@ -4,6 +4,8 @@
 import * as T from 'three';
 import * as Q from 'three.quarks';
 import {SandEffect, StoneEffect} from '../../../../sand-stone-lab/src/effects.js';
+import {SwiftEffect} from '../../../../sand-stone-lab/src/swift-effect.ts';
+import {PsyshockEffect} from '../../../../sand-stone-lab/src/psyshock-effect.ts';
 import {Particles} from '../../../../sand-stone-lab/src/particles.js';
 import {PhaseClock} from '../../../../sand-stone-lab/src/phases.ts';
 import {defaults} from '../../../../sand-stone-lab/src/config.ts';
@@ -33,8 +35,8 @@ export class AtelierGameFx {
     /** @type {Map<number, any>} */
     this.items = new Map();
   }
-  /** A entidade é desenhada por esta camada? Barragem da Sand Wave e projétil subterrâneo do Emerging Stone. */
-  handles(e) {return !!e && (e.kind === 'sandwave' || e.kind === 'burrow');}
+  /** A entidade é desenhada por esta camada? Barragem da Sand Wave, projétil subterrâneo do Emerging Stone e projéteis de Swift e Psyshock. */
+  handles(e) {return !!e && (e.kind === 'sandwave' || e.kind === 'burrow' || !!volleyMove(e));}
   paramsOf(key, over) {return {...defaults[key], ...ATELIER_GAME_PARAMS[key], ...over};}
   spawn(e, acc) {
     const group = new T.Group();
@@ -78,8 +80,9 @@ export class AtelierGameFx {
   }
   sync(entities, dt, acc) {
     const seen = new Set();
+    this.syncVolleys(entities, dt, acc);
     for (const e of entities ?? []) {
-      if (!this.handles(e)) continue;
+      if (!this.handles(e) || volleyMove(e)) continue;
       seen.add(e.id);
       let it = this.items.get(e.id);
       // O mundo reinicia a numeração das entidades: o mesmo id pode ser outra entidade.
@@ -92,10 +95,110 @@ export class AtelierGameFx {
     }
     this.batch.update(dt);
   }
-  positionOf(id) {return this.items.get(id)?.group.position ?? null;}
-  clear() {for (const it of this.items.values()) this.disposeItem(it);this.items.clear();}
+  // ---------- Swift e Psyshock: uma rajada (disparo) = uma instância do efeito aprovado, presa às posições REAIS dos projéteis ----------
+  // O efeito do atelier encena o Move inteiro num palco fixo (lançador em z −2,45, alvo em z +2,55). No jogo, o grupo fica no ponto de disparo,
+  // virado para a direção média da rajada; o caminho de cada estrela/pedra (`path`) passa a ler o histórico da entidade da simulação, e o tempo
+  // de voo acompanha a vida real dos projéteis. Só aparência: colisão, alcance e acerto continuam sendo os da entidade.
+  spawnVolley(move, ents, acc) {
+    const group = new T.Group();
+    this.parent.add(group);
+    const n = ents.length, c = ents.reduce((a, e) => ({x: a.x + e.pos.x / n, y: a.y + (e.y ?? 1) / n, z: a.z + e.pos.z / n, dx: a.dx + (e.dir?.x ?? 0), dz: a.dz + (e.dir?.z ?? 1)}), {x: 0, y: 0, z: 0, dx: 0, dz: 0});
+    group.position.set(c.x, 0, c.z);
+    group.rotation.y = Math.atan2(c.dx, c.dz);
+    group.updateMatrixWorld(true);
+    const particles = new Particles(group, {renderer: this.batch, emitterParent: group});
+    const p = accessible(this.paramsOf(move), acc);
+    const fx = move === 'swift' ? new SwiftEffect(group, particles, ATELIER_GAME_VARIANT.swift, p) : new PsyshockEffect(group, particles, ATELIER_GAME_VARIANT.psyshock, p, n);
+    // Bonecos do palco do atelier (lançador e alvo em cápsula) não entram no jogo.
+    group.traverse(o => {if (o.geometry?.type === 'CapsuleGeometry' && o.parent) o.parent.visible = false;});
+    const cast = move === 'swift' ? fx.cast : fx.chargeT, flightKey = move === 'swift' ? 'flight' : 'flightT', tail = fx.duration - cast - fx[flightKey];
+    const v = {move, group, particles, fx, cast, flightKey, tail, age: 0, ids: ents.map(e => e.id), hist: ents.map(() => []), alive: true, lastAlive: 0, impact: new T.Vector3(0, c.y, 0)};
+    // Pontos fixos do palco → pontos reais (em coordenadas do grupo): origem do disparo e ponto de contato.
+    const launch = new T.Vector3(0, c.y, 0);
+    if (fx.source) fx.source.position.copy(launch);
+    if (fx.shot) {fx.shot.base.copy(launch);fx.shot.dir.set(0, 0, 1);}
+    const sameAs = (a, b) => Array.isArray(a) && a.length === 3 && a.every((x, i) => Math.abs(x - b[i]) < 1e-9);
+    const create = particles.create.bind(particles);
+    particles.create = (o = {}) => create({...o, position: sameAs(o.position, [0, 1.2, -2.45]) ? launch.toArray() : sameAs(o.position, [0, 1.3, 2.55]) || sameAs(o.position, [0, 1.4, 2.4]) ? v.impact.toArray() : o.position});
+    // Caminho real: amostra o histórico da entidade i no instante de jogo correspondente ao tempo `at` do efeito.
+    fx.path = (at, i, out) => {
+      const h = v.hist[i % v.hist.length], g = at - cast;
+      if (!h.length) return out.copy(launch);
+      let k = 0;while (k < h.length - 1 && h[k + 1].t <= g) k++;
+      const a = h[k], b = h[Math.min(h.length - 1, k + 1)], u = b.t > a.t ? Math.min(1, Math.max(0, (g - a.t) / (b.t - a.t))) : 0;
+      return out.set(a.x + (b.x - a.x) * u, a.y + (b.y - a.y) * u, a.z + (b.z - a.z) * u);
+    };
+    return v;
+  }
+  advanceVolley(v, byId, dt) {
+    v.age += dt;
+    const tmp = new T.Vector3();
+    let any = false;
+    v.ids.forEach((id, i) => {
+      const e = byId.get(id);
+      if (!e || e.dead || v.ents.get(id) !== e) return;   // sumiu, morreu ou o id foi reaproveitado por outra entidade
+      any = true;
+      v.group.worldToLocal(tmp.set(e.pos.x, e.y ?? 1, e.pos.z));
+      v.hist[i].push({t: v.age, x: tmp.x, y: tmp.y, z: tmp.z});
+    });
+    if (any) v.lastAlive = v.age;
+    v.alive = any;
+    // Contato = onde os projéteis estavam por último (média).
+    const last = v.hist.map(h => h[h.length - 1]).filter(Boolean);
+    if (last.length) v.impact.set(last.reduce((s, q) => s + q.x, 0) / last.length, last.reduce((s, q) => s + q.y, 0) / last.length, last.reduce((s, q) => s + q.z, 0) / last.length);
+    // Voo dura o que os projéteis duram: enquanto vivem, a chegada fica logo à frente; ao sumirem, a chegada congela ali.
+    v.fx[v.flightKey] = Math.max(.01, v.lastAlive + (any ? .02 : 0));
+    v.fx.duration = v.cast + v.fx[v.flightKey] + v.tail;
+    if (v.fx.impact) v.fx.impact.position.copy(v.impact);
+    if (v.fx.echo) v.fx.echo.position.set(v.impact.x, .045, v.impact.z);
+    const t = Math.min(v.fx.duration, v.cast + v.age);
+    v.fx.update(t, dt);
+    v.particles.update(dt);
+    return !any && v.cast + v.age >= v.fx.duration + .4;
+  }
+  syncVolleys(entities, dt, acc) {
+    this.volleys ??= new Map();
+    const byId = new Map(), fresh = new Map();
+    for (const e of entities ?? []) {
+      byId.set(e.id, e);
+      const move = volleyMove(e);if (!move) continue;
+      if ([...this.volleys.values()].some(v => v.ids.includes(e.id) && v.ents?.get(e.id) === e)) continue;
+      const key = `${move}:${e.owner}:${e.exec ?? e.id}`;
+      (fresh.get(key) ?? fresh.set(key, {move, ents: []}).get(key)).ents.push(e);
+    }
+    for (const [key, {move, ents}] of fresh) {
+      const v = this.spawnVolley(move, ents.sort((a, b) => a.id - b.id), acc);
+      v.ents = new Map(ents.map(e => [e.id, e]));
+      this.volleys.set(key + ':' + ents[0].id, v);
+    }
+    for (const [key, v] of this.volleys) {
+      if (this.advanceVolley(v, byId, dt)) {v.particles.clear();disposeGroup(v.group);v.group.removeFromParent();this.volleys.delete(key);}
+    }
+  }
+  positionOf(id) {
+    const it = this.items.get(id);if (it) return it.group.position;
+    for (const v of this.volleys?.values() ?? []) {
+      const i = v.ids.indexOf(id);if (i < 0) continue;
+      const q = v.hist[i][v.hist[i].length - 1];return q ? v.group.localToWorld(new T.Vector3(q.x, q.y, q.z)) : v.group.position;
+    }
+    return null;
+  }
+  clear() {
+    for (const it of this.items.values()) this.disposeItem(it);this.items.clear();
+    for (const v of this.volleys?.values() ?? []) {v.particles.clear();disposeGroup(v.group);v.group.removeFromParent();}this.volleys?.clear();
+  }
   /** Diagnóstico para os testes de navegador. */
   diagnostics() {
-    return {count: this.items.size, items: [...this.items.values()].map(it => ({id: it.id, kind: it.kind, age: +it.age.toFixed(3), dying: !!it.dying, x: +it.group.position.x.toFixed(2), z: +it.group.position.z.toFixed(2), particles: it.particles.count}))};
+    return {count: this.items.size, items: [...this.items.values()].map(it => ({id: it.id, kind: it.kind, age: +it.age.toFixed(3), dying: !!it.dying, x: +it.group.position.x.toFixed(2), z: +it.group.position.z.toFixed(2), particles: it.particles.count})),
+      volleys: [...(this.volleys?.values() ?? [])].map(v => ({move: v.move, projectiles: v.ids.length, alive: v.alive, age: +v.age.toFixed(3), samples: v.hist.reduce((s, h) => s + h.length, 0),
+        // distância (m, no chão) entre cada estrela/pedra DESENHADA e a última posição real do seu projétil
+        nodeGap: +Math.max(0, ...v.ids.map((_, i) => {const node = (v.fx.stars ?? v.fx.stones)?.[i], q = v.hist[i][v.hist[i].length - 1];if (!node || !q) return 0;const w = node.getWorldPosition(new T.Vector3()), r = v.group.localToWorld(new T.Vector3(q.x, q.y, q.z));return Math.hypot(w.x - r.x, w.z - r.z);})).toFixed(3)}))};
   }
+}
+
+/** Swift e Psyshock (projéteis) usam o visual aprovado do atelier: devolve o nome da categoria aprovada, ou null. */
+export function volleyMove(e) {
+  if (e?.kind !== 'projectile') return null;
+  const m = e.captured?.move;
+  return m === 'swift' || m === 'psyshock' ? m : null;
 }

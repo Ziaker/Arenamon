@@ -94,3 +94,5 @@ Fecha o que faltava do #05. `node prototypes/combat-lab/test/vfx-colisao.browser
 - **Sand Wave:** as dunas do efeito passam das laterais e vão à frente da frente real do acerto.
 - **Spikes:** visual = colisão (1,2 m). **Fire Spin:** no instante da foto só o cilindro de 1,6 m aparece (o fogo ainda não tinha surgido).
 - Nada foi alterado em tamanho de efeito nem de colisão: decidir se o visual encolhe ou a colisão cresce é escolha sua.
+
+**Atualização (v1.38.3):** Swift e Psyshock passaram a usar no jogo o visual aprovado do atelier (detalhes em `docs/LAB_AREIA_PEDRA.md`); as medidas visual × colisão do Swift e do Psyshock acima eram do visual antigo.
