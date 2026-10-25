@@ -23,5 +23,9 @@ test('todo Move registrado tem seção própria e pelo menos um teste citado', (
   assert.ok(sections.length >= 19);
   for (const s of sections) assert.ok(/\*\*testes:\*\*/.test(s), 'sem teste citado: ' + s.split('\n')[0]);
 });
+test('nenhum documento de docs/ sem citação (ligue no portal ABRIR_ARENAMON.html ou cite em outro documento)', () => {
+  const sec = built.split('## Documentos de `docs/` sem nenhuma citação')[1].split('## Como usar')[0];
+  assert.deepEqual([...sec.matchAll(/`(docs\/[^`]+)`/g)].map(m => m[1]), []);
+});
 
 done();

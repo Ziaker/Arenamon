@@ -107,6 +107,18 @@ test('MUTAÇÃO: defeito que só aparece perto da borda é acusado SÓ no escopo
   assert.equal(out.find(x => x.scope === 'arena-edge')?.status, 'fail');
   assert.equal(out.find(x => x.scope === 'ground')?.status, 'ok');
 });
+test('MUTAÇÃO: defeito que só aparece com gravidade alterada é acusado SÓ no escopo gravity', () => {
+  arena();const base = C.rules.launchGravity;fake('teste-gravidade', f => {if (C.rules.launchGravity !== base) f.hp = NaN;});
+  const out = runMoveMatrix('teste-gravidade');
+  assert.equal(out.find(x => x.scope === 'gravity')?.status, 'fail');
+  assert.match(out.find(x => x.scope === 'gravity')?.got ?? '', /gravidade × 0\.5/);
+  assert.equal(out.find(x => x.scope === 'air')?.status, 'ok');
+});
+test('MUTAÇÃO: defeito que só aparece fora da linha reta é acusado SÓ no escopo fuzz', () => {
+  arena();fake('teste-fuzz', f => {if (Math.abs(f.position.x) > .5) f.stamina = -5;});   // só andando de lado (os outros escopos ficam em x = 0)
+  const out = runMoveMatrix('teste-fuzz');
+  assert.equal(out.find(x => x.scope === 'fuzz')?.status, 'fail');
+});
 test('o relatório traz semente, tick, esperado e obtido de cada falha, e a razão de cada N/A, e é regenerável', () => {
   arena();fake('teste-relatorio', f => {f.hp = NaN;});
   const r = runAllMatrices(['teste-relatorio', 'harden'], 7);

@@ -39,6 +39,8 @@ export function waterPulseEffect(/** @type {any} */ game, /** @type {any} */ f, 
 
 /** FICHA do Move (ver docs/COMO_CRIAR_UM_MOVE.md): `params` gera o padrão em C.world.waterPulse e os sliders da aba Moves; `def` e os manipuladores são registrados sozinhos. */
 export const ficha = defineFicha({
+  // Quando a IA usa o Move (perfil declarativo, ver ai-profile.js): rival a 3–12 m: carrega mais quanto mais longe (PL pela distância).
+  ai: {kind: 'charge', p: .3, why: 'esfera de água à distância', distance: {min: 3, max: 12}, minStamina: 1.5, goal: x => x.distance > 8 ? 100 : x.distance > 5 ? 50 : 20},
   def: waterPulseDef, effect: ['water-pulse', waterPulseEffect],
   params,
 });

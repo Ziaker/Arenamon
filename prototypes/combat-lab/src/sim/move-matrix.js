@@ -16,7 +16,7 @@ import {hardenStatus} from './moves/harden.js';
 import {secondWindStatus} from './moves/second-wind.js';
 
 /** Escopos da matriz, na ordem em que aparecem no relatório. */
-export const SCOPES = ['ground', 'air', 'platform', 'ceiling', 'wall', 'arena-edge', 'destructible', 'guard', 'dodge-cancel', 'hitstop', 'lock-on', 'reflect', 'status', 'determinism', 'save-load', 'simultaneous'];
+export const SCOPES = ['ground', 'air', 'platform', 'ceiling', 'wall', 'arena-edge', 'destructible', 'guard', 'dodge-cancel', 'hitstop', 'lock-on', 'reflect', 'status', 'determinism', 'save-load', 'simultaneous', 'gravity', 'fuzz'];
 const TICKS = 360;   // 3 s de simulação por cenário (passo fixo de 1/120 s)
 
 /** @typedef {{move: string, scope: string, status: 'ok' | 'fail' | 'na', reason?: string, seed: number, tick?: number, expected?: string, got?: string}} MatrixResult */
@@ -167,6 +167,40 @@ function matrixInner(/** @type {string} */ moveId, /** @type {number} */ seed) {
     return {violation: same ? null : {tick: tailA.findIndex((s, i) => JSON.stringify(s) !== JSON.stringify(tailB[i])) + 60, expected: 'continuar do save igual a continuar sem salvar', got: 'estados divergem depois de load'}};
   });
   check('simultaneous', () => {const g = build(def, seed, {close: true, red: moveId});return {violation: run(g, TICKS, use, use).violation};});
+  // gravidade metade e dobrada (C.rules.launchGravity, a queda padrão de quem não tem gravidade própria): usar o Move não pode quebrar invariantes
+  check('gravity', () => {
+    const base = C.rules.launchGravity;
+    for (const k of [.5, 2]) {
+      const r = withValues({'rules.launchGravity': base * k}, () => {
+        const g = build(def, seed, {close: true});
+        // usa no chão, colado no rival (quem é lançado cai com essa gravidade), e de novo depois de um pulo
+        const out = run(g, TICKS * 2, t => t < TICKS ? use(t) : t === TICKS ? cmd({jump: true, jumpHeld: true}) : t < TICKS + 12 ? cmd({jumpHeld: true}) : use(t - TICKS - 20));
+        return out.violation ?? (g.fighters[0].action ? settles(g) : null);
+      });
+      if (r) return {violation: {...r, got: `${r.got} (gravidade × ${k})`}};
+    }
+    return {violation: null};
+  });
+  // fuzz integrado (antes só em test/fuzz-partidas.mjs): 3 roteiros aleatórios por semente, com o Move apertado no meio de andar, pular, defender e esquivar
+  check('fuzz', () => {
+    for (let k = 0; k < 3; k++) {
+      let s0 = (seed * 7919 + k * 104729) >>> 0;
+      const rnd = () => ((s0 = (s0 * 1664525 + 1013904223) >>> 0) / 4294967296);
+      const g = build(def, seed + k, {close: k !== 2});
+      /** @type {number | null} */ let pressAt = null;
+      let dir = {x: 0, z: 0}, until = 0;   // direção mantida por 10 a 90 ticks, como um jogador
+      const script = (/** @type {number} */ t) => {
+        if (pressAt === null && rnd() < .02) pressAt = t;
+        const c = pressAt !== null ? use(t - pressAt) : cmd();
+        if (pressAt !== null && t - pressAt > 150) pressAt = null;
+        if (t >= until) {const a = rnd() * 6.283;until = t + 10 + Math.floor(rnd() * 80);dir = rnd() < .2 ? {x: 0, z: 0} : {x: Math.sin(a), z: Math.cos(a)};}
+        return {...c, move: dir, jump: c.jump || rnd() < .01, jumpHeld: c.jumpHeld || rnd() < .2, guard: c.guard || rnd() < .03, dodge: c.dodge || rnd() < .008};
+      };
+      const r = run(g, 600, script);
+      if (r.violation) return {violation: {...r.violation, got: `${r.violation.got} (roteiro ${k})`}};
+    }
+    return {violation: null};
+  });
   return out;
 }
 

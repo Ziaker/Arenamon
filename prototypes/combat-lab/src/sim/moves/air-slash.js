@@ -31,6 +31,8 @@ export function airSlashEffect(/** @type {any} */ game, /** @type {any} */ f, /*
 
 /** FICHA do Move (ver docs/COMO_CRIAR_UM_MOVE.md): `params` gera o padrão em C.world.airSlash e os sliders da aba Moves; `def` e os manipuladores são registrados sozinhos. */
 export const ficha = defineFicha({
+  // Quando a IA usa o Move (perfil declarativo, ver ai-profile.js): rival a 3–9,5 m e de frente.
+  ai: {kind: 'tap', p: .4, why: 'lâmina de ar à distância', distance: {min: 3, max: 9.5}, requires: ['facing'], minStamina: 1.2},
   def: airSlashDef, effect: ['air-slash', airSlashEffect],
   params,
 });

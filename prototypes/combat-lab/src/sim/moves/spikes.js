@@ -28,6 +28,8 @@ export function spikesEffect(/** @type {any} */ game, /** @type {any} */ f, /** 
 
 /** FICHA do Move (ver docs/COMO_CRIAR_UM_MOVE.md): `params` gera o padrão em C.world.spikes e os sliders da aba Moves; `def` e os manipuladores são registrados sozinhos. */
 export const ficha = defineFicha({
+  // Quando a IA usa o Move (perfil declarativo, ver ai-profile.js): rival no chão a 3–8 m: marcador no caminho dele.
+  ai: {kind: 'aim', p: .22, why: 'armadilha no caminho do rival', mode: 'absolute', distance: {min: 3, max: 8}, requires: ['tGround'], minStamina: 1.5},
   def: spikesDef, effect: ['spikes', spikesEffect],
   params,
 });

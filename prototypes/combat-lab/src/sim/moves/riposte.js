@@ -10,6 +10,8 @@ export {riposteDef};   // definição (id, fases, custo…) vem de riposte.move.
 
 /** FICHA do Move (ver docs/COMO_CRIAR_UM_MOVE.md): `params` gera o padrão em C.world.riposte e os sliders da aba Moves; `def` e os manipuladores são registrados sozinhos. */
 export const ficha = defineFicha({
+  // Quando a IA usa o Move (perfil declarativo, ver ai-profile.js): golpe do rival chegando dentro da janela (0,17 a 0,3 s até o contato); a IA avalia a cada passo, não a cada 0,25 s.
+  ai: {kind: 'tap', p: .7, why: 'contra-ataque no tempo do golpe do rival', distance: {max: 4.5}, requires: ['tackling'], minStamina: 1, when: x => x.ttc > .17 && x.ttc < .3},
   def: riposteDef,
   params,
 });

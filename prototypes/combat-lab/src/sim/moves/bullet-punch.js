@@ -117,6 +117,8 @@ export function bulletPunchReturn(/** @type {any} */ game, /** @type {any} */ f,
 
 /** FICHA do Move (ver docs/COMO_CRIAR_UM_MOVE.md): `params` gera o padrão em C.world.bulletPunch e os sliders da aba Moves; `def` e os manipuladores são registrados sozinhos. */
 export const ficha = defineFicha({
+  // Quando a IA usa o Move (perfil declarativo, ver ai-profile.js): rival no chão além de 2,5 m e dentro do alcance (alcance do slider − 0,3 m).
+  ai: {kind: 'tap', p: .25, why: 'soco-bala: some e golpeia o rival ao chegar', distance: {min: 2.5}, requires: ['tGround'], minStamina: 2.2, when: x => x.distance < (C.world.bulletPunch.reach ?? 6) - .3},
   def: bulletPunchDef, tackle: ['bullet-punch', bulletPunchSetup], effects: [['bullet-punch-vanish', bulletPunchVanish], ['bullet-punch-return', bulletPunchReturn]],
   params,
 });

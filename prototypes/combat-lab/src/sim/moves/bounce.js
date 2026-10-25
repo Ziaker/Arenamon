@@ -94,6 +94,8 @@ export function bounceStep(/** @type {any} */ game) {
 
 /** FICHA do Move (ver docs/COMO_CRIAR_UM_MOVE.md): `params` gera o padrão em C.world.bounce e os sliders da aba Moves; `def` e os manipuladores são registrados sozinhos. */
 export const ficha = defineFicha({
+  // Quando a IA usa o Move (perfil declarativo, ver ai-profile.js): rival no chão a 4–6,2 m, parado: carga longa se estiver longe.
+  ai: {kind: 'charge', p: .12, why: 'salto sobre o rival', distance: {min: 4, max: 6.2}, requires: ['tGround'], forbids: ['tGuard', 'tackling', 'tCharging'], minStamina: 2.2, goal: x => x.distance > 4.6 ? 74 : 14},
   def: bounceDef, effect: ['bounce', bounceEffect], steps: [['bounce', bounceStep]],
   params,
 });

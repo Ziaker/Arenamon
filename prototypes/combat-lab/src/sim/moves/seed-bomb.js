@@ -50,6 +50,8 @@ export function seedBombEffect(/** @type {any} */ game, /** @type {any} */ f, /*
 
 /** FICHA do Move (ver docs/COMO_CRIAR_UM_MOVE.md): `params` gera o padrão em C.world.seedBomb e os sliders da aba Moves; `def` e os manipuladores são registrados sozinhos. */
 export const ficha = defineFicha({
+  // Quando a IA usa o Move (perfil declarativo, ver ai-profile.js): rival no chão a 3–7,5 m: marcador perto dele.
+  ai: {kind: 'aim', p: .22, why: 'semente explosiva perto do rival', mode: 'near', offset: .9, distance: {min: 3, max: 7.5}, requires: ['tGround'], minStamina: 1.5},
   def: seedBombDef, effect: ['seed-bomb', seedBombEffect],
   params,
 });

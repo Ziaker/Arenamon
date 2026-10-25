@@ -25,9 +25,10 @@ const revive = (/** @type {any} */ v) => {
 
 /**
  * Monta o pacote. `recording` é o MatchRecording (ou seu toJSON) da partida em curso.
- * @param {{game: any, recording: any, appVersion?: string, note?: string, errors?: string[]}} p
+ * `screenshot` (opcional) é a imagem da tela em data URL JPEG/PNG; só entra se o usuário marcou a opção.
+ * @param {{game: any, recording: any, appVersion?: string, note?: string, errors?: string[], screenshot?: string | null}} p
  */
-export function captureBug({game, recording, appVersion = 'desconhecida', note = '', errors = []}) {
+export function captureBug({game, recording, appVersion = 'desconhecida', note = '', errors = [], screenshot = null}) {
   const rec = typeof recording?.toJSON === 'function' ? recording.toJSON() : recording;
   const near = (/** @type {any} */ e) => ({id: e.id, kind: e.kind, owner: e.owner, x: e.pos?.x, z: e.pos?.z, life: e.life, age: e.age, dead: !!e.dead});
   return {
@@ -39,6 +40,7 @@ export function captureBug({game, recording, appVersion = 'desconhecida', note =
     fighters: game.fighters.map((/** @type {any} */ f) => ({id: f.id, hp: f.hp, stamina: f.stamina, state: f.state, action: f.action?.kind ?? null, move: f.action?.move ?? null, loadout: f.loadout, statuses: (f.statuses ?? []).map((/** @type {any} */ s) => ({id: s.id, remaining: s.remaining}))})),
     entities: (game.world?.entities ?? []).slice(0, 64).map(near),
     errors: errors.slice(0, 20).map(e => scrubPaths(e).slice(0, 500)),
+    ...(typeof screenshot === 'string' && /^data:image\/(jpeg|png);base64,/.test(screenshot) ? {screenshot} : {}),
   };
 }
 

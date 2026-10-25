@@ -5,18 +5,35 @@ import {collisionProbe, bodyPenetration} from '../sim/collision-probe.js';
 import {groundSurface} from '../sim/physics.js';
 import {solidGap} from '../sim/map.js';
 import {collectSolids} from '../nav/nav-graph.js';
+import {nominalDistance, isInvulnerable} from '../sim/entity.js';
 
 export const COLLISION_OVERLAYS = [
   ['mapSolids', 'Colisores do cenário', 'Contorno físico real de plataformas (verde), obstáculos (azul), destrutíveis sólidos (laranja) e a prévia de respawn (amarelo tracejado), com a altura de cada um. O que está desenhado é o que colide.'],
   ['support', 'Apoio atual', 'Anel na superfície que segura cada lutador (cinza = chão, verde = plataforma, azul = obstáculo, laranja = destrutível) e linha dos pés até ela; em voo, linha até a superfície que seria o próximo apoio.'],
   ['envContacts', 'Contatos com o ambiente', 'Último contato de cada lutador com parede, obstáculo, plataforma, destrutível ou borda: seta ciano = normal; barra vermelha = profundidade corrigida; seta branca = velocidade antes; seta verde = velocidade depois. Dura 1,6 s.'],
   ['moveEntities', 'Hitbox das entidades dos Moves', 'Geometria REAL de cada entidade criada por um Move (só leitura): projétil = esfera/anel do raio de colisão (laranja) na altura em que voa; área = círculo ou caixa com altura (vermelho; amarelo antes de ativar); barreira/parede = caixa (azul); feixe = segmentos (magenta). É o volume que a física usa, não o desenho do efeito: se o VFX parecer maior ou menor, esta é a medida certa.'],
+  ['hurtbox', 'Hurtbox dos lutadores', 'Caixa REAL em que golpes, projéteis e áreas acertam cada lutador (meia largura «halfExtent» × altura do corpo, a partir da altura atual dos pés): verde = pode ser atingido; cinza = invulnerável agora. Compare com o modelo: a caixa é a medida certa.'],
+  ['displacement', 'Deslocamento pretendido × real', 'Em Tackle, esquiva e Moves que viram Tackle (Lunge, Quick Attack, Bullet Punch…): linha verde = distância pretendida pela ação (sem colisões), linha branca = o que o lutador andou de fato. A diferença mostra atrito, parede ou corte por colisão. O número fica em «Dados ao vivo».'],
   ['sweeps', 'Varredura dos projéteis', 'Trecho percorrido por cada projétil em cada subpasso (amarelo) e o ponto do primeiro contato (anel vermelho) com o objeto que o barrou.'],
   ['overlaps', 'Sobreposições e vãos', 'Linha vermelha entre dois sólidos do cenário que se sobrepõem, laranja quando o vão é menor que o «Vão mínimo entre objetos»; anel vermelho em lutador penetrando um sólido no chão.'],
 ];
 
 const KIND_COLOR = {ground: 0x8a94a6, platform: 0x6fe28a, obstacle: 0x8fa8d8, destructible: 0xffa040};
 const MAX_AGE_STEPS = Math.round(1.6 / C.test.step);   // 1,6 s em passos do relógio da simulação
+
+/**
+ * Deslocamento de uma ação com trajetória (tackle/esquiva, inclusive Moves que viram tackle): pretendido (mesma conta de ctrl-update, sem colisões)
+ * × percorrido de fato ao longo da direção da ação. null quando a ação não tem trajetória.
+ */
+export function dashDisplacement(f) {
+  const a = f.action;
+  if (!a || (a.kind !== 'tackle' && a.kind !== 'dodge') || a.slam) return null;
+  const intended = nominalDistance(f, a.kind) * (a.speedMultiplier ?? 1) * (a.plSpeed ?? 1) * (a.distanceScale ?? 1), traveled = a.traveled ?? 0;
+  const h = a.heading ?? f.facing, dir = {x: Math.sin(h), z: Math.cos(h)};
+  return {kind: a.move ?? a.kind, intended, traveled, friction: a.fricSkipped ?? 0, dir, origin: {x: f.position.x - dir.x * traveled, z: f.position.z - dir.z * traveled}};
+}
+/** Último resultado por lutador, para a linha continuar visível 1,6 s depois do fim da ação. */
+const lastDash = new Map();
 
 /** Contorno de uma caixa alinhada (3 polilinhas: base, topo e as quatro arestas verticais). */
 function box(view, x, z, hx, hz, y0, y1, color, opacity = .8) {
@@ -94,6 +111,23 @@ export function drawCollisionOverlays(view, fighters, world, O) {
       }
     }
   }
+  if (O.hurtbox) {
+    for (const f of fighters) {
+      if (f.hp <= 0 || f.absent) continue;
+      const y0 = (f.flight?.y ?? f.groundY ?? 0) + (f.vaultHeight ?? 0), inv = isInvulnerable(f);
+      box(view, f.position.x, f.position.z, half, half, y0, y0 + V.bodyHeight, inv ? 0x9aa0a8 : 0x5dff9a, .85);
+    }
+  }
+  if (O.displacement) {
+    for (const f of fighters) {
+      const d = dashDisplacement(f), now = collisionProbe.step;
+      if (d) lastDash.set(f.id, {...d, step: now});
+      const r = d ?? lastDash.get(f.id);if (!r || (!d && now - r.step > MAX_AGE_STEPS)) continue;
+      const y = .12, o = r.origin;
+      view.line([[o.x, y, o.z], [o.x + r.dir.x * r.intended, y, o.z + r.dir.z * r.intended]], 0x5dff9a, .9);
+      view.line([[o.x, y + .05, o.z], [o.x + r.dir.x * r.traveled, y + .05, o.z + r.dir.z * r.traveled]], 0xffffff, .95);
+    }
+  }
   if (O.sweeps) {
     for (const s of collisionProbe.sweeps) if (collisionProbe.step - s.step <= 30) view.line([[s.a.x, .65, s.a.z], [s.b.x, .65, s.b.z]], 0xffd34d, .85);
     for (const s of collisionProbe.hits) if (collisionProbe.step - s.step <= MAX_AGE_STEPS) {
@@ -115,6 +149,10 @@ export function collisionRows(game) {
     rows.push([`${names[i]} · apoio`, f.flight ? `em voo (alt ${f.flight.y.toFixed(2)} m)` : s ? `${s.kind}${s.id != null ? ` ${s.id}` : ''} a ${s.y.toFixed(2)} m · há ${s.age} passos` : '—']);
     const r = collisionProbe.byFighter[f.id], age = r ? collisionProbe.step - r.step : Infinity;
     rows.push([`${names[i]} · último contato`, r && age <= MAX_AGE_STEPS ? `${r.kind}${r.id != null ? ` ${r.id}` : ''} · prof. ${(r.depth * 100).toFixed(1)} cm · normal (${r.normal.x.toFixed(2)}, ${r.normal.z.toFixed(2)}) · v ${Math.hypot(r.vBefore.x, r.vBefore.z).toFixed(1)} → ${Math.hypot(r.vAfter.x, r.vAfter.z).toFixed(1)} m/s · há ${age} passos` : '—']);
+  });
+  game.fighters.forEach((f, i) => {
+    const d = dashDisplacement(f);
+    if (d) rows.push([`${names[i]} · deslocamento`, `${d.kind}: ${d.traveled.toFixed(2)} m de ${d.intended.toFixed(2)} m pretendidos (${d.intended > 0 ? Math.round(100 * d.traveled / d.intended) : 0}%)${d.friction > 1e-3 ? ` · atrito tirou ${d.friction.toFixed(2)} m` : ''}`]);
   });
   const bad = ms ? solidPairs(ms) : [], over = bad.filter(p => p.gap < 0).length;
   rows.push(['Objetos do cenário', `${bad.length} par(es) com vão < ${(C.map?.passageClearance ?? 1.2).toFixed(1)} m (${over} sobrepostos) · ${ms?.placementConflicts ?? 0} sem posição válida`]);

@@ -33,6 +33,12 @@ try {
   const pkg = JSON.parse(readFileSync(path, 'utf8'));
   check('o pacote baixado tem esquema, versão, semente, snapshot e a nota', pkg.schema === 'arenamon-bug' && pkg.version === 1 && typeof pkg.seed === 'number' && pkg.snapshot?.fighters?.length === 2 && pkg.note === 'teste automático da captura', JSON.stringify({s: pkg.schema, v: pkg.version, tick: pkg.tick}));
   check('o pacote traz o equipamento de Moves e a versão do laboratório', pkg.moveLoadouts?.[0]?.[0] === 'harden' && /v\d+\.\d+\.\d+/.test(pkg.appVersion), String(pkg.appVersion));
+  check('sem a opção marcada, o pacote não leva imagem', !('screenshot' in pkg));
+  await page.check('#bug-image');
+  const [dl2] = await Promise.all([page.waitForEvent('download'), btn.click()]);
+  const shot = JSON.parse(readFileSync(await dl2.path(), 'utf8')).screenshot ?? '';
+  check('com «Incluir imagem da tela», o pacote leva um JPEG da cena (não vazio)', /^data:image\/jpeg;base64,/.test(shot) && shot.length > 5000, `tamanho ${shot.length}`);
+  await page.uncheck('#bug-image');
   await page.evaluate(() => {window.__lab.game.fighters[0].hp = 1;});   // estrago o estado para provar que a abertura restaura o capturado
   await page.setInputFiles('#bug-file', path);
   await page.waitForFunction(() => /Captura aberta/.test(document.getElementById('bug-result')?.textContent ?? ''), null, {timeout: 20000});

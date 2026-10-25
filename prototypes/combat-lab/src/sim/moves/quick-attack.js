@@ -65,6 +65,8 @@ export function quickAttackStep(/** @type {any} */ f, /** @type {any} */ a, /** 
 
 /** FICHA do Move (ver docs/COMO_CRIAR_UM_MOVE.md): `params` gera o padrão em C.world.quickAttack e os sliders da aba Moves; `def` e os manipuladores são registrados sozinhos. */
 export const ficha = defineFicha({
+  // Quando a IA usa o Move (perfil declarativo, ver ai-profile.js): rival a meia distância, no chão e sem defender.
+  ai: {kind: 'tap', p: .14, why: 'investida rápida e volta', distance: {min: 3.2, max: 6.8}, requires: ['tGround'], forbids: ['tGuard', 'tackling'], minStamina: 2},
   def: quickAttackDef, tackle: ['quick-attack', quickAttackSetup], hooks: [['quick-attack:step', quickAttackStep]],
   params,
 });
