@@ -50,6 +50,15 @@ class TestRegioes(unittest.TestCase):
         self.assertEqual(r["lod_mesh_01"], "auxiliar")
 
 
+    def test_dedo_do_pe_fica_na_perna(self):
+        nomes = ["origin", "waist", "left_leg_01", "left_foot", "left_foot_index", "right_foot_claw"]
+        pais = [-1, 0, 1, 2, 3, 3]
+        esq = za_anim.Esqueleto.de_arrays(nomes, pais, np.zeros((6, 3)), np.tile([1.0, 0, 0, 0], (6, 1)))
+        r = dict(zip(nomes, ontologia.regioes(esq)))
+        self.assertEqual(r["left_foot_index"], "perna_E")
+        self.assertEqual(r["right_foot_claw"], "perna_D")
+
+
 class TestAnatomia(unittest.TestCase):
     def test_anatomia_quadrupede(self):
         esq = S.quadrupede()

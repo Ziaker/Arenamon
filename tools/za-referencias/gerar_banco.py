@@ -15,6 +15,8 @@ import os
 import sys
 import traceback
 
+import numpy as np
+
 AQUI = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, AQUI)
 sys.path.insert(0, os.path.join(os.path.dirname(AQUI), "za-extrator"))
@@ -58,6 +60,9 @@ def medir_forma(args):
     regs = ontologia.regioes(esq)
     anat = ontologia.anatomia(esq, regs)
     revisoes = ontologia.carregar_revisoes()
+    assinatura = ontologia.assinatura_rig(esq)
+    pose_hash = hashlib.sha256(np.round(np.concatenate([esq.loc_repouso.ravel(), esq.rot_repouso.ravel()]), 5)
+                               .tobytes()).hexdigest()[:16]
     animados_forma = set()
     linhas = []
     for f in sorted(hashes):
@@ -82,7 +87,8 @@ def medir_forma(args):
                  "espaco": config.ESPACO, "interpolacao": config.INTERPOLACAO, "limiares": config.limiares()}
         linha.update(cls)
         linha.update(m)
-        linha["assinatura_rig"] = ontologia.assinatura_rig(esq)
+        linha["assinatura_rig"] = assinatura
+        linha["pose_repouso_hash"] = pose_hash
         linhas.append(linha)
     frac = round(ontologia.fracao_outro(animados_forma, regs), 4)
     outros = sorted({esq.nomes[i] for i in animados_forma if regs[i] == "outro"})

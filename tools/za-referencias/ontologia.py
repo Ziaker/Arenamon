@@ -29,9 +29,10 @@ _REGRAS_TOKEN = [
     ("mandibula", {"jaw", "mouth", "teeth", "tooth", "fang", "beak"}),
     ("apendice_sensorial", {"feeler", "ear", "antenna", "whisker", "hige"}),
     ("cabelo_pelagem", {"hair", "fur", "mane", "mustache"}),
+    # perna antes de braço: "foot_index"/"foot_claw" são dedos do pé, não da mão
+    ("perna", {"leg", "foot", "toe", "thigh", "knee"}),
     ("braco", {"arm", "hand", "shoulder", "finger", "fingerbase", "index", "middle", "ring", "thumb", "pinky",
                "claw", "nail"}),
-    ("perna", {"leg", "foot", "toe", "thigh", "knee"}),
     ("pescoco", {"neck"}),
     ("nucleo", {"waist", "hips", "spine", "body", "crotch", "center", "chest", "pelvis"}),
 ]
