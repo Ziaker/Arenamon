@@ -19,7 +19,7 @@ textarea{width:100%;min-height:52px}
 .prog{color:var(--mut)}
 </style></head><body><main>
 <h1>Rotulagem cega · lote Z-A</h1>
-<p>Para cada animação, olhe as folhas (duas vistas, quadros espaçados pelo clipe) e responda o que <b>você</b> vê. A página não mostra o que o sistema calculou. Use "Inconclusivo" sempre que não der para ver. Suas respostas ficam salvas neste navegador; no fim, clique em <b>Baixar rótulos</b> e guarde o arquivo. Lote <code>{{HASH}}</code>.</p>
+<p>Clique numa folha para vê-la em tamanho real. Para cada animação, olhe as folhas (duas vistas, quadros espaçados pelo clipe) e responda o que <b>você</b> vê. A página não mostra o que o sistema calculou. Use "Inconclusivo" sempre que não der para ver. Suas respostas ficam salvas neste navegador; no fim, clique em <b>Baixar rótulos</b> e guarde o arquivo. Lote <code>{{HASH}}</code>.</p>
 <div class="barra">
   <label>Seu nome <input id="revisor" placeholder="ex.: Rafael" required></label>
   <span class="prog" id="prog"></span>
@@ -41,7 +41,7 @@ function render() {
   el.innerHTML = LOTE.itens.map(it => `
   <section class="item" data-id="${it.id}">
     <b>${it.n}. ${it.pokemon || ""}</b> · <code>${it.clipe}</code> <span class="prog">código ${it.codigo_leitura || "—"}</span>
-    <div class="folhas">${it.folhas.map(f => `<img loading="lazy" src="${f}" alt="folha ${f}">`).join("") || "<p>Sem folha gerada.</p>"}</div>
+    <div class="folhas">${it.folhas.map(f => `<a href="${f}" target="_blank" title="abrir em tamanho real"><img loading="lazy" src="${f}" alt="folha ${f}"></a>`).join("") || "<p>Sem folha gerada.</p>"}</div>
     <div class="grade">
       <fieldset class="chips"><label>Quem executa a ação? (marque todas)</label>
         ${REGIOES.map(r => `<label><input type="checkbox" data-exec="${r[0]}">${r[1]}</label>`).join("")}

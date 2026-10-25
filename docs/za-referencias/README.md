@@ -57,7 +57,54 @@ Novos módulos em `tools/za-referencias/`, cada um com testes em `tests/` (rigs 
 
 **Máscara de visibilidade:** o Z-A esconde partes zerando a escala. Todo osso com escala < 0,1 (nele ou num ancestral) sai das medidas nesses quadros (`za_anim.ocultos`).
 
-{{RESULTADOS_1C_1I}}
+### Resultados no corpus (banco final, 41.790 clipes, 0 falhas)
+
+**1C, papéis no ataque físico** (300 espécies, conjunto 0):
+- Executor por região: braço direito 55%, braço esquerdo 38%, cabeça 25%, cauda 22%, perna direita 14%, mandíbula 7%. 52% dos ataques têm 2 ou mais executores.
+- Olho, orelha ou antena como "efetor": 81 pelo critério antigo, 1 agora (uma antena, permitida porque é a única cadeia longa daquele rig). Nenhum ataque ficou inconclusivo.
+- Quem inicia o movimento: núcleo 19%, braço direito 17%, cauda 16%.
+- Classe do corpo pelo esqueleto × forma da PokeAPI: "ereto" → bípede em 132 de 142; "humanoide" → bípede em 77 de 83.
+- Só 1 de 590 modelos tem mais de 5% de ossos animados sem região.
+- Status `CANDIDATO`: o acerto real só existe depois do gabarito humano.
+
+**1D, eventos:**
+- 70% dos ataques têm mais de um pico de velocidade no executor (preparação, golpe, recuperação).
+- Squash/stretch aparece em 24% dos ataques e 29% dos clipes de dano; partes escondidas por escala, em 8–9%.
+
+**1E, locomoção** (1.490 loops):
+- 938 saem `real` e 552 `SEM_INFORMACAO`. Destes, 245 não têm pernas, há pés que nunca levantam, pés apoiando em alturas diferentes e pulos.
+- Escorregão inferido em 4% dos loops (7% no conjunto 0), com deslize mediano de 0,056 H.
+- Cadência mediana: 2,9 passos/s.
+
+**1G, poses-chave:** no ataque físico, mediana de 53% dos quadros (dentro de 1% de H e 3°). Concordância com os "quadros fortes" do arquivo entre 30% e 57% conforme a categoria.
+
+**1H, normas:** cada grupo traz n de espécies, rigs estruturais e poses de repouso. O ataque físico (conjunto 0) tem 300 espécies e 302 rigs; 58% dos clipes têm escala animada e 10% têm partes escondidas. Status `MEDIDO`, `adequacao_artistica = NAO_AVALIADA`.
+
+**1I, lote de rotulagem:** em `dumper test/za-referencias/avaliacao/lote_01/`.
+- Divisão sem vazamento: 189 grupos, teste com 30%.
+- Folhas em modo cego, sem cor, sem estado e com quadros espaçados.
+- As previsões do sistema ficam em `_sistema/` e não devem ser abertas antes de rotular.
+
+### Achados que mudaram o código durante a execução (todos com teste que falhou antes)
+
+| Achado no corpus | Correção |
+|---|---|
+| `foot_index` (dedo do pé) caía em "braço": 117 eretos viravam quadrúpedes | Perna tem precedência sobre os tokens de dedo |
+| Antenas e pálpebras em balanço de idle "iniciavam" 25% dos ataques | Iniciador e ordem só entre regiões motoras, na janela antes do golpe |
+| Roupas e saias deixavam 41 modelos acima de 5% em "outro" | Região `acessorio` |
+| 78% dos loops `SEM_INFORMACAO` por mergulho do pé no ar e balanço do corpo | Faixa de apoio por pé; pulo só acima de 25% de H |
+| Escorregão em 37% dos loops (pés que não levantam, apoios de 2 q, balanço rasante) | Passo não observável; apoio mínimo de 4 q; pé rápido rente ao chão = balanço |
+| A divisão dev/teste juntava o corpus num componente só | Quase duplicata exige correlação ≥ 0,9999 + mesmos quadros + mesma energia de pico |
+| Folhas com o executor pintado entregariam a resposta ao revisor | Modo `cego` |
+
+### Não verificado
+
+- O acerto de executores, iniciador, antecipação e apoio. Depende dos rótulos humanos do lote 01 e do A/B.
+- Escorregão conferido no visual: 2 tentativas, ambas inconclusivas (câmera seguindo o pé). Continua `INFERIDO`.
+- O significado dos conjuntos 1xxxx–4xxxx. Há um indício, não confirmado: no conjunto 1 a raiz fica mais alta e os pés mais longe do chão em 3 de 4 espécies amostradas.
+- Animação retargetada entre rigs diferentes não é detectada como duplicata; para isso seria preciso comparar curvas por osso.
+- O "A" do A/B (Blender Vision atual) só entende rigs com nomes humanoides (`Hips`, `RightArm`…). Na maioria dos Pokémon ele vai sair sem resposta, e isso precisa entrar na leitura do A/B.
+
 
 ## Próxima fase
 
