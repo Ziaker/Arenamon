@@ -90,7 +90,7 @@ export function makeMoveScenario(move, stage = {}) {
 /** `move.json` com os valores de mecânica ATUAIS (os sliders), pronto para colar no arquivo do Move. */
 export function currentMoveJson(/** @type {{def: any, params: any, visual: any}} */ move, /** @type {any} */ world = C.world) {
   const g = world[move.params.group] ?? {};
-  const rows = move.params.rows.map((/** @type {any} */ r) => { const {approved, ...rest} = r; return r.key in g ? {...rest, value: g[r.key]} : rest; });
+  const rows = move.params.rows.map((/** @type {any} */ r) => { const {approved, ...rest} = r; return {...(r.key in g ? {...rest, value: g[r.key]} : rest), ...(approved ? {approved: true} : {})}; });
   const hs = rows.filter((/** @type {any} */ r) => String(r.key).startsWith('hitShake'));
   const body = rows.filter((/** @type {any} */ r) => !String(r.key).startsWith('hitShake'));
   const def = {...move.def};
