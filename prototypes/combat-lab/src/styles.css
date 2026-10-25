@@ -927,3 +927,17 @@ button.onoff[aria-checked=true]::after{content:'ON';background:#14593c;color:#72
 .mv-tl-mark.cue-vfx{background:#c78bff;width:3px}.mv-tl-mark.cue-camera{background:#ffe27a;width:3px}.mv-tl-clip{position:absolute;top:3px;bottom:3px;background:#3f7f6f;opacity:.7;border-radius:3px}
 .mv-tl-dom{display:inline-block;min-width:54px;padding:0 5px;border-radius:3px;font-size:10px;text-align:center;color:#06121d;background:#9fb4c6}.mv-tl-dom.vfx{background:#c78bff}.mv-tl-dom.camera{background:#ffe27a}.mv-tl-dom.animation{background:#6fcfb4}
 .mv-tl-seek{margin-left:6px;padding:0 6px;font-size:10.5px}
+
+/* Editor de Moves (fase 2) */
+.move-editor #move-editor-body{flex:1;min-height:0;overflow:auto;padding:10px 12px 20px;display:flex;flex-direction:column;gap:12px}
+.move-editor .editor-sec{border:1px solid #ffffff18;border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;gap:6px;background:#0a141d}
+.move-editor h4{margin:0 0 2px;font-size:13px;letter-spacing:.04em;color:#9fd8ff}
+.move-editor h5{margin:8px 0 2px;font-size:11px;color:#9db0c6;text-transform:uppercase}
+.move-editor .editor-row{display:grid;grid-template-columns:150px 1fr 70px;gap:8px;align-items:center;font-size:12px}
+.move-editor .editor-row.check{grid-template-columns:auto 1fr}
+.move-editor .editor-row select{grid-column:2 / 4}
+.move-editor .editor-actions{display:flex;gap:8px;flex-wrap:wrap}
+.move-editor .editor-table{width:100%;border-collapse:collapse;font-size:12px}
+.move-editor .editor-table td,.move-editor .editor-table th{padding:3px 6px;border-bottom:1px solid #ffffff14;text-align:left}
+.lab.zen-mode .move-editor{display:none}
+.move-editor .editor-row.changed span{color:#ffd166}.move-editor .editor-row{grid-template-columns:150px 1fr 66px 22px}.move-editor button.mini{padding:0 4px;min-height:22px}

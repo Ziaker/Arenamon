@@ -9,14 +9,10 @@ import {spawn} from '../world.js';
 import {direction} from '../math.js';
 import {isAirJump} from '../air.js';
 import {defineFicha} from './params-registry.js';
-import {params} from './sand-wave.params.js';
+import {params, def as sandWaveDef} from './sand-wave.params.js';
 
-export const sandWaveDef = Object.freeze({
-  id: 'sand-wave', name: 'Sand Wave', air: 'cast', group: 'sandWave', groundOnly: true, aim: 'target',
-  description: 'Burst. Só no chão: após 0,25 s lança uma barragem de areia (retângulo 4 × 3 m à frente) que fere, empurra e CEGA por 4 s quem estiver no chão dentro dela.',
-  cost: 2, cooldown: 10, duration: .25, motion: {type: 'root'},
-  timeline: [{at: .25, atKey: 'cast', effect: 'sand-wave'}],
-});
+export {sandWaveDef};   // definição (id, fases, custo…) vem de sand-wave.move.json
+
 
 /** Efeito do fim da preparação: cria a barragem com a direção e as dimensões fixadas agora. */
 export function sandWaveEffect(/** @type {any} */ game, /** @type {any} */ f, /** @type {any} */ def, /** @type {any} */ fx) {
