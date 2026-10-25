@@ -65,6 +65,8 @@ const PARAMS = [
 /** Chaves de knockback/lançamento: limite fixo de 15. */
 export const KNOCKBACK_KEY = /^(knockbackH|knockbackV|knockback|knockbackPl\d|knockbackPerStone|knockbackVertical|knockbackCap|blastKnockback|blastKnockbackV|burstForce|burstVertical|launchH|launchV)$/;
 export const KNOCKBACK_MAX = 15;
+/** Exceções ao limite de 15 (decisão de 25/10/2026): o Riposte usa 16,8 m/s na calibração do jogo, então o slider dele vai até 17. */
+export const KNOCKBACK_MAX_EXCEPTIONS = {'riposte.knockbackH': 17};
 // Moves em FICHA (um arquivo por Move em src/sim/moves/): título, texto de apoio e sliders vêm da própria ficha, sem tabela aqui.
 const FORMATTERS = {num, int, sec, pct, m, ms, ms2, deg, x, yesno};
 for (const g of moveParamGroups()) {
@@ -72,7 +74,7 @@ for (const g of moveParamGroups()) {
   PARAMS.push([g.title, g.rows.map(r => [g.group, r.key, r.label, r.tip, r.min, r.max, r.step, FORMATTERS[r.unit], !!r.approved])]);
 }
 for (const [, rows] of PARAMS) for (const r of rows) {
-  if (KNOCKBACK_KEY.test(r[1])) r[5] = KNOCKBACK_MAX;
+  if (KNOCKBACK_KEY.test(r[1])) r[5] = KNOCKBACK_MAX_EXCEPTIONS[`${r[0]}.${r[1]}`] ?? KNOCKBACK_MAX;
   else if (r[7] !== yesno && !(r[6] >= 1 && r[5] <= 3)) r[5] *= 2;
 }
 // Tremor de câmera ao acertar (pedido de 23/10/2026): Moves que NÃO são corpo a corpo não tremem por padrão; o interruptor libera a intensidade e a duração (valem sobre o tremor padrão de hit).

@@ -1,7 +1,7 @@
 // Rodada de 23/10/2026: dano inteiro, Fire Spin sem limite de pulsos e com start-up, knockback até 15 em todos os Moves, hit com `move`, pouso da Seed Bomb no chão e tremor de hit por Move.
 import {assert, C, cmd, vec, suite, arena as arenaBase, run, HOLD} from './moves-new-helpers.mjs';
 import {wholeDamage} from '../src/sim/damage-rule.js';
-import {MOVES_PARAMS, KNOCKBACK_MAX, KNOCKBACK_KEY, DEPENDS_ON} from '../src/ui/moves-panel.js';
+import {MOVES_PARAMS, KNOCKBACK_MAX, KNOCKBACK_MAX_EXCEPTIONS, KNOCKBACK_KEY, DEPENDS_ON} from '../src/ui/moves-panel.js';
 import {SHAKE_GROUPS, MELEE_MOVES} from '../src/sim/move-hit-map.js';
 
 const {test, done} = suite('RODADA 23/10');
@@ -31,9 +31,10 @@ test('Fire Spin: o start-up atrasa o primeiro pulso e os pulsos seguem a cada in
   assert.ok(!MOVES_PARAMS.flatMap(g => g[1]).some(r => r[0] === 'fireSpin' && r[1] === 'pulses'), 'o slider de número de pulsos não existe mais');
 });
 
-test('knockback: todo slider H/V de Move vai até 15 e todo Move que causa dano tem os dois', () => {
+test('knockback: todo slider H/V de Move vai até 15 (exceção decidida: Riposte H até 17) e todo Move que causa dano tem os dois', () => {
   const rows = MOVES_PARAMS.flatMap(g => g[1]);
-  for (const r of rows) if (KNOCKBACK_KEY.test(r[1])) assert.equal(r[5], KNOCKBACK_MAX, `${r[0]}.${r[1]}`);
+  assert.deepEqual(KNOCKBACK_MAX_EXCEPTIONS, {'riposte.knockbackH': 17});
+  for (const r of rows) if (KNOCKBACK_KEY.test(r[1])) assert.equal(r[5], KNOCKBACK_MAX_EXCEPTIONS[`${r[0]}.${r[1]}`] ?? KNOCKBACK_MAX, `${r[0]}.${r[1]}`);
   const has = (g, re) => rows.some(r => r[0] === g && re.test(r[1]));
   for (const g of ['reflect', 'psyshock', 'swift', 'lunge', 'quickAttack', 'guardBreak', 'riposte', 'emergingStone', 'bulletPunch', 'sandWave', 'spikes', 'bounce', 'waterPulse', 'fireSpin', 'airSlash', 'seedBomb']) {
     assert.ok(has(g, /^(knockbackH|knockback|knockbackPl1|knockbackPerStone|blastKnockback|burstForce)$/), `${g}: horizontal`);

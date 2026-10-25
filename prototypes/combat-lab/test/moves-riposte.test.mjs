@@ -23,16 +23,16 @@ function swiftAt({fireAt = 20, dist = 2, steps = 180, tweak = null, atk = null, 
 }
 const firstHit = ev => ev.find(e => e.target === 0 && ['riposte', 'impact', 'partial'].includes(e.result));
 
-test('registrado com os dados da proposta: 0,80 de stamina, 8 s, 0,65 s; nada equipado por padrão', () => {
+test('registrado com 1,55 de stamina (fábrica = jogo, decisão de 25/10), 8 s, 0,65 s; nada equipado por padrão', () => {
   const g = arena();const d = getMove('riposte');
-  assert.deepEqual([d.cost, d.cooldown, d.duration], [.8, 8, .65]);
+  assert.deepEqual([d.cost, d.cooldown, d.duration], [1.55, 8, .65]);
   assert.ok(g.fighters.every(f => (f.loadout ?? []).every(x => !x)));
 });
 test('custo e recarga cobrados na confirmação (no toque, sem marcador)', () => {
   const g = arena({equip: ['riposte']});const b = g.fighters[0];
   g.step(cmd(press0), cmd());
   assert.equal(b.action.move, 'riposte');assert.ok(Math.abs(b.moveCooldowns.riposte - 8) < .06);
-  assert.ok(C.rules.staminaMax - b.stamina > .75 && C.rules.staminaMax - b.stamina < .85);
+  assert.ok(C.rules.staminaMax - b.stamina > 1.5 && C.rules.staminaMax - b.stamina < 1.6);
 });
 test('acerto DENTRO da janela (0,13–0,30 s): dano e knockback anulados, evento riposte', () => {
   const {g, ev} = swiftAt({fireAt: 20});const b = g.fighters[0];
