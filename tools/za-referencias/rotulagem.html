@@ -45,9 +45,12 @@ let estado = {};
 try { estado = JSON.parse(localStorage.getItem(CHAVE) || "{}"); } catch (e) { estado = {}; }
 const salvar = () => { try { localStorage.setItem(CHAVE, JSON.stringify(estado)); } catch (e) {} atualizar(); };
 const sel = (nome, opcoes, id) => `<label>${nome}<select data-campo="${id}"><option value="">—</option>${opcoes.map(o => `<option value="${o[0]}">${o[1]}</option>`).join("")}</select></label>`;
+// itens que o responsável decidiu não usar (LOTE.ignorados): somem da página e do arquivo baixado
+const IGNORADOS = new Set(LOTE.ignorados || []);
+const ITENS = LOTE.itens.filter(it => !IGNORADOS.has(it.n));
 function render() {
   const el = document.getElementById("itens");
-  el.innerHTML = LOTE.itens.map(it => `
+  el.innerHTML = ITENS.map(it => `
   <section class="item" data-id="${it.id}">
     <b>${it.n}. ${it.pokemon || ""}</b> · <code>${it.clipe}</code> <span class="prog">código ${it.codigo_leitura || "—"}</span>
     ${(it.videos || []).length ? `
@@ -149,14 +152,14 @@ function atualizar() {
     const ok = r.antecipacao && (r.executores === "INCONCLUSIVO" || (r.executores || []).length);
     sec.classList.toggle("feito", !!ok); feitos += ok ? 1 : 0;
   });
-  document.getElementById("prog").textContent = `${feitos} de ${LOTE.itens.length} respondidas`;
+  document.getElementById("prog").textContent = `${feitos} de ${ITENS.length} respondidas`;
 }
 document.getElementById("revisor").value = estado.__revisor || "";
 document.getElementById("revisor").addEventListener("input", e => { estado.__revisor = e.target.value; salvar(); });
 document.getElementById("baixar").addEventListener("click", () => {
   const nome = (estado.__revisor || "").trim();
   if (!nome) { alert("Escreva seu nome antes de baixar."); return; }
-  const rot = LOTE.itens.map(it => Object.assign({ id: it.id }, estado[it.id] || {}));
+  const rot = ITENS.map(it => Object.assign({ id: it.id }, estado[it.id] || {}));
   const blob = new Blob([JSON.stringify({ lote: "{{HASH}}", revisor: nome, rotulos: rot }, null, 1)], { type: "application/json" });
   const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
   a.download = `rotulos_${nome.replace(/\W+/g, "_")}_{{HASH}}.json`; a.click();
