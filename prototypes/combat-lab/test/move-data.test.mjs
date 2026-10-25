@@ -71,7 +71,7 @@ ok(`esquema versão ${MOVE_DATA_SCHEMA}`, () => assert.equal(raw.schemaVersion, 
 // ---- TODOS os Moves em dado ----
 const files = readdirSync(new URL('.', here)).filter(f => f.endsWith('.move.json'));
 ok(`todos os ${files.length} move.json são válidos, com id igual ao nome do arquivo`, () => {
-  assert.ok(files.length >= 17, 'esperava os 17 Moves migrados');
+  assert.ok(files.length >= 19, 'esperava os 19 Moves em dado (17 em ficha + Reflect e Psyshock)');
   for (const f of files) {
     const d = JSON.parse(readFileSync(new URL(f, here), 'utf8'));
     assert.deepEqual(validateMoveData(d), [], f);

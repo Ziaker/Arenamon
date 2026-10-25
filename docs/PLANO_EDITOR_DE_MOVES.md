@@ -1,6 +1,6 @@
 # Plano: Editor de Moves (janela única que dá play no Move)
 
-Status (24/10/2026): **fases 1 a 5 entregues (17 Moves)** (ver «Andamento» no fim). Fases 3 a 7 ainda são plano.
+Status (24/10/2026): **fases 1 a 5 entregues (19 Moves, todos)**; o painel antigo da aba Moves foi desmontado (ver «Andamento» no fim). Fases 3 a 7 ainda são plano.
 
 ## Objetivo
 
@@ -160,4 +160,9 @@ Modo escuro/claro, painel redimensionável e lembrado, janela destacável por pa
   - **Não equipados**: os demais Moves, com «Equipar…» (escolhe o slot; ocupado = troca). Seletor **Azul | Vermelho** para os dois lutadores. A vitrine acompanha mudanças de loadout feitas pela gaveta Ações ou pela Seleção Rápida.
   - **Clicar num cartão abre o Editor de Moves naquele Move** (equipado ou não). Reflect e Psyshock (ainda em código; selo «em código») abrem o painel antigo.
   - O **painel antigo** (sliders de todos os Moves, testes, IA) continua disponível, **recolhido**, logo abaixo da vitrine; some quando Reflect e Psyshock forem migrados. Código: `src/editor/move-showcase-model.js` (puro) e `move-showcase.js` (interface). Testes: `test/move-showcase.test.mjs` (7) e `test/move-showcase.browser.mjs` (19). Evidência: `evidence/editor/vitrine-moves.png`.
-- **Limites atuais:** Reflect e Psyshock ainda não estão no editor (abrem o painel antigo); a IA (`ficha.ai`) e a lógica dos efeitos seguem em código; o visual do atelier só está ligado a Sand Wave, Emerging Stone e Swift; não há gravação direta no disco (copiar o JSON e colar no arquivo); pendentes do plano: fases 6 e 7 (janela separada, atalhos, gerador de Move completo) e os QoLs.
+- **Reflect e Psyshock migrados** (`reflect.move.json`, `psyshock.move.json`) com **prova de equivalência** (definição, padrões de `C.world`, as linhas de sliders com rótulo/faixa/«aprovado», Move efetivo e ordem do registro idênticos): os rótulos e as faixas que viviam numa tabela de `ui/moves-panel.js` e os padrões que viviam em `config.js` passaram para o JSON. Os dois são fichas, mas **não** entram em `NEW_MOVES` (o `standard.js` os registra e a IA os trata à parte). Script: `scripts/migrar-reflect-psyshock.mjs`. Com isso **todos os Moves (19) estão em dado e no Editor**.
+- **Painel antigo desmontado**: a aba Moves não tem mais cartões de sliders por Move. O que eles faziam foi para o Editor de Moves: **mecânica** (com os mesmos limites efetivos e o selo aprovado/provisório), **Efeitos do jogo (VFX)** (a antiga aba «Visual»), **ficha do Move** (linha do tempo da ficha em ticks, «Medir no motor» e comparação A/B com o padrão de fábrica), **▶ Disparar no jogo** e **⚔ Equipar e animações** (abre a gaveta Ações no Move). Os atalhos «parâmetros» da gaveta Ações abrem o Editor.
+  - Na aba Moves ficou só **«Ajustes compartilhados e ferramentas de teste»** (recolhido): carga compartilhada, estilo global dos efeitos, emissores técnicos, laser, cenários técnicos, avaliação jogável e exportar parâmetros — nada disso é de um Move só.
+  - Abrir a gaveta Ações, Personagens ou o Editor fecha as outras (ocupam o mesmo lugar).
+  - Defeito da fase 2 corrigido: os sliders de mecânica do Editor usavam os limites do `move.json`, não os **efetivos** (limites ampliados de 22/10 e knockback até 15) que o painel antigo oferecia; agora usam os efetivos. Ajustes puramente visuais (`isVisualWorldParam`) e o tremor de hit ficam na seção de VFX.
+- **Limites atuais:** a IA (`ficha.ai`) e a lógica dos efeitos seguem em código; o visual do atelier só está ligado a Sand Wave, Emerging Stone e Swift; não há gravação direta no disco (copiar o JSON e colar no arquivo); pendentes do plano: fases 6 e 7 (janela separada, atalhos, gerador de Move completo) e os QoLs.

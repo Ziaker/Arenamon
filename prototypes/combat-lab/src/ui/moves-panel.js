@@ -137,7 +137,7 @@ const HOMOLOG_KEY = 'arenamon-moves-homolog';
 const loadHomolog = () => {try {return JSON.parse(localStorage.getItem(HOMOLOG_KEY) ?? '{}');} catch {return {};}};
 const saveHomolog = h => {try {localStorage.setItem(HOMOLOG_KEY, JSON.stringify(h));} catch {/* sem armazenamento: a avaliação vale só nesta sessão */}};
 
-export function createMovesPanel({$, game, download, tuning, view, ui, canvas, startMatch, visual, nav = {}, presetValues = null}) {
+export function createMovesPanel({$, game, download, tuning, view, ui, canvas, startMatch, visual, nav = {}, presetValues = null, cards: showCards = true}) {
   const root = $('moves-panel');
   const tabOf = new Map(), fireOpts = {hold: .4, auto: false};
   const specPanel = createMoveSpecPanel({download});
@@ -389,12 +389,46 @@ export function createMovesPanel({$, game, download, tuning, view, ui, canvas, s
     container.innerHTML = paramGroup('IA com Moves (decisões do adversário)', true);
     bindParams(container, () => renderAiParams(container));
   }
+  /** Liga, dentro de `scope`, os botões de «▶ Disparar», comparação A/B com o padrão de fábrica, marcas da linha do tempo da ficha, quadros do clipe e «Medir no motor». */
+  function bindMoveTools(scope) {
+    for (const b of scope.querySelectorAll('[data-fire]')) b.onclick = () => fire(b.dataset.fire);
+    for (const b of scope.querySelectorAll('[data-ab-run]')) b.onclick = () => {
+      const id = b.dataset.abRun, g = getMove(id)?.group, out = scope.querySelector(`[data-ab-result="${id}"]`), sel = scope.querySelector(`[data-ab-b="${id}"]`).value;
+      if (!g || !C.world[g]) {out.innerHTML = '<p class="warn">Este Move não tem grupo de parâmetros: nada para comparar.</p>';return;}
+      const prefix = `world.${g}.`, only = vals => Object.fromEntries(Object.entries(vals).filter(([p]) => p.startsWith(prefix)));
+      const A = Object.fromEntries(Object.entries(C.world[g]).map(([k, v]) => [prefix + k, v]));
+      const B = sel === '__factory' ? Object.fromEntries(Object.entries(factoryDefaults().world[g] ?? {}).map(([k, v]) => [prefix + k, v])) : { ...A, ...only(presetValues.valuesOf(sel) ?? {}) };
+      let r;try {r = compareMoveVariants(id, A, B);} catch (e) {out.innerHTML = `<p class="warn">${escape(String(e.message ?? e))}</p>`;return;}
+      const LABEL = {damage: 'Dano causado', hits: 'Acertos', blocked: 'Bloqueados', firstImpactTick: '1º impacto (tick)', entities: 'Entidades criadas', actionTicks: 'Duração da ação (ticks)', maxDisplacement: 'Deslocamento máx. (m)', foeHpLoss: 'HP perdido pelo rival', staminaSpent: 'Stamina gasta', cooldown: 'Recarga (s)'};
+      out.innerHTML = `<table><tr><th>Métrica</th><th>A · atual</th><th>B</th></tr>${r.rows.map(x => `<tr class="${x.same ? '' : 'warn'}"><td>${escape(LABEL[x.metric] ?? x.metric)}</td><td>${x.a ?? '—'}</td><td>${x.b ?? '—'}</td></tr>`).join('')}</table>`
+        + (r.divergence.identical ? '<p class="muted">As duas execuções são idênticas: os valores escolhidos não mudam este cenário.</p>' : `<p>Primeiro tick em que A e B se separam: <b>${r.divergence.tick}</b>, campo <code>${escape(r.divergence.field)}</code>.</p>`)
+        + `<p class="muted">${r.warnings.map(escape).join(' ')}</p>`;
+    };
+    // Pausar o replay no tick de uma marca: a partida guarda os últimos 12 s; o tick da marca é relativo ao começo da última vez que o Move foi usado.
+    for (const b of scope.querySelectorAll('[data-tl-seek]')) b.onclick = () => {
+      const [id, tick] = b.dataset.tlSeek.split(':'), out = scope.querySelector(`[data-tl-result="${id}"]`);
+      const r = nav.seekMoveTick?.(id, Number(tick)) ?? {ok: false, msg: 'Esta tela não tem replay ligado.'};
+      if (out) out.innerHTML = `<p class="${r.ok ? '' : 'warn'}">${escape(r.msg)}</p>`;
+    };
+    // Conversão tick → quadro do clipe (a animação tem relógio próprio; o valor é só uma conversão de exibição).
+    for (const inp of scope.querySelectorAll('[data-tl-clipframes]')) {
+      const box = inp.closest('.mv-tl') ?? scope.querySelector(`[data-tl="${inp.dataset.tlClipframes}"]`), total = Number(box?.dataset.tlTotal ?? 0);
+      const upd = () => { for (const sp of scope.querySelectorAll('[data-tl-frame]')) sp.textContent = `${clipFrameAtTick(Number(sp.dataset.tlFrame), total, Number(inp.value))} de ${inp.value}`; };
+      inp.oninput = upd; upd();
+  }
+  for (const b of scope.querySelectorAll('[data-tl-measure]')) b.onclick = () => {
+    const id = b.dataset.tlMeasure, out = scope.querySelector(`[data-tl-result="${id}"]`), tl = buildMoveTimeline(id);
+    let m;try {m = measureMoveRun(id);} catch (e) {out.innerHTML = `<p class="warn">${escape(String(e.message ?? e))}</p>`;return;}
+    const eff = tl.marks.find(k => k.kind === 'effect' || k.kind === 'spawn' || k.kind === 'status'), real = m.spawns[0]?.tick ?? m.statusAt;
+    out.innerHTML = `<p>Medido: ação de <b>${m.actionStart ?? '—'}</b> a <b>${m.actionEnd ?? '—'}</b> (${m.actionEnd != null ? m.actionEnd - (m.actionStart ?? 0) : '—'} ticks; a ficha diz ${tl.totalTicks}). ${eff && real != null ? `Efeito: ficha tick ${eff.tick} × motor tick ${real}${Math.abs(real - eff.tick) <= 1 ? ' ✓' : ' ⚠'}.` : ''} Entidades: ${m.spawns.length ? m.spawns.map(sp => `${escape(sp.kind)}@${sp.tick}`).join(', ') : 'nenhuma'}. Impactos nos ticks: ${m.impacts.length ? m.impacts.join(', ') : 'nenhum'}.</p>`;
+  };
+  }
   function render() {
     const closedSubs = new Set([...root.querySelectorAll('details.mv-sub[data-k]:not([open])')].map(d => d.dataset.k));   // subgrupos nascem abertos; só ficam fechados os que você fechou
     const openKeys = new Set([...root.querySelectorAll('details[open][data-k]')].map(d => d.dataset.k));   // a interface não recolhe os grupos que você abriu
     const l0 = loadoutOf(0), l1 = loadoutOf(1), eqIds = listMoves().map(m => m.id);
     const scen = results ? results.map(s => `<details data-k="s:${s.id}" ${s.ok ? '' : 'open'}><summary class="${s.ok ? 'ok' : 'warn'}">${s.ok ? '✓' : '✗'} ${escape(s.name)}</summary><table><tr><th>Verificação</th><th>Esperado</th><th>Obtido</th></tr>${s.rows.map(r => `<tr class="${r.ok ? 'ok' : 'warn'}"><td>${r.ok ? '✓' : '✗'} ${escape(r.what)}</td><td>${escape(r.expected)}</td><td>${escape(r.got)}</td></tr>`).join('')}</table></details>`).join('') : '<p class="hint">Cada cenário roda num duelo isolado, com semente fixa e os ajustes atuais, e compara esperado × obtido.</p>';
-    const cards = eqIds.map(mid => {
+    const cards = !showCards ? '' : eqIds.map(mid => {
       const info = MOVE_INFO[mid], owners = [[0, l0], [1, l1]].filter(([, l]) => l.includes(mid)).map(([w, l]) => `${w ? 'Vermelho' : 'Azul'}: slot ${l.indexOf(mid) + 1}${w ? '' : ` · botão ${escape(keyName(C.extras.keyCodes[C.extras.bindings[SKILL_NAMES[l.indexOf(mid)]]]))}`}`).join(' · ');
       const tab = tabOf.get(mid) ?? 'mec', pane = (k, html) => `<div class="mv-pane" data-pane="${k}" ${tab === k ? '' : 'hidden'}>${html}</div>`;
       return `<details class="mv-move" data-move="${mid}" data-k="move:${mid}"><summary><b>✦ ${escape(moveLabel(mid))}</b>${metaBadge(info?.meta)}<small class="muted">${owners || 'Não equipado'}</small></summary>
@@ -407,7 +441,7 @@ export function createMovesPanel({$, game, download, tuning, view, ui, canvas, s
     }).join('');
     const shared = eqIds.length ? `<section class="mv-move" data-move="_charge"><header><h3>⚙ Carga (todos os moves equipados)</h3></header>${paramGroup('Carga (compartilhada)')}</section>` : '';
     root.innerHTML = `
-      <p class="hint">Cada Move tem um cartão com <b>Mecânica</b>, <b>Visual (VFX)</b> e <b>Animação</b>, e o botão <b>▶ Disparar</b> para testar na hora. Equipagem, botões e animações ficam em <b>⚔ Ações → Moves</b>. Os valores entram no JSON de Exportar.</p>
+      ${showCards ? `<p class="hint">Cada Move tem um cartão com <b>Mecânica</b>, <b>Visual (VFX)</b> e <b>Animação</b>, e o botão <b>▶ Disparar</b> para testar na hora. Equipagem, botões e animações ficam em <b>⚔ Ações → Moves</b>. Os valores entram no JSON de Exportar.</p>` : `<p class="hint">Os <b>Moves</b> se editam no <b>🛠 Editor</b> (clique num Move da vitrine). Aqui ficam só os ajustes <b>compartilhados</b> (carga, estilo dos efeitos), as <b>ferramentas de teste</b> (emissores, laser, cenários técnicos) e a avaliação jogável.</p>`}
       <div class="row"><button type="button" id="mvp-export-params">↓ Exportar parâmetros e VFX dos Moves (JSON)</button></div>
       <div class="mv-fire-opts"><label>Segurar a tecla (s) <input type="range" id="mv-hold" min="0" max="2" step=".05" value="${fireOpts.hold}"><output id="mv-hold-out">${fireOpts.hold.toFixed(2)} s</output></label><label><input type="checkbox" id="mv-auto" ${fireOpts.auto ? 'checked' : ''}> Redisparar ao soltar um slider</label></div>
       ${specPanel.markup()}
@@ -449,37 +483,7 @@ export function createMovesPanel({$, game, download, tuning, view, ui, canvas, s
       for (const p of card.querySelectorAll(':scope > .mv-pane')) p.hidden = p.dataset.pane !== k;
       for (const o of card.querySelectorAll('[data-mvtab]')) o.setAttribute('aria-pressed', String(o === b));
     };
-    for (const b of root.querySelectorAll('[data-fire]')) b.onclick = () => fire(b.dataset.fire);
-    for (const b of root.querySelectorAll('[data-ab-run]')) b.onclick = () => {
-      const id = b.dataset.abRun, g = getMove(id)?.group, out = root.querySelector(`[data-ab-result="${id}"]`), sel = root.querySelector(`[data-ab-b="${id}"]`).value;
-      if (!g || !C.world[g]) {out.innerHTML = '<p class="warn">Este Move não tem grupo de parâmetros: nada para comparar.</p>';return;}
-      const prefix = `world.${g}.`, only = vals => Object.fromEntries(Object.entries(vals).filter(([p]) => p.startsWith(prefix)));
-      const A = Object.fromEntries(Object.entries(C.world[g]).map(([k, v]) => [prefix + k, v]));
-      const B = sel === '__factory' ? Object.fromEntries(Object.entries(factoryDefaults().world[g] ?? {}).map(([k, v]) => [prefix + k, v])) : { ...A, ...only(presetValues.valuesOf(sel) ?? {}) };
-      let r;try {r = compareMoveVariants(id, A, B);} catch (e) {out.innerHTML = `<p class="warn">${escape(String(e.message ?? e))}</p>`;return;}
-      const LABEL = {damage: 'Dano causado', hits: 'Acertos', blocked: 'Bloqueados', firstImpactTick: '1º impacto (tick)', entities: 'Entidades criadas', actionTicks: 'Duração da ação (ticks)', maxDisplacement: 'Deslocamento máx. (m)', foeHpLoss: 'HP perdido pelo rival', staminaSpent: 'Stamina gasta', cooldown: 'Recarga (s)'};
-      out.innerHTML = `<table><tr><th>Métrica</th><th>A · atual</th><th>B</th></tr>${r.rows.map(x => `<tr class="${x.same ? '' : 'warn'}"><td>${escape(LABEL[x.metric] ?? x.metric)}</td><td>${x.a ?? '—'}</td><td>${x.b ?? '—'}</td></tr>`).join('')}</table>`
-        + (r.divergence.identical ? '<p class="muted">As duas execuções são idênticas: os valores escolhidos não mudam este cenário.</p>' : `<p>Primeiro tick em que A e B se separam: <b>${r.divergence.tick}</b>, campo <code>${escape(r.divergence.field)}</code>.</p>`)
-        + `<p class="muted">${r.warnings.map(escape).join(' ')}</p>`;
-    };
-    // Pausar o replay no tick de uma marca: a partida guarda os últimos 12 s; o tick da marca é relativo ao começo da última vez que o Move foi usado.
-    for (const b of root.querySelectorAll('[data-tl-seek]')) b.onclick = () => {
-      const [id, tick] = b.dataset.tlSeek.split(':'), out = root.querySelector(`[data-tl-result="${id}"]`);
-      const r = nav.seekMoveTick?.(id, Number(tick)) ?? {ok: false, msg: 'Esta tela não tem replay ligado.'};
-      if (out) out.innerHTML = `<p class="${r.ok ? '' : 'warn'}">${escape(r.msg)}</p>`;
-    };
-    // Conversão tick → quadro do clipe (a animação tem relógio próprio; o valor é só uma conversão de exibição).
-    for (const inp of root.querySelectorAll('[data-tl-clipframes]')) {
-      const box = inp.closest('.mv-tl') ?? root.querySelector(`[data-tl="${inp.dataset.tlClipframes}"]`), total = Number(box?.dataset.tlTotal ?? 0);
-      const upd = () => { for (const sp of root.querySelectorAll('[data-tl-frame]')) sp.textContent = `${clipFrameAtTick(Number(sp.dataset.tlFrame), total, Number(inp.value))} de ${inp.value}`; };
-      inp.oninput = upd; upd();
-    }
-    for (const b of root.querySelectorAll('[data-tl-measure]')) b.onclick = () => {
-      const id = b.dataset.tlMeasure, out = root.querySelector(`[data-tl-result="${id}"]`), tl = buildMoveTimeline(id);
-      let m;try {m = measureMoveRun(id);} catch (e) {out.innerHTML = `<p class="warn">${escape(String(e.message ?? e))}</p>`;return;}
-      const eff = tl.marks.find(k => k.kind === 'effect' || k.kind === 'spawn' || k.kind === 'status'), real = m.spawns[0]?.tick ?? m.statusAt;
-      out.innerHTML = `<p>Medido: ação de <b>${m.actionStart ?? '—'}</b> a <b>${m.actionEnd ?? '—'}</b> (${m.actionEnd != null ? m.actionEnd - (m.actionStart ?? 0) : '—'} ticks; a ficha diz ${tl.totalTicks}). ${eff && real != null ? `Efeito: ficha tick ${eff.tick} × motor tick ${real}${Math.abs(real - eff.tick) <= 1 ? ' ✓' : ' ⚠'}.` : ''} Entidades: ${m.spawns.length ? m.spawns.map(sp => `${escape(sp.kind)}@${sp.tick}`).join(', ') : 'nenhuma'}. Impactos nos ticks: ${m.impacts.length ? m.impacts.join(', ') : 'nenhum'}.</p>`;
-    };
+    bindMoveTools(root);
     for (const b of root.querySelectorAll('[data-goto-actions]')) b.onclick = () => nav.openActions?.(b.dataset.gotoActions);
 
     // Slots: move e botão de cada um (o botão é o mesmo de Controles › Teclas e entra no desfazer).
@@ -506,5 +510,5 @@ export function createMovesPanel({$, game, download, tuning, view, ui, canvas, s
     bindParams(root, render);
     $('mvp-reset-all').onclick = () => {const ch = [];for (const g of ['charge', 'reflect', 'psyshock', 'beam', 'ai']) for (const [k, v] of Object.entries(defaults().world[g])) if (C.world[g][k] !== v) ch.push([`world.${g}.${k}`, v]);commit(ch, 'Restaurar os parâmetros dos Moves');render();};
   }
-  return {render, renderActions, focusMove, focusAction, ensureEquipped, fire, renderAiParams, emitProjectile, emitLaser, emitExplosion, setEquip, setSlot, loadoutOf, get results() {return results;}, STANDARD};
+  return {render, bindParams, bindMoveTools, timelineMarkup, abMarkup, renderActions, focusMove, focusAction, ensureEquipped, fire, renderAiParams, emitProjectile, emitLaser, emitExplosion, setEquip, setSlot, loadoutOf, get results() {return results;}, STANDARD};
 }

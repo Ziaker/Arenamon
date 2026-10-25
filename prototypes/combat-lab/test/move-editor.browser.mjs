@@ -100,7 +100,7 @@ try {
 
   // Outros Moves migrados: lista completa, controle de «segurar o botão» e execução de um buff e de um projétil de carga
   const nMoves = await page.locator('#editor-move option').count();
-  check('a lista tem os 17 Moves migrados', nMoves >= 17, `${nMoves} Moves`);
+  check('a lista tem os 19 Moves (todos em dado)', nMoves >= 19, `${nMoves} Moves`);
   await page.selectOption('#editor-move', 'harden');
   check('Harden: sem o controle de segurar o botão', await page.locator('#editor-hold').count() === 0);
   await L(() => {window.__lab.ui.lastResult = null;});
@@ -117,6 +117,19 @@ try {
   check('Water Pulse: cria o projétil e acerta', await L(() => /Entidades criadass*projectile/.test(document.getElementById('editor-result').textContent) && /Acertou o alvosim/.test(document.getElementById('editor-result').textContent)));
   const nMech2 = await page.locator('#editor-mechanics [data-path^="world.waterPulse."]').count();
   check('os sliders de mecânica trocam para os do Water Pulse', nMech2 >= 10, `${nMech2} controles`);
+  // Reflect e Psyshock (agora em move.json): carga, sliders com os limites efetivos, VFX e ficha
+  await page.selectOption('#editor-move', 'reflect');
+  check('Reflect: controle de segurar o botão, sliders de mecânica e seção de VFX', await page.locator('#editor-hold').count() === 1 && await page.locator('#editor-mechanics [data-path^="world.reflect."]').count() >= 15 && await page.locator('#editor-vfx [data-visual="vfx.barrier.opacity"]').count() === 1);
+  check('os sliders usam os limites EFETIVOS (knockback até 15, limites ampliados), não os do move.json', await L(() => {const f = document.querySelector('#editor-mechanics [data-path="world.reflect.burstForce"]');const d = document.querySelector('#editor-mechanics [data-path="world.reflect.durationBase"]');return Number(f.max) === 15 && Number(d.max) === 20;}));
+  check('a ficha de um Move de carga avisa que a linha do tempo vale depois de soltar (sem A/B de fábrica, como antes)', await page.locator('#editor-ficha-tl').count() === 1 && /Charge/.test(await page.locator('#editor-ficha-tl').textContent() ?? '') && await page.locator('#editor-ficha-ab [data-ab-run]').count() === 0);
+  await L(() => {window.__lab.ui.lastResult = null;});
+  await page.click('#editor-play');
+  await page.waitForFunction(() => window.__lab.ui.lastResult?.id === 'editor-reflect', null, {timeout: 120000});
+  await page.waitForFunction(() => /Entidades criadas/.test(document.getElementById('editor-result').textContent), null, {timeout: 10000});
+  check('Reflect: com a carga sugerida cria a barreira', await L(() => /Entidades criadas\s*barrier/.test(document.getElementById('editor-result').textContent)));
+  await page.selectOption('#editor-move', 'psyshock');
+  check('Psyshock: sliders de mecânica e VFX da rocha', await page.locator('#editor-mechanics [data-path^="world.psyshock."]').count() >= 20 && await page.locator('#editor-vfx [data-visual="vfx.rock.scale"]').count() === 1);
+  check('a mecânica não mostra os ajustes puramente visuais (ficam no VFX)', await page.locator('#editor-mechanics [data-path="world.psyshock.scaleMin"]').count() === 0 && await page.locator('#editor-vfx [data-visual="world.psyshock.scaleMin"]').count() === 1);
   await page.selectOption('#editor-move', 'sand-wave');
 
   mkdirSync(root + 'evidence/editor', {recursive: true});

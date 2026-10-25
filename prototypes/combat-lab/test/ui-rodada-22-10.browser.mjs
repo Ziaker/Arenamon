@@ -55,8 +55,8 @@ try {
   await page.mouse.move(5, 5);
 
   // ---------- 2. Riposte: bloco de controles + visual da postura ----------
-  // Os controles visuais do Riposte foram para a aba Visual do cartão (data-visual), fora da lista de mecânica (data-p).
-  const rip = await L(() => ['fxOn', 'fxIntensity', 'fxSize'].every(k => document.querySelector(`#moves-panel [data-visual="world.riposte.${k}"]`)));
+  // Os controles visuais do Riposte ficam na seção de VFX do Editor (data-visual), fora da lista de mecânica.
+  const rip = await L(() => {const p = document.getElementById('panel');if (p.hidden || p.dataset.tool !== 'moves') document.querySelector('button[data-tool="moves"]').click();document.querySelector('#moves-showcase .mvs-card[data-move="riposte"] .mvs-open').click();return ['fxOn', 'fxIntensity', 'fxSize'].every(k => document.querySelector(`#editor-vfx [data-visual="world.riposte.${k}"]`));});
   check('o Riposte tem os 3 controles do efeito visual (ligado, intensidade, tamanho)', rip);
   await L(() => document.getElementById('moves-close')?.click());
   await L(() => {const L = window.__lab;L.C.extras.toggles.enableEnemyAI = 0;if (L.game.phase !== 'playing') L.game.start();L.game.setLoadout(0, ['riposte', null, null, null]);});await page.waitForTimeout(400);

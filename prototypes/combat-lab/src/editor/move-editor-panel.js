@@ -3,6 +3,7 @@
 // Só interface: o cenário e os números vêm de move-editor-model.js; os sliders de mecânica são os MESMOS do ajustador (desfazer, presets, workspace);
 // os de visual alteram, nesta sessão, os parâmetros aprovados do atelier que o jogo usa no próximo disparo.
 import {escape} from '../ui/tuning.js';
+import {MOVES_PARAMS, isVisualWorldParam} from '../ui/moves-panel.js';
 import {controls as atelierControls, help as atelierHelp, phaseOf, phaseNames} from '../../../sand-stone-lab/src/config.ts';
 import {ATELIER_APPROVED, ATELIER_GAME_PARAMS} from '../view/quarks/atelier-game-params.js';
 import {EDITABLE_MOVES, editableMove} from './editable-moves.js';
@@ -10,9 +11,9 @@ import {traceMove, compareTraces, currentValues, defaultValues, diffCount} from 
 import {makeMoveScenario, currentMoveJson, TARGET_STATES, DEFAULT_STAGE, DISTANCE_RANGE, HOLD_RANGE, needsHold, suggestedHold, holdHint} from './move-editor-model.js';
 
 /**
- * @param {{getWorld: () => any, $: (id: string) => any, tuning: any, startScenario: (def: any) => void, abortScenario: () => void, getScenario: () => any, getLastResult: () => any, seekToTime?: (seconds: number) => boolean, download: (data: string, name: string, type?: string) => void, setTimeScale: (v: number) => void}} deps
+ * @param {{getWorld: () => any, $: (id: string) => any, tuning: any, startScenario: (def: any) => void, abortScenario: () => void, getScenario: () => any, getLastResult: () => any, ficha?: {timelineMarkup: (id: string) => string, abMarkup: (id: string) => string, bind: (root: any) => void, fire: (id: string) => void}, openActions?: (id: string) => void, vfx?: {markup: (id: string) => string, bind: (root: any) => void, bindParams: (root: any, rerender: () => void) => void}, seekToTime?: (seconds: number) => boolean, download: (data: string, name: string, type?: string) => void, setTimeScale: (v: number) => void}} deps
  */
-export function createMoveEditor({getWorld, $, tuning, startScenario, abortScenario, getScenario, getLastResult, seekToTime, download, setTimeScale}) {
+export function createMoveEditor({getWorld, $, tuning, startScenario, abortScenario, getScenario, getLastResult, ficha, openActions, vfx, seekToTime, download, setTimeScale}) {
   const root = $('move-editor-body');
   const state = {moveId: (EDITABLE_MOVES.find(m => m.id === 'sand-wave') ?? EDITABLE_MOVES[0]).id, distance: DEFAULT_STAGE.distance, target: DEFAULT_STAGE.target, hold: 0, loop: false, speed: 1, running: false, pinned: /** @type {Record<string, number> | null} */ (null)};
   const move = () => /** @type {any} */ (editableMove(state.moveId));
@@ -76,7 +77,7 @@ export function createMoveEditor({getWorld, $, tuning, startScenario, abortScena
       ...holdRow,
       el('label', {class: 'editor-row'}, [el('span', {text: 'Velocidade'}), spd]),
       el('label', {class: 'editor-row check'}, [loop, el('span', {text: 'Repetir em laço'})]),
-      el('div', {class: 'editor-actions'}, [playBtn, stopBtn]),
+      el('div', {class: 'editor-actions'}, [playBtn, stopBtn, (() => {const b = el('button', {type: 'button', id: 'editor-fire', title: 'Equipa o Move no azul (se preciso) e o dispara com a tecla real do slot, na partida atual', text: '▶ Disparar no jogo'});b.onclick = () => ficha?.fire(state.moveId);return b;})(), (() => {const b = el('button', {type: 'button', id: 'editor-open-actions', title: 'Abre a gaveta Ações neste Move: equipagem, botões e animações', text: '⚔ Equipar e animações'});b.onclick = () => openActions?.(state.moveId);return b;})()]),
       el('p', {id: 'editor-status', class: 'hint', text: 'Pronto. «Executar» roda o Move de verdade na arena, com os valores abaixo.'}),
       el('div', {id: 'editor-result'}),
     );
@@ -147,6 +148,11 @@ export function createMoveEditor({getWorld, $, tuning, startScenario, abortScena
     return sec;
   }
 
+  /** Faixa EFETIVA do slider (min, max, passo): a da tabela dos Moves, com os limites ampliados dos pedidos de 22 e 23/10/2026; cai na linha do move.json se não achar. */
+  const rangeOf = (/** @type {string} */ group, /** @type {any} */ r) => {
+    const t = /** @type {any[]} */ (MOVES_PARAMS).flatMap(([, rows]) => rows).find((/** @type {any[]} */ x) => x[0] === group && x[1] === r.key);
+    return t ? {min: t[4], max: t[5], step: t[6]} : {min: r.min, max: r.max, step: r.step};
+  };
   function mechanicsSection() {
     const m = move();
     const world = /** @type {any} */ (tuning.world ?? null);
@@ -154,11 +160,12 @@ export function createMoveEditor({getWorld, $, tuning, startScenario, abortScena
     const box = el('div', {id: 'editor-mechanics'});
     const sync = [];
     for (const r of m.params.rows) {
-      if (String(r.key).startsWith('hitShake')) continue;
+      if (String(r.key).startsWith('hitShake') || isVisualWorldParam([m.group, r.key])) continue;   // tremor e ajustes puramente visuais ficam na seção de VFX
       const path = `world.${m.group}.${r.key}`;
+      const range = rangeOf(m.group, r);
       const get = () => getWorld()[m.group][r.key];
       const isToggle = r.min === 0 && r.max === 1 && r.step === 1;
-      const input = /** @type {HTMLInputElement} */ (el('input', isToggle ? {type: 'checkbox', 'data-path': path} : {type: 'range', 'data-path': path, min: r.min, max: r.max, step: r.step}));
+      const input = /** @type {HTMLInputElement} */ (el('input', isToggle ? {type: 'checkbox', 'data-path': path} : {type: 'range', 'data-path': path, min: range.min, max: range.max, step: range.step}));
       const out = el('output', {text: ''});
       const refresh = () => {const v = get();if (isToggle) input.checked = !!v;else input.value = String(v);out.textContent = isToggle ? (v ? 'sim' : 'não') : show(v, r.unit);row.classList.toggle('changed', v !== r.value);};
       let before = null;
@@ -170,7 +177,7 @@ export function createMoveEditor({getWorld, $, tuning, startScenario, abortScena
       };
       const reset = el('button', {type: 'button', class: 'mini', title: 'Voltar ao padrão', text: '↺'});
       reset.onclick = () => {if (get() !== r.value) tuning.commit([[path, r.value]], 'Restaurar ' + r.label);refresh();};
-      const row = el('label', {class: 'editor-row', title: r.tip}, [el('span', {text: r.label}), input, out, reset]);
+      const row = el('label', {class: 'editor-row', title: r.tip}, [el('span', {}, [r.label + ' ', el('small', {class: r.approved ? 'ok' : 'warn', title: r.approved ? 'Valor decidido pelo diretor' : 'Valor provisório (ainda não homologado)', text: r.approved ? 'aprovado' : 'provisório'})]), input, out, reset]);
       sync.push(refresh);refresh();box.append(row);
     }
     tuning.onChange?.(() => { if (box.isConnected) for (const f of sync) f(); });
@@ -199,6 +206,31 @@ export function createMoveEditor({getWorld, $, tuning, startScenario, abortScena
     sec.append(det);return sec;
   }
 
+  /** VFX do jogo (efeitos de partículas, contato, explosão, cor e tremor de hit) — os mesmos controles que ficavam na aba «Visual (VFX)» de cada cartão da aba Moves. */
+  function vfxSection() {
+    const sec = el('section', {class: 'editor-sec', id: 'editor-vfx-sec'}, [el('h4', {text: 'Efeitos do jogo (VFX)'})]);
+    if (!vfx) {sec.append(el('p', {class: 'hint', text: 'VFX indisponível nesta tela.'}));return sec;}
+    const box = el('div', {id: 'editor-vfx'});
+    const fill = () => {
+      box.innerHTML = vfx.markup(state.moveId);
+      vfx.bindParams(box, fill);vfx.bind(box);
+    };
+    fill();sec.append(box);return sec;
+  }
+
+  /** Linha do tempo DA FICHA (marcas planejadas em ticks de 120 Hz, sinais de VFX/câmera/animação, «Medir no motor») e comparação com o padrão de fábrica no motor (métricas e 1º tick em que divergem). */
+  function fichaSection() {
+    const sec = el('section', {class: 'editor-sec', id: 'editor-ficha-sec'}, [el('h4', {text: 'Ficha do Move: marcas e comparação com o padrão'})]);
+    if (!ficha) {sec.append(el('p', {class: 'hint', text: 'Indisponível nesta tela.'}));return sec;}
+    const tl = el('div', {id: 'editor-ficha-tl'}), ab = el('div', {id: 'editor-ficha-ab'});
+    const fillTl = () => {tl.innerHTML = ficha.timelineMarkup(state.moveId);ficha.bind(tl);};
+    tl.innerHTML = ficha.timelineMarkup(state.moveId);ficha.bind(tl);
+    ab.innerHTML = ficha.abMarkup(state.moveId);ficha.bind(ab);
+    tuning.onChange?.(() => {if (tl.isConnected && !tl.querySelector(':focus')) fillTl();});
+    sec.append(el('details', {open: ''}, [el('summary', {text: 'Linha do tempo da ficha (ticks de 120 Hz)'}), tl]), el('details', {}, [el('summary', {text: 'Comparar com o padrão de fábrica (A/B no motor)'}), ab]));
+    return sec;
+  }
+
   function exportSection() {
     const m = move();
     const sec = el('section', {class: 'editor-sec'}, [el('h4', {text: 'Salvar'})]);
@@ -219,7 +251,7 @@ export function createMoveEditor({getWorld, $, tuning, startScenario, abortScena
   }
 
   function render() {
-    root.replaceChildren(stageSection(), analysisSection(), mechanicsSection(), visualSection(), exportSection());
+    root.replaceChildren(stageSection(), analysisSection(), mechanicsSection(), visualSection(), vfxSection(), fichaSection(), exportSection());
     analyze();
   }
   render();

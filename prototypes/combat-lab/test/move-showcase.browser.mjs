@@ -1,6 +1,6 @@
 // @ts-check
 // Navegador (Playwright, file:// offline): a aba Moves como VITRINE — equipados em destaque, não equipados abaixo, clicar abre o Editor de Moves
-// naquele Move, equipar/tirar, painel antigo recolhido, Reflect/Psyshock abrem o painel antigo. Sem erros de console nem rede.
+// naquele Move (inclusive Reflect e Psyshock, agora em move.json), equipar/tirar, ajustes compartilhados recolhidos. Sem erros de console nem rede.
 import {chromium} from '@playwright/test';
 import {pathToFileURL, fileURLToPath} from 'node:url';
 import {mkdirSync} from 'node:fs';
@@ -27,7 +27,7 @@ try {
   await page.click('button[data-tool="moves"]');
 
   check('a aba Moves mostra a vitrine', await page.locator('#moves-showcase').isVisible());
-  check('o painel antigo vem recolhido (a aba não é mais uma parede de sliders)', await L(() => !document.getElementById('moves-legacy').open) && !(await page.locator('#moves-panel .mv-move').first().isVisible()));
+  check('os ajustes compartilhados e ferramentas vêm recolhidos e não há mais cartões de sliders por Move na aba', await L(() => !document.getElementById('moves-tools').open) && await page.locator('#moves-panel .mv-move[data-move]:not([data-move="_charge"])').count() === 0);
   check('Equipados em destaque: sand-wave no slot 1 e harden no slot 2, com o botão do jogo', await L(() => {
     const c = [...document.querySelectorAll('#mvs-equipped .mvs-card')];
     return c.length >= 2 && c[0].dataset.move === 'sand-wave' && c[1].dataset.move === 'harden' && c[0].querySelector('.mvs-key').textContent.length > 0;
@@ -65,15 +65,14 @@ try {
   await page.waitForFunction(() => document.querySelector('#mvs-equipped [data-move="swift"]'), null, {timeout: 5000});
   check('a vitrine acompanha mudanças de loadout feitas por outro caminho', true);
 
-  // Reflect (em código) abre o painel antigo
+  // Reflect e Psyshock (agora em dado) abrem o Editor como os demais
   await page.click('#mvs-others [data-move="reflect"] .mvs-open');
-  check('Reflect (ainda em código) abre o painel antigo expandido', await L(() => document.getElementById('moves-legacy').open) && await page.locator('#moves-panel .mv-move').first().isVisible());
-  check('o selo «em código» marca Reflect e Psyshock', await page.locator('#mvs-others .mvs-card[data-move="reflect"] .mvs-code').count() === 1 && await page.locator('#mvs-others .mvs-card[data-move="psyshock"] .mvs-code').count() === 1);
+  check('Reflect (agora em dado) abre o Editor em Reflect, com os sliders de mecânica e a dica de carga', await L(() => document.getElementById('editor-move').value === 'reflect' && !!document.getElementById('editor-hold')) && await page.locator('#editor-mechanics [data-path^="world.reflect."]').count() >= 15);
+  check('nenhum Move fica «em código»: o selo sumiu da vitrine', await page.locator('#moves-showcase .mvs-code').count() === 0);
 
   mkdirSync(root + 'evidence/editor', {recursive: true});
   if (!process.env.ARENAMON_SKIP_SCREENSHOTS) {
-    await L(() => {document.getElementById('moves-legacy').open = false;});
-    await page.click('#mvs-others .mvs-card[data-move="lunge"] .mvs-open');
+    await page.click('#mvs-others .mvs-card[data-move="reflect"] .mvs-open');
     await page.waitForTimeout(300);
     await L(() => {const b = document.querySelector('#panel .panel-body');if (b) b.scrollTop = 0;});
     await page.screenshot({path: root + 'evidence/editor/vitrine-moves.png'});
