@@ -31,6 +31,14 @@ test('o pacote reúne semente, comandos, snapshot, equipamento, eventos e erros'
   assert.deepEqual(cap.errors, ['Erro de teste']);assert.ok(cap.configHash.length === 8);
   assert.ok(!/userAgent|navigator|localStorage/.test(JSON.stringify(cap)), 'sem dados do ambiente do usuário');
 });
+test('imagem da tela só entra quando pedida e só como data URL de imagem', () => {
+  const {g, rec} = play();
+  assert.equal('screenshot' in captureBug({game: g, recording: rec}), false);
+  const img = 'data:image/jpeg;base64,/9j/AA==';
+  assert.equal(captureBug({game: g, recording: rec, screenshot: img}).screenshot, img);
+  assert.equal('screenshot' in captureBug({game: g, recording: rec, screenshot: 'file:///C:/Users/x.png'}), false);
+  assert.equal(parseBugCapture(encodeBug(captureBug({game: g, recording: rec, screenshot: img}))).error, undefined);
+});
 test('ida e volta em JSON preserva o estado e reproduz o instante capturado', () => {
   const {g, rec} = play();
   const text = encodeBug(captureBug({game: g, recording: rec, appVersion: 'v1.27.0'}));

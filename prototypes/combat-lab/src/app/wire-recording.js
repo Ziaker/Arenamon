@@ -13,7 +13,7 @@ import {diffRecording} from '../sim/replay-diff.js';
 import {resetViewAndLogs, startMatch, togglePause} from './match-flow.js';
 import {abortScenario, renderRecStatus, renderScenarios, reportHtml} from './scenario-flow.js';
 import {download, gamePatch, syncCompareOptions} from './tuning-sync.js';
-import {$, GAME_CONFIG_TS, game, matchRec, passivesPanel, presets, recorder, replay, tuning, ui} from '../main.js';
+import {$, GAME_CONFIG_TS, canvas, view, game, matchRec, passivesPanel, presets, recorder, replay, tuning, ui} from '../main.js';
 
 export function wireRecording() {
 $('rec-save').onclick = () => {download(JSON.stringify(matchRec.toJSON()), `arenamon-partida-${matchRec.meta.seed}.json`);};
@@ -35,10 +35,20 @@ const pageErrors = [];
 window.addEventListener('error', e => {pageErrors.push(`${e.message} (${(e.filename || '').split('/').pop()}:${e.lineno})`);if (pageErrors.length > 20) pageErrors.shift();});
 window.addEventListener('unhandledrejection', e => {pageErrors.push('Promessa rejeitada: ' + String(e.reason?.message ?? e.reason));if (pageErrors.length > 20) pageErrors.shift();});
 const appVersion = () => ($('app-version')?.textContent ?? '').replace(/^Combate\s*·\s*/, '') || 'desconhecida';
+/** Imagem opcional da tela (#11): redesenha o quadro e copia o canvas na mesma tarefa (o WebGL não guarda o quadro anterior). */
+function screenImage() {
+  try {
+    if (view?.renderer && view.scene && view.camera) view.renderer.render(view.scene, view.camera);
+    const k = Math.min(1, 960 / (canvas.width || 960)), c = document.createElement('canvas');
+    c.width = Math.round(canvas.width * k);c.height = Math.round(canvas.height * k);
+    c.getContext('2d').drawImage(canvas, 0, 0, c.width, c.height);
+    return c.toDataURL('image/jpeg', 0.75);
+  } catch {return null;}
+}
 $('bug-capture').onclick = () => {
-  const pkg = captureBug({game, recording: matchRec, appVersion: appVersion(), note: $('bug-note').value, errors: pageErrors});
+  const pkg = captureBug({game, recording: matchRec, appVersion: appVersion(), note: $('bug-note').value, errors: pageErrors, screenshot: $('bug-image')?.checked ? screenImage() : null});
   download(encodeBug(pkg), `arenamon-bug-${pkg.seed ?? 'x'}-t${pkg.tick}.json`);
-  $('bug-result').innerHTML = `<p class="ok">Captura salva: passo ${pkg.tick}, semente ${pkg.seed}, ${pkg.errors.length} erro(s) da página, config ${pkg.configHash}.</p>`;
+  $('bug-result').innerHTML = `<p class="ok">Captura salva: passo ${pkg.tick}, semente ${pkg.seed}, ${pkg.errors.length} erro(s) da página, config ${pkg.configHash}${pkg.screenshot ? ', com imagem da tela' : ''}.</p>`;
 };
 $('bug-file').onchange = async e => {
   const file = e.target.files[0];if (!file) return;const parsed = parseBugCapture(await file.text());e.target.value = '';

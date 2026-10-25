@@ -7,7 +7,7 @@ import {runMoveScenarios} from '../sim/scenarios-moves.js';
 import {moveParamGroups} from '../sim/moves/params-registry.js';
 import {createMoveSpecPanel} from './move-spec-panel.js';
 import {buildMoveTimeline, measureMoveRun, TICK_RATE, clipFrameAtTick} from '../sim/move-timeline.js';
-import {compareMoveVariants} from '../sim/move-ab.js';
+import {compareMoveVariants, comparabilityWarnings} from '../sim/move-ab.js';
 import {SHAKE_GROUPS} from '../sim/move-hit-map.js';
 /** Escapa texto para HTML (local: importar o ajustador arrastaria o config.ts do jogo, que só o esbuild lê). */
 const escape = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
@@ -390,6 +390,8 @@ export function createMovesPanel({$, game, download, tuning, view, ui, canvas, s
     bindParams(container, () => renderAiParams(container));
   }
   /** Liga, dentro de `scope`, os botões de «▶ Disparar», comparação A/B com o padrão de fábrica, marcas da linha do tempo da ficha, quadros do clipe e «Medir no motor». */
+  /** Última comparação A/B por Move: a próxima avisa se a versão ou o ambiente mudaram desde ela (#07). */
+  const lastAb = new Map();
   function bindMoveTools(scope) {
     for (const b of scope.querySelectorAll('[data-fire]')) b.onclick = () => fire(b.dataset.fire);
     for (const b of scope.querySelectorAll('[data-ab-run]')) b.onclick = () => {
@@ -398,11 +400,13 @@ export function createMovesPanel({$, game, download, tuning, view, ui, canvas, s
       const prefix = `world.${g}.`, only = vals => Object.fromEntries(Object.entries(vals).filter(([p]) => p.startsWith(prefix)));
       const A = Object.fromEntries(Object.entries(C.world[g]).map(([k, v]) => [prefix + k, v]));
       const B = sel === '__factory' ? Object.fromEntries(Object.entries(factoryDefaults().world[g] ?? {}).map(([k, v]) => [prefix + k, v])) : { ...A, ...only(presetValues.valuesOf(sel) ?? {}) };
-      let r;try {r = compareMoveVariants(id, A, B);} catch (e) {out.innerHTML = `<p class="warn">${escape(String(e.message ?? e))}</p>`;return;}
+      let r;try {r = compareMoveVariants(id, A, B, {appVersion: (document.getElementById('app-version')?.textContent ?? '').replace(/^Combate\s*·\s*/, '') || undefined});} catch (e) {out.innerHTML = `<p class="warn">${escape(String(e.message ?? e))}</p>`;return;}
       const LABEL = {damage: 'Dano causado', hits: 'Acertos', blocked: 'Bloqueados', firstImpactTick: '1º impacto (tick)', entities: 'Entidades criadas', actionTicks: 'Duração da ação (ticks)', maxDisplacement: 'Deslocamento máx. (m)', foeHpLoss: 'HP perdido pelo rival', staminaSpent: 'Stamina gasta', cooldown: 'Recarga (s)'};
       out.innerHTML = `<table><tr><th>Métrica</th><th>A · atual</th><th>B</th></tr>${r.rows.map(x => `<tr class="${x.same ? '' : 'warn'}"><td>${escape(LABEL[x.metric] ?? x.metric)}</td><td>${x.a ?? '—'}</td><td>${x.b ?? '—'}</td></tr>`).join('')}</table>`
         + (r.divergence.identical ? '<p class="muted">As duas execuções são idênticas: os valores escolhidos não mudam este cenário.</p>' : `<p>Primeiro tick em que A e B se separam: <b>${r.divergence.tick}</b>, campo <code>${escape(r.divergence.field)}</code>.</p>`)
+        + comparabilityWarnings(lastAb.get(id), r).map(w => `<p class="warn">${escape(w)}</p>`).join('')
         + `<p class="muted">${r.warnings.map(escape).join(' ')}</p>`;
+      lastAb.set(id, r);
     };
     // Pausar o replay no tick de uma marca: a partida guarda os últimos 12 s; o tick da marca é relativo ao começo da última vez que o Move foi usado.
     for (const b of scope.querySelectorAll('[data-tl-seek]')) b.onclick = () => {

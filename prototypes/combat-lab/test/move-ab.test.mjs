@@ -1,7 +1,7 @@
 // @ts-check
 // Comparador A/B de variantes de um Move (#07): mesmo cenário, métricas comparáveis, divergência, avisos e restauração da configuração.
 import {assert, C, suite, arena} from './moves-new-helpers.mjs';
-import {compareMoveVariants, runMoveVariant, groupValues} from '../src/sim/move-ab.js';
+import {compareMoveVariants, runMoveVariant, groupValues, comparabilityWarnings} from '../src/sim/move-ab.js';
 import {configHash} from '../src/sim/replay-diff.js';
 
 const {test, done} = suite('COMPARADOR A/B DE VARIANTES DE UM MOVE');
@@ -41,6 +41,21 @@ test('groupValues transforma o grupo em caminhos aplicáveis', () => {
   const v = groupValues('swift', {world: {swift: {damage: 3, cost: .8}}});
   assert.deepEqual(v, {'world.swift.damage': 3, 'world.swift.cost': .8});
   assert.ok(runMoveVariant('swift', v).metrics.entities >= 1);
+});
+test('aviso de comparabilidade: ambiente, versão, Move e cenário (#07)', () => {
+  arena();
+  const r1 = compareMoveVariants('swift', {}, {'world.swift.damage': 9}, {appVersion: '1.0.0'});
+  const r2 = compareMoveVariants('swift', {}, {'world.swift.damage': 12}, {appVersion: '1.0.0'});
+  assert.deepEqual(comparabilityWarnings(r1, r2), [], 'mudar só o Move comparado não muda o ambiente');
+  const old = C.world.slots;
+  C.world.slots = old + 1;
+  try {
+    const r3 = compareMoveVariants('swift', {}, {'world.swift.damage': 9}, {appVersion: '1.1.0'});
+    const w = comparabilityWarnings(r1, r3).join(' ');
+    assert.ok(/ambiente mudou/.test(w) && /1\.0\.0 → 1\.1\.0/.test(w), w);
+  } finally {C.world.slots = old;}
+  assert.ok(comparabilityWarnings(r1, {...r2, moveId: 'tackle'}).some(x => /outro Move/.test(x)));
+  assert.deepEqual(comparabilityWarnings(null, r2), []);
 });
 test('Move inexistente dá erro legível', () => {assert.throws(() => runMoveVariant('nao-existe', {}), /não registrado/);});
 

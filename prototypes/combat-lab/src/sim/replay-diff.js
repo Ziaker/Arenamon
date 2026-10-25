@@ -7,7 +7,7 @@ import {Game} from './game.js';
 import {withValues} from './compare.js';
 import {listMoves} from './moves.js';
 
-const r6 = (/** @type {number} */ n) => Math.round(n * 1e6) / 1e6;
+export const r6 = (/** @type {number} */ n) => Math.round(n * 1e6) / 1e6;
 const num = (/** @type {any} */ v) => typeof v === 'number' ? r6(v) : v;
 
 /** Hash curto e estável de um texto (FNV-1a de 32 bits), em hexadecimal. */

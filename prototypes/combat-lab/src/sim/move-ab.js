@@ -9,7 +9,30 @@ import {emptyCommand} from './entity.js';
 import {getMove} from './moves.js';
 import {withValues} from './compare.js';
 import {usageOf} from './move-matrix.js';
-import {normalizeState, firstDivergence, configHash, hashText} from './replay-diff.js';
+import {normalizeState, firstDivergence, configHash, hashText, r6} from './replay-diff.js';
+import {listMoves} from './moves.js';
+
+/** Hash da configuração SEM os caminhos comparados: muda só quando o resto do ambiente (outros ajustes, Moves registrados) mudou. */
+export function baseHash(/** @type {string[]} */ paths) {
+  const skip = new Set(paths);
+  /** @type {(o: any, pre: string) => any} */ const strip = (o, pre) => Object.fromEntries(Object.entries(o).filter(([k]) => !skip.has(pre + k)).map(([k, v]) => [k, v && typeof v === 'object' && !Array.isArray(v) ? strip(v, pre + k + '.') : typeof v === 'number' ? r6(v) : v]));
+  return hashText(JSON.stringify(strip(C, '')) + '|' + listMoves().map(m => m.id).join(','));
+}
+
+/**
+ * Avisos ao pôr dois resultados de comparação lado a lado (por exemplo, o anterior e o atual): outro Move, outra versão do laboratório ou
+ * outro ambiente (ajustes fora do grupo comparado, Moves registrados) tornam os números não comparáveis.
+ * @param {any} prev @param {any} next
+ */
+export function comparabilityWarnings(prev, next) {
+  if (!prev || !next) return [];
+  /** @type {string[]} */ const w = [];
+  if (prev.moveId !== next.moveId) w.push(`Comparação anterior era de outro Move (${prev.moveId}).`);
+  if (prev.appVersion && next.appVersion && prev.appVersion !== next.appVersion) w.push(`Versão do laboratório mudou desde a comparação anterior (${prev.appVersion} → ${next.appVersion}).`);
+  if (prev.baseHash !== next.baseHash) w.push('O ambiente mudou desde a comparação anterior (ajustes fora deste Move ou Moves registrados): os números não são comparáveis com ela.');
+  if (prev.seed !== next.seed || prev.ticks !== next.ticks) w.push('Cenário diferente da comparação anterior (semente ou duração).');
+  return w;
+}
 
 /**
  * Roda o Move uma vez com `values` aplicados e devolve métricas e estados.
@@ -50,16 +73,19 @@ export function runMoveVariant(moveId, values, o = {}) {
 /**
  * Compara duas variantes do mesmo Move.
  * @param {string} moveId @param {Record<string, any>} valuesA @param {Record<string, any>} valuesB
- * @param {{seed?: number, ticks?: number, distance?: number}} [o]
+ * @param {{seed?: number, ticks?: number, distance?: number, appVersion?: string}} [o]
  */
 export function compareMoveVariants(moveId, valuesA, valuesB, o = {}) {
+  const paths = [...new Set([...Object.keys(valuesA), ...Object.keys(valuesB)])];
+  const baseA = withValues(valuesA, () => baseHash(paths)), baseB = withValues(valuesB, () => baseHash(paths));
   const a = runMoveVariant(moveId, valuesA, o), b = runMoveVariant(moveId, valuesB, o);
   const keys = Object.keys(a.metrics);
   const rows = keys.map(k => ({metric: k, a: /** @type {any} */ (a.metrics)[k], b: /** @type {any} */ (b.metrics)[k], same: /** @type {any} */ (a.metrics)[k] === /** @type {any} */ (b.metrics)[k]}));
   /** @type {string[]} */ const warnings = [];
   if (JSON.stringify(valuesA) === JSON.stringify(valuesB)) warnings.push('A e B têm os mesmos valores: nenhuma diferença esperada.');
+  if (baseA !== baseB) warnings.push('A e B rodaram em ambientes diferentes (ajustes fora do Move mudaram entre as execuções).');
   warnings.push('Custo de render, FPS e P95 não são medidos na simulação; comparar só no mesmo computador, com o benchmark do painel de desempenho.');
-  return {moveId, seed: o.seed ?? 7, ticks: o.ticks ?? 480, rows, divergence: firstDivergence(a.states, b.states), versions: {a: a.configHash, b: b.configHash}, report: hashText(JSON.stringify({moveId, valuesA, valuesB, rows})), warnings};
+  return {moveId, seed: o.seed ?? 7, ticks: o.ticks ?? 480, rows, divergence: firstDivergence(a.states, b.states), versions: {a: a.configHash, b: b.configHash}, baseHash: baseA, appVersion: o.appVersion ?? null, report: hashText(JSON.stringify({moveId, valuesA, valuesB, rows})), warnings};
 }
 
 /** Valores de fábrica do grupo de um Move como pares caminho → valor (variante "padrão" para comparar com o estado atual). */
