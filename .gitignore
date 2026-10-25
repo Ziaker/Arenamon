@@ -61,3 +61,6 @@ prototypes/croagunk/
 !chars/**/*.obj
 chars/vigor/
 chars/vigor.zip
+
+# Dump do RomFS do Pokémon Legends: Z-A e extrações (5+ GB, só local)
+/dumper test/
