@@ -100,7 +100,19 @@ Novos módulos em `tools/za-referencias/`, cada um com testes em `tests/` (rigs 
 | pm0965, charge (loop) | você: 2 "pernas" (tentáculos); sistema: braço E | igual (não) |
 | Meditite, andar (loop) | **igual** (2 braços + 2 pernas) | igual (não) |
 
-  Os lados dos ataques divergiam. **Conferido com a bolinha (25/10/2026):** o revisor tinha marcado pelo lado da tela. Os rótulos foram espelhados para o lado do Pokémon (`rotulos_zac_144f286e17c8.json`; o original está em `…_lado_da_tela.json`). Depois disso, o braço que ataca bate nos 2 ataques (braço D). Restam duas diferenças: as pernas de apoio e impulso, que o humano conta e o sistema não; e o iniciador, que no Blastoise é braço D para o humano e braço E para o sistema, e no Meditite é braço D para o humano e núcleo para o sistema. Os tentáculos do pm0965 se chamam `shoulder` no rig, por isso viram "braço", e `charge` não está na lista de locomoção.
+  Os lados dos ataques divergiam. **Conferido com a bolinha (25/10/2026):** o revisor tinha marcado pelo lado da tela. Os rótulos foram espelhados para o lado do Pokémon (`rotulos_zac_144f286e17c8.json`; o original está em `…_lado_da_tela.json`). Depois disso, o braço que ataca bate nos 2 ataques (braço D). Restam duas diferenças: as pernas de apoio e impulso, que o humano conta e o sistema não; e o iniciador, que no Blastoise é braço D para o humano e braço E para o sistema, e no Meditite é braço D para o humano e núcleo para o sistema.
+
+### Campo `apoio_impulso` (decisão do revisor, 25/10/2026)
+
+- **Executor é só quem golpeia.** As pernas que sustentam o peso ou empurram, sem golpear, vão para `apoio_impulso`.
+- **Regra do sistema** (`regras_papeis.json` → `apoio_impulso`): perna não executora com algum osso que gira ≥ 10° entre o início da preparação (30 q antes do pico) e o golpe. Em locomoção não se aplica, porque lá os membros que ciclam já são executores.
+- **Página de rotulagem:** ganhou a pergunta "Pernas de apoio/impulso", com a opção "nenhuma". Os rótulos do revisor zac foram migrados: as pernas dos 2 ataques saíram de executores e foram para `apoio_impulso`.
+- **Banco refeito:** 41.790 clipes, 0 falhas. 1.786 dos 2.764 ataques com executor têm pelo menos uma perna de apoio.
+- **Comparação depois da mudança:**
+  - executores iguais nos 2 ataques e no andar;
+  - apoio/impulso igual no Meditite;
+  - no Blastoise, o humano marcou só a perna E e o sistema marcou as duas. Na observação, o revisor diz que as duas pernas flexionam no início.
+- **Limiar de 10°:** é baixo para os valores reais (31–65°) e pode estar marcando perna demais. Precisa de mais rótulos para calibrar. Os tentáculos do pm0965 se chamam `shoulder` no rig, por isso viram "braço", e `charge` não está na lista de locomoção.
 
 ### Achados que mudaram o código durante a execução (todos com teste que falhou antes)
 
