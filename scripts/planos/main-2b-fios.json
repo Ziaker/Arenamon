@@ -1,0 +1,5 @@
+{"arquivo":"prototypes/combat-lab/src/main.js","pasta":"prototypes/combat-lab/src/app","modulos":{},"fios":[
+{"modulo":"wire-controls","funcao":"wireControls","de":"{\n  const codes","ate":"$('arena-hitboxes-toggle').onclick"},
+{"modulo":"wire-controls","funcao":"wireToolbar","de":"$('arena-toast-toggle').onclick","ate":"$('dock-reopen').onclick"},
+{"modulo":"wire-controls","funcao":"wireDrawers","de":"{\n  const panelEl","ate":"$('panel-close').onclick"},
+{"modulo":"wire-controls","funcao":"wireKeyboard","de":"window.addEventListener('keydown', e => {\n  if ((e.ctrlKey","ate":"document.addEventListener('visibilitychange'"}]}

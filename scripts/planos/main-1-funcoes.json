@@ -1,0 +1,9 @@
+{"arquivo":"prototypes/combat-lab/src/main.js","pasta":"prototypes/combat-lab/src/app","modulos":{
+"match-flow":["warmingUp","triggerWarmup","resetViewAndLogs","startMatch","toggleZenMode","togglePause","pushReplay","loadFrame","playerCommand","stepOnce","stepFrames","seekTick","seekMoveTick","goLive","applySeed","onQuickStart","resetArenaFighters","cycleOpponentAiMode"],
+"scenario-flow":["playbackRestore","restorePlaybackValues","playSequence","renderScenarios","startScenario","abortScenario","reportHtml","finishScenario","renderRecStatus"],
+"match-stats":["handleSoundEvents","lastChargePl","trackChargeSounds","lastExhausted","trackExhaustionSounds","matchStats","lastKoHandled","resetMatchStats","trackMatchEvents","checkKoTrigger","renderMatchSummary","passiveFeedback","seenNotices","MOVE_FAIL","moveNotices","updateAudioBtn"],
+"tuning-sync":["applyConfig","syncTuneState","sessionBanner","download","renderGameDiff","gamePathOf","gamePatch","syncCompareOptions"],
+"characters-sync":["charHooks","syncCharacterCombatWindows","secs","ANIM_SLIDERS","refreshAnimSliders","ruleSource","moveCastTargets","syncRuleDurations","renderRuleDurations","renderStudioEvents"],
+"live-panels":["renderLive","renderHistory","syncButtons","syncDockButtons","_projPos","updateOffscreenArrow","updateActionHintPill","lastAdvantageHit","advantageTimer","updateDojoAdvantageBadge","dragResize","store","stored","TITLES","setSubCardFilter","renderSubTabs","toggleMoves","toggleChars","openTool","foldStaticSections"],
+"main-loop":["last","uiTimer","frame"],
+"workspace-boot":["collectUi","collectMatch","collectAnim","fire","applyDocUi","collectApp","applyInitialWorkspace","bootWorkspace","projectFiles","reportsOf"]}}

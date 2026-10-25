@@ -1,0 +1,3 @@
+{"arquivo":"prototypes/combat-lab/src/main.js","pasta":"prototypes/combat-lab/src/app","modulos":{},"fios":[
+{"modulo":"wire-startup","funcao":"wireExtras","de":"$('cinematic-camera-btn')","ate":"foldStaticSections();"},
+{"modulo":"wire-startup","funcao":"startApp","de":"applyConfig();renderScenarios()","ate":"requestAnimationFrame(frame)"}]}

@@ -64,7 +64,19 @@ Todo código-fonte, documentação, recurso permitido, teste e entrega final dev
    - **Antigravity:** Propostas visuais de rigging (A/B/C), telemetria programática e auto-rig adaptativo.
 5. Nunca use force push, descarte mudanças ou reescreva histórico sem autorização expressa.
 
-## Antes de entregar
+## Fluxo rápido de entrega (padrão; mudança comum deve sair em ~1 minuto)
+
+O build leva ~2 s; o que atrasava era a cadeia `npm test` sequencial (~130 testes, navegadores, 5+ min). Use:
+
+0. **Vigia (melhor caminho):** `npm run vigia` (ou duplo clique em `INICIAR_VIGIA.bat`) fica ligado e refaz o jogo a cada arquivo salvo (~1,5 s). Com ele ligado, a entrega de qualquer mudança é só dar F5 em `JOGAR_ARENAMON.html`. Se o build quebrar, a janela mostra o erro e o jogo anterior continua valendo.
+1. `npm run rapido:build` — só recompila (~2 s). Já dá para abrir `JOGAR_ARENAMON.html`.
+2. `npm run rapido` — build + typecheck + testes unitários rápidos **em paralelo**, pulando os que não dependem do que mudou (cache por importação; ~35 s na 1ª vez, ~4 s sem mudança). `--sem-cache` força tudo. Falha só reexecutada sozinha antes de acusar.
+3. `npm run rapido:tudo` — inclui os testes lentos de IA/propriedades (~5 min). Só quando mexer em IA, regras ou simulação.
+4. Testes de navegador (`*.browser.mjs`): rode **só o da área tocada**, nunca a bateria inteira.
+5. `npm run verify` completo fica para marcos grandes (release, mudança de arquitetura), não para cada entrega.
+6. Commit pequeno e direto; sem reler/relatar toda a bateria. Diga na resposta qual teste rodou.
+
+## Antes de entregar (marcos grandes; em mudança comum vale o fluxo rápido acima)
 
 1. Revise `git diff` e `git status --short`.
 2. Confirme que nenhum segredo (chaves, tokens, senhas) foi incluído; nunca use `git add -f` para contornar as exclusões.
