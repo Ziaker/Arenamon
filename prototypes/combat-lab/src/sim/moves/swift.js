@@ -7,16 +7,10 @@ import {spawn} from '../world.js';
 import {direction, normalize} from '../math.js';
 import {C} from '../config.js';
 import {defineFicha} from './params-registry.js';
-import {params} from './swift.params.js';
+import {params, def as swiftDef} from './swift.params.js';
 import {hash32, rng, uniform} from './rng.js';
 
-export const swiftDef = Object.freeze({
-  id: 'swift', name: 'Swift', air: 'cast',
-  group: 'swift',
-  description: 'Burst. Dispara três estrelas rápidas, com homing curto e sem garantia de acerto; cada uma causa pouco dano e um empurrão mínimo.',
-  cost: .8, cooldown: 7, duration: .25, aim: 'target',
-  timeline: [{at: 0, effect: 'swift'}],
-});
+export {swiftDef};   // definição (id, fases, custo…) vem de swift.move.json
 
 /** Leque frontal sem lock-on e a abertura lateral das estrelas na saída. */
 export const swiftSpread = (/** @type {number} */ i, /** @type {number} */ n, /** @type {number} */ fanRad) => n === 1 ? 0 : (i - (n - 1) / 2) * (fanRad / (n - 1));

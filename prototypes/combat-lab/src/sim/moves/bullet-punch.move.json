@@ -1,0 +1,218 @@
+{
+  "schemaVersion": 1,
+  "def": {
+    "id": "bullet-punch",
+    "name": "Bullet Punch",
+    "air": "descend",
+    "group": "bulletPunch",
+    "needsTarget": "reach",
+    "moveCast": true,
+    "fromDodge": true,
+    "tackle": "bullet-punch",
+    "aim": "target",
+    "antiAir": true,
+    "description": "Normal · PL2. Como o Quick Attack: acha o adversário mais próximo dentro do alcance (segure para ver o círculo), prepara 0,75 s, some por 0,2 s numa corrida invisível até ele e o golpeia ao chegar (quem estiver no caminho leva o golpe e para a corrida). Alcança rivais em voo baixo.",
+    "cost": 1.5,
+    "cooldown": 8,
+    "duration": 1.75,
+    "durationKeys": [
+      "cast",
+      "vanish"
+    ],
+    "motion": {
+      "type": "walk"
+    },
+    "timeline": [
+      {
+        "at": 0.75,
+        "atKey": "cast",
+        "effect": "bullet-punch-vanish"
+      },
+      {
+        "at": 1.75,
+        "atKeys": [
+          "cast",
+          "vanish"
+        ],
+        "effect": "bullet-punch-return"
+      }
+    ]
+  },
+  "params": {
+    "group": "bulletPunch",
+    "title": "Bullet Punch",
+    "hint": "Normal · PL2. Como o Quick Attack: segure para ver o círculo de alcance (azul = alvo dentro, vermelho = fora), solte: prepara 0,75 s, some por 0,2 s numa corrida invisível até o adversário mais próximo e golpeia ao chegar (quem estiver no caminho leva o golpe).",
+    "rows": [
+      {
+        "min": 0,
+        "max": 5,
+        "step": 0.1,
+        "key": "cost",
+        "label": "Custo de stamina (× Tackle)",
+        "tip": "Cobrado na SOLTURA com alvo no alcance, junto com a recarga; 1,5 = 1,5× o custo do Tackle (documento: 1,5×; faixa 0–5×).",
+        "unit": "x",
+        "value": 1.5
+      },
+      {
+        "min": 0,
+        "max": 60,
+        "step": 0.5,
+        "key": "cooldown",
+        "label": "Cooldown",
+        "tip": "Começa na soltura (documento: 8 s).",
+        "unit": "sec",
+        "value": 8
+      },
+      {
+        "min": 0.1,
+        "max": 3,
+        "step": 0.05,
+        "key": "cast",
+        "label": "Preparação",
+        "tip": "Depois de soltar; anda a 30% e pode ser interrompida mantendo o custo (documento: 0,75 s).",
+        "unit": "sec",
+        "value": 0.75
+      },
+      {
+        "min": 0.05,
+        "max": 6,
+        "step": 0.05,
+        "key": "vanish",
+        "label": "Tempo da corrida invisível",
+        "tip": "Tempo da viagem invisível até o alvo: o lutador não existe fisicamente (sem corpo, colisão, acerto nem alvo) e a câmera o acompanha (padrão: 0,2 s; faixa 0,05–6 s).",
+        "unit": "sec",
+        "value": 0.2
+      },
+      {
+        "min": 0.5,
+        "max": 20,
+        "step": 0.25,
+        "key": "reach",
+        "label": "Alcance do Move (aquisição do alvo)",
+        "tip": "Como o Quick Attack: o alvo é o adversário elegível mais próximo dentro desta distância, fixado ao soltar o botão. É o raio do círculo azul/vermelho que aparece ao segurar o botão (calibração: 6 m).",
+        "unit": "m",
+        "value": 6
+      },
+      {
+        "min": 0.5,
+        "max": 8,
+        "step": 0.1,
+        "key": "strikeReach",
+        "label": "Alcance do golpe na chegada",
+        "tip": "Distância percorrida pelo Tackle PL2 que sai NO MOMENTO da chegada, rumo ao alvo (padrão 2,2 m).",
+        "unit": "m",
+        "value": 2.2
+      },
+      {
+        "min": 0.6,
+        "max": 4,
+        "step": 0.1,
+        "key": "stopShort",
+        "label": "Distância de parada antes do alvo",
+        "tip": "A corrida invisível termina a esta distância do alvo (centro a centro), para o golpe acertar na hora (padrão 1,1 m; abaixo de 0,8 m a corrida já conta como contato).",
+        "unit": "m",
+        "value": 1.1
+      },
+      {
+        "min": 0.3,
+        "max": 3,
+        "step": 0.05,
+        "key": "hitRadius",
+        "label": "Raio de contato no caminho",
+        "tip": "Quem ficar a menos desta distância do trecho da corrida invisível leva o golpe e a corrida para ali (padrão 0,8 m).",
+        "unit": "m",
+        "value": 0.8
+      },
+      {
+        "min": 0,
+        "max": 5,
+        "step": 0.1,
+        "key": "impactMult",
+        "label": "Velocidade de impacto do knockback (× Tackle)",
+        "tip": "Multiplica a velocidade de impacto usada na fórmula do Tackle (documento: 1×; faixa 0–5×).",
+        "unit": "x",
+        "value": 1
+      },
+      {
+        "min": 0,
+        "max": 1,
+        "step": 1,
+        "key": "knockbackOwn",
+        "label": "Knockback próprio (em vez da fórmula do Tackle)",
+        "tip": "Desligado (padrão): o empurrão vem da fórmula do Tackle × a velocidade de impacto acima. Ligado: usa o Knockback horizontal e vertical abaixo, como o Lunge.",
+        "unit": "yesno",
+        "value": 0
+      },
+      {
+        "min": 0,
+        "max": 15,
+        "step": 0.1,
+        "key": "knockbackH",
+        "label": "Knockback horizontal (próprio)",
+        "tip": "Empurrão deslizante no alvo; só vale com “Knockback próprio” ligado.",
+        "unit": "ms",
+        "value": 4
+      },
+      {
+        "min": 0,
+        "max": 15,
+        "step": 0.1,
+        "key": "knockbackV",
+        "label": "Knockback vertical (próprio)",
+        "tip": "Com valor acima de 0 o golpe lança o alvo; só vale com “Knockback próprio” ligado.",
+        "unit": "ms",
+        "value": 0
+      },
+      {
+        "min": 0,
+        "max": 0.95,
+        "step": 0.05,
+        "key": "slow",
+        "label": "Redução da velocidade na preparação",
+        "tip": "0,7 = anda a 30% durante a preparação (documento: 70%).",
+        "unit": "pct",
+        "value": 0.7
+      },
+      {
+        "min": 0,
+        "max": 6,
+        "step": 0.25,
+        "key": "maxRise",
+        "label": "Altura de apoio na chegada (técnico)",
+        "tip": "Até que altura acima dos pés o lutador procura apoio ao reaparecer.",
+        "unit": "m",
+        "value": 2
+      },
+      {
+        "min": 0,
+        "max": 1,
+        "step": 1,
+        "key": "fxLines",
+        "label": "Linhas de velocidade no sumiço",
+        "tip": "Desenha linhas de velocidade do ponto de partida até o alvo enquanto o lutador some (e outras na volta, no Quick Attack). Só aparência.",
+        "unit": "yesno",
+        "value": 1
+      },
+      {
+        "min": 0,
+        "max": 1,
+        "step": 1,
+        "key": "fxHideBody",
+        "label": "Ocultar o corpo durante o sumiço",
+        "tip": "Liga/desliga o desaparecimento visual do corpo (a simulação não muda). Só aparência.",
+        "unit": "yesno",
+        "value": 1
+      },
+      {
+        "min": 0,
+        "max": 8,
+        "step": 0.25,
+        "key": "airReach",
+        "label": "Alcance vertical anti-aéreo",
+        "tip": "Altura de alvo em voo que o Move consegue adquirir e acertar (0 = só no chão). Padrão: 3 m.",
+        "unit": "m",
+        "value": 3
+      }
+    ]
+  }
+}

@@ -1,0 +1,145 @@
+{
+  "schemaVersion": 1,
+  "def": {
+    "id": "lunge",
+    "name": "Lunge",
+    "air": "descend",
+    "group": "lunge",
+    "tackle": "lunge",
+    "description": "Burst. Avança em linha reta até 3,5 m aplicando um Tackle curto (PL1) e fica onde parou. Dano 8, empurrão de 4 m/s sem lançar.",
+    "cost": 0.75,
+    "cooldown": 6,
+    "duration": 0.6,
+    "aim": "target"
+  },
+  "params": {
+    "group": "lunge",
+    "title": "Lunge",
+    "hint": "Burst · Melee · PL1. Toque para avançar 3,5 m em linha reta com um Tackle curto e ficar onde parou.",
+    "meta": {
+      "category": "Burst",
+      "types": [
+        "Melee"
+      ],
+      "pl": "PL1",
+      "status": {
+        "proposto": true,
+        "aprovado": false,
+        "implementado": true,
+        "homologado": false
+      }
+    },
+    "rows": [
+      {
+        "min": 0,
+        "max": 5,
+        "step": 0.05,
+        "key": "cost",
+        "label": "Custo de stamina",
+        "tip": "Cobrado no início do uso (Burst); vale nos PRÓXIMOS usos (M28.4). Valor da proposta — não homologada.",
+        "unit": "num",
+        "value": 0.75
+      },
+      {
+        "min": 0,
+        "max": 60,
+        "step": 0.5,
+        "key": "cooldown",
+        "label": "Cooldown",
+        "tip": "Começa junto com o custo, no início do uso (proposta: 6 s).",
+        "unit": "sec",
+        "value": 6
+      },
+      {
+        "min": 0.1,
+        "max": 2,
+        "step": 0.01,
+        "key": "cast",
+        "label": "Duração total da ação",
+        "tip": "Do início ao fim da recuperação (proposta: 0,6 s).",
+        "unit": "sec",
+        "value": 0.6
+      },
+      {
+        "min": 0.5,
+        "max": 12,
+        "step": 0.1,
+        "key": "range",
+        "label": "Distância do avanço",
+        "tip": "Distância percorrida em linha reta, sem retorno (proposta: 3,5 m).",
+        "unit": "m",
+        "value": 3.5
+      },
+      {
+        "min": 0,
+        "max": 40,
+        "step": 0.5,
+        "key": "damage",
+        "label": "Dano nominal",
+        "tip": "Com o Ataque de referência; final = nominal × Ataque ÷ referência (MV-P13). Proposta: 8 HP.",
+        "unit": "num",
+        "value": 8
+      },
+      {
+        "min": 0,
+        "max": 20,
+        "step": 0.1,
+        "key": "knockbackH",
+        "label": "Knockback horizontal",
+        "tip": "Empurrão deslizante no alvo (proposta: 4 m/s).",
+        "unit": "ms",
+        "value": 4
+      },
+      {
+        "min": 0,
+        "max": 20,
+        "step": 0.1,
+        "key": "knockbackV",
+        "label": "Knockback vertical",
+        "tip": "Com valor acima de zero o golpe passa a lançar o alvo (proposta: 0).",
+        "unit": "ms",
+        "value": 0
+      },
+      {
+        "min": 0,
+        "max": 1,
+        "step": 0.01,
+        "key": "invulnerableSeconds",
+        "label": "Invulnerabilidade inicial",
+        "tip": "Janela de i-frames do atacante no começo do avanço (proposta: 0,133 s; 0 desliga).",
+        "unit": "sec",
+        "value": 0.1333
+      },
+      {
+        "min": 0,
+        "max": 2,
+        "step": 0.01,
+        "key": "chainAfter",
+        "label": "Cancelável após",
+        "tip": "Instante a partir do qual esquiva/outras ações podem cancelar (proposta: 0,45 s).",
+        "unit": "sec",
+        "value": 0.45
+      },
+      {
+        "min": 0,
+        "max": 1,
+        "step": 0.01,
+        "key": "hitStart",
+        "label": "Janela ativa: início",
+        "tip": "Só vale com \"janelas de combate\" ligadas (proposta: 0,19 s).",
+        "unit": "sec",
+        "value": 0.19
+      },
+      {
+        "min": 0,
+        "max": 1,
+        "step": 0.01,
+        "key": "hitEnd",
+        "label": "Janela ativa: fim",
+        "tip": "Só vale com \"janelas de combate\" ligadas (proposta: 0,26 s).",
+        "unit": "sec",
+        "value": 0.26
+      }
+    ]
+  }
+}

@@ -1,0 +1,178 @@
+{
+  "schemaVersion": 1,
+  "def": {
+    "id": "guard-break",
+    "name": "Guard Break",
+    "air": "descend",
+    "group": "guardBreak",
+    "tackle": "guard-break",
+    "description": "Charge. Segure para carregar (até 1 s, PL1/PL2/PL3), solte para um golpe pesado que derruba a guarda de quem defende e causa guard stun de 0,5 s.",
+    "cost": 1,
+    "cooldown": 10,
+    "charge": {
+      "max": 1,
+      "group": "guardBreak"
+    },
+    "duration": 0.7
+  },
+  "params": {
+    "group": "guardBreak",
+    "title": "Guard Break",
+    "hint": "Charge · Melee · PL1–PL3. Segure para carregar (até 1 s), solte para um golpe pesado que derruba a guarda e causa guard stun de 0,5 s.",
+    "meta": {
+      "category": "Charge",
+      "types": [
+        "Melee"
+      ],
+      "pl": "PL1–PL3",
+      "status": {
+        "proposto": true,
+        "aprovado": false,
+        "implementado": true,
+        "homologado": false
+      }
+    },
+    "rows": [
+      {
+        "min": 0,
+        "max": 5,
+        "step": 0.05,
+        "key": "cost",
+        "label": "Custo de stamina",
+        "tip": "Cobrado ao INICIAR a carga (Charge); interromper a carga não devolve. Valor da proposta — não homologada.",
+        "unit": "num",
+        "value": 1
+      },
+      {
+        "min": 0,
+        "max": 60,
+        "step": 0.5,
+        "key": "cooldown",
+        "label": "Cooldown",
+        "tip": "Começa junto com o custo, ao iniciar a carga (proposta: 10 s).",
+        "unit": "sec",
+        "value": 10
+      },
+      {
+        "min": 0.2,
+        "max": 3,
+        "step": 0.01,
+        "key": "cast",
+        "label": "Duração do golpe (pós-soltura)",
+        "tip": "Do disparo ao fim da recuperação (proposta: 0,7 s).",
+        "unit": "sec",
+        "value": 0.7
+      },
+      {
+        "min": 0.2,
+        "max": 4,
+        "step": 0.05,
+        "key": "maxCharge",
+        "label": "Carga máxima",
+        "tip": "PL1 abaixo de 50%, PL2 de 50% até antes de 100%, PL3 na carga máxima (proposta: 1 s).",
+        "unit": "sec",
+        "value": 1
+      },
+      {
+        "min": 0,
+        "max": 2,
+        "step": 0.05,
+        "key": "minCharge",
+        "label": "Carga mínima para soltar",
+        "tip": "0 = pode soltar a qualquer momento (proposta).",
+        "unit": "sec",
+        "value": 0
+      },
+      {
+        "min": 0.5,
+        "max": 8,
+        "step": 0.1,
+        "key": "range",
+        "label": "Distância do avanço",
+        "tip": "Não definida no documento: provisório (MV-P20).",
+        "unit": "m",
+        "value": 2.6
+      },
+      {
+        "min": 0,
+        "max": 40,
+        "step": 0.5,
+        "key": "damage",
+        "label": "Dano nominal",
+        "tip": "Com o Ataque de referência; final = nominal × Ataque ÷ referência (MV-P13); não cresce com o PL. Valor do laboratório: 6 HP (o da proposta).",
+        "unit": "num",
+        "value": 6
+      },
+      {
+        "min": 0,
+        "max": 20,
+        "step": 0.1,
+        "key": "knockbackH",
+        "label": "Knockback horizontal (sem guarda)",
+        "tip": "Empurrão em quem NÃO está defendendo (proposta: 2 m/s). Contra guarda o valor é o guard stun.",
+        "unit": "ms",
+        "value": 2
+      },
+      {
+        "min": 0,
+        "max": 20,
+        "step": 0.1,
+        "key": "knockbackV",
+        "label": "Knockback vertical",
+        "tip": "Com valor acima de zero o golpe passa a lançar o alvo (proposta: 0).",
+        "unit": "ms",
+        "value": 0
+      },
+      {
+        "min": 0,
+        "max": 3,
+        "step": 0.05,
+        "key": "stun",
+        "label": "Guard stun",
+        "tip": "Tempo que o defensor fica sem agir após ter a guarda quebrada (proposta: 0,5 s, GM-P04). Defesa perfeita anula.",
+        "unit": "sec",
+        "value": 0.5
+      },
+      {
+        "min": 0,
+        "max": 1,
+        "step": 0.01,
+        "key": "invulnerableSeconds",
+        "label": "Invulnerabilidade do atacante",
+        "tip": "I-frames no começo do golpe (proposta: nenhum; o startup é punível).",
+        "unit": "sec",
+        "value": 0
+      },
+      {
+        "min": 0,
+        "max": 2,
+        "step": 0.01,
+        "key": "chainAfter",
+        "label": "Cancelável após",
+        "tip": "Instante a partir do qual esquiva/outras ações podem cancelar (proposta: 0,47 s).",
+        "unit": "sec",
+        "value": 0.47
+      },
+      {
+        "min": 0,
+        "max": 1.5,
+        "step": 0.01,
+        "key": "hitStart",
+        "label": "Janela ativa: início",
+        "tip": "Só vale com \"janelas de combate\" ligadas (proposta: 0,33 s).",
+        "unit": "sec",
+        "value": 0.333
+      },
+      {
+        "min": 0,
+        "max": 1.5,
+        "step": 0.01,
+        "key": "hitEnd",
+        "label": "Janela ativa: fim",
+        "tip": "Só vale com \"janelas de combate\" ligadas (proposta: 0,53 s).",
+        "unit": "sec",
+        "value": 0.533
+      }
+    ]
+  }
+}

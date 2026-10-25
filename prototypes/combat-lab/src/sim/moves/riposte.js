@@ -5,13 +5,8 @@
 // interceptor está em entity.js (`riposteIntercept`), chamado por resolveHit (Tackle) e applyHit (projéteis, lasers, áreas). Valores: C.world.riposte, capturados no uso.
 
 import {defineFicha} from './params-registry.js';
-import {params} from './riposte.params.js';
-export const riposteDef = Object.freeze({
-  id: 'riposte', name: 'Riposte', air: 'cast', group: 'riposte', riposte: true, aim: 'target',
-  description: 'Normal. Adota uma postura baixa; se for atingido na janelinha de 0,13–0,30 s, anula o golpe e contra-ataca na hora. Errar o tempo deixa você exposto.',
-  cost: .8, cooldown: 8, duration: .65,
-  motion: {type: 'root'},
-});
+import {params, def as riposteDef} from './riposte.params.js';
+export {riposteDef};   // definição (id, fases, custo…) vem de riposte.move.json
 
 /** FICHA do Move (ver docs/COMO_CRIAR_UM_MOVE.md): `params` gera o padrão em C.world.riposte e os sliders da aba Moves; `def` e os manipuladores são registrados sozinhos. */
 export const ficha = defineFicha({

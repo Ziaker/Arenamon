@@ -1,6 +1,6 @@
 # Plano: Editor de Moves (janela única que dá play no Move)
 
-Status (24/10/2026): **fases 1 e 2 entregues para o Sand Wave** (ver «Andamento» no fim). Fases 3 a 7 ainda são plano.
+Status (24/10/2026): **fases 1, 2 e 5 entregues (17 Moves)** (ver «Andamento» no fim). Fases 3 a 7 ainda são plano.
 
 ## Objetivo
 
@@ -148,4 +148,6 @@ Modo escuro/claro, painel redimensionável e lembrado, janela destacável por pa
 
 - **Fase 1 (Move como dado)** — `src/sim/moves/move-data.js` + `sand-wave.move.json`: definição, sliders de mecânica e referência ao visual aprovado num arquivo só. Teste: `test/move-data.test.mjs`.
 - **Fase 2 (editor mínimo)** — botão **🛠 Editor** na barra superior (ao lado de «🎬 Cine»). Abre a gaveta com: palco (Move, distância do alvo, alvo parado/defendendo, velocidade, repetir em laço), **▶ Executar** (roda o Move de verdade no `World` da partida e mostra dano, cegueira, custo e recarga), sliders de **mecânica** (Ctrl+Z desfaz, ↺ volta ao padrão) e de **visual** (parâmetros aprovados do atelier, valem na sessão), e **Copiar move.json / Copiar visual** para guardar. Código em `src/editor/` (modelo sem interface + painel). Testes: `test/move-editor.test.mjs` (modelo, sem navegador) e `test/move-editor.browser.mjs` (16 verificações no navegador). Evidência: `evidence/editor/editor-sand-wave.png`.
-- **Limites atuais:** só o Sand Wave está no editor (os demais Moves entram na fase 5); gravar direto no disco, linha do tempo e comparação A/B (fase 3), e a vitrine de Moves na aba (fase 4) ainda não existem.
+- **Fase 5 (migração dos Moves) — feita para os 17 Moves com ficha de parâmetros**: air-slash, bounce, bullet-punch, emerging-stone, feint, fire-spin, guard-break, harden, lunge, quick-attack, riposte, sand-wave, second-wind, seed-bomb, spikes, swift e water-pulse. Cada um migrou sozinho (`scripts/migrar-move.mjs <id>`) com **prova de equivalência** (retrato de definição, sliders, padrões de `C.world`, Move efetivo e chaves da ficha idêntico antes e depois) e um commit por Move. O índice `moves/params.generated.js` exporta `MOVES_DATA`, de onde o editor lista os Moves: **migrar um Move novo basta para ele aparecer no editor**. Reflect e Psyshock (sem grupo em `C.world`) continuam em código.
+- **Editor com todos os 17 Moves**: palco genérico (golpe, projétil, campo, buff, carga e mira por marcador), controle «Segurar o botão» para carga/mira, resumo com acerto, dano, cegueira, status no alvo e no azul, entidades criadas, falha com motivo, custo e recarga.
+- **Limites atuais:** Reflect e Psyshock ainda não estão no editor; a IA (`ficha.ai`) e a lógica dos efeitos seguem em código; o visual do atelier só está ligado a Sand Wave, Emerging Stone e Swift; gravar direto no disco, linha do tempo e comparação A/B (fase 3), e a vitrine de Moves na aba (fase 4) ainda não existem.

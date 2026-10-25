@@ -7,14 +7,10 @@
 // Harden anula o knockback mas NÃO o guard stun (GM-P06, proposta). Valores: C.world.guardBreak, capturados ao apertar o botão (M28.4).
 import {C} from '../config.js';
 import {defineFicha} from './params-registry.js';
-import {params} from './guard-break.params.js';
+import {params, def as guardBreakDef} from './guard-break.params.js';
 import {nominalDistance} from '../entity.js';
 
-export const guardBreakDef = Object.freeze({
-  id: 'guard-break', name: 'Guard Break', air: 'descend', group: 'guardBreak', tackle: 'guard-break',
-  description: 'Charge. Segure para carregar (até 1 s, PL1/PL2/PL3), solte para um golpe pesado que derruba a guarda de quem defende e causa guard stun de 0,5 s.',
-  cost: 1, cooldown: 10, charge: {max: 1, group: 'guardBreak'}, duration: .7,
-});
+export {guardBreakDef};   // definição (id, fases, custo…) vem de guard-break.move.json
 
 /** Preparação do Tackle do golpe, com os parâmetros congelados no início da carga e o nível de PL da soltura. */
 export function guardBreakSetup(/** @type {any} */ f, /** @type {any} */ a, /** @type {Record<string, any>} */ P, /** @type {{charge?: {level: number}}} */ ctx) {

@@ -7,6 +7,9 @@ import {removeMoveParams, moveParamGroups} from '../src/sim/moves/params-registr
 import {sandWaveDef, ficha} from '../src/sim/moves/sand-wave.js';
 import {params, visual} from '../src/sim/moves/sand-wave.params.js';
 import {factoryDefaults} from '../src/sim/config.js';
+import {readdirSync} from 'node:fs';
+import {FICHAS} from '../src/sim/moves/fichas.generated.js';
+import {MOVES_DATA} from '../src/sim/moves/params.generated.js';
 
 const here = new URL('../src/sim/moves/', import.meta.url);
 const raw = JSON.parse(readFileSync(new URL('sand-wave.move.json', here), 'utf8'));
@@ -51,7 +54,8 @@ ok('JSON inválido é recusado com a lista dos problemas', () => {
   const cases = [
     [d => {d.schemaVersion = 2;}, 'schemaVersion'],
     [d => {d.extra = 1;}, 'campo desconhecido: extra'],
-    [d => {delete d.def.cost;}, 'def.cost'],
+    [d => {delete d.def.name;}, 'def.name'],
+    [d => {d.def.cost = 'caro';}, 'def.cost precisa ser número'],
     [d => {d.def.id = 'Sand Wave';}, 'kebab-case'],
     [d => {d.params.rows = [];}, 'params.rows'],
     [d => {delete d.params.rows[0].label;}, 'falta label'],
@@ -63,4 +67,42 @@ ok('JSON inválido é recusado com a lista dos problemas', () => {
   assert.throws(() => loadMoveData({}), /move\.json inválido/);
 });
 ok(`esquema versão ${MOVE_DATA_SCHEMA}`, () => assert.equal(raw.schemaVersion, MOVE_DATA_SCHEMA));
+
+// ---- TODOS os Moves em dado ----
+const files = readdirSync(new URL('.', here)).filter(f => f.endsWith('.move.json'));
+ok(`todos os ${files.length} move.json são válidos, com id igual ao nome do arquivo`, () => {
+  assert.ok(files.length >= 17, 'esperava os 17 Moves migrados');
+  for (const f of files) {
+    const d = JSON.parse(readFileSync(new URL(f, here), 'utf8'));
+    assert.deepEqual(validateMoveData(d), [], f);
+    assert.equal(d.def.id + '.move.json', f, `${f}: def.id diferente do nome do arquivo`);
+  }
+});
+ok('todo Move com ficha de parâmetros está em dado (nenhum ficou só em código)', () => {
+  const withParams = FICHAS.filter(f => f.params);
+  assert.equal(MOVES_DATA.length, withParams.length, 'há ficha com params que não exporta def (não migrada)');
+  for (const f of withParams) assert.ok(files.includes(f.def.id + '.move.json'), `${f.def.id}: sem move.json`);
+});
+ok('os padrões de C.world de cada Move são os valores do JSON', () => {
+  const w = factoryDefaults().world;
+  for (const f of files) {
+    const d = JSON.parse(readFileSync(new URL(f, here), 'utf8'));
+    for (const r of d.params.rows) if (r.key) assert.equal(w[d.params.group][r.key], r.value, `${f}: ${r.key}`);
+  }
+});
+ok('a definição congelada de cada ficha é a do JSON', () => {
+  for (const f of FICHAS.filter(x => x.params)) {
+    const d = JSON.parse(readFileSync(new URL(f.def.id + '.move.json', here), 'utf8'));
+    assert.deepEqual(JSON.parse(JSON.stringify(f.def)), d.def, f.def.id);
+    assert.ok(Object.isFrozen(f.def), f.def.id + ' deve estar congelada');
+  }
+});
+ok('as referências de visual apontam para arquivos aprovados do atelier', () => {
+  for (const f of files) {
+    const d = JSON.parse(readFileSync(new URL(f, here), 'utf8'));
+    if (!d.visual) continue;
+    const doc = JSON.parse(readFileSync(new URL(`../../../../sand-stone-lab/approved/${d.visual.atelier}.json`, here), 'utf8'));
+    assert.equal(doc.variant, d.visual.variant, f);
+  }
+});
 console.log(`${n} verificações de Move como dado.`);

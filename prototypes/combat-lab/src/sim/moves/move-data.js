@@ -7,7 +7,7 @@ import {defineMoveParams, paramRow, standardRows, hitShakeRows} from './params-r
 
 export const MOVE_DATA_SCHEMA = 1;
 const TOP_KEYS = ['schemaVersion', 'def', 'params', 'visual'];
-const DEF_REQUIRED = ['id', 'name', 'cost', 'cooldown', 'duration'];
+const DEF_REQUIRED = ['id', 'name'];   // custo, recarga e duração são opcionais (Moves cuja duração vem de durationKeys/charge)
 const PARAMS_KEYS = ['group', 'title', 'hint', 'meta', 'rows'];
 const VISUAL_KEYS = ['atelier', 'variant'];
 

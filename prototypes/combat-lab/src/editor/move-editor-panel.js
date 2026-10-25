@@ -6,14 +6,14 @@ import {escape} from '../ui/tuning.js';
 import {controls as atelierControls, help as atelierHelp, phaseOf, phaseNames} from '../../../sand-stone-lab/src/config.ts';
 import {ATELIER_APPROVED, ATELIER_GAME_PARAMS} from '../view/quarks/atelier-game-params.js';
 import {EDITABLE_MOVES, editableMove} from './editable-moves.js';
-import {makeMoveScenario, currentMoveJson, TARGET_STATES, DEFAULT_STAGE, DISTANCE_RANGE} from './move-editor-model.js';
+import {makeMoveScenario, currentMoveJson, TARGET_STATES, DEFAULT_STAGE, DISTANCE_RANGE, HOLD_RANGE, needsHold, suggestedHold, holdHint} from './move-editor-model.js';
 
 /**
  * @param {{getWorld: () => any, $: (id: string) => any, tuning: any, startScenario: (def: any) => void, abortScenario: () => void, getScenario: () => any, getLastResult: () => any, download: (data: string, name: string, type?: string) => void, setTimeScale: (v: number) => void}} deps
  */
 export function createMoveEditor({getWorld, $, tuning, startScenario, abortScenario, getScenario, getLastResult, download, setTimeScale}) {
   const root = $('move-editor-body');
-  const state = {moveId: EDITABLE_MOVES[0].id, distance: DEFAULT_STAGE.distance, target: DEFAULT_STAGE.target, loop: false, speed: 1, running: false};
+  const state = {moveId: (EDITABLE_MOVES.find(m => m.id === 'sand-wave') ?? EDITABLE_MOVES[0]).id, distance: DEFAULT_STAGE.distance, target: DEFAULT_STAGE.target, hold: 0, loop: false, speed: 1, running: false};
   const move = () => /** @type {any} */ (editableMove(state.moveId));
   const el = (/** @type {string} */ tag, /** @type {Record<string, any>} */ attrs = {}, /** @type {(Node | string)[]} */ kids = []) => {
     const e = document.createElement(tag);
@@ -24,7 +24,7 @@ export function createMoveEditor({getWorld, $, tuning, startScenario, abortScena
 
   function play() {
     abortScenario();
-    const def = makeMoveScenario(move(), {distance: state.distance, target: state.target});
+    const def = makeMoveScenario(move(), {distance: state.distance, target: state.target, hold: needsHold(move()) ? state.hold : 0});
     state.running = true;startScenario(def);
     status(`Executando «${move().name}»…`);
   }
@@ -48,10 +48,17 @@ export function createMoveEditor({getWorld, $, tuning, startScenario, abortScena
   function stageSection() {
     const sec = el('section', {class: 'editor-sec'}, [el('h4', {text: 'Palco'})]);
     const sel = /** @type {HTMLSelectElement} */ (el('select', {id: 'editor-move'}, EDITABLE_MOVES.map(m => el('option', {value: m.id, text: m.name}))));
-    sel.value = state.moveId;sel.onchange = () => {state.moveId = sel.value;render();};
+    sel.value = state.moveId;sel.onchange = () => {state.moveId = sel.value;state.hold = suggestedHold(move());render();};
     const dist = /** @type {HTMLInputElement} */ (el('input', {type: 'range', id: 'editor-distance', min: DISTANCE_RANGE.min, max: DISTANCE_RANGE.max, step: DISTANCE_RANGE.step, value: state.distance}));
     const distOut = el('output', {text: `${state.distance} m`});
     dist.oninput = () => {state.distance = Number(dist.value);distOut.textContent = `${state.distance} m`;};
+    const holdRow = needsHold(move()) ? [(() => {
+      const hold = /** @type {HTMLInputElement} */ (el('input', {type: 'range', id: 'editor-hold', min: HOLD_RANGE.min, max: HOLD_RANGE.max, step: HOLD_RANGE.step, value: state.hold || suggestedHold(move())}));
+      const out = el('output', {text: `${(+hold.value).toFixed(2)} s`});
+      state.hold = Number(hold.value);
+      hold.oninput = () => {state.hold = Number(hold.value);out.textContent = `${state.hold.toFixed(2)} s`;};
+      return el('label', {class: 'editor-row', title: holdHint(move())}, [el('span', {text: 'Segurar o botão'}), hold, out]);
+    })(), el('p', {class: 'hint', text: holdHint(move())})] : [];
     const tgt = /** @type {HTMLSelectElement} */ (el('select', {id: 'editor-target'}, TARGET_STATES.map(([v, l]) => el('option', {value: v, text: l}))));
     tgt.value = state.target;tgt.onchange = () => {state.target = tgt.value;};
     const spd = /** @type {HTMLSelectElement} */ (el('select', {id: 'editor-speed'}, [['1', 'Normal'], ['0.5', 'Câmera lenta (0,5×)'], ['0.25', 'Muito lenta (0,25×)']].map(([v, l]) => el('option', {value: v, text: l}))));
@@ -65,6 +72,7 @@ export function createMoveEditor({getWorld, $, tuning, startScenario, abortScena
       el('label', {class: 'editor-row'}, [el('span', {text: 'Move'}), sel]),
       el('label', {class: 'editor-row'}, [el('span', {text: 'Distância do alvo'}), dist, distOut]),
       el('label', {class: 'editor-row'}, [el('span', {text: 'Alvo'}), tgt]),
+      ...holdRow,
       el('label', {class: 'editor-row'}, [el('span', {text: 'Velocidade'}), spd]),
       el('label', {class: 'editor-row check'}, [loop, el('span', {text: 'Repetir em laço'})]),
       el('div', {class: 'editor-actions'}, [playBtn, stopBtn]),

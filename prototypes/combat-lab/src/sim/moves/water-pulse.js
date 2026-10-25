@@ -8,14 +8,9 @@ import {spawn} from '../world.js';
 import {direction} from '../math.js';
 import {emitterAltitude, spawnPoint, spawnBlocked, straightLaunch, bodyHeight} from './projectile-util.js';
 import {defineFicha} from './params-registry.js';
-import {params} from './water-pulse.params.js';
+import {params, def as waterPulseDef} from './water-pulse.params.js';
 
-export const waterPulseDef = Object.freeze({
-  id: 'water-pulse', name: 'Water Pulse', air: 'cast', group: 'waterPulse', cooldownOnStart: true,
-  description: 'Charge · Projectile. Segure para carregar (até 1,5 s), solte para disparar uma esfera de água reta, sem homing. Mais carga = mais PL, dano e empurrão.',
-  cost: 1, cooldown: 9, charge: {max: 1.5, group: 'waterPulse'},
-  timeline: [{effect: 'water-pulse'}],
-});
+export {waterPulseDef};   // definição (id, fases, custo…) vem de water-pulse.move.json
 
 /** Efeito da soltura: cria o projétil (ou falha com reembolso se o ponto de nascimento estiver num sólido). */
 export function waterPulseEffect(/** @type {any} */ game, /** @type {any} */ f, /** @type {any} */ def, /** @type {any} */ fx) {
