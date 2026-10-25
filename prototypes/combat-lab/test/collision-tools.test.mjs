@@ -89,6 +89,17 @@ check('Dados ao vivo: apoio, último contato, objetos do cenário e penetração
   g.fighters[0].groundY = 0;g.fighters[0].position = vec(1.2, 0);assert.match(Object.fromEntries(collisionRows(g))['Penetração em sólidos'], /Azul \d+\.\d cm/);
 });
 
+check('moveEntities: Sand Wave desenha o retângulo real do acerto (comprimento × largura) e a frente atual', () => {
+  const g = lab();
+  g.world.entities.push({id: 601, kind: 'sandwave', owner: 0, pos: {x: 1, z: 2}, dir: {x: 0, z: 1}, length: 6, width: 3, active: 1, life: 2, age: .5, speed: 4});
+  const v = draw(g, {moveEntities: true});
+  const rect = v.lines.find(l => l.p.length === 5);
+  assert.ok(rect, 'contorno do retângulo');
+  const xs = rect.p.map(q => q[0]), zs = rect.p.map(q => q[2]);
+  assert.deepEqual([Math.min(...xs), Math.max(...xs), Math.min(...zs), Math.max(...zs)], [-.5, 2.5, 2, 8], 'largura 3 em x, comprimento 6 em z a partir da origem');
+  const front = v.lines.find(l => l.p.length === 2);
+  assert.ok(front && front.p.every(q => Math.abs(q[2] - 4) < 1e-9), 'frente em 4 × 0,5 = 2 m da origem');
+});
 check('hurtbox: caixa do lutador com halfExtent e altura do corpo, a partir dos pés; some quando desligada', () => {
   const g = lab();g.fighters[0].position = vec(2, 3);g.fighters[0].groundY = 1;
   const v = draw(g, {hurtbox: true}), h = C.test.halfExtent, H = C.extras.visual.bodyHeight;

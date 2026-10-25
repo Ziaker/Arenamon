@@ -101,6 +101,12 @@ export function drawCollisionOverlays(view, fighters, world, O) {
       if (e.dead) continue;
       const x = e.pos?.x ?? 0, z = e.pos?.z ?? 0, y0 = e.y ?? 0;
       if (e.kind === 'projectile') {view.ring(x, z, e.radius ?? .25, 0xffa040, 0, Math.PI * 2, y0);view.line([[x, y0 - (e.radius ?? .25), z], [x, y0 + (e.radius ?? .25), z]], 0xffa040, .9);}
+      else if (e.kind === 'sandwave') {   // retângulo real do acerto (inRect em sand.js) + frente atual (speed × idade); cinza na dissipação (sem hitbox)
+        const d = e.dir, sd = {x: d.z, z: -d.x}, w = e.width / 2, at = (u, v) => [e.pos.x + d.x * u + sd.x * v, .05, e.pos.z + d.z * u + sd.z * v];
+        const color = e.age <= e.active + 1e-9 ? 0xff4a4a : 0x9aa0a8, front = Math.min(e.length, (e.speed ?? 0) * (e.age ?? 0));
+        view.line([at(0, -w), at(e.length, -w), at(e.length, w), at(0, w), at(0, -w)], color, .85);
+        view.line([at(front, -w), at(front, w)], 0xffe08a, .95);
+      }
       else if (e.kind === 'beam') {for (const seg of e.segments ?? []) view.line([[seg.a.x, e.y ?? .9, seg.a.z], [seg.b.x, e.y ?? .9, seg.b.z]], 0xff5de8, .9);}
       else if (e.shape === 'circle' && (e.radius ?? 0) > 0) cylinder(view, x, z, e.radius, y0, y0 + (e.height ?? 2), e.kind === 'area' || e.kind === 'trap' ? ((e.startup ?? 0) > (e.age ?? 0) ? 0xffe08a : 0xff4a4a) : 0x73caff, .85);
       else if (e.shape === 'box' && e.hx) {
