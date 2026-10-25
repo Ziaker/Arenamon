@@ -95,6 +95,26 @@ class TestPrevisaoLoop(unittest.TestCase):
         self.assertEqual(p["antecipacao"], "nao")
 
 
+class TestRefazerPrevisoes(unittest.TestCase):
+    def test_regrava_so_previsoes_sem_tocar_no_lote(self):
+        import json, os, tempfile
+        import gerar_lote
+        d = tempfile.mkdtemp()
+        lote = os.path.join(d, "lote_x")
+        os.makedirs(lote)
+        texto = json.dumps({"itens": [{"id": "pm1_00_00/a"}, {"id": "pm2_00_00/b"}]})
+        open(os.path.join(lote, "lote.json"), "w", encoding="utf-8").write(texto)
+        banco = os.path.join(d, "b.jsonl")
+        with open(banco, "w", encoding="utf-8") as fh:
+            for m, c in (("pm1_00_00", "a"), ("pm2_00_00", "b"), ("pm3_00_00", "c")):
+                fh.write(json.dumps({"modelo": m, "clipe": c, "status": "MEDIDO", "antecipacao": True,
+                                     "executores": ["braco_D"]}) + "\n")
+        self.assertEqual(gerar_lote.refazer_previsoes(banco, lote), (2, 2))
+        self.assertEqual(open(os.path.join(lote, "lote.json"), encoding="utf-8").read(), texto)
+        prev = json.load(open(os.path.join(d, "lote_x_sistema", "previsoes_b.json"), encoding="utf-8"))
+        self.assertEqual([p["id"] for p in prev], ["pm1_00_00/a", "pm2_00_00/b"])
+
+
 class TestConcordancia(unittest.TestCase):
     def test_kappa_concordancia_perfeita_e_1(self):
         rot = [{"id": i, "antecipacao": "sim" if i % 2 else "nao"} for i in range(10)]

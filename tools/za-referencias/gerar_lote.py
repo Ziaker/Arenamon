@@ -86,7 +86,29 @@ def escolher(teste, semente=1025):
     return escolha
 
 
+def refazer_previsoes(banco, saida):
+    """Lote já congelado (lote.json e hash intactos): só regrava <saida>_sistema/previsoes_b.json com o banco novo."""
+    with open(os.path.join(saida, "lote.json"), encoding="utf-8") as fh:
+        ids = [it["id"] for it in json.load(fh)["itens"]]
+    por_id = {}
+    with open(banco, encoding="utf-8") as fh:
+        for x in fh:
+            if x.strip():
+                l = json.loads(x)
+                l["id"] = "%s/%s" % (l["modelo"], l["clipe"])
+                por_id[l["id"]] = l
+    prev = [previsao(por_id[i]) for i in ids if i in por_id]
+    sistema = saida.rstrip("/\\") + "_sistema"
+    os.makedirs(sistema, exist_ok=True)
+    with open(os.path.join(sistema, "previsoes_b.json"), "w", encoding="utf-8") as fh:
+        json.dump(prev, fh, ensure_ascii=False, indent=1)
+    return len(prev), len(ids)
+
+
 def main():
+    if sys.argv[1] == "--previsoes":
+        print("previsões: %d de %d itens" % refazer_previsoes(sys.argv[2], sys.argv[3]))
+        return
     banco, dump, saida = sys.argv[1:4]
     with open(os.path.join(AQUI, "especies.json"), encoding="utf-8") as fh:
         esp = json.load(fh)["especies"]
