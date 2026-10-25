@@ -12,7 +12,7 @@
 // Fora deste entrega (declarado): plataformas MÓVEIS (o mapa atual só tem plataformas fixas), rampas/terreno inclinado (as plataformas do motor são planas) e o atraso
 // de visibilidade dos adversários na mira são tratados só no que o motor suporta — ver docs/moves-nao-iniciados/fichas/emerging-stone.md.
 import {C} from './config.js';
-import {applyHit, closestOnShape} from './world.js';
+import {applyHit, closestOnShape} from './world/world-hit.js';
 import {getGroundHeight} from './physics.js';
 import {effectiveArenaRadius} from './map.js';
 import {launch} from './combat.js';

@@ -1,3 +1,4 @@
+// @ts-check
 // Sistema de habilidades passivas (CATÁLOGO EXPERIMENTAL — não homologado, ordem de implementação 2026-10-20).
 // 2 exclusivas por personagem + catálogo genérico; máximo de 2 equipadas; sem duplicata (UI e motor, R1–R6).
 // Identidade de espécie explícita (R15): nunca inferida só pelo modelo/GLB.

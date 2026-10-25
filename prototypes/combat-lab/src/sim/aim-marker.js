@@ -6,7 +6,7 @@
 // Este arquivo é o núcleo puro (validade e movimento); quem decide quando abre, cancela e confirma é o controlador.
 import {C} from './config.js';
 import {getGroundHeight} from './physics.js';
-import {closestOnShape} from './world.js';
+import {closestOnShape} from './world/world-hit.js';
 import {effectiveArenaRadius} from './map.js';
 import {add, scale, sub, length, normalize, direction} from './math.js';
 

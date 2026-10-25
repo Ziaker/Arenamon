@@ -1,3 +1,4 @@
+// @ts-check
 // Configuração viva do laboratório.
 // Os valores iniciais reproduzem exatamente o laboratório v6 (arenamon-combate-laboratorio-v6.html).
 // O jogo oficial (prototypes/game/src/config.ts) é lido por ui/official.js apenas para comparação.

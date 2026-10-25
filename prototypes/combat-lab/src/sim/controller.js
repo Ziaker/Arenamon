@@ -1,3 +1,4 @@
+// @ts-check
 // Controle de cada lutador por passo fixo: stamina, defesa, X (tackle) e C (esquiva), cancelamento C → X,
 // salto da esquiva, recuo e locomoção.
 //

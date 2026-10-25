@@ -1,3 +1,4 @@
+// @ts-check
 // Cenários do Tackle e do meteor slam: finta (início e carga), tackle carregado PL3, atrito do Tackle e meteor slam (acertando e esquivado).
 // Mesmo formato dos cenários de scenarios.js: posições fixas, comandos roteirizados (sem IA) e lista “esperado × obtido” calculada
 // a partir da configuração ATUAL, então continuam válidos quando os sliders mudam.

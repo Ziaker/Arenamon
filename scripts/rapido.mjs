@@ -64,6 +64,7 @@ let skipped = 0;
 const fresh = [];
 await Promise.all(pool.map(async t => {const fp = useCache ? await fingerprint(t) : null; prints.set(t, fp); if (fp && cache[t] === fp) skipped++; else fresh.push(t);}));
 const jobs = [
+  ['estrito (catraca)', node, [path.join(root, 'scripts/estrito.mjs')]],
   ['typecheck lab', node, [path.join(root, 'node_modules/typescript/bin/tsc'), '--noEmit', '-p', 'prototypes/combat-lab/tsconfig.json']],
   ...fresh.map(t => [t, node, [t]]),
 ];

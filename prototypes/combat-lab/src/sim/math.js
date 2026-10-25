@@ -1,3 +1,4 @@
+// @ts-check
 // Vetores no plano XZ e funções escalares (idênticas às do v6).
 export const vec = (x = 0, z = 0) => ({x, z});
 export const add = (a, b) => vec(a.x + b.x, a.z + b.z);

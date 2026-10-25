@@ -9,7 +9,7 @@
 //     deslocamento e a esquiva (controller.js lê `f.sandPush`), e a velocidade ganha se mantém depois e decai pelo atrito normal;
 //   • PAREDE: pressionado contra um sólido, para e fica em stagger de `wallStagger` s sem dano; só repete depois de se soltar e bater de novo.
 // Obstáculos móveis: o campo de distâncias é recalculado a cada `replanSteps` passos (SW-D67). Valores: parâmetros capturados no disparo (M28.4).
-import {applyHit} from './world.js';
+import {applyHit} from './world/world-hit.js';
 import {applyStatus} from './status.js';
 import {solidsOf, insideSolid, segmentClear} from './vision.js';
 import {dot} from './math.js';

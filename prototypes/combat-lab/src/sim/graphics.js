@@ -1,3 +1,4 @@
+// @ts-check
 // Perfis gráficos: mudam SÓ parâmetros de desempenho visual (resolução de renderização, limite e quantidade de
 // partículas, estilo da sombra). Nunca física, dano, stamina, IA, tempos das ações ou regras — verificado nos testes.
 import {C, vfxDefaults} from './config.js';

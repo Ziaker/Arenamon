@@ -5,7 +5,7 @@
 //   3. ACIONAMENTO: o primeiro adversário em terra que entra no círculo (e na faixa de altura) leva o golpe pela MESMA função de acerto das entidades
 //      (`applyHit`: defesa parcial/perfeita, status, Sturdy como dano comum); a armadilha é consumida quando o golpe CONECTA ou é defendido/anulado. Quem
 //      está invulnerável não aciona (a armadilha espera). Sem knockback (0 H e 0 V), sem Clash/Counter (não é Tackle nem projétil).
-import {applyHit, closestOnShape} from './world.js';
+import {applyHit, closestOnShape} from './world/world-hit.js';
 import {getGroundHeight} from './physics.js';
 import {C} from './config.js';
 import {sub, length, normalize, direction} from './math.js';

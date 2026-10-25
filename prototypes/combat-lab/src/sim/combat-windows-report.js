@@ -1,3 +1,4 @@
+// @ts-check
 // prototypes/combat-lab/src/sim/combat-windows-report.js
 // Relatório somente leitura de janelas de combate por personagem e variante.
 // Compara janelas marcadas na animação × janelas efetivas atuais da Arena.
