@@ -112,7 +112,15 @@ Novos módulos em `tools/za-referencias/`, cada um com testes em `tests/` (rigs 
   - executores iguais nos 2 ataques e no andar;
   - apoio/impulso igual no Meditite;
   - no Blastoise, o humano marcou só a perna E e o sistema marcou as duas. Na observação, o revisor diz que as duas pernas flexionam no início.
-- **Limiar de 10°:** é baixo para os valores reais (31–65°) e pode estar marcando perna demais. Precisa de mais rótulos para calibrar. Os tentáculos do pm0965 se chamam `shoulder` no rig, por isso viram "braço", e `charge` não está na lista de locomoção.
+- **Limiar de 10°:** é baixo para os valores reais (31–65°) e pode estar marcando perna demais. Precisa de mais rótulos para calibrar.
+
+### `charge` entra na locomoção (decisão do revisor, 25/10/2026)
+
+- Os 738 clipes `charge` são todos `charge01_loop`, de 364 espécies. Eles entraram na regra de locomoção dos papéis: todo membro que cicla é executor.
+- A camada de contato e passos (`CATEGORIAS_LOCOMOCAO` em `metricas.py`) **não** mudou.
+- Banco refeito: 41.790 clipes, 0 falhas.
+- **Achado:** 471 dos 738 `charge01_loop` ficam sem executor, porque nenhum membro passa de 0,5 H/s. Muitos devem ser um avanço do corpo inteiro, ou uma pose de carga quase parada, e não membros ciclando. Precisa de rótulos para confirmar.
+- **pm0965:** o sistema dá executores braço D, braço E, perna C, perna D e perna E, sem apoio. O revisor marcou 2 "pernas", que são os tentáculos. No rig eles se chamam `shoulder`, por isso o sistema os conta como braço. Os tentáculos do pm0965 se chamam `shoulder` no rig, por isso viram "braço", e `charge` não está na lista de locomoção.
 
 ### Achados que mudaram o código durante a execução (todos com teste que falhou antes)
 
