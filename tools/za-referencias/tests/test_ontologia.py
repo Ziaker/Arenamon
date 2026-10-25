@@ -49,6 +49,10 @@ class TestRegioes(unittest.TestCase):
         self.assertEqual(r["left_wing_a"], "asa_E")
         self.assertEqual(r["lod_mesh_01"], "auxiliar")
 
+    def test_raycast_e_auxiliar(self):
+        esq = za_anim.Esqueleto.de_arrays(["origin", "raycast_a"], [-1, 0], np.zeros((2, 3)), np.tile([1.0, 0, 0, 0], (2, 1)))
+        self.assertEqual(ontologia.regioes(esq)[1], "auxiliar")
+
 
     def test_dedo_do_pe_fica_na_perna(self):
         nomes = ["origin", "waist", "left_leg_01", "left_foot", "left_foot_index", "right_foot_claw"]

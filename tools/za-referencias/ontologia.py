@@ -22,7 +22,7 @@ REGIOES = ("nucleo", "pescoco", "cabeca", "mandibula", "lingua", "olho_palpebra"
            "braco_E", "braco_D", "braco_C", "perna_E", "perna_D", "perna_C", "cauda",
            "asa_E", "asa_D", "asa_C", "apendice_sensorial", "cabelo_pelagem", "acessorio", "auxiliar", "raiz", "outro")
 
-_AUX = {"lod", "mesh", "vis", "sorting", "tex", "group", "mod", "particle", "particlea", "particleb", "eff"}
+_AUX = {"lod", "mesh", "vis", "sorting", "tex", "group", "mod", "particle", "particlea", "particleb", "eff", "raycast"}
 _REGRAS_TOKEN = [
     ("olho_palpebra", {"eyelid", "eye", "eyebrow", "eyelash", "eyeball", "brow"}),
     ("lingua", {"tongue"}),

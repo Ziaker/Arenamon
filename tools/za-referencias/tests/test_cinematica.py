@@ -95,6 +95,12 @@ class TestMedir(unittest.TestCase):
         self.assertEqual(m["antecipacao_osso"], "right_hand")
         self.assertIn("antecipacao_q_maior_percurso", m)
 
+    def test_ordem_no_banco_ignora_antena_em_balanco(self):
+        esq, c = S.antena_balanca_nucleo_prepara()
+        m = metricas.medir(c, esq, categoria="attack")
+        self.assertEqual(m["ordem_ativacao"][0], "nucleo")
+        self.assertNotIn("apendice_sensorial", m["ordem_ativacao"])
+
     def test_medir_grava_eventos_e_ordem(self):
         esq, c = S.cadeia_defasada(atraso=3)
         m = metricas.medir(c, esq, categoria="attack")

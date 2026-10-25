@@ -196,7 +196,10 @@ def medir(clipe, esq, raiz=None, categoria=None, regs=None, anat=None):
     ev = cinematica.eventos(base_ev, fps)
     out["eventos"] = ev[:6]
     out["n_eventos"] = len(ev)
-    out["ordem_ativacao"] = [x["regiao"] for x in cinematica.ordem_ativacao(curvas, (0, n - 1))]
+    # ordem de ativação: só regiões motoras, na janela de preparação antes do pico (mesma regra do iniciador)
+    t_ref = ev[0]["pico"] if ev else pico
+    motoras = {r: c_ for r, c_ in curvas.items() if ontologia._familia(r) in ontologia._MOTORAS}
+    out["ordem_ativacao"] = [x["regiao"] for x in cinematica.ordem_ativacao(motoras, (max(0, t_ref - 30), t_ref))]
     if reg_ex in curvas:
         apend = [r for r in curvas if r in ("cauda", "apendice_sensorial", "cabelo_pelagem") or
                  (r.startswith("asa") and r not in out["executores"])]

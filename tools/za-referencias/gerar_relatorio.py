@@ -232,7 +232,7 @@ def secoes_fase1(corpo, por_conj0):
             if l.get("ordem_ativacao"):
                 por_classe[l.get("anatomia_classe", "?")][l["ordem_ativacao"][0]] += 1
         out.append("<h2>Eventos e ordem de ativação (1D)</h2>")
-        out.append("<p>Ataques com mais de um pico de movimento (golpe duplo, rebote): <b>%s</b>. Região que se move primeiro, por classe do corpo:</p>" % _pct(multi, na))
+        out.append("<p>Ataques em que a velocidade do executor tem mais de um pico (preparação, golpe e recuperação contam separados): <b>%s</b>. Região motora que se move primeiro na preparação do golpe, por classe do corpo:</p>" % _pct(multi, na))
         out.append(_tabela(["Classe", "1ª região (mais comum)", "n"],
                            [[c, html.escape(", ".join("%s %d" % kv for kv in cnt.most_common(3))), sum(cnt.values())]
                             for c, cnt in sorted(por_classe.items(), key=lambda kv: -sum(kv[1].values()))]))
@@ -272,7 +272,7 @@ def secoes_fase1(corpo, por_conj0):
                            "%.0f%%" % (100 * float(np.median(conc))) if conc else "—"])
         out.append("<h2>Poses-chave (1G)</h2>")
         out.append("<p class=\"nota\"><b>Aproximação, não o blocking do animador.</b> Menor conjunto de quadros que reconstrói o clipe "
-                   "dentro de 1%% da altura e 3°. A concordância compara com os quadros em que pelo menos metade das faixas do arquivo têm chave.</p>")
+                   "dentro de 1% da altura e 3°. A concordância compara com os quadros em que pelo menos metade das faixas do arquivo têm chave.</p>")
         out.append(_tabela(["Categoria", "Clipes", "Quadros-chave (% do clipe)", "Nº mediano", "Concordância com o arquivo"], linhas))
     out.append("<h2>Avaliação cega (1I)</h2>")
     out.append("<p>Lote de 40 animações para rotulagem humana: <a href=\"avaliacao/lote_01/rotulagem.html\">abrir a página de rotulagem</a>. "
