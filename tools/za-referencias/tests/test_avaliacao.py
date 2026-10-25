@@ -87,6 +87,14 @@ class TestRespostasVazias(unittest.TestCase):
         self.assertEqual(q["executores"], ["braco_C", "lingua"])
 
 
+class TestPrevisaoLoop(unittest.TestCase):
+    def test_loop_previsto_como_nao(self):
+        import gerar_lote
+        p = gerar_lote.previsao({"id": "a", "papeis_status": "CANDIDATO", "executores": ["perna_D"], "status": "MEDIDO",
+                                 "antecipacao": False, "antecipacao_status": "NAO_SE_APLICA"})
+        self.assertEqual(p["antecipacao"], "nao")
+
+
 class TestConcordancia(unittest.TestCase):
     def test_kappa_concordancia_perfeita_e_1(self):
         rot = [{"id": i, "antecipacao": "sim" if i % 2 else "nao"} for i in range(10)]

@@ -85,6 +85,36 @@ class TestLocomocao(unittest.TestCase):
         self.assertTrue(all(s == "SEM_INFORMACAO" for s in ap["por_pe"]["left_foot"][10:20]))
 
 
+class TestPapeisNaLocomocao(unittest.TestCase):
+    def test_locomocao_conta_as_duas_pernas(self):
+        esq, c = S.andar()
+        regs = ontologia.regioes(esq)
+        r = ontologia.papeis(c, esq, regs, "walk", ontologia.anatomia(esq, regs))
+        self.assertEqual(sorted(e["regiao"] for e in r["executores"]), ["perna_D", "perna_E"])
+
+    def test_locomocao_inclui_bracos_que_balancam(self):
+        esq, c = S.andar_com_bracos()
+        regs = ontologia.regioes(esq)
+        r = ontologia.papeis(c, esq, regs, "walk", ontologia.anatomia(esq, regs))
+        self.assertEqual(sorted(e["regiao"] for e in r["executores"]), ["braco_D", "braco_E", "perna_D", "perna_E"])
+
+
+class TestAntecipacaoEmLoop(unittest.TestCase):
+    def test_loop_antecipacao_nao_se_aplica(self):
+        import metricas
+        esq, c = S.andar()
+        c.eh_loop = True
+        m = metricas.medir(c, esq, categoria="walk")
+        self.assertEqual(m["antecipacao_status"], "NAO_SE_APLICA")
+        self.assertFalse(m["antecipacao"])
+        self.assertEqual(m["antecipacao_q"], 0)
+
+    def test_golpe_mantem_antecipacao_medida(self):
+        import metricas
+        esq, c = S.golpe_com_antena()
+        self.assertEqual(metricas.medir(c, esq, categoria="attack")["antecipacao_status"], "MEDIDO")
+
+
 class TestMassa(unittest.TestCase):
     def test_massa_proxy_rotulada(self):
         esq, c, regs, ch, ap, _ = analisar(S.andar())

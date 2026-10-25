@@ -217,7 +217,21 @@ def papeis(clipe, esq, regs, categoria, anat, regras=None, ocultos=None):
         categoria, "/".join(fam_cand), 100 * R["limiar_executor_frac"], R["janela_executor_q"])
 
     executores = []
-    if melhor[0] >= R["pico_minimo_H_s"]:
+    loco = R.get("locomocao", {})
+    if categoria in loco.get("categorias", []):
+        # membros alternam: todo membro que cicla conta, sem janela de tempo nem "para fora do corpo"
+        membros = [r for r in presentes if _familia(r) in loco["candidatas"] and r not in nunca]
+        pk = {r: (float(vels[r]["vel"].max()), int(vels[r]["vel"].argmax())) for r in membros}
+        topo = max((v[0] for v in pk.values()), default=0.0)
+        if topo >= R["pico_minimo_H_s"]:
+            for r in sorted(membros):
+                if pk[r][0] >= loco["limiar_frac"] * topo:
+                    executores.append({"regiao": r, "osso_ponta": esq.nomes[vels[r]["osso"]], "status": "CANDIDATO",
+                                       "evidencia": {"pico_H_s": round(pk[r][0], 3), "quadro_pico": pk[r][1],
+                                                     "frac_do_maior": round(pk[r][0] / topo, 3)}})
+        melhor = (topo, max(pk.values())[1] if pk else 0)
+        regra = "%s (locomoção): membros que ciclam com pico >= %.0f%% do maior" % (categoria, 100 * loco["limiar_frac"])
+    elif melhor[0] >= R["pico_minimo_H_s"]:
         for r in sorted(cands):
             pv, pf = picos[r]
             if pv >= R["limiar_executor_frac"] * melhor[0] and abs(pf - melhor[1]) <= R["janela_executor_q"]:

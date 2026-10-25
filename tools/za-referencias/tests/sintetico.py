@@ -409,3 +409,15 @@ def patinar_com_o_corpo(n=60, v=1.2, fps=60):
         alvo[1] = 0.0
         loc[f, k] += alvo - c0.posicoes[f, k]
     return esq, za_anim.Clipe.de_arrays(esq, fps, loc, c0.rot, animados=c0.ossos_animados)
+
+
+def andar_com_bracos(n=60, periodo=30, fps=60):
+    """Andar real com os dois braços balançando para frente e para trás (em oposição às pernas)."""
+    esq, c0 = andar(n=n, periodo=periodo, fps=fps)
+    import za_anim
+    loc = c0.loc.copy()
+    f = _np.arange(n)
+    for nome, fase in (("left_hand", 0.0), ("right_hand", _np.pi)):
+        loc[:, esq.indice[nome], 2] += 0.25 * _np.sin(2 * _np.pi * f / periodo + fase)
+    animados = set(c0.ossos_animados) | {esq.indice["left_hand"], esq.indice["right_hand"]}
+    return esq, za_anim.Clipe.de_arrays(esq, fps, loc, c0.rot, animados=animados)

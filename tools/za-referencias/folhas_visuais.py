@@ -104,6 +104,43 @@ def _face_da_regiao(obj, face, deps):
     return laranja * 2 >= len(vs)
 
 
+def osso_da_marca_esquerda(esq, regs):
+    """Raiz da cadeia do braço esquerdo (senão perna, senão asa): onde fica a marca de orientação."""
+    import ontologia
+    for fam in ("braco", "perna", "asa"):
+        raizes = [i for i in ontologia._raizes_de_cadeia(esq, regs, fam) if regs[i] == fam + "_E"]
+        if raizes:
+            return min(raizes, key=lambda i: esq.ordem.index(i))
+    return None
+
+
+def _marca_lado_esquerdo(bpy, sc, arm, esq, regs, c, altura):
+    """Bolinha azul que acompanha o lado ESQUERDO do Pokémon (só orientação; não diz nada do que foi calculado).
+    O esquerdo do Pokémon é +X no Trinity e continua +X na cena girada."""
+    from mathutils import Vector
+    k = osso_da_marca_esquerda(esq, regs)
+    if k is None:
+        return None
+    import bmesh
+    me = bpy.data.meshes.new("marca_lado_esquerdo")
+    bm = bmesh.new()
+    bmesh.ops.create_uvsphere(bm, u_segments=16, v_segments=8, radius=0.035 * altura)
+    bm.to_mesh(me)
+    bm.free()
+    # ligada direto à cena (o operador de primitiva cai na coleção ativa do importador, fora do render)
+    marca = bpy.data.objects.new("marca_lado_esquerdo", me)
+    sc.collection.objects.link(marca)
+    marca.color = (0.15, 0.5, 1.0, 1.0)
+    marca.show_in_front = True   # o ombro fica dentro da malha: a bolinha aparece por cima do corpo
+    nome = esq.nomes[k]
+    for f in range(c.quadros):
+        sc.frame_set(f)
+        marca.location = (arm.matrix_world @ arm.pose.bones[nome].head) + Vector((0.08 * altura, 0, 0))
+        marca.keyframe_insert("location", frame=f)
+    print("[marca] osso=%s raio=%.4f" % (nome, 0.035 * altura))
+    return nome
+
+
 def _render_video(bpy, sc, saida, base, clipe_nome, vista, codigo, c):
     """Anima o clipe inteiro numa vista: WebM (VP9), todo quadro é chave (permite avançar quadro a quadro na página)."""
     im = sc.render.image_settings
@@ -211,6 +248,14 @@ def main():
     centro = sum(pts, Vector()) / len(pts)
     altura = float(np.ptp(esq.posicoes_repouso[:, 1])) or 1.0
     deps = bpy.context.evaluated_depsgraph_get()
+    if video:
+        # cores por objeto: corpo cinza, marca azul do lado esquerdo do Pokémon
+        sc.display.shading.color_type = "OBJECT"
+        for ob in malhas:
+            ob.color = (0.72, 0.72, 0.74, 1.0)
+        # tamanho pela altura NA CENA (o importador muda a escala em relação às unidades do Trinity)
+        altura_cena = (max(p.z for p in pts) - min(p.z for p in pts)) or 1.0
+        marca = _marca_lado_esquerdo(bpy, sc, arm, esq, regs, c, altura_cena)
     vistas = par_de_vistas()
     indice = {"modelo": base, "clipe": clipe_nome, "codigo_leitura": codigo, "quadros": quadros,
               "executores": executores, "interpolacao": "LINEAR (forçada)", "vistas": [], "estados": {}}

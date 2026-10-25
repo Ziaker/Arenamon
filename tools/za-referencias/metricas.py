@@ -198,6 +198,11 @@ def medir(clipe, esq, raiz=None, categoria=None, regs=None, anat=None, revisao=N
     out.update(_antecipacao(rel, vel_todos, mask, k_ex, ini))
     out["antecipacao_por_executor"] = [dict(_antecipacao(rel, vel_todos, mask, k, ini), efetor=esq.nomes[k])
                                        for k in exec_ossos]
+    out["antecipacao_status"] = "MEDIDO"
+    if getattr(clipe, "eh_loop", False):
+        # antecipação é preparação de um golpe; num ciclo (andar, esperar) o "recuo" é só a oscilação do ciclo
+        out.update({"antecipacao": False, "antecipacao_H": 0.0, "antecipacao_q": 0, "antecipacao_rel_golpe": 0.0,
+                    "antecipacao_ate_golpe_q": 0, "antecipacao_por_executor": [], "antecipacao_status": "NAO_SE_APLICA"})
     out["efetor"] = esq.nomes[k_ex]
 
     # camada cinemática (Task 4)
