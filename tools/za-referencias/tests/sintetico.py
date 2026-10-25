@@ -324,3 +324,38 @@ def pulo(n=60):
 def golpe_no_ar():
     esq = humanoide()
     return esq, clipe(esq, 60, {"right_hand": frente(60, 30, 0.6)})
+
+
+def linear(n=60):
+    esq = humanoide()
+    d = _np.zeros((n, 3))
+    d[:, 2] = _np.linspace(0, 0.6, n)
+    return esq, clipe(esq, n, {"right_hand": d})
+
+
+def dobra_no_q30(n=60):
+    esq = humanoide()
+    f = _np.arange(n)
+    d = _np.zeros((n, 3))
+    d[:, 2] = _np.minimum(f, 30) * 0.02
+    d[:, 1] = _np.maximum(f - 30, 0) * 0.02
+    return esq, clipe(esq, n, {"right_hand": d})
+
+
+def _angulo_por_partes(n, pontos):
+    f = _np.arange(n)
+    xs, ys = zip(*pontos)
+    return _np.interp(f, xs, ys)
+
+
+def torcao_de_mao(n=60):
+    """A mão (ponta, sem filhos) gira 40° no próprio eixo X entre q20 e q30 e volta até q40; a posição não muda."""
+    esq = humanoide()
+    a = _np.radians(_angulo_por_partes(n, [(0, 0), (20, 0), (30, 40), (40, 0), (n - 1, 0)]))
+    q = _np.stack([_np.cos(a / 2), _np.sin(a / 2), _np.zeros(n), _np.zeros(n)], axis=1)
+    return esq, clipe(esq, n, rot={"right_hand": q})
+
+
+def cabeca_inclina(pico_q=25, graus=20, n=60):
+    esq = humanoide()
+    return esq, clipe(esq, n, rot={"head": giro_x(n, pico_q, graus, largura=4.0)})

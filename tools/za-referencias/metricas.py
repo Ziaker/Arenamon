@@ -206,6 +206,19 @@ def medir(clipe, esq, raiz=None, categoria=None, regs=None, anat=None):
     out["squash_stretch_regioes"] = sorted(r for r, d in esc.items() if d["tipo"] == "squash_stretch")
     out["trocas_visibilidade_n"] = len(cinematica.trocas_de_visibilidade(oc, esq))
 
+    # poses-chave (Task 7): aproximação controlada por erro; eventos do executor são obrigatórios
+    import poses_chave
+    obrig = sorted({q for e_ in ev for q in (e_["inicio"], e_["pico"], e_["fim"])})
+    pc = poses_chave.simplificar(clipe, esq, obrigatorios=obrig, regs=regs, ocultos=oc)
+    out.update({"poses_chave_status": pc["status"], "poses_chave_n": len(pc["quadros"]),
+                "poses_chave_frac": round(len(pc["quadros"]) / n, 4), "poses_chave_quadros": pc["quadros"][:80],
+                "poses_chave_por_motivo": {k: len(v) for k, v in pc["obrigatorios_por_motivo"].items()},
+                "poses_chave_erro_max_H": pc["erro_max_H"], "poses_chave_erro_max_graus": pc["erro_max_graus"],
+                "arquivo_quadros_fortes_n": pc["chaves_do_arquivo_n"],
+                "arquivo_densidade_chaves": pc["densidade_chaves_arquivo"],
+                "poses_chave_concordancia_arquivo": pc["concordancia_com_arquivo"],
+                "poses_chave_cobertura_arquivo": pc["cobertura_do_arquivo"]})
+
     if categoria in CATEGORIAS_LOCOMOCAO:
         out.update(_camada_locomocao(clipe, esq, regs, oc))
 

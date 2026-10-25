@@ -171,9 +171,9 @@ def _slerp(a, b, t):
 
 
 def _faixa(tab, tipo, n, eh_rot):
-    """Lê uma faixa (união) -> (array [n, 3|4] ou None, quadros com chave)."""
+    """Lê uma faixa (união) -> (array [n, 3|4] ou None, nº de chaves, quadros com chave se esparsa)."""
     if tab is None or tipo == 0:
-        return None, 0
+        return None, 0, None
     from GFLib.Anim.DynamicRotationTrack import DynamicRotationTrack
     from GFLib.Anim.DynamicVectorTrack import DynamicVectorTrack
     from GFLib.Anim.FixedRotationTrack import FixedRotationTrack
@@ -198,19 +198,19 @@ def _faixa(tab, tipo, n, eh_rot):
     if tipo == FIXO:
         c = t.Co()
         if c is None:
-            return None, 0
+            return None, 0, None
         v = np.array(val(c))
-        return np.tile(v, (n, 1)), 1
+        return np.tile(v, (n, 1)), 1, None
     cos = [val(t.Co(i)) for i in range(t.CoLength())]
     if not cos:
-        return None, 0
+        return None, 0, None
     cos = np.array(cos, dtype=np.float64)
     if tipo == DINAMICO:
         out = np.empty((n, cos.shape[1]))
         k = min(n, len(cos))
         out[:k] = cos[:k]
         out[k:] = cos[k - 1]
-        return out, len(cos)
+        return out, len(cos), None
     quadros = [int(t.Frames(i)) for i in range(t.FramesLength())]
     out = np.empty((n, cos.shape[1]))
     for f in range(n):
@@ -223,7 +223,7 @@ def _faixa(tab, tipo, n, eh_rot):
             f0, f1 = quadros[j], quadros[j + 1]
             u = (f - f0) / (f1 - f0)
             out[f] = _slerp(cos[j], cos[j + 1], u) if eh_rot else cos[j] + u * (cos[j + 1] - cos[j])
-    return out, len(quadros)
+    return out, len(quadros), quadros
 
 
 class Clipe:
@@ -249,7 +249,7 @@ class Clipe:
                 continue
             for tipo, tab, eh_rot, destino in ((tr.TranslateType(), tr.Translate(), False, self.loc),
                                                (tr.RotateType(), tr.Rotate(), True, self.rot)):
-                arr, chaves = _faixa(tab, tipo, n, eh_rot)
+                arr, chaves, quadros_k = _faixa(tab, tipo, n, eh_rot)
                 if arr is None:
                     continue
                 destino[:, bi] = arr
@@ -262,7 +262,9 @@ class Clipe:
                     self.faixas["esparsa"] += 1
                     self.chaves_esparsas.append(chaves)
                     self.ossos_animados.add(bi)
-            arr, _ = _faixa(tr.Scale(), tr.ScaleType(), n, False)
+                    q = self.quadros_chave.setdefault(nome, [])
+                    self.quadros_chave[nome] = sorted(set(q) | set(quadros_k))
+            arr, _, _ = _faixa(tr.Scale(), tr.ScaleType(), n, False)
             if arr is not None:
                 self.escala[:, bi] = arr
         self._finalizar(esq)
@@ -290,6 +292,7 @@ class Clipe:
         self.chaves_esparsas = []  # chaves por faixa esparsa
         self.ossos_animados = set()
         self.faixas_sem_osso = 0
+        self.quadros_chave = {}  # osso -> quadros com chave nas faixas esparsas (translação e rotação)
 
     def _finalizar(self, esq):
         from config import TOL_ESCALA
