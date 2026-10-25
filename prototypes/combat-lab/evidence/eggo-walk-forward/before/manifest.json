@@ -1,0 +1,691 @@
+{
+ "blend": "C:\\Users\\zerke\\OneDrive\\Área de Trabalho\\Arenamon\\chars\\Eggo\\Eggo_Walk_Forward.blend",
+ "armature": "AlienRig",
+ "meshes": [
+  "output_unwrapped"
+ ],
+ "mode_run": "shot",
+ "engine": "BLENDER_WORKBENCH",
+ "size": 800,
+ "offset": 0,
+ "frame_note": "frame_autoral = frame_timeline - offset",
+ "render_note": "Workbench headless, NAO e o viewport real do Blender. Camera, luz e grade de chao sao proprias da ferramenta.",
+ "views": {
+  "side_nX": "lado, camera em -X (lado DIREITO do personagem)",
+  "back": "tras (camera em +Y)"
+ },
+ "items": [
+  {
+   "file": "side_nX_solid_t001_g001.png",
+   "view": "side_nX",
+   "mode": "solid",
+   "frame_timeline": 1,
+   "frame_autoral": 1,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "side_nX",
+    "type": "ORTHO",
+    "ortho_scale": 1.6882,
+    "lens": 50.0,
+    "center": [
+     0.009,
+     0.012,
+     0.4467
+    ],
+    "location": [
+     -6.0557,
+     0.012,
+     0.4467
+    ]
+   },
+   "bbox_min_z_m": -0.042,
+   "bbox_size_m": [
+    0.911,
+    0.69,
+    0.969
+   ]
+  },
+  {
+   "file": "side_nX_contact_t001_g001.png",
+   "view": "side_nX",
+   "mode": "contact",
+   "frame_timeline": 1,
+   "frame_autoral": 1,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "side_nX",
+    "type": "ORTHO",
+    "ortho_scale": 1.6882,
+    "lens": 50.0,
+    "center": [
+     0.009,
+     0.012,
+     0.4467
+    ],
+    "location": [
+     -6.0557,
+     0.012,
+     0.4467
+    ]
+   },
+   "bbox_min_z_m": -0.042,
+   "bbox_size_m": [
+    0.911,
+    0.69,
+    0.969
+   ],
+   "pe_esq": "penetrando",
+   "pe_dir": "penetrando"
+  },
+  {
+   "file": "back_solid_t001_g001.png",
+   "view": "back",
+   "mode": "solid",
+   "frame_timeline": 1,
+   "frame_autoral": 1,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "back",
+    "type": "ORTHO",
+    "ortho_scale": 1.6882,
+    "lens": 50.0,
+    "center": [
+     0.009,
+     0.012,
+     0.4467
+    ],
+    "location": [
+     0.009,
+     6.0767,
+     0.4467
+    ]
+   },
+   "bbox_min_z_m": -0.042,
+   "bbox_size_m": [
+    0.911,
+    0.69,
+    0.969
+   ]
+  },
+  {
+   "file": "back_contact_t001_g001.png",
+   "view": "back",
+   "mode": "contact",
+   "frame_timeline": 1,
+   "frame_autoral": 1,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "back",
+    "type": "ORTHO",
+    "ortho_scale": 1.6882,
+    "lens": 50.0,
+    "center": [
+     0.009,
+     0.012,
+     0.4467
+    ],
+    "location": [
+     0.009,
+     6.0767,
+     0.4467
+    ]
+   },
+   "bbox_min_z_m": -0.042,
+   "bbox_size_m": [
+    0.911,
+    0.69,
+    0.969
+   ],
+   "pe_esq": "penetrando",
+   "pe_dir": "penetrando"
+  },
+  {
+   "file": "side_nX_solid_t005_g005.png",
+   "view": "side_nX",
+   "mode": "solid",
+   "frame_timeline": 5,
+   "frame_autoral": 5,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "side_nX",
+    "type": "ORTHO",
+    "ortho_scale": 1.6882,
+    "lens": 50.0,
+    "center": [
+     0.0016,
+     0.0275,
+     0.4467
+    ],
+    "location": [
+     -6.0632,
+     0.0275,
+     0.4467
+    ]
+   },
+   "bbox_min_z_m": -0.038,
+   "bbox_size_m": [
+    0.911,
+    0.692,
+    0.982
+   ]
+  },
+  {
+   "file": "side_nX_contact_t005_g005.png",
+   "view": "side_nX",
+   "mode": "contact",
+   "frame_timeline": 5,
+   "frame_autoral": 5,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "side_nX",
+    "type": "ORTHO",
+    "ortho_scale": 1.6882,
+    "lens": 50.0,
+    "center": [
+     0.0016,
+     0.0275,
+     0.4467
+    ],
+    "location": [
+     -6.0632,
+     0.0275,
+     0.4467
+    ]
+   },
+   "bbox_min_z_m": -0.038,
+   "bbox_size_m": [
+    0.911,
+    0.692,
+    0.982
+   ],
+   "pe_esq": "penetrando",
+   "pe_dir": "no_ar"
+  },
+  {
+   "file": "back_solid_t005_g005.png",
+   "view": "back",
+   "mode": "solid",
+   "frame_timeline": 5,
+   "frame_autoral": 5,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "back",
+    "type": "ORTHO",
+    "ortho_scale": 1.6882,
+    "lens": 50.0,
+    "center": [
+     0.0016,
+     0.0275,
+     0.4467
+    ],
+    "location": [
+     0.0016,
+     6.0922,
+     0.4467
+    ]
+   },
+   "bbox_min_z_m": -0.038,
+   "bbox_size_m": [
+    0.911,
+    0.692,
+    0.982
+   ]
+  },
+  {
+   "file": "back_contact_t005_g005.png",
+   "view": "back",
+   "mode": "contact",
+   "frame_timeline": 5,
+   "frame_autoral": 5,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "back",
+    "type": "ORTHO",
+    "ortho_scale": 1.6882,
+    "lens": 50.0,
+    "center": [
+     0.0016,
+     0.0275,
+     0.4467
+    ],
+    "location": [
+     0.0016,
+     6.0922,
+     0.4467
+    ]
+   },
+   "bbox_min_z_m": -0.038,
+   "bbox_size_m": [
+    0.911,
+    0.692,
+    0.982
+   ],
+   "pe_esq": "penetrando",
+   "pe_dir": "no_ar"
+  },
+  {
+   "file": "side_nX_solid_t010_g010.png",
+   "view": "side_nX",
+   "mode": "solid",
+   "frame_timeline": 10,
+   "frame_autoral": 10,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "side_nX",
+    "type": "ORTHO",
+    "ortho_scale": 1.6882,
+    "lens": 50.0,
+    "center": [
+     -0.009,
+     0.012,
+     0.4467
+    ],
+    "location": [
+     -6.0737,
+     0.012,
+     0.4467
+    ]
+   },
+   "bbox_min_z_m": -0.042,
+   "bbox_size_m": [
+    0.911,
+    0.69,
+    0.969
+   ]
+  },
+  {
+   "file": "side_nX_contact_t010_g010.png",
+   "view": "side_nX",
+   "mode": "contact",
+   "frame_timeline": 10,
+   "frame_autoral": 10,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "side_nX",
+    "type": "ORTHO",
+    "ortho_scale": 1.6882,
+    "lens": 50.0,
+    "center": [
+     -0.009,
+     0.012,
+     0.4467
+    ],
+    "location": [
+     -6.0737,
+     0.012,
+     0.4467
+    ]
+   },
+   "bbox_min_z_m": -0.042,
+   "bbox_size_m": [
+    0.911,
+    0.69,
+    0.969
+   ],
+   "pe_esq": "penetrando",
+   "pe_dir": "penetrando"
+  },
+  {
+   "file": "back_solid_t010_g010.png",
+   "view": "back",
+   "mode": "solid",
+   "frame_timeline": 10,
+   "frame_autoral": 10,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "back",
+    "type": "ORTHO",
+    "ortho_scale": 1.6882,
+    "lens": 50.0,
+    "center": [
+     -0.009,
+     0.012,
+     0.4467
+    ],
+    "location": [
+     -0.009,
+     6.0767,
+     0.4467
+    ]
+   },
+   "bbox_min_z_m": -0.042,
+   "bbox_size_m": [
+    0.911,
+    0.69,
+    0.969
+   ]
+  },
+  {
+   "file": "back_contact_t010_g010.png",
+   "view": "back",
+   "mode": "contact",
+   "frame_timeline": 10,
+   "frame_autoral": 10,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "back",
+    "type": "ORTHO",
+    "ortho_scale": 1.6882,
+    "lens": 50.0,
+    "center": [
+     -0.009,
+     0.012,
+     0.4467
+    ],
+    "location": [
+     -0.009,
+     6.0767,
+     0.4467
+    ]
+   },
+   "bbox_min_z_m": -0.042,
+   "bbox_size_m": [
+    0.911,
+    0.69,
+    0.969
+   ],
+   "pe_esq": "penetrando",
+   "pe_dir": "penetrando"
+  },
+  {
+   "file": "side_nX_solid_t014_g014.png",
+   "view": "side_nX",
+   "mode": "solid",
+   "frame_timeline": 14,
+   "frame_autoral": 14,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "side_nX",
+    "type": "ORTHO",
+    "ortho_scale": 1.6882,
+    "lens": 50.0,
+    "center": [
+     -0.0016,
+     0.0275,
+     0.4467
+    ],
+    "location": [
+     -6.0663,
+     0.0275,
+     0.4467
+    ]
+   },
+   "bbox_min_z_m": -0.038,
+   "bbox_size_m": [
+    0.911,
+    0.692,
+    0.982
+   ]
+  },
+  {
+   "file": "side_nX_contact_t014_g014.png",
+   "view": "side_nX",
+   "mode": "contact",
+   "frame_timeline": 14,
+   "frame_autoral": 14,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "side_nX",
+    "type": "ORTHO",
+    "ortho_scale": 1.6882,
+    "lens": 50.0,
+    "center": [
+     -0.0016,
+     0.0275,
+     0.4467
+    ],
+    "location": [
+     -6.0663,
+     0.0275,
+     0.4467
+    ]
+   },
+   "bbox_min_z_m": -0.038,
+   "bbox_size_m": [
+    0.911,
+    0.692,
+    0.982
+   ],
+   "pe_esq": "no_ar",
+   "pe_dir": "penetrando"
+  },
+  {
+   "file": "back_solid_t014_g014.png",
+   "view": "back",
+   "mode": "solid",
+   "frame_timeline": 14,
+   "frame_autoral": 14,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "back",
+    "type": "ORTHO",
+    "ortho_scale": 1.6882,
+    "lens": 50.0,
+    "center": [
+     -0.0016,
+     0.0275,
+     0.4467
+    ],
+    "location": [
+     -0.0016,
+     6.0922,
+     0.4467
+    ]
+   },
+   "bbox_min_z_m": -0.038,
+   "bbox_size_m": [
+    0.911,
+    0.692,
+    0.982
+   ]
+  },
+  {
+   "file": "back_contact_t014_g014.png",
+   "view": "back",
+   "mode": "contact",
+   "frame_timeline": 14,
+   "frame_autoral": 14,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "back",
+    "type": "ORTHO",
+    "ortho_scale": 1.6882,
+    "lens": 50.0,
+    "center": [
+     -0.0016,
+     0.0275,
+     0.4467
+    ],
+    "location": [
+     -0.0016,
+     6.0922,
+     0.4467
+    ]
+   },
+   "bbox_min_z_m": -0.038,
+   "bbox_size_m": [
+    0.911,
+    0.692,
+    0.982
+   ],
+   "pe_esq": "no_ar",
+   "pe_dir": "penetrando"
+  },
+  {
+   "file": "side_nX_solid_t019_g019.png",
+   "view": "side_nX",
+   "mode": "solid",
+   "frame_timeline": 19,
+   "frame_autoral": 19,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "side_nX",
+    "type": "ORTHO",
+    "ortho_scale": 1.6882,
+    "lens": 50.0,
+    "center": [
+     0.009,
+     0.012,
+     0.4467
+    ],
+    "location": [
+     -6.0557,
+     0.012,
+     0.4467
+    ]
+   },
+   "bbox_min_z_m": -0.042,
+   "bbox_size_m": [
+    0.911,
+    0.69,
+    0.969
+   ]
+  },
+  {
+   "file": "side_nX_contact_t019_g019.png",
+   "view": "side_nX",
+   "mode": "contact",
+   "frame_timeline": 19,
+   "frame_autoral": 19,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "side_nX",
+    "type": "ORTHO",
+    "ortho_scale": 1.6882,
+    "lens": 50.0,
+    "center": [
+     0.009,
+     0.012,
+     0.4467
+    ],
+    "location": [
+     -6.0557,
+     0.012,
+     0.4467
+    ]
+   },
+   "bbox_min_z_m": -0.042,
+   "bbox_size_m": [
+    0.911,
+    0.69,
+    0.969
+   ],
+   "pe_esq": "penetrando",
+   "pe_dir": "penetrando"
+  },
+  {
+   "file": "back_solid_t019_g019.png",
+   "view": "back",
+   "mode": "solid",
+   "frame_timeline": 19,
+   "frame_autoral": 19,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "back",
+    "type": "ORTHO",
+    "ortho_scale": 1.6882,
+    "lens": 50.0,
+    "center": [
+     0.009,
+     0.012,
+     0.4467
+    ],
+    "location": [
+     0.009,
+     6.0767,
+     0.4467
+    ]
+   },
+   "bbox_min_z_m": -0.042,
+   "bbox_size_m": [
+    0.911,
+    0.69,
+    0.969
+   ]
+  },
+  {
+   "file": "back_contact_t019_g019.png",
+   "view": "back",
+   "mode": "contact",
+   "frame_timeline": 19,
+   "frame_autoral": 19,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "back",
+    "type": "ORTHO",
+    "ortho_scale": 1.6882,
+    "lens": 50.0,
+    "center": [
+     0.009,
+     0.012,
+     0.4467
+    ],
+    "location": [
+     0.009,
+     6.0767,
+     0.4467
+    ]
+   },
+   "bbox_min_z_m": -0.042,
+   "bbox_size_m": [
+    0.911,
+    0.69,
+    0.969
+   ],
+   "pe_esq": "penetrando",
+   "pe_dir": "penetrando"
+  }
+ ],
+ "extra": {
+  "contact_legend": "verde=no chao e parado, amarelo=no chao deslizando, vermelho=penetrando, azul=no ar, pontos cinza=trilha no piso"
+ },
+ "action": "Walk Forward 2 Fast",
+ "smart_reasons": {},
+ "align": "root",
+ "scale_ref_m": 1.507,
+ "camera_policy": "alinhamento=root; escala e lente fixas para todos os frames",
+ "blend_untouched": true,
+ "blend_sha256": "fcd8f9d732e32bff53ed4734e3c9ecff96e67104ba08faba88cbe41c8bf203c6",
+ "proveniencia": {
+  "codigo_sha256_16": {
+   "vision.py": "71458c847f9fac6a",
+   "check_inside.py": "0993180e3af357f9",
+   "inside_blender.py": "50ad1505d16eb142",
+   "dense_inside.py": "d6177b61c174fcef",
+   "vision_common.py": "4be620e547d6faca"
+  },
+  "blend": "Eggo_Walk_Forward.blend",
+  "blend_sha256_16": "fcd8f9d732e32bff",
+  "entradas_sha256_16": {
+   "interp_envelope.json": "e018d38c8cec3d46",
+   "corpus_envelope.json": "02a8e8ebe7f10265"
+  },
+  "quando": "2026-10-24 23:43:27"
+ },
+ "sheets": [
+  "sheet_side_nX_solid.png",
+  "sheet_side_nX_contact.png",
+  "sheet_back_solid.png",
+  "sheet_back_contact.png"
+ ]
+}

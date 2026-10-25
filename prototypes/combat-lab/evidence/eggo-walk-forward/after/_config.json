@@ -1,0 +1,29 @@
+{
+ "offset": 0,
+ "size": 800,
+ "armature": null,
+ "mode": "shot",
+ "action": "Walk Forward 3 Weighted",
+ "views": [
+  "side_nX",
+  "back"
+ ],
+ "modes": [
+  "solid",
+  "contact"
+ ],
+ "align": "root",
+ "zoom": null,
+ "zoom_radii": null,
+ "bone_cam": false,
+ "onion_step": 1,
+ "frames": [
+  1,
+  5,
+  10,
+  14,
+  19
+ ],
+ "out": "C:\\Users\\zerke\\OneDrive\\\u00c1rea de Trabalho\\Arenamon\\prototypes\\combat-lab\\evidence\\eggo-walk-forward\\after.tmp-14404",
+ "blend": "C:\\Users\\zerke\\OneDrive\\\u00c1rea de Trabalho\\Arenamon\\chars\\Eggo\\Eggo_Walk_Forward.blend"
+}
