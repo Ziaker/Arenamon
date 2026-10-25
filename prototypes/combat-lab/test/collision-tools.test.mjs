@@ -7,7 +7,7 @@ import {Game} from '../src/sim/game.js';
 import {emptyCommand} from '../src/sim/entity.js';
 import {vec} from '../src/sim/math.js';
 import {resetCollisionProbe} from '../src/sim/collision-probe.js';
-import {COLLISION_OVERLAYS, drawCollisionOverlays, collisionRows, solidPairs, groundPenetration} from '../src/view/collision-overlays.js';
+import {COLLISION_OVERLAYS, drawCollisionOverlays, collisionRows, solidPairs, groundPenetration, dashDisplacement} from '../src/view/collision-overlays.js';
 import {registerStandardMoves} from '../src/sim/moves/standard.js';
 
 registerStandardMoves();
@@ -41,8 +41,8 @@ check('moveEntities: a geometria desenhada é a do colisor (projétil, área cir
   assert.ok(Math.max(...zs) - Math.min(...zs) > 3.9 && Math.max(...xs) - Math.min(...xs) < .5, 'parede girada ocupa 4 m em z e 0,4 m em x');
   const off2 = draw(g, {});assert.equal(off2.lines.length + off2.rings.length, 0);
 });
-check('6 sobreposições, com chave, rótulo e descrição; desligadas não desenham nada', () => {
-  assert.equal(COLLISION_OVERLAYS.length, 6);
+check('8 sobreposições, com chave, rótulo e descrição; desligadas não desenham nada', () => {
+  assert.equal(COLLISION_OVERLAYS.length, 8);
   for (const [k, label, desc] of COLLISION_OVERLAYS) assert.ok(k && label && desc.length > 40, k);
   const g = lab({platforms: [{id: 'p', pos: {x: 0, y: 0, z: 4}, width: 3, depth: 3, height: 1}]});
   const v = draw(g, {});assert.equal(v.lines.length + v.rings.length, 0);
@@ -87,6 +87,31 @@ check('Dados ao vivo: apoio, último contato, objetos do cenário e penetração
   assert.match(rows['Azul · apoio'], /^platform p a 1\.00 m/);assert.equal(rows['Azul · último contato'], '—');
   assert.match(rows['Objetos do cenário'], /0 par\(es\)/);assert.equal(rows['Penetração em sólidos'], 'nenhuma');
   g.fighters[0].groundY = 0;g.fighters[0].position = vec(1.2, 0);assert.match(Object.fromEntries(collisionRows(g))['Penetração em sólidos'], /Azul \d+\.\d cm/);
+});
+
+check('hurtbox: caixa do lutador com halfExtent e altura do corpo, a partir dos pés; some quando desligada', () => {
+  const g = lab();g.fighters[0].position = vec(2, 3);g.fighters[0].groundY = 1;
+  const v = draw(g, {hurtbox: true}), h = C.test.halfExtent, H = C.extras.visual.bodyHeight;
+  const base = v.lines.find(l => l.p.length === 5 && Math.abs(l.p[0][1] - 1) < 1e-9);
+  assert.ok(base, 'contorno da base na altura dos pés (1 m)');
+  const xs = base.p.map(q => q[0]), zs = base.p.map(q => q[2]);
+  assert.ok(Math.abs(Math.max(...xs) - (2 + h)) < 1e-9 && Math.abs(Math.min(...zs) - (3 - h)) < 1e-9, 'meia largura = halfExtent');
+  assert.ok(v.lines.some(l => l.p.length === 5 && Math.abs(l.p[0][1] - (1 + H)) < 1e-9), 'topo = pés + altura do corpo');
+  assert.equal(draw(g, {}).lines.length, 0);
+});
+check('displacement: pretendido × real de um Tackle andando (linhas e linha em «Dados ao vivo»)', () => {
+  const g = lab();
+  const c = {...emptyCommand(), tackle: true, tackleHeld: false};
+  g.step(c, emptyCommand());
+  for (let t = 0; t < 20; t++) g.step(emptyCommand(), emptyCommand());
+  const d = dashDisplacement(g.fighters[0]);
+  assert.ok(d && d.intended > 0 && d.traveled > 0 && d.traveled <= d.intended + 1e-6, JSON.stringify(d));
+  const v = draw(g, {displacement: true});
+  const len = l => Math.hypot(l.p[1][0] - l.p[0][0], l.p[1][2] - l.p[0][2]);
+  assert.ok(v.lines.some(l => l.color === 0x5dff9a && Math.abs(len(l) - d.intended) < 1e-6), 'linha verde = pretendido');
+  assert.ok(v.lines.some(l => l.color === 0xffffff && Math.abs(len(l) - d.traveled) < 1e-6), 'linha branca = real');
+  assert.match(Object.fromEntries(collisionRows(g))['Azul · deslocamento'] ?? '', /m de [0-9.]+ m pretendidos/);
+  assert.equal(dashDisplacement(lab().fighters[0]), null, 'parado: sem ação, sem deslocamento');
 });
 
 console.log(`Ferramentas visuais de colisão: ${tests} verificações aprovadas, ${failures.length} falhas.`);

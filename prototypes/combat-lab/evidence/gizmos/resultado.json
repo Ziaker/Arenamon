@@ -1,0 +1,33 @@
+{
+  "date": "2026-10-25",
+  "gl": "gpu",
+  "shots": [
+    {
+      "file": "evidence/gizmos/air-slash-em-voo.png",
+      "what": "Air Slash em voo: anel laranja = raio de colisão do projétil, ao lado do VFX; caixas verdes = hurtbox dos lutadores",
+      "debugLines": 8,
+      "entities": [
+        {
+          "kind": "projectile",
+          "radius": 0.6,
+          "hx": null
+        }
+      ],
+      "action": null
+    },
+    {
+      "file": "evidence/gizmos/tackle-meio.png",
+      "what": "Tackle no meio: verde = distância pretendida; branco = percorrida até agora",
+      "debugLines": 8,
+      "entities": [],
+      "action": "tackle"
+    },
+    {
+      "file": "evidence/gizmos/tackle-fim.png",
+      "what": "Tackle no fim (até 1,6 s depois): a linha branca mostra o que de fato andou contra a verde pretendida",
+      "debugLines": 8,
+      "entities": [],
+      "action": null
+    }
+  ]
+}
