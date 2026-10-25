@@ -13,6 +13,9 @@ from collections import Counter, defaultdict
 
 import numpy as np
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import inventario  # noqa: E402
+
 MEDIDAS = [
     ("duracao_s", "Duração", "s"),
     ("ate_pico_s", "Início → pico", "s"),
@@ -161,6 +164,7 @@ def main():
               l.get("antecipacao_q") if l.get("antecipacao") else 0, l.get("hold_total_q"),
               l.get("overshoot_rel"), l.get("efetor", ""), l["conjunto"]]
              for l in corpo if not l.get("parado")]
+    info["reconciliacao"] = inventario.reconciliar(todas)
     escrever_html(os.path.join(saida, "relatorio.html"), info, norm, por_forma, busca)
     print("relatório e normas em", saida)
 
@@ -205,7 +209,17 @@ def escrever_html(caminho, info, norm, por_forma, busca):
             c, info["por_conjunto"].get(c, 0), a.get("especies", 0), m(a, "duracao_s"), m(a, "ate_pico_s"),
             "%d%%" % round(100 * a["com_antecipacao"]) if a else "—"))
 
+    rec = info["reconciliacao"]
+    cob = "".join(
+        "<tr><th>%sxxxx</th><td>%d</td><td>%d</td><td>%d</td><td>%d</td></tr>" % (
+            g, v["total"], v["na_busca"], v["rosto"], v["parado"]) for g, v in rec["por_grupo"].items())
+    cob += "<tr><th>Total</th><td><b>%d</b></td><td><b>%d</b></td><td><b>%d</b></td><td><b>%d</b></td></tr>" % (
+        rec["total"], rec["na_busca"], rec["excluidos"]["rosto"], rec["excluidos"]["parado"])
     doc = TEMPLATE.format(
+        cobertura=cob, fora_busca=", ".join(rec["modelos_fora_da_busca"]) or "nenhum",
+        rotulos=", ".join(rec["rotulos_tecnicos"]) or "nenhum", fora_padrao=rec["excluidos"]["fora_do_padrao"],
+        esp_ids=rec["especies_ids_nao_zero"], rot_busca=rec["rotulos_na_busca"],
+        mod_total=rec["modelos_total"], mod_busca=rec["modelos_na_busca"],
         clipes=f"{info['clipes']:,}".replace(",", "."), modelos=info["modelos"], especies=info["especies"],
         fps=", ".join("%s fps: %d" % kv for kv in sorted(info["fps"].items())),
         pct_esp=round(100 * ch["faixas_esparsas"] / max(tot, 1)), pct_dens=round(100 * ch["faixas_densas"] / max(tot, 1)),
@@ -243,8 +257,14 @@ dl{{display:grid;grid-template-columns:max-content 1fr;gap:4px 14px;color:var(--
 <div class="card"><b>{clipes}</b>clipes medidos</div><div class="card"><b>{especies}</b>espécies</div>
 <div class="card"><b>{modelos}</b>modelos (formas)</div><div class="card"><b>{pct_esp}%</b>das faixas têm chaves esparsas</div></div>
 
+<h2>Cobertura: o que está no banco e o que a busca mostra</h2>
+<p>Todos os clipes do dump estão no banco. A busca e as normas deixam de fora dois tipos, contados aqui para que a soma feche: clipes de <b>rosto</b> (código 08xxx, olhos e boca) e clipes <b>parados</b> (o corpo não se move). Nomes fora do padrão de código: {fora_padrao}.</p>
+<div class="wrap"><table><thead><tr><th>Grupo</th><th>No banco</th><th>Na busca</th><th>Rosto (fora)</th><th>Parado (fora)</th></tr></thead><tbody>{cobertura}</tbody></table></div>
+<p>Modelos: {mod_total} no banco, {mod_busca} na busca. Fora da busca (só têm clipes parados ou de rosto): {fora_busca}. Espécies: {esp_ids} IDs diferentes de zero no banco (inclui o 9999, sem nome no catálogo); {rot_busca} rótulos na busca. Rótulos técnicos (sem nome de espécie): {rotulos}.</p>
+
 <h2>Como o jogo guarda as chaves</h2>
 <p class="nota">As animações <b>não</b> são todas "assadas". <b>{pct_esp}%</b> das faixas de osso guardam só algumas chaves (esparsas), <b>{pct_dens}%</b> têm chave em todo quadro e <b>{pct_fixa}%</b> são um valor fixo. Nas esparsas, a mediana é <b>{cpq}%</b> dos quadros com chave (p10–p90: {cpq10}%–{cpq90}%). Essa é uma redução automática de chaves, não necessariamente a escolha do animador, mas mostra a densidade que o jogo aceita sem perder o movimento. {fps}.</p>
+<p><b>Denominador:</b> cada osso tem até duas faixas contadas separadamente, translação e rotação. A escala não entra na conta. "Esparsa" = faixa com lista de quadros (Framed8/Framed16); "densa" = um valor por quadro (Dynamic); "fixa" = um valor só (Fixed). Ossos sem faixa no clipe não são contados.</p>
 
 <h2>Conjuntos de clipes (primeiro dígito do código)</h2>
 <p>O mesmo clipe aparece com códigos 0xxxx, 1xxxx, 2xxxx…: são animações diferentes, não cópias. O jogo não diz o que cada conjunto é (campo, batalha, variante?). Isso <b>não foi confirmado</b>. As normas abaixo usam o conjunto 0; os outros estão em <code>normas_za.json</code>.</p>

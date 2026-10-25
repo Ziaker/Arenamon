@@ -22,10 +22,7 @@ import re
 
 import numpy as np
 
-LIMIAR_ATIVO = 0.10
-LIMIAR_LENTO = 0.30
-HOLD_MIN = 3
-AMOSTRAS_CURVA = 24
+from config import AMOSTRAS_CURVA, HOLD_MIN, LIMIAR_ATIVO, LIMIAR_LENTO
 
 PADRAO_NOME = re.compile(r"^(\d{5})_([a-z]+?)(\d*)(?:_(.+))?$")
 FASES = {"start", "loop", "end"}
@@ -35,13 +32,14 @@ def classificar(nome_clipe):
     """'00420_attack03_start' -> codigo, conjunto, categoria, variante, fase, extra."""
     m = PADRAO_NOME.match(nome_clipe)
     if not m:
-        return {"codigo": None, "conjunto": None, "categoria": nome_clipe, "variante": "", "fase": "", "extra": ""}
+        return {"codigo": None, "conjunto": None, "categoria": nome_clipe, "variante": "", "fase": "", "extra": "",
+                "nome_fora_do_padrao": True}
     codigo, cat, var, resto = m.group(1), m.group(2), m.group(3), m.group(4) or ""
     partes = resto.split("_") if resto else []
     fase = partes[-1] if partes and partes[-1] in FASES else ""
     extra = "_".join(p for p in partes if p != fase)
     return {"codigo": codigo, "conjunto": int(codigo[0]), "categoria": cat, "variante": var,
-            "fase": fase, "extra": extra}
+            "fase": fase, "extra": extra, "nome_fora_do_padrao": False}
 
 
 def raiz_do_corpo(esq):
