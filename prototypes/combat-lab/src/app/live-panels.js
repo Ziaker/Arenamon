@@ -8,7 +8,7 @@ import {escape} from '../ui/tuning.js';
 import {length, sub, dot} from '../sim/math.js';
 import {physicsProbe} from '../sim/physics.js';
 import * as T from 'three';
-import {$, actionsDrawer, diagnostics, game, homologation, input, movement, movesPanel, perfPanel, presets, recorder, renderCharacters, tuning, ui, view} from '../main.js';
+import {$, actionsDrawer, diagnostics, editorHooks, game, homologation, input, movement, movesPanel, perfPanel, presets, recorder, renderCharacters, tuning, ui, view} from '../main.js';
 import {renderStudioEvents} from './characters-sync.js';
 import {renderGameDiff, syncCompareOptions} from './tuning-sync.js';
 
@@ -70,7 +70,7 @@ export const store = (k, v) => {try {v == null ? localStorage.removeItem(k) : lo
 
 export const stored = k => {try {return Number(localStorage.getItem(k)) || 0;} catch {return 0;}};
 
-export const TITLES = {match: 'Partida', moves: 'Moves (mecânica e VFX)', scenarios: 'Cenários', tuning: 'Ajustes', overlays: 'Visualizar', characters: 'Personagens', controls: 'Controles', export: 'Exportar', homolog: 'Homologação'};
+export const TITLES = {match: 'Partida', moves: 'Moves (vitrine e editor)', scenarios: 'Cenários', tuning: 'Ajustes', overlays: 'Visualizar', characters: 'Personagens', controls: 'Controles', export: 'Exportar', homolog: 'Homologação'};
 
 export function setSubCardFilter(tool, sub) {
   const panel = $('panel'), sec = document.querySelector(`.panel-body section[data-section="${tool}"]`);
@@ -98,14 +98,14 @@ export function renderSubTabs(tool) {
 
 /** Moves: gaveta própria no canto da arena (fora da barra esquerda). */
 export function toggleMoves(open = $('moves-drawer').hidden) {
-  if (open) toggleChars(false);
+  if (open) {toggleChars(false);editorHooks.close?.();}   // Ações, Personagens e Editor ocupam o mesmo lugar: abrir um fecha os outros
   $('moves-drawer').hidden = !open;$('moves-open').setAttribute('aria-expanded', String(open));$('moves-open').classList.toggle('active', open);
   if (open) actionsDrawer.render();
 }
 
 /** Personagens: gaveta larga própria (modelos, biblioteca de clipes e a animação de cada estado). */
 export function toggleChars(open = $('chars-drawer').hidden) {
-  if (open) toggleMoves(false);
+  if (open) {toggleMoves(false);editorHooks.close?.();}
   $('chars-drawer').hidden = !open;$('chars-open').setAttribute('aria-expanded', String(open));$('chars-open').classList.toggle('active', open);
   if (open) {renderCharacters();renderStudioEvents();}
 }
@@ -116,7 +116,7 @@ export function openTool(tool) {
   for (const b of document.querySelectorAll('[data-tool]')) b.classList.toggle('active', !same && b.dataset.tool === tool);
   for (const s of document.querySelectorAll('[data-section]')) s.hidden = s.dataset.section !== tool;$('panel-title').textContent = TITLES[tool];
   if (tool === 'homolog') homologation.render();
-  if (tool === 'moves') movesPanel.render();
+  if (tool === 'moves') {movesPanel.render();editorHooks.refresh?.();}
   if (tool === 'scenarios') {syncCompareOptions();movement.render();}
   if (tool === 'tuning') presets.render();
   if (tool === 'export') renderGameDiff();if (tool === 'tuning') tuning.render();if (tool === 'overlays') {diagnostics.live();perfPanel.live();}

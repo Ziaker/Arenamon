@@ -161,10 +161,8 @@ function buildDefaults() {
   // (acima dele a criação é recusada com evento). slots: quantidade de movimentos equipáveis por lutador.
   // charge: regras compartilhadas dos movimentos de carga (Reflect/Psyshock). PROVISÓRIOS (M30.10), configuráveis; cada uso captura uma cópia congelada no início (M28.4, D1).
   const world = {maxEntities: 64, slots: 4, charge: {moveSlow: .75, turnSlow: .75, dodgeCancelAfter: .2, interruptCooldownFactor: .5, recovery: .25, bufferWindow: .15, boostStaminaPerSecond: .5, boostStep: 1},
-    // reflect: valores iniciais PROVISÓRIOS do Reflect (M30.10); largura/altura em múltiplos das dimensões lógicas do motor (M30.4); crescimento linear com a carga.
-    reflect: {widthMin: 1.5, widthMax: 3, heightMin: 1.5, heightMax: 2.5, thickness: .1, gapFraction: .5, durationBase: 4, minCharge: .9, tackleRecoil: .15, tackleStagger: .25, burstRadius: 0, burstForce: 3, burstVertical: 0, burstDamage: 0, burstPush: 0, burstHurt: 0, tieTolerance: .001, maxReflections: 16, hitShakeOn: 0, hitShakeAmount: 1, hitShakeDuration: 1},
-    // psyshock: valores iniciais PROVISÓRIOS do Psyshock (M30.10): pedras (3 a 8, +1 por 0,8 s), velocidade sorteada por pedra (D4), homing 0,3 s a 180°/s, leque de 20° sem alvo, busca de espaço de 3 m, dano 0,2 × Ataque, fator 0,8 por acerto no mesmo alvo, knockback 0,3 m/s por pedra com teto de 0,9 m/s por alvo.
-    psyshock: {minStones: 3, maxStones: 8, stoneSeconds: .8, speedMin: 10, speedMax: 14, homingSeconds: .3, homingRate: 180, fanAngle: 20, searchRange: 3, searchStep: .25, arc: 120, ringMin: .8, ringMax: 1.1, heightMin: .35, heightMax: 1.1, scaleMin: .7, scaleMax: 1.3, radius: .2, damageFraction: .2, successiveFactor: .8, knockbackPerStone: .3, knockbackCap: .9, knockbackVertical: 0, knockbackLevelBonus: 0, knockbackSpeedFactor: 0, counterStagger: .2, hitShakeOn: 0, hitShakeAmount: 1, hitShakeDuration: 1},
+    // reflect: padrões vêm de moves/reflect.move.json (Move como dado; syncMoveParams)
+    // psyshock: padrões vêm de moves/psyshock.move.json (Move como dado; syncMoveParams)
     // beam: lasers contínuos e emissores técnicos (Fase 7). PROVISÓRIOS: comprimento máximo, segmentos refletidos por passo e intervalo entre danos por alvo.
     beam: {length: 24, maxSegments: 8, interval: .25, damage: 2},
     // ai: como a IA decide usar os Moves (sim/ai-moves.js). Distâncias em m, tempos em s. Os padrões reproduzem o comportamento anterior.

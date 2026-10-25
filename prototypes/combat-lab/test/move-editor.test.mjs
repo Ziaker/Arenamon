@@ -15,7 +15,7 @@ const ok = (name, fn) => {try {fn();n++;console.log('  ✓ ' + name);} catch (e)
 const run = stage => { resetConfig(defaults()); return runScenario(makeMoveScenario(sand, stage)); };
 const val = (r, label) => r.checks.find(c => c.label === label).actual;
 
-ok('todos os Moves migrados estão na lista do editor (17)', () => { assert.ok(sand); assert.equal(sand.group, 'sandWave'); assert.ok(EDITABLE_MOVES.length >= 17, String(EDITABLE_MOVES.length)); });
+ok('todos os Moves estão na lista do editor (19)', () => { assert.ok(sand); assert.equal(sand.group, 'sandWave'); assert.ok(EDITABLE_MOVES.length >= 19, String(EDITABLE_MOVES.length)); });
 ok('executar com o alvo perto: acerta, causa o dano do slider e cega', () => {
   const r = run({distance: 3});
   assert.equal(val(r, 'Acertou o alvo').startsWith('sim'), true);
@@ -102,11 +102,25 @@ ok('Spikes avisa o motivo quando o marcador cai em cima do alvo e arma quando o 
   const longe = runScenario(makeMoveScenario(editableMove('spikes'), {distance: 12}));
   assert.ok(val2(longe, 'Entidades criadas').includes('trap'), val2(longe, 'Entidades criadas'));
 });
+ok('Reflect e Psyshock (agora em dado) rodam no palco: barreira só com a carga mínima; pedras acertam e crescem com a carga', () => {
+  resetConfig(defaults());
+  const curto = runScenario(makeMoveScenario(editableMove('reflect'), {distance: 3, hold: 0.3}));
+  assert.ok(val2(curto, 'Falha ao usar o Move').includes('carga mínima'), val2(curto, 'Falha ao usar o Move'));
+  assert.equal(val2(curto, 'Entidades criadas'), 'nenhum');
+  resetConfig(defaults());
+  const longo = runScenario(makeMoveScenario(editableMove('reflect'), {distance: 3, hold: 1.2}));
+  assert.ok(val2(longo, 'Entidades criadas').includes('barrier'), val2(longo, 'Entidades criadas'));
+  resetConfig(defaults());
+  const p1 = runScenario(makeMoveScenario(editableMove('psyshock'), {distance: 3, hold: 0.3})), p2 = runScenario(makeMoveScenario(editableMove('psyshock'), {distance: 3, hold: 2.4}));
+  assert.ok(val2(p1, 'Acertou o alvo').startsWith('sim'));
+  assert.ok(parseFloat(val2(p2, 'Dano causado ao alvo')) > parseFloat(val2(p1, 'Dano causado ao alvo')), 'mais carga, mais pedras, mais dano');
+});
 ok('Moves de carga/mira têm tempo de botão segurado e os demais não', () => {
   assert.equal(needsHold(editableMove('water-pulse')), true);
   assert.equal(needsHold(editableMove('spikes')), true);
   assert.equal(needsHold(editableMove('sand-wave')), false);
   assert.ok(suggestedHold(editableMove('water-pulse')) > 0);
+  assert.ok(suggestedHold(editableMove('reflect')) >= editableMove('reflect').def.charge.min + 0.25, 'a carga sugerida passa do mínimo do Reflect');
   assert.equal(makeMoveScenario(editableMove('sand-wave'), {hold: 2}).name.includes('botão'), false);
 });
 console.log(`${n} verificações do Editor de Moves.`);

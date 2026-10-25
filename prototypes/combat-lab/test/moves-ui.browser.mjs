@@ -19,24 +19,30 @@ try {
   const L = (fn, arg) => page.evaluate(fn, arg);
   await L(() => {window.__lab.C.map.arenaShape = 'square';});
   const tab = t => L(t => {if (t === 'moves') {if (document.getElementById('moves-drawer').hidden) document.getElementById('moves-open').click();return;}const p = document.getElementById('panel');if (p.hidden || p.dataset.tool !== t) document.querySelector(`button[data-tool="${t}"]`).click();}, t);
-  const leftMoves = () => L(() => {const p = document.getElementById('panel');if (p.hidden || p.dataset.tool !== 'moves') (document.querySelector('button[data-tool="moves"]').click(), document.getElementById('moves-legacy').open = true);document.querySelector('#moves-panel details[data-k="tools"]').open = true;});
+  const leftMoves = () => L(() => {const p = document.getElementById('panel');if (p.hidden || p.dataset.tool !== 'moves') document.querySelector('button[data-tool="moves"]').click();document.getElementById('moves-tools').open = true;document.querySelector('#moves-panel details[data-k="tools"]').open = true;});
   const key = async (code, down) => {await page.locator('canvas').first().focus();await (down ? page.keyboard.down(code) : page.keyboard.up(code));};
 
   // ---------- Aba Moves ----------
-  await L(() => (document.querySelector('button[data-tool="moves"]').click(), document.getElementById('moves-legacy').open = true));
-  check('a aba Moves (barra esquerda) lista um cartão por Move, com sliders de todos, e sem equipagem', await page.locator('#moves-panel .mv-move').count() > 10 && await page.locator('#moves-panel .mv-move [data-p^="reflect."]').count() > 10 && await page.locator('#moves-panel .mv-move [data-p^="psyshock."]').count() > 10 && await page.locator('#moves-panel [data-slot-move]').count() === 0);
+  await L(() => document.querySelector('button[data-tool="moves"]').click());
+  const openMove = id => L(id => {document.querySelector('#moves-showcase .mvs-card[data-move="' + id + '"] .mvs-open').click();}, id);
+  await openMove('reflect');
+  const nReflect = await page.locator('#editor-mechanics [data-path^="world.reflect."]').count();
+  await openMove('psyshock');
+  const nPsy = await page.locator('#editor-mechanics [data-path^="world.psyshock."]').count();
+  check('a aba Moves (barra esquerda) é a vitrine (sem equipagem) e o Editor traz os sliders de Reflect e de Psyshock', await page.locator('#moves-showcase .mvs-card[data-move]').count() > 10 && nReflect > 15 && nPsy > 20 && await page.locator('#moves-panel [data-slot-move]').count() === 0, nReflect + ' / ' + nPsy);
   await tab('moves');   // gaveta de Ações › Moves: equipagem e botões
   await page.selectOption('#act-moves [data-slot-move="0.0"]', 'reflect');await page.selectOption('#act-moves [data-slot-move="0.1"]', 'psyshock');
   check('equipar na gaveta coloca o Move no slot do azul', await L(() => window.__lab.game.fighters[0].loadout.slice(0, 2).join()) === 'reflect,psyshock');
   await page.selectOption('#act-moves [data-slot-move="0.1"]', '');check('tirar um move do slot esvazia o slot', await L(() => window.__lab.game.fighters[0].loadout[1] ?? null) === null);
   await page.selectOption('#act-moves [data-slot-move="0.1"]', 'psyshock');await page.selectOption('#act-moves [data-slot-key="0.1"]', '13');check('o botão do slot é editável (entra nas teclas do jogador)', await L(() => window.__lab.C.extras.bindings.skill2) === 13);await page.selectOption('#act-moves [data-slot-key="0.1"]', '12');
-  check('a gaveta lista os 8 slots e a aba Moves os emissores e os parâmetros', await page.locator('#act-moves [data-slot-move]').count() === 8 && await page.locator('#moves-panel [data-emit]').count() === 4 && await page.locator('#moves-panel [data-p]').count() >= 30);
-  check('os parâmetros distinguem “aprovado” de “provisório”', await page.locator('#moves-panel small.ok').count() > 10 && await page.locator('#moves-panel small.warn').count() >= 3);
+  await openMove('reflect');
+  check('a gaveta lista os 8 slots, a aba Moves os emissores e o Editor os parâmetros', await page.locator('#act-moves [data-slot-move]').count() === 8 && await L(() => document.querySelectorAll('#moves-panel [data-emit]').length) === 4 && await page.locator('#editor-mechanics [data-path]').count() >= 18);
+  check('os parâmetros distinguem “aprovado” de “provisório”', await page.locator('#editor-mechanics small.ok').count() >= 8 && await page.locator('#editor-mechanics small.warn').count() >= 3);
   await page.screenshot({path: out + 'aba-moves.png'});
-  const slider = page.locator('[data-p="reflect.thickness"]');await slider.evaluate(el => {el.value = '0.2';el.dispatchEvent(new Event('input', {bubbles: true}));});
-  check('um parâmetro muda o ajuste (vale para os próximos usos)', await L(() => window.__lab.C.world.reflect.thickness) === 0.2 && /0\.20 m/.test(await page.textContent('[data-o="reflect.thickness"]')));
-  await L(() => document.querySelectorAll('#moves-panel details[data-k]').forEach(d => {d.open = true;}));
-  await page.click('[data-reset="reflect.thickness"]');check('o botão ↺ restaura o padrão', await L(() => window.__lab.C.world.reflect.thickness) === 0.1);
+  const slider = page.locator('#editor-mechanics [data-path="world.reflect.thickness"]');await slider.evaluate(el => {el.value = '0.2';el.dispatchEvent(new Event('input', {bubbles: true}));el.dispatchEvent(new Event('change', {bubbles: true}));});
+  check('um parâmetro muda o ajuste (vale para os próximos usos)', await L(() => window.__lab.C.world.reflect.thickness) === 0.2 && /0\.2/.test(await page.locator('#editor-mechanics [data-path="world.reflect.thickness"]').evaluate(el => el.closest('label').querySelector('output').textContent)));
+  await openMove('reflect');
+  await page.locator('#editor-mechanics [data-path="world.reflect.thickness"]').evaluate(el => el.closest('label').querySelector('button.mini').click());check('o botão ↺ restaura o padrão', await L(() => window.__lab.C.world.reflect.thickness) === 0.1);
   await leftMoves();await page.click('#mvp-run');await page.waitForSelector('#mvp-results details');
   const scen = await L(() => [...document.querySelectorAll('#mvp-results summary')].map(s => [s.textContent.trim(), s.classList.contains('ok')]));
   check('os 12 cenários técnicos passam (esperado × obtido)', scen.length === 12 && scen.every(s => s[1]), scen.filter(s => !s[1]).map(s => s[0]).join(' | '));
@@ -44,6 +50,7 @@ try {
   const dl = page.waitForEvent('download');await page.click('#mvp-export');const file = await (await dl).path();check('exporta os cenários em JSON versionado', !!file);
 
   // ---------- Gaveta de Ações: Tackle, Esquiva e Bloqueio ----------
+  await tab('moves');   // a gaveta de Ações fecha quando outra gaveta (Editor) abre: reabre aqui
   for (const [t, minControls] of [['tackle', 40], ['dodge', 40], ['block', 12]]) {
     await page.click(`[data-act="${t}"]`);
     check(`a aba ${t} da gaveta traz os sliders do sistema e os seletores de animação`, await page.locator(`#act-${t} .tune-control`).count() >= minControls && await page.locator(`#act-${t} details`).count() >= 3 && await L(t => document.querySelectorAll(`#act-${t} [data-anim], #act-${t} .act-card .hint`).length > 0, t));

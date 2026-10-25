@@ -8,7 +8,9 @@ import {ficha as ficha_fire_spin} from './fire-spin.js';
 import {ficha as ficha_guard_break} from './guard-break.js';
 import {ficha as ficha_harden} from './harden.js';
 import {ficha as ficha_lunge} from './lunge.js';
+import {ficha as ficha_psyshock} from './psyshock.js';
 import {ficha as ficha_quick_attack} from './quick-attack.js';
+import {ficha as ficha_reflect} from './reflect.js';
 import {ficha as ficha_riposte} from './riposte.js';
 import {ficha as ficha_sand_wave} from './sand-wave.js';
 import {ficha as ficha_second_wind} from './second-wind.js';
@@ -18,4 +20,4 @@ import {ficha as ficha_swift} from './swift.js';
 import {ficha as ficha_water_pulse} from './water-pulse.js';
 
 /** Fichas de Moves, em ordem alfabética do arquivo. */
-export const FICHAS = [ficha_air_slash, ficha_bounce, ficha_bullet_punch, ficha_emerging_stone, ficha_feint, ficha_fire_spin, ficha_guard_break, ficha_harden, ficha_lunge, ficha_quick_attack, ficha_riposte, ficha_sand_wave, ficha_second_wind, ficha_seed_bomb, ficha_spikes, ficha_swift, ficha_water_pulse];
+export const FICHAS = [ficha_air_slash, ficha_bounce, ficha_bullet_punch, ficha_emerging_stone, ficha_feint, ficha_fire_spin, ficha_guard_break, ficha_harden, ficha_lunge, ficha_psyshock, ficha_quick_attack, ficha_reflect, ficha_riposte, ficha_sand_wave, ficha_second_wind, ficha_seed_bomb, ficha_spikes, ficha_swift, ficha_water_pulse];

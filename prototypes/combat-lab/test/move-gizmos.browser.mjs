@@ -1,5 +1,5 @@
 // @ts-check
-// Navegador: overlay «Hitbox das entidades dos Moves» (#05), linha do tempo do Move (#04), atalho Disparar e ausência de erros.
+// Navegador: overlay «Hitbox das entidades dos Moves» (#05), linha do tempo da ficha do Move (#04, agora no Editor de Moves), A/B com o padrão de fábrica (#07), atalho Disparar e ausência de erros.
 import {chromium} from '@playwright/test';
 import {pathToFileURL, fileURLToPath} from 'node:url';
 
@@ -20,19 +20,16 @@ try {
   await page.waitForFunction(() => window.__lab?.moves && window.__lab.game, null, {timeout: 120000});
   await page.evaluate(() => {const {C} = window.__lab;C.extras.toggles.enableEnemyAI = 0;window.__lab.startMatch();});
 
-  // #04 linha do tempo
-  await page.evaluate(() => {const p = document.getElementById('panel');if (p.hidden || p.dataset.tool !== 'moves') (document.querySelector('button[data-tool="moves"]').click(), document.getElementById('moves-legacy').open = true);});
-  await page.click('details.mv-move[data-move="swift"] > summary');
-  await page.click('[data-mvtab="swift|time"]');
-  check('a aba Linha do tempo mostra a barra e as marcas em ticks', await page.locator('details.mv-move[data-move="swift"] .mv-tl-bar .mv-tl-mark').count() >= 2 && /ticks de 120 Hz/i.test(await page.locator('details.mv-move[data-move="swift"] [data-pane="time"]').textContent() ?? ''));
-  await page.click('[data-tl-measure="swift"]');
+  // #04 linha do tempo da ficha (no Editor de Moves, aberto pela vitrine da aba Moves)
+  await page.evaluate(() => {const p = document.getElementById('panel');if (p.hidden || p.dataset.tool !== 'moves') document.querySelector('button[data-tool="moves"]').click();document.querySelector('#moves-showcase .mvs-card[data-move="swift"] .mvs-open').click();});
+  check('a linha do tempo da ficha mostra a barra e as marcas em ticks', await page.locator('#editor-ficha-tl .mv-tl-bar .mv-tl-mark').count() >= 2 && /ticks de 120 Hz/i.test(await page.locator('#editor-ficha-tl').textContent() ?? ''));
+  await page.click('#editor-ficha-tl [data-tl-measure="swift"]');
   await page.waitForFunction(() => /Medido: ação de/.test(document.querySelector('[data-tl-result="swift"]')?.textContent ?? ''), null, {timeout: 20000});
   const txt = await page.textContent('[data-tl-result="swift"]');
   check('Medir no motor compara a marca da ficha com o tick real do efeito', /Efeito: ficha tick \d+ × motor tick \d+ ✓/.test(txt ?? ''), (txt ?? '').slice(0, 160));
 
   // #07 comparador A/B de variantes
-  await page.click('[data-mvtab="swift|mec"]');
-  await page.evaluate(() => {document.querySelector('details[data-k="ab:swift"]').open = true;});
+  await page.evaluate(() => {document.querySelector('#editor-ficha-ab details[data-k="ab:swift"]').open = true;document.querySelector('#editor-ficha-sec details:nth-of-type(2)').open = true;});
   await page.click('[data-ab-run="swift"]');
   await page.waitForSelector('[data-ab-result="swift"] table', {timeout: 30000});
   const ab = await page.textContent('[data-ab-result="swift"]');
@@ -43,7 +40,7 @@ try {
   check('o overlay «Hitbox das entidades dos Moves» está na lista de Visualizar', known);
   await page.evaluate(() => {window.__lab.view.overlays.moveEntities = true;});
   await page.evaluate(() => {const {game} = window.__lab;game.setLoadout(0, ['swift']);});
-  await page.click('[data-fire="swift"]');
+  await page.click('#editor-fire');
   await page.waitForTimeout(500);
   const lines = await page.evaluate(() => window.__lab.view.debug?.length ?? -1);
   check('com o overlay ligado e estrelas no ar, a visão desenha sem erro', lines >= 0 && errors.length === 0, `${lines} linhas de depuração`);

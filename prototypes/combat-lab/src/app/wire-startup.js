@@ -14,7 +14,8 @@ import {applyConfig, download, syncTuneState} from './tuning-sync.js';
 import {foldStaticSections, openTool, syncButtons, toggleChars, toggleMoves} from './live-panels.js';
 import {frame} from './main-loop.js';
 import {seekTick} from './match-flow.js';
-import {$, actionsDrawer, cinePanel, clock, closeTools, game, movesPanel, renderCharacters, tuning, ui} from '../main.js';
+import {createMovesVisual} from '../ui/moves-vfx-panel.js';
+import {$, actionsDrawer, editorHooks, cinePanel, clock, closeTools, game, movesPanel, renderCharacters, tuning, ui} from '../main.js';
 
 export function wireExtras() {
   wireMoveEditor();
@@ -41,7 +42,7 @@ requestAnimationFrame(frame);
 
 /** Editor de Moves (fase 2): gaveta própria, aberta pelo botão «🛠 Editor» no canto da arena. */
 export function wireMoveEditor() {
-  const editor = createMoveEditor({getWorld: () => C.world, $, tuning, startScenario: def => startScenario(def), abortScenario, getScenario: () => ui.scenario, getLastResult: () => ui.lastResult, seekToTime: sec => {if (!ui.lastResult?.id?.startsWith('editor-')) return false;seekTick(Math.round(sec / C.test.step));return true;}, download, setTimeScale: v => {clock.timeScale = v;$('rp-speed').value = String(v);}});
+  const editor = createMoveEditor({getWorld: () => C.world, $, tuning, startScenario: def => startScenario(def), abortScenario, getScenario: () => ui.scenario, getLastResult: () => ui.lastResult, ficha: {timelineMarkup: id => movesPanel.timelineMarkup(id), abMarkup: id => movesPanel.abMarkup(id), bind: root => movesPanel.bindMoveTools(root), fire: id => movesPanel.fire(id)}, openActions: id => {movesPanel.ensureEquipped(id);toggleMoves(true);actionsDrawer.show('moves');movesPanel.focusAction(id);}, vfx: (() => {const v = createMovesVisual({tuning});return {markup: id => v.markup(id), bind: root => v.bind(root), bindParams: (root, rerender) => movesPanel.bindParams(root, rerender)};})(), seekToTime: sec => {if (!ui.lastResult?.id?.startsWith('editor-')) return false;seekTick(Math.round(sec / C.test.step));return true;}, download, setTimeScale: v => {clock.timeScale = v;$('rp-speed').value = String(v);}});
   const toggle = (open = $('move-editor').hidden) => {
     if (open) {toggleMoves(false);toggleChars(false);}
     $('move-editor').hidden = !open;$('editor-open').setAttribute('aria-expanded', String(open));$('editor-open').classList.toggle('active', open);
@@ -52,9 +53,12 @@ export function wireMoveEditor() {
     keyOf: (fighter, slot) => keyLabel((fighter === 1 ? keyFor2 : keyFor)('skill' + (slot + 1))),
     editableIds: () => new Set(EDITABLE_MOVES.map(m => m.id)),
     openEditor: id => {toggle(true);editor.select(id);},
-    openLegacy: id => {const lg = $('moves-legacy');if (lg) lg.open = true;try {movesPanel?.focusMove?.(id);} catch {/* Move sem cartão no painel antigo */}},
+    openLegacy: id => {const lg = $('moves-tools');if (lg) lg.open = true;},   // só se algum Move voltar a ficar fora do editor
     onEquipChanged: () => {if (!$('moves-drawer').hidden) actionsDrawer?.render?.();}});
   Object.assign(editor, {showcase});
+  editorHooks.open = id => {toggle(true);editor.select(id);};
+  editorHooks.refresh = () => showcase.render();
+  editorHooks.close = () => {if (!$('move-editor').hidden) toggle(false);};
   $('editor-open').onclick = () => toggle();$('editor-close').onclick = () => toggle(false);
   window.addEventListener('keydown', e => {if (e.key === 'Escape' && !$('move-editor').hidden && !e.target.matches?.('input[type=text],input[type=search]')) {e.preventDefault();e.stopImmediatePropagation();toggle(false);}}, true);
   return editor;

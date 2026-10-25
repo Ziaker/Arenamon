@@ -19,7 +19,7 @@ export const needsHold = (/** @type {any} */ move) => !!(move.def.charge || move
 /** Tempo (s) de botão segurado sugerido para o Move: o mínimo que o motor aceita costuma ser curto; mira e carga ganham uma folga. */
 /** Dica do palco para Moves de mira por marcador: com o alvo travado o marcador nasce em cima dele. */
 export const holdHint = (/** @type {any} */ move) => move.def.aimMode === 'marker' ? 'Mira por marcador: o marcador nasce sobre o alvo travado. Armadilhas (Spikes) só armam em chão livre: afaste o alvo além do alcance.' : move.def.charge ? 'Move de carga: o tempo segurando define o nível de carga (PL).' : '';
-export function suggestedHold(/** @type {any} */ move) {return move.def.charge ? 0.6 : move.def.aimMode ? 0.3 : 0;}
+export function suggestedHold(/** @type {any} */ move) {return move.def.charge ? Math.max(0.6, (move.def.charge.min ?? 0) + 0.3) : move.def.aimMode ? 0.3 : 0;}   // carga: acima do mínimo do Move (Reflect exige 0,9 s)
 
 /** Duração (s) que vale a pena observar: preparação + janela ativa + dissipação + folga (+ o tempo segurando). */
 export function observeSeconds(/** @type {any} */ move, hold = 0) {
@@ -67,8 +67,8 @@ export function makeMoveScenario(move, stage = {}) {
       const dmg = start[1].hp - red.hp;
       const blind = (scratch.status?.[1] ?? new Set()).has('blind') || log.events.some((/** @type {any} */ e) => e.result === 'blinded' && e.target === 1);
       const spent = start[0].stamina - blue.stamina;
-      const FAIL_TEXT = /** @type {Record<string, string>} */ ({invalidMarker: 'marcador inválido (ocupado, fora do alcance ou bloqueado): a mira foi cancelada sem gastar nada', noGround: 'precisa estar no chão', entityLimit: 'limite de entidades', semEspaco: 'sem espaço'});
-      const failures = [...new Set(log.events.filter((/** @type {any} */ e) => (e.result === 'moveFailed' && e.attacker === 0) || e.result === 'aimCancel').map((/** @type {any} */ e) => FAIL_TEXT[String(e.reason)] ?? String(e.reason ?? 'falhou')))];
+      const FAIL_TEXT = /** @type {Record<string, string>} */ ({invalidMarker: 'marcador inválido (ocupado, fora do alcance ou bloqueado): a mira foi cancelada sem gastar nada', noGround: 'precisa estar no chão', entityLimit: 'limite de entidades', semEspaco: 'sem espaço', semCargaMinima: 'carga abaixo do mínimo: segure o botão por mais tempo', semCarga: 'sem carga', minCharge: 'botão solto antes da carga mínima: nada foi criado, segure por mais tempo'});
+      const failures = [...new Set(log.events.filter((/** @type {any} */ e) => (e.result === 'moveFailed' && e.attacker === 0) || e.result === 'aimCancel' || e.result === 'chargeInterrupt').map((/** @type {any} */ e) => FAIL_TEXT[String(e.reason)] ?? String(e.reason ?? 'falhou')))];
       const list = (/** @type {Set<string> | undefined} */ set) => set && set.size ? [...set].join(', ') : 'nenhum';
       const row = (/** @type {string} */ label, /** @type {any} */ actual, ok = true, expected = '—') => ({label, expected, actual: String(actual), ok});
       return [

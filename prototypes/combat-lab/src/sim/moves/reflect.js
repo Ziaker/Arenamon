@@ -7,15 +7,11 @@ import {C} from '../config.js';
 import {spawn} from '../world.js';
 import {rectsOverlap} from '../geometry.js';
 import {add, scale, direction} from '../math.js';
+import {defineFicha} from './params-registry.js';
+import {params, def as reflectDef} from './reflect.params.js';
 
 /** Definição do movimento (dados puros, clonável). */
-export const reflectDef = Object.freeze({
-  id: 'reflect', name: 'Reflect', air: 'cast',
-  description: 'Carregue por no mínimo 1,5 s e solte para criar uma barreira que reflete projéteis. Quanto mais carga, maior e mais duradoura; ela é sólida para os dois lutadores.',
-  cost: 1, cooldown: 8, cooldownBoost: true,
-  charge: {max: 4, min: .9, group: 'reflect'},
-  timeline: [{effect: 'reflect'}],
-});
+export {reflectDef};   // definição (id, carga, custo…) vem de reflect.move.json
 
 /**
  * A caixa cabe? Dentro da arena e sem sobrepor paredes, barreiras sólidas não refletoras nem lutadores (M13.6, M26s.3, M8.7).
@@ -87,3 +83,6 @@ export function reflectEffect(/** @type {any} */ game, /** @type {any} */ f, /**
       hit: {damage: dmg, knockback: force > 0 || lift > 0 ? {horizontal: force, vertical: lift} : undefined}, captured: {move: def.id}}, fx.events ?? []);
   return e ? {ok: true} : {ok: false, reason: 'limiteDeEntidades'};
 }
+
+/** FICHA do Move (índice automático): definição e parâmetros vêm do reflect.move.json. O registro continua em standard.js (Moves padrão, não «novos»). */
+export const ficha = defineFicha({def: reflectDef, effect: ['reflect', reflectEffect], params});

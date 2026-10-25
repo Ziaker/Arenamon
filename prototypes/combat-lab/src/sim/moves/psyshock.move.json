@@ -1,0 +1,330 @@
+{
+  "schemaVersion": 1,
+  "def": {
+    "id": "psyshock",
+    "name": "Psyshock",
+    "air": "cast",
+    "description": "Carregue e solte para disparar pedras telecinéticas ao mesmo tempo: quanto mais carga, mais pedras e mais Power Level. Com alvo travado elas miram partes diferentes do corpo; sem alvo saem em leque.",
+    "cost": 1,
+    "cooldown": 8,
+    "cooldownBoost": true,
+    "charge": {
+      "max": 4,
+      "group": "psyshock"
+    },
+    "timeline": [
+      {
+        "effect": "psyshock"
+      }
+    ]
+  },
+  "params": {
+    "group": "psyshock",
+    "title": "Psyshock",
+    "hint": "Pedras psíquicas com homing. Segure para carregar, solte para disparar.",
+    "rows": [
+      {
+        "key": "minStones",
+        "label": "Pedras iniciais",
+        "tip": "Quantidade com carga mínima (M11.1).",
+        "min": 1,
+        "max": 8,
+        "step": 1,
+        "unit": "int",
+        "value": 3,
+        "approved": true
+      },
+      {
+        "key": "maxStones",
+        "label": "Pedras no máximo",
+        "tip": "Limite com a carga máxima (M11.2); o mundo comporta 64 entidades.",
+        "min": 1,
+        "max": 16,
+        "step": 1,
+        "unit": "int",
+        "value": 8,
+        "approved": true
+      },
+      {
+        "key": "stoneSeconds",
+        "label": "Segundos por pedra extra",
+        "tip": "Uma pedra a mais a cada tanto tempo de carga (M11.2).",
+        "min": 0.2,
+        "max": 2,
+        "step": 0.05,
+        "unit": "sec",
+        "value": 0.8,
+        "approved": true
+      },
+      {
+        "key": "speedMin",
+        "label": "Velocidade mínima",
+        "tip": "Sorteada por pedra (D4, M5.5).",
+        "min": 2,
+        "max": 30,
+        "step": 0.5,
+        "unit": "ms",
+        "value": 10,
+        "approved": true
+      },
+      {
+        "key": "speedMax",
+        "label": "Velocidade máxima",
+        "tip": "Sorteada por pedra (D4, M5.5).",
+        "min": 2,
+        "max": 30,
+        "step": 0.5,
+        "unit": "ms",
+        "value": 14,
+        "approved": true
+      },
+      {
+        "key": "homingSeconds",
+        "label": "Duração do homing",
+        "tip": "Só com alvo travado (M10.2).",
+        "min": 0,
+        "max": 1,
+        "step": 0.05,
+        "unit": "sec",
+        "value": 0.3,
+        "approved": true
+      },
+      {
+        "key": "homingRate",
+        "label": "Giro máximo do homing",
+        "tip": "Graus por segundo (M12.1).",
+        "min": 0,
+        "max": 720,
+        "step": 10,
+        "unit": "deg",
+        "value": 180,
+        "approved": true
+      },
+      {
+        "key": "fanAngle",
+        "label": "Leque sem alvo",
+        "tip": "Abertura total do leque discreto frontal (provisório, M30.10).",
+        "min": 0,
+        "max": 90,
+        "step": 1,
+        "unit": "deg",
+        "value": 20
+      },
+      {
+        "key": "searchRange",
+        "label": "Alcance da busca de espaço",
+        "tip": "Quanto à frente procurar posições livres para as pedras (provisório).",
+        "min": 0,
+        "max": 8,
+        "step": 0.25,
+        "unit": "m",
+        "value": 3
+      },
+      {
+        "key": "searchStep",
+        "label": "Passo da busca de espaço",
+        "tip": "Distância entre as posições testadas ao procurar um lugar livre para cada pedra (provisório).",
+        "min": 0.05,
+        "max": 1,
+        "step": 0.05,
+        "unit": "m",
+        "value": 0.25
+      },
+      {
+        "key": "arc",
+        "label": "Abertura do arco das pedras",
+        "tip": "Ângulo total em que as pedras se distribuem à frente do lançador ao formar (provisório).",
+        "min": 0,
+        "max": 360,
+        "step": 5,
+        "unit": "deg",
+        "value": 120
+      },
+      {
+        "key": "ringMin",
+        "label": "Distância mínima do lançador",
+        "tip": "Raio mínimo do anel onde as pedras nascem, sorteado por pedra (provisório).",
+        "min": 0.3,
+        "max": 3,
+        "step": 0.05,
+        "unit": "m",
+        "value": 0.8
+      },
+      {
+        "key": "ringMax",
+        "label": "Distância máxima do lançador",
+        "tip": "Raio máximo do anel onde as pedras nascem (provisório).",
+        "min": 0.3,
+        "max": 3,
+        "step": 0.05,
+        "unit": "m",
+        "value": 1.1
+      },
+      {
+        "key": "heightMin",
+        "label": "Altura mínima das pedras",
+        "tip": "Altura inicial mínima, sorteada por pedra; só visual e posição de saída (M30.2; provisório).",
+        "min": 0,
+        "max": 2.5,
+        "step": 0.05,
+        "unit": "m",
+        "value": 0.35
+      },
+      {
+        "key": "heightMax",
+        "label": "Altura máxima das pedras",
+        "tip": "Altura inicial máxima, sorteada por pedra (M30.2; provisório).",
+        "min": 0,
+        "max": 2.5,
+        "step": 0.05,
+        "unit": "m",
+        "value": 1.1
+      },
+      {
+        "key": "scaleMin",
+        "label": "Tamanho visual mínimo",
+        "tip": "Escala mínima da pedra; não muda a colisão (M30.2; provisório).",
+        "min": 0.3,
+        "max": 3,
+        "step": 0.05,
+        "unit": "x",
+        "value": 0.7
+      },
+      {
+        "key": "scaleMax",
+        "label": "Tamanho visual máximo",
+        "tip": "Escala máxima da pedra; não muda a colisão (M30.2; provisório).",
+        "min": 0.3,
+        "max": 3,
+        "step": 0.05,
+        "unit": "x",
+        "value": 1.3
+      },
+      {
+        "key": "damageFraction",
+        "label": "Dano-base",
+        "tip": "Fração do Ataque do lançador gravada no disparo (M30.1).",
+        "min": 0.01,
+        "max": 1,
+        "step": 0.01,
+        "unit": "pct",
+        "value": 0.2,
+        "approved": true
+      },
+      {
+        "key": "successiveFactor",
+        "label": "Fator por acerto no mesmo alvo",
+        "tip": "Cada acerto seguinte da mesma execução causa este fator do anterior (M6.3).",
+        "min": 0.1,
+        "max": 1,
+        "step": 0.01,
+        "unit": "pct",
+        "value": 0.8,
+        "approved": true
+      },
+      {
+        "key": "knockbackPerStone",
+        "label": "Knockback por pedra",
+        "tip": "Empurrão horizontal por pedra (M26s.7).",
+        "min": 0,
+        "max": 10,
+        "step": 0.05,
+        "unit": "ms",
+        "value": 0.3,
+        "approved": true
+      },
+      {
+        "key": "knockbackCap",
+        "label": "Teto de knockback por alvo",
+        "tip": "Máximo acumulado por alvo em cada execução (M30.3).",
+        "min": 0,
+        "max": 10,
+        "step": 0.05,
+        "unit": "ms",
+        "value": 0.9,
+        "approved": true
+      },
+      {
+        "key": "knockbackVertical",
+        "label": "Lançamento vertical por pedra",
+        "tip": "Componente vertical do empurrão: com valor acima de 0 a pedra lança o alvo para cima (voo) em vez de só empurrá-lo (provisório).",
+        "min": 0,
+        "max": 10,
+        "step": 0.05,
+        "unit": "ms",
+        "value": 0
+      },
+      {
+        "key": "knockbackLevelBonus",
+        "label": "Bônus de empurrão por nível de PL",
+        "tip": "Soma esta fração do empurrão base para cada Power Level acima do 1 (PL2 = +1×, PL3 = +2×; provisório).",
+        "min": 0,
+        "max": 1.6,
+        "step": 0.05,
+        "unit": "pct",
+        "value": 0
+      },
+      {
+        "key": "knockbackSpeedFactor",
+        "label": "Empurrão acompanha a velocidade da pedra",
+        "tip": "Quanto o empurrão varia com a velocidade sorteada da pedra em relação à média: 0% = igual para todas; 100% = proporcional (provisório).",
+        "min": 0,
+        "max": 1.6,
+        "step": 0.05,
+        "unit": "pct",
+        "value": 0
+      },
+      {
+        "key": "counterStagger",
+        "label": "Counter Stagger",
+        "tip": "Stagger quando uma pedra de PL superior atinge o corpo do derrotado (M21.5).",
+        "min": 0,
+        "max": 1,
+        "step": 0.01,
+        "unit": "sec",
+        "value": 0.2,
+        "approved": true
+      },
+      {
+        "key": "radius",
+        "label": "Raio de colisão da pedra",
+        "tip": "Igual em todas as pedras (o tamanho visual varia sem efeito na física, M30.2).",
+        "min": 0.05,
+        "max": 0.5,
+        "step": 0.01,
+        "unit": "m",
+        "value": 0.2
+      },
+      {
+        "key": "hitShakeOn",
+        "label": "Tremor de câmera ao acertar",
+        "tip": "Desligado (padrão): este Move não treme a câmera ao acertar. Ligado: libera a intensidade e a duração do tremor. Só aparência.",
+        "min": 0,
+        "max": 1,
+        "step": 1,
+        "unit": "yesno",
+        "value": 0
+      },
+      {
+        "key": "hitShakeAmount",
+        "label": "Tremor ao acertar: intensidade",
+        "tip": "Multiplica o tremor de hit padrão (1 = igual ao do Tackle). Só aparência.",
+        "min": 0,
+        "max": 3,
+        "step": 0.05,
+        "unit": "x",
+        "value": 1
+      },
+      {
+        "key": "hitShakeDuration",
+        "label": "Tremor ao acertar: duração",
+        "tip": "Multiplica a duração do tremor de hit padrão (1 = igual ao do Tackle). Só aparência.",
+        "min": 0.1,
+        "max": 2.5,
+        "step": 0.05,
+        "unit": "x",
+        "value": 1
+      }
+    ]
+  }
+}

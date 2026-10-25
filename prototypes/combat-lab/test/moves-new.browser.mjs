@@ -28,11 +28,21 @@ try {
   await openDrawer();
   check('a aba Moves existe e lista os Moves novos nos slots', await page.locator('[data-slot-move="0.0"] option[value="harden"]').count() === 1 && await page.locator('[data-slot-move="0.0"] option[value="second-wind"]').count() === 1);
   await page.selectOption('[data-slot-move="0.0"]', 'harden');await page.selectOption('[data-slot-move="0.1"]', 'second-wind');await page.selectOption('[data-slot-move="0.2"]', 'swift');
+  /** Abre o Editor de Moves num Move pela vitrine da aba Moves (os sliders de mecânica agora vivem no Editor). */
+  const openMove = id => L(id => {
+    const p = document.getElementById('panel');if (p.hidden || p.dataset.tool !== 'moves') document.querySelector('button[data-tool="moves"]').click();
+    document.querySelector('#moves-showcase .mvs-card[data-move="' + id + '"] .mvs-open').click();
+  }, id);
+  const hasSlider = (group, key) => L(([g, k]) => !!document.querySelector('#editor-mechanics [data-path="world.' + g + '.' + k + '"]'), [group, key]);
   const lo = await L(() => window.__lab.game.fighters[0].loadout);
   check('Harden e Second Wind equipam pela interface (slots 1 e 2)', lo[0] === 'harden' && lo[1] === 'second-wind', JSON.stringify(lo));
-  const panel = await L(() => {const t = document.getElementById('moves-panel');return {harden: !!t.querySelector('[data-p="harden.defensePct"]'), cost: !!t.querySelector('[data-p="harden.cost"]'), sw: !!t.querySelector('[data-p="secondWind.regenPctPerSecond"]'), swCost: !!t.querySelector('[data-p="secondWind.mobilityCostPct"]')};});
-  check('a aba mostra os sliders de Harden e Second Wind (custo, cooldown, cast, duração, parâmetros próprios)', Object.values(panel).every(Boolean), JSON.stringify(panel));
-  check('o painel mostra os sliders do Swift', await L(() => !!document.querySelector('#moves-panel [data-p="swift.homingRate"]') && !!document.querySelector('#moves-panel [data-p="swift.knockbackCap"]')));
+  await openMove('harden');
+  const panel = {harden: await hasSlider('harden', 'defensePct'), cost: await hasSlider('harden', 'cost')};
+  await openMove('second-wind');
+  panel.sw = await hasSlider('secondWind', 'regenPctPerSecond');panel.swCost = await hasSlider('secondWind', 'mobilityCostPct');
+  check('o Editor (aberto pela aba Moves) mostra os sliders de Harden e Second Wind (custo, cooldown, cast, duração, parâmetros próprios)', Object.values(panel).every(Boolean), JSON.stringify(panel));
+  await openMove('swift');
+  check('o Editor mostra os sliders do Swift', await hasSlider('swift', 'homingRate') && await hasSlider('swift', 'knockbackCap'));
   await L(() => {document.getElementById('moves-close').click();window.__lab.startMatch();});
 
   // Teclado como jogador: A = slot 1, S = slot 2 (a simulação em renderização por software é mais lenta que o tempo real: espera por condição)
@@ -59,11 +69,13 @@ try {
   await openDrawer();
   const missing = [];
   for (const [id, group] of Object.entries(GROUPS)) {
+    await openDrawer();   // abrir o Editor fecha a gaveta Ações (ocupam o mesmo lugar)
     if (await page.locator(`[data-slot-move="0.0"] option[value="${id}"]`).count() !== 1) {missing.push(`slot:${id}`);continue;}
     await page.selectOption('[data-slot-move="0.0"]', id);
-    if (!await L(g => !!document.querySelector(`#moves-panel [data-p="${g}.cost"]`), group)) missing.push(`slider:${id}`);
+    await openMove(id);
+    if (!await hasSlider(group, 'cost')) missing.push(`slider:${id}`);
   }
-  check('os 13 Moves novos aparecem nos slots e cada um tem seus sliders na aba Moves', missing.length === 0, missing.join(','));
+  check('os 13 Moves novos aparecem nos slots e cada um tem seus sliders no Editor de Moves', missing.length === 0, missing.join(','));
   await L(() => document.getElementById('moves-close').click());
   // Lunge pelo teclado como jogador: vira um Tackle real marcado com o Move
   await L(() => {window.__lab.game.setLoadout(0, ['lunge', 'spikes']);window.__lab.startMatch();});

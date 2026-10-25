@@ -141,9 +141,11 @@ export const diagnostics = createDiagnostics({$, game, tuning, download});
 export const windowsOverlay = createWindowsOverlay({root: $('win-overlay'), view, game});
 $('win-controls').append(...tuning.sectionControls('Janelas de combate'));
 // Treino de defesa/esquiva perfeitas: o vermelho segue o roteiro do treino; tudo cronometrado em passos de simulação.
-export const movesPanel = createMovesPanel({$, game, download, tuning, view, ui, canvas, startMatch, visual: createMovesVisual({tuning}),
+/** Ganchos preenchidos mais tarde (wire-startup): abrir o Editor de Moves num Move. */
+export const editorHooks = /** @type {{open: ((id: string) => void) | null, refresh: (() => void) | null, close: (() => void) | null}} */ ({open: null, refresh: null, close: null});
+export const movesPanel = createMovesPanel({$, game, download, tuning, view, ui, canvas, startMatch, visual: createMovesVisual({tuning}), cards: false,
   presetValues: {options: () => [...$('preset-a').options].map(o => [o.value, o.textContent]), valuesOf: id => presets.valuesOf(id)},
-  nav: {openParams: (id, tab) => {toggleMoves(false);if ($('panel').hidden || $('panel').dataset.tool !== 'moves') openTool('moves');movesPanel.focusMove(id, tab);},
+  nav: {openParams: id => {toggleMoves(false);editorHooks.open?.(id);},
     openActions: id => {movesPanel.ensureEquipped(id);toggleMoves(true);actionsDrawer.show('moves');movesPanel.focusAction(id);},
     seekMoveTick,
     refreshActions: () => {if (!$('moves-drawer').hidden) actionsDrawer.render();}}});

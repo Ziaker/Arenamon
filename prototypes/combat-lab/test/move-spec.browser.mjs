@@ -20,7 +20,7 @@ try {
   await page.goto(labUrl + '?fabrica=1');
   await page.waitForFunction(() => window.__lab?.moves && window.__lab.game, null, {timeout: 120000});
   await page.evaluate(() => {try {localStorage.removeItem('arenamon-move-spec-draft');} catch {}});
-  await page.evaluate(() => {const p = document.getElementById('panel');if (p.hidden || p.dataset.tool !== 'moves') (document.querySelector('button[data-tool="moves"]').click(), document.getElementById('moves-legacy').open = true);});
+  await page.evaluate(() => {const p = document.getElementById('panel');if (p.hidden || p.dataset.tool !== 'moves') (document.querySelector('button[data-tool="moves"]').click(), document.getElementById('moves-tools').open = true);});
   await page.evaluate(() => {const w = document.querySelector('details.mv-wizard');w.open = true;w.querySelector('details[data-k="spec:identidade"]').open = true;w.querySelector('details[data-k="spec:categoria"]').open = true;});
   const pend0 = await page.textContent('[data-spec-summary] b');
   check('a ficha nova começa com todas as decisões obrigatórias pendentes', Number(pend0) >= 20, `${pend0} pendentes`);
