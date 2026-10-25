@@ -12,6 +12,7 @@ import {watch} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {join, resolve, relative, extname, sep} from 'node:path';
 import {buildLab, buildReportsPanel} from './build-lib.mjs';
+import {createMoveSaveApi} from './move-save-api.mjs';
 
 const here = fileURLToPath(new URL('.', import.meta.url)), repo = resolve(here, '../..');
 /** Áreas acessíveis (reaproveitam as pastas que o projeto já tem: modelos ficam em chars/, ignorada pelo Git). */
@@ -45,14 +46,17 @@ async function list(area) {
   await walk(A.dir, '', A.depth ?? 1);return out.sort((a, b) => b.mtime - a.mtime);
 }
 
-export async function startDevServer({port = 5173, quiet = false, watchFiles = true} = {}) {
+/** Pastas que a API de gravação do Editor de Moves pode alterar (move.json dos Moves e visual aprovado do atelier). */
+const DEFAULT_MOVES_DIR = join(here, 'src', 'sim', 'moves'), DEFAULT_APPROVED_DIR = join(repo, 'prototypes', 'sand-stone-lab', 'approved');
+export async function startDevServer({port = 5173, quiet = false, watchFiles = true, movesDir = DEFAULT_MOVES_DIR, approvedDir = DEFAULT_APPROVED_DIR} = {}) {
+  const saveApi = createMoveSaveApi({movesDir, approvedDir});
   let lab = await buildLab({minify: false}), reports = await buildReportsPanel({minify: false}), version = 1, lastError = null;
   const clients = new Set(), log = (...a) => {if (!quiet) console.log(...a);};
   async function rebuild(reason) {
     try {[lab, reports] = await Promise.all([buildLab({minify: false}), buildReportsPanel({minify: false})]);lastError = null;version++;log(`↻ recompilado (${reason})`);for (const c of clients) c.write(`data: ${version}\n\n`);}
     catch (e) {lastError = e.message;log('✗ erro de compilação:', e.message);for (const c of clients) c.write(`event: error\ndata: ${JSON.stringify(e.message)}\n\n`);}
   }
-  const inject = html => html.replace('</body>', `<script>window.__ARENAMON_DEV__={api:'/api',version:${version}};(()=>{const s=new EventSource('/__dev/events');s.onmessage=()=>location.reload();s.addEventListener('error',e=>{if(e.data)console.error('Compilação:',JSON.parse(e.data));});})();</script></body>`);
+  const inject = html => html.replace('</body>', `<script>window.__ARENAMON_DEV__={api:'/api',save:true,version:${version}};(()=>{const s=new EventSource('/__dev/events');s.onmessage=()=>location.reload();s.addEventListener('error',e=>{if(e.data)console.error('Compilação:',JSON.parse(e.data));});})();</script></body>`);
   const server = createServer(async (req, res) => {
     const url = new URL(req.url, 'http://127.0.0.1'), send = (status, body, type = 'application/json; charset=utf-8') => {res.writeHead(status, {'content-type': type, 'cache-control': 'no-store'});res.end(typeof body === 'string' || Buffer.isBuffer(body) ? body : JSON.stringify(body));};
     try {
@@ -61,6 +65,8 @@ export async function startDevServer({port = 5173, quiet = false, watchFiles = t
       if (url.pathname === '/favicon.ico') {res.writeHead(204);return res.end();}
       if (url.pathname === '/__dev/events') {res.writeHead(200, {'content-type': 'text/event-stream', 'cache-control': 'no-store', connection: 'keep-alive'});res.write(': ok\n\n');clients.add(res);req.on('close', () => clients.delete(res));return;}
       if (url.pathname === '/__dev/rebuild' && req.method === 'POST') {await rebuild('pedido');return send(200, {version, error: lastError});}
+      const saved = await saveApi.handle({method: req.method, pathname: url.pathname, origin: req.headers.origin, host: req.headers.host, readBody: async () => {const chunks = [];let size = 0;for await (const c of req) {size += c.length;if (size > MAX_BODY) throw new Error('grande');chunks.push(c);}return Buffer.concat(chunks).toString('utf8');}});
+      if (saved) return saved.error ? send(saved.status, {error: saved.error, ...(saved.currentHash ? {currentHash: saved.currentHash} : {})}) : send(saved.status, saved.body);
       if (url.pathname === '/api/health') return send(200, {ok: true, version, error: lastError, areas: Object.fromEntries(Object.entries(AREAS).map(([k, a]) => [k, {label: a.label, ext: a.ext, dir: relative(repo, a.dir).replaceAll(sep, '/')}]))});
       const m = url.pathname.match(/^\/api\/files\/([a-z]+)(?:\/(.+))?$/);
       if (m) {
@@ -84,8 +90,9 @@ export async function startDevServer({port = 5173, quiet = false, watchFiles = t
   await new Promise((ok, fail) => {server.once('error', fail);server.listen(port, '127.0.0.1', ok);});
   const actual = server.address().port, watchers = [];
   if (watchFiles) {
-    let timer = null;const kick = (f) => {clearTimeout(timer);timer = setTimeout(() => rebuild(f || 'arquivo alterado'), 120);};
+    let timer = null;const kick = (f) => {if (/\.tmp$/.test(String(f ?? ''))) return;clearTimeout(timer);timer = setTimeout(() => rebuild(f || 'arquivo alterado'), 120);};
     for (const d of ['src', 'reports']) watchers.push(watch(join(here, d), {recursive: true}, (_, f) => kick(f)));
+    watchers.push(watch(approvedDir, {recursive: true}, (_, f) => kick(f)));   // visual aprovado do atelier (entra no jogo e no editor)
   }
   log(`Laboratório (desenvolvimento): http://127.0.0.1:${actual}/   ·   relatórios: http://127.0.0.1:${actual}/relatorios`);
   return {port: actual, rebuild, close: () => new Promise(r => {for (const w of watchers) w.close();for (const c of clients) c.end();server.close(r);})};

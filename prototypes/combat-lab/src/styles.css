@@ -988,3 +988,11 @@ button.onoff[aria-checked=true]::after{content:'ON';background:#14593c;color:#72
 /* Aba Moves como vitrine: uma coluna e painel estreito (sobra espaço para a arena e para o Editor ao lado) */
 .panel[data-layout="bento"][data-tool="moves"][data-subcard]{width:min(560px,calc(100vw - var(--rail) - 140px))}
 .panel[data-layout="bento"][data-subcard="all"] .panel-body section[data-section="moves"]:not([hidden]){grid-template-columns:1fr}
+
+/* Editor de Moves: diálogo de confirmação de gravação */
+dialog.editor-dialog{max-width:min(720px,92vw);padding:16px 18px;border:1px solid #6cb7ff88;border-radius:12px;background:#0d1822;color:#e6edf3;box-shadow:0 20px 60px #000c}
+dialog.editor-dialog::backdrop{background:#000a}
+dialog.editor-dialog h3{margin:0 0 6px}
+dialog.editor-dialog .editor-dialog-body{max-height:50vh;overflow:auto;margin:8px 0}
+dialog.editor-dialog .editor-actions{justify-content:flex-end}
+.move-editor button[aria-disabled=true]{opacity:.5;cursor:not-allowed}

@@ -1,6 +1,6 @@
 # Plano: Editor de Moves (janela única que dá play no Move)
 
-Status (24/10/2026): **fases 1 a 5 entregues (19 Moves, todos)**; o painel antigo da aba Moves foi desmontado (ver «Andamento» no fim). Fases 3 a 7 ainda são plano.
+Status (24/10/2026): **fases 1 a 5 entregues (19 Moves, todos) + gravação direta no disco**; o painel antigo da aba Moves foi desmontado (ver «Andamento» no fim). Fases 3 a 7 ainda são plano.
 
 ## Objetivo
 
@@ -165,4 +165,5 @@ Modo escuro/claro, painel redimensionável e lembrado, janela destacável por pa
   - Na aba Moves ficou só **«Ajustes compartilhados e ferramentas de teste»** (recolhido): carga compartilhada, estilo global dos efeitos, emissores técnicos, laser, cenários técnicos, avaliação jogável e exportar parâmetros — nada disso é de um Move só.
   - Abrir a gaveta Ações, Personagens ou o Editor fecha as outras (ocupam o mesmo lugar).
   - Defeito da fase 2 corrigido: os sliders de mecânica do Editor usavam os limites do `move.json`, não os **efetivos** (limites ampliados de 22/10 e knockback até 15) que o painel antigo oferecia; agora usam os efetivos. Ajustes puramente visuais (`isVisualWorldParam`) e o tremor de hit ficam na seção de VFX.
-- **Limites atuais:** a IA (`ficha.ai`) e a lógica dos efeitos seguem em código; o visual do atelier só está ligado a Sand Wave, Emerging Stone e Swift; não há gravação direta no disco (copiar o JSON e colar no arquivo); pendentes do plano: fases 6 e 7 (janela separada, atalhos, gerador de Move completo) e os QoLs.
+- **Gravação direta no disco (servidor local)** — o Editor grava o `move.json` e o visual aprovado do atelier **com confirmação**. Duplo clique em `INICIAR_SERVIDOR.bat` (ou `npm run servidor`) abre o laboratório em `http://127.0.0.1:5173/`; na seção «Salvar» do Editor, **💾 Gravar move.json no disco** e **💾 Gravar visual aprovado no disco** leem o arquivo, mostram as diferenças (antes × depois) num diálogo com o foco em «Cancelar», e só gravam depois do «Gravar no arquivo». O servidor valida (esquema do move.json; exportação válida do atelier), exige a mesma origem, só altera arquivos que já existem, detecta arquivo mudado por fora (409) e grava de forma atômica; o Git guarda a versão anterior. Depois de gravar, o laboratório recarrega sozinho e o Editor reabre no mesmo Move. Detalhes: `docs/GRAVAR_NO_EDITOR.md`. Código: `move-save-api.mjs` (servidor), `src/editor/move-save-model.js` (diferenças e novo documento). Testes: `move-save-model.test` (9), `move-save-api.test` (7) e `move-save.browser` (21).
+- **Limites atuais:** a IA (`ficha.ai`) e a lógica dos efeitos seguem em código; o visual do atelier só está ligado a Sand Wave, Emerging Stone e Swift; só se grava com o servidor local ligado (fora dele, copiar o JSON); pendentes do plano: fases 6 e 7 (janela separada, atalhos, gerador de Move completo) e os QoLs.

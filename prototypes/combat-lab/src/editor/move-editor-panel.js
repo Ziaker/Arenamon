@@ -2,18 +2,20 @@
 // Painel do Editor de Moves (fase 2): palco + play + sliders de um Move já migrado para move.json.
 // Só interface: o cenário e os números vêm de move-editor-model.js; os sliders de mecânica são os MESMOS do ajustador (desfazer, presets, workspace);
 // os de visual alteram, nesta sessão, os parâmetros aprovados do atelier que o jogo usa no próximo disparo.
+import {C} from '../sim/config.js';
 import {escape} from '../ui/tuning.js';
 import {MOVES_PARAMS, isVisualWorldParam} from '../ui/moves-panel.js';
 import {controls as atelierControls, help as atelierHelp, phaseOf, phaseNames} from '../../../sand-stone-lab/src/config.ts';
 import {ATELIER_APPROVED, ATELIER_GAME_PARAMS} from '../view/quarks/atelier-game-params.js';
 import {EDITABLE_MOVES, editableMove} from './editable-moves.js';
+import {buildMoveDoc, buildVisualDoc, describeDiffs} from './move-save-model.js';
 import {traceMove, compareTraces, currentValues, defaultValues, diffCount} from './move-trace.js';
 import {makeMoveScenario, currentMoveJson, TARGET_STATES, DEFAULT_STAGE, DISTANCE_RANGE, HOLD_RANGE, needsHold, suggestedHold, holdHint} from './move-editor-model.js';
 
 /**
- * @param {{getWorld: () => any, $: (id: string) => any, tuning: any, startScenario: (def: any) => void, abortScenario: () => void, getScenario: () => any, getLastResult: () => any, ficha?: {timelineMarkup: (id: string) => string, abMarkup: (id: string) => string, bind: (root: any) => void, fire: (id: string) => void}, openActions?: (id: string) => void, vfx?: {markup: (id: string) => string, bind: (root: any) => void, bindParams: (root: any, rerender: () => void) => void}, seekToTime?: (seconds: number) => boolean, download: (data: string, name: string, type?: string) => void, setTimeScale: (v: number) => void}} deps
+ * @param {{getWorld: () => any, $: (id: string) => any, tuning: any, startScenario: (def: any) => void, abortScenario: () => void, getScenario: () => any, getLastResult: () => any, save?: {available: boolean, read: (kind: 'moves' | 'approved', id: string) => Promise<{status: number, json: any}>, write: (kind: 'moves' | 'approved', id: string, doc: any, expectHash: string) => Promise<{status: number, json: any}>, rememberOpen?: (moveId: string) => void}, ficha?: {timelineMarkup: (id: string) => string, abMarkup: (id: string) => string, bind: (root: any) => void, fire: (id: string) => void}, openActions?: (id: string) => void, vfx?: {markup: (id: string) => string, bind: (root: any) => void, bindParams: (root: any, rerender: () => void) => void}, seekToTime?: (seconds: number) => boolean, download: (data: string, name: string, type?: string) => void, setTimeScale: (v: number) => void}} deps
  */
-export function createMoveEditor({getWorld, $, tuning, startScenario, abortScenario, getScenario, getLastResult, ficha, openActions, vfx, seekToTime, download, setTimeScale}) {
+export function createMoveEditor({getWorld, $, tuning, startScenario, abortScenario, getScenario, getLastResult, save, ficha, openActions, vfx, seekToTime, download, setTimeScale}) {
   const root = $('move-editor-body');
   const state = {moveId: (EDITABLE_MOVES.find(m => m.id === 'sand-wave') ?? EDITABLE_MOVES[0]).id, distance: DEFAULT_STAGE.distance, target: DEFAULT_STAGE.target, hold: 0, loop: false, speed: 1, running: false, pinned: /** @type {Record<string, number> | null} */ (null)};
   const move = () => /** @type {any} */ (editableMove(state.moveId));
@@ -231,6 +233,37 @@ export function createMoveEditor({getWorld, $, tuning, startScenario, abortScena
     return sec;
   }
 
+  /** Diálogo de confirmação com as diferenças (<dialog> nativo). Resolve true se o usuário confirmar. */
+  function confirmDialog(/** @type {{title: string, file: string, diffs: {label: string, from: string, to: string}[]}} */ o) {
+    return new Promise(resolve => {
+      const dlg = /** @type {HTMLDialogElement} */ (el('dialog', {id: 'editor-confirm', class: 'editor-dialog', 'aria-labelledby': 'editor-confirm-title'}));
+      const shown = o.diffs.slice(0, 60);
+      const table = el('table', {class: 'editor-table'}, [el('tr', {}, [el('th', {text: 'O que muda'}), el('th', {text: 'Antes (no disco)'}), el('th', {text: 'Depois'})]), ...shown.map(d => el('tr', {}, [el('td', {text: d.label}), el('td', {text: d.from}), el('td', {class: 'good', text: d.to})]))]);
+      const ok = el('button', {type: 'button', id: 'editor-confirm-ok', class: 'primary', text: 'Gravar no arquivo'}), no = el('button', {type: 'button', id: 'editor-confirm-cancel', text: 'Cancelar'});
+      ok.onclick = () => {dlg.close('ok');};no.onclick = () => {dlg.close('cancel');};
+      dlg.append(el('h3', {id: 'editor-confirm-title', text: o.title}), el('p', {class: 'hint'}, ['Arquivo: ', el('code', {text: o.file}), ` — ${o.diffs.length} alteração(ões)${o.diffs.length > shown.length ? ` (mostrando ${shown.length})` : ''}. O Git guarda a versão anterior.`]), el('div', {class: 'editor-dialog-body'}, [table]), el('div', {class: 'editor-actions'}, [no, ok]));
+      dlg.addEventListener('close', () => {dlg.remove();resolve(dlg.returnValue === 'ok');});
+      dlg.addEventListener('cancel', () => {dlg.returnValue = 'cancel';});
+      document.body.append(dlg);dlg.showModal();no.focus();
+    });
+  }
+  /** Fluxo de gravar: lê o arquivo do disco, calcula as diferenças, pede confirmação e só então grava (com o hash lido). */
+  async function saveFlow(/** @type {'moves' | 'approved'} */ kind, /** @type {string} */ id, /** @type {(diskDoc: any) => any} */ makeDoc, /** @type {string} */ fileLabel) {
+    if (!save?.available) {status('Para gravar direto no disco, abra o laboratório pelo servidor local (INICIAR_SERVIDOR.bat). Aqui você ainda pode copiar o JSON.');return;}
+    status('Lendo o arquivo do disco…');
+    const disk = await save.read(kind, id).catch((/** @type {Error} */ e) => ({status: 0, json: {error: e.message}}));
+    if (disk.status !== 200) {status('Não foi possível ler ' + fileLabel + ': ' + (disk.json?.error ?? disk.status));return;}
+    const next = makeDoc(disk.json.doc), diffs = describeDiffs(disk.json.doc, next);
+    if (!diffs.length) {status('Nada para gravar: ' + fileLabel + ' já está igual aos valores atuais.');return;}
+    const yes = await confirmDialog({title: 'Gravar no arquivo?', file: fileLabel, diffs});
+    if (!yes) {status('Gravação cancelada. Nada foi alterado.');return;}
+    save.rememberOpen?.(state.moveId);
+    const res = await save.write(kind, id, next, disk.json.hash).catch((/** @type {Error} */ e) => ({status: 0, json: {error: e.message}}));
+    if (res.status === 200) status(res.json.changed ? 'Gravado em ' + fileLabel + ' (' + diffs.length + ' alteração(ões)). O jogo recarrega para ler o arquivo novo.' : fileLabel + ' já estava igual.');
+    else if (res.status === 409) status('O arquivo mudou no disco depois que o editor o leu: nada foi gravado. Tente de novo (o editor lê o arquivo outra vez).');
+    else status('Não gravou: ' + (res.json?.error ?? res.status));
+  }
+
   function exportSection() {
     const m = move();
     const sec = el('section', {class: 'editor-sec'}, [el('h4', {text: 'Salvar'})]);
@@ -246,7 +279,13 @@ export function createMoveEditor({getWorld, $, tuning, startScenario, abortScena
       const doc = structuredClone(/** @type {any} */ (ATELIER_APPROVED)[key]);doc.visualParameters = {...ATELIER_GAME_PARAMS[key]};
       copy(JSON.stringify(doc, null, 2) + '\n', `${key}.json`);
     };
-    sec.append(el('div', {class: 'editor-actions'}, [b1, b2]), el('p', {class: 'hint', text: 'Cole no arquivo do Move (src/sim/moves/…move.json) e em sand-stone-lab/approved/. Gravação direta no disco vem numa próxima fase.'}));
+    const w1 = el('button', {type: 'button', id: 'editor-save-move', class: 'primary', text: '💾 Gravar move.json no disco'});
+    w1.onclick = () => saveFlow('moves', m.id, disk => buildMoveDoc(disk, /** @type {any} */ (C.world)[m.group] ?? {}), `src/sim/moves/${m.id}.move.json`);
+    const w2 = el('button', {type: 'button', id: 'editor-save-visual', class: 'primary', text: '💾 Gravar visual aprovado no disco'});
+    w2.onclick = () => {const key = m.visual?.atelier;if (!key) {status('Este Move não tem visual do atelier vinculado.');return;}saveFlow('approved', key, disk => buildVisualDoc(disk, ATELIER_GAME_PARAMS[key]), `prototypes/sand-stone-lab/approved/${key}.json`);};
+    for (const b of [w1, w2]) if (!save?.available) {b.setAttribute('aria-disabled', 'true');b.title = 'Disponível só pelo servidor local (INICIAR_SERVIDOR.bat). Fora dele, use «Copiar».';}
+    if (!m.visual?.atelier) w2.hidden = true;
+    sec.append(el('div', {class: 'editor-actions'}, [w1, w2]), el('p', {class: 'hint', text: save?.available ? 'Servidor local ligado: gravar mostra as diferenças e pede confirmação; o jogo recarrega sozinho depois.' : 'Sem o servidor local não dá para gravar no disco: abra o laboratório por INICIAR_SERVIDOR.bat (veja docs/GRAVAR_NO_EDITOR.md). Enquanto isso, copie o JSON.'}), el('div', {class: 'editor-actions'}, [b1, b2]), el('p', {class: 'hint', text: 'Cole no arquivo do Move (src/sim/moves/…move.json) e em sand-stone-lab/approved/. Gravação direta no disco vem numa próxima fase.'}));
     return sec;
   }
 
