@@ -23,7 +23,22 @@
 | Alta | 1J | Inventário das duas versões do Motion Lens, cópia preservada das duas e exclusivas aprovadas incorporadas antes do código novo, com teste de presença. |
 | Desempenho | todas | `lote.py`: cache por hash (arquivo + esqueleto + decodificador + config), retomada depois de interrupção, falha registrada por arquivo e escrita atômica. |
 
-**Ordem de execução recomendada pelo parecer:** 1A–1B primeiro (Tasks 1–2). Depois, nova revisão de 1C–1I com os resultados de 1A–1B na mão. 1J só depois do Portão E.
+**Ordem de execução recomendada pelo parecer:** 1A–1B primeiro (Tasks 1–2) — **feito** (commits `3b32fec`..`0813a8e`). Depois, nova revisão de 1C–1I com os resultados de 1A–1B na mão — **feita na Revisão 3, abaixo**. 1J só depois do Portão E.
+
+## Revisão 3 do plano (25/10/2026), com os resultados de 1A–1B
+
+Fatos novos medidos em 1A–1B e o que mudam em 1C–1I:
+
+| Fato medido | Consequência | Tarefas |
+|---|---|---|
+| **44% dos clipes (18.576) têm escala animada.** Numa amostra de 915 deles, **29% escondem partes com escala < 0,1** (cauda, asas, dedos, pernas); o resto é squash/stretch ou crescimento (desvio máximo mediano 0,4; p90 0,95). | Osso escondido colapsa os filhos sobre o pai: cria velocidade falsa, efetor falso, contato falso e poses-chave falsas. Precisa de uma máscara de visibilidade por osso e quadro, usada por **todas** as medidas. A escala que não esconde vira medida própria (L08, squash/stretch), não ruído. | 3, 4, 5, 6, 7 |
+| As **19.063 faixas sem osso** são nós de expressão (`exp_ops_root`, `exp_op_*`). | Ficam fora da ontologia de ossos. A expressão facial não é medida nesta fase, e isso fica declarado. | 3 |
+| A interpolação entre chaves esparsas é **linear/slerp** no banco e **Bézier** nos `.blend` do extrator (até ~0,6% de H de diferença). | Toda folha visual ou conferência no Blender precisa forçar LINEAR numa cena derivada, como em `paridade_fk.py`, para mostrar o que foi medido. O extrator não muda sem a sua decisão. | 5, 6, 7 |
+| O arquivo **guarda chaves esparsas** em 36% das faixas (mediana de 34% dos quadros). | A Task 7 pode comparar as poses-chave reconstruídas com os quadros com chave do próprio arquivo: é uma referência real, não só uma tolerância. | 7 |
+| O **cache do lote** usa hash de entrada + configuração, mas não a versão do código das medidas. | Mudar uma medida sem mudar a configuração devolveria linhas antigas do cache. Entra `METRICAS_VERSAO` no hash. | 3 (Step 0) |
+| Nomes reais de osso no corpus: `index/middle/ring/thumb/pinky` (dedos), `hair/mane` (cabelo), `tail_c`, `feeler_a`, `wing_a`. O efetor antigo do `attack01` mais comum era **cauda (105)**. | Ontologia com esses tokens e relatório de cobertura (quantos ossos animados caem em `outro`). A cauda vira o teste central da regra executor × acompanhante. | 3 |
+| A paridade agora tem ferramenta e números de base. | Qualquer mudança em `za_anim.py` roda de novo a paridade em 2 rigs (Golisopod e Bulbasaur) antes do commit. | 3 e outras que tocarem `za_anim` |
+| O lote completo leva ~11 min; a rodada só de cache, ~1 min. | Cada tarefa que muda medidas regenera o banco em segundo plano e confere `0 falhas` + determinismo (duas rodadas, banco idêntico byte a byte). | 3, 4, 5, 7 |
 
 ## Fatos de partida (verificados em 25/10/2026, banco `dumper test/za-referencias/clipes.jsonl`)
 
@@ -44,6 +59,7 @@
 - "Se o grupo comparável for insuficiente, retornar SEM_BASE_COMPARÁVEL e mostrar as razões." O limiar fica em `config.N_ESPECIES_MIN = 8`, ajustável no relatório.
 - "Exibir sempre n de clipes, n de espécies e n de rigs distintos."
 - Estados de evidência (fixos, em maiúsculas): `MEDIDO`, `CANDIDATO`, `REVISADO`, `HIPOTESE`, `INCONCLUSIVO`, `SEM_INFORMACAO`, `CONTATO_INFERIDO`, `CONTATO_CONFIRMADO`, `APROXIMACAO`, `NAO_OBSERVAVEL`, `SEM_BASE_COMPARAVEL`, `NAO_AVALIADA`.
+- Toda mudança no código das medidas sobe `config.METRICAS_VERSAO` (entra no hash do cache). Toda mudança em `za_anim.py` roda a paridade de regressão em 2 rigs (Golisopod `pm0867_00_00`, Bulbasaur `pm0001_00_00`) antes do commit.
 - Python: `PY="/c/Program Files/Blender Foundation/Blender 5.2/5.2/python/bin/python.exe"`. Testes: `"$PY" -m unittest discover -s tools/za-referencias/tests -v`.
 - Trabalho na branch `feat/za-referencias-fase1`, num worktree interno `.worktrees/za-referencias`, a partir de `origin/main` (regra do AGENTS.md). Commits locais por tarefa; push só com autorização.
 - Todo entregável ganha link no `ABRIR_ARENAMON.html` e menção em `docs/za-referencias/README.md` (AGENTS.md, regra 2). Resposta final em português.
@@ -204,6 +220,14 @@ def test_interpolacao_esparsa_slerp(self):           # chaves nos quadros 0 e 10
 
 ### Task 3: Ontologia funcional e papéis na ação (1C)
 
+**Revisão 3 (dados de 1A–1B):**
+- **Step 0, versão das medidas no cache.** `config.METRICAS_VERSAO = "metricas-2"` entra em `hash_config()`; toda tarefa que muda medidas sobe esse número. Teste: `test_mudar_versao_das_metricas_invalida_cache` (`hash_config` muda quando `METRICAS_VERSAO` muda).
+- **Máscara de visibilidade** (nova, em `za_anim.py`): `ocultos(clipe, esq, limiar=0.1) -> np.ndarray[bool] [F, B]`. Um osso está oculto num quadro quando a escala dele **ou de algum ancestral** tem um eixo < 0,1. `papeis`, `cinematica`, `contato` e `poses_chave` ignoram ossos ocultos nesses quadros. Testes: `test_osso_com_escala_zero_fica_oculto`, `test_filho_de_osso_oculto_fica_oculto`, `test_cauda_escondida_nao_vira_executor` (cauda com escala 0,01 que "salta" ao reaparecer não pode virar executor).
+- **Tokens do corpus:** `index|middle|ring|thumb|pinky` → herdam o braço; `hair|mane|fur` → região nova `cabelo_pelagem` (sempre acompanhante, salvo revisão humana); `wing` com sufixo de letra (`wing_a`) → asa.
+- `assinatura_rig(esq) -> str` (hash de nomes ordenados + pais, sem a pose de repouso) mora aqui e é reutilizada pelas Tasks 8 e 9.
+- **Cobertura da ontologia no Step 5:** no corpus inteiro, a fração de ossos animados em `outro`, por rig, e os 30 tokens mais comuns entre eles. Meta: cobertura em `outro` ≤ 5% dos ossos animados; acima disso, adicionar tokens antes de seguir (decisão registrada no ledger).
+- Paridade de regressão (2 rigs) depois de mexer em `za_anim.py`.
+
 **Correção da revisão (crítica):** saber qual osso mais se move não é entender a ação. A tarefa deixa de escolher "um efetor permitido" e passa a atribuir **papéis**: quem executa o golpe (um ou mais), quem inicia o movimento e quem só acompanha. Rosto e apêndices **não** ficam proibidos: mandíbula e língua podem executar uma mordida. O que decide é a regra por ação + anatomia, e um humano pode corrigir. Também não basta provar que a pálpebra saiu; os testes precisam mostrar que o golpe certo foi identificado.
 
 **Files:**
@@ -211,7 +235,7 @@ def test_interpolacao_esparsa_slerp(self):           # chaves nos quadros 0 e 10
 
 **Interfaces:**
 - Produces:
-  - `REGIOES = ("nucleo","pescoco","cabeca","mandibula","lingua","olho_palpebra","braco_E","braco_D","perna_E","perna_D","cauda","asa_E","asa_D","apendice_sensorial","raiz","outro")`. A antiga `face` foi separada: `mandibula`/`lingua` são funcionais, `olho_palpebra` é expressivo.
+  - `REGIOES = ("nucleo","pescoco","cabeca","mandibula","lingua","olho_palpebra","braco_E","braco_D","perna_E","perna_D","cauda","asa_E","asa_D","apendice_sensorial","cabelo_pelagem","raiz","outro")`. A antiga `face` foi separada: `mandibula`/`lingua` são funcionais, `olho_palpebra` é expressivo.
   - `regioes(esq) -> list[str]` (uma por osso): token do nome mais herança do pai. Ex.: `left_finger_*` herda `braco_E`; `*jaw*|*mouth*` → `mandibula`; `*tongue*` → `lingua`; `*eye*|*eyelid*|*brow*` → `olho_palpebra`; `*feeler*|*ear*|*antenna*|*whisker*` → `apendice_sensorial`.
   - `anatomia(esq) -> {"pernas","bracos","asas": int, "cauda","mandibula","lingua","apendices": bool, "classe": "bipede"|"quadrupede"|"alado"|"serpentino"|"sem_membros"|"outro"}` (pelo esqueleto, não pela PokeAPI).
   - `papeis(clipe, esq, regs, categoria, anat) -> {"executores": [{"regiao","osso_ponta","evidencia":{...},"status"}], "iniciadores": [{"regiao","quadro_inicio"}], "acompanhantes": [{"regiao","motivo"}], "maior_percurso": {"osso","regiao"}, "status": "CANDIDATO"|"INCONCLUSIVO", "regra_aplicada": str}`.
@@ -272,12 +296,17 @@ def test_anatomia_quadrupede(self):
 
 ### Task 4: Cinemática por região, eventos e follow-through (1D + L02/L03/L05)
 
+**Revisão 3 (dados de 1A–1B):**
+- Energia, eventos, ordem de ativação e follow-through **excluem ossos ocultos** (`za_anim.ocultos`) nos quadros em que estão ocultos. Teste: `test_reaparecimento_nao_cria_pico` (osso que volta de escala 0 para 1 não gera evento).
+- **L08, squash/stretch (entra agora):** `escala_regiao(clipe, esq, regs, ocultos) -> dict[regiao, {"amplitude": float, "quadro_pico": int, "relacao_com_evento": "antes"|"no"|"depois", "tipo": "squash_stretch"|"crescimento"|"oculto"}]`. Status `CANDIDATO`. A troca de visibilidade vira evento próprio (`troca_de_visibilidade`, com quadros e ossos) e nunca conta como movimento. Testes: `test_squash_antes_do_pico_e_detectado`, `test_escala_zero_vira_troca_de_visibilidade`.
+- `METRICAS_VERSAO` sobe; banco regerado com conferência de 0 falhas e determinismo.
+
 **Files:**
 - Create: `tools/za-referencias/cinematica.py`, `tools/za-referencias/tests/test_cinematica.py`
 - Modify: `tools/za-referencias/metricas.py`, `tools/za-referencias/gerar_banco.py`
 
 **Interfaces:**
-- Consumes: `ontologia.regioes`, `ontologia.papeis`.
+- Consumes: `ontologia.regioes`, `ontologia.papeis`, `za_anim.ocultos`.
 - Produces:
   - `curvas_regiao(clipe, esq, regs, raiz) -> dict[regiao, {"vel": np.ndarray, "acel", "jerk"}]` (H/s, H/s², H/s³).
   - `eventos(vel, fps, proeminencia=0.25) -> list[{"inicio","pico","fim"}]` (vários picos).
@@ -311,6 +340,10 @@ def test_reprocessamento_deterministico(self):
 
 ### Task 5: Corpo, apoio e locomoção (1E + L04/L06)
 
+**Revisão 3 (dados de 1A–1B):**
+- Pé ou perna oculto num quadro fica `SEM_INFORMACAO` nesse quadro, nunca `BALANCO` nem contato. Teste: `test_perna_oculta_sem_informacao`.
+- As conferências visuais no Blender (Step 5) usam uma cena derivada com **chaves LINEAR** (mesmo procedimento de `paridade_fk.py`), para mostrar o mesmo movimento que foi medido.
+
 **Correção da revisão (crítica):** o Z-A não traz a geometria do chão, só ossos e o deslocamento da raiz. Por isso o contato tem **três níveis**, e o escorregão só é afirmado quando o referencial é confiável:
 - `CONTATO_INFERIDO`: o pé está perto de um plano de chão **estimado** e quase parado nesse referencial. É sempre inferência; o Z-A sozinho nunca dá `CONTATO_CONFIRMADO`.
 - `CONTATO_CONFIRMADO`: só por revisão visual (Task 6 / Task 9) ou por um chão fornecido por outra fonte (ex.: cena do Arenamon).
@@ -320,7 +353,7 @@ def test_reprocessamento_deterministico(self):
 - Create: `tools/za-referencias/contato.py`, `tools/za-referencias/tests/test_contato.py`
 
 **Interfaces:**
-- Consumes: `ontologia.regioes`, `ontologia.anatomia`.
+- Consumes: `ontologia.regioes`, `ontologia.anatomia`, `za_anim.ocultos`.
 - Produces:
   - `plano_chao(clipe, esq, regs) -> {"y": float|None, "fonte": "repouso"|"minimos_do_clipe", "estavel": bool, "dispersao_H": float}`. Junta o Y mínimo das pontas de perna em repouso com o percentil 5 da altura das pontas ao longo do clipe. Fica `estavel = False` quando os mínimos por passo variam mais de 2% de H.
   - `apoio_por_pe(clipe, esq, regs, chao, tol_altura=0.02, tol_vel=0.15) -> {"por_pe": {osso: list["CONTATO_INFERIDO"|"BALANCO"|"SEM_INFORMACAO"]}, "status", "motivos": [...]}`.
@@ -362,6 +395,10 @@ def test_pico_de_velocidade_nao_cria_contato(self):   # golpe no ar: a mão não
 
 ### Task 6: Linguagem visual com folhas multivista (1F + L07)
 
+**Revisão 3 (dados de 1A–1B):**
+- `folhas_visuais.py` monta a própria cena derivada: importa o modelo com o addon, **força LINEAR nas chaves** e gira a armature para Z-up só nessa cena. Não usa os `.blend` do extrator (que têm Bézier) e não muda `montar_blend.py`.
+- Regiões ocultas por escala num quadro saem `OCULTO_POR_ESCALA` no `indice.json`, separado de `NAO_OBSERVAVEL` (escondido pela câmera).
+
 **Files:**
 - Create: `tools/za-referencias/folhas_visuais.py`, `tools/za-referencias/tests/test_folhas.py`
 
@@ -390,13 +427,19 @@ def test_vistas_com_menos_de_35_graus_nao_contam_como_duas(self):
 
 ### Task 7: Poses-chave controladas por erro de posição e de orientação (1G + L10)
 
+**Revisão 3 (dados de 1A–1B):**
+- **Referência real:** além das tolerâncias, compara os quadros escolhidos com os **quadros com chave do próprio arquivo** (união das faixas esparsas por região). Novos campos: `chaves_do_arquivo_n`, `concordancia_com_arquivo` (fração das poses-chave a ±1 quadro de uma chave do arquivo) e `cobertura_do_arquivo` (fração das chaves do arquivo a ±1 quadro de uma pose-chave). É só descrição: o arquivo comprimido não é o blocking do animador. Teste: `test_concordancia_com_chaves_do_arquivo` (clipe sintético cujas chaves esparsas são 0/20/40 → concordância 1,0 quando o simplificador escolhe 0/20/40).
+- Ossos ocultos ficam fora do erro de reconstrução nos quadros ocultos; a troca de visibilidade vira chave obrigatória. Teste: `test_troca_de_visibilidade_e_chave_obrigatoria`.
+- A conferência visual do Step 5 usa a cena derivada com chaves LINEAR.
+
 **Correção da revisão (crítica):** medir só o erro de posição deixa passar um osso que gira no próprio eixo (mão que torce, cabeça que inclina) sem mudar de lugar. A simplificação passa a respeitar **dois** limites, posição e ângulo. Os extremos de rotação expressiva são chaves obrigatórias.
 
 **Files:**
 - Create: `tools/za-referencias/poses_chave.py`, `tools/za-referencias/tests/test_poses_chave.py`
+- Modify: `tools/za-referencias/za_anim.py` (`Clipe.quadros_chave: dict[osso, list[int]]` com os quadros das faixas esparsas; paridade de regressão depois)
 
 **Interfaces:**
-- Consumes: `za_anim.Esqueleto.fk_completa` (posições + rotação no mundo), `cinematica.eventos`, `ontologia.regioes`.
+- Consumes: `za_anim.Esqueleto.fk_completa` (posições + rotação no mundo), `za_anim.ocultos`, `Clipe.chaves_esparsas`/quadros das faixas esparsas, `cinematica.eventos`, `ontologia.regioes`.
 - Produces:
   - `simplificar(clipe, esq, tol_H=0.01, tol_graus=3.0, obrigatorios=(), regs=None) -> {"quadros": [int], "erro_max_H": float, "erro_max_graus": float, "erro_por_osso": {nome: {"pos_H": float, "graus": float}}, "obrigatorios_por_motivo": {"evento": [...], "extremo_rotacao": [...]}, "status": "APROXIMACAO"}`.
   - `reconstruir(clipe, esq, quadros) -> (posicoes [F,B,3], rot_mundo [F,B,3,3])`.
@@ -436,17 +479,21 @@ def test_nunca_afirma_chave_autoral(self):
 
 ### Task 8: Normas por subgrupo e aprovações por aspecto (1H)
 
+**Revisão 3 (dados de 1A–1B):**
+- `n_rigs` vira dois números: `n_rigs_estruturais` (`ontologia.assinatura_rig`) e `n_poses_repouso` (hash da pose de repouso). O relatório mostra os dois.
+- Os grupos ganham as colunas "com escala animada (%)" e "com partes ocultas (%)", para não comparar um clipe com squash/stretch a uma norma de clipes rígidos sem saber.
+
 **Files:**
 - Create: `tools/za-referencias/normas.py`, `tools/za-referencias/aprovacoes_za.json` (começa `{"aprovacoes": []}`), `tools/za-referencias/tests/test_normas.py`
 - Modify: `tools/za-referencias/gerar_relatorio.py` (usa `normas.py`; a tabela mostra n de clipes, espécies e rigs)
 
 **Interfaces:**
-- Consumes: `scripts/blender-vision/perception_refs.ASPECTS` (mesma lista de aspectos).
+- Consumes: `scripts/blender-vision/perception_refs.ASPECTS` (mesma lista de aspectos), `ontologia.assinatura_rig`.
 - Produces:
-  - `grupo(clipes, categoria, fase, classe_anatomica=None, conjunto=0) -> {"status": "MEDIDO"|"SEM_BASE_COMPARAVEL", "motivos": [...], "n_clipes", "n_especies", "n_rigs", "medidas": {m: {"p10","p25","mediana","p75","p90","mad","iqr","faltantes_frac"}}, "aprovacao": {"aspectos_aprovados": [...], "art_approved_by": None}}`.
+  - `grupo(clipes, categoria, fase, classe_anatomica=None, conjunto=0) -> {"status": "MEDIDO"|"SEM_BASE_COMPARAVEL", "motivos": [...], "n_clipes", "n_especies", "n_rigs_estruturais", "n_poses_repouso", "medidas": {m: {"p10","p25","mediana","p75","p90","mad","iqr","faltantes_frac"}}, "aprovacao": {"aspectos_aprovados": [...], "art_approved_by": None}}`.
   - `aprovar(aspecto, grupo_id, por, escopo) -> dict`: sem `por` levanta `RefError`.
 
-  `n_rigs` conta hashes distintos de pose de repouso (`rest_pose_hash` = sha256 de `loc_repouso`/`rot_repouso` arredondados a 1e-5).
+  `n_poses_repouso` conta hashes distintos de pose de repouso (sha256 de `loc_repouso`/`rot_repouso` arredondados a 1e-5); `n_rigs_estruturais` conta `ontologia.assinatura_rig` distintas.
 
 - [ ] **Step 1: Escrever os testes**
 
@@ -469,6 +516,10 @@ def test_nada_aprovado_por_padrao(self):
 
 ### Task 9: Avaliação cega A/B, sem vazamento, com concordância entre revisores (1I)
 
+**Revisão 3 (dados de 1A–1B):**
+- `familia_de_rig` = `ontologia.assinatura_rig` (Task 3), sem uma segunda implementação.
+- O lote de 40 clipes inclui pelo menos 5 com partes ocultas por escala e 5 com squash/stretch, e a página de rotulagem pergunta também "alguma parte some ou aparece?". É assim que se avalia a máscara de visibilidade contra olhos humanos.
+
 **Correções da revisão (alta):**
 1. Separar só por cadeia evolutiva não basta. Rigs compartilhados e animações quase iguais podem cair nos dois lados. O agrupamento passa a usar **três chaves unidas**: cadeia evolutiva, família de rig e origem da animação.
 2. A avaliação é um **A/B completo nas mesmas animações**: Blender Vision atual (sem corpus) × Blender Vision com corpus. Mede precisão, falsos positivos, inconclusivos e concordância entre revisores.
@@ -479,7 +530,7 @@ def test_nada_aprovado_por_padrao(self):
 
 **Interfaces:**
 - Produces:
-  - `familia_de_rig(esq) -> str`: hash da assinatura estrutural (nomes de osso ordenados + pais), **sem** a pose de repouso. Rigs com o mesmo esqueleto e proporções diferentes caem na mesma família.
+  - `familia_de_rig(esq) -> str` = `ontologia.assinatura_rig(esq)` (nomes de osso ordenados + pais, **sem** a pose de repouso). Rigs com o mesmo esqueleto e proporções diferentes caem na mesma família.
   - `origem_de_animacao(clipes) -> dict[id_clipe, id_grupo]`: o mesmo `sha256` do `.tranm` é a mesma origem. Clipes da mesma categoria/fase com correlação ≥ 0,98 da curva de energia reamostrada **e** da curva do executor também são considerados a mesma origem (quase duplicata).
   - `dividir(clipes, frac_teste=0.3, semente=1025) -> {"dev": [...], "teste": [...], "grupos": int, "relatorio_vazamento": {...}}`: union-find sobre as três chaves; cada componente vai inteiro para um lado.
   - `placar(previsoes, rotulos) -> {problema: {"precisao","revocacao","falsos_positivos","inconclusivos_corretos","inconclusivos_errados","n"}}`.
