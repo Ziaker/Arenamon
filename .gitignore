@@ -64,3 +64,7 @@ chars/vigor.zip
 
 # Dump do RomFS do Pokémon Legends: Z-A e extrações (5+ GB, só local)
 /dumper test/
+
+# Python: cache gerado ao rodar as ferramentas
+__pycache__/
+*.pyc
