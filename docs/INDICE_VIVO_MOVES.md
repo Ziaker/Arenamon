@@ -249,11 +249,7 @@ Testes executáveis: `node prototypes/combat-lab/test/ai-elemental.test.mjs` · 
 
 ## Documentos de `docs/` sem nenhuma citação (nem no portal, nem em outro documento)
 
-- `docs/ARENA_PAREDE_FISICA_IGUAL_VISUAL.md`
-- `docs/SALTO_FOOTSTOOL_IMPLEMENTACAO.md`
-- `docs/SMEAR_MEMBROS_TACKLE.md`
-- `docs/SQUASH_STRETCH_TACKLE.md`
-- `docs/superpowers/plans/2026-10-24-disparos-funil-sliders.md`
+(nenhum)
 
 ## Como usar
 
