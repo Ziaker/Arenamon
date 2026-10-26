@@ -130,6 +130,7 @@ ok('palco expandido (Fase 6): suporta distância até 40 m, botão até 5 s, est
   assert.ok(TARGET_STATES.length >= 7);
   assert.ok(STAGE_ARENAS.length >= 5);
   resetConfig(defaults());
+  C.world.seedBomb.maxSpeed = 40;
   const sb = runScenario(makeMoveScenario(editableMove('seed-bomb'), {distance: 20, hold: 0.4}));
   assert.ok(val2(sb, 'Entidades criadas').includes('projectile'), 'Seed Bomb alcança 20 m no palco');
   resetConfig(defaults());

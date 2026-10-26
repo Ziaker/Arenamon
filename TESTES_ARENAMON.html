@@ -616,6 +616,27 @@ PASS: dois blocos, cores, câmera, layout, file:// offline, sem erros.</pre>
         </div>
       </article>
 
+      <!-- SUÍTE 4e: PILOTOS DOCUMENTO 01 - SAND WAVE, BULLET PUNCH, WATER PULSE (25/10/2026) -->
+      <article class="suite-card" data-category="jogo">
+        <div class="suite-header">
+          <div>
+            <h2 class="suite-title">Pilotos Documento 01 — Sand Wave, Bullet Punch e Water Pulse</h2>
+            <div class="suite-meta">
+              <span class="tag success">✓ 3 Portões Aprovados</span>
+              <span class="tag primary">Portão SW · Portão BP · Portão WP</span>
+              <span class="tag">docs/DOCUMENTO_01_OVERHAUL_PILOTOS.md</span>
+            </div>
+          </div>
+        </div>
+        <p class="suite-desc">
+          Testes RED/GREEN específicos dos 3 pilotos do Documento 01: Sand Wave (colisão vertical 3D, altitude de plataforma e tolerância de piso), Bullet Punch (toggle de knockback próprio, anti-aéreo e interceptação em rota), e Water Pulse (desacoplamento de raio físico vs escala visual, knockback vertical launcher e patamares PL1–PL3).
+        </p>
+        <div class="cmd-box">
+          <code>node prototypes/combat-lab/test/sand-wave-vertical.test.mjs && node prototypes/combat-lab/test/bullet-punch-mechanics.test.mjs && node prototypes/combat-lab/test/water-pulse-mechanics.test.mjs</code>
+          <button class="copy-btn" onclick="copyCmd('node prototypes/combat-lab/test/sand-wave-vertical.test.mjs && node prototypes/combat-lab/test/bullet-punch-mechanics.test.mjs && node prototypes/combat-lab/test/water-pulse-mechanics.test.mjs', this)">Copiar Comando</button>
+        </div>
+      </article>
+
       <!-- SUÍTE 4c: MOVES ELEMENTAIS + AJUSTES DE COMBATE (23/10/2026) -->
       <article class="suite-card" data-category="jogo">
         <div class="suite-header">

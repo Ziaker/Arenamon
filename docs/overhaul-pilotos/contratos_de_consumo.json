@@ -1,0 +1,60 @@
+{
+  "sha_baseline": "0019e5275d710a3ba277e246d407841d1cade4c4",
+  "moves": {
+    "sand-wave": {
+      "id": "sand-wave",
+      "entry_file": "src/sim/moves/sand-wave.js",
+      "schema_file": "src/sim/moves/sand-wave.move.json",
+      "shared_consumers": [
+        "src/sim/sand.js",
+        "src/sim/world.js",
+        "src/sim/vision.js"
+      ],
+      "moment_of_capture": "disparo (ao término do cast de 0,25 s)",
+      "contracts": {
+        "groundOnly": "Valida apoio e impede ativação no ar ou cancela no cast se decolar",
+        "damage": "Dano fixo direto no primeiro contato (6 HP de fábrica)",
+        "blind": "Aplica status blind com duração de 4 s, renovável por novo golpe",
+        "push": "Aceleração contínua horizontal f.sandPush sobrepondo locomoção e esquiva",
+        "wallStagger": "Stagger ao prensar contra sólido se want > wallPressMinSpeed",
+        "verticalAltitude": "Verifica se altitudeOf(f) está dentro de [spawnY - waveBottomTolerance, spawnY + waveHeight]"
+      }
+    },
+    "bullet-punch": {
+      "id": "bullet-punch",
+      "entry_file": "src/sim/moves/bullet-punch.js",
+      "schema_file": "src/sim/moves/bullet-punch.move.json",
+      "shared_consumers": [
+        "src/sim/controller/ctrl-moves.js",
+        "src/sim/controller/ctrl-tackle.js",
+        "src/sim/combat.js"
+      ],
+      "moment_of_capture": "soltura com alvo elegível dentro de reach",
+      "contracts": {
+        "inheritedTackle": "Herda velocidade, colisão e recuperação do Tackle multiplicando duration e distance por k = strikeReach / nominalDistance",
+        "knockbackChoice": "knockbackOwn=0 usa fórmula do Tackle × impactMult; knockbackOwn=1 usa knockbackH e knockbackV próprios",
+        "physicalVanish": "f.absent = true durante vanish segundos; colisão suspensa e corpo invisível",
+        "pathInterception": "Lutador elegível a menos de hitRadius da trajetória interrompe a travessia e recebe o golpe na hora",
+        "noTargetRefund": "Soltar sem alvo no alcance não gasta stamina nem cooldown"
+      }
+    },
+    "water-pulse": {
+      "id": "water-pulse",
+      "entry_file": "src/sim/moves/water-pulse.js",
+      "schema_file": "src/sim/moves/water-pulse.move.json",
+      "shared_consumers": [
+        "src/sim/charge.js",
+        "src/sim/world.js",
+        "src/sim/world/world-hit.js"
+      ],
+      "moment_of_capture": "ativação da carga (pressionamento inicial)",
+      "contracts": {
+        "chargeDebit": "Custo de stamina cobrado e cooldown iniciado no instante do aperto (cooldownOnStart)",
+        "plThresholds": "PL1 abaixo de 50%, PL2 entre 50% e 100%, PL3 em 100% de maxCharge",
+        "physicalRadiusVsVisualScale": "Colisão física usa estritamente radius (0,38 m); visualScale só afeta renderização",
+        "spawnClearance": "Se spawnPoint estiver dentro de sólido, falha com reembolso (WP-P05)",
+        "counterStagger": "Aplica counterStagger ao vencer disputa ofensiva de projétil"
+      }
+    }
+  }
+}

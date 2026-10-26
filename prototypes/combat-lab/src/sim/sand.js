@@ -13,6 +13,7 @@ import {applyHit} from './world/world-hit.js';
 import {applyStatus} from './status.js';
 import {solidsOf, insideSolid, segmentClear} from './vision.js';
 import {dot} from './math.js';
+import {altitudeOf} from './altitude.js';
 
 const SQ2 = Math.SQRT2;
 /** @type {WeakMap<object, {at: number, sig: string, field: any}>} */
@@ -75,6 +76,10 @@ export function stepSand(/** @type {any} */ game, /** @type {any} */ e, /** @typ
   e.targets ??= {};e.pushed ??= [];
   for (const f of game.fighters) {
     if (f.id === e.owner || f.hp <= 0 || f.absent || f.flight || (f.vaultHeight ?? 0) > 1e-8) continue;
+    const targetAlt = altitudeOf(f);
+    const botTol = e.waveBottomTolerance ?? 0.2;
+    const waveBottom = e.y ?? 0, waveTop = waveBottom + (e.height ?? .35);
+    if (targetAlt < waveBottom - botTol || targetAlt > waveTop + 1e-6) continue;
     const st = e.targets[f.id];
     const inside = inRect(e, f.position);
     if (!inside) {if (st) st.pinned = false;continue;}

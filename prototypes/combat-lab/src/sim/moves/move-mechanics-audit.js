@@ -72,11 +72,11 @@ export const TECHNICAL_CONSTANTS = Object.freeze([
   },
   {
     id: 'GEOMETRIC_COLLISION_MARGINS',
-    values: [0.01, 0.02, 0.05, 0.06, 0.9, 0.95, 0.98],
+    values: [0.01, 0.02, 0.05, 0.06, 0.2, 0.9, 0.95, 0.98],
     unit: 'm',
     scope: 'bullet-punch, quick-attack, sand-wave, emerging-stone',
     file: 'src/sim/moves/bullet-punch.js, src/sim/moves/quick-attack.js, src/sim/sand.js, src/sim/stone.js',
-    reason: 'Margens geométricas sub-métricas de segurança de colisão AABB (1 cm–6 cm), piso mínimo de passo de raycast (5 cm) e folga de separação (90%–98%).',
+    reason: 'Margens geométricas sub-métricas de segurança de colisão AABB (1 cm–20 cm), piso mínimo de passo de raycast (5 cm) e folga de separação (90%–98%).',
   },
 ]);
 
