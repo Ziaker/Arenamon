@@ -95,6 +95,14 @@ class TestPrevisaoLoop(unittest.TestCase):
         self.assertEqual(p["antecipacao"], "nao")
 
 
+class TestPrevisaoPoseParada(unittest.TestCase):
+    def test_pose_parada_vira_inconclusivo_na_previsao(self):
+        import gerar_lote
+        p = gerar_lote.previsao({"id": "a", "papeis_status": "NAO_SE_APLICA", "executores": [], "status": "MEDIDO",
+                                 "antecipacao": False, "antecipacao_status": "NAO_SE_APLICA"})
+        self.assertEqual(p["executores"], "INCONCLUSIVO")
+
+
 class TestPrevisaoApoio(unittest.TestCase):
     def test_previsao_leva_apoio_impulso(self):
         import gerar_lote

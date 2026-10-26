@@ -428,3 +428,21 @@ def soco_com_apoio(graus_perna=25.0):
     esq = humanoide()
     n = 60
     return esq, clipe(esq, n, {"right_hand": frente(n, 30, 0.6)}, rot={"left_leg": giro_x(n, 26, graus_perna, largura=5.0)})
+
+
+def pose_parada(amp=0.02, raiz=0.0, n=60, periodo=60, fps=60):
+    """Loop de pose: braço direito só oscila (amp m), pés parados; raiz pode subir/descer `raiz` m."""
+    esq = humanoide()
+    f = _np.arange(n)
+    braco = _np.zeros((n, 3))
+    braco[:, 1] = amp * _np.sin(2 * _np.pi * f / periodo)
+    mover = {"right_hand": braco}
+    if raiz:
+        o = _np.zeros((n, 3))
+        o[:, 2] = raiz * _np.sin(2 * _np.pi * f / periodo)
+        mover["origin"] = o
+        for pe in ("left_foot", "right_foot"):   # pés acompanham a raiz: andam junto no mundo
+            mover[pe] = _np.zeros((n, 3))
+    c = clipe(esq, n, mover, fps=fps)
+    c.eh_loop = True
+    return esq, c

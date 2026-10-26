@@ -132,6 +132,40 @@ class TestApoioImpulso(unittest.TestCase):
         self.assertEqual(metricas.medir(c, esq, categoria="attack")["apoio_impulso"], ["perna_E"])
 
 
+class TestPoseParada(unittest.TestCase):
+    def _p(self, esq, c, cat="charge"):
+        regs = ontologia.regioes(esq)
+        return ontologia.papeis(c, esq, regs, cat, ontologia.anatomia(esq, regs))
+
+    def test_loop_com_raiz_e_pes_parados_nao_tem_executor(self):
+        esq, c = S.pose_parada()
+        r = self._p(esq, c)
+        self.assertEqual(r["executores"], [])
+        self.assertEqual(r["status"], "NAO_SE_APLICA")
+        self.assertEqual(r["iniciadores"], [])
+        self.assertEqual(sorted(a["regiao"] for a in r["apoio_impulso"]), ["perna_D", "perna_E"])
+        self.assertIn("pose parada", r["motivo"])
+
+    def test_mesmo_movimento_fora_de_loop_segue_regra_normal(self):
+        esq, c = S.pose_parada()
+        c.eh_loop = False
+        self.assertNotEqual(self._p(esq, c)["status"], "NAO_SE_APLICA")
+
+    def test_andar_na_esteira_nao_e_pose_parada(self):
+        esq, c = S.andar(esteira=True)
+        c.eh_loop = True
+        r = self._p(esq, c, "walk")
+        self.assertEqual(sorted(e["regiao"] for e in r["executores"]), ["perna_D", "perna_E"])
+
+    def test_loop_com_raiz_se_deslocando_nao_e_pose_parada(self):
+        esq, c = S.pose_parada(raiz=0.4)
+        self.assertNotEqual(self._p(esq, c)["status"], "NAO_SE_APLICA")
+
+    def test_membro_balancando_forte_nao_e_pose_parada(self):
+        esq, c = S.pose_parada(amp=0.5, periodo=20)
+        self.assertNotEqual(self._p(esq, c)["status"], "NAO_SE_APLICA")
+
+
 class TestAntecipacaoEmLoop(unittest.TestCase):
     def test_loop_antecipacao_nao_se_aplica(self):
         import metricas

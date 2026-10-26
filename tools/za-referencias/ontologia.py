@@ -194,11 +194,43 @@ def _flexao_regiao(clipe, esq, regs, reg, a, b):
     return maior
 
 
+def _pose_parada(clipe, esq, regs, vels, ocultos, R):
+    """Loop de pose (carga, espera): raiz quase imóvel, pontas dos pés paradas no mundo e membros só oscilando.
+    Devolve as medidas quando a regra se aplica; None caso contrário."""
+    import contato
+    import metricas
+    P = R.get("pose_parada")
+    if not P or not getattr(clipe, "eh_loop", False):
+        return None
+    altura = float(np.ptp(esq.posicoes_repouso[:, 1])) or 1.0
+    raiz = metricas.raiz_do_corpo(esq)
+    pos = clipe.posicoes
+    exc_raiz = float(np.linalg.norm(pos[:, raiz] - pos[0, raiz], axis=1).max()) / altura
+    pontas = [k for k in contato._pontas_de_apoio(esq, regs, ocultos) if _familia(regs[k]) in P["familias_pes"]]
+    exc_pes = max((float(np.linalg.norm(pos[:, k] - pos[0, k], axis=1).max()) / altura for k in pontas), default=0.0)
+    membros = max((float(v["vel"].max()) for r, v in vels.items() if _familia(r) in P["familias_membros"]), default=0.0)
+    if exc_raiz > P["raiz_max_H"] or exc_pes > P["pes_max_H"] or membros > P["membros_max_H_s"]:
+        return None
+    return {"excursao_raiz_H": round(exc_raiz, 4), "excursao_pes_H": round(exc_pes, 4),
+            "pico_membros_H_s": round(membros, 3), "pontas": pontas}
+
+
 def papeis(clipe, esq, regs, categoria, anat, regras=None, ocultos=None):
     R = regras or carregar_regras()
     if ocultos is None:
         ocultos = za_anim.ocultos(clipe, esq)
     vels = _velocidades(clipe, esq, regs, ocultos)
+    parada = _pose_parada(clipe, esq, regs, vels, ocultos, R)
+    if parada is not None:
+        P = R["pose_parada"]
+        apoio = [{"regiao": regs[k], "status": "CANDIDATO", "evidencia": {"excursao_pe_H": parada["excursao_pes_H"]}}
+                 for k in sorted(parada["pontas"], key=lambda k: regs[k])]
+        return {"executores": [], "apoio_impulso": apoio, "iniciadores": [], "acompanhantes": [],
+                "maior_percurso": _percursos(clipe, esq, regs, ocultos), "status": "NAO_SE_APLICA",
+                "motivo": "pose parada (loop): raiz %.3f H, pés %.3f H, membros até %.2f H/s" % (
+                    parada["excursao_raiz_H"], parada["excursao_pes_H"], parada["pico_membros_H_s"]),
+                "regra_aplicada": "pose parada: loop com raiz <= %.2f H, pés <= %.2f H e membros <= %.1f H/s fica sem executor" % (
+                    P["raiz_max_H"], P["pes_max_H"], P["membros_max_H_s"])}
     fam_cand = R["candidatas"].get(categoria, R["candidatas"]["_padrao"])
     nunca = set(R["nunca_executa"])
     presentes = set(vels)

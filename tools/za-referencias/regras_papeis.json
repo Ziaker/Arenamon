@@ -23,6 +23,14 @@
     "candidatas": ["braco", "perna", "asa"],
     "limiar_frac": 0.4
   },
+  "pose_parada": {
+    "_sobre": "Loop de pose (carga, espera, respiração): raiz quase imóvel, pontas dos pés paradas no mundo e membros só oscilando. Fica sem executor (NAO_SE_APLICA) e sem iniciador; as pernas com pé parado ficam como apoio. Decisão do revisor, 25/10/2026, depois da revisão IA do lote 02 (Hawlucha e Groudon em charge01_loop).",
+    "raiz_max_H": 0.05,
+    "pes_max_H": 0.03,
+    "membros_max_H_s": 1.5,
+    "familias_pes": ["perna"],
+    "familias_membros": ["braco", "perna", "asa", "cauda", "cabeca", "pescoco"]
+  },
   "apoio_impulso": {
     "_sobre": "Fora da locomoção: perna que NÃO golpeia mas dobra (sustenta o peso ou empurra) da preparação até o golpe. Campo separado dos executores; executor é só quem golpeia.",
     "familias": ["perna"],

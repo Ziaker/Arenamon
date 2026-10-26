@@ -31,7 +31,7 @@ OUTRAS = ["walk", "run", "damage", "roar", "land", "rangeattack", "jumpup", "dow
 def previsao(l):
     """O que o sistema (com corpus) responde para as mesmas perguntas da página de rotulagem."""
     p = {"id": l["id"],
-         "executores": l.get("executores") if l.get("papeis_status") != "INCONCLUSIVO" else "INCONCLUSIVO",
+         "executores": l.get("executores") if l.get("papeis_status") not in ("INCONCLUSIVO", "NAO_SE_APLICA") else "INCONCLUSIVO",
          "iniciador": l.get("iniciador") or "INCONCLUSIVO",
          "antecipacao": ("sim" if l.get("antecipacao") else "nao") if l.get("status") == "MEDIDO" else "INCONCLUSIVO",
          "apoio_impulso": l.get("apoio_impulso") or [],
