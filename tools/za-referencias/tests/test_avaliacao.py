@@ -159,6 +159,23 @@ class TestEscolherDiverso(unittest.TestCase):
                          [l["id"] for l in gerar_lote.escolher_diverso(b, set())])
 
 
+class TestRefazerPagina(unittest.TestCase):
+    def test_mesmo_hash_e_ignorados(self):
+        import json, os, tempfile
+        import gerar_lote
+        d = tempfile.mkdtemp()
+        lote = os.path.join(d, "lote_x")
+        os.makedirs(lote)
+        json.dump({"itens": [{"id": "a/b", "n": 1}, {"id": "c/d", "n": 2}]}, open(os.path.join(lote, "lote.json"), "w"))
+        open(os.path.join(lote, "lote.sha256"), "w").write("abcdef1234567890\n")
+        json.dump({"ignorados": [2]}, open(os.path.join(d, "lote_x_ignorados.json"), "w"))
+        self.assertEqual(gerar_lote.refazer_pagina(lote), ("abcdef123456", 1))
+        pag = open(os.path.join(lote, "rotulagem.html"), encoding="utf-8").read()
+        self.assertIn('rotulagem_za_" + "abcdef123456"', pag)
+        self.assertIn('"ignorados": [', pag)
+        self.assertNotIn("/*LOTE*/null", pag)
+
+
 class TestRefazerPrevisoes(unittest.TestCase):
     def test_regrava_so_previsoes_sem_tocar_no_lote(self):
         import json, os, tempfile

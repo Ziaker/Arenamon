@@ -142,6 +142,18 @@ Gerado com `gerar_lote.py --diverso <banco> <dump> <saida> <lotes anteriores…>
 - **Previsões do sistema:** ficam em `avaliacao/lote_02_sistema/`, fora da pasta do revisor.
 - **Itens ignorados por decisão sua:** a página mostra só 1 (Lucario, ataque), 7 (Hawlucha, charge), 9 (Groudon, charge) e 14 (Sawk, rugido). A lista está em `avaliacao/lote_02_ignorados.json`; o hash do lote não mudou.
 
+### Página de rotulagem compacta (25/10/2026)
+
+- **Layout:** vídeo à esquerda, fixo na tela enquanto você responde; respostas à direita. Um item inteiro cabe numa tela de notebook.
+- **Respostas em botões:**
+  - Executa: uma linha por membro (dir./esq./central); as partes únicas ficam juntas numa linha.
+  - Apoio/impulso: só pernas, com a opção "nenhuma".
+  - "Começa" é uma lista de escolha.
+  - Perguntas sim/não/?: clicar de novo desmarca.
+- **Aviso:** a página avisa quando a mesma perna está em Executa e em Apoio.
+- **"Como rotular":** as regras ficam num quadro que abre com um clique.
+- **Respostas mantidas:** as páginas dos lotes 01 e 02 foram refeitas com `gerar_lote.py --pagina <lote…>`. O formato das respostas e o hash não mudaram, então o que estava salvo no navegador continua (testado com uma resposta do Lucario).
+
 ### Filtro pedido para os próximos lotes (guardado, ainda não aplicado)
 
 Pedido do revisor em 25/10/2026, para o lote 03 em diante:

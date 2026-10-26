@@ -151,7 +151,29 @@ def escolher_diverso(teste, excluir_especies=(), semente=2026, n=15, excluir_cad
     return escolha
 
 
+def refazer_pagina(saida):
+    """Regrava <saida>/rotulagem.html a partir do modelo atual, com o MESMO lote e hash (as respostas salvas no
+    navegador continuam valendo). Itens ignorados vêm de <saida>_ignorados.json, se existir."""
+    with open(os.path.join(saida, "lote.json"), encoding="utf-8") as fh:
+        lote = json.load(fh)
+    with open(os.path.join(saida, "lote.sha256"), encoding="utf-8") as fh:
+        h = fh.read().strip()
+    ign = saida.rstrip("/\\") + "_ignorados.json"
+    if os.path.exists(ign):
+        with open(ign, encoding="utf-8") as fh:
+            lote["ignorados"] = json.load(fh)["ignorados"]
+    with open(os.path.join(AQUI, "rotulagem.html"), encoding="utf-8") as fh:
+        pagina = fh.read().replace("/*LOTE*/null", json.dumps(lote, ensure_ascii=False, indent=1)).replace("{{HASH}}", h[:12])
+    with open(os.path.join(saida, "rotulagem.html"), "w", encoding="utf-8") as fh:
+        fh.write(pagina)
+    return h[:12], len(lote["itens"]) - len(lote.get("ignorados", []))
+
+
 def main():
+    if sys.argv[1] == "--pagina":
+        for pasta in sys.argv[2:]:
+            print("%s: lote %s, %d itens na página" % ((pasta,) + refazer_pagina(pasta)))
+        return
     if sys.argv[1] == "--previsoes":
         print("previsões: %d de %d itens" % refazer_previsoes(sys.argv[2], sys.argv[3]))
         return
