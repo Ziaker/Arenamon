@@ -4,15 +4,14 @@
 // retângulo 4 × 3 m fixado na direção do disparo, e o lutador fica livre. A barragem dura 1,5 s (0,75 s de hitbox + 0,75 s de dissipação). Cada adversário
 // em terra com os pés no retângulo e alcançado pela frente da onda leva 6 HP fixos, cegueira de 4 s (a perfeita anula) e empurrão de 12 m/s² (6 na parcial).
 // Visual: a barragem e a nuvem do cegado usam formas provisórias (a direção de arte NÃO foi aprovada, SW-P07). Valores: C.world.sandWave, capturados no disparo.
-import {C} from '../config.js';
-import {spawn} from '../world.js';
-import {direction} from '../math.js';
-import {isAirJump} from '../air.js';
-import {defineFicha} from './params-registry.js';
+import {C} from '../../config.js';
+import {spawn} from '../../world.js';
+import {direction} from '../../math.js';
+import {isAirJump} from '../../air.js';
+import {defineFicha} from '../params-registry.js';
 import {params, def as sandWaveDef} from './sand-wave.params.js';
 
 export {sandWaveDef};   // definição (id, fases, custo…) vem de sand-wave.move.json
-
 
 /** Efeito do fim da preparação: cria a barragem com a direção e as dimensões fixadas agora. */
 export function sandWaveEffect(/** @type {any} */ game, /** @type {any} */ f, /** @type {any} */ def, /** @type {any} */ fx) {

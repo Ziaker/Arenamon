@@ -1,15 +1,28 @@
 // Modelo da gravação do Editor de Moves: o novo documento parte do arquivo do disco e só muda o que mudou. Salvar sem editar = mesmo arquivo.
 // Uso: node prototypes/combat-lab/test/move-save-model.test.mjs
 import assert from 'node:assert/strict';
-import {readdirSync, readFileSync} from 'node:fs';
+import {readdirSync, readFileSync, existsSync} from 'node:fs';
 import {factoryDefaults} from '../src/sim/config.js';
 import {loadMoveData, validateMoveData} from '../src/sim/moves/move-data.js';
 import {removeMoveParams} from '../src/sim/moves/params-registry.js';
 import {diffDocs, buildMoveDoc, buildVisualDoc, describeDiffs, labelFor} from '../src/editor/move-save-model.js';
 
 const movesDir = new URL('../src/sim/moves/', import.meta.url), approvedDir = new URL('../../sand-stone-lab/approved/', import.meta.url);
-const files = readdirSync(movesDir).filter(f => f.endsWith('.move.json'));
-const disk = Object.fromEntries(files.map(f => [f.replace('.move.json', ''), JSON.parse(readFileSync(new URL(f, movesDir), 'utf8'))]));
+function findMoveJsonFiles() {
+  const res = [];
+  const entries = readdirSync(movesDir, {withFileTypes: true});
+  for (const entry of entries) {
+    if (entry.isDirectory()) {
+      const sub = new URL(entry.name + '/' + entry.name + '.move.json', movesDir);
+      if (existsSync(sub)) res.push(entry.name + '/' + entry.name + '.move.json');
+    } else if (entry.isFile() && entry.name.endsWith('.move.json')) {
+      res.push(entry.name);
+    }
+  }
+  return res;
+}
+const files = findMoveJsonFiles();
+const disk = Object.fromEntries(files.map(f => [f.replace(/\.move\.json$/, '').split('/').pop(), JSON.parse(readFileSync(new URL(f, movesDir), 'utf8'))]));
 let n = 0;const ok = (name, fn) => {try {fn();n++;console.log('  ✓ ' + name);} catch (e) {console.log('  ✗ ' + name + '\n' + (e.stack || e.message).split('\n').slice(0, 5).join('\n'));process.exitCode = 1;}};
 const world = () => structuredClone(factoryDefaults().world);
 /** Carrega o documento como o jogo carregaria (num grupo de teste, para não mexer no registro real). */

@@ -5,7 +5,7 @@
 // desaparecimento de `vanish` s numa corrida invisível até `stopShort` m do alvo, golpe PL2 de `strikeReach` m ao chegar (ou no primeiro adversário a `hitRadius` m do caminho),
 // custo 1,5× o do Tackle (Tackle = 1) e 8 s; impactMult = velocidade de impacto do knockback. fxLines/fxHideBody: visual do sumiço (linhas de velocidade e corpo oculto).
 // (Move como dado) Os parâmetros e a definição vêm de bullet-punch.move.json: edite lá ou no Editor de Moves.
-import {loadMoveData} from './move-data.js';
+import {loadMoveData} from '../move-data.js';
 import data from './bullet-punch.move.json' with {type: 'json'};
 
 const loaded = loadMoveData(data);

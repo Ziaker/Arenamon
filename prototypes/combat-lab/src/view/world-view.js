@@ -16,6 +16,7 @@ import * as T from 'three';
 
 import {ElementalGameFx} from './quarks/elemental-game.js';
 import {AtelierGameFx} from './quarks/atelier-game.js';
+import {MovesVfxRegistry} from './moves-vfx-registry.js';
 
 
 import {buildRockGeometry} from './world-view/wv-geometry.js';
@@ -58,6 +59,7 @@ export * from './world-view/wv-geometry.js';
     // Água, Fogo e Vento com o renderizador do Ateliê Elemental (three.quarks). O Seed Bomb não entra aqui.
     this.elementalFx = new ElementalGameFx(this.group);
     this.atelierFx = new AtelierGameFx(this.group);   // Sand Wave e Emerging Stone com o renderizador do atelier Areia/Pedra
+    this.movesVfx = new MovesVfxRegistry(this);       // Registro modular de VFX dos Moves (Doc 02)
     // Esfera de carga do Water Pulse (visual do ateliê, cresce com a carga/PL).
     this.waterChargePreview = null;this.waterChargeLevel = 0;
   }

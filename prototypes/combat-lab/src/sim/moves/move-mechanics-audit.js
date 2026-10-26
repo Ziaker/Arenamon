@@ -51,7 +51,7 @@ export const TECHNICAL_CONSTANTS = Object.freeze([
     values: [24, 32],
     unit: 'int',
     scope: 'reflect, bullet-punch',
-    file: 'src/sim/moves/reflect.js, src/sim/moves/bullet-punch.js',
+    file: 'src/sim/moves/reflect.js, src/sim/moves/bullet-punch/bullet-punch.js',
     reason: 'Passos da busca binária geométrica (precisão > 10⁻⁷ m ao ajustar largura da barreira ou encostar no obstáculo).',
   },
   {
@@ -59,7 +59,7 @@ export const TECHNICAL_CONSTANTS = Object.freeze([
     values: [8, 16, 4096, -2, 2],
     unit: 'int',
     scope: 'sand-wave, emerging-stone, bullet-punch, psyshock, swift',
-    file: 'src/sim/sand.js, src/sim/moves/emerging-stone.js, src/sim/moves/bullet-punch.js',
+    file: 'src/sim/sand.js, src/sim/moves/emerging-stone.js, src/sim/moves/bullet-punch/bullet-punch.js',
     reason: 'Topologia discreta de vizinhança (8 direções na grade A*, 16 direções radiais no anel de busca, limite de segurança de 4096 nós).',
   },
   {
@@ -75,7 +75,7 @@ export const TECHNICAL_CONSTANTS = Object.freeze([
     values: [0.01, 0.02, 0.05, 0.06, 0.2, 0.9, 0.95, 0.98],
     unit: 'm',
     scope: 'bullet-punch, quick-attack, sand-wave, emerging-stone',
-    file: 'src/sim/moves/bullet-punch.js, src/sim/moves/quick-attack.js, src/sim/sand.js, src/sim/stone.js',
+    file: 'src/sim/moves/bullet-punch/bullet-punch.js, src/sim/moves/quick-attack.js, src/sim/sand.js, src/sim/stone.js',
     reason: 'Margens geométricas sub-métricas de segurança de colisão AABB (1 cm–20 cm), piso mínimo de passo de raycast (5 cm) e folga de separação (90%–98%).',
   },
 ]);
@@ -373,9 +373,9 @@ export function getCalculatedValuesForMove(moveId, group, worldObj, ctx = {}) {
     }
     case 'bullet-punch': {
       return [
-        {id: 'totalCast', label: 'Duração até o golpe (preparo + sumiço)', formula: 'cast + vanish', value: `${f2((P.cast ?? 0.75) + (P.vanish ?? 0.2))} s`, category: 'Preparação', consumer: 'src/sim/moves/bullet-punch.js:bulletPunchDef'},
+        {id: 'totalCast', label: 'Duração até o golpe (preparo + sumiço)', formula: 'cast + vanish', value: `${f2((P.cast ?? 0.75) + (P.vanish ?? 0.2))} s`, category: 'Preparação', consumer: 'src/sim/moves/bullet-punch/bullet-punch.js:bulletPunchDef'},
         {id: 'walkFactor', label: 'Velocidade de caminhada no preparo', formula: '(1 − slow) × 100%', value: `${f2((1 - (P.slow ?? 0.7)) * 100)} %`, category: 'Movimentação', consumer: 'src/sim/controller/ctrl-moves.js:updateMove'},
-        {id: 'totalReach', label: 'Alcance efetivo total (viagem + soco)', formula: 'reach + strikeReach − stopShort', value: `${f2((P.reach ?? 6) + (P.strikeReach ?? 2.2) - (P.stopShort ?? 1.1))} m`, category: 'Movimentação', consumer: 'src/sim/moves/bullet-punch.js:bulletPunchReturn'},
+        {id: 'totalReach', label: 'Alcance efetivo total (viagem + soco)', formula: 'reach + strikeReach − stopShort', value: `${f2((P.reach ?? 6) + (P.strikeReach ?? 2.2) - (P.stopShort ?? 1.1))} m`, category: 'Movimentação', consumer: 'src/sim/moves/bullet-punch/bullet-punch.js:bulletPunchReturn'},
       ];
     }
     case 'bounce': {
@@ -393,8 +393,8 @@ export function getCalculatedValuesForMove(moveId, group, worldObj, ctx = {}) {
       const r3 = (P.radius ?? 0.38) * (1 + 2 * (P.plScaleBonus ?? 0.25));
       return [
         {id: 'pl2At', label: 'Marco de carga para PL2 (50%)', formula: 'maxCharge × 0,5', value: `${f2((P.maxCharge ?? 1.5) * 0.5)} s`, category: 'Preparação', consumer: 'src/sim/charge.js:chargeParams'},
-        {id: 'flightTime', label: 'Tempo de voo até o alcance máximo', formula: 'range ÷ speed', value: `${f2(rng / sp)} s`, category: 'Projéteis', consumer: 'src/sim/moves/water-pulse.js:waterPulseEffect'},
-        {id: 'scalePl3', label: 'Raio visual da esfera em PL3', formula: 'radius × (1 + 2 × plScaleBonus)', value: `${f2(r3)} m`, category: 'Hitboxes', consumer: 'src/sim/moves/water-pulse.js:waterPulseEffect'},
+        {id: 'flightTime', label: 'Tempo de voo até o alcance máximo', formula: 'range ÷ speed', value: `${f2(rng / sp)} s`, category: 'Projéteis', consumer: 'src/sim/moves/water-pulse/water-pulse.js:waterPulseEffect'},
+        {id: 'scalePl3', label: 'Raio visual da esfera em PL3', formula: 'radius × (1 + 2 × plScaleBonus)', value: `${f2(r3)} m`, category: 'Hitboxes', consumer: 'src/sim/moves/water-pulse/water-pulse.js:waterPulseEffect'},
       ];
     }
     case 'psyshock': {

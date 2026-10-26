@@ -24,7 +24,7 @@ update(world, {fighters = [], events = [], dt = 0, skipBeams = false, camera = n
     for (const e of world?.entities ?? []) {
       alive.add(e.id);
       // Água/Fogo/Vento são desenhados pela camada three.quarks (elemental-game.js); o Seed Bomb segue no desenho provisório.
-      if (this.elementalFx.handles(e) || this.atelierFx.handles(e)) {
+      if (this.movesVfx?.handles(e) || this.elementalFx.handles(e) || this.atelierFx.handles(e)) {
         const stale = this.meshes.get(e.id);
         if (stale) {
           this.group.remove(stale);
@@ -167,8 +167,12 @@ update(world, {fighters = [], events = [], dt = 0, skipBeams = false, camera = n
     }
 
     // Efeitos elementais em three.quarks: cria/atualiza os que seguem entidades e mantém o contato delas.
-    this.elementalFx.sync(world?.entities ?? [], dt, fxAcc);
-    this.atelierFx.sync(world?.entities ?? [], dt, fxAcc, fighters);
+    if (this.movesVfx) {
+      this.movesVfx.sync(world?.entities ?? [], dt, fxAcc, fighters);
+    }
+    const unmigrated = this.movesVfx ? this.movesVfx.filterUnmigrated(world?.entities ?? []) : (world?.entities ?? []);
+    this.elementalFx.sync(unmigrated, dt, fxAcc);
+    this.atelierFx.sync(unmigrated, dt, fxAcc, fighters);
 
     // Eventos novos viram anéis e geram estilhaços/shatter de rochas e barreiras
     for (const ev of events) {
@@ -177,13 +181,14 @@ update(world, {fighters = [], events = [], dt = 0, skipBeams = false, camera = n
       const spec = RING[ev.result];
       const m = this.meshes.get(ev.entity), f = FIGHTER_EVENTS.has(ev.result) ? fighters[ev.target] : null;
       const be = ev.kind === 'beam' && ev.seg != null ? world?.entities.find(x => x.id === ev.entity) : null, bp = be?.segments?.[ev.seg]?.b;
-      const pos = bp ? {x: bp.x, y: be.y, z: bp.z} : f ? {x: f.position.x, y: .6, z: f.position.z} : m ? m.position : this.elementalFx.positionOf(ev.entity) ?? this.atelierFx.positionOf(ev.entity);
+      const pos = bp ? {x: bp.x, y: be.y, z: bp.z} : f ? {x: f.position.x, y: .6, z: f.position.z} : m ? m.position : (this.movesVfx?.positionOf(ev.entity) ?? this.elementalFx.positionOf(ev.entity) ?? this.atelierFx.positionOf(ev.entity));
       if (!pos) continue;
 
       const evColor = spec ? (spec[0] ?? PL_HEX[Math.min(3, ev.barrierPl ?? ev.pl ?? 1)]) : 0xffffff;
       if (spec) {
         this.ring(pos.x, pos.y ?? .6, pos.z, evColor, spec[1]);
       }
+      this.movesVfx?.onEvent(ev);
 
       // Estilhaçamento de rochas no impacto, choque entre pedras ou reflexão
       if (C.vfx?.rock?.shatter && (ev.result === 'impact' || ev.result === 'stoneClash' || ev.result === 'counter' || ev.result === 'tackleClash' || ev.result === 'reflected')) {

@@ -9,5 +9,6 @@
     "strictNullChecks": true,
     "lib": ["ES2022", "DOM"]
   },
-  "include": ["src/sim/**/*.js", "src/sim/**/*.d.ts"]
+  "include": ["src/sim/**/*.js", "src/sim/**/*.d.ts"],
+  "exclude": ["src/sim/**/*.vfx.js"]
 }

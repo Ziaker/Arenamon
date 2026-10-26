@@ -665,11 +665,12 @@ export function createMoveEditor({getWorld, $, tuning, startScenario, abortScena
     if (disk.status !== 200) {status('Não foi possível ler ' + fileLabel + ': ' + (disk.json?.error ?? disk.status));return;}
     const next = makeDoc(disk.json.doc), diffs = describeDiffs(disk.json.doc, next);
     if (!diffs.length) {status('Nada para gravar: ' + fileLabel + ' já está igual aos valores atuais.');return;}
-    const yes = await confirmDialog({title: 'Gravar no arquivo?', file: fileLabel, diffs});
+    const targetFile = disk.json?.file ?? fileLabel;
+    const yes = await confirmDialog({title: 'Gravar no arquivo?', file: targetFile, diffs});
     if (!yes) {status('Gravação cancelada. Nada foi alterado.');return;}
     save.rememberOpen?.(state.moveId);
     const res = await save.write(kind, id, next, disk.json.hash).catch((/** @type {Error} */ e) => ({status: 0, json: {error: e.message}}));
-    if (res.status === 200) status(res.json.changed ? 'Gravado em ' + fileLabel + ' (' + diffs.length + ' alteração(ões)). O jogo recarrega para ler o arquivo novo.' : fileLabel + ' já estava igual.');
+    if (res.status === 200) status(res.json.changed ? 'Gravado em ' + targetFile + ' (' + diffs.length + ' alteração(ões)). O jogo recarrega para ler o arquivo novo.' : targetFile + ' já estava igual.');
     else if (res.status === 409) status('O arquivo mudou no disco depois que o editor o leu: nada foi gravado. Tente de novo (o editor lê o arquivo outra vez).');
     else status('Não gravou: ' + (res.json?.error ?? res.status));
   }

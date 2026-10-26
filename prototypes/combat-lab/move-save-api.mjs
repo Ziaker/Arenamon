@@ -25,6 +25,19 @@ export function createMoveSaveApi({movesDir, approvedDir}) {
     const k = /** @type {any} */ (kinds)[kind];
     if (!k) return {error: 'tipo desconhecido', status: 404};
     if (!ID.test(id)) return {error: 'nome inválido', status: 400};
+    if (kind === 'moves') {
+      const subPath = join(k.dir, id, `${id}.move.json`);
+      const flatPath = join(k.dir, `${id}.move.json`);
+      let subExists = false, flatExists = false;
+      try {await stat(subPath); subExists = true;} catch {}
+      try {await stat(flatPath); flatExists = true;} catch {}
+      if (subExists && flatExists) {
+        return {error: `arquivo duplicado detectado: o Move '${id}' existe simultaneamente na subpasta e na raiz (${subPath} e ${flatPath})`, status: 409};
+      }
+      if (subExists) return {file: subPath, k};
+      if (flatExists) return {file: flatPath, k};
+      return {error: 'não existe (a gravação só altera arquivos existentes)', status: 404};
+    }
     const file = join(k.dir, k.file(id));
     try {await stat(file);} catch {return {error: 'não existe (a gravação só altera arquivos existentes)', status: 404};}
     return {file, k};
@@ -34,7 +47,8 @@ export function createMoveSaveApi({movesDir, approvedDir}) {
     const loc = await locate(kind, id);
     if (loc.error) return loc;
     const text = await readFile(loc.file, 'utf8').then(t => t.replace(/\r\n/g, '\n'));
-    return {status: 200, body: {kind, id, hash: sha(text), doc: JSON.parse(text)}};
+    const relPath = loc.file.replace(/\\/g, '/').split('prototypes/combat-lab/')[1] ?? loc.file;
+    return {status: 200, body: {kind, id, file: relPath, hash: sha(text), doc: JSON.parse(text)}};
   }
   /** Valida o documento conforme o tipo; devolve null se válido ou a mensagem de erro. */
   function validate(kind, id, doc) {
@@ -70,8 +84,32 @@ export function createMoveSaveApi({movesDir, approvedDir}) {
   async function list(kind) {
     const k = /** @type {any} */ (kinds)[kind];
     if (!k) return {status: 404, error: 'tipo desconhecido'};
-    const names = (await readdir(k.dir)).filter(f => (kind === 'moves' ? f.endsWith('.move.json') : f.endsWith('.json')));
-    return {status: 200, body: {kind, ids: names.map(f => f.replace(kind === 'moves' ? /\.move\.json$/ : /\.json$/, '')).sort()}};
+    if (kind === 'moves') {
+      const entries = await readdir(k.dir, {withFileTypes: true});
+      /** @type {Set<string>} */ const ids = new Set();
+      /** @type {Set<string>} */ const seenFlat = new Set();
+      /** @type {Set<string>} */ const seenSub = new Set();
+      for (const ent of entries) {
+        if (ent.isDirectory() && ID.test(ent.name)) {
+          try {
+            await stat(join(k.dir, ent.name, `${ent.name}.move.json`));
+            seenSub.add(ent.name);
+            ids.add(ent.name);
+          } catch {}
+        } else if (ent.isFile() && ent.name.endsWith('.move.json')) {
+          const id = ent.name.replace(/\.move\.json$/, '');
+          seenFlat.add(id);
+          ids.add(id);
+        }
+      }
+      const duplicates = [...seenSub].filter(id => seenFlat.has(id));
+      if (duplicates.length) {
+        return {status: 409, error: `duplicação detectada nos arquivos de Moves: ${duplicates.join(', ')} existem na subpasta e na raiz`};
+      }
+      return {status: 200, body: {kind, ids: [...ids].sort()}};
+    }
+    const names = (await readdir(k.dir)).filter(f => f.endsWith('.json'));
+    return {status: 200, body: {kind, ids: names.map(f => f.replace(/\.json$/, '')).sort()}};
   }
   /**
    * Roteia GET/PUT em /api/moves/<id>, /api/approved/<id> e /api/moves (lista). Devolve null se a rota não é desta API.

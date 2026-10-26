@@ -6,14 +6,14 @@
 // dele no instante do desaparecimento) e reaparece. O golpe (Tackle PL2 curto, `strikeReach` m, com a velocidade, invulnerabilidade, dano, knockback e recuperação do Tackle) começa NO MOMENTO
 // da chegada. Quem estiver no caminho da corrida invisível é atingido e a corrida PARA ali: o lutador reaparece no ponto do contato e golpeia esse adversário.
 // A velocidade de impacto do knockback tem slider próprio (`impactMult`). Valores: C.world.bulletPunch, capturados no uso.
-import {C} from '../config.js';
-import {startTackleAt} from '../controller.js';
-import {nominalDistance, altitudeOf} from '../entity.js';
-import {getGroundHeight} from '../physics.js';
-import {effectiveArenaRadius} from '../map.js';
-import {solidsOf, insideSolid} from '../vision.js';
-import {angleOf, sub} from '../math.js';
-import {defineFicha} from './params-registry.js';
+import {C} from '../../config.js';
+import {startTackleAt} from '../../controller.js';
+import {nominalDistance, altitudeOf} from '../../entity.js';
+import {getGroundHeight} from '../../physics.js';
+import {effectiveArenaRadius} from '../../map.js';
+import {solidsOf, insideSolid} from '../../vision.js';
+import {angleOf, sub} from '../../math.js';
+import {defineFicha} from '../params-registry.js';
 import {params, def as bulletPunchDef} from './bullet-punch.params.js';
 
 export {bulletPunchDef};   // definição (id, fases, custo…) vem de bullet-punch.move.json

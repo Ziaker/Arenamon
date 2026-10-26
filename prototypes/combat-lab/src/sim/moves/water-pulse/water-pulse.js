@@ -3,11 +3,11 @@
 // (PL2 em 90 passos, PL3 em 180); soltar dispara UM projétil hidráulico reto, sem homing, que acerta o primeiro corpo. Custo e recarga na ATIVAÇÃO da carga
 // (`cooldownOnStart`, norma universal). Decisões provisórias da Rodada 1 (WP-P08 A: o projétil sai no passo da soltura; EL-P04 A: knockback horizontal com vertical 0
 // é o empurrão do motor, 1,5 × H m). A direção 3D e o alvo travado são capturados NA SOLTURA. Valores: C.world.waterPulse, capturados ao apertar (M28.4).
-import {C} from '../config.js';
-import {spawn} from '../world.js';
-import {direction} from '../math.js';
-import {emitterAltitude, spawnPoint, spawnBlocked, straightLaunch, bodyHeight} from './projectile-util.js';
-import {defineFicha} from './params-registry.js';
+import {C} from '../../config.js';
+import {spawn} from '../../world.js';
+import {direction} from '../../math.js';
+import {emitterAltitude, spawnPoint, spawnBlocked, straightLaunch, bodyHeight} from '../projectile-util.js';
+import {defineFicha} from '../params-registry.js';
 import {params, def as waterPulseDef} from './water-pulse.params.js';
 
 export {waterPulseDef};   // definição (id, fases, custo…) vem de water-pulse.move.json

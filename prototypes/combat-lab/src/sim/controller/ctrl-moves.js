@@ -8,7 +8,7 @@ import {chargeParams, chargeLevel, interruptCooldown, boostPlan} from '../charge
 import {vec, scale, sub, length, normalize, clamp, angleOf, direction, smoothstep} from '../math.js';
 import {report, attemptsActive} from '../attempts.js';
 import {markerValidity, markerInitial, markerStep} from '../aim-marker.js';
-import {bulletPunchTravel} from '../moves/bullet-punch.js';
+import {bulletPunchTravel} from '../moves/bullet-punch/bullet-punch.js';
 import {isAirJump, isVaultArc, airKind, airUsable, vaultToFlight, takeOffToLift, applyLift} from '../air.js';
 import {CTX_FIGHTERS, CTX_WORLD, startAction} from './ctrl-update.js';
 import {cancelWindow, costOf, isDepleted, turnToward, walkSpeed} from './ctrl-basico.js';

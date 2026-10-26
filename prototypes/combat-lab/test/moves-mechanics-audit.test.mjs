@@ -6,7 +6,7 @@
 //      fórmulas calculadas ao vivo e constantes técnicas documentadas;
 //   3. Um caso sintético RED com número mágico escondido é detectado imediatamente pela análise sintática.
 
-import {readFileSync} from 'node:fs';
+import {readFileSync, existsSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {assert, C, suite, arena} from './moves-new-helpers.mjs';
 import {EDITABLE_MOVES} from '../src/editor/editable-moves.js';
@@ -46,7 +46,7 @@ test('registro único: todos os 19 Moves têm parâmetros exclusivos válidos, c
 });
 
 test('detector sintático: nenhum dos 19 arquivos de Move nem os módulos compartilhados contém números mecânicos escondidos', () => {
-  const moveFiles = EDITABLE_MOVES.map(m => `src/sim/moves/${m.id}.js`);
+  const moveFiles = EDITABLE_MOVES.map(m => existsSync(labDir + `src/sim/moves/${m.id}/${m.id}.js`) ? `src/sim/moves/${m.id}/${m.id}.js` : `src/sim/moves/${m.id}.js`);
   const sharedFiles = [
     'src/sim/sand.js',
     'src/sim/stone.js',
