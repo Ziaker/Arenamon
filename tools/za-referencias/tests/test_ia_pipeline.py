@@ -111,7 +111,8 @@ class PipelineTests(unittest.TestCase):
             self.assertNotEqual(a, self.api.cache_key([p], {'notes':'first'}))
 
     def test_real_batch_exact_scope(self):
-        b = self.api.read_lote(ROOT.parents[1]/'dumper test/za-referencias/avaliacao/lote_02/rotulagem.html')
+        import config  # acha o 'dumper test' também quando o código roda num worktree
+        b = self.api.read_lote(Path(config.pasta_dumper())/'za-referencias/avaliacao/lote_02/rotulagem.html')
         self.assertEqual([x['n'] for x in b['itens']], [1,7,9,14])
         self.assertEqual(b['hash'], '477115ec150e')
         self.assertIn('pesado', b['schema']['massa_aparente'])
