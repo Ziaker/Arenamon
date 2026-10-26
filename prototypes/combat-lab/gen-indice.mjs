@@ -67,7 +67,7 @@ export async function buildIndex() {
   // Documentos de docs/ que nenhum outro documento nem o portal citam (candidatos a órfãos).
   const portal = existsSync(`${repoDir}/ABRIR_ARENAMON.html`) ? readFileSync(`${repoDir}/ABRIR_ARENAMON.html`, 'utf8') : '';
   const docs = files.filter(f => f.startsWith(`${repoDir}/docs/`) && f.endsWith('.md'));
-  const orphans = docs.filter(f => {const name = f.split('/').pop();return !portal.includes(name) && !docs.some(g => g !== f && text.get(g).includes(name));});
+  const orphans = docs.filter(f => {const name = f.replace(/\\/g, '/').split('/').pop();return !portal.includes(name) && !docs.some(g => g !== f && text.get(g).includes(name));});
   out.push('## Documentos de `docs/` sem nenhuma citação (nem no portal, nem em outro documento)', '', orphans.length ? orphans.map(f => `- \`${rel(f)}\``).join('\n') : '(nenhum)', '');
   out.push('## Como usar', '', '1. Procure o Move na tabela; abra o detalhe.', '2. Leia os arquivos de **sim** e os **testes executáveis** antes de editar; depois rode os testes listados e `npm run indice`.', '3. Documentos normativos prevalecem: `AGENTS.md`, `docs/REGRAS_CRIACAO_MOVES.md`, `docs/MOVES_DECISOES_RODADAS.md`.', '');
   return out.join('\n');

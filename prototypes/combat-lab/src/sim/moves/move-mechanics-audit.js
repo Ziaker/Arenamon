@@ -141,16 +141,63 @@ const OFFENSIVE_MOVES = new Set([
   'bullet-punch', 'emerging-stone', 'riposte', 'quick-attack', 'water-pulse', 'fire-spin', 'air-slash', 'seed-bomb',
 ]);
 
+/** Rótulos e faixas seguras dos campos do Tackle (todos auditados como herança do Bullet Punch). */
+const TACKLE_FIELDS = /** @type {Record<string, {label: string, tip: string, min: number, max: number, step: number, unit: string}>} */ ({
+  duration: {label: 'Duração do Tackle', tip: 'Duração total da ação X; escala a duração do golpe do Bullet Punch (durationScale) e a distância nominal.', min: 0.1, max: 2, step: 0.01, unit: 'sec'},
+  cost: {label: 'Custo de stamina do Tackle', tip: 'Custo universal de X. O Bullet Punch paga o próprio custo e devolve o do Tackle ao iniciar o golpe; alterar afeta todos os Moves que herdam X.', min: 0, max: 5, step: 0.05, unit: 'num'},
+  invulnerable: {label: 'Invulnerabilidade do Tackle', tip: 'Janela inicial de invulnerabilidade do golpe; o Bullet Punch a herda no soco de chegada.', min: 0, max: 1, step: 0.01, unit: 'sec'},
+  distance: {label: 'Distância nominal do Tackle', tip: 'Base de startTackleAt/nominalDistance; o Bullet Punch escala a distância até strikeReach.', min: 0.5, max: 8, step: 0.05, unit: 'm'},
+  curveStart: {label: 'Curva legada: início (profile 0)', tip: 'Só vale quando profile = 0 (curva polinomial da Etapa A).', min: 0.1, max: 4, step: 0.01, unit: 'num'},
+  steerLimit: {label: 'Limite de correção de rumo', tip: 'Ângulo máximo de correção durante a investida.', min: 0, max: 3.14, step: 0.01, unit: 'deg'},
+  steerRate: {label: 'Velocidade de correção de rumo', tip: 'Taxa de giro durante a investida (rad/s).', min: 0, max: 6.28, step: 0.01, unit: 'num'},
+  blend: {label: 'Mistura de velocidade na entrada', tip: 'Tempo de mistura entre a velocidade anterior e a da investida.', min: 0, max: 0.5, step: 0.01, unit: 'sec'},
+  chainAfter: {label: 'Encadeamento após o golpe', tip: 'Janela em que outra ação pode cancelar a recuperação.', min: 0, max: 1, step: 0.01, unit: 'sec'},
+  recovery: {label: 'Recuperação extra do Tackle', tip: 'Recuperação somada ao fim da ação.', min: 0, max: 1, step: 0.01, unit: 'sec'},
+  fromGuard: {label: 'Pode sair da guarda', tip: 'Flag universal de X.', min: 0, max: 1, step: 1, unit: 'yesno'},
+  distanceReference: {label: 'Referência de distância', tip: '0 = usa a própria duração; >0 = tempo de referência da distância nominal.', min: 0, max: 2, step: 0.01, unit: 'sec'},
+  profile: {label: 'Perfil de curva (0/1)', tip: '0 = polinomial legada; 1 = curva física em fases (motion.js). Muda a forma da investida herdada.', min: 0, max: 1, step: 1, unit: 'int'},
+  fromRecoil: {label: 'Pode sair do recuo', tip: 'Flag universal de X.', min: 0, max: 1, step: 1, unit: 'yesno'},
+  fromGuardStun: {label: 'Pode sair do guard stun', tip: 'Flag universal de X.', min: 0, max: 1, step: 1, unit: 'yesno'},
+  counterSpeed: {label: 'Velocidade no contra-ataque', tip: 'Multiplicador aplicado quando o Tackle é contra-ataque.', min: 1, max: 2, step: 0.01, unit: 'x'},
+  prepTime: {label: 'Curva do Tackle: fração de preparo', tip: 'Fração inicial em velocidade reduzida de preparação (motion.js).', min: 0, max: 0.3, step: 0.01, unit: 'pct'},
+  impulseTime: {label: 'Curva do Tackle: fim do impulso', tip: 'Fração em que a investida atinge a velocidade de cruzeiro (motion.js).', min: 0.02, max: 0.4, step: 0.01, unit: 'pct'},
+  decelStart: {label: 'Curva do Tackle: início da frenagem', tip: 'Fração em que começa a desaceleração (motion.js).', min: 0.2, max: 0.9, step: 0.01, unit: 'pct'},
+  recoveryTime: {label: 'Curva do Tackle: fração de recuperação', tip: 'Fração final sem deslocamento (motion.js).', min: 0, max: 0.5, step: 0.01, unit: 'pct'},
+  prepSpeed: {label: 'Curva do Tackle: velocidade de preparo', tip: 'Velocidade relativa durante o preparo (motion.js).', min: 0.1, max: 1, step: 0.01, unit: 'x'},
+  travelEnd: {label: 'Curva do Tackle: fim do avanço', tip: 'Velocidade relativa no fim do deslocamento (motion.js).', min: 0.3, max: 1, step: 0.01, unit: 'x'},
+  selfCancel: {label: 'X cancela X', tip: 'Flag universal de cancelamento.', min: 0, max: 1, step: 1, unit: 'yesno'},
+  guardCancel: {label: 'Defesa cancela X', tip: 'Flag universal de cancelamento.', min: 0, max: 1, step: 1, unit: 'yesno'},
+  perfectGuardCancel: {label: 'Defesa perfeita cancela X', tip: 'Flag universal de cancelamento.', min: 0, max: 1, step: 1, unit: 'yesno'},
+});
+
+/**
+ * Herança COMPLETA do Tackle (DOC03 §4): enumera todos os campos numéricos de `C.actions.tackle` em vez de
+ * presumir que quatro curvas cobrem o que o Bullet Punch herda.
+ * @param {Record<string, any>} tackle
+ */
+export function tackleInheritedParams(tackle = {}) {
+  return Object.keys(tackle).filter(k => typeof tackle[k] === 'number').map(k => {
+    const f = TACKLE_FIELDS[k] ?? {label: k, tip: 'Campo numérico do Tackle lido pelo motor.', min: 0, max: Math.max(1, Math.abs(tackle[k]) * 3), step: 0.01, unit: 'num'};
+    return {
+      path: `actions.tackle.${k}`, group: 'tackle', key: k, label: f.label, tip: f.tip,
+      min: f.min, max: f.max, step: f.step, unit: f.unit, category: 'Movimentação',
+      consumer: {file: 'src/sim/motion.js', fn: 'actionProgress / startTackleAt'},
+      system: 'Tackle (global)',
+    };
+  });
+}
+
 /**
  * Devolve os parâmetros HERDADOS de sistemas compartilhados que influenciam mecanicamente o Move indicado.
  * Cada item aponta para o caminho real na configuração viva (`world.charge.*`, `actions.tackle.*`, `world.ai.*`, etc.),
  * permitindo inspecionar e ajustar o valor herdado direto do Editor de Moves.
  * @param {string} moveId
  * @param {string} group
- * @returns {Array<{path: string, group: string, key: string, label: string, tip: string, min: number, max: number, step: number, unit: string, category: string, consumer: {file: string, fn: string}, overriddenBy?: string}>}
+ * @param {{tackle?: Record<string, any>}} [snapshot] valores vivos para enumerar a herança completa do Tackle
+ * @returns {Array<{path: string, group: string, key: string, label: string, tip: string, min: number, max: number, step: number, unit: string, category: string, consumer: {file: string, fn: string}, overriddenBy?: string, system?: string}>}
  */
-export function getInheritedParamsForMove(moveId, group) {
-  /** @type {Array<{path: string, group: string, key: string, label: string, tip: string, min: number, max: number, step: number, unit: string, category: string, consumer: {file: string, fn: string}, overriddenBy?: string}>} */
+export function getInheritedParamsForMove(moveId, group, snapshot = {}) {
+  /** @type {Array<{path: string, group: string, key: string, label: string, tip: string, min: number, max: number, step: number, unit: string, category: string, consumer: {file: string, fn: string}, overriddenBy?: string, system?: string}>} */
   const list = [];
 
   if (CHARGE_MOVES.has(moveId)) {
@@ -220,36 +267,25 @@ export function getInheritedParamsForMove(moveId, group) {
   );
 
   if (TACKLE_MOVES.has(moveId)) {
-    list.push(
-      {
-        path: 'actions.tackle.prepTime', group: 'tackle', key: 'prepTime',
-        label: 'Curva do Tackle: fração de preparo (herdada)',
-        tip: 'Fração inicial da duração do golpe em velocidade reduzida de preparação (sim/motion.js).',
-        min: 0, max: 0.3, step: 0.01, unit: 'pct', category: 'Movimentação',
-        consumer: {file: 'src/sim/motion.js', fn: 'actionSpeedFactor'},
-      },
-      {
-        path: 'actions.tackle.impulseTime', group: 'tackle', key: 'impulseTime',
-        label: 'Curva do Tackle: fim do impulso (herdado)',
-        tip: 'Fração da duração em que a investida atinge a velocidade de cruzeiro (sim/motion.js).',
-        min: 0.02, max: 0.4, step: 0.01, unit: 'pct', category: 'Movimentação',
-        consumer: {file: 'src/sim/motion.js', fn: 'actionSpeedFactor'},
-      },
-      {
-        path: 'actions.tackle.decelStart', group: 'tackle', key: 'decelStart',
-        label: 'Curva do Tackle: início da frenagem (herdado)',
-        tip: 'Fração da duração em que começa a desaceleração da investida (sim/motion.js).',
-        min: 0.2, max: 0.9, step: 0.01, unit: 'pct', category: 'Movimentação',
-        consumer: {file: 'src/sim/motion.js', fn: 'actionSpeedFactor'},
-      },
-      {
-        path: 'actions.tackle.travelEnd', group: 'tackle', key: 'travelEnd',
-        label: 'Curva do Tackle: fim do avanço (herdado)',
-        tip: 'Fração da duração em que o deslocamento físico termina e resta a recuperação (sim/motion.js).',
-        min: 0.3, max: 0.95, step: 0.01, unit: 'pct', category: 'Movimentação',
-        consumer: {file: 'src/sim/motion.js', fn: 'actionSpeedFactor'},
-      },
-    );
+    // Herança COMPLETA (DOC03): todos os campos numéricos de C.actions.tackle, não apenas as quatro curvas.
+    const tackle = snapshot.tackle ?? {};
+    if (Object.keys(tackle).length) list.push(...tackleInheritedParams(tackle));
+    else list.push(...tackleInheritedParams({
+      duration: 0.4, cost: 1, invulnerable: 0.2, distance: 2.5, curveStart: 1.6, steerLimit: Math.PI / 6,
+      steerRate: Math.PI, blend: 0.1, chainAfter: 0.2, recovery: 0, fromGuard: 1, distanceReference: 0.4, profile: 1,
+      fromRecoil: 0, fromGuardStun: 0, counterSpeed: 1.18, prepTime: 0.06, impulseTime: 0.1, decelStart: 0.5,
+      recoveryTime: 0.08, prepSpeed: 0.5, travelEnd: 0.55, selfCancel: 0, guardCancel: 0, perfectGuardCancel: 1,
+    }));
+  }
+
+  if (moveId === 'water-pulse') {
+    list.push({
+      path: 'world.maxEntities', group: 'world', key: 'maxEntities',
+      label: 'Limite simultâneo de entidades (global)',
+      tip: 'Acima deste limite o projétil não nasce e o Move falha com evento de limite. Vale para todos os Moves que criam entidades.',
+      min: 1, max: 256, step: 1, unit: 'int', category: 'Área e persistência',
+      consumer: {file: 'src/sim/world.js', fn: 'spawn'}, system: 'Mundo (global)',
+    });
   }
 
   if (OFFENSIVE_MOVES.has(moveId)) {

@@ -56,7 +56,8 @@
     "test:rapier": "node prototypes/combat-lab/test/rapier.test.mjs",
     "test:physics": "node prototypes/combat-lab/test/collision-invariants.test.mjs && node prototypes/combat-lab/test/collision-solid.test.mjs && node prototypes/combat-lab/test/collision-map.test.mjs && node prototypes/combat-lab/test/collision-multi.test.mjs && node prototypes/combat-lab/test/collision-slide.test.mjs && node prototypes/combat-lab/test/ccd.test.mjs && node prototypes/combat-lab/test/collision-ccd.test.mjs && node prototypes/combat-lab/test/support-surface.test.mjs && node prototypes/combat-lab/test/map-placement.test.mjs && node prototypes/combat-lab/test/map-impact.test.mjs && node prototypes/combat-lab/test/map-passage.test.mjs && node prototypes/combat-lab/test/env-integration.test.mjs && node prototypes/combat-lab/test/collision-probe.test.mjs && node prototypes/combat-lab/test/collision-scenarios.test.mjs && node prototypes/combat-lab/test/collision-tools.test.mjs && node prototypes/combat-lab/test/contact-shape.test.mjs && node prototypes/combat-lab/test/hitbox-shapes.test.mjs && node prototypes/combat-lab/test/interpolation.test.mjs && node prototypes/combat-lab/test/tunneling.test.mjs && node prototypes/combat-lab/test/hitstop-tiers.test.mjs",
     "audit:moves": "node prototypes/combat-lab/test/moves-mechanics-audit.test.mjs && node prototypes/combat-lab/test/moves-ab-sensitivity.test.mjs",
-    "typecheck:vfx": "node scripts/typecheck-vfx.mjs"
+    "typecheck:vfx": "node scripts/typecheck-vfx.mjs",
+    "test:typecheck-vfx": "node scripts/typecheck-vfx.test.mjs"
   },
   "keywords": [],
   "author": "",
