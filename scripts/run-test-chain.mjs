@@ -23,6 +23,7 @@ const COMMANDS = [
   "node prototypes/combat-lab/test/move-data.test.mjs",
   "node prototypes/combat-lab/test/move-editor.test.mjs",
   "node prototypes/combat-lab/test/move-trace.test.mjs",
+  "node prototypes/combat-lab/test/moves-sync.test.mjs",
   "node prototypes/combat-lab/test/move-showcase.test.mjs",
   "node prototypes/combat-lab/test/move-save-model.test.mjs",
   "node prototypes/combat-lab/test/move-save-api.test.mjs",

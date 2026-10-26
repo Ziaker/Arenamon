@@ -15,7 +15,7 @@ import {makeMoveScenario, currentMoveJson, TARGET_STATES, DEFAULT_STAGE, DISTANC
 /**
  * @param {{getWorld: () => any, $: (id: string) => any, tuning: any, startScenario: (def: any) => void, abortScenario: () => void, getScenario: () => any, getLastResult: () => any, save?: {available: boolean, read: (kind: 'moves' | 'approved', id: string) => Promise<{status: number, json: any}>, write: (kind: 'moves' | 'approved', id: string, doc: any, expectHash: string) => Promise<{status: number, json: any}>, rememberOpen?: (moveId: string) => void}, ficha?: {timelineMarkup: (id: string) => string, abMarkup: (id: string) => string, bind: (root: any) => void, fire: (id: string) => void}, openActions?: (id: string) => void, vfx?: {markup: (id: string) => string, bind: (root: any) => void, bindParams: (root: any, rerender: () => void) => void}, seekToTime?: (seconds: number) => boolean, download: (data: string, name: string, type?: string) => void, setTimeScale: (v: number) => void}} deps
  */
-export function createMoveEditor({getWorld, $, tuning, startScenario, abortScenario, getScenario, getLastResult, save, ficha, openActions, vfx, seekToTime, download, setTimeScale}) {
+export function createMoveEditor({getWorld, $, tuning, startScenario, abortScenario, getScenario, getLastResult, save, ficha, openActions, vfx, seekToTime, download, setTimeScale, onVisualChange = () => {}}) {
   const root = $('move-editor-body');
   const state = {moveId: (EDITABLE_MOVES.find(m => m.id === 'sand-wave') ?? EDITABLE_MOVES[0]).id, distance: DEFAULT_STAGE.distance, target: DEFAULT_STAGE.target, hold: 0, loop: false, speed: 1, running: false, pinned: /** @type {Record<string, number> | null} */ (null)};
   const move = () => /** @type {any} */ (editableMove(state.moveId));
@@ -202,7 +202,7 @@ export function createMoveEditor({getWorld, $, tuning, startScenario, abortScena
       const cur = ATELIER_GAME_PARAMS[key][k] ?? initial;
       const input = /** @type {HTMLInputElement} */ (el('input', {type: 'range', 'data-visual': k, min, max, step, value: cur}));
       const out = el('output', {text: `${+(+cur).toFixed(3)} ${unit}`});
-      input.oninput = () => {ATELIER_GAME_PARAMS[key][k] = Number(input.value);out.textContent = `${+(+input.value).toFixed(3)} ${unit}`;};
+      input.oninput = () => {ATELIER_GAME_PARAMS[key][k] = Number(input.value);out.textContent = `${+(+input.value).toFixed(3)} ${unit}`;onVisualChange(key, k, Number(input.value));};
       det.append(el('label', {class: 'editor-row', title: /** @type {any} */ (atelierHelp)?.[k] ?? ''}, [el('span', {text: label}), input, out]));
     }
     sec.append(det);return sec;

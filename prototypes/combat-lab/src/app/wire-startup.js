@@ -8,12 +8,14 @@ import {createMoveEditor} from '../editor/move-editor-panel.js';
 import {createMoveShowcase} from '../editor/move-showcase.js';
 import {EDITABLE_MOVES} from '../editor/editable-moves.js';
 import {getMove, listMoves} from '../sim/moves.js';
-import {MOVE_INFO} from '../ui/moves-panel.js';
+import {MOVE_INFO, MOVES_PARAMS} from '../ui/moves-panel.js';
 import {keyLabel} from '../ui/menu-styles-model.js';
 import {applyConfig, download, syncTuneState} from './tuning-sync.js';
 import {foldStaticSections, openTool, syncButtons, toggleChars, toggleMoves} from './live-panels.js';
 import {frame} from './main-loop.js';
-import {seekTick} from './match-flow.js';
+import {seekTick, startMatch} from './match-flow.js';
+import {createMovesSync} from '../editor/moves-sync.js';
+import {ATELIER_GAME_PARAMS} from '../view/quarks/atelier-game-params.js';
 import {createMovesVisual} from '../ui/moves-vfx-panel.js';
 import {$, actionsDrawer, editorHooks, cinePanel, clock, closeTools, game, movesPanel, renderCharacters, tuning, ui} from '../main.js';
 
@@ -42,7 +44,8 @@ requestAnimationFrame(frame);
 
 /** Editor de Moves (fase 2): gaveta própria, aberta pelo botão «🛠 Editor» no canto da arena. */
 export function wireMoveEditor() {
-  const editor = createMoveEditor({getWorld: () => C.world, $, tuning, startScenario: def => startScenario(def), abortScenario, getScenario: () => ui.scenario, getLastResult: () => ui.lastResult, save: (() => {
+  /** @type {any} */ let sync = null;
+  const editor = createMoveEditor({onVisualChange: (key, k, v) => sync?.sendVisual(key, k, v),getWorld: () => C.world, $, tuning, startScenario: def => startScenario(def), abortScenario, getScenario: () => ui.scenario, getLastResult: () => ui.lastResult, save: (() => {
       // O servidor local injeta window.__ARENAMON_DEV__ DEPOIS do script do jogo: por isso tudo é lido na hora do uso (getter), não aqui.
       const dev = () => /** @type {any} */ (window).__ARENAMON_DEV__, api = () => dev()?.api ?? '/api';
       const call = async (/** @type {string} */ method, /** @type {string} */ url, /** @type {any} */ body) => {
@@ -72,6 +75,37 @@ export function wireMoveEditor() {
   // Depois de gravar, o servidor recompila e a página recarrega: reabre o Editor no Move em que você estava.
   try {const again = sessionStorage.getItem('arenamon.editor.reopen');if (again) {sessionStorage.removeItem('arenamon.editor.reopen');toggle(true);editor.select(again);}} catch {/* sem armazenamento */}
   $('editor-open').onclick = () => toggle();$('editor-close').onclick = () => toggle(false);
-  window.addEventListener('keydown', e => {if (e.key === 'Escape' && !$('move-editor').hidden && !e.target.matches?.('input[type=text],input[type=search]')) {e.preventDefault();e.stopImmediatePropagation();toggle(false);}}, true);
+  // Fase 6: o Estúdio de Moves em janela própria (visualizador + editor) e a sincronia ao vivo entre janelas.
+  const movePaths = MOVES_PARAMS.flatMap(([, rows]) => rows.map((/** @type {any[]} */ r) => `world.${r[0]}.${r[1]}`));
+  sync = createMovesSync({tuning, visualParams: /** @type {any} */ (ATELIER_GAME_PARAMS), local: ['extras.toggles.enableEnemyAI'],
+    snapshot: () => ({...tuning.snapshotValues(), ...Object.fromEntries(movePaths.map(p => [p, p.split('.').reduce((/** @type {any} */ o, k) => o?.[k], C)]))}),
+    onRemote: () => {if (!$('move-editor').hidden) editor.render();}});
+  const studioUrl = (/** @type {string} */ id) => {const u = new URL(location.href);u.search = '';u.hash = '';u.searchParams.set('moves', '1');u.searchParams.set('move', id);return u.href;};
+  $('editor-popout').onclick = () => {window.open(studioUrl(editor.state.moveId), 'arenamon-estudio-moves');};
+  $('editor-keys').onclick = () => {const h = $('editor-keys-help'), open = h.hidden;h.hidden = !open;$('editor-keys').setAttribute('aria-expanded', String(open));};
+  const studio = new URLSearchParams(location.search).has('moves');
+  // Atalhos do Editor (só com o Editor aberto e fora de campos de texto/seleção): Enter executa, L laço, [ ] troca de Move, ? ajuda.
+  window.addEventListener('keydown', e => {
+    if ($('move-editor').hidden || e.ctrlKey || e.metaKey || e.altKey || e.target.matches?.('input[type=text],input[type=search],input[type=number],textarea,select')) return;
+    const ids = EDITABLE_MOVES.map(m => m.id), i = ids.indexOf(editor.state.moveId);
+    const act = e.key === 'Enter' ? () => editor.play()
+      : e.key === 'l' || e.key === 'L' ? () => {editor.state.loop = !editor.state.loop;editor.render();if (editor.state.loop) editor.play();}
+      : e.key === '[' ? () => editor.select(ids[(i - 1 + ids.length) % ids.length])
+      : e.key === ']' ? () => editor.select(ids[(i + 1) % ids.length])
+      : e.key === '?' ? () => $('editor-keys').click()
+      : e.key === 'Escape' && studio ? () => {editor.state.loop = false;abortScenario();editor.state.running = false;editor.render();}
+      : null;
+    if (!act) return;
+    e.preventDefault();e.stopImmediatePropagation();act();
+  }, true);
+  if (studio) {
+    // Estúdio de Moves: só a arena (visualizador) e o Editor; IA do rival parada; abre no Move pedido (?move=<id>).
+    document.body.classList.add('modo-moves');document.title = 'Arenamon · Estúdio de Moves';
+    C.extras.toggles.enableEnemyAI = 0;
+    startMatch();
+    const want = new URLSearchParams(location.search).get('move');
+    toggle(true);editor.select(want && EDITABLE_MOVES.some(m => m.id === want) ? want : editor.state.moveId);
+  }
+  window.addEventListener('keydown', e => {if (e.key === 'Escape' && !document.body.classList.contains('modo-moves') && !$('move-editor').hidden && !e.target.matches?.('input[type=text],input[type=search]')) {e.preventDefault();e.stopImmediatePropagation();toggle(false);}}, true);
   return editor;
 }

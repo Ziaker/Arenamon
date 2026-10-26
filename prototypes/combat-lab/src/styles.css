@@ -996,3 +996,20 @@ dialog.editor-dialog h3{margin:0 0 6px}
 dialog.editor-dialog .editor-dialog-body{max-height:50vh;overflow:auto;margin:8px 0}
 dialog.editor-dialog .editor-actions{justify-content:flex-end}
 .move-editor button[aria-disabled=true]{opacity:.5;cursor:not-allowed}
+
+/* Editor de Moves: botões do cabeçalho, ajuda de atalhos e o ESTÚDIO DE MOVES (janela própria: ?moves=1) — fase 6 do plano do editor */
+.move-editor header .editor-head-btn{margin-left:auto;font-size:12px;padding:4px 8px}
+.move-editor header .editor-head-btn + .editor-head-btn{margin-left:6px}
+.move-editor header #editor-close{margin-left:6px}
+.editor-keys-help{margin:8px 12px 0;padding:8px 10px;border:1px solid var(--line,#2a3446);border-radius:8px;font-size:12px;line-height:1.7;background:rgba(10,16,26,.85)}
+.editor-keys-help kbd{padding:0 5px;border:1px solid #4a5870;border-radius:4px;font-size:11px}
+body.modo-moves .top-actions,body.modo-moves .top-info,body.modo-moves .rail,body.modo-moves #panel,body.modo-moves #panel-resizer,body.modo-moves .dock,
+body.modo-moves #menu,body.modo-moves #overlay,body.modo-moves #moves-hud,body.modo-moves #passives-hud,body.modo-moves #input-history,body.modo-moves .zen-badge,
+body.modo-moves #editor-close,body.modo-moves #editor-popout,body.modo-moves #moves-drawer,body.modo-moves #chars-drawer{display:none!important}
+body.modo-moves .top .brand small::after{content:" · Estúdio de Moves";color:#7dd3fc}
+body.modo-moves #move-editor{display:flex!important;width:min(520px,46vw);max-width:none}
+body.modo-moves #move-editor{bottom:0}
+body.modo-moves .stage{margin-right:min(520px,46vw)}
+body.modo-moves #move-editor{position:fixed;top:var(--estudio-top,52px);right:0;bottom:0}
+body.modo-moves .corner-btn{display:none!important}
+body.modo-moves #editor-open-actions{display:none!important}
