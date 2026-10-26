@@ -18,8 +18,8 @@
     "_padrao": ["braco", "perna", "cabeca", "cauda", "asa", "pescoco", "nucleo"]
   },
   "locomocao": {
-    "_sobre": "charge = charge01_loop, deslocamento contínuo (decisão do revisor, 25/10/2026). Em locomoção os membros alternam: conta todo membro que cicla (pico >= limiar_frac do maior pico entre os membros), sem janela de tempo e sem exigir movimento para fora do corpo.",
-    "categorias": ["walk", "run", "backwalk", "turnmove", "dash", "fly", "charge"],
+    "_sobre": "charge NÃO entra: os charge01_loop são poses de carga paradas (revisão IA do lote 02; decisão do revisor, 25/10/2026). Em locomoção os membros alternam: conta todo membro que cicla (pico >= limiar_frac do maior pico entre os membros), sem janela de tempo e sem exigir movimento para fora do corpo.",
+    "categorias": ["walk", "run", "backwalk", "turnmove", "dash", "fly"],
     "candidatas": ["braco", "perna", "asa"],
     "limiar_frac": 0.4
   },

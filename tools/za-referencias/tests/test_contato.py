@@ -92,12 +92,13 @@ class TestPapeisNaLocomocao(unittest.TestCase):
         r = ontologia.papeis(c, esq, regs, "walk", ontologia.anatomia(esq, regs))
         self.assertEqual(sorted(e["regiao"] for e in r["executores"]), ["perna_D", "perna_E"])
 
-    def test_charge_e_locomocao(self):
+    def test_charge_nao_e_locomocao(self):
+        # charge01_loop = pose de carga parada (revisão IA do lote 02, decisão do revisor em 25/10/2026)
+        self.assertNotIn("charge", ontologia.carregar_regras()["locomocao"]["categorias"])
         esq, c = S.andar_com_bracos()
         regs = ontologia.regioes(esq)
         r = ontologia.papeis(c, esq, regs, "charge", ontologia.anatomia(esq, regs))
-        self.assertEqual(sorted(e["regiao"] for e in r["executores"]), ["braco_D", "braco_E", "perna_D", "perna_E"])
-        self.assertEqual(r["apoio_impulso"], [])
+        self.assertNotEqual(sorted(e["regiao"] for e in r["executores"]), ["braco_D", "braco_E", "perna_D", "perna_E"])
 
     def test_locomocao_inclui_bracos_que_balancam(self):
         esq, c = S.andar_com_bracos()
