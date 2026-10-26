@@ -34,7 +34,6 @@ applyConfig();
 renderScenarios();
 renderCharacters();
 syncTuneState();
-openTool('match');
 syncButtons();
 // IA do Vermelho na Seleção Rápida: mesmo valor do seletor da Partida (applyConfig define o modo efetivo).
 $('quick-mode').replaceChildren(...UI_AI_MODES.map(([id, label]) => new Option(label, id)));

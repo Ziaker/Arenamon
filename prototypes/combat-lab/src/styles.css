@@ -1,4 +1,4 @@
-﻿:root{color-scheme:dark;--bg:#0e1621;--panel:#121e2b;--field:#162536;--line:#2d4357;--text:#eef5fb;--muted:#9bb0c3;--cyan:#59d6e6;--lime:#b8ef6c;--amber:#ffcf7d;--red:#ff7a7a;--blue:#6fb2ff;--rail:70px;--panel-w:360px;--dock-h:230px;--arena-hud-scale:1;--arena-notice-font:30px;--arena-clash-font:40px}
+:root{color-scheme:dark;--bg:#0e1621;--panel:#121e2b;--field:#162536;--line:#2d4357;--text:#eef5fb;--muted:#9bb0c3;--cyan:#59d6e6;--lime:#b8ef6c;--amber:#ffcf7d;--red:#ff7a7a;--blue:#6fb2ff;--rail:70px;--panel-w:360px;--dock-h:230px;--arena-hud-scale:1;--arena-notice-font:30px;--arena-clash-font:40px}
 *{box-sizing:border-box}html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font:14px/1.45 Inter,"Segoe UI",system-ui,sans-serif}
 button,select,input,textarea{font:inherit;color:inherit}
 button,select,input[type=number],input[type=text],input[type=search],textarea{background:var(--field);border:1px solid var(--line);border-radius:8px;padding:6px 10px;min-height:32px}
