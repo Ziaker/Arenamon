@@ -236,6 +236,19 @@ Sliders pertinentes: stamina, cooldown, tempo, Charge, recuperação, dano, PL, 
 
 **Simulação determinística** em passos (referência 120 Hz), seeds reproduzíveis, estado serializável com `structuredClone`, save/load/replay, sem aleatoriedade não controlada ou DOM dentro da sim. IA e jogador obedecem às mesmas regras; o botão de preview audiovisual não pode executar dano real.
 
+### 15.1 Regra dos Parâmetros Mecânicos Completos (Overhaul de Sliders Mecânicos)
+
+Nenhum valor numérico que controle o comportamento mecânico de um Move pode permanecer inacessível ao Editor de Moves, exceto constantes técnicas explicitamente justificadas e catalogadas.
+
+- **Classificação em 4 tipos:**
+  1. **Exclusivo:** editável na ficha `moves/<id>.move.json` e `params-registry.js`, com slider de precisão sincronizado com campo numérico exato.
+  2. **Herdado:** parâmetro derivado de física global ou arquétipo compartilhado (gravidade, knockback, Tackle, atrito), com valor padrão herdado visível e substituição por Move permitida.
+  3. **Calculado:** fórmula dinâmica em tempo real (ex.: DPS por tick, distância por segundo, stamina gasta por ciclo), exibida com seus fatores e valor resultante sem input manual direto.
+  4. **Constante técnica:** valores estruturais justificados (tolerâncias EPSILON, limites de segurança de loop, frames mínimos de transição) documentados com motivo e arquivo/linha no registro.
+- **16 categorias padronizadas de inspeção:** Recursos, Preparação, Dano, Hitboxes, Knockback, Movimentação, Projéteis, Área e persistência, Status, Defesa e Counter, Cancelamentos, Alvo e mira, Ambiente e colisão, Eventos e múltiplos hits, IA do Move, Interações globais.
+- **Auditoria automática contínua (`npm run audit:moves`):** análise sintática do código-fonte (AST) impede que novos Moves ou manutenções introduzam números mágicos mecânicos fora do registro oficial de parâmetros.
+- **Sensibilidade mecânica:** todo slider mecânico deve possuir consumidor verificável no motor e influenciar o resultado da execução, verificado em teste A/B automatizado (`moves-ab-sensitivity.test.mjs`).
+
 ## 16. IA e interface de uso
 
 IA utiliza apenas Moves equipados, o mesmo controlador e custos do jogador. Avalia distância, ameaça, chance de contato, PL, defesa rival, energia, cobertura/oclusão, altura, apoio, obstáculos, risco da trajetória, cancelamento e destino. Em Charge, decide segurar e soltar; em Field/Trick considera localização, colisão e perda de suporte.

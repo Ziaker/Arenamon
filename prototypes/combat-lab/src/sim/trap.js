@@ -12,7 +12,7 @@ import {sub, length, normalize, direction} from './math.js';
 
 const CONSUMING = new Set(['impact', 'partial', 'perfect', 'riposte']);
 export function stepTrap(/** @type {any} */ game, /** @type {any} */ e, /** @type {number} */ dt, /** @type {any[]} */ events) {
-  if (e.support && getGroundHeight(e.pos, game.world, e.y + .3) < e.y - .06) {
+  if (e.support && getGroundHeight(e.pos, game.world, e.y + .3) < e.y - (e.supportTolerance ?? .06)) {
     e.dead = true;events.push({result: 'trapLost', attacker: e.owner ?? null, target: null, damage: 0, entity: e.id, kind: 'trap'});
     return;
   }

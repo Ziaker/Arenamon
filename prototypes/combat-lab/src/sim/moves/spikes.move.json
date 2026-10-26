@@ -201,6 +201,26 @@
         "value": 1.2
       },
       {
+        "min": 0.01,
+        "max": 0.5,
+        "step": 0.01,
+        "key": "supportTolerance",
+        "label": "Tolerância de perda de apoio",
+        "tip": "Queda máxima do piso sob a armadilha antes de ela se desfazer sem efeito (MV-P05; padrão: 0,06 m).",
+        "unit": "m",
+        "value": 0.06
+      },
+      {
+        "min": 1,
+        "max": 3,
+        "step": 1,
+        "key": "trapPl",
+        "label": "Power Level da armadilha",
+        "tip": "PL ofensivo aplicado quando o adversário pisa nos espinhos (padrão: PL1).",
+        "unit": "int",
+        "value": 1
+      },
+      {
         "preset": "hitShake"
       }
     ]

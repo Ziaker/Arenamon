@@ -37,15 +37,16 @@ export function seedBombEffect(/** @type {any} */ game, /** @type {any} */ f, /*
   const dist = Math.hypot(m.pos.x - pos.x, m.pos.z - pos.z), dh = landY - y0, shot = ballisticLaunch(dist, dh, P.flightTime, P.gravity);
   if (shot.speed > P.maxSpeed + 1e-9) return {ok: false, reason: 'tooFar', detail: {needed: shot.speed, max: P.maxSpeed}};
   const damage = P.damage * f.attributes.attack / C.test.attackReference;   // MV-P13: gravado no disparo; reflexão o recalcula com o Ataque do refletor
+  const pl = P.seedPl ?? 1;
   const e = spawn(game.world, {
     kind: 'projectile', owner: f.id, pos, y: y0, radius: P.seedRadius, dir, speed: shot.vh, vy: shot.vy, gravity: P.gravity, life: P.lifetime, pierce: 1, blockedBy: ['barrier', 'wall'],
-    hit: {damage: 0}, detonateOnly: true, pl: 1, clashable: true, visual: 'seed',
-    captured: {explosionFraction: P.damage / C.test.attackReference, level: 1, move: def.id, speed: shot.speed, counterStagger: P.counterStagger},
-    onHit: {kind: 'area', sphere: true, radius: P.explosionRadius, life: P.blastLife, pulses: 1, falloff: 'none', explosion: true, occlusion: P.occlusion ? 1 : 0, pl: 1, visual: 'seedblast',
+    hit: {damage: 0}, detonateOnly: true, pl, clashable: true, visual: 'seed',
+    captured: {explosionFraction: P.damage / C.test.attackReference, level: pl, move: def.id, speed: shot.speed, counterStagger: P.counterStagger},
+    onHit: {kind: 'area', sphere: true, radius: P.explosionRadius, life: P.blastLife, pulses: 1, falloff: 'none', explosion: true, occlusion: P.occlusion ? 1 : 0, pl, visual: 'seedblast',
       hit: {damage, knockback: {horizontal: P.knockbackH, vertical: P.knockbackV}}},
   }, fx.events ?? []);
   if (!e) return {ok: false, reason: 'entityLimit'};
-  fx.events?.push({result: 'moveEffect', move: 'seed-bomb', attacker: f.id, target: null, damage: 0, level: 1, entity: e.id, speed: shot.speed});
+  fx.events?.push({result: 'moveEffect', move: 'seed-bomb', attacker: f.id, target: null, damage: 0, level: pl, entity: e.id, speed: shot.speed});
 }
 
 /** FICHA do Move (ver docs/COMO_CRIAR_UM_MOVE.md): `params` gera o padrão em C.world.seedBomb e os sliders da aba Moves; `def` e os manipuladores são registrados sozinhos. */

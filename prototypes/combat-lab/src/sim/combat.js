@@ -24,7 +24,10 @@ export function pushAway(f, away, distance, duration) {
   const n = normalize(away);
   f.push = {direction: n, distance, elapsed: 0, duration};
   f.action = null;f.flight = null;f.velocity = vec();f.locomotionVelocity = vec();f.blend = null;f.guard = false;f.guardSuppressed = true;
-  f.vaultHeight = 0;f.counterWindow = 0;f.landingSlide = null;f.knockRecovery = C.rules.landingRecovery;f.recoveryFrom = null;f.tech = null;f.techDodge = null;f.state = 'landing';
+  const dur = duration ?? (distance / SLAM_BLOCK_PUSH_SPEED);
+  f.push.duration = dur;
+  f.vaultHeight = 0;f.counterWindow = 0;f.landingSlide = null;f.knockRecovery = dur;f.pushRecovery = dur;f.recoveryKind = 'pushed';f.recoveryFrom = null;f.tech = null;f.techDodge = null;f.state = 'pushed';
+  f.hitSerial = (f.hitSerial ?? 0) + 1;
 }
 /** Preparação do meteor slam (no ar, jogado para cima): sem dano, sem clash, sem knockback. */
 const slamPrep = f => !!f.action?.slam && !f.action.slamPrepDone;
@@ -115,7 +118,8 @@ export function knockbackReaction(target, dir, hKb, vKb) {
   if (vKb > 1e-6 || target.flight) {launch(target, dir, hKb, vKb);return {direction: normalize(dir), horizontal: hKb, vertical: vKb};}
   if (hKb > 0) {
     target.action = null;target.flight = null;target.blend = null;target.guard = false;target.guardSuppressed = true;target.velocity = vec();target.locomotionVelocity = vec();
-    target.push = {direction: dir, distance: Math.max(0.45, hKb * 1.5), elapsed: 0};target.knockRecovery = Math.max(target.knockRecovery, R.landingRecovery);target.state = 'pushed';
+    const dur = C.test?.pushDuration ?? 0.3;
+    target.push = {direction: dir, distance: Math.max(0.45, hKb * 1.5), elapsed: 0, duration: dur};target.knockRecovery = Math.max(target.knockRecovery, dur);target.pushRecovery = dur;target.recoveryKind = 'pushed';target.state = 'pushed';target.hitSerial = (target.hitSerial ?? 0) + 1;
     return {direction: normalize(dir), horizontal: hKb, vertical: 0};
   }
   return null;
@@ -215,10 +219,18 @@ export function resolveHit(attacker, defender, normal, relative, force = false) 
     defender.lastAttacker = attacker.id;
     if (T.enableLaunch && kbo && !slam) {const dir = length(departure) > 1e-7 ? departure : normal;launchInfo = knockbackReaction(defender, dir, hSpeed, up);}   // knockback próprio: com V = 0 é empurrão, não voo
     else if (T.enableLaunch) {const dir = slam ? direction(attacker.facing) : length(departure) > 1e-7 ? departure : normal;launch(defender, dir, hSpeed, up);launchInfo = {direction: normalize(dir), horizontal: hSpeed, vertical: up, ...(slam ? {bounce: true} : {})};}
-    else {defender.action = null;defender.knockRecovery = R.landingRecovery;}
+    else {
+      defender.action = null;
+      const rec = R.hitstun ?? R.guardStun ?? 0.2;
+      defender.hitstun = Math.max(defender.hitstun ?? 0, rec);
+      defender.hitstunMax = Math.max(defender.hitstunMax ?? 0, rec);
+      defender.knockRecovery = Math.max(defender.knockRecovery, rec);
+      defender.recoveryKind = 'hitstun';
+      defender.state = 'hitstun';
+    }
   }
   if (defender.hp === 0) {defender.guard = false;defender.guardSuppressed = true;}
-  if (damage > 0) attacker.comboLeft = Math.max(attacker.comboLeft ?? 0, C.rules.comboWindow ?? 0);   // acertou um golpe corpo a corpo: abre a janela de combo
+  if (damage > 0) {attacker.comboLeft = Math.max(attacker.comboLeft ?? 0, C.rules.comboWindow ?? 0);defender.hitSerial = (defender.hitSerial ?? 0) + 1;}   // acertou um golpe corpo a corpo: abre a janela de combo
   return {attacker: attacker.id, target: defender.id, result: perfect ? 'perfect' : protectedFront ? 'partial' : 'impact', damage, shieldAbsorbed: dmgResult.absorbedByShield, normal: {...normal}, launch: launchInfo, contact: 'tackle', ...(dmgResult.sturdy ? {sturdy: true} : {}), ...(attacker.action.slam ? {slam: true} : {}), ...(attacker.action.riposteStrike ? {riposte: true} : {}), ...(protectedFront && !perfect && attacker.action.guardBreak ? {guardBreak: true, stun: attacker.action.guardBreak.stun} : {})};
 }
 /**

@@ -38,7 +38,6 @@ export function quickAttackSetup(/** @type {any} */ f, /** @type {any} */ a, /**
   a.from = null;   // sem mistura com a velocidade anterior: a ida começa na velocidade própria
 }
 
-const STUCK_TICKS = 3;
 /** Velocidade do passo (substitui a curva do Tackle). Devolve o vetor de velocidade horizontal. */
 export function quickAttackStep(/** @type {any} */ f, /** @type {any} */ a, /** @type {number} */ dt) {
   const q = a.qa, P = a.params, dtp = C.actions.tackle.duration;
@@ -46,15 +45,17 @@ export function quickAttackStep(/** @type {any} */ f, /** @type {any} */ a, /** 
   const moved = Math.hypot(f.position.x - q.last.x, f.position.z - q.last.z) / Math.max(dt, 1e-9);
   q.last = {x: f.position.x, z: f.position.z};
   const speed = q.phase === 'approach' ? q.speedA : q.speedR;
-  if (a.elapsed > 2 * dt && moved < speed * .3) q.stuck++;else q.stuck = 0;
+  const stuckTicks = P.stuckTicks ?? 3, stuckRatio = P.stuckSpeedRatio ?? .3;
+  const stopA = P.approachStopDist ?? .15, stopR = P.returnStopDist ?? .08;
+  if (a.elapsed > 2 * dt && moved < speed * stuckRatio) q.stuck++;else q.stuck = 0;
   if (q.phase === 'approach') {
     const toT = sub(q.target, f.position), d = length(toT);
-    if (a.hits.size > 0 || a.elapsed >= P.approachMax - 1e-9 || d <= .15 || q.stuck >= STUCK_TICKS) {q.phase = 'return';q.returnAt = a.elapsed;q.stuck = 0;a.neutralized = true;}   // a volta não é um segundo ataque
+    if (a.hits.size > 0 || a.elapsed >= P.approachMax - 1e-9 || d <= stopA || q.stuck >= stuckTicks) {q.phase = 'return';q.returnAt = a.elapsed;q.stuck = 0;a.neutralized = true;}   // a volta não é um segundo ataque
     else return scale(direction(a.heading), speed);
   }
   if (q.phase === 'return') {
     const toO = sub(q.origin, f.position), d = length(toO);
-    if (d <= .08 || a.elapsed - q.returnAt >= P.returnMax - 1e-9 || q.stuck >= STUCK_TICKS) {
+    if (d <= stopR || a.elapsed - q.returnAt >= P.returnMax - 1e-9 || q.stuck >= stuckTicks) {
       q.phase = 'done';a.durationScale = (a.elapsed + P.recovery) / dtp;   // recuperação de 0,12 s a partir daqui
       return {x: 0, z: 0};
     }

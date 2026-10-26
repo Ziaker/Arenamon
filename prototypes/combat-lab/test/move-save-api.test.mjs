@@ -12,9 +12,11 @@ const here = fileURLToPath(new URL('..', import.meta.url));
 const real = {moves: join(here, 'src/sim/moves'), approved: join(here, '../sand-stone-lab/approved')};
 const tmp = mkdtempSync(join(tmpdir(), 'arenamon-save-')), movesDir = join(tmp, 'moves'), approvedDir = join(tmp, 'approved');
 mkdirSync(movesDir);mkdirSync(approvedDir);
-for (const f of ['sand-wave.move.json', 'harden.move.json']) copyFileSync(join(real.moves, f), join(movesDir, f));
+const realSandWave = existsSync(join(real.moves, 'sand-wave/sand-wave.move.json')) ? join(real.moves, 'sand-wave/sand-wave.move.json') : join(real.moves, 'sand-wave.move.json');
+copyFileSync(realSandWave, join(movesDir, 'sand-wave.move.json'));
+copyFileSync(join(real.moves, 'harden.move.json'), join(movesDir, 'harden.move.json'));
 for (const f of ['sand.json', 'psyshock.json']) copyFileSync(join(real.approved, f), join(approvedDir, f));
-const realBefore = readFileSync(join(real.moves, 'sand-wave.move.json'), 'utf8');
+const realBefore = readFileSync(realSandWave, 'utf8');
 
 const srv = await startDevServer({port: 0, quiet: true, watchFiles: false, movesDir, approvedDir}), base = `http://127.0.0.1:${srv.port}`;
 let n = 0;const ok = l => {n++;console.log('✓', l);};
@@ -40,7 +42,7 @@ try {
   assert.equal(onDisk.params.rows.find(x => x.key === 'damage').value, 11);
   assert.equal(readFileSync(join(movesDir, 'sand-wave.move.json'), 'utf8'), JSON.stringify(edited, null, 2) + '\n', 'mesma formatação de sempre');
   assert.deepEqual(readdirSync(movesDir).filter(f => f.endsWith('.tmp')), [], 'sem arquivo temporário sobrando');
-  assert.equal(readFileSync(join(real.moves, 'sand-wave.move.json'), 'utf8'), realBefore, 'o arquivo REAL não foi tocado');
+  assert.equal(readFileSync(realSandWave, 'utf8'), realBefore, 'o arquivo REAL não foi tocado');
   ok('grava o move.json (formatação idêntica, atômica, sem .tmp) só na pasta configurada');
 
   // ---- sem mudança ----
@@ -83,6 +85,42 @@ try {
   r = await put('/api/approved/psyshock', {doc: wrongCat, expectHash: (await get('/api/approved/psyshock')).json.hash, confirm: true});assert.equal(r.status, 422, 'categoria diferente do arquivo');
   ok('grava o visual aprovado do atelier validando faixa e categoria');
 
+  // ---- gravação híbrida e detecção de duplicatas (Doc 02) ----
+  const subMoveDir = join(movesDir, 'sand-wave');
+  mkdirSync(subMoveDir);
+  // No momento temos sand-wave.move.json na raiz e a pasta vazia -> lê da raiz normalmente
+  assert.equal((await get('/api/moves/sand-wave')).status, 200);
+
+  // Criamos o arquivo duplicado dentro da subpasta:
+  copyFileSync(join(movesDir, 'sand-wave.move.json'), join(subMoveDir, 'sand-wave.move.json'));
+  // Agora existe duplicata: locate e list devem falhar com 409
+  const dupRead = await get('/api/moves/sand-wave');
+  assert.equal(dupRead.status, 409, 'recusa leitura quando há duplicata raiz e subpasta');
+  assert.match(dupRead.json.error, /duplicado detectado/);
+
+  const dupList = await get('/api/moves');
+  assert.equal(dupList.status, 409, 'recusa listagem quando há duplicata');
+  assert.match(dupList.json.error, /duplicação detectada/);
+
+  // Removemos o arquivo da raiz: agora existe SOMENTE na subpasta (Move migrado)
+  rmSync(join(movesDir, 'sand-wave.move.json'));
+  const subRead = await get('/api/moves/sand-wave');
+  assert.equal(subRead.status, 200, 'lê com sucesso a partir da subpasta');
+  assert.equal(subRead.json.id, 'sand-wave');
+
+  // Grava na subpasta
+  const subEdit = structuredClone(subRead.json.doc);
+  subEdit.params.rows.find(r => r.key === 'damage').value = 15;
+  const subWrite = await put('/api/moves/sand-wave', {doc: subEdit, expectHash: subRead.json.hash, confirm: true});
+  assert.equal(subWrite.status, 200, 'grava com sucesso na subpasta');
+  assert.equal(JSON.parse(readFileSync(join(subMoveDir, 'sand-wave.move.json'), 'utf8')).params.rows.find(x => x.key === 'damage').value, 15);
+  assert.ok(!existsSync(join(movesDir, 'sand-wave.move.json')), 'não recria o arquivo plano na raiz');
+  ok('gravação híbrida: lê e grava em subpasta e recusa com 409 qualquer ambiguidade de duplicatas');
+
+  // Restaura para a raiz para os testes seguintes
+  copyFileSync(join(subMoveDir, 'sand-wave.move.json'), join(movesDir, 'sand-wave.move.json'));
+  rmSync(subMoveDir, {recursive: true, force: true});
+
   // ---- a página injetada sabe que pode gravar ----
   assert.match(await (await fetch(base + '/')).text(), /save:true/);
   ok('o laboratório servido avisa à página que a gravação está disponível');
@@ -90,5 +128,5 @@ try {
   await srv.close();
   rmSync(tmp, {recursive: true, force: true});
 }
-assert.equal(readFileSync(join(real.moves, 'sand-wave.move.json'), 'utf8'), realBefore);
+assert.equal(readFileSync(realSandWave, 'utf8'), realBefore);
 console.log(`\n${n} verificações da API de gravação.`);

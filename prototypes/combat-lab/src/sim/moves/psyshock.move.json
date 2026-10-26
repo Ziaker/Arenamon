@@ -24,6 +24,50 @@
     "hint": "Pedras psíquicas com homing. Segure para carregar, solte para disparar.",
     "rows": [
       {
+        "key": "cost",
+        "label": "Custo de stamina",
+        "tip": "Cobrado ao iniciar a carga (M7.1); interromper a carga não devolve.",
+        "min": 0,
+        "max": 5,
+        "step": 0.05,
+        "unit": "num",
+        "value": 1,
+        "approved": true
+      },
+      {
+        "key": "cooldown",
+        "label": "Cooldown",
+        "tip": "Recarga aplicada ao disparar as pedras (metade se a carga for interrompida, M7.3).",
+        "min": 0,
+        "max": 60,
+        "step": 0.5,
+        "unit": "sec",
+        "value": 8,
+        "approved": true
+      },
+      {
+        "key": "maxCharge",
+        "label": "Carga máxima",
+        "tip": "Tempo máximo de carga: PL1 abaixo de 50%, PL2 de 50% até antes de 100%, PL3 na carga máxima (M19.1).",
+        "min": 0.5,
+        "max": 10,
+        "step": 0.1,
+        "unit": "sec",
+        "value": 4,
+        "approved": true
+      },
+      {
+        "key": "minCharge",
+        "label": "Carga mínima para disparar",
+        "tip": "Tempo mínimo segurando o botão para permitir o disparo (0 = dispara com qualquer tempo).",
+        "min": 0,
+        "max": 4,
+        "step": 0.05,
+        "unit": "sec",
+        "value": 0,
+        "approved": true
+      },
+      {
         "key": "minStones",
         "label": "Pedras iniciais",
         "tip": "Quantidade com carga mínima (M11.1).",
@@ -99,6 +143,26 @@
         "unit": "deg",
         "value": 180,
         "approved": true
+      },
+      {
+        "key": "aimHeightMin",
+        "label": "Mira travada: altura mínima no alvo",
+        "tip": "Fração mínima da altura lógica do alvo sorteada por cada pedra quando há lock-on (M30.8; provisório: 5%).",
+        "min": 0,
+        "max": 1,
+        "step": 0.05,
+        "unit": "pct",
+        "value": 0.05
+      },
+      {
+        "key": "aimHeightMax",
+        "label": "Mira travada: altura máxima no alvo",
+        "tip": "Fração máxima da altura lógica do alvo sorteada por cada pedra quando há lock-on (M30.8; provisório: 95%).",
+        "min": 0,
+        "max": 1,
+        "step": 0.05,
+        "unit": "pct",
+        "value": 0.95
       },
       {
         "key": "fanAngle",

@@ -25,6 +25,39 @@
     "hint": "Barreira refletora frontal. Segure para carregar, solte para criar.",
     "rows": [
       {
+        "key": "cost",
+        "label": "Custo de stamina",
+        "tip": "Cobrado ao iniciar a carga (M7.1); devolvido se falhar ao materializar (M13.7).",
+        "min": 0,
+        "max": 5,
+        "step": 0.05,
+        "unit": "num",
+        "value": 1,
+        "approved": true
+      },
+      {
+        "key": "cooldown",
+        "label": "Cooldown",
+        "tip": "Recarga aplicada na materialização da barreira (metade se interrompida, M7.3).",
+        "min": 0,
+        "max": 60,
+        "step": 0.5,
+        "unit": "sec",
+        "value": 8,
+        "approved": true
+      },
+      {
+        "key": "maxCharge",
+        "label": "Carga máxima",
+        "tip": "Tempo máximo de carga: PL1 abaixo de 50%, PL2 de 50% até antes de 100%, PL3 na carga máxima (M19.1).",
+        "min": 0.5,
+        "max": 10,
+        "step": 0.1,
+        "unit": "sec",
+        "value": 4,
+        "approved": true
+      },
+      {
         "key": "widthMin",
         "label": "Largura mínima",
         "tip": "Múltiplo da largura lógica do personagem com carga mínima (M5.2, M30.4).",
@@ -161,6 +194,26 @@
         "step": 0.25,
         "unit": "m",
         "value": 0
+      },
+      {
+        "key": "burstHeight",
+        "label": "Pulso ao invocar: altura",
+        "tip": "Altura cilíndrica da área do pulso ao materializar (provisório: 3 m).",
+        "min": 0.5,
+        "max": 8,
+        "step": 0.25,
+        "unit": "m",
+        "value": 3
+      },
+      {
+        "key": "burstLife",
+        "label": "Pulso ao invocar: duração",
+        "tip": "Tempo de vida da área do pulso ao materializar (provisório: 0,1 s).",
+        "min": 0.02,
+        "max": 1,
+        "step": 0.02,
+        "unit": "sec",
+        "value": 0.1
       },
       {
         "key": "burstForce",

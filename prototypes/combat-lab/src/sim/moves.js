@@ -100,11 +100,12 @@ export function validateMove(def) {
  */
 export function registerMove(def) {validateMove(def);REGISTRY.set(def.id, Object.freeze(structuredClone(def)));return def.id;}
 export const unregisterMove = id => REGISTRY.delete(id);
-/** Campos da definição que os sliders do grupo (`def.group` → C.world[grupo]) sobrepõem: cost, cooldown, cast (= duration) e cancelAfter. */
+/** Campos da definição que os sliders do grupo (`def.group` ou `def.charge.group` → C.world[grupo]) sobrepõem: cost, cooldown, cast (= duration) e cancelAfter. */
 const GROUP_OVERRIDES = {cost: 'cost', cooldown: 'cooldown', cast: 'duration', cancelAfter: 'cancelAfter'};
-/** Definição EFETIVA: a registrada + sliders do grupo do Move. Sem `group` (Reflect/Psyshock) é a própria definição (zero custo, zero mudança). */
+/** Definição EFETIVA: a registrada + sliders do grupo do Move (`def.group ?? def.charge?.group`). */
 export function effectiveMove(def) {
-  const g = def.group ? C.world[def.group] : null;
+  const grp = def.group ?? def.charge?.group;
+  const g = grp ? C.world[grp] : null;
   if (!g) return def;
   const out = {...def};
   for (const [k, field] of Object.entries(GROUP_OVERRIDES)) if (typeof g[k] === 'number') out[field] = g[k];

@@ -3,11 +3,11 @@
 // (PL2 em 90 passos, PL3 em 180); soltar dispara UM projétil hidráulico reto, sem homing, que acerta o primeiro corpo. Custo e recarga na ATIVAÇÃO da carga
 // (`cooldownOnStart`, norma universal). Decisões provisórias da Rodada 1 (WP-P08 A: o projétil sai no passo da soltura; EL-P04 A: knockback horizontal com vertical 0
 // é o empurrão do motor, 1,5 × H m). A direção 3D e o alvo travado são capturados NA SOLTURA. Valores: C.world.waterPulse, capturados ao apertar (M28.4).
-import {C} from '../config.js';
-import {spawn} from '../world.js';
-import {direction} from '../math.js';
-import {emitterAltitude, spawnPoint, spawnBlocked, straightLaunch, bodyHeight} from './projectile-util.js';
-import {defineFicha} from './params-registry.js';
+import {C} from '../../config.js';
+import {spawn} from '../../world.js';
+import {direction} from '../../math.js';
+import {emitterAltitude, spawnPoint, spawnBlocked, straightLaunch, bodyHeight} from '../projectile-util.js';
+import {defineFicha} from '../params-registry.js';
 import {params, def as waterPulseDef} from './water-pulse.params.js';
 
 export {waterPulseDef};   // definição (id, fases, custo…) vem de water-pulse.move.json
@@ -28,9 +28,10 @@ export function waterPulseEffect(/** @type {any} */ game, /** @type {any} */ f, 
   }
   const nominal = [P.damagePl1, P.damagePl2, P.damagePl3][level - 1], kbH = [P.knockbackPl1, P.knockbackPl2, P.knockbackPl3][level - 1];
   const damage = nominal * f.attributes.attack / C.test.attackReference;   // MV-P13: nominal × Ataque ÷ referência, gravado no disparo (o Ataque não entra de novo no acerto)
+  const scaleBonus = P.plScaleBonus ?? .25;
   const e = spawn(game.world, {
-    kind: 'projectile', owner: f.id, pos, y: y0, radius: P.radius, dir, speed: hSpeed, vy, life: P.range / P.speed + dt * .5, pierce: 1, blockedBy: ['barrier', 'wall'],
-    hit: {damage, knockback: {horizontal: kbH, vertical: P.knockbackV ?? 0}}, pl: level, clashable: true, visual: 'waterorb', visualScale: 1 + (level - 1) * .25,
+    kind: 'projectile', owner: f.id, pos, y: y0, radius: P.radius, dir, speed: hSpeed, vy, life: P.range / P.speed + dt * .5, pierce: Math.max(1, Math.round(P.pierce ?? 1)), blockedBy: ['barrier', 'wall'],
+    hit: {damage, knockback: {horizontal: kbH, vertical: P.knockbackV ?? 0}}, pl: level, clashable: true, visual: 'waterorb', visualScale: 1 + (level - 1) * scaleBonus,
     captured: {attackFraction: nominal / C.test.attackReference, successiveFactor: 1, level, move: def.id, speed: P.speed, counterStagger: P.counterStagger},
   }, fx.events ?? []);
   if (!e) return {ok: false, reason: 'entityLimit'};

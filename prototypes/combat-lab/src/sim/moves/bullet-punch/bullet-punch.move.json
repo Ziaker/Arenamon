@@ -191,7 +191,8 @@
         "label": "Linhas de velocidade no sumiço",
         "tip": "Desenha linhas de velocidade do ponto de partida até o alvo enquanto o lutador some (e outras na volta, no Quick Attack). Só aparência.",
         "unit": "yesno",
-        "value": 1
+        "value": 1,
+        "consumer": "src/view/aim-marker-view.js:pathOf"
       },
       {
         "min": 0,
@@ -201,7 +202,8 @@
         "label": "Ocultar o corpo durante o sumiço",
         "tip": "Liga/desliga o desaparecimento visual do corpo (a simulação não muda). Só aparência.",
         "unit": "yesno",
-        "value": 1
+        "value": 1,
+        "consumer": "src/view/view.js:update (corpo sumido)"
       },
       {
         "min": 0,
@@ -212,6 +214,36 @@
         "tip": "Altura de alvo em voo que o Move consegue adquirir e acertar (0 = só no chão). Padrão: 3 m.",
         "unit": "m",
         "value": 3
+      },
+      {
+        "min": 0.05,
+        "max": 1,
+        "step": 0.05,
+        "key": "rayStep",
+        "label": "Passo da varredura contra paredes (técnico)",
+        "tip": "Passo ao longo do trajeto para detectar o primeiro obstáculo sólido antes da chegada (padrão: 0,25 m).",
+        "unit": "m",
+        "value": 0.25
+      },
+      {
+        "min": 1,
+        "max": 12,
+        "step": 0.5,
+        "key": "freeSearchRadius",
+        "label": "Raio máximo de busca por espaço livre (técnico)",
+        "tip": "Raio máximo em metros para procurar um ponto livre ao redor do destino de chegada (padrão: 6 m).",
+        "unit": "m",
+        "value": 6
+      },
+      {
+        "min": 0.05,
+        "max": 1,
+        "step": 0.05,
+        "key": "freeSearchStep",
+        "label": "Passo da busca por espaço livre (técnico)",
+        "tip": "Distância entre os anéis concêntricos na busca por espaço livre na chegada (padrão: 0,25 m).",
+        "unit": "m",
+        "value": 0.25
       }
     ]
   }

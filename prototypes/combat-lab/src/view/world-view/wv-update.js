@@ -4,6 +4,7 @@
 import * as T from 'three';
 import {C} from '../../sim/config.js';
 import {altitudeOf} from '../../sim/entity.js';
+import {sandFrontAt} from '../../sim/sand.js';
 import {reflectPlacement} from '../../sim/moves/reflect.js';
 import {stoneCount} from '../../sim/moves/psyshock.js';
 import {updateElemental} from '../elemental-fx.js';
@@ -24,7 +25,7 @@ update(world, {fighters = [], events = [], dt = 0, skipBeams = false, camera = n
     for (const e of world?.entities ?? []) {
       alive.add(e.id);
       // Água/Fogo/Vento são desenhados pela camada three.quarks (elemental-game.js); o Seed Bomb segue no desenho provisório.
-      if (this.elementalFx.handles(e) || this.atelierFx.handles(e)) {
+      if (this.movesVfx?.handles(e) || this.elementalFx.handles(e) || this.atelierFx.handles(e)) {
         const stale = this.meshes.get(e.id);
         if (stale) {
           this.group.remove(stale);
@@ -105,7 +106,7 @@ update(world, {fighters = [], events = [], dt = 0, skipBeams = false, camera = n
       } else if (e.kind === 'sandwave') {
         // retângulo real (comprimento à frente × largura), com a frente da onda avançando na velocidade do motor e dissipando nos 0,75 s finais
         m.position.set(e.pos.x, .03, e.pos.z);m.rotation.y = Math.atan2(e.dir.x, e.dir.z);
-        const act = Math.min(e.age, e.active), fade = e.age <= e.active ? 1 : Math.max(0, 1 - (e.age - e.active) / Math.max(1e-6, e.life - e.active)), reach = e.speed * act;
+        const act = Math.min(e.age, e.active), fade = e.age <= e.active ? 1 : Math.max(0, 1 - (e.age - e.active) / Math.max(1e-6, e.life - e.active)), reach = sandFrontAt(e, act);
         for (const c of m.children) {
           if (c.name === 'sandPlane') {c.scale.set(e.width, 1, Math.max(.01, reach));c.position.z = reach / 2;c.material.opacity = .28 * fade;}
           else if (c.name === 'sandFront') {c.scale.set(e.width, 1, 1);c.position.set(0, .25, reach);c.visible = e.age <= e.active;c.material.opacity = .55 * fade;}
@@ -167,8 +168,12 @@ update(world, {fighters = [], events = [], dt = 0, skipBeams = false, camera = n
     }
 
     // Efeitos elementais em three.quarks: cria/atualiza os que seguem entidades e mantém o contato delas.
-    this.elementalFx.sync(world?.entities ?? [], dt, fxAcc);
-    this.atelierFx.sync(world?.entities ?? [], dt, fxAcc, fighters);
+    if (this.movesVfx) {
+      this.movesVfx.sync(world?.entities ?? [], dt, fxAcc, fighters);
+    }
+    const unmigrated = this.movesVfx ? this.movesVfx.filterUnmigrated(world?.entities ?? []) : (world?.entities ?? []);
+    this.elementalFx.sync(unmigrated, dt, fxAcc);
+    this.atelierFx.sync(unmigrated, dt, fxAcc, fighters);
 
     // Eventos novos viram anéis e geram estilhaços/shatter de rochas e barreiras
     for (const ev of events) {
@@ -177,7 +182,9 @@ update(world, {fighters = [], events = [], dt = 0, skipBeams = false, camera = n
       const spec = RING[ev.result];
       const m = this.meshes.get(ev.entity), f = FIGHTER_EVENTS.has(ev.result) ? fighters[ev.target] : null;
       const be = ev.kind === 'beam' && ev.seg != null ? world?.entities.find(x => x.id === ev.entity) : null, bp = be?.segments?.[ev.seg]?.b;
-      const pos = bp ? {x: bp.x, y: be.y, z: bp.z} : f ? {x: f.position.x, y: .6, z: f.position.z} : m ? m.position : this.elementalFx.positionOf(ev.entity) ?? this.atelierFx.positionOf(ev.entity);
+      const evPos = (Number.isFinite(ev.x) && Number.isFinite(ev.z)) ? {x: ev.x, y: ev.y ?? .6, z: ev.z} : null;
+      const pos = evPos ?? (bp ? {x: bp.x, y: be.y, z: bp.z} : f ? {x: f.position.x, y: .6, z: f.position.z} : m ? m.position : (this.movesVfx?.positionOf(ev.entity) ?? this.elementalFx.positionOf(ev.entity) ?? this.atelierFx.positionOf(ev.entity)));
+      this.movesVfx?.onEvent(ev);
       if (!pos) continue;
 
       const evColor = spec ? (spec[0] ?? PL_HEX[Math.min(3, ev.barrierPl ?? ev.pl ?? 1)]) : 0xffffff;

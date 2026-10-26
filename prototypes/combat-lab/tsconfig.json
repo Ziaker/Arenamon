@@ -7,7 +7,15 @@
     "alwaysStrict": true,
     "noImplicitAny": false,
     "strictNullChecks": true,
-    "lib": ["ES2022", "DOM"]
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "lib": [
+      "ES2022",
+      "DOM"
+    ]
   },
-  "include": ["src/sim/**/*.js", "src/sim/**/*.d.ts"]
+  "include": [
+    "src/sim/**/*.js",
+    "src/sim/**/*.d.ts"
+  ]
 }

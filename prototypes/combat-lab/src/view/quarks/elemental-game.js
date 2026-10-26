@@ -37,7 +37,8 @@ export class ElementalGameFx {
   /** A entidade é desenhada por esta camada? (Seed Bomb e Seed Blast ficam de fora.) */
   handles(e) {
     if (!this.enabled || !e) return false;
-    if (e.kind === 'projectile') return e.visual === 'waterorb' || e.visual === 'airslash' || e.visual === 'seed';
+    // Water Pulse é gerenciado exclusivamente por moves-vfx-registry.js (Documento 02).
+    if (e.kind === 'projectile') return e.visual === 'airslash' || e.visual === 'seed';
     // Explosão da semente: o efeito novo vem do contato() da semente. Quando a semente toca o CHÃO (groundHit), o desenho provisório antigo também aparece, junto com o novo.
     if (e.kind === 'area' && e.visual === 'seedblast') return !e.groundHit;
     if (e.kind === 'area') return e.visual === 'firespin';

@@ -6,14 +6,14 @@
 // dele no instante do desaparecimento) e reaparece. O golpe (Tackle PL2 curto, `strikeReach` m, com a velocidade, invulnerabilidade, dano, knockback e recuperação do Tackle) começa NO MOMENTO
 // da chegada. Quem estiver no caminho da corrida invisível é atingido e a corrida PARA ali: o lutador reaparece no ponto do contato e golpeia esse adversário.
 // A velocidade de impacto do knockback tem slider próprio (`impactMult`). Valores: C.world.bulletPunch, capturados no uso.
-import {C} from '../config.js';
-import {startTackleAt} from '../controller.js';
-import {nominalDistance, altitudeOf} from '../entity.js';
-import {getGroundHeight} from '../physics.js';
-import {effectiveArenaRadius} from '../map.js';
-import {solidsOf, insideSolid} from '../vision.js';
-import {angleOf, sub} from '../math.js';
-import {defineFicha} from './params-registry.js';
+import {C} from '../../config.js';
+import {startTackleAt} from '../../controller.js';
+import {nominalDistance, altitudeOf} from '../../entity.js';
+import {getGroundHeight} from '../../physics.js';
+import {effectiveArenaRadius} from '../../map.js';
+import {solidsOf, insideSolid} from '../../vision.js';
+import {angleOf, sub} from '../../math.js';
+import {defineFicha} from '../params-registry.js';
 import {params, def as bulletPunchDef} from './bullet-punch.params.js';
 
 export {bulletPunchDef};   // definição (id, fases, custo…) vem de bullet-punch.move.json
@@ -38,7 +38,7 @@ export function bulletPunchVanish(/** @type {any} */ game, /** @type {any} */ f,
   let to = {x: f.position.x, z: f.position.z};
   if (tgt) {
     const dx = tgt.position.x - f.position.x, dz = tgt.position.z - f.position.z, d = Math.hypot(dx, dz) || 1e-6, stop = P.stopShort ?? 1.1, run = Math.min(Math.max(0, d - stop), (P.reach ?? 6) + stop);
-    to = nearestFree(game, f, firstFree(game, f.position, {x: f.position.x + dx / d * run, z: f.position.z + dz / d * run}));
+    to = nearestFree(game, f, firstFree(game, f.position, {x: f.position.x + dx / d * run, z: f.position.z + dz / d * run}, P), P);
   }
   if (f.action) f.action.travel = {from: {x: f.position.x, z: f.position.z}, to, t0: f.action.elapsed, time: Math.max(1e-6, P.vanish),
     airFrom: f.vaultHeight ?? 0, airTo: tgt ? Math.max(0, altitudeOf(tgt) - (f.groundY ?? 0)) : 0};   // anti-aéreo: a corrida invisível sobe até o alvo
@@ -46,21 +46,23 @@ export function bulletPunchVanish(/** @type {any} */ game, /** @type {any} */ f,
 }
 
 /** Último ponto da reta a→b antes do primeiro sólido (parede, obstáculo, destrutível): a corrida invisível NÃO atravessa paredes (como o Quick Attack). Plataformas não bloqueiam. */
-function firstFree(/** @type {any} */ game, /** @type {{x: number, z: number}} */ a, /** @type {{x: number, z: number}} */ b) {
+function firstFree(/** @type {any} */ game, /** @type {{x: number, z: number}} */ a, /** @type {{x: number, z: number}} */ b, /** @type {Record<string, any>} */ P = C.world.bulletPunch) {
   const solids = solidsOf(game.world);if (!solids.length) return b;
-  const len = Math.hypot(b.x - a.x, b.z - a.z), n = Math.max(1, Math.ceil(len / .25)), m = C.test.halfExtent * .9;
+  const step = Math.max(.05, P?.rayStep ?? .25);
+  const len = Math.hypot(b.x - a.x, b.z - a.z), n = Math.max(1, Math.ceil(len / step)), m = C.test.halfExtent * .9;
   let last = {x: a.x, z: a.z};
   for (let i = 1; i <= n; i++) {const p = {x: a.x + (b.x - a.x) * i / n, z: a.z + (b.z - a.z) * i / n};if (insideSolid(solids, p, m)) return last;last = p;}
   return b;
 }
 
-/** Ponto livre mais próximo do desejado (arena, sólidos e outros corpos), em anéis de 0,25 m; determinístico. */
-function nearestFree(/** @type {any} */ game, /** @type {any} */ f, /** @type {{x: number, z: number}} */ want) {
+/** Ponto livre mais próximo do desejado (arena, sólidos e outros corpos), em anéis configuráveis; determinístico. */
+function nearestFree(/** @type {any} */ game, /** @type {any} */ f, /** @type {{x: number, z: number}} */ want, /** @type {Record<string, any>} */ P = C.world.bulletPunch) {
   const solids = solidsOf(game.world), lim = effectiveArenaRadius() - C.test.halfExtent, h = C.test.halfExtent;
   const ok = (/** @type {{x: number, z: number}} */ p) => Math.hypot(p.x, p.z) <= lim && !insideSolid(solids, p, h * .9)
     && game.fighters.every((/** @type {any} */ o) => o === f || o.hp <= 0 || o.absent || o.flight || Math.hypot(o.position.x - p.x, o.position.z - p.z) >= 2 * h * .98);
   if (ok(want)) return want;
-  for (let r = .25; r <= 6; r += .25) {
+  const step = Math.max(.05, P?.freeSearchStep ?? .25), maxR = P?.freeSearchRadius ?? 6;
+  for (let r = step; r <= maxR + 1e-9; r += step) {
     const n = Math.max(8, Math.round(r * 16));
     for (let i = 0; i < n; i++) {
       const a = (i / n) * Math.PI * 2, p = {x: want.x + Math.sin(a) * r, z: want.z + Math.cos(a) * r};
@@ -104,7 +106,7 @@ export function bulletPunchReturn(/** @type {any} */ game, /** @type {any} */ f,
   if (f.hp <= 0) return;
   const blocker = fx.arrive?.hitId != null ? game.fighters.find((/** @type {any} */ o) => o.id === fx.arrive.hitId && o.hp > 0) : null;
   const tgt = blocker ?? targetOf(game, f, fx);
-  const pos = nearestFree(game, f, f.position);
+  const pos = nearestFree(game, f, f.position, P);
   f.position = {x: pos.x, z: pos.z};
   f.groundY = getGroundHeight(f.position, game.world, (f.groundY ?? 0) + (P.maxRise ?? 2));   // sem subir plataformas altas de graça: o apoio vale até `maxRise` acima de onde o lutador estava
   f.velocity = {x: 0, z: 0};f.locomotionVelocity = {x: 0, z: 0};

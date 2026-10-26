@@ -4,7 +4,7 @@
 // Water Pulse: Charge Projectile. Carga máx. 1,5 s (180 passos; PL2 em 90, PL3 em 180), custo e recarga na ativação, 6/9/12 HP nominais, empurrão H 2/3/4 (V 0 ⇒ o motor empurra 1,5 × H m),
 // projétil de raio 0,38 m a 14 m/s e alcance 12 m (lifetime = alcance ÷ velocidade), recuperação de 0,30 s a partir da soltura. originHeight/spawnForward: nascimento (não definidos no prompt).
 // (Move como dado) Os parâmetros e a definição vêm de water-pulse.move.json: edite lá ou no Editor de Moves.
-import {loadMoveData} from './move-data.js';
+import {loadMoveData} from '../move-data.js';
 import data from './water-pulse.move.json' with {type: 'json'};
 
 const loaded = loadMoveData(data);

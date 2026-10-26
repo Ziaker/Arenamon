@@ -1,0 +1,38 @@
+{
+  "version": "1.39.0",
+  "editor_sections": [
+    "Recursos",
+    "Preparação",
+    "Dano",
+    "Hitboxes",
+    "Knockback",
+    "Movimentação",
+    "Projéteis",
+    "Área e persistência",
+    "Status",
+    "Defesa e Counter",
+    "Cancelamentos",
+    "Alvo e mira",
+    "Ambiente e colisão",
+    "Eventos e múltiplos hits",
+    "IA do Move",
+    "Interações globais"
+  ],
+  "roundtrip_verified": {
+    "sand-wave": {
+      "schemaValid": true,
+      "bytesPreserved": true,
+      "inputsSynced": true
+    },
+    "bullet-punch": {
+      "schemaValid": true,
+      "bytesPreserved": true,
+      "inputsSynced": true
+    },
+    "water-pulse": {
+      "schemaValid": true,
+      "bytesPreserved": true,
+      "inputsSynced": true
+    }
+  }
+}

@@ -169,7 +169,7 @@ export function prepareScenario(def, game) {
         if (f.state === 'landing' && f.knockRecovery > 0 && !game.frozen) log.landingTicks[i]++;
         log.damageTaken[i] = start[i].hp - f.hp;
         if (f.action && f.action !== lastAction[i] && (f.action.kind === 'dodge' || f.action.kind === 'tackle')) {log.actionsStarted[i]++;if ((f.action.speedMultiplier ?? 1) > 1) log.counterSpeed = f.action.speedMultiplier;}
-        lastAction[i] = f.action;if (f.exhausted) log.wasExhausted[i] = true;if (f.state === 'landing' && !f.flight && f.knockRecovery > 0 && f.hp > 0 && !log.flew[i]) log.exhaustTicks[i]++;
+        lastAction[i] = f.action;if (f.exhausted) log.wasExhausted[i] = true;if ((f.state === 'recover' || f.state === 'landing') && !f.flight && f.knockRecovery > 0 && f.hp > 0 && !log.flew[i]) log.exhaustTicks[i]++;
       });
       if (game.frozen) log.hitstopTicks++;
       log.staminaBefore = game.fighters[0].stamina;

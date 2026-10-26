@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "checkJs": true,
+    "strict": true,
+    "noImplicitAny": true,
+    "noEmit": true,
+    "skipLibCheck": true
+  },
+  "files": [
+    "src/sim/moves/sand-wave/sand-wave.vfx.js",
+    "src/sim/moves/bullet-punch/bullet-punch.vfx.js",
+    "src/sim/moves/water-pulse/water-pulse.vfx.js",
+    "src/view/moves-vfx-registry.js"
+  ]
+}

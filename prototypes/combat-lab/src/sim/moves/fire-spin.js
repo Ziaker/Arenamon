@@ -25,7 +25,7 @@ export function fireSpinEffect(/** @type {any} */ game, /** @type {any} */ f, /*
   const damage = P.damage * f.attributes.attack / C.test.attackReference;   // MV-P13
   const e = spawn(game.world, {
     kind: 'area', owner: f.id, pos: {...m.pos}, y: v.y, radius: P.zoneRadius, height: P.zoneHeight, life: P.life, pulses, interval: P.interval, startup, falloff: 'none',
-    hit: {damage, knockback: {horizontal: P.knockbackH ?? 0, vertical: P.knockbackV ?? 0}, guardStun: P.guardStun}, support: true, occlusion: P.occlusion ? 1 : 0, pl: 1, visual: 'firespin', captured: {move: def.id},
+    hit: {damage, knockback: {horizontal: P.knockbackH ?? 0, vertical: P.knockbackV ?? 0}, guardStun: P.guardStun}, support: true, occlusion: P.occlusion ? 1 : 0, pl: P.pulsePl ?? 1, visual: 'firespin', captured: {move: def.id},
   }, fx.events ?? []);
   if (!e) return {ok: false, reason: 'entityLimit'};
 }

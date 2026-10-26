@@ -20,7 +20,7 @@ export function emergingStoneEffect(/** @type {any} */ game, /** @type {any} */ 
   const from = {x: f.position.x, z: f.position.z, y: (f.groundY ?? 0) + (f.vaultHeight ?? 0)}, to = {x: m.pos.x, z: m.pos.z, y: m.y ?? 0};
   const total = Math.hypot(to.x - from.x, to.z - from.z, to.y - from.y);
   const e = spawn(game.world, {
-    kind: 'burrow', owner: f.id, pos: {x: from.x, z: from.z}, from, to, total, travelled: 0, speed: P.speed, life: 120, params: structuredClone(P),
+    kind: 'burrow', owner: f.id, pos: {x: from.x, z: from.z}, from, to, total, travelled: 0, speed: P.speed, life: P.burrowMaxLife ?? 120, params: structuredClone(P),
     damage: P.damage * f.attributes.attack / C.test.attackReference,   // MV-P13
     visual: 'burrow', captured: {move: def.id},
   }, fx.events ?? []);

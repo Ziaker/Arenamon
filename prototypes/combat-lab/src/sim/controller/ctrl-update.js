@@ -13,6 +13,7 @@ import {canSee} from '../vision.js';
 import {isAirJump, airKind} from '../air.js';
 import {ledgeUpdate} from '../ledge.js';
 import {approachVelocity, costOf, isDepleted, lastBufferReason, locomotionParams, sprintDenied, staminaReason, startPermission, turnToward, walkSpeed} from './ctrl-basico.js';
+import {applySandPushStep} from '../moves/sand-wave/sand-push.js';
 import {aimSlam, aimSlamDive, airSkillStep, applyTacklePL, armTechRecovery, canFeint, cancelTackleCharge, doFeint, feintDirection, startNormalJump, startSlamFromFlight, startTackleCharge, stepTackleCharge} from './ctrl-tackle.js';
 import {bufferedSkill, cancelAim, cancelCharge, pressSkill, stepAim, stepCharge, updateMove} from './ctrl-moves.js';
 
@@ -63,6 +64,7 @@ export function updateFighter(f, cmd, fighters, dt, world = null) {
   if (f.charge && ((f.flight && !isAirJump(f)) || f.knockRecovery > 0 || f.hp <= 0)) cancelCharge(f, f.hp <= 0 ? 'defeated' : 'hit');   // golpe com lançamento, recuperação ou perda de apoio (M15.3, M27.1)
   if (f.aim?.castFirst && f.hp > 0) stepAim(f, cmd, length(cmd.move) > 1 ? normalize(cmd.move) : cmd.move, {desiredHeading: f.facing, hasTarget: false, fighters, world, dt, diag});   // cast do Emerging Stone corre também no ar
   if (ledgeUpdate(f, cmd, fighters, world, dt, diag)) return;   // Ledge Grab: pendurado/subindo, ou acabou de agarrar neste passo (ledge.js)
+  if (f.hp <= 0) {f.state = 'defeated';f.velocity = vec();f.action = null;f.push = null;f.vaultHeight = 0;f.bufferedTackle = null;return;}
   if (f.flight) {
     // Meteor slam de quem está no ar (salto normal com Espaço ou lançado): X no ar vira mergulho oblíquo (não vale preso na parede nem sem stamina).
     if (isSlamTrigger) {
@@ -114,7 +116,15 @@ export function updateFighter(f, cmd, fighters, dt, world = null) {
   // Derrota tem prioridade sobre recuperação: um lutador derrotado não pode ficar pendurado em
   // knockRecovery/landing — o estado físico precisa corresponder ao fato imediatamente (§22/§23).
   if (f.hp <= 0) {f.state = 'defeated';f.velocity = vec();f.action = null;f.push = null;f.vaultHeight = 0;f.bufferedTackle = null;return;}
-  if (f.knockRecovery > 0) {f.knockRecovery = Math.max(0, f.knockRecovery - dt);if (f.knockRecovery <= 0) f.recoveryFrom = null;f.vaultHeight = 0;f.velocity = vec();f.locomotionVelocity = vec();f.action = null;f.guard = false;f.bufferedTackle = null;f.state = f.brakeLeft > 0 ? 'brake' : 'landing';f.brakeLeft = Math.max(0, (f.brakeLeft ?? 0) - dt);return;}
+  if (f.knockRecovery > 0) {
+    f.knockRecovery = Math.max(0, f.knockRecovery - dt);if (f.landingRecovery > 0) f.landingRecovery = Math.max(0, f.landingRecovery - dt);if (f.hitstun > 0) f.hitstun = Math.max(0, f.hitstun - dt);if (f.stagger > 0) f.stagger = Math.max(0, f.stagger - dt);if (f.exhaustRecovery > 0) f.exhaustRecovery = Math.max(0, f.exhaustRecovery - dt);if (f.actionRecovery > 0) f.actionRecovery = Math.max(0, f.actionRecovery - dt);if (f.pushRecovery > 0) f.pushRecovery = Math.max(0, f.pushRecovery - dt);if (f.knockRecovery <= 0) {f.recoveryFrom = null;f.recoveryKind = null;f.landingRecovery = 0;f.hitstun = 0;f.stagger = 0;f.counterStagger = 0;f.exhaustRecovery = 0;f.actionRecovery = 0;f.pushRecovery = 0;}f.vaultHeight = 0;f.action = null;f.guard = false;f.bufferedTackle = null;f.brakeLeft = Math.max(0, (f.brakeLeft ?? 0) - dt);
+    // Política do Sand Wave: a recuperação/stagger só interrompe a força quando a ficha manda. Com continuidade ligada,
+    // o alvo continua sendo empurrado mesmo preso na parede (a colisão ainda limita o deslocamento real).
+    if (f.sandPush?.continuesDuringStagger) {applySandPushStep(f, dt);f.velocity = {...f.locomotionVelocity};f.state = (f.recoveryKind === 'stagger' || (f.stagger ?? 0) > 0) ? 'stagger' : 'pushed';}
+    else if (f.push) {f.state = 'pushed';}
+    else {f.velocity = vec();f.locomotionVelocity = vec();f.state = f.brakeLeft > 0 ? 'brake' : (f.recoveryKind === 'landing' ? 'landing' : (f.recoveryKind === 'stagger' || (f.stagger ?? 0) > 0 || (f.counterStagger ?? 0) > 0) ? 'stagger' : (f.recoveryKind === 'hitstun' || (f.hitstun ?? 0) > 0) ? 'hitstun' : (f.recoveryKind === 'exhaust' || (f.exhaustRecovery ?? 0) > 0) ? 'recover' : (f.recoveryKind === 'action' || f.recoveryFrom) ? 'actionRecovery' : (f.recoveryKind === 'pushed') ? 'pushed' : 'hitstun');}
+    return;
+  }
   const target = fighters.find(o => o.id === cmd.target && o.hp > 0);
   const inputMove = length(cmd.move) > 1 ? normalize(cmd.move) : cmd.move;
   const move = f.aim && !f.aim.free ? vec() : inputMove;   // mirando com marcador, a direção move o marcador e o corpo fica parado (MV-P29)
@@ -333,8 +343,8 @@ export function updateFighter(f, cmd, fighters, dt, world = null) {
     }
   } else {
     const walk = walkSpeed(f), vMax = f.sprinting ? f.attributes.speed * S.speedMultiplier : walk, before = f.locomotionVelocity;
-    if (f.sandPush && !(f.stun > 1e-8 || hasFlag(f, 'stunned'))) {   // empurrado pela areia: sem controle de deslocamento; a velocidade ganha se mantém depois (atrito normal)
-      f.locomotionVelocity = add(f.locomotionVelocity, scale(f.sandPush.dir, f.sandPush.accel * dt));f.desiredVelocity = vec();f.locoPhase = 'sandPush';
+    if (f.sandPush && (!(f.stun > 1e-8 || hasFlag(f, 'stunned')) || f.sandPush.continuesDuringStagger)) {   // empurrado pela areia: sem controle de deslocamento; a velocidade ganha se mantém depois (atrito normal)
+      applySandPushStep(f, dt);f.desiredVelocity = vec();f.locoPhase = 'sandPush';
     } else if (f.stun > 1e-8 || hasFlag(f, 'stunned')) {f.locomotionVelocity = vec();f.locoPhase = 'stun';f.desiredVelocity = vec();}
     else if (hasFlag(f, 'rooted')) {const r = locomotionStep(f.locomotionVelocity, vec(), walk, locomotionParams(f), dt);f.locomotionVelocity = r.velocity;f.desiredVelocity = vec();f.locoPhase = 'rooted';}
     else if (L.model !== 1) {f.locomotionVelocity = approachVelocity(f.locomotionVelocity, scale(move, walk), dt);f.desiredVelocity = scale(move, walk);f.locoPhase = length(move) ? 'legacy' : 'idle';}
@@ -351,7 +361,7 @@ export function updateFighter(f, cmd, fighters, dt, world = null) {
       f.velocity = {x: f.blend.from.x * (1 - amount) + f.velocity.x * amount, z: f.blend.from.z * (1 - amount) + f.velocity.z * amount};
       f.blend.elapsed += dt;if (f.blend.elapsed >= R.blend - 1e-8) f.blend = null;
     }
-    f.state = f.stun > 1e-8 ? 'guardStun' : f.guard ? 'guard' : f.push ? 'pushed' : length(move) ? 'moving' : 'neutral';
+    f.state = f.stun > 1e-8 ? 'guardStun' : f.guard ? 'guard' : (f.push || f.sandPush) ? 'pushed' : length(move) ? 'moving' : 'neutral';
   }
   f.visualFacing += clamp(angleDelta(f.visualFacing, f.facing), -C.locomotion.visualTurnRate * dt, C.locomotion.visualTurnRate * dt);
 }
@@ -416,9 +426,9 @@ export function advanceAction(f, dt) {
   if (done) {
     const wasExhausted = f.exhausted && (kind === 'dodge' || kind === 'tackle'), wasSlam = !!f.action.slam;
     f.action = null;f.velocity = vec();f.vaultHeight = 0;f.state = f.hp <= 0 ? 'defeated' : 'neutral';
-    if (wasExhausted && f.hp > 0) f.knockRecovery = Math.max(f.knockRecovery, C.extras.combat.exhaustRecovery);
+    if (wasExhausted && f.hp > 0) {const exh = C.extras.combat.exhaustRecovery;f.knockRecovery = Math.max(f.knockRecovery, exh);f.exhaustRecovery = Math.max(f.exhaustRecovery ?? 0, exh);f.recoveryKind = 'exhaust';f.state = 'recover';}
     const recovery = spec.recovery;
-    if (recovery > 0 && f.hp > 0 && !wasSlam) f.knockRecovery = Math.max(f.knockRecovery, recovery);   // o meteor slam já passou pelo estado meteorGround: sem recuperação extra de 'aterrissar'
+    if (recovery > 0 && f.hp > 0 && !wasSlam) {f.knockRecovery = Math.max(f.knockRecovery, recovery);f.actionRecovery = Math.max(f.actionRecovery ?? 0, recovery);f.recoveryKind = 'action';f.state = 'actionRecovery';}   // o meteor slam já passou pelo estado meteorGround: sem recuperação extra de 'aterrissar'
     // A animação segura a pose final da ação durante essa recuperação (não troca para “levantar”).
     f.recoveryFrom = f.knockRecovery > 0 && kind !== 'recoil' && kind !== 'move' ? kind : null;
     if (wasSlam && f.jumpState) {

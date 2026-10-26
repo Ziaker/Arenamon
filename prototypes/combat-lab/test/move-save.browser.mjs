@@ -4,7 +4,7 @@
 // ficam desligados e explicam. Usa PASTAS TEMPORÁRIAS: os arquivos reais do projeto não são tocados.
 import {chromium} from '@playwright/test';
 import {pathToFileURL, fileURLToPath} from 'node:url';
-import {mkdtempSync, mkdirSync, copyFileSync, readdirSync, readFileSync, writeFileSync, rmSync} from 'node:fs';
+import {mkdtempSync, mkdirSync, copyFileSync, readdirSync, readFileSync, writeFileSync, rmSync, existsSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {startDevServer} from '../dev-server.mjs';
@@ -17,10 +17,25 @@ const check = (label, ok, detail = '') => {ok ? passed++ : failed++;(ok ? consol
 
 const tmp = mkdtempSync(join(tmpdir(), 'arenamon-save-ui-')), movesDir = join(tmp, 'moves'), approvedDir = join(tmp, 'approved');
 mkdirSync(movesDir);mkdirSync(approvedDir);
-for (const f of readdirSync(join(root, 'src/sim/moves')).filter(f => f.endsWith('.move.json'))) copyFileSync(join(root, 'src/sim/moves', f), join(movesDir, f));
+const realMovesDir = join(root, 'src/sim/moves');
+for (const entry of readdirSync(realMovesDir, {withFileTypes: true})) {
+  if (entry.isDirectory()) {
+    const subJson = join(realMovesDir, entry.name, entry.name + '.move.json');
+    if (existsSync(subJson)) {
+      mkdirSync(join(movesDir, entry.name), {recursive: true});
+      copyFileSync(subJson, join(movesDir, entry.name, entry.name + '.move.json'));
+    }
+  } else if (entry.isFile() && entry.name.endsWith('.move.json')) {
+    copyFileSync(join(realMovesDir, entry.name), join(movesDir, entry.name));
+  }
+}
 for (const f of readdirSync(join(root, '../sand-stone-lab/approved')).filter(f => f.endsWith('.json'))) copyFileSync(join(root, '../sand-stone-lab/approved', f), join(approvedDir, f));
-const realSand = readFileSync(join(root, 'src/sim/moves/sand-wave.move.json'), 'utf8');
-const mv = id => JSON.parse(readFileSync(join(movesDir, id + '.move.json'), 'utf8'));
+const realSandPath = existsSync(join(root, 'src/sim/moves/sand-wave/sand-wave.move.json')) ? join(root, 'src/sim/moves/sand-wave/sand-wave.move.json') : join(root, 'src/sim/moves/sand-wave.move.json');
+const realSand = readFileSync(realSandPath, 'utf8');
+const mv = id => {
+  const p = existsSync(join(movesDir, id, id + '.move.json')) ? join(movesDir, id, id + '.move.json') : join(movesDir, id + '.move.json');
+  return JSON.parse(readFileSync(p, 'utf8'));
+};
 const row = (d, k) => d.params.rows.find((/** @type {any} */ r) => r.key === k);
 
 console.log('\n--- NAVEGADOR: GRAVAR NO DISCO PELO EDITOR ---\n');
@@ -78,7 +93,7 @@ try {
   await page.click('#editor-confirm-ok');
   await page.waitForFunction(() => /Gravado em/.test(document.getElementById('editor-status').textContent), null, {timeout: 10000});
   check('confirmar grava o move.json no disco com o dano 14 (e só ele)', row(mv('sand-wave'), 'damage').value === 14 && row(mv('sand-wave'), 'cooldown').value === 10 && JSON.stringify(mv('sand-wave').def) === JSON.stringify(JSON.parse(realSand).def));
-  check('o arquivo REAL do projeto não foi tocado (a gravação foi na pasta temporária)', readFileSync(join(root, 'src/sim/moves/sand-wave.move.json'), 'utf8') === realSand);
+  check('o arquivo REAL do projeto não foi tocado (a gravação foi na pasta temporária)', readFileSync(realSandPath, 'utf8') === realSand);
   check('o editor guarda em qual Move estava para reabrir depois do recarregamento', await L(() => sessionStorage.getItem('arenamon.editor.reopen')) === 'sand-wave');
   await page.click('#editor-save-move');
   await page.waitForFunction(() => /Nada para gravar/.test(document.getElementById('editor-status').textContent), null, {timeout: 10000});
@@ -88,7 +103,8 @@ try {
   await setSlider('world.sandWave.damage', 20);
   await page.click('#editor-save-move');
   await page.waitForSelector('#editor-confirm[open]');
-  const ext = mv('sand-wave');row(ext, 'cooldown').value = 9;writeFileSync(join(movesDir, 'sand-wave.move.json'), JSON.stringify(ext, null, 2) + '\n');
+  const ext = mv('sand-wave');row(ext, 'cooldown').value = 9;const pSw = existsSync(join(movesDir, 'sand-wave/sand-wave.move.json')) ? join(movesDir, 'sand-wave/sand-wave.move.json') : join(movesDir, 'sand-wave.move.json');
+  writeFileSync(pSw, JSON.stringify(ext, null, 2) + '\n');
   await page.click('#editor-confirm-ok');
   await page.waitForFunction(() => /mudou no disco/.test(document.getElementById('editor-status').textContent), null, {timeout: 10000});
   check('conflito: arquivo alterado por fora → recusa gravar (409) e mantém a alteração externa', row(mv('sand-wave'), 'damage').value === 14 && row(mv('sand-wave'), 'cooldown').value === 9);
@@ -99,7 +115,7 @@ try {
   await page.click('#editor-save-visual');
   await page.waitForSelector('#editor-confirm[open]');
   const vrows = await L(() => [...document.querySelectorAll('#editor-confirm tr')].map(r => r.textContent));
-  check('visual: o diálogo lista «Visual · density» e o arquivo approved/sand.json', vrows.some(r => /Visual · density/.test(r)) && /approved\/sand\.json/.test(await page.textContent('#editor-confirm') ?? ''), vrows.slice(1, 3).join(' | '));
+  check('visual: o diálogo lista «Visual · density» e o arquivo approved/sand.json', vrows.some(r => /Visual · density/.test(r)) && /approved[\\/]sand\.json/.test(await page.textContent('#editor-confirm') ?? ''), vrows.slice(1, 3).join(' | '));
   await page.click('#editor-confirm-ok');
   await page.waitForFunction(() => /Gravado em/.test(document.getElementById('editor-status').textContent), null, {timeout: 10000});
   check('visual: grava o parâmetro novo no approved/sand.json da pasta temporária', JSON.parse(readFileSync(join(approvedDir, 'sand.json'), 'utf8')).visualParameters.density === 2.5);
@@ -126,7 +142,7 @@ try {
   await srv.close();
   rmSync(tmp, {recursive: true, force: true});
 }
-check('no fim, o arquivo real continua intacto', readFileSync(join(root, 'src/sim/moves/sand-wave.move.json'), 'utf8') === realSand);
+check('no fim, o arquivo real continua intacto', readFileSync(realSandPath, 'utf8') === realSand);
 console.log(`\n${passed} de ${passed + failed} verificações aprovadas.`);
 if (failed) process.exit(1);
 console.log('Tudo aprovado.');

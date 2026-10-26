@@ -125,6 +125,26 @@
         "value": 1.6
       },
       {
+        "min": 1,
+        "max": 4,
+        "step": 1,
+        "key": "strikePl",
+        "label": "Power Level do contra-golpe",
+        "tip": "PL atribuído ao contra-golpe ao anular um ataque (4 = vence PL1–PL3 sem Clash; provisório).",
+        "unit": "int",
+        "value": 4
+      },
+      {
+        "min": 0.05,
+        "max": 1,
+        "step": 0.01,
+        "key": "minStrikeDuration",
+        "label": "Duração mínima do contra-golpe",
+        "tip": "Tempo mínimo de execução do Tackle de resposta mesmo quando acionado no fim da janela (padrão: 0,10 s).",
+        "unit": "sec",
+        "value": 0.1
+      },
+      {
         "min": 0,
         "max": 8,
         "step": 0.1,

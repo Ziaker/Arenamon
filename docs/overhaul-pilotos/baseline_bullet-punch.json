@@ -1,0 +1,85 @@
+{
+  "moveId": "bullet-punch",
+  "defaultParams": {
+    "cost": 1.5,
+    "cooldown": 8,
+    "cast": 0.75,
+    "vanish": 0.2,
+    "reach": 6,
+    "strikeReach": 2.2,
+    "stopShort": 1.1,
+    "hitRadius": 0.8,
+    "impactMult": 1,
+    "knockbackOwn": 0,
+    "knockbackH": 4,
+    "knockbackV": 0,
+    "slow": 0.7,
+    "maxRise": 2,
+    "fxLines": 1,
+    "fxHideBody": 1,
+    "airReach": 3,
+    "rayStep": 0.25,
+    "freeSearchRadius": 6,
+    "freeSearchStep": 0.25
+  },
+  "events": [
+    {
+      "tick": 90,
+      "result": "bulletVanish",
+      "attacker": 0,
+      "target": 1,
+      "damage": 0,
+      "x": 0,
+      "z": -4,
+      "move": "bullet-punch",
+      "id": 2
+    },
+    {
+      "tick": 114,
+      "result": "bulletReturn",
+      "attacker": 0,
+      "target": 1,
+      "damage": 0,
+      "x": 0,
+      "z": -1.1,
+      "move": "bullet-punch",
+      "blocked": false,
+      "id": 3
+    },
+    {
+      "tick": 119,
+      "attacker": 0,
+      "target": 1,
+      "result": "impact",
+      "damage": 20,
+      "shieldAbsorbed": 0,
+      "normal": {
+        "x": 0,
+        "z": 1
+      },
+      "launch": {
+        "direction": {
+          "x": 0,
+          "z": 1
+        },
+        "horizontal": 12.134815042838245,
+        "vertical": 7.3
+      },
+      "contact": "tackle",
+      "id": 4
+    }
+  ],
+  "ticks": [],
+  "finalState": {
+    "targetHp": 80,
+    "targetPosition": {
+      "x": 0,
+      "z": 6.741162698263286
+    },
+    "attackerStamina": 0.5,
+    "attackerPosition": {
+      "x": 0,
+      "z": 0.2892653675193264
+    }
+  }
+}

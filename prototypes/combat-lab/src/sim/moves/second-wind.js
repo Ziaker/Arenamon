@@ -12,13 +12,14 @@ import {params, def as secondWindDef} from './second-wind.params.js';
 
 export {secondWindDef};   // definição (id, fases, custo…) vem de second-wind.move.json
 
-/** Passo de regeneração (a cada 0,1 s) em pontos de stamina para um lutador com `staminaMax`. */
+/** Passo de regeneração padrão (a cada 0,1 s) em pontos de stamina para um lutador com `staminaMax`. */
 export const REGEN_TICK = .1;
 export function secondWindStatus(P, staminaMax) {
+  const interval = P.regenInterval ?? REGEN_TICK;
   return {
     id: 'second-wind', duration: P.duration, stacking: 'refresh', tags: ['buff', 'second-wind'],
     mul: {mobilityCost: 1 - P.mobilityCostPct},
-    tick: {interval: REGEN_TICK, stamina: P.regenPctPerSecond * staminaMax * REGEN_TICK},
+    tick: {interval, stamina: P.regenPctPerSecond * staminaMax * interval},
   };
 }
 export function secondWindEffect(game, f, def, fx) {

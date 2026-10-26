@@ -4,15 +4,15 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {validateMoveData, loadMoveData, MOVE_DATA_SCHEMA} from '../src/sim/moves/move-data.js';
 import {removeMoveParams, moveParamGroups} from '../src/sim/moves/params-registry.js';
-import {sandWaveDef, ficha} from '../src/sim/moves/sand-wave.js';
-import {params, visual} from '../src/sim/moves/sand-wave.params.js';
+import {sandWaveDef, ficha} from '../src/sim/moves/sand-wave/sand-wave.js';
+import {params, visual} from '../src/sim/moves/sand-wave/sand-wave.params.js';
 import {factoryDefaults} from '../src/sim/config.js';
-import {readdirSync} from 'node:fs';
+import {readdirSync, existsSync} from 'node:fs';
 import {FICHAS} from '../src/sim/moves/fichas.generated.js';
 import {MOVES_DATA} from '../src/sim/moves/params.generated.js';
 
 const here = new URL('../src/sim/moves/', import.meta.url);
-const raw = JSON.parse(readFileSync(new URL('sand-wave.move.json', here), 'utf8'));
+const raw = JSON.parse(readFileSync(new URL('sand-wave/sand-wave.move.json', here), 'utf8'));
 let n = 0;
 const ok = (name, fn) => {try {fn();n++;console.log('  ✓ ' + name);} catch (e) {console.log('  ✗ ' + name + '\n' + e.message);process.exitCode = 1;}};
 const clone = () => structuredClone(raw);
@@ -69,19 +69,39 @@ ok('JSON inválido é recusado com a lista dos problemas', () => {
 ok(`esquema versão ${MOVE_DATA_SCHEMA}`, () => assert.equal(raw.schemaVersion, MOVE_DATA_SCHEMA));
 
 // ---- TODOS os Moves em dado ----
-const files = readdirSync(new URL('.', here)).filter(f => f.endsWith('.move.json'));
+function findMoveJsonFiles() {
+  const res = [];
+  const entries = readdirSync(here, {withFileTypes: true});
+  for (const entry of entries) {
+    if (entry.isDirectory()) {
+      const sub = new URL(entry.name + '/' + entry.name + '.move.json', here);
+      if (existsSync(sub)) res.push(entry.name + '/' + entry.name + '.move.json');
+    } else if (entry.isFile() && entry.name.endsWith('.move.json')) {
+      res.push(entry.name);
+    }
+  }
+  return res;
+}
+
+const files = findMoveJsonFiles();
+const pathToId = f => f.replace(/\.move\.json$/, '').split('/').pop();
+const findPathForId = id => files.find(f => pathToId(f) === id);
+
 ok(`todos os ${files.length} move.json são válidos, com id igual ao nome do arquivo`, () => {
   assert.ok(files.length >= 19, 'esperava os 19 Moves em dado (17 em ficha + Reflect e Psyshock)');
   for (const f of files) {
     const d = JSON.parse(readFileSync(new URL(f, here), 'utf8'));
     assert.deepEqual(validateMoveData(d), [], f);
-    assert.equal(d.def.id + '.move.json', f, `${f}: def.id diferente do nome do arquivo`);
+    assert.ok(f.endsWith(d.def.id + '.move.json'), `${f}: def.id diferente do nome do arquivo`);
   }
 });
 ok('todo Move com ficha de parâmetros está em dado (nenhum ficou só em código)', () => {
   const withParams = FICHAS.filter(f => f.params);
   assert.equal(MOVES_DATA.length, withParams.length, 'há ficha com params que não exporta def (não migrada)');
-  for (const f of withParams) assert.ok(files.includes(f.def.id + '.move.json'), `${f.def.id}: sem move.json`);
+  for (const f of withParams) {
+    const p = findPathForId(f.def.id);
+    assert.ok(p, `${f.def.id}: sem move.json`);
+  }
 });
 ok('os padrões de C.world de cada Move são os valores do JSON', () => {
   const w = factoryDefaults().world;
@@ -92,7 +112,9 @@ ok('os padrões de C.world de cada Move são os valores do JSON', () => {
 });
 ok('a definição congelada de cada ficha é a do JSON', () => {
   for (const f of FICHAS.filter(x => x.params)) {
-    const d = JSON.parse(readFileSync(new URL(f.def.id + '.move.json', here), 'utf8'));
+    const p = findPathForId(f.def.id);
+    assert.ok(p, `${f.def.id}: sem arquivo move.json`);
+    const d = JSON.parse(readFileSync(new URL(p, here), 'utf8'));
     assert.deepEqual(JSON.parse(JSON.stringify(f.def)), d.def, f.def.id);
     assert.ok(Object.isFrozen(f.def), f.def.id + ' deve estar congelada');
   }

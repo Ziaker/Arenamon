@@ -1,0 +1,134 @@
+{
+  "moveId": "water-pulse",
+  "defaultParams": {
+    "cost": 1,
+    "cooldown": 9,
+    "maxCharge": 1.5,
+    "minCharge": 0,
+    "chargeRecovery": 0.3,
+    "damagePl1": 6,
+    "damagePl2": 9,
+    "damagePl3": 12,
+    "knockbackPl1": 2,
+    "knockbackPl2": 3,
+    "knockbackPl3": 4,
+    "knockbackV": 0,
+    "speed": 14,
+    "radius": 0.38,
+    "range": 12,
+    "originHeight": 0.8,
+    "spawnForward": 0.7,
+    "counterStagger": 0.2,
+    "plScaleBonus": 0.25,
+    "hitShakeOn": 0,
+    "hitShakeAmount": 1,
+    "hitShakeDuration": 1
+  },
+  "levels": {
+    "PL1": {
+      "events": [
+        {
+          "tick": 40,
+          "attacker": 0,
+          "target": 1,
+          "normal": {
+            "x": 0,
+            "z": 1
+          },
+          "entity": 1,
+          "source": "world",
+          "pl": 1,
+          "move": "water-pulse",
+          "result": "impact",
+          "damage": 6,
+          "launch": {
+            "direction": {
+              "x": 0,
+              "z": 1
+            },
+            "horizontal": 2,
+            "vertical": 0
+          },
+          "contact": "projectile",
+          "id": 5
+        }
+      ],
+      "targetHp": 94,
+      "attackerStamina": 2.024811921296296,
+      "targetPosition": {
+        "x": 0,
+        "z": 4
+      }
+    },
+    "PL2": {
+      "events": [
+        {
+          "tick": 125,
+          "attacker": 0,
+          "target": 1,
+          "normal": {
+            "x": 0,
+            "z": 1
+          },
+          "entity": 1,
+          "source": "world",
+          "pl": 2,
+          "move": "water-pulse",
+          "result": "impact",
+          "damage": 9,
+          "launch": {
+            "direction": {
+              "x": 0,
+              "z": 1
+            },
+            "horizontal": 3,
+            "vertical": 0
+          },
+          "contact": "projectile",
+          "id": 5
+        }
+      ],
+      "targetHp": 91,
+      "attackerStamina": 2.024811921296296,
+      "targetPosition": {
+        "x": 0,
+        "z": 5.500000000000002
+      }
+    },
+    "PL3": {
+      "events": [
+        {
+          "tick": 215,
+          "attacker": 0,
+          "target": 1,
+          "normal": {
+            "x": 0,
+            "z": 1
+          },
+          "entity": 1,
+          "source": "world",
+          "pl": 3,
+          "move": "water-pulse",
+          "result": "impact",
+          "damage": 12,
+          "launch": {
+            "direction": {
+              "x": 0,
+              "z": 1
+            },
+            "horizontal": 4,
+            "vertical": 0
+          },
+          "contact": "projectile",
+          "id": 5
+        }
+      ],
+      "targetHp": 88,
+      "attackerStamina": 2.024811921296296,
+      "targetPosition": {
+        "x": 0,
+        "z": 6.999999999999998
+      }
+    }
+  }
+}

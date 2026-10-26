@@ -124,7 +124,7 @@ export class ShotEffect {
       ]},
       gravity: c.coneGravity ? -c.coneGravity : 0,
     };
-    const params = presetToSystemParams(preset, {Quarks: Q, THREE: T, material: fx.sprite('leaf', '#ffffff')});
+    const params = presetToSystemParams(preset, /** @type {any} */ ({Quarks: Q, THREE: T, material: fx.sprite('leaf', '#ffffff')}));
     params.startColor = new Q.ConstantColor(new Q.Vector4(this.p.brightness, this.p.brightness, this.p.brightness, 1));
     const system = new Q.ParticleSystem(params);
     this.group.updateWorldMatrix(true, false);
@@ -174,7 +174,7 @@ export class ShotEffect {
         const fadeIn = r.ringFadeIn > 0 ? Math.min(1, age / r.ringFadeIn) : 1;
         mesh.scale.set(r.ringSquash, r.ringRadius * grow, r.ringRadius * grow);
         mesh.position.set(r.ringHorizontal + r.ringImpulse * age * motion, r.ringVertical, 0);
-        mesh.material.opacity = r.ringOpacity * fadeIn * Math.max(0, 1 - age / r.ringDuration);
+        /** @type {any} */ (mesh.material).opacity = r.ringOpacity * fadeIn * Math.max(0, 1 - age / r.ringDuration);
       }
     } else if (this.effect === 'cone') {
       // O atraso é respeitado criando o sistema só quando ele termina.
@@ -186,7 +186,10 @@ export class ShotEffect {
     const visible = this.rings.filter(m => m.visible);
     const first = visible[0];
     const cone = this.cone;
-    let dx = null, dy = null;
+    /** @type {number | null} */
+    let dx = null;
+    /** @type {number | null} */
+    let dy = null;
     if (cone && cone.particleNum > 0) {
       let sx = 0, sy = 0;
       const n = cone.particleNum;
@@ -206,8 +209,8 @@ export class ShotEffect {
       shotRingY: first ? first.position.y : null,
       shotRingScaleX: first ? first.scale.x : null,
       shotRingScaleY: first ? first.scale.y : null,
-      shotRingOpacity: first ? first.material.opacity : null,
-      shotRingColor: first ? [first.material.color.r, first.material.color.g, first.material.color.b] : null,
+      shotRingOpacity: first ? /** @type {any} */ (first.material).opacity : null,
+      shotRingColor: first ? [/** @type {any} */ (first.material).color.r, /** @type {any} */ (first.material).color.g, /** @type {any} */ (first.material).color.b] : null,
       shotConeTint: this.coneTint ? [this.coneTint.r, this.coneTint.g, this.coneTint.b] : null,
       shotConeParticles: cone ? cone.particleNum : 0,
       shotConeDx: dx,

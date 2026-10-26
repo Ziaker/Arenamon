@@ -69,13 +69,25 @@ export function collideFighter(world, f, events = null) {
   }
   return contacts;
 }// ---------- Passo do mundo ----------
+/** Solta os alvos de uma onda removida e registra o motivo no estado por alvo.
+ * @param {any} game
+ * @param {any} e
+ */
+function releaseSandPush(game, e) {
+  if (e.kind !== 'sandwave') return;
+  for (const f of /** @type {any[]} */ (game.fighters)) if (f.sandPush?.by === e.id) {
+    f.sandPush = null;
+    const st = e.targets?.[f.id];
+    if (st) {st.reason = 'waveGone';st.pushStopReason = 'waveGone';}
+  }
+}
 const blocks = (b, p) => (b.kind === 'wall' && b.blocksProjectiles) || (b.kind === 'barrier' && !b.reflect && b.blocksProjectiles && (b.blocksOwner || b.owner !== p.owner));   // barreiras refletoras: ver reflectPass/** Avança as entidades em dt; devolve os eventos (acertos, bloqueios, explosões, expirações). */
 export function stepWorld(game, dt) {
   const world = game.world, events = [];
   if (!world?.entities.length) return events;
   const spawnLater = [];
   for (const e of [...world.entities]) {
-    if (e.dead) continue;
+    if (e.dead) {releaseSandPush(game, e);continue;}
     e.age += dt;
     if (e.kind === 'projectile') stepProjectile(game, e, dt, events, spawnLater);
     else if (e.kind === 'area') stepArea(game, e, dt, events);
@@ -84,6 +96,8 @@ export function stepWorld(game, dt) {
     else if (e.kind === 'sandwave') stepSand(game, e, dt, events);
     else if (e.kind === 'burrow') stepBurrow(game, e, dt, events);
     if (!e.dead && e.age >= e.life - 1e-9) {e.dead = true;events.push({result: 'expire', attacker: e.owner ?? null, target: null, damage: 0, entity: e.id, kind: e.kind});if (e.onExpire) spawnLater.push(at(e.onExpire, e));}
+    // Onda removida com empurrão ainda ativo (destruída/limpa): solta o alvo e registra o motivo.
+    if (e.dead) releaseSandPush(game, e);
   }
   clashStones(world, events);
   world.entities = world.entities.filter(e => !e.dead);
@@ -308,7 +322,7 @@ export const TACKLE_PL = 1;export const tacklePL = f => f?.action?.pl ?? TACKLE
  */
 export function applyCounterStagger(f, seconds, events, by = null) {
   if ((f.counterStagger ?? 0) > 1e-9 || !(seconds > 0)) return false;
-  f.counterStagger = seconds;f.knockRecovery = Math.max(f.knockRecovery, seconds);
+  f.counterStagger = seconds;f.stagger = Math.max(f.stagger ?? 0, seconds);f.staggerMax = Math.max(f.staggerMax ?? 0, seconds);f.knockRecovery = Math.max(f.knockRecovery, seconds);f.recoveryKind = 'stagger';f.state = 'stagger';f.action = null;f.velocity = vec();f.locomotionVelocity = vec();f.hitSerial = (f.hitSerial ?? 0) + 1;
   events?.push({result: 'counterStagger', attacker: by, target: f.id, damage: 0, seconds});
   return true;
 }/**
@@ -434,8 +448,9 @@ function breakBarriers(game, a, events) {
 function breakByTackle(e, f, events) {
   e.dead = true;
   const cap = e.captured ?? {}, away = scale(direction(f.action.heading), -1);
-  f.action = null;f.velocity = vec();f.locomotionVelocity = vec();f.blend = null;f.vaultHeight = 0;f.state = 'landing';   // sem ação, o estado não pode seguir como 'tackle'
-  f.push = {direction: away, distance: nominalDistance(f, 'tackle') * (cap.tackleRecoil ?? .15), elapsed: 0};
+  const stagDur = cap.tackleStagger ?? .25; const pushDur = cap.tackleRecoilDuration ?? stagDur;
+  f.action = null;f.velocity = vec();f.locomotionVelocity = vec();f.blend = null;f.vaultHeight = 0;f.state = 'stagger';f.recoveryKind = 'stagger';f.stagger = Math.max(f.stagger ?? 0, stagDur);f.staggerMax = Math.max(f.staggerMax ?? 0, stagDur);f.hitSerial = (f.hitSerial ?? 0) + 1;
+  f.push = {direction: away, distance: nominalDistance(f, 'tackle') * (cap.tackleRecoil ?? .15), elapsed: 0, duration: pushDur};f.pushRecovery = pushDur;
   f.knockRecovery = Math.max(f.knockRecovery, cap.tackleStagger ?? .25);
   events?.push({result: 'barrierBroken', attacker: f.id, target: e.owner ?? null, damage: 0, entity: e.id, kind: 'barrier', by: 'tackle'});
 }

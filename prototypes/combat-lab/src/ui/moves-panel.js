@@ -4,7 +4,7 @@ import {C, defaults, factoryDefaults} from '../sim/config.js';
 import {spawn} from '../sim/world.js';
 import {listMoves, getMove} from '../sim/moves.js';
 import {runMoveScenarios} from '../sim/scenarios-moves.js';
-import {moveParamGroups} from '../sim/moves/params-registry.js';
+import {moveParamGroups, effectiveRangeOf, KNOCKBACK_KEY_RE as KNOCKBACK_KEY, KNOCKBACK_MAX, KNOCKBACK_MAX_EXCEPTIONS} from '../sim/moves/params-registry.js';
 import {createMoveSpecPanel} from './move-spec-panel.js';
 import {buildMoveTimeline, measureMoveRun, TICK_RATE, clipFrameAtTick} from '../sim/move-timeline.js';
 import {compareMoveVariants, comparabilityWarnings} from '../sim/move-ab.js';
@@ -63,19 +63,19 @@ const PARAMS = [
 // Pedido de 22/10/2026: o limite máximo dos sliders de Moves vale o DOBRO (liga/desliga e seletores de poucos valores ficam como estão).
 // Pedido de 23/10/2026: todo knockback (horizontal e vertical) vai de 0 a 15 em TODOS os Moves que causam dano; estes sliders não dobram.
 /** Chaves de knockback/lançamento: limite fixo de 15. */
-export const KNOCKBACK_KEY = /^(knockbackH|knockbackV|knockback|knockbackPl\d|knockbackPerStone|knockbackVertical|knockbackCap|blastKnockback|blastKnockbackV|burstForce|burstVertical|launchH|launchV)$/;
-export const KNOCKBACK_MAX = 15;
-/** Exceções ao limite de 15 (decisão de 25/10/2026): o Riposte usa 16,8 m/s na calibração do jogo, então o slider dele vai até 17. */
-export const KNOCKBACK_MAX_EXCEPTIONS = {'riposte.knockbackH': 17};
-// Moves em FICHA (um arquivo por Move em src/sim/moves/): título, texto de apoio e sliders vêm da própria ficha, sem tabela aqui.
+export {KNOCKBACK_KEY, KNOCKBACK_MAX, KNOCKBACK_MAX_EXCEPTIONS};
 const FORMATTERS = {num, int, sec, pct, m, ms, ms2, deg, x, yesno};
 for (const g of moveParamGroups()) {
   MOVE_INFO[g.id] = {group: g.title, hint: g.hint ?? '', meta: g.meta};
-  PARAMS.push([g.title, g.rows.map(r => [g.group, r.key, r.label, r.tip, r.min, r.max, r.step, FORMATTERS[r.unit], !!r.approved])]);
+  PARAMS.push([g.title, g.rows.map(r => {
+    const options = Array.isArray(r.options) ? r.options : null;
+    const fmt = options ? (/** @type {number} */ v) => options.find(o => Number(o.value) === Number(v))?.label ?? String(v) : FORMATTERS[r.unit];
+    return [g.group, r.key, r.label, r.tip, r.min, r.max, r.step, fmt, !!r.approved, options, !!r.noDouble];
+  })]);
 }
 for (const [, rows] of PARAMS) for (const r of rows) {
-  if (KNOCKBACK_KEY.test(r[1])) r[5] = KNOCKBACK_MAX_EXCEPTIONS[`${r[0]}.${r[1]}`] ?? KNOCKBACK_MAX;
-  else if (r[7] !== yesno && !(r[6] >= 1 && r[5] <= 3)) r[5] *= 2;
+  const eff = effectiveRangeOf(r[0], {key: r[1], min: r[4], max: r[5], step: r[6], unit: r[7] === yesno ? 'yesno' : 'num', noDouble: r[10]});
+  r[4] = eff.min;r[5] = eff.max;r[6] = eff.step;
 }
 // Tremor de câmera ao acertar (pedido de 23/10/2026): Moves que NÃO são corpo a corpo não tremem por padrão; o interruptor libera a intensidade e a duração (valem sobre o tremor padrão de hit).
 const SHAKE_TITLES = {reflect: 'Reflect', psyshock: 'Psyshock', swift: 'Swift', emergingStone: 'Emerging Stone', sandWave: 'Sand Wave', spikes: 'Spikes', waterPulse: 'Water Pulse', fireSpin: 'Fire Spin', airSlash: 'Air Slash', seedBomb: 'Seed Bomb'};
@@ -91,7 +91,6 @@ const VISUAL_WORLD_KEYS = new Set([
   'riposte.blastOn','riposte.blastSize','riposte.fxOn','riposte.fxIntensity','riposte.fxSize',
   'emergingStone.fxTrailOn','emergingStone.fxTrailSize',
   'bulletPunch.fxLines','bulletPunch.fxHideBody',
-  'sandWave.dissipate',
   'airSlash.visualWidth','airSlash.visualHeight','airSlash.visualThickness',
   'seedBomb.blastLife',
   ...SHAKE_GROUPS.flatMap(g => [`${g}.hitShakeOn`, `${g}.hitShakeAmount`, `${g}.hitShakeDuration`]),
@@ -195,10 +194,13 @@ export function createMovesPanel({$, game, download, tuning, view, ui, canvas, s
     spawn(game.world, {kind: 'area', explosion: true, owner: 1, affectsOwner: true, pos: {x: 0, z: 0}, radius: 4, y: 0, height: 3, life: .25, pulses: 1, falloff: 'linear', pl: 2, hit: {damage: 10, knockback: {horizontal: 5, vertical: 4}}}, game.lastStepEvents);
     return true;
   }
-  function paramRow([group, key, label, tip, min, max, step, fmt, approved]) {
+  function paramRow([group, key, label, tip, min, max, step, fmt, approved, options]) {
     const v = C.world[group][key], def = defaults().world[group][key], sw = DEPENDS_ON[`${group}.${key}`], hidden = sw && !C.world[group][sw];
+    const control = options
+      ? `<select data-p="${group}.${key}">${options.map(o => `<option value="${o.value}" ${Number(v) === Number(o.value) ? 'selected' : ''}>${escape(o.label)}</option>`).join('')}</select>`
+      : min === 0 && max === 1 && step === 1 ? `<input type="checkbox" data-p="${group}.${key}" ${v ? 'checked' : ''}>` : `<input type="range" data-p="${group}.${key}" min="${min}" max="${max}" step="${step}" value="${v}">`;
     return `<div class="mvp-param" ${hidden ? 'hidden' : ''} data-dep="${sw ? `${group}.${sw}` : ''}" title="${escape(tip)}"><label>${escape(label)} <small class="${approved ? 'ok' : 'warn'}">${approved ? 'aprovado' : 'provisório'}</small></label>
-      <div class="row">${min === 0 && max === 1 && step === 1 ? `<input type="checkbox" data-p="${group}.${key}" ${v ? 'checked' : ''}>` : `<input type="range" data-p="${group}.${key}" min="${min}" max="${max}" step="${step}" value="${v}">`}<output data-o="${group}.${key}">${fmt(v)}</output><button type="button" data-reset="${group}.${key}" title="Padrão: ${escape(fmt(def))}" ${v === def ? 'disabled' : ''}>↺</button></div></div>`;
+      <div class="row">${control}<output data-o="${group}.${key}">${fmt(v)}</output><button type="button" data-reset="${group}.${key}" title="Padrão: ${escape(fmt(def))}" ${v === def ? 'disabled' : ''}>↺</button></div></div>`;
   }
   /** Cartão de animação (carga com loop + disparo) de um move para o personagem de um lado (0 azul, 1 vermelho). */
   function animCard(moveId, who, showSliders = true) {

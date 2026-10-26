@@ -65,7 +65,7 @@ export function startPermission(f, kind) {
     return left > 1e-8 ? {ok: false, reason: 'chargeLock', detail: {left}} : {ok: true, viaCharge: true};
   }
   if (f.moveRecovery > 1e-8 && kind === 'tackle') return {ok: false, reason: 'moveRecovery', detail: {left: f.moveRecovery}};
-  if (f.sandPush && kind === 'dodge') return {ok: false, reason: 'sandPush'};   // sob o empurrão da areia não se inicia esquiva (SW-D58)
+  if (f.sandPush && kind === 'dodge' && (f.sandPush.cancelsDodge ?? 1)) return {ok: false, reason: 'sandPush'};   // sob o empurrão da areia não se inicia esquiva (SW-D58); o slider pushCancelsDodge pode liberar
   if (f.guard && !p.fromGuard) return {ok: false, reason: 'guardBlocks'};
   if (cur?.kind === 'dodge' && kind === 'tackle') {
     // C → X: só na janela (por padrão, o fim da esquiva). Depois de uma esquiva perfeita, a qualquer momento.

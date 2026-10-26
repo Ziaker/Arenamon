@@ -62,4 +62,21 @@ test('a ficha recusa parâmetros inválidos com a causa', () => {
   bad([paramRow({key: 'a', label: 'A', tip: 't', unit: 'num', step: 0, value: .5})], /step/);
 });
 
+test('loader híbrido e pureza de params.generated.js (Doc 02)', () => {
+  assert.equal(FICHAS.length, 19, 'exatamente 19 Moves registrados');
+  const ids = FICHAS.map(f => f.def.id);
+  assert.equal(new Set(ids).size, 19, 'sem duplicatas de Move em FICHAS');
+
+  // Pureza: params.generated.js NUNCA importa simulação de combate ou Three/DOM
+  const paramsSrc = readFileSync(new URL('../src/sim/moves/params.generated.js', import.meta.url), 'utf8');
+  assert.ok(!paramsSrc.includes('world.js'), 'params.generated.js não importa world.js');
+  assert.ok(!paramsSrc.includes('combat.js'), 'params.generated.js não importa combat.js');
+  assert.ok(!paramsSrc.includes('three'), 'params.generated.js não importa three');
+  assert.ok(!paramsSrc.includes('.vfx.js'), 'params.generated.js não importa .vfx.js');
+
+  // Idempotência
+  assert.equal(renderIndex(), readFileSync(new URL('../src/sim/moves/fichas.generated.js', import.meta.url), 'utf8'), 'fichas.generated.js idempotente');
+  assert.equal(renderParamsIndex(), paramsSrc, 'params.generated.js idempotente');
+});
+
 done();

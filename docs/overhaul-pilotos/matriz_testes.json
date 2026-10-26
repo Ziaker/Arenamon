@@ -1,0 +1,62 @@
+[
+  {
+    "move": "sand-wave",
+    "param": "waveHeight",
+    "baseline": 0.35,
+    "variante_b": 2,
+    "cenario": "Alvo sobre plataforma a 1,5 m de altura na linha da onda",
+    "resultado_esperado": "Baseline ignora o alvo; variante B atinge e aplica 6 HP e cegueira",
+    "status": "PASS",
+    "suite": "test/sand-wave-vertical.test.mjs"
+  },
+  {
+    "move": "sand-wave",
+    "param": "damage",
+    "baseline": 6,
+    "variante_b": 14,
+    "cenario": "Alvo no chão a 3 m de distância",
+    "resultado_esperado": "Dano causado sobe de 6 para 14 HP",
+    "status": "PASS",
+    "suite": "test/move-editor.browser.mjs"
+  },
+  {
+    "move": "bullet-punch",
+    "param": "knockbackOwn / knockbackH",
+    "baseline": "knockbackOwn=0",
+    "variante_b": "knockbackOwn=1, knockbackH=12",
+    "cenario": "Alvo a 4 m no chão",
+    "resultado_esperado": "Deslocamento final do alvo aumenta significativamente além do Tackle",
+    "status": "PASS",
+    "suite": "test/bullet-punch-mechanics.test.mjs"
+  },
+  {
+    "move": "bullet-punch",
+    "param": "hitRadius",
+    "baseline": 0.8,
+    "variante_b": "Interceptação por combatente intermediário",
+    "cenario": "Lutador colocado a 1,5 m no trajeto da corrida invisível",
+    "resultado_esperado": "A corrida interrompe no obstáculo e aplica o golpe nele",
+    "status": "PASS",
+    "suite": "test/bullet-punch-mechanics.test.mjs"
+  },
+  {
+    "move": "water-pulse",
+    "param": "radius vs plScaleBonus",
+    "baseline": "radius=0.38, plScaleBonus=1.0",
+    "variante_b": "radius=0.60, plScaleBonus=0.25",
+    "cenario": "Alvo deslocado lateralmente a x = 1,0 m",
+    "resultado_esperado": "Escala visual não atinge o alvo lateral; aumento do raio físico sim",
+    "status": "PASS",
+    "suite": "test/water-pulse-mechanics.test.mjs"
+  },
+  {
+    "move": "water-pulse",
+    "param": "knockbackV",
+    "baseline": 0,
+    "variante_b": 5,
+    "cenario": "Alvo no chão a 2 m",
+    "resultado_esperado": "V=0 desliza no solo (flight=null); V=5 lança em arco aéreo (flight!=null)",
+    "status": "PASS",
+    "suite": "test/water-pulse-mechanics.test.mjs"
+  }
+]

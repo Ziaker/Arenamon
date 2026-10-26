@@ -10,7 +10,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const budgetFile = path.join(root, 'prototypes/combat-lab/estrito-orcamento.json');
 const tmp = path.join(root, 'node_modules/.cache/tsconfig.estrito.json');
 mkdirSync(path.dirname(tmp), {recursive: true});
-writeFileSync(tmp, JSON.stringify({extends: '../../prototypes/combat-lab/tsconfig.json', compilerOptions: {strict: true, noImplicitAny: true, noEmit: true}, include: ['../../prototypes/combat-lab/src/sim/**/*.js', '../../prototypes/combat-lab/src/sim/**/*.d.ts']}));
+writeFileSync(tmp, JSON.stringify({extends: '../../prototypes/combat-lab/tsconfig.json', compilerOptions: {strict: true, noImplicitAny: true, noEmit: true}, include: ['../../prototypes/combat-lab/src/sim/**/*.js', '../../prototypes/combat-lab/src/sim/**/*.d.ts'], exclude: ['../../prototypes/combat-lab/src/sim/**/*.vfx.js']}));
 const r = spawnSync(process.execPath, [path.join(root, 'node_modules/typescript/bin/tsc'), '-p', tmp], {encoding: 'utf8', cwd: root, maxBuffer: 64 * 1024 * 1024});
 const lines = (r.stdout + r.stderr).split('\n').filter(l => /error TS\d+/.test(l));
 const count = lines.length;

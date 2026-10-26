@@ -35,6 +35,61 @@ try {
   const nVis = await page.locator('#editor-visual [data-visual]').count();
   check('mostra os sliders de visual do atelier (aprovado)', nVis >= 60, `${nVis} controles`);
 
+  // Perfil do empurrão: telemetria REAL (Game.step) a 1–4 m, com A/B e motivos por alvo.
+  await page.waitForSelector('#editor-push-body .push-table tr', {timeout: 120000});
+  const profile = await L(() => ({
+    title: document.querySelector('#editor-push-profile h4')?.textContent ?? '',
+    svgs: document.querySelectorAll('#editor-push-body svg').length,
+    rows: document.querySelectorAll('#editor-push-body .push-table tr').length,
+    abRows: document.querySelectorAll('#editor-push-body .push-ab tr').length,
+    modes: [...document.querySelectorAll('[data-path="world.sandWave.pushDurationMode"] option')].map(o => o.textContent),
+    accels: [...document.querySelectorAll('[data-path="world.sandWave.pushAccelerationMode"] option')].map(o => o.textContent),
+    dissipate: !!document.querySelector('[data-path="world.sandWave.dissipate"]'),
+    defaultText: document.querySelector('#editor-push-body .push-table')?.innerText ?? '',
+    containmentText: document.querySelector('#editor-push-body .push-containment')?.innerText ?? '',
+  }));
+  check('Perfil do empurrão aparece no Editor do Sand Wave', /Perfil do empurrão/.test(profile.title));
+  check('Perfil tem 2 gráficos SVG e tabela de 1–4 m', profile.svgs === 2 && profile.rows === 5 && profile.abRows === 5, `${profile.svgs} SVG, ${profile.rows} linhas`);
+  check('Modo de duração tem 4 opções (fim da barragem + 3 experimentais) e o de aceleração tem 3', profile.modes.length === 4 && profile.accels.length === 3, `${profile.modes.join(' / ')}`);
+  check('dissipate continua acessível na Mecânica', profile.dissipate);
+  check('Padrão mostra a duração caindo com a distância e o motivo de saída da área', /1 m[\s\S]*0\.708 s/.test(profile.defaultText) && /3 m[\s\S]*0\.408 s/.test(profile.defaultText) && /Saiu do retângulo/.test(profile.defaultText));
+  check('Prova de contenção mantém o alvo no retângulo e mostra o fim da barragem', /1\.308 s/.test(profile.containmentText) && /Fim da barragem/.test(profile.containmentText), profile.containmentText);
+
+  if (!process.env.ARENAMON_SKIP_SCREENSHOTS) {
+    mkdirSync(root + 'evidence/editor', {recursive: true});
+    // Evidência legível: alarga a gaveta e a janela só durante a captura; o layout normal (1500×900) volta em seguida.
+    await page.setViewportSize({width: 1600, height: 1600});
+    await L(() => {
+      const st = document.createElement('style');st.id = 'editor-shot-style';
+      st.textContent = '#move-editor{width:900px!important;max-width:none!important;z-index:2147483647!important}#editor-push-profile{scroll-margin-top:0!important}';
+      document.head.append(st);
+      document.querySelector('#editor-push-profile').scrollIntoView({block: 'start'});
+    });
+    await page.waitForTimeout(250);
+    await page.locator('#editor-push-profile').screenshot({path: root + 'evidence/editor/editor-push-profile.png'});
+    await L(() => document.getElementById('editor-shot-style')?.remove());
+    await page.setViewportSize({width: 1500, height: 900});
+    await page.waitForTimeout(150);
+  }
+
+  await L(() => {
+    const set = (path, value) => {
+      const e = document.querySelector(`[data-path="world.sandWave.${path}"]`);
+      if (!e) return;
+      if (e.type === 'checkbox') e.checked = !!value; else e.value = String(value);
+      e.dispatchEvent(new Event('input', {bubbles: true}));
+      e.dispatchEvent(new Event('change', {bubbles: true}));
+    };
+    set('pushDurationMode', 1); set('pushDuration', .4); set('pushContinueAfterActive', 1); set('pushContinuesOutsideArea', 1);
+    document.querySelector('#editor-push-recalc').click();
+  });
+  await page.waitForFunction(() => /Tempo desde o contato/.test(document.querySelector('#editor-push-body')?.innerText ?? ''), null, {timeout: 120000});
+  const modeText = await L(() => document.querySelector('#editor-push-body')?.innerText ?? '');
+  check('Modo 1 mantém 0,408 s a 1, 2, 3 e 4 m (força independente da barragem)', (modeText.match(/0\.408 s/g) ?? []).length >= 4, modeText.slice(0, 260));
+  check('Motivo por alvo é exibido (duração cumprida)', (modeText.match(/Duração configurada cumprida/g) ?? []).length >= 4);
+  await page.click('#editor-reset-move');
+  await page.waitForTimeout(250);
+
   // Executar: o alvo a 3 m recebe o Sand Wave
   await page.click('#editor-play');
   await page.waitForFunction(() => window.__lab.ui.lastResult?.id?.startsWith('editor-'), null, {timeout: 120000});

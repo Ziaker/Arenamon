@@ -296,6 +296,56 @@
         "value": 1
       },
       {
+        "min": 5,
+        "max": 120,
+        "step": 5,
+        "key": "burrowMaxLife",
+        "label": "Tempo máximo do projétil subterrâneo (técnico)",
+        "tip": "Salvaguarda de duração máxima do projétil subterrâneo antes de expirar (padrão: 120 s).",
+        "unit": "sec",
+        "value": 120
+      },
+      {
+        "min": 0.5,
+        "max": 8,
+        "step": 0.25,
+        "key": "rockBaseWidth",
+        "label": "Largura base da rocha",
+        "tip": "Largura e profundidade nominais do prisma da rocha antes de multiplicar por rockScale (padrão: 3 m).",
+        "unit": "m",
+        "value": 3
+      },
+      {
+        "min": 0.5,
+        "max": 8,
+        "step": 0.25,
+        "key": "rockBaseHeight",
+        "label": "Altura base da rocha",
+        "tip": "Altura final nominal do prisma da rocha antes de multiplicar por rockScale (padrão: 3 m).",
+        "unit": "m",
+        "value": 3
+      },
+      {
+        "min": 0.05,
+        "max": 1,
+        "step": 0.05,
+        "key": "rockSearchStep",
+        "label": "Passo da busca de posicionamento (técnico)",
+        "tip": "Passo radial em metros entre os anéis de busca por lugar válido quando o marcador está obstruído (padrão: 0,25 m).",
+        "unit": "m",
+        "value": 0.25
+      },
+      {
+        "min": 0.01,
+        "max": 0.3,
+        "step": 0.01,
+        "key": "supportTolerance",
+        "label": "Tolerância vertical de apoio da rocha (técnico)",
+        "tip": "Folga vertical para validar apoio integral da base e carregar personagens no topo durante a subida (padrão: 0,06 m).",
+        "unit": "m",
+        "value": 0.06
+      },
+      {
         "preset": "hitShake"
       }
     ]
