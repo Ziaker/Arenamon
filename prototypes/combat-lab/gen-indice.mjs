@@ -21,7 +21,7 @@ const areaOf = p => (p.endsWith('.md') ? AREAS[5] : AREAS.find(([re]) => re.test
 /** Arquivos versionados ou novos e não ignorados (caminhos absolutos); null se o git não estiver disponível. Evita que um rascunho local mude o índice. */
 function trackedOrNew() {
   try {
-    const out = execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard', '-z'], {cwd: repoDir, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024});
+    const out = execFileSync('git', ['ls-files', '--cached', '-z'], {cwd: repoDir, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024});
     return new Set(out.split('\0').filter(Boolean).map(f => `${repoDir}/${f}`));
   } catch {return null;}
 }
