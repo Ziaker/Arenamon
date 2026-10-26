@@ -1,1165 +1,310 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Arenamon — Central de Controle & Ambientes</title>
-  <style>
-    :root {
-      --bg: #070b12;
-      --bg-surface: #0e1522;
-      --bg-card: #131d2e;
-      --bg-card-hover: #19273d;
-      --border: #23344a;
-      --border-highlight: #3b5373;
-      --text: #f0f6fc;
-      --text-muted: #8ca0ba;
-      --primary: #38bdf8;
-      --primary-glow: rgba(56, 189, 248, 0.18);
-      --success: #34d399;
-      --success-glow: rgba(52, 211, 153, 0.18);
-      --warning: #fbbf24;
-      --accent: #a78bfa;
-      --accent-glow: rgba(167, 139, 250, 0.18);
-      --danger: #f87171;
-      --radius-sm: 8px;
-      --radius-md: 14px;
-      --radius-lg: 22px;
-      --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.35);
-      --shadow-hover: 0 10px 32px rgba(0, 0, 0, 0.5);
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      background: radial-gradient(circle at 50% 0%, #15243d 0%, var(--bg) 65%);
-      color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      min-height: 100vh;
-      line-height: 1.55;
-      padding: 36px 20px 90px;
-    }
-    .wrapper {
-      max-width: 1200px;
-      margin: 0 auto;
-    }
-
-    /* Header */
-    header {
-      margin-bottom: 32px;
-      padding-bottom: 24px;
-      border-bottom: 1px solid var(--border);
-      position: relative;
-    }
-    .top-meta {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 14px;
-      flex-wrap: wrap;
-      gap: 12px;
-    }
-    .pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 4px 12px;
-      border-radius: 999px;
-      font-size: 0.8rem;
-      font-weight: 700;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-    }
-    .pill-live {
-      background: var(--success-glow);
-      color: var(--success);
-      border: 1px solid rgba(52, 211, 153, 0.35);
-    }
-    .pill-live::before {
-      content: "";
-      width: 8px;
-      height: 8px;
-      background: var(--success);
-      border-radius: 50%;
-      box-shadow: 0 0 10px var(--success);
-    }
-    .pill-offline {
-      background: var(--primary-glow);
-      color: var(--primary);
-      border: 1px solid rgba(56, 189, 248, 0.35);
-    }
-    .hero-title {
-      font-size: clamp(2rem, 5vw, 3.2rem);
-      font-weight: 900;
-      letter-spacing: -0.03em;
-      line-height: 1.1;
-      margin-bottom: 10px;
-      background: linear-gradient(135deg, #ffffff 40%, var(--primary));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    .hero-subtitle {
-      font-size: 1.12rem;
-      color: var(--text-muted);
-      max-width: 880px;
-    }
-
-    /* Fast Nav Sticky */
-    .fast-nav {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin: 24px 0 32px;
-      background: rgba(14, 21, 34, 0.7);
-      backdrop-filter: blur(8px);
-      padding: 10px 14px;
-      border-radius: var(--radius-md);
-      border: 1px solid var(--border);
-      position: sticky;
-      top: 14px;
-      z-index: 100;
-    }
-    .nav-btn {
-      color: var(--text-muted);
-      text-decoration: none;
-      font-size: 0.88rem;
-      font-weight: 600;
-      padding: 6px 14px;
-      border-radius: var(--radius-sm);
-      transition: all 0.2s;
-    }
-    .nav-btn:hover {
-      background: var(--bg-card-hover);
-      color: var(--text);
-    }
-    .nav-btn.primary {
-      background: var(--primary-glow);
-      color: var(--primary);
-      border: 1px solid rgba(56, 189, 248, 0.3);
-    }
-
-    /* Section Headings */
-    .section-head {
-      display: flex;
-      align-items: baseline;
-      justify-content: space-between;
-      margin: 40px 0 20px;
-      padding-bottom: 10px;
-      border-bottom: 1px solid rgba(35, 52, 74, 0.5);
-    }
-    .section-title {
-      font-size: 1.55rem;
-      font-weight: 800;
-      color: #ffffff;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    .section-badge {
-      font-size: 0.8rem;
-      font-weight: 700;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-
-    /* Grid Layouts */
-    .grid-2 {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
-      gap: 20px;
-    }
-    .grid-3 {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 20px;
-    }
-
-    /* Cards */
-    .card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      padding: 26px;
-      display: flex;
-      flex-direction: column;
-      box-shadow: var(--shadow-card);
-      transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
-      position: relative;
-      overflow: hidden;
-    }
-    .card:hover {
-      transform: translateY(-3px);
-      border-color: var(--border-highlight);
-      box-shadow: var(--shadow-hover);
-    }
-    .card-highlight {
-      border-color: rgba(56, 189, 248, 0.4);
-      background: linear-gradient(160deg, #162438 0%, var(--bg-card) 60%);
-    }
-    .card-highlight-accent {
-      border-color: rgba(167, 139, 250, 0.4);
-      background: linear-gradient(160deg, #1f1d38 0%, var(--bg-card) 60%);
-    }
-    .card-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 14px;
-      gap: 12px;
-    }
-    .card-tag {
-      font-size: 0.74rem;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      padding: 4px 10px;
-      border-radius: 6px;
-      border: 1px solid var(--border);
-      background: var(--bg-surface);
-      color: var(--text-muted);
-    }
-    .card-tag.game {
-      background: rgba(56, 189, 248, 0.15);
-      border-color: rgba(56, 189, 248, 0.35);
-      color: var(--primary);
-    }
-    .card-tag.studio {
-      background: rgba(52, 211, 153, 0.15);
-      border-color: rgba(52, 211, 153, 0.35);
-      color: var(--success);
-    }
-    .card-tag.proposals {
-      background: rgba(167, 139, 250, 0.15);
-      border-color: rgba(167, 139, 250, 0.35);
-      color: var(--accent);
-    }
-    .card-tag.warning {
-      background: rgba(251, 191, 36, 0.15);
-      border-color: rgba(251, 191, 36, 0.35);
-      color: var(--warning);
-    }
-    .card-tag.experimental {
-      background: rgba(248, 113, 113, 0.15);
-      border-color: rgba(248, 113, 113, 0.35);
-      color: var(--danger);
-    }
-    .card-h2 {
-      font-size: 1.45rem;
-      font-weight: 800;
-      color: #ffffff;
-      margin-bottom: 8px;
-    }
-    .card-desc {
-      color: var(--text-muted);
-      font-size: 0.95rem;
-      flex: 1;
-      margin-bottom: 20px;
-    }
-    .feature-list {
-      list-style: none;
-      margin-bottom: 22px;
-      display: flex;
-      flex-direction: column;
-      gap: 7px;
-      font-size: 0.88rem;
-      color: #c0d1e5;
-    }
-    .feature-list li {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .feature-list li::before {
-      content: "•";
-      color: var(--primary);
-      font-size: 1.2rem;
-      line-height: 1;
-    }
-
-    /* Action Buttons */
-    .btn-action {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      padding: 13px 20px;
-      border-radius: var(--radius-md);
-      font-weight: 800;
-      font-size: 0.95rem;
-      text-decoration: none;
-      cursor: pointer;
-      transition: all 0.2s;
-      text-align: center;
-    }
-    .btn-primary {
-      background: var(--primary);
-      color: #06111e;
-      box-shadow: 0 4px 14px rgba(56, 189, 248, 0.35);
-    }
-    .btn-primary:hover {
-      background: #50c7fc;
-      transform: scale(1.02);
-    }
-    .btn-success {
-      background: var(--success);
-      color: #06111e;
-      box-shadow: 0 4px 14px rgba(52, 211, 153, 0.35);
-    }
-    .btn-success:hover {
-      background: #4ae0a9;
-      transform: scale(1.02);
-    }
-    .btn-accent {
-      background: var(--accent);
-      color: #0e0d1f;
-      box-shadow: 0 4px 14px rgba(167, 139, 250, 0.35);
-    }
-    .btn-accent:hover {
-      background: #b59ffa;
-      transform: scale(1.02);
-    }
-    .btn-secondary {
-      background: var(--bg-surface);
-      color: var(--text);
-      border: 1px solid var(--border);
-    }
-    .btn-secondary:hover {
-      background: var(--bg-card-hover);
-      border-color: var(--border-highlight);
-    }
-    .btn-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-
-    /* Thumbnail preview */
-    .card-thumb {
-      width: 100%;
-      height: 140px;
-      border-radius: var(--radius-md);
-      overflow: hidden;
-      margin-bottom: 16px;
-      border: 1px solid var(--border);
-      background: #080d14;
-    }
-    .card-thumb img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      transition: transform 0.3s;
-    }
-    .card:hover .card-thumb img {
-      transform: scale(1.04);
-    }
-
-    /* Instruction Box */
-    .inst-box {
-      background: #090e16;
-      border: 1px solid #1c2b3d;
-      border-radius: var(--radius-sm);
-      padding: 12px 14px;
-      font-size: 0.85rem;
-      color: #9cb1ca;
-      margin-top: 12px;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    }
-
-    /* Documentation list */
-    .doc-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 14px;
-    }
-    .doc-item {
-      background: var(--bg-surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      padding: 16px;
-      text-decoration: none;
-      color: var(--text);
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      transition: all 0.2s;
-    }
-    .doc-item:hover {
-      border-color: var(--primary);
-      transform: translateY(-2px);
-      background: var(--bg-card);
-    }
-    .doc-item-title {
-      font-weight: 700;
-      color: var(--primary);
-      font-size: 0.95rem;
-    }
-    .doc-item-desc {
-      font-size: 0.82rem;
-      color: var(--text-muted);
-    }
-
-    footer {
-      margin-top: 60px;
-      text-align: center;
-      color: var(--text-muted);
-      font-size: 0.88rem;
-      border-top: 1px solid var(--border);
-      padding-top: 28px;
-    }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Arenamon — Portal</title>
+<style>
+  :root{color-scheme:dark;--bg:#070b12;--surface:#0e1522;--card:#131d2e;--card-hover:#19273d;--line:#23344a;--line-hi:#3b5373;--text:#f0f6fc;--muted:#8ca0ba;--primary:#38bdf8;--success:#34d399;--accent:#a78bfa;--warn:#fbbf24;--r:12px}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 system-ui,"Segoe UI",sans-serif}
+  a{color:inherit;text-decoration:none}
+  .wrap{max-width:1180px;margin:0 auto;padding:24px 16px 60px}
+  header.top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:18px}
+  .logo{width:40px;height:40px;border-radius:10px;display:grid;place-items:center;font-weight:900;color:#04111d;background:var(--primary)}
+  header.top h1{font-size:20px;margin:0}
+  header.top small{color:var(--muted)}
+  .quick{margin-left:auto;font-size:13px;color:var(--muted)}
+  .quick a{color:var(--primary)}
+  .hero{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px}
+  .hero a{display:flex;flex-direction:column;gap:4px;padding:18px;border-radius:var(--r);border:1px solid var(--line);background:var(--card);transition:.15s}
+  .hero a:hover{border-color:var(--line-hi);background:var(--card-hover)}
+  .hero a b{font-size:18px}
+  .hero a span{color:var(--muted);font-size:13px}
+  .hero a.play{background:linear-gradient(135deg,#0b3a52,#13263d);border-color:#1f6b8f}
+  .search{position:sticky;top:0;z-index:5;background:var(--bg);padding:8px 0 12px}
+  .search input{width:100%;padding:12px 14px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--text);font-size:15px}
+  .search input:focus{outline:2px solid var(--primary);outline-offset:1px}
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+  .tabs button{padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--muted);font:inherit;font-size:13px;cursor:pointer}
+  .tabs button[aria-pressed="true"]{background:var(--primary);color:#04111d;border-color:var(--primary);font-weight:700}
+  section.area{margin-top:22px}
+  section.area > h2{font-size:15px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0 0 10px;font-weight:700}
+  details.group{border:1px solid var(--line);border-radius:var(--r);background:var(--surface);margin-bottom:10px}
+  details.group > summary{cursor:pointer;padding:12px 14px;font-weight:700;list-style:none;display:flex;align-items:center;gap:8px}
+  details.group > summary::-webkit-details-marker{display:none}
+  details.group > summary::before{content:"▸";color:var(--muted);transition:.15s}
+  details.group[open] > summary::before{transform:rotate(90deg)}
+  details.group > summary .n{margin-left:auto;color:var(--muted);font-weight:400;font-size:12px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px;padding:0 12px 12px}
+  .item{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:10px;background:var(--card);border:1px solid transparent}
+  .item:hover{border-color:var(--line-hi);background:var(--card-hover)}
+  .item .ic{font-size:18px;line-height:1.2;width:22px;text-align:center;flex:none}
+  .item .t{font-weight:600;font-size:14px}
+  .item .d{color:var(--muted);font-size:12.5px;margin-top:1px}
+  .tag{font-size:10.5px;padding:1px 6px;border-radius:999px;border:1px solid var(--line-hi);color:var(--muted);margin-left:6px;vertical-align:1px;font-weight:500}
+  .tag.local{border-color:#7c5b14;color:var(--warn)}
+  .empty{color:var(--muted);padding:20px 0;text-align:center}
+  footer{margin-top:30px;color:var(--muted);font-size:12.5px;border-top:1px solid var(--line);padding-top:12px}
+  @media (max-width:720px){.hero{grid-template-columns:1fr}.quick{margin-left:0;width:100%}}
+</style>
 </head>
 <body>
+<div class="wrap">
+  <header class="top">
+    <span class="logo">A</span>
+    <div><h1>Arenamon</h1><small>Portal: tudo do projeto em até 2 cliques</small></div>
+    <p class="quick">Atalho: <a href="HTMLS_ARENAMON.html">⚡ todos os HTMLs</a></p>
+  </header>
 
-  <div class="wrapper">
-    <!-- Header -->
-    <header>
-      <div class="top-meta">
-        <span class="pill pill-live">Ambientes Prontos para Uso</span>
-        <span class="pill pill-offline">100% Offline · file://</span>
-      </div>
-      <h1 class="hero-title">Arenamon — Central de Ambientes</h1>
-      <p class="hero-subtitle">
-        Acesso rápido em um clique a todos os módulos, protótipos jogáveis, estúdios de animação e rigging, laboratórios e relatórios de verificação do projeto Arenamon.
-      </p>
-    </header>
+  <nav class="hero" aria-label="Principais">
+    <a class="play" href="JOGAR_ARENAMON.html"><b>▶ Jogar</b><span>Arenamon Combate, a versão mais nova</span></a>
+    <a href="EDITOR_DE_MOVES.html"><b>🛠 Estúdio de Moves</b><span>Visualizador + editor; ajustes valem no jogo</span></a>
+    <a href="TESTES_ARENAMON.html"><b>📋 Testes</b><span>Central de testes e relatórios</span></a>
+  </nav>
 
-    <!-- Fast Nav -->
-    <nav class="fast-nav" aria-label="Navegação rápida">
-      <a href="HTMLS_ARENAMON.html" class="nav-btn primary">⚡ Abrir HTMLs</a>
-      <a href="#jogo" class="nav-btn primary">🎮 Jogo Principal</a>
-      <a href="#studio" class="nav-btn">🎬 Animation Studio</a>
-      <a href="#propostas" class="nav-btn">🦴 Propostas de Rigging</a>
-      <a href="#combate" class="nav-btn">⚔️ Laboratório de Combate</a>
-      <a href="#ferramentas" class="nav-btn">🛠️ Ferramentas & Base</a>
-      <a href="#testes" class="nav-btn">📊 Central de Testes</a>
-      <a href="#docs" class="nav-btn">📚 Documentação</a>
-    </nav>
-
-    <!-- 1. JOGO PRINCIPAL -->
-    <section id="jogo">
-      <div class="section-head">
-        <h2 class="section-title"><span>🎮</span> Jogo Principal (Arenamon Combate)</h2>
-        <span class="section-badge">Jogo Oficial · prototypes/combat-lab</span>
-      </div>
-
-      <div class="card card-highlight">
-        <div class="card-top">
-          <span class="card-tag game">Jogo Oficial Ativo</span>
-          <span style="font-size: 0.85rem; color: var(--success); font-weight: 700;">✓ Pronto para Jogar</span>
-        </div>
-        <h3 class="card-h2">Arenamon — Jogo Principal & Laboratório de Combate</h3>
-        <p class="card-desc">
-          O jogo principal oficial do Arenamon é o <strong>Combat Lab</strong> (<code>prototypes/combat-lab/dist/arenamon-combate-laboratorio.html</code>). Inclui suporte a personagens GLB do Studio, X (Tackle) e C (Esquiva) separados, Moves especiais com Power Level (Reflect &amp; Psyshock), VFX 3D sólidos, IA tática de 5 fases, Modo Arena tela cheia e interface Bento Zero-Scroll.
-        </p>
-
-        <ul class="feature-list">
-          <li><strong>Ações &amp; Moves:</strong> X para tackle ofensivo, C para esquiva defensiva (com C → X), D para defesa e A/S para Moves (Reflect e Psyshock com PL1–PL3).</li>
-          <li><strong>Câmera Cinemática (Estilo ZZZ):</strong> 12 efeitos dinâmicos de apresentação (dutch angle, câmera baixa de velocidade, snap lateral, FOV punch/breathing, impact frames, speedlines e letterbox) acessíveis pelo botão 🎬 com painel exclusivo.</li>
-          <li><strong>VFX 3D &amp; Visual:</strong> 9 famílias de efeitos 3D sólidos, rochas telecinéticas, barreira de energia, lasers e Modo Arena sem painéis.</li>
-          <li><strong>Cenário, HUD e consumíveis aprovados (21/10/2026):</strong> arena <em>Laboratório técnico</em>, HUD <em>Banco de Células</em> (estágios 0–4 dos 5 atributos) e consumíveis <em>Gemas Facetadas</em>. Alternância para o visual clássico e sliders em <b>Visualizar › Câmera, tremor e HUD</b>.</li>
-          <li><strong>Personagens:</strong> importação de GLB do Animation Studio e sincronização das durações de animação.</li>
-          <li><strong>Dashboard Bento Zero-Scroll:</strong> 9 abas de calibração, presets, replay, cenários, A × B e exportação sem necessidade de rolagem vertical.</li>
-        </ul>
-
-        <div class="btn-row">
-          <a href="prototypes/combat-lab/dist/arenamon-combate-laboratorio.html" class="btn-action btn-primary">
-            ▶️ Jogar Arenamon (Abrir Jogo Principal)
-          </a>
-          <a href="EDITOR_DE_MOVES.html" class="btn-action btn-primary">
-            🛠 Estúdio de Moves (visualizador + editor em janela própria)
-          </a>
-          <a href="prototypes/vfx-elemental/dist/vfx-elemental-psiquico.html" class="btn-action btn-accent">
-            🔮 Laboratório VFX 3D Elemental (Psíquico · A/B/C)
-          </a>
-          <a href="prototypes/sand-stone-lab/dist/arenamon-areia-pedra.html" class="btn-action btn-accent">✨ Atelier VFX · Sand Wave, Emerging Stone, Bullet Punch, Quick Attack e Riposte</a>
-          <a href="prototypes/sand-stone-lab/evidence/fases-24-10/index.html" class="btn-action">🧩 Atelier VFX · seis fases desligáveis (capturas de 24/10)</a>
-          <a href="docs/PLANO_EDITOR_DE_MOVES.md" class="btn-action">🛠 Editor de Moves (todos os 19 Moves: play, sliders, VFX, linha do tempo, A × B; botão «🛠 Editor» e aba Moves = vitrine, dentro do jogo) · plano e 30 QoLs</a>
-          <a href="docs/GRAVAR_NO_EDITOR.md" class="btn-action">💾 Gravar pelo Editor no disco (duplo clique em INICIAR_SERVIDOR.bat, na pasta do projeto): como funciona e o que é validado</a>
-          <a href="docs/ESTRUTURA_DO_MAIN.md" class="btn-action">🧩 Estrutura do main.js do laboratório (módulos de src/app)</a>
-          <a href="docs/CODIGO_SEM_USO_KNIP.md" class="btn-action">🧹 Relatório de código sem uso (knip)</a>
-          <a href="docs/LAB_AREIA_PEDRA.md" class="btn-action">📘 Guia do Atelier VFX de areia, pedra e moves rápidos</a>
-          <a href="prototypes/combat-lab/dist/arenamon-elementais-quarks.html" class="btn-action btn-accent">🌊 Ateliê Elemental Quarks · Água, Fogo e Vento · 3 opções de cada</a>
-          <a href="docs/MOVES_ELEMENTAIS_PROTOTIPO.md" class="btn-action">📘 Moves elementais + anti-aéreo, combo e stamina infinita</a>
-          <a href="docs/MOVES_ELEMENTAIS_VISUAL_QUARKS.md" class="btn-action">Documentação visual dos elementais (Quarks)</a>
-          <a href="docs/PADRAO_ATELIES_VFX.md" class="btn-action">📐 Padrão dos ateliês de VFX · parâmetros iguais por efeito</a>
-          <a href="docs/AUDITORIA_ATELIER_VFX_V2_2026-10-24.md" class="btn-action">🔎 Auditoria do atelier Areia/Pedra × padrão v2.0 (2 rodadas)</a>
-          <a href="docs/AUDITORIA_ATELIER_VFX_2026-10-24.html" class="btn-action">Auditoria do Atelier VFX · regras vigentes, fases e sliders</a>
-          <a href="prototypes/combat-lab/evidence/elemental-quarks/index.html" class="btn-action">40 novos controles de água · Argolas e contato · Capturas Quarks</a>
-          <a href="prototypes/combat-lab/dist/arenamon-vfx-quarks.html" class="btn-action btn-accent">
-            ✨ Laboratório VFX · Quarks (partículas A/B/C)
-          </a>
-          <a href="prototypes/hud-consumiveis/dist/hud-consumiveis-laboratorio.html" class="btn-action btn-accent">
-            🧪 Laboratório HUD de Progressão &amp; Consumíveis (3 HUDs × 3 coleções · propostas)
-          </a>
-          <a href="prototypes/hud-moves/dist/hud-moves-laboratorio.html" class="btn-action btn-accent">
-            🎛️ Laboratório HUD de Vida, Stamina &amp; Moves (A Impacto · B Quadrinhos · C Clássico · propostas)
-          </a>
-          <a href="prototypes/combat-lab/dist/arenamon-navegacao-yuka.html" class="btn-action btn-accent">
-            🧭 Laboratório de Navegação · Yuka (rotas, salto e queda · A/B)
-          </a>
-          <a href="prototypes/combat-lab/dist/arenamon-posprocessamento.html" class="btn-action btn-accent">
-            🎞️ Laboratório de Pós-processamento (bloom, distorção, grading · A/B)
-          </a>
-          <a href="prototypes/combat-lab/dist/arenamon-fisica-rapier.html" class="btn-action btn-accent">
-            🧱 Laboratório de Física · Rapier (prova de conceito)
-          </a>
-          <a href="docs/INTEGRACAO_OPEN_SOURCE.md" class="btn-action btn-secondary">
-            🧰 Ferramentas open source: o que foi integrado
-          </a>
-          <a href="docs/MELHORIAS_FISICA_COLISAO.md" class="btn-action btn-secondary">
-            🛠️ Melhorias de física, colisão e hitbox (v1.13.0)
-          </a>
-          <a href="prototypes/combat-lab/dist/arenamon-painel-relatorios.html" class="btn-action btn-secondary">
-            📊 Painel de Relatórios
-          </a>
-          <a href="docs/REVISAO_GDD_COMBATE.md" class="btn-action btn-secondary">
-            📖 Ler Regras do Combate
-          </a>
-        </div>
-      </div>
-    </section>
-
-    <!-- 2. ANIMATION STUDIO & RIGGING -->
-    <section id="studio">
-      <div class="section-head">
-        <h2 class="section-title"><span>🎬</span> Animation Studio & Rigging Studio</h2>
-        <span class="section-badge">Produção e Edição de Clipes</span>
-      </div>
-
-      <div class="grid-2">
-        <!-- Studio Oficial -->
-        <div class="card card-highlight">
-          <div class="card-top">
-            <span class="card-tag studio">Studio Integrado · 1.1 MB</span>
-            <span style="font-size: 0.82rem; color: var(--success); font-weight: 700;">✓ Totalmente Funcional</span>
-          </div>
-          <h3 class="card-h2">Animation Studio Oficial</h3>
-          <p class="card-desc">
-            Estúdio completo para manipulação de animações e rigging. Inclui timeline interativa, recorte temporal não-destrutivo com interpolação, controle de velocidade e fechamento de loops, extração de root motion in-place e eventos de combate.
-          </p>
-          <ul class="feature-list">
-            <li><strong>Action Editor:</strong> Organização de clipes por drag & drop e comparação lado a lado (A x B).</li>
-            <li><strong>Rigging Integrado:</strong> Aba dedicada com esqueleto guiado de 20 ossos (Mixamo), espelhamento bilateral e teste de flexão.</li>
-            <li><strong>Importação e Exportação:</strong> Gera e lê arquivos GLB com metadados <code>arenamonRig</code> intactos.</li>
-          </ul>
-          <a href="prototypes/studio/dist/arenamon-animation-studio.html" class="btn-action btn-success">
-            🎬 Abrir Animation Studio
-          </a>
-        </div>
-
-        <!-- Documentação e Regressões -->
-        <div class="card">
-          <div class="card-top">
-            <span class="card-tag">Documentação Técnica</span>
-          </div>
-          <h3 class="card-h2">Núcleo Estrutural e Arquitetura</h3>
-          <p class="card-desc">
-            O núcleo de Rigging do Animation Studio é desenvolvido em parceria com o Codex. Todas as operações matemáticas de cálculo de matrizes inversas de bind e normalização de pesos seguem rigorosos critérios de estabilidade.
-          </p>
-          <ul class="feature-list">
-            <li><strong>7 Testes Unitários de Rigging:</strong> Validam esqueleto, hierarquia acíclica e pesos.</li>
-            <li><strong>12 Verificações de Navegador:</strong> Testam edição de rascunhos, bind pose e flexão.</li>
-            <li><strong>Documentação Oficial:</strong> Especificação de fases e roadmap técnico do estúdio.</li>
-          </ul>
-          <div class="btn-row">
-            <a href="prototypes/studio/README.md" class="btn-action btn-secondary">
-              📖 Manual do Studio
-            </a>
-            <a href="prototypes/studio/RIGGING_FASE1.md" class="btn-action btn-secondary">
-              🦴 Especificação Rigging
-            </a>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- 3. PROTÓTIPOS VISUAIS DE RIGGING -->
-    <section id="propostas">
-      <div class="section-head">
-        <h2 class="section-title"><span>🦴</span> Propostas Visuais de Rigging Studio</h2>
-        <span class="section-badge">3 Direções Criativas · Aguardando Homologação</span>
-      </div>
-
-      <div style="background: rgba(167, 139, 250, 0.08); border: 1px solid rgba(167, 139, 250, 0.3); border-radius: var(--radius-md); padding: 14px 18px; margin-bottom: 20px; font-size: 0.9rem; color: #d6ccfa;">
-        ℹ️ <strong>Status Experimental:</strong> Estas três propostas visuais foram desenvolvidas pelo Antigravity para renovar a interface do Rigging Studio. As três opções estão concluídas, testadas e 100% compatíveis com o Schema v2 do Codex, aguardando a decisão e homologação do usuário.
-      </div>
-
-      <!-- Portal comparador link -->
-      <div style="margin-bottom: 20px;">
-        <a href="prototypes/studio/proposals/index.html" class="btn-action btn-accent" style="display: flex; font-size: 1.05rem;">
-          ⚖️ Abrir Portal Comparador Interativo (Ver as 3 Propostas Lado a Lado)
-        </a>
-      </div>
-
-      <div class="grid-3">
-        <!-- Proposta A -->
-        <div class="card card-highlight-accent">
-          <div class="card-thumb">
-            <img src="prototypes/studio/proposals/screenshots/proposta-a.png" alt="Proposta A Preview">
-          </div>
-          <div class="card-top">
-            <span class="card-tag proposals">Proposta A</span>
-            <span class="card-tag">Pro Workspace</span>
-          </div>
-          <h3 class="card-h2">Rigging Workspace</h3>
-          <p class="card-desc">
-            Inspirada em softwares 3D consagrados (Blender, Maya). Interface técnica completa com Quad-View (3 vistas ortográficas + 1 perspectiva), manipulador 3D (Gizmo de translação) e árvore de hierarquia com filtros anatômicos.
-          </p>
-          <a href="prototypes/studio/proposals/proposta-a.html" class="btn-action btn-secondary">
-            Abrir Proposta A
-          </a>
-        </div>
-
-        <!-- Proposta B -->
-        <div class="card card-highlight-accent">
-          <div class="card-thumb">
-            <img src="prototypes/studio/proposals/screenshots/proposta-b.png" alt="Proposta B Preview">
-          </div>
-          <div class="card-top">
-            <span class="card-tag proposals">Proposta B</span>
-            <span class="card-tag">Guided Wizard</span>
-          </div>
-          <h3 class="card-h2">Guided Rigging</h3>
-          <p class="card-desc">
-            Inspirada na facilidade do AccuRIG. Processo passo a passo em 5 etapas guiadas, incluindo Paper Doll 2D ilustrativo, posicionamento assistido de marcadores e auto-bind direto para criadores não-técnicos.
-          </p>
-          <a href="prototypes/studio/proposals/proposta-b.html" class="btn-action btn-secondary">
-            Abrir Proposta B
-          </a>
-        </div>
-
-        <!-- Proposta C -->
-        <div class="card card-highlight-accent">
-          <div class="card-thumb">
-            <img src="prototypes/studio/proposals/screenshots/proposta-c.png" alt="Proposta C Preview">
-          </div>
-          <div class="card-top">
-            <span class="card-tag proposals">Proposta C</span>
-            <span class="card-tag">Híbrido Moderno</span>
-          </div>
-          <h3 class="card-h2">Hybrid Rigging Studio</h3>
-          <p class="card-desc">
-            Canvas 3D amplo e desobstruído com alternância instantânea entre Modo Guiado (passo a passo para montagem) e Modo Livre (ajuste fino com manipulador), barras contextuais e linhagem anatômica (breadcrumbs).
-          </p>
-          <a href="prototypes/studio/proposals/proposta-c.html" class="btn-action btn-secondary">
-            Abrir Proposta C
-          </a>
-        </div>
-      </div>
-    </section>
-
-    <!-- 4. LABORATÓRIO DE COMBATE & CALIBRAÇÃO -->
-    <section id="combate">
-      <div class="section-head">
-        <h2 class="section-title"><span>⚔️</span> Documentação & Relatórios do Jogo (Combat Lab)</h2>
-        <span class="section-badge">Jogo Principal · prototypes/combat-lab</span>
-      </div>
-
-      <div class="card">
-        <div class="card-top">
-          <span class="card-tag warning">Jogo Oficial + Calibração Integrada</span>
-          <span class="card-tag">Moves · VFX 3D · IA Tática</span>
-        </div>
-        <h3 class="card-h2">Documentação e Ferramentas do Jogo Principal</h3>
-        <p class="card-desc">
-          O <strong>Combat Lab</strong> é o próprio jogo principal do Arenamon (<code>arenamon-jogavel.html</code> em <code>prototypes/game/</code> foi descontinuado como protótipo inicial legado). Acesse abaixo os documentos técnicos de Moves, VFX sólidos, calibração e o painel externo de relatórios.
-        </p>
-
-        <div class="inst-box">
-          # Para recompilar o jogo principal no terminal:
-          npm run build:combat-lab
-          # Saída: prototypes/combat-lab/dist/arenamon-combate-laboratorio.html
-        </div>
-
-        <div style="margin-top: 18px;">
-          <a href="prototypes/combat-lab/dist/arenamon-combate-laboratorio.html" class="btn-action btn-primary" style="margin-bottom: 10px;">
-            ▶️ Abrir Arenamon (Jogo Principal)
-          </a>
-          <a href="docs/REVISAO_GDD_COMBATE.md" class="btn-action btn-secondary">
-            📖 Consultar Documento Oficial da Revisão do GDD (Etapa A)
-          </a>
-          <a href="prototypes/combat-lab/dist/arenamon-painel-relatorios.html" class="btn-action btn-secondary">
-            📊 Painel de relatórios (movimento, diagnóstico, treino, benchmark, IA)
-          </a>
-          <a href="prototypes/combat-lab/CALIBRACAO.md" class="btn-action btn-secondary">
-            🎛️ Ambiente de calibração: workspace, presets, A × B, gravador e ferramentas
-          </a>
-        </div>
-      </div>
-    </section>
-
-    <!-- 5. FERRAMENTAS DIAGNÓSTICAS & BASE -->
-    <section id="ferramentas">
-      <div class="section-head">
-        <h2 class="section-title"><span>🛠️</span> Ferramentas, Diagnósticos & Base</h2>
-        <span class="section-badge">Utilitários e Validações de Malha</span>
-      </div>
-
-      <div class="grid-3">
-        <!-- Visualizador de Blocos Base -->
-        <div class="card">
-          <div class="card-top">
-            <span class="card-tag">Base 1.0.0</span>
-          </div>
-          <h3 class="card-h2">Visualizador de Blocos</h3>
-          <p class="card-desc">
-            Visualizador inicial seguro do projeto: dois blocos sólidos (jogador azul, inimigo vermelho), iluminação de palco e câmera orbital. Totalmente seguro para distribuição pública.
-          </p>
-          <a href="prototypes/placeholders/dist/criaturas-laboratorio.html" class="btn-action btn-secondary">
-            Abrir Visualizador Base
-          </a>
-        </div>
-
-        <!-- Importador de Protótipos -->
-        <div class="card">
-          <div class="card-top">
-            <span class="card-tag">Conversor FBX/GLB</span>
-          </div>
-          <h3 class="card-h2">Importador de Modelos</h3>
-          <p class="card-desc">
-            Ferramenta para importação de malhas 3D sintéticas ou de teste, descarte de texturas para modo unlit (flat colors) e exportação de GLB limpo sem assets proprietários.
-          </p>
-          <a href="prototypes/importer/dist/importador-prototipo.html" class="btn-action btn-secondary">
-            Abrir Importador
-          </a>
-        </div>
-
-        <!-- Diagnóstico Croagunk -->
-        <div class="card">
-          <div class="card-top">
-            <span class="card-tag experimental">Diagnóstico Local</span>
-          </div>
-          <h3 class="card-h2">Diagnóstico Pokkén</h3>
-          <p class="card-desc">
-            Laboratório local de diagnóstico de deformação de vértices e esqueleto (abertura de mandíbula, expansão de bochechas e agachamento profundo).
-          </p>
-          <a href="prototypes/croagunk/dist/croagunk-laboratorio.html" class="btn-action btn-secondary">
-            Abrir Diagnóstico
-          </a>
-        </div>
-
-        <!-- Blender Vision: percepcao ativa -->
-        <div class="card card-highlight-accent">
-          <div class="card-top">
-            <span class="card-tag experimental">Blender Vision</span>
-            <span class="card-tag">Somente leitura</span>
-          </div>
-          <h3 class="card-h2">Percepção Ativa — Mushroom</h3>
-          <p class="card-desc">
-            Relatório do caso Mosh/Mushroom (clipe attack 1): o que a IA viu e o que não viu por região do corpo, novas vistas pedidas sozinhas, medidas de movimento, mãos abaixo do chão, diagnóstico validado e testes controlados. Não altera animação nem jogo.
-          </p>
-          <a href="scripts/blender-vision/evidence/perception_mosh/relatorio.html" class="btn-action btn-secondary">
-            Abrir Relatório do Mushroom
-          </a>
-          <a href="scripts/blender-vision/PROTOCOLO_AGENTE_VISUAL.md" class="btn-action btn-secondary" style="margin-top: 8px;">
-            Protocolo do agente (como a IA analisa)
-          </a>
-          <a href="docs/BLENDER_VISION_PERCEPCAO.md" class="btn-action btn-secondary" style="margin-top: 8px;">
-            Documentação e limites
-          </a>
-          <a href="docs/BLENDER_ADDONS_MOTION_LENS.md" class="btn-action btn-secondary" style="margin-top: 8px;">
-            Addons Motion Lens e Direction Lines (cópia do repositório)
-          </a>
-          <a href="docs/ANIMACAO_ESTILO_ZZZ_PLANO.md" class="btn-action btn-secondary" style="margin-top: 8px;">
-            Plano: animação de combate estilo ZZZ (diretor de poses)
-          </a>
-          <a href="docs/PLANO_15_MELHORIAS_PROVA_2026-10-23.md" class="btn-action btn-secondary" style="margin-top: 8px;">
-            Plano de 15 melhorias: registro de prova, Gate 2 e skills
-          </a>
-          <a href="docs/plans/2026-10-23-melhorias-restantes.md" class="btn-action btn-secondary" style="margin-top: 8px;">
-            Plano do que falta (8 tarefas)
-          </a>
-          <a href="docs/DESEMPENHO_RENDER_2026-10-25.md" class="btn-action btn-secondary" style="margin-top: 8px;">
-            Desempenho de render com GPU real (FPS, P95, draw calls, memória)
-          </a>
-          <a href="prototypes/combat-lab/evidence/vfx-colisao/index.html" class="btn-action btn-secondary" style="margin-top: 8px;">
-            Efeito visual × área de colisão em movimento (8 Moves)
-          </a>
-          <a href="prototypes/combat-lab/evidence/gizmos/air-slash-em-voo.png" class="btn-action btn-secondary" style="margin-top: 8px;">
-            Gizmos na tela: hitbox, hurtbox e deslocamento (capturas)
-          </a>
-          <a href="docs/MATRIZ_MOVES_2026-10-25.md" class="btn-action btn-secondary" style="margin-top: 8px;">
-            Matriz de cenários por Move (18 escopos, semente 7)
-          </a>
-          <a href="docs/PLANO_15_MELHORIAS_STATUS_2026-10-23.md" class="btn-action btn-secondary" style="margin-top: 8px;">
-            Plano de 15 melhorias: o que foi entregue e o que falta
-          </a>
-          <a href="docs/ARENAMON_PLANO_15_MELHORIAS_IA_MOVES_DEBUG_PERFORMANCE_2026-10-23.docx" class="btn-action btn-secondary" style="margin-top: 8px;">
-            Plano de 15 melhorias (DOCX original)
-          </a>
-          <a href="docs/INDICE_VIVO_MOVES.md" class="btn-action btn-secondary" style="margin-top: 8px;">
-            Índice vivo dos Moves (arquivos, testes e documentos de cada um)
-          </a>
-          <a href="docs/DESEMPENHO_MOVES_2026-10-23.md" class="btn-action btn-secondary" style="margin-top: 8px;">
-            Desempenho da simulação com Moves (benchmark)
-          </a>
-          <a href="docs/COMO_CRIAR_UM_MOVE.md" class="btn-action btn-secondary" style="margin-top: 8px;">
-            Como criar ou editar um Move (ficha única, 1 arquivo)
-          </a>
-          <a href="docs/AUDITORIA_LIMPEZA_CODIGO_2026-10-23.md" class="btn-action btn-secondary" style="margin-top: 8px;">
-            Auditoria de limpeza de código + 10 alternativas para criar Moves
-          </a>
-          <a href="scripts/blender-vision/diretor_parry_mosh.html" class="btn-action" style="margin-top: 8px; background: #ff4757; color: #fff;">
-            ⚡ Diretor de Poses ZZZ — Piloto Parry Mushroom
-          </a>
-        </div>
-      </div>
-    </section>
-
-    <!-- 6. CENTRAL DE TESTES -->
-    <section id="testes">
-      <div class="section-head">
-        <h2 class="section-title"><span>📊</span> Central de Testes e Relatórios</h2>
-        <span class="section-badge">100% de Sucesso Comprovado</span>
-      </div>
-
-      <div class="card card-highlight">
-        <div class="card-top">
-          <span class="card-tag studio">Matriz de Verificação Integrada</span>
-          <span style="font-size: 0.85rem; color: var(--success); font-weight: 700;">✓ 8 Suítes Verificadas</span>
-        </div>
-        <h3 class="card-h2">Central Interativa de Testes Automatizados</h3>
-        <p class="card-desc">
-          Consulte o catálogo interativo completo contendo o status de execução de mais de 110 cenários mecânicos, testes de física, locomoção, timeline do studio, núcleo técnico do Codex, interoperabilidade v2 e capturas de tela das evidências.
-        </p>
-
-        <div class="btn-row" style="margin-bottom: 16px;">
-          <a href="TESTES_ARENAMON.html" class="btn-action btn-primary">
-            📋 Abrir Central Interativa de Testes (TESTES_ARENAMON.html)
-          </a>
-          <a href="docs/CENTRAL_DE_TESTES.md" class="btn-action btn-secondary">
-            📄 Ler Documentação em Markdown
-          </a>
-        </div>
-
-        <div class="inst-box">
-          # Para rodar toda a suíte de testes com validação TypeScript via PowerShell:
-          npm run verify
-        </div>
-      </div>
-    </section>
-
-    <!-- 7. CENTRAL DE DOCUMENTAÇÃO -->
-    <section id="docs">
-      <div class="section-head">
-        <h2 class="section-title"><span>📚</span> Central de Documentação</h2>
-        <span class="section-badge">Fontes Oficiais da Verdade</span>
-      </div>
-
-      <div class="doc-grid">
-        <a href="docs/OVERHAUL_DEFESA_PERFEITA_DODGE_PERFEITO_ZZZ_2026-10-23.docx" class="doc-item">
-          <span class="doc-item-title">🛡️ Overhaul — Defesa Perfeita &amp; Perfect Dodge (DOCX)</span>
-          <span class="doc-item-desc">Auditoria, proposta mecânica e cinematográfica inspirada em ZZZ/Banyue, fases e prompt completo para Claude com Superpowers/Superskills. Somente planejamento, não implementação.</span>
-        </a>
-        <a href="docs/OVERHAUL_DEFESA_PERFEITA_DODGE_PERFEITO_ZZZ_2026-10-23.md" class="doc-item">
-          <span class="doc-item-title">📄 Overhaul Parry / Dodge — texto navegável</span>
-          <span class="doc-item-desc">Versão Markdown consultável no GitHub da especificação e do prompt.</span>
-        </a>
-        <a href="docs/AUDITORIA_FISICA_3D_2026-10-20.md" class="doc-item">
-          <span class="doc-item-title">🧱 Auditoria da Infraestrutura Física 3D (20/10/2026)</span>
-          <span class="doc-item-desc">Relatório técnico da auditoria sistêmica: altitude no lançamento, teto de plataformas, pouso só na descida, arena circular, wall-splat sem autoria inventada e mixer de animação sem vazamento — com matriz de classificação e pendências.</span>
-        </a>
-        <a href="docs/CAMERA_CINEMATICA_ZZZ.md" class="doc-item">
-          <span class="doc-item-title">🎬 Câmera Cinemática de Combate (ZZZ)</span>
-          <span class="doc-item-desc">Especificação dos 12 efeitos de apresentação visual (C01–C12), arquitetura de desacoplamento do yaw funcional, limites do solo e controles.</span>
-        </a>
-        <a href="prototypes/vfx-elemental/dist/vfx-elemental-psiquico.html" class="doc-item">
-          <span class="doc-item-title">🔮 VFX 3D Elemental — Tipo Psíquico (A / B / C)</span>
-          <span class="doc-item-desc">3 opções animadas em 3D (EarthBound/Mother 3, Persona 4/5, Parasite Eve) para Invocação, Hit e Aura, com sliders de opacidade/duração e exportador JSON.</span>
-        </a>
-        <a href="prototypes/hud-consumiveis/dist/hud-consumiveis-laboratorio.html" class="doc-item">
-          <span class="doc-item-title">🧪 Laboratório HUD de Progressão &amp; Consumíveis (A / B / C)</span>
-          <span class="doc-item-desc">Arena 3D com 3 propostas de HUD para os 5 atributos (estágios 0–4) e 3 coleções de 7 consumíveis em 3D, com indicadores flutuantes, partículas three.quarks e 9 combinações. Todas as alternativas ainda não aprovadas.</span>
-        </a>
-        <a href="prototypes/hud-moves/dist/hud-moves-laboratorio.html" class="doc-item">
-          <span class="doc-item-title">🎛️ Laboratório HUD de Vida, Stamina &amp; Moves (A / B / C)</span>
-          <span class="doc-item-desc">Arena 3D com 3 propostas bem diferentes de HUD (Impacto, Quadrinhos, Clássico) para vida, stamina e 4 moves, com estados de recarga, carga, bloqueio e sem stamina, 4 cenários e controles em tempo real. Nada aprovado.</span>
-        </a>
-        <a href="docs/HUD_VIDA_STAMINA_MOVES_LAB.md" class="doc-item">
-          <span class="doc-item-title">📘 Documentação — HUD de Vida, Stamina &amp; Moves</span>
-          <span class="doc-item-desc">Descrição das 3 propostas, estados dos moves, controles, testes e limites do protótipo.</span>
-        </a>
-        <a href="prototypes/hud-moves/evidence/hudA-neutro-720p.png" class="doc-item">
-          <span class="doc-item-title">🖼️ Evidências — HUD de Vida, Stamina &amp; Moves (capturas 720p e 1080p)</span>
-          <span class="doc-item-desc">Capturas da verificação de navegador: cada HUD nos 4 cenários, em 720p e 1080p, com a câmera em posições diferentes.</span>
-        </a>
-        <a href="docs/HUD_CONSUMIVEIS_LAB.md" class="doc-item">
-          <span class="doc-item-title">📘 Documentação — HUD &amp; Consumíveis (propostas)</span>
-          <span class="doc-item-desc">Descrição das 3 propostas de HUD, das 21 representações de consumíveis, controles, valores exibidos e pendências de aprovação.</span>
-        </a>
-        <a href="prototypes/combat-lab/evidence/progress-scenery/jogo-padrao-1500x920.png" class="doc-item">
-          <span class="doc-item-title">🖼️ Evidências — cenário, HUD e consumíveis NO JOGO (capturas)</span>
-          <span class="doc-item-desc">Jogo principal com o cenário Laboratório técnico, o HUD Banco de Células e as Gemas Facetadas (720p, 1080p, e as versões clássicas após a alternância).</span>
-        </a>
-        <a href="prototypes/hud-consumiveis/evidence/combo-hudB-itensB-720p.png" class="doc-item">
-          <span class="doc-item-title">🖼️ Evidências — HUD &amp; Consumíveis (capturas 720p e 1080p)</span>
-          <span class="doc-item-desc">Capturas geradas pela verificação de navegador: 9 combinações, cada HUD em 720p/1080p, vitrines das 3 coleções, painel e inspeção.</span>
-        </a>
-        <a href="docs/VFX_ELEMENTAL_PSIQUICO.md" class="doc-item">
-          <span class="doc-item-title">📘 Documentação VFX Elemental Psíquico</span>
-          <span class="doc-item-desc">Especificação das 3 opções 3D, shaders GLSL, curva de redução de opacidade na duração e formato de exportação JSON/Prompt.</span>
-        </a>
-        <a href="prototypes/combat-lab/evidence/passive-abilities/index.html" class="doc-item">
-          <span class="doc-item-title">⚡ Habilidades passivas — No jogo</span>
-          <span class="doc-item-desc">Veja as placas laterais metálicas animadas e os sparkles brancos acompanhando os personagens no Combat Lab.</span>
-        </a>
-        <a href="docs/VFX_HABILIDADES_PASSIVAS.md" class="doc-item">
-          <span class="doc-item-title">📘 Habilidades passivas — VFX e interface</span>
-          <span class="doc-item-desc">Controles, nomes de uma palavra, animações da moldura e procedimento de verificação.</span>
-        </a>
-        <a href="prototypes/combat-lab/evidence/vfx-solido/comparacao-poeira.html" class="doc-item">
-          <span class="doc-item-title">🌫️ VFX 3D — Comparação visual</span>
-          <span class="doc-item-desc">Todos os estilos de poeira, vento, esquiva, aterrissagem, impacto, bloqueio, colisão e invocação do Reflect, em vários ângulos e clipes.</span>
-        </a>
-        <a href="docs/MATRIZ_RASTREAMENTO_NOVO_MAPA.md" class="doc-item">
-          <span class="doc-item-title">🗺️ Novo Mapa — Matriz de Rastreabilidade</span>
-          <span class="doc-item-desc">Rastreamento completo das 152 decisões (R1.1 a R11.9) e 24 casos de aceitação (MAP-T01 a MAP-T24).</span>
-        </a>
-        <a href="docs/MAPA_COMBAT_LAB_DECISOES_RODADAS.md" class="doc-item">
-          <span class="doc-item-title">📋 Novo Mapa — Decisões das 11 Rodadas</span>
-          <span class="doc-item-desc">Documento oficial das decisões aprovadas da arena circular, plataformas, pulo, itens e escudos.</span>
-        </a>
-        <a href="docs/VFX_SOLIDOS.md" class="doc-item">
-          <span class="doc-item-title">✨ VFX 3D — Documentação</span>
-          <span class="doc-item-desc">Como funcionam as famílias de efeitos 3D, sliders, fumaça volumétrica, desempenho e testes.</span>
-        </a>
-        <a href="docs/VFX_IMPACTO_D.md" class="doc-item">
-          <span class="doc-item-title">💥 Impacto · variante D (direcional)</span>
-          <span class="doc-item-desc">Novo estilo de acerto que segue a direção e a força reais do golpe: onde escolher, controles e limites.</span>
-        </a>
-        <a href="prototypes/combat-lab/MOVIMENTOS.md" class="doc-item">
-          <span class="doc-item-title">🎯 Moves (Reflect e Psyshock)</span>
-          <span class="doc-item-desc">Regras, parâmetros e decisões dos Moves do jogo.</span>
-        </a>
-        <a href="docs/PASSIVAS_DECISOES.md" class="doc-item">
-          <span class="doc-item-title">🧬 Passivas — Decisões de Design</span>
-          <span class="doc-item-desc">Regras aprovadas de seleção, tipos de funcionamento e interação individual com estados de combate.</span>
-        </a>
-        <a href="docs/PASSIVAS_IMPLEMENTACAO.md" class="doc-item">
-          <span class="doc-item-title">✅ Passivas — Implementação (29 rodadas)</span>
-          <span class="doc-item-desc">Matriz de cobertura R01–R29, matriz das 18 habilidades, testes (42 cenários pv-01…pv-42 + 9 unitários) e pendências. Jogável em Partida › Passivas.</span>
-        </a>
-        <a href="docs/ia/COBERTURA_IA_MEDICAO.md" class="doc-item">
-          <span class="doc-item-title">🧱 IA — Cobertura (tentativa descartada)</span>
-          <span class="doc-item-desc">Testes de a IA se esconder atrás de paredes e de atacar pulando na cabeça do rival: nenhum melhorou, nenhum foi adotado; números e motivo.</span>
-        </a>
-        <a href="docs/ia/BALANCEAMENTO_SECOND_WIND_SWIFT.md" class="doc-item">
-          <span class="doc-item-title">⚖️ Balanceamento — Second Wind e Swift</span>
-          <span class="doc-item-desc">Varredura dos sliders medida com a IA: onde cada Move fica forte demais, leve ou neutro. Sugestão de valores; os padrões não foram alterados.</span>
-        </a>
-        <a href="docs/ia/NEW_MOVES_IA_MEDICAO.md" class="doc-item">
-          <span class="doc-item-title">🤖 IA — Uso dos 13 Moves novos (medição)</span>
-          <span class="doc-item-desc">Quanto a IA usa cada Move novo e o efeito dele nas vitórias, com a leitura dos números. Slider de uso em Moves › IA com Moves.</span>
-        </a>
-        <a href="docs/ia/NAV_IA_MEDICAO.md" class="doc-item">
-          <span class="doc-item-title">🧭 IA — Medição da navegação (Yuka)</span>
-          <span class="doc-item-desc">IA × IA com e sem navegação em 6 mapas: vitórias, quedas, pressão e partidas sem desfecho. Mostra onde a navegação ajuda e como reproduzir.</span>
-        </a>
-        <a href="docs/moves-nao-iniciados/README.md" class="doc-item">
-          <span class="doc-item-title">📂 Moves não iniciados — Inventário e prompts</span>
-          <span class="doc-item-desc">Prompt de implementação do Emerging Stone, documentos de referência e auditoria do Tackle.</span>
-        </a>
-        <a href="docs/moves-nao-iniciados/PROMPT_IMPLEMENTACAO_MOVES_NOVOS.md" class="doc-item">
-          <span class="doc-item-title">🧭 Moves novos — Prompt de trabalho do agente</span>
-          <span class="doc-item-desc">Ordem, infraestrutura, protocolo por Move e critérios de aceitação dos 13 Moves em implementação (feat/moves-novos).</span>
-        </a>
-        <a href="docs/moves-nao-iniciados/DECISOES_PROVISORIAS_MOVES_NOVOS.md" class="doc-item">
-          <span class="doc-item-title">📝 Moves novos — Decisões provisórias</span>
-          <span class="doc-item-desc">Padrões provisórios adotados onde a fonte marca pendência, com o controle que permite trocá-los.</span>
-        </a>
-        <a href="docs/moves-nao-iniciados/README.md#moves-implementados-branch-featmoves-novos-v1140" class="doc-item">
-          <span class="doc-item-title">✅ Moves novos — Fichas dos 13 Moves implementados</span>
-          <span class="doc-item-desc">Regras, testes, sliders e pendências de Harden a Emerging Stone (v1.14.0, branch feat/moves-novos). Nenhum vem equipado: use a aba Moves do jogo.</span>
-        </a>
-        <a href="docs/moves-nao-iniciados/EMERGING_STONE_PROMPT_IMPLEMENTACAO.md" class="doc-item">
-          <span class="doc-item-title">🪨 Emerging Stone — Prompt para implementação</span>
-          <span class="doc-item-desc">Especificação de execução e testes baseada nas 103 decisões aprovadas (já implementada: ver a ficha em fichas/emerging-stone.md).</span>
-        </a>
-        <a href="docs/MUSHROOM_MOVES_DECISOES.md" class="doc-item">
-          <span class="doc-item-title">🍄 Mushroom — Moves (Emerging Stone, Bullet Punch e Sand Wave)</span>
-          <span class="doc-item-desc">Documento-mestre de decisões dos moves de Mushroom, incluindo Emerging Stone aprovado (ES-D01–ES-D103).</span>
-        </a>
-        <a href="docs/COLISOES_FASE0_FASE1_RESULTADOS.md" class="doc-item">
-          <span class="doc-item-title">🧱 Overhaul de Colisões — Fases 0 a 7 (resultados)</span>
-          <span class="doc-item-desc">Matriz de defeitos reproduzidos, correções (penetração, contatos simultâneos, CCD, apoio 3D, objetos do cenário, feixes e projéteis), testes e registro de skills.</span>
-        </a>
-        <a href="docs/CALIBRACAO_BASE_V8.md" class="doc-item">
-          <span class="doc-item-title">🎚️ Base de calibração v8 e regras de combate (Riposte, Meteor Slam, recarga)</span>
-          <span class="doc-item-desc">Valores do seu export como padrão do jogo e do laboratório (184 linhas reversíveis, 2ª exportação de 22/10 incluída), patch do config.ts, regras novas de PL/clash, aceleração de recarga em todos os Moves e exportação completa.</span>
-        </a>
-        <a href="prototypes/combat-lab/evidence/ui-22-10/README.md" class="doc-item">
-          <span class="doc-item-title">📸 Capturas reais da rodada de 22/10 (botões de IA, tooltips, Riposte, VFX novos)</span>
-          <span class="doc-item-desc">Imagens geradas pelo teste de navegador, com o resultado das 16 verificações.</span>
-        </a>
-        <a href="docs/LEDGE_GRAB.md" class="doc-item">
-          <span class="doc-item-title">🧗 Ledge Grab & Mantle — decisões propostas e implementação (v1.19.0)</span>
-          <span class="doc-item-desc">Tabela das decisões que a issue #95 deixou em aberto, com o padrão provisório e o controle de cada uma, a correção da faixa de montagem de 2,2 m e como testar.</span>
-        </a>
-        <a href="prototypes/combat-lab/evidence/ledge-grab/README.md" class="doc-item">
-          <span class="doc-item-title">📸 Capturas do Ledge Grab (pendurado, subindo, no topo)</span>
-          <span class="doc-item-desc">Geradas pelo teste de navegador, com o resultado das verificações.</span>
-        </a>
-        <a href="docs/PREJOGO_3_ESTILOS.md" class="doc-item">
-          <span class="doc-item-title">🎨 Pré-jogo em três identidades: A Impacto · B Quadrinhos · C Clássico (v1.21.0)</span>
-          <span class="doc-item-desc">Seletor «Estilo» na tela inicial do jogo, sobre o menu real (Moves e passivas do registro, prévia 3D, three.quarks). Matriz de fidelidade aos três HUDs, testes e limites. Nenhum estilo é o oficial.</span>
-        </a>
-        <a href="prototypes/combat-lab/evidence/prejogo/README.md" class="doc-item">
-          <span class="doc-item-title">📸 Capturas do pré-jogo A/B/C (720p, 1080p e lado a lado com os HUDs originais)</span>
-          <span class="doc-item-desc">Geradas pelo teste de navegador (38 verificações) com modelos reais.</span>
-        </a>
-        <a href="docs/CACADA_BUGS_2026-10-22.md" class="doc-item">
-          <span class="doc-item-title">🐞 Caçada de bugs (v1.20.1): 20 defeitos corrigidos, incluindo a transparência que não funcionava</span>
-          <span class="doc-item-desc">O que foi achado por revisão independente e varredura aleatória, a causa de cada um, o teste de regressão e o que ficou conhecido e não corrigido.</span>
-        </a>
-        <a href="docs/RODADA_22_10_TARDE.md" class="doc-item">
-          <span class="doc-item-title">🛠️ Rodada de 22/10 (tarde, v1.20.0): transparência, pouso na plataforma, Bullet Punch, círculo de alcance, Riposte, IA</span>
-          <span class="doc-item-desc">Os dez pedidos com o que mudou, onde ajustar cada um na interface, o que não foi verificado e os testes.</span>
-        </a>
-        <a href="prototypes/combat-lab/evidence/rodada-b/README.md" class="doc-item">
-          <span class="doc-item-title">📸 Capturas da rodada de 22/10 (tarde)</span>
-          <span class="doc-item-desc">Objeto translúcido, pouso na plataforma, círculo de alcance azul/vermelho, explosão do Riposte e rastro do Emerging Stone, geradas pelo teste de navegador.</span>
-        </a>
-        <a href="docs/GAME_FEEL_REVISAO_2026-10-22.md" class="doc-item">
-          <span class="doc-item-title">🎮 Revisão das propostas de game feel pendentes no GitHub (22/10/2026)</span>
-          <span class="doc-item-desc">Responsive Movement V2, os cinco GF e as issues #95 a #97 comparados com o código atual: o que já foi feito, o que é parcial e o que continua pendente.</span>
-        </a>
-        <a href="docs/VFX_POUSO_E_PAREDES.md" class="doc-item">
-          <span class="doc-item-title">🌊 VFX do pouso do pulo e do impacto em paredes e objetos (v1.18.2)</span>
-          <span class="doc-item-desc">Pulo regular com onda simples sem tremor; impacto vertical com tamanho do objeto, sliders e liga/desliga de cada camada.</span>
-        </a>
-        <a href="docs/AUDITORIA_DOCUMENTACAO_2026-10-22.md" class="doc-item">
-          <span class="doc-item-title">🧾 Auditoria de documentação, branches e PRs (22/10/2026)</span>
-          <span class="doc-item-desc">Documentos × código, estado das 148 branches remotas, PRs e issues abertos, links mortos do portal e o que não foi verificado.</span>
-        </a>
-        <a href="docs/PATCH_NOTES.md" class="doc-item">
-          <span class="doc-item-title">📝 Patch notes do Laboratório de Combate (v1.1.0 a v1.18.0)</span>
-          <span class="doc-item-desc">O que mudou em cada versão, em linguagem de jogo.</span>
-        </a>
-        <a href="docs/CHECKLIST_CORRECOES.md" class="doc-item">
-          <span class="doc-item-title">✅ Checklist de correções do laboratório (22/10/2026)</span>
-          <span class="doc-item-desc">Os 9 pedidos da rodada (Moves bloqueados, VFX do Riposte, sliders ×2, duração da animação, botões de IA, tooltips, calibração, softlock do Bullet Punch) com estado, causa e onde conferir.</span>
-        </a>
-        <a href="docs/COLISOES_FERRAMENTAS_LAB.md" class="doc-item">
-          <span class="doc-item-title">🔍 Colisões no Laboratório — cenários de um clique e sobreposições visuais</span>
-          <span class="doc-item-desc">Como abrir os 15 cenários de colisão (aba Cenários), ligar os colisores, o apoio atual, os contatos e as varreduras (aba Visualizar) e ler os números em Dados ao vivo.</span>
-        </a>
-        <a href="prototypes/combat-lab/OVERHAUL.md" class="doc-item">
-          <span class="doc-item-title">🛠️ Overhaul do Laboratório</span>
-          <span class="doc-item-desc">Locomoção, esquiva, sprint, IA e ajustes do jogo principal.</span>
-        </a>
-        <a href="docs/ANIMACOES_PERSONAGENS.md" class="doc-item">
-          <span class="doc-item-title">🎞️ Animações dos personagens</span>
-          <span class="doc-item-desc">Estados cardinais, troca e variantes, loop, duração, prevenção de T-pose e organização da aba.</span>
-        </a>
-        <a href="docs/tackle/VER_TACKLE.html" class="doc-item">
-          <span class="doc-item-title">🎞️ Player do Tackle (Vigoroth, Teste 01)</span>
-          <span class="doc-item-desc">Reprodutor frame a frame do Tackle com indicadores de fase.</span>
-        </a>
-        <a href="docs/MAPA_REPOSITORIO.md" class="doc-item">
-          <span class="doc-item-title">🗺️ Mapa do Repositório</span>
-          <span class="doc-item-desc">Árvore estrutural antes e depois, localização de arquivos e decisões de design de diretórios.</span>
-        </a>
-        <a href="docs/CENTRAL_DE_TESTES.md" class="doc-item">
-          <span class="doc-item-title">📊 Central de Testes</span>
-          <span class="doc-item-desc">Matriz técnica detalhada com objetivos, comandos, códigos e relatórios.</span>
-        </a>
-        <a href="docs/STATUS_PROJETOS_E_BRANCHES.md" class="doc-item">
-          <span class="doc-item-title">📈 Status das Branches</span>
-          <span class="doc-item-desc">Situação exata de cada branch paralela, itens aprovados e roadmap seguro.</span>
-        </a>
-        <a href="docs/GUIA_COLABORACAO_AGENTES.md" class="doc-item">
-          <span class="doc-item-title">🤝 Guia de Agentes</span>
-          <span class="doc-item-desc">Instruções para Codex, Claude e Antigravity colaborarem sem conflitos.</span>
-        </a>
-        <a href="docs/REVISAO_GDD_COMBATE.md" class="doc-item">
-          <span class="doc-item-title">⚔️ Revisão GDD Combate</span>
-          <span class="doc-item-desc">Decisões aprovadas da Etapa A de combate (ações X e C, cancelamentos, clash).</span>
-        </a>
-        <a href="docs/ROSTER.md" class="doc-item">
-          <span class="doc-item-title">📋 Roster de Personagens</span>
-          <span class="doc-item-desc">Lista e especificações de atributos físicos e mecânicos dos lutadores.</span>
-        </a>
-        <a href="docs/CONTRATO_TECNICO_RIGGING.md" class="doc-item">
-          <span class="doc-item-title">🦴 Contrato Técnico de Rigging</span>
-          <span class="doc-item-desc">Contrato canônico arenamon-rig-patch, telemetria, migração Workbench e auto-rig.</span>
-        </a>
-        <a href="AGENTS.md" class="doc-item">
-          <span class="doc-item-title">🛡️ Protocolo AGENTS.md</span>
-          <span class="doc-item-desc">Regras de versionamento Git, política de diretórios oficiais e restrições legais.</span>
-        </a>
-        <a href="docs/REGRAS_CRIACAO_MOVES.md" class="doc-item">
-          <span class="doc-item-title">📜 Regras de criação, especificação e homologação de Moves</span>
-          <span class="doc-item-desc">Norma transversal de todo Move novo: ficha, PL, VFX por evento, parâmetros capturados por execução (M28.4), testes e homologação.</span>
-        </a>
-        <a href="docs/MOVES_DECISOES_RODADAS.md" class="doc-item">
-          <span class="doc-item-title">🧾 Moves — Registro de decisões (Rodadas 1–30)</span>
-          <span class="doc-item-desc">Fonte das regras de Reflect, Psyshock e Power Level; o status «não implementar» ficou histórico, as regras valem.</span>
-        </a>
-        <a href="docs/MOVES_GENERICOS_CATALOGO.md" class="doc-item">
-          <span class="doc-item-title">📚 Catálogo de Moves genéricos</span>
-          <span class="doc-item-desc">Quick Attack, Swift, Harden, Spikes, Bounce e os demais genéricos, com o que já foi implementado.</span>
-        </a>
-        <a href="docs/moves-nao-iniciados/README.md" class="doc-item">
-          <span class="doc-item-title">🗂️ Fichas dos Moves (pasta moves-nao-iniciados)</span>
-          <span class="doc-item-desc">Índice das fichas de Bounce, Bullet Punch, Feint, Guard Break, Harden, Lunge, Quick Attack, Riposte, Sand Wave, Second Wind, Spikes e Swift, e dos prompts originais.</span>
-        </a>
-        <a href="docs/PLANO_IMPLEMENTACAO_REFLECT_PSYSHOCK.md" class="doc-item">
-          <span class="doc-item-title">🛠️ Plano histórico — Reflect e Psyshock</span>
-          <span class="doc-item-desc">Fases 0–7 entregues; documento histórico. Estado atual no registro de decisões e na matriz de testes.</span>
-        </a>
-        <a href="docs/MOVES_TEST_MATRIX.md" class="doc-item">
-          <span class="doc-item-title">🧪 Matriz de testes dos Moves (regra → teste)</span>
-          <span class="doc-item-desc">Liga cada grupo de decisões ao teste que o verifica, com o estado de cada linha.</span>
-        </a>
-        <a href="docs/LAB_AREIA_PEDRA.md" class="doc-item">
-          <span class="doc-item-title">🏜️ Laboratório visual: Sand Wave, Emerging Stone, Quick Attack, Bullet Punch e Riposte</span>
-          <span class="doc-item-desc">Atelier com 24 propostas (VOL. 06), regras conferidas no código e cenários de Riposte. Veio da branch codex/sand-stone-lab.</span>
-        </a>
-        <a href="docs/ARENA_PAREDE_FISICA_IGUAL_VISUAL.md" class="doc-item">
-          <span class="doc-item-title">🧱 Arena: parede física igual à visual</span>
-          <span class="doc-item-desc">Parede de colisão alinhada à desenhada; consumíveis sempre dentro da arena.</span>
-        </a>
-        <a href="docs/SALTO_FOOTSTOOL_IMPLEMENTACAO.md" class="doc-item">
-          <span class="doc-item-title">🦘 Salto 3D estilo SM64 + Footstool</span>
-          <span class="doc-item-desc">Implementação do Plano D do salto e do footstool.</span>
-        </a>
-        <a href="docs/SMEAR_MEMBROS_TACKLE.md" class="doc-item">
-          <span class="doc-item-title">💨 Smear 3D de membros no Tackle</span>
-          <span class="doc-item-desc">Como o borrão dos membros do Tackle funciona e é testado.</span>
-        </a>
-        <a href="docs/SQUASH_STRETCH_TACKLE.md" class="doc-item">
-          <span class="doc-item-title">🫧 Squash & Stretch do Tackle</span>
-          <span class="doc-item-desc">Achatamento e esticamento do corpo no Tackle.</span>
-        </a>
-        <a href="docs/superpowers/plans/2026-10-24-disparos-funil-sliders.md" class="doc-item">
-          <span class="doc-item-title">🎯 Plano: disparos com funil real, sliders do padrão e atraso</span>
-          <span class="doc-item-desc">Plano de 24/10/2026 dos disparos (funil, sliders e atraso).</span>
-        </a>
-        <a href="docs/VERIFICACOES.md" class="doc-item">
-          <span class="doc-item-title">✅ Registro de verificações (executadas × pendentes)</span>
-          <span class="doc-item-desc">O que foi de fato executado e o que continua pendente, com data, commit-base e comando.</span>
-        </a>
-        <a href="docs/INDICE_MODULOS.md" class="doc-item">
-          <span class="doc-item-title">🧭 Índice de módulos, responsabilidades e testes</span>
-          <span class="doc-item-desc">Onde fica cada responsabilidade e qual teste a protege.</span>
-        </a>
-        <a href="docs/AUDITORIA_CONSOLIDACAO_LOCAL.md" class="doc-item">
-          <span class="doc-item-title">🔎 Auditoria de consolidação local (14/10/2026)</span>
-          <span class="doc-item-desc">Histórico da consolidação das pastas locais no repositório oficial.</span>
-        </a>
-        <a href="README.md" class="doc-item">
-          <span class="doc-item-title">📖 README Principal</span>
-          <span class="doc-item-desc">Guia inicial do projeto, requisitos de ambiente e comandos de compilação.</span>
-        </a>
-      </div>
-    </section>
-
-    <footer>
-      Arenamon — Central de Controle & Ambientes · Arquitetura offline modular · Outubro de 2026
-    </footer>
+  <div class="search">
+    <input id="q" type="search" placeholder="Buscar (ex.: swift, hud, colisão, rigging)…" aria-label="Buscar no portal" autocomplete="off">
+    <div class="tabs" role="group" aria-label="Filtrar por área">
+      <button type="button" data-area="" aria-pressed="true">Tudo</button>
+      <button type="button" data-area="ferramentas" aria-pressed="false">Ferramentas</button>
+      <button type="button" data-area="evidencias" aria-pressed="false">Evidências</button>
+      <button type="button" data-area="docs" aria-pressed="false">Documentação</button>
+    </div>
   </div>
 
-<script>for (const a of document.querySelectorAll('a[href$=".html"]')) a.addEventListener("click", () => {a.href = a.getAttribute("href").split("?")[0] + "?v=" + Date.now();});</script>
-<p style="margin:24px;text-align:center"><a style="color:#38bdf8" href="prototypes/combat-lab/evidence/squash-stretch/index.html">↔ Squash & Stretch do Tackle — controles, auditoria e testes</a></p>
-<p style="margin:24px;text-align:center"><a style="color:#38bdf8" href="prototypes/combat-lab/evidence/limb-smear/index.html">✦ Smear 3D de Membros — controles, imagens e testes</a></p>
+  <main id="out"></main>
+  <p class="empty" id="empty" hidden>Nada encontrado.</p>
+
+  <footer>Links marcados <span class="tag local">só local</span> apontam para arquivos que existem só na pasta principal deste computador (trabalho local ou de outra branch) e podem não abrir em outra cópia. Regras do projeto: <a href="AGENTS.md" style="color:var(--primary)">AGENTS.md</a>.</footer>
+</div>
+
+<script>
+// Cada item: [ícone, título curto, descrição curta, endereço, extras]. extras: 'local' = só nesta máquina.
+// Para adicionar algo ao portal, coloque UMA linha no grupo certo. Títulos curtos; descrição de no máximo uma linha.
+const AREAS = [
+ {id: 'ferramentas', title: 'Ferramentas', groups: [
+  {name: '🎮 Jogo', open: true, items: [
+   ['▶', 'Jogo principal', 'Laboratório de Combate (abre direto o HTML compilado)', 'prototypes/combat-lab/dist/arenamon-combate-laboratorio.html'],
+   ['📊', 'Painel de relatórios', 'Movimento, diagnóstico, treino, benchmark e IA', 'prototypes/combat-lab/dist/arenamon-painel-relatorios.html'],
+  ]},
+  {name: '✨ Ateliês de VFX', open: true, items: [
+   ['🏜', 'Atelier Areia/Pedra', 'Sand Wave, Emerging Stone, Bullet Punch, Quick Attack, Riposte', 'prototypes/sand-stone-lab/dist/arenamon-areia-pedra.html'],
+   ['🌊', 'Ateliê Elemental Quarks', 'Água, Fogo e Vento · 3 opções de cada', 'prototypes/combat-lab/dist/arenamon-elementais-quarks.html'],
+   ['✨', 'Laboratório VFX Quarks', 'Partículas A/B/C', 'prototypes/combat-lab/dist/arenamon-vfx-quarks.html'],
+   ['🔮', 'VFX Elemental Psíquico', '3 opções animadas em 3D (A/B/C)', 'prototypes/vfx-elemental/dist/vfx-elemental-psiquico.html'],
+  ]},
+  {name: '🧪 Laboratórios técnicos', items: [
+   ['🎛', 'HUD de Vida, Stamina e Moves', 'Propostas A Impacto · B Quadrinhos · C Clássico', 'prototypes/hud-moves/dist/hud-moves-laboratorio.html'],
+   ['🧪', 'HUD de Progressão e Consumíveis', '3 HUDs × 3 coleções', 'prototypes/hud-consumiveis/dist/hud-consumiveis-laboratorio.html'],
+   ['🧭', 'Navegação Yuka', 'Rotas, salto e queda (A/B)', 'prototypes/combat-lab/dist/arenamon-navegacao-yuka.html'],
+   ['🎞', 'Pós-processamento', 'Bloom, distorção, grading (A/B)', 'prototypes/combat-lab/dist/arenamon-posprocessamento.html'],
+   ['🧱', 'Física Rapier', 'Prova de conceito', 'prototypes/combat-lab/dist/arenamon-fisica-rapier.html'],
+  ]},
+  {name: '🎬 Animação e rigging', items: [
+   ['🎬', 'Animation Studio', 'Editor de animação e rigging oficial', 'prototypes/studio/dist/arenamon-animation-studio.html'],
+   ['⚖', 'Propostas de rigging', 'Comparador das propostas A, B e C', 'prototypes/studio/proposals/index.html'],
+   ['🅰', 'Proposta A', 'Rigging Workspace', 'prototypes/studio/proposals/proposta-a.html'],
+   ['🅱', 'Proposta B', 'Guided Rigging', 'prototypes/studio/proposals/proposta-b.html'],
+   ['©', 'Proposta C', 'Hybrid Rigging Studio', 'prototypes/studio/proposals/proposta-c.html'],
+   ['⚡', 'Diretor de Poses ZZZ', 'Piloto Parry do Mushroom', 'scripts/blender-vision/diretor_parry_mosh.html'],
+   ['🍄', 'Percepção ativa · Mushroom', 'Relatório do Blender Vision', 'scripts/blender-vision/evidence/perception_mosh/relatorio.html'],
+   ['🎞', 'Player do Tackle', 'Vigoroth, Teste 01, quadro a quadro', 'docs/tackle/VER_TACKLE.html'],
+  ]},
+  {name: '🦎 Eggo (animação no Blender)', items: [
+   ['🦎', 'Eggo no Blender', 'Idle 1 e Idle 2', 'chars/Eggo/Eggo.blend', 'local'],
+   ['📖', 'Como comparar as idles', '', 'docs/EGGO_IDLE_BLENDER.md', 'local'],
+   ['🚶', 'Caminhada expressiva no Blender', '', 'chars/Eggo/Eggo_Walk_Forward.blend', 'local'],
+   ['📖', 'Guia das caminhadas', '', 'docs/EGGO_WALK_FORWARD.md', 'local'],
+   ['🎞', 'Caminhada seguindo os quadros 1 e 10', '', 'prototypes/combat-lab/evidence/eggo-walk-forward/expressive/report.html', 'local'],
+   ['🎞', 'Comparar com a caminhada anterior', 'Por quadros', 'prototypes/combat-lab/evidence/eggo-walk-forward/after/report.html', 'local'],
+   ['🔎', 'Comparar com a caminhada rápida', '', 'prototypes/combat-lab/evidence/eggo-walk-forward/before/report.html', 'local'],
+   ['📊', 'Análise da nova caminhada', 'Motion Lens', 'prototypes/combat-lab/evidence/eggo-walk-forward/expressive/motion_lens_report.txt', 'local'],
+   ['📊', 'Análise da caminhada anterior', 'Motion Lens', 'prototypes/combat-lab/evidence/eggo-walk-forward/after/motion_lens_report.txt', 'local'],
+  ]},
+  {name: '🐉 Referências Z-A', items: [
+   ['📥', 'Extrair um Pokémon (.bat)', 'Nº da Pokédex → .blend com modelo e animações', 'tools/za-extrator/EXTRAIR_POKEMON_ZA.bat', 'local'],
+   ['📁', 'Pasta dos .blend extraídos', 'Saída do extrator', 'dumper test/blender/', 'local'],
+   ['📖', 'Extrator: como usar', 'Passo a passo e conferência', 'docs/za-extrator/README.md', 'local'],
+   ['📈', 'Banco de referências de animação', 'Duração, pico, antecipação e ease por clipe', 'dumper test/za-referencias/relatorio.html', 'local'],
+   ['📐', 'Banco: como foi medido', 'Método das medidas', 'docs/za-referencias/README.md', 'local'],
+   ['🏷', 'Rotulagem cega · lote 01', '', 'dumper test/za-referencias/avaliacao/lote_01/rotulagem.html', 'local'],
+   ['🏷', 'Rotulagem cega · lote 02', '15 variados', 'dumper test/za-referencias/avaliacao/lote_02/rotulagem.html', 'local'],
+   ['🗺', 'Plano Fase 1 (1A–1J)', 'Referências Z-A', 'docs/superpowers/plans/2026-10-25-za-referencias-fase1.md', 'local'],
+  ]},
+  {name: '🧰 Base e diagnóstico', items: [
+   ['🧊', 'Visualizador de blocos', 'Criaturas em blocos', 'prototypes/placeholders/dist/criaturas-laboratorio.html'],
+   ['📦', 'Importador de modelos', 'GLB para o jogo', 'prototypes/importer/dist/importador-prototipo.html'],
+   ['🐸', 'Diagnóstico Pokkén', 'Croagunk', 'prototypes/croagunk/dist/croagunk-laboratorio.html'],
+  ]},
+ ]},
+ {id: 'evidencias', title: 'Evidências e relatórios', groups: [
+  {name: '⚔ Moves e colisão', open: true, items: [
+   ['🎯', 'Efeito × colisão em movimento', '8 Moves fotografados em voo', 'prototypes/combat-lab/evidence/vfx-colisao/index.html'],
+   ['📐', 'Gizmos na tela', 'Hitbox, hurtbox e deslocamento', 'prototypes/combat-lab/evidence/gizmos/air-slash-em-voo.png'],
+   ['🧮', 'Matriz de cenários por Move', '18 escopos, semente 7', 'docs/MATRIZ_MOVES_2026-10-25.md'],
+   ['🧮', 'Matriz de cenários (23/10)', 'Versão anterior, 16 escopos', 'docs/MATRIZ_MOVES_2026-10-23.md'],
+   ['⏱', 'Desempenho de render (GPU)', 'FPS, P95, draw calls, memória', 'docs/DESEMPENHO_RENDER_2026-10-25.md'],
+   ['⏱', 'Desempenho da simulação', 'Benchmark com Moves', 'docs/DESEMPENHO_MOVES_2026-10-23.md'],
+  ]},
+  {name: '✨ VFX', items: [
+   ['🧩', 'Atelier: seis fases desligáveis', 'Capturas de 24/10', 'prototypes/sand-stone-lab/evidence/fases-24-10/index.html'],
+   ['🌊', 'Elementais Quarks', 'Controles de água, argolas e contato', 'prototypes/combat-lab/evidence/elemental-quarks/index.html'],
+   ['🌫', 'VFX 3D · comparação', 'Poeira, vento, esquiva, aterrissagem', 'prototypes/combat-lab/evidence/vfx-solido/comparacao-poeira.html'],
+   ['⚡', 'Habilidades passivas no jogo', 'Placas laterais e brilhos', 'prototypes/combat-lab/evidence/passive-abilities/index.html'],
+   ['↔', 'Squash & Stretch do Tackle', 'Controles, auditoria e testes', 'prototypes/combat-lab/evidence/squash-stretch/index.html'],
+   ['✦', 'Smear 3D de membros', 'Controles, imagens e testes', 'prototypes/combat-lab/evidence/limb-smear/index.html'],
+  ]},
+  {name: '🖥 HUD e telas', items: [
+   ['🖼', 'HUD de Vida, Stamina e Moves', 'Capturas 720p e 1080p', 'prototypes/hud-moves/evidence/hudA-neutro-720p.png'],
+   ['🖼', 'HUD e Consumíveis', 'Capturas 720p e 1080p', 'prototypes/hud-consumiveis/evidence/combo-hudB-itensB-720p.png'],
+   ['🖼', 'Cenário, HUD e consumíveis no jogo', 'Jogo padrão', 'prototypes/combat-lab/evidence/progress-scenery/jogo-padrao-1500x920.png'],
+   ['📸', 'Pré-jogo A/B/C', '720p, 1080p e lado a lado', 'prototypes/combat-lab/evidence/prejogo/README.md'],
+  ]},
+  {name: '📸 Rodadas', items: [
+   ['📸', 'Rodada de 22/10', 'Botões de IA, tooltips, Riposte, VFX', 'prototypes/combat-lab/evidence/ui-22-10/README.md'],
+   ['📸', 'Rodada de 22/10 (tarde)', 'Translúcido, pouso, círculo de alcance', 'prototypes/combat-lab/evidence/rodada-b/README.md'],
+   ['🧗', 'Ledge Grab', 'Pendurado, subindo, no topo', 'prototypes/combat-lab/evidence/ledge-grab/README.md'],
+  ]},
+ ]},
+ {id: 'docs', title: 'Documentação', groups: [
+  {name: '⚔ Regras do jogo', items: [
+   ['⚔', 'Revisão do GDD de combate', 'Decisões aprovadas da Etapa A', 'docs/REVISAO_GDD_COMBATE.md'],
+   ['🎚', 'Base de calibração v8', 'Valores do jogo e regras de combate', 'docs/CALIBRACAO_BASE_V8.md'],
+   ['🎛', 'Ambiente de calibração', 'Workspace, presets, A × B, gravador', 'prototypes/combat-lab/CALIBRACAO.md'],
+   ['📋', 'Roster de personagens', 'Atributos dos lutadores', 'docs/ROSTER.md'],
+   ['🛡', 'Overhaul Parry / Dodge', 'Texto navegável', 'docs/OVERHAUL_DEFESA_PERFEITA_DODGE_PERFEITO_ZZZ_2026-10-23.md'],
+   ['🛡', 'Overhaul Parry / Dodge (DOCX)', 'Documento original', 'docs/OVERHAUL_DEFESA_PERFEITA_DODGE_PERFEITO_ZZZ_2026-10-23.docx'],
+   ['🧬', 'Passivas: decisões', 'Seleção e tipos de funcionamento', 'docs/PASSIVAS_DECISOES.md'],
+   ['✅', 'Passivas: implementação', '29 rodadas, 18 habilidades', 'docs/PASSIVAS_IMPLEMENTACAO.md'],
+   ['🗺', 'Novo mapa: decisões', '11 rodadas aprovadas', 'docs/MAPA_COMBAT_LAB_DECISOES_RODADAS.md'],
+   ['🗺', 'Novo mapa: rastreabilidade', '152 decisões', 'docs/MATRIZ_RASTREAMENTO_NOVO_MAPA.md'],
+   ['🧗', 'Ledge Grab & Mantle', 'Decisões e implementação', 'docs/LEDGE_GRAB.md'],
+   ['🦘', 'Salto SM64 + Footstool', 'Implementação do Plano D', 'docs/SALTO_FOOTSTOOL_IMPLEMENTACAO.md'],
+   ['🎨', 'Pré-jogo em três estilos', 'A Impacto · B Quadrinhos · C Clássico', 'docs/PREJOGO_3_ESTILOS.md'],
+  ]},
+  {name: '🎯 Moves', items: [
+   ['🛠', 'Editor de Moves (plano e andamento)', 'Fases, Estúdio e atalhos', 'docs/PLANO_EDITOR_DE_MOVES.md'],
+   ['💾', 'Gravar pelo Editor no disco', 'INICIAR_SERVIDOR.bat', 'docs/GRAVAR_NO_EDITOR.md'],
+   ['🧾', 'Como criar ou editar um Move', 'Ficha única', 'docs/COMO_CRIAR_UM_MOVE.md'],
+   ['📜', 'Regras de criação de Moves', 'Norma de todo Move', 'docs/REGRAS_CRIACAO_MOVES.md'],
+   ['🧾', 'Registro de decisões (1–30)', 'Reflect, Psyshock e outros', 'docs/MOVES_DECISOES_RODADAS.md'],
+   ['📚', 'Catálogo de Moves genéricos', 'Quick Attack, Swift, Harden…', 'docs/MOVES_GENERICOS_CATALOGO.md'],
+   ['🎯', 'Reflect e Psyshock', 'Regras e parâmetros', 'prototypes/combat-lab/MOVIMENTOS.md'],
+   ['🛠', 'Plano histórico Reflect/Psyshock', 'Fases 0–7 entregues', 'docs/PLANO_IMPLEMENTACAO_REFLECT_PSYSHOCK.md'],
+   ['🧪', 'Matriz de testes dos Moves', 'Regra → teste', 'docs/MOVES_TEST_MATRIX.md'],
+   ['🧭', 'Índice vivo dos Moves', 'Arquivos, testes e documentos', 'docs/INDICE_VIVO_MOVES.md'],
+   ['🍄', 'Moves do Mushroom', 'Emerging Stone, Bullet Punch, Sand Wave', 'docs/MUSHROOM_MOVES_DECISOES.md'],
+   ['🌊', 'Moves elementais', 'Anti-aéreo, combo, stamina', 'docs/MOVES_ELEMENTAIS_PROTOTIPO.md'],
+   ['🗂', 'Fichas dos Moves', 'Inventário e prompts', 'docs/moves-nao-iniciados/README.md'],
+   ['✅', 'Fichas dos 13 Moves novos', 'Regras, testes e pendências', 'docs/moves-nao-iniciados/README.md#moves-implementados-branch-featmoves-novos-v1140'],
+   ['🧭', 'Moves novos: prompt do agente', '', 'docs/moves-nao-iniciados/PROMPT_IMPLEMENTACAO_MOVES_NOVOS.md'],
+   ['📝', 'Moves novos: decisões provisórias', '', 'docs/moves-nao-iniciados/DECISOES_PROVISORIAS_MOVES_NOVOS.md'],
+   ['🪨', 'Emerging Stone: prompt', '', 'docs/moves-nao-iniciados/EMERGING_STONE_PROMPT_IMPLEMENTACAO.md'],
+   ['🎯', 'Plano: disparos com funil', 'Sliders do padrão e atraso', 'docs/superpowers/plans/2026-10-24-disparos-funil-sliders.md'],
+  ]},
+  {name: '✨ VFX', items: [
+   ['📐', 'Padrão dos ateliês de VFX', 'Parâmetros iguais por efeito', 'docs/PADRAO_ATELIES_VFX.md'],
+   ['📘', 'Guia do Atelier Areia/Pedra', 'Inclui o que já está no jogo', 'docs/LAB_AREIA_PEDRA.md'],
+   ['🔎', 'Auditoria do atelier × padrão v2.0', '', 'docs/AUDITORIA_ATELIER_VFX_V2_2026-10-24.md'],
+   ['🔎', 'Auditoria do atelier (HTML)', 'Regras, fases e sliders', 'docs/AUDITORIA_ATELIER_VFX_2026-10-24.html'],
+   ['🌊', 'Visual dos elementais (Quarks)', '', 'docs/MOVES_ELEMENTAIS_VISUAL_QUARKS.md'],
+   ['🔮', 'VFX Psíquico', 'Shaders e curvas', 'docs/VFX_ELEMENTAL_PSIQUICO.md'],
+   ['✨', 'VFX 3D sólidos', 'Famílias, sliders, fumaça', 'docs/VFX_SOLIDOS.md'],
+   ['💥', 'Impacto variante D', 'Acerto direcional', 'docs/VFX_IMPACTO_D.md'],
+   ['🌊', 'VFX de pouso e paredes', '', 'docs/VFX_POUSO_E_PAREDES.md'],
+   ['⚡', 'VFX das passivas', 'Controles e animações', 'docs/VFX_HABILIDADES_PASSIVAS.md'],
+   ['💨', 'Smear de membros no Tackle', '', 'docs/SMEAR_MEMBROS_TACKLE.md'],
+   ['🫧', 'Squash & Stretch do Tackle', '', 'docs/SQUASH_STRETCH_TACKLE.md'],
+   ['🎬', 'Câmera cinemática (ZZZ)', '12 efeitos de apresentação', 'docs/CAMERA_CINEMATICA_ZZZ.md'],
+  ]},
+  {name: '🖥 HUD e interface', items: [
+   ['📘', 'HUD de Vida, Stamina e Moves', 'As 3 propostas', 'docs/HUD_VIDA_STAMINA_MOVES_LAB.md'],
+   ['📘', 'HUD e Consumíveis', 'As 3 propostas', 'docs/HUD_CONSUMIVEIS_LAB.md'],
+  ]},
+  {name: '🤖 IA', items: [
+   ['🤖', 'Uso dos 13 Moves novos', 'Medição', 'docs/ia/NEW_MOVES_IA_MEDICAO.md'],
+   ['🧭', 'Navegação Yuka', 'IA × IA em 6 mapas', 'docs/ia/NAV_IA_MEDICAO.md'],
+   ['⚖', 'Balanceamento Second Wind e Swift', '', 'docs/ia/BALANCEAMENTO_SECOND_WIND_SWIFT.md'],
+   ['🧱', 'Cobertura (descartada)', '', 'docs/ia/COBERTURA_IA_MEDICAO.md'],
+  ]},
+  {name: '🧱 Física e colisão', items: [
+   ['🧱', 'Overhaul de colisões', 'Fases 0 a 7', 'docs/COLISOES_FASE0_FASE1_RESULTADOS.md'],
+   ['🔍', 'Ferramentas de colisão no lab', 'Cenários de um clique', 'docs/COLISOES_FERRAMENTAS_LAB.md'],
+   ['🛠', 'Melhorias de física e hitbox', 'v1.13.0', 'docs/MELHORIAS_FISICA_COLISAO.md'],
+   ['🧱', 'Auditoria da física 3D', '20/10/2026', 'docs/AUDITORIA_FISICA_3D_2026-10-20.md'],
+   ['🧱', 'Parede física = parede visual', '', 'docs/ARENA_PAREDE_FISICA_IGUAL_VISUAL.md'],
+   ['🧰', 'Ferramentas open source', 'O que foi integrado', 'docs/INTEGRACAO_OPEN_SOURCE.md'],
+  ]},
+  {name: '🎬 Animação e rigging', items: [
+   ['🎞', 'Animações dos personagens', 'Estados, loop, duração', 'docs/ANIMACOES_PERSONAGENS.md'],
+   ['📖', 'Manual do Studio', '', 'prototypes/studio/README.md'],
+   ['🦴', 'Especificação de rigging', 'Fase 1', 'prototypes/studio/RIGGING_FASE1.md'],
+   ['🦴', 'Contrato técnico de rigging', 'arenamon-rig-patch', 'docs/CONTRATO_TECNICO_RIGGING.md'],
+   ['🎬', 'Animação estilo ZZZ (plano)', 'Diretor de poses', 'docs/ANIMACAO_ESTILO_ZZZ_PLANO.md'],
+   ['👁', 'Blender Vision', 'Documentação e limites', 'docs/BLENDER_VISION_PERCEPCAO.md'],
+   ['🤖', 'Protocolo do agente visual', 'Como a IA analisa', 'scripts/blender-vision/PROTOCOLO_AGENTE_VISUAL.md'],
+   ['🔧', 'Addons Motion Lens e Direction Lines', '', 'docs/BLENDER_ADDONS_MOTION_LENS.md'],
+  ]},
+  {name: '🗺 Planos e auditorias', items: [
+   ['📋', 'Plano de 15 melhorias: estado', 'Entregue × falta', 'docs/PLANO_15_MELHORIAS_STATUS_2026-10-23.md'],
+   ['📋', 'Plano de 15 melhorias: prova', 'Registro, Gate 2 e skills', 'docs/PLANO_15_MELHORIAS_PROVA_2026-10-23.md'],
+   ['📋', 'Plano de 15 melhorias (DOCX)', 'Original', 'docs/ARENAMON_PLANO_15_MELHORIAS_IA_MOVES_DEBUG_PERFORMANCE_2026-10-23.docx'],
+   ['🗺', 'Plano do que falta', '8 tarefas', 'docs/plans/2026-10-23-melhorias-restantes.md'],
+   ['🧹', 'Auditoria de limpeza de código', '+ 10 alternativas para Moves', 'docs/AUDITORIA_LIMPEZA_CODIGO_2026-10-23.md'],
+   ['🧾', 'Auditoria de documentação', '22/10/2026', 'docs/AUDITORIA_DOCUMENTACAO_2026-10-22.md'],
+   ['🔎', 'Auditoria de consolidação local', '14/10/2026', 'docs/AUDITORIA_CONSOLIDACAO_LOCAL.md'],
+   ['🎮', 'Revisão de game feel', '22/10/2026', 'docs/GAME_FEEL_REVISAO_2026-10-22.md'],
+   ['🐞', 'Caçada de bugs', '20 defeitos corrigidos', 'docs/CACADA_BUGS_2026-10-22.md'],
+   ['🛠', 'Rodada de 22/10 (tarde)', 'v1.20.0', 'docs/RODADA_22_10_TARDE.md'],
+   ['✅', 'Checklist de correções', '22/10/2026', 'docs/CHECKLIST_CORRECOES.md'],
+   ['🛠', 'Overhaul do laboratório', 'Locomoção, esquiva, sprint, IA', 'prototypes/combat-lab/OVERHAUL.md'],
+  ]},
+  {name: '📁 Projeto e código', items: [
+   ['🛡', 'AGENTS.md', 'Regras para agentes e pastas', 'AGENTS.md'],
+   ['📖', 'README', 'Guia inicial e comandos', 'README.md'],
+   ['🗺', 'Mapa do repositório', 'Onde fica cada coisa', 'docs/MAPA_REPOSITORIO.md'],
+   ['🤝', 'Guia de colaboração', 'Codex, Claude e Antigravity', 'docs/GUIA_COLABORACAO_AGENTES.md'],
+   ['📈', 'Status das branches', '', 'docs/STATUS_PROJETOS_E_BRANCHES.md'],
+   ['📝', 'Patch notes', 'O que mudou em cada versão', 'docs/PATCH_NOTES.md'],
+   ['📊', 'Central de testes (texto)', 'Comandos e relatórios', 'docs/CENTRAL_DE_TESTES.md'],
+   ['✅', 'Registro de verificações', 'Executadas × pendentes', 'docs/VERIFICACOES.md'],
+   ['🧭', 'Índice de módulos', 'Responsabilidades e testes', 'docs/INDICE_MODULOS.md'],
+   ['🧩', 'Estrutura do main.js', 'Módulos de src/app', 'docs/ESTRUTURA_DO_MAIN.md'],
+   ['🧹', 'Código sem uso (knip)', '', 'docs/CODIGO_SEM_USO_KNIP.md'],
+  ]},
+ ]},
+];
+
+const out = document.getElementById('out'), q = document.getElementById('q'), empty = document.getElementById('empty');
+let area = '';
+const norm = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+const esc = s => s.replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
+const href = h => esc(h).replace(/ /g, '%20');
+function render() {
+  const term = norm(q.value.trim());
+  let shown = 0;
+  out.innerHTML = AREAS.filter(a => !area || a.id === area).map(a => {
+    const groups = a.groups.map(g => {
+      const items = g.items.filter(([, t, d, h]) => !term || norm(`${t} ${d} ${h} ${g.name}`).includes(term));
+      if (!items.length) return '';
+      shown += items.length;
+      const open = term || area || g.open ? ' open' : '';
+      return `<details class="group"${open}><summary>${esc(g.name)}<span class="n">${items.length}</span></summary><div class="grid">${items.map(([ic, t, d, h, x]) =>
+        `<a class="item" href="${href(h)}"><span class="ic">${ic}</span><span><span class="t">${esc(t)}${x === 'local' ? '<span class="tag local">só local</span>' : ''}</span>${d ? `<div class="d">${esc(d)}</div>` : ''}</span></a>`).join('')}</div></details>`;
+    }).join('');
+    return groups ? `<section class="area" id="${a.id}"><h2>${a.title}</h2>${groups}</section>` : '';
+  }).join('');
+  empty.hidden = shown > 0;
+}
+q.addEventListener('input', render);
+for (const b of document.querySelectorAll('.tabs button')) b.onclick = () => {
+  area = b.dataset.area;
+  for (const o of document.querySelectorAll('.tabs button')) o.setAttribute('aria-pressed', String(o === b));
+  render();
+};
+render();
+</script>
+<noscript><p style="padding:16px">Ative o JavaScript para ver o portal. Atalho sem JavaScript: <a href="HTMLS_ARENAMON.html">todos os HTMLs</a>.</p></noscript>
 </body>
 </html>
