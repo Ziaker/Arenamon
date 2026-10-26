@@ -4,6 +4,8 @@ Este é o item 1 do plano de melhorar o Motion Lens e o Blender Vision. Cada ani
 
 ## Abrir
 
+- **Troca de IA (26/10/2026):** [`CONTEXTO_TROCA_DE_IA_2026-10-26.docx`](CONTEXTO_TROCA_DE_IA_2026-10-26.docx) tem o contexto completo (estado, regras, decisões, pendências e armadilhas). [`PROMPT_TROCA_DE_IA.md`](PROMPT_TROCA_DE_IA.md) é o prompt pronto para colar na nova IA.
+
 - **Relatório:** [`dumper test/za-referencias/relatorio.html`](../../dumper%20test/za-referencias/relatorio.html). Tem as normas por tipo de clipe, a curva típica, o ataque por forma do corpo e uma busca por Pokémon ou clipe.
 - **Normas (JSON, versionado):** [`tools/za-referencias/normas_za.json`](../../tools/za-referencias/normas_za.json). É o arquivo que os addons vão ler.
 - **Banco completo:** `dumper test/za-referencias/clipes.jsonl`, uma linha por clipe. Fica só no local porque é grande e pode ser gerado de novo.
