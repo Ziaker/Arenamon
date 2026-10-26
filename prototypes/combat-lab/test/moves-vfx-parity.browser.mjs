@@ -35,15 +35,30 @@ function check(label, ok, detail = '') {
 }
 
 /**
- * Compara duas imagens PNG pixel a pixel no contexto da página e gera imagem composta lado a lado
+ * Compara duas imagens PNG pixel a pixel no contexto da página e gera imagem composta lado a lado.
+ * REJEITA explicitamente se o baseline ou a imagem atual não existirem (sem falsos positivos).
  * @param {any} page
  * @param {string} baselinePath
  * @param {string} currentPath
  * @param {string} diffOutputPath
+ * @returns {Promise<{similarity: number, diffCount: number, ok: boolean, error?: string, totalPixels?: number}>}
  */
 async function compareImages(page, baselinePath, currentPath, diffOutputPath) {
-  if (!existsSync(baselinePath) || !existsSync(currentPath)) {
-    return {similarity: 100, diffCount: 0, skipped: true};
+  if (!existsSync(baselinePath)) {
+    return {
+      similarity: 0,
+      diffCount: -1,
+      ok: false,
+      error: `Imagem de referência (baseline) inexistente: ${baselinePath}`
+    };
+  }
+  if (!existsSync(currentPath)) {
+    return {
+      similarity: 0,
+      diffCount: -1,
+      ok: false,
+      error: `Imagem atual não gerada: ${currentPath}`
+    };
   }
   const b64Base = readFileSync(baselinePath).toString('base64');
   const b64Curr = readFileSync(currentPath).toString('base64');
@@ -63,7 +78,7 @@ async function compareImages(page, baselinePath, currentPath, diffOutputPath) {
     canvas.width = w * 3;
     canvas.height = h;
     const ctx = canvas.getContext('2d');
-    if (!ctx) return {similarity: 0, diffCount: -1};
+    if (!ctx) return {similarity: 0, diffCount: -1, ok: false, error: 'Contexto 2d indisponível'};
 
     ctx.drawImage(imgA, 0, 0, w, h);
     ctx.drawImage(imgB, w, 0, w, h);
@@ -106,7 +121,8 @@ async function compareImages(page, baselinePath, currentPath, diffOutputPath) {
       totalPixels,
       diffCount,
       similarity,
-      compositeDataUrl: canvas.toDataURL('image/png')
+      compositeDataUrl: canvas.toDataURL('image/png'),
+      ok: true
     };
   }, [b64Base, b64Curr]);
 
@@ -223,7 +239,7 @@ try {
 
   // Comparação visual automatizada contra baseline
   const swComp = await compareImages(page, baseDir + 'sand-wave-ativo.png', swActivePng, out + 'fidelidade-sand-wave.png');
-  check('Sand Wave: fidelidade visual automatizada contra baseline (≥ 98%)', swComp.similarity >= 98, `${swComp.similarity}% de match`);
+  check('Sand Wave: fidelidade visual automatizada contra baseline (≥ 98%)', swComp.ok && swComp.similarity >= 98, swComp.error || `${swComp.similarity}% de match`);
 
   // Avança até o fim da vida ativa na simulação -> entra na cauda de dissipação (+0.4s)
   for (let i = 0; i < 200; i++) {
@@ -304,7 +320,7 @@ try {
 
   // Comparação visual automatizada durante o vanish
   const bpVanishComp = await compareImages(page, baseDir + 'bullet-punch-vanish.png', bpVanishPng, out + 'fidelidade-bullet-punch-vanish.png');
-  check('Bullet Punch: fidelidade visual do vanish contra baseline (≥ 98%)', bpVanishComp.similarity >= 98, `${bpVanishComp.similarity}% de match`);
+  check('Bullet Punch: fidelidade visual do vanish contra baseline (≥ 98%)', bpVanishComp.ok && bpVanishComp.similarity >= 98, bpVanishComp.error || `${bpVanishComp.similarity}% de match`);
 
   // Avança vanish (0.2s = ~25 steps) até a chegada / bulletReturn / impacto
   for (let i = 0; i < 30; i++) {
@@ -335,7 +351,7 @@ try {
 
   // Comparação visual automatizada do impacto
   const bpImpactComp = await compareImages(page, baseDir + 'bullet-punch-impacto.png', bpImpactPng, out + 'fidelidade-bullet-punch-impacto.png');
-  check('Bullet Punch: fidelidade visual do impacto contra baseline (≥ 98%)', bpImpactComp.similarity >= 98, `${bpImpactComp.similarity}% de match`);
+  check('Bullet Punch: fidelidade visual do impacto contra baseline (≥ 98%)', bpImpactComp.ok && bpImpactComp.similarity >= 98, bpImpactComp.error || `${bpImpactComp.similarity}% de match`);
 
   // Avança até o fim da cauda de dissipação (+0.4s)
   for (let i = 0; i < 150; i++) {
@@ -453,7 +469,7 @@ try {
 
   // Comparação visual automatizada do voo
   const wpVooComp = await compareImages(page, baseDir + 'water-pulse-voo.png', wpVooPng, out + 'fidelidade-water-pulse-voo.png');
-  check('Water Pulse: fidelidade visual do projétil em voo contra baseline (≥ 98%)', wpVooComp.similarity >= 98, `${wpVooComp.similarity}% de match`);
+  check('Water Pulse: fidelidade visual do projétil em voo contra baseline (≥ 98%)', wpVooComp.ok && wpVooComp.similarity >= 98, wpVooComp.error || `${wpVooComp.similarity}% de match`);
 
   // Avança até o impacto com o alvo em z = 8
   for (let i = 0; i < 50; i++) {
@@ -481,7 +497,7 @@ try {
 
   // Comparação visual automatizada do splash
   const wpSplashComp = await compareImages(page, baseDir + 'water-pulse-splash.png', wpSplashPng, out + 'fidelidade-water-pulse-splash.png');
-  check('Water Pulse: fidelidade visual do splash contra baseline (≥ 98%)', wpSplashComp.similarity >= 98, `${wpSplashComp.similarity}% de match`);
+  check('Water Pulse: fidelidade visual do splash contra baseline (≥ 98%)', wpSplashComp.ok && wpSplashComp.similarity >= 98, wpSplashComp.error || `${wpSplashComp.similarity}% de match`);
 
   // Avança parcialmente na cauda (1.0s de 2.4s) -> ainda deve estar vivo no splash
   await stepGame(60);
