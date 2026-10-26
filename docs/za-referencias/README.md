@@ -174,6 +174,12 @@ Veio de uma análise do Lucario feita por outra IA e colada pelo usuário.
   - o sistema também junta recuo e pose parada numa antecipação de 35 quadros.
 - **Rótulo proposto pela IA:** está em `avaliacao/rotulos_ia_externa_477115ec150e.json`, com `origem = PROPOSTO_IA`. **Não é gabarito.** Só entra no A/B ou na calibração depois que o revisor humano confirmar.
 
+### Chão estimado nos vídeos (25/10/2026)
+
+- **O que é:** grade escura e discreta, um pouco maior que o Pokémon, na altura do chão estimado. A regra é a mesma de `contato.plano_chao`: o percentil 5 da altura das pontas dos pés visíveis no clipe. A altura é medida na própria cena, então não depende da escala do importador.
+- **Quando não aparece:** em Pokémon sem pernas. Em pulos, pode ficar na altura errada; a legenda da página avisa.
+- **Vídeos refeitos:** os dos 8 itens mantidos (4 do lote 01 e 4 do lote 02), com os mesmos nomes de arquivo, então o lote e as respostas não mudam.
+
 ### Filtro pedido para os próximos lotes (guardado, ainda não aplicado)
 
 Pedido do revisor em 25/10/2026, para o lote 03 em diante:

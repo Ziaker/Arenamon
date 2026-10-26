@@ -149,6 +149,42 @@ def _marca_lado_esquerdo(bpy, sc, arm, esq, regs, c, altura):
     return nome
 
 
+def _chao_estimado(bpy, sc, arm, esq, regs, c, oc, altura, centro):
+    """Chão discreto (placa + grade) na altura estimada pela mesma regra de contato.plano_chao: percentil 5 da altura
+    das pontas dos pés visíveis no clipe, medido na própria cena. Sem pernas: não desenha (devolve None)."""
+    import bmesh
+    import contato
+    import numpy as np
+    from mathutils import Vector
+    pontas = contato._pontas_de_apoio(esq, regs, oc)
+    if not pontas:
+        return None
+    zs = []
+    for f in range(c.quadros):
+        sc.frame_set(f)
+        zs += [(arm.matrix_world @ arm.pose.bones[esq.nomes[k]].head).z for k in pontas if not oc[f, k]]
+    if not zs:
+        return None
+    z = float(np.percentile(zs, 5))
+    me = bpy.data.meshes.new("chao_estimado")
+    bm = bmesh.new()
+    bmesh.ops.create_grid(bm, x_segments=8, y_segments=8, size=0.7 * altura)
+    bm.to_mesh(me)
+    bm.free()
+    placa = bpy.data.objects.new("chao_estimado", me)
+    sc.collection.objects.link(placa)
+    placa.location = Vector((centro.x, centro.y, z))
+    placa.color = (0.13, 0.14, 0.16, 1.0)
+    grade = bpy.data.objects.new("chao_grade", me)
+    sc.collection.objects.link(grade)
+    grade.location = Vector((centro.x, centro.y, z + 0.002 * altura))
+    mod = grade.modifiers.new("linhas", "WIREFRAME")
+    mod.thickness = 0.004 * altura
+    mod.use_replace = True
+    grade.color = (0.24, 0.25, 0.29, 1.0)
+    return z
+
+
 def _render_video(bpy, sc, saida, base, clipe_nome, vista, codigo, c):
     """Anima o clipe inteiro numa vista: WebM (VP9), todo quadro é chave (permite avançar quadro a quadro na página)."""
     im = sc.render.image_settings
@@ -264,6 +300,8 @@ def main():
         # tamanho pela altura NA CENA (o importador muda a escala em relação às unidades do Trinity)
         altura_cena = (max(p.z for p in pts) - min(p.z for p in pts)) or 1.0
         marca = _marca_lado_esquerdo(bpy, sc, arm, esq, regs, c, altura_cena)
+        chao = _chao_estimado(bpy, sc, arm, esq, regs, c, oc, altura_cena, centro)
+        print("[chao] %s" % ("z=%.4f" % chao if chao is not None else "sem pernas: não desenhado"))
     vistas = par_de_vistas()
     indice = {"modelo": base, "clipe": clipe_nome, "codigo_leitura": codigo, "quadros": quadros,
               "executores": executores, "interpolacao": "LINEAR (forçada)", "vistas": [], "estados": {}}
