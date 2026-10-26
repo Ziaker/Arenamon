@@ -71,6 +71,7 @@ export function stepSand(/** @type {any} */ game, /** @type {any} */ e, /** @typ
   let cache = FIELDS.get(e);   // o campo de distâncias é só um cache derivado (fora do estado salvo): depois de carregar um save ele é recalculado
   if (!cache || stepNo - cache.at >= e.replanSteps || cache.sig !== sig) {cache = {at: stepNo, sig, field: distanceField(e, solids)};FIELDS.set(e, cache);}
   const front = e.speed * e.age, still = new Set();
+  const minPressSpeed = e.wallPressMinSpeed ?? .6, moveRatio = e.wallPressMoveRatio ?? .25;
   e.targets ??= {};e.pushed ??= [];
   for (const f of game.fighters) {
     if (f.id === e.owner || f.hp <= 0 || f.absent || f.flight || (f.vaultHeight ?? 0) > 1e-8) continue;
@@ -97,7 +98,7 @@ export function stepSand(/** @type {any} */ game, /** @type {any} */ e, /** @typ
     // parede: pressionado (queria andar e não andou) → para e fica em stagger; só repete depois de se soltar
     const moved = (f.position.x - t.last.x) * e.dir.x + (f.position.z - t.last.z) * e.dir.z, want = t.prevWant ?? 0;
     const wantNow = Math.max(0, dot(f.locomotionVelocity ?? {x: 0, z: 0}, e.dir));
-    const pressed = want > .6 && (moved < .25 * want * dt || wantNow < .3 * want);   // vinha andando (velocidade do passo anterior) e a colisão o parou
+    const pressed = want > minPressSpeed && (moved < moveRatio * want * dt || wantNow < .3 * want);   // vinha andando (velocidade do passo anterior) e a colisão o parou
     if (pressed && !t.pinned && f.knockRecovery <= 1e-8) {
       t.pinned = true;f.locomotionVelocity = {x: 0, z: 0};f.velocity = {x: 0, z: 0};f.knockRecovery = Math.max(f.knockRecovery, e.wallStagger);
       events.push({result: 'sandStagger', attacker: e.owner ?? null, target: f.id, damage: 0, entity: e.id, seconds: e.wallStagger});

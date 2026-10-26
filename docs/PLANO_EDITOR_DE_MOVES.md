@@ -1,6 +1,6 @@
 # Plano: Editor de Moves (janela única que dá play no Move)
 
-Status (25/10/2026): **fases 1 a 6 entregues** (19 Moves em dado, editor com palco/análise/A×B, vitrine, gravação no disco e o **Estúdio de Moves em janela própria** com sincronia ao vivo e atalhos). Falta a fase 7 (gerador completo) e os QoLs. Detalhes em «Andamento».
+Status (25/10/2026): **Fases 1 a 8 do Overhaul dos Sliders Mecânicos ENTREGUES**. Todos os 19 Moves possuem esquemas `.move.json` e `params-registry.js` completos, 34 parâmetros antes ocultos expostos e verificados no motor, classificação quádrupla (exclusivo/herdado/calculado/técnico), 16 categorias, palco estendido (40 m, 30 s, 7 estados de alvo, 5 geometrias de arena), suite de sensibilidade A/B (`moves-ab-sensitivity.test.mjs`), auditoria sintática contínua (`npm run audit:moves`) e gerador completo (`npm run novo-move`). Documentação em `docs/AUDITORIA_SLIDERS_MECANICOS_MOVES.md`.
 
 ## Objetivo
 
@@ -174,3 +174,15 @@ Modo escuro/claro, painel redimensionável e lembrado, janela destacável por pa
   - Os sliders antigos já tinham saído da aba Moves (ver acima).
   - Testes: `test/moves-sync.test.mjs` (6, sem navegador) e `test/estudio-moves.browser.mjs` (11: abrir pela janela própria, layout, atalhos, sincronia de mecânica, desfazer, visual e a IA parada só no Estúdio). Evidência: `evidence/editor/estudio-de-moves.png`.
 - **Trava do build (25/10/2026):** `prototypes/combat-lab/build.mjs` não sobrescreve um jogo compilado mais novo com código mais antigo (ex.: a pasta principal numa branch atrasada com o vigia ligado). Mostra «BUILD BLOQUEADO» e não grava nada; `ARENAMON_FORCAR_BUILD=1` força.
+
+
+---
+
+## Overhaul dos Sliders Mecânicos dos Moves (Fases 1–8)
+
+Em 25/10/2026, foi concluído o overhaul dos parâmetros mecânicos de todos os 19 Moves registrados:
+- **Detecção automática de números mecânicos:** analisador sintático AST (`src/sim/moves/move-mechanics-audit.js`) que impede literais ocultos no código.
+- **34 parâmetros ocultos migrados:** Quick Attack (tolerância de aproximação, freio), Emerging Stone (vida da rocha, tempo subterrâneo, escala), Sand Wave (altura da onda, aceleração, amortecimento), Bullet Punch, Bounce, Water Pulse, Psyshock, Reflect, Fire Spin, Seed Bomb, Swift, Air Slash, Second Wind, Feint, Riposte e Spikes.
+- **Classificação quádrupla no Editor:** Exclusivos (sliders + inputs numéricos exatos em 16 categorias recolhíveis), Herdados (com overrides), Calculados (fórmulas dinâmicas ao vivo) e Constantes Técnicas justificadas.
+- **Palco de testes ampliado:** Distância até 40 m, observação até 30 s, 7 estados do alvo (parado, guarda, perfeita, esquiva, tackle, no ar, com escudo) e 5 geometrias de arena (aberta, parede lateral, parede de fundo, plataforma elevada, obstáculo destrutível).
+- **Testes A/B e regressão:** `npm run audit:moves` executa auditoria sintática e varredura de sensibilidade A/B para todos os 19 Moves.

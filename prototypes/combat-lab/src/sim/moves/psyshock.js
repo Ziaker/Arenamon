@@ -69,13 +69,14 @@ export function psyshockEffect(/** @type {any} */ game, /** @type {any} */ f, /*
   if (!slots) return {ok: false, reason: 'semEspaco'};
   const target = ch.lock != null && ch.lock !== f.id ? game.fighters[ch.lock] : null, locked = !!target && target.hp > 0;
   const fan = G.fanAngle * Math.PI / 180, base = G.damageFraction * f.attributes.attack;     // M30.1: 0,2 × Ataque gravado no disparo (P13: atributo-base, provisório)
+  const aimHMin = G.aimHeightMin ?? .05, aimHMax = G.aimHeightMax ?? .95;
   (game.world.exec ??= {})[execId] = {owner: f.id, hits: {}, kb: {}};
   for (let i = 0; i < n; i++) {
     const s = slots[i], speed = uniform(rand, G.speedMin, G.speedMax);
     let dir, hSpeed = speed, vy = 0, homing = /** @type {any} */ (null);
     if (locked) {
       // Cada pedra mira um ponto sorteado dentro da caixa lógica do alvo (M30.8); o homing persegue esse mesmo ponto (0,3 s, 180°/s).
-      const off = {x: uniform(rand, -B.halfExtent, B.halfExtent), z: uniform(rand, -B.halfExtent, B.halfExtent), y: uniform(rand, .05 * B.height, .95 * B.height)};
+      const off = {x: uniform(rand, -B.halfExtent, B.halfExtent), z: uniform(rand, -B.halfExtent, B.halfExtent), y: uniform(rand, aimHMin * B.height, aimHMax * B.height)};
       const alt = (target.flight?.y ?? target.groundY ?? 0) + (target.vaultHeight ?? 0);
       const dx = target.position.x + off.x - s.x, dz = target.position.z + off.z - s.z, dy = alt + off.y - s.y, len3 = Math.hypot(dx, dy, dz) || 1e-9;
       dir = normalize({x: dx, z: dz});hSpeed = speed * Math.hypot(dx, dz) / len3;vy = speed * dy / len3;

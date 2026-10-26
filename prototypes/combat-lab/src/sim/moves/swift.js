@@ -23,14 +23,16 @@ export function swiftEffect(/** @type {any} */ game, /** @type {any} */ f, /** @
   const fwd = direction(heading), side = {x: fwd.z, z: -fwd.x};
   const target = fx.lock != null && fx.lock !== f.id ? game.fighters[fx.lock] : null, locked = !!target && target.hp > 0;
   const damage = P.damage * f.attributes.attack / C.test.attackReference;       // MV-P13
+  const baseY = P.originHeight ?? .65, stepY = P.heightStep ?? .15;
   (game.world.exec ??= {})[execId] = {owner: f.id, hits: {}, kb: {}};
   for (let i = 0; i < n; i++) {
-    const lat = n === 1 ? 0 : (i - (n - 1) / 2) * P.spawnSpacing, y = .65 + (i % 2) * .15;
+    const lat = n === 1 ? 0 : (i - (n - 1) / 2) * P.spawnSpacing, y = baseY + (i % 2) * stepY;
     const pos = {x: f.position.x + fwd.x * P.spawnForward + side.x * lat, z: f.position.z + fwd.z * P.spawnForward + side.z * lat};
     let dir, hSpeed = P.speed, vy = 0, homing = /** @type {any} */ (null);
     if (locked) {
       // cada estrela mira um ponto sorteado dentro da caixa lógica do alvo; o homing (0,25 s, 90°/s) persegue o MESMO ponto
-      const off = {x: uniform(rand, -B.halfExtent, B.halfExtent), z: uniform(rand, -B.halfExtent, B.halfExtent), y: uniform(rand, .05 * B.height, .95 * B.height)};
+      const hMin = Math.min(P.aimHeightMin ?? .05, P.aimHeightMax ?? .95), hMax = Math.max(P.aimHeightMin ?? .05, P.aimHeightMax ?? .95);
+      const off = {x: uniform(rand, -B.halfExtent, B.halfExtent), z: uniform(rand, -B.halfExtent, B.halfExtent), y: uniform(rand, hMin * B.height, hMax * B.height)};
       const alt = (target.flight?.y ?? target.groundY ?? 0) + (target.vaultHeight ?? 0);
       const dx = target.position.x + off.x - pos.x, dz = target.position.z + off.z - pos.z, dy = alt + off.y - y, len3 = Math.hypot(dx, dy, dz) || 1e-9;
       dir = normalize({x: dx, z: dz});hSpeed = P.speed * Math.hypot(dx, dz) / len3;vy = P.speed * dy / len3;

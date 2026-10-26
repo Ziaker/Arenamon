@@ -56,12 +56,27 @@ Mude `value`, a faixa ou o texto da linha em `<id>.params.js`. Para mexer só em
 - **Linha do tempo:** marcas em ticks de 120 Hz (cast, efeito, hitbox, invulnerabilidade, cancelamento, fim) e **⏱ Medir no motor**, que roda o Move de verdade e compara.
 - **▶ Disparar:** usa o Move com a tecla do slot (segura pelo tempo ajustado; opção de redisparar ao soltar um slider).
 
+### 4.1 Regra dos Parâmetros Mecânicos e Auditoria Contínua
+
+Todo valor numérico mecânico do Move precisa estar no `moves/<id>.move.json` ou em `params-registry.js`. O comando de auditoria impede valores escondidos no código:
+
+```bash
+npm run audit:moves
+```
+
+Ele verifica:
+1. **Auditoria sintática (AST):** varre o arquivo `<id>.js` e acusa qualquer número mecânico solto que não pertença a parâmetros do Move ou constantes técnicas aprovadas.
+2. **Sensibilidade A/B:** valida que a alteração de sliders altera o resultado mecânico real (dano, deslocamento, duração, etc.).
+3. **M28.4:** garante que alterações durante o voo de um projétil ou golpe não corrompem instâncias em andamento.
+4. **Extremos de faixa:** testa o Move no mínimo e máximo dos sliders sem gerar NaN nem quebrar a física.
+
 ## 5. O que é automático e como conferir
 
 | O que | Como |
 |---|---|
 | Índices das fichas (`fichas.generated.js`, `params.generated.js`) | `npm run fichas` (e todo `npm run build:combat-lab`); o teste `moves-fichas` falha se estiverem velhos |
 | Contratos de todos os Moves (grupo, sliders, faixas, efeitos registrados) | `moves-contracts.test.mjs`; conflitos conhecidos ficam explícitos no teste |
+| Auditoria de parâmetros e sensibilidade A/B (`moves-mechanics-audit`, `moves-ab-sensitivity`) | `npm run audit:moves` (ou suite unitária); acusa números mágicos escondidos |
 | Matriz de cenários (chão, ar, plataforma, parede, guarda, esquiva, hitstop, lock-on, determinismo, save/load, simultâneo) | `move-matrix.test.mjs`; Move novo entra sozinho |
 | Índice vivo (arquivos, testes e documentos que citam cada Move) | `npm run indice` → `docs/INDICE_VIVO_MOVES.md` |
 | Bug reproduzível | aba Partida › 🐞 Capturar bug; abra o JSON no mesmo campo |

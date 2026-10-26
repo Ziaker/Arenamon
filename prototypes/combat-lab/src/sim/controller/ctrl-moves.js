@@ -122,14 +122,14 @@ function startRiposteStrike(f, action) {
   startAction(f, 'tackle', {move: vec(), dodgeDirection: null}, CTX_FIGHTERS, heading, false, false, false);
   applyLift(f, lift);
   f.stamina = before;
-  const a = f.action;
+  const a = f.action, minDur = P.minStrikeDuration ?? .1;
   a.heading = a.startAngle = heading;a.fixedHeading = true;
-  a.move = def.id;a.slot = action.slot;a.params = P;a.moveDef = def;a.pl = 4;a.plSpeed = 1;a.plDamage = P.damage / C.test.attackReference;   // MV-P13; contra-ataque: tratado como PL 4 (vence qualquer PL, nunca faz clash)
+  a.move = def.id;a.slot = action.slot;a.params = P;a.moveDef = def;a.pl = P.strikePl ?? 4;a.plSpeed = 1;a.plDamage = P.damage / C.test.attackReference;   // MV-P13; contra-ataque: tratado como PL 4 por padrão (vence qualquer PL, nunca faz clash)
   a.kb = {horizontal: P.knockbackH, vertical: P.knockbackV};
-  a.durationScale = Math.max(.1, P.cast - t) / p.duration;
+  a.durationScale = Math.max(minDur, P.cast - t) / p.duration;
   a.distanceScale = P.strikeRange / Math.max(1e-6, nominalDistance(f, 'tackle'));
   a.invulnerableFor = Math.max(0, P.windowEnd - t);
-  a.chainAfter = Math.max(.1, P.cast - t);
+  a.chainAfter = Math.max(minDur, P.cast - t);
   a.riposteStrike = true;
   moveEvent(f, {result: 'riposteStrike', move: def.id, slot: action.slot, target: action.riposte.target});
 }
@@ -255,7 +255,9 @@ export function updateMove(f, action, target, cmd, dt) {
   const m = def.motion ?? {type: 'none'};
   if (m.type === 'dash' && m.distance) {
     // Deslocamento suave entre start e end (s): mesma distância qualquer que seja o passo.
-    const t0 = m.start ?? 0, t1 = m.end ?? def.duration, prog = t => smoothstep(clamp((t - t0) / Math.max(1e-6, t1 - t0), 0, 1));
+    const t0 = (m.startKey ? action.params?.[m.startKey] : undefined) ?? m.start ?? 0;
+    const t1 = (m.endKey ? action.params?.[m.endKey] : undefined) ?? m.end ?? def.duration;
+    const prog = t => smoothstep(clamp((t - t0) / Math.max(1e-6, t1 - t0), 0, 1));
     const dist = (m.distanceKey ? action.params?.[m.distanceKey] : undefined) ?? m.distance;   // distanceKey: o alcance vem de um slider do grupo (Feint)
     f.velocity = scale(direction(action.heading), dist * (prog(action.elapsed + dt) - prog(action.elapsed)) / dt);
   } else if (m.type === 'walk') {   // anda com o input a (1 − slow) da velocidade normal (Bullet Punch: preparação a 30%); ausente não se move

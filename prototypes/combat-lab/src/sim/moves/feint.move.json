@@ -29,7 +29,9 @@
       "distance": 0.25,
       "start": 0.03,
       "end": 0.15,
-      "distanceKey": "retreat"
+      "distanceKey": "retreat",
+      "startKey": "dashStart",
+      "endKey": "dashEnd"
     }
   },
   "params": {
@@ -109,6 +111,26 @@
         "tip": "Deslocamento para trás (ou para o lado do input). A proposta varia de 5,5 cm a 40 cm; provisório: 25 cm.",
         "unit": "m",
         "value": 0.25
+      },
+      {
+        "min": 0,
+        "max": 0.5,
+        "step": 0.005,
+        "key": "dashStart",
+        "label": "Início do impulso de recuo",
+        "tip": "Instante em que o deslocamento físico do recuo começa (padrão: 0,03 s).",
+        "unit": "sec",
+        "value": 0.03
+      },
+      {
+        "min": 0.02,
+        "max": 0.8,
+        "step": 0.005,
+        "key": "dashEnd",
+        "label": "Fim do impulso de recuo",
+        "tip": "Instante em que o deslocamento físico do recuo termina (padrão: 0,15 s).",
+        "unit": "sec",
+        "value": 0.15
       },
       {
         "min": 0,

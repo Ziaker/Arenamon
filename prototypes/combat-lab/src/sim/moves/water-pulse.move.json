@@ -219,6 +219,16 @@
         "approved": true
       },
       {
+        "min": 0,
+        "max": 1,
+        "step": 0.05,
+        "key": "plScaleBonus",
+        "label": "Crescimento da esfera por PL",
+        "tip": "Bônus de escala da esfera por nível de Power Level acima de PL1 (padrão: 25% por nível → PL2 1,25×, PL3 1,50×).",
+        "unit": "pct",
+        "value": 0.25
+      },
+      {
         "preset": "hitShake"
       }
     ]

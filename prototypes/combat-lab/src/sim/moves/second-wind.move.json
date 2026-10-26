@@ -87,6 +87,16 @@
         "value": 0.4
       },
       {
+        "min": 0.02,
+        "max": 1,
+        "step": 0.02,
+        "key": "regenInterval",
+        "label": "Intervalo do pulso de regeneração",
+        "tip": "Passo de tempo entre cada pulso de regeneração extra de stamina (padrão: 0,10 s).",
+        "unit": "sec",
+        "value": 0.1
+      },
+      {
         "min": 0,
         "max": 0.9,
         "step": 0.05,

@@ -1,23 +1,69 @@
 // @ts-check
-// Painel do Editor de Moves (fase 2): palco + play + sliders de um Move já migrado para move.json.
-// Só interface: o cenário e os números vêm de move-editor-model.js; os sliders de mecânica são os MESMOS do ajustador (desfazer, presets, workspace);
-// os de visual alteram, nesta sessão, os parâmetros aprovados do atelier que o jogo usa no próximo disparo.
-import {C} from '../sim/config.js';
+// Painel do Editor de Moves (Overhaul Mecânico Completo): palco expandido + play + análise A/B + cobertura total de parâmetros
+// (Exclusivos do Move com categorias/busca/digitação exata/consumidor, Herdados de sistemas compartilhados, Calculados em tempo real e Constantes técnicas justificadas).
+import {C, defaults} from '../sim/config.js';
 import {escape} from '../ui/tuning.js';
-import {MOVES_PARAMS, isVisualWorldParam} from '../ui/moves-panel.js';
+import {isVisualWorldParam} from '../ui/moves-panel.js';
+import {
+  MOVE_MECHANIC_CATEGORIES,
+  effectiveRangeOf,
+  classifyParamRow,
+} from '../sim/moves/params-registry.js';
+import {
+  getInheritedParamsForMove,
+  getCalculatedValuesForMove,
+  getTechnicalConstantsForMove,
+} from '../sim/moves/move-mechanics-audit.js';
 import {controls as atelierControls, help as atelierHelp, phaseOf, phaseNames} from '../../../sand-stone-lab/src/config.ts';
 import {ATELIER_APPROVED, ATELIER_GAME_PARAMS} from '../view/quarks/atelier-game-params.js';
 import {EDITABLE_MOVES, editableMove} from './editable-moves.js';
 import {buildMoveDoc, buildVisualDoc, describeDiffs} from './move-save-model.js';
 import {traceMove, compareTraces, currentValues, defaultValues, diffCount} from './move-trace.js';
-import {makeMoveScenario, currentMoveJson, TARGET_STATES, DEFAULT_STAGE, DISTANCE_RANGE, HOLD_RANGE, needsHold, suggestedHold, holdHint} from './move-editor-model.js';
+import {
+  makeMoveScenario,
+  currentMoveJson,
+  TARGET_STATES,
+  STAGE_ARENAS,
+  DEFAULT_STAGE,
+  DISTANCE_RANGE,
+  HOLD_RANGE,
+  needsHold,
+  suggestedHold,
+  holdHint,
+} from './move-editor-model.js';
+
+/** Lê um caminho pontilhado (`actions.tackle.speed`, `world.charge.moveMult`, etc.) a partir de um objeto raiz. */
+function getByPath(/** @type {any} */ rootObj, /** @type {string} */ dotted) {
+  return dotted.split('.').reduce((acc, k) => (acc != null ? acc[k] : undefined), rootObj);
+}
+
+/** Escreve num caminho pontilhado a partir de um objeto raiz. */
+function setByPath(/** @type {any} */ rootObj, /** @type {string} */ dotted, /** @type {any} */ val) {
+  const parts = dotted.split('.');
+  const last = parts.pop();
+  const target = parts.reduce((acc, k) => (acc != null ? acc[k] : undefined), rootObj);
+  if (target && last) target[last] = val;
+}
 
 /**
- * @param {{getWorld: () => any, $: (id: string) => any, tuning: any, startScenario: (def: any) => void, abortScenario: () => void, getScenario: () => any, getLastResult: () => any, save?: {available: boolean, read: (kind: 'moves' | 'approved', id: string) => Promise<{status: number, json: any}>, write: (kind: 'moves' | 'approved', id: string, doc: any, expectHash: string) => Promise<{status: number, json: any}>, rememberOpen?: (moveId: string) => void}, ficha?: {timelineMarkup: (id: string) => string, abMarkup: (id: string) => string, bind: (root: any) => void, fire: (id: string) => void}, openActions?: (id: string) => void, vfx?: {markup: (id: string) => string, bind: (root: any) => void, bindParams: (root: any, rerender: () => void) => void}, seekToTime?: (seconds: number) => boolean, download: (data: string, name: string, type?: string) => void, setTimeScale: (v: number) => void}} deps
+ * @param {{getWorld: () => any, $: (id: string) => any, tuning: any, startScenario: (def: any) => void, abortScenario: () => void, getScenario: () => any, getLastResult: () => any, save?: {available: boolean, read: (kind: 'moves' | 'approved', id: string) => Promise<{status: number, json: any}>, write: (kind: 'moves' | 'approved', id: string, doc: any, expectHash: string) => Promise<{status: number, json: any}>, rememberOpen?: (moveId: string) => void}, ficha?: {timelineMarkup: (id: string) => string, abMarkup: (id: string) => string, bind: (root: any) => void, fire: (id: string) => void}, openActions?: (id: string) => void, vfx?: {markup: (id: string) => string, bind: (root: any) => void, bindParams: (root: any, rerender: () => void) => void}, seekToTime?: (seconds: number) => boolean, download: (data: string, name: string, type?: string) => void, setTimeScale: (v: number) => void, onVisualChange?: (key: string, k: string, v: number) => void}} deps
  */
 export function createMoveEditor({getWorld, $, tuning, startScenario, abortScenario, getScenario, getLastResult, save, ficha, openActions, vfx, seekToTime, download, setTimeScale, onVisualChange = () => {}}) {
   const root = $('move-editor-body');
-  const state = {moveId: (EDITABLE_MOVES.find(m => m.id === 'sand-wave') ?? EDITABLE_MOVES[0]).id, distance: DEFAULT_STAGE.distance, target: DEFAULT_STAGE.target, hold: 0, loop: false, speed: 1, running: false, pinned: /** @type {Record<string, number> | null} */ (null)};
+  const state = {
+    moveId: (EDITABLE_MOVES.find(m => m.id === 'sand-wave') ?? EDITABLE_MOVES[0]).id,
+    distance: DEFAULT_STAGE.distance,
+    target: DEFAULT_STAGE.target,
+    arena: DEFAULT_STAGE.arena ?? 'open',
+    hold: 0,
+    loop: false,
+    speed: 1,
+    running: false,
+    pinned: /** @type {Record<string, number> | null} */ (null),
+    tierFilter: /** @type {'all' | 'essential' | 'advanced' | 'technical'} */ ('all'),
+    searchQuery: '',
+    onlyChanged: false,
+  };
   const move = () => /** @type {any} */ (editableMove(state.moveId));
   const el = (/** @type {string} */ tag, /** @type {Record<string, any>} */ attrs = {}, /** @type {(Node | string)[]} */ kids = []) => {
     const e = document.createElement(tag);
@@ -28,7 +74,12 @@ export function createMoveEditor({getWorld, $, tuning, startScenario, abortScena
 
   function play() {
     abortScenario();
-    const def = makeMoveScenario(move(), {distance: state.distance, target: state.target, hold: needsHold(move()) ? state.hold : 0});
+    const def = makeMoveScenario(move(), {
+      distance: state.distance,
+      target: state.target,
+      arena: state.arena,
+      hold: needsHold(move()) ? state.hold : 0,
+    });
     state.running = true;startScenario(def);
     status(`Executando «${move().name}»…`);
   }
@@ -53,18 +104,38 @@ export function createMoveEditor({getWorld, $, tuning, startScenario, abortScena
     const sec = el('section', {class: 'editor-sec'}, [el('h4', {text: 'Palco'})]);
     const sel = /** @type {HTMLSelectElement} */ (el('select', {id: 'editor-move'}, EDITABLE_MOVES.map(m => el('option', {value: m.id, text: m.name}))));
     sel.value = state.moveId;sel.onchange = () => {state.moveId = sel.value;state.hold = suggestedHold(move());state.pinned = null;render();};
+
     const dist = /** @type {HTMLInputElement} */ (el('input', {type: 'range', id: 'editor-distance', min: DISTANCE_RANGE.min, max: DISTANCE_RANGE.max, step: DISTANCE_RANGE.step, value: state.distance}));
+    const distNum = /** @type {HTMLInputElement} */ (el('input', {type: 'number', id: 'editor-distance-num', class: 'ed-num-input', min: DISTANCE_RANGE.min, max: DISTANCE_RANGE.max, step: DISTANCE_RANGE.step, value: state.distance, title: 'Digitação exata da distância (m)'}));
     const distOut = el('output', {text: `${state.distance} m`});
-    dist.oninput = () => {state.distance = Number(dist.value);distOut.textContent = `${state.distance} m`;scheduleAnalysis();};
+    const syncDist = (/** @type {number} */ raw) => {
+      const v = Math.min(DISTANCE_RANGE.max, Math.max(DISTANCE_RANGE.min, Number.isFinite(raw) ? raw : state.distance));
+      state.distance = v;dist.value = String(v);distNum.value = String(v);distOut.textContent = `${v} m`;scheduleAnalysis();
+    };
+    dist.oninput = () => syncDist(Number(dist.value));
+    distNum.onchange = () => syncDist(Number(distNum.value));
+
     const holdRow = needsHold(move()) ? [(() => {
-      const hold = /** @type {HTMLInputElement} */ (el('input', {type: 'range', id: 'editor-hold', min: HOLD_RANGE.min, max: HOLD_RANGE.max, step: HOLD_RANGE.step, value: state.hold || suggestedHold(move())}));
+      const initHold = state.hold || suggestedHold(move());
+      const hold = /** @type {HTMLInputElement} */ (el('input', {type: 'range', id: 'editor-hold', min: HOLD_RANGE.min, max: HOLD_RANGE.max, step: HOLD_RANGE.step, value: initHold}));
+      const holdNum = /** @type {HTMLInputElement} */ (el('input', {type: 'number', id: 'editor-hold-num', class: 'ed-num-input', min: HOLD_RANGE.min, max: HOLD_RANGE.max, step: HOLD_RANGE.step, value: initHold, title: 'Digitação exata do tempo segurando o botão (s)'}));
       const out = el('output', {text: `${(+hold.value).toFixed(2)} s`});
       state.hold = Number(hold.value);
-      hold.oninput = () => {state.hold = Number(hold.value);out.textContent = `${state.hold.toFixed(2)} s`;scheduleAnalysis();};
-      return el('label', {class: 'editor-row', title: holdHint(move())}, [el('span', {text: 'Segurar o botão'}), hold, out]);
+      const syncHold = (/** @type {number} */ raw) => {
+        const v = Math.min(HOLD_RANGE.max, Math.max(HOLD_RANGE.min, Number.isFinite(raw) ? raw : state.hold));
+        state.hold = v;hold.value = String(v);holdNum.value = String(v);out.textContent = `${v.toFixed(2)} s`;scheduleAnalysis();
+      };
+      hold.oninput = () => syncHold(Number(hold.value));
+      holdNum.onchange = () => syncHold(Number(holdNum.value));
+      return el('label', {class: 'editor-row', title: holdHint(move())}, [el('span', {text: 'Segurar o botão'}), hold, holdNum, out]);
     })(), el('p', {class: 'hint', text: holdHint(move())})] : [];
+
     const tgt = /** @type {HTMLSelectElement} */ (el('select', {id: 'editor-target'}, TARGET_STATES.map(([v, l]) => el('option', {value: v, text: l}))));
     tgt.value = state.target;tgt.onchange = () => {state.target = tgt.value;scheduleAnalysis();};
+
+    const ar = /** @type {HTMLSelectElement} */ (el('select', {id: 'editor-arena'}, STAGE_ARENAS.map(([v, l]) => el('option', {value: v, text: l}))));
+    ar.value = state.arena;ar.onchange = () => {state.arena = ar.value;scheduleAnalysis();};
+
     const spd = /** @type {HTMLSelectElement} */ (el('select', {id: 'editor-speed'}, [['1', 'Normal'], ['0.5', 'Câmera lenta (0,5×)'], ['0.25', 'Muito lenta (0,25×)']].map(([v, l]) => el('option', {value: v, text: l}))));
     spd.value = String(state.speed);spd.onchange = () => {state.speed = Number(spd.value);setTimeScale(state.speed);};
     const loop = /** @type {HTMLInputElement} */ (el('input', {type: 'checkbox', id: 'editor-loop'}));
@@ -74,8 +145,9 @@ export function createMoveEditor({getWorld, $, tuning, startScenario, abortScena
     stopBtn.onclick = () => {state.loop = false;loop.checked = false;abortScenario();state.running = false;status('Parado.');};
     sec.append(
       el('label', {class: 'editor-row'}, [el('span', {text: 'Move'}), sel]),
-      el('label', {class: 'editor-row'}, [el('span', {text: 'Distância do alvo'}), dist, distOut]),
+      el('label', {class: 'editor-row'}, [el('span', {text: 'Distância do alvo'}), dist, distNum, distOut]),
       el('label', {class: 'editor-row'}, [el('span', {text: 'Alvo'}), tgt]),
+      el('label', {class: 'editor-row'}, [el('span', {text: 'Geometria da arena'}), ar]),
       ...holdRow,
       el('label', {class: 'editor-row'}, [el('span', {text: 'Velocidade'}), spd]),
       el('label', {class: 'editor-row check'}, [loop, el('span', {text: 'Repetir em laço'})]),
@@ -88,9 +160,10 @@ export function createMoveEditor({getWorld, $, tuning, startScenario, abortScena
 
   const UNIT = {num: '', int: '', sec: 's', pct: '%', m: 'm', ms: 'm/s', ms2: 'm/s²', deg: '°', x: '×', yesno: ''};
   const show = (/** @type {number} */ v, /** @type {string} */ unit) => unit === 'pct' ? `${+(v * 100).toFixed(1)} %` : `${+(+v).toFixed(3)} ${UNIT[/** @type {keyof typeof UNIT} */ (unit)] ?? ''}`.trim();
-  /** Sliders de mecânica: gravam em C.world[grupo][chave] como a aba Moves (arrastar = prévia; soltar = UMA entrada no histórico, Ctrl+Z desfaz). */
+  const TIER_LABEL = {essential: 'essencial', advanced: 'avançado', technical: 'técnico'};
+
   // ---------- Análise: linha do tempo, números e comparação A × B ----------
-  const stageOf = () => ({distance: state.distance, target: state.target, hold: needsHold(move()) ? state.hold : 0});
+  const stageOf = () => ({distance: state.distance, target: state.target, arena: state.arena, hold: needsHold(move()) ? state.hold : 0});
   const fmt = (/** @type {number | null} */ v) => v == null ? '—' : String(+(+v).toFixed(3));
   let analysisTimer = 0;
   function scheduleAnalysis() {clearTimeout(analysisTimer);analysisTimer = /** @type {any} */ (setTimeout(analyze, 120));}
@@ -150,40 +223,377 @@ export function createMoveEditor({getWorld, $, tuning, startScenario, abortScena
     return sec;
   }
 
-  /** Faixa EFETIVA do slider (min, max, passo): a da tabela dos Moves, com os limites ampliados dos pedidos de 22 e 23/10/2026; cai na linha do move.json se não achar. */
-  const rangeOf = (/** @type {string} */ group, /** @type {any} */ r) => {
-    const t = /** @type {any[]} */ (MOVES_PARAMS).flatMap(([, rows]) => rows).find((/** @type {any[]} */ x) => x[0] === group && x[1] === r.key);
-    return t ? {min: t[4], max: t[5], step: t[6]} : {min: r.min, max: r.max, step: r.step};
-  };
+  /** Seção completa de Mecânica (Fases 3, 4 e 5): parâmetros exclusivos com categorias/busca/digitação exata, herdados, calculados e constantes técnicas. */
   function mechanicsSection() {
     const m = move();
-    const world = /** @type {any} */ (tuning.world ?? null);
-    const sec = el('section', {class: 'editor-sec'}, [el('h4', {text: 'Mecânica'}), el('p', {class: 'hint', text: 'Valem no próximo uso (Ctrl+Z desfaz). «↺» volta ao valor padrão do Move.'})]);
+    const sec = el('section', {class: 'editor-sec'}, [
+      el('h4', {text: 'Mecânica'}),
+      el('p', {class: 'hint', text: 'Valem no próximo uso (M28.4; Ctrl+Z desfaz). Cada controle possui faixa única, digitação exata, categoria, consumidor no motor e indicador de governança.'}),
+    ]);
+
+    // Barra de ferramentas de filtragem, profundidade e restauração
+    const tierBar = el('div', {class: 'editor-actions ed-tier-bar'}, [
+      .../** @type {const} */ ([['all', 'Todos'], ['essential', 'Essencial'], ['advanced', 'Avançado'], ['technical', 'Técnico']]).map(([tier, label]) => {
+        const b = el('button', {
+          type: 'button',
+          class: 'mini' + (state.tierFilter === tier ? ' primary' : ''),
+          'data-tier-filter': tier,
+          text: label,
+        });
+        b.onclick = () => {
+          state.tierFilter = tier;
+          for (const btn of tierBar.querySelectorAll('[data-tier-filter]')) {
+            btn.classList.toggle('primary', btn.getAttribute('data-tier-filter') === tier);
+          }
+          applyFilter();
+        };
+        return b;
+      }),
+    ]);
+    const searchInput = /** @type {HTMLInputElement} */ (el('input', {
+      type: 'search',
+      id: 'editor-param-search',
+      placeholder: 'Filtrar parâmetro, chave, categoria ou arquivo consumidor…',
+      value: state.searchQuery,
+    }));
+    const onlyChangedChk = /** @type {HTMLInputElement} */ (el('input', {
+      type: 'checkbox',
+      id: 'editor-only-changed',
+    }));
+    onlyChangedChk.checked = state.onlyChanged;
+    const resetMoveBtn = el('button', {
+      type: 'button',
+      id: 'editor-reset-move',
+      class: 'mini',
+      title: 'Restaura todos os parâmetros exclusivos deste Move para os valores padrão da ficha',
+      text: '↺ Restaurar Move',
+    });
+
+    const toolbar = el('div', {class: 'ed-mech-toolbar'}, [
+      tierBar,
+      el('div', {class: 'editor-row'}, [
+        searchInput,
+        el('label', {class: 'editor-row check'}, [onlyChangedChk, el('span', {text: 'Só alterados'})]),
+        resetMoveBtn,
+      ]),
+    ]);
+    sec.append(toolbar);
+
     const box = el('div', {id: 'editor-mechanics'});
+    /** @type {Array<() => void>} */
     const sync = [];
+    /** @type {Array<{rowEl: HTMLElement, cat: string, tier: string, searchBlob: string, isChanged: () => boolean}>} */
+    const rowEntries = [];
+    /** @type {Map<string, HTMLElement>} */
+    const catDetails = new Map();
+
+    // Agrupa os parâmetros exclusivos por categoria oficial (16 categorias)
+    /** @type {Map<string, Array<{r: any, meta: ReturnType<typeof classifyParamRow>}>>} */
+    const byCat = new Map();
     for (const r of m.params.rows) {
-      if (String(r.key).startsWith('hitShake') || isVisualWorldParam([m.group, r.key])) continue;   // tremor e ajustes puramente visuais ficam na seção de VFX
-      const path = `world.${m.group}.${r.key}`;
-      const range = rangeOf(m.group, r);
-      const get = () => getWorld()[m.group][r.key];
-      const isToggle = r.min === 0 && r.max === 1 && r.step === 1;
-      const input = /** @type {HTMLInputElement} */ (el('input', isToggle ? {type: 'checkbox', 'data-path': path} : {type: 'range', 'data-path': path, min: range.min, max: range.max, step: range.step}));
-      const out = el('output', {text: ''});
-      const refresh = () => {const v = get();if (isToggle) input.checked = !!v;else input.value = String(v);out.textContent = isToggle ? (v ? 'sim' : 'não') : show(v, r.unit);row.classList.toggle('changed', v !== r.value);};
-      let before = null;
-      input.oninput = () => {if (isToggle) return;if (before === null) before = get();getWorld()[m.group][r.key] = Number(input.value);out.textContent = show(Number(input.value), r.unit);};
-      input.onchange = () => {
-        const after = isToggle ? (input.checked ? 1 : 0) : Number(input.value), was = before ?? get();before = null;
-        if (isToggle) getWorld()[m.group][r.key] = was;else getWorld()[m.group][r.key] = was;
-        if (was !== after) tuning.commit([[path, after]], r.label);refresh();
-      };
-      const reset = el('button', {type: 'button', class: 'mini', title: 'Voltar ao padrão', text: '↺'});
-      reset.onclick = () => {if (get() !== r.value) tuning.commit([[path, r.value]], 'Restaurar ' + r.label);refresh();};
-      const row = el('label', {class: 'editor-row', title: r.tip}, [el('span', {}, [r.label + ' ', el('small', {class: r.approved ? 'ok' : 'warn', title: r.approved ? 'Valor decidido pelo diretor' : 'Valor provisório (ainda não homologado)', text: r.approved ? 'aprovado' : 'provisório'})]), input, out, reset]);
-      sync.push(refresh);refresh();box.append(row);
+      if (String(r.key).startsWith('hitShake') || isVisualWorldParam([m.group, r.key])) continue;
+      const meta = classifyParamRow(m.group, r);
+      const cat = meta.category;
+      if (!byCat.has(cat)) byCat.set(cat, []);
+      byCat.get(cat)?.push({r, meta});
     }
-    tuning.onChange?.(() => { if (box.isConnected) for (const f of sync) f(); });
-    sec.append(box);return sec;
+
+    const sortedCats = [...byCat.keys()].sort((a, b) => {
+      const ia = MOVE_MECHANIC_CATEGORIES.indexOf(/** @type {any} */ (a));
+      const ib = MOVE_MECHANIC_CATEGORIES.indexOf(/** @type {any} */ (b));
+      return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
+    });
+
+    for (const cat of sortedCats) {
+      const items = byCat.get(cat) ?? [];
+      const catDet = el('details', {class: 'ed-cat-group', 'data-cat': cat, open: ''}, [
+        el('summary', {}, [el('b', {text: cat}), el('small', {class: 'muted', text: ` (${items.length})`})]),
+      ]);
+      catDetails.set(cat, catDet);
+
+      for (const {r, meta} of items) {
+        const path = `world.${m.group}.${r.key}`;
+        const range = meta.effectiveRange;
+        const get = () => getWorld()[m.group][r.key];
+        const isToggle = r.min === 0 && r.max === 1 && r.step === 1;
+        const input = /** @type {HTMLInputElement} */ (el('input', isToggle
+          ? {type: 'checkbox', 'data-path': path}
+          : {type: 'range', 'data-path': path, min: range.min, max: range.max, step: range.step}));
+        const numInput = !isToggle ? /** @type {HTMLInputElement} */ (el('input', {
+          type: 'number',
+          class: 'ed-num-input',
+          'data-num-path': path,
+          min: range.min,
+          max: range.max,
+          step: range.step,
+          title: `Digitar valor exato (${range.min} a ${range.max})`,
+        })) : null;
+        const out = el('output', {text: ''});
+        const depKey = meta.dependsOn;
+
+        const badges = [
+          el('small', {
+            class: r.approved ? 'ok' : 'warn',
+            title: r.approved ? 'Valor decidido pelo diretor' : 'Valor provisório (ainda não homologado)',
+            text: r.approved ? 'aprovado' : 'provisório',
+          }),
+          el('small', {
+            class: 'muted ed-tier-badge',
+            title: `Nível de profundidade: ${TIER_LABEL[meta.tier] ?? meta.tier} · Consumidor: ${meta.consumer.file} (${meta.consumer.fn})`,
+            text: ` · ${TIER_LABEL[meta.tier] ?? meta.tier}`,
+          }),
+        ];
+        if (depKey) {
+          badges.push(el('small', {
+            class: 'muted ed-dep-badge',
+            title: `Este parâmetro depende de «${depKey}» estar ativo`,
+            text: ` · depende de ${depKey}`,
+          }));
+        }
+
+        const reset = el('button', {type: 'button', class: 'mini', title: 'Voltar ao padrão', text: '↺'});
+        const row = el('label', {
+          class: 'editor-row',
+          'data-tier': meta.tier,
+          'data-param-key': r.key,
+          title: `${r.tip || r.label}\nConsumidor: ${meta.consumer.file} → ${meta.consumer.fn}\nAplicação: próximo uso (M28.4)`,
+        }, [
+          el('span', {}, [r.label + ' ', ...badges]),
+          input,
+          ...(numInput ? [numInput] : []),
+          out,
+          reset,
+        ]);
+
+        const refresh = () => {
+          const v = get();
+          if (isToggle) input.checked = !!v;
+          else {
+            input.value = String(v);
+            if (numInput && document.activeElement !== numInput) numInput.value = String(+(+v).toFixed(4));
+          }
+          out.textContent = isToggle ? (v ? 'sim' : 'não') : show(v, r.unit);
+          row.classList.toggle('changed', v !== r.value);
+          if (depKey && depKey in (getWorld()[m.group] ?? {})) {
+            row.classList.toggle('ed-dep-off', !getWorld()[m.group][depKey]);
+          }
+        };
+
+        let before = /** @type {number | null} */ (null);
+        input.oninput = () => {
+          if (isToggle) return;
+          if (before === null) before = get();
+          const v = Number(input.value);
+          getWorld()[m.group][r.key] = v;
+          if (numInput) numInput.value = String(+(+v).toFixed(4));
+          out.textContent = show(v, r.unit);
+          refreshCalculated();
+          scheduleAnalysis();
+        };
+        input.onchange = () => {
+          const after = isToggle ? (input.checked ? 1 : 0) : Number(input.value);
+          const was = before ?? get();
+          before = null;
+          getWorld()[m.group][r.key] = was;
+          if (was !== after) tuning.commit([[path, after]], r.label);
+          for (const f of sync) f();
+          refreshCalculated();
+          applyFilter();
+        };
+        if (numInput) {
+          numInput.onchange = () => {
+            const raw = Number(numInput.value);
+            if (!Number.isFinite(raw)) {refresh();return;}
+            const clamped = Math.min(range.max, Math.max(range.min, raw));
+            const was = get();
+            if (was !== clamped) tuning.commit([[path, clamped]], r.label);
+            for (const f of sync) f();
+            refreshCalculated();
+            applyFilter();
+          };
+        }
+        reset.onclick = () => {
+          if (get() !== r.value) tuning.commit([[path, r.value]], 'Restaurar ' + r.label);
+          for (const f of sync) f();
+          refreshCalculated();
+          applyFilter();
+        };
+
+        sync.push(refresh);
+        refresh();
+        catDet.append(row);
+        rowEntries.push({
+          rowEl: row,
+          cat,
+          tier: meta.tier,
+          searchBlob: `${r.label} ${r.key} ${cat} ${r.tip ?? ''} ${meta.consumer.file} ${meta.consumer.fn}`.toLowerCase(),
+          isChanged: () => get() !== r.value,
+        });
+      }
+      box.append(catDet);
+    }
+
+    function applyFilter() {
+      const q = state.searchQuery.trim().toLowerCase();
+      /** @type {Map<string, number>} */
+      const visibleInCat = new Map();
+      for (const item of rowEntries) {
+        const tierOk = state.tierFilter === 'all' || item.tier === state.tierFilter;
+        const searchOk = !q || item.searchBlob.includes(q);
+        const changedOk = !state.onlyChanged || item.isChanged();
+        const showRow = tierOk && searchOk && changedOk;
+        item.rowEl.hidden = !showRow;
+        if (showRow) visibleInCat.set(item.cat, (visibleInCat.get(item.cat) ?? 0) + 1);
+      }
+      for (const [cat, det] of catDetails.entries()) {
+        det.hidden = (visibleInCat.get(cat) ?? 0) === 0;
+      }
+    }
+
+    searchInput.oninput = () => {state.searchQuery = searchInput.value;applyFilter();};
+    onlyChangedChk.onchange = () => {state.onlyChanged = onlyChangedChk.checked;applyFilter();};
+    resetMoveBtn.onclick = () => {
+      /** @type {Array<[string, number]>} */
+      const changes = [];
+      for (const r of m.params.rows) {
+        if (String(r.key).startsWith('hitShake') || isVisualWorldParam([m.group, r.key])) continue;
+        const cur = getWorld()[m.group]?.[r.key];
+        if (typeof cur === 'number' && cur !== r.value) changes.push([`world.${m.group}.${r.key}`, r.value]);
+      }
+      if (changes.length) {
+        tuning.commit(changes, `Restaurar todos os parâmetros de ${m.name}`);
+        for (const f of sync) f();
+        refreshCalculated();
+        applyFilter();
+      }
+    };
+
+    // 1. Subseção: Parâmetros herdados de sistemas compartilhados (Charge, Tackle, Combate, IA)
+    const inheritedList = getInheritedParamsForMove(m.id, m.group);
+    const inhDetails = el('details', {id: 'editor-inherited', class: 'ed-subsec'}, [
+      el('summary', {}, [
+        el('b', {text: `Parâmetros herdados de sistemas compartilhados (${inheritedList.length})`}),
+        el('small', {class: 'muted', text: ' · Charge, Tackle, Combate e IA'}),
+      ]),
+      el('p', {class: 'hint', text: 'Valores globais herdados por este Move. Quando o Move possui um slider exclusivo que substitui o valor herdado, o indicador «substituído pelo Move» mostra qual parâmetro prevalece.'}),
+    ]);
+    for (const inh of inheritedList) {
+      const defVal = Number(getByPath(defaults(), inh.path) ?? 0);
+      const getInh = () => Number(getByPath(C, inh.path) ?? defVal);
+      const inp = /** @type {HTMLInputElement} */ (el('input', {
+        type: 'range',
+        'data-inherited-path': inh.path,
+        min: inh.min,
+        max: inh.max,
+        step: inh.step,
+      }));
+      const numInp = /** @type {HTMLInputElement} */ (el('input', {
+        type: 'number',
+        class: 'ed-num-input',
+        'data-inherited-num': inh.path,
+        min: inh.min,
+        max: inh.max,
+        step: inh.step,
+      }));
+      const out = el('output', {text: ''});
+      const resetInh = el('button', {type: 'button', class: 'mini', title: 'Restaurar valor herdado padrão', text: '↺'});
+      const badge = inh.overriddenBy
+        ? el('small', {class: 'ok', title: `Este Move possui um parâmetro próprio que substitui ou escala este valor: ${inh.overriddenBy}`, text: `substituído por ${inh.overriddenBy}`})
+        : el('small', {class: 'muted', text: inh.system});
+      const row = el('label', {
+        class: 'editor-row',
+        title: `${inh.tip}\nCaminho global: C.${inh.path}\nConsumidor: ${inh.consumer}`,
+      }, [
+        el('span', {}, [`${inh.label} `, badge]),
+        inp,
+        numInp,
+        out,
+        resetInh,
+      ]);
+      const refreshInh = () => {
+        const v = getInh();
+        inp.value = String(v);
+        if (document.activeElement !== numInp) numInp.value = String(+(+v).toFixed(4));
+        out.textContent = show(v, inh.unit);
+        row.classList.toggle('changed', v !== defVal);
+      };
+      let beforeInh = /** @type {number | null} */ (null);
+      inp.oninput = () => {
+        if (beforeInh === null) beforeInh = getInh();
+        const v = Number(inp.value);
+        setByPath(C, inh.path, v);
+        numInp.value = String(+(+v).toFixed(4));
+        out.textContent = show(v, inh.unit);
+        refreshCalculated();
+        scheduleAnalysis();
+      };
+      inp.onchange = () => {
+        const after = Number(inp.value);
+        const was = beforeInh ?? getInh();
+        beforeInh = null;
+        setByPath(C, inh.path, was);
+        if (was !== after) tuning.commit([[inh.path, after]], inh.label);
+        refreshInh();
+        refreshCalculated();
+      };
+      numInp.onchange = () => {
+        const raw = Number(numInp.value);
+        if (!Number.isFinite(raw)) {refreshInh();return;}
+        const clamped = Math.min(inh.max, Math.max(inh.min, raw));
+        const was = getInh();
+        if (was !== clamped) tuning.commit([[inh.path, clamped]], inh.label);
+        refreshInh();
+        refreshCalculated();
+      };
+      resetInh.onclick = () => {
+        if (getInh() !== defVal) tuning.commit([[inh.path, defVal]], 'Restaurar ' + inh.label);
+        refreshInh();
+        refreshCalculated();
+      };
+      sync.push(refreshInh);
+      refreshInh();
+      inhDetails.append(row);
+    }
+
+    // 2. Subseção: Valores calculados (fórmulas mecânicas em tempo real)
+    const calcBox = el('div', {id: 'editor-calculated-body'});
+    const calcDetails = el('details', {id: 'editor-calculated', class: 'ed-subsec', open: ''}, [
+      el('summary', {}, [el('b', {text: 'Valores calculados (fórmulas mecânicas em tempo real)'})]),
+      el('p', {class: 'hint', text: 'Resultados derivados automaticamente dos sliders atuais (atualizados ao vivo enquanto você arrasta).'}),
+      calcBox,
+    ]);
+    function refreshCalculated() {
+      const calcRows = getCalculatedValuesForMove(m.id, m.group, getWorld(), C.profiles?.balanced?.attack ?? 10, C.test?.attackReference ?? 10);
+      calcBox.innerHTML = `<table class="editor-table"><tr><th>Resultado mecânico</th><th>Fórmula</th><th>Valor atual</th></tr>${calcRows.map(c => `<tr><td>${escape(c.label)}</td><td><code>${escape(c.formula)}</code></td><td><b>${escape(String(c.value))}</b> ${escape(UNIT[/** @type {keyof typeof UNIT} */ (c.unit)] ?? c.unit)}</td></tr>`).join('')}</table>`;
+    }
+    refreshCalculated();
+
+    // 3. Subseção: Constantes técnicas justificadas (bloqueadas)
+    const techList = getTechnicalConstantsForMove(m.id);
+    const techDetails = el('details', {id: 'editor-technical', class: 'ed-subsec'}, [
+      el('summary', {}, [el('b', {text: `Constantes técnicas justificadas (${techList.length})`}), el('small', {class: 'muted', text: ' · bloqueadas por contrato'})]),
+      el('p', {class: 'hint', text: 'Constantes matemáticas, de precisão IEEE-754 ou topologia discreta auditadas por moves-mechanics-audit.test.mjs.'}),
+      el('table', {class: 'editor-table'}, [
+        el('tr', {}, [el('th', {text: 'Constante'}), el('th', {text: 'Valores'}), el('th', {text: 'Arquivo'}), el('th', {text: 'Justificativa técnica'})]),
+        ...techList.map(tc => el('tr', {}, [
+          el('td', {}, [el('code', {text: tc.id})]),
+          el('td', {text: tc.values.join(', ')}),
+          el('td', {}, [el('small', {text: tc.file})]),
+          el('td', {text: tc.reason}),
+        ])),
+      ]),
+    ]);
+
+    tuning.onChange?.(() => {
+      if (box.isConnected) {
+        for (const f of sync) f();
+        refreshCalculated();
+        applyFilter();
+      }
+    });
+
+    sec.append(box, inhDetails, calcDetails, techDetails);
+    return sec;
   }
 
   function visualSection() {

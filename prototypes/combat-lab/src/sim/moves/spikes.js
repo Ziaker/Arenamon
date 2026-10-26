@@ -20,8 +20,8 @@ export function spikesEffect(/** @type {any} */ game, /** @type {any} */ f, /** 
   if (!v.valid) return {ok: false, reason: 'invalidPlacement', detail: {why: v.reason}};
   const damage = P.damage * f.attributes.attack / C.test.attackReference;   // MV-P13
   const e = spawn(game.world, {
-    kind: 'trap', owner: f.id, pos: {...m.pos}, y: v.y, radius: P.radius, height: P.trapHeight, life: P.life, armDelay: P.armDelay, support: true,
-    hit: {damage, knockback: {horizontal: P.knockbackH, vertical: P.knockbackV}}, pl: 1, visual: 'spikes', captured: {move: def.id},
+    kind: 'trap', owner: f.id, pos: {...m.pos}, y: v.y, radius: P.radius, height: P.trapHeight, life: P.life, armDelay: P.armDelay, support: true, supportTolerance: P.supportTolerance ?? .06,
+    hit: {damage, knockback: {horizontal: P.knockbackH, vertical: P.knockbackV}}, pl: P.trapPl ?? 1, visual: 'spikes', captured: {move: def.id},
   }, fx.events ?? []);
   if (!e) return {ok: false, reason: 'entityLimit'};
 }

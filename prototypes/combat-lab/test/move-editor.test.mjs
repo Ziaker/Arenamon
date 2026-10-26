@@ -5,7 +5,7 @@ import {runScenario} from '../src/sim/scenarios.js';
 import {C, resetConfig, defaults} from '../src/sim/config.js';
 import {registerStandardMoves} from '../src/sim/moves/standard.js';
 import {EDITABLE_MOVES, editableMove} from '../src/editor/editable-moves.js';
-import {makeMoveScenario, currentMoveJson, observeSeconds, needsHold, suggestedHold, DISTANCE_RANGE} from '../src/editor/move-editor-model.js';
+import {makeMoveScenario, currentMoveJson, observeSeconds, needsHold, suggestedHold, DISTANCE_RANGE, HOLD_RANGE, TARGET_STATES, STAGE_ARENAS} from '../src/editor/move-editor-model.js';
 import {validateMoveData} from '../src/sim/moves/move-data.js';
 
 registerStandardMoves();
@@ -122,5 +122,18 @@ ok('Moves de carga/mira têm tempo de botão segurado e os demais não', () => {
   assert.ok(suggestedHold(editableMove('water-pulse')) > 0);
   assert.ok(suggestedHold(editableMove('reflect')) >= editableMove('reflect').def.charge.min + 0.25, 'a carga sugerida passa do mínimo do Reflect');
   assert.equal(makeMoveScenario(editableMove('sand-wave'), {hold: 2}).name.includes('botão'), false);
+});
+console.log(`${n} verificações do Editor de Moves (base).`);
+ok('palco expandido (Fase 6): suporta distância até 40 m, botão até 5 s, estados do alvo e arenas com obstáculos', () => {
+  assert.equal(DISTANCE_RANGE.max, 40);
+  assert.equal(HOLD_RANGE.max, 5);
+  assert.ok(TARGET_STATES.length >= 7);
+  assert.ok(STAGE_ARENAS.length >= 5);
+  resetConfig(defaults());
+  const sb = runScenario(makeMoveScenario(editableMove('seed-bomb'), {distance: 20, hold: 0.4}));
+  assert.ok(val2(sb, 'Entidades criadas').includes('projectile'), 'Seed Bomb alcança 20 m no palco');
+  resetConfig(defaults());
+  const blocked = runScenario(makeMoveScenario(editableMove('air-slash'), {distance: 6, arena: 'wall'}));
+  assert.equal(val2(blocked, 'Acertou o alvo'), 'não', 'parede entre os dois bloqueia projétil reto');
 });
 console.log(`${n} verificações do Editor de Moves.`);

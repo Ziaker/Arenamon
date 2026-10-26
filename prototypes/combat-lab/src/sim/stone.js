@@ -92,10 +92,10 @@ function blockers(/** @type {any} */ game) {
 const samples = (/** @type {{x: number, z: number}} */ p, /** @type {number} */ half) => {const s = [];for (const dx of [-1, 0, 1]) for (const dz of [-1, 0, 1]) s.push({x: p.x + dx * (half - .05), z: p.z + dz * (half - .05)});return s;};
 
 /** O prisma de base `y0` e lado `half`×2 cabe em `p`? (apoio integral, dentro da arena, sem sobrepor sólidos sobreviventes) */
-function rockFits(/** @type {any} */ game, /** @type {{x: number, z: number}} */ p, /** @type {number} */ y0, /** @type {number} */ half, /** @type {number} */ height, /** @type {any[]} */ solid, /** @type {string|null} */ ignoreId = null) {
+function rockFits(/** @type {any} */ game, /** @type {{x: number, z: number}} */ p, /** @type {number} */ y0, /** @type {number} */ half, /** @type {number} */ height, /** @type {any[]} */ solid, /** @type {number} */ tol = .06, /** @type {string|null} */ ignoreId = null) {
   const lim = effectiveArenaRadius();
   for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) if (Math.hypot(p.x + sx * half, p.z + sz * half) > lim) return false;
-  for (const s of samples(p, half)) if (Math.abs(getGroundHeight(s, game.world, y0 + .3) - y0) > .06) return false;
+  for (const s of samples(p, half)) if (Math.abs(getGroundHeight(s, game.world, y0 + .3) - y0) > tol) return false;
   for (const b of solid) {
     if (ignoreId && b.id === ignoreId) continue;
     if (!(y0 < b.y1 - .02 && y0 + height > b.y0 + .02)) continue;
@@ -106,12 +106,15 @@ function rockFits(/** @type {any} */ game, /** @type {{x: number, z: number}} */
 }
 function makeRock(/** @type {any} */ game, /** @type {any} */ e, /** @type {any[]} */ events) {
   const ms = game.mapState;if (!ms) return;
-  const P = e.params, half = 1.5 * P.rockScale, height = 3 * P.rockScale, solid = blockers(game), c = e.to;
+  const P = e.params;
+  const baseW = P.rockBaseWidth ?? 3, baseH = P.rockBaseHeight ?? 3;
+  const half = .5 * baseW * P.rockScale, height = baseH * P.rockScale, solid = blockers(game), c = e.to;
+  const tol = P.supportTolerance ?? .06, searchStep = Math.max(.05, P.rockSearchStep ?? .25);
   /** @returns {{pos: {x: number, z: number}, y: number} | null} */
   const spot = () => {
-    const tryAt = (/** @type {{x: number, z: number}} */ p) => {const y0 = getGroundHeight(p, game.world, c.y + .3);return rockFits(game, p, y0, half, height, solid) ? {pos: p, y: y0} : null;};
+    const tryAt = (/** @type {{x: number, z: number}} */ p) => {const y0 = getGroundHeight(p, game.world, c.y + .3);return rockFits(game, p, y0, half, height, solid, tol) ? {pos: p, y: y0} : null;};
     const first = tryAt({x: c.x, z: c.z});if (first) return first;
-    for (let r = .25; r <= P.rockSearch; r += .25) {
+    for (let r = searchStep; r <= P.rockSearch + 1e-9; r += searchStep) {
       const n = Math.max(8, Math.round(r * 16));
       for (let i = 0; i < n; i++) {const a = (i / n) * Math.PI * 2, hit = tryAt({x: c.x + Math.sin(a) * r, z: c.z + Math.cos(a) * r});if (hit) return hit;}
     }
@@ -121,7 +124,7 @@ function makeRock(/** @type {any} */ game, /** @type {any} */ e, /** @type {any[
   if (!found) {events.push({result: 'stoneNoRock', attacker: e.owner ?? null, target: null, damage: 0, x: c.x, z: c.z});return;}
   ms.nextEntityId ??= 1;
   const rock = {id: `rock_${ms.nextEntityId++}`, rock: true, owner: e.owner, hp: P.rockHp, maxHp: P.rockHp, pos: {x: found.pos.x, y: found.y, z: found.pos.z}, size: {hx: half, hz: half, height: 0},
-    targetHeight: height, rise: P.riseTime, age: 0, launched: [], launchH: P.launchH, launchV: P.launchV, shape: 'box', angle: 0, state: 'solid', seq: (ms.rockSeq = (ms.rockSeq ?? 0) + 1)};
+    targetHeight: height, rise: P.riseTime, age: 0, launched: [], launchH: P.launchH, launchV: P.launchV, supportTolerance: tol, shape: 'box', angle: 0, state: 'solid', seq: (ms.rockSeq = (ms.rockSeq ?? 0) + 1)};
   ms.destructibles.push(rock);
   events.push({result: 'rockCreated', attacker: e.owner ?? null, target: null, damage: 0, id: rock.id, x: rock.pos.x, z: rock.pos.z, y: rock.pos.y});
   const mine = ms.destructibles.filter((/** @type {any} */ d) => d.rock && d.owner === e.owner && d.state === 'solid' && d !== rock).sort((/** @type {any} */ a, /** @type {any} */ b) => a.seq - b.seq);
@@ -137,8 +140,10 @@ export function destroyRock(/** @type {any} */ ms, /** @type {any} */ d, /** @ty
 export function stoneStep(/** @type {any} */ game) {
   const ms = game.mapState;if (!ms?.destructibles?.some((/** @type {any} */ d) => d.rock)) return [];
   /** @type {any[]} */ const events = [], dt = C.test.step, h = C.test.halfExtent;
+  const fallbackTol = C.world.emergingStone?.supportTolerance ?? .06;
   for (const d of [...ms.destructibles]) {
     if (!d.rock || d.state !== 'solid') continue;
+    const tol = d.supportTolerance ?? fallbackTol;
     const prev = d.size.height;d.age += dt;
     d.size.height = d.targetHeight * Math.min(1, d.age / Math.max(1e-6, d.rise));
     for (const f of game.fighters) {
@@ -146,7 +151,7 @@ export function stoneStep(/** @type {any} */ game) {
       const inside = Math.abs(f.position.x - d.pos.x) <= d.size.hx + h && Math.abs(f.position.z - d.pos.z) <= d.size.hz + h;
       if (!inside) continue;
       const fy = f.flight ? f.flight.y : (f.groundY ?? 0) + (f.vaultHeight ?? 0);
-      if (!f.flight && Math.abs((f.groundY ?? 0) - (d.pos.y + prev)) < .06 && prev > .01) {f.groundY = d.pos.y + d.size.height;continue;}   // em cima: o topo o carrega durante a subida
+      if (!f.flight && Math.abs((f.groundY ?? 0) - (d.pos.y + prev)) < tol && prev > .01) {f.groundY = d.pos.y + d.size.height;continue;}   // em cima: o topo o carrega durante a subida
       // Lancamento so durante a emergencia (invocacao): rocha ja totalmente invocada nao derruba mais ninguem.
       if (d.size.height >= d.targetHeight - 1e-6) continue;
       if (d.launched.includes(f.id)) continue;
@@ -163,7 +168,8 @@ export function stoneStep(/** @type {any} */ game) {
     let changed = false;
     for (const d of [...ms.destructibles]) {
       if (!d.rock || d.state !== 'solid') continue;
-      const ok = samples({x: d.pos.x, z: d.pos.z}, d.size.hx).every(s => getGroundHeight(s, game.world, d.pos.y + .3) >= d.pos.y - .06);
+      const tol = d.supportTolerance ?? fallbackTol;
+      const ok = samples({x: d.pos.x, z: d.pos.z}, d.size.hx).every(s => getGroundHeight(s, game.world, d.pos.y + .3) >= d.pos.y - tol);
       if (!ok) {destroyRock(ms, d, events, 'support');changed = true;}
     }
     if (!changed) break;

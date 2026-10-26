@@ -21,7 +21,7 @@ export function airSlashEffect(/** @type {any} */ game, /** @type {any} */ f, /*
   if (fx.aimAt) {const aim = straightLaunch(pos, y0, fx.aimAt, fx.aimAt.y, P.speed, fwd);dir = aim.dir;hSpeed = aim.hSpeed;vy = aim.vy;}   // ponto do alvo capturado no toque
   const damage = P.damage * f.attributes.attack / C.test.attackReference;   // MV-P13
   const e = spawn(game.world, {
-    kind: 'projectile', owner: f.id, pos, y: y0, radius: P.radius, dir, speed: hSpeed, vy, life: P.range / P.speed + dt * .5, pierce: 1, blockedBy: ['barrier', 'wall'],
+    kind: 'projectile', owner: f.id, pos, y: y0, radius: P.radius, dir, speed: hSpeed, vy, life: P.range / P.speed + dt * .5, pierce: Math.max(1, Math.round(P.pierce ?? 1)), blockedBy: ['barrier', 'wall'],
     hit: {damage, knockback: {horizontal: P.knockbackH, vertical: P.knockbackV ?? 0}}, pl: 1, clashable: true, visual: 'airslash',
     captured: {attackFraction: P.damage / C.test.attackReference, successiveFactor: 1, level: 1, move: def.id, speed: P.speed, counterStagger: P.counterStagger, w: P.visualWidth, h: P.visualHeight, t: P.visualThickness},
   }, fx.events ?? []);

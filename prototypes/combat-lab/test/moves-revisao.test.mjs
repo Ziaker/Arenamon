@@ -38,19 +38,21 @@ test('um grupo de ficha com o nome de uma regra compartilhada (charge, ai, beam)
   }
   assert.doesNotThrow(() => factoryDefaults(), 'depois de remover, a configuração volta a montar');
 });
-test('o gerador recusa nomes que viram grupo reservado e aceita apóstrofo gerando JS válido', () => {
+test('o gerador recusa nomes que viram grupo reservado e aceita apóstrofo gerando JS e move.json válidos', () => {
   const run = name => execFileSync(process.execPath, ['novo-move.mjs', name], {cwd: lab, encoding: 'utf8', stdio: 'pipe'});
   assert.throws(() => run('Charge'), e => /já existe em C\.world/.test(String(e.stderr)));
   const files = ['src/sim/moves/king-s-shield.js', 'src/sim/moves/king-s-shield.params.js', 'test/moves-king-s-shield.test.mjs'];
+  const allCreated = [...files, 'src/sim/moves/king-s-shield.move.json'];
   try {
     run("King's Shield");
     for (const f of files) {
       assert.ok(existsSync(lab + f), f);
       execFileSync(process.execPath, ['--check', lab + f], {stdio: 'pipe'});   // sintaxe válida apesar do apóstrofo
     }
+    assert.ok(existsSync(lab + 'src/sim/moves/king-s-shield.move.json'), 'king-s-shield.move.json');
     assert.match(readFileSync(lab + files[1], 'utf8'), /title: "King's Shield"/);
   } finally {
-    for (const f of files) rmSync(lab + f, {force: true});
+    for (const f of allCreated) rmSync(lab + f, {force: true});
     execFileSync(process.execPath, ['gen-fichas.mjs'], {cwd: lab, stdio: 'pipe'});
   }
   assert.ok(!readFileSync(lab + 'src/sim/moves/fichas.generated.js', 'utf8').includes('king-s-shield'), 'índice limpo depois');

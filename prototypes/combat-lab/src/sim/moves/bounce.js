@@ -57,10 +57,11 @@ function strike(/** @type {any} */ game, /** @type {any} */ f, /** @type {any} *
 /** Gancho de passo: contato na descida e impacto do pouso. Roda depois da física, uma vez por passo. */
 export function bounceStep(/** @type {any} */ game) {
   /** @type {any[]} */ const events = [];
-  const bodyH = C.extras?.visual?.bodyHeight ?? 1.2;
+  const fallbackBodyH = C.extras?.visual?.bodyHeight ?? 1.2;
   for (const f of game.fighters) {
     const st = f.bounceState;if (!st) continue;
     const P = st.params;
+    const vReach = P.verticalReach ?? fallbackBodyH;
     if (f.flight?.bounce) {   // em voo: confere o contato durante a descida
       if (f.hp <= 0) {f.bounceState = null;continue;}
       if (st.neutralized || f.flight.vy >= 0) continue;
@@ -69,7 +70,7 @@ export function bounceStep(/** @type {any} */ game) {
         if (o === f || o.hp <= 0 || o.absent || st.hits.includes(o.id)) continue;
         if (Math.hypot(o.position.x - f.position.x, o.position.z - f.position.z) > reach) continue;
         const oy = o.flight ? o.flight.y : (o.groundY ?? 0) + (o.vaultHeight ?? 0);
-        if (Math.abs(fy - oy) > bodyH) continue;
+        if (Math.abs(fy - oy) > vReach) continue;
         events.push(...strike(game, f, o, st, 'descent'));
         if (st.neutralized) break;
       }
@@ -80,7 +81,7 @@ export function bounceStep(/** @type {any} */ game) {
         for (const o of game.fighters) {
           if (o === f || o.hp <= 0 || o.absent || o.flight || st.hits.includes(o.id)) continue;
           if (Math.hypot(o.position.x - f.position.x, o.position.z - f.position.z) > P.landRadius) continue;
-          if (Math.abs((f.groundY ?? 0) - (o.groundY ?? 0) - (o.vaultHeight ?? 0)) > bodyH) continue;
+          if (Math.abs((f.groundY ?? 0) - (o.groundY ?? 0) - (o.vaultHeight ?? 0)) > vReach) continue;
           events.push(...strike(game, f, o, st, 'landing'));
           if (st.neutralized) break;
         }
