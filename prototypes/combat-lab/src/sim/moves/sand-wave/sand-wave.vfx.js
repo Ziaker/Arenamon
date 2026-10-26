@@ -18,7 +18,12 @@ import {C} from '../../config.js';
 
 export const id = 'sand-wave';
 
-/** Aplica as configurações de acessibilidade do jogo aos parâmetros do efeito */
+/**
+ * Aplica as configurações de acessibilidade do jogo aos parâmetros do efeito
+ * @param {Record<string, any>} p
+ * @param {any} acc
+ * @returns {Record<string, any>}
+ */
 function accessible(p, acc) {
   const res = {...p};
   const reduceMotion = !!(acc?.reduceMotion || C.vfx?.master?.reduceMotion);
@@ -35,25 +40,44 @@ function accessible(p, acc) {
   return res;
 }
 
+/**
+ * @param {Record<string, any>} [over]
+ * @returns {Record<string, any>}
+ */
 function paramsOf(over = {}) {
   return {...defaults.sand, ...ATELIER_GAME_PARAMS.sand, ...over};
 }
 
-/** Verifica se a entidade informada é uma onda de areia */
+/**
+ * Verifica se a entidade informada é uma onda de areia
+ * @param {any} e
+ * @returns {boolean}
+ */
 export function handles(e) {
   return !!e && e.kind === 'sandwave';
 }
 
-/** Assinatura visual para detectar mudanças em tempo real no ateliê / acessibilidade */
+/**
+ * Assinatura visual para detectar mudanças em tempo real no ateliê / acessibilidade / sliders
+ * @param {any} e
+ * @param {any} acc
+ * @returns {string}
+ */
 export function signatureOf(e, acc) {
   return JSON.stringify([
     acc?.noFlash || C.vfx?.master?.noFlash,
     acc?.reduceMotion || C.vfx?.master?.reduceMotion,
-    ATELIER_GAME_VARIANT.sand
+    ATELIER_GAME_VARIANT.sand,
+    paramsOf()
   ]);
 }
 
-/** Cria a representação visual da barragem no mundo 3D */
+/**
+ * Cria a representação visual da barragem no mundo 3D
+ * @param {any} view
+ * @param {any} e
+ * @param {any} acc
+ */
 export function spawn(view, e, acc) {
   const parent = view.group ?? view;
   const group = new T.Group();
@@ -87,7 +111,14 @@ export function spawn(view, e, acc) {
   };
 }
 
-/** Atualiza a animação visual por frame */
+/**
+ * Atualiza a animação visual por frame
+ * @param {any} view
+ * @param {any} e
+ * @param {any} state
+ * @param {number} dt
+ * @param {any} acc
+ */
 export function update(view, e, state, dt, acc) {
   if (!state) return;
   state.age += dt;
@@ -98,28 +129,54 @@ export function update(view, e, state, dt, acc) {
   state.particles.update(dt);
 }
 
-/** Transição para a fase de dissipação quando a entidade da simulação expira */
+/**
+ * Transição para a fase de dissipação quando a entidade da simulação expira
+ * @param {any} view
+ * @param {any} e
+ * @param {any} state
+ */
 export function onDeath(view, e, state) {
   if (!state) return;
   state.dying = true;
 }
 
-/** Atualiza a dissipação de poeira pós-expiração */
+/**
+ * Atualiza a dissipação de poeira pós-expiração
+ * @param {any} view
+ * @param {any} e
+ * @param {any} state
+ * @param {number} dt
+ * @param {any} acc
+ */
 export function updateDying(view, e, state, dt, acc) {
   update(view, e, state, dt, acc);
 }
 
-/** Determina se a dissipação de poeira e partículas foi concluída (+0.4s de cauda após a expiração da simulação) */
+/**
+ * Determina se a dissipação de poeira e partículas foi concluída (+0.4s de cauda após a expiração da simulação)
+ * @param {any} state
+ * @param {number} age
+ * @returns {boolean}
+ */
 export function isFinished(state, age) {
   return age >= 0.4;
 }
 
-/** Reage a eventos do simulador (impactos de areia) */
+/**
+ * Reage a eventos do simulador (impactos de areia)
+ * @param {any} view
+ * @param {any} ev
+ * @param {any} state
+ */
 export function onEvent(view, ev, state) {
   // Eventos de impacto (ex: acerto, estilhaçamento ou bloqueio)
 }
 
-/** Retorna a posição central do efeito visual */
+/**
+ * Retorna a posição central do efeito visual
+ * @param {any} state
+ * @returns {{x: number, y: number, z: number} | null}
+ */
 export function positionOf(state) {
   if (!state?.pos) return null;
   return {
@@ -129,7 +186,12 @@ export function positionOf(state) {
   };
 }
 
-/** Libera memória, texturas, geometrias e remove da cena */
+/**
+ * Libera memória, texturas, geometrias e remove da cena
+ * @param {any} view
+ * @param {any} e
+ * @param {any} state
+ */
 export function dispose(view, e, state) {
   if (!state) return;
   state.particles.clear();

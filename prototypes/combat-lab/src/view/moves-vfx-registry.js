@@ -109,6 +109,7 @@ export class MovesVfxRegistry {
 
   /**
    * Ciclo de sincronização de vida visual dos Moves migrados.
+   * Protegido contra reutilização de IDs entre reinícios de partida e recriação em dying.
    * @param {any[]} entities
    * @param {number} dt
    * @param {any} fxAcc acessibilidade (noFlash, reduceMotion)
@@ -152,8 +153,12 @@ export class MovesVfxRegistry {
       const sig = mod.signatureOf ? mod.signatureOf(e, fxAcc) : '';
       let inst = this.activeInstances.get(e.id);
 
-      // Se mudou variante, acessibilidade ou configurações em tempo real, recria
-      if (inst && inst.signature !== sig) {
+      // Proteção rigorosa contra reutilização de IDs e alterações em tempo real:
+      // Se a entidade mudou de referência (mundo reiniciado ou ID reciclado),
+      // se o módulo responsável mudou,
+      // se a instância anterior estava em fase dying (ID reaproveitado após reinício ou disparo rápido),
+      // ou se a assinatura visual mudou (variante, acessibilidade, parâmetros):
+      if (inst && (inst.entity !== e || inst.module !== mod || inst.dying || inst.signature !== sig)) {
         if (inst.module.dispose) inst.module.dispose(this.view, inst.entity, inst.state);
         this.activeInstances.delete(e.id);
         inst = undefined;
@@ -300,5 +305,12 @@ export class MovesVfxRegistry {
       }
     }
     this.activeInstances.clear();
+  }
+
+  /**
+   * Sinônimo de disposeAll para padronização com elementalFx.clear() e atelierFx.clear().
+   */
+  clear() {
+    this.disposeAll();
   }
 }

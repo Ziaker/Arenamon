@@ -67,6 +67,13 @@ export * from './world-view/wv-geometry.js';
   setAccessibility(a = {}) {
     this.accessibility = {...this.accessibility, ...a};
   }
+
+  reset() {
+    this.elementalFx?.clear();
+    this.atelierFx?.clear();
+    this.movesVfx?.disposeAll();
+    this.seen = new Set();
+  }
 }
 
 // Métodos divididos em módulos menores (pasta world-view/): mesmos corpos, agora anexados ao protótipo.

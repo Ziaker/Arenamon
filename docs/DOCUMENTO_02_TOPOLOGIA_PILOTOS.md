@@ -144,51 +144,60 @@ Todos os portões foram validados individualmente e conjuntamente com 100% de ap
 
 ---
 
-## 8. Patch Corretivo do Documento 02 (Impactos, Ciclo de Vida e Paridade Visual)
+## 8. Patch Corretivo e Endurecimento Técnico do Documento 02
 
-Em auditoria técnica subsequente à migração estrutural, foi implementado o patch de refinamento visual e tipagem dos 3 pilotos:
+Em resposta à auditoria técnica subsequente à migração estrutural, foi implementado o patch de endurecimento técnico, refinamento visual e tipagem estrita dos 3 pilotos:
 
 1. **Impactos e Ciclo de Vida Visual:**
    - **Fase Dying e Cauda de Sustentação (`TAIL`):**
      - Em `moves-vfx-registry.js`, quando uma entidade deixa `world.entities`, ela transiciona imediatamente para o estado `dying`, continuando seu avanço visual:
        - `sand-wave`: cauda de dissipação de 0,4 s para assentamento de poeira e partículas Quarks.
        - `water-pulse`: cauda de 2,4 s para expansão e dispersão dos borrifos de splash no impacto.
-       - `bullet-punch`: término sincronizado da chegada do rush com o golpe Tackle sem instanciação concorrente duplicada.
+       - `bullet-punch`: término sincronizado da chegada do rush com o golpe Tackle sem instanciação concorrente duplicada (`handlesFighter(f)` restrito a `move === 'bullet-punch' && kind !== 'tackle'`).
    - **Retenção de Posição de Contato:**
      - O método `positionOf(id)` preserva as últimas coordenadas do ponto de impacto durante toda a fase `dying`, impedindo que os anéis visuais de evento do `WorldView` sejam cancelados prematuramente.
    - **Despacho Universal de Eventos:**
      - `wv-update.js` e `MovesVfxRegistry.onEvent` agora despacham eventos de combate sem `ev.entity` (tais como `bulletVanish`, `bulletReturn` e `hit` dos lutadores) diretamente aos rushes ativos e módulos do Move correspondente.
 
-2. **Compatibilidade dos Interruptores Visuais:**
-   - `C.vfx.elemental?.enabled`: quando 0, suprime a criação do visual do Water Pulse.
-   - `C.vfx.elemental?.waterVariant`: troca dinâmica entre as variantes A (0), B (1) e C (2) em tempo real.
+2. **Proteção contra Reutilização de IDs e Resiliência em Reinício:**
+   - No `MovesVfxRegistry`, a busca por instâncias ativas agora valida estritamente a identidade de referência da entidade: `if (inst.entity !== e || inst.module !== mod || inst.dying || inst.signature !== sig)`.
+   - Se uma nova entidade herdar o mesmo identificador numérico de uma entidade recém-expirada ou em fase `dying`, a instância anterior é imediatamente finalizada (`dispose`) e uma nova é instanciada limpa.
+   - Implementado `worldView.reset()` e integrado em `view.reset(player)`, garantindo a liberação imediata de todas as instâncias em `dying`, rushes pendentes e caches visuais (`movesVfx.disposeAll()`, `elementalFx.clear()`, `atelierFx.clear()`) ao reiniciar a partida (`startMatch()`).
+
+3. **Compatibilidade dos Interruptores Visuais e Ajuste Dinâmico em Voo:**
+   - `C.vfx.elemental?.enabled`: quando 0, desativa dinamicamente o manipulador visual do Water Pulse (`handles(e) === false`).
+   - `C.vfx.elemental?.waterVariant`: troca dinâmica entre as variantes A (0), B (1) e C (2) com reconstrução imediata da malha em tempo real.
    - `C.vfx.projectilePlBorder`: controle dinâmico do anel Torus com cor de Power Level (`PL_HEX`), inserido, atualizado ou removido sob demanda.
-   - Acessibilidade: `noFlash` e `reduceMotion` (tanto do mestre quanto da partida) honrados em tempo real em todos os três `.vfx.js`.
+   - **Reconstrução Dinâmica de Sliders em Voo:** `signatureOf(e)` nos módulos `.vfx.js` inclui os valores ativos dos presets visuais (`paramsOf()`), permitindo que alterações de sliders no editor ou painel reflitam imediatamente no projétil ativo sem travar a simulação.
+   - Acessibilidade: `noFlash` e `reduceMotion` (mestre e partida) honrados em tempo real em todos os três `.vfx.js`.
 
-3. **Cobertura de Tipos Estáticos dos VFX:**
-   - Arquivos `.vfx.js` integrados à verificação estática do TypeScript (`prototypes/combat-lab/tsconfig.json`).
-   - `npm run typecheck`: **0 erros** nos 3 projetos.
-   - `node scripts/estrito.mjs`: travado no orçamento exato de **939 erros**.
+4. **Verificação TypeScript Estrita Dedicada (0 Erros):**
+   - Criados `prototypes/combat-lab/tsconfig.vfx.json` e `scripts/typecheck-vfx.mjs` (`npm run typecheck:vfx`), integrados ao comando global `npm run typecheck`.
+   - Executa TypeScript em modo estrito (`strict: true`, `noImplicitAny: true`, `checkJs: true`) nos 3 módulos `.vfx.js` e no `moves-vfx-registry.js`.
+   - Resultado: **0 erros** de compilação estrita nos arquivos de VFX.
+   - O orçamento global da catraca estrita legada (`scripts/estrito.mjs`) foi rigorosamente mantido no limite de **939 erros**, sem qualquer regressão.
 
-4. **Homologação Visual e Suíte Dedicada de Navegador:**
-   - Criada a suíte `prototypes/combat-lab/test/moves-vfx-parity.browser.mjs` executando Playwright headless em ambiente WebGL real:
-     - Sand Wave: nascimento, propagação, cauda e descarte modular (7/7 verificações).
-     - Bullet Punch: rush exclusivo, `f.absent`, modelo 3D ocultado durante o desaparecimento, impacto na chegada e descarte limpo (6/6 verificações).
-     - Water Pulse: PL scaling, border toggle dinâmico, variantes A/B/C, impacto splash, cauda de 2,4 s e descarte total (11/11 verificações).
-     - Sanidade do sistema: 0 erros de console, 0 erros de página WebGL, 0 requisições externas offline (2/2 verificações).
-     - **Total:** 26 de 26 verificações aprovadas.
-   - Evidências salvas em `prototypes/combat-lab/evidence/moves-vfx-parity/`:
-     - `sand-wave-ativo.png`
-     - `bullet-punch-vanish.png`
-     - `bullet-punch-impacto.png`
-     - `water-pulse-voo.png`
-     - `water-pulse-splash.png`
-     - `resultado-paridade-vfx.json`
+5. **Comparação Visual Automatizada e Suíte Dedicada de Navegador (38/38):**
+   - A suíte `prototypes/combat-lab/test/moves-vfx-parity.browser.mjs` foi expandida para 5 blocos com Playwright headless em ambiente WebGL real:
+     - Bloco 1 (Sand Wave): nascimento, propagação, cauda e descarte modular (8/8).
+     - Bloco 2 (Bullet Punch): rush exclusivo, `f.absent`, modelo 3D ocultado durante o desaparecimento, impacto na chegada e descarte limpo (8/8).
+     - Bloco 3 (Water Pulse): PL scaling, anel PL dinâmico, variantes A/B/C, impacto splash, cauda de 2,4 s e descarte total (13/13).
+     - Bloco 4 (Interruptores e Acessibilidade): `noFlash`, `reduceMotion`, `elemental.enabled = 0` e ajuste dinâmico de sliders em voo (4/4).
+     - Bloco 5 (Resiliência): reutilização de IDs e reinício de partida durante a fase dying (3/3).
+     - Sanidade: 0 erros de console WebGL e 0 requisições externas offline (2/2).
+     - **Total:** **38 de 38 verificações aprovadas**.
+   - **Comparação Visual Pixel a Pixel contra Baselines:**
+     - `fidelidade-sand-wave.png`: **99.46%** de correspondência visual.
+     - `fidelidade-bullet-punch-vanish.png`: **99.53%** de correspondência visual.
+     - `fidelidade-bullet-punch-impacto.png`: **99.62%** de correspondência visual.
+     - `fidelidade-water-pulse-voo.png`: **99.02%** de correspondência visual.
+     - `fidelidade-water-pulse-splash.png`: **99.43%** de correspondência visual.
+     - Todos os compósitos lado a lado `[Baseline | Atual | Diferença]` gerados em `prototypes/combat-lab/evidence/moves-vfx-parity/`.
 
 ---
 
 ## 9. Cláusula de Conclusão e Encerramento
 
-Com a conclusão dos passos e do patch corretivo acima, o escopo do **Documento 02** está **integralmente cumprido, homologado e encerrado**.
+Com a conclusão dos passos, do patch corretivo e do endurecimento técnico acima, o escopo do **Documento 02** está **integralmente cumprido, endurecido, homologado e encerrado**.
 Os 3 pilotos encontram-se plenamente migrados para a topologia modular de 4 arquivos com separação de física e visual, registro dedicado na camada `view/`, cobertura total de sliders mecânicos no Editor de Moves, ciclo de vida visual completo com caudas e impactos preservados, tipagem estática e paridade determinística comprovada.
 Nenhum dos outros 16 Moves foi modificado, mantendo-se estritamente o isolamento da entrega.

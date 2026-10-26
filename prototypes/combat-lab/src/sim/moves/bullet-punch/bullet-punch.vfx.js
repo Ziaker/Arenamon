@@ -17,7 +17,12 @@ import {C} from '../../config.js';
 
 export const id = 'bullet-punch';
 
-/** Aplica as configurações de acessibilidade do jogo aos parâmetros do efeito */
+/**
+ * Aplica as configurações de acessibilidade do jogo aos parâmetros do efeito
+ * @param {Record<string, any>} p
+ * @param {any} acc
+ * @returns {Record<string, any>}
+ */
 function accessible(p, acc) {
   const res = {...p};
   const reduceMotion = !!(acc?.reduceMotion || C.vfx?.master?.reduceMotion);
@@ -34,21 +39,38 @@ function accessible(p, acc) {
   return res;
 }
 
+/**
+ * @param {Record<string, any>} [over]
+ * @returns {Record<string, any>}
+ */
 function paramsOf(over = {}) {
   return {...defaults.bulletpunch, ...ATELIER_GAME_PARAMS.bulletpunch, ...over};
 }
 
-/** Entidades do mundo: o Bullet Punch não cria entidades autônomas (atua sobre o lutador) */
+/**
+ * Entidades do mundo: o Bullet Punch não cria entidades autônomas (atua sobre o lutador)
+ * @param {any} e
+ * @returns {boolean}
+ */
 export function handles(e) {
   return false;
 }
 
-/** Verifica se a ação do lutador é a preparação/vanish de um Bullet Punch */
+/**
+ * Verifica se a ação do lutador é a preparação/vanish de um Bullet Punch
+ * @param {any} f
+ * @returns {boolean}
+ */
 export function handlesFighter(f) {
   return f?.action?.move === 'bullet-punch' && f?.action?.kind !== 'tackle';
 }
 
-/** Cria a instância visual do rush de Bullet Punch */
+/**
+ * Cria a instância visual do rush de Bullet Punch
+ * @param {any} view
+ * @param {any} f
+ * @param {any} acc
+ */
 export function spawnRush(view, f, acc) {
   const parent = view.group ?? view;
   const group = new T.Group();
@@ -95,14 +117,14 @@ export function spawnRush(view, f, acc) {
     /** @type {any} */ (fx).shot.dir.set(0, 0, 1);
   }
 
-  const sameAs = (a, b) => Array.isArray(a) && a.length === 3 && a.every((x, i) => Math.abs(x - b[i]) < 1e-9);
+  const sameAs = (/** @type {any} */ a, /** @type {any} */ b) => Array.isArray(a) && a.length === 3 && a.every((x, i) => Math.abs(x - b[i]) < 1e-9);
   const create = particles.create.bind(particles);
   particles.create = (o = {}) => create({
     ...o,
     position: sameAs(o.position, [0, .12, -2.4]) ? [0, .12, 0] : sameAs(o.position, [0, impactY, 2.35]) ? r.impact.toArray() : o.position
   });
 
-  /** @type {any} */ (fx).path = (t, out) => {
+  /** @type {any} */ (fx).path = (/** @type {number} */ t, /** @type {any} */ out) => {
     const h = r.hist;
     if (!h.length) return out.set(0, y, 0);
     let k = 0;
@@ -115,7 +137,13 @@ export function spawnRush(view, f, acc) {
   return r;
 }
 
-/** Atualiza o avanço do efeito e sincroniza com a trajetória física do lutador */
+/**
+ * Atualiza o avanço do efeito e sincroniza com a trajetória física do lutador
+ * @param {any} view
+ * @param {any} r
+ * @param {number} dt
+ * @returns {boolean}
+ */
 export function advanceRush(view, r, dt) {
   r.age += dt;
   const f = r.f;
@@ -146,7 +174,7 @@ export function advanceRush(view, r, dt) {
   fx.arrival = fx.charge + fx.travel;
   fx.duration = fx.arrival + fx.tail;
 
-  const far = r.hist.reduce((m, q) => Math.hypot(q.x, q.z) > Math.hypot(m.x, m.z) ? q : m, {x: 0, y: 0, z: 0});
+  const far = r.hist.reduce((/** @type {any} */ m, /** @type {any} */ q) => Math.hypot(q.x, q.z) > Math.hypot(m.x, m.z) ? q : m, {x: 0, y: 0, z: 0});
   r.impact.set(far.x, 1.05 + far.y, far.z + .6);
   fx.impact.position.copy(r.impact);
 
@@ -157,7 +185,12 @@ export function advanceRush(view, r, dt) {
   return r.done && r.age >= fx.duration + .4;
 }
 
-/** Despacha eventos do lutador (retorno do desaparecimento e impacto do golpe) */
+/**
+ * Despacha eventos do lutador (retorno do desaparecimento e impacto do golpe)
+ * @param {any} view
+ * @param {any} ev
+ * @param {any} r
+ */
 export function onFighterEvent(view, ev, r) {
   if (!r || !ev) return;
   if (ev.result === 'bulletReturn' || ev.result === 'hit') {
@@ -172,7 +205,11 @@ export function onFighterEvent(view, ev, r) {
   }
 }
 
-/** Descarta e libera todos os recursos gráficos alocados */
+/**
+ * Descarta e libera todos os recursos gráficos alocados
+ * @param {any} view
+ * @param {any} r
+ */
 export function disposeRush(view, r) {
   r.particles.clear();
   disposeGroup(r.group);

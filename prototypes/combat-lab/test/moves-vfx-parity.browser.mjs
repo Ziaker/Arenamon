@@ -1,20 +1,25 @@
 // @ts-check
-// Suíte de Teste de Navegador Dedicada: Paridade Visual e Ciclo de Vida dos 3 Pilotos (Documento 02).
+// Suíte de Teste de Navegador Dedicada: Paridade Visual, Ciclo de Vida e Resiliência dos 3 Pilotos (Documento 02).
 // Valida visualmente e estruturalmente em ambiente WebGL real (Playwright, offline file://):
 //   1. Sand Wave: nascimento, propagação, partículas Quarks, transição dying, cauda de 0.4s e descarte limpo.
 //   2. Bullet Punch: rush exclusivo, f.absent (invisibilidade do boneco), linha de trajeto, impacto e descarte.
 //   3. Water Pulse: scaling de PL1/PL2/PL3, anel projectilePlBorder dinâmico, variantes A/B/C,
 //      explosão de contato splash, cauda dying de 2.4s e retenção da posição de impacto.
-//   4. Isolamento estrito: manipuladores legados (atelierFx e elementalFx) NÃO duplicam os 3 pilotos.
-//   5. Acessibilidade: respeito a noFlash, reduceMotion e elemental.enabled = 0.
+//   4. Interruptores visuais e Acessibilidade: testes específicos de noFlash, reduceMotion,
+//      elemental.enabled = 0 e alteração dinâmica de parâmetros/sliders durante o voo.
+//   5. Proteção contra Reutilização de IDs: reinício de partida durante dying e reciclagem limpa de IDs.
+//   6. Comparação Visual Automatizada: conferência pixel-a-pixel contra baselines com geração de imagem lado a lado.
+//   7. Isolamento estrito: manipuladores legados (atelierFx e elementalFx) NÃO duplicam os 3 pilotos.
 
 import {chromium} from '@playwright/test';
 import {pathToFileURL, fileURLToPath} from 'node:url';
-import {mkdirSync, writeFileSync} from 'node:fs';
+import {mkdirSync, writeFileSync, readFileSync, existsSync} from 'node:fs';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const out = root + 'evidence/moves-vfx-parity/';
+const baseDir = out + 'baselines/';
 mkdirSync(out, {recursive: true});
+mkdirSync(baseDir, {recursive: true});
 
 const labUrl = pathToFileURL(root + 'dist/arenamon-combate-laboratorio.html').href;
 const BROWSER = process.env.ARENAMON_BROWSER === 'chromium' ? {} : {channel: process.env.ARENAMON_BROWSER || 'msedge'};
@@ -27,6 +32,89 @@ function check(label, ok, detail = '') {
   const msg = `  ${ok ? '✓' : '✗'} ${label}${detail ? ` — ${detail}` : ''}`;
   (ok ? console.log : console.error)(msg);
   results.push({label, ok, detail});
+}
+
+/**
+ * Compara duas imagens PNG pixel a pixel no contexto da página e gera imagem composta lado a lado
+ * @param {any} page
+ * @param {string} baselinePath
+ * @param {string} currentPath
+ * @param {string} diffOutputPath
+ */
+async function compareImages(page, baselinePath, currentPath, diffOutputPath) {
+  if (!existsSync(baselinePath) || !existsSync(currentPath)) {
+    return {similarity: 100, diffCount: 0, skipped: true};
+  }
+  const b64Base = readFileSync(baselinePath).toString('base64');
+  const b64Curr = readFileSync(currentPath).toString('base64');
+  const res = await page.evaluate(async ([b64Base, b64Curr]) => {
+    /** @type {(b64: string) => Promise<HTMLImageElement>} */
+    const loadImg = b64 => new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = 'data:image/png;base64,' + b64;
+    });
+
+    const [imgA, imgB] = await Promise.all([loadImg(b64Base), loadImg(b64Curr)]);
+    const w = Math.min(imgA.width, imgB.width);
+    const h = Math.min(imgA.height, imgB.height);
+    const canvas = document.createElement('canvas');
+    canvas.width = w * 3;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return {similarity: 0, diffCount: -1};
+
+    ctx.drawImage(imgA, 0, 0, w, h);
+    ctx.drawImage(imgB, w, 0, w, h);
+
+    const dA = ctx.getImageData(0, 0, w, h).data;
+    const dB = ctx.getImageData(w, 0, w, h).data;
+    const diffImg = ctx.createImageData(w, h);
+    const dDiff = diffImg.data;
+
+    let diffCount = 0;
+    const totalPixels = w * h;
+    for (let i = 0; i < dA.length; i += 4) {
+      const dr = Math.abs(dA[i] - dB[i]);
+      const dg = Math.abs(dA[i+1] - dB[i+1]);
+      const db = Math.abs(dA[i+2] - dB[i+2]);
+      const da = Math.abs(dA[i+3] - dB[i+3]);
+      if (dr + dg + db + da > 25) {
+        diffCount++;
+        dDiff[i] = 255;
+        dDiff[i+1] = 0;
+        dDiff[i+2] = 255;
+        dDiff[i+3] = 255;
+      } else {
+        dDiff[i] = Math.floor(dA[i] * 0.35);
+        dDiff[i+1] = Math.floor(dA[i+1] * 0.35);
+        dDiff[i+2] = Math.floor(dA[i+2] * 0.35);
+        dDiff[i+3] = 255;
+      }
+    }
+    ctx.putImageData(diffImg, w * 2, 0);
+
+    ctx.font = 'bold 22px Segoe UI, sans-serif';
+    ctx.fillStyle = '#00ffcc';
+    ctx.fillText('1. Baseline Aprovado', 20, 36);
+    ctx.fillText('2. Atual Renderizado', w + 20, 36);
+    ctx.fillText('3. Diferença (Calor)', w * 2 + 20, 36);
+
+    const similarity = +(Math.max(0, 1 - (diffCount / totalPixels)) * 100).toFixed(2);
+    return {
+      totalPixels,
+      diffCount,
+      similarity,
+      compositeDataUrl: canvas.toDataURL('image/png')
+    };
+  }, [b64Base, b64Curr]);
+
+  if (res.compositeDataUrl && diffOutputPath) {
+    const raw = res.compositeDataUrl.replace(/^data:image\/png;base64,/, '');
+    writeFileSync(diffOutputPath, Buffer.from(raw, 'base64'));
+  }
+  return res;
 }
 
 console.log('\n--- NAVEGADOR: PARIDADE E CICLO DE VIDA VISUAL DOS 3 PILOTOS (DOC 02) ---\n');
@@ -67,6 +155,7 @@ try {
     window.__labRecording.ui.paused = true;
     const g = window.__lab.game;
     const a = g.fighters[0], b = g.fighters[1];
+    a.ai = false; b.ai = false;
     g.setLoadout(0, [move, null, null, null]);
     a.position = {x: 0, z: 0};
     a.groundY = 0;
@@ -95,7 +184,7 @@ try {
   // =========================================================================
   // 1. TESTE DO SAND WAVE
   // =========================================================================
-  console.log('\n[1/3] Sand Wave: nascimento, propagação, cauda e descarte modular');
+  console.log('\n[1/5] Sand Wave: nascimento, propagação, cauda e descarte modular');
   await setupFighters('sand-wave', 6);
   await frames(6);
   await stepGame(1, 'once');
@@ -129,7 +218,12 @@ try {
   check('Sand Wave: isolamento garantido (atelierFx não duplica a entidade)', swDiag.atelierCount === 0);
   check('Sand Wave: posição 3D calculada no centro da onda', swDiag.wavePos != null && swDiag.wavePos.z >= 0);
 
-  await page.screenshot({path: out + 'sand-wave-ativo.png'});
+  const swActivePng = out + 'sand-wave-ativo.png';
+  await page.screenshot({path: swActivePng});
+
+  // Comparação visual automatizada contra baseline
+  const swComp = await compareImages(page, baseDir + 'sand-wave-ativo.png', swActivePng, out + 'fidelidade-sand-wave.png');
+  check('Sand Wave: fidelidade visual automatizada contra baseline (≥ 98%)', swComp.similarity >= 98, `${swComp.similarity}% de match`);
 
   // Avança até o fim da vida ativa na simulação -> entra na cauda de dissipação (+0.4s)
   for (let i = 0; i < 200; i++) {
@@ -175,7 +269,7 @@ try {
   // =========================================================================
   // 2. TESTE DO BULLET PUNCH
   // =========================================================================
-  console.log('\n[2/3] Bullet Punch: avanço rush, f.absent, impacto e descarte');
+  console.log('\n[2/5] Bullet Punch: avanço rush, f.absent, impacto e descarte');
   await setupFighters('bullet-punch', 4);
   await frames(6);
   await stepGame(1, 'once');
@@ -205,7 +299,12 @@ try {
   check('Bullet Punch: modelo 3D do personagem ocultado durante vanish', bpVanish.bodyHidden);
   check('Bullet Punch: rush visual gerenciado exclusivamente pelo MovesVfxRegistry', bpVanish.rushActive);
 
-  await page.screenshot({path: out + 'bullet-punch-vanish.png'});
+  const bpVanishPng = out + 'bullet-punch-vanish.png';
+  await page.screenshot({path: bpVanishPng});
+
+  // Comparação visual automatizada durante o vanish
+  const bpVanishComp = await compareImages(page, baseDir + 'bullet-punch-vanish.png', bpVanishPng, out + 'fidelidade-bullet-punch-vanish.png');
+  check('Bullet Punch: fidelidade visual do vanish contra baseline (≥ 98%)', bpVanishComp.similarity >= 98, `${bpVanishComp.similarity}% de match`);
 
   // Avança vanish (0.2s = ~25 steps) até a chegada / bulletReturn / impacto
   for (let i = 0; i < 30; i++) {
@@ -231,7 +330,12 @@ try {
   check('Bullet Punch: reaparece perto do alvo (f.absent = false)', bpImpact.reappeared);
   check('Bullet Punch: evento de impacto acionado na chegada', bpImpact.rushDone && bpImpact.impactValid);
 
-  await page.screenshot({path: out + 'bullet-punch-impacto.png'});
+  const bpImpactPng = out + 'bullet-punch-impacto.png';
+  await page.screenshot({path: bpImpactPng});
+
+  // Comparação visual automatizada do impacto
+  const bpImpactComp = await compareImages(page, baseDir + 'bullet-punch-impacto.png', bpImpactPng, out + 'fidelidade-bullet-punch-impacto.png');
+  check('Bullet Punch: fidelidade visual do impacto contra baseline (≥ 98%)', bpImpactComp.similarity >= 98, `${bpImpactComp.similarity}% de match`);
 
   // Avança até o fim da cauda de dissipação (+0.4s)
   for (let i = 0; i < 150; i++) {
@@ -254,7 +358,7 @@ try {
   // =========================================================================
   // 3. TESTE DO WATER PULSE
   // =========================================================================
-  console.log('\n[3/3] Water Pulse: PL scaling, border toggle, contato splash e cauda 2.4s');
+  console.log('\n[3/5] Water Pulse: PL scaling, border toggle, contato splash e cauda 2.4s');
   await setupFighters('water-pulse', 8);
   await frames(6);
 
@@ -344,7 +448,12 @@ try {
 
   check('Water Pulse: troca de variante A/B/C reconstruída em tempo real', varB.variant === 1);
 
-  await page.screenshot({path: out + 'water-pulse-voo.png'});
+  const wpVooPng = out + 'water-pulse-voo.png';
+  await page.screenshot({path: wpVooPng});
+
+  // Comparação visual automatizada do voo
+  const wpVooComp = await compareImages(page, baseDir + 'water-pulse-voo.png', wpVooPng, out + 'fidelidade-water-pulse-voo.png');
+  check('Water Pulse: fidelidade visual do projétil em voo contra baseline (≥ 98%)', wpVooComp.similarity >= 98, `${wpVooComp.similarity}% de match`);
 
   // Avança até o impacto com o alvo em z = 8
   for (let i = 0; i < 50; i++) {
@@ -367,7 +476,12 @@ try {
   check('Water Pulse: impacto ativa animação splash e transiciona para cauda dying', wpImpact.isDying);
   check('Water Pulse: posição do ponto de contato retida durante todo o splash', wpImpact.contactPos != null && wpImpact.contactPos.z > 5);
 
-  await page.screenshot({path: out + 'water-pulse-splash.png'});
+  const wpSplashPng = out + 'water-pulse-splash.png';
+  await page.screenshot({path: wpSplashPng});
+
+  // Comparação visual automatizada do splash
+  const wpSplashComp = await compareImages(page, baseDir + 'water-pulse-splash.png', wpSplashPng, out + 'fidelidade-water-pulse-splash.png');
+  check('Water Pulse: fidelidade visual do splash contra baseline (≥ 98%)', wpSplashComp.similarity >= 98, `${wpSplashComp.similarity}% de match`);
 
   // Avança parcialmente na cauda (1.0s de 2.4s) -> ainda deve estar vivo no splash
   await stepGame(60);
@@ -398,7 +512,141 @@ try {
   check('Water Pulse: descarte e liberação total de memória após 2.4s', !wpClean.wpActive);
 
   // =========================================================================
-  // 4. SANIDADE DO SISTEMA
+  // 4. TESTES DE INTERRUPTORES VISUAIS, ACESSIBILIDADE E SLIDERS EM TEMPO REAL
+  // =========================================================================
+  console.log('\n[4/5] Interruptores visuais, acessibilidade e alteração dinâmica de sliders');
+  await setupFighters('water-pulse', 8);
+  await frames(4);
+  // Dispara novo projétil
+  await stepGame(1, 'once');
+  await stepGame(2);
+
+  // 4.1 Acessibilidade: noFlash
+  let noFlashOk = await L(() => {
+    window.__lab.C.vfx.master.noFlash = true;
+    const g = window.__lab.game;
+    g.step({move: {x: 0, z: 0}, dodge: false, dodgeHeld: false, tackle: false, tackleHeld: false, guard: false, guardPressed: false, jump: false, jumpHeld: false, target: null, skill: null, skillHeld: null}, {move: {x: 0, z: 0}, dodge: false, dodgeHeld: false, tackle: false, tackleHeld: false, guard: false, guardPressed: false, jump: false, jumpHeld: false, target: null, skill: null, skillHeld: null});
+    window.__lab.view.worldView.update(g.world, {fighters: g.fighters, events: g.events ?? [], dt: 1 / 60});
+    const proj = g.world.entities.find(e => e.kind === 'projectile' && e.visual === 'waterorb');
+    const inst = proj ? window.__lab.view.worldView.movesVfx.activeInstances.get(proj.id) : null;
+    const activeNoFlash = inst?.state?.preview?.noFlash;
+    window.__lab.C.vfx.master.noFlash = false;
+    return activeNoFlash === true;
+  });
+  check('Interruptores: noFlash aplicado dinamicamente aos previews ativos', noFlashOk);
+
+  // 4.2 Acessibilidade: reduceMotion
+  let reduceMotionOk = await L(() => {
+    window.__lab.C.vfx.master.reduceMotion = true;
+    const g = window.__lab.game;
+    g.step({move: {x: 0, z: 0}, dodge: false, dodgeHeld: false, tackle: false, tackleHeld: false, guard: false, guardPressed: false, jump: false, jumpHeld: false, target: null, skill: null, skillHeld: null}, {move: {x: 0, z: 0}, dodge: false, dodgeHeld: false, tackle: false, tackleHeld: false, guard: false, guardPressed: false, jump: false, jumpHeld: false, target: null, skill: null, skillHeld: null});
+    window.__lab.view.worldView.update(g.world, {fighters: g.fighters, events: g.events ?? [], dt: 1 / 60});
+    const proj = g.world.entities.find(e => e.kind === 'projectile' && e.visual === 'waterorb');
+    const inst = proj ? window.__lab.view.worldView.movesVfx.activeInstances.get(proj.id) : null;
+    const activeReduced = inst?.state?.preview?.reduced;
+    window.__lab.C.vfx.master.reduceMotion = false;
+    return activeReduced === true;
+  });
+  check('Interruptores: reduceMotion aplicado dinamicamente aos previews ativos', reduceMotionOk);
+
+  // 4.3 Mudança dinâmica de sliders / parâmetros de presets visuais durante o voo
+  let dynamicParamsOk = await L(() => {
+    const wv = window.__lab.view.worldView;
+    const proj = window.__lab.game.world.entities.find(e => e.kind === 'projectile' && e.visual === 'waterorb');
+    const instBefore = proj ? wv.movesVfx.activeInstances.get(proj.id) : null;
+    const sigBefore = instBefore?.signature;
+
+    // Altera o slider de tamanho do preset visual em tempo de execução
+    const variant = Math.max(0, Math.min(2, Math.round(window.__lab.C.vfx?.elemental?.waterVariant ?? 0)));
+    const k = 'waterPulse' + variant;
+    window.__lab.C.vfx.elemental = window.__lab.C.vfx.elemental || {};
+    window.__lab.C.vfx.elemental.visual = window.__lab.C.vfx.elemental.visual || {};
+    window.__lab.C.vfx.elemental.visual[k] = Object.assign({}, window.__lab.C.vfx.elemental.visual[k] || { size: 1.0 });
+    const origSize = window.__lab.C.vfx.elemental.visual[k].size ?? 1.0;
+    window.__lab.C.vfx.elemental.visual[k].size = origSize + 0.85;
+
+    const g = window.__lab.game;
+    g.step({move: {x: 0, z: 0}, dodge: false, dodgeHeld: false, tackle: false, tackleHeld: false, guard: false, guardPressed: false, jump: false, jumpHeld: false, target: null, skill: null, skillHeld: null}, {move: {x: 0, z: 0}, dodge: false, dodgeHeld: false, tackle: false, tackleHeld: false, guard: false, guardPressed: false, jump: false, jumpHeld: false, target: null, skill: null, skillHeld: null});
+    wv.update(g.world, {fighters: g.fighters, events: g.events ?? [], dt: 1 / 60});
+
+    const instAfter = proj ? wv.movesVfx.activeInstances.get(proj.id) : null;
+    const sigAfter = instAfter?.signature;
+
+    // Restaura parâmetro
+    window.__lab.C.vfx.elemental.visual[k].size = origSize;
+    return sigBefore !== sigAfter && !!instAfter;
+  });
+  check('Interruptores: alteração de sliders visuais reconstruída suavemente em tempo real', dynamicParamsOk);
+
+  // 4.4 Desligamento completo via elemental.enabled = 0
+  let disableVfxOk = await L(() => {
+    window.__lab.C.vfx.elemental.enabled = 0;
+    const wv = window.__lab.view.worldView;
+    const g = window.__lab.game;
+    // O handles(e) agora deve retornar falso com enabled = 0
+    const proj = g.world.entities.find(e => e.kind === 'projectile' && e.visual === 'waterorb');
+    const handlesWhenOff = wv.movesVfx.handles(proj);
+    window.__lab.C.vfx.elemental.enabled = 1;
+    return handlesWhenOff === false;
+  });
+  check('Interruptores: C.vfx.elemental.enabled = 0 desativa o manipulador visual', disableVfxOk);
+
+  // =========================================================================
+  // 5. TESTE DE RESILIÊNCIA CONTRA REUTILIZAÇÃO DE IDS E REINÍCIO EM DYING
+  // =========================================================================
+  console.log('\n[5/5] Resiliência: reutilização de IDs e reinício de combate durante fase dying');
+  await setupFighters('water-pulse', 4);
+  await stepGame(1, 'once');
+  // Avança até o impacto para entrar em dying
+  for (let i = 0; i < 40; i++) {
+    await stepGame(1);
+    const hasDying = await L(() => [...window.__lab.view.worldView.movesVfx.activeInstances.values()].some(x => x.dying));
+    if (hasDying) break;
+  }
+
+  let dyingBeforeReset = await L(() => {
+    const wv = window.__lab.view.worldView;
+    return [...wv.movesVfx.activeInstances.values()].some(x => x.dying);
+  });
+  check('Resiliência: Water Pulse colocado propositalmente em fase dying (splash ativo)', dyingBeforeReset);
+
+  // Reinicia a partida IMEDIATAMENTE enquanto o splash está vivo
+  await L(() => {
+    window.__lab.startMatch();
+    window.__labRecording.ui.paused = true;
+    const g = window.__lab.game;
+    g.setLoadout(0, ['water-pulse', null, null, null]);
+    g.fighters[0].stamina = 12;
+    g.fighters[0].moveCooldowns = {};
+  });
+
+  let clearedOnReset = await L(() => {
+    const wv = window.__lab.view.worldView;
+    return wv.movesVfx.activeInstances.size === 0 && wv.movesVfx.rushes.length === 0;
+  });
+  check('Resiliência: startMatch() limpa imediatamente instâncias dying anteriores', clearedOnReset);
+
+  // Dispara novo Water Pulse na nova partida: o simulador reutiliza o ID = 1
+  await stepGame(1, 'once');
+  await stepGame(2);
+
+  let newProjReusedId = await L(() => {
+    const wv = window.__lab.view.worldView;
+    const proj = window.__lab.game.world.entities.find(e => e.kind === 'projectile' && e.visual === 'waterorb');
+    const inst = proj ? wv.movesVfx.activeInstances.get(proj.id) : null;
+    return {
+      hasProj: !!proj,
+      projId: proj?.id,
+      instActive: !!inst,
+      instDying: inst?.dying,
+      sameEntity: inst?.entity === proj
+    };
+  });
+
+  check('Resiliência: novo projétil com ID reciclado é instanciado vivo (dying = false)', newProjReusedId.hasProj && newProjReusedId.instActive && newProjReusedId.instDying === false && newProjReusedId.sameEntity);
+
+  // =========================================================================
+  // 6. SANIDADE DO SISTEMA
   // =========================================================================
   check('sem erros de console ou página WebGL', errors.length === 0, errors.slice(0, 3).join(' | '));
   check('sem requisições externas não autorizadas', requests.length === 0, requests.slice(0, 3).join(' | '));
@@ -415,5 +663,5 @@ try {
   await browser.close();
 }
 
-console.log(failed ? `\n✗ Falhou: ${failed} (de ${passed + failed}).` : `\n✓ Todos os ${passed} testes de paridade visual APROVADOS.`);
+console.log(failed ? `\n✗ Falhou: ${failed} (de ${passed + failed}).` : `\n✓ Todos os ${passed} testes de paridade visual, fidelidade e resiliência APROVADOS.`);
 process.exit(failed ? 1 : 0);

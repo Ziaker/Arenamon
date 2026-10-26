@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "checkJs": true,
+    "skipLibCheck": true,
+    "noEmit": true
+  },
+  "include": [
+    "src/sim/moves/*/*.vfx.js",
+    "src/view/moves-vfx-registry.js"
+  ]
+}

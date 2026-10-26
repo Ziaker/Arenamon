@@ -1,6 +1,6 @@
 {
-  "timestamp": "2026-10-26T14:42:24.500Z",
-  "passed": 26,
+  "timestamp": "2026-10-26T15:36:35.472Z",
+  "passed": 38,
   "failed": 0,
   "results": [
     {
@@ -22,6 +22,11 @@
       "label": "Sand Wave: posição 3D calculada no centro da onda",
       "ok": true,
       "detail": ""
+    },
+    {
+      "label": "Sand Wave: fidelidade visual automatizada contra baseline (≥ 98%)",
+      "ok": true,
+      "detail": "99.46% de match"
     },
     {
       "label": "Sand Wave: entidade expira na simulação e transiciona para fase dying",
@@ -54,6 +59,11 @@
       "detail": ""
     },
     {
+      "label": "Bullet Punch: fidelidade visual do vanish contra baseline (≥ 98%)",
+      "ok": true,
+      "detail": "99.53% de match"
+    },
+    {
       "label": "Bullet Punch: reaparece perto do alvo (f.absent = false)",
       "ok": true,
       "detail": ""
@@ -62,6 +72,11 @@
       "label": "Bullet Punch: evento de impacto acionado na chegada",
       "ok": true,
       "detail": ""
+    },
+    {
+      "label": "Bullet Punch: fidelidade visual do impacto contra baseline (≥ 98%)",
+      "ok": true,
+      "detail": "99.62% de match"
     },
     {
       "label": "Bullet Punch: rush descartado limpo após a dissipação",
@@ -104,6 +119,11 @@
       "detail": ""
     },
     {
+      "label": "Water Pulse: fidelidade visual do projétil em voo contra baseline (≥ 98%)",
+      "ok": true,
+      "detail": "99.02% de match"
+    },
+    {
       "label": "Water Pulse: impacto ativa animação splash e transiciona para cauda dying",
       "ok": true,
       "detail": ""
@@ -114,12 +134,52 @@
       "detail": ""
     },
     {
+      "label": "Water Pulse: fidelidade visual do splash contra baseline (≥ 98%)",
+      "ok": true,
+      "detail": "99.43% de match"
+    },
+    {
       "label": "Water Pulse: partículas de splash sustentadas durante a cauda de 2.4s",
       "ok": true,
       "detail": ""
     },
     {
       "label": "Water Pulse: descarte e liberação total de memória após 2.4s",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "Interruptores: noFlash aplicado dinamicamente aos previews ativos",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "Interruptores: reduceMotion aplicado dinamicamente aos previews ativos",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "Interruptores: alteração de sliders visuais reconstruída suavemente em tempo real",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "Interruptores: C.vfx.elemental.enabled = 0 desativa o manipulador visual",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "Resiliência: Water Pulse colocado propositalmente em fase dying (splash ativo)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "Resiliência: startMatch() limpa imediatamente instâncias dying anteriores",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "Resiliência: novo projétil com ID reciclado é instanciado vivo (dying = false)",
       "ok": true,
       "detail": ""
     },
