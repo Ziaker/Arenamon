@@ -1,0 +1,138 @@
+{
+  "timestamp": "2026-10-26T14:42:24.500Z",
+  "passed": 26,
+  "failed": 0,
+  "results": [
+    {
+      "label": "Sand Wave: barragem nasce na simulação",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "Sand Wave: gerenciado exclusivamente pelo MovesVfxRegistry (Doc 02)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "Sand Wave: isolamento garantido (atelierFx não duplica a entidade)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "Sand Wave: posição 3D calculada no centro da onda",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "Sand Wave: entidade expira na simulação e transiciona para fase dying",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "Sand Wave: posição de dissipação retida durante a cauda",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "Sand Wave: efeito dissipado e descartado limpo sem vazamento",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "Bullet Punch: lutador entra em vanish (f.absent = true)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "Bullet Punch: modelo 3D do personagem ocultado durante vanish",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "Bullet Punch: rush visual gerenciado exclusivamente pelo MovesVfxRegistry",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "Bullet Punch: reaparece perto do alvo (f.absent = false)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "Bullet Punch: evento de impacto acionado na chegada",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "Bullet Punch: rush descartado limpo após a dissipação",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "Water Pulse: projétil PL2 gerado na simulação",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "Water Pulse: gerenciado exclusivamente pelo MovesVfxRegistry",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "Water Pulse: isolamento garantido (elementalFx não processa Water Pulse)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "Water Pulse: escala proporcional ao PL2 aplicada na malha",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "Water Pulse: anel projectilePlBorder dinâmico criado e visível",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "Water Pulse: anel projectilePlBorder dinamicamente removido ao desligar",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "Water Pulse: troca de variante A/B/C reconstruída em tempo real",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "Water Pulse: impacto ativa animação splash e transiciona para cauda dying",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "Water Pulse: posição do ponto de contato retida durante todo o splash",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "Water Pulse: partículas de splash sustentadas durante a cauda de 2.4s",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "Water Pulse: descarte e liberação total de memória após 2.4s",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "sem erros de console ou página WebGL",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "label": "sem requisições externas não autorizadas",
+      "ok": true,
+      "detail": ""
+    }
+  ],
+  "errors": []
+}

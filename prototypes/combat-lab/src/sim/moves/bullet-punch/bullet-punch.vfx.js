@@ -1,3 +1,4 @@
+// @ts-check
 // Visual e partículas do Bullet Punch (Documento 02).
 // Módulo de renderização consumido exclusivamente pela camada view/ (moves-vfx-registry.js).
 // Encapsula o ciclo de vida visual completo do avanço em disparada e soco metálico:
@@ -12,18 +13,21 @@ import {Particles} from '../../../../../sand-stone-lab/src/particles.js';
 import {defaults} from '../../../../../sand-stone-lab/src/config.ts';
 import {disposeGroup} from '../../../../../sand-stone-lab/src/art.js';
 import {ATELIER_GAME_PARAMS, ATELIER_GAME_VARIANT} from '../../../view/quarks/atelier-game-params.js';
+import {C} from '../../config.js';
 
 export const id = 'bullet-punch';
 
 /** Aplica as configurações de acessibilidade do jogo aos parâmetros do efeito */
 function accessible(p, acc) {
   const res = {...p};
-  if (acc?.reduceMotion) {
+  const reduceMotion = !!(acc?.reduceMotion || C.vfx?.master?.reduceMotion);
+  const noFlash = !!(acc?.noFlash || C.vfx?.master?.noFlash);
+  if (reduceMotion) {
     for (const k of ['density', 'particleDensity', 'sparks', 'flash', 'emissivity', 'shards']) if (k in res) res[k] *= .45;
     if ('impactIntensity' in res) res.impactIntensity *= .7;
     for (const k of ['turn', 'angularSpeed', 'twist', 'spiral', 'undulation']) if (k in res) res[k] *= .3;
   }
-  if (acc?.noFlash) {
+  if (noFlash) {
     for (const k of ['flash', 'halo', 'shotRecoilFlash']) if (k in res) res[k] = 0;
     for (const k of ['coreGlow', 'edgeGlow', 'veinGlow', 'emissivity', 'glow']) if (k in res) res[k] *= .4;
   }
@@ -39,9 +43,9 @@ export function handles(e) {
   return false;
 }
 
-/** Verifica se a ação do lutador é um Bullet Punch */
+/** Verifica se a ação do lutador é a preparação/vanish de um Bullet Punch */
 export function handlesFighter(f) {
-  return f?.action?.move === 'bullet-punch';
+  return f?.action?.move === 'bullet-punch' && f?.action?.kind !== 'tackle';
 }
 
 /** Cria a instância visual do rush de Bullet Punch */
@@ -56,7 +60,7 @@ export function spawnRush(view, f, acc) {
   group.updateMatrixWorld(true);
 
   const batch = view.atelierFx?.batch ?? view.elementalFx?.batch;
-  const particles = new Particles(group, {renderer: batch, emitterParent: group});
+  const particles = new Particles(group, /** @type {any} */ (batch ? {renderer: batch, emitterParent: group} : {emitterParent: group}));
   const p = accessible(paramsOf(), acc);
   const fx = new RushEffect(group, particles, 'bulletpunch', ATELIER_GAME_VARIANT.bulletpunch, p);
 
@@ -77,7 +81,7 @@ export function spawnRush(view, f, acc) {
     fx,
     action: f.action,
     age: 0,
-    hist: [],
+    hist: /** @type {Array<{t: number, x: number, y: number, z: number}>} */ ([]),
     moved: false,
     out: 0,
     done: false,
@@ -85,10 +89,10 @@ export function spawnRush(view, f, acc) {
     impact: new T.Vector3(0, impactY, .6)
   };
 
-  fx.launch.position.set(0, .04, 0);
-  if (fx.shot) {
-    fx.shot.base.set(0, .4, 0);
-    fx.shot.dir.set(0, 0, 1);
+  /** @type {any} */ (fx).launch.position.set(0, .04, 0);
+  if (/** @type {any} */ (fx).shot) {
+    /** @type {any} */ (fx).shot.base.set(0, .4, 0);
+    /** @type {any} */ (fx).shot.dir.set(0, 0, 1);
   }
 
   const sameAs = (a, b) => Array.isArray(a) && a.length === 3 && a.every((x, i) => Math.abs(x - b[i]) < 1e-9);
@@ -98,7 +102,7 @@ export function spawnRush(view, f, acc) {
     position: sameAs(o.position, [0, .12, -2.4]) ? [0, .12, 0] : sameAs(o.position, [0, impactY, 2.35]) ? r.impact.toArray() : o.position
   });
 
-  fx.path = (t, out) => {
+  /** @type {any} */ (fx).path = (t, out) => {
     const h = r.hist;
     if (!h.length) return out.set(0, y, 0);
     let k = 0;
@@ -126,7 +130,7 @@ export function advanceRush(view, r, dt) {
     r.hist.push({t: r.age, x: q.x, y: q.y, z: q.z});
     if (!r.moved && d > .05) {
       r.moved = true;
-      r.fx.charge = r.age;
+      /** @type {any} */ (r.fx).charge = r.age;
     }
     if (r.moved && d + 1e-4 < r.out) {
       r.done = true;
@@ -136,7 +140,7 @@ export function advanceRush(view, r, dt) {
     r.done = true;
   }
 
-  const fx = r.fx;
+  const fx = /** @type {any} */ (r.fx);
   if (!r.moved) fx.charge = r.age + .02;
   if (!r.done) fx.travel = Math.max(.01, r.age - fx.charge + .02);
   fx.arrival = fx.charge + fx.travel;
@@ -151,6 +155,21 @@ export function advanceRush(view, r, dt) {
   r.particles.update(dt);
 
   return r.done && r.age >= fx.duration + .4;
+}
+
+/** Despacha eventos do lutador (retorno do desaparecimento e impacto do golpe) */
+export function onFighterEvent(view, ev, r) {
+  if (!r || !ev) return;
+  if (ev.result === 'bulletReturn' || ev.result === 'hit') {
+    if (ev.attacker === r.f?.id) {
+      r.done = true;
+      if (Number.isFinite(ev.x) && Number.isFinite(ev.z)) {
+        r.impact.set(ev.x, 1.05 + (ev.y ?? 0), ev.z);
+        /** @type {any} */ (r.fx).impact.position.copy(r.impact);
+        /** @type {any} */ (r.fx).arrival = Math.min(/** @type {any} */ (r.fx).arrival, r.age);
+      }
+    }
+  }
 }
 
 /** Descarta e libera todos os recursos gráficos alocados */

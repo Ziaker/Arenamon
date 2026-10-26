@@ -418,7 +418,7 @@ export class ShotEffect {
       out.push(['funnel', this.funnel.visible, +sum.toFixed(3), +(m.material as T.ShaderMaterial).uniforms.front.value.toFixed(4), +(m.material as T.ShaderMaterial).uniforms.stripes.value, this.funnel.children.length]);
     }
     if (this.recoil) {
-      out.push(['recoil', this.recoil.visible, this.recoil.children.map(c => [c.userData.id, ...c.position.toArray().map(n => +n.toFixed(4)), ...c.scale.toArray().map(n => +n.toFixed(4)), +((c as T.Mesh).material as T.MeshBasicMaterial).opacity.toFixed(4), +((c as T.Mesh).geometry as any).boundingSphere?.radius?.toFixed?.(4) ?? 0, c.visible])]);
+      out.push(['recoil', this.recoil.visible, this.recoil.children.map(c => [c.userData.id, ...c.position.toArray().map(n => +n.toFixed(4)), ...c.scale.toArray().map(n => +n.toFixed(4)), +((c as T.Mesh).material as T.MeshBasicMaterial).opacity.toFixed(4), (((c as T.Mesh).geometry as any).boundingSphere?.radius != null ? +((c as T.Mesh).geometry as any).boundingSphere.radius.toFixed(4) : 0), c.visible])]);
     }
     for (const e of this.entries) {
       const sys = e.system, dir = new T.Vector3(0, 0, 1).applyQuaternion(e.emitter.quaternion);

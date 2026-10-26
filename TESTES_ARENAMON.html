@@ -644,7 +644,7 @@ PASS: dois blocos, cores, câmera, layout, file:// offline, sem erros.</pre>
             <h2 class="suite-title">Pilotos Documento 02 — Topologia Modular e Isolamento Mecânica/VFX</h2>
             <div class="suite-meta">
               <span class="tag success">✓ 100% Puro</span>
-              <span class="tag primary">moves-vfx-isolation · moves-pilots-baseline</span>
+              <span class="tag primary">moves-vfx-isolation · moves-pilots-baseline · moves-vfx-parity</span>
               <span class="tag">docs/DOCUMENTO_02_TOPOLOGIA_PILOTOS.md</span>
             </div>
           </div>
@@ -653,8 +653,8 @@ PASS: dois blocos, cores, câmera, layout, file:// offline, sem erros.</pre>
           Validação estrutural dos 3 pilotos migrados para subpastas individuais (&lt;id&gt;.js, &lt;id&gt;.vfx.js, &lt;id&gt;.move.json, &lt;id&gt;.params.js): isolamento absoluto do grafo de simulação (0 dependências de Three.js/DOM/VFX no simulador headless) e teste determinístico de paridade contra baselines (0 divergência mecânica).
         </p>
         <div class="cmd-box">
-          <code>node prototypes/combat-lab/test/moves-vfx-isolation.test.mjs &amp;&amp; node prototypes/combat-lab/test/moves-pilots-baseline.test.mjs</code>
-          <button class="copy-btn" onclick="copyCmd('node prototypes/combat-lab/test/moves-vfx-isolation.test.mjs &amp;&amp; node prototypes/combat-lab/test/moves-pilots-baseline.test.mjs', this)">Copiar Comando</button>
+          <code>node prototypes/combat-lab/test/moves-vfx-isolation.test.mjs &amp;&amp; node prototypes/combat-lab/test/moves-pilots-baseline.test.mjs &amp;&amp; node prototypes/combat-lab/test/moves-vfx-parity.browser.mjs</code>
+          <button class="copy-btn" onclick="copyCmd('node prototypes/combat-lab/test/moves-vfx-isolation.test.mjs &amp;&amp; node prototypes/combat-lab/test/moves-pilots-baseline.test.mjs && node prototypes/combat-lab/test/moves-vfx-parity.browser.mjs', this)">Copiar Comando</button>
         </div>
       </article>
 

@@ -144,8 +144,51 @@ Todos os portões foram validados individualmente e conjuntamente com 100% de ap
 
 ---
 
-## 8. Cláusula de Conclusão e Encerramento
+## 8. Patch Corretivo do Documento 02 (Impactos, Ciclo de Vida e Paridade Visual)
 
-Com a conclusão dos passos acima, o escopo do **Documento 02** está **integralmente cumprido e encerrado**.
-Os 3 pilotos encontram-se plenamente migrados para a topologia modular de 4 arquivos com separação de física e visual, registro dedicado na camada `view/`, cobertura total de sliders mecânicos no Editor de Moves e paridade determinística comprovada.
-Nenhum outro Move deve ser migrado sem aprovação expressa subsequente.
+Em auditoria técnica subsequente à migração estrutural, foi implementado o patch de refinamento visual e tipagem dos 3 pilotos:
+
+1. **Impactos e Ciclo de Vida Visual:**
+   - **Fase Dying e Cauda de Sustentação (`TAIL`):**
+     - Em `moves-vfx-registry.js`, quando uma entidade deixa `world.entities`, ela transiciona imediatamente para o estado `dying`, continuando seu avanço visual:
+       - `sand-wave`: cauda de dissipação de 0,4 s para assentamento de poeira e partículas Quarks.
+       - `water-pulse`: cauda de 2,4 s para expansão e dispersão dos borrifos de splash no impacto.
+       - `bullet-punch`: término sincronizado da chegada do rush com o golpe Tackle sem instanciação concorrente duplicada.
+   - **Retenção de Posição de Contato:**
+     - O método `positionOf(id)` preserva as últimas coordenadas do ponto de impacto durante toda a fase `dying`, impedindo que os anéis visuais de evento do `WorldView` sejam cancelados prematuramente.
+   - **Despacho Universal de Eventos:**
+     - `wv-update.js` e `MovesVfxRegistry.onEvent` agora despacham eventos de combate sem `ev.entity` (tais como `bulletVanish`, `bulletReturn` e `hit` dos lutadores) diretamente aos rushes ativos e módulos do Move correspondente.
+
+2. **Compatibilidade dos Interruptores Visuais:**
+   - `C.vfx.elemental?.enabled`: quando 0, suprime a criação do visual do Water Pulse.
+   - `C.vfx.elemental?.waterVariant`: troca dinâmica entre as variantes A (0), B (1) e C (2) em tempo real.
+   - `C.vfx.projectilePlBorder`: controle dinâmico do anel Torus com cor de Power Level (`PL_HEX`), inserido, atualizado ou removido sob demanda.
+   - Acessibilidade: `noFlash` e `reduceMotion` (tanto do mestre quanto da partida) honrados em tempo real em todos os três `.vfx.js`.
+
+3. **Cobertura de Tipos Estáticos dos VFX:**
+   - Arquivos `.vfx.js` integrados à verificação estática do TypeScript (`prototypes/combat-lab/tsconfig.json`).
+   - `npm run typecheck`: **0 erros** nos 3 projetos.
+   - `node scripts/estrito.mjs`: travado no orçamento exato de **939 erros**.
+
+4. **Homologação Visual e Suíte Dedicada de Navegador:**
+   - Criada a suíte `prototypes/combat-lab/test/moves-vfx-parity.browser.mjs` executando Playwright headless em ambiente WebGL real:
+     - Sand Wave: nascimento, propagação, cauda e descarte modular (7/7 verificações).
+     - Bullet Punch: rush exclusivo, `f.absent`, modelo 3D ocultado durante o desaparecimento, impacto na chegada e descarte limpo (6/6 verificações).
+     - Water Pulse: PL scaling, border toggle dinâmico, variantes A/B/C, impacto splash, cauda de 2,4 s e descarte total (11/11 verificações).
+     - Sanidade do sistema: 0 erros de console, 0 erros de página WebGL, 0 requisições externas offline (2/2 verificações).
+     - **Total:** 26 de 26 verificações aprovadas.
+   - Evidências salvas em `prototypes/combat-lab/evidence/moves-vfx-parity/`:
+     - `sand-wave-ativo.png`
+     - `bullet-punch-vanish.png`
+     - `bullet-punch-impacto.png`
+     - `water-pulse-voo.png`
+     - `water-pulse-splash.png`
+     - `resultado-paridade-vfx.json`
+
+---
+
+## 9. Cláusula de Conclusão e Encerramento
+
+Com a conclusão dos passos e do patch corretivo acima, o escopo do **Documento 02** está **integralmente cumprido, homologado e encerrado**.
+Os 3 pilotos encontram-se plenamente migrados para a topologia modular de 4 arquivos com separação de física e visual, registro dedicado na camada `view/`, cobertura total de sliders mecânicos no Editor de Moves, ciclo de vida visual completo com caudas e impactos preservados, tipagem estática e paridade determinística comprovada.
+Nenhum dos outros 16 Moves foi modificado, mantendo-se estritamente o isolamento da entrega.

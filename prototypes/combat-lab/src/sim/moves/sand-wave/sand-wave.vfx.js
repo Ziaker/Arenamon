@@ -1,3 +1,4 @@
+// @ts-check
 // Visual e partículas do Sand Wave (Documento 02).
 // Módulo de renderização consumido exclusivamente pela camada view/ (moves-vfx-registry.js).
 // Encapsula o ciclo de vida visual completo da onda de areia:
@@ -13,18 +14,21 @@ import {PhaseClock} from '../../../../../sand-stone-lab/src/phases.ts';
 import {defaults} from '../../../../../sand-stone-lab/src/config.ts';
 import {disposeGroup} from '../../../../../sand-stone-lab/src/art.js';
 import {ATELIER_GAME_PARAMS, ATELIER_GAME_VARIANT} from '../../../view/quarks/atelier-game-params.js';
+import {C} from '../../config.js';
 
 export const id = 'sand-wave';
 
 /** Aplica as configurações de acessibilidade do jogo aos parâmetros do efeito */
 function accessible(p, acc) {
   const res = {...p};
-  if (acc?.reduceMotion) {
+  const reduceMotion = !!(acc?.reduceMotion || C.vfx?.master?.reduceMotion);
+  const noFlash = !!(acc?.noFlash || C.vfx?.master?.noFlash);
+  if (reduceMotion) {
     for (const k of ['density', 'particleDensity', 'sparks', 'flash', 'emissivity', 'shards']) if (k in res) res[k] *= .45;
     if ('impactIntensity' in res) res.impactIntensity *= .7;
     for (const k of ['turn', 'angularSpeed', 'twist', 'spiral', 'undulation']) if (k in res) res[k] *= .3;
   }
-  if (acc?.noFlash) {
+  if (noFlash) {
     for (const k of ['flash', 'halo', 'shotRecoilFlash']) if (k in res) res[k] = 0;
     for (const k of ['coreGlow', 'edgeGlow', 'veinGlow', 'emissivity', 'glow']) if (k in res) res[k] *= .4;
   }
@@ -40,6 +44,15 @@ export function handles(e) {
   return !!e && e.kind === 'sandwave';
 }
 
+/** Assinatura visual para detectar mudanças em tempo real no ateliê / acessibilidade */
+export function signatureOf(e, acc) {
+  return JSON.stringify([
+    acc?.noFlash || C.vfx?.master?.noFlash,
+    acc?.reduceMotion || C.vfx?.master?.reduceMotion,
+    ATELIER_GAME_VARIANT.sand
+  ]);
+}
+
 /** Cria a representação visual da barragem no mundo 3D */
 export function spawn(view, e, acc) {
   const parent = view.group ?? view;
@@ -47,7 +60,7 @@ export function spawn(view, e, acc) {
   parent.add(group);
 
   const batch = view.atelierFx?.batch ?? view.elementalFx?.batch;
-  const particles = new Particles(group, batch ? {renderer: batch, emitterParent: group} : {emitterParent: group});
+  const particles = new Particles(group, /** @type {any} */ (batch ? {renderer: batch, emitterParent: group} : {emitterParent: group}));
 
   const len = e.length ?? 4, width = e.width ?? 3, dir = e.dir ?? {x: 0, z: 1};
   const p = accessible(paramsOf({length: len, width, flightTime: Math.max(.05, e.active ?? .75)}), acc);
@@ -57,7 +70,7 @@ export function spawn(view, e, acc) {
 
   const fx = new SandEffect(group, particles, ATELIER_GAME_VARIANT.sand, p);
   const start = p.startOn !== 0 ? fx.cast : 0;
-  const clock = fx.timeline ? new PhaseClock(fx.timeline(), p) : null;
+  const clock = fx.timeline ? new PhaseClock(/** @type {any} */ (fx.timeline()), p) : null;
 
   return {
     group,
@@ -70,6 +83,7 @@ export function spawn(view, e, acc) {
     dir,
     pos: e.pos,
     y: e.y ?? 0,
+    dying: false
   };
 }
 
@@ -84,9 +98,25 @@ export function update(view, e, state, dt, acc) {
   state.particles.update(dt);
 }
 
+/** Transição para a fase de dissipação quando a entidade da simulação expira */
+export function onDeath(view, e, state) {
+  if (!state) return;
+  state.dying = true;
+}
+
+/** Atualiza a dissipação de poeira pós-expiração */
+export function updateDying(view, e, state, dt, acc) {
+  update(view, e, state, dt, acc);
+}
+
+/** Determina se a dissipação de poeira e partículas foi concluída (+0.4s de cauda após a expiração da simulação) */
+export function isFinished(state, age) {
+  return age >= 0.4;
+}
+
 /** Reage a eventos do simulador (impactos de areia) */
 export function onEvent(view, ev, state) {
-  // Eventos de impacto podem emitir anel de poeira ou som
+  // Eventos de impacto (ex: acerto, estilhaçamento ou bloqueio)
 }
 
 /** Retorna a posição central do efeito visual */

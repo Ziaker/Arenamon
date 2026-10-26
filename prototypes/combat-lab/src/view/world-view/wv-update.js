@@ -181,14 +181,15 @@ update(world, {fighters = [], events = [], dt = 0, skipBeams = false, camera = n
       const spec = RING[ev.result];
       const m = this.meshes.get(ev.entity), f = FIGHTER_EVENTS.has(ev.result) ? fighters[ev.target] : null;
       const be = ev.kind === 'beam' && ev.seg != null ? world?.entities.find(x => x.id === ev.entity) : null, bp = be?.segments?.[ev.seg]?.b;
-      const pos = bp ? {x: bp.x, y: be.y, z: bp.z} : f ? {x: f.position.x, y: .6, z: f.position.z} : m ? m.position : (this.movesVfx?.positionOf(ev.entity) ?? this.elementalFx.positionOf(ev.entity) ?? this.atelierFx.positionOf(ev.entity));
+      const evPos = (Number.isFinite(ev.x) && Number.isFinite(ev.z)) ? {x: ev.x, y: ev.y ?? .6, z: ev.z} : null;
+      const pos = evPos ?? (bp ? {x: bp.x, y: be.y, z: bp.z} : f ? {x: f.position.x, y: .6, z: f.position.z} : m ? m.position : (this.movesVfx?.positionOf(ev.entity) ?? this.elementalFx.positionOf(ev.entity) ?? this.atelierFx.positionOf(ev.entity)));
+      this.movesVfx?.onEvent(ev);
       if (!pos) continue;
 
       const evColor = spec ? (spec[0] ?? PL_HEX[Math.min(3, ev.barrierPl ?? ev.pl ?? 1)]) : 0xffffff;
       if (spec) {
         this.ring(pos.x, pos.y ?? .6, pos.z, evColor, spec[1]);
       }
-      this.movesVfx?.onEvent(ev);
 
       // Estilhaçamento de rochas no impacto, choque entre pedras ou reflexão
       if (C.vfx?.rock?.shatter && (ev.result === 'impact' || ev.result === 'stoneClash' || ev.result === 'counter' || ev.result === 'tackleClash' || ev.result === 'reflected')) {
