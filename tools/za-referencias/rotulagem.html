@@ -47,6 +47,11 @@ details.fixos summary{cursor:pointer;color:var(--mut);margin-top:6px;font-size:1
 .perg select{padding:3px 6px}
 textarea{width:100%;min-height:44px;margin-top:8px}
 .prog{color:var(--mut)}
+.conf{float:right;font-weight:400}.conf .tg{min-width:0;height:20px;padding:0 5px;font-size:11px}
+.conf .tg:has(input:checked){background:var(--mut);border-color:var(--mut);color:var(--bg)}
+.fases{display:grid;grid-template-columns:1fr 1fr;gap:3px 10px;font-size:12px}
+.fases>div{display:flex;align-items:center;gap:4px}.fases span{flex:1;color:var(--mut)}
+.fases input{width:52px;padding:2px 5px}.fases button{padding:1px 6px;font-size:12px;min-width:0}
 .aviso{color:var(--ac2);font-size:12px;min-height:1em}
 @media (max-width:980px){.item{grid-template-columns:1fr}.midia{position:static}.videos video{max-height:none}}
 </style></head><body><main>
@@ -56,7 +61,9 @@ textarea{width:100%;min-height:44px;margin-top:8px}
 <li><b>Executa:</b> em golpe, ataque, rugido ou dano, marque só quem FAZ a ação (se essa parte ficasse parada, a ação não aconteceria). O braço que só equilibra não conta.</li>
 <li>Em <b>andar, correr ou charge</b>, marque todo membro que balança no ritmo, mesmo que menos que os outros. O que só treme ou fica quase parado não conta.</li>
 <li><b>Apoio:</b> perna que sustenta o peso ou empurra sem golpear. Se não houver nenhuma, marque "nenhuma".</li>
-<li><b>Começa:</b> a parte que se move primeiro (use o quadro a quadro).</li>
+<li><b>Começa:</b> a parte que se move primeiro (use o quadro a quadro). Se duas começam juntas, marque as duas.</li>
+<li><b>Fases:</b> pare o vídeo no quadro e clique em <b>agora</b>; <b>ir</b> leva o vídeo de volta àquele quadro. Separe o <b>recuo ativo</b> (o corpo indo para trás) da <b>pose parada</b> antes do golpe: a pose parada fica entre "Recuo termina" e "Golpe começa". Em loops (andar, correr, charge), deixe as fases em branco.</li>
+<li><b>Confiança</b> (alta/média/baixa, no canto de cada bloco): o quanto você tem certeza daquela resposta. Clicar de novo desmarca.</li>
 <li>Use "?" (inconclusivo) sempre que não der para ver. A página não mostra o que o sistema calculou. As respostas ficam salvas neste navegador; no fim, clique em <b>Baixar rótulos</b>.</li>
 <li>Bolinha: no ombro esquerdo; sem braço, no quadril ou na asa esquerda; sem membros, ao lado do corpo. Ela só orienta.</li>
 </ul></details>
@@ -89,18 +96,29 @@ const chip = (attr, val, txt, tipo, nome, titulo) =>
 // pergunta curta com botões (sim / não / ?)
 const seg = (n, campo, rotulo, opcoes) => `<span>${rotulo}</span><div class="seg">${opcoes.map(o =>
   chip("data-r", campo, o[1], "radio", campo + "_" + n, o[1]).replace(`value="${campo}"`, `value="${o[0]}"`)).join("")}</div>`;
+const CONF = [["alta","alta"],["media","média"],["baixa","baixa"]];
+const conf = (n, campo) => `<span class="conf" title="sua confiança nesta resposta">${CONF.map(o =>
+  chip("data-r", campo, o[1], "radio", campo + "_" + n, "confiança " + o[1]).replace(`value="${campo}"`, `value="${o[0]}"`)).join("")}</span>`;
+// fases da ação em quadros: "agora" copia o quadro do vídeo; "ir" leva o vídeo até ele
+const FASES = [["fase_recuo_inicio","Recuo começa"],["fase_recuo_fim","Recuo termina"],["fase_golpe_inicio","Golpe começa"],
+  ["fase_golpe_pico","Golpe/impacto (pico)"],["fase_pose_fim","Pose do golpe termina"],["fase_recuperacao_fim","Recuperação termina"]];
 const SN = [["sim","sim"],["nao","não"],["INCONCLUSIVO","?"]];
 function partes(n) {
   const lados = (f, attr) => LADOS.map(([l, t]) => chip(attr, f + "_" + l, t)).join("");
-  return `<div class="bloco ex"><b>Executa <small>quem faz a ação</small></b>
+  return `<div class="bloco ex"><b>Executa <small>quem faz a ação</small>${conf(n, "conf_executa")}</b>
       ${MEMBROS.map(([f, rot]) => `<div class="lin"><span>${rot}</span><div>${lados(f, "data-exec")}</div></div>`).join("")}
       <div class="lin"><span>Outras</span><div>${UNICAS.map(([c, rot]) => chip("data-exec", c, rot)).join("")}${chip("data-exec", "INCONCLUSIVO", "? não dá para ver", "", "", "inconclusivo")}</div></div>
     </div>
-    <div class="bloco ap"><b>Apoio/impulso <small>pernas que sustentam o peso ou empurram, sem golpear</small></b>
+    <div class="bloco ap"><b>Apoio/impulso <small>pernas que sustentam o peso ou empurram</small>${conf(n, "conf_apoio")}</b>
       <div class="lin"><span>Perna</span><div>${lados("perna", "data-apoio")}${chip("data-apoio", "nenhuma", "nenhuma", "", "", "nenhuma perna de apoio")}</div></div>
     </div>
-    <div class="perg">
-      <span>Começa a se mover primeiro</span><div><select data-campo="iniciador"><option value="">—</option>${REGIOES.concat([["INCONCLUSIVO","? não dá para ver"]]).map(o => `<option value="${o[0]}">${o[1]}</option>`).join("")}</select></div>
+    <div class="bloco ini"><b>Começa a se mover primeiro <small>pode marcar mais de um, se começam juntos</small>${conf(n, "conf_inicio")}</b>
+      ${MEMBROS.map(([f, rot]) => `<div class="lin"><span>${rot}</span><div>${lados(f, "data-ini")}</div></div>`).join("")}
+      <div class="lin"><span>Outras</span><div>${UNICAS.map(([c, rot]) => chip("data-ini", c, rot)).join("")}${chip("data-ini", "INCONCLUSIVO", "? não dá para ver", "", "", "inconclusivo")}</div></div>
+    </div>
+    <div class="bloco"><b>Fases da ação <small>em quadros; deixe em branco o que não existe</small>${conf(n, "conf_fases")}</b>
+      <div class="fases">${FASES.map(([c, rot]) => `<div><span>${rot}</span><input type="number" min="0" max="999" data-campo="${c}">
+        <button type="button" data-agora="${c}" title="usar o quadro atual do vídeo">agora</button><button type="button" data-ir="${c}" title="levar o vídeo até este quadro">ir</button></div>`).join("")}</div>
     </div>`;
 }
 function render() {
@@ -128,11 +146,12 @@ function render() {
       <div class="aviso"></div>
       <div class="perg">
         ${seg(it.n, "antecipacao", "Antecipação (recuo antes do golpe)?", SN)}
-        <span>Se sim, quantos quadros?</span><div><input type="number" min="0" max="200" data-campo="antecipacao_q"></div>
+        <span>Total até o golpe (quadros, opcional)</span><div><input type="number" min="0" max="200" data-campo="antecipacao_q"></div>
         ${seg(it.n, "parte_some_aparece", "Alguma parte some ou aparece?", SN)}
         ${seg(it.n, "apoio", "Pés apoiados no chão?", SN)}
         ${seg(it.n, "leitura_pose", "A pose se lê com clareza?", [["clara","clara"],["confusa","confusa"],["INCONCLUSIVO","?"]])}
         ${seg(it.n, "massa_aparente", "Peso aparente", [["leve","leve"],["medio","médio"],["pesado","pesado"],["INCONCLUSIVO","?"]])}
+        ${seg(it.n, "conf_antecipacao", "Confiança na antecipação", CONF)}
         ${seg(it.n, "intencao", "Intenção (sua leitura)", [["agressivo","agressivo"],["brincalhao","brincalhão"],["cauteloso","cauteloso"],["neutro","neutro"],["INCONCLUSIVO","?"]])}
       </div>
       <textarea data-campo="observacao" placeholder="Discordo / observação (o que o sistema deveria saber)"></textarea>
@@ -143,6 +162,8 @@ function render() {
     sec.querySelectorAll("[data-campo]").forEach(i => { if (r[i.dataset.campo] !== undefined) i.value = r[i.dataset.campo]; });
     sec.querySelectorAll("[data-r]").forEach(i => { i.checked = r[i.dataset.r] === i.value; });
     sec.querySelectorAll("[data-exec]").forEach(i => { i.checked = (r.executores || []).includes(i.dataset.exec) || (r.executores === "INCONCLUSIVO" && i.dataset.exec === "INCONCLUSIVO"); });
+    const inis = r.iniciadores || (r.iniciador ? [r.iniciador] : []);
+    sec.querySelectorAll("[data-ini]").forEach(i => { i.checked = inis.includes(i.dataset.ini); });
     sec.querySelectorAll("[data-apoio]").forEach(i => { i.checked = (r.apoio_impulso || []).includes(i.dataset.apoio) || (i.dataset.apoio === "nenhuma" && Array.isArray(r.apoio_impulso) && !r.apoio_impulso.length); });
     // clicar de novo num botão de opção já marcado desmarca
     sec.querySelectorAll("input[type=radio]").forEach(i => {
@@ -161,6 +182,10 @@ function render() {
       });
       const ex = [...sec.querySelectorAll("[data-exec]:checked")].map(i => i.dataset.exec);
       if (ex.includes("INCONCLUSIVO")) o.executores = "INCONCLUSIVO"; else if (ex.length) o.executores = ex.sort(); else delete o.executores;
+      const ini = [...sec.querySelectorAll("[data-ini]:checked")].map(i => i.dataset.ini).sort();
+      if (ini.includes("INCONCLUSIVO")) { o.iniciadores = ["INCONCLUSIVO"]; o.iniciador = "INCONCLUSIVO"; }
+      else if (ini.length) { o.iniciadores = ini; if (ini.length === 1) o.iniciador = ini[0]; else delete o.iniciador; }
+      else { delete o.iniciadores; delete o.iniciador; }
       const ap = [...sec.querySelectorAll("[data-apoio]:checked")].map(i => i.dataset.apoio);
       if (ap.includes("nenhuma")) o.apoio_impulso = []; else if (ap.length) o.apoio_impulso = ap.sort(); else delete o.apoio_impulso;
       salvar();
@@ -210,6 +235,12 @@ function prepararPlayer(sec) {
     vids.slice(1).forEach(v => { if (Math.abs(v.currentTime - mestre.currentTime) > 1.5 / fps) v.currentTime = mestre.currentTime; });
   });
   mestre.addEventListener("seeked", mostrar);
+  sec.querySelectorAll("[data-agora]").forEach(b => b.onclick = () => {
+    pausar(); sec.querySelector(`[data-campo="${b.dataset.agora}"]`).value = q(); sec.dispatchEvent(new Event("input"));
+  });
+  sec.querySelectorAll("[data-ir]").forEach(b => b.onclick = () => {
+    const v = sec.querySelector(`[data-campo="${b.dataset.ir}"]`).value; if (v !== "") { pausar(); ir(+v); }
+  });
   vids.forEach(v => v.addEventListener("click", () => btn.click()));
 }
 document.addEventListener("keydown", e => {

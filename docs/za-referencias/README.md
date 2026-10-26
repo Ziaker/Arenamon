@@ -154,6 +154,26 @@ Gerado com `gerar_lote.py --diverso <banco> <dump> <saida> <lotes anteriores…>
 - **"Como rotular":** as regras ficam num quadro que abre com um clique.
 - **Respostas mantidas:** as páginas dos lotes 01 e 02 foram refeitas com `gerar_lote.py --pagina <lote…>`. O formato das respostas e o hash não mudaram, então o que estava salvo no navegador continua (testado com uma resposta do Lucario).
 
+### Fases, confiança e vários iniciadores (25/10/2026)
+
+Veio de uma análise do Lucario feita por outra IA e colada pelo usuário.
+
+- **Fases da ação, em quadros:**
+  - recuo começa e termina;
+  - golpe começa;
+  - golpe/impacto (pico);
+  - pose do golpe termina;
+  - recuperação termina.
+
+  O botão "agora" copia o quadro do vídeo e o "ir" leva o vídeo até ele. Assim o recuo ativo fica separado da pose parada antes do golpe. Antes, o "quantos quadros" juntava os dois.
+- **Confiança** (alta/média/baixa) em cada bloco: executa, apoio, começa, fases e antecipação.
+- **"Começa" aceita mais de uma parte.** O campo novo é `iniciadores` (lista). Quando só uma parte é marcada, o campo antigo `iniciador` continua preenchido.
+- **Lucario, análise colada × banco:**
+  - golpe em q36–40 na análise; o evento do sistema vai de q34 a q44, com pico no q38;
+  - a análise põe o fim da pose no q59 e a recuperação até o q106; o 2º evento do sistema vai de q57 a q81;
+  - o sistema também junta recuo e pose parada numa antecipação de 35 quadros.
+- **Rótulo proposto pela IA:** está em `avaliacao/rotulos_ia_externa_477115ec150e.json`, com `origem = PROPOSTO_IA`. **Não é gabarito.** Só entra no A/B ou na calibração depois que o revisor humano confirmar.
+
 ### Filtro pedido para os próximos lotes (guardado, ainda não aplicado)
 
 Pedido do revisor em 25/10/2026, para o lote 03 em diante:
