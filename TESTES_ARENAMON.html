@@ -608,7 +608,7 @@ PASS: dois blocos, cores, câmera, layout, file:// offline, sem erros.</pre>
           </div>
         </div>
         <p class="suite-desc">
-          Auditoria completa de todos os 19 Moves registrados com analisador sintático AST (impede literais mecânicos ocultos no código), 34 parâmetros antes embutidos expostos e verificados no motor, classificação quádrupla (exclusivo, herdado, calculado e técnico), 16 categorias de inspeção, sensibilidade A/B mensurável para todos os Moves, captura M28.4 e limites extremos de sliders.
+          Auditoria completa de todos os 19 Moves registrados com analisador sintático AST (impede literais mecânicos ocultos no código), 47 parâmetros antes embutidos expostos e verificados no motor, classificação quádrupla (exclusivo, herdado, calculado e técnico), 16 categorias de inspeção, sensibilidade A/B mensurável para todos os Moves, captura M28.4 e limites extremos de sliders.
         </p>
         <div class="cmd-box">
           <code>npm run audit:moves</code>
@@ -635,6 +635,33 @@ PASS: dois blocos, cores, câmera, layout, file:// offline, sem erros.</pre>
           <code>node prototypes/combat-lab/test/sand-wave-vertical.test.mjs && node prototypes/combat-lab/test/bullet-punch-mechanics.test.mjs && node prototypes/combat-lab/test/water-pulse-mechanics.test.mjs</code>
           <button class="copy-btn" onclick="copyCmd('node prototypes/combat-lab/test/sand-wave-vertical.test.mjs && node prototypes/combat-lab/test/bullet-punch-mechanics.test.mjs && node prototypes/combat-lab/test/water-pulse-mechanics.test.mjs', this)">Copiar Comando</button>
         </div>
+      </article>
+
+      <!-- SUÍTE 4f: PORTÃO ZERO DOC03 — COBERTURA MECÂNICA DOS 3 PILOTOS (26/10/2026) -->
+      <article class="suite-card" data-category="jogo">
+        <div class="suite-header">
+          <div>
+            <h2 class="suite-title">Portão ZERO — Cobertura Mecânica dos 3 Pilotos (DOC03)</h2>
+            <div class="suite-meta">
+              <span class="tag success">✓ 173/173 decididos · 0 abertos</span>
+              <span class="tag primary">92 com A/B individual (53,2%)</span>
+              <span class="tag success">✓ 18 testes do empurrão + 41 do Editor</span>
+              <span class="tag">docs/EDITOR_MOVES_OVERHAUL_OPENCODE_RELATORIO.md</span>
+            </div>
+          </div>
+        </div>
+        <p class="suite-desc">
+          Matriz de 173 candidatos mecânicos de Sand Wave, Bullet Punch e Water Pulse: 92 com prova A/B individual, 55 herdados de física/combate/mundo/IA, 16 técnicos justificados e 10 bloqueados de IA semântica. A rodada 4 expôs velocidade da frente, impulso/duração/limpeza/cancelamento do empurrão, cegueira na parcial, alvo aéreo, stagger/unpin e limite de alvos. A rodada 5 adicionou 12 controles de política do empurrão por alvo e a seção <strong>Perfil do empurrão</strong>. A <strong>rodada 6</strong> mudou o modo oficial: o empurrão começa no primeiro contato e segue até o <strong>fim da barragem (1,5 s)</strong> enquanto o alvo permanecer no retângulo; dano/cegueira continuam em 0,75 s e não se repetem. A prova usa parede/pinned, saída da área, inércia preservada e teste de navegador com a tabela Fim + contenção.
+        </p>
+        <div class="cmd-box">
+          <code>node prototypes/combat-lab/test/moves-doc03-pilots.test.mjs</code>
+          <button class="copy-btn" onclick="copyCmd('node prototypes/combat-lab/test/moves-doc03-pilots.test.mjs', this)">Copiar Comando</button>
+        </div>
+        <div class="cmd-box">
+          <code>node prototypes/combat-lab/test/moves-sand-push.test.mjs</code>
+          <button class="copy-btn" onclick="copyCmd('node prototypes/combat-lab/test/moves-sand-push.test.mjs', this)">Copiar Comando</button>
+        </div>
+        <p><a href="docs/EDITOR_MOVES_OVERHAUL_OPENCODE_RELATORIO.md">Abrir o relatório A/B, a matriz de decisões e a telemetria do Perfil do empurrão</a> · <a href="prototypes/combat-lab/evidence/editor/editor-push-profile.png">Ver a captura do Perfil do empurrão</a></p>
       </article>
 
       <!-- SUÍTE 4b2: PILOTOS DOCUMENTO 02 — TOPOLOGIA E SEPARAÇÃO MECÂNICA/VFX -->

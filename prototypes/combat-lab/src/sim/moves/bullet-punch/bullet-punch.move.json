@@ -191,7 +191,8 @@
         "label": "Linhas de velocidade no sumiço",
         "tip": "Desenha linhas de velocidade do ponto de partida até o alvo enquanto o lutador some (e outras na volta, no Quick Attack). Só aparência.",
         "unit": "yesno",
-        "value": 1
+        "value": 1,
+        "consumer": "src/view/aim-marker-view.js:pathOf"
       },
       {
         "min": 0,
@@ -201,7 +202,8 @@
         "label": "Ocultar o corpo durante o sumiço",
         "tip": "Liga/desliga o desaparecimento visual do corpo (a simulação não muda). Só aparência.",
         "unit": "yesno",
-        "value": 1
+        "value": 1,
+        "consumer": "src/view/view.js:update (corpo sumido)"
       },
       {
         "min": 0,

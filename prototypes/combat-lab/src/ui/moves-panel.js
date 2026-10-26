@@ -67,10 +67,14 @@ export {KNOCKBACK_KEY, KNOCKBACK_MAX, KNOCKBACK_MAX_EXCEPTIONS};
 const FORMATTERS = {num, int, sec, pct, m, ms, ms2, deg, x, yesno};
 for (const g of moveParamGroups()) {
   MOVE_INFO[g.id] = {group: g.title, hint: g.hint ?? '', meta: g.meta};
-  PARAMS.push([g.title, g.rows.map(r => [g.group, r.key, r.label, r.tip, r.min, r.max, r.step, FORMATTERS[r.unit], !!r.approved])]);
+  PARAMS.push([g.title, g.rows.map(r => {
+    const options = Array.isArray(r.options) ? r.options : null;
+    const fmt = options ? (/** @type {number} */ v) => options.find(o => Number(o.value) === Number(v))?.label ?? String(v) : FORMATTERS[r.unit];
+    return [g.group, r.key, r.label, r.tip, r.min, r.max, r.step, fmt, !!r.approved, options, !!r.noDouble];
+  })]);
 }
 for (const [, rows] of PARAMS) for (const r of rows) {
-  const eff = effectiveRangeOf(r[0], {key: r[1], min: r[4], max: r[5], step: r[6], unit: r[7] === yesno ? 'yesno' : 'num'});
+  const eff = effectiveRangeOf(r[0], {key: r[1], min: r[4], max: r[5], step: r[6], unit: r[7] === yesno ? 'yesno' : 'num', noDouble: r[10]});
   r[4] = eff.min;r[5] = eff.max;r[6] = eff.step;
 }
 // Tremor de câmera ao acertar (pedido de 23/10/2026): Moves que NÃO são corpo a corpo não tremem por padrão; o interruptor libera a intensidade e a duração (valem sobre o tremor padrão de hit).
@@ -87,7 +91,6 @@ const VISUAL_WORLD_KEYS = new Set([
   'riposte.blastOn','riposte.blastSize','riposte.fxOn','riposte.fxIntensity','riposte.fxSize',
   'emergingStone.fxTrailOn','emergingStone.fxTrailSize',
   'bulletPunch.fxLines','bulletPunch.fxHideBody',
-  'sandWave.dissipate',
   'airSlash.visualWidth','airSlash.visualHeight','airSlash.visualThickness',
   'seedBomb.blastLife',
   ...SHAKE_GROUPS.flatMap(g => [`${g}.hitShakeOn`, `${g}.hitShakeAmount`, `${g}.hitShakeDuration`]),
@@ -191,10 +194,13 @@ export function createMovesPanel({$, game, download, tuning, view, ui, canvas, s
     spawn(game.world, {kind: 'area', explosion: true, owner: 1, affectsOwner: true, pos: {x: 0, z: 0}, radius: 4, y: 0, height: 3, life: .25, pulses: 1, falloff: 'linear', pl: 2, hit: {damage: 10, knockback: {horizontal: 5, vertical: 4}}}, game.lastStepEvents);
     return true;
   }
-  function paramRow([group, key, label, tip, min, max, step, fmt, approved]) {
+  function paramRow([group, key, label, tip, min, max, step, fmt, approved, options]) {
     const v = C.world[group][key], def = defaults().world[group][key], sw = DEPENDS_ON[`${group}.${key}`], hidden = sw && !C.world[group][sw];
+    const control = options
+      ? `<select data-p="${group}.${key}">${options.map(o => `<option value="${o.value}" ${Number(v) === Number(o.value) ? 'selected' : ''}>${escape(o.label)}</option>`).join('')}</select>`
+      : min === 0 && max === 1 && step === 1 ? `<input type="checkbox" data-p="${group}.${key}" ${v ? 'checked' : ''}>` : `<input type="range" data-p="${group}.${key}" min="${min}" max="${max}" step="${step}" value="${v}">`;
     return `<div class="mvp-param" ${hidden ? 'hidden' : ''} data-dep="${sw ? `${group}.${sw}` : ''}" title="${escape(tip)}"><label>${escape(label)} <small class="${approved ? 'ok' : 'warn'}">${approved ? 'aprovado' : 'provisório'}</small></label>
-      <div class="row">${min === 0 && max === 1 && step === 1 ? `<input type="checkbox" data-p="${group}.${key}" ${v ? 'checked' : ''}>` : `<input type="range" data-p="${group}.${key}" min="${min}" max="${max}" step="${step}" value="${v}">`}<output data-o="${group}.${key}">${fmt(v)}</output><button type="button" data-reset="${group}.${key}" title="Padrão: ${escape(fmt(def))}" ${v === def ? 'disabled' : ''}>↺</button></div></div>`;
+      <div class="row">${control}<output data-o="${group}.${key}">${fmt(v)}</output><button type="button" data-reset="${group}.${key}" title="Padrão: ${escape(fmt(def))}" ${v === def ? 'disabled' : ''}>↺</button></div></div>`;
   }
   /** Cartão de animação (carga com loop + disparo) de um move para o personagem de um lado (0 azul, 1 vermelho). */
   function animCard(moveId, who, showSliders = true) {

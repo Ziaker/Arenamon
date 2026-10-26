@@ -100,7 +100,7 @@ export const TACKLE_SCENARIOS = [
   {
     id: 'meteor-blocked', name: 'Meteor slam bloqueado', description: 'Igual ao anterior, mas o vermelho segura a guarda durante o mergulho: o bloqueio anula o lançamento, o dano vira o reduzido e o vermelho é ARRASTADO para trás deslizando no chão (sem voo), enquanto o azul NÃO recua — o slam continua, aterrissa (meteorGround) e finaliza normalmente.',
     positions: [vec(0, -3.75), vec(0, 0)], ticks: () => steps(meteorTotal()), setup: g => {face(g.fighters[0], 0);face(g.fighters[1], Math.PI);},
-    script: (t, g, s) => {if (g.fighters[1].state === 'landing') s.redLanding = true;return [meteorBlue(t), cmd({guard: true, target: 0})];},
+    script: (t, g, s) => {if (g.fighters[1].state === 'pushed' || g.fighters[1].state === 'landing') s.redLanding = true;return [meteorBlue(t), cmd({guard: true, target: 0})];},
     checks: ({log, game, start, scratch}) => {
       const S = log.states, partial = log.events.find(e => e.result === 'partial' && e.slam), after = log.afterHit;
       const dmg = ATTACK() * C.rules.slamDamage * C.extras.combat.guardDamageMultiplier;

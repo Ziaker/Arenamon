@@ -15,6 +15,7 @@ import {
   effectiveRangeOf,
   moveParamGroups,
 } from './params-registry.js';
+import {pushDurationFor, pushDurationModeOf} from './sand-wave/sand-push.js';
 
 /**
  * Constantes técnicas explicitamente identificadas, justificadas e bloqueadas na interface (Regra Central §2).
@@ -278,14 +279,69 @@ export function getInheritedParamsForMove(moveId, group, snapshot = {}) {
     }));
   }
 
-  if (moveId === 'water-pulse') {
+  if (moveId === 'water-pulse' || moveId === 'sand-wave') {
     list.push({
       path: 'world.maxEntities', group: 'world', key: 'maxEntities',
       label: 'Limite simultâneo de entidades (global)',
-      tip: 'Acima deste limite o projétil não nasce e o Move falha com evento de limite. Vale para todos os Moves que criam entidades.',
+      tip: 'Acima deste limite o projétil/barragem não nasce e o Move falha com evento de limite. Vale para todos os Moves que criam entidades.',
       min: 1, max: 256, step: 1, unit: 'int', category: 'Área e persistência',
       consumer: {file: 'src/sim/world.js', fn: 'spawn'}, system: 'Mundo (global)',
     });
+  }
+
+  if (moveId === 'sand-wave') {
+    // Física compartilhada que decide quanto do empurrão sobrevive depois que o alvo sai da janela da onda.
+    list.push(
+      {
+        path: 'locomotion.friction', group: 'locomotion', key: 'friction',
+        label: 'Atrito da locomoção (global)',
+        tip: 'Atrito aplicado à velocidade residual do alvo depois do empurrão. Maior = para mais rápido; menor = desliza mais longe.',
+        min: 0, max: 1.5, step: 0.01, unit: 'num', category: 'Movimentação',
+        consumer: {file: 'src/sim/locomotion.js', fn: 'locomotionStep'}, system: 'Física (global)',
+      },
+      {
+        path: 'locomotion.accelCurve', group: 'locomotion', key: 'accelCurve',
+        label: 'Curva de aceleração da locomoção (global)',
+        tip: 'Quanto a aceleração suaviza perto da velocidade máxima. Afeta a retomada de controle depois do empurrão.',
+        min: 0, max: 1, step: 0.01, unit: 'pct', category: 'Movimentação',
+        consumer: {file: 'src/sim/locomotion.js', fn: 'locomotionStep'}, system: 'Física (global)',
+      },
+      {
+        path: 'locomotion.brakeCurve', group: 'locomotion', key: 'brakeCurve',
+        label: 'Curva de frenagem da locomoção (global)',
+        tip: 'Suavização da frenagem perto de parar; controla o deslizamento final do alvo empurrado.',
+        min: 0, max: 1, step: 0.01, unit: 'pct', category: 'Movimentação',
+        consumer: {file: 'src/sim/locomotion.js', fn: 'locomotionStep'}, system: 'Física (global)',
+      },
+      {
+        path: 'locomotion.residualSpeed', group: 'locomotion', key: 'residualSpeed',
+        label: 'Velocidade residual da locomoção (global)',
+        tip: 'Abaixo desta velocidade a frenagem deixa de suavizar; define o “resto” de deslizamento após o empurrão.',
+        min: 0, max: 2, step: 0.01, unit: 'ms', category: 'Movimentação',
+        consumer: {file: 'src/sim/locomotion.js', fn: 'locomotionStep'}, system: 'Física (global)',
+      },
+      {
+        path: 'rules.launchGravity', group: 'rules', key: 'launchGravity',
+        label: 'Gravidade de lançamento (global)',
+        tip: 'Gravidade do voo quando o Sand Wave usa knockback vertical (knockbackV > 0).',
+        min: 5, max: 60, step: 0.1, unit: 'ms2', category: 'Knockback',
+        consumer: {file: 'src/sim/physics.js', fn: 'stepPhysics'}, system: 'Física (global)',
+      },
+      {
+        path: 'rules.launchDrag', group: 'rules', key: 'launchDrag',
+        label: 'Arrasto horizontal do lançamento (global)',
+        tip: 'Arrasto no voo horizontal de quem foi lançado; maior = o alvo cai mais perto.',
+        min: 0, max: 5, step: 0.05, unit: 'num', category: 'Knockback',
+        consumer: {file: 'src/sim/physics.js', fn: 'stepPhysics'}, system: 'Física (global)',
+      },
+      {
+        path: 'extras.toggles.enableLaunch', group: 'combat', key: 'enableLaunch',
+        label: 'Lançamento vertical habilitado (global)',
+        tip: 'Desligado: knockback vertical vira só empurrão/recuperação, sem voo. Vale para todos os golpes.',
+        min: 0, max: 1, step: 1, unit: 'yesno', category: 'Knockback',
+        consumer: {file: 'src/sim/combat.js', fn: 'resolveHit'}, system: 'Combate (global)',
+      },
+    );
   }
 
   if (OFFENSIVE_MOVES.has(moveId)) {
@@ -380,14 +436,38 @@ export function getCalculatedValuesForMove(moveId, group, worldObj, ctx = {}) {
 
   switch (moveId) {
     case 'sand-wave': {
-      const T = Math.max(0.05, P.active ?? 0.75), L = P.length ?? 4, a = P.accel ?? 12;
-      const v0 = (L - 0.5 * a * T * T) / T;
-      const vf = v0 + a * T;
+      const T = Math.max(0.05, P.active ?? 0.75), L = P.length ?? 4;
+      const a = Math.max(0, P.waveAccel ?? 0), sync = (P.speedFromReach ?? 1) !== 0;
+      const v0 = sync ? Math.max(0, (L - 0.5 * a * T * T) / T) : Math.max(0, P.waveSpeed ?? L / T);
+      const vf = v0 + a * T, front = Math.min(L, v0 * T + 0.5 * a * T * T);
+      const tLen = a > 1e-9 ? (-v0 + Math.sqrt(v0 * v0 + 2 * a * L)) / a : v0 > 1e-9 ? L / v0 : Infinity;
+      const pushMode = pushDurationModeOf(P);
+      const pushConfigured = Math.max(0, P.pushDuration ?? 0);
+      const pushContinue = (P.pushContinueAfterActive ?? 0) !== 0;
+      const barrage = T + (P.dissipate ?? 0.75);
+      // Usa a MESMA política do motor (sand-push.js) para o painel não divergir do jogo.
+      const pushT = pushDurationFor({...P, active: T, life: barrage}, 0);
+      const pushWindowFormula = pushConfigured > 0 ? 'pushDuration (teto no modo 0)' : pushMode === 0 || pushMode === 1 ? 'active + dissipate − primeiro contato' : pushMode === 2 || pushContinue ? 'sem limite próprio (política de contato)' : 'active − primeiro contato';
+      const pushAccelMode = Math.max(0, Math.min(2, Math.round(P.pushAccelerationMode ?? 0)));
+      const pushBase = Math.max(0, P.accel ?? 12);
+      const pushMax = Math.max(0, P.pushMaxSpeed ?? 0);
+      const pushDist = Number.isFinite(pushT) ? (P.pushSpeed ?? 0) * pushT + 0.5 * pushBase * pushT * pushT : null;
+      const firstSpeed = (P.pushSpeed ?? 0) + (P.knockbackH ?? 0);
+      const pushModeLabel = pushMode === 0 ? 'Fim da barragem (active + dissipate)' : pushMode === 1 ? 'Tempo desde o contato' : pushMode === 2 ? 'Enquanto houver contato' : 'Janela de dano (legado)';
+      const accelModeLabel = pushAccelMode === 1 ? 'Curva temporal' : pushAccelMode === 2 ? 'Velocidade-alvo' : 'Aceleração constante';
       return [
-        {id: 'v0', label: 'Velocidade inicial da frente (v₀)', formula: '(length − ½·accel·active²) ÷ active', value: `${f2(v0)} m/s`, category: 'Movimentação', consumer: 'src/sim/sand.js:sandSpeed'},
-        {id: 'vf', label: 'Velocidade final da frente (v_f)', formula: 'v₀ + accel × active', value: `${f2(vf)} m/s`, category: 'Movimentação', consumer: 'src/sim/sand.js:sandSpeed'},
-        {id: 'totalLife', label: 'Vida total da onda (ativa + dissipação)', formula: 'active + dissipate', value: `${f2((P.active ?? 0.75) + (P.dissipate ?? 0.75))} s`, category: 'Área e persistência', consumer: 'src/sim/sand.js:stepSandwave'},
-        {id: 'guardDmg', label: 'Dano em guarda comum', formula: 'damage × partialFactor', value: `${f2((P.damage ?? 6) * (P.partialFactor ?? 0.5))} HP`, category: 'Dano', consumer: 'src/sim/sand.js:hitFighter'},
+        {id: 'v0', label: 'Velocidade inicial efetiva da frente (v₀)', formula: sync ? '(length − ½·waveAccel·active²) ÷ active' : 'waveSpeed (manual)', value: `${f2(v0)} m/s`, category: 'Movimentação', consumer: 'src/sim/sand.js:sandFrontAt'},
+        {id: 'vf', label: 'Velocidade final da frente (v_f)', formula: 'v₀ + waveAccel × active', value: `${f2(vf)} m/s`, category: 'Movimentação', consumer: 'src/sim/sand.js:sandFrontAt'},
+        {id: 'frontAtActive', label: 'Frente no fim da janela ativa', formula: 'v₀ × active + ½ × waveAccel × active²', value: `${f2(front)} m`, category: 'Movimentação', consumer: 'src/sim/sand.js:stepSand'},
+        {id: 'timeToLength', label: 'Tempo para percorrer o alcance', formula: 'solução de v₀·t + ½·waveAccel·t² = length', value: tLen <= T + 1e-9 ? `${f2(tLen)} s` : 'não alcança na janela', category: 'Movimentação', consumer: 'src/sim/sand.js:stepSand'},
+        {id: 'firstSpeed', label: 'Impulso horizontal no 1º contato', formula: 'pushSpeed + knockbackH (× partialFactor na defesa parcial)', value: `${f2(firstSpeed)} m/s`, category: 'Knockback', consumer: 'src/sim/sand.js:stepSand'},
+        {id: 'pushMode', label: 'Modo de duração do empurrão', formula: 'pushDurationMode', value: pushModeLabel, category: 'Knockback', consumer: 'src/sim/moves/sand-wave/sand-push.js:pushWindowState'},
+        {id: 'pushWindow', label: 'Duração-alvo do empurrão por alvo', formula: pushWindowFormula, value: Number.isFinite(pushT) ? `${f2(pushT)} s` : 'sem limite próprio', category: 'Knockback', consumer: 'src/sim/moves/sand-wave/sand-push.js:pushDurationFor'},
+        {id: 'pushAccelMode', label: 'Modo de aceleração do empurrão', formula: 'pushAccelerationMode', value: accelModeLabel, category: 'Knockback', consumer: 'src/sim/moves/sand-wave/sand-push.js:pushAccelNow'},
+        {id: 'pushDist', label: 'Deslocamento máximo teórico (sem área/atrito)', formula: 'pushSpeed × t + ½ × accel × t² (t = duração-alvo)', value: pushDist === null ? 'depende do contato' : `${f2(pushDist)} m`, category: 'Knockback', consumer: 'src/sim/sand.js:stepSand'},
+        {id: 'pushMax', label: 'Limite de velocidade do empurrão', formula: 'pushMaxSpeed (0 = sem limite)', value: pushMax > 0 ? `${f2(pushMax)} m/s` : 'sem limite', category: 'Knockback', consumer: 'src/sim/moves/sand-wave/sand-push.js:applySandPushStep'},
+        {id: 'totalLife', label: 'Vida total da onda (ativa + dissipação)', formula: 'active + dissipate (extensão só nos modos experimentais; o modo 0 não estica a vida)', value: `${f2(T + (P.dissipate ?? 0.75))} s`, category: 'Área e persistência', consumer: 'src/sim/sand.js:stepSand'},
+        {id: 'guardDmg', label: 'Dano em guarda comum (referência)', formula: 'damage × 0,5 (multiplicador global; partialFactor NÃO é dano)', value: `${f2((P.damage ?? 6) * 0.5)} HP`, category: 'Dano', consumer: 'src/sim/world/world-hit.js:applyHit'},
       ];
     }
     case 'emerging-stone': {

@@ -208,6 +208,17 @@
         "value": 0.7
       },
       {
+        "min": 1,
+        "max": 3,
+        "step": 1,
+        "key": "pierce",
+        "label": "Corpos que a esfera atravessa",
+        "tip": "Número de alvos que o projétil pode atingir antes de dissipar (1 = para no primeiro, valor aprovado do protótipo). A política blockedBy/clashable continua fixa por contrato de combate.",
+        "unit": "int",
+        "value": 1,
+        "approved": true
+      },
+      {
         "min": 0,
         "max": 1,
         "step": 0.01,
@@ -226,7 +237,8 @@
         "label": "Crescimento da esfera por PL",
         "tip": "Bônus de escala da esfera por nível de Power Level acima de PL1 (padrão: 25% por nível → PL2 1,25×, PL3 1,50×).",
         "unit": "pct",
-        "value": 0.25
+        "value": 0.25,
+        "consumer": "src/sim/moves/water-pulse/water-pulse.vfx.js:scaleOf"
       },
       {
         "preset": "hitShake"

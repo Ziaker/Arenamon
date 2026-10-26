@@ -4,6 +4,7 @@
 import * as T from 'three';
 import {C} from '../../sim/config.js';
 import {altitudeOf} from '../../sim/entity.js';
+import {sandFrontAt} from '../../sim/sand.js';
 import {reflectPlacement} from '../../sim/moves/reflect.js';
 import {stoneCount} from '../../sim/moves/psyshock.js';
 import {updateElemental} from '../elemental-fx.js';
@@ -105,7 +106,7 @@ update(world, {fighters = [], events = [], dt = 0, skipBeams = false, camera = n
       } else if (e.kind === 'sandwave') {
         // retângulo real (comprimento à frente × largura), com a frente da onda avançando na velocidade do motor e dissipando nos 0,75 s finais
         m.position.set(e.pos.x, .03, e.pos.z);m.rotation.y = Math.atan2(e.dir.x, e.dir.z);
-        const act = Math.min(e.age, e.active), fade = e.age <= e.active ? 1 : Math.max(0, 1 - (e.age - e.active) / Math.max(1e-6, e.life - e.active)), reach = e.speed * act;
+        const act = Math.min(e.age, e.active), fade = e.age <= e.active ? 1 : Math.max(0, 1 - (e.age - e.active) / Math.max(1e-6, e.life - e.active)), reach = sandFrontAt(e, act);
         for (const c of m.children) {
           if (c.name === 'sandPlane') {c.scale.set(e.width, 1, Math.max(.01, reach));c.position.z = reach / 2;c.material.opacity = .28 * fade;}
           else if (c.name === 'sandFront') {c.scale.set(e.width, 1, 1);c.position.set(0, .25, reach);c.visible = e.age <= e.active;c.material.opacity = .55 * fade;}

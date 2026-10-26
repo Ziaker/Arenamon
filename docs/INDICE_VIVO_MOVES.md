@@ -15,7 +15,7 @@ Moves registrados: **19**. Em ficha única (um arquivo): 16. Veja `docs/COMO_CRI
 | `guard-break` | `guardBreak` | 9 | 1 | 16 | 10 |
 | `bounce` | `bounce` | 18 | 8 | 16 | 23 |
 | `spikes` | `spikes` | 12 | 3 | 18 | 24 |
-| `sand-wave` | `sandWave` | 12 | 4 | 26 | 11 |
+| `sand-wave` | `sandWave` | 13 | 4 | 26 | 11 |
 | `bullet-punch` | `bulletPunch` | 12 | 3 | 23 | 11 |
 | `emerging-stone` | `emergingStone` | 9 | 2 | 16 | 12 |
 | `feint` | `feint` | 15 | 5 | 13 | 18 |
@@ -138,7 +138,7 @@ Testes executáveis: `node prototypes/combat-lab/test/ai-new-moves.test.mjs` · 
 
 ### `sand-wave` · grupo `sandWave`
 
-- **sim (regras):** `prototypes/combat-lab/src/sim/move-hit-map.js`, `prototypes/combat-lab/src/sim/move-vfx-map.js`, `prototypes/combat-lab/src/sim/moves/move-mechanics-audit.js`, `prototypes/combat-lab/src/sim/moves/new-moves.js`, `prototypes/combat-lab/src/sim/moves/params-registry.js`, `prototypes/combat-lab/src/sim/moves/params.generated.js`, `prototypes/combat-lab/src/sim/moves/pilot-coverage.js`, `prototypes/combat-lab/src/sim/moves/sand-wave/sand-wave.js`, `prototypes/combat-lab/src/sim/moves/sand-wave/sand-wave.params.js`, `prototypes/combat-lab/src/sim/moves/sand-wave/sand-wave.vfx.js`, `prototypes/combat-lab/src/sim/sand.js`, `prototypes/combat-lab/src/sim/vision.js`
+- **sim (regras):** `prototypes/combat-lab/src/sim/controller/ctrl-update.js`, `prototypes/combat-lab/src/sim/move-hit-map.js`, `prototypes/combat-lab/src/sim/move-vfx-map.js`, `prototypes/combat-lab/src/sim/moves/move-mechanics-audit.js`, `prototypes/combat-lab/src/sim/moves/new-moves.js`, `prototypes/combat-lab/src/sim/moves/params-registry.js`, `prototypes/combat-lab/src/sim/moves/params.generated.js`, `prototypes/combat-lab/src/sim/moves/pilot-coverage.js`, `prototypes/combat-lab/src/sim/moves/sand-wave/sand-wave.js`, `prototypes/combat-lab/src/sim/moves/sand-wave/sand-wave.params.js`, `prototypes/combat-lab/src/sim/moves/sand-wave/sand-wave.vfx.js`, `prototypes/combat-lab/src/sim/sand.js`, `prototypes/combat-lab/src/sim/vision.js`
 - **ui (painéis):** `prototypes/combat-lab/src/ui/menu-styles-model.js`, `prototypes/combat-lab/src/ui/moves-panel.js`
 - **view (desenho):** `prototypes/combat-lab/src/view/moves-vfx-registry.js`, `prototypes/combat-lab/src/view/view.js`
 - **src (outros):** `prototypes/combat-lab/src/editor/move-editor-panel.js`, `prototypes/combat-lab/src/nav/nav-assist.js`

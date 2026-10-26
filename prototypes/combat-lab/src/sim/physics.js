@@ -241,10 +241,13 @@ export function stepPhysics(fighters, dt, world = null) {
     // Inner Focus: hit stun reduzido em 20% quando o lançamento veio de um golpe (launch(); edge-fall/jump não marca).
     const stunFactor = f.launchedByHit ? hitStunFactor(f) : 1;
     f.launchedByHit = false;
-    f.knockRecovery = flight.bounce ? (f.hp <= 0 ? 0 : flight.bounce.recovery) : (wasNormalJump || f.hp <= 0) ? 0 : R.landingRecovery * stunFactor; // derrotado não tem recuperação de pouso; Bounce: recuperação própria
+    const rec = flight.bounce ? (f.hp <= 0 ? 0 : flight.bounce.recovery) : (wasNormalJump || f.hp <= 0) ? 0 : R.landingRecovery * stunFactor; // derrotado não tem recuperação de pouso; Bounce: recuperação própria
+    f.knockRecovery = rec;
+    f.landingRecovery = rec;
+    f.recoveryKind = rec > 0 ? 'landing' : null;
     f.recoveryFrom = null;
     f.normalJumpLanding = false;
-    f.state = f.hp <= 0 ? 'defeated' : (wasNormalJump ? 'neutral' : 'landing');
+    f.state = f.hp <= 0 ? 'defeated' : (wasNormalJump ? 'neutral' : (rec > 0 ? 'landing' : 'neutral'));
     if (f.jumpState) {
       f.jumpState.canJump = false;
       f.jumpState.cooldown = C.map?.jumpInterval ?? 0.25;
@@ -252,7 +255,7 @@ export function stepPhysics(fighters, dt, world = null) {
     f.coyoteLeft = 0;f.footstoolDoneWith = null;f.airMoveDir = null;
     // Recovery rápido: C apertado a tempo no ar e stamina suficiente: ao tocar o chão, a esquiva sai na hora (o controlador a inicia).
     const tech = f.tech;f.tech = null;
-    if (T.enableTechRecovery && tech && f.hp > 0 && f.stamina >= passiveCost(f, 'tech', R.techCost) - 1e-8 && (R.techCost <= 0 || !f.exhausted)) {f.knockRecovery = 0;f.landingSlide = null;f.techDodge = {dir: tech.dir};f.state = 'neutral';}
+    if (T.enableTechRecovery && tech && f.hp > 0 && f.stamina >= passiveCost(f, 'tech', R.techCost) - 1e-8 && (R.techCost <= 0 || !f.exhausted)) {f.knockRecovery = 0;f.landingRecovery = 0;f.recoveryKind = null;f.landingSlide = null;f.techDodge = {dir: tech.dir};f.state = 'neutral';}
   };
   for (const f of fighters) {
     f.contacts = 0;ageSurfaces(f);   // normais de contato (deslize na locomoção): renovadas pelos toques deste passo; o controlador as lê no próximo tick
@@ -261,7 +264,7 @@ export function stepPhysics(fighters, dt, world = null) {
       const w = f.wallSplat;
       if (w.fresh) {w.fresh = false;f.velocity = vec();pushVel.set(f.id, vec());continue;}   // o passo em que gruda só registra; o tempo corre a partir do próximo
       w.t += dt;f.velocity = vec();f.state = 'wallSplat';pushVel.set(f.id, vec());
-      if (w.t >= w.duration - 1e-8) {f.wallSplat = null;if (f.flight) f.state = 'airborne';}
+      if (w.t >= w.duration - 1e-8) {f.wallSplat = null;if (f.flight) f.state = f.hp <= 0 ? 'defeated' : 'airborne';}
       continue;
     }
     if (f.ledge) {f.velocity = vec();pushVel.set(f.id, vec());continue;}   // Ledge Grab: posição e altura conduzidas por ledge.js (sem gravidade nem queda de borda)
@@ -325,7 +328,7 @@ export function stepPhysics(fighters, dt, world = null) {
       // permitir pouso vindo de baixo (quem sobe tem vy > 0; quem desliza pela lateral já está descendo).
       if (flight.vy <= 0 && flight.y <= targetGround && prevY >= targetGround - 1e-3) {
         land(f, flight, targetGround);
-      } else {f.velocity = {...flight.horizontal};f.state = 'airborne';}
+      } else {f.velocity = {...flight.horizontal};f.state = f.hp <= 0 ? 'defeated' : 'airborne';}
       // Footstool (Plano D, Etapa 3): ataque de contato superior do salto normal. Só vale com salto voluntário
       // (isNormalJump — inclui o salto de coyote, que converte o voo): quem apenas caiu da borda de uma plataforma
       // não footstoola, o que preserva o invariante "dano só com ação" nas partidas de IA (a IA não salta).
@@ -401,7 +404,7 @@ export function stepPhysics(fighters, dt, world = null) {
         const feelFall = !!(C.map?.jumpImprovements ?? 1);
         f.flight = {y: f.groundY, vy: 0, horizontal: {...f.velocity}, isEdgeFall: true, jumpFeel: feelFall, jumpHeld: false};
         if (feelFall) f.coyoteLeft = C.map?.jumpCoyoteTime ?? 0.10;
-        f.state = 'airborne';
+        f.state = f.hp <= 0 ? 'defeated' : 'airborne';
       } else {
         f.groundY = targetGround;
         f.coyoteLeft = 0;

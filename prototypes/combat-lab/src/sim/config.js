@@ -22,7 +22,7 @@ export function defaults() {
 function buildDefaults() {
   // Regras gerais. Os parâmetros próprios de C (esquiva) e X (tackle) ficam em `actions`.
   // blend: dissipação da velocidade quando a DEFESA cancela uma esquiva/tackle (GDD 7.3: 100 ms).
-  const rules = {recoil: .3, recoilFraction: .15, blend: .1, guardStun: .2,
+  const rules = {recoil: .3, recoilFraction: .15, blend: .1, guardStun: .2, hitstun: .2,
     launchGravity: 17.5, launchUp: 7.3, launchHorizontal: 11, launchDrag: 1.15, clashFraction: .3, clashUp: 8.1, clashHorizontal: 12,
     // Clash por empurrão (enableClashPush): os dois recuam no chão em vez de serem lançados. Recovery rápido (enableTechRecovery): C no ar.
     clashPushDistance: 2.2, clashPushDuration: .35, techWindow: .35, techMinAir: 0, techCost: 1,

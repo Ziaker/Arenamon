@@ -2,7 +2,8 @@
 // Sand Wave (Onda de Areia) — Burst · Melee · PL1 (docs/MUSHROOM_MOVES_DECISOES.md §6, SW-D01…SW-D68; substitui o Sand Kick). Só no chão; cobra 2 de stamina e 10 s
 // de recarga na ATIVAÇÃO; 0,25 s de preparação (sair do chão ou ser interrompido cancela, sem reembolso); ao fim dela nasce a entidade 'sandwave' (sand.js) com o
 // retângulo 4 × 3 m fixado na direção do disparo, e o lutador fica livre. A barragem dura 1,5 s (0,75 s de hitbox + 0,75 s de dissipação). Cada adversário
-// em terra com os pés no retângulo e alcançado pela frente da onda leva 6 HP fixos, cegueira de 4 s (a perfeita anula) e empurrão de 12 m/s² (6 na parcial).
+// em terra com os pés no retângulo e alcançado pela frente da onda leva 6 HP fixos, cegueira de 4 s (a perfeita anula) e empurrão de 12 m/s² (6 na parcial)
+// que, por padrão, acompanha a barragem até 1,5 s enquanto o alvo permanecer dentro do retângulo — independentemente do fim da janela de dano.
 // Visual: a barragem e a nuvem do cegado usam formas provisórias (a direção de arte NÃO foi aprovada, SW-P07). Valores: C.world.sandWave, capturados no disparo.
 import {C} from '../../config.js';
 import {spawn} from '../../world.js';
@@ -18,10 +19,25 @@ export function sandWaveEffect(/** @type {any} */ game, /** @type {any} */ f, /*
   const P = fx.params ?? C.world.sandWave;
   if ((f.flight && !isAirJump(f)) || (!f.flight && (f.vaultHeight ?? 0) > 1e-8)) return {ok: false, reason: 'noGround'};   // lançado ou em outra ação aérea na preparação: cancela (custo mantido). No salto a barragem nasce no chão sob o lutador
   const dir = direction(fx.heading);
+  // Velocidade da frente: por padrão derivada do alcance e da janela ativa (comportamento do DOC02); com a sincronização
+  // desligada, `waveSpeed` manda e `waveAccel` curva o avanço. `accel` NÃO é a aceleração da frente: é o empurrão do alvo.
+  const active = Math.max(0.05, P.active ?? 0.75);
+  const waveAccel = Math.max(0, P.waveAccel ?? 0);
+  const speedFromReach = (P.speedFromReach ?? 1) !== 0;
+  const speed0 = speedFromReach
+    ? Math.max(0, ((P.length ?? 4) - 0.5 * waveAccel * active * active) / active)
+    : Math.max(0, P.waveSpeed ?? (P.length ?? 4) / active);
   const e = spawn(game.world, {
-    kind: 'sandwave', owner: f.id, pos: {x: f.position.x, z: f.position.z}, dir, length: P.length, width: P.width, active: P.active, life: P.active + P.dissipate,
-    speed: P.length / P.active, damage: P.damage, accel: P.accel, knockbackH: P.knockbackH ?? 0, knockbackV: P.knockbackV ?? 0, partialFactor: P.partialFactor, blind: P.blind, wallStagger: P.wallStagger, cell: P.cell, detour: P.detour,
-    replanSteps: P.replanSteps, wallPressMinSpeed: P.wallPressMinSpeed ?? .6, wallPressMoveRatio: P.wallPressMoveRatio ?? .25, y: f.groundY ?? 0, height: P.waveHeight ?? .35, waveBottomTolerance: P.waveBottomTolerance ?? 0.2, visual: 'sand', captured: {move: def.id},
+    kind: 'sandwave', owner: f.id, pos: {x: f.position.x, z: f.position.z}, dir, length: P.length, width: P.width, active, life: active + (P.dissipate ?? 0.75),
+    speed: speed0, speed0, waveAccel, damage: P.damage, accel: P.accel, knockbackH: P.knockbackH ?? 0, knockbackV: P.knockbackV ?? 0, partialFactor: P.partialFactor, blind: P.blind, wallStagger: P.wallStagger, cell: P.cell, detour: P.detour,
+    replanSteps: P.replanSteps, wallPressMinSpeed: P.wallPressMinSpeed ?? .6, wallPressMoveRatio: P.wallPressMoveRatio ?? .25, wallPressStopRatio: P.wallPressStopRatio ?? .3, wallUnpinDistance: P.wallUnpinDistance ?? .01, y: f.groundY ?? 0, height: P.waveHeight ?? .35, waveBottomTolerance: P.waveBottomTolerance ?? 0.2,
+    pushSpeed: P.pushSpeed ?? 0, pushDuration: P.pushDuration ?? 0, pushClearsLocomotion: P.pushClearsLocomotion ?? 1, pushCancelsDodge: P.pushCancelsDodge ?? 1,
+    pushDurationMode: P.pushDurationMode ?? 0, pushContinueAfterActive: P.pushContinueAfterActive ?? 0, pushContinuesOutsideArea: P.pushContinuesOutsideArea ?? 0,
+    pushContinuesDuringStagger: P.pushContinuesDuringStagger ?? 1, pushPreserveVelocity: P.pushPreserveVelocity ?? 0, pushMaxSpeed: P.pushMaxSpeed ?? 0,
+    pushAccelerationMode: P.pushAccelerationMode ?? 0, pushCurvePower: P.pushCurvePower ?? 1, pushTargetSpeed: P.pushTargetSpeed ?? 0, pushRampTime: P.pushRampTime ?? 0.2,
+    pushReleaseDelay: P.pushReleaseDelay ?? 0, pushCancelsExistingDodge: P.pushCancelsExistingDodge ?? 1,
+    blindOnPartial: P.blindOnPartial ?? 1, hitsAirborne: P.hitsAirborne ?? 0, wallStaggerOn: P.wallStaggerOn ?? 1, maxTargets: P.maxTargets ?? 16,
+    visual: 'sand', captured: {move: def.id},
   }, fx.events ?? []);
   if (!e) return {ok: false, reason: 'entityLimit'};
 }

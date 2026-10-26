@@ -14,11 +14,26 @@ import {
   getCalculatedValuesForMove,
   getTechnicalConstantsForMove,
 } from '../sim/moves/move-mechanics-audit.js';
+import {
+  AI_EDITABLE_FIELDS,
+  PILOT_MOVES,
+  buildPilotMatrix,
+  coverageSummary,
+} from '../sim/moves/pilot-coverage.js';
+import {
+  getAiProfile,
+  getDefaultAiProfile,
+  getAiProfileOverride,
+  setAiProfileOverride,
+  resetAiProfileOverride,
+} from '../sim/ai-profile.js';
 import {controls as atelierControls, help as atelierHelp, phaseOf, phaseNames} from '../../../sand-stone-lab/src/config.ts';
 import {ATELIER_APPROVED, ATELIER_GAME_PARAMS} from '../view/quarks/atelier-game-params.js';
 import {EDITABLE_MOVES, editableMove} from './editable-moves.js';
 import {buildMoveDoc, buildVisualDoc, describeDiffs} from './move-save-model.js';
 import {traceMove, compareTraces, currentValues, defaultValues, diffCount} from './move-trace.js';
+import {traceSandPush, PUSH_TRACE_DISTANCES, PUSH_TRACE_SECONDS, svgPoints, svgPushBand} from './sand-push-trace.js';
+import {PUSH_DURATION_MODES, PUSH_ACCEL_MODES, pushReasonLabel} from '../sim/moves/sand-wave/sand-push.js';
 import {
   makeMoveScenario,
   currentMoveJson,
@@ -63,11 +78,12 @@ export function createMoveEditor({getWorld, $, tuning, startScenario, abortScena
     tierFilter: /** @type {'all' | 'essential' | 'advanced' | 'technical'} */ ('all'),
     searchQuery: '',
     onlyChanged: false,
+    pushDistance: 1,
   };
   const move = () => /** @type {any} */ (editableMove(state.moveId));
   const el = (/** @type {string} */ tag, /** @type {Record<string, any>} */ attrs = {}, /** @type {(Node | string)[]} */ kids = []) => {
     const e = document.createElement(tag);
-    for (const [k, v] of Object.entries(attrs)) k === 'class' ? (e.className = v) : k === 'text' ? (e.textContent = v) : e.setAttribute(k, String(v));
+    for (const [k, v] of Object.entries(attrs)) k === 'class' ? (e.className = v) : k === 'text' ? (e.textContent = v) : k === 'html' ? (e.innerHTML = v) : e.setAttribute(k, String(v));
     e.append(...kids);return e;
   };
   const status = (/** @type {string} */ t) => {const s = $('editor-status');if (s) s.textContent = t;};
@@ -223,6 +239,116 @@ export function createMoveEditor({getWorld, $, tuning, startScenario, abortScena
     return sec;
   }
 
+  /**
+   * Perfil do empurrão: roda a simulação REAL a 1, 2, 3 e 4 m (A = padrão/fixado, B = atual) e mostra
+   * velocidade, aceleração, duração e motivo de interrupção por alvo. O recálculo é manual para não
+   * travar o painel enquanto se arrasta um slider.
+   */
+  function pushProfileSection() {
+    const m = move();
+    const sec = el('section', {class: 'editor-sec', id: 'editor-push-profile'}, [
+      el('h4', {text: 'Perfil do empurrão (Sand Wave)'}),
+      el('p', {class: 'hint', text: 'Simulação real do jogo a 1, 2, 3 e 4 m. No modo padrão, a duração é POR ALVO: começa no primeiro contato e segue até o fim da barragem (`active + dissipate` = 1,5 s), enquanto o alvo permanecer dentro do retângulo. Sair da área encerra antes; o motivo aparece na tabela. A = padrão/fixado; B = valores atuais. Recalcule depois de mudar a política.'}),
+    ]);
+    const sel = /** @type {HTMLSelectElement} */ (el('select', {id: 'editor-push-distance'}, PUSH_TRACE_DISTANCES.map(d => el('option', {value: String(d), text: `${d} m`}))));
+    sel.value = String(state.pushDistance);
+    sel.onchange = () => {state.pushDistance = Number(sel.value);runPushProfile();};
+    const recalc = el('button', {type: 'button', id: 'editor-push-recalc', class: 'primary', text: '↻ Recalcular perfil'});
+    const body = el('div', {id: 'editor-push-body'});
+    const runPushProfile = () => {
+      if (!body.isConnected) return;
+      const mm = move(), valuesA = state.pinned ?? defaultValues(mm), valuesB = currentValues(mm);
+      const selected = Math.max(1, Math.min(4, Math.round(state.pushDistance)));
+      body.textContent = 'Simulando…';
+      try {
+        const allB = PUSH_TRACE_DISTANCES.map(d => traceSandPush(mm, valuesB, d, {seconds: PUSH_TRACE_SECONDS}));
+        const b = allB.find(t => t.distance === selected) ?? allB[0];
+        const a = traceSandPush(mm, valuesA, selected, {seconds: PUSH_TRACE_SECONDS});
+        // Prova de contenção: a parede no fim do alcance mantém o alvo DENTRO do retângulo. Sem ela, a arena aberta
+        // costuma terminar em `leftArea`; com ela, o motivo comprova o fim da barragem (`barrageEnded`).
+        const wallA = traceSandPush(mm, valuesA, 1, {seconds: PUSH_TRACE_SECONDS, containment: true});
+        const wallB = traceSandPush(mm, valuesB, 1, {seconds: PUSH_TRACE_SECONDS, containment: true});
+        const w = valuesB;
+        const modeLabel = [...PUSH_DURATION_MODES].find(o => o.value === Math.round(w.pushDurationMode ?? 0))?.label ?? String(w.pushDurationMode ?? 0);
+        const accelLabel = [...PUSH_ACCEL_MODES].find(o => o.value === Math.round(w.pushAccelerationMode ?? 0))?.label ?? String(w.pushAccelerationMode ?? 0);
+        const reasonBadge = (/** @type {string | null} */ r) => el('span', {class: 'push-badge' + (r && r !== 'releaseGrace' ? ' off' : ''), text: pushReasonLabel(r)});
+
+        const table = el('table', {class: 'editor-table push-table'}, [
+          el('tr', {}, ['Dist.', '1º contato', 'Início', 'Fim', 'Duração', 'Pico', 'Desloc.', 'Motivo'].map(h => el('th', {text: h}))),
+          ...allB.map(t => el('tr', {class: t.distance === selected ? 'selected' : ''}, [
+            el('td', {text: `${t.distance} m`}),
+            el('td', {text: t.hitAt == null ? 'não atingiu' : `${fmt(t.hitAt)} s`}),
+            el('td', {text: t.startAt == null ? '—' : `${fmt(t.startAt)} s`}),
+            el('td', {text: t.endAt == null ? '—' : `${fmt(t.endAt)} s`}),
+            el('td', {text: t.startAt == null ? '—' : `${fmt(t.duration)} s`}),
+            el('td', {text: `${fmt(t.peakSpeed)} m/s`}),
+            el('td', {text: `${fmt(t.displacement)} m`}),
+            el('td', {}, [reasonBadge(t.reason)]),
+          ])),
+        ]);
+        const wallTable = el('table', {class: 'editor-table push-containment'}, [
+          el('tr', {}, [el('th', {text: 'Prova de contenção (1 m + parede)'}), el('th', {text: state.pinned ? 'A (fixado)' : 'A (padrão)'}), el('th', {text: 'B (atual)'})]),
+          el('tr', {}, [el('td', {text: 'Duração'}), el('td', {text: wallA.startAt == null ? '—' : `${fmt(wallA.duration)} s`}), el('td', {text: wallB.startAt == null ? '—' : `${fmt(wallB.duration)} s`})]),
+          el('tr', {}, [el('td', {text: 'Motivo'}), el('td', {}, [reasonBadge(wallA.reason)]), el('td', {}, [reasonBadge(wallB.reason)])]),
+        ]);
+
+        const chartEnd = Math.max(1.2, Math.min(PUSH_TRACE_SECONDS, Math.max(a.endAt ?? a.startAt ?? 1, b.endAt ?? b.startAt ?? 1) + .6));
+        const cut = (/** @type {any} */ t) => ({...t, samples: t.samples.filter((/** @type {any} */ s) => s.t <= chartEnd + 1e-9)});
+        const ca = cut(a), cb = cut(b);
+        const W = 480, H = 120;
+        const chart = (/** @type {'speed' | 'accel'} */ key, /** @type {string} */ title, /** @type {string} */ unit) => {
+          const max = Math.max(1, ...ca.samples.map(s => Math.abs(s[key])), ...cb.samples.map(s => Math.abs(s[key])));
+          const band = svgPushBand(cb, W, H);
+          const lastT = Math.max(1e-6, cb.samples.at(-1)?.t ?? 1);
+          const hitX = cb.hitAt == null ? null : Math.max(0, Math.min(1, cb.hitAt / lastT)) * W;
+          const grid = [0, .25, .5, .75, 1].map(f => `<line x1="0" y1="${(H * f).toFixed(1)}" x2="${W}" y2="${(H * f).toFixed(1)}" class="push-grid"/>`).join('');
+          const svg = `<svg class="push-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="${title} do empurrão (${unit})">
+            ${grid}
+            ${band ? `<rect class="push-band" x="${band.x.toFixed(1)}" y="0" width="${band.width.toFixed(1)}" height="${H}"/>` : ''}
+            ${hitX == null ? '' : `<line class="push-hit" x1="${hitX.toFixed(1)}" y1="0" x2="${hitX.toFixed(1)}" y2="${H}"/>`}
+            <polyline class="push-line push-a" points="${svgPoints(ca.samples, key, max, W, H)}"/>
+            <polyline class="push-line push-b" points="${svgPoints(cb.samples, key, max, W, H)}"/>
+          </svg>`;
+          return el('div', {class: 'push-chart'}, [
+            el('div', {class: 'push-chart-head'}, [el('strong', {text: `${title} (${unit})`}), el('span', {text: `máx. ${fmt(max)}`})]),
+            el('div', {class: 'push-chart-canvas', html: svg}),
+          ]);
+        };
+
+        const ab = el('table', {class: 'editor-table push-ab'}, [
+          el('tr', {}, [el('th', {text: 'Medida'}), el('th', {text: state.pinned ? 'A (fixado)' : 'A (padrão)'}), el('th', {text: 'B (atual)'})]),
+          el('tr', {}, [el('td', {text: 'Duração do empurrão'}), el('td', {text: a.startAt == null ? '—' : `${fmt(a.duration)} s`}), el('td', {text: b.startAt == null ? '—' : `${fmt(b.duration)} s`})]),
+          el('tr', {}, [el('td', {text: 'Deslocamento do alvo'}), el('td', {text: `${fmt(a.displacement)} m`}), el('td', {text: `${fmt(b.displacement)} m`})]),
+          el('tr', {}, [el('td', {text: 'Velocidade de pico'}), el('td', {text: `${fmt(a.peakSpeed)} m/s`}), el('td', {text: `${fmt(b.peakSpeed)} m/s`})]),
+          el('tr', {}, [el('td', {text: 'Motivo de interrupção'}), el('td', {}, [reasonBadge(a.reason)]), el('td', {}, [reasonBadge(b.reason)])]),
+        ]);
+
+        body.replaceChildren(
+          el('div', {class: 'editor-actions'}, [sel, recalc]),
+          el('p', {class: 'hint', text: `B: duração «${modeLabel}» · aceleração «${accelLabel}» · tolerância ${fmt(w.pushReleaseDelay ?? 0)} s · limite de tempo ${Number(w.pushDuration ?? 0) > 0 ? fmt(w.pushDuration) + ' s' : '= fim da barragem'} · limite de velocidade ${Number(w.pushMaxSpeed ?? 0) > 0 ? fmt(w.pushMaxSpeed) + ' m/s' : 'sem limite'}.`}),
+          el('div', {class: 'push-legend'}, [
+            el('span', {class: 'push-key push-key-a', text: 'A — padrão/fixado'}),
+            el('span', {class: 'push-key push-key-b', text: 'B — atual'}),
+            el('span', {class: 'push-key push-key-band', text: 'faixa = empurrão ativo'}),
+            el('span', {class: 'push-key push-key-hit', text: 'linha = 1º contato'}),
+          ]),
+          el('div', {class: 'push-charts'}, [chart('speed', 'Velocidade', 'm/s'), chart('accel', 'Aceleração', 'm/s²')]),
+          el('div', {class: 'editor-table-scroll'}, [table]),
+          el('div', {class: 'editor-table-scroll'}, [ab]),
+          el('div', {class: 'editor-table-scroll'}, [wallTable]),
+          el('p', {class: 'hint', text: 'O seletor 1–4 m alterna o alvo dos dois gráficos; a tabela cobre os quatro. «Início» é o primeiro tick com força; «Fim» é o tick do motivo exibido. Na arena aberta o alvo costuma sair do retângulo antes de 1,5 s: isso é o motivo «Saiu do retângulo», não um corte da barragem. A prova de contenção usa uma parede no fim do alcance para manter o alvo dentro e mostrar o motivo «Fim da barragem» em ~1,5 s. A simulação real inclui atrito, parede e controlador.'}),
+        );
+      } catch (e) {
+        body.textContent = 'Não foi possível simular o empurrão: ' + /** @type {Error} */ (e).message;
+      }
+    };
+    recalc.onclick = runPushProfile;
+    sec.append(body);
+    // Primeira execução: o perfil já aparece ao abrir o Editor (sem depender de clicar em nada).
+    setTimeout(runPushProfile, 0);
+    return sec;
+  }
+
   /** Seção completa de Mecânica (Fases 3, 4 e 5): parâmetros exclusivos com categorias/busca/digitação exata, herdados, calculados e constantes técnicas. */
   function mechanicsSection() {
     const m = move();
@@ -315,11 +441,15 @@ export function createMoveEditor({getWorld, $, tuning, startScenario, abortScena
         const path = `world.${m.group}.${r.key}`;
         const range = meta.effectiveRange;
         const get = () => getWorld()[m.group][r.key];
-        const isToggle = r.min === 0 && r.max === 1 && r.step === 1;
-        const input = /** @type {HTMLInputElement} */ (el('input', isToggle
-          ? {type: 'checkbox', 'data-path': path}
-          : {type: 'range', 'data-path': path, min: range.min, max: range.max, step: range.step}));
-        const numInput = !isToggle ? /** @type {HTMLInputElement} */ (el('input', {
+        const hasOptions = Array.isArray(r.options) && r.options.length > 0;
+        const isToggle = !hasOptions && r.min === 0 && r.max === 1 && r.step === 1;
+        const optionLabel = (/** @type {number} */ v) => hasOptions ? (r.options.find((/** @type {any} */ o) => Number(o.value) === Number(v))?.label ?? String(v)) : show(v, r.unit);
+        const input = /** @type {HTMLInputElement} */ (hasOptions
+          ? el('select', {'data-path': path}, r.options.map((/** @type {any} */ o) => el('option', {value: String(o.value), text: o.label})))
+          : el('input', isToggle
+            ? {type: 'checkbox', 'data-path': path}
+            : {type: 'range', 'data-path': path, min: range.min, max: range.max, step: range.step}));
+        const numInput = !isToggle && !hasOptions ? /** @type {HTMLInputElement} */ (el('input', {
           type: 'number',
           class: 'ed-num-input',
           'data-num-path': path,
@@ -372,7 +502,7 @@ export function createMoveEditor({getWorld, $, tuning, startScenario, abortScena
             input.value = String(v);
             if (numInput && document.activeElement !== numInput) numInput.value = String(+(+v).toFixed(4));
           }
-          out.textContent = isToggle ? (v ? 'sim' : 'não') : show(v, r.unit);
+          out.textContent = isToggle ? (v ? 'sim' : 'não') : optionLabel(v);
           row.classList.toggle('changed', v !== r.value);
           if (depKey && depKey in (getWorld()[m.group] ?? {})) {
             row.classList.toggle('ed-dep-off', !getWorld()[m.group][depKey]);
@@ -386,7 +516,7 @@ export function createMoveEditor({getWorld, $, tuning, startScenario, abortScena
           const v = Number(input.value);
           getWorld()[m.group][r.key] = v;
           if (numInput) numInput.value = String(+(+v).toFixed(4));
-          out.textContent = show(v, r.unit);
+          out.textContent = optionLabel(v);
           refreshCalculated();
           scheduleAnalysis();
         };
@@ -469,13 +599,13 @@ export function createMoveEditor({getWorld, $, tuning, startScenario, abortScena
     };
 
     // 1. Subseção: Parâmetros herdados de sistemas compartilhados (Charge, Tackle, Combate, IA)
-    const inheritedList = getInheritedParamsForMove(m.id, m.group);
+    const inheritedList = getInheritedParamsForMove(m.id, m.group, {tackle: C.actions?.tackle ?? {}});
     const inhDetails = el('details', {id: 'editor-inherited', class: 'ed-subsec'}, [
       el('summary', {}, [
         el('b', {text: `Parâmetros herdados de sistemas compartilhados (${inheritedList.length})`}),
-        el('small', {class: 'muted', text: ' · Charge, Tackle, Combate e IA'}),
+        el('small', {class: 'muted', text: ' · Física, Combate, Mundo e IA'}),
       ]),
-      el('p', {class: 'hint', text: 'Valores globais herdados por este Move. Quando o Move possui um slider exclusivo que substitui o valor herdado, o indicador «substituído pelo Move» mostra qual parâmetro prevalece.'}),
+      el('p', {class: 'hint', text: 'Valores globais herdados por este Move (física do empurrão, lançamento, combate, mundo e IA). Quando o Move possui um slider exclusivo que substitui o valor herdado, o indicador «substituído pelo Move» mostra qual parâmetro prevalece.'}),
     ]);
     for (const inh of inheritedList) {
       const defVal = Number(getByPath(defaults(), inh.path) ?? 0);
@@ -499,7 +629,7 @@ export function createMoveEditor({getWorld, $, tuning, startScenario, abortScena
       const resetInh = el('button', {type: 'button', class: 'mini', title: 'Restaurar valor herdado padrão', text: '↺'});
       const badge = inh.overriddenBy
         ? el('small', {class: 'ok', title: `Este Move possui um parâmetro próprio que substitui ou escala este valor: ${inh.overriddenBy}`, text: `substituído por ${inh.overriddenBy}`})
-        : el('small', {class: 'muted', text: inh.system});
+        : el('small', {class: 'muted', text: inh.system ?? 'Global'});
       const row = el('label', {
         class: 'editor-row',
         title: `${inh.tip}\nCaminho global: C.${inh.path}\nConsumidor: ${inh.consumer}`,
@@ -563,7 +693,7 @@ export function createMoveEditor({getWorld, $, tuning, startScenario, abortScena
       calcBox,
     ]);
     function refreshCalculated() {
-      const calcRows = getCalculatedValuesForMove(m.id, m.group, getWorld(), C.profiles?.balanced?.attack ?? 10, C.test?.attackReference ?? 10);
+      const calcRows = getCalculatedValuesForMove(m.id, m.group, getWorld(), {attackRef: C.profiles?.balanced?.attack ?? 10});
       calcBox.innerHTML = `<table class="editor-table"><tr><th>Resultado mecânico</th><th>Fórmula</th><th>Valor atual</th></tr>${calcRows.map(c => `<tr><td>${escape(c.label)}</td><td><code>${escape(c.formula)}</code></td><td><b>${escape(String(c.value))}</b> ${escape(UNIT[/** @type {keyof typeof UNIT} */ (c.unit)] ?? c.unit)}</td></tr>`).join('')}</table>`;
     }
     refreshCalculated();
@@ -593,6 +723,103 @@ export function createMoveEditor({getWorld, $, tuning, startScenario, abortScena
     });
 
     sec.append(box, inhDetails, calcDetails, techDetails);
+    return sec;
+  }
+
+  /** IA declarativa do Move (DOC03 §3–§5): chance, faixa de distância e stamina com efeito real na decisão da IA. */
+  function aiSection() {
+    const m = move();
+    const sec = el('section', {class: 'editor-sec', id: 'editor-ai-sec'}, [el('h4', {text: 'IA do Move'})]);
+    const base = getDefaultAiProfile(m.id);
+    if (!base) {sec.append(el('p', {class: 'hint', text: 'Este Move não declara perfil de IA (ficha.ai).'}));return sec;}
+    sec.append(el('p', {class: 'hint', text: 'Regras declarativas da ficha: aqui você ajusta a OPORTUNIDADE (chance e faixa), não a permissão — custo, recarga e alcance continuam sendo validados pelo controlador. Ajustes valem nesta sessão (a ficha é código).'}));
+    const patch = {...(getAiProfileOverride(m.id) ?? {})};
+    const live = getAiProfile(m.id) ?? base;
+    const write = (/** @type {string} */ path, /** @type {number} */ value) => {
+      const next = {...patch};
+      if (path.startsWith('distance.')) {
+        const k = path.split('.')[1];
+        next.distance = {...(next.distance ?? {}), [k]: value};
+      } else next[path] = value;
+      const res = setAiProfileOverride(m.id, next);
+      if (!res.ok) {status('IA: ajuste recusado — ' + res.errors.join('; '));return false;}
+      if (path.startsWith('distance.')) patch.distance = {...(patch.distance ?? {}), [path.split('.')[1]]: value};
+      else patch[path] = value;
+      status(`IA de «${m.name}» atualizada (${path} = ${value}).`);
+      return true;
+    };
+    for (const f of AI_EDITABLE_FIELDS) {
+      const current = f.key.includes('.') ? live.distance?.[f.key.split('.')[1]] : live[f.key];
+      if (current === undefined) continue;
+      const slider = /** @type {HTMLInputElement} */ (el('input', {type: 'range', 'data-ai-field': f.key, min: f.min, max: f.max, step: f.step, value: current}));
+      const num = /** @type {HTMLInputElement} */ (el('input', {type: 'number', class: 'ed-num-input', 'data-ai-num': f.key, min: f.min, max: f.max, step: f.step, value: current}));
+      const out = el('output', {text: f.unit === 'pct' ? `${+(current * 100).toFixed(0)} %` : `${current} ${UNIT[/** @type {keyof typeof UNIT} */ (f.unit)] ?? ''}`.trim()});
+      const sync = (/** @type {number} */ raw) => {
+        const v = Math.min(f.max, Math.max(f.min, Number.isFinite(raw) ? raw : Number(slider.value)));
+        if (!write(f.key, v)) {const back = f.key.includes('.') ? (getAiProfile(m.id)?.distance?.[f.key.split('.')[1]] ?? current) : (getAiProfile(m.id)?.[f.key] ?? current);slider.value = String(back);num.value = String(back);out.textContent = String(back);return;}
+        slider.value = String(v);num.value = String(v);out.textContent = f.unit === 'pct' ? `${+(v * 100).toFixed(0)} %` : `${v} ${UNIT[/** @type {keyof typeof UNIT} */ (f.unit)] ?? ''}`.trim();
+      };
+      slider.oninput = () => sync(Number(slider.value));
+      num.onchange = () => sync(Number(num.value));
+      sec.append(el('label', {class: 'editor-row', title: `Caminho no perfil: ai.${f.key}`}, [el('span', {text: f.label}), slider, num, out]));
+    }
+    const req = (base.requires ?? []).join(', ') || 'nenhuma';
+    const goal = typeof base.goal === 'function' ? 'função por distância' : String(base.goal ?? '—');
+    sec.append(el('p', {class: 'hint', text: `Modalidade: ${base.kind} · exige: ${req} · goal de carga: ${goal}. Campos semânticos (kind/requires/when) ficam somente leitura e justificados na matriz.`}));
+    const reset = el('button', {type: 'button', id: 'editor-ai-reset', class: 'mini', text: '↺ Restaurar IA da ficha'});
+    reset.onclick = () => {resetAiProfileOverride(m.id);status('IA restaurada ao perfil declarativo da ficha.');render();};
+    sec.append(el('div', {class: 'editor-actions'}, [reset]));
+    return sec;
+  }
+
+  /** Portão ZERO (DOC03 §2): matriz dos três pilotos, cobertura decidida, evidência A/B e lista de abertos. */
+  function coverageSection() {
+    const sec = el('section', {class: 'editor-sec', id: 'editor-coverage-sec'}, [el('h4', {text: 'Portão ZERO: cobertura dos 3 pilotos'})]);
+    const pilots = PILOT_MOVES.map(p => {
+      const em = EDITABLE_MOVES.find(x => x.id === p.id);
+      return em ? {...em, runtime: getWorld()[em.group] ?? {}, aiProfile: getAiProfile(p.id), inherited: getInheritedParamsForMove(p.id, em.group, {tackle: C.actions?.tackle ?? {}})} : null;
+    }).filter(Boolean);
+    const entries = pilots.flatMap((m) => buildPilotMatrix(/** @type {any} */ (m)));
+    const sum = coverageSummary(entries);
+    // Controles deslizantes que realmente existem no Editor (mecânica visível + IA + herdados).
+    // A matriz conta CANDIDATOS (inclui regras e bloqueados); esta coluna evita confundir 36 candidatos com 36 sliders.
+    const stats = new Map(pilots.map((m) => {
+      const prof = /** @type {any} */ (m.aiProfile);
+      const mech = m.params.rows.filter((/** @type {any} */ r) => !String(r.key).startsWith('hitShake') && !isVisualWorldParam([m.group, r.key])).length;
+      const ai = prof ? AI_EDITABLE_FIELDS.filter(f => f.key.includes('.') ? prof.distance?.[f.key.split('.')[1]] !== undefined : prof[f.key] !== undefined).length : 0;
+      const inh = m.inherited.length;
+      return [m.id, {mech, ai, inh, total: mech + ai + inh}];
+    }));
+    const sliders = [...stats.values()].reduce((n, s) => n + s.total, 0);
+    const bar = (/** @type {string} */ label, /** @type {number} */ pct, /** @type {string} */ cls) => el('div', {class: 'editor-row'}, [el('span', {text: label}), el('div', {class: 'cov-bar ' + cls, title: `${pct}%`}, [el('span', {style: `width:${Math.max(0, Math.min(100, pct))}%`})]), el('output', {text: `${pct}%`})]);
+    sec.append(
+      el('p', {class: 'hint', text: `Candidatos mecânicos classificados: ${sum.total}. Decididos: ${sum.decided} · A/B individual comprovado: ${sum.pass} · herdados: ${sum.inherited} · técnicas justificadas: ${sum.technical} · bloqueados: ${sum.blocked}. Controles deslizantes no Editor: ${sliders} (mecânica + IA + herdados). Candidato não é sinônimo de slider: regras fixas e campos bloqueados aparecem só como leitura justificada.`}),
+      bar('Cobertura decidida', sum.decidedPct, 'ok'),
+      bar('Evidência A/B individual', sum.evidencePct, 'warn'),
+    );
+    if (sum.open) {
+      const det = el('details', {class: 'ed-subsec', open: ''}, [el('summary', {}, [el('b', {text: `Abertos (${sum.open})`}), el('small', {class: 'muted', text: ' · expostos, mas sem A/B individual registrado'})])]);
+      det.append(el('p', {class: 'hint', text: 'O DOC03 exige prova A/B por candidato. Estes controles existem e são reais, mas a evidência individual ainda falta: não são homologados por contagem de sliders.'}));
+      det.append(el('table', {class: 'editor-table'}, [el('tr', {}, [el('th', {text: 'Candidato'}), el('th', {text: 'Consumidor'})]), ...entries.filter(e => e.decision === 'OPEN').slice(0, 80).map(e => el('tr', {}, [el('td', {}, [el('code', {text: e.id})]), el('td', {}, [el('small', {text: e.consumer})])]))]));
+      sec.append(det);
+    }
+    const byMove = new Map();
+    for (const e of entries) byMove.set(e.move, [...(byMove.get(e.move) ?? []), e]);
+    // Divergência entre a ficha (.move.json) e o valor efetivo aprovado (base de calibração v8): mostrada, nunca escondida.
+    const drift = entries.filter(e => typeof e.runtime === 'number' && typeof e.value === 'number' && Math.abs(e.runtime - e.value) > 1e-9);
+    if (drift.length) {
+      const det = el('details', {class: 'ed-subsec'}, [el('summary', {}, [el('b', {text: `Ficha × padrão aprovado (${drift.length})`}), el('small', {class: 'muted', text: ' · a base de calibração v8 sobrepõe a ficha em runtime'})])]);
+      det.append(el('table', {class: 'editor-table'}, [
+        el('tr', {}, [el('th', {text: 'Candidato'}), el('th', {text: 'Ficha'}), el('th', {text: 'Runtime'})]),
+        ...drift.map(e => el('tr', {}, [el('td', {}, [el('code', {text: e.id})]), el('td', {text: String(e.value)}), el('td', {text: String(e.runtime)})])),
+      ]));
+      sec.append(det);
+    }
+    const table = el('table', {class: 'editor-table coverage-table'}, [
+      el('tr', {}, [el('th', {text: 'Piloto'}), el('th', {text: 'Candidatos'}), el('th', {text: 'Sliders'}), el('th', {text: 'PASS'}), el('th', {text: 'Herdados'}), el('th', {text: 'Técnicos'}), el('th', {text: 'Bloqueados'}), el('th', {text: 'Abertos'})]),
+      ...[...byMove.entries()].map(([id, list]) => {const s = coverageSummary(list);const st = stats.get(id);return el('tr', {}, [el('td', {text: id}), el('td', {text: s.total}), el('td', {title: st ? `${st.mech} mecânica + ${st.ai} IA + ${st.inh} herdados` : '', text: st?.total ?? 0}), el('td', {text: s.pass}), el('td', {text: s.inherited}), el('td', {text: s.technical}), el('td', {text: s.blocked}), el('td', {class: s.open ? 'bad' : 'good', text: s.open})]);}),
+    ]);
+    sec.append(el('div', {class: 'editor-table-scroll', title: 'Role para o lado para ver todas as colunas.'}, [table]));
     return sec;
   }
 
@@ -701,9 +928,17 @@ export function createMoveEditor({getWorld, $, tuning, startScenario, abortScena
   }
 
   function render() {
-    root.replaceChildren(stageSection(), analysisSection(), mechanicsSection(), visualSection(), vfxSection(), fichaSection(), exportSection());
+    root.replaceChildren(stageSection(), analysisSection(), ...(state.moveId === 'sand-wave' ? [pushProfileSection()] : []), mechanicsSection(), aiSection(), coverageSection(), visualSection(), vfxSection(), fichaSection(), exportSection());
     analyze();
   }
+  // Ctrl+K: foco direto na busca de parâmetros do Editor (DOC03 §7.3), sem roubar o atalho quando o foco já está num campo.
+  document.addEventListener('keydown', (ev) => {
+    if (!(ev.ctrlKey || ev.metaKey) || String(ev.key).toLowerCase() !== 'k') return;
+    if (!$('move-editor') || $('move-editor').hidden) return;
+    const box = $('editor-param-search');
+    if (!box) return;
+    ev.preventDefault();box.focus();box.select?.();
+  });
   render();
   tuning.onChange?.(() => {if (root.isConnected) scheduleAnalysis();});
   /** Abre o editor neste Move (usado pela vitrine da aba Moves). */

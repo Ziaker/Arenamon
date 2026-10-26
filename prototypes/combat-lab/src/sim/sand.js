@@ -4,16 +4,18 @@
 // primeiros `active` s e dissipação visual até `life`. Por passo, para cada adversário:
 //   • elegível = vivo, em terra, com os PÉS dentro do retângulo original e alcançado pela frente da onda; invulnerável não sofre nada nem gasta o acerto;
 //   • primeiro contato válido (UM por alvo por execução): 6 HP fixos (independem do Ataque) pela função de acerto das entidades, cegueira de 4 s (a defesa
-//     perfeita anula; a parcial não) e empurrão; os contatos seguintes só mantêm o empurrão;
-//   • EMPURRÃO: aceleração horizontal 12 m/s² (6 sob defesa parcial) para a frente da direção fixada, enquanto houver contato na janela; suspende o controle de
-//     deslocamento e a esquiva (controller.js lê `f.sandPush`), e a velocidade ganha se mantém depois e decai pelo atrito normal;
+//     perfeita anula; a parcial não) e empurrão;
+//   • EMPURRÃO: a janela é POR ALVO e definida pela política `pushDurationMode` (sand-push.js). Por PADRÃO começa no primeiro contato e dura até o fim da
+//     barragem (`active + dissipate`), enquanto o alvo continuar DENTRO do retângulo. Sair da área encerra a força. Modos experimentais podem usar tempo fixo,
+//     contato contínuo ou a janela de dano legada (aí sim a vida pode ser estendida). A defesa parcial multiplica a aceleração; a perfeita anula;
 //   • PAREDE: pressionado contra um sólido, para e fica em stagger de `wallStagger` s sem dano; só repete depois de se soltar e bater de novo.
 // Obstáculos móveis: o campo de distâncias é recalculado a cada `replanSteps` passos (SW-D67). Valores: parâmetros capturados no disparo (M28.4).
 import {applyHit} from './world/world-hit.js';
 import {applyStatus} from './status.js';
 import {solidsOf, insideSolid, segmentClear} from './vision.js';
-import {dot} from './math.js';
+import {dot, scale, clamp} from './math.js';
 import {altitudeOf} from './altitude.js';
+import {pushAccelNow, pushDurationModeOf, pushWindowState} from './moves/sand-wave/sand-push.js';
 
 const SQ2 = Math.SQRT2;
 /** @type {WeakMap<object, {at: number, sig: string, field: any}>} */
@@ -24,6 +26,11 @@ const localOf = (/** @type {any} */ e, /** @type {{x: number, z: number}} */ p) 
   return {u: dx * d.x + dz * d.z, v: dx * d.z - dz * d.x};
 };
 export const inRect = (/** @type {any} */ e, /** @type {{x: number, z: number}} */ p) => {const l = localOf(e, p);return l.u >= 0 && l.u <= e.length && Math.abs(l.v) <= e.width / 2;};
+/** Distância percorrida pela frente da onda no tempo `age` (m): v₀·t + ½·a·t², com v₀ e a capturados no disparo. */
+export function sandFrontAt(/** @type {any} */ e, /** @type {number} */ age) {
+  const v0 = e.speed0 ?? e.speed ?? 0, a = e.waveAccel ?? 0;
+  return Math.max(0, v0 * age + 0.5 * a * age * age);
+}
 
 /** Campo de distâncias mais curtas (m) a partir da origem, em grade, sem atravessar sólidos; só dentro da região do retângulo + `detour`. */
 function distanceField(/** @type {any} */ e, /** @type {import('./vision.js').Solid[]} */ solids) {
@@ -61,56 +68,124 @@ function pathDistance(/** @type {any} */ e, /** @type {any} */ field, /** @type 
   return field.dist[iz * field.nx + ix] + field.cs * .5;
 }
 
+/** Limita a componente do empurrão (maxSpeed=0 significa sem limite). */
+function capPushSpeed(/** @type {any} */ f, /** @type {{x: number, z: number}} */ dir, /** @type {number} */ max) {
+  if (!(max > 0)) return;
+  const lv = f.locomotionVelocity ?? {x: 0, z: 0};
+  const along = dot(lv, dir);
+  if (along > max) f.locomotionVelocity = {x: lv.x - dir.x * (along - max), z: lv.z - dir.z * (along - max)};
+}
+
 export function stepSand(/** @type {any} */ game, /** @type {any} */ e, /** @type {number} */ dt, /** @type {any[]} */ events) {
-  const solids = solidsOf(game.world), active = e.age <= e.active + 1e-9;
-  if (!active) {   // dissipação visual: sem hitbox, sem empurrão
-    if (e.pushed?.length) {for (const id of e.pushed) {const f = game.fighters[id];if (f?.sandPush?.by === e.id) f.sandPush = null;}e.pushed = [];}
-    return;
-  }
+  const solids = solidsOf(game.world);
+  // A frente é avaliada em ticks de 120 Hz: um alvo exatamente no fim do alcance pode ser alcançado entre dois ticks.
+  // Damos UM tick de tolerância para o PRIMEIRO contato; depois disso, a política do empurrão decide (no modo 0,
+  // basta o alvo permanecer dentro do retângulo até o fim da barragem).
+  const hitWindow = e.age <= e.active + dt + 1e-9;
+  e.targets ??= {};e.pushed ??= [];
+  // Depois de `active` a hitbox acabou, mas um empurrão já iniciado pode continuar (política por alvo). Só encerra cedo
+  // quando não há nenhum empurrão em curso, preservando o custo zero da dissipação visual.
+  if (!hitWindow && e.pushed.length === 0) return;
   const sig = solids.map(s => `${s.pos.x.toFixed(2)},${s.pos.z.toFixed(2)},${s.hx ?? s.radius}`).join('|');
   const stepNo = Math.round(e.age / dt);
   let cache = FIELDS.get(e);   // o campo de distâncias é só um cache derivado (fora do estado salvo): depois de carregar um save ele é recalculado
   if (!cache || stepNo - cache.at >= e.replanSteps || cache.sig !== sig) {cache = {at: stepNo, sig, field: distanceField(e, solids)};FIELDS.set(e, cache);}
-  const front = e.speed * e.age, still = new Set();
+  const front = sandFrontAt(e, e.age), still = new Set();
   const minPressSpeed = e.wallPressMinSpeed ?? .6, moveRatio = e.wallPressMoveRatio ?? .25;
-  e.targets ??= {};e.pushed ??= [];
+  const maxTargets = e.maxTargets ?? 16;
   for (const f of game.fighters) {
-    if (f.id === e.owner || f.hp <= 0 || f.absent || f.flight || (f.vaultHeight ?? 0) > 1e-8) continue;
+    if (f.id === e.owner) continue;
+    const st = e.targets[f.id];
+    if (f.hp <= 0 || f.absent) {   // alvo saiu: encerra o empurrão e registra o motivo
+      if (f.sandPush?.by === e.id) f.sandPush = null;
+      if (st) {st.reason = 'targetGone';st.pushStopReason = 'targetGone';}
+      continue;
+    }
+    const airborne = !!(f.flight || (f.vaultHeight ?? 0) > 1e-8);
+    const airborneBlocked = airborne && !(e.hitsAirborne ?? 0);
     const targetAlt = altitudeOf(f);
     const botTol = e.waveBottomTolerance ?? 0.2;
     const waveBottom = e.y ?? 0, waveTop = waveBottom + (e.height ?? .35);
-    if (targetAlt < waveBottom - botTol || targetAlt > waveTop + 1e-6) continue;
-    const st = e.targets[f.id];
+    const verticalOut = targetAlt < waveBottom - botTol || targetAlt > waveTop + 1e-6;
     const inside = inRect(e, f.position);
-    if (!inside) {if (st) st.pinned = false;continue;}
-    if (pathDistance(e, cache.field, solids, f.position) > front + 1e-9) continue;   // a frente ainda não chegou
-    if (!st) {   // primeiro contato: tenta o acerto (invulnerável não gasta nada)
-       // Limpa a velocidade propria (caminhada/corrida/esquiva) para o empurrao sobrepujar o movimento.
-       f.locomotionVelocity = {x: 0, z: 0};f.velocity = {x: 0, z: 0};
+    const reached = inside && pathDistance(e, cache.field, solids, f.position) <= front + 1e-9;
+    const contact = inside && reached && !airborneBlocked && !verticalOut;
+    // No modo oficial (0), depois do primeiro acerto a força depende de continuar DENTRO do retângulo, não de a frente
+    // da onda continuar atrás do alvo. Renovamos a tolerância de saída enquanto ele estiver elegível na área.
+    const insideForPush = inside && !airborneBlocked && !verticalOut;
+    if (st && (contact || (pushDurationModeOf(e) === 0 && insideForPush))) st.lastContactAt = e.age;
+    if (!st) {   // primeiro contato: só dentro da janela de dano
+      if (!hitWindow || !contact) continue;
+      if (Object.keys(e.targets).length >= maxTargets) continue;   // limite de alvos por execução
       const ev = applyHit(game, e.owner, f, {damage: e.damage, knockback: (e.knockbackH > 0 || e.knockbackV > 0) ? {horizontal: e.knockbackH ?? 0, vertical: e.knockbackV ?? 0} : null}, {x: e.dir.x, z: e.dir.z}, {entity: e.id, source: 'sand', origin: {x: e.pos.x, z: e.pos.z}, pl: 1, contact: 'area', move: 'sand-wave'});
       if (!ev || ev.result === 'invulnerable') continue;
       events.push(ev);
-      e.targets[f.id] = {partial: ev.result === 'partial', perfect: ev.result === 'perfect', pinned: false, last: {x: f.position.x, z: f.position.z}, riposte: ev.result === 'riposte'};
-      if (ev.result !== 'perfect' && ev.result !== 'riposte') {applyStatus(f, {id: 'blind', duration: e.blind, stacking: 'refresh', tags: ['debuff', 'blind'], flags: {blind: true}}, {source: e.owner});events.push({result: 'blinded', attacker: e.owner ?? null, target: f.id, damage: 0, entity: e.id, duration: e.blind});}
+      e.targets[f.id] = {partial: ev.result === 'partial', perfect: ev.result === 'perfect', pinned: false, last: {x: f.position.x, z: f.position.z}, riposte: ev.result === 'riposte', firstAt: e.age, lastContactAt: e.age, pushStartedAt: null, pushActiveFor: 0, pushStopReason: ev.result === 'perfect' || ev.result === 'riposte' ? 'perfectGuard' : null, reason: ev.result === 'perfect' || ev.result === 'riposte' ? 'perfectGuard' : null};
+      // Impulso inicial (m/s): soma à velocidade própria sobrevivente. A limpeza do movimento é uma política
+      // separada (`pushClearsLocomotion`/`pushPreserveVelocity`); a defesa parcial multiplica o impulso.
+      const dir = {x: e.dir.x, z: e.dir.z};
+      const preserve = (e.pushClearsLocomotion ?? 1) ? clamp(e.pushPreserveVelocity ?? 0, 0, 1) : 1;
+      const preserved = scale(f.locomotionVelocity ?? {x: 0, z: 0}, preserve);
+      f.locomotionVelocity = {x: preserved.x || 0, z: preserved.z || 0};
+      const ps = (ev.result === 'perfect' || ev.result === 'riposte') ? 0 : (ev.result === 'partial') ? (e.pushSpeed ?? 0) * (e.partialFactor ?? .5) : (e.pushSpeed ?? 0);
+      if (ps > 0) f.locomotionVelocity = {x: f.locomotionVelocity.x + dir.x * ps, z: f.locomotionVelocity.z + dir.z * ps};
+      capPushSpeed(f, dir, e.pushMaxSpeed ?? 0);
+      const canBlind = ev.result !== 'perfect' && ev.result !== 'riposte' && (ev.result !== 'partial' || (e.blindOnPartial ?? 1));
+      if (canBlind) {applyStatus(f, {id: 'blind', duration: e.blind, stacking: 'refresh', tags: ['debuff', 'blind'], flags: {blind: true}}, {source: e.owner});events.push({result: 'blinded', attacker: e.owner ?? null, target: f.id, damage: 0, entity: e.id, duration: e.blind});}
       if (ev.result === 'perfect' || ev.result === 'riposte') continue;
     }
-    const t = e.targets[f.id];if (t.perfect || t.riposte) continue;
-    // O empurrao sobrepuja qualquer movimentacao (caminhada, corrida, esquiva): cancela esquiva em andamento.
-    if (f.action && f.action.kind === 'dodge') { if (!f.sandPush) f.locomotionVelocity = {x: 0, z: 0}; f.action = null; }
-    // empurrão contínuo para a frente da direção fixada
-    const accel = e.accel * (t.partial ? e.partialFactor : 1);
-    f.sandPush = {by: e.id, dir: {x: e.dir.x, z: e.dir.z}, accel};still.add(f.id);
+    const t = e.targets[f.id];if (!t || t.perfect || t.riposte) {if (t) t.reason = 'perfectGuard';continue;}
+    // Distância de soltura da parede: medida mesmo quando o empurrão está pausado por recuperação/stagger.
+    const moved = (f.position.x - t.last.x) * e.dir.x + (f.position.z - t.last.z) * e.dir.z;
+    if (t.pinned && moved > (e.wallUnpinDistance ?? .01)) t.pinned = false;
+    const state = pushWindowState(e, t, e.age, {contact, inside, airborne: airborneBlocked, verticalOut, pinned: !!t.pinned, recovering: (f.knockRecovery ?? 0) > 1e-8, alive: true});
+    if (!state.on) {
+      if (f.sandPush?.by === e.id) f.sandPush = null;
+      t.reason = state.reason;
+      if (state.reason && state.reason !== 'releaseGrace') t.pushStopReason = state.reason;
+      t.last = {x: f.position.x, z: f.position.z};t.prevWant = 0;
+      continue;
+    }
+    // O empurrão sobrepuja o controle de deslocamento. A esquiva em andamento só é cancelada se a política permitir;
+    // negar uma NOVA esquiva é `pushCancelsDodge` (ctrl-basico.js).
+    if ((e.pushCancelsExistingDodge ?? e.pushCancelsDodge ?? 1) && f.action && f.action.kind === 'dodge') {
+      if (!f.sandPush && (e.pushClearsLocomotion ?? 1)) f.locomotionVelocity = {x: 0, z: 0};
+      f.action = null;
+    }
+    // Duas ondas no mesmo alvo: a de maior aceleração base assume; a outra registra `superseded` (determinístico).
+    const existing = f.sandPush;
+    if (existing && existing.by !== e.id) {
+      const other = /** @type {any[]} */ (game.world.entities ?? []).find((x) => x.id === existing.by && x.kind === 'sandwave' && !x.dead);
+      if (other && (e.accel ?? 0) <= (other.accel ?? 0)) {
+        t.reason = 'superseded';t.pushStopReason = 'superseded';
+        t.last = {x: f.position.x, z: f.position.z};
+        continue;
+      }
+    }
+    const accel = pushAccelNow(e, t, f, e.age);
+    f.sandPush = {by: e.id, dir: {x: e.dir.x, z: e.dir.z}, accel, maxSpeed: e.pushMaxSpeed ?? 0, cancelsDodge: e.pushCancelsDodge ?? 1, continuesDuringStagger: e.pushContinuesDuringStagger ?? 1, mode: state.mode, elapsed: state.elapsed, duration: state.duration};
+    if (f.hp > 0 && !f.flight && f.state !== 'guardStun' && f.state !== 'stagger') {
+      f.state = 'pushed';
+      f.recoveryKind = 'pushed';
+    }
+    still.add(f.id);
+    if (t.pushStartedAt === null || t.pushStartedAt === undefined) t.pushStartedAt = e.age;
+    t.pushActiveFor = (t.pushActiveFor ?? 0) + dt;
+    t.reason = state.reason;
     // parede: pressionado (queria andar e não andou) → para e fica em stagger; só repete depois de se soltar
-    const moved = (f.position.x - t.last.x) * e.dir.x + (f.position.z - t.last.z) * e.dir.z, want = t.prevWant ?? 0;
+    const want = t.prevWant ?? 0;
     const wantNow = Math.max(0, dot(f.locomotionVelocity ?? {x: 0, z: 0}, e.dir));
-    const pressed = want > minPressSpeed && (moved < moveRatio * want * dt || wantNow < .3 * want);   // vinha andando (velocidade do passo anterior) e a colisão o parou
-    if (pressed && !t.pinned && f.knockRecovery <= 1e-8) {
-      t.pinned = true;f.locomotionVelocity = {x: 0, z: 0};f.velocity = {x: 0, z: 0};f.knockRecovery = Math.max(f.knockRecovery, e.wallStagger);
+    const pressed = want > minPressSpeed && (moved < moveRatio * want * dt || wantNow < (e.wallPressStopRatio ?? .3) * want);   // vinha andando (velocidade do passo anterior) e a colisão o parou
+    if ((e.wallStaggerOn ?? 1) && pressed && !t.pinned && f.knockRecovery <= 1e-8) {
+      t.pinned = true;f.locomotionVelocity = {x: 0, z: 0};f.velocity = {x: 0, z: 0};f.knockRecovery = Math.max(f.knockRecovery, e.wallStagger);f.stagger = Math.max(f.stagger ?? 0, e.wallStagger);f.staggerMax = Math.max(f.staggerMax ?? 0, e.wallStagger);f.recoveryKind = 'stagger';f.state = 'stagger';f.hitSerial = (f.hitSerial ?? 0) + 1;
       events.push({result: 'sandStagger', attacker: e.owner ?? null, target: f.id, damage: 0, entity: e.id, seconds: e.wallStagger});
-    } else if (!pressed && moved > .01) t.pinned = false;
+    }
     t.prevWant = wantNow;
     t.last = {x: f.position.x, z: f.position.z};
   }
   for (const id of e.pushed) if (!still.has(id)) {const f = game.fighters[id];if (f?.sandPush?.by === e.id) f.sandPush = null;}
   e.pushed = [...still];
+  // Modos experimentais (1/2/3) podem manter a entidade viva enquanto houver empurrão ativo. O PADRÃO OFICIAL (0) NÃO
+  // estende a vida: o empurrão termina exatamente com a barragem, e o mundo remove a onda no mesmo passo.
+  if (still.size > 0 && pushDurationModeOf(e) !== 0) e.life = Math.max(e.life, e.age + dt * 2);
 }

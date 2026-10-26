@@ -42,7 +42,7 @@ export const KNOCKBACK_MAX_EXCEPTIONS = Object.freeze({'riposte.knockbackH': 17}
 /**
  * Calcula a faixa efetiva (min, max, step) de um parâmetro no painel e no Editor de Moves (fonte única, sem duplicação).
  * @param {string} group
- * @param {{key: string, min: number, max: number, step: number, unit?: string}} row
+ * @param {{key: string, min: number, max: number, step: number, unit?: string, noDouble?: boolean}} row
  * @returns {{min: number, max: number, step: number}}
  */
 export function effectiveRangeOf(group, row) {
@@ -50,7 +50,7 @@ export function effectiveRangeOf(group, row) {
   const id = `${group}.${row.key}`;
   let max = row.max;
   if (KNOCKBACK_KEY_RE.test(row.key)) max = KNOCKBACK_MAX_EXCEPTIONS[id] ?? KNOCKBACK_MAX;
-  else if (row.unit !== 'yesno' && !(min === 0 && max === 1 && step === 1) && !(step >= 1 && max <= 3)) max = max * 2;
+  else if (!row.noDouble && row.unit !== 'yesno' && !(min === 0 && max === 1 && step === 1) && !(step >= 1 && max <= 3)) max = max * 2;
   return {min, max, step};
 }
 
@@ -61,13 +61,13 @@ const ESSENTIAL_KEYS = new Set([
   'speed', 'speedMin', 'speedMax', 'duration', 'durationBase', 'life', 'active', 'interval', 'count', 'minStones',
   'maxStones', 'defensePct', 'regenPctPerSecond', 'mobilityCostPct', 'blind', 'stun', 'knockback', 'knockbackH',
   'knockbackV', 'knockbackPerStone', 'knockbackPl1', 'knockbackPl2', 'knockbackPl3', 'blastKnockback', 'retreat',
-  'windowStart', 'windowEnd',
+  'windowStart', 'windowEnd', 'pushDurationMode',
 ]);
 
 const TECHNICAL_KEYS = new Set([
   'tieTolerance', 'maxReflections', 'searchStep', 'rockSearchStep', 'rayStep', 'freeSearchStep', 'cell', 'replanSteps',
   'stuckTicks', 'stuckSpeedRatio', 'approachStopDist', 'returnStopDist', 'supportTolerance', 'wallPressMinSpeed',
-  'wallPressMoveRatio', 'burrowMaxLife', 'hitShakeOn', 'hitShakeAmount', 'hitShakeDuration', 'fxOn', 'fxIntensity',
+  'wallPressMoveRatio', 'waveBottomTolerance', 'burrowMaxLife', 'hitShakeOn', 'hitShakeAmount', 'hitShakeDuration', 'fxOn', 'fxIntensity',
   'fxSize', 'blastOn', 'blastSize', 'fxLines', 'fxHideBody', 'fxTrailOn', 'fxTrailSize', 'visualWidth', 'visualHeight',
   'visualThickness', 'scaleMin', 'scaleMax', 'plScaleBonus', 'minStrikeDuration',
 ]);
@@ -95,16 +95,16 @@ export function inferParamCategory(group, key) {
   if (['cost', 'cooldown', 'mobilityCostPct', 'boostStaminaPerSecond', 'boostStep'].includes(key)) return 'Recursos';
   if (['cast', 'startup', 'recovery', 'chargeRecovery', 'landRecovery', 'armDelay', 'riseTime', 'vanish', 'minCharge', 'maxCharge', 'minStrikeDuration'].includes(key)) return 'Preparação';
   if (['damage', 'damagePl1', 'damagePl2', 'damagePl3', 'damageFraction', 'successiveFactor', 'burstDamage', 'burstHurt', 'partialFactor', 'impactMult'].includes(key)) return 'Dano';
-  if (['knockback', 'knockbackH', 'knockbackV', 'knockbackOwn', 'knockbackCap', 'knockbackPerStone', 'knockbackVertical', 'knockbackLevelBonus', 'knockbackSpeedFactor', 'knockbackPl1', 'knockbackPl2', 'knockbackPl3', 'blastKnockback', 'blastKnockbackV', 'launchH', 'launchV', 'burstForce', 'burstVertical', 'burstPush', 'negateKnockback'].includes(key)) return 'Knockback';
+  if (['knockback', 'knockbackH', 'knockbackV', 'knockbackOwn', 'knockbackCap', 'knockbackPerStone', 'knockbackVertical', 'knockbackLevelBonus', 'knockbackSpeedFactor', 'knockbackPl1', 'knockbackPl2', 'knockbackPl3', 'blastKnockback', 'blastKnockbackV', 'launchH', 'launchV', 'burstForce', 'burstVertical', 'burstPush', 'negateKnockback', 'pushSpeed', 'pushDuration', 'pushDurationMode', 'pushContinueAfterActive', 'pushContinuesOutsideArea', 'pushReleaseDelay', 'pushContinuesDuringStagger', 'pushMaxSpeed', 'pushAccelerationMode', 'pushCurvePower', 'pushTargetSpeed', 'pushRampTime'].includes(key)) return 'Knockback';
   if (['acquireRange', 'airReach', 'minRange', 'startDistance', 'markerSpeed', 'markerAccel', 'allowOccupied', 'aimHeightMin', 'aimHeightMax'].includes(key)) return 'Alvo e mira';
-  if (['maxRise', 'edgeMargin', 'rockSearch', 'rockSearchStep', 'searchRange', 'searchStep', 'rayStep', 'freeSearchRadius', 'freeSearchStep', 'cell', 'detour', 'replanSteps', 'occlusion', 'supportTolerance', 'wallPressMinSpeed', 'wallPressMoveRatio', 'tieTolerance', 'maxReflections'].includes(key)) return 'Ambiente e colisão';
-  if (['chainAfter', 'cancelAfter', 'cancelWindow', 'dodgeCancelAfter', 'interruptCooldownFactor'].includes(key)) return 'Cancelamentos';
-  if (['stun', 'guardStun', 'wallStagger', 'counterStagger', 'tackleRecoil', 'tackleStagger', 'invulnerableSeconds', 'invulnStart', 'invulnEnd', 'windowStart', 'windowEnd', 'strikePl', 'pl', 'seedPl', 'pulsePl', 'trapPl'].includes(key)) return 'Defesa e Counter';
-  if (['duration', 'defensePct', 'regenPctPerSecond', 'regenInterval', 'blind', 'visionRadius', 'fogDarkness'].includes(key)) return 'Status';
-  if (['count', 'minStones', 'stoneSeconds', 'maxStones', 'interval'].includes(key)) return 'Eventos e múltiplos hits';
+  if (['maxRise', 'edgeMargin', 'rockSearch', 'rockSearchStep', 'searchRange', 'searchStep', 'rayStep', 'freeSearchRadius', 'freeSearchStep', 'cell', 'detour', 'replanSteps', 'occlusion', 'supportTolerance', 'wallPressMinSpeed', 'wallPressMoveRatio', 'waveBottomTolerance', 'tieTolerance', 'maxReflections'].includes(key)) return 'Ambiente e colisão';
+  if (['chainAfter', 'cancelAfter', 'cancelWindow', 'dodgeCancelAfter', 'interruptCooldownFactor', 'pushCancelsDodge', 'pushCancelsExistingDodge'].includes(key)) return 'Cancelamentos';
+  if (['stun', 'guardStun', 'wallStagger', 'wallStaggerOn', 'wallPressStopRatio', 'wallUnpinDistance', 'counterStagger', 'tackleRecoil', 'tackleStagger', 'invulnerableSeconds', 'invulnStart', 'invulnEnd', 'windowStart', 'windowEnd', 'strikePl', 'pl', 'seedPl', 'pulsePl', 'trapPl'].includes(key)) return 'Defesa e Counter';
+  if (['duration', 'defensePct', 'regenPctPerSecond', 'regenInterval', 'blind', 'blindOnPartial', 'visionRadius', 'fogDarkness'].includes(key)) return 'Status';
+  if (['count', 'minStones', 'stoneSeconds', 'maxStones', 'interval', 'maxTargets'].includes(key)) return 'Eventos e múltiplos hits';
   if (['active', 'dissipate', 'life', 'blastLife', 'burstLife', 'durationBase', 'maxActive', 'maxRocks', 'rockScale', 'rockHp'].includes(key)) return 'Área e persistência';
-  if (['speed', 'speedMin', 'speedMax', 'maxSpeed', 'flightTime', 'lifetime', 'burrowMaxLife', 'homingSeconds', 'homingRate', 'fanAngle', 'arc', 'ringMin', 'ringMax', 'pierce'].includes(key)) return 'Projéteis';
-  if (['maxDistance', 'reach', 'stopShort', 'retreat', 'dashStart', 'dashEnd', 'approachMax', 'returnMax', 'approachStopDist', 'returnStopDist', 'stuckTicks', 'stuckSpeedRatio', 'castSlow', 'slow', 'accel', 'heightPl1', 'heightPl2', 'heightPl3'].includes(key) || (key === 'gravity' && group === 'bounce') || (key === 'range' && ['lunge', 'guardBreak'].includes(group))) return 'Movimentação';
+  if (['speed', 'speedMin', 'speedMax', 'waveSpeed', 'maxSpeed', 'flightTime', 'lifetime', 'burrowMaxLife', 'homingSeconds', 'homingRate', 'fanAngle', 'arc', 'ringMin', 'ringMax', 'pierce'].includes(key)) return 'Projéteis';
+  if (['maxDistance', 'reach', 'stopShort', 'retreat', 'dashStart', 'dashEnd', 'approachMax', 'returnMax', 'approachStopDist', 'returnStopDist', 'stuckTicks', 'stuckSpeedRatio', 'castSlow', 'slow', 'accel', 'waveAccel', 'speedFromReach', 'pushClearsLocomotion', 'pushPreserveVelocity', 'heightPl1', 'heightPl2', 'heightPl3'].includes(key) || (key === 'gravity' && group === 'bounce') || (key === 'range' && ['lunge', 'guardBreak'].includes(group))) return 'Movimentação';
   if (key === 'range') return 'Alvo e mira';
   if (key === 'gravity') return 'Projéteis';
   if (['hitstopMult', 'shakeMult', 'hitShakeOn', 'hitShakeAmount', 'hitShakeDuration', 'fxOn', 'fxIntensity', 'fxSize', 'blastOn', 'blastSize', 'fxLines', 'fxHideBody', 'fxTrailOn', 'fxTrailSize'].includes(key)) return 'Interações globais';
@@ -125,6 +125,8 @@ export function inferParamDependsOn(_group, key) {
   if (key === 'fxIntensity' || key === 'fxSize') return 'fxOn';
   if (key === 'blastSize') return 'blastOn';
   if (key === 'fxTrailSize') return 'fxTrailOn';
+  if (key === 'pushCurvePower' || key === 'pushTargetSpeed' || key === 'pushRampTime') return 'pushAccelerationMode';
+  if (key === 'pushPreserveVelocity') return 'pushClearsLocomotion';
   return null;
 }
 
@@ -162,6 +164,13 @@ export function inferParamConsumer(group, key) {
   if (['minCharge', 'maxCharge', 'chargeRecovery'].includes(key)) return {file: 'src/sim/charge.js', fn: 'chargeParams'};
   if (['markerSpeed', 'markerAccel', 'startDistance', 'minRange', 'maxRise', 'allowOccupied'].includes(key)) return {file: 'src/sim/aim-marker.js', fn: 'markerInitial / markerStep / markerValidity'};
   if (['hitShakeOn', 'hitShakeAmount', 'hitShakeDuration'].includes(key)) return {file: 'src/view/vfx.js', fn: 'triggerMoveHitShake'};
+  if (group === 'sandWave') {
+    if (['speedFromReach', 'waveSpeed', 'waveAccel', 'length', 'width', 'active', 'dissipate'].includes(key)) return {file: 'src/sim/moves/sand-wave/sand-wave.js', fn: 'sandWaveEffect'};
+    if (['pushDuration', 'pushDurationMode', 'pushContinueAfterActive', 'pushContinuesOutsideArea', 'pushReleaseDelay', 'pushContinuesDuringStagger', 'pushMaxSpeed', 'pushAccelerationMode', 'pushCurvePower', 'pushTargetSpeed', 'pushRampTime'].includes(key)) return {file: 'src/sim/moves/sand-wave/sand-push.js', fn: 'pushWindowState / pushAccelNow'};
+    if (key === 'visionRadius') return {file: 'src/sim/vision.js', fn: 'canSee'};
+    if (key === 'fogDarkness') return {file: 'src/view/view.js', fn: 'update (fog/cegueira)'};
+    return {file: 'src/sim/sand.js', fn: 'stepSand'};
+  }
   return GROUP_CONSUMERS[group] ?? {file: `src/sim/moves/${group}.js`, fn: `${group}Effect`};
 }
 
@@ -174,6 +183,8 @@ export function inferParamConsumer(group, key) {
  *   category?: string,
  *   consumer?: {file: string, fn: string} | string,
  *   dependsOn?: string | null,
+ *   options?: Array<{value: number, label: string}>,
+ *   noDouble?: boolean,
  *   applyTiming?: 'nextActivation' | 'immediate'
  * }} ParamRow
  * @typedef {{category: 'Normal' | 'Burst' | 'Charge', types: string[], pl: string, status: {proposto: boolean, aprovado: boolean, implementado: boolean, homologado: boolean}, version?: number}} MoveMeta

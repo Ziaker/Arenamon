@@ -83,9 +83,45 @@
         "step": 0.05,
         "key": "active",
         "label": "Janela de acerto (hitbox)",
-        "tip": "Primeiros segundos da barragem: a onda avança e atinge (documento: 0,75 s).",
+        "tip": "Primeiros segundos da barragem: a onda avança e atinge (documento: 0,75 s). O empurrão NÃO termina aqui: no modo padrão ele segue enquanto a barragem existir e o alvo estiver dentro do retângulo.",
         "unit": "sec",
         "value": 0.75
+      },
+      {
+        "min": 0,
+        "max": 1,
+        "step": 1,
+        "key": "speedFromReach",
+        "label": "Velocidade = alcance ÷ janela ativa (sincronizada)",
+        "tip": "Ligado (padrão): a frente percorre todo o alcance na janela ativa, como no documento; o slider de velocidade manual fica ignorado. Desligue para controlar a velocidade inicial e a aceleração da frente separadamente.",
+        "unit": "yesno",
+        "value": 1,
+        "tier": "essential",
+        "category": "Movimentação"
+      },
+      {
+        "min": 0.25,
+        "max": 40,
+        "step": 0.05,
+        "key": "waveSpeed",
+        "label": "Velocidade inicial da frente (manual)",
+        "tip": "Velocidade inicial da onda em m/s. Só vale com a sincronização desligada. Padrão calculado do documento: 4 ÷ 0,75 = 5,333 m/s.",
+        "unit": "ms",
+        "value": 5.333333,
+        "tier": "essential",
+        "category": "Movimentação"
+      },
+      {
+        "min": 0,
+        "max": 40,
+        "step": 0.5,
+        "key": "waveAccel",
+        "label": "Aceleração da frente da onda",
+        "tip": "Aceleração da frente em m/s². 0 (padrão) = velocidade constante. Com a sincronização ligada, a velocidade inicial é recalculada para ainda percorrer o alcance na janela ativa.",
+        "unit": "ms2",
+        "value": 0,
+        "tier": "advanced",
+        "category": "Movimentação"
       },
       {
         "min": 0,
@@ -93,7 +129,7 @@
         "step": 0.05,
         "key": "dissipate",
         "label": "Dissipação visual",
-        "tip": "Tempo extra só de efeito, sem hitbox nem empurrão (documento: 0,75 s).",
+        "tip": "Tempo extra depois de `active` (documento: 0,75 s). A hitbox de dano acaba, mas a barragem continua existindo: no modo padrão o empurrão segue durante a dissipação enquanto o alvo estiver dentro do retângulo. Sair da área ou chegar ao fim da barragem encerra a força.",
         "unit": "sec",
         "value": 0.75
       },
@@ -132,10 +168,222 @@
         "max": 40,
         "step": 0.5,
         "key": "accel",
-        "label": "Empurrão (aceleração)",
-        "tip": "Aceleração horizontal enquanto houver contato na janela; metade sob defesa parcial (documento: 12 m/s²).",
+        "label": "Empurrão contínuo (aceleração)",
+        "tip": "Aceleração horizontal enquanto a barragem existir e o alvo continuar dentro do retângulo; metade sob defesa parcial (documento: 12 m/s²). Não é renovada por permanência: o dano e a cegueira continuam únicos por alvo.",
         "unit": "ms2",
-        "value": 12
+        "value": 12,
+        "tier": "essential",
+        "category": "Knockback"
+      },
+      {
+        "min": 0,
+        "max": 20,
+        "step": 0.5,
+        "key": "pushSpeed",
+        "label": "Impulso inicial do empurrão",
+        "tip": "Velocidade horizontal somada no primeiro contato, além do knockback H/V e da aceleração contínua. Padrão 0 (documento: só a aceleração).",
+        "unit": "ms",
+        "value": 0,
+        "tier": "essential",
+        "category": "Knockback"
+      },
+      {
+        "min": 0,
+        "max": 3,
+        "step": 0.05,
+        "key": "pushDuration",
+        "label": "Limite de tempo do empurrão",
+        "tip": "Teto opcional de aceleração contínua por alvo. 0 (padrão) = usa a política escolhida em «Duração do empurrão»; no modo oficial isso significa até o fim da barragem. Um valor maior que 0 só antecipa o fim, nunca prolonga além da barragem no modo 0. Nos modos experimentais 1/2/3 o limite funciona de forma independente.",
+        "unit": "sec",
+        "value": 0,
+        "tier": "essential",
+        "category": "Knockback"
+      },
+      {
+        "min": 0,
+        "max": 3,
+        "step": 1,
+        "key": "pushDurationMode",
+        "label": "Duração do empurrão",
+        "tip": "0 · Fim da barragem (PADRÃO): começa no primeiro contato e dura até `active + dissipate` (1,5 s com os valores do documento), enquanto o alvo permanecer dentro do retângulo. 1 · Tempo fixo desde o contato (experimental): usa «Limite de tempo» por alvo. 2 · Enquanto houver contato (experimental): termina quando o contato acaba. 3 · Janela de dano (legado): termina em `active`, salvo o interruptor legado. Sair do retângulo encerra a força em todos os modos, salvo «continua fora do retângulo».",
+        "unit": "int",
+        "value": 0,
+        "tier": "essential",
+        "category": "Knockback",
+        "options": [
+          {"value": 0, "label": "0 · Fim da barragem (padrão)"},
+          {"value": 1, "label": "1 · Tempo fixo desde o contato (experimental)"},
+          {"value": 2, "label": "2 · Enquanto houver contato (experimental)"},
+          {"value": 3, "label": "3 · Janela de dano (legado)"}
+        ]
+      },
+      {
+        "min": 0,
+        "max": 1,
+        "step": 1,
+        "key": "pushContinueAfterActive",
+        "label": "Modo legado: continua depois da janela de dano",
+        "tip": "Só tem efeito no modo 3 (Janela de dano legado). Desligado: o empurrão termina junto com `active`, reproduzindo o comportamento antigo. Ligado: a força continua durante a dissipação e a vida da onda é estendida enquanto houver alvo. O modo oficial 0 ignora este interruptor porque já atravessa a dissipação por definição.",
+        "unit": "yesno",
+        "value": 0,
+        "tier": "advanced",
+        "category": "Knockback"
+      },
+      {
+        "min": 0,
+        "max": 1,
+        "step": 1,
+        "key": "pushContinuesOutsideArea",
+        "label": "Empurrão continua fora do retângulo (experimental)",
+        "tip": "Desligado (PADRÃO OFICIAL): sair do retângulo encerra a força depois da tolerância. Ligado: a força continua até a duração/janela terminar, mesmo com o alvo fora da área. O comportamento pedido para o Sand Wave não depende deste interruptor.",
+        "unit": "yesno",
+        "value": 0,
+        "tier": "advanced",
+        "category": "Knockback"
+      },
+      {
+        "min": 0,
+        "max": 1,
+        "step": 0.05,
+        "key": "pushReleaseDelay",
+        "label": "Tolerância ao perder contato",
+        "tip": "Tempo (s) que o empurrão sobrevive depois de o alvo sair do retângulo ou do contato. 0 (padrão) = encerra imediatamente.",
+        "unit": "sec",
+        "value": 0,
+        "tier": "advanced",
+        "category": "Knockback",
+        "noDouble": true
+      },
+      {
+        "min": 0,
+        "max": 1,
+        "step": 1,
+        "key": "pushContinuesDuringStagger",
+        "label": "Empurrão continua durante stagger/recuperação",
+        "tip": "Ligado (PADRÃO OFICIAL): stagger de parede, atordoamento e recuperação não desligam a força; a parede continua impedindo a passagem. Desligado (experimental): esses estados pausam o empurrão.",
+        "unit": "yesno",
+        "value": 1,
+        "tier": "advanced",
+        "category": "Knockback"
+      },
+      {
+        "min": 0,
+        "max": 1,
+        "step": 0.05,
+        "key": "pushPreserveVelocity",
+        "label": "Velocidade própria preservada no contato",
+        "tip": "Fração da caminhada/corrida do alvo mantida no primeiro contato (0 = zera, 1 = conserva tudo). Só vale com «Zerar movimento próprio» ligado; desligado, conserva 100%.",
+        "unit": "pct",
+        "value": 0,
+        "tier": "advanced",
+        "category": "Movimentação",
+        "noDouble": true
+      },
+      {
+        "min": 0,
+        "max": 40,
+        "step": 0.5,
+        "key": "pushMaxSpeed",
+        "label": "Velocidade máxima do empurrão",
+        "tip": "Limite da componente de velocidade na direção do empurrão, em m/s. 0 (padrão) = sem limite.",
+        "unit": "ms",
+        "value": 0,
+        "tier": "advanced",
+        "category": "Knockback"
+      },
+      {
+        "min": 0,
+        "max": 2,
+        "step": 1,
+        "key": "pushAccelerationMode",
+        "label": "Modo de aceleração do empurrão",
+        "tip": "0 · Constante (padrão aprovado): aceleração fixa enquanto durar. 1 · Curva temporal (experimental): a aceleração cai de forma controlada. 2 · Velocidade-alvo (experimental): acelera até a velocidade configurada e a mantém. Modos 1 e 2 são experimentais.",
+        "unit": "int",
+        "value": 0,
+        "tier": "advanced",
+        "category": "Knockback",
+        "options": [
+          {"value": 0, "label": "0 · Aceleração constante (padrão)"},
+          {"value": 1, "label": "1 · Curva temporal (experimental)"},
+          {"value": 2, "label": "2 · Velocidade-alvo (experimental)"}
+        ]
+      },
+      {
+        "min": 0.25,
+        "max": 4,
+        "step": 0.05,
+        "key": "pushCurvePower",
+        "label": "Expoente da curva de aceleração",
+        "tip": "Só no modo «Curva temporal». 1 = queda linear; valores maiores concentram a força no começo; 0 = aceleração constante.",
+        "unit": "num",
+        "value": 1,
+        "tier": "advanced",
+        "category": "Knockback",
+        "dependsOn": "pushAccelerationMode",
+        "noDouble": true
+      },
+      {
+        "min": 0,
+        "max": 40,
+        "step": 0.5,
+        "key": "pushTargetSpeed",
+        "label": "Velocidade-alvo do empurrão",
+        "tip": "Só no modo «Velocidade-alvo»: velocidade (m/s) que o empurrão tenta manter na direção da onda. 0 = apenas freia.",
+        "unit": "ms",
+        "value": 0,
+        "tier": "advanced",
+        "category": "Knockback",
+        "dependsOn": "pushAccelerationMode"
+      },
+      {
+        "min": 0.01,
+        "max": 2,
+        "step": 0.01,
+        "key": "pushRampTime",
+        "label": "Constante de tempo da velocidade-alvo",
+        "tip": "Só no modo «Velocidade-alvo»: tempo (s) da resposta que corrige a velocidade atual em direção ao alvo. Menor = converge mais rápido; 0,2 s ≈ 63% em 0,2 s.",
+        "unit": "sec",
+        "value": 0.2,
+        "tier": "advanced",
+        "category": "Knockback",
+        "dependsOn": "pushAccelerationMode",
+        "noDouble": true
+      },
+      {
+        "min": 0,
+        "max": 1,
+        "step": 1,
+        "key": "pushClearsLocomotion",
+        "label": "Zerar movimento próprio no primeiro contato",
+        "tip": "Ligado (padrão): o empurrão sobrepõe caminhada, corrida e esquiva. Desligado: conserva a velocidade que o alvo já tinha e soma o impulso.",
+        "unit": "yesno",
+        "value": 1,
+        "tier": "advanced",
+        "category": "Movimentação"
+      },
+      {
+        "min": 0,
+        "max": 1,
+        "step": 1,
+        "key": "pushCancelsDodge",
+        "label": "Empurrão bloqueia nova esquiva",
+        "tip": "Ligado (padrão): o alvo não consegue iniciar uma esquiva enquanto está sob o empurrão. Use «interrompe esquiva em andamento» para a esquiva que já começou.",
+        "unit": "yesno",
+        "value": 1,
+        "tier": "advanced",
+        "category": "Cancelamentos"
+      },
+      {
+        "min": 0,
+        "max": 1,
+        "step": 1,
+        "key": "pushCancelsExistingDodge",
+        "label": "Empurrão interrompe esquiva em andamento",
+        "tip": "Ligado (padrão): atingir uma esquiva já iniciada cancela a ação. Desligado: a esquiva continua (se não estiver invulnerável) e o empurrão espera o fim dela.",
+        "unit": "yesno",
+        "value": 1,
+        "tier": "advanced",
+        "category": "Cancelamentos"
       },
       {
         "min": 0,
@@ -145,7 +393,8 @@
         "label": "Fator do empurrão na defesa parcial",
         "tip": "Multiplica a aceleração quando o alvo defende (documento: 0,5).",
         "unit": "num",
-        "value": 0.5
+        "value": 0.5,
+        "category": "Knockback"
       },
       {
         "min": 0,
@@ -159,6 +408,18 @@
       },
       {
         "min": 0,
+        "max": 1,
+        "step": 1,
+        "key": "blindOnPartial",
+        "label": "Cegar também na defesa parcial",
+        "tip": "Ligado (padrão): a defesa parcial reduz dano/empurrão, mas não anula a cegueira. Desligado: a parcial também evita a cegueira.",
+        "unit": "yesno",
+        "value": 1,
+        "tier": "advanced",
+        "category": "Status"
+      },
+      {
+        "min": 0,
         "max": 2,
         "step": 0.05,
         "key": "wallStagger",
@@ -166,6 +427,18 @@
         "tip": "Sem dano extra; não renova enquanto o alvo continuar pressionado (documento: 0,30 s).",
         "unit": "sec",
         "value": 0.3
+      },
+      {
+        "min": 0,
+        "max": 1,
+        "step": 1,
+        "key": "wallStaggerOn",
+        "label": "Ativar stagger ao ser prensado contra parede",
+        "tip": "Ligado (padrão): parar contra um sólido aplica o stagger sem dano. Desligado: a onda só empurra, sem stagger.",
+        "unit": "yesno",
+        "value": 1,
+        "tier": "advanced",
+        "category": "Defesa e Counter"
       },
       {
         "min": 2,
@@ -185,7 +458,8 @@
         "label": "Escurecimento do fog (só a câmera do cegado)",
         "tip": "Redução da luz ambiente na visão do jogador cegado (documento: 60%). A arte final da areia/nuvem ainda não foi aprovada.",
         "unit": "pct",
-        "value": 0.6
+        "value": 0.6,
+        "consumer": "src/view/view.js:update (fog/cegueira)"
       },
       {
         "min": 0.1,
@@ -246,6 +520,64 @@
         "tip": "Fração do deslocamento esperado abaixo da qual o alvo empurrado entra em stagger contra a parede (padrão: 25%).",
         "unit": "pct",
         "value": 0.25
+      },
+      {
+        "min": 0,
+        "max": 1,
+        "step": 0.05,
+        "key": "wallPressStopRatio",
+        "label": "Fração da intenção que conta como parada na parede",
+        "tip": "Se a velocidade de intenção no passo atual cai abaixo desta fração da velocidade anterior, o alvo é considerado parado contra o sólido (padrão: 30%).",
+        "unit": "pct",
+        "value": 0.3,
+        "tier": "advanced",
+        "category": "Defesa e Counter"
+      },
+      {
+        "min": 0,
+        "max": 0.5,
+        "step": 0.005,
+        "key": "wallUnpinDistance",
+        "label": "Distância para soltar da parede",
+        "tip": "Deslocamento para a frente necessário para limpar o estado «prensado» e permitir um novo stagger (padrão: 1 cm).",
+        "unit": "m",
+        "value": 0.01,
+        "tier": "advanced",
+        "category": "Defesa e Counter"
+      },
+      {
+        "min": 0,
+        "max": 1,
+        "step": 0.01,
+        "key": "waveBottomTolerance",
+        "label": "Tolerância da base da onda (técnico)",
+        "tip": "Folga vertical abaixo da base da barragem para considerar um alvo em terra alcançado. Fecha a lacuna do DOC03: antes era lida como P.waveBottomTolerance ?? 0.2 sem controle na ficha.",
+        "unit": "m",
+        "value": 0.2
+      },
+      {
+        "min": 0,
+        "max": 1,
+        "step": 1,
+        "key": "hitsAirborne",
+        "label": "Acertar alvos em voo baixo",
+        "tip": "Desligado (padrão): só alvos em terra. Ligado: alvos em voo dentro da altura da onda e da tolerância vertical também são elegíveis.",
+        "unit": "yesno",
+        "value": 0,
+        "tier": "advanced",
+        "category": "Hitboxes"
+      },
+      {
+        "min": 1,
+        "max": 16,
+        "step": 1,
+        "key": "maxTargets",
+        "label": "Máximo de alvos por execução",
+        "tip": "Limite de alvos que podem receber o primeiro acerto. Padrão 16 = sem limite prático para dois lutadores; 1 restringe a um alvo.",
+        "unit": "int",
+        "value": 16,
+        "tier": "advanced",
+        "category": "Eventos e múltiplos hits"
       },
       {
         "preset": "hitShake"

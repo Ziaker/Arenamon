@@ -1,10 +1,10 @@
 // @ts-check
 // Teste de Paridade Determinística dos 3 Pilotos Migrados (Documento 02).
 // Compara o rastro de eventos e o estado final do simulador contra os baselines JSON do Documento 01:
-//   1. Sand Wave (Portão SW)
+//   1. Sand Wave (Portão SW) — baseline revisto em 26/10/2026: o empurrão segue até o fim da barragem
 //   2. Bullet Punch (Portão BP)
 //   3. Water Pulse PL1, PL2, PL3 (Portão WP)
-// Exige 0 divergência mecânica.
+// Exige 0 divergência mecânica dentro do comportamento atual.
 
 import assert from 'node:assert/strict';
 import fs from 'node:fs';

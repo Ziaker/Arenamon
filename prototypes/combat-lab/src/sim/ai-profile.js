@@ -56,11 +56,54 @@ export function compileAiProfile(/** @type {AiProfile} */ p) {
   };
 }
 
-/** @type {Map<string, {profile: AiProfile, rule: ReturnType<typeof compileAiProfile>}>} */
+/** @type {Map<string, {profile: AiProfile, defaults: AiProfile, rule: ReturnType<typeof compileAiProfile>}>} */
 const PROFILES = new Map();
-export function registerAiProfile(/** @type {string} */ id, /** @type {AiProfile} */ profile) {PROFILES.set(id, {profile, rule: compileAiProfile(profile)});return id;}
+/** Ajustes do Editor de Moves por cima do perfil declarativo da ficha (DOC03 §7.3). Vazio = comportamento aprovado. */
+/** @type {Map<string, any>} */
+const OVERRIDES = new Map();
+const copyProfile = (/** @type {AiProfile} */ p) => ({...p, ...(p.distance ? {distance: {...p.distance}} : {})});
+export function registerAiProfile(/** @type {string} */ id, /** @type {AiProfile} */ profile) {
+  PROFILES.set(id, {profile, defaults: copyProfile(profile), rule: compileAiProfile(profile)});
+  OVERRIDES.delete(id);
+  return id;
+}
 export const getAiRule = (/** @type {string} */ id) => PROFILES.get(id)?.rule ?? null;
 export const getAiProfile = (/** @type {string} */ id) => PROFILES.get(id)?.profile ?? null;
+/** Perfil de fábrica (o declarado na ficha), sem ajustes do Editor. */
+export const getDefaultAiProfile = (/** @type {string} */ id) => PROFILES.get(id)?.defaults ?? null;
+/** Ajustes ativos do Editor para o Move (ou null). */
+export const getAiProfileOverride = (/** @type {string} */ id) => OVERRIDES.get(id) ?? null;
+
+/** Mescla um ajuste parcial (p, distance.min/max, minStamina, maxStamina) sem tocar no restante do perfil declarativo. */
+function mergeProfile(/** @type {AiProfile} */ base, /** @type {any} */ patch) {
+  return {
+    ...base,
+    ...patch,
+    ...(patch?.distance || base.distance ? {distance: {...(base.distance ?? {}), ...(patch?.distance ?? {})}} : {}),
+  };
+}
+
+/**
+ * Aplica (ou remove, com patch nulo) um ajuste do Editor ao perfil de IA de um Move.
+ * Valida o resultado com `validateAiProfile`; nada muda se o perfil ficar inválido.
+ * @param {string} id
+ * @param {any} patch
+ * @returns {{ok: boolean, errors: string[]}}
+ */
+export function setAiProfileOverride(/** @type {string} */ id, /** @type {any} */ patch) {
+  const entry = PROFILES.get(id);
+  if (!entry) return {ok: false, errors: [`Move sem perfil de IA: ${id}`]};
+  const next = patch == null ? copyProfile(entry.defaults) : mergeProfile(entry.defaults, patch);
+  const errors = validateAiProfile(next);
+  if (errors.length) return {ok: false, errors};
+  PROFILES.set(id, {profile: next, defaults: entry.defaults, rule: compileAiProfile(next)});
+  if (patch == null) OVERRIDES.delete(id); else OVERRIDES.set(id, copyProfile(patch));
+  return {ok: true, errors: []};
+}
+/** Restaura o perfil declarativo de fábrica (usado por «Restaurar Move» e pelos testes de mutação). */
+export function resetAiProfileOverride(/** @type {string} */ id) {
+  return setAiProfileOverride(id, null);
+}
 export const hasAiProfile = (/** @type {string} */ id) => PROFILES.has(id);
 export const aiProfileIds = () => [...PROFILES.keys()];
-export const clearAiProfiles = () => PROFILES.clear();
+export const clearAiProfiles = () => {PROFILES.clear();OVERRIDES.clear();};

@@ -10,7 +10,7 @@ export function createFighter(id, attributes, position) {
   return {id, attributes: {...attributes}, position, velocity: vec(), facing: id ? Math.PI : 0, desiredMove: vec(), locomotionVelocity: vec(),
     combatHeading: id ? Math.PI : 0, visualFacing: id ? Math.PI : 0, angularSpeed: 0, hp: attributes.hp, stamina: C.rules.staminaMax, exhausted: false,
     regenAge: 0, regenBase: C.rules.staminaMax, state: 'neutral', action: null, guard: false, guardSuppressed: false, perfectLeft: 0, perfectCooldown: 0,
-    perfectSucceeded: false, stun: 0, push: null, blend: null, contacts: 0, surfaceNormals: [], support: null, flight: null, knockRecovery: 0, vaultHeight: 0, counterWindow: 0, landingSlide: null,
+    perfectSucceeded: false, stun: 0, push: null, blend: null, contacts: 0, surfaceNormals: [], support: null, flight: null, knockRecovery: 0, landingRecovery: 0, hitstun: 0, hitstunMax: 0, stagger: 0, staggerMax: 0, exhaustRecovery: 0, actionRecovery: 0, pushRecovery: 0, recoveryKind: null, hitSerial: 0, vaultHeight: 0, counterWindow: 0, landingSlide: null,
     bufferedTackle: null, inputBuffer: null,
     // Locomoção contínua: fase (accel/cruise/brake/reverse/turn/overspeed), sprint e telemetria do último passo.
     turnVelocity: 0, sprinting: false, sprintCarry: false, locoPhase: 'idle', desiredVelocity: vec(), appliedAccel: vec(), inputDir: vec(), staminaTrend: 0, lastLanding: null, faceGoal: id ? Math.PI : 0, recoveryFrom: null,
@@ -107,6 +107,7 @@ export function isOffensive(f) {
 /** Janela genérica de encadeamento: a ação atual já pode ser substituída por outra (ou pela defesa)? O combo aberto por um acerto recente também libera. */
 export const chainOpen = f => (f.comboLeft ?? 0) > 1e-8 || !f.action || f.action.kind === 'recoil' || f.action.elapsed >= actionSpec(f.action).chainAfter - 1e-8;
 /** Pode iniciar X/C/defesa agora (telemetria de vantagem): no chão, sem recuperação e com a janela de encadeamento aberta. */
-export const canAct = f => f.hp > 0 && !f.flight && f.knockRecovery <= 0 && chainOpen(f);
+export const isLockedByRecovery = (/** @type {any} */ f) => (f.knockRecovery ?? 0) > 0 || (f.landingRecovery ?? 0) > 0 || (f.hitstun ?? 0) > 0 || (f.stagger ?? 0) > 0 || (f.counterStagger ?? 0) > 0 || (f.exhaustRecovery ?? 0) > 0 || (f.actionRecovery ?? 0) > 0;
+export const canAct = f => f.hp > 0 && !f.flight && !isLockedByRecovery(f) && chainOpen(f);
 /** Livre para se mover: sem ação, sem guard stun, no chão e sem recuperação de queda. */
-export const canMove = f => f.hp > 0 && !f.flight && f.knockRecovery <= 0 && !f.action && f.stun <= 1e-8;
+export const canMove = f => f.hp > 0 && !f.flight && !isLockedByRecovery(f) && !f.action && f.stun <= 1e-8;

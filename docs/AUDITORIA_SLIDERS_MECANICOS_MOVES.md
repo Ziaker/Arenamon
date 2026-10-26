@@ -60,9 +60,9 @@ Todo parâmetro exclusivo dos 19 Moves é classificado automaticamente em uma da
 
 ---
 
-## 4. Inventário dos 34 Novos Sliders Mecânicos Expostos (Rodadas 1 a 3)
+## 4. Inventário dos 47 Novos Sliders Mecânicos Expostos (Rodadas 1 a 4)
 
-Todos os 34 parâmetros abaixo antes estavam fixos no código e agora possuem controle completo nas fichas `.move.json` e no Editor de Moves, mantendo exatamente os mesmos valores padrão aprovados:
+Todos os 47 parâmetros abaixo antes estavam fixos no código e agora possuem controle completo nas fichas `.move.json` e no Editor de Moves, mantendo exatamente os mesmos valores padrão aprovados:
 
 ### Rodada 1 — Moves Prioritários
 | Move | Chave (`key`) | Rótulo no Editor | Padrão | Unidade | Consumidor real |
@@ -118,6 +118,43 @@ Todos os 34 parâmetros abaixo antes estavam fixos no código e agora possuem co
 | **Spikes** | `supportTolerance` | Tolerância vertical de apoio no piso | `0.06` | `m` | `src/sim/trap.js` (`stepTraps`) |
 | **Spikes** | `trapPl` | Power Level (PL) da armadilha | `1` | `int` | `src/sim/moves/spikes.js` (`spikesEffect`) |
 
+### Rodada 4 — Sand Wave: empurrão, velocidade da frente e alvos
+| Move | Chave (`key`) | Rótulo no Editor | Padrão | Unidade | Consumidor real |
+| :--- | :--- | :--- | :---: | :---: | :--- |
+| **Sand Wave** | `speedFromReach` | Velocidade = alcance ÷ janela ativa (sincronizada) | `1` | `yesno` | `src/sim/moves/sand-wave/sand-wave.js` (`sandWaveEffect`) |
+| **Sand Wave** | `waveSpeed` | Velocidade inicial da frente (manual) | `5.333333` | `ms` | `src/sim/moves/sand-wave/sand-wave.js` (`sandWaveEffect`) |
+| **Sand Wave** | `waveAccel` | Aceleração da frente da onda | `0` | `ms2` | `src/sim/moves/sand-wave/sand-wave.js` (`sandWaveEffect`) |
+| **Sand Wave** | `pushSpeed` | Impulso inicial do empurrão | `0` | `ms` | `src/sim/sand.js` (`stepSand`) |
+| **Sand Wave** | `pushDuration` | Limite de tempo do empurrão | `0` | `sec` | `src/sim/moves/sand-wave/sand-push.js` (`pushWindowState`) + `src/sim/sand.js` (`stepSand`) |
+| **Sand Wave** | `pushClearsLocomotion` | Zerar movimento próprio no primeiro contato | `1` | `yesno` | `src/sim/sand.js` (`stepSand`) |
+| **Sand Wave** | `pushCancelsDodge` | Empurrão cancela esquiva em andamento | `1` | `yesno` | `src/sim/sand.js` (`stepSand`) + `src/sim/controller/ctrl-basico.js` (`startPermission`) |
+| **Sand Wave** | `blindOnPartial` | Cegar também na defesa parcial | `1` | `yesno` | `src/sim/sand.js` (`stepSand`) |
+| **Sand Wave** | `hitsAirborne` | Acertar alvos em voo baixo | `0` | `yesno` | `src/sim/sand.js` (`stepSand`) |
+| **Sand Wave** | `wallStaggerOn` | Ativar stagger ao ser prensado contra parede | `1` | `yesno` | `src/sim/sand.js` (`stepSand`) |
+| **Sand Wave** | `wallPressStopRatio` | Fração da intenção que conta como parada na parede | `0.3` | `pct` | `src/sim/sand.js` (`stepSand`) |
+| **Sand Wave** | `wallUnpinDistance` | Distância para soltar da parede | `0.01` | `m` | `src/sim/sand.js` (`stepSand`) |
+| **Sand Wave** | `maxTargets` | Máximo de alvos por execução | `16` | `int` | `src/sim/sand.js` (`stepSand`) |
+
+> Os campos `accel` (empurrão contínuo) e `partialFactor` (fator na defesa parcial) também passaram para a categoria **Knockback** e o campo `accel` entrou no filtro **Essencial**, para não ficar escondido atrás de "Avançado".
+
+### Rodada 5/6 — Sand Wave: política do empurrão por alvo
+| Move | Chave (`key`) | Rótulo no Editor | Padrão | Unidade | Consumidor real |
+| :--- | :--- | :--- | :---: | :---: | :--- |
+| **Sand Wave** | `pushDurationMode` | Duração do empurrão | `0` | `int` | `src/sim/moves/sand-wave/sand-push.js` (`pushWindowState`) — 0 = fim da barragem; 1/2 experimentais; 3 legado |
+| **Sand Wave** | `pushDuration` | Limite de tempo do empurrão | `0` | `sec` | `sand-push.js` (`pushWindowState`) — teto opcional; 0 acompanha a política |
+| **Sand Wave** | `pushContinueAfterActive` | Modo legado: continua depois da janela de dano | `0` | `yesno` | `sand-push.js` — só modo 3 |
+| **Sand Wave** | `pushContinuesOutsideArea` | Empurrão continua fora do retângulo (experimental) | `0` | `yesno` | `sand-push.js` (`pushWindowState`) |
+| **Sand Wave** | `pushReleaseDelay` | Tolerância ao perder contato | `0` | `sec` | `sand-push.js` (`pushWindowState`) |
+| **Sand Wave** | `pushContinuesDuringStagger` | Empurrão continua durante stagger/recuperação | `1` | `yesno` | `sand-push.js` + `src/sim/controller/ctrl-update.js` |
+| **Sand Wave** | `pushPreserveVelocity` | Velocidade própria preservada no contato | `0` | `pct` | `src/sim/moves/sand-wave/sand-push.js` (`applySandPushStep`) + `src/sim/sand.js` (contato) |
+| **Sand Wave** | `pushMaxSpeed` | Velocidade máxima do empurrão | `0` | `ms` | `sand-push.js` (`pushAccelNow`) |
+| **Sand Wave** | `pushAccelerationMode` | Modo de aceleração do empurrão | `0` | `int` | `sand-push.js` (`pushAccelNow`) |
+| **Sand Wave** | `pushCurvePower` | Expoente da curva de aceleração | `1` | `num` | `sand-push.js` (`pushAccelNow`) |
+| **Sand Wave** | `pushTargetSpeed` | Velocidade-alvo do empurrão | `0` | `ms` | `sand-push.js` (`pushAccelNow`) |
+| **Sand Wave** | `pushRampTime` | Constante de tempo da velocidade-alvo | `0.2` | `sec` | `sand-push.js` (`pushAccelNow`) |
+
+> **Rodada 6 (26/10/2026):** o modo 0 passou a ser **fim da barragem** (`active + dissipate` = 1,5 s), não a janela de dano. O alvo precisa permanecer dentro do retângulo após o primeiro acerto; a frente da onda não precisa continuar atrás dele. Dano/cegueira continuam únicos. `pushContinueAfterActive` virou apenas o legado do modo 3, `pushContinuesDuringStagger` passou a **1** por padrão, e a vida da onda **não é estendida** no modo 0. A prova real (parede/pinned, `barrageEnded`) está em `moves-sand-push.test.mjs`; a telemetria do Editor mostra a coluna **Fim** e a **prova de contenção**.
+
 ---
 
 ## 5. Expansão do Palco Mecânico de Testes (Fase 6)
@@ -158,3 +195,9 @@ O palco do Editor de Moves (`src/editor/move-editor-model.js` e `src/editor/move
   ```bash
   node prototypes/combat-lab/test/move-editor.test.mjs
   ```
+
+---
+
+## 7. Portão ZERO dos três pilotos (DOC03)
+
+A cobertura mecânica de Sand Wave, Bullet Punch e Water Pulse foi fechada em **173 candidatos** (173 decididos, 0 abertos): **92 com prova A/B individual (53,2%)**, **55 herdados**, **16 técnicos justificados** e **10 bloqueados com motivo**. A rodada 4 acrescentou 13 controles exclusivos do Sand Wave (velocidade da frente, impulso/duração/limpeza/cancelamento do empurrão, cegueira na parcial, alvo aéreo, stagger de parede e limite de alvos) e 8 globais herdados de física/mundo. A rodada 5 acrescentou 12 controles de política do empurrão por alvo (duração, continuação, área, tolerância, stagger, preservação de velocidade, limite, modos de aceleração, curva, velocidade-alvo, constante de tempo e esquiva existente), todos com A/B individual; o Editor ganhou a seção **Perfil do empurrão** com simulação real a 1–4 m. A matriz, os deltas medidos e as pendências de homologação estão em [`EDITOR_MOVES_OVERHAUL_OPENCODE_RELATORIO.md`](EDITOR_MOVES_OVERHAUL_OPENCODE_RELATORIO.md). Testes: `node prototypes/combat-lab/test/moves-doc03-pilots.test.mjs` (18) e `node prototypes/combat-lab/test/moves-sand-push.test.mjs` (14).
