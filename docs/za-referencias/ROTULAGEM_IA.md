@@ -68,7 +68,7 @@ A preparação usa cache por hash do conteúdo: rodar de novo sem mudança reapr
   - executor: braço direito (A);
   - apoio/impulso: as duas pernas (A);
   - recuo ativo em q2–9, pose armada em q10–35, golpe com início no q36 e pico no q40, extensão até o q60.
-- **Hawlucha e Groudon, `charge01_loop`:** são **poses de carga paradas**, não locomoção. A raiz se move até 3% da altura, os pés ficam imóveis e só há uma oscilação tipo respiração. Executor e iniciador ficam INCONCLUSIVO. Isso explica os 70% de charge sem executor no banco e põe em dúvida tratar `charge` como locomoção (decisão de 25/10).
+- **Hawlucha e Groudon, `charge01_loop`:** são **poses de carga paradas**, não locomoção. A raiz se move até 3% da altura, os pés ficam imóveis e só há uma oscilação tipo respiração. Executor e iniciador ficam INCONCLUSIVO. Isso explica os 70% de charge sem executor no banco. Por decisão do revisor, `charge` saiu da regra de locomoção (25/10/2026).
 - **Sawk, rugido:**
   - executores: os dois braços e a cabeça (A); pernas como impulso;
   - recuo de fechar e agachar em q12–24, pose fechada em q25–33, abertura em q34–40, pose segurada até o q104.

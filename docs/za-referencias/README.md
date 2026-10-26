@@ -115,6 +115,23 @@ Novos módulos em `tools/za-referencias/`, cada um com testes em `tests/` (rigs 
   - no Blastoise, o humano marcou só a perna E e o sistema marcou as duas. Na observação, o revisor diz que as duas pernas flexionam no início.
 - **Limiar de 10°:** é baixo para os valores reais (31–65°) e pode estar marcando perna demais. Precisa de mais rótulos para calibrar.
 
+### `charge` sai da locomoção (decisão do revisor, 25/10/2026, mais tarde)
+
+- **Motivo:** a revisão por IA do lote 02 (Hawlucha e Groudon) mostrou que os `charge01_loop` são **poses de carga paradas**: a raiz se move até 3% da altura, os pés ficam imóveis e só há uma oscilação tipo respiração. Não são membros ciclando.
+- **O que mudou:** `charge` saiu de `regras_papeis.json` → `locomocao`. Agora os papéis do charge seguem a regra geral. Teste: `test_charge_nao_e_locomocao`.
+- **Refeito:** o banco (41.790 clipes, 0 falhas), o relatório, as normas e as previsões dos lotes 01 e 02.
+- **Efeito no banco (738 charge):**
+
+  | Executores | Clipes |
+  |---|---|
+  | 0 | 297 |
+  | 1 | 300 |
+  | 2 | 94 |
+  | 3 ou mais | 47 |
+
+  Pela regra geral, uma oscilação acima de 0,5 H/s ainda vira executor. Exemplo: o Hawlucha recebe braço D como executor e perna D como apoio, enquanto a revisão por IA marcou INCONCLUSIVO. Falta uma regra para "pose parada" (pendente).
+- A seção abaixo (quando o charge entrou na locomoção) fica como histórico.
+
 ### `charge` entra na locomoção (decisão do revisor, 25/10/2026)
 
 - Os 738 clipes `charge` são todos `charge01_loop`, de 364 espécies. Eles entraram na regra de locomoção dos papéis: todo membro que cicla é executor.
