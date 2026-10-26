@@ -115,6 +115,37 @@ Novos módulos em `tools/za-referencias/`, cada um com testes em `tests/` (rigs 
   - no Blastoise, o humano marcou só a perna E e o sistema marcou as duas. Na observação, o revisor diz que as duas pernas flexionam no início.
 - **Limiar de 10°:** é baixo para os valores reais (31–65°) e pode estar marcando perna demais. Precisa de mais rótulos para calibrar.
 
+### Regra de pose parada (decisão do revisor, 25/10/2026)
+
+- **A regra** (`regras_papeis.json` → `pose_parada`; `ontologia._pose_parada`): vale para loops em que a raiz se move ≤ 0,05 H, as pontas dos pés se movem ≤ 0,03 H no mundo e nenhum membro passa de 1,5 H/s.
+- **O que o loop recebe:** sem executor (`NAO_SE_APLICA`), sem iniciador e com as pernas de pé parado como apoio. Na previsão do A/B, o executor sai "INCONCLUSIVO", que é a opção que existe na página humana.
+- **Testes:** 6 (pose parada, mesmo movimento fora de loop, andar na esteira, raiz se deslocando, membro balançando forte e previsão), que falharam antes e passam depois. 197 testes OK.
+- **Nos clipes reais:**
+  - Hawlucha e Groudon (`charge01_loop`) viram pose parada, igual à revisão por IA;
+  - o pm0965, que o revisor disse que "rasteja com os tentáculos", continua com movimento;
+  - andar, correr e os ataques não mudam.
+- **No banco refeito** (41.790 clipes, 0 falhas), loops que viraram pose parada:
+
+  | Categoria | Pose parada | Total |
+  |---|---|---|
+  | andar | 0 | 767 |
+  | correr | 0 | 744 |
+  | charge | 343 | 738 |
+  | down | 576 | 739 |
+  | sleep | 435 | 623 |
+  | defaultwait | 427 | 658 |
+  | battlewait | 398 | 694 |
+  | rangeattack (fase loop) | 376 | 738 |
+  | attack (fase loop) | 369 | 738 |
+  | jumpup | 340 | 741 |
+  | jumpdown | 325 | 741 |
+  | eat | 284 | 624 |
+  | stun | 249 | 738 |
+  | search | 201 | 622 |
+
+  Faz sentido: são poses seguradas (deitado, dormindo, esperando, carregando, no ar).
+- **Não verificado:** os limiares (0,05 H, 0,03 H e 1,5 H/s) foram escolhidos com 2 clipes revisados e não foram calibrados com mais rótulos.
+
 ### `charge` sai da locomoção (decisão do revisor, 25/10/2026, mais tarde)
 
 - **Motivo:** a revisão por IA do lote 02 (Hawlucha e Groudon) mostrou que os `charge01_loop` são **poses de carga paradas**: a raiz se move até 3% da altura, os pés ficam imóveis e só há uma oscilação tipo respiração. Não são membros ciclando.
