@@ -61,6 +61,10 @@ export function mutualTackle(a, b, normal, relative) {
   if (a.action.hits?.has(b.id) || b.action.hits?.has(a.id)) return false;
   return tackleConnects(a, b, normal, relative) && tackleConnects(b, a, scale(normal, -1), scale(relative, -1));
 }
+let clashContactSeq = 0;
+export const nextClashContactId = () => ++clashContactSeq;
+export const resetClashContactSeq = () => { clashContactSeq = 0; };
+
 /** X contra X: os dois recebem dano e são lançados (ou, com enableClashPush, empurrados no chão) em direções opostas (ignora invulnerabilidade). */
 export function clash(a, b, normal) {
   const R = C.rules;
@@ -73,8 +77,9 @@ export function clash(a, b, normal) {
   const push = !!C.extras.toggles.enableClashPush;a.lastAttacker = b.id;b.lastAttacker = a.id;
   if (push) {pushAway(a, scale(normal, -1), R.clashPushDistance, R.clashPushDuration);pushAway(b, normal, R.clashPushDistance, R.clashPushDuration);}
   else {launch(a, scale(normal, -1), R.clashHorizontal, R.clashUp);launch(b, normal, R.clashHorizontal, R.clashUp);}
-  return [{attacker: a.id, target: b.id, result: 'clash', damage: resB.hpDamage, shieldAbsorbed: resB.absorbedByShield, normal: {...normal}, push, contact: 'clash', ...(resB.sturdy ? {sturdy: true} : {})},
-    {attacker: b.id, target: a.id, result: 'clash', damage: resA.hpDamage, shieldAbsorbed: resA.absorbedByShield, normal: scale(normal, -1), push, contact: 'clash', ...(resA.sturdy ? {sturdy: true} : {})}];
+  const contactId = ++clashContactSeq;
+  return [{attacker: a.id, target: b.id, result: 'clash', contactId, damage: resB.hpDamage, shieldAbsorbed: resB.absorbedByShield, normal: {...normal}, push, contact: 'clash', ...(resB.sturdy ? {sturdy: true} : {})},
+    {attacker: b.id, target: a.id, result: 'clash', contactId, damage: resA.hpDamage, shieldAbsorbed: resA.absorbedByShield, normal: scale(normal, -1), push, contact: 'clash', ...(resA.sturdy ? {sturdy: true} : {})}];
 }
 /** O tackle do atacante conecta no defensor, dado a normal e a velocidade relativa do contato? */
 export function tackleConnects(attacker, defender, normal, relative) {

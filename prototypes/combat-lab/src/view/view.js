@@ -195,10 +195,12 @@ export class View {
       const isEnvSplat = (event.result === 'wallSplat' || event.result === 'destructibleSplat') && target;
       if (!isEnvSplat && (!attacker || !target)) continue;
       if (event.result === 'clash') {
-        const idA = event.entity ?? event.attacker ?? 0;
-        const idB = event.otherEntity ?? event.target ?? 1;
-        const [minId, maxId] = [String(idA), String(idB)].sort();
-        const clashKey = `clash:${event.tick ?? 0}:${minId}:${maxId}`;
+
+
+
+        const clashKey = (event.contactId != null)
+          ? `clash:${event.contactId}`
+          : `clash:${event.tick ?? 0}:${Math.min(event.attacker ?? 0, event.target ?? 1)}:${Math.max(event.attacker ?? 0, event.target ?? 1)}`;
         if ((this.legacyClashSeen ??= new Set()).has(clashKey)) continue;
         this.legacyClashSeen.add(clashKey);
       }

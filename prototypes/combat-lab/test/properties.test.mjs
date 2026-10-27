@@ -94,7 +94,7 @@ function run(seed) {
       // Se o golpe lançou o alvo, a ação nova já foi anulada; por isso basta a esquiva ter
       // cessado neste passo (cancelamento em qualquer origem, ou fim natural da ação: a
       // invulnerabilidade pertence à ação e morre com ela).
-      const cancelledVulnerable = before[b].kind === 'dodge' && (C.actions.cancel.invulnerability <= 1 || after[b].kind !== 'dodge');
+      const cancelledVulnerable = before[b].kind === 'dodge' && after[b].kind !== 'dodge' && (after[b].kind !== 'tackle' || C.actions.cancel.invulnerability === 1);
       // Exceção legítima (tackle carregado): tackle de PL maior contra tackle de PL menor neutraliza o menor e tira a invulnerabilidade de início dele.
       const lostToPL = before[b].kind === 'tackle' && g.fighters[b].plDefeated === true;
       const feinted = (g.fighters[b].feints ?? 0) > before[b].feints;   // finta: cancelar o tackle tira a invulnerabilidade do startup no mesmo passo

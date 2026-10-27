@@ -253,7 +253,7 @@
         "label": "VFX do Ateliê (punho novo)",
         "tip": "0 = Visual clássico antigo (padrão). 1 = Efeito novo do Ateliê com punho gigante e rastro estilizado.",
         "unit": "yesno",
-        "value": 0,
+        "value": 1,
         "tier": "essential",
         "category": "Interações globais"
       }

@@ -60,6 +60,7 @@ export * from './world-view/wv-geometry.js';
     this.elementalFx = new ElementalGameFx(this.group);
     this.atelierFx = new AtelierGameFx(this.group);   // Sand Wave e Emerging Stone com o renderizador do atelier Areia/Pedra
     this.movesVfx = new MovesVfxRegistry(this);       // Registro modular de VFX dos Moves (Doc 02)
+    this.fighters = [];
     // Esfera de carga do Water Pulse (visual do ateliê, cresce com a carga/PL).
     this.waterChargePreview = null;this.waterChargeLevel = 0;
   }

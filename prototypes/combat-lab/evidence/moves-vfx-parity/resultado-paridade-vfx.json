@@ -1,7 +1,7 @@
 {
-  "timestamp": "2026-10-27T20:14:35.380Z",
-  "passed": 30,
-  "failed": 8,
+  "timestamp": "2026-10-27T21:46:41.775Z",
+  "passed": 33,
+  "failed": 5,
   "results": [
     {
       "label": "Sand Wave: barragem nasce na simulação",
@@ -26,7 +26,7 @@
     {
       "label": "Sand Wave: fidelidade visual automatizada contra baseline (≥ 98%)",
       "ok": false,
-      "detail": "65.6% de match"
+      "detail": "65.64% de match"
     },
     {
       "label": "Sand Wave: entidade expira na simulação e transiciona para fase dying",
@@ -55,13 +55,13 @@
     },
     {
       "label": "Bullet Punch: rush visual gerenciado exclusivamente pelo MovesVfxRegistry",
-      "ok": false,
+      "ok": true,
       "detail": ""
     },
     {
       "label": "Bullet Punch: fidelidade visual do vanish contra baseline (≥ 98%)",
       "ok": false,
-      "detail": "64.85% de match"
+      "detail": "64.82% de match"
     },
     {
       "label": "Bullet Punch: reaparece perto do alvo (f.absent = false)",
@@ -70,13 +70,13 @@
     },
     {
       "label": "Bullet Punch: evento de impacto acionado na chegada",
-      "ok": false,
+      "ok": true,
       "detail": ""
     },
     {
       "label": "Bullet Punch: fidelidade visual do impacto contra baseline (≥ 98%)",
       "ok": false,
-      "detail": "63.43% de match"
+      "detail": "63.42% de match"
     },
     {
       "label": "Bullet Punch: rush descartado limpo após a dissipação",
@@ -121,7 +121,7 @@
     {
       "label": "Water Pulse: fidelidade visual do projétil em voo contra baseline (≥ 98%)",
       "ok": false,
-      "detail": "64.91% de match"
+      "detail": "64.9% de match"
     },
     {
       "label": "Water Pulse: impacto ativa animação splash e transiciona para cauda dying",
@@ -136,11 +136,11 @@
     {
       "label": "Water Pulse: fidelidade visual do splash contra baseline (≥ 98%)",
       "ok": false,
-      "detail": "65.32% de match"
+      "detail": "65.31% de match"
     },
     {
       "label": "Water Pulse: partículas de splash sustentadas durante a cauda de 2.4s",
-      "ok": false,
+      "ok": true,
       "detail": ""
     },
     {

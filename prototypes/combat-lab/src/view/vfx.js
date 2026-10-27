@@ -209,10 +209,12 @@ export class VfxSystem {
       else if (e.result === 'partial') {this.fire('block', {pos: b.position, lift: altitudeOf(b), floorLift: b.groundY ?? 0, n: e.normal, power: 1}, tag);this.shake('shakeGuard', e.normal, 1, tag);}
       else if (e.result === 'perfect') {this.fire('perfect', {pos: b.position, lift: altitudeOf(b), floorLift: b.groundY ?? 0, n: e.normal, power: 1, fighters}, tag);this.shake('shakePerfect', e.normal, 1, tag);}
       else if (e.result === 'clash') {
-        const idA = e.entity ?? e.attacker ?? 0;
-        const idB = e.otherEntity ?? e.target ?? 1;
-        const [minId, maxId] = [String(idA), String(idB)].sort();
-        const clashKey = `clash:${e.tick ?? 0}:${minId}:${maxId}`;
+
+
+
+        const clashKey = (e.contactId != null)
+          ? `clash:${e.contactId}`
+          : `clash:${e.tick ?? 0}:${Math.min(e.attacker ?? 0, e.target ?? 1)}:${Math.max(e.attacker ?? 0, e.target ?? 1)}`;
         if (!(this.clashSeen ??= new Set()).has(clashKey)) {
           this.clashSeen.add(clashKey);
           const mid = {

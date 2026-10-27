@@ -175,7 +175,8 @@ export function onEvent(view, ev, state) {
     // Determinar o ponto de contato real no espaço de mundo
     let wx = ev.x, wy = ev.y, wz = ev.z;
     if (wx == null || wz == null) {
-      if (ev.target != null && view.fighters?.[ev.target]) {
+      const fighters = view?.fighters ?? (view?.worldView?.fighters) ?? [];
+      if (ev.target != null && fighters[ev.target]) {
         const b = view.fighters[ev.target];
         wx = b.position.x;
         wy = (b.groundY ?? 0) + (b.flight?.y ?? b.vaultHeight ?? 0) + 0.35;
@@ -201,8 +202,9 @@ export function onEvent(view, ev, state) {
       localPos = state.group.worldToLocal(localPos.clone());
       if (ev.normal && (Math.abs(ev.normal.x) > 1e-4 || Math.abs(ev.normal.z) > 1e-4)) {
         const worldDir = new T.Vector3(ev.normal.x, 0.4, ev.normal.z).normalize();
-        const normalMatrix = new T.Matrix3().getNormalMatrix(state.group.matrixWorld);
-        localDir = worldDir.applyMatrix3(normalMatrix).normalize();
+        const invWorldQuat = new T.Quaternion();
+        state.group.getWorldQuaternion(invWorldQuat).invert();
+        localDir = worldDir.applyQuaternion(invWorldQuat).normalize();
       }
     }
 

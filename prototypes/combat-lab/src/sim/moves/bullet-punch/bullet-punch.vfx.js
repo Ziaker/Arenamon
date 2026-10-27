@@ -63,7 +63,7 @@ export function handles(e) {
  */
 export function handlesFighter(f) {
   const cfg = C.world?.bulletPunch ?? {};
-  if (!(cfg.atelierVfx === 1 || cfg.enableAtelierVfx === 1)) return false;
+  if (cfg.atelierVfx === 0 && cfg.enableAtelierVfx === 0) return false;
   return f?.action?.move === 'bullet-punch' && f?.action?.kind !== 'tackle';
 }
 
@@ -195,11 +195,15 @@ export function advanceRush(view, r, dt) {
  */
 export function onFighterEvent(view, ev, r) {
   if (!r || !ev) return;
-  if (ev.result === 'bulletReturn' || ev.result === 'hit') {
+  const triggers = ['bulletReturn', 'impact', 'partial', 'perfect', 'hit'];
+  if (triggers.includes(ev.result)) {
     if (ev.attacker === r.f?.id) {
       r.done = true;
-      if (Number.isFinite(ev.x) && Number.isFinite(ev.z)) {
-        r.impact.set(ev.x, 1.05 + (ev.y ?? 0), ev.z);
+      const ex = ev.x ?? r.f?.position.x;
+      const ez = ev.z ?? r.f?.position.z;
+      const ey = ev.y ?? (r.f?.groundY ?? 0);
+      if (Number.isFinite(ex) && Number.isFinite(ez)) {
+        r.impact.set(ex, 1.05 + ey, ez);
         /** @type {any} */ (r.fx).impact.position.copy(r.impact);
         /** @type {any} */ (r.fx).arrival = Math.min(/** @type {any} */ (r.fx).arrival, r.age);
       }

@@ -15,6 +15,8 @@ import {FIGHTER_EVENTS, PL_HEX, RING} from './wv-geometry.js';
 
 export const wvUpdate = {
 update(world, {fighters = [], events = [], dt = 0, skipBeams = false, camera = null} = {}) {
+    this.fighters = fighters;
+    if (this.movesVfx) this.movesVfx.fighters = fighters;
     this.time += dt;
     this.trailTimer += dt;
     const emitTrailsNow = this.trailTimer >= 0.04;

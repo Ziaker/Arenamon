@@ -8,6 +8,7 @@ import {createWorld, stepWorld, spawn} from './world.js';
 import {tickStatuses, applyStatus} from './status.js';
 import {getMove, placeRelative, setLoadout} from './moves.js';
 import {stepPhysics} from './physics.js';
+import {resetClashContactSeq} from './combat.js';
 import {createMapState, initMap, stepMap, stepShield, generateFighterSpawnPositions} from './map.js';
 import {attachPassives, tickPassives, passiveOnEvents, passiveOnKO, setPassiveLoadout as applyPassiveLoadout} from './passive-engine.js';
 import {vec} from './math.js';
@@ -50,6 +51,7 @@ export class Game {
     this.world.mapState = this.mapState;
     initMap(this.mapState, this.fighters);
     attachPassives(this);   // liga loadouts de passivas e restaura Sturdy (fronteira de rodada, §7/R22)
+    resetClashContactSeq();
     this.tick = 0;this.events = [];this.winner = null;this.hitstop = 0;this.phase = 'playing';this.lastStepEvents = [];this.prevPose = null;
   }
   start() {this.phase = 'playing';}
