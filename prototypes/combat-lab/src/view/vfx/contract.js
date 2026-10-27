@@ -69,6 +69,7 @@ export function adaptSimEvent(simEvent, {fighters = [], tickOverride = null} = {
   const attacker = simEvent.attacker != null ? simEvent.attacker : 0;
   const target = simEvent.target != null ? simEvent.target : 0;
   const type = classifyVisualType(simEvent.result);
+  if (!type) return null;
   const a = fighters[attacker];
   const b = fighters[target];
   const pos = simEvent.position != null
@@ -109,6 +110,7 @@ export function adaptSimEvent(simEvent, {fighters = [], tickOverride = null} = {
 export function classifyVisualType(result) {
   const map = {
     impact: 'hit',
+    hit: 'hit',
     partial: 'partial',
     perfect: 'perfect',
     perfectDodge: 'perfectDodge',
@@ -131,7 +133,7 @@ export function classifyVisualType(result) {
     bounceLand: 'ground',
     statusApplied: 'status',
   };
-  return map[result] || 'hit';
+  return map[result] || null;
 }
 
 // Famílias de efeito reconhecidas pelo runtime.

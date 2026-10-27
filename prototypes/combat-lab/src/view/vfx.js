@@ -181,7 +181,7 @@ export class VfxSystem {
     (o.additive === false ? this.norm : this.add).add(p);this.stats.spawned++;if (this.emitting) this.stats.byType[this.emitting] = (this.stats.byType[this.emitting] ?? 0) + 1;
   }
   after(delay, fn) {const lift = this.lift ?? 0, fl = this.floorLift ?? lift;this.timers.push({at: this.time + delay, fn: lift ? () => {const s = this.lift, sf = this.floorLift;this.lift = lift;this.floorLift = fl;try {fn();} finally {this.lift = s;this.floorLift = sf;}} : fn});}
-  reset() {this.add.clear();this.norm.clear();this.timers = [];this.shakes = [];this.emit.clear();this.flash = null;for (const g of this.ghosts) g.obj.visible = false;}
+  reset() {this.add.clear();this.norm.clear();this.timers = [];this.shakes = [];this.emit.clear();this.flash = null;this.clashSeen?.clear();for (const g of this.ghosts) g.obj.visible = false;}
   // ---------- Disparo por eventos da simulação ----------
   /**
    * Chamado a cada quadro com os lutadores, os eventos recentes e os personagens (para fantasmas e trilhas).
@@ -208,7 +208,15 @@ export class VfxSystem {
       else if (e.result === 'footstool') {const n = e.normal ?? {x: 0, z: 0};this.fire('hit', {pos: {x: b.position.x, z: b.position.z}, lift: altitudeOf(b), floorLift: b.groundY ?? 0, n, power: 0.7}, tag);this.shake('shakeHit', n, 0.6, tag);}
       else if (e.result === 'partial') {this.fire('block', {pos: b.position, lift: altitudeOf(b), floorLift: b.groundY ?? 0, n: e.normal, power: 1}, tag);this.shake('shakeGuard', e.normal, 1, tag);}
       else if (e.result === 'perfect') {this.fire('perfect', {pos: b.position, lift: altitudeOf(b), floorLift: b.groundY ?? 0, n: e.normal, power: 1, fighters}, tag);this.shake('shakePerfect', e.normal, 1, tag);}
-      else if (e.result === 'clash' && e.attacker === 0) {const mid = {x: (a.position.x + b.position.x) / 2, z: (a.position.z + b.position.z) / 2};this.fire('clash', {pos: mid, lift: (altitudeOf(a) + altitudeOf(b)) / 2, n: e.normal, power: 1}, tag);this.shake('shakeClash', e.normal, 1, tag);}
+      else if (e.result === 'clash') {
+        const tickKey = `clash:${e.tick ?? 0}`;
+        if (!(this.clashSeen ??= new Set()).has(tickKey)) {
+          this.clashSeen.add(tickKey);
+          const mid = {x: (a.position.x + b.position.x) / 2, z: (a.position.z + b.position.z) / 2};
+          this.fire('clash', {pos: mid, lift: (altitudeOf(a) + altitudeOf(b)) / 2, n: e.normal, power: 1}, tag);
+          this.shake('shakeClash', e.normal, 1, tag);
+        }
+      }
     }
     fighters.forEach((f, i) => {
       // Impacto do meteor slam no chão: sempre que o mergulho toca o chão, acertando ou não.

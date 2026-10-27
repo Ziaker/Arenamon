@@ -75,7 +75,7 @@ test('contrato: classifyVisualType mapeia resultados da simulação', () => {
   assert.equal(classifyVisualType('invulnerable'), 'invulnerable');
   assert.equal(classifyVisualType('clash'), 'clash');
   assert.equal(classifyVisualType('ground'), 'ground');
-  assert.equal(classifyVisualType('desconhecido'), 'hit');
+  assert.equal(classifyVisualType('desconhecido'), null);
 });
 
 test('contrato: freezeVisualEvent congela profundamente', () => {

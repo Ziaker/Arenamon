@@ -163,6 +163,17 @@ export class View {
     this.passives.reset();this.abilityBanners.clear();
     this.cinematic?.clearAll();
     this.cinematic?.triggerRoundIntro();
+    this.blindK = 0;
+    if (this.scene) {
+      this.scene.fog = null;
+      if (this.ambientLight) this.ambientLight.intensity = C.extras?.visual?.ambientLightIntensity ?? 1;
+      if (this.directionalLight) this.directionalLight.intensity = C.extras?.visual?.directionalIntensity ?? 1;
+    }
+    this._blindDimmed = false;
+    this.auraSeen = new WeakSet();
+    this.postSeen = new WeakSet();
+    this.riposteFx?.reset?.();
+    this.legacyClashSeen?.clear();
   }
   /** Efeitos legados do v6 (partículas em caixa e tremor antigo). Só com “Efeitos legados” ligado em Visualizar. */
   spawnBurst(pos, type) {
@@ -182,7 +193,12 @@ export class View {
       if (!on || this.legacySeen.has(event)) continue;this.legacySeen.add(event);
       const attacker = fighters[event.attacker], target = fighters[event.target];
       const isEnvSplat = (event.result === 'wallSplat' || event.result === 'destructibleSplat') && target;
-      if (!isEnvSplat && (!attacker || !target || (event.result === 'clash' && event.attacker !== 0))) continue;
+      if (!isEnvSplat && (!attacker || !target)) continue;
+      if (event.result === 'clash') {
+        const tickKey = `clash:${event.tick ?? 0}`;
+        if ((this.legacyClashSeen ??= new Set()).has(tickKey)) continue;
+        this.legacyClashSeen.add(tickKey);
+      }
       if (event.result === 'invulnerable') {const key = `${event.attacker}:${event.target}`, now = performance.now();if (now - (this.invulnerableFx.get(key) ?? -Infinity) < F.invulnRepeatDelay) continue;this.invulnerableFx.set(key, now);}
       if (event.result === 'clash' || event.result === 'impact' || event.result === 'perfect' || event.result === 'wallSplat' || event.result === 'footstool') this.cameraShake = Math.max(this.cameraShake, event.result === 'clash' ? 1 : event.slam || event.result === 'wallSplat' ? .8 : event.result === 'footstool' ? .35 : .45);
       this.spawnBurst(event.result === 'clash' ? {x: (attacker.position.x + target.position.x) / 2, z: (attacker.position.z + target.position.z) / 2} : target.position, event.result);

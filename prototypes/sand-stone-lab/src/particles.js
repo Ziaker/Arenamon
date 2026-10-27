@@ -45,6 +45,9 @@ export class Particles {
     this.emitterParent.add(emitter);this.emitterParent.updateWorldMatrix(true,false);emitter.updateMatrixWorld(true);this.renderer.addSystem(system);
     const entry={system,emitter,age:0,ttl:duration+life+.15,kind};this.systems.push(entry);return entry;
   }
+  burst({kind='dust',color=0xc49c68,count=20,position=[0,0,0],direction=[0,1,0],speed=2.5,size=0.4,life=0.6,radius=0.3}={}){
+    return this.create({kind,color,count,duration:.15,life,size,speed,radius,position,direction});
+  }
   update(dt){
     this.emitterParent.updateWorldMatrix(true,true);if(!this.shared)this.renderer.update(dt);
     for(let i=this.systems.length-1;i>=0;i--){const p=this.systems[i];p.age+=dt;if(p.age>p.ttl){this.renderer.deleteSystem(p.system);p.emitter.removeFromParent();p.system.dispose();this.systems.splice(i,1);}}
