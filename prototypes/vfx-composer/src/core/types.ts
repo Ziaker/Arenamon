@@ -8,9 +8,18 @@ export interface PathGeometry {kind: 'stroke' | 'curve' | 'ribbon'; points: Vec3
 export type VisualGeometry = {kind: 'box'; size: Vec3} | {kind: 'sphere'; radius: number} | {kind: 'plane'; size: [number, number]} | PathGeometry;
 export interface VisualNode {id: string; kind: 'group' | 'mesh' | 'stroke' | 'particles' | 'material'; parentId: string | null; assetIds: string[]; transform?: VisualTransform; pivot?: Vec3; locked?: boolean; geometry?: VisualGeometry}
 export interface AuthoringSettings {drawingPlane: {origin: Vec3; rotation: Vec3}; mirrorX: boolean; radialCopies: number}
-export interface VisualTrack {id: string; targetId: string; property: 'opacity' | 'scale' | 'position.x' | 'position.y' | 'position.z' | 'rotation.x' | 'rotation.y' | 'rotation.z'; keyframes: {time: number; value: number; interpolation: 'linear' | 'step'}[]}
+export type NumericTrackProperty = 'opacity' | 'scale' | 'visible' | 'position.x' | 'position.y' | 'position.z' | 'rotation.x' | 'rotation.y' | 'rotation.z';
+export interface NumericKeyframe {time: number; value: number; interpolation: 'linear' | 'step' | 'bezier'; inTangent?: number; outTangent?: number}
+export interface PathKeyframe {time: number; value: Vec3[]; interpolation: 'linear' | 'step'}
+export type VisualTrack = {id: string; targetId: string; property: NumericTrackProperty; keyframes: NumericKeyframe[]} | {id: string; targetId: string; property: 'path.points'; keyframes: PathKeyframe[]};
 export interface VisualAsset {assetId: string; uri: string; kind: 'texture' | 'mesh' | 'reference'}
 export interface Subeffect {id: string; componentId: string; version: string; parentId: string | null; delay: number}
+export interface TimelineEvent {id: string; time: number; name: string}
+export interface TextureDocument {id: string; name: string; width: number; height: number; rgbaBase64: string; spriteSheet?: {columns: number; rows: number; fps: AuthoringFps}}
+export type MaterialNodeType = 'color' | 'texture' | 'gradient' | 'noise' | 'fresnel' | 'dissolve' | 'multiply' | 'output';
+export interface MaterialNode {id: string; type: MaterialNodeType; params: Record<string, string | number>}
+export interface MaterialConnection {fromNodeId: string; fromPort: string; toNodeId: string; toPort: string}
+export interface MaterialGraph {id: string; name: string; nodes: MaterialNode[]; connections: MaterialConnection[]; outputNodeId: string}
 
 export interface PhaseDefinition {
   enabled: boolean;
@@ -35,7 +44,9 @@ export interface VfxProject {
   nodes: VisualNode[];
   assets: VisualAsset[];
   subeffects: Subeffect[];
-  timeline: {fps: AuthoringFps; tracks: VisualTrack[]};
+  timeline: {fps: AuthoringFps; tracks: VisualTrack[]; duration?: number; events?: TimelineEvent[]};
+  textures?: TextureDocument[];
+  materials?: MaterialGraph[];
   qualityProfiles: Record<string, unknown>;
   accessibility: {noFlash: boolean; reduceMotion: boolean};
   pinnedComponents: PinnedComponent[];

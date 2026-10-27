@@ -1,0 +1,16 @@
+{
+  "status": "approved",
+  "offline": true,
+  "externalRequests": 0,
+  "webglContexts": 2,
+  "coverage": [
+    "timeline 24/30/60",
+    "scrub/reverse",
+    "keyframe",
+    "onion skin",
+    "pintura RGBA",
+    "PNG",
+    "spritesheet",
+    "grafo seguro"
+  ]
+}

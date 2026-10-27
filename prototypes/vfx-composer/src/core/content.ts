@@ -1,9 +1,11 @@
 import {PHASE_NAMES, type ValidationIssue} from './types';
 import {parseVersion} from './version';
+import {validateTextureDocument} from '../textures/texture-document';
+import {validateMaterialGraph} from '../materials/material-graph';
 
 const object = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
 const id = (v: unknown): v is string => typeof v === 'string' && /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$/.test(v);
-const properties = ['opacity', 'scale', 'position.x', 'position.y', 'position.z', 'rotation.x', 'rotation.y', 'rotation.z'];
+const properties = ['opacity', 'scale', 'visible', 'position.x', 'position.y', 'position.z', 'rotation.x', 'rotation.y', 'rotation.z', 'path.points'];
 
 // Contrato F0 mínimo. Novos payloads das ferramentas exigem extensão explícita do schema.
 export function validateContent(project: Record<string, unknown>): ValidationIssue[] {
@@ -87,15 +89,26 @@ export function validateContent(project: Record<string, unknown>): ValidationIss
       trackIds.add(track.id);
       if (!byId.has(track.targetId)) fail(`${p}.targetId`, 'Alvo ausente');
       if (!properties.includes(String(track.property))) fail(`${p}.property`, 'Propriedade visual inválida');
-      if (!Array.isArray(track.keyframes) || track.keyframes.length > 4096) {fail(p, 'Keyframes inválidos ou acima do limite'); return;}
+      if (!Array.isArray(track.keyframes) || !track.keyframes.length || track.keyframes.length > 4096) {fail(p, 'Keyframes inválidos ou acima do limite'); return;}
       let previous = -1;
+      let pathPointCount: number | null = null;
+      const timelineDuration = path === 'timeline.tracks' && object(project.timeline) && typeof project.timeline.duration === 'number' ? project.timeline.duration : null;
       track.keyframes.forEach((frame, j) => {
-        if (!object(frame) || typeof frame.time !== 'number' || !Number.isFinite(frame.time) || frame.time < 0 || frame.time > 3600 || frame.time <= previous || typeof frame.value !== 'number' || !Number.isFinite(frame.value) || !['linear', 'step'].includes(String(frame.interpolation))) {fail(`${p}.keyframes.${j}`, 'Keyframe inválido ou fora de ordem'); return;}
+        const pathValue = track.property === 'path.points';
+        const validPath = Array.isArray(frame?.value) && frame.value.length >= 2 && frame.value.every((point: unknown) => Array.isArray(point) && point.length === 3 && point.every(value => typeof value === 'number' && Number.isFinite(value)));
+        const validNumber = typeof frame?.value === 'number' && Number.isFinite(frame.value);
+        const interpolation = String(frame?.interpolation);
+        if (!object(frame) || typeof frame.time !== 'number' || !Number.isFinite(frame.time) || frame.time < 0 || frame.time > 3600 || (timelineDuration !== null && frame.time > timelineDuration) || frame.time <= previous || (pathValue ? !validPath || !['linear', 'step'].includes(interpolation) : !validNumber || !['linear', 'step', 'bezier'].includes(interpolation)) || (frame.inTangent !== undefined && (typeof frame.inTangent !== 'number' || !Number.isFinite(frame.inTangent))) || (frame.outTangent !== undefined && (typeof frame.outTangent !== 'number' || !Number.isFinite(frame.outTangent)))) {fail(`${p}.keyframes.${j}`, 'Keyframe inválido ou fora de ordem'); return;}
+        if (pathValue) {const count = (frame.value as unknown[]).length; if (pathPointCount !== null && count !== pathPointCount) fail(`${p}.keyframes.${j}.value`, 'Topologia de morph incompatível'); pathPointCount = count;}
         previous = frame.time;
       });
     });
   };
   if (object(project.timeline)) tracks(project.timeline.tracks, 'timeline.tracks');
+  if (object(project.timeline)) {
+    if (project.timeline.duration !== undefined && (typeof project.timeline.duration !== 'number' || !Number.isFinite(project.timeline.duration) || project.timeline.duration <= 0 || project.timeline.duration > 3600)) fail('timeline.duration', 'Duração deve ficar entre 0 e 3600 segundos');
+    if (project.timeline.events !== undefined) {const eventIds = new Set<string>(), duration = typeof project.timeline.duration === 'number' ? project.timeline.duration : 3600; if (!Array.isArray(project.timeline.events) || project.timeline.events.some(event => !object(event) || !id(event.id) || eventIds.has(event.id) || (eventIds.add(event.id), false) || typeof event.name !== 'string' || !event.name.trim() || typeof event.time !== 'number' || !Number.isFinite(event.time) || event.time < 0 || event.time > duration)) fail('timeline.events', 'Eventos de timeline inválidos ou duplicados');}
+  }
   if (object(project.phases)) for (const name of PHASE_NAMES) {
     const phase = project.phases[name]; if (object(phase)) tracks(phase.tracks, `phases.${name}.tracks`);
   }
@@ -105,5 +118,15 @@ export function validateContent(project: Record<string, unknown>): ValidationIss
     if (sub.parentId !== null && !byId.has(sub.parentId)) fail(`subeffects.${i}.parentId`, 'Pai ausente');
     if (typeof sub.delay !== 'number' || !Number.isFinite(sub.delay) || sub.delay < 0 || sub.delay > 3600) fail(`subeffects.${i}.delay`, 'Atraso inválido');
   });
+  const textures = project.textures;
+  if (textures !== undefined) {
+    if (!Array.isArray(textures) || textures.length > 16) fail('textures', 'Limite de 16 texturas excedido');
+    else textures.forEach((texture, i) => {const result = validateTextureDocument(texture as never); if (!result.ok) fail(`textures.${i}`, result.message);});
+  }
+  const materials = project.materials;
+  if (materials !== undefined) {
+    if (!Array.isArray(materials) || materials.length > 32) fail('materials', 'Limite de 32 materiais excedido');
+    else materials.forEach((material, i) => {const result = validateMaterialGraph(material as never, Array.isArray(textures) ? textures as never : []); if (!result.ok) result.issues.forEach(entry => fail(`materials.${i}.${entry.path}`, entry.message));});
+  }
   return issues;
 }

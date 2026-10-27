@@ -32,6 +32,8 @@
     "test:vfx-composer": "node prototypes/vfx-composer/test/f0-contracts.test.mjs",
     "test:vfx-composer:f1": "node prototypes/vfx-composer/test/f1-document.test.mjs",
     "test:vfx-composer:f1:browser": "node prototypes/vfx-composer/test/f1-app.browser.mjs",
+    "test:vfx-composer:f2": "node prototypes/vfx-composer/test/f2-animation-material.test.mjs",
+    "test:vfx-composer:f2:browser": "npm run build:vfx-composer && node prototypes/vfx-composer/test/f2-app.browser.mjs",
     "test:vfx-composer:browser": "node prototypes/vfx-composer/verify.browser.mjs",
     "typecheck:vfx-composer": "tsc --noEmit -p prototypes/vfx-composer/tsconfig.json",
     "dev:combat-lab": "node prototypes/combat-lab/dev-server.mjs",
