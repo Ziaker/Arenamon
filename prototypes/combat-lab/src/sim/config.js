@@ -35,7 +35,7 @@ function buildDefaults() {
     // durante a carga, cancela o ataque e vira uma esquiva rápida: dura feintDuration × a da esquiva, percorre feintDistance × a dela e custa feintCost.
     feintFxOn: 1, feintFxIntensity: 1, feintFxSize: 1, feintFxColor: .5, feintWindow: .12, feintMinAngle: 60, feintDuration: .8, feintDistance: 1, feintCost: 1.6,
     wallSplatMinSpeed: 6, wallSplatDuration: .7, wallSplatDamage: 0, slamAngle: Math.PI / 4, slamMinHeight: .3, slamDamage: 1, tackleFriction1: 0, tackleFriction2: 0, tackleFriction3: 0, slamRingOn: 1, slamRingStart: .6, slamRingRadius: 4, slamRingDuration: .7, slamRingThickness: .35, slamRingIntensity: 1, slamRingOpacity: .9, slamRingFade: 1, slamFxOn: 1, slamFxSize: 1, slamFxLength: 1, slamFxIntensity: 1, slamFxHeat: .5, slamFxSparks: 1, slamFxFlicker: .5, slamFxFadeOut: .25, slamGroundTime: .45, slamGroundRadius: 1.4, slamPrepTime: .5, slamHop: .8, slamFallTime: .12, slamSpeedLoss: .6, slamImpactScale: 1.2, slamImpactShake: 1.2, slamRecovery: .6, slamLaunchHorizontal: .4, groundBounceForce: 9, slamBlockPushDistance: 5,
-    landingRecovery: .19, wallRestitution: .28, perfect: .2, perfectCooldown: 2, staminaMax: 3, regenDelay: 1, regenTime: 5, guardSpeed: .6,
+    landingRecovery: .19, blockPushback: 0.5, wallRestitution: .28, perfect: .2, perfectCooldown: 2, staminaMax: 3, regenDelay: 1, regenTime: 5, guardSpeed: .6,
     // comboWindow: depois de um golpe corpo a corpo/tackle que ACERTA, o atacante pode cancelar a recuperação e encadear outra ação por esta janela (0 = sem combo).
     comboWindow: .7,
     exhaustedSpeed: .7, guardTurn: 3 * Math.PI, guardAcceleration: 15 * Math.PI,

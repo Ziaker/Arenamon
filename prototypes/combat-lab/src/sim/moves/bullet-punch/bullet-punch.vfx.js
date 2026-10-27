@@ -62,6 +62,8 @@ export function handles(e) {
  * @returns {boolean}
  */
 export function handlesFighter(f) {
+  const cfg = C.world?.bulletPunch ?? {};
+  if (!(cfg.atelierVfx === 1 || cfg.enableAtelierVfx === 1)) return false;
   return f?.action?.move === 'bullet-punch' && f?.action?.kind !== 'tackle';
 }
 

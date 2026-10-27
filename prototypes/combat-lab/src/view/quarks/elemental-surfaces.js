@@ -105,7 +105,8 @@ export class ElementalSurfaces {
  }
  update(t){const p=this.p,motion=this.fx.reduced?.18:1;const envelope=Math.min(1,t/(p.fireRise??.35),Math.max(0,(p.duration-t)/(p.fireFade??.7)));
  if(t===0){this.launch.position.copy(this.core.position);this.shot.position.copy(this.core.position);}
- this.shot.children.forEach((ring,i)=>{const k=(t-i*p.shotShockStagger)/p.shotDuration;ring.visible=k>=0&&k<1;if(!ring.visible)return;ring.scale.setScalar(Math.max(.01,p.shotShockSize*(1-Math.pow(1-k,3))));ring.material.uniforms.opacity.value=1-k;});
+ this.shot.children.forEach((ring,i)=>{const k=(t-i*p.shotShockStagger)/p.shotDuration;ring.visible=k>=0&&k<1;if(!ring.visible)return;const shockSize = this.id==='waterPulse' ? Math.min(0.65, p.shotShockSize * 0.22) : p.shotShockSize;
+ring.scale.setScalar(Math.max(.01,shockSize*(1-Math.pow(1-k,3))));ring.material.uniforms.opacity.value=1-k;});
  const sd=this.fx.shotOn?Math.max(0,1-t/p.shotDuration):0,kick=p.shotKick*sd*sd,flash=this.fx.noFlash?0:p.shotFlash*sd*sd;this.shotKickNow=kick;this.shotFlashNow=flash;
  if(this.fx.shotOn)this.core.traverse(o=>{if(o.material?.uniforms)o.material.uniforms.brightness.value=p.brightness*(1+flash);});
  if(this.id==='waterPulse'){

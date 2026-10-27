@@ -249,7 +249,10 @@ export class AtelierGameFx {
       const m = f?.action?.move;
       // Quick Attack permanece no atelier-game legado (não migrado).
       // Bullet Punch agora é gerenciado exclusivamente por moves-vfx-registry.js (Documento 02).
-      if (m === 'quick-attack' && !this.rushes.some(r => r.action === f.action)) this.rushes.push(this.spawnRush(f, m, acc));
+      const qCfg = C.world?.quickAttack ?? {};
+      if (m === 'quick-attack' && (qCfg.atelierVfx === 1 || qCfg.enableAtelierVfx === 1) && !this.rushes.some(r => r.action === f.action)) {
+        this.rushes.push(this.spawnRush(f, m, acc));
+      }
     }
     this.rushes = this.rushes.filter(r => {
       if (!this.advanceRush(r, dt)) return true;

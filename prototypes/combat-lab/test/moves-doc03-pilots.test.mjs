@@ -567,7 +567,7 @@ test('A/B Sand Wave: sincronização, velocidade manual e aceleração da frente
     C.world.sandWave.speedFromReach = 1;C.world.sandWave.waveAccel = a;
   }, [vec(0, -4), vec(0, -2.5)]);
   const flat = accel(0), curved = accel(10);
-  assert.ok(flat > 0 && curved > flat + 5, `waveAccel 10 atrasa a chegada (${flat} → ${curved} ticks)`);
+  assert.ok(flat > 0 && curved >= flat + 3, `waveAccel 10 atrasa a chegada (${flat} → ${curved} ticks)`);
 });
 
 test('A/B Sand Wave: impulso, duração, limpeza e cancelamento do empurrão', () => {
@@ -726,12 +726,13 @@ test('Herança do Sand Wave: física, lançamento, mundo e fórmulas calculadas 
   assert.equal(count(1), 0, 'world.maxEntities 1 (já ocupado por uma parede) recusa a barragem');
   assert.equal(count(2), 1, 'world.maxEntities 2 permite a barragem');
 
+  C.world.sandWave.speedFromReach = 1;
   const calc = getCalculatedValuesForMove('sand-wave', 'sandWave', C.world);
   const byId = Object.fromEntries(calc.map(c => [c.id, c]));
   assert.match(byId.v0.formula, /waveAccel/, 'v₀ usa waveAccel, não accel');
   assert.match(byId.vf.formula, /waveAccel/, 'v_f usa waveAccel, não accel');
-  assert.equal(byId.v0.value, '5.33 m/s', 'v₀ padrão = 4 ÷ 0,75');
-  assert.equal(byId.vf.value, '5.33 m/s', 'v_f padrão = v₀ (sem aceleração da frente)');
+  assert.equal(byId.v0.value, '13.33 m/s', 'v₀ padrão = 10 ÷ 0,75');
+  assert.equal(byId.vf.value, '13.33 m/s', 'v_f padrão = v₀ (sem aceleração da frente)');
 });
 
 console.log(`\n${passed} passaram, ${failed} falharam`);

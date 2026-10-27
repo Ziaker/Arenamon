@@ -61,7 +61,7 @@ export class ElementalPreview {
  shotStart(){
  if(!this.shotOn)return;const p=this.p,water=this.id==='waterPulse',motion=this.reduced?.2:1,at=this.core.position;
  if(p.shotBurst>0){const jet=this.particles({kind:water?'droplet':'streak',count:p.shotBurst,radius:p.size*.2,speed:p.shotBurstSpeed*motion,size:p.shotBurstSize,life:p.shotBurstLife,jet:Math.min(180,p.shotAngle)});jet.emitter.position.copy(at);jet.emitter.rotation.y=-Math.PI/2;this.shotJet=jet;}
- if(p.shotGlow>0&&!this.noFlash){const glow=this.particles({kind:'soft',count:3,radius:.02,speed:0,size:p.shotGlow/Math.max(.02,p.particleSize),life:p.shotDuration/p.life});glow.emitter.position.copy(at);}
+ if(p.shotGlow>0&&!this.noFlash){const glowSize=water?Math.min(0.45,(p.shotGlow??0)*0.2):p.shotGlow/Math.max(.02,p.particleSize);const glowLife=(water?0.15:p.shotDuration)/p.life;const glow=this.particles({kind:'soft',count:water?1:3,radius:.02,speed:0,size:glowSize,life:glowLife});glow.emitter.position.copy(at);}
  }
  contact(){
  if(!this.active||this.hit||this.id==='fireSpin')return;

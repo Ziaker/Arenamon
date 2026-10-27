@@ -230,6 +230,11 @@ export const PILOT_TECH_JUSTIFIED = Object.freeze({
     invariant: 'bullet-punch: fxLines não altera o hash da simulação',
     test: 'moves-doc03-pilots.test.mjs:fxLines e fxHideBody',
   },
+  'bullet-punch.atelierVfx': {
+    reason: 'Alterna entre o VFX classico (0) e o do Atelie (1) na camada de visual; nao altera a simulacao mecanica nem hitboxes.',
+    invariant: 'bullet-punch: atelierVfx nao altera o hash da simulacao nem o dano',
+    test: 'moves-doc03-pilots.test.mjs:atelierVfx',
+  },
   'bullet-punch.fxHideBody': {
     reason: 'Só oculta o corpo durante o sumiço na camada de view; o corpo já está ausente na simulação por `absent`.',
     invariant: 'bullet-punch: fxHideBody não altera o hash da simulação',

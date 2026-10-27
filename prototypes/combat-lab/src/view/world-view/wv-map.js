@@ -1,3 +1,4 @@
+import {rockModel} from '../../../../sand-stone-lab/src/art.js';
 // Dividido de world-view.js (comportamento idêntico): métodos de WorldView — wv-map.
 // Mixin: Object.assign(WorldView.prototype, wvMap) no arquivo original.
 
@@ -116,15 +117,22 @@ drawMap(mapState, fighters = [], dt = 0, camera = null) {
       aliveMapIds.add(d.id);
       let m = this.mapMeshes.get(d.id);
       if (!m) {
-        const geo = d.rock ? new T.BoxGeometry(1, 1, 1) : new T.BoxGeometry(d.size.hx * 2, d.size.height, d.size.hz * 2);
-        const mat = new T.MeshStandardMaterial({
-          color: d.rock ? 0x8b8f98 : 0xd97706,
-          roughness: 0.7,
-          metalness: 0.1,
-          transparent: true,
-          opacity: 1.0,
-        });
-        m = new T.Mesh(geo, mat);
+        if (d.rock) {
+          const variant = C.vfx?.rock?.variant ?? 0;
+          m = rockModel(variant, null);
+          m.name = `destructible_${d.id}`;
+          m.userData.isCustomRock = true;
+        } else {
+          const geo = new T.BoxGeometry(d.size.hx * 2, d.size.height, d.size.hz * 2);
+          const mat = new T.MeshStandardMaterial({
+            color: 0xd97706,
+            roughness: 0.7,
+            metalness: 0.1,
+            transparent: true,
+            opacity: 1.0,
+          });
+          m = new T.Mesh(geo, mat);
+        }
         m.name = `destructible_${d.id}`;
         const edgeGeo = new T.EdgesGeometry(geo);
         const edgeMat = new T.LineBasicMaterial({color: 0xfbbf24, transparent: true, opacity: 0.8});
@@ -143,9 +151,15 @@ drawMap(mapState, fighters = [], dt = 0, camera = null) {
         this.mapMeshes.set(d.id, m);
       }
       m.position.set(d.pos.x, d.pos.y + d.size.height / 2, d.pos.z);
-      if (d.rock) {   // rocha do Emerging Stone: o desenho cresce com a altura exposta (o colisor é o mesmo); rachaduras = escurecer conforme o HP cai, sem encolher
-        m.scale.set(d.size.hx * 2, Math.max(.01, d.size.height), d.size.hz * 2);
-        const k = Math.max(0, d.hp / (d.maxHp || 5));m.material.color.setRGB(.55 * (.45 + .55 * k), .56 * (.45 + .55 * k), .6 * (.45 + .55 * k));
+      if (d.rock) {   // rocha do Emerging Stone: visual do Ateliê A/B/C com veios e estratos esculpidos
+        const hScale = Math.max(0.01, d.size.height / 3.0);
+        m.scale.set((d.size.hx * 2) / 2.6, hScale, (d.size.hz * 2) / 2.6);
+        const k = Math.max(0, d.hp / (d.maxHp || 5));
+        m.traverse(o => {
+          if (o.material?.color && !o.material.isMeshBasicMaterial) {
+            o.material.color.setRGB(0.55 * (0.45 + 0.55 * k), 0.56 * (0.45 + 0.55 * k), 0.6 * (0.45 + 0.55 * k));
+          }
+        });
         m.visible = true;this.checkOcclusion(m, camera, fighters);
         continue;
       }

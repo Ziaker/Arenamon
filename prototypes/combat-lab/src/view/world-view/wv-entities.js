@@ -244,32 +244,44 @@ make(e) {
 /** Cria orbe facetado para a prévia da carga do Psyshock. */
   makeChargingRockOrb() {
     const group = new T.Group();
-    const style = C.vfx?.rock?.variant ?? 0;
-    const rockGeo = this.getRockGeo(style);
-
+    // Pedra PSI do Ateliê Psyshock: icosaedro ametista com emissive PSI
+    const rockGeo = new T.IcosahedronGeometry(0.32, 0);
     const rockMat = new T.MeshStandardMaterial({
-      color: 0x363d48,
-      roughness: 0.82,
-      metalness: 0.18,
+      color: 0x62526f,
       flatShading: true,
+      roughness: 0.85,
+      metalness: 0.1,
+      emissive: 0xa855f7,
+      emissiveIntensity: 0.45,
+      transparent: true,
+      opacity: 0.95
     });
     const body = new T.Mesh(rockGeo, rockMat);
+    body.scale.set(1, 0.85, 1.15);
     group.add(body);
 
-    const glowMat = new T.MeshBasicMaterial({color: 0xffffff, wireframe: true, transparent: true, opacity: 0.7});
-    const glow = new T.Mesh(rockGeo, glowMat);
-    glow.scale.setScalar(1.04);
+    // Anel orbital telecinético luminoso
+    const ringGeo = new T.TorusGeometry(0.48, 0.022, 6, 32);
+    const ringMat = new T.MeshBasicMaterial({
+      color: 0x59d6e6,
+      transparent: true,
+      opacity: 0.85,
+      depthWrite: false
+    });
+    const glow = new T.Mesh(ringGeo, ringMat);
     glow.name = 'orbGlow';
+    glow.rotation.x = Math.PI / 2;
     group.add(glow);
 
-    const coreMat = new T.MeshBasicMaterial({color: 0xffffff, transparent: true, opacity: 0.5});
-    const core = new T.Mesh(new T.DodecahedronGeometry(0.5, 0), coreMat);
+    const coreMat = new T.MeshBasicMaterial({color: 0xff6adf, transparent: true, opacity: 0.6, depthWrite: false});
+    const core = new T.Mesh(new T.IcosahedronGeometry(0.18, 0), coreMat);
     core.name = 'orbCore';
     group.add(core);
 
+    group.userData.body = body;
     group.userData.glow = glow;
     group.userData.core = core;
-    group.material = rockMat; // compatibilidade
+    group.material = rockMat;
     return group;
   }
 };

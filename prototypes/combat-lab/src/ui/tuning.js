@@ -15,8 +15,8 @@ import {MECHANIC_ORDER, mechanicLabel, mechanicsOf, levelVisible, levelOf, LEVEL
 import {PASSIVES} from '../sim/passives.js';
 
 const $ = id => document.getElementById(id);
-export const pathGet = (root, path) => path.split('.').reduce((a, k) => a?.[k], root);
-export const pathSet = (root, path, value) => {const keys = path.split('.'), last = keys.pop();const obj = keys.reduce((a, k) => a?.[k], root);if (!obj || !(last in obj)) return false;obj[last] = value;return true;};
+export const pathGet = (root, path) => path === 'rules.enableInfiniteStamina' ? (root.extras?.toggles?.enableInfiniteStamina ?? 0) : path.split('.').reduce((a, k) => a?.[k], root);
+export const pathSet = (root, path, value) => {if (path === 'rules.enableInfiniteStamina') {if (root.extras?.toggles) {root.extras.toggles.enableInfiniteStamina = value ? 1 : 0; if (root.rules) root.rules.enableInfiniteStamina = value ? 1 : 0; return true;}} const keys = path.split('.'), last = keys.pop();const obj = keys.reduce((a, k) => a?.[k], root);if (!obj || !(last in obj)) return false;obj[last] = value;return true;};
 const TABS = [
   ['X e C', ['Smear de Membros', 'Squash & Stretch do Tackle', 'Esquiva (C)', 'Tackle (X)', 'Tackle carregado (PL)', 'Finta e brake slide', 'Wall-splat e meteor slam', 'Sprint (C mantido)', 'Cancelamento C → X', 'Buffer de entrada']],
   ['Combate', ['Regras gerais, defesa e stamina', 'Knockback e clash', 'Combate e colisões']],
@@ -50,6 +50,7 @@ function range(key, value, path) {
   if (RADIANS.includes(key)) {const max = key === 'initialYaw' ? 360 : /rate/i.test(key) || key === 'guardTurn' || key === 'guardAcceleration' ? 1440 : 180;return {min: 0, max: max * Math.PI / 180, step: Math.PI / 180, fmt: n => (n * 180 / Math.PI).toFixed(0) + '°'};}
   // Durações que podem vir das animações: até 4 s para caber clips longos.
   if (['recoil', 'guardStun', 'landingRecovery'].includes(key) && path.startsWith('rules.')) return {min: 0, max: 4, step: .01, fmt: n => n.toFixed(2) + ' s'};
+  if (key === 'blockPushback') return {min: 0, max: 5, step: 0.05, fmt: n => n.toFixed(2) + ' m'};
   if (key === 'epsilon') return {min: 0, max: .000001, step: .000000001, fmt: n => n.toExponential(2)};
   if (key === 'step') return {min: 1 / 240, max: 1 / 30, step: 1 / 24000, fmt: n => (1000 * n).toFixed(2) + ' ms'};
   if (key === 'hitstopDamageBoost') return {min: 0, max: 3, step: .1, fmt: n => n ? '+' + (n * 100).toFixed(0) + '% no dano de referência' : 'Desligado (hitstop fixo)'};

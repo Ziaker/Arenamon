@@ -244,6 +244,18 @@
         "tip": "Distância entre os anéis concêntricos na busca por espaço livre na chegada (padrão: 0,25 m).",
         "unit": "m",
         "value": 0.25
+      },
+      {
+        "min": 0,
+        "max": 1,
+        "step": 1,
+        "key": "atelierVfx",
+        "label": "VFX do Ateliê (punho novo)",
+        "tip": "0 = Visual clássico antigo (padrão). 1 = Efeito novo do Ateliê com punho gigante e rastro estilizado.",
+        "unit": "yesno",
+        "value": 0,
+        "tier": "essential",
+        "category": "Interações globais"
       }
     ]
   }

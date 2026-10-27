@@ -201,6 +201,18 @@
         "tip": "Fração da velocidade nominal abaixo da qual o passo conta como barrado por obstáculo (padrão: 30%).",
         "unit": "pct",
         "value": 0.3
+      },
+      {
+        "min": 0,
+        "max": 1,
+        "step": 1,
+        "key": "atelierVfx",
+        "label": "VFX do Ateliê (rush novo)",
+        "tip": "0 = Visual clássico antigo (padrão). 1 = Efeito novo do Ateliê com rush estilizado.",
+        "unit": "yesno",
+        "value": 0,
+        "tier": "essential",
+        "category": "Interações globais"
       }
     ]
   }

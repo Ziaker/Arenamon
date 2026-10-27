@@ -54,7 +54,7 @@ test('depois dos 0,25 s nasce a barragem 4 × 3 m, 1,5 s de vida, direção fixa
   const g = cast({steps: secs(.25) + 3});const b = g.fighters[0];
   const w = waves(g)[0];
   assert.ok(w, 'barragem existe');
-  assert.deepEqual([w.length, w.width, w.life, w.active], [4, 3, 1.5, .75]);
+  assert.deepEqual([w.length, w.width, w.life, w.active], [10, 3, 1.5, .75]);
   assert.ok(Math.abs(w.dir.x) < 1e-9 && Math.abs(w.dir.z - 1) < 1e-9, JSON.stringify(w.dir));
   assert.ok(!b.action, 'livre para agir');
   b.facing = 2;run(g, 20);assert.ok(Math.abs(w.dir.z - 1) < 1e-9, 'a barragem não gira com o lançador');
@@ -74,12 +74,12 @@ test('onda progressiva: quem está mais longe é atingido mais tarde (velocidade
   };
   const near = hitTick(-3), far = hitTick(-.6);
   assert.ok(near > 0 && far > near, `${near} < ${far}`);
-  const dt = (far - near) / 120, expect = (3 - .6) / (4 / .75);
+  const dt = (far - near) / 120, expect = (3 - .6) / (10 / .75);
   assert.ok(Math.abs(dt - expect) < .06, `diferença ${dt.toFixed(3)} esperada ${expect.toFixed(3)}`);
 });
 test('fora do retângulo (de lado ou além do alcance) e em voo: ninguém é atingido', () => {
   const miss = (red, tweak) => {const g = cast({red, tweak});const r = g.fighters[1];if (tweak) tweak(g);const h = r.hp;upto(g, secs(1.2));return h === r.hp;};
-  assert.ok(miss(vec(2.2, -2)), 'ao lado');assert.ok(miss(vec(0, 1.5)), 'além do alcance');
+  assert.ok(miss(vec(2.2, -2)), 'ao lado');assert.ok(miss(vec(0, 7)), 'além do alcance');
   const g = cast({red: vec(0, -2)});g.fighters[1].flight = {y: 40, vy: 0, horizontal: vec(0, 0)};const h = g.fighters[1].hp;upto(g, secs(1.2));
   assert.equal(g.fighters[1].hp, h, 'em voo não é elegível');
 });
@@ -117,14 +117,14 @@ test('invulnerável (esquiva): nada acontece e o único acerto NÃO é consumido
   assert.equal(sandHits(ev2).length, 1, 'atingido quando a invulnerabilidade acabou (hitbox ainda ativa)');
 });
 test('a hitbox acaba em 0,75 s: quem entra na dissipação visual não é atingido', () => {
-  const g = cast({red: vec(0, 3)});const r = g.fighters[1], h = r.hp;
+  const g = cast({red: vec(0, 8)});const r = g.fighters[1], h = r.hp;
   upto(g, secs(.25) + secs(.8));   // emissão + janela passada
   r.position = vec(0, -2);const ev = upto(g, secs(.5));
   assert.equal(r.hp, h);assert.equal(sandHits(ev).length, 0);
 });
 test('parede no caminho: quem está atrás de uma parede larga não é atingido; a areia não a atravessa', () => {
   const g = arena({equip: ['sand-wave'], positions: [vec(0, -4), vec(0, -1)]});
-  spawn(g.world, {kind: 'wall', pos: {x: 0, z: -2.5}, hx: 4, hz: .3, angle: 0, y: 0, height: 3}, []);
+  spawn(g.world, {kind: 'wall', pos: {x: 0, z: -2.5}, hx: 8, hz: .3, angle: 0, y: 0, height: 3}, []);
   const r = g.fighters[1], h = r.hp;
   g.step(cmd(press0), cmd());upto(g, secs(1.2));
   assert.equal(r.hp, h, 'protegido pela parede');
@@ -189,7 +189,7 @@ test('a cegueira dura 4 s e o novo acerto de OUTRA execução reinicia para 4 s 
 test('M28.4: sliders mexidos depois do disparo não alteram a barragem; o próximo uso lê o novo', () => {
   const g = cast({steps: secs(.25) + 3});const w = waves(g)[0];
   C.world.sandWave.length = 20;C.world.sandWave.damage = 99;
-  assert.equal(w.length, 4);assert.equal(w.damage, 6);
+  assert.equal(w.length, 10);assert.equal(w.damage, 6);
 });
 test('sliders têm efeito: length, width, damage, blind e accel', () => {
   const g = cast({tweak: () => {C.world.sandWave.length = 10;C.world.sandWave.width = 6;C.world.sandWave.damage = 9;C.world.sandWave.blind = 2;}, red: vec(0, 3), steps: secs(.25) + 3});

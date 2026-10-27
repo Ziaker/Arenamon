@@ -20,7 +20,8 @@
     "airReach": 3,
     "rayStep": 0.25,
     "freeSearchRadius": 6,
-    "freeSearchStep": 0.25
+    "freeSearchStep": 0.25,
+    "atelierVfx": 0
   },
   "events": [
     {

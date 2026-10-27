@@ -18,6 +18,7 @@
     "range": 12,
     "originHeight": 0.8,
     "spawnForward": 0.7,
+    "pierce": 1,
     "counterStagger": 0.2,
     "plScaleBonus": 0.25,
     "hitShakeOn": 0,

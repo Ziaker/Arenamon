@@ -65,7 +65,7 @@
         "label": "Alcance frontal (ALTURA na vista superior)",
         "tip": "Comprimento do retângulo à frente do lançador (documento: 4 m; faixa 0,5–30 m). Velocidade da onda = alcance ÷ janela ativa.",
         "unit": "m",
-        "value": 4
+        "value": 10
       },
       {
         "min": 0.5,
@@ -92,10 +92,10 @@
         "max": 1,
         "step": 1,
         "key": "speedFromReach",
-        "label": "Velocidade = alcance ÷ janela ativa (sincronizada)",
-        "tip": "Ligado (padrão): a frente percorre todo o alcance na janela ativa, como no documento; o slider de velocidade manual fica ignorado. Desligue para controlar a velocidade inicial e a aceleração da frente separadamente.",
+        "label": "Velocidade sincronizada com alcance",
+        "tip": "Ligado: a velocidade é calculada como alcance ÷ tempo ativo. Desligado (0): o slider de alcance frontal e o slider de velocidade de avanço da onda atuam separadamente.",
         "unit": "yesno",
-        "value": 1,
+        "value": 0,
         "tier": "essential",
         "category": "Movimentação"
       },
@@ -104,10 +104,10 @@
         "max": 40,
         "step": 0.05,
         "key": "waveSpeed",
-        "label": "Velocidade inicial da frente (manual)",
-        "tip": "Velocidade inicial da onda em m/s. Só vale com a sincronização desligada. Padrão calculado do documento: 4 ÷ 0,75 = 5,333 m/s.",
+        "label": "Velocidade de avanço da onda",
+        "tip": "Velocidade em m/s da frente da barragem (independente do alcance). Padrão para 10m em 0,75s: 13,33 m/s.",
         "unit": "ms",
-        "value": 5.333333,
+        "value": 13.333333,
         "tier": "essential",
         "category": "Movimentação"
       },
@@ -211,10 +211,22 @@
         "tier": "essential",
         "category": "Knockback",
         "options": [
-          {"value": 0, "label": "0 · Fim da barragem (padrão)"},
-          {"value": 1, "label": "1 · Tempo fixo desde o contato (experimental)"},
-          {"value": 2, "label": "2 · Enquanto houver contato (experimental)"},
-          {"value": 3, "label": "3 · Janela de dano (legado)"}
+          {
+            "value": 0,
+            "label": "0 · Fim da barragem (padrão)"
+          },
+          {
+            "value": 1,
+            "label": "1 · Tempo fixo desde o contato (experimental)"
+          },
+          {
+            "value": 2,
+            "label": "2 · Enquanto houver contato (experimental)"
+          },
+          {
+            "value": 3,
+            "label": "3 · Janela de dano (legado)"
+          }
         ]
       },
       {
@@ -303,9 +315,18 @@
         "tier": "advanced",
         "category": "Knockback",
         "options": [
-          {"value": 0, "label": "0 · Aceleração constante (padrão)"},
-          {"value": 1, "label": "1 · Curva temporal (experimental)"},
-          {"value": 2, "label": "2 · Velocidade-alvo (experimental)"}
+          {
+            "value": 0,
+            "label": "0 · Aceleração constante (padrão)"
+          },
+          {
+            "value": 1,
+            "label": "1 · Curva temporal (experimental)"
+          },
+          {
+            "value": 2,
+            "label": "2 · Velocidade-alvo (experimental)"
+          }
         ]
       },
       {

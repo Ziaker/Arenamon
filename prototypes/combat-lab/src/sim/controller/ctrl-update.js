@@ -252,10 +252,11 @@ export function updateFighter(f, cmd, fighters, dt, world = null) {
     f.sprinting = false;f.sprintCarry = !f.action;f.sprintArmed = false;
   }
   // Orientação do corpo: separada da locomoção. Com lock-on, olha para o alvo conforme lockFacing (a mira continua no alvo).
-  const lockedFace = target && (L.model !== 1 || L.lockFacing === 1 || (L.lockFacing === 2 && (length(move) <= .01 || f.guard)));
-  // Sprint sempre olha para onde corre (a animação de sprint serve às 8 direções girando o corpo).
-  const faceGoal = f.sprinting && length(move) > 0 && !(target && L.lockFacing === 1) ? angleOf(move) : lockedFace ? desiredHeading : length(move) > 0 ? angleOf(move) : f.facing;
-  f.faceGoal = faceGoal; // meta de orientação (a animação escolhe frente/lado/trás por ela, não pelo giro em curso)
+  const isCharging = !!(f.charge || f.tackleCharge || (f.action && f.action.kind === 'move' && f.action.phase === 'charge'));
+  const lockedFace = target && (isCharging || L.model !== 1 || L.lockFacing === 1 || (L.lockFacing === 2 && (length(move) <= .01 || f.guard)));
+  // Sprint sempre olha para onde corre. Toda canalização fica RIGIDAMENTE virada para o alvo mesmo se movendo.
+  const faceGoal = (isCharging && target) ? desiredHeading : (f.sprinting && length(move) > 0 && !(target && L.lockFacing === 1)) ? angleOf(move) : lockedFace ? desiredHeading : length(move) > 0 ? angleOf(move) : f.facing;
+  f.faceGoal = faceGoal;
   if (!f.action) {
     f.vaultHeight = 0;
     const diff = angleDelta(f.facing, desiredHeading);
@@ -263,7 +264,15 @@ export function updateFighter(f, cmd, fighters, dt, world = null) {
       const max = Math.min(R.guardTurn, Math.sqrt(2 * R.guardAcceleration * Math.abs(diff)));
       f.angularSpeed = Math.min(max, f.angularSpeed + R.guardAcceleration * dt);
       f.facing += clamp(diff, -f.angularSpeed * dt, f.angularSpeed * dt);f.turnVelocity = 0;
+    } else if (isCharging && target) {
+      // Toda e qualquer canalização está sempre virada pro alvo
+      f.facing = desiredHeading;
+      f.visualFacing = desiredHeading;
+      f.angularSpeed = 0;
     } else {turnToward(f, faceGoal, dt, f.charge ? f.charge.params.turnSlow : 1);f.angularSpeed = 0;}
+  } else if (isCharging && target) {
+    f.facing = desiredHeading;
+    f.visualFacing = desiredHeading;
   }
   if (f.action) {
     f.locomotionVelocity = vec();f.sprintCarry = false;

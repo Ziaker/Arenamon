@@ -107,7 +107,7 @@ export function inferParamCategory(group, key) {
   if (['maxDistance', 'reach', 'stopShort', 'retreat', 'dashStart', 'dashEnd', 'approachMax', 'returnMax', 'approachStopDist', 'returnStopDist', 'stuckTicks', 'stuckSpeedRatio', 'castSlow', 'slow', 'accel', 'waveAccel', 'speedFromReach', 'pushClearsLocomotion', 'pushPreserveVelocity', 'heightPl1', 'heightPl2', 'heightPl3'].includes(key) || (key === 'gravity' && group === 'bounce') || (key === 'range' && ['lunge', 'guardBreak'].includes(group))) return 'Movimentação';
   if (key === 'range') return 'Alvo e mira';
   if (key === 'gravity') return 'Projéteis';
-  if (['hitstopMult', 'shakeMult', 'hitShakeOn', 'hitShakeAmount', 'hitShakeDuration', 'fxOn', 'fxIntensity', 'fxSize', 'blastOn', 'blastSize', 'fxLines', 'fxHideBody', 'fxTrailOn', 'fxTrailSize'].includes(key)) return 'Interações globais';
+  if (['hitstopMult', 'shakeMult', 'hitShakeOn', 'hitShakeAmount', 'hitShakeDuration', 'fxOn', 'fxIntensity', 'fxSize', 'blastOn', 'blastSize', 'fxLines', 'fxHideBody', 'fxTrailOn', 'fxTrailSize', 'atelierVfx'].includes(key)) return 'Interações globais';
   if (key.startsWith('ai')) return 'IA do Move';
   return 'Hitboxes';
 }

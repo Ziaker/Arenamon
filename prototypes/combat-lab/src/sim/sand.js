@@ -28,7 +28,8 @@ const localOf = (/** @type {any} */ e, /** @type {{x: number, z: number}} */ p) 
 export const inRect = (/** @type {any} */ e, /** @type {{x: number, z: number}} */ p) => {const l = localOf(e, p);return l.u >= 0 && l.u <= e.length && Math.abs(l.v) <= e.width / 2;};
 /** Distância percorrida pela frente da onda no tempo `age` (m): v₀·t + ½·a·t², com v₀ e a capturados no disparo. */
 export function sandFrontAt(/** @type {any} */ e, /** @type {number} */ age) {
-  const v0 = e.speed0 ?? e.speed ?? 0, a = e.waveAccel ?? 0;
+  const v0 = (e.speedFromReach === 1) ? (e.length / Math.max(0.01, e.active)) : (e.speed0 ?? e.speed ?? e.waveSpeed ?? 13.333333);
+  const a = e.waveAccel ?? 0;
   return Math.max(0, v0 * age + 0.5 * a * age * age);
 }
 
@@ -162,8 +163,22 @@ export function stepSand(/** @type {any} */ game, /** @type {any} */ e, /** @typ
         continue;
       }
     }
+    const waveSpd = (e.speedFromReach === 1) ? (e.length / Math.max(0.01, e.active)) : (e.speed0 ?? e.speed ?? e.waveSpeed ?? 13.333333);
     const accel = pushAccelNow(e, t, f, e.age);
     f.sandPush = {by: e.id, dir: {x: e.dir.x, z: e.dir.z}, accel, maxSpeed: e.pushMaxSpeed ?? 0, cancelsDodge: e.pushCancelsDodge ?? 1, continuesDuringStagger: e.pushContinuesDuringStagger ?? 1, mode: state.mode, elapsed: state.elapsed, duration: state.duration};
+
+    // Prisão móvel: se o alvo estiver dentro da onda e avançar além da crista frontal da onda,
+    // ele é retido na frente da onda para não escapar do raio do move.
+    if (inside && accel > 0 && !t.pinned && (f.knockRecovery ?? 0) <= 1e-8) {
+      const curLoc = localOf(e, f.position);
+      const maxU = Math.min(e.length - 0.1, front - 0.05);
+      if (curLoc.u > maxU && maxU > 0.1) {
+        const side = {x: e.dir.z, z: -e.dir.x};
+        f.position.x = e.pos.x + e.dir.x * maxU + side.x * curLoc.v;
+        f.position.z = e.pos.z + e.dir.z * maxU + side.z * curLoc.v;
+      }
+    }
+
     if (f.hp > 0 && !f.flight && f.state !== 'guardStun' && f.state !== 'stagger') {
       f.state = 'pushed';
       f.recoveryKind = 'pushed';

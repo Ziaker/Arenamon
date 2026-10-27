@@ -4,11 +4,11 @@
     "cost": 2,
     "cooldown": 10,
     "cast": 0.25,
-    "length": 4,
+    "length": 10,
     "width": 3,
     "active": 0.75,
-    "speedFromReach": 1,
-    "waveSpeed": 5.333333,
+    "speedFromReach": 0,
+    "waveSpeed": 13.333333,
     "waveAccel": 0,
     "dissipate": 0.75,
     "damage": 6,
@@ -65,7 +65,7 @@
       "id": 1
     },
     {
-      "tick": 85,
+      "tick": 51,
       "attacker": 0,
       "target": 1,
       "normal": {
@@ -83,7 +83,7 @@
       "id": 2
     },
     {
-      "tick": 85,
+      "tick": 51,
       "result": "blinded",
       "attacker": 0,
       "target": 1,
@@ -108,7 +108,7 @@
     "targetHp": 94,
     "targetPosition": {
       "x": 0,
-      "z": 0.7723526614353122
+      "z": 8.984375627280372
     },
     "attackerStamina": 1.013718,
     "targetStatuses": [
