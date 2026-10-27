@@ -40,14 +40,20 @@ export function validateContent(project: Record<string, unknown>): ValidationIss
       }
     }
     if (node.pivot !== undefined && (!Array.isArray(node.pivot) || node.pivot.length !== 3 || node.pivot.some(value => typeof value !== 'number' || !Number.isFinite(value)))) fail(`nodes.${i}.pivot`, 'Pivô exige vetor 3D finito');
+    if (node.locked !== undefined && typeof node.locked !== 'boolean') fail(`nodes.${i}.locked`, 'locked deve ser booleano');
     if (node.geometry !== undefined) {
       if (!object(node.geometry)) fail(`nodes.${i}.geometry`, 'Geometria inválida');
       else if (node.geometry.kind === 'box') {
         if (!Array.isArray(node.geometry.size) || node.geometry.size.length !== 3 || node.geometry.size.some(value => typeof value !== 'number' || !Number.isFinite(value) || value <= 0)) fail(`nodes.${i}.geometry`, 'Geometria box exige tamanho 3D positivo');
+      } else if (node.geometry.kind === 'sphere') {
+        if (typeof node.geometry.radius !== 'number' || !Number.isFinite(node.geometry.radius) || node.geometry.radius <= 0 || node.geometry.radius > 100) fail(`nodes.${i}.geometry.radius`, 'Esfera exige raio positivo até 100 m');
+      } else if (node.geometry.kind === 'plane') {
+        if (!Array.isArray(node.geometry.size) || node.geometry.size.length !== 2 || node.geometry.size.some(value => typeof value !== 'number' || !Number.isFinite(value) || value <= 0 || value > 100)) fail(`nodes.${i}.geometry.size`, 'Plano exige largura e altura positivas até 100 m');
       } else if (['stroke', 'curve', 'ribbon'].includes(String(node.geometry.kind))) {
         const points = node.geometry.points;
         if (!Array.isArray(points) || points.length < 2 || points.length > 4096 || points.some(point => !Array.isArray(point) || point.length !== 3 || point.some(value => typeof value !== 'number' || !Number.isFinite(value)))) fail(`nodes.${i}.geometry.points`, 'Caminho exige 2–4096 pontos 3D finitos');
         if (typeof node.geometry.width !== 'number' || !Number.isFinite(node.geometry.width) || node.geometry.width <= 0 || node.geometry.width > 100) fail(`nodes.${i}.geometry.width`, 'Largura inválida');
+        if (node.geometry.endWidth !== undefined && (node.geometry.kind !== 'ribbon' || typeof node.geometry.endWidth !== 'number' || !Number.isFinite(node.geometry.endWidth) || node.geometry.endWidth <= 0 || node.geometry.endWidth > 100)) fail(`nodes.${i}.geometry.endWidth`, 'Largura final válida apenas para Ribbon entre 0 e 100 m');
         if (node.geometry.extrusion !== undefined && (node.geometry.kind !== 'ribbon' || typeof node.geometry.extrusion !== 'number' || !Number.isFinite(node.geometry.extrusion) || node.geometry.extrusion <= 0 || node.geometry.extrusion > 100)) fail(`nodes.${i}.geometry.extrusion`, 'Extrusão válida apenas para Ribbon entre 0 e 100 m');
         if (typeof node.geometry.closed !== 'boolean') fail(`nodes.${i}.geometry.closed`, 'closed deve ser booleano');
       } else fail(`nodes.${i}.geometry.kind`, 'Tipo de geometria inválido');
@@ -58,6 +64,18 @@ export function validateContent(project: Record<string, unknown>): ValidationIss
       seen.add(current.id); current = byId.get(current.parentId);
     }
   });
+  if (project.authoring !== undefined) {
+    const authoring = project.authoring;
+    if (!object(authoring) || !object(authoring.drawingPlane)) fail('authoring', 'Configuração autoral inválida');
+    else {
+      for (const key of ['origin', 'rotation'] as const) {
+        const vector = authoring.drawingPlane[key];
+        if (!Array.isArray(vector) || vector.length !== 3 || vector.some(value => typeof value !== 'number' || !Number.isFinite(value))) fail(`authoring.drawingPlane.${key}`, 'Vetor 3D finito obrigatório');
+      }
+      if (typeof authoring.mirrorX !== 'boolean') fail('authoring.mirrorX', 'deve ser booleano');
+      if (!Number.isSafeInteger(authoring.radialCopies) || Number(authoring.radialCopies) < 1 || Number(authoring.radialCopies) > 12) fail('authoring.radialCopies', 'inteiro entre 1 e 12 obrigatório');
+    }
+  }
   const trackIds = new Set<string>();
   const tracks = (raw: unknown, path: string) => {
     if (!Array.isArray(raw)) return;

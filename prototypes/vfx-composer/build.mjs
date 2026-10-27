@@ -13,4 +13,4 @@ const script = appBuild.outputFiles[0].text.replaceAll('</script>', '<\\/script>
 const template = await readFile(new URL('src/app/template.html', root), 'utf8');
 const style = await readFile(new URL('src/app/style.css', root), 'utf8');
 await writeFile(new URL('dist/arenamon-vfx-composer.html', root), template.replace('/*__STYLE__*/', style).replace('/*__SCRIPT__*/', script));
-console.log('Build F1: aplicação offline e relatório F0 gerados.');
+console.log('Build F1.1: aplicação offline e relatório F0 gerados.');

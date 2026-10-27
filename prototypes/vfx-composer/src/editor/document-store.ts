@@ -1,4 +1,4 @@
-import type {Vec3, VfxProject, VisualNode, VisualTransform} from '../core/types';
+import type {AuthoringSettings, Vec3, VfxProject, VisualNode, VisualTransform} from '../core/types';
 import {validateProject} from '../core/validation';
 import {createPathGeometry} from './geometry';
 
@@ -51,6 +51,7 @@ export class DocumentStore {
     this.#change(project => {
       const node = project.nodes.find(candidate => candidate.id === id);
       if (!node) throw new Error(`Nó ausente: ${id}`);
+      if (node.locked) throw new Error(`Nó travado: ${id}`);
       const current: VisualTransform = node.transform ?? {position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1]};
       node.transform = {...current, ...clone(patch)};
     }, id);
@@ -61,6 +62,7 @@ export class DocumentStore {
     this.#change(project => {
       const node = project.nodes.find(candidate => candidate.id === id);
       if (!node?.geometry) throw new Error(`Geometria ausente: ${id}`);
+      if (node.locked) throw new Error(`Nó travado: ${id}`);
       node.pivot = clone(pivot);
     }, id);
   }
@@ -69,11 +71,12 @@ export class DocumentStore {
     if (!finiteVec3(point)) throw new Error('Vértice exige vetor finito');
     this.#change(project => {
       const node = project.nodes.find(candidate => candidate.id === id);
-      if (!node?.geometry || node.geometry.kind === 'box') throw new Error(`Caminho ausente: ${id}`);
+      if (!node?.geometry || node.geometry.kind === 'box' || node.geometry.kind === 'sphere' || node.geometry.kind === 'plane') throw new Error(`Caminho ausente: ${id}`);
+      if (node.locked) throw new Error(`Nó travado: ${id}`);
       if (!Number.isSafeInteger(index) || index < 0 || index >= node.geometry.points.length) throw new Error('Índice de vértice inválido');
       const points = clone(node.geometry.points);
       points[index] = clone(point);
-      node.geometry = createPathGeometry(node.geometry.kind, points, {width: node.geometry.width, extrusion: node.geometry.extrusion, closed: node.geometry.closed, snap});
+      node.geometry = createPathGeometry(node.geometry.kind, points, {width: node.geometry.width, endWidth: node.geometry.endWidth, extrusion: node.geometry.extrusion, closed: node.geometry.closed, snap});
     }, id);
   }
 
@@ -81,23 +84,25 @@ export class DocumentStore {
     if (!finiteVec3(point)) throw new Error('Vértice exige vetor finito');
     this.#change(project => {
       const node = project.nodes.find(candidate => candidate.id === id);
-      if (!node?.geometry || node.geometry.kind === 'box') throw new Error(`Caminho ausente: ${id}`);
+      if (!node?.geometry || node.geometry.kind === 'box' || node.geometry.kind === 'sphere' || node.geometry.kind === 'plane') throw new Error(`Caminho ausente: ${id}`);
+      if (node.locked) throw new Error(`Nó travado: ${id}`);
       if (!Number.isSafeInteger(afterIndex) || afterIndex < 0 || afterIndex >= node.geometry.points.length) throw new Error('Índice de vértice inválido');
       const points = clone(node.geometry.points);
       points.splice(afterIndex + 1, 0, clone(point));
-      node.geometry = createPathGeometry(node.geometry.kind, points, {width: node.geometry.width, extrusion: node.geometry.extrusion, closed: node.geometry.closed, snap});
+      node.geometry = createPathGeometry(node.geometry.kind, points, {width: node.geometry.width, endWidth: node.geometry.endWidth, extrusion: node.geometry.extrusion, closed: node.geometry.closed, snap});
     }, id);
   }
 
   removePathPoint(id: string, index: number): void {
     this.#change(project => {
       const node = project.nodes.find(candidate => candidate.id === id);
-      if (!node?.geometry || node.geometry.kind === 'box') throw new Error(`Caminho ausente: ${id}`);
+      if (!node?.geometry || node.geometry.kind === 'box' || node.geometry.kind === 'sphere' || node.geometry.kind === 'plane') throw new Error(`Caminho ausente: ${id}`);
+      if (node.locked) throw new Error(`Nó travado: ${id}`);
       if (!Number.isSafeInteger(index) || index < 0 || index >= node.geometry.points.length) throw new Error('Índice de vértice inválido');
       if (node.geometry.points.length <= 2) throw new Error('O caminho precisa manter ao menos dois pontos');
       const points = clone(node.geometry.points);
       points.splice(index, 1);
-      node.geometry = createPathGeometry(node.geometry.kind, points, {width: node.geometry.width, extrusion: node.geometry.extrusion, closed: node.geometry.closed});
+      node.geometry = createPathGeometry(node.geometry.kind, points, {width: node.geometry.width, endWidth: node.geometry.endWidth, extrusion: node.geometry.extrusion, closed: node.geometry.closed});
     }, id);
   }
 
@@ -106,13 +111,38 @@ export class DocumentStore {
     this.#change(project => {
       const node = project.nodes.find(candidate => candidate.id === id);
       if (!node?.geometry || node.geometry.kind !== 'ribbon') throw new Error('Extrusão é exclusiva de Ribbon');
+      if (node.locked) throw new Error(`Nó travado: ${id}`);
       node.geometry.extrusion = extrusion;
     }, id);
+  }
+
+  setPathTaper(id: string, endWidth: number): void {
+    if (!Number.isFinite(endWidth) || endWidth <= 0 || endWidth > 100) throw new Error('Largura final deve ser finita entre 0 e 100 m');
+    this.#change(project => {
+      const node = project.nodes.find(candidate => candidate.id === id);
+      if (!node?.geometry || node.geometry.kind !== 'ribbon') throw new Error('Largura final é exclusiva de Ribbon');
+      if (node.locked) throw new Error(`Nó travado: ${id}`);
+      node.geometry.endWidth = endWidth;
+    }, id);
+  }
+
+  setLocked(id: string, locked: boolean): void {
+    this.#change(project => {
+      const node = project.nodes.find(candidate => candidate.id === id);
+      if (!node) throw new Error(`Nó ausente: ${id}`);
+      node.locked = locked;
+    }, id);
+  }
+
+  setAuthoringSettings(settings: AuthoringSettings): void {
+    this.#change(project => { project.authoring = clone(settings); }, this.#selectedId);
   }
 
   removeNode(id: string): void {
     this.#change(project => {
       const removed = new Set([id]);
+      const target = project.nodes.find(node => node.id === id);
+      if (target?.locked) throw new Error(`Nó travado: ${id}`);
       let changed = true;
       while (changed) {
         changed = false;

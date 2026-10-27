@@ -135,3 +135,45 @@ assert.throws(() => ribbonStore.setPathExtrusion('ribbon-1', 0), /extrusão/i);
 assert.throws(() => pathStore.setPathExtrusion('curve-1', .2), /ribbon/i);
 
 console.log('✓ F1 geometria: caminhos finitos, snapping, vértices, pivô e extrusão de Ribbon com Undo e limites.');
+
+assert.equal(typeof api.createAssistedPaths, 'function');
+const tapered = api.createPathGeometry('ribbon', [[0, 0, 0], [1, 0, 0]], {width: .4, endWidth: .1, extrusion: .08});
+assert.equal(tapered.endWidth, .1);
+assert.throws(() => api.createPathGeometry('ribbon', [[0, 0, 0], [1, 0, 0]], {width: .4, endWidth: 0}), /final/i);
+const mirrored = api.createAssistedPaths([[1, 0, 0], [2, 0, 0]], {origin: [0, 0, 0], rotation: [0, 0, 0], mirrorX: true, radialCopies: 1});
+assert.deepEqual(mirrored, [
+  [[1, 0, 0], [2, 0, 0]],
+  [[-1, 0, 0], [-2, 0, 0]],
+]);
+const radial = api.createAssistedPaths([[1, 0, 0], [2, 0, 0]], {origin: [0, 0, 0], rotation: [0, 0, 0], mirrorX: false, radialCopies: 4});
+assert.equal(radial.length, 4);
+assert.deepEqual(radial[2].map(point => point.map(value => Math.round(value * 1000) / 1000)), [[-1, 0, 0], [-2, 0, 0]]);
+assert.throws(() => api.createAssistedPaths([[0, 0, 0], [1, 0, 0]], {origin: [0, 0, 0], rotation: [0, NaN, 0], mirrorX: false, radialCopies: 1}), /finita/i);
+
+const f11Store = new api.DocumentStore(fixture());
+f11Store.addNode({id: 'ribbon-f11', kind: 'stroke', parentId: null, assetIds: [], geometry: tapered});
+f11Store.setPathTaper('ribbon-f11', .2);
+assert.equal(f11Store.project.nodes[0].geometry.endWidth, .2);
+assert.equal(f11Store.undo(), true);
+assert.equal(f11Store.project.nodes[0].geometry.endWidth, .1);
+f11Store.setLocked('ribbon-f11', true);
+assert.equal(f11Store.project.nodes[0].locked, true);
+assert.throws(() => f11Store.setTransform('ribbon-f11', {position: [1, 0, 0]}), /travado/i);
+assert.throws(() => f11Store.setPathTaper('ribbon-f11', .3), /travado/i);
+f11Store.setLocked('ribbon-f11', false);
+f11Store.setTransform('ribbon-f11', {position: [1, 0, 0]});
+assert.deepEqual(f11Store.project.nodes[0].transform.position, [1, 0, 0]);
+f11Store.setAuthoringSettings({drawingPlane: {origin: [1, 2, 3], rotation: [0, Math.PI / 2, 0]}, mirrorX: true, radialCopies: 6});
+assert.deepEqual(f11Store.project.authoring, {drawingPlane: {origin: [1, 2, 3], rotation: [0, Math.PI / 2, 0]}, mirrorX: true, radialCopies: 6});
+assert.equal(f11Store.undo(), true);
+assert.equal(f11Store.project.authoring, undefined);
+const primitives = fixture();
+primitives.nodes.push(
+  {id: 'sphere-1', kind: 'mesh', parentId: null, assetIds: [], geometry: {kind: 'sphere', radius: .75}},
+  {id: 'plane-1', kind: 'mesh', parentId: null, assetIds: [], geometry: {kind: 'plane', size: [2, 3]}},
+);
+assert.equal(api.validateProject(primitives).ok, true);
+primitives.nodes[0].geometry.radius = 0;
+assert.equal(api.validateProject(primitives).ok, false);
+
+console.log('✓ F1.1 contratos: taper, primitivas, lock, authoring e cópias assistidas.');

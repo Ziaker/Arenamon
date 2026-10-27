@@ -2,7 +2,7 @@
 
 ## Estado
 
-**F1 concluída e navegável.** O ponto principal abre uma aplicação Three.js autocontida e offline. A fundação F0 permanece preservada em `prototypes/vfx-composer/dist/vfx-composer-f0.html`.
+**F1.1 concluída e navegável.** O ponto principal abre uma aplicação Three.js autocontida e offline. A fundação F0 permanece preservada em `prototypes/vfx-composer/dist/vfx-composer-f0.html`.
 
 ## Implementado nesta fatia
 
@@ -38,6 +38,14 @@
 - Controle `Extrusão` em metros define a espessura da Ribbon; Ribbons usam seção retangular real com `ExtrudeGeometry`, e a edição participa de Undo/Redo.
 - Projetos antigos sem `extrusion` continuam válidos e recebem uma espessura proporcional à largura quando projetados.
 - Seletor `Alvo` alterna entre `Plano XZ` e `Superfície 3D`; o segundo modo faz raycast apenas contra objetos autorais e grava os pontos mundiais com snapping.
+- Plano de desenho orientável por origem em metros e rotação em graus na interface, persistida em radianos no documento.
+- Simetria no eixo local X e repetição radial de 1 a 12 cópias, materializadas deterministicamente em uma única transação de Undo.
+- Ribbon com largura inicial e final, renderizada por malha amostrada com tapering real.
+- Primitivas adicionais esfera e plano, com contratos defensivos de raio e dimensões.
+- Seleção múltipla por Ctrl/Shift e transformação numérica em lote por delta, ignorando nós travados.
+- Lock persistente, isolamento visual transitório, gizmo local/global e painéis laterais recolhíveis.
+- Vistas perspectiva, frontal e lateral; as duas vistas ortogonais da mesma cena foram registradas em `prototypes/vfx-composer/evidence/f1-1/`.
+- Largura, taper, snapping, extrusão e repetição possuem slider e campo numérico sincronizados, com unidade e limites visíveis.
 
 ## Verificação
 
@@ -53,5 +61,6 @@ O teste F1 cobre o store, a persistência por adaptadores e uma experiência ver
 ## Limitações verificadas
 
 - O fallback de download e a importação por `<input type=file>` foram comprovados no Edge offline; o diálogo nativo da File System Access API exige interação manual e não foi automatizado.
+- Deformação arbitrária de malha, triângulos editáveis e suavização de strokes continuam fora desta fatia.
 - A F1 não inclui timeline avançada, materiais, partículas, eventos ou publicação, reservados às fases posteriores da especificação.
 - A F2 não foi iniciada.

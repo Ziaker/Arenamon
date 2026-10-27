@@ -4,9 +4,10 @@ export type OutcomePhase = 'finish' | 'impact';
 export type AuthoringFps = 24 | 30 | 60;
 export type Vec3 = [number, number, number];
 export interface VisualTransform {position: Vec3; rotation: Vec3; scale: Vec3}
-export interface PathGeometry {kind: 'stroke' | 'curve' | 'ribbon'; points: Vec3[]; width: number; extrusion?: number; closed: boolean}
-export type VisualGeometry = {kind: 'box'; size: Vec3} | PathGeometry;
-export interface VisualNode {id: string; kind: 'group' | 'mesh' | 'stroke' | 'particles' | 'material'; parentId: string | null; assetIds: string[]; transform?: VisualTransform; pivot?: Vec3; geometry?: VisualGeometry}
+export interface PathGeometry {kind: 'stroke' | 'curve' | 'ribbon'; points: Vec3[]; width: number; endWidth?: number; extrusion?: number; closed: boolean}
+export type VisualGeometry = {kind: 'box'; size: Vec3} | {kind: 'sphere'; radius: number} | {kind: 'plane'; size: [number, number]} | PathGeometry;
+export interface VisualNode {id: string; kind: 'group' | 'mesh' | 'stroke' | 'particles' | 'material'; parentId: string | null; assetIds: string[]; transform?: VisualTransform; pivot?: Vec3; locked?: boolean; geometry?: VisualGeometry}
+export interface AuthoringSettings {drawingPlane: {origin: Vec3; rotation: Vec3}; mirrorX: boolean; radialCopies: number}
 export interface VisualTrack {id: string; targetId: string; property: 'opacity' | 'scale' | 'position.x' | 'position.y' | 'position.z' | 'rotation.x' | 'rotation.y' | 'rotation.z'; keyframes: {time: number; value: number; interpolation: 'linear' | 'step'}[]}
 export interface VisualAsset {assetId: string; uri: string; kind: 'texture' | 'mesh' | 'reference'}
 export interface Subeffect {id: string; componentId: string; version: string; parentId: string | null; delay: number}
@@ -38,6 +39,7 @@ export interface VfxProject {
   qualityProfiles: Record<string, unknown>;
   accessibility: {noFlash: boolean; reduceMotion: boolean};
   pinnedComponents: PinnedComponent[];
+  authoring?: AuthoringSettings;
 }
 
 export interface VfxRuntime {
