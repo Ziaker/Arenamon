@@ -209,12 +209,19 @@ export class VfxSystem {
       else if (e.result === 'partial') {this.fire('block', {pos: b.position, lift: altitudeOf(b), floorLift: b.groundY ?? 0, n: e.normal, power: 1}, tag);this.shake('shakeGuard', e.normal, 1, tag);}
       else if (e.result === 'perfect') {this.fire('perfect', {pos: b.position, lift: altitudeOf(b), floorLift: b.groundY ?? 0, n: e.normal, power: 1, fighters}, tag);this.shake('shakePerfect', e.normal, 1, tag);}
       else if (e.result === 'clash') {
-        const tickKey = `clash:${e.tick ?? 0}`;
-        if (!(this.clashSeen ??= new Set()).has(tickKey)) {
-          this.clashSeen.add(tickKey);
-          const mid = {x: (a.position.x + b.position.x) / 2, z: (a.position.z + b.position.z) / 2};
-          this.fire('clash', {pos: mid, lift: (altitudeOf(a) + altitudeOf(b)) / 2, n: e.normal, power: 1}, tag);
-          this.shake('shakeClash', e.normal, 1, tag);
+        const idA = e.entity ?? e.attacker ?? 0;
+        const idB = e.otherEntity ?? e.target ?? 1;
+        const [minId, maxId] = [String(idA), String(idB)].sort();
+        const clashKey = `clash:${e.tick ?? 0}:${minId}:${maxId}`;
+        if (!(this.clashSeen ??= new Set()).has(clashKey)) {
+          this.clashSeen.add(clashKey);
+          const mid = {
+            x: (a.position.x + b.position.x) / 2,
+            z: (a.position.z + b.position.z) / 2
+          };
+          const contactNormal = e.normal ?? {x: a.position.x - b.position.x, z: a.position.z - b.position.z};
+          this.fire('clash', {pos: mid, lift: (altitudeOf(a) + altitudeOf(b)) / 2, n: contactNormal, power: 1}, tag);
+          this.shake('shakeClash', contactNormal, 1, tag);
         }
       }
     }

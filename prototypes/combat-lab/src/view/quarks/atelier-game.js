@@ -12,6 +12,7 @@ import {PhaseClock} from '../../../../sand-stone-lab/src/phases.ts';
 import {defaults} from '../../../../sand-stone-lab/src/config.ts';
 import {disposeGroup} from '../../../../sand-stone-lab/src/art.js';
 import {ATELIER_GAME_PARAMS, ATELIER_GAME_VARIANT} from './atelier-game-params.js';
+import {C} from '../../sim/config.js';
 
 /** Acessibilidade do jogo (Sem flash / Movimento reduzido), do mesmo jeito que o atelier aplica. */
 function accessible(p, acc) {

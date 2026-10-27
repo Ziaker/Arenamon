@@ -170,15 +170,66 @@ export function isFinished(state, age) {
  */
 export function onEvent(view, ev, state) {
   if (!state || !state.particles) return;
-  const impacts = ['impact', 'partial', 'clash', 'obstacleHit', 'destructibleHit', 'wallSplat'];
+  const impacts = ['impact', 'partial', 'clash', 'obstacleHit', 'destructibleHit', 'wallSplat', 'sandStagger'];
   if (impacts.includes(ev.result)) {
-    const px = ev.x ?? (state.pos ? state.pos.x + state.dir.x * state.len : 0);
-    const py = ev.y ?? state.y ?? 0.3;
-    const pz = ev.z ?? (state.pos ? state.pos.z + state.dir.z * state.len : 0);
+    // Determinar o ponto de contato real no espaço de mundo
+    let wx = ev.x, wy = ev.y, wz = ev.z;
+    if (wx == null || wz == null) {
+      if (ev.target != null && view.fighters?.[ev.target]) {
+        const b = view.fighters[ev.target];
+        wx = b.position.x;
+        wy = (b.groundY ?? 0) + (b.flight?.y ?? b.vaultHeight ?? 0) + 0.35;
+        wz = b.position.z;
+      } else if (state.pos) {
+        // Posição média do alcance da onda (evita nascer na extremidade distante)
+        wx = state.pos.x + state.dir.x * (state.len * 0.5);
+        wy = state.y ?? 0.3;
+        wz = state.pos.z + state.dir.z * (state.len * 0.5);
+      } else {
+        wx = 0; wy = 0.3; wz = 0;
+      }
+    }
+    if (wy == null) wy = state.y ?? 0.3;
+
+    // Conversão canônica: transforma coordenadas mundiais no espaço local do grupo
+    // garantindo que o emissor filho nasça no ponto exato do alvo, sem deslocamento duplo.
+    let localPos = new T.Vector3(wx, wy, wz);
+    let localDir = new T.Vector3(0, 1, 0);
+
+    if (state.group) {
+      state.group.updateWorldMatrix(true, false);
+      localPos = state.group.worldToLocal(localPos.clone());
+      if (ev.normal && (Math.abs(ev.normal.x) > 1e-4 || Math.abs(ev.normal.z) > 1e-4)) {
+        const worldDir = new T.Vector3(ev.normal.x, 0.4, ev.normal.z).normalize();
+        const normalMatrix = new T.Matrix3().getNormalMatrix(state.group.matrixWorld);
+        localDir = worldDir.applyMatrix3(normalMatrix).normalize();
+      }
+    }
+
     if (typeof state.particles.burst === 'function') {
-      state.particles.burst({kind: 'dust', color: 0xc49c68, count: 24, position: [px, py, pz], direction: [0, 1, 0], speed: 3.0, size: 0.45, life: 0.6});
+      state.particles.burst({
+        kind: 'dust',
+        color: 0xc49c68,
+        count: 24,
+        position: [localPos.x, localPos.y, localPos.z],
+        direction: [localDir.x, Math.max(0.2, localDir.y), localDir.z],
+        speed: 3.0,
+        size: 0.45,
+        life: 0.6
+      });
     } else {
-      state.particles.create({kind: 'dust', color: 0xc49c68, count: 24, duration: 0.2, life: 0.6, size: 0.45, speed: 3.0, radius: 0.4, position: [px, py, pz], direction: [0, 1, 0]});
+      state.particles.create({
+        kind: 'dust',
+        color: 0xc49c68,
+        count: 24,
+        duration: 0.2,
+        life: 0.6,
+        size: 0.45,
+        speed: 3.0,
+        radius: 0.4,
+        position: [localPos.x, localPos.y, localPos.z],
+        direction: [localDir.x, Math.max(0.2, localDir.y), localDir.z]
+      });
     }
   }
 }

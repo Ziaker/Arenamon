@@ -195,9 +195,12 @@ export class View {
       const isEnvSplat = (event.result === 'wallSplat' || event.result === 'destructibleSplat') && target;
       if (!isEnvSplat && (!attacker || !target)) continue;
       if (event.result === 'clash') {
-        const tickKey = `clash:${event.tick ?? 0}`;
-        if ((this.legacyClashSeen ??= new Set()).has(tickKey)) continue;
-        this.legacyClashSeen.add(tickKey);
+        const idA = event.entity ?? event.attacker ?? 0;
+        const idB = event.otherEntity ?? event.target ?? 1;
+        const [minId, maxId] = [String(idA), String(idB)].sort();
+        const clashKey = `clash:${event.tick ?? 0}:${minId}:${maxId}`;
+        if ((this.legacyClashSeen ??= new Set()).has(clashKey)) continue;
+        this.legacyClashSeen.add(clashKey);
       }
       if (event.result === 'invulnerable') {const key = `${event.attacker}:${event.target}`, now = performance.now();if (now - (this.invulnerableFx.get(key) ?? -Infinity) < F.invulnRepeatDelay) continue;this.invulnerableFx.set(key, now);}
       if (event.result === 'clash' || event.result === 'impact' || event.result === 'perfect' || event.result === 'wallSplat' || event.result === 'footstool') this.cameraShake = Math.max(this.cameraShake, event.result === 'clash' ? 1 : event.slam || event.result === 'wallSplat' ? .8 : event.result === 'footstool' ? .35 : .45);

@@ -230,3 +230,71 @@ test('VFX: Clash iniciado pelo Jogador 2 (attacker: 1) gera efeito de choque sim
 
   assert.equal(clashFired, true, 'Clash iniciado pelo Jogador 2 DEVE disparar o efeito visual de clash');
 });
+
+test('VFX: Dois clashes independentes no mesmo tick são ambos preservados, e duplicatas mútuas geram 1 único efeito', () => {
+  const scene = new THREE.Scene();
+  const vfx = new VfxSystem(scene);
+  const clashes = [];
+  vfx.fire = (type, data) => {
+    if (type === 'clash') clashes.push(data);
+  };
+  vfx.shake = () => {};
+
+  const fighters = [
+    createFighter(0, baseAttrs, { x: -5, z: 0 }),
+    createFighter(1, baseAttrs, { x: -3, z: 0 }),
+    createFighter(2, baseAttrs, { x: 5, z: 0 }),
+    createFighter(3, baseAttrs, { x: 7, z: 0 })
+  ];
+
+  // Tick 20: Confronto 1 (0 e 1) emitido por AMBOS os lados (duplicata simétrica)
+  // E confronto 2 (2 e 3) independente no MESMO tick!
+  const events = [
+    { result: 'clash', attacker: 0, target: 1, normal: { x: 1, y: 0, z: 0 }, tick: 20 },
+    { result: 'clash', attacker: 1, target: 0, normal: { x: -1, y: 0, z: 0 }, tick: 20 },
+    { result: 'clash', attacker: 2, target: 3, normal: { x: 1, y: 0, z: 0 }, tick: 20 }
+  ];
+
+  vfx.update(fighters, events, 0.016);
+
+  assert.equal(clashes.length, 2, 'Dois confrontos distintos no mesmo tick devem gerar exatamente 2 efeitos, descartando a duplicata 1->0');
+  assert.equal(clashes[0].pos.x, -4, 'Ponto de contato do clash 0-1 deve ser no meio (-4)');
+  assert.equal(clashes[1].pos.x, 6, 'Ponto de contato do clash 2-3 deve ser no meio (6)');
+});
+
+test('VFX Sand Wave: Coordenadas mundiais são convertidas canonicamente para o espaço local de group', () => {
+  const scene = new THREE.Scene();
+  const group = new THREE.Group();
+  scene.add(group);
+
+  // Group posicionado no mundo com offset em X=5 e Z=10, rotacionado 90 graus (Math.PI/2)
+  group.position.set(5, 0, 10);
+  group.rotation.y = Math.PI / 2;
+  group.updateWorldMatrix(true, true);
+
+  const particles = new Particles(group, { textures: false });
+  const state = {
+    group,
+    particles,
+    pos: { x: 5, z: 10 },
+    dir: { x: 1, z: 0 },
+    len: 4,
+    y: 0
+  };
+
+  // Alvo atingido na coordenada mundial (x=7, y=0.5, z=10)
+  onSandWaveEvent(null, { result: 'impact', x: 7, y: 0.5, z: 10 }, state);
+
+  assert.equal(particles.systems.length, 1, 'Deve criar 1 sistema de partículas');
+  const emitter = particles.systems[0].emitter;
+  group.updateWorldMatrix(true, true);
+  emitter.updateMatrixWorld(true);
+
+  const worldPos = new THREE.Vector3();
+  emitter.getWorldPosition(worldPos);
+
+  // A posição final do emissor no mundo DEVE coincidir exatamente com a coordenada mundial do impacto!
+  assert.ok(Math.abs(worldPos.x - 7) < 1e-4, `X de mundo (${worldPos.x}) deve ser 7`);
+  assert.ok(Math.abs(worldPos.y - 0.5) < 1e-4, `Y de mundo (${worldPos.y}) deve ser 0.5`);
+  assert.ok(Math.abs(worldPos.z - 10) < 1e-4, `Z de mundo (${worldPos.z}) deve ser 10`);
+});

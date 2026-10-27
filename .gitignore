@@ -47,6 +47,7 @@ prototypes/croagunk/
 !/validation/vfx-final/**
 *.webm
 *.mp4
+dumper test/
 
 # Duplicata local e ferramenta diagnóstica avulsa; as versões canônicas seguem versionadas.
 /GDD_Pokemon_Arena_Fighter_v0_1.docx

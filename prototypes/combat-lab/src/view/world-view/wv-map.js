@@ -117,13 +117,15 @@ drawMap(mapState, fighters = [], dt = 0, camera = null) {
       aliveMapIds.add(d.id);
       let m = this.mapMeshes.get(d.id);
       if (!m) {
+        let geo;
         if (d.rock) {
           const variant = C.vfx?.rock?.variant ?? 0;
           m = rockModel(variant, null);
           m.name = `destructible_${d.id}`;
           m.userData.isCustomRock = true;
+          geo = new T.BoxGeometry(d.size.hx * 2, d.size.height, d.size.hz * 2);
         } else {
-          const geo = new T.BoxGeometry(d.size.hx * 2, d.size.height, d.size.hz * 2);
+          geo = new T.BoxGeometry(d.size.hx * 2, d.size.height, d.size.hz * 2);
           const mat = new T.MeshStandardMaterial({
             color: 0xd97706,
             roughness: 0.7,

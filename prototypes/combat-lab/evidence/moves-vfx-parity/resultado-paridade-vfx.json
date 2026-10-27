@@ -1,7 +1,7 @@
 {
-  "timestamp": "2026-10-26T17:55:44.160Z",
-  "passed": 38,
-  "failed": 0,
+  "timestamp": "2026-10-27T20:14:35.380Z",
+  "passed": 30,
+  "failed": 8,
   "results": [
     {
       "label": "Sand Wave: barragem nasce na simulação",
@@ -25,8 +25,8 @@
     },
     {
       "label": "Sand Wave: fidelidade visual automatizada contra baseline (≥ 98%)",
-      "ok": true,
-      "detail": "99.4% de match"
+      "ok": false,
+      "detail": "65.6% de match"
     },
     {
       "label": "Sand Wave: entidade expira na simulação e transiciona para fase dying",
@@ -55,13 +55,13 @@
     },
     {
       "label": "Bullet Punch: rush visual gerenciado exclusivamente pelo MovesVfxRegistry",
-      "ok": true,
+      "ok": false,
       "detail": ""
     },
     {
       "label": "Bullet Punch: fidelidade visual do vanish contra baseline (≥ 98%)",
-      "ok": true,
-      "detail": "99.47% de match"
+      "ok": false,
+      "detail": "64.85% de match"
     },
     {
       "label": "Bullet Punch: reaparece perto do alvo (f.absent = false)",
@@ -70,13 +70,13 @@
     },
     {
       "label": "Bullet Punch: evento de impacto acionado na chegada",
-      "ok": true,
+      "ok": false,
       "detail": ""
     },
     {
       "label": "Bullet Punch: fidelidade visual do impacto contra baseline (≥ 98%)",
-      "ok": true,
-      "detail": "99.53% de match"
+      "ok": false,
+      "detail": "63.43% de match"
     },
     {
       "label": "Bullet Punch: rush descartado limpo após a dissipação",
@@ -120,8 +120,8 @@
     },
     {
       "label": "Water Pulse: fidelidade visual do projétil em voo contra baseline (≥ 98%)",
-      "ok": true,
-      "detail": "98.92% de match"
+      "ok": false,
+      "detail": "64.91% de match"
     },
     {
       "label": "Water Pulse: impacto ativa animação splash e transiciona para cauda dying",
@@ -135,12 +135,12 @@
     },
     {
       "label": "Water Pulse: fidelidade visual do splash contra baseline (≥ 98%)",
-      "ok": true,
-      "detail": "99.42% de match"
+      "ok": false,
+      "detail": "65.32% de match"
     },
     {
       "label": "Water Pulse: partículas de splash sustentadas durante a cauda de 2.4s",
-      "ok": true,
+      "ok": false,
       "detail": ""
     },
     {

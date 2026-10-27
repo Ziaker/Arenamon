@@ -1,11 +1,11 @@
 {
-  "date": "2026-10-25",
+  "date": "2026-10-27",
   "gl": "gpu",
   "moves": [
     {
       "move": "air-slash",
       "file": "air-slash.png",
-      "tick": 85,
+      "tick": 87,
       "entities": [
         {
           "id": 1,
@@ -16,7 +16,7 @@
           "hasMesh": false,
           "pos": {
             "x": 0,
-            "z": 2.65
+            "z": 2.28
           }
         }
       ],
@@ -25,7 +25,7 @@
     {
       "move": "swift",
       "file": "swift.png",
-      "tick": 67,
+      "tick": 85,
       "entities": [
         {
           "id": 1,
@@ -35,8 +35,8 @@
           "visualRadius": null,
           "hasMesh": false,
           "pos": {
-            "x": -0.65,
-            "z": -1.38
+            "x": -1.13,
+            "z": 1.33
           }
         },
         {
@@ -48,7 +48,7 @@
           "hasMesh": false,
           "pos": {
             "x": 0,
-            "z": -1.35
+            "z": 1.4
           }
         },
         {
@@ -59,8 +59,8 @@
           "visualRadius": null,
           "hasMesh": false,
           "pos": {
-            "x": 0.65,
-            "z": -1.38
+            "x": 1.13,
+            "z": 1.33
           }
         }
       ],
@@ -69,7 +69,7 @@
     {
       "move": "water-pulse",
       "file": "water-pulse.png",
-      "tick": 53,
+      "tick": 153,
       "entities": [
         {
           "id": 1,
@@ -80,7 +80,7 @@
           "hasMesh": false,
           "pos": {
             "x": 0,
-            "z": 1.13
+            "z": -0.97
           }
         }
       ],
@@ -89,7 +89,7 @@
     {
       "move": "psyshock",
       "file": "psyshock.png",
-      "tick": 65,
+      "tick": 91,
       "entities": [
         {
           "id": 1,
@@ -99,8 +99,8 @@
           "visualRadius": null,
           "hasMesh": false,
           "pos": {
-            "x": -0.91,
-            "z": -3.31
+            "x": -1.48,
+            "z": -0.1
           }
         },
         {
@@ -112,7 +112,7 @@
           "hasMesh": false,
           "pos": {
             "x": 0,
-            "z": -2.84
+            "z": 1.02
           }
         },
         {
@@ -123,8 +123,8 @@
           "visualRadius": null,
           "hasMesh": false,
           "pos": {
-            "x": 0.81,
-            "z": -3.38
+            "x": 1.56,
+            "z": 0.16
           }
         }
       ],
@@ -133,7 +133,7 @@
     {
       "move": "sand-wave",
       "file": "sand-wave.png",
-      "tick": 97,
+      "tick": 91,
       "entities": [
         {
           "id": 1,
@@ -153,7 +153,7 @@
     {
       "move": "seed-bomb",
       "file": "seed-bomb.png",
-      "tick": 169,
+      "tick": 141,
       "entities": [
         {
           "id": 1,
@@ -164,7 +164,7 @@
           "hasMesh": false,
           "pos": {
             "x": 0,
-            "z": -3.02
+            "z": -3.47
           }
         }
       ],
@@ -173,7 +173,7 @@
     {
       "move": "fire-spin",
       "file": "fire-spin.png",
-      "tick": 155,
+      "tick": 117,
       "entities": [
         {
           "id": 1,
@@ -193,7 +193,7 @@
     {
       "move": "spikes",
       "file": "spikes.png",
-      "tick": 235,
+      "tick": 247,
       "entities": [
         {
           "id": 1,

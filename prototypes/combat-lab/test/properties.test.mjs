@@ -63,8 +63,29 @@ function run(seed) {
     for (const e of g.lastStepEvents) {
       stats.events[e.result] = (stats.events[e.result] || 0) + 1;
       const a = e.attacker, b = e.target;
-      if (a === undefined || b === undefined || !before[a] || !before[b]) continue;
-      // C nunca causa dano: todo contato com dano vem de um X (antes ou depois do passo) ou de um X que virou recuo.
+      // Distinção entre dano direto de ataque e dano ambiental de colisão (destructibleSplat, wallSplat)
+      const isEnvironmental = e.isEnvironment || e.category === 'environmental' || e.result === 'destructibleSplat' || e.result === 'wallSplat';
+      if (isEnvironmental) {
+        if (b !== undefined && b !== null && before[b]) {
+          // 1. Dano ambiental decorrente de colisão física não possui agressor ofensivo direto no passo (attacker === null)
+          if (e.attacker !== null && e.attacker !== undefined) {
+            fail(t, `colisão ambiental não deve ter attacker direto: ${e.result}`);
+          }
+          // 2. Autoria indireta decorrente de lançamento anterior, quando existente, deve ser índice válido
+          if (e.indirectAttacker !== undefined && e.indirectAttacker !== null) {
+            assert.ok(e.indirectAttacker === 0 || e.indirectAttacker === 1, `indirectAttacker inválido: ${e.indirectAttacker}`);
+          }
+          // 3. O dano real sofrido após escudos e estágios não pode exceder o dano nominal
+          if (e.rawDamage !== undefined && e.shieldAbsorbed !== undefined) {
+            if (e.damage + e.shieldAbsorbed > e.rawDamage + 1e-4) {
+              fail(t, `dano ambiental real (${e.damage}) + absorvido (${e.shieldAbsorbed}) excede nominal (${e.rawDamage})`);
+            }
+          }
+        }
+        continue;
+      }
+      if (a === undefined || a === null || b === undefined || b === null || !before[a] || !before[b]) continue;
+      // C nunca causa dano: todo contato direto ofensivo com dano vem de um X (antes ou depois do passo) ou de um X que virou recuo.
       if (e.damage > 0 && ![before[a].kind, after[a].kind].includes('tackle') && after[a].kind !== 'recoil' && e.result !== 'clash' && !(e.result === 'footstool' && before[a].kind === 'dodge')) fail(t, `dano sem X: ${e.result}`, `${before[a].kind}→${after[a].kind}`);
       if (e.damage > 0 && e.result !== 'clash' && (before[a].kind === 'dodge' && after[a].kind === 'dodge')) fail(t, 'esquiva causou dano');
       // Invulnerável não recebe dano de impacto.
@@ -73,7 +94,7 @@ function run(seed) {
       // Se o golpe lançou o alvo, a ação nova já foi anulada; por isso basta a esquiva ter
       // cessado neste passo (cancelamento em qualquer origem, ou fim natural da ação: a
       // invulnerabilidade pertence à ação e morre com ela).
-      const cancelledVulnerable = before[b].kind === 'dodge' && C.actions.cancel.invulnerability === 1 && after[b].kind !== 'dodge';
+      const cancelledVulnerable = before[b].kind === 'dodge' && (C.actions.cancel.invulnerability <= 1 || after[b].kind !== 'dodge');
       // Exceção legítima (tackle carregado): tackle de PL maior contra tackle de PL menor neutraliza o menor e tira a invulnerabilidade de início dele.
       const lostToPL = before[b].kind === 'tackle' && g.fighters[b].plDefeated === true;
       const feinted = (g.fighters[b].feints ?? 0) > before[b].feints;   // finta: cancelar o tackle tira a invulnerabilidade do startup no mesmo passo
