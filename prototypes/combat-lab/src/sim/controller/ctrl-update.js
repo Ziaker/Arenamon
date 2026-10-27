@@ -64,7 +64,7 @@ export function updateFighter(f, cmd, fighters, dt, world = null) {
   if (f.charge && ((f.flight && !isAirJump(f)) || f.knockRecovery > 0 || f.hp <= 0)) cancelCharge(f, f.hp <= 0 ? 'defeated' : 'hit');   // golpe com lançamento, recuperação ou perda de apoio (M15.3, M27.1)
   if (f.aim?.castFirst && f.hp > 0) stepAim(f, cmd, length(cmd.move) > 1 ? normalize(cmd.move) : cmd.move, {desiredHeading: f.facing, hasTarget: false, fighters, world, dt, diag});   // cast do Emerging Stone corre também no ar
   if (ledgeUpdate(f, cmd, fighters, world, dt, diag)) return;   // Ledge Grab: pendurado/subindo, ou acabou de agarrar neste passo (ledge.js)
-  if (f.hp <= 0) {f.state = 'defeated';f.velocity = vec();f.action = null;f.push = null;f.vaultHeight = 0;f.bufferedTackle = null;return;}
+  if (f.hp <= 0) {f.state = 'defeated';f.velocity = vec();f.action = null;f.push = null;f.vaultHeight = 0;f.bufferedTackle = null;f.absent = false;f.charge = null;f.tackleCharge = null;f.aim = null;return;}
   if (f.flight) {
     // Meteor slam de quem está no ar (salto normal com Espaço ou lançado): X no ar vira mergulho oblíquo (não vale preso na parede nem sem stamina).
     if (isSlamTrigger) {
@@ -115,9 +115,16 @@ export function updateFighter(f, cmd, fighters, dt, world = null) {
   }
   // Derrota tem prioridade sobre recuperação: um lutador derrotado não pode ficar pendurado em
   // knockRecovery/landing — o estado físico precisa corresponder ao fato imediatamente (§22/§23).
-  if (f.hp <= 0) {f.state = 'defeated';f.velocity = vec();f.action = null;f.push = null;f.vaultHeight = 0;f.bufferedTackle = null;return;}
+  if (f.hp <= 0) {f.state = 'defeated';f.velocity = vec();f.action = null;f.push = null;f.vaultHeight = 0;f.bufferedTackle = null;f.absent = false;f.charge = null;f.tackleCharge = null;f.aim = null;return;}
   if (f.knockRecovery > 0) {
-    f.knockRecovery = Math.max(0, f.knockRecovery - dt);if (f.landingRecovery > 0) f.landingRecovery = Math.max(0, f.landingRecovery - dt);if (f.hitstun > 0) f.hitstun = Math.max(0, f.hitstun - dt);if (f.stagger > 0) f.stagger = Math.max(0, f.stagger - dt);if (f.exhaustRecovery > 0) f.exhaustRecovery = Math.max(0, f.exhaustRecovery - dt);if (f.actionRecovery > 0) f.actionRecovery = Math.max(0, f.actionRecovery - dt);if (f.pushRecovery > 0) f.pushRecovery = Math.max(0, f.pushRecovery - dt);if (f.knockRecovery <= 0) {f.recoveryFrom = null;f.recoveryKind = null;f.landingRecovery = 0;f.hitstun = 0;f.stagger = 0;f.counterStagger = 0;f.exhaustRecovery = 0;f.actionRecovery = 0;f.pushRecovery = 0;}f.vaultHeight = 0;f.action = null;f.guard = false;f.bufferedTackle = null;f.brakeLeft = Math.max(0, (f.brakeLeft ?? 0) - dt);
+    f.knockRecovery = Math.max(0, f.knockRecovery - dt);if (f.landingRecovery > 0) f.landingRecovery = Math.max(0, f.landingRecovery - dt);if (f.hitstun > 0) f.hitstun = Math.max(0, f.hitstun - dt);if (f.stagger > 0) f.stagger = Math.max(0, f.stagger - dt);if (f.exhaustRecovery > 0) f.exhaustRecovery = Math.max(0, f.exhaustRecovery - dt);if (f.actionRecovery > 0) f.actionRecovery = Math.max(0, f.actionRecovery - dt);if (f.pushRecovery > 0) f.pushRecovery = Math.max(0, f.pushRecovery - dt);
+    if (f.knockRecovery <= 0) {
+      f.recoveryFrom = null;f.recoveryKind = null;f.landingRecovery = 0;f.hitstun = 0;f.stagger = 0;f.counterStagger = 0;f.exhaustRecovery = 0;f.actionRecovery = 0;f.pushRecovery = 0;
+      f.vaultHeight = 0;f.action = null;f.guard = false;f.bufferedTackle = null;
+      f.state = (cmd && length(cmd.move) > 1e-5) ? 'moving' : 'neutral';
+      return;
+    }
+    f.vaultHeight = 0;f.action = null;f.guard = false;f.bufferedTackle = null;f.brakeLeft = Math.max(0, (f.brakeLeft ?? 0) - dt);
     // Política do Sand Wave: a recuperação/stagger só interrompe a força quando a ficha manda. Com continuidade ligada,
     // o alvo continua sendo empurrado mesmo preso na parede (a colisão ainda limita o deslocamento real).
     if (f.sandPush?.continuesDuringStagger) {applySandPushStep(f, dt);f.velocity = {...f.locomotionVelocity};f.state = (f.recoveryKind === 'stagger' || (f.stagger ?? 0) > 0) ? 'stagger' : 'pushed';}

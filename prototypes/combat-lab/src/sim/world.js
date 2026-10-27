@@ -233,8 +233,13 @@ function snapToFirstContact(game, p, from) {
     for (const b of game.world.entities) {
       if (b === p || b.dead || !p.blockedBy.includes(b.kind) || !blocks(b, p) || !vOverlap(p.y - p.radius, p.y + p.radius, b.y, b.y + b.height) || !circleTouches(b, p.pos, p.radius)) continue;
       p.dead = true;
-      if (b.kind === 'barrier' && Number.isFinite(b.hp)) {b.hp -= p.hit?.damage ?? 0;if (b.hp <= 0) {b.dead = true;events.push({result: 'barrierBroken', attacker: p.owner ?? null, target: b.owner ?? null, damage: 0, entity: b.id, kind: 'barrier'});}}
-      events.push({result: 'blocked', attacker: p.owner ?? null, target: b.owner ?? null, damage: 0, entity: p.id, by: b.id, kind: b.kind});
+      if (b.kind === 'barrier' && Number.isFinite(b.hp)) {b.hp -= p.hit?.damage ?? 0;if (b.hp <= 0) {
+        b.dead = true;
+        const bPos = {x: b.pos?.x ?? p.pos?.x ?? 0, y: b.y ?? 1.0, z: b.pos?.z ?? p.pos?.z ?? 0};
+        events.push({result: 'barrierBroken', attacker: p.owner ?? null, target: b.owner ?? null, damage: 0, entity: b.id, kind: 'barrier', position: bPos, x: bPos.x, y: bPos.y, z: bPos.z, normal: {x: 0, y: 1, z: 0}});
+      }}
+      const blockPos = {x: p.pos?.x ?? 0, y: p.y ?? 0.6, z: p.pos?.z ?? 0};
+      events.push({result: 'blocked', attacker: p.owner ?? null, target: b.owner ?? null, damage: 0, entity: p.id, by: b.id, kind: b.kind, position: blockPos, x: blockPos.x, y: blockPos.y, z: blockPos.z, normal: {x: -p.dir?.x || 0, y: 0, z: -p.dir?.z || 1}});
       if (p.onHit) spawnLater.push(at(p.onHit, p));return;
     }
     for (const f of game.fighters) {
@@ -249,8 +254,8 @@ function snapToFirstContact(game, p, from) {
       if (p.exec != null) execRecord(game.world, p, f, ev, hit);
       if (ev) events.push(ev);
       if (ev && p.counterWon && p.defeated?.includes(f.id) && (ev.result === 'impact' || ev.result === 'partial')) applyCounterStagger(f, p.captured?.counterStagger ?? 0, events, p.owner ?? null);
-      const pierceCount = p.pierce ?? 1;
-      if (p.hitLog.length >= pierceCount || ev?.result === 'impact' || ev?.result === 'partial' || ev?.result === 'perfect') {p.dead = true;if (p.onHit) spawnLater.push(at(p.onHit, p));return;}
+      const pierceCount = p.pierce ?? p.pierceCount ?? 1;
+      if (p.hitLog.length >= pierceCount || ev?.result === 'perfect') {p.dead = true;if (p.onHit) spawnLater.push(at(p.onHit, p));return;}
     }
   }
 }/**
@@ -333,7 +338,8 @@ function tackleDispute(p, f, events) {
   const pl = p.pl ?? 1, tpl = tacklePL(f);
   if (pl <= tpl) {
     p.dead = true;
-    events.push({result: 'tackleClash', attacker: f.id, target: p.owner ?? null, damage: 0, entity: p.id, pl, other: tpl, kind: 'projectile'});
+    const clashPos = {x: p.pos?.x ?? f.position.x, y: p.y ?? 0.6, z: p.pos?.z ?? f.position.z};
+    events.push({result: 'tackleClash', attacker: f.id, target: p.owner ?? null, damage: 0, entity: p.id, pl, other: tpl, kind: 'projectile', position: clashPos, x: clashPos.x, y: clashPos.y, z: clashPos.z, normal: {x: -p.dir?.x || 0, y: 0, z: -p.dir?.z || 1}});
     return true;
   }
   f.action.neutralized = true;p.counterWon = true;(p.defeated ??= []).push(f.id);
@@ -377,7 +383,9 @@ function clashStones(world, events) {
     if (pb >= pa) a.dead = true;
     // Counter: a pedra vencedora continua e, se depois atingir o CORPO do dono da derrotada, aplica o Counter Stagger (M20.8, M21.4); disputa distante não machuca ninguém.
     if (pa > pb) {a.counterWon = true;(a.defeated ??= []).push(b.owner);} else if (pb > pa) {b.counterWon = true;(b.defeated ??= []).push(a.owner);}
-    events.push({result: pa === pb ? 'stoneClash' : 'counter', attacker: a.owner ?? null, target: b.owner ?? null, damage: 0, entity: a.id, other: b.id, pl: pa, otherPl: pb, winner: pa === pb ? null : pa > pb ? a.id : b.id});
+    const midPos = {x: (a.pos.x + b.pos.x) / 2, y: (a.y + b.y) / 2, z: (a.pos.z + b.pos.z) / 2};
+    const clashNorm = normalize(sub(a.pos, b.pos));
+    events.push({result: pa === pb ? 'stoneClash' : 'counter', attacker: a.owner ?? null, target: b.owner ?? null, damage: 0, entity: a.id, other: b.id, pl: pa, otherPl: pb, winner: pa === pb ? null : pa > pb ? a.id : b.id, position: midPos, x: midPos.x, y: midPos.y, z: midPos.z, normal: {x: clashNorm.x || 0, y: 0, z: clashNorm.z || 1}});
   }
 }/** Descarta as execuções sem nenhuma pedra viva. */
 function pruneExecutions(world) {

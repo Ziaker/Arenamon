@@ -145,6 +145,7 @@ export function resolveHit(attacker, defender, normal, relative, force = false) 
     if (attacker.action.hitWindows[windowIdx].has(defender.id)) return null;
   } else {
     // Modo legado: tackle conecta uma única vez durante toda a sua duração
+    attacker.action.hits ??= new Set();
     if (attacker.action.hits.has(defender.id)) return null;
   }
   // Hitbox espacial (extras.hitbox.enableShapes): a janela ativa decide a forma; meteor slam (force) não usa forma.
@@ -183,29 +184,34 @@ export function resolveHit(attacker, defender, normal, relative, force = false) 
   const damage = dmgResult.hpDamage;
 
   let launchInfo = null;
+  const isGuardBreak = !!attacker.action?.guardBreak;
+  const gbConfig = attacker.action?.guardBreak;
   if (protectedFront) {
     // O atacante recua; a defesa NÃO lança, empurra nem desloca o defensor.
     // Exceção (Meteor Slam): o ataque é comprometido — o contato pode ocorrer no mergulho
     // (meteorDive) ou no chão (meteorGround). Em ambos, bloqueado não troca para recoil:
     // o mergulho segue, aterrissa e o slam finaliza normalmente.
     const slamCommitted = !!attacker.action.slam;
-    if (!slamCommitted && !(attacker.action.keepOnBlock && !(perfect && attacker.action.guardBreak))) {   // keepOnBlock: Moves que seguem a própria sequência mesmo bloqueados (Quick Attack: o retorno acontece de qualquer jeito)
+    if (!slamCommitted && !isGuardBreak && !(attacker.action.keepOnBlock && !perfect)) {   // keepOnBlock: Moves que seguem a própria sequência mesmo bloqueados (Quick Attack: o retorno acontece de qualquer jeito)
       attacker.action = {kind: 'recoil', elapsed: 0, heading: angleOf(scale(normal, -1)), startAngle: 0, offensive: false, hits: new Set(), from: null};
       attacker.velocity = vec();attacker.state = 'recoil';attacker.blend = null;attacker.vaultHeight = 0;
     }
     if (slamCommitted && !perfect) {
-      // Slam bloqueado (parcial): o defensor é arrastado para trás DESLIZANDO no chão (sem lançamento),
-      // afastado pela distância configurável (slider 3–10 m). Defesa perfeita mantém o defensor no lugar
-      // (fica com a vantagem do contra-ataque).
       pushAway(defender, length(normal) > 1e-8 ? normal : direction(attacker.facing), R.slamBlockPushDistance, R.slamBlockPushDistance / SLAM_BLOCK_PUSH_SPEED);
     } else {
       defender.push = null;defender.flight = null;defender.velocity = vec();defender.locomotionVelocity = vec();
     }
-    if (perfect) {defender.perfectSucceeded = true;defender.stun = 0;if (T.enableCounterBonus) defender.counterWindow = Math.max(defender.counterWindow, X.perfectGuardCounterWindow);}
-    else if (attacker.action.guardBreak) {   // Guard Break: derruba a guarda comum e aplica o guard stun próprio (sem empurrão)
-      defender.guard = false;defender.guardSuppressed = true;defender.stun = Math.max(defender.stun, attacker.action.guardBreak.stun);
+    if (perfect) {
+      defender.perfectSucceeded = true;defender.stun = 0;if (T.enableCounterBonus) defender.counterWindow = Math.max(defender.counterWindow, X.perfectGuardCounterWindow);
+    } else if (isGuardBreak) {   // Guard Break: derruba a guarda comum e aplica o guard stun próprio (sem empurrão)
+      defender.guard = false;defender.guardSuppressed = true;defender.state = 'stagger';
+      const gbStun = (typeof gbConfig === 'object' && gbConfig?.stun) ? gbConfig.stun : (C.rules?.guardBreakStun ?? 0.6);
+      defender.stun = Math.max(defender.stun, gbStun);
+      defender.stunMax = defender.stun;
+    } else if (defender.stun <= 1e-8) {
+      defender.stun = R.guardStun;
+      defender.stunMax = R.guardStun;
     }
-    else if (defender.stun <= 1e-8) defender.stun = R.guardStun;
   } else {
     defender.counterWindow = 0;const closing = Math.max(0, dot(relative, normal)) * (attacker.action.impactMult ?? 1);   // impactMult: velocidade de impacto do Move (Bullet Punch)
     // Redução de knockback pelos estágios de Defesa (R6.11)
@@ -231,7 +237,7 @@ export function resolveHit(attacker, defender, normal, relative, force = false) 
   }
   if (defender.hp === 0) {defender.guard = false;defender.guardSuppressed = true;}
   if (damage > 0) {attacker.comboLeft = Math.max(attacker.comboLeft ?? 0, C.rules.comboWindow ?? 0);defender.hitSerial = (defender.hitSerial ?? 0) + 1;}   // acertou um golpe corpo a corpo: abre a janela de combo
-  return {attacker: attacker.id, target: defender.id, result: perfect ? 'perfect' : protectedFront ? 'partial' : 'impact', damage, shieldAbsorbed: dmgResult.absorbedByShield, normal: {...normal}, launch: launchInfo, contact: 'tackle', ...(dmgResult.sturdy ? {sturdy: true} : {}), ...(attacker.action.slam ? {slam: true} : {}), ...(attacker.action.riposteStrike ? {riposte: true} : {}), ...(protectedFront && !perfect && attacker.action.guardBreak ? {guardBreak: true, stun: attacker.action.guardBreak.stun} : {})};
+  return {attacker: attacker.id, target: defender.id, result: perfect ? 'perfect' : protectedFront ? 'partial' : 'impact', damage, shieldAbsorbed: dmgResult.absorbedByShield, normal: {...normal}, launch: launchInfo, contact: 'tackle', ...(dmgResult.sturdy ? {sturdy: true} : {}), ...(attacker.action.slam ? {slam: true} : {}), ...(attacker.action.riposteStrike ? {riposte: true} : {}), ...(protectedFront && !perfect && isGuardBreak ? {guardBreak: true, broken: true, stun: defender.stun} : {})};
 }
 /**
  * Footstool (Plano D, Etapa 3): pisar na cabeça do adversário vindo de cima com o salto normal.
@@ -251,6 +257,8 @@ export function resolveFootstool(attacker, defender) {
   defender.lastAttacker = attacker.id;
   const stagger = M.footstoolStagger ?? 0.25;
   defender.stun = Math.max(defender.stun ?? 0, stagger);
+  defender.stunMax = stagger;
+  defender.state = 'stagger';
   // Interrupção pelas vias normais de golpe: ação/carga caem, velocidades zeram, sem launch e sem push.
   defender.action = null;defender.push = null;defender.blend = null;
   defender.velocity = vec();defender.locomotionVelocity = vec();
@@ -259,5 +267,7 @@ export function resolveFootstool(attacker, defender) {
   if (defender.tackleCharge) {defender.tackleCharge = null;if (defender.state === 'tackleCharge') defender.state = 'neutral';}
   if (defender.charge) defender.charge = null;   // interrompe a carga do Move (golpe sofrido; a devolução é do failMove)
   if (defender.hp === 0) {defender.guard = false;defender.guardSuppressed = true;}
-  return {attacker: attacker.id, target: defender.id, result: 'footstool', damage: dmgResult.hpDamage, shieldAbsorbed: dmgResult.absorbedByShield, contact: 'footstool', stagger, ...(dmgResult.sturdy ? {sturdy: true} : {})};
+  const footstoolNormal = {x: 0, y: -1, z: 0};
+  const footstoolPos = {x: defender.position.x, y: (defender.groundY ?? 0) + (defender.attributes?.height ?? 1.2), z: defender.position.z};
+  return {attacker: attacker.id, target: defender.id, result: 'footstool', damage: dmgResult.hpDamage, shieldAbsorbed: dmgResult.absorbedByShield, contact: 'footstool', stagger, normal: footstoolNormal, position: footstoolPos, x: footstoolPos.x, y: footstoolPos.y, z: footstoolPos.z, ...(dmgResult.sturdy ? {sturdy: true} : {})};
 }

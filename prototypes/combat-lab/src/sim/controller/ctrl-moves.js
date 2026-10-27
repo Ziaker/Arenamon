@@ -330,7 +330,8 @@ export function cancelCharge(f, why) {
   f.charge = null;const def = getMove(ch.move);
   if (def && why !== 'defeated' && def.cooldown > 0) (f.moveCooldowns ??= {})[def.id] = Math.max(f.moveCooldowns?.[def.id] ?? 0, interruptCooldown(def, ch.params));
   const isInterrupt = why === 'hit' || why === 'minCharge' || why === 'interrupted';
-  moveEvent(f, {result: isInterrupt ? 'chargeInterrupt' : 'chargeCancel', move: ch.move, slot: ch.slot, reason: why, seconds: ch.ticks * ch.params.step});
+  const stepTime = (typeof ch.params?.step === 'number' && ch.params.step > 0) ? ch.params.step : (C.test?.step ?? 0.05);
+  moveEvent(f, {result: isInterrupt ? 'chargeInterrupt' : 'chargeCancel', move: ch.move, slot: ch.slot, reason: why, seconds: ch.ticks * stepTime});
   if (attemptsActive()) report(f, {kind: 'skill', slot: ch.slot, move: ch.move, result: 'denied', reason: 'chargeEnded', detail: {why}});
 }
 /** Aceleração manual da recarga: novo toque (M7.9) gasta stamina para encurtá-la; permitida durante outro Charge (M17.8). */

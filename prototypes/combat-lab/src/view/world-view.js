@@ -73,6 +73,37 @@ export * from './world-view/wv-geometry.js';
     this.atelierFx?.clear();
     this.movesVfx?.disposeAll();
     this.seen = new Set();
+    if (this.rings) {
+      for (const r of this.rings) {
+        if (r.mesh) {
+          this.group.remove(r.mesh);
+          r.mesh.geometry?.dispose();
+          r.mesh.material?.dispose();
+        }
+      }
+      this.rings = [];
+    }
+    if (this.particles) {
+      for (const p of this.particles) {
+        if (p.mesh) {
+          this.group.remove(p.mesh);
+          p.mesh.geometry?.dispose();
+          p.mesh.material?.dispose();
+        }
+      }
+      this.particles = [];
+    }
+    if (this.meshes) {
+      for (const [id, m] of this.meshes) {
+        this.group.remove(m);
+        m.traverse(o => {
+          o.geometry?.dispose();
+          if (Array.isArray(o.material)) o.material.forEach(mat => mat.dispose());
+          else o.material?.dispose();
+        });
+      }
+      this.meshes.clear();
+    }
   }
 }
 

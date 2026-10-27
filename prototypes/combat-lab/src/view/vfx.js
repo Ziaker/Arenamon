@@ -192,7 +192,16 @@ export class VfxSystem {
     for (const e of events) {
       if (this.seenEvents.has(e)) continue;this.seenEvents.add(e);
       if (e.result === 'ledgeGrab') {this.fire('wallImpact', {pos: {x: e.x, z: e.z}, y: e.y, base: e.base, n: e.n, power: .6, w: e.w, h: e.h, arena: false}, `agarre de borda (${(e.w ?? 0).toFixed(1)} × ${(e.h ?? 0).toFixed(1)} m)`);continue;}   // Ledge Grab: reaproveita o impacto vertical, escalado pelo sólido
-      const a = fighters[e.attacker], b = fighters[e.target];if (!a || !b) continue;
+      const a = fighters[e.attacker], b = fighters[e.target];
+      if (!b && (e.target != null)) continue;
+      if (!b && !a) continue;
+      if ((e.result === 'wallSplat' || e.result === 'destructibleSplat') && b) {
+        const tag = `evento ${e.result} (passo ${e.tick ?? '?'}: impacto no cenário em ${e.target === 0 ? 'azul' : 'vermelho'})`;
+        this.fire('hit', {pos: b.position, lift: altitudeOf(b), floorLift: b.groundY ?? 0, n: e.normal, power: 1.4}, tag);
+        this.shake('shakeClash', e.normal, 1, tag);
+        continue;
+      }
+      if (!a || !b) continue;
       const tag = `evento ${e.result} (passo ${e.tick ?? '?'}: ${e.attacker === 0 ? 'azul' : 'vermelho'} → ${e.target === 0 ? 'azul' : 'vermelho'})`;
       if (e.result === 'impact') {const hs = hitShakeFor(e.move);this.fire('hit', {pos: b.position, lift: altitudeOf(b), floorLift: b.groundY ?? 0, n: e.normal, power: e.slam ? 1.5 : e.riposte ? 1.9 : 1, damage: e.damage, launch: e.launch, move: e.move}, tag);if (hs.on) this.shake(e.slam ? 'shakeGround' : 'shakeHit', e.normal, (e.slam ? 1.4 : e.riposte ? (C.world.riposte?.shakeMult ?? 1) : 1) * hs.power, tag, hs.dur);}
       else if (e.result === 'wallSplat') {this.fire('hit', {pos: b.position, lift: altitudeOf(b), floorLift: b.groundY ?? 0, n: e.normal, power: 1.4}, tag);this.shake('shakeClash', e.normal, 1, tag);}

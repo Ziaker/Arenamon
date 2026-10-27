@@ -169,7 +169,14 @@ export function isFinished(state, age) {
  * @param {any} state
  */
 export function onEvent(view, ev, state) {
-  // Eventos de impacto (ex: acerto, estilhaçamento ou bloqueio)
+  if (!state) return;
+  const impacts = ['impact', 'partial', 'clash', 'obstacleHit', 'destructibleHit', 'wallSplat'];
+  if (impacts.includes(ev.result)) {
+    const px = ev.x ?? (state.pos ? state.pos.x + state.dir.x * state.len : 0);
+    const py = ev.y ?? state.y ?? 0.3;
+    const pz = ev.z ?? (state.pos ? state.pos.z + state.dir.z * state.len : 0);
+    state.particles?.burst?.({x: px, y: py, z: pz, count: 20, speed: 3.0, spread: 1.0, color: 0xd2b48c});
+  }
 }
 
 /**

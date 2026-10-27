@@ -231,7 +231,8 @@ export function isFinished(state, age) {
  */
 export function onEvent(view, ev, state) {
   if (!state || !state.preview) return;
-  if (!state.dying && (ev.result === 'hit' || ev.result === 'wallClash' || ev.result === 'clash' || ev.result === 'shieldDeflect' || ev.result === 'expire' || ev.result === 'groundHit' || ev.result === 'arenaHit')) {
+  const triggers = ['hit', 'impact', 'partial', 'perfect', 'wallClash', 'clash', 'shieldDeflect', 'expire', 'groundHit', 'arenaHit', 'obstacleHit', 'destructibleHit', 'platformHit', 'blocked', 'reflected'];
+  if (!state.dying && triggers.includes(ev.result)) {
     state.dying = true;
     state.age = 0;
     state.preview.contact(ev);

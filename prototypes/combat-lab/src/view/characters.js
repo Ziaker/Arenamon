@@ -465,11 +465,11 @@ export class Character {
     if (key === 'vault' && f.action?.jump) return f.action.elapsed / Math.max(.05, 2 * C.actions.dodge.vaultUp / Math.max(.1, C.actions.dodge.vaultGravity));
     if (key.startsWith('dodge') || key === 'vault') return f.action ? f.action.elapsed / (actionDuration('dodge') * (f.action.durationScale ?? 1)) : 1;
     if (key === 'recoil') return f.action ? f.action.elapsed / R.recoil : 1;
-    if (key === 'guardStun') return 1 - f.stun / Math.max(1e-6, R.guardStun);
-    if (key === 'landing') return 1 - (f.landingRecovery ?? f.knockRecovery) / Math.max(1e-6, R.landingRecovery);
-    if (key === 'recover') return 1 - (f.exhaustRecovery ?? f.knockRecovery) / Math.max(1e-6, C.extras.combat.exhaustRecovery);
-    if (key === 'hitstun') return 1 - (f.hitstun ?? f.knockRecovery) / Math.max(1e-6, f.hitstunMax || (R.hitstun ?? 0.2));
-    if (key === 'stagger') return 1 - (f.stagger ?? f.counterStagger ?? f.knockRecovery) / Math.max(1e-6, f.staggerMax || 0.25);
+    if (key === 'guardStun') { const max = f.stunMax || R.guardStun || 0.15; return Math.min(1, Math.max(0, 1 - f.stun / Math.max(1e-6, max))); }
+    if (key === 'landing') return Math.min(1, Math.max(0, 1 - (f.landingRecovery ?? f.knockRecovery) / Math.max(1e-6, R.landingRecovery)));
+    if (key === 'recover') return Math.min(1, Math.max(0, 1 - (f.exhaustRecovery ?? f.knockRecovery) / Math.max(1e-6, C.extras.combat.exhaustRecovery)));
+    if (key === 'hitstun') return Math.min(1, Math.max(0, 1 - (f.hitstun ?? f.knockRecovery) / Math.max(1e-6, f.hitstunMax || (R.hitstun ?? 0.2))));
+    if (key === 'stagger') { const max = f.staggerMax || f.stunMax || 0.25; const cur = (f.stagger ?? f.counterStagger ?? f.stun ?? f.knockRecovery ?? 0); return Math.min(1, Math.max(0, 1 - cur / Math.max(1e-6, max))); }
     if (key === 'airborne') return this.flightV0 > 0 ? Math.min(1, Math.max(0, (this.flightV0 - f.flight.vy) / (2 * this.flightV0))) : 0;
     if (key === 'defeated') return Math.min(1, this.timer / 1.2);
     return 0;

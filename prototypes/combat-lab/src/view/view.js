@@ -180,7 +180,9 @@ export class View {
     const X = C.extras, F = X.fx, on = !!C.vfx.master.legacy;
     for (const event of events) {
       if (!on || this.legacySeen.has(event)) continue;this.legacySeen.add(event);
-      const attacker = fighters[event.attacker], target = fighters[event.target];if (!attacker || !target || (event.result === 'clash' && event.attacker !== 0)) continue;
+      const attacker = fighters[event.attacker], target = fighters[event.target];
+      const isEnvSplat = (event.result === 'wallSplat' || event.result === 'destructibleSplat') && target;
+      if (!isEnvSplat && (!attacker || !target || (event.result === 'clash' && event.attacker !== 0))) continue;
       if (event.result === 'invulnerable') {const key = `${event.attacker}:${event.target}`, now = performance.now();if (now - (this.invulnerableFx.get(key) ?? -Infinity) < F.invulnRepeatDelay) continue;this.invulnerableFx.set(key, now);}
       if (event.result === 'clash' || event.result === 'impact' || event.result === 'perfect' || event.result === 'wallSplat' || event.result === 'footstool') this.cameraShake = Math.max(this.cameraShake, event.result === 'clash' ? 1 : event.slam || event.result === 'wallSplat' ? .8 : event.result === 'footstool' ? .35 : .45);
       this.spawnBurst(event.result === 'clash' ? {x: (attacker.position.x + target.position.x) / 2, z: (attacker.position.z + target.position.z) / 2} : target.position, event.result);

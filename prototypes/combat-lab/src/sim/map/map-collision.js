@@ -147,7 +147,9 @@ export function collideMapFighter(mapState, f, events = []) {
             const dmgToFighter = relSpeed * (C.map?.impactDamageToFighter ?? 2.5);
             damageDestructible(d, dmgToObj, 'environment', f, mapState, events);
             processDamageWithShieldAndStages(f, dmgToFighter, null, false, false);
-            events.push({result: 'destructibleSplat', fighter: f.id, destructible: d.id, damage: dmgToFighter});
+            const dPos = {x: d.pos.x, y: 0.6, z: d.pos.z};
+            const splatNorm = ox < oz ? {x: dx > 0 ? -1 : 1, y: 0, z: 0} : {x: 0, y: 0, z: dz > 0 ? -1 : 1};
+            events.push({result: 'destructibleSplat', attacker: f.lastAttacker ?? null, target: f.id, fighter: f.id, destructible: d.id, damage: dmgToFighter, position: dPos, x: dPos.x, y: dPos.y, z: dPos.z, normal: splatNorm});
             f.flight.horizontal = {x: 0, z: 0};
             f.velocity = {x: 0, z: 0};
           }
