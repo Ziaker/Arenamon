@@ -1,0 +1,3 @@
+interface:
+  display_name: "Arenamon VFX Composer"
+  short_description: "Implementar o Composer por fases sem invadir gameplay"

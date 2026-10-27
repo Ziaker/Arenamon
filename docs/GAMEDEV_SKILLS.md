@@ -169,3 +169,10 @@ Cada entrada: data · tarefa · skill · o que foi aplicado de fato.
 - **Extrusão F1:** Ribbon ganhou espessura autoral em metros e passou a usar `ExtrudeGeometry` com seção retangular ao longo da `CatmullRomCurve3`; projetos anteriores continuam compatíveis por padrão proporcional.
 - **Superfícies F1:** raycasting foi restringido aos meshes autorais, evitando grade, gizmo e prévia; o teste Edge usa projeção câmera→tela para clicar deterministicamente no cubo e comprovar pontos fora do plano XZ.
 - **F1.1 (27/10):** `arenamon-routing` preservou a fronteira visual; `threejs-scene-setup` orientou plano rotacionado, vistas determinísticas e controles de câmera; brainstorming e planning fecharam o escopo; TDD comprovou primeiro as APIs ausentes e depois os contratos de tapering, assistência geométrica, lock, seleção múltipla e UI offline.
+
+### 2026-10-27 — Skill específica do VFX Composer
+
+- **Inventário:** `npm run skills:check` confirmou as skills versionadas; as cópias `.claude` foram sincronizadas. `playwright` do catálogo oficial e `frontend-design` do repositório recomendado foram instaladas localmente em `.agents/skills/`.
+- **RED:** sem a skill específica, um agente propôs iniciar emissores Quarks, adaptador runtime e partículas na F2, antecipando F3/F4.
+- **GREEN:** com `arenamon-vfx-composer`, o mesmo cenário manteve F2 em timeline, animação, texturas e materiais e reservou Quarks para F3.
+- **Fonte:** `tools/gamedev-skills/arenamon-vfx-composer/SKILL.md`; detalhes e proveniência em `docs/VFX_COMPOSER_SKILLS.md`.
