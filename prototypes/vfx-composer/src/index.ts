@@ -20,3 +20,4 @@ export * from './editor/geometry';
 export * from './animation/timeline';
 export * from './textures/texture-document';
 export * from './materials/material-graph';
+export * from './particles/particles';

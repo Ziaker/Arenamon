@@ -34,6 +34,8 @@ export interface PinnedComponent {
   version: string;
 }
 
+import type {ParticleEmitter} from '../particles/particles';
+
 export interface VfxProject {
   schema: 'arenamon.vfx-project';
   schemaVersion: 1;
@@ -47,6 +49,7 @@ export interface VfxProject {
   timeline: {fps: AuthoringFps; tracks: VisualTrack[]; duration?: number; events?: TimelineEvent[]};
   textures?: TextureDocument[];
   materials?: MaterialGraph[];
+  particles?: ParticleEmitter[];
   qualityProfiles: Record<string, unknown>;
   accessibility: {noFlash: boolean; reduceMotion: boolean};
   pinnedComponents: PinnedComponent[];

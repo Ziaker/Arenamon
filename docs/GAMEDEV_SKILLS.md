@@ -176,3 +176,24 @@ Cada entrada: data · tarefa · skill · o que foi aplicado de fato.
 - **RED:** sem a skill específica, um agente propôs iniciar emissores Quarks, adaptador runtime e partículas na F2, antecipando F3/F4.
 - **GREEN:** com `arenamon-vfx-composer`, o mesmo cenário manteve F2 em timeline, animação, texturas e materiais e reservou Quarks para F3.
 - **Fonte:** `tools/gamedev-skills/arenamon-vfx-composer/SKILL.md`; detalhes e proveniência em `docs/VFX_COMPOSER_SKILLS.md`.
+
+### 2026-10-27 — Correção P0, Dano Ambiental, Sand Wave VFX e Clash Simétrico
+
+- **Tarefa:** Resolver a falha no teste de propriedades do CI (semente 1047290, passo 1305), corrigir as transformações de coordenadas locais vs mundiais do Sand Wave, estabelecer a desduplicação simétrica canônica de Clash por pares de entidades e homologar 12 cenários de gameplay.
+- **Skill `arenamon-routing`:** Roteou os domínios do problema diretamente para `physics-tuning` (física e dano ambiental), `game-feel` (impactos e shake) e `performance-optimization` (ciclo de vida de malhas/partículas e testes determinísticos).
+- **Skill `physics-tuning`:** Distinção matemática estrita entre dano ofensivo direto de ataque e dano ambiental de impacto físico contra sólidos/destrutíveis (`destructibleSplat` e `wallSplat`). O evento ambiental passou a emitir `attacker: null`, preservando a autoria indireta de lançamento em `indirectAttacker`, com validação do dano nominal (`rawDamage`) e do dano real mitigado por escudos e estágios (`shieldAbsorbed` e `damage`).
+- **Skill `game-feel`:** Resolução das coordenadas mundiais no emissor local do Sand Wave (`sand-wave.vfx.js`). O ponto de contato real com o alvo é convertido via `worldToLocal` para a matriz de mundo do grupo, eliminando a translação dupla e impedindo que poeira e estilhaços nasçam arbitrariamente na extremidade da onda. A desduplicação do Clash foi unificada pelo par canônico ordenado `clash:<tick>:<minId>:<maxId>`, garantindo simetria para Jogador 1 e Jogador 2, preservando múltiplos confrontos no mesmo tick e desduplicando emissões recíprocas.
+- **Skill `performance-optimization`:** Execução de 202 execuções aleatórias completas (484.800 passos) do teste de propriedades com 0 vazamentos e 0 erros, e criação da suíte determinística `test/gameplay-12-scenarios.test.mjs` cobrindo 100% dos 12 cenários exigidos em passo fixo de 120 Hz.
+
+### 2026-10-27 — VFX Composer F3.1: partículas determinísticas
+
+- **Tarefa:** após autorização explícita do responsável, abrir a F3 somente na primeira fatia — contrato de partículas, simulação determinística, prévia, orçamento e telemetria — sem antecipar Quarks, rastros, decals ou publicação.
+- **Skill `arenamon-routing`:** manteve o trabalho dentro do editor offline; nenhum arquivo de `combat-lab`, `Game.step`, view ou renderer de combate foi importado ou alterado.
+- **Skill `arenamon-vfx-composer`:** aplicou o gate da fase (F0 → F1 → F1.1 → F2 → F3) e o recorte F3.1, reservando o adaptador three.quarks e os demais subsistemas de partículas para F3.2+; registrou os limites em `docs/VFX_COMPOSER_F3.md`.
+- **Skill `threejs-scene-setup`:** a prévia é um `THREE.Group` próprio com um `THREE.Points` por emissor, atualizado dentro do `renderer.setAnimationLoop` já existente — sem segundo renderer, sem novo laço de animação e com `dispose()` explícito ao remover emissor.
+- **Skill `shader-programming`:** shader de disco suave com `gl_PointCoord`, `smoothstep`, `discard` e tamanho em pixels atenuado pela distância; nenhum GLSL/HLSL do projeto é aceito como entrada.
+- **Skill `performance-optimization`:** buffers tipados (`Float32Array`) reutilizados in-place, zero alocação por partícula, um draw call por emissor, `setDrawRange` por quadro, descarte de geometria/material na remoção e teste de navegador que compara `renderer.info.memory.geometries` antes/depois de cinco ciclos criar/remover.
+- **Skill `game-feel`:** curvas de vida para tamanho, alpha e cor, com fade-in curto para evitar "pop"; supressão proporcional em `reduce motion` e teto de opacidade em `no flash`.
+- **Skill `physics-tuning` (leitura seletiva):** a integração é fechada com arrasto (`exp(-k·t)`) e gravidade, de modo que scrub e rewind não dependem de passo variável nem acumulam estado entre quadros.
+- **TDD à mão:** `test/f3-particles.test.mjs` cobre contrato positivo/negativo, determinismo, rewind, seed diferente, teto por emissor, duração de emissão, perfis low/high, bloqueio de publicação, acessibilidade e roundtrip do documento; `test/f3-app.browser.mjs` repete o fluxo no Edge offline com captura e `resultado.json`.
+- **Arquivos:** `prototypes/vfx-composer/src/particles/particles.ts`, `src/app/particle-preview.ts`, `src/app/main.ts`, `src/editor/document-store.ts`, `src/core/types.ts`, `src/core/content.ts`, `test/f3-particles.test.mjs`, `test/f3-app.browser.mjs`, `docs/VFX_COMPOSER_F3.md`.

@@ -1,0 +1,16 @@
+{
+  "status": "approved",
+  "phase": "F3.1",
+  "offline": true,
+  "externalRequests": 0,
+  "coverage": [
+    "contrato de partículas",
+    "determinismo por seed e tempo",
+    "rewind",
+    "orçamento low/high",
+    "reduce motion",
+    "noFlash",
+    "telemetria e draw calls",
+    "cleanup sem vazamento"
+  ]
+}

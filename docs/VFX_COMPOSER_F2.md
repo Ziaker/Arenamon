@@ -39,4 +39,4 @@ O teste de navegador roda offline no Edge, abre duas páginas WebGL, percorre ti
 
 ## Próximo marco
 
-STOP normativo antes da F3. A F3 poderá introduzir partículas somente mediante nova autorização explícita.
+STOP normativo antes da F3. A F3 poderá introduzir partículas somente mediante nova autorização explícita. Autorização registrada em 27/10/2026; a fatia em andamento e seus limites estão em `docs/VFX_COMPOSER_F3.md`.

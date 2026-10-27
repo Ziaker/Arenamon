@@ -12,7 +12,7 @@ try {
   const page = await context.newPage(), errors = [], external = [];
   page.on('pageerror', error => errors.push(error.message)); page.on('console', message => {if (message.type() === 'error') errors.push(message.text());}); page.on('request', request => {if (/^https?:/.test(request.url())) external.push(request.url());});
   await page.goto(pathToFileURL(html).href); await page.waitForFunction(() => window.__ARENAMON_VFX_COMPOSER__?.ready);
-  assert.equal(await page.locator('[data-workspace]').count(), 4);
+  assert.equal(await page.locator('[data-workspace]').count(), 5);
   await page.click('#add-box'); await page.click('#add-stroke'); await page.click('[data-workspace="animation"]');
   await page.selectOption('#timeline-fps', '60'); await page.fill('#timeline-duration', '2.5'); await page.dispatchEvent('#timeline-duration', 'change');
   await page.fill('#timeline-scrub', '0.5'); await page.dispatchEvent('#timeline-scrub', 'input'); await page.click('#add-keyframe');

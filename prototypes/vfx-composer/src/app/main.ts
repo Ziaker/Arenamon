@@ -10,6 +10,9 @@ import {advancePlayback, evaluateNumericTrack, evaluatePathTrack, quantizeTime} 
 import {createTextureDocument, decodeTexturePixels, paintTextureStroke} from '../textures/texture-document';
 import {compileMaterialRecipe, validateMaterialGraph} from '../materials/material-graph';
 import type {AuthoringFps, MaterialGraph, NumericTrackProperty, TextureDocument, VisualTrack} from '../core/types';
+import {ParticlePreview} from './particle-preview';
+import {defaultEmitter, evaluateParticleBudget, simulateEmitter, type BlendMode, type EmissionMode, type ParticleEmitter} from '../particles/particles';
+import type {QualityProfile} from '../core/budget';
 
 const phase = (duration: number) => ({enabled: true, duration, tracks: []});
 const initialProject = (): VfxProject => ({
@@ -22,12 +25,62 @@ const $ = <T extends HTMLElement>(selector: string): T => {
   const element = document.querySelector<T>(selector); if (!element) throw new Error(`Elemento ausente: ${selector}`); return element;
 };
 
-document.querySelector('.brand small')!.textContent = 'F2 · animação, texturas e materiais offline';
-document.querySelector('.top')!.insertAdjacentHTML('beforeend', `<nav class="workspace-tabs" aria-label="Workspaces"><button data-workspace="drawing" class="selected">Desenho</button><button data-workspace="animation">Animação</button><button data-workspace="textures">Texturas</button><button data-workspace="materials">Materiais</button><button disabled title="F3">Partículas · F3</button><button disabled title="F4">Integração · F4</button></nav>`);
+document.querySelector('.brand small')!.textContent = 'F3.1 · partículas determinísticas, orçamento e telemetria';
+document.querySelector('.top')!.insertAdjacentHTML('beforeend', `<nav class="workspace-tabs" aria-label="Workspaces"><button data-workspace="drawing" class="selected">Desenho</button><button data-workspace="animation">Animação</button><button data-workspace="textures">Texturas</button><button data-workspace="materials">Materiais</button><button data-workspace="particles">Partículas</button><button disabled title="F4">Integração · F4</button></nav>`);
 document.querySelector('.right')!.insertAdjacentHTML('beforeend', `<section id="f2-panel">
   <div class="workspace-panel" data-panel="animation" hidden><h2>Timeline</h2><label class="field wide">FPS<select id="timeline-fps"><option>24</option><option selected>30</option><option>60</option></select><span>fps</span></label><label class="field wide">Duração<input id="timeline-duration" type="number" min="0.1" max="60" step="0.1" value="2"><span>s</span></label><div class="inline-actions"><button id="timeline-reverse">◀ Reverse</button><button id="timeline-play">▶ Play</button><button id="timeline-stop">■ Stop</button></div><label class="field wide">Tempo<input id="timeline-scrub" type="range" min="0" max="2" step="0.033333" value="0"><span id="timeline-readout">0.000 s · 0 f</span></label><label class="field wide">Propriedade<select id="track-property"><option value="position.x">Posição X</option><option value="position.y">Posição Y</option><option value="position.z">Posição Z</option><option value="scale">Escala</option><option value="opacity">Opacidade</option><option value="visible">Visível</option></select><span></span></label><label class="field wide">Interpolação<select id="key-interpolation"><option value="linear">Linear</option><option value="step">Step</option><option value="bezier">Bézier</option></select><span></span></label><button id="add-keyframe">+ Keyframe no tempo</button><label><input id="onion-enabled" type="checkbox"> Onion skin anterior/próximo</label><label class="field wide">Opacidade<input id="onion-opacity" type="range" min="0" max="100" step="1" value="25"><span>%</span></label></div>
   <div class="workspace-panel" data-panel="textures" hidden><h2>Pintura de textura</h2><canvas id="texture-canvas" width="256" height="256"></canvas><label class="field wide">Pincel<input id="brush-size" type="range" min="1" max="128" step="1" value="24"><span>px</span></label><label class="field wide">Opacidade<input id="brush-opacity" type="range" min="0" max="100" step="1" value="100"><span>%</span></label><label class="field wide">Cor<input id="brush-color" type="color" value="#ffffff"><span></span></label><div class="inline-actions"><button id="new-texture">Nova 256×256</button><label class="file-button">Importar PNG<input id="import-texture" type="file" accept="image/png" hidden></label><button id="clear-texture">Limpar</button></div><h2>Spritesheet</h2><label class="field wide">Colunas<input id="sprite-columns" type="number" min="1" max="64" step="1" value="1"><span>×</span></label><label class="field wide">Linhas<input id="sprite-rows" type="number" min="1" max="64" step="1" value="1"><span>×</span></label><label class="field wide">FPS<input id="sprite-fps" type="number" min="1" max="60" step="1" value="24"><span>fps</span></label><button id="apply-spritesheet">Aplicar spritesheet</button></div>
   <div class="workspace-panel" data-panel="materials" hidden><h2>Material seguro</h2><p class="hint">Grafo declarativo; nenhum código de shader é aceito.</p><label class="field wide">Cor<input id="material-color" type="color" value="#44aaff"><span></span></label><label class="field wide">Roughness<input id="material-roughness" type="range" min="0" max="1" step="0.01" value="0.35"><span></span></label><label class="field wide">Metalness<input id="material-metalness" type="range" min="0" max="1" step="0.01" value="0"><span></span></label><label class="field wide">Nó<select id="material-node-type"><option>color</option><option>texture</option><option>gradient</option><option>noise</option><option>fresnel</option><option>dissolve</option><option>multiply</option></select><span></span></label><div class="inline-actions"><button id="apply-material">Aplicar material</button><button id="add-material-node">+ Nó seguro</button></div><ol id="material-nodes"></ol><p id="material-validation"></p></div>
+</section>`);
+
+const PARTICLE_FIELDS = [
+  {path: 'seed', label: 'Seed', min: 0, max: 4294967295, step: 1, unit: '#'},
+  {path: 'emission.count', label: 'Burst', min: 1, max: 400, step: 1, unit: 'part.'},
+  {path: 'emission.rate', label: 'Taxa', min: 0.1, max: 400, step: 0.1, unit: 'part./s'},
+  {path: 'emission.interval', label: 'Intervalo', min: 0.01, max: 60, step: 0.01, unit: 's'},
+  {path: 'emission.duration', label: 'Duração', min: 0.01, max: 60, step: 0.01, unit: 's'},
+  {path: 'lifetime.min', label: 'Vida mín.', min: 0.01, max: 30, step: 0.01, unit: 's'},
+  {path: 'lifetime.max', label: 'Vida máx.', min: 0.01, max: 30, step: 0.01, unit: 's'},
+  {path: 'shape.radius', label: 'Raio', min: 0, max: 50, step: 0.01, unit: 'm'},
+  {path: 'shape.angle', label: 'Cone', min: 0, max: 180, step: 1, unit: '°'},
+  {path: 'velocity.speedMin', label: 'Vel. mín.', min: 0, max: 50, step: 0.1, unit: 'm/s'},
+  {path: 'velocity.speedMax', label: 'Vel. máx.', min: 0, max: 50, step: 0.1, unit: 'm/s'},
+  {path: 'velocity.spread', label: 'Abertura', min: 0, max: 360, step: 1, unit: '°'},
+  {path: 'forces.drag', label: 'Arrasto', min: 0, max: 20, step: 0.01, unit: ''},
+  {path: 'forces.turbulenceFrequency', label: 'Turb. Hz', min: 0, max: 20, step: 0.1, unit: 'Hz'},
+  {path: 'forces.turbulenceAmplitude', label: 'Turb. amp.', min: 0, max: 20, step: 0.01, unit: 'm'},
+  {path: 'look.sizeStart', label: 'Tam. início', min: 0.001, max: 5, step: 0.001, unit: 'm'},
+  {path: 'look.sizeEnd', label: 'Tam. fim', min: 0.001, max: 5, step: 0.001, unit: 'm'},
+  {path: 'look.opacityStart', label: 'Alpha início', min: 0, max: 1, step: 0.01, unit: ''},
+  {path: 'look.opacityEnd', label: 'Alpha fim', min: 0, max: 1, step: 0.01, unit: ''},
+  {path: 'maxParticles', label: 'Máx. vivas', min: 1, max: 1400, step: 1, unit: 'part.'},
+] as const;
+const fieldId = (path: string): string => `emitter-${path.replace('emission.', '').replace('lifetime.', 'life-').replace('shape.', '').replace('velocity.', '').replace('forces.', '').replace('look.', '')}`;
+const particleRows = PARTICLE_FIELDS.map(field => `<label class="paired"><span>${field.label}</span><input id="${fieldId(field.path)}-range" type="range" min="${field.min}" max="${field.max}" step="${field.step}"><input id="${fieldId(field.path)}" type="number" min="${field.min}" max="${field.max}" step="${field.step}"><span class="unit">${field.unit}</span></label>`).join('');
+document.querySelector('.right')!.insertAdjacentHTML('beforeend', `<section id="particle-panel" class="workspace-panel" data-panel="particles" hidden>
+  <h2>Emissor de partículas</h2>
+  <p class="hint">Contrato F3.1: simulação pura e semeada. Mesmo seed + tempo + perfil = mesmas partículas. O Composer não decide dano, acerto nem colisão.</p>
+  <div class="inline-actions"><button id="add-emitter">+ Emissor</button><button id="remove-emitter">Remover</button><label class="field wide" style="margin:0">Emissor<select id="emitter-select"></select><span></span></label></div>
+  <div id="emitter-form">
+    <label class="field wide">Ativo<input id="emitter-enabled" type="checkbox" checked><span></span></label>
+    <label class="field wide">Nome<input id="emitter-name" type="text" maxlength="64"><span></span></label>
+    <label class="field wide">Modo<select id="emitter-mode"><option value="burst">Burst</option><option value="continuous">Contínuo</option></select><span></span></label>
+    <label class="field wide">Forma<select id="emitter-shape"><option value="point">Ponto</option><option value="sphere">Esfera</option><option value="ring">Anel</option><option value="cone">Cone</option></select><span></span></label>
+    <div class="axis-grid"><label>Origem X<input id="emitter-origin-x" type="number" min="-100" max="100" step="0.1"></label><label>Y<input id="emitter-origin-y" type="number" min="-100" max="100" step="0.1"></label><label>Z<input id="emitter-origin-z" type="number" min="-100" max="100" step="0.1"></label></div>
+    ${particleRows}
+    <div class="axis-grid"><label>Grav. X<input id="emitter-gravity-x" type="number" min="-50" max="50" step="0.1"></label><label>Y<input id="emitter-gravity-y" type="number" min="-50" max="50" step="0.1"></label><label>Z<input id="emitter-gravity-z" type="number" min="-50" max="50" step="0.1"></label></div>
+    <label class="field wide">Cor inicial<input id="emitter-color-start" type="color" value="#ffd166"><span></span></label>
+    <label class="field wide">Cor final<input id="emitter-color-end" type="color" value="#ff5a3c"><span></span></label>
+    <label class="field wide">Blending<select id="emitter-blending"><option value="additive">Additive</option><option value="normal">Normal</option></select><span></span></label>
+    <label><input id="emitter-depth-write" type="checkbox"> depthWrite (teste de profundidade)</label>
+    <div class="inline-actions"><button id="apply-emitter">Aplicar emissor</button><button id="reset-emitter-peak">Zerar pico</button></div>
+  </div>
+  <h2>Custo e telemetria</h2>
+  <label class="field wide">Perfil<select id="quality-profile"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option></select><span></span></label>
+  <div id="particle-telemetry" class="telemetry">Sem emissor.</div>
+  <div id="particle-budget" class="badge">—</div>
+  <label><input id="access-reduce-motion" type="checkbox"> Reduce motion (35% das partículas)</label>
+  <label><input id="access-no-flash" type="checkbox"> No flash (opacidade ≤ 85%)</label>
 </section>`);
 
 let recovered = initialProject();
@@ -192,6 +245,7 @@ function rebuild(): void {
     row.append(button); hierarchy.append(row);
   }
   syncInspector();
+  syncParticlePanel();
   try { autosave?.save(store.project); } catch (error) { $('#status').textContent = `Autosave: ${error instanceof Error ? error.message : 'falhou'}`; }
   expose();
 }
@@ -242,7 +296,7 @@ function editPosition(axis: 0 | 1 | 2, value: number): void {
     const position = [...(node.transform?.position ?? [0, 0, 0])] as [number, number, number]; position[axis] += delta; store.setTransform(id, {position});
   }}); rebuild();
 }
-function expose(): void {(window as unknown as {__ARENAMON_VFX_COMPOSER__: unknown}).__ARENAMON_VFX_COMPOSER__ = {ready: true, get project() {return store.project;}, get playback() {return {...playback};}, get onionCount() {return onionGroup.children.length;}, get materialRecipe() {try {return compileMaterialRecipe(materialGraph, store.project.textures ?? [activeTexture]);} catch {return null;}}, get selectedIds() {return [...selectedIds];}, get transformAttached() {return transformControls.object !== undefined;}, get drawing() {return drawing;}, get selectedBoundsCenter() {const object = authored.children.find(child => child.userData.nodeId === selectedId); return object ? new THREE.Box3().setFromObject(object).getCenter(new THREE.Vector3()).toArray() : null;}, nodeScreenPoint(id: string) {const object = authored.children.find(child => child.userData.nodeId === id); if (!object) return null; const point = object.position.clone().project(camera), bounds = renderer.domElement.getBoundingClientRect(); return [bounds.left + (point.x + 1) * bounds.width / 2, bounds.top + (1 - point.y) * bounds.height / 2];}};}
+function expose(): void {(window as unknown as {__ARENAMON_VFX_COMPOSER__: unknown}).__ARENAMON_VFX_COMPOSER__ = {ready: true, get project() {return store.project;}, get playback() {return {...playback};}, get onionCount() {return onionGroup.children.length;}, get materialRecipe() {try {return compileMaterialRecipe(materialGraph, store.project.textures ?? [activeTexture]);} catch {return null;}}, get selectedIds() {return [...selectedIds];}, get transformAttached() {return transformControls.object !== undefined;}, get drawing() {return drawing;}, get emitters() {return store.project.particles ?? [];}, get qualityProfile() {return qualityProfile;}, get particleTelemetry() {return particlePreview.report;}, get rendererGeometries() {return renderer.info.memory.geometries;}, get particleBudget() {return evaluateParticleBudget(currentEmitters(), qualityProfile, store.project.accessibility);}, particleSnapshot() {const options = particleOptions(); return (store.project.particles ?? []).flatMap(emitter => simulateEmitter(emitter, playback.time, options).map(particle => [Number(particle.x.toFixed(5)), Number(particle.y.toFixed(5)), Number(particle.z.toFixed(5)), Number(particle.size.toFixed(5)), Number(particle.opacity.toFixed(5))]));}, get selectedBoundsCenter() {const object = authored.children.find(child => child.userData.nodeId === selectedId); return object ? new THREE.Box3().setFromObject(object).getCenter(new THREE.Vector3()).toArray() : null;}, nodeScreenPoint(id: string) {const object = authored.children.find(child => child.userData.nodeId === id); if (!object) return null; const point = object.position.clone().project(camera), bounds = renderer.domElement.getBoundingClientRect(); return [bounds.left + (point.x + 1) * bounds.width / 2, bounds.top + (1 - point.y) * bounds.height / 2];}};}
 
 $('#add-box').onclick = () => {
   const id = `box-${++serial}`; selectedId = id;
@@ -424,10 +478,147 @@ function applyMaterialPreview(): void {const recipe = compileMaterialRecipe(mate
 function buildMaterialPreset(type: string): MaterialGraph {const colorValue = ($('#material-color') as HTMLInputElement).value, output = {id: 'material-output', type: 'output' as const, params: {roughness: Number(($('#material-roughness') as HTMLInputElement).value), metalness: Number(($('#material-metalness') as HTMLInputElement).value)}}; const base = {id: 'material-color', type: 'color' as const, params: {color: colorValue}}; if (type === 'color') return {id: 'material-main', name: 'Cor', outputNodeId: output.id, nodes: [base, output], connections: [{fromNodeId: base.id, fromPort: 'color', toNodeId: output.id, toPort: 'color'}]}; if (type === 'gradient') {const gradient = {id: 'gradient-1', type: 'gradient' as const, params: {startColor: colorValue, endColor: '#ffffff'}}; return {id: 'material-main', name: 'Gradiente', outputNodeId: output.id, nodes: [gradient, output], connections: [{fromNodeId: gradient.id, fromPort: 'color', toNodeId: output.id, toPort: 'color'}]};} if (type === 'texture') {const texture = {id: 'texture-1', type: 'texture' as const, params: {textureId: activeTexture.id}}; return {id: 'material-main', name: 'Textura', outputNodeId: output.id, nodes: [texture, output], connections: [{fromNodeId: texture.id, fromPort: 'color', toNodeId: output.id, toPort: 'color'}]};} const scalar = {id: type === 'dissolve' ? 'noise-1' : `${type}-1`, type: (type === 'fresnel' ? 'fresnel' : 'noise') as 'fresnel' | 'noise', params: (type === 'fresnel' ? {power: 3} : {scale: 4}) as Record<string, string | number>}; if (type === 'dissolve') {const cut = {id: 'dissolve-1', type: 'dissolve' as const, params: {threshold: .45, edgeWidth: .08, edgeColor: '#ffcc55'}}; return {id: 'material-main', name: 'Dissolve', outputNodeId: output.id, nodes: [base, scalar, cut, output], connections: [{fromNodeId: base.id, fromPort: 'color', toNodeId: cut.id, toPort: 'source'}, {fromNodeId: scalar.id, fromPort: 'value', toNodeId: cut.id, toPort: 'mask'}, {fromNodeId: cut.id, fromPort: 'color', toNodeId: output.id, toPort: 'color'}]};} const multiply = {id: 'multiply-1', type: 'multiply' as const, params: {}}; return {id: 'material-main', name: type === 'fresnel' ? 'Fresnel' : 'Ruído', outputNodeId: output.id, nodes: [base, scalar, multiply, output], connections: [{fromNodeId: base.id, fromPort: 'color', toNodeId: multiply.id, toPort: 'a'}, {fromNodeId: scalar.id, fromPort: 'value', toNodeId: multiply.id, toPort: 'b'}, {fromNodeId: multiply.id, fromPort: 'color', toNodeId: output.id, toPort: 'color'}]};}
 $('#apply-material').onclick = () => {const type = ($('#material-node-type') as HTMLSelectElement).value; if (type === 'texture' && !(store.project.textures ?? []).some(texture => texture.id === activeTexture.id)) saveTexture(); materialGraph = buildMaterialPreset(type); const checked = validateMaterialGraph(materialGraph, store.project.textures ?? [activeTexture]); if (!checked.ok) {syncMaterial(); return;} store.upsertMaterial(materialGraph); rebuild(); applyMaterialPreview(); syncMaterial(); expose();};
 $('#add-material-node').textContent = 'Montar preset seguro'; $('#add-material-node').onclick = () => {materialGraph = buildMaterialPreset(($('#material-node-type') as HTMLSelectElement).value); syncMaterial();};
+// ---- F3.1: emissores declarativos, telemetria e prévia determinística ----
+let qualityProfile: QualityProfile = 'medium';
+let emitterDraft: ParticleEmitter | null = null;
+let activeEmitterId: string | null = (store.project.particles ?? [])[0]?.id ?? null;
+let emitterSerial = (store.project.particles ?? []).length;
+let draftRevision = -1;
+let readoutFrame = 0;
+const particlePreview = new ParticlePreview(() => Math.min(devicePixelRatio, 2));
+scene.add(particlePreview.group);
+
+const particleOptions = (): {profile: QualityProfile; reduceMotion: boolean; noFlash: boolean} => ({profile: qualityProfile, reduceMotion: store.project.accessibility.reduceMotion, noFlash: store.project.accessibility.noFlash});
+function currentEmitters(): ParticleEmitter[] {
+  const list = store.project.particles ?? [];
+  const draft = emitterDraft;
+  return draft ? list.map(emitter => emitter.id === draft.id ? draft : emitter) : list;
+}
+const readPath = (source: unknown, path: string): number => path.split('.').reduce<unknown>((value, key) => (value as Record<string, unknown>)[key], source) as number;
+function writePath(target: object, path: string, value: number): void {
+  const keys = path.split('.'); const last = keys.pop()!;
+  const parent = keys.reduce<Record<string, unknown>>((node, key) => node[key] as Record<string, unknown>, target as Record<string, unknown>);
+  parent[last] = value;
+}
+function fillEmitterForm(): void {
+  const draft = emitterDraft;
+  $('#emitter-form').hidden = !draft;
+  $('#remove-emitter').toggleAttribute('disabled', !draft);
+  if (!draft) return;
+  for (const field of PARTICLE_FIELDS) {
+    const value = String(readPath(draft, field.path));
+    ($(`#${fieldId(field.path)}-range`) as HTMLInputElement).value = value;
+    ($(`#${fieldId(field.path)}`) as HTMLInputElement).value = value;
+  }
+  ($('#emitter-enabled') as HTMLInputElement).checked = draft.enabled;
+  ($('#emitter-name') as HTMLInputElement).value = draft.name;
+  ($('#emitter-mode') as HTMLSelectElement).value = draft.emission.mode;
+  ($('#emitter-shape') as HTMLSelectElement).value = draft.shape.kind;
+  (['x', 'y', 'z'] as const).forEach((axis, index) => {
+    ($(`#emitter-origin-${axis}`) as HTMLInputElement).value = String(draft.origin[index]);
+    ($(`#emitter-gravity-${axis}`) as HTMLInputElement).value = String(draft.forces.gravity[index]);
+  });
+  ($('#emitter-color-start') as HTMLInputElement).value = draft.look.colorStart;
+  ($('#emitter-color-end') as HTMLInputElement).value = draft.look.colorEnd;
+  ($('#emitter-blending') as HTMLSelectElement).value = draft.look.blending;
+  ($('#emitter-depth-write') as HTMLInputElement).checked = draft.look.depthWrite;
+}
+function updateDraftFromForm(): void {
+  if (!emitterDraft) return;
+  const draft = JSON.parse(JSON.stringify(emitterDraft)) as ParticleEmitter;
+  for (const field of PARTICLE_FIELDS) {
+    const value = Number(($(`#${fieldId(field.path)}`) as HTMLInputElement).value);
+    if (Number.isFinite(value)) writePath(draft, field.path, value);
+  }
+  draft.name = ($('#emitter-name') as HTMLInputElement).value;
+  draft.enabled = ($('#emitter-enabled') as HTMLInputElement).checked;
+  draft.emission.mode = ($('#emitter-mode') as HTMLSelectElement).value as EmissionMode;
+  draft.shape.kind = ($('#emitter-shape') as HTMLSelectElement).value as ParticleEmitter['shape']['kind'];
+  const origin = (['x', 'y', 'z'] as const).map(axis => Number(($(`#emitter-origin-${axis}`) as HTMLInputElement).value));
+  const gravity = (['x', 'y', 'z'] as const).map(axis => Number(($(`#emitter-gravity-${axis}`) as HTMLInputElement).value));
+  if (origin.every(Number.isFinite)) draft.origin = origin as [number, number, number];
+  if (gravity.every(Number.isFinite)) draft.forces.gravity = gravity as [number, number, number];
+  draft.look.colorStart = ($('#emitter-color-start') as HTMLInputElement).value;
+  draft.look.colorEnd = ($('#emitter-color-end') as HTMLInputElement).value;
+  draft.look.blending = ($('#emitter-blending') as HTMLSelectElement).value as BlendMode;
+  draft.look.depthWrite = ($('#emitter-depth-write') as HTMLInputElement).checked;
+  emitterDraft = draft;
+  refreshParticleReadout();
+}
+function refreshParticleReadout(): void {
+  const emitters = currentEmitters();
+  const budget = evaluateParticleBudget(emitters, qualityProfile, store.project.accessibility);
+  const live = particlePreview.report;
+  const plural = budget.cost.particles === 1 ? 'partícula' : 'partículas';
+  $('#particle-telemetry').textContent = emitters.length
+    ? `No quadro: ${live.active} ${plural} · pico ${live.peakThisFrame} · ${live.drawCalls} draw call(s) · pico estimado ${budget.peak}`
+    : 'Sem emissor. Adicione um para ver a telemetria.';
+  const badge = $('#particle-budget');
+  const over = budget.verdict.over;
+  badge.className = `badge ${over.length ? 'warn' : 'ok'}`;
+  badge.textContent = over.length
+    ? `Orçamento ${qualityProfile}: ${budget.cost.particles}/${budget.verdict.limits.particles} ${plural} — excede ${over.join(', ')}`
+    : `Orçamento ${qualityProfile}: ${budget.cost.particles}/${budget.verdict.limits.particles} ${plural} · ${budget.cost.drawCalls} draw call(s) · publicável`;
+  if (budget.suppressed > 0) badge.textContent += ` · supressão visível: ${budget.suppressed} ${plural}`;
+}
+function syncParticlePanel(): void {
+  const emitters = store.project.particles ?? [];
+  const select = $('#emitter-select') as HTMLSelectElement;
+  select.replaceChildren(...emitters.map(emitter => {const option = document.createElement('option'); option.value = emitter.id; option.textContent = `${emitter.name} · ${emitter.id}`; return option;}));
+  if (!emitters.some(emitter => emitter.id === activeEmitterId)) activeEmitterId = emitters[0]?.id ?? null;
+  const source = emitters.find(emitter => emitter.id === activeEmitterId) ?? null;
+  if (!source) {emitterDraft = null; draftRevision = store.project.revision;}
+  else if (!emitterDraft || emitterDraft.id !== source.id || draftRevision !== store.project.revision) {emitterDraft = JSON.parse(JSON.stringify(source)) as ParticleEmitter; draftRevision = store.project.revision;}
+  select.value = activeEmitterId ?? '';
+  ($('#access-reduce-motion') as HTMLInputElement).checked = store.project.accessibility.reduceMotion;
+  ($('#access-no-flash') as HTMLInputElement).checked = store.project.accessibility.noFlash;
+  fillEmitterForm();
+  refreshParticleReadout();
+}
+$('#add-emitter').onclick = () => {
+  if ((store.project.particles ?? []).length >= 12) {$('#status').textContent = 'Limite de 12 emissores atingido'; return;}
+  const id = `emissor-${++emitterSerial}`;
+  const emitter = defaultEmitter(id);
+  emitter.seed = 1337 + emitterSerial * 7;
+  store.upsertEmitter(emitter);
+  activeEmitterId = id; draftRevision = -1;
+  rebuild();
+  $('#status').textContent = `Emissor criado: ${id}`;
+};
+$('#remove-emitter').onclick = () => {
+  if (!activeEmitterId) return;
+  const id = activeEmitterId;
+  try {store.removeEmitter(id);} catch (error) {$('#status').textContent = `Remoção recusada: ${error instanceof Error ? error.message : 'erro'}`; return;}
+  activeEmitterId = null; draftRevision = -1;
+  rebuild();
+  $('#status').textContent = `Emissor removido: ${id}`;
+};
+($('#emitter-select') as HTMLSelectElement).onchange = () => {activeEmitterId = ($('#emitter-select') as HTMLSelectElement).value || null; draftRevision = -1; syncParticlePanel();};
+$('#apply-emitter').onclick = () => {
+  if (!emitterDraft) return;
+  try {store.upsertEmitter(emitterDraft); draftRevision = -1; rebuild(); $('#status').textContent = `Emissor aplicado: ${emitterDraft.id}`;}
+  catch (error) {$('#status').textContent = `Emissor recusado: ${error instanceof Error ? error.message : 'inválido'}`;}
+};
+$('#reset-emitter-peak').onclick = () => {particlePreview.resetPeak(); refreshParticleReadout();};
+($('#quality-profile') as HTMLSelectElement).onchange = () => {qualityProfile = ($('#quality-profile') as HTMLSelectElement).value as QualityProfile; refreshParticleReadout();};
+($('#access-reduce-motion') as HTMLInputElement).onchange = event => {store.setAccessibility({reduceMotion: (event.target as HTMLInputElement).checked}); rebuild();};
+($('#access-no-flash') as HTMLInputElement).onchange = event => {store.setAccessibility({noFlash: (event.target as HTMLInputElement).checked}); rebuild();};
+for (const field of PARTICLE_FIELDS) {
+  const range = $(`#${fieldId(field.path)}-range`) as HTMLInputElement;
+  const number = $(`#${fieldId(field.path)}`) as HTMLInputElement;
+  range.oninput = () => {number.value = range.value; updateDraftFromForm();};
+  number.oninput = () => {
+    const value = Number(number.value);
+    if (Number.isFinite(value)) range.value = String(Math.min(Number(number.max), Math.max(Number(number.min), value)));
+    updateDraftFromForm();
+  };
+}
+for (const id of ['#emitter-enabled', '#emitter-name', '#emitter-mode', '#emitter-shape', '#emitter-color-start', '#emitter-color-end', '#emitter-blending', '#emitter-depth-write', '#emitter-origin-x', '#emitter-origin-y', '#emitter-origin-z', '#emitter-gravity-x', '#emitter-gravity-y', '#emitter-gravity-z']) ($(id) as HTMLInputElement).addEventListener('input', updateDraftFromForm);
+
 renderTexture(); syncMaterial(); syncTimeline();
 $('#add-keyframe').insertAdjacentHTML('afterend', '<button id="add-morph-keyframe">+ Morph do caminho</button>');
 $('#add-morph-keyframe').onclick = () => {const node = selected(); const geometry = node?.geometry; if (!node || !geometry || geometry.kind === 'box' || geometry.kind === 'sphere' || geometry.kind === 'plane') {$('#status').textContent = 'Selecione um Stroke, Curva ou Ribbon'; return;} const id = `track-${node.id}-path-points`; const existing = store.project.timeline.tracks.find(track => track.id === id && track.property === 'path.points') as Extract<VisualTrack, {property: 'path.points'}> | undefined; const keyframes = [...(existing?.keyframes ?? []).filter(frame => Math.abs(frame.time - playback.time) > 1e-6), {time: playback.time, value: geometry.points, interpolation: 'linear' as const}].sort((a, b) => a.time - b.time); store.upsertTrack({id, targetId: node.id, property: 'path.points', keyframes}); rebuild();};
 const resize = () => {const {clientWidth: width, clientHeight: height} = viewport; camera.aspect = width / Math.max(height, 1); camera.updateProjectionMatrix(); renderer.setSize(width, height, false);};
 new ResizeObserver(resize).observe(viewport); resize(); syncAuthoringFields(); updateDrawingPlane();
-let previousFrame = performance.now(); renderer.setAnimationLoop(now => {const delta = Math.min(.1, (now - previousFrame) / 1000); previousFrame = now; if (playback.playing) {playback = advancePlayback(playback, delta); syncTimeline();} applyTimelinePreview(); controls.update(); renderer.render(scene, camera);});
+let previousFrame = performance.now(); renderer.setAnimationLoop(now => {const delta = Math.min(.1, (now - previousFrame) / 1000); previousFrame = now; if (playback.playing) {playback = advancePlayback(playback, delta); syncTimeline();} applyTimelinePreview(); particlePreview.update(currentEmitters(), playback.time, particleOptions()); if ((readoutFrame++ % 6) === 0) refreshParticleReadout(); controls.update(); renderer.render(scene, camera);});
 rebuild(); $('#status').textContent = 'Projeto local · autosave por revisão';

@@ -2,6 +2,7 @@ import {PHASE_NAMES, type ValidationIssue} from './types';
 import {parseVersion} from './version';
 import {validateTextureDocument} from '../textures/texture-document';
 import {validateMaterialGraph} from '../materials/material-graph';
+import {validateParticleEmitters} from '../particles/particles';
 
 const object = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
 const id = (v: unknown): v is string => typeof v === 'string' && /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$/.test(v);
@@ -128,5 +129,6 @@ export function validateContent(project: Record<string, unknown>): ValidationIss
     if (!Array.isArray(materials) || materials.length > 32) fail('materials', 'Limite de 32 materiais excedido');
     else materials.forEach((material, i) => {const result = validateMaterialGraph(material as never, Array.isArray(textures) ? textures as never : []); if (!result.ok) result.issues.forEach(entry => fail(`materials.${i}.${entry.path}`, entry.message));});
   }
+  if (project.particles !== undefined) for (const issue of validateParticleEmitters(project.particles)) fail(issue.path, issue.message);
   return issues;
 }

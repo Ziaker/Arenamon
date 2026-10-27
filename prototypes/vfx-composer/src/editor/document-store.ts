@@ -1,13 +1,14 @@
 import type {AuthoringFps, AuthoringSettings, MaterialGraph, TextureDocument, Vec3, VfxProject, VisualNode, VisualTrack, VisualTransform} from '../core/types';
 import {validateProject} from '../core/validation';
 import {createPathGeometry} from './geometry';
+import type {ParticleEmitter} from '../particles/particles';
 
 interface EditorState {project: VfxProject; selectedId: string | null}
 type TransformPatch = Partial<VisualTransform>;
 
 // O documento já passou pelo contrato JSON da F0; manter o núcleo sem APIs DOM/Node.
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
-const withF2Defaults = (project: VfxProject): VfxProject => {const value = clone(project); value.timeline.duration ??= 2; value.timeline.events ??= []; value.textures ??= []; value.materials ??= []; return value;};
+const withDefaults = (project: VfxProject): VfxProject => {const value = clone(project); value.timeline.duration ??= 2; value.timeline.events ??= []; value.textures ??= []; value.materials ??= []; value.particles ??= []; return value;};
 const state = (project: VfxProject, selectedId: string | null): EditorState => ({project: clone(project), selectedId});
 const finiteVec3 = (value: Vec3): boolean => value.length === 3 && value.every(Number.isFinite);
 
@@ -23,7 +24,7 @@ export class DocumentStore {
     if (!Number.isSafeInteger(historyLimit) || historyLimit < 1 || historyLimit > 1000) throw new Error('Limite de histórico inválido');
     const checked = validateProject(project);
     if (!checked.ok) throw new Error(`Projeto inválido: ${checked.issues[0]?.path}`);
-    this.#project = withF2Defaults(checked.value);
+    this.#project = withDefaults(checked.value);
   }
 
   get project(): VfxProject { return clone(this.#project); }
@@ -37,7 +38,7 @@ export class DocumentStore {
     const checked = validateProject(project);
     if (!checked.ok) throw new Error(`Projeto importado inválido: ${checked.issues[0]?.path}`);
     const before = state(this.#project, this.#selectedId);
-    const candidate = withF2Defaults(checked.value);
+    const candidate = withDefaults(checked.value);
     candidate.revision = Math.max(candidate.revision, this.#project.revision + 1);
     this.#pushUndo(before);
     this.#redo = [];
@@ -146,6 +147,9 @@ export class DocumentStore {
   removeTexture(id: string): void { this.#change(project => {project.textures = (project.textures ?? []).filter(item => item.id !== id);}, this.#selectedId); }
   upsertMaterial(material: MaterialGraph): void { this.#change(project => {project.materials ??= []; const index = project.materials.findIndex(item => item.id === material.id); if (index < 0) project.materials.push(clone(material)); else project.materials[index] = clone(material);}, this.#selectedId); }
   removeMaterial(id: string): void { this.#change(project => {project.materials = (project.materials ?? []).filter(item => item.id !== id);}, this.#selectedId); }
+  upsertEmitter(emitter: ParticleEmitter): void { this.#change(project => {project.particles ??= []; const index = project.particles.findIndex(item => item.id === emitter.id); if (index < 0) project.particles.push(clone(emitter)); else project.particles[index] = clone(emitter);}, this.#selectedId); }
+  removeEmitter(id: string): void { this.#change(project => {project.particles = (project.particles ?? []).filter(item => item.id !== id);}, this.#selectedId); }
+  setAccessibility(patch: {noFlash?: boolean; reduceMotion?: boolean}): void { this.#change(project => {project.accessibility = {...project.accessibility, ...patch};}, this.#selectedId); }
 
   removeNode(id: string): void {
     this.#change(project => {
