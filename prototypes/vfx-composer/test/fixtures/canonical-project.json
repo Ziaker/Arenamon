@@ -1,0 +1,22 @@
+{
+  "schema": "arenamon.vfx-project",
+  "schemaVersion": 1,
+  "projectId": "project-water-pulse",
+  "revision": 1,
+  "effectId": "water-pulse.custom",
+  "phases": {
+    "start": {"enabled": true, "duration": 0.1, "tracks": []},
+    "launch": {"enabled": true, "duration": 0.1, "tracks": []},
+    "body": {"enabled": true, "duration": 0.2, "tracks": []},
+    "hold": {"enabled": true, "duration": 0.3, "tracks": []},
+    "finish": {"enabled": true, "duration": 0.15, "tracks": []},
+    "impact": {"enabled": true, "duration": 0.08, "tracks": []}
+  },
+  "nodes": [],
+  "assets": [],
+  "subeffects": [],
+  "timeline": {"fps": 30, "tracks": []},
+  "qualityProfiles": {},
+  "accessibility": {"noFlash": false, "reduceMotion": false},
+  "pinnedComponents": [{"componentId": "ring.core", "version": "1.10.0"}]
+}

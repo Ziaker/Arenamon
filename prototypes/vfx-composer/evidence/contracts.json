@@ -1,0 +1,31 @@
+{
+  "scope": "F0 contracts only",
+  "passed": [
+    "schema aceita projeto canônico e rejeita ausência, futuro e não finitos",
+    "assets rejeitam caminho absoluto traversal e protocolo remoto",
+    "runtime e binding validam trigger, anchor e versão fixa",
+    "versões ordenam 1.9 antes de 1.10 e componentes ficam fixados",
+    "relógio omite fases off, preserva dados e escolhe apenas um desfecho",
+    "frames 24 30 60 mantêm segundos e scrub determinístico",
+    "eventos desconhecidos miss timeout e cancel nunca viram hit ou impact",
+    "cancelamento e cleanup são idempotentes e informam motivo",
+    "mesma seed repete sequência e seeds diferentes divergem",
+    "orçamento agrega custos e bloqueia publicação acima do perfil",
+    "entrada hostil profunda é rejeitada sem executar getters ou perder dados",
+    "recuperação mantém snapshot anterior e rejeita revisão antiga",
+    "orçamento não inventa teto de draw calls nem certificação de performance",
+    "conteúdo tipado rejeita referências ausentes, ciclos e keyframes inválidos",
+    "snapshot de nascimento não muda retroativamente com controles do projeto",
+    "dissipação por motivo libera recursos uma vez mesmo com erro no cleanup",
+    "stream rejeita duplicados e contato inválido sem consumir identidade",
+    "hold segue vida autoritativa e desfecho respeita desligamento e rewind",
+    "ZIP real preserva projeto e bytes e rejeita adulteração traversal e compressão",
+    "binding e runtime rejeitam âncora arbitrária custos negativos e payload executável",
+    "catálogo permite atualização e rollback explícitos preservando versões fixadas",
+    "matriz de capacidades distingue produtores auditados de eventos não suportados",
+    "auditoria das capacidades disponíveis confere os produtores reais sem importar a simulação"
+  ],
+  "count": 23,
+  "browser": false,
+  "gameIntegration": false
+}

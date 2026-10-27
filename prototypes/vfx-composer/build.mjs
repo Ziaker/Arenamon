@@ -1,0 +1,16 @@
+import {build} from 'esbuild';
+import {mkdir, readFile, writeFile} from 'node:fs/promises';
+import {fileURLToPath} from 'node:url';
+const root = new URL('./', import.meta.url);
+await mkdir(new URL('dist/', root), {recursive: true});
+await build({entryPoints: [fileURLToPath(new URL('src/index.ts', root))], bundle: true, platform: 'neutral', format: 'esm', outfile: fileURLToPath(new URL('dist/contracts.mjs', root)), target: 'es2022'});
+const results = JSON.parse(await readFile(new URL('evidence/contracts.json', root), 'utf8'));
+const escape = s => String(s).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
+const report = `<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>VFX Composer — contratos F0</title><style>body{font:18px/1.6 system-ui;max-width:900px;margin:40px auto;padding:20px;background:#121820;color:#eef1f5}a{color:#86ceff}li{margin:8px 0}small{color:#b9c4d0}</style><main><a href="../../../ABRIR_ARENAMON.html">Voltar ao portal</a><h1>VFX Composer · F0</h1><p>Fundação de contratos concluída.</p><p>${results.count} testes de contrato passaram.</p><ul>${results.passed.map(name => `<li>${escape(name)}</li>`).join('')}</ul><p><a href="../evidence/contracts.json">Resultados estruturados</a> · <a href="../../../docs/VFX_COMPOSER_F0.md">Relatório</a></p></main></html>`;
+await writeFile(new URL('dist/vfx-composer-f0.html', root), report);
+const appBuild = await build({entryPoints: [fileURLToPath(new URL('src/app/main.ts', root))], bundle: true, platform: 'browser', format: 'iife', write: false, target: 'es2022'});
+const script = appBuild.outputFiles[0].text.replaceAll('</script>', '<\\/script>');
+const template = await readFile(new URL('src/app/template.html', root), 'utf8');
+const style = await readFile(new URL('src/app/style.css', root), 'utf8');
+await writeFile(new URL('dist/arenamon-vfx-composer.html', root), template.replace('/*__STYLE__*/', style).replace('/*__SCRIPT__*/', script));
+console.log('Build F1: aplicação offline e relatório F0 gerados.');

@@ -1,0 +1,16 @@
+{
+  "status": "approved",
+  "offline": true,
+  "externalRequests": 0,
+  "coverage": [
+    "stroke em plano XZ",
+    "stroke sobre superfície 3D",
+    "curve",
+    "ribbon extrudida",
+    "vértices",
+    "pivô",
+    "undo/redo",
+    "autosave",
+    "importação/exportação JSON"
+  ]
+}

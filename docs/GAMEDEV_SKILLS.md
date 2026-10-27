@@ -157,3 +157,14 @@ Cada entrada: data · tarefa · skill · o que foi aplicado de fato.
 - 2026-10-23 — Integração dos controles visuais no jogo: `arenamon-routing`, `game-feel`, `shader-programming` e `threejs-materials-lighting`; opacidade mestre no shader, mais brilho/escala para Air Slash e ancoragem temporal dos efeitos de disparo após 0,3 s.
 
 - 2026-10-23 — Plano de 15 melhorias (IA, Moves, depuração, desempenho): `arenamon-routing` (invocada; roteou para as duas abaixo), `performance-optimization` (SKILL.md lido; método medir → achar o gargalo → só então mexer: `bench-moves.mjs` mede a simulação com carga de Moves e conclui que ela usa no máximo ~3% do orçamento de 8333 µs, sem propor otimização) e `game-ai` (SKILL.md lido; separação decidir/mover/rotear: o perfil tático declarativo só decide "vale a pena agora", permissão e movimento continuam no controlador). Superpowers: TDD aplicado à mão (RED sintético → GREEN em `moves-contracts`, `move-matrix`, `replay-diff`, `bug-capture`, `ai-profile`), sem invocar as skills `test-driven-development`/`writing-plans` pela ferramenta Skill. Claude Superskills (`ericgandrade`): não está entre as skills disponíveis nesta sessão; nada foi instalado.
+
+### 2026-10-27 — VFX Composer F1: vértices
+
+- **Tarefa:** restaurar com escopo mínimo o Composer preservado no stash `backup-pre-main` e continuar a autoria geométrica sem aplicar mudanças alheias.
+- **Skills:** `arenamon-routing` manteve o trabalho isolado no editor Three.js offline; `test-driven-development` guiou testes RED/GREEN para inclusão e remoção validada de pontos.
+- **Resultado:** `DocumentStore` inclui/remove vértices com limites, snapping, degeneração, Undo/Redo e autosave; controles visíveis foram ligados ao HTML compilado e verificados no Edge offline.
+- **Desenho no viewport:** `threejs-scene-setup` orientou o raycasting da câmera para um plano XZ e o bloqueio temporário do OrbitControls; a prévia usa recursos descartáveis e a finalização cria uma única operação autoral.
+- **Arquivos F1:** TDD cobriu substituição validada e reversível no `DocumentStore`; o teste Edge verifica download JSON real, reimportação pela interface, reconstrução da hierarquia e Undo do projeto importado.
+- **Pivô F1:** o contrato ganhou pivô local opcional e finito; a camada Three.js translada a geometria e compensa o objeto com `rotação × escala × pivô`, preservando visualmente o efeito e mantendo o gizmo coerente.
+- **Extrusão F1:** Ribbon ganhou espessura autoral em metros e passou a usar `ExtrudeGeometry` com seção retangular ao longo da `CatmullRomCurve3`; projetos anteriores continuam compatíveis por padrão proporcional.
+- **Superfícies F1:** raycasting foi restringido aos meshes autorais, evitando grade, gizmo e prévia; o teste Edge usa projeção câmera→tela para clicar deterministicamente no cubo e comprovar pontos fora do plano XZ.
