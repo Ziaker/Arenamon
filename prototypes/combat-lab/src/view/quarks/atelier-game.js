@@ -138,11 +138,19 @@ export class AtelierGameFx {
     let any = false;
     v.ids.forEach((id, i) => {
       const e = byId.get(id);
-      if (!e || e.dead || v.ents.get(id) !== e) return;   // sumiu, morreu ou o id foi reaproveitado por outra entidade
+      if (!e || e.dead || v.ents.get(id) !== e) {
+        if (v.fx.stones?.[i]) v.fx.stones[i].visible = false;
+        if (v.fx.stars?.[i]) v.fx.stars[i].visible = false;
+        return;
+      }
       any = true;
       v.group.worldToLocal(tmp.set(e.pos.x, e.y ?? 1, e.pos.z));
       v.hist[i].push({t: v.age, x: tmp.x, y: tmp.y, z: tmp.z});
     });
+    if (!any) {
+      if (v.fx.stones) v.fx.stones.forEach(s => { s.visible = false; });
+      if (v.fx.stars) v.fx.stars.forEach(s => { s.visible = false; });
+    }
     if (any) v.lastAlive = v.age;
     v.alive = any;
     // Contato = onde os projéteis estavam por último (média).

@@ -18,7 +18,7 @@ const MOVES = {waterorb: 'waterPulse', airslash: 'airSlash', firespin: 'fireSpin
 const PL_HEX = [0xffffff, 0x59d6e6, 0xffcf6a, 0xff6adf];
 const VARIANT_KEY = {waterPulse: 'waterVariant', airSlash: 'airVariant', fireSpin: 'fireVariant'};
 /** Tempo (s) que o efeito continua depois que a entidade some: cobre a explosão/o corte do contato. */
-const TAIL = {waterPulse: 2.4, airSlash: 2.0, fireSpin: 1.2, seedBomb: 2.6};
+const TAIL = {waterPulse: 0.6, airSlash: 0.5, fireSpin: 1.2, seedBomb: 0.8};
 
 const elementalCfg = () => C.vfx?.elemental ?? {};
 

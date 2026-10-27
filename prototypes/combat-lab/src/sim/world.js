@@ -180,19 +180,17 @@ function snapToFirstContact(game, p, from) {
         // R11.7: Projétil que atinge borda circular ricocheteia conforme propriedades físicas e normal de contato
         const n = normalize(p.pos);
         const vDotN = dot(p.vel, n);
-        if (vDotN > 0) {
+        const canBounce = !!p.bouncesEnabled && (p.maxBounces ?? 0) > 0;
+        if (canBounce && vDotN > 0 && (p.bounces ?? 0) < (p.maxBounces ?? 0)) {
           p.bounces = (p.bounces ?? 0) + 1;
-          const maxBounces = p.maxBounces ?? 2;
-          if (p.bounces <= maxBounces) {
-            p.vel = sub(p.vel, scale(n, 2 * vDotN));
-            p.dir = normalize(p.vel);
-            events.push({result: 'arenaBounce', attacker: p.owner ?? null, target: null, damage: 0, entity: p.id, kind: 'projectile'});
-          } else {
-            p.dead = true;
-            events.push({result: 'arenaHit', attacker: p.owner ?? null, target: null, damage: 0, entity: p.id, kind: 'projectile'});
-            if (p.onHit) spawnLater.push(at(p.onHit, p));
-            return;
-          }
+          p.vel = sub(p.vel, scale(n, 2 * vDotN));
+          p.dir = normalize(p.vel);
+          events.push({result: 'arenaBounce', attacker: p.owner ?? null, target: null, damage: 0, entity: p.id, kind: 'projectile'});
+        } else {
+          p.dead = true;
+          events.push({result: 'arenaHit', attacker: p.owner ?? null, target: null, damage: 0, entity: p.id, kind: 'projectile'});
+          if (p.onHit) spawnLater.push(at(p.onHit, p));
+          return;
         }
       }
     }
@@ -251,7 +249,8 @@ function snapToFirstContact(game, p, from) {
       if (p.exec != null) execRecord(game.world, p, f, ev, hit);
       if (ev) events.push(ev);
       if (ev && p.counterWon && p.defeated?.includes(f.id) && (ev.result === 'impact' || ev.result === 'partial')) applyCounterStagger(f, p.captured?.counterStagger ?? 0, events, p.owner ?? null);
-      if (p.hitLog.length >= p.pierce || ev?.result === 'partial' || ev?.result === 'perfect') {p.dead = true;if (p.onHit) spawnLater.push(at(p.onHit, p));return;}
+      const pierceCount = p.pierce ?? 1;
+      if (p.hitLog.length >= pierceCount || ev?.result === 'impact' || ev?.result === 'partial' || ev?.result === 'perfect') {p.dead = true;if (p.onHit) spawnLater.push(at(p.onHit, p));return;}
     }
   }
 }/**

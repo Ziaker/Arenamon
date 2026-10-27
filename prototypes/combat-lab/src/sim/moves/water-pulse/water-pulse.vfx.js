@@ -17,7 +17,7 @@ import {elementalVisualKey} from '../../elemental-visual-config.js';
 
 export const id = 'water-pulse';
 
-const TAIL_DURATION = 2.4;
+const TAIL_DURATION = 0.6;
 const PL_HEX = [0xffffff, 0x59d6e6, 0xffcf6a, 0xff6adf];
 
 const elementalCfg = () => C.vfx?.elemental ?? {};
@@ -210,6 +210,7 @@ export function onDeath(view, e, state) {
     state.age = 0;
     state.preview.contact();
   }
+  if (state.preview?.core) state.preview.core.visible = false;
 }
 
 /**
