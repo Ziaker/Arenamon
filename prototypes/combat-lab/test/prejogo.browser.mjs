@@ -171,6 +171,13 @@ try {
 
   // ======================= sem modelo salvo / carregado =======================
   const e2 = await newPage();
+  // O HTML publicado embute modelos iniciais (chars/ viram <script data-embedded-model>); para testar o estado
+  // “sem personagem salvo” é preciso limpar o workspace desta sessão antes de desenhar a tela.
+  await e2.page.evaluate(async () => {
+    const L = window.__lab;
+    for (const a of await L.store.listAssets()) if (a.kind === 'model') await L.store.deleteAsset(a.id);
+    await L.quickMenu.refresh();
+  });
   await e2.page.evaluate(() => window.__lab.menuStyles.setStyle('c'));await e2.page.waitForTimeout(600);
   const empty = await e2.page.evaluate(() => ({visible: !document.getElementById('menu-styled').hidden, noModel: [...document.querySelectorAll('.qs-nomodel')].map(n => !n.hidden), note: document.querySelector('.qs-note')?.textContent, name: document.querySelector('.qs-charname')?.textContent, cards: document.querySelectorAll('.qs-card').length}));
   check('sem personagem carregado nem salvo: a tela abre, avisa «prévia indisponível» e não fabrica modelo nem seleção', empty.visible && empty.noModel.every(Boolean) && /Nenhum personagem salvo/.test(empty.note) && /Sem modelo/.test(empty.name) && empty.cards > 20, JSON.stringify(empty));
