@@ -23,3 +23,5 @@ export * from './textures/texture-document';
 export * from './materials/material-graph';
 export * from './particles/particles';
 export * from './particles/quarks-contract';
+export * from './ui/preferences';
+export * from './ui/icons';
