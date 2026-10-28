@@ -34,6 +34,8 @@ import * as PP from 'postprocessing';
 import {PostPipeline} from './post/post-pipeline.js';
 import {COLLISION_OVERLAYS, drawCollisionOverlays} from './collision-overlays.js';
 import {feedPulses} from './post/post-params.js';
+// F5: despachante único de eventos visuais (dedupe por eventId uma vez por quadro, dono por resultado/canal).
+import {VfxDispatch, applyParticleOwners} from './vfx/dispatch.js';
 
 const STATE_COLORS = {invulnerable: 0x58e6ff, tackle: 0xffa040, dodge: 0x61ebba, guard: 0xffe066, guardStun: 0xffb347, recoil: 0xc77dff, airborne: 0x9db4ff, landing: 0x7f93b8, defeated: 0x56616a};
 export const OVERLAYS = [
@@ -53,7 +55,7 @@ export class View {
   constructor(canvas) {
     const X = C.extras;
     this.canvas = canvas;this.scene = new T.Scene();this.camera = new T.PerspectiveCamera(X.cameraExtra.fov, 1, X.cameraExtra.nearClip, X.cameraExtra.farClip);this.rig = new CameraRig();
-    this.meshes = [];this.arrows = [];this.shadows = [];this.effects = [];this.seenEvents = new WeakSet();this.airborneSeen = [];this.invulnerableFx = new Map();this.cameraShake = 0;
+    this.meshes = [];this.arrows = [];this.shadows = [];this.effects = [];this.dispatch = new VfxDispatch();this.airborneSeen = [];this.invulnerableFx = new Map();this.cameraShake = 0;
     this.overlays = Object.fromEntries(OVERLAYS.map(([k]) => [k, k === 'cancelWindow']));this.characters = [];this.smears = [];this.debug = [];this.normals = [];
     this.renderer = new T.WebGLRenderer({canvas, antialias: true});this.renderer.setPixelRatio(Math.min(devicePixelRatio, X.visual.renderPixelRatio));
     this.scene.background = new T.Color(rgb('background'));this.ambientLight = new T.HemisphereLight(0xffffff, 0x65707b, X.visual.ambientLightIntensity);this.scene.add(this.ambientLight);
@@ -71,7 +73,6 @@ export class View {
       const wall = new T.Mesh(new T.BoxGeometry(w, X.visual.wallHeight, d), new T.MeshStandardMaterial({color: rgb('wall')}));wall.position.set(x, .175, z);this.scene.add(wall);this.walls.push(wall);
     }
     this.scenery = new ArenaScenery(this.scene, this); // cenário "Laboratório técnico" (display.scenery.labTheme); o visual clássico fica por baixo
-    this.legacySeen = new WeakSet();
     this.vfx = new VfxSystem(this.scene, {flashEl: document.getElementById('vfx-flash'), canvas});
     // Novo runtime de VFX declarativo. Registra todas as famílias de efeito.
     // Por enquanto o legado (this.vfx) permanece como renderizador ativo; o novo
@@ -84,7 +85,7 @@ export class View {
     this.passives = new PassiveAbilitySystem(this.scene, {notify: (id, name) => this.abilityBanners.show(id, name)});
     this.navDebug = null; // rotas Yuka (Fase 3), sob demanda
     this.aimMarkers = null;this.statusAura = null; // aura dos status dos Moves novos (Harden, Second Wind), sob demanda
-    this.auraSeen = new WeakSet();this.post = null;this.postSeen = new WeakSet();this.postSize = '';   // pós-processamento (Fase 4), sob demanda
+    this.post = null;this.postSize = '';   // pós-processamento (Fase 4), sob demanda
     this.quarks = null; // camada three.quarks (Fase 2): instanciada sob demanda quando C.vfx.quarks.enabled
     this.useNewVfx = false; // trocar para true quando o novo sistema estiver em paridade
     this.overlayGroup = new T.Group();this.overlayGroup.renderOrder = 900;this.scene.add(this.overlayGroup);
@@ -155,7 +156,7 @@ export class View {
     this.renderer.setPixelRatio(Math.min(devicePixelRatio, V.renderPixelRatio));
   }
   reset(player) {
-    this.rig.reset(player);this.worldView?.reset?.();this.seenEvents = new WeakSet();this.legacySeen = new WeakSet();this.cameraShake = 0;for (const e of this.effects) {this.scene.remove(e.mesh);e.mesh.geometry.dispose();e.mesh.material.dispose();}this.effects = [];this.airborneSeen = [];this.invulnerableFx.clear();this.normals = [];this.vfx.reset();
+    this.rig.reset(player);this.worldView?.reset?.();this.dispatch.reset();this.cameraShake = 0;for (const e of this.effects) {this.scene.remove(e.mesh);e.mesh.geometry.dispose();e.mesh.material.dispose();}this.effects = [];this.airborneSeen = [];this.invulnerableFx.clear();this.normals = [];this.vfx.reset();
     if (this.canvas) this.canvas.style.filter = '';
     this.vfxRuntime.reset();
     this.quarks?.reset();this.post?.pulses.reset();
@@ -170,8 +171,6 @@ export class View {
       if (this.directionalLight) this.directionalLight.intensity = C.extras?.visual?.directionalIntensity ?? 1;
     }
     this._blindDimmed = false;
-    this.auraSeen = new WeakSet();
-    this.postSeen = new WeakSet();
     this.riposteFx?.reset?.();
     this.legacyClashSeen?.clear();
   }
@@ -190,7 +189,7 @@ export class View {
   updateLegacy(fighters, events, dt) {
     const X = C.extras, F = X.fx, on = !!C.vfx.master.legacy;
     for (const event of events) {
-      if (!on || this.legacySeen.has(event)) continue;this.legacySeen.add(event);
+      if (!on) continue;   // events = só os novos do quadro (despachante F5)
       const attacker = fighters[event.attacker], target = fighters[event.target];
       const isEnvSplat = (event.result === 'wallSplat' || event.result === 'destructibleSplat') && target;
       if (!isEnvSplat && (!attacker || !target)) continue;
@@ -292,8 +291,12 @@ export class View {
     const X = C.extras, V = X.visual, S = C.display.shadow, G = C.display.grounding, now = () => performance.now(), tm = this.timings = {anim: 0, vfx: 0, render: 0, overlays: 0};let t0;
     const visualScale = this.cinematic?.getVisualTimeScale?.() ?? 1.0;
     const isKoSeq = !!this.cinematic?.koState;
-    for (const event of events) {
-      if (this.seenEvents.has(event)) continue;this.seenEvents.add(event);
+    // F5: um despacho por quadro — `fresh` são só os eventos novos (eventId; reinicia quando o Game troca de world, reset/load).
+    // Todos os consumidores recebem `fresh` na mesma ordem de antes; cinemática (fora da pausa) e sólidos (dt > 0) usam take().
+    // Resultado sem dono em OWNERS/SEM_VISUAL não chega a ninguém (diagnostics().unknown). A janela `events` só decide a vida do Riposte.
+    const {fresh} = this.dispatch.dispatch(events, {epoch: world});
+    applyParticleOwners({vfx: this.vfx, runtime: this.vfxRuntime}, {useNewVfx: this.useNewVfx, quarks: !!C.vfx.quarks?.enabled});
+    for (const event of fresh) {
       const attacker = fighters[event.attacker], target = fighters[event.target];if (!attacker || !target) continue;
       if (event.normal && (event.result !== 'clash' || event.attacker === 0)) this.normals.push({x: (attacker.position.x + target.position.x) / 2, z: (attacker.position.z + target.position.z) / 2, n: event.normal, result: event.result, age: 0, launch: event.launch});
     }
@@ -328,7 +331,7 @@ export class View {
       arrow.material.color.setHex(f.guard ? rgb('arrowGuard') : rgb('arrow'));
       // A prévia de animação continua tocando com a partida pausada; bullet time visual desacelera apresentação.
       const animDt = (paused && !isKoSeq) ? (character?.preview ? realDt : 0) : ((isKoSeq ? (realDt ?? 0.016) : dt) * visualScale);
-      t0 = now();character?.update(f, animDt, alt, events, {tick, source: sources[f.id]});tm.anim += now() - t0;
+      t0 = now();character?.update(f, animDt, alt, fresh, {tick, source: sources[f.id]});tm.anim += now() - t0;
       // Ausência física (Bullet Punch): nada do lutador é desenhado enquanto ele "não existe"; as speedlines ficam por conta do AimMarkers.
       // Quick Attack: o corpo também some durante a ida e a volta (só a aparência; a simulação não muda), com linhas de velocidade no lugar.
       const qaP = f.action?.qa, vanished = (f.absent || (qaP && (qaP.phase === 'approach' || qaP.phase === 'return'))) && f.action?.params?.fxHideBody !== 0;
@@ -336,10 +339,10 @@ export class View {
       else if (this.absentSeen?.[f.id]) {shadow.visible = true;if (character?.root) character.root.visible = true;this.absentSeen[f.id] = false;}
       t0 = now();this.smears[f.id]?.update(f, paused ? 0 : animDt, V.smear, tick, !!X.hud.fxVisible && !!C.vfx.master.enabled && !C.vfx.master.reduceMotion);tm.vfx += now() - t0;
     }
-    t0 = now();this.drawOverlays(fighters, paused ? 0 : dt, world);this.worldView.update(world, {fighters, events, dt: paused ? 0 : dt, skipBeams: this.useNewVfx, camera: this.camera});tm.overlays = now() - t0;
+    t0 = now();this.drawOverlays(fighters, paused ? 0 : dt, world);this.worldView.update(world, {fighters, events: fresh, dt: paused ? 0 : dt, skipBeams: this.useNewVfx, camera: this.camera});tm.overlays = now() - t0;
     if (!this.rig.initialized) this.rig.reset(fighters[0]);
     const basePose = this.rig.pose();
-    const cinePose = this.cinematic ? this.cinematic.apply(basePose, fighters, events, dt, {camera: this.camera, paused, tick, realDt}) : basePose;
+    const cinePose = this.cinematic ? this.cinematic.apply(basePose, fighters, this.dispatch.take('cinematic', !paused), dt, {camera: this.camera, paused, tick, realDt}) : basePose;
     this.camera.position.set(cinePose.position.x, cinePose.height, cinePose.position.z);
     this.camera.lookAt(cinePose.lookAt.x, cinePose.lookHeight, cinePose.lookAt.z);
     if (cinePose.roll) this.camera.rotateZ(cinePose.roll);
@@ -356,10 +359,10 @@ export class View {
     let rt = null;
     if (this.useNewVfx) {
       // Novo runtime declarativo (renderizador ativo). O legado fica inativo.
-      t0 = now();rt = this.vfxRuntime.update(fighters, events, vfxDt, {characters: this.characters, camera: this.camera, paused, tick, world});tm.vfx += now() - t0;
+      t0 = now();rt = this.vfxRuntime.update(fighters, fresh, vfxDt, {characters: this.characters, camera: this.camera, paused, tick, world});tm.vfx += now() - t0;
     } else {
       // Renderizador legado (fallback). O novo runtime permanece inativo.
-      t0 = now();this.vfx.update(fighters, events, vfxDt, {characters: this.characters, camera: this.camera, world});tm.vfx += now() - t0;
+      t0 = now();this.vfx.update(fighters, fresh, vfxDt, {characters: this.characters, camera: this.camera, world});tm.vfx += now() - t0;
       this.vfxRuntime.beamRenderer?.reset();
     }
     // Camada three.quarks experimental (A/B): cria/consome só quando ligada; desligada = custo zero.
@@ -368,19 +371,19 @@ export class View {
         this.quarks = new QuarksBridge({THREE: T, Quarks, scene: this.scene, accessibility: {reduceMotion: () => !!(this._a11y?.reduceMotion || C.vfx.master?.reduceMotion || C.vfx.laser?.reduceMotion)}});
       }
       this.quarks.fx.enabled = !!X.hud.fxVisible; // respeita o mestre de VFX da HUD
-      t0 = now();this.quarks.update(fighters, events, vfxDt);tm.quarks = now() - t0;
+      t0 = now();this.quarks.update(fighters, fresh, vfxDt);tm.quarks = now() - t0;
     } else if (this.quarks) {
       this.quarks.dispose();this.quarks = null;
     }
     // Aura dos status dos Moves novos: só existe enquanto algum lutador tem Harden/Second Wind (custo zero fora disso).
     if (fighters.some(f => f.statuses?.some(s => s.id === 'harden' || s.id === 'second-wind' || s.id === 'blind'))) {
-      const m = C.vfx.master ?? {}, hitIds = new Set(events.filter(e => (e.result === 'impact' || e.result === 'partial') && !this.auraSeen.has(e)).map(e => {this.auraSeen.add(e);return e.target;}));
+      const m = C.vfx.master ?? {}, hitIds = new Set(fresh.filter(e => e.result === 'impact' || e.result === 'partial').map(e => e.target));
       (this.statusAura ??= new StatusAura(T, this.scene)).update(fighters, paused ? 0 : dt, {bodyHeight: X.visual.bodyHeight, halfExtent: C.test.halfExtent, reduceMotion: !!(this._a11y?.reduceMotion || m.reduceMotion), noFlash: !!(this._a11y?.noFlash || m.noFlash), hits: hitIds});
     } else if (this.statusAura) {this.statusAura.dispose();this.statusAura = null;}
     // Riposte: postura (disco + lâmina de guarda) e clarão do contra-golpe; só existe enquanto há Riposte em curso ou clarão ativo.
     if (fighters.some(f => f.action?.kind === 'move' && f.action.def?.riposte) || this.riposteFx?.active || events.some(e => e.result === 'riposteStrike' || (e.result === 'impact' && e.riposte))) {
       const m = C.vfx.master ?? {};
-      (this.riposteFx ??= new RiposteFx(T, this.scene)).update(fighters, events, paused ? 0 : dt, {bodyHeight: X.visual.bodyHeight, halfExtent: C.test.halfExtent, reduceMotion: !!(this._a11y?.reduceMotion || m.reduceMotion), noFlash: !!(this._a11y?.noFlash || m.noFlash)});
+      (this.riposteFx ??= new RiposteFx(T, this.scene)).update(fighters, fresh, paused ? 0 : dt, {bodyHeight: X.visual.bodyHeight, halfExtent: C.test.halfExtent, reduceMotion: !!(this._a11y?.reduceMotion || m.reduceMotion), noFlash: !!(this._a11y?.noFlash || m.noFlash)});
     } else if (this.riposteFx) {this.riposteFx.dispose();this.riposteFx = null;}
     // Cegueira do Sand Wave: SÓ a câmera do jogador cegado (lutador 0) recebe névoa densa perto do limite de visão e redução da luz ambiente (SW-D17/D36/D39);
     // os outros observadores não mudam. A cena volta ao normal quando o debuff acaba.
@@ -403,10 +406,10 @@ export class View {
     // Rotas da navegação experimental (Yuka): só quando ligada e com diagnóstico visível.
     if (navGame && C.extras.nav?.enableNav && C.extras.nav.showDebug) (this.navDebug ??= new NavDebug(T, this.scene)).update(navGame);
     else if (this.navDebug) {this.navDebug.dispose();this.navDebug = null;}
-    this.solid.update(fighters, events, vfxDt, {visible: !!X.hud.fxVisible, world});
+    this.solid.update(fighters, this.dispatch.take('solid', vfxDt > 0), vfxDt, {visible: !!X.hud.fxVisible, world});
     this.meteorFx.update(fighters, vfxDt, this.camera, !!X.hud.fxVisible, this.characters);
     t0 = now();this.passives.update(fighters, vfxDt, {characters: this.characters, visible: !!X.hud.fxVisible && !!C.vfx.master.enabled});tm.vfx += now() - t0;
-    const legacy = this.updateLegacy(fighters, events, paused ? 0 : dt);
+    const legacy = this.updateLegacy(fighters, fresh, paused ? 0 : dt);
     const fxOn = !!X.hud.fxVisible;
     const legacyOn = fxOn && !this.useNewVfx && !!this.vfx.atlas;
     const newOn = fxOn && this.useNewVfx && !!this.vfxRuntime.atlas;
@@ -474,7 +477,7 @@ export class View {
         // Tempo de CPU do envio ao WebGL (não é tempo de GPU); o tempo de GPU, quando há suporte, vem da consulta de tempo.
         this.gpuTimer?.begin();t0 = now();
         // Pós-processamento experimental: só com C.vfx.post.enabled; impact frames (silhueta pura) e desligado usam o renderer atual.
-        if (!this.renderPost(fighters, events, paused ? 0 : dt, impactPhase, isKoSeq, w, h)) this.renderer.render(this.scene, this.camera);
+        if (!this.renderPost(fighters, fresh, paused ? 0 : dt, impactPhase, isKoSeq, w, h)) this.renderer.render(this.scene, this.camera);
         tm.render = now() - t0;this.gpuTimer?.end();
       } finally {
         // Restaura cena ao normal imediatamente após a renderização do quadro mesmo se houver erro
@@ -498,7 +501,7 @@ export class View {
       this.postSize = '';
     }
     if (`${w}x${h}` !== this.postSize) {this.post.setSize(w, h);this.postSize = `${w}x${h}`;}
-    feedPulses(this.post, events, fighters, this.postSeen, (pos, s) => this.post.shock(pos, s), P.distortMinDamage);
+    feedPulses(this.post, events, fighters, null, (pos, s) => this.post.shock(pos, s), P.distortMinDamage);
     const loser = isKoSeq ? fighters.find(f => f.hp <= 0) : null;
     this.post.setDof(isKoSeq, loser ? {x: loser.position.x, y: (loser.groundY ?? 0) + 1, z: loser.position.z} : null);
     return this.post.render(dt);

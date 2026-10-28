@@ -155,6 +155,7 @@ export class VfxSystem {
     this.accessibility = {noFlash: false, reduceMotion: false, highContrast: false};
     // Custo por tipo (medidor de desempenho e filtro “mais caros”): partículas criadas e disparos.
     this.stats.byType = {};this.stats.firesByType = {};this.emitting = null;
+    this.ownsParticles = null;   // F5: filtro do despachante (view/vfx/dispatch.js); com three.quarks ligado ele assume as explosões que cobre e aqui fica só o tremor. null = dono de tudo
   }
   setAccessibility(a = {}) {
     this.accessibility = {...this.accessibility, ...a};
@@ -191,23 +192,24 @@ export class VfxSystem {
     this.time = (this.time ?? 0) + dt;this.camera = camera;this.characters = characters;
     for (const e of events) {
       if (this.seenEvents.has(e)) continue;this.seenEvents.add(e);
-      if (e.result === 'ledgeGrab') {this.fire('wallImpact', {pos: {x: e.x, z: e.z}, y: e.y, base: e.base, n: e.n, power: .6, w: e.w, h: e.h, arena: false}, `agarre de borda (${(e.w ?? 0).toFixed(1)} × ${(e.h ?? 0).toFixed(1)} m)`);continue;}   // Ledge Grab: reaproveita o impacto vertical, escalado pelo sólido
+      const burst = !this.ownsParticles || this.ownsParticles(e.result);
+      if (e.result === 'ledgeGrab') {burst && this.fire('wallImpact', {pos: {x: e.x, z: e.z}, y: e.y, base: e.base, n: e.n, power: .6, w: e.w, h: e.h, arena: false}, `agarre de borda (${(e.w ?? 0).toFixed(1)} × ${(e.h ?? 0).toFixed(1)} m)`);continue;}   // Ledge Grab: reaproveita o impacto vertical, escalado pelo sólido
       const a = fighters[e.attacker], b = fighters[e.target];
       if (!b && (e.target != null)) continue;
       if (!b && !a) continue;
       if ((e.result === 'wallSplat' || e.result === 'destructibleSplat') && b) {
         const tag = `evento ${e.result} (passo ${e.tick ?? '?'}: impacto no cenário em ${e.target === 0 ? 'azul' : 'vermelho'})`;
-        this.fire('hit', {pos: b.position, lift: altitudeOf(b), floorLift: b.groundY ?? 0, n: e.normal, power: 1.4}, tag);
+        burst && this.fire('hit', {pos: b.position, lift: altitudeOf(b), floorLift: b.groundY ?? 0, n: e.normal, power: 1.4}, tag);
         this.shake('shakeClash', e.normal, 1, tag);
         continue;
       }
       if (!a || !b) continue;
       const tag = `evento ${e.result} (passo ${e.tick ?? '?'}: ${e.attacker === 0 ? 'azul' : 'vermelho'} → ${e.target === 0 ? 'azul' : 'vermelho'})`;
-      if (e.result === 'impact') {const hs = hitShakeFor(e.move);this.fire('hit', {pos: b.position, lift: altitudeOf(b), floorLift: b.groundY ?? 0, n: e.normal, power: e.slam ? 1.5 : e.riposte ? 1.9 : 1, damage: e.damage, launch: e.launch, move: e.move}, tag);if (hs.on) this.shake(e.slam ? 'shakeGround' : 'shakeHit', e.normal, (e.slam ? 1.4 : e.riposte ? (C.world.riposte?.shakeMult ?? 1) : 1) * hs.power, tag, hs.dur);}
-      else if (e.result === 'wallSplat') {this.fire('hit', {pos: b.position, lift: altitudeOf(b), floorLift: b.groundY ?? 0, n: e.normal, power: 1.4}, tag);this.shake('shakeClash', e.normal, 1, tag);}
-      else if (e.result === 'footstool') {const n = e.normal ?? {x: 0, z: 0};this.fire('hit', {pos: {x: b.position.x, z: b.position.z}, lift: altitudeOf(b), floorLift: b.groundY ?? 0, n, power: 0.7}, tag);this.shake('shakeHit', n, 0.6, tag);}
-      else if (e.result === 'partial') {this.fire('block', {pos: b.position, lift: altitudeOf(b), floorLift: b.groundY ?? 0, n: e.normal, power: 1}, tag);this.shake('shakeGuard', e.normal, 1, tag);}
-      else if (e.result === 'perfect') {this.fire('perfect', {pos: b.position, lift: altitudeOf(b), floorLift: b.groundY ?? 0, n: e.normal, power: 1, fighters}, tag);this.shake('shakePerfect', e.normal, 1, tag);}
+      if (e.result === 'impact') {const hs = hitShakeFor(e.move);burst && this.fire('hit', {pos: b.position, lift: altitudeOf(b), floorLift: b.groundY ?? 0, n: e.normal, power: e.slam ? 1.5 : e.riposte ? 1.9 : 1, damage: e.damage, launch: e.launch, move: e.move}, tag);if (hs.on) this.shake(e.slam ? 'shakeGround' : 'shakeHit', e.normal, (e.slam ? 1.4 : e.riposte ? (C.world.riposte?.shakeMult ?? 1) : 1) * hs.power, tag, hs.dur);}
+      else if (e.result === 'wallSplat') {burst && this.fire('hit', {pos: b.position, lift: altitudeOf(b), floorLift: b.groundY ?? 0, n: e.normal, power: 1.4}, tag);this.shake('shakeClash', e.normal, 1, tag);}
+      else if (e.result === 'footstool') {const n = e.normal ?? {x: 0, z: 0};burst && this.fire('hit', {pos: {x: b.position.x, z: b.position.z}, lift: altitudeOf(b), floorLift: b.groundY ?? 0, n, power: 0.7}, tag);this.shake('shakeHit', n, 0.6, tag);}
+      else if (e.result === 'partial') {burst && this.fire('block', {pos: b.position, lift: altitudeOf(b), floorLift: b.groundY ?? 0, n: e.normal, power: 1}, tag);this.shake('shakeGuard', e.normal, 1, tag);}
+      else if (e.result === 'perfect') {burst && this.fire('perfect', {pos: b.position, lift: altitudeOf(b), floorLift: b.groundY ?? 0, n: e.normal, power: 1, fighters}, tag);this.shake('shakePerfect', e.normal, 1, tag);}
       else if (e.result === 'clash') {
 
 
@@ -222,7 +224,7 @@ export class VfxSystem {
             z: (a.position.z + b.position.z) / 2
           };
           const contactNormal = e.normal ?? {x: a.position.x - b.position.x, z: a.position.z - b.position.z};
-          this.fire('clash', {pos: mid, lift: (altitudeOf(a) + altitudeOf(b)) / 2, n: contactNormal, power: 1}, tag);
+          burst && this.fire('clash', {pos: mid, lift: (altitudeOf(a) + altitudeOf(b)) / 2, n: contactNormal, power: 1}, tag);
           this.shake('shakeClash', contactNormal, 1, tag);
         }
       }

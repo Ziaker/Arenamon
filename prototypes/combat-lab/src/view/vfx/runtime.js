@@ -162,6 +162,7 @@ export class VfxRuntime {
     this.log = [];
     this.debugLog = false;
     this.contAcc = new Map(); // acumulador de efeitos contínuos por lutador/estado
+    /** @type {((result: string) => boolean) | null} */ this.ownsParticles = null; // F5: filtro do despachante (null = dono de tudo, uso avulso)
   }
   setRegistry(registry) { this.registry = registry; }
   setQuality(quality) {
@@ -276,12 +277,17 @@ export class VfxRuntime {
     this.time += frameDt;
     this.budget.beginFrame();
     // 1. Adaptar eventos da simulação para o contrato visual (somente leitura, nunca modifica a simulação).
+    // F5: resultado sem tipo visual (reflected, blocked…) é pulado — antes freezeVisualEvent(null) devolvia null e
+    // handleVisualEvent(null) lançava TypeError. ownsParticles (despachante, view/vfx/dispatch.js) diz se este runtime é o
+    // dono das partículas do resultado no modo atual (three.quarks ligado assume as explosões que cobre); o feedback de câmera fica.
     const visualEvents = [];
     for (const ev of simEvents || []) {
-      visualEvents.push(freezeVisualEvent(adaptSimEvent(ev, {fighters, tick})));
+      const vis = adaptSimEvent(ev, {fighters, tick});
+      if (!vis) {this.stats.unmapped = (this.stats.unmapped || 0) + 1;continue;}
+      visualEvents.push({vis: freezeVisualEvent(vis), particles: !this.ownsParticles || this.ownsParticles(ev.result)});
     }
     // 2. Disparar efeitos registrados para cada evento visual.
-    for (const ev of visualEvents) this.handleVisualEvent(ev, fighters, characters);
+    for (const {vis, particles} of visualEvents) this.handleVisualEvent(vis, fighters, characters, particles);
     // 3. Efeitos contínuos por estado (exaustão, regeneração, invulnerabilidade).
     this.handleContinuous(fighters, characters, frameDt);
     // 4. Executar o scheduler (fases: spawn → sustain → decay → cancel).
@@ -314,8 +320,10 @@ export class VfxRuntime {
     });
     return {camera: cam, stats: this.stats};
   }
-  handleVisualEvent(ev, fighters, characters) {
+  handleVisualEvent(ev, fighters, characters, particles = true) {
+    if (!ev) return;
     this.triggerCameraFeedback(ev);
+    if (!particles) return;
     const family = this.typeToFamily(ev.type);
     const desiredVariant = this.getVariant(family);
     const candidates = [];

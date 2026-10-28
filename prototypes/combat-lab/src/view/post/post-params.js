@@ -42,14 +42,13 @@ export const chromaNow = (E, pulses) => E.chromaOn ? E.chromaOffset + (E.chromaI
 /**
  * Traduz eventos da simulação em pulsos (mesmos eventos do VFX legado e da ponte three.quarks).
  * @param {{trigger:(k:string,s:number)=>void}} sink  pipeline ou PostPulses
- * @param {any[]} events @param {any[]} fighters @param {WeakSet<object>} seen
+ * @param {any[]} events @param {any[]} fighters @param {WeakSet<object> | null} seen  null = events já são só os novos (despachante F5)
  * @param {(pos:{x:number,y:number,z:number}, strength:number)=>void} [shock] chamado em impactos fortes com a posição do alvo
  * @param {number} [minDamage]
  */
 export function feedPulses(sink, events, fighters, seen, shock, minDamage = 12) {
   for (const e of events) {
-    if (seen.has(e)) continue;
-    seen.add(e);
+    if (seen) {if (seen.has(e)) continue;seen.add(e);}
     const target = fighters[e.target];
     const dmg = e.damage ?? 0;
     if (e.result === 'impact' || e.result === 'perfect' || e.result === 'footstool' || e.result === 'wallSplat') {

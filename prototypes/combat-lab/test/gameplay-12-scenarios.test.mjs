@@ -312,8 +312,7 @@ test('Cenário 12: Reinício de partida limpa névoa, iluminação e partículas
   const viewMock = {
     rig: {reset: () => {}},
     worldView: wv,
-    seenEvents: new WeakSet(),
-    legacySeen: new WeakSet(),
+    dispatch: {reset() {this.resets = (this.resets ?? 0) + 1;}},   // F5: despachante único substitui os WeakSets seen do View
     cameraShake: 0,
     effects: [],
     airborneSeen: [],
@@ -335,8 +334,6 @@ test('Cenário 12: Reinício de partida limpa névoa, iluminação e partículas
     ambientLight,
     directionalLight: dirLight,
     clashSeen: new Set(['clash:1:0:1']),
-    auraSeen: new WeakSet(),
-    postSeen: new WeakSet(),
     riposteFx: {reset: () => {}},
     reset: View.prototype.reset
   };
@@ -344,6 +341,7 @@ test('Cenário 12: Reinício de partida limpa névoa, iluminação e partículas
 
   assert.equal(viewMock.scene.fog, null, 'scene.fog deve ser limpo');
   assert.equal(viewMock.blindK, 0, 'blindK deve ser zerado');
+  assert.equal(viewMock.dispatch.resets, 1, 'despachante de eventos visuais reiniciado');
   assert.equal(viewMock.canvas.style.filter, '', 'filtro de canvas de cegueira limpo');
   assert.ok(ambientLight.intensity > 0, 'Luz ambiente restaurada');
 });
