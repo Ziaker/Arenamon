@@ -16,7 +16,7 @@ import {isInvulnerable, nominalDistance} from './entity.js';
 import {sweepBox, segmentHitsVolume} from './geometry.js';
 import {solidContact} from './solid-contact.js';
 import {noteContact, noteSweep, horizontalOf} from './collision-probe.js';
-import {firstContact} from './ccd.js';
+import {firstContact, sweepRoundedBox} from './ccd.js';
 import {traceBeam} from './beam.js';
 import {stepTrap} from './trap.js';
 import {stepSand} from './sand.js';
@@ -241,10 +241,13 @@ function snapToFirstContact(game, p, from) {
       events.push({result: 'blocked', attacker: p.owner ?? null, target: b.owner ?? null, damage: 0, entity: p.id, by: b.id, kind: b.kind, position: blockPos, x: blockPos.x, y: blockPos.y, z: blockPos.z, normal: {x: -p.dir?.x || 0, y: 0, z: -p.dir?.z || 1}});
       if (p.onHit) spawnLater.push(at(p.onHit, p));return;
     }
+    // Lutadores: sobreposição no fim do subpasso OU contato varrido na perna percorrida (F4, gate geométrico). Só a sobreposição final deixava passar
+    // trajetórias que raspam a quina do corpo: a corda dentro do corpo inflado pelo raio fica menor que o subpasso (0,1 m) e nenhum fim de subpasso cai nela.
+    const leg = legStart ?? from;
     for (const f of game.fighters) {
       if (f.hp <= 0 || f.absent || (f.id === p.owner && !p.hitsOwner) || p.hitLog.includes(f.id)) continue;
       const alt = altOf(f), box = {shape: 'box', pos: f.position, hx: C.test.halfExtent, hz: C.test.halfExtent, angle: 0};
-      if (!vOverlap(p.y - p.radius, p.y + p.radius, alt, alt + fighterHeight()) || !circleTouches(box, p.pos, p.radius)) continue;
+      if (!vOverlap(p.y - p.radius, p.y + p.radius, alt, alt + fighterHeight()) || !(circleTouches(box, p.pos, p.radius) || sweepRoundedBox(box, leg, p.pos, p.radius))) continue;
       if (p.clashable && f.action?.kind === 'tackle' && !f.action.neutralized && !isInvulnerable(f) && tackleDispute(p, f, events)) return;   // disputa de PL contra o Tackle em curso
       if (p.detonateOnly) {p.dead = true;events.push({result: 'detonate', attacker: p.owner ?? null, target: f.id, damage: 0, entity: p.id, kind: 'projectile'});if (p.onHit) spawnLater.push(at(p.onHit, p));return;}   // projétil explosivo (M22.7): o contato só detona; quem causa dano é a explosão, uma vez
       p.hitLog.push(f.id);

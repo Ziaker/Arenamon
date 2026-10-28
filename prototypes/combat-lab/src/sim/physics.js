@@ -6,7 +6,6 @@ import {collideFighter} from './world.js';
 import {ageSurfaces} from './solid-contact.js';
 import {collisionProbe, noteContact, horizontalOf, staticPenetration} from './collision-probe.js';
 import {collideMapFighter, damageDestructible, effectiveArenaRadius} from './map.js';
-import {nearestValidInArena} from './map/map-spawn.js';
 import {resolveDamage, damageEventFields} from './resolvers/damage-resolver.js';
 import {passiveCost, hitStunFactor} from './passive-engine.js';
 import {altitudeOf} from './entity.js';
@@ -17,8 +16,11 @@ import {vec, add, scale, sub, dot, length, normalize, clamp, direction, smoothst
 /** Sonda de diagnóstico (auditoria externa §64): subpassos e contatos do último passo físico.
  * Leitura externa apenas — não entra no estado da simulação, no save nem no replay.
  * F4: staticResidualMax = maior penetração (m) que o solver de sólidos deixou sem convergir no último passo (0 = convergiu); staticResidualPeak = maior já vista;
- * pinEscapes / pinEscapesTotal = escapes de imprensamento (resíduo acima de `test.penetrationTolerance`) no último passo / no total. */
-export const physicsProbe = {substeps: 0, contacts: 0, staticConflicts: 0, staticConflictsTotal: 0, staticResidualMax: 0, staticResidualPeak: 0, pinEscapes: 0, pinEscapesTotal: 0};
+ * pinEscapes / pinEscapesTotal = escapes de imprensamento (resíduo acima de `test.penetrationTolerance`) no último passo / no total.
+ * escapeSearches = buscas de escape feitas no último passo (no máximo 1 por lutador sem saída: a falha fica guardada até o fim do passo). */
+export const physicsProbe = {substeps: 0, contacts: 0, staticConflicts: 0, staticConflictsTotal: 0, staticResidualMax: 0, staticResidualPeak: 0, pinEscapes: 0, pinEscapesTotal: 0, escapeSearches: 0};
+/** Lutadores (id) cuja busca de escape já falhou NESTE passo: não repete a busca a cada subpasso/projeção (custo patológico). Zerado em stepPhysics. */
+const noEscapeThisStep = new Set();
 /** Componente vertical do rebote: multiplica a velocidade vertical atual e soma um impulso para cima. */
 function wallVertical(f) {const R = C.rules;f.flight.vy = f.flight.vy * R.wallBounceVertical + R.wallBounceUp;}
 /**
@@ -180,18 +182,22 @@ function settleStatics(f, world, events, fighters = []) {
   physicsProbe.staticConflicts++;physicsProbe.staticConflictsTotal++;
   const depth = staticPenetration(f, world);
   physicsProbe.staticResidualMax = Math.max(physicsProbe.staticResidualMax, depth);physicsProbe.staticResidualPeak = Math.max(physicsProbe.staticResidualPeak, depth);
-  if (depth > (C.test.penetrationTolerance ?? .02)) {
-    const to = escapePosition(f, world);
-    if (to) {
-      const y = altitudeOf(f), from = {x: f.position.x, y, z: f.position.z};
+  if (depth > (C.test.penetrationTolerance ?? .02) && !noEscapeThisStep.has(f.id)) {
+    physicsProbe.escapeSearches++;
+    const esc = escapePosition(f, world);
+    if (esc) {
+      const to = esc.pos, y = altitudeOf(f), from = {x: f.position.x, y, z: f.position.z}, distance = Math.hypot(to.x - from.x, to.z - from.z);
       f.position = to;physicsProbe.pinEscapes++;physicsProbe.pinEscapesTotal++;
-      events.push({result: 'pinEscape', target: f.id, from, to: {x: to.x, y, z: to.z}, depth, sourceKind: 'system', position: {x: to.x, y, z: to.z}});
-    }
+      // fallback: true = nada livre nos anéis de ESCAPE_RINGS·ESCAPE_STEP m; o deslocamento (distance) pode ser grande e fica explícito no evento.
+      events.push({result: 'pinEscape', target: f.id, from, to: {x: to.x, y, z: to.z}, depth, distance, fallback: esc.fallback, sourceKind: 'system', position: {x: to.x, y, z: to.z}});
+    } else noEscapeThisStep.add(f.id);
   }
   return true;
 }
 /** Busca do escape: anéis de ESCAPE_STEP m até ESCAPE_RINGS·ESCAPE_STEP m, 8·anel candidatos por anel a partir do ângulo 0 (ordem fixa, sem RNG). */
 const ESCAPE_STEP = .1, ESCAPE_RINGS = 40;
+/** Fallback: grade de FALLBACK_GRID m na arena inteira (alinhada à origem), em camadas quadradas crescentes em volta do lutador. */
+const FALLBACK_GRID = .5;
 /** Corpo inteiro dentro da arena (mesmo contorno de clampToArena)? */
 function insideArena(/** @type {number} */ x, /** @type {number} */ z) {
   if (C.map?.arenaShape !== 'square') return Math.hypot(x, z) <= effectiveArenaRadius() - C.test.halfExtent + 1e-9;
@@ -199,7 +205,10 @@ function insideArena(/** @type {number} */ x, /** @type {number} */ z) {
 }
 /**
  * Posição livre (penetração 0, dentro da arena) mais próxima do lutador NA MESMA ALTURA: primeiro anel com ponto livre, desempate pela ordem angular.
- * Sem nenhuma até 4 m, o ponto válido mais próximo da arena inteira (nearestValidInArena, regras de spawn) se também estiver livre; senão null (mantém).
+ * Sem nenhuma até 4 m, o ponto LIVRE mais próximo da arena inteira (grade de 0,5 m, mesmo predicado exato `staticPenetration`; desempate pela ordem da
+ * varredura) com `fallback: true`. Antes o fallback usava as regras de spawn (nearestValidInArena), que aproximam caixa por círculo inscrito: o ponto
+ * «válido» podia estar dentro da quina de uma caixa grande, era descartado e o lutador ficava preso. Sem ponto livre algum: null (mantém).
+ * @returns {{pos: any, fallback: boolean} | null}
  */
 function escapePosition(f, world) {
   const p0 = f.position, free = (/** @type {number} */ x, /** @type {number} */ z) => insideArena(x, z) && staticPenetration(f, world, {x, z}) === 0;
@@ -207,11 +216,21 @@ function escapePosition(f, world) {
     const r = ring * ESCAPE_STEP, n = 8 * ring;
     for (let i = 0; i < n; i++) {
       const a = (i / n) * Math.PI * 2, x = p0.x + Math.cos(a) * r, z = p0.z + Math.sin(a) * r;
-      if (free(x, z)) return vec(x, z);
+      if (free(x, z)) return {pos: vec(x, z), fallback: false};
     }
   }
-  const far = world.mapState ? nearestValidInArena({x: p0.x, y: 0, z: p0.z}, C.test.halfExtent, world.mapState) : null;
-  return far && free(far.x, far.z) ? vec(far.x, far.z) : null;
+  const G = FALLBACK_GRID, R = C.map?.arenaShape !== 'square' ? effectiveArenaRadius() : C.test.arenaHalf * Math.SQRT2;
+  const ci = Math.round(p0.x / G), cj = Math.round(p0.z / G), maxK = Math.ceil((R + Math.hypot(p0.x, p0.z)) / G) + 1;
+  let best = /** @type {any} */ (null), bestD = Infinity;
+  for (let k = 0; k <= maxK; k++) {
+    if ((k - 1) * G > Math.sqrt(bestD)) break;   // camada k fica a ≥ (k−1)·G do lutador: nenhuma mais perto que a melhor
+    for (let i = ci - k; i <= ci + k; i++) for (let j = cj - k; j <= cj + k; j++) {
+      if (Math.max(Math.abs(i - ci), Math.abs(j - cj)) !== k) continue;   // só a borda da camada
+      const x = i * G, z = j * G, d = (x - p0.x) ** 2 + (z - p0.z) ** 2;
+      if (d < bestD && free(x, z)) {best = vec(x, z);bestD = d;}
+    }
+  }
+  return best ? {pos: best, fallback: true} : null;
 }
 export function stepPhysics(fighters, dt, world = null) {
   const R = C.rules, X = C.extras.combat, T = C.extras.toggles, events = [], pushVel = new Map(), startY = new Map();
@@ -416,7 +435,7 @@ export function stepPhysics(fighters, dt, world = null) {
   }
   const speed = Math.max(0, ...fighters.map(f => length(add(f.velocity, pushVel.get(f.id)))));
   const steps = Math.max(1, Math.ceil(speed * dt / C.test.contactStep));
-  physicsProbe.substeps = steps;physicsProbe.staticConflicts = 0;physicsProbe.staticResidualMax = 0;physicsProbe.pinEscapes = 0;   // conflitos de espaço, resíduo e escapes do ÚLTIMO passo (os acumulados ficam em *Total/*Peak)
+  physicsProbe.substeps = steps;physicsProbe.staticConflicts = 0;physicsProbe.staticResidualMax = 0;physicsProbe.pinEscapes = 0;physicsProbe.escapeSearches = 0;noEscapeThisStep.clear();   // conflitos de espaço, resíduo e escapes do ÚLTIMO passo (os acumulados ficam em *Total/*Peak)
   for (let s = 0; s < steps; s++) {
     for (const f of fighters) {
       if ((f.hp <= 0 && !f.flight) || f.absent) continue;   // ausente (Bullet Punch): sem corpo, não se move nem colide
