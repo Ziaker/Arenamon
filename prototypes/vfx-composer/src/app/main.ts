@@ -568,8 +568,8 @@ function refreshParticleReadout(): void {
   const backendText = previewBackend === 'authoring'
     ? `Autoral: ${live.active} ${plural} · pico ${live.peakThisFrame} · ${live.drawCalls} draw call(s)`
     : previewBackend === 'quarks'
-      ? `Quarks: ${quarks.active} ${plural} · ${quarks.systems} sistema(s) · ${quarks.drawCalls} draw call(s)`
-      : `A/B — Autoral ${live.active} | Quarks ${quarks.active} · ${live.drawCalls + quarks.drawCalls} draw call(s)`;
+      ? `Quarks: ${quarks.active} ${plural} · ${quarks.systems} sistema(s) · ${quarks.drawCalls} draw call(s)${quarks.rejected ? ` · ${quarks.rejected} emissor rejeitado` : ''}`
+      : `A/B — Autoral ${live.active} | Quarks ${quarks.active} · ${live.drawCalls + quarks.drawCalls} draw call(s)${quarks.rejected ? ` · ${quarks.rejected} emissor rejeitado` : ''}`;
   $('#particle-telemetry').textContent = emitters.length
     ? `${backendText} · pico estimado ${budget.peak}${quarks.approximations.length && previewBackend !== 'authoring' ? ` · aproximações: ${quarks.approximations.join(', ')}` : ''}`
     : 'Sem emissor. Adicione um para ver a telemetria.';

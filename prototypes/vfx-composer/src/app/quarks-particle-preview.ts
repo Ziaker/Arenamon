@@ -6,6 +6,7 @@ import type {ParticleEmitter, SimulationOptions} from '../particles/particles';
 interface Entry {
   system: Quarks.ParticleSystem;
   material: THREE.Material;
+  maxParticles: number;
 }
 
 export interface QuarksPreviewReport {
@@ -14,6 +15,8 @@ export interface QuarksPreviewReport {
   active: number;
   drawCalls: number;
   rebuilds: number;
+  rejected: number;
+  lastAdvanceSteps: number;
   approximations: string[];
 }
 
@@ -30,11 +33,12 @@ const curve = (start: number, end: number): Quarks.PiecewiseBezier =>
   new Quarks.PiecewiseBezier([[new Quarks.Bezier(start, start, end, end), 0]]);
 
 function shape(recipe: QuarksRecipe): Quarks.EmitterShape {
+  const spread = Math.max(0.0001, Math.min(Math.PI * 2, recipe.spreadRadians));
   switch (recipe.shape.kind) {
-    case 'sphere': return new Quarks.SphereEmitter({radius: recipe.shape.radius});
-    case 'ring': return new Quarks.DonutEmitter({radius: recipe.shape.radius, thickness: 0.001, arc: Math.PI * 2});
-    case 'cone': return new Quarks.ConeEmitter({radius: recipe.shape.radius, angle: recipe.shape.angleRadians});
-    default: return new Quarks.PointEmitter();
+    case 'sphere': return new Quarks.SphereEmitter({radius: recipe.shape.radius, arc: spread});
+    case 'ring': return new Quarks.DonutEmitter({radius: recipe.shape.radius, thickness: 0.001, donutRadius: 0.001, arc: spread});
+    case 'cone': return new Quarks.ConeEmitter({radius: recipe.shape.radius, angle: Math.min(Math.PI / 2, Math.max(recipe.shape.angleRadians, spread / 2))});
+    default: return new Quarks.ConeEmitter({radius: 0, angle: Math.min(Math.PI / 2, spread / 2)});
   }
 }
 
@@ -72,13 +76,14 @@ function material(recipe: QuarksRecipe): THREE.MeshBasicMaterial {
     depthTest: true,
     depthWrite: recipe.look.depthWrite,
     blending: recipe.look.blending === 'additive' ? THREE.AdditiveBlending : THREE.NormalBlending,
+    alphaTest: recipe.look.depthWrite ? 0.000001 : 0,
     side: THREE.DoubleSide,
   });
 }
 
 function parameters(recipe: QuarksRecipe, particleMaterial: THREE.Material): Quarks.ParticleSystemParameters {
   const bursts = recipe.emission.mode === 'burst'
-    ? [{time: 0, count: new Quarks.ConstantValue(recipe.emission.count), cycle: Math.floor(recipe.emission.duration / recipe.emission.interval) + 1, interval: recipe.emission.interval, probability: 1}]
+    ? Array.from({length: Math.floor(recipe.emission.duration / recipe.emission.interval) + 1}, (_, index) => ({time: index * recipe.emission.interval, count: new Quarks.ConstantValue(recipe.emission.count), cycle: 1, interval: 0, probability: 1}))
     : [];
   return {
     autoDestroy: false,
@@ -106,6 +111,8 @@ export class QuarksParticlePreview {
   #time = 0;
   #signature = '';
   #rebuilds = 0;
+  #rejected = 0;
+  #lastAdvanceSteps = 0;
   #approximations: string[] = [];
 
   constructor(private readonly scene: THREE.Scene) {
@@ -115,10 +122,16 @@ export class QuarksParticlePreview {
   }
 
   update(emitters: readonly ParticleEmitter[], time: number, options: SimulationOptions = {}): QuarksPreviewReport {
-    const recipes = emitters.filter(candidate => candidate.enabled).map(candidate => toQuarksRecipe(candidate, options));
-    const signature = JSON.stringify(recipes);
+    const recipes: QuarksRecipe[] = [];
+    let rejected = 0;
+    for (const candidate of emitters) {
+      if (!candidate?.enabled) continue;
+      try { recipes.push(toQuarksRecipe(candidate, options)); }
+      catch { rejected++; }
+    }
+    const signature = JSON.stringify({recipes, rejected});
     const safeTime = Number.isFinite(time) ? Math.max(0, time) : 0;
-    if (signature !== this.#signature || safeTime + 1e-9 < this.#time) this.#rebuild(recipes, safeTime, signature);
+    if (signature !== this.#signature || safeTime + 1e-9 < this.#time) this.#rebuild(recipes, safeTime, signature, rejected);
     else if (safeTime > this.#time) this.#advance(safeTime - this.#time);
     this.#time = safeTime;
     return this.report;
@@ -127,7 +140,8 @@ export class QuarksParticlePreview {
   get report(): QuarksPreviewReport {
     let active = 0;
     for (const entry of this.#entries.values()) active += entry.system.particleNum;
-    return {backend: 'quarks', systems: this.#entries.size, active, drawCalls: this.#entries.size, rebuilds: this.#rebuilds, approximations: [...this.#approximations]};
+    const drawCalls = this.#renderer.batches.filter(batch => batch.systems.size > 0).length;
+    return {backend: 'quarks', systems: this.#entries.size, active, drawCalls, rebuilds: this.#rebuilds, rejected: this.#rejected, lastAdvanceSteps: this.#lastAdvanceSteps, approximations: [...this.#approximations]};
   }
 
   reset(): void {
@@ -135,6 +149,8 @@ export class QuarksParticlePreview {
     this.#time = 0;
     this.#signature = '';
     this.#rebuilds = 0;
+    this.#rejected = 0;
+    this.#lastAdvanceSteps = 0;
     this.#approximations = [];
   }
 
@@ -143,9 +159,10 @@ export class QuarksParticlePreview {
     this.group.removeFromParent();
   }
 
-  #rebuild(recipes: QuarksRecipe[], time: number, signature: string): void {
+  #rebuild(recipes: QuarksRecipe[], time: number, signature: string, rejected: number): void {
     this.#clear();
     this.#signature = signature;
+    this.#rejected = rejected;
     this.#approximations = [...new Set(recipes.flatMap(recipe => recipe.approximations))];
     for (const recipe of recipes) {
       const particleMaterial = material(recipe);
@@ -153,7 +170,9 @@ export class QuarksParticlePreview {
       system.emitter.position.set(...recipe.origin);
       this.group.add(system.emitter);
       this.#renderer.addSystem(system);
-      this.#entries.set(recipe.id, {system, material: particleMaterial});
+      const batchIndex = this.#renderer.systemToBatchIndex.get(system);
+      if (batchIndex !== undefined) (this.#renderer.batches[batchIndex].material as THREE.Material).depthWrite = recipe.look.depthWrite;
+      this.#entries.set(recipe.id, {system, material: particleMaterial, maxParticles: recipe.maxParticles});
     }
     this.#rebuilds++;
     this.#advance(time);
@@ -161,10 +180,21 @@ export class QuarksParticlePreview {
 
   #advance(delta: number): void {
     let remaining = Math.max(0, delta);
+    const steps = Math.min(120, Math.max(0, Math.ceil(remaining * 30)));
+    this.#lastAdvanceSteps = steps;
+    if (steps === 0) return;
+    const step = remaining / steps;
+    let completed = 0;
     while (remaining > 0) {
-      const step = Math.min(1 / 30, remaining);
-      this.#renderer.update(step);
-      remaining -= step;
+      const current = completed === steps - 1 ? remaining : step;
+      for (const entry of this.#entries.values()) {
+        (entry.system as unknown as {update(delta: number): void}).update(current);
+        if (entry.system.particleNum > entry.maxParticles) entry.system.particleNum = entry.maxParticles;
+      }
+      for (const batch of this.#renderer.batches) batch.update();
+      remaining -= current;
+      completed++;
+      if (completed >= steps) break;
     }
   }
 

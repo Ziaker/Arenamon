@@ -26,6 +26,16 @@ try {
   assert.equal(await page.evaluate(() => window.__ARENAMON_VFX_COMPOSER__.quarksTelemetry.drawCalls), 1);
   assert.match(await page.locator('#particle-telemetry').innerText(), /Quarks/);
 
+  await page.fill('#emitter-life-min', '2'); await page.dispatchEvent('#emitter-life-min', 'input');
+  await page.fill('#emitter-life-max', '1'); await page.dispatchEvent('#emitter-life-max', 'input');
+  await page.waitForFunction(() => window.__ARENAMON_VFX_COMPOSER__.quarksTelemetry.rejected === 1);
+  await page.waitForFunction(() => document.querySelector('#particle-telemetry')?.textContent?.includes('rejeitado'));
+  assert.match(await page.locator('#particle-telemetry').innerText(), /rejeitado/);
+  assert.equal(await page.evaluate(() => window.__ARENAMON_VFX_COMPOSER__.ready), true, 'draft inválido não pode encerrar o loop');
+  await page.fill('#emitter-life-min', '0.35'); await page.dispatchEvent('#emitter-life-min', 'input');
+  await page.fill('#emitter-life-max', '0.7'); await page.dispatchEvent('#emitter-life-max', 'input');
+  await page.waitForFunction(() => window.__ARENAMON_VFX_COMPOSER__.quarksTelemetry.rejected === 0);
+
   const projectBefore = await page.evaluate(() => JSON.stringify(window.__ARENAMON_VFX_COMPOSER__.project));
   await page.selectOption('#particle-preview-backend', 'compare');
   assert.deepEqual(await page.evaluate(() => window.__ARENAMON_VFX_COMPOSER__.previewVisibility), {authoring: true, quarks: true});

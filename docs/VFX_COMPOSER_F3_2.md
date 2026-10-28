@@ -12,6 +12,8 @@
 - No modo A/B, as prévias ficam lado a lado; a telemetria identifica sistemas, partículas, draw calls e aproximações.
 - Perfil low/medium/high, Reduce motion e No flash são aplicados antes da materialização Quarks.
 - Rewind reconstrói o sistema; troca de backend, remoção e descarte liberam sistemas, batches e materiais.
+- Bursts periódicos são materializados individualmente, `maxParticles` é imposto no sistema real e scrub longo usa no máximo 120 passos síncronos por rebuild.
+- Draft inválido não encerra o loop: o emissor é rejeitado antes do Quarks e a telemetria informa a rejeição.
 - A escolha de preview é apenas de interface e não entra no `VfxProject` nem no autosave.
 
 ## Como abrir
@@ -22,6 +24,7 @@ Abra `ABRIR_ARENAMON.html` e escolha **VFX Composer · F3.2**. Na aba **Partícu
 
 - `npm run test:vfx-composer:f3:quarks`: conversão pura, formas, emissão, qualidade, acessibilidade e entrada inválida.
 - `npm run test:vfx-composer:f3:quarks:adapter`: biblioteca real, avanço, rewind, remoção e dispose.
+- O mesmo teste cobre bursts repetidos, teto real, `depthWrite` no batch, abertura mapeada, draft inválido e horizonte de passos.
 - `npm run test:vfx-composer:f3:quarks:browser`: HTML offline, três modos, não persistência da preferência e alternância sem acúmulo de geometria.
 - `npm run test:vfx-composer:f3:browser`: regressão de determinismo, orçamento e acessibilidade da F3.1.
 
