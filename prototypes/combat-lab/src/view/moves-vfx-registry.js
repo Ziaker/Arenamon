@@ -42,6 +42,8 @@ export class MovesVfxRegistry {
     this.activeInstances = new Map();
     /** @type {Array<{module: MoveVfxModule, rush: any, action: any}>} */
     this.rushes = [];
+    /** Eventos já entregues à instância pela transição de morte (sync): onEvent não os entrega de novo. */
+    this.delivered = new WeakSet();
     // Pilotos migrados registrados:
     this.register('sand-wave', sandWaveVfx);
     this.register('bullet-punch', bulletPunchVfx);
@@ -114,8 +116,10 @@ export class MovesVfxRegistry {
    * @param {number} dt
    * @param {any} fxAcc acessibilidade (noFlash, reduceMotion)
    * @param {any[]} fighters
+   * @param {any[]} [events] eventos do quadro: os da entidade que acabou de sair do mundo são entregues ANTES de onDeath (a simulação remove a
+   *   entidade morta no mesmo passo do contato; sem isto o splash começaria sem o ponto do contato e o evento chegaria tarde)
    */
-  sync(entities, dt, fxAcc, fighters) {
+  sync(entities, dt, fxAcc, fighters, events = []) {
     // Sincroniza ações de rush dos lutadores (Bullet Punch)
     if (fighters && fighters.length > 0) {
       this.rushes ??= [];
@@ -191,6 +195,11 @@ export class MovesVfxRegistry {
     for (const [id, inst] of this.activeInstances) {
       if (!currentAliveIds.has(id)) {
         if (!inst.dying) {
+          if (inst.module.onEvent) for (const ev of events ?? []) {
+            if (ev?.entity !== id || this.delivered.has(ev)) continue;
+            this.delivered.add(ev);
+            inst.module.onEvent(this.view, ev, inst.state);
+          }
           inst.dying = true;
           inst.age = 0;
           if (inst.module.onDeath) {
@@ -224,7 +233,7 @@ export class MovesVfxRegistry {
   onEvent(ev) {
     if (!ev) return;
     // 1. Despacho direto para a entidade associada ao evento
-    if (ev.entity != null) {
+    if (ev.entity != null && !this.delivered.has(ev)) {
       const inst = this.activeInstances.get(ev.entity);
       if (inst && inst.module.onEvent) {
         inst.module.onEvent(this.view, ev, inst.state);

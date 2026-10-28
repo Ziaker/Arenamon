@@ -20,6 +20,8 @@ import {pushAccelNow, pushDurationModeOf, pushWindowState} from './moves/sand-wa
 const SQ2 = Math.SQRT2;
 /** @type {WeakMap<object, {at: number, sig: string, field: any}>} */
 const FIELDS = new WeakMap();
+/** F5 (só leitura, para o VFX): campo de distâncias em cache da onda ({minX, minZ, nx, nz, cs, dist, blocked}) ou null se ainda não calculado. */
+export const sandFieldOf = (/** @type {any} */ e) => FIELDS.get(e)?.field ?? null;
 /** Retângulo → coordenadas locais (u à frente, v lateral) de um ponto. */
 const localOf = (/** @type {any} */ e, /** @type {{x: number, z: number}} */ p) => {
   const d = e.dir, dx = p.x - e.pos.x, dz = p.z - e.pos.z;

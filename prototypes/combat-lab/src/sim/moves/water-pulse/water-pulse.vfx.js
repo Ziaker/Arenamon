@@ -209,8 +209,10 @@ export function updateDying(view, e, state, dt, acc) {
 function startSplash(state, ev) {
   if (state.visualDying) return;
   state.visualDying = true;
-  // Altura só quando o evento a traz de fato (a `position` canônica completa y ausente com 0, o que poria o splash no chão).
-  if (Number.isFinite(ev?.x) && Number.isFinite(ev?.z)) state.preview.root.position.set(ev.x, Number.isFinite(ev.y) ? ev.y : state.preview.root.position.y, ev.z);
+  // Ponto do contato: `contactPoint` (acerto em lutador) ou x/y/z do evento (chão, arena, obstáculo, plataforma, destrutível, barreira…). Altura só
+  // quando o evento a traz de fato (a `position` canônica completa y ausente com 0, o que poria o splash no chão).
+  const c = ev?.contactPoint ?? ev;
+  if (Number.isFinite(c?.x) && Number.isFinite(c?.z)) {state.preview.root.position.set(c.x, Number.isFinite(c.y) ? c.y : state.preview.root.position.y, c.z);state.splashAt = {x: c.x, z: c.z, result: ev.result};}
   state.preview.contact();
   if (state.preview?.core) state.preview.core.visible = false;
 }

@@ -16,9 +16,11 @@ const outDir = path.resolve('docs/overhaul-pilotos');
 // só se comparam os campos que o baseline já tinha (a mecânica — damage, HP, posições — segue exigida 100% igual).
 // F3.2: o ReactionResolver acrescenta displacementPolicy ('impulse' | 'displacement' | 'none' | 'force') — também só diagnóstico.
 // F3.4: o CombatEvent normalizado acrescenta os campos canônicos (eventId, outcome, attackerId, targetId, indirectAttackerId, position, normal) — cópias dos legados.
-// F5: o contato do Sand Wave passa a levar o ponto (x/z do alvo no contato) para o VFX nascer nele — também só diagnóstico; quem já tinha x/z no baseline segue comparado.
-const F3_FIELDS = ['rawDamage', 'hpDamage', 'shieldAbsorbed', 'sourceKind', 'displacementPolicy', 'eventId', 'outcome', 'attackerId', 'targetId', 'indirectAttackerId', 'position', 'normal', 'x', 'z'];
-const legacyView = (evs, base) => evs.map((e, i) => {const o = {...e};for (const k of F3_FIELDS) if (!(base[i] && k in base[i])) delete o[k];return o;});
+const F3_FIELDS = ['rawDamage', 'hpDamage', 'shieldAbsorbed', 'sourceKind', 'displacementPolicy', 'eventId', 'outcome', 'attackerId', 'targetId', 'indirectAttackerId', 'position', 'normal'];
+// F5: pontos de contato novos, SÓ nos pilotos que os ganharam — Sand Wave (x/z do alvo no contato) e Water Pulse (x/y/z nos contatos com mapa/arena
+// e `contactPoint` no acerto em lutador). Só diagnóstico do VFX; o Bullet Punch segue comparado inteiro.
+const F5_SAND = ['x', 'z'], F5_WATER = ['x', 'y', 'z', 'contactPoint'];
+const legacyView = (evs, base, extra = []) => evs.map((e, i) => {const o = {...e};for (const k of [...F3_FIELDS, ...extra]) if (!(base[i] && k in base[i])) delete o[k];return o;});
 
 console.log('\n--- PARIDADE DETERMINÍSTICA DOS 3 PILOTOS (DOC 02) ---');
 
@@ -41,7 +43,7 @@ console.log('\n--- PARIDADE DETERMINÍSTICA DOS 3 PILOTOS (DOC 02) ---');
     targetStatuses: g.fighters[1].statuses?.map(s => ({id: s.id, duration: s.duration})) ?? []
   };
 
-  assert.deepEqual(legacyView(events, baseline.events), baseline.events, 'Sand Wave: eventos divergentes do baseline');
+  assert.deepEqual(legacyView(events, baseline.events, F5_SAND), baseline.events, 'Sand Wave: eventos divergentes do baseline');
   assert.deepEqual(finalState, baseline.finalState, 'Sand Wave: estado final divergente do baseline');
   console.log('  ✓ Sand Wave: 100% de paridade determinística com baseline');
 }
@@ -98,7 +100,7 @@ console.log('\n--- PARIDADE DETERMINÍSTICA DOS 3 PILOTOS (DOC 02) ---');
       attackerStamina: g.fighters[0].stamina,
       targetPosition: {x: g.fighters[1].position.x, z: g.fighters[1].position.z}
     };
-    assert.deepEqual(legacyView(events, baseline.levels[key].events), baseline.levels[key].events, `Water Pulse ${key}: eventos divergentes do baseline`);
+    assert.deepEqual(legacyView(events, baseline.levels[key].events, F5_WATER), baseline.levels[key].events, `Water Pulse ${key}: eventos divergentes do baseline`);
     assert.equal(finalState.targetHp, baseline.levels[key].targetHp, `Water Pulse ${key}: targetHp divergente`);
     assert.equal(finalState.attackerStamina, baseline.levels[key].attackerStamina, `Water Pulse ${key}: attackerStamina divergente`);
     assert.deepEqual(finalState.targetPosition, baseline.levels[key].targetPosition, `Water Pulse ${key}: targetPosition divergente`);

@@ -15,12 +15,49 @@ import {defaults} from '../../../../../sand-stone-lab/src/config.ts';
 import {disposeGroup} from '../../../../../sand-stone-lab/src/art.js';
 import {ATELIER_GAME_PARAMS, ATELIER_GAME_VARIANT} from '../../../view/quarks/atelier-game-params.js';
 import {C} from '../../config.js';
-import {sandFrontAt} from '../../sand.js';
+import {sandFrontAt, sandFieldOf} from '../../sand.js';
 import {parentPointToLocal, parentDirToLocal} from '../../../view/quarks/coords.js';
 
 export const id = 'sand-wave';
 /** Altura (m) do jato de poeira acima do chão da onda no ponto de contato (canela do alvo). */
 export const CONTACT_Y = 0.35;
+
+/**
+ * Alcance LIVRE (m) ao longo do eixo da onda pelo campo de distâncias da simulação (sand.js, recalculado com obstáculos móveis): marcha a linha
+ * central em passos de ¼ de célula e para na primeira célula bloqueada/inalcançável (Infinity) ou que a frente só alcança contornando
+ * (distância de caminho bem maior que a reta: `dist − u > 1,5·célula + 9 %·u`, folga da grade octal). Sem obstáculo no eixo devolve `length`
+ * (nenhum corte: o desenho fica idêntico). Sem campo (ainda não calculado) devolve `length`.
+ * @param {any} e entidade sandwave @param {any} [field] @returns {number}
+ */
+export function freeReachOf(e, field = sandFieldOf(e)) {
+  const len = e.length ?? 4;
+  if (!field || !e?.pos || !e?.dir) return len;
+  const {minX, minZ, nx, nz, cs, dist} = field, ds = cs / 4;
+  for (let u = 0; u <= len + 1e-9; u += ds) {
+    const x = e.pos.x + e.dir.x * u, z = e.pos.z + e.dir.z * u;
+    const ix = Math.floor((x - minX) / cs), iz = Math.floor((z - minZ) / cs);
+    if (ix < 0 || iz < 0 || ix >= nx || iz >= nz) return Math.min(len, u);
+    const d = dist[iz * nx + ix];
+    if (!Number.isFinite(d) || d - u > 1.5 * cs + .09 * u) return Math.min(len, u);
+  }
+  return len;
+}
+
+/** Corta o desenho da onda no alcance livre: frentes, jatos de poeira/grão e o impacto final não passam de `reach` (eixo local z: −len/2 … +len/2). @param {any} state @param {number} reach */
+function clipToReach(state, reach) {
+  const fx = state.fx, half = state.len / 2, maxZ = -half + reach;
+  let drawn = 0;
+  for (const {head} of fx.fronts ?? []) if (head.visible) drawn = Math.max(drawn, head.position.z + half);
+  state.drawnLength = Math.min(state.len, Math.max(0, drawn));
+  if (reach < state.len - 1e-9) {
+    for (const {head} of fx.fronts ?? []) if (head.position.z > maxZ) head.position.z = maxZ;
+    for (const {dust, grain} of fx.streams ?? []) {if (dust?.emitter && dust.emitter.position.z > maxZ) dust.emitter.position.z = maxZ;if (grain?.emitter && grain.emitter.position.z > maxZ) grain.emitter.position.z = maxZ;}
+    for (const sh of fx.shocks ?? []) sh.position.z = maxZ;
+    if (fx.rubble) fx.rubble.position.z = maxZ;
+  } else if (fx.rubble) fx.rubble.position.z = half;   // obstáculo móvel saiu do eixo: o impacto volta ao fim do retângulo
+
+  state.visibleLength = Math.min(state.drawnLength, reach);
+}
 
 /**
  * Idade VISUAL (s) da onda viva, pela frente física: o tempo em que uma frente linear (length ÷ active) chegaria à distância que a simulação
@@ -122,6 +159,10 @@ export function spawn(view, e, acc) {
     pos: e.pos,
     y: e.y ?? 0,
     front: 0,
+    entity: e,
+    reach: len,
+    drawnLength: 0,
+    visibleLength: 0,
     dying: false
   };
 }
@@ -144,6 +185,9 @@ export function update(view, e, state, dt, acc) {
   const t = Math.min(total, state.start + state.age);
 
   state.fx.update(state.clock ? state.clock.map(t) : t, dt);
+  // F5: a frente visual não atravessa obstáculos — corta no alcance livre do campo de distâncias da simulação (rota física).
+  state.reach = freeReachOf(e ?? state.entity);
+  clipToReach(state, state.reach);
   state.particles.update(dt);
 }
 

@@ -171,7 +171,7 @@ update(world, {fighters = [], events = [], dt = 0, skipBeams = false, camera = n
 
     // Efeitos elementais em three.quarks: cria/atualiza os que seguem entidades e mantém o contato delas.
     if (this.movesVfx) {
-      this.movesVfx.sync(world?.entities ?? [], dt, fxAcc, fighters);
+      this.movesVfx.sync(world?.entities ?? [], dt, fxAcc, fighters, events);   // F5: os eventos do quadro chegam ANTES da transição de morte (ponto do contato)
     }
     const unmigrated = this.movesVfx ? this.movesVfx.filterUnmigrated(world?.entities ?? []) : (world?.entities ?? []);
     this.elementalFx.sync(unmigrated, dt, fxAcc);

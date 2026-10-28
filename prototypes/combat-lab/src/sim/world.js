@@ -151,8 +151,8 @@ function snapToFirstContact(game, p, from) {
   const travel = length(p.vel) * dt, steps = Math.max(1, Math.ceil(travel / C.test.contactStep));
   if (p.gravity) p.vy = (p.vy ?? 0) - p.gravity * dt;
   for (let s = 0; s < steps && !p.dead; s++) {
-    const from = {...p.pos};p.pos = add(p.pos, scale(p.vel, dt / steps));if (p.gravity) {p.y = Math.max(0, p.y + (p.vy ?? 0) * dt / steps);if (p.y <= 0 && p.vy < 0) {p.dead = true;events.push({result: 'groundHit', attacker: p.owner ?? null, target: null, damage: 0, entity: p.id, kind: 'projectile'});if (p.onHit) spawnLater.push(at({...p.onHit, groundHit: true}, p));return;}}
-    if (!p.gravity && p.vy) {p.y += p.vy * dt / steps;if (p.y <= 0 && p.vy < 0) {p.dead = true;events.push({result: 'groundHit', attacker: p.owner ?? null, target: null, damage: 0, entity: p.id, kind: 'projectile'});return;}}   // voo inclinado sem gravidade (pedras com alvo travado)
+    const from = {...p.pos};p.pos = add(p.pos, scale(p.vel, dt / steps));if (p.gravity) {p.y = Math.max(0, p.y + (p.vy ?? 0) * dt / steps);if (p.y <= 0 && p.vy < 0) {p.dead = true;events.push({result: 'groundHit', attacker: p.owner ?? null, target: null, damage: 0, entity: p.id, kind: 'projectile', x: p.pos.x, y: p.y, z: p.pos.z});if (p.onHit) spawnLater.push(at({...p.onHit, groundHit: true}, p));return;}}
+    if (!p.gravity && p.vy) {p.y += p.vy * dt / steps;if (p.y <= 0 && p.vy < 0) {p.dead = true;events.push({result: 'groundHit', attacker: p.owner ?? null, target: null, damage: 0, entity: p.id, kind: 'projectile', x: p.pos.x, y: p.y, z: p.pos.z});return;}}   // voo inclinado sem gravidade (pedras com alvo travado)
     legStart = null;
     // Bloqueador ANTES do refletor no caminho (por tempo de impacto): o projétil para nele e nunca chega a refletir. Empate: o refletor vale primeiro.
     const early = blockerContact(game, p, from, p.pos), reach = {...p.pos};
@@ -166,7 +166,7 @@ function snapToFirstContact(game, p, from) {
     const half = C.test.arenaHalf;
     if (C.map?.arenaShape === 'square' && (Math.abs(p.pos.x) > half || Math.abs(p.pos.z) > half)) {
       p.dead = true;
-      events.push({result: 'arenaHit', attacker: p.owner ?? null, target: null, damage: 0, entity: p.id, kind: 'projectile'});
+      events.push({result: 'arenaHit', attacker: p.owner ?? null, target: null, damage: 0, entity: p.id, kind: 'projectile', x: p.pos.x, y: p.y, z: p.pos.z});
       if (p.onHit) spawnLater.push(at(p.onHit, p));
       return;
     }
@@ -186,7 +186,7 @@ function snapToFirstContact(game, p, from) {
           events.push({result: 'arenaBounce', attacker: p.owner ?? null, target: null, damage: 0, entity: p.id, kind: 'projectile'});
         } else {
           p.dead = true;
-          events.push({result: 'arenaHit', attacker: p.owner ?? null, target: null, damage: 0, entity: p.id, kind: 'projectile'});
+          events.push({result: 'arenaHit', attacker: p.owner ?? null, target: null, damage: 0, entity: p.id, kind: 'projectile', x: p.pos.x, y: p.y, z: p.pos.z});
           if (p.onHit) spawnLater.push(at(p.onHit, p));
           return;
         }
@@ -203,7 +203,7 @@ function snapToFirstContact(game, p, from) {
         const d = box.ref;
         if (!vOverlap(p.y - p.radius, p.y + p.radius, box.y0, box.y1) || !circleTouches(box, p.pos, p.radius)) continue;
         damageDestructible(d, p.hit?.damage ?? 10, 'projectile', p.owner != null ? game.fighters[p.owner] : null, game.mapState, events);
-        events.push({result: 'destructibleHit', attacker: p.owner ?? null, target: d.id, damage: p.hit?.damage ?? 10, entity: p.id, kind: 'projectile'});
+        events.push({result: 'destructibleHit', attacker: p.owner ?? null, target: d.id, damage: p.hit?.damage ?? 10, entity: p.id, kind: 'projectile', x: p.pos.x, y: p.y, z: p.pos.z});
         p.dead = true;
         if (p.onHit) spawnLater.push(at(p.onHit, p));
         return;
@@ -212,7 +212,7 @@ function snapToFirstContact(game, p, from) {
         if (obsShape.kind !== 'obstacle') continue;
         const o = obsShape.ref;
         if (!vOverlap(p.y - p.radius, p.y + p.radius, obsShape.y0, obsShape.y1) || !circleTouches(obsShape, p.pos, p.radius)) continue;
-        events.push({result: 'obstacleHit', attacker: p.owner ?? null, target: o.id, damage: 0, entity: p.id, kind: 'projectile'});
+        events.push({result: 'obstacleHit', attacker: p.owner ?? null, target: o.id, damage: 0, entity: p.id, kind: 'projectile', x: p.pos.x, y: p.y, z: p.pos.z});
         p.dead = true;
         if (p.onHit) spawnLater.push(at(p.onHit, p));
         return;
@@ -221,7 +221,7 @@ function snapToFirstContact(game, p, from) {
         if (pBox.kind !== 'platform') continue;
         const plat = pBox.ref;
         if (!vOverlap(p.y - p.radius, p.y + p.radius, pBox.y0, pBox.y1) || !circleTouches(pBox, p.pos, p.radius)) continue;
-        events.push({result: 'platformHit', attacker: p.owner ?? null, target: plat.id, damage: 0, entity: p.id, kind: 'projectile'});
+        events.push({result: 'platformHit', attacker: p.owner ?? null, target: plat.id, damage: 0, entity: p.id, kind: 'projectile', x: p.pos.x, y: p.y, z: p.pos.z});
         p.dead = true;
         const onTop = (p.vy ?? 0) < 0 && p.y - p.radius >= plat.height - .35;   // caiu em cima da plataforma = pouso no chão (Seed Bomb mostra também o efeito provisório)
         if (p.onHit) spawnLater.push(at(onTop ? {...p.onHit, groundHit: true} : p.onHit, p));
@@ -249,12 +249,12 @@ function snapToFirstContact(game, p, from) {
       const alt = altOf(f), box = {shape: 'box', pos: f.position, hx: C.test.halfExtent, hz: C.test.halfExtent, angle: 0};
       if (!vOverlap(p.y - p.radius, p.y + p.radius, alt, alt + fighterHeight()) || !(circleTouches(box, p.pos, p.radius) || sweepRoundedBox(box, leg, p.pos, p.radius))) continue;
       if (p.clashable && f.action?.kind === 'tackle' && !f.action.neutralized && !isInvulnerable(f) && tackleDispute(p, f, events)) return;   // disputa de PL contra o Tackle em curso
-      if (p.detonateOnly) {p.dead = true;events.push({result: 'detonate', attacker: p.owner ?? null, target: f.id, damage: 0, entity: p.id, kind: 'projectile'});if (p.onHit) spawnLater.push(at(p.onHit, p));return;}   // projétil explosivo (M22.7): o contato só detona; quem causa dano é a explosão, uma vez
+      if (p.detonateOnly) {p.dead = true;events.push({result: 'detonate', attacker: p.owner ?? null, target: f.id, damage: 0, entity: p.id, kind: 'projectile', x: p.pos.x, y: p.y, z: p.pos.z});if (p.onHit) spawnLater.push(at(p.onHit, p));return;}   // projétil explosivo (M22.7): o contato só detona; quem causa dano é a explosão, uma vez
       p.hitLog.push(f.id);
       const hit = p.exec != null ? execHit(game.world, p, f) : (p.hit || {});
       const ev = applyHit(game, p.owner, f, hit, normalize(p.vel), {entity: p.id, origin: sub(f.position, scale(normalize(p.vel), 1)), pl: p.pl, contact: 'projectile', move: p.captured?.move});
       if (p.exec != null) execRecord(game.world, p, f, ev, hit);
-      if (ev) events.push(ev);
+      if (ev) {/** @type {any} */ (ev).contactPoint = {x: p.pos.x, y: p.y, z: p.pos.z};events.push(ev);}   // F5: ponto do contato do projétil (só para o VFX do Move; não vira `position`, que moveria as faíscas de todos os golpes)
       if (ev && p.counterWon && p.defeated?.includes(f.id) && (ev.result === 'impact' || ev.result === 'partial')) applyCounterStagger(f, p.captured?.counterStagger ?? 0, events, p.owner ?? null);
       const pierceCount = p.pierce ?? p.pierceCount ?? 1;
       if (p.hitLog.length >= pierceCount || ev?.result === 'perfect') {p.dead = true;if (p.onHit) spawnLater.push(at(p.onHit, p));return;}
@@ -424,7 +424,7 @@ function reflectPass(game, p, from, events) {
     if ((p.pl ?? 1) > (bar.pl ?? 1)) {
       bar.dead = true;p.dead = true;
       events.push({result: 'barrierBroken', attacker: p.owner ?? null, target: bar.owner ?? null, damage: 0, entity: bar.id, kind: 'barrier', by: 'pl'});
-      events.push({result: 'neutralized', attacker: p.owner ?? null, target: bar.owner ?? null, damage: 0, entity: p.id, by: bar.id, kind: 'projectile'});
+      events.push({result: 'neutralized', attacker: p.owner ?? null, target: bar.owner ?? null, damage: 0, entity: p.id, by: bar.id, kind: 'projectile', x: p.pos.x, y: p.y, z: p.pos.z});
       return false;
     }
     if (p.reflectTick !== game.tick) {p.reflectTick = game.tick;p.reflectCount = 0;}

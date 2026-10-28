@@ -27,6 +27,8 @@ const {migrateFlat} = await import('../src/ui/actions-meta.js');
 const {migrateLegacyPreset} = await import('../src/sim/presets.js');
 const {editableMove} = await import('../src/editor/editable-moves.js');
 const {arena, cmd, vec, secs, HOLD, C, resetConfig, factoryDefaults} = await import('./moves-new-helpers.mjs');
+const {spawn} = await import('../src/sim/world.js');
+const {sandFieldOf} = await import('../src/sim/sand.js');
 
 const close = (/** @type {any} */ a, /** @type {any} */ b, eps = 1e-6) => Math.abs(a.x - b.x) < eps && Math.abs(a.y - b.y) < eps && Math.abs(a.z - b.z) < eps;
 const fmt = (/** @type {any} */ v) => `(${v.x.toFixed(8)}, ${v.y.toFixed(8)}, ${v.z.toFixed(8)})`;
@@ -238,4 +240,126 @@ test('Water Pulse: contato terminal = dying visual no ponto do contato; morte f�
   assert.ok(emitters.every((/** @type {any} */ m) => !m.parent), 'emissores fora da cena');
   assert.equal(emptyBatches(view.elementalFx.batch), 0, 'nenhum lote vazio do three.quarks sobra');
   assert.ok(!st.preview.root.parent, 'raiz removida');
+});
+
+// ---------- Revisão da Task 13 (rodada 1) ----------
+
+/** Sand Wave real (Game) desenhado pelo registro a cada passo; devolve o histórico do comprimento visível/desenhado e o campo físico. */
+function sandRun(/** @type {any[]} */ obstacles) {
+  const g = arena({equip: ['sand-wave'], positions: [vec(0, -4), vec(6, 6)]});
+  g.mapState.obstacles = obstacles;
+  const view = {group: new T.Group()}, reg = new MovesVfxRegistry(view), hist = /** @type {any[]} */ ([]);
+  let wave = null;
+  g.step(cmd({skill: 0, skillHeld: HOLD(0)}), cmd());
+  for (let i = 1; i < secs(1.6); i++) {
+    g.step(cmd(), cmd());
+    wave ??= g.world.entities.find((/** @type {any} */ e) => e.kind === 'sandwave') ?? null;
+    reg.sync(g.world.entities, 1 / 120, {}, g.fighters, g.lastStepEvents);
+    const st = wave ? reg.activeInstances.get(wave.id)?.state : null;
+    if (st) hist.push({reach: st.reach, drawn: st.drawnLength, visible: st.visibleLength, front: st.front});
+  }
+  return {wave, field: wave ? sandFieldOf(wave) : null, hist, reg};
+}
+
+test('Sand Wave: a frente visual para no obstáculo do caminho (rota física do campo de distâncias), dentro de uma célula', () => {
+  try {
+    // Caixa atravessando o eixo da onda (origem z = −4, eixo +z): face próxima em z = −2 → 2 m de caminho livre
+    const {wave, field, hist, reg} = sandRun([{id: 'ob', shape: 'box', pos: {x: 0, y: 0, z: -1.5}, hx: 2, hz: .5, radius: 2, height: 2, angle: 0}]);
+    assert.ok(wave && field, 'onda e campo físico calculados');
+    const reach = hist.at(-1).reach, cs = field.cs;
+    assert.ok(Math.abs(reach - 2) <= cs + .02, `alcance livre ${reach} ≈ 2 m (face do obstáculo), célula ${cs}`);
+    assert.ok(hist.every(h => h.visible <= h.reach + 1e-9), 'o desenho nunca passa do alcance livre');
+    assert.ok(hist.some(h => h.drawn > h.reach + cs), 'sem o corte o desenho atravessaria o obstáculo (o corte agiu)');
+    const at = (/** @type {number} */ u) => {const x = wave.pos.x + wave.dir.x * u, z = wave.pos.z + wave.dir.z * u;return field.dist[Math.floor((z - field.minZ) / cs) * field.nx + Math.floor((x - field.minX) / cs)];};
+    assert.ok(Number.isFinite(at(reach - cs)), 'antes do corte: alcançável em linha');
+    assert.ok(!Number.isFinite(at(reach + cs / 4)) || at(reach + cs / 4) - reach > 1.5 * cs, 'no corte: bloqueado ou só contornando');
+    reg.disposeAll();
+  } finally {resetConfig(factoryDefaults());}
+});
+
+test('Sand Wave: sem obstáculo o corte não age — comprimento visível idêntico ao desenhado em todos os quadros', () => {
+  try {
+    const {hist, wave, reg} = sandRun([]);
+    assert.ok(hist.length > 100);
+    assert.ok(hist.every(h => h.reach === wave.length), 'alcance livre = comprimento inteiro');
+    assert.ok(hist.every(h => h.visible === h.drawn), 'quadro a quadro igual ao desenho sem corte');
+    reg.disposeAll();
+  } finally {resetConfig(factoryDefaults());}
+});
+
+/**
+ * Water Pulse numa luta real, com a ORDEM do jogo (wv-update.js): a simulação remove a entidade morta no mesmo passo do contato; o desenho
+ * chama sync(entidades, …, eventos) e só depois onEvent de cada evento.
+ */
+function waterRun({setup = /** @type {(g: any) => void} */ (() => {}), every = /** @type {(g: any) => void} */ (() => {}), red = vec(0, 1), hold = 10, redCmd = /** @type {any} */ ({})} = {}) {
+  const g = arena({equip: ['water-pulse'], positions: [vec(0, -4), red]});
+  setup(g);
+  const view = waterView(), reg = new MovesVfxRegistry(view);
+  /** @type {any} */ let st = null;
+  let systems = /** @type {any[]} */ ([]), terminal = /** @type {any} */ (null), reflected = /** @type {any} */ (null), followedAfterReflect = false, finishedAt = /** @type {number | null} */ (null), id = /** @type {any} */ (null);
+  const frame = () => {
+    reg.sync(g.world.entities, 1 / 120, {}, g.fighters, g.lastStepEvents);
+    for (const ev of g.lastStepEvents) reg.onEvent(ev);
+    const proj = g.world.entities.find((/** @type {any} */ e) => e.kind === 'projectile' && e.visual === 'waterorb');
+    if (proj && id == null) {id = proj.id;st = reg.activeInstances.get(id).state;systems = [...st.preview.systems];}
+    if (reflected && proj && !st.visualDying && Math.abs(st.preview.root.position.z - proj.pos.z) < 1e-9 && Math.abs(proj.pos.z - reflected.z) > .2) followedAfterReflect = true;
+  };
+  g.step(cmd({skill: 0, skillHeld: HOLD(0)}), cmd());frame();
+  for (let i = 1; i <= hold; i++) {every(g);g.step(cmd({skillHeld: HOLD(0)}), cmd(redCmd));frame();}
+  for (let i = 0; i < secs(6) && finishedAt == null; i++) {
+    every(g);g.step(cmd(), cmd(redCmd));
+    for (const ev of g.lastStepEvents) if (id != null && ev.entity === id) {
+      if (ev.result === 'reflected') reflected ??= {z: g.world.entities.find((/** @type {any} */ e) => e.id === id)?.pos.z};
+      else if (!g.world.entities.some((/** @type {any} */ e) => e.id === id)) terminal ??= ev;
+    }
+    frame();
+    if (st && id != null && !reg.activeInstances.has(id)) finishedAt = i;
+  }
+  return {g, view, st, systems, terminal, reflected, followedAfterReflect, finishedAt};
+}
+
+/** Checagens comuns: o evento terminal traz o ponto do contato, o splash nasce nele, os emissores saem e nenhum lote vazio sobra. */
+function checkSplash(/** @type {any} */ r, /** @type {string[]} */ results) {
+  assert.ok(r.terminal, 'houve contato terminal');
+  assert.ok(results.includes(r.terminal.result), `resultado ${r.terminal.result}`);
+  const c = r.terminal.contactPoint ?? r.terminal;
+  assert.ok(Number.isFinite(c.x) && Number.isFinite(c.z), `o evento terminal ${r.terminal.result} traz o ponto do contato: ${JSON.stringify(c)}`);
+  assert.deepEqual(r.st.splashAt, {x: c.x, z: c.z, result: r.terminal.result}, 'splash posto no ponto do evento (ordem real: sync → onEvent)');
+  assert.ok(r.finishedAt != null, 'splash encerrado');
+  assert.equal(r.st.preview.systems.length, 0, 'sistemas descartados');
+  assert.ok(r.systems.length > 0 && r.systems.every((/** @type {any} */ s) => !s.emitter.parent), 'emissores fora da cena');
+  assert.equal(emptyBatches(r.view.elementalFx.batch), 0, 'nenhum lote vazio');
+}
+
+/** Faz o vermelho olhar para o azul. @param {any} g */
+const faceBlue = g => {const b = g.fighters[1], a = g.fighters[0];return Math.atan2(a.position.x - b.position.x, a.position.z - b.position.z);};
+
+test('Water Pulse (ordem real): acerto no lutador — splash no ponto do contato do projétil', () => {
+  try {checkSplash(waterRun(), ['impact']);} finally {resetConfig(factoryDefaults());}
+});
+
+test('Water Pulse (ordem real): defesa parcial e perfeita — splash no ponto do contato', () => {
+  try {
+    checkSplash(waterRun({redCmd: {guard: true}, every: g => {const b = g.fighters[1];b.facing = faceBlue(g);b.perfectLeft = 0;}}), ['partial']);
+    checkSplash(waterRun({redCmd: {guard: true}, every: g => {const b = g.fighters[1];b.facing = faceBlue(g);b.perfectLeft = 1;}}), ['perfect']);
+  } finally {resetConfig(factoryDefaults());}
+});
+
+test('Water Pulse (ordem real): obstáculo e plataforma no caminho — splash no ponto do contato', () => {
+  try {
+    checkSplash(waterRun({setup: g => {g.mapState.obstacles = [{id: 'ob', shape: 'box', pos: {x: 0, y: 0, z: -1.5}, hx: 2, hz: .4, radius: 2, height: 3, angle: 0}];}}), ['obstacleHit']);
+    checkSplash(waterRun({setup: g => {g.mapState.platforms = [{id: 'pl', pos: {x: 0, y: 0, z: -1.5}, width: 4, depth: .8, height: 3}];}}), ['platformHit']);
+  } finally {resetConfig(factoryDefaults());}
+});
+
+test('Water Pulse (ordem real): escudo — reflexão mantém o voo e o contato final tem splash no ponto; bloqueio e neutralização também', () => {
+  try {
+    const barrier = (/** @type {any} */ over) => (/** @type {any} */ g) => {spawn(g.world, {kind: 'barrier', owner: 1, shape: 'box', pos: {x: 0, z: -.5}, angle: Math.PI, hx: 3, hz: .05, y: 0, height: 3, life: 30, hp: Infinity, blocksProjectiles: true, blocksFighters: true, blocksOwner: true, reflect: true, shields: true, pl: 3, captured: {maxReflections: 16}, ...over}, []);};
+    const refl = waterRun({setup: barrier({})});
+    assert.ok(refl.reflected, 'refletiu');
+    assert.ok(refl.followedAfterReflect, 'depois da reflexão o visual segue a entidade viva (não congela)');
+    checkSplash(refl, ['impact', 'partial', 'perfect', 'arenaHit', 'obstacleHit', 'platformHit', 'groundHit', 'destructibleHit']);
+    checkSplash(waterRun({setup: barrier({reflect: false})}), ['blocked']);
+    checkSplash(waterRun({setup: barrier({pl: 1}), hold: 185}), ['neutralized']);
+  } finally {resetConfig(factoryDefaults());}
 });
