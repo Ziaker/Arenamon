@@ -477,7 +477,7 @@ export function stepPhysics(fighters, dt, world = null) {
           const airHit = (a.action?.antiAir && b.flight) || (b.action?.antiAir && a.flight);   // anti-aéreo: o corpo em voo também é acertável
           if ((!a.flight || a.wallSplat || airHit) && (!b.flight || b.wallSplat || airHit) && a.hp > 0 && b.hp > 0) {
             const rel = sub(add(a.velocity, pushVel.get(a.id)), add(b.velocity, pushVel.get(b.id)));
-            if (clashPossible(a, b, contact.normal, rel) || mutualTackle(a, b, contact.normal, rel)) events.push(...clash(a, b, contact.normal));
+            if (clashPossible(a, b, contact.normal, rel) || mutualTackle(a, b, contact.normal, rel)) events.push(...clash(a, b, contact.normal, world));
             else {
               const hitA = resolveHit(a, b, contact.normal, rel), hitB = resolveHit(b, a, scale(contact.normal, -1), scale(rel, -1));
               if (hitA) events.push(hitA);if (hitB) events.push(hitB);

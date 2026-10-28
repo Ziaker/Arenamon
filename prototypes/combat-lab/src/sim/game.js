@@ -8,7 +8,6 @@ import {createWorld, stepWorld, spawn} from './world.js';
 import {tickStatuses, applyStatus} from './status.js';
 import {getMove, placeRelative, setLoadout} from './moves.js';
 import {stepPhysics} from './physics.js';
-import {resetClashContactSeq, getClashContactSeq, setClashContactSeq} from './combat.js';
 import {createMapState, initMap, stepMap, stepShield, generateFighterSpawnPositions} from './map.js';
 import {attachPassives, tickPassives, passiveOnEvents, passiveOnKO, setPassiveLoadout as applyPassiveLoadout} from './passive-engine.js';
 import {vec} from './math.js';
@@ -51,7 +50,6 @@ export class Game {
     this.world.mapState = this.mapState;
     initMap(this.mapState, this.fighters);
     attachPassives(this);   // liga loadouts de passivas e restaura Sturdy (fronteira de rodada, §7/R22)
-    resetClashContactSeq();
     this.tick = 0;this.events = [];this.winner = null;this.hitstop = 0;this.phase = 'playing';this.lastStepEvents = [];this.prevPose = null;
   }
   start() {this.phase = 'playing';}
@@ -180,7 +178,7 @@ export class Game {
   }
   /** Estado completo e independente (structuredClone preserva os Sets de acertos). */
   save() {
-    return structuredClone({fighters: this.fighters, tick: this.tick, events: this.events, winner: this.winner, hitstop: this.hitstop, phase: this.phase, eventSeq: this.eventSeq, clashContactSeq: getClashContactSeq(), world: this.world ?? createWorld(), mapState: this.mapState, loadouts: this.loadouts,
+    return structuredClone({fighters: this.fighters, tick: this.tick, events: this.events, winner: this.winner, hitstop: this.hitstop, phase: this.phase, eventSeq: this.eventSeq, world: this.world ?? createWorld(), mapState: this.mapState, loadouts: this.loadouts,
       passiveLoadouts: this.passiveLoadouts, passiveIdentity: this.passiveIdentity,
       combatWindows: this.combatWindows, brain: this.brain.save(), playerBrain: this.playerBrain.save(), lastStepEvents: this.lastStepEvents});
   }
@@ -189,8 +187,9 @@ export class Game {
     this.prevPose = null;
     this.fighters = s.fighters;this.tick = s.tick;this.events = s.events;this.winner = s.winner;this.hitstop = s.hitstop;this.phase = s.phase;
     this.brain.load(s.brain);this.playerBrain.load(s.playerBrain);this.lastStepEvents = s.lastStepEvents || [];
-    this.eventSeq = s.eventSeq ?? this.eventSeq;this.passiveProcessed.clear();if (s.clashContactSeq != null) setClashContactSeq(s.clashContactSeq);
+    this.eventSeq = s.eventSeq ?? this.eventSeq;this.passiveProcessed.clear();
     this.world = s.world ?? createWorld();
+    this.world.contactSeq ??= Number.isFinite(s.clashContactSeq) ? s.clashContactSeq : 0;   // save antigo: o contador ficava no topo (clashContactSeq)
     if (s.mapState) {
       this.mapState = s.mapState;
       this.world.mapState = this.mapState;

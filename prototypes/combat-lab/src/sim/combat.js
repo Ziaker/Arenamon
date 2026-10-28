@@ -44,14 +44,12 @@ export function mutualTackle(a, b, normal, relative) {
   if (a.action.hits?.has(b.id) || b.action.hits?.has(a.id)) return false;
   return tackleConnects(a, b, normal, relative) && tackleConnects(b, a, scale(normal, -1), scale(relative, -1));
 }
-let clashContactSeq = 0;
-export const nextClashContactId = () => ++clashContactSeq;
-export const getClashContactSeq = () => clashContactSeq;
-export const setClashContactSeq = (val) => { clashContactSeq = Number.isFinite(val) ? val : 0; };
-export const resetClashContactSeq = () => { clashContactSeq = 0; };
+/** Contador de contactId de chamadas diretas a clash() sem `world` (testes unitários). Nunca é usado por um Game: lá o contador é `world.contactSeq`. */
+const localContactSeq = {contactSeq: 0};
+const nextContactId = (/** @type {{contactSeq?: number}} */ owner) => owner.contactSeq = (owner.contactSeq ?? 0) + 1;
 
 /** X contra X: os dois recebem dano e são lançados (ou, com enableClashPush, empurrados no chão) em direções opostas (ignora invulnerabilidade). */
-export function clash(a, b, normal) {
+export function clash(a, b, normal, world = null) {
   const R = C.rules;
   const atkMultB = 1 + (b.stages?.attack ?? 0) * (C.map?.stageAttackBonus ?? 0.10);
   const atkMultA = 1 + (a.stages?.attack ?? 0) * (C.map?.stageAttackBonus ?? 0.10);
@@ -62,7 +60,7 @@ export function clash(a, b, normal) {
   const push = !!C.extras.toggles.enableClashPush;a.lastAttacker = b.id;b.lastAttacker = a.id;
   if (push) {pushAway(a, scale(normal, -1), R.clashPushDistance, R.clashPushDuration);pushAway(b, normal, R.clashPushDistance, R.clashPushDuration);}
   else {launch(a, scale(normal, -1), R.clashHorizontal, R.clashUp);launch(b, normal, R.clashHorizontal, R.clashUp);}
-  const contactId = nextClashContactId(), displacementPolicy = push ? 'displacement' : 'impulse';
+  const contactId = nextContactId(world ?? localContactSeq), displacementPolicy = push ? 'displacement' : 'impulse';
   return [{attacker: a.id, target: b.id, result: 'clash', contactId, damage: resB.hpDamage, ...damageEventFields(resB), normal: {...normal}, push, displacementPolicy, contact: 'clash', ...(resB.sturdy ? {sturdy: true} : {})},
     {attacker: b.id, target: a.id, result: 'clash', contactId, damage: resA.hpDamage, ...damageEventFields(resA), normal: scale(normal, -1), push, displacementPolicy, contact: 'clash', ...(resA.sturdy ? {sturdy: true} : {})}];
 }

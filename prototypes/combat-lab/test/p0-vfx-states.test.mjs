@@ -312,26 +312,26 @@ test('DET-01: Determinismo de contactId em Clash durante Game.save() e Game.load
   const f1 = game.fighters[1];
 
   // 1º Clash gera contactId = 1
-  const ev1 = clash(f0, f1, { x: 0, y: 0, z: 1 });
+  const ev1 = clash(f0, f1, { x: 0, y: 0, z: 1 }, game.world);
   assert.equal(ev1[0].contactId, 1);
   assert.equal(ev1[1].contactId, 1);
 
   // 2º Clash gera contactId = 2
-  const ev2 = clash(f0, f1, { x: 0, y: 0, z: 1 });
+  const ev2 = clash(f0, f1, { x: 0, y: 0, z: 1 }, game.world);
   assert.equal(ev2[0].contactId, 2);
 
   // Snapshot do jogo gravado no momento de contactId = 2
   const snapshot = game.save();
 
   // Avança na simulação: 3º Clash gera contactId = 3
-  const ev3 = clash(f0, f1, { x: 0, y: 0, z: 1 });
+  const ev3 = clash(f0, f1, { x: 0, y: 0, z: 1 }, game.world);
   assert.equal(ev3[0].contactId, 3);
 
   // Restaura o snapshot anterior
   game.load(snapshot);
 
   // O próximo clash após load DEVE reproduzir deterministicamente contactId = 3, não avançar para 4!
-  const evPostLoad = clash(f0, f1, { x: 0, y: 0, z: 1 });
+  const evPostLoad = clash(f0, f1, { x: 0, y: 0, z: 1 }, game.world);
   assert.equal(evPostLoad[0].contactId, 3, 'Save/Load deve restaurar a sequência exata de clashContactSeq');
   assert.equal(evPostLoad[1].contactId, 3);
 });
