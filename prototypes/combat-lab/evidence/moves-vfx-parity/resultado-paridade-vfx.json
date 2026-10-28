@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-10-28T21:02:24.756Z",
+  "timestamp": "2026-10-28T21:16:05.588Z",
   "passed": 38,
   "failed": 5,
   "layout": "padrão do laboratório (painel recolhido)",
@@ -124,7 +124,7 @@
         "unknown": {},
         "unknownTotal": 0,
         "truncated": 0,
-        "frames": 29,
+        "frames": 38,
         "delivered": 1,
         "resets": 2,
         "deferred": {
@@ -236,7 +236,7 @@
         "unknown": {},
         "unknownTotal": 0,
         "truncated": 0,
-        "frames": 105,
+        "frames": 190,
         "delivered": 6,
         "resets": 3,
         "deferred": {
@@ -372,7 +372,7 @@
         "unknown": {},
         "unknownTotal": 0,
         "truncated": 0,
-        "frames": 142,
+        "frames": 217,
         "delivered": 7,
         "resets": 3,
         "deferred": {
@@ -407,8 +407,8 @@
       "similarity": 64.9,
       "roiSimilarity": 3.92,
       "outSimilarity": 71.73,
-      "diffCount": 442240,
-      "diffIn": 121974,
+      "diffCount": 442241,
+      "diffIn": 121975,
       "diffOut": 320266,
       "pixelsIn": 126957,
       "pixelsOut": 1133043,
@@ -509,7 +509,7 @@
         "unknown": {},
         "unknownTotal": 0,
         "truncated": 0,
-        "frames": 205,
+        "frames": 287,
         "delivered": 21,
         "resets": 4,
         "deferred": {
@@ -517,7 +517,7 @@
           "solid": 7
         }
       },
-      "explicacao": "Diferença relevante FORA da ROI (28.3% dos pixels de fora): câmera, cena, HUD, layout ou instante mudaram — a ROI sozinha não isola o efeito, e dentro dela a mudança é ainda maior. ROI 3.92% (121974/126957 px diferentes), fora 71.73% (320266/1133043 px); 27.6% de todos os pixels diferentes estão na ROI. Análise (2026-10-28): Falha de layout (padrão: global ~64,9%, ROI ~4%, fora ~71,7%; na baseline o projétil fica quase todo atrás do painel). Com o painel aberto passa no gate global (98,86%), e a ROI do voo fica em 75,56%. CAUSA REAL da variação entre execuções no mesmo commit (Task 13, rastreada no código; antes chamada de 'ruído'): (1) WorldView.time — o relógio visual que gira a gema de consumível — acumula o tempo REAL desde que a página abriu (a partida roda sem pausa até o teste pausá-la), então o ângulo do chevron ciano da gema de Velocidade ao lado do lutador Azul mudava a cada execução mesmo com a simulação pausada; (2) a fase inicial da gema é Math.random() (consumables-gems.js); (3) as gotas da trilha do Water Pulse saem do Math.random do three.quarks; (4) a semente da partida era sorteada a cada execução. Correção (sem mudar a aparência normal do jogo): o teste fixa a semente da partida (94438, a das baselines) e chama __lab.seedVisualRandom(semente) a cada cenário (view/visual-random.js: Math.random semeado + relógio visual zerado + fase da gema fixa só durante a captura). Prova: 3 execuções seguidas = ROI 75,56%, 75,56%, 75,56% (dispersão 0 pp; antes 75,6–84,2%). A diferença restante contra a baseline é o ângulo da gema e o padrão de gotas da baseline (capturados com relógio/sorteio livres em 26/10), não regressão do efeito; nova baseline só com aceite explícito das 5 (--update-baselines + --aceitar).",
+      "explicacao": "Diferença relevante FORA da ROI (28.3% dos pixels de fora): câmera, cena, HUD, layout ou instante mudaram — a ROI sozinha não isola o efeito, e dentro dela a mudança é ainda maior. ROI 3.92% (121975/126957 px diferentes), fora 71.73% (320266/1133043 px); 27.6% de todos os pixels diferentes estão na ROI. Análise (2026-10-28): Falha de layout (padrão: global ~64,9%, ROI ~4%, fora ~71,7%; na baseline o projétil fica quase todo atrás do painel). Com o painel aberto passa no gate global (98,86%), e a ROI do voo fica em 75,56%. CAUSA REAL da variação entre execuções no mesmo commit (Task 13, rastreada no código; antes chamada de 'ruído'): (1) WorldView.time — o relógio visual que gira a gema de consumível — acumula o tempo REAL desde que a página abriu (a partida roda sem pausa até o teste pausá-la), então o ângulo do chevron ciano da gema de Velocidade ao lado do lutador Azul mudava a cada execução mesmo com a simulação pausada; (2) a fase inicial da gema é Math.random() (consumables-gems.js); (3) as gotas da trilha do Water Pulse saem do Math.random do three.quarks; (4) a semente da partida era sorteada a cada execução. Correção (sem mudar a aparência normal do jogo): o teste fixa a semente da partida (94438, a das baselines) e chama __lab.seedVisualRandom(semente) a cada cenário (view/visual-random.js: Math.random semeado + relógio visual zerado + fase da gema fixa só durante a captura). Prova: 3 execuções seguidas = ROI 75,56%, 75,56%, 75,56% (dispersão 0 pp; antes 75,6–84,2%). A diferença restante contra a baseline é o ângulo da gema e o padrão de gotas da baseline (capturados com relógio/sorteio livres em 26/10), não regressão do efeito; nova baseline só com aceite explícito das 5 (--update-baselines + --aceitar).",
       "imagens": {
         "baseline": "baselines/water-pulse-voo.png",
         "atual": "water-pulse-voo.png",
@@ -544,9 +544,9 @@
       "similarity": 65.35,
       "roiSimilarity": 37.1,
       "outSimilarity": 69.32,
-      "diffCount": 436650,
-      "diffIn": 97801,
-      "diffOut": 338849,
+      "diffCount": 436648,
+      "diffIn": 97808,
+      "diffOut": 338840,
       "pixelsIn": 155498,
       "pixelsOut": 1104502,
       "totalPixels": 1260000,
@@ -691,7 +691,7 @@
         "unknown": {},
         "unknownTotal": 0,
         "truncated": 0,
-        "frames": 228,
+        "frames": 322,
         "delivered": 23,
         "resets": 4,
         "deferred": {
@@ -699,7 +699,7 @@
           "solid": 9
         }
       },
-      "explicacao": "Diferença relevante FORA da ROI (30.7% dos pixels de fora): câmera, cena, HUD, layout ou instante mudaram — a ROI sozinha não isola o efeito, e dentro dela a mudança é ainda maior. ROI 37.1% (97801/155498 px diferentes), fora 69.32% (338849/1104502 px); 22.4% de todos os pixels diferentes estão na ROI. Análise (2026-10-28): Falha de layout, não do efeito. Padrão: global 65,3%, ROI 37,2%, fora 69,3%. Com o painel reaberto: global 99,27%, ROI 96,81%, fora 99,62%. A ROI caiu ~1 pp em relação à rodada anterior (97,9%) porque, desde a revisão da Task 13, o splash nasce no PONTO DO CONTATO do evento (contactPoint do projétil) — antes nascia na última posição desenhada do projétil, um quadro atrás. É a correção pedida, não regressão. Desde a Task 13 a captura é determinística (semente da partida fixa 94438 + __lab.seedVisualRandom): os números se repetem exatamente entre execuções no mesmo commit. impact (contato) e expire chegam ao movesVfx pelo canal move; os eventos da entidade que sai do mundo são entregues antes da transição de morte.",
+      "explicacao": "Diferença relevante FORA da ROI (30.7% dos pixels de fora): câmera, cena, HUD, layout ou instante mudaram — a ROI sozinha não isola o efeito, e dentro dela a mudança é ainda maior. ROI 37.1% (97808/155498 px diferentes), fora 69.32% (338840/1104502 px); 22.4% de todos os pixels diferentes estão na ROI. Análise (2026-10-28): Falha de layout, não do efeito. Padrão: global 65,3%, ROI 37,2%, fora 69,3%. Com o painel reaberto: global 99,27%, ROI 96,81%, fora 99,62%. A ROI caiu ~1 pp em relação à rodada anterior (97,9%) porque, desde a revisão da Task 13, o splash nasce no PONTO DO CONTATO do evento (contactPoint do projétil) — antes nascia na última posição desenhada do projétil, um quadro atrás. É a correção pedida, não regressão. Desde a Task 13 a captura é determinística (semente da partida fixa 94438 + __lab.seedVisualRandom): os números se repetem exatamente entre execuções no mesmo commit. impact (contato) e expire chegam ao movesVfx pelo canal move; os eventos da entidade que sai do mundo são entregues antes da transição de morte.",
       "imagens": {
         "baseline": "baselines/water-pulse-splash.png",
         "atual": "water-pulse-splash.png",

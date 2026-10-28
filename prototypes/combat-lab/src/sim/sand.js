@@ -18,10 +18,16 @@ import {altitudeOf} from './altitude.js';
 import {pushAccelNow, pushDurationModeOf, pushWindowState} from './moves/sand-wave/sand-push.js';
 
 const SQ2 = Math.SQRT2;
-/** @type {WeakMap<object, {at: number, sig: string, field: any}>} */
+/** @type {WeakMap<object, {at: number, sig: string, field: any, solids: any[]}>} */
 const FIELDS = new WeakMap();
 /** F5 (só leitura, para o VFX): campo de distâncias em cache da onda ({minX, minZ, nx, nz, cs, dist, blocked}) ou null se ainda não calculado. */
 export const sandFieldOf = (/** @type {any} */ e) => FIELDS.get(e)?.field ?? null;
+/** F5 (só leitura, para o VFX): distância de caminho livre da origem até `p` pela MESMA regra da simulação (reta quando livre; senão a grade),
+ * com os sólidos do último cálculo do campo; null se o campo ainda não existe. */
+export function sandPathDistance(/** @type {any} */ e, /** @type {{x: number, z: number}} */ p) {
+  const c = FIELDS.get(e);
+  return c ? pathDistance(e, c.field, c.solids, p) : null;
+}
 /** Retângulo → coordenadas locais (u à frente, v lateral) de um ponto. */
 const localOf = (/** @type {any} */ e, /** @type {{x: number, z: number}} */ p) => {
   const d = e.dir, dx = p.x - e.pos.x, dz = p.z - e.pos.z;
@@ -95,7 +101,7 @@ export function stepSand(/** @type {any} */ game, /** @type {any} */ e, /** @typ
   const sig = solids.map(s => `${s.pos.x.toFixed(2)},${s.pos.z.toFixed(2)},${s.hx ?? s.radius}`).join('|');
   const stepNo = Math.round(e.age / dt);
   let cache = FIELDS.get(e);   // o campo de distâncias é só um cache derivado (fora do estado salvo): depois de carregar um save ele é recalculado
-  if (!cache || stepNo - cache.at >= e.replanSteps || cache.sig !== sig) {cache = {at: stepNo, sig, field: distanceField(e, solids)};FIELDS.set(e, cache);}
+  if (!cache || stepNo - cache.at >= e.replanSteps || cache.sig !== sig) {cache = {at: stepNo, sig, field: distanceField(e, solids), solids};FIELDS.set(e, cache);}
   const front = sandFrontAt(e, e.age), still = new Set();
   const minPressSpeed = e.wallPressMinSpeed ?? .6, moveRatio = e.wallPressMoveRatio ?? .25;
   const maxTargets = e.maxTargets ?? 16;

@@ -363,3 +363,145 @@ test('Water Pulse (ordem real): escudo — reflexão mantém o voo e o contato f
     checkSplash(waterRun({setup: barrier({pl: 1}), hold: 185}), ['neutralized']);
   } finally {resetConfig(factoryDefaults());}
 });
+
+// ---------- Revisão da Task 13 (rodada 2): corte da frente pela MESMA regra de alcance da simulação ----------
+
+/**
+ * Sand Wave real numa direção qualquer, com sólidos no mapa e o vermelho parado no eixo em `redU` metros. Devolve o menor alcance visual
+ * (freeReachOf) da execução e se o vermelho foi atingido pela onda. Base: varreduras da revisão (scratchpad side.mjs/phys.mjs).
+ */
+function sandAxis({deg = 0, redU = 3.7, obstacles = /** @type {any[]} */ ([]), destructibles = /** @type {any[]} */ ([]), each = /** @type {(g: any, i: number) => void} */ (() => {})} = {}) {
+  const a = deg * Math.PI / 180, d = {x: Math.sin(a), z: Math.cos(a)};
+  const g = arena({equip: ['sand-wave'], positions: [vec(0, 0), vec(d.x * redU, d.z * redU)]});
+  g.mapState.obstacles = obstacles;g.mapState.destructibles = destructibles;
+  g.fighters[0].facing = a;
+  g.step(cmd({skill: 0, skillHeld: HOLD(0)}), cmd());
+  let w = /** @type {any} */ (null), reach = Infinity, hit = false;
+  const reaches = /** @type {number[]} */ ([]);
+  for (let i = 0; i < secs(1.5); i++) {
+    each(g, i);g.step(cmd(), cmd());
+    w ??= g.world.entities.find((/** @type {any} */ e) => e.kind === 'sandwave') ?? null;
+    if (w && sandFieldOf(w)) {const r = sandVfx.freeReachOf(w);reaches.push(r);reach = Math.min(reach, r);}
+    if (g.lastStepEvents.some((/** @type {any} */ ev) => ev.move === 'sand-wave' && ev.target === 1 && ['impact', 'partial', 'perfect'].includes(ev.result))) hit = true;
+  }
+  return {w, reach, reaches, hit, d, side: {x: d.z, z: -d.x}};
+}
+
+test('Sand Wave: obstáculo AO LADO do eixo (círculo e caixa, folgas 0,15/0,3/1,2 m, 4 direções) não corta — e a física acerta no fim', () => {
+  try {
+    const bad = /** @type {string[]} */ ([]);
+    for (const deg of [0, 22.5, 37.5, 45, 67.5]) for (const gap of [.15, .3, 1.2]) for (const shape of ['pillar', 'box', 'circle']) {
+      const a = deg * Math.PI / 180, d = {x: Math.sin(a), z: Math.cos(a)}, side = {x: d.z, z: -d.x}, r = .5;
+      // distância do centro ao eixo para a borda ficar a `gap` do eixo (caixa alinhada aos eixos do mundo: meia-largura projetada r·(|cos|+|sin|))
+      // 'circle' = o caso da revisão (scratchpad phys.mjs): sem hx/hz, vira caixa r × r em solidsOf e a quina pode RASPAR o eixo — a régua é a física
+      const off = gap + (shape === 'box' ? r * (Math.abs(Math.cos(a)) + Math.abs(Math.sin(a))) : r);
+      const c = {x: d.x * 2 + side.x * off, z: d.z * 2 + side.z * off};
+      const ob = shape === 'circle' ? {id: 'o', shape, pos: {x: c.x, y: 0, z: c.z}, radius: r, height: 2} : {id: 'o', shape, pos: {x: c.x, y: 0, z: c.z}, hx: r, hz: r, radius: r, height: 2, angle: 0};
+      const run = sandAxis({deg, obstacles: [ob]});
+      if (!(run.reach === run.w.length && run.hit)) bad.push(`${deg}° folga ${gap} ${shape}: alcance visual ${run.reach.toFixed(2)}, vermelho em 3,7 m ${run.hit ? 'atingido' : 'NÃO atingido'}`);
+    }
+    assert.deepEqual(bad, [], bad.join('\n'));
+  } finally {resetConfig(factoryDefaults());}
+});
+
+test('Sand Wave: bloqueio real no eixo — o fim visual é alcançado pela física e o que está atrás do bloqueio não é', () => {
+  try {
+    for (const deg of [0, 30]) {
+      const a = deg * Math.PI / 180, d = {x: Math.sin(a), z: Math.cos(a)};
+      // parede larga (12 m) atravessando o eixo a 2 m: o contorno sai da região de desvio do campo (inalcançável)
+      const wall = {id: 'w', shape: 'box', pos: {x: d.x * 2.4, y: 0, z: d.z * 2.4}, hx: 6, hz: .4, radius: 6, height: 2, angle: 0};
+      const probe = sandAxis({deg, obstacles: [wall], redU: 9});   // só mede o alcance (vermelho longe, fora do retângulo)
+      const reach = probe.reach;
+      assert.ok(reach < probe.w.length - .5, `${deg}°: a parede corta o desenho (alcance ${reach})`);
+      const atEnd = sandAxis({deg, obstacles: [wall], redU: Math.max(.6, reach - .3)});
+      assert.ok(atEnd.hit, `${deg}°: vermelho no fim visual (${(reach - .3).toFixed(2)} m) é atingido`);
+      const behind = sandAxis({deg, obstacles: [wall], redU: 3.5});
+      assert.ok(!behind.hit, `${deg}°: vermelho atrás do bloqueio (3,5 m) não é atingido`);
+    }
+  } finally {resetConfig(factoryDefaults());}
+});
+
+test('Sand Wave: rocha destrutível no eixo corta enquanto existe e o corte some quando ela sai do mapa', () => {
+  try {
+    const rock = {id: 'd1', hp: 30, maxHp: 30, pos: {x: 0, y: 0, z: 2}, size: {hx: 1.5, hz: .4, height: 1.6}, hx: 1.5, hz: .4, height: 1.6, shape: 'box', angle: 0, state: 'solid', respawnTimer: 0, ghostTimer: 0};
+    const run = sandAxis({destructibles: [rock], redU: 9, each: (g, i) => {if (i === 40) g.mapState.destructibles = [];}});
+    assert.ok(run.reaches.length > 50);
+    assert.ok(run.reaches.slice(0, 5).every(r => r < run.w.length - .5), `corta com a rocha (${run.reaches.slice(0, 5).map(r => r.toFixed(2))})`);
+    assert.equal(run.reaches.at(-1), run.w.length, 'sem a rocha volta ao comprimento inteiro (campo recalculado)');
+  } finally {resetConfig(factoryDefaults());}
+});
+
+test('Sand Wave: clipToReach — sem corte (reach = length) não mexe em nada; com corte, só o que passa do alcance', () => {
+  const head = (/** @type {number} */ z) => ({head: {visible: true, position: new T.Vector3(0, 0, z)}});
+  const mk = () => ({len: 4, fx: {fronts: [head(-1.5), head(1.2), head(1.9)], streams: [{dust: {emitter: {position: new T.Vector3(0, 0, 1.8)}}, grain: {emitter: {position: new T.Vector3(0, 0, .2)}}}], shocks: [{position: new T.Vector3(0, 0, 2)}], rubble: {position: new T.Vector3(0, 0, 2)}}});
+  const a = /** @type {any} */ (mk());
+  sandVfx.clipToReach(a, 4);
+  assert.deepEqual(a.fx.fronts.map((/** @type {any} */ f) => f.head.position.z), [-1.5, 1.2, 1.9], 'sem corte: frentes intactas');
+  assert.equal(a.fx.streams[0].dust.emitter.position.z, 1.8);
+  assert.ok(Math.abs(a.drawnLength - 3.9) < 1e-9 && a.visibleLength === a.drawnLength, `visível = desenhado (${a.visibleLength})`);
+  const b = /** @type {any} */ (mk());
+  sandVfx.clipToReach(b, 2.5);   // maxZ = −2 + 2,5 = 0,5
+  assert.deepEqual(b.fx.fronts.map((/** @type {any} */ f) => f.head.position.z), [-1.5, .5, .5], 'só as frentes além do alcance são cortadas');
+  assert.equal(b.fx.streams[0].dust.emitter.position.z, .5);
+  assert.equal(b.fx.streams[0].grain.emitter.position.z, .2, 'jato aquém do alcance fica');
+  assert.equal(b.fx.shocks[0].position.z, .5);assert.equal(b.fx.rubble.position.z, .5);
+  assert.ok(Math.abs(b.drawnLength - 3.9) < 1e-9 && b.visibleLength === 2.5, 'desenhado 3,9 m, visível 2,5 m');
+});
+
+// ---------- Revisão da Task 13 (rodada 2): efeito colateral declarado — x/y/z nos contatos de projétil viram a `position` canônica ----------
+// Correção de bug assumida (decisão do controlador): antes, groundHit/destructibleHit/neutralized sem ponto caíam em fighters[target ?? 0]
+// (runtime) ou na última malha (anel do WorldView). Agora vão no ponto real do contato, para QUALQUER projétil — aqui, um que não é o Water Pulse.
+const {adaptSimEvent} = await import('../src/view/vfx/contract.js');
+const {WorldView} = await import('../src/view/world-view.js');
+const {VfxSystem} = await import('../src/view/vfx.js');
+
+/** Projétil genérico (não Water Pulse) numa luta real até o evento `result`; devolve o evento, a posição do projétil no passo e o jogo. */
+function projectileUntil(/** @type {string} */ result, /** @type {(g: any) => any} */ setup) {
+  const g = arena({positions: [vec(0, -8), vec(9, 9)]});
+  const p = setup(g);
+  for (let i = 0; i < secs(4); i++) {
+    g.step(cmd(), cmd());
+    const ev = g.lastStepEvents.find((/** @type {any} */ e) => e.result === result && e.entity === p.id);
+    if (ev) return {g, ev, at: {x: p.pos.x, y: p.y, z: p.pos.z}};
+  }
+  return {g, ev: null, at: null};
+}
+const shot = (/** @type {any} */ over) => (/** @type {any} */ g) => spawn(g.world, {kind: 'projectile', owner: 0, pos: {x: 0, z: -6}, dir: {x: 0, z: 1}, speed: 10, y: .65, radius: .2, life: 4, pierce: 1, pl: 1, hit: {damage: 5}, visual: 'seed', ...over}, []);
+
+test('contatos de projétil (não Water Pulse): groundHit, destructibleHit e neutralized trazem o ponto do contato e o runtime usa ele', () => {
+  try {
+    const cases = [
+      projectileUntil('groundHit', shot({gravity: 9, vy: 2})),
+      projectileUntil('destructibleHit', g => {g.mapState.destructibles = [{id: 'd1', hp: 30, maxHp: 30, pos: {x: 0, y: 0, z: -2}, size: {hx: .8, hz: .8, height: 1.6}, hx: .8, hz: .8, height: 1.6, shape: 'box', angle: 0, state: 'solid', respawnTimer: 0, ghostTimer: 0}];return shot({})(g);}),
+      projectileUntil('neutralized', g => {spawn(g.world, {kind: 'barrier', owner: 1, shape: 'box', pos: {x: 0, z: -2}, angle: Math.PI, hx: 3, hz: .05, y: 0, height: 3, life: 30, hp: Infinity, blocksProjectiles: true, reflect: true, shields: true, pl: 1, captured: {maxReflections: 16}}, []);return shot({pl: 3})(g);}),
+    ];
+    for (const {g, ev, at} of cases) {
+      assert.ok(ev && at, 'evento ocorreu');
+      assert.deepEqual({x: ev.x, y: ev.y, z: ev.z}, at, `${ev.result}: x/y/z = ponto do projétil no contato`);
+      assert.deepEqual(ev.position, at, `${ev.result}: position canônica = ponto do contato`);
+      const adapted = adaptSimEvent(ev, {fighters: g.fighters});
+      assert.ok(adapted, `${ev.result} tem visual no runtime`);
+      assert.deepEqual({...adapted.position}, at, `${ev.result}: runtime (partículas/câmera) no contato, não em fighters[0] (${JSON.stringify(g.fighters[0].position)})`);
+      // Antes da correção (sem x/y/z): o runtime caía no lutador `target ?? 0` ou na origem — registrado como diferença medida
+      const {x, y, z, position, ...old} = ev;void x;void y;void z;void position;
+      const before = adaptSimEvent({...old, position: null}, {fighters: g.fighters});
+      assert.ok(before && Math.hypot(before.position.x - at.x, before.position.z - at.z) > .5, `${ev.result}: antes ia para ${JSON.stringify(before?.position)} (longe do contato)`);
+    }
+  } finally {resetConfig(factoryDefaults());}
+});
+
+test('anel do WorldView no `neutralized` vai para o ponto do contato; VFX legado (padrão, useNewVfx = false) não muda com os campos novos', () => {
+  try {
+    const {g, ev, at} = projectileUntil('neutralized', g => {spawn(g.world, {kind: 'barrier', owner: 1, shape: 'box', pos: {x: 0, z: -2}, angle: Math.PI, hx: 3, hz: .05, y: 0, height: 3, life: 30, hp: Infinity, blocksProjectiles: true, reflect: true, shields: true, pl: 1, captured: {maxReflections: 16}}, []);return shot({pl: 3})(g);});
+    assert.ok(ev);
+    const wv = /** @type {any} */ (new WorldView(new T.Scene()));
+    wv.update(g.world, {fighters: g.fighters, events: [ev], dt: 1 / 60});
+    const ring = wv.rings.at(-1);
+    assert.ok(ring, 'anel criado');
+    assert.ok(Math.abs(ring.mesh.position.x - at.x) < 1e-9 && Math.abs(ring.mesh.position.z - at.z) < 1e-9, `anel no contato (${ring.mesh.position.x}, ${ring.mesh.position.z}) = (${at.x}, ${at.z})`);
+    // VFX legado: mesmas chamadas com e sem os campos novos (ele não lê o ponto desses eventos)
+    const legacy = (/** @type {any} */ e) => {const v = /** @type {any} */ (new VfxSystem(new T.Scene()));const calls = /** @type {any[]} */ ([]);v.fire = (/** @type {any} */ t, /** @type {any} */ d) => calls.push([t, JSON.stringify(d)]);v.shake = (/** @type {any[]} */ ...a) => calls.push(['shake', ...a]);v.update(g.fighters, [e], 1 / 60, {world: g.world});return calls;};
+    const {x, y, z, position, ...old} = ev;void x;void y;void z;void position;
+    for (const e of [ev, {...ev, result: 'groundHit'}, {...ev, result: 'destructibleHit'}]) assert.deepEqual(legacy(e), legacy({...old, result: e.result}), `${e.result}: legado idêntico`);
+  } finally {resetConfig(factoryDefaults());}
+});

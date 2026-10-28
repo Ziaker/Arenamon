@@ -15,7 +15,7 @@ import {defaults} from '../../../../../sand-stone-lab/src/config.ts';
 import {disposeGroup} from '../../../../../sand-stone-lab/src/art.js';
 import {ATELIER_GAME_PARAMS, ATELIER_GAME_VARIANT} from '../../../view/quarks/atelier-game-params.js';
 import {C} from '../../config.js';
-import {sandFrontAt, sandFieldOf} from '../../sand.js';
+import {sandFrontAt, sandFieldOf, sandPathDistance} from '../../sand.js';
 import {parentPointToLocal, parentDirToLocal} from '../../../view/quarks/coords.js';
 
 export const id = 'sand-wave';
@@ -23,28 +23,27 @@ export const id = 'sand-wave';
 export const CONTACT_Y = 0.35;
 
 /**
- * Alcance LIVRE (m) ao longo do eixo da onda pelo campo de distâncias da simulação (sand.js, recalculado com obstáculos móveis): marcha a linha
- * central em passos de ¼ de célula e para na primeira célula bloqueada/inalcançável (Infinity) ou que a frente só alcança contornando
- * (distância de caminho bem maior que a reta: `dist − u > 1,5·célula + 9 %·u`, folga da grade octal). Sem obstáculo no eixo devolve `length`
- * (nenhum corte: o desenho fica idêntico). Sem campo (ainda não calculado) devolve `length`.
- * @param {any} e entidade sandwave @param {any} [field] @returns {number}
+ * Alcance LIVRE (m) ao longo do eixo da onda pela MESMA regra de alcance da simulação (sand.js sandPathDistance: reta quando o segmento da origem
+ * até o ponto está livre de sólidos; senão a grade de distâncias, recalculada com obstáculos móveis/destrutíveis). Marcha a linha central em passos
+ * de ¼ de célula e para no primeiro ponto inalcançável (Infinity) ou que a frente só alcança contornando (caminho maior que a reta além de
+ * `1,5·célula + 9 %·u`, folga da grade octal). Obstáculo AO LADO do eixo não corta (o segmento continua livre, como na física). Sem campo ainda
+ * calculado devolve `length`.
+ * @param {any} e entidade sandwave @param {(p: {x: number, z: number}) => (number | null)} [pathDist] @returns {number}
  */
-export function freeReachOf(e, field = sandFieldOf(e)) {
-  const len = e.length ?? 4;
+export function freeReachOf(e, pathDist = p => sandPathDistance(e, p)) {
+  const len = e?.length ?? 4, field = e ? sandFieldOf(e) : null;
   if (!field || !e?.pos || !e?.dir) return len;
-  const {minX, minZ, nx, nz, cs, dist} = field, ds = cs / 4;
-  for (let u = 0; u <= len + 1e-9; u += ds) {
-    const x = e.pos.x + e.dir.x * u, z = e.pos.z + e.dir.z * u;
-    const ix = Math.floor((x - minX) / cs), iz = Math.floor((z - minZ) / cs);
-    if (ix < 0 || iz < 0 || ix >= nx || iz >= nz) return Math.min(len, u);
-    const d = dist[iz * nx + ix];
-    if (!Number.isFinite(d) || d - u > 1.5 * cs + .09 * u) return Math.min(len, u);
+  const ds = field.cs / 4, tol = (/** @type {number} */ u) => 1.5 * field.cs + .09 * u;
+  for (let u = ds; u <= len + 1e-9; u += ds) {
+    const d = pathDist({x: e.pos.x + e.dir.x * u, z: e.pos.z + e.dir.z * u});
+    if (d == null) return len;
+    if (!Number.isFinite(d) || d - u > tol(u)) return Math.min(len, u - ds);
   }
   return len;
 }
 
-/** Corta o desenho da onda no alcance livre: frentes, jatos de poeira/grão e o impacto final não passam de `reach` (eixo local z: −len/2 … +len/2). @param {any} state @param {number} reach */
-function clipToReach(state, reach) {
+/** Corta o desenho da onda no alcance livre (exportado para teste): frentes, jatos de poeira/grão e o impacto final não passam de `reach` (eixo local z: −len/2 … +len/2). @param {any} state @param {number} reach */
+export function clipToReach(state, reach) {
   const fx = state.fx, half = state.len / 2, maxZ = -half + reach;
   let drawn = 0;
   for (const {head} of fx.fronts ?? []) if (head.visible) drawn = Math.max(drawn, head.position.z + half);

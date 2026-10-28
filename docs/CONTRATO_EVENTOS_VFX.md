@@ -204,3 +204,22 @@ interface CombatEvent {
 Para garantir determinismo em reinicializações e testes A/B:
 - `worldView.reset()` desfaz e remove todas as instâncias vivas de `rings`, `particles`, `meshes` e estilhaços geométricos.
 - `view.reset()` remove auras ativas de status, marcadores de mira (`aimMarkers`), efeitos de contra-ataque (`riposteFx`) e restaura a densidade de neblina original do cenário.
+
+---
+
+## 6. Ponto de contato dos projéteis (F5, Task 13 — 28/10/2026)
+
+**Semântica de `position`:** nos eventos terminais de projétil abaixo, `x/y/z` (e portanto a `position` canônica do `normalizeCombatEvent`) é o **ponto do projétil no passo do contato**, para qualquer Move de projétil (Water Pulse, Seed Bomb, Air Slash, Swift, pedras do Psyshock…).
+
+| Resultado | Antes (sem ponto) | Agora |
+|---|---|---|
+| `groundHit` | runtime: `fighters[target ?? 0]` (o lutador 0), p. ex. (0, 0, −8) | ponto do contato, p. ex. (0, 0, 0,58) |
+| `destructibleHit` | runtime: origem (0, 0, 0), porque o alvo é o id do destrutível | face do destrutível, p. ex. (0, 0,65, −3,0) |
+| `neutralized` | runtime: `fighters[target]` (dono da barreira, p. ex. (9, 0, 9)); anel do WorldView: malha do projétil (que já saiu, então **nenhum anel**) | ponto na barreira, p. ex. (0, 0,65, −2,17); anel branco ali |
+| `arenaHit`, `obstacleHit`, `platformHit`, `detonate` | sem visual no runtime nem anel; só `movesVfx` | ponto do contato (usado pelo splash do Water Pulse) |
+
+- **Quem muda:** o runtime novo (`adaptSimEvent`: partículas e câmera, só com `useNewVfx = true`), o anel do `neutralized` no WorldView e o splash do Water Pulse.
+- **Quem não muda:** o VFX legado (padrão, `useNewVfx = false`) não lê o ponto desses eventos e tem saída idêntica (teste `f5-vfx-coords`). O QuarksBridge não consome esses resultados.
+- **Acerto em lutador** (`impact`/`partial`/`perfect` de projétil): a simulação grava `contactPoint {x, y, z}` e **não** `x/z`. Assim a `position` continua nula e as faíscas de impacto de todos os golpes seguem no corpo do alvo. Só o splash do Water Pulse lê `contactPoint`.
+- **Sand Wave:** `impact`/`partial`/`perfect`/`sandStagger` levam `x/z` dos pés do alvo no contato.
+- **Ordem de entrega no `movesVfx`:** os eventos da entidade que sai do mundo chegam ANTES de `onDeath` (`MovesVfxRegistry.sync(…, events)`), sem repetição em `onEvent`.
