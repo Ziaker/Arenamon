@@ -1,5 +1,11 @@
 # GameDev Agent Skills — instalação e uso no Arenamon
 
+## 2026-10-28 — VFX Composer: overhaul visual e Academia
+
+- **Skills:** `arenamon-routing`, `arenamon-vfx-composer`, `frontend-design`, `brainstorming`, `using-git-worktrees`, `writing-plans`, `test-driven-development` e `verification-before-completion`.
+- **Aplicação:** workspace visual autoral, timeline sem modelo paralelo, orçamento acessível e três tutoriais sobre o documento real do Composer.
+- **Validação:** testes puros, typecheck, build offline e fluxos focados no Edge para layout, Academia, zoom de referência e acessibilidade.
+
 Registro da Fase 1 do plano de integração de ferramentas open source
 (ver `docs/INTEGRACAO_OPEN_SOURCE.md` para o panorama das fases).
 

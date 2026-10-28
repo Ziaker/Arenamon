@@ -1,5 +1,6 @@
 import {chromium} from '@playwright/test';
 import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
 import {mkdir, readFile, writeFile} from 'node:fs/promises';
 import {inflateSync} from 'node:zlib';
 import {fileURLToPath, pathToFileURL} from 'node:url';
@@ -340,7 +341,7 @@ try {
     await setTime(page, time);
     const buffer = await page.locator('#viewport canvas').screenshot();
     await writeFile(path.join(framesDir, `frame-${index}.png`), buffer);
-    frameHashes.push(buffer.toString('base64').slice(0, 64));
+    frameHashes.push(createHash('sha256').update(buffer).digest('hex'));
   }
   assert.equal(new Set(frameHashes).size, frameHashes.length, 'quadros da sequência são distintos');
 

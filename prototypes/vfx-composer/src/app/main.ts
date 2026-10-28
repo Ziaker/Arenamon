@@ -22,6 +22,7 @@ import {enhanceInspector} from '../ui/inspector';
 import {TimelineView} from '../ui/timeline-view';
 import {StatusSurface} from '../ui/status';
 import {ACADEMY_LESSONS, AcademyController, mountAcademy} from '../ui/academy';
+import {icon} from '../ui/icons';
 
 const phase = (duration: number) => ({enabled: true, duration, tracks: []});
 const initialProject = (): VfxProject => ({
@@ -102,7 +103,7 @@ const viewportSemantic = document.createElement('div');
 viewportSemantic.id = 'authoring-viewport';
 viewportRegion.before(viewportSemantic);
 viewportSemantic.append(viewportRegion);
-appRoot.insertAdjacentHTML('afterbegin', `<nav id="domain-rail" aria-label="Domínios de autoria"><button data-domain="create" aria-label="Criar" title="Criar">+</button><button data-domain="transform" aria-label="Transformar" title="Transformar">⤢</button><button data-domain="appearance" aria-label="Aparência" title="Aparência">◐</button><button data-domain="movement" aria-label="Movimento" title="Movimento">◆</button><button data-domain="particles" aria-label="Partículas" title="Partículas">✺</button></nav>`);
+appRoot.insertAdjacentHTML('afterbegin', `<nav id="domain-rail" aria-label="Domínios de autoria"><button data-domain="create" aria-label="Criar" title="Criar">${icon('create', {label: 'Criar'})}</button><button data-domain="transform" aria-label="Transformar" title="Transformar">${icon('transform', {label: 'Transformar'})}</button><button data-domain="appearance" aria-label="Aparência" title="Aparência">${icon('appearance', {label: 'Aparência'})}</button><button data-domain="movement" aria-label="Movimento" title="Movimento">${icon('movement', {label: 'Movimento'})}</button><button data-domain="particles" aria-label="Partículas" title="Partículas">${icon('particles', {label: 'Partículas'})}</button></nav><div class="small-screen-notice" role="status">Amplie a janela para continuar criando com precisão.</div>`);
 $('.left').insertAdjacentHTML('beforeend', `<details id="academy-vfx"><summary><strong>Academia VFX</strong><small>Opcional · 3 aulas</small></summary><div id="academy-lessons"></div></details>`);
 viewportRegion.querySelector('.view-tools')?.insertAdjacentHTML('beforeend', `<button id="maximize-viewport" title="Maximizar viewport" aria-label="Maximizar viewport">⛶</button>`);
 appRoot.insertAdjacentHTML('beforeend', `<footer id="authoring-timeline"><div class="timeline-placeholder"><strong>Timeline</strong><span>24 / 30 / 60 FPS</span></div></footer><div id="composer-status" role="status" aria-live="polite">Projeto pronto · Autoral</div>`);

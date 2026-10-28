@@ -1,0 +1,22 @@
+{
+  "schema": "arenamon.vfx.visual-overhaul.evidence",
+  "passed": true,
+  "checks": [
+    "semantic-regions",
+    "academy-collapsed",
+    "no-global-overflow",
+    "viewport-maximize",
+    "command-palette",
+    "visual-timeline",
+    "visual-budget",
+    "accessible-icons",
+    "keyboard-focus",
+    "narrow-message"
+  ],
+  "viewports": [
+    1800,
+    1440,
+    980,
+    720
+  ]
+}

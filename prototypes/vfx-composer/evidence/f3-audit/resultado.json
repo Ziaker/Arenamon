@@ -17,11 +17,11 @@
       "snapshotAt": 0.5666666666666667,
       "particles": 280,
       "visiblePixels": {
-        "changed": 1966,
-        "warm": 1014,
+        "changed": 1739,
+        "warm": 849,
         "cool": 0,
         "magenta": 0,
-        "bright": 740
+        "bright": 760
       }
     },
     {
@@ -32,11 +32,11 @@
       "snapshotAt": 1.1,
       "particles": 49,
       "visiblePixels": {
-        "changed": 7220,
+        "changed": 5937,
         "warm": 0,
-        "cool": 5464,
+        "cool": 4627,
         "magenta": 0,
-        "bright": 685
+        "bright": 972
       }
     },
     {
@@ -47,10 +47,10 @@
       "snapshotAt": 0.7,
       "particles": 106,
       "visiblePixels": {
-        "changed": 1207,
+        "changed": 1187,
         "warm": 0,
-        "cool": 899,
-        "magenta": 454,
+        "cool": 909,
+        "magenta": 443,
         "bright": 347
       }
     }
@@ -80,18 +80,18 @@
       }
     },
     "pixels": {
-      "changed": 8519,
-      "warm": 1059,
-      "cool": 4358,
-      "magenta": 455,
-      "bright": 1253
+      "changed": 7518,
+      "warm": 917,
+      "cool": 4048,
+      "magenta": 445,
+      "bright": 1603
     }
   },
   "quarks": {
     "systems": 3,
-    "active": 421,
+    "active": 423,
     "drawCalls": 2,
-    "rebuilds": 24,
+    "rebuilds": 25,
     "rejected": 0,
     "approximations": [
       "turbulence",
@@ -99,7 +99,7 @@
     ]
   },
   "playback": {
-    "advancedTo": 1.1495000000000004,
+    "advancedTo": 1.1997999999999998,
     "reverseDirection": -1
   },
   "persistence": {

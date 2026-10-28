@@ -1,9 +1,12 @@
 import assert from 'node:assert/strict';
+import {mkdir} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 import {chromium} from 'playwright';
 
 const browser = await chromium.launch({headless: true, channel: 'msedge'});
 const page = await browser.newPage({viewport: {width: 1440, height: 900}});
+const evidence = fileURLToPath(new URL('../evidence/visual-overhaul/', import.meta.url));
+await mkdir(evidence, {recursive: true});
 await page.goto(`file:///${fileURLToPath(new URL('../dist/arenamon-vfx-composer.html', import.meta.url)).replaceAll('\\', '/')}`);
 assert.equal(await page.locator('#academy-vfx').getAttribute('open'), null, 'Academia fechada por padrão');
 await page.locator('#academy-vfx summary').click();
@@ -13,6 +16,7 @@ await page.locator('.academy-card').first().click();
 assert.equal(await page.locator('#academy-drawer:not([hidden])').count(), 1, 'guia abre em drawer temporário');
 assert.match(await page.locator('#academy-drawer header span').textContent(), /1\/7/, 'esfera oferece sete etapas reais');
 assert.match(await page.locator('#academy-drawer p').textContent(), /esfera/i, 'primeira etapa ensina o componente real');
+await page.screenshot({path: `${evidence}/academia-esfera-magica.png`, fullPage: true});
 await page.locator('[data-academy-minimize]').click();
 assert.equal(await page.locator('#academy-resume:not([hidden])').count(), 1, 'guia minimiza em chip');
 await page.locator('#academy-resume').click();
