@@ -43,7 +43,7 @@ export function seedBombEffect(/** @type {any} */ game, /** @type {any} */ f, /*
     hit: {damage: 0}, detonateOnly: true, pl, clashable: true, visual: 'seed',
     captured: {explosionFraction: P.damage / C.test.attackReference, level: pl, move: def.id, speed: shot.speed, counterStagger: P.counterStagger},
     onHit: {kind: 'area', sphere: true, radius: P.explosionRadius, life: P.blastLife, pulses: 1, falloff: 'none', explosion: true, occlusion: P.occlusion ? 1 : 0, pl, visual: 'seedblast',
-      hit: {damage, knockback: {horizontal: P.knockbackH, vertical: P.knockbackV}}},
+      hit: {damage, knockback: {horizontal: P.knockbackH, vertical: P.knockbackV}}, captured: {move: def.id}},   // F6: a explosão leva o id do Move até o evento de acerto (applyHit → event.move)
   }, fx.events ?? []);
   if (!e) return {ok: false, reason: 'entityLimit'};
   fx.events?.push({result: 'moveEffect', move: 'seed-bomb', attacker: f.id, target: null, damage: 0, level: pl, entity: e.id, speed: shot.speed});

@@ -42,7 +42,23 @@ export function sturdyGuard(defender, finalHpDamage, ctx = {}) {
  *   policy?: {bypassShield?: boolean, bypassDefense?: boolean, trackAttacker?: boolean}}} req
  * @returns {DamageResult}
  */
-export function resolveDamage({target, attacker = null, indirectAttacker = null, rawDamage, sourceKind, contact = null, guarded = false, perfect = false, policy = {}}) {
+export function resolveDamage(req) {
+  const t = req?.target, hp0 = t?.hp ?? null, sh0 = t ? (t.shield?.hp ?? 0) : null;
+  const r = resolveCore(req);
+  damageLedger.count++;
+  if (damageLedger.entries) damageLedger.entries.push({targetId: t?.id ?? null, hpBefore: hp0, hpAfter: t?.hp ?? null, shieldBefore: sh0, shieldAfter: t ? (t.shield?.hp ?? 0) : null, ...r});
+  return r;
+}
+/**
+ * F6 — Livro de transações de dano (diagnóstico/teste; a simulação nunca o lê): `count` soma toda chamada a resolveDamage; com `entries` = [],
+ * cada transação é anotada {targetId, hpBefore, hpAfter, shieldBefore, shieldAfter, ...DamageResult}. No jogo `entries` fica null (custo: um incremento).
+ * Prova de conservação em test/f6-moves-contract.test.mjs: HP/escudo de lutador só mudam por aqui.
+ * @type {{count: number, entries: any[] | null}}
+ */
+export const damageLedger = {count: 0, entries: null};
+
+/** @param {Parameters<typeof resolveDamage>[0]} req @returns {DamageResult} */
+function resolveCore({target, attacker = null, indirectAttacker = null, rawDamage, sourceKind, contact = null, guarded = false, perfect = false, policy = {}}) {
   const hpBefore = target?.hp ?? 0;
   /** @type {DamageResult} */
   const out = {rawDamage: 0, hpDamage: 0, shieldAbsorbed: 0, absorbedByDefense: 0, sturdy: false, perfect: !!perfect, guarded: !!guarded, sourceKind, contact: contact ?? null,

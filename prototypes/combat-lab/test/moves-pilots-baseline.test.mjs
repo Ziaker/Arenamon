@@ -16,7 +16,8 @@ const outDir = path.resolve('docs/overhaul-pilotos');
 // só se comparam os campos que o baseline já tinha (a mecânica — damage, HP, posições — segue exigida 100% igual).
 // F3.2: o ReactionResolver acrescenta displacementPolicy ('impulse' | 'displacement' | 'none' | 'force') — também só diagnóstico.
 // F3.4: o CombatEvent normalizado acrescenta os campos canônicos (eventId, outcome, attackerId, targetId, indirectAttackerId, position, normal) — cópias dos legados.
-const F3_FIELDS = ['rawDamage', 'hpDamage', 'shieldAbsorbed', 'sourceKind', 'displacementPolicy', 'eventId', 'outcome', 'attackerId', 'targetId', 'indirectAttackerId', 'position', 'normal'];
+// F6 (Task 14): o acerto corpo a corpo (combat.js) passa a levar `move` (id do Move que virou Tackle; null no Tackle comum) — só identificação, mesmo campo do applyHit.
+const F3_FIELDS = ['rawDamage', 'hpDamage', 'shieldAbsorbed', 'sourceKind', 'displacementPolicy', 'eventId', 'outcome', 'attackerId', 'targetId', 'indirectAttackerId', 'position', 'normal', 'move'];
 // F5: pontos de contato novos, SÓ nos pilotos que os ganharam — Sand Wave (x/z do alvo no contato) e Water Pulse (x/y/z nos contatos com mapa/arena
 // e `contactPoint` no acerto em lutador). Só diagnóstico do VFX; o Bullet Punch segue comparado inteiro.
 const F5_SAND = ['x', 'z'], F5_WATER = ['x', 'y', 'z', 'contactPoint'];

@@ -206,7 +206,8 @@ export function resolveHit(attacker, defender, normal, relative, force = false) 
   }
   if (defender.hp === 0) {defender.guard = false;defender.guardSuppressed = true;}
   if (damage > 0) {attacker.comboLeft = Math.max(attacker.comboLeft ?? 0, C.rules.comboWindow ?? 0);defender.hitSerial = (defender.hitSerial ?? 0) + 1;}   // acertou um golpe corpo a corpo: abre a janela de combo
-  return {attacker: attacker.id, target: defender.id, result: perfect ? 'perfect' : protectedFront ? 'partial' : 'impact', damage, ...damageEventFields(dmgResult), normal: {...normal}, launch: launchInfo, displacementPolicy, contact: 'tackle', ...(dmgResult.sturdy ? {sturdy: true} : {}), ...(attacker.action.slam ? {slam: true} : {}), ...(attacker.action.riposteStrike ? {riposte: true} : {}), ...(protectedFront && !perfect && isGuardBreak ? {guardBreak: true, broken: true, stun: defender.stun} : {})};
+  // F6: move = id do Move que virou Tackle (Lunge, Quick Attack, Guard Break, Bullet Punch, contra-golpe do Riposte); null = Tackle comum (mesmo contrato do applyHit)
+  return {attacker: attacker.id, target: defender.id, result: perfect ? 'perfect' : protectedFront ? 'partial' : 'impact', damage, ...damageEventFields(dmgResult), move: attacker.action.move ?? null, normal: {...normal}, launch: launchInfo, displacementPolicy, contact: 'tackle', ...(dmgResult.sturdy ? {sturdy: true} : {}), ...(attacker.action.slam ? {slam: true} : {}), ...(attacker.action.riposteStrike ? {riposte: true} : {}), ...(protectedFront && !perfect && isGuardBreak ? {guardBreak: true, broken: true, stun: defender.stun} : {})};
 }
 /**
  * Footstool (Plano D, Etapa 3): pisar na cabeça do adversário vindo de cima com o salto normal.
