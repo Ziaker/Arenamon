@@ -26,3 +26,6 @@ export * from './particles/quarks-contract';
 export * from './ui/preferences';
 export * from './ui/icons';
 export * from './ui/layout';
+export * from './ui/commands';
+export * from './ui/hierarchy';
+export * from './ui/inspector';

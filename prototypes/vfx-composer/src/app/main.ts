@@ -17,6 +17,8 @@ import {defaultEmitter, evaluateParticleBudget, simulateEmitter, type BlendMode,
 import type {QualityProfile} from '../core/budget';
 import {loadUiPreferences} from '../ui/preferences';
 import {mountWorkspaceLayout} from '../ui/layout';
+import {CommandRegistry, mountCommandPalette} from '../ui/commands';
+import {enhanceInspector} from '../ui/inspector';
 
 const phase = (duration: number) => ({enabled: true, duration, tracks: []});
 const initialProject = (): VfxProject => ({
@@ -102,6 +104,15 @@ $('.left').insertAdjacentHTML('beforeend', `<details id="academy-vfx"><summary><
 viewportRegion.querySelector('.view-tools')?.insertAdjacentHTML('beforeend', `<button id="maximize-viewport" title="Maximizar viewport" aria-label="Maximizar viewport">⛶</button>`);
 appRoot.insertAdjacentHTML('beforeend', `<footer id="authoring-timeline"><div class="timeline-placeholder"><strong>Timeline</strong><span>24 / 30 / 60 FPS</span></div></footer><div id="composer-status" role="status" aria-live="polite">Projeto pronto · Autoral</div>`);
 mountWorkspaceLayout(appRoot, loadUiPreferences(typeof localStorage === 'undefined' ? undefined : localStorage), typeof localStorage === 'undefined' ? undefined : localStorage);
+const click = (selector: string) => (): void => document.querySelector<HTMLButtonElement>(selector)?.click();
+mountCommandPalette(new CommandRegistry([
+  {id: 'frame', label: 'Enquadrar seleção', icon: 'frame', shortcut: 'F', isAvailable: () => true, execute: click('#frame-all')},
+  {id: 'keyframe', label: 'Adicionar keyframe', icon: 'keyframe', isAvailable: () => true, execute: click('#add-keyframe')},
+  {id: 'duplicate', label: 'Duplicar objeto', icon: 'create', shortcut: 'Ctrl+D', isAvailable: () => true, execute: click('#duplicate-node')},
+  {id: 'draw', label: 'Desenhar stroke', icon: 'stroke', isAvailable: () => true, execute: click('#draw-stroke')},
+  {id: 'emitter', label: 'Adicionar emissor', icon: 'emitter', isAvailable: () => true, execute: click('#add-emitter')},
+]), () => ({selectedId: document.querySelector('#selection')?.textContent ?? null}));
+enhanceInspector($('.right'));
 
 document.querySelector('.brand small')!.textContent = 'F3.2 · autoria determinística + preview three.quarks';
 document.querySelector('.top')!.insertAdjacentHTML('beforeend', `<nav class="workspace-tabs" aria-label="Workspaces"><button data-workspace="drawing" class="selected">Desenho</button><button data-workspace="animation">Animação</button><button data-workspace="textures">Texturas</button><button data-workspace="materials">Materiais</button><button data-workspace="particles">Partículas</button><button disabled title="F4">Integração · F4</button></nav>

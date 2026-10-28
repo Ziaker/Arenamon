@@ -71,3 +71,19 @@ test('workspace presets clamp panes and reference density without CSS zoom', () 
   assert.equal(api.DENSITY_TOKENS['reference-80'].scale, 1.25);
   assert.equal(api.DENSITY_TOKENS['reference-80'].usesCssZoom, false);
 });
+
+test('command registry searches labels and explains unavailable actions', () => {
+  const registry = new api.CommandRegistry([
+    {id: 'frame', label: 'Enquadrar seleção', icon: 'frame', isAvailable: context => Boolean(context.selectedId), unavailableReason: () => 'Selecione um objeto', execute: () => {}},
+    {id: 'keyframe', label: 'Adicionar keyframe', icon: 'keyframe', isAvailable: () => true, execute: () => {}},
+  ]);
+  assert.deepEqual(registry.search('enquadrar', {selectedId: null}).map(result => [result.command.id, result.available, result.reason]), [['frame', false, 'Selecione um objeto']]);
+  assert.deepEqual(registry.search('key', {}).map(result => result.command.id), ['keyframe']);
+});
+
+test('inspector groups follow object type and never retain stale fields', () => {
+  assert.deepEqual(api.inspectorGroupsForNode({kind: 'mesh'}), ['transform', 'appearance', 'geometry', 'animation']);
+  assert.deepEqual(api.inspectorGroupsForNode({kind: 'stroke'}), ['transform', 'appearance', 'drawing', 'animation']);
+  assert.deepEqual(api.inspectorGroupsForNode({kind: 'particles'}), ['transform', 'particles', 'budget']);
+  assert.deepEqual(api.inspectorGroupsForNode(null), []);
+});
