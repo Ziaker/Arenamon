@@ -29,3 +29,5 @@ export * from './ui/layout';
 export * from './ui/commands';
 export * from './ui/hierarchy';
 export * from './ui/inspector';
+export * from './ui/timeline-view';
+export * from './ui/status';

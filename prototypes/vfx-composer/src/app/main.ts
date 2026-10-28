@@ -19,6 +19,8 @@ import {loadUiPreferences} from '../ui/preferences';
 import {mountWorkspaceLayout} from '../ui/layout';
 import {CommandRegistry, mountCommandPalette} from '../ui/commands';
 import {enhanceInspector} from '../ui/inspector';
+import {TimelineView} from '../ui/timeline-view';
+import {StatusSurface} from '../ui/status';
 
 const phase = (duration: number) => ({enabled: true, duration, tracks: []});
 const initialProject = (): VfxProject => ({
@@ -191,6 +193,11 @@ try {
   }
 } catch { /* file:// pode negar storage; o editor continua em memória */ }
 const store = new DocumentStore(recovered);
+const timelineView = new TimelineView($('#authoring-timeline'), time => {
+  const scrub = document.querySelector<HTMLInputElement>('#timeline-scrub');
+  if (scrub) {scrub.value = String(time); scrub.dispatchEvent(new Event('input'));}
+});
+const statusSurface = new StatusSurface($('#composer-status'));
 let playback = {time: 0, duration: store.project.timeline.duration ?? 2, direction: 1 as 1 | -1, playing: false};
 let activeTexture: TextureDocument = store.project.textures?.[0] ?? createTextureDocument({id: 'mask-main', name: 'Máscara principal'});
 let materialGraph: MaterialGraph = store.project.materials?.[0] ?? {id: 'material-main', name: 'Material principal', outputNodeId: 'material-output', nodes: [{id: 'material-color', type: 'color', params: {color: '#44aaff'}}, {id: 'material-output', type: 'output', params: {roughness: .35, metalness: 0}}], connections: [{fromNodeId: 'material-color', fromPort: 'color', toNodeId: 'material-output', toPort: 'color'}]};
@@ -600,6 +607,8 @@ const TRACK_LABELS: Record<string, string> = {'position.x': 'Posição X', 'posi
 function syncTracks(): void {
   const node = selected(), list = $('#track-list'), hint = $('#track-hint');
   list.replaceChildren();
+  const duration = store.project.timeline.duration ?? playback.duration;
+  timelineView.update(store.project.timeline.tracks, {duration, markers: [{id: 'contact', time: Math.min(duration, duration * .45), label: 'Contato'}, {id: 'explosion', time: Math.min(duration, duration * .72), label: 'Explosão'}]});
   if (!node) {hint.textContent = 'Selecione um objeto para ver e remover keyframes.'; return;}
   const tracks = store.project.timeline.tracks.filter(track => track.targetId === node.id);
   if (!tracks.length) {hint.textContent = `Sem trilhas em ${node.id}. Use “+ Keyframe no tempo” ou “Explodir selecionados”.`; return;}
@@ -841,6 +850,7 @@ function updateDraftFromForm(): void {
 function refreshParticleReadout(): void {
   const emitters = currentEmitters();
   const budget = evaluateParticleBudget(emitters, qualityProfile, store.project.accessibility);
+  statusSurface.update({budget, recoveryNotice, backend: previewBackend, autosave: autosave ? 'saved' : 'pending'});
   const live = particlePreview.report;
   const quarks = quarksPreview.report;
   const plural = budget.cost.particles === 1 ? 'partícula' : 'partículas';

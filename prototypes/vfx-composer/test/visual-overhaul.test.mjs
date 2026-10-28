@@ -87,3 +87,29 @@ test('inspector groups follow object type and never retain stale fields', () => 
   assert.deepEqual(api.inspectorGroupsForNode({kind: 'particles'}), ['transform', 'particles', 'budget']);
   assert.deepEqual(api.inspectorGroupsForNode(null), []);
 });
+
+test('timeline groups existing tracks and exposes semantic visual markers', () => {
+  const tracks = [
+    {id: 'move-x', targetId: 'orb', property: 'position.x', keyframes: [{time: 0, value: 0, interpolation: 'linear'}, {time: .8, value: 4, interpolation: 'bezier'}]},
+    {id: 'fade', targetId: 'orb', property: 'opacity', keyframes: [{time: .8, value: 1, interpolation: 'linear'}, {time: 1.2, value: 0, interpolation: 'linear'}]},
+    {id: 'spin', targetId: 'ring', property: 'rotation.z', keyframes: [{time: 0, value: 0, interpolation: 'linear'}]},
+  ];
+  const view = api.timelineViewModel(tracks, {duration: 1.4, zoom: 99, selectedKeyframes: ['move-x@0'], markers: [{id: 'contact', time: .8, label: 'Contato'}, {id: 'explosion', time: 1.2, label: 'Explosao'}]});
+  assert.equal(view.zoom, 4);
+  assert.deepEqual(view.groups.map(group => [group.targetId, group.tracks.length]), [['orb', 2], ['ring', 1]]);
+  assert.equal(view.groups[0].tracks[0].family, 'transform');
+  assert.equal(view.groups[0].tracks[1].family, 'appearance');
+  assert.equal(view.groups[0].tracks[0].keyframes[0].selected, true);
+  assert.deepEqual(view.markers.map(marker => marker.kind), ['contact', 'explosion']);
+  assert.equal(api.clampTimelineZoom(.01), .5);
+});
+
+test('status model uses visual thresholds and accessible equivalents', () => {
+  const safe = api.statusViewModel({budget: {peak: 120, rawPeak: 160, suppressed: 40, activeEmitters: 2, cost: {particles: 120, lights: 0, drawCalls: 2}, verdict: {ok: true, violations: []}}, recoveryNotice: 'Snapshot recuperado', backend: 'quarks', autosave: 'saved'});
+  assert.equal(safe.budget.level, 'safe');
+  assert.match(safe.accessibleText, /120 partículas/i);
+  assert.match(safe.accessibleText, /Snapshot recuperado/);
+  const danger = api.statusViewModel({budget: {peak: 950, rawPeak: 950, suppressed: 0, activeEmitters: 5, cost: {particles: 950, lights: 0, drawCalls: 5}, verdict: {ok: false, violations: ['particles']}}, recoveryNotice: '', backend: 'authoring', autosave: 'pending'});
+  assert.equal(danger.budget.level, 'danger');
+  assert.equal(danger.autosave, 'pending');
+});
