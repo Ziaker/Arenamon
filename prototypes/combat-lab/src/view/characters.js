@@ -792,11 +792,33 @@ Character.stateStore = null;
 
 /** Variantes iniciais: manifesto do Studio; depois nomes exatos; depois palavras contidas no nome. */
 export function autoVariants(source) {
-  const map = autoMapping(source);return Object.fromEntries(Object.entries(map).map(([id, i]) => [id, [i]]));
+  const map = autoMapping(source);
+  const out = Object.fromEntries(Object.entries(map).map(([id, i]) => [id, [i]]));
+  if (Array.isArray(source.manifest?.extras)) {
+    for (const ex of source.manifest.extras) {
+      const act = ex.action || ex.alternativeFor;
+      const clipIdx = (ex.clipIndex != null && source.animations[ex.clipIndex]?.name === ex.clipName)
+        ? ex.clipIndex
+        : source.animations.findIndex(c => c.name === ex.clipName);
+      if (act && clipIdx >= 0) {
+        out[act] ??= [];
+        if (!out[act].includes(clipIdx)) out[act].push(clipIdx);
+      }
+    }
+  }
+  return out;
 }
 export function autoMapping(source) {
   const map = {}, clips = source.animations, norm = s => ` ${s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\.fbx\b/g, '').replace(/[^a-z0-9]+/g, ' ').trim()} `;
-  for (const [id, ref] of Object.entries(source.manifest?.actions || {})) if (ref && clips[ref.clipIndex]?.name === ref.clipName) map[id] = ref.clipIndex;
+  for (const [id, ref] of Object.entries(source.manifest?.actions || {})) {
+    if (!ref) continue;
+    if (clips[ref.clipIndex]?.name === ref.clipName) {
+      map[id] = ref.clipIndex;
+    } else {
+      const found = clips.findIndex(c => c.name === ref.clipName);
+      if (found >= 0) map[id] = found;
+    }
+  }
   const names = clips.map(c => norm(c.name));
   for (const pass of ['exact', 'contains']) for (const id of ACTION_IDS) {
     if (map[id] != null) continue;

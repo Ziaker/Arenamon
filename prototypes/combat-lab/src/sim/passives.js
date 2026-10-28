@@ -23,6 +23,7 @@ export function speciesFromName(name) {
   if (n.includes('drowzee')) return 'drowzee';
   if (n.includes('vigoroth')) return 'vigoroth';
   if (n.includes('mosh') || n.includes('mush') || n.includes('mushroom') || n.includes('cogumelo')) return 'mush';
+  if (n.includes('wookada')) return 'wookada';
   return null;
 }
 

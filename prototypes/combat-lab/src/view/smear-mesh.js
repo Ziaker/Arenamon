@@ -30,6 +30,10 @@ export function smearAnchors(character) {
     add(find(/^(?:left|l).*(?:claw|index4|middle4|fingerend)/) || hand('l'), 'Garra esquerda');
     add(find(/^(?:right|r).*(?:claw|index4|middle4|fingerend)/) || hand('r'), 'Garra direita');
     add(find(/crest|crista/) || head || character.model, 'Topo da crista', point(0, .98));
+  } else if (/wookada/i.test(character.source.name)) {
+    add(hand('l'), 'Punho esquerdo');
+    add(hand('r'), 'Punho direito');
+    add(head || character.model, 'Chifre', point(0, .96));
   } else {
     add(hand('l'), 'Punho esquerdo');add(hand('r'), 'Punho direito');
     if (/croagunk/i.test(character.source.name)) {

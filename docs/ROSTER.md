@@ -49,3 +49,19 @@ Este documento cataloga o elenco de lutadores e os modelos 3D integrados ao proj
   - Animações próprias: `idle`, `alt idle`, `move 1`, `attack 1`, `charge`, `recovery`.
 - **Pacote Mixamo na mesma pasta:** ~40 animações (hits, quedas, bloqueio, strafe etc.), também versionadas.
 - **Status:** disponível; ainda não carregado no laboratório (o lab importa `.glb`, então é preciso converter).
+
+
+---
+
+## 5. Wookada (Clayhorn Guardian) — personagem autoral
+
+- **Origem e direitos:** criado pelo responsável pelo projeto; livre de restrições, **versionado no Git** (exceção explícita no `.gitignore`).
+- **Pasta:** [`chars/wookada/`](../chars/wookada/)
+  - `wookada.glb` (modelo GLB com esqueleto Mixamo, 48 animações e manifesto `arenamonActions`).
+  - `modelo bom.fbx`, `Mutant Walking.fbx`, `Meshy_AI_Clayhorn_Guardian_*.fbx`.
+  - Pasta `wookada char/` com os clipes FBX individuais de origem.
+- **Locomoção e Animação:**
+  - Walk 8 direções: `Mutant Walking` cobre as 8 direções de caminhada; `sprint 8 dir` cobre corrida e sprint em 8 direções.
+  - Vários clipes do GLB trazem deslocamento horizontal da raiz (ex.: `roll foward`, `Mutant Jump Attack`, `tackle 5`). Não são neutralizados no arquivo: o lock de root motion do laboratório (padrão ligado) descarta X/Z da raiz e a posição vem só da física.
+  - Squash & Stretch com preservação de volume em torno do centro do corpo.
+- **Status:** **Em integração no laboratório de combate.** Não é personagem do jogo oficial: entra pela importação de GLB no laboratório (ver `docs/ANIMACOES_PERSONAGENS.md`). Pendências: validação visual no navegador, e a animação `Stabbing` como `move_2` ainda precisa de confirmação de compatibilidade com o Move.
