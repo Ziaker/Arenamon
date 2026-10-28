@@ -46,6 +46,12 @@ export const chromaNow = (E, pulses) => E.chromaOn ? E.chromaOffset + (E.chromaI
  * @param {(pos:{x:number,y:number,z:number}, strength:number)=>void} [shock] chamado em impactos fortes com a posição do alvo
  * @param {number} [minDamage]
  */
+/** O pós alimenta os pulsos neste quadro? Mesmas condições do View.renderPost: ligado, canvas com tamanho e fora do impact frame
+ * em silhueta (C08). Fora disso os eventos esperam (VfxDispatch.take('post', …)), como fazia o antigo postSeen. */
+export function postFeedsThisFrame(/** @type {any} */ P, /** @type {any} */ impactPhase, /** @type {number} */ w, /** @type {number} */ h) {
+  return !!P?.enabled && w > 0 && h > 0 && impactPhase !== 'white' && impactPhase !== 'invert';
+}
+
 export function feedPulses(sink, events, fighters, seen, shock, minDamage = 12) {
   for (const e of events) {
     if (seen) {if (seen.has(e)) continue;seen.add(e);}

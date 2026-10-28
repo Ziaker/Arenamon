@@ -16,6 +16,7 @@ import {SCENARIOS, runScenario} from '../src/sim/scenarios.js';
 import {runMoveScenarios} from '../src/sim/scenarios-moves.js';
 import {VfxDispatch, OWNERS, SEM_VISUAL, CHANNELS, MODES, particleOwner, applyParticleOwners} from '../src/view/vfx/dispatch.js';
 import {VfxRuntime} from '../src/view/vfx/runtime.js';
+import {feedPulses, postFeedsThisFrame} from '../src/view/post/post-params.js';
 import {registerAllEffects} from '../src/view/vfx/index.js';
 import {VfxSystem} from '../src/view/vfx.js';
 import {QuarksBridge} from '../src/view/quarks/bridge.js';
@@ -23,10 +24,10 @@ import {QuarksBridge} from '../src/view/quarks/bridge.js';
 registerStandardMoves();
 const here = dirname(fileURLToPath(import.meta.url)), src = join(here, '..', 'src');
 
-/** Todos os `result: '...'` literais escritos em src/sim (inclui os que nenhum cenário alcança). */
+/** Todo string entre aspas numa expressão `result: …` / `result = …` de src/sim (ternários incluídos; também os que nenhum cenário alcança). */
 function staticResults() {
   const out = new Set(), walk = (/** @type {string} */ d) => {
-    for (const n of readdirSync(d)) {const p = join(d, n);if (statSync(p).isDirectory()) walk(p);else if (p.endsWith('.js')) for (const m of readFileSync(p, 'utf8').matchAll(/result: ?'([A-Za-z]+)'/g)) out.add(m[1]);}
+    for (const n of readdirSync(d)) {const p = join(d, n);if (statSync(p).isDirectory()) walk(p);else if (p.endsWith('.js')) for (const m of readFileSync(p, 'utf8').matchAll(/\bresult\s*(?::|=(?!=))\s*([^,;}\n]*)/g)) for (const q of m[1].matchAll(/'([A-Za-z]+)'/g)) out.add(q[1]);}
   };
   walk(join(src, 'sim'));return out;
 }
@@ -48,7 +49,9 @@ function emittedResults() {
 test('cobertura: todo resultado emitido (cenários + IA) e todo literal de src/sim tem dono em OWNERS ou está em SEM_VISUAL', () => {
   const emitted = emittedResults();
   for (const r of ['impact', 'clash', 'partial', 'perfect', 'reflected', 'spawn']) assert.ok(emitted.has(r), `a varredura alcança ${r}`);
-  const all = new Set([...emitted, ...staticResults()]), missing = [...all].filter(r => !OWNERS[r] && !SEM_VISUAL.has(r));
+  const stat = staticResults();
+  for (const r of ['chargeCancel', 'chargeInterrupt', 'stoneClash', 'counter', 'buffered']) assert.ok(stat.has(r), `varredura estática pega ternário: ${r}`);
+  const all = new Set([...emitted, ...stat]), missing = [...all].filter(r => !OWNERS[r] && !SEM_VISUAL.has(r));
   assert.deepEqual(missing, [], 'resultados sem dono nem «sem visual»');
   const both = Object.keys(OWNERS).filter(r => SEM_VISUAL.has(r));
   assert.deepEqual(both, [], 'resultado não pode ter dono E estar em «sem visual»');
@@ -161,4 +164,28 @@ test('View.draw usa o despachante (sem conjuntos `seen` próprios) e reseta no v
   const s = readFileSync(join(src, 'view', 'view.js'), 'utf8');
   for (const k of ['this.dispatch.dispatch(events', 'this.dispatch.reset()', 'applyParticleOwners(']) assert.ok(s.includes(k), `view.js sem ${k}`);
   for (const k of ['legacySeen', 'auraSeen', 'postSeen', 'seenEvents']) assert.ok(!s.includes(k), `view.js ainda tem ${k}`);
+});
+
+test('pós-processamento: impact frame em silhueta e canvas 0×0 adiam o pulso (não perdem) — dispatch + take + feedPulses', () => {
+  const d = new VfxDispatch(), w = {}, P = {enabled: 1}, hit = {eventId: 1, result: 'impact', target: 1, damage: 30};
+  const fs = [{position: {x: 0, z: 0}}, {position: {x: 1, z: 0}, groundY: 0}];
+  const frame = (/** @type {any[]} */ evs, /** @type {any} */ phase, W = 800, H = 600) => {
+    d.dispatch(evs, {epoch: w});const out = /** @type {string[]} */ ([]);
+    feedPulses({trigger: (/** @type {string} */ k) => {out.push(k);}}, d.take('post', postFeedsThisFrame(P, phase, W, H)), fs, null);return out;
+  };
+  assert.deepEqual(frame([hit], 'white'), [], 'silhueta: o pós não alimenta');
+  assert.deepEqual(frame([hit], 'invert'), []);
+  assert.deepEqual(frame([hit], null), ['impact', 'attack'], 'primeiro quadro normal: o pulso do golpe chega');
+  assert.deepEqual(frame([hit], null), [], 'e só uma vez');
+  const h2 = {eventId: 2, result: 'clash', attacker: 0, target: 1};
+  assert.deepEqual(frame([hit, h2], null, 0, 0), [], 'canvas 0×0: espera');
+  assert.deepEqual(frame([hit, h2], null), ['impact', 'attack'], 'canvas volta: entrega');
+  assert.equal(postFeedsThisFrame({enabled: 0}, null, 800, 600), false);
+  assert.equal(postFeedsThisFrame(P, 'normal', 800, 600), true);
+});
+
+test('diagnóstico: excesso no acumulado de um consumidor adiado é contado (truncated)', () => {
+  const d = new VfxDispatch(), w = {}, evs = Array.from({length: 40}, (_, i) => ({eventId: i + 1, result: 'impact'}));
+  d.dispatch(evs, {epoch: w});d.take('post', false);
+  assert.equal(d.diagnostics().truncated, 8);d.dispatch(evs, {epoch: w});assert.equal(d.take('post', true).length, 32, 'quadro seguinte: os 32 mais recentes');
 });

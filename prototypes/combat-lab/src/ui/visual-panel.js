@@ -480,7 +480,8 @@ renderModeBox.querySelector('[data-vfx-runtime-btn="legacy"]')?.addEventListener
     const v = view.useNewVfx ? view.vfxRuntime : view.vfx;
     const rows = v.log ? v.log.slice(-18).reverse() : [];
     const beams = view.useNewVfx ? ` · ${v.stats.beamsActive ?? 0} lasers ativos` : '';
-    box.innerHTML = `<p class="muted">${v.stats.active ?? 0} partículas ativas · pico ${v.stats.peak} · ${v.stats.spawned} criadas${beams} · limite ${C.vfx.master.maxParticles}</p><table><tr><th>t</th><th>Efeito</th><th>Var.</th><th>Motivo do disparo</th></tr>${rows.map(e => `<tr><td>${e.t.toFixed(2)}</td><td>${escape(e.effect)}</td><td>${e.variant}</td><td>${escape(e.action || e.reason)}</td></tr>`).join('')}</table>`;
+    const dg = view.dispatch?.diagnostics?.(), disp = dg ? ` · eventos sem dono: ${dg.unknownTotal}${dg.unknownTotal ? ` (${escape(Object.keys(dg.unknown).join(', '))})` : ''} · adiados descartados: ${dg.truncated}` : '';   // F5: despachante de eventos visuais
+    box.innerHTML = `<p class="muted">${v.stats.active ?? 0} partículas ativas · pico ${v.stats.peak} · ${v.stats.spawned} criadas${beams} · limite ${C.vfx.master.maxParticles}${disp}</p><table><tr><th>t</th><th>Efeito</th><th>Var.</th><th>Motivo do disparo</th></tr>${rows.map(e => `<tr><td>${e.t.toFixed(2)}</td><td>${escape(e.effect)}</td><td>${e.variant}</td><td>${escape(e.action || e.reason)}</td></tr>`).join('')}</table>`;
   }
   let lastVfx = JSON.stringify(C.vfx);
   render();

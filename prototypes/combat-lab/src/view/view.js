@@ -33,7 +33,7 @@ import {ArenaScenery} from './scenery.js';
 import * as PP from 'postprocessing';
 import {PostPipeline} from './post/post-pipeline.js';
 import {COLLISION_OVERLAYS, drawCollisionOverlays} from './collision-overlays.js';
-import {feedPulses} from './post/post-params.js';
+import {feedPulses, postFeedsThisFrame} from './post/post-params.js';
 // F5: despachante único de eventos visuais (dedupe por eventId uma vez por quadro, dono por resultado/canal).
 import {VfxDispatch, applyParticleOwners} from './vfx/dispatch.js';
 
@@ -441,10 +441,13 @@ export class View {
     this.camera.updateMatrixWorld(true);
     // Atualiza overlays de apresentação (speedlines projetadas com a matriz final da câmera)
     this.cinematic?.renderOverlays?.(this.camera);
+    // C08: fase do impact frame (silhueta). O pós só consome eventos nos quadros em que alimenta os pulsos; nos outros (silhueta,
+    // canvas 0×0, pós desligado) eles esperam no despachante — sem isso o pulso dos golpes mais fortes se perdia.
+    const impactPhase = this.cinematic?.getImpactFramePhase?.();
+    const postEvents = this.dispatch.take('post', postFeedsThisFrame(C.vfx.post, impactPhase, w, h));
 
     if (w > 0 && h > 0) {
       // C08 — Impact Frame com Silhueta Real em WebGL (personagens brancos sobre fundo preto puro)
-      const impactPhase = this.cinematic?.getImpactFramePhase?.();
       let origBg = null;
       const hiddenElements = [];
       const swappedMeshes = [];
@@ -477,7 +480,7 @@ export class View {
         // Tempo de CPU do envio ao WebGL (não é tempo de GPU); o tempo de GPU, quando há suporte, vem da consulta de tempo.
         this.gpuTimer?.begin();t0 = now();
         // Pós-processamento experimental: só com C.vfx.post.enabled; impact frames (silhueta pura) e desligado usam o renderer atual.
-        if (!this.renderPost(fighters, fresh, paused ? 0 : dt, impactPhase, isKoSeq, w, h)) this.renderer.render(this.scene, this.camera);
+        if (!this.renderPost(fighters, postEvents, paused ? 0 : dt, impactPhase, isKoSeq, w, h)) this.renderer.render(this.scene, this.camera);
         tm.render = now() - t0;this.gpuTimer?.end();
       } finally {
         // Restaura cena ao normal imediatamente após a renderização do quadro mesmo se houver erro

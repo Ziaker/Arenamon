@@ -67,7 +67,7 @@ export const SEM_VISUAL = new Set([
   'itemCollected', 'itemSpawned', 'itemExpired', 'itemDropped', 'dropSpawned', 'expired', 'healedHp', 'healedStamina', 'shieldApplied', 'shieldExpired',
   'passiveEnded', 'passiveCycleSuspect', 'passiveReflect', 'passiveReady', 'passiveHeal', 'passiveBlocked', 'reflectCycle',
   'ledgeMantle', 'ledgeDrop', 'ledgeClimb', 'ledgeBlocked', 'pinEscape', 'feint', 'feintWhiff', 'riposte', 'chargeStart',
-  'bulletVanish', 'bulletNoTarget', 'arenaBounce',
+  'bulletVanish', 'bulletNoTarget', 'arenaBounce', 'chargeCancel', 'chargeInterrupt',
 ]);
 
 /** Dono das partículas do resultado no modo (quarks ligado tem precedência nos resultados que cobre); null = ninguém. */
@@ -89,7 +89,7 @@ export class VfxDispatch {
   constructor(owners = OWNERS, semVisual = SEM_VISUAL) {
     this.owners = owners;this.semVisual = semVisual;
     /** @type {any[]} */ this.fresh = [];
-    this.stats = {frames: 0, delivered: 0, resets: 0, unknownTotal: 0};
+    this.stats = {frames: 0, delivered: 0, resets: 0, unknownTotal: 0, truncated: 0};
     /** @type {Record<string, number>} */ this.unknownByResult = {};
     this.reset();this.stats.resets = 0;
   }
@@ -123,19 +123,23 @@ export class VfxDispatch {
     return {fresh, unknown};
   }
   /**
-   * Eventos novos para um consumidor que só consome quando está pronto (cinemática fora da pausa, sólidos com dt > 0):
+   * Eventos novos para um consumidor que só consome quando está pronto (cinemática fora da pausa, sólidos com dt > 0, pós-processamento
+   * só quando de fato alimenta os pulsos — ligado, canvas com tamanho e fora do impact frame em silhueta):
    * enquanto `ready` é falso acumula o `fresh` de cada quadro; quando volta entrega o acumulado + o deste quadro, uma única vez.
    * Chamar no máximo uma vez por quadro por chave, depois de dispatch().
    * @param {string} key @param {boolean} [ready]
    */
   take(key, ready = true) {
     const q = this.backlog.get(key);
-    if (!ready) {if (this.fresh.length) this.backlog.set(key, (q ?? []).concat(this.fresh).slice(-MAX_BACKLOG));return NONE;}
+    if (!ready) {
+      if (this.fresh.length) {const all = (q ?? []).concat(this.fresh);if (all.length > MAX_BACKLOG) this.stats.truncated += all.length - MAX_BACKLOG;this.backlog.set(key, all.slice(-MAX_BACKLOG));}
+      return NONE;
+    }
     if (!q) return this.fresh;
     this.backlog.delete(key);return q.concat(this.fresh);
   }
   /** Contadores para o painel/telemetria: desconhecidos por resultado, quadros, eventos entregues e reinícios. */
   diagnostics() {
-    return {unknown: {...this.unknownByResult}, unknownTotal: this.stats.unknownTotal, frames: this.stats.frames, delivered: this.stats.delivered, resets: this.stats.resets, deferred: Object.fromEntries([...this.backlog].map(([k, v]) => [k, v.length]))};
+    return {unknown: {...this.unknownByResult}, unknownTotal: this.stats.unknownTotal, truncated: this.stats.truncated, frames: this.stats.frames, delivered: this.stats.delivered, resets: this.stats.resets, deferred: Object.fromEntries([...this.backlog].map(([k, v]) => [k, v.length]))};
   }
 }
