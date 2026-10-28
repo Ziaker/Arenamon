@@ -16,7 +16,9 @@ Ordem do diretor: `ARENAMON_PROMPT_CLAUDE_PRE_JOGO_3_ESTILOS.docx` (22/10/2026).
 | `src/ui/menu-styles-model.js` (novo) | Cartas de Moves/passivas a partir dos catálogos reais (funções puras, testadas em Node). |
 | `src/ui/menu-styles.js` (novo) | As três telas: HTML, cliques, teclado, detalhe, reparentar prévias, preferência de estilo. |
 | `src/ui/menu-fx.js` (novo) | Feedback de seleção com **three.quarks** (`QuarksFx` na cena de cada prévia), três presets próprios. |
-| `src/ui/menu-preview.js` (modificado) | Expõe `scene`, `resize`, `onTick`, `modelHeight`; comportamento do menu atual intacto. |
+| `src/ui/menu-preview.js` (modificado) | Expõe `scene`, `resize`, `onTick`, `modelHeight`, `setTint`/`tint`; materiais próprios da prévia (copiados do GLB) para a cor da prévia não vazar no jogo nem no outro lutador. |
+| `src/view/character-colors.js` (novo) | Paleta do lutador (`auto`, azul, vermelho, amarelo, roxo), regra da automática e a mistura de cor usada pela prévia e pelo jogo. |
+| `src/view/characters.js` (modificado) | `Character.setTint(hex|null)`: clona o material na primeira aplicação e guarda a cor original em `userData.baseColor`; `null` restaura. |
 | `src/ui/input.js` (modificado, 1 linha) | Teclas do combate não valem com o foco dentro do menu estilizado (senão a tecla «roubava» o foco para a arena: nada de navegação por teclado). |
 | `src/menu-styles.css` + `build-lib.mjs` | CSS das três telas, concatenado ao mesmo `<style>` do build. |
 | `src/template.html`, `src/main.js` | Contêiner `#menu-styled` e ligação (`menuStyles`, exposto em `window.__lab`). |
@@ -76,6 +78,13 @@ Cada carta/slot tem a cor da sua **classe**, derivada dos dados reais (`menu-sty
 | Passiva Gatilho | amarelo | vermelho | âmbar |
 Uma legenda de cores aparece acima de cada lista. A moldura do estilo (painéis, nomes) mantém a cor-assinatura do HUD.
 
+## Cor do lutador (pedido do diretor, 28/10/2026)
+O menu atual (select **Cor** abaixo de Personagem) e as três telas (botões com bolinha de cor) oferecem **Automática**, **Azul**, **Vermelho**, **Amarelo** e **Roxo**. A escolha vale para a **prévia 3D e para o personagem da partida** (`Character.setTint`), inclusive em modelos sem textura; a cor é aplicada ao `color` de cada material, preservando o sombreado/brilho.
+- **Automática** mantém o comportamento antigo: com **modelos diferentes** ninguém é tingido; com o **mesmo modelo** nos dois espaços, o segundo lutador fica **vermelho**. Se o primeiro já escolheu vermelho, a automática do segundo usa azul para os dois nunca ficarem iguais.
+- **Escolha explícita** vence a automática e é gravada no workspace junto do loadout (`collect`/`apply`), então volta ao reabrir o laboratório e é reaplicada em `applyAll()` antes de `startMatch()`.
+- **Materiais separados:** cada lutador (e a prévia) passa a ter os próprios materiais na primeira coloração; tingir um **não** tinge o outro mesmo quando os dois usam o mesmo GLB. `setTint(null)` devolve a cor original do modelo.
+- **Força da cor:** modelos com textura recebem mistura mais discreta (60%); sem textura a cor domina (88%), para azul/vermelho/amarelo/roxo lerem de longe na arena.
+
 ## Comportamento
 - **Lutadores:** chips de personagem (carregado + salvos no workspace); sem salvos há aviso; sem modelo a prévia mostra «Prévia 3D indisponível»; sem WebGL o canvas some e o menu segue funcional.
 - **Moves (4 slots):** clique num slot para «armá-lo» e depois na carta (o Move muda de lugar); sem slot armado a carta vai ao primeiro slot livre; clicar numa carta equipada a desequipa; ✕ esvazia. Duplicata no mesmo lutador é impossível (o slot antigo esvazia); id inválido é recusado.
@@ -85,7 +94,7 @@ Uma legenda de cores aparece acima de cada lista. A moldura do estilo (painéis,
 - **three.quarks:** ao trocar personagem/Move/passiva (e ao trocar de estilo) nasce uma rajada curta no modelo: A faíscas vermelho/amarelo, B estrelas ciano/amarelo/magenta, C partículas suaves verde-água/azul (`ui/menu-fx.js`, presets `menuA/B/C`).
 
 ## Testes e evidências
-`test/prejogo.test.mjs` (Node, catálogo/regras) e `test/prejogo.browser.mjs` (Edge real, offline: 43 verificações — registro × candidatos, estado único, A→B→C→A sem perder nada, partida com o loadout visível, voltar ao menu, teclado, movimento reduzido, sem modelo, sem WebGL, 1280×720, 1920×1080 e viewport reduzida). Capturas: `prototypes/combat-lab/evidence/prejogo/` (`pre-jogo-{A,B,C}-{1280x720,1920x1080}.png`, `fidelidade-{A,B,C}-original-x-novo.png`).
+`test/prejogo.test.mjs` (Node, catálogo/regras e as cores de lutador: paleta, regra da automática, mistura) e `test/prejogo.browser.mjs` (Edge real, offline: 43 verificações — registro × candidatos, estado único, A→B→C→A sem perder nada, partida com o loadout visível, voltar ao menu, teclado, movimento reduzido, sem modelo, sem WebGL, 1280×720, 1920×1080 e viewport reduzida). Cores no navegador: `test/character-colors.browser.mjs` (automática vermelha com o mesmo modelo, quatro cores explícitas na prévia e no Character do jogo, materiais não compartilhados, `setTint(null)` restaura e a escolha persiste/volta com `apply`). Capturas: `prototypes/combat-lab/evidence/prejogo/` (`pre-jogo-{A,B,C}-{1280x720,1920x1080}.png`, `fidelidade-{A,B,C}-original-x-novo.png`).
 
 ## Defeitos achados no caminho (revisão e testes)
 - **Pré-existente e grave — o jogo parava com um modelo sem clipe de «idle»:** com Cogumelo × `drowzee-knockback.glb` (1 clipe) a partida lançava `TypeError` no laço de desenho em ~90% das tentativas (11/12 na build oficial v1.20.1) quando alguém carregava um Move (ex.: Psyshock da IA). Causa: `Character.actionFor` devolvia o texto `'idle'` (e `'tackle'`) como reserva mesmo sem variante, e `enter()` recebia índice indefinido. Corrigido em `view/characters.js`; teste novo em `animation.test.mjs`; confirmado 0/12 na build nova.

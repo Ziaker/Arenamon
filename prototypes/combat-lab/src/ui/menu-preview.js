@@ -1,5 +1,5 @@
 // Prévia 3D miniatura do lutador na Seleção Rápida do menu: renderizador three.js separado, com o modelo
-// CLONADO a partir do Character carregado (geometrias/materiais compartilhados, esqueleto independente),
+// CLONADO a partir do Character carregado (geometria compartilhada, materiais próprios e esqueleto independente),
 // animação de “parado” em loop e giro lento. Respeita “movimento reduzido” (vfx.master.reduceMotion):
 // sem giro, só a animação. Sem WebGL, o canvas some e sobra o nome do personagem.
 //
@@ -11,6 +11,7 @@
 import * as T from 'three';
 import {clone} from 'three/addons/utils/SkeletonUtils.js';
 import {C} from '../sim/config.js';
+import {tintColor} from '../view/character-colors.js';
 
 let W0 = 230, H0 = 170;   // tamanho padrão da prévia do menu atual; as telas A/B/C pedem outro por `resize`
 
@@ -30,6 +31,7 @@ export function createMenuPreview(canvas, {tint = null} = {}) {
   let renderer = null, scene = null, camera = null, W = W0, H = H0;
   let holder = null, obj = null, mixer = null, action = null, source = null, idleIdx = -1;
   let disc = null, ring = null, shadow = null;
+  let tintHex = tint || null;   // cor do lutador (hex) aplicada só nos materiais DESTA prévia
   let modelH = 1.2;
   const size = new T.Vector3(1, 1, 1), look = new T.Vector3(0, .6, 0);
   const tickHooks = new Set();   // ganchos por quadro (feedback three.quarks das telas A/B/C)
@@ -113,6 +115,21 @@ export function createMenuPreview(canvas, {tint = null} = {}) {
     try {new ResizeObserver(() => resize()).observe(canvas);} catch { /* sem observador: o tick confere o tamanho */ }
   }
 
+  /** Aplica a cor escolhida só nos materiais DESTA prévia (o personagem do jogo pode estar tingido com outra). */
+  function applyTint() {
+    if (!obj) return;
+    obj.traverse(o => {
+      if (!o.isMesh || !o.material) return;
+      const paint = m => {if (m?.color) m.color.copy(tintColor(m.userData?.baseColor, tintHex, !!m.map));return m;};
+      o.material = Array.isArray(o.material) ? o.material.map(paint) : paint(o.material);
+    });
+  }
+  /** Troca a cor do lutador na prévia (`null` devolve a cor original do modelo). */
+  function setTint(hex) {
+    tintHex = hex || null;
+    applyTint();
+  }
+
   /** Troca o personagem exibido. `ch` é a instância Character do lutador (ou null para esvaziar). */
   function setCharacter(ch) {
     if (!renderer) return;
@@ -122,7 +139,20 @@ export function createMenuPreview(canvas, {tint = null} = {}) {
     source = ch;
     obj = clone(ch.root);
     obj.rotation.set(0, 0, 0);obj.position.set(0, 0, 0);
-    if (tint) obj.traverse(o => {if (o.isMesh) {const mats = [].concat(o.material).map(m => {const c = m.clone();c.color?.lerp(new T.Color(tint), .35);return c;});o.material = Array.isArray(o.material) ? mats : mats[0];}});
+    // Materiais próprios da prévia: o Character em partida e a prévia compartilham o material do GLB, então
+    // tingir a prévia mudaria o jogo (e vice-versa). A cor original vem de `userData.baseColor` quando o
+    // personagem do jogo já está tingido.
+    obj.traverse(o => {
+      if (!o.isMesh || !o.material) return;
+      const own = m => {
+        if (!m?.color) return m;
+        const c = m.clone();
+        c.userData = {...(c.userData || {}), previewColor: true, baseColor: m.userData?.baseColor ?? m.color.getHex()};
+        return c;
+      };
+      o.material = Array.isArray(o.material) ? o.material.map(own) : own(o.material);
+    });
+    applyTint();
     // O giro lento fica no agrupador, com o modelo centrado na origem: ele roda no lugar em vez de orbitar.
     holder = new T.Group();holder.add(obj);scene.add(holder);
     // Toca o “idle” ANTES de medir: a pose animada é a que precisa tocar o disco.
@@ -158,5 +188,5 @@ export function createMenuPreview(canvas, {tint = null} = {}) {
     for (const fn of [...tickHooks]) {try {fn(dt);} catch (e) {tickHooks.delete(fn);console.error('menu-preview: gancho de tick removido após falha', e);}}
     renderer.render(scene, camera);
   }
-  return {setCharacter, tick, resize, onTick: fn => {tickHooks.add(fn);return () => tickHooks.delete(fn);}, canvas, get scene() {return scene;}, get camera() {return camera;}, get renderer() {return renderer;}, get ok() {return !!renderer;}, get hasModel() {return !!obj;}, get modelHeight() {return modelH;}};
+  return {setCharacter, setTint, tick, resize, onTick: fn => {tickHooks.add(fn);return () => tickHooks.delete(fn);}, canvas, get scene() {return scene;}, get camera() {return camera;}, get renderer() {return renderer;}, get ok() {return !!renderer;}, get hasModel() {return !!obj;}, get modelHeight() {return modelH;}, get tint() {return tintHex;}};
 }

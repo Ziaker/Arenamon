@@ -29,6 +29,13 @@
 .qs-nomodel{position:absolute;inset:0;display:grid;place-items:center;font-size:12px;text-align:center;padding:8px}
 .qs-chars{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
 .qs-chip{padding:3px 9px;font-size:11.5px;cursor:pointer;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.qs-colors{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.qs-color{display:flex;align-items:center;gap:5px;padding:2px 8px 2px 4px;font-size:10.5px;line-height:16px;cursor:pointer;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.2);border-radius:99px;color:inherit;opacity:.8}
+.qs-color:hover,.qs-color.on{opacity:1}
+.qs-color.on{border-color:#fff;box-shadow:0 0 0 1px #fff inset}
+.qs-swatch{width:13px;height:13px;border-radius:50%;background:var(--c,#9bb0c3);border:1px solid #0008;display:grid;place-items:center;font-size:8px;font-weight:800;color:#fff;flex:none}
+.qs-color.auto .qs-swatch{background:linear-gradient(135deg,#3f7cff 0 50%,#ff4d47 50% 100%)}
+.qs-color-name{white-space:nowrap}
 .qs-note{margin:4px 0;font-size:11px;opacity:.8}
 .qs-detail{margin-top:8px;min-height:92px;display:flex;flex-direction:column;gap:3px;font-size:12px;line-height:1.3;padding:8px 10px}
 .qs-detail b{font-size:13px}.qs-detail em{font-style:normal;opacity:.85;font-size:11.5px}.qs-detail i{font-style:normal;font-weight:700}.qs-hint{opacity:.7}

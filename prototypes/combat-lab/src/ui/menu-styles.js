@@ -5,6 +5,7 @@
 import {iconSvg} from '../../../hud-moves/src/data.js';
 import {createMenuFx} from './menu-fx.js';
 import {moveCatalog, passiveCatalog, invalidReasons, usageLine, PASSIVE_SLOTS, MOVE_CLASSES, PASSIVE_CLASSES} from './menu-styles-model.js';
+import {COLOR_OPTIONS} from '../view/character-colors.js';
 
 const STYLES = [
   {id: 'none', rotulo: 'Atual', desc: 'Menu de seleção atual (sem estilo)'},
@@ -66,11 +67,14 @@ export function createMenuStyles({$, quickMenu, ui, info = {}, keys = (_s, i) =>
     const chips = [`<button type="button" class="qs-chip${!selChar ? ' on' : ''}" data-act="char" data-s="${s}" data-id="" aria-pressed="${!selChar}">Carregado${ch.loaded ? `: ${esc(ch.loaded)}` : ''}</button>`,
       ...ch.saved.filter((/** @type {any} */ a) => a.id !== ch.loadedId || selChar === a.id).map((/** @type {any} */ a) => `<button type="button" class="qs-chip${selChar === a.id ? ' on' : ''}" data-act="char" data-s="${s}" data-id="${esc(a.id)}" aria-pressed="${selChar === a.id}">${esc(a.name)}</button>`)].join('');
     const t = tip[s] ? detailOf(s, tip[s] ?? '', cat) : '';
+    const colorPick = quickMenu.colorPick(s);
+    const colors = COLOR_OPTIONS.map(c => `<button type="button" class="qs-color${colorPick === c.id ? ' on' : ''}${c.hex ? '' : ' auto'}" data-act="color" data-s="${s}" data-id="${c.id}" aria-pressed="${colorPick === c.id}" title="${esc(c.label)}${c.hex ? '' : ' (vermelho quando os dois usam o mesmo modelo)'}"${c.hex ? ` style="--c:${c.hex}"` : ''}><span class="qs-swatch" aria-hidden="true">${c.hex ? '' : 'A'}</span><span class="qs-color-name">${esc(c.label)}</span></button>`).join('');
     return `<section class="qs-fighter" data-fighter="${s}" aria-label="${esc(SIDE[s].nome)}">
       <header class="qs-head"><h3 class="qs-title">${esc(SIDE[s].nome)}</h3><span class="qs-species">${species ? `espécie: ${esc(species)}` : 'espécie não identificada'}</span></header>
       <div class="qs-left"><div class="qs-stage"><div class="qs-preview-slot" data-s="${s}"></div><span class="qs-charname">${esc(ui.sources[s]?.name ?? 'Sem modelo carregado')}</span><span class="qs-nomodel" hidden>Prévia 3D indisponível</span></div>
       <div class="qs-chars" role="group" aria-label="Personagem do ${esc(SIDE[s].marca.toLowerCase())}">${chips}</div>
       ${ch.saved.length ? '' : '<p class="qs-note">Nenhum personagem salvo no workspace: usando o carregado.</p>'}
+      <div class="qs-colors" role="group" aria-label="Cor do lutador">${colors}</div>
       <div class="qs-detail" aria-live="polite">${t ? t : '<span class="qs-hint">Passe o mouse ou foque uma carta para ver a descrição e o uso.</span>'}</div></div>
       <div class="qs-right"><div class="qs-block"><h4>Moves <small>4 slots</small></h4>
         <div class="qs-slots" role="group" aria-label="Slots de Moves">${[0, 1, 2, 3].map(i => slotBtn(s, i, cat)).join('')}</div>
@@ -137,6 +141,7 @@ export function createMenuStyles({$, quickMenu, ui, info = {}, keys = (_s, i) =>
         quickMenu.setPassive(s, free >= 0 ? free : PASSIVE_SLOTS - 1, id);break;   // sem espaço livre: a última escolha cede (mesma regra do painel)
       }
       case 'char': quickMenu.selectCharacter(s, id || null);break;
+      case 'color': quickMenu.setColor(s, id || 'auto');break;
     }
   });
   const showTip = (/** @type {Event} */ e) => {

@@ -36,7 +36,7 @@ export function fold(title, key, body, {open = false, count = null} = {}) {
 export function createCharacterPanel({ui, view, $, onCharactersChanged, hooks = {}}) {
   function setCharacter(id, source) {
     ui.characters[id]?.dispose();ui.characters[id] = null;ui.sources[id] = source;
-    if (source) {const ch = new Character(source, {tint: id === 1 && (ui.sources[0] === source || ui.sources[0]?.name === source.name) ? '#ff5a4a' : null, slot: id});view.scene.add(ch.root);ui.characters[id] = ch;ch.warmGround();ch.validation = validateModel(source, ch, source.bytes);ch.importValidations = [];}
+    if (source) {const ch = new Character(source, {slot: id});view.scene.add(ch.root);ui.characters[id] = ch;ch.warmGround();ch.validation = validateModel(source, ch, source.bytes);ch.importValidations = [];}
     view.setCharacter(id, ui.characters[id]);render();onCharactersChanged();
   }
   /** Validação do modelo e das animações importadas: veredito, ressalvas e detalhe por clipe (com prévia). */

@@ -24,6 +24,7 @@ import {angleOf, angleDelta, length} from '../sim/math.js';
 import {mulberry} from '../sim/ai.js';
 import {fromGlbEvents, extractClipDuration} from '../sim/animation-combat-windows.js';
 import {sniffFormat} from './validate.js';
+import {tintColor} from './character-colors.js';
 
 /** Ordem de preferência por estado (a primeira ação com animação associada é usada). */
 export const STATE_ACTIONS = {
@@ -159,7 +160,9 @@ export class Character {
     this.transient = null;this.wasGuard = false;this.seenEvents = new WeakSet();this.statesSeen = new Set();this.preview = null;this.visualFreeze = 0;
     this.stableLoco = null;this.locoCandidate = null;this.locoCandidateAt = 0;this.prevAction = null;this.actionSerial = 0;this.log = [];this.transitions = 0;this.restartsAvoided = 0;
     this.groundCache = new Map();this.groundOffset = 0;
-    this.root.traverse(o => {if (o.isMesh) {o.frustumCulled = false;o.castShadow = false;if (tint) {const mats = [].concat(o.material).map(m => {const c = m.clone();c.color?.lerp(new T.Color(tint), .35);return c;});o.material = Array.isArray(o.material) ? mats : mats[0];}}});
+    this.tintClones = new Map();this.tintHex = null;
+    this.root.traverse(o => {if (o.isMesh) {o.frustumCulled = false;o.castShadow = false;}});
+    this.setTint(tint);
     this.root.updateMatrixWorld(true);
     const box = new T.Box3().setFromObject(this.root);this.restHeight = Math.max(1e-3, box.max.y - box.min.y);this.restMinY = box.min.y;
     this.hips = null;this.root.traverse(o => {if (!this.hips && o.isBone && /hip|pelvis|root/i.test(o.name)) this.hips = o;});
@@ -832,6 +835,34 @@ export class Character {
     for (const {slot, cast, name} of moves) set(cast, own('move_' + (slot + 1)), `move_${slot + 1} (${name})`);
     // As janelas marcadas no Studio (hitbox, invulnerabilidade) servem só para comparação: nunca alteram as regras.
     return out;
+  }
+  /**
+   * Tingi o personagem inteiro com a cor de lutador (`hex`) ou devolve os materiais à cor original (`null`).
+   * Os materiais são CLONADOS na primeira aplicação: dois lutadores com o mesmo GLB compartilham materiais no
+   * three.js, então tingir um não pode tingir o outro. A cor original fica em `userData.baseColor` (número,
+   * cópia JSON segura — `Material.copy` clona `userData`).
+   */
+  setTint(hex) {
+    const target = hex ? '#' + new T.Color(hex).getHexString() : null;
+    this.tintHex = target;
+    this.root.traverse(o => {
+      if (!o.isMesh || !o.material) return;
+      const mat = m => {
+        if (!m?.color) return m;
+        // O material já pode ser o clone tingido (a malha passou a usá-lo na aplicação anterior).
+        let c = m.userData?.arenamonTint ? m : this.tintClones.get(m);
+        if (!c) {
+          if (!target) return m;   // nunca tingido: nada a restaurar
+          c = m.clone();
+          c.userData = {...(c.userData || {}), arenamonTint: true, baseColor: m.userData?.baseColor ?? m.color.getHex()};
+          this.tintClones.set(m, c);
+        }
+        c.color.copy(tintColor(c.userData.baseColor, target, !!c.map));
+        return c;
+      };
+      o.material = Array.isArray(o.material) ? o.material.map(mat) : mat(o.material);
+    });
+    return this.tintHex;
   }
   dispose() {this.disposed = true;clearTimeout(this.warmTimer);this.mixer.stopAllAction();this.mixer.uncacheRoot(this.model);this.root.removeFromParent();}
 }

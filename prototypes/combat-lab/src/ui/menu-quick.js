@@ -5,6 +5,7 @@
 import {listMoves} from '../sim/moves.js';
 import {PASSIVE_SLOTS, exclusivePassives, genericPassives, speciesFromName, validateLoadout} from '../sim/passives.js';
 import {createMenuPreview} from './menu-preview.js';
+import {COLOR_OPTIONS, COLOR_IDS, colorHex, effectiveColor, sameModel} from '../view/character-colors.js';
 
 const escape = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
 const SLOTS = [0, 1];
@@ -19,6 +20,7 @@ export function createQuickMenu({$, game, ui, passivesPanel}) {
   };
   const state = {
     char: [null, null],                                  // modelId salvo para reaplicar ao reabrir (null = manter o carregado)
+    color: ['auto', 'auto'],                             // cor do lutador: automática, azul, vermelho, amarelo ou roxo
     moves: [defaults(), defaults()],
     passives: [[null, null], [null, null]],
   };
@@ -35,15 +37,41 @@ export function createQuickMenu({$, game, ui, passivesPanel}) {
   // Eventos de mudança (as telas A/B/C se redesenham a partir do MESMO estado; nada é guardado por tema).
   const listeners = new Set();
   const emit = (type, slot) => {for (const fn of [...listeners]) {try {fn({type, slot});} catch (e) {console.error('menu-quick: ouvinte falhou', e);}}};
-  const previews = [createMenuPreview($('quick-preview-0')), createMenuPreview($('quick-preview-1'), {tint: '#ff5a4a'})];
+  const previews = [createMenuPreview($('quick-preview-0')), createMenuPreview($('quick-preview-1'))];
 
   // ---------- Personagem (modelo) ----------
   function updateCharLabel(slot) {
     const el = $(`quick-char-name-${slot}`);
     if (el) el.textContent = ui.sources[slot]?.name ?? 'Sem modelo carregado';
   }
+  // ---------- Cor do lutador (prévia + personagem da partida) ----------
+  const sameFighters = () => sameModel(ui.sources[0], ui.sources[1]);
+  /** Cor efetiva do espaço: 'auto' vira vermelho/azul quando os dois usam o mesmo modelo. */
+  const colorOf = slot => effectiveColor(slot, state.color[slot], state.color[1 - slot], sameFighters());
+  function syncColorSelect(slot) {
+    const sel = $(`quick-color-${slot}`);
+    if (sel && sel.value !== state.color[slot]) sel.value = state.color[slot];
+  }
+  /** Aplica a cor nos DOIS lutadores: prévia 3D e Character usado na partida. */
+  function applyColors() {
+    for (const slot of SLOTS) {
+      const hex = colorHex(colorOf(slot));
+      previews[slot].setTint(hex);
+      ui.characters[slot]?.setTint?.(hex);
+    }
+  }
+  /** ÚNICO caminho de escrita da cor (select do menu atual e botões das telas A/B/C). */
+  function setColor(slot, id) {
+    if (!SLOTS.includes(slot)) return false;
+    state.color[slot] = COLOR_IDS.includes(id) ? id : 'auto';
+    syncColorSelect(slot);
+    applyColors();
+    emit('color', slot);
+    return true;
+  }
   function updatePreview(slot) {
     previews[slot].setCharacter(ui.characters[slot]);
+    previews[slot].setTint(colorHex(colorOf(slot)));
     updateCharLabel(slot);
   }
   /** O <select> nativo acompanha SEMPRE o estado (senão refreshModels() leria o valor velho e desfaria a escolha feita nas telas A/B/C). */
@@ -55,7 +83,7 @@ export function createQuickMenu({$, game, ui, passivesPanel}) {
   function selectChar(slot, modelId) {
     state.char[slot] = modelId;
     syncCharSelect(slot, modelId);
-    const done = () => {renderPassives(slot);updatePreview(slot);emit('char', slot);};   // a espécie pode mudar com o modelo
+    const done = () => {renderPassives(slot);updatePreview(slot);applyColors();emit('char', slot);};   // a espécie/cor podem mudar com o modelo
     if (!modelId) {done();return Promise.resolve();}   // “manter o carregado”
     const run = async () => {
       if (ui.sources[slot]?.assetId !== modelId) {
@@ -160,10 +188,16 @@ export function createQuickMenu({$, game, ui, passivesPanel}) {
     return true;
   }
 
-  // ---------- Ligação dos seletores de personagem ----------
+  // ---------- Ligação dos seletores de personagem e cor ----------
   for (const slot of SLOTS) {
     const sel = $(`quick-char-${slot}`);
     if (sel) sel.onchange = () => selectChar(slot, sel.value || null);
+    const csel = $(`quick-color-${slot}`);
+    if (csel) {
+      csel.replaceChildren(...COLOR_OPTIONS.map(c => new Option(c.label, c.id)));
+      csel.value = state.color[slot];
+      csel.onchange = () => setColor(slot, csel.value);
+    }
   }
 
   // ---------- Laço da prévia (só desenha com o menu visível) ----------
@@ -177,21 +211,26 @@ export function createQuickMenu({$, game, ui, passivesPanel}) {
   })(performance.now());
 
   // ---------- Inicialização dos controles ----------
-  for (const slot of SLOTS) {renderMoves(slot);renderPassives(slot);updatePreview(slot);}
+  for (const slot of SLOTS) {renderMoves(slot);renderPassives(slot);updatePreview(slot);syncColorSelect(slot);}
+  applyColors();
 
   // ---------- API ----------
   return {
     /** Chamar quando o workspace terminar de inicializar (store/wsUI disponíveis). */
     attachWorkspace(boot) {store = boot?.store ?? null;wsUI = boot?.wsUI ?? null;return refreshModels();},
-    /** Modelos/personagens mudaram (carregado, removido, importado): repõe lista e prévias. */
-    refresh() {renderPassives(0);renderPassives(1);updatePreview(0);updatePreview(1);emit('char', -1);return refreshModels();},
-    /** Aplica tudo no jogo (chamar antes de startMatch): moves dos dois lutadores + passivas no painel. */
+    /** Modelos/personagens mudaram (carregado, removido, importado): repõe lista, prévias e cores. */
+    refresh() {renderPassives(0);renderPassives(1);updatePreview(0);updatePreview(1);applyColors();emit('char', -1);return refreshModels();},
+    /** Aplica tudo no jogo (chamar antes de startMatch): moves dos dois lutadores + passivas no painel + cores. */
     applyAll() {
       for (const slot of SLOTS) game.setLoadout(slot, state.moves[slot]);
       for (const slot of SLOTS) passivesPanel.state.loadouts[slot] = state.passives[slot].filter(Boolean);
       passivesPanel.render();   // recalcula identidade pelos nomes, valida (R5) e persiste em localStorage
+      applyColors();
     },
-    setMove, setPassive,
+    setMove, setPassive, setColor,
+    /** Cor escolhida ('auto' | 'blue' | 'red' | 'yellow' | 'purple') e cor efetiva (null = sem tingimento). */
+    colorPick: slot => state.color[slot],
+    colorOf,
     /** Seleciona o personagem (modelo salvo) do lutador; null = manter o carregado. */
     selectCharacter: (slot, modelId) => selectChar(slot, modelId || null),
     /** Personagens disponíveis (modelos salvos no workspace) + o que está carregado agora. */
@@ -200,7 +239,7 @@ export function createQuickMenu({$, game, ui, passivesPanel}) {
     /** Assina mudanças (tipo: 'move' | 'passive' | 'char'); devolve a função que cancela. */
     onChange(fn) {listeners.add(fn);return () => listeners.delete(fn);},
     get previews() {return previews;},
-    collect() {return {char: [...state.char], moves: state.moves.map(a => [...a]), passives: state.passives.map(a => [...a])};},
+    collect() {return {char: [...state.char], color: [...state.color], moves: state.moves.map(a => [...a]), passives: state.passives.map(a => [...a])};},
     apply(saved) {
       if (!saved) return;
       for (const slot of SLOTS) {
@@ -218,7 +257,9 @@ export function createQuickMenu({$, game, ui, passivesPanel}) {
           renderPassives(slot);
         }
         if (typeof saved.char?.[slot] === 'string' && saved.char[slot]) pendingChar[slot] = saved.char[slot];
+        if (COLOR_IDS.includes(saved.color?.[slot])) {state.color[slot] = saved.color[slot];syncColorSelect(slot);}
       }
+      applyColors();
       emit('init', -1);
     },
     get state() {return state;},

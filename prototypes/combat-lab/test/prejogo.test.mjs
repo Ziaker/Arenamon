@@ -9,6 +9,7 @@ import {registerMove} from '../src/sim/moves.js';
 import {MOVE_INFO} from '../src/ui/moves-panel.js';
 import {moveCatalog, passiveCatalog, invalidReasons, iconForMove, keyLabel, usageLine, MOVE_ICON, moveClass, MOVE_CLASSES, PASSIVE_CLASSES} from '../src/ui/menu-styles-model.js';
 import {genericPassives, exclusivePassives, PASSIVE_SPECIES, PASSIVES} from '../src/sim/passives.js';
+import {COLOR_IDS, colorHex, effectiveColor, sameModel, tintColor} from '../src/view/character-colors.js';
 
 let passed = 0, failed = 0;
 const test = (name, fn) => {try {fn();passed++;console.log(`  ✓ ${name}`);} catch (e) {failed++;console.error(`  ✗ ${name}: ${e.message}`);}};
@@ -67,6 +68,36 @@ test('invalidReasons repete as regras do painel/motor: duplicata, exclusiva de o
   assert.ok(invalidReasons([g[0], g[0]], 'mush').length > 0, 'duplicata');
   assert.ok(invalidReasons([ex], 'mush').length > 0, 'exclusiva de outra espécie');
   assert.ok(invalidReasons([g[0], g[1], g[2]], 'mush').length > 0, 'mais de 2');
+});
+
+console.log('\n--- PRÉ-JOGO: CORES DE LUTADOR ---\n');
+test('paleta: automática + azul, vermelho, amarelo e roxo com hex válido', () => {
+  assert.deepEqual(COLOR_IDS, ['auto', 'blue', 'red', 'yellow', 'purple']);
+  assert.equal(colorHex('auto'), null);
+  for (const id of ['blue', 'red', 'yellow', 'purple']) assert.match(colorHex(id), /^#[0-9a-f]{6}$/);
+  assert.equal(colorHex('rosa'), null, 'cor fora da paleta não tinge');
+});
+test('automática só tinge o SEGUNDO lutador quando os modelos são iguais', () => {
+  assert.equal(effectiveColor(0, 'auto', 'auto', true), null, 'primeiro mantém o modelo original');
+  assert.equal(effectiveColor(1, 'auto', 'auto', true), 'red', 'mesmo modelo: adversário fica vermelho');
+  assert.equal(effectiveColor(1, 'auto', 'auto', false), null, 'modelos diferentes: sem tingimento');
+  assert.equal(sameModel({name: 'wookada.glb'}, {name: 'wookada.glb'}), true);
+  assert.equal(sameModel({name: 'wookada.glb'}, {name: 'cogumelo.glb'}), false);
+  assert.equal(sameModel(null, {name: 'wookada.glb'}), false);
+});
+test('cor explícita vence a automática; a automática nunca repete o vermelho do outro', () => {
+  assert.equal(effectiveColor(0, 'blue', 'auto', true), 'blue');
+  assert.equal(effectiveColor(1, 'purple', 'auto', true), 'purple');
+  assert.equal(effectiveColor(1, 'auto', 'red', true), 'blue', 'os dois nunca ficam iguais');
+  assert.equal(effectiveColor(0, 'auto', 'red', true), null);
+  assert.equal(effectiveColor(0, 'rosa', 'auto', true), null, 'id inválido cai na automática');
+});
+test('tintColor preserva a cor original sem cor e é mais forte em modelo sem textura', () => {
+  const base = tintColor(0x123456, null, false);
+  assert.equal(base.getHex(), 0x123456);
+  const plain = tintColor(0x888888, '#ff0000', false), mapped = tintColor(0x888888, '#ff0000', true);
+  const dist = c => Math.hypot(c.r - 1, c.g, c.b);
+  assert.ok(dist(plain) < dist(mapped), 'sem textura fica mais perto do vermelho');
 });
 
 console.log(`\n${passed} passaram, ${failed} falharam`);
