@@ -1,0 +1,90 @@
+{
+  "geradoEm": "2026-10-28T17:03:08.234Z",
+  "layout": "padrao",
+  "viewport": {
+    "w": 1400,
+    "h": 900
+  },
+  "efeitos": {
+    "sand-wave-ativo": {
+      "layout": "padrao",
+      "viewport": {
+        "w": 1400,
+        "h": 900
+      },
+      "canvas": {
+        "left": 70,
+        "top": 52,
+        "width": 1330,
+        "height": 708
+      },
+      "similarity": 65.61,
+      "roiSimilarity": 31.26,
+      "outSimilarity": 81.05
+    },
+    "bullet-punch-vanish": {
+      "layout": "padrao",
+      "viewport": {
+        "w": 1400,
+        "h": 900
+      },
+      "canvas": {
+        "left": 70,
+        "top": 52,
+        "width": 1330,
+        "height": 708
+      },
+      "similarity": 64.8,
+      "roiSimilarity": 14.7,
+      "outSimilarity": 76.38
+    },
+    "bullet-punch-impacto": {
+      "layout": "padrao",
+      "viewport": {
+        "w": 1400,
+        "h": 900
+      },
+      "canvas": {
+        "left": 70,
+        "top": 52,
+        "width": 1330,
+        "height": 708
+      },
+      "similarity": 63.42,
+      "roiSimilarity": 8.91,
+      "outSimilarity": 69.73
+    },
+    "water-pulse-voo": {
+      "layout": "padrao",
+      "viewport": {
+        "w": 1400,
+        "h": 900
+      },
+      "canvas": {
+        "left": 70,
+        "top": 52,
+        "width": 1330,
+        "height": 708
+      },
+      "similarity": 64.9,
+      "roiSimilarity": 3.89,
+      "outSimilarity": 71.74
+    },
+    "water-pulse-splash": {
+      "layout": "padrao",
+      "viewport": {
+        "w": 1400,
+        "h": 900
+      },
+      "canvas": {
+        "left": 70,
+        "top": 52,
+        "width": 1330,
+        "height": 708
+      },
+      "similarity": 65.33,
+      "roiSimilarity": 37.14,
+      "outSimilarity": 69.31
+    }
+  }
+}

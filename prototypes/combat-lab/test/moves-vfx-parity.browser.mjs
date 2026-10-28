@@ -16,6 +16,7 @@
 import {chromium} from '@playwright/test';
 import {pathToFileURL, fileURLToPath} from 'node:url';
 import {mkdirSync, writeFileSync, readFileSync, existsSync, copyFileSync} from 'node:fs';
+import {EFEITOS, planoDeAceite, assinaturaLayout} from './paridade-aceite.mjs';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const out = root + 'evidence/moves-vfx-parity/';
@@ -36,21 +37,35 @@ function check(label, ok, detail = '') {
   results.push({label, ok, detail});
 }
 
-// F5 (Task 12) — baseline PROTEGIDO: nada aqui escreve em baselines/. `--update-baselines` (ou UPDATE_BASELINES=1) grava a captura
-// atual em baselines-candidatas/ e regenera AB_PARIDADE.html (baseline | atual | calor, com as métricas); quem aceita é o usuário,
-// à mão (copiar a candidata sobre a baseline) ou pelo comando explícito `--aceitar=<efeito>` (só aquele efeito, sem abrir navegador).
+// F5 (Task 12) — baseline PROTEGIDO: nada aqui escreve em baselines/ sozinho. `--update-baselines` (ou UPDATE_BASELINES=1) grava as
+// 5 capturas atuais em baselines-candidatas/ com o manifesto candidatas.json (layout + viewport de cada uma) e regenera
+// AB_PARIDADE.html (baseline | atual | calor, com as métricas). Quem aceita é o usuário, depois de revisar as 5: `--aceitar=todos`
+// (as 5 juntas, mesmo layout; grava baselines/baselines.json). `--aceitar=<efeito>` só passa se o layout da candidata for o mesmo
+// do manifesto das baselines. Efeito com análise pendente (analise-paridade.json) é recusado. Regras em test/paridade-aceite.mjs.
 const UPDATE_BASELINES = process.argv.includes('--update-baselines') || process.env.UPDATE_BASELINES === '1';
+// Diagnóstico opt-in: PARIDADE_PAINEL=aberto reabre o painel lateral "Partida" como no layout das baselines de 26/10 (antes de
+// 2566aad o laboratório abria com o painel aberto). SÓ DIAGNÓSTICO: não é o jeito de passar o gate e não gera candidatas.
+const PAINEL_ABERTO = process.env.PARIDADE_PAINEL === 'aberto';
+const VIEWPORT = {w: 1400, h: 900};
+const LAYOUT = PAINEL_ABERTO ? 'painel-aberto' : 'padrao';
 const candDir = out + 'baselines-candidatas/';
-const EFEITOS = ['sand-wave-ativo', 'bullet-punch-vanish', 'bullet-punch-impacto', 'water-pulse-voo', 'water-pulse-splash'];
+const candManifestPath = candDir + 'candidatas.json', baseManifestPath = baseDir + 'baselines.json';
+const lerJson = (/** @type {string} */ p) => existsSync(p) ? JSON.parse(readFileSync(p, 'utf8')) : null;
+
+/** Análise humana por efeito (texto datado, escrito por quem investigou; entra em `explicacao` junto da leitura automática). */
+const analisePath = out + 'analise-paridade.json';
+const ANALISE = lerJson(analisePath) ?? {};
+
 const aceitarArg = process.argv.find(a => a.startsWith('--aceitar='));
 if (aceitarArg) {
-  const ef = aceitarArg.slice('--aceitar='.length), src = candDir + ef + '.png';
-  if (!EFEITOS.includes(ef)) {console.error(`Efeito desconhecido: "${ef}". Use um de: ${EFEITOS.join(', ')}`);process.exit(2);}
-  if (!existsSync(src)) {console.error(`Sem candidata para ${ef}: rode antes com --update-baselines (${src}).`);process.exit(2);}
-  copyFileSync(src, baseDir + ef + '.png');
-  console.log(`Baseline de ${ef} ACEITA pelo usuário: ${src} -> ${baseDir}${ef}.png (confira com git diff e faça o commit).`);
+  const plano = planoDeAceite({alvo: aceitarArg.slice('--aceitar='.length), candidatas: lerJson(candManifestPath), baselines: lerJson(baseManifestPath), analise: ANALISE, existe: p => existsSync(out + p)});
+  if (!plano.ok) {console.error(`Aceite RECUSADO: ${plano.erro}`);process.exit(2);}
+  for (const ef of plano.copias) copyFileSync(candDir + ef + '.png', baseDir + ef + '.png');
+  writeFileSync(baseManifestPath, JSON.stringify({...plano.manifestoBase, aceitoEm: new Date().toISOString()}, null, 2));
+  console.log(`Baselines ACEITAS pelo usuário (${plano.copias.join(', ')}) no layout ${assinaturaLayout(plano.manifestoBase)}. Confira com git diff e faça o commit.`);
   process.exit(0);
 }
+if (UPDATE_BASELINES && PAINEL_ABERTO) {console.error('PARIDADE_PAINEL=aberto é só diagnóstico: não gera candidatas. Rode --update-baselines no layout padrão.');process.exit(2);}
 if (UPDATE_BASELINES) mkdirSync(candDir, {recursive: true});
 
 /** Escrita com novas tentativas: a pasta oficial fica no OneDrive, que trava por instantes um PNG recém-gravado (EBUSY/UNKNOWN). */
@@ -59,10 +74,6 @@ function escrever(/** @type {string} */ path, /** @type {any} */ data) {
     try {writeFileSync(path, data);return;} catch (e) {if (i >= 8) throw e;Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 250);}
   }
 }
-
-/** Análise humana por efeito (texto datado, escrito por quem investigou; entra em `explicacao` junto da leitura automática). */
-const analisePath = out + 'analise-paridade.json';
-const ANALISE = existsSync(analisePath) ? JSON.parse(readFileSync(analisePath, 'utf8')) : {};
 
 /** Uma entrada por efeito comparado (vai para o JSON e para a página A/B). @type {any[]} */
 const paridade = [];
@@ -154,17 +165,18 @@ async function compareImages(page, baselinePath, currentPath, diffOutputPath, ro
  */
 async function compararEfeito(page, efeito, roiInfo, donos) {
   const atual = out + efeito + '.png';
-  if (UPDATE_BASELINES && existsSync(atual)) escrever(candDir + efeito + ".png", readFileSync(atual));
+  if (UPDATE_BASELINES && existsSync(atual)) escrever(candDir + efeito + '.png', readFileSync(atual));
   const roi = roiInfo?.box ?? null;
   const comp = await compareImages(page, baseDir + efeito + '.png', atual, out + 'fidelidade-' + efeito.replace(/-ativo$/, '') + '.png', roi, out + 'diff-' + efeito + '.png');
   const auto = lerDiferenca(comp), manual = ANALISE[efeito];
   paridade.push({
-    efeito, ok: comp.ok && comp.similarity >= 98,
+    efeito, ok: comp.ok && comp.similarity >= 98, pendente: !!manual?.pendente,
+    layout: LAYOUT, viewport: VIEWPORT, canvas: roiInfo?.canvas ?? null,
     similarity: comp.similarity, roiSimilarity: comp.roiSimilarity ?? null, outSimilarity: comp.outSimilarity ?? null,
     diffCount: comp.diffCount, diffIn: comp.diffIn ?? null, diffOut: comp.diffOut ?? null, pixelsIn: comp.pixelsIn ?? null, pixelsOut: comp.pixelsOut ?? null, totalPixels: comp.totalPixels ?? null,
     roi: roiInfo, dono: donos?.dono ?? null, donosPorResultado: donos?.donosPorResultado ?? null, eventosRecentes: donos?.eventos ?? [], dispatch: donos?.dispatch ?? null,
     explicacao: manual ? `${auto} Análise (${manual.data}): ${manual.texto}` : auto,
-    imagens: {baseline: `baselines/${efeito}.png`, atual: `${efeito}.png`, diff: `diff-${efeito}.png`, candidata: existsSync(candDir + efeito + '.png') ? `baselines-candidatas/${efeito}.png` : null},
+    imagens: {baseline: `baselines/${efeito}.png`, atual: `${efeito}.png`, diff: `diff-${efeito}.png`, candidata: UPDATE_BASELINES ? `baselines-candidatas/${efeito}.png` : null},
     error: comp.error ?? null
   });
   return comp;
@@ -174,6 +186,13 @@ async function compararEfeito(page, efeito, roiInfo, donos) {
 function gerarPaginaAB() {
   const esc = (/** @type {any} */ s) => String(s ?? '—').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   const n = (/** @type {any} */ v) => v == null ? '—' : `${v}%`;
+  // Aceite só dos 5 juntos, no mesmo layout, sem análise pendente (as mesmas regras de test/paridade-aceite.mjs)
+  const cm = lerJson(candManifestPath), bm = lerJson(baseManifestPath);
+  const sigs = [...new Set(EFEITOS.map(ef => assinaturaLayout(cm?.efeitos?.[ef])))], pend = EFEITOS.filter(ef => ANALISE[ef]?.pendente);
+  const podeTodos = !!cm && sigs.length === 1 && sigs[0] !== '?' && !pend.length;
+  const aceiteGlobal = podeTodos
+    ? `<p>Candidatas: 5 na mesma execução, layout <code>${esc(sigs[0])}</code> (gerado em ${esc(cm.geradoEm)}). Depois de revisar as 5, aceite JUNTAS na raiz do projeto: <code>node prototypes/combat-lab/test/moves-vfx-parity.browser.mjs --aceitar=todos</code></p>`
+    : `<p><strong>Aceite bloqueado:</strong> ${!cm ? 'nenhuma candidata gerada (rode o teste com <code>--update-baselines</code>).' : pend.length ? `análise pendente em ${esc(pend.join(', '))} (analise-paridade.json).` : `candidatas com layouts diferentes (${esc(sigs.join(' × '))}); recapture as 5 na mesma execução.`}</p>`;
   const cards = paridade.map(p => `
   <section class="card ${p.ok ? 'ok' : 'falha'}" id="${esc(p.efeito)}">
     <header><h2>${esc(p.efeito)}</h2><span class="tag">${p.ok ? 'dentro da tolerância (≥ 98%)' : 'abaixo de 98% — precisa de decisão humana'}</span></header>
@@ -191,7 +210,7 @@ function gerarPaginaAB() {
       <figure><a href="${esc(p.imagens.diff)}"><img src="${esc(p.imagens.diff)}" alt="Mapa de calor da diferença de ${esc(p.efeito)}" loading="lazy"></a><figcaption>Calor da diferença (ROI tracejada em amarelo)</figcaption></figure>
     </div>
     <p class="explica">${esc(p.explicacao)}</p>
-    <p class="aceite">${p.imagens.candidata ? `Candidata: <a href="${esc(p.imagens.candidata)}">${esc(p.imagens.candidata)}</a> · aceitar: <code>node prototypes/combat-lab/test/moves-vfx-parity.browser.mjs --aceitar=${esc(p.efeito)}</code>` : 'Sem candidata gerada (rode o teste com <code>--update-baselines</code> para criar).'}</p>
+    <p class="aceite">${p.pendente ? '<strong>Análise PENDENTE — não aceitar.</strong> ' : ''}Captura atual: layout <code>${esc(assinaturaLayout(p))}</code>. ${cm?.efeitos?.[p.efeito] ? `Candidata: <a href="baselines-candidatas/${esc(p.efeito)}.png">baselines-candidatas/${esc(p.efeito)}.png</a> (layout <code>${esc(assinaturaLayout(cm.efeitos[p.efeito]))}</code>).` : 'Sem candidata gerada.'} Baselines atuais: layout <code>${esc(bm ? assinaturaLayout(bm) : 'painel-aberto@1400x900 (26/10, sem manifesto)')}</code>.</p>
   </section>`).join('\n');
   const html = `<!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
@@ -217,10 +236,12 @@ figure{margin:0}img{width:100%;height:auto;display:block;border:1px solid var(--
 <div class="instr"><strong>Como aceitar uma nova referência (só você decide):</strong>
 <ol>
 <li>Compare as três imagens de cada efeito abaixo. <em>Dentro da ROI</em> mostra se o efeito mudou; <em>Fora da ROI</em> mostra mudança de câmera, cenário, painéis ou instante.</li>
-<li>O teste <strong>nunca</strong> escreve em <code>baselines/</code>. Rodar com <code>--update-baselines</code> só grava candidatas em <code>baselines-candidatas/</code> e refaz esta página.</li>
-<li>Para aceitar um efeito: copie <code>baselines-candidatas/&lt;efeito&gt;.png</code> por cima de <code>baselines/&lt;efeito&gt;.png</code> à mão, <em>ou</em> rode na raiz do projeto <code>node prototypes/combat-lab/test/moves-vfx-parity.browser.mjs --aceitar=&lt;efeito&gt;</code> (um efeito por vez).</li>
-<li>Depois confira com <code>git diff --stat</code> e faça o commit da baseline aceita.</li>
-</ol></div>
+<li>O teste <strong>nunca</strong> escreve em <code>baselines/</code>. Rodar com <code>--update-baselines</code> (no layout padrão) grava as 5 candidatas em <code>baselines-candidatas/</code>, com layout e viewport de cada uma em <code>candidatas.json</code>, e refaz esta página.</li>
+<li><strong>As 5 são aceitas juntas</strong>, todas capturadas na mesma execução e no mesmo layout: aceitar uma só misturaria referências de layouts diferentes (as atuais são de 26/10, com o painel lateral aberto). Efeito com análise pendente bloqueia o aceite.</li>
+<li><code>PARIDADE_PAINEL=aberto</code> é só diagnóstico (isola layout × efeito); não é o jeito de passar o gate e não gera candidatas.</li>
+<li>Depois de aceitar, confira com <code>git diff --stat</code> e faça o commit das baselines e de <code>baselines/baselines.json</code>.</li>
+</ol>${aceiteGlobal}
+</div>
 ${cards}
 </main></body></html>
 `;
@@ -259,7 +280,8 @@ const donosDe = (page, dono, resultados) => page.evaluate(([dono, resultados]) =
   const v = window.__lab.view, d = v.dispatch, evs = (window.__lab.game.events ?? []).slice(-12);
   const all = [...new Set([...resultados, ...evs.map(e => e.result)])];
   return {dono, eventos: evs.map(e => ({result: e.result, eventId: e.eventId ?? null, entity: e.entity ?? null})),
-    donosPorResultado: Object.fromEntries(all.map(r => [r, d.owners[r] ?? (d.semVisual.has(r) ? 'SEM_VISUAL' : 'desconhecido')])), dispatch: d.diagnostics()};
+    // build anterior ao F5 (sem despachante): registra null em vez de quebrar — permite rodar o teste em comparação com a base
+    donosPorResultado: d ? Object.fromEntries(all.map(r => [r, d.owners[r] ?? (d.semVisual.has(r) ? 'SEM_VISUAL' : 'desconhecido')])) : null, dispatch: d ? d.diagnostics() : null};
 }, [dono, resultados]);
 
 console.log('\n--- NAVEGADOR: PARIDADE E CICLO DE VIDA VISUAL DOS 3 PILOTOS (DOC 02) ---\n');
@@ -273,7 +295,7 @@ const browser = await chromium.launch({
 });
 
 try {
-  const page = await browser.newPage({viewport: {width: 1400, height: 900}});
+  const page = await browser.newPage({viewport: {width: VIEWPORT.w, height: VIEWPORT.h}});
   const errors = [], requests = [];
   page.on('pageerror', e => errors.push(e.message));
   page.on('console', m => {if (m.type() === 'error') errors.push(m.text());});
@@ -286,9 +308,7 @@ try {
   const L = (fn, arg) => page.evaluate(fn, arg);
   const frames = n => L(n => new Promise(res => {let i = 0;const f = () => (++i >= n ? res(0) : requestAnimationFrame(f));requestAnimationFrame(f);}), n);
 
-  // Diagnóstico opt-in (Task 12): PARIDADE_PAINEL=aberto reabre o painel lateral "Partida" como no layout das baselines de
-  // 26/10 (antes de 2566aad iniciar o laboratório com o painel recolhido). Não muda limiares; só isola layout × efeito.
-  const PAINEL_ABERTO = process.env.PARIDADE_PAINEL === 'aberto';
+  // Diagnóstico opt-in PARIDADE_PAINEL=aberto (ver topo): só isola layout × efeito; não muda limiares nem gera candidatas.
   if (PAINEL_ABERTO) {await L(() => window.__lab.openTool('match'));await frames(4);}
 
   // Inicializa o combate pausado para avanço determinístico frame a frame
@@ -850,6 +870,9 @@ try {
     results,
     errors
   }, null, 2));
+  // Manifesto das candidatas: layout + viewport + canvas de cada uma (o aceite recusa misturar layouts — test/paridade-aceite.mjs)
+  if (UPDATE_BASELINES) escrever(candManifestPath, JSON.stringify({geradoEm: new Date().toISOString(), layout: LAYOUT, viewport: VIEWPORT,
+    efeitos: Object.fromEntries(paridade.map(p => [p.efeito, {layout: p.layout, viewport: p.viewport, canvas: p.canvas, similarity: p.similarity, roiSimilarity: p.roiSimilarity, outSimilarity: p.outSimilarity}]))}, null, 2));
   gerarPaginaAB();
 
 } finally {
