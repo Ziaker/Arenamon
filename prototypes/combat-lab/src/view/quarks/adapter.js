@@ -11,6 +11,7 @@
 //      de carga), update/reset/dispose e o respeito a reduceMotion.
 
 import {defaultQuarksPresets, QUARKS_PRESET_ORDER} from './presets.js';
+import {pruneEmptyBatches} from './batch-prune.js';
 
 // ---------- parte 1: conversão pura ----------
 
@@ -254,6 +255,7 @@ export class QuarksFx {
     try {this.renderer.deleteSystem(system);} catch {/* já removido */}
     emitter?.parent?.remove(emitter);
     system.dispose?.();
+    pruneEmptyBatches(this.renderer);   // F5: three.quarks 0.17 deixa o lote vazio depois de deleteSystem (batch-prune.js)
   }
 
   update(dt) {

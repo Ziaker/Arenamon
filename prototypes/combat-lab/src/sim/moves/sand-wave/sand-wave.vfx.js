@@ -15,8 +15,22 @@ import {defaults} from '../../../../../sand-stone-lab/src/config.ts';
 import {disposeGroup} from '../../../../../sand-stone-lab/src/art.js';
 import {ATELIER_GAME_PARAMS, ATELIER_GAME_VARIANT} from '../../../view/quarks/atelier-game-params.js';
 import {C} from '../../config.js';
+import {sandFrontAt} from '../../sand.js';
+import {parentPointToLocal, parentDirToLocal} from '../../../view/quarks/coords.js';
 
 export const id = 'sand-wave';
+/** Altura (m) do jato de poeira acima do chão da onda no ponto de contato (canela do alvo). */
+export const CONTACT_Y = 0.35;
+
+/**
+ * Idade VISUAL (s) da onda viva, pela frente física: o tempo em que uma frente linear (length ÷ active) chegaria à distância que a simulação
+ * calculou (sandFrontAt, com a aceleração capturada no disparo). Com o padrão (velocidade derivada do alcance) é a própria idade da entidade.
+ * @param {any} e entidade sandwave @returns {{age: number, front: number}}
+ */
+function physicalClock(e) {
+  const front = Math.min(e.length ?? 4, sandFrontAt(e, e.age ?? 0)), active = Math.max(.05, e.active ?? .75), len = Math.max(1e-6, e.length ?? 4);
+  return {front, age: (e.age ?? 0) <= active ? front / len * active : (e.age ?? 0)};
+}
 
 /**
  * Aplica as configurações de acessibilidade do jogo aos parâmetros do efeito
@@ -107,6 +121,7 @@ export function spawn(view, e, acc) {
     dir,
     pos: e.pos,
     y: e.y ?? 0,
+    front: 0,
     dying: false
   };
 }
@@ -121,7 +136,10 @@ export function spawn(view, e, acc) {
  */
 export function update(view, e, state, dt, acc) {
   if (!state) return;
-  state.age += dt;
+  // F5: viva, a onda segue o relógio FÍSICO (idade/frente da entidade): quadros perdidos ou dt do desenho não adiantam nem atrasam a frente visual.
+  // Na dissipação (entidade fora do mundo) o relógio continua pelo dt.
+  if (e && !state.dying && Number.isFinite(e.age)) {const k = physicalClock(e);state.age = k.age;state.front = k.front;}
+  else state.age += dt;
   const total = state.clock ? state.clock.duration : state.fx.duration;
   const t = Math.min(total, state.start + state.age);
 
@@ -171,69 +189,23 @@ export function isFinished(state, age) {
 export function onEvent(view, ev, state) {
   if (!state || !state.particles) return;
   const impacts = ['impact', 'partial', 'clash', 'obstacleHit', 'destructibleHit', 'wallSplat', 'sandStagger'];
-  if (impacts.includes(ev.result)) {
-    // Determinar o ponto de contato real no espaço de mundo
-    let wx = ev.x, wy = ev.y, wz = ev.z;
-    if (wx == null || wz == null) {
-      const fighters = view?.fighters ?? (view?.worldView?.fighters) ?? [];
-      if (ev.target != null && fighters[ev.target]) {
-        const b = view.fighters[ev.target];
-        wx = b.position.x;
-        wy = (b.groundY ?? 0) + (b.flight?.y ?? b.vaultHeight ?? 0) + 0.35;
-        wz = b.position.z;
-      } else if (state.pos) {
-        // Posição média do alcance da onda (evita nascer na extremidade distante)
-        wx = state.pos.x + state.dir.x * (state.len * 0.5);
-        wy = state.y ?? 0.3;
-        wz = state.pos.z + state.dir.z * (state.len * 0.5);
-      } else {
-        wx = 0; wy = 0.3; wz = 0;
-      }
-    }
-    if (wy == null) wy = state.y ?? 0.3;
-
-    // Conversão canônica: transforma coordenadas mundiais no espaço local do grupo
-    // garantindo que o emissor filho nasça no ponto exato do alvo, sem deslocamento duplo.
-    let localPos = new T.Vector3(wx, wy, wz);
-    let localDir = new T.Vector3(0, 1, 0);
-
-    if (state.group) {
-      state.group.updateWorldMatrix(true, false);
-      localPos = state.group.worldToLocal(localPos.clone());
-      if (ev.normal && (Math.abs(ev.normal.x) > 1e-4 || Math.abs(ev.normal.z) > 1e-4)) {
-        const worldDir = new T.Vector3(ev.normal.x, 0.4, ev.normal.z).normalize();
-        const invWorldQuat = new T.Quaternion();
-        state.group.getWorldQuaternion(invWorldQuat).invert();
-        localDir = worldDir.applyQuaternion(invWorldQuat).normalize();
-      }
-    }
-
-    if (typeof state.particles.burst === 'function') {
-      state.particles.burst({
-        kind: 'dust',
-        color: 0xc49c68,
-        count: 24,
-        position: [localPos.x, localPos.y, localPos.z],
-        direction: [localDir.x, Math.max(0.2, localDir.y), localDir.z],
-        speed: 3.0,
-        size: 0.45,
-        life: 0.6
-      });
-    } else {
-      state.particles.create({
-        kind: 'dust',
-        color: 0xc49c68,
-        count: 24,
-        duration: 0.2,
-        life: 0.6,
-        size: 0.45,
-        speed: 3.0,
-        radius: 0.4,
-        position: [localPos.x, localPos.y, localPos.z],
-        direction: [localDir.x, Math.max(0.2, localDir.y), localDir.z]
-      });
-    }
-  }
+  if (!impacts.includes(ev.result)) return;
+  // F5: ponto de contato = o do EVENTO (a simulação grava x/z dos pés do alvo no contato). Sem ele: o alvo do evento; sem alvo: a FRENTE física
+  // da onda no eixo (nunca o meio do retângulo nem o extremo). Coordenadas da simulação = espaço do pai do grupo (o mundo do jogo).
+  const fighters = view?.fighters ?? view?.worldView?.fighters ?? [];
+  const b = ev.target != null ? fighters[ev.target] : null;
+  /** @type {{x: number, y: number, z: number}} */
+  let at;
+  if (Number.isFinite(ev.x) && Number.isFinite(ev.z)) at = {x: ev.x, y: Number.isFinite(ev.y) ? ev.y : (b?.groundY ?? state.y ?? 0) + CONTACT_Y, z: ev.z};
+  else if (b?.position) at = {x: b.position.x, y: (b.groundY ?? 0) + CONTACT_Y, z: b.position.z};
+  else {const u = Math.min(state.len ?? 0, state.front ?? 0);at = {x: state.pos.x + state.dir.x * u, y: (state.y ?? 0) + CONTACT_Y, z: state.pos.z + state.dir.z * u};}
+  // Conversão canônica (coords.js): ponto por worldToLocal; direção do empurrão pelo quaternion mundial inverso (inversa linear se houver escala não uniforme).
+  const local = state.group ? parentPointToLocal(state.group, at) : new T.Vector3(at.x, at.y, at.z);
+  const n = ev.normal, hasN = n && (Math.abs(n.x) > 1e-4 || Math.abs(n.z) > 1e-4);
+  const dir = hasN ? (state.group ? parentDirToLocal(state.group, {x: n.x, y: .4, z: n.z}) : new T.Vector3(n.x, .4, n.z).normalize()) : new T.Vector3(0, 1, 0);
+  const o = {kind: 'dust', color: 0xc49c68, count: 24, position: [local.x, local.y, local.z], direction: [dir.x, Math.max(0.2, dir.y), dir.z], speed: 3.0, size: 0.45, life: 0.6};
+  if (typeof state.particles.burst === 'function') state.particles.burst(o);
+  else state.particles.create({...o, duration: 0.2, radius: 0.4});
 }
 
 /**

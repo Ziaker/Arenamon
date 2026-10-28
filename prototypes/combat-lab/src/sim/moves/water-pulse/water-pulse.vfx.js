@@ -14,10 +14,14 @@ import {ElementalPreview} from '../../../view/quarks/elemental-preview.js';
 import {ELEMENTAL_GAME_PARAMS} from '../../../view/quarks/elemental-game-params.js';
 import {C} from '../../config.js';
 import {elementalVisualKey} from '../../elemental-visual-config.js';
+import {pruneEmptyBatches} from '../../../view/quarks/batch-prune.js';
 
 export const id = 'water-pulse';
 
+/** Splash depois da morte FÍSICA da entidade (s). */
 const TAIL_DURATION = 2.4;
+/** Resultados que encerram o voo QUANDO a entidade morreu no mesmo passo (contato terminal). Reflexão/ricochete com a entidade viva não encerram. */
+const CONTACTS = ['hit', 'impact', 'partial', 'perfect', 'wallClash', 'clash', 'shieldDeflect', 'expire', 'groundHit', 'arenaHit', 'obstacleHit', 'destructibleHit', 'platformHit', 'blocked', 'reflected', 'neutralized', 'detonate', 'tackleClash'];
 const PL_HEX = [0xffffff, 0x59d6e6, 0xffcf6a, 0xff6adf];
 
 const elementalCfg = () => C.vfx?.elemental ?? {};
@@ -152,7 +156,11 @@ export function spawn(view, e, acc) {
     entity: e,
     base,
     preview,
-    dying: false,
+    batch,
+    // F5: dois estados separados — `visualDying` (o splash começou: contato terminal) e `physicallyDead` (a entidade saiu do mundo; o registro
+    // conta os 2,4 s da cauda a partir daqui). Reflexão com a entidade viva não é nenhum dos dois: o visual continua seguindo o projétil.
+    visualDying: false,
+    physicallyDead: false,
     age: 0,
     pl
   };
@@ -169,7 +177,7 @@ export function spawn(view, e, acc) {
 export function update(view, e, state, dt, acc) {
   if (!state || !state.preview) return;
 
-  if (!state.dying && e && e.pos) {
+  if (!state.visualDying && e && !e.dead && e.pos) {
     state.preview.root.position.set(e.pos.x, e.y ?? 0, e.pos.z);
     state.preview.root.rotation.y = headingOf(e);
     const scale = scaleOf(e, state.base, e.pl ?? state.pl ?? 1);
@@ -197,24 +205,30 @@ export function updateDying(view, e, state, dt, acc) {
   state.preview.update(dt);
 }
 
+/** Inicia o splash (uma vez), no ponto do contato quando o evento o traz (coordenadas da simulação = espaço do pai da raiz). @param {any} state @param {any} [ev] */
+function startSplash(state, ev) {
+  if (state.visualDying) return;
+  state.visualDying = true;
+  // Altura só quando o evento a traz de fato (a `position` canônica completa y ausente com 0, o que poria o splash no chão).
+  if (Number.isFinite(ev?.x) && Number.isFinite(ev?.z)) state.preview.root.position.set(ev.x, Number.isFinite(ev.y) ? ev.y : state.preview.root.position.y, ev.z);
+  state.preview.contact();
+  if (state.preview?.core) state.preview.core.visible = false;
+}
+
 /**
- * Ativa a animação de impacto/splash quando o projétil atinge o alvo ou some
+ * Morte FÍSICA: a entidade saiu do mundo. Se nenhum contato terminal chegou antes (ex.: sumiu sem evento), o splash começa aqui.
  * @param {any} view
  * @param {any} e
  * @param {any} state
  */
 export function onDeath(view, e, state) {
   if (!state || !state.preview) return;
-  if (!state.dying) {
-    state.dying = true;
-    state.age = 0;
-    state.preview.contact();
-  }
-  if (state.preview?.core) state.preview.core.visible = false;
+  state.physicallyDead = true;
+  startSplash(state);
 }
 
 /**
- * Informa se o ciclo de dissipação de 2.4s da água terminou
+ * Splash de 2,4 s contado a partir da morte física (idade do registro).
  * @param {any} state
  * @param {number} age
  * @returns {boolean}
@@ -224,19 +238,16 @@ export function isFinished(state, age) {
 }
 
 /**
- * Dispara a animação de impacto/splash ao acertar um alvo ou parede
+ * Contato: só vira splash se a entidade MORREU neste passo (a simulação marca `dead` no mesmo passo do evento). Reflexão, ricochete ou acerto
+ * que atravessa (pierce) deixam a entidade viva: o visual segue o projétil.
  * @param {any} view
  * @param {any} ev
  * @param {any} state
  */
 export function onEvent(view, ev, state) {
-  if (!state || !state.preview) return;
-  const triggers = ['hit', 'impact', 'partial', 'perfect', 'wallClash', 'clash', 'shieldDeflect', 'expire', 'groundHit', 'arenaHit', 'obstacleHit', 'destructibleHit', 'platformHit', 'blocked', 'reflected'];
-  if (!state.dying && triggers.includes(ev.result)) {
-    state.dying = true;
-    state.age = 0;
-    state.preview.contact(ev);
-  }
+  if (!state || !state.preview || !CONTACTS.includes(ev.result)) return;
+  if (!state.entity?.dead) return;
+  startSplash(state, ev);
 }
 
 /**
@@ -265,4 +276,5 @@ export function dispose(view, e, state) {
     border.material?.dispose();
   }
   state.preview.dispose();
+  pruneEmptyBatches(state.batch);   // F5: descarte efetivo — o lote do three.quarks não some sozinho com deleteSystem (batch-prune.js)
 }

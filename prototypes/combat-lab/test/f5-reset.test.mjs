@@ -132,3 +132,48 @@ test('pós-processamento desligado descarta em vez de adiar; silhueta e canvas 0
   d.dispatch([ev(202)]);assert.equal(takePostEvents(d, {enabled: 1}, 'white', 800, 600).length, 0, 'silhueta adia');
   d.dispatch([ev(203)]);assert.deepEqual(takePostEvents(d, {enabled: 1}, null, 800, 600).map(e => e.eventId), [202, 203], 'adiado entregue uma vez');
 });
+
+// F5 (revisão da Task 11): three.quarks 0.17 deixa o lote (VFXBatch) vazio no BatchedRenderer depois de deleteSystem(); todo dono de BatchedRenderer
+// precisa podar (batch-prune.js) onde apaga sistemas — inclusive no reset, na ordem certa (Moves migrados dividem o lote do elementalFx).
+const Q = await import('three.quarks');
+const {GemSparkles} = await import('../src/view/consumables-gems.js');
+const {QuarksBridge} = await import('../src/view/quarks/bridge.js');
+const emptyIn = (/** @type {any} */ root) => {let n = 0;root.traverse((/** @type {any} */ o) => {if (o instanceof Q.BatchedRenderer) n += o.batches.filter((/** @type {any} */ b) => !b.systems.size).length;});return n;};
+
+test('reset com Water Pulse em voo e camada QuarksBridge ligada: nenhum lote vazio sobra em nenhum BatchedRenderer', () => {
+  resetConfig(defaults());C.vfx.quarks.enabled = 1;
+  try {
+    const view = /** @type {any} */ (makeView());
+    const g = new Game({seed: 2});g.start();
+    g.world.entities.push({id: 999, kind: 'projectile', visual: 'waterorb', pos: {x: 0, z: 2}, y: .9, dir: {x: 0, z: 1}, pl: 2, radius: .38, dead: false, owner: 0});
+    view.draw(g.fighters, [{result: 'impact', attacker: 0, target: 1, damage: 10, eventId: 1}], 1 / 60, {tick: 1, world: g.world});
+    assert.ok(view.worldView.movesVfx.activeInstances.size > 0, 'o Water Pulse está sendo desenhado');
+    assert.ok(view.quarks, 'camada QuarksBridge ligada');
+    view.reset(g.fighters[0]);
+    assert.equal(emptyIn(view.scene), 0, 'nenhum lote vazio depois do reset');
+  } finally {resetConfig(defaults());}
+});
+
+test('QuarksBridge: rajadas que expiram não deixam lote vazio', () => {
+  resetConfig(defaults());
+  try {
+    const scene = new T.Scene();
+    const br = new QuarksBridge({THREE: T, Quarks: Q, scene});
+    br.fx.emitBurst('impact', {x: 0, y: 0, z: 0});
+    br.fx.update(1 / 60);
+    assert.ok(br.fx.renderer.batches.length > 0, 'lote criado');
+    br.fx.update(10);   // passa do ttl: o sistema sai
+    assert.equal(br.fx.bursts.length, 0);
+    assert.equal(emptyIn(scene), 0, 'lote vazio podado');
+    br.dispose();
+  } finally {resetConfig(defaults());}
+});
+
+test('GemSparkles: tirar a centelha de uma gema não deixa lote vazio', () => {
+  const parent = new T.Group(), sp = new GemSparkles(parent), gem = {type: {color: '#27d3ff'}, root: new T.Group()};
+  sp.attach(gem);sp.renderer.update(1 / 60);
+  assert.ok(sp.renderer.batches.length > 0);
+  sp.detach(gem);
+  assert.equal(emptyIn(parent), 0, 'lote vazio podado');
+  sp.dispose();
+});

@@ -279,7 +279,8 @@ export class MovesVfxRegistry {
       move: r.module.id,
       age: +r.rush.age.toFixed(3),
       done: r.rush.done,
-      phase: r.rush.fx?.phase
+      phase: r.rush.fx?.phase,
+      state: r.rush.state ?? null
     }));
     return {
       activeCount: instances.length,

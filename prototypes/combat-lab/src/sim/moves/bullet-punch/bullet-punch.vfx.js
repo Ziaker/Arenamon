@@ -14,8 +14,21 @@ import {defaults} from '../../../../../sand-stone-lab/src/config.ts';
 import {disposeGroup} from '../../../../../sand-stone-lab/src/art.js';
 import {ATELIER_GAME_PARAMS, ATELIER_GAME_VARIANT} from '../../../view/quarks/atelier-game-params.js';
 import {C} from '../../config.js';
+import {parentPointToLocal} from '../../../view/quarks/coords.js';
 
 export const id = 'bullet-punch';
+
+/** Rush mais recente de cada lutador: só ele recebe os eventos (um rush antigo ainda na cauda não pega o retorno/impacto do próximo). */
+const LATEST = new WeakMap();
+
+/**
+ * Interruptor do rush do Ateliê: `atelierVfx` (parâmetro do move.json, controle da aba Moves/Editor) é a fonte CANÔNICA; `enableAtelierVfx` é o
+ * nome antigo e só vale quando a canônica não existe (presets/JSON/sessões antigos já são migrados na leitura: actions-meta.js/presets.js).
+ * @param {any} cfg C.world.bulletPunch
+ */
+export function atelierVfxOn(cfg) {
+  return (cfg?.atelierVfx ?? cfg?.enableAtelierVfx ?? 1) !== 0;
+}
 
 /**
  * Aplica as configurações de acessibilidade do jogo aos parâmetros do efeito
@@ -62,8 +75,7 @@ export function handles(e) {
  * @returns {boolean}
  */
 export function handlesFighter(f) {
-  const cfg = C.world?.bulletPunch ?? {};
-  if (cfg.atelierVfx === 0 || cfg.enableAtelierVfx === 0) return false;
+  if (!atelierVfxOn(C.world?.bulletPunch)) return false;
   return f?.action?.move === 'bullet-punch' && f?.action?.kind !== 'tackle';
 }
 
@@ -110,8 +122,15 @@ export function spawnRush(view, f, acc) {
     out: 0,
     done: false,
     y,
-    impact: new T.Vector3(0, impactY, .6)
+    impact: new T.Vector3(0, impactY, .6),
+    // F5: estado visual (preparacao → vanish → retorno → investida → impacto → fim), avançado pelo estado do lutador e pelos eventos DESTE Bullet Punch
+    state: 'preparacao',
+    returned: false,
+    struck: false,
+    /** @type {any} */ strike: null,
+    /** @type {{x: number, y: number, z: number} | null} */ impactWorld: null
   };
+  LATEST.set(f, r);
 
   /** @type {any} */ (fx).launch.position.set(0, .04, 0);
   if (/** @type {any} */ (fx).shot) {
@@ -150,6 +169,9 @@ export function advanceRush(view, r, dt) {
   r.age += dt;
   const f = r.f;
   const same = f.action === r.action && f.action?.move === r.move;
+  if (r.state === 'preparacao' && same && f.absent) r.state = 'vanish';
+  // A investida é o Tackle que o retorno encadeia (ação nova com move = bullet-punch); qualquer outra ação do lutador não conta.
+  if (r.returned && !r.strike && isStrike(f, r)) {r.strike = f.action;if (!r.struck) r.state = 'investida';}
   if (same && !r.done) {
     const q = r.group.worldToLocal(new T.Vector3(
       f.position.x,
@@ -176,15 +198,33 @@ export function advanceRush(view, r, dt) {
   fx.arrival = fx.charge + fx.travel;
   fx.duration = fx.arrival + fx.tail;
 
-  const far = r.hist.reduce((/** @type {any} */ m, /** @type {any} */ q) => Math.hypot(q.x, q.z) > Math.hypot(m.x, m.z) ? q : m, {x: 0, y: 0, z: 0});
-  r.impact.set(far.x, 1.05 + far.y, far.z + .6);
+  // Antes do retorno o ponto de impacto acompanha o ponto mais distante do trajeto (local); depois, vale o ponto do EVENTO (retorno/impacto).
+  if (!r.returned) {
+    const far = r.hist.reduce((/** @type {any} */ m, /** @type {any} */ q) => Math.hypot(q.x, q.z) > Math.hypot(m.x, m.z) ? q : m, {x: 0, y: 0, z: 0});
+    r.impact.set(far.x, 1.05 + far.y, far.z + .6);
+  }
   fx.impact.position.copy(r.impact);
 
   const t = Math.min(fx.duration, r.age);
   fx.update(t, dt);
   r.particles.update(dt);
 
-  return r.done && r.age >= fx.duration + .4;
+  const finished = r.done && r.age >= fx.duration + .4;
+  if (finished) r.state = 'fim';
+  return finished;
+}
+
+/** A ação atual do lutador é a investida encadeada por ESTE Bullet Punch? @param {any} f @param {any} r */
+function isStrike(f, r) {
+  return !!f.action && f.action !== r.action && f.action.move === r.move && f.action.kind === 'tackle';
+}
+
+/** Fixa o ponto de impacto: coordenadas da simulação (espaço do pai do grupo) → local do grupo girado no heading do disparo. @param {any} r @param {number} x @param {number} y @param {number} z */
+function setImpact(r, x, y, z) {
+  r.impactWorld = {x, y, z};
+  parentPointToLocal(r.group, r.impactWorld, r.impact);
+  /** @type {any} */ (r.fx).impact.position.copy(r.impact);
+  /** @type {any} */ (r.fx).arrival = Math.min(/** @type {any} */ (r.fx).arrival, r.age);
 }
 
 /**
@@ -194,21 +234,20 @@ export function advanceRush(view, r, dt) {
  * @param {any} r
  */
 export function onFighterEvent(view, ev, r) {
-  if (!r || !ev) return;
-  const triggers = ['bulletReturn', 'impact', 'partial', 'perfect', 'hit'];
-  if (triggers.includes(ev.result)) {
-    if (ev.attacker === r.f?.id) {
-      r.done = true;
-      const ex = ev.x ?? r.f?.position.x;
-      const ez = ev.z ?? r.f?.position.z;
-      const ey = ev.y ?? (r.f?.groundY ?? 0);
-      if (Number.isFinite(ex) && Number.isFinite(ez)) {
-        r.impact.set(ex, 1.05 + ey, ez);
-        /** @type {any} */ (r.fx).impact.position.copy(r.impact);
-        /** @type {any} */ (r.fx).arrival = Math.min(/** @type {any} */ (r.fx).arrival, r.age);
-      }
-    }
+  if (!r || !ev || ev.attacker == null || ev.attacker !== r.f?.id || LATEST.get(r.f) !== r) return;
+  const f = r.f, ground = f.groundY ?? 0;
+  if (ev.result === 'bulletReturn') {
+    if (ev.move !== r.move || r.returned) return;
+    r.returned = true;r.done = true;r.state = 'retorno';
+    if (Number.isFinite(ev.x) && Number.isFinite(ev.z)) setImpact(r, ev.x, 1.05 + (ev.y ?? ground), ev.z);
+    return;
   }
+  if (!['impact', 'partial', 'perfect', 'hit'].includes(ev.result)) return;
+  // F5: só o golpe DESTE Bullet Punch (a investida depois do retorno). Um Tackle comum ou outro Move do mesmo lutador não dispara o impacto do rush.
+  if (!r.returned || r.struck || !(f.action === r.strike || isStrike(f, r))) return;
+  r.struck = true;r.strike ??= f.action;r.state = 'impacto';r.done = true;
+  const x = Number.isFinite(ev.x) ? ev.x : f.position.x, z = Number.isFinite(ev.z) ? ev.z : f.position.z;
+  setImpact(r, x, 1.05 + (Number.isFinite(ev.y) ? ev.y : ground), z);
 }
 
 /**

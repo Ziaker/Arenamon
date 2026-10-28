@@ -121,9 +121,10 @@ export function stepSand(/** @type {any} */ game, /** @type {any} */ e, /** @typ
     if (!st) {   // primeiro contato: só dentro da janela de dano
       if (!hitWindow || !contact) continue;
       if (Object.keys(e.targets).length >= maxTargets) continue;   // limite de alvos por execução
+      const at = {x: f.position.x, z: f.position.z};   // F5: ponto de contato (pés do alvo no retângulo) — o VFX nasce aqui, não no meio/extremo da onda
       const ev = applyHit(game, e.owner, f, {damage: e.damage, knockback: (e.knockbackH > 0 || e.knockbackV > 0) ? {horizontal: e.knockbackH ?? 0, vertical: e.knockbackV ?? 0} : null}, {x: e.dir.x, z: e.dir.z}, {entity: e.id, source: 'sand', origin: {x: e.pos.x, z: e.pos.z}, pl: 1, contact: 'area', move: 'sand-wave'});
       if (!ev || ev.result === 'invulnerable') continue;
-      events.push({...ev, displacementPolicy: sandDisplacementPolicy(ev)});   // F3.2: o deslocamento do Sand Wave é a força contínua sandPush (não impulso nem empurrão coreografado)
+      events.push({...ev, x: at.x, z: at.z, displacementPolicy: sandDisplacementPolicy(ev)});   // F3.2: o deslocamento do Sand Wave é a força contínua sandPush (não impulso nem empurrão coreografado)
       e.targets[f.id] = {partial: ev.result === 'partial', perfect: ev.result === 'perfect', pinned: false, last: {x: f.position.x, z: f.position.z}, riposte: ev.result === 'riposte', firstAt: e.age, lastContactAt: e.age, pushStartedAt: null, pushActiveFor: 0, pushStopReason: ev.result === 'perfect' || ev.result === 'riposte' ? 'perfectGuard' : null, reason: ev.result === 'perfect' || ev.result === 'riposte' ? 'perfectGuard' : null};
       // Impulso inicial (m/s): soma à velocidade própria sobrevivente. A limpeza do movimento é uma política
       // separada (`pushClearsLocomotion`/`pushPreserveVelocity`); a defesa parcial multiplica o impulso.
@@ -196,7 +197,7 @@ export function stepSand(/** @type {any} */ game, /** @type {any} */ e, /** @typ
     const pressed = want > minPressSpeed && (moved < moveRatio * want * dt || wantNow < (e.wallPressStopRatio ?? .3) * want);   // vinha andando (velocidade do passo anterior) e a colisão o parou
     if ((e.wallStaggerOn ?? 1) && pressed && !t.pinned && f.knockRecovery <= 1e-8) {
       t.pinned = true;f.locomotionVelocity = {x: 0, z: 0};f.velocity = {x: 0, z: 0};f.knockRecovery = Math.max(f.knockRecovery, e.wallStagger);f.stagger = Math.max(f.stagger ?? 0, e.wallStagger);f.staggerMax = Math.max(f.staggerMax ?? 0, e.wallStagger);f.recoveryKind = 'stagger';f.state = 'stagger';f.hitSerial = (f.hitSerial ?? 0) + 1;
-      events.push({result: 'sandStagger', attacker: e.owner ?? null, target: f.id, damage: 0, entity: e.id, seconds: e.wallStagger});
+      events.push({result: 'sandStagger', attacker: e.owner ?? null, target: f.id, damage: 0, entity: e.id, seconds: e.wallStagger, x: f.position.x, z: f.position.z});
     }
     t.prevWant = wantNow;
     t.last = {x: f.position.x, z: f.position.z};

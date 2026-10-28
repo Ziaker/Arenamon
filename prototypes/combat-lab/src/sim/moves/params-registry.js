@@ -3,6 +3,23 @@
 // (`defineMoveParams`); daqui saem os padrões em C.world[grupo], os sliders da aba Moves (rótulo, dica, faixa, unidade) e a cobertura
 // dos testes. Não importa config.js nem a interface de propósito: config.js importa este arquivo, e um ciclo quebraria a ordem de carga.
 
+/** F5: nomes ANTIGOS de parâmetros → caminho canônico. A interface só escreve o canônico; presets, JSON importado e sessões antigas são
+ * convertidos na leitura (ui/actions-meta.js migrateFlat e sim/presets.js migrateLegacyPreset). Com as duas chaves, vale a canônica. */
+export const PARAM_ALIASES = Object.freeze({
+  'world.bulletPunch.enableAtelierVfx': 'world.bulletPunch.atelierVfx',
+  'world.quickAttack.enableAtelierVfx': 'world.quickAttack.atelierVfx',
+});
+/** Renomeia as chaves antigas de um mapa {caminho: valor} (a canônica, se já existir, vence). @param {Record<string, any>} values */
+export function canonicalParamValues(values) {
+  /** @type {Record<string, any>} */ const out = {};
+  for (const [k, v] of Object.entries(values ?? {})) {
+    const to = /** @type {Record<string, string>} */ (PARAM_ALIASES)[k];
+    if (!to) out[k] = v;
+    else if (!(to in (values ?? {}))) out[to] = v;
+  }
+  return out;
+}
+
 /** Unidades aceitas: a interface escolhe o formato de exibição pela unidade (ver FORMATTERS em ui/moves-panel.js). */
 export const PARAM_UNITS = ['num', 'int', 'sec', 'pct', 'm', 'ms', 'ms2', 'deg', 'x', 'yesno'];
 

@@ -336,7 +336,7 @@ test('DET-01: Determinismo de contactId em Clash durante Game.save() e Game.load
   assert.equal(evPostLoad[1].contactId, 3);
 });
 
-test('VFX: Bullet Punch handlesFighter respeita atelierVfx = 0 e enableAtelierVfx = 0 de forma consistente', () => {
+test('VFX: Bullet Punch handlesFighter: atelierVfx canônico, enableAtelierVfx só como legado', () => {
   C.world ??= {};
   C.world.bulletPunch ??= {};
 
@@ -353,10 +353,12 @@ test('VFX: Bullet Punch handlesFighter respeita atelierVfx = 0 e enableAtelierVf
   C.world.bulletPunch.atelierVfx = 0;
   assert.equal(handlesBulletPunch(fighter), false, 'Com atelierVfx=0 o rush do Bullet Punch DEVE ser desativado');
 
-  // 3. Toggle alternativo enableAtelierVfx = 0 também desativa
+  // 3. F5: `atelierVfx` é a fonte canônica; o nome antigo `enableAtelierVfx` só vale quando a canônica não existe (presets antigos são migrados na leitura)
   C.world.bulletPunch.atelierVfx = 1;
   C.world.bulletPunch.enableAtelierVfx = 0;
-  assert.equal(handlesBulletPunch(fighter), false, 'Com enableAtelierVfx=0 o rush do Bullet Punch DEVE ser desativado');
+  assert.equal(handlesBulletPunch(fighter), true, 'Com a canônica atelierVfx=1, o nome antigo não desliga o rush');
+  delete C.world.bulletPunch.atelierVfx;
+  assert.equal(handlesBulletPunch(fighter), false, 'Sem a canônica, enableAtelierVfx=0 (legado) desativa o rush');
 
   // Restaura padrão
   C.world.bulletPunch.atelierVfx = 1;

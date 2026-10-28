@@ -74,9 +74,10 @@ export * from './world-view/wv-geometry.js';
     this.waterChargePreview?.dispose();this.waterChargePreview = null;this.waterChargeLevel = 0;
     for (const r of this.chargeRings ?? []) r.visible = false;
     if (this.preview) this.preview.visible = false;
+    // F5: os Moves migrados dividem os lotes do elementalFx/atelierFx — descartados ANTES do clear() deles, que poda os lotes vazios (batch-prune.js).
+    this.movesVfx?.disposeAll();
     this.elementalFx?.clear();
     this.atelierFx?.clear();
-    this.movesVfx?.disposeAll();
     this.seen = new Set();
     if (this.rings) {
       for (const r of this.rings) {

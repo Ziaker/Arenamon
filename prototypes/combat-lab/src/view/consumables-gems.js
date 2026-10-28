@@ -5,6 +5,8 @@ import * as T from 'three';
 import * as Quarks from 'three.quarks';
 import {C} from '../sim/config.js';
 import {drawSymbol} from './symbols.js';
+import {pruneEmptyBatches} from './quarks/batch-prune.js';
+import {visualRandomSeeded} from './visual-random.js';
 
 const TAU = Math.PI * 2, Y = new T.Vector3(0, 1, 0);
 /** Tipos de consumível da simulação → identidade visual aprovada (cor, símbolo e geometria próprios, R5.12). */
@@ -132,7 +134,8 @@ export class GemConsumable {
 
   /** Atualiza movimento, escala e indicador conforme display.consumables (tudo só visual). */
   update(time, camera) {
-    const K = C.display.consumables, t = (K.gemAnimate ? time : 0) + this.phase, sc = Math.max(.1, K.gemScale ?? 1), hover = K.gemHover ?? .9;
+    const K = C.display.consumables, t = (K.gemAnimate ? time : 0) + (visualRandomSeeded() ? 0 : this.phase),   // captura determinística: fase fixa (visual-random.js)
+      sc = Math.max(.1, K.gemScale ?? 1), hover = K.gemHover ?? .9;
     this.holder.scale.setScalar(sc);
     this.ped.visible = !!K.gemPedestal;
     this.spin.rotation.y = t * .9;
@@ -202,6 +205,7 @@ export class GemSparkles {
     this.live.delete(gemItem);
     try {this.renderer.deleteSystem(e.system);} catch {/* já removido */}
     e.emitter.parent?.remove(e.emitter);e.system.dispose?.();
+    pruneEmptyBatches(this.renderer);   // F5: three.quarks 0.17 deixa o lote vazio depois de deleteSystem (batch-prune.js)
   }
   /** Liga/desliga conforme gemParticles e anda os sistemas. dt = 0 congela (pausa). */
   update(dt, wanted, items) {

@@ -1,5 +1,6 @@
 // Metadados dos parâmetros independentes de C (actions.dodge), X (actions.tackle) e do cancelamento C → X
 // (actions.cancel): rótulos, explicações, faixas, correspondência com o jogo oficial e migração dos JSONs antigos.
+import {PARAM_ALIASES} from '../sim/moves/params-registry.js';
 const DEG = Math.PI / 180;
 const sec = n => n.toFixed(2) + ' s', onOff = n => n ? 'Sim' : 'Não';
 const WHO = {dodge: 'da esquiva C', tackle: 'do tackle X'};
@@ -83,6 +84,8 @@ export const LEGACY_MAP = {
   'extras.combat.perfectEvadeStamina': ['actions.dodge.perfectEvadeStamina'],
   'extras.combat.counterWindow': ['actions.dodge.counterWindow'],
   'extras.combat.counterSpeed': ['actions.tackle.counterSpeed'],
+  // F5: nomes antigos de parâmetros dos Moves (ex.: enableAtelierVfx → atelierVfx do Bullet Punch)
+  ...Object.fromEntries(Object.entries(PARAM_ALIASES).map(([from, to]) => [from, [to]])),
 };
 /** No v6, rules.blend também era a transição ao iniciar X/C (além da dissipação da defesa). */
 const ALSO_COPY = {'rules.blend': ['actions.dodge.blend', 'actions.tackle.blend']};

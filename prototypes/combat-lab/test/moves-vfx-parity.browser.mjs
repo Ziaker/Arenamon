@@ -46,6 +46,8 @@ const UPDATE_BASELINES = process.argv.includes('--update-baselines') || process.
 // Diagnóstico opt-in: PARIDADE_PAINEL=aberto reabre o painel lateral "Partida" como no layout das baselines de 26/10 (antes de
 // 2566aad o laboratório abria com o painel aberto). SÓ DIAGNÓSTICO: não é o jeito de passar o gate e não gera candidatas.
 const PAINEL_ABERTO = process.env.PARIDADE_PAINEL === 'aberto';
+/** Captura determinística (F5): semente da partida (a das baselines) e do Math.random do desenho (view/visual-random.js). */
+const SEMENTE_PARTIDA = 94438, SEMENTE_VISUAL = 20261028;
 const VIEWPORT = {w: 1400, h: 900};
 const LAYOUT = PAINEL_ABERTO ? 'painel-aberto' : 'padrao';
 const candDir = out + 'baselines-candidatas/';
@@ -311,18 +313,23 @@ try {
   // Diagnóstico opt-in PARIDADE_PAINEL=aberto (ver topo): só isola layout × efeito; não muda limiares nem gera candidatas.
   if (PAINEL_ABERTO) {await L(() => window.__lab.openTool('match'));await frames(4);}
 
-  // Inicializa o combate pausado para avanço determinístico frame a frame
-  await L(() => {
+  // Inicializa o combate pausado para avanço determinístico frame a frame.
+  // F5 (captura determinística): semente da partida FIXA (a das baselines, 94438 — antes era sorteada a cada execução) e Math.random do desenho
+  // semeado (view/visual-random.js) a cada cenário: a fase da gema de consumível (chevron ao lado do Azul) e as gotas do three.quarks repetem.
+  await L(([seed]) => {
     document.getElementById('moves-close')?.click();
+    const s = /** @type {any} */ (document.getElementById('seed')), fx = /** @type {any} */ (document.getElementById('seed-fixed'));
+    if (s) s.value = String(seed);if (fx) fx.checked = true;
     window.__lab.startMatch();
     window.__labRecording.ui.paused = true;
-  });
+  }, [SEMENTE_PARTIDA]);
 
   const idle = `({move: {x: 0, z: 0}, dodge: false, dodgeHeld: false, tackle: false, tackleHeld: false, guard: false, guardPressed: false, jump: false, jumpHeld: false, target: null, skill: null, skillHeld: null})`;
 
-  const setupFighters = (move, dist = 5) => L(([move, dist]) => {
+  const setupFighters = (move, dist = 5) => L(([move, dist, visual]) => {
     window.__lab.startMatch();
     window.__labRecording.ui.paused = true;
+    window.__lab.seedVisualRandom(visual);   // mesma sequência de sorteios visuais em toda execução deste cenário
     const g = window.__lab.game;
     const a = g.fighters[0], b = g.fighters[1];
     a.ai = false; b.ai = false;
@@ -340,7 +347,7 @@ try {
     b.flight = null;
     b.action = null;
     b.hp = 100;
-  }, [move, dist]);
+  }, [move, dist, SEMENTE_VISUAL]);
 
   const stepGame = (n, press) => L(([n, press, idle]) => {
     const g = window.__lab.game;

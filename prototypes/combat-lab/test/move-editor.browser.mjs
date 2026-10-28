@@ -185,6 +185,15 @@ try {
   await page.selectOption('#editor-move', 'psyshock');
   check('Psyshock: sliders de mecânica e VFX da rocha', await page.locator('#editor-mechanics [data-path^="world.psyshock."]').count() >= 20 && await page.locator('#editor-vfx [data-visual="vfx.rock.scale"]').count() === 1);
   check('a mecânica não mostra os ajustes puramente visuais (ficam no VFX)', await page.locator('#editor-mechanics [data-path="world.psyshock.scaleMin"]').count() === 0 && await page.locator('#editor-vfx [data-visual="world.psyshock.scaleMin"]').count() === 1);
+  // F5: o controle do VFX do Ateliê do Bullet Punch escreve SÓ a chave canônica (atelierVfx); o nome antigo enableAtelierVfx não aparece nem é escrito
+  await page.selectOption('#editor-move', 'bullet-punch');
+  const bpToggle = await L(() => {
+    const el = /** @type {any} */ (document.querySelector('#move-editor [data-path="world.bulletPunch.atelierVfx"]')), w = window.__lab.C.world.bulletPunch, out = {found: !!el, old: document.querySelectorAll('#move-editor [data-path$="enableAtelierVfx"]').length, before: w.atelierVfx, after: null, legacy: 'enableAtelierVfx' in w};
+    if (el) {if (el.type === 'checkbox') el.checked = !el.checked;else el.value = String(1 - Number(el.value));el.dispatchEvent(new Event('input', {bubbles: true}));el.dispatchEvent(new Event('change', {bubbles: true}));out.after = w.atelierVfx;out.legacy = out.legacy || 'enableAtelierVfx' in w;}
+    return out;
+  });
+  check('Bullet Punch: o controle «VFX do Ateliê» grava world.bulletPunch.atelierVfx (canônico) e não o nome antigo', bpToggle.found && bpToggle.old === 0 && bpToggle.before === 1 && bpToggle.after === 0 && !bpToggle.legacy, JSON.stringify(bpToggle));
+  await L(() => {window.__lab.C.world.bulletPunch.atelierVfx = 1;});
   await page.selectOption('#editor-move', 'sand-wave');
 
   mkdirSync(root + 'evidence/editor', {recursive: true});

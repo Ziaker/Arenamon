@@ -3,6 +3,7 @@
 // Um preset tem nome, versão, descrição, datas, escopo (completo ou por categorias) e valores. Aplicar um preset por
 // categorias muda SÓ os caminhos dessas categorias (aplicar locomoção nunca mexe em VFX, HUD ou câmera).
 // Os presets iniciais são propostas para avaliação: não são valores aprovados e não substituem os oficiais.
+import {canonicalParamValues} from './moves/params-registry.js';
 
 const has = (path, prefixes) => prefixes.some(p => path === p || path.startsWith(p + '.'));
 const key = path => path.split('.').at(-1);
@@ -109,7 +110,7 @@ export function applyPlan(preset, current, known) {
 export function migrateLegacyPreset(p) {
   const at = new Date(p.savedAt || Date.now()).toISOString();
   return {id: 'user:' + (p.id || slug(p.name) + '-' + (p.savedAt || 0).toString(36)), name: p.name, version: p.version ?? 1, description: p.description ?? '', createdAt: p.createdAt ?? at, updatedAt: p.updatedAt ?? at,
-    scope: p.scope ?? 'full', categories: p.categories ?? [], values: {...(p.values || {})}, migratedFrom: p.migratedFrom ?? (p.id ? undefined : 'v7')};
+    scope: p.scope ?? 'full', categories: p.categories ?? [], values: canonicalParamValues(p.values || {}), migratedFrom: p.migratedFrom ?? (p.id ? undefined : 'v7')};
 }
 const slug = s => String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'preset';
 export const newPresetId = name => `user:${slug(name)}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`;

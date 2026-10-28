@@ -1,9 +1,9 @@
 {
-  "timestamp": "2026-10-28T17:03:08.233Z",
+  "timestamp": "2026-10-28T20:47:50.443Z",
   "passed": 38,
   "failed": 5,
   "layout": "padrão do laboratório (painel recolhido)",
-  "modo": "update-baselines (candidatas gravadas; baselines/ intocada)",
+  "modo": "comparação",
   "paridade": [
     {
       "efeito": "sand-wave-ativo",
@@ -20,11 +20,11 @@
         "width": 1330,
         "height": 708
       },
-      "similarity": 65.61,
-      "roiSimilarity": 31.26,
+      "similarity": 65.58,
+      "roiSimilarity": 31.17,
       "outSimilarity": 81.05,
-      "diffCount": 433290,
-      "diffIn": 268597,
+      "diffCount": 433631,
+      "diffIn": 268938,
       "diffOut": 164693,
       "pixelsIn": 390728,
       "pixelsOut": 869272,
@@ -124,7 +124,7 @@
         "unknown": {},
         "unknownTotal": 0,
         "truncated": 0,
-        "frames": 30,
+        "frames": 47,
         "delivered": 1,
         "resets": 2,
         "deferred": {
@@ -132,12 +132,12 @@
           "solid": 1
         }
       },
-      "explicacao": "Diferença relevante FORA da ROI (18.9% dos pixels de fora): câmera, cena, HUD, layout ou instante mudaram — a ROI sozinha não isola o efeito, e dentro dela a mudança é ainda maior. ROI 31.26% (268597/390728 px diferentes), fora 81.05% (164693/869272 px); 62.0% de todos os pixels diferentes estão na ROI. Análise (2026-10-28): Falha de layout, não do efeito. No layout padrão: global 65,6%, ROI 31,3%, fora 81,1%; a ROI cai mais que o resto porque na baseline a barragem fica quase toda ESCONDIDA atrás do painel lateral, e na captura atual ela aparece inteira no canto inferior esquerdo. Com o painel reaberto: global 99,13%, ROI 96,25%, fora 99,97% — o resto (~3,7% da ROI) é ruído de partículas de areia (a semente da partida é aleatória: 94438 na baseline × outra a cada execução; repetições deram ROI 96,1–96,9%). Não é regressão desta branch.",
+      "explicacao": "Diferença relevante FORA da ROI (18.9% dos pixels de fora): câmera, cena, HUD, layout ou instante mudaram — a ROI sozinha não isola o efeito, e dentro dela a mudança é ainda maior. ROI 31.17% (268938/390728 px diferentes), fora 81.05% (164693/869272 px); 62.0% de todos os pixels diferentes estão na ROI. Análise (2026-10-28): Falha de layout, não do efeito. No layout padrão: global 65,6%, ROI 31,3%, fora 81,1%; a ROI cai mais que o resto porque na baseline a barragem fica quase toda ESCONDIDA atrás do painel lateral, e na captura atual ela aparece inteira no canto inferior esquerdo. Com o painel reaberto: global 99,13%, ROI 96,25%, fora 99,97% — o resto (~3,7% da ROI) é ruído de partículas de areia (a semente da partida é aleatória: 94438 na baseline × outra a cada execução; repetições deram ROI 96,1–96,9%). Não é regressão desta branch.",
       "imagens": {
         "baseline": "baselines/sand-wave-ativo.png",
         "atual": "sand-wave-ativo.png",
         "diff": "diff-sand-wave-ativo.png",
-        "candidata": "baselines-candidatas/sand-wave-ativo.png"
+        "candidata": null
       },
       "error": null
     },
@@ -157,11 +157,11 @@
         "height": 708
       },
       "similarity": 64.8,
-      "roiSimilarity": 14.7,
+      "roiSimilarity": 14.67,
       "outSimilarity": 76.38,
-      "diffCount": 443511,
-      "diffIn": 201758,
-      "diffOut": 241753,
+      "diffCount": 443529,
+      "diffIn": 201817,
+      "diffOut": 241712,
       "pixelsIn": 236526,
       "pixelsOut": 1023474,
       "totalPixels": 1260000,
@@ -236,7 +236,7 @@
         "unknown": {},
         "unknownTotal": 0,
         "truncated": 0,
-        "frames": 113,
+        "frames": 187,
         "delivered": 6,
         "resets": 3,
         "deferred": {
@@ -244,12 +244,12 @@
           "solid": 2
         }
       },
-      "explicacao": "Diferença relevante FORA da ROI (23.6% dos pixels de fora): câmera, cena, HUD, layout ou instante mudaram — a ROI sozinha não isola o efeito, e dentro dela a mudança é ainda maior. ROI 14.7% (201758/236526 px diferentes), fora 76.38% (241753/1023474 px); 45.5% de todos os pixels diferentes estão na ROI. Análise (2026-10-28): Falha de layout, não do efeito. Padrão: global 64,8%, ROI 14,8%, fora 76,4%; a ROI (trajeto atacante→alvo) está na faixa que a baseline cobria com o painel. Com o painel reaberto: global 99,26%, ROI 96,37%, fora 99,64%; o restante dentro da ROI são partículas e pós-imagens do rush (aleatórias). O evento do instante (bulletVanish) é SEM_VISUAL no despachante F5 e o rush é desenhado pelo movesVfx pelo estado do lutador, então o despachante não altera esta captura. Não é regressão desta branch.",
+      "explicacao": "Diferença relevante FORA da ROI (23.6% dos pixels de fora): câmera, cena, HUD, layout ou instante mudaram — a ROI sozinha não isola o efeito, e dentro dela a mudança é ainda maior. ROI 14.67% (201817/236526 px diferentes), fora 76.38% (241712/1023474 px); 45.5% de todos os pixels diferentes estão na ROI. Análise (2026-10-28): Falha de layout, não do efeito. Padrão: global 64,8%, ROI 14,8%, fora 76,4%; a ROI (trajeto atacante→alvo) está na faixa que a baseline cobria com o painel. Com o painel reaberto: global 99,26%, ROI 96,37%, fora 99,64%; o restante dentro da ROI são partículas e pós-imagens do rush (aleatórias). O evento do instante (bulletVanish) é SEM_VISUAL no despachante F5 e o rush é desenhado pelo movesVfx pelo estado do lutador, então o despachante não altera esta captura. Não é regressão desta branch.",
       "imagens": {
         "baseline": "baselines/bullet-punch-vanish.png",
         "atual": "bullet-punch-vanish.png",
         "diff": "diff-bullet-punch-vanish.png",
-        "candidata": "baselines-candidatas/bullet-punch-vanish.png"
+        "candidata": null
       },
       "error": null
     },
@@ -269,13 +269,13 @@
         "height": 708
       },
       "similarity": 63.42,
-      "roiSimilarity": 8.91,
-      "outSimilarity": 69.73,
-      "diffCount": 460937,
-      "diffIn": 119140,
-      "diffOut": 341797,
-      "pixelsIn": 130788,
-      "pixelsOut": 1129212,
+      "roiSimilarity": 9.74,
+      "outSimilarity": 71.56,
+      "diffCount": 460951,
+      "diffIn": 149880,
+      "diffOut": 311071,
+      "pixelsIn": 166056,
+      "pixelsOut": 1093944,
       "totalPixels": 1260000,
       "roi": {
         "fonte": "rush bullet-punch: fx.impact (mundo) + alvo",
@@ -289,16 +289,16 @@
           {
             "x": 0,
             "y": 1.05,
-            "z": 3.5,
+            "z": 2.9,
             "r": 1.5
           }
         ],
         "pad": 24,
         "box": {
-          "minX": 203,
-          "maxX": 548,
-          "minY": 232,
-          "maxY": 609
+          "minX": 136,
+          "maxX": 543,
+          "minY": 228,
+          "maxY": 634
         },
         "atras": 0,
         "canvas": {
@@ -372,7 +372,7 @@
         "unknown": {},
         "unknownTotal": 0,
         "truncated": 0,
-        "frames": 151,
+        "frames": 212,
         "delivered": 7,
         "resets": 3,
         "deferred": {
@@ -380,12 +380,12 @@
           "solid": 3
         }
       },
-      "explicacao": "Diferença relevante FORA da ROI (30.3% dos pixels de fora): câmera, cena, HUD, layout ou instante mudaram — a ROI sozinha não isola o efeito, e dentro dela a mudança é ainda maior. ROI 8.91% (119140/130788 px diferentes), fora 69.73% (341797/1129212 px); 25.8% de todos os pixels diferentes estão na ROI. Análise (2026-10-28): Falha de layout, não do efeito. Padrão: global 63,4%, ROI 9,1%, fora 69,7% (a ROI do impacto fica inteira sobre a área que era painel na baseline). Com o painel reaberto: global 99,31%, ROI 95,33%, fora 99,70%; o resto da ROI são faíscas/partículas do impacto metálico. bulletReturn → movesVfx (canal move) e impact → um dono por canal (partículas vfx no modo padrão), ambos sem desconhecidos no despachante. Não é regressão desta branch.",
+      "explicacao": "Diferença relevante FORA da ROI (28.4% dos pixels de fora): câmera, cena, HUD, layout ou instante mudaram — a ROI sozinha não isola o efeito, e dentro dela a mudança é ainda maior. ROI 9.74% (149880/166056 px diferentes), fora 71.56% (311071/1093944 px); 32.5% de todos os pixels diferentes estão na ROI. Análise (2026-10-28): Falha de layout, não do efeito. Padrão: global 63,4%, ROI 9,1%, fora 69,7% (a ROI do impacto fica inteira sobre a área que era painel na baseline). Com o painel reaberto: global 99,31%, ROI 95,33%, fora 99,70%; o resto da ROI são faíscas/partículas do impacto metálico. bulletReturn → movesVfx (canal move) e impact → um dono por canal (partículas vfx no modo padrão), ambos sem desconhecidos no despachante. Não é regressão desta branch.",
       "imagens": {
         "baseline": "baselines/bullet-punch-impacto.png",
         "atual": "bullet-punch-impacto.png",
         "diff": "diff-bullet-punch-impacto.png",
-        "candidata": "baselines-candidatas/bullet-punch-impacto.png"
+        "candidata": null
       },
       "error": null
     },
@@ -405,11 +405,11 @@
         "height": 708
       },
       "similarity": 64.9,
-      "roiSimilarity": 3.89,
-      "outSimilarity": 71.74,
-      "diffCount": 442268,
-      "diffIn": 122024,
-      "diffOut": 320244,
+      "roiSimilarity": 3.92,
+      "outSimilarity": 71.73,
+      "diffCount": 442240,
+      "diffIn": 121974,
+      "diffOut": 320266,
       "pixelsIn": 126957,
       "pixelsOut": 1133043,
       "totalPixels": 1260000,
@@ -509,7 +509,7 @@
         "unknown": {},
         "unknownTotal": 0,
         "truncated": 0,
-        "frames": 208,
+        "frames": 288,
         "delivered": 21,
         "resets": 4,
         "deferred": {
@@ -517,12 +517,12 @@
           "solid": 7
         }
       },
-      "explicacao": "Diferença relevante FORA da ROI (28.3% dos pixels de fora): câmera, cena, HUD, layout ou instante mudaram — a ROI sozinha não isola o efeito, e dentro dela a mudança é ainda maior. ROI 3.89% (122024/126957 px diferentes), fora 71.74% (320244/1133043 px); 27.6% de todos os pixels diferentes estão na ROI. Análise (2026-10-28): Falha de layout (padrão: global 64,9%, ROI 4,0%, fora 71,7%; na baseline o projétil fica quase todo atrás do painel). Com o painel aberto passa (global ~99,0%, fora 99,8–99,9%), mas a ROI fica em 76–79%. Investigado com worktree temporário em .worktrees/paridade-base, mesmo teste e PARIDADE_PAINEL=aberto: merge-base 96205a5 = ROI 76,78% e 77,04% (2 execuções); HEAD = 78,86%, 77,90% e 77,75% — HEAD não é pior, a diferença é anterior à branch e não vem do despachante F5 (que não existe na base). Bisseção 6513926..96205a5: 6513926 (o próprio commit que capturou as baselines, painel aberto de fábrica) = 83,29% e 79,92%; 2566aad 77,05%/77,98%; 02f5d72 75,14%; 8b476f8 78,56%; 7eecc57 78,07%; c0ed032 76,33% (2e4022a, 6e82475 e 9ef45ba quebram no teste com \"C is not defined\" em syncRushes). Câmera, canvas e posição 3D do projétil são idênticos em todos (cam [-4.644, 2.2, -2.794], fov 48, canvas 966×708 em x 434). Três execuções seguidas no MESMO commit (HEAD; ROI 77,62%, 77,87% e 78,54%) mostram o chevron ciano junto ao lutador Azul em três ângulos diferentes — numa delas virado igual à baseline: o ângulo da peça na hora da captura varia entre execuções (pelo visto animada pelo laço de desenho em tempo real enquanto a simulação está pausada; mecanismo não rastreado no código). Conclusão: a ROI do voo é pequena (~50 mil px) e é dominada pela trilha de gotas aleatória e pelo marcador ciano do lutador Azul cortado na borda do canvas, cuja forma muda entre execuções; nem o código que gerou a baseline a reproduz acima de ~83%. É ruído do próprio efeito/captura, não regressão. Para este efeito, a ROI só aponta mudança real abaixo de ~75%.",
+      "explicacao": "Diferença relevante FORA da ROI (28.3% dos pixels de fora): câmera, cena, HUD, layout ou instante mudaram — a ROI sozinha não isola o efeito, e dentro dela a mudança é ainda maior. ROI 3.92% (121974/126957 px diferentes), fora 71.73% (320266/1133043 px); 27.6% de todos os pixels diferentes estão na ROI. Análise (2026-10-28): Falha de layout (padrão: global ~64,9%, ROI ~4%, fora ~71,7%; na baseline o projétil fica quase todo atrás do painel). Com o painel aberto passa no gate global (98,86%), e a ROI do voo fica em 75,56%. CAUSA REAL da variação entre execuções no mesmo commit (Task 13, rastreada no código; antes chamada de 'ruído'): (1) WorldView.time — o relógio visual que gira a gema de consumível — acumula o tempo REAL desde que a página abriu (a partida roda sem pausa até o teste pausá-la), então o ângulo do chevron ciano da gema de Velocidade ao lado do lutador Azul mudava a cada execução mesmo com a simulação pausada; (2) a fase inicial da gema é Math.random() (consumables-gems.js); (3) as gotas da trilha do Water Pulse saem do Math.random do three.quarks; (4) a semente da partida era sorteada a cada execução. Correção (sem mudar a aparência normal do jogo): o teste fixa a semente da partida (94438, a das baselines) e chama __lab.seedVisualRandom(semente) a cada cenário (view/visual-random.js: Math.random semeado + relógio visual zerado + fase da gema fixa só durante a captura). Prova: 3 execuções seguidas = ROI 75,56%, 75,56%, 75,56% (dispersão 0 pp; antes 75,6–84,2%). A diferença restante contra a baseline é o ângulo da gema e o padrão de gotas da baseline (capturados com relógio/sorteio livres em 26/10), não regressão do efeito; nova baseline só com aceite explícito das 5 (--update-baselines + --aceitar).",
       "imagens": {
         "baseline": "baselines/water-pulse-voo.png",
         "atual": "water-pulse-voo.png",
         "diff": "diff-water-pulse-voo.png",
-        "candidata": "baselines-candidatas/water-pulse-voo.png"
+        "candidata": null
       },
       "error": null
     },
@@ -541,12 +541,12 @@
         "width": 1330,
         "height": 708
       },
-      "similarity": 65.33,
-      "roiSimilarity": 37.14,
-      "outSimilarity": 69.31,
-      "diffCount": 436838,
-      "diffIn": 97981,
-      "diffOut": 338857,
+      "similarity": 65.35,
+      "roiSimilarity": 37.16,
+      "outSimilarity": 69.33,
+      "diffCount": 436646,
+      "diffIn": 97958,
+      "diffOut": 338688,
       "pixelsIn": 155881,
       "pixelsOut": 1104119,
       "totalPixels": 1260000,
@@ -691,7 +691,7 @@
         "unknown": {},
         "unknownTotal": 0,
         "truncated": 0,
-        "frames": 232,
+        "frames": 311,
         "delivered": 23,
         "resets": 4,
         "deferred": {
@@ -699,12 +699,12 @@
           "solid": 9
         }
       },
-      "explicacao": "Diferença relevante FORA da ROI (30.7% dos pixels de fora): câmera, cena, HUD, layout ou instante mudaram — a ROI sozinha não isola o efeito, e dentro dela a mudança é ainda maior. ROI 37.14% (97981/155881 px diferentes), fora 69.31% (338857/1104119 px); 22.4% de todos os pixels diferentes estão na ROI. Análise (2026-10-28): Falha de layout, não do efeito. Padrão: global 65,3%, ROI 37,2%, fora 69,3%. Com o painel reaberto: global 99,43%, ROI 98,22%, fora 99,60% — o splash é o efeito mais estável dos cinco. impact (contato) e expire chegam ao movesVfx pelo canal move; destructibleHit no mesmo quadro tem dono (runtime/movesVfx) e o despachante não registrou desconhecidos. Não é regressão desta branch.",
+      "explicacao": "Diferença relevante FORA da ROI (30.7% dos pixels de fora): câmera, cena, HUD, layout ou instante mudaram — a ROI sozinha não isola o efeito, e dentro dela a mudança é ainda maior. ROI 37.16% (97958/155881 px diferentes), fora 69.33% (338688/1104119 px); 22.4% de todos os pixels diferentes estão na ROI. Análise (2026-10-28): Falha de layout, não do efeito. Padrão: global 65,3%, ROI 37,2%, fora 69,3%. Com o painel reaberto: global 99,43%, ROI 98,22%, fora 99,60% — o splash é o efeito mais estável dos cinco. impact (contato) e expire chegam ao movesVfx pelo canal move; destructibleHit no mesmo quadro tem dono (runtime/movesVfx) e o despachante não registrou desconhecidos. Não é regressão desta branch.",
       "imagens": {
         "baseline": "baselines/water-pulse-splash.png",
         "atual": "water-pulse-splash.png",
         "diff": "diff-water-pulse-splash.png",
-        "candidata": "baselines-candidatas/water-pulse-splash.png"
+        "candidata": null
       },
       "error": null
     }
@@ -738,7 +738,7 @@
     {
       "label": "Sand Wave: fidelidade visual automatizada contra baseline (≥ 98%)",
       "ok": false,
-      "detail": "65.61% global · ROI 31.26% · fora 81.05%"
+      "detail": "65.58% global · ROI 31.17% · fora 81.05%"
     },
     {
       "label": "Sand Wave: entidade expira na simulação e transiciona para fase dying",
@@ -778,7 +778,7 @@
     {
       "label": "Bullet Punch: fidelidade visual do vanish contra baseline (≥ 98%)",
       "ok": false,
-      "detail": "64.8% global · ROI 14.7% · fora 76.38%"
+      "detail": "64.8% global · ROI 14.67% · fora 76.38%"
     },
     {
       "label": "Bullet Punch: reaparece perto do alvo (f.absent = false)",
@@ -793,12 +793,12 @@
     {
       "label": "Bullet Punch: ROI do impacto projetada e medida",
       "ok": true,
-      "detail": "{\"minX\":203,\"maxX\":548,\"minY\":232,\"maxY\":609}"
+      "detail": "{\"minX\":136,\"maxX\":543,\"minY\":228,\"maxY\":634}"
     },
     {
       "label": "Bullet Punch: fidelidade visual do impacto contra baseline (≥ 98%)",
       "ok": false,
-      "detail": "63.42% global · ROI 8.91% · fora 69.73%"
+      "detail": "63.42% global · ROI 9.74% · fora 71.56%"
     },
     {
       "label": "Bullet Punch: rush descartado limpo após a dissipação",
@@ -848,7 +848,7 @@
     {
       "label": "Water Pulse: fidelidade visual do projétil em voo contra baseline (≥ 98%)",
       "ok": false,
-      "detail": "64.9% global · ROI 3.89% · fora 71.74%"
+      "detail": "64.9% global · ROI 3.92% · fora 71.73%"
     },
     {
       "label": "Water Pulse: impacto ativa animação splash e transiciona para cauda dying",
@@ -868,7 +868,7 @@
     {
       "label": "Water Pulse: fidelidade visual do splash contra baseline (≥ 98%)",
       "ok": false,
-      "detail": "65.33% global · ROI 37.14% · fora 69.31%"
+      "detail": "65.35% global · ROI 37.16% · fora 69.33%"
     },
     {
       "label": "Water Pulse: partículas de splash sustentadas durante a cauda de 2.4s",
