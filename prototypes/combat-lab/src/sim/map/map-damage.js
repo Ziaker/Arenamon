@@ -2,16 +2,14 @@
 // Dividido de map.js (comportamento idêntico): map-damage.
 
 import {C} from '../config.js';
-import {sturdyGuard} from '../passive-engine.js';
+import {resolveDamage, sourceKindOf} from '../resolvers/damage-resolver.js';
 import {wholeDamage} from '../damage-rule.js';
 import {pickRandomConsumableType, randomRange} from './map-state.js';
 
 /**
- * Pipeline Central de Dano com Escudo e Estágios de Defesa (R9.6, R10.1, R10.3, R11.3):
- * 1. Escudo absorve dano BRUTO antes da Defesa (R9.6, R11.3).
- * 2. Se dano bruto > escudo: consome todo o escudo e o excedente passa pela Defesa (R10.1).
- * 3. Defesa básica + estágios de defesa (-10 pp por estágio, R10.3) aplicados apenas ao excedente.
- * 4. Escudo não bloqueia empurrões nem lançamentos (R9.7).
+ * Adaptador legado (F3.1): a autoridade de dano agora é resolveDamage (resolvers/damage-resolver.js); isto só traduz a assinatura antiga e devolve o formato antigo.
+ * Escudo absorve o bruto antes da Defesa (R9.6, R11.3); o excedente passa por guarda e estágios de Defesa (R10.1, R10.3); escudo não bloqueia empurrões nem lançamentos (R9.7).
+ * Sobrecarga legada: (atacante, alvo, dano) quando o 2º argumento não é número.
  * @param {any} [arg0]
  * @param {any} [arg1]
  * @param {any} [arg2]
@@ -20,66 +18,11 @@ import {pickRandomConsumableType, randomRange} from './map-state.js';
  * @param {{category?: string, contact?: string, attacker?: any}} [ctx] origem do dano ('direct' | 'periodic' | 'environmental' | 'reflected'): Sturdy só vale para dano letal DIRETO de ataque (R6).
  */
 export function processDamageWithShieldAndStages(arg0, arg1, arg2 = null, isBlocked = false, isPerfect = false, ctx = {}) {
-  let defender, rawDamage, attacker;
-  if (typeof arg1 === 'number') {
-    defender = arg0;
-    rawDamage = arg1;
-    attacker = arg2;
-  } else {
-    attacker = arg0;
-    defender = arg1;
-    rawDamage = typeof arg2 === 'number' ? arg2 : 0;
-  }
-
-  if (!defender || defender.hp <= 0) return {absorbedByShield: 0, hpDamage: 0};
-  if (isPerfect) return {absorbedByShield: 0, hpDamage: 0};
-  rawDamage = wholeDamage(rawDamage);   // regra de 23/10/2026: todo dano é número inteiro, arredondado SEMPRE para baixo
-
-  defender.shield ??= {hp: 0, duration: 0, maxHp: 80};
-  defender.stages ??= {attack: 0, defense: 0, staminaMax: 0, cooldown: 0, speed: 0};
-
-  let unshieldedRaw = rawDamage;
-  let absorbed = 0;
-
-  // Escudo intercepta dano bruto primeiro (R9.6, R11.3)
-  if (defender.shield.hp > 0) {
-    if (defender.shield.hp >= rawDamage) {
-      absorbed = rawDamage;
-      defender.shield.hp -= rawDamage;
-      unshieldedRaw = 0;
-    } else {
-      absorbed = defender.shield.hp;
-      unshieldedRaw = rawDamage - defender.shield.hp;
-      defender.shield.hp = 0;
-      defender.shield.duration = 0;
-    }
-  }
-
-  // Dano excedente passa pela Defesa básica e redução de estágios (R10.1, R10.3)
-  let finalHpDamage = 0;
-  /** @type {{hpDamage: number, sturdy: boolean}|null} Sturdy (R6/§7), quando aplicável. */
-  let sg = null;
-  if (unshieldedRaw > 0) {
-    const X = C.extras?.combat;
-    const guardMultiplier = isBlocked ? (X?.guardDamageMultiplier ?? 0.5) : 1.0;
-
-    // Redução de 10 p.p. por estágio de Defesa (R6.11, R10.3)
-    const stageReduction = (defender.stages.defense ?? 0) * (C.map?.stageDefenseReduction ?? 0.10);
-    const defenseFactor = Math.max(0, 1.0 - stageReduction);
-
-    finalHpDamage = wholeDamage(unshieldedRaw * guardMultiplier * defenseFactor);
-    // Sturdy (R6/§7): dano letal DIRETO de ataque deixa exatamente 1 HP, 1× por rodada (DOT/ambiental/refletido não protege).
-    sg = sturdyGuard(defender, finalHpDamage, {...ctx, attacker});
-    finalHpDamage = sg.hpDamage;
-    defender.hp = sg.sturdy ? 1 : Math.max(0, defender.hp - finalHpDamage);   // Sturdy já fixou o HP em 1 dentro de sturdyGuard
-
-    if (attacker) {
-      defender.lastAttacker = attacker.id;
-      defender.lastDamagedTick = (defender.lastDamagedTick ?? 0) + 1;
-    }
-  }
-
-  return {absorbedByShield: absorbed, hpDamage: finalHpDamage, sturdy: !!sg?.sturdy};
+  const legacy = typeof arg1 !== 'number';
+  const defender = legacy ? arg1 : arg0, attacker = legacy ? arg0 : arg2, rawDamage = legacy ? (typeof arg2 === 'number' ? arg2 : 0) : arg1;
+  if (!defender || defender.hp <= 0 || isPerfect) return {absorbedByShield: 0, hpDamage: 0};
+  const r = resolveDamage({target: defender, attacker, rawDamage, sourceKind: sourceKindOf(ctx.category), contact: ctx.contact ?? null, guarded: isBlocked});
+  return {absorbedByShield: r.shieldAbsorbed, hpDamage: r.hpDamage, sturdy: r.sturdy};
 }
 /**
  * Danifica um objeto destrutível de acordo com a categoria de entrega e bônus ofensivo (R3.6, R5.14, R9.10).

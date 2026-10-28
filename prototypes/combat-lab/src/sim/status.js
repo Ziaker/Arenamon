@@ -11,7 +11,7 @@
 // Sem nenhum status ativo, todos os modificadores valem exatamente 1 (multiplicação) e 0 (soma): o motor fica
 // idêntico ao de antes (verificado nos testes de paridade e regressão).
 
-import {processDamageWithShieldAndStages} from './map.js';
+import {resolveDamage, damageEventFields} from './resolvers/damage-resolver.js';
 import {dotFactor, passiveContribute} from './passive-engine.js';
 
 /** Atributos que os modificadores podem alterar e onde o motor os usa. */
@@ -106,15 +106,16 @@ export function tickStatuses(f, dt, staminaMax) {
       while (s.acc >= s.tick.interval - 1e-9 && f.hp > 0) {
         s.acc -= s.tick.interval;
         const dmg = (s.tick.damage ?? 0) * s.stacks * stat(f, 'damageTaken', 1) * dotFactor(f), heal = (s.tick.heal ?? 0) * s.stacks;
-        let actualDmg = dmg;
+        let actualDmg = dmg, fields = {};
         if (dmg > 0) {
-          const res = processDamageWithShieldAndStages(f, dmg, s.source !== undefined ? {id: s.source} : null, false, false, {category: 'periodic'});
-          actualDmg = res.hpDamage;
+          const res = resolveDamage({target: f, attacker: s.source !== undefined ? {id: s.source} : null, rawDamage: dmg, sourceKind: 'status'});   // autor = quem aplicou o status (registra lastAttacker)
+          actualDmg = res.hpDamage;fields = damageEventFields(res);
           if (f.hp === 0) {f.guard = false;f.guardSuppressed = true;}
         }
+        const hpBeforeHeal = f.hp;
         if (heal) f.hp = Math.min(f.attributes.hp, f.hp + heal);
         if (s.tick.stamina) {f.stamina = Math.max(0, Math.min(staminaMax, f.stamina + s.tick.stamina * s.stacks));f.regenBase = f.stamina;}
-        events.push({result: 'statusTick', target: f.id, attacker: s.source, status: s.id, damage: actualDmg, heal});
+        events.push({result: 'statusTick', target: f.id, attacker: s.source, status: s.id, damage: actualDmg, ...fields, heal: f.hp - hpBeforeHeal});   // heal = HP curado de fato (teto do HP máximo)
       }
     }
   }

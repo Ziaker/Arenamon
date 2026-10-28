@@ -4,7 +4,7 @@ import {isInvulnerable, isOffensive, riposteIntercept, altitudeOf} from './entit
 import {stat} from './status.js';
 import {vec, add, scale, sub, dot, length, normalize, angleOf, direction} from './math.js';
 
-import {processDamageWithShieldAndStages} from './map.js';
+import {resolveDamage, damageEventFields} from './resolvers/damage-resolver.js';
 import {knockbackFactor} from './passive-engine.js';
 
 /** Coloca o lutador em voo balístico (o eixo horizontal é integrado pela física).
@@ -74,14 +74,14 @@ export function clash(a, b, normal) {
   const atkMultA = 1 + (a.stages?.attack ?? 0) * (C.map?.stageAttackBonus ?? 0.10);
   const rawToA = stat(b, 'attack', b.attributes.attack) * atkMultB * R.clashFraction * stat(a, 'damageTaken', 1);
   const rawToB = stat(a, 'attack', a.attributes.attack) * atkMultA * R.clashFraction * stat(b, 'damageTaken', 1);
-  const resA = processDamageWithShieldAndStages(a, rawToA, b, false, false, {category: 'direct', contact: 'clash'});
-  const resB = processDamageWithShieldAndStages(b, rawToB, a, false, false, {category: 'direct', contact: 'clash'});
+  const resA = resolveDamage({target: a, attacker: b, rawDamage: rawToA, sourceKind: 'direct', contact: 'clash'});
+  const resB = resolveDamage({target: b, attacker: a, rawDamage: rawToB, sourceKind: 'direct', contact: 'clash'});
   const push = !!C.extras.toggles.enableClashPush;a.lastAttacker = b.id;b.lastAttacker = a.id;
   if (push) {pushAway(a, scale(normal, -1), R.clashPushDistance, R.clashPushDuration);pushAway(b, normal, R.clashPushDistance, R.clashPushDuration);}
   else {launch(a, scale(normal, -1), R.clashHorizontal, R.clashUp);launch(b, normal, R.clashHorizontal, R.clashUp);}
   const contactId = nextClashContactId();
-  return [{attacker: a.id, target: b.id, result: 'clash', contactId, damage: resB.hpDamage, shieldAbsorbed: resB.absorbedByShield, normal: {...normal}, push, contact: 'clash', ...(resB.sturdy ? {sturdy: true} : {})},
-    {attacker: b.id, target: a.id, result: 'clash', contactId, damage: resA.hpDamage, shieldAbsorbed: resA.absorbedByShield, normal: scale(normal, -1), push, contact: 'clash', ...(resA.sturdy ? {sturdy: true} : {})}];
+  return [{attacker: a.id, target: b.id, result: 'clash', contactId, damage: resB.hpDamage, ...damageEventFields(resB), normal: {...normal}, push, contact: 'clash', ...(resB.sturdy ? {sturdy: true} : {})},
+    {attacker: b.id, target: a.id, result: 'clash', contactId, damage: resA.hpDamage, ...damageEventFields(resA), normal: scale(normal, -1), push, contact: 'clash', ...(resA.sturdy ? {sturdy: true} : {})}];
 }
 /** O tackle do atacante conecta no defensor, dado a normal e a velocidade relativa do contato? */
 export function tackleConnects(attacker, defender, normal, relative) {
@@ -187,7 +187,7 @@ export function resolveHit(attacker, defender, normal, relative, force = false) 
   const rawDamage = perfect ? 0 : attack * stat(defender, 'damageTaken', 1);
 
   // Pipeline central: absorve dano bruto no escudo antes da Defesa (R9.6, R10.1, R10.3, R11.3)
-  const dmgResult = processDamageWithShieldAndStages(defender, rawDamage, attacker, protectedFront, perfect, {category: 'direct', contact: 'tackle'});
+  const dmgResult = resolveDamage({target: defender, attacker, rawDamage, sourceKind: 'direct', contact: 'tackle', guarded: protectedFront, perfect});
   const damage = dmgResult.hpDamage;
 
   let launchInfo = null;
@@ -244,7 +244,7 @@ export function resolveHit(attacker, defender, normal, relative, force = false) 
   }
   if (defender.hp === 0) {defender.guard = false;defender.guardSuppressed = true;}
   if (damage > 0) {attacker.comboLeft = Math.max(attacker.comboLeft ?? 0, C.rules.comboWindow ?? 0);defender.hitSerial = (defender.hitSerial ?? 0) + 1;}   // acertou um golpe corpo a corpo: abre a janela de combo
-  return {attacker: attacker.id, target: defender.id, result: perfect ? 'perfect' : protectedFront ? 'partial' : 'impact', damage, shieldAbsorbed: dmgResult.absorbedByShield, normal: {...normal}, launch: launchInfo, contact: 'tackle', ...(dmgResult.sturdy ? {sturdy: true} : {}), ...(attacker.action.slam ? {slam: true} : {}), ...(attacker.action.riposteStrike ? {riposte: true} : {}), ...(protectedFront && !perfect && isGuardBreak ? {guardBreak: true, broken: true, stun: defender.stun} : {})};
+  return {attacker: attacker.id, target: defender.id, result: perfect ? 'perfect' : protectedFront ? 'partial' : 'impact', damage, ...damageEventFields(dmgResult), normal: {...normal}, launch: launchInfo, contact: 'tackle', ...(dmgResult.sturdy ? {sturdy: true} : {}), ...(attacker.action.slam ? {slam: true} : {}), ...(attacker.action.riposteStrike ? {riposte: true} : {}), ...(protectedFront && !perfect && isGuardBreak ? {guardBreak: true, broken: true, stun: defender.stun} : {})};
 }
 /**
  * Footstool (Plano D, Etapa 3): pisar na cabeça do adversário vindo de cima com o salto normal.
@@ -260,7 +260,7 @@ export function resolveFootstool(attacker, defender) {
   if (isInvulnerable(defender)) {
     return {attacker: attacker.id, target: defender.id, result: 'invulnerable', damage: 0, contact: 'footstool'};
   }
-  const dmgResult = processDamageWithShieldAndStages(defender, M.footstoolDamage ?? 5, attacker, false, false, {category: 'direct', contact: 'footstool'});
+  const dmgResult = resolveDamage({target: defender, attacker, rawDamage: M.footstoolDamage ?? 5, sourceKind: 'direct', contact: 'footstool'});
   defender.lastAttacker = attacker.id;
   const stagger = M.footstoolStagger ?? 0.25;
   defender.stun = Math.max(defender.stun ?? 0, stagger);
@@ -276,5 +276,5 @@ export function resolveFootstool(attacker, defender) {
   if (defender.hp === 0) {defender.guard = false;defender.guardSuppressed = true;}
   const footstoolNormal = {x: 0, y: -1, z: 0};
   const footstoolPos = {x: defender.position.x, y: (defender.groundY ?? 0) + (defender.attributes?.height ?? 1.2), z: defender.position.z};
-  return {attacker: attacker.id, target: defender.id, result: 'footstool', damage: dmgResult.hpDamage, shieldAbsorbed: dmgResult.absorbedByShield, contact: 'footstool', stagger, normal: footstoolNormal, position: footstoolPos, x: footstoolPos.x, y: footstoolPos.y, z: footstoolPos.z, ...(dmgResult.sturdy ? {sturdy: true} : {})};
+  return {attacker: attacker.id, target: defender.id, result: 'footstool', damage: dmgResult.hpDamage, ...damageEventFields(dmgResult), contact: 'footstool', stagger, normal: footstoolNormal, position: footstoolPos, x: footstoolPos.x, y: footstoolPos.y, z: footstoolPos.z, ...(dmgResult.sturdy ? {sturdy: true} : {})};
 }

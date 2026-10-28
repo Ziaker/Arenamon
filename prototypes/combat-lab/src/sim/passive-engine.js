@@ -12,6 +12,7 @@
 
 import {C} from './config.js';
 import {wholeDamage} from './damage-rule.js';
+import {resolveDamage, damageEventFields, sturdyGuard} from './resolvers/damage-resolver.js';
 import {length, sub} from './math.js';
 import {applyStatus} from './status.js';
 import {chargeLevel} from './charge.js';
@@ -94,12 +95,13 @@ function activate(game, owner, id, {target = null, events = [], depth = 0} = {})
     case 'effect-spore': if (!target || !p.duration) return false; pushActive(target, p.duration); break;
     case 'rough-skin': {
       if (!target || target.hp <= 0 || !p.reflectDamage) return false;
-      const dmg = Math.min(target.hp, wholeDamage(p.reflectDamage));
-      target.hp = Math.max(0, target.hp - dmg);
+      // Refletido: ignora escudo e estágios de Defesa, sem Sturdy; registra só lastAttacker (lastDamagedTick fica como estava).
+      const res = resolveDamage({target, attacker: owner, rawDamage: Math.min(target.hp, wholeDamage(p.reflectDamage)), sourceKind: 'reflected', contact: 'reflected',
+        policy: {bypassShield: true, bypassDefense: true, trackAttacker: false}});
       target.lastAttacker = owner.id;
       const tst = ensureState(target);tst.lastDamageReceived = game.tick;
       ensureState(owner).lastDamageDealt = game.tick;
-      events.push({result: 'passiveReflect', attacker: owner.id, target: target.id, damage: dmg, passive: 'rough-skin', contact: 'reflected'});
+      events.push({result: 'passiveReflect', attacker: owner.id, target: target.id, damage: res.hpDamage, ...damageEventFields(res), passive: 'rough-skin', contact: 'reflected'});
       break;}
     case 'regenerator': {
       if (!p.heal) return false;
@@ -270,14 +272,5 @@ export function passiveCost(f, kind, base) {
   return base;
 }
 
-/** Sturdy (R6/§7): dano letal DIRETO de ataque deixa o HP exatamente em 1, uma vez por rodada. Devolve o dano efetivo ao HP. */
-export function sturdyGuard(defender, finalHpDamage, ctx = {}) {
-  const st = defender.passiveState;
-  if (!passivesEnabled() || !st || ctx.category !== 'direct' || !ctx.attacker) return {hpDamage: finalHpDamage, sturdy: false};
-  if (!st.loadout.includes('sturdy') || !st.sturdyAvailable || st.sturdyUsed || defender.hp <= 0) return {hpDamage: finalHpDamage, sturdy: false};
-  if (finalHpDamage < defender.hp) return {hpDamage: finalHpDamage, sturdy: false};
-  const effective = Math.max(0, defender.hp - 1);
-  defender.hp = 1;
-  st.sturdyAvailable = false;st.sturdyUsed = true;
-  return {hpDamage: effective, sturdy: true};
-}
+/** Sturdy (R6/§7) mora no DamageResolver desde a F3.1 (regra de dano); reexportado aqui para quem já o importava. */
+export {sturdyGuard};

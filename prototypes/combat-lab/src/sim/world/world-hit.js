@@ -5,7 +5,7 @@ import {C} from '../config.js';
 import {isInvulnerable, riposteIntercept} from '../entity.js';
 import {launch} from '../combat.js';
 import {applyStatus, stat} from '../status.js';
-import {processDamageWithShieldAndStages} from '../map.js';
+import {resolveDamage, damageEventFields} from '../resolvers/damage-resolver.js';
 import {knockbackFactor} from '../passive-engine.js';
 import {vec, add, sub, scale, dot, length, normalize, direction} from '../math.js';
 
@@ -43,7 +43,7 @@ export function applyHit(game, ownerId, target, hit, normal, info = {}) {
   const perfect = protectedFront && target.perfectLeft > 1e-8;
   const raw = (hit.damage ?? 0) * attack * scaleK * stat(target, 'damageTaken', 1);
   const contact = info.contact ?? hit.contact ?? 'area';
-  const dmgResult = processDamageWithShieldAndStages(target, raw, owner, protectedFront, perfect, {category: 'direct', contact});
+  const dmgResult = resolveDamage({target, attacker: owner, rawDamage: raw, sourceKind: 'direct', contact, guarded: protectedFront, perfect});
   const damage = dmgResult.hpDamage;
   /** @type {{direction: import("../types").Vec, horizontal: number, vertical: number} | null} */
   let launchInfo = null;
@@ -79,5 +79,5 @@ export function applyHit(game, ownerId, target, hit, normal, info = {}) {
     target.counterWindow = 0;
   }
   if (target.hp === 0) {target.guard = false;target.guardSuppressed = true;target.state = 'defeated';target.recoveryKind = null;}
-  return {...base, result: perfect ? 'perfect' : protectedFront ? 'partial' : 'impact', damage, launch: launchInfo, contact, ...(dmgResult.sturdy ? {sturdy: true} : {})};
+  return {...base, result: perfect ? 'perfect' : protectedFront ? 'partial' : 'impact', damage, ...damageEventFields(dmgResult), launch: launchInfo, contact, ...(dmgResult.sturdy ? {sturdy: true} : {})};
 }

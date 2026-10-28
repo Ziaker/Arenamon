@@ -5,7 +5,8 @@ import {clashPossible, mutualTackle, clash, resolveHit, resolveFootstool} from '
 import {collideFighter} from './world.js';
 import {ageSurfaces} from './solid-contact.js';
 import {collisionProbe, noteContact, horizontalOf} from './collision-probe.js';
-import {collideMapFighter, damageDestructible, processDamageWithShieldAndStages, effectiveArenaRadius} from './map.js';
+import {collideMapFighter, damageDestructible, effectiveArenaRadius} from './map.js';
+import {resolveDamage, damageEventFields} from './resolvers/damage-resolver.js';
 import {passiveCost, hitStunFactor} from './passive-engine.js';
 import {altitudeOf} from './entity.js';
 import {stat} from './status.js';
@@ -527,13 +528,13 @@ export function stepPhysics(fighters, dt, world = null) {
     const baseDmg = R.wallSplatDamage;
     const attackerId = typeof f.lastAttacker === 'number' ? f.lastAttacker : null;
     let effectiveDmg = baseDmg;
-    let shieldAbsorbed = 0;
+    let fields = {rawDamage: baseDmg, hpDamage: 0, shieldAbsorbed: 0, sourceKind: 'environmental'};   // sem dano aplicado (slider 0 ou já derrotado): `damage` segue o nominal (legado), hpDamage = 0
     if (baseDmg > 0 && f.hp > 0) {
       // Autoria real: só um lastAttacker registrado. Sem ele é dano ambiental SEM autor (nunca o índice oposto).
       const attackerF = attackerId != null ? (fighters.find(other => other.id === attackerId) ?? null) : null;
-      const res = processDamageWithShieldAndStages(f, baseDmg, attackerF, false, false, {category: 'environmental'});
+      const res = resolveDamage({target: f, indirectAttacker: attackerF, rawDamage: baseDmg, sourceKind: 'environmental'});   // indireto: registra autoria, nunca ativa Sturdy
       effectiveDmg = res.hpDamage;
-      shieldAbsorbed = res.absorbedByShield ?? 0;
+      fields = damageEventFields(res);
     }
     events.push({
       result: 'wallSplat',
@@ -543,8 +544,7 @@ export function stepPhysics(fighters, dt, world = null) {
       indirectAttacker: attackerId,
       target: f.id,
       damage: effectiveDmg,
-      rawDamage: baseDmg,
-      shieldAbsorbed,
+      ...fields,
       normal: {...w.normal},
       duration: w.duration
     });

@@ -5,7 +5,8 @@ import {C} from '../config.js';
 import {circleContact, noteSurface} from '../solid-contact.js';
 import {length} from '../math.js';
 import {noteContact} from '../collision-probe.js';
-import {damageDestructible, processDamageWithShieldAndStages} from './map-damage.js';
+import {damageDestructible} from './map-damage.js';
+import {resolveDamage, damageEventFields} from '../resolvers/damage-resolver.js';
 
 /**
  * Colisão física de um lutador contra plataformas (laterais sólidas), obstáculos e destrutíveis (R1.6, R1.8, R7.6, R7.15, R10.7-R10.8).
@@ -146,9 +147,7 @@ export function collideMapFighter(mapState, f, events = []) {
             const dmgToObj = relSpeed * (C.map?.impactDamageToObject ?? 6.0);
             const dmgToFighter = relSpeed * (C.map?.impactDamageToFighter ?? 2.5);
             damageDestructible(d, dmgToObj, 'environment', f, mapState, events);
-            const dmgRes = processDamageWithShieldAndStages(f, dmgToFighter, null, false, false, {category: 'environmental'});
-            const actualDamage = dmgRes?.hpDamage ?? dmgToFighter;
-            const shieldAbsorbed = dmgRes?.absorbedByShield ?? 0;
+            const dmgRes = resolveDamage({target: f, rawDamage: dmgToFighter, sourceKind: 'environmental'});
             const dPos = {x: d.pos.x, y: 0.6, z: d.pos.z};
             const splatNorm = ox < oz ? {x: dx > 0 ? -1 : 1, y: 0, z: 0} : {x: 0, y: 0, z: dz > 0 ? -1 : 1};
             events.push({
@@ -160,9 +159,8 @@ export function collideMapFighter(mapState, f, events = []) {
               target: f.id,
               fighter: f.id,
               destructible: d.id,
-              damage: actualDamage,
-              rawDamage: dmgToFighter,
-              shieldAbsorbed,
+              damage: dmgRes.hpDamage,
+              ...damageEventFields(dmgRes),
               position: dPos,
               x: dPos.x,
               y: dPos.y,

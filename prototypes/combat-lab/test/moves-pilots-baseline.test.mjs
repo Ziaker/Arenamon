@@ -12,6 +12,10 @@ import path from 'node:path';
 import {arena, cmd, vec, secs, HOLD} from './moves-new-helpers.mjs';
 
 const outDir = path.resolve('docs/overhaul-pilotos');
+// F3.1: o DamageResolver acrescenta campos de diagnóstico aos eventos de dano (rawDamage/hpDamage/shieldAbsorbed/sourceKind). Os baselines são anteriores:
+// só se comparam os campos que o baseline já tinha (a mecânica — damage, HP, posições — segue exigida 100% igual).
+const F3_FIELDS = ['rawDamage', 'hpDamage', 'shieldAbsorbed', 'sourceKind'];
+const legacyView = (evs, base) => evs.map((e, i) => {const o = {...e};for (const k of F3_FIELDS) if (!(base[i] && k in base[i])) delete o[k];return o;});
 
 console.log('\n--- PARIDADE DETERMINÍSTICA DOS 3 PILOTOS (DOC 02) ---');
 
@@ -34,7 +38,7 @@ console.log('\n--- PARIDADE DETERMINÍSTICA DOS 3 PILOTOS (DOC 02) ---');
     targetStatuses: g.fighters[1].statuses?.map(s => ({id: s.id, duration: s.duration})) ?? []
   };
 
-  assert.deepEqual(events, baseline.events, 'Sand Wave: eventos divergentes do baseline');
+  assert.deepEqual(legacyView(events, baseline.events), baseline.events, 'Sand Wave: eventos divergentes do baseline');
   assert.deepEqual(finalState, baseline.finalState, 'Sand Wave: estado final divergente do baseline');
   console.log('  ✓ Sand Wave: 100% de paridade determinística com baseline');
 }
@@ -59,7 +63,7 @@ console.log('\n--- PARIDADE DETERMINÍSTICA DOS 3 PILOTOS (DOC 02) ---');
     attackerPosition: {x: g.fighters[0].position.x, z: g.fighters[0].position.z}
   };
 
-  assert.deepEqual(events, baseline.events, 'Bullet Punch: eventos divergentes do baseline');
+  assert.deepEqual(legacyView(events, baseline.events), baseline.events, 'Bullet Punch: eventos divergentes do baseline');
   assert.deepEqual(finalState, baseline.finalState, 'Bullet Punch: estado final divergente do baseline');
   console.log('  ✓ Bullet Punch: 100% de paridade determinística com baseline');
 }
@@ -91,7 +95,7 @@ console.log('\n--- PARIDADE DETERMINÍSTICA DOS 3 PILOTOS (DOC 02) ---');
       attackerStamina: g.fighters[0].stamina,
       targetPosition: {x: g.fighters[1].position.x, z: g.fighters[1].position.z}
     };
-    assert.deepEqual(events, baseline.levels[key].events, `Water Pulse ${key}: eventos divergentes do baseline`);
+    assert.deepEqual(legacyView(events, baseline.levels[key].events), baseline.levels[key].events, `Water Pulse ${key}: eventos divergentes do baseline`);
     assert.equal(finalState.targetHp, baseline.levels[key].targetHp, `Water Pulse ${key}: targetHp divergente`);
     assert.equal(finalState.attackerStamina, baseline.levels[key].attackerStamina, `Water Pulse ${key}: attackerStamina divergente`);
     assert.deepEqual(finalState.targetPosition, baseline.levels[key].targetPosition, `Water Pulse ${key}: targetPosition divergente`);
