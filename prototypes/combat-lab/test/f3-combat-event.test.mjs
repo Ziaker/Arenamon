@@ -19,27 +19,30 @@ import {normalizeCombatEvent, validateCombatEvent, SOURCE_KINDS} from '../src/si
 registerStandardMoves();
 
 test('normalização: deriva os campos canônicos sem apagar os legados; idempotente', () => {
-  const e = normalizeCombatEvent({id: 7, tick: 3, result: 'impact', attacker: 0, target: 1, damage: 12, rawDamage: 15, hpDamage: 12, shieldAbsorbed: 3, sourceKind: 'direct', normal: {x: 0, z: 1}});
-  assert.equal(e.eventId, 7);assert.equal(e.outcome, 'impact');assert.equal(e.attackerId, 0);assert.equal(e.targetId, 1);assert.equal(e.indirectAttackerId, null);
+  const e = normalizeCombatEvent({id: 7, eventId: 70, tick: 3, result: 'impact', attacker: 0, target: 1, damage: 12, rawDamage: 15, hpDamage: 12, shieldAbsorbed: 3, sourceKind: 'direct', normal: {x: 0, z: 1}});
+  assert.equal(e.eventId, 70, 'eventId não é o id legado');assert.equal(e.id, 7);assert.equal(e.outcome, 'impact');assert.equal(e.attackerId, 0);assert.equal(e.targetId, 1);assert.equal(e.indirectAttackerId, null);
   assert.equal(e.sourceKind, 'direct');assert.equal(e.position, null);assert.deepEqual(e.normal, {x: 0, z: 1});assert.equal(e.hpDamage, 12);assert.equal(e.rawDamage, 15);
   assert.equal(e.attacker, 0, 'legado intacto');assert.equal(e.result, 'impact');
   const snap = JSON.stringify(e);normalizeCombatEvent(e);assert.equal(JSON.stringify(e), snap, 'idempotente');
   assert.deepEqual(validateCombatEvent(e), []);
-  const w = normalizeCombatEvent({id: 8, tick: 3, result: 'wallSplat', category: 'environmental', attacker: null, indirectAttacker: 0, target: 1, damage: 0, normal: {x: 1, z: 0}});
+  const w = normalizeCombatEvent({id: 8, eventId: 80, tick: 3, result: 'wallSplat', category: 'environmental', attacker: null, indirectAttacker: 0, target: 1, damage: 0, normal: {x: 1, z: 0}});
   assert.equal(w.sourceKind, 'environmental');assert.equal(w.attackerId, null);assert.equal(w.indirectAttackerId, 0);assert.equal(w.hpDamage, 0);assert.equal(w.shieldAbsorbed, 0);
-  const d = normalizeCombatEvent({id: 'rock-1', tick: 4, result: 'destructibleDestroyed', pos: {x: 2, z: -1}});
-  assert.equal(d.sourceKind, 'system');assert.deepEqual(d.position, {x: 2, y: 0, z: -1});assert.equal(d.targetId, null);assert.equal(d.hpDamage, 0);
-  const s = normalizeCombatEvent({id: 9, tick: 5, result: 'statusApplied', attacker: 1, target: 0, damage: 0, status: 'poison'});
+  const pos = {x: 2, z: -1}, d = normalizeCombatEvent({id: 'rock-1', eventId: 81, tick: 4, result: 'destructibleDestroyed', pos});
+  assert.equal(d.sourceKind, 'system');assert.deepEqual(d.position, {x: 2, y: 0, z: -1});assert.notEqual(d.position, d.pos, 'cópia, sem alias');assert.deepEqual(pos, {x: 2, z: -1}, 'pos legado intacto');
+  const legacyPos = {x: 1, y: 0.5, z: 2}, f = normalizeCombatEvent({id: 11, eventId: 82, tick: 4, result: 'footstool', attacker: 0, target: 1, damage: 0, position: legacyPos, x: 9, y: 9, z: 9});
+  assert.equal(f.position, legacyPos, 'position legada nunca reescrita');assert.deepEqual(legacyPos, {x: 1, y: 0.5, z: 2});assert.equal(d.targetId, null);assert.equal(d.hpDamage, 0);
+  const s = normalizeCombatEvent({id: 9, eventId: 83, tick: 5, result: 'statusApplied', attacker: 1, target: 0, damage: 0, status: 'poison'});
   assert.equal(s.sourceKind, 'status');
-  const b = normalizeCombatEvent({id: 10, tick: 5, result: 'bounceLand', attacker: 1, target: null, damage: 0, x: 1, z: 2});
+  const b = normalizeCombatEvent({id: 10, eventId: 84, tick: 5, result: 'bounceLand', attacker: 1, target: null, damage: 0, x: 1, z: 2});
   assert.deepEqual(b.position, {x: 1, y: 0, z: 2});assert.equal(b.sourceKind, 'system');
 });
 
 test('validador acusa violações', () => {
-  const ok = () => normalizeCombatEvent({id: 1, tick: 0, result: 'impact', attacker: 0, target: 1, damage: 5});
+  const ok = () => normalizeCombatEvent({id: 1, eventId: 1, tick: 0, result: 'impact', attacker: 0, target: 1, damage: 5});
   assert.deepEqual(validateCombatEvent(ok()), []);
   const bad = (/** @type {(e: any) => void} */ mut, /** @type {RegExp} */ re) => {const e = ok();mut(e);const v = validateCombatEvent(e);assert.ok(v.some(m => re.test(m)), `${re}: ${JSON.stringify(v)}`);};
   bad(e => {e.eventId = null;}, /eventId/);
+  bad(e => {e.eventId = 'dest_1';}, /eventId/);
   bad(e => {e.outcome = 'partial';}, /outcome/);
   bad(e => {e.attackerId = 1;}, /attackerId/);
   bad(e => {e.sourceKind = 'magic';}, /sourceKind/);
@@ -53,9 +56,16 @@ test('validador acusa violações', () => {
 
 /** Instala uma sonda em Game.prototype.step que valida cada evento que sai do passo. */
 function withProbe(/** @type {(seen: Map<string, number>) => void} */ fn) {
-  const orig = Game.prototype.step, seen = new Map(), errors = /** @type {string[]} */ ([]);
+  const orig = Game.prototype.step, seen = new Map(), errors = /** @type {string[]} */ ([]), last = new WeakMap();
   Game.prototype.step = function (...a) {
-    orig.apply(this, a);
+    const tick0 = this.tick;orig.apply(this, a);
+    // eventId: único no passo e estritamente crescente entre passos do mesmo Game (reset/load reinicia a conta)
+    const ids = this.lastStepEvents.map(e => e.eventId), prev = last.get(this);
+    if (new Set(ids).size !== ids.length && errors.length < 20) errors.push(`eventId repetido no passo ${this.tick}: ${ids}`);
+    if (ids.length) {
+      if (prev && prev.tick === tick0 && Math.min(...ids) <= prev.max && errors.length < 20) errors.push(`eventId não crescente no passo ${this.tick}: ${Math.min(...ids)} ≤ ${prev.max}`);
+      last.set(this, {tick: this.tick, max: Math.max(...ids)});
+    } else if (prev && prev.tick === tick0) last.set(this, {tick: this.tick, max: prev.max});
     for (const e of this.lastStepEvents) {
       seen.set(e.result, (seen.get(e.result) ?? 0) + 1);
       const v = validateCombatEvent(e);
@@ -79,6 +89,25 @@ test('todos os cenários (scenarios*.js) + 4 seeds IA×IA: cada evento passa no 
   resetConfig(defaults());
   for (const r of ['impact', 'clash', 'statusTick', 'wallSplat', 'destructibleDestroyed', 'spawn']) assert.ok(seen.has(r), `cobertura: ${r} (vistos: ${[...seen.keys()]})`);
 }));
+
+test('eventId: sequência própria por Game (dois Games alternados independentes), reset reinicia, save/load preserva', () => {
+  resetConfig(defaults());
+  const mk = () => {const g = new Game({seed: 5});g.start();g.mode = 'tactical';return g;};
+  C.extras.toggles.enablePlayerAI = 1;
+  const A = mk(), B = mk(), solo = mk(), idsA = [], idsB = [], idsSolo = [];
+  const run = (/** @type {Game} */ g, /** @type {number[]} */ out) => {g.step(g.playerBrain.command(g.fighters[0], g.fighters[1], 'tactical', C.test.step));out.push(...g.lastStepEvents.map(e => e.eventId));};
+  for (let t = 0; t < 2000; t++) {run(A, idsA);run(B, idsB);run(solo, idsSolo);}
+  assert.ok(idsA.length > 3, `houve eventos (${idsA.length}, fase ${A.phase})`);
+  assert.deepEqual(idsA, idsSolo, 'alternar com outro Game não afeta a sequência');assert.deepEqual(idsA, idsB);
+  assert.deepEqual(idsA, idsA.map((_, i) => i + 1), 'contíguo a partir de 1');
+  const saved = A.save();assert.equal(saved.eventIdSeq, idsA.length);
+  const after = /** @type {number[]} */ ([]);let k = 0;while (!after.length && k < 5000) {run(A, after);k++;}
+  assert.ok(after.length && after[0] === saved.eventIdSeq + 1, 'continua a sequência');
+  A.load(saved);const again = /** @type {number[]} */ ([]);for (let i = 0; i < k; i++) run(A, again);assert.deepEqual(again, after, 'load restaura eventIdSeq');
+  const old = {...saved};delete old.eventIdSeq;A.load(old);assert.equal(A.eventIdSeq, saved.eventSeq, 'save antigo: parte de eventSeq');
+  A.reset();assert.equal(A.eventIdSeq, 0);
+  resetConfig(defaults());
+});
 
 // Os três caminhos de dano que nenhuma partida IA×IA produziu: tique periódico de status, wall splat com dano e destructibleSplat.
 const cmd = () => emptyCommand();

@@ -26,7 +26,9 @@ Cada evento gerado no hot path de combate e física obedece à assinatura canôn
 ```typescript
 /** Campos canônicos garantidos pela normalização (F3.4) em todo evento de Game.step. */
 interface CombatEventCanonical {
-  eventId: number | string;        // = id (o id sequencial do passo; nos eventos de mapa legados, o id do objeto — ver nota)
+  eventId: number;                 // identidade única: contador próprio por Game (eventIdSeq), atribuído a TODO evento no laço final de Game.step;
+                                   // único no passo, estritamente crescente na rodada; reset() zera; save()/load() preservam (save antigo: parte de eventSeq).
+                                   // NÃO é o `id` legado (id/eventSeq seguem para o hash do replay e as passivas R31)
   tick: number;                    // passo inteiro da simulação
   outcome: string;                 // = result
   attackerId: number | null;       // attacker numérico, senão null (ambiental/sistema: sempre null)
@@ -35,7 +37,7 @@ interface CombatEventCanonical {
   sourceKind: 'direct' | 'environmental' | 'status' | 'reflected' | 'system';
   //   o do DamageResolver quando o evento já o tem; senão environmental (category 'environmental'),
   //   status (statusApplied/statusTick/statusExpired ou category 'periodic'), system (sem alvo lutador, ou ciclo de vida de passivas/curas), direct
-  position: {x: number; y: number; z: number} | null; // position | pos | x/y/z soltos (y ausente = 0) | null
+  position: {x: number; y: number; z: number} | null; // a position legada fica intocada quando existe; senão CÓPIA de pos | x/y/z soltos (y ausente = 0) | null
   normal: {x: number; y?: number; z: number} | null;  // normal do contato (as normais do plano do chão podem não ter y)
   rawDamage: number;               // dano bruto pedido (padrão = hpDamage)
   hpDamage: number;                // = damage (HP efetivamente tirado; 0 sem dano)
@@ -43,14 +45,14 @@ interface CombatEventCanonical {
 }
 ```
 
-Regras do validador: `eventId === id` e não nulo; `outcome === result`; `attackerId`/`targetId` coerentes com os legados; `sourceKind` do conjunto acima; ambiental nunca tem `attackerId` numérico; `position` com x/y/z finitos ou `null`; danos finitos ≥ 0; `hpDamage === damage` quando `damage` é número.
-Nota: os eventos de mapa (`destructible*`, `item*`) usam `id` para o objeto do mapa desde antes da F3; como `eventId = id`, nesses eventos ele não é único por passo.
+Regras do validador: `eventId` número finito (o teste também exige único no passo e crescente entre passos do mesmo Game, e sequências independentes entre Games); `outcome === result`; `attackerId`/`targetId` coerentes com os legados; `sourceKind` do conjunto acima; ambiental nunca tem `attackerId` numérico; `position` com x/y/z finitos ou `null`; danos finitos ≥ 0; `hpDamage === damage` quando `damage` é número.
+Nota: os eventos de mapa (`destructible*`, `item*`) usam `id` para o objeto do mapa desde antes da F3 — por isso a identidade do evento é `eventId`, nunca `id`.
 
 A assinatura histórica (F1) abaixo continua válida para os campos legados:
 
 ```typescript
 interface CombatEvent {
-  /** (F1, proposta não adotada) id legível; na sim vale o canônico F3.4 acima: eventId = id. O id legível `vfx:...` existe só no evento visual (view/vfx/contract.js). */
+  /** (F1, proposta não adotada) id legível; na sim vale o canônico F3.4 acima: eventId numérico de Game.step. O id legível `vfx:...` existe só no evento visual (view/vfx/contract.js). */
   eventId?: string;
 
   /** Passo inteiro da simulação no qual o evento foi despachado */

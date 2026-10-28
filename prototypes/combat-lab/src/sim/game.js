@@ -52,6 +52,7 @@ export class Game {
     initMap(this.mapState, this.fighters);
     attachPassives(this);   // liga loadouts de passivas e restaura Sturdy (fronteira de rodada, §7/R22)
     this.tick = 0;this.events = [];this.winner = null;this.hitstop = 0;this.phase = 'playing';this.lastStepEvents = [];this.prevPose = null;
+    this.eventIdSeq = 0;   // F3.4: identidade canônica (eventId) de TODO evento, por Game e por rodada; separada de eventSeq/id (hash do replay, R31)
   }
   start() {this.phase = 'playing';}
   pause() {if (this.phase === 'playing') this.phase = 'paused';else if (this.phase === 'paused') this.phase = 'playing';}
@@ -105,7 +106,7 @@ export class Game {
     fresh.push(...passiveOnEvents(this, fresh));
     const koNow = this.fighters.find(f => f.hp <= 0);
     if (koNow) fresh.push(...passiveOnKO(this, koNow));   // R23: KO encerra efeitos ativos imediatamente
-    for (const e of fresh) {e.tick = this.tick;if (e.id == null) e.id = ++this.eventSeq;normalizeCombatEvent(e);}   // R31: ID estável por evento; F3.4: campos canônicos (legados intactos)
+    for (const e of fresh) {e.tick = this.tick;if (e.id == null) e.id = ++this.eventSeq;if (e.eventId == null) e.eventId = ++this.eventIdSeq;normalizeCombatEvent(e);}   // R31: ID estável por evento; F3.4: eventId único + campos canônicos (legados intactos)
     this.events.push(...fresh);this.events = this.events.slice(-12);this.lastStepEvents = fresh;
     if (C.extras.toggles.enableHitstop) {
       if (fresh.some(e => e.result === 'clash')) this.hitstop = C.extras.combat.clashHitstop;
@@ -179,7 +180,7 @@ export class Game {
   }
   /** Estado completo e independente (structuredClone preserva os Sets de acertos). */
   save() {
-    return structuredClone({fighters: this.fighters, tick: this.tick, events: this.events, winner: this.winner, hitstop: this.hitstop, phase: this.phase, eventSeq: this.eventSeq, world: this.world ?? createWorld(), mapState: this.mapState, loadouts: this.loadouts,
+    return structuredClone({fighters: this.fighters, tick: this.tick, events: this.events, winner: this.winner, hitstop: this.hitstop, phase: this.phase, eventSeq: this.eventSeq, eventIdSeq: this.eventIdSeq, world: this.world ?? createWorld(), mapState: this.mapState, loadouts: this.loadouts,
       passiveLoadouts: this.passiveLoadouts, passiveIdentity: this.passiveIdentity,
       combatWindows: this.combatWindows, brain: this.brain.save(), playerBrain: this.playerBrain.save(), lastStepEvents: this.lastStepEvents});
   }
@@ -189,6 +190,7 @@ export class Game {
     this.fighters = s.fighters;this.tick = s.tick;this.events = s.events;this.winner = s.winner;this.hitstop = s.hitstop;this.phase = s.phase;
     this.brain.load(s.brain);this.playerBrain.load(s.playerBrain);this.lastStepEvents = s.lastStepEvents || [];
     this.eventSeq = s.eventSeq ?? this.eventSeq;this.passiveProcessed.clear();
+    this.eventIdSeq = s.eventIdSeq ?? s.eventSeq ?? 0;   // save antigo (sem eventIdSeq): parte de eventSeq — nenhum eventId foi emitido nele
     this.world = s.world ?? createWorld();
     this.world.contactSeq ??= Number.isFinite(s.clashContactSeq) ? s.clashContactSeq : 0;   // save antigo: o contador ficava no topo (clashContactSeq)
     if (s.mapState) {

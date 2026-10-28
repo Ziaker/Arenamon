@@ -1,9 +1,9 @@
 // @ts-check
 // F3.4 — CombatEvent normalizado. Todo evento que sai de Game.step passa por normalizeCombatEvent (no laço final, depois do id e do tick):
 // ganha os campos canônicos sem perder nenhum legado (a view continua lendo attacker/target/result/damage/pos...). Contrato: docs/CONTRATO_EVENTOS_VFX.md §2.
-//   eventId = id · outcome = result · attackerId/targetId = attacker/target numéricos ou null · indirectAttackerId (autor indireto: wall splat, destrutível)
+//   eventId: número único por Game/rodada, atribuído em Game.step (eventIdSeq; id/eventSeq legados intactos) · outcome = result · attackerId/targetId = attacker/target numéricos ou null · indirectAttackerId (autor indireto: wall splat, destrutível)
 //   sourceKind: o do DamageResolver quando já existe; senão environmental (category), status (status/periódico), system (sem alvo lutador ou ciclo de vida), direct
-//   position = position | pos | {x, y, z} soltos | null (y ausente = 0) · normal | null · rawDamage/hpDamage (= damage) · shieldAbsorbed (0 padrão)
+//   position: a legada fica intocada quando existe; senão cópia de pos | x/y/z soltos (y ausente = 0) | null · normal | null · rawDamage/hpDamage (= damage) · shieldAbsorbed (0 padrão)
 
 export const SOURCE_KINDS = Object.freeze(['direct', 'environmental', 'status', 'reflected', 'system']);
 const STATUS_RESULTS = new Set(['statusApplied', 'statusTick', 'statusExpired']);
@@ -12,10 +12,8 @@ const SYSTEM_RESULTS = new Set(['passiveActivated', 'passiveEnded', 'passiveCycl
 
 const num = (/** @type {any} */ v) => typeof v === 'number' && Number.isFinite(v);
 const idOrNull = (/** @type {any} */ v) => num(v) ? v : null;
-/** @param {any} p */
-const vec3 = p => p && num(p.x) && num(p.z) ? (num(p.y) ? p : {x: p.x, y: 0, z: p.z}) : null;
-/** x/y/z soltos no próprio evento: sempre um objeto novo (nunca o evento). @param {any} e */
-const loose = e => num(e.x) && num(e.z) ? {x: e.x, y: num(e.y) ? e.y : 0, z: e.z} : null;
+/** Cópia {x, y, z} de um ponto (pos ou x/y/z soltos no próprio evento): sempre objeto novo, nunca alias. @param {any} e */
+const copy3 = e => num(e.x) && num(e.z) ? {x: e.x, y: num(e.y) ? e.y : 0, z: e.z} : null;
 
 /** @param {any} e */
 function sourceKindOf(e, /** @type {number|null} */ targetId) {
@@ -26,15 +24,14 @@ function sourceKindOf(e, /** @type {number|null} */ targetId) {
   return 'direct';
 }
 
-/** Preenche os campos canônicos no próprio evento (in-place, idempotente) e o devolve. */
+/** Preenche os campos canônicos no próprio evento (in-place, idempotente) e o devolve. O eventId vem de Game.step (contador por Game). */
 export function normalizeCombatEvent(/** @type {any} */ e) {
-  e.eventId = e.id;
   e.outcome = e.result;
   e.attackerId = idOrNull(e.attacker);
   e.targetId = idOrNull(e.target);
   e.indirectAttackerId = idOrNull(e.indirectAttackerId ?? e.indirectAttacker);
   e.sourceKind = sourceKindOf(e, e.targetId);
-  e.position = vec3(e.position) ?? vec3(e.pos) ?? loose(e);
+  if (e.position == null) e.position = (e.pos && copy3(e.pos)) ?? copy3(e);   // nunca reescreve a position legada
   e.normal ??= null;
   e.hpDamage = num(e.hpDamage) ? e.hpDamage : num(e.damage) ? e.damage : 0;
   e.rawDamage = num(e.rawDamage) ? e.rawDamage : e.hpDamage;
@@ -45,7 +42,7 @@ export function normalizeCombatEvent(/** @type {any} */ e) {
 /** Lista de violações do contrato (vazia = válido). */
 export function validateCombatEvent(/** @type {any} */ e) {
   const out = [];
-  if (e.eventId == null || e.eventId !== e.id) out.push(`eventId ${e.eventId} ≠ id ${e.id}`);
+  if (!num(e.eventId)) out.push(`eventId inválido ${e.eventId}`);
   if (!Number.isInteger(e.tick) || e.tick < 0) out.push(`tick inválido ${e.tick}`);
   if (typeof e.outcome !== 'string' || !e.outcome || e.outcome !== e.result) out.push(`outcome ${e.outcome} ≠ result ${e.result}`);
   if (e.attackerId !== idOrNull(e.attacker)) out.push(`attackerId ${e.attackerId} ≠ attacker ${e.attacker}`);
