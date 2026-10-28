@@ -213,13 +213,13 @@ export function overlap(a, b) {
  * teletransporte, e conta o conflito em physicsProbe.staticConflicts / staticConflictsTotal (linha «Subpassos físicos» do diagnóstico do laboratório).
  */
 const STATIC_ROUNDS = 12;
-function settleStatics(f, world, events) {
+function settleStatics(f, world, events, fighters = []) {
   for (let round = 0; round < STATIC_ROUNDS; round++) {
     // Convergiu = uma rodada inteira sem NENHUM contato penetrante (medir só o deslocamento líquido enganaria: dois sólidos
     // opostos podem se anular na rodada e deixar o lutador penetrando em ambos).
     const contacts = f.contacts;
     if (world.entities?.length) collideFighter(world, f, events);
-    if (world.mapState) collideMapFighter(world.mapState, f, events);
+    if (world.mapState) collideMapFighter(world.mapState, f, events, fighters);
     clampToArena(f);
     if (f.contacts === contacts) return round > 0;
   }
@@ -436,7 +436,7 @@ export function stepPhysics(fighters, dt, world = null) {
       f.position = add(f.position, scale(add(f.velocity, pushVel.get(f.id)), dt / steps));
       clampToArena(f);
       // Paredes e barreiras de movimentos, obstáculos, plataformas e destrutíveis do mapa (R1.6, R1.8, R7.6, R7.15, R10.7-R10.8); sem eles, nada muda.
-      if (world?.entities.length || world?.mapState) settleStatics(f, world, events);
+      if (world?.entities.length || world?.mapState) settleStatics(f, world, events, fighters);
       if (world?.mapState) {
         // Tackle danifica destrutíveis sólidos (R1.5, R3.4, R5.14, R9.10)
         if (f.action?.kind === 'tackle' && !f.action.neutralized && world.mapState.destructibles) {
@@ -509,7 +509,7 @@ export function stepPhysics(fighters, dt, world = null) {
       }
       // Sólidos são restrições duras: a separação entre lutadores nunca pode deixar alguém dentro deles ao fim do subpasso.
       if (world?.entities.length || world?.mapState) for (const f of fighters) {
-        if (!f.absent && settleStatics(f, world, events)) pinned.add(f.id);
+        if (!f.absent && settleStatics(f, world, events, fighters)) pinned.add(f.id);
       }
     }
   }

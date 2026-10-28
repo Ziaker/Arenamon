@@ -164,7 +164,7 @@ test('eventos dos consumidores carregam displacementPolicy (applyHit, Sand Wave 
   const evFl = applyHit(g, 0, t3, {damage: 0, flinch: 0.4}, {x: 0, z: 1});
   assert.equal(evFl?.displacementPolicy, 'none');assert.equal(t3.state, 'hitstun');assert.equal(t3.hitstun, 0.4);
   const src = (/** @type {string} */ p) => fs.readFileSync(new URL(p, import.meta.url), 'utf8');
-  assert.match(src('../src/sim/sand.js'), /displacementPolicy: 'force'/);
+  assert.match(src('../src/sim/sand.js'), /displacementPolicy: sandDisplacementPolicy\(ev\)/, 'Sand Wave: force via sandDisplacementPolicy (F3.4)');
   assert.match(src('../src/sim/stone.js'), /result: 'rockLaunch'[^\n]*displacementPolicy: 'impulse'/);
   assert.doesNotMatch(src('../src/sim/world/world-hit.js'), /target\.push = \{/, 'applyHit não monta mais o empurrão à mão');
   assert.doesNotMatch(src('../src/sim/combat.js'), /\.state = 'stagger'|\.state = 'hitstun'|\.state = 'recoil'/, 'combat.js não grava reações à mão');

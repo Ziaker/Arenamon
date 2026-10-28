@@ -31,7 +31,7 @@ function bounceOffSolid(f, n) {
   f.flight.horizontal = {x: h.x - n.x * hv * (1 + factor), z: h.z - n.z * hv * (1 + factor)};
   f.velocity = {...f.flight.horizontal};
 }
-export function collideMapFighter(mapState, f, events = []) {
+export function collideMapFighter(mapState, f, events = [], /** @type {any[]} */ fighters = []) {
   if (!mapState) return;
   const hv0 = f.flight?.horizontal ?? f.velocity, v0x = hv0.x, v0z = hv0.z;   // velocidade horizontal antes de qualquer contato desta chamada (sonda de colisão; sem alocação)
   const halfExtent = C.test?.halfExtent ?? 0.35;
@@ -147,7 +147,9 @@ export function collideMapFighter(mapState, f, events = []) {
             const dmgToObj = relSpeed * (C.map?.impactDamageToObject ?? 6.0);
             const dmgToFighter = relSpeed * (C.map?.impactDamageToFighter ?? 2.5);
             damageDestructible(d, dmgToObj, 'environment', f, mapState, events);
-            const dmgRes = resolveDamage({target: f, rawDamage: dmgToFighter, sourceKind: 'environmental'});
+            // F3.4: autor indireto (último atacante) só para a autoria do evento; trackAttacker: false mantém lastAttacker como antes
+            const indirectAttacker = typeof f.lastAttacker === 'number' ? (fighters.find(o => o.id === f.lastAttacker) ?? {id: f.lastAttacker}) : null;
+            const dmgRes = resolveDamage({target: f, indirectAttacker, rawDamage: dmgToFighter, sourceKind: 'environmental', policy: {trackAttacker: false}});
             const dPos = {x: d.pos.x, y: 0.6, z: d.pos.z};
             const splatNorm = ox < oz ? {x: dx > 0 ? -1 : 1, y: 0, z: 0} : {x: 0, y: 0, z: dz > 0 ? -1 : 1};
             events.push({
@@ -156,6 +158,7 @@ export function collideMapFighter(mapState, f, events = []) {
               isEnvironment: true,
               attacker: null,
               indirectAttacker: f.lastAttacker ?? null,
+              indirectAttackerId: dmgRes.indirectAttackerId,
               target: f.id,
               fighter: f.id,
               destructible: d.id,

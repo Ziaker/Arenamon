@@ -14,6 +14,7 @@ import {vec} from './math.js';
 import {navAssist} from '../nav/nav-assist.js';
 import {poseOf} from './interpolation.js';
 import {isBlind, canSee, blindDefensiveCommand} from './vision.js';
+import {normalizeCombatEvent} from './events/combat-event.js';
 
 const finishingNow = g => g.phase === 'finishing';
 export class Game {
@@ -104,7 +105,7 @@ export class Game {
     fresh.push(...passiveOnEvents(this, fresh));
     const koNow = this.fighters.find(f => f.hp <= 0);
     if (koNow) fresh.push(...passiveOnKO(this, koNow));   // R23: KO encerra efeitos ativos imediatamente
-    for (const e of fresh) {e.tick = this.tick;if (e.id == null) e.id = ++this.eventSeq;}   // R31: ID estável por evento
+    for (const e of fresh) {e.tick = this.tick;if (e.id == null) e.id = ++this.eventSeq;normalizeCombatEvent(e);}   // R31: ID estável por evento; F3.4: campos canônicos (legados intactos)
     this.events.push(...fresh);this.events = this.events.slice(-12);this.lastStepEvents = fresh;
     if (C.extras.toggles.enableHitstop) {
       if (fresh.some(e => e.result === 'clash')) this.hitstop = C.extras.combat.clashHitstop;

@@ -15,7 +15,8 @@ const outDir = path.resolve('docs/overhaul-pilotos');
 // F3.1: o DamageResolver acrescenta campos de diagnóstico aos eventos de dano (rawDamage/hpDamage/shieldAbsorbed/sourceKind). Os baselines são anteriores:
 // só se comparam os campos que o baseline já tinha (a mecânica — damage, HP, posições — segue exigida 100% igual).
 // F3.2: o ReactionResolver acrescenta displacementPolicy ('impulse' | 'displacement' | 'none' | 'force') — também só diagnóstico.
-const F3_FIELDS = ['rawDamage', 'hpDamage', 'shieldAbsorbed', 'sourceKind', 'displacementPolicy'];
+// F3.4: o CombatEvent normalizado acrescenta os campos canônicos (eventId, outcome, attackerId, targetId, indirectAttackerId, position, normal) — cópias dos legados.
+const F3_FIELDS = ['rawDamage', 'hpDamage', 'shieldAbsorbed', 'sourceKind', 'displacementPolicy', 'eventId', 'outcome', 'attackerId', 'targetId', 'indirectAttackerId', 'position', 'normal'];
 const legacyView = (evs, base) => evs.map((e, i) => {const o = {...e};for (const k of F3_FIELDS) if (!(base[i] && k in base[i])) delete o[k];return o;});
 
 console.log('\n--- PARIDADE DETERMINÍSTICA DOS 3 PILOTOS (DOC 02) ---');

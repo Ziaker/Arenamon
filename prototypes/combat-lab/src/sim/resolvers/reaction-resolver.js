@@ -91,7 +91,7 @@ export function applyReaction(target, intent) {
       return {policy: 'none', duration: d};
     }
     case 'guardStun': {   // só sem stun ativo. setState: entra em 'guardStun' (acerto de mundo); trackMax: grava stunMax (tackle)
-      if (f.stun > 1e-8) return null;
+      if (!(f.stun <= 1e-8)) return null;   // semântica antiga exata: stun indefinido/NaN não recebe guard stun
       f.stun = i.duration;
       if (i.trackMax !== false) f.stunMax = i.duration;
       if (i.setState) f.state = 'guardStun';
