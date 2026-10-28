@@ -42,10 +42,12 @@ export function stepMap(mapState, dt, fighters = [], events = [], tick = null) {
         const placed = placeOrReject(rawPos, 1.2, mapState, fighters, {hx: d.size.hx, hz: d.size.hz});
         if ('rejected' in placed) {
           // Adia a geração quando não existir posição válida (R10.6, Caso C da auditoria); F4: recusa com motivo (evento + spawnLog)
+          // só na PRIMEIRA recusa deste ciclo morto (a nova tentativa sai a cada passo enquanto não houver lugar: não inunda eventos nem o log).
           d.respawnTimer = 1.0;
-          rejectSpawn(mapState, events, tick, 'destructible', placed.rejected, rawPos);
+          if (!d.spawnRejectNoted) {d.spawnRejectNoted = true;rejectSpawn(mapState, events, tick, 'destructible', placed.rejected, rawPos);}
           continue;
         }
+        delete d.spawnRejectNoted;   // saiu do estado morto: o próximo ciclo morto volta a registrar
         const validPos = placed.pos;
         // Entra na fase de prévia translúcida (ghost) antes de se tornar sólido
         d.pos = validPos;

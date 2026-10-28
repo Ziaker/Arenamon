@@ -113,20 +113,24 @@ check('dois lutadores contra o mesmo obstáculo: nenhum penetra ao fim de cada t
   assert.ok(worst <= 1e-6, `penetração ${worst.toFixed(5)} m`);
 });
 
-check('vão menor que o corpo com o lutador já dentro: sem teletransporte, sem NaN, determinístico e o conflito é registrado', () => {
+// F4 (Task 8): o contrato antigo («mantém o último estado, sem teletransporte», penetrando passo após passo) foi trocado pelo escape medido:
+// resíduo acima de test.penetrationTolerance → posição livre MAIS PRÓXIMA (aqui a saída lateral do vão, a 1,15 m; busca em anéis de 0,1 m) + evento pinEscape.
+check('vão menor que o corpo com o lutador já dentro: conflito registrado, escape único para a saída mais próxima, sem NaN e determinístico', () => {
   const run = () => {
     const g = arena([{pos: vec(-.55, 0), hx: .15, hz: 4}, {pos: vec(.55, 0), hx: .15, hz: 4}]);   // vão de 0,8 m
     g.fighters[0].position = vec(.05, 0);
-    physicsProbe.staticConflicts = 0;
+    const total0 = physicsProbe.staticConflictsTotal;let escapes = 0;
     const start = {...g.fighters[0].position};
-    for (let t = 0; t < 60; t++) g.step(emptyCommand(), emptyCommand());
+    for (let t = 0; t < 60; t++) {g.step(emptyCommand(), emptyCommand());escapes += g.lastStepEvents.filter(e => e.result === 'pinEscape').length;}
     const p = g.fighters[0].position;
-    return {x: p.x, z: p.z, moved: Math.hypot(p.x - start.x, p.z - start.z), conflicts: physicsProbe.staticConflicts};
+    return {x: p.x, z: p.z, moved: Math.hypot(p.x - start.x, p.z - start.z), conflicts: physicsProbe.staticConflictsTotal - total0, escapes, pen: penetration(g, g.fighters[0])};
   };
   const a = run(), b = run();
   assert.ok(Number.isFinite(a.x) && Number.isFinite(a.z));
-  assert.ok(a.moved < .5, `deslocou ${a.moved.toFixed(3)} m (teletransporte)`);
-  assert.ok(a.conflicts > 0, 'o conflito deveria ser contado em physicsProbe.staticConflicts');
+  assert.ok(a.moved <= 1.15 + .11, `deslocou ${a.moved.toFixed(3)} m (além da saída mais próxima)`);
+  assert.ok(a.conflicts > 0, 'o conflito deveria ser contado em physicsProbe.staticConflictsTotal');
+  assert.equal(a.escapes, 1, `${a.escapes} escapes`);
+  assert.ok(a.pen <= 1e-6, `penetração ${a.pen}`);
   assert.deepEqual(a, b);
 });
 
