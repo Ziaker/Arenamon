@@ -8,21 +8,11 @@ import {resolveDamage, damageEventFields} from '../resolvers/damage-resolver.js'
 import {applyReaction} from '../resolvers/reaction-resolver.js';
 import {knockbackFactor} from '../passive-engine.js';
 import {vec, add, sub, scale, dot, length, normalize, direction} from '../math.js';
+import {closestOnShape} from '../collision/queries.js';
 
 // ---------- Geometria ----------
-/** Ponto do contorno da forma mais próximo de p (plano XZ) e distância. */
-export function closestOnShape(e, p) {
-  if (e.shape === 'box') {
-    const c = Math.cos(e.angle ?? 0), s = Math.sin(e.angle ?? 0), d = sub(p, e.pos);
-    // Eixos locais: x' = (cos, -sin), z' = (sin, cos) — rumo 0 = +Z, como o resto do motor.
-    const lx = d.x * c - d.z * s, lz = d.x * s + d.z * c, qx = Math.max(-e.hx, Math.min(e.hx, lx)), qz = Math.max(-e.hz, Math.min(e.hz, lz));
-    const inside = Math.abs(lx) <= e.hx && Math.abs(lz) <= e.hz;
-    const q = vec(e.pos.x + qx * c + qz * s, e.pos.z - qx * s + qz * c);
-    return {point: q, distance: inside ? -Math.min(e.hx - Math.abs(lx), e.hz - Math.abs(lz)) : length(sub(p, q)), inside};
-  }
-  const d = sub(p, e.pos), l = length(d);
-  return {point: l > 1e-9 ? add(e.pos, scale(d, e.radius / l)) : add(e.pos, vec(e.radius, 0)), distance: l - e.radius, inside: l < e.radius};
-}
+// Ponto mais próximo do contorno: consulta geométrica única em collision/queries.js (F4); reexportada para os chamadores de sempre.
+export {closestOnShape};
 // ---------- Acerto (função única, regras do tackle) ----------
 /**
  * Resolve um acerto de entidade em `target`. hit: {damage, knockback: {horizontal, vertical}, guardable (padrão true),

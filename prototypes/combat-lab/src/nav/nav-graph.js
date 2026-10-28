@@ -9,6 +9,7 @@
 // de uma superfície baixa para uma mais alta que cabe no salto (jump) e de uma alta para uma baixa (drop).
 import * as YUKA from 'yuka';
 import {C} from '../sim/config.js';
+import {navSolidsOf, insideFootprint} from '../sim/collision/queries.js';
 
 /** Parâmetros do grafo lidos de C (alturas e tamanhos reais da física) + C.extras.nav. */
 export function navParams(overrides = {}) {
@@ -34,28 +35,8 @@ function arenaOf() {
   return square ? {shape: 'square', half: C.test?.arenaHalf ?? 10.4} : {shape: 'circle', radius: C.map?.arenaRadius ?? 32.5};
 }
 
-/** Sólidos do mapa em forma única: footprint (caixa ou cilindro) + base/topo. */
-export function collectSolids(mapState) {
-  const out = [];
-  for (const p of mapState?.platforms ?? []) {
-    out.push({id: p.id, kind: 'platform', shape: 'box', x: p.pos ? p.pos.x : p.x, z: p.pos ? p.pos.z : p.z, hx: (p.width ?? 3) / 2, hz: (p.depth ?? 3) / 2, r: 0, base: 0, top: p.height});
-  }
-  for (const o of mapState?.obstacles ?? []) {
-    const base = o.pos?.y ?? 0, cyl = o.shape === 'cylinder' || o.shape === 'pillar';
-    out.push({id: o.id, kind: 'obstacle', shape: cyl ? 'cyl' : 'box', x: o.pos.x, z: o.pos.z, hx: o.hx ?? o.radius ?? 1.5, hz: o.hz ?? o.radius ?? 1.5, r: o.radius ?? 1, base, top: base + (o.height ?? 1.5)});
-  }
-  for (const d of mapState?.destructibles ?? []) {
-    if (d.state !== 'solid') continue;   // quebrado/fantasma não bloqueia
-    const base = d.pos?.y ?? 0;
-    out.push({id: d.id, kind: 'destructible', shape: 'box', x: d.pos.x, z: d.pos.z, hx: d.size?.hx ?? .8, hz: d.size?.hz ?? .8, r: 0, base, top: base + (d.targetHeight ?? d.size?.height ?? 1.6)});   // rocha crescendo: o topo FINAL entra no grafo (a altura que cresce a cada passo reconstruía o grafo 49 vezes, ~13 ms por passo)
-  }
-  return out;
-}
-/** O ponto (x,z) está dentro do footprint do sólido, expandido por pad? */
-export function insideSolid(s, x, z, pad = 0) {
-  if (s.shape === 'cyl') return Math.hypot(x - s.x, z - s.z) <= s.r + pad;
-  return Math.abs(x - s.x) <= s.hx + pad && Math.abs(z - s.z) <= s.hz + pad;
-}
+/** Sólidos do mapa em forma única (footprint caixa/cilindro + base/topo): a enumeração e o teste de ponto vivem em collision/queries.js (F4). */
+export const collectSolids = navSolidsOf;
 function insideBlockedZone(zones, x, z, pad) {
   for (const b of zones) {
     if (b.r != null ? Math.hypot(x - b.x, z - b.z) <= b.r + pad : Math.abs(x - b.x) <= b.hx + pad && Math.abs(z - b.z) <= b.hz + pad) return true;
@@ -89,7 +70,7 @@ export class NavGraph {
     for (const s of this.solids) {
       if (s.id === ignoreId) continue;
       if (s.top <= y + stepTol || s.base >= y + bodyHeight) continue;   // abaixo dos pés (sobe sem pular) ou acima da cabeça
-      if (insideSolid(s, x, z, radius)) return true;
+      if (insideFootprint(s, x, z, radius)) return true;
     }
     return insideBlockedZone(this.p.blocked, x, z, radius);
   }
@@ -134,7 +115,7 @@ export class NavGraph {
       const nx = Math.max(1, Math.round((ex * 2 - 2 * m) / step) + 1), nz = Math.max(1, Math.round((ez * 2 - 2 * m) / step) + 1);
       for (let i = 0; i < nx; i++) for (let j = 0; j < nz; j++) {
         const x = nx === 1 ? s.x : s.x - ex + m + i * (ex * 2 - 2 * m) / (nx - 1), z = nz === 1 ? s.z : s.z - ez + m + j * (ez * 2 - 2 * m) / (nz - 1);
-        if (!insideSolid(s, x, z, -m + .001) && !(nx === 1 && nz === 1)) continue;
+        if (!insideFootprint(s, x, z, -m + .001) && !(nx === 1 && nz === 1)) continue;
         if (this.blockedAt(x, z, s.top, s.id)) continue;   // outro sólido ocupa o corpo em cima deste topo
         this.addNode(+x.toFixed(3), +z.toFixed(3), s.top, s.id);
       }

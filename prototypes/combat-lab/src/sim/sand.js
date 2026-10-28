@@ -12,7 +12,7 @@
 // Obstáculos móveis: o campo de distâncias é recalculado a cada `replanSteps` passos (SW-D67). Valores: parâmetros capturados no disparo (M28.4).
 import {applyHit} from './world/world-hit.js';
 import {applyStatus} from './status.js';
-import {solidsOf, insideSolid, segmentClear} from './vision.js';
+import {blockingSolids, pointInSolid, segmentClear} from './collision/queries.js';
 import {dot, scale, clamp} from './math.js';
 import {altitudeOf} from './altitude.js';
 import {pushAccelNow, pushDurationModeOf, pushWindowState} from './moves/sand-wave/sand-push.js';
@@ -34,14 +34,14 @@ export function sandFrontAt(/** @type {any} */ e, /** @type {number} */ age) {
 }
 
 /** Campo de distâncias mais curtas (m) a partir da origem, em grade, sem atravessar sólidos; só dentro da região do retângulo + `detour`. */
-function distanceField(/** @type {any} */ e, /** @type {import('./vision.js').Solid[]} */ solids) {
+function distanceField(/** @type {any} */ e, /** @type {import('./collision/queries.js').Solid[]} */ solids) {
   const cs = e.cell, d = e.dir, side = {x: d.z, z: -d.x}, reach = e.detour;
   const corners = [[0, -e.width / 2], [0, e.width / 2], [e.length, -e.width / 2], [e.length, e.width / 2]].map(([u, v]) => ({x: e.pos.x + d.x * u + side.x * v, z: e.pos.z + d.z * u + side.z * v}));
   const minX = Math.min(...corners.map(c => c.x)) - reach, maxX = Math.max(...corners.map(c => c.x)) + reach, minZ = Math.min(...corners.map(c => c.z)) - reach, maxZ = Math.max(...corners.map(c => c.z)) + reach;
   const nx = Math.ceil((maxX - minX) / cs) + 1, nz = Math.ceil((maxZ - minZ) / cs) + 1;
   const blocked = new Uint8Array(nx * nz), dist = new Float32Array(nx * nz).fill(Infinity);
   const cellPos = (/** @type {number} */ ix, /** @type {number} */ iz) => ({x: minX + (ix + .5) * cs, z: minZ + (iz + .5) * cs});
-  for (let iz = 0; iz < nz; iz++) for (let ix = 0; ix < nx; ix++) if (insideSolid(solids, cellPos(ix, iz), .02)) blocked[iz * nx + ix] = 1;
+  for (let iz = 0; iz < nz; iz++) for (let ix = 0; ix < nx; ix++) if (pointInSolid(cellPos(ix, iz), solids, {margin: .02})) blocked[iz * nx + ix] = 1;
   const sx = Math.min(nx - 1, Math.max(0, Math.floor((e.pos.x - minX) / cs))), sz = Math.min(nz - 1, Math.max(0, Math.floor((e.pos.z - minZ) / cs)));
   blocked[sz * nx + sx] = 0;dist[sz * nx + sx] = 0;
   // Dijkstra com fila binária simples.
@@ -62,8 +62,8 @@ function distanceField(/** @type {any} */ e, /** @type {import('./vision.js').So
   return {minX, minZ, nx, nz, cs, dist, blocked};
 }
 /** Distância de caminho livre da origem até o ponto (reta quando livre; senão pela grade). Infinity = inalcançável. */
-function pathDistance(/** @type {any} */ e, /** @type {any} */ field, /** @type {import('./vision.js').Solid[]} */ solids, /** @type {{x: number, z: number}} */ p) {
-  if (segmentClear(solids, e.pos, p)) return Math.hypot(p.x - e.pos.x, p.z - e.pos.z);
+function pathDistance(/** @type {any} */ e, /** @type {any} */ field, /** @type {import('./collision/queries.js').Solid[]} */ solids, /** @type {{x: number, z: number}} */ p) {
+  if (segmentClear(e.pos, p, solids)) return Math.hypot(p.x - e.pos.x, p.z - e.pos.z);
   const ix = Math.floor((p.x - field.minX) / field.cs), iz = Math.floor((p.z - field.minZ) / field.cs);
   if (ix < 0 || iz < 0 || ix >= field.nx || iz >= field.nz) return Infinity;
   return field.dist[iz * field.nx + ix] + field.cs * .5;
@@ -81,7 +81,7 @@ function capPushSpeed(/** @type {any} */ f, /** @type {{x: number, z: number}} *
 }
 
 export function stepSand(/** @type {any} */ game, /** @type {any} */ e, /** @type {number} */ dt, /** @type {any[]} */ events) {
-  const solids = solidsOf(game.world);
+  const solids = blockingSolids(game.world);
   // A frente é avaliada em ticks de 120 Hz: um alvo exatamente no fim do alcance pode ser alcançado entre dois ticks.
   // Damos UM tick de tolerância para o PRIMEIRO contato; depois disso, a política do empurrão decide (no modo 0,
   // basta o alvo permanecer dentro do retângulo até o fim da barragem).

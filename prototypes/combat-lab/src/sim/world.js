@@ -21,8 +21,7 @@ import {traceBeam} from './beam.js';
 import {stepTrap} from './trap.js';
 import {stepSand} from './sand.js';
 import {stepBurrow} from './stone.js';
-import {getGroundHeight} from './physics.js';
-import {solidsOf, segmentClear} from './vision.js';
+import {solidsOf, blockingSolids, segmentClear, groundHeightAt} from './collision/queries.js';
 import {damageDestructible, effectiveArenaRadius} from './map.js';
 import {vec, add, sub, scale, dot, length, normalize, direction, angleOf, angleDelta, clamp} from './math.js';
 import {DEFAULTS, validateEntity} from './world/world-schema.js';
@@ -124,9 +123,8 @@ function blockerContact(game, p, from, to) {
   }
   const ms = game.mapState;
   if (ms) {
-    for (const d of ms.destructibles) if (d.state === 'solid' && vOverlap(yLo, yHi, d.pos.y, d.pos.y + d.size.height)) solids.push({shape: 'box', pos: {x: d.pos.x, z: d.pos.z}, hx: d.size.hx, hz: d.size.hz, angle: 0, kind: 'destructible', id: d.id});
-    for (const o of ms.obstacles) if (vOverlap(yLo, yHi, o.pos.y, o.pos.y + o.height)) solids.push(o.shape === 'cylinder' || o.shape === 'pillar' ? {shape: 'circle', pos: {x: o.pos.x, z: o.pos.z}, radius: o.radius, kind: 'obstacle', id: o.id} : {shape: 'box', pos: {x: o.pos.x, z: o.pos.z}, hx: o.hx, hz: o.hz, angle: 0, kind: 'obstacle', id: o.id});
-    for (const pl of ms.platforms) if (vOverlap(yLo, yHi, 0, pl.height)) solids.push({shape: 'box', pos: {x: pl.pos?.x ?? pl.x, z: pl.pos?.z ?? pl.z}, hx: (pl.width ?? 3) / 2, hz: (pl.depth ?? 3) / 2, angle: 0, kind: 'platform', id: pl.id});
+    const map = solidsOf(ms, null);   // forma única (collision/queries.js, F4); ordem de teste preservada: destrutíveis, obstáculos, plataformas
+    for (const k of ['destructible', 'obstacle', 'platform']) for (const s of map) if (s.kind === k && vOverlap(yLo, yHi, s.y0, s.y1)) solids.push(s);
   }
   const hit = firstContact(solids, from, to, p.radius);
   if (!hit || hit.t >= 1) return null;
@@ -199,29 +197,30 @@ function snapToFirstContact(game, p, from) {
     // Caixas do mapa são alinhadas aos eixos (desenho e colisão dos lutadores); `angle` é só dado legado e NÃO gira a caixa aqui:
     // antes projéteis/áreas colidiam com uma caixa girada invisível.
     if (game.mapState) {
-      for (const d of game.mapState.destructibles) {
-        if (d.state !== 'solid') continue;
-        const box = {shape: 'box', pos: {x: d.pos.x, z: d.pos.z}, hx: d.size.hx, hz: d.size.hz, angle: 0};
-        if (!vOverlap(p.y - p.radius, p.y + p.radius, d.pos.y, d.pos.y + d.size.height) || !circleTouches(box, p.pos, p.radius)) continue;
+      const map = solidsOf(game.mapState, null);   // sólidos do mapa em forma única (collision/queries.js, F4)
+      for (const box of map) {
+        if (box.kind !== 'destructible') continue;
+        const d = box.ref;
+        if (!vOverlap(p.y - p.radius, p.y + p.radius, box.y0, box.y1) || !circleTouches(box, p.pos, p.radius)) continue;
         damageDestructible(d, p.hit?.damage ?? 10, 'projectile', p.owner != null ? game.fighters[p.owner] : null, game.mapState, events);
         events.push({result: 'destructibleHit', attacker: p.owner ?? null, target: d.id, damage: p.hit?.damage ?? 10, entity: p.id, kind: 'projectile'});
         p.dead = true;
         if (p.onHit) spawnLater.push(at(p.onHit, p));
         return;
       }
-      for (const o of game.mapState.obstacles) {
-        const obsShape = o.shape === 'cylinder' || o.shape === 'pillar'
-          ? {shape: 'circle', pos: {x: o.pos.x, z: o.pos.z}, radius: o.radius}
-          : {shape: 'box', pos: {x: o.pos.x, z: o.pos.z}, hx: o.hx, hz: o.hz, angle: 0};
-        if (!vOverlap(p.y - p.radius, p.y + p.radius, o.pos.y, o.pos.y + o.height) || !circleTouches(obsShape, p.pos, p.radius)) continue;
+      for (const obsShape of map) {
+        if (obsShape.kind !== 'obstacle') continue;
+        const o = obsShape.ref;
+        if (!vOverlap(p.y - p.radius, p.y + p.radius, obsShape.y0, obsShape.y1) || !circleTouches(obsShape, p.pos, p.radius)) continue;
         events.push({result: 'obstacleHit', attacker: p.owner ?? null, target: o.id, damage: 0, entity: p.id, kind: 'projectile'});
         p.dead = true;
         if (p.onHit) spawnLater.push(at(p.onHit, p));
         return;
       }
-      for (const plat of game.mapState.platforms) {
-        const pBox = {shape: 'box', pos: {x: plat.pos?.x ?? plat.x, z: plat.pos?.z ?? plat.z}, hx: (plat.width ?? 3) / 2, hz: (plat.depth ?? 3) / 2, angle: 0};
-        if (!vOverlap(p.y - p.radius, p.y + p.radius, 0, plat.height) || !circleTouches(pBox, p.pos, p.radius)) continue;
+      for (const pBox of map) {
+        if (pBox.kind !== 'platform') continue;
+        const plat = pBox.ref;
+        if (!vOverlap(p.y - p.radius, p.y + p.radius, pBox.y0, pBox.y1) || !circleTouches(pBox, p.pos, p.radius)) continue;
         events.push({result: 'platformHit', attacker: p.owner ?? null, target: plat.id, damage: 0, entity: p.id, kind: 'projectile'});
         p.dead = true;
         const onTop = (p.vy ?? 0) < 0 && p.y - p.radius >= plat.height - .35;   // caiu em cima da plataforma = pouso no chão (Seed Bomb mostra também o efeito provisório)
@@ -275,7 +274,7 @@ function stepBeam(game, e, dt, events) {
   }
 }function stepArea(game, a, dt, events) {
   if (a.follow && a.owner != null) a.pos = {...game.fighters[a.owner].position};
-  if (a.support && getGroundHeight(a.pos, game.world, a.y + .3) < a.y - .06) {   // Field sobre apoio: perdeu a superfície (plataforma destruída) → some sem efeito, sem flutuar
+  if (a.support && groundHeightAt(a.pos, game.world, {currentY: a.y + .3}) < a.y - .06) {   // Field sobre apoio: perdeu a superfície (plataforma destruída) → some sem efeito, sem flutuar
     a.dead = true;events.push({result: 'fieldLost', attacker: a.owner ?? null, target: null, damage: 0, entity: a.id, kind: 'area'});return;
   }
   if (a.grow > 0) a.radius = a.baseRadius * Math.min(1, a.age / a.grow) + (a.startRadius ?? 0) * Math.max(0, 1 - a.age / a.grow);
@@ -285,7 +284,7 @@ function stepBeam(game, e, dt, events) {
   while (a.pulsesDone < due) {
     a.pulsesDone++;
     const shields = a.explosion ? game.world.entities.filter(e => e.shields && !e.dead) : [];
-    const blockers = a.occlusion ? solidsOf(game.world) : null;   // oclusão por paredes/obstáculos no plano XZ (Fire Spin e Seed Bomb): o dano não atravessa sólidos
+    const blockers = a.occlusion ? blockingSolids(game.world) : null;   // oclusão por paredes/obstáculos no plano XZ (Fire Spin e Seed Bomb): o dano não atravessa sólidos
     if (a.hit) for (const f of game.fighters) {
       if (f.hp <= 0 || f.absent || (f.id === a.owner && !a.affectsOwner)) continue;
       const alt = altOf(f);if (!vOverlap(alt, alt + fighterHeight(), a.y, a.y + a.height)) continue;
@@ -296,7 +295,7 @@ function stepBeam(game, e, dt, events) {
         dist = Math.hypot(dx, dy, dz);
       } else {const c = closestOnShape(box, a.pos);dist = Math.max(0, c.inside ? 0 : c.distance);}
       if (dist > a.radius) continue;
-      if (blockers && !segmentClear(blockers, a.pos, f.position)) {events.push({result: 'occluded', attacker: a.owner ?? null, target: f.id, damage: 0, entity: a.id, pulse: a.pulsesDone});continue;}
+      if (blockers && !segmentClear(a.pos, f.position, blockers)) {events.push({result: 'occluded', attacker: a.owner ?? null, target: f.id, damage: 0, entity: a.id, pulse: a.pulsesDone});continue;}
       const shield = shields.length ? shieldedFromBlast(a, f, shields) : null;
       if (shield) {events.push({result: 'shielded', attacker: a.owner ?? null, target: f.id, damage: 0, entity: a.id, by: shield.id, pulse: a.pulsesDone});continue;}
       // Efeito radial: empurra do centro para fora; a intensidade cai com a distância conforme `falloff`.

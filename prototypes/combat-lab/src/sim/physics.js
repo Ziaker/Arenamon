@@ -10,6 +10,7 @@ import {resolveDamage, damageEventFields} from './resolvers/damage-resolver.js';
 import {passiveCost, hitStunFactor} from './passive-engine.js';
 import {altitudeOf} from './entity.js';
 import {stat} from './status.js';
+import {groundSurface} from './collision/queries.js';
 import {vec, add, scale, sub, dot, length, normalize, clamp, direction, smoothstep} from './math.js';
 
 /** Sonda de diagnóstico (auditoria externa §64): subpassos e contatos do último passo físico.
@@ -28,60 +29,8 @@ function tryWallSplat(f, normal) {
   f.wallSplat = {t: 0, duration: R.wallSplatDuration, normal: {...normal}, fresh: true};f.state = 'wallSplat';
   return true;
 }
-const GROUND = Object.freeze({y: 0, kind: 'ground', id: null, normal: Object.freeze({x: 0, y: 1, z: 0})});
-/**
- * Superfície de APOIO na posição XZ (contrato da Fase 4): a mais alta entre plataformas, obstáculos e destrutíveis sólidos que apoiam um
- * lutador na altura `currentY` (null = qualquer altura), ou o piso. `y` é a altura real do topo; `normal` aponta para cima (as superfícies de
- * apoio são topos horizontais). Só considera superfícies válidas para a altura vertical atual do lutador (currentY).
- * @returns {{y: number, kind: 'ground' | 'platform' | 'obstacle' | 'destructible', id: any, normal: {x: number, y: number, z: number}}}
- */
-export function groundSurface(pos, world, currentY = null) {
-  const mapState = world?.mapState;
-  const platforms = mapState?.platforms ?? world?.platforms ?? C.map?.platforms;
-  const obstacles = mapState?.obstacles ?? world?.obstacles ?? C.map?.obstacles;
-  const destructibles = mapState?.destructibles ?? world?.destructibles;
-  if (!platforms && !obstacles && !destructibles) return GROUND;
-  let best = GROUND;
-  const footMargin = (C.test?.halfExtent ?? 0.35) * 0.5;
-  const support = (C.map?.mountTolerance ?? 0.25) + 0.10;   // apoio no topo: tolerância de montagem + 10 cm
-  const consider = (h, kind, id) => {
-    if ((currentY === null || currentY >= h - support) && h > best.y) best = {y: h, kind, id, normal: GROUND.normal};
-  };
-  if (platforms) {
-    for (const p of platforms) {
-      const px = p.pos ? p.pos.x : p.x;
-      const pz = p.pos ? p.pos.z : p.z;
-      const hx = ((p.width ?? 3) / 2) + footMargin;
-      const hz = ((p.depth ?? 3) / 2) + footMargin;
-      if (Math.abs(pos.x - px) <= hx && Math.abs(pos.z - pz) <= hz) consider(p.height, 'platform', p.id ?? null);
-    }
-  }
-  if (obstacles) {
-    for (const o of obstacles) {
-      const ox = o.pos?.x ?? 0, oz = o.pos?.z ?? 0;
-      const h = (o.pos?.y ?? 0) + (o.height ?? 1.5);
-      if (o.shape === 'cylinder' || o.shape === 'pillar') {
-        const r = (o.radius ?? 1) + footMargin;
-        const dx = pos.x - ox, dz = pos.z - oz;
-        if (dx * dx + dz * dz <= r * r) consider(h, 'obstacle', o.id ?? null);
-      } else {
-        const hx = (o.hx ?? 1.5) + footMargin;
-        const hz = (o.hz ?? 1.5) + footMargin;
-        if (Math.abs(pos.x - ox) <= hx && Math.abs(pos.z - oz) <= hz) consider(h, 'obstacle', o.id ?? null);
-      }
-    }
-  }
-  if (destructibles) {
-    for (const d of destructibles) {
-      if (d.state !== 'solid') continue;
-      const h = (d.pos?.y ?? 0) + (d.size?.height ?? 1.6);
-      const hx = (d.size?.hx ?? 0.8) + footMargin;
-      const hz = (d.size?.hz ?? 0.8) + footMargin;
-      if (Math.abs(pos.x - d.pos.x) <= hx && Math.abs(pos.z - d.pos.z) <= hz) consider(h, 'destructible', d.id ?? null);
-    }
-  }
-  return best;
-}
+// Superfície de apoio: consulta geométrica única em collision/queries.js (F4); reexportada aqui para os chamadores de sempre.
+export {groundSurface};
 /**
  * Altura do piso/plataforma na posição XZ (ver `groundSurface`).
  * @param {any} pos @param {any} world @param {number | null} [currentY]

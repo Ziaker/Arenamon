@@ -11,7 +11,7 @@ import {startTackleAt} from '../../controller.js';
 import {nominalDistance, altitudeOf} from '../../entity.js';
 import {getGroundHeight} from '../../physics.js';
 import {effectiveArenaRadius} from '../../map.js';
-import {solidsOf, insideSolid} from '../../vision.js';
+import {blockingSolids, pointInSolid} from '../../collision/queries.js';
 import {angleOf, sub} from '../../math.js';
 import {defineFicha} from '../params-registry.js';
 import {params, def as bulletPunchDef} from './bullet-punch.params.js';
@@ -47,18 +47,18 @@ export function bulletPunchVanish(/** @type {any} */ game, /** @type {any} */ f,
 
 /** Último ponto da reta a→b antes do primeiro sólido (parede, obstáculo, destrutível): a corrida invisível NÃO atravessa paredes (como o Quick Attack). Plataformas não bloqueiam. */
 function firstFree(/** @type {any} */ game, /** @type {{x: number, z: number}} */ a, /** @type {{x: number, z: number}} */ b, /** @type {Record<string, any>} */ P = C.world.bulletPunch) {
-  const solids = solidsOf(game.world);if (!solids.length) return b;
+  const solids = blockingSolids(game.world);if (!solids.length) return b;
   const step = Math.max(.05, P?.rayStep ?? .25);
   const len = Math.hypot(b.x - a.x, b.z - a.z), n = Math.max(1, Math.ceil(len / step)), m = C.test.halfExtent * .9;
   let last = {x: a.x, z: a.z};
-  for (let i = 1; i <= n; i++) {const p = {x: a.x + (b.x - a.x) * i / n, z: a.z + (b.z - a.z) * i / n};if (insideSolid(solids, p, m)) return last;last = p;}
+  for (let i = 1; i <= n; i++) {const p = {x: a.x + (b.x - a.x) * i / n, z: a.z + (b.z - a.z) * i / n};if (pointInSolid(p, solids, {margin: m})) return last;last = p;}
   return b;
 }
 
 /** Ponto livre mais próximo do desejado (arena, sólidos e outros corpos), em anéis configuráveis; determinístico. */
 function nearestFree(/** @type {any} */ game, /** @type {any} */ f, /** @type {{x: number, z: number}} */ want, /** @type {Record<string, any>} */ P = C.world.bulletPunch) {
-  const solids = solidsOf(game.world), lim = effectiveArenaRadius() - C.test.halfExtent, h = C.test.halfExtent;
-  const ok = (/** @type {{x: number, z: number}} */ p) => Math.hypot(p.x, p.z) <= lim && !insideSolid(solids, p, h * .9)
+  const solids = blockingSolids(game.world), lim = effectiveArenaRadius() - C.test.halfExtent, h = C.test.halfExtent;
+  const ok = (/** @type {{x: number, z: number}} */ p) => Math.hypot(p.x, p.z) <= lim && !pointInSolid(p, solids, {margin: h * .9})
     && game.fighters.every((/** @type {any} */ o) => o === f || o.hp <= 0 || o.absent || o.flight || Math.hypot(o.position.x - p.x, o.position.z - p.z) >= 2 * h * .98);
   if (ok(want)) return want;
   const step = Math.max(.05, P?.freeSearchStep ?? .25), maxR = P?.freeSearchRadius ?? 6;

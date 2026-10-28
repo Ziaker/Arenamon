@@ -28,7 +28,8 @@ import {
 } from '../src/sim/moves/pilot-coverage.js';
 import {getInheritedParamsForMove, getCalculatedValuesForMove} from '../src/sim/moves/move-mechanics-audit.js';
 import {spawn} from '../src/sim/world.js';
-import {canSee, solidsOf, insideSolid} from '../src/sim/vision.js';
+import {canSee} from '../src/sim/vision.js';
+import {blockingSolids, pointInSolid} from '../src/sim/collision/queries.js';
 import {stepSand} from '../src/sim/sand.js';
 
 registerStandardMoves();
@@ -464,8 +465,8 @@ test('A/B Bullet Punch: freeSearchRadius e freeSearchStep acham espaço livre na
     for (let i = 0; i < secs(.3); i++) {
       g.step(cmd(), cmd());
       if (g.lastStepEvents.some(e => e.result === 'bulletReturn')) {
-        const f = g.fighters[0], solids = solidsOf(g.world);
-        return {pos: {...f.position}, blocked: insideSolid(solids, f.position, C.test.halfExtent * .9)};
+        const f = g.fighters[0], solids = blockingSolids(g.world);
+        return {pos: {...f.position}, blocked: pointInSolid(f.position, solids, {margin: C.test.halfExtent * .9})};
       }
     }
     return null;

@@ -7,6 +7,7 @@ import {MAP_DEFAULTS} from './map-config.js';
 import {dist3D, getArenaScale, pickRandomConsumableType, randomRange} from './map-state.js';
 import {fighterBlocksBox, findNearestValidPosition, isValidSpawnPosition} from './map-spawn.js';
 import {applyConsumableEffect} from './map-consumables.js';
+import {groundHeightAt} from '../collision/queries.js';
 
 /**
  * Atualiza o ciclo de vida do mapa a cada passo da simulação de passo fixo:
@@ -65,7 +66,7 @@ export function stepMap(mapState, dt, fighters = [], events = []) {
 
     // Queda física do item até solo ou plataforma (R11.6)
     const currentY = item.pos.y ?? 0;
-    const targetY = getGroundHeightAt(item.pos.x, item.pos.z, mapState) + 0.4; // flutua levemente
+    const targetY = groundHeightAt(item.pos, {mapState}, {footMargin: 0}) + 0.4; // flutua levemente (apoio com footprint exato: collision/queries.js, F4)
     if (currentY > targetY) {
       item.vy = (item.vy ?? 0) - 18 * dt; // gravidade
       item.pos.y = Math.max(targetY, currentY + item.vy * dt);
@@ -148,42 +149,4 @@ export function stepMap(mapState, dt, fighters = [], events = []) {
   }
 
   return events;
-}
-/** Altura do piso/plataforma em determinada coordenada (X, Z). */
-export function getGroundHeightAt(x, z, mapState) {
-  let highest = 0;
-  if (mapState.platforms) {
-    for (const p of mapState.platforms) {
-      const hx = p.width / 2;
-      const hz = p.depth / 2;
-      if (Math.abs(x - p.pos.x) <= hx && Math.abs(z - p.pos.z) <= hz) {
-        if (p.height > highest) highest = p.height;
-      }
-    }
-  }
-  if (mapState.obstacles) {
-    for (const o of mapState.obstacles) {
-      const h = (o.pos?.y ?? 0) + o.height;
-      if (o.shape === 'cylinder' || o.shape === 'pillar') {
-        const dx = x - o.pos.x, dz = z - o.pos.z;
-        if (dx * dx + dz * dz <= o.radius * o.radius) {
-          if (h > highest) highest = h;
-        }
-      } else {
-        if (Math.abs(x - o.pos.x) <= o.hx && Math.abs(z - o.pos.z) <= o.hz) {
-          if (h > highest) highest = h;
-        }
-      }
-    }
-  }
-  if (mapState.destructibles) {
-    for (const d of mapState.destructibles) {
-      if (d.state !== 'solid') continue;
-      const h = (d.pos?.y ?? 0) + (d.size?.height ?? 1.6);
-      if (Math.abs(x - d.pos.x) <= d.size.hx && Math.abs(z - d.pos.z) <= d.size.hz) {
-        if (h > highest) highest = h;
-      }
-    }
-  }
-  return highest;
 }
