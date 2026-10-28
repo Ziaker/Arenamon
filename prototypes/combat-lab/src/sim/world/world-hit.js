@@ -3,9 +3,9 @@
 
 import {C} from '../config.js';
 import {isInvulnerable, riposteIntercept} from '../entity.js';
-import {launch} from '../combat.js';
 import {applyStatus, stat} from '../status.js';
 import {resolveDamage, damageEventFields} from '../resolvers/damage-resolver.js';
+import {applyReaction} from '../resolvers/reaction-resolver.js';
 import {knockbackFactor} from '../passive-engine.js';
 import {vec, add, sub, scale, dot, length, normalize, direction} from '../math.js';
 
@@ -46,38 +46,24 @@ export function applyHit(game, ownerId, target, hit, normal, info = {}) {
   const dmgResult = resolveDamage({target, attacker: owner, rawDamage: raw, sourceKind: 'direct', contact, guarded: protectedFront, perfect});
   const damage = dmgResult.hpDamage;
   /** @type {{direction: import("../types").Vec, horizontal: number, vertical: number} | null} */
-  let launchInfo = null;
+  let launchInfo = null, displacementPolicy = 'none';
   if (protectedFront) {
     target.velocity = vec();target.locomotionVelocity = vec();
-    if (perfect) {target.perfectSucceeded = true;target.stun = 0;target.state = 'guard';if (T.enableCounterBonus) target.counterWindow = Math.max(target.counterWindow, X.perfectGuardCounterWindow);}
-    else if (target.stun <= 1e-8 && hit.guardStun !== 0) {target.stun = hit.guardStun ?? R.guardStun;target.state = 'guardStun';}
+    if (perfect) applyReaction(target, {kind: 'perfectGuard', counterWindow: X.perfectGuardCounterWindow, setState: true});
+    else if (hit.guardStun !== 0) applyReaction(target, {kind: 'guardStun', duration: hit.guardStun ?? R.guardStun, setState: true, trackMax: false});   // só sem stun ativo; entra em 'guardStun' sem gravar stunMax
   } else {
     const kb = hit.knockback, k = stat(target, 'knockbackTaken', 1) * scaleK;
     if (kb && (kb.horizontal > 0 || kb.vertical > 0) && T.enableLaunch) {
       const dir = length(normal) > 1e-7 ? normalize(normal) : vec(0, 1);
       const hKb = (kb.horizontal ?? 0) * k * knockbackFactor(target), vKb = (kb.vertical ?? 0) * k;
-      if (vKb > 1e-6 || target.flight) {
-        launch(target, dir, hKb, vKb);
-        launchInfo = {direction: dir, horizontal: hKb, vertical: vKb};
-      } else if (hKb > 0) {
-        target.action = null;
-        target.flight = null;
-        target.blend = null;
-        target.guard = false;
-        target.guardSuppressed = true;
-        target.velocity = vec();
-        target.locomotionVelocity = vec();
-        target.push = {direction: dir, distance: Math.max(0.45, hKb * 1.5), elapsed: 0};
-        const dur = C.test?.pushDuration ?? 0.3; target.push.duration = dur; target.knockRecovery = Math.max(target.knockRecovery, dur); target.pushRecovery = dur; target.recoveryKind = 'pushed'; target.hitSerial = (target.hitSerial ?? 0) + 1;
-        target.state = 'pushed';
-        launchInfo = {direction: dir, horizontal: hKb, vertical: 0};
-      }
+      const r = applyReaction(target, {kind: 'knockback', direction: dir, horizontal: hKb, vertical: vKb});   // vertical ou no ar → voo; só horizontal → empurrão
+      if (r) {launchInfo = {direction: dir, horizontal: hKb, vertical: r.vertical ?? 0};displacementPolicy = r.policy;}
     }
-    else if (hit.flinch) {target.action = null;const dur = typeof hit.flinch === 'number' ? hit.flinch : (R.hitstun ?? 0.2);target.hitstun = Math.max(target.hitstun ?? 0, dur);target.hitstunMax = Math.max(target.hitstunMax ?? 0, dur);target.knockRecovery = Math.max(target.knockRecovery, dur);target.recoveryKind = 'hitstun';target.state = 'hitstun';target.hitSerial = (target.hitSerial ?? 0) + 1;}
+    else if (hit.flinch) applyReaction(target, {kind: 'hitstun', duration: typeof hit.flinch === 'number' ? hit.flinch : (R.hitstun ?? 0.2)});
     if (damage > 0) target.hitSerial = (target.hitSerial ?? 0) + 1;
     for (const s of hit.statuses || []) applyStatus(target, s, {source: ownerId});
     target.counterWindow = 0;
   }
   if (target.hp === 0) {target.guard = false;target.guardSuppressed = true;target.state = 'defeated';target.recoveryKind = null;}
-  return {...base, result: perfect ? 'perfect' : protectedFront ? 'partial' : 'impact', damage, ...damageEventFields(dmgResult), launch: launchInfo, contact, ...(dmgResult.sturdy ? {sturdy: true} : {})};
+  return {...base, result: perfect ? 'perfect' : protectedFront ? 'partial' : 'impact', damage, ...damageEventFields(dmgResult), launch: launchInfo, displacementPolicy, contact, ...(dmgResult.sturdy ? {sturdy: true} : {})};
 }

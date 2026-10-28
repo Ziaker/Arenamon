@@ -120,7 +120,7 @@ export function stepSand(/** @type {any} */ game, /** @type {any} */ e, /** @typ
       if (Object.keys(e.targets).length >= maxTargets) continue;   // limite de alvos por execução
       const ev = applyHit(game, e.owner, f, {damage: e.damage, knockback: (e.knockbackH > 0 || e.knockbackV > 0) ? {horizontal: e.knockbackH ?? 0, vertical: e.knockbackV ?? 0} : null}, {x: e.dir.x, z: e.dir.z}, {entity: e.id, source: 'sand', origin: {x: e.pos.x, z: e.pos.z}, pl: 1, contact: 'area', move: 'sand-wave'});
       if (!ev || ev.result === 'invulnerable') continue;
-      events.push(ev);
+      events.push({...ev, displacementPolicy: 'force'});   // F3.2: o deslocamento do Sand Wave é a força contínua sandPush (não impulso nem empurrão coreografado)
       e.targets[f.id] = {partial: ev.result === 'partial', perfect: ev.result === 'perfect', pinned: false, last: {x: f.position.x, z: f.position.z}, riposte: ev.result === 'riposte', firstAt: e.age, lastContactAt: e.age, pushStartedAt: null, pushActiveFor: 0, pushStopReason: ev.result === 'perfect' || ev.result === 'riposte' ? 'perfectGuard' : null, reason: ev.result === 'perfect' || ev.result === 'riposte' ? 'perfectGuard' : null};
       // Impulso inicial (m/s): soma à velocidade própria sobrevivente. A limpeza do movimento é uma política
       // separada (`pushClearsLocomotion`/`pushPreserveVelocity`); a defesa parcial multiplica o impulso.

@@ -159,7 +159,7 @@ export function stoneStep(/** @type {any} */ game) {
         d.launched.push(f.id);
         const away = {x: f.position.x - d.pos.x, z: f.position.z - d.pos.z}, dir = length(away) > 1e-6 ? normalize(away) : direction(f.facing + Math.PI);
         launch(f, dir, d.launchH, d.launchV);
-        events.push({result: 'rockLaunch', attacker: d.owner ?? null, target: f.id, damage: 0, id: d.id, horizontal: d.launchH, vertical: d.launchV});
+        events.push({result: 'rockLaunch', attacker: d.owner ?? null, target: f.id, damage: 0, id: d.id, horizontal: d.launchH, vertical: d.launchV, displacementPolicy: 'impulse'});
       }
     }
   }
