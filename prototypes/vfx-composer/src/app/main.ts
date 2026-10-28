@@ -15,6 +15,8 @@ import {ParticlePreview} from './particle-preview';
 import {QuarksParticlePreview} from './quarks-particle-preview';
 import {defaultEmitter, evaluateParticleBudget, simulateEmitter, type BlendMode, type EmissionMode, type ParticleEmitter} from '../particles/particles';
 import type {QualityProfile} from '../core/budget';
+import {loadUiPreferences} from '../ui/preferences';
+import {mountWorkspaceLayout} from '../ui/layout';
 
 const phase = (duration: number) => ({enabled: true, duration, tracks: []});
 const initialProject = (): VfxProject => ({
@@ -85,6 +87,21 @@ const explosionProject = (): VfxProject => {
 const $ = <T extends HTMLElement>(selector: string): T => {
   const element = document.querySelector<T>(selector); if (!element) throw new Error(`Elemento ausente: ${selector}`); return element;
 };
+
+const appRoot = $('.app');
+$('.top').id = 'global-header';
+$('.left').id = 'project-hierarchy';
+$('.right').id = 'context-inspector';
+const viewportRegion = $('#viewport');
+const viewportSemantic = document.createElement('div');
+viewportSemantic.id = 'authoring-viewport';
+viewportRegion.before(viewportSemantic);
+viewportSemantic.append(viewportRegion);
+appRoot.insertAdjacentHTML('afterbegin', `<nav id="domain-rail" aria-label="Domínios de autoria"><button data-domain="create" aria-label="Criar" title="Criar">+</button><button data-domain="transform" aria-label="Transformar" title="Transformar">⤢</button><button data-domain="appearance" aria-label="Aparência" title="Aparência">◐</button><button data-domain="movement" aria-label="Movimento" title="Movimento">◆</button><button data-domain="particles" aria-label="Partículas" title="Partículas">✺</button></nav>`);
+$('.left').insertAdjacentHTML('beforeend', `<details id="academy-vfx"><summary><strong>Academia VFX</strong><small>Opcional · 3 aulas</small></summary><div id="academy-lessons"></div></details>`);
+viewportRegion.querySelector('.view-tools')?.insertAdjacentHTML('beforeend', `<button id="maximize-viewport" title="Maximizar viewport" aria-label="Maximizar viewport">⛶</button>`);
+appRoot.insertAdjacentHTML('beforeend', `<footer id="authoring-timeline"><div class="timeline-placeholder"><strong>Timeline</strong><span>24 / 30 / 60 FPS</span></div></footer><div id="composer-status" role="status" aria-live="polite">Projeto pronto · Autoral</div>`);
+mountWorkspaceLayout(appRoot, loadUiPreferences(typeof localStorage === 'undefined' ? undefined : localStorage), typeof localStorage === 'undefined' ? undefined : localStorage);
 
 document.querySelector('.brand small')!.textContent = 'F3.2 · autoria determinística + preview three.quarks';
 document.querySelector('.top')!.insertAdjacentHTML('beforeend', `<nav class="workspace-tabs" aria-label="Workspaces"><button data-workspace="drawing" class="selected">Desenho</button><button data-workspace="animation">Animação</button><button data-workspace="textures">Texturas</button><button data-workspace="materials">Materiais</button><button data-workspace="particles">Partículas</button><button disabled title="F4">Integração · F4</button></nav>

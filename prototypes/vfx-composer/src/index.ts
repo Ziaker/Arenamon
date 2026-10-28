@@ -25,3 +25,4 @@ export * from './particles/particles';
 export * from './particles/quarks-contract';
 export * from './ui/preferences';
 export * from './ui/icons';
+export * from './ui/layout';

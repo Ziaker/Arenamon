@@ -62,3 +62,12 @@ test('renders every icon with title and aria-label', () => {
     assert.match(button, /title="Action /);
   }
 });
+
+test('workspace presets clamp panes and reference density without CSS zoom', () => {
+  assert.deepEqual(api.clampPaneSizes({hierarchy: 20, inspector: 999, timeline: 40}), {hierarchy: 180, inspector: 520, timeline: 96});
+  assert.deepEqual(api.workspacePreset('animation').collapsedPanes, []);
+  assert.equal(api.workspacePreset('animation').paneSizes.timeline, 300);
+  assert.equal(api.workspacePreset('materials').paneSizes.inspector, 440);
+  assert.equal(api.DENSITY_TOKENS['reference-80'].scale, 1.25);
+  assert.equal(api.DENSITY_TOKENS['reference-80'].usesCssZoom, false);
+});
