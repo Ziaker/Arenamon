@@ -5,6 +5,7 @@ import {C} from '../sim/config.js';
 import {Character} from '../view/characters.js';
 import {escape} from '../ui/tuning.js';
 import {openStore} from '../workspace/store.js';
+import {seedEmbeddedModels} from '../workspace/embedded-models.js';
 import {Workspace, readPackage} from '../workspace/workspace.js';
 import {createWorkspaceUI} from '../ui/workspace-panel.js';
 import {createProjectFiles} from '../ui/project-files.js';
@@ -77,7 +78,7 @@ export async function applyInitialWorkspace(ws, wsUI) {
 }
 
 export async function bootWorkspace() {
-  const store = await openStore();let ls = null;try {ls = localStorage;} catch {ls = null;}
+  const store = await openStore();await seedEmbeddedModels(store);let ls = null;try {ls = localStorage;} catch {ls = null;}
   const ws = await Workspace.open(store, {ls});wsRef.store = store;
   const wsUI = createWorkspaceUI({ws, store, ui, tuning, $, download, presets: presets.api, homologation, applyDocUi, collectApp, onCharactersChanged: () => {syncCharacterCombatWindows();syncRuleDurations();dock.invalidate();quickMenu.refresh();}});
   Object.assign(charHooks, wsUI.hooks);wsUI.setPanel(charPanel);presets.attachWorkspace(ws);

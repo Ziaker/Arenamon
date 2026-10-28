@@ -21,6 +21,16 @@ async function initialWorkspaceTag() {
     return `<script type="application/octet-stream" id="initial-workspace" data-bytes="${bytes.length}">${bytes.toString('base64')}</script>`;
   } catch {return '';}
 }
+/** Modelos que vêm dentro do HTML (caminho a partir de prototypes/combat-lab/). Entram no store na abertura. */
+const EMBEDDED_MODELS = ['../../chars/wookada/wookada.glb'];
+async function embeddedModelsTag() {
+  const tags = [];
+  for (const rel of EMBEDDED_MODELS) {
+    const bytes = await readFile(new URL(rel, root)), name = rel.split('/').pop();
+    tags.push(`<script type="application/octet-stream" data-embedded-model="${name}" data-bytes="${bytes.length}">${bytes.toString('base64')}</script>`);
+  }
+  return tags.join('\n');
+}
 const inline = js => js.replace(/<\/script/gi, '<\\/script');
 
 /** Laboratório de combate: um único HTML (Three.js + laboratório). */
@@ -32,7 +42,7 @@ export async function buildLab({minify = true} = {}) {
   const css = baseCss + String.fromCharCode(10) + menuCss;   // telas A/B/C do pré-jogo (menu-styles.css) entram no mesmo <style>
   // O aviso “modelo-fonte” só aparece se alguém abrir src/template.html diretamente; o build o remove.
   const version = await versionInfo();
-  return template.replace(/<!--DEV-->[\s\S]*?<!--\/DEV-->\n?/, '').replaceAll('<!--INITIAL_WORKSPACE-->', await initialWorkspaceTag()).replaceAll('__VERSION_DETAIL__', version.detail).replaceAll('__VERSION__', version.label).replace('/*__CSS__*/', () => css).replace('/*__BUNDLE__*/', () => inline('/*\n' + license + '\n*/' + bundle.outputFiles[0].text));
+  return template.replace(/<!--DEV-->[\s\S]*?<!--\/DEV-->\n?/, '').replaceAll('<!--INITIAL_WORKSPACE-->', await initialWorkspaceTag()).replaceAll('<!--EMBEDDED_MODELS-->', await embeddedModelsTag()).replaceAll('__VERSION_DETAIL__', version.detail).replaceAll('__VERSION__', version.label).replace('/*__CSS__*/', () => css).replace('/*__BUNDLE__*/', () => inline('/*\n' + license + '\n*/' + bundle.outputFiles[0].text));
 }
 /** Painel externo de relatórios: HTML único e offline que lê relatórios exportados (não acessa a partida). */
 export async function buildReportsPanel({minify = true} = {}) {
