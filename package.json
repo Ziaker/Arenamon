@@ -39,6 +39,8 @@
     "test:vfx-composer:f3:quarks:adapter": "node prototypes/vfx-composer/test/f3-quarks-adapter.test.mjs",
     "test:vfx-composer:f3:quarks:browser": "npm run build:vfx-composer && node prototypes/vfx-composer/test/f3-quarks.browser.mjs",
     "test:vfx-composer:f3:browser": "npm run build:vfx-composer && node prototypes/vfx-composer/test/f3-app.browser.mjs",
+    "test:vfx-composer:f3:audit": "npm run build:vfx-composer && node prototypes/vfx-composer/test/f3-audit.browser.mjs",
+    "test:vfx-composer:f3:authoring": "npm run build:vfx-composer && node prototypes/vfx-composer/test/f3-authoring.browser.mjs",
     "test:vfx-composer:browser": "node prototypes/vfx-composer/verify.browser.mjs",
     "typecheck:vfx-composer": "tsc --noEmit -p prototypes/vfx-composer/tsconfig.json",
     "dev:combat-lab": "node prototypes/combat-lab/dev-server.mjs",

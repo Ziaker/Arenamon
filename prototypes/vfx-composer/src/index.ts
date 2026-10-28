@@ -18,6 +18,7 @@ export * from './editor/autosave';
 export * from './editor/file-io';
 export * from './editor/geometry';
 export * from './animation/timeline';
+export * from './animation/radial';
 export * from './textures/texture-document';
 export * from './materials/material-graph';
 export * from './particles/particles';

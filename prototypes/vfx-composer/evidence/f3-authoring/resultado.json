@@ -1,0 +1,19 @@
+{
+  "status": "approved",
+  "offline": true,
+  "externalRequests": 0,
+  "coverage": [
+    "seleção múltipla",
+    "explosão radial com unidade",
+    "seek por keyframe",
+    "rotação/escala",
+    "cor e paleta",
+    "duplicar",
+    "remover objeto",
+    "atalhos Ctrl+D/Delete",
+    "limpar animação",
+    "remover trilha",
+    "enquadrar",
+    "projeto vazio"
+  ]
+}

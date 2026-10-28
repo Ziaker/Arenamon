@@ -18,6 +18,7 @@ try {
   await page.context().setOffline(true);
   await page.goto(pathToFileURL(html).href);
   await page.waitForFunction(() => window.__ARENAMON_VFX_COMPOSER__?.ready === true, null, {timeout: 3000});
+  await page.click('#new-empty-project');
   assert.equal(await page.locator('#viewport canvas').count(), 1);
   await page.click('#add-box');
   assert.equal(await page.locator('#hierarchy [data-node-id]').count(), 1);

@@ -59,6 +59,16 @@ export class DocumentStore {
     }, id);
   }
 
+  setNodeColor(id: string, color: string): void {
+    if (!/^#[0-9a-f]{6}$/i.test(color)) throw new Error('Cor do objeto exige hexadecimal #rrggbb');
+    this.#change(project => {
+      const node = project.nodes.find(candidate => candidate.id === id);
+      if (!node) throw new Error(`Nó ausente: ${id}`);
+      if (node.locked) throw new Error(`Nó travado: ${id}`);
+      node.color = color.toLowerCase();
+    }, id);
+  }
+
   setPivot(id: string, pivot: Vec3): void {
     if (!finiteVec3(pivot)) throw new Error('Pivô exige vetor finito');
     this.#change(project => {
@@ -143,6 +153,17 @@ export class DocumentStore {
   setTimelineFps(fps: AuthoringFps): void { this.#change(project => {project.timeline.fps = fps;}, this.#selectedId); }
   setTimelineDuration(duration: number): void { this.#change(project => {project.timeline.duration = duration;}, this.#selectedId); }
   upsertTrack(track: VisualTrack): void { this.#change(project => {const index = project.timeline.tracks.findIndex(item => item.id === track.id); if (index < 0) project.timeline.tracks.push(clone(track)); else project.timeline.tracks[index] = clone(track);}, track.targetId); }
+  removeTrack(trackId: string): void { this.#change(project => {project.timeline.tracks = project.timeline.tracks.filter(track => track.id !== trackId);}, this.#selectedId); }
+  removeKeyframe(trackId: string, time: number): void {
+    if (!Number.isFinite(time)) throw new Error('Tempo de keyframe inválido');
+    this.#change(project => {
+      const track = project.timeline.tracks.find(candidate => candidate.id === trackId);
+      if (!track) throw new Error(`Trilha ausente: ${trackId}`);
+      if (track.property === 'path.points') track.keyframes = track.keyframes.filter(frame => Math.abs(frame.time - time) > 1e-6);
+      else track.keyframes = track.keyframes.filter(frame => Math.abs(frame.time - time) > 1e-6);
+      if (!track.keyframes.length) project.timeline.tracks = project.timeline.tracks.filter(candidate => candidate.id !== trackId);
+    }, this.#selectedId);
+  }
   upsertTexture(texture: TextureDocument): void { this.#change(project => {project.textures ??= []; const index = project.textures.findIndex(item => item.id === texture.id); if (index < 0) project.textures.push(clone(texture)); else project.textures[index] = clone(texture);}, this.#selectedId); }
   removeTexture(id: string): void { this.#change(project => {project.textures = (project.textures ?? []).filter(item => item.id !== id);}, this.#selectedId); }
   upsertMaterial(material: MaterialGraph): void { this.#change(project => {project.materials ??= []; const index = project.materials.findIndex(item => item.id === material.id); if (index < 0) project.materials.push(clone(material)); else project.materials[index] = clone(material);}, this.#selectedId); }

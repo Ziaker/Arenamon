@@ -14,6 +14,7 @@ try {
   page.on('console', message => {if (message.type() === 'error') errors.push(message.text());});
   page.on('request', request => {if (/^https?:/.test(request.url())) external.push(request.url());});
   await page.goto(pathToFileURL(html).href); await page.waitForFunction(() => window.__ARENAMON_VFX_COMPOSER__?.ready);
+  await page.click('#new-empty-project');
 
   assert.equal(await page.locator('[data-workspace]').count(), 5, 'F3 habilita o workspace Partículas');
   await page.click('[data-workspace="particles"]');

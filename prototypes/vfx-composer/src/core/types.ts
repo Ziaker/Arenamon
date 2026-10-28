@@ -6,7 +6,7 @@ export type Vec3 = [number, number, number];
 export interface VisualTransform {position: Vec3; rotation: Vec3; scale: Vec3}
 export interface PathGeometry {kind: 'stroke' | 'curve' | 'ribbon'; points: Vec3[]; width: number; endWidth?: number; extrusion?: number; closed: boolean}
 export type VisualGeometry = {kind: 'box'; size: Vec3} | {kind: 'sphere'; radius: number} | {kind: 'plane'; size: [number, number]} | PathGeometry;
-export interface VisualNode {id: string; kind: 'group' | 'mesh' | 'stroke' | 'particles' | 'material'; parentId: string | null; assetIds: string[]; transform?: VisualTransform; pivot?: Vec3; locked?: boolean; geometry?: VisualGeometry}
+export interface VisualNode {id: string; kind: 'group' | 'mesh' | 'stroke' | 'particles' | 'material'; parentId: string | null; assetIds: string[]; transform?: VisualTransform; pivot?: Vec3; locked?: boolean; color?: string; geometry?: VisualGeometry}
 export interface AuthoringSettings {drawingPlane: {origin: Vec3; rotation: Vec3}; mirrorX: boolean; radialCopies: number}
 export type NumericTrackProperty = 'opacity' | 'scale' | 'visible' | 'position.x' | 'position.y' | 'position.z' | 'rotation.x' | 'rotation.y' | 'rotation.z';
 export interface NumericKeyframe {time: number; value: number; interpolation: 'linear' | 'step' | 'bezier'; inTangent?: number; outTangent?: number}
