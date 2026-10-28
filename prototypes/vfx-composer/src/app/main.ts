@@ -11,6 +11,7 @@ import {createTextureDocument, decodeTexturePixels, paintTextureStroke} from '..
 import {compileMaterialRecipe, validateMaterialGraph} from '../materials/material-graph';
 import type {AuthoringFps, MaterialGraph, NumericTrackProperty, TextureDocument, VisualTrack} from '../core/types';
 import {ParticlePreview} from './particle-preview';
+import {QuarksParticlePreview} from './quarks-particle-preview';
 import {defaultEmitter, evaluateParticleBudget, simulateEmitter, type BlendMode, type EmissionMode, type ParticleEmitter} from '../particles/particles';
 import type {QualityProfile} from '../core/budget';
 
@@ -25,7 +26,7 @@ const $ = <T extends HTMLElement>(selector: string): T => {
   const element = document.querySelector<T>(selector); if (!element) throw new Error(`Elemento ausente: ${selector}`); return element;
 };
 
-document.querySelector('.brand small')!.textContent = 'F3.1 · partículas determinísticas, orçamento e telemetria';
+document.querySelector('.brand small')!.textContent = 'F3.2 · autoria determinística + preview three.quarks';
 document.querySelector('.top')!.insertAdjacentHTML('beforeend', `<nav class="workspace-tabs" aria-label="Workspaces"><button data-workspace="drawing" class="selected">Desenho</button><button data-workspace="animation">Animação</button><button data-workspace="textures">Texturas</button><button data-workspace="materials">Materiais</button><button data-workspace="particles">Partículas</button><button disabled title="F4">Integração · F4</button></nav>`);
 document.querySelector('.right')!.insertAdjacentHTML('beforeend', `<section id="f2-panel">
   <div class="workspace-panel" data-panel="animation" hidden><h2>Timeline</h2><label class="field wide">FPS<select id="timeline-fps"><option>24</option><option selected>30</option><option>60</option></select><span>fps</span></label><label class="field wide">Duração<input id="timeline-duration" type="number" min="0.1" max="60" step="0.1" value="2"><span>s</span></label><div class="inline-actions"><button id="timeline-reverse">◀ Reverse</button><button id="timeline-play">▶ Play</button><button id="timeline-stop">■ Stop</button></div><label class="field wide">Tempo<input id="timeline-scrub" type="range" min="0" max="2" step="0.033333" value="0"><span id="timeline-readout">0.000 s · 0 f</span></label><label class="field wide">Propriedade<select id="track-property"><option value="position.x">Posição X</option><option value="position.y">Posição Y</option><option value="position.z">Posição Z</option><option value="scale">Escala</option><option value="opacity">Opacidade</option><option value="visible">Visível</option></select><span></span></label><label class="field wide">Interpolação<select id="key-interpolation"><option value="linear">Linear</option><option value="step">Step</option><option value="bezier">Bézier</option></select><span></span></label><button id="add-keyframe">+ Keyframe no tempo</button><label><input id="onion-enabled" type="checkbox"> Onion skin anterior/próximo</label><label class="field wide">Opacidade<input id="onion-opacity" type="range" min="0" max="100" step="1" value="25"><span>%</span></label></div>
@@ -76,6 +77,7 @@ document.querySelector('.right')!.insertAdjacentHTML('beforeend', `<section id="
     <div class="inline-actions"><button id="apply-emitter">Aplicar emissor</button><button id="reset-emitter-peak">Zerar pico</button></div>
   </div>
   <h2>Custo e telemetria</h2>
+  <label class="field wide">Preview<select id="particle-preview-backend"><option value="authoring">Autoral</option><option value="quarks">Quarks</option><option value="compare">Comparar A/B</option></select><span></span></label>
   <label class="field wide">Perfil<select id="quality-profile"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option></select><span></span></label>
   <div id="particle-telemetry" class="telemetry">Sem emissor.</div>
   <div id="particle-budget" class="badge">—</div>
@@ -296,7 +298,7 @@ function editPosition(axis: 0 | 1 | 2, value: number): void {
     const position = [...(node.transform?.position ?? [0, 0, 0])] as [number, number, number]; position[axis] += delta; store.setTransform(id, {position});
   }}); rebuild();
 }
-function expose(): void {(window as unknown as {__ARENAMON_VFX_COMPOSER__: unknown}).__ARENAMON_VFX_COMPOSER__ = {ready: true, get project() {return store.project;}, get playback() {return {...playback};}, get onionCount() {return onionGroup.children.length;}, get materialRecipe() {try {return compileMaterialRecipe(materialGraph, store.project.textures ?? [activeTexture]);} catch {return null;}}, get selectedIds() {return [...selectedIds];}, get transformAttached() {return transformControls.object !== undefined;}, get drawing() {return drawing;}, get emitters() {return store.project.particles ?? [];}, get qualityProfile() {return qualityProfile;}, get particleTelemetry() {return particlePreview.report;}, get rendererGeometries() {return renderer.info.memory.geometries;}, get particleBudget() {return evaluateParticleBudget(currentEmitters(), qualityProfile, store.project.accessibility);}, particleSnapshot() {const options = particleOptions(); return (store.project.particles ?? []).flatMap(emitter => simulateEmitter(emitter, playback.time, options).map(particle => [Number(particle.x.toFixed(5)), Number(particle.y.toFixed(5)), Number(particle.z.toFixed(5)), Number(particle.size.toFixed(5)), Number(particle.opacity.toFixed(5))]));}, get selectedBoundsCenter() {const object = authored.children.find(child => child.userData.nodeId === selectedId); return object ? new THREE.Box3().setFromObject(object).getCenter(new THREE.Vector3()).toArray() : null;}, nodeScreenPoint(id: string) {const object = authored.children.find(child => child.userData.nodeId === id); if (!object) return null; const point = object.position.clone().project(camera), bounds = renderer.domElement.getBoundingClientRect(); return [bounds.left + (point.x + 1) * bounds.width / 2, bounds.top + (1 - point.y) * bounds.height / 2];}};}
+function expose(): void {(window as unknown as {__ARENAMON_VFX_COMPOSER__: unknown}).__ARENAMON_VFX_COMPOSER__ = {ready: true, get project() {return store.project;}, get playback() {return {...playback};}, get onionCount() {return onionGroup.children.length;}, get materialRecipe() {try {return compileMaterialRecipe(materialGraph, store.project.textures ?? [activeTexture]);} catch {return null;}}, get selectedIds() {return [...selectedIds];}, get transformAttached() {return transformControls.object !== undefined;}, get drawing() {return drawing;}, get emitters() {return store.project.particles ?? [];}, get qualityProfile() {return qualityProfile;}, get particleTelemetry() {return particlePreview.report;}, get quarksTelemetry() {return quarksPreview.report;}, get previewBackend() {return previewBackend;}, get previewVisibility() {return {authoring: particlePreview.group.visible, quarks: quarksPreview.group.visible};}, get rendererGeometries() {return renderer.info.memory.geometries;}, get particleBudget() {return evaluateParticleBudget(currentEmitters(), qualityProfile, store.project.accessibility);}, particleSnapshot() {const options = particleOptions(); return (store.project.particles ?? []).flatMap(emitter => simulateEmitter(emitter, playback.time, options).map(particle => [Number(particle.x.toFixed(5)), Number(particle.y.toFixed(5)), Number(particle.z.toFixed(5)), Number(particle.size.toFixed(5)), Number(particle.opacity.toFixed(5))]));}, get selectedBoundsCenter() {const object = authored.children.find(child => child.userData.nodeId === selectedId); return object ? new THREE.Box3().setFromObject(object).getCenter(new THREE.Vector3()).toArray() : null;}, nodeScreenPoint(id: string) {const object = authored.children.find(child => child.userData.nodeId === id); if (!object) return null; const point = object.position.clone().project(camera), bounds = renderer.domElement.getBoundingClientRect(); return [bounds.left + (point.x + 1) * bounds.width / 2, bounds.top + (1 - point.y) * bounds.height / 2];}};}
 
 $('#add-box').onclick = () => {
   const id = `box-${++serial}`; selectedId = id;
@@ -485,8 +487,20 @@ let activeEmitterId: string | null = (store.project.particles ?? [])[0]?.id ?? n
 let emitterSerial = (store.project.particles ?? []).length;
 let draftRevision = -1;
 let readoutFrame = 0;
+type PreviewBackend = 'authoring' | 'quarks' | 'compare';
+let previewBackend: PreviewBackend = 'authoring';
 const particlePreview = new ParticlePreview(() => Math.min(devicePixelRatio, 2));
 scene.add(particlePreview.group);
+const quarksPreview = new QuarksParticlePreview(scene);
+function applyPreviewBackend(): void {
+  const compare = previewBackend === 'compare';
+  particlePreview.group.visible = previewBackend !== 'quarks';
+  quarksPreview.group.visible = previewBackend !== 'authoring';
+  particlePreview.group.position.x = compare ? -1.25 : 0;
+  quarksPreview.group.position.x = compare ? 1.25 : 0;
+  if (previewBackend === 'authoring') quarksPreview.reset();
+  refreshParticleReadout();
+}
 
 const particleOptions = (): {profile: QualityProfile; reduceMotion: boolean; noFlash: boolean} => ({profile: qualityProfile, reduceMotion: store.project.accessibility.reduceMotion, noFlash: store.project.accessibility.noFlash});
 function currentEmitters(): ParticleEmitter[] {
@@ -549,9 +563,15 @@ function refreshParticleReadout(): void {
   const emitters = currentEmitters();
   const budget = evaluateParticleBudget(emitters, qualityProfile, store.project.accessibility);
   const live = particlePreview.report;
+  const quarks = quarksPreview.report;
   const plural = budget.cost.particles === 1 ? 'partícula' : 'partículas';
+  const backendText = previewBackend === 'authoring'
+    ? `Autoral: ${live.active} ${plural} · pico ${live.peakThisFrame} · ${live.drawCalls} draw call(s)`
+    : previewBackend === 'quarks'
+      ? `Quarks: ${quarks.active} ${plural} · ${quarks.systems} sistema(s) · ${quarks.drawCalls} draw call(s)`
+      : `A/B — Autoral ${live.active} | Quarks ${quarks.active} · ${live.drawCalls + quarks.drawCalls} draw call(s)`;
   $('#particle-telemetry').textContent = emitters.length
-    ? `No quadro: ${live.active} ${plural} · pico ${live.peakThisFrame} · ${live.drawCalls} draw call(s) · pico estimado ${budget.peak}`
+    ? `${backendText} · pico estimado ${budget.peak}${quarks.approximations.length && previewBackend !== 'authoring' ? ` · aproximações: ${quarks.approximations.join(', ')}` : ''}`
     : 'Sem emissor. Adicione um para ver a telemetria.';
   const badge = $('#particle-budget');
   const over = budget.verdict.over;
@@ -601,6 +621,7 @@ $('#apply-emitter').onclick = () => {
 };
 $('#reset-emitter-peak').onclick = () => {particlePreview.resetPeak(); refreshParticleReadout();};
 ($('#quality-profile') as HTMLSelectElement).onchange = () => {qualityProfile = ($('#quality-profile') as HTMLSelectElement).value as QualityProfile; refreshParticleReadout();};
+($('#particle-preview-backend') as HTMLSelectElement).onchange = () => {previewBackend = ($('#particle-preview-backend') as HTMLSelectElement).value as PreviewBackend; applyPreviewBackend(); expose();};
 ($('#access-reduce-motion') as HTMLInputElement).onchange = event => {store.setAccessibility({reduceMotion: (event.target as HTMLInputElement).checked}); rebuild();};
 ($('#access-no-flash') as HTMLInputElement).onchange = event => {store.setAccessibility({noFlash: (event.target as HTMLInputElement).checked}); rebuild();};
 for (const field of PARTICLE_FIELDS) {
@@ -615,10 +636,11 @@ for (const field of PARTICLE_FIELDS) {
 }
 for (const id of ['#emitter-enabled', '#emitter-name', '#emitter-mode', '#emitter-shape', '#emitter-color-start', '#emitter-color-end', '#emitter-blending', '#emitter-depth-write', '#emitter-origin-x', '#emitter-origin-y', '#emitter-origin-z', '#emitter-gravity-x', '#emitter-gravity-y', '#emitter-gravity-z']) ($(id) as HTMLInputElement).addEventListener('input', updateDraftFromForm);
 
+applyPreviewBackend();
 renderTexture(); syncMaterial(); syncTimeline();
 $('#add-keyframe').insertAdjacentHTML('afterend', '<button id="add-morph-keyframe">+ Morph do caminho</button>');
 $('#add-morph-keyframe').onclick = () => {const node = selected(); const geometry = node?.geometry; if (!node || !geometry || geometry.kind === 'box' || geometry.kind === 'sphere' || geometry.kind === 'plane') {$('#status').textContent = 'Selecione um Stroke, Curva ou Ribbon'; return;} const id = `track-${node.id}-path-points`; const existing = store.project.timeline.tracks.find(track => track.id === id && track.property === 'path.points') as Extract<VisualTrack, {property: 'path.points'}> | undefined; const keyframes = [...(existing?.keyframes ?? []).filter(frame => Math.abs(frame.time - playback.time) > 1e-6), {time: playback.time, value: geometry.points, interpolation: 'linear' as const}].sort((a, b) => a.time - b.time); store.upsertTrack({id, targetId: node.id, property: 'path.points', keyframes}); rebuild();};
 const resize = () => {const {clientWidth: width, clientHeight: height} = viewport; camera.aspect = width / Math.max(height, 1); camera.updateProjectionMatrix(); renderer.setSize(width, height, false);};
 new ResizeObserver(resize).observe(viewport); resize(); syncAuthoringFields(); updateDrawingPlane();
-let previousFrame = performance.now(); renderer.setAnimationLoop(now => {const delta = Math.min(.1, (now - previousFrame) / 1000); previousFrame = now; if (playback.playing) {playback = advancePlayback(playback, delta); syncTimeline();} applyTimelinePreview(); particlePreview.update(currentEmitters(), playback.time, particleOptions()); if ((readoutFrame++ % 6) === 0) refreshParticleReadout(); controls.update(); renderer.render(scene, camera);});
+let previousFrame = performance.now(); renderer.setAnimationLoop(now => {const delta = Math.min(.1, (now - previousFrame) / 1000); previousFrame = now; if (playback.playing) {playback = advancePlayback(playback, delta); syncTimeline();} applyTimelinePreview(); const emitters = currentEmitters(), options = particleOptions(); particlePreview.update(previewBackend === 'quarks' ? [] : emitters, playback.time, options); quarksPreview.update(previewBackend === 'authoring' ? [] : emitters, playback.time, options); if ((readoutFrame++ % 6) === 0) refreshParticleReadout(); controls.update(); renderer.render(scene, camera);});
 rebuild(); $('#status').textContent = 'Projeto local · autosave por revisão';
