@@ -4,7 +4,7 @@ import {C} from './config.js';
 import {vec} from './math.js';
 import {moveSpec} from './moves.js';
 import {altitudeOf} from './altitude.js';
-import {stat} from './status.js';
+import {stat, hasFlag} from './status.js';
 
 export function createFighter(id, attributes, position) {
   return {id, attributes: {...attributes}, position, velocity: vec(), facing: id ? Math.PI : 0, desiredMove: vec(), locomotionVelocity: vec(),
@@ -111,3 +111,19 @@ export const isLockedByRecovery = (/** @type {any} */ f) => (f.knockRecovery ?? 
 export const canAct = f => f.hp > 0 && !f.flight && !isLockedByRecovery(f) && chainOpen(f);
 /** Livre para se mover: sem ação, sem guard stun, no chão e sem recuperação de queda. */
 export const canMove = f => f.hp > 0 && !f.flight && !isLockedByRecovery(f) && !f.action && f.stun <= 1e-8;
+/**
+ * Permissões de ação DERIVADAS do estado (telemetria/diagnóstico; não escreve nada e não substitui os portões do controlador).
+ * canAttack = canAct; canMove = canMove; esquiva/guarda exigem lutador presente e livre (esquiva também sem guard stun); salto espelha o portão do salto normal.
+ */
+export function actionPermissions(/** @type {any} */ f) {
+  const present = f.hp > 0 && !f.absent && !f.flight && !isLockedByRecovery(f);
+  const canAttack = !f.absent && canAct(f);
+  const stunFree = (f.stun ?? 0) <= 1e-8;
+  return {
+    canMove: !f.absent && canMove(f), canAttack,
+    canDodge: canAttack && stunFree,
+    canGuard: present,
+    canJump: present && !f.action && !f.wallSplat && stunFree && !f.guard && !f.tackleCharge && !f.charge && !hasFlag(f, 'stunned') && !hasFlag(f, 'rooted')
+      && !!f.jumpState?.canJump && (f.jumpState?.cooldown ?? 0) <= 0,
+  };
+}
