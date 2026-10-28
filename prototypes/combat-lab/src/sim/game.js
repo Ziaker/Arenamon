@@ -8,7 +8,7 @@ import {createWorld, stepWorld, spawn} from './world.js';
 import {tickStatuses, applyStatus} from './status.js';
 import {getMove, placeRelative, setLoadout} from './moves.js';
 import {stepPhysics} from './physics.js';
-import {resetClashContactSeq} from './combat.js';
+import {resetClashContactSeq, getClashContactSeq, setClashContactSeq} from './combat.js';
 import {createMapState, initMap, stepMap, stepShield, generateFighterSpawnPositions} from './map.js';
 import {attachPassives, tickPassives, passiveOnEvents, passiveOnKO, setPassiveLoadout as applyPassiveLoadout} from './passive-engine.js';
 import {vec} from './math.js';
@@ -180,7 +180,7 @@ export class Game {
   }
   /** Estado completo e independente (structuredClone preserva os Sets de acertos). */
   save() {
-    return structuredClone({fighters: this.fighters, tick: this.tick, events: this.events, winner: this.winner, hitstop: this.hitstop, phase: this.phase, eventSeq: this.eventSeq, world: this.world ?? createWorld(), mapState: this.mapState, loadouts: this.loadouts,
+    return structuredClone({fighters: this.fighters, tick: this.tick, events: this.events, winner: this.winner, hitstop: this.hitstop, phase: this.phase, eventSeq: this.eventSeq, clashContactSeq: getClashContactSeq(), world: this.world ?? createWorld(), mapState: this.mapState, loadouts: this.loadouts,
       passiveLoadouts: this.passiveLoadouts, passiveIdentity: this.passiveIdentity,
       combatWindows: this.combatWindows, brain: this.brain.save(), playerBrain: this.playerBrain.save(), lastStepEvents: this.lastStepEvents});
   }
@@ -189,7 +189,7 @@ export class Game {
     this.prevPose = null;
     this.fighters = s.fighters;this.tick = s.tick;this.events = s.events;this.winner = s.winner;this.hitstop = s.hitstop;this.phase = s.phase;
     this.brain.load(s.brain);this.playerBrain.load(s.playerBrain);this.lastStepEvents = s.lastStepEvents || [];
-    this.eventSeq = s.eventSeq ?? this.eventSeq;this.passiveProcessed.clear();
+    this.eventSeq = s.eventSeq ?? this.eventSeq;this.passiveProcessed.clear();if (s.clashContactSeq != null) setClashContactSeq(s.clashContactSeq);
     this.world = s.world ?? createWorld();
     if (s.mapState) {
       this.mapState = s.mapState;

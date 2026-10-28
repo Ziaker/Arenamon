@@ -11,6 +11,10 @@ import { adaptSimEvent, classifyVisualType } from '../src/view/vfx/contract.js';
 import { Character } from '../src/view/characters.js';
 import { Particles } from '../../sand-stone-lab/src/particles.js';
 import { onEvent as onSandWaveEvent } from '../src/sim/moves/sand-wave/sand-wave.vfx.js';
+import { handlesFighter as handlesBulletPunch } from '../src/sim/moves/bullet-punch/bullet-punch.vfx.js';
+import { Game } from '../src/sim/game.js';
+import { clash } from '../src/sim/combat.js';
+import { C } from '../src/sim/config.js';
 import { VfxSystem } from '../src/view/vfx.js';
 
 const baseAttrs = { hp: 100, attack: 10, defense: 10, speed: 10 };
@@ -297,4 +301,64 @@ test('VFX Sand Wave: Coordenadas mundiais são convertidas canonicamente para o 
   assert.ok(Math.abs(worldPos.x - 7) < 1e-4, `X de mundo (${worldPos.x}) deve ser 7`);
   assert.ok(Math.abs(worldPos.y - 0.5) < 1e-4, `Y de mundo (${worldPos.y}) deve ser 0.5`);
   assert.ok(Math.abs(worldPos.z - 10) < 1e-4, `Z de mundo (${worldPos.z}) deve ser 10`);
+});
+
+
+test('DET-01: Determinismo de contactId em Clash durante Game.save() e Game.load()', () => {
+  const game = new Game();
+  game.reset();
+
+  const f0 = game.fighters[0];
+  const f1 = game.fighters[1];
+
+  // 1º Clash gera contactId = 1
+  const ev1 = clash(f0, f1, { x: 0, y: 0, z: 1 });
+  assert.equal(ev1[0].contactId, 1);
+  assert.equal(ev1[1].contactId, 1);
+
+  // 2º Clash gera contactId = 2
+  const ev2 = clash(f0, f1, { x: 0, y: 0, z: 1 });
+  assert.equal(ev2[0].contactId, 2);
+
+  // Snapshot do jogo gravado no momento de contactId = 2
+  const snapshot = game.save();
+
+  // Avança na simulação: 3º Clash gera contactId = 3
+  const ev3 = clash(f0, f1, { x: 0, y: 0, z: 1 });
+  assert.equal(ev3[0].contactId, 3);
+
+  // Restaura o snapshot anterior
+  game.load(snapshot);
+
+  // O próximo clash após load DEVE reproduzir deterministicamente contactId = 3, não avançar para 4!
+  const evPostLoad = clash(f0, f1, { x: 0, y: 0, z: 1 });
+  assert.equal(evPostLoad[0].contactId, 3, 'Save/Load deve restaurar a sequência exata de clashContactSeq');
+  assert.equal(evPostLoad[1].contactId, 3);
+});
+
+test('VFX: Bullet Punch handlesFighter respeita atelierVfx = 0 e enableAtelierVfx = 0 de forma consistente', () => {
+  C.world ??= {};
+  C.world.bulletPunch ??= {};
+
+  const fighter = {
+    action: { move: 'bullet-punch', kind: 'action' }
+  };
+
+  // 1. Padrão: atelierVfx = 1
+  C.world.bulletPunch.atelierVfx = 1;
+  delete C.world.bulletPunch.enableAtelierVfx;
+  assert.equal(handlesBulletPunch(fighter), true, 'Com atelierVfx=1 o rush do Bullet Punch deve estar ativo');
+
+  // 2. Toggle via slider atelierVfx = 0 desativa o rush
+  C.world.bulletPunch.atelierVfx = 0;
+  assert.equal(handlesBulletPunch(fighter), false, 'Com atelierVfx=0 o rush do Bullet Punch DEVE ser desativado');
+
+  // 3. Toggle alternativo enableAtelierVfx = 0 também desativa
+  C.world.bulletPunch.atelierVfx = 1;
+  C.world.bulletPunch.enableAtelierVfx = 0;
+  assert.equal(handlesBulletPunch(fighter), false, 'Com enableAtelierVfx=0 o rush do Bullet Punch DEVE ser desativado');
+
+  // Restaura padrão
+  C.world.bulletPunch.atelierVfx = 1;
+  delete C.world.bulletPunch.enableAtelierVfx;
 });

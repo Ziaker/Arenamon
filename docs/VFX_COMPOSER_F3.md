@@ -84,4 +84,4 @@ Evidências versionáveis: `prototypes/vfx-composer/evidence/f3/composer-f3.png`
 
 ## Próximo passo
 
-F3.2 — adaptador declarativo para three.quarks com o mesmo contrato, mantendo a simulação determinística como verdade de autoria e comparando amostra a amostra contra o runtime. Depois: rastros/feixes, impacto, decals e subefeitos, até o gate completo da F3.
+F3.2 (plano em `docs/superpowers/plans/2026-10-27-vfx-composer-f3-2.md`) — adaptador declarativo para three.quarks com o mesmo contrato, mantendo a simulação determinística como verdade de autoria e comparando amostra a amostra contra o runtime. Depois: rastros/feixes, impacto, decals e subefeitos, até o gate completo da F3.

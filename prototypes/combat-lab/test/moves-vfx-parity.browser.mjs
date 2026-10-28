@@ -13,7 +13,7 @@
 
 import {chromium} from '@playwright/test';
 import {pathToFileURL, fileURLToPath} from 'node:url';
-import {mkdirSync, writeFileSync, readFileSync, existsSync} from 'node:fs';
+import {mkdirSync, writeFileSync, readFileSync, existsSync, copyFileSync} from 'node:fs';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const out = root + 'evidence/moves-vfx-parity/';
@@ -43,7 +43,23 @@ function check(label, ok, detail = '') {
  * @param {string} diffOutputPath
  * @returns {Promise<{similarity: number, diffCount: number, ok: boolean, error?: string, totalPixels?: number}>}
  */
-async function compareImages(page, baselinePath, currentPath, diffOutputPath) {
+const UPDATE_BASELINES = process.argv.includes('--update-baselines') || process.env.UPDATE_BASELINES === '1';
+
+/**
+ * Compara duas imagens PNG pixel a pixel no contexto da página e gera imagem composta lado a lado.
+ * Suporta região de interesse (ROI) para diagnosticar divergências entre o efeito visual e o grid da arena.
+ * REJEITA explicitamente se o baseline ou a imagem atual não existirem (sem falsos positivos).
+ * @param {any} page
+ * @param {string} baselinePath
+ * @param {string} currentPath
+ * @param {string} diffOutputPath
+ * @param {{minX: number, maxX: number, minY: number, maxY: number} | null} [roi]
+ * @returns {Promise<{similarity: number, roiSimilarity?: number, outSimilarity?: number, diffCount: number, ok: boolean, error?: string, totalPixels?: number, roi?: any}>}
+ */
+async function compareImages(page, baselinePath, currentPath, diffOutputPath, roi = null) {
+  if (UPDATE_BASELINES && existsSync(currentPath)) {
+    copyFileSync(currentPath, baselinePath);
+  }
   if (!existsSync(baselinePath)) {
     return {
       similarity: 0,
@@ -62,7 +78,7 @@ async function compareImages(page, baselinePath, currentPath, diffOutputPath) {
   }
   const b64Base = readFileSync(baselinePath).toString('base64');
   const b64Curr = readFileSync(currentPath).toString('base64');
-  const res = await page.evaluate(async ([b64Base, b64Curr]) => {
+  const res = await page.evaluate(async ([b64Base, b64Curr, roi]) => {
     /** @type {(b64: string) => Promise<HTMLImageElement>} */
     const loadImg = b64 => new Promise((resolve, reject) => {
       const img = new Image();

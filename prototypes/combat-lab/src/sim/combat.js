@@ -63,6 +63,8 @@ export function mutualTackle(a, b, normal, relative) {
 }
 let clashContactSeq = 0;
 export const nextClashContactId = () => ++clashContactSeq;
+export const getClashContactSeq = () => clashContactSeq;
+export const setClashContactSeq = (val) => { clashContactSeq = Number.isFinite(val) ? val : 0; };
 export const resetClashContactSeq = () => { clashContactSeq = 0; };
 
 /** X contra X: os dois recebem dano e são lançados (ou, com enableClashPush, empurrados no chão) em direções opostas (ignora invulnerabilidade). */
@@ -77,7 +79,7 @@ export function clash(a, b, normal) {
   const push = !!C.extras.toggles.enableClashPush;a.lastAttacker = b.id;b.lastAttacker = a.id;
   if (push) {pushAway(a, scale(normal, -1), R.clashPushDistance, R.clashPushDuration);pushAway(b, normal, R.clashPushDistance, R.clashPushDuration);}
   else {launch(a, scale(normal, -1), R.clashHorizontal, R.clashUp);launch(b, normal, R.clashHorizontal, R.clashUp);}
-  const contactId = ++clashContactSeq;
+  const contactId = nextClashContactId();
   return [{attacker: a.id, target: b.id, result: 'clash', contactId, damage: resB.hpDamage, shieldAbsorbed: resB.absorbedByShield, normal: {...normal}, push, contact: 'clash', ...(resB.sturdy ? {sturdy: true} : {})},
     {attacker: b.id, target: a.id, result: 'clash', contactId, damage: resA.hpDamage, shieldAbsorbed: resA.absorbedByShield, normal: scale(normal, -1), push, contact: 'clash', ...(resA.sturdy ? {sturdy: true} : {})}];
 }
