@@ -109,13 +109,20 @@ viewportRegion.querySelector('.view-tools')?.insertAdjacentHTML('beforeend', `<b
 appRoot.insertAdjacentHTML('beforeend', `<footer id="authoring-timeline"><div class="timeline-placeholder"><strong>Timeline</strong><span>24 / 30 / 60 FPS</span></div></footer><div id="composer-status" role="status" aria-live="polite">Projeto pronto · Autoral</div>`);
 mountWorkspaceLayout(appRoot, loadUiPreferences(typeof localStorage === 'undefined' ? undefined : localStorage), typeof localStorage === 'undefined' ? undefined : localStorage);
 const click = (selector: string) => (): void => document.querySelector<HTMLButtonElement>(selector)?.click();
-mountCommandPalette(new CommandRegistry([
+const commandRegistry = new CommandRegistry([
   {id: 'frame', label: 'Enquadrar seleção', icon: 'frame', shortcut: 'F', isAvailable: () => true, execute: click('#frame-all')},
   {id: 'keyframe', label: 'Adicionar keyframe', icon: 'keyframe', isAvailable: () => true, execute: click('#add-keyframe')},
   {id: 'duplicate', label: 'Duplicar objeto', icon: 'create', shortcut: 'Ctrl+D', isAvailable: () => true, execute: click('#duplicate-node')},
   {id: 'draw', label: 'Desenhar stroke', icon: 'stroke', isAvailable: () => true, execute: click('#draw-stroke')},
   {id: 'emitter', label: 'Adicionar emissor', icon: 'emitter', isAvailable: () => true, execute: click('#add-emitter')},
-]), () => ({selectedId: document.querySelector('#selection')?.textContent ?? null}));
+  {id: 'create-sphere', label: 'Criar esfera', icon: 'create', isAvailable: () => true, execute: click('#add-sphere')},
+  {id: 'radial-explode', label: 'Explosão radial', icon: 'movement', isAvailable: () => true, execute: () => {document.querySelector<HTMLButtonElement>('[data-workspace="animation"]')?.click(); document.querySelector<HTMLButtonElement>('#radial-explode')?.focus();}},
+  {id: 'backend', label: 'Comparar backends', icon: 'output', isAvailable: () => true, execute: () => {document.querySelector<HTMLButtonElement>('[data-workspace="particles"]')?.click(); document.querySelector<HTMLSelectElement>('#particle-preview-backend')?.focus();}},
+  {id: 'material', label: 'Abrir materiais', icon: 'appearance', isAvailable: () => true, execute: () => document.querySelector<HTMLButtonElement>('[data-workspace="materials"]')?.click()},
+  {id: 'texture', label: 'Abrir texturas', icon: 'appearance', isAvailable: () => true, execute: () => document.querySelector<HTMLButtonElement>('[data-workspace="textures"]')?.click()},
+  {id: 'ribbon', label: 'Criar ribbon', icon: 'ribbon', isAvailable: () => true, execute: click('#add-ribbon')},
+]);
+mountCommandPalette(commandRegistry, () => ({selectedId: document.querySelector('#selection')?.textContent ?? null}));
 enhanceInspector($('.right'));
 
 document.querySelector('.brand small')!.textContent = 'F3.2 · autoria determinística + preview three.quarks';
@@ -182,6 +189,7 @@ const PROJECT_ID = 'composer-local';
 let recovered = initialProject();
 let autosave: AutosaveManager | null = null;
 let recoveryNotice = '';
+let autosaveState: 'saved' | 'pending' | 'error' = 'pending';
 try {
   autosave = new AutosaveManager(localStorage, PROJECT_ID);
   try {
@@ -195,7 +203,7 @@ try {
   }
 } catch { /* file:// pode negar storage; o editor continua em memória */ }
 const store = new DocumentStore(recovered);
-mountAcademy($('#academy-vfx'), new AcademyController({lessons: ACADEMY_LESSONS, storage: typeof localStorage === 'undefined' ? undefined : localStorage, getProject: () => store.project, autosaveSlot: `arenamon.vfx.${store.project.projectId}`}));
+mountAcademy($('#academy-vfx'), new AcademyController({lessons: ACADEMY_LESSONS, storage: typeof localStorage === 'undefined' ? undefined : localStorage, getProject: () => store.project, autosaveSlot: `arenamon.vfx.${store.project.projectId}`}), commandId => commandRegistry.commands.find(command => command.id === commandId)?.execute({selectedId}));
 const timelineView = new TimelineView($('#authoring-timeline'), time => {
   const scrub = document.querySelector<HTMLInputElement>('#timeline-scrub');
   if (scrub) {scrub.value = String(time); scrub.dispatchEvent(new Event('input'));}
@@ -359,7 +367,7 @@ function rebuild(): void {
   syncInspector();
   syncTracks();
   syncParticlePanel();
-  try { autosave?.save(store.project); } catch (error) { $('#status').textContent = `Autosave: ${error instanceof Error ? error.message : 'falhou'}`; }
+  try {if (autosave) {autosave.save(store.project); autosaveState = 'saved';}} catch (error) {autosaveState = 'error'; $('#status').textContent = `Autosave: ${error instanceof Error ? error.message : 'falhou'}`;}
   expose();
 }
 function selected(): VisualNode | undefined { return store.project.nodes.find(node => node.id === selectedId); }
@@ -853,7 +861,7 @@ function updateDraftFromForm(): void {
 function refreshParticleReadout(): void {
   const emitters = currentEmitters();
   const budget = evaluateParticleBudget(emitters, qualityProfile, store.project.accessibility);
-  statusSurface.update({budget, recoveryNotice, backend: previewBackend, autosave: autosave ? 'saved' : 'pending'});
+  statusSurface.update({budget, recoveryNotice, backend: previewBackend, autosave: autosaveState});
   const live = particlePreview.report;
   const quarks = quarksPreview.report;
   const plural = budget.cost.particles === 1 ? 'partícula' : 'partículas';

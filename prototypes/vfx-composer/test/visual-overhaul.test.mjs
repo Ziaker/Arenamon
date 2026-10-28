@@ -134,6 +134,8 @@ test('academy sessions stay outside the project and resume only exact matches', 
   const resumed = new api.AcademyController({lessons: [lesson], storage, getProject: () => project, autosaveSlot: 'slot-p1'});
   assert.equal(resumed.resume().status, 'resumed');
   assert.equal(resumed.state.session.stepId, 'finish');
+  resumed.next();
+  assert.equal(resumed.state.completed, true);
   const stale = new api.AcademyController({lessons: [lesson], storage, getProject: () => ({...project, projectId: 'other'}), autosaveSlot: 'slot-other'});
   assert.equal(stale.resume().status, 'stale');
   assert.deepEqual(stale.recoveryChoices(), ['restart', 'current-project']);

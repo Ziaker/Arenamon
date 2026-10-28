@@ -26,6 +26,11 @@ assert.equal(await page.locator('#command-palette[hidden]').count(), 1, 'Escape 
 assert.equal(await page.locator('#authoring-timeline .timeline-head').count(), 1, 'timeline visual montada');
 assert.equal(await page.locator('#composer-status .status-budget').count(), 1, 'orçamento visual montado');
 assert.match(await page.locator('#composer-status').getAttribute('aria-label'), /partículas/i, 'estado tem equivalente acessível');
+await page.locator('#load-explosion').click();
+const laneBefore = await page.locator('.timeline-lane').first().evaluate(element => element.getBoundingClientRect().width);
+await page.locator('[data-timeline-zoom]').fill('4');
+const laneAfter = await page.locator('.timeline-lane').first().evaluate(element => element.getBoundingClientRect().width);
+assert.ok(laneAfter > laneBefore * 2, 'zoom temporal amplia a régua e as trilhas');
 for (const width of [1800, 1440, 980]) {
   await page.setViewportSize({width, height: 900});
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth === document.documentElement.clientWidth), true, `sem overflow global em ${width}px`);
