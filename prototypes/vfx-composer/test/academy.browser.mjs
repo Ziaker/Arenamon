@@ -8,8 +8,11 @@ await page.goto(`file:///${fileURLToPath(new URL('../dist/arenamon-vfx-composer.
 assert.equal(await page.locator('#academy-vfx').getAttribute('open'), null, 'Academia fechada por padrão');
 await page.locator('#academy-vfx summary').click();
 assert.equal(await page.locator('.academy-card').count(), 3, 'três aulas no grupo próprio');
+assert.deepEqual(await page.locator('.academy-card strong').allTextContents(), ['Esfera mágica explosiva', 'Corte de energia', 'Círculo arcano']);
 await page.locator('.academy-card').first().click();
 assert.equal(await page.locator('#academy-drawer:not([hidden])').count(), 1, 'guia abre em drawer temporário');
+assert.match(await page.locator('#academy-drawer header span').textContent(), /1\/7/, 'esfera oferece sete etapas reais');
+assert.match(await page.locator('#academy-drawer p').textContent(), /esfera/i, 'primeira etapa ensina o componente real');
 await page.locator('[data-academy-minimize]').click();
 assert.equal(await page.locator('#academy-resume:not([hidden])').count(), 1, 'guia minimiza em chip');
 await page.locator('#academy-resume').click();

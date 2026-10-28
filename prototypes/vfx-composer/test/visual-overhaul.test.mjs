@@ -138,3 +138,23 @@ test('academy sessions stay outside the project and resume only exact matches', 
   assert.equal(stale.resume().status, 'stale');
   assert.deepEqual(stale.recoveryChoices(), ['restart', 'current-project']);
 });
+
+test('three lessons use real composer commands and read-only project validators', () => {
+  const lessons = [api.MAGIC_SPHERE_LESSON, api.ENERGY_SLASH_LESSON, api.ARCANE_CIRCLE_LESSON];
+  assert.deepEqual(lessons.map(lesson => lesson.id), ['magic-sphere', 'energy-slash', 'arcane-circle']);
+  const allowed = new Set(['create-sphere', 'material', 'keyframe', 'radial-explode', 'emitter', 'backend', 'draw', 'ribbon', 'texture', 'frame']);
+  const project = {schema: 'arenamon.vfx-project', schemaVersion: 1, projectId: 'lesson-test', revision: 1, effectId: 'test', phases: {}, nodes: [], assets: [], subeffects: [], timeline: {fps: 30, duration: 2, tracks: []}, qualityProfiles: {}, accessibility: {noFlash: false, reduceMotion: false}, pinnedComponents: [], particles: [], materials: []};
+  for (const lesson of lessons) {
+    assert.ok(lesson.steps.length >= 6, `${lesson.id} precisa ensinar um fluxo completo`);
+    assert.equal(new Set(lesson.steps.map(step => step.id)).size, lesson.steps.length);
+    for (const step of lesson.steps) {
+      assert.ok(!step.commandId || allowed.has(step.commandId), `comando real em ${lesson.id}/${step.id}`);
+      assert.doesNotMatch(`${step.instruction} ${step.suggested ?? ''}`, /https?:\/\/|dano|hit points|combate/i);
+      const before = JSON.stringify(project);
+      const result = step.validate(project);
+      assert.equal(typeof result.ok, 'boolean');
+      assert.equal(JSON.stringify(project), before, 'validador deve ser somente leitura');
+    }
+  }
+  assert.deepEqual(api.MAGIC_SPHERE_LESSON.steps.map(step => step.id), ['core', 'launch', 'deform', 'contact', 'explosion', 'shot', 'review']);
+});

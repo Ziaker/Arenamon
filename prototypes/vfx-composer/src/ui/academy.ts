@@ -1,4 +1,7 @@
 import type {VfxProject} from '../core/types';
+import {MAGIC_SPHERE_LESSON} from './tutorials/magic-sphere';
+import {ENERGY_SLASH_LESSON} from './tutorials/energy-slash';
+import {ARCANE_CIRCLE_LESSON} from './tutorials/arcane-circle';
 import type {UiPreferenceStorage, TutorialSessionRef} from './preferences';
 
 export interface StepValidation {ok: boolean; message: string; focusCommandId?: string}
@@ -8,11 +11,7 @@ interface AcademyOptions {lessons: readonly TutorialLesson[]; storage?: UiPrefer
 interface AcademyState {open: boolean; minimized: boolean; session: TutorialSessionRef | null}
 
 const SESSION_KEY = 'arenamon.vfx.academy.v1';
-export const ACADEMY_PLACEHOLDER_LESSONS: readonly TutorialLesson[] = [
-  {id: 'magic-sphere', title: 'Esfera mágica explosiva', summary: 'Contato, deformação, explosão e disparo', icon: '◉', steps: [{id: 'prepare', title: 'Preparar projeto', instruction: 'Crie ou carregue um projeto para começar.', validate: project => ({ok: Boolean(project.projectId), message: 'Projeto pronto para a aula.'})}]},
-  {id: 'energy-slash', title: 'Corte de energia', summary: 'Traço, ribbon, brilho e faíscas', icon: '╱', steps: [{id: 'prepare', title: 'Preparar projeto', instruction: 'Abra o espaço de desenho.', validate: project => ({ok: Boolean(project.projectId), message: 'Projeto pronto para a aula.'})}]},
-  {id: 'arcane-circle', title: 'Círculo arcano', summary: 'Carga, emissão e erupção ritual', icon: '✣', steps: [{id: 'prepare', title: 'Preparar projeto', instruction: 'Abra o espaço de materiais.', validate: project => ({ok: Boolean(project.projectId), message: 'Projeto pronto para a aula.'})}]},
-];
+export const ACADEMY_LESSONS: readonly TutorialLesson[] = [MAGIC_SPHERE_LESSON, ENERGY_SLASH_LESSON, ARCANE_CIRCLE_LESSON];
 export class AcademyController {
   readonly lessons: readonly TutorialLesson[];
   private current: AcademyState = {open: false, minimized: false, session: null};

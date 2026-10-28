@@ -32,3 +32,6 @@ export * from './ui/inspector';
 export * from './ui/timeline-view';
 export * from './ui/status';
 export * from './ui/academy';
+export * from './ui/tutorials/magic-sphere';
+export * from './ui/tutorials/energy-slash';
+export * from './ui/tutorials/arcane-circle';

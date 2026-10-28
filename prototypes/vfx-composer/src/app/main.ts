@@ -21,7 +21,7 @@ import {CommandRegistry, mountCommandPalette} from '../ui/commands';
 import {enhanceInspector} from '../ui/inspector';
 import {TimelineView} from '../ui/timeline-view';
 import {StatusSurface} from '../ui/status';
-import {ACADEMY_PLACEHOLDER_LESSONS, AcademyController, mountAcademy} from '../ui/academy';
+import {ACADEMY_LESSONS, AcademyController, mountAcademy} from '../ui/academy';
 
 const phase = (duration: number) => ({enabled: true, duration, tracks: []});
 const initialProject = (): VfxProject => ({
@@ -194,7 +194,7 @@ try {
   }
 } catch { /* file:// pode negar storage; o editor continua em memória */ }
 const store = new DocumentStore(recovered);
-mountAcademy($('#academy-vfx'), new AcademyController({lessons: ACADEMY_PLACEHOLDER_LESSONS, storage: typeof localStorage === 'undefined' ? undefined : localStorage, getProject: () => store.project, autosaveSlot: `arenamon.vfx.${store.project.projectId}`}));
+mountAcademy($('#academy-vfx'), new AcademyController({lessons: ACADEMY_LESSONS, storage: typeof localStorage === 'undefined' ? undefined : localStorage, getProject: () => store.project, autosaveSlot: `arenamon.vfx.${store.project.projectId}`}));
 const timelineView = new TimelineView($('#authoring-timeline'), time => {
   const scrub = document.querySelector<HTMLInputElement>('#timeline-scrub');
   if (scrub) {scrub.value = String(time); scrub.dispatchEvent(new Event('input'));}

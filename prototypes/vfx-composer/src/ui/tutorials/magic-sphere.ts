@@ -1,0 +1,14 @@
+import type {TutorialLesson} from '../academy';
+
+export const MAGIC_SPHERE_LESSON: TutorialLesson = {
+  id: 'magic-sphere', title: 'Esfera mágica explosiva', summary: 'Contato, deformação, explosão e disparo', icon: '◉',
+  steps: [
+    {id: 'core', title: 'Construa o núcleo', instruction: 'Crie uma esfera e dê a ela um material emissivo legível.', commandId: 'create-sphere', suggested: 'Raio sugerido: 0,5 m', validate: project => ({ok: project.nodes.some(node => node.geometry?.kind === 'sphere'), message: 'A cena precisa de uma esfera.', focusCommandId: 'create-sphere'})},
+    {id: 'launch', title: 'Desenhe o disparo', instruction: 'Anime a posição para a esfera atravessar o espaço até o alvo.', commandId: 'keyframe', suggested: 'Duração sugerida: 0,8 s', validate: project => ({ok: project.timeline.tracks.some(track => track.property.startsWith('position.') && track.keyframes.length >= 2), message: 'Adicione ao menos dois keyframes de posição.', focusCommandId: 'keyframe'})},
+    {id: 'deform', title: 'Direcione a deformação', instruction: 'Use escala para alongar a esfera no sentido do movimento.', commandId: 'keyframe', suggested: 'Escala longitudinal: 1,35×', validate: project => ({ok: project.timeline.tracks.some(track => track.property === 'scale'), message: 'Crie uma trilha de escala para o alongamento.', focusCommandId: 'keyframe'})},
+    {id: 'contact', title: 'Marque o contato', instruction: 'Comprima, ilumine e segure por um instante no ponto de contato.', commandId: 'keyframe', suggested: 'Pausa visual: 0,06 s', validate: project => ({ok: project.timeline.tracks.some(track => track.property === 'opacity' && track.keyframes.length >= 2), message: 'Use opacidade para marcar o flash de contato.', focusCommandId: 'keyframe'})},
+    {id: 'explosion', title: 'Abra a explosão', instruction: 'Espalhe fragmentos radialmente a partir do contato.', commandId: 'radial-explode', suggested: 'Raio sugerido: 4 m em 0,9 s', validate: project => ({ok: project.timeline.tracks.filter(track => track.property.startsWith('position.')).length >= 3, message: 'A explosão precisa de movimento radial em múltiplos eixos.', focusCommandId: 'radial-explode'})},
+    {id: 'shot', title: 'Solte partículas', instruction: 'Adicione um burst para faíscas e dissipação do núcleo.', commandId: 'emitter', suggested: 'Burst sugerido: 60 partículas', validate: project => ({ok: (project.particles?.length ?? 0) > 0, message: 'Adicione ao menos um emissor de partículas.', focusCommandId: 'emitter'})},
+    {id: 'review', title: 'Revise a leitura', instruction: 'Toque o efeito inteiro e confira orçamento, backend e silhueta.', commandId: 'backend', validate: project => ({ok: project.nodes.length > 0 && project.timeline.tracks.length > 0 && (project.particles?.length ?? 0) > 0, message: 'Núcleo, animação e partículas devem estar presentes.'})},
+  ],
+};
