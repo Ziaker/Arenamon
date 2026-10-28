@@ -62,4 +62,3 @@ preview.dispose();
 assert.equal(scene.children.length, baselineChildren, 'dispose deve remover todo recurso de cena pertencente ao adaptador');
 assert.deepEqual(preview.report, {backend: 'quarks', systems: 0, active: 0, drawCalls: 0, rebuilds: 0, rejected: 0, lastAdvanceSteps: 0, approximations: []});
 console.log('F3.2 Quarks adapter lifecycle: OK');
-

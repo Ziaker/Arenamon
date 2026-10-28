@@ -45,4 +45,3 @@ Resultados completos estão em `prototypes/vfx-composer/evidence/F3_2_VALIDATION
 - `shader-programming` e `threejs-scene-setup`: integração de materiais/blending/depth e um único renderer da cena.
 - `game-feel`: curvas de tamanho/cor/alpha e comparação visual A/B.
 - `writing-plans`, `test-driven-development`, `systematic-debugging` e `executing-plans`: plano persistido, RED→GREEN e correção da fronteira de vetores Three/Quarks pela causa raiz.
-

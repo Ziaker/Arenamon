@@ -1,6 +1,6 @@
 # Evidência de validação — VFX Composer F3.2
 
-Data: 27/10/2026  
+Data: 27/10/2026
 Escopo: adaptador declarativo `three.quarks@0.17.1`, preview A/B e ciclo de vida.
 
 ## Critérios verificados
@@ -25,4 +25,3 @@ Escopo: adaptador declarativo `three.quarks@0.17.1`, preview A/B e ciclo de vida
 - O teste mede contagem de recursos e comportamento, não tempo de GPU ou FPS.
 - A comparação A/B é visual/contratual; não afirma igualdade das amostras aleatórias internas do Quarks.
 - O teste é focal no Edge headless e offline; QA manual em outros navegadores não foi executado.
-

@@ -8,7 +8,6 @@ interface Entry {
   material: THREE.Material;
   maxParticles: number;
 }
-
 export interface QuarksPreviewReport {
   backend: 'quarks';
   systems: number;

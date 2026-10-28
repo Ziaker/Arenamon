@@ -38,4 +38,3 @@ O Quarks é um simulador acumulativo e seu gerador aleatório não é usado como
 - Publicação no jogo, compilador runtime e integração de eventos (F4).
 - Trails/beams, decals, subefeitos, luzes e pós-processamento (incrementos F3 posteriores).
 - Paridade numérica de cada posição aleatória do Quarks com a simulação autoral.
-

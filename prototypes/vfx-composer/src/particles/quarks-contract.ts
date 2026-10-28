@@ -33,7 +33,6 @@ export interface QuarksRecipe {
   maxParticles: number;
   approximations: string[];
 }
-
 /** Converte o contrato persistido em dados puros; nenhuma instância Quarks cruza esta fronteira. */
 export function toQuarksRecipe(value: unknown, options: SimulationOptions = {}): QuarksRecipe {
   const issues = validateParticleEmitter(value);

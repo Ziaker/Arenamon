@@ -41,4 +41,3 @@ assert.equal(api.toQuarksRecipe({...emitter, forces: {...emitter.forces, turbule
 assert.throws(() => api.toQuarksRecipe({...emitter, maxParticles: 0}), /Emissor Quarks inválido/);
 assert.throws(() => api.toQuarksRecipe(null), /Emissor Quarks inválido/);
 console.log('F3.2 Quarks contract: OK');
-

@@ -55,4 +55,3 @@ try {
   assert.equal(external.length, 0, external.join('\n'));
   console.log('✓ F3.2 browser: Quarks real, A/B, preferência não persistida e cleanup offline.');
 } finally {await browser.close();}
-

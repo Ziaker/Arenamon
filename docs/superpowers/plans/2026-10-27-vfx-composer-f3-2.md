@@ -92,4 +92,3 @@
 - [ ] Run typecheck, F0–F3 unit tests, targeted F3 browser tests and `npm run build:vfx-composer`.
 - [ ] Review diff/status, confirm unrelated combat changes remain untouched, and record exact commands/results in evidence.
 - [ ] Commit only F3.2 files, push, fetch and compare local/remote hashes.
-
