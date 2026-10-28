@@ -9,7 +9,7 @@
 //   • Cada estado aceita várias animações (variantes). Na entrada, uma variante é sorteada com semente
 //     determinística (lutador, estado, passo da simulação): o replay repete a mesma escolha.
 //   • Transições usam camadas com fade; ações (X/C) têm fade próprio, curto, para prevalecerem visualmente.
-//   • Locomoção tem histerese (parado/andar/correr/laterais) contra oscilações de poucos quadros.
+//   • Locomoção tem histerese (parado/andar/sprint/laterais) contra oscilações de poucos quadros.
 //   • A posição vem só da física: o deslocamento horizontal da raiz do GLB é descartado (sem root motion).
 //   • O tempo das animações com duração definida (tackle, esquiva, recuo, guard stun, voo, aterrissagem) vem do
 //     estado da simulação (o clipe é esticado para a duração da ação), inclusive no replay.
@@ -27,18 +27,17 @@ import {sniffFormat} from './validate.js';
 
 /** Ordem de preferência por estado (a primeira ação com animação associada é usada). */
 export const STATE_ACTIONS = {
-  neutral: ['idle'], turn: ['turn', 'idle'], walk: ['walk', 'run', 'idle'], run: ['run', 'walk', 'idle'],
+  neutral: ['idle'], turn: ['turn', 'idle'], walk: ['walk', 'idle'],
   walk_back: ['walk_back', 'walk', 'idle'], walk_left: ['walk_left', 'walk', 'idle'], walk_right: ['walk_right', 'walk', 'idle'],
-  run_back: ['run_back', 'walk_back', 'run', 'idle'], run_left: ['run_left', 'walk_left', 'run', 'idle'], run_right: ['run_right', 'walk_right', 'run', 'idle'],
-  sprint: ['sprint', 'run', 'walk', 'idle'], sprint_back: ['sprint_back', 'run_back', 'walk_back', 'sprint', 'idle'], sprint_left: ['sprint_left', 'run_left', 'walk_left', 'sprint', 'idle'], sprint_right: ['sprint_right', 'run_right', 'walk_right', 'sprint', 'idle'],
+  sprint: ['sprint', 'walk', 'idle'], sprint_back: ['sprint_back', 'walk_back', 'sprint', 'idle'], sprint_left: ['sprint_left', 'walk_left', 'sprint', 'idle'], sprint_right: ['sprint_right', 'walk_right', 'sprint', 'idle'],
   walk_stop: ['walk_stop'], sprint_stop: ['sprint_stop', 'walk_stop'],
   guard_enter: ['block_start', 'block', 'idle'], guard: ['block', 'block_start', 'idle'], guard_exit: ['block_end', 'idle'], guard_hit: ['guard_impact', 'blocked', 'block', 'idle'],
-  guardStun: ['guard_impact', 'blocked', 'block', 'idle'], tackle: ['tackle', 'run', 'idle'],
+  guardStun: ['guard_impact', 'blocked', 'block', 'idle'], tackle: ['tackle', 'idle'],
   // Tackle carregado: sem clipe próprio cada nível cai para o clipe do tackle (PL3 → PL2 → tackle); a carga sem clipe usa a pose parada.
   wallSplat: ['wall_splat', 'hit', 'knockback', 'idle'],
   ledge_hang: ['ledge_hang', 'wall_splat', 'fall', 'idle'], ledge_climb: ['ledge_climb', 'jump', 'vault', 'idle'],
-  meteor_prep: ['meteor_prep', 'knockback', 'fall', 'idle'], meteor_dive: ['meteor_dive', 'tackle', 'fall', 'run', 'idle'], meteor_ground: ['meteor_ground', 'tackle', 'fall', 'idle'],
-  tackle_charge: ['tackle_charge', 'idle'], tackle_pl2: ['tackle_pl2', 'tackle', 'run', 'idle'], tackle_pl3: ['tackle_pl3', 'tackle_pl2', 'tackle', 'run', 'idle'], brake: ['brake', 'sprint_stop', 'walk_stop', 'idle'],
+  meteor_prep: ['meteor_prep', 'knockback', 'fall', 'idle'], meteor_dive: ['meteor_dive', 'tackle', 'fall', 'idle'], meteor_ground: ['meteor_ground', 'tackle', 'fall', 'idle'],
+  tackle_charge: ['tackle_charge', 'idle'], tackle_pl2: ['tackle_pl2', 'tackle', 'idle'], tackle_pl3: ['tackle_pl3', 'tackle_pl2', 'tackle', 'idle'], brake: ['brake', 'sprint_stop', 'walk_stop', 'idle'],
   dodge_forward: ['dodge_forward', 'dodge_left', 'jump', 'idle'], dodge_back: ['dodge_back', 'dodge_forward', 'idle'], dodge_left: ['dodge_left', 'dodge_forward', 'idle'],
   dodge_right: ['dodge_right', 'dodge_left', 'dodge_forward', 'idle'], vault: ['jump', 'dodge_forward', 'idle'], recoil: ['blocked', 'hit', 'idle'],
   // Movimentos especiais por slot (o Studio já exporta move_1…move_4 no mapa de ações); sem clipe próprio, usa o do tackle.
@@ -49,7 +48,7 @@ export const STATE_ACTIONS = {
   airborne: ['knockback', 'fall', 'hit', 'idle'], landing: ['land', 'recover', 'downed', 'idle'], recover: ['recover', 'land', 'idle'], defeated: ['death', 'downed', 'idle'], pushed: ['hit', 'idle'], stagger: ['hit', 'blocked', 'downed', 'idle'], hitstun: ['hit', 'idle'], actionRecovery: ['idle'],
 };
 export const STATE_LABELS = {neutral: 'Parado', turn: 'Girando no lugar', walk: 'Andando para frente', walk_back: 'Andando para trás', walk_left: 'Andando à esquerda', walk_right: 'Andando à direita',
-  run: 'Correndo para frente', run_back: 'Correndo para trás', run_left: 'Correndo à esquerda', run_right: 'Correndo à direita', sprint: 'Sprint para frente', sprint_back: 'Sprint para trás', sprint_left: 'Sprint à esquerda', sprint_right: 'Sprint à direita', walk_stop: 'Freio da caminhada', sprint_stop: 'Freio do sprint',
+  sprint: 'Sprint para frente', sprint_back: 'Sprint para trás', sprint_left: 'Sprint à esquerda', sprint_right: 'Sprint à direita', walk_stop: 'Freio da caminhada', sprint_stop: 'Freio do sprint',
   guard_enter: 'Entrando na defesa', guard: 'Defendendo', guard_exit: 'Saindo da defesa', guard_hit: 'Defesa perfeita', guardStun: 'Guard stun', tackle: 'Tackle', meteor_prep: 'Meteor: preparação no ar', meteor_dive: 'Meteor: mergulho', meteor_ground: 'Meteor: no chão', wallSplat: 'Preso na parede (wall-splat)', tackle_charge: 'Carregando tackle', tackle_pl2: 'Tackle PL2', tackle_pl3: 'Tackle PL3', brake: 'Freio do tackle (finta)', dodge_forward: 'Esquiva frontal',
   dodge_back: 'Esquiva traseira', dodge_left: 'Esquiva esquerda', dodge_right: 'Esquiva direita', vault: 'Salto sobre o rival', jump: 'Pulo', recoil: 'Recuo (bloqueado)', airborne: 'Lançado',
   landing: 'Aterrissando', recover: 'Recuperando (exausto)', defeated: 'Derrotado', pushed: 'Empurrado', stagger: 'Atordoado (stagger)', hitstun: 'Atingido (impacto)', actionRecovery: 'Recuperando da ação', __preview: 'Prévia',
@@ -57,14 +56,14 @@ export const STATE_LABELS = {neutral: 'Parado', turn: 'Girando no lugar', walk: 
   charge_reflect: 'Carregando Reflect', release_reflect: 'Disparo do Reflect',
   charge_psyshock: 'Carregando Psyshock', release_psyshock: 'Disparo do Psyshock'};
 /** Blocos de animação listados no painel (cada um serve a um ou mais estados e aceita várias variantes). */
-export const ACTION_IDS = ['idle', 'turn', 'walk', 'walk_back', 'walk_left', 'walk_right', 'run', 'run_back', 'run_left', 'run_right', 'sprint', 'sprint_back', 'sprint_left', 'sprint_right', 'walk_stop', 'sprint_stop', 'block_start', 'block', 'block_end', 'guard_impact', 'blocked', 'tackle', 'tackle_charge', 'tackle_pl2', 'tackle_pl3', 'brake', 'wall_splat', 'meteor_prep', 'meteor_dive', 'meteor_ground',
+export const ACTION_IDS = ['idle', 'turn', 'walk', 'walk_back', 'walk_left', 'walk_right', 'sprint', 'sprint_back', 'sprint_left', 'sprint_right', 'walk_stop', 'sprint_stop', 'block_start', 'block', 'block_end', 'guard_impact', 'blocked', 'tackle', 'tackle_charge', 'tackle_pl2', 'tackle_pl3', 'brake', 'wall_splat', 'meteor_prep', 'meteor_dive', 'meteor_ground',
   'dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'jump', 'hit', 'knockback', 'fall', 'land', 'recover', 'downed', 'death', 'move_1', 'move_2', 'move_3', 'move_4'];
 // Sinônimos para associar por nome quando o arquivo não traz o mapa do Studio.
 const ALIASES = {
-  idle: ['idle', 'parado', 'stand', 'breathing idle', 'breath'], turn: ['turn', 'girar', 'turn in place'], walk: ['walk', 'walking', 'andar', 'caminhar'], run: ['run', 'running', 'correr'],
+  idle: ['idle', 'parado', 'stand', 'breathing idle', 'breath'], turn: ['turn', 'girar', 'turn in place'], walk: ['walk', 'walking', 'andar', 'caminhar', 'run', 'running', 'correr'],
   sprint: ['sprint', 'sprinting', 'fast run', 'dash run'], sprint_back: ['sprint back', 'sprint backward'], sprint_left: ['sprint left', 'sprint strafe left'], sprint_right: ['sprint right', 'sprint strafe right'],
-  run_back: ['run back', 'running backward'], run_left: ['run left', 'running left', 'run strafe left'], run_right: ['run right', 'running right', 'run strafe right'], walk_stop: ['walk stop', 'walking stop', 'walk to stop', 'stop walking', 'freio'], sprint_stop: ['run stop', 'sprint stop', 'run to stop', 'running stop'],
-  walk_back: ['walk back', 'walking backward', 'walk backward', 'backward walk', 'back walk', 'recuar'], walk_left: ['walk left', 'left strafe', 'strafe left', 'left walk'], walk_right: ['walk right', 'right strafe', 'strafe right', 'right walk'],
+  walk_stop: ['walk stop', 'walking stop', 'walk to stop', 'stop walking', 'run stop', 'run to stop', 'running stop', 'freio'], sprint_stop: ['sprint stop', 'sprint to stop', 'stop sprinting'],
+  walk_back: ['walk back', 'walking backward', 'walk backward', 'backward walk', 'back walk', 'run back', 'running backward', 'recuar'], walk_left: ['walk left', 'left strafe', 'strafe left', 'left walk', 'run left', 'running left', 'run strafe left'], walk_right: ['walk right', 'right strafe', 'strafe right', 'right walk', 'run right', 'running right', 'run strafe right'],
   block_start: ['block start', 'guard start', 'block idle start'], block: ['block', 'guard', 'defend', 'defesa', 'blocking'], block_end: ['block end', 'guard end'],
   guard_impact: ['guard impact', 'block hit', 'block impact', 'guard hit'], blocked: ['blocked', 'recoil', 'bounce', 'rebote'],
   tackle: ['tackle', 'dash attack', 'charge', 'attack', 'investida'],
@@ -87,7 +86,7 @@ const TIMED = new Set(['tackle', 'tackle_pl2', 'tackle_pl3', 'dodge_forward', 'd
 const TRANSIENT = new Set(['guard_enter', 'guard_exit', 'guard_hit']);
 /** Tocam uma vez a partir da entrada e seguram a última pose (não repetem em laço). */
 const ONE_SHOT = new Set(['meteor_prep', 'meteor_dive', 'meteor_ground', ...TRANSIENT, 'walk_stop', 'sprint_stop', '__preview', 'release_reflect', 'release_psyshock', 'hitstun', 'stagger', ...MOVE_KEYS]);
-const LOCOMOTION = new Set(['neutral', 'turn', 'walk', 'walk_back', 'walk_left', 'walk_right', 'run', 'run_back', 'run_left', 'run_right', 'sprint', 'sprint_back', 'sprint_left', 'sprint_right']);
+const LOCOMOTION = new Set(['neutral', 'turn', 'walk', 'walk_back', 'walk_left', 'walk_right', 'sprint', 'sprint_back', 'sprint_left', 'sprint_right']);
 const ACTION_KEYS = new Set(['meteor_prep', 'meteor_dive', 'meteor_ground', 'tackle', 'tackle_pl2', 'tackle_pl3', 'dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'vault', ...MOVE_KEYS]);
 const COMBAT_KEYS = new Set(['wallSplat', 'airborne', 'landing', 'recover', 'guardStun', 'recoil', 'defeated', 'pushed', 'guard_hit', 'stagger', 'hitstun', 'actionRecovery']);
 
@@ -120,12 +119,36 @@ const STORE = 'arenamon-lab-anim-v1:';
 
 import {createSquashState, resetSquash, updateSquash} from './squash-stretch.js';
 
+/**
+ * Grupos de animações que podem ficar FORA da trava vertical (apoio no chão). A trava horizontal continua valendo
+ * para todas as animações; marcar um grupo deixa o clipe subir/descer o corpo com o próprio movimento gravado.
+ * As chaves são os estados de animação entregues por `stateKey`/`actionFor`.
+ */
+export const VERTICAL_MOTION_FREE_GROUPS = [
+  {id: 'dodge', label: 'Esquivas', keys: ['dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'vault']},
+  {id: 'jump', label: 'Pulo', keys: ['jump']},
+  {id: 'tackle', label: 'Tackles', keys: ['tackle', 'tackle_charge', 'tackle_pl2', 'tackle_pl3']},
+];
+/** Grupos liberados por padrão para o Wookada (corpo grande; os clipes de esquiva/pulo/tackle têm sobe/desce próprio). */
+const WOOKADA_FREE_GROUPS = VERTICAL_MOTION_FREE_GROUPS.map(g => g.id);
+/** Escala visual padrão do Wookada (2× em altura e largura); qualquer modelo pode ajustar na aba Personagens. */
+const WOOKADA_SCALE = 2;
+const defaultSizeScale = source => /wookada/i.test(source?.name || '') ? WOOKADA_SCALE : 1;
+
 export class Character {
   constructor(source, {tint = null, slot = 0, persist = true} = {}) {
     this.source = source;this.slot = slot;this.persist = persist;
     this.root = clone(source.scene);this.mixer = new T.AnimationMixer(this.root);
     this.clips = source.animations.slice();this.clipInfo = this.clips.map(c => ({name: c.name, origin: 'glb', compatible: true, coverage: 1}));
-    this.variants = autoVariants(source);this.speeds = {};this.playback = {};this.clipOffsets = {};this.visualOffset = 0;this.autoGround = true;this.lockRootMotion = true;this.lockToGround = true;
+    this.animationProfile = animationProfile(source);this.variants = autoVariants(source);this.speeds = {};this.playback = {};this.clipOffsets = {};this.visualOffset = 0;this.autoGround = true;this.lockRootMotion = true;this.lockToGround = true;
+    // Tamanho visual por personagem: não muda colisor, sombra nem física (a altura global continua sendo o alvo do fit).
+    // O Wookada nasce 2× em altura e largura; o painel permite ajustar de 0,5× a 3×.
+    this.heightScale = defaultSizeScale(source);this.widthScale = defaultSizeScale(source);
+    // Estados cujo sobe/desce gravado no clipe é preservado (Wookada: esquiva, pulo e tackles). O X/Z continua travado.
+    this.freeVerticalMotion = /wookada/i.test(source?.name || '') ? [...WOOKADA_FREE_GROUPS] : [];
+    // Base do apoio vertical do estado livre (altura do clipe no instante em que ele começou): evita pulo de altura
+    // na troca e serve de limite inferior — o estado nunca desce abaixo dela, então nunca afunda no chão.
+    this.verticalBase = null;this.verticalBaseEntry = null;
     this.moveAnims = {
       reflect: {chargeClip: null, chargeLoopStart: 0, chargeLoopEnd: null, releaseClip: null},
       psyshock: {chargeClip: null, chargeLoopStart: 0, chargeLoopEnd: null, releaseClip: null}
@@ -297,7 +320,9 @@ export class Character {
       };
     }
     return {variants: Object.fromEntries(Object.entries(this.variants).map(([id, l]) => [id, l.map(byName).filter(Boolean)])), speeds: {...this.speeds}, playback: JSON.parse(JSON.stringify(this.playback)),
-      clipOffsets: Object.fromEntries(Object.entries(this.clipOffsets).map(([i, v]) => [byName(i), v]).filter(([k]) => k)), visualOffset: this.visualOffset, autoGround: this.autoGround, lockRootMotion: this.lockRootMotion, rootMotionLockVersion: 2, lockToGround: this.lockToGround, moveAnims: moveAnimsData};
+      clipOffsets: Object.fromEntries(Object.entries(this.clipOffsets).map(([i, v]) => [byName(i), v]).filter(([k]) => k)), visualOffset: this.visualOffset, autoGround: this.autoGround, lockRootMotion: this.lockRootMotion, rootMotionLockVersion: 2, lockToGround: this.lockToGround,
+      sizeScale: {height: this.heightScale, width: this.widthScale}, freeVerticalMotion: [...this.freeVerticalMotion], moveAnims: moveAnimsData,
+      animationProfileVersion: this.animationProfile?.version ?? null};
   }
   save() {
     if (!this.persist) return;
@@ -317,9 +342,24 @@ export class Character {
       const list = names.map(n => {const i = idx(n);if (i < 0) this.missingAssociations.push(`${id}: ${n}`);return i;}).filter(i => i >= 0);
       if (list.length) this.variants[id] = list;else if (names.length === 0) delete this.variants[id];
     }
+    // “run” deixou de existir como estado: dados antigos não podem ressuscitá-lo.
+    for (const id of LEGACY_RUN_KEYS) delete this.variants[id];
+    // Perfil curado novo (Wookada): uma única migração descarta o mapa antigo; depois o painel continua mandando.
+    if (this.animationProfile && data.animationProfileVersion !== this.animationProfile.version) {
+      for (const id of ACTION_IDS) delete this.variants[id];
+      Object.assign(this.variants, profileVariants(this.clips, this.animationProfile));
+    }
     Object.assign(this.speeds, data.speeds || {});Object.assign(this.playback, data.playback || {});
     for (const [n, v] of Object.entries(data.clipOffsets || {})) {const i = idx(n);if (i >= 0) this.clipOffsets[i] = v;}
     if (typeof data.visualOffset === 'number') this.visualOffset = data.visualOffset;if (typeof data.autoGround === 'boolean') this.autoGround = data.autoGround;
+    if (data.sizeScale && typeof data.sizeScale === 'object') {
+      const height = Number(data.sizeScale.height), width = Number(data.sizeScale.width);
+      if (Number.isFinite(height)) this.heightScale = Math.min(3, Math.max(.5, height));
+      if (Number.isFinite(width)) this.widthScale = Math.min(3, Math.max(.5, width));
+    }
+    if (Array.isArray(data.freeVerticalMotion)) {
+      this.freeVerticalMotion = [...new Set(data.freeVerticalMotion.filter(id => VERTICAL_MOTION_FREE_GROUPS.some(g => g.id === id)))];
+    }
     // Estados antigos podiam ter salvo a trava incompleta como desligada. A versão 2 estreia ligada uma vez; depois a
     // escolha feita no controle novo volta a ser respeitada normalmente.
     this.lockRootMotion = data.rootMotionLockVersion === 2 && typeof data.lockRootMotion === 'boolean' ? data.lockRootMotion : true;
@@ -433,16 +473,16 @@ export class Character {
     }
     const rel = angleDelta(f.faceGoal ?? f.facing, angleOf(f.velocity));
     const direction = Math.abs(rel) > 3 * Math.PI / 4 ? 'back' : Math.abs(rel) > Math.PI / 4 ? (rel > 0 ? 'left' : 'right') : '';
+    // Só existem duas velocidades de locomoção: andar (C solto) e sprint (C segurado). “Correr” é o mesmo que andar.
     if (f.sprinting) return direction ? `sprint_${direction}` : 'sprint';
-    // Histerese andar/correr: sobe aos 62% da velocidade, desce aos 52%.
-    const wasRun = this.stableLoco?.startsWith('run');const gait = speed > walk * (wasRun ? .52 : .62) ? 'run' : 'walk';return direction ? `${gait}_${direction}` : gait;
+    return direction ? `walk_${direction}` : 'walk';
   }
   /** Histerese da locomoção: um estado de locomoção novo só vale depois de estável por locomotionHold segundos. */
   smoothLocomotion(key) {
     if (!LOCOMOTION.has(key)) {this.locoCandidate = null;this.stableLoco = null;return key;}
     if (this.stableLoco === null || !LOCOMOTION.has(this.current?.key)) {this.stableLoco = key;this.locoCandidate = key;this.locoCandidateAt = this.clock;return key;}
     if (this.locoCandidate !== key) {this.locoCandidate = key;this.locoCandidateAt = this.clock;}
-    // Sair do repouso ou parar é imediato; a histerese vale só entre estados em movimento (andar, correr, laterais).
+    // Sair do repouso ou parar é imediato; a histerese vale só entre estados em movimento (andar, sprint, laterais).
     if ((this.stableLoco === 'neutral' || this.stableLoco === 'turn') !== (key === 'neutral' || key === 'turn')) {this.stableLoco = key;return key;}
     if (key !== this.stableLoco && this.clock - this.locoCandidateAt >= Character.options.locomotionHold) this.stableLoco = key;
     return this.stableLoco;
@@ -584,6 +624,10 @@ export class Character {
     this.blend(f, dt, key, p);
     this.place(f, alt, dt);
   }
+  /** O sobe/desce deste estado fica livre da trava vertical? (O X/Z nunca é liberado por aqui.) */
+  verticalMotionFree(key) {
+    return VERTICAL_MOTION_FREE_GROUPS.some(g => this.freeVerticalMotion.includes(g.id) && g.keys.includes(key));
+  }
   /** Entra num estado: a animação atual vira camada de fade e a nova começa do zero (registro na telemetria). */
   enter(key, id, index, entry, f, ctx) {
     const prev = this.current;
@@ -695,7 +739,7 @@ export class Character {
   /** Pré-calcula imediatamente as curvas de solo das ações de combate essenciais para evitar engasgos na partida. */
   warmEssentialGround() {
     const priority = [
-      'idle', 'turn', 'walk', 'run', 'sprint', 'walk_back', 'walk_left', 'walk_right',
+      'idle', 'turn', 'walk', 'sprint', 'walk_back', 'walk_left', 'walk_right',
       'tackle', 'tackle_pl2', 'tackle_pl3', 'tackle_charge', 'brake',
       'block_start', 'block', 'guard_impact', 'blocked',
       'dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'jump',
@@ -744,24 +788,33 @@ export class Character {
   }
   /** Posição, escala e orientação. Altura visual independente da física: o colisor e a sombra não se movem. */
   place(f, alt, dt) {
-    const opt = Character.options, scale = opt.fit ? C.extras.visual.bodyHeight / this.restHeight : 1;
+    const opt = Character.options, fit = opt.fit ? C.extras.visual.bodyHeight / this.restHeight : 1;
+    const scale = fit * this.heightScale, wide = fit * this.widthScale;
+    // Estados liberados da trava vertical usam o apoio do instante de entrada como base: o que o clipe sobe além
+    // dele aparece no corpo. O que desce é preso nessa base, então o personagem nunca afunda abaixo do chão.
+    const verticalFree = this.verticalMotionFree(this.current?.key);
+    const autoGround = this.autoGround && C.display.grounding.autoGround;
     let ground = this.restMinY;
-    if (this.autoGround && C.display.grounding.autoGround && this.current) {
+    if (autoGround && this.current) {
       // Média ponderada pelos pesos das camadas: sem saltos de altura nas transições.
       let w = this.current.weight, acc = this.groundAtFrame(this.current.index, this.current.action.time) * w;
       for (const l of this.layers) {acc += this.groundAtFrame(l.index, l.action.time) * l.weight;w += l.weight;}
       ground = w > 0 ? acc / w : ground;
     }
+    const entry = this.current?.entry ?? null;
+    if (!verticalFree) {this.verticalBase = null;this.verticalBaseEntry = null;}
+    else if (this.verticalBaseEntry !== entry) {this.verticalBase = ground;this.verticalBaseEntry = entry;}
+    const support = verticalFree ? Math.min(ground, this.verticalBase ?? ground) : ground;
     const manual = (this.current ? this.clipOffsets[this.current.index] ?? 0 : 0) + this.visualOffset + (C.display.grounding.visualOffset || 0);
     updateSquash(this.squash, f, dt, C.extras.visual.squashStretch, f.action?.kind === 'dodge' ? C.actions.dodge : C.actions.tackle);
-    const target = -ground * scale + manual;
-    // A trava elimina a subida/descida produzida pelo root motion do clipe. A altitude física continua vindo de `alt`.
-    // Desligada, mantém o amortecimento anterior para quem quiser preservar o balanço vertical gravado na animação.
-    if (this.lockToGround && this.autoGround && C.display.grounding.autoGround) this.groundOffset = target;
+    const target = -support * scale + manual;
+    // A trava elimina a subida/descida produzida pelo clipe. A altitude física continua vindo de `alt`.
+    // Estados livres na vertical usam o alvo preso à base (nunca abaixo do chão); os demais mantêm o amortecimento.
+    if (autoGround && (this.lockToGround || verticalFree)) this.groundOffset = target;
     else this.groundOffset += (target - this.groundOffset) * (dt > 0 ? 1 - Math.exp(-dt / .06) : 1);
     // Como antes de criar os wrappers, descarta transformações animadas da raiz de apresentação.
     this.model.position.set(-this.modelAnchor.x, 0, -this.modelAnchor.z);this.model.rotation.set(0, 0, 0);this.model.scale.setScalar(1);
-    this.root.scale.setScalar(scale);
+    this.root.scale.set(wide, scale, wide);
     // Corrige somente o deslocamento causado pela deformação; mantém o amortecimento do apoio original.
     this.root.position.set(f.position.x, alt + this.groundOffset - ground * scale * (this.squash.transverse - 1), f.position.z);
     this.root.rotation.set(0, this.squash.heading, 0);
@@ -790,10 +843,52 @@ for (const key of ['fade', 'actionFade', 'locomotionHold', 'speed']) Object.defi
 /** Armazenamento das associações por modelo (instalado pelo workspace): {get(character), set(character, data)}. */
 Character.stateStore = null;
 
-/** Variantes iniciais: manifesto do Studio; depois nomes exatos; depois palavras contidas no nome. */
+/**
+ * Associações curadas do Wookada: cada estado recebe o clipe cujo NOME descreve a mesma ação.
+ * O manifesto embutido no GLB foi feito às pressas e apontava ações erradas (ex.: “post fall wall crash”
+ * como recuo de defesa). O perfil vale como padrão inicial; o usuário continua livre para trocar no painel.
+ * Versão 2 = organização sem “run” (andar e correr são o mesmo estado) e meteoros/esquivas nos clipes certos.
+ */
+export const WOOKADA_PROFILE = {
+  version: 2,
+  clips: {
+    idle: ['Mutant Idle'], turn: ['turn'],
+    walk: ['Mutant Walking'], walk_back: ['Mutant Walking'], walk_left: ['Mutant Walking'], walk_right: ['Mutant Walking'],
+    sprint: ['sprint 8 dir'], sprint_back: ['sprint 8 dir'], sprint_left: ['sprint 8 dir'], sprint_right: ['sprint 8 dir'],
+    walk_stop: [], sprint_stop: [],
+    block_start: ['block start'], block: ['bloking still'], block_end: [],
+    guard_impact: ['block start'], blocked: ['dash back'],
+    tackle: ['tackle 1', 'tackle 3', 'tackle 4', 'tackle 6', 'tacke 7'], tackle_charge: ['charge move start'],
+    tackle_pl2: ['tackle 2'], tackle_pl3: ['tackle 5'], brake: [],
+    wall_splat: ['Wall Crash', 'post fall wall crash'],
+    meteor_prep: ['Mutant Jumping'], meteor_dive: ['Mutant Jump Attack'], meteor_ground: ['ground crash'],
+    dodge_forward: ['dodge foward'], dodge_back: ['dash back'], dodge_left: ['dodge left'], dodge_right: ['dodge right'],
+    jump: ['Mutant Jumping'], hit: ['get hit', 'get hit 2', 'get hit 3'], knockback: ['Sweep Fall'],
+    fall: ['falling', 'jump falling'], land: ['jump land', 'fall_hitground'], recover: ['dead recovery'],
+    downed: ['lying still post ground crash'], death: ['stay dead'],
+    move_1: ['move 1', 'move blast', 'move blast 2', 'moveblast 3', 'moveblast 4', 'moveblast 5', 'moveblast 6'],
+    move_2: ['Stabbing'], move_3: ['buff 2'], move_4: ['status move'],
+  },
+};
+/** Estados antigos de corrida: não existem mais (correr = andar). Removidos de estados persistidos. */
+const LEGACY_RUN_KEYS = ['run', 'run_back', 'run_left', 'run_right'];
+const animationProfile = source => /wookada/i.test(source?.name || '') ? WOOKADA_PROFILE : null;
+/** Converte o perfil (nomes de clipe) em variantes por índice, ignorando clipes que o arquivo não tem. */
+function profileVariants(clips, profile) {
+  const byName = new Map(clips.map((c, i) => [c.name, i])), out = {};
+  for (const [id, names] of Object.entries(profile.clips)) {
+    const list = [...new Set(names.map(n => byName.get(n)).filter(i => i != null))];
+    if (list.length) out[id] = list;
+  }
+  return out;
+}
+
+/** Variantes iniciais: perfil curado (Wookada), manifesto do Studio, nomes exatos e palavras contidas no nome. */
 export function autoVariants(source) {
   const map = autoMapping(source);
   const out = Object.fromEntries(Object.entries(map).map(([id, i]) => [id, [i]]));
+  // Manifestos antigos ainda podem listar “run”: o estado não existe mais em nenhum personagem.
+  for (const id of LEGACY_RUN_KEYS) delete out[id];
   if (Array.isArray(source.manifest?.extras)) {
     for (const ex of source.manifest.extras) {
       const act = ex.action || ex.alternativeFor;
@@ -805,6 +900,12 @@ export function autoVariants(source) {
         if (!out[act].includes(clipIdx)) out[act].push(clipIdx);
       }
     }
+  }
+  const profile = animationProfile(source);
+  if (profile) {
+    // O perfil substitui TODOS os estados de animação: palpites por nome/manifesto não sobrevivem a ele.
+    for (const id of ACTION_IDS) delete out[id];
+    return {...out, ...profileVariants(source.animations, profile)};
   }
   return out;
 }

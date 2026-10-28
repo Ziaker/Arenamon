@@ -1,6 +1,6 @@
 // Aba Personagens: modelos, blocos de animação (estados) com várias variantes, biblioteca de clipes (com importação),
 // prévia, altura visual e telemetria da máquina de estados de animação.
-import {Character, loadStudioFile, loadAnimationFile, ACTION_IDS, STATE_LABELS} from '../view/characters.js';
+import {Character, loadStudioFile, loadAnimationFile, ACTION_IDS, STATE_LABELS, VERTICAL_MOTION_FREE_GROUPS} from '../view/characters.js';
 import {escape} from './tuning.js';
 import {validateModel, validateAnimations} from '../view/validate.js';
 import {installNewPanel} from './characters-new.js';
@@ -8,11 +8,11 @@ import {installNewPanel} from './characters-new.js';
 
 const ACTION_CATS = {
   moves: ['tackle', 'tackle_charge', 'tackle_pl2', 'tackle_pl3', 'brake', 'wall_splat', 'meteor_prep', 'meteor_dive', 'meteor_ground', 'dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'jump'],
-  loco: ['idle', 'turn', 'walk', 'walk_back', 'walk_left', 'walk_right', 'run', 'run_back', 'run_left', 'run_right', 'sprint', 'sprint_back', 'sprint_left', 'sprint_right', 'walk_stop', 'sprint_stop'],
+  loco: ['idle', 'turn', 'walk', 'walk_back', 'walk_left', 'walk_right', 'sprint', 'sprint_back', 'sprint_left', 'sprint_right', 'walk_stop', 'sprint_stop'],
   react: ['block_start', 'block', 'block_end', 'guard_impact', 'blocked', 'hit', 'knockback', 'fall', 'land', 'recover', 'downed', 'death'],
 };
 export const ACTION_LABELS = {idle: 'Parado', turn: 'Girar no lugar', walk: 'Andar para frente', walk_back: 'Andar para trás', walk_left: 'Andar para esquerda', walk_right: 'Andar para direita',
-  run: 'Correr para frente', run_back: 'Correr para trás', run_left: 'Correr para esquerda', run_right: 'Correr para direita', sprint: 'Sprint para frente', sprint_back: 'Sprint para trás', sprint_left: 'Sprint para esquerda', sprint_right: 'Sprint para direita', walk_stop: 'Freio da caminhada', sprint_stop: 'Freio do sprint', block_start: 'Entrar na defesa', block: 'Defesa', block_end: 'Sair da defesa',
+  sprint: 'Sprint para frente', sprint_back: 'Sprint para trás', sprint_left: 'Sprint para esquerda', sprint_right: 'Sprint para direita', walk_stop: 'Freio da caminhada', sprint_stop: 'Freio do sprint', block_start: 'Entrar na defesa', block: 'Defesa', block_end: 'Sair da defesa',
   guard_impact: 'Impacto na defesa', blocked: 'Recuo (bloqueado)', tackle: 'Tackle PL1 (X)', tackle_charge: 'Carga do tackle (X segurado)', tackle_pl2: 'Tackle PL2', tackle_pl3: 'Tackle PL3', brake: 'Freio / derrapagem (finta)', wall_splat: 'Preso na parede (wall-splat)', meteor_prep: 'Meteor: preparação no ar', meteor_dive: 'Meteor: mergulho', meteor_ground: 'Meteor: no chão', dodge_forward: 'Esquiva frontal', dodge_back: 'Esquiva traseira', dodge_left: 'Esquiva esquerda',
   dodge_right: 'Esquiva direita', jump: 'Salto', hit: 'Dano', knockback: 'Lançado', fall: 'Queda', land: 'Aterrissar', recover: 'Levantar', downed: 'Caído', death: 'Derrota', move_1: 'Movimento 1', move_2: 'Movimento 2', move_3: 'Movimento 3', move_4: 'Movimento 4'};
 
@@ -56,16 +56,31 @@ export function createCharacterPanel({ui, view, $, onCharactersChanged, hooks = 
   }
   function heightBox(id, ch) {
     const body = document.createElement('div');
-    body.innerHTML = `<label class="field">Altura visual do ${id ? 'vermelho' : 'azul'} <output data-out>${ch.visualOffset.toFixed(2)} m</output><input type="range" min="-1" max="1" step="0.01" value="${ch.visualOffset}" data-offset></label>
+    const scaleRow = (kind, label, value) => `<label class="field">${label} <output data-${kind}-out>${value.toFixed(2)}×</output><input type="range" min="0.5" max="3" step="0.05" value="${value}" data-${kind}-scale></label>`;
+    const free = VERTICAL_MOTION_FREE_GROUPS.map(g => `<label class="check"><input type="checkbox" data-free="${g.id}" ${ch.freeVerticalMotion.includes(g.id) ? 'checked' : ''}> ${g.label} fora da trava vertical (sobe/desce)</label>`).join('');
+    body.innerHTML = `<div class="row">${scaleRow('height', 'Altura (×)', ch.heightScale)}${scaleRow('width', 'Largura (×)', ch.widthScale)}</div>
+      <label class="field">Altura visual do ${id ? 'vermelho' : 'azul'} <output data-out>${ch.visualOffset.toFixed(2)} m</output><input type="range" min="-1" max="1" step="0.01" value="${ch.visualOffset}" data-offset></label>
       <label class="check"><input type="checkbox" data-auto ${ch.autoGround ? 'checked' : ''}> Ajuste automático por animação (apoia o ponto mais baixo de cada clipe no chão)</label>
       <label class="check"><input type="checkbox" data-root-lock ${ch.lockRootMotion ? 'checked' : ''}> Travar deslocamento horizontal da animação (mundo X/Z)</label>
       <label class="check"><input type="checkbox" data-ground-lock ${ch.lockToGround ? 'checked' : ''}> Travar no chão (remove o deslocamento vertical gravado na animação)</label>
-      <p class="hint" data-ground></p><p class="hint">Só visual: saltos e lançamentos continuam seguindo a física. Compensação extra por clipe: Biblioteca.</p>`;
+      <div class="hint">${free}<br>Os grupos marcados ignoram a trava no chão apenas no sobe/desce; o clipe pode subir, mas nunca afunda abaixo do piso. O deslocamento horizontal (X/Z) continua sempre travado.</div>
+      <p class="hint" data-ground></p><p class="hint">Escala e altura são só visuais: colisor, sombra, saltos e lançamentos continuam seguindo a física. Compensação extra por clipe: Biblioteca.</p>`;
     const r = body.querySelector('[data-offset]');r.oninput = () => {ch.visualOffset = Number(r.value);body.querySelector('[data-out]').textContent = `${ch.visualOffset.toFixed(2)} m`;};r.onchange = () => ch.save();
+    for (const kind of ['height', 'width']) {
+      const input = body.querySelector(`[data-${kind}-scale]`), out = body.querySelector(`[data-${kind}-out]`);
+      input.oninput = () => {ch[kind + 'Scale'] = Number(input.value);out.textContent = `${ch[kind + 'Scale'].toFixed(2)}×`;};
+      input.onchange = () => ch.save();
+    }
+    for (const cb of body.querySelectorAll('[data-free]')) cb.onchange = () => {
+      const set = new Set(ch.freeVerticalMotion);
+      if (cb.checked) set.add(cb.dataset.free);else set.delete(cb.dataset.free);
+      ch.freeVerticalMotion = VERTICAL_MOTION_FREE_GROUPS.map(g => g.id).filter(id => set.has(id));
+      ch.save();
+    };
     body.querySelector('[data-auto]').onchange = e => {ch.autoGround = e.target.checked;ch.save();};
     body.querySelector('[data-root-lock]').onchange = e => {ch.lockRootMotion = e.target.checked;ch.save();};
     body.querySelector('[data-ground-lock]').onchange = e => {ch.lockToGround = e.target.checked;ch.save();};
-    return fold('Altura visual e apoio no chão', `h${id}`, body, {open: false});
+    return fold('Tamanho, altura visual e apoio no chão', `h${id}`, body, {open: false});
   }
   function telemetryBox(id, ch) {
     const body = document.createElement('div');body.dataset.telemetry = id;

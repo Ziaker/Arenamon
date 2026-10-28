@@ -53,7 +53,7 @@ test('associação por nome: variantes de tackle, esquivas, sprint e freios', ()
   check('tackle com 1 variante automática', ch.variantsOf('tackle').length === 1, JSON.stringify(ch.variants.tackle));
   ch.addVariant('tackle', 4);ch.addVariant('tackle', 5);
   check('tackle com 3 variantes', ch.variantsOf('tackle').length === 3);
-  check('sprint, walk_stop e sprint_stop associados', ch.actionFor('sprint') === 'sprint' && ch.actionFor('walk_stop') === 'walk_stop' && ch.actionFor('sprint_stop') === 'sprint_stop', JSON.stringify(ch.mapping));
+  check('sprint, walk_stop e freio do sprint (fallback da caminhada) associados', ch.actionFor('sprint') === 'sprint' && ch.actionFor('walk_stop') === 'walk_stop' && ch.actionFor('sprint_stop') === 'walk_stop', JSON.stringify(ch.mapping));
 });
 test('tackle e esquiva tocam até o fim, sem reinício por detecção repetida', () => {
   for (const kind of ['tackle', 'dodge']) {
@@ -100,14 +100,16 @@ test('andar → freio da caminhada → inversão', () => {
   run(ch, g, 300, t => [cmd({move: t < 150 ? vec(1, 0) : vec(-1, 0)}), cmd()]);
   const seq = ch.log.map(e => e.to);
   check('entra em walk_stop na inversão', seq.includes('walk_stop'), seq.join(' → '));
-  check('volta à locomoção no novo sentido', ['run', 'walk', 'walk_back'].includes(seq.at(-1)), seq.at(-1));
+  check('volta à locomoção no novo sentido', ['walk', 'walk_back'].includes(seq.at(-1)), seq.at(-1));
 });
-test('locomoção sem oscilação: histerese evita trocas de poucos quadros', () => {
+test('locomoção sem corrida: cruzar o antigo limiar andar/correr continua em andar', () => {
   const {ch, g} = setup();
-  // Velocidade oscilando em torno do limiar andar/correr (comando parcial alternado).
+  // Velocidade oscilando em torno do limiar antigo (comando parcial alternado): não existe mais estado de corrida.
   run(ch, g, 600, t => [cmd({move: vec(t % 6 < 3 ? .62 : .58, 0)}), cmd()]);
-  const loco = ch.log.filter(e => ['walk', 'run'].includes(e.to));
-  check('poucas trocas andar/correr', loco.length <= 2, `${loco.length} trocas`);
+  const runStates = ch.log.filter(e => e.to === 'run' || e.to?.startsWith?.('run_'));
+  const loco = ch.log.filter(e => e.to === 'walk');
+  check('nenhum estado de corrida', runStates.length === 0, runStates.map(e => e.to).join(', '));
+  check('poucas trocas de locomoção', loco.length <= 2, `${loco.length} trocas`);
 });
 test('importar animação para a biblioteca: compatível por nome normalizado; incompatível sinalizado', () => {
   const {ch} = setup();
@@ -246,8 +248,10 @@ test('trocar animação não cria variante; loop, duração e direções cardina
   check('nova troca não transforma a principal anterior em variante', JSON.stringify(ch.variantsOf('tackle')) === JSON.stringify([6, 4, 5]), JSON.stringify(ch.variantsOf('tackle')));
   ch.playback.tackle = {loop: true, maxDuration: .25};
   check('opções de reprodução entram no estado portátil', ch.stateData().playback.tackle.loop && ch.stateData().playback.tackle.maxDuration === .25);
-  for (const id of ['walk', 'walk_back', 'walk_left', 'walk_right', 'run', 'run_back', 'run_left', 'run_right', 'sprint', 'sprint_back', 'sprint_left', 'sprint_right'])
+  for (const id of ['walk', 'walk_back', 'walk_left', 'walk_right', 'sprint', 'sprint_back', 'sprint_left', 'sprint_right'])
     check(`estado cardinal disponível: ${id}`, ch.variants[id] !== undefined || ch.actionFor(id) !== undefined);
+  for (const id of ['run', 'run_back', 'run_left', 'run_right'])
+    check(`estado de corrida removido: ${id}`, ch.variants[id] === undefined);
 });
 test('A → B → A durante o fade não desliga a animação atual nem cai na T-pose', () => {
   const {ch, g} = setup(), f = g.fighters[0];
