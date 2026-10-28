@@ -18,7 +18,8 @@ export function createMapState(seed = 12345) {
     nextEntityId: 1000,
     itemStats: {spawned: 0, collected: 0, expired: 0},
     destructibleStats: {broken: 0, respawned: 0},
-    placementConflicts: 0, // objetos sólidos sem posição válida (livre de lutadores e com passagem): mantêm a sorteada; contagem visível no diagnóstico
+    placementConflicts: 0, // objetos sólidos sem posição válida (livre de lutadores e com passagem): recusados (F4: não nascem); contagem visível no diagnóstico
+    spawnLog: [], // F4: últimas 32 recusas de spawn {tick, kind: 'obstacle'|'destructible'|'item'|'fighter', reason} (fighter = realocado, nunca recusado)
   };
 }
 /** Gerador pseudoaleatório determinístico linear congruencial. */

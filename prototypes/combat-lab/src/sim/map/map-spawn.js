@@ -12,28 +12,34 @@ function footprintOf(kind, o, pos = o.pos) {
   if (kind === 'destructible') return {x: pos.x, z: pos.z, hx: o.size.hx, hz: o.size.hz};
   return o.shape === 'box' ? {x: pos.x, z: pos.z, hx: o.hx, hz: o.hz} : {x: pos.x, z: pos.z, r: o.radius};
 }
-export function isValidSpawnPosition(pos, radius, mapState, fighters = [], minDistFighter = 5.0, solid = /** @type {any} */ (null)) {
+/**
+ * Motivo (o PRIMEIRO teste que falha) de a posição não servir para nascer, ou null se serve. Mesma ordem e medidas de sempre;
+ * os motivos vão para mapState.spawnLog e para o evento spawnRejected (F4).
+ * @param {any} pos @param {number} radius @param {any} mapState @param {any[]} [fighters] @param {number} [minDistFighter] @param {any} [solid]
+ * @returns {null|'outsideArena'|'nearFighter'|'overlapsPlatform'|'overlapsObstacle'|'overlapsDestructible'|'passageClearance'}
+ */
+export function whyInvalidSpawn(pos, radius, mapState, fighters = [], minDistFighter = 5.0, solid = /** @type {any} */ (null)) {
   const arenaR = effectiveArenaRadius();
   const dCenter = Math.hypot(pos.x, pos.z);
   // Deve estar dentro da arena com margem
-  if (dCenter + radius > arenaR - 2.0) return false;
+  if (dCenter + radius > arenaR - 2.0) return 'outsideArena';
 
   // Distância mínima dos lutadores
   for (const f of fighters) {
-    if (f && f.position && dist2D(pos, f.position) < minDistFighter) return false;
+    if (f && f.position && dist2D(pos, f.position) < minDistFighter) return 'nearFighter';
   }
 
   // Não sobrepor plataformas
   for (const p of mapState.platforms) {
     const hw = p.width / 2 + radius + 0.5;
     const hd = p.depth / 2 + radius + 0.5;
-    if (Math.abs(pos.x - p.pos.x) < hw && Math.abs(pos.z - p.pos.z) < hd) return false;
+    if (Math.abs(pos.x - p.pos.x) < hw && Math.abs(pos.z - p.pos.z) < hd) return 'overlapsPlatform';
   }
 
   // Não sobrepor obstáculos indestrutíveis
   for (const o of mapState.obstacles) {
     const or = (o.radius ?? Math.max(o.hx, o.hz)) + radius + 0.8;
-    if (dist2D(pos, o.pos) < or) return false;
+    if (dist2D(pos, o.pos) < or) return 'overlapsObstacle';
   }
 
   // Não sobrepor outros destrutíveis sólidos
@@ -41,33 +47,37 @@ export function isValidSpawnPosition(pos, radius, mapState, fighters = [], minDi
     if (dist2D(pos, d.pos) < 1e-4) continue; // ignora a si mesmo se já estiver nesta coordenada
     if (d.state === 'solid' || d.state === 'ghost') {
       const dr = Math.max(d.size.hx, d.size.hz) + radius + 0.8;
-      if (dist2D(pos, d.pos) < dr) return false;
+      if (dist2D(pos, d.pos) < dr) return 'overlapsDestructible';
     }
   }
 
   // Objeto SÓLIDO: o vão até qualquer outro sólido tem de ser ≥ passageClearance (ou o lutador entra, não cabe e fica preso).
   if (solid) {
     const me = {x: pos.x, z: pos.z, ...solid}, need = C.map?.passageClearance ?? MAP_DEFAULTS.passageClearance;
-    for (const p of mapState.platforms) if (solidGap(me, footprintOf('platform', p)) < need) return false;
-    for (const o of mapState.obstacles) if (solidGap(me, footprintOf('obstacle', o)) < need) return false;
+    for (const p of mapState.platforms) if (solidGap(me, footprintOf('platform', p)) < need) return 'passageClearance';
+    for (const o of mapState.obstacles) if (solidGap(me, footprintOf('obstacle', o)) < need) return 'passageClearance';
     for (const d of mapState.destructibles) {
       if (dist2D(pos, d.pos) < 1e-4) continue;
-      if ((d.state === 'solid' || d.state === 'ghost') && solidGap(me, footprintOf('destructible', d)) < need) return false;
+      if ((d.state === 'solid' || d.state === 'ghost') && solidGap(me, footprintOf('destructible', d)) < need) return 'passageClearance';
     }
   }
 
-  return true;
+  return null;
+}
+/** @param {any} pos @param {number} radius @param {any} mapState @param {any[]} [fighters] @param {number} [minDistFighter] @param {any} [solid] */
+export function isValidSpawnPosition(pos, radius, mapState, fighters = [], minDistFighter = 5.0, solid = /** @type {any} */ (null)) {
+  return whyInvalidSpawn(pos, radius, mapState, fighters, minDistFighter, solid) === null;
 }
 /**
  * Busca sistemática da posição válida mais próxima (R9.12).
  * Se o ponto sorteado for inválido, espirala para fora até encontrar uma válida.
  * Se nenhuma for encontrada após tentativas, retorna null para adiar (R10.6).
  */
-export function findNearestValidPosition(candidate, radius, mapState, fighters = [], maxAttempts = 32, solid = /** @type {any} */ (null)) {
+export function findNearestValidPosition(candidate, radius, mapState, fighters = [], maxAttempts = 32, solid = /** @type {any} */ (null), maxRing = 8) {
   if (isValidSpawnPosition(candidate, radius, mapState, fighters, 5.0, solid)) return candidate;
 
   const stepDist = 1.5;
-  for (let ring = 1; ring <= 8; ring++) {
+  for (let ring = 1; ring <= maxRing; ring++) {
     const r = ring * stepDist;
     const count = ring * 8;
     for (let i = 0; i < count; i++) {
@@ -83,6 +93,45 @@ export function findNearestValidPosition(candidate, radius, mapState, fighters =
     }
   }
   return null; // Adiar geração (R10.6)
+}
+/** Anéis da reamostragem de objetos do mapa (F4): os 8 de sempre (1,5 m a 12 m) + 2 (até 15 m). Anéis 1–8 na mesma ordem: onde já achava, acha o mesmo ponto. */
+export const SPAWN_RINGS = 10;
+/** Tamanho do registro de recusas (mapState.spawnLog): só as últimas. */
+export const SPAWN_LOG_MAX = 32;
+/**
+ * Coloca ou recusa (F4): a posição sorteada se válida, senão a válida mais próxima na espiral (SPAWN_RINGS anéis); sem nenhuma,
+ * {rejected: motivo do ponto sorteado} — nunca mais «nasce assim mesmo» dentro de sólido ou colado em lutador. A espiral não consome RNG:
+ * recusar ou não deixa a sequência de sorteios da seed idêntica. `solid` = pegada do objeto sólido (regra de passagem), como em isValidSpawnPosition.
+ * @param {any} rawPos @param {number} radius @param {any} mapState @param {any[]} [fighters] @param {any} [solid] @param {{rings?: number}} [opts]
+ * @returns {{pos: any} | {rejected: string}}
+ */
+export function placeOrReject(rawPos, radius, mapState, fighters = [], solid = /** @type {any} */ (null), {rings = SPAWN_RINGS} = {}) {
+  const pos = findNearestValidPosition(rawPos, radius, mapState, fighters, 32, solid, rings);
+  return pos ? {pos} : {rejected: /** @type {string} */ (whyInvalidSpawn(rawPos, radius, mapState, fighters, 5.0, solid))};
+}
+/** Registra uma recusa em mapState.spawnLog ({tick, kind, reason}), mantendo as últimas SPAWN_LOG_MAX. Save antigo sem o campo ganha a lista aqui. */
+/** @param {any} mapState @param {number|null} tick @param {string} kind @param {string} reason */
+export function logSpawnRejection(mapState, tick, kind, reason) {
+  const log = (mapState.spawnLog ??= []);
+  log.push({tick, kind, reason});
+  if (log.length > SPAWN_LOG_MAX) log.splice(0, log.length - SPAWN_LOG_MAX);
+}
+/**
+ * Ponto válido mais próximo de `target` em TODA a arena (lutador nunca é recusado): varredura determinística em grade de 0,5 m, desempate pela
+ * ordem da varredura. Sem ponto que respeite a distância aos outros lutadores, relaxa essa regra; sem nenhum (arena minúscula), devolve `target`.
+ * @param {any} target @param {number} radius @param {any} mapState @param {any[]} [fighters] @returns {any}
+ */
+export function nearestValidInArena(target, radius, mapState, fighters = []) {
+  const R = effectiveArenaRadius(), step = 0.5, n = Math.floor(R / step);
+  for (const fs of [fighters, []]) {
+    let best = /** @type {any} */ (null), bestD = Infinity;
+    for (let i = -n; i <= n; i++) for (let j = -n; j <= n; j++) {
+      const p = {x: i * step, y: target.y ?? 0, z: j * step}, d = (p.x - target.x) ** 2 + (p.z - target.z) ** 2;
+      if (d < bestD && isValidSpawnPosition(p, radius, mapState, fs)) {best = p;bestD = d;}
+    }
+    if (best) return best;
+  }
+  return target;
 }
 /** Folga (m) entre o corpo quadrado de um lutador e uma caixa alinhada aos eixos centrada em (x, z); negativa = sobreposição. */
 export function bodyGapToBox(pos, x, z, hx, hz) {
@@ -179,18 +228,20 @@ export function initMap(mapState, fighters = []) {
     const dist = randomRange(mapState, 14, 28) * arenaScale;
     const rawPos = {x: Math.cos(angle) * dist, z: Math.sin(angle) * dist, y: 0};
     const shapeBox = s.shape === 'box', solid = shapeBox ? {hx: s.hx, hz: s.hz} : {r: s.radius};
-    const found = findNearestValidPosition(rawPos, 2.0, mapState, fighters, 32, solid);
-    if (!found) mapState.placementConflicts = (mapState.placementConflicts ?? 0) + 1;
-    const validPos = found || rawPos;
+    const placed = placeOrReject(rawPos, 2.0, mapState, fighters, solid);
+    const facing = (randomRange(mapState, 0, Math.PI * 2), 0);   // o sorteio é consumido (sequência da RNG preservada), mas a física sempre tratou caixas como alinhadas aos eixos: o desenho passa a ser igual
+    if ('rejected' in placed) {   // F4: sem posição válida o obstáculo não nasce (antes ficava no ponto sorteado, dentro de outro sólido)
+      mapState.placementConflicts = (mapState.placementConflicts ?? 0) + 1;logSpawnRejection(mapState, 0, 'obstacle', placed.rejected);continue;
+    }
     mapState.obstacles.push({
       id: `obs_${i + 1}`,
-      pos: validPos,
+      pos: placed.pos,
       shape: s.shape,
       hx: s.hx ?? s.radius,
       hz: s.hz ?? s.radius,
       radius: s.radius ?? Math.max(s.hx, s.hz),
       height: s.height,
-      angle: (randomRange(mapState, 0, Math.PI * 2), 0),   // o sorteio é consumido (sequência da RNG preservada), mas a física sempre tratou caixas como alinhadas aos eixos: o desenho passa a ser igual
+      angle: facing,
     });
   }
 
@@ -201,18 +252,20 @@ export function initMap(mapState, fighters = []) {
     const angle = (i / 4) * Math.PI * 2 + Math.PI / 4 + randomRange(mapState, -0.3, 0.3);
     const dist = randomRange(mapState, 10, 24) * arenaScale;
     const rawPos = {x: Math.cos(angle) * dist, z: Math.sin(angle) * dist, y: 0};
-    const found = findNearestValidPosition(rawPos, 1.2, mapState, fighters, 32, {hx: 0.8, hz: 0.8});
-    if (!found) mapState.placementConflicts = (mapState.placementConflicts ?? 0) + 1;
-    const validPos = found || rawPos;
+    const placed = placeOrReject(rawPos, 1.2, mapState, fighters, {hx: 0.8, hz: 0.8});
+    const facing = (randomRange(mapState, 0, Math.PI * 2), 0);   // idem obstáculos: caixa alinhada aos eixos (sorteio consumido mesmo na recusa)
+    if ('rejected' in placed) {
+      mapState.placementConflicts = (mapState.placementConflicts ?? 0) + 1;logSpawnRejection(mapState, 0, 'destructible', placed.rejected);continue;
+    }
     const baseHp = M.destructibleHp ?? 30;
     mapState.destructibles.push({
       id: `dest_${i + 1}`,
       hp: baseHp,
       maxHp: baseHp,
-      pos: validPos,
+      pos: placed.pos,
       size: {hx: 0.8, hz: 0.8, height: 1.6},
       shape: 'box',
-      angle: (randomRange(mapState, 0, Math.PI * 2), 0),   // idem obstáculos: caixa alinhada aos eixos
+      angle: facing,
       state: 'solid',
       respawnTimer: 0,
       ghostTimer: 0,
@@ -228,11 +281,12 @@ export function initMap(mapState, fighters = []) {
     const angle = randomRange(mapState, 0, Math.PI * 2);
     const dist = randomRange(mapState, 8, 22) * arenaScale;
     const rawPos = {x: Math.cos(angle) * dist, z: Math.sin(angle) * dist, y: 0.4};
-    const validPos = findNearestValidPosition(rawPos, 1.0, mapState, fighters) || rawPos;
+    const placed = placeOrReject(rawPos, 1.0, mapState, fighters);
+    if ('rejected' in placed) {logSpawnRejection(mapState, 0, 'item', placed.rejected);continue;}   // F4: recusa no lugar de «|| rawPos»
     mapState.items.push({
       id: mapState.nextEntityId++,
       type: t,
-      pos: validPos,
+      pos: placed.pos,
       life: M.itemLifetime ?? 15,
       isDrop: false,
       vy: 0,
@@ -260,5 +314,13 @@ export function generateFighterSpawnPositions(mapState) {
     if (!valid1) continue;
     return [vec(valid0.x, valid0.z), vec(valid1.x, valid1.z)];
   }
-  return [vec(0, -8 * s), vec(0, 8 * s)];
+  // Lutador nunca é recusado (F4): o ponto padrão só se válido; senão o válido mais próximo da arena inteira (motivo no spawnLog).
+  const keep = (/** @type {any} */ p, /** @type {any[]} */ fs) => {
+    const why = whyInvalidSpawn(p, 1.0, mapState, fs);
+    if (why === null) return p;
+    logSpawnRejection(mapState, 0, 'fighter', why);
+    return nearestValidInArena(p, 1.0, mapState, fs);
+  };
+  const p0 = keep({x: 0, y: 0, z: -8 * s}, []), p1 = keep({x: 0, y: 0, z: 8 * s}, [{position: p0}]);
+  return [vec(p0.x, p0.z), vec(p1.x, p1.z)];
 }

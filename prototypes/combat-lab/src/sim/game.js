@@ -93,7 +93,7 @@ export class Game {
     }
     // Mapa: consumíveis, respawn e drops (R4, R6, R9.13)
     if (!finishing && this.phase === 'playing' && this.mapState) {
-      fresh.push(...stepMap(this.mapState, C.test.step, this.fighters));
+      fresh.push(...stepMap(this.mapState, C.test.step, this.fighters, [], this.tick));
     }
     // Mundo (projéteis, barreiras, paredes, áreas) e status: depois da física dos lutadores, no mesmo passo.
     fresh.push(...worldEvents, ...stepWorld(this, C.test.step));

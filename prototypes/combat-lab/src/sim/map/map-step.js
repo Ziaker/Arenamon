@@ -5,9 +5,18 @@ import {C} from '../config.js';
 import {length} from '../math.js';
 import {MAP_DEFAULTS} from './map-config.js';
 import {dist3D, getArenaScale, pickRandomConsumableType, randomRange} from './map-state.js';
-import {fighterBlocksBox, findNearestValidPosition, isValidSpawnPosition} from './map-spawn.js';
+import {fighterBlocksBox, isValidSpawnPosition, logSpawnRejection, placeOrReject} from './map-spawn.js';
 import {applyConsumableEffect} from './map-consumables.js';
 import {groundHeightAt} from '../collision/queries.js';
+
+/**
+ * Recusa de spawn durante a partida (F4): evento spawnRejected {kind, reason, position} + entrada no mapState.spawnLog com o tick.
+ * @param {any} mapState @param {any[]} events @param {number|null} tick @param {string} kind @param {string} reason @param {any} rawPos
+ */
+function rejectSpawn(mapState, events, tick, kind, reason, rawPos) {
+  events.push({result: 'spawnRejected', kind, reason, position: {x: rawPos.x, y: rawPos.y ?? 0, z: rawPos.z}});
+  logSpawnRejection(mapState, tick, kind, reason);
+}
 
 /**
  * Atualiza o ciclo de vida do mapa a cada passo da simulação de passo fixo:
@@ -17,7 +26,7 @@ import {groundHeightAt} from '../collision/queries.js';
  * - Geração periódica de consumíveis a cada 20–40s respeitando limite de 4 regulares (R4.6, R6.1, R6.3, R6.7)
  * - Coleta de itens por distância esférica 3D com desempate determinístico (R11.5, R5.15)
  */
-export function stepMap(mapState, dt, fighters = [], events = []) {
+export function stepMap(mapState, dt, fighters = [], events = [], tick = null) {
   const M = C.map ?? MAP_DEFAULTS;
 
   // 1. Atualizar destrutíveis (respawn e prévia translúcida R11.9)
@@ -30,12 +39,14 @@ export function stepMap(mapState, dt, fighters = [], events = []) {
         const angle = randomRange(mapState, 0, Math.PI * 2);
         const dist = randomRange(mapState, 10, 24) * getArenaScale();
         const rawPos = {x: Math.cos(angle) * dist, z: Math.sin(angle) * dist, y: 0};
-        const validPos = findNearestValidPosition(rawPos, 1.2, mapState, fighters, 32, {hx: d.size.hx, hz: d.size.hz});
-        if (!validPos) {
-          // Adia a geração quando não existir posição válida (R10.6, Caso C da auditoria)
+        const placed = placeOrReject(rawPos, 1.2, mapState, fighters, {hx: d.size.hx, hz: d.size.hz});
+        if ('rejected' in placed) {
+          // Adia a geração quando não existir posição válida (R10.6, Caso C da auditoria); F4: recusa com motivo (evento + spawnLog)
           d.respawnTimer = 1.0;
+          rejectSpawn(mapState, events, tick, 'destructible', placed.rejected, rawPos);
           continue;
         }
+        const validPos = placed.pos;
         // Entra na fase de prévia translúcida (ghost) antes de se tornar sólido
         d.pos = validPos;
         d.state = 'ghost';
@@ -97,7 +108,8 @@ export function stepMap(mapState, dt, fighters = [], events = []) {
       const angle = randomRange(mapState, 0, Math.PI * 2);
       const dist = randomRange(mapState, 8, 22) * getArenaScale();
       const rawPos = {x: Math.cos(angle) * dist, z: Math.sin(angle) * dist, y: 0.4};
-      const validPos = findNearestValidPosition(rawPos, 1.0, mapState, fighters);
+      const placed = placeOrReject(rawPos, 1.0, mapState, fighters), validPos = 'pos' in placed ? placed.pos : null;
+      if ('rejected' in placed) rejectSpawn(mapState, events, tick, 'item', placed.rejected, rawPos);
       if (validPos) {
         mapState.items.push({
           id: mapState.nextEntityId++,
