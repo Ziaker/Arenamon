@@ -52,6 +52,20 @@ export function postFeedsThisFrame(/** @type {any} */ P, /** @type {any} */ impa
   return !!P?.enabled && w > 0 && h > 0 && impactPhase !== 'white' && impactPhase !== 'invert';
 }
 
+/** F5: o que fazer com os eventos do 'post' neste quadro. 'feed' = alimenta os pulsos; 'defer' = espera (ligado, mas silhueta do
+ * impact frame ou canvas 0×0); 'drop' = pós desligado: descarta — adiar acumulava o atraso a cada quadro (painel «adiados
+ * descartados» subindo sem parar) e, ao ligar o pós depois, disparava até 32 pulsos velhos de uma vez.
+ * @returns {'feed'|'defer'|'drop'} */
+export function postBacklogMode(/** @type {any} */ P, /** @type {any} */ impactPhase, /** @type {number} */ w, /** @type {number} */ h) {
+  return !P?.enabled ? 'drop' : postFeedsThisFrame(P, impactPhase, w, h) ? 'feed' : 'defer';
+}
+
+/** Eventos do 'post' para este quadro segundo postBacklogMode (uma vez por quadro, depois de dispatch()). @param {any} dispatch VfxDispatch */
+export function takePostEvents(dispatch, /** @type {any} */ P, /** @type {any} */ impactPhase, /** @type {number} */ w, /** @type {number} */ h) {
+  const mode = postBacklogMode(P, impactPhase, w, h);
+  return mode === 'drop' ? dispatch.drop('post') : dispatch.take('post', mode === 'feed');
+}
+
 export function feedPulses(sink, events, fighters, seen, shock, minDamage = 12) {
   for (const e of events) {
     if (seen) {if (seen.has(e)) continue;seen.add(e);}

@@ -70,6 +70,10 @@ export * from './world-view/wv-geometry.js';
   }
 
   reset() {
+    // F5: a esfera de carga do Water Pulse divide o lote do elementalFx — descartada ANTES do clear() dele, que poda os lotes vazios.
+    this.waterChargePreview?.dispose();this.waterChargePreview = null;this.waterChargeLevel = 0;
+    for (const r of this.chargeRings ?? []) r.visible = false;
+    if (this.preview) this.preview.visible = false;
     this.elementalFx?.clear();
     this.atelierFx?.clear();
     this.movesVfx?.disposeAll();

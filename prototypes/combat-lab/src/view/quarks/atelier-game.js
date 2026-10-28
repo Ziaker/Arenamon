@@ -11,6 +11,7 @@ import {Particles} from '../../../../sand-stone-lab/src/particles.js';
 import {PhaseClock} from '../../../../sand-stone-lab/src/phases.ts';
 import {defaults} from '../../../../sand-stone-lab/src/config.ts';
 import {disposeGroup} from '../../../../sand-stone-lab/src/art.js';
+import {pruneEmptyBatches} from './batch-prune.js';
 import {ATELIER_GAME_PARAMS, ATELIER_GAME_VARIANT} from './atelier-game-params.js';
 import {C} from '../../sim/config.js';
 
@@ -96,6 +97,7 @@ export class AtelierGameFx {
       if (!seen.has(id)) it.dying = true;
       if (this.advance(it, dt) && (it.dying || it.fx.duration <= it.start + it.age)) {this.disposeItem(it);this.items.delete(id);}
     }
+    pruneEmptyBatches(this.batch);   // F5: lotes vazios do three.quarks não somem sozinhos (batch-prune.js)
     this.batch.update(dt);
   }
   // ---------- Swift e Psyshock: uma rajada (disparo) = uma instância do efeito aprovado, presa às posições REAIS dos projéteis ----------
@@ -272,6 +274,7 @@ export class AtelierGameFx {
     for (const it of this.items.values()) this.disposeItem(it);this.items.clear();
     for (const v of this.volleys?.values() ?? []) {v.particles.clear();disposeGroup(v.group);v.group.removeFromParent();}this.volleys?.clear();
     for (const r of this.rushes ?? []) {r.particles.clear();disposeGroup(r.group);r.group.removeFromParent();}this.rushes = [];
+    pruneEmptyBatches(this.batch);
   }
   /** Diagnóstico para os testes de navegador. */
   diagnostics() {

@@ -33,7 +33,7 @@ import {ArenaScenery} from './scenery.js';
 import * as PP from 'postprocessing';
 import {PostPipeline} from './post/post-pipeline.js';
 import {COLLISION_OVERLAYS, drawCollisionOverlays} from './collision-overlays.js';
-import {feedPulses, postFeedsThisFrame} from './post/post-params.js';
+import {feedPulses, takePostEvents} from './post/post-params.js';
 // F5: despachante único de eventos visuais (dedupe por eventId uma vez por quadro, dono por resultado/canal).
 import {VfxDispatch, applyParticleOwners} from './vfx/dispatch.js';
 
@@ -52,12 +52,13 @@ export const OVERLAYS = [
 ];
 
 export class View {
-  constructor(canvas) {
+  /** @param {any} canvas @param {{renderer?: any}} [o] renderer injetável (teste headless F5 de reset/vazamento; o jogo cria o WebGLRenderer). */
+  constructor(canvas, {renderer = null} = {}) {
     const X = C.extras;
     this.canvas = canvas;this.scene = new T.Scene();this.camera = new T.PerspectiveCamera(X.cameraExtra.fov, 1, X.cameraExtra.nearClip, X.cameraExtra.farClip);this.rig = new CameraRig();
     this.meshes = [];this.arrows = [];this.shadows = [];this.effects = [];this.dispatch = new VfxDispatch();this.airborneSeen = [];this.invulnerableFx = new Map();this.cameraShake = 0;
     this.overlays = Object.fromEntries(OVERLAYS.map(([k]) => [k, k === 'cancelWindow']));this.characters = [];this.smears = [];this.debug = [];this.normals = [];
-    this.renderer = new T.WebGLRenderer({canvas, antialias: true});this.renderer.setPixelRatio(Math.min(devicePixelRatio, X.visual.renderPixelRatio));
+    this.renderer = renderer ?? new T.WebGLRenderer({canvas, antialias: true});this.renderer.setPixelRatio(Math.min(devicePixelRatio, X.visual.renderPixelRatio));
     this.scene.background = new T.Color(rgb('background'));this.ambientLight = new T.HemisphereLight(0xffffff, 0x65707b, X.visual.ambientLightIntensity);this.scene.add(this.ambientLight);
     this.directionalLight = new T.DirectionalLight(0xffffff, X.visual.directionalIntensity);this.directionalLight.position.set(X.visual.lightX, X.visual.lightY, X.visual.lightZ);this.scene.add(this.directionalLight);
     this.floor = new T.Mesh(new T.BoxGeometry(32, X.visual.floorThickness, 32), new T.MeshStandardMaterial({color: rgb('floor'), roughness: 1}));this.floor.position.y = -.06;this.scene.add(this.floor);
@@ -171,7 +172,11 @@ export class View {
       if (this.directionalLight) this.directionalLight.intensity = C.extras?.visual?.directionalIntensity ?? 1;
     }
     this._blindDimmed = false;
-    this.riposteFx?.reset?.();
+    // F5: sobreposições sob demanda saem inteiras no reset (antes só eram descartadas no draw seguinte, e só se ninguém mais precisasse).
+    this.riposteFx?.dispose?.();this.riposteFx = null;
+    this.statusAura?.dispose?.();this.statusAura = null;
+    this.aimMarkers?.dispose?.();this.aimMarkers = null;
+    this.navDebug?.dispose?.();this.navDebug = null;
     this.legacyClashSeen?.clear();
   }
   /** Efeitos legados do v6 (partículas em caixa e tremor antigo). Só com “Efeitos legados” ligado em Visualizar. */
@@ -441,10 +446,10 @@ export class View {
     this.camera.updateMatrixWorld(true);
     // Atualiza overlays de apresentação (speedlines projetadas com a matriz final da câmera)
     this.cinematic?.renderOverlays?.(this.camera);
-    // C08: fase do impact frame (silhueta). O pós só consome eventos nos quadros em que alimenta os pulsos; nos outros (silhueta,
-    // canvas 0×0, pós desligado) eles esperam no despachante — sem isso o pulso dos golpes mais fortes se perdia.
+    // C08: fase do impact frame (silhueta). O pós só consome eventos nos quadros em que alimenta os pulsos; com o pós ligado, nos
+    // outros (silhueta, canvas 0×0) eles esperam no despachante — sem isso o pulso dos golpes mais fortes se perdia. Pós desligado: descarta (F5).
     const impactPhase = this.cinematic?.getImpactFramePhase?.();
-    const postEvents = this.dispatch.take('post', postFeedsThisFrame(C.vfx.post, impactPhase, w, h));
+    const postEvents = takePostEvents(this.dispatch, C.vfx.post, impactPhase, w, h);
 
     if (w > 0 && h > 0) {
       // C08 — Impact Frame com Silhueta Real em WebGL (personagens brancos sobre fundo preto puro)

@@ -13,6 +13,7 @@ import {C} from '../../sim/config.js';
 import {ElementalPreview} from './elemental-preview.js';
 import {ELEMENTAL_GAME_PARAMS} from './elemental-game-params.js';
 import {elementalVisualKey} from '../../sim/elemental-visual-config.js';
+import {pruneEmptyBatches} from './batch-prune.js';
 
 const MOVES = {waterorb: 'waterPulse', airslash: 'airSlash', firespin: 'fireSpin', seed: 'seedBomb'};
 const PL_HEX = [0xffffff, 0x59d6e6, 0xffcf6a, 0xff6adf];
@@ -142,11 +143,12 @@ export class ElementalGameFx {
       }
       if (it.age >= TAIL[it.move]) {this.disposeItem(it);this.items.delete(id);}
     }
+    pruneEmptyBatches(this.batch);   // F5: lotes vazios do three.quarks não somem sozinhos (batch-prune.js)
     this.batch.update(dt);
   }
   /** Posição do efeito (para os anéis de evento do WorldView). */
   positionOf(id) {return this.items.get(id)?.preview.root.position ?? null;}
-  clear() {for (const it of this.items.values()) this.disposeItem(it);this.items.clear();}
+  clear() {for (const it of this.items.values()) this.disposeItem(it);this.items.clear();pruneEmptyBatches(this.batch);}
   /** Diagnóstico para os testes de navegador. */
   diagnostics() {
     const items = [...this.items.values()].map(it => ({

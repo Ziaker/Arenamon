@@ -138,6 +138,8 @@ export class VfxDispatch {
     if (!q) return this.fresh;
     this.backlog.delete(key);return q.concat(this.fresh);
   }
+  /** Descarta o que estiver guardado para a chave e não entrega nada neste quadro (consumidor desligado: não acumula). @param {string} key */
+  drop(key) {this.backlog.delete(key);return NONE;}
   /** Contadores para o painel/telemetria: desconhecidos por resultado, quadros, eventos entregues e reinícios. */
   diagnostics() {
     return {unknown: {...this.unknownByResult}, unknownTotal: this.stats.unknownTotal, truncated: this.stats.truncated, frames: this.stats.frames, delivered: this.stats.delivered, resets: this.stats.resets, deferred: Object.fromEntries([...this.backlog].map(([k, v]) => [k, v.length]))};
