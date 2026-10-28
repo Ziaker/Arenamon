@@ -113,3 +113,28 @@ test('status model uses visual thresholds and accessible equivalents', () => {
   assert.equal(danger.budget.level, 'danger');
   assert.equal(danger.autosave, 'pending');
 });
+
+test('academy sessions stay outside the project and resume only exact matches', () => {
+  const storage = memoryStorage();
+  const project = {projectId: 'p1', revision: 4, nodes: []};
+  const lesson = {id: 'lesson', title: 'Aula', summary: 'Resumo', steps: [
+    {id: 'start', title: 'Comece', instruction: 'Crie algo', validate: current => ({ok: current.nodes.length > 0, message: 'Crie um objeto'})},
+    {id: 'finish', title: 'Finalize', instruction: 'Revise', validate: () => ({ok: true, message: 'Pronto'})},
+  ]};
+  const academy = new api.AcademyController({lessons: [lesson], storage, getProject: () => project, autosaveSlot: 'slot-p1'});
+  assert.equal(academy.state.open, false);
+  academy.start('lesson');
+  assert.equal(academy.state.session.stepId, 'start');
+  assert.equal(JSON.stringify(project).includes('lesson'), false);
+  assert.equal(academy.validateCurrentStep().ok, false);
+  project.nodes.push({id: 'orb'});
+  assert.equal(academy.validateCurrentStep().ok, true);
+  academy.next(); academy.minimize();
+  assert.equal(academy.state.minimized, true);
+  const resumed = new api.AcademyController({lessons: [lesson], storage, getProject: () => project, autosaveSlot: 'slot-p1'});
+  assert.equal(resumed.resume().status, 'resumed');
+  assert.equal(resumed.state.session.stepId, 'finish');
+  const stale = new api.AcademyController({lessons: [lesson], storage, getProject: () => ({...project, projectId: 'other'}), autosaveSlot: 'slot-other'});
+  assert.equal(stale.resume().status, 'stale');
+  assert.deepEqual(stale.recoveryChoices(), ['restart', 'current-project']);
+});

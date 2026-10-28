@@ -1,0 +1,20 @@
+import assert from 'node:assert/strict';
+import {fileURLToPath} from 'node:url';
+import {chromium} from 'playwright';
+
+const browser = await chromium.launch({headless: true, channel: 'msedge'});
+const page = await browser.newPage({viewport: {width: 1440, height: 900}});
+await page.goto(`file:///${fileURLToPath(new URL('../dist/arenamon-vfx-composer.html', import.meta.url)).replaceAll('\\', '/')}`);
+assert.equal(await page.locator('#academy-vfx').getAttribute('open'), null, 'Academia fechada por padrão');
+await page.locator('#academy-vfx summary').click();
+assert.equal(await page.locator('.academy-card').count(), 3, 'três aulas no grupo próprio');
+await page.locator('.academy-card').first().click();
+assert.equal(await page.locator('#academy-drawer:not([hidden])').count(), 1, 'guia abre em drawer temporário');
+await page.locator('[data-academy-minimize]').click();
+assert.equal(await page.locator('#academy-resume:not([hidden])').count(), 1, 'guia minimiza em chip');
+await page.locator('#academy-resume').click();
+assert.equal(await page.locator('#academy-drawer:not([hidden])').count(), 1, 'sessão retoma na etapa exata');
+await page.locator('[data-academy-close]').click();
+assert.equal(await page.locator('#academy-drawer[hidden]').count(), 1, 'guia fecha sem alterar projeto');
+await browser.close();
+console.log('✓ Academia opcional: catálogo recolhido, drawer, minimizar, retomar e fechar.');

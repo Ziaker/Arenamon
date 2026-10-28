@@ -31,3 +31,4 @@ export * from './ui/hierarchy';
 export * from './ui/inspector';
 export * from './ui/timeline-view';
 export * from './ui/status';
+export * from './ui/academy';
