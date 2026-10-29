@@ -248,13 +248,16 @@ export function stepPhysics(fighters, dt, world = null) {
     // Inner Focus: hit stun reduzido em 20% quando o lançamento veio de um golpe (launch(); edge-fall/jump não marca).
     const stunFactor = f.launchedByHit ? hitStunFactor(f) : 1;
     f.launchedByHit = false;
-    const rec = flight.bounce ? (f.hp <= 0 ? 0 : flight.bounce.recovery) : (wasNormalJump || f.hp <= 0) ? 0 : R.landingRecovery * stunFactor; // derrotado não tem recuperação de pouso; Bounce: recuperação própria
+    // Quem já está agindo (cast/carga/mira de um Move no ar) ou já apertou o salto (buffer) não é travado: a recuperação vale para quem pousa livre.
+    const jumpRec = (f.action || f.charge || f.aim || (f.jumpBuffered ?? 0) > 0) ? 0 : Math.max(0, C.map?.jumpLandingRecovery ?? 0);   // salto normal: recuperação própria do pouso (map.jumpLandingRecovery, 0,25 s por decisão do responsável; 0 desliga)
+    const rec = flight.bounce ? (f.hp <= 0 ? 0 : flight.bounce.recovery) : f.hp <= 0 ? 0 : wasNormalJump ? jumpRec : R.landingRecovery * stunFactor; // derrotado não tem recuperação de pouso; Bounce: recuperação própria
     f.knockRecovery = rec;
     f.landingRecovery = rec;
     f.recoveryKind = rec > 0 ? 'landing' : null;
     f.recoveryFrom = null;
     f.normalJumpLanding = false;
-    f.state = f.hp <= 0 ? 'defeated' : (wasNormalJump ? 'neutral' : (rec > 0 ? 'landing' : 'neutral'));
+    f.landingRecoveryMax = wasNormalJump && !flight.bounce ? rec : null;   // a animação de pouso normaliza pelo tempo próprio do salto
+    f.state = f.hp <= 0 ? 'defeated' : (rec > 0 ? 'landing' : 'neutral');
     if (f.jumpState) {
       f.jumpState.canJump = false;
       f.jumpState.cooldown = C.map?.jumpInterval ?? 0.25;

@@ -199,7 +199,6 @@ export const ORPHANS_LABELED = Object.freeze([
   {id: 'test.aiRange', why: 'legado do v6; a IA usa extras.ai.attackRange/approachDistance'},
   {id: 'test.forwardTolerance', why: 'legado do v6; a frente do golpe usa extras.combat.*Alignment'},
   {id: 'map.wallDamageMultiplier', why: 'a borda circular não causa dano próprio; o wall-splat usa rules.wallSplatDamage (0 por padrão)'},
-  {id: 'map.jumpLandingRecovery', why: 'o pouso de pulo normal não tem recuperação (physics.js land: wasNormalJump → 0); ligar mudaria o jogo'},
   {id: 'actions.sprint.exhaustedStop', why: 'o sprint SEMPRE termina na exaustão (ctrl-update.js); a regra «desligado» não existe'},
   {id: 'extras.hud.debugFontSize', why: 'a tela de depuração usa o CSS fixo; o valor não é aplicado'},
   {id: 'extras.hud.footerFontSize', why: 'o rodapé usa o CSS fixo; o valor não é aplicado'},
@@ -490,6 +489,7 @@ export const SENSITIVITY_PENDING = Object.freeze({
     'extras.toggles.enableAIAttack', 'extras.toggles.enableAIReactive', 'extras.toggles.enablePlayerAI', 'extras.toggles.integerDamage', 'extras.toggles.enableCounterBonus',
     'extras.toggles.enemyManual', 'extras.toggles.enableAnimationCombatWindows', 'extras.toggles.enableFlightSlam', 'extras.toggles.enablePassives', 'actions.sprint.braking',
     'actions.sprint.turnGrip', 'actions.sprint.minStamina', 'extras.hitbox.enableShapes', 'extras.hitbox.shapeRadius',
+    'rules.exhaustedSpeed',   // com a recuperação do salto (0,25 s) a IA não chega a exaurir nos cenários curtos: sem cenário A/B
     'extras.gameFeel.phaseMode', 'extras.gameFeel.phaseActive', 'extras.gameFeel.phaseCancel', 'extras.gameFeel.phaseInvuln',   // game feel 6: só agem com clipe que traga marcadores aprovados (coberto em game-feel-5-9.test.mjs)
   ]},
   ia: {why: 'decisão da IA tática não mudou nos duelos de 3 e 8 s (probabilidade/limiar não atingido com a semente fixa)', ids: [
@@ -589,7 +589,7 @@ export const TECHNICAL_NO_SLIDER = Object.freeze({
 /** Sliders numéricos cujo formato não mostra unidade (fração/multiplicador mostrado como número puro). Orçamento: não pode crescer. */
 export const UNIT_MISSING_BUDGET = 354;
 /** Orçamentos que só podem DIMINUIR: sliders de gameplay sem A/B observável e, entre eles, os que só têm evidência fraca de consumidor. */
-export const PENDING_BUDGET = 310;   // +4 do contrato de fases (game feel 6): sem GLB com marcadores no duelo curto não há cenário A/B
+export const PENDING_BUDGET = 311;   // +4 do contrato de fases (game feel 6): sem GLB com marcadores no duelo curto não há cenário A/B
 export const _PENDING_BUDGET_ANTES = 306;   // 304 + 2 do Sand Wave (prisão móvel de 29/10: pushContinuesOutsideArea e pushReleaseDelay não mudam mais os cenários curtos)
 export const WEAK_PENDING_BUDGET = 2;
 export const pendingCount = () => Object.values(SENSITIVITY_PENDING).reduce((n, g) => n + g.ids.length, 0);
@@ -597,7 +597,6 @@ export const pendingCount = () => Object.values(SENSITIVITY_PENDING).reduce((n, 
 export const OWNER_DECISIONS = Object.freeze([
   {id: 'rules.blockPushback', wired: 'empurraria o DEFENSOR para trás ao bloquear um tackle (hoje só existe o recuo do atacante: rules.recoil/recoilFraction); 0,5 m ligado mudaria toda defesa'},
   {id: 'rules.slamAngle', wired: 'fixaria o ângulo de mergulho do meteor slam (hoje o mergulho mira o rival em aimSlamDive); ligado trocaria a mira por um ângulo fixo'},
-  {id: 'map.jumpLandingRecovery', wired: 'daria recuperação ao pousar de um pulo normal (hoje 0: physics.js land); 0,19 s ligado travaria o lutador a cada pulo'},
   {id: 'map.wallDamageMultiplier', wired: 'multiplicaria o dano na borda circular (hoje a borda não causa dano próprio; o wall-splat usa rules.wallSplatDamage = 0); com 1 não mudaria nada até existir dano de borda'},
   {id: 'actions.sprint.exhaustedStop', wired: 'permitiria (0) continuar o sprint com stamina zerada; hoje o sprint SEMPRE para na exaustão; com 1 o comportamento é o atual'},
   {id: 'extras.ai.revision', wired: 'voltaria a IA para a revisão 0/1 (hoje tactics.js fixa a revisão 2; revisionOverride só na avaliação pareada); 2 mantém o atual'},

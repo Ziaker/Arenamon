@@ -42,7 +42,8 @@ ok('defaults() = fábrica + tabela; nenhuma outra diferença');
 {
   // 3ª exportação (28/10/2026): defaults() reproduz o JSON do responsável folha a folha (números com tolerância de ruído; arrays/textos por valor).
   const json = JSON.parse(readFileSync(fileURLToPath(new URL('../../../docs/calibracao/arenamon-calibracao-v8-2026-10-28.json', import.meta.url)), 'utf8')).values;
-  const AJUSTES_POSTERIORES = new Set(['world.sandWave.pushSpeed', 'world.sandWave.pushMaxSpeed', 'world.bulletPunch.atelierVfx']);   // + Air Slash mais visível (prefixo abaixo)   // 29/10: pedido direto do responsável (empurrão constante), depois do export
+  const AJUSTES_POSTERIORES = new Set(['world.sandWave.pushSpeed', 'world.sandWave.pushMaxSpeed', 'world.bulletPunch.atelierVfx', 'map.jumpLandingRecovery']);   // 29/10: recuperação do pouso de salto normal ligada em 0,25 s por pedido do responsável (era 0,19 sem efeito)
+  //    // + Air Slash mais visível (prefixo abaixo)   // 29/10: pedido direto do responsável (empurrão constante), depois do export
   const J = flat(json), B = flat(base), diff = Object.keys(J).filter(k => !AJUSTES_POSTERIORES.has(k) && !k.startsWith('vfx.elemental.visual.airSlash') && (typeof J[k] === 'number' ? !(Math.abs(J[k] - B[k]) <= 1e-12 * Math.max(1, Math.abs(J[k]))) : JSON.stringify(J[k]) !== JSON.stringify(B[k])));
   assert.deepEqual(diff, [], `defaults() difere do JSON de 28/10: ${diff.slice(0, 5)}`);
 }

@@ -10,11 +10,11 @@ Para cada um: caminho em `C`, rótulo, unidade (lida do formato do próprio slid
 
 - Sliders: **1657** (Ajustes 1220 · Moves 437).
 - Gameplay com A/B: **497** — muda no cenário: **497**.
-- Visual/depuração (sem A/B da simulação): 826. Pendentes de cenário (listados com motivo): 310. Órfãos rotulados «(sem efeito)»: 24.
+- Visual/depuração (sem A/B da simulação): 826. Pendentes de cenário (listados com motivo): 311. Órfãos rotulados «(sem efeito)»: 23.
 - Parâmetros jogáveis sem slider: nenhum (fora os 2 limites técnicos abaixo).
 - Sliders numéricos sem unidade no formato (número puro: fração, multiplicador): 354 (orçamento 354, não pode crescer).
 
-- Pendentes de A/B: 310 (orçamento 310, só diminui); pendentes só com evidência fraca de consumidor (consumerWeak): 2 (orçamento 2). Total com evidência fraca (inclui visuais): 32.
+- Pendentes de A/B: 311 (orçamento 311, só diminui); pendentes só com evidência fraca de consumidor (consumerWeak): 2 (orçamento 2). Total com evidência fraca (inclui visuais): 32.
 
 ## Decisões pendentes do responsável
 
@@ -22,7 +22,6 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 
 - `rules.blockPushback` (Repulsão ao bloquear (defensor) (sem efeito); padrão 0.5 m): empurraria o DEFENSOR para trás ao bloquear um tackle (hoje só existe o recuo do atacante: rules.recoil/recoilFraction); 0,5 m ligado mudaria toda defesa.
 - `rules.slamAngle` (Meteor slam: ângulo do mergulho (sem efeito); padrão 0.785398 °): fixaria o ângulo de mergulho do meteor slam (hoje o mergulho mira o rival em aimSlamDive); ligado trocaria a mira por um ângulo fixo.
-- `map.jumpLandingRecovery` (Atraso de recuperação ao aterrissar (s) (sem efeito); padrão 0.19 s): daria recuperação ao pousar de um pulo normal (hoje 0: physics.js land); 0,19 s ligado travaria o lutador a cada pulo.
 - `map.wallDamageMultiplier` (Multiplicador de dano na borda circular (sem efeito); padrão 1 ×): multiplicaria o dano na borda circular (hoje a borda não causa dano próprio; o wall-splat usa rules.wallSplatDamage = 0); com 1 não mudaria nada até existir dano de borda.
 - `actions.sprint.exhaustedStop` (Stamina zerada encerra o sprint (sem efeito); padrão 1 liga/desliga): permitiria (0) continuar o sprint com stamina zerada; hoje o sprint SEMPRE para na exaustão; com 1 o comportamento é o atual.
 - `extras.ai.revision` (Revisão da IA (0 anterior · 1 revisada · 2 evoluída) (sem efeito); padrão 1 —): voltaria a IA para a revisão 0/1 (hoje tactics.js fixa a revisão 2; revisionOverride só na avaliação pareada); 2 mantém o atual.
@@ -46,7 +45,6 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 - `test.aiRange`: legado do v6; a IA usa extras.ai.attackRange/approachDistance.
 - `test.forwardTolerance`: legado do v6; a frente do golpe usa extras.combat.*Alignment.
 - `map.wallDamageMultiplier`: a borda circular não causa dano próprio; o wall-splat usa rules.wallSplatDamage (0 por padrão).
-- `map.jumpLandingRecovery`: o pouso de pulo normal não tem recuperação (physics.js land: wasNormalJump → 0); ligar mudaria o jogo.
 - `actions.sprint.exhaustedStop`: o sprint SEMPRE termina na exaustão (ctrl-update.js); a regra «desligado» não existe.
 - `extras.hud.debugFontSize`: a tela de depuração usa o CSS fixo; o valor não é aplicado.
 - `extras.hud.footerFontSize`: o rodapé usa o CSS fixo; o valor não é aplicado.
@@ -92,7 +90,7 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 
 ## Pendentes de cenário A/B (SENSITIVITY_PENDING)
 
-- **combate** (80): condição não exercitada pelos cenários roteirizados de 1,5–3 s (cadeia/cancelamento específico, janela fina, clash sem lançamento, hitstop, entrada do controle).
+- **combate** (81): condição não exercitada pelos cenários roteirizados de 1,5–3 s (cadeia/cancelamento específico, janela fina, clash sem lançamento, hitstop, entrada do controle).
 - **ia** (29): decisão da IA tática não mudou nos duelos de 3 e 8 s (probabilidade/limiar não atingido com a semente fixa).
 - **tecnico** (8): técnico de precisão/solver ou legado de comparação: sem efeito observável no cenário curto (não é parâmetro de gameplay, §14).
 - **mapa** (20): condição do mapa não ocorre no cenário curto (respawn de objeto, impacto em objeto, montagem em sólido, controle aéreo fino, pick-up repetido).
@@ -169,7 +167,7 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 | `actions.dodge.prepTime` | Fase de preparação · C | % | 0 | 0.8 | 0.01 | 0.03 | src/sim/motion.js:16 | muda · dodge |
 | `actions.dodge.impulseTime` | Fase de impulso · C | % | 0.02 | 1 | 0.01 | 0.1 | src/sim/motion.js:16 | muda · dodge |
 | `actions.dodge.decelStart` | Início da desaceleração · C | % | 0.1 | 1.9 | 0.01 | 0.6 | src/sim/motion.js:16 | muda · dodge |
-| `actions.dodge.recoveryTime` | Fase de recuperação · C | % | 0 | 0.8 | 0.01 | 0.1 | src/sim/controller/ctrl-moves.js:291 | muda · dodge |
+| `actions.dodge.recoveryTime` | Fase de recuperação · C | % | 0 | 0.8 | 0.01 | 0.1 | src/sim/controller/ctrl-moves.js:292 | muda · dodge |
 | `actions.dodge.prepSpeed` | Velocidade na preparação · C | % | 0 | 2 | 0.01 | 0.6 | src/sim/motion.js:17 | muda · dodge |
 | `actions.dodge.travelEnd` | Velocidade ao fim do deslocamento · C | % | 0.1 | 2 | 0.01 | 0.78 | src/sim/motion.js:19 | muda · dodge |
 | `actions.dodge.selfCancelFromEnd` | C só cancela C nos últimos · C | s | 0 | 3 | 0.01 | 0.1 | src/sim/controller/ctrl-basico.js:78 | pendente (combate) |
@@ -247,7 +245,7 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 | `rules.exhaustMode` | Quando fica exausto | seletor | 0 | 1 | 1 | 1 | src/sim/controller/ctrl-basico.js:36 | muda · duelLong |
 | `rules.comboWindow` | Janela de combo após acertar | s | 0 | 4 | 0.05 | 0.7 | src/sim/combat.js:208 | pendente (combate) |
 | `rules.guardSpeed` | Velocidade defendendo (%) | — | 0.01 | 60 | 0.01 | 0.6 | src/sim/controller/ctrl-basico.js:21 | muda · duelLong |
-| `rules.exhaustedSpeed` | Velocidade exausto (%) | — | 0.01 | 60 | 0.01 | 0.7 | src/sim/controller/ctrl-basico.js:21 | muda · duelLong |
+| `rules.exhaustedSpeed` | Velocidade exausto (%) | — | 0.01 | 60 | 0.01 | 0.7 | src/sim/controller/ctrl-basico.js:21 | pendente (combate) |
 | `rules.guardTurn` | Velocidade máxima de giro defendendo | ° | 0 | 50.2655 | 0.0174533 | 9.42478 | src/sim/controller/ctrl-update.js:271 | muda · duelLong |
 | `rules.guardAcceleration` | Aceleração do giro defendendo | ° | 0 | 50.2655 | 0.0174533 | 47.1239 | src/sim/controller/ctrl-update.js:271 | muda · duelLong |
 
@@ -288,7 +286,7 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 |---|---|---|---|---|---|---|---|---|
 | `rules.wallSplatMinSpeed` | Wall-splat: velocidade mínima | m/s | 0 | 60 | 0.5 | 6 | src/sim/physics.js:32 | muda · wall |
 | `rules.wallSplatDuration` | Wall-splat: duração | s | 0.1 | 4 | 0.01 | 0.7 | src/sim/physics.js:34 | muda · wall |
-| `rules.wallSplatDamage` | Wall-splat: dano extra | HP | 0 | 60 | 0.5 | 0 | src/sim/physics.js:534 | muda · wall |
+| `rules.wallSplatDamage` | Wall-splat: dano extra | HP | 0 | 60 | 0.5 | 0 | src/sim/physics.js:537 | muda · wall |
 | `rules.slamAngle` | Meteor slam: ângulo do mergulho (sem efeito) | ° | 0.174533 | 2.79253 | 0.0174533 | 0.785398 | **SEM CONSUMIDOR** | sem efeito (órfão rotulado) |
 | `rules.slamMinHeight` | Meteor slam: altura mínima do C → X | m | 0 | 4 | 0.05 | 0.3 | src/sim/controller/ctrl-basico.js:73 | muda · slam |
 | `rules.slamDamage` | Meteor slam: dano | × | 1 | 8 | 0.01 | 1 | src/sim/controller/ctrl-tackle.js:127 | muda · slam |
@@ -310,7 +308,7 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 | `rules.slamFxFlicker` | Meteor slam: tremulação das chamas | % | 0 | 2 | 0.01 | 0.5 | src/view/meteor-fx.js:135 | visual/depuração |
 | `rules.slamFxFadeOut` | Meteor slam: dissipação ao aterrissar | s | 0 | 3 | 0.01 | 0.25 | src/view/meteor-fx.js:130 | visual/depuração |
 | `rules.slamGroundTime` | Meteor slam: estado no chão | s | 0 | 4 | 0.01 | 0.45 | src/sim/controller/ctrl-update.js:444 | muda · slam |
-| `rules.slamGroundRadius` | Meteor slam: alcance do impacto no chão | m | 0.5 | 8 | 0.05 | 1.4 | src/sim/physics.js:566 | muda · slam |
+| `rules.slamGroundRadius` | Meteor slam: alcance do impacto no chão | m | 0.5 | 8 | 0.05 | 1.4 | src/sim/physics.js:569 | muda · slam |
 | `rules.slamPrepTime` | Meteor slam: preparação no ar | s | 0 | 3 | 0.01 | 0.5 | src/sim/controller/ctrl-tackle.js:93 | muda · slam |
 | `rules.slamHop` | Meteor slam: altura da preparação | m | 0 | 6 | 0.05 | 0.8 | src/sim/controller/ctrl-update.js:341 | muda · slam |
 | `rules.slamFallTime` | Meteor slam: tempo de queda | s | 0 | 1.2 | 0.01 | 0.12 | src/sim/controller/ctrl-update.js:321 | muda · slam |
@@ -328,7 +326,7 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 | `rules.launchGravity` | Gravidade de lançamento | — | 0.5 | 120 | 0.1 | 39.6 | src/app/live-panels.js:23 | muda · flight |
 | `rules.launchUp` | Força vertical do impacto | — | 0 | 120 | 0.1 | 7.1 | src/sim/combat.js:199 | muda · tackle |
 | `rules.launchHorizontal` | Força horizontal do impacto | — | 0 | 120 | 0.1 | 19.3 | src/sim/combat.js:195 | muda · tackle |
-| `rules.launchDrag` | Arrasto no voo | — | 0 | 20 | 0.05 | 1.15 | src/sim/physics.js:323 | muda · flight |
+| `rules.launchDrag` | Arrasto no voo | — | 0 | 20 | 0.05 | 1.15 | src/sim/physics.js:326 | muda · flight |
 | `rules.clashFraction` | Dano de clash (%) | — | 0 | 4 | 0.01 | 0.3 | src/sim/combat.js:56 | muda · clash |
 | `rules.clashUp` | Força vertical do clash | — | 0 | 120 | 0.1 | 8.1 | src/sim/combat.js:62 | pendente (combate) |
 | `rules.clashHorizontal` | Força horizontal do clash | — | 0 | 120 | 0.1 | 12 | src/sim/combat.js:62 | pendente (combate) |
@@ -337,7 +335,7 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 | `rules.techWindow` | Recovery rápido: janela | s | 0.05 | 3 | 0.01 | 0.35 | src/sim/controller/ctrl-tackle.js:135 | pendente (combate) |
 | `rules.techMinAir` | Recovery rápido: tempo mínimo de voo | s | 0 | 3 | 0.01 | 0 | src/sim/controller/ctrl-tackle.js:135 | muda · flight |
 | `rules.techCost` | Recovery rápido: custo de stamina | — | 0 | 4 | 0.05 | 1 | src/sim/controller/ctrl-update.js:157 | muda · flight |
-| `rules.landingRecovery` | Recuperação após aterrissar | s | 0 | 8 | 0.01 | 0.467 | src/sim/physics.js:251 | muda · tackle |
+| `rules.landingRecovery` | Recuperação após aterrissar | s | 0 | 8 | 0.01 | 0.467 | src/sim/physics.js:253 | muda · tackle |
 | `rules.wallRestitution` | Rebote na parede: horizontal | × | 0 | 4 | 0.01 | 0.28 | src/sim/map/map-collision.js:30 | muda · wallBounce |
 | `rules.wallBounceVertical` | Rebote na parede: vertical (× velocidade vertical) | × | -1 | 4 | 0.01 | 1 | src/sim/physics.js:25 | muda · wallBounce |
 | `rules.wallBounceUp` | Rebote na parede: impulso vertical | m/s | 0 | 40 | 0.1 | 0 | src/sim/physics.js:25 | muda · wallBounce |
@@ -361,7 +359,7 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 | `extras.combat.launchClosingMultiplier` | Velocidade → força | — | 0 | 4 | 0.01 | 0.1 | src/sim/combat.js:195 | muda · tackle |
 | `extras.combat.launchNormalWeight` | Peso da normal de contato | — | 0 | 4 | 0.01 | 0.75 | src/sim/combat.js:197 | pendente (combate) |
 | `extras.combat.launchCenterWeight` | Peso da direção entre centros | — | 0 | 4 | 0.01 | 0.25 | src/sim/combat.js:197 | pendente (combate) |
-| `extras.combat.contactProjectionPasses` | Passagens para separar colisores | — | 1 | 20 | 1 | 4 | src/sim/physics.js:467 | pendente (combate) |
+| `extras.combat.contactProjectionPasses` | Passagens para separar colisores | — | 1 | 20 | 1 | 4 | src/sim/physics.js:470 | pendente (combate) |
 | `extras.combat.clashHitstop` | Hitstop do clash (X×X) | — | 0 | 1 | 0.001 | 0.033 | src/sim/game.js:113 | muda · clash |
 | `extras.combat.impactHitstop` | Hitstop dos impactos comuns | — | 0 | 1 | 0.001 | 0.008 | src/sim/game.js:117 | muda · tackle |
 | `extras.combat.hitstopDamageBoost` | Hitstop por dano: acréscimo no golpe forte | Desligado (hitstop fixo) | 0 | 6 | 0.1 | 0 | src/sim/game.js:117 | muda · tackle |
@@ -370,8 +368,8 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 | `extras.combat.exhaustRecovery` | Recuperação extra ao esgotar a stamina | — | 0 | 4 | 0.01 | 0.15 | src/sim/controller/ctrl-update.js:448 | pendente (combate) |
 | `extras.combat.guardRegenFactor` | Regeneração de stamina defendendo (×) | — | 0 | 7 | 0.01 | 0.7 | src/sim/controller/ctrl-update.js:170 | pendente (combate) |
 | `extras.combat.landingSkidFraction` | Deslize ao aterrissar: fração da velocidade | — | 0 | 4 | 0.01 | 0.34 | src/sim/physics.js:245 | muda · tackle |
-| `extras.combat.landingSkidDrag` | Deslize ao aterrissar: atrito | — | 0 | 64 | 0.05 | 8 | src/sim/physics.js:427 | muda · tackle |
-| `extras.combat.landingSkidMin` | Deslize ao aterrissar: velocidade mínima | — | 0 | 1.28 | 0.001 | 0.08 | src/sim/physics.js:428 | muda · tackle |
+| `extras.combat.landingSkidDrag` | Deslize ao aterrissar: atrito | — | 0 | 64 | 0.05 | 8 | src/sim/physics.js:430 | muda · tackle |
+| `extras.combat.landingSkidMin` | Deslize ao aterrissar: velocidade mínima | — | 0 | 1.28 | 0.001 | 0.08 | src/sim/physics.js:431 | muda · tackle |
 
 ## Atributos: equilibrado
 
@@ -419,7 +417,7 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 | `locomotion.moveFrame` | Referencial das setas com lock-on | seletor | 0 | 1 | 1 | 0 | src/ui/input.js:15 | pendente (combate) |
 | `locomotion.frameLatch` | Travar o referencial enquanto a seta é mantida | liga/desliga | 0 | 1 | 1 | 1 | src/ui/input.js:31 | pendente (combate) |
 | `locomotion.lockFacing` | Orientação do corpo com lock-on | seletor | 0 | 2 | 1 | 2 | src/sim/controller/ctrl-update.js:263 | muda · duel |
-| `locomotion.stopThreshold` | Limiar das animações de freio | % | 0 | 2 | 0.01 | 0.55 | src/view/characters.js:541 | pendente (combate) |
+| `locomotion.stopThreshold` | Limiar das animações de freio | % | 0 | 2 | 0.01 | 0.55 | src/view/characters.js:543 | pendente (combate) |
 | `locomotion.lockTackleHoming` | Lock-on: tackle sempre rumo ao oponente | liga/desliga | 0 | 1 | 1 | 1 | src/sim/controller/ctrl-update.js:401 | pendente (combate) |
 
 ## Câmera
@@ -545,16 +543,16 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 | `test.attack` | Ataque base | — | 0 | 200 | 1 | 20 | src/sim/moves/air-slash.js:22 | pendente (tecnico) |
 | `test.defense` | Defesa base (sem efeito) | — | 0 | 200 | 1 | 50 | **SEM CONSUMIDOR** | sem efeito (órfão rotulado) |
 | `test.speed` | Velocidade base · legado (sem efeito) | — | 0.01 | 30 | 0.01 | 4.8 | **SEM CONSUMIDOR** | sem efeito (órfão rotulado) |
-| `test.attackReference` | Referência de ataque | — | 0.01 | 200 | 1 | 20 | src/sim/controller/ctrl-moves.js:132 | pendente (tecnico) |
+| `test.attackReference` | Referência de ataque | — | 0.01 | 200 | 1 | 20 | src/sim/controller/ctrl-moves.js:133 | pendente (tecnico) |
 | `test.speedReference` | Referência de velocidade (sem efeito) | — | 0.01 | 200 | 1 | 10 | **SEM CONSUMIDOR** | sem efeito (órfão rotulado) |
 | `test.defenseMedian` | Mediana de defesa (sem efeito) | — | 0.01 | 200 | 1 | 50 | **SEM CONSUMIDOR** | sem efeito (órfão rotulado) |
 | `test.pushCoefficient` | Coeficiente legado de empurrão (sem efeito) | — | 0 | 10 | 0.05 | 2 | **SEM CONSUMIDOR** | sem efeito (órfão rotulado) |
-| `test.pushDuration` | Duração do empurrão legado | — | 0 | 2 | 0.01 | 0.3 | src/sim/physics.js:432 | pendente (tecnico) |
+| `test.pushDuration` | Duração do empurrão legado | — | 0 | 2 | 0.01 | 0.3 | src/sim/physics.js:435 | pendente (tecnico) |
 | `test.aiInterval` | Intervalo padrão de IA | — | 0 | 4.25 | 0.01 | 0.85 | src/sim/ai.js:133 | pendente (tecnico) |
 | `test.aiRange` | Distância padrão da IA (sem efeito) | — | 0 | 13.2 | 0.05 | 3.3 | **SEM CONSUMIDOR** | sem efeito (órfão rotulado) |
-| `test.contactStep` | Tamanho máximo de subpasso | — | 0.01 | 2 | 0.01 | 0.1 | src/sim/physics.js:437 | muda · duel |
+| `test.contactStep` | Tamanho máximo de subpasso | — | 0.01 | 2 | 0.01 | 0.1 | src/sim/physics.js:440 | muda · duel |
 | `test.epsilon` | Tolerância de contato | — | 0 | 0.000001 | 1e-9 | 1e-8 | src/sim/physics.js:157 | pendente (tecnico) |
-| `test.contactShape` | Pegada do contato lutador × lutador (0 = quadrada · 1 = circular) | seletor | 0 | 1 | 1 | 1 | src/sim/physics.js:494 | pendente (tecnico) |
+| `test.contactShape` | Pegada do contato lutador × lutador (0 = quadrada · 1 = circular) | seletor | 0 | 1 | 1 | 1 | src/sim/physics.js:497 | pendente (tecnico) |
 | `test.forwardTolerance` | Tolerância frontal legada (sem efeito) | ° | 0 | 3.14159 | 0.0174533 | 0.392699 | **SEM CONSUMIDOR** | sem efeito (órfão rotulado) |
 
 ## Arena circular
@@ -597,16 +595,16 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 | `map.jumpHeight` | Altura do salto normal (m) | m | 0.5 | 10 | 0.1 | 2.4 | src/nav/nav-graph.js:17 | muda · jump |
 | `map.jumpGravity` | Gravidade do salto normal (m/s²) | m/s² | 5 | 80 | 0.5 | 17.5 | src/sim/controller/ctrl-tackle.js:146 | muda · jump |
 | `map.jumpInterval` | Intervalo mínimo entre saltos (s) | s | 0.05 | 10 | 0.01 | 0.12 | src/sim/controller/ctrl-update.js:455 | muda · jump |
-| `map.jumpLandingRecovery` | Atraso de recuperação ao aterrissar (s) (sem efeito) | s | 0.05 | 10 | 0.01 | 0.19 | **SEM CONSUMIDOR** | sem efeito (órfão rotulado) |
-| `map.jumpDrag` | Arrasto no salto (perda de vel.) | s⁻¹ | 0 | 6 | 0.05 | 0 | src/sim/physics.js:323 | muda · jump |
+| `map.jumpLandingRecovery` | Recuperação ao aterrissar de um salto normal (s · 0 desliga; sem ações até acabar) | s | 0 | 2 | 0.01 | 0.25 | src/sim/physics.js:252 | muda · jump |
+| `map.jumpDrag` | Arrasto no salto (perda de vel.) | s⁻¹ | 0 | 6 | 0.05 | 0 | src/sim/physics.js:326 | muda · jump |
 | `map.jumpAirControl` | Controle direcional no ar (%) | % | 0 | 2 | 0.05 | 0.85 | src/sim/controller/ctrl-update.js:97 | pendente (mapa) |
 | `map.jumpImprovements` | Melhorias de salto estilo SM64 (0/1) | liga/desliga | 0 | 1 | 1 | 1 | src/sim/controller/ctrl-tackle.js:159 | muda · jump |
-| `map.jumpGravityUp` | Gravidade subindo (m/s²) | m/s² | 5 | 80 | 0.5 | 17.5 | src/sim/physics.js:287 | muda · jump |
-| `map.jumpGravityDown` | Gravidade descendo (m/s²) | m/s² | 5 | 80 | 0.5 | 28.5 | src/sim/physics.js:287 | muda · jump |
-| `map.jumpReleaseMult` | Gravidade ao soltar o botão (×) | × | 1 | 8 | 0.1 | 2.2 | src/sim/physics.js:288 | muda · jump |
-| `map.jumpMaxFallSpeed` | Velocidade terminal de queda (m/s) | — | 0.01 | 60 | 0.01 | 15.14 | src/sim/physics.js:289 | muda · jump |
+| `map.jumpGravityUp` | Gravidade subindo (m/s²) | m/s² | 5 | 80 | 0.5 | 17.5 | src/sim/physics.js:290 | muda · jump |
+| `map.jumpGravityDown` | Gravidade descendo (m/s²) | m/s² | 5 | 80 | 0.5 | 28.5 | src/sim/physics.js:290 | muda · jump |
+| `map.jumpReleaseMult` | Gravidade ao soltar o botão (×) | × | 1 | 8 | 0.1 | 2.2 | src/sim/physics.js:291 | muda · jump |
+| `map.jumpMaxFallSpeed` | Velocidade terminal de queda (m/s) | — | 0.01 | 60 | 0.01 | 15.14 | src/sim/physics.js:292 | muda · jump |
 | `map.jumpAirAccel` | Aceleração do controle aéreo (m/s²) | m/s² | 0 | 80 | 0.5 | 10.5 | src/sim/controller/ctrl-update.js:95 | muda · jump |
-| `map.jumpAirMaxSpeed` | Teto do controle aéreo (m/s) | — | 0.01 | 60 | 0.01 | 4.5 | src/sim/physics.js:296 | muda · jump |
+| `map.jumpAirMaxSpeed` | Teto do controle aéreo (m/s) | — | 0.01 | 60 | 0.01 | 4.5 | src/sim/physics.js:299 | muda · jump |
 | `map.jumpCoyoteTime` | Coyote time (s) | s | 0 | 1 | 0.01 | 0.1 | src/sim/ledge.js:64 | pendente (mapa) |
 | `map.jumpBufferWindow` | Janela de buffer de salto (s) | s | 0 | 1 | 0.01 | 0.12 | src/sim/controller/ctrl-update.js:52 | muda · jump |
 
@@ -614,17 +612,17 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 
 | id | rótulo | unidade | mín | máx | passo | padrão | consumidor | A/B |
 |---|---|---|---|---|---|---|---|---|
-| `map.footstoolEnabled` | Footstool: pisar no rival (0/1) | liga/desliga | 0 | 1 | 1 | 1 | src/sim/physics.js:345 | muda · jump |
+| `map.footstoolEnabled` | Footstool: pisar no rival (0/1) | liga/desliga | 0 | 1 | 1 | 1 | src/sim/physics.js:348 | muda · jump |
 | `map.footstoolDamage` | Footstool: dano (HP) | HP | 0 | 60 | 1 | 5 | src/sim/combat.js:226 | muda · jump |
-| `map.footstoolBounce` | Footstool: rebote vertical (m/s) | m/s | 0 | 28 | 0.1 | 11.1 | src/sim/physics.js:358 | muda · jump |
+| `map.footstoolBounce` | Footstool: rebote vertical (m/s) | m/s | 0 | 28 | 0.1 | 11.1 | src/sim/physics.js:361 | muda · jump |
 | `map.footstoolStagger` | Footstool: stagger (s) | s | 0 | 4 | 0.05 | 0.55 | src/sim/combat.js:228 | muda · jump |
-| `map.footstoolTolerance` | Footstool: tolerância lateral (m) | m | 0 | 2 | 0.01 | 0.12 | src/sim/physics.js:347 | muda · jump |
-| `map.footstoolMinFallSpeed` | Footstool: vel. mínima de queda (m/s) | — | 0.01 | 60 | 0.01 | 1 | src/sim/physics.js:353 | muda · jump |
-| `map.footstoolCooldown` | Footstool: recarga (s) | s | 0 | 6 | 0.05 | 0.5 | src/sim/physics.js:357 | pendente (mapa) |
-| `map.footstoolVault` | Footstool: esquiva (C) por cima do rival também pisa (0/1) | liga/desliga | 0 | 1 | 1 | 1 | src/sim/physics.js:378 | pendente (mapa) |
-| `map.footstoolAirAccel` | Footstool: controle aéreo após o rebote (m/s²) | m/s² | 0 | 120 | 0.5 | 46 | src/sim/physics.js:361 | muda · jump |
-| `map.footstoolAirMaxSpeed` | Footstool: velocidade aérea máx. após o rebote (m/s) | — | 0.01 | 60 | 0.01 | 7.5 | src/sim/physics.js:361 | muda · jump |
-| `map.footstoolVaultMargin` | Footstool pela esquiva: margem abaixo da cabeça (m) | m | 0 | 2.4 | 0.01 | 0.35 | src/sim/physics.js:379 | pendente (mapa) |
+| `map.footstoolTolerance` | Footstool: tolerância lateral (m) | m | 0 | 2 | 0.01 | 0.12 | src/sim/physics.js:350 | muda · jump |
+| `map.footstoolMinFallSpeed` | Footstool: vel. mínima de queda (m/s) | — | 0.01 | 60 | 0.01 | 1 | src/sim/physics.js:356 | muda · jump |
+| `map.footstoolCooldown` | Footstool: recarga (s) | s | 0 | 6 | 0.05 | 0.5 | src/sim/physics.js:360 | pendente (mapa) |
+| `map.footstoolVault` | Footstool: esquiva (C) por cima do rival também pisa (0/1) | liga/desliga | 0 | 1 | 1 | 1 | src/sim/physics.js:381 | pendente (mapa) |
+| `map.footstoolAirAccel` | Footstool: controle aéreo após o rebote (m/s²) | m/s² | 0 | 120 | 0.5 | 46 | src/sim/physics.js:364 | muda · jump |
+| `map.footstoolAirMaxSpeed` | Footstool: velocidade aérea máx. após o rebote (m/s) | — | 0.01 | 60 | 0.01 | 7.5 | src/sim/physics.js:364 | muda · jump |
+| `map.footstoolVaultMargin` | Footstool pela esquiva: margem abaixo da cabeça (m) | m | 0 | 2.4 | 0.01 | 0.35 | src/sim/physics.js:382 | pendente (mapa) |
 
 ## Consumíveis e drops
 
@@ -716,16 +714,16 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 | `extras.gameFeel.whiffDust` | Golpe no vazio: poeira no chão (×) | × | 0 | 2 | 0.05 | 1 | src/view/whiff-fx.js:118 | visual/depuração |
 | `extras.gameFeel.whiffOvershoot` | Golpe no vazio: giro de desequilíbrio na recuperação (°) | ° | 0 | 12 | 0.5 | 4 | src/view/whiff-fx.js:126 | visual/depuração |
 | `extras.gameFeel.whiffMinDistance` | Golpe no vazio: distância mínima do rival para valer (m) | m | 0 | 1 | 0.01 | 0.25 | src/view/whiff-fx.js:78 | visual/depuração |
-| `extras.gameFeel.ledgeOffsetY` | Borda: ajuste vertical da pose pendurada (m) | m | -0.5 | 0.5 | 0.01 | 0 | src/view/characters.js:965 | visual/depuração |
-| `extras.gameFeel.ledgeOffsetZ` | Borda: ajuste horizontal da pose, rumo à parede (m) | m | -0.5 | 0.5 | 0.01 | 0 | src/view/characters.js:962 | visual/depuração |
-| `extras.gameFeel.ledgeSizeComp` | Borda: compensação do tamanho do modelo na pose pendurada (× · 0 desliga) | × | 0 | 2 | 0.05 | 1 | src/view/characters.js:964 | visual/depuração |
-| `extras.gameFeel.footOn` | Apoio visual dos pés (IK) ligado | liga/desliga | 0 | 1 | 1 | 0 | src/view/characters.js:743 | visual/depuração |
+| `extras.gameFeel.ledgeOffsetY` | Borda: ajuste vertical da pose pendurada (m) | m | -0.5 | 0.5 | 0.01 | 0 | src/view/characters.js:967 | visual/depuração |
+| `extras.gameFeel.ledgeOffsetZ` | Borda: ajuste horizontal da pose, rumo à parede (m) | m | -0.5 | 0.5 | 0.01 | 0 | src/view/characters.js:964 | visual/depuração |
+| `extras.gameFeel.ledgeSizeComp` | Borda: compensação do tamanho do modelo na pose pendurada (× · 0 desliga) | × | 0 | 2 | 0.05 | 1 | src/view/characters.js:966 | visual/depuração |
+| `extras.gameFeel.footOn` | Apoio visual dos pés (IK) ligado | liga/desliga | 0 | 1 | 1 | 0 | src/view/characters.js:745 | visual/depuração |
 | `extras.gameFeel.footMaxCorrection` | Pés: correção máxima do tornozelo (m) | m | 0 | 0.25 | 0.005 | 0.12 | src/view/rig-layers.js:193 (consumerWeak) | visual/depuração |
 | `extras.gameFeel.footPelvisMax` | Pés: correção máxima da pelve (m) | m | 0 | 0.15 | 0.005 | 0.06 | src/view/rig-layers.js:194 (consumerWeak) | visual/depuração |
 | `extras.gameFeel.footSmooth` | Pés: suavização da posição (s) | s | 0.02 | 0.2 | 0.01 | 0.08 | src/view/rig-layers.js:177 (consumerWeak) | visual/depuração |
 | `extras.gameFeel.footPlantSpeed` | Pés: velocidade abaixo da qual o pé fica plantado (m/s) | m/s | 0 | 1.5 | 0.05 | 0.6 | src/view/rig-layers.js:210 (consumerWeak) | visual/depuração |
 | `extras.gameFeel.footSlope` | Pés: alinhamento da sola ao apoio (%) | % | 0 | 100 | 1 | 60 | src/view/rig-layers.js:219 (consumerWeak) | visual/depuração |
-| `extras.gameFeel.trackOn` | Olhar para o alvo travado (rastreamento aditivo) ligado | liga/desliga | 0 | 1 | 1 | 0 | src/view/characters.js:743 | visual/depuração |
+| `extras.gameFeel.trackOn` | Olhar para o alvo travado (rastreamento aditivo) ligado | liga/desliga | 0 | 1 | 1 | 0 | src/view/characters.js:745 | visual/depuração |
 | `extras.gameFeel.trackHeadYaw` | Olhar: limite horizontal da cabeça (°) | ° | 0 | 65 | 1 | 45 | src/view/rig-layers.js:281 (consumerWeak) | visual/depuração |
 | `extras.gameFeel.trackHeadPitch` | Olhar: limite vertical da cabeça (°) | ° | 0 | 35 | 1 | 20 | src/view/rig-layers.js:287 (consumerWeak) | visual/depuração |
 | `extras.gameFeel.trackTorso` | Olhar: contribuição do tronco (%) | % | 0 | 70 | 1 | 35 | src/view/rig-layers.js:281 (consumerWeak) | visual/depuração |
@@ -933,8 +931,8 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 | `extras.visual.squashStretch.enableSquashStretch` | Deformação elástica do Tackle | liga/desliga | 0 | 1 | 1 | 1 | src/sim/animation-profile.js:264 (consumerWeak) | visual/depuração |
 | `extras.visual.squashStretch.squashOnDodge` | Squash & stretch também na esquiva (C) | liga/desliga | 0 | 1 | 1 | 1 | src/sim/animation-profile.js:264 (consumerWeak) | visual/depuração |
 | `extras.visual.squashStretch.dodgeSquashScale` | Intensidade na esquiva | % | 0 | 2 | 0.05 | 1.3 | src/sim/animation-profile.js:264 (consumerWeak) | visual/depuração |
-| `extras.visual.squashStretch.squashIntensity` | Compressão no arranque | % | 0 | 0.3 | 0.01 | 0.17 | src/view/characters.js:949 | visual/depuração |
-| `extras.visual.squashStretch.stretchIntensity` | Alongamento no impulso | % | 0 | 0.4 | 0.01 | 0.31 | src/view/characters.js:949 | visual/depuração |
+| `extras.visual.squashStretch.squashIntensity` | Compressão no arranque | % | 0 | 0.3 | 0.01 | 0.17 | src/view/characters.js:951 | visual/depuração |
+| `extras.visual.squashStretch.stretchIntensity` | Alongamento no impulso | % | 0 | 0.4 | 0.01 | 0.31 | src/view/characters.js:951 | visual/depuração |
 | `extras.visual.squashStretch.squashWindow` | Janela de compressão | ms | 0 | 150 | 1 | 60 | src/sim/animation-profile.js:264 (consumerWeak) | visual/depuração |
 | `extras.visual.squashStretch.settleDuration` | Retorno amortecido | ms | 30 | 200 | 1 | 80 | src/sim/animation-profile.js:264 (consumerWeak) | visual/depuração |
 | `extras.visual.squashStretch.preserveVolume` | Preservar volume | liga/desliga | 0 | 1 | 1 | 1 | src/sim/animation-profile.js:264 (consumerWeak) | visual/depuração |
@@ -1707,7 +1705,7 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 
 | id | rótulo | unidade | mín | máx | passo | padrão | consumidor | A/B |
 |---|---|---|---|---|---|---|---|---|
-| `passivas.vital-spirit.thresholdPct` | Limiar de stamina (%) | — | 0 | 4 | 0.01 | 0.3 | src/sim/passive-engine.js:256 | muda · passiva/vital-spirit/roteiro |
+| `passivas.vital-spirit.thresholdPct` | Limiar de stamina (%) | — | 0 | 4 | 0.01 | 0.3 | src/sim/passive-engine.js:256 | muda · passiva/vital-spirit |
 | `passivas.vital-spirit.regenPct` | Bônus de regeneração (%) | — | 0 | 4 | 0.01 | 0.3 | src/sim/passive-engine.js:256 | muda · passiva/vital-spirit |
 
 ## Passivas · Guts (vigoroth)
@@ -1905,7 +1903,7 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 | id | rótulo | unidade | mín | máx | passo | padrão | consumidor | A/B |
 |---|---|---|---|---|---|---|---|---|
 | `display.rangeRing.rangeOn` | Círculo de alcance dos Moves de alvo único | liga/desliga | 0 | 1 | 1 | 1 | src/view/aim-marker-view.js:16 | visual/depuração |
-| `display.rangeRing.flashTime` | Duração da piscada vermelha ao soltar fora do alcance (s) | s | 0 | 3 | 0.05 | 0.7 | src/sim/controller/ctrl-moves.js:184 | visual/depuração |
+| `display.rangeRing.flashTime` | Duração da piscada vermelha ao soltar fora do alcance (s) | s | 0 | 3 | 0.05 | 0.7 | src/sim/controller/ctrl-moves.js:185 | visual/depuração |
 | `display.rangeRing.rangeOpacity` | Opacidade do círculo de alcance | % | 0.1 | 1 | 0.05 | 0.85 | src/view/aim-marker-view.js:16 | visual/depuração |
 | `display.rangeRing.rangeWidth` | Espessura do círculo de alcance (m) | m | 0.02 | 0.8 | 0.01 | 0.2 | src/view/aim-marker-view.js:16 | visual/depuração |
 | `display.rangeRing.rangeFill` | Preenchimento do círculo de alcance | % | 0 | 0.6 | 0.01 | 0.12 | src/view/aim-marker-view.js:16 | visual/depuração |
@@ -2014,7 +2012,7 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 | `world.bulletPunch.knockbackOwn` | Knockback próprio (em vez da fórmula do Tackle) | liga/desliga | 0 | 1 | 1 | 0 | src/sim/moves/bullet-punch/bullet-punch.js:25 | muda · bullet-punch/perto |
 | `world.bulletPunch.knockbackH` | Knockback horizontal (próprio) | m/s | 0 | 15 | 0.1 | 4 | src/sim/moves/bullet-punch/bullet-punch.js:25 | muda · bullet-punch/perto |
 | `world.bulletPunch.knockbackV` | Knockback vertical (próprio) | m/s | 0 | 15 | 0.1 | 0 | src/sim/moves/bullet-punch/bullet-punch.js:25 | muda · bullet-punch/perto |
-| `world.bulletPunch.slow` | Redução da velocidade na preparação | % | 0 | 1.9 | 0.05 | 0.7 | src/sim/controller/ctrl-moves.js:270 | muda · bullet-punch/duelo |
+| `world.bulletPunch.slow` | Redução da velocidade na preparação | % | 0 | 1.9 | 0.05 | 0.7 | src/sim/controller/ctrl-moves.js:271 | muda · bullet-punch/duelo |
 | `world.bulletPunch.maxRise` | Altura de apoio na chegada (técnico) | m | 0 | 12 | 0.25 | 2 | src/sim/aim-marker.js:20 | pendente (move) |
 | `world.bulletPunch.fxLines` | Linhas de velocidade no sumiço | liga/desliga | 0 | 1 | 1 | 1 | src/view/aim-marker-view.js:66 | visual/depuração |
 | `world.bulletPunch.fxHideBody` | Ocultar o corpo durante o sumiço | liga/desliga | 0 | 1 | 1 | 1 | src/view/view.js:360 | visual/depuração |
@@ -2047,10 +2045,10 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 | `world.emergingStone.maxRocks` | Rochas simultâneas por dono | inteiro | 1 | 20 | 1 | 3 | src/sim/stone.js:131 | pendente (move) |
 | `world.emergingStone.rockSearch` | Busca de lugar válido (m) | m | 0 | 20 | 0.25 | 4 | src/sim/stone.js:117 | pendente (move) |
 | `world.emergingStone.startDistance` | Distância inicial do marcador | m | 1 | 20 | 0.25 | 5 | src/sim/aim-marker.js:45 | pendente (move) |
-| `world.emergingStone.markerAccel` | Aceleração do marcador | número | 0 | 400 | 1 | 24 | src/sim/controller/ctrl-moves.js:201 | muda · emerging-stone/duelo |
+| `world.emergingStone.markerAccel` | Aceleração do marcador | número | 0 | 400 | 1 | 24 | src/sim/controller/ctrl-moves.js:202 | muda · emerging-stone/duelo |
 | `world.emergingStone.fxTrailOn` | Rastro de terra do projétil | liga/desliga | 0 | 1 | 1 | 1 | src/view/world-view/wv-update.js:93 | visual/depuração |
 | `world.emergingStone.fxTrailSize` | Tamanho do rastro de terra | × | 0.5 | 10 | 0.1 | 1.8 | src/view/world-view/wv-update.js:93 | visual/depuração |
-| `world.emergingStone.markerSpeed` | Velocidade do marcador | m/s | 1 | 60 | 0.5 | 8 | src/sim/controller/ctrl-moves.js:201 | muda · emerging-stone/duelo |
+| `world.emergingStone.markerSpeed` | Velocidade do marcador | m/s | 1 | 60 | 0.5 | 8 | src/sim/controller/ctrl-moves.js:202 | muda · emerging-stone/duelo |
 | `world.emergingStone.maxRise` | Altura de apoio do marcador (técnico) | m | 0 | 12 | 0.25 | 2 | src/sim/aim-marker.js:20 | pendente (move) |
 | `world.emergingStone.edgeMargin` | Folga da borda da arena (técnico) | m | 0 | 4 | 0.05 | 0.3 | src/sim/aim-marker.js:23 | pendente (move) |
 | `world.emergingStone.radius` | Folga contra paredes do marcador (técnico) | m | 0 | 6 | 0.1 | 0 | src/sim/aim-marker.js:28 | pendente (move) |
@@ -2101,8 +2099,8 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 | `world.fireSpin.maxActive` | Zonas simultâneas por dono | inteiro | 1 | 8 | 1 | 1 | src/sim/moves/fire-spin.js:22 | pendente (move) |
 | `world.fireSpin.allowOccupied` | Permitir colocar sobre um lutador | liga/desliga | 0 | 1 | 1 | 1 | src/sim/aim-marker.js:31 | muda · fire-spin/perto |
 | `world.fireSpin.minRange` | Alcance mínimo do marcador | m | 0 | 20 | 0.25 | 3 | src/sim/aim-marker.js:25 | muda · fire-spin/perto |
-| `world.fireSpin.markerSpeed` | Velocidade do marcador | m/s | 1 | 60 | 0.5 | 8 | src/sim/controller/ctrl-moves.js:201 | muda · fire-spin/duelo |
-| `world.fireSpin.markerAccel` | Aceleração do marcador | m/s² | 0 | 200 | 1 | 24 | src/sim/controller/ctrl-moves.js:201 | muda · fire-spin/duelo |
+| `world.fireSpin.markerSpeed` | Velocidade do marcador | m/s | 1 | 60 | 0.5 | 8 | src/sim/controller/ctrl-moves.js:202 | muda · fire-spin/duelo |
+| `world.fireSpin.markerAccel` | Aceleração do marcador | m/s² | 0 | 200 | 1 | 24 | src/sim/controller/ctrl-moves.js:202 | muda · fire-spin/duelo |
 | `world.fireSpin.startDistance` | Distância inicial do marcador | m | 0.5 | 20 | 0.25 | 3 | src/sim/aim-marker.js:45 | pendente (move) |
 | `world.fireSpin.maxRise` | Altura máxima de apoio acima dos pés | m | 0 | 12 | 0.25 | 2 | src/sim/aim-marker.js:20 | pendente (move) |
 | `world.fireSpin.pulsePl` | Power Level dos pulsos | inteiro | 1 | 3 | 1 | 1 | src/sim/moves/fire-spin.js:28 | pendente (move) |
@@ -2258,13 +2256,13 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 | `world.riposte.cooldown` | Cooldown | s | 0 | 120 | 0.5 | 8 | src/sim/moves.js:88 | pendente (move) |
 | `world.riposte.cast` | Duração total da postura | s | 0.2 | 6 | 0.01 | 0.65 | src/sim/moves.js:85 | muda · riposte/perto |
 | `world.riposte.windowStart` | Janela do contra-ataque: início | s | 0 | 4 | 0.01 | 0 | src/sim/entity.js:89 | muda · riposte/contra-ataque |
-| `world.riposte.windowEnd` | Janela do contra-ataque: fim | s | 0 | 4 | 0.01 | 0.59 | src/sim/controller/ctrl-moves.js:136 | muda · riposte/contra-ataque |
-| `world.riposte.damage` | Dano nominal do contra-golpe | número | 0 | 80 | 0.5 | 14 | src/sim/controller/ctrl-moves.js:132 | muda · riposte/contra-ataque |
-| `world.riposte.knockbackH` | Knockback horizontal do contra-golpe | m/s | 0 | 17 | 0.1 | 16.8 | src/sim/controller/ctrl-moves.js:133 | muda · riposte/contra-ataque |
-| `world.riposte.knockbackV` | Knockback vertical do contra-golpe | m/s | 0 | 15 | 0.1 | 6.6 | src/sim/controller/ctrl-moves.js:133 | muda · riposte/contra-ataque |
-| `world.riposte.strikeRange` | Alcance do contra-golpe | m | 0.3 | 12 | 0.1 | 3.8 | src/sim/controller/ctrl-moves.js:135 | muda · riposte/contra-ataque |
-| `world.riposte.strikePl` | Power Level do contra-golpe | inteiro | 1 | 8 | 1 | 4 | src/sim/controller/ctrl-moves.js:132 | pendente (move) |
-| `world.riposte.minStrikeDuration` | Duração mínima do contra-golpe | s | 0.05 | 2 | 0.01 | 0.1 | src/sim/controller/ctrl-moves.js:130 | muda · riposte/contra-ataque |
+| `world.riposte.windowEnd` | Janela do contra-ataque: fim | s | 0 | 4 | 0.01 | 0.59 | src/sim/controller/ctrl-moves.js:137 | muda · riposte/contra-ataque |
+| `world.riposte.damage` | Dano nominal do contra-golpe | número | 0 | 80 | 0.5 | 14 | src/sim/controller/ctrl-moves.js:133 | muda · riposte/contra-ataque |
+| `world.riposte.knockbackH` | Knockback horizontal do contra-golpe | m/s | 0 | 17 | 0.1 | 16.8 | src/sim/controller/ctrl-moves.js:134 | muda · riposte/contra-ataque |
+| `world.riposte.knockbackV` | Knockback vertical do contra-golpe | m/s | 0 | 15 | 0.1 | 6.6 | src/sim/controller/ctrl-moves.js:134 | muda · riposte/contra-ataque |
+| `world.riposte.strikeRange` | Alcance do contra-golpe | m | 0.3 | 12 | 0.1 | 3.8 | src/sim/controller/ctrl-moves.js:136 | muda · riposte/contra-ataque |
+| `world.riposte.strikePl` | Power Level do contra-golpe | inteiro | 1 | 8 | 1 | 4 | src/sim/controller/ctrl-moves.js:133 | pendente (move) |
+| `world.riposte.minStrikeDuration` | Duração mínima do contra-golpe | s | 0.05 | 2 | 0.01 | 0.1 | src/sim/controller/ctrl-moves.js:131 | muda · riposte/contra-ataque |
 | `world.riposte.hitstopMult` | Pausa de impacto do contra-golpe (×) | número | 0 | 16 | 0.1 | 2.5 | src/sim/game.js:118 | muda · riposte/contra-ataque |
 | `world.riposte.shakeMult` | Tremor de tela do contra-golpe (×) | número | 0 | 16 | 0.1 | 2.4 | src/view/vfx.js:215 | pendente (move) |
 | `world.riposte.blastOn` | Explosão visual do contra-golpe | número | 0 | 1 | 1 | 1 | src/view/riposte-fx.js:53 | visual/depuração |
@@ -2363,8 +2361,8 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 | `world.seedBomb.blastLife` | Duração visual da explosão | s | 0.1 | 3 | 0.05 | 0.3 | src/sim/moves/seed-bomb.js:45 | visual/depuração |
 | `world.seedBomb.originHeight` | Altura de lançamento (mão) | m | 0.2 | 2.6 | 0.05 | 0.8 | src/sim/moves/seed-bomb.js:33 | pendente (move) |
 | `world.seedBomb.spawnForward` | Distância de nascimento | m | 0.3 | 3 | 0.05 | 0.5 | src/sim/moves/seed-bomb.js:33 | muda · seed-bomb/perto |
-| `world.seedBomb.markerSpeed` | Velocidade do marcador | m/s | 1 | 60 | 0.5 | 8 | src/sim/controller/ctrl-moves.js:201 | muda · seed-bomb/duelo |
-| `world.seedBomb.markerAccel` | Aceleração do marcador | m/s² | 0 | 200 | 1 | 24 | src/sim/controller/ctrl-moves.js:201 | muda · seed-bomb/duelo |
+| `world.seedBomb.markerSpeed` | Velocidade do marcador | m/s | 1 | 60 | 0.5 | 8 | src/sim/controller/ctrl-moves.js:202 | muda · seed-bomb/duelo |
+| `world.seedBomb.markerAccel` | Aceleração do marcador | m/s² | 0 | 200 | 1 | 24 | src/sim/controller/ctrl-moves.js:202 | muda · seed-bomb/duelo |
 | `world.seedBomb.startDistance` | Distância inicial do marcador | m | 0.5 | 20 | 0.25 | 3 | src/sim/aim-marker.js:45 | pendente (move) |
 | `world.seedBomb.minRange` | Alcance mínimo do marcador | m | 0 | 20 | 0.25 | 3 | src/sim/aim-marker.js:25 | muda · seed-bomb/perto |
 | `world.seedBomb.maxRise` | Altura máxima de apoio acima dos pés | m | 0 | 12 | 0.25 | 2 | src/sim/aim-marker.js:20 | pendente (move) |
@@ -2390,8 +2388,8 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 | `world.spikes.knockbackH` | Knockback horizontal | m/s | 0 | 15 | 0.1 | 0 | src/sim/moves/spikes.js:24 | pendente (move) |
 | `world.spikes.knockbackV` | Knockback vertical | m/s | 0 | 15 | 0.1 | 0 | src/sim/moves/spikes.js:24 | pendente (move) |
 | `world.spikes.armDelay` | Tempo de armação | s | 0 | 4 | 0.05 | 0.25 | src/sim/moves/spikes.js:23 | pendente (move) |
-| `world.spikes.markerAccel` | Aceleração do marcador | número | 0 | 400 | 1 | 24 | src/sim/controller/ctrl-moves.js:201 | pendente (move) |
-| `world.spikes.markerSpeed` | Velocidade do marcador | m/s | 1 | 60 | 0.5 | 8 | src/sim/controller/ctrl-moves.js:201 | pendente (move) |
+| `world.spikes.markerAccel` | Aceleração do marcador | número | 0 | 400 | 1 | 24 | src/sim/controller/ctrl-moves.js:202 | pendente (move) |
+| `world.spikes.markerSpeed` | Velocidade do marcador | m/s | 1 | 60 | 0.5 | 8 | src/sim/controller/ctrl-moves.js:202 | pendente (move) |
 | `world.spikes.startDistance` | Distância inicial do marcador | m | 0.5 | 20 | 0.25 | 3 | src/sim/aim-marker.js:45 | pendente (move) |
 | `world.spikes.maxRise` | Altura máxima de apoio acima dos pés | m | 0 | 12 | 0.25 | 2 | src/sim/aim-marker.js:20 | pendente (move) |
 | `world.spikes.trapHeight` | Altura da região ofensiva | m | 0.3 | 8 | 0.1 | 1.2 | src/sim/moves/spikes.js:23 | pendente (move) |

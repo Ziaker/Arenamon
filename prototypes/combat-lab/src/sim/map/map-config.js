@@ -38,7 +38,7 @@ export const MAP_DEFAULTS = {
   jumpCoyoteTime: 0.10,     // tolerância para saltar logo após sair de uma borda (s)
   jumpBufferWindow: 0.12,   // janela de jump buffering antes do pouso (s)
   jumpInterval: 0.12,       // intervalo mínimo entre saltos (era 0,25; 0,12 acompanha o buffer)
-  jumpLandingRecovery: 0.19,
+  jumpLandingRecovery: 0.25,
   jumpDrag: 0.0,
   jumpAirControl: 0.0,      // legado: blend direcional no ar (mantido para compatibilidade)
   // Footstool (pisar na cabeça do rival): ataque de contato superior do salto normal.
