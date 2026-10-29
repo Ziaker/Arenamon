@@ -7,6 +7,7 @@ import {getMove} from './moves.js';
 import {chargePermission, movePermission} from './controller.js';
 import {chargeLevel} from './charge.js';
 import {REASONS} from './attempts.js';
+import {moveCommandFeedbackText} from './move-command-feedback.js';
 
 /**
  * @typedef {{slot: number, id: string, name: string, state: 'pronto' | 'carregando' | 'recarga' | 'recuperacao' | 'bloqueado',
@@ -18,7 +19,10 @@ const ms = (/** @type {number} */ s) => `${s.toFixed(1)} s`;
 export function slotStatus(f, slot) {
   const id = f.loadout?.[slot], def = id ? getMove(id) : null;
   if (!def) return null;
-  const base = {slot, id: def.id, name: def.name ?? def.id, progress: 0, level: 0, left: 0, total: def.cooldown ?? 0, reason: null};
+  const rawFeedback = f.moveCommandFeedback?.slot === slot ? f.moveCommandFeedback : null;
+  const feedbackReason = rawFeedback?.reason ? (REASONS[rawFeedback.reason]?.({}) ?? rawFeedback.reason) : null;
+  const feedback = rawFeedback ? {...rawFeedback, text: moveCommandFeedbackText(rawFeedback, feedbackReason)} : null;
+  const base = {slot, id: def.id, name: def.name ?? def.id, progress: 0, level: 0, left: 0, total: def.cooldown ?? 0, reason: null, feedback};
   const ch = f.charge;
   if (ch && ch.slot === slot) {
     const p = ch.params, progress = Math.min(1, ch.ticks / p.maxTicks), level = chargeLevel(ch.ticks, p);

@@ -34,7 +34,8 @@ export class MovesHud {
         const color = s.state === 'carregando' ? PL_COLORS[s.level] : s.state === 'pronto' ? '#b8ef6c' : s.state === 'bloqueado' ? '#ff9a8a' : '#9bb0c3';
         const p = s.state === 'carregando' ? s.progress : s.state === 'recarga' ? s.progress : s.state === 'recuperacao' ? 1 - Math.min(1, s.left / .25) : 1;
         const on = boost && boost.fighter === f.id && boost.slot === s.slot;
-        return `<div class="mvp-slot" data-slot="${s.slot}"${on ? ' data-boost="1"' : ''} data-state="${s.state}" style="--p:${p.toFixed(3)};--c:${color}"><kbd>${escape(keyOf(f.id, s.slot))}</kbd><b>${escape(s.name)}</b><span>${escape(s.text)}</span><i></i></div>`;
+        const feedback = s.feedback?.text || '';
+        return `<div class="mvp-slot" data-slot="${s.slot}"${on ? ' data-boost="1"' : ''}${feedback ? ` data-feedback="${escape(s.feedback.kind)}"` : ''} data-state="${s.state}" style="--p:${p.toFixed(3)};--c:${color}"><kbd>${escape(keyOf(f.id, s.slot))}</kbd><b>${escape(s.name)}</b><span>${escape(feedback || s.text)}</span><i></i></div>`;
       }).join('');
       rows.push(`<div class="mvp-row" data-fighter="${f.id}" style="--fc:${fc(f.id)}"><em>${escape(fighterColorLabel(f.id) ?? (f.id ? 'Adversário' : 'Jogador'))}</em>${tcell}${cells}</div>`);
     }

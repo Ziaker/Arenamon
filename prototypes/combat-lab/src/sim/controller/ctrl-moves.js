@@ -13,6 +13,7 @@ import {isAirJump, isVaultArc, airKind, airUsable, vaultToFlight, takeOffToLift,
 import {CTX_FIGHTERS, CTX_WORLD, startAction} from './ctrl-update.js';
 import {cancelWindow, costOf, isDepleted, turnToward, walkSpeed} from './ctrl-basico.js';
 import {cancelTackleCharge, feintDirection} from './ctrl-tackle.js';
+import {setMoveCommandFeedback, tickMoveCommandFeedback} from '../move-command-feedback.js';
 
 /** @param {any} f @param {any} def @param {number | null} [slot] */
 export function movePermission(f, def, slot = null, opts = null) {
@@ -343,12 +344,13 @@ function boostCooldown(f, def, slot, diag) {
   f.stamina = Math.max(0, f.stamina - cost);f.regenBase = f.stamina;f.regenAge = 0;f.exhausted = isDepleted(f.stamina);
   const rest = left - plan.reduce;if (rest <= 1e-8) delete f.moveCooldowns[def.id];else f.moveCooldowns[def.id] = rest;
   moveEvent(f, {result: 'cooldownBoost', move: def.id, slot, reduced: plan.reduce, cost});
+  setMoveCommandFeedback(f, {result: 'executed', move: def.id, slot});
   if (diag) report(f, {kind: 'skill', slot, move: def.id, result: 'executed', note: `recarga encurtada em ${plan.reduce.toFixed(2)} s (−${cost.toFixed(2)} de stamina)`});
 }
 /** Toque num slot (borda do botão): inicia o movimento, encurta a recarga, guarda no buffer ou nega com motivo. */
 export function pressSkill(f, cmd, move, desiredHeading, hasTarget, diag, fighters = [], world = null) {
   const slot = cmd.skill, def = moveInSlot(f, slot), onCooldown = !!def && (f.moveCooldowns?.[def.id] ?? 0) > 1e-8;
-  const deny = (reason, detail) => {if (diag) report(f, {kind: 'skill', slot, move: def?.id ?? null, result: 'denied', reason, detail});};
+  const deny = (reason, detail) => {setMoveCommandFeedback(f, {result: 'denied', slot, move: def?.id ?? null, reason});if (diag) report(f, {kind: 'skill', slot, move: def?.id ?? null, result: 'denied', reason, detail});};
   f.skillBuffer = null;
   if (def && def.cooldownBoost !== false && onCooldown) return boostCooldown(f, def, slot, diag);   // M5.8/M5.9: vale para TODO Move (novo toque + stamina); `cooldownBoost: false` desliga num Move específico
   if (def && isVaultArc(f) && airKind(def) !== 'none' && (airKind(def) === 'cast' || def.charge || def.aimMode) && (def.charge ? chargePermission(f, def, slot) : movePermission(f, def, slot)).ok) vaultToFlight(f);   // arco do vault: vira voo normal e o Move segue o caminho do salto (air.js)
@@ -357,16 +359,17 @@ export function pressSkill(f, cmd, move, desiredHeading, hasTarget, diag, fighte
   if (f.charge) return deny('charging');                                  // sem carregamentos simultâneos (M16.4)
   if (def?.charge) {
     const perm = chargePermission(f, def, slot);
-    if (perm.ok) {startCharge(f, def, slot, cmd.guard);if (diag) report(f, {kind: 'skill', slot, move: def.id, result: 'executed', note: 'carga iniciada'});}
-    else if (perm.buffer) {f.skillBuffer = {slot, ticks: 0, max: chargeParams(def).bufferTicks};if (diag) report(f, {kind: 'skill', slot, move: def.id, result: 'buffered', reason: perm.reason, detail: perm.detail});}
+    if (perm.ok) {startCharge(f, def, slot, cmd.guard);setMoveCommandFeedback(f, {result: 'executed', move: def.id, slot});if (diag) report(f, {kind: 'skill', slot, move: def.id, result: 'executed', note: 'carga iniciada'});}
+    else if (perm.buffer) {f.skillBuffer = {slot, ticks: 0, max: chargeParams(def).bufferTicks};setMoveCommandFeedback(f, {result: 'buffered', move: def.id, slot, reason: perm.reason});if (diag) report(f, {kind: 'skill', slot, move: def.id, result: 'buffered', reason: perm.reason, detail: perm.detail});}
     else deny(perm.reason, perm.detail);
     return;
   }
-  if (def?.needsTarget && movePermission(f, def, slot, {skipTarget: true}).ok) {startRangeAim(f, def, slot, cmd.guard);if (diag) report(f, {kind: 'skill', slot, move: def.id, result: 'executed', note: 'círculo de alcance aberto (soltar executa)'});return;}
+  if (def?.needsTarget && movePermission(f, def, slot, {skipTarget: true}).ok) {startRangeAim(f, def, slot, cmd.guard);setMoveCommandFeedback(f, {result: 'executed', move: def.id, slot});if (diag) report(f, {kind: 'skill', slot, move: def.id, result: 'executed', note: 'círculo de alcance aberto (soltar executa)'});return;}
   const perm = movePermission(f, def, slot);
-  if (perm.ok && def.aimMode) {startAim(f, def, slot, fighters, world, hasTarget ? cmd.target : null);if (diag) report(f, {kind: 'skill', slot, move: def.id, result: 'executed', note: 'marcador aberto'});return;}
+  if (perm.ok && def.aimMode) {startAim(f, def, slot, fighters, world, hasTarget ? cmd.target : null);setMoveCommandFeedback(f, {result: 'executed', move: def.id, slot});if (diag) report(f, {kind: 'skill', slot, move: def.id, result: 'executed', note: 'marcador aberto'});return;}
   if (perm.ok && def.tackle && !def.moveCast) startTackleMove(f, def, slot, {move, dodgeDirection: cmd.dodgeDirection}, desiredHeading, hasTarget, cmd.guard, fighters);
   else if (perm.ok) startMove(f, def, slot, {move, dodgeDirection: cmd.dodgeDirection, lock: hasTarget ? cmd.target ?? null : null}, desiredHeading, hasTarget, cmd.guard);
+  setMoveCommandFeedback(f, {result: perm.ok ? 'executed' : 'denied', move: def?.id ?? null, slot, reason: perm.reason});
   if (diag) report(f, {kind: 'skill', slot, move: def?.id ?? null, result: perm.ok ? 'executed' : 'denied', reason: perm.reason, detail: perm.detail});
 }
 /** Comando de Move guardado no fim da esquiva (M16.3): sai assim que a esquiva termina o deslocamento principal. */
@@ -374,7 +377,7 @@ export function bufferedSkill(f, cmd, diag) {
   const b = f.skillBuffer, def = moveInSlot(f, b.slot);
   if (!def?.charge || cmd.guardPressed || ++b.ticks > b.max) {f.skillBuffer = null;if (diag) report(f, {kind: 'skill', slot: b.slot, move: def?.id ?? null, result: 'expired'});return;}
   const perm = chargePermission(f, def, b.slot);
-  if (perm.ok) {f.skillBuffer = null;startCharge(f, def, b.slot, cmd.guard, true);if (diag) report(f, {kind: 'skill', slot: b.slot, move: def.id, result: 'executed', fromBuffer: true, note: 'carga iniciada'});}
+  if (perm.ok) {f.skillBuffer = null;startCharge(f, def, b.slot, cmd.guard, true);setMoveCommandFeedback(f, {result: 'executed', move: def.id, slot: b.slot});if (diag) report(f, {kind: 'skill', slot: b.slot, move: def.id, result: 'executed', fromBuffer: true, note: 'carga iniciada'});}
   else if (!perm.buffer) {f.skillBuffer = null;if (diag) report(f, {kind: 'skill', slot: b.slot, move: def.id, result: 'expired', reason: perm.reason, detail: perm.detail});}
 }
 /** Passo do Charge depois de defesa e X/C: soltar executa (efeitos na soltura, M30.9); segurar acumula, parado no máximo (M7.5). */
@@ -405,6 +408,7 @@ export function stepCharge(f, cmd, ctx) {
 }
 /** Recargas dos movimentos (chamado por passo; a taxa pode vir de status). */
 export function tickCooldowns(f, dt) {
+  tickMoveCommandFeedback(f, dt);
   if (f.rangeFlash) {f.rangeFlash.t -= dt;if (f.rangeFlash.t <= 0) f.rangeFlash = null;}
   if (f.moveRecovery > 0) f.moveRecovery = Math.max(0, f.moveRecovery - dt);
   if (f.counterStagger > 0) f.counterStagger = Math.max(0, f.counterStagger - dt);
