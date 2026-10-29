@@ -360,7 +360,7 @@ export function updateFighter(f, cmd, fighters, dt, world = null) {
   } else {
     const walk = walkSpeed(f), vMax = f.sprinting ? f.attributes.speed * S.speedMultiplier : walk, before = f.locomotionVelocity;
     if (f.sandPush && (!(f.stun > 1e-8 || hasFlag(f, 'stunned')) || f.sandPush.continuesDuringStagger)) {   // empurrado pela areia: sem controle de deslocamento; a velocidade ganha se mantém depois (atrito normal)
-      applySandPushStep(f, dt);f.desiredVelocity = vec();f.locoPhase = 'sandPush';
+      applySandPushStep(f, dt, {move, speed: walk});f.desiredVelocity = vec();f.locoPhase = 'sandPush';
     } else if (f.stun > 1e-8 || hasFlag(f, 'stunned')) {f.locomotionVelocity = vec();f.locoPhase = 'stun';f.desiredVelocity = vec();}
     else if (hasFlag(f, 'rooted')) {const r = locomotionStep(f.locomotionVelocity, vec(), walk, locomotionParams(f), dt);f.locomotionVelocity = r.velocity;f.desiredVelocity = vec();f.locoPhase = 'rooted';}
     else if (L.model !== 1) {f.locomotionVelocity = approachVelocity(f.locomotionVelocity, scale(move, walk), dt);f.desiredVelocity = scale(move, walk);f.locoPhase = length(move) ? 'legacy' : 'idle';}

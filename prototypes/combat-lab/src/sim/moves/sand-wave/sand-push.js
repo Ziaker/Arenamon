@@ -155,7 +155,7 @@ export function pushAccelNow(/** @type {any} */ e, /** @type {any} */ t, /** @ty
  * @param {number} dt
  * @returns {boolean}
  */
-export function applySandPushStep(/** @type {any} */ f, /** @type {number} */ dt) {
+export function applySandPushStep(/** @type {any} */ f, /** @type {number} */ dt, /** @type {{move: {x: number, z: number}, speed: number} | null} */ steer = null) {
   const p = f.sandPush;
   if (!p) return false;
   const dir = p.dir ?? {x: 0, z: 1};
@@ -167,6 +167,12 @@ export function applySandPushStep(/** @type {any} */ f, /** @type {number} */ dt
     if (along > max) v = {x: v.x - dir.x * (along - max), z: v.z - dir.z * (along - max)};
   }
   f.locomotionVelocity = v;
+  // FUGA PELOS LADOS (pedido do responsável, 29/10): o empurrão manda no eixo da onda, mas a entrada do jogador na direção PERPENDICULAR segue valendo —
+  // quem anda para o lado sai do retângulo (e a força termina por «leftArea»). Frente/trás da entrada não vencem o empurrão.
+  if (steer) {
+    const side = {x: dir.z, z: -dir.x}, along = dot(f.locomotionVelocity, dir), lateral = dot(steer.move, side) * steer.speed;
+    f.locomotionVelocity = {x: dir.x * along + side.x * lateral, z: dir.z * along + side.z * lateral};
+  }
   return true;
 }
 

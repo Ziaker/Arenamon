@@ -391,4 +391,16 @@ test('aceleração do empurrão NÃO altera a frente da onda; partialFactor NÃO
   assert.equal(defaultsCalc.find(v => v.id === 'pushWindow')?.value, '1.5 s', 'o painel calculado mostra a barragem inteira, não só active');
 });
 
+// 29/10/2026 — fuga pelos lados: a entrada PERPENDICULAR à onda vale durante o empurrão; frente/trás da entrada não vencem a força.
+test('fuga pelos lados: só o componente lateral da entrada vale durante o empurrão', () => {
+  const mk = () => ({locomotionVelocity: {x: 0, z: 13.333333}, sandPush: {dir: {x: 0, z: 1}, accel: 12, maxSpeed: 13.333333}});
+  const lado = mk();applySandPushStep(lado, 1 / 120, {move: {x: 1, z: 0}, speed: 4});
+  assert.ok(Math.abs(Math.abs(lado.locomotionVelocity.x) - 4) < 1e-9, 'entrada lateral vira velocidade lateral de caminhada (' + lado.locomotionVelocity.x + ')');
+  assert.ok(Math.abs(lado.locomotionVelocity.z - 13.333333) < 1e-9, 'o eixo da onda segue com o empurrão');
+  const contra = mk();applySandPushStep(contra, 1 / 120, {move: {x: 0, z: -1}, speed: 4});
+  assert.ok(Math.abs(contra.locomotionVelocity.x) < 1e-9 && Math.abs(contra.locomotionVelocity.z - 13.333333) < 1e-9, 'andar contra a onda não anula o empurrão');
+  const sem = mk();applySandPushStep(sem, 1 / 120);
+  assert.equal(sem.locomotionVelocity.x, 0, 'sem entrada (simulador do Editor) nada muda');
+});
+
 done();
