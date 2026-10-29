@@ -113,6 +113,24 @@ try {
     return {base, has};
   });
   assert.deepEqual(ident, {base: 0, has: 1});
+  // Reações, defesa perfeita e recuperação: sem clipe próprio nada muda; com clipe, o estado específico é escolhido.
+  const react = await page.evaluate(() => {
+    const c = window.__lab.ui.characters[0], idle = c.variantsOf('idle')[0], out = {};
+    const fighter = o => ({hp: 10, flight: null, ledge: null, action: null, guard: false, velocity: {x: 0, z: 0}, facing: 0, visualFacing: 0, attributes: {speed: 3}, ...o});
+    out.noClips = [c.stateKey(fighter({state: 'stagger', pinned: true})), c.stateKey(fighter({state: 'pushed', velocity: {x: 0, z: 3}}))];
+    out.guardChain = c.actionFor('guard_hit');
+    for (const id of ['hit_crush', 'push_side', 'perfect_guard', 'hit_light', 'hit_heavy', 'recovery_tackle']) c.addVariant(id, idle);
+    out.withClips = [c.stateKey(fighter({state: 'stagger', pinned: true})), c.stateKey(fighter({state: 'stagger'})), c.stateKey(fighter({state: 'pushed', velocity: {x: 0, z: 3}})), c.stateKey(fighter({state: 'pushed', velocity: {x: 3, z: 0}}))];
+    out.guard = c.actionFor('guard_hit');out.stun = c.actionFor('hitstun');out.stag = c.actionFor('stagger');
+    c.current = {key: 'tackle'};out.rec = c.stateKey(fighter({state: 'actionRecovery'}));
+    for (const id of ['hit_crush', 'push_side', 'perfect_guard', 'hit_light', 'hit_heavy', 'recovery_tackle']) c.removeVariant(id, idle);
+    c.current = null;c.recoveryOrigin = null;
+    return out;
+  });
+  assert.deepEqual(react.noClips, ['stagger', 'pushed'], 'sem clipes próprios: comportamento anterior');
+  assert.deepEqual(react.withClips, ['stagger_crush', 'stagger', 'pushed', 'pushed_side'], 'prensado e lateral só com clipe próprio');
+  assert.deepEqual([react.guard, react.stun, react.stag, react.rec], ['perfect_guard', 'hit_light', 'hit_heavy', 'recovery_tackle'], 'defesa perfeita, leve, pesada e recuperação próprias');
+  for (const a of ['perfect_guard', 'hit_light', 'hit_heavy', 'push', 'push_side', 'hit_up', 'hit_crush', 'recovery_tackle', 'recovery_dodge', 'recovery_move']) assert.ok(list.includes(a), 'lista tem ' + a);
   // Salto sem fases continua usando o clipe «jump»; com fase associada, o runtime escolhe a fase.
   const jumpMode = await page.evaluate(() => {
     const c = window.__lab.ui.characters[0], before = c.hasJumpPhases();

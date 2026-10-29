@@ -2,6 +2,12 @@
   "schemaVersion": 1,
   "def": {
     "id": "swift",
+
+    "presentation": {
+
+      "action": "move_swift"
+
+    },
     "name": "Swift",
     "air": "cast",
     "group": "swift",

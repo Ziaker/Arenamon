@@ -2,6 +2,9 @@
   "schemaVersion": 1,
   "def": {
     "id": "bullet-punch",
+    "presentation": {
+      "action": "move_bullet-punch"
+    },
     "name": "Bullet Punch",
     "air": "descend",
     "group": "bulletPunch",

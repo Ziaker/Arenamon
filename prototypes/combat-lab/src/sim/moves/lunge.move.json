@@ -2,6 +2,12 @@
   "schemaVersion": 1,
   "def": {
     "id": "lunge",
+
+    "presentation": {
+
+      "action": "move_lunge"
+
+    },
     "name": "Lunge",
     "air": "descend",
     "group": "lunge",

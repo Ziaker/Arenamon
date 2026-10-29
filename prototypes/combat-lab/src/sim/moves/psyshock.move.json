@@ -2,6 +2,16 @@
   "schemaVersion": 1,
   "def": {
     "id": "psyshock",
+
+    "presentation": {
+
+      "action": "move_psyshock",
+
+      "charge": "charge_psyshock",
+
+      "release": "release_psyshock"
+
+    },
     "name": "Psyshock",
     "air": "cast",
     "description": "Carregue e solte para disparar pedras telecinéticas ao mesmo tempo: quanto mais carga, mais pedras e mais Power Level. Com alvo travado elas miram partes diferentes do corpo; sem alvo saem em leque.",

@@ -2,6 +2,9 @@
   "schemaVersion": 1,
   "def": {
     "id": "sand-wave",
+    "presentation": {
+      "action": "move_sand-wave"
+    },
     "name": "Sand Wave",
     "air": "cast",
     "group": "sandWave",

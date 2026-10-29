@@ -2,6 +2,12 @@
   "schemaVersion": 1,
   "def": {
     "id": "fire-spin",
+
+    "presentation": {
+
+      "action": "move_fire-spin"
+
+    },
     "name": "Fire Spin",
     "air": "cast",
     "group": "fireSpin",

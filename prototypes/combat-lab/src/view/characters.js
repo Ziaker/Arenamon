@@ -35,7 +35,7 @@ export const STATE_ACTIONS = {
   walk_back: ['walk_back', 'walk', 'idle'], walk_left: ['walk_left', 'walk', 'idle'], walk_right: ['walk_right', 'walk', 'idle'],
   sprint: ['sprint', 'walk', 'idle'], sprint_back: ['sprint_back', 'walk_back', 'sprint', 'idle'], sprint_left: ['sprint_left', 'walk_left', 'sprint', 'idle'], sprint_right: ['sprint_right', 'walk_right', 'sprint', 'idle'],
   walk_stop: ['walk_stop'], sprint_stop: ['sprint_stop', 'walk_stop'],
-  guard_enter: ['block_start', 'block', 'idle'], guard: ['block', 'block_start', 'idle'], guard_exit: ['block_end', 'idle'], guard_hit: ['guard_impact', 'blocked', 'block', 'idle'],
+  guard_enter: ['block_start', 'block', 'idle'], guard: ['block', 'block_start', 'idle'], guard_exit: ['block_end', 'idle'], guard_hit: ['perfect_guard', 'guard_impact', 'blocked', 'block', 'idle'],
   guardStun: ['guard_impact', 'blocked', 'block', 'idle'], tackle: ['tackle', 'idle'],
   // Tackle carregado: sem clipe próprio cada nível cai para o clipe do tackle (PL3 → PL2 → tackle); a carga sem clipe usa a pose parada.
   wallSplat: ['wall_splat', 'hit', 'knockback', 'idle'],
@@ -51,19 +51,24 @@ export const STATE_ACTIONS = {
   jump: ['jump', 'vault', 'fall', 'idle'],
   // Fases do salto (editor de animações): sem clipe próprio em nenhuma delas o jogo segue usando o estado «jump» inteiro.
   jump_start: ['jump_start', 'jump', 'vault', 'fall', 'idle'], jump_rise: ['jump_rise', 'jump', 'vault', 'fall', 'idle'], jump_apex: ['jump_apex', 'jump_rise', 'jump', 'fall', 'idle'], jump_fall: ['jump_fall', 'fall', 'jump', 'idle'],
-  airborne: ['knockback', 'fall', 'hit', 'idle'], landing: ['land', 'recover', 'downed', 'idle'], recover: ['recover', 'land', 'idle'], defeated: ['death', 'downed', 'idle'], pushed: ['hit', 'idle'], stagger: ['hit', 'blocked', 'downed', 'idle'], hitstun: ['hit', 'idle'], actionRecovery: ['idle'],
+  // Reações diferenciadas (clipe próprio primeiro; sem ele cai no genérico «hit» como antes).
+  airborne_up: ['hit_up', 'knockback', 'fall', 'hit', 'idle'], pushed_side: ['push_side', 'push', 'hit', 'idle'], stagger_crush: ['hit_crush', 'hit_heavy', 'hit', 'blocked', 'downed', 'idle'],
+  // Recuperação do ataque (sem clipe próprio mantém o clipe do ataque, como antes).
+  recovery_tackle: ['recovery_tackle'], recovery_dodge: ['recovery_dodge'], recovery_move: ['recovery_move'],
+  airborne: ['knockback', 'fall', 'hit', 'idle'], landing: ['land', 'recover', 'downed', 'idle'], recover: ['recover', 'land', 'idle'], defeated: ['death', 'downed', 'idle'], pushed: ['push', 'hit', 'idle'], stagger: ['hit_heavy', 'hit', 'blocked', 'downed', 'idle'], hitstun: ['hit_light', 'hit', 'idle'], actionRecovery: ['idle'],
 };
 export const STATE_LABELS = {neutral: 'Parado', turn: 'Girando no lugar', walk: 'Andando para frente', walk_back: 'Andando para trás', walk_left: 'Andando à esquerda', walk_right: 'Andando à direita',
   sprint: 'Sprint para frente', sprint_back: 'Sprint para trás', sprint_left: 'Sprint à esquerda', sprint_right: 'Sprint à direita', walk_stop: 'Freio da caminhada', sprint_stop: 'Freio do sprint',
   guard_enter: 'Entrando na defesa', guard: 'Defendendo', guard_exit: 'Saindo da defesa', guard_hit: 'Defesa perfeita', guardStun: 'Guard stun', tackle: 'Tackle', meteor_prep: 'Meteor: preparação no ar', meteor_dive: 'Meteor: mergulho', meteor_ground: 'Meteor: no chão', wallSplat: 'Preso na parede (wall-splat)', tackle_charge: 'Carregando tackle', tackle_pl2: 'Tackle PL2', tackle_pl3: 'Tackle PL3', brake: 'Freio do tackle (finta)', dodge_forward: 'Esquiva frontal',
-  dodge_back: 'Esquiva traseira', dodge_left: 'Esquiva esquerda', dodge_right: 'Esquiva direita', vault: 'Salto sobre o rival', jump: 'Pulo', jump_start: 'Início do pulo', jump_rise: 'Subida do pulo', jump_apex: 'Pico do pulo', jump_fall: 'Queda do pulo', recoil: 'Recuo (bloqueado)', airborne: 'Lançado',
+  dodge_back: 'Esquiva traseira', dodge_left: 'Esquiva esquerda', dodge_right: 'Esquiva direita', airborne_up: 'Lançado para cima', pushed_side: 'Empurrado de lado', stagger_crush: 'Prensado (parede)', recovery_tackle: 'Recuperação do tackle', recovery_dodge: 'Recuperação da esquiva', recovery_move: 'Recuperação do Move',
+  vault: 'Salto sobre o rival', jump: 'Pulo', jump_start: 'Início do pulo', jump_rise: 'Subida do pulo', jump_apex: 'Pico do pulo', jump_fall: 'Queda do pulo', recoil: 'Recuo (bloqueado)', airborne: 'Lançado',
   landing: 'Aterrissando', recover: 'Recuperando (exausto)', defeated: 'Derrotado', pushed: 'Empurrado', stagger: 'Atordoado (stagger)', hitstun: 'Atingido (impacto)', actionRecovery: 'Recuperando da ação', __preview: 'Prévia',
   move_1: 'Movimento 1', move_2: 'Movimento 2', move_3: 'Movimento 3', move_4: 'Movimento 4',
   charge_reflect: 'Carregando Reflect', release_reflect: 'Disparo do Reflect',
   charge_psyshock: 'Carregando Psyshock', release_psyshock: 'Disparo do Psyshock'};
 /** Blocos de animação listados no painel (cada um serve a um ou mais estados e aceita várias variantes). */
 export const ACTION_IDS = ['idle', 'turn', 'walk', 'walk_back', 'walk_left', 'walk_right', 'sprint', 'sprint_back', 'sprint_left', 'sprint_right', 'walk_stop', 'sprint_stop', 'block_start', 'block', 'block_end', 'guard_impact', 'blocked', 'tackle', 'tackle_charge', 'tackle_pl2', 'tackle_pl3', 'brake', 'wall_splat', 'meteor_prep', 'meteor_dive', 'meteor_ground',
-  'dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'jump', 'jump_start', 'jump_rise', 'jump_apex', 'jump_fall', 'hit', 'knockback', 'fall', 'land', 'recover', 'downed', 'death', 'move_1', 'move_2', 'move_3', 'move_4'];
+  'dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'jump', 'jump_start', 'jump_rise', 'jump_apex', 'jump_fall', 'perfect_guard', 'hit_light', 'hit_heavy', 'push', 'push_side', 'hit_up', 'hit_crush', 'recovery_tackle', 'recovery_dodge', 'recovery_move', 'hit', 'knockback', 'fall', 'land', 'recover', 'downed', 'death', 'move_1', 'move_2', 'move_3', 'move_4'];
 // Sinônimos para associar por nome quando o arquivo não traz o mapa do Studio.
 const ALIASES = {
   idle: ['idle', 'parado', 'stand', 'breathing idle', 'breath'], turn: ['turn', 'girar', 'turn in place'], walk: ['walk', 'walking', 'andar', 'caminhar', 'run', 'running', 'correr'],
@@ -78,6 +83,9 @@ const ALIASES = {
   wall_splat: ['wall splat', 'wall_splat', 'pinned', 'wall hit', 'wall stick'],
   tackle_pl3: ['tackle pl3', 'tackle_pl3', 'tackle 3', 'tackle heavy', 'heavy tackle', 'tackle max'], brake: ['brake', 'skid', 'slide stop', 'brake slide', 'stop slide'], dodge_forward: ['dodge forward', 'dodge', 'front', 'roll forward', 'forward roll', 'esquiva'],
   dodge_back: ['dodge back', 'back', 'backstep', 'roll back'], dodge_left: ['dodge left', 'side', 'left', 'roll left'], dodge_right: ['dodge right', 'side', 'right', 'roll right'],
+  perfect_guard: ['perfect guard', 'perfect_guard', 'parry', 'block perfect', 'defesa perfeita'], hit_light: ['hit light', 'hit_light', 'light hit', 'get hit light'], hit_heavy: ['hit heavy', 'hit_heavy', 'heavy hit', 'stagger'],
+  push: ['push', 'pushed', 'empurrado'], push_side: ['push side', 'push_side', 'pushed side'], hit_up: ['hit up', 'hit_up', 'launch up', 'uppercut hit'], hit_crush: ['hit crush', 'hit_crush', 'crushed', 'squeezed', 'prensado'],
+  recovery_tackle: ['recovery tackle', 'recovery_tackle', 'tackle recovery', 'tackle end'], recovery_dodge: ['recovery dodge', 'recovery_dodge', 'dodge recovery', 'dodge end'], recovery_move: ['recovery move', 'recovery_move', 'move recovery', 'cast end'],
   jump: ['jump', 'vault', 'salto', 'pulo'], jump_start: ['jump start', 'jump_start', 'jump takeoff', 'takeoff', 'inicio do pulo'], jump_rise: ['jump rise', 'jump_rise', 'jump up', 'rising', 'subida'], jump_apex: ['jump apex', 'jump_apex', 'jump peak', 'apex', 'pico'], jump_fall: ['jump fall', 'jump_fall', 'jump falling', 'jump down'], hit: ['hit', 'hurt', 'damage', 'impact', 'dano'], knockback: ['knockback', 'knock back', 'push', 'launched', 'fly', 'lancado'],
   fall: ['fall', 'falling', 'queda'], land: ['land', 'landing', 'aterrissar'], recover: ['recover', 'get up', 'getup', 'stand up', 'levantar'], downed: ['downed', 'down', 'caido'],
   death: ['death', 'die', 'dying', 'dead', 'ko', 'derrota'],
@@ -89,13 +97,13 @@ const ALIASES = {
 };
 const MOVE_KEYS = ['move_1', 'move_2', 'move_3', 'move_4'];
 const JUMP_PHASES_LIST = ['jump_start', 'jump_rise', 'jump_apex', 'jump_fall'];
-const TIMED = new Set(['tackle', 'tackle_pl2', 'tackle_pl3', 'dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'vault', 'jump', 'recoil', 'guardStun', 'airborne', 'landing', 'recover', 'defeated', 'stagger', 'hitstun', 'actionRecovery', ...MOVE_KEYS]);
+const TIMED = new Set(['airborne_up', 'tackle', 'tackle_pl2', 'tackle_pl3', 'dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'vault', 'jump', 'recoil', 'guardStun', 'airborne', 'landing', 'recover', 'defeated', 'stagger', 'hitstun', 'actionRecovery', ...MOVE_KEYS]);
 const TRANSIENT = new Set(['guard_enter', 'guard_exit', 'guard_hit']);
 /** Tocam uma vez a partir da entrada e seguram a última pose (não repetem em laço). */
-const ONE_SHOT = new Set(['jump_start', 'jump_apex', 'meteor_prep', 'meteor_dive', 'meteor_ground', ...TRANSIENT, 'walk_stop', 'sprint_stop', '__preview', 'release_reflect', 'release_psyshock', 'hitstun', 'stagger', ...MOVE_KEYS]);
+const ONE_SHOT = new Set(['stagger_crush', 'recovery_tackle', 'recovery_dodge', 'recovery_move', 'jump_start', 'jump_apex', 'meteor_prep', 'meteor_dive', 'meteor_ground', ...TRANSIENT, 'walk_stop', 'sprint_stop', '__preview', 'release_reflect', 'release_psyshock', 'hitstun', 'stagger', ...MOVE_KEYS]);
 const LOCOMOTION = new Set(['neutral', 'turn', 'walk', 'walk_back', 'walk_left', 'walk_right', 'sprint', 'sprint_back', 'sprint_left', 'sprint_right']);
 const ACTION_KEYS = new Set(['meteor_prep', 'meteor_dive', 'meteor_ground', 'tackle', 'tackle_pl2', 'tackle_pl3', 'dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'vault', ...MOVE_KEYS]);
-const COMBAT_KEYS = new Set(['wallSplat', 'airborne', 'landing', 'recover', 'guardStun', 'recoil', 'defeated', 'pushed', 'guard_hit', 'stagger', 'hitstun', 'actionRecovery']);
+const COMBAT_KEYS = new Set(['wallSplat', 'airborne_up', 'pushed_side', 'stagger_crush', 'airborne', 'landing', 'recover', 'guardStun', 'recoil', 'defeated', 'pushed', 'guard_hit', 'stagger', 'hitstun', 'actionRecovery']);
 
 /** Recusa cedo (com motivo legível) o que não é GLB 2.0/glTF, antes de entregar ao carregador. */
 async function readGltf(file) {
@@ -456,7 +464,7 @@ export class Character {
   clipFor(stateKey) {const id = this.actionFor(stateKey);return id ? {id, index: this.variantsOf(id)[0]} : null;}
   /** Sorteio determinístico da variante na entrada do estado (mesmo lutador, estado e passo → mesma escolha). */
   pickVariant(id, seed) {const list = this.variantsOf(id);if (list.length <= 1) return list[0];const [r] = mulberry(seed);return list[Math.floor(r * list.length)];}
-  missingStates() {return Object.keys(STATE_ACTIONS).filter(k => k !== 'neutral' && !['meteor_prep', 'meteor_dive', 'meteor_ground', 'tackle_charge', 'tackle_pl2', 'tackle_pl3', 'brake', 'wallSplat', 'ledge_hang', 'ledge_climb', 'actionRecovery', 'jump_start', 'jump_rise', 'jump_apex', 'jump_fall'].includes(k) && !TRANSIENT.has(k) && !['walk_stop', 'sprint_stop'].includes(k) && (this.actionFor(k) ?? 'idle') === 'idle');}
+  missingStates() {return Object.keys(STATE_ACTIONS).filter(k => k !== 'neutral' && !['meteor_prep', 'meteor_dive', 'meteor_ground', 'tackle_charge', 'tackle_pl2', 'tackle_pl3', 'brake', 'wallSplat', 'ledge_hang', 'ledge_climb', 'actionRecovery', 'jump_start', 'jump_rise', 'jump_apex', 'jump_fall', 'recovery_tackle', 'recovery_dodge', 'recovery_move', 'airborne_up', 'pushed_side', 'stagger_crush'].includes(k) && !TRANSIENT.has(k) && !['walk_stop', 'sprint_stop'].includes(k) && (this.actionFor(k) ?? 'idle') === 'idle');}
   // ---------- Estado visual ----------
   stateKey(f) {
     if (f.hp <= 0 && !f.flight) return 'defeated';
@@ -464,17 +472,27 @@ export class Character {
     if (f.flight) {
       if (f.wallSplat) return 'wallSplat';
       if (f.flight.isNormalJump) return this.hasJumpPhases() ? this.jumpPhaseKey(f) : 'jump';
-      return 'airborne';
+      return f.flight.vy > 3 && this.variantsOf('hit_up').length ? 'airborne_up' : 'airborne';
     }
-    if ((f.state === 'actionRecovery' || f.recoveryFrom) && this.current && ACTION_KEYS.has(this.current.key)) return this.current.key;
+    const inRecovery = f.state === 'actionRecovery' || f.recoveryFrom;
+    if (inRecovery) {
+      const cur = this.current?.key;
+      if (cur && ACTION_KEYS.has(cur)) this.recoveryOrigin = cur.startsWith('dodge') || cur === 'vault' ? 'dodge' : MOVE_KEYS.includes(cur) ? 'move' : 'tackle';
+      // Recuperação própria do ataque (desaceleração e retomada de equilíbrio); sem clipe, mantém o clipe do ataque como antes.
+      if (this.recoveryOrigin && this.variantsOf('recovery_' + this.recoveryOrigin).length) return 'recovery_' + this.recoveryOrigin;
+    } else this.recoveryOrigin = null;
+    if (inRecovery && this.current && ACTION_KEYS.has(this.current.key)) return this.current.key;
     if (f.state === 'actionRecovery' || f.recoveryFrom === 'tackle') return 'tackle';
     if (f.state === 'landing') {
       if (f.normalJumpLanding) return this.actionFor('land') ? 'landing' : 'neutral';
       return 'landing';
     }
-    if (f.state === 'stagger') return 'stagger';
+    if (f.state === 'stagger') return f.pinned && this.variantsOf('hit_crush').length ? 'stagger_crush' : 'stagger';
     if (f.state === 'hitstun') return 'hitstun';
-    if (f.state === 'pushed') return 'pushed';
+    if (f.state === 'pushed') {
+      const dir = f.velocity && length(f.velocity) > .2 ? Math.abs(angleDelta(f.facing, angleOf(f.velocity))) : 0;
+      return dir > Math.PI / 4 && dir < 3 * Math.PI / 4 && this.variantsOf('push_side').length ? 'pushed_side' : 'pushed';   // reação lateral só com clipe próprio
+    }
     if (f.state === 'recover') return 'recover';
     if (f.charge) {
       const moveId = f.charge.move || (f.charge.slot === 0 ? 'reflect' : 'psyshock');
@@ -547,7 +565,7 @@ export class Character {
     if (key === 'recover') return Math.min(1, Math.max(0, 1 - (f.exhaustRecovery ?? f.knockRecovery) / Math.max(1e-6, C.extras.combat.exhaustRecovery)));
     if (key === 'hitstun') return Math.min(1, Math.max(0, 1 - (f.hitstun ?? f.knockRecovery) / Math.max(1e-6, f.hitstunMax || (R.hitstun ?? 0.2))));
     if (key === 'stagger') { const max = f.staggerMax || f.stunMax || 0.25; const cur = (f.stagger ?? f.counterStagger ?? f.stun ?? f.knockRecovery ?? 0); return Math.min(1, Math.max(0, 1 - cur / Math.max(1e-6, max))); }
-    if (key === 'airborne') return this.flightV0 > 0 ? Math.min(1, Math.max(0, (this.flightV0 - f.flight.vy) / (2 * this.flightV0))) : 0;
+    if (key === 'airborne' || key === 'airborne_up') return this.flightV0 > 0 ? Math.min(1, Math.max(0, (this.flightV0 - f.flight.vy) / (2 * this.flightV0))) : 0;
     if (key === 'defeated') return Math.min(1, this.timer / 1.2);
     return 0;
   }
@@ -570,7 +588,7 @@ export class Character {
     if (this.transient && (f.action || (f.guard && !this.transient.key.startsWith('guard_')) || f.flight || f.state === 'guardStun' || f.state === 'landing' || f.hp <= 0 || this.clock >= this.transient.until)) this.transient = null;
   }
   startTransient(key) {
-    const id = this.actionFor(key);if (!id || (id !== key && id !== STATE_ACTIONS[key]?.[0] && id !== 'tackle')) return;
+    const id = this.actionFor(key);if (!id || (id !== key && id !== STATE_ACTIONS[key]?.[0] && !(key === 'guard_hit' && id === 'guard_impact') && id !== 'tackle')) return;
     const variants = this.variantsOf(id);if (!variants?.length) return;
     const clipIdx = variants[0], clipDur = this.clips[clipIdx]?.duration || .4, speed = this.speedOf(id);
     this.transient = {key, until: this.clock + (clipDur / speed), serial: ++this.actionSerial};

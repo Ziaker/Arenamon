@@ -2,6 +2,12 @@
   "schemaVersion": 1,
   "def": {
     "id": "spikes",
+
+    "presentation": {
+
+      "action": "move_spikes"
+
+    },
     "name": "Spikes",
     "air": "cast",
     "group": "spikes",

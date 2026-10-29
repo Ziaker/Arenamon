@@ -35,3 +35,10 @@ Inventário anterior preservado: `node prototypes/combat-lab/test/animation-inve
 Evidência: `prototypes/combat-lab/evidence/animation-editor/principios.png`.
 
 Testes: `node prototypes/combat-lab/test/animation-profile.test.mjs` e `node prototypes/combat-lab/test/animation-editor.browser.mjs`.
+
+## Novos estados de animação (v1.47.0)
+Todos aditivos: sem clipe próprio, o jogo se comporta exatamente como antes. Associar um clipe (aba Visão geral) ativa o estado.
+- **Moves:** os 19 `.move.json` declaram `presentation` (`move_<id>`; carga e disparo `charge_<id>`/`release_<id>` nos Moves de carga).
+- **Defesa perfeita:** `perfect_guard` (antes dividia o clipe de impacto/bloqueio).
+- **Reações:** `hit_light` (hitstun), `hit_heavy` (stagger), `push` (empurrão), `push_side` (empurrão lateral), `hit_up` (lançado para cima), `hit_crush` (prensado na parede).
+- **Recuperação de ataques:** `recovery_tackle`, `recovery_dodge`, `recovery_move` (desaceleração e retomada de equilíbrio; sem clipe mantém o clipe do ataque).

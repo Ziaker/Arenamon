@@ -2,6 +2,12 @@
   "schemaVersion": 1,
   "def": {
     "id": "feint",
+
+    "presentation": {
+
+      "action": "move_feint"
+
+    },
     "name": "Feint",
     "air": "cast",
     "group": "feint",

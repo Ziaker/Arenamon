@@ -2,6 +2,12 @@
   "schemaVersion": 1,
   "def": {
     "id": "harden",
+
+    "presentation": {
+
+      "action": "move_harden"
+
+    },
     "name": "Harden",
     "air": "cast",
     "group": "harden",

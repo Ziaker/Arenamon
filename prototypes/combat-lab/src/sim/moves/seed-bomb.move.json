@@ -2,6 +2,12 @@
   "schemaVersion": 1,
   "def": {
     "id": "seed-bomb",
+
+    "presentation": {
+
+      "action": "move_seed-bomb"
+
+    },
     "name": "Seed Bomb",
     "air": "cast",
     "group": "seedBomb",

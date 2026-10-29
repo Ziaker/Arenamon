@@ -2,6 +2,12 @@
   "schemaVersion": 1,
   "def": {
     "id": "second-wind",
+
+    "presentation": {
+
+      "action": "move_second-wind"
+
+    },
     "name": "Second Wind",
     "air": "cast",
     "group": "secondWind",

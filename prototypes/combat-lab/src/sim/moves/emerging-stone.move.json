@@ -2,6 +2,12 @@
   "schemaVersion": 1,
   "def": {
     "id": "emerging-stone",
+
+    "presentation": {
+
+      "action": "move_emerging-stone"
+
+    },
     "name": "Emerging Stone",
     "air": "cast",
     "group": "emergingStone",

@@ -2,6 +2,9 @@
   "schemaVersion": 1,
   "def": {
     "id": "quick-attack",
+    "presentation": {
+      "action": "move_quick-attack"
+    },
     "name": "Quick Attack",
     "air": "descend",
     "group": "quickAttack",

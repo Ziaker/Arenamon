@@ -2,6 +2,12 @@
   "schemaVersion": 1,
   "def": {
     "id": "air-slash",
+
+    "presentation": {
+
+      "action": "move_air-slash"
+
+    },
     "name": "Air Slash",
     "air": "cast",
     "group": "airSlash",

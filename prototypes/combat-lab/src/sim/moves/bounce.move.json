@@ -2,6 +2,16 @@
   "schemaVersion": 1,
   "def": {
     "id": "bounce",
+
+    "presentation": {
+
+      "action": "move_bounce",
+
+      "charge": "charge_bounce",
+
+      "release": "release_bounce"
+
+    },
     "name": "Bounce",
     "air": "cast",
     "group": "bounce",

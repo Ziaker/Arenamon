@@ -2,6 +2,16 @@
   "schemaVersion": 1,
   "def": {
     "id": "water-pulse",
+
+    "presentation": {
+
+      "action": "move_water-pulse",
+
+      "charge": "charge_water-pulse",
+
+      "release": "release_water-pulse"
+
+    },
     "name": "Water Pulse",
     "air": "cast",
     "group": "waterPulse",

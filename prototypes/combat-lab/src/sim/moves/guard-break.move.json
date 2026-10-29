@@ -2,6 +2,16 @@
   "schemaVersion": 1,
   "def": {
     "id": "guard-break",
+
+    "presentation": {
+
+      "action": "move_guard-break",
+
+      "charge": "charge_guard-break",
+
+      "release": "release_guard-break"
+
+    },
     "name": "Guard Break",
     "air": "descend",
     "group": "guardBreak",

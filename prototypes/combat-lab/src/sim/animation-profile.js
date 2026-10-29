@@ -25,7 +25,8 @@ export function jumpPhaseFor({vy, sinceLaunch, startTime = JUMP_PHASE_DEFAULTS.s
 /** Grupos exibidos na lista do editor: [id, rótulo, ações]. A ordem reflete o inventário atual + fases novas. */
 export const ANIMATION_GROUPS = [
   ['locomotion', 'Locomoção', ['idle', 'turn', 'walk', 'walk_back', 'walk_left', 'walk_right', 'sprint', 'sprint_back', 'sprint_left', 'sprint_right', 'walk_stop', 'sprint_stop']],
-  ['defense', 'Defesa e reação', ['block_start', 'block', 'block_end', 'guard_impact', 'blocked', 'hit', 'knockback', 'fall', 'recover', 'downed', 'death']],
+  ['defense', 'Defesa e reação', ['block_start', 'block', 'block_end', 'guard_impact', 'perfect_guard', 'blocked', 'hit', 'hit_light', 'hit_heavy', 'push', 'push_side', 'hit_up', 'hit_crush', 'knockback', 'fall', 'recover', 'downed', 'death']],
+  ['recovery', 'Recuperação de ataques', ['recovery_tackle', 'recovery_dodge', 'recovery_move']],
   ['tackle', 'Tackle', ['tackle', 'tackle_charge', 'tackle_pl2', 'tackle_pl3', 'brake', 'meteor_prep', 'meteor_dive', 'meteor_ground']],
   ['dodge', 'Esquivas', ['dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right']],
   ['jump', 'Salto', ['jump', 'jump_start', 'jump_rise', 'jump_apex', 'jump_fall', 'land']],

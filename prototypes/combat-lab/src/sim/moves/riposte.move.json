@@ -2,6 +2,12 @@
   "schemaVersion": 1,
   "def": {
     "id": "riposte",
+
+    "presentation": {
+
+      "action": "move_riposte"
+
+    },
     "name": "Riposte",
     "air": "cast",
     "group": "riposte",
