@@ -73,6 +73,10 @@ export function validateMove(def) {
     for (const k of CHARGE_OVERRIDES) if (def.charge[k] !== undefined && !(def.charge[k] >= 0)) fail(`charge.${k} inválido`);
   }
   if (def.cooldownBoost !== undefined && typeof def.cooldownBoost !== 'boolean') fail('cooldownBoost deve ser booleano');
+  if (def.presentation !== undefined) {
+    if (!def.presentation || typeof def.presentation !== 'object' || Array.isArray(def.presentation)) fail('presentation deve ser um objeto');
+    for (const key of ['action', 'charge', 'release']) if (def.presentation[key] !== undefined && (typeof def.presentation[key] !== 'string' || !def.presentation[key])) fail(`presentation.${key} deve ser uma chave de animação não vazia`);
+  }
   if (def.group !== undefined && !(C.world[def.group] && typeof C.world[def.group] === 'object')) fail(`group desconhecido (${def.group}): precisa existir em C.world`);
   if (def.tackle !== undefined && (typeof def.tackle !== 'string' || !def.tackle)) fail('tackle deve ser o nome de uma preparação registrada');
   if (def.aimMode !== undefined && (def.aimMode !== 'marker' || !def.group)) fail("aimMode so aceita 'marker' e exige group (os parametros do marcador vem de C.world[group])");
