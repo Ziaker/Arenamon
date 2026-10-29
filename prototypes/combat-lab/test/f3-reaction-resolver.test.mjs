@@ -88,7 +88,7 @@ function parity(name, legacy, modern, check) {
 const dir = {x: 0.6, z: -0.8}, raw = {x: 3, z: 4};
 
 test('os tipos de reação declarados', () => {
-  assert.deepEqual([...REACTION_KINDS].sort(), ['displacement', 'guardBreak', 'guardStun', 'hitstun', 'impulse', 'knockback', 'perfectGuard', 'recoil', 'stagger']);
+  assert.deepEqual([...REACTION_KINDS].sort(), ['barrierRecoil', 'counterStagger', 'displacement', 'guardBreak', 'guardStun', 'hitstun', 'impulse', 'knockback', 'perfectGuard', 'recoil', 'stagger', 'wallStagger']);
   assert.equal(applyReaction(base(), /** @type {any} */ ({kind: 'inexistente'})), null);
 });
 
@@ -168,4 +168,31 @@ test('eventos dos consumidores carregam displacementPolicy (applyHit, Sand Wave 
   assert.match(src('../src/sim/stone.js'), /result: 'rockLaunch'[^\n]*displacementPolicy: 'impulse'/);
   assert.doesNotMatch(src('../src/sim/world/world-hit.js'), /target\.push = \{/, 'applyHit não monta mais o empurrão à mão');
   assert.doesNotMatch(src('../src/sim/combat.js'), /\.state = 'stagger'|\.state = 'hitstun'|\.state = 'recoil'/, 'combat.js não grava reações à mão');
+});
+
+// ---------- Caminhos que antes escreviam o estado direto (world.js / sand.js): oráculos congelados do código anterior ----------
+const L2 = {
+  counterStagger(f, seconds) {
+    if ((f.counterStagger ?? 0) > 1e-9 || !(seconds > 0)) return false;
+    f.counterStagger = seconds;f.stagger = Math.max(f.stagger ?? 0, seconds);f.staggerMax = Math.max(f.staggerMax ?? 0, seconds);f.knockRecovery = Math.max(f.knockRecovery, seconds);f.recoveryKind = 'stagger';f.state = 'stagger';f.action = null;f.velocity = vec();f.locomotionVelocity = vec();f.hitSerial = (f.hitSerial ?? 0) + 1;
+    return true;
+  },
+  barrierRecoil(f, away, distance, stagDur, pushDur) {
+    f.action = null;f.velocity = vec();f.locomotionVelocity = vec();f.blend = null;f.vaultHeight = 0;f.state = 'stagger';f.recoveryKind = 'stagger';f.stagger = Math.max(f.stagger ?? 0, stagDur);f.staggerMax = Math.max(f.staggerMax ?? 0, stagDur);f.hitSerial = (f.hitSerial ?? 0) + 1;
+    f.push = {direction: away, distance, elapsed: 0, duration: pushDur};f.pushRecovery = pushDur;
+    f.knockRecovery = Math.max(f.knockRecovery, stagDur);
+  },
+  wallStagger(f, w) {
+    f.locomotionVelocity = {x: 0, z: 0};f.velocity = {x: 0, z: 0};f.knockRecovery = Math.max(f.knockRecovery, w);f.stagger = Math.max(f.stagger ?? 0, w);f.staggerMax = Math.max(f.staggerMax ?? 0, w);f.recoveryKind = 'stagger';f.state = 'stagger';f.hitSerial = (f.hitSerial ?? 0) + 1;
+  },
+};
+test('counterStagger = applyCounterStagger anterior (inclui recusa quando ativo ou duração <= 0)', () => {
+  for (const sec of [0.5, 0, -1]) parity('counterStagger', f => L2.counterStagger(f, sec), f => !!applyReaction(f, {kind: 'counterStagger', duration: sec}), (a, b) => assert.equal(b, a));
+  parity('counterStagger-ativo', f => {f.counterStagger = 0.2;return L2.counterStagger(f, 0.5);}, f => {f.counterStagger = 0.2;return !!applyReaction(f, {kind: 'counterStagger', duration: 0.5});}, (a, b) => assert.equal(b, a));
+});
+test('barrierRecoil = recuo do Tackle ao quebrar barreira anterior', () => {
+  parity('barrierRecoil', f => L2.barrierRecoil(f, dir, 0.7, 0.25, 0.3), f => applyReaction(f, {kind: 'barrierRecoil', direction: dir, distance: 0.7, stagger: 0.25, pushDuration: 0.3}));
+});
+test('wallStagger = stagger do Sand Wave contra a parede anterior', () => {
+  parity('wallStagger', f => L2.wallStagger(f, 0.4), f => applyReaction(f, {kind: 'wallStagger', duration: 0.4}));
 });

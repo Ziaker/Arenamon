@@ -7,7 +7,7 @@ import {C} from '../config.js';
 import {vec, scale, normalize} from '../math.js';
 
 /** Tipos de intenção aceitos por applyReaction. */
-export const REACTION_KINDS = Object.freeze(['impulse', 'displacement', 'knockback', 'hitstun', 'stagger', 'guardStun', 'guardBreak', 'perfectGuard', 'recoil']);
+export const REACTION_KINDS = Object.freeze(['impulse', 'displacement', 'knockback', 'hitstun', 'stagger', 'guardStun', 'guardBreak', 'perfectGuard', 'recoil', 'counterStagger', 'barrierRecoil', 'wallStagger']);
 
 /**
  * @typedef {{x: number, z: number}} V2
@@ -19,7 +19,10 @@ export const REACTION_KINDS = Object.freeze(['impulse', 'displacement', 'knockba
  *   | {kind: 'guardStun', duration: number, setState?: boolean, trackMax?: boolean}
  *   | {kind: 'guardBreak', duration: number}
  *   | {kind: 'perfectGuard', counterWindow: number, setState?: boolean}
- *   | {kind: 'recoil', heading: number}} ReactionIntent
+ *   | {kind: 'recoil', heading: number}
+ *   | {kind: 'counterStagger', duration: number}
+ *   | {kind: 'barrierRecoil', direction: V2, distance: number, stagger: number, pushDuration: number}
+ *   | {kind: 'wallStagger', duration: number}} ReactionIntent
  * @typedef {{policy: 'impulse'|'displacement'|'none', direction?: V2, horizontal?: number, vertical?: number, distance?: number, duration?: number, bounce?: boolean}} ReactionResult
  */
 
@@ -112,6 +115,27 @@ export function applyReaction(target, intent) {
       f.action = {kind: 'recoil', elapsed: 0, heading: i.heading, startAngle: 0, offensive: false, hits: new Set(), from: null};
       f.velocity = vec();f.state = 'recoil';f.blend = null;f.vaultHeight = 0;
       return {policy: 'none'};
+    }
+    case 'counterStagger': {   // Counter Stagger (PL): não acumula nem reinicia o ativo; interrompe a ação pela recuperação > 0
+      const d = i.duration;
+      if ((f.counterStagger ?? 0) > 1e-9 || !(d > 0)) return null;
+      f.counterStagger = d;f.stagger = Math.max(f.stagger ?? 0, d);f.staggerMax = Math.max(f.staggerMax ?? 0, d);f.knockRecovery = Math.max(f.knockRecovery, d);f.recoveryKind = 'stagger';f.state = 'stagger';
+      f.action = null;f.velocity = vec();f.locomotionVelocity = vec();countHit(f);
+      return {policy: 'none', duration: d};
+    }
+    case 'barrierRecoil': {   // Tackle que quebra barreira: stagger + recuo curto (push) na direção `direction`
+      const d = i.stagger;
+      f.action = null;f.velocity = vec();f.locomotionVelocity = vec();f.blend = null;f.vaultHeight = 0;f.state = 'stagger';f.recoveryKind = 'stagger';
+      f.stagger = Math.max(f.stagger ?? 0, d);f.staggerMax = Math.max(f.staggerMax ?? 0, d);countHit(f);
+      f.push = {direction: i.direction, distance: i.distance, elapsed: 0, duration: i.pushDuration};f.pushRecovery = i.pushDuration;
+      f.knockRecovery = Math.max(f.knockRecovery, d);
+      return {policy: 'displacement', direction: i.direction, distance: i.distance, duration: i.pushDuration};
+    }
+    case 'wallStagger': {   // Sand Wave: pressionado contra a parede para e fica em stagger
+      const d = i.duration;
+      f.locomotionVelocity = vec();f.velocity = vec();f.knockRecovery = Math.max(f.knockRecovery, d);
+      f.stagger = Math.max(f.stagger ?? 0, d);f.staggerMax = Math.max(f.staggerMax ?? 0, d);f.recoveryKind = 'stagger';f.state = 'stagger';countHit(f);
+      return {policy: 'none', duration: d};
     }
     default: return null;
   }

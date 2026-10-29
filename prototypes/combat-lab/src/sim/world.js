@@ -26,6 +26,7 @@ import {damageDestructible, effectiveArenaRadius} from './map.js';
 import {vec, add, sub, scale, dot, length, normalize, direction, angleOf, angleDelta, clamp} from './math.js';
 import {DEFAULTS, validateEntity} from './world/world-schema.js';
 import {applyHit, closestOnShape} from './world/world-hit.js';
+import {applyReaction} from './resolvers/reaction-resolver.js';
 
 // Fachada: o conteúdo foi dividido em módulos menores (pasta world/); os nomes exportados continuam os mesmos.
 export * from './world/world-schema.js';
@@ -328,7 +329,7 @@ export const TACKLE_PL = 1;export const tacklePL = f => f?.action?.pl ?? TACKLE
  */
 export function applyCounterStagger(f, seconds, events, by = null) {
   if ((f.counterStagger ?? 0) > 1e-9 || !(seconds > 0)) return false;
-  f.counterStagger = seconds;f.stagger = Math.max(f.stagger ?? 0, seconds);f.staggerMax = Math.max(f.staggerMax ?? 0, seconds);f.knockRecovery = Math.max(f.knockRecovery, seconds);f.recoveryKind = 'stagger';f.state = 'stagger';f.action = null;f.velocity = vec();f.locomotionVelocity = vec();f.hitSerial = (f.hitSerial ?? 0) + 1;
+  if (!applyReaction(f, {kind: 'counterStagger', duration: seconds})) return false;
   events?.push({result: 'counterStagger', attacker: by, target: f.id, damage: 0, seconds});
   return true;
 }/**
@@ -458,8 +459,6 @@ function breakByTackle(e, f, events) {
   e.dead = true;
   const cap = e.captured ?? {}, away = scale(direction(f.action.heading), -1);
   const stagDur = cap.tackleStagger ?? .25; const pushDur = cap.tackleRecoilDuration ?? stagDur;
-  f.action = null;f.velocity = vec();f.locomotionVelocity = vec();f.blend = null;f.vaultHeight = 0;f.state = 'stagger';f.recoveryKind = 'stagger';f.stagger = Math.max(f.stagger ?? 0, stagDur);f.staggerMax = Math.max(f.staggerMax ?? 0, stagDur);f.hitSerial = (f.hitSerial ?? 0) + 1;
-  f.push = {direction: away, distance: nominalDistance(f, 'tackle') * (cap.tackleRecoil ?? .15), elapsed: 0, duration: pushDur};f.pushRecovery = pushDur;
-  f.knockRecovery = Math.max(f.knockRecovery, cap.tackleStagger ?? .25);
+  applyReaction(f, {kind: 'barrierRecoil', direction: away, distance: nominalDistance(f, 'tackle') * (cap.tackleRecoil ?? .15), stagger: cap.tackleStagger ?? .25, pushDuration: pushDur});
   events?.push({result: 'barrierBroken', attacker: f.id, target: e.owner ?? null, damage: 0, entity: e.id, kind: 'barrier', by: 'tackle'});
 }
