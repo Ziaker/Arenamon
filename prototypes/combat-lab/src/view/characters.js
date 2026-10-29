@@ -25,7 +25,7 @@ import {mulberry} from '../sim/ai.js';
 import {fromGlbEvents, extractClipDuration} from '../sim/animation-combat-windows.js';
 import {sniffFormat} from './validate.js';
 import {tintColor} from './character-colors.js';
-import {emptyProfile, migrateProfile, resolveField, trimOf, loopRange, clipTimeAt, jumpPhaseFor, JUMP_PHASE_DEFAULTS} from '../sim/animation-profile.js';
+import {emptyProfile, migrateProfile, resolveField, trimOf, loopRange, clipTimeAt, jumpPhaseFor, easeCurve, JUMP_PHASE_DEFAULTS} from '../sim/animation-profile.js';
 import {getMove} from '../sim/moves.js';
 import {firstAvailablePresentationAction} from '../sim/move-presentation.js';
 
@@ -303,6 +303,8 @@ export class Character {
       if (legList?.length) return legList;
       return this.variantsOf('tackle');
     }
+    // Editor de animações: «Habilitada» desligada faz o estado ignorar o clipe e cair na reserva.
+    if (this.animProfile?.entries[id]?.enabled === false) return [];
     return (this.variants[id] || []).filter(i => this.clips[i] && this.clipInfo[i]?.compatible);
   }
   refreshVisual() {if (this.current) this.current.entry = '__mapping_changed__';}
@@ -424,7 +426,12 @@ export class Character {
       if (this.variantsOf(stateKey).length) return stateKey;
       return this.actionFor('tackle');
     }
-    for (const id of STATE_ACTIONS[stateKey] || ['idle']) if (this.variantsOf(id).length) return id;
+    for (const id of STATE_ACTIONS[stateKey] || ['idle']) {
+      if (this.variantsOf(id).length) return id;
+      // Reserva escolhida no editor de animações (vale antes das reservas padrão da cadeia).
+      const fb = this.animProfile?.entries[id]?.fallback;
+      if (fb && fb !== id && this.variantsOf(fb).length) return fb;
+    }
     return null;
   }
   /** O modelo tem clipe próprio em alguma fase do salto? Sem nenhum, o salto inteiro segue o clipe «jump» (comportamento anterior). */
@@ -640,8 +647,13 @@ export class Character {
     const serial = p ? p.serial : mp ? mp.serial : this.transient ? this.transient.serial : ACTION_KEYS.has(key) ? this.actionSerial : (f.hitSerial ?? 0);
     const entry = `${key}#${serial}`;
     if (!this.current || this.current.entry !== entry) {
-      const moveDef = !p && !mp && f.action?.kind === 'move' ? getMove(f.action.move) : null;
-      const moveAction = moveDef ? firstAvailablePresentationAction(moveDef, f.action.slot ?? 0, 'action', candidate => this.variantsOf(candidate).length > 0) : null;
+      const phaseMatch = !p && !mp ? /^(charge|release)_(.+)$/.exec(raw) : null;
+      const liveMoveId = !p && !mp ? (f.action?.move ?? f.charge?.move ?? phaseMatch?.[2] ?? null) : null;
+      const moveDef = liveMoveId ? getMove(liveMoveId) : null;
+      const loadoutSlot = liveMoveId ? (f.loadout?.indexOf(liveMoveId) ?? -1) : -1;
+      const moveSlot = f.action?.slot ?? f.charge?.slot ?? (loadoutSlot >= 0 ? loadoutSlot : 0);
+      const movePhase = phaseMatch?.[1] ?? 'action';
+      const moveAction = moveDef ? firstAvailablePresentationAction(moveDef, moveSlot, movePhase, candidate => this.variantsOf(candidate).length > 0) : null;
       const id = p ? 'preview' : moveAction ?? this.actionFor(key);
       if (id) {
         const index = p ? p.index : (mp ? (mp.phase === 'charge' ? mp.chargeIdx : mp.releaseIdx) : this.pickVariant(id, hash(this.slot, key, ctx.tick ?? Math.round(this.clock * 120), serial)));
@@ -678,8 +690,9 @@ export class Character {
     // atual, deixando o modelo sem ação ativa (bind pose/T-pose). A camada obsoleta sai sem parar a ação reutilizada.
     this.layers = this.layers.filter(layer => layer.action !== action);
     action.reset().play();action.paused = true;action.enabled = true;action.setEffectiveWeight(prev ? 0 : 1);
-    this.current = {key, id, index, clip, action, entry, started: this.clock, weight: prev ? 0 : 1, fade: this.profileValue(id, 'blendIn', clip.name) ?? (ACTION_KEYS.has(key) || COMBAT_KEYS.has(key) ? Character.options.actionFade : Character.options.fade)};
+    this.current = {key, id, index, clip, action, entry, started: this.clock, weight: prev ? 0 : 1, curve: this.profileValue(id, 'blendCurve', clip.name) ?? 'linear', fade: this.profileValue(id, 'blendIn', clip.name) ?? (ACTION_KEYS.has(key) || COMBAT_KEYS.has(key) ? Character.options.actionFade : Character.options.fade)};
     this.fade = 0;this.timer = 0;this.transitions++;
+    if (key === 'jump_apex') this.visualFreeze = Math.max(this.visualFreeze, this.profileValue(id, 'jumpApexFreeze', clip.name) ?? 0);   // pico do salto: congelamento opcional
     // Telemetria da troca.
     const d = prev ? prev.clip.duration || 1 : 1, played = prev ? prev.action.time : 0, pct = prev ? Math.min(1, played / d) : 0;
     const source = key === '__preview' ? 'prévia' : COMBAT_KEYS.has(key) || f.flight ? 'combate' : ACTION_KEYS.has(key) || key === 'guard' || key === 'guard_enter' || LOCOMOTION.has(key) || key === 'sprint' ? (ctx.source || 'jogador') : 'sistema';
@@ -699,7 +712,7 @@ export class Character {
     const fadeOf = layer => Math.max(.02, layer?.fade ?? Character.options.fade);
     let old = 0;
     for (const layer of this.layers) {
-      const k = Math.max(0, Math.min(1, (this.clock - layer.fadeStart) / fadeOf(this.current)));layer.weight = layer.fadeFrom * (1 - k);
+      const k = Math.max(0, Math.min(1, (this.clock - layer.fadeStart) / fadeOf(this.current)));layer.weight = layer.fadeFrom * (1 - easeCurve(this.current?.curve, k));
       if (layer.weight <= 1e-4) {layer.action.stop();layer.dead = true;continue;}
       const a = layer.action, d = layer.clip.duration || 1, s = this.speedOf(layer.id), playback = this.playbackOf(layer.id, layer.key), cap = Math.min(d, playback.maxDuration > 0 ? playback.maxDuration * s : d), next = a.time + dt * s;
       a.time = playback.loop ? next % Math.max(.001, cap) : Math.min(cap, next);
@@ -744,15 +757,18 @@ export class Character {
     // Sem root motion horizontal: projeta a posição no espaço mundial e remove X/Z ali. Não basta zerar X/Z local,
     // pois rigs com um ancestral rotacionado podem transformar o Y local em deslocamento horizontal no mundo
     // (caso real do Mushroom). O componente vertical continua disponível para o apoio no chão neutralizá-lo.
-    if (this.lockRootMotion) {
+    // Root motion por animação (editor): sobrescreve o global e libera X/Z individualmente.
+    const ownRoot = this.current ? this.profileValue(this.current.id, 'rootMotion', this.clips[this.current.index]?.name) : undefined;
+    const allowX = !!(this.current && this.profileValue(this.current.id, 'rootAllowX', this.clips[this.current.index]?.name)), allowZ = !!(this.current && this.profileValue(this.current.id, 'rootAllowZ', this.clips[this.current.index]?.name));
+    if (ownRoot !== undefined ? !ownRoot : this.lockRootMotion) {
       this.model.updateMatrixWorld(true);
       for (const {node, rest} of this.rootMotionNodes) {
         const parent = node.parent;
-        if (!parent) {node.position.x = rest.x;node.position.z = rest.z;node.updateMatrix();continue;}
+        if (!parent) {if (!allowX) node.position.x = rest.x;if (!allowZ) node.position.z = rest.z;node.updateMatrix();continue;}
         parent.updateWorldMatrix(true, false);
         this.rootMotionAnimated.copy(node.position).applyMatrix4(parent.matrixWorld);
         this.rootMotionRestWorld.copy(rest).applyMatrix4(parent.matrixWorld);
-        this.rootMotionAnimated.x = this.rootMotionRestWorld.x;this.rootMotionAnimated.z = this.rootMotionRestWorld.z;
+        if (!allowX) this.rootMotionAnimated.x = this.rootMotionRestWorld.x;if (!allowZ) this.rootMotionAnimated.z = this.rootMotionRestWorld.z;
         node.position.copy(parent.worldToLocal(this.rootMotionAnimated));node.updateMatrix();
       }
       this.model.updateMatrixWorld(true);
@@ -847,11 +863,13 @@ export class Character {
     else if (this.verticalBaseEntry !== entry) {this.verticalBase = ground;this.verticalBaseEntry = entry;}
     const support = verticalFree ? Math.min(ground, this.verticalBase ?? ground) : ground;
     const manual = (this.current ? this.clipOffsets[this.current.index] ?? 0 : 0) + this.visualOffset + (C.display.grounding.visualOffset || 0);
-    updateSquash(this.squash, f, dt, C.extras.visual.squashStretch, f.action?.kind === 'dodge' ? C.actions.dodge : C.actions.tackle);
+    const sqScale = this.current ? this.profileValue(this.current.id, 'squashScale', this.clips[this.current.index]?.name) : undefined, sqCfg = C.extras.visual.squashStretch;
+    updateSquash(this.squash, f, dt, sqScale !== undefined && sqScale !== 1 ? {...sqCfg, squashIntensity: sqCfg.squashIntensity * sqScale, stretchIntensity: sqCfg.stretchIntensity * sqScale} : sqCfg, f.action?.kind === 'dodge' ? C.actions.dodge : C.actions.tackle);
     const target = -support * scale + manual;
     // A trava elimina a subida/descida produzida pelo clipe. A altitude física continua vindo de `alt`.
     // Estados livres na vertical usam o alvo preso à base (nunca abaixo do chão); os demais mantêm o amortecimento.
-    if (autoGround && (this.lockToGround || verticalFree)) this.groundOffset = target;
+    const ownGround = this.current ? this.profileValue(this.current.id, 'lockToGround', this.clips[this.current.index]?.name) : undefined;
+    if (autoGround && ((ownGround ?? this.lockToGround) || verticalFree)) this.groundOffset = target;
     else this.groundOffset += (target - this.groundOffset) * (dt > 0 ? 1 - Math.exp(-dt / .06) : 1);
     // Como antes de criar os wrappers, descarta transformações animadas da raiz de apresentação.
     this.model.position.set(-this.modelAnchor.x, 0, -this.modelAnchor.z);this.model.rotation.set(0, 0, 0);this.model.scale.setScalar(1);

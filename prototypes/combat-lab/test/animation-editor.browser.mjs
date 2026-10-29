@@ -60,6 +60,46 @@ try {
     await page.click(`[data-div="${which}"]`);
   }
 
+  // Princípios: os 12 aparecem com sliders reais; todo controle tem tooltip.
+  await page.click('[data-tab="prin"]');
+  assert.equal(await page.locator('#anim-editor .ae-pr').count(), 12, '12 princípios');
+  await page.evaluate(() => document.querySelectorAll('#anim-editor .ae-pr').forEach(d => {d.open = true;}));
+  const untipped = await page.evaluate(() => [...document.querySelectorAll('#anim-editor .ae-props input, #anim-editor .ae-props select')].filter(el => !el.closest('[title]') && !el.title && !el.closest('label')?.title && !el.closest('.external')?.querySelector('.tune-help')).map(el => el.outerHTML.slice(0, 160)));
+  assert.deepEqual(untipped, [], 'todo controle dos princípios tem tooltip');
+  const squash = await page.locator('#anim-editor .ae-pr').first().locator('input[type=range]').count();
+  assert.ok(squash >= 4, 'squash & stretch tem sliders reais');
+  await page.screenshot({path: root + 'evidence/animation-editor/principios.png'});
+
+  // Parâmetros do jogo: salto mostra os sliders de salto globais.
+  await page.click('[data-tab="geral"]');await page.click('[data-act="jump"]');await page.click('[data-tab="jogo"]');
+  assert.ok(await page.locator('#anim-editor [data-jogo] .ctl, #anim-editor [data-jogo] input[type=range]').count() > 10, 'salto lista os sliders globais do jogo');
+  // Diagnóstico e transições.
+  await page.click('[data-tab="diag"]');
+  assert.match(await page.textContent('#anim-editor .ae-props'), /Cobertura de animações/);
+  await page.click('[data-tab="trans"]');
+  assert.ok(await page.locator('#anim-editor [data-fs="fallback"]').count() === 1, 'reserva editável');
+
+  // Moves: charge/release do Reflect estão na lista com o laço da carga.
+  await page.click('[data-act="charge_reflect"]');await page.click('[data-tab="geral"]');
+  assert.ok(await page.locator('#anim-editor [data-mvclip]').count() === 1, 'seletor de clipe da carga');
+
+  // Runtime: «Habilitada» desligada → reserva; reserva escolhida; curva de blend; congelamento no pico.
+  const rt = await page.evaluate(() => {
+    const c = window.__lab.ui.characters[0], out = {};
+    out.hasIdle = c.variantsOf('idle').length > 0;
+    c.animProfile.entries.idle = {enabled: false};out.disabled = c.variantsOf('idle').length === 0;delete c.animProfile.entries.idle;
+    c.animProfile.entries.walk_stop = {fallback: 'idle'};out.fb = c.actionFor('walk_stop');delete c.animProfile.entries.walk_stop;
+    return out;
+  });
+  assert.deepEqual(rt, {hasIdle: true, disabled: true, fb: 'idle'});
+
+  // Hitbox aparece sobre o personagem (malha de depuração no esqueleto).
+  await page.click('[data-act="tackle"]');await page.click('[data-tab="hit"]');await page.click('[data-hb-add]');
+  await page.waitForTimeout(300);
+  assert.equal(await page.evaluate(() => {let n = 0;window.__lab.ui.characters[0].root.traverse(o => {if (o.userData?.hb) n++;});return n;}), 1, 'hitbox visível no personagem');
+  await page.click('[data-hb-del]');await page.waitForTimeout(200);
+  assert.equal(await page.evaluate(() => {let n = 0;window.__lab.ui.characters[0].root.traverse(o => {if (o.userData?.hb) n++;});return n;}), 0, 'hitbox some ao remover');
+
   // Salto sem fases continua usando o clipe «jump»; com fase associada, o runtime escolhe a fase.
   const jumpMode = await page.evaluate(() => {
     const c = window.__lab.ui.characters[0], before = c.hasJumpPhases();

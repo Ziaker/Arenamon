@@ -30,7 +30,7 @@ export const ANIMATION_GROUPS = [
   ['dodge', 'Esquivas', ['dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right']],
   ['jump', 'Salto', ['jump', 'jump_start', 'jump_rise', 'jump_apex', 'jump_fall', 'land']],
   ['wall', 'Parede', ['wall_splat']],
-  ['moves', 'Moves', ['move_1', 'move_2', 'move_3', 'move_4']],
+  ['moves', 'Moves', ['move_1', 'move_2', 'move_3', 'move_4', 'charge_reflect', 'release_reflect', 'charge_psyshock', 'release_psyshock']],
 ];
 
 export const GROUP_OF = Object.fromEntries(ANIMATION_GROUPS.flatMap(([g, , ids]) => ids.map(id => [id, g])));
@@ -60,9 +60,29 @@ export const FIELDS = [
   {id: 'invulnEnd', group: 'Combate', label: 'Invencível: fim', unit: '%', min: 0, max: 100, step: 1, def: null, applied: false, tip: 'Fim da janela de invencibilidade.'},
   {id: 'freezeAt', group: 'Combate', label: 'Congelamento em', unit: '%', min: 0, max: 100, step: 1, def: null, applied: false, tip: 'Ponto do clipe em que o quadro congela (hit-stop visual).'},
   {id: 'freezeFor', group: 'Combate', label: 'Congelamento: duração', unit: 's', min: 0, max: .5, step: .01, def: 0, applied: false, tip: 'Quanto tempo o quadro fica congelado.'},
-  {id: 'rootMotion', group: 'Movimento', label: 'Root motion habilitado', type: 'bool', def: null, applied: true, store: 'lockRootMotion', invert: true, tip: 'Global: ligado, o clipe pode deslocar a raiz horizontalmente. Desligado (padrão), a posição vem só da física.'},
-  {id: 'lockToGround', group: 'Movimento', label: 'Trava ao chão', type: 'bool', def: null, applied: true, store: 'lockToGround', tip: 'Global: mantém os pés apoiados no solo, ignorando o sobe/desce do clipe.'},
+  {id: 'rootMotion', group: 'Movimento', label: 'Root motion habilitado', type: 'bool', def: null, applied: true, tip: 'Ligado, esta animação pode deslocar a raiz horizontalmente (vale por animação; o global do personagem fica na aba Movimento). Desligado, a posição vem só da física.'},
+  {id: 'lockToGround', group: 'Movimento', label: 'Trava ao chão', type: 'bool', def: null, applied: true, tip: 'Mantém os pés apoiados no solo, ignorando o sobe/desce do clipe. Vale só para esta animação; o global fica na aba Movimento.'},
   {id: 'verticalOffset', group: 'Movimento', label: 'Compensação vertical', unit: 'm', min: -2, max: 2, step: .01, def: 0, applied: true, store: 'clipOffsets', tip: 'Sobe ou desce o personagem enquanto este clipe toca.'},
+  {id: 'reverse', group: 'Reprodução', label: 'Direção (invertida)', type: 'bool', def: false, applied: false, tip: 'Toca o clipe de trás para frente (registrado).'},
+  {id: 'blendCurve', group: 'Mistura', label: 'Curva do blend', type: 'select', options: ['linear', 'ease-in', 'ease-out', 'ease-in-out'], def: 'linear', applied: true, tip: 'Forma do fade ao entrar neste clipe (slow in / slow out): linear, começa devagar, termina devagar ou os dois.'},
+  {id: 'priority', group: 'Mistura', label: 'Prioridade da camada', unit: '', min: 0, max: 10, step: 1, def: 0, applied: false, tip: 'Maior prioridade vence quando dois clipes disputam a mesma camada (registrado).'},
+  {id: 'repeats', group: 'Loop', label: 'Repetições do laço', unit: '×', min: 0, max: 20, step: 1, def: 0, applied: false, tip: '0 = repete até o estado terminar. Outro valor limita as voltas do laço central (registrado).'},
+  {id: 'exitCondition', group: 'Loop', label: 'Condição de saída do laço', type: 'select', options: ['fim do estado', 'ao soltar o comando', 'ao tocar o chão', 'após as repetições'], def: 'fim do estado', applied: false, tip: 'O que encerra o laço central e leva ao trecho final (registrado).'},
+  {id: 'armor', group: 'Combate', label: 'Armadura (redução de dano)', unit: '%', min: 0, max: 100, step: 5, def: 0, applied: false, tip: 'Reduz o dano e ignora o stun durante a janela ativa (registrado).'},
+  {id: 'bufferWindow', group: 'Combate', label: 'Buffer de entrada', unit: 's', min: 0, max: .5, step: .01, def: 0, applied: false, tip: 'Tempo antes do fim em que o próximo comando já é guardado (registrado).'},
+  {id: 'hitstopMult', group: 'Combate', label: 'Hit-stop (×)', unit: '×', min: 0, max: 3, step: .05, def: 1, applied: false, tip: 'Multiplica a pausa de impacto desta animação (registrado; o valor global fica em Parâmetros do jogo).'},
+  {id: 'interruptible', group: 'Combate', label: 'Interrompível', type: 'bool', def: true, applied: false, tip: 'Se a animação pode ser interrompida por reações (registrado).'},
+  {id: 'combatPriority', group: 'Combate', label: 'Prioridade de combate', unit: '', min: 0, max: 10, step: 1, def: 0, applied: false, tip: 'Maior prioridade vence um empate entre ações (registrado).'},
+  {id: 'rootAllowX', group: 'Movimento', label: 'Liberar root motion em X', type: 'bool', def: false, applied: true, tip: 'Com o root motion desta animação ligado, deixa o clipe deslocar o corpo lateralmente.'},
+  {id: 'rootAllowZ', group: 'Movimento', label: 'Liberar root motion em Z', type: 'bool', def: false, applied: true, tip: 'Com o root motion desta animação ligado, deixa o clipe deslocar o corpo para frente/trás.'},
+  {id: 'motionScale', group: 'Movimento', label: 'Escala do deslocamento', unit: '×', min: 0, max: 3, step: .05, def: 1, applied: false, tip: 'Multiplica o deslocamento do root motion (registrado).'},
+  {id: 'displacement', group: 'Movimento', label: 'Deslocamento total', unit: 'm', min: 0, max: 10, step: .05, def: 0, applied: false, tip: 'Distância total desejada ao longo da animação (registrado; a física decide o movimento real).'},
+  {id: 'verticalSpeed', group: 'Movimento', label: 'Velocidade vertical', unit: 'm/s', min: -20, max: 20, step: .1, def: 0, applied: false, tip: 'Velocidade vertical associada à animação (registrado; salto físico em Parâmetros do jogo).'},
+  {id: 'minTime', group: 'Transições', label: 'Tempo mínimo no estado', unit: 's', min: 0, max: 2, step: .01, def: 0, applied: false, tip: 'Tempo mínimo antes de poder sair desta animação (registrado).'},
+  {id: 'autoNext', group: 'Transições', label: 'Transição automática para', type: 'select', options: 'actions', def: '', applied: false, tip: 'Animação seguinte ao terminar (registrado).'},
+  {id: 'fallback', group: 'Transições', label: 'Reserva (fallback) se faltar clipe', type: 'select', options: 'actions', def: '', applied: true, tip: 'Se esta animação não tiver clipe, usa a escolhida aqui antes das reservas padrão do jogo.'},
+  {id: 'squashScale', group: 'Princípios', label: 'Squash & stretch (×)', unit: '×', min: 0, max: 3, step: .05, def: 1, applied: true, tip: 'Multiplica a deformação de squash & stretch enquanto esta animação toca (1 = o global).'},
+  {id: 'jumpApexFreeze', group: 'Salto', label: 'Congelamento no pico', unit: 's', min: 0, max: .3, step: .01, def: 0, applied: true, only: ['jump_apex'], tip: 'Segura a pose por este tempo ao entrar no pico do salto (hang time visual).'},
   {id: 'jumpStartTime', group: 'Salto', label: 'Duração do início do pulo', unit: 's', min: .02, max: .6, step: .01, def: JUMP_PHASE_DEFAULTS.startTime, applied: true, only: ['jump_start'], tip: 'Tempo desde o impulso em que vale a fase «Início do pulo».'},
   {id: 'jumpApexBand', group: 'Salto', label: 'Faixa do pico', unit: 'm/s', min: .1, max: 3, step: .05, def: JUMP_PHASE_DEFAULTS.apexBand, applied: true, only: ['jump_apex'], tip: 'Velocidade vertical (±) em que o personagem está no pico do salto.'},
 ];
@@ -93,7 +113,7 @@ export function migrateProfile(data) {
   for (const [k, v] of Object.entries(src.entries || {})) {
     if (!v || typeof v !== 'object') continue;
     const clean = {};
-    for (const [fid, val] of Object.entries(v)) if (FIELD_BY_ID[fid] && val !== undefined) clean[fid] = FIELD_BY_ID[fid].type === 'bool' ? (val === null ? null : !!val) : (val === null ? null : num(val, FIELD_BY_ID[fid].def ?? 0));
+    for (const [fid, val] of Object.entries(v)) if (FIELD_BY_ID[fid] && val !== undefined) clean[fid] = FIELD_BY_ID[fid].type === 'bool' ? (val === null ? null : !!val) : FIELD_BY_ID[fid].type === 'select' ? (val === null ? null : String(val)) : (val === null ? null : num(val, FIELD_BY_ID[fid].def ?? 0));
     if (Object.keys(clean).length) out.entries[k] = clean;
   }
   for (const [k, list] of Object.entries(src.hitboxes || {})) if (Array.isArray(list)) out.hitboxes[k] = list.map(normalizeHitbox);
@@ -134,7 +154,7 @@ export function setField(profile, key, fieldId, value) {
   const next = {...profile, entries: {...profile.entries}};
   const cur = {...(next.entries[key] || {})};
   if (value === null || value === undefined) delete cur[fieldId];
-  else cur[fieldId] = f.type === 'bool' ? !!value : clamp(num(value, f.def ?? 0), f.min ?? -Infinity, f.max ?? Infinity);
+  else cur[fieldId] = f.type === 'bool' ? !!value : f.type === 'select' ? String(value) : clamp(num(value, f.def ?? 0), f.min ?? -Infinity, f.max ?? Infinity);
   if (Object.keys(cur).length) next.entries[key] = cur;else delete next.entries[key];
   return next;
 }
@@ -225,3 +245,40 @@ export function validateEntry({duration, values = {}, hitboxes = [], markers = [
 
 /** Conjunto de ações listadas no editor (todas as existentes + fases novas). */
 export const ALL_EDITOR_ACTIONS = ANIMATION_GROUPS.flatMap(([, , ids]) => ids);
+
+/** Curva de suavização do blend (0–1 → 0–1). */
+export function easeCurve(name, k) {
+  const t = Math.min(1, Math.max(0, k));
+  if (name === 'ease-in') return t * t;
+  if (name === 'ease-out') return 1 - (1 - t) * (1 - t);
+  if (name === 'ease-in-out') return t * t * (3 - 2 * t);
+  return t;
+}
+
+/** Princípios da animação → sliders globais já existentes no jogo + campos do perfil (editor, aba Princípios). */
+export const PRINCIPLES = [
+  {id: 'squash', n: 1, name: 'Compressão e extensão (squash & stretch)', tip: 'Dá peso e elasticidade: o corpo comprime antes do impulso e estica na velocidade, preservando o volume.',
+    paths: ['extras.visual.squashStretch.enableSquashStretch', 'extras.visual.squashStretch.squashIntensity', 'extras.visual.squashStretch.stretchIntensity', 'extras.visual.squashStretch.squashWindow', 'extras.visual.squashStretch.settleDuration', 'extras.visual.squashStretch.preserveVolume', 'extras.visual.squashStretch.plScaling', 'extras.visual.squashStretch.squashOnDodge', 'extras.visual.squashStretch.dodgeSquashScale'], fields: ['squashScale']},
+  {id: 'anticipation', n: 2, name: 'Antecipação', tip: 'O movimento de preparação que avisa o que vem: agachar antes de pular, recuar antes do golpe.',
+    paths: ['rules.slamPrepTime', 'rules.feintWindow', 'rules.feintDuration', 'actions.tackle.curveStart', 'actions.dodge.curveStart'], fields: ['startup', 'jumpStartTime']},
+  {id: 'staging', n: 3, name: 'Encenação (staging)', tip: 'Deixar a ação legível: câmera, enquadramento e destaque do golpe.',
+    paths: ['extras.cameraExtra.cameraShakeAmount', 'extras.cameraExtra.cameraShakeDecay', 'extras.cameraExtra.framingPadding', 'extras.cameraExtra.lockTargetBias', 'extras.cameraExtra.framingSeparationFactor'], fields: []},
+  {id: 'posetopose', n: 4, name: 'Ação direta e pose a pose', tip: 'Como o clipe foi animado. No jogo você controla o recorte, o laço e as fases do clipe (aba Visão geral).',
+    paths: [], fields: ['trimStart', 'trimEnd', 'loopStart', 'loopEnd']},
+  {id: 'followthrough', n: 5, name: 'Continuidade e sobreposição (follow through)', tip: 'Partes do corpo que continuam depois do golpe e a transição suave para a próxima pose.',
+    paths: ['display.animation.fade', 'display.animation.actionFade', 'extras.combat.landingSkidFraction', 'extras.combat.landingSkidDrag', 'extras.combat.landingSkidMin', 'rules.slamRecovery', 'rules.landingRecovery'], fields: ['blendIn', 'blendOut']},
+  {id: 'slowinout', n: 6, name: 'Aceleração e desaceleração (slow in / slow out)', tip: 'Começar e terminar devagar, ganhando velocidade no meio.',
+    paths: ['locomotion.accelCurve', 'locomotion.brakeCurve', 'display.animation.locomotionHold'], fields: ['blendCurve']},
+  {id: 'arcs', n: 7, name: 'Arcos', tip: 'Trajetórias curvas naturais. No jogo vêm do clipe; o salto usa gravidade de subida e queda ajustáveis.',
+    paths: ['map.jumpGravityUp', 'map.jumpGravityDown', 'map.jumpHeight', 'actions.dodge.vaultUp', 'actions.dodge.vaultGravity'], fields: []},
+  {id: 'secondary', n: 8, name: 'Ação secundária', tip: 'Movimentos que reforçam a ação principal: rastro (smear), poeira, som.',
+    paths: ['extras.visual.smear.enableSmear', 'extras.visual.smear.smearDurationFrames', 'extras.visual.smear.smearMinVelocity', 'extras.visual.smear.smearWidth', 'extras.visual.smear.smearOpacity', 'extras.visual.smear.smearPlBoost', 'extras.visual.smear.smearOnDodge'], fields: []},
+  {id: 'timing', n: 9, name: 'Temporização (timing)', tip: 'Velocidade e duração: quanto tempo cada fase dura e quanto a pausa do impacto segura o golpe.',
+    paths: ['display.animation.speed', 'extras.combat.impactHitstop', 'extras.combat.clashHitstop', 'extras.combat.hitstopDamageBoost', 'extras.combat.hitstopDamageRef', 'extras.toggles.enableHitstop'], fields: ['speed', 'maxDuration', 'hitstopMult']},
+  {id: 'exaggeration', n: 10, name: 'Exagero', tip: 'Levar a pose e o impacto além do realista para dar força.',
+    paths: ['rules.slamImpactScale', 'rules.slamImpactShake', 'vfx.shakeHit.amplitude', 'vfx.shakeGround.amplitude', 'vfx.shakeClash.amplitude', 'vfx.shakeMaster.enabled'], fields: ['squashScale']},
+  {id: 'solid', n: 11, name: 'Volume e desenho sólido', tip: 'Manter o personagem com volume coerente: tamanho visual, largura e profundidade.',
+    paths: ['extras.visual.bodyHeight', 'extras.visual.bodyWidth', 'extras.visual.bodyDepth', 'display.grounding.autoGround', 'display.grounding.visualOffset'], fields: ['verticalOffset'], char: ['heightScale', 'widthScale']},
+  {id: 'appeal', n: 12, name: 'Apelo (appeal)', tip: 'Personalidade e leitura visual: cor do lutador, escala e identidade. Cor e tamanho ficam no menu rápido e em Personagens.',
+    paths: [], fields: [], char: ['heightScale', 'widthScale']},
+];
